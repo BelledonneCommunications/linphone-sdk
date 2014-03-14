@@ -195,4 +195,18 @@ __attribute__ ((visibility ("default"))) int bzrtp_isSecure(bzrtpContext_t *zrtp
  */
 __attribute__ ((visibility ("default"))) int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *zrtpPacketString, uint16_t zrtpPacketStringLength);
 
+/**
+ * @brief Called by user when the SAS has been verified
+ *
+ * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ */
+__attribute__ ((visibility ("default"))) void bzrtp_SASVerified(bzrtpContext_t *zrtpContext); 
+
+/**
+ * @brief Called by user when the SAS has been set to unverified
+ *
+ * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ */
+__attribute__ ((visibility ("default"))) void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext); 
+
 #endif /* ifndef BZRTP_H */

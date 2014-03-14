@@ -25,35 +25,29 @@
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 #include <stdlib.h>
+#include <string.h>
+#include <libxml/tree.h>
+#include <libxml/parser.h>
 #include "typedef.h"
-#include "string.h"
 #include "zidCache.h"
 
-/* local functions prototypes */
-int	bzrtp_findNextTag(uint8_t *cacheBuffer, uint32_t cacheBufferLength, uint32_t *position, uint8_t *tagName);
-int bzrtp_readTag(uint8_t *cacheBuffer, uint32_t cacheBufferLength, uint32_t *position, uint8_t *tagName, uint8_t tagNameLength, int *dataLength, uint8_t *data);
-
-int bzrtp_createTagFromBytes(uint8_t *tagName, uint8_t tagNameLength, uint8_t *data, uint8_t dataLength, uint8_t *tag);
-int	bzrtp_findClosingTag(uint8_t *cacheBuffer, uint32_t cacheBufferLength, uint32_t *position, uint8_t *tagName, uint8_t tagNameLength, uint8_t *data);
+#define MIN_VALID_CACHE_LENGTH 56 /* root tag + selfZID tag size */
+#define XML_HEADER_STRING "<?xml version='1.0' encoding='utf-8'?>"
+#define XML_HEADER_SIZE 38
+/* Local functions prototypes */
 void bzrtp_strToUint8(uint8_t *outputBytes, uint8_t *inputString, uint16_t inputLength);
 void bzrtp_int8ToStr(uint8_t *outputString, uint8_t *inputBytes, uint16_t inputBytesLength);
 uint8_t bzrtp_byteToChar(uint8_t inputByte);
 uint8_t bzrtp_charToByte(uint8_t inputChar);
+void bzrtp_writeCache(bzrtpContext_t *zrtpContext, xmlDocPtr doc);
 
-/*
- * @brief : retrieve ZID from cache
- * ZID is randomly generated if cache is empty or inexistant
- * ZID is randamly generated in case of cacheless implementation
- *
- * @param[in] 	context		The current zrpt context, used to access the random function if needed
- * 							and the ZID cache access function
- * @param[out]	selfZID		The ZID, retrieved from cache or randomly generated
- *
- * @return		0 on success
- */
 int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 	if (context == NULL) {
 		return ZRTP_ZIDCACHE_INVALID_CONTEXT; 
+	}
+	/* load the cache buffer. TODO: lock it as we may write it */
+	if (context->zrtpCallbacks.bzrtp_loadCache != NULL) {
+		context->zrtpCallbacks.bzrtp_loadCache(context->channelContext[0]->clientData, &context->cacheBuffer, &(context->cacheBufferLength));
 	}
 
 	/* we are running cacheless, return a random number */
@@ -62,144 +56,256 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 		return 0; 
 	}
 
-	uint8_t selfZidHex[24]; /* ZID is 96 bytes long -> 24 hexa characters */
-	int dataLength = 24;
-
-	uint32_t position=0;
-	if (bzrtp_readTag(context->cacheBuffer, context->cacheBufferLength, &position, (uint8_t *)"selfZID", 7, &dataLength, selfZidHex) == 0) { /* we found a selfZID in the cache */
-		/* convert it from hexa string to bytes string */
-		bzrtp_strToUint8(selfZID, selfZidHex, 24);
-	} else { /* no ZID found in the cache, generate it and write it to cache - it will erase anything in the cache which anyway shall be empty */
-		bzrtpCrypto_getRandom(context->RNGContext, selfZID, 12); /* generate the ZID */
-		uint8_t selfZIDTag[43]; /* tag length is 43 = 9(<selfZID)+24(data length)+ 10(</selfZID>)*/
-		int retval = bzrtp_createTagFromBytes((uint8_t *)"selfZID", 7, selfZID, 12, selfZIDTag);
-		if (retval!=0) {
-			return ZRTP_ZIDCACHE_UNABLETOUPDATE;
-		}
-		free(context->cacheBuffer);
-		context->cacheBufferLength = 43;
-		context->cacheBuffer = selfZIDTag;
-		context->zrtpCallbacks.bzrtp_writeCache(context->cacheBuffer, context->cacheBufferLength);
+	uint8_t *selfZidHex = NULL;
+	/* parse the cache to find the ZID element */
+	xmlDocPtr doc = NULL;
+	if (context->cacheBufferLength>MIN_VALID_CACHE_LENGTH) { /* don't even try to parse it if it is too small, we will create it */
+		doc = xmlParseDoc(context->cacheBuffer);
 	}
-
-	return 0;
-}
-
-/* the maximum length of a taf in the ZID cache file */
-#define MAX_TAG_LENGTH	64
-#define MAX_DATA_LENGTH	2*MAX_AUX_SECRET_LENGTH
-
-/**
- * @brief Read a tag content from the ZID cache file
- *
- * @param[in] 		cacheBuffer			The current cache buffer
- * @param[in] 		cacheBufferLenght	The current cache buffer length
- * @param[in/out] 	position			current position in the cache buffer
- * @param[in]		tagName				The tag name
- * @param[in]		tagNameLength		Length of the tag name
- * @param[in/out]	dataLength			Expected length of data, set to 0 if unknown and then modified to found value
- * @param[out]		data				The data read as a string
- *
- * @return 		0 on succes, -1 if the tag is not found
- */
-int bzrtp_readTag(uint8_t *cacheBuffer, uint32_t cacheBufferLength, uint32_t *position, uint8_t *tagName, uint8_t tagNameLength, int *dataLength, uint8_t *data) {
-	uint8_t bufferTag[MAX_TAG_LENGTH+3]; /* max tag length + </> */
-
-	int nextTagLength = 0;
-	/* find the tag opening */
-	while ((nextTagLength = bzrtp_findNextTag(cacheBuffer, cacheBufferLength, position, bufferTag))!=-1) {
-		if (memcmp(bufferTag, tagName, tagNameLength) == 0) { /* we found our tag copy it */
-			if (*dataLength!=0) { /* we have an expected length, so just read that amount */
-				if (*position+*dataLength+tagNameLength+3<=cacheBufferLength) {
-					if ((memcmp(cacheBuffer+*position+*dataLength, "</", 2) == 0) && (memcmp(cacheBuffer+*position+*dataLength+2, tagName, tagNameLength)==0) && (cacheBuffer[*position+*dataLength+tagNameLength+2] == *">")) {
-						memcpy(data, cacheBuffer+*position, *dataLength);
-						*position += *dataLength+tagNameLength+3;
-						return 0;
-					} else {
-						return -1; /* we found the correct tag but the closing wasn't set at the right place*/
-					}
-				} else {
-					return -1;
-				}
-			} else { /* we have no idea of content lenght, so read everything until we find the closing tag */
-				*dataLength = bzrtp_findClosingTag(cacheBuffer, cacheBufferLength, position, tagName, tagNameLength, data);
-				if (*dataLength == -1) {
-					return -1;
-				}
-				return 0;
+	if (doc != NULL ) { /* there is a cache, try to find our ZID */
+		xmlNodePtr cur = xmlDocGetRootElement(doc);
+		/* if we found a root element, parse its children node */
+		if (cur!=NULL) 
+		{
+			cur = cur->xmlChildrenNode;
+		}
+		while (cur!=NULL) {
+			if ((!xmlStrcmp(cur->name, (const xmlChar *)"selfZID"))){ /* self ZID found, extract it */
+				selfZidHex = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);		
+				/* convert it from hexa string to bytes string */
+				bzrtp_strToUint8(selfZID, selfZidHex, strlen((char *)selfZidHex));
+				break;
 			}
+			cur = cur->next;
 		}
 	}
-	return -1;
+
+
+	/* if we didn't found anything in cache, or we have no cache at all: generate ZID, cache string and write it to file */
+	if (selfZidHex==NULL) {
+		/* generate a random ZID */
+		bzrtpCrypto_getRandom(context->RNGContext, selfZID, 12);
+		/* convert it to an Hexa String */
+		uint8_t newZidHex[25];
+		bzrtp_int8ToStr(newZidHex, selfZID, 12);
+		newZidHex[24] = '\0'; /* the string must be null terminated for libxml2 to add it correctly in the element */
+		xmlFree(doc);
+		/* Create a new xml doc */
+		doc = xmlNewDoc((const xmlChar *)"1.0");
+		/* root tag is "cache" */
+		xmlNodePtr rootNode = xmlNewDocNode(doc, NULL, (const xmlChar *)"cache", NULL);
+	    xmlDocSetRootElement(doc, rootNode);
+		/* add the ZID child */
+		xmlNewTextChild(rootNode, NULL, (const xmlChar *)"selfZID", newZidHex);
+		
+		/* write the cache file and unlock it(TODO)*/
+		bzrtp_writeCache(context, doc);
+	}
+	/* TODO unlock the cache */
+	xmlFree(selfZidHex);
+	xmlFree(doc);
+
+	return 0;
 }
 
 /**
- * @brief find the next tag opening
- * at exit, the file stream pointer is positioned at the begining of data inside the tag found
+ * @brief Parse the cache to find secrets associated to the given ZID, set them and their length in the context if they are found 
  *
- * @param[in] 		cacheBuffer			The current cache buffer
- * @param[in] 		cacheBufferLenght	The current cache buffer length
- * @param[in/out] 	position			current position in the cache buffer
- * @param[out]		tagName				A buffer to copy the next tag name
+ * @param[in/out]	context		the current context, used to get the negotiated Hash algorithm and cache access functions and store result
+ * @param[in]		peerZID		a byte array of the peer ZID
  *
- * @result		tagLength on success, -1 if no tag opening were found
+ * return 	0 on succes, error code otherwise 
  */
-int	bzrtp_findNextTag(uint8_t *cacheBuffer, uint32_t cacheBufferLength, uint32_t *position, uint8_t *tagName) {
-
-	/* go to the first taf opening (seach for < not followed by /) */
-	while(!((*position>=cacheBufferLength) || ((cacheBuffer[*position] == *"<") && (cacheBuffer[*position+1] != *"/")))) {
-		*position +=1;
+int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]) {
+	if (context == NULL) {
+		return ZRTP_ZIDCACHE_INVALID_CONTEXT;
 	}
-	
-	/* check we are at a tag opening and not end of buffer */
-	if (cacheBuffer[*position] == *"<") {
-		*position +=1; /* skip the opening < */
-		int i=0;
-		while (cacheBuffer[*position] != *">") {
-			tagName[i++] = cacheBuffer[*position];
-			*position += 1;
+
+	/* resert cached secret buffer */
+	free(context->cachedSecret.rs1);
+	free(context->cachedSecret.rs2);
+	free(context->cachedSecret.pbxsecret);
+	free(context->cachedSecret.auxsecret);
+	context->cachedSecret.rs1 = NULL;
+	context->cachedSecret.rs1Length = 0;
+	context->cachedSecret.rs2 = NULL;
+	context->cachedSecret.rs2Length = 0;
+	context->cachedSecret.pbxsecret = NULL;
+	context->cachedSecret.pbxsecretLength = 0;
+	context->cachedSecret.auxsecret = NULL;
+	context->cachedSecret.auxsecretLength = 0;
+	context->cachedSecret.previouslyVerifiedSas = 0;
+
+	/* parse the cache to find the peer element matching the given ZID */
+	xmlDocPtr doc = NULL;
+	if (context->cacheBufferLength>MIN_VALID_CACHE_LENGTH) { /* don't even try to parse it if it is too small */
+		doc = xmlParseDoc(context->cacheBuffer);
+	}
+	if (doc != NULL ) { /* there is a cache, try to find our peer element */
+		uint8_t peerZidHex[24];
+		uint8_t *currentZidHex;
+		bzrtp_int8ToStr(peerZidHex, peerZID, 12); /* compute the peerZID as an Hexa string */
+
+		xmlNodePtr cur = xmlDocGetRootElement(doc);
+		/* if we found a root element, parse its children node */
+		if (cur!=NULL) 
+		{
+			cur = cur->xmlChildrenNode;
 		}
-		*position +=1; /* set the position just after the tag closing >*/
-		return i;
+		while (cur!=NULL) {
+			if ((!xmlStrcmp(cur->name, (const xmlChar *)"peer"))){ /* found a peer, check his ZID element */
+				currentZidHex = xmlNodeListGetString(doc, cur->xmlChildrenNode->xmlChildrenNode, 1); /* ZID is the first element of peer */
+				if (memcmp(currentZidHex, peerZidHex, 24) == 0) { /* we found the peer element we are looking for */
+					xmlNodePtr peerNode = cur->xmlChildrenNode->next; /* no need to parse the first child as it is the ZID node */
+					while (peerNode != NULL) { /* get all the needed information : rs1, rs2, pbx and aux if we found them */
+						uint8_t *nodeContent = NULL;
+						if (!xmlStrcmp(peerNode->name, (const xmlChar *)"rs1")) {
+							nodeContent = xmlNodeListGetString(doc, peerNode->xmlChildrenNode, 1);
+							context->cachedSecret.rs1 = (uint8_t *)malloc(RETAINED_SECRET_LENGTH);
+							context->cachedSecret.rs1Length = RETAINED_SECRET_LENGTH;
+							bzrtp_strToUint8(context->cachedSecret.rs1, nodeContent, 2*RETAINED_SECRET_LENGTH); /* RETAINED_SECRET_LENGTH is in byte, the nodeContent buffer is in hexa string so twice the length of byte string */
+						}
+						if (!xmlStrcmp(peerNode->name, (const xmlChar *)"rs2")) {
+							nodeContent = xmlNodeListGetString(doc, peerNode->xmlChildrenNode, 1);
+							context->cachedSecret.rs2 = (uint8_t *)malloc(RETAINED_SECRET_LENGTH);
+							context->cachedSecret.rs2Length = RETAINED_SECRET_LENGTH;
+							bzrtp_strToUint8(context->cachedSecret.rs2, nodeContent, 2*RETAINED_SECRET_LENGTH); /* RETAINED_SECRET_LENGTH is in byte, the nodeContent buffer is in hexa string so twice the length of byte string */
+						}
+						if (!xmlStrcmp(peerNode->name, (const xmlChar *)"aux")) {
+							nodeContent = xmlNodeListGetString(doc, peerNode->xmlChildrenNode, 1);
+							context->cachedSecret.auxsecretLength = strlen((const char *)nodeContent)/2;
+							context->cachedSecret.auxsecret = (uint8_t *)malloc(context->cachedSecret.auxsecretLength); /* aux secret is of user defined length, node Content is an hexa string */
+							bzrtp_strToUint8(context->cachedSecret.auxsecret, nodeContent, 2*context->cachedSecret.auxsecretLength); 
+						}
+						if (!xmlStrcmp(peerNode->name, (const xmlChar *)"pbx")) {
+							nodeContent = xmlNodeListGetString(doc, peerNode->xmlChildrenNode, 1);
+							context->cachedSecret.pbxsecret = (uint8_t *)malloc(RETAINED_SECRET_LENGTH);
+							context->cachedSecret.pbxsecretLength = RETAINED_SECRET_LENGTH;
+							bzrtp_strToUint8(context->cachedSecret.pbxsecret, nodeContent, 2*RETAINED_SECRET_LENGTH); /* RETAINED_SECRET_LENGTH is in byte, the nodeContent buffer is in hexa string so twice the length of byte string */
+						}
+						if (!xmlStrcmp(peerNode->name, (const xmlChar *)"pvs")) { /* this one is the previously verified sas flag */
+							nodeContent = xmlNodeListGetString(doc, peerNode->xmlChildrenNode, 1);
+							if (nodeContent[1] == *"1") { /* pvs is a boolean but is stored as a byte, on 2 hex chars */
+								context->cachedSecret.previouslyVerifiedSas = 1;
+							}
+						}
+						xmlFree(nodeContent);
+						peerNode = peerNode->next;
+					}
+					break;
+				}
+			}
+			cur = cur->next;
+		}
 	}
 
-	return -1;
+	xmlFree(doc);
+
+	return 0;
 }
 
-
 /**
- * @brief	Get a data buffer and convert it to hexa string and add opening and closing tags
+ * @brief Write the given taf into peer Node, if the tag exists, content is replaced
+ * Cache file is locked(TODO), read and updated during this call
  *
- * @param[in]	tagName 			a string containing the tag name
- * @param[in]	tagNameLength		the tag name length in chars
- * @param[in]	data				the byte buffer to be converted to hex and put into the tag
- * @param[in]	dataLength			the data buffer length in bytes
- * @param[out]	tag					the output buffer, length must be at least 2*tagNameLength+5+2*dataLength
- *
- * @return		0 on success
+ * @param[in/out]	context				the current context, used to get the negotiated Hash algorithm and cache access functions and store result
+ * @param[in]		peerZID				a byte array of the peer ZID
+ * @param[in]		tagName				the tagname of node to be written, it MUST be null terminated
+ * @param[in]		tagNameLength		the length of tagname (not including the null termination char)
+ * @param[in]		tagContent			the content of the node(a byte buffer which will be converted to hexa string)
+ * @param[in]		tagContentLength	the length of the content to be written
+ * 
+ * return 0 on success, error code otherwise
  */
+int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *tagName, uint8_t tagNameLength, uint8_t *tagContent, uint32_t tagContentLength) {
+	if ((context == NULL) || (context->zrtpCallbacks.bzrtp_loadCache == NULL)) {
+		return ZRTP_ZIDCACHE_INVALID_CONTEXT;
+	}
 
-int bzrtp_createTagFromBytes(uint8_t *tagName, uint8_t tagNameLength, uint8_t *data, uint8_t dataLength, uint8_t *tag) {
-	memcpy(tag, "<", 1);
-	tag++;
-	memcpy(tag, tagName, tagNameLength);
-	tag+=tagNameLength;
-	memcpy(tag, ">", 1);
-	tag++;
-	bzrtp_int8ToStr(tag, data, dataLength);
-	tag+=2*dataLength;
-	memcpy(tag, "</", 2);
-	tag+=2;
-	memcpy(tag, tagName, tagNameLength);
-	tag+=tagNameLength;
-	memcpy(tag, ">", 1);
-	tag++;
-	
+	/* turn the tagContent to an hexa string null terminated */
+	uint8_t *tagContentHex = (uint8_t *)malloc(2*tagContentLength+1);
+	bzrtp_int8ToStr(tagContentHex, tagContent, tagContentLength);
+	tagContentHex[2*tagContentLength] = '\0';
+
+	/* reload cache from file locking it (TODO: lock) */
+	free(context->cacheBuffer);
+	context->cacheBuffer = NULL;
+	context->cacheBufferLength = 0;
+	context->zrtpCallbacks.bzrtp_loadCache(context->channelContext[0]->clientData, &context->cacheBuffer, &(context->cacheBufferLength));
+
+	/* parse the cache to find the peer element matching the given ZID */
+	xmlDocPtr doc = NULL;
+	if (context->cacheBufferLength>MIN_VALID_CACHE_LENGTH) { /* don't even try to parse it if it is too small */
+		doc = xmlParseDoc(context->cacheBuffer);
+	}
+	if (doc != NULL ) { /* there is a cache, try to find our peer element */
+		uint8_t peerZidHex[25];
+		uint8_t *currentZidHex;
+		bzrtp_int8ToStr(peerZidHex, peerZID, 12); /* compute the peerZID as an Hexa string */
+		peerZidHex[24]='\0';
+
+		xmlNodePtr rootNode = xmlDocGetRootElement(doc);
+		xmlNodePtr cur = NULL;
+		/* if we found a root element, parse its children node */
+		if (rootNode!=NULL) 
+		{
+			cur = rootNode->xmlChildrenNode->next; /* first node is selfZID, don't parse it */
+		}
+		uint8_t nodeUpdated = 0; /* a boolean flag set if node is updated */
+		while (cur!=NULL) {
+			if ((!xmlStrcmp(cur->name, (const xmlChar *)"peer"))){ /* found a peer, check his ZID element */
+				currentZidHex = xmlNodeListGetString(doc, cur->xmlChildrenNode->xmlChildrenNode, 1); /* ZID is the first element of peer */
+				if (memcmp(currentZidHex, peerZidHex, 24) == 0) { /* we found the peer element we are looking for */
+					xmlNodePtr peerNode = cur->xmlChildrenNode->next;
+					while (peerNode != NULL && nodeUpdated==0) { /* look for the tag we want to write */
+						if ((!xmlStrcmp(peerNode->name, (const xmlChar *)tagName))){ /* check if we already have the tag we want to write */
+							xmlNodeSetContent(peerNode, (const xmlChar *)tagContentHex);
+							nodeUpdated = 1;
+						} else {
+							peerNode = peerNode->next;
+						}
+					}
+					if (nodeUpdated == 0) { /* if we didn't found our node, add it at the end of peer node */
+						xmlNewTextChild(cur, NULL, (const xmlChar *)tagName, tagContentHex);
+						nodeUpdated = 1;
+					}
+					break;
+				}
+			}
+			cur = cur->next;
+		}
+
+		/* we didn't find the peer element, create it with nodes ZID and tagName */
+		if (nodeUpdated == 0) {
+			xmlNodePtr peerNode = xmlNewNode(NULL, (const xmlChar *)"peer");
+			xmlNewTextChild(peerNode, NULL, (const xmlChar *)"ZID", peerZidHex);
+			xmlNewTextChild(peerNode, NULL, (const xmlChar *)tagName, tagContentHex);
+			xmlAddChild(rootNode, peerNode);
+		}
+
+
+		/* write the cache file and unlock it(TODO)*/
+		bzrtp_writeCache(context, doc);
+		xmlFree(doc);
+	}
+
 	return 0;
 }
 
 
+/*** Local functions implementations ***/
 
+void bzrtp_writeCache(bzrtpContext_t *zrtpContext, xmlDocPtr doc) {
+		free(zrtpContext->cacheBuffer);
+		zrtpContext->cacheBuffer = NULL;
+		zrtpContext->cacheBufferLength = 0;
+		xmlChar *xmlStringOutput;
+		xmlDocDumpFormatMemoryEnc(doc, &xmlStringOutput, (int *)&zrtpContext->cacheBufferLength, "UTF-8", 0);
+		zrtpContext->cacheBuffer = malloc(zrtpContext->cacheBufferLength);
+		memcpy(zrtpContext->cacheBuffer, xmlStringOutput, zrtpContext->cacheBufferLength);
+		xmlFree(xmlStringOutput);
+		zrtpContext->zrtpCallbacks.bzrtp_writeCache(zrtpContext->channelContext[0]->clientData, zrtpContext->cacheBuffer, zrtpContext->cacheBufferLength);
+}
 /**
  * @brief Convert an hexadecimal string into the corresponding byte buffer
  *
@@ -228,7 +334,6 @@ void bzrtp_int8ToStr(uint8_t *outputString, uint8_t *inputBytes, uint16_t inputB
 		outputString[2*i+1] = bzrtp_byteToChar(inputBytes[i]&0x0F);
 	}
 }
-
 
 /**
  * @brief	convert an hexa char [0-9a-fA-F] into the corresponding unsigned integer value
@@ -274,145 +379,4 @@ uint8_t bzrtp_byteToChar(uint8_t inputByte) {
 	}
 	/* a-f */
 	return inputByte + 0x57;
-}
-
-/**
- * @brief find the closing tag and copy in a buffer everything we find before arriving to it
- * at exit, the cacheBuffer is positioned at the end of the closing tag
- *
- * @param[in] 		cacheBuffer			The current cache buffer
- * @param[in] 		cacheBufferLenght	The current cache buffer length
- * @param[in/out] 	position			current position in the cache buffer
- * @param[in]		tagName				The tag name to to find
- * @param[in]		tagNameLength		The tag name length in bytes
- * @param[out]		data				An output buffer
- *
- * @result		dataLength on success, -1 if no tag closing were found
- */
-int	bzrtp_findClosingTag(uint8_t *cacheBuffer, uint32_t cacheBufferLength, uint32_t *position, uint8_t *tagName, uint8_t tagNameLength, uint8_t *data) {
-	int dataLength = 0;
-	/* go to the next closing tag (seach for </) */
-	while (*position+tagNameLength+2<cacheBufferLength) {
-		if ((cacheBuffer[*position] == *"<") && (cacheBuffer[*position+1] == *"/")) { /* found a closing tag */
-			/* it is the good one */
-			if ((memcmp(cacheBuffer+*position+2, tagName, tagNameLength) == 0) && (cacheBuffer[*position+tagNameLength+2] == *">")) {
-				*position += tagNameLength+3;
-				return dataLength;
-			} else { /* this is not the closing tag you are looking for */
-				data[dataLength++] = *"<";
-				data[dataLength++] = *"/";
-				*position += 2;
-			}
-		} else { /* no tag found, just copy data into the output buffer and increase position */
-			data[dataLength++] = cacheBuffer[*position];
-			*position +=1;
-		}
-	}
-	return -1;
-}
-
-
-/**
- * @brief Parse the cache to find secrets associated to the given ZID, set them and their length in the context if they are found 
- *
- * @param[in/out]	context		the current context, used to get the negotiated Hash algorithm and cache access functions and store result
- * @param[in]		peerZID		a byte array of the peer ZID
- *
- * return 	0 on succes, error code otherwise 
- */
-int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]) {
-	if (context == NULL) {
-		return ZRTP_ZIDCACHE_INVALID_CONTEXT;
-	}
-	uint8_t bufferTag[MAX_TAG_LENGTH+3]; /* max tag length + </> */
-	uint8_t bufferData[4*MAX_DATA_LENGTH+8*MAX_TAG_LENGTH];
-
-	/* resert cached secret buffer */
-	free(context->cachedSecret.rs1);
-	free(context->cachedSecret.rs2);
-	free(context->cachedSecret.pbxsecret);
-	free(context->cachedSecret.auxsecret);
-	context->cachedSecret.rs1 = NULL;
-	context->cachedSecret.rs1Length = 0;
-	context->cachedSecret.rs2 = NULL;
-	context->cachedSecret.rs2Length = 0;
-	context->cachedSecret.pbxsecret = NULL;
-	context->cachedSecret.pbxsecretLength = 0;
-	context->cachedSecret.auxsecret = NULL;
-	context->cachedSecret.auxsecretLength = 0;
-
-
-	/* get the peer tag matching the given ZID, form is
-	 * <peer>
-	 * 		<ZID>data</ZID> (only this one is mandatory, data is 24 hexa char)
-	 * 		<rs1>data</rs1> (data length depends on negotiated HMAC algorithm)
-	 * 		<rs2>data</rs1> (data length depends on negotiated HMAC algorithm)
-	 * 		<pbx>data</pbx> (data length depends on negotiated HMAC algorithm)
-	 * 		<aux>data</aux> (data length is variable)
-	 * 	</peer>
-	 * WARNING: if we want to add tags in the peer one, make them 3 chars long too
-	 */
-
-	/* do we have any cache loaded or we are running cacheless */
-	if (context->cacheBuffer != NULL && context->cacheBufferLength>43) { /* first 43 bytes in the cache must be the self ZID, no need to parse the cache if we have just this */
-		uint8_t *cacheBuffer = context->cacheBuffer; /* just to get code easier to read */
-		uint32_t cacheBufferLength = context->cacheBufferLength;  /* just to get code easier to read */
-		uint32_t position = 43; /* start position in the cache buffer, set it after the self ZID */
-
-		/* convert peerZID to a tag string */
-		uint8_t peerZIDtag[35]; /* ZID tag which is mandatory and the first one in the peer length is 5 + 24 + 6 = 35 */
-		bzrtp_createTagFromBytes((uint8_t *)"ZID", 3, peerZID, 12, peerZIDtag);
-
-		/* get the next peer tag */
-		while (bzrtp_findNextTag(cacheBuffer, cacheBufferLength, &position, bufferTag)!=-1) {
-			if (memcmp(bufferTag, "peer", 4) == 0) { /* we found a peer tag */
-				if (memcmp(cacheBuffer+position, peerZIDtag, 35) == 0) { /* this is the ZID we are looking for */
-					/* get all the data up to the peer closing tag, buffer data shall contain any of the rs1, rs2, pbx or aux tag */
-					int peerDataLength = bzrtp_findClosingTag(cacheBuffer, cacheBufferLength, &position, (uint8_t *)"peer", 4, bufferData);
-					if	(peerDataLength > 0) {
-						/* get the first tag in the buffer */
-						uint16_t index = 0;
-
-						while(bufferData[index] == *"<" && bufferData[index+4] == *">") {
-							memcpy(bufferTag, bufferData+index+1, 3); /* store the found tag name */
-							index+=5;
-							/*get the tag content in secretDataBuffer */
-							uint8_t secretDataBuffer[MAX_DATA_LENGTH]; /* this one store the hexa string */
-							int i = 0;
-							while(bufferData[index] != *"<" && index<peerDataLength) {
-								secretDataBuffer[i++] = bufferData[index++];
-							}
-
-							/* check we have the correct closing tag */
-							if ((bufferData[index+1] == *"/") && (memcmp(bufferData+2+index, bufferTag, 3) == 0)) {
-								if (memcmp(bufferTag, "rs1", 3) == 0) { /* found a rs1 tag */
-									context->cachedSecret.rs1 = (uint8_t *)malloc(i/2*sizeof(uint8_t));
-									bzrtp_strToUint8(context->cachedSecret.rs1, secretDataBuffer, i);
-									context->cachedSecret.rs1Length = i/2;
-								} else if (memcmp(bufferTag, "rs2", 3) == 0) { /* found a rs2 tag */
-									context->cachedSecret.rs2 = (uint8_t *)malloc(i/2*sizeof(uint8_t));
-									bzrtp_strToUint8(context->cachedSecret.rs2, secretDataBuffer, i);
-									context->cachedSecret.rs2Length = i/2;
-								} else if (memcmp(bufferTag, "pbx", 3) == 0) { /* found a pbx tag */
-									context->cachedSecret.pbxsecret = (uint8_t *)malloc(i/2*sizeof(uint8_t));
-									bzrtp_strToUint8(context->cachedSecret.pbxsecret, secretDataBuffer, i);
-									context->cachedSecret.pbxsecretLength = i/2;
-								} else if (memcmp(bufferTag, "aux", 3) == 0) { /* found a aux tag */
-									context->cachedSecret.auxsecret = (uint8_t *)malloc(i/2*sizeof(uint8_t));
-									bzrtp_strToUint8(context->cachedSecret.auxsecret, secretDataBuffer, i);
-									context->cachedSecret.auxsecretLength = i/2;
-								}
-								index+=6; /* move the index after the closing tag */
-							} else { /*we have a incorrect xml if we arrive here, the tag contains not only data but also an other tag... */
-								index--;
-							}
-						}
-					
-					}
-				}
-			}
-		}
-	}
-
-	return 0;
 }

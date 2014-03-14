@@ -25,7 +25,7 @@
  */
 
 #include <stdlib.h>
-#include "string.h"
+#include <string.h>
 #include "typedef.h"
 #include "packetParser.h"
 #include "cryptoUtils.h"
@@ -35,11 +35,12 @@
 
 /* Local functions prototypes */
 int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, bzrtpCommitMessage_t *commitMessage);
-int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, bzrtpStateMachine_t nextState);
+int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket);
 int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
 int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext); 
 int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
 int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext); 
+int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
 
 /*
  * @brief This is the initial state
@@ -108,11 +109,16 @@ int state_discovery_init(bzrtpEvent_t event) {
 
 		/* if we have an Hello packet, we must use it to determine which algo we will agree on */
 		if (zrtpPacket->messageType == MSGTYPE_HELLO) {
-			retval = bzrtp_responseToHelloMessage(zrtpContext, zrtpChannelContext, zrtpPacket, state_discovery_waitingForHelloAck);
+			retval = bzrtp_responseToHelloMessage(zrtpContext, zrtpChannelContext, zrtpPacket);
 			if (retval != 0) {
 				return retval;
 			}
 
+			/* reset the sending Hello timer as peer may have started slowly and lost all our Hello packets */
+			zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
+			zrtpChannelContext->timer.firingTime = 0;
+			zrtpChannelContext->timer.firingCount = 0;
+			zrtpChannelContext->timer.timerStep = HELLO_BASE_RETRANSMISSION_STEP;
 			
 			/* set next state (do not call it as we will just be waiting for a HelloACK packet from peer, nothing to do) */
 			zrtpChannelContext->stateMachine = state_discovery_waitingForHelloAck;
@@ -204,7 +210,7 @@ int state_discovery_waitingForHello(bzrtpEvent_t event)  {
 		/* packet is valid, set the sequence Number in channel context */
 		zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
 
-		retval = bzrtp_responseToHelloMessage(zrtpContext, zrtpChannelContext, zrtpPacket, state_discovery_waitingForHelloAck);
+		retval = bzrtp_responseToHelloMessage(zrtpContext, zrtpChannelContext, zrtpPacket);
 		if (retval != 0) {
 			return retval;
 		}
@@ -480,28 +486,41 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 
 			/* Check shared secret hash found in the DHPart1 message */
 			/* if we do not have the secret, don't check it as we do not expect the other part to have it neither */
+			/* TODO: in case of cache mismatch, warn the user and erase secret as it must not be used to compute s0 */
 			if (zrtpContext->cachedSecret.rs1!=NULL) {
-				if (memcmp(zrtpContext->initiatorCachedSecretHash.rs1ID, dhPart1Message->rs1ID,8) != 0) {
-					bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;
+				if (memcmp(zrtpContext->responderCachedSecretHash.rs1ID, dhPart1Message->rs1ID,8) != 0) {
+					free(zrtpContext->cachedSecret.rs1);
+					zrtpContext->cachedSecret.rs1= NULL;
+					zrtpContext->cachedSecret.rs1Length = 0;
+					/*bzrtp_freeZrtpPacket(zrtpPacket);
+					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
 			if (zrtpContext->cachedSecret.rs2!=NULL) {
-				if (memcmp(zrtpContext->initiatorCachedSecretHash.rs2ID, dhPart1Message->rs2ID,8) != 0) {
-					bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;
+				if (memcmp(zrtpContext->responderCachedSecretHash.rs2ID, dhPart1Message->rs2ID,8) != 0) {
+					free(zrtpContext->cachedSecret.rs2);
+					zrtpContext->cachedSecret.rs2= NULL;
+					zrtpContext->cachedSecret.rs2Length = 0;
+					/*bzrtp_freeZrtpPacket(zrtpPacket);
+					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
 			if (zrtpContext->cachedSecret.auxsecret!=NULL) {
-				if (memcmp(zrtpChannelContext->initiatorAuxsecretID, dhPart1Message->auxsecretID,8) != 0) {
-					bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;
+				if (memcmp(zrtpChannelContext->responderAuxsecretID, dhPart1Message->auxsecretID,8) != 0) {
+					free(zrtpContext->cachedSecret.auxsecret);
+					zrtpContext->cachedSecret.auxsecret= NULL;
+					zrtpContext->cachedSecret.auxsecretLength = 0;
+					/*bzrtp_freeZrtpPacket(zrtpPacket);
+					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
 			if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
-				if (memcmp(zrtpContext->initiatorCachedSecretHash.pbxsecretID, dhPart1Message->pbxsecretID,8) != 0) {
-					bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;
+				if (memcmp(zrtpContext->responderCachedSecretHash.pbxsecretID, dhPart1Message->pbxsecretID,8) != 0) {
+					free(zrtpContext->cachedSecret.pbxsecret);
+					zrtpContext->cachedSecret.pbxsecret= NULL;
+					zrtpContext->cachedSecret.pbxsecretLength = 0;
+					/*bzrtp_freeZrtpPacket(zrtpPacket);
+					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
 
@@ -711,26 +730,38 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 			/* if we do not have the secret, don't check it as we do not expect the other part to have it neither */
 			if (zrtpContext->cachedSecret.rs1!=NULL) {
 				if (memcmp(zrtpContext->initiatorCachedSecretHash.rs1ID, dhPart2Message->rs1ID,8) != 0) {
-					bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;
+					free(zrtpContext->cachedSecret.rs1);
+					zrtpContext->cachedSecret.rs1= NULL;
+					zrtpContext->cachedSecret.rs1Length = 0;
+					/*bzrtp_freeZrtpPacket(zrtpPacket);
+					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
 			if (zrtpContext->cachedSecret.rs2!=NULL) {
 				if (memcmp(zrtpContext->initiatorCachedSecretHash.rs2ID, dhPart2Message->rs2ID,8) != 0) {
-					bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;
+					free(zrtpContext->cachedSecret.rs2);
+					zrtpContext->cachedSecret.rs2= NULL;
+					zrtpContext->cachedSecret.rs2Length = 0;
+					/*bzrtp_freeZrtpPacket(zrtpPacket);
+					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
 			if (zrtpContext->cachedSecret.auxsecret!=NULL) {
 				if (memcmp(zrtpChannelContext->initiatorAuxsecretID, dhPart2Message->auxsecretID,8) != 0) {
-					bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;
+					free(zrtpContext->cachedSecret.auxsecret);
+					zrtpContext->cachedSecret.auxsecret= NULL;
+					zrtpContext->cachedSecret.auxsecretLength = 0;
+					/*bzrtp_freeZrtpPacket(zrtpPacket);
+					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
 			if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
 				if (memcmp(zrtpContext->initiatorCachedSecretHash.pbxsecretID, dhPart2Message->pbxsecretID,8) != 0) {
-					bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;
+					free(zrtpContext->cachedSecret.pbxsecret);
+					zrtpContext->cachedSecret.pbxsecret= NULL;
+					zrtpContext->cachedSecret.pbxsecretLength = 0;
+					/*bzrtp_freeZrtpPacket(zrtpPacket);
+					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
 
@@ -1077,6 +1108,9 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			if (retval!=0) {
 				return retval;
 			}
+			
+			/* compute and update in cache the retained shared secret */
+			bzrtp_updateCachedSecrets(zrtpContext, zrtpChannelContext);
 
 			/* send them to the environment for receiver as we may receive a srtp packet in response to our conf2ACK */
 			if (zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable != NULL) {
@@ -1244,6 +1278,9 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 			/* stop the retransmission timer */
 			zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 			
+			/* compute and update in cache the retained shared secret */
+			bzrtp_updateCachedSecrets(zrtpContext, zrtpChannelContext);
+
 			/* send the sender srtp keys to the client(we sent receiver only when the first confirm1 packet arrived) */
 			if (zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable != NULL) {
 				zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable(zrtpChannelContext->clientData, &zrtpChannelContext->srtpSecrets, ZRTP_SRTP_SECRETS_FOR_SENDER);
@@ -1324,7 +1361,7 @@ int state_secure(bzrtpEvent_t event) {
 	
 		/* call the environment to signal we're ready to operate */
 		if (zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession!= NULL) {
-			zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession(zrtpChannelContext->clientData, zrtpChannelContext->srtpSecrets.sas, 0); /* TODO: last param is the verified flag but we are cacheless for now so always 0*/
+			zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession(zrtpChannelContext->clientData, zrtpChannelContext->srtpSecrets.sas, zrtpContext->cachedSecret.previouslyVerifiedSas);
 		}
 		return 0;
 	}
@@ -1480,7 +1517,7 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
  *
  * @return 0 on succes, error code otherwise
  */
-int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, bzrtpStateMachine_t nextState) {
+int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket) {
 	int retval;
 	bzrtpHelloMessage_t *helloMessage = (bzrtpHelloMessage_t *)zrtpPacket->messageData;
 
@@ -1559,6 +1596,7 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 
 	/* When in PreShared mode Derive ZRTPSess, s0 from the retained secret and then all the other keys */
 	if ((zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh)) {
+		/*TODO*/
 	} else if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) { /* when in Multistream mode, do nothing, will derive s0 from ZRTPSess when we know who is initiator */
 
 
@@ -1977,6 +2015,48 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 		zrtpChannelContext->srtpSecrets.sas = malloc(zrtpChannelContext->sasLength); /*this shall take in account the selected representation algo for SAS */
 		zrtpChannelContext->sasFunction(sasValue, zrtpChannelContext->srtpSecrets.sas);
 	}
+
+	return 0;
+}
+
+/*
+ * @brief Compute the new rs1 and update the cached secrets according to rfc section 4.6.1
+ *
+ * param[in]		zrtpContext			The context we are operation on
+ * param[in/out]	zrtpChannelContext	The channel context we are operation on(contains s0)
+ *
+ * return 0 on success, error code otherwise
+ */
+int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
+	
+	/* if this channel context is in multistream mode, do nothing */
+	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) {
+		/* destroy s0 */
+		bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
+		free(zrtpChannelContext->s0);
+		zrtpChannelContext->s0 = NULL;
+		return 0;
+	}
+
+	/* if this channel context is not in DHM mode, backup rs1 in rs2 if it exists */
+	if (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Prsh) {
+		if (zrtpContext->cachedSecret.rs1 != NULL) {
+			bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"rs2", 3, zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length);
+		}
+	}
+
+	/* compute rs1  = KDF(s0, "retained secret", KDF_Context, 256) */
+	if (zrtpContext->cachedSecret.rs1 == NULL) {
+		zrtpContext->cachedSecret.rs1 = (uint8_t *)malloc(RETAINED_SECRET_LENGTH);
+		zrtpContext->cachedSecret.rs1Length = RETAINED_SECRET_LENGTH;
+	}
+	bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"retained secret", 15, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 32, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpContext->cachedSecret.rs1);
+	bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"rs1", 3, zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length);
+
+	/* destroy s0 */
+	bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
+	free(zrtpChannelContext->s0);
+	zrtpChannelContext->s0 = NULL;
 
 	return 0;
 }

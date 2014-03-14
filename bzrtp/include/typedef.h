@@ -39,7 +39,6 @@
 #define	RESPONDER	1
 
 #include <stdint.h>
-#include <stdio.h>
 
 typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 
@@ -71,7 +70,8 @@ typedef struct bzrtpTimer_struct {
 	uint8_t timerStep; /**< in ms. Step between next timer fire: used to reset firingTime for next timer fire */
 } bzrtpTimer_t;
 
-
+/* the rs1 and rs2 are 256 bits long - see rfc section 4.6.1 */
+#define RETAINED_SECRET_LENGTH 32
 /**
  * @brief A set of cached secrets retrieved from the cache as defined
  */
@@ -84,6 +84,7 @@ typedef struct cachedSecrets_struct {
 	uint8_t auxsecretLength; /**< auxiliary secret length in bytes */
 	uint8_t *pbxsecret; /**< PBX secret */
 	uint8_t pbxsecretLength; /**< PBX secret length in bytes */
+	uint8_t previouslyVerifiedSas; /* boolean, is a SAS has been previously verified with this user */
 } cachedSecrets_t;
 
 /**
@@ -101,8 +102,8 @@ typedef struct cachedSecretsHash_struct {
  */
 typedef struct zrtpCallbacks_struct {
 	/* cache related functions */
-	int (* bzrtp_loadCache)(uint8_t **cacheBuffer, uint32_t *cacheBufferSize); /**< Cache related function : load the whole cache file in a buffer allocated by the function, return the buffer and its size in bytes */
-	int (* bzrtp_writeCache)(uint8_t *input, uint32_t size); /**< Cache related function : write size bytes to cache */
+	int (* bzrtp_loadCache)(void *clientData, uint8_t **cacheBuffer, uint32_t *cacheBufferSize); /**< Cache related function : load the whole cache file in a buffer allocated by the function, return the buffer and its size in bytes */
+	int (* bzrtp_writeCache)(void *clientData, uint8_t *input, uint32_t size); /**< Cache related function : write size bytes to cache */
 
 	/* sending packets */
 	int (* bzrtp_sendData)(void *clientData, uint8_t *packetString, uint16_t packetLength); /**< Send a ZRTP packet to peer. Shall return 0 on success */

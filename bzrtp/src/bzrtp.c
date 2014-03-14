@@ -109,15 +109,14 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC)
 
 /**
  * @brief Perform some initialisation which can't be done without some callback functions:
- * - get ZID
+ *  This function is called once per session when the first channel is created.
+ *  It must be called after the cache callback function have been set
+ *  - load cache
+ *	- get ZID from cache or generate it
  *
- *   @param[in] 	context	The context to initialise
+ *	@param[in] 	context		The context to initialise
  */
 void bzrtp_initBzrtpContext(bzrtpContext_t *context) {
-	/* load the cache buffer */
-	if (context->zrtpCallbacks.bzrtp_loadCache != 0) {
-		context->zrtpCallbacks.bzrtp_loadCache(&context->cacheBuffer, &(context->cacheBufferLength));
-	}
 
 	/* initialise ZID. Randomly generated if no ZID is found in cache or no cache found */
 	bzrtp_getSelfZID(context, context->selfZID);
@@ -192,10 +191,10 @@ void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC)
 int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_t functionID) {
 	switch (functionID) {
 		case ZRTP_CALLBACK_LOADCACHE:
-			context->zrtpCallbacks.bzrtp_loadCache = (int (*)(uint8_t **, uint32_t *))functionPointer;
+			context->zrtpCallbacks.bzrtp_loadCache = (int (*)(void *, uint8_t **, uint32_t *))functionPointer;
 			break;
 		case ZRTP_CALLBACK_WRITECACHE: 
-			context->zrtpCallbacks.bzrtp_writeCache = (int (*)(uint8_t *, uint32_t))functionPointer;
+			context->zrtpCallbacks.bzrtp_writeCache = (int (*)(void *, uint8_t *, uint32_t))functionPointer;
 			break;
 		case ZRTP_CALLBACK_SENDDATA: 
 			context->zrtpCallbacks.bzrtp_sendData = (int (*)(void *, uint8_t *, uint16_t))functionPointer;
@@ -308,7 +307,6 @@ int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeReference) {
 	/* get channel context */
 	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
-	fflush(NULL);
 
 	if (zrtpChannelContext == NULL) {
 		return BZRTP_ERROR_INVALIDCONTEXT;
@@ -423,6 +421,32 @@ int bzrtp_isSecure(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 	return zrtpChannelContext->isSecure;
 }
 
+
+/*
+ * @brief Called by user when the SAS has been verified
+ * update the cache(if any) to set the previously verified flag
+ *
+ * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ */
+void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
+	if (zrtpContext != NULL) {
+		uint8_t pvsFlag = 1;
+		bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1);
+	}
+}
+
+/*
+ * @brief Called by user when the SAS has been set to unverified
+ * update the cache(if any) to unset the previously verified flag
+ *
+ * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ */
+void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext) {
+	if (zrtpContext != NULL) {
+		uint8_t pvsFlag = 0;
+		bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1);
+	}
+}
 
 /* Local functions implementation */
 

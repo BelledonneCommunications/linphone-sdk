@@ -139,7 +139,6 @@ bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, ui
 	 * TODO: what if we got a Sequence Number overflowing the 16 bits ? */
 	uint16_t sequenceNumber = (((uint16_t)input[2])<<8) | ((uint16_t)input[3]);
 	if (sequenceNumber <= lastValidSequenceNumber) {
-		printf("Sequence number check last %d current %d", lastValidSequenceNumber, sequenceNumber);
 		*exitCode = BZRTP_PARSER_ERROR_OUTOFORDER;
 		return NULL;
 	}
@@ -1219,7 +1218,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 				zrtpConfirmMessage->sig_len = 0; /* signature is not supported */
 				zrtpConfirmMessage->cacheExpirationInterval = 0xFFFFFFFF; /* expiration interval is set to unlimited as recommended in rfc section 4.9 */
 				zrtpConfirmMessage->E = 0; /* we are not a PBX and then will never signal an enrollment - rfc section 7.3.1 */
-				zrtpConfirmMessage->V = 0; /* TODO: this one shall be read from the cache - rfc section 7.1 */
+				zrtpConfirmMessage->V = zrtpContext->cachedSecret.previouslyVerifiedSas;
 				zrtpConfirmMessage->A = 0; /* Go clear message is not supported - rfc section 4.7.2 */
 				zrtpConfirmMessage->D = 0; /* The is no backdoor in our implementation of ZRTP - rfc section 11 */
 

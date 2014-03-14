@@ -30,7 +30,8 @@
 #include "typedef.h"
 
 #define ZRTP_ZIDCACHE_INVALID_CONTEXT	0x2001
-#define ZRTP_ZIDCACHE_UNABLETOUPDATE	0x2002
+#define ZRTP_ZIDCACHE_INVALID_CACHE		0x2002
+#define ZRTP_ZIDCACHE_UNABLETOUPDATE	0x2003
 
 /**
  * @brief : retrieve ZID from cache
@@ -55,4 +56,18 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]);
  */
 int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]);
 
+/**
+ * @brief Write the given taf into peer Node, if the tag exists, content is replaced
+ * Cache file is locked(TODO), read and updated during this call
+ *
+ * @param[in/out]	context				the current context, used to get the negotiated Hash algorithm and cache access functions and store result
+ * @param[in]		peerZID				a byte array of the peer ZID
+ * @param[in]		tagName				the tagname of node to be written, it MUST be null terminated
+ * @param[in]		tagNameLength		the length of tagname (not including the null termination char)
+ * @param[in]		tagContent			the content of the node(a byte buffer which will be converted to hexa string)
+ * @param[in]		tagContentLength	the length of the content to be written
+ * 
+ * return 0 on success, error code otherwise
+ */
+int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *tagName, uint8_t tagNameLength, uint8_t *tagContent, uint32_t tagContentLength);
 #endif /* ZIDCACHE_H */

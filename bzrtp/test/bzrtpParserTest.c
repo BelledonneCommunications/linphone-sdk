@@ -211,9 +211,19 @@ void test_parser(void) {
 
 }
 
+/* context structure mainly used by statemachine test, but also needed by parserComplete to get the zid Filename */
+typedef struct my_Context_struct {
+	unsigned char nom[30]; /* nom du contexte */
+	bzrtpContext_t *peerContext;
+	bzrtpChannelContext_t *peerChannelContext;
+	char zidFilename[80]; /* nom du fichier de cache */
+} my_Context_t;
 
-int floadAlice(uint8_t **output, uint32_t *size) {
-	FILE *ALICECACHE = fopen("test/ZIDAlice.txt", "r+");
+int floadAlice(void *clientData, uint8_t **output, uint32_t *size) {
+	/* get filename from ClientData */
+	my_Context_t *clientContext = (my_Context_t *)clientData;
+	char *filename = clientContext->zidFilename; 
+	FILE *ALICECACHE = fopen(filename, "r+");
 	fseek(ALICECACHE, 0L, SEEK_END);  /* Position to end of file */
   	*size = ftell(ALICECACHE);     /* Get file length */
   	rewind(ALICECACHE);               /* Back to start of file */
@@ -223,15 +233,23 @@ int floadAlice(uint8_t **output, uint32_t *size) {
 	return *size;
 }
 
-int fwriteAlice(uint8_t *input, uint32_t size) {
-	FILE *ALICECACHE = fopen("test/ZIDAlice.txt", "w+");
+int fwriteAlice(void *clientData, uint8_t *input, uint32_t size) {
+	/* get filename from ClientData */
+	my_Context_t *clientContext = (my_Context_t *)clientData;
+	char *filename = clientContext->zidFilename; 
+
+	FILE *ALICECACHE = fopen(filename, "w+");
 	int retval = fwrite(input, 1, size, ALICECACHE);
 	fclose(ALICECACHE);
 	return retval;
 }
 
-int floadBob(uint8_t **output, uint32_t *size) {
-	FILE *BOBCACHE = fopen("test/ZIDBob.txt", "r+");
+int floadBob(void *clientData, uint8_t **output, uint32_t *size) {
+	/* get filename from ClientData */
+	my_Context_t *clientContext = (my_Context_t *)clientData;
+	char *filename = clientContext->zidFilename; 
+
+	FILE *BOBCACHE = fopen(filename, "r+");
 	fseek(BOBCACHE, 0L, SEEK_END);  /* Position to end of file */
   	*size = ftell(BOBCACHE);     /* Get file length */
   	rewind(BOBCACHE);               /* Back to start of file */
@@ -242,8 +260,12 @@ int floadBob(uint8_t **output, uint32_t *size) {
 }
 
 
-int fwriteBob(uint8_t *input, uint32_t size) {
-	FILE *BOBCACHE = fopen("test/ZIDBob.txt", "w+");
+int fwriteBob(void *clientData, uint8_t *input, uint32_t size) {
+	/* get filename from ClientData */
+	my_Context_t *clientContext = (my_Context_t *)clientData;
+	char *filename = clientContext->zidFilename; 
+
+	FILE *BOBCACHE = fopen(filename, "w+");
 	int retval = fwrite(input, 1, size, BOBCACHE);
 	fclose(BOBCACHE);
 	return retval;
@@ -259,6 +281,16 @@ void test_parserComplete() {
 	/* Create zrtp Context */
 	bzrtpContext_t *contextAlice = bzrtp_createBzrtpContext(0x12345678); /* Alice's SSRC of main channel is 12345678 */
 	bzrtpContext_t *contextBob = bzrtp_createBzrtpContext(0x87654321); /* Bob's SSRC of main channel is 87654321 */
+
+	/* Create the client context, used for zidFilename only */
+	my_Context_t clientContextAlice;
+	my_Context_t clientContextBob;
+	memcpy(clientContextAlice.zidFilename, "test/ZIDAlice.txt", 18);
+	memcpy(clientContextBob.zidFilename, "test/ZIDBob.txt", 16);
+
+	/* attach the clientContext to the bzrtp Context */
+	retval = bzrtp_setClientData(contextAlice, 0x12345678, (void *)&clientContextAlice);
+	retval += bzrtp_setClientData(contextBob, 0x87654321, (void *)&clientContextBob);
 
 	/* set the cache related callback functions */
 	bzrtp_setCallback(contextAlice, (int (*)())floadAlice, ZRTP_CALLBACK_LOADCACHE);
@@ -1416,12 +1448,6 @@ void test_parserComplete() {
 }
 
 
-typedef struct my_Context_struct {
-	unsigned char nom[30]; /* nom du contexte */
-	bzrtpContext_t *peerContext;
-	bzrtpChannelContext_t *peerChannelContext;
-} my_Context_t;
-
 typedef struct packetDatas_struct {
 	uint8_t packetString[1000];
 	uint16_t packetLength;
@@ -1489,17 +1515,18 @@ void test_stateMachine() {
 	bzrtpContext_t *contextAlice = bzrtp_createBzrtpContext(0x12345678); /* Alice's SSRC of main channel is 12345678 */
 	bzrtpContext_t *contextBob = bzrtp_createBzrtpContext(0x87654321); /* Bob's SSRC of main channel is 87654321 */
 
-	/* operate cache less: no cache access functions */
+	/* set the cache related callback functions */
+	bzrtp_setCallback(contextAlice, (int (*)())floadAlice, ZRTP_CALLBACK_LOADCACHE);
+	bzrtp_setCallback(contextAlice, (int (*)())fwriteAlice, ZRTP_CALLBACK_WRITECACHE);
+
+	bzrtp_setCallback(contextBob, (int (*)())floadBob, ZRTP_CALLBACK_LOADCACHE);
+	bzrtp_setCallback(contextBob, (int (*)())fwriteBob, ZRTP_CALLBACK_WRITECACHE);
 
 	/* define the sendData function */
 	int retval;
 	retval = bzrtp_setCallback(contextAlice, (int (*)())bzrtp_sendData, ZRTP_CALLBACK_SENDDATA);
 	retval += bzrtp_setCallback(contextBob, (int (*)())bzrtp_sendData, ZRTP_CALLBACK_SENDDATA);
 	printf("Set callbacks return %x\n", retval);
-
-	/* run the init even if it useless as we are running cacheless and init just get the cache file */
-	bzrtp_initBzrtpContext(contextAlice);
-	bzrtp_initBzrtpContext(contextBob);
 
 	/* create the client Data and associate them to the channel contexts */
 	my_Context_t aliceClientData, bobClientData;
@@ -1510,10 +1537,17 @@ void test_stateMachine() {
 	aliceClientData.peerChannelContext = contextBob->channelContext[0];
 	bobClientData.peerContext = contextAlice;
 	bobClientData.peerChannelContext = contextAlice->channelContext[0];
+	memcpy(aliceClientData.zidFilename, "test/ZIDAlice.txt", 18);
+	memcpy(bobClientData.zidFilename, "test/ZIDBob.txt", 16);
+
 
 	retval = bzrtp_setClientData(contextAlice, 0x12345678, (void *)&aliceClientData);
 	retval += bzrtp_setClientData(contextBob, 0x87654321, (void *)&bobClientData);
 	printf("Set client data return %x\n", retval);
+
+	/* run the init */
+	bzrtp_initBzrtpContext(contextAlice);
+	bzrtp_initBzrtpContext(contextBob);
 
 	/* now start the engine */
 	uint64_t initialTime = getCurrentTimeInMs();
@@ -1581,7 +1615,7 @@ void test_stateMachine() {
 	printf ("Bob starts return %x\n", retval);
 
 	/* now start infinite loop until we reach secure state */
-	while ((getCurrentTimeInMs()-initialTime<3000)){
+	while ((getCurrentTimeInMs()-initialTime<2000)){
 		int i;
 		/* first check the message queue */
 		for (i=0; i<aliceQueueIndex; i++) {
