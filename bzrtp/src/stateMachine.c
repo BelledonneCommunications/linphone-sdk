@@ -824,7 +824,7 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 
 	/*** Manage the first call to this function ***/
 	/* We have to send a DHPart2 packet, it is already present in the context */
-	if ((event.eventType == BZRTP_EVENT_INIT)) {
+	if (event.eventType == BZRTP_EVENT_INIT) {
 		/* adjust the sequence number and sennd the packet */
 		retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
 		if (retval == 0) {
@@ -969,7 +969,7 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 		/* when in multistream mode, we must derive s0 and other keys from ZRTPSess */
 		if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) {
 			/* we need ZRTPSess */
-			if ((zrtpContext->ZRTPSess == NULL)) {
+			if (zrtpContext->ZRTPSess == NULL) {
 				return BZRTP_ERROR_INVALIDCONTEXT;
 			}
 			retval = bzrtp_computeS0MultiStreamMode(zrtpContext, zrtpChannelContext);
@@ -1595,7 +1595,7 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	}
 
 	/* When in PreShared mode Derive ZRTPSess, s0 from the retained secret and then all the other keys */
-	if ((zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh)) {
+	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) {
 		/*TODO*/
 	} else if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) { /* when in Multistream mode, do nothing, will derive s0 from ZRTPSess when we know who is initiator */
 
