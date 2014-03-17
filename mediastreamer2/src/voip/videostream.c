@@ -107,22 +107,26 @@ void video_stream_iterate(VideoStream *stream){
 	media_stream_iterate(&stream->ms);
 }
 
-static void choose_display_name(VideoStream *stream){
+const char *video_stream_get_default_video_renderer(void){
 #ifdef WIN32
-	stream->display_name=ms_strdup("MSDrawDibDisplay");
+	retur "MSDrawDibDisplay";
 #elif defined(ANDROID)
-	stream->display_name=ms_strdup("MSAndroidDisplay");
+	return "MSAndroidDisplay";
 #elif __APPLE__ && !defined(__ios)
-	stream->display_name=ms_strdup("MSOSXGLDisplay");
+	return "MSOSXGLDisplay";
 #elif defined (HAVE_XV)
-	stream->display_name=ms_strdup("MSX11Video");
+	return "MSX11Video";
 #elif defined(HAVE_GL)
-	stream->display_name=ms_strdup("MSGLXVideo");
+	return "MSGLXVideo";
 #elif defined(__ios)
-	stream->display_name=ms_strdup("IOSDisplay");	
+	return "IOSDisplay";
 #else
-	stream->display_name=ms_strdup("MSVideoOut");
+	return "MSVideoOut";
 #endif
+}
+
+static void choose_display_name(VideoStream *stream){
+	stream->display_name=ms_strdup(video_stream_get_default_video_renderer());
 }
 
 VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6){
