@@ -48,10 +48,8 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 	/* load the cache buffer. TODO: lock it as we may write it */
 	if (context->zrtpCallbacks.bzrtp_loadCache != NULL) {
 		context->zrtpCallbacks.bzrtp_loadCache(context->channelContext[0]->clientData, &context->cacheBuffer, &(context->cacheBufferLength));
-	}
-
-	/* we are running cacheless, return a random number */
-	if (context->cacheBuffer == NULL) {
+	} else {
+		/* we are running cacheless, return a random number */
 		bzrtpCrypto_getRandom(context->RNGContext, selfZID, 12);
 		return 0; 
 	}
