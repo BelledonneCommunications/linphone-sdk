@@ -61,7 +61,7 @@ list(APPEND EP_linphone_CONFIGURE_OPTIONS
 	"--enable-gtk_ui=no"
 	"--enable-console_ui=no"
 	"--disable-tutorials"
-	"--disable-tools"
+	"--enable-tools"
 	"--disable-msg-storage"
 	"--enable-relativeprefix=yes"
 )
