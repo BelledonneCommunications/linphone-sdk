@@ -115,10 +115,10 @@ dnl check antlr headers
 CPPFLAGS_save=$CPPFLAGS
 CPPFLAGS="$ANTLR_CFLAGS $CPPFLAGS"
 AC_CHECK_HEADERS([antlr3.h], [found_antlr3=yes])
-AC_CHECK_DECL([antlr3StringStreamNew]
-		,[AC_DEFINE(HAVE_ANTLR_STRING_STREAM_NEW,1,[Defined when antlr 3.4 api is detected])]
-		,[foo=bar]
-		,[#include <antlr3.h>])
+AC_CHECK_DECL([antlr3StringStreamNew],
+		[AC_DEFINE(HAVE_ANTLR_STRING_STREAM_NEW,1,[Defined when antlr 3.4 api is detected])],
+		[foo=bar],
+		[#include <antlr3.h>])
 libresolv_have_res_get_servers=no
 resolv_h_hav_res_ndestroy=no
 LIBS_save=$LIBS
@@ -132,10 +132,10 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <resolv.h>]],
 								,[LIBS=$LIBS_save
 									AC_MSG_WARN([res_getservers not usable])])
 			
-AC_CHECK_DECL([res_ndestroy]
-		,[resolv_h_hav_res_ndestroy=yes]
-		,[foo=bar]
-		,[#include <resolv.h>])
+AC_CHECK_DECL([res_ndestroy],
+		[resolv_h_hav_res_ndestroy=yes],
+		[foo=bar],
+		[#include <resolv.h>])
 if test "${libresolv_have_res_get_servers}${resolv_h_hav_res_ndestroy}" == "yesyes" ; then
 	AC_DEFINE(HAVE_RESINIT,1,[Defined when res_ninit api is available])
 fi
