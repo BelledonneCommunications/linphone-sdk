@@ -109,7 +109,7 @@ void video_stream_iterate(VideoStream *stream){
 
 const char *video_stream_get_default_video_renderer(void){
 #ifdef WIN32
-	retur "MSDrawDibDisplay";
+	return "MSDrawDibDisplay";
 #elif defined(ANDROID)
 	return "MSAndroidDisplay";
 #elif __APPLE__ && !defined(__ios)
