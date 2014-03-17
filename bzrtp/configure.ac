@@ -31,12 +31,28 @@ if test "$found_cunit" = "no" ; then
 		])
 fi
 
+dnl check polarssl
+
+AC_ARG_WITH( polarssl,
+      [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr, /usr/local)[default=PREFIX] ],
+      [ polarssl_prefix=${withval}],[ polarssl_prefix=${prefix} ])
+
+if test "$polarssl_prefix" != "NONE" ; then
+	POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
+	POLARSSL_LIBS="-L${polarssl_prefix}/lib"
+fi
+
+POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"
+
+AC_SUBST(POLARSSL_LIBS)
+AC_SUBST(POLARSSL_CFLAGS)
+
 dnl check libxml2
 PKG_CHECK_MODULES(LIBXML2, [libxml-2.0] ,[libxml2_found=yes] ,foo=bar)
 if test "$libxml2_found" != "yes" ; then
-	AC_MSG_WARN([libxml2 not found. Disabling cache.)])
+	AC_MSG_WARN([libxml2 not found. Disabling cache.])
 else
-	AC_DEFINE(HAVE_LIBXML2,1,[defined when libxml2 is available]) ]
+	AC_DEFINE(HAVE_LIBXML2,1,[defined when libxml2 is available])
 fi
 
 if test "$found_cunit" = "no" ; then
@@ -60,13 +76,11 @@ AC_ARG_ENABLE(tests,
 )
 AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_cunit = xyes)
 
-CFLAGS="$CFLAGS -Wall -std=c89"
+CFLAGS="$CFLAGS -Wall -std=c99"
 
 if test $GCC = yes && test $wall_werror = yes;  then
 	CFLAGS="$CFLAGS -Werror "
 fi
-
-LIBS="$LIBS -lpolarssl "
 
 # Create the following files from their .in counterparts
 AC_CONFIG_FILES([
