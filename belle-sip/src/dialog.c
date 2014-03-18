@@ -139,10 +139,7 @@ static int belle_sip_dialog_init_as_uas(belle_sip_dialog_t *obj, belle_sip_reque
 	/*call id already set */
 	/*remote party already set */
 	obj->local_party=(belle_sip_header_address_t*)belle_sip_object_ref(to);
-	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0){
-		belle_sip_dialog_init_200Ok_retrans(obj,resp);
-		obj->needs_ack=TRUE;
-	}
+
 	return 0;
 }
 
@@ -160,10 +157,6 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 	belle_sip_header_via_t *via=belle_sip_message_get_header_by_type(req,belle_sip_header_via_t);
 	belle_sip_uri_t *requri=belle_sip_request_get_uri(req);
 
-	if (!ct){
-		belle_sip_error("No contact in response.");
-		return -1;
-	}
 	if (!to){
 		belle_sip_error("No to in response.");
 		return -1;
@@ -176,6 +169,7 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 		belle_sip_error("No via in request.");
 		return -1;
 	}
+
 	if (strcasecmp(belle_sip_header_via_get_protocol(via),"TLS")==0
 	    && belle_sip_uri_is_secure(requri)){
 		obj->is_secure=TRUE;
@@ -193,7 +187,10 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 	}
 
 	check_route_set(obj->route_set);
-	obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
+	/*contact might be provided later*/
+	if (ct)
+		obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
+
 	obj->local_cseq=belle_sip_header_cseq_get_seq_number(cseq);
 	/*call id is already set */
 	/*local_tag is already set*/
@@ -201,58 +198,56 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 	/*local party is already set*/
 	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0){
 		set_last_out_invite(obj,req);
-		obj->needs_ack=TRUE;
 	}
 	return 0;
 }
 
 int belle_sip_dialog_establish_full(belle_sip_dialog_t *obj, belle_sip_request_t *req, belle_sip_response_t *resp){
-	int err;
-	if (obj->is_server)
-		err= belle_sip_dialog_init_as_uas(obj,req,resp);
-	else
-		err= belle_sip_dialog_init_as_uac(obj,req,resp);
-	if (err==0) set_state(obj,BELLE_SIP_DIALOG_CONFIRMED);
-	return err;
+	belle_sip_header_contact_t *ct=belle_sip_message_get_header_by_type(resp,belle_sip_header_contact_t);
+	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(resp,belle_sip_header_to_t);
+
+	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
+		obj->needs_ack=TRUE;
+
+	if (obj->is_server && strcmp(belle_sip_request_get_method(req),"INVITE")==0){
+		belle_sip_dialog_init_200Ok_retrans(obj,resp);
+	} else if (!obj->is_server && !obj->remote_target) {
+		if (!ct) {
+			belle_sip_error("Missing contact header in resp [%p] cannot set remote target for dialog [%p]",resp,obj);
+			return -1;
+		}
+		obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
+	}
+	/*update to tag*/
+	set_to_tag(obj,to);
+	set_state(obj,BELLE_SIP_DIALOG_CONFIRMED);
+	return 0;
 }
 
 int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req, belle_sip_response_t *resp){
-	int code=belle_sip_response_get_status_code(resp);
 	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(resp,belle_sip_header_to_t);
 	belle_sip_header_call_id_t *call_id=belle_sip_message_get_header_by_type(req,belle_sip_header_call_id_t);
+	int err;
 
-	if (!to){
-		belle_sip_error("No to in response.");
+	if (obj->state != BELLE_SIP_DIALOG_NULL) {
+		belle_sip_error("Dialog [%p] already established.",obj);
 		return -1;
 	}
 	if (!call_id){
 		belle_sip_error("No call-id in response.");
 		return -1;
 	}
+	obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
+
+	if (obj->is_server)
+		err= belle_sip_dialog_init_as_uas(obj,req,resp);
+	else
+		err= belle_sip_dialog_init_as_uac(obj,req,resp);
 	
-	if (code>100 && code<200){
-		if (obj->state==BELLE_SIP_DIALOG_NULL){
-			set_to_tag(obj,to);
-			obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
-			set_state(obj,BELLE_SIP_DIALOG_EARLY);
-		}
-		return -1;
-	}else if (code>=200 && code<300){
-		if (obj->state==BELLE_SIP_DIALOG_NULL){
-			set_to_tag(obj,to);
-			obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
-		}
-		if (belle_sip_dialog_establish_full(obj,req,resp)==-1){
-			return -1;
-		}
-	} else if (code>=300 && obj->state!=BELLE_SIP_DIALOG_CONFIRMED) {
-		/*12.3 Termination of a Dialog
-   	   	   Independent of the method, if a request outside of a dialog generates
-   	   	   a non-2xx final response, any early dialogs created through
-   	   	   provisional responses to that request are terminated.  The mechanism
-   	   	   for terminating confirmed dialogs is method specific.*/
-		belle_sip_dialog_delete(obj);
-	}
+	if (err) return err;
+
+	set_to_tag(obj,to);
+
 	return 0;
 }
 
@@ -325,12 +320,12 @@ static void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj){
  * return 0 if message should be delivered to the next listener, otherwise, its a retransmision, just keep it
  * */
 int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* transaction, int as_uas){
-	int code;
 	int is_retransmition=FALSE;
 	int delete_dialog=FALSE;
 	belle_sip_request_t *req=belle_sip_transaction_get_request(transaction);
 	belle_sip_response_t *resp=belle_sip_transaction_get_response(transaction);
-	
+	int code=-1;
+
 	belle_sip_message("Dialog [%p]: now updated by transaction [%p].",obj, transaction);
 	
 	belle_sip_object_ref(transaction);
@@ -345,16 +340,37 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	if (!resp)
 		return 0;
 
+
 	/*first update local/remote cseq*/
 	if (as_uas) {
 		belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_cseq_t);
 		obj->remote_cseq=belle_sip_header_cseq_get_seq_number(cseq);
 	}
+
+	code=belle_sip_response_get_status_code(resp);
 	switch (obj->state){
 		case BELLE_SIP_DIALOG_NULL:
-		case BELLE_SIP_DIALOG_EARLY:
-			if (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0)
+			/*alway establish a dialog*/
+			if (code>100 && code<300 && (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0)) {
 				belle_sip_dialog_establish(obj,req,resp);
+				if (code<200){
+					set_state(obj,BELLE_SIP_DIALOG_EARLY);
+					break;
+				}/* no break  for code >200 because need to call belle_sip_dialog_establish_full*/
+			}/* no break*/
+		case BELLE_SIP_DIALOG_EARLY:
+			/*don't terminate dialog for UPDATE*/
+			if (code>=300 && (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0)) {
+				/*12.3 Termination of a Dialog
+			   	   Independent of the method, if a request outside of a dialog generates
+			   	   a non-2xx final response, any early dialogs created through
+			   	   provisional responses to that request are terminated.  The mechanism
+			   	   for terminating confirmed dialogs is method specific.*/
+					belle_sip_dialog_delete(obj);
+					break;
+			}
+			if (code>=200 && code<300 && (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0))
+				belle_sip_dialog_establish_full(obj,req,resp);
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
 			code=belle_sip_response_get_status_code(resp);
@@ -559,10 +575,13 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 		belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] in state [%s]",method,obj,belle_sip_dialog_state_to_string(obj->state));
 		return NULL;
 	}
+	/*don't prevent to send a BYE in any case */
 	if (strcmp(method,"BYE")!=0 && obj->last_transaction && belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(obj->last_transaction))){
-		/*don't prevent to send a BYE in any case */
-		belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] while pending [%s] transaction in state [%s]",method,obj,belle_sip_transaction_get_method(obj->last_transaction), belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(obj->last_transaction)));
-		return NULL;
+
+		if (obj->state != BELLE_SIP_DIALOG_EARLY && strcmp(method,"UPDATE")!=0) {
+			belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] while pending [%s] transaction in state [%s]",method,obj,belle_sip_transaction_get_method(obj->last_transaction), belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(obj->last_transaction)));
+			return NULL;
+		} /*else UPDATE transaction can be send in // */
 	}
 	belle_sip_dialog_update_local_cseq(obj,method);
 	
@@ -852,8 +871,8 @@ int belle_sip_dialog_is_authorized_transaction(const belle_sip_dialog_t *dialog,
 			/*stupid as it is, you have to accept a NOTIFY for a SUBSCRIBE for which no answer is received yet...*/
 			return TRUE;
 		}
-		if (strcmp(last_transaction_request,"INVITE")==0 && strcmp(method,"PRACK")==0){
-			/*PRACK needs to be sent or received during reINVITEs.*/
+		if (strcmp(last_transaction_request,"INVITE")==0 && (strcmp(method,"PRACK")==0 || strcmp(method,"UPDATE")==0)){
+			/*PRACK /UPDATE needs to be sent or received during reINVITEs.*/
 			return TRUE;
 		}
 		return FALSE;
