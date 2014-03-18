@@ -193,12 +193,19 @@ void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, belle_sip_m
  */
 static void compute_hash_from_invariants(belle_sip_message_t *msg, char *branchid, size_t branchid_size, const char *initial){
 	md5_state_t ctx;
-	unsigned int cseq=belle_sip_header_cseq_get_seq_number(belle_sip_message_get_header_by_type(msg,belle_sip_header_cseq_t));
 	char tmp[256]={0};
 	uint8_t digest[16];
-	const char*callid=belle_sip_header_call_id_get_call_id(belle_sip_message_get_header_by_type(msg,belle_sip_header_call_id_t));
-	const char *from_tag=belle_sip_header_from_get_tag(belle_sip_message_get_header_by_type(msg,belle_sip_header_from_t));
-	const char *to_tag=belle_sip_header_to_get_tag(belle_sip_message_get_header_by_type(msg,belle_sip_header_to_t));
+
+	belle_sip_header_call_id_t* callid_hdr = belle_sip_message_get_header_by_type(msg,belle_sip_header_call_id_t);
+	belle_sip_header_cseq_t*      cseq_hdr = belle_sip_message_get_header_by_type(msg,belle_sip_header_cseq_t);
+	belle_sip_header_from_t*      from_hdr = belle_sip_message_get_header_by_type(msg,belle_sip_header_from_t);
+	belle_sip_header_to_t*          to_hdr = belle_sip_message_get_header_by_type(msg,belle_sip_header_to_t);
+
+	unsigned int    cseq = cseq_hdr   ? belle_sip_header_cseq_get_seq_number(cseq_hdr)   : 0;
+	const char   *callid = callid_hdr ? belle_sip_header_call_id_get_call_id(callid_hdr) : "";
+	const char *from_tag = from_hdr   ? belle_sip_header_from_get_tag(from_hdr)          : "";
+	const char   *to_tag = to_hdr     ? belle_sip_header_to_get_tag(to_hdr)              : "";
+
 	belle_sip_uri_t *requri=NULL;
 	belle_sip_header_via_t *via=NULL;
 	belle_sip_header_via_t *prev_via=NULL;

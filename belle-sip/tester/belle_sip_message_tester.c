@@ -469,6 +469,83 @@ void channel_parser_malformed_start () {
 	belle_sip_object_unref(stack);
 }
 
+static void testMalformedFrom_process_response_cb(void *user_ctx, const belle_sip_response_event_t *event){
+	int status = belle_sip_response_get_status_code(belle_sip_response_event_get_response(event));
+
+	belle_sip_message("testMalformedFrom_process_response_cb [%i]",status);
+
+	(*(int*)user_ctx) += 1; // increment the call counter
+
+	CU_ASSERT( status == 400 );
+}
+
+static void testMalformedFrom(void){
+	belle_sip_stack_t*        stack = belle_sip_stack_new(NULL);
+	belle_sip_listening_point_t* lp = belle_sip_stack_create_listening_point(stack,
+																			 "127.0.0.1",
+																			 45421,
+																			 "tcp");
+	belle_sip_provider_t* provider = belle_sip_provider_new(stack,lp);
+	belle_sip_listener_callbacks_t listener_cbs = {0};
+
+	const char* raw_message = "INVITE sip:us2@172.16.42.108 SIP/2.0\r\n"
+			"Via: SIP/2.0/TCP 127.0.0.1:45421;branch=z9hG4bK-edx-U_1zoIkaq72GJPqpSmDpJQ-ouBelFuLODzf9oS5J9MeFUA;rport\r\n"
+			"From: cm test <sip:00_1E_E0_00_1D_0D@us2>;tag=klsk+kwDc\r\n" /** 'cm test' should be enclosed in double quotes */
+			"To: <sip:us2@172.16.42.108;transport=tcp>\r\n"
+			"Contact: <sip:00_1E_E0_00_1D_0D@172.16.42.1>\r\n"
+			"Call-ID: 2b6fb0320-1384-179494-426025-23b6b0-2e3303331@172.16.42.1\r\n"
+			"Content-Type: application/sdp\r\n"
+			"Content-Length: 389\r\n"
+			"CSeq: 1 INVITE\r\n"
+			"Allow: INVITE, ACK, BYE, CANCEL, OPTIONS, INFO, UPDATE, REGISTER, MESSAGE, REFER, SUBSCRIBE, PRACK\r\n"
+			"Accept: application/sdp, application/dtmf-relay\r\n"
+			"Max-Forwards: 69\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"o=- 1826 1826 IN IP4 172.16.42.1\r\n"
+			"s=VeriCall Edge\r\n"
+			"c=IN IP4 172.16.42.1\r\n"
+			"t=0 0\r\n"
+			"m=audio 20506 RTP/AVP 0 8 13 101\r\n"
+			"a=rtpmap:0 PCMU/8000\r\n"
+			"a=rtpmap:8 PCMA/8000\r\n"
+			"a=rtpmap:13 CN/8000\r\n"
+			"a=rtpmap:101 telephone-event/8000\r\n"
+			"a=fmtp:101 0-15\r\n"
+			"m=video 24194 RTP/AVP 105 104\r\n"
+			"a=sendonly\r\n"
+			"a=rtpmap:105 H264/90000\r\n"
+			"a=fmtp:105 packetization-mode=0\r\n"
+			"a=rtpmap:104 H263-1998/90000\r\n"
+			"a=fmtp:104 CIF=1;J=1\r\n";
+
+	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
+	belle_sip_listener_t* listener = NULL;
+
+	int called_times = 0;
+
+	listener_cbs.process_response_event = testMalformedFrom_process_response_cb;
+	listener = belle_sip_listener_create_from_callbacks(&listener_cbs, &called_times);
+
+	belle_sip_provider_add_sip_listener(provider, listener);
+
+	belle_sip_object_ref(message);
+	belle_sip_object_ref(message); /* double ref: originally the message is created with 0 refcount, and dispatch_message will unref() it.*/
+
+	belle_sip_provider_dispatch_message(provider, message);
+	// we expect the stack to send a 400 error
+	belle_sip_stack_sleep(stack,1000);
+
+	CU_ASSERT_EQUAL(called_times,1);
+	belle_sip_provider_remove_sip_listener(provider,listener);
+
+	belle_sip_object_unref(listener);
+	belle_sip_object_unref(provider);
+	belle_sip_object_unref(stack);
+	belle_sip_object_unref(message);
+
+}
+
 
 static void testRFC2543Compat(void) {
 	belle_sip_server_transaction_t *tr;
@@ -754,6 +831,7 @@ test_t message_tests[] = {
 	{ "Origin extraction", test_extract_source },
 	{ "SIP frag", test_sipfrag },
 	{ "Malformed invite", testMalformedMessage },
+	{ "Malformed from", testMalformedFrom },
 	{ "Malformed invite with bad begin", testMalformedMessageWithWrongStart },
 	{ "Malformed register", testMalformedOptionnalHeaderInMessage },
 	{ "Channel parser error recovery", channel_parser_tester_recovery_from_error},
