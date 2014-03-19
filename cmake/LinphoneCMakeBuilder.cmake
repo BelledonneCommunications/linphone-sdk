@@ -169,6 +169,24 @@ macro(linphone_builder_apply_toolchain_flags)
 endmacro(linphone_builder_apply_toolchain_flags)
 
 
+macro(linphone_builder_apply_cmake_flags_to_autotools_project PROJNAME)
+	if("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+		set(BUILD_TYPES "Debug" "Release" "RelWithDebInfo" "MinSizeRel")
+		list(FIND BUILD_TYPES "${CMAKE_BUILD_TYPE}" BUILD_TYPE_FOUND)
+		set(BUILD_TYPE_SUFFIX "")
+		if(NOT ${BUILD_TYPE_FOUND} EQUAL -1)
+			string(TOUPPER "${CMAKE_BUILD_TYPE}" UPPER_BUILD_TYPE)
+			set(BUILD_TYPE_SUFFIX "_${UPPER_BUILD_TYPE}")
+		endif(NOT ${BUILD_TYPE_FOUND} EQUAL -1)
+		set(ep_asflags "${CMAKE_AS_FLAGS${BUILD_TYPE_SUFFIX}}")
+		set(ep_cppflags "${CMAKE_CPP_FLAGS${BUILD_TYPE_SUFFIX}}")
+		set(ep_cflags "${CMAKE_C_FLAGS${BUILD_TYPE_SUFFIX}}")
+		set(ep_cxxflags "${CMAKE_CXX_FLAGS${BUILD_TYPE_SUFFIX}}")
+		set(ep_ldflags "${CMAKE_LD_FLAGS${BUILD_TYPE_SUFFIX}}")
+	endif("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+endmacro(linphone_builder_apply_cmake_flags_to_autotools_project)
+
+
 macro(linphone_builder_apply_extra_flags PROJNAME)
 	if("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
 		set(ep_extra_asflags ${EP_${PROJNAME}_EXTRA_ASFLAGS})
@@ -236,6 +254,7 @@ endmacro(linphone_builder_create_configure_command)
 
 function(linphone_builder_add_project PROJNAME)
 	linphone_builder_set_ep_directories(${PROJNAME})
+	linphone_builder_apply_cmake_flags_to_autotools_project(${PROJNAME})
 	linphone_builder_apply_extra_flags(${PROJNAME})
 	linphone_builder_expand_external_project_vars()
 
