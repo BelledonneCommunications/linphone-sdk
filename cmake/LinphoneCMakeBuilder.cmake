@@ -171,6 +171,7 @@ endmacro(linphone_builder_apply_toolchain_flags)
 
 macro(linphone_builder_apply_extra_flags PROJNAME)
 	if("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+		set(ep_extra_asflags ${EP_${PROJNAME}_EXTRA_ASFLAGS})
 		set(ep_extra_cppflags ${EP_${PROJNAME}_EXTRA_CPPFLAGS})
 		set(ep_extra_cflags ${EP_${PROJNAME}_EXTRA_CFLAGS})
 		set(ep_extra_cxxflags ${EP_${PROJNAME}_EXTRA_CXXFLAGS})
