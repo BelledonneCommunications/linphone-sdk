@@ -63,3 +63,7 @@ set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
 	"--arch=${EP_ffmpeg_ARCH}"
 	"--target-os=${EP_ffmpeg_TARGET_OS}"
 )
+
+if(${ENABLE_X264})
+	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-decoder=h264")
+endif(${ENABLE_X264})
