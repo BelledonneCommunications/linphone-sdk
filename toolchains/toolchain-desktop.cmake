@@ -22,6 +22,16 @@
 
 # Default toolchain, use native environment.
 
+set(LINPHONE_BUILDER_TOOLCHAIN_HOST "")
+set(LINPHONE_BUILDER_TOOLCHAIN_CC "${CMAKE_C_COMPILER}")
+set(LINPHONE_BUILDER_TOOLCHAIN_CXX "${CMAKE_CXX_COMPILER}")
+set(LINPHONE_BUILDER_TOOLCHAIN_OBJC "${CMAKE_C_COMPILER}")
+set(LINPHONE_BUILDER_TOOLCHAIN_LD "${CMAKE_LINKER}")
+set(LINPHONE_BUILDER_TOOLCHAIN_AR "${CMAKE_AR}")
+set(LINPHONE_BUILDER_TOOLCHAIN_RANLIB "${CMAKE_RANLIB}")
+set(LINPHONE_BUILDER_TOOLCHAIN_STRIP "${CMAKE_STRIP}")
+set(LINPHONE_BUILDER_TOOLCHAIN_NM "${CMAKE_NM}")
+
 # Adjust PKG_CONFIG_PATH to include install directory
 if(UNIX)
 	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/:$ENV{PKG_CONFIG_PATH}:/usr/lib/pkgconfig/:/usr/lib/x86_64-linux-gnu/pkgconfig/:/usr/share/pkgconfig/:/usr/local/lib/pkgconfig/:/opt/local/lib/pkgconfig/")

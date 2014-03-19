@@ -54,3 +54,4 @@ set(EP_vpx_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
 	"--target=${EP_vpx_TARGET}"
 )
+set(EP_vpx_CONFIGURE_ENV "LD=$CC")
