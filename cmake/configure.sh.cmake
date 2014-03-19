@@ -25,5 +25,5 @@ cd @ep_build@
 if [ ! -f @ep_config_h_file@ ]
 then
 	@ep_autogen_command@ @ep_redirect_to_file@
-	@ep_configure_command@ @ep_redirect_to_file@
+	@ep_configure_env@ @ep_configure_command@ @ep_redirect_to_file@
 fi
