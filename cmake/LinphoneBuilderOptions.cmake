@@ -60,6 +60,12 @@ linphone_builder_add_feature_info("Speex" ENABLE_SPEEX "Speex audio encoding/dec
 
 cmake_dependent_option(ENABLE_FFMPEG "Enable ffmpeg support." ${DEFAULT_VALUE_ENABLE_FFMPEG} "ENABLE_VIDEO;ENABLE_GPL_THIRD_PARTIES" OFF)
 linphone_builder_add_feature_info("FFmpeg" ENABLE_FFMPEG "Some video processing features via FFmpeg: MPEG4 encoding/decoding, video scaling...")
+cmake_dependent_option(ENABLE_H263 "Enable H263 video codec support." ${DEFAULT_VALUE_ENABLE_H263} "ENABLE_FFMPEG" OFF)
+linphone_builder_add_feature_info("H263" ENABLE_H263 "H263 video encoding/decoding support.")
+cmake_dependent_option(ENABLE_H263P "Enable H263+ video codec support." ${DEFAULT_VALUE_ENABLE_H263P} "ENABLE_FFMPEG" OFF)
+linphone_builder_add_feature_info("H263+" ENABLE_H263P "H263+ video encoding/decoding support.")
+cmake_dependent_option(ENABLE_MPEG4 "Enable MPEG4 video codec support." ${DEFAULT_VALUE_ENABLE_MPEG4} "ENABLE_FFMPEG" OFF)
+linphone_builder_add_feature_info("MPEG4" ENABLE_MPEG4 "MPEG4 video encoding/decoding support.")
 cmake_dependent_option(ENABLE_VPX "Enable VPX video codec support." ${DEFAULT_VALUE_ENABLE_VPX} "ENABLE_VIDEO" OFF)
 linphone_builder_add_feature_info("VPX" ENABLE_VPX "VPX video encoding/decoding support.")
 cmake_dependent_option(ENABLE_X264 "Enable H.264 video encoder support with the x264 library." ${DEFAULT_VALUE_ENABLE_X264} "ENABLE_FFMPEG" OFF)

@@ -41,6 +41,21 @@ set(EP_ffmpeg_CONFIGURE_OPTIONS
 	"--disable-vaapi"
 	"--disable-vdpau"
 )
+if(${ENABLE_H263})
+	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
+		"--enable-decoder=h263"
+		"--enable-encoder=h263"
+	)
+endif(${ENABLE_H263})
+if(${ENABLE_H263P})
+	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-encoder=h263p")
+endif(${ENABLE_H263P})
+if(${ENABLE_MPEG4})
+	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
+		"--enable-decoder=mpeg4"
+		"--enable-encoder=mpeg4"
+	)
+endif(${ENABLE_MPEG4})
 set(EP_ffmpeg_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch")
 set(EP_ffmpeg_ARCH "i386")
