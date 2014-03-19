@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
-set(EP_ms2_GIT_TAG "c8c550164dc4c0c296202cee9c8427fdb28adff0") # Branch 'master'
+set(EP_ms2_GIT_TAG "9956d3d6e37a09991b948b1cad8d1382e046b0d1") # Branch 'master'
 
 if(WIN32)
 	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.

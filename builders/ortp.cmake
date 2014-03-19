@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
-set(EP_ortp_GIT_TAG "fa567138c79f52733550906122001e806ab6329d") # Branch 'master'
+set(EP_ortp_GIT_TAG "c0418933b7ce4765993b7304809e43df6ed392dd") # Branch 'master'
 
 if(WIN32)
 	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
