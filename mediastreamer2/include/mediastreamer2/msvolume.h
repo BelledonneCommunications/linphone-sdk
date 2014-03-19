@@ -69,6 +69,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MS_VOLUME_SET_EA_TRANSMIT_THRESHOLD	MS_FILTER_METHOD(MS_VOLUME_ID,17,float)
 
+/**
+ * Obtain the minimum volume, in db, over the last X seconds period completed (X=30 seconds by default)
+**/
+#define MS_VOLUME_GET_MIN	MS_FILTER_METHOD(MS_VOLUME_ID,18,float)
+
+/**
+ * Obtain the maximum volume, in db, over the last X seconds period completed (X=1 second by default)
+**/
+#define MS_VOLUME_GET_MAX	MS_FILTER_METHOD(MS_VOLUME_ID,19,float)
 
 #define MS_VOLUME_DB_LOWEST		(-120)	/*arbitrary value returned when linear volume is 0*/
 

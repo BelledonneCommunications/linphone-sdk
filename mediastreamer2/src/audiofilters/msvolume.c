@@ -40,6 +40,69 @@ static const float transmit_thres=4;
 static const float min_ng_floorgain=0.005;
 static const float agc_threshold=0.5;
 
+typedef struct Extremum{
+	float current_extremum;
+	uint64_t extremum_time;
+	float last_stable;
+	int period;
+}Extremum;
+
+static void extremum_reset(Extremum *obj){
+	obj->current_extremum=0;
+	obj->extremum_time=(uint64_t)-1;
+	obj->last_stable=0;
+}
+
+static void extremum_init(Extremum *obj, int period){
+	extremum_reset(obj);
+	obj->period=period;
+}
+
+static void extremum_set_new(Extremum *obj, const char* kind){
+	obj->last_stable=obj->current_extremum;
+	/*ms_message("New %s value : %f",kind,obj->last_stable);*/
+}
+
+static void extremum_check_init(Extremum *obj, uint64_t curtime, float value, const char *kind){
+	if (obj->extremum_time!=(uint64_t)-1){
+		if (curtime-obj->extremum_time>obj->period){
+			/*last extremum is too old, drop it*/
+			extremum_set_new(obj,kind);
+			obj->extremum_time=(uint64_t)-1;
+		}
+	}
+	if (obj->extremum_time==(uint64_t)-1){
+		obj->current_extremum=value;
+		obj->extremum_time=curtime;
+	}
+}
+
+static void extremum_record_min(Extremum *obj, uint64_t curtime, float value){
+	extremum_check_init(obj,curtime,value,"min");
+	if (value<obj->current_extremum){
+		obj->current_extremum=value;
+		obj->extremum_time=curtime;
+		if (value<obj->last_stable){
+			extremum_set_new(obj,"min");
+		}
+	}
+}
+
+static void extremum_record_max(Extremum *obj, uint64_t curtime, float value){
+	extremum_check_init(obj,curtime,value,"max");
+	if (value>obj->current_extremum){
+		obj->current_extremum=value;
+		obj->extremum_time=curtime;
+		if (value>obj->last_stable){
+			extremum_set_new(obj,"max");
+		}
+	}
+}
+
+static float extremum_get_current(Extremum *obj){
+	return obj->last_stable;
+}
+
 typedef struct Volume{
 	float energy;
 	float level_pk;
@@ -70,6 +133,8 @@ typedef struct Volume{
 	float ng_floorgain;
 	float ng_gain;
 	MSBufferizer *buffer;
+	Extremum min;
+	Extremum max;
 	bool_t agc_enabled;
 	bool_t noise_gate_enabled;
 	bool_t remove_dc;
@@ -105,6 +170,8 @@ static void volume_init(MSFilter *f){
 #ifdef HAVE_SPEEXDSP
 	v->speex_pp=NULL;
 #endif
+	extremum_init(&v->max,1000);
+	extremum_init(&v->min,30000);
 	f->data=v;
 }
 
@@ -127,6 +194,20 @@ static int volume_get(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
 	*farg=linear_to_db(v->energy);
+	return 0;
+}
+
+static int volume_get_min(MSFilter *f, void *arg){
+	float *farg=(float*)arg;
+	Volume *v=(Volume*)f->data;
+	*farg=linear_to_db(extremum_get_current(&v->min));
+	return 0;
+}
+
+static int volume_get_max(MSFilter *f, void *arg){
+	float *farg=(float*)arg;
+	Volume *v=(Volume*)f->data;
+	*farg=linear_to_db(extremum_get_current(&v->max));
 	return 0;
 }
 
@@ -364,7 +445,7 @@ static inline int16_t saturate(int val) {
 
 // note: number of samples should not vary much
 // with filtered peak detection, variable buffer size from volume_process call is not optimal
-static void update_energy(int16_t *signal, int numsamples, Volume *v) {
+static void update_energy(Volume *v, int16_t *signal, int numsamples, uint64_t curtime) {
 	int i;
 	float acc = 0;
 	float en;
@@ -382,6 +463,8 @@ static void update_energy(int16_t *signal, int numsamples, Volume *v) {
 	v->energy = (en * coef) + v->energy * (1.0 - coef);
 	v->level_pk = (float)pk / max_e;
 	v->instant_energy = en;// currently non-averaged energy seems better (short artefacts)
+	extremum_record_max(&v->max,curtime,v->energy);
+	extremum_record_min(&v->min,curtime,v->energy);
 }
 
 static void apply_gain(Volume *v, mblk_t *m, float tgain) {
@@ -449,6 +532,8 @@ static void volume_preprocess(MSFilter *f){
 		}
 #endif
 	}
+	extremum_reset(&v->min);
+	extremum_reset(&v->max);
 }
 
 static void volume_process(MSFilter *f){
@@ -468,7 +553,7 @@ static void volume_process(MSFilter *f){
 			om=allocb(nbytes,0);
 			ms_bufferizer_read(v->buffer,om->b_wptr,nbytes);
 			om->b_wptr+=nbytes;
-			update_energy((int16_t*)om->b_rptr, v->nsamples, v);
+			update_energy(v,(int16_t*)om->b_rptr, v->nsamples, f->ticker->time);
 			target_gain = v->static_gain;
 
 			if (v->peer)  /* this ptr set = echo limiter enable flag */
@@ -488,7 +573,7 @@ static void volume_process(MSFilter *f){
 	}else{
 		/*light processing: no agc. Work in place in the input buffer*/
 		while((m=ms_queue_get(f->inputs[0]))!=NULL){
-			update_energy((int16_t*)m->b_rptr, (m->b_wptr - m->b_rptr) / 2, v);
+			update_energy(v,(int16_t*)m->b_rptr, (m->b_wptr - m->b_rptr) / 2, f->ticker->time);
 			target_gain = v->static_gain;
 
 			if (v->noise_gate_enabled)
@@ -518,6 +603,8 @@ static MSFilterMethod methods[]={
 	{	MS_VOLUME_GET_GAIN	,	volume_get_gain		},
 	{	MS_VOLUME_GET_GAIN_DB	,	volume_get_gain_db		},
 	{	MS_VOLUME_REMOVE_DC, volume_remove_dc },
+	{	MS_VOLUME_GET_MIN	,	volume_get_min	},
+	{	MS_VOLUME_GET_MAX	,	volume_get_max	},
 	{	0			,	NULL			}
 };
 
