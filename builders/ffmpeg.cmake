@@ -23,7 +23,6 @@
 set(EP_ffmpeg_URL "http://ffmpeg.org/releases/ffmpeg-0.10.2.tar.gz")
 set(EP_ffmpeg_USE_AUTOTOOLS "yes")
 set(EP_ffmpeg_CONFIGURE_OPTIONS
-	"--enable-pic"
 	"--disable-zlib"
 	"--disable-bzlib"
 	"--disable-mmx"
