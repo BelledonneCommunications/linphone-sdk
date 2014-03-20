@@ -79,6 +79,7 @@ if(${ENABLE_TUNNEL})
 		transports/tunnel_channel.c
 		transports/tunnel_wrapper.cc
 	)
+	set_source_files_properties(transports/tunnel_wrapper.cc PROPERTIES LANGUAGE CXX)
 	list(APPEND LIBS ${TUNNEL_LIBRARIES})
 endif(${ENABLE_TUNNEL})
 
@@ -148,7 +149,7 @@ else(${ENABLE_STATIC})
 		endif()
 	endif(MSVC)
 endif(${ENABLE_STATIC})
-set_target_properties(bellesip PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
+set_target_properties(bellesip PROPERTIES LINKER_LANGUAGE CXX LINK_FLAGS "${LINK_FLAGS}")
 if("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
 	target_include_directories(bellesip PUBLIC ${INCLUDES})
 else("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
