@@ -357,7 +357,8 @@ static void testMalformedMessageWithWrongStart(void) {
 }
 #include "belle_sip_internal.h"
 
-void channel_parser_tester_recovery_from_error () {
+void channel_parser_tester_recovery_from_error_base (const char* prelude,const char* raw_message) {
+
 	belle_sip_stack_t* stack = belle_sip_stack_new(NULL);
 	belle_sip_channel_t* channel = belle_sip_stream_channel_new_client(stack
 																	, NULL
@@ -366,6 +367,38 @@ void channel_parser_tester_recovery_from_error () {
 																	, "127.0.0.1"
 																	, 45421);
 
+
+	belle_sip_request_t* request;
+	belle_sip_message_t* message;
+
+	if (prelude) {
+		channel->input_stream.write_ptr = strcpy(channel->input_stream.write_ptr,prelude);
+		channel->input_stream.write_ptr+=strlen(prelude);
+		belle_sip_channel_parse_stream(channel,FALSE);
+	}
+
+	channel->input_stream.write_ptr = strcpy(channel->input_stream.write_ptr,raw_message);
+	channel->input_stream.write_ptr+=strlen(raw_message);
+
+	belle_sip_channel_parse_stream(channel,FALSE);
+
+	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
+	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
+	message=BELLE_SIP_MESSAGE(channel->incoming_messages->data);
+	CU_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_sip_request_t));
+	request = BELLE_SIP_REQUEST(message);
+	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
+	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_EXPIRES(belle_sip_message_get_header(message,"Expires")));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Proxy-Authorization"));
+
+	check_uri_and_headers(message);
+
+	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
+	belle_sip_object_unref(stack);
+
+}
+void channel_parser_tester_recovery_from_error () {
 	const char * raw_message=	"debut de stream tout pourri\r\n"
 			"INVITE je_suis_une_fausse_request_uri_hihihi SIP/2.0\r\n"
 			"Via: SIP/2.0/UDP 192.168.1.12:15060;rport=15060;branch=z9hG4bK1596944937;received=81.56.113.2\r\n"
@@ -397,39 +430,9 @@ void channel_parser_tester_recovery_from_error () {
 			", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", algorithm=MD5, cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"\
 			"Content-Length: 0\r\n"
 			"\r\n";
-	belle_sip_request_t* request;
-	belle_sip_message_t* message;
-	channel->input_stream.write_ptr = strcpy(channel->input_stream.write_ptr,raw_message);
-	channel->input_stream.write_ptr+=strlen(raw_message);
-
-	belle_sip_channel_parse_stream(channel,FALSE);
-
-	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
-	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
-	message=BELLE_SIP_MESSAGE(channel->incoming_messages->data);
-	CU_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_sip_request_t));
-	request = BELLE_SIP_REQUEST(message);
-	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
-	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_EXPIRES(belle_sip_message_get_header(message,"Expires")));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Proxy-Authorization"));
-
-	check_uri_and_headers(message);
-
-	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
-	belle_sip_object_unref(stack);
-
+	channel_parser_tester_recovery_from_error_base (NULL, raw_message);
 }
-
 void channel_parser_malformed_start () {
-	belle_sip_stack_t* stack = belle_sip_stack_new(NULL);
-	belle_sip_channel_t* channel = belle_sip_stream_channel_new_client(stack
-																	, NULL
-																	, 45421
-																	, NULL
-																	, "127.0.0.1"
-																	, 45421);
-
 	const char * raw_message=	"debut de stream tout pourri\r\n"
 			"REGISTER sip:192.168.0.20 SIP/2.0\r\n"
 			"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"
@@ -445,28 +448,47 @@ void channel_parser_malformed_start () {
 			", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", algorithm=MD5, cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"
 			"Content-Length: 0\r\n"
 			"\r\n";
-	belle_sip_request_t* request;
-	belle_sip_message_t* message;
-	channel->input_stream.write_ptr = strcpy(channel->input_stream.write_ptr,raw_message);
-	channel->input_stream.write_ptr+=strlen(raw_message);
+	channel_parser_tester_recovery_from_error_base (NULL, raw_message);
+}
 
-	belle_sip_channel_parse_stream(channel,FALSE);
+void channel_parser_truncated_start () {
+	const char * prelude= "R";
+	const char * raw_message=	"EGISTER sip:192.168.0.20 SIP/2.0\r\n"
+			"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"
+			"From: <sip:jehan-mac@sip.linphone.org>;tag=465687829\r\n"
+			"To: <sip:jehan-mac@sip.linphone.org>\r\n"
+			"Call-ID: 1053183492\r\n"
+			"CSeq: 1 REGISTER\r\n"
+			"Contact: <sip:jehan-mac@192.168.1.8:5062>\r\n"
+			"Max-Forwards: 70\r\n"
+			"User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"
+			"Expires: 3600\r\n"
+			"Proxy-Authorization: Digest username=\"8117396\", realm=\"Realm\", nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz"
+			", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", algorithm=MD5, cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"
+			"Content-Length: 0\r\n"
+			"\r\n";
 
-	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
-	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
-	message=BELLE_SIP_MESSAGE(channel->incoming_messages->data);
-	CU_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_sip_request_t));
-	request = BELLE_SIP_REQUEST(message);
-	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
-	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_EXPIRES(belle_sip_message_get_header(message,"Expires")));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Proxy-Authorization"));
+	channel_parser_tester_recovery_from_error_base (prelude, raw_message);
+}
 
+void channel_parser_truncated_start_with_garbage() {
+	const char * prelude= "truc tout pourit R";
+	const char * raw_message=	"EGISTER sip:192.168.0.20 SIP/2.0\r\n"
+			"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"
+			"From: <sip:jehan-mac@sip.linphone.org>;tag=465687829\r\n"
+			"To: <sip:jehan-mac@sip.linphone.org>\r\n"
+			"Call-ID: 1053183492\r\n"
+			"CSeq: 1 REGISTER\r\n"
+			"Contact: <sip:jehan-mac@192.168.1.8:5062>\r\n"
+			"Max-Forwards: 70\r\n"
+			"User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"
+			"Expires: 3600\r\n"
+			"Proxy-Authorization: Digest username=\"8117396\", realm=\"Realm\", nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz"
+			", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", algorithm=MD5, cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"
+			"Content-Length: 0\r\n"
+			"\r\n";
 
-	check_uri_and_headers(message);
-
-	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
-	belle_sip_object_unref(stack);
+	channel_parser_tester_recovery_from_error_base (prelude, raw_message);
 }
 
 static void testMalformedFrom_process_response_cb(void *user_ctx, const belle_sip_response_event_t *event){
@@ -836,6 +858,8 @@ test_t message_tests[] = {
 	{ "Malformed register", testMalformedOptionnalHeaderInMessage },
 	{ "Channel parser error recovery", channel_parser_tester_recovery_from_error},
 	{ "Channel parser malformed start", channel_parser_malformed_start},
+	{ "Channel parser truncated start", channel_parser_truncated_start},
+	{ "Channel parser truncated start with garbage",channel_parser_truncated_start_with_garbage},
 	{ "RFC2543 compatibility", testRFC2543Compat},
 	{ "Uri headers in sip INVITE",testUriHeadersInInvite},
 	{ "Uris components in request",testUrisComponentsForRequest},

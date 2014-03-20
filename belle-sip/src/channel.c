@@ -160,6 +160,8 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 		switch (buff[i]) { /*to avoid this character to be ignored by scanf*/
 			case '\r':
 			case '\n':
+			case ' ' :
+			case '\t':
 				continue;
 			default:
 				break;
@@ -380,19 +382,32 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream)
 	while ((num=(obj->input_stream.write_ptr-obj->input_stream.read_ptr))>0){
 	
 		if (obj->input_stream.state == WAITING_MESSAGE_START) {
-			/*search for request*/
-			if ((offset=get_message_start_pos(obj->input_stream.read_ptr,num)) >=0 ) {
-				/*message found !*/
-				if (offset>0) {
-					belle_sip_warning("trashing [%i] bytes in front of sip message on channel [%p]",offset,obj);
-					obj->input_stream.read_ptr+=offset;
+			int i;
+			/*first, make sure there is \r\n in the buffer, otherwise, micro parser cannot conclude, because we need a complete request or response line somewhere*/
+			for (i=0;i<num-1;i++) {
+				if ((obj->input_stream.read_ptr[i]=='\r' && obj->input_stream.read_ptr[i+1]=='\n')
+						|| belle_sip_channel_input_stream_get_buff_length(&obj->input_stream) <= 1 /*1 because null terminated*/  /*if buffer full try to parse in any case*/) {
+					/*good, now we can start searching  for request/response*/
+					if ((offset=get_message_start_pos(obj->input_stream.read_ptr,num)) >=0 ) {
+						/*message found !*/
+						if (offset>0) {
+							belle_sip_warning("trashing [%i] bytes in front of sip message on channel [%p]",offset,obj);
+							obj->input_stream.read_ptr+=offset;
+						}
+						obj->input_stream.state=MESSAGE_AQUISITION;
+					} else {
+						belle_sip_debug("Unexpected [%s] received on channel [%p], trashing",obj->input_stream.read_ptr,obj);
+						obj->input_stream.read_ptr=obj->input_stream.write_ptr;
+						belle_sip_channel_input_stream_reset(&obj->input_stream);
+						continue;
+					}
+				break;
 				}
-				obj->input_stream.state=MESSAGE_AQUISITION;
-			} else {
-				belle_sip_debug("Unexpected [%s] received on channel [%p], trashing",obj->input_stream.read_ptr,obj);
-				obj->input_stream.read_ptr=obj->input_stream.write_ptr;
-				belle_sip_channel_input_stream_reset(&obj->input_stream);
-				continue;
+			}
+
+			if (i >= num-1) {
+				belle_sip_debug("[%s] received on channel [%p], cannot determine if expected or not, waiting for new data",obj->input_stream.read_ptr,obj);
+				break;
 			}
 		}
 
