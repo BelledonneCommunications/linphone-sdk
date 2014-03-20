@@ -41,8 +41,10 @@ linphone_builder_add_feature_info("SRTP" ENABLE_SRTP "SRTP media encryption supp
 cmake_dependent_option(ENABLE_ZRTP "Enable ZRTP support." ${DEFAULT_VALUE_ENABLE_ZRTP} "ENABLE_GPL_THIRD_PARTIES" OFF)
 linphone_builder_add_feature_info("ZRTP" ENABLE_ZRTP "ZRTP media encryption support.")
 
-option(ENABLE_AMR "Enable AMR audio codec support." ${DEFAULT_VALUE_ENABLE_AMR})
-linphone_builder_add_feature_info("AMR" ENABLE_AMR "AMR audio encoding/decoding support.")
+option(ENABLE_AMRNB "Enable AMR narrow-band audio codec support." ${DEFAULT_VALUE_ENABLE_AMRNB})
+linphone_builder_add_feature_info("AMR-NB" ENABLE_AMRNB "AMR narrow-band audio encoding/decoding support.")
+option(ENABLE_AMRWB "Enable AMR wide-band audio codec support." ${DEFAULT_VALUE_ENABLE_AMRWB})
+linphone_builder_add_feature_info("AMR-WB" ENABLE_AMRWB "AMR wide-band audio encoding/decoding support.")
 option(ENABLE_G729 "Enable G.729 audio codec support." ${DEFAULT_VALUE_ENABLE_G729})
 linphone_builder_add_feature_info("G.729" ENABLE_G729 "G.729 audio encoding/decoding support.")
 option(ENABLE_GSM "Enable GSM audio codec support." ${DEFAULT_VALUE_ENABLE_GSM})

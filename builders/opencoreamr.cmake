@@ -24,8 +24,19 @@ set(EP_opencoreamr_GIT_REPOSITORY "git://git.code.sf.net/p/opencore-amr/code")
 set(EP_opencoreamr_GIT_TAG "cf4409e03ec56b1cd85a2f9532f58bc1fa9db274")
 set(EP_opencoreamr_USE_AUTOTOOLS "yes")
 set(EP_opencoreamr_USE_AUTOGEN "yes")
+set(EP_opencoreamr_CONFIGURE_OPTIONS )
 set(EP_opencoreamr_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
 	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
 )
 set(EP_opencoreamr_LINKING_TYPE "--disable-static" "--enable-shared")
+
+if(${ENABLE_AMRNB})
+	list(APPEND EP_opencoreamr_CONFIGURE_OPTIONS
+		"--enable-amrnb-decoder" "--enable-amrnb-encoder"
+	)
+else(${ENABLE_AMRNB})
+	list(APPEND EP_opencoreamr_CONFIGURE_OPTIONS
+		"--disable-amrnb-decoder" "--disable-amrnb-encoder"
+	)
+endif(${ENABLE_AMRNB})

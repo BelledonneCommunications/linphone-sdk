@@ -1,5 +1,5 @@
 ############################################################################
-# msamr.cmake
+# voamrwbenc.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,26 +20,14 @@
 #
 ############################################################################
 
-set(EP_msamr_GIT_REPOSITORY "git://git.linphone.org/msamr.git")
-set(EP_msamr_GIT_TAG "d09a19cb27076c45f093e8abc9a00d07258779e9") # Branch 'master'
-set(EP_msamr_USE_AUTOTOOLS "yes")
-set(EP_msamr_USE_AUTOGEN "yes")
-set(EP_msamr_CONFIGURE_OPTIONS )
-set(EP_msamr_CROSS_COMPILATION_OPTIONS
+set(EP_voamrwbenc_GIT_REPOSITORY "git://git.code.sf.net/p/opencore-amr/vo-amrwbenc")
+set(EP_voamrwbenc_GIT_TAG "e96f4b5d3fe38b3bee5d71fefdaa1af8b842dde9")
+set(EP_voamrwbenc_USE_AUTOTOOLS "yes")
+set(EP_voamrwbenc_USE_AUTOGEN "yes")
+set(EP_voamrwbenc_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
 	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
 )
-set(EP_msamr_LINKING_TYPE "--disable-static" "--enable-shared")
-set(EP_msamr_DEPENDENCIES EP_ms2 EP_opencoreamr)
-
-if(${ENABLE_AMRNB})
-	list(APPEND EP_msamr_CONFIGURE_OPTIONS "--enable-narrowband")
-else(${ENABLE_AMRNB})
-	list(APPEND EP_msamr_CONFIGURE_OPTIONS "--disable-narrowband")
-endif(${ENABLE_AMRNB})
-if(${ENABLE_AMRWB})
-	list(APPEND EP_msamr_CONFIGURE_OPTIONS "--enable-wideband")
-	list(APPEND EP_msamr_DEPENDENCIES EP_voamrwbenc)
-else(${ENABLE_AMRWB})
-	list(APPEND EP_msamr_CONFIGURE_OPTIONS "--disable-wideband")
-endif(${ENABLE_AMRWB})
+set(EP_voamrwbenc_LINKING_TYPE "--disable-static" "--enable-shared")
+set(EP_voamrwbenc_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/voamrwbenc/autogen.sh" "<SOURCE_DIR>")
+set(EP_voamrwbenc_DEPENDENCIES EP_opencoreamr)
