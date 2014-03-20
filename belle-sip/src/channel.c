@@ -147,13 +147,13 @@ static int is_token(const char* buff,size_t bufflen ) {
 	return 1;
 }
 static int get_message_start_pos(char *buff, size_t bufflen) {
-	/*FIXME still to optimize an better tested, specially REQUEST PATH and error path*/
+	/*FIXME still to optimize and better test, specially REQUEST PATH and error path*/
 	int i;
 	int res=0;
 	int status_code;
-	char method[17];
+	char method[17]={0};
 	char saved_char1;
-	char sip_version[10];
+	char sip_version[10]={0};
 	int saved_char1_index;
 
 	for(i=0; i<(int)bufflen-12;i++) { /*9=strlen( SIP/2.0\r\n)*/
@@ -174,7 +174,7 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 		if (res!=1) {
 			res= sscanf(buff+i,"%16s %*s %9s\r\n",method,sip_version)==2
 					&& is_token(method,sizeof(method))
-					&& (strcmp("SIP/2.0",sip_version)==0 || strncmp("HTTP/1.",sip_version,strlen("HTTP/1."))==0) ;
+					&& (strcmp("SIP/2.0",sip_version)==0 || strncmp("HTTP/1.",sip_version,strlen("HTTP/1."))==0);
 		}
 		buff[saved_char1_index]=saved_char1;
 		if (res==1) return i;
@@ -479,7 +479,7 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 		obj->input_stream.write_ptr+=num;
 		/*first null terminate the read buff*/
 		*obj->input_stream.write_ptr='\0';
-		if (num >50) /*to avoid tracing server based keep alives*/
+		if (num>50) /*to avoid tracing server based keep alives*/
 			belle_sip_message("channel [%p]: received [%i] new bytes from [%s://%s:%i]:\n%s",
 					obj,
 					num,
