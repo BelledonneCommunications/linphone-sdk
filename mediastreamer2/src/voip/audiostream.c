@@ -876,12 +876,12 @@ void audio_stream_stop(AudioStream * stream){
 				ms_connection_helper_unlink(&h,stream->recv_tee,0,0);
 			if (stream->equalizer!=NULL)
 				ms_connection_helper_unlink(&h,stream->equalizer,0,0);
-			if (stream->ec!=NULL)
-				ms_connection_helper_unlink(&h,stream->ec,0,0);
 			if (stream->local_mixer){
 				ms_connection_helper_unlink(&h,stream->local_mixer,0,0);
 				dismantle_local_player(stream);
 			}
+			if (stream->ec!=NULL)
+				ms_connection_helper_unlink(&h,stream->ec,0,0);
 			if (stream->write_resampler!=NULL)
 				ms_connection_helper_unlink(&h,stream->write_resampler,0,0);
 			ms_connection_helper_unlink(&h,stream->soundwrite,0,-1);
