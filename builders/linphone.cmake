@@ -78,6 +78,13 @@ else(WIN32)
 		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-zrtp")
 	endif(${ENABLE_ZRTP})
 
+	if(${ENABLE_TUNNEL})
+		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--enable-tunnel")
+		list(APPEND EP_linphone_DEPENDENCIES EP_tunnel)
+	else(${ENABLE_TUNNEL})
+		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-tunnel")
+	endif(${ENABLE_TUNNEL})
+
 	if(${ENABLE_UNIT_TESTS})
 		list(APPEND EP_linphone_DEPENDENCIES EP_cunit)
 	else(${ENABLE_UNIT_TESTS})

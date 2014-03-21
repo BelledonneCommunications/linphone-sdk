@@ -1,5 +1,5 @@
 ############################################################################
-# belle-sip.cmake
+# tunnel.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,23 +20,16 @@
 #
 ############################################################################
 
-set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git")
-set(EP_bellesip_GIT_TAG "19f8d20aaae5a88d23dd244b8bbbc934d20fd478") # Branch 'master'
-set(EP_bellesip_CMAKE_OPTIONS )
-set(EP_bellesip_LINKING_TYPE "-DENABLE_STATIC=0")
-set(EP_bellesip_DEPENDENCIES EP_antlr3c EP_polarssl)
-if(MSVC)
-	set(EP_bellesip_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif(MSVC)
-
-if(${ENABLE_TUNNEL})
-	list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TUNNEL=1")
-	list(APPEND EP_bellesip_DEPENDENCIES EP_tunnel)
-else(${ENABLE_TUNNEL})
-	list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TUNNEL=0")
-endif(${ENABLE_TUNNEL})
-if(${ENABLE_UNIT_TESTS})
-	list(APPEND EP_bellesip_DEPENDENCIES EP_cunit)
-else(${ENABLE_UNIT_TESTS})
-	list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=0")
-endif(${ENABLE_UNIT_TESTS})
+set(EP_tunnel_GIT_REPOSITORY "gitosis@git.linphone.org:tunnel.git") # Private repository
+set(EP_tunnel_GIT_TAG "e6d100c33e0147ae35cdf693dbcd7b9413cb84ef") # Branch 'master'
+set(EP_tunnel_USE_AUTOTOOLS "yes")
+set(EP_tunnel_USE_AUTOGEN "yes")
+set(EP_tunnel_CROSS_COMPILATION_OPTIONS
+	"--prefix=${CMAKE_INSTALL_PREFIX}"
+	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+)
+set(EP_tunnel_CONFIGURE_OPTIONS
+	"--disable-servers"
+)
+set(EP_tunnel_LINKING_TYPE "--disable-static" "--enable-shared")
+set(EP_tunnel_DEPENDENCIES EP_polarssl)

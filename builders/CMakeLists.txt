@@ -58,10 +58,15 @@ list(APPEND LINPHONE_BUILDER_BUILDERS
 	xml2
 	antlr3c
 	polarssl
-	bellesip
 	ortp
 	ms2
 )
+
+if(${ENABLE_TUNNEL})
+	list(APPEND LINPHONE_BUILDER_BUILDERS tunnel)
+endif(${ENABLE_TUNNEL})
+
+list(APPEND LINPHONE_BUILDER_BUILDERS bellesip)
 
 if(${ENABLE_AMRNB} OR ${ENABLE_AMRWB})
 	list(APPEND LINPHONE_BUILDER_BUILDERS opencoreamr)
