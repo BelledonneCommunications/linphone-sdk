@@ -31,7 +31,7 @@ typedef enum {
 	Both
 }InvocationMode;
 
-static void ms_filter_invoke_callbacks(MSFilter *f, unsigned int id, void *arg, InvocationMode synchronous_mode);
+static void ms_filter_invoke_callbacks(MSFilter **f, unsigned int id, void *arg, InvocationMode synchronous_mode);
 
 struct _MSNotifyContext{
 	MSFilterNotifyFunc fn;
@@ -49,6 +49,7 @@ struct _MSEventQueue{
 	uint8_t *lim;
 	int freeroom;
 	int size;
+	MSFilter *current_notifier;
 	uint8_t buffer[MS_EVENT_BUF_SIZE];
 };
 
@@ -97,7 +98,11 @@ static bool_t read_event(MSEventQueue *q){
 		int evsize;
 		
 		evsize=parse_event(q->rptr,&f,&id,&data,&argsize);
-		if (f) ms_filter_invoke_callbacks(f,id,argsize>0 ? data : NULL, OnlyAsynchronous);
+		if (f) {
+			q->current_notifier=f;
+			ms_filter_invoke_callbacks(&q->current_notifier,id,argsize>0 ? data : NULL, OnlyAsynchronous);
+			q->current_notifier=NULL;
+		}
 		q->rptr+=evsize;
 		if (q->rptr>=q->endptr){
 			q->rptr=q->buffer;
@@ -133,6 +138,9 @@ void ms_event_queue_clean(MSEventQueue *q, MSFilter *destroyed){
 			rptr=q->buffer;
 		}
 		freeroom+=evsize;
+	}
+	if (q->current_notifier==destroyed){
+		q->current_notifier=NULL;
 	}
 }
 
@@ -209,15 +217,13 @@ void ms_filter_clear_notify_callback(MSFilter *f){
 	f->notify_callbacks=ms_list_free_with_data(f->notify_callbacks,(void (*)(void*))ms_notify_context_destroy);
 }
 
-
-
-static void ms_filter_invoke_callbacks(MSFilter *f, unsigned int id, void *arg, InvocationMode synchronous_mode){
+static void ms_filter_invoke_callbacks(MSFilter **f, unsigned int id, void *arg, InvocationMode synchronous_mode){
 	MSList *elem;
-	for (elem=f->notify_callbacks;elem!=NULL;elem=elem->next){
+	for (elem=(*f)->notify_callbacks;elem!=NULL && *f!=NULL;elem=elem->next){
 		MSNotifyContext *ctx=(MSNotifyContext*)elem->data;
 		if (synchronous_mode==Both || (synchronous_mode==OnlyAsynchronous && !ctx->synchronous)
 			|| (synchronous_mode==OnlySynchronous && ctx->synchronous))
-			ctx->fn(ctx->ud,f,id,arg);
+			ctx->fn(ctx->ud,*f,id,arg);
 	}
 }
 
@@ -230,9 +236,9 @@ void ms_filter_notify(MSFilter *f, unsigned int id, void *arg){
 	if (f->notify_callbacks!=NULL){
 		if (ms_global_event_queue==NULL){
 			/* synchronous notification */
-			ms_filter_invoke_callbacks(f,id,arg,Both);
+			ms_filter_invoke_callbacks(&f,id,arg,Both);
 		}else{
-			ms_filter_invoke_callbacks(f,id,arg,OnlySynchronous);
+			ms_filter_invoke_callbacks(&f,id,arg,OnlySynchronous);
 			write_event(ms_global_event_queue,f,id,arg);
 		}
 	}
