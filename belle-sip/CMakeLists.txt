@@ -22,6 +22,7 @@
 
 cmake_minimum_required(VERSION 2.8)
 project(BELLESIP C)
+enable_language(CXX)
 
 
 set(PACKAGE "belle-sip")
