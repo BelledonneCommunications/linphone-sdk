@@ -20,8 +20,7 @@
 #
 ############################################################################
 
-set(EP_opencoreamr_GIT_REPOSITORY "git://git.code.sf.net/p/opencore-amr/code")
-set(EP_opencoreamr_GIT_TAG "cf4409e03ec56b1cd85a2f9532f58bc1fa9db274")
+set(EP_opencoreamr_URL "http://downloads.sourceforge.net/project/opencore-amr/opencore-amr/opencore-amr-0.1.3.tar.gz")
 set(EP_opencoreamr_USE_AUTOTOOLS "yes")
 set(EP_opencoreamr_USE_AUTOGEN "yes")
 set(EP_opencoreamr_CONFIGURE_OPTIONS )

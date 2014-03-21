@@ -20,8 +20,7 @@
 #
 ############################################################################
 
-set(EP_voamrwbenc_GIT_REPOSITORY "git://git.code.sf.net/p/opencore-amr/vo-amrwbenc")
-set(EP_voamrwbenc_GIT_TAG "e96f4b5d3fe38b3bee5d71fefdaa1af8b842dde9")
+set(EP_voamrwbenc_URL "http://downloads.sourceforge.net/project/opencore-amr/vo-amrwbenc/vo-amrwbenc-0.1.3.tar.gz")
 set(EP_voamrwbenc_USE_AUTOTOOLS "yes")
 set(EP_voamrwbenc_USE_AUTOGEN "yes")
 set(EP_voamrwbenc_CROSS_COMPILATION_OPTIONS
