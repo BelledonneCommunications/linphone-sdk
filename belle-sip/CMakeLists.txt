@@ -35,6 +35,7 @@ set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 
+option(ENABLE_SERVER_SOCKETS "Enable server sockets" ON)
 option(ENABLE_STATIC "Build static library (default is shared library)." OFF)
 option(ENABLE_TLS "Enable TLS support" ON)
 option(ENABLE_TUNNEL "Enable tunnel support" OFF)

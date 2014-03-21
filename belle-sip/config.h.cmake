@@ -76,3 +76,5 @@
 #cmakedefine HAVE_CU_GET_SUITE
 
 #cmakedefine HAVE_TUNNEL
+
+#cmakedefine ENABLE_SERVER_SOCKETS

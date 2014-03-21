@@ -238,6 +238,19 @@ AC_SUBST(TLS_CFLAGS)
 AC_SUBST(TLS_LIBS)	
 AC_SUBST(TLS_PC)
 
+AC_ARG_ENABLE(server_sockets,
+	[AS_HELP_STRING([--disable-server-sockets], [Disable server sockets creation])],
+	[case "${enableval}" in
+		yes) server_sockets_enabled=true ;;
+		no) server_sockets_enabled=false ;;
+		*) AC_MSG_ERROR(bad value ${enableval} for --disable-server-sockets) ;;
+	esac],
+	[server_sockets_enabled=yes]
+)
+if test "x$server_sockets_enabled" = "xyes" ; then
+	AC_DEFINE(ENABLE_SERVER_SOCKETS,1,[Defined when server sockets are enabled])
+fi
+
 AC_ARG_ENABLE(tunnel,
 	[AS_HELP_STRING([--enable-tunnel], [Enable tunnel support (default=no)])])
 if test "$enable_tunnel" = "yes" ; then

@@ -49,6 +49,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_tls_listening_point_t)
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
+#ifdef ENABLE_SERVER_SOCKETS
 static int on_new_connection(void *userdata, unsigned int revents){
 	belle_sip_socket_t child;
 	struct sockaddr_storage addr;
@@ -67,10 +68,15 @@ static int on_new_connection(void *userdata, unsigned int revents){
 	close_socket(child);
 	return BELLE_SIP_CONTINUE;
 }
+#endif /* ENABLE_SERVER_SOCKETS */
 
 belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port){
 	belle_sip_tls_listening_point_t *lp=belle_sip_object_new(belle_sip_tls_listening_point_t);
+#ifdef ENABLE_SERVER_SOCKETS
 	belle_sip_stream_listening_point_init((belle_sip_stream_listening_point_t*)lp,s,ipaddress,port,on_new_connection);
+#else
+	belle_sip_stream_listening_point_init((belle_sip_stream_listening_point_t*)lp,s,ipaddress,port);
+#endif /* ENABLE_SERVER_SOCKETS */
 	
 	lp->verify_ctx=belle_tls_verify_policy_new();
 

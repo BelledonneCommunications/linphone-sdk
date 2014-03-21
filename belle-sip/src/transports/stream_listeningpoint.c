@@ -17,6 +17,7 @@
 */
 #include "belle_sip_internal.h"
 
+#ifdef ENABLE_SERVER_SOCKETS
 static int on_new_connection(void *userdata, unsigned int events);
 
 
@@ -31,9 +32,12 @@ void belle_sip_stream_listening_point_destroy_server_socket(belle_sip_stream_lis
 		lp->source=NULL;
 	}
 }
+#endif /* ENABLE_SERVER_SOCKETS */
 
 static void belle_sip_stream_listening_point_uninit(belle_sip_stream_listening_point_t *lp){
+#ifdef ENABLE_SERVER_SOCKETS
 	belle_sip_stream_listening_point_destroy_server_socket(lp);
+#endif /* ENABLE_SERVER_SOCKETS */
 }
 
 static belle_sip_channel_t *stream_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop){
@@ -58,6 +62,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_stream_listening_point_t)
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
+#ifdef ENABLE_SERVER_SOCKETS
 static belle_sip_socket_t create_server_socket(const char *addr, int port, int *family){
 	struct addrinfo hints={0};
 	struct addrinfo *res=NULL;
@@ -142,13 +147,23 @@ void belle_sip_stream_listening_point_init(belle_sip_stream_listening_point_t *o
 	belle_sip_stream_listening_point_setup_server_socket(obj, on_new_connection_cb);
 }
 
+#else
+
+void belle_sip_stream_listening_point_init(belle_sip_stream_listening_point_t *obj, belle_sip_stack_t *s, const char *ipaddress, int port ){
+	belle_sip_listening_point_init((belle_sip_listening_point_t*)obj,s,ipaddress,port);
+}
+
+#endif /* ENABLE_SERVER_SOCKETS */
+
 belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port){
 	belle_sip_stream_listening_point_t *lp=belle_sip_object_new(belle_sip_stream_listening_point_t);
+#ifdef ENABLE_SERVER_SOCKETS
 	belle_sip_stream_listening_point_init(lp,s,ipaddress,port,on_new_connection);
 	if (lp->server_sock==(belle_sip_socket_t)-1){
 		belle_sip_object_unref(lp);
 		return NULL;
 	}
+#endif /* ENABLE_SERVER_SOCKETS */
 	return BELLE_SIP_LISTENING_POINT(lp);
 }
 
