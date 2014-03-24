@@ -38,6 +38,7 @@ else(WIN32)
 	set(EP_ms2_CONFIGURE_OPTIONS
 		"--disable-strict"
 		"--enable-external-ortp"
+		"--disable-theora"
 	)
 	set(EP_ms2_LINKING_TYPE "--disable-static" "--enable-shared")
 	set(EP_ms2_DEPENDENCIES EP_ortp)
