@@ -5550,19 +5550,8 @@ static int dns_socket(struct sockaddr *local, int type, int *error_) {
 		return fd;
 
 	if (*dns_sa_port(local->sa_family, local) == 0) {
-		struct sockaddr_storage tmp;
-		unsigned i, port;
-
-		memcpy(&tmp, local, dns_sa_len(local));
-
-		for (i = 0; i < DNS_SO_MAXTRY; i++) {
-			port	= 1025 + (dns_random() % 64510);
-
-			*dns_sa_port(tmp.ss_family, &tmp)	= htons(port);
-
-			if (0 == bind(fd, (struct sockaddr *)&tmp, dns_sa_len(&tmp)))
-				return fd;
-		}
+		/*let the system find a random port*/
+		return fd;
 	}
 	
 	if (0 == bind(fd, local, dns_sa_len(local)))
