@@ -48,8 +48,5 @@ set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
 include(builders/CMakeLists.txt)
 
 
-# cunit
-list(APPEND EP_cunit_CMAKE_OPTIONS "-DENABLE_CURSES=1")
-
 # xml2
 list(APPEND EP_xml2_CONFIGURE_OPTIONS "--with-sax1")
