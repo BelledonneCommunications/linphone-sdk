@@ -63,28 +63,30 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_stream_listening_point_t)
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 #ifdef ENABLE_SERVER_SOCKETS
-static belle_sip_socket_t create_server_socket(const char *addr, int port, int *family){
+static belle_sip_socket_t create_server_socket(const char *addr, int * port, int *family){
 	struct addrinfo hints={0};
 	struct addrinfo *res=NULL;
 	int err;
 	belle_sip_socket_t sock;
 	char portnum[10];
 	int optval=1;
+	
+	if (*port==-1) *port=0; /*random port for bind()*/
 
-	snprintf(portnum,sizeof(portnum),"%i",port);
+	snprintf(portnum,sizeof(portnum),"%i",*port);
 	hints.ai_family=AF_UNSPEC;
 	hints.ai_socktype=SOCK_STREAM;
 	hints.ai_protocol=IPPROTO_TCP;
 	hints.ai_flags=AI_NUMERICSERV;
 	err=getaddrinfo(addr,portnum,&hints,&res);
 	if (err!=0){
-		belle_sip_error("getaddrinfo() failed for %s port %i: %s",addr,port,gai_strerror(err));
+		belle_sip_error("getaddrinfo() failed for %s port %i: %s",addr,*port,gai_strerror(err));
 		return -1;
 	}
 	*family=res->ai_family;
 	sock=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
 	if (sock==-1){
-		belle_sip_error("Cannot create UDP socket: %s",belle_sip_get_socket_error_string());
+		belle_sip_error("Cannot create TCP socket: %s",belle_sip_get_socket_error_string());
 		freeaddrinfo(res);
 		return -1;
 	}
@@ -96,16 +98,29 @@ static belle_sip_socket_t create_server_socket(const char *addr, int port, int *
 	
 	err=bind(sock,res->ai_addr,res->ai_addrlen);
 	if (err==-1){
-		belle_sip_error("TCP bind() failed for %s port %i: %s",addr,port,belle_sip_get_socket_error_string());
+		belle_sip_error("TCP bind() failed for %s port %i: %s",addr,*port,belle_sip_get_socket_error_string());
 		close_socket(sock);
 		freeaddrinfo(res);
 		return -1;
 	}
 	freeaddrinfo(res);
 	
+	if (*port==0){
+		struct sockaddr_storage saddr;
+		socklen_t saddr_len=sizeof(saddr);
+		err=getsockname(sock,(struct sockaddr*)&saddr,&saddr_len);
+		if (err==0){
+			err=getnameinfo((struct sockaddr*)&saddr,saddr_len,NULL,0,portnum,sizeof(portnum),NI_NUMERICSERV|NI_NUMERICHOST);
+			if (err==0){
+				*port=atoi(portnum);
+				belle_sip_message("Random TCP port is %i",*port);
+			}else belle_sip_error("TCP bind failed, getnameinfo(): %s",gai_strerror(err));
+		}else belle_sip_error("TCP bind failed, getsockname(): %s",belle_sip_get_socket_error_string());
+	}
+	
 	err=listen(sock,64);
 	if (err==-1){
-		belle_sip_error("TCP listen() failed for %s port %i: %s",addr,port,belle_sip_get_socket_error_string());
+		belle_sip_error("TCP listen() failed for %s port %i: %s",addr,*port,belle_sip_get_socket_error_string());
 		close_socket(sock);
 		return -1;
 	}
@@ -113,9 +128,11 @@ static belle_sip_socket_t create_server_socket(const char *addr, int port, int *
 }
 
 void belle_sip_stream_listening_point_setup_server_socket(belle_sip_stream_listening_point_t *obj, belle_sip_source_func_t on_new_connection_cb ){
+	int port=belle_sip_uri_get_port(obj->base.listening_uri);
 	obj->server_sock=create_server_socket(belle_sip_uri_get_host(obj->base.listening_uri),
-		belle_sip_uri_get_port(obj->base.listening_uri),&obj->base.ai_family);
+		&port, &obj->base.ai_family);
 	if (obj->server_sock==(belle_sip_socket_t)-1) return;
+	belle_sip_uri_set_port(((belle_sip_listening_point_t*)obj)->listening_uri,port);
 	if (obj->base.stack->dscp)
 		belle_sip_socket_set_dscp(obj->server_sock,obj->base.ai_family,obj->base.stack->dscp);
 	obj->source=belle_sip_socket_source_new(on_new_connection_cb,obj,obj->server_sock,BELLE_SIP_EVENT_READ,-1);

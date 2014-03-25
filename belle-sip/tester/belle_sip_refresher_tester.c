@@ -745,6 +745,18 @@ static void register_udp_test_ipv6_random_port(void){
 	register_test_with_random_port("udp","::0","0.0.0.0",AF_INET);
 }
 
+static void register_tcp_test_ipv4_random_port(void){
+	register_test_with_random_port("tcp","0.0.0.0","0.0.0.0",AF_INET);
+}
+
+static void register_tcp_test_ipv6_random_port(void){
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
+	register_test_with_random_port("tcp","::0","0.0.0.0",AF_INET);
+}
+
 static void simple_publish() {
 	belle_sip_header_content_type_t* content_type=belle_sip_header_content_type_create("application","pidf+xml");
 	refresher_base_with_param_and_body("PUBLISH",FALSE,TRUE,FALSE, content_type,publish_body);
@@ -777,6 +789,8 @@ test_t refresher_tests[] = {
 	{ "REGISTER TCP from ipv6 to ipv6 with ipv6", register_tcp_test_ipv6_to_ipv6_with_ipv6 },
 	{ "REGISTER UDP from random port using AF_INET", register_udp_test_ipv4_random_port },
 	{ "REGISTER UDP from random port using AF_INET6", register_udp_test_ipv6_random_port },
+	{ "REGISTER TCP from random port using AF_INET", register_tcp_test_ipv4_random_port },
+	{ "REGISTER TCP from random port using AF_INET6", register_tcp_test_ipv6_random_port },
 };
 
 test_suite_t refresher_test_suite = {
