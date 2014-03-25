@@ -89,3 +89,6 @@
 
 /* Defined when antlr 3.4 api is detected */
 #define HAVE_ANTLR_STRING_STREAM_NEW 1
+
+#define ENABLE_SERVER_SOCKETS 1
+
