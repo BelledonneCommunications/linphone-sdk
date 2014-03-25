@@ -163,6 +163,8 @@ belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_sta
 		belle_sip_object_unref(lp);
 		return NULL;
 	}
+#else
+	belle_sip_stream_listening_point_init(lp,s,ipaddress,port);
 #endif /* ENABLE_SERVER_SOCKETS */
 	return BELLE_SIP_LISTENING_POINT(lp);
 }
