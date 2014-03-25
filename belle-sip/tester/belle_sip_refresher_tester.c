@@ -642,6 +642,33 @@ static int register_test_with_interfaces(const char *transport, const char *clie
 	return ret;
 }
 
+static int register_test_with_random_port(const char *transport, const char *client_ip, const char *server_ip, int connection_family) {
+	int ret=0;
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t* client,*server;
+	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event=client_process_response_event;
+	client_callbacks.process_auth_requested=client_process_auth_requested;
+	server_callbacks.process_request_event=server_process_request_event;
+	client = create_endpoint(client_ip,-1,transport,&client_callbacks);
+	client->connection_family=connection_family;
+	client->register_count=1;
+	
+	server = create_endpoint(server_ip,6788,transport,&server_callbacks);
+	server->expire_in_contact=client->expire_in_contact=0;
+	server->auth=none;
+
+	if (client->lp==NULL || server->lp==NULL){
+		belle_sip_warning("Cannot check ipv6 because host has no ipv6 support.");
+		ret=-1;
+	}else register_base(client,server);
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+	return ret;
+}
+
 static void register_test_ipv6_to_ipv4(void){
 	if (!belle_sip_tester_ipv6_available()){
 		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
@@ -706,6 +733,18 @@ static void register_tcp_test_ipv6_to_ipv6_with_ipv6(void){
 	register_test_with_interfaces("tcp","::0","::0",AF_INET6);
 }
 
+static void register_udp_test_ipv4_random_port(void){
+	register_test_with_random_port("udp","0.0.0.0","0.0.0.0",AF_INET);
+}
+
+static void register_udp_test_ipv6_random_port(void){
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
+	register_test_with_random_port("udp","::0","0.0.0.0",AF_INET);
+}
+
 static void simple_publish() {
 	belle_sip_header_content_type_t* content_type=belle_sip_header_content_type_create("application","pidf+xml");
 	refresher_base_with_param_and_body("PUBLISH",FALSE,TRUE,FALSE, content_type,publish_body);
@@ -735,7 +774,9 @@ test_t refresher_tests[] = {
 	{ "REGISTER TCP from ipv6 to ipv4", register_tcp_test_ipv6_to_ipv4 },
 	{ "REGISTER TCP from ipv4 to ipv6", register_tcp_test_ipv4_to_ipv6 },
 	{ "REGISTER TCP from ipv6 to ipv6 with ipv4", register_tcp_test_ipv6_to_ipv6_with_ipv4 },
-	{ "REGISTER TCP from ipv6 to ipv6 with ipv6", register_tcp_test_ipv6_to_ipv6_with_ipv6 }
+	{ "REGISTER TCP from ipv6 to ipv6 with ipv6", register_tcp_test_ipv6_to_ipv6_with_ipv6 },
+	{ "REGISTER UDP from random port using AF_INET", register_udp_test_ipv4_random_port },
+	{ "REGISTER UDP from random port using AF_INET6", register_udp_test_ipv6_random_port },
 };
 
 test_suite_t refresher_test_suite = {

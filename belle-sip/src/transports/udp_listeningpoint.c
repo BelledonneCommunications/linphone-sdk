@@ -58,22 +58,24 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_udp_listening_point_t)
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 
-static belle_sip_socket_t create_udp_socket(const char *addr, int port, int *family){
+static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *family){
 	struct addrinfo hints={0};
 	struct addrinfo *res=NULL;
 	int err;
 	belle_sip_socket_t sock;
 	char portnum[10];
 	int optval=1;
+	
+	if (*port==-1) *port=0; /*random port for bind()*/
 
-	snprintf(portnum,sizeof(portnum),"%i",port);
+	snprintf(portnum,sizeof(portnum),"%i",*port);
 	hints.ai_family=AF_UNSPEC;
 	hints.ai_socktype=SOCK_DGRAM;
 	hints.ai_protocol=IPPROTO_UDP;
 	hints.ai_flags=AI_NUMERICSERV;
 	err=getaddrinfo(addr,portnum,&hints,&res);
 	if (err!=0){
-		belle_sip_error("getaddrinfo() failed for %s port %i: %s",addr,port,gai_strerror(err));
+		belle_sip_error("getaddrinfo() failed for %s port %i: %s",addr,*port,gai_strerror(err));
 		return -1;
 	}
 	*family=res->ai_family;
@@ -91,23 +93,37 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int port, int *fam
 	
 	err=bind(sock,res->ai_addr,res->ai_addrlen);
 	if (err==-1){
-		belle_sip_error("udp bind() failed for %s port %i: %s",addr,port,belle_sip_get_socket_error_string());
+		belle_sip_error("udp bind() failed for %s port %i: %s",addr,*port,belle_sip_get_socket_error_string());
 		close_socket(sock);
 		freeaddrinfo(res);
 		return -1;
 	}
 	freeaddrinfo(res);
+	if (*port==0){
+		struct sockaddr_storage saddr;
+		socklen_t saddr_len=sizeof(saddr);
+		err=getsockname(sock,(struct sockaddr*)&saddr,&saddr_len);
+		if (err==0){
+			err=getnameinfo((struct sockaddr*)&saddr,saddr_len,NULL,0,portnum,sizeof(portnum),NI_NUMERICSERV|NI_NUMERICHOST);
+			if (err==0){
+				*port=atoi(portnum);
+				belle_sip_message("Random UDP port is %i",*port);
+			}else belle_sip_error("udp bind failed, getnameinfo(): %s",gai_strerror(err));
+		}else belle_sip_error("udp bind failed, getsockname(): %s",belle_sip_get_socket_error_string());
+	}
 	return sock;
 }
 
 static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events);
 
 static int belle_sip_udp_listening_point_init_socket(belle_sip_udp_listening_point_t *lp){
+	int port=belle_sip_uri_get_listening_port(((belle_sip_listening_point_t*)lp)->listening_uri);
 	lp->sock=create_udp_socket(belle_sip_uri_get_host(((belle_sip_listening_point_t*)lp)->listening_uri)
-					,belle_sip_uri_get_port(((belle_sip_listening_point_t*)lp)->listening_uri),&lp->base.ai_family);
+					,&port,&lp->base.ai_family);
 	if (lp->sock==(belle_sip_socket_t)-1){
 		return -1;
 	}
+	belle_sip_uri_set_port(((belle_sip_listening_point_t*)lp)->listening_uri,port);
 	if (lp->base.stack->dscp)
 		belle_sip_socket_set_dscp(lp->sock,lp->base.ai_family,lp->base.stack->dscp);
 	lp->source=belle_sip_socket_source_new((belle_sip_source_func_t)on_udp_data,lp,lp->sock,BELLE_SIP_EVENT_READ,-1);

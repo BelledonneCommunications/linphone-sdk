@@ -123,7 +123,7 @@ belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buf
 		belle_sip_warning("no host found in this uri");
 	}
 	
-	if (uri->port>0) {
+	if (uri->port!=0) {
 		error=belle_sip_snprintf(buff,buff_size,offset,":%i",uri->port);
 		if (error!=BELLE_SIP_OK) return error;
 	}
