@@ -134,7 +134,7 @@ static void resample_process_ms2(MSFilter *obj){
 		int quality=SPEEX_RESAMPLER_QUALITY_VOIP; /*default value is voip*/
 #if __arm__ /*on ARM, NEON optimization are mandatory to support this quality, else using basic mode*/
 	#if SPEEX_LIB_SET_CPU_FEATURES
-		if (data->cpuFeatures != SPEEX_LIB_CPU_FEATURE_NEON)
+		if (dt->cpuFeatures != SPEEX_LIB_CPU_FEATURE_NEON)
 			quality=SPEEX_RESAMPLER_QUALITY_MIN;
 	#elif !__ARM_NEON__
 		quality=SPEEX_RESAMPLER_QUALITY_MIN;
