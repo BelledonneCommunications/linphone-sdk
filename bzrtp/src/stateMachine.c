@@ -1349,8 +1349,8 @@ int state_secure(bzrtpEvent_t event) {
 
 	/*** Manage the first call to this function ***/
 	if (event.eventType == BZRTP_EVENT_INIT) {
-		/* there is no timer in this state, turn it of */
-		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
+		/* there is no timer in this state, turn it off */
+		zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 
 		/* if we are not in Multistream mode, turn the global context isSecure flag to 1 */
 		if (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Mult) {
