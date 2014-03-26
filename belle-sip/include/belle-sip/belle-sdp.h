@@ -35,6 +35,8 @@ BELLESIP_EXPORT belle_sdp_attribute_t* belle_sdp_attribute_parse (const char* at
 BELLESIP_EXPORT belle_sdp_attribute_t* belle_sdp_attribute_create (const char* name,const char* value);
 BELLESIP_EXPORT const char* belle_sdp_attribute_get_name(const belle_sdp_attribute_t* attribute);
 BELLESIP_EXPORT void belle_sdp_attribute_set_name(belle_sdp_attribute_t* attribute, const char* name);
+BELLESIP_EXPORT const char* belle_sdp_attribute_get_value(belle_sdp_attribute_t* attribute);
+BELLESIP_EXPORT unsigned int belle_sdp_attribute_has_value(belle_sdp_attribute_t* attribute);
 #define BELLE_SDP_ATTRIBUTE(t) BELLE_SDP_CAST(t,belle_sdp_attribute_t)
 #define belle_sdp_attribute_init(obj)		/*nothing*/
 /***************************************************************************************
@@ -45,8 +47,6 @@ typedef struct _belle_sdp_raw_attribute belle_sdp_raw_attribute_t;
 BELLESIP_EXPORT belle_sdp_raw_attribute_t* belle_sdp_raw_attribute_new();
 BELLESIP_EXPORT belle_sdp_raw_attribute_t* belle_sdp_raw_attribute_parse(const char* attribute);
 BELLESIP_EXPORT belle_sdp_raw_attribute_t* belle_sdp_raw_attribute_create(const char* name, const char* value);
-BELLESIP_EXPORT const char* belle_sdp_raw_attribute_get_value(const belle_sdp_raw_attribute_t* attribute);
-BELLESIP_EXPORT unsigned int belle_sdp_raw_attribute_has_value(const belle_sdp_raw_attribute_t* attribute);
 BELLESIP_EXPORT void belle_sdp_raw_attribute_set_value(belle_sdp_raw_attribute_t* attribute, const char* value);
 #define BELLE_SDP_RAW_ATTRIBUTE(t) BELLE_SDP_CAST(t,belle_sdp_raw_attribute_t)
 /***************************************************************************************
@@ -192,7 +192,7 @@ BELLESIP_EXPORT belle_sdp_media_description_t* belle_sdp_media_description_creat
                          	 	 	 	 	 	 	 	 	 	 ,belle_sip_list_t* static_media_formats);
 BELLESIP_EXPORT void belle_sdp_media_description_add_dynamic_payloads(belle_sdp_media_description_t* media_description, belle_sip_list_t* payloadNames, belle_sip_list_t* payloadValues);
 BELLESIP_EXPORT const char*	belle_sdp_media_description_get_attribute_value(const belle_sdp_media_description_t* media_description, const char* name);
-BELLESIP_EXPORT const belle_sdp_attribute_t*	belle_sdp_media_description_get_attribute(const belle_sdp_media_description_t* media_description, const char* name);
+BELLESIP_EXPORT belle_sdp_attribute_t*	belle_sdp_media_description_get_attribute(const belle_sdp_media_description_t* media_description, const char* name);
 BELLESIP_EXPORT belle_sip_list_t* belle_sdp_media_description_get_attributes(const belle_sdp_media_description_t* media_description);
 BELLESIP_EXPORT int	belle_sdp_media_description_get_bandwidth(const belle_sdp_media_description_t* media_description, const char* name);
 BELLESIP_EXPORT belle_sip_list_t* belle_sdp_media_description_get_bandwidths(const belle_sdp_media_description_t* media_description);

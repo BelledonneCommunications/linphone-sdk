@@ -48,6 +48,7 @@ static struct attribute_name_func_pair attribute_table[] = {
 struct _belle_sdp_attribute {
 	belle_sip_object_t base;
 	const char* name;
+	char *unparsed_value;
 };
 void belle_sdp_attribute_destroy(belle_sdp_attribute_t* attribute) {
 	DESTROY_STRING(attribute,name)
@@ -83,6 +84,23 @@ belle_sdp_attribute_t* belle_sdp_attribute_create(const char* name, const char* 
 	/* Not a specialized SDP attribute */
 	return BELLE_SDP_ATTRIBUTE(belle_sdp_raw_attribute_create(name, value));
 }
+const char *belle_sdp_attribute_get_value(belle_sdp_attribute_t *attribute) {
+	char *ret;
+	char *end;
+
+	if (attribute->unparsed_value) {
+		belle_sip_free(attribute->unparsed_value);
+		attribute->unparsed_value = NULL;
+	}
+	attribute->unparsed_value = belle_sip_object_to_string(attribute);
+	ret = attribute->unparsed_value;
+	ret += strlen(attribute->name) + 3; /* "a=" + name + semicolon */
+	for (; *ret == ' '; ret++) {}; /* skip spaces */
+	return ret;
+}
+unsigned int belle_sdp_attribute_has_value(belle_sdp_attribute_t* attribute) {
+	return belle_sdp_attribute_get_value(attribute) != NULL;
+}
 BELLE_SDP_NEW(attribute,belle_sip_object)
 BELLE_SDP_PARSE(attribute)
 GET_SET_STRING(belle_sdp_attribute,name);
@@ -98,7 +116,9 @@ void belle_sdp_raw_attribute_destroy(belle_sdp_raw_attribute_t* attribute) {
 	DESTROY_STRING(attribute,value)
 }
 void belle_sdp_raw_attribute_clone(belle_sdp_raw_attribute_t* attribute, const belle_sdp_raw_attribute_t* orig) {
-	CLONE_STRING(belle_sdp_raw_attribute,value,attribute,orig)
+	if (belle_sdp_attribute_get_value(BELLE_SDP_ATTRIBUTE(orig))) {
+		belle_sdp_raw_attribute_set_value(attribute, belle_sdp_attribute_get_value(BELLE_SDP_ATTRIBUTE(orig)));
+	}
 }
 belle_sip_error_code belle_sdp_raw_attribute_marshal(belle_sdp_raw_attribute_t* attribute, char* buff, size_t buff_size, size_t* offset) {
 	belle_sip_error_code error = belle_sdp_attribute_marshal(BELLE_SDP_ATTRIBUTE(attribute), buff, buff_size, offset);
@@ -116,9 +136,11 @@ belle_sdp_raw_attribute_t* belle_sdp_raw_attribute_create(const char* name, cons
 	belle_sdp_raw_attribute_set_value(attribute, value);
 	return attribute;
 }
-GET_SET_STRING(belle_sdp_raw_attribute,value);
-unsigned int belle_sdp_raw_attribute_has_value(const belle_sdp_raw_attribute_t* attribute) {
-	return attribute->value!=NULL;
+void belle_sdp_raw_attribute_set_value(belle_sdp_raw_attribute_t* attribute, const char* value) {
+	if (attribute->value != NULL) belle_sip_free((void*)attribute->value);
+	if (value) {
+		attribute->value = belle_sip_strdup(value);
+	} else attribute->value = NULL;
 }
 /***************************************************************************************
  * RTCP-XR Attribute
@@ -452,7 +474,7 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sdp_base_description_t
 static int belle_sdp_base_description_attribute_comp_func(const belle_sdp_attribute_t* a, const char*b) {
 	return strcmp(a->name,b);
 }
-const belle_sdp_attribute_t*	belle_sdp_base_description_get_attribute(const belle_sdp_base_description_t* base_description, const char* name) {
+belle_sdp_attribute_t*	belle_sdp_base_description_get_attribute(const belle_sdp_base_description_t* base_description, const char* name) {
 	belle_sip_list_t* attribute;
 	attribute = belle_sip_list_find_custom(base_description->attributes, (belle_sip_compare_func)belle_sdp_base_description_attribute_comp_func, name);
 	if (attribute) {
@@ -462,14 +484,9 @@ const belle_sdp_attribute_t*	belle_sdp_base_description_get_attribute(const bell
 	}
 }
 const char*	belle_sdp_base_description_get_attribute_value(const belle_sdp_base_description_t* base_description, const char* name) {
-	const belle_sdp_attribute_t* attribute = belle_sdp_base_description_get_attribute(base_description,name);
+	belle_sdp_attribute_t* attribute = belle_sdp_base_description_get_attribute(base_description,name);
 	if (attribute) {
-		if (BELLE_SIP_IS_INSTANCE_OF(attribute, belle_sdp_raw_attribute_t)) {
-			return belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE(attribute));
-		} else {
-			belle_sip_error("Cannot get value of non-raw SDP attribute '%s'! Use specialized attribute object.", name);
-			return NULL;
-		}
+		return belle_sdp_attribute_get_value(attribute);
 	} else return NULL;
 
 }
@@ -593,7 +610,7 @@ BELLE_SDP_PARSE(media_description)
 void belle_sdp_media_description_add_dynamic_payloads(belle_sdp_media_description_t* media_description, belle_sip_list_t* payloadNames, belle_sip_list_t* payloadValues) {
 	belle_sip_error("belle_sdp_media_description_add_dynamic_payloads not implemented yet");
 }
-const belle_sdp_attribute_t*	belle_sdp_media_description_get_attribute(const belle_sdp_media_description_t* media_description, const char* name) {
+belle_sdp_attribute_t*	belle_sdp_media_description_get_attribute(const belle_sdp_media_description_t* media_description, const char* name) {
 	return belle_sdp_base_description_get_attribute(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),name);
 }
 const char*	belle_sdp_media_description_get_attribute_value(const belle_sdp_media_description_t* media_description, const char* name) {
@@ -767,16 +784,16 @@ static const char *belle_sdp_media_description_a_attr_value_get_with_pt(const be
 						;attribute_list=attribute_list->next) {
 
 		attr = BELLE_SDP_ATTRIBUTE(attribute_list->data);
-		if (strcmp(field,belle_sdp_attribute_get_name(attr))==0 && belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE(attr))!=NULL){
-			int nb = sscanf(belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE(attr)),"%i %n",&tmppt,&scanned);
+		if (strcmp(field,belle_sdp_attribute_get_name(attr))==0 && belle_sdp_attribute_get_value(attr)!=NULL){
+			int nb = sscanf(belle_sdp_attribute_get_value(attr),"%i %n",&tmppt,&scanned);
 			/* the return value may depend on how %n is interpreted by the libc: see manpage*/
 			if (nb == 1 || nb==2 ){
 				if (pt==tmppt){
-					tmp=belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE(attr))+scanned;
+					tmp=belle_sdp_attribute_get_value(attr)+scanned;
 					if (strlen(tmp)>0)
 						return tmp;
 				}
-			}else belle_sip_warning("sdp has a strange a= line (%s) nb=%i",belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE(attr)),nb);
+			}else belle_sip_warning("sdp has a strange a= line (%s) nb=%i",belle_sdp_attribute_get_value(attr),nb);
 		}
 	}
 	return NULL;

@@ -57,16 +57,16 @@ static belle_sdp_attribute_t* attribute_parse_marshall_parse_clone(const char* r
 static void test_attribute(void) {
 	belle_sdp_attribute_t* lAttribute = attribute_parse_marshall_parse_clone("a=rtpmap:101 telephone-event/8000");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(lAttribute), "rtpmap");
-	CU_ASSERT_STRING_EQUAL(belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE(lAttribute)), "101 telephone-event/8000");
-	CU_ASSERT_TRUE(belle_sdp_raw_attribute_has_value(BELLE_SDP_RAW_ATTRIBUTE(lAttribute)));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value(lAttribute), "101 telephone-event/8000");
+	CU_ASSERT_TRUE(belle_sdp_attribute_has_value(lAttribute));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 }
 
 static void test_attribute_2(void) {
 	belle_sdp_attribute_t* lAttribute = attribute_parse_marshall_parse_clone("a=ice-pwd:31ec21eb38b2ec6d36e8dc7b");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(lAttribute), "ice-pwd");
-	CU_ASSERT_STRING_EQUAL(belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE(lAttribute)), "31ec21eb38b2ec6d36e8dc7b");
-	CU_ASSERT_TRUE(belle_sdp_raw_attribute_has_value(BELLE_SDP_RAW_ATTRIBUTE(lAttribute)));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value(lAttribute), "31ec21eb38b2ec6d36e8dc7b");
+	CU_ASSERT_TRUE(belle_sdp_attribute_has_value(lAttribute));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 }
 
@@ -269,7 +269,7 @@ static void test_media_description_base(belle_sdp_media_description_t* media_des
 	CU_ASSERT_PTR_NOT_NULL(list);
 	i=0;
 	for(;list!=NULL;list=list->next){
-		CU_ASSERT_STRING_EQUAL(belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE((belle_sdp_attribute_t*)(list->data))),attr[i++]);
+		CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value((belle_sdp_attribute_t*)(list->data)),attr[i++]);
 	}
 
 }
@@ -498,7 +498,7 @@ static void check_mime_param (belle_sdp_mime_parameter_t* mime_param
 }
 int static compare_attribute(belle_sdp_attribute_t* attr, const char* value) {
 	return strcasecmp(belle_sdp_attribute_get_name(attr),"rtpmap")==0
-			|| strcasecmp(belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE(attr)),value)==0;
+			|| strcasecmp(belle_sdp_attribute_get_value(attr),value)==0;
 }
 static void test_mime_parameter(void) {
 	const char* l_src = "m=audio 7078 RTP/AVP 111 110 0 8 9 3 18 101\r\n"\
