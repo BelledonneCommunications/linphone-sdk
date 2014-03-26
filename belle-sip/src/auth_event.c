@@ -122,4 +122,7 @@ void belle_tls_verify_policy_set_exceptions(belle_tls_verify_policy_t *obj, int 
 	obj->exception_flags=flags;
 }
 
+unsigned int belle_tls_verify_policy_get_exceptions(const belle_tls_verify_policy_t *obj){
+	return obj->exception_flags;
+}
 

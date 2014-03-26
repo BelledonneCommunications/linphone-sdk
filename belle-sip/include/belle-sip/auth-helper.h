@@ -151,6 +151,7 @@ BELLESIP_EXPORT int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_
 #define BELLE_TLS_VERIFY_CN_MISMATCH (1)
 #define BELLE_TLS_VERIFY_ANY_REASON (0xff)
 BELLESIP_EXPORT void belle_tls_verify_policy_set_exceptions(belle_tls_verify_policy_t *obj, int flags);
+BELLESIP_EXPORT unsigned int belle_tls_verify_policy_get_exceptions(const belle_tls_verify_policy_t *obj);
 
 BELLE_SIP_END_DECLS
 
