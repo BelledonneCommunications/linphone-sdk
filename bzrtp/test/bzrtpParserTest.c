@@ -1505,6 +1505,8 @@ uint64_t getCurrentTimeInMs() {
 	return (tv.tv_sec*1000+tv.tv_usec/1000);
 }
 
+/* Ping message length is 24 bytes (already define in packetParser.c out of this scope) */
+#define ZRTP_PINGMESSAGE_FIXED_LENGTH 24
 
 void test_stateMachine() {
 	struct timespec tenMs;
@@ -1586,9 +1588,64 @@ void test_stateMachine() {
 		nanosleep(&tenMs, NULL);
 	}
 
-	printf("we're out, Alice and Bob are secure!(or timeout?)\n");
+	/* compare SAS and check we are in secure mode */
+	CU_ASSERT_TRUE((memcmp(contextAlice->channelContext[0]->srtpSecrets.sas, contextBob->channelContext[0]->srtpSecrets.sas, 4) == 0) && (contextAlice->isSecure == 1) && (contextBob->isSecure == 1));
 	
-	/* now add a second channel */
+	/*** Send alice a ping message from Bob ***/
+	uint8_t pingPacketString[ZRTP_PACKET_OVERHEAD+ZRTP_PINGMESSAGE_FIXED_LENGTH]; /* there is no builder for ping packet and it is 24 bytes long(12 bytes of message header, 12 of data + packet overhead*/
+
+	/* set packet header and CRC */
+	/* preambule */
+	pingPacketString[0] = 0x10;
+	pingPacketString[1] = 0x00;
+	/* Sequence number */
+	pingPacketString[2] = (uint8_t)((contextBob->channelContext[0]->selfSequenceNumber>>8)&0x00FF);
+	pingPacketString[3] = (uint8_t)(contextBob->channelContext[0]->selfSequenceNumber&0x00FF);
+	/* ZRTP magic cookie */
+	pingPacketString[4] = (uint8_t)((ZRTP_MAGIC_COOKIE>>24)&0xFF);
+	pingPacketString[5] = (uint8_t)((ZRTP_MAGIC_COOKIE>>16)&0xFF);
+	pingPacketString[6] = (uint8_t)((ZRTP_MAGIC_COOKIE>>8)&0xFF);
+	pingPacketString[7] = (uint8_t)(ZRTP_MAGIC_COOKIE&0xFF);
+	/* Source Identifier : insert bob's one: 0x87654321 */
+	pingPacketString[8] = 0x87;
+	pingPacketString[9] = 0x65;
+	pingPacketString[10] = 0x43;
+	pingPacketString[11] = 0x21;
+
+	/* message header */
+	pingPacketString[12] = 0x50;
+	pingPacketString[13] = 0x5a;
+
+	/* length in 32 bits words */
+	pingPacketString[14] = 0x00;
+	pingPacketString[15] = 0x06;
+
+	/* message type "Ping    " */
+	memcpy(pingPacketString+16, "Ping    ",8);
+
+	/* Version on 4 bytes is "1.10" */
+	memcpy(pingPacketString+24, "1.10", 4);
+
+	/* a endPointHash, use the first 8 bytes of Bob's ZID */
+	memcpy(pingPacketString+28, contextBob->selfZID, 8);
+
+	/* CRC */
+	uint32_t CRC = bzrtp_CRC32(pingPacketString, ZRTP_PINGMESSAGE_FIXED_LENGTH+ZRTP_PACKET_HEADER_LENGTH);
+	uint8_t *CRCbuffer = pingPacketString+ZRTP_PINGMESSAGE_FIXED_LENGTH+ZRTP_PACKET_HEADER_LENGTH;
+	*CRCbuffer = (uint8_t)((CRC>>24)&0xFF);
+	CRCbuffer++;
+	*CRCbuffer = (uint8_t)((CRC>>16)&0xFF);
+	CRCbuffer++;
+	*CRCbuffer = (uint8_t)((CRC>>8)&0xFF);
+	CRCbuffer++;
+	*CRCbuffer = (uint8_t)(CRC&0xFF);
+
+	printf("Process a PING message for Alice\n");
+	retval = bzrtp_processMessage(contextAlice, 0x12345678, pingPacketString, ZRTP_PACKET_OVERHEAD+ZRTP_PINGMESSAGE_FIXED_LENGTH);
+	printf("Alice processed PING message and return %04x\n\n", retval);
+
+
+	/*** now add a second channel ***/
 	retval = bzrtp_addChannel(contextAlice, 0x34567890);
 	printf("Add a channel to Alice context, return %x\n", retval);
 	retval = bzrtp_addChannel(contextBob, 0x09876543);

@@ -34,7 +34,6 @@
 #include "stateMachine.h"
 
 #define BZRTP_ERROR_INVALIDCHANNELCONTEXT 0x8001
-/* buffers allocation */
 
 /* local functions */
 int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC);
@@ -48,8 +47,7 @@ bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uint32_t s
  * @return The ZRTP engine context data
  *                                                                        
 */
-bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC)
-{
+bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC) {
 	int i;
 	/*** create and intialise the context structure ***/
 	bzrtpContext_t *context = malloc(sizeof(bzrtpContext_t));
@@ -119,6 +117,7 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC)
 void bzrtp_initBzrtpContext(bzrtpContext_t *context) {
 
 	/* initialise ZID. Randomly generated if no ZID is found in cache or no cache found */
+	/* This call will load the cache or create it if the cache callback functions are not null*/
 	bzrtp_getSelfZID(context, context->selfZID);
 }
 
@@ -128,8 +127,7 @@ void bzrtp_initBzrtpContext(bzrtpContext_t *context) {
  * @param[in]	selfSSRC	The SSRC identifying the channel to be destroyed
  *                                                                           
 */
-void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC)
-{
+void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	if (context == NULL) {
 		return;
 	}
@@ -387,6 +385,29 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 	}
 
 	/* TODO: Intercept error and ping zrtp packets */
+	/* if we have a ping packet, just answer with a ping ACK and do not forward to the state machine */
+	if (zrtpPacket->messageType == MSGTYPE_PING) {
+		bzrtp_packetParser(zrtpContext, zrtpChannelContext, zrtpPacketString, zrtpPacketStringLength, zrtpPacket);
+		/* store ping packet in the channel context as packet creator will need it to create the pingACK */
+		zrtpChannelContext->pingPacket = zrtpPacket;
+		/* create the pingAck packet */
+		bzrtpPacket_t *pingAckPacket = NULL;
+		pingAckPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_PINGACK, &retval);
+		if (retval == 0) {
+			retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, pingAckPacket, zrtpChannelContext->selfSequenceNumber);
+			if (retval==0 && zrtpContext->zrtpCallbacks.bzrtp_sendData!=NULL) { /* send the packet */
+				zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, pingAckPacket->packetString, pingAckPacket->messageLength+ZRTP_PACKET_OVERHEAD);
+				zrtpChannelContext->selfSequenceNumber++;
+			}
+		}
+
+		/* free packets and reset channel context storage */
+		bzrtp_freeZrtpPacket(zrtpPacket);
+		bzrtp_freeZrtpPacket(pingAckPacket);
+		zrtpChannelContext->pingPacket = NULL;
+		
+		return retval;
+	}
 
 	/* build a packet event of it and send it to the state machine */
 	bzrtpEvent_t event;
