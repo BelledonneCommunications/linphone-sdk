@@ -48,9 +48,6 @@ set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
 include(builders/CMakeLists.txt)
 
 
-# belle-sip
-list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_SERVER_SOCKETS=0")
-
 # mediastreamer2
 list(APPEND EP_ms2_CONFIGURE_OPTIONS
 	"--disable-nls"
