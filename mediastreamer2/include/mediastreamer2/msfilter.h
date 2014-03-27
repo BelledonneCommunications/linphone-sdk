@@ -174,14 +174,15 @@ typedef struct _MSFilterDesc MSFilterDesc;
 
 struct _MSFilter{
 	MSFilterDesc *desc; /**<Back pointer to filter's descriptor.*/
-	/*protected attributes */
+	/*protected attributes, do not move or suppress any of them otherwise plugins will be broken */
 	ms_mutex_t lock;
 	MSQueue **inputs; /**<Table of input queues.*/
 	MSQueue **outputs;/**<Table of output queues */
-	MSList *notify_callbacks;
-	void *data; /**<Pointer used by the filter for internal state and computations.*/
+	void *padding[2]; /**Unused - to be reused later when new protected fields have to added*/
+	void *data; /**< Pointer used by the filter for internal state and computations.*/
 	struct _MSTicker *ticker; /**<Pointer to the ticker object. It is not NULL when being called process()*/
-	/*private attributes */
+	/*private attributes, they can be moved and changed at any time*/
+	MSList *notify_callbacks;
 	uint32_t last_tick;
 	MSFilterStats *stats;
 	int postponed_task; /*number of postponed tasks*/
