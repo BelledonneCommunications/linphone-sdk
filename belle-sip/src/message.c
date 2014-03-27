@@ -878,6 +878,7 @@ static message_header_list_t mandatory_headers[] = {
 		{"CANCEL",{"Call-ID","CSeq","From", "Max-Forwards","To","Via",NULL}},
 		{"BYE",{"Call-ID","CSeq","From", "Max-Forwards","To","Via",NULL}},
 		{"ACK",{"Call-ID","CSeq","From", "Max-Forwards","To","Via",NULL}},
+		{"*", { "To", "From", "CSeq", "Via", NULL}}, /* catch-all, these fields are required all the time. */
 		{NULL,{NULL}}
 };
 
@@ -903,11 +904,12 @@ int belle_sip_message_check_headers(const belle_sip_message_t* message) {
 		const char * method = belle_sip_request_get_method(BELLE_SIP_REQUEST(message));
 		
 		for (i=0;mandatory_headers[i].method!=NULL;i++) {
-			if (strcasecmp(method,mandatory_headers[i].method)==0){
+			if ( (strcasecmp(method,mandatory_headers[i].method)==0) ||
+				 (mandatory_headers[i].method[0] == '*') ){
 				int j;
 				for(j=0;mandatory_headers[i].headers[j]!=NULL;j++) {
 					if (belle_sip_message_get_header(message,mandatory_headers[i].headers[j])==NULL) {
-						belle_sip_error("Missing mandatory header [%s] for message [%s]",mandatory_headers[i].headers[j],mandatory_headers[i].method);
+						belle_sip_error("Missing mandatory header [%s] for message [%s]",mandatory_headers[i].headers[j],method);
 						return 0;
 					}
 				}

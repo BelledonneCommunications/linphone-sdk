@@ -501,20 +501,23 @@ static void testMalformedFrom_process_response_cb(void *user_ctx, const belle_si
 	CU_ASSERT( status == 400 );
 }
 
+#define LISTENING_POINT_PORT 45421
+#define LISTENING_POINT_HOSTPORT "127.0.0.1:45421" /* need the same port as above */
+
 static void testMalformedFrom(void){
 	belle_sip_stack_t*        stack = belle_sip_stack_new(NULL);
 	belle_sip_listening_point_t* lp = belle_sip_stack_create_listening_point(stack,
 																			 "127.0.0.1",
-																			 45421,
+																			 LISTENING_POINT_PORT,
 																			 "tcp");
 	belle_sip_provider_t* provider = belle_sip_provider_new(stack,lp);
 	belle_sip_listener_callbacks_t listener_cbs = {0};
 
-	const char* raw_message = "INVITE sip:us2@172.16.42.108 SIP/2.0\r\n"
-			"Via: SIP/2.0/TCP 127.0.0.1:45421;branch=z9hG4bK-edx-U_1zoIkaq72GJPqpSmDpJQ-ouBelFuLODzf9oS5J9MeFUA;rport\r\n"
-			"From: cm test <sip:00_1E_E0_00_1D_0D@us2>;tag=klsk+kwDc\r\n" /** 'cm test' should be enclosed in double quotes */
-			"To: <sip:us2@172.16.42.108;transport=tcp>\r\n"
-			"Contact: <sip:00_1E_E0_00_1D_0D@172.16.42.1>\r\n"
+	const char* raw_message = "INVITE sip:us2@172.1.1.1 SIP/2.0\r\n"
+			"Via: SIP/2.0/TCP " LISTENING_POINT_HOSTPORT ";branch=z9hG4bK-edx-U_1zoIkaq72GJPqpSmDpJQ-ouBelFuLODzf9oS5J9MeFUA;rport\r\n"
+			"From: cm test <sip:00_12_34_56_78_90@us2>;tag=klsk+kwDc\r\n" /** 'cm test' should be enclosed in double quotes */
+			"To: <sip:us2@172.1.1.1;transport=tcp>\r\n"
+			"Contact: <sip:00_12_34_56_78_90@172.2.2.2>\r\n"
 			"Call-ID: 2b6fb0320-1384-179494-426025-23b6b0-2e3303331@172.16.42.1\r\n"
 			"Content-Type: application/sdp\r\n"
 			"Content-Length: 389\r\n"
@@ -540,6 +543,64 @@ static void testMalformedFrom(void){
 			"a=fmtp:105 packetization-mode=0\r\n"
 			"a=rtpmap:104 H263-1998/90000\r\n"
 			"a=fmtp:104 CIF=1;J=1\r\n";
+
+	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
+	belle_sip_listener_t* listener = NULL;
+
+	int called_times = 0;
+
+	listener_cbs.process_response_event = testMalformedFrom_process_response_cb;
+	listener = belle_sip_listener_create_from_callbacks(&listener_cbs, &called_times);
+
+	belle_sip_provider_add_sip_listener(provider, listener);
+
+	belle_sip_object_ref(message);
+	belle_sip_object_ref(message); /* double ref: originally the message is created with 0 refcount, and dispatch_message will unref() it.*/
+
+	belle_sip_provider_dispatch_message(provider, message);
+	// we expect the stack to send a 400 error
+	belle_sip_stack_sleep(stack,1000);
+
+	CU_ASSERT_EQUAL(called_times,1);
+	belle_sip_provider_remove_sip_listener(provider,listener);
+
+	belle_sip_object_unref(listener);
+	belle_sip_object_unref(provider);
+	belle_sip_object_unref(stack);
+	belle_sip_object_unref(message);
+
+}
+
+
+static void testMalformedMandatoryField(void){
+	belle_sip_stack_t*        stack = belle_sip_stack_new(NULL);
+	belle_sip_listening_point_t* lp = belle_sip_stack_create_listening_point(stack,
+																			 "127.0.0.1",
+																			 LISTENING_POINT_PORT,
+																			 "tcp");
+	belle_sip_provider_t* provider = belle_sip_provider_new(stack,lp);
+	belle_sip_listener_callbacks_t listener_cbs = {0};
+
+	/* the MESSAGE message has no definition on which fields are required, which means we'll go into
+	 *
+	 *
+	 *
+	 */
+
+	const char* raw_message = "MESSAGE sip:lollol.iphone@22.22.222.222:5861;transport=tcp SIP/2.0\r\n"
+			"Via: SIP/2.0/TCP " LISTENING_POINT_HOSTPORT ";branch=z9hG4bK5eca096a;rport\r\n"
+			"Max-Forwards: 70\r\n"
+			"From: \"MS TFT\" <sip:lollol-labo-ms-tft1@11.11.111.111>;tag=as2413a381\r\n"
+			"To: <sip:lollol-labo-iphone4s@22.22.22.222:5861;app-id=fr.lollol.phone.prod;pn-type=apple;pn-tok=azertyuiopqsdfghhjjkmlqoijfubieuzhqiluehcpoqidufqsdkjlcnuoishcvs;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-call-snd=ring.caf;pn-msg-snd=msg.caf;transport=tcp>;tag=\r\n"
+			"Call-ID: 4070383971a9674201f463af2de1f012@11.11.111.111:5060\r\n"
+			"CSeq: 103 MESSAGE\r\n"
+			"User-Agent: Sip Server On Host (20130523_12h10)\r\n"
+			"Content-Type: text/plain;charset=UTF-8\r\n"
+			"Content-Length: 276\r\n"
+			"\r\n"
+			"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
+			"<VDUCMediaConfig GId=\"1234567\" IdPosteType=\"123\"><Label>Salut Bilout TFT MS2</Label><MediaConfig GId=\"456\"><CommandCode Code=\"MediaCommand*\"><Label>Porte ouverte</Label></CommandCode><withVideo FPS=\"0.0\"/></MediaConfig></VDUCMediaConfig>\r\n"
+			"\r\n";
 
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
 	belle_sip_listener_t* listener = NULL;
@@ -854,6 +915,7 @@ test_t message_tests[] = {
 	{ "SIP frag", test_sipfrag },
 	{ "Malformed invite", testMalformedMessage },
 	{ "Malformed from", testMalformedFrom },
+	{ "Malformed mandatory field", testMalformedMandatoryField },
 	{ "Malformed invite with bad begin", testMalformedMessageWithWrongStart },
 	{ "Malformed register", testMalformedOptionnalHeaderInMessage },
 	{ "Channel parser error recovery", channel_parser_tester_recovery_from_error},
