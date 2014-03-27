@@ -121,8 +121,6 @@ public class MediastreamerActivity extends Activity {
 		/* declare layout */
 		setContentView(R.layout.main);
 
-		AndroidVideoApi5JniWrapper.setAndroidSdkVersion(Build.VERSION.SDK_INT);
-		
 		Log.i("ms", "Mediastreamer starting !");
 
 		/* retrieve preview surface */
