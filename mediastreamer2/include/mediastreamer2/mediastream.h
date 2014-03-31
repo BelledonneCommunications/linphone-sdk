@@ -139,6 +139,10 @@ MS2_PUBLIC float media_stream_get_quality_rating(MediaStream *stream);
 
 MS2_PUBLIC float media_stream_get_average_quality_rating(MediaStream *stream);
 
+MS2_PUBLIC float media_stream_get_lq_quality_rating(MediaStream *stream);
+
+MS2_PUBLIC float media_stream_get_average_lq_quality_rating(MediaStream *stream);
+
 /**
  * <br>For multirate codecs like OPUS, encoder output target bitrate must be set.
  * <br>Encoder will compute output codec bitrate from this value.
@@ -417,6 +421,12 @@ MS2_PUBLIC float audio_stream_get_quality_rating(AudioStream *stream);
 
 /* returns the quality rating as an average since the start of the streaming session.*/
 MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream);
+
+/* returns a realtime indicator of the listening quality of the stream between 0 and 5 */
+MS2_PUBLIC float audio_stream_get_lq_quality_rating(AudioStream *stream);
+
+/* returns the listening quality rating as an average since the start of the streaming session.*/
+MS2_PUBLIC float audio_stream_get_average_lq_quality_rating(AudioStream *stream);
 
 /* enable ZRTP on the audio stream */
 MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params);

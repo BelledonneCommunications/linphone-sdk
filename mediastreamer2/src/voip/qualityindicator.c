@@ -32,9 +32,13 @@ struct _MSQualityIndicator{
 	RtpSession *session;
 	int clockrate;
 	double sum_ratings;
+	double sum_lq_ratings;
 	float rating;
+	float lq_rating;	/* Listening-quality rating */
 	float local_rating;
 	float remote_rating;
+	float local_lq_rating;	/* Local listening-quality rating */
+	float remote_lq_rating;	/* Remote listening-quality rating */
 	uint64_t last_packet_count;
 	uint32_t last_ext_seq;
 	uint32_t last_late;
@@ -47,13 +51,20 @@ MSQualityIndicator *ms_quality_indicator_new(RtpSession *session){
 	MSQualityIndicator *qi=ms_new0(MSQualityIndicator,1);
 	qi->session=session;
 	qi->rating=5.0;
+	qi->lq_rating=5.0;
 	qi->local_rating=1.0;
 	qi->remote_rating=1.0;
+	qi->local_lq_rating=1.0;
+	qi->remote_lq_rating=1.0;
 	return qi;
 }
 
 float ms_quality_indicator_get_rating(MSQualityIndicator *qi){
 	return qi->rating;
+}
+
+float ms_quality_indicator_get_lq_rating(MSQualityIndicator *qi) {
+	return qi->lq_rating;
 }
 
 static float inter_jitter_rating(float inter_jitter){
@@ -83,9 +94,16 @@ static float compute_rating(float loss_rate, float inter_jitter, float late_rate
 	return loss_rating(loss_rate)*inter_jitter_rating(inter_jitter)*loss_rating(late_rate)*rt_prop_rating(rt_prop);
 }
 
+/* Compute listening-quality rating */
+static float compute_lq_rating(float loss_rate, float inter_jitter, float late_rate) {
+	return loss_rating(loss_rate) * inter_jitter_rating(inter_jitter) * loss_rating(late_rate);
+}
+
 static void update_global_rating(MSQualityIndicator *qi){
 	qi->rating=RATING_SCALE*qi->remote_rating*qi->local_rating;
 	qi->sum_ratings+=qi->rating;
+	qi->lq_rating=RATING_SCALE*qi->remote_lq_rating*qi->local_lq_rating;
+	qi->sum_lq_ratings+=qi->lq_rating;
 	qi->count++;
 }
 
@@ -108,6 +126,7 @@ void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *r
 		float inter_jitter=(float)report_block_get_interarrival_jitter(rb)/(float)qi->clockrate;
 		float rt_prop=rtp_session_get_round_trip_propagation(qi->session);
 		qi->remote_rating=compute_rating(loss_rate,inter_jitter,0,rt_prop);
+		qi->remote_lq_rating=compute_lq_rating(loss_rate,inter_jitter,0);
 		update_global_rating(qi);
 	}
 }
@@ -149,12 +168,18 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	qi->cur_late_rate=late_rate*100.0;
 	
 	qi->local_rating=compute_rating(loss_rate,0,late_rate,rtp_session_get_round_trip_propagation(qi->session));
+	qi->local_lq_rating=compute_lq_rating(loss_rate,0,late_rate);
 	update_global_rating(qi);
 }
 
 float ms_quality_indicator_get_average_rating(MSQualityIndicator *qi){
 	if (qi->count==0) return -1; /*no rating available*/
 	return (float)(qi->sum_ratings/(double)qi->count);
+}
+
+float ms_quality_indicator_get_average_lq_rating(MSQualityIndicator *qi) {
+	if (qi->count == 0) return -1; /* No rating available */
+	return (float)(qi->sum_lq_ratings / (double)qi->count);
 }
 
 float ms_quality_indicator_get_local_loss_rate(const MSQualityIndicator *qi){

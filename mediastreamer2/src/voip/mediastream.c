@@ -318,6 +318,20 @@ float media_stream_get_average_quality_rating(MediaStream *stream){
 	return -1;
 }
 
+float media_stream_get_lq_quality_rating(MediaStream *stream) {
+	if (stream->qi) {
+		return ms_quality_indicator_get_lq_rating(stream->qi);
+	}
+	return -1;
+}
+
+float media_stream_get_average_lq_quality_rating(MediaStream *stream) {
+	if (stream->qi) {
+		return ms_quality_indicator_get_average_lq_rating(stream->qi);
+	}
+	return -1;
+}
+
 int media_stream_set_target_network_bitrate(MediaStream *stream,int target_bitrate) {
 	stream->target_bitrate=target_bitrate;
 	return 0;

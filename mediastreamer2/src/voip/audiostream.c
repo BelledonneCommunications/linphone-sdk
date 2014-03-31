@@ -247,6 +247,52 @@ static void setup_local_player(AudioStream *stream, int samplerate, int channels
 	ms_filter_add_notify_callback(stream->local_player,player_callback,stream,TRUE);
 }
 
+static OrtpRtcpXrPlcStatus audio_stream_get_rtcp_xr_plc_status(unsigned long userdata) {
+	AudioStream *stream = (AudioStream *)userdata;
+	if ((stream->features & AUDIO_STREAM_FEATURE_PLC) != 0) {
+		int decoder_have_plc = 0;
+		if (ms_filter_has_method(stream->ms.decoder, MS_AUDIO_DECODER_HAVE_PLC)) {
+			ms_filter_call_method(stream->ms.decoder, MS_AUDIO_DECODER_HAVE_PLC, &decoder_have_plc);
+		}
+		if (decoder_have_plc == 0) {
+			return OrtpRtcpXrSilencePlc;
+		} else {
+			return OrtpRtcpXrEnhancedPlc;
+		}
+	}
+	return OrtpRtcpXrNoPlc;
+}
+
+static int8_t audio_stream_get_rtcp_xr_signal_level(unsigned long userdata) {
+	AudioStream *stream = (AudioStream *)userdata;
+	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0) {
+		float volume;
+		ms_filter_call_method(stream->volrecv, MS_VOLUME_GET_MAX, &volume);
+		return (int8_t)volume;
+	}
+	return ORTP_RTCP_XR_UNAVAILABLE_PARAMETER;
+}
+
+static int8_t audio_stream_get_rtcp_xr_noise_level(unsigned long userdata) {
+	AudioStream *stream = (AudioStream *)userdata;
+	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0) {
+		float volume;
+		ms_filter_call_method(stream->volrecv, MS_VOLUME_GET_MIN, &volume);
+		return (int8_t)volume;
+	}
+	return ORTP_RTCP_XR_UNAVAILABLE_PARAMETER;
+}
+
+static float audio_stream_get_rtcp_xr_average_quality_rating(unsigned long userdata) {
+	AudioStream *stream = (AudioStream *)userdata;
+	return audio_stream_get_average_quality_rating(stream);
+}
+
+static float audio_stream_get_rtcp_xr_average_lq_quality_rating(unsigned long userdata) {
+	AudioStream *stream = (AudioStream *)userdata;
+	return audio_stream_get_average_lq_quality_rating(stream);
+}
+
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec)
@@ -259,6 +305,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	MSRtpPayloadPickerContext picker_context;
 	bool_t has_builtin_ec=FALSE;
 	bool_t tricked_sample_rate=FALSE;
+	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
+		audio_stream_get_rtcp_xr_plc_status,
+		audio_stream_get_rtcp_xr_signal_level,
+		audio_stream_get_rtcp_xr_noise_level,
+		audio_stream_get_rtcp_xr_average_quality_rating,
+		audio_stream_get_rtcp_xr_average_lq_quality_rating,
+		(unsigned long)stream
+	};
 
 	rtp_session_set_profile(rtps,profile);
 	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
@@ -267,6 +321,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
+	rtp_session_set_rtcp_xr_media_callbacks(rtps, &rtcp_xr_media_cbs);
 
 	if (rem_rtp_port>0)
 		ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,rtps);
@@ -923,6 +978,14 @@ float audio_stream_get_quality_rating(AudioStream *stream){
 
 float audio_stream_get_average_quality_rating(AudioStream *stream){
 	return media_stream_get_average_quality_rating(&stream->ms);
+}
+
+float audio_stream_get_lq_quality_rating(AudioStream *stream) {
+	return media_stream_get_lq_quality_rating(&stream->ms);
+}
+
+float audio_stream_get_average_lq_quality_rating(AudioStream *stream) {
+	return media_stream_get_average_lq_quality_rating(&stream->ms);
 }
 
 void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){

@@ -58,6 +58,16 @@ MS2_PUBLIC float ms_quality_indicator_get_rating(MSQualityIndicator *qi);
 MS2_PUBLIC float ms_quality_indicator_get_average_rating(MSQualityIndicator *qi);
 
 /**
+ * Return the real time rating of the listening quality of the session. Its value is between 0.0 (worse) and 5.0 (best).
+**/
+MS2_PUBLIC float ms_quality_indicator_get_lq_rating(MSQualityIndicator *qi);
+
+/**
+ * Returns the average rating of the listening quality of the session, that is the rating of the listening quality for all the duration of the session.
+**/
+MS2_PUBLIC float ms_quality_indicator_get_average_lq_rating(MSQualityIndicator *qi);
+
+/**
  * Returns the local loss rate, as computed internally by ms_quality_indicator_update_local().
  * The value is expressed as a percentage.
  * This method is for advanced usage.
