@@ -113,7 +113,7 @@ bzrtpRNGContext_t *bzrtpCrypto_startRNG(const uint8_t *entropyString, uint16_t e
  * @return		0 on success.
  *
  */
-int bzrtpCrypto_getRandom(bzrtpRNGContext_t *context, uint8_t *output, int16_t outputLength);
+int bzrtpCrypto_getRandom(bzrtpRNGContext_t *context, uint8_t *output, size_t outputLength);
 
 
 /**
@@ -137,9 +137,9 @@ int bzrtpCrypto_destroyRNG(bzrtpRNGContext_t *context);
  *
  */
 void bzrtpCrypto_hmacSha256(const uint8_t *key,
-		uint8_t keyLength,
+		size_t keyLength,
 		const uint8_t *input,
-		uint32_t inputLength,
+		size_t inputLength,
 		uint8_t hmacLength,
 		uint8_t *output);
 
@@ -152,7 +152,7 @@ void bzrtpCrypto_hmacSha256(const uint8_t *key,
  *
  */
 void bzrtpCrypto_sha256(const uint8_t *input,
-		uint32_t inputLength,
+		size_t inputLength,
 		uint8_t hashLength,
 		uint8_t *output);
 
@@ -167,9 +167,9 @@ void bzrtpCrypto_sha256(const uint8_t *input,
  *
  */
 void bzrtpCrypto_hmacSha1(const uint8_t *key,
-		uint8_t keyLength,
+		size_t keyLength,
 		const uint8_t *input,
-		uint32_t inputLength,
+		size_t inputLength,
 		uint8_t hmacLength,
 		uint8_t *output);
 
@@ -187,7 +187,7 @@ void bzrtpCrypto_hmacSha1(const uint8_t *key,
 void bzrtpCrypto_aes128CfbEncrypt(const uint8_t *key,
 		const uint8_t *IV,
 		const uint8_t *input,
-		uint16_t inputLength,
+		size_t inputLength,
 		uint8_t *output);
 
 /**
@@ -204,7 +204,7 @@ void bzrtpCrypto_aes128CfbEncrypt(const uint8_t *key,
 void bzrtpCrypto_aes128CfbDecrypt(const uint8_t *key,
 		const uint8_t *IV,
 		const uint8_t *input,
-		uint16_t inputLength,
+		size_t inputLength,
 		uint8_t *output);
 
 /**
@@ -245,7 +245,7 @@ bzrtpDHMContext_t *bzrtpCrypto_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretL
  * @param[in]		rngContext	pointer to the rng context if neeeded
  *
  */
-void bzrtpCrypto_DHMCreatePublic(bzrtpDHMContext_t *context, int (*rngFunction)(void *, uint8_t *, uint16_t), void *rngContext);
+void bzrtpCrypto_DHMCreatePublic(bzrtpDHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext);
 
 /**
  *
@@ -258,7 +258,7 @@ void bzrtpCrypto_DHMCreatePublic(bzrtpDHMContext_t *context, int (*rngFunction)(
  * @param[in]		rngContext	Pointer to the RNG function context
  *
  */
-void bzrtpCrypto_DHMComputeSecret(bzrtpDHMContext_t *context, int (*rngFunction)(void *, uint8_t *, uint16_t), void *rngContext);
+void bzrtpCrypto_DHMComputeSecret(bzrtpDHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext);
 
 /**
  *

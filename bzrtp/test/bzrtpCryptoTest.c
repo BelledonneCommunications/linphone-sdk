@@ -292,13 +292,15 @@ void test_dhm2048(void) {
 	bzrtpDHMContext_t *DHMaContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH2k, 32);
 
 	/* Create the public value for Alice G^Xa mod P */
-	bzrtpCrypto_DHMCreatePublic(DHMaContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
+	bzrtpCrypto_DHMCreatePublic(DHMaContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
 
 	/* Create the context for Bob */
 	bzrtpDHMContext_t *DHMbContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH2k, 32);
 
 	/* Create the public value for Bob G^Xb mod P */
-	bzrtpCrypto_DHMCreatePublic(DHMbContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
+	bzrtpCrypto_DHMCreatePublic(DHMbContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
+
+	printf("Context created %p and %p\n", DHMaContext, DHMbContext);
 
 	/* exchange public values */
 	DHMaContext->peer = (uint8_t *)malloc(DHMaContext->primeLength*sizeof(uint8_t));
@@ -306,9 +308,10 @@ void test_dhm2048(void) {
 	memcpy (DHMaContext->peer, DHMbContext->self, DHMaContext->primeLength*sizeof(uint8_t));
 	memcpy (DHMbContext->peer, DHMaContext->self, DHMbContext->primeLength*sizeof(uint8_t));
 
+	printf("Call compute secret\n");
 	/* compute secret key */
-	bzrtpCrypto_DHMComputeSecret(DHMaContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
-	bzrtpCrypto_DHMComputeSecret(DHMbContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
+	bzrtpCrypto_DHMComputeSecret(DHMaContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
+	bzrtpCrypto_DHMComputeSecret(DHMbContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
 
 	CU_ASSERT_TRUE(memcmp(DHMaContext->key, DHMbContext->key, 256) == 0); /* generated key shall be 256 bytes long */
 
@@ -338,13 +341,13 @@ void test_dhm3072(void) {
 	bzrtpDHMContext_t *DHMaContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH3k, 32);
 
 	/* Create the public value for Alice G^Xa mod P */
-	bzrtpCrypto_DHMCreatePublic(DHMaContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
+	bzrtpCrypto_DHMCreatePublic(DHMaContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
 
 	/* Create the context for Bob */
 	bzrtpDHMContext_t *DHMbContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH3k, 32);
 
 	/* Create the public value for Bob G^Xb mod P */
-	bzrtpCrypto_DHMCreatePublic(DHMbContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
+	bzrtpCrypto_DHMCreatePublic(DHMbContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
 
 	/* exchange public values */
 	DHMaContext->peer = (uint8_t *)malloc(DHMaContext->primeLength*sizeof(uint8_t));
@@ -353,8 +356,8 @@ void test_dhm3072(void) {
 	memcpy (DHMbContext->peer, DHMaContext->self, DHMbContext->primeLength*sizeof(uint8_t));
 
 	/* compute secret key */
-	bzrtpCrypto_DHMComputeSecret(DHMaContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
-	bzrtpCrypto_DHMComputeSecret(DHMbContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
+	bzrtpCrypto_DHMComputeSecret(DHMaContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
+	bzrtpCrypto_DHMComputeSecret(DHMbContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
 
 	CU_ASSERT_TRUE(memcmp(DHMaContext->key, DHMbContext->key, 384) == 0); /* generated key shall be 384 bytes long */
 
@@ -491,6 +494,8 @@ void test_algoAgreement(void) {
 	} else {
 		CU_FAIL("Algo agreement test 2");
 	}
+
+	bzrtp_freeZrtpPacket(helloPacket);
 	
 	bzrtp_destroyBzrtpContext(zrtpContext, 0x12345678);
 }

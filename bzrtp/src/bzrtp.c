@@ -170,6 +170,8 @@ void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	context->cachedSecret.auxsecret=NULL;
 	context->ZRTPSess=NULL;
 
+	free(context->cacheBuffer);
+	context->cacheBuffer=NULL;
 	
 	/* destroy the RNG context at the end because it may be needed to destroy some keys */
 	bzrtpCrypto_destroyRNG(context->RNGContext);
@@ -626,8 +628,8 @@ void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 
 	/* free the allocated buffers */
 	for (i=0; i<PACKET_STORAGE_CAPACITY; i++) {
-		free(zrtpChannelContext->selfPackets[i]);
-		free(zrtpChannelContext->peerPackets[i]);
+		bzrtp_freeZrtpPacket(zrtpChannelContext->selfPackets[i]);
+		bzrtp_freeZrtpPacket(zrtpChannelContext->peerPackets[i]);
 		zrtpChannelContext->selfPackets[i] = NULL;
 		zrtpChannelContext->peerPackets[i] = NULL;
 	}
@@ -644,4 +646,7 @@ void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
 	free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
 	free(zrtpChannelContext->srtpSecrets.sas);
+
+	/* free the channel context */
+	free(zrtpChannelContext);
 }

@@ -154,10 +154,10 @@ typedef struct bzrtpChannelContext_struct {
 	uint8_t sasLength; /**< lenght of the SAS depends on the algorithm agreed */
 
 	/* function pointer to the agreed algorithms - Note, key agreement manage directly this selection so it is not set here */
-	void (*hmacFunction)(const uint8_t *key, uint8_t keyLength, const uint8_t *input, uint32_t inputLength, uint8_t hmacLength, uint8_t *output); /**< function pointer to the agreed hmacFunction */
-	void (*hashFunction)(const uint8_t *input, uint32_t inputLength, uint8_t hashLength, uint8_t *output); /**< function pointer to the agreed hash function */
-	void (*cipherEncryptionFunction)(const uint8_t *key, const uint8_t *IV, const uint8_t *input, uint16_t inputLength, uint8_t *output); /**< function pointer to the agreed cipher block function, encryption mode */
-	void (*cipherDecryptionFunction)(const uint8_t *key, const uint8_t *IV, const uint8_t *input, uint16_t inputLength, uint8_t *output); /**< function pointer to the agreed cipher block function, decryption mode */
+	void (*hmacFunction)(const uint8_t *key, size_t keyLength, const uint8_t *input, size_t inputLength, uint8_t hmacLength, uint8_t *output); /**< function pointer to the agreed hmacFunction */
+	void (*hashFunction)(const uint8_t *input, size_t inputLength, uint8_t hashLength, uint8_t *output); /**< function pointer to the agreed hash function */
+	void (*cipherEncryptionFunction)(const uint8_t *key, const uint8_t *IV, const uint8_t *input, size_t inputLength, uint8_t *output); /**< function pointer to the agreed cipher block function, encryption mode */
+	void (*cipherDecryptionFunction)(const uint8_t *key, const uint8_t *IV, const uint8_t *input, size_t inputLength, uint8_t *output); /**< function pointer to the agreed cipher block function, decryption mode */
 	void (*sasFunction)(uint32_t sas, char output[4]); /**< function pointer to the agreed sas rendering function */
 
 	/* keys */

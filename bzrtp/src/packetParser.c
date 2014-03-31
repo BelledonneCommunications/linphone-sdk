@@ -544,8 +544,9 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				}
 
 				/* get plain message */
-				uint8_t *confirmPlainMessage = (uint8_t *)malloc(cipherTextLength*sizeof(uint8_t));
-				zrtpChannelContext->cipherDecryptionFunction(confirmMessageKey, messageData->CFBIV, messageContent, cipherTextLength, confirmPlainMessage);
+				uint8_t *confirmPlainMessageBuffer = (uint8_t *)malloc(cipherTextLength*sizeof(uint8_t));
+				zrtpChannelContext->cipherDecryptionFunction(confirmMessageKey, messageData->CFBIV, messageContent, cipherTextLength, confirmPlainMessageBuffer);
+				uint8_t *confirmPlainMessage = confirmPlainMessageBuffer; /* point into the allocated buffer */
 
 				/* parse it */
 				memcpy(messageData->H0, confirmPlainMessage, 32);
@@ -653,6 +654,9 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				} else {
 					messageData->signatureBlock  = NULL;
 				}
+
+				/* free plain buffer */
+				free(confirmPlainMessageBuffer);
 
 				/* attach the message structure to the packet one */
 				zrtpPacket->messageData = (void *)messageData;
@@ -1200,8 +1204,9 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 				}
 
 				/* now compute the public value */
-				bzrtpCrypto_DHMCreatePublic(zrtpContext->DHMContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, zrtpContext->RNGContext);
-				zrtpDHPartMessage->pv = zrtpContext->DHMContext->self; /* pv just point to the value into the DHMContext */
+				bzrtpCrypto_DHMCreatePublic(zrtpContext->DHMContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, zrtpContext->RNGContext);
+				zrtpDHPartMessage->pv = (uint8_t *)malloc((zrtpChannelContext->keyAgreementLength)*sizeof(uint8_t));
+				memcpy(zrtpDHPartMessage->pv, zrtpContext->DHMContext->self, zrtpChannelContext->keyAgreementLength);
 
 				/* attach the message data to the packet */
 				zrtpPacket->messageData = zrtpDHPartMessage;

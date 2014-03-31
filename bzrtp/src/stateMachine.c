@@ -534,7 +534,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 			/* Compute the shared DH secret */
 			zrtpContext->DHMContext->peer = (uint8_t *)malloc(zrtpChannelContext->keyAgreementLength*sizeof(uint8_t));
 			memcpy (zrtpContext->DHMContext->peer, dhPart1Message->pv, zrtpChannelContext->keyAgreementLength);
-			bzrtpCrypto_DHMComputeSecret(zrtpContext->DHMContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)zrtpContext->RNGContext);
+			bzrtpCrypto_DHMComputeSecret(zrtpContext->DHMContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)zrtpContext->RNGContext);
 
 			/* Derive the s0 key */
 			bzrtp_computeS0DHMMode(zrtpContext, zrtpChannelContext);
@@ -775,8 +775,9 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 			zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID] = zrtpPacket;
 
 			/* Compute the shared DH secret */
-			zrtpContext->DHMContext->peer = dhPart2Message->pv;
-			bzrtpCrypto_DHMComputeSecret(zrtpContext->DHMContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)zrtpContext->RNGContext);
+			zrtpContext->DHMContext->peer = (uint8_t *)malloc(zrtpChannelContext->keyAgreementLength*sizeof(uint8_t));
+			memcpy (zrtpContext->DHMContext->peer, dhPart2Message->pv, zrtpChannelContext->keyAgreementLength);
+			bzrtpCrypto_DHMComputeSecret(zrtpContext->DHMContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)zrtpContext->RNGContext);
 
 			/* Derive the s0 key */
 			bzrtp_computeS0DHMMode(zrtpContext, zrtpChannelContext);
@@ -2012,7 +2013,7 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 		/* now get it into a char according to the selected algo */
 		uint32_t sasValue = ((uint32_t)sasHash[0]<<24) | ((uint32_t)sasHash[1]<<16) | ((uint32_t)sasHash[2]<<8) | ((uint32_t)(sasHash[3]));
 		zrtpChannelContext->srtpSecrets.sasLength = zrtpChannelContext->sasLength;
-		zrtpChannelContext->srtpSecrets.sas = malloc(zrtpChannelContext->sasLength); /*this shall take in account the selected representation algo for SAS */
+		zrtpChannelContext->srtpSecrets.sas = (char *)malloc((zrtpChannelContext->sasLength)*sizeof(char)); /*this shall take in account the selected representation algo for SAS */
 		zrtpChannelContext->sasFunction(sasValue, zrtpChannelContext->srtpSecrets.sas);
 	}
 

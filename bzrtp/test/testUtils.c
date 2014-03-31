@@ -206,7 +206,7 @@ void dumpContext(char *title, bzrtpContext_t *zrtpContext) {
 				printHex("    s0", channelContext->s0, channelContext->hashLength);
 			}
 			if(channelContext->srtpSecrets.sas != NULL) {
-				printf("    sas : %s\n", channelContext->srtpSecrets.sas);
+				printf("    sas : %.4s\n", channelContext->srtpSecrets.sas);
 			}
 			if (channelContext->srtpSecrets.selfSrtpKey != NULL) {
 				printHex("    selfsrtp key", channelContext->srtpSecrets.selfSrtpKey, channelContext->srtpSecrets.selfSrtpKeyLength);

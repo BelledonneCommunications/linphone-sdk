@@ -26,10 +26,13 @@
  */
 #include <stdlib.h>
 #include <string.h>
+#include "zidCache.h"
+
+#ifdef HAVE_LIBXML2
+
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 #include "typedef.h"
-#include "zidCache.h"
 
 #define MIN_VALID_CACHE_LENGTH 56 /* root tag + selfZID tag size */
 #define XML_HEADER_STRING "<?xml version='1.0' encoding='utf-8'?>"
@@ -284,8 +287,10 @@ int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *t
 
 		/* write the cache file and unlock it(TODO)*/
 		bzrtp_writeCache(context, doc);
-		xmlFree(doc);
 	}
+
+	xmlFree(doc);
+	free(tagContentHex);
 
 	return 0;
 }
@@ -378,3 +383,40 @@ uint8_t bzrtp_byteToChar(uint8_t inputByte) {
 	/* a-f */
 	return inputByte + 0x57;
 }
+
+#else /* NOT HAVE_LIBXML2 */
+int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
+	if (context == NULL) {
+		return ZRTP_ZIDCACHE_INVALID_CONTEXT; 
+	}
+	/* we are running cacheless, return a random number */
+	bzrtpCrypto_getRandom(context->RNGContext, selfZID, 12);
+	return 0; 
+}
+int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]) {
+		if (context == NULL) {
+		return ZRTP_ZIDCACHE_INVALID_CONTEXT;
+	}
+
+	/* resert cached secret buffer */
+	free(context->cachedSecret.rs1);
+	free(context->cachedSecret.rs2);
+	free(context->cachedSecret.pbxsecret);
+	free(context->cachedSecret.auxsecret);
+	context->cachedSecret.rs1 = NULL;
+	context->cachedSecret.rs1Length = 0;
+	context->cachedSecret.rs2 = NULL;
+	context->cachedSecret.rs2Length = 0;
+	context->cachedSecret.pbxsecret = NULL;
+	context->cachedSecret.pbxsecretLength = 0;
+	context->cachedSecret.auxsecret = NULL;
+	context->cachedSecret.auxsecretLength = 0;
+	context->cachedSecret.previouslyVerifiedSas = 0;
+
+	return 0;
+}
+int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *tagName, uint8_t tagNameLength, uint8_t *tagContent, uint32_t tagContentLength) {
+	return 0;
+}
+
+#endif /* HAVE LIBXML2 */

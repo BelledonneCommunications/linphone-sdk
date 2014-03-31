@@ -227,8 +227,10 @@ int floadAlice(void *clientData, uint8_t **output, uint32_t *size) {
 	fseek(ALICECACHE, 0L, SEEK_END);  /* Position to end of file */
   	*size = ftell(ALICECACHE);     /* Get file length */
   	rewind(ALICECACHE);               /* Back to start of file */
-	*output = (uint8_t *)malloc(*size*sizeof(uint8_t));
+	*output = (uint8_t *)malloc(*size*sizeof(uint8_t)+1);
 	fread(*output, 1, *size, ALICECACHE);
+	*(*output+*size) = '\0';
+	*size += 1;
 	fclose(ALICECACHE);
 	return *size;
 }
@@ -253,8 +255,10 @@ int floadBob(void *clientData, uint8_t **output, uint32_t *size) {
 	fseek(BOBCACHE, 0L, SEEK_END);  /* Position to end of file */
   	*size = ftell(BOBCACHE);     /* Get file length */
   	rewind(BOBCACHE);               /* Back to start of file */
-	*output = (uint8_t *)malloc(*size*sizeof(uint8_t));
+	*output = (uint8_t *)malloc(*size*sizeof(uint8_t)+1);
 	fread(*output, 1, *size, BOBCACHE);
+	*(*output+*size) = '\0';
+	*size += 1;
 	fclose(BOBCACHE);
 	return *size;
 }
@@ -533,6 +537,10 @@ void test_parserComplete() {
 	if (retval==0) {
 		contextBob->channelContext[0]->peerSequenceNumber = bob_HelloACKFromAlice->sequenceNumber;
 	}
+	bzrtp_freeZrtpPacket(alice_HelloACK);
+	bzrtp_freeZrtpPacket(bob_HelloACK);
+	bzrtp_freeZrtpPacket(alice_HelloACKFromBob);
+	bzrtp_freeZrtpPacket(bob_HelloACKFromAlice);
 
 
 	/* now build the commit message (both Alice and Bob will send it, then use the mechanism of rfc section 4.2 to determine who will be the initiator)*/
@@ -578,6 +586,7 @@ void test_parserComplete() {
 		contextAlice->channelContext[0]->peerPackets[COMMIT_MESSAGE_STORE_ID] = alice_CommitFromBob;*/
 	}
 	packetDump(alice_CommitFromBob, 0);
+	bzrtp_freeZrtpPacket(alice_CommitFromBob);
 
 	/* Now determine who shall be the initiator : rfc section 4.2 */
 	/* select the one with the lowest value of hvi */
@@ -655,8 +664,9 @@ void test_parserComplete() {
 
 	/* Now Alice shall check that the PV from bob is not 1 or Prime-1 TODO*/
 	/* Compute the shared DH secret */
-	contextAlice->DHMContext->peer = alice_DHPart1FromBob_message->pv;
-	bzrtpCrypto_DHMComputeSecret(contextAlice->DHMContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)contextAlice->RNGContext);
+	contextAlice->DHMContext->peer = (uint8_t *)malloc(contextAlice->channelContext[0]->keyAgreementLength*sizeof(uint8_t));
+	memcpy (contextAlice->DHMContext->peer, alice_DHPart1FromBob_message->pv, contextAlice->channelContext[0]->keyAgreementLength);
+	bzrtpCrypto_DHMComputeSecret(contextAlice->DHMContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)contextAlice->RNGContext);
 
 	/* So Alice send bob her DHPart2 message which is already prepared and stored (we just need to update the sequence number) */
 	bzrtp_packetUpdateSequenceNumber(contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID], contextAlice->channelContext[0]->selfSequenceNumber);
@@ -709,8 +719,9 @@ void test_parserComplete() {
 
 	/* Now Bob shall check that the PV from Alice is not 1 or Prime-1 TODO*/
 	/* Compute the shared DH secret */
-	contextBob->DHMContext->peer = bob_DHPart2FromAlice_message->pv;
-	bzrtpCrypto_DHMComputeSecret(contextBob->DHMContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)contextAlice->RNGContext);
+	contextBob->DHMContext->peer = (uint8_t *)malloc(contextBob->channelContext[0]->keyAgreementLength*sizeof(uint8_t));
+	memcpy (contextBob->DHMContext->peer, bob_DHPart2FromAlice_message->pv, contextBob->channelContext[0]->keyAgreementLength);
+	bzrtpCrypto_DHMComputeSecret(contextBob->DHMContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)contextAlice->RNGContext);
 
 
 	/* JUST FOR TEST: check that the generated secrets are the same */
@@ -935,6 +946,7 @@ void test_parserComplete() {
 	contextBob->channelContext[0]->s0 = (uint8_t *)malloc(32*sizeof(uint8_t));
 	contextBob->channelContext[0]->hashFunction(dataToHash, totalHashDataLength, 32, contextBob->channelContext[0]->s0);
 	
+	free(dataToHash);
 
 	/* destroy all cached keys in context */
 	if (contextBob->cachedSecret.rs1!=NULL) {
@@ -1091,6 +1103,9 @@ void test_parserComplete() {
 	packetDump(bob_Confirm1,1);
 	packetDump(alice_Confirm1FromBob,0);
 
+	bzrtp_freeZrtpPacket(alice_Confirm1FromBob);
+	bzrtp_freeZrtpPacket(bob_Confirm1);
+
 	/* now Alice build the CONFIRM2 packet and send it to Bob */
 	bzrtpPacket_t *alice_Confirm2 = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[0], MSGTYPE_CONFIRM2, &retval);
 	retval += bzrtp_packetBuild(contextAlice, contextAlice->channelContext[0], alice_Confirm2, contextAlice->channelContext[0]->selfSequenceNumber);
@@ -1115,6 +1130,9 @@ void test_parserComplete() {
 	packetDump(alice_Confirm2,1);
 	packetDump(bob_Confirm2FromAlice,0);
 
+	bzrtp_freeZrtpPacket(bob_Confirm2FromAlice);
+	bzrtp_freeZrtpPacket(alice_Confirm2);
+
 	/* Bob build the conf2Ack and send it to Alice */
 	bzrtpPacket_t *bob_Conf2ACK =  bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_CONF2ACK, &retval);
 	retval += bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_Conf2ACK, contextBob->channelContext[0]->selfSequenceNumber);
@@ -1132,6 +1150,9 @@ void test_parserComplete() {
 		/* set Alice's status to secure */
 		contextAlice->isSecure = 1;
 	}
+
+	bzrtp_freeZrtpPacket(bob_Conf2ACK);
+	bzrtp_freeZrtpPacket(alice_Conf2ACKFromBob);
 
 	dumpContext("Alice", contextAlice);	
 	dumpContext("Bob", contextBob);	
@@ -1395,6 +1416,8 @@ void test_parserComplete() {
 	}
 
 	packetDump(bob_Confirm1FromAlice,0);
+	bzrtp_freeZrtpPacket(bob_Confirm1FromAlice);
+	bzrtp_freeZrtpPacket(alice_Confirm1);
 
 	/* now Bob build the CONFIRM2 packet and send it to Alice */
 	bzrtpPacket_t *bob_Confirm2 = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[1], MSGTYPE_CONFIRM2, &retval);
@@ -1415,6 +1438,8 @@ void test_parserComplete() {
 	}
 
 	packetDump(alice_Confirm2FromBob,0);
+	bzrtp_freeZrtpPacket(alice_Confirm2FromBob);
+	bzrtp_freeZrtpPacket(bob_Confirm2);
 
 	/* Alice build the conf2Ack and send it to Bob */
 	bzrtpPacket_t *alice_Conf2ACK =  bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[1], MSGTYPE_CONF2ACK, &retval);
@@ -1433,6 +1458,9 @@ void test_parserComplete() {
 	}
 
 
+	bzrtp_freeZrtpPacket(alice_Conf2ACK);
+	bzrtp_freeZrtpPacket(bob_Conf2ACKFromAlice);
+
 
 
 
@@ -1441,7 +1469,11 @@ void test_parserComplete() {
 	dumpContext("\nAlice", contextAlice);
 	dumpContext("\nBob", contextBob);
 */
+	printf("Destroy the contexts\n");
 	/* destroy the context */
+	bzrtp_destroyBzrtpContext(contextAlice, 0x45678901);
+	bzrtp_destroyBzrtpContext(contextBob, 0x54321098);
+	printf("Destroy the contexts last channel\n");
 	bzrtp_destroyBzrtpContext(contextBob, 0x87654321);
 	bzrtp_destroyBzrtpContext(contextAlice, 0x12345678);
 
@@ -1481,6 +1513,7 @@ int bzrtp_sendData(void *clientData, uint8_t *packetString, uint16_t packetLengt
 	} else {
 		printf("Check says %04x\n", retval);
 	}
+	bzrtp_freeZrtpPacket(zrtpPacket);
 
 	/* put the message in the message queue */
 	if (contexts->nom[0] == 'A') { /* message sent by Alice, put it in Bob's queue */
@@ -1707,6 +1740,14 @@ void test_stateMachine() {
 	dumpContext("\nBob", contextBob);
 
 
+
+	printf("Destroy the contexts\n");
+	/* destroy the context */
+	bzrtp_destroyBzrtpContext(contextAlice, 0x34567890);
+	bzrtp_destroyBzrtpContext(contextBob, 0x09876543);
+	printf("Destroy the contexts last channel\n");
+	bzrtp_destroyBzrtpContext(contextBob, 0x87654321);
+	bzrtp_destroyBzrtpContext(contextAlice, 0x12345678);
 
 
 }
