@@ -195,6 +195,8 @@ int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[
 					}
 					break;
 				}
+				xmlFree(currentZidHex);
+				currentZidHex=NULL;
 			}
 			cur = cur->next;
 		}
@@ -272,6 +274,8 @@ int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *t
 					}
 					break;
 				}
+				xmlFree(currentZidHex);
+				currentZidHex=NULL;
 			}
 			cur = cur->next;
 		}

@@ -274,7 +274,7 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
-			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength) != 0) {
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
@@ -692,7 +692,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
-			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength) != 0) {
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
@@ -862,7 +862,7 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
-			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength) != 0) {
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
@@ -1031,7 +1031,7 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
-			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength) != 0) {
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
@@ -1064,7 +1064,7 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
-			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength) != 0) {
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
@@ -1250,7 +1250,7 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
-			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength) != 0) {
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
@@ -1382,7 +1382,7 @@ int state_secure(bzrtpEvent_t event) {
 			bzrtp_freeZrtpPacket(zrtpPacket);
 			return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 		}
-		if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength) != 0) {
+		if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength) != 0) {
 			bzrtp_freeZrtpPacket(zrtpPacket);
 			return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 		}
@@ -1470,6 +1470,9 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
 				memcpy(selfDHPart1Packet->auxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
 				memcpy(selfDHPart1Packet->pbxsecretID, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
 	
+				/* free the packet string and rebuild the packet */
+				free(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString);
+				zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString = NULL;
 				int retval =bzrtp_packetBuild(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
 				if (retval == 0) {
 					zrtpChannelContext->selfSequenceNumber++;

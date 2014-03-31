@@ -658,6 +658,10 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				/* free plain buffer */
 				free(confirmPlainMessageBuffer);
 
+				/* the parsed commit packet must be saved as it is used to check correct packet repetition */
+				zrtpPacket->packetString = (uint8_t *)malloc(inputLength*sizeof(uint8_t));
+				memcpy(zrtpPacket->packetString, input, inputLength); /* store the whole packet even if we may use the message only */
+
 				/* attach the message structure to the packet one */
 				zrtpPacket->messageData = (void *)messageData;
 			}
