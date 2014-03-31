@@ -1,3 +1,13 @@
+mediastreamer2 (2.10.0) unstable; urgency=low
+
+  * add HD video support
+  * new OpenSLES android sound module
+  * update android AEC settings table
+  * add opus codec
+  * bugfixes
+
+ -- Sylvain Berfini <sylvain.berfini@linphone.org>  Mon, 31 March 2013 16:09:01 +0200
+
 mediastreamer2 (1:2.9.0-1) unstable; urgency=low
 
   * Subsequent release.

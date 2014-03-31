@@ -12,7 +12,7 @@ Build-Depends: debhelper (>= 8),
  libspeex-dev, libspeexdsp-dev, libsamplerate0-dev, libxml-parser-perl, libgsm1-dev,
  libtheora-dev,
  libxv-dev,
- libavcodec-dev, libreadline-dev, libsdl1.2-dev, libswscale-dev, doxygen
+ libavcodec-dev, libreadline-dev, libsdl1.2-dev, libswscale-dev, doxygen, libglew-dev
 Standards-Version: 3.9.1
 Homepage: http://www.linphone.org/
 Vcs-Svn: svn://svn.debian.org/pkg-voip/linphone/trunk/
