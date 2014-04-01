@@ -70,8 +70,10 @@ cmake_dependent_option(ENABLE_MPEG4 "Enable MPEG4 video codec support." ${DEFAUL
 linphone_builder_add_feature_info("MPEG4" ENABLE_MPEG4 "MPEG4 video encoding/decoding support.")
 cmake_dependent_option(ENABLE_VPX "Enable VPX video codec support." ${DEFAULT_VALUE_ENABLE_VPX} "ENABLE_VIDEO" OFF)
 linphone_builder_add_feature_info("VPX" ENABLE_VPX "VPX video encoding/decoding support.")
-cmake_dependent_option(ENABLE_X264 "Enable H.264 video encoder support with the x264 library." ${DEFAULT_VALUE_ENABLE_X264} "ENABLE_FFMPEG" OFF)
+cmake_dependent_option(ENABLE_X264 "Enable H.264 video encoder support with the x264 library." ${DEFAULT_VALUE_ENABLE_X264} "ENABLE_FFMPEG; NOT ENABLE_OPENH264" OFF)
 linphone_builder_add_feature_info("x264" ENABLE_X264 "H.264 video encoding support with the x264 library.")
+cmake_dependent_option(ENABLE_OPENH264 "Enable H.264 video encoder support with the openh264 library." ${DEFAULT_VALUE_ENABLE_OPENH264} "ENABLE_VIDEO; NOT ENABLE_X264" OFF)
+linphone_builder_add_feature_info("openh264" ENABLE_OPENH264 "H.264 video encoding support with the openh264 library.")
 
 option(ENABLE_TUNNEL "Enable tunnel support." ${DEFAULT_VALUE_ENABLE_TUNNEL})
 linphone_builder_add_feature_info("Tunnel" ENABLE_TUNNEL "Secure tunnel for SIP/RTP .")
