@@ -9,8 +9,8 @@ AC_CONFIG_SRCDIR([src/bzrtp.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([tar-ustar --warnings=no-portability])
+AC_PROG_CC(["xcrun clang" gcc])
 AC_PROG_LIBTOOL
-AC_PROG_CC
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_ARG_ENABLE(strict,
@@ -77,6 +77,12 @@ AC_ARG_ENABLE(tests,
 AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_cunit = xyes)
 
 CFLAGS="$CFLAGS -Wall -std=c99"
+
+case $CC in
+        *clang*)
+                CFLAGS="$CFLAGS -Qunused-arguments"
+        ;;
+esac
 
 if test $GCC = yes && test $wall_werror = yes;  then
 	CFLAGS="$CFLAGS -Werror "

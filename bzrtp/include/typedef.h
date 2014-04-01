@@ -117,7 +117,7 @@ typedef struct zrtpCallbacks_struct {
  * @brief The zrtp context of a channel
  *
  */
-typedef struct bzrtpChannelContext_struct {
+struct bzrtpChannelContext_struct {
 	
 	void *clientData; /**< this is a pointer provided by the client which is then resent as a parameter of the callbacks functions. Usefull to store RTP session context for example */
 
@@ -177,13 +177,13 @@ typedef struct bzrtpChannelContext_struct {
 	/* temporary buffer stored in the channel context */
 	bzrtpPacket_t *pingPacket; /**< Temporary stores a ping packet when received to be used to create the pingACK response */
 
-} bzrtpChannelContext_t;
+};
 
 /**
  * @brief structure of the ZRTP engine context 
  * Store current state, timers, HMAC and encryption keys
 */
-typedef struct bzrtpContext_struct {
+struct bzrtpContext_struct {
 	/* contexts */
 	bzrtpRNGContext_t *RNGContext; /**< context for random number generation */
 	bzrtpDHMContext_t *DHMContext; /**< context for the Diffie-Hellman-Merkle operations. Only one DHM computation may be done during a call, so this belongs to the general context and not the channel one */
@@ -225,7 +225,7 @@ typedef struct bzrtpContext_struct {
 	uint8_t *ZRTPSess; /**< ZRTP session key as described in rfc section 4.5.2 */
 	uint8_t	ZRTPSessLength; /**< length of ZRTP session key depends on agreed hash algorithm */
 
-} bzrtpContext_t;
+};
 
 
 

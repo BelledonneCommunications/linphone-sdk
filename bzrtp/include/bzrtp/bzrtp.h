@@ -23,7 +23,6 @@
  */
 #ifndef BZRTP_H
 #define BZRTP_H
-typedef struct bzrtpContext_struct bzrtpContext_t;
 #include <stdint.h>
 
 /**
