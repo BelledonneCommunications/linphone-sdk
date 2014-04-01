@@ -36,3 +36,13 @@ set(LINPHONE_BUILDER_TOOLCHAIN_NM "${CMAKE_NM}")
 if(UNIX)
 	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/:$ENV{PKG_CONFIG_PATH}:/usr/lib/pkgconfig/:/usr/lib/x86_64-linux-gnu/pkgconfig/:/usr/share/pkgconfig/:/usr/local/lib/pkgconfig/:/opt/local/lib/pkgconfig/")
 endif(UNIX)
+
+if(APPLE)
+	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.6")
+	set(CMAKE_OSX_ARCHITECTURES "i386")
+	set(LINPHONE_BUILDER_TOOLCHAIN_HOST "i686-apple-darwin")
+	set(LINPHONE_BUILDER_TOOLCHAIN_CPPFLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -arch ${CMAKE_OSX_ARCHITECTURES}")
+	set(LINPHONE_BUILDER_TOOLCHAIN_CFLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -arch ${CMAKE_OSX_ARCHITECTURES}")
+	set(LINPHONE_BUILDER_TOOLCHAIN_LDFLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -arch ${CMAKE_OSX_ARCHITECTURES}")
+endif(APPLE)
+
