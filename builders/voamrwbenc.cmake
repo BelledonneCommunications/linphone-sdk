@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_voamrwbenc_URL "http://downloads.sourceforge.net/project/opencore-amr/vo-amrwbenc/vo-amrwbenc-0.1.3.tar.gz")
-set(EP_voamrwbenc_USE_AUTOTOOLS "yes")
+set(EP_voamrwbenc_BUILD_METHOD "autotools")
 set(EP_voamrwbenc_USE_AUTOGEN "yes")
 set(EP_voamrwbenc_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"

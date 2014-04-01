@@ -22,7 +22,7 @@
 
 set(EP_libilbcrfc3951_GIT_REPOSITORY "git://git.linphone.org/libilbc-rfc3951.git")
 set(EP_libilbcrfc3951_GIT_TAG "e8084bdc3b182a3dcf57ae97ea72bbef26d423db")
-set(EP_libilbcrfc3951_USE_AUTOTOOLS "yes")
+set(EP_libilbcrfc3951_BUILD_METHOD "autotools")
 set(EP_libilbcrfc3951_USE_AUTOGEN "yes")
 set(EP_libilbcrfc3951_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"

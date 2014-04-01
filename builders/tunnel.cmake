@@ -22,7 +22,7 @@
 
 set(EP_tunnel_GIT_REPOSITORY "gitosis@git.linphone.org:tunnel.git") # Private repository
 set(EP_tunnel_GIT_TAG "e6d100c33e0147ae35cdf693dbcd7b9413cb84ef") # Branch 'master'
-set(EP_tunnel_USE_AUTOTOOLS "yes")
+set(EP_tunnel_BUILD_METHOD "autotools")
 set(EP_tunnel_USE_AUTOGEN "yes")
 set(EP_tunnel_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"

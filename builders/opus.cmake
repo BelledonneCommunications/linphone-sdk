@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_opus_URL "http://downloads.xiph.org/releases/opus/opus-1.0.3.tar.gz")
-set(EP_opus_USE_AUTOTOOLS "yes")
+set(EP_opus_BUILD_METHOD "autotools")
 set(EP_opus_USE_AUTOGEN "yes")
 set(EP_opus_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"

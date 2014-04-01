@@ -22,7 +22,7 @@
 
 set(EP_bcg729_GIT_REPOSITORY "git://git.linphone.org/bcg729.git")
 set(EP_bcg729_GIT_TAG "2634faf85a13f79fece045e37515ddd1ea48dc25") # Branch 'master'
-set(EP_bcg729_USE_AUTOTOOLS "yes")
+set(EP_bcg729_BUILD_METHOD "autotools")
 set(EP_bcg729_USE_AUTOGEN "yes")
 set(EP_bcg729_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"

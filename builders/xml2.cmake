@@ -22,7 +22,7 @@
 
 set(EP_xml2_GIT_REPOSITORY "git://git.gnome.org/libxml2")
 set(EP_xml2_GIT_TAG "v2.8.0")
-set(EP_xml2_USE_AUTOTOOLS "yes")
+set(EP_xml2_BUILD_METHOD "autotools")
 set(EP_xml2_USE_AUTOGEN "yes")
 set(EP_xml2_CONFIGURE_OPTIONS_PASSED_TO_AUTOGEN "yes")
 set(EP_xml2_CROSS_COMPILATION_OPTIONS

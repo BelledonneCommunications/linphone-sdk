@@ -22,7 +22,7 @@
 
 set(EP_msx264_GIT_REPOSITORY "git://git.linphone.org/msx264.git")
 set(EP_msx264_GIT_TAG "6532dd845c59631a9149e9146ba5cf9426db906b") # Branch 'master'
-set(EP_msx264_USE_AUTOTOOLS "yes")
+set(EP_msx264_BUILD_METHOD "autotools")
 set(EP_msx264_USE_AUTOGEN "yes")
 set(EP_msx264_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"

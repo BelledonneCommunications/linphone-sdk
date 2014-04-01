@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_vpx_URL "http://webm.googlecode.com/files/libvpx-v1.3.0.tar.bz2")
-set(EP_vpx_USE_AUTOTOOLS "yes")
+set(EP_vpx_BUILD_METHOD "autotools")
 set(EP_vpx_CONFIG_H_FILE vpx_config.h)
 set(EP_vpx_CONFIGURE_OPTIONS
 	"--enable-error-concealment"

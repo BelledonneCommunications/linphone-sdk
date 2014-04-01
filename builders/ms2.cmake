@@ -28,7 +28,7 @@ if(WIN32)
 	set(EP_ms2_DEPENDENCIES EP_ortp EP_opus EP_speex EP_ffmpeg EP_vpx)
 	set(EP_ms2_EXTRA_LDFLAGS "/SAFESEH:NO")
 else(WIN32)
-	set(EP_ms2_USE_AUTOTOOLS "yes")
+	set(EP_ms2_BUILD_METHOD "autotools")
 	set(EP_ms2_USE_AUTOGEN "yes")
 	set(EP_ms2_CONFIG_H_FILE mediastreamer-config.h)
 	set(EP_ms2_CROSS_COMPILATION_OPTIONS

@@ -170,7 +170,7 @@ endmacro(linphone_builder_apply_toolchain_flags)
 
 
 macro(linphone_builder_apply_cmake_flags_to_autotools_project PROJNAME)
-	if("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+	if("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "autotools")
 		if(NOT MSVC)
 			set(BUILD_TYPES "Debug" "Release" "RelWithDebInfo" "MinSizeRel")
 			list(FIND BUILD_TYPES "${CMAKE_BUILD_TYPE}" BUILD_TYPE_FOUND)
@@ -185,18 +185,18 @@ macro(linphone_builder_apply_cmake_flags_to_autotools_project PROJNAME)
 			set(ep_cxxflags "${CMAKE_CXX_FLAGS${BUILD_TYPE_SUFFIX}}")
 			set(ep_ldflags "${CMAKE_LD_FLAGS${BUILD_TYPE_SUFFIX}}")
 		endif(NOT MSVC)
-	endif("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+	endif()
 endmacro(linphone_builder_apply_cmake_flags_to_autotools_project)
 
 
 macro(linphone_builder_apply_extra_flags PROJNAME)
-	if("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+	if("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "autotools")
 		set(ep_extra_asflags ${EP_${PROJNAME}_EXTRA_ASFLAGS})
 		set(ep_extra_cppflags ${EP_${PROJNAME}_EXTRA_CPPFLAGS})
 		set(ep_extra_cflags ${EP_${PROJNAME}_EXTRA_CFLAGS})
 		set(ep_extra_cxxflags ${EP_${PROJNAME}_EXTRA_CXXFLAGS})
 		set(ep_extra_ldflags ${EP_${PROJNAME}_EXTRA_LDFLAGS})
-	else("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+	else()
 		foreach(BUILD_CONFIG "" "_DEBUG" "_MINSIZEREL" "_RELEASE" "_RELWITHDEBINFO")
 			if(NOT "${EP_${PROJNAME}_EXTRA_CFLAGS}" STREQUAL "")
 				set(CMAKE_C_FLAGS${BUILD_CONFIG} "${CMAKE_C_FLAGS${BUILD_CONFIG}} ${EP_${PROJNAME}_EXTRA_CFLAGS}")
@@ -210,7 +210,7 @@ macro(linphone_builder_apply_extra_flags PROJNAME)
 				set(CMAKE_SHARED_LINKER_FLAGS${BUILD_CONFIG} "${CMAKE_SHARED_LINKER_FLAGS${BUILD_CONFIG}} ${EP_${PROJNAME}_EXTRA_LDFLAGS}")
 			endif(NOT "${EP_${PROJNAME}_EXTRA_LDFLAGS}" STREQUAL "")
 		endforeach(BUILD_CONFIG)
-	endif("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+	endif()
 endmacro(linphone_builder_apply_extra_flags)
 
 
@@ -260,7 +260,13 @@ function(linphone_builder_add_project PROJNAME)
 	linphone_builder_apply_extra_flags(${PROJNAME})
 	linphone_builder_expand_external_project_vars()
 
-	if("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+	if("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "custom")
+		set(BUILD_COMMANDS
+			CONFIGURE_COMMAND ${EP_${PROJNAME}_CONFIGURE_COMMAND}
+			BUILD_COMMAND ${EP_${PROJNAME}_BUILD_COMMAND}
+			INSTALL_COMMAND ${EP_${PROJNAME}_INSTALL_COMMAND}
+		)
+	elseif("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "autotools")
 		linphone_builder_create_autogen_command(${PROJNAME})
 		linphone_builder_create_configure_command(${PROJNAME})
 		if("${EP_${PROJNAME}_CONFIG_H_FILE}" STREQUAL "")
@@ -302,7 +308,8 @@ function(linphone_builder_add_project PROJNAME)
 			BUILD_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.${SCRIPT_EXTENSION}
 			INSTALL_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.${SCRIPT_EXTENSION}
 		)
-	else("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+	else()
+		# Use CMake build method
 		if("${CMAKE_VERSION}" VERSION_GREATER "2.8.3")
 			set(BUILD_COMMANDS
 				CMAKE_ARGS ${EP_${PROJNAME}_CMAKE_OPTIONS} ${EP_${PROJNAME}_LINKING_TYPE}
@@ -313,7 +320,7 @@ function(linphone_builder_add_project PROJNAME)
 				CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} ${EP_${PROJNAME}_CMAKE_OPTIONS} ${EP_${PROJNAME}_LINKING_TYPE}
 			)
 		endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.3")
-	endif("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+	endif()
 
 	if(NOT "${EP_${PROJNAME}_URL}" STREQUAL "")
 		set(DOWNLOAD_SOURCE URL ${EP_${PROJNAME}_URL})
@@ -332,14 +339,14 @@ function(linphone_builder_add_project PROJNAME)
 	)
 
 	if(MSVC)
-		if("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+		if("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "autotools")
 			ExternalProject_Add_Step(EP_${PROJNAME} postinstall
 				COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DINSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/postinstall.cmake
 				COMMENT "Performing post-installation step"
 				DEPENDEES mkdir update patch download configure build install
 				WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 			)
-		endif("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+		endif()
 	endif(MSVC)
 endfunction(linphone_builder_add_project)
 

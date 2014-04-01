@@ -28,7 +28,7 @@ if(WIN32)
 	set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
 	set(EP_linphone_EXTRA_LDFLAGS "/SAFESEH:NO")
 else(WIN32)
-	set(EP_linphone_USE_AUTOTOOLS "yes")
+	set(EP_linphone_BUILD_METHOD "autotools")
 	set(EP_linphone_USE_AUTOGEN "yes")
 	set(EP_linphone_CROSS_COMPILATION_OPTIONS
 		"--prefix=${CMAKE_INSTALL_PREFIX}"

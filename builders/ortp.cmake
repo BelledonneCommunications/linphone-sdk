@@ -28,7 +28,7 @@ if(WIN32)
 	set(EP_ortp_DEPENDENCIES EP_srtp)
 	set(EP_ortp_EXTRA_LDFLAGS "/SAFESEH:NO")
 else(WIN32)
-	set(EP_ortp_USE_AUTOTOOLS "yes")
+	set(EP_ortp_BUILD_METHOD "autotools")
 	set(EP_ortp_USE_AUTOGEN "yes")
 	set(EP_ortp_CONFIG_H_FILE ortp-config.h)
 	set(EP_ortp_CROSS_COMPILATION_OPTIONS
