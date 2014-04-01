@@ -1,0 +1,4 @@
+msopenh264 - H.264 encoder/decoder plugin for mediastreamer2 based on the openh264 library.
+
+By default, the upstream package installs into /usr/local.  Please use
+'./configure --prefix' to change it
