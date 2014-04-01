@@ -42,7 +42,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define CONF_MAX_PINS 128
 #endif
 
-static const float max_e=(float)32767*32767;
+
 static const float coef=(float)0.01;
 
 typedef struct Channel{

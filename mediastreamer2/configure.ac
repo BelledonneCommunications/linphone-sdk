@@ -4,6 +4,10 @@ AC_INIT([mediastreamer],[2.10.0])
 AC_MSG_NOTICE([$PACKAGE_NAME-$PACKAGE_VERSION		A mediastreaming library for telephony application.])
 AC_MSG_NOTICE([licensed under the terms of the General Public License (GPL)])
 
+dnl don't put anythingelse before AC_PROG_CC unless checking if macro still work for clang
+AC_PROG_CXX(["xcrun clang++" g++])
+AC_PROG_CC(["xcrun clang" gcc])
+AC_PROG_OBJC(["xcrun clang" gcc])
 AC_CANONICAL_SYSTEM
 
 dnl Source packaging numbers
@@ -52,6 +56,13 @@ AC_ARG_ENABLE(strict,
 )
 
 CFLAGS="-DORTP_INET6 $CFLAGS "
+#for clang
+
+case $CC in
+        *clang*)
+                CFLAGS="$CFLAGS -Qunused-arguments"
+        ;;
+esac
 
 dnl enable ipv6 support
 AC_ARG_ENABLE(ipv6,
@@ -78,10 +89,6 @@ AC_ARG_ENABLE(ntp-timestamp,
 	[ntptimestamp=false]
 )
 
-dnl Checks for programs.
-AC_PROG_CXX
-AC_PROG_CC
-AC_PROG_OBJC
 
 AC_CONFIG_MACRO_DIR([m4])
 LT_INIT([win32-dll shared disable-static])

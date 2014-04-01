@@ -193,7 +193,6 @@ MSBitrateDriver *ms_audio_bitrate_driver_new(MSFilter *encoder){
 }
 
 static const int min_video_bitrate=64000;
-static const float increase_ramp=1.1;
 
 typedef struct _MSAVBitrateDriver{
 	MSBitrateDriver parent;
