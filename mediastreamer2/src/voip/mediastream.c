@@ -243,7 +243,6 @@ const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream
 
 bool_t ms_is_ipv6(const char *remote) {
 	bool_t ret = FALSE;
-#ifdef INET6
 	struct addrinfo hints, *res0;
 	int err;
 
@@ -257,7 +256,6 @@ bool_t ms_is_ipv6(const char *remote) {
 	}
 	ret = (res0->ai_addr->sa_family == AF_INET6);
 	freeaddrinfo(res0);
-#endif
 	return ret;
 }
 

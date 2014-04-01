@@ -54,8 +54,6 @@ AC_ARG_ENABLE(strict,
 	[wall_werror=$enableval],
 	[wall_werror=yes]
 )
-
-CFLAGS="-DORTP_INET6 $CFLAGS "
 #for clang
 
 case $CC in
@@ -64,19 +62,7 @@ case $CC in
         ;;
 esac
 
-dnl enable ipv6 support
-AC_ARG_ENABLE(ipv6,
-	[AS_HELP_STRING([--enable-ipv6], [Turn on IPv6 support (default=yes)])],
-	[case "${enableval}" in
-		yes)	ipv6=true;;
-		no)	ipv6=false;;
-		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-ipv6) ;;
-	esac],
-	[ipv6=true]
-)
-if test x$ipv6 = xtrue ; then
-	CFLAGS="$CFLAGS -DINET6"
-fi
+
 
 dnl enable timestamp support
 AC_ARG_ENABLE(ntp-timestamp,

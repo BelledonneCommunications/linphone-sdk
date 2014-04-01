@@ -1894,7 +1894,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 	mblk_t *mp = evt_data->packet;
 	struct sockaddr_in *udp_remote = NULL;
 	struct sockaddr_in source_addr;
-	struct sockaddr_storage *aaddr;
+	const struct sockaddr_storage *aaddr;
 	int remote_port;
 	bool_t res;
 	char tr_id_str[25];
@@ -1910,14 +1910,14 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 	}
 
 	memset(src6host, 0, sizeof(src6host));
-	aaddr = (struct sockaddr_storage *)&evt_data->ep->addr;
+	aaddr = &evt_data->source_addr;
 	switch (aaddr->ss_family) {
 		case AF_INET6:
-			remote_port = ntohs(((struct sockaddr_in6 *)&evt_data->ep->addr)->sin6_port);
+			remote_port = ntohs(((struct sockaddr_in6 *)&evt_data->source_addr)->sin6_port);
 			ms_warning("ice: Received IPv6 STUN packet. Not supported yet!");
 			return;
 		case AF_INET:
-			udp_remote = (struct sockaddr_in*)&evt_data->ep->addr;
+			udp_remote = (struct sockaddr_in*)&evt_data->source_addr;
 			remote_port = ntohs(udp_remote->sin_port);
 			break;
 		default:
@@ -1925,7 +1925,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 			return;
 	}
 
-	ice_inet_ntoa((struct sockaddr *)&evt_data->ep->addr, evt_data->ep->addrlen, src6host, sizeof(src6host));
+	ice_inet_ntoa((struct sockaddr *)&evt_data->source_addr, evt_data->source_addrlen, src6host, sizeof(src6host));
 	if (src6host[0] == '\0') return;
 	remote_addr.addr = ntohl(udp_remote->sin_addr.s_addr);
 	remote_addr.port = ntohs(udp_remote->sin_port);
