@@ -229,8 +229,13 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 			if (ns_addr->sa_family==AF_INET6) using_ipv6=TRUE;
 		}
 		ctx->resconf->iface.ss_family=using_ipv6 ? AF_INET6 : AF_INET;
+		if (i==0) {
+			belle_sip_error("- no DNS servers available - resolution aborted.");
+			return NULL;
+		}
 	}else{
 		belle_sip_error("Error loading dns server addresses.");
+		return NULL;
 	}
 
 	return ctx->resconf;
