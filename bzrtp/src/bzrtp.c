@@ -378,6 +378,11 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 		return BZRTP_ERROR_INVALIDCONTEXT;
 	}
 
+	/* check the context is initialised (we may receive packets before initialisation is complete i.e. between channel initialisation and channel start) */
+	if (zrtpChannelContext->stateMachine == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT; /* drop the message */
+	}
+
 	/* first check the packet */
 	int retval;
 	bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(zrtpPacketString, zrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
