@@ -555,6 +555,9 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 			bzrtpConfirmMessage_t *confirm1Message = (bzrtpConfirmMessage_t *)zrtpPacket->messageData;
 			memcpy(zrtpChannelContext->peerH[0], confirm1Message->H0, 32);
 
+			/* store the packet to check possible repetitions */
+			zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID] = zrtpPacket;
+
 			/* set next state to state_confirmation_responderSendingConfirm2 */
 			zrtpChannelContext->stateMachine = state_confirmation_initiatorSendingConfirm2;
 
