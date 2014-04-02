@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/rfc3984.h"
 #include "wels/codec_api.h"
 
@@ -31,11 +32,21 @@ public:
 	void initialize();
 	void feed(MSFilter *f);
 	void uninitialize();
+	void resetFirstImageDecoded();
+	MSVideoSize getSize() const;
 
 private:
+	mblk_t * addNalMarker(mblk_t *nal);
+
 	SDecodingParam mDecoderParams;
 	ISVCDecoder *mDecoder;
 	Rfc3984Context mUnpacker;
+	MSPicture mOutbuf;
+	MSAverageFPS mFPS;
+	mblk_t *mYUVMsg;
+	uint64_t mLastErrorReportTime;
+	int mWidth;
+	int mHeight;
 	bool mInitialized;
 	bool mFirstImageDecoded;
 };

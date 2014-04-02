@@ -31,8 +31,8 @@ public:
 	bool isInitialized() const { return mInitialized; }
 	void feed(MSFilter *f);
 	void uninitialize();
-	void setFps(float fps);
-	float getFps() const { return mVConf.fps; }
+	void setFPS(float fps);
+	float getFPS() const { return mVConf.fps; }
 	void setBitrate(int bitrate);
 	int getBitrate() const { return mVConf.required_bitrate; }
 	void setSize(MSVideoSize size);

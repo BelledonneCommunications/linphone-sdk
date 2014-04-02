@@ -18,15 +18,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
+#include "mediastreamer2/msticker.h"
 #include "msopenh264dec.h"
 
 
 MSOpenH264Decoder::MSOpenH264Decoder()
-	: mDecoder(0), mInitialized(false), mFirstImageDecoded(false)
+	: mDecoder(0), mInitialized(false), mYUVMsg(0), mLastErrorReportTime(0),
+	mWidth(MS_VIDEO_SIZE_UNKNOWN_W), mHeight(MS_VIDEO_SIZE_UNKNOWN_H), mFirstImageDecoded(false)
 {
 	long ret = WelsCreateDecoder(&mDecoder);
 	if (ret != 0) {
-		ms_error("%s: Failed creating openh264 decoder: %d", __FUNCTION__, ret);
+		ms_error("OpenH264 decoder: Failed to create decoder: %d", ret);
 	}
 }
 
@@ -50,8 +52,9 @@ void MSOpenH264Decoder::initialize()
 		params.sVideoProperty.eVideoBsType = VIDEO_BITSTREAM_DEFAULT;
 		long ret = mDecoder->Initialize(&params);
 		if (ret != 0) {
-			ms_error("%s: Failed to initialize openh264 decoder: %d", __FUNCTION__, ret);
+			ms_error("OpenH264 decoder: Failed to initialize: %d", ret);
 		} else {
+			ms_video_init_average_fps(&mFPS, "OpenH264 decoder: FPS=%f");
 			mInitialized = true;
 		}
 	}
@@ -70,25 +73,125 @@ void MSOpenH264Decoder::feed(MSFilter *f)
 	mblk_t *im;
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
 		rfc3984_unpack(&mUnpacker, im, &nalus);
-		if (!ms_queue_empty(&nalus)) {
-			ms_message("nalus");
-// 			void * pData[3] = { 0 };
-// 			SBufferInfo sDstBufInfo = { 0 };
-// 			mDecoder->DecodeFrame2 (pBuf + iBufPos, iSliceSize, pData, &sDstBufInfo);
-// 			if (sDstBufInfo.iBufferStatus == 1) {
-// 				uint8_t * pDst[3] = { 0 };
-// 				pDst[0] = (uint8_t *)pData[0];
-// 				pDst[1] = (uint8_t *)pData[1];
-// 				pDst[2] = (uint8_t *)pData[2];
-// 			}
+		mblk_t *nal;
+		while ((nal = ms_queue_get(&nalus)) != NULL) {
+			mblk_t *fullNal = addNalMarker(nal);
+			void * pData[3] = { 0 };
+			SBufferInfo sDstBufInfo = { 0 };
+			int len = fullNal->b_wptr - fullNal->b_rptr;
+			DECODING_STATE state = mDecoder->DecodeFrame2(fullNal->b_rptr, len, pData, &sDstBufInfo);
+			if (state != dsErrorFree) {
+				ms_error("OpenH264 decoder: DecodeFrame2 failed: 0x%x", state);
+				if (((f->ticker->time - mLastErrorReportTime) > 5000) || (mLastErrorReportTime == 0)) {
+					mLastErrorReportTime = f->ticker->time;
+					ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_DECODING_ERRORS);
+				}
+			}
+			if (sDstBufInfo.iBufferStatus == 1) {
+				uint8_t * pDst[3] = { 0 };
+				pDst[0] = (uint8_t *)pData[0];
+				pDst[1] = (uint8_t *)pData[1];
+				pDst[2] = (uint8_t *)pData[2];
+
+				// Update video size and (re)allocate YUV buffer if needed
+				if ((mWidth != sDstBufInfo.UsrData.sSystemBuffer.iWidth)
+					|| (mHeight != sDstBufInfo.UsrData.sSystemBuffer.iHeight)) {
+					if (mYUVMsg) {
+						freemsg(mYUVMsg);
+					}
+					mWidth = sDstBufInfo.UsrData.sSystemBuffer.iWidth;
+					mHeight = sDstBufInfo.UsrData.sSystemBuffer.iHeight;
+					mYUVMsg = ms_yuv_buf_alloc(&mOutbuf, mWidth, mHeight);
+				}
+
+				// Scale/copy frame to destination mblk_t
+				for (int i = 0; i < 3; i++) {
+					uint8_t *dst = mOutbuf.planes[i];
+					uint8_t *src = pDst[i];
+					int h = mHeight >> (( i > 0) ? 1 : 0);
+
+					for(int j = 0; j < h; j++) {
+						memcpy(dst, src, mOutbuf.strides[i]);
+						dst += mOutbuf.strides[i];
+						src += sDstBufInfo.UsrData.sSystemBuffer.iStride[(i == 0) ? 0 : 1];
+					}
+				}
+				ms_queue_put(f->outputs[0], dupmsg(mYUVMsg));
+
+				// Update average FPS
+				if (ms_video_update_average_fps(&mFPS, f->ticker->time)) {
+					ms_message("OpenH264 decoder: Frame size: %dx%d", mWidth, mHeight);
+				}
+
+				// Notify first decoded image
+				if (!mFirstImageDecoded) {
+					mFirstImageDecoded = true;
+					ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+				}
+			}
+			freemsg(nal);
+			freemsg(fullNal);
 		}
 	}
 }
 
 void MSOpenH264Decoder::uninitialize()
 {
+	if (mYUVMsg != 0) {
+		freemsg(mYUVMsg);
+	}
 	if (mDecoder != 0) {
 		mDecoder->Uninitialize();
 	}
 	mInitialized = false;
+}
+
+void MSOpenH264Decoder::resetFirstImageDecoded()
+{
+	mFirstImageDecoded = false;
+	mWidth = MS_VIDEO_SIZE_UNKNOWN_W;
+	mHeight = MS_VIDEO_SIZE_UNKNOWN_H;
+}
+
+MSVideoSize MSOpenH264Decoder::getSize() const
+{
+	MSVideoSize size;
+	size.width = mWidth;
+	size.height = mHeight;
+	return size;
+}
+
+mblk_t * MSOpenH264Decoder::addNalMarker(mblk_t* im)
+{
+	uint8_t *src = im->b_rptr;
+	if ((src[0] == 0) && (src[1] == 0) && (src[2] == 0) && (src[3] == 1)) {
+		// Workaround for stupid RTP H264 sender that includes nal markers
+		return copymsg(im);
+	} else {
+		int len = im->b_wptr - im->b_rptr;
+		uint8_t naluType = (*src) & ((1 << 5) - 1);
+
+		// Prepend nal marker
+		mblk_t *om = allocb(len * 2, 0);
+		uint8_t *dst = om->b_wptr;
+		*dst++ = 0;
+		*dst++ = 0;
+		*dst++ = 1;
+		*dst++ = *src++;
+		while (src < (im->b_wptr - 3)) {
+			if ((src[0] == 0) && (src[1] == 0) && (src[2] < 3)) {
+				*dst++ = 0;
+				*dst++ = 0;
+				*dst++ = 3;
+				src += 2;
+			}
+			*dst++ = *src++;
+		}
+		*dst++ = *src++;
+		*dst++ = *src++;
+		*dst++ = *src++;
+		om->b_wptr = dst;
+
+		return om;
+	}
 }

@@ -97,7 +97,7 @@ void MSOpenH264Encoder::uninitialize()
 	// TODO
 }
 
-void MSOpenH264Encoder::setFps(float fps)
+void MSOpenH264Encoder::setFPS(float fps)
 {
 	// TODO
 }

@@ -63,15 +63,22 @@ static void msopenh264_dec_uninit(MSFilter *f) {
  * Methods to configure the decoder                                           *
  *****************************************************************************/
 
-static int msopenh264_reset_first_image(MSFilter *f, void *data) {
-	//MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
-	//d->first_image_decoded = FALSE;
+static int msopenh264_dec_reset_first_image(MSFilter *f, void *arg) {
+	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
+	d->resetFirstImageDecoded();
 	return 0;
 }
 
+static int msopenh264_dec_get_size(MSFilter *f, void *arg) {
+	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
+	MSVideoSize *size = static_cast<MSVideoSize *>(arg);
+	*size = d->getSize();
+}
+
 static MSFilterMethod msopenh264_dec_methods[] = {
-	{ MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, msopenh264_reset_first_image },
-	{ 0,                                               NULL                         }
+	{ MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, msopenh264_dec_reset_first_image },
+	{ MS_FILTER_GET_VIDEO_SIZE,                        msopenh264_dec_get_size          },
+	{ 0,                                               NULL                             }
 };
 
 /******************************************************************************
@@ -164,14 +171,14 @@ static void msopenh264_enc_uninit(MSFilter *f) {
 static int msopenh264_enc_set_fps(MSFilter *f, void *arg) {
 	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
 	float *fps = static_cast<float *>(arg);
-	e->setFps(*fps);
+	e->setFPS(*fps);
 	return 0;
 }
 
 static int msopenh264_enc_get_fps(MSFilter *f, void *arg) {
 	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
 	float *fps = static_cast<float *>(arg);
-	*fps = e->getFps();
+	*fps = e->getFPS();
 	return 0;
 }
 
