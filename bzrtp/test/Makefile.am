@@ -1,3 +1,4 @@
+if ENABLE_TESTS
 noinst_PROGRAMS=bzrtpTest
 
 bzrtpTest_SOURCES=bzrtpTest.c \
@@ -13,3 +14,4 @@ LDADD=	$(top_builddir)/src/libbzrtp.la
 
 test: bzrtpTest 
 	./bzrtpTest
+endif
