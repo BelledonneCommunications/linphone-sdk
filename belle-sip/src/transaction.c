@@ -562,7 +562,7 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
 	belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_PROXY_AUTHORIZATION);
 
 	/*put auth header*/
-	belle_sip_provider_add_authorization(t->base.provider,req,t->base.last_response,auth_infos);
+	belle_sip_provider_add_authorization(t->base.provider,req,t->base.last_response,NULL,auth_infos);
 	return req;
 }
 

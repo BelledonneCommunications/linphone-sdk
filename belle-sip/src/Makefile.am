@@ -64,7 +64,7 @@ libbellesip_la_CXXFLAGS=$(STRICT_OPTIONS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBE
 
 libbellesip_la_LIBADD=grammars/libbellesip_generated.la libbellesip_tls.la $(ANTLR_LIBS) $(TLS_LIBS) $(TUNNEL_LIBS)
 
-libbellesip_la_LDFLAGS=-no-undefined $(LDFLAGS)
+libbellesip_la_LDFLAGS=-no-undefined -version-info $(BELLESIP_SO_VERSION) $(LDFLAGS)
 
 
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(builddir)/grammars 

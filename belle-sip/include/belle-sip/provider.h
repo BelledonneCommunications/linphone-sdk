@@ -61,11 +61,12 @@ BELLESIP_EXPORT void belle_sip_provider_clean_channels(belle_sip_provider_t *p);
  * @param p object
  * @param request to be updated
  * @param resp response to take authentication values from, might be NULL
+ * @param from_uri optional - an uri to use instead of the from of the request, which can be anonymous.
  * @param auth_infos  A newly allocated belle_sip_auth_info_t object is added to this list. These object contains useful information like realm and username.
  * @returns 0 in case of success,
  *
  **/
-BELLESIP_EXPORT int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp,belle_sip_list_t** auth_infos);
+BELLESIP_EXPORT int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp, belle_sip_uri_t *from_uri, belle_sip_list_t** auth_infos);
 
 /**
  * Can be used to simulate network recv error, for tests.

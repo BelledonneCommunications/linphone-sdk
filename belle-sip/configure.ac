@@ -3,7 +3,16 @@
 
 AC_PREREQ([2.63])
 
-AC_INIT([belle-sip],[1.3.1],[jehan.monnier@linphone.org])
+AC_INIT([belle-sip],[1.3.2],[jehan.monnier@linphone.org])
+
+BELLESIP_SO_CURRENT=0 dnl increment this number when you add/change/remove an interface
+BELLESIP_SO_REVISION=0 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
+BELLESIP_SO_AGE=0 dnl increment this number when you add an interface, set to 0 if you remove an interface
+
+BELLESIP_SO_VERSION=$BELLESIP_SO_CURRENT:$BELLESIP_SO_REVISION:$BELLESIP_SO_AGE
+
+AC_SUBST(BELLESIP_SO_CURRENT, $BELLESIP_SO_CURRENT)
+AC_SUBST(BELLESIP_SO_VERSION)
 
 AC_CONFIG_SRCDIR([src/belle_sip_utils.c])
 

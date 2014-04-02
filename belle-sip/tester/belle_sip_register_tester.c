@@ -86,7 +86,7 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(belle_sip_response_event_get_client_transaction(event)));
 		cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CSEQ);
 		belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
-		CU_ASSERT_TRUE_FATAL(belle_sip_provider_add_authorization(prov,request,belle_sip_response_event_get_response(event),NULL));
+		CU_ASSERT_TRUE_FATAL(belle_sip_provider_add_authorization(prov,request,belle_sip_response_event_get_response(event),NULL,NULL));
 		t=belle_sip_provider_create_client_transaction(prov,request);
 		belle_sip_client_transaction_send_request_to(t,dest);
 		number_of_challenge++;
@@ -235,7 +235,7 @@ void unregister_user(belle_sip_stack_t * stack
 		belle_sip_client_transaction_t *t;
 		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_AUTHORIZATION);
 		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_PROXY_AUTHORIZATION);
-		belle_sip_provider_add_authorization(prov,req,NULL,NULL); /*just in case*/
+		belle_sip_provider_add_authorization(prov,req,NULL,NULL,NULL); /*just in case*/
 		t=belle_sip_provider_create_client_transaction(prov,req);
 		belle_sip_client_transaction_send_request(t);
 	}else belle_sip_provider_send_request(prov,req);

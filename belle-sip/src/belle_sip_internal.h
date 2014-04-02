@@ -912,7 +912,7 @@ struct belle_sip_auth_event {
 	belle_sip_signing_key_t* key;
 };
 
-belle_sip_auth_event_t* belle_sip_auth_event_create(belle_sip_object_t *source, const char* realm,const belle_sip_header_from_t * from);
+belle_sip_auth_event_t* belle_sip_auth_event_create(belle_sip_object_t *source, const char* realm,const belle_sip_uri_t * from_uri);
 
 void belle_sip_auth_event_set_distinguished_name(belle_sip_auth_event_t* event,const char* value);
 

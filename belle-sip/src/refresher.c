@@ -390,7 +390,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 				belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_HEADER(expires_header));
 			}
 		}
-		belle_sip_provider_add_authorization(prov,request,old_response,auth_infos);
+		belle_sip_provider_add_authorization(prov,request,old_response,NULL,auth_infos);
 	} else {
 		belle_sip_error("Unexpected dialog state [%s] for dialog [%p], cannot refresh [%s]"
 				,belle_sip_dialog_state_to_string(belle_sip_dialog_get_state(dialog))
