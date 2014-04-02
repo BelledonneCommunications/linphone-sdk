@@ -17,87 +17,15 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msinterfaces.h"
-#include "mediastreamer2/msticker.h"
-#include "mediastreamer2/msvideo.h"
-#include "mediastreamer2/rfc3984.h"
 
-#include "wels/codec_api.h"
+#include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msvideo.h"
+
+#include "msopenh264dec.h"
+#include "msopenh264enc.h"
 
 #ifndef VERSION
 #define VERSION "0.1.0"
-#endif
-
-/**
- * The goal of this small object is to tell when to send I frames at startup: at 2 and 4 seconds
- */
-typedef struct VideoStarter {
-	uint64_t next_time;
-	int i_frame_count;
-} VideoStarter;
-
-/**
- * Definition of the private data structure of the decoder.
- */
-typedef struct _MSV4L2H264DecData {
-	Rfc3984Context unpacker;
-	MSPicture outbuf;
-	MSVideoSize vsize;
-	uint64_t last_decoded_frame;
-	uint64_t last_error_reported_time;
-	mblk_t *yuv_msg;
-	mblk_t *sps;
-	mblk_t *pps;
-	uint8_t *bitstream;
-	int bitstream_size;
-	unsigned int packet_num;
-	bool_t first_image_decoded;
-} MSV4L2H264DecData;
-
-/**
- * Definition of the private data structure of the encoder.
- */
-typedef struct _MSOpenH264EncData {
-	VideoStarter starter;
-	MSVideoSize vsize;
-	MSPixFmt in_fmt;
-	uint64_t framenum;
-	Rfc3984Context *packer;
-	float fps;
-	int bitrate;
-	int mode;
-	bool_t generate_keyframe;
-} MSOpenH264EncData;
-
-
-/******************************************************************************
- * Implementation of the video starter                                        *
- *****************************************************************************/
-
-#if 0
-static void video_starter_init(VideoStarter *vs) {
-	vs->next_time = 0;
-	vs->i_frame_count = 0;
-}
-
-static void video_starter_first_frame(VideoStarter *vs, uint64_t curtime) {
-	vs->next_time = curtime + 2000;
-}
-
-static bool_t video_starter_need_i_frame(VideoStarter *vs, uint64_t curtime) {
-	if (vs->next_time == 0) return FALSE;
-	if (curtime >= vs->next_time) {
-		vs->i_frame_count++;
-		if (vs->i_frame_count == 1) {
-			vs->next_time += 2000;
-		} else {
-			vs->next_time = 0;
-		}
-		return TRUE;
-	}
-	return FALSE;
-}
 #endif
 
 
@@ -106,32 +34,28 @@ static bool_t video_starter_need_i_frame(VideoStarter *vs, uint64_t curtime) {
  *****************************************************************************/
 
 static void msopenh264_dec_init(MSFilter *f) {
-	MSV4L2H264DecData *d = (MSV4L2H264DecData *)ms_new(MSV4L2H264DecData, 1);
-	d->sps = NULL;
-	d->pps = NULL;
-	d->outbuf.w = 0;
-	d->outbuf.h = 0;
-	d->vsize.width = MS_VIDEO_SIZE_VGA_W;
-	d->vsize.height = MS_VIDEO_SIZE_VGA_H;
-	d->packet_num = 0;
-	d->last_decoded_frame = 0;
-	d->last_error_reported_time = 0;
+	MSOpenH264Decoder *d = new MSOpenH264Decoder();
 	f->data = d;
 }
 
 static void msopenh264_dec_preprocess(MSFilter *f) {
-	MSV4L2H264DecData *d = (MSV4L2H264DecData*)f->data;
-	d->first_image_decoded = FALSE;
+	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
+	d->initialize();
 }
 
 static void msopenh264_dec_process(MSFilter *f) {
-	//MSV4L2H264DecData *d = (MSV4L2H264DecData*)f->data;
-	// TODO
+	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
+	d->feed(f);
+}
+
+static void msopenh264_dec_postprocess(MSFilter *f) {
+	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
+	d->uninitialize();
 }
 
 static void msopenh264_dec_uninit(MSFilter *f) {
-	MSV4L2H264DecData *d = (MSV4L2H264DecData *)f->data;
-	ms_free(d);
+	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
+	delete d;
 }
 
 
@@ -140,8 +64,8 @@ static void msopenh264_dec_uninit(MSFilter *f) {
  *****************************************************************************/
 
 static int msopenh264_reset_first_image(MSFilter *f, void *data) {
-	MSV4L2H264DecData *d = (MSV4L2H264DecData *)f->data;
-	d->first_image_decoded = FALSE;
+	//MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
+	//d->first_image_decoded = FALSE;
 	return 0;
 }
 
@@ -208,34 +132,28 @@ MSFilterDesc msopenh264_dec_desc = {
  *****************************************************************************/
 
 static void msopenh264_enc_init(MSFilter *f) {
-	MSOpenH264EncData *d = (MSOpenH264EncData *)ms_new(MSOpenH264EncData, 1);
-	d->bitrate = 384000;
-	d->fps = 30;
-	d->mode = 1;
-	d->packer = NULL;
-	d->framenum = 0;
-	d->generate_keyframe = FALSE;
-	f->data = d;
+	MSOpenH264Encoder *e = new MSOpenH264Encoder();
+	f->data = e;
 }
 
 static void msopenh264_enc_preprocess(MSFilter *f) {
-	//MSOpenH264EncData *d = (MSOpenH264EncData*)f->data;
-	// TODO
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	e->initialize();
 }
 
 static void msopenh264_enc_process(MSFilter *f) {
-	//MSOpenH264EncData *d = (MSOpenH264EncData*)f->data;
-	// TODO
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	e->feed(f);
 }
 
 static void msopenh264_enc_postprocess(MSFilter *f) {
-	//MSOpenH264EncData *d = (MSOpenH264EncData*)f->data;
-	// TODO
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	e->uninitialize();
 }
 
 static void msopenh264_enc_uninit(MSFilter *f) {
-	MSOpenH264EncData *d = (MSOpenH264EncData *)f->data;
-	ms_free(d);
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	delete e;
 }
 
 
@@ -244,117 +162,104 @@ static void msopenh264_enc_uninit(MSFilter *f) {
  *****************************************************************************/
 
 static int msopenh264_enc_set_fps(MSFilter *f, void *arg) {
-	MSOpenH264EncData *d = (MSOpenH264EncData *)f->data;
-	d->fps = *(float*)arg;
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	float *fps = static_cast<float *>(arg);
+	e->setFps(*fps);
 	return 0;
 }
 
 static int msopenh264_enc_get_fps(MSFilter *f, void *arg) {
-	MSOpenH264EncData *d = (MSOpenH264EncData *)f->data;
-	*(float*)arg = d->fps;
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	float *fps = static_cast<float *>(arg);
+	*fps = e->getFps();
 	return 0;
 }
 
 static int msopenh264_enc_set_bitrate(MSFilter *f, void *arg) {
-	MSOpenH264EncData *d = (MSOpenH264EncData *)f->data;
-	d->bitrate = *(int*)arg;
-
-	if (d->bitrate >= 1024000) {
-		d->vsize.width = MS_VIDEO_SIZE_SVGA_W;
-		d->vsize.height = MS_VIDEO_SIZE_SVGA_H;
-		d->fps = 25;
-	} else if (d->bitrate >= 512000) {
-		d->vsize.width = MS_VIDEO_SIZE_VGA_W;
-		d->vsize.height = MS_VIDEO_SIZE_VGA_H;
-		d->fps = 25;
-	} else if (d->bitrate >= 256000) {
-		d->vsize.width = MS_VIDEO_SIZE_VGA_W;
-		d->vsize.height = MS_VIDEO_SIZE_VGA_H;
-		d->fps = 15;
-	} else if (d->bitrate >= 170000) {
-		d->vsize.width = MS_VIDEO_SIZE_QVGA_W;
-		d->vsize.height = MS_VIDEO_SIZE_QVGA_H;
-		d->fps = 15;
-	} else if (d->bitrate >= 128000) {
-		d->vsize.width = MS_VIDEO_SIZE_QCIF_W;
-		d->vsize.height = MS_VIDEO_SIZE_QCIF_H;
-		d->fps = 10;
-	} else if (d->bitrate >= 64000) {
-		d->vsize.width = MS_VIDEO_SIZE_QCIF_W;
-		d->vsize.height = MS_VIDEO_SIZE_QCIF_H;
-		d->fps = 7;
-	} else {
-		d->vsize.width = MS_VIDEO_SIZE_QCIF_W;
-		d->vsize.height = MS_VIDEO_SIZE_QCIF_H;
-		d->fps = 5;
-	}
-
-	ms_message("bitrate requested: %d (%d x %d)", d->bitrate, d->vsize.width, d->vsize.height);
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	int *bitrate = static_cast<int *>(arg);
+	e->setBitrate(*bitrate);
 	return 0;
 }
 
-static int msopenh264_enc_get_bitrate(MSFilter *f, void*arg) {
-	MSOpenH264EncData *d = (MSOpenH264EncData *)f->data;
-	*(int*)arg = d->bitrate;
+static int msopenh264_enc_get_bitrate(MSFilter *f, void *arg) {
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	int *bitrate = static_cast<int *>(arg);
+	*bitrate = e->getBitrate();
 	return 0;
 }
 
 static int msopenh264_enc_set_vsize(MSFilter *f, void *arg) {
-	MSOpenH264EncData *d = (MSOpenH264EncData *)f->data;
-	d->vsize = *(MSVideoSize*)arg;
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
+	e->setSize(*vsize);
 	return 0;
 }
 
 static int msopenh264_enc_get_vsize(MSFilter *f, void *arg) {
-	MSOpenH264EncData *d = (MSOpenH264EncData *)f->data;
-	*(MSVideoSize*)arg = d->vsize;
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	MSVideoSize *vsize = static_cast<MSVideoSize *>(arg);
+	*vsize = e->getSize();
 	return 0;
 }
 
 static int msopenh264_enc_set_pix_fmt(MSFilter *f, void *arg) {
-	MSOpenH264EncData *d = (MSOpenH264EncData *)f->data;
-	MSPixFmt fmt = *(MSPixFmt *)arg;
-	d->in_fmt = fmt;
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	MSPixFmt *fmt = static_cast<MSPixFmt *>(arg);
+	e->setPixFormat(*fmt);
 	return 0;
 }
 
 static int msopenh264_enc_add_fmtp(MSFilter *f, void *arg) {
-	MSOpenH264EncData *d = (MSOpenH264EncData *)f->data;
-	const char *fmtp = (const char *)arg;
-	char value[12];
-	if (fmtp_get_value(fmtp, "packetization-mode", value, sizeof(value))) {
-		d->mode = atoi(value);
-		ms_message("packetization-mode set to %i", d->mode);
-	}
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	const char *fmtp = static_cast<const char *>(arg);
+	e->addFmtp(fmtp);
 	return 0;
 }
 
 static int msopenh264_enc_has_builtin_converter(MSFilter *f, void *arg) {
-	*((bool_t *)arg) = FALSE;
+	bool_t *conv = static_cast<bool_t *>(arg);
+	*conv = FALSE;
 	return 0;
 }
 
 static int msopenh264_enc_req_vfu(MSFilter *f, void *arg) {
-	MSOpenH264EncData *d = (MSOpenH264EncData *)f->data;
-	d->generate_keyframe = TRUE;
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	e->generateKeyframe();
+	return 0;
+}
+
+static int msopenh264_enc_get_configuration_list(MSFilter *f, void *arg) {
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	const MSVideoConfiguration **vconf_list = static_cast<const MSVideoConfiguration **>(arg);
+	*vconf_list = e->getConfigurationList();
+	return 0;
+}
+
+static int msopenh264_enc_set_configuration(MSFilter *f, void *arg) {
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	MSVideoConfiguration *vconf = static_cast<MSVideoConfiguration *>(arg);
+	e->setConfiguration(*vconf);
 	return 0;
 }
 
 static MSFilterMethod msopenh264_enc_methods[] = {
-	{ MS_FILTER_SET_FPS,                      msopenh264_enc_set_fps               },
-	{ MS_FILTER_GET_FPS,                      msopenh264_enc_get_fps               },
-	{ MS_FILTER_SET_BITRATE,                  msopenh264_enc_set_bitrate           },
-	{ MS_FILTER_GET_BITRATE,                  msopenh264_enc_get_bitrate           },
-	{ MS_FILTER_SET_VIDEO_SIZE,               msopenh264_enc_set_vsize             },
-	{ MS_FILTER_GET_VIDEO_SIZE,               msopenh264_enc_get_vsize             },
-	{ MS_FILTER_SET_PIX_FMT,                  msopenh264_enc_set_pix_fmt           },
-	{ MS_FILTER_ADD_FMTP,                     msopenh264_enc_add_fmtp              },
-	{ MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER, msopenh264_enc_has_builtin_converter },
-	{ MS_FILTER_REQ_VFU,                      msopenh264_enc_req_vfu               },
+	{ MS_FILTER_SET_FPS,                       msopenh264_enc_set_fps                },
+	{ MS_FILTER_GET_FPS,                       msopenh264_enc_get_fps                },
+	{ MS_FILTER_SET_BITRATE,                   msopenh264_enc_set_bitrate            },
+	{ MS_FILTER_GET_BITRATE,                   msopenh264_enc_get_bitrate            },
+	{ MS_FILTER_SET_VIDEO_SIZE,                msopenh264_enc_set_vsize              },
+	{ MS_FILTER_GET_VIDEO_SIZE,                msopenh264_enc_get_vsize              },
+	{ MS_FILTER_SET_PIX_FMT,                   msopenh264_enc_set_pix_fmt            },
+	{ MS_FILTER_ADD_FMTP,                      msopenh264_enc_add_fmtp               },
+	{ MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER,  msopenh264_enc_has_builtin_converter  },
+	{ MS_FILTER_REQ_VFU,                       msopenh264_enc_req_vfu                },
 #ifdef MS_VIDEO_ENCODER_REQ_VFU
-	{ MS_VIDEO_ENCODER_REQ_VFU,               msopenh264_enc_req_vfu               },
+	{ MS_VIDEO_ENCODER_REQ_VFU,                msopenh264_enc_req_vfu                },
 #endif
-	{ 0,                                      NULL                                 }
+	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, msopenh264_enc_get_configuration_list },
+	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      msopenh264_enc_set_configuration      },
+	{ 0,                                       NULL                                  }
 };
 
 /******************************************************************************
@@ -410,7 +315,13 @@ MSFilterDesc msopenh264_enc_desc = {
 #endif
 
 
-MS2_PUBLIC void libmsopenh264_init(void){
+#ifdef _MSC_VER
+#define MS_PLUGIN_DECLARE(type) extern "C" __declspec(dllexport) type
+#else
+#define MS_PLUGIN_DECLARE(type) extern "C" type
+#endif
+
+MS_PLUGIN_DECLARE(void) libmsopenh264_init(void){
 	ms_filter_register(&msopenh264_dec_desc);
 	ms_filter_register(&msopenh264_enc_desc);
 	ms_message("msopenh264-" VERSION " plugin registered.");

@@ -1,9 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT([msopenh264],[0.1.0])
 
-AM_INIT_AUTOMAKE([tar-ustar])
-
 AC_CANONICAL_SYSTEM
+
+AM_INIT_AUTOMAKE([tar-ustar])
 
 AC_MSG_CHECKING([warning make an error on compilation])
 AC_ARG_ENABLE(strict,
@@ -14,7 +14,7 @@ AC_ARG_ENABLE(strict,
 
 
 dnl Checks for programs.
-AC_PROG_CC
+AC_PROG_CXX
 
 AC_LIBTOOL_WIN32_DLL
 AC_DISABLE_STATIC
