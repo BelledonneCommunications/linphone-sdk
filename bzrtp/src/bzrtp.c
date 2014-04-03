@@ -68,6 +68,7 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC) {
 	context->zrtpCallbacks.bzrtp_sendData = NULL;
 	context->zrtpCallbacks.bzrtp_srtpSecretsAvailable = NULL;
 	context->zrtpCallbacks.bzrtp_startSrtpSession = NULL;
+	context->zrtpCallbacks.bzrtp_contextReadyForExportedKeys = NULL;
 	
 	/* allocate 1 channel context, set all the others pointers to NULL */
 	context->channelContext[0] = (bzrtpChannelContext_t *)malloc(sizeof(bzrtpChannelContext_t));
@@ -205,6 +206,8 @@ int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_
 		case ZRTP_CALLBACK_STARTSRTPSESSION:
 			context->zrtpCallbacks.bzrtp_startSrtpSession = (int (*)(void *, char*, int32_t))functionPointer;
 			break;
+		case ZRTP_CALLBACK_CONTEXTREADYFOREXPORTEDKEYS:
+			context->zrtpCallbacks.bzrtp_contextReadyForExportedKeys = (int (*)(void *, uint8_t *, uint8_t))functionPointer;
 		default:
 			return BZRTP_ERROR_INVALIDCALLBACKID; 
 			break;
@@ -459,7 +462,7 @@ int bzrtp_isSecure(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
 	if (zrtpContext != NULL) {
 		uint8_t pvsFlag = 1;
-		bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1);
+		bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
 	}
 }
 
@@ -472,7 +475,48 @@ void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
 void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext) {
 	if (zrtpContext != NULL) {
 		uint8_t pvsFlag = 0;
-		bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1);
+		bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
+	}
+}
+
+/*
+ * @brief Allow client to write data in cache in the current <peer> tag.
+ * Data can be written directly or ciphered using the ZRTP Key Derivation Function and current s0.
+ * If useKDF flag is set but no s0 is available, nothing is written in cache and an error is returned
+ *
+ * @param[in/out]	zrtpContext			The ZRTP context we're dealing with
+ * @param[in]		peerZID				The ZID identifying the peer node we want to write into
+ * @param[in]		tagName				The name of the tag to be written
+ * @param[in]		tagNameLength		The length in bytes of the tagName
+ * @param[in]		tagContent			The content of the tag to be written(a string, if KDF is used the result will be turned into an hexa string)
+ * @param[in]		tagContentLength	The length in bytes of tagContent
+ * @param[in]		useKDF				A flag, if set to 0, write data as it is provided, if set to 1, write KDF(s0, "tagContent", KDF_Context, negotiated hash lenght)
+ * @param[in]		fileFlag			Flag, if LOADFILE bit is set, reload the cache buffer from file before updating.
+ * 										if WRITEFILE bit is set, update the cache file
+ *
+ * @return	0 on success, errorcode otherwise
+ */
+int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t useKDF, uint8_t fileFlag) {
+	/* check we have a valid context, a cache access callback function and a valid channelContext[0] */
+	if (zrtpContext == NULL || zrtpContext->zrtpCallbacks.bzrtp_loadCache == NULL || zrtpContext->channelContext[0]==NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	if (useKDF ==  BZRTP_CUSTOMCACHE_PLAINDATA) { /* write content as provided : content is a string and multiple tag is allowed as we are writing the peer URI(To be modified if needed) */
+		return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, tagContent, tagContentLength, BZRTP_CACHE_TAGISSTRING|BZRTP_CACHE_ALLOWMULTIPLETAGS, fileFlag);
+	} else { /* we must derive the content using the key derivation function */
+		
+		/* check we have s0 and KDFContext in channel[0] */
+		bzrtpChannelContext_t *zrtpChannelContext = zrtpContext->channelContext[0];
+		if (zrtpChannelContext->s0 == NULL || zrtpChannelContext->KDFContext == NULL) {
+			return BZRTP_ERROR_INVALIDCONTEXT;
+		}
+		/* We derive 16 bytes for a 128 bit key */
+		uint8_t derivedContent[16];
+		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, tagContent, tagContentLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 16, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, derivedContent);
+
+		/* write it to cache, do not allow multiple tags */
+		return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, derivedContent, 16, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, fileFlag);
 	}
 }
 

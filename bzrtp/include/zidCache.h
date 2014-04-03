@@ -56,6 +56,19 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]);
  */
 int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]);
 
+/* Define for write peer flags */
+/* define positions for bit into the flags */
+#define BZRTP_CACHE_ISSTRINGBIT		0x01
+#define BZRTP_CACHE_MULTIPLETAGSBIT	0x10
+#define BZRTP_CACHE_LOADFILEBIT		0x01
+#define BZRTP_CACHE_WRITEFILEBIT	0x10
+
+#define BZRTP_CACHE_TAGISSTRING 	0x01
+#define BZRTP_CACHE_TAGISBYTE		0x00
+#define BZRTP_CACHE_ALLOWMULTIPLETAGS	0x10
+#define BZRTP_CACHE_NOMULTIPLETAGS		0x00
+
+
 /**
  * @brief Write the given taf into peer Node, if the tag exists, content is replaced
  * Cache file is locked(TODO), read and updated during this call
@@ -65,9 +78,13 @@ int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[
  * @param[in]		tagName				the tagname of node to be written, it MUST be null terminated
  * @param[in]		tagNameLength		the length of tagname (not including the null termination char)
  * @param[in]		tagContent			the content of the node(a byte buffer which will be converted to hexa string)
- * @param[in]		tagContentLength	the length of the content to be written
+ * @param[in]		tagContentLength	the length of the content to be written(not including the null termination if it is a string)
+ * @param[in]		nodeFlag			Flag, if the ISSTRING bit is set write directly the value into the tag, otherwise convert the byte buffer to hexa string
+ * 										if the MULTIPLETAGS bit is set, allow multiple tags with the same name inside the peer node(only if their value differs)
+ * @param[in]		fileFlag		Flag, if LOADFILE bit is set, reload the cache buffer from file before updatin.
+ * 										if WRITEFILE bit is set, update the cache file
  * 
  * return 0 on success, error code otherwise
  */
-int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *tagName, uint8_t tagNameLength, uint8_t *tagContent, uint32_t tagContentLength);
+int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *tagName, uint8_t tagNameLength, uint8_t *tagContent, uint32_t tagContentLength, uint8_t nodeFlag, uint8_t fileFlag);
 #endif /* ZIDCACHE_H */

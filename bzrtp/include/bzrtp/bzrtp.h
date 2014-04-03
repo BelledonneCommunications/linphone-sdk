@@ -110,11 +110,12 @@ __attribute__ ((visibility ("default"))) void bzrtp_initBzrtpContext(bzrtpContex
 */
 __attribute__ ((visibility ("default"))) void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
 
-#define ZRTP_CALLBACK_LOADCACHE					0x0101
-#define ZRTP_CALLBACK_WRITECACHE				0x0102
-#define ZRTP_CALLBACK_SENDDATA					0x0110
-#define ZRTP_CALLBACK_SRTPSECRETSAVAILABLE		0x0120
-#define ZRTP_CALLBACK_STARTSRTPSESSION			0x0140
+#define ZRTP_CALLBACK_LOADCACHE						0x0101
+#define ZRTP_CALLBACK_WRITECACHE					0x0102
+#define ZRTP_CALLBACK_SENDDATA						0x0110
+#define ZRTP_CALLBACK_SRTPSECRETSAVAILABLE			0x0120
+#define ZRTP_CALLBACK_STARTSRTPSESSION				0x0140
+#define ZRTP_CALLBACK_CONTEXTREADYFOREXPORTEDKEYS	0x0180
 /**
  * @brief Allocate a function pointer to the callback function identified by his id 
  * @param[in/out]	context				The zrtp context to set the callback function
@@ -206,6 +207,37 @@ __attribute__ ((visibility ("default"))) void bzrtp_SASVerified(bzrtpContext_t *
  *
  * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
  */
-__attribute__ ((visibility ("default"))) void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext); 
+__attribute__ ((visibility ("default"))) void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext);
+
+
+#define BZRTP_CUSTOMCACHE_USEKDF 	1
+#define BZRTP_CUSTOMCACHE_PLAINDATA 0
+
+#define BZRTP_CACHE_LOADFILE		0x01
+#define BZRTP_CACHE_DONTLOADFILE	0x00
+#define BZRTP_CACHE_WRITEFILE		0x10
+#define BZRTP_CACHE_DONTWRITEFILE	0x00
+
+/* role mapping */
+#define INITIATOR	0
+#define	RESPONDER	1
+/**
+ * @brief Allow client to write data in cache in the current <peer> tag.
+ * Data can be written directly or ciphered using the ZRTP Key Derivation Function and current s0.
+ * If useKDF flag is set but no s0 is available, nothing is written in cache and an error is returned
+ *
+ * @param[in/out]	zrtpContext			The ZRTP context we're dealing with
+ * @param[in]		peerZID				The ZID identifying the peer node we want to write into
+ * @param[in]		tagName				The name of the tag to be written
+ * @param[in]		tagNameLength		The length in bytes of the tagName
+ * @param[in]		tagContent			The content of the tag to be written(a string, if KDF is used the result will be turned into an hexa string)
+ * @param[in]		tagContentLength	The length in bytes of tagContent
+ * @param[in]		useKDF				A flag, if set to 0, write data as it is provided, if set to 1, write KDF(s0, "tagContent", KDF_Context, negotiated hash lenght)
+ * @param[in]		fileFlag			Flag, if LOADFILE bit is set, reload the cache buffer from file before updating.
+ * 										if WRITEFILE bit is set, update the cache file
+ *
+ * @return	0 on success, errorcode otherwise
+ */
+__attribute__ ((visibility ("default"))) int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t useKDF, uint8_t fileFlag);
 
 #endif /* ifndef BZRTP_H */

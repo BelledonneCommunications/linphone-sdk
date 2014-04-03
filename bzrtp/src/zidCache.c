@@ -42,7 +42,7 @@ void bzrtp_strToUint8(uint8_t *outputBytes, uint8_t *inputString, uint16_t input
 void bzrtp_int8ToStr(uint8_t *outputString, uint8_t *inputBytes, uint16_t inputBytesLength);
 uint8_t bzrtp_byteToChar(uint8_t inputByte);
 uint8_t bzrtp_charToByte(uint8_t inputChar);
-void bzrtp_writeCache(bzrtpContext_t *zrtpContext, xmlDocPtr doc);
+void bzrtp_writeCache(bzrtpContext_t *zrtpContext, xmlDocPtr doc, uint8_t fileFlag);
 
 int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 	if (context == NULL) {
@@ -100,7 +100,7 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 		xmlNewTextChild(rootNode, NULL, (const xmlChar *)"selfZID", newZidHex);
 		
 		/* write the cache file and unlock it(TODO)*/
-		bzrtp_writeCache(context, doc);
+		bzrtp_writeCache(context, doc, 1);
 	}
 	/* TODO unlock the cache */
 	xmlFree(selfZidHex);
@@ -216,25 +216,39 @@ int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[
  * @param[in]		tagName				the tagname of node to be written, it MUST be null terminated
  * @param[in]		tagNameLength		the length of tagname (not including the null termination char)
  * @param[in]		tagContent			the content of the node(a byte buffer which will be converted to hexa string)
- * @param[in]		tagContentLength	the length of the content to be written
+ * @param[in]		tagContentLength	the length of the content to be written(not including the null termination)
+ * @param[in]		nodeFlag			Flag, if the ISSTRING bit is set write directly the value into the tag, otherwise convert the byte buffer to hexa string
+ * 										if the MULTIPLETAGS bit is set, allow multiple tags with the same name inside the peer node(only if their value differs)
+ * @param[in]		fileFlag			Flag, if LOADFILE bit is set, reload the cache buffer from file before updatin.
+ * 										if WRITEFILE bit is set, update the cache file
  * 
+ * Note : multiple tags mode manage string content only
+ *
  * return 0 on success, error code otherwise
  */
-int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *tagName, uint8_t tagNameLength, uint8_t *tagContent, uint32_t tagContentLength) {
+int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *tagName, uint8_t tagNameLength, uint8_t *tagContent, uint32_t tagContentLength, uint8_t nodeFlag, uint8_t fileFlag) {
 	if ((context == NULL) || (context->zrtpCallbacks.bzrtp_loadCache == NULL)) {
 		return ZRTP_ZIDCACHE_INVALID_CONTEXT;
 	}
 
-	/* turn the tagContent to an hexa string null terminated */
-	uint8_t *tagContentHex = (uint8_t *)malloc(2*tagContentLength+1);
-	bzrtp_int8ToStr(tagContentHex, tagContent, tagContentLength);
-	tagContentHex[2*tagContentLength] = '\0';
+	uint8_t *tagContentHex; /* this one will store the actual value to be written in cache */
+	if ((nodeFlag&BZRTP_CACHE_ISSTRINGBIT) == BZRTP_CACHE_TAGISBYTE) { /* tag content is a byte buffer, convert it to hexa string */
+		/* turn the tagContent to an hexa string null terminated */
+		tagContentHex = (uint8_t *)malloc(2*tagContentLength+1);
+		bzrtp_int8ToStr(tagContentHex, tagContent, tagContentLength);
+		tagContentHex[2*tagContentLength] = '\0';
+	} else { /* tag content is a string, write it directly */
+		tagContentHex = (uint8_t *)malloc(tagContentLength+1);
+		memcpy(tagContentHex, tagContent, tagContentLength+1); /* duplicate the string to have it in the same variable in both case and be able to free it at the end */
+	}
 
-	/* reload cache from file locking it (TODO: lock) */
-	free(context->cacheBuffer);
-	context->cacheBuffer = NULL;
-	context->cacheBufferLength = 0;
-	context->zrtpCallbacks.bzrtp_loadCache(context->channelContext[0]->clientData, &context->cacheBuffer, &(context->cacheBufferLength));
+	if ((fileFlag&BZRTP_CACHE_LOADFILEBIT) == BZRTP_CACHE_LOADFILE) { /* we must reload the cache from file */
+		/* reload cache from file locking it (TODO: lock) */
+		free(context->cacheBuffer);
+		context->cacheBuffer = NULL;
+		context->cacheBufferLength = 0;
+		context->zrtpCallbacks.bzrtp_loadCache(context->channelContext[0]->clientData, &context->cacheBuffer, &(context->cacheBufferLength));
+	}
 
 	/* parse the cache to find the peer element matching the given ZID */
 	xmlDocPtr doc = NULL;
@@ -259,13 +273,24 @@ int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *t
 			if ((!xmlStrcmp(cur->name, (const xmlChar *)"peer"))){ /* found a peer, check his ZID element */
 				currentZidHex = xmlNodeListGetString(doc, cur->xmlChildrenNode->xmlChildrenNode, 1); /* ZID is the first element of peer */
 				if (memcmp(currentZidHex, peerZidHex, 24) == 0) { /* we found the peer element we are looking for */
-					xmlNodePtr peerNode = cur->xmlChildrenNode->next;
-					while (peerNode != NULL && nodeUpdated==0) { /* look for the tag we want to write */
-						if ((!xmlStrcmp(peerNode->name, (const xmlChar *)tagName))){ /* check if we already have the tag we want to write */
-							xmlNodeSetContent(peerNode, (const xmlChar *)tagContentHex);
-							nodeUpdated = 1;
+					xmlNodePtr peerNodeChildren = cur->xmlChildrenNode->next;
+					while (peerNodeChildren != NULL && nodeUpdated==0) { /* look for the tag we want to write */
+						if ((!xmlStrcmp(peerNodeChildren->name, (const xmlChar *)tagName))){ /* check if we already have the tag we want to write */
+							if ((nodeFlag&BZRTP_CACHE_MULTIPLETAGSBIT) == BZRTP_CACHE_ALLOWMULTIPLETAGS) { /* multiple nodes with the same name are allowed, check the current one have a different value */
+								/* check if the node found have the same content than the one we want to add */
+								uint8_t *currentNodeContent = xmlNodeListGetString(doc, peerNodeChildren->xmlChildrenNode, 1);
+								if (!xmlStrcmp((const xmlChar *)currentNodeContent, (const xmlChar *)tagContent)) { /* contents are the same, do nothing and get out */
+									nodeUpdated = 1;
+								} else { /* tagname is the same but content differs, keep on parsing this peer node */
+									peerNodeChildren = peerNodeChildren->next;
+								}
+								xmlFree(currentNodeContent);
+							} else { /* no multiple tags with the same name allowed, overwrite the content in any case */
+								xmlNodeSetContent(peerNodeChildren, (const xmlChar *)tagContentHex);
+								nodeUpdated = 1;
+							}
 						} else {
-							peerNode = peerNode->next;
+							peerNodeChildren = peerNodeChildren->next;
 						}
 					}
 					if (nodeUpdated == 0) { /* if we didn't found our node, add it at the end of peer node */
@@ -290,7 +315,7 @@ int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *t
 
 
 		/* write the cache file and unlock it(TODO)*/
-		bzrtp_writeCache(context, doc);
+		bzrtp_writeCache(context, doc, ((fileFlag&BZRTP_CACHE_WRITEFILEBIT) == BZRTP_CACHE_WRITEFILE));
 	}
 
 	xmlFree(doc);
@@ -302,16 +327,31 @@ int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *t
 
 /*** Local functions implementations ***/
 
-void bzrtp_writeCache(bzrtpContext_t *zrtpContext, xmlDocPtr doc) {
-		free(zrtpContext->cacheBuffer);
-		zrtpContext->cacheBuffer = NULL;
-		zrtpContext->cacheBufferLength = 0;
-		xmlChar *xmlStringOutput;
-		xmlDocDumpFormatMemoryEnc(doc, &xmlStringOutput, (int *)&zrtpContext->cacheBufferLength, "UTF-8", 0);
-		zrtpContext->cacheBuffer = malloc(zrtpContext->cacheBufferLength);
-		memcpy(zrtpContext->cacheBuffer, xmlStringOutput, zrtpContext->cacheBufferLength);
-		xmlFree(xmlStringOutput);
+/**
+ * @brief write the cache from the xmlDoc to string buffer and file if requested
+ *
+ * @param[in/out]	zrtpContext		The zrtp context containing the cacheBuffer
+ * @param[in]		doc				The xml Document Tree to be parsed into a string
+ * @param[in]		fileFlag		When set to 0, do not write to the cache File, just update the cacheBuffer
+ *
+ */
+void bzrtp_writeCache(bzrtpContext_t *zrtpContext, xmlDocPtr doc, uint8_t fileFlag) {
+	/* free the current cacheBuffer */
+	free(zrtpContext->cacheBuffer);
+	zrtpContext->cacheBuffer = NULL;
+	zrtpContext->cacheBufferLength = 0;
+	/* parse the xml document into a string */
+	xmlChar *xmlStringOutput;
+	xmlDocDumpFormatMemoryEnc(doc, &xmlStringOutput, (int *)&zrtpContext->cacheBufferLength, "UTF-8", 0);
+	/* write it to the cache buffer */
+	zrtpContext->cacheBuffer = malloc(zrtpContext->cacheBufferLength+1); /* +1 to add the null termination */
+	memcpy(zrtpContext->cacheBuffer, xmlStringOutput, zrtpContext->cacheBufferLength);
+	zrtpContext->cacheBuffer[zrtpContext->cacheBufferLength] = '\0'; /* cacheBuffer must be a null terminated string */
+	zrtpContext->cacheBufferLength +=1; 
+	xmlFree(xmlStringOutput);
+	if (fileFlag != 0) { /* check if we have to write it to the cache file too */
 		zrtpContext->zrtpCallbacks.bzrtp_writeCache(zrtpContext->channelContext[0]->clientData, zrtpContext->cacheBuffer, zrtpContext->cacheBufferLength);
+	}
 }
 /**
  * @brief Convert an hexadecimal string into the corresponding byte buffer

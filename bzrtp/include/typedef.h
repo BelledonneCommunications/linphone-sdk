@@ -34,9 +34,6 @@
 #define DHPART_MESSAGE_STORE_ID 2
 #define CONFIRM_MESSAGE_STORE_ID 3
 
-/* role mapping */
-#define INITIATOR	0
-#define	RESPONDER	1
 
 #include <stdint.h>
 
@@ -111,6 +108,9 @@ typedef struct zrtpCallbacks_struct {
 	/* dealing with SRTP session */
 	int (* bzrtp_srtpSecretsAvailable)(void *clientData, bzrtpSrtpSecrets_t *srtpSecrets, uint8_t part); /**< Send the srtp secrets to the client, for either sender, receiver or both according to the part parameter value. Client may wait for the end of ZRTP process before using it */
 	int (* bzrtp_startSrtpSession)(void *clientData, char* sas, int32_t verified); /**< ZRTP process ended well, client is given the SAS and may start his SRTP session if not done when calling srtpSecretsAvailable */
+
+	/* ready for exported keys */
+	int (* bzrtp_contextReadyForExportedKeys)(void *clientData, uint8_t peerZID[12], uint8_t role); /**< Tell the client that this is the time to create and store in cache any exported keys, client is given the peerZID to adress the correct node in cache and current role which is needed to set a pair of keys for IM encryption */
 } zrtpCallbacks_t;
 
 /**

@@ -1453,8 +1453,6 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
 			zrtpChannelContext->keyAgreementAlgo = commitMessage->keyAgreementAlgo;
 			zrtpChannelContext->sasAlgo = commitMessage->sasAlgo;
 
-			/* TODO: check that our selected algo match the availables?? */
-			
 			/* if we have a self DHPart packet (means we are in DHM mode) we must rebuild the self DHPart packet to be responder and not initiator */
 			/* as responder we must swap the aux shared secret between responder and initiator as they are computed using the H3 and not a constant string */
 			if (zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] != NULL) {
@@ -2045,10 +2043,10 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 		return 0;
 	}
 
-	/* if this channel context is not in DHM mode, backup rs1 in rs2 if it exists */
+	/* if this channel context is in DHM mode, backup rs1 in rs2 if it exists */
 	if (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Prsh) {
 		if (zrtpContext->cachedSecret.rs1 != NULL) {
-			bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"rs2", 3, zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length);
+			bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"rs2", 3, zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
 		}
 	}
 
@@ -2058,8 +2056,12 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 		zrtpContext->cachedSecret.rs1Length = RETAINED_SECRET_LENGTH;
 	}
 	bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"retained secret", 15, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 32, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpContext->cachedSecret.rs1);
-	bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"rs1", 3, zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length);
+	bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"rs1", 3, zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
 
+	/* if exist, call the callback function to perform custom cache operation that may use s0(writing exported key into cache) */
+	if (zrtpContext->zrtpCallbacks.bzrtp_contextReadyForExportedKeys != NULL) {
+		zrtpContext->zrtpCallbacks.bzrtp_contextReadyForExportedKeys(zrtpChannelContext->clientData, zrtpContext->peerZID, zrtpChannelContext->role);
+	}
 	/* destroy s0 */
 	bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
 	free(zrtpChannelContext->s0);
