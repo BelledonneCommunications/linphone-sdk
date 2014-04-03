@@ -610,6 +610,8 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 				zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID] = NULL;
 				/* this will update the context channel and run the next state according to current mode */
 				return bzrtp_turnIntoResponder(zrtpContext, zrtpChannelContext, zrtpPacket, peerCommitMessage);
+			} else { /* we are iniator, just drop the incoming commit packet and keep send our */
+				bzrtp_freeZrtpPacket(zrtpPacket);
 			}
 		}
 
