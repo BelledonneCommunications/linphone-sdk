@@ -88,8 +88,9 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC) {
 	context->sc = bzrtpCrypto_getAvailableCryptoTypes(ZRTP_SAS_TYPE, context->supportedSas);
 
 	/* initialise cached secret buffer to null */
-	context->cacheBuffer = NULL;
-	context->cacheBufferLength = 0;
+#ifdef HAVE_LIBXML2
+	context->cacheBuffer = NULL; /* this field is present only if cache is compiled*/
+#endif
 	context->cachedSecret.rs1 = NULL;
 	context->cachedSecret.rs1Length = 0;
 	context->cachedSecret.rs2 = NULL;
@@ -171,8 +172,10 @@ void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	context->cachedSecret.auxsecret=NULL;
 	context->ZRTPSess=NULL;
 
-	free(context->cacheBuffer);
+#ifdef HAVE_LIBXML2
+	xmlFreeDoc(context->cacheBuffer);
 	context->cacheBuffer=NULL;
+#endif
 	
 	/* destroy the RNG context at the end because it may be needed to destroy some keys */
 	bzrtpCrypto_destroyRNG(context->RNGContext);

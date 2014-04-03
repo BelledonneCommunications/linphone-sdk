@@ -24,12 +24,17 @@
 #include "CUnit/Basic.h"
 #include "bzrtpCryptoTest.h"
 #include "bzrtpParserTest.h"
+
+#ifdef HAVE_LIBXML2
 #include <libxml/parser.h>
+#endif
 
 	
 int main(int argc, char *argv[] ) {
 	
+#ifdef HAVE_LIBXML2
 	xmlInitParser();
+#endif
 	
 	CU_pSuite cryptoWrapperTestSuite, cryptoUtilsTestSuite, parserTestSuite;
 
@@ -56,24 +61,26 @@ int main(int argc, char *argv[] ) {
 
 	/* Add the parser suite to the registry */
 	parserTestSuite = CU_add_suite("Bzrtp ZRTP Packet Parser", NULL, NULL);
-	CU_add_test(parserTestSuite, "Parse", test_parser);
-	CU_add_test(parserTestSuite, "Parse Exchange", test_parserComplete);
+/*	CU_add_test(parserTestSuite, "Parse", test_parser);*/
+/*	CU_add_test(parserTestSuite, "Parse Exchange", test_parserComplete);*/
 	CU_add_test(parserTestSuite, "State machine", test_stateMachine);
 
 	/* Run all suites */
-	printf("\n\n#### Run the Bzrtp Crypto Wrappers tests suite\n");
+/*	printf("\n\n#### Run the Bzrtp Crypto Wrappers tests suite\n");
 	CU_basic_run_suite(cryptoWrapperTestSuite);
 	printf("\n\n#### Run the Bzrtp Crypto Utils tests suite\n");
-	CU_basic_run_suite(cryptoUtilsTestSuite);
-/*	printf("\n\n#### Run the Bzrtp ZRTP Packet Parser tests suite\n");
-	CU_basic_run_suite(parserTestSuite);*/
+	CU_basic_run_suite(cryptoUtilsTestSuite);*/
+	printf("\n\n#### Run the Bzrtp ZRTP Packet Parser tests suite\n");
+	CU_basic_run_suite(parserTestSuite);
 
 
 	/* cleanup the CUnit registry */
 	CU_cleanup_registry();
 
+#ifdef HAVE_LIBXML2
 	/* cleanup libxml2 */
 	xmlCleanupParser();
+#endif
 
 	return 0;
 }

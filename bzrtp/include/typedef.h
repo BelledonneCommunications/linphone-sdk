@@ -37,6 +37,12 @@
 
 #include <stdint.h>
 
+/* some include needed for the cache */
+#ifdef HAVE_LIBXML2
+#include <libxml/tree.h>
+#include <libxml/parser.h>
+#endif
+
 typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 
 #include "cryptoWrapper.h"
@@ -213,8 +219,9 @@ struct bzrtpContext_struct {
 	uint8_t supportedSas[7]; /**< list of supported Sas representations mapped to uint8_t */
 	
 	/* ZIDs and cache */
-	uint8_t *cacheBuffer; /**< cache file is load in this buffer to be parsed/written */
-	uint32_t cacheBufferLength; /**< length in byte of the cache buffer */
+#ifdef HAVE_LIBXML2
+	xmlDocPtr cacheBuffer; /**< cache file is load in this buffer to be parsed/written */
+#endif
 	uint8_t selfZID[12]; /**< The ZRTP Identifier of this ZRTP end point - a random if running cache less */
 	uint8_t peerZID[12]; /**< The ZRTP Identifier of the peer ZRTP end point - given by the Hello packet */
 	cachedSecrets_t cachedSecret; /**< the local cached secrets */

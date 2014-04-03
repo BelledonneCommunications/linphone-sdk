@@ -1499,35 +1499,36 @@ int bzrtp_sendData(void *clientData, uint8_t *packetString, uint16_t packetLengt
 	/* get the client Data */
 	my_Context_t *contexts = (my_Context_t *)clientData;
 
-	printf ("%s sends a message!\n", contexts->nom);
+/*	printf ("%s sends a message!\n", contexts->nom);
 	int retval;
 	bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(packetString, packetLength, contexts->peerChannelContext->peerSequenceNumber, &retval);
 	if (retval==0) {
 		retval = bzrtp_packetParser(contexts->peerContext, contexts->peerChannelContext, packetString, packetLength, zrtpPacket);
 		if (retval == 0) {
-			packetDump(zrtpPacket,0);
-			printHex("Data", packetString, packetLength);
-		} else {
+*/		/*	packetDump(zrtpPacket,0); */
+		/*	printHex("Data", packetString, packetLength);*/
+/*		} else {
 			printf("Parse says %04x\n", retval);
 		}
 	} else {
 		printf("Check says %04x\n", retval);
 	}
-	bzrtp_freeZrtpPacket(zrtpPacket);
-
+*/
 	/* put the message in the message queue */
 	if (contexts->nom[0] == 'A') { /* message sent by Alice, put it in Bob's queue */
 		/* block the first Hello to force going through wait for hello state and check it is retransmitted */
-		if (block_Hello == 0 && zrtpPacket->messageType == MSGTYPE_HELLO) {
+/*		if ((block_Hello == 0) && (zrtpPacket->messageType == MSGTYPE_HELLO)) {
 			block_Hello = 1;
-		} else {
+		} else {*/
 			memcpy(bobQueue[bobQueueIndex].packetString, packetString, packetLength);
 			bobQueue[bobQueueIndex++].packetLength = packetLength;
-		}
+/*		}*/
 	} else {
 		memcpy(aliceQueue[aliceQueueIndex].packetString, packetString, packetLength);
 		aliceQueue[aliceQueueIndex++].packetLength = packetLength;
 	}
+
+/*	bzrtp_freeZrtpPacket(zrtpPacket); */
 
 	return 0;
 }
@@ -1598,7 +1599,7 @@ void test_stateMachine() {
 		for (i=0; i<aliceQueueIndex; i++) {
 			printf("Process a message for Alice\n");
 			retval = bzrtp_processMessage(contextAlice, 0x12345678, aliceQueue[i].packetString, aliceQueue[i].packetLength);
-			printf("Alice processed message and return %04x\n\n", retval);
+			printf("Alice processed message %.8s of %d bytes and return %04x\n\n", aliceQueue[i].packetString+16, aliceQueue[i].packetLength, retval);
 			memset(aliceQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
 		}
 		aliceQueueIndex = 0;
@@ -1606,7 +1607,7 @@ void test_stateMachine() {
 		for (i=0; i<bobQueueIndex; i++) {
 			printf("Process a message for Bob\n");
 			retval = bzrtp_processMessage(contextBob, 0x87654321, bobQueue[i].packetString, bobQueue[i].packetLength);
-			printf("Bob processed message and return %04x\n\n", retval);
+			printf("Bob processed message %.8s of %d bytes and return %04x\n\n", bobQueue[i].packetString+16, bobQueue[i].packetLength, retval);
 			memset(bobQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
 		}
 		bobQueueIndex = 0;
@@ -1711,7 +1712,7 @@ void test_stateMachine() {
 		for (i=0; i<aliceQueueIndex; i++) {
 			printf("Process a message for Alice\n");
 			retval = bzrtp_processMessage(contextAlice, 0x34567890, aliceQueue[i].packetString, aliceQueue[i].packetLength);
-			printf("Alice processed message and return %04x\n\n", retval);
+			printf("Alice processed message %.8s of %d bytes and return %04x\n\n", aliceQueue[i].packetString+16, aliceQueue[i].packetLength, retval);
 			memset(aliceQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
 		}
 		aliceQueueIndex = 0;
@@ -1719,7 +1720,7 @@ void test_stateMachine() {
 		for (i=0; i<bobQueueIndex; i++) {
 			printf("Process a message for Bob\n");
 			retval = bzrtp_processMessage(contextBob, 0x09876543, bobQueue[i].packetString, bobQueue[i].packetLength);
-			printf("Bob processed message and return %04x\n\n", retval);
+			printf("Bob processed message %.8s  of %d bytes and return %04x\n\n", bobQueue[i].packetString+16, bobQueue[i].packetLength, retval);
 			memset(bobQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
 		}
 		bobQueueIndex = 0;
