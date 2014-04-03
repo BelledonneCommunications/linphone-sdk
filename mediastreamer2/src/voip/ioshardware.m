@@ -36,13 +36,26 @@
 	return platform;
 }
 
-+ (BOOL) isHDVideoCapable {
-	if ([[IOSHardware platform] hasPrefix:@"iPad3"]) return TRUE;
-	return FALSE;
+// see http://theiphonewiki.com/wiki/Models , these come from our experience
+NSString* hdCapableDevices[] = {@"iPhone5", @"iPhone6", @"iPad3", @"iPad4", @"iPod5", @"x86_64", @"i386"};
+
++ (BOOL) isHDVideoCapableDevice:(NSString*)device {
+    for (int i = 0; i<sizeof(hdCapableDevices)/sizeof(NSString*); i++) {
+        if ( [device hasPrefix:hdCapableDevices[i]] )
+            return TRUE;
+    }
+    return FALSE;
 }
 
+
++ (BOOL) isHDVideoCapable {
+    NSString* platform = [IOSHardware platform];
+    return [IOSHardware isHDVideoCapableDevice:platform];
+}
+
+
 + (MSVideoSize) HDVideoSize:(const char *) deviceId {
-	if ([[IOSHardware platform] isEqualToString:@"iPad3,4"]) {
+	if ([IOSHardware isHDVideoCapable]) {
 		return MS_VIDEO_SIZE_720P;
 	}
 	return MS_VIDEO_SIZE_VGA;
