@@ -511,12 +511,12 @@ int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12],
 		if (zrtpChannelContext->s0 == NULL || zrtpChannelContext->KDFContext == NULL) {
 			return BZRTP_ERROR_INVALIDCONTEXT;
 		}
-		/* We derive 16 bytes for a 128 bit key */
-		uint8_t derivedContent[16];
-		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, tagContent, tagContentLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 16, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, derivedContent);
+		/* We derive 32 bytes for a 256 bit key */
+		uint8_t derivedContent[32];
+		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, tagContent, tagContentLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 32, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, derivedContent);
 
 		/* write it to cache, do not allow multiple tags */
-		return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, derivedContent, 16, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, fileFlag);
+		return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, derivedContent, 32, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, fileFlag);
 	}
 }
 
