@@ -26,11 +26,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 class MSOpenH264Decoder {
 public:
-	MSOpenH264Decoder();
+	MSOpenH264Decoder(MSFilter *f);
 	virtual ~MSOpenH264Decoder();
 	bool isInitialized() const { return mInitialized; }
 	void initialize();
-	void feed(MSFilter *f);
+	void feed();
 	void uninitialize();
 	void resetFirstImageDecoded();
 	MSVideoSize getSize() const;
@@ -38,6 +38,7 @@ public:
 private:
 	mblk_t * addNalMarker(mblk_t *nal);
 
+	MSFilter *mFilter;
 	SDecodingParam mDecoderParams;
 	ISVCDecoder *mDecoder;
 	Rfc3984Context mUnpacker;

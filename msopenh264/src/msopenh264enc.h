@@ -20,16 +20,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
+#include "mediastreamer2/rfc3984.h"
 #include "wels/codec_api.h"
 
 
 class MSOpenH264Encoder {
 public:
-	MSOpenH264Encoder();
+	MSOpenH264Encoder(MSFilter *f);
 	virtual ~MSOpenH264Encoder();
 	void initialize();
 	bool isInitialized() const { return mInitialized; }
-	void feed(MSFilter *f);
+	void feed();
 	void uninitialize();
 	void setFPS(float fps);
 	float getFPS() const { return mVConf.fps; }
@@ -37,13 +38,19 @@ public:
 	int getBitrate() const { return mVConf.required_bitrate; }
 	void setSize(MSVideoSize size);
 	MSVideoSize getSize() const { return mVConf.vsize; }
-	void setPixFormat(MSPixFmt format);
 	void addFmtp(const char *fmtp);
 	void generateKeyframe();
 	const MSVideoConfiguration *getConfigurationList() const { return mVConfList; }
 	void setConfiguration(MSVideoConfiguration conf);
 
 private:
+	void fillNalusQueue(SFrameBSInfo& sFbi, MSQueue* nalus);
+	void calcBitrates(int &targetBitrate, int &maxBitrate) const;
+	void applyBitrate();
+
+	MSFilter *mFilter;
+	Rfc3984Context *mPacker;
+	int mPacketisationMode;
 	ISVCEncoder *mEncoder;
 	const MSVideoConfiguration *mVConfList;
 	MSVideoConfiguration mVConf;

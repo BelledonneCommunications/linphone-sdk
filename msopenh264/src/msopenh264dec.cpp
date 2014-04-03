@@ -22,8 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "msopenh264dec.h"
 
 
-MSOpenH264Decoder::MSOpenH264Decoder()
-	: mDecoder(0), mInitialized(false), mYUVMsg(0), mLastErrorReportTime(0),
+MSOpenH264Decoder::MSOpenH264Decoder(MSFilter *f)
+	: mFilter(f), mDecoder(0), mInitialized(false), mYUVMsg(0), mLastErrorReportTime(0),
 	mWidth(MS_VIDEO_SIZE_UNKNOWN_W), mHeight(MS_VIDEO_SIZE_UNKNOWN_H), mFirstImageDecoded(false)
 {
 	long ret = WelsCreateDecoder(&mDecoder);
@@ -60,10 +60,10 @@ void MSOpenH264Decoder::initialize()
 	}
 }
 
-void MSOpenH264Decoder::feed(MSFilter *f)
+void MSOpenH264Decoder::feed()
 {
 	if (!isInitialized()){
-		ms_queue_flush(f->inputs[0]);
+		ms_queue_flush(mFilter->inputs[0]);
 		return;
 	}
 
@@ -71,7 +71,7 @@ void MSOpenH264Decoder::feed(MSFilter *f)
 	ms_queue_init(&nalus);
 
 	mblk_t *im;
-	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
+	while ((im = ms_queue_get(mFilter->inputs[0])) != NULL) {
 		rfc3984_unpack(&mUnpacker, im, &nalus);
 		mblk_t *nal;
 		while ((nal = ms_queue_get(&nalus)) != NULL) {
@@ -82,9 +82,9 @@ void MSOpenH264Decoder::feed(MSFilter *f)
 			DECODING_STATE state = mDecoder->DecodeFrame2(fullNal->b_rptr, len, pData, &sDstBufInfo);
 			if (state != dsErrorFree) {
 				ms_error("OpenH264 decoder: DecodeFrame2 failed: 0x%x", state);
-				if (((f->ticker->time - mLastErrorReportTime) > 5000) || (mLastErrorReportTime == 0)) {
-					mLastErrorReportTime = f->ticker->time;
-					ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_DECODING_ERRORS);
+				if (((mFilter->ticker->time - mLastErrorReportTime) > 5000) || (mLastErrorReportTime == 0)) {
+					mLastErrorReportTime = mFilter->ticker->time;
+					ms_filter_notify_no_arg(mFilter, MS_VIDEO_DECODER_DECODING_ERRORS);
 				}
 			}
 			if (sDstBufInfo.iBufferStatus == 1) {
@@ -116,17 +116,17 @@ void MSOpenH264Decoder::feed(MSFilter *f)
 						src += sDstBufInfo.UsrData.sSystemBuffer.iStride[(i == 0) ? 0 : 1];
 					}
 				}
-				ms_queue_put(f->outputs[0], dupmsg(mYUVMsg));
+				ms_queue_put(mFilter->outputs[0], dupmsg(mYUVMsg));
 
 				// Update average FPS
-				if (ms_video_update_average_fps(&mFPS, f->ticker->time)) {
+				if (ms_video_update_average_fps(&mFPS, mFilter->ticker->time)) {
 					ms_message("OpenH264 decoder: Frame size: %dx%d", mWidth, mHeight);
 				}
 
 				// Notify first decoded image
 				if (!mFirstImageDecoded) {
 					mFirstImageDecoded = true;
-					ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+					ms_filter_notify_no_arg(mFilter, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 				}
 			}
 			freemsg(nal);

@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *****************************************************************************/
 
 static void msopenh264_dec_init(MSFilter *f) {
-	MSOpenH264Decoder *d = new MSOpenH264Decoder();
+	MSOpenH264Decoder *d = new MSOpenH264Decoder(f);
 	f->data = d;
 }
 
@@ -45,7 +45,7 @@ static void msopenh264_dec_preprocess(MSFilter *f) {
 
 static void msopenh264_dec_process(MSFilter *f) {
 	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
-	d->feed(f);
+	d->feed();
 }
 
 static void msopenh264_dec_postprocess(MSFilter *f) {
@@ -139,7 +139,7 @@ MSFilterDesc msopenh264_dec_desc = {
  *****************************************************************************/
 
 static void msopenh264_enc_init(MSFilter *f) {
-	MSOpenH264Encoder *e = new MSOpenH264Encoder();
+	MSOpenH264Encoder *e = new MSOpenH264Encoder(f);
 	f->data = e;
 }
 
@@ -150,7 +150,7 @@ static void msopenh264_enc_preprocess(MSFilter *f) {
 
 static void msopenh264_enc_process(MSFilter *f) {
 	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
-	e->feed(f);
+	e->feed();
 }
 
 static void msopenh264_enc_postprocess(MSFilter *f) {
@@ -210,13 +210,6 @@ static int msopenh264_enc_get_vsize(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int msopenh264_enc_set_pix_fmt(MSFilter *f, void *arg) {
-	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
-	MSPixFmt *fmt = static_cast<MSPixFmt *>(arg);
-	e->setPixFormat(*fmt);
-	return 0;
-}
-
 static int msopenh264_enc_add_fmtp(MSFilter *f, void *arg) {
 	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
 	const char *fmtp = static_cast<const char *>(arg);
@@ -257,7 +250,6 @@ static MSFilterMethod msopenh264_enc_methods[] = {
 	{ MS_FILTER_GET_BITRATE,                   msopenh264_enc_get_bitrate            },
 	{ MS_FILTER_SET_VIDEO_SIZE,                msopenh264_enc_set_vsize              },
 	{ MS_FILTER_GET_VIDEO_SIZE,                msopenh264_enc_get_vsize              },
-	{ MS_FILTER_SET_PIX_FMT,                   msopenh264_enc_set_pix_fmt            },
 	{ MS_FILTER_ADD_FMTP,                      msopenh264_enc_add_fmtp               },
 	{ MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER,  msopenh264_enc_has_builtin_converter  },
 	{ MS_FILTER_REQ_VFU,                       msopenh264_enc_req_vfu                },
