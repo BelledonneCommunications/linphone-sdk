@@ -32,7 +32,7 @@ else(WIN32)
 	set(EP_linphone_USE_AUTOGEN "yes")
 	set(EP_linphone_CROSS_COMPILATION_OPTIONS
 		"--prefix=${CMAKE_INSTALL_PREFIX}"
-		"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+		"--host=${LINPHONE_BUILDER_HOST}"
 	)
 	set(EP_linphone_CONFIGURE_OPTIONS
 		"--disable-strict"

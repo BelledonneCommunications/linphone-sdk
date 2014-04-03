@@ -22,7 +22,10 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-set(LINPHONE_BUILDER_TOOLCHAIN "desktop" CACHE STRING "Toolchain to use for the build.")
+include(FeatureSummary)
+
+
+set(LINPHONE_BUILDER_CONFIG_FILE "configs/config-desktop.cmake" CACHE STRING "Path to the linphone builder configuration file.")
 set(LINPHONE_BUILDER_WORK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/WORK" CACHE PATH "Working directory for the build.")
 
 
@@ -31,13 +34,17 @@ include(cmake/LinphoneCMakeBuilder.cmake)
 
 
 # Include toolchain definition
-message("-- Using toolchain '${LINPHONE_BUILDER_TOOLCHAIN}'")
-include(toolchains/toolchain-${LINPHONE_BUILDER_TOOLCHAIN}.cmake)
-linphone_builder_apply_toolchain_flags()
+if(CMAKE_TOOLCHAIN_FILE)
+	get_filename_component(CMAKE_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE} ABSOLUTE)
+	message(STATUS "Using toolchain file '${CMAKE_TOOLCHAIN_FILE}'")
+endif()
 
 
 # Include project configuration according to the toolchain
-include(configs/config-${LINPHONE_BUILDER_TOOLCHAIN}.cmake)
+get_filename_component(LINPHONE_BUILDER_CONFIG_FILE ${LINPHONE_BUILDER_CONFIG_FILE} ABSOLUTE)
+message(STATUS "Using configuration file '${LINPHONE_BUILDER_CONFIG_FILE}'")
+include(${LINPHONE_BUILDER_CONFIG_FILE})
+linphone_builder_apply_flags()
 linphone_builder_add_external_projects()
 
 

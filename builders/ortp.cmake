@@ -33,7 +33,7 @@ else(WIN32)
 	set(EP_ortp_CONFIG_H_FILE ortp-config.h)
 	set(EP_ortp_CROSS_COMPILATION_OPTIONS
 		"--prefix=${CMAKE_INSTALL_PREFIX}"
-		"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+		"--host=${LINPHONE_BUILDER_HOST}"
 	)
 	set(EP_ortp_CONFIGURE_OPTIONS
 		"--disable-strict"

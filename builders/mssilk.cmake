@@ -26,7 +26,7 @@ set(EP_mssilk_BUILD_METHOD "autotools")
 set(EP_mssilk_USE_AUTOGEN "yes")
 set(EP_mssilk_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+	"--host=${LINPHONE_BUILDER_HOST}"
 )
 set(EP_mssilk_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_mssilk_DEPENDENCIES EP_ms2)

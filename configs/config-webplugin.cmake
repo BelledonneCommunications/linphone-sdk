@@ -45,6 +45,26 @@ set(DEFAULT_VALUE_ENABLE_TUNNEL OFF)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
 
 
+# Global configuration
+set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# Restrict pkg-config to search in the install directory
+
+if (UNIX)
+	if(APPLE)
+		set(CMAKE_OSX_DEPLOYMENT_TARGET "10.6")
+		set(CMAKE_OSX_ARCHITECTURES "i386")
+		set(LINPHONE_BUILDER_HOST "i686-apple-darwin")
+		set(LINPHONE_BUILDER_CPPFLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -arch ${CMAKE_OSX_ARCHITECTURES}")
+		set(LINPHONE_BUILDER_CFLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -arch ${CMAKE_OSX_ARCHITECTURES}")
+		set(LINPHONE_BUILDER_LDFLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -arch ${CMAKE_OSX_ARCHITECTURES}")
+	else()
+		set(BUILD_V4L "yes")
+	endif()
+endif()
+if(WIN32)
+	set(LINPHONE_BUILDER_CPPFLAGS "-D_WIN32_WINNT=0x0501 -D_ALLOW_KEYWORD_MACROS")
+endif()
+
+
 # Include builders
 include(builders/CMakeLists.txt)
 

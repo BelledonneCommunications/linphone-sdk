@@ -23,6 +23,4 @@
 set(SYSTEM_PROCESSOR armv7)
 set(COMPILER_PREFIX "armv7-apple-darwin")
 set(PLATFORM "OS")
-include(toolchains/ios/toolchain-ios.cmake)
-set(LINPHONE_BUILDER_TOOLCHAIN_CFLAGS "${LINPHONE_BUILDER_TOOLCHAIN_CFLAGS} -mcpu=cortex-a8")
-
+include("${CMAKE_CURRENT_LIST_DIR}/ios/toolchain-ios.cmake")

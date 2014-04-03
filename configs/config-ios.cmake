@@ -45,6 +45,29 @@ set(DEFAULT_VALUE_ENABLE_TUNNEL OFF)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
 
 
+# Global configuration
+set(SDK_VERSION 4.0)
+get_filename_component(COMPILER_NAME ${CMAKE_C_COMPILER} NAME)
+string(REGEX REPLACE "-clang$" "" LINPHONE_BUILDER_HOST ${COMPILER_NAME})
+unset(COMPILER_NAME)
+if("${PLATFORM}" MATCHES "Simulator")
+	set(CLANG_TARGET_SPECIFIER "ios-simulator-version-min")
+else("${PLATFORM}" MATCHES "Simulator")
+	set(CLANG_TARGET_SPECIFIER "iphoneos-version-min")
+endif("${PLATFORM}" MATCHES "Simulator")
+list(get CMAKE_FIND_ROOT_PATH 0 SYSROOT_PATH)
+set(COMMON_FLAGS "-arch ${CMAKE_SYSTEM_PROCESSOR} -isysroot ${SYSROOT_PATH} -m${CLANG_TARGET_SPECIFIER}=${SDK_VERSION} -DTARGET_OS_IPHONE=1 -D__IOS -fms-extensions")
+set(LINPHONE_BUILDER_TOOLCHAIN_CPPFLAGS "${COMMON_FLAGS} -Dasm=__asm")
+set(LINPHONE_BUILDER_TOOLCHAIN_CFLAGS "-std=c99")
+set(LINPHONE_BUILDER_TOOLCHAIN_OBJCFLAGS "-std=c99 ${COMMON_FLAGS} -x objective-c -fexceptions -gdwarf-2 -fobjc-abi-version=2 -fobjc-legacy-dispatch")
+set(LINPHONE_BUILDER_TOOLCHAIN_LDFLAGS "${COMMON_FLAGS}")
+set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# Restrict pkg-config to search in the install directory
+unset(COMMON_FLAGS)
+unset(CLANG_TARGET_SPECIFIER)
+unset(SYSROOT_PATH)
+unset(SDK_VERSION)
+
+
 # Include builders
 include(builders/CMakeLists.txt)
 

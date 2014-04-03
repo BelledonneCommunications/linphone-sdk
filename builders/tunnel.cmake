@@ -26,7 +26,7 @@ set(EP_tunnel_BUILD_METHOD "autotools")
 set(EP_tunnel_USE_AUTOGEN "yes")
 set(EP_tunnel_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+	"--host=${LINPHONE_BUILDER_HOST}"
 )
 set(EP_tunnel_CONFIGURE_OPTIONS
 	"--disable-servers"

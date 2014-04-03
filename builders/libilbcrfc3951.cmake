@@ -26,7 +26,7 @@ set(EP_libilbcrfc3951_BUILD_METHOD "autotools")
 set(EP_libilbcrfc3951_USE_AUTOGEN "yes")
 set(EP_libilbcrfc3951_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+	"--host=${LINPHONE_BUILDER_HOST}"
 )
 set(EP_libilbcrfc3951_LINKING_TYPE "--disable-static" "--enable-shared")
 

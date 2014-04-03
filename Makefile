@@ -40,14 +40,14 @@ build-bb10-i486:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
 	mkdir -p WORK/cmake-bb10-i486 && \
 	cd WORK/cmake-bb10-i486 && \
-	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-i486 -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-bb10-sdk/i486 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/i486 $(filter -D%,$(MAKEFLAGS)) && \
+	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-bb10-i486.cmake -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-bb10-i486.cmake -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-bb10-sdk/i486 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/i486 $(filter -D%,$(MAKEFLAGS)) && \
 	make -j $(NUMCPUS)
 
 build-bb10-arm:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
 	mkdir -p WORK/cmake-bb10-arm && \
 	cd WORK/cmake-bb10-arm && \
-	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-arm -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-bb10-sdk/arm -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/arm $(filter -D%,$(MAKEFLAGS)) && \
+	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-bb10-arm.cmake -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-bb10-arm.cmake -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-bb10-sdk/arm -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/arm $(filter -D%,$(MAKEFLAGS)) && \
 	make -j $(NUMCPUS)
 
 build-bb10: build-bb10-i486 build-bb10-arm
@@ -68,7 +68,7 @@ help-bb10:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
 	mkdir -p WORK/cmake-bb10-i486 && \
 	cd WORK/cmake-bb10-i486 && \
-	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-i486 -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-bb10-sdk/i486 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/i486 $(filter -D%,$(MAKEFLAGS)) -LH
+	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-bb10-i486.cmake -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-bb10-i486.cmake -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-bb10-sdk/i486 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/i486 $(filter -D%,$(MAKEFLAGS)) -LH
 
 generate-bb10-sdk: build-bb10
 	cd OUTPUT && \
@@ -78,21 +78,21 @@ build-ios-i386:
 	mkdir -p OUTPUT/liblinphone-ios-sdk && \
 	mkdir -p WORK/cmake-ios-i386 && \
 	cd WORK/cmake-ios-i386 && \
-	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=ios-i386 -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-ios-sdk/i386 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-ios-sdk/i386 $(filter -D%,$(MAKEFLAGS)) && \
+	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-ios-i386.cmake -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-ios-i386.cmake -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-ios-sdk/i386 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-ios-sdk/i386 $(filter -D%,$(MAKEFLAGS)) && \
 	make -j $(NUMCPUS)
 
 build-ios-armv7:
 	mkdir -p OUTPUT/liblinphone-ios-sdk && \
 	mkdir -p WORK/cmake-ios-armv7 && \
 	cd WORK/cmake-ios-armv7 && \
-	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=ios-armv7 -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-ios-sdk/armv7 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-ios-sdk/armv7 $(filter -D%,$(MAKEFLAGS)) && \
+	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-ios-armv7.cmake -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-ios-armv7.cmake -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-ios-sdk/armv7 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-ios-sdk/armv7 $(filter -D%,$(MAKEFLAGS)) && \
 	make -j $(NUMCPUS)
 
 build-ios-armv7s:
 	mkdir -p OUTPUT/liblinphone-ios-sdk && \
 	mkdir -p WORK/cmake-ios-armv7s && \
 	cd WORK/cmake-ios-armv7s && \
-	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=ios-armv7s -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-ios-sdk/armv7s -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-ios-sdk/armv7s $(filter -D%,$(MAKEFLAGS)) && \
+	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-ios-armv7s.cmake -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-ios-armv7s.cmake -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-ios-sdk/armv7s -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-ios-sdk/armv7s $(filter -D%,$(MAKEFLAGS)) && \
 	make -j $(NUMCPUS)
 
 build-ios: build-ios-i386 build-ios-armv7 build-ios-armv7s
@@ -118,7 +118,7 @@ help-ios:
 	mkdir -p OUTPUT/liblinphone-ios-sdk && \
 	mkdir -p WORK/cmake-ios-i386 && \
 	cd WORK/cmake-ios-i386 && \
-	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=ios-i386 -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-ios-sdk/i386 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-ios-sdk/i386 $(filter -D%,$(MAKEFLAGS)) -LH
+	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-ios-i386.cmake -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-ios-i386.cmake -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-ios-sdk/i386 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-ios-sdk/i386 $(filter -D%,$(MAKEFLAGS)) -LH
 
 generate-ios-sdk: build-ios
 	arm_archives=`find OUTPUT/liblinphone-ios-sdk/armv7 -name *.a` && \
@@ -151,4 +151,3 @@ generate-ios-sdk: build-ios
 veryclean:
 	rm -rf WORK && \
 	rm -rf OUTPUT
-

@@ -23,6 +23,10 @@
 include(configs/config-bb10.cmake)
 
 
+# Global configuration
+set(LINPHONE_BUILDER_CFLAGS "${LINPHONE_BUILDER_CFLAGS} -march=armv7-a -mfpu=neon")
+
+
 # speex
 list(APPEND EP_speex_CMAKE_OPTIONS
 	"-DENABLE_FLOAT_API=0"

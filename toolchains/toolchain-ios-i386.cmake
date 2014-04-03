@@ -23,5 +23,4 @@
 set(SYSTEM_PROCESSOR i386)
 set(COMPILER_PREFIX "i386-apple-darwin")
 set(PLATFORM "Simulator")
-include(toolchains/ios/toolchain-ios.cmake)
-
+include("${CMAKE_CURRENT_LIST_DIR}/ios/toolchain-ios.cmake")

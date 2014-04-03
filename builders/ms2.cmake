@@ -33,7 +33,7 @@ else(WIN32)
 	set(EP_ms2_CONFIG_H_FILE mediastreamer-config.h)
 	set(EP_ms2_CROSS_COMPILATION_OPTIONS
 		"--prefix=${CMAKE_INSTALL_PREFIX}"
-		"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+		"--host=${LINPHONE_BUILDER_HOST}"
 	)
 	set(EP_ms2_CONFIGURE_OPTIONS
 		"--disable-strict"

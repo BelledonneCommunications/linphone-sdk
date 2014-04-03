@@ -45,6 +45,16 @@ set(DEFAULT_VALUE_ENABLE_TUNNEL OFF)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
 
 
+# Global configuration
+get_filename_component(COMPILER_NAME ${CMAKE_C_COMPILER} NAME)
+string(REGEX REPLACE "-gcc$" "" LINPHONE_BUILDER_HOST ${COMPILER_NAME})
+unset(COMPILER_NAME)
+set(LINPHONE_BUILDER_CPPFLAGS "-D_REENTRANT -D__QNXNTO__ -Dasm=__asm")
+set(LINPHONE_BUILDER_CFLAGS "-fPIC -fstack-protector-strong")
+set(LINPHONE_BUILDER_LDFLAGS "-L${QNX_TARGET}/x86/lib -Wl,-z,relro -Wl,-z,now -pie -lbps -lsocket -lslog2")
+set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# Restrict pkg-config to search in the install directory
+
+
 # Include builders
 include(builders/CMakeLists.txt)
 

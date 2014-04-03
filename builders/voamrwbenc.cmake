@@ -25,7 +25,7 @@ set(EP_voamrwbenc_BUILD_METHOD "autotools")
 set(EP_voamrwbenc_USE_AUTOGEN "yes")
 set(EP_voamrwbenc_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+	"--host=${LINPHONE_BUILDER_HOST}"
 )
 set(EP_voamrwbenc_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_voamrwbenc_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/voamrwbenc/autogen.sh" "<SOURCE_DIR>")

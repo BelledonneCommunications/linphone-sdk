@@ -22,4 +22,4 @@
 
 set(SYSTEM_PROCESSOR i486)
 set(COMPILER_PREFIX "i486-pc-nto-qnx")
-include(toolchains/bb10/toolchain-bb10.cmake)
+include("${CMAKE_CURRENT_LIST_DIR}/bb10/toolchain-bb10.cmake")

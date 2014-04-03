@@ -26,7 +26,7 @@ set(EP_bcg729_BUILD_METHOD "autotools")
 set(EP_bcg729_USE_AUTOGEN "yes")
 set(EP_bcg729_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+	"--host=${LINPHONE_BUILDER_HOST}"
 )
 set(EP_bcg729_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_bcg729_DEPENDENCIES EP_ms2)

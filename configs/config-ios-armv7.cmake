@@ -20,7 +20,12 @@
 #
 ############################################################################
 
+set(PLATFORM "OS")
 include(configs/config-ios.cmake)
+
+
+# Global configuration
+set(LINPHONE_BUILDER_CPPFLAGS "${LINPHONE_BUILDER_CPPFLAGS} -mcpu=cortex-a8")
 
 
 # speex

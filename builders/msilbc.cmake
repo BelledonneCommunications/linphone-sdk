@@ -26,7 +26,7 @@ set(EP_msilbc_BUILD_METHOD "autotools")
 set(EP_msilbc_USE_AUTOGEN "yes")
 set(EP_msilbc_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+	"--host=${LINPHONE_BUILDER_HOST}"
 )
 set(EP_msilbc_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_msilbc_DEPENDENCIES EP_ms2 EP_libilbcrfc3951)

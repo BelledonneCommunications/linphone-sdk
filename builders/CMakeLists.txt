@@ -101,6 +101,6 @@ list(APPEND LINPHONE_BUILDER_BUILDERS linphone)
 
 # Include builders
 foreach(BUILDER ${LINPHONE_BUILDER_BUILDERS})
-	message("-- Including builder ${BUILDER}")
+	message(STATUS "Including builder ${BUILDER}")
 	include(${CMAKE_CURRENT_SOURCE_DIR}/builders/${BUILDER}.cmake)
 endforeach(BUILDER)

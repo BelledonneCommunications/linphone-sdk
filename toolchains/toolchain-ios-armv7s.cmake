@@ -23,5 +23,4 @@
 set(SYSTEM_PROCESSOR armv7s)
 set(COMPILER_PREFIX "armv7s-apple-darwin")
 set(PLATFORM "OS")
-include(toolchains/ios/toolchain-ios.cmake)
-
+include("${CMAKE_CURRENT_LIST_DIR}/ios/toolchain-ios.cmake")
