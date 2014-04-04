@@ -229,6 +229,7 @@ static void player_callback(void *ud, MSFilter *f, unsigned int id, void *arg){
 
 static void setup_local_player(AudioStream *stream, int samplerate, int channels){
 	MSConnectionHelper cnx;
+	int master=0;
 	
 	stream->local_player=ms_filter_new(MS_FILE_PLAYER_ID);
 	stream->local_player_resampler=ms_filter_new(MS_RESAMPLE_ID);
@@ -242,6 +243,7 @@ static void setup_local_player(AudioStream *stream, int samplerate, int channels
 	ms_filter_call_method(stream->local_player_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&channels);
 	ms_filter_call_method(stream->local_mixer,MS_FILTER_SET_SAMPLE_RATE,&samplerate);
 	ms_filter_call_method(stream->local_mixer,MS_FILTER_SET_NCHANNELS,&channels);
+	ms_filter_call_method(stream->local_mixer,MS_AUDIO_MIXER_SET_MASTER_CHANNEL,&master);
 	ms_filter_add_notify_callback(stream->local_player,player_callback,stream,TRUE);
 }
 
