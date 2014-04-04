@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 static const int RC_MARGIN = 10000; // bits per sec
+static int debugLevel = 1;
 
 
 VideoStarter::VideoStarter()
@@ -154,6 +155,10 @@ void MSOpenH264Encoder::initialize()
 			if (ret != 0) {
 				ms_error("OpenH264 encoder: Failed to initialize: %d", ret);
 			} else {
+				ret = mEncoder->SetOption(ENCODER_OPTION_TRACE_LEVEL, &debugLevel);
+				if (ret != 0) {
+					ms_error("OpenH264 encoder: Failed setting trace level: %d", ret);
+				}
 				mInitialized = true;
 			}
 		}
