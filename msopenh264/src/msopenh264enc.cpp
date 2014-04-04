@@ -134,7 +134,7 @@ void MSOpenH264Encoder::initialize()
 			params.iPicHeight = mVConf.vsize.height;
 			params.iTargetBitrate = targetBitrate;
 			params.iMaxBitrate = maxBitrate;
-			params.iRCMode = RC_BITRATE_MODE;
+			params.iRCMode = RC_LOW_BW_MODE;
 			params.fMaxFrameRate = mVConf.fps;
 			params.bEnableRc = true;
 			params.bEnableFrameSkip = true;
@@ -318,11 +318,15 @@ void MSOpenH264Encoder::applyBitrate()
 {
 	int targetBitrate, maxBitrate;
 	calcBitrates(targetBitrate, maxBitrate);
-	int ret = mEncoder->SetOption(ENCODER_OPTION_BITRATE, &targetBitrate);
+	SBitrateInfo targetBitrateInfo, maxBitrateInfo;
+	targetBitrateInfo.iLayer = maxBitrateInfo.iLayer = SPATIAL_LAYER_0;
+	targetBitrateInfo.iBitrate = targetBitrate;
+	maxBitrateInfo.iBitrate = maxBitrate;
+	int ret = mEncoder->SetOption(ENCODER_OPTION_BITRATE, &targetBitrateInfo);
 	if (ret != 0) {
 		ms_error("OpenH264 encoder: Failed setting bitrate: %d", ret);
 	}
-	ret = mEncoder->SetOption(ENCODER_OPTION_MAX_BITRATE, &maxBitrate);
+	ret = mEncoder->SetOption(ENCODER_OPTION_MAX_BITRATE, &maxBitrateInfo);
 	if (ret != 0) {
 		ms_error("OpenH264 encoder: Failed setting maximum bitrate: %d", ret);
 	}
