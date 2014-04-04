@@ -1,13 +1,13 @@
 #!/bin/sh
 
-export CC=@CMAKE_C_COMPILER@
-export CXX=@CMAKE_CXX_COMPILER@
-export OBJC=@CMAKE_C_COMPILER@
-export LD=@CMAKE_LINKER@
-export AR=@CMAKE_AR@
-export RANLIB=@CMAKE_RANLIB@
-export STRIP=@CMAKE_STRIP@
-export NM=@CMAKE_NM@
+export CC="@CMAKE_C_COMPILER@"
+export CXX="@CMAKE_CXX_COMPILER@"
+export OBJC="@CMAKE_C_COMPILER@"
+export LD="@CMAKE_LINKER@"
+export AR="@CMAKE_AR@"
+export RANLIB="@CMAKE_RANLIB@"
+export STRIP="@CMAKE_STRIP@"
+export NM="@CMAKE_NM@"
 
 export ASFLAGS="@ep_asflags@ @LINPHONE_BUILDER_TOOLCHAIN_ASFLAGS@ @ep_extra_asflags@"
 export CPPFLAGS="@ep_cppflags@ @LINPHONE_BUILDER_CPPFLAGS@ @ep_extra_cppflags@"
