@@ -427,6 +427,17 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 	client_transaction = belle_sip_provider_create_client_transaction(prov,request);
 	client_transaction->base.is_internal=1;
 	belle_sip_transaction_set_application_data(BELLE_SIP_TRANSACTION(client_transaction),refresher);
+
+	switch (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction))) {
+	case BELLE_SIP_TRANSACTION_INIT:
+	case BELLE_SIP_TRANSACTION_CALLING:
+	case BELLE_SIP_TRANSACTION_TRYING:
+		/*very early state, we can assume nobody will answer, stop retransmiting*/
+		belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(refresher->transaction));
+		break;
+	default: /*we preserve the transaction "as is"*/
+		break;
+	}
 	/*update reference transaction for next refresh*/
 	belle_sip_object_unref(refresher->transaction);
 	refresher->transaction=client_transaction;
@@ -590,6 +601,9 @@ void belle_sip_refresher_stop(belle_sip_refresher_t* refresher) {
 		belle_sip_main_loop_remove_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack), refresher->timer);
 		belle_sip_object_unref(refresher->timer);
 		refresher->timer=NULL;
+	}
+	if (refresher->transaction && belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)))) {
+		belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(refresher->transaction)); /*refresher cancelled, no need to continue to retransmit*/
 	}
 	refresher->state=stopped;
 }
