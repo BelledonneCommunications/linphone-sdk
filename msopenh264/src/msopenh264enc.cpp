@@ -25,6 +25,35 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static const int RC_MARGIN = 10000; // bits per sec
 
+
+VideoStarter::VideoStarter()
+	: mNextTime(0), mFrameCount(0)
+{}
+
+VideoStarter::~VideoStarter()
+{}
+
+void VideoStarter::firstFrame(uint64_t curtime)
+{
+	mNextTime = curtime + 2000;
+}
+
+bool VideoStarter::needIFrame(uint64_t curtime)
+{
+	if (mNextTime == 0) return false;
+	if (curtime >= mNextTime) {
+		mFrameCount++;
+		if (mFrameCount == 1) {
+			mNextTime += 2000;
+		} else {
+			mNextTime = 0;
+		}
+		return true;
+	}
+	return false;
+}
+
+
 #define MS_OPENH264_CONF(required_bitrate, bitrate_limit, resolution, fps) \
 	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, NULL }
 
@@ -66,7 +95,7 @@ static const MSVideoConfiguration multicore_openh264_conf_list[] = {
 
 
 MSOpenH264Encoder::MSOpenH264Encoder(MSFilter *f)
-	: mFilter(f), mPacker(0), mPacketisationMode(0), mVConfList(openh264_conf_list), mInitialized(false)
+	: mFilter(f), mPacker(0), mPacketisationMode(0), mVConfList(openh264_conf_list), mFrameCount(0), mInitialized(false)
 {
 	if (ms_get_cpu_count() > 1) mVConfList = &multicore_openh264_conf_list[0];
 	mVConf = ms_video_find_best_configuration_for_bitrate(mVConfList, 384000);
@@ -86,6 +115,7 @@ MSOpenH264Encoder::~MSOpenH264Encoder()
 
 void MSOpenH264Encoder::initialize()
 {
+	mFrameCount = 0;
 	mPacker = rfc3984_new();
 	rfc3984_set_mode(mPacker, mPacketisationMode);
 	rfc3984_enable_stap_a(mPacker, FALSE);
@@ -141,6 +171,12 @@ void MSOpenH264Encoder::feed()
 	MSQueue nalus;
 	ms_queue_init(&nalus);
 	long long int ts = mFilter->ticker->time * 90LL;
+
+	// Send I frame 2 seconds and 4 seconds after the beginning
+	if (mVideoStarter.needIFrame(mFilter->ticker->time)) {
+		generateKeyframe();
+	}
+
 	while ((im = ms_queue_get(mFilter->inputs[0])) != NULL) {
 		MSPicture pic;
 		if (ms_yuv_buf_init_from_mblk(&pic, im) == 0) {
@@ -157,6 +193,10 @@ void MSOpenH264Encoder::feed()
 			int ret = mEncoder->EncodeFrame(&srcPic, &sFbi);
 			if (ret == cmResultSuccess) {
 				if ((sFbi.eOutputFrameType != videoFrameTypeSkip) && (sFbi.eOutputFrameType != videoFrameTypeInvalid)) {
+					if (mFrameCount == 0) {
+						mVideoStarter.firstFrame(mFilter->ticker->time);
+					}
+					mFrameCount++;
 					fillNalusQueue(sFbi, &nalus);
 					rfc3984_pack(mPacker, &nalus, mFilter->outputs[0], sFbi.uiTimeStamp);
 				}

@@ -24,6 +24,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "wels/codec_api.h"
 
 
+/**
+ * The goal of this small object is to tell when to send I frames at startup: at 2 and 4 seconds
+ */
+class VideoStarter {
+public:
+	VideoStarter();
+	virtual ~VideoStarter();
+	void firstFrame(uint64_t curtime);
+	bool needIFrame(uint64_t curtime);
+
+private:
+	uint64_t mNextTime;
+	int mFrameCount;
+};
+
+
 class MSOpenH264Encoder {
 public:
 	MSOpenH264Encoder(MSFilter *f);
@@ -54,5 +70,7 @@ private:
 	ISVCEncoder *mEncoder;
 	const MSVideoConfiguration *mVConfList;
 	MSVideoConfiguration mVConf;
+	VideoStarter mVideoStarter;
+	uint64_t mFrameCount;
 	bool mInitialized;
 };
