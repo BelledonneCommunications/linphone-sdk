@@ -55,6 +55,8 @@ typedef struct Channel{
 	int16_t *input;	/*the channel contribution, for removal at output*/
 	float gain;
 	int active;
+	int min_fullness;
+	uint64_t last_flow_control;
 } Channel;
 
 static void channel_init(Channel *chan){
@@ -80,6 +82,27 @@ static int channel_process_in(Channel *chan, MSQueue *q, int32_t *sum, int nsamp
 		return nsamples;
 	}else memset(chan->input,0,nsamples*2);
 	return 0;
+}
+
+static int channel_flow_control(Channel *chan, int threshold, uint64_t time, bool_t do_purge){
+	int size;
+	int skip=0;
+	if (chan->last_flow_control==(uint64_t)-1){
+		chan->last_flow_control=time;
+		chan->min_fullness=-1;
+		return skip;
+	}
+	size=ms_bufferizer_get_avail(&chan->bufferizer);
+	if (chan->min_fullness==-1 || chan->min_fullness<size) chan->min_fullness=size;
+	if (time-chan->last_flow_control>=5000){
+		if (chan->min_fullness>=threshold){
+			skip=chan->min_fullness-(threshold/2);
+			if (do_purge) ms_bufferizer_skip_bytes(&chan->bufferizer,skip);
+		}
+		chan->last_flow_control=time;
+		chan->min_fullness=-1;
+	}
+	return skip;
 }
 
 static mblk_t *channel_process_out(Channel *chan, int32_t *sum, int nsamples){
@@ -113,14 +136,13 @@ static void channel_uninit(Channel *chan){
 typedef struct MixerState{
 	int nchannels;
 	int rate;
-	int purgeoffset;
 	int bytespertick;
 	Channel channels[MIXER_MAX_CHANNELS];
 	int32_t *sum;
 	int conf_mode;
+	int skip_threshold;
+	int master_channel;
 } MixerState;
-
-
 
 
 static void mixer_init(MSFilter *f){
@@ -129,6 +151,7 @@ static void mixer_init(MSFilter *f){
 	s->conf_mode=FALSE; /*this is the default, don't change it*/
 	s->nchannels=1;
 	s->rate=44100;
+	s->master_channel=-1;
 	for(i=0;i<MIXER_MAX_CHANNELS;++i){
 		channel_init(&s->channels[i]);
 	}
@@ -147,12 +170,13 @@ static void mixer_uninit(MSFilter *f){
 static void mixer_preprocess(MSFilter *f){
 	MixerState *s=(MixerState *)f->data;
 	int i;
-	s->purgeoffset=(int)(MAX_LATENCY*(float)(2*s->nchannels*s->rate));
+
 	s->bytespertick=(2*s->nchannels*s->rate*f->ticker->interval)/1000;
 	s->sum=(int32_t*)ms_malloc0((s->bytespertick/2)*sizeof(int32_t));
 	for(i=0;i<MIXER_MAX_CHANNELS;++i)
 		channel_prepare(&s->channels[i],s->bytespertick);
 	/*ms_message("bytespertick=%i, purgeoffset=%i",s->bytespertick,s->purgeoffset);*/
+	s->skip_threshold=s->bytespertick*2;
 }
 
 static void mixer_postprocess(MSFilter *f){
@@ -179,6 +203,7 @@ static void mixer_process(MSFilter *f){
 	MixerState *s=(MixerState *)f->data;
 	int i;
 	int nwords=s->bytespertick/2;
+	int skip=0;
 	bool_t got_something=FALSE;
 
 	memset(s->sum,0,nwords*sizeof(int32_t));
@@ -186,13 +211,13 @@ static void mixer_process(MSFilter *f){
 	/* read from all inputs and sum everybody */
 	for(i=0;i<MIXER_MAX_CHANNELS;++i){
 		MSQueue *q=f->inputs[i];
+		
+		int do_purge=i!=s->master_channel;
 		if (q){
 			if (channel_process_in(&s->channels[i],q,s->sum,nwords))
 				got_something=TRUE;
-			/*FIXME: incorporate the following into the channel and use a better flow control algorithm*/
-			if (ms_bufferizer_get_avail(&s->channels[i].bufferizer)>s->purgeoffset){
-				ms_warning("Too much data in channel %i",i);
-				ms_bufferizer_flush(&s->channels[i].bufferizer);
+			if ((skip=channel_flow_control(&s->channels[i],s->skip_threshold,f->ticker->time,do_purge))>0){
+				if (do_purge) ms_warning("Too much data in channel %i, %i ms skipped",i,(skip*1000)/(2*s->nchannels*s->rate));
 			}
 		}
 	}
@@ -201,27 +226,30 @@ static void mixer_process(MSFilter *f){
 #endif
 	/* compute outputs. In conference mode each one has a different output, because its channel own contribution has to be removed*/
 	if (got_something){
-		if (s->conf_mode==0){
-			mblk_t *om=NULL;
-			for(i=0;i<MIXER_MAX_CHANNELS;++i){
-				MSQueue *q=f->outputs[i];
-				if (q){
-					if (om==NULL){
-						om=make_output(s->sum,nwords);
-					}else{
-						om=dupb(om);
+		do{
+			if (s->conf_mode==0){
+				mblk_t *om=NULL;
+				for(i=0;i<MIXER_MAX_CHANNELS;++i){
+					MSQueue *q=f->outputs[i];
+					if (q){
+						if (om==NULL){
+							om=make_output(s->sum,nwords);
+						}else{
+							om=dupb(om);
+						}
+						ms_queue_put(q,om);
 					}
-					ms_queue_put(q,om);
+				}
+			}else{
+				for(i=0;i<MIXER_MAX_CHANNELS;++i){
+					MSQueue *q=f->outputs[i];
+					if (q){
+						ms_queue_put(q,channel_process_out(&s->channels[i],s->sum,nwords));
+					}
 				}
 			}
-		}else{
-			for(i=0;i<MIXER_MAX_CHANNELS;++i){
-				MSQueue *q=f->outputs[i];
-				if (q){
-					ms_queue_put(q,channel_process_out(&s->channels[i],s->sum,nwords));
-				}
-			}
-		}
+			skip-=s->bytespertick;
+		}while(skip>=s->bytespertick);
 	}
 }
 
@@ -277,6 +305,12 @@ static int mixer_set_conference_mode(MSFilter *f, void *data){
 	return 0;
 }
 
+static int mixer_set_master_channel(MSFilter *f, void *data){
+	MixerState *s=(MixerState *)f->data;
+	s->master_channel=*(int*)data;
+	return 0;
+}
+
 static MSFilterMethod methods[]={
 	{	MS_FILTER_SET_NCHANNELS , mixer_set_nchannels },
 	{	MS_FILTER_GET_NCHANNELS , mixer_get_nchannels },
@@ -285,6 +319,7 @@ static MSFilterMethod methods[]={
 	{	MS_AUDIO_MIXER_SET_INPUT_GAIN , mixer_set_input_gain },
 	{	MS_AUDIO_MIXER_SET_ACTIVE , mixer_set_active },
 	{	MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE, mixer_set_conference_mode	},
+	{	MS_AUDIO_MIXER_SET_MASTER_CHANNEL , mixer_set_master_channel },
 	{0,NULL}
 };
 

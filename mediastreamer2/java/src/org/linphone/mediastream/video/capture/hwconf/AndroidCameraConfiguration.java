@@ -55,8 +55,8 @@ public class AndroidCameraConfiguration {
 	private static AndroidCameraConfiguration.AndroidCamera[] camerasCache;
 	
 	private static void initCamerasCache() {
-		// cache already filled ?
-		if (camerasCache != null)
+		// cache already filled and valid ?
+		if (camerasCache != null && camerasCache.length!=0)
 			return;
 		
 		try {

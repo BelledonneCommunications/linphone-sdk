@@ -33,4 +33,7 @@ typedef struct MSAudioMixerCtl{
 #define MS_AUDIO_MIXER_SET_ACTIVE				MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,1,MSAudioMixerCtl)
 #define MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE	MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,2,int)
 
+/**The master channel is the one that is used to synchronize the others. No flow control is done on the master channel*/
+#define MS_AUDIO_MIXER_SET_MASTER_CHANNEL		MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,3,int)
+
 #endif
