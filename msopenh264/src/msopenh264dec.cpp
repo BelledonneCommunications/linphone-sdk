@@ -28,7 +28,7 @@ MSOpenH264Decoder::MSOpenH264Decoder(MSFilter *f)
 {
 	long ret = WelsCreateDecoder(&mDecoder);
 	if (ret != 0) {
-		ms_error("OpenH264 decoder: Failed to create decoder: %d", ret);
+		ms_error("OpenH264 decoder: Failed to create decoder: %l", ret);
 	}
 }
 
@@ -52,7 +52,7 @@ void MSOpenH264Decoder::initialize()
 		params.sVideoProperty.eVideoBsType = VIDEO_BITSTREAM_DEFAULT;
 		long ret = mDecoder->Initialize(&params);
 		if (ret != 0) {
-			ms_error("OpenH264 decoder: Failed to initialize: %d", ret);
+			ms_error("OpenH264 decoder: Failed to initialize: %l", ret);
 		} else {
 			ms_video_init_average_fps(&mFPS, "OpenH264 decoder: FPS=%f");
 			mInitialized = true;

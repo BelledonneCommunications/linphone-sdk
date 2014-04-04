@@ -103,7 +103,7 @@ MSOpenH264Encoder::MSOpenH264Encoder(MSFilter *f)
 
 	long ret = WelsCreateSVCEncoder(&mEncoder);
 	if (ret != 0) {
-		ms_error("OpenH264 encoder: Failed to create encoder: %d", ret);
+		ms_error("OpenH264 encoder: Failed to create encoder: %l", ret);
 	}
 }
 
@@ -310,7 +310,7 @@ void MSOpenH264Encoder::fillNalusQueue(SFrameBSInfo &sFbi, MSQueue *nalus)
 void MSOpenH264Encoder::calcBitrates(int &targetBitrate, int &maxBitrate) const
 {
 	targetBitrate = mVConf.required_bitrate * 0.92;
-	if (targetBitrate > RC_MARGIN) targetBitrate - RC_MARGIN;
+	if (targetBitrate > RC_MARGIN) targetBitrate = targetBitrate - RC_MARGIN;
 	maxBitrate = targetBitrate + RC_MARGIN / 2;
 }
 

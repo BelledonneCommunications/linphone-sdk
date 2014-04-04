@@ -73,6 +73,7 @@ static int msopenh264_dec_get_size(MSFilter *f, void *arg) {
 	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
 	MSVideoSize *size = static_cast<MSVideoSize *>(arg);
 	*size = d->getSize();
+	return 0;
 }
 
 static MSFilterMethod msopenh264_dec_methods[] = {
