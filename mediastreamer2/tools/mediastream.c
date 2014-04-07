@@ -635,7 +635,7 @@ void setup_media_streams(MediastreamDatas* args) {
 
 		if (args->ice_local_candidates_nb || args->ice_remote_candidates_nb) {
 			args->audio->ms.ice_check_list = ice_check_list_new();
-			rtp_session_set_pktinfo(args->audio->ms.session,TRUE);
+			rtp_session_set_pktinfo(args->audio->ms.sessions.rtp_session,TRUE);
 			ice_session_add_check_list(args->ice_session, args->audio->ms.ice_check_list);
 		}
 		if (args->ice_local_candidates_nb) {
@@ -693,7 +693,7 @@ void setup_media_streams(MediastreamDatas* args) {
 			}
             #endif
 
-			args->session=args->audio->ms.session;
+			args->session=args->audio->ms.sessions.rtp_session;
 		}
 		
 		if (args->enable_srtp) {
@@ -741,7 +741,7 @@ void setup_media_streams(MediastreamDatas* args) {
 					args->payload,
 					args->jitter,cam
 					);
-		args->session=args->video->ms.session;
+		args->session=args->video->ms.sessions.rtp_session;
 
 		ms_filter_call_method(args->video->output,MS_VIDEO_DISPLAY_ZOOM, zoom);
 		if (args->enable_srtp) {

@@ -160,7 +160,7 @@ static void enc_init(MSFilter *f) {
 #endif
 	ms_message("VP8 g_threads=%d", s->cfg.g_threads);
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
-	s->cfg.g_error_resilient = 1;
+	s->cfg.g_error_resilient = VPX_ERROR_RESILIENT_DEFAULT|VPX_ERROR_RESILIENT_PARTITIONS;
 	s->cfg.g_lag_in_frames = 0;
 	s->mtu=ms_get_payload_max_size()-1;/*-1 for the vp8 payload header*/
 

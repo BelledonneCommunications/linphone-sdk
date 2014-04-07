@@ -87,8 +87,8 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote){
 	AudioStream *st=ep->st;
 
 	/*stop the audio graph*/
-	ms_ticker_detach(st->ms.ticker,st->soundread);
-	if (!st->ec) ms_ticker_detach(st->ms.ticker,st->soundwrite);
+	ms_ticker_detach(st->ms.sessions.ticker,st->soundread);
+	if (!st->ec) ms_ticker_detach(st->ms.sessions.ticker,st->soundwrite);
 
 	ep->in_cut_point_prev.pin=0;
 	if (is_remote){
@@ -121,9 +121,9 @@ static void redo_audio_stream_graph(MSAudioEndpoint *ep){
 	AudioStream *st=ep->st;
 	ms_filter_link(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter,ep->in_cut_point.pin);
 	ms_filter_link(ep->out_cut_point.filter,ep->out_cut_point.pin,st->ms.encoder,0);
-	ms_ticker_attach(st->ms.ticker,st->soundread);
+	ms_ticker_attach(st->ms.sessions.ticker,st->soundread);
 	if (!st->ec)
-		ms_ticker_attach(st->ms.ticker,st->soundwrite);
+		ms_ticker_attach(st->ms.sessions.ticker,st->soundwrite);
 }
 
 static int find_free_pin(MSFilter *mixer){

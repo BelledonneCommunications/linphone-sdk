@@ -92,10 +92,10 @@ static inline void ms_debug(const char *fmt,...)
 #define ms_fatal	ortp_fatal
 
 #define ms_return_val_if_fail(_expr_,_ret_)\
-	if (!(_expr_)) { ms_error("assert "#_expr_ "failed"); return (_ret_);}
+	if (!(_expr_)) { ms_fatal("assert "#_expr_ "failed"); return (_ret_);}
 
 #define ms_return_if_fail(_expr_) \
-	if (!(_expr_)){ ms_error("assert "#_expr_ "failed"); return ;}
+	if (!(_expr_)){ ms_fatal("assert "#_expr_ "failed"); return ;}
 
 #define ms_thread_t		ortp_thread_t
 #define ms_thread_create 	ortp_thread_create

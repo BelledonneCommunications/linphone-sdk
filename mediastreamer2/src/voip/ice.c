@@ -851,7 +851,7 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 		if (sock > 0) {
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
 			check->sock = sock;
-			check->srcport = rtp_session_get_local_port(cl->rtp_session) + 1;
+			check->srcport = rtp_session_get_local_rtcp_port(cl->rtp_session);
 			check->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION);
 			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
 		}
@@ -1160,9 +1160,9 @@ static int ice_get_socket_from_rtp_session(const RtpSession *rtp_session, const 
 static int ice_get_recv_port_from_rtp_session(const RtpSession *rtp_session, const OrtpEventData *evt_data)
 {
 	if (evt_data->info.socket_type == OrtpRTPSocket) {
-		return rtp_session->rtp.loc_port;
+		return rtp_session_get_local_port(rtp_session);
 	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
-		return rtp_session->rtp.loc_port + 1;
+		return rtp_session_get_local_rtcp_port(rtp_session);
 	} else return -1;
 }
 

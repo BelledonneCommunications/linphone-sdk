@@ -258,8 +258,8 @@ static void adaptive_audio_stream(int codec_payload, int initial_bitrate,int tar
 	ms_filter_call_method(marielle->stream->soundread,MS_FILE_PLAYER_LOOP,&pause_time);
 
 	stream_manager_start(margaux,codec_payload, marielle->local_rtp,-1,NULL,RECORDED_16K_1S_FILE);
-	rtp_session_enable_network_simulation(margaux->stream->ms.session,&params);
-	rtp_session_set_rtcp_report_interval(margaux->stream->ms.session, rtcp_interval);
+	rtp_session_enable_network_simulation(margaux->stream->ms.sessions.rtp_session,&params);
+	rtp_session_set_rtcp_report_interval(margaux->stream->ms.sessions.rtp_session, rtcp_interval);
 
 	wait_for_until(&marielle->stream->ms,&margaux->stream->ms,&marielle->stats.number_of_EndOfFile,10,rtcp_interval*max_recv_rtcp_packet);
 

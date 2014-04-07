@@ -36,7 +36,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mscodecutils.h"
 #include "private.h"
 
-	#include <sys/types.h>
+#include <sys/types.h>
+
 #ifndef WIN32
 	#include <sys/socket.h>
 	#include <netdb.h>
@@ -117,7 +118,7 @@ static void audio_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 		}
 		if (rb){
 			unsigned int ij;
-			float rt=rtp_session_get_round_trip_propagation(stream->ms.session);
+			float rt=rtp_session_get_round_trip_propagation(stream->ms.sessions.rtp_session);
 			float flost;
 			ij=report_block_get_interarrival_jitter(rb);
 			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
@@ -134,7 +135,7 @@ void audio_stream_iterate(AudioStream *stream){
 }
 
 bool_t audio_stream_alive(AudioStream * stream, int timeout){
-	const rtp_stats_t *stats=rtp_session_get_stats(stream->ms.session);
+	const rtp_stats_t *stats=rtp_session_get_stats(stream->ms.sessions.rtp_session);
 	if (stats->recv!=0){
 		if (stats->recv!=stream->last_packet_count){
 			stream->last_packet_count=stats->recv;
@@ -152,18 +153,18 @@ bool_t audio_stream_alive(AudioStream * stream, int timeout){
 
 /*invoked from FEC capable filters*/
 static  mblk_t* audio_stream_payload_picker(MSRtpPayloadPickerContext* context,unsigned int sequence_number) {
-	return rtp_session_pick_with_cseq(((AudioStream*)(context->filter_graph_manager))->ms.session, sequence_number);
+	return rtp_session_pick_with_cseq(((AudioStream*)(context->filter_graph_manager))->ms.sessions.rtp_session, sequence_number);
 }
 
 static void stop_preload_graph(AudioStream *stream){
-	ms_ticker_detach(stream->ms.ticker,stream->dummy);
-	if (stream->soundwrite) {
-		ms_filter_unlink(stream->dummy,0,stream->soundwrite,0);
-	}
+	ms_ticker_detach(stream->ms.sessions.ticker,stream->dummy);
+	
 	if (stream->ms.voidsink) {
 		ms_filter_unlink(stream->dummy,0,stream->ms.voidsink,0);
 		ms_filter_destroy(stream->ms.voidsink);
 		stream->ms.voidsink=NULL;
+	}else if (stream->soundwrite) {
+		ms_filter_unlink(stream->dummy,0,stream->soundwrite,0);
 	}
 	ms_filter_destroy(stream->dummy);
 	stream->dummy=NULL;
@@ -177,8 +178,8 @@ bool_t audio_stream_started(AudioStream *stream){
 void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndCard *captcard){
 	audio_stream_unprepare_sound(stream);
 	stream->dummy=ms_filter_new(MS_RTP_RECV_ID);
-	rtp_session_set_payload_type(stream->ms.session,0);
-	ms_filter_call_method(stream->dummy,MS_RTP_RECV_SET_SESSION,stream->ms.session);
+	rtp_session_set_payload_type(stream->ms.sessions.rtp_session,0);
+	ms_filter_call_method(stream->dummy,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
 
 	if (captcard && playcard){
 #ifdef __ios
@@ -193,12 +194,13 @@ void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndC
 		stream->ms.voidsink=ms_filter_new(MS_VOID_SINK_ID);
 		ms_filter_link(stream->dummy,0,stream->ms.voidsink,0);
 	}
-	if (stream->ms.ticker == NULL) start_ticker(&stream->ms);
-	ms_ticker_attach(stream->ms.ticker,stream->dummy);
+	if (stream->ms.sessions.ticker == NULL) media_stream_start_ticker(&stream->ms);
+	ms_ticker_attach(stream->ms.sessions.ticker,stream->dummy);
+	stream->ms.state=MSStreamPreparing;
 }
 
 void audio_stream_unprepare_sound(AudioStream *stream){
-	if (stream->dummy){
+	if (stream->ms.state==MSStreamPreparing){
 		stop_preload_graph(stream);
 #ifdef __ios
 		if (stream->soundread) ms_filter_destroy(stream->soundread);
@@ -207,6 +209,7 @@ void audio_stream_unprepare_sound(AudioStream *stream){
 		stream->soundwrite=NULL;
 #endif
 	}
+	stream->ms.state=MSStreamInitialized;
 }
 
 static void player_callback(void *ud, MSFilter *f, unsigned int id, void *arg){
@@ -295,9 +298,8 @@ static float audio_stream_get_rtcp_xr_average_lq_quality_rating(unsigned long us
 
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
-	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec)
-{
-	RtpSession *rtps=stream->ms.session;
+	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec){
+	RtpSession *rtps=stream->ms.sessions.rtp_session;
 	PayloadType *pt,*tel_ev;
 	int tmp;
 	MSConnectionHelper h;
@@ -327,7 +329,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,rtps);
 	stream->ms.rtprecv=ms_filter_new(MS_RTP_RECV_ID);
 	ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,rtps);
-	stream->ms.session=rtps;
+	stream->ms.sessions.rtp_session=rtps;
 
 	if((stream->features & AUDIO_STREAM_FEATURE_DTMF) != 0)
 		stream->dtmfgen=ms_filter_new(MS_DTMF_GEN_ID);
@@ -542,7 +544,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		}
 	}
 	if (stream->ms.use_rc){
-		stream->ms.rc=ms_audio_bitrate_controller_new(stream->ms.session,stream->ms.encoder,0);
+		stream->ms.rc=ms_audio_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder,0);
 	}
 	
 	/* Create PLC */
@@ -572,10 +574,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 
 	/* create ticker */
-	if (stream->ms.ticker==NULL) start_ticker(&stream->ms);
-	else{
+	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
+	if (stream->ms.state==MSStreamPreparing){
 		/*we were using the dummy preload graph, destroy it*/
-		if (stream->dummy) stop_preload_graph(stream);
+		audio_stream_unprepare_sound(stream);
 	}
 	
 	/* and then connect all */
@@ -629,13 +631,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	
 	/*to make sure all preprocess are done before befre processing audio*/
-	ms_ticker_attach_multiple(stream->ms.ticker
+	ms_ticker_attach_multiple(stream->ms.sessions.ticker
 				,stream->soundread
 				,stream->ms.rtprecv
 				,NULL);
 
 	stream->ms.start_time=ms_time(NULL);
 	stream->ms.is_beginning=TRUE;
+	stream->ms.state=MSStreamStarted;
 
 	return 0;
 }
@@ -763,7 +766,7 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 	st->features = features;
 }
 
-AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
+AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
 	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSOslec");
 	
@@ -771,29 +774,38 @@ AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
 	ms_filter_reset_statistics();
 
 	stream->ms.type = AudioStreamType;
-	stream->ms.session=create_duplex_rtpsession(loc_rtp_port,loc_rtcp_port,ipv6);
+	stream->ms.sessions=*sessions;
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
-	stream->ms.qi=ms_quality_indicator_new(stream->ms.session);
+	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	stream->ms.process_rtcp=audio_stream_process_rtcp;
-	if (ec_desc!=NULL)
+	if (ec_desc!=NULL){
 		stream->ec=ms_filter_new_from_desc(ec_desc);
-	else
+	}else{
 #if defined(BUILD_WEBRTC_AECM)
 		stream->ec=ms_filter_new(MS_WEBRTC_AEC_ID);
 #else
 		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
 #endif
-
+	}
 	stream->ms.evq=ortp_ev_queue_new();
-	rtp_session_register_event_queue(stream->ms.session,stream->ms.evq);
+	rtp_session_register_event_queue(stream->ms.sessions.rtp_session,stream->ms.evq);
 	stream->play_dtmfs=TRUE;
 	stream->use_gc=FALSE;
 	stream->use_agc=FALSE;
 	stream->use_ng=FALSE;
 	stream->features=AUDIO_STREAM_FEATURE_ALL;
 	return stream;
+}
+
+AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
+	AudioStream *obj;
+	MSMediaStreamSessions sessions={0};
+	sessions.rtp_session=create_duplex_rtpsession(loc_rtp_port,loc_rtcp_port,ipv6);
+	obj=audio_stream_new_with_sessions(&sessions);
+	obj->ms.owns_sessions=TRUE;
+	return obj;
 }
 
 void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno){
@@ -884,21 +896,21 @@ static void dismantle_local_player(AudioStream *stream){
 }
 
 void audio_stream_stop(AudioStream * stream){
-	if (stream->ms.ticker){
+	if (stream->ms.sessions.ticker){
 		MSConnectionHelper h;
 		
-		if (stream->dummy){
-			stop_preload_graph(stream);
-		}else if (stream->ms.start_time!=0){
+		if (stream->ms.state==MSStreamPreparing){
+			audio_stream_unprepare_sound(stream);
+		}else if (stream->ms.state==MSStreamStarted){
 		
-			ms_ticker_detach(stream->ms.ticker,stream->soundread);
-			ms_ticker_detach(stream->ms.ticker,stream->ms.rtprecv);
+			ms_ticker_detach(stream->ms.sessions.ticker,stream->soundread);
+			ms_ticker_detach(stream->ms.sessions.ticker,stream->ms.rtprecv);
 
 			if (stream->ms.ice_check_list != NULL) {
 				ice_check_list_print_route(stream->ms.ice_check_list, "Audio session's route");
 				stream->ms.ice_check_list = NULL;
 			}
-			rtp_stats_display(rtp_session_get_stats(stream->ms.session),
+			rtp_stats_display(rtp_session_get_stats(stream->ms.sessions.rtp_session),
 				"             AUDIO SESSION'S RTP STATISTICS                ");
 
 			/*dismantle the outgoing graph*/
@@ -989,5 +1001,6 @@ float audio_stream_get_average_lq_quality_rating(AudioStream *stream) {
 }
 
 void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){
-	stream->ms.zrtp_context=ortp_zrtp_context_new(stream->ms.session, params);
+	if (stream->ms.sessions.zrtp_context==NULL)
+		stream->ms.sessions.zrtp_context=ortp_zrtp_context_new(stream->ms.sessions.rtp_session, params);
 }

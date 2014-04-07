@@ -82,11 +82,30 @@ typedef struct _MediaStream MediaStream;
  * */
 typedef  void (*media_stream_process_rtcp)(MediaStream *stream, mblk_t *m);
 
+struct _MSMediaStreamSessions{
+	RtpSession *rtp_session;
+	srtp_t srtp_session;
+	OrtpZrtpContext *zrtp_context;
+	MSTicker *ticker;
+};
 
+typedef struct _MSMediaStreamSessions MSMediaStreamSessions;
+
+MS2_PUBLIC void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions);
+
+typedef enum _MSStreamState{
+	MSStreamInitialized,
+	MSStreamPreparing,
+	MSStreamStarted
+}MSStreamState;
+
+/**
+ * Base struct for both AudioStream and VideoStream structure.
+**/
 struct _MediaStream {
 	StreamType type;
-	MSTicker *ticker;
-	RtpSession *session;
+	MSStreamState state;
+	MSMediaStreamSessions sessions;
 	OrtpEvQueue *evq;
 	MSFilter *rtprecv;
 	MSFilter *rtpsend;
@@ -96,13 +115,12 @@ struct _MediaStream {
 	MSBitrateController *rc;
 	MSQualityIndicator *qi;
 	IceCheckList *ice_check_list;
-	OrtpZrtpContext *zrtp_context;
-	srtp_t srtp_session;
 	time_t start_time;
 	time_t last_iterate_time;
 	bool_t use_rc;
 	bool_t is_beginning;
-	bool_t pad[2];
+	bool_t owns_sessions;
+	bool_t pad[1];
 	/**
 	 * defines encoder target network bit rate, uses #media_stream_set_network_bitrate() setter.
 	 * */
@@ -173,6 +191,12 @@ MS2_PUBLIC float media_stream_get_up_bw(const MediaStream *stream);
  * @return bitrate in bit per seconds
  * */
 MS2_PUBLIC float media_stream_get_down_bw(const MediaStream *stream);
+
+/**
+ * Returns the sessions that were used in the media stream (RTP, SRTP, ZRTP...) so that they can be re-used.
+ * As a result of calling this function, the media stream no longer owns the sessions and thus will not free them.
+**/
+MS2_PUBLIC void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *sessions);
 
 
 void media_stream_iterate(MediaStream * stream);
@@ -280,6 +304,12 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
  * @returns a new AudioStream.
 **/
 MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
+
+/**Creates an AudioStream object from an initialized RtpSession.
+ * @param rtp_session the RtpSession
+ * @returns a new AudioStream
+**/
+MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
 
 #define AUDIO_STREAM_FEATURE_PLC 		(1 << 0)
 #define AUDIO_STREAM_FEATURE_EC 		(1 << 1)
@@ -485,7 +515,6 @@ struct _VideoStream
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	bool_t use_preview_window;
 	bool_t display_filter_auto_rotate_enabled;
-	bool_t prepare_ongoing;
 	bool_t source_performs_encoding;
 	bool_t output_performs_decoding;
 };
@@ -494,6 +523,7 @@ typedef struct _VideoStream VideoStream;
 
 
 MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
+MS2_PUBLIC VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
 MS2_PUBLIC void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir);
 static inline void video_stream_enable_adaptive_bitrate_control(VideoStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_bitrate_control(&stream->ms, enabled);
