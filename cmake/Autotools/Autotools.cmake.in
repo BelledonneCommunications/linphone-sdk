@@ -1,0 +1,51 @@
+############################################################################
+# Autotools.cmake.in
+# Copyright (C) 2014  Belledonne Communications, Grenoble France
+#
+############################################################################
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+############################################################################
+
+set(AUTOTOOLS_C_COMPILER "@CMAKE_C_COMPILER@" CACHE PATH "Initial cache" FORCE)
+set(AUTOTOOLS_CXX_COMPILER "@CMAKE_CXX_COMPILER@" CACHE PATH "Initial cache" FORCE)
+set(AUTOTOOLS_OBJC_COMPILER "@CMAKE_C_COMPILER@" CACHE PATH "Initial cache" FORCE)
+set(AUTOTOOLS_LINKER "@CMAKE_LINKER@" CACHE PATH "Initial cache" FORCE)
+set(AUTOTOOLS_AR "@CMAKE_AR@" CACHE PATH "Initial cache" FORCE)
+set(AUTOTOOLS_RANLIB "@CMAKE_RANLIB@" CACHE PATH "Initial cache" FORCE)
+set(AUTOTOOLS_STRIP "@CMAKE_STRIP@" CACHE PATH "Initial cache" FORCE)
+set(AUTOTOOLS_NM "@CMAKE_NM@" CACHE PATH "Initial cache" FORCE)
+
+set(AUTOTOOLS_C_FLAGS_DEBUG "@CMAKE_C_FLAGS_DEBUG@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_C_FLAGS_MINSIZEREL "@CMAKE_C_FLAGS_MINSIZEREL@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_C_FLAGS_RELEASE "@CMAKE_C_FLAGS_RELEASE@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_C_FLAGS_RELWITHDEBINFO "@CMAKE_C_FLAGS_RELWITHDEBINFO@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_C_FLAGS "@CMAKE_C_FLAGS@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_CXX_FLAGS_DEBUG "@CMAKE_CXX_FLAGS_DEBUG@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_CXX_FLAGS_MINSIZEREL "@CMAKE_CXX_FLAGS_MINSIZEREL@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_CXX_FLAGS_RELEASE "@CMAKE_CXX_FLAGS_RELEASE@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_CXX_FLAGS_RELWITHDEBINFO "@CMAKE_CXX_FLAGS_RELWITHDEBINFO@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_CXX_FLAGS "@CMAKE_CXX_FLAGS@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_OBJC_FLAGS_DEBUG "@CMAKE_C_FLAGS_DEBUG@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_OBJC_FLAGS_MINSIZEREL "@CMAKE_C_FLAGS_MINSIZEREL@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_OBJC_FLAGS_RELEASE "@CMAKE_C_FLAGS_RELEASE@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_OBJC_FLAGS_RELWITHDEBINFO "@CMAKE_C_FLAGS_RELWITHDEBINFO@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_OBJC_FLAGS "@CMAKE_C_FLAGS@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_LINKER_FLAGS_DEBUG "@CMAKE_EXE_LINKER_FLAGS_DEBUG@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_LINKER_FLAGS_MINSIZEREL "@CMAKE_EXE_LINKER_FLAGS_MINSIZEREL@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_LINKER_FLAGS_RELEASE "@CMAKE_EXE_LINKER_FLAGS_RELEASE@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_LINKER_FLAGS_RELWITHDEBINFO "@CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO@" CACHE STRING "Initial cache" FORCE)
+set(AUTOTOOLS_LINKER_FLAGS "@CMAKE_EXE_LINKER_FLAGS@" CACHE STRING "Initial cache" FORCE)
