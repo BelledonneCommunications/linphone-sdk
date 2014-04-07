@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_msopenh264_GIT_REPOSITORY "git://git.linphone.org/msopenh264.git")
-set(EP_msopenh264_GIT_TAG "c060dcd41cbc11d066e2bf7e0d8b24878014896e") # Branch 'master'
+set(EP_msopenh264_GIT_TAG "d7c97675f6dd727c79f75bd807f69a8ad8946146") # Branch 'master'
 set(EP_msopenh264_BUILD_METHOD "autotools")
 set(EP_msopenh264_USE_AUTOGEN "yes")
 set(EP_msopenh264_CROSS_COMPILATION_OPTIONS
