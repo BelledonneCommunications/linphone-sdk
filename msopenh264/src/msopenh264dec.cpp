@@ -18,12 +18,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
-#include "mediastreamer2/msticker.h"
 #include "msopenh264dec.h"
+#include "mediastreamer2/msticker.h"
+#include "ortp/b64.h"
 
 
 MSOpenH264Decoder::MSOpenH264Decoder(MSFilter *f)
-	: mFilter(f), mDecoder(0), mInitialized(false), mYUVMsg(0), mLastErrorReportTime(0),
+	: mFilter(f), mDecoder(0), mInitialized(false), mSPS(0), mPPS(0), mYUVMsg(0), mLastErrorReportTime(0), mPacketCount(0),
 	mWidth(MS_VIDEO_SIZE_UNKNOWN_W), mHeight(MS_VIDEO_SIZE_UNKNOWN_H), mFirstImageDecoded(false)
 {
 	long ret = WelsCreateDecoder(&mDecoder);
@@ -41,6 +42,7 @@ MSOpenH264Decoder::~MSOpenH264Decoder()
 
 void MSOpenH264Decoder::initialize()
 {
+	mPacketCount = 0;
 	mFirstImageDecoded = false;
 	rfc3984_init(&mUnpacker);
 	if (mDecoder != 0) {
@@ -72,6 +74,15 @@ void MSOpenH264Decoder::feed()
 
 	mblk_t *im;
 	while ((im = ms_queue_get(mFilter->inputs[0])) != NULL) {
+		if ((mPacketCount == 0) && (mSPS != 0) && (mPPS != 0)) {
+			// Push the sps/pps given in sprop-parameter-sets if any
+			mblk_set_timestamp_info(mSPS, mblk_get_timestamp_info(im));
+			mblk_set_timestamp_info(mPPS, mblk_get_timestamp_info(im));
+			rfc3984_unpack(&mUnpacker, mSPS, &nalus);
+			rfc3984_unpack(&mUnpacker, mPPS, &nalus);
+			mSPS = 0;
+			mPPS = 0;
+		}
 		rfc3984_unpack(&mUnpacker, im, &nalus);
 		mblk_t *nal;
 		while ((nal = ms_queue_get(&nalus)) != NULL) {
@@ -132,11 +143,18 @@ void MSOpenH264Decoder::feed()
 			freemsg(nal);
 			freemsg(fullNal);
 		}
+		mPacketCount++;
 	}
 }
 
 void MSOpenH264Decoder::uninitialize()
 {
+	if (mSPS != 0) {
+		freemsg(mSPS);
+	}
+	if (mPPS != 0) {
+		freemsg(mPPS);
+	}
 	if (mYUVMsg != 0) {
 		freemsg(mYUVMsg);
 	}
@@ -144,6 +162,21 @@ void MSOpenH264Decoder::uninitialize()
 		mDecoder->Uninitialize();
 	}
 	mInitialized = false;
+}
+
+void MSOpenH264Decoder::provideSpropParameterSets(char *value, int valueSize)
+{
+	char *b64_sps = value;
+	char *b64_pps = strchr(value, ',');
+	if (b64_pps) {
+		*b64_pps = '\0';
+		++b64_pps;
+		ms_message("OpenH264 decoder: Got sprop-parameter-sets sps=%s, pps=%s", b64_sps, b64_pps);
+		mSPS = allocb(valueSize, 0);
+		mSPS->b_wptr += b64::b64_decode(b64_sps, strlen(b64_sps), mSPS->b_wptr, valueSize);
+		mPPS = allocb(valueSize, 0);
+		mPPS->b_wptr += b64::b64_decode(b64_pps, strlen(b64_pps), mPPS->b_wptr, valueSize);
+	}
 }
 
 void MSOpenH264Decoder::resetFirstImageDecoded()

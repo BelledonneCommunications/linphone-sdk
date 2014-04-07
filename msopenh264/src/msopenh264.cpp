@@ -63,6 +63,16 @@ static void msopenh264_dec_uninit(MSFilter *f) {
  * Methods to configure the decoder                                           *
  *****************************************************************************/
 
+static int msopenh264_dec_add_fmtp(MSFilter *f, void *arg) {
+	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
+	const char *fmtp = static_cast<const char *>(arg);
+	char value[256];
+	if (fmtp_get_value(fmtp, "sprop-parameter-sets", value, sizeof(value))) {
+		d->provideSpropParameterSets(value, sizeof(value));
+	}
+	return 0;
+}
+
 static int msopenh264_dec_reset_first_image(MSFilter *f, void *arg) {
 	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
 	d->resetFirstImageDecoded();
@@ -77,6 +87,7 @@ static int msopenh264_dec_get_size(MSFilter *f, void *arg) {
 }
 
 static MSFilterMethod msopenh264_dec_methods[] = {
+	{ MS_FILTER_ADD_FMTP,                              msopenh264_dec_add_fmtp          },
 	{ MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, msopenh264_dec_reset_first_image },
 	{ MS_FILTER_GET_VIDEO_SIZE,                        msopenh264_dec_get_size          },
 	{ 0,                                               NULL                             }

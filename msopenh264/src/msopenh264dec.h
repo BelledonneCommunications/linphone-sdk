@@ -32,6 +32,7 @@ public:
 	void initialize();
 	void feed();
 	void uninitialize();
+	void provideSpropParameterSets(char *value, int valueSize);
 	void resetFirstImageDecoded();
 	MSVideoSize getSize() const;
 
@@ -44,8 +45,11 @@ private:
 	Rfc3984Context mUnpacker;
 	MSPicture mOutbuf;
 	MSAverageFPS mFPS;
+	mblk_t *mSPS;
+	mblk_t *mPPS;
 	mblk_t *mYUVMsg;
 	uint64_t mLastErrorReportTime;
+	uint32_t mPacketCount;
 	int mWidth;
 	int mHeight;
 	bool mInitialized;
