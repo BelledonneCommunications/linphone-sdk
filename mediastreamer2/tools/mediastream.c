@@ -55,6 +55,9 @@ extern void ms_set_video_stream(VideoStream* video);
 #ifdef HAVE_X264
 extern void libmsx264_init();
 #endif
+#ifdef HAVE_OPENH264
+extern void libmsopenh264_init();
+#endif
 #ifdef HAVE_SILK
 extern void libmssilk_init();
 #endif
@@ -534,6 +537,9 @@ void setup_media_streams(MediastreamDatas* args) {
 #if defined (HAVE_X264) && defined (VIDEO_ENABLED)
 	libmsx264_init(); /*no plugin on IOS/Android */
 #endif
+#if defined (HAVE_OPENH264) && defined (VIDEO_ENABLED)
+	libmsopenh264_init(); /*no plugin on IOS/Android */
+#endif
 #if defined (HAVE_SILK)
 	libmssilk_init(); /*no plugin on IOS/Android */
 #endif
@@ -550,9 +556,6 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,114,args->custom_pt);
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
 #ifdef VIDEO_ENABLED
-#if TARGET_OS_IPHONE && defined (HAVE_X264)
-	libmsx264_init(); /*no plugin on IOS*/
-#endif
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
 	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
 	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);

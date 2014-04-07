@@ -274,6 +274,9 @@ ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 		ifeq ($(BUILD_X264),1)
 			LOCAL_STATIC_LIBRARIES += libmsx264 libx264
 		endif
+		ifeq ($(BUILD_OPENH264),1)
+			LOCAL_STATIC_LIBRARIES += libmsopenh264 libwels
+		endif
 		LOCAL_SHARED_LIBRARIES += \
 			libavcodec-linphone \
 			libswscale-linphone \
