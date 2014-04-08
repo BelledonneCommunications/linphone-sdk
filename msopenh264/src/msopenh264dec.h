@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/rfc3984.h"
 #include "wels/codec_api.h"
+#include "msopenh264.h"
 
 
 class MSOpenH264Decoder {
@@ -37,7 +38,12 @@ public:
 	MSVideoSize getSize() const;
 
 private:
-	mblk_t * addNalMarker(mblk_t *nal);
+	int nalusToFrame(MSQueue *nalus);
+	void enlargeBitstream(int newSize);
+	int32_t getFrameNum();
+	int32_t getIDRPicId();
+	int32_t getTemporalId();
+	int32_t getVCLNal();
 
 	MSFilter *mFilter;
 	SDecodingParam mDecoderParams;
@@ -48,8 +54,9 @@ private:
 	mblk_t *mSPS;
 	mblk_t *mPPS;
 	mblk_t *mYUVMsg;
+	uint8_t *mBitstream;
+	int mBitstreamSize;
 	uint64_t mLastErrorReportTime;
-	uint32_t mPacketCount;
 	int mWidth;
 	int mHeight;
 	bool mInitialized;

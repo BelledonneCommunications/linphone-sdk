@@ -24,7 +24,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 static const int RC_MARGIN = 10000; // bits per sec
+#if MSOPENH264_DEBUG
+static int debugLevel = 4;
+#else
 static int debugLevel = 1;
+#endif
 
 
 VideoStarter::VideoStarter()

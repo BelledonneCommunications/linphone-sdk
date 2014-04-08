@@ -24,17 +24,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 MSOpenH264Decoder::MSOpenH264Decoder(MSFilter *f)
-	: mFilter(f), mDecoder(0), mInitialized(false), mSPS(0), mPPS(0), mYUVMsg(0), mLastErrorReportTime(0), mPacketCount(0),
+	: mFilter(f), mDecoder(0), mInitialized(false), mSPS(0), mPPS(0), mYUVMsg(0),
+	mBitstream(0), mBitstreamSize(65536), mLastErrorReportTime(0),
 	mWidth(MS_VIDEO_SIZE_UNKNOWN_W), mHeight(MS_VIDEO_SIZE_UNKNOWN_H), mFirstImageDecoded(false)
 {
 	long ret = WelsCreateDecoder(&mDecoder);
 	if (ret != 0) {
 		ms_error("OpenH264 decoder: Failed to create decoder: %l", ret);
+	} else {
+		mBitstream = static_cast<uint8_t *>(ms_malloc0(mBitstreamSize));
 	}
 }
 
 MSOpenH264Decoder::~MSOpenH264Decoder()
 {
+	if (mBitstream != 0) {
+		ms_free(mBitstream);
+	}
 	if (mDecoder != 0) {
 		WelsDestroyDecoder(mDecoder);
 	}
@@ -42,7 +48,6 @@ MSOpenH264Decoder::~MSOpenH264Decoder()
 
 void MSOpenH264Decoder::initialize()
 {
-	mPacketCount = 0;
 	mFirstImageDecoded = false;
 	rfc3984_init(&mUnpacker);
 	if (mDecoder != 0) {
@@ -74,7 +79,7 @@ void MSOpenH264Decoder::feed()
 
 	mblk_t *im;
 	while ((im = ms_queue_get(mFilter->inputs[0])) != NULL) {
-		if ((mPacketCount == 0) && (mSPS != 0) && (mPPS != 0)) {
+		if ((getIDRPicId() == 0) && (mSPS != 0) && (mPPS != 0)) {
 			// Push the sps/pps given in sprop-parameter-sets if any
 			mblk_set_timestamp_info(mSPS, mblk_get_timestamp_info(im));
 			mblk_set_timestamp_info(mPPS, mblk_get_timestamp_info(im));
@@ -84,13 +89,11 @@ void MSOpenH264Decoder::feed()
 			mPPS = 0;
 		}
 		rfc3984_unpack(&mUnpacker, im, &nalus);
-		mblk_t *nal;
-		while ((nal = ms_queue_get(&nalus)) != NULL) {
-			mblk_t *fullNal = addNalMarker(nal);
+		if (!ms_queue_empty(&nalus)) {
 			void * pData[3] = { 0 };
 			SBufferInfo sDstBufInfo = { 0 };
-			int len = fullNal->b_wptr - fullNal->b_rptr;
-			DECODING_STATE state = mDecoder->DecodeFrame2(fullNal->b_rptr, len, pData, &sDstBufInfo);
+			int len = nalusToFrame(&nalus);
+			DECODING_STATE state = mDecoder->DecodeFrame2(mBitstream, len, pData, &sDstBufInfo);
 			if (state != dsErrorFree) {
 				ms_error("OpenH264 decoder: DecodeFrame2 failed: 0x%x", state);
 				if (((mFilter->ticker->time - mLastErrorReportTime) > 5000) || (mLastErrorReportTime == 0)) {
@@ -114,6 +117,7 @@ void MSOpenH264Decoder::feed()
 					mHeight = sDstBufInfo.UsrData.sSystemBuffer.iHeight;
 					mYUVMsg = ms_yuv_buf_alloc(&mOutbuf, mWidth, mHeight);
 				}
+				sDstBufInfo.UsrData.sSystemBuffer.iFormat;
 
 				// Scale/copy frame to destination mblk_t
 				for (int i = 0; i < 3; i++) {
@@ -139,11 +143,12 @@ void MSOpenH264Decoder::feed()
 					mFirstImageDecoded = true;
 					ms_filter_notify_no_arg(mFilter, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 				}
+
+#if MSOPENH264_DEBUG
+				ms_message("OpenH264 decoder: IDR pic id: %d, Frame num: %d, Temporal id: %d, VCL NAL: %d", getIDRPicId(), getFrameNum(), getTemporalId(), getVCLNal());
+#endif
 			}
-			freemsg(nal);
-			freemsg(fullNal);
 		}
-		mPacketCount++;
 	}
 }
 
@@ -194,37 +199,114 @@ MSVideoSize MSOpenH264Decoder::getSize() const
 	return size;
 }
 
-mblk_t * MSOpenH264Decoder::addNalMarker(mblk_t* im)
+int MSOpenH264Decoder::nalusToFrame(MSQueue *nalus)
 {
-	uint8_t *src = im->b_rptr;
-	if ((src[0] == 0) && (src[1] == 0) && (src[2] == 0) && (src[3] == 1)) {
-		// Workaround for stupid RTP H264 sender that includes nal markers
-		return copymsg(im);
-	} else {
-		int len = im->b_wptr - im->b_rptr;
-		uint8_t naluType = (*src) & ((1 << 5) - 1);
+	mblk_t *im;
+	uint8_t *dst = mBitstream;
+	uint8_t *end = mBitstream + mBitstreamSize;
+	bool startPicture = true;
+	uint8_t naluType;
 
-		// Prepend nal marker
-		mblk_t *om = allocb(len * 2, 0);
-		uint8_t *dst = om->b_wptr;
-		*dst++ = 0;
-		*dst++ = 0;
-		*dst++ = 1;
-		*dst++ = *src++;
-		while (src < (im->b_wptr - 3)) {
-			if ((src[0] == 0) && (src[1] == 0) && (src[2] < 3)) {
+	while ((im = ms_queue_get(nalus)) != NULL) {
+		uint8_t *src = im->b_rptr;
+		int nalLen = im->b_wptr - src;
+		if ((dst + nalLen + 128) > end) {
+			int pos = dst - mBitstream;
+			enlargeBitstream(mBitstreamSize + nalLen + 128);
+			dst = mBitstream + pos;
+			end = mBitstream + mBitstreamSize;
+		}
+		if ((src[0] == 0) && (src[1] == 0) && (src[2] == 0) && (src[3] == 1)) {
+			// Workaround for stupid RTP H264 sender that includes nal markers
+#if MSOPENH264_DEBUG
+			ms_warning("OpenH264 decoder: stupid RTP H264 encoder");
+#endif
+			int size = im->b_wptr - src;
+			memcpy(dst, src, size);
+			dst += size;
+		} else {
+			uint8_t naluType = (*src) & ((1 << 5) - 1);
+#if MSOPENH264_DEBUG
+			if ((naluType != 1) && (naluType != 7) && (naluType != 8)) {
+				ms_message("OpenH264 decoder: naluType=%d", naluType);
+			}
+			if (naluType == 7) {
+				ms_message("OpenH264 decoder: Got SPS");
+			}
+			if (naluType == 8) {
+				ms_message("OpenH264 decoder: Got PPS");
+			}
+#endif
+			if (startPicture || (naluType == 7) /*SPS*/ || (naluType == 8) /*PPS*/ ) {
 				*dst++ = 0;
-				*dst++ = 0;
-				*dst++ = 3;
-				src += 2;
+				startPicture = false;
+			}
+
+			// Prepend nal marker
+			*dst++ = 0;
+			*dst++ = 0;
+			*dst++ = 1;
+			*dst++ = *src++;
+			while (src < (im->b_wptr - 3)) {
+				if ((src[0] == 0) && (src[1] == 0) && (src[2] < 3)) {
+					*dst++ = 0;
+					*dst++ = 0;
+					*dst++ = 3;
+					src += 2;
+				}
+				*dst++ = *src++;
 			}
 			*dst++ = *src++;
+			*dst++ = *src++;
+			*dst++ = *src++;
 		}
-		*dst++ = *src++;
-		*dst++ = *src++;
-		*dst++ = *src++;
-		om->b_wptr = dst;
-
-		return om;
+		freemsg(im);
 	}
+	return dst - mBitstream;
+}
+
+void MSOpenH264Decoder::enlargeBitstream(int newSize)
+{
+	mBitstreamSize = newSize;
+	mBitstream = static_cast<uint8_t *>(ms_realloc(mBitstream, mBitstreamSize));
+}
+
+int32_t MSOpenH264Decoder::getFrameNum()
+{
+	int32_t frameNum = -1;
+	int ret = mDecoder->GetOption(DECODER_OPTION_FRAME_NUM, &frameNum);
+	if (ret != 0) {
+		ms_error("OpenH264 decoder: Failed getting frame number: %d", ret);
+	}
+	return frameNum;
+}
+
+int32_t MSOpenH264Decoder::getIDRPicId()
+{
+	int32_t IDRPicId = -1;
+	int ret = mDecoder->GetOption(DECODER_OPTION_IDR_PIC_ID, &IDRPicId);
+	if (ret != 0) {
+		ms_error("OpenH264 decoder: Failed getting IDR pic id: %d", ret);
+	}
+	return IDRPicId;
+}
+
+int32_t MSOpenH264Decoder::getTemporalId()
+{
+	int32_t temporalId = -1;
+	int ret = mDecoder->GetOption(DECODER_OPTION_TEMPORAL_ID, &temporalId);
+	if (ret != 0) {
+		ms_error("OpenH264 decoder: Failed getting temporal id: %d", ret);
+	}
+	return temporalId;
+}
+
+int32_t MSOpenH264Decoder::getVCLNal()
+{
+	int32_t vclNal = -1;
+	int ret = mDecoder->GetOption(DECODER_OPTION_VCL_NAL, &vclNal);
+	if (ret != 0) {
+		ms_error("OpenH264 decoder: Failed getting VCL NAL: %d", ret);
+	}
+	return vclNal;
 }
