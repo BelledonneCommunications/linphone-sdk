@@ -27,7 +27,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ortp/ortp_srtp.h"
 #include "ortp/b64.h"
 
-#include "srtp/srtp_priv.h"
+#if defined(ANDROID) || defined(WINAPI_FAMILY_PHONE_APP)
+// Android and Windows phone don't use make install
+#include <srtp_priv.h>
+#else
+#include <srtp/srtp_priv.h>
+#endif
 
 #include <ctype.h>
 
