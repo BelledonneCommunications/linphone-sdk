@@ -40,14 +40,17 @@ if(CMAKE_TOOLCHAIN_FILE)
 endif()
 
 
+# Get build tools and flags for autotools projects
+linphone_builder_get_autotools_configuration()
+
+
 # Include project configuration according to the toolchain
 get_filename_component(LINPHONE_BUILDER_CONFIG_FILE ${LINPHONE_BUILDER_CONFIG_FILE} ABSOLUTE)
 message(STATUS "Using configuration file '${LINPHONE_BUILDER_CONFIG_FILE}'")
 include(${LINPHONE_BUILDER_CONFIG_FILE})
 
 
-# Get build tools and flags for autotools projects, then include external projects
-linphone_builder_get_autotools_configuration()
+# Apply build flags and add external projects
 linphone_builder_apply_flags()
 linphone_builder_add_external_projects()
 
