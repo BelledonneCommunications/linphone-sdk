@@ -25,7 +25,12 @@ include(cmake/LinphoneBuilderOptions.cmake)
 
 
 # List of the projects to build. The order is important and must follow the dependencies.
-set(LINPHONE_BUILDER_BUILDERS )
+set(LINPHONE_BUILDER_BUILDERS
+	antlr3c
+	polarssl
+	xml2
+)
+
 if(${ENABLE_UNIT_TESTS})
 	list(APPEND LINPHONE_BUILDER_BUILDERS cunit)
 endif(${ENABLE_UNIT_TESTS})
@@ -33,7 +38,7 @@ if(${ENABLE_SRTP})
 	list(APPEND LINPHONE_BUILDER_BUILDERS srtp)
 endif(${ENABLE_SRTP})
 if(${ENABLE_ZRTP})
-	list(APPEND LINPHONE_BUILDER_BUILDERS zrtp)
+	list(APPEND LINPHONE_BUILDER_BUILDERS bzrtp)
 endif(${ENABLE_ZRTP})
 if(${ENABLE_GSM})
 	list(APPEND LINPHONE_BUILDER_BUILDERS gsm)
@@ -55,9 +60,6 @@ if("${BUILD_V4L}" STREQUAL "yes")
 endif("${BUILD_V4L}" STREQUAL "yes")
 
 list(APPEND LINPHONE_BUILDER_BUILDERS
-	xml2
-	antlr3c
-	polarssl
 	ortp
 	ms2
 )

@@ -1,5 +1,5 @@
 ############################################################################
-# zrtp.cmake
+# bzrtp.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,11 +20,19 @@
 #
 ############################################################################
 
-set(EP_zrtp_GIT_REPOSITORY "https://github.com/wernerd/ZRTPCPP.git")
-set(EP_zrtp_GIT_TAG "761339643ee278e1f532713b959c6bb212040206") # Branch 'master'
-set(EP_zrtp_CMAKE_OPTIONS "-DCORE_LIB=1 -DSDES=0")
-set(EP_zrtp_LINKING_TYPE "-DENABLE_STATIC=0")
-if(MSVC)
-	set(EP_zrtp_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif(MSVC)
+set(EP_bzrtp_GIT_REPOSITORY "git://git.linphone.org/bzrtp.git")
+set(EP_bzrtp_GIT_TAG "1983008781bba8c001795948c1462be2670f45e0") # Branch 'master'
+set(EP_bzrtp_BUILD_METHOD "autotools")
+set(EP_bzrtp_USE_AUTOGEN "yes")
+set(EP_bzrtp_CROSS_COMPILATION_OPTIONS
+	"--prefix=${CMAKE_INSTALL_PREFIX}"
+	"--host=${LINPHONE_BUILDER_HOST}"
+)
+set(EP_bzrtp_LINKING_TYPE "--disable-static" "--enable-shared")
+set(EP_bzrtp_DEPENDENCIES EP_polarssl EP_xml2)
 
+if(${ENABLE_UNIT_TESTS})
+	list(APPEND EP_bzrtp_DEPENDENCIES EP_cunit)
+else()
+	list(APPEND EP_bzrtp_CONFIGURE_OPTIONS "--disable-tests")
+endif()

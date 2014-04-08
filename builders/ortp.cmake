@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
-set(EP_ortp_GIT_TAG "c0418933b7ce4765993b7304809e43df6ed392dd") # Branch 'master'
+set(EP_ortp_GIT_TAG "393857c0e8e5cab10a8d647cc89c8390355745a7") # Branch 'master'
 
 if(WIN32)
 	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
@@ -47,7 +47,7 @@ else(WIN32)
 	endif(${ENABLE_SRTP})
 
 	if(${ENABLE_ZRTP})
-		list(APPEND EP_ortp_DEPENDENCIES EP_zrtp)
+		list(APPEND EP_ortp_DEPENDENCIES EP_bzrtp)
 		list(APPEND EP_ortp_CONFIGURE_OPTIONS "--enable-zrtp")
 	else(${ENABLE_ZRTP})
 		list(APPEND EP_ortp_CONFIGURE_OPTIONS "--disable-zrtp")
