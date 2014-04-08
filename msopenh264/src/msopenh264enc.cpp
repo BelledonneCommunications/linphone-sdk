@@ -138,7 +138,7 @@ void MSOpenH264Encoder::initialize()
 			params.fMaxFrameRate = mVConf.fps;
 			params.bEnableRc = true;
 			params.bEnableFrameSkip = true;
-			params.uiMaxNalSize = ms_get_mtu();
+			params.uiMaxNalSize = ms_get_payload_max_size();
 			params.iMultipleThreadIdc = ms_get_cpu_count();
 			params.bEnableDenoise = false;
 			params.bEnableBackgroundDetection = true;
@@ -150,7 +150,7 @@ void MSOpenH264Encoder::initialize()
 			params.sSpatialLayers[0].fFrameRate = mVConf.fps;
 			params.sSpatialLayers[0].iSpatialBitrate = mVConf.required_bitrate;
 			params.sSpatialLayers[0].sSliceCfg.uiSliceMode = SM_DYN_SLICE;
-			params.sSpatialLayers[0].sSliceCfg.sSliceArgument.uiSliceSizeConstraint = ms_get_mtu();
+			params.sSpatialLayers[0].sSliceCfg.sSliceArgument.uiSliceSizeConstraint = ms_get_payload_max_size();
 			ret = mEncoder->InitializeExt(&params);
 			if (ret != 0) {
 				ms_error("OpenH264 encoder: Failed to initialize: %d", ret);
