@@ -137,6 +137,8 @@ struct _MediaStream {
  * @{
 **/
 
+MS2_PUBLIC bool_t media_stream_srtp_supported(void);
+
 MS2_PUBLIC void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool);
 
 MS2_PUBLIC void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_t *stats);
@@ -147,7 +149,14 @@ MS2_PUBLIC void media_stream_enable_adaptive_bitrate_control(MediaStream *stream
 
 MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled);
 
+/*
+ * deprecated, use media_stream_set_srtp_recv_key and media_stream_set_srtp_send_key.
+**/
 MS2_PUBLIC bool_t media_stream_enable_srtp(MediaStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
+
+MS2_PUBLIC int media_stream_set_srtp_recv_key(MediaStream *stream, enum ortp_srtp_crypto_suite_t suite, const char* key);
+
+MS2_PUBLIC int media_stream_set_srtp_send_key(MediaStream *stream, enum ortp_srtp_crypto_suite_t suite, const char* key);
 
 MS2_PUBLIC const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream);
 /* *

@@ -158,16 +158,16 @@ case $host in
 		
 	;;
   	*mingw32ce)
-		CFLAGS="$CFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501  -D_WIN32_WCE  -DORTP_STATIC"
-		CXXFLAGS="$CXXFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501 -DORTP_STATIC  -D_WIN32_WCE"
+		CFLAGS="$CFLAGS -D_WIN32_WINNT=0x0501  -D_WIN32_WCE  -DORTP_STATIC"
+		CXXFLAGS="$CXXFLAGS -D_WIN32_WINNT=0x0501 -DORTP_STATIC  -D_WIN32_WCE"
 dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we were building statically, or dynamically on linux
 	  	LIBS="$LIBS -lws2"
 		mingw_found=yes
 		mingw32ce_found=yes
 	;;
 	*mingw*)
-		CFLAGS="$CFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
-		CXXFLAGS="$CXXFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
+		CFLAGS="$CFLAGS -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
+		CXXFLAGS="$CXXFLAGS -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
 dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we were building statically, or dynamically on linux
 		LIBS="$LIBS -lws2_32 -lwinmm "
 		mingw_found=yes
@@ -691,9 +691,11 @@ AC_ARG_ENABLE(external-ortp,
 
 if test "$ortp_enabled" = 'true'; then
 	if test "$external_ortp" = 'false'; then
-		if test -e $srcdir/../oRTP/include/ortp/ortp.h ; then
+		if test -e ../oRTP/ortp.defs ; then
 			echo "building from linphone source tree, using ../oRTP/include/ortp/ortp.h"
 			ORTP_CFLAGS="-I\$(top_srcdir)/../oRTP/include"
+			ORTP_DEFS=`cat ../oRTP/ortp.defs`
+			ORTP_CFLAGS="$ORTP_CFLAGS $ORTP_DEFS"
 			ORTP_LIBS="\$(top_builddir)/../oRTP/src/libortp.la"
 			if test x$ac_cv_c_bigendian = xyes ; then
 				ORTP_CFLAGS="$ORTP_CFLAGS -DORTP_BIGENDIAN"

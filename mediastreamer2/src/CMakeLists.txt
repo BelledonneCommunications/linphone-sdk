@@ -92,6 +92,7 @@ add_definitions(
 	-D_TRUE_TIME
 	-DMS2_INTERNAL
 	-DMS2_FILTERS
+	-DORTP_HAVE_SRTP
 )
 if(MS2_ENABLE_SPEEX)
 add_definitions(-DHAVE_SPEEXDSP)

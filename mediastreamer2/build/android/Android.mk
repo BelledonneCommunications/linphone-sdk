@@ -109,6 +109,7 @@ endif
 
 ifeq ($(BUILD_SRTP), 1)
 	LOCAL_C_INCLUDES += $(SRTP_C_INCLUDE)
+	LOCAL_CFLAGS += -DORTP_HAVE_SRTP
 else
 
 endif
