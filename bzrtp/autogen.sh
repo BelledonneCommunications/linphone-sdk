@@ -1,5 +1,11 @@
 #!/bin/sh
 
+srcdir=`dirname $0`
+test -z "$srcdir" && srcdir=.
+
+THEDIR=`pwd`
+cd $srcdir
+
 #AM_VERSION="1.11"
 if ! type aclocal-$AM_VERSION 1>/dev/null 2>&1; then
 	AUTOMAKE=automake
@@ -26,4 +32,6 @@ $ACLOCAL  $ACLOCAL_ARGS
 #autoheader
 $AUTOMAKE --force-missing --add-missing --copy
 autoconf
+
+cd $THEDIR
 
