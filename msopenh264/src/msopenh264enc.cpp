@@ -301,9 +301,11 @@ void MSOpenH264Encoder::fillNalusQueue(SFrameBSInfo &sFbi, MSQueue *nalus)
 			mblk_t *m;
 			unsigned char *ptr = layerBsInfo->pBsBuf;
 			for (int j = 0; j < layerBsInfo->iNalCount; j++) {
-				m = allocb(layerBsInfo->iNalLengthInByte[j], 0);
-				memcpy(m->b_wptr, ptr, layerBsInfo->iNalLengthInByte[j]);
-				m->b_wptr += layerBsInfo->iNalLengthInByte[j];
+				// Skip the NAL markers (first 4 bytes)
+				int len = layerBsInfo->iNalLengthInByte[j] - 4;
+				m = allocb(len, 0);
+				memcpy(m->b_wptr, ptr + 4, len);
+				m->b_wptr += len;
 				ptr += layerBsInfo->iNalLengthInByte[j];
 				ms_queue_put(nalus, m);
 			}
