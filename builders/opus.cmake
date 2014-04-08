@@ -21,6 +21,7 @@
 ############################################################################
 
 set(EP_opus_URL "http://downloads.xiph.org/releases/opus/opus-1.0.3.tar.gz")
+set(EP_opus_URL_HASH "MD5=86eedbd3c5a0171d2437850435e6edff")
 set(EP_opus_BUILD_METHOD "autotools")
 set(EP_opus_USE_AUTOGEN "yes")
 set(EP_opus_CROSS_COMPILATION_OPTIONS

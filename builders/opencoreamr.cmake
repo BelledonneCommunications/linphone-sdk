@@ -21,6 +21,7 @@
 ############################################################################
 
 set(EP_opencoreamr_URL "http://downloads.sourceforge.net/project/opencore-amr/opencore-amr/opencore-amr-0.1.3.tar.gz")
+set(EP_opencoreamr_URL_HASH "MD5=09d2c5dfb43a9f6e9fec8b1ae678e725")
 set(EP_opencoreamr_BUILD_METHOD "autotools")
 set(EP_opencoreamr_USE_AUTOGEN "yes")
 set(EP_opencoreamr_CONFIGURE_OPTIONS )

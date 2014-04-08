@@ -21,6 +21,7 @@
 ############################################################################
 
 set(EP_ffmpeg_URL "http://ffmpeg.org/releases/ffmpeg-0.10.2.tar.gz")
+set(EP_ffmpeg_URL_HASH "MD5=f449c9fb925e80c457e82187e6c20910")
 set(EP_ffmpeg_BUILD_METHOD "autotools")
 set(EP_ffmpeg_CONFIGURE_OPTIONS
 	"--disable-zlib"

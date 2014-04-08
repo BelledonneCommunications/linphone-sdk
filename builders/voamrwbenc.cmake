@@ -21,6 +21,7 @@
 ############################################################################
 
 set(EP_voamrwbenc_URL "http://downloads.sourceforge.net/project/opencore-amr/vo-amrwbenc/vo-amrwbenc-0.1.3.tar.gz")
+set(EP_voamrwbenc_URL_HASH "MD5=f63bb92bde0b1583cb3cb344c12922e0")
 set(EP_voamrwbenc_BUILD_METHOD "autotools")
 set(EP_voamrwbenc_USE_AUTOGEN "yes")
 set(EP_voamrwbenc_CROSS_COMPILATION_OPTIONS
