@@ -157,6 +157,7 @@ BELLESIP_EXPORT void belle_sip_set_log_handler(belle_sip_log_function_t func);
 BELLESIP_EXPORT char * BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_strdup_printf(const char *fmt,...);
 
 BELLESIP_EXPORT belle_sip_error_code BELLE_SIP_CHECK_FORMAT_ARGS(4,5) belle_sip_snprintf(char *buff, size_t buff_size, size_t *offset, const char *fmt, ...);
+BELLESIP_EXPORT belle_sip_error_code belle_sip_snprintf_valist(char *buff, size_t buff_size, size_t *offset, const char *fmt, va_list args);
 
 BELLESIP_EXPORT void belle_sip_set_log_level(int level);
 

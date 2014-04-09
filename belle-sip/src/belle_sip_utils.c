@@ -111,10 +111,18 @@ char *belle_sip_strdup_printf(const char *fmt,...){
 }
 
 belle_sip_error_code belle_sip_snprintf(char *buff, size_t buff_size, size_t *offset, const char *fmt, ...) {
-	int ret;
-	belle_sip_error_code error = BELLE_SIP_OK;
+	belle_sip_error_code ret;
 	va_list args;
 	va_start(args, fmt);
+	ret = belle_sip_snprintf_valist(buff, buff_size, offset, fmt, args);
+	va_end(args);
+
+	return ret;
+}
+
+belle_sip_error_code belle_sip_snprintf_valist(char *buff, size_t buff_size, size_t *offset, const char *fmt, va_list args) {
+	int ret;
+	belle_sip_error_code error = BELLE_SIP_OK;
 	ret = vsnprintf(buff + *offset, buff_size - *offset, fmt, args);
 	if ((ret < 0)
 		|| (ret >= (buff_size - *offset))) {
@@ -123,7 +131,6 @@ belle_sip_error_code belle_sip_snprintf(char *buff, size_t buff_size, size_t *of
 	} else {
 		*offset += ret;
 	}
-	va_end(args);
 	return error;
 }
 
