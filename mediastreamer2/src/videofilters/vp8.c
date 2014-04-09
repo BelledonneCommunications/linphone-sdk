@@ -37,6 +37,7 @@
 #define VP8_PAYLOAD_DESC_PARTID_MASK 0x0F
 
 #undef FRAGMENT_ON_PARTITIONS
+/*#define FRAGMENT_ON_PARTITIONS*/
 
 #define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps) \
 	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, NULL }
@@ -194,6 +195,8 @@ static void enc_preprocess(MSFilter *f) {
 	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, (s->cfg.g_threads > 1) ? 10 : 10); 
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
+	vpx_codec_control(&s->codec, VP8E_SET_MAX_INTRA_BITRATE_PCT, 400); /*limite iFrame size to 4 pframe*/
+	#ifndef FRAGMENT_ON_PARTITIONS
 	if (s->cfg.g_threads > 1) {
 		if (vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 2) != VPX_CODEC_OK) {
 			ms_error("VP8: failed to set multiple token partition");
@@ -201,6 +204,7 @@ static void enc_preprocess(MSFilter *f) {
 			ms_message("VP8: multiple token partitions used");
 		}
 	}
+	#endif
 	#ifdef FRAGMENT_ON_PARTITIONS
 	vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 0x3);
 	s->token_partition_count = 8;
@@ -235,6 +239,7 @@ static void enc_process(MSFilter *f) {
 			s->req_vfu=TRUE;
 		}
 		if (s->req_vfu){
+			ms_message("Forcing vp8 key frame for filter [%p]",f);
 			flags = VPX_EFLAG_FORCE_KF;
 			s->req_vfu=FALSE;
 		}
@@ -497,6 +502,8 @@ static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_
 typedef struct DecState {
 	vpx_codec_ctx_t codec;
 	mblk_t *curframe;
+	long last_cseq; /*last receive sequence number, used to locate missing partition fragment*/
+	int current_partition_id; /*current partition id*/
 	uint64_t last_error_reported_time;
 	mblk_t *yuv_msg;
 	MSPicture outbuf;
@@ -504,6 +511,7 @@ typedef struct DecState {
 	MSQueue q;
 	MSAverageFPS fps;
 	bool_t first_image_decoded;
+	bool_t on_error; /*a decoding error occurs*/
 } DecState;
 
 
@@ -511,9 +519,13 @@ static void dec_init(MSFilter *f) {
 	DecState *s=(DecState *)ms_new(DecState,1);
 
 	ms_message("Using %s\n",vpx_codec_iface_name(interface));
+	vpx_codec_flags_t  flags = 0/*VPX_CODEC_USE_ERROR_CONCEALMENT*/;
+#ifdef FRAGMENT_ON_PARTITIONS
+	flags |= VPX_CODEC_USE_INPUT_FRAGMENTS;
+#endif
 
 	/* Initialize codec */
-	if(vpx_codec_dec_init(&s->codec, interface, NULL, 0))
+	if(vpx_codec_dec_init(&s->codec, interface, NULL, flags))
 		ms_error("Failed to initialize decoder");
 
 	s->curframe = NULL;
@@ -525,6 +537,7 @@ static void dec_init(MSFilter *f) {
 	s->first_image_decoded = FALSE;
 	f->data = s;
 	ms_video_init_average_fps(&s->fps, "VP8 decoder: FPS: %f");
+	s->on_error=FALSE;
 }
 
 static void dec_preprocess(MSFilter* f) {
@@ -549,6 +562,14 @@ static void dec_uninit(MSFilter *f) {
 /* remove payload header and aggregates fragmented packets */
 static void dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, MSQueue *out){
 	int xbit = (im->b_rptr[0] & 0x80) >> 7;
+#ifdef FRAGMENT_ON_PARTITIONS
+	int sbit = (im->b_rptr[0] & VP8_PAYLOAD_DESC_S_MASK) >> 4;
+	int partition_id = im->b_rptr[0] & 0b00000111;
+	int current_cseq=mblk_get_cseq(im);
+	int discontinuity_detected=(current_cseq-s->last_cseq)-1;
+	bool_t end_of_frame=mblk_get_marker_info(im);
+#endif
+
 	im->b_rptr++;
 	if (xbit) {
 		/* Ignore extensions if some are present */
@@ -563,6 +584,58 @@ static void dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, MSQueue *out){
 		im->b_rptr += (xbit + ibit + lbit + (tbit | kbit) + mbit);
 	}
 
+#ifdef FRAGMENT_ON_PARTITIONS
+	/*first, check for discontinuity*/
+	if (discontinuity_detected) {
+		ms_warning("vp8 detect discontinuity at cseq [%i] on filter [%p]",current_cseq,f);
+		if (s->curframe) {
+			ms_warning("vp8 discarding previous partition on filter [%p]",f);
+			/*reset frame size to tell decoder there is a missing partition*/
+			/*s->curframe->b_wptr=s->curframe->b_rptr;
+			ms_queue_put(out, s->curframe);*/
+			freemsg(s->curframe);
+			s->curframe=NULL;
+		}
+	}
+
+	/*it it a partition start ?*/
+	if (sbit) {
+		if (s->curframe) {
+			/*previous partition is over*/
+			if (mblk_get_timestamp_info(im) != mblk_get_timestamp_info(s->curframe)) {
+				/*previous partition is over but last partition is probably lost*/
+				mblk_set_marker_info(s->curframe,1);
+			}
+			ms_queue_put(out, s->curframe);
+		}
+		s->curframe=im;
+	} else {
+		if (s->current_partition_id == partition_id && s->curframe){
+			/*good, this is a continuation*/
+			concatb(s->curframe,im);
+			msgpullup(s->curframe,-1);
+		} else {
+			/*well, this is probably a tailing partition segment*/
+			ms_warning("vp8 trashing tailing partitions on filter [%p]",f);
+			freemsg(im);
+		}
+
+	}
+
+	s->current_partition_id=partition_id;
+	s->last_cseq=current_cseq;
+	if (end_of_frame) {
+		/*end of frame*/
+		if (s->curframe) {
+			/*copy marker bit*/
+			mblk_set_marker_info(s->curframe,1);
+			/*push last partition*/
+			ms_queue_put(out, s->curframe);
+			s->curframe=NULL;
+		}
+	}
+
+#else /*FRAGMENT_ON_PARTITIONS*/
 	/* end of frame bit ? */
 	if (mblk_get_marker_info(im)) {
 		/* should be aggregated with previous packet ? */
@@ -600,6 +673,7 @@ static void dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, MSQueue *out){
 			s->curframe = im;
 		}
 	}
+#endif /*FRAGMENT_ON_PARTITIONS*/
 }
 
 static void dec_process(MSFilter *f) {
@@ -616,10 +690,32 @@ static void dec_process(MSFilter *f) {
 			vpx_codec_iter_t  iter = NULL;
 			vpx_image_t *img;
 
+			/*
+			 * 4.3.  VP8 Payload Header
+			 *
+			 *  0 1 2 3 4 5 6 7
+			 *  +-+-+-+-+-+-+-+-+
+			 *  |Size0|H| VER |P|
+			 *  +-+-+-+-+-+-+-+-+
+			 *  ...
+			 *
+			 * P: Inverse key frame flag.  When set to 0 the current frame is a key
+			 * frame.  When set to 1 the current frame is an interframe.  Defined
+			 * in [RFC6386]
+			 */
+			if (m->b_rptr[0] & 0b00000001) {
+				/*not a key frame, freezing image until next keyframe*/
+				/*if (s->first_image_decoded && s->on_error) {
+					freemsg(m);
+					continue;
+				}*/
+			} else
+				ms_message("vp8 key frame received on filter [%p]",f);
+
 			err = vpx_codec_decode(&s->codec, m->b_rptr, m->b_wptr - m->b_rptr, NULL, 0);
 			if (err) {
-				ms_warning("vpx_codec_decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
-
+				ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
+				s->on_error=TRUE;
 				if ((f->ticker->time - s->last_error_reported_time)>5000 || s->last_error_reported_time==0) {
 					s->last_error_reported_time=f->ticker->time;
 					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
@@ -629,6 +725,17 @@ static void dec_process(MSFilter *f) {
 					freemsg(m);
 					continue;
 				}
+			} else {
+#ifdef FRAGMENT_ON_PARTITIONS
+				if (mblk_get_marker_info(m)) {
+					/*end of partitions*/
+					err=vpx_codec_decode(&s->codec, NULL,0, NULL, 0);
+					if (0 /*err*/) {
+						ms_warning("vp8 decode failed at end of partitions : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
+					}
+				}
+#endif /*FRAGMENT_ON_PARTITIONS*/
+				s->on_error=FALSE;
 			}
 
 
