@@ -21,6 +21,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef MEDIASTREAM_H
 #define MEDIASTREAM_H
 
+#include <ortp/ortp.h>
+#include <ortp/event.h>
+#include <ortp/zrtp.h>
+#include <ortp/ortp_srtp.h>
+
 #include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/msticker.h>
 #include <mediastreamer2/mssndcard.h>
@@ -29,12 +34,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/bitratecontrol.h>
 #include <mediastreamer2/qualityindicator.h>
 #include <mediastreamer2/ice.h>
-#include <ortp/ortp.h>
-#include <ortp/event.h>
-#include <ortp/zrtp.h>
-#include <ortp/ortp_srtp.h>
-
-#include <ortp/zrtp.h>
 
 
 #define PAYLOAD_TYPE_FLAG_CAN_RECV	PAYLOAD_TYPE_USER_FLAG_1

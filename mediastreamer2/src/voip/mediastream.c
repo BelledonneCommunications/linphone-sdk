@@ -18,14 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
-#ifdef HAVE_CONFIG_H
-#include "mediastreamer-config.h"
-#endif
+#include "ortp/ortp_srtp.h"
+#include "ortp/b64.h"
 
 #include "mediastreamer2/mediastream.h"
 #include "private.h"
-#include "ortp/ortp_srtp.h"
-#include "ortp/b64.h"
 
 #ifdef ORTP_HAVE_SRTP
 #if defined(ANDROID) || defined(WINAPI_FAMILY_PHONE_APP)
@@ -38,6 +35,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif /*ORTP_HAVE_SRTP*/
 
 #include <ctype.h>
+
+
+#ifdef HAVE_CONFIG_H
+#include "mediastreamer-config.h"
+#endif
+
 
 #ifndef MS_MINIMAL_MTU
 /*this is used for determining the minimum size of recv buffers for RTP packets
