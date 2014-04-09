@@ -197,7 +197,7 @@ macro(linphone_builder_apply_cmake_flags_to_autotools_project PROJNAME)
 		set(ep_cflags "${AUTOTOOLS_C_FLAGS${BUILD_TYPE_SUFFIX}}")
 		set(ep_cxxflags "${AUTOTOOLS_CXX_FLAGS${BUILD_TYPE_SUFFIX}}")
 		set(ep_objcflags "${AUTOTOOLS_OBJC_FLAGS${BUILD_TYPE_SUFFIX}}")
-		set(ep_ldflags "${AUTOTOOLS_LD_FLAGS${BUILD_TYPE_SUFFIX}}")
+		set(ep_ldflags "${AUTOTOOLS_LINKER_FLAGS${BUILD_TYPE_SUFFIX}}")
 	endif()
 endmacro(linphone_builder_apply_cmake_flags_to_autotools_project)
 
