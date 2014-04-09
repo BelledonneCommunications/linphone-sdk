@@ -142,6 +142,7 @@ void MSOpenH264Encoder::initialize()
 			params.fMaxFrameRate = mVConf.fps;
 			params.bEnableRc = true;
 			params.bEnableFrameSkip = true;
+			params.bPrefixNalAddingCtrl = false;
 			params.uiMaxNalSize = ms_get_payload_max_size();
 			params.iMultipleThreadIdc = ms_get_cpu_count();
 			params.bEnableDenoise = false;
