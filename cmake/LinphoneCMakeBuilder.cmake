@@ -60,6 +60,7 @@ if(NOT PATCH_PROGRAM)
 endif(NOT PATCH_PROGRAM)
 
 set(LINPHONE_BUILDER_EP_VARS)
+set(LINPHONE_BUILDER_INCLUDED_BUILDERS)
 
 macro(linphone_builder_expand_external_project_vars)
 	set(LINPHONE_BUILDER_EP_ARGS "")
@@ -151,6 +152,41 @@ function(linphone_builder_get_autotools_configuration)
 	unset(_generator)
 	include(${CMAKE_CURRENT_BINARY_DIR}/Autotools/Autotools.cmake)
 endfunction(linphone_builder_get_autotools_configuration)
+
+
+macro(linphone_builder_create_targets_list)
+	set(LINPHONE_BUILDER_TARGETS )
+	if("${LINPHONE_BUILDER_TARGET}" STREQUAL "belle-sip")
+		list(APPEND LINPHONE_BUILDER_TARGETS "belle-sip")
+	elseif("${LINPHONE_BUILDER_TARGET}" STREQUAL "ortp")
+		list(APPEND LINPHONE_BUILDER_TARGETS "ortp")
+	elseif("${LINPHONE_BUILDER_TARGET}" STREQUAL "ms2")
+		list(APPEND LINPHONE_BUILDER_TARGETS "ortp" "ms2")
+	elseif("${LINPHONE_BUILDER_TARGET}" STREQUAL "ms2-plugins")
+		list(APPEND LINPHONE_BUILDER_TARGETS "ortp" "ms2" "ms2-plugins")
+	elseif("${LINPHONE_BUILDER_TARGET}" STREQUAL "linphone")
+		list(APPEND LINPHONE_BUILDER_TARGETS "belle-sip" "ortp" "ms2" "ms2-plugins" "linphone")
+	else()
+		message(FATAL_ERROR "Invalid LINPHONE_BUILDER_TARGET '${LINPHONE_BUILDER_TARGET}'")
+	endif()
+endmacro(linphone_builder_create_targets_list)
+
+
+macro(linphone_builder_include_builder BUILDER)
+	list(FIND LINPHONE_BUILDER_INCLUDED_BUILDERS ${BUILDER} _already_included)
+	if(_already_included EQUAL -1)
+		message(STATUS "Including builder ${BUILDER}")
+		include(${CMAKE_CURRENT_SOURCE_DIR}/builders/${BUILDER}.cmake)
+		list(APPEND LINPHONE_BUILDER_INCLUDED_BUILDERS ${BUILDER})
+	endif()
+	unset(_already_included)
+endmacro(linphone_builder_include_builder)
+
+
+macro(linphone_builder_add_builder_to_target TARGETNAME BUILDER)
+	linphone_builder_include_builder(${BUILDER})
+	add_dependencies(${TARGETNAME} ${BUILDER})
+endmacro(linphone_builder_add_builder_to_target)
 
 
 macro(linphone_builder_apply_flags)
@@ -371,7 +407,7 @@ function(linphone_builder_add_project PROJNAME)
 endfunction(linphone_builder_add_project)
 
 function(linphone_builder_add_external_projects)
-	foreach(BUILDER ${LINPHONE_BUILDER_BUILDERS})
+	foreach(BUILDER ${LINPHONE_BUILDER_INCLUDED_BUILDERS})
 		linphone_builder_add_project(${BUILDER})
 	endforeach(BUILDER)
 endfunction(linphone_builder_add_external_projects)
