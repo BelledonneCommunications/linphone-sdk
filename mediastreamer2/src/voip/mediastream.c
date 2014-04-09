@@ -27,12 +27,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ortp/ortp_srtp.h"
 #include "ortp/b64.h"
 
+#ifdef ORTP_HAVE_SRTP
 #if defined(ANDROID) || defined(WINAPI_FAMILY_PHONE_APP)
 // Android and Windows phone don't use make install
 #include <srtp_priv.h>
 #else
 #include <srtp/srtp_priv.h>
 #endif
+
+#endif /*ORTP_HAVE_SRTP*/
 
 #include <ctype.h>
 
@@ -41,7 +44,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  Keep 1500 for maximum interoparibility*/
 #define MS_MINIMAL_MTU 1500 
 #endif
-
 
 
 #if defined(_WIN32_WCE)
