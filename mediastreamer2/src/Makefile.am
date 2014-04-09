@@ -82,7 +82,7 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					audiofilters/ulaw.c \
 					audiofilters/dtmfgen.c \
 					audiofilters/msconf.c \
-					utils/g711common.h \
+					audiofilters/g711.c audiofilters/g711.h \
 					audiofilters/msvolume.c \
 					utils/dsptools.c \
 					utils/kiss_fft.c \

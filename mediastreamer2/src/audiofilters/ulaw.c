@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #include "mediastreamer2/msfilter.h"
-#include "g711common.h"
+#include "g711.h"
 
 typedef struct _UlawEncData{
 	MSBufferizer *bz;
@@ -77,7 +77,7 @@ static void ulaw_enc_process(MSFilter *obj){
 		mblk_t *o=allocb(size_of_pcm/2,0);
 		int i;
 		for (i=0;i<size_of_pcm/2;i++){
-			*o->b_wptr=s16_to_ulaw(((int16_t*)buffer)[i]);
+			*o->b_wptr=Snack_Lin2Mulaw(((int16_t*)buffer)[i]);
 			o->b_wptr++;
 		}
 		mblk_set_timestamp_info(o,dt->ts);
@@ -183,7 +183,7 @@ static void ulaw_dec_process(MSFilter *obj){
 		o=allocb((m->b_wptr-m->b_rptr)*2,0);
 		mblk_meta_copy(m, o);
 		for(;m->b_rptr<m->b_wptr;m->b_rptr++,o->b_wptr+=2){
-			*((int16_t*)(o->b_wptr))=ulaw_to_s16(*m->b_rptr);
+			*((int16_t*)(o->b_wptr))=Snack_Mulaw2Lin(*m->b_rptr);
 		}
 		freemsg(m);
 		ms_queue_put(obj->outputs[0],o);
