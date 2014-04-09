@@ -23,11 +23,11 @@
 set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
 set(EP_ms2_GIT_TAG "e51c106c7e48cfc961fbd74b5c8d5a0588a21080") # Branch 'master'
 
-if(WIN32)
+if(MSVC)
 	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
 	set(EP_ms2_DEPENDENCIES EP_ortp EP_opus EP_speex EP_ffmpeg EP_vpx)
 	set(EP_ms2_EXTRA_LDFLAGS "/SAFESEH:NO")
-else(WIN32)
+else()
 	set(EP_ms2_BUILD_METHOD "autotools")
 	set(EP_ms2_USE_AUTOGEN "yes")
 	set(EP_ms2_CONFIG_H_FILE mediastreamer-config.h)
@@ -83,4 +83,4 @@ else(WIN32)
 	else(${ENABLE_UNIT_TESTS})
 		list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-tests")
 	endif(${ENABLE_UNIT_TESTS})
-endif(WIN32)
+endif()

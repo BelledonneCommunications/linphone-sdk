@@ -23,11 +23,11 @@
 set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
 set(EP_linphone_GIT_TAG "0c68cdcfbae933c0d6895f05733069cf37f2c547") # Branch 'master'
 
-if(WIN32)
+if(MSVC)
 	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
 	set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
 	set(EP_linphone_EXTRA_LDFLAGS "/SAFESEH:NO")
-else(WIN32)
+else()
 	set(EP_linphone_BUILD_METHOD "autotools")
 	set(EP_linphone_USE_AUTOGEN "yes")
 	set(EP_linphone_CROSS_COMPILATION_OPTIONS
@@ -72,4 +72,4 @@ else(WIN32)
 	else(${ENABLE_UNIT_TESTS})
 		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-tests")
 	endif(${ENABLE_UNIT_TESTS})
-endif(WIN32)
+endif()

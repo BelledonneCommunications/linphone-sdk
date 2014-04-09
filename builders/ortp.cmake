@@ -23,11 +23,11 @@
 set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
 set(EP_ortp_GIT_TAG "393857c0e8e5cab10a8d647cc89c8390355745a7") # Branch 'master'
 
-if(WIN32)
+if(MSVC)
 	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
 	set(EP_ortp_DEPENDENCIES EP_srtp)
 	set(EP_ortp_EXTRA_LDFLAGS "/SAFESEH:NO")
-else(WIN32)
+else()
 	set(EP_ortp_BUILD_METHOD "autotools")
 	set(EP_ortp_USE_AUTOGEN "yes")
 	set(EP_ortp_CONFIG_H_FILE ortp-config.h)
@@ -52,4 +52,4 @@ else(WIN32)
 	else(${ENABLE_ZRTP})
 		list(APPEND EP_ortp_CONFIGURE_OPTIONS "--disable-zrtp")
 	endif(${ENABLE_ZRTP})
-endif(WIN32)
+endif()
