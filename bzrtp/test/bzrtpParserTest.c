@@ -228,7 +228,9 @@ int floadAlice(void *clientData, uint8_t **output, uint32_t *size) {
   	*size = ftell(ALICECACHE);     /* Get file length */
   	rewind(ALICECACHE);               /* Back to start of file */
 	*output = (uint8_t *)malloc(*size*sizeof(uint8_t)+1);
-	fread(*output, 1, *size, ALICECACHE);
+	if (fread(*output, 1, *size, ALICECACHE)==0){
+		fprintf(stderr,"floadAlice() fread() error\n");
+	}
 	*(*output+*size) = '\0';
 	*size += 1;
 	fclose(ALICECACHE);
@@ -256,7 +258,10 @@ int floadBob(void *clientData, uint8_t **output, uint32_t *size) {
   	*size = ftell(BOBCACHE);     /* Get file length */
   	rewind(BOBCACHE);               /* Back to start of file */
 	*output = (uint8_t *)malloc(*size*sizeof(uint8_t)+1);
-	fread(*output, 1, *size, BOBCACHE);
+	if (fread(*output, 1, *size, BOBCACHE)==0){
+		fprintf(stderr,"floadBob(): fread error.\n");
+		return -1;
+	}
 	*(*output+*size) = '\0';
 	*size += 1;
 	fclose(BOBCACHE);

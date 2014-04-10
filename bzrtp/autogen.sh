@@ -1,5 +1,11 @@
 #!/bin/sh
 
+srcdir=`dirname $0`
+test -z "$srcdir" && srcdir=.
+
+THEDIR=`pwd`
+cd $srcdir
+
 #AM_VERSION="1.11"
 if ! type aclocal-$AM_VERSION 1>/dev/null 2>&1; then
 	AUTOMAKE=automake
@@ -19,6 +25,10 @@ if test -d /opt/local/share/aclocal ; then
 	ACLOCAL_ARGS="-I /opt/local/share/aclocal"
 fi
 
+if test -d /share/aclocal ; then
+	ACLOCAL_ARGS="-I /share/aclocal"
+fi
+
 echo "Generating build scripts for BZRtp: ZRTP engine"
 set -x
 $LIBTOOLIZE --copy --force
@@ -26,4 +36,6 @@ $ACLOCAL  $ACLOCAL_ARGS
 #autoheader
 $AUTOMAKE --force-missing --add-missing --copy
 autoconf
+
+cd $THEDIR
 
