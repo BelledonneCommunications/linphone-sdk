@@ -232,12 +232,13 @@ __attribute__ ((visibility ("default"))) void bzrtp_resetSASVerified(bzrtpContex
  * @param[in]		tagNameLength		The length in bytes of the tagName
  * @param[in]		tagContent			The content of the tag to be written(a string, if KDF is used the result will be turned into an hexa string)
  * @param[in]		tagContentLength	The length in bytes of tagContent
+ * @param[in]		derivedDataLength	Used only in KDF mode, length in bytes of the derived data to use (max 32)
  * @param[in]		useKDF				A flag, if set to 0, write data as it is provided, if set to 1, write KDF(s0, "tagContent", KDF_Context, negotiated hash lenght)
  * @param[in]		fileFlag			Flag, if LOADFILE bit is set, reload the cache buffer from file before updating.
  * 										if WRITEFILE bit is set, update the cache file
  *
  * @return	0 on success, errorcode otherwise
  */
-__attribute__ ((visibility ("default"))) int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t useKDF, uint8_t fileFlag);
+__attribute__ ((visibility ("default"))) int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t derivedDataLength, uint8_t useKDF, uint8_t fileFlag);
 
 #endif /* ifndef BZRTP_H */

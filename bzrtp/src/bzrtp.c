@@ -493,13 +493,14 @@ void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext) {
  * @param[in]		tagNameLength		The length in bytes of the tagName
  * @param[in]		tagContent			The content of the tag to be written(a string, if KDF is used the result will be turned into an hexa string)
  * @param[in]		tagContentLength	The length in bytes of tagContent
+ * @param[in]		derivedDataLength	Used only in KDF mode, length in bytes of the derived data to use (max 32)
  * @param[in]		useKDF				A flag, if set to 0, write data as it is provided, if set to 1, write KDF(s0, "tagContent", KDF_Context, negotiated hash lenght)
  * @param[in]		fileFlag			Flag, if LOADFILE bit is set, reload the cache buffer from file before updating.
  * 										if WRITEFILE bit is set, update the cache file
  *
  * @return	0 on success, errorcode otherwise
  */
-int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t useKDF, uint8_t fileFlag) {
+int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t derivedDataLength, uint8_t useKDF, uint8_t fileFlag) {
 	/* check we have a valid context, a cache access callback function and a valid channelContext[0] */
 	if (zrtpContext == NULL || zrtpContext->zrtpCallbacks.bzrtp_loadCache == NULL || zrtpContext->channelContext[0]==NULL) {
 		return BZRTP_ERROR_INVALIDCONTEXT;
@@ -514,12 +515,19 @@ int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12],
 		if (zrtpChannelContext->s0 == NULL || zrtpChannelContext->KDFContext == NULL) {
 			return BZRTP_ERROR_INVALIDCONTEXT;
 		}
-		/* We derive 32 bytes for a 256 bit key */
+		/* We derive a maximum of 32 bytes for a 256 bit key */
 		uint8_t derivedContent[32];
-		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, tagContent, tagContentLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 32, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, derivedContent);
+		if (derivedDataLength>32) { 
+			derivedDataLength = 32;
+		}
+		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, tagContent, tagContentLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, derivedDataLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, derivedContent);
 
+		/* if derivedDataLength is 4 it means we are writing the session Index, mask the first bit of first byte(MSB) to 0 in order to avoid any counter loop */
+		if (derivedDataLength == 4) {
+			derivedContent[0] &=0x8F;
+		}
 		/* write it to cache, do not allow multiple tags */
-		return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, derivedContent, 32, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, fileFlag);
+		return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, derivedContent, derivedDataLength, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, fileFlag);
 	}
 }
 
