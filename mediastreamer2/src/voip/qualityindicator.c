@@ -59,11 +59,11 @@ MSQualityIndicator *ms_quality_indicator_new(RtpSession *session){
 	return qi;
 }
 
-float ms_quality_indicator_get_rating(MSQualityIndicator *qi){
+float ms_quality_indicator_get_rating(const MSQualityIndicator *qi){
 	return qi->rating;
 }
 
-float ms_quality_indicator_get_lq_rating(MSQualityIndicator *qi) {
+float ms_quality_indicator_get_lq_rating(const MSQualityIndicator *qi) {
 	return qi->lq_rating;
 }
 
@@ -172,12 +172,12 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	update_global_rating(qi);
 }
 
-float ms_quality_indicator_get_average_rating(MSQualityIndicator *qi){
+float ms_quality_indicator_get_average_rating(const MSQualityIndicator *qi){
 	if (qi->count==0) return -1; /*no rating available*/
 	return (float)(qi->sum_ratings/(double)qi->count);
 }
 
-float ms_quality_indicator_get_average_lq_rating(MSQualityIndicator *qi) {
+float ms_quality_indicator_get_average_lq_rating(const MSQualityIndicator *qi) {
 	if (qi->count == 0) return -1; /* No rating available */
 	return (float)(qi->sum_lq_ratings / (double)qi->count);
 }
