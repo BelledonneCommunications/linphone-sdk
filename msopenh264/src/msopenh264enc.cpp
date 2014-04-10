@@ -32,7 +32,7 @@ static int debugLevel = 1;
 
 
 VideoStarter::VideoStarter()
-	: mNextTime(0), mFrameCount(0)
+	: mActive(true), mNextTime(0), mFrameCount(0)
 {}
 
 VideoStarter::~VideoStarter()
@@ -45,7 +45,7 @@ void VideoStarter::firstFrame(uint64_t curtime)
 
 bool VideoStarter::needIFrame(uint64_t curtime)
 {
-	if (mNextTime == 0) return false;
+	if (!mActive || (mNextTime == 0)) return false;
 	if (curtime >= mNextTime) {
 		mFrameCount++;
 		if (mFrameCount == 1) {
@@ -56,6 +56,11 @@ bool VideoStarter::needIFrame(uint64_t curtime)
 		return true;
 	}
 	return false;
+}
+
+void VideoStarter::deactivate()
+{
+	mActive = false;
 }
 
 
@@ -266,18 +271,6 @@ void MSOpenH264Encoder::addFmtp(const char *fmtp)
 	}
 }
 
-void MSOpenH264Encoder::generateKeyframe()
-{
-	if (isInitialized()) {
-		ms_filter_lock(mFilter);
-		int ret = mEncoder->ForceIntraFrame(true);
-		ms_filter_unlock(mFilter);
-		if (ret != 0) {
-			ms_error("OpenH264 encoder: Failed forcing intra-frame: %d", ret);
-		}
-	}
-}
-
 void MSOpenH264Encoder::setConfiguration(MSVideoConfiguration conf)
 {
 	mVConf = conf;
@@ -292,6 +285,25 @@ void MSOpenH264Encoder::setConfiguration(MSVideoConfiguration conf)
 
 	ms_message("OpenH264 encoder: Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d",
 		mVConf.required_bitrate, mVConf.fps, mVConf.vsize.width, mVConf.vsize.height);
+}
+
+void MSOpenH264Encoder::requestVFU()
+{
+	// If we receive a VFU request, stop the video starter
+	mVideoStarter.deactivate();
+	generateKeyframe();
+}
+
+void MSOpenH264Encoder::generateKeyframe()
+{
+	if (isInitialized()) {
+		ms_filter_lock(mFilter);
+		int ret = mEncoder->ForceIntraFrame(true);
+		ms_filter_unlock(mFilter);
+		if (ret != 0) {
+			ms_error("OpenH264 encoder: Failed forcing intra-frame: %d", ret);
+		}
+	}
 }
 
 void MSOpenH264Encoder::fillNalusQueue(SFrameBSInfo &sFbi, MSQueue *nalus)

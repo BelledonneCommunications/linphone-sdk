@@ -237,7 +237,7 @@ static int msopenh264_enc_has_builtin_converter(MSFilter *f, void *arg) {
 
 static int msopenh264_enc_req_vfu(MSFilter *f, void *arg) {
 	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
-	e->generateKeyframe();
+	e->requestVFU();
 	return 0;
 }
 

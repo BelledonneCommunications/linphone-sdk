@@ -34,8 +34,10 @@ public:
 	virtual ~VideoStarter();
 	void firstFrame(uint64_t curtime);
 	bool needIFrame(uint64_t curtime);
+	void deactivate();
 
 private:
+	bool mActive;
 	uint64_t mNextTime;
 	int mFrameCount;
 };
@@ -56,11 +58,12 @@ public:
 	void setSize(MSVideoSize size);
 	MSVideoSize getSize() const { return mVConf.vsize; }
 	void addFmtp(const char *fmtp);
-	void generateKeyframe();
 	const MSVideoConfiguration *getConfigurationList() const { return mVConfList; }
 	void setConfiguration(MSVideoConfiguration conf);
+	void requestVFU();
 
 private:
+	void generateKeyframe();
 	void fillNalusQueue(SFrameBSInfo& sFbi, MSQueue* nalus);
 	void calcBitrates(int &targetBitrate, int &maxBitrate) const;
 	void applyBitrate();
