@@ -225,7 +225,7 @@ int MSOpenH264Decoder::nalusToFrame(MSQueue *nalus)
 			memcpy(dst, src, size);
 			dst += size;
 		} else {
-			uint8_t naluType = (*src) & ((1 << 5) - 1);
+			uint8_t naluType = *src & 0x1f;
 #if MSOPENH264_DEBUG
 			if ((naluType != 1) && (naluType != 7) && (naluType != 8)) {
 				ms_message("OpenH264 decoder: naluType=%d", naluType);
@@ -237,7 +237,11 @@ int MSOpenH264Decoder::nalusToFrame(MSQueue *nalus)
 				ms_message("OpenH264 decoder: Got PPS");
 			}
 #endif
-			if (startPicture || (naluType == 7) /*SPS*/ || (naluType == 8) /*PPS*/ ) {
+			if (startPicture
+				|| (naluType == 6) // SEI
+				|| (naluType == 7) // SPS
+				|| (naluType == 8) // PPS
+				|| ((naluType >= 14) && (naluType <= 18))) { // Reserved
 				*dst++ = 0;
 				startPicture = false;
 			}
@@ -256,9 +260,9 @@ int MSOpenH264Decoder::nalusToFrame(MSQueue *nalus)
 				}
 				*dst++ = *src++;
 			}
-			*dst++ = *src++;
-			*dst++ = *src++;
-			*dst++ = *src++;
+			while (src < im->b_wptr) {
+				*dst++ = *src++;
+			}
 		}
 		freemsg(im);
 	}
