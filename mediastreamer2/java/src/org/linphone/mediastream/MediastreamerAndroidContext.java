@@ -24,6 +24,12 @@ import android.media.AudioManager;
 import android.os.Build;
 
 public class MediastreamerAndroidContext {
+	private static final int DEVICE_CHOICE = 0; // The device has the API to tell us it as or not a builtin AEC and we can trust it
+	private static final int DEVICE_HAS_BUILTIN_AEC  = 1; // Says the device has a builtin AEC because the API that would tell us that isn't available
+	private static final int DEVICE_HAS_BUILTIN_AEC_CRAPPY = 2; // The device has the API to tell us it has a builtin AEC but we shouldn't trust it (so we'll use software AEC)
+	private static final int DEVICE_USE_ANDROID_MIC = 4;
+	private static final int DEVICE_HAS_BUILTIN_OPENSLES_AEC = 8; // The device has a builtin AEC and it is working with OpenSLES (which is uncommon)
+	
 	private native void setDeviceFavoriteSampleRate(int samplerate);
 	private native void setDeviceFavoriteBufferSize(int bufferSize);
 	private native void addSoundDeviceDescription(String manufacturer, String model, String platform, int flags, int delay, int recommended_rate);
