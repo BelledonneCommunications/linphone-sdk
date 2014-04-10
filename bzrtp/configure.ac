@@ -10,7 +10,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([tar-ustar --warnings=no-portability])
 AC_PROG_CC(["xcrun clang" gcc])
-AC_PROG_LIBTOOL
+LT_INIT(win32-dll shared disable-static)
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_ARG_ENABLE(strict,
@@ -91,10 +91,10 @@ fi
 # Create the following files from their .in counterparts
 AC_CONFIG_FILES([
   Makefile
-  src/Makefile 
-  include/Makefile 
-  include/bzrtp/Makefile 
-  test/Makefile 
+  src/Makefile
+  include/Makefile
+  include/bzrtp/Makefile
+  test/Makefile
   libbzrtp.pc
 ])
 
