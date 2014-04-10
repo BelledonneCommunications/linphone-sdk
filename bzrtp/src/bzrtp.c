@@ -524,7 +524,7 @@ int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12],
 
 		/* if derivedDataLength is 4 it means we are writing the session Index, mask the first bit of first byte(MSB) to 0 in order to avoid any counter loop */
 		if (derivedDataLength == 4) {
-			derivedContent[0] &=0x8F;
+			derivedContent[0] &=0x7F;
 		}
 		/* write it to cache, do not allow multiple tags */
 		return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, derivedContent, derivedDataLength, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, fileFlag);
