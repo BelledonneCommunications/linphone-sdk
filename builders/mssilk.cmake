@@ -21,7 +21,11 @@
 ############################################################################
 
 set(EP_mssilk_GIT_REPOSITORY "git://git.linphone.org/mssilk.git")
-set(EP_mssilk_GIT_TAG "07b55ce81adca894bf6bd1ed86eb27f4578562f1") # Branch 'master'
+if(${LINPHONE_BUILDER_LATEST})
+	set(EP_mssilk_GIT_TAG "master")
+else()
+	set(EP_mssilk_GIT_TAG "07b55ce81adca894bf6bd1ed86eb27f4578562f1")
+endif()
 set(EP_mssilk_BUILD_METHOD "autotools")
 set(EP_mssilk_USE_AUTOGEN "yes")
 set(EP_mssilk_CROSS_COMPILATION_OPTIONS

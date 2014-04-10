@@ -21,7 +21,11 @@
 ############################################################################
 
 set(EP_msamr_GIT_REPOSITORY "git://git.linphone.org/msamr.git")
-set(EP_msamr_GIT_TAG "d09a19cb27076c45f093e8abc9a00d07258779e9") # Branch 'master'
+if(${LINPHONE_BUILDER_LATEST})
+	set(EP_msamr_GIT_TAG "master")
+else()
+	set(EP_msamr_GIT_TAG "d09a19cb27076c45f093e8abc9a00d07258779e9")
+endif()
 set(EP_msamr_BUILD_METHOD "autotools")
 set(EP_msamr_USE_AUTOGEN "yes")
 set(EP_msamr_CONFIGURE_OPTIONS )

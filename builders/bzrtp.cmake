@@ -21,7 +21,11 @@
 ############################################################################
 
 set(EP_bzrtp_GIT_REPOSITORY "git://git.linphone.org/bzrtp.git")
-set(EP_bzrtp_GIT_TAG "1983008781bba8c001795948c1462be2670f45e0") # Branch 'master'
+if(${LINPHONE_BUILDER_LATEST})
+	set(EP_bzrtp_GIT_TAG "master")
+else()
+	set(EP_bzrtp_GIT_TAG "1983008781bba8c001795948c1462be2670f45e0")
+endif()
 set(EP_bzrtp_BUILD_METHOD "autotools")
 set(EP_bzrtp_USE_AUTOGEN "yes")
 set(EP_bzrtp_CROSS_COMPILATION_OPTIONS

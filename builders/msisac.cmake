@@ -21,7 +21,11 @@
 ############################################################################
 
 set(EP_msisac_GIT_REPOSITORY "git://git.linphone.org/msisac.git")
-set(EP_msisac_GIT_TAG "fafe68323df68b5f4e18b15b350134a54888f2b4") # Branch 'master'
+if(${LINPHONE_BUILDER_LATEST})
+	set(EP_msisac_GIT_TAG "master")
+else()
+	set(EP_msisac_GIT_TAG "fafe68323df68b5f4e18b15b350134a54888f2b4")
+endif()
 set(EP_msisac_BUILD_METHOD "autotools")
 set(EP_msisac_USE_AUTOGEN "yes")
 set(EP_msisac_CROSS_COMPILATION_OPTIONS

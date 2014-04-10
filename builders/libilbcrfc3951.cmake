@@ -21,7 +21,11 @@
 ############################################################################
 
 set(EP_libilbcrfc3951_GIT_REPOSITORY "git://git.linphone.org/libilbc-rfc3951.git")
-set(EP_libilbcrfc3951_GIT_TAG "e8084bdc3b182a3dcf57ae97ea72bbef26d423db")
+if(${LINPHONE_BUILDER_LATEST})
+	set(EP_libilbcrfc3951_GIT_TAG "master")
+else()
+	set(EP_libilbcrfc3951_GIT_TAG "e8084bdc3b182a3dcf57ae97ea72bbef26d423db")
+endif()
 set(EP_libilbcrfc3951_BUILD_METHOD "autotools")
 set(EP_libilbcrfc3951_USE_AUTOGEN "yes")
 set(EP_libilbcrfc3951_CROSS_COMPILATION_OPTIONS
