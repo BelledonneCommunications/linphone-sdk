@@ -78,6 +78,7 @@ LOCAL_SRC_FILES = \
 	audiofilters/audiomixer.c \
 	audiofilters/alaw.c \
 	audiofilters/ulaw.c \
+	audiofilters/g711.c \
 	audiofilters/msfileplayer.c \
 	audiofilters/dtmfgen.c \
 	audiofilters/msfilerec.c \
