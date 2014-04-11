@@ -105,7 +105,7 @@ static MSFilterMethod msopenh264_dec_methods[] = {
 #define MSOPENH264_DEC_NOUTPUTS    1
 #define MSOPENH264_DEC_FLAGS       0
 
-#ifndef _MSC_VER
+#if 0
 
 MSFilterDesc msopenh264_dec_desc = {
 	.id = MS_FILTER_PLUGIN_ID,
@@ -285,7 +285,7 @@ static MSFilterMethod msopenh264_enc_methods[] = {
 #define MSOPENH264_ENC_NOUTPUTS    1
 #define MSOPENH264_ENC_FLAGS       0
 
-#ifndef _MSC_VER
+#if 0
 
 MSFilterDesc msopenh264_enc_desc = {
 	.id = MS_FILTER_PLUGIN_ID,

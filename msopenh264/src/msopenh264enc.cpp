@@ -112,7 +112,7 @@ MSOpenH264Encoder::MSOpenH264Encoder(MSFilter *f)
 
 	long ret = WelsCreateSVCEncoder(&mEncoder);
 	if (ret != 0) {
-		ms_error("OpenH264 encoder: Failed to create encoder: %l", ret);
+		ms_error("OpenH264 encoder: Failed to create encoder: %li", ret);
 	}
 }
 
@@ -145,7 +145,8 @@ void MSOpenH264Encoder::initialize()
 			params.iMaxBitrate = maxBitrate;
 			params.iRCMode = RC_LOW_BW_MODE;
 			params.fMaxFrameRate = mVConf.fps;
-			params.bEnableRc = true;
+			params.uiIntraPeriod=mVConf.fps*10;
+			//params.bEnableRc = true;
 			params.bEnableFrameSkip = true;
 			params.bPrefixNalAddingCtrl = false;
 			params.uiMaxNalSize = ms_get_payload_max_size();

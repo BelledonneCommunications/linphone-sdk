@@ -58,6 +58,11 @@ if test $GCC = yes && test $wall_werror = yes;  then
 	CFLAGS="$CFLAGS -Werror "
 fi
 
+if test $GCC = yes ; then
+	CFLAGS="$CFLAGS -pthread"
+	LDFLAGS="$LDFLAGS -pthread"
+fi
+
 PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.7.0)
 
 found_openh264=no
