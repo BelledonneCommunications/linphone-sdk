@@ -703,7 +703,7 @@ static void dec_process(MSFilter *f) {
 			 * frame.  When set to 1 the current frame is an interframe.  Defined
 			 * in [RFC6386]
 			 */
-			if (m->b_rptr[0] & 0b00000001) {
+			if (m->b_rptr[0] & 0x01) {
 				/*not a key frame, freezing image until next keyframe*/
 				/*if (s->first_image_decoded && s->on_error) {
 					freemsg(m);
