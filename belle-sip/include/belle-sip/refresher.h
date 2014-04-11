@@ -45,7 +45,8 @@ BELLESIP_EXPORT void belle_sip_refresher_set_listener(belle_sip_refresher_t* ref
  */
 int belle_sip_refresher_start(belle_sip_refresher_t* refresher);
 /**
- * stop refresher
+ * stop refresher.
+ * If a transaction is pending, it will be terminated.
  */
 BELLESIP_EXPORT void belle_sip_refresher_stop(belle_sip_refresher_t* refresher);
 

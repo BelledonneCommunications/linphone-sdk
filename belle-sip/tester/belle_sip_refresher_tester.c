@@ -425,6 +425,7 @@ static void refresher_base_with_body(endpoint_t* client
 	belle_sip_refresher_refresh(refresher,0);
 	belle_sip_refresher_refresh(refresher,0);
 	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+1,1000));
+	CU_ASSERT_EQUAL(client->stat.refreshOk,client->register_count+1);
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 }

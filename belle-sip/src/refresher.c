@@ -22,6 +22,8 @@
 #define DEFAULT_RETRY_AFTER 60000
 #define DEFAULT_INITIAL_RETRY_AFTER_ON_IO_ERROR 500
 
+static void belle_sip_refresher_stop_internal(belle_sip_refresher_t* refresher,int cancel_pending_transaction) ;
+
 typedef enum belle_sip_refresher_state {
 	started,
 	stopped
@@ -54,14 +56,18 @@ static int set_expires_from_trans(belle_sip_refresher_t* refresher);
 static int timer_cb(void *user_data, unsigned int events) ;
 static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher,int expires,int auth_mandatory, belle_sip_list_t** auth_infos, belle_sip_uri_t *requri);
 
-
-static void schedule_timer_at(belle_sip_refresher_t* refresher,int delay, timer_purpose_t purpose) {
-	belle_sip_message("Refresher: scheduling next timer in %i ms",delay);
-	refresher->timer_purpose=purpose;
+static void cancel_retry(belle_sip_refresher_t* refresher) {
 	if (refresher->timer){
 		belle_sip_main_loop_remove_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack),refresher->timer);
 		belle_sip_object_unref(refresher->timer);
+		refresher->timer=NULL;
 	}
+}
+static void schedule_timer_at(belle_sip_refresher_t* refresher,int delay, timer_purpose_t purpose) {
+	belle_sip_message("Refresher: scheduling next timer in %i ms",delay);
+	refresher->timer_purpose=purpose;
+	/*cancel timer if any*/
+	cancel_retry(refresher);
 	refresher->timer=belle_sip_timeout_source_new(timer_cb,refresher,delay);
 	belle_sip_object_set_name((belle_sip_object_t*)refresher->timer,"Refresher timeout");
 	belle_sip_main_loop_add_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack),refresher->timer);
@@ -237,6 +243,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			/*avoid looping with 407 or 401 */
 			belle_sip_warning("Authentication is failing constantly, %s",(refresher->target_expires>0)? "will retry later":"giving up.");
 			if (refresher->target_expires>0) retry_later(refresher);
+			refresher->auth_failures=0; /*reset auth failure*/
 			break;
 		}
 		if (refresher->auth_events) {
@@ -329,6 +336,9 @@ void belle_sip_refresher_set_listener(belle_sip_refresher_t* refresher, belle_si
 }
 
 int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires) {
+	/*first cancel any current retry*/
+	cancel_retry(refresher);
+	refresher->auth_failures=0;/*reset the auth_failures to get a chance to authenticate again*/
 	return belle_sip_refresher_refresh_internal(refresher,expires,FALSE,NULL,NULL);
 }
 
@@ -449,16 +459,14 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 				,refresher);
 		return -1;
 	}
-	if (expires==0) belle_sip_refresher_stop(refresher);
+	if (expires==0) belle_sip_refresher_stop_internal(refresher,0); /*unregister transaction must be preserved*/
 	return 0;
 }
 
 
 static int timer_cb(void *user_data, unsigned int events) {
 	belle_sip_refresher_t* refresher = (belle_sip_refresher_t*)user_data;
-	
-	refresher->auth_failures=0;/*reset the auth_failures to get a chance to authenticate again*/
-	
+
 	if (refresher->timer_purpose==NORMAL_REFRESH && refresher->manual) {
 		belle_sip_message("Refresher [%p] is in manual mode, skipping refresh.",refresher);
 		/*call listener with special code 0 to indicate request is about to expire*/
@@ -594,15 +602,18 @@ int belle_sip_refresher_start(belle_sip_refresher_t* refresher) {
 	}
 	return 0;
 }
-
 void belle_sip_refresher_stop(belle_sip_refresher_t* refresher) {
+	belle_sip_refresher_stop_internal(refresher, 1);
+}
+
+static void belle_sip_refresher_stop_internal(belle_sip_refresher_t* refresher,int cancel_pending_transaction) {
 	belle_sip_message("Refresher [%p] stopped.",refresher);
 	if (refresher->timer){
 		belle_sip_main_loop_remove_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack), refresher->timer);
 		belle_sip_object_unref(refresher->timer);
 		refresher->timer=NULL;
 	}
-	if (refresher->transaction && belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)))) {
+	if (cancel_pending_transaction && refresher->transaction && belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)))) {
 		belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(refresher->transaction)); /*refresher cancelled, no need to continue to retransmit*/
 	}
 	refresher->state=stopped;
