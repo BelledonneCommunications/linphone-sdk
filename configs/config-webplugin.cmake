@@ -72,16 +72,6 @@ include(builders/CMakeLists.txt)
 # belle-sip
 list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_SERVER_SOCKETS=0")
 
-# mediastreamer2
-list(APPEND EP_ms2_CONFIGURE_OPTIONS
-	"--disable-nls"
-	"--disable-theora"
-	"--disable-sdl"
-	"--enable-x11=no"
-	"--disable-glx"
-	"--enable-relativeprefix=yes"
-)
-
 # linphone
 list(APPEND EP_linphone_CONFIGURE_OPTIONS
 	"--disable-nls"
@@ -93,3 +83,17 @@ list(APPEND EP_linphone_CONFIGURE_OPTIONS
 	"--disable-msg-storage"
 	"--enable-relativeprefix=yes"
 )
+
+# mediastreamer2
+list(APPEND EP_ms2_CONFIGURE_OPTIONS
+	"--disable-nls"
+	"--disable-theora"
+	"--disable-sdl"
+	"--enable-x11=no"
+	"--disable-glx"
+	"--enable-relativeprefix=yes"
+)
+
+# xml2
+set(EP_xml2_LINKING_TYPE "--enable-static" "--disable-shared")
+list(APPEND EP_xml2_CONFIGURE_OPTIONS "--with-pic")
