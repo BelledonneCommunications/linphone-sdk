@@ -517,12 +517,12 @@ typedef struct DecState {
 
 static void dec_init(MSFilter *f) {
 	DecState *s=(DecState *)ms_new(DecState,1);
-
-	ms_message("Using %s\n",vpx_codec_iface_name(interface));
 	vpx_codec_flags_t  flags = 0/*VPX_CODEC_USE_ERROR_CONCEALMENT*/;
 #ifdef FRAGMENT_ON_PARTITIONS
 	flags |= VPX_CODEC_USE_INPUT_FRAGMENTS;
 #endif
+
+	ms_message("Using %s\n",vpx_codec_iface_name(interface));
 
 	/* Initialize codec */
 	if(vpx_codec_dec_init(&s->codec, interface, NULL, flags))
