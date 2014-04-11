@@ -151,6 +151,8 @@ set(VOIP_SOURCE_FILES
 	audiofilters/equalizer.c
 	audiofilters/flowcontrol.c
 	audiofilters/flowcontrol.h
+	audiofilters/g711.c
+	audiofilters/g711.h
 	audiofilters/genericplc.c
 	audiofilters/l16.c
 	audiofilters/msconf.c
@@ -164,7 +166,6 @@ set(VOIP_SOURCE_FILES
 	otherfilters/msrtp.c
 	utils/_kiss_fft_guts.h
 	utils/dsptools.c
-	utils/g711common.h
 	utils/g722.h
 	utils/g722_decode.c
 	utils/g722_encode.c
