@@ -20,4 +20,4 @@
 #
 ############################################################################
 
-execute_process(COMMAND "${PYTHON_EXECUTABLE}" "${SOURCE_DIR}/cmake/importlib.py" "${INSTALL_PREFIX}/bin/libxml2-2.dll" "${INSTALL_PREFIX}/lib/xml2.lib")
+execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${INSTALL_PREFIX}/lib/libxml2.a" "${INSTALL_PREFIX}/lib/xml2.lib")

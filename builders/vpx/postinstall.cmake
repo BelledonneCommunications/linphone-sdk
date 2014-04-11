@@ -20,4 +20,4 @@
 #
 ############################################################################
 
-execute_process(COMMAND "${PYTHON_EXECUTABLE}" "${SOURCE_DIR}/cmake/importlib.py" "${INSTALL_PREFIX}/bin/libvpx-1.dll" "${INSTALL_PREFIX}/lib/vpx.lib")
+execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${INSTALL_PREFIX}/lib/libvpx.a" "${INSTALL_PREFIX}/lib/vpx.lib")
