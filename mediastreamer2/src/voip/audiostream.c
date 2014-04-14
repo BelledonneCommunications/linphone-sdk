@@ -202,17 +202,23 @@ void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndC
 	stream->ms.state=MSStreamPreparing;
 }
 
-void audio_stream_unprepare_sound(AudioStream *stream){
+static void _audio_stream_unprepare_sound(AudioStream *stream, bool_t keep_sound_resources){
 	if (stream->ms.state==MSStreamPreparing){
 		stop_preload_graph(stream);
 #ifdef __ios
-		if (stream->soundread) ms_filter_destroy(stream->soundread);
-		stream->soundread=NULL;
-		if (stream->soundwrite) ms_filter_destroy(stream->soundwrite);
-		stream->soundwrite=NULL;
+		if (!keep_sound_resources){
+			if (stream->soundread) ms_filter_destroy(stream->soundread);
+			stream->soundread=NULL;
+			if (stream->soundwrite) ms_filter_destroy(stream->soundwrite);
+			stream->soundwrite=NULL;
+		}
 #endif
 	}
 	stream->ms.state=MSStreamInitialized;
+}
+
+void audio_stream_unprepare_sound(AudioStream *stream){
+	_audio_stream_unprepare_sound(stream,FALSE);
 }
 
 static void player_callback(void *ud, MSFilter *f, unsigned int id, void *arg){
@@ -579,8 +585,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	/* create ticker */
 	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
 	if (stream->ms.state==MSStreamPreparing){
-		/*we were using the dummy preload graph, destroy it*/
-		audio_stream_unprepare_sound(stream);
+		/*we were using the dummy preload graph, destroy it but keep sound filters*/
+		_audio_stream_unprepare_sound(stream,TRUE);
 	}
 	
 	/* and then connect all */
