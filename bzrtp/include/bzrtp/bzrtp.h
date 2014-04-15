@@ -209,6 +209,18 @@ __attribute__ ((visibility ("default"))) void bzrtp_SASVerified(bzrtpContext_t *
  */
 __attribute__ ((visibility ("default"))) void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext);
 
+/**
+ * @brief Reset the retransmission timer of a given channel.
+ * Packets will be sent again if appropriate:
+ *  - when in responder role, zrtp engine only answer to packets sent by the initiator.
+ *  - if we are still in discovery phase, Hello or Commit packets will be resent.
+ *
+ * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in]		selfSSRC				The SSRC identifying the channel to reset
+ *
+ * return 0 on success, error code otherwise
+ */
+__attribute__ ((visibility ("default"))) int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 #define BZRTP_CUSTOMCACHE_USEKDF 	1
 #define BZRTP_CUSTOMCACHE_PLAINDATA 0

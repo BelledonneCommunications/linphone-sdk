@@ -336,7 +336,9 @@ int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeR
 			timerEvent.zrtpChannelContext = zrtpChannelContext;
 
 			/* send it to the state machine*/
-			return zrtpChannelContext->stateMachine(timerEvent);
+			if (zrtpChannelContext->stateMachine != NULL) {
+				return zrtpChannelContext->stateMachine(timerEvent);
+			}
 		}
 	}
 
@@ -531,6 +533,41 @@ int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12],
 	}
 }
 
+/*
+ * @brief Reset the retransmission timer of a given channel.
+ * Packets will be sent again if appropriate:
+ *  - when in responder role, zrtp engine only answer to packets sent by the initiator.
+ *  - if we are still in discovery phase, Hello or Commit packets will be resent.
+ *
+ * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in]		selfSSRC				The SSRC identifying the channel to reset
+ *
+ * return 0 on success, error code otherwise
+ */
+
+int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+
+	if (zrtpChannelContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+	/* reset timer only when not in secure mode yet and for initiator(engine start as initiator so if we call this function in discovery phase, it will reset the timer */
+	if ((zrtpContext->isSecure == 0) && (zrtpChannelContext->role == INITIATOR)) {
+		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
+		zrtpChannelContext->timer.firingTime = 0; /* be sure it will trigger at next call to bzrtp_iterate*/
+		zrtpChannelContext->timer.firingCount = -1; /* -1 to count the initial packet and then retransmit the regular number of packets */
+		/* reset timerStep to the base value */
+		if ((zrtpChannelContext->timer.timerStep % NON_HELLO_BASE_RETRANSMISSION_STEP) == 0) {
+			zrtpChannelContext->timer.timerStep = NON_HELLO_BASE_RETRANSMISSION_STEP;
+		} else {
+			zrtpChannelContext->timer.timerStep = HELLO_BASE_RETRANSMISSION_STEP;
+		}
+	}
+
+	return 0;
+}
+
 /* Local functions implementation */
 
 /**
@@ -580,6 +617,7 @@ int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t 
 
 	/* timer is off */
 	zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
+	zrtpChannelContext->timer.timerStep = HELLO_BASE_RETRANSMISSION_STEP; /* we must initialise the timeStep just in case the resettimer function is called between init and start */
 
 	zrtpChannelContext->selfSSRC = selfSSRC;
 

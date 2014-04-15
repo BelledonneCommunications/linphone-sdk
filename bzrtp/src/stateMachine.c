@@ -145,8 +145,8 @@ int state_discovery_init(bzrtpEvent_t event) {
 	if (event.eventType == BZRTP_EVENT_TIMER) {
 
 		/* adjust timer for next time : check we didn't reach the max retransmissions adjust the step(double it until reaching the cap) */
-		if (zrtpChannelContext->timer.firingCount<HELLO_MAX_RETRANSMISSION_NUMBER + 1) {
-			if (2*zrtpChannelContext->timer.timerStep<HELLO_CAP_RETRANSMISSION_STEP) {
+		if (zrtpChannelContext->timer.firingCount<=HELLO_MAX_RETRANSMISSION_NUMBER) {
+			if (2*zrtpChannelContext->timer.timerStep<=HELLO_CAP_RETRANSMISSION_STEP) {
 				zrtpChannelContext->timer.timerStep *= 2;
 			}
 			zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + zrtpChannelContext->timer.timerStep;
@@ -354,8 +354,8 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
 	if (event.eventType == BZRTP_EVENT_TIMER) {
 
 		/* adjust timer for next time : check we didn't reach the max retransmissions adjust the step(double it until reaching the cap) */
-		if (zrtpChannelContext->timer.firingCount<HELLO_MAX_RETRANSMISSION_NUMBER) {
-			if (2*zrtpChannelContext->timer.timerStep<HELLO_CAP_RETRANSMISSION_STEP) {
+		if (zrtpChannelContext->timer.firingCount<=HELLO_MAX_RETRANSMISSION_NUMBER) {
+			if (2*zrtpChannelContext->timer.timerStep<=HELLO_CAP_RETRANSMISSION_STEP) {
 				zrtpChannelContext->timer.timerStep *= 2;
 			}
 			zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + zrtpChannelContext->timer.timerStep;
@@ -622,8 +622,8 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 	if (event.eventType == BZRTP_EVENT_TIMER) {
 
 		/* adjust timer for next time : check we didn't reach the max retransmissions adjust the step(double it until reaching the cap) */
-		if (zrtpChannelContext->timer.firingCount<NON_HELLO_MAX_RETRANSMISSION_NUMBER) {
-			if (2*zrtpChannelContext->timer.timerStep<NON_HELLO_CAP_RETRANSMISSION_STEP) {
+		if (zrtpChannelContext->timer.firingCount<=NON_HELLO_MAX_RETRANSMISSION_NUMBER) {
+			if (2*zrtpChannelContext->timer.timerStep<=NON_HELLO_CAP_RETRANSMISSION_STEP) {
 				zrtpChannelContext->timer.timerStep *= 2;
 			}
 			zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + zrtpChannelContext->timer.timerStep;
@@ -926,8 +926,8 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 	if (event.eventType == BZRTP_EVENT_TIMER) {
 
 		/* adjust timer for next time : check we didn't reach the max retransmissions adjust the step(double it until reaching the cap) */
-		if (zrtpChannelContext->timer.firingCount<NON_HELLO_MAX_RETRANSMISSION_NUMBER) {
-			if (2*zrtpChannelContext->timer.timerStep<NON_HELLO_CAP_RETRANSMISSION_STEP) {
+		if (zrtpChannelContext->timer.firingCount<=NON_HELLO_MAX_RETRANSMISSION_NUMBER) {
+			if (2*zrtpChannelContext->timer.timerStep<=NON_HELLO_CAP_RETRANSMISSION_STEP) {
 				zrtpChannelContext->timer.timerStep *= 2;
 			}
 			zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + zrtpChannelContext->timer.timerStep;
@@ -1313,8 +1313,8 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 	if (event.eventType == BZRTP_EVENT_TIMER) {
 
 		/* adjust timer for next time : check we didn't reach the max retransmissions adjust the step(double it until reaching the cap) */
-		if (zrtpChannelContext->timer.firingCount<NON_HELLO_MAX_RETRANSMISSION_NUMBER) {
-			if (2*zrtpChannelContext->timer.timerStep<NON_HELLO_CAP_RETRANSMISSION_STEP) {
+		if (zrtpChannelContext->timer.firingCount<=NON_HELLO_MAX_RETRANSMISSION_NUMBER) {
+			if (2*zrtpChannelContext->timer.timerStep<=NON_HELLO_CAP_RETRANSMISSION_STEP) {
 				zrtpChannelContext->timer.timerStep *= 2;
 			}
 			zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + zrtpChannelContext->timer.timerStep;

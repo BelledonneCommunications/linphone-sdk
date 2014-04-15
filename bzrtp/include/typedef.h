@@ -70,7 +70,7 @@ typedef struct bzrtpTimer_struct {
 	uint8_t status; /**< Status is BZRTP_TIMER_ON or BZRTP_TIMER_OFF */
 	uint64_t firingTime; /**< in ms. The timer will fire if currentTime >= firingTime */
 	uint8_t firingCount; /**< Timer is used to resend packets, count the number of times a packet has been resent */
-	uint8_t timerStep; /**< in ms. Step between next timer fire: used to reset firingTime for next timer fire */
+	int timerStep; /**< in ms. Step between next timer fire: used to reset firingTime for next timer fire */
 } bzrtpTimer_t;
 
 /* the rs1 and rs2 are 256 bits long - see rfc section 4.6.1 */
