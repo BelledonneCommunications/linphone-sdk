@@ -146,6 +146,7 @@ void MSOpenH264Encoder::initialize()
 			params.iRCMode = RC_LOW_BW_MODE;
 			params.fMaxFrameRate = mVConf.fps;
 			params.uiIntraPeriod=mVConf.fps*10;
+			params.bEnableSpsPpsIdAddition=0;
 			//params.bEnableRc = true;
 			params.bEnableFrameSkip = true;
 			params.bPrefixNalAddingCtrl = false;
@@ -156,12 +157,16 @@ void MSOpenH264Encoder::initialize()
 			params.bEnableAdaptiveQuant = true;
 			params.bEnableSceneChangeDetect = false;
 			params.bEnableLongTermReference  = false;
+			params.iSpatialLayerNum=1;
+			
 			params.sSpatialLayers[0].iVideoWidth = mVConf.vsize.width;
 			params.sSpatialLayers[0].iVideoHeight = mVConf.vsize.height;
 			params.sSpatialLayers[0].fFrameRate = mVConf.fps;
-			params.sSpatialLayers[0].iSpatialBitrate = mVConf.required_bitrate;
+			params.sSpatialLayers[0].iSpatialBitrate = targetBitrate;
+			params.sSpatialLayers[0].iMaxSpatialBitrate = maxBitrate;
 			params.sSpatialLayers[0].sSliceCfg.uiSliceMode = SM_DYN_SLICE;
 			params.sSpatialLayers[0].sSliceCfg.sSliceArgument.uiSliceSizeConstraint = ms_get_payload_max_size();
+
 			ret = mEncoder->InitializeExt(&params);
 			if (ret != 0) {
 				ms_error("OpenH264 encoder: Failed to initialize: %d", ret);
@@ -329,9 +334,13 @@ void MSOpenH264Encoder::fillNalusQueue(SFrameBSInfo &sFbi, MSQueue *nalus)
 
 void MSOpenH264Encoder::calcBitrates(int &targetBitrate, int &maxBitrate) const
 {
+	/*
 	targetBitrate = mVConf.required_bitrate * 0.92;
 	if (targetBitrate > RC_MARGIN) targetBitrate = targetBitrate - RC_MARGIN;
 	maxBitrate = targetBitrate + RC_MARGIN / 2;
+	*/
+	targetBitrate = mVConf.required_bitrate * 0.8;
+	maxBitrate = mVConf.required_bitrate*0.95;
 }
 
 void MSOpenH264Encoder::applyBitrate()

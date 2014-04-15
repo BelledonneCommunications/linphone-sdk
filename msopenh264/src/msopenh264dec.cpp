@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 #include "ortp/b64.h"
 
-
 MSOpenH264Decoder::MSOpenH264Decoder(MSFilter *f)
 	: mFilter(f), mDecoder(0), mInitialized(false), mSPS(0), mPPS(0), mYUVMsg(0),
 	mBitstream(0), mBitstreamSize(65536), mLastErrorReportTime(0),
@@ -30,7 +29,7 @@ MSOpenH264Decoder::MSOpenH264Decoder(MSFilter *f)
 {
 	long ret = WelsCreateDecoder(&mDecoder);
 	if (ret != 0) {
-		ms_error("OpenH264 decoder: Failed to create decoder: %l", ret);
+		ms_error("OpenH264 decoder: Failed to create decoder: %li", ret);
 	} else {
 		mBitstream = static_cast<uint8_t *>(ms_malloc0(mBitstreamSize));
 	}
@@ -59,7 +58,7 @@ void MSOpenH264Decoder::initialize()
 		params.sVideoProperty.eVideoBsType = VIDEO_BITSTREAM_DEFAULT;
 		long ret = mDecoder->Initialize(&params);
 		if (ret != 0) {
-			ms_error("OpenH264 decoder: Failed to initialize: %l", ret);
+			ms_error("OpenH264 decoder: Failed to initialize: %li", ret);
 		} else {
 			ms_video_init_average_fps(&mFPS, "OpenH264 decoder: FPS=%f");
 			mInitialized = true;
