@@ -125,9 +125,6 @@ struct _MediaStream {
 	 * */
 	int target_bitrate;
 	media_stream_process_rtcp process_rtcp;
-	float up_bw; /*computed upload bw*/
-	float down_bw; /*computed upload bw*/
-	time_t last_bw_sampling_time;
 };
 
 

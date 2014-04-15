@@ -871,10 +871,10 @@ void mediastream_run_loop(MediastreamDatas* args) {
 		rtp_stats_display(rtp_session_get_stats(args->session),"RTP stats");
 		if (args->session){
 			ms_message("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
-				rtp_session_compute_recv_bandwidth(args->session)*1e-3,
-				rtp_session_compute_send_bandwidth(args->session)*1e-3);
+				rtp_session_get_recv_bandwidth(args->session)*1e-3,
+				rtp_session_get_send_bandwidth(args->session)*1e-3);
 			parse_events(args->session,args->q);
-			ms_message("Quality indicator : %f\n",args->audio ? audio_stream_get_quality_rating(args->audio) : -1);
+			ms_message("Quality indicator : %f\n",args->audio ? audio_stream_get_quality_rating(args->audio) : media_stream_get_quality_rating((MediaStream*)args->video));
 		}
 	}
 }

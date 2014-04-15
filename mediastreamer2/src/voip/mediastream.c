@@ -469,12 +469,7 @@ void media_stream_iterate(MediaStream *stream){
 		rtp_session_set_rtcp_report_interval(stream->sessions.rtp_session,5000);
 		stream->is_beginning=FALSE;
 	}
-	if ((curtime-stream->last_bw_sampling_time)>=1) {
-		/*update bandwidth stat every second more or less*/
-		stream->up_bw=rtp_session_compute_send_bandwidth(stream->sessions.rtp_session);
-		stream->down_bw=rtp_session_compute_recv_bandwidth(stream->sessions.rtp_session);
-		stream->last_bw_sampling_time=curtime;
-	}
+	
 	if (stream->ice_check_list) ice_check_list_process(stream->ice_check_list,stream->sessions.rtp_session);
 	/*we choose to update the quality indicator as much as possible, since local statistics can be computed realtime. */
 	if (stream->qi && curtime>stream->last_iterate_time) ms_quality_indicator_update_local(stream->qi);
@@ -536,11 +531,11 @@ int media_stream_get_target_network_bitrate(const MediaStream *stream) {
 }
 
 float media_stream_get_up_bw(const MediaStream *stream) {
-	return stream->up_bw;
+	return rtp_session_get_send_bandwidth(stream->sessions.rtp_session);
 }
 
 float media_stream_get_down_bw(const MediaStream *stream) {
-	return stream->down_bw;
+	return rtp_session_get_recv_bandwidth(stream->sessions.rtp_session);
 }
 
 void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *sessions){

@@ -346,7 +346,6 @@ static void _sender_process(MSFilter * f)
 {
 	SenderData *d = (SenderData *) f->data;
 	RtpSession *s = d->session;
-
 	mblk_t *im;
 	uint32_t timestamp;
 
@@ -398,7 +397,8 @@ static void _sender_process(MSFilter * f)
 			send_stun_packet(s);
 		}
 	}
-
+	/*every second, compute output bandwidth*/
+	if (f->ticker->time % 1000 == 0) rtp_session_compute_send_bandwidth(d->session);
 	ms_filter_unlock(f);
 }
 
@@ -588,6 +588,8 @@ static void receiver_process(MSFilter * f)
 		rtp_get_payload(m,&m->b_rptr);
 		ms_queue_put(f->outputs[0], m);
 	}
+	/*every second compute recv bandwidth*/
+	if (f->ticker->time % 1000 == 0) rtp_session_compute_recv_bandwidth(d->session);
 }
 
 static MSFilterMethod receiver_methods[] = {
