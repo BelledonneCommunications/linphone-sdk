@@ -48,7 +48,7 @@ private:
 	MSFilter *mFilter;
 	SDecodingParam mDecoderParams;
 	ISVCDecoder *mDecoder;
-	Rfc3984Context mUnpacker;
+	Rfc3984Context *mUnpacker;
 	MSPicture mOutbuf;
 	MSAverageFPS mFPS;
 	mblk_t *mSPS;

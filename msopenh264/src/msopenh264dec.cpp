@@ -48,7 +48,7 @@ MSOpenH264Decoder::~MSOpenH264Decoder()
 void MSOpenH264Decoder::initialize()
 {
 	mFirstImageDecoded = false;
-	rfc3984_init(&mUnpacker);
+	mUnpacker=rfc3984_new();
 	if (mDecoder != 0) {
 		SDecodingParam params = { 0 };
 		params.iOutputColorFormat = videoFormatI420;
@@ -69,6 +69,7 @@ void MSOpenH264Decoder::initialize()
 void MSOpenH264Decoder::feed()
 {
 	if (!isInitialized()){
+		ms_error("MSOpenH264Decoder::feed(): not initialized");
 		ms_queue_flush(mFilter->inputs[0]);
 		return;
 	}
@@ -82,16 +83,17 @@ void MSOpenH264Decoder::feed()
 			// Push the sps/pps given in sprop-parameter-sets if any
 			mblk_set_timestamp_info(mSPS, mblk_get_timestamp_info(im));
 			mblk_set_timestamp_info(mPPS, mblk_get_timestamp_info(im));
-			rfc3984_unpack(&mUnpacker, mSPS, &nalus);
-			rfc3984_unpack(&mUnpacker, mPPS, &nalus);
+			rfc3984_unpack(mUnpacker, mSPS, &nalus);
+			rfc3984_unpack(mUnpacker, mPPS, &nalus);
 			mSPS = 0;
 			mPPS = 0;
 		}
-		rfc3984_unpack(&mUnpacker, im, &nalus);
+		rfc3984_unpack(mUnpacker, im, &nalus);
 		if (!ms_queue_empty(&nalus)) {
 			void * pData[3] = { 0 };
 			SBufferInfo sDstBufInfo = { 0 };
 			int len = nalusToFrame(&nalus);
+
 			DECODING_STATE state = mDecoder->DecodeFrame2(mBitstream, len, pData, &sDstBufInfo);
 			if (state != dsErrorFree) {
 				ms_error("OpenH264 decoder: DecodeFrame2 failed: 0x%x", state);
@@ -164,6 +166,10 @@ void MSOpenH264Decoder::uninitialize()
 	}
 	if (mDecoder != 0) {
 		mDecoder->Uninitialize();
+	}
+	if (mUnpacker){
+		rfc3984_destroy(mUnpacker);
+		mUnpacker=NULL;
 	}
 	mInitialized = false;
 }
