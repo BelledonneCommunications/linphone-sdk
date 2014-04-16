@@ -101,10 +101,7 @@ typedef struct _MediastreamDatas {
 	bool_t eq;
 	bool_t is_verbose;
 	int device_rotation;
-
-#ifdef VIDEO_ENABLED
 	VideoStream *video;
-#endif
 	char * capture_card;
 	char * playback_card;
 	char * camera;
