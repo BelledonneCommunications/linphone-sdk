@@ -248,8 +248,9 @@ static struct dns_hosts *hosts(belle_sip_simple_resolver_context_t *ctx) {
 		return ctx->hosts;
 
 	if (!(ctx->hosts = dns_hosts_local(&error))) {
-		belle_sip_error("%s dns_hosts_local error: %s", __FUNCTION__, dns_strerror(error));
-		return NULL;
+		belle_sip_warning("%s dns_hosts_local error: %s", __FUNCTION__, dns_strerror(error));
+		/*in case of failure, create an empty host object to make further processing happy, knowing that we can live without /etc/hosts.*/
+		ctx->hosts=dns_hosts_open(&error);
 	}
 
 	if (ctx->base.stack->dns_user_hosts_file) {
