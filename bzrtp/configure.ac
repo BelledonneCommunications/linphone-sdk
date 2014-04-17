@@ -76,7 +76,7 @@ AC_ARG_ENABLE(tests,
 )
 AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_cunit = xyes)
 
-CFLAGS="$CFLAGS -Wall -std=c99"
+CFLAGS="$CFLAGS -Wall"
 
 case $CC in
         *clang*)

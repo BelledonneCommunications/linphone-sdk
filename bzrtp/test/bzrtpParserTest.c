@@ -25,11 +25,13 @@
 #include <stdlib.h>
 #include <errno.h>
 #include "CUnit/Basic.h"
-#include <unistd.h>
+
+#ifndef WIN32
 #include <sys/time.h>
-/* this defines is need to get nanosleep function  from time.h */
-#define __USE_POSIX199309
 #include <time.h>
+#else
+#include <windows.h>
+#endif
 
 #include "bzrtp/bzrtp.h"
 #include "typedef.h"
@@ -1544,13 +1546,21 @@ uint64_t getCurrentTimeInMs() {
 	return (tv.tv_sec*1000+tv.tv_usec/1000);
 }
 
+static void sleepMs(int ms){
+#ifdef WIN32
+	Sleep(ms);
+#else
+	struct timespec ts;
+	ts.tv_sec=0;
+	ts.tv_nsec=ms*1000000LL;
+	nanosleep(&ts,NULL);
+#endif
+}
+
 /* Ping message length is 24 bytes (already define in packetParser.c out of this scope) */
 #define ZRTP_PINGMESSAGE_FIXED_LENGTH 24
 
 void test_stateMachine() {
-	struct timespec tenMs;
-	tenMs.tv_sec = 0;
-	tenMs.tv_nsec = 10000000; /* 10 ms */
 
 	/* Create zrtp Context */
 	bzrtpContext_t *contextAlice = bzrtp_createBzrtpContext(0x12345678); /* Alice's SSRC of main channel is 12345678 */
@@ -1622,9 +1632,8 @@ void test_stateMachine() {
 		bzrtp_iterate(contextAlice, 0x12345678, getCurrentTimeInMs());
 		bzrtp_iterate(contextBob, 0x87654321, getCurrentTimeInMs());
 
-
 		/* sleep for 10 ms */
-		nanosleep(&tenMs, NULL);
+		sleepMs(10);
 	}
 
 	/* compare SAS and check we are in secure mode */
@@ -1737,10 +1746,11 @@ void test_stateMachine() {
 
 
 		/* sleep for 10 ms */
-		nanosleep(&tenMs, NULL);
+		sleepMs(10);
 	}
 
 
+	CU_ASSERT_TRUE((memcmp(contextAlice->channelContext[1]->srtpSecrets.selfSrtpKey, contextBob->channelContext[1]->srtpSecrets.peerSrtpKey, 16) == 0) && (contextAlice->isSecure == 1) && (contextBob->isSecure == 1));
 
 	dumpContext("\nAlice", contextAlice);
 	dumpContext("\nBob", contextBob);
