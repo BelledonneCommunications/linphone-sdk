@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #include <math.h>
-
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msequalizer.h"
 #include "mediastreamer2/msvolume.h"
@@ -77,6 +76,7 @@ extern void libmsisac_init();
 
 
 #define MEDIASTREAM_MAX_ICE_CANDIDATES 3
+
 
 
 static int cond=1;
@@ -469,8 +469,8 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			i++;
 			out->device_rotation=atoi(argv[i]);
 		} else if (strcmp(argv[i], "--srtp")==0) {
-			if (!ortp_srtp_supported()) {
-				ms_error("ortp srtp support not enabled");
+			if (!media_stream_srtp_supported()) {
+				ms_error("srtp support not enabled");
 				return FALSE;
 			}
 			out->enable_srtp = TRUE;
@@ -599,16 +599,16 @@ void setup_media_streams(MediastreamDatas* args) {
 		// default profile require key-length = 30 bytes
 		//  -> input : 40 b64 encoded bytes
 		if (!args->srtp_local_master_key) {
-			uint8_t tmp[30];			
-			ortp_crypto_get_random(tmp, 30);
+			char tmp[30];
+			snprintf(tmp,sizeof(tmp),"%08x%08x%08x%08x",rand(),rand(),rand(),rand());
 			args->srtp_local_master_key = (char*) malloc(41);
 			b64_encode((const char*)tmp, 30, args->srtp_local_master_key, 40);
 			args->srtp_local_master_key[40] = '\0';
 			ms_message("Generated local srtp key: '%s'", args->srtp_local_master_key);
 		}
 		if (!args->srtp_remote_master_key) {
-			uint8_t tmp[30];			
-			ortp_crypto_get_random(tmp, 30);
+			char tmp[30];
+			snprintf(tmp,sizeof(tmp),"%08x%08x%08x%08x",rand(),rand(),rand(),rand());
 			args->srtp_remote_master_key = (char*) malloc(41);
 			b64_encode((const char*)tmp, 30, args->srtp_remote_master_key, 40);
 			args->srtp_remote_master_key[40] = '\0';
@@ -700,7 +700,7 @@ void setup_media_streams(MediastreamDatas* args) {
 			ms_message("SRTP enabled: %d", 
 				audio_stream_enable_srtp(
 					args->audio, 
-					AES_128_SHA1_80,
+					MS_AES_128_SHA1_80,
 					args->srtp_local_master_key, 
 					args->srtp_remote_master_key));
 		}
@@ -748,7 +748,7 @@ void setup_media_streams(MediastreamDatas* args) {
 			ms_message("SRTP enabled: %d", 
 				video_stream_enable_strp(
 					args->video, 
-					AES_128_SHA1_80,
+					MS_AES_128_SHA1_80,
 					args->srtp_local_master_key, 
 					args->srtp_remote_master_key));
 		}

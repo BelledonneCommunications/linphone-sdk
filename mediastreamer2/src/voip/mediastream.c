@@ -271,11 +271,12 @@ static int check_srtp_session_created(MediaStream *stream){
 		stream->sessions.srtp_session=session;
 		srtp_transport_new(session,&rtp,&rtcp);
 		rtp_session_set_transports(stream->sessions.rtp_session,rtp,rtcp);
+		stream->sessions.is_secured=TRUE;
 	}
 	return 0;
 }
 
-static bool_t add_srtp_stream(srtp_t srtp, enum ortp_srtp_crypto_suite_t suite, uint32_t ssrc, const char* b64_key, bool_t inbound)
+static bool_t add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char* b64_key, bool_t inbound)
 {
 	srtp_policy_t policy;
 	uint8_t* key;
@@ -287,29 +288,29 @@ static bool_t add_srtp_stream(srtp_t srtp, enum ortp_srtp_crypto_suite_t suite, 
 	memset(&policy,0,sizeof(policy));
 	
 	switch(suite){
-		case AES_128_SHA1_32:
+		case MS_AES_128_SHA1_32:
 			crypto_policy_set_aes_cm_128_hmac_sha1_32(&policy.rtp);
 			// srtp doc says: not adapted to rtcp...
 			crypto_policy_set_aes_cm_128_hmac_sha1_32(&policy.rtcp);
 			break;
-		case AES_128_NO_AUTH:
+		case MS_AES_128_NO_AUTH:
 			crypto_policy_set_aes_cm_128_null_auth(&policy.rtp);
 			// srtp doc says: not adapted to rtcp...
 			crypto_policy_set_aes_cm_128_null_auth(&policy.rtcp);
 			break;
-		case NO_CIPHER_SHA1_80:
+		case MS_NO_CIPHER_SHA1_80:
 			crypto_policy_set_null_cipher_hmac_sha1_80(&policy.rtp);
 			crypto_policy_set_null_cipher_hmac_sha1_80(&policy.rtcp);
 			break;
-		case AES_128_SHA1_80: /*default mode*/
+		case MS_AES_128_SHA1_80: /*default mode*/
 			crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtp);
 			crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtcp);
 			break;
-		case AES_256_SHA1_80:
+		case MS_AES_256_SHA1_80:
 			crypto_policy_set_aes_cm_256_hmac_sha1_80(&policy.rtp);
 			crypto_policy_set_aes_cm_256_hmac_sha1_80(&policy.rtcp);
 			break;
-		case AES_256_SHA1_32:
+		case MS_AES_256_SHA1_32:
 			crypto_policy_set_aes_cm_256_hmac_sha1_32(&policy.rtp);
 			crypto_policy_set_aes_cm_256_hmac_sha1_32(&policy.rtcp);
 			break;
@@ -366,12 +367,12 @@ static uint32_t find_other_ssrc(srtp_t srtp, uint32_t ssrc){
 #endif
 
 bool_t media_stream_srtp_supported(void){
-	return _ORTP_HAVE_SRTP;
+	return _ORTP_HAVE_SRTP & ortp_srtp_supported();
 }
 
-int media_stream_set_srtp_recv_key(MediaStream *stream, enum ortp_srtp_crypto_suite_t suite, const char* key){
+int media_stream_set_srtp_recv_key(MediaStream *stream, MSCryptoSuite suite, const char* key){
 	
-	if (!ortp_srtp_supported() || !_ORTP_HAVE_SRTP) {
+	if (!media_stream_srtp_supported()) {
 		ms_error("ortp srtp support disabled in oRTP or mediastreamer2");
 		return -1;
 	}
@@ -399,9 +400,9 @@ int media_stream_set_srtp_recv_key(MediaStream *stream, enum ortp_srtp_crypto_su
 #endif
 }
 
-int media_stream_set_srtp_send_key(MediaStream *stream, enum ortp_srtp_crypto_suite_t suite, const char* key){
+int media_stream_set_srtp_send_key(MediaStream *stream, MSCryptoSuite suite, const char* key){
 	
-	if (!ortp_srtp_supported() || !_ORTP_HAVE_SRTP) {
+	if (!media_stream_srtp_supported()) {
 		ms_error("ortp srtp support disabled in oRTP or mediastreamer2");
 		return -1;
 	}
@@ -430,7 +431,7 @@ int media_stream_set_srtp_send_key(MediaStream *stream, enum ortp_srtp_crypto_su
 }
 
 /*deprecated*/
-bool_t media_stream_enable_srtp(MediaStream *stream, enum ortp_srtp_crypto_suite_t suite, const char *snd_key, const char *rcv_key) {
+bool_t media_stream_enable_srtp(MediaStream *stream, MSCryptoSuite suite, const char *snd_key, const char *rcv_key) {
 	return media_stream_set_srtp_recv_key(stream,suite,rcv_key)==0 && media_stream_set_srtp_send_key(stream,suite,snd_key)==0;
 }
 
@@ -475,18 +476,23 @@ void media_stream_iterate(MediaStream *stream){
 	if (stream->qi && curtime>stream->last_iterate_time) ms_quality_indicator_update_local(stream->qi);
 	stream->last_iterate_time=curtime;
 	if (stream->evq){
-		OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
-		if (ev!=NULL){
+		OrtpEvent *ev=NULL;
+
+		while ((ev=ortp_ev_queue_get(stream->evq))!=NULL){
 			OrtpEventType evt=ortp_event_get_type(ev);
 			if (evt==ORTP_EVENT_RTCP_PACKET_RECEIVED){
 				mblk_t *m=ortp_event_get_data(ev)->packet;
-				ms_message("stream [%p]: receiving RTCP %s%s",stream,(rtcp_is_SR(m)?"SR":""),(rtcp_is_RR(m)?"RR":""));
+				ms_message("%s stream [%p]: receiving RTCP %s%s",media_stream_type_str(stream),stream,(rtcp_is_SR(m)?"SR":""),(rtcp_is_RR(m)?"RR":""));
 				stream->process_rtcp(stream,m);
 			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
 				ms_message("%s_stream_iterate[%p]: local statistics available\n\tLocal's current jitter buffer size:%f ms",
 					media_stream_type_str(stream), stream, rtp_session_get_jitter_stats(stream->sessions.rtp_session)->jitter_buffer_size_ms);
 			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ice_check_list)){
 				ice_handle_stun_packet(stream->ice_check_list,stream->sessions.rtp_session,ortp_event_get_data(ev));
+			} else if (evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) {
+				OrtpEventData *evd=ortp_event_get_data(ev);
+				stream->sessions.is_secured=evd->info.zrtp_stream_encrypted;
+				ms_message("%s stream [%p] is %s ",media_stream_type_str(stream) , stream, stream->sessions.is_secured ? "encrypted" : "not encrypted");
 			}
 			ortp_event_destroy(ev);
 		}
@@ -541,4 +547,10 @@ float media_stream_get_down_bw(const MediaStream *stream) {
 void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *sessions){
 	memcpy(sessions,&stream->sessions, sizeof(MSMediaStreamSessions));
 	stream->owns_sessions=FALSE;
+}
+bool_t media_stream_is_secured (const MediaStream *stream) {
+	return stream->sessions.is_secured;
+}
+MSStreamState media_stream_get_state(const MediaStream *stream) {
+	return stream->state;
 }

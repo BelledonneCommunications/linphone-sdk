@@ -1013,3 +1013,6 @@ void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){
 	if (stream->ms.sessions.zrtp_context==NULL)
 		stream->ms.sessions.zrtp_context=ortp_zrtp_context_new(stream->ms.sessions.rtp_session, params);
 }
+bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
+	return stream->ms.sessions.zrtp_context!=NULL;
+}

@@ -24,7 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ortp/ortp.h>
 #include <ortp/event.h>
 #include <ortp/zrtp.h>
-#include <ortp/ortp_srtp.h>
+/* defined in srtp.h*/
+typedef struct srtp_ctx_t *MSSrtpCtx;
 
 #include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/msticker.h>
@@ -67,7 +68,16 @@ MS2_PUBLIC void ring_stop (RingStream * stream);
 /**
  * @}
 **/
-
+/*
+ * Crypto suite used configure encrypted stream*/
+typedef enum _MSCryptoSuite{
+	MS_AES_128_SHA1_80 = 1,
+	MS_AES_128_SHA1_32,
+	MS_AES_128_NO_AUTH,
+	MS_NO_CIPHER_SHA1_80,
+	MS_AES_256_SHA1_80,
+	MS_AES_256_SHA1_32
+} MSCryptoSuite;
 
 typedef enum StreamType {
 	AudioStreamType,
@@ -83,9 +93,10 @@ typedef  void (*media_stream_process_rtcp)(MediaStream *stream, mblk_t *m);
 
 struct _MSMediaStreamSessions{
 	RtpSession *rtp_session;
-	srtp_t srtp_session;
+	MSSrtpCtx srtp_session;
 	OrtpZrtpContext *zrtp_context;
 	MSTicker *ticker;
+	bool_t is_secured;
 };
 
 typedef struct _MSMediaStreamSessions MSMediaStreamSessions;
@@ -148,11 +159,17 @@ MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_
 /*
  * deprecated, use media_stream_set_srtp_recv_key and media_stream_set_srtp_send_key.
 **/
-MS2_PUBLIC bool_t media_stream_enable_srtp(MediaStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
+MS2_PUBLIC bool_t media_stream_enable_srtp(MediaStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key);
 
-MS2_PUBLIC int media_stream_set_srtp_recv_key(MediaStream *stream, enum ortp_srtp_crypto_suite_t suite, const char* key);
+MS2_PUBLIC int media_stream_set_srtp_recv_key(MediaStream *stream, MSCryptoSuite suite, const char* key);
 
-MS2_PUBLIC int media_stream_set_srtp_send_key(MediaStream *stream, enum ortp_srtp_crypto_suite_t suite, const char* key);
+MS2_PUBLIC int media_stream_set_srtp_send_key(MediaStream *stream, MSCryptoSuite suite, const char* key);
+/**
+ * @paraa stream object
+ * @return true if stream is encrypted
+ * */
+MS2_PUBLIC bool_t media_stream_is_secured(const MediaStream *stream);
+
 
 MS2_PUBLIC const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream);
 /* *
@@ -206,6 +223,10 @@ MS2_PUBLIC void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStream
 
 void media_stream_iterate(MediaStream * stream);
 
+/**
+ * @returns curret streams tate
+ * */
+MS2_PUBLIC MSStreamState media_stream_get_state(const MediaStream *stream);
 
 typedef enum EchoLimiterType{
 	ELInactive,
@@ -465,9 +486,13 @@ MS2_PUBLIC float audio_stream_get_average_lq_quality_rating(AudioStream *stream)
 
 /* enable ZRTP on the audio stream */
 MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params);
+/**
+ * return TRUE if zrtp is enabled, it does not mean that stream is encrypted, but only that zrtp is configured to know encryption status, uses #
+ * */
+bool_t  audio_stream_zrtp_enabled(const AudioStream *stream);
 
 /* enable SRTP on the audio stream */
-static inline bool_t audio_stream_enable_srtp(AudioStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
+static inline bool_t audio_stream_enable_srtp(AudioStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {
 	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
 }
 
@@ -610,7 +635,7 @@ MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param);
 
 /* enable SRTP on the video stream */
-static inline bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
+static inline bool_t video_stream_enable_strp(VideoStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {
 	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
 }
 
