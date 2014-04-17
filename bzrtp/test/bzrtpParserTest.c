@@ -27,7 +27,6 @@
 #include "CUnit/Basic.h"
 
 #ifndef WIN32
-#include <sys/time.h>
 #include <time.h>
 #else
 #include <windows.h>
@@ -1540,10 +1539,9 @@ int bzrtp_sendData(void *clientData, uint8_t *packetString, uint16_t packetLengt
 	return 0;
 }
 
+uint64_t myCurrentTime = 0; /* we do not need a real time, start at 0 and increment it at each sleep */
 uint64_t getCurrentTimeInMs() {
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	return (tv.tv_sec*1000+tv.tv_usec/1000);
+	return myCurrentTime;
 }
 
 static void sleepMs(int ms){
@@ -1555,6 +1553,7 @@ static void sleepMs(int ms){
 	ts.tv_nsec=ms*1000000LL;
 	nanosleep(&ts,NULL);
 #endif
+	myCurrentTime +=ms;
 }
 
 /* Ping message length is 24 bytes (already define in packetParser.c out of this scope) */
