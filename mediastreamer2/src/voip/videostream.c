@@ -821,9 +821,10 @@ void video_stream_send_only_stop(VideoStream *vs){
 
 /* enable ZRTP on the video stream using information from the audio stream */
 void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param){
-	if (astream->ms.sessions.zrtp_context != NULL) {
+	if (astream->ms.sessions.zrtp_context != NULL && vstream->ms.sessions.zrtp_context == NULL) {
 		vstream->ms.sessions.zrtp_context=ortp_zrtp_multistream_new(astream->ms.sessions.zrtp_context, vstream->ms.sessions.rtp_session, param);
-	}
+	} else if (vstream->ms.sessions.zrtp_context && !vstream->ms.sessions.is_secured)
+		ortp_zrtp_reset_transmition_timer(vstream->ms.sessions.zrtp_context,vstream->ms.sessions.rtp_session);
 }
 
 void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable) {

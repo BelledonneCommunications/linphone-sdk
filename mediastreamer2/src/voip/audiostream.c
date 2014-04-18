@@ -1012,6 +1012,8 @@ float audio_stream_get_average_lq_quality_rating(AudioStream *stream) {
 void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){
 	if (stream->ms.sessions.zrtp_context==NULL)
 		stream->ms.sessions.zrtp_context=ortp_zrtp_context_new(stream->ms.sessions.rtp_session, params);
+	else if (!stream->ms.sessions.is_secured)
+		ortp_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context,stream->ms.sessions.rtp_session);
 }
 bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 	return stream->ms.sessions.zrtp_context!=NULL;
