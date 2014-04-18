@@ -240,7 +240,7 @@ static void ms_opus_enc_uninit(MSFilter *f) {
 /* the compute max_bitrate function will also modify the ptime according to requested bitrate */
 static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 	int normalized_cbr = 0;
-	int pps;
+	float pps;
 
 	/* check maxaverage bit rate parameter */
 	if (d->maxaveragebitrate>0 && d->maxaveragebitrate<d->max_network_bitrate) {
@@ -251,7 +251,7 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 	if (d->ptime==-1) {
 		pps = 50; // if this function is called before ptime being set, use default ptime 20ms
 	} else {
-		pps = 1000 / d->ptime;
+		pps = 1000.0f / d->ptime;
 	}
 
 	/* if have a potentiel ptime modification suggested by caller, check ptime and bitrate for adjustment */
@@ -274,21 +274,23 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 			d->ptime = 20;
 		}
 
-		pps = 1000 / d->ptime;
+		pps = 1000.0f / d->ptime;
 	}
 
 	normalized_cbr = (int)(((((float)d->max_network_bitrate) / (pps * 8)) - 20 - 12 -8) * pps * 8);
 	/* check if bitrate is in range [6,510kbps] */
 	if (normalized_cbr<6000) {
+		int initial_value = normalized_cbr;
 		normalized_cbr = 6000;
 		d->max_network_bitrate = ((normalized_cbr*d->ptime/8000) + 12 + 8 + 20) *8000/d->ptime;
-		ms_warning("Opus encoder doesn't support bitrate [%i] set to 6kbps network bitrate [%d]", normalized_cbr, d->max_network_bitrate);
+		ms_warning("Opus encoder doesn't support bitrate [%i] set to 6kbps network bitrate [%d]", initial_value, d->max_network_bitrate);
 	}
 
 	if (normalized_cbr>510000) {
+		int initial_value = normalized_cbr;
 		normalized_cbr = 510000;
 		d->max_network_bitrate = ((normalized_cbr*d->ptime/8000) + 12 + 8 + 20) *8000/d->ptime;
-		ms_warning("Opus encoder doesn't support bitrate [%i] set to 510kbps network bitrate [%d]", normalized_cbr, d->max_network_bitrate);
+		ms_warning("Opus encoder doesn't support bitrate [%i] set to 510kbps network bitrate [%d]", initial_value, d->max_network_bitrate);
 	}
 
 	d->bitrate = normalized_cbr;
