@@ -19,6 +19,7 @@ belle_sip_tester_SOURCES=	belle_sip_tester.c belle_sip_tester.h\
 				register_tester.h \
 				belle_http_tester.c
 
+
 belle_sip_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS) $(TLS_CFLAGS)
 
 belle_sip_tester_LDFLAGS=$(CUNIT_LIBS) $(AM_LDFLAGS)

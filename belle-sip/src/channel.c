@@ -22,6 +22,8 @@
 
 static void channel_prepare_continue(belle_sip_channel_t *obj);
 static void channel_process_queue(belle_sip_channel_t *obj);
+static void channel_begin_background_task(belle_sip_channel_t *obj);
+static void channel_end_background_task(belle_sip_channel_t *obj);
 
 const char *belle_sip_channel_state_to_string(belle_sip_channel_state_t state){
 	switch(state){
@@ -67,6 +69,8 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 		belle_sip_object_unref(obj->inactivity_timer);
 	}
 	if (obj->public_ip) belle_sip_free(obj->public_ip);
+	channel_end_background_task(obj);/*normally this should do nothing because it sould have been terminated already,
+		however leaving a background task open is so dangerous that we have to be paranoid*/
 	belle_sip_message("Channel [%p] destroyed",obj);
 }
 
@@ -659,6 +663,27 @@ const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj){
 	return obj->current_peer;
 }
 
+static void channel_on_background_task_ended(belle_sip_channel_t *obj){
+	belle_sip_warning("channel [%p]: background task has to be ended now, but work isn't finished.",obj);
+	channel_end_background_task(obj);
+}
+
+static void channel_begin_background_task(belle_sip_channel_t *obj){
+	if (obj->bg_task_id==0){
+		obj->bg_task_id=belle_sip_begin_background_task("belle-sip channel in progress",(void (*)(void*))channel_on_background_task_ended, obj);
+		if (obj->bg_task_id) belle_sip_message("channel [%p]: starting background task with id=[%x].",obj,obj->bg_task_id);
+	}else belle_sip_warning("channel [%p]: already a background task pending.",obj);
+}
+
+
+static void channel_end_background_task(belle_sip_channel_t *obj){
+	if (obj->bg_task_id){
+		belle_sip_message("channel [%p]: ending background task with id=[%x].",obj,obj->bg_task_id);
+		belle_sip_end_background_task(obj->bg_task_id);
+		obj->bg_task_id=0;
+	}
+}
+
 belle_sip_message_t* belle_sip_channel_pick_message(belle_sip_channel_t *obj) {
 	belle_sip_message_t* result=NULL;
 	belle_sip_list_t* front;
@@ -701,6 +726,7 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 	}/*else the channel was previously working good with the current ip address but now fails, so let's notify the error*/
 	
 	obj->state=BELLE_SIP_CHANNEL_ERROR;
+	channel_end_background_task(obj);
 	/*Because error notification will in practice trigger the destruction of possible transactions and this channel,
 	* it is safer to invoke the listener outside the current call stack.
 	* Indeed the channel encounters network errors while being called for transmiting by a transaction.
@@ -725,6 +751,9 @@ void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state
 		belle_sip_channel_handle_error(obj);
 	}else{
 		obj->state=state;
+		if (state==BELLE_SIP_CHANNEL_DISCONNECTED){
+			channel_end_background_task(obj);
+		}
 		channel_invoke_state_listener(obj);
 	}
 }
@@ -823,6 +852,7 @@ static belle_sip_message_t *channel_pop_outgoing(belle_sip_channel_t *obj){
 static void channel_prepare_continue(belle_sip_channel_t *obj){
 	switch(obj->state){
 		case BELLE_SIP_CHANNEL_INIT:
+			channel_begin_background_task(obj);
 			belle_sip_channel_resolve(obj);
 		break;
 		case BELLE_SIP_CHANNEL_RES_DONE:
@@ -870,6 +900,7 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 	}
 	channel_set_state(obj,BELLE_SIP_CHANNEL_READY);
 	channel_process_queue(obj);
+	channel_end_background_task(obj);
 }
 
 static void channel_res_done(void *data, const char *name, struct addrinfo *ai_list){
@@ -961,5 +992,16 @@ belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int a
 	return chan;
 }
 
+#if !TARGET_OS_IPHONE
 
+/*defines stubs*/
+unsigned int belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
+	return 0;
+}
+
+void belle_sip_end_background_task(unsigned int id){
+	return;
+}
+
+#endif
 

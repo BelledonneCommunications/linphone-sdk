@@ -30,9 +30,11 @@ AM_SILENT_RULES(yes)
 
 # Checks for programs.
 dnl don't put anythingelse before AC_PROG_CC unless checking if macro still work for clang
+dnl because of tunnel library wrapper, C++ is required.
 AC_PROG_CXX(["xcrun clang++" g++]) 
 AC_PROG_CC(["xcrun clang" gcc])
-dnl because of tunnel library wrapper, C++ is required.
+AC_PROG_OBJC(["xcrun clang" gcc])
+
 AM_PROG_CC_C_O
 
 dnl AC_PROG_CC_C99
@@ -46,9 +48,12 @@ case "$target" in
                 CFLAGS="$CFLAGS -mmacosx-version-min=10.6"
         ;;
         i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*)
-			LIBS="$LIBS -framework CoreFoundation -framework CFNetwork "
-		;;
+		LIBS="$LIBS -framework Foundation -framework CoreFoundation -framework CFNetwork -framework UIKit"
+		build_ios=yes
+	;;
 esac
+
+AM_CONDITIONAL([BUILD_IOS], [test "x$build_ios" = "xyes"])
 
 dnl Workaround for mingw, whose compiler doesn't check in /usr/include ...
 case "$target_os" in
@@ -60,8 +65,8 @@ case "$target_os" in
 			fi
 		fi
 	;;
-
 esac
+
 
 if test -f /etc/debian_version ; then
 	use_deb=true;

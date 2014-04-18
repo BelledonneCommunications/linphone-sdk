@@ -52,6 +52,10 @@ libbellesip_la_SOURCES=				\
 									http-listener.c
 									
 
+if BUILD_IOS
+libbellesip_la_SOURCES+=backgroundtask.m
+endif
+									
 if BUILD_TUNNEL
 libbellesip_la_SOURCES+=			transports/tunnel_listeningpoint.c \
 									transports/tunnel_channel.c \

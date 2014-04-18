@@ -71,7 +71,7 @@ int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t bufle
 void stream_channel_close(belle_sip_stream_channel_t *obj){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	if (sock!=(belle_sip_socket_t)-1){
-#ifdef TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE
 		if (obj->read_stream != NULL) {
 			CFReadStreamClose (obj->read_stream);
 			CFRelease (obj->read_stream);
@@ -87,7 +87,7 @@ void stream_channel_close(belle_sip_stream_channel_t *obj){
 	}
 }
 
-#ifdef TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE
 static void stream_channel_enable_ios_background_mode(belle_sip_stream_channel_t *obj){
 	int sock=belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	

@@ -25,6 +25,11 @@
 
 #endif
 
+typedef void (*belle_sip_background_task_end_callback_t)(void *);
+
+unsigned int belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data);
+void belle_sip_end_background_task(unsigned int id);
+
 #define belle_sip_network_buffer_size 65535
 
 typedef enum belle_sip_channel_state{
@@ -101,6 +106,7 @@ struct belle_sip_channel{
 	belle_sip_source_t *inactivity_timer;
 	uint64_t last_recv_time;
 	int simulated_recv_return; /* used to simulate network error. 0= no data (disconnected) >0= do nothing -1= network error*/
+	unsigned bg_task_id;
 	unsigned char force_close; /* when channel is intentionnaly disconnected, in order to prevent looping notifications*/
 	unsigned char learnt_ip_port;
 	unsigned char has_name; /*set when the name of the peer is known, which is not the case of inboud connections*/
