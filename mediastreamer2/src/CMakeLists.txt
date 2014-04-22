@@ -1,3 +1,4 @@
+find_library(LIBGCC NAMES gcc)
 find_library(LIBSRTP NAMES srtp)
 find_library(LIBORTP NAMES ortp)
 if(MS2_ENABLE_GSM)
@@ -118,7 +119,11 @@ if(WIN32)
 	)
 	set(BASE_LIBS ws2_32 ole32 oleaut32 winmm uuid)
 endif(WIN32)
-set(BASE_LIBS ${BASE_LIBS} ${LIBSRTP} ${LIBORTP})
+list(APPEND BASE_LIBS
+	${LIBGCC}
+	${LIBSRTP}
+	${LIBORTP}
+)
 
 add_library(mediastreamer_base SHARED ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
 set_target_properties(mediastreamer_base PROPERTIES VERSION 2.10.0 SOVERSION 3)
@@ -315,6 +320,7 @@ if(WIN32)
 	endif(MS2_ENABLE_VIDEO)
 endif(WIN32)
 list(APPEND VOIP_LIBS
+	${LIBGCC}
 	${LIBSRTP}
 	${LIBORTP}
 	mediastreamer_base
