@@ -466,14 +466,15 @@ void mediastream_payload_type_changed(RtpSession *session, unsigned long data) {
 void media_stream_iterate(MediaStream *stream){
 	time_t curtime=ms_time(NULL);
 	
-	if (stream->is_beginning && (curtime-stream->start_time>15)){
-		rtp_session_set_rtcp_report_interval(stream->sessions.rtp_session,5000);
-		stream->is_beginning=FALSE;
-	}
-	
 	if (stream->ice_check_list) ice_check_list_process(stream->ice_check_list,stream->sessions.rtp_session);
 	/*we choose to update the quality indicator as much as possible, since local statistics can be computed realtime. */
-	if (stream->qi && curtime>stream->last_iterate_time) ms_quality_indicator_update_local(stream->qi);
+	if (stream->state==MSStreamStarted){
+		if (stream->is_beginning && (curtime-stream->start_time>15)){
+			rtp_session_set_rtcp_report_interval(stream->sessions.rtp_session,5000);
+			stream->is_beginning=FALSE;
+		}
+		if (stream->qi && curtime>stream->last_iterate_time) ms_quality_indicator_update_local(stream->qi);
+	}
 	stream->last_iterate_time=curtime;
 	if (stream->evq){
 		OrtpEvent *ev=NULL;
