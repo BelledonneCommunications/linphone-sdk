@@ -96,6 +96,9 @@ list(APPEND EP_ms2_CONFIGURE_OPTIONS
 
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared --enable-pic")
+set(EP_vpx_EXTRA_CFLAGS "-static-libgcc")
+set(EP_vpx_EXTRA_CXXFLAGS "-static-libgcc")
+set(EP_vpx_EXTRA_LDFLAGS "-static-libgcc")
 
 # xml2
 set(EP_xml2_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")

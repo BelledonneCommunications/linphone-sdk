@@ -39,16 +39,15 @@ set(EP_vpx_CONFIGURE_OPTIONS
 
 if(WIN32)
 	set(EP_vpx_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/vpx/enable-shared-on-windows.patch")
-	set(EP_vpx_EXTRA_LDFLAGS "-static-libgcc")
 endif(WIN32)
 if(APPLE)
 	set(EP_vpx_TARGET "x86-darwin10-gcc")
 	set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared --enable-pic")
 	set(EP_vpx_BUILD_IN_SOURCE "yes")
-else(APPLE)
+else()
 	set(EP_vpx_TARGET "generic-gnu")
 	set(EP_vpx_LINKING_TYPE "--disable-static" "--enable-shared")
-endif(APPLE)
+endif()
 
 set(EP_vpx_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
