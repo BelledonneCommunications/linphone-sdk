@@ -46,6 +46,12 @@ if(MSVC)
 	if(NOT SH_PROGRAM)
 		message(FATAL_ERROR "Could not find MinGW!")
 	endif(NOT SH_PROGRAM)
+
+	find_file(LIBGCC_LIBRARY
+		NAMES libgcc.a
+		HINTS "C:/MinGW/lib/gcc/mingw32/*"
+	)
+	execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LIBGCC_LIBRARY}" "${CMAKE_INSTALL_PREFIX}/lib/gcc.lib")
 endif(MSVC)
 
 find_program(PATCH_PROGRAM
