@@ -94,8 +94,11 @@ list(APPEND EP_ms2_CONFIGURE_OPTIONS
 	"--enable-relativeprefix=yes"
 )
 
+# opus
+set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
+
 # vpx
-set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared --enable-pic")
+set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 
 # xml2
 set(EP_xml2_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
