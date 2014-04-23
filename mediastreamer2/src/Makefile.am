@@ -365,6 +365,7 @@ libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(GSM_LIBS) \
 					$(LIBV4L1_LIBS) \
 					$(LIBV4L2_LIBS) \
+					$(LIBV4LCONVERT_LIBS) \
 					$(SPANDSP_LIBS) \
 					$(PCAP_LIBS) \
 					$(OPUS_LIBS)

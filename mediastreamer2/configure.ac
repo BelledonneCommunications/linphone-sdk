@@ -826,6 +826,11 @@ PKG_CHECK_MODULES(LIBV4L1, libv4l1,
 	have_libv4l1=yes],
 	[echo "No libv4l1 found."]
 )
+PKG_CHECK_MODULES(LIBV4LCONVERT, libv4lconvert,
+	[AC_DEFINE(HAVE_LIBV4LCONVERT,1,[Defined if we have libv4lconvert])
+	have_libv4lconvert=yes],
+	[echo "No libv4lconvert found."]
+)
 
 if test "$found_v4l2" = "yes" && test "$have_libv4l2" != "yes" ; then
 	if test "$video" = "true" && test "$libv4l2" = "yes" ; then
