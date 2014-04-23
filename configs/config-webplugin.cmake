@@ -97,6 +97,9 @@ list(APPEND EP_ms2_CONFIGURE_OPTIONS
 # opus
 set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
 
+# v4l
+set(EP_v4l_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
+
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 
