@@ -1,4 +1,6 @@
-find_library(LIBGCC NAMES gcc)
+if(MSVC)
+	find_library(LIBGCC NAMES gcc)
+endif()
 find_library(LIBSRTP NAMES srtp)
 find_library(LIBORTP NAMES ortp)
 if(MS2_ENABLE_GSM)
