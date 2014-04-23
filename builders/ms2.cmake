@@ -24,7 +24,7 @@ set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
 if(${LINPHONE_BUILDER_LATEST})
 	set(EP_ms2_GIT_TAG "master")
 else()
-	set(EP_ms2_GIT_TAG "34ced9269b1e8f8272b25f627db37dc12ce05317")
+	set(EP_ms2_GIT_TAG "b42e77b7f7ce846704973145a91fe22350575abc")
 endif()
 
 if(MSVC)
