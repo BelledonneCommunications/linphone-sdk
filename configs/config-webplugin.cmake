@@ -95,7 +95,10 @@ list(APPEND EP_ms2_CONFIGURE_OPTIONS
 )
 
 # opus
-set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
+if(NOT MSVC)
+	# TODO: Also build statically on windows
+	set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
+endif()
 
 # v4l
 set(EP_v4l_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")

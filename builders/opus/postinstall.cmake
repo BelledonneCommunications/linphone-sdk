@@ -20,4 +20,4 @@
 #
 ############################################################################
 
-execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${INSTALL_PREFIX}/lib/libopus.a" "${INSTALL_PREFIX}/lib/opus.lib")
+execute_process(COMMAND "${PYTHON_EXECUTABLE}" "${SOURCE_DIR}/cmake/importlib.py" "${INSTALL_PREFIX}/bin/libopus-0.dll" "${INSTALL_PREFIX}/lib/opus.lib")
