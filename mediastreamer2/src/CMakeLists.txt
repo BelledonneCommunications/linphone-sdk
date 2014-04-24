@@ -1,5 +1,6 @@
 if(MSVC)
 	find_library(LIBGCC NAMES gcc)
+	find_library(LIBMINGWEX NAMES mingwex)
 endif()
 find_library(LIBSRTP NAMES srtp)
 find_library(LIBORTP NAMES ortp)
@@ -123,6 +124,7 @@ if(WIN32)
 endif(WIN32)
 list(APPEND BASE_LIBS
 	${LIBGCC}
+	${LIBMINGWEX}
 	${LIBSRTP}
 	${LIBORTP}
 )
@@ -323,6 +325,7 @@ if(WIN32)
 endif(WIN32)
 list(APPEND VOIP_LIBS
 	${LIBGCC}
+	${LIBMINGWEX}
 	${LIBSRTP}
 	${LIBORTP}
 	mediastreamer_base
