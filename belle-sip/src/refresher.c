@@ -193,9 +193,8 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 	if (refresher && (client_transaction !=refresher->transaction))
 		return; /*not for me*/
 
-	/*handle authorization*/
-	switch (response_code) {
-	case 200:
+	/*success case:*/
+	if (response_code>=200 && response_code<300){
 		refresher->auth_failures=0;
 		refresher->number_of_retry=0;
 		/*great, success*/
@@ -226,59 +225,61 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			}
 		}
 		else belle_sip_message("Refresher [%p] not scheduling next refresh, because it was stopped",refresher);
-		break;
-	case 301:
-	case 302:
-		contact=belle_sip_message_get_header_by_type(response,belle_sip_header_contact_t);
-		if (contact){
-			belle_sip_uri_t *uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact));
-			if (uri && belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events,uri)==0)
-				return;
-		}
-		break;
-	case 401:
-	case 407:
-		refresher->auth_failures++;
-		if (refresher->auth_failures>1){
-			/*avoid looping with 407 or 401 */
-			belle_sip_warning("Authentication is failing constantly, %s",(refresher->target_expires>0)? "will retry later":"giving up.");
+	}else{/*special error cases*/
+		switch (response_code) {
+		case 301:
+		case 302:
+			contact=belle_sip_message_get_header_by_type(response,belle_sip_header_contact_t);
+			if (contact){
+				belle_sip_uri_t *uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact));
+				if (uri && belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events,uri)==0)
+					return;
+			}
+			break;
+		case 401:
+		case 407:
+			refresher->auth_failures++;
+			if (refresher->auth_failures>1){
+				/*avoid looping with 407 or 401 */
+				belle_sip_warning("Authentication is failing constantly, %s",(refresher->target_expires>0)? "will retry later":"giving up.");
+				if (refresher->target_expires>0) retry_later(refresher);
+				refresher->auth_failures=0; /*reset auth failure*/
+				break;
+			}
+			if (refresher->auth_events) {
+				refresher->auth_events=belle_sip_list_free_with_data(refresher->auth_events,(void (*)(void*))belle_sip_auth_event_destroy);
+			}
+			if (belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events,NULL)==0)
+				return; /*ok, keep 401 internal*/
+			break; /*Else notify user of registration failure*/
+		case 403:
+			/*In case of 403, we will retry later, just in case*/
 			if (refresher->target_expires>0) retry_later(refresher);
-			refresher->auth_failures=0; /*reset auth failure*/
+			break;
+		case 423:{
+			belle_sip_header_extension_t *min_expires=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header((belle_sip_message_t*)response,"Min-Expires"));
+			if (min_expires){
+				const char *value=belle_sip_header_extension_get_value(min_expires);
+				if (value){
+					int new_expires=atoi(value);
+					if (new_expires>0 && refresher->state==started){
+						refresher->target_expires=new_expires;
+						belle_sip_refresher_refresh(refresher,refresher->target_expires);
+						return;
+					}
+				}
+			}else belle_sip_warning("Receiving 423 but no min-expires header.");
 			break;
 		}
-		if (refresher->auth_events) {
-			refresher->auth_events=belle_sip_list_free_with_data(refresher->auth_events,(void (*)(void*))belle_sip_auth_event_destroy);
+		case 408:
+		case 480:
+		case 503:
+		case 504:
+			if (refresher->target_expires>0) retry_later(refresher);
+			break;
+		default:
+			break;
 		}
-		if (belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events,NULL)==0)
-			return; /*ok, keep 401 internal*/
-		break; /*Else notify user of registration failure*/
-	case 403:
-		/*In case of 403, we will retry later, just in case*/
-		if (refresher->target_expires>0) retry_later(refresher);
-		break;
-	case 423:{
-		belle_sip_header_extension_t *min_expires=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header((belle_sip_message_t*)response,"Min-Expires"));
-		if (min_expires){
-			const char *value=belle_sip_header_extension_get_value(min_expires);
-			if (value){
-				int new_expires=atoi(value);
-				if (new_expires>0 && refresher->state==started){
-					refresher->target_expires=new_expires;
-					belle_sip_refresher_refresh(refresher,refresher->target_expires);
-					return;
-				}
-			}
-		}else belle_sip_warning("Receiving 423 but no min-expires header.");
-		break;
-	}
-	case 408:
-	case 480:
-	case 503:
-	case 504:
-		if (refresher->target_expires>0) retry_later(refresher);
-		break;
-	default:
-		break;
 	}
 	if (refresher->listener) refresher->listener(refresher,refresher->user_data,response_code, belle_sip_response_get_reason_phrase(response));
 
