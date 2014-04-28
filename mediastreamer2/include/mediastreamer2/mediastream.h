@@ -165,7 +165,7 @@ MS2_PUBLIC int media_stream_set_srtp_recv_key(MediaStream *stream, MSCryptoSuite
 
 MS2_PUBLIC int media_stream_set_srtp_send_key(MediaStream *stream, MSCryptoSuite suite, const char* key);
 /**
- * @paraa stream object
+ * @param[in] stream MediaStream object
  * @return true if stream is encrypted
  * */
 MS2_PUBLIC bool_t media_stream_is_secured(const MediaStream *stream);
@@ -580,7 +580,25 @@ The following function allows to take into account new parameters by redrawing t
 MS2_PUBLIC void video_stream_update_video_params(VideoStream *stream);
 /*function to call periodically to handle various events */
 MS2_PUBLIC void video_stream_iterate(VideoStream *stream);
+
+/**
+ * Ask the video stream to send a Full-Intra Request.
+ * @param[in] stream The videostream object.
+ */
+MS2_PUBLIC void video_stream_send_fir(VideoStream *stream);
+
+/**
+ * Ask the video stream to send a Picture Loss Indication.
+ * @param[in] stream The videostream object.
+ */
+MS2_PUBLIC void video_stream_send_pli(VideoStream *stream);
+
+/**
+ * Ask the video stream to generate a Video Fast Update (generally after receiving a Full-Intra Request.
+ * @param[in] stream The videostream object.
+ */
 MS2_PUBLIC void video_stream_send_vfu(VideoStream *stream);
+
 MS2_PUBLIC void video_stream_stop(VideoStream * stream);
 MS2_PUBLIC void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize);
 

@@ -599,6 +599,18 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 	}
 }
 
+void video_stream_send_fir(VideoStream *stream) {
+	if (stream->ms.sessions.rtp_session != NULL) {
+		rtp_session_send_rtcp_fb_fir(stream->ms.sessions.rtp_session);
+	}
+}
+
+void video_stream_send_pli(VideoStream *stream) {
+	if (stream->ms.sessions.rtp_session != NULL) {
+		rtp_session_send_rtcp_fb_pli(stream->ms.sessions.rtp_session);
+	}
+}
+
 void video_stream_send_vfu(VideoStream *stream){
 	if (stream->ms.encoder)
 		ms_filter_call_method_noarg(stream->ms.encoder, MS_VIDEO_ENCODER_REQ_VFU);

@@ -519,6 +519,25 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 }
 
 
+#ifdef VIDEO_ENABLED
+static void video_stream_event_cb(void *user_pointer, const MSFilter *f, const unsigned int event_id, const void *args) {
+	MediastreamDatas *md = (MediastreamDatas *)user_pointer;
+	switch (event_id) {
+		case MS_VIDEO_DECODER_DECODING_ERRORS:
+			ms_warning("Video decoding error");
+			video_stream_send_pli(md->video);
+			break;
+		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
+			ms_message("First video frame decoded successfully");
+			break;
+		default:
+			ms_warning("Unhandled event %i", event_id);
+			break;
+	}
+}
+#endif
+
+
 void setup_media_streams(MediastreamDatas* args) {
 	/*create the rtp session */
 	OrtpNetworkSimulatorParams params={0};
@@ -729,6 +748,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		NSUInteger cpucount = [[NSProcessInfo processInfo] processorCount];
 		ms_set_cpu_count(cpucount);
 #endif
+		video_stream_set_event_callback(args->video,video_stream_event_cb, args);
 
 		video_stream_enable_adaptive_bitrate_control(args->video,args->use_rc);
 		if (args->camera)
