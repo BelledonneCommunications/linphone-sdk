@@ -155,6 +155,7 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 void helper(const char *name) {
 	fprintf(stderr, "%s \t--help\n"
 		"\t\t\t--verbose\n"
+		"\t\t\t--silent\n"
 #if HAVE_CU_GET_SUITE
 		"\t\t\t--list-suites\n"
 		"\t\t\t--list-tests <suite>\n"
@@ -189,6 +190,8 @@ int main (int argc, char *argv[]) {
 			return 0;
 		} else if (strcmp(argv[i], "--verbose") == 0) {
 			verbose = TRUE;
+		} else if (strcmp(argv[i], "--silent") == 0) {
+			verbose = FALSE;
 		}
 #if HAVE_CU_GET_SUITE
 		else if (strcmp(argv[i], "--test")==0) {
@@ -229,7 +232,7 @@ int main (int argc, char *argv[]) {
 	if (verbose) {
 		putenv("MEDIASTREAMER_DEBUG=1");
 	} else {
-		putenv("MEDIASTREAMER_DEBUG=");
+		putenv("MEDIASTREAMER_DEBUG=0");
 	}
 
 	ret = mediastreamer2_tester_run_tests(suite_name, test_name);

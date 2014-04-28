@@ -125,7 +125,7 @@ MSList * ms_list_concat(MSList *first, MSList *second){
 MSList * ms_list_free_with_data(MSList *list, void (*freefunc)(void*)){
 	MSList *elem;
 	MSList *tmp;
-	
+
 	for (elem=list;elem!=NULL;){
 		tmp=elem->next;
 		if (freefunc) freefunc(elem->data);
@@ -498,8 +498,10 @@ void ms_base_init(){
 #endif
 
 #if !defined(_WIN32_WCE)
-	if (getenv("MEDIASTREAMER_DEBUG")!=NULL){
+	if (getenv("MEDIASTREAMER_DEBUG")!=NULL && strcmp(getenv("MEDIASTREAMER_DEBUG"),"1")==0){
 		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	}else{
+		ortp_set_log_level_mask(ORTP_FATAL);
 	}
 #endif
 //#ifdef ANDROID
@@ -511,7 +513,7 @@ void ms_base_init(){
 	for (i=0;ms_base_filter_descs[i]!=NULL;i++){
 		ms_filter_register(ms_base_filter_descs[i]);
 	}
-	
+
 #ifdef WIN32 /*fixme to be tested*/
 	GetSystemInfo( &sysinfo );
 
@@ -661,7 +663,7 @@ int ms_concealer_inc_sample_time(MSConcealerContext* obj, uint64_t current_time,
 }
 
 unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* obj,uint64_t current_time) {
-	
+
 	if(obj->sample_time == -1) return 0; /*no valid value*/
 
 	if (obj->sample_time < current_time){
@@ -723,7 +725,7 @@ int ms_concealer_ts_context_inc_sample_ts(MSConcealerTsContext* obj, uint64_t cu
 
 unsigned int ms_concealer_ts_context_is_concealement_required(MSConcealerTsContext* obj, uint64_t current_ts) {
 	if(obj->sample_ts == -1) return 0; /*no valid value*/
-	
+
 	if (obj->sample_ts < current_ts){
 		int plc_duration;
 		if (obj->plc_start_ts==-1)
