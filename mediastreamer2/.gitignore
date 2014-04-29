@@ -41,3 +41,5 @@ tools/tones
 tester/mediastreamer2_tester
 src/gitversion.h
 help/doc/
+tester/recorded_hello8000-1s.wav
+tester/recorded_hello16000-1s.wav

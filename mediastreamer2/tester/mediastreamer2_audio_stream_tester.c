@@ -188,6 +188,20 @@ static void basic_audio_stream() {
 
 	rtp_profile_set_payload (profile,0,&payload_type_pcmu8000);
 
+	CU_ASSERT_EQUAL(audio_stream_start_full(margaux
+											, profile
+											, MARIELLE_IP
+											, MARIELLE_RTP_PORT
+											, MARIELLE_IP
+											, MARIELLE_RTCP_PORT
+											, 0
+											, 50
+											, NULL
+											, RECORDED_8K_1S_FILE
+											, NULL
+											, NULL
+											, 0),0);
+
 	CU_ASSERT_EQUAL(audio_stream_start_full(marielle
 											, profile
 											, MARGAUX_IP
@@ -204,25 +218,7 @@ static void basic_audio_stream() {
 
 	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 
-	CU_ASSERT_EQUAL(audio_stream_start_full(margaux
-											, profile
-											, MARIELLE_IP
-											, MARIELLE_RTP_PORT
-											, MARIELLE_IP
-											, MARIELLE_RTCP_PORT
-											, 0
-											, 50
-											, NULL
-											, RECORDED_8K_1S_FILE
-											, NULL
-											, NULL
-											, 0),0);
-
 	CU_ASSERT_TRUE(wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,1,12000));
-	/* Last chance to purge jitter buffer */
-	ms_usleep(100000);
-	audio_stream_iterate(margaux);
-	audio_stream_iterate(marielle);
 
 	audio_stream_get_local_rtp_stats(marielle,&marielle_stats.rtp);
 	audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
