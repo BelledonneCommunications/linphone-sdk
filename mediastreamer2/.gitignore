@@ -38,3 +38,6 @@ libs
 tools/test_x11window
 tools/tones
 
+tester/mediastreamer2_tester
+src/gitversion.h
+help/doc/
