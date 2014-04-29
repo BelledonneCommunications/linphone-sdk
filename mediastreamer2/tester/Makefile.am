@@ -18,6 +18,7 @@ mediastreamer2_tester_SOURCES=	\
 
 
 AM_CPPFLAGS=\
+	-I$(top_srcdir)/ \
 	-I$(top_srcdir)/include/ \
 	-I$(top_srcdir)/src/base \
 	-I$(top_srcdir)/src/utils \

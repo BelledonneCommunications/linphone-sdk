@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "CUnit/CUCurses.h"
 #endif
 #include <mediastreamer2/mediastream.h>
-
+#include <mediastreamer-config.h>
 
 static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
