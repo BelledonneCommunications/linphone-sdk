@@ -208,6 +208,10 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 2, const MSVideoConfiguration **)
 #define MS_VIDEO_ENCODER_SET_CONFIGURATION \
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 3, const MSVideoConfiguration *)
+#define MS_VIDEO_ENCODER_NOTIFY_PLI \
+	MS_FILTER_METHOD_NO_ARG(MSFilterVideoEncoderInterface, 4)
+#define MS_VIDEO_ENCODER_NOTIFY_FIR \
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 5, uint8_t *)
 
 /** Interface definitions for audio capture */
 /* Start numbering from the end for hacks */

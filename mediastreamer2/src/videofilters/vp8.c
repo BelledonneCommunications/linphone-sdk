@@ -122,6 +122,7 @@ typedef struct EncState {
 	vpx_codec_enc_cfg_t cfg;
 	long long frame_count;
 	unsigned int mtu;
+	int last_fir_seq_nr;
 #ifdef USE_VIDEO_STARTER
 	VideoStarter starter;
 #endif
@@ -154,6 +155,7 @@ static void enc_init(MSFilter *f) {
 	MS_VIDEO_SIZE_ASSIGN(vsize, CIF);
 	s->vconf = ms_video_find_best_configuration_for_size(s->vconf_list, vsize);
 	s->frame_count = 0;
+	s->last_fir_seq_nr = -1;
 	s->cfg.g_w = s->vconf.vsize.width;
 	s->cfg.g_h = s->vconf.vsize.height;
 	/* encoder automatically places keyframes */
@@ -391,6 +393,22 @@ static int enc_req_vfu(MSFilter *f, void *unused){
 	return 0;
 }
 
+static int enc_notify_pli(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	s->req_vfu = TRUE;	/* For the moment generate Intra Frame on Picture Loss Indication */
+	return 0;
+}
+
+static int enc_notify_fir(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	uint8_t seq_nr = *((uint8_t *)data);
+	if (seq_nr != s->last_fir_seq_nr) {
+		s->req_vfu = TRUE;
+		s->last_fir_seq_nr = seq_nr;
+	}
+	return 0;
+}
+
 static int enc_get_configuration_list(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	const MSVideoConfiguration **vconf_list = (const MSVideoConfiguration **)data;
@@ -409,6 +427,8 @@ static MSFilterMethod enc_methods[] = {
 	{ MS_FILTER_SET_MTU,                       enc_set_mtu                },
 	{ MS_FILTER_REQ_VFU,                       enc_req_vfu                },
 	{ MS_VIDEO_ENCODER_REQ_VFU,                enc_req_vfu                },
+	{ MS_VIDEO_ENCODER_NOTIFY_PLI,             enc_notify_pli             },
+	{ MS_VIDEO_ENCODER_NOTIFY_FIR,             enc_notify_fir             },
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, enc_get_configuration_list },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      enc_set_configuration      },
 	{ 0,                                       NULL                       }
