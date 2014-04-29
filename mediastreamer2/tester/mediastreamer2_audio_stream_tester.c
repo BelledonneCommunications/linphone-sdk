@@ -161,6 +161,7 @@ static void stream_manager_start(	stream_manager_t * mgr
 									,const char* player_file
 									,const char* recorder_file) {
 	media_stream_set_target_network_bitrate(&mgr->stream->ms,target_bitrate);
+
 	CU_ASSERT_EQUAL(audio_stream_start_full(mgr->stream
 												, &rtp_profile
 												, "127.0.0.1"
@@ -271,11 +272,17 @@ static void adaptive_audio_stream(int codec_payload, int initial_bitrate,int tar
 }
 
 static void adaptive_opus_audio_stream()  {
-	adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
+	bool_t supported = ms_filter_codec_supported("opus");
+	if( supported ) {
+		adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
+	}
 }
 
 static void adaptive_speek16_audio_stream()  {
-	adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
+	bool_t supported = ms_filter_codec_supported("speex");
+	if( supported ) {
+		adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
+	}
 }
 
 static void adaptative_isac16_audio_stream() {

@@ -72,6 +72,20 @@ static int test_suite_index(const char *suite_name) {
 
 	return -1;
 }
+static void list_suite_tests(const char *suite_name) {
+	int j;
+	for( j = 0; j < mediastreamer2_tester_nb_tests(suite_name); j++) {
+		const char *test_name = mediastreamer2_tester_test_name(suite_name, j);
+		fprintf(stdout, "%s\n", test_name);
+	}
+}
+static void list_suites() {
+	int j;
+	for(j = 0; j < mediastreamer2_tester_nb_test_suites(); j++) {
+		const char *suite_name = mediastreamer2_tester_test_suite_name(j);
+		fprintf(stdout, "%s\n", suite_name);
+	}
+}
 
 int mediastreamer2_tester_nb_test_suites(void) {
 	return nb_test_suites;
@@ -126,11 +140,22 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 		CU_pSuite suite;
 		CU_basic_set_mode(CU_BRM_VERBOSE);
 		suite=CU_get_suite(suite_name);
-		if (test_name) {
+		if (!suite) {
+			ms_error("Could not find suite '%s'. Available suites are:", suite_name);
+			list_suites();
+		} else if (test_name) {
 			CU_pTest test=CU_get_test_by_name(test_name, suite);
-			CU_basic_run_test(suite, test);
-		} else
+			if (!test) {
+				ms_error("Could not find test '%s' in suite '%s'. Available tests are:", test_name, suite_name);
+				// do not use suite_name here, since this method is case sentisitive
+				list_suite_tests(suite->pName);
+			} else {
+				CU_ErrorCode err= CU_basic_run_test(suite, test);
+				if (err != CUE_SUCCESS) ms_error("CU_basic_run_test error %d", err);
+			}
+		} else {
 			CU_basic_run_suite(suite);
+		}
 	} else
 #endif
 	{
@@ -201,20 +226,12 @@ int main (int argc, char *argv[]) {
 			CHECK_ARG("--suite", ++i, argc);
 			suite_name = argv[i];
 		}  else if (strcmp(argv[i],"--list-suites")==0){
-			int j;
-			for(j = 0; j < mediastreamer2_tester_nb_test_suites(); j++) {
-				suite_name = mediastreamer2_tester_test_suite_name(j);
-				fprintf(stdout, "%s\n", suite_name);
-			}
+			list_suites();
 			return 0;
 		} else if (strcmp(argv[i],"--list-tests")==0){
-			int j;
 			CHECK_ARG("--list-tests", ++i, argc);
 			suite_name = argv[i];
-			for( j = 0; j < mediastreamer2_tester_nb_tests(suite_name); j++) {
-				test_name = mediastreamer2_tester_test_name(suite_name, j);
-				fprintf(stdout, "%s\n", test_name);
-			}
+			list_suite_tests(suite_name);
 			return 0;
 		}
 #endif
