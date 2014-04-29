@@ -38,6 +38,8 @@
 
 #undef FRAGMENT_ON_PARTITIONS
 /*#define FRAGMENT_ON_PARTITIONS*/
+#undef USE_VIDEO_STARTER
+/*#define USE_VIDEO_STARTER*/
 
 #define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps) \
 	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, NULL }
@@ -83,6 +85,7 @@ static const MSVideoConfiguration multicore_vp8_conf_list[] = {
 #endif
 };
 
+#ifdef USE_VIDEO_STARTER
 /* the goal of this small object is to tell when to send I frames at startup:
 at 2 and 4 seconds*/
 typedef struct VideoStarter{
@@ -112,13 +115,16 @@ static bool_t video_starter_need_i_frame(VideoStarter *vs, uint64_t curtime){
 	}
 	return FALSE;
 }
+#endif
 
 typedef struct EncState {
 	vpx_codec_ctx_t codec;
 	vpx_codec_enc_cfg_t cfg;
 	long long frame_count;
 	unsigned int mtu;
+#ifdef USE_VIDEO_STARTER
 	VideoStarter starter;
+#endif
 	bool_t req_vfu;
 	bool_t ready;
 #ifdef FRAGMENT_ON_PARTITIONS
@@ -215,7 +221,9 @@ static void enc_preprocess(MSFilter *f) {
 	#endif
 	/* vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 0);*/ /* -16 (quality) .. 16 (speed) */
 
+#ifdef USE_VIDEO_STARTER
 	video_starter_init(&s->starter);
+#endif
 	s->ready=TRUE;
 }
 
@@ -237,11 +245,13 @@ static void enc_process(MSFilter *f) {
 
 		ms_yuv_buf_init_from_mblk(&yuv, im);
 		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->vconf.vsize.width, s->vconf.vsize.height, 1, yuv.planes[0]);
-		
+
+#ifdef USE_VIDEO_STARTER
 		if (video_starter_need_i_frame (&s->starter,f->ticker->time)){
 			/*sends an I frame at 2 seconds and 4 seconds after the beginning of the call*/
 			s->req_vfu=TRUE;
 		}
+#endif
 		if (s->req_vfu){
 			ms_message("Forcing vp8 key frame for filter [%p]",f);
 			flags = VPX_EFLAG_FORCE_KF;
@@ -257,9 +267,11 @@ static void enc_process(MSFilter *f) {
 			const vpx_codec_cx_pkt_t *pkt;
 
 			s->frame_count++;
+#ifdef USE_VIDEO_STARTER
 			if (s->frame_count==1){
 				video_starter_first_frame (&s->starter,f->ticker->time);
 			}
+#endif
 
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
 				if (pkt->kind == VPX_CODEC_CX_FRAME_PKT) {
