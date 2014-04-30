@@ -631,6 +631,29 @@ const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *p
 	return obj->local_ip;
 }
 
+belle_sip_uri_t *belle_sip_channel_create_routable_uri(belle_sip_channel_t *chan) {
+	const char *transport = belle_sip_channel_get_transport_name_lower_case(chan);
+	belle_sip_uri_t* uri = belle_sip_uri_new();
+	unsigned char natted = chan->public_ip && strcmp(chan->public_ip,chan->local_ip)!=0;
+	
+	if (natted) {
+		belle_sip_uri_set_host(uri, chan->public_ip);
+		belle_sip_uri_set_port(uri, chan->public_port);
+	} else {
+		
+		belle_sip_uri_set_host(uri, chan->local_ip);
+		// With streamed protocols listening port is what we want
+		if (chan->lp)
+			belle_sip_uri_set_port(uri, belle_sip_uri_get_port(chan->lp->listening_uri));
+		else belle_sip_uri_set_port(uri,chan->local_port);
+	}
+	
+	belle_sip_uri_set_transport_param(uri, transport);
+	belle_sip_uri_set_lr_param(uri, TRUE);
+	return uri;
+}
+
+
 int belle_sip_channel_is_reliable(const belle_sip_channel_t *obj){
 	return BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->reliable;
 }

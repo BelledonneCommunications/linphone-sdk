@@ -336,26 +336,6 @@ static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_si
 	return 0;
 }
 
-static belle_sip_uri_t *compute_our_external_uri_from_channel(belle_sip_channel_t *chan) {
-	const char *transport = belle_sip_channel_get_transport_name_lower_case(chan);
-	belle_sip_uri_t* uri = belle_sip_uri_new();
-	unsigned char natted = chan->public_ip && (chan->public_ip != chan->local_ip);
-	
-	if (natted) {
-		belle_sip_uri_set_host(uri, chan->public_ip);
-		belle_sip_uri_set_port(uri, chan->public_port);
-	} else {
-		// With streamed protocols listening port is what we want
-		belle_sip_uri_set_host(uri, chan->local_ip);
-		belle_sip_uri_set_port(uri, belle_sip_uri_get_port(chan->lp->listening_uri));
-	}
-	
-	belle_sip_uri_set_transport_param(uri, transport);
-	belle_sip_uri_set_lr_param(uri, TRUE);
-	return uri;
-}
-
-
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_sip_header_contact_t* contact;
 	belle_sip_header_content_length_t* content_length = (belle_sip_header_content_length_t*)belle_sip_message_get_header(msg,"Content-Length");
@@ -373,7 +353,7 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 		for (rroutes=belle_sip_message_get_headers(msg,"Record-Route");rroutes!=NULL;rroutes=rroutes->next){
 			belle_sip_header_record_route_t* rr=(belle_sip_header_record_route_t*)rroutes->data;
 			if (belle_sip_header_record_route_get_auto_outgoing(rr)) {
-				belle_sip_uri_t *rr_uri = compute_our_external_uri_from_channel(chan);
+				belle_sip_uri_t *rr_uri = belle_sip_channel_create_routable_uri(chan);
 				belle_sip_header_address_set_uri((belle_sip_header_address_t*) rr, rr_uri);
 			}
 		}
@@ -459,39 +439,51 @@ belle_sip_uri_t *belle_sip_provider_create_inbound_record_route(belle_sip_provid
 	belle_sip_uri_t* origin = belle_sip_request_extract_origin(req);
 	belle_sip_hop_t *hop = belle_sip_hop_new_from_uri(origin);
 	belle_sip_channel_t *inChan = belle_sip_provider_get_channel(p, hop);
-	return compute_our_external_uri_from_channel(inChan);
+	return belle_sip_channel_create_routable_uri(inChan);
 }
 
-static belle_sip_channel_t* _belle_sip_provider_find_channel_with_us(belle_sip_provider_t *p, belle_sip_uri_t* uri) {
+static belle_sip_channel_t* _belle_sip_provider_find_channel_using_routable(belle_sip_provider_t *p, const belle_sip_uri_t* routable_uri) {
 	const char *transport;
 	belle_sip_listening_point_t *lp;
 	belle_sip_list_t *elem;
 	belle_sip_channel_t *chan;
 	belle_sip_uri_t* chan_uri;
 
-	if (!uri) return NULL;
+	if (!routable_uri) return NULL;
 
-	transport = belle_sip_uri_is_secure(uri) ? "TLS" : belle_sip_uri_get_transport_param(uri);
+	transport = belle_sip_uri_is_secure(routable_uri) ? "TLS" : belle_sip_uri_get_transport_param(routable_uri);
 	lp = belle_sip_provider_get_listening_point(p, transport);
 	if (!lp) return NULL;
 
 
 	for(elem=lp->channels; elem ;elem=elem->next){
 		chan=(belle_sip_channel_t*)elem->data;
-		chan_uri = compute_our_external_uri_from_channel(chan);
-		if (belle_sip_uri_get_port(uri) == belle_sip_uri_get_port(chan_uri) &&
-			0 == strcmp(belle_sip_uri_get_host(uri), belle_sip_uri_get_host(chan_uri))) {
+		chan_uri = belle_sip_channel_create_routable_uri(chan);
+		if (belle_sip_uri_get_port(routable_uri) == belle_sip_uri_get_port(chan_uri) &&
+			0 == strcmp(belle_sip_uri_get_host(routable_uri), belle_sip_uri_get_host(chan_uri))) {
 			return chan;
 		}
 	}
 	return NULL;
 }
 
+/*
+ * This function is not efficient at all, REVISIT.
+ * Its goal is to determine whether a routable (route or record route) matches the local provider instance.
+ * In order to do that, we go through all the channels and ask them their routable uri, and see if it matches the uri passed in argument.
+ * This creates a lot of temporary objects and iterates through a potentially long list of routables.
+ * Some more efficient solutions could be:
+ * 1- insert a magic cookie parameter in each routable created by the provider, so that recognition is immediate. 
+ *    Drawback: use of non-standard, possibly conflicting parameter.
+ * 2- check the listening point's uri first (but need to match the ip address to any local ip if it is INADDR_ANY), then use belle_sip_listening_point_get_channel()
+ *    to see if a channel is matching.
+ *    belle_sip_listening_point_get_channel() is not optimized currently but will have to be, so at least we leverage on something that will be optimized.
+**/
 int belle_sip_provider_is_us(belle_sip_provider_t *p, belle_sip_uri_t* uri) {
-	belle_sip_channel_t* chan = _belle_sip_provider_find_channel_with_us(p, uri);
+	belle_sip_channel_t* chan = _belle_sip_provider_find_channel_using_routable(p, uri);
 	return !!chan;
 }
-	
+
 
 int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp){
 	if (lp == NULL) {

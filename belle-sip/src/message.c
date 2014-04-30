@@ -244,8 +244,8 @@ void belle_sip_message_remove_last(belle_sip_message_t *msg, const char *header_
 void belle_sip_message_remove_header(belle_sip_message_t *msg, const char *header_name){
 	headers_container_t* headers_container = belle_sip_headers_container_get(msg,header_name);
 	if (headers_container){
-		belle_sip_headers_container_delete(headers_container);
 		belle_sip_list_remove(msg->header_list,headers_container);
+		belle_sip_headers_container_delete(headers_container);
 	}
 }
 
@@ -430,6 +430,7 @@ unsigned int belle_sip_message_get_body_size(const belle_sip_message_t *msg){
 void belle_sip_message_set_body(belle_sip_message_t *msg, const char* body, unsigned int size) {
 	if (msg->body) {
 		belle_sip_free(msg->body);
+		msg->body_length=0;
 		msg->body=NULL;
 	}
 	if (body){
@@ -442,7 +443,7 @@ void belle_sip_message_set_body(belle_sip_message_t *msg, const char* body, unsi
 
 void belle_sip_message_assign_body(belle_sip_message_t *msg, char* body, unsigned int size) {
 	if (msg->body) {
-		belle_sip_free(body);
+		belle_sip_free(msg->body);
 	}
 	msg->body = body;
 	msg->body_length = size;

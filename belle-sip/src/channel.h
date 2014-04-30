@@ -161,6 +161,13 @@ const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj);
 
 const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *port);
 
+/*
+ * Returns a sip-uri suitable for using in record-route.
+ * If the channel is not natted, it will return the listening port of the listening point corresponding to the channel.
+**/
+belle_sip_uri_t *belle_sip_channel_create_routable_uri(belle_sip_channel_t *chan);
+
+
 #define belle_sip_channel_get_state(chan) ((chan)->state)
 
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state);
