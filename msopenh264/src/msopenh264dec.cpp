@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ortp/b64.h"
 
 MSOpenH264Decoder::MSOpenH264Decoder(MSFilter *f)
-	: mFilter(f), mDecoder(0), mInitialized(false), mSPS(0), mPPS(0), mYUVMsg(0),
+	: mFilter(f), mDecoder(0), mUnpacker(0), mInitialized(false), mSPS(0), mPPS(0), mYUVMsg(0),
 	mBitstream(0), mBitstreamSize(65536), mLastErrorReportTime(0),
 	mWidth(MS_VIDEO_SIZE_UNKNOWN_W), mHeight(MS_VIDEO_SIZE_UNKNOWN_H), mFirstImageDecoded(false)
 {
@@ -157,12 +157,15 @@ void MSOpenH264Decoder::uninitialize()
 {
 	if (mSPS != 0) {
 		freemsg(mSPS);
+		mSPS=NULL;
 	}
 	if (mPPS != 0) {
 		freemsg(mPPS);
+		mPPS=NULL;
 	}
 	if (mYUVMsg != 0) {
 		freemsg(mYUVMsg);
+		mYUVMsg=NULL;
 	}
 	if (mDecoder != 0) {
 		mDecoder->Uninitialize();
