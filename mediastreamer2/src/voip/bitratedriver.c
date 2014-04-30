@@ -60,9 +60,8 @@ typedef struct _MSAudioBitrateDriver MSAudioBitrateDriver;
 static int apply_ptime(MSAudioBitrateDriver *obj,int target_ptime){
 	char tmp[64];
 	int result=-1;
-	
 	if (target_ptime < min_ptime || target_ptime>max_ptime) {
-		ms_error("cannot apply ptime value [%i] on [%p] because out of range [%i..%i]",target_ptime,obj,min_ptime,max_ptime);
+		ms_error("MSAudioBitrateDriver [%p]: cannot apply ptime value [%i] on [%p] because out of range [%i..%i]",obj,target_ptime,obj,min_ptime,max_ptime);
 		return -1;
 	}
 
@@ -83,9 +82,9 @@ static int apply_ptime(MSAudioBitrateDriver *obj,int target_ptime){
 		} /*else ptime remain unchanged*/
 	}
 	if (result == 0) {
-		ms_message("AudioBitrateController [%p]: ptime is now  [%i ms]",obj,obj->cur_ptime);
+		ms_message("MSAudioBitrateDriver [%p]: ptime is now [%i ms]",obj,obj->cur_ptime);
 	} else {
-		ms_message("AudioBitrateController [%p]: cannot move ptime from [%i ms] to [%i ms]",obj,obj->cur_ptime,target_ptime);
+		ms_message("MSAudioBitrateDriver [%p]: cannot move ptime from [%i ms] to [%i ms]",obj,obj->cur_ptime,target_ptime);
 	}
 
 
@@ -109,7 +108,7 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 		if (obj->nom_bitrate==0){
 			ms_warning("MSAudioBitrateDriver: Not doing bitrate control on audio encoder, it does not seem to support that. Controlling ptime only.");
 			obj->nom_bitrate=-1;
-		}else 
+		}else
 			obj->cur_bitrate=obj->nom_bitrate;
 	}
 	if (obj->cur_ptime==0 || ms_filter_has_method(obj->encoder,MS_AUDIO_ENCODER_GET_PTIME)){ /*always sync current ptime if possible*/
@@ -128,15 +127,15 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 				int new_br;
 
 				/*if max ptime is reached, then try to reduce the codec bitrate if possible */
-				
+
 				if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&cur_br)!=0){
 					ms_message("MSAudioBitrateDriver: GET_BITRATE failed");
 					return 0;
 				}
 				obj->cur_bitrate=cur_br;
 				new_br=cur_br-((cur_br*action->value)/100);
-		
-				ms_message("MSAudioBitrateDriver: Attempting to reduce audio bitrate to %i",new_br);
+
+				ms_message("MSAudioBitrateDriver: Attempting to reduce audio bitrate from %i to %i",cur_br,new_br);
 				if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE,&new_br)!=0){
 					ms_message("MSAudioBitrateDriver: SET_BITRATE failed, incrementing ptime");
 					return inc_ptime(obj);
@@ -162,7 +161,7 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 				return 0;
 			}
 			}else ms_warning("MSAudioBitrateDriver: MS_FILTER_GET_BITRATE failed.");
-			
+
 		}
 		if (obj->cur_ptime>obj->min_ptime){
 			return dec_ptime(obj);
@@ -173,7 +172,7 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 
 static void audio_bitrate_driver_uninit(MSBitrateDriver *objbase){
 	//MSAudioBitrateDriver *obj=(MSBitrateDriver*)objbase;
-	
+
 }
 
 static MSBitrateDriverDesc audio_bitrate_driver={
@@ -204,7 +203,7 @@ typedef struct _MSAVBitrateDriver{
 
 static int dec_video_bitrate(MSAVBitrateDriver *obj, const MSRateControlAction *action){
 	int new_br;
-	
+
 	ms_filter_call_method(obj->venc,MS_FILTER_GET_BITRATE,&obj->cur_bitrate);
 	new_br=((float)obj->cur_bitrate)*(100.0-(float)action->value)/100.0;
 	if (new_br<min_video_bitrate){
@@ -220,7 +219,7 @@ static int dec_video_bitrate(MSAVBitrateDriver *obj, const MSRateControlAction *
 static int inc_video_bitrate(MSAVBitrateDriver *obj, const MSRateControlAction *action){
 	int newbr;
 	int ret=0;
-	
+
 	if (obj->cur_bitrate==0) return -1; /*current  bitrate was not known*/
 	newbr=(float)obj->cur_bitrate*(1.0+((float)action->value/100.0));
 	if (newbr>obj->nom_bitrate){
@@ -243,7 +242,7 @@ static int av_driver_execute_action(MSBitrateDriver *objbase, const MSRateContro
 			return -1;
 		}
 	}
-	
+
 	switch(action->type){
 		case MSRateControlActionDecreaseBitrate:
 			ret=dec_video_bitrate(obj,action);
@@ -266,7 +265,7 @@ static void av_bitrate_driver_uninit(MSBitrateDriver *objbase){
 	MSAVBitrateDriver *obj=(MSAVBitrateDriver*)objbase;
 	if (obj->audio_driver)
 		ms_bitrate_driver_unref(obj->audio_driver);
-	
+
 }
 
 static MSBitrateDriverDesc av_bitrate_driver={
@@ -279,7 +278,7 @@ MSBitrateDriver *ms_av_bitrate_driver_new(MSFilter *aenc, MSFilter *venc){
 	obj->parent.desc=&av_bitrate_driver;
 	obj->audio_driver=(aenc!=NULL) ? ms_bitrate_driver_ref(ms_audio_bitrate_driver_new(aenc)) : NULL;
 	obj->venc=venc;
-	
+
 	return (MSBitrateDriver*)obj;
 }
 

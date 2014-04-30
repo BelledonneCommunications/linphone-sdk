@@ -40,7 +40,7 @@ static RtpProfile rtp_profile;
 #define OPUS_PAYLOAD_TYPE    121
 #define SPEEX16_PAYLOAD_TYPE 122
 #define SILK16_PAYLOAD_TYPE  123
-#define ISAC16_PAYLOAD_TYPE  124
+#define PCMA8_PAYLOAD_TYPE 8
 
 static int tester_init(void) {
 	ms_init();
@@ -50,7 +50,7 @@ static int tester_init(void) {
 	rtp_profile_set_payload (&rtp_profile,OPUS_PAYLOAD_TYPE,&payload_type_opus);
 	rtp_profile_set_payload (&rtp_profile,SPEEX16_PAYLOAD_TYPE,&payload_type_speex_wb);
 	rtp_profile_set_payload (&rtp_profile,SILK16_PAYLOAD_TYPE,&payload_type_silk_wb);
-	rtp_profile_set_payload (&rtp_profile,ISAC16_PAYLOAD_TYPE,&payload_type_isac);
+	rtp_profile_set_payload (&rtp_profile,PCMA8_PAYLOAD_TYPE,&payload_type_pcma8000);
 
 	return 0;
 }
@@ -234,8 +234,9 @@ static void basic_audio_stream() {
 }
 
 #define EDGE_BW 10000
+#define THIRDGENERATION_BW 200000
 
-static void adaptive_audio_stream(int codec_payload, int initial_bitrate,int target_bw, int max_recv_rtcp_packet) {
+static float adaptive_audio_stream(int codec_payload, int initial_bitrate,int target_bw, int max_recv_rtcp_packet) {
 	stream_manager_t * marielle = stream_manager_new();
 	stream_manager_t * margaux = stream_manager_new();
 	int pause_time=0;
@@ -245,8 +246,10 @@ static void adaptive_audio_stream(int codec_payload, int initial_bitrate,int tar
 	params.loss_rate=0;
 	params.max_bandwidth=target_bw;
 	params.max_buffer_size=initial_bitrate;
-	float recv_send_bw_ratio;
-	int rtcp_interval = 1000;
+	float bw_usage_ratio;
+	// this variable should not be changed, since algorithm results rely on this value
+	// (the bigger it is, the more accurate is bandwidth estimation)
+	int rtcp_interval = RTCP_DEFAULT_REPORT_INTERVAL;
 	float marielle_send_bw;
 
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
@@ -256,39 +259,72 @@ static void adaptive_audio_stream(int codec_payload, int initial_bitrate,int tar
 
 	stream_manager_start(margaux,codec_payload, marielle->local_rtp,-1,NULL,RECORDED_16K_1S_FILE);
 	rtp_session_enable_network_simulation(margaux->stream->ms.sessions.rtp_session,&params);
-	rtp_session_set_rtcp_report_interval(margaux->stream->ms.sessions.rtp_session, rtcp_interval);
 
+	rtp_session_set_rtcp_report_interval(margaux->stream->ms.sessions.rtp_session, rtcp_interval);
 	wait_for_until(&marielle->stream->ms,&margaux->stream->ms,&marielle->stats.number_of_EndOfFile,10,rtcp_interval*max_recv_rtcp_packet);
 
 	marielle_send_bw=media_stream_get_up_bw(&marielle->stream->ms);
-	recv_send_bw_ratio=params.max_bandwidth/marielle_send_bw;
-	ms_message("marielle sent bw= [%f] , target was [%f] recv/send [%f]",marielle_send_bw,params.max_bandwidth,recv_send_bw_ratio);
-	CU_ASSERT_TRUE(recv_send_bw_ratio>0.9);
+	bw_usage_ratio=marielle_send_bw/params.max_bandwidth;
+	ms_message("marielle sent bw=[%f], target was [%f] bw_usage_ratio [%f]",marielle_send_bw,params.max_bandwidth,bw_usage_ratio);
 
 	stream_manager_delete(marielle);
 	stream_manager_delete(margaux);
 
 	unlink(RECORDED_16K_1S_FILE);
+
+	return bw_usage_ratio;
 }
+
+#define CU_ASSERT_IN_RANGE(value, inf, sup) CU_ASSERT_TRUE(value >= inf); CU_ASSERT_TRUE(value <= sup)
 
 static void adaptive_opus_audio_stream()  {
 	bool_t supported = ms_filter_codec_supported("opus");
 	if( supported ) {
-		adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
+		// at 8KHz -> 24kb/s
+		// at 48KHz -> 48kb/s
+		float bw_usage;
+
+		// on EDGEBW, both should be overconsumming
+		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 8000, EDGE_BW, 14);
+		CU_ASSERT_IN_RANGE(bw_usage, 2.f, 3.f); // bad! since this codec cant change its ptime and it is the lower bitrate, no improvement can occur
+		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 48000, EDGE_BW, 11);
+		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 1.2f); // bad!
+
+		// on 3G BW, both should be at max
+		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 5);
+		CU_ASSERT_IN_RANGE(bw_usage, .1f, .15f);
+		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 48000, THIRDGENERATION_BW, 5);
+		CU_ASSERT_IN_RANGE(bw_usage, .2f, .3f);
 	}
 }
 
 static void adaptive_speek16_audio_stream()  {
 	bool_t supported = ms_filter_codec_supported("speex");
 	if( supported ) {
-		adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
+		// at 16KHz -> 20 kb/s
+		// at 32KHz -> 30 kb/s
+		float bw_usage;
+
+		bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW, 12);
+		CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
+		bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 16000, EDGE_BW, 8);
+		CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
+		bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, THIRDGENERATION_BW, 5);
+		CU_ASSERT_IN_RANGE(bw_usage, .1f, .2f);
 	}
 }
 
-static void adaptative_isac16_audio_stream() {
-	bool_t supported = ms_filter_codec_supported("iSAC");
+static void adaptative_pcma_audio_stream() {
+	bool_t supported = ms_filter_codec_supported("pcma");
 	if( supported ) {
-		adaptive_audio_stream(ISAC16_PAYLOAD_TYPE, 32000, 32000, 7);
+		// at 8KHz -> 80 kb/s
+		float bw_usage;
+
+		// yet non-adaptative codecs cannot respect low throughput limitations
+		bw_usage = adaptive_audio_stream(PCMA8_PAYLOAD_TYPE, 8000, EDGE_BW, 10);
+		CU_ASSERT_IN_RANGE(bw_usage,6.f, 8.f); // this is bad!
+		bw_usage = adaptive_audio_stream(PCMA8_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 5);
+		CU_ASSERT_IN_RANGE(bw_usage, .3f, .5f);
 	}
 }
 
@@ -337,7 +373,7 @@ static test_t tests[] = {
 	{ "Basic audio stream", basic_audio_stream },
 	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
 	{ "Adaptive audio stream [speex]", adaptive_speek16_audio_stream },
-	{ "Adaptive audio stream [iSAC]", adaptative_isac16_audio_stream }
+	{ "Adaptive audio stream [pcma]", adaptative_pcma_audio_stream }
 };
 
 test_suite_t audio_stream_test_suite = {
