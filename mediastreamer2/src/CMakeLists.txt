@@ -194,7 +194,6 @@ set(VOIP_SOURCE_FILES
 	voip/qosanalyzer.c
 	voip/qualityindicator.c
 	voip/ringstream.c
-	voip/rfc3984.c
 )
 
 if(WIN32)
@@ -239,6 +238,7 @@ if(MS2_ENABLE_VIDEO)
 		voip/rfc2429.h
 		voip/rfc3984.c
 		voip/videostream.c
+		voip/vp8rtpfmt.c
 	)
 	if(MS2_ENABLE_FFMPEG)
 		list(APPEND VOIP_SOURCE_FILES

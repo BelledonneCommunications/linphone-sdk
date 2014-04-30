@@ -246,6 +246,8 @@ libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
 					voip/msvideo_neon.c \
 					voip/msvideo_neon.h \
 					voip/rfc3984.c \
+					voip/vp8rtpfmt.c \
+					voip/vp8rtpfmt.h \
 					videofilters/mire.c \
 					videofilters/extdisplay.c \
 					voip/layouts.c voip/layouts.h 

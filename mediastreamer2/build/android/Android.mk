@@ -119,6 +119,7 @@ ifeq ($(_BUILD_VIDEO),1)
 LOCAL_SRC_FILES += \
 	voip/videostream.c \
 	voip/rfc3984.c \
+	voip/vp8rtpfmt.c \
 	voip/layouts.c \
 	utils/shaders.c \
 	utils/opengles_display.c \
