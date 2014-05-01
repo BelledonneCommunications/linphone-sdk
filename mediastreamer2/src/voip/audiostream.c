@@ -103,6 +103,15 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 		to_channels = 1;
 		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", to->desc->name);
 	}
+	if (from_rate == 0){
+		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method, assuming 8000hz", from->desc->name);
+		from_rate=8000;
+	}
+	if (to_rate == 0){
+		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method, assuming 8000hz", from->desc->name);
+		to_rate=8000;
+	}
+	
 	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
 	ms_message("configuring %s-->%s from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
@@ -314,8 +323,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	MSConnectionHelper h;
 	int sample_rate;
 	MSRtpPayloadPickerContext picker_context;
+	int nchannels;
 	bool_t has_builtin_ec=FALSE;
-	bool_t tricked_sample_rate=FALSE;
 	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
 		audio_stream_get_rtcp_xr_plc_status,
 		audio_stream_get_rtcp_xr_signal_level,
@@ -370,6 +379,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_error("audiostream.c: undefined payload type.");
 		return -1;
 	}
+	nchannels=pt->channels;
 	tel_ev=rtp_profile_get_payload_from_mime (profile,"telephone-event");
 
 	if ((stream->features & AUDIO_STREAM_FEATURE_DTMF_ECHO) != 0 && (tel_ev==NULL || ( (tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_RECV) && !(tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_SEND)))
@@ -413,11 +423,13 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		if ((ms_filter_get_id(stream->ms.encoder) == MS_OPUS_ENC_ID) && (ms_filter_get_id(stream->ec) == MS_WEBRTC_AEC_ID)) { /* AECM allow 8000 or 16000 Hz or it will be bypassed */
 			if (sample_rate>16000) {
 				sample_rate=16000;
-				tricked_sample_rate = TRUE;
 				ms_message("Sampling rate forced to 16kHz to allow the use of WebRTC AECM (Echo canceller)");
 			}
 		}
 	}
+	/*hack for opus, that claims stereo all the time, but we can't support stereo yet*/
+	if (strcasecmp(pt->mime_type,"opus")==0)
+		nchannels=1;
 	
 	if (ms_filter_has_method(stream->ms.decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
 		ms_message(" decoder has FEC capabilities");
@@ -445,24 +457,24 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	if (stream->dtmfgen) {
 		ms_filter_call_method(stream->dtmfgen,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-		ms_filter_call_method(stream->dtmfgen,MS_FILTER_SET_NCHANNELS,&pt->channels);
+		ms_filter_call_method(stream->dtmfgen,MS_FILTER_SET_NCHANNELS,&nchannels);
 	}
 	if (stream->dtmfgen_rtp) {
 		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_NCHANNELS,&pt->channels);
+		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_NCHANNELS,&nchannels);
 	}
 	/* give the sound filters some properties */
 	if (ms_filter_call_method(stream->soundread,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
 		/* need to add resampler*/
 		if (stream->read_resampler == NULL) stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
-	ms_filter_call_method(stream->soundread,MS_FILTER_SET_NCHANNELS,&pt->channels);
+	ms_filter_call_method(stream->soundread,MS_FILTER_SET_NCHANNELS,&nchannels);
 
 	if (ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
 		/* need to add resampler*/
 		if (stream->write_resampler == NULL) stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
-	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS,&pt->channels);
+	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS,&nchannels);
 
 	if (stream->ec){
 		if (!stream->is_ec_delay_set){
@@ -486,11 +498,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		stream->send_tee=ms_filter_new(MS_TEE_ID);
 		ms_filter_call_method(stream->recorder_mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&val);
 		ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-		ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_NCHANNELS,&pt->channels);
+		ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_NCHANNELS,&nchannels);
 		ms_filter_call_method(stream->recv_tee,MS_TEE_MUTE,&pin);
 		ms_filter_call_method(stream->send_tee,MS_TEE_MUTE,&pin);
 		ms_filter_call_method(stream->recorder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-		ms_filter_call_method(stream->recorder,MS_FILTER_SET_NCHANNELS,&pt->channels);
+		ms_filter_call_method(stream->recorder,MS_FILTER_SET_NCHANNELS,&nchannels);
 		
 	}
 
@@ -503,9 +515,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_message("Setting audio encoder network bitrate to [%i] on stream [%p]",stream->ms.target_bitrate,stream);
 		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&stream->ms.target_bitrate);
 	}
-	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&pt->channels);
+	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&nchannels);
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_NCHANNELS,&pt->channels);
+	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_NCHANNELS,&nchannels);
 
 	if (pt->send_fmtp!=NULL) {
 		char value[16]={0};
@@ -530,33 +542,20 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}else
 		stream->equalizer=NULL;
 	
-
-	/*configure resampler if needed*/
-	ms_filter_call_method(stream->ms.rtpsend, MS_FILTER_SET_NCHANNELS, &pt->channels);
-	ms_filter_call_method(stream->ms.rtprecv, MS_FILTER_SET_NCHANNELS, &pt->channels);
-
-	if (tricked_sample_rate == FALSE) { /* regular case, resampling is based on RTP send/rcv sampling rate which is the one used to set all the graph filters */
-		if (stream->read_resampler){
-			audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.rtpsend);
-		}
-
-		if (stream->write_resampler){
-			audio_stream_configure_resampler(stream->write_resampler,stream->ms.rtprecv,stream->soundwrite);
-		}
-	} else { /* tricked sample rate for opus codec, graph sampling rate is not the one used by RTP send/rcv filters, get sampling rate from encoder/decoder */
-		if (stream->read_resampler){
-			audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.encoder);
-		}
-
-		if (stream->write_resampler){
-			audio_stream_configure_resampler(stream->write_resampler,stream->ms.decoder,stream->soundwrite);
-		}
+	/*configure resamplers if needed*/
+	if (stream->read_resampler){
+		audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.encoder);
 	}
+
+	if (stream->write_resampler){
+		audio_stream_configure_resampler(stream->write_resampler,stream->ms.decoder,stream->soundwrite);
+	}
+	
 	if (stream->ms.use_rc){
 		stream->ms.rc=ms_audio_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder,0);
 	}
 	
-	/* Create PLC */
+	/* Create generic PLC if not handled by the decoder directly*/
 	if ((stream->features & AUDIO_STREAM_FEATURE_PLC) != 0) {
 		int decoder_have_plc = 0;
 		if (ms_filter_has_method(stream->ms.decoder, MS_AUDIO_DECODER_HAVE_PLC)) {
@@ -571,7 +570,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		}
 
 		if (stream->plc) {
-			ms_filter_call_method(stream->plc, MS_FILTER_SET_NCHANNELS, &pt->channels);
+			ms_filter_call_method(stream->plc, MS_FILTER_SET_NCHANNELS, &nchannels);
 			ms_filter_call_method(stream->plc, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 		}
 	} else {
@@ -624,7 +623,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_connection_helper_link(&h,stream->equalizer,0,0);
 	if (stream->local_mixer){
 		ms_connection_helper_link(&h,stream->local_mixer,0,0);
-		setup_local_player(stream,sample_rate, pt->channels);
+		setup_local_player(stream,sample_rate, nchannels);
 	}
 	if (stream->ec)
 		ms_connection_helper_link(&h,stream->ec,0,0);

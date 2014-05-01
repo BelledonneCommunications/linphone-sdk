@@ -38,7 +38,6 @@ struct SenderData {
 	int64_t last_stun_sent_time;
 	uint32_t skip_until;
 	int rate;
-	int nchannels;
 	int dtmf_duration;
 	int dtmf_ts_step;
 	uint32_t dtmf_ts_cur;
@@ -83,7 +82,6 @@ static void sender_init(MSFilter * f)
 	d->skip_until = 0;
 	d->skip = FALSE;
 	d->rate = 8000;
-	d->nchannels = 1;
 	d->dtmf = 0;
 	d->dtmf_duration = 800;
 	d->dtmf_ts_step=160;
@@ -196,13 +194,17 @@ static int sender_get_sr(MSFilter *f, void *arg){
 
 static int sender_get_ch(MSFilter *f, void *arg) {
 	SenderData *d = (SenderData *)f->data;
-	*(int *)arg = d->nchannels;
-	return 0;
-}
-
-static int sender_set_ch(MSFilter *f, void *arg) {
-	SenderData *d = (SenderData *)f->data;
-	d->nchannels = *(int *)arg;
+	PayloadType *pt;
+	if (d->session==NULL) {
+		ms_warning("Could not obtain number of channels, session is not set.");
+		return -1;
+	}
+	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_recv_payload_type(d->session));
+	if (pt==NULL){
+		ms_warning("MSRtpSend: Could not obtain number of channels, payload type is unknown.");
+		return -1;
+	}
+	*(int *)arg = pt->channels;
 	return 0;
 }
 
@@ -423,7 +425,6 @@ static MSFilterMethod sender_methods[] = {
 	{MS_RTP_SEND_SET_RELAY_SESSION_ID, sender_set_relay_session_id},
 	{MS_FILTER_GET_SAMPLE_RATE, sender_get_sr },
 	{MS_FILTER_GET_NCHANNELS, sender_get_ch },
-	{MS_FILTER_SET_NCHANNELS, sender_set_ch },
 	{MS_RTP_SEND_SET_DTMF_DURATION, sender_set_dtmf_duration },
 	{0, NULL}
 };
@@ -468,7 +469,6 @@ MSFilterDesc ms_rtp_send_desc = {
 struct ReceiverData {
 	RtpSession *session;
 	int rate;
-	int nchannels;
 	bool_t starting;
 	bool_t reset_jb;
 };
@@ -480,7 +480,6 @@ static void receiver_init(MSFilter * f)
 	ReceiverData *d = (ReceiverData *)ms_new0(ReceiverData, 1);
 	d->session = NULL;
 	d->rate = 8000;
-	d->nchannels = 1;
 	f->data = d;
 }
 
@@ -518,8 +517,7 @@ static int receiver_get_sr(MSFilter *f, void *arg){
 		ms_warning("Could not obtain sample rate, session is not set.");
 		return -1;
 	}
-	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session),
-									rtp_session_get_recv_payload_type(d->session));
+	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_recv_payload_type(d->session));
 	if (pt != NULL) {
 		if (strcasecmp(pt->mime_type,"G722")==0)
 			*(int*)arg=16000;
@@ -534,13 +532,17 @@ static int receiver_get_sr(MSFilter *f, void *arg){
 
 static int receiver_get_ch(MSFilter *f, void *arg) {
 	ReceiverData *d = (ReceiverData *)f->data;
-	*(int *)arg = d->nchannels;
-	return 0;
-}
-
-static int receiver_set_ch(MSFilter *f, void *arg) {
-	ReceiverData *d = (ReceiverData *)f->data;
-	d->nchannels = *(int *)arg;
+	PayloadType *pt;
+	if (d->session==NULL) {
+		ms_warning("MSRtpRecv: Could not obtain sample rate, session is not set.");
+		return -1;
+	}
+	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_recv_payload_type(d->session));
+	if (pt == NULL) {
+		ms_warning("MSRtpRecv: could not obtain number of channels, payload type is unknown.");
+		return -1;
+	}
+	*(int *)arg = pt->channels;
 	return 0;
 }
 
@@ -597,7 +599,6 @@ static MSFilterMethod receiver_methods[] = {
 	{	MS_RTP_RECV_RESET_JITTER_BUFFER, receiver_reset_jitter_buffer },
 	{	MS_FILTER_GET_SAMPLE_RATE	, receiver_get_sr		},
 	{	MS_FILTER_GET_NCHANNELS	,	receiver_get_ch	},
-	{	MS_FILTER_SET_NCHANNELS	,	receiver_set_ch	},
 	{	0, NULL}
 };
 

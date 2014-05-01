@@ -497,13 +497,9 @@ void ms_base_init(){
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 #endif
 
-#if !defined(_WIN32_WCE)
 	if (getenv("MEDIASTREAMER_DEBUG")!=NULL && strcmp(getenv("MEDIASTREAMER_DEBUG"),"1")==0){
 		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-	}else{
-		ortp_set_log_level_mask(ORTP_FATAL);
 	}
-#endif
 //#ifdef ANDROID
 //	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 //	ortp_set_log_handler(ms_android_log_handler);

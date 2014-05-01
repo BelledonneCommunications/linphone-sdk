@@ -540,10 +540,10 @@ static MSFilterMethod ms_opus_enc_methods[] = {
 	{	MS_FILTER_GET_SAMPLE_RATE,	ms_opus_enc_get_sample_rate	},
 	{	MS_FILTER_SET_BITRATE,		ms_opus_enc_set_bitrate		},
 	{	MS_FILTER_GET_BITRATE,		ms_opus_enc_get_bitrate		},
-	{	MS_FILTER_ADD_FMTP,			ms_opus_enc_add_fmtp		},
+	{	MS_FILTER_ADD_FMTP,		ms_opus_enc_add_fmtp		},
 	{	MS_AUDIO_ENCODER_SET_PTIME,	ms_opus_enc_set_ptime		},
 	{	MS_AUDIO_ENCODER_GET_PTIME,	ms_opus_enc_get_ptime		},
-	{	MS_FILTER_SET_NCHANNELS		,	ms_opus_enc_set_nchannels},
+	{	MS_FILTER_SET_NCHANNELS	,	ms_opus_enc_set_nchannels	},
 	{	0,				NULL				}
 };
 
@@ -786,7 +786,7 @@ static MSFilterMethod ms_opus_dec_methods[] = {
 	{	MS_FILTER_ADD_FMTP,		ms_opus_dec_add_fmtp		},
 	{	MS_FILTER_SET_RTP_PAYLOAD_PICKER,	ms_opus_set_rtp_picker	},
 	{ 	MS_DECODER_HAVE_PLC,		ms_opus_dec_have_plc		},
-	{	MS_FILTER_SET_NCHANNELS		,	ms_opus_dec_set_nchannels},
+	{	MS_FILTER_SET_NCHANNELS,	ms_opus_dec_set_nchannels	},
 	{	0,				NULL				}
 };
 
