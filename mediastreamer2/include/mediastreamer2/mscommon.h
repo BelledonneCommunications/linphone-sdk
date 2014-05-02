@@ -133,6 +133,7 @@ MS2_PUBLIC MSList * ms_list_free(MSList *elem);
 MS2_PUBLIC MSList * ms_list_free_with_data(MSList *elem, void (*freefunc)(void*));
 MS2_PUBLIC MSList * ms_list_concat(MSList *first, MSList *second);
 MS2_PUBLIC MSList * ms_list_remove(MSList *first, void *data);
+MS2_PUBLIC MSList * ms_list_remove_custom(MSList *first, MSCompareFunc compare_func, const void *user_data);
 MS2_PUBLIC int ms_list_size(const MSList *first);
 MS2_PUBLIC void ms_list_for_each(const MSList *list, MSIterateFunc iterate_func);
 MS2_PUBLIC void ms_list_for_each2(const MSList *list, MSIterate2Func iterate_func, void *user_data);

@@ -149,6 +149,19 @@ MSList * ms_list_remove(MSList *first, void *data){
 	}
 }
 
+MSList * ms_list_remove_custom(MSList *first, MSCompareFunc compare_func, const void *user_data) {
+	MSList *cur;
+	MSList *elem = first;
+	while (elem != NULL) {
+		cur = elem;
+		elem = elem->next;
+		if (compare_func(cur->data, user_data) == 0) {
+			first = ms_list_remove(first, cur->data);
+		}
+	}
+	return first;
+}
+
 int ms_list_size(const MSList *first){
 	int n=0;
 	while(first!=NULL){
