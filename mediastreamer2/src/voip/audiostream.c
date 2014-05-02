@@ -91,8 +91,6 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 	int from_channels = 0, to_channels = 0;
 	ms_filter_call_method(from,MS_FILTER_GET_SAMPLE_RATE,&from_rate);
 	ms_filter_call_method(to,MS_FILTER_GET_SAMPLE_RATE,&to_rate);
-	ms_filter_call_method(resampler,MS_FILTER_SET_SAMPLE_RATE,&from_rate);
-	ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&to_rate);
 	ms_filter_call_method(from, MS_FILTER_GET_NCHANNELS, &from_channels);
 	ms_filter_call_method(to, MS_FILTER_GET_NCHANNELS, &to_channels);
 	if (from_channels == 0) {
@@ -111,7 +109,8 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method, assuming 8000hz", from->desc->name);
 		to_rate=8000;
 	}
-	
+	ms_filter_call_method(resampler,MS_FILTER_SET_SAMPLE_RATE,&from_rate);
+	ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&to_rate);
 	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
 	ms_message("configuring %s-->%s from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
@@ -432,7 +431,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		nchannels=1;
 	
 	if (ms_filter_has_method(stream->ms.decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
-		ms_message(" decoder has FEC capabilities");
+		ms_message("Decoder has FEC capabilities");
 		picker_context.filter_graph_manager=stream;
 		picker_context.picker=&audio_stream_payload_picker;
 		ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_RTP_PAYLOAD_PICKER, &picker_context);
