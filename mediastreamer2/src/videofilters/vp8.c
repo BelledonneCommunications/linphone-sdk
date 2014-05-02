@@ -22,6 +22,7 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
+#include "vp8rtpfmt.h"
 
 #define VPX_CODEC_DISABLE_COMPAT 1
 #include <vpx/vpx_encoder.h>
@@ -485,6 +486,7 @@ static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_
 
 typedef struct DecState {
 	vpx_codec_ctx_t codec;
+	Vp8RtpFmtContext unpacker;
 	mblk_t *curframe;
 	long last_cseq; /*last receive sequence number, used to locate missing partition fragment*/
 	int current_partition_id; /*current partition id*/
@@ -512,6 +514,7 @@ static void dec_init(MSFilter *f) {
 	if(vpx_codec_dec_init(&s->codec, interface, NULL, flags))
 		ms_error("Failed to initialize decoder");
 
+	vp8rtpfmt_init(&s->unpacker);
 	s->curframe = NULL;
 	s->last_error_reported_time = 0;
 	s->yuv_width = 0;
@@ -533,6 +536,7 @@ static void dec_uninit(MSFilter *f) {
 	DecState *s=(DecState*)f->data;
 	vpx_codec_destroy(&s->codec);
 
+	vp8rtpfmt_uninit(&s->unpacker);
 	if (s->curframe!=NULL)
 		freemsg(s->curframe);
 	if (s->yuv_msg)
@@ -543,6 +547,7 @@ static void dec_uninit(MSFilter *f) {
 	ms_free(s);
 }
 
+#if 0
 /* remove payload header and aggregates fragmented packets */
 static void dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, MSQueue *out){
 	int xbit = (im->b_rptr[0] & 0x80) >> 7;
@@ -659,17 +664,22 @@ static void dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, MSQueue *out){
 	}
 #endif /*FRAGMENT_ON_PARTITIONS*/
 }
+#endif
 
 static void dec_process(MSFilter *f) {
-	mblk_t *im;
+	mblk_t *m;
 	DecState *s=(DecState*)f->data;
 
+	vp8rtpfmt_unpack(&s->unpacker, f->inputs[0]);
+
+#if 0
 	while( (im=ms_queue_get(f->inputs[0]))!=0) {
 		mblk_t *m;
 
 		dec_unpacketize(f, s, im, &s->q);
-
 		while((m=ms_queue_get(&s->q))!=NULL){
+#endif
+		while((m=ms_queue_get(&s->unpacker.output_queue)) != NULL) {
 			vpx_codec_err_t err;
 			vpx_codec_iter_t  iter = NULL;
 			vpx_image_t *img;
@@ -760,7 +770,7 @@ static void dec_process(MSFilter *f) {
 			}
 			freemsg(m);
 		}
-	}
+	//}
 }
 
 static int reset_first_image(MSFilter* f, void *data) {
