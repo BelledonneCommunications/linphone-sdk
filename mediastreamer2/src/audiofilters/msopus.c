@@ -722,6 +722,8 @@ static void ms_opus_dec_postprocess(MSFilter *f) {
 	ms_message("opus decoder stats: fec %d packets - plc %d packets.", d->statsfec, d->statsplc);
 	opus_decoder_destroy(d->state);
 	d->state = NULL;
+	ms_concealer_context_destroy(d->concealer);
+	d->concealer=NULL;
 }
 
 static void ms_opus_dec_uninit(MSFilter *f) {
