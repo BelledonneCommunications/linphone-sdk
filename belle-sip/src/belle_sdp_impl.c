@@ -286,7 +286,7 @@ GET_SET_STRING(belle_sdp_connection,address);
  ***********************/
 struct _belle_sdp_email {
 	belle_sip_object_t base;
-	const char* value;
+	char* value;
  };
 
 void belle_sdp_email_destroy(belle_sdp_email_t* email) {
@@ -536,13 +536,10 @@ void belle_sdp_base_description_add_attribute(belle_sdp_base_description_t* base
 #define SET_LIST(list_name,value) \
 		belle_sip_list_t* list;\
 		if (list_name) {\
-			for (list=list_name;list !=NULL; list=list->next) {\
-				belle_sip_object_unref(BELLE_SIP_OBJECT(list->data));\
-			}\
-			belle_sip_list_free(list_name); \
+			belle_sip_list_free_with_data(list_name,belle_sip_object_unref);\
 		} \
 		for (list=value;list !=NULL; list=list->next) {\
-						belle_sip_object_ref(BELLE_SIP_OBJECT(list->data));\
+			belle_sip_object_ref(BELLE_SIP_OBJECT(list->data));\
 		}\
 		list_name=value;
 
@@ -753,7 +750,7 @@ static int mime_parameter_fill_from_static(belle_sdp_mime_parameter_t *mime_para
 	return 0;
 }
 
-static int mime_parameter_fill_from_rtpmap(belle_sdp_mime_parameter_t *mime_parameter, const char *rtpmap){
+static int mime_parameter_fill_from_rtpmap(belle_sdp_mime_parameter_t *mime_parameter, const char *rtpmap, int is_audio){
 	char *mime=belle_sip_strdup(rtpmap);
 	char *p=strchr(mime,'/');
 	if (p){
@@ -765,7 +762,7 @@ static int mime_parameter_fill_from_rtpmap(belle_sdp_mime_parameter_t *mime_para
 			*chans='\0';
 			chans++;
 			belle_sdp_mime_parameter_set_channel_count(mime_parameter,atoi(chans));
-		}else belle_sdp_mime_parameter_set_channel_count(mime_parameter,1);
+		}else if (is_audio) belle_sdp_mime_parameter_set_channel_count(mime_parameter,1); /*in absence of channel count, 1 is implicit for audio streams*/
 		belle_sdp_mime_parameter_set_rate(mime_parameter,atoi(p));
 	}
 	belle_sdp_mime_parameter_set_type(mime_parameter,mime);
@@ -811,10 +808,13 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 	const char* max_ptime=NULL;
 	int ptime_as_int=-1;
 	int max_ptime_as_int=-1;
+	int is_audio=0;
+	
 	if (!media) {
 		belle_sip_error("belle_sdp_media_description_build_mime_parameters: no media");
 		return NULL;
 	}
+	if (strcasecmp(belle_sdp_media_get_media_type(media),"audio")==0) is_audio=1;
 	ptime = belle_sdp_media_description_get_attribute_value(media_description,"ptime");
 	ptime?ptime_as_int=atoi(ptime):-1;
 	max_ptime = belle_sdp_media_description_get_attribute_value(media_description,"maxptime");
@@ -832,7 +832,7 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 																		,belle_sdp_mime_parameter_get_media_format(mime_parameter)
 																		,"rtpmap");
 		if (rtpmap) {
-			mime_parameter_fill_from_rtpmap(mime_parameter,rtpmap);
+			mime_parameter_fill_from_rtpmap(mime_parameter,rtpmap,is_audio);
 		}else{
 			mime_parameter_fill_from_static(mime_parameter,belle_sdp_mime_parameter_get_media_format(mime_parameter));
 		}
