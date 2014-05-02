@@ -40,19 +40,7 @@ extern "C"{
 		Vp8RtpFmtIncompleteFrame = -2
 	} Vp8RtpFmtErrorCode;
 
-
-	typedef struct Vp8RtpFmtContext {
-		MSList *list;
-		MSQueue output_queue;
-		MSQueue frame_queue;
-		uint32_t last_ts;
-		uint32_t last_cseq;
-		uint32_t ref_cseq;
-		bool_t initialized_last_ts;
-		bool_t initialized_ref_cseq;
-	} Vp8RtpFmtContext;
-
-	typedef struct Vp8PayloadDescriptor {
+	typedef struct Vp8RtpFmtPayloadDescriptor {
 		uint16_t pictureid;
 		uint8_t pid;
 		uint8_t tl0picidx;
@@ -66,23 +54,42 @@ extern "C"{
 		bool_t tid_present;
 		bool_t keyidx_present;
 		bool_t layer_sync;
-	} Vp8PayloadDescriptor;
+	} Vp8RtpFmtPayloadDescriptor;
 
 	typedef struct Vp8RtpFmtPacket {
 		mblk_t *m;
-		Vp8PayloadDescriptor *pd;
+		Vp8RtpFmtPayloadDescriptor *pd;
 		uint32_t extended_cseq;
 		Vp8RtpFmtErrorCode error;
 		bool_t processed;
 	} Vp8RtpFmtPacket;
 
 
-	Vp8RtpFmtContext *vp8rtpfmt_new(void);
-	void vp8rtpfmt_destroy(Vp8RtpFmtContext *ctx);
-	void vp8rtpfmt_init(Vp8RtpFmtContext *ctx);
-	void vp8rtpfmt_uninit(Vp8RtpFmtContext *ctx);
-	void vp8rtpfmt_unpack(Vp8RtpFmtContext *ctx, MSQueue *in);
-	uint32_t vp8rtpfmt_extended_cseq(Vp8RtpFmtContext *ctx, uint16_t cseq);
+	typedef struct Vp8RtpFmtUnpackerCtx {
+		MSList *list;
+		MSQueue output_queue;
+		MSQueue frame_queue;
+		uint32_t last_ts;
+		uint32_t last_cseq;
+		uint32_t ref_cseq;
+		bool_t initialized_last_ts;
+		bool_t initialized_ref_cseq;
+	} Vp8RtpFmtUnpackerCtx;
+
+	typedef struct Vp8RtpFmtPackerCtx {
+		MSQueue output_queue;
+		uint8_t nb_partitions;
+	} Vp8RtpFmtPackerCtx;
+
+
+	void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx, uint8_t nb_partitions);
+	void vp8rtpfmt_packer_uninit(Vp8RtpFmtPackerCtx *ctx);
+	void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in);
+
+	void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx);
+	void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx);
+	void vp8rtpfmt_unpacker_process(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *in);
+	uint32_t vp8rtpfmt_unpacker_calc_extended_cseq(Vp8RtpFmtUnpackerCtx *ctx, uint16_t cseq);
 
 #ifdef __cplusplus
 }

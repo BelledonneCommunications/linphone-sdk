@@ -60,7 +60,7 @@ static int find_packet_from_mblk(const void *p, const void *vm) {
 	return (packet->m != m);
 }
 
-static void mark_frame_in_queue_as_incomplete(Vp8RtpFmtContext *ctx) {
+static void mark_frame_in_queue_as_incomplete(Vp8RtpFmtUnpackerCtx *ctx) {
 	mblk_t *m;
 	MSList *elem;
 	Vp8RtpFmtPacket *packet;
@@ -72,7 +72,7 @@ static void mark_frame_in_queue_as_incomplete(Vp8RtpFmtContext *ctx) {
 	}
 }
 
-static void mark_mblk_in_queue_as_complete(Vp8RtpFmtContext *ctx, mblk_t *m) {
+static void mark_mblk_in_queue_as_complete(Vp8RtpFmtUnpackerCtx *ctx, mblk_t *m) {
 	MSList *elem;
 	Vp8RtpFmtPacket *packet;
 	elem = ms_list_find_custom(ctx->list, find_packet_from_mblk, m);
@@ -88,7 +88,7 @@ static int processed_packet(const void *data, const void *userdata) {
 
 static void analyse_frames(void *data, void *userdata) {
 	Vp8RtpFmtPacket *packet = (Vp8RtpFmtPacket *)data;
-	Vp8RtpFmtContext *ctx = (Vp8RtpFmtContext *)userdata;
+	Vp8RtpFmtUnpackerCtx *ctx = (Vp8RtpFmtUnpackerCtx *)userdata;
 	mblk_t *frame;
 	mblk_t *m;
 	uint32_t ts = mblk_get_timestamp_info(packet->m);
@@ -157,9 +157,9 @@ error:
 
 static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 	uint8_t *h = packet->m->b_rptr;
-	Vp8PayloadDescriptor *pd = packet->pd;
+	Vp8RtpFmtPayloadDescriptor *pd = packet->pd;
 
-	memset(pd, 0, sizeof(Vp8PayloadDescriptor));
+	memset(pd, 0, sizeof(Vp8RtpFmtPayloadDescriptor));
 
 	/* Parse mandatory first octet of payload descriptor. */
 	if (*h & (1 << 7)) pd->extended_control_bits_present = TRUE;
@@ -213,18 +213,7 @@ static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 }
 
 
-Vp8RtpFmtContext *vp8rtpfmt_new(void) {
-	Vp8RtpFmtContext *ctx = ms_new(Vp8RtpFmtContext, 1);
-	vp8rtpfmt_init(ctx);
-	return ctx;
-}
-
-void vp8rtpfmt_destroy(Vp8RtpFmtContext *ctx) {
-	vp8rtpfmt_uninit(ctx);
-	ms_free(ctx);
-}
-
-void vp8rtpfmt_init(Vp8RtpFmtContext *ctx) {
+void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx) {
 	ms_queue_init(&ctx->output_queue);
 	ms_queue_init(&ctx->frame_queue);
 	ctx->list = NULL;
@@ -232,25 +221,25 @@ void vp8rtpfmt_init(Vp8RtpFmtContext *ctx) {
 	ctx->initialized_ref_cseq = FALSE;
 }
 
-void vp8rtpfmt_uninit(Vp8RtpFmtContext *ctx) {
+void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx) {
 	ms_queue_flush(&ctx->frame_queue);
 	ms_queue_flush(&ctx->output_queue);
 	ms_list_for_each(ctx->list, free_packet);
 	ms_list_free(ctx->list);
 }
 
-void vp8rtpfmt_unpack(Vp8RtpFmtContext *ctx, MSQueue *in) {
+void vp8rtpfmt_unpacker_process(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *in) {
 	Vp8RtpFmtPacket *packet;
 	mblk_t *m;
 
 #ifdef VP8RTPFMT_DEBUG
-	ms_message("vp8rtpfmt_unpack:");
+	ms_message("vp8rtpfmt_unpacker_process:");
 #endif
 	while ((m = ms_queue_get(in)) != 0) {
 		packet = ms_new(Vp8RtpFmtPacket, 1);
 		packet->m = m;
-		packet->extended_cseq = vp8rtpfmt_extended_cseq(ctx, mblk_get_cseq(m));
-		packet->pd = ms_new0(Vp8PayloadDescriptor, 1);
+		packet->extended_cseq = vp8rtpfmt_unpacker_calc_extended_cseq(ctx, mblk_get_cseq(m));
+		packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
 		packet->processed = FALSE;
 
 		if (m->b_cont) msgpullup(m, -1);
@@ -275,7 +264,7 @@ void vp8rtpfmt_unpack(Vp8RtpFmtContext *ctx, MSQueue *in) {
 	ctx->initialized_last_ts = FALSE;
 }
 
-uint32_t vp8rtpfmt_extended_cseq(Vp8RtpFmtContext *ctx, uint16_t cseq) {
+uint32_t vp8rtpfmt_unpacker_calc_extended_cseq(Vp8RtpFmtUnpackerCtx *ctx, uint16_t cseq) {
 	uint32_t extended_cseq;
 	uint32_t cseq_a;
 	uint32_t cseq_b;
@@ -307,4 +296,108 @@ uint32_t vp8rtpfmt_extended_cseq(Vp8RtpFmtContext *ctx, uint16_t cseq) {
 	}
 
 	return extended_cseq;
+}
+
+
+
+static void packer_process_frame_part(void *p, void *c) {
+	Vp8RtpFmtPacket *packet = (Vp8RtpFmtPacket *)p;
+	Vp8RtpFmtPackerCtx *ctx = (Vp8RtpFmtPackerCtx *)c;
+	mblk_t *pdm;
+	mblk_t *dm;
+	uint8_t *rptr;
+	uint8_t pdsize = 1;
+	int max_size = ms_get_payload_max_size();
+	int dlen;
+
+	/* Calculate the payload descriptor size. */
+	if (packet->pd->extended_control_bits_present == TRUE) pdsize++;
+	if (packet->pd->pictureid_present == TRUE) {
+		pdsize++;
+		if (packet->pd->pictureid & 0x8000) pdsize++;
+	}
+	if (packet->pd->tl0picidx_present == TRUE) pdsize++;
+	if ((packet->pd->tid_present == TRUE) || (packet->pd->keyidx_present == TRUE)) pdsize++;
+
+	for (rptr = packet->m->b_rptr; rptr < packet->m->b_wptr;) {
+		/* Allocate the payload descriptor. */
+		pdm = allocb(pdsize, 0);
+		memset(pdm->b_wptr, 0, pdsize);
+		mblk_set_timestamp_info(pdm, mblk_get_timestamp_info(packet->m));
+		/* Fill the mandatory octet of the payload descriptor. */
+		if (packet->pd->extended_control_bits_present == TRUE) *pdm->b_wptr |= (1 << 7);
+		if (packet->pd->non_reference_frame == TRUE) *pdm->b_wptr |= (1 << 5);
+		if (packet->pd->start_of_partition == TRUE) {
+			if (packet->m->b_rptr == rptr) *pdm->b_wptr |= (1 << 4);
+		}
+		*pdm->b_wptr |= (packet->pd->pid & 0x07);
+		pdm->b_wptr++;
+		/* Fill the extension bit field octet of the payload descriptor. */
+		if (packet->pd->extended_control_bits_present == TRUE) {
+			if (packet->pd->pictureid_present == TRUE) *pdm->b_wptr |= (1 << 7);
+			if (packet->pd->tl0picidx_present == TRUE) *pdm->b_wptr |= (1 << 6);
+			if (packet->pd->tid_present == TRUE) *pdm->b_wptr |= (1 << 5);
+			if (packet->pd->keyidx_present == TRUE) *pdm->b_wptr |= (1 << 4);
+			pdm->b_wptr++;
+		}
+		/* Fill the pictureID field of the payload descriptor. */
+		if (packet->pd->pictureid_present == TRUE) {
+			if (packet->pd->pictureid & 0x8000) {
+				*pdm->b_wptr |= ((packet->pd->pictureid >> 8) & 0xFF);
+				pdm->b_wptr++;
+			}
+			*pdm->b_wptr |= (packet->pd->pictureid & 0xFF);
+			pdm->b_wptr++;
+		}
+		/* Fill the tl0picidx octet of the payload descriptor. */
+		if (packet->pd->tl0picidx_present == TRUE) {
+			*pdm->b_wptr = packet->pd->tl0picidx;
+			pdm->b_wptr++;
+		}
+		if ((packet->pd->tid_present == TRUE) || (packet->pd->keyidx_present == TRUE)) {
+			if (packet->pd->tid_present == TRUE) {
+				*pdm->b_wptr |= (packet->pd->tid & 0xC0);
+				if (packet->pd->layer_sync == TRUE) *pdm->b_wptr |= (1 << 5);
+			}
+			if (packet->pd->keyidx_present == TRUE) {
+				*pdm->b_wptr |= (packet->pd->keyidx & 0x1F);
+			}
+			pdm->b_wptr++;
+		}
+
+		dlen = MIN((max_size - pdsize), (packet->m->b_wptr - rptr));
+		dm = dupb(packet->m);
+		dm->b_rptr = rptr;
+		dm->b_wptr = rptr + dlen;
+		dm->b_wptr = dm->b_rptr + dlen;
+		pdm->b_cont = dm;
+		rptr += dlen;
+
+		ms_queue_put(&ctx->output_queue, pdm);
+	}
+
+	/* Set marker bit on last packet. */
+	if (packet->pd->pid == ctx->nb_partitions) {
+		mblk_set_marker_info(pdm, TRUE);
+		mblk_set_marker_info(dm, TRUE);
+	}
+
+	freeb(packet->m);
+	packet->m = NULL;
+}
+
+
+void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx, uint8_t nb_partitions) {
+	ms_queue_init(&ctx->output_queue);
+	ctx->nb_partitions = nb_partitions;
+}
+
+void vp8rtpfmt_packer_uninit(Vp8RtpFmtPackerCtx *ctx) {
+	ms_queue_flush(&ctx->output_queue);
+}
+
+void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in) {
+	ms_list_for_each2(in, packer_process_frame_part, ctx);
+	ms_list_for_each(in, free_packet);
+	ms_list_free(in);
 }
