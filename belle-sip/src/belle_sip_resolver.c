@@ -44,11 +44,14 @@ struct belle_sip_dns_srv{
 	unsigned short priority;
 	unsigned short weight;
 	unsigned short port;
+	unsigned char a_done;
+	unsigned char pad;
+	int cumulative_weight; /*used only temporarily*/
 	char *target;
 	belle_sip_combined_resolver_context_t *root_resolver;/* used internally to combine SRV and A queries*/
 	belle_sip_resolver_context_t *a_resolver; /* used internally to combine SRV and A queries*/
 	struct addrinfo *a_results; /* used internally to combine SRV and A queries*/
-	unsigned char a_done;
+	
 };
 
 static void belle_sip_dns_srv_destroy(belle_sip_dns_srv_t *obj){
@@ -286,11 +289,82 @@ static int srv_compare_prio(const void *psrv1, const void *psrv2){
 	return 1;
 }
 
+/*
+ * see https://www.ietf.org/rfc/rfc2782.txt
+ * 0 weighted must just appear first.
+**/
+static int srv_sort_weight(const void *psrv1, const void *psrv2){
+	belle_sip_dns_srv_t *srv1=(belle_sip_dns_srv_t*)psrv1;
+	if (srv1->weight==0) return -1;
+	return 1;
+}
+
+static belle_sip_dns_srv_t *srv_elect_one(belle_sip_list_t *srv_list){
+	int sum=0;
+	belle_sip_list_t *elem;
+	belle_sip_dns_srv_t *srv;
+	int rand_number;
+	
+	for(elem=srv_list;elem!=NULL;elem=elem->next){
+		srv=(belle_sip_dns_srv_t*)elem->data;
+		sum+=srv->weight;
+		srv->cumulative_weight=sum;
+	}
+	/*no weights given, return the first one*/
+	if (sum==0) return (belle_sip_dns_srv_t*)srv_list->data;
+	rand_number=belle_sip_random() % sum; /*random number choosen in the range of the sum of weights*/
+	for(elem=srv_list;elem!=NULL;elem=elem->next){
+		srv=(belle_sip_dns_srv_t*)elem->data;
+		if (rand_number>=srv->cumulative_weight)
+			return srv;
+	}
+	/*we should not reach this line*/
+	belle_sip_warning("srv_elect_one(): should not happen.");
+	return (belle_sip_dns_srv_t*)srv_list->data;
+}
+
+/*
+ * this function will return a list of SRV, with only one SRV record per priority.
+ */
+static belle_sip_list_t *srv_select_by_weight(belle_sip_list_t *srv_list){
+	belle_sip_list_t *same_prio=NULL;
+	belle_sip_list_t *elem;
+	belle_sip_dns_srv_t *prev_srv=NULL;
+	belle_sip_list_t *result=NULL;
+	
+	for (elem=srv_list;elem!=NULL;elem=elem->next){
+		belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
+		if (prev_srv){
+			if (prev_srv->priority==srv->priority){
+				if (!same_prio){
+					same_prio=belle_sip_list_append(same_prio,prev_srv);
+				}
+				same_prio=belle_sip_list_insert_sorted(same_prio,srv,srv_sort_weight);
+			}else{
+				if (same_prio){
+					result=belle_sip_list_append(result,belle_sip_object_ref(srv_elect_one(same_prio)));
+					same_prio=NULL;
+				}
+			}
+		}
+		prev_srv=srv;
+	}
+	if (same_prio){
+		result=belle_sip_list_append(result,belle_sip_object_ref(srv_elect_one(same_prio)));
+	}
+	if (result){
+		belle_sip_list_free_with_data(srv_list,belle_sip_object_unref);
+		return result;
+	}
+	return srv_list;/*no weight election was necessary, return original list*/
+}
+
 static void notify_results(belle_sip_simple_resolver_context_t *ctx){
 	ctx->base.done=TRUE;
 	if ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA)) {
 		ctx->cb(ctx->cb_data, ctx->name, ctx->ai_list);
 	} else if (ctx->type == DNS_T_SRV) {
+		ctx->srv_list=srv_select_by_weight(ctx->srv_list);
 		ctx->srv_cb(ctx->srv_cb_data, ctx->name, ctx->srv_list);
 	}
 }
