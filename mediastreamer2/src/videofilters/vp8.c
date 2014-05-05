@@ -427,7 +427,7 @@ typedef struct DecState {
 
 static void dec_init(MSFilter *f) {
 	DecState *s=(DecState *)ms_new(DecState,1);
-	vpx_codec_flags_t  flags = 0;/*VPX_CODEC_USE_ERROR_CONCEALMENT*/;
+	vpx_codec_flags_t  flags = VPX_CODEC_USE_INPUT_FRAGMENTS;
 
 	ms_message("Using %s\n",vpx_codec_iface_name(interface));
 
@@ -468,93 +468,71 @@ static void dec_uninit(MSFilter *f) {
 	ms_free(s);
 }
 
+static void dec_decode(void *data, void *userdata) {
+	Vp8RtpFmtPartition *partition = (Vp8RtpFmtPartition *)data;
+	MSFilter *f = (MSFilter *)userdata;
+	DecState *s = (DecState *)f->data;
+	vpx_codec_err_t err;
+
+	err = vpx_codec_decode(&s->codec, partition->m->b_rptr, partition->m->b_wptr - partition->m->b_rptr, NULL, 0);
+	if (!err && (partition->last_partition_of_frame == TRUE)) {
+		err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
+	}
+	if (err) {
+		ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
+		s->on_error=TRUE;
+		if ((f->ticker->time - s->last_error_reported_time)>5000 || s->last_error_reported_time==0) {
+			s->last_error_reported_time=f->ticker->time;
+			ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
+		}
+	} else {
+		s->on_error=FALSE;
+	}
+}
+
 static void dec_process(MSFilter *f) {
-	mblk_t *m;
 	DecState *s=(DecState*)f->data;
+	vpx_image_t *img;
+	vpx_codec_iter_t iter = NULL;
 
-	vp8rtpfmt_unpacker_process(&s->unpacker, f->inputs[0]);
+	/* Unpack RTP payload format for VP8. */
+	vp8rtpfmt_unpacker_unpack(&s->unpacker, f->inputs[0]);
+	vp8rtpfmt_unpacker_decode(&s->unpacker, dec_decode, f);
 
-	while((m=ms_queue_get(&s->unpacker.output_queue)) != NULL) {
-		vpx_codec_err_t err;
-		vpx_codec_iter_t  iter = NULL;
-		vpx_image_t *img;
+	/* browse decoded frames */
+	while((img = vpx_codec_get_frame(&s->codec, &iter))) {
+		int i,j;
 
-		/*
-			* 4.3.  VP8 Payload Header
-			*
-			*  0 1 2 3 4 5 6 7
-			*  +-+-+-+-+-+-+-+-+
-			*  |Size0|H| VER |P|
-			*  +-+-+-+-+-+-+-+-+
-			*  ...
-			*
-			* P: Inverse key frame flag.  When set to 0 the current frame is a key
-			* frame.  When set to 1 the current frame is an interframe.  Defined
-			* in [RFC6386]
-			*/
-		if (m->b_rptr[0] & 0x01) {
-			/*not a key frame, freezing image until next keyframe*/
-			/*if (s->first_image_decoded && s->on_error) {
-				freemsg(m);
-				continue;
-			}*/
-		} else
-			ms_message("vp8 key frame received on filter [%p]",f);
-
-		err = vpx_codec_decode(&s->codec, m->b_rptr, m->b_wptr - m->b_rptr, NULL, 0);
-		if (err) {
-			ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
-			s->on_error=TRUE;
-			if ((f->ticker->time - s->last_error_reported_time)>5000 || s->last_error_reported_time==0) {
-				s->last_error_reported_time=f->ticker->time;
-				ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
-			}
-			if (s->first_image_decoded == FALSE) {
-				/* if no frames have been decoded yet, do not try to browse decoded frames */
-				freemsg(m);
-				continue;
-			}
-		} else {
-			s->on_error=FALSE;
+		if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
+			if (s->yuv_msg)
+				freemsg(s->yuv_msg);
+			s->yuv_msg = ms_yuv_buf_alloc(&s->outbuf, img->d_w, img->d_h);
+			s->yuv_width = img->d_w;
+			s->yuv_height = img->d_h;
 		}
 
+		/* scale/copy frame to destination mblk_t */
+		for(i=0; i<3; i++) {
+			uint8_t* dest = s->outbuf.planes[i];
+			uint8_t* src = img->planes[i];
+			int h = img->d_h >> ((i>0)?1:0);
 
-		/* browse decoded frames */
-		while((img = vpx_codec_get_frame(&s->codec, &iter))) {
-			int i,j;
+			for(j=0; j<h; j++) {
+				memcpy(dest, src, s->outbuf.strides[i]);
 
-			if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
-				if (s->yuv_msg)
-					freemsg(s->yuv_msg);
-				s->yuv_msg = ms_yuv_buf_alloc(&s->outbuf, img->d_w, img->d_h);
-				s->yuv_width = img->d_w;
-				s->yuv_height = img->d_h;
-			}
-
-			/* scale/copy frame to destination mblk_t */
-			for(i=0; i<3; i++) {
-				uint8_t* dest = s->outbuf.planes[i];
-				uint8_t* src = img->planes[i];
-				int h = img->d_h >> ((i>0)?1:0);
-
-				for(j=0; j<h; j++) {
-					memcpy(dest, src, s->outbuf.strides[i]);
-
-					dest += s->outbuf.strides[i];
-					src += img->stride[i];
-				}
-			}
-			ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
-
-			if (ms_video_update_average_fps(&s->fps, f->ticker->time)) {
-				ms_message("VP8 decoder: Frame size: %dx%d", s->yuv_width, s->yuv_height);
-			}
-			if (!s->first_image_decoded) {
-				s->first_image_decoded = TRUE;
-				ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+				dest += s->outbuf.strides[i];
+				src += img->stride[i];
 			}
 		}
-		freemsg(m);
+		ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
+
+		if (ms_video_update_average_fps(&s->fps, f->ticker->time)) {
+			ms_message("VP8 decoder: Frame size: %dx%d", s->yuv_width, s->yuv_height);
+		}
+		if (!s->first_image_decoded) {
+			s->first_image_decoded = TRUE;
+			ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+		}
 	}
 }
 
