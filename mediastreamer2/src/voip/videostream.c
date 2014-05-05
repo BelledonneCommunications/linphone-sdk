@@ -98,18 +98,20 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	unsigned int i;
 
 	do{
+		const report_block_t *rb = NULL;
 		if (rtcp_is_SR(m)){
-			const report_block_t *rb;
 			rb=rtcp_SR_get_report_block(m,0);
-			if (rb){
-				float rt=rtp_session_get_round_trip_propagation(stream->ms.sessions.rtp_session);
-				float flost;
-				i=report_block_get_interarrival_jitter(rb);
-				flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
-				ms_message("video_stream_process_rtcp[%p]: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",stream,i,flost,rt);
-				if (stream->ms.rc)
-					ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
-			}
+		}else if (rtcp_is_RR(m)){
+			rb=rtcp_RR_get_report_block(m,0);
+		}
+		if (rb){
+			float rt=rtp_session_get_round_trip_propagation(stream->ms.sessions.rtp_session);
+			float flost;
+			i=report_block_get_interarrival_jitter(rb);
+			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
+			ms_message("video_stream_process_rtcp[%p]: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",stream,i,flost,rt);
+			if (stream->ms.rc)
+				ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
 		} else if (rtcp_is_PSFB(m)) {
 			if (rtcp_PSFB_get_type(m) == RTCP_PSFB_FIR) {
 				/* Special case for FIR where the packet sender ssrc must be equal to 0. */
@@ -399,7 +401,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 	pt=rtp_profile_get_payload(profile,payload);
 	if (pt==NULL){
-		ms_error("videostream.c: undefined payload type.");
+		ms_error("videostream.c: undefined payload type %d.", payload);
 		return -1;
 	}
 	if (pt->flags & PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED) avpf_enabled = TRUE;

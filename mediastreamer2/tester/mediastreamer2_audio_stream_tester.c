@@ -83,42 +83,6 @@ static void reset_stats(stats_t* s) {
 }
 
 
-bool_t wait_for_list(MSList* mss,int* counter,int value,int timeout_ms) {
-	int retry=0;
-	MSList* iterator;
-	while (*counter<value && retry++ <timeout_ms/100) {
-		 for (iterator=mss;iterator!=NULL;iterator=iterator->next) {
-			 MediaStream* stream = (MediaStream*)(iterator->data);
-			 media_stream_iterate(stream);
-			 if (retry%10==0) {
-				 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	, stream
-																					, media_stream_get_down_bw(stream)/1000
-																					, media_stream_get_up_bw(stream)/1000);
-
-			 }
-		 }
-		ms_usleep(100000);
-
-	}
-	if(*counter<value) return FALSE;
-	else return TRUE;
-}
-
-bool_t wait_for_until(MediaStream* ms_1, MediaStream* ms_2,int* counter,int value,int timeout) {
-	MSList* mss=NULL;
-	bool_t result;
-	if (ms_1)
-		mss=ms_list_append(mss,ms_1);
-	if (ms_2)
-		mss=ms_list_append(mss,ms_2);
-	result=wait_for_list(mss,counter,value,timeout);
-	ms_list_free(mss);
-	return result;
-}
-bool_t wait_for(MediaStream* ms_1, MediaStream* ms_2,int* counter,int value)  {
-	return wait_for_until( ms_1, ms_2,counter,value,2000);
-}
-
 static void notify_cb(void *user_data, MSFilter *f, unsigned int event, void *eventdata) {
 
 	stats_t* stats = (stats_t*)user_data;
@@ -133,28 +97,27 @@ static void notify_cb(void *user_data, MSFilter *f, unsigned int event, void *ev
 
 }
 
-typedef struct _stream_manager_t {
+typedef struct _audio_stream_manager_t {
 	AudioStream* stream;
 	int local_rtp;
 	int local_rtcp;
 	stats_t stats;
 
-} stream_manager_t ;
-static stream_manager_t * stream_manager_new() {
-	stream_manager_t * mgr =  ms_new0(stream_manager_t,1);
+} audio_stream_manager_t ;
+static audio_stream_manager_t * audio_stream_manager_new() {
+	audio_stream_manager_t * mgr =  ms_new0(audio_stream_manager_t,1);
 	mgr->local_rtp= (rand() % ((2^16)-1024) + 1024) & ~0x1;
 	mgr->local_rtcp=mgr->local_rtp+1;
 	mgr->stream = audio_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
 	return mgr;
 
 }
-static void stream_manager_delete(stream_manager_t * mgr) {
+static void audio_stream_manager_delete(audio_stream_manager_t * mgr) {
 	audio_stream_stop(mgr->stream);
 	ms_free(mgr);
 }
 
-
-static void stream_manager_start(	stream_manager_t * mgr
+static void audio_manager_start(	audio_stream_manager_t * mgr
 									,int payload_type
 									,int remote_port
 									,int target_bitrate
@@ -175,8 +138,8 @@ static void stream_manager_start(	stream_manager_t * mgr
 												, NULL
 												, NULL
 												, 0),0);
-
 }
+
 static void basic_audio_stream() {
 	AudioStream * 	marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
 	stats_t marielle_stats;
@@ -237,8 +200,8 @@ static void basic_audio_stream() {
 #define THIRDGENERATION_BW 200000
 
 static float adaptive_audio_stream(int codec_payload, int initial_bitrate,int target_bw, float loss_rate, int max_recv_rtcp_packet) {
-	stream_manager_t * marielle = stream_manager_new();
-	stream_manager_t * margaux = stream_manager_new();
+	audio_stream_manager_t * marielle = audio_stream_manager_new();
+	audio_stream_manager_t * margaux = audio_stream_manager_new();
 	int pause_time=0;
 
 	OrtpNetworkSimulatorParams params={0};
@@ -254,21 +217,21 @@ static float adaptive_audio_stream(int codec_payload, int initial_bitrate,int ta
 
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
 
-	stream_manager_start(marielle,codec_payload, margaux->local_rtp,initial_bitrate,HELLO_16K_1S_FILE,NULL);
+	audio_manager_start(marielle,codec_payload, margaux->local_rtp,initial_bitrate,HELLO_16K_1S_FILE,NULL);
 	ms_filter_call_method(marielle->stream->soundread,MS_FILE_PLAYER_LOOP,&pause_time);
 
-	stream_manager_start(margaux,codec_payload, marielle->local_rtp,-1,NULL,RECORDED_16K_1S_FILE);
+	audio_manager_start(margaux,codec_payload, marielle->local_rtp,-1,NULL,RECORDED_16K_1S_FILE);
 	rtp_session_enable_network_simulation(margaux->stream->ms.sessions.rtp_session,&params);
 
 	rtp_session_set_rtcp_report_interval(margaux->stream->ms.sessions.rtp_session, rtcp_interval);
 	wait_for_until(&marielle->stream->ms,&margaux->stream->ms,&marielle->stats.number_of_EndOfFile,10,rtcp_interval*max_recv_rtcp_packet);
 
 	marielle_send_bw=media_stream_get_up_bw(&marielle->stream->ms);
-	bw_usage_ratio=marielle_send_bw/params.max_bandwidth;
+	bw_usage_ratio=(params.max_bandwidth > 0) ? marielle_send_bw/params.max_bandwidth : 0;
 	ms_message("marielle sent bw=[%f], target was [%f] bw_usage_ratio [%f]",marielle_send_bw,params.max_bandwidth,bw_usage_ratio);
 
-	stream_manager_delete(marielle);
-	stream_manager_delete(margaux);
+	audio_stream_manager_delete(marielle);
+	audio_stream_manager_delete(margaux);
 
 	unlink(RECORDED_16K_1S_FILE);
 
@@ -331,7 +294,7 @@ static void lossy_network_speex_audio_stream() {
 		int loss_rate = getenv("GPP_LOSS") ? atoi(getenv("GPP_LOSS")) : 0;
 		int max_bw = getenv("GPP_MAXBW") ? atoi(getenv("GPP_MAXBW")) * 1000: 0;
 		printf("\nloss_rate=%d(GPP_LOSS) max_bw=%d(GPP_MAXBW)\n", loss_rate, max_bw);
-		bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, max_bw, loss_rate, 120);
+		bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, max_bw, loss_rate, 20);
 		CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
 		// bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 16000, EDGE_BW, 8);
 		// CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
@@ -342,8 +305,8 @@ static void lossy_network_speex_audio_stream() {
 
 #if 0
 static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_bw, int max_recv_rtcp_packet) {
-	stream_manager_t * marielle = stream_manager_new();
-	stream_manager_t * margaux = stream_manager_new();
+	audio_stream_manager_t * marielle = audio_stream_manager_new();
+	audio_stream_manager_t * margaux = audio_stream_manager_new();
 	int pause_time=0;
 
 	OrtpNetworkSimulatorParams params={0};
@@ -358,11 +321,11 @@ static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
 
 
-	stream_manager_start(marielle,codec_payload, margaux->local_rtp,initial_bitrate,HELLO_16K_1S_FILE,NULL);
+	audio_manager_start(marielle,codec_payload, margaux->local_rtp,initial_bitrate,HELLO_16K_1S_FILE,NULL);
 	ms_filter_call_method(marielle->stream->soundread,MS_FILE_PLAYER_LOOP,&pause_time);
 
 	unlink("blibi.wav");
-	stream_manager_start(margaux,codec_payload, marielle->local_rtp,-1,NULL,"blibi.wav");
+	audio_manager_start(margaux,codec_payload, marielle->local_rtp,-1,NULL,"blibi.wav");
 	rtp_session_enable_network_simulation(margaux->stream->ms.session,&params);
 	rtp_session_set_rtcp_report_interval(margaux->stream->ms.session, rtcp_interval);
 
@@ -373,8 +336,8 @@ static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_
 	ms_message("marielle sent bw= [%f] , target was [%f] recv/send [%f]",marielle_send_bw,params.max_bandwidth,recv_send_bw_ratio);
 	CU_ASSERT_TRUE(recv_send_bw_ratio>0.9);
 
-	stream_manager_delete(marielle);
-	stream_manager_delete(margaux);
+	audio_stream_manager_delete(marielle);
+	audio_stream_manager_delete(margaux);
 
 }
 
@@ -386,7 +349,7 @@ static test_t tests[] = {
 	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
 	{ "Adaptive audio stream [speex]", adaptive_speek16_audio_stream },
 	{ "Adaptive audio stream [pcma]", adaptive_pcma_audio_stream },
-	{ "Lossy network [speex]", lossy_network_speex_audio_stream },
+	{ "Lossy network", lossy_network_speex_audio_stream },
 };
 
 test_suite_t audio_stream_test_suite = {

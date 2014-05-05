@@ -237,7 +237,7 @@ static void compute_available_bw(MSSimpleQosAnalyser *obj){
 	x_sum /= count;
 	y_sum /= count;
 	mean_bw /= count;
-	printf("\tEstimated BW by avg is %f kbits/s\n", mean_bw);
+	printf("\tEstimated BW by avg is %f kbit/s\n", mean_bw);
 
 
 	printf("sum=%f xmin=%d xmax=%d\n", x_sum, x_min_ind, x_max_ind);
@@ -258,7 +258,8 @@ static void compute_available_bw(MSSimpleQosAnalyser *obj){
 	bool_t lossy_network = avg_dist > .1;
 	// to compute estimated BW, we need a minimum sample size
 	if (diff > 0.05) {
-		printf("\tfor line is %f kbit/s\n", -b / m);
+		double avail_bw = (fabs(m) > 0.0001f) ? - b / m : mean_bw;
+		printf("\tfor line is %f kbit/s\n", avail_bw);
 		printf("\t\ty=%f x + %f\n", m, b);
 
 		lossy_network |= m < .03f;

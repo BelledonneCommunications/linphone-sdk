@@ -36,6 +36,42 @@ static int nb_test_suites = 0;
 static unsigned char curses = 0;
 #endif
 
+bool_t wait_for_list(MSList* mss,int* counter,int value,int timeout_ms) {
+	int retry=0;
+	MSList* iterator;
+	while (*counter<value && retry++ <timeout_ms/100) {
+		 for (iterator=mss;iterator!=NULL;iterator=iterator->next) {
+			 MediaStream* stream = (MediaStream*)(iterator->data);
+			 media_stream_iterate(stream);
+			 if (retry%10==0) {
+				 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	, stream
+																					, media_stream_get_down_bw(stream)/1000
+																					, media_stream_get_up_bw(stream)/1000);
+
+			 }
+		 }
+		ms_usleep(100000);
+
+	}
+	if(*counter<value) return FALSE;
+	else return TRUE;
+}
+
+bool_t wait_for_until(MediaStream* ms_1, MediaStream* ms_2,int* counter,int value,int timeout) {
+	MSList* mss=NULL;
+	bool_t result;
+	if (ms_1)
+		mss=ms_list_append(mss,ms_1);
+	if (ms_2)
+		mss=ms_list_append(mss,ms_2);
+	result=wait_for_list(mss,counter,value,timeout);
+	ms_list_free(mss);
+	return result;
+}
+bool_t wait_for(MediaStream* ms_1, MediaStream* ms_2,int* counter,int value)  {
+	return wait_for_until( ms_1, ms_2,counter,value,2000);
+}
+
 
 static void add_test_suite(test_suite_t *suite) {
 	if (test_suite == NULL) {
@@ -114,6 +150,7 @@ void mediastreamer2_tester_init(void) {
 	add_test_suite(&basic_audio_test_suite);
 	add_test_suite(&sound_card_test_suite);
 	add_test_suite(&audio_stream_test_suite);
+	add_test_suite(&video_stream_test_suite);
 	add_test_suite(&framework_test_suite);
 }
 
