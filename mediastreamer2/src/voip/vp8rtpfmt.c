@@ -43,8 +43,8 @@ static void print_packet(void *data) {
 
 	marker = mblk_get_marker_info(packet->m);
 	ts = mblk_get_timestamp_info(packet->m);
-	ms_message("ts=%10u\tcseq=%10u\t%s\tS=%d\tpid=%1d\terror=%d",
-		ts, packet->extended_cseq, (marker == 0) ? " " : "M", packet->pd->start_of_partition, packet->pd->pid, packet->error);
+	ms_message("ts=%10u\tcseq=%10u\t%s\tS=%d\tpid=%1d\terror=%d\tpictureid=%5u",
+		ts, packet->extended_cseq, (marker == 0) ? " " : "M", packet->pd->start_of_partition, packet->pd->pid, packet->error, packet->pd->pictureid);
 }
 #endif /* VP8RTPFMT_DEBUG */
 

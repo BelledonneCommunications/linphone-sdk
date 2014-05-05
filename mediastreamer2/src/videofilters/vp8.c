@@ -86,6 +86,7 @@ typedef struct EncState {
 	vpx_codec_enc_cfg_t cfg;
 	Vp8RtpFmtPackerCtx packer;
 	long long frame_count;
+	uint8_t picture_id;
 	int last_fir_seq_nr;
 	bool_t req_vfu;
 	bool_t ready;
@@ -162,6 +163,7 @@ static void enc_preprocess(MSFilter *f) {
 	vpx_codec_control(&s->codec, VP8E_SET_MAX_INTRA_BITRATE_PCT, 400); /*limite iFrame size to 4 pframe*/
 	vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 2);
 
+	s->picture_id = random() & 0x7F;
 	s->ready=TRUE;
 }
 
@@ -200,6 +202,8 @@ static void enc_process(MSFilter *f) {
 			MSList *list = NULL;
 
 			s->frame_count++;
+			s->picture_id++;
+			if (s->picture_id == 0x80) s->picture_id = 0;
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
 				if ((pkt->kind == VPX_CODEC_CX_FRAME_PKT) && (pkt->data.frame.sz > 0)) {
 					Vp8RtpFmtPacket *packet = ms_new0(Vp8RtpFmtPacket, 1);
@@ -213,6 +217,9 @@ static void enc_process(MSFilter *f) {
 					if (pkt->data.frame.flags & VPX_FRAME_IS_DROPPABLE) {
 						packet->pd->non_reference_frame = TRUE;
 					}
+					packet->pd->extended_control_bits_present = TRUE;
+					packet->pd->pictureid_present = TRUE;
+					packet->pd->pictureid = s->picture_id;
 					list = ms_list_append(list, packet);
 				}
 			}
