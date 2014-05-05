@@ -38,7 +38,9 @@ extern "C"{
 		Vp8RtpFmtOk = 0,
 		Vp8RtpFmtInvalidPayloadDescriptor = -1,
 		Vp8RtpFmtIncompleteFrame = -2,
-		Vp8RtpFmtIncompletePartition = -3
+		Vp8RtpFmtIncompletePartition = -3,
+		Vp8RtpFmtInvalidFrame = -4,
+		Vp8RtpFmtInvalidPartition = -5
 	} Vp8RtpFmtErrorCode;
 
 	typedef struct Vp8RtpFmtPayloadDescriptor {

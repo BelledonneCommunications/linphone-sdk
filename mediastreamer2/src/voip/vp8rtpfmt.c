@@ -71,35 +71,6 @@ static int cseq_compare(const void *d1, const void *d2) {
 	return (p1->extended_cseq > p2->extended_cseq);
 }
 
-#if 0
-static int find_packet_from_mblk(const void *p, const void *vm) {
-	Vp8RtpFmtPacket *packet = (Vp8RtpFmtPacket *)p;
-	mblk_t *m = (mblk_t *)vm;
-	return (packet->m != m);
-}
-
-static void mark_frame_in_queue_as_incomplete(Vp8RtpFmtUnpackerCtx *ctx) {
-	mblk_t *m;
-	MSList *elem;
-	Vp8RtpFmtPacket *packet;
-	while ((m = ms_queue_get(&ctx->frame_queue)) != NULL) {
-		elem = ms_list_find_custom(ctx->packets_list, find_packet_from_mblk, m);
-		packet = (Vp8RtpFmtPacket *)elem->data;
-		packet->error = Vp8RtpFmtIncompleteFrame;
-		packet->processed = TRUE;
-	}
-}
-
-static void mark_mblk_in_queue_as_complete(Vp8RtpFmtUnpackerCtx *ctx, mblk_t *m) {
-	MSList *elem;
-	Vp8RtpFmtPacket *packet;
-	elem = ms_list_find_custom(ctx->packets_list, find_packet_from_mblk, m);
-	packet = (Vp8RtpFmtPacket *)elem->data;
-	packet->error = Vp8RtpFmtOk;
-	packet->processed = TRUE;
-}
-#endif
-
 static int processed_packet(const void *data, const void *userdata) {
 	Vp8RtpFmtPacket *packet = (Vp8RtpFmtPacket *)data;
 	return  (packet->processed != TRUE);
@@ -155,41 +126,59 @@ static void add_partition_to_frame(Vp8RtpFmtFrame *frame, Vp8RtpFmtPartition *pa
 	frame->partitions_list = ms_list_append(frame->partitions_list, (void *)partition);
 }
 
-static void generate_partitions_list(void *data) {
+static void generate_partitions_list(void *data, void *userdata) {
 	Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)data;
+	Vp8RtpFmtUnpackerCtx *ctx = (Vp8RtpFmtUnpackerCtx *)userdata;
 	Vp8RtpFmtPacket *current_packet = NULL;
 	Vp8RtpFmtPartition *current_partition = NULL;
 	int nb_packets = ms_list_size(frame->packets_list);
 	int i;
 
-	// TODO: Handle gap in sequence numbers and errors in packet payload parsing
-
 	for (i = 0; i < nb_packets; i++) {
 		current_packet = (Vp8RtpFmtPacket *)ms_list_nth_data(frame->packets_list, i);
-		if (current_packet->pd->start_of_partition == TRUE) {
+		if (current_packet->extended_cseq != (ctx->last_cseq + 1)) {
 			if (current_partition != NULL) {
-				/* The current partition is complete, and the current packet is part of a new partition. */
-				add_partition_to_frame(frame, current_partition);
-			}
-			current_partition = ms_new0(Vp8RtpFmtPartition, 1);
-			current_partition->packets_list = ms_list_append(current_partition->packets_list, (void *)current_packet);
-		} else {
-			if (current_partition != NULL) {
-				/* The current packet is a part of the current partition. */
-				current_partition->packets_list = ms_list_append(current_partition->packets_list, (void *)current_packet);
-			} else {
-				/* The current packet is not a start of partition, but a start of partition was expected. */
-				current_partition = ms_new0(Vp8RtpFmtPartition, 1);
+				/* There was a gap in the sequence numbers, the current partition is incomplete. */
 				current_partition->packets_list = ms_list_append(current_partition->packets_list, (void *)current_packet);
 				current_partition->error = Vp8RtpFmtIncompletePartition;
 				frame->error = Vp8RtpFmtIncompleteFrame;
 			}
+		}
+		if (current_packet->error == Vp8RtpFmtOk) {
+			if (current_packet->pd->start_of_partition == TRUE) {
+				if (current_partition != NULL) {
+					/* The current partition is complete, and the current packet is part of a new partition. */
+					add_partition_to_frame(frame, current_partition);
+				}
+				current_partition = ms_new0(Vp8RtpFmtPartition, 1);
+				current_partition->packets_list = ms_list_append(current_partition->packets_list, (void *)current_packet);
+			} else {
+				if (current_partition != NULL) {
+					/* The current packet is a part of the current partition. */
+					current_partition->packets_list = ms_list_append(current_partition->packets_list, (void *)current_packet);
+				} else {
+					/* The current packet is not a start of partition, but a start of partition was expected. */
+					current_partition = ms_new0(Vp8RtpFmtPartition, 1);
+					current_partition->packets_list = ms_list_append(current_partition->packets_list, (void *)current_packet);
+					current_partition->error = Vp8RtpFmtIncompletePartition;
+					frame->error = Vp8RtpFmtIncompleteFrame;
+				}
+			}
+		} else {
+			/* Malformed packet. */
+			if (current_partition == NULL) {
+				current_partition = ms_new0(Vp8RtpFmtPartition, 1);
+			}
+			current_partition->packets_list = ms_list_append(current_partition->packets_list, (void *)current_packet);
+			current_partition->error = Vp8RtpFmtInvalidPartition;
+			frame->error = Vp8RtpFmtInvalidFrame;
 		}
 		if (mblk_get_marker_info(current_packet->m) == TRUE) {
 			current_partition->last_partition_of_frame = TRUE;
 			add_partition_to_frame(frame, current_partition);
 			current_partition = NULL;
 		}
+		ctx->last_cseq = current_packet->extended_cseq;
 	}
 }
 
@@ -207,80 +196,17 @@ static void output_valid_partitions(void *data, void *userdata) {
 			current_partition = ms_list_nth_data(frame->partitions_list, i);
 			ctx->output_list = ms_list_append(ctx->output_list, (void *)current_partition);
 		}
-	}
-}
-
-#if 0
-static void analyse_frames(void *data, void *userdata) {
-	Vp8RtpFmtPacket *packet = (Vp8RtpFmtPacket *)data;
-	Vp8RtpFmtUnpackerCtx *ctx = (Vp8RtpFmtUnpackerCtx *)userdata;
-	//mblk_t *frame;
-	mblk_t *m;
-	uint32_t ts = mblk_get_timestamp_info(packet->m);
-
-	if (ctx->initialized_last_ts != TRUE) {
-		ctx->initialized_last_ts = TRUE;
-		ctx->last_ts = ts;
-	}
-	if (ts != ctx->last_ts) {
-		/* Packet from a frame different than the previous one that has not been complete.
-		 * Drop previous frame. */
-		ms_warning("VP8: Frame with timestamp different than the last incomplete frame.");
-		mark_frame_in_queue_as_incomplete(ctx);
-	}
-	ctx->last_ts = ts;
-
-	if (ms_queue_empty(&ctx->frame_queue)) {
-		if (packet->pd->start_of_partition != TRUE) {
-			/* Frame without partition start. */
-			ms_warning("VP8: Frame without partition start.");
-			packet->error = Vp8RtpFmtIncompleteFrame;
-			packet->processed = TRUE;
-			goto error;
-		} else {
-			ms_queue_put(&ctx->frame_queue, packet->m);
-		}
 	} else {
-		if (packet->extended_cseq != (ctx->last_cseq + 1)) {
-			/* Discontinuity in sequence numbers. */
-			ms_warning("VP8: Discontinuity in sequence numbers.");
-			packet->error = Vp8RtpFmtIncompleteFrame;
-			packet->processed = TRUE;
-			mark_frame_in_queue_as_incomplete(ctx);
-			goto error;
-		} else {
-			ms_queue_put(&ctx->frame_queue, packet->m);
-		}
-	}
-
-	ctx->last_cseq = packet->extended_cseq;
-	if (mblk_get_marker_info(packet->m)) {
-		if (!ms_queue_empty(&ctx->frame_queue)) {
-			/* A full frame has been received, concatenate the packets and put the frame in the output queue. */
-			//frame = NULL;
-			while ((m = ms_queue_get(&ctx->frame_queue)) != NULL) {
-// 				if (frame == NULL) {
-// 					frame = m;
-// 				} else {
-// 					concatb(frame, m);
-// 				}
-// 				mark_mblk_in_queue_as_complete(ctx, m);
-// 			}
-// 			if (frame != NULL) {
-// 				msgpullup(frame, -1);
-				mark_mblk_in_queue_as_complete(ctx, m);
-				ms_queue_put(&ctx->output_queue, m);
+		/* Output the valid partitions of the frame. */
+		nb_partitions = ms_list_size(frame->partitions_list);
+		for (i = 0; i < nb_partitions; i++) {
+			current_partition = ms_list_nth_data(frame->partitions_list, i);
+			if (current_partition->error == Vp8RtpFmtOk) {
+				ctx->output_list = ms_list_append(ctx->output_list, (void *)current_partition);
 			}
 		}
-		/* Initialize last_ts in the following frame. */
-		ctx->initialized_last_ts = FALSE;
 	}
-	return;
-
-error:
-	ctx->last_cseq = packet->extended_cseq;
 }
-#endif
 
 static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 	uint8_t *h = packet->m->b_rptr;
@@ -382,7 +308,7 @@ void vp8rtpfmt_unpacker_unpack(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *in) {
 	ms_list_for_each(ctx->packets_list, print_packet);
 #endif /* VP8RTPFMT_DEBUG */
 	ms_list_for_each2(ctx->packets_list, generate_frames_list, (void *)ctx);
-	ms_list_for_each(ctx->frames_list, generate_partitions_list);
+	ms_list_for_each2(ctx->frames_list, generate_partitions_list, (void *)ctx);
 	ms_list_for_each2(ctx->frames_list, output_valid_partitions, (void *)ctx);
 	ctx->packets_list = ms_list_remove_custom(ctx->packets_list, processed_packet, NULL);
 	if (ms_list_size(ctx->packets_list) > 0) {
