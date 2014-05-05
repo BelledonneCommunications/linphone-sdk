@@ -236,20 +236,20 @@ static void basic_audio_stream() {
 #define EDGE_BW 10000
 #define THIRDGENERATION_BW 200000
 
-static float adaptive_audio_stream(int codec_payload, int initial_bitrate,int target_bw, int max_recv_rtcp_packet) {
+static float adaptive_audio_stream(int codec_payload, int initial_bitrate,int target_bw, float loss_rate, int max_recv_rtcp_packet) {
 	stream_manager_t * marielle = stream_manager_new();
 	stream_manager_t * margaux = stream_manager_new();
 	int pause_time=0;
 
 	OrtpNetworkSimulatorParams params={0};
 	params.enabled=TRUE;
-	params.loss_rate=0;
+	params.loss_rate=loss_rate;
 	params.max_bandwidth=target_bw;
 	params.max_buffer_size=initial_bitrate;
 	float bw_usage_ratio;
 	// this variable should not be changed, since algorithm results rely on this value
 	// (the bigger it is, the more accurate is bandwidth estimation)
-	int rtcp_interval = RTCP_DEFAULT_REPORT_INTERVAL;
+	int rtcp_interval = 1000;
 	float marielle_send_bw;
 
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
@@ -285,15 +285,15 @@ static void adaptive_opus_audio_stream()  {
 		float bw_usage;
 
 		// on EDGEBW, both should be overconsumming
-		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 8000, EDGE_BW, 14);
+		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 14);
 		CU_ASSERT_IN_RANGE(bw_usage, 2.f, 3.f); // bad! since this codec cant change its ptime and it is the lower bitrate, no improvement can occur
-		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 48000, EDGE_BW, 11);
+		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 48000, EDGE_BW, 0, 11);
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 1.2f); // bad!
 
 		// on 3G BW, both should be at max
-		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 5);
+		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 5);
 		CU_ASSERT_IN_RANGE(bw_usage, .1f, .15f);
-		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 48000, THIRDGENERATION_BW, 5);
+		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 48000, THIRDGENERATION_BW, 0, 5);
 		CU_ASSERT_IN_RANGE(bw_usage, .2f, .3f);
 	}
 }
@@ -303,28 +303,40 @@ static void adaptive_speek16_audio_stream()  {
 	if( supported ) {
 		// at 16KHz -> 20 kb/s
 		// at 32KHz -> 30 kb/s
-		float bw_usage;
 
-		bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW, 12);
-		CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
-		bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 16000, EDGE_BW, 8);
-		CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
-		bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, THIRDGENERATION_BW, 5);
-		CU_ASSERT_IN_RANGE(bw_usage, .1f, .2f);
+		adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW / 2., 0, 120);
 	}
 }
 
-static void adaptative_pcma_audio_stream() {
+static void adaptive_pcma_audio_stream() {
 	bool_t supported = ms_filter_codec_supported("pcma");
 	if( supported ) {
 		// at 8KHz -> 80 kb/s
 		float bw_usage;
 
 		// yet non-adaptative codecs cannot respect low throughput limitations
-		bw_usage = adaptive_audio_stream(PCMA8_PAYLOAD_TYPE, 8000, EDGE_BW, 10);
+		bw_usage = adaptive_audio_stream(PCMA8_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 10);
 		CU_ASSERT_IN_RANGE(bw_usage,6.f, 8.f); // this is bad!
-		bw_usage = adaptive_audio_stream(PCMA8_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 5);
+		bw_usage = adaptive_audio_stream(PCMA8_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 5);
 		CU_ASSERT_IN_RANGE(bw_usage, .3f, .5f);
+	}
+}
+
+static void lossy_network_speex_audio_stream() {
+	bool_t supported = ms_filter_codec_supported("speex");
+	if( supported ) {
+		// at 16KHz -> 20 kb/s
+		// at 32KHz -> 30 kb/s
+		float bw_usage;
+		int loss_rate = getenv("GPP_LOSS") ? atoi(getenv("GPP_LOSS")) : 0;
+		int max_bw = getenv("GPP_MAXBW") ? atoi(getenv("GPP_MAXBW")) * 1000: 0;
+		printf("\nloss_rate=%d(GPP_LOSS) max_bw=%d(GPP_MAXBW)\n", loss_rate, max_bw);
+		bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, max_bw, loss_rate, 120);
+		CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
+		// bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 16000, EDGE_BW, 8);
+		// CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
+		// bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, THIRDGENERATION_BW, 5);
+		// CU_ASSERT_IN_RANGE(bw_usage, .1f, .2f);
 	}
 }
 
@@ -373,7 +385,8 @@ static test_t tests[] = {
 	{ "Basic audio stream", basic_audio_stream },
 	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
 	{ "Adaptive audio stream [speex]", adaptive_speek16_audio_stream },
-	{ "Adaptive audio stream [pcma]", adaptative_pcma_audio_stream }
+	{ "Adaptive audio stream [pcma]", adaptive_pcma_audio_stream },
+	{ "Lossy network [speex]", lossy_network_speex_audio_stream },
 };
 
 test_suite_t audio_stream_test_suite = {

@@ -22,10 +22,46 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/bitratecontrol.h"
 
+#include <math.h>
+
+/**
+ * Compute the linear interpolation y = m * x + b for a given set of points.
+ * m is the line slope, b the y-intercept value and x_inter the x-intrecept value
+ * Returns 1 if x intersection could not be calculated, 0 otherwise
+**/
+// static int linear_regression(int n, const double x[], const double y[], double* m, double* b, double* x_inter)
+// {
+// 	int i;
+// 	double x_sum = 0.;
+// 	double y_sum = 0.;
+// 	double x_square_sum = 0.;
+// 	double x_y_sum = 0.;
+
+// 	for (i = 0; i < n; i++) {
+// 		x_sum += x[i];
+// 		y_sum += y[i];
+// 		x_y_sum += x[i] * y[i];
+// 		x_square_sum  += (x[i]) * (x[i]);
+// 	}
+// 	x_sum /= n;
+// 	y_sum /= n;
+
+// 	*m = (x_y_sum - x_sum * y_sum * n) /
+// 		(x_square_sum - x_sum * x_sum * n);
+
+// 	*b = (y_sum - *m * x_sum);
+
+// 	if (fabs(*m) > 0.000001f) {
+// 		*x_inter = - *b / *m;
+// 		return 0;
+// 	}
+// 	return 1;
+// }
+
 /**
  * Analyses a received RTCP packet.
  * Returns TRUE is relevant information has been found in the rtcp message, FALSE otherwise.
-**/ 
+**/
 bool_t ms_qos_analyser_process_rtcp(MSQosAnalyser *obj,mblk_t *msg){
 	if (obj->desc->process_rtcp){
 		return obj->desc->process_rtcp(obj,msg);
@@ -74,6 +110,7 @@ typedef struct rtpstats{
 	float lost_percentage; /*percentage of lost packet since last report*/
 	float int_jitter; /*interrarrival jitter */
 	float rt_prop; /*round trip propagation*/
+	float send_bw; /*bandwidth consummation*/
 }rtpstats_t;
 
 
@@ -100,13 +137,15 @@ typedef struct _MSSimpleQosAnalyser{
 	int curindex;
 	bool_t rt_prop_doubled;
 	bool_t pad[3];
+
+	double points[150][2];
 }MSSimpleQosAnalyser;
 
 
 
 static bool_t rt_prop_doubled(rtpstats_t *cur,rtpstats_t *prev){
 	//ms_message("AudioBitrateController: cur=%f, prev=%f",cur->rt_prop,prev->rt_prop);
-	if (cur->rt_prop>=significant_delay && prev->rt_prop>0){	
+	if (cur->rt_prop>=significant_delay && prev->rt_prop>0){
 		if (cur->rt_prop>=(prev->rt_prop*2.0)){
 			/*propagation doubled since last report */
 			return TRUE;
@@ -137,28 +176,105 @@ static bool_t simple_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtcp)
 		rb=rtcp_RR_get_report_block(rtcp,0);
 	}
 	if (rb && report_block_get_ssrc(rb)==rtp_session_get_send_ssrc(obj->session)){
-	
+
 		obj->curindex++;
 		cur=&obj->stats[obj->curindex % STATS_HISTORY];
-	
+
 		if (obj->clockrate==0){
 			PayloadType *pt=rtp_profile_get_payload(rtp_session_get_send_profile(obj->session),rtp_session_get_send_payload_type(obj->session));
 			if (pt!=NULL) obj->clockrate=pt->clock_rate;
 			else return FALSE;
 		}
-	
+
 		cur->high_seq_recv=report_block_get_high_ext_seq(rb);
 		cur->lost_percentage=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
 		cur->int_jitter=1000.0*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
 		cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
-		ms_message("MSQosAnalyser: lost_percentage=%f, int_jitter=%f ms, rt_prop=%f sec",cur->lost_percentage,cur->int_jitter,cur->rt_prop);
+		obj->points[obj->curindex-1][0]=rtp_session_get_send_bandwidth(obj->session)/1000.0;
+		obj->points[obj->curindex-1][1]=(float)report_block_get_fraction_lost(rb)/256.0;
+		ms_message("MSQosAnalyser: lost_percentage=%f, int_jitter=%f ms, rt_prop=%f sec, send_bw=%f",cur->lost_percentage,cur->int_jitter,cur->rt_prop,obj->points[obj->curindex][0]);
+
+		if (obj->curindex>2) printf("one more %d: %f %f\n", obj->curindex-1, obj->points[obj->curindex-1][0], obj->points[obj->curindex-1][1]);
 	}
 	return rb!=NULL;
+}
+
+static void compute_available_bw(MSSimpleQosAnalyser *obj){
+	int i;
+	double x_sum = 0.;
+	double y_sum = 0.;
+	double x_square_sum = 0.;
+	double x_y_sum = 0.;
+	int last = obj->curindex - 1;
+	int f = last > 15 ? last - 13 : 2; //always skip the 2 first ones
+	int n = (last - f + 1);
+	if (n <= 1) {
+		printf("Estimated BW is %f kbit/s\n", obj->points[0][0] * obj->points[0][1]);
+		return;
+	}
+
+	int count = n;//(last - f) * (last - f + 1) / 2;
+
+	double mean_bw = 0.;
+	double avg_dist = 0.;
+	int x_min_ind = f;
+	int x_max_ind = f;
+	for (i = f; i <= last; i++) {
+		double x = obj->points[i][0];
+		double y = obj->points[i][1];
+
+		if (x < obj->points[x_min_ind][0]) x_min_ind = i;
+		if (x > obj->points[x_max_ind][0]) x_max_ind = i;
+		double mul = 1;// (i - f + 1);
+		// printf("\tadding (%f;%f) of weight %f\n", x, y, mul);
+		x_sum += x * mul;
+		y_sum += y * mul;
+		x_y_sum += x * y * mul * mul;
+		x_square_sum  += x * x * mul * mul;
+
+		mean_bw += x * (1 - y);
+	}
+	x_sum /= count;
+	y_sum /= count;
+	mean_bw /= count;
+	printf("\tEstimated BW by avg is %f kbits/s\n", mean_bw);
+
+
+	printf("sum=%f xmin=%d xmax=%d\n", x_sum, x_min_ind, x_max_ind);
+	double diff = (obj->points[x_max_ind][0] - obj->points[x_min_ind][0]) / x_sum;
+
+	double m = (x_y_sum - x_sum * y_sum * count) /
+		(x_square_sum - x_sum * x_sum * count);
+
+	double b = (y_sum - m * x_sum);
+	for (i = f; i <= last; i++) {
+		double x = obj->points[i][0];
+		double y = obj->points[i][1];
+
+		avg_dist += fabs(m * x + b - y);
+	}
+	avg_dist /= count;
+
+	bool_t lossy_network = avg_dist > .1;
+	// to compute estimated BW, we need a minimum sample size
+	if (diff > 0.05) {
+		printf("\tfor line is %f kbit/s\n", -b / m);
+		printf("\t\ty=%f x + %f\n", m, b);
+
+		lossy_network |= m < .03f;
+	} else {
+		printf("\tunsufficient difference between BW min and BW max: %f\n", diff);
+	}
+	printf("\tavg_dist=%f\n", avg_dist);
+	printf("\t\tI think it is a %s network\n", lossy_network ? "LOSSY/UNSTABLE" : "stable");
 }
 
 static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControlAction *action){
 	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
 	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
+
+	compute_available_bw(obj);
+
 	/*big losses and big jitter */
 	if (cur->lost_percentage>=unacceptable_loss_rate){
 		action->type=MSRateControlActionDecreaseBitrate;
