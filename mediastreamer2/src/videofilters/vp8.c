@@ -421,7 +421,6 @@ typedef struct DecState {
 	MSQueue q;
 	MSAverageFPS fps;
 	bool_t first_image_decoded;
-	bool_t on_error; /*a decoding error occurs*/
 } DecState;
 
 
@@ -445,7 +444,6 @@ static void dec_init(MSFilter *f) {
 	s->first_image_decoded = FALSE;
 	f->data = s;
 	ms_video_init_average_fps(&s->fps, "VP8 decoder: FPS: %f");
-	s->on_error=FALSE;
 }
 
 static void dec_preprocess(MSFilter* f) {
@@ -468,36 +466,30 @@ static void dec_uninit(MSFilter *f) {
 	ms_free(s);
 }
 
-static void dec_decode(void *data, void *userdata) {
-	Vp8RtpFmtPartition *partition = (Vp8RtpFmtPartition *)data;
-	MSFilter *f = (MSFilter *)userdata;
-	DecState *s = (DecState *)f->data;
-	vpx_codec_err_t err;
-
-	err = vpx_codec_decode(&s->codec, partition->m->b_rptr, partition->m->b_wptr - partition->m->b_rptr, NULL, 0);
-	if (!err && (partition->last_partition_of_frame == TRUE)) {
-		err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
-	}
-	if (err) {
-		ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
-		s->on_error=TRUE;
-		if ((f->ticker->time - s->last_error_reported_time)>5000 || s->last_error_reported_time==0) {
-			s->last_error_reported_time=f->ticker->time;
-			ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
-		}
-	} else {
-		s->on_error=FALSE;
-	}
-}
-
 static void dec_process(MSFilter *f) {
 	DecState *s=(DecState*)f->data;
+	mblk_t *im;
+	vpx_codec_err_t err;
 	vpx_image_t *img;
 	vpx_codec_iter_t iter = NULL;
+	MSQueue mtofree_queue;
+
+	ms_queue_init(&mtofree_queue);
 
 	/* Unpack RTP payload format for VP8. */
-	vp8rtpfmt_unpacker_unpack(&s->unpacker, f->inputs[0]);
-	vp8rtpfmt_unpacker_decode(&s->unpacker, dec_decode, f);
+	vp8rtpfmt_unpacker_process(&s->unpacker, f->inputs[0]);
+
+	/* Decode unpacked VP8 partitions. */
+	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
+		err = vpx_codec_decode(&s->codec, im->b_rptr, im->b_wptr - im->b_rptr, NULL, 0);
+		if (!err && mblk_get_marker_info(im)) {
+			err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
+		}
+		if (err) {
+			ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
+		}
+		ms_queue_put(&mtofree_queue, im);
+	}
 
 	/* browse decoded frames */
 	while((img = vpx_codec_get_frame(&s->codec, &iter))) {
@@ -533,6 +525,10 @@ static void dec_process(MSFilter *f) {
 			s->first_image_decoded = TRUE;
 			ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 		}
+	}
+
+	while ((im = ms_queue_get(&mtofree_queue)) != NULL) {
+		freemsg(im);
 	}
 }
 

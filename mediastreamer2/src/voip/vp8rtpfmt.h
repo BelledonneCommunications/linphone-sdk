@@ -64,32 +64,32 @@ extern "C"{
 		Vp8RtpFmtPayloadDescriptor *pd;
 		uint32_t extended_cseq;
 		Vp8RtpFmtErrorCode error;
-		bool_t processed;
 		bool_t last_packet_of_frame;
 	} Vp8RtpFmtPacket;
-
-	typedef struct Vp8RtpFmtFrame {
-		MSList *packets_list;
-		MSList *partitions_list;
-		Vp8RtpFmtErrorCode error;
-	} Vp8RtpFmtFrame;
 
 	typedef struct Vp8RtpFmtPartition {
 		MSList *packets_list;
 		Vp8RtpFmtErrorCode error;
-		bool_t last_partition_of_frame;
 		mblk_t *m;
+		bool_t last_partition_of_frame;
+		bool_t outputted;
 	} Vp8RtpFmtPartition;
+
+	typedef struct Vp8RtpFmtFrame {
+		MSList *partitions_list;
+		Vp8RtpFmtErrorCode error;
+		bool_t outputted;
+		bool_t discarded;
+		bool_t is_key;
+	} Vp8RtpFmtFrame;
 
 
 	typedef struct Vp8RtpFmtUnpackerCtx {
-		MSList *packets_list;
 		MSList *frames_list;
-		MSList *output_list;
-		Vp8RtpFmtFrame *current_frame;
+		MSQueue output_queue;
 		uint32_t last_ts;
-		uint32_t last_cseq;
 		uint32_t ref_cseq;
+		bool_t initialized_last_ts;
 		bool_t initialized_ref_cseq;
 	} Vp8RtpFmtUnpackerCtx;
 
@@ -105,8 +105,7 @@ extern "C"{
 
 	void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx);
 	void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx);
-	void vp8rtpfmt_unpacker_unpack(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *in);
-	void vp8rtpfmt_unpacker_decode(Vp8RtpFmtUnpackerCtx *ctx, MSIterate2Func func, void *userdata);
+	void vp8rtpfmt_unpacker_process(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *inout);
 	uint32_t vp8rtpfmt_unpacker_calc_extended_cseq(Vp8RtpFmtUnpackerCtx *ctx, uint16_t cseq);
 
 #ifdef __cplusplus
