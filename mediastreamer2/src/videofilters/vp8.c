@@ -426,7 +426,7 @@ typedef struct DecState {
 
 static void dec_init(MSFilter *f) {
 	DecState *s=(DecState *)ms_new(DecState,1);
-	vpx_codec_flags_t  flags = VPX_CODEC_USE_INPUT_FRAGMENTS;
+	vpx_codec_flags_t  flags = VPX_CODEC_USE_INPUT_FRAGMENTS | VPX_CODEC_USE_ERROR_CONCEALMENT;
 
 	ms_message("Using %s\n",vpx_codec_iface_name(interface));
 
