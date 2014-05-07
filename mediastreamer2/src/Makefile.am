@@ -252,6 +252,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
 					videofilters/mire.c \
 					videofilters/extdisplay.c \
 					utils/bits_rw.c \
+					utils/x11_helper.c \
 					voip/layouts.c voip/layouts.h
 
 if ORTP_ENABLED
