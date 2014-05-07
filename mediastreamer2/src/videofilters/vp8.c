@@ -395,11 +395,9 @@ MSFilterDesc ms_vp8_enc_desc={
 MS_FILTER_DESC_EXPORT(ms_vp8_enc_desc)
 
 
-#undef interface
 #include <assert.h>
 #include <vpx/vpx_decoder.h>
 #include <vpx/vp8dx.h>
-#define interface (vpx_codec_vp8_dx())
 
 typedef struct DecState {
 	vpx_codec_ctx_t codec;
@@ -419,12 +417,26 @@ typedef struct DecState {
 
 static void dec_init(MSFilter *f) {
 	DecState *s=(DecState *)ms_new(DecState,1);
-	vpx_codec_flags_t  flags = VPX_CODEC_USE_INPUT_FRAGMENTS | VPX_CODEC_USE_ERROR_CONCEALMENT;
+	vpx_codec_flags_t flags = 0;
+	vpx_codec_iface_t *iface = vpx_codec_vp8_dx();
+	vpx_codec_caps_t caps = vpx_codec_get_caps(iface);
 
-	ms_message("Using %s\n",vpx_codec_iface_name(interface));
+	ms_message("Using %s", vpx_codec_iface_name(interface));
 
 	/* Initialize codec */
-	if(vpx_codec_dec_init(&s->codec, interface, NULL, flags))
+	if (caps & VPX_CODEC_CAP_INPUT_FRAGMENTS) {
+		flags |= VPX_CODEC_USE_INPUT_FRAGMENTS;
+	}
+	if (caps & VPX_CODEC_CAP_ERROR_CONCEALMENT) {
+		flags |= VPX_CODEC_USE_ERROR_CONCEALMENT;
+	}
+	if ((caps & VPX_CODEC_CAP_FRAME_THREADING) && (ms_get_cpu_count() > 1)) {
+		flags |= VPX_CODEC_USE_FRAME_THREADING;
+	}
+	if ((caps & VPX_CODEC_CAP_POSTPROC) && (ms_get_cpu_count() > 1)) {
+		flags |= VPX_CODEC_USE_POSTPROC;
+	}
+	if(vpx_codec_dec_init(&s->codec, iface, NULL, flags))
 		ms_error("Failed to initialize decoder");
 
 	vp8rtpfmt_unpacker_init(&s->unpacker, f);
