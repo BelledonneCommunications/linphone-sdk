@@ -36,7 +36,8 @@ mediastreamer2_include_HEADERS= ice.h \
 				bitratecontrol.h \
 				qualityindicator.h \
 				msconference.h \
-				videostarter.h
+				videostarter.h \
+				bits_rw.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 
