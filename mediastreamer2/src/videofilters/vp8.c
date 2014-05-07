@@ -430,9 +430,11 @@ static void dec_init(MSFilter *f) {
 	if (caps & VPX_CODEC_CAP_ERROR_CONCEALMENT) {
 		flags |= VPX_CODEC_USE_ERROR_CONCEALMENT;
 	}
+#ifdef VPX_CODEC_CAP_FRAME_THREADING
 	if ((caps & VPX_CODEC_CAP_FRAME_THREADING) && (ms_get_cpu_count() > 1)) {
 		flags |= VPX_CODEC_USE_FRAME_THREADING;
 	}
+#endif
 	if ((caps & VPX_CODEC_CAP_POSTPROC) && (ms_get_cpu_count() > 1)) {
 		flags |= VPX_CODEC_USE_POSTPROC;
 	}
