@@ -89,7 +89,7 @@ enum _MSFilterInterfaceId{
 
 /**
  * Interface IDs, used to generate method names (see MS_FILTER_METHOD macro).
- * 
+ *
 **/
 typedef enum _MSFilterInterfaceId MSFilterInterfaceId;
 
@@ -111,8 +111,8 @@ enum _MSFilterCategory{
 	MS_FILTER_DECODER,
 	/**used by capture filters that perform encoding*/
 	MS_FILTER_ENCODING_CAPTURER,
-	/**used by render filters that perform decoding*/
-	MS_FILTER_DECODING_RENDERER
+	/**used by filters that perform decoding and rendering */
+	MS_FILTER_DECODER_RENDERER
 };
 
 /**
@@ -589,7 +589,7 @@ the method index (_cnt_) and the argument size */
 	(  (((unsigned long)(_id_)) & 0xFFFF)<<16 | (_cnt_<<8) | (_argsize_ & 0xFF ))
 
 /**
- * Macro to create a method id, unique per filter. 
+ * Macro to create a method id, unique per filter.
  * First argument shall be the filter's ID (MSFilterId) or interface ID (MSFilterInterfaceId).
  * Second argument is the method index within the context of the filter. It should start from 0 and increment for each new method.
  * Third argument is the argument type of the method, for example "int", "float" or any structure.

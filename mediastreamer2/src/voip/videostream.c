@@ -466,13 +466,36 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	}
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamRecvOnly){
 		MSConnectionHelper ch;
-		MSVideoDisplayDecodingSupport decoding_support;
 
+		/* create decoder first */
+		stream->ms.decoder=ms_filter_create_decoder(pt->mime_type);
+		if (stream->ms.decoder==NULL){
+			/* big problem: we don't have a registered decoderfor this payload...*/
+			ms_error("videostream.c: No decoder available for payload %i:%s.",payload,pt->mime_type);
+			return -1;
+		}
+
+		/* display logic */
 		if (stream->rendercb!=NULL){
+			/* rendering logic delegated to user supplied callback */
 			stream->output=ms_filter_new(MS_EXT_DISPLAY_ID);
 			ms_filter_add_notify_callback(stream->output,ext_display_cb,stream,TRUE);
 		}else{
-			stream->output=ms_filter_new_from_name (stream->display_name);
+			/* no user supplied callback -> create filter */
+			MSVideoDisplayDecodingSupport decoding_support;
+
+			/* Check if the decoding filter can perform the rendering */
+			decoding_support.mime_type = pt->mime_type;
+			decoding_support.supported = FALSE;
+			ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_SUPPORT_RENDERING, &decoding_support);
+			stream->output_performs_decoding = decoding_support.supported;
+
+			if (stream->output_performs_decoding) {
+				stream->output = stream->ms.decoder;
+			} else {
+				/* Create default display filter */
+				stream->output = ms_filter_new_from_name (stream->display_name);
+			}
 		}
 
 		/* Don't allow null output */
@@ -480,24 +503,6 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			ms_fatal("No video display filter could be instantiated. Please check build-time configuration");
 		}
 
-		/* Check if the output filter can perform the decoding process */
-		decoding_support.mime_type = pt->mime_type;
-		decoding_support.supported = FALSE;
-		ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SUPPORT_DECODING, &decoding_support);
-		stream->output_performs_decoding = decoding_support.supported;
-
-		/*plumb the incoming stream */
-		if (stream->output_performs_decoding == TRUE) {
-			stream->ms.decoder = stream->output;	/* Consider the decoder is the output */
-		} else {
-			stream->ms.decoder=ms_filter_create_decoder(pt->mime_type);
-			if (stream->ms.decoder==NULL){
-				/* big problem: we don't have a registered decoderfor this payload...*/
-				ms_error("videostream.c: No decoder available for payload %i:%s.",payload,pt->mime_type);
-				ms_filter_destroy(stream->output);
-				return -1;
-			}
-		}
 		ms_filter_add_notify_callback(stream->ms.decoder, event_cb, stream,FALSE);
 
 		stream->ms.rtprecv = ms_filter_new (MS_RTP_RECV_ID);
@@ -563,7 +568,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 	/* create the ticker */
 	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
-	
+
 	stream->ms.start_time=ms_time(NULL);
 	stream->ms.is_beginning=TRUE;
 
@@ -572,7 +577,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		ms_ticker_attach (stream->ms.sessions.ticker, stream->source);
 	if (stream->ms.rtprecv)
 		ms_ticker_attach (stream->ms.sessions.ticker, stream->ms.rtprecv);
-	
+
 	stream->ms.state=MSStreamStarted;
 	return 0;
 }
@@ -769,7 +774,7 @@ void video_stream_set_native_window_id(VideoStream *stream, unsigned long id){
 
 void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id){
 	stream->preview_window_id=id;
-#ifndef __ios	
+#ifndef __ios
 	if (stream->output2){
 		ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
 	}
@@ -786,7 +791,7 @@ unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
 			return id;
 	}
 	if (stream->source){
-		if (ms_filter_has_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID) 
+		if (ms_filter_has_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID)
 		    && ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
 	}

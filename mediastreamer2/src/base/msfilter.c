@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 
 #define MS_FILTER_METHOD_GET_FID(id)	(((id)>>16) & 0xFFFF)
-#define MS_FILTER_METHOD_GET_INDEX(id) ( ((id)>>8) & 0XFF) 
+#define MS_FILTER_METHOD_GET_INDEX(id) ( ((id)>>8) & 0XFF)
 
 static MSList *desc_list=NULL;
 static bool_t statistics_enabled=FALSE;
@@ -104,7 +104,7 @@ MSFilterDesc * ms_filter_get_decoding_renderer(const char *mime) {
 
 	for (elem = desc_list; elem != NULL; elem = ms_list_next(elem)) {
 		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
-		if (desc->category == MS_FILTER_DECODING_RENDERER) {
+		if (desc->category == MS_FILTER_DECODER_RENDERER) {
 			char *saveptr=NULL;
 			char *enc_fmt = ms_strdup(desc->enc_fmt);
 			char *token = strtok_r(enc_fmt, " ", &saveptr);
@@ -126,7 +126,7 @@ MSFilterDesc * ms_filter_get_encoder(const char *mime){
 	MSList *elem;
 	for (elem=desc_list;elem!=NULL;elem=ms_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (desc->category==MS_FILTER_ENCODER && 
+		if (desc->category==MS_FILTER_ENCODER &&
 			strcasecmp(desc->enc_fmt,mime)==0){
 			return desc;
 		}
@@ -138,7 +138,7 @@ MSFilterDesc * ms_filter_get_decoder(const char *mime){
 	MSList *elem;
 	for (elem=desc_list;elem!=NULL;elem=ms_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (desc->category==MS_FILTER_DECODER && 
+		if (desc->category==MS_FILTER_DECODER &&
 			strcasecmp(desc->enc_fmt,mime)==0){
 			return desc;
 		}
@@ -464,7 +464,7 @@ const MSList * ms_filter_get_statistics(void){
 
 void ms_filter_reset_statistics(void){
 	MSList *elem;
-	
+
 	for(elem=stats_list;elem!=NULL;elem=elem->next){
 		MSFilterStats *stats=(MSFilterStats *)elem->data;
 		stats->elapsed=0;

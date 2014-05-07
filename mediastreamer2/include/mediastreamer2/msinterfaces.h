@@ -87,9 +87,6 @@ struct _MSVideoDisplayDecodingSupport {
 #define MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION \
    MS_FILTER_METHOD(MSFilterVideoDisplayInterface,11,int)
 
-#define MS_VIDEO_DISPLAY_SUPPORT_DECODING \
-	MS_FILTER_METHOD(MSFilterVideoDisplayInterface, 12, MSVideoDisplayDecodingSupport*)
-
 /**
   * Interface definitions for players
 **/
@@ -158,8 +155,8 @@ typedef enum _MSRecorderState MSRecorderState;
 
 #define MS_RECORDER_GET_STATE \
 	MS_FILTER_METHOD(MSFilterRecorderInterface,5,MSRecorderState)
-	
-	
+
+
 
 
 /** Interface definitions for echo cancellers */
@@ -204,9 +201,11 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_VIDEO_DECODER_SEND_RPSI \
 	MS_FILTER_EVENT(MSFilterVideoDecoderInterface, 4, const MSVideoCodecRPSI *)
 #define MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION \
-	MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 0)
+	MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 5)
 #define MS_VIDEO_DECODER_ENABLE_AVPF \
-	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 1, bool_t)
+	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 6, bool_t)
+#define MS_VIDEO_DECODER_SUPPORT_RENDERING \
+	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 7, MSVideoDisplayDecodingSupport*)
 
 /** Interface definitions for video capture */
 #define MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION \
@@ -218,7 +217,7 @@ typedef enum _MSRecorderState MSRecorderState;
 
 #define MS_AUDIO_DECODER_HAVE_PLC \
 	MS_FILTER_METHOD(MSFilterAudioDecoderInterface,0,int)
-	
+
 #define MS_DECODER_HAVE_PLC MS_AUDIO_DECODER_HAVE_PLC /*for backward compatibility*/
 
 /**
@@ -253,7 +252,7 @@ typedef enum _MSRecorderState MSRecorderState;
 /** Interface definitions for audio encoder */
 #define MS_AUDIO_ENCODER_SET_PTIME \
 	MS_FILTER_METHOD(MSFilterAudioEncoderInterface,0,int)
-	
+
 #define MS_AUDIO_ENCODER_GET_PTIME \
 	MS_FILTER_METHOD(MSFilterAudioEncoderInterface,1,int)
 
