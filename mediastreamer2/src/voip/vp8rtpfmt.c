@@ -385,57 +385,67 @@ static void clean_discarded_partitions(Vp8RtpFmtUnpackerCtx *ctx) {
 static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 	uint8_t *h = packet->m->b_rptr;
 	Vp8RtpFmtPayloadDescriptor *pd = packet->pd;
+	unsigned int packet_size = packet->m->b_wptr - packet->m->b_rptr;
+	uint8_t offset = 0;
+
+	if (packet_size == 0) return Vp8RtpFmtInvalidPayloadDescriptor;
 
 	memset(pd, 0, sizeof(Vp8RtpFmtPayloadDescriptor));
 
 	/* Parse mandatory first octet of payload descriptor. */
-	if (*h & (1 << 7)) pd->extended_control_bits_present = TRUE;
-	if (*h & (1 << 5)) pd->non_reference_frame = TRUE;
-	if (*h & (1 << 4)) pd->start_of_partition = TRUE;
-	pd->pid = (*h & 0x07);
-	h++;
+	if (h[offset] & (1 << 7)) pd->extended_control_bits_present = TRUE;
+	if (h[offset] & (1 << 5)) pd->non_reference_frame = TRUE;
+	if (h[offset] & (1 << 4)) pd->start_of_partition = TRUE;
+	pd->pid = (h[offset] & 0x07);
+	offset++;
+	if (offset >= packet_size) return Vp8RtpFmtInvalidPayloadDescriptor;
 	/* Parse the first extension octet if needed. */
 	if (pd->extended_control_bits_present == TRUE) {
-		if (*h & (1 << 7)) pd->pictureid_present = TRUE;
-		if (*h & (1 << 6)) pd->tl0picidx_present = TRUE;
-		if (*h & (1 << 5)) pd->tid_present = TRUE;
-		if (*h & (1 << 4)) pd->keyidx_present = TRUE;
+		if (h[offset] & (1 << 7)) pd->pictureid_present = TRUE;
+		if (h[offset] & (1 << 6)) pd->tl0picidx_present = TRUE;
+		if (h[offset] & (1 << 5)) pd->tid_present = TRUE;
+		if (h[offset] & (1 << 4)) pd->keyidx_present = TRUE;
 		if ((pd->tl0picidx_present == TRUE) && (pd->tid_present != TRUE)) {
 			/* Invalid payload descriptor. */
 			return Vp8RtpFmtInvalidPayloadDescriptor;
 		}
-		h++;
+		offset++;
+		if (offset >= packet_size) return Vp8RtpFmtInvalidPayloadDescriptor;
 	}
 	/* Parse the pictureID if needed. */
 	if (pd->pictureid_present == TRUE) {
-		if (*h & (1 << 7)) {
+		if (h[offset] & (1 << 7)) {
 			/* The pictureID is 16 bits long. */
-			pd->pictureid = (*h << 8) | *(h + 1);
-			h += 2;
+			if ((offset + 1) >= packet_size) return Vp8RtpFmtInvalidPayloadDescriptor;
+			pd->pictureid = (h[offset] << 8) | h[offset + 1];
+			offset += 2;
 		} else {
 			/* The pictureId is 8 bits long. */
-			pd->pictureid = *h;
-			h++;
+			pd->pictureid = h[offset];
+			offset++;
 		}
+		if (offset >= packet_size) return Vp8RtpFmtInvalidPayloadDescriptor;
 	}
 	/* Parse the tl0picidx if needed. */
 	if (pd->tl0picidx_present == TRUE) {
-		pd->tl0picidx = *h;
-		h++;
+		pd->tl0picidx = h[offset];
+		offset++;
+		if (offset >= packet_size) return Vp8RtpFmtInvalidPayloadDescriptor;
 	}
 	/* Parse the tid and/or keyidx if needed. */
 	if (pd->tid_present == TRUE) {
-		pd->tid = (*h & 0xC0) >> 6;
-		if (*h & (1 << 5)) pd->layer_sync = TRUE;
+		pd->tid = (h[offset] & 0xC0) >> 6;
+		if (h[offset] & (1 << 5)) pd->layer_sync = TRUE;
 	}
 	if (pd->keyidx_present == TRUE) {
-		pd->keyidx = (*h & 0x1F);
+		pd->keyidx = (h[offset] & 0x1F);
 	}
 	if ((pd->tid_present == TRUE) || (pd->keyidx_present == TRUE)) {
-		h++;
+		offset++;
+		if (offset >= packet_size) return Vp8RtpFmtInvalidPayloadDescriptor;
 	}
 
-	packet->m->b_rptr = h;
+	packet->m->b_rptr = &h[offset];
 	return Vp8RtpFmtOk;
 }
 
