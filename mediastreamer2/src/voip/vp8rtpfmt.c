@@ -74,8 +74,8 @@ static void print_partition(void *data) {
 
 static void print_frame(void *data) {
 	Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)data;
-	ms_message("frame [%p]:\tts=%u\tpictureid=%u\tkeyframe=%d\tN=%d\terror=%d",
-		frame, get_frame_ts(frame), get_frame_pictureid(frame), frame->is_key, is_frame_non_reference(frame), frame->error);
+	ms_message("frame [%p]:\tts=%u\tpictureid=%u\tN=%d\terror=%d",
+		frame, get_frame_ts(frame), get_frame_pictureid(frame), is_frame_non_reference(frame), frame->error);
 	ms_list_for_each(frame->partitions_list, print_partition);
 }
 #endif /* VP8RTPFMT_DEBUG */
@@ -234,18 +234,11 @@ static bool_t is_first_partition_present_in_frame(Vp8RtpFmtFrame *frame) {
 
 static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, MSList **packets_list) {
 	Vp8RtpFmtFrame *frame;
-	Vp8RtpFmtPartition *partition;
 
 	if (ms_list_size(*packets_list) > 0) {
 		frame = ms_new0(Vp8RtpFmtFrame, 1);
 		generate_partitions_list(ctx, frame, *packets_list);
 		if (ms_list_size(frame->partitions_list) > 0) {
-			partition = ms_list_nth_data(frame->partitions_list, 0);
-			if (partition->m->b_rptr[0] & 0x01) {
-				frame->is_key = FALSE;
-			} else {
-				frame->is_key = TRUE;
-			}
 			if (is_first_partition_present_in_frame(frame) == TRUE) {
 				/* The first packet of the frame is really the start of the frame. */
 			} else {

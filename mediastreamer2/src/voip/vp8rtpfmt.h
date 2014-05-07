@@ -81,7 +81,6 @@ extern "C"{
 		Vp8RtpFmtErrorCode error;
 		bool_t outputted;
 		bool_t discarded;
-		bool_t is_key;
 	} Vp8RtpFmtFrame;
 
 
