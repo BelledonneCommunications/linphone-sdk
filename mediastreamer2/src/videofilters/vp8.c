@@ -112,7 +112,6 @@ static void enc_init(MSFilter *f) {
 	s->cfg.g_h = s->vconf.vsize.height;
 	/* encoder automatically places keyframes */
 	s->cfg.kf_mode = VPX_KF_AUTO;
-	s->cfg.kf_max_dist = 300;
 	s->cfg.rc_target_bitrate = ((float)s->vconf.required_bitrate)*0.92/1024.0; //0.9=take into account IP/UDP/RTP overhead, in average.
 	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
 	s->cfg.g_timebase.num = 1;
@@ -144,17 +143,19 @@ static void enc_uninit(MSFilter *f) {
 static void enc_preprocess(MSFilter *f) {
 	vpx_codec_err_t res;
 	EncState *s=(EncState*)f->data;
+	int cpuused = 11 - s->cfg.g_threads; /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 
+	if (cpuused < 7) cpuused = 7; /*values beneath 7 consume too much CPU*/
 	s->cfg.g_w = s->vconf.vsize.width;
 	s->cfg.g_h = s->vconf.vsize.height;
 	s->cfg.g_timebase.den=s->vconf.fps;
+	s->cfg.kf_max_dist = (unsigned int)(s->vconf.fps * 10); /* 1 keyframe each 10s. */
 	/* Initialize codec */
 	res =  vpx_codec_enc_init(&s->codec, interface, &s->cfg, VPX_CODEC_USE_OUTPUT_PARTITION);
 	if (res) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
-	/*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
-	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, (s->cfg.g_threads > 1) ? 0 : 10);
+	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, cpuused);
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
 	vpx_codec_control(&s->codec, VP8E_SET_MAX_INTRA_BITRATE_PCT, 400); /*limite iFrame size to 4 pframe*/
