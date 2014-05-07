@@ -56,6 +56,7 @@ static int tester_init(void) {
 }
 
 static int tester_cleanup(void) {
+	ortp_exit();
 	ms_exit();
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
@@ -212,7 +213,7 @@ static float adaptive_audio_stream(int codec_payload, int initial_bitrate,int ta
 	float bw_usage_ratio;
 	// this variable should not be changed, since algorithm results rely on this value
 	// (the bigger it is, the more accurate is bandwidth estimation)
-	int rtcp_interval = 1000;
+	int rtcp_interval = 2500;
 	float marielle_send_bw;
 
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
@@ -261,7 +262,7 @@ static void adaptive_opus_audio_stream()  {
 	}
 }
 
-static void adaptive_speek16_audio_stream()  {
+static void adaptive_speex16_audio_stream()  {
 	bool_t supported = ms_filter_codec_supported("speex");
 	if( supported ) {
 		// at 16KHz -> 20 kb/s
@@ -347,7 +348,7 @@ static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_
 static test_t tests[] = {
 	{ "Basic audio stream", basic_audio_stream },
 	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
-	{ "Adaptive audio stream [speex]", adaptive_speek16_audio_stream },
+	{ "Adaptive audio stream [speex]", adaptive_speex16_audio_stream },
 	{ "Adaptive audio stream [pcma]", adaptive_pcma_audio_stream },
 	{ "Lossy network", lossy_network_speex_audio_stream },
 };

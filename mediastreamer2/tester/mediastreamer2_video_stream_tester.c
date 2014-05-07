@@ -54,6 +54,7 @@ static int tester_init(void) {
 }
 
 static int tester_cleanup(void) {
+	ortp_exit();
 	ms_exit();
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
@@ -100,7 +101,7 @@ static void video_manager_start(	video_stream_manager_t * mgr
 												, "127.0.0.1"
 												, remote_port+1
 												, payload_type
-												, 550
+												, 60
 												, cam);
 	CU_ASSERT_EQUAL(result,0);
 }
@@ -110,10 +111,8 @@ static void video_manager_start(	video_stream_manager_t * mgr
 #define CU_ASSERT_IN_RANGE(value, inf, sup) CU_ASSERT_TRUE(value >= inf); CU_ASSERT_TRUE(value <= sup)
 
 static float adaptive_video_stream(int payload, int initial_bitrate,int target_bw, float loss_rate, int max_recv_rtcp_packet) {
-	const MSList * webcams = ms_web_cam_manager_get_list(ms_web_cam_manager_get());
-	MSWebCam * marielle_webcam = (ms_list_size(webcams) > 0) ? (MSWebCam *) webcams->data : NULL;
-	// MSWebCam * margaux_webcam = (ms_list_size(webcams) > 1) ? (MSWebCam *) webcams->next->data : NULL;
-
+	MSWebCam * marielle_webcam = ms_web_cam_manager_get_default_cam (ms_web_cam_manager_get());
+	MSWebCam * margaux_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
 	video_stream_manager_t * marielle = video_stream_manager_new();
 	video_stream_manager_t * margaux = video_stream_manager_new();
 
@@ -121,11 +120,11 @@ static float adaptive_video_stream(int payload, int initial_bitrate,int target_b
 	params.enabled=TRUE;
 	params.loss_rate=loss_rate;
 	params.max_bandwidth=target_bw;
-	params.max_buffer_size=initial_bitrate;
+	// params.max_buffer_size=initial_bitrate;
 	float bw_usage_ratio = 0.;
 	// this variable should not be changed, since algorithm results rely on this value
 	// (the bigger it is, the more accurate is bandwidth estimation)
-	int rtcp_interval = 1000;
+	int rtcp_interval = 2500;
 	float marielle_send_bw;
 
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
@@ -133,8 +132,7 @@ static float adaptive_video_stream(int payload, int initial_bitrate,int target_b
 	video_manager_start(marielle, payload, margaux->local_rtp, initial_bitrate, marielle_webcam);
 
 
-	video_manager_start(margaux, payload, marielle->local_rtp, -1, NULL);
-	// video_manager_start(margaux, payload, marielle->local_rtp, -1, margaux_webcam);
+	video_manager_start(margaux, payload, marielle->local_rtp, -1, margaux_webcam);
 	rtp_session_enable_network_simulation(margaux->stream->ms.sessions.rtp_session,&params);
 
 	rtp_session_set_rtcp_report_interval(margaux->stream->ms.sessions.rtp_session, rtcp_interval);
@@ -156,8 +154,8 @@ static void lossy_network() {
 		float bw_usage;
 		int loss_rate = getenv("GPP_LOSS") ? atoi(getenv("GPP_LOSS")) : 0;
 		int max_bw = getenv("GPP_MAXBW") ? atoi(getenv("GPP_MAXBW")) * 1000: 0;
-		printf("\nloss_rate=%d(GPP_LOSS) max_bw=%d(GPP_MAXBW)\n", loss_rate, max_bw);
-		bw_usage = adaptive_video_stream(H264_PAYLOAD_TYPE, 1000000, max_bw, loss_rate, 20);
+		// printf("\nloss_rate=%d(GPP_LOSS) max_bw=%d(GPP_MAXBW)\n", loss_rate, max_bw);
+		bw_usage = adaptive_video_stream(VP8_PAYLOAD_TYPE, 300000, max_bw, loss_rate, 20);
 		CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
 	}
 }

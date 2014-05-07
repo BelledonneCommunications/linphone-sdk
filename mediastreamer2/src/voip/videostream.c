@@ -110,8 +110,8 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 			i=report_block_get_interarrival_jitter(rb);
 			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
 			ms_message("video_stream_process_rtcp[%p]: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",stream,i,flost,rt);
-			if (stream->ms.rc)
-				ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
+			if (stream->ms.rc) ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
+			if (stream->ms.qi) ms_quality_indicator_update_from_feedback(stream->ms.qi,m);
 		} else if (rtcp_is_PSFB(m)) {
 			if (rtcp_PSFB_get_type(m) == RTCP_PSFB_FIR) {
 				/* Special case for FIR where the packet sender ssrc must be equal to 0. */
