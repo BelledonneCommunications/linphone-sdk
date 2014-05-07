@@ -1142,6 +1142,9 @@ static PayloadType* create_custom_payload_type(const char *type, const char *sub
 		exit(-1);
 	}
 	pt->mime_type=ms_strdup(subtype);
+	if (strcasecmp(pt->mime_type,"VP8")==0) { /*special case for vp8*/
+		pt->flags=PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED;
+	}
 	pt->clock_rate=atoi(rate);
 	pt->channels=atoi(channels);
 	return pt;	
