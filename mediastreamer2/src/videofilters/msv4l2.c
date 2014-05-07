@@ -71,6 +71,7 @@ typedef struct V4l2State{
 	bool_t thread_run;
 	queue_t rq;
 	ms_mutex_t mutex;
+	ms_cond_t cond;
 	char *dev;
 	char *mmapdbuf;
 	int msize;/*mmapped size*/
@@ -111,7 +112,7 @@ static int msv4l2_close(V4l2State *s){
 }
 
 static bool_t v4lv2_try_format( V4l2State *s, struct v4l2_format *fmt, int fmtid){
-	
+
 	fmt->type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	fmt->fmt.pix.pixelformat = fmtid;
 	fmt->fmt.pix.field = V4L2_FIELD_ANY;
@@ -163,7 +164,7 @@ static int msv4l2_configure(V4l2State *s){
 		ms_error("%s does not support streaming i/o\n",s->dev);
 		return -1;
 	}
-	
+
 	ms_message("Driver is %s",cap.driver);
 	memset(&fmt,0,sizeof(fmt));
 
@@ -173,7 +174,7 @@ static int msv4l2_configure(V4l2State *s){
 	}
 	vsize=s->vsize;
 	do{
-		fmt.fmt.pix.width       = s->vsize.width; 
+		fmt.fmt.pix.width       = s->vsize.width;
 		fmt.fmt.pix.height      = s->vsize.height;
 		ms_message("v4l2: trying %ix%i",s->vsize.width,s->vsize.height);
 		if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_YUV420)){
@@ -226,39 +227,39 @@ static int msv4l2_do_mmap(V4l2State *s){
 	struct v4l2_requestbuffers req;
 	int i;
 	enum v4l2_buf_type type;
-	
+
 	memset(&req,0,sizeof(req));
-	
+
 	req.count               = 4;
 	req.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	req.memory              = V4L2_MEMORY_MMAP;
-	
+
 	if (v4l2_ioctl (s->fd, VIDIOC_REQBUFS, &req)<0) {
 		ms_error("Error requesting info on mmap'd buffers: %s",strerror(errno));
 		return -1;
 	}
-	
+
 	for (i=0; i<req.count; ++i) {
 		struct v4l2_buffer buf;
 		mblk_t *msg;
 		void *start;
 		memset(&buf,0,sizeof(buf));
-	
+
 		buf.type=V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		buf.memory=V4L2_MEMORY_MMAP;
 		buf.index=i;
-	
+
 		if (v4l2_ioctl (s->fd, VIDIOC_QUERYBUF, &buf)<0){
 			ms_error("Could not VIDIOC_QUERYBUF : %s",strerror(errno));
 			return -1;
 		}
-		
+
 		start=v4l2_mmap (NULL /* start anywhere */,
 			buf.length,
 			PROT_READ | PROT_WRITE /* required */,
 			MAP_SHARED /* recommended */,
 			s->fd, buf.m.offset);
-	
+
 		if (start==NULL){
 			ms_error("Could not v4l2_mmap: %s",strerror(errno));
 		}
@@ -277,6 +278,7 @@ static int msv4l2_do_mmap(V4l2State *s){
 		if (-1==v4l2_ioctl (s->fd, VIDIOC_QBUF, &buf)){
 			ms_error("VIDIOC_QBUF failed: %s",strerror(errno));
 		}else {
+			ms_debug("v4l2: queue buf %i",k);
 			inc_ref(s->frames[i]);
 			s->queued++;
 		}
@@ -294,11 +296,11 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 	struct v4l2_buffer buf;
 	mblk_t *ret=NULL;
 	struct pollfd fds;
-	
+
 	memset(&buf,0,sizeof(buf));
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	buf.memory = V4L2_MEMORY_MMAP;
-	
+
 	memset(&fds,0,sizeof(fds));
 	fds.events=POLLIN;
 	fds.fd=s->fd;
@@ -340,21 +342,22 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 	struct v4l2_buffer buf;
 	unsigned int k;
+	bool_t no_slot_available = TRUE;
 	memset(&buf,0,sizeof(buf));
 	mblk_t *ret=NULL;
 
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	buf.memory = V4L2_MEMORY_MMAP;
-	
+
 	/*queue buffers whose ref count is 1, because they are not
 	still used anywhere in the filter chain */
 	for(k=0;k<s->frame_max;++k){
 		if (s->frames[k]->b_datap->db_ref==1){
+			no_slot_available = FALSE;
 			buf.index=k;
 			if (-1==v4l2_ioctl (s->fd, VIDIOC_QBUF, &buf))
 				ms_warning("VIDIOC_QBUF %i failed: %s",k,  strerror(errno));
 			else {
-				ms_debug("v4l2: queue buf %i",k);
 				/*increment ref count of queued buffer*/
 				inc_ref(s->frames[k]);
 				s->queued++;
@@ -364,6 +367,13 @@ static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 
 	if (s->queued){
 		ret=v4l2_dequeue_ready_buffer(s,poll_timeout_ms);
+	}
+
+	if (no_slot_available) {
+		ms_mutex_lock(&s->mutex);
+		if (s->thread_run)
+			ms_cond_wait(&s->cond, &s->mutex);
+		ms_mutex_unlock(&s->mutex);
 	}
 	return ret;
 }
@@ -397,6 +407,7 @@ static void msv4l2_init(MSFilter *f){
 	s->vsize=MS_VIDEO_SIZE_CIF;
 	s->fps=15;
 	s->configured=FALSE;
+	ms_cond_init(&s->cond, NULL);
 	f->data=s;
 	qinit(&s->rq);
 }
@@ -405,14 +416,15 @@ static void msv4l2_uninit(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
 	ms_free(s->dev);
 	flushq(&s->rq,0);
-	ms_mutex_destroy(&s->mutex);	
+	ms_mutex_destroy(&s->mutex);
+	ms_cond_destroy(&s->cond);
 	ms_free(s);
 }
 
 static void *msv4l2_thread(void *ptr){
 	V4l2State *s=(V4l2State*)ptr;
 	int try=0;
-	
+
 	ms_message("msv4l2_thread starting");
 	if (s->fd==-1){
 		if( msv4l2_open(s)!=0){
@@ -420,9 +432,9 @@ static void *msv4l2_thread(void *ptr){
 			goto close;
 		}
 	}
-	
+
 	if (!s->configured && msv4l2_configure(s)!=0){
-		ms_warning("msv4l2 could not be configured");		
+		ms_warning("msv4l2 could not be configured");
 		goto close;
 	}
 	if (msv4l2_do_mmap(s)!=0)
@@ -473,14 +485,14 @@ static void msv4l2_process(MSFilter *f){
 	int cur_frame;
 	uint32_t curtime=f->ticker->time;
 	float elapsed;
-	
+
 	if (s->th_frame_count==-1){
 		s->start_time=curtime;
 		s->th_frame_count=0;
 	}
 	elapsed=((float)(curtime-s->start_time))/1000.0;
 	cur_frame=elapsed*s->fps;
-	
+
 	if (cur_frame>=s->th_frame_count){
 		mblk_t *om=NULL;
 		ms_mutex_lock(&s->mutex);
@@ -492,6 +504,7 @@ static void msv4l2_process(MSFilter *f){
 				om=tmp;
 			}
 		}
+		ms_cond_signal(&s->cond);
 		ms_mutex_unlock(&s->mutex);
 		if (om!=NULL){
 			timestamp=f->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
@@ -520,6 +533,9 @@ static void msv4l2_postprocess(MSFilter *f){
 
 	s->thread_run = FALSE;
 	if(s->thread) {
+		ms_mutex_lock(&s->mutex);
+		ms_cond_signal(&s->cond);
+		ms_mutex_unlock(&s->mutex);
 		ms_thread_join(s->thread,NULL);
 		ms_message("msv4l2 thread has joined.");
 	}
