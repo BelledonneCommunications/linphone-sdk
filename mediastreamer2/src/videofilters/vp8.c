@@ -434,7 +434,7 @@ static void dec_init(MSFilter *f) {
 	if(vpx_codec_dec_init(&s->codec, interface, NULL, flags))
 		ms_error("Failed to initialize decoder");
 
-	vp8rtpfmt_unpacker_init(&s->unpacker);
+	vp8rtpfmt_unpacker_init(&s->unpacker, f);
 	s->curframe = NULL;
 	s->last_error_reported_time = 0;
 	s->yuv_width = 0;

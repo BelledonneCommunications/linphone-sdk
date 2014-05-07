@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define VP8RTPFMT_H
 
 #include <mediastreamer2/mscommon.h>
+#include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/msqueue.h>
 
 /**
@@ -85,6 +86,7 @@ extern "C"{
 
 
 	typedef struct Vp8RtpFmtUnpackerCtx {
+		MSFilter *filter;
 		MSList *frames_list;
 		MSQueue output_queue;
 		uint32_t last_ts;
@@ -103,7 +105,7 @@ extern "C"{
 	void vp8rtpfmt_packer_uninit(Vp8RtpFmtPackerCtx *ctx);
 	void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in);
 
-	void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx);
+	void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f);
 	void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx);
 	void vp8rtpfmt_unpacker_process(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *inout);
 	uint32_t vp8rtpfmt_unpacker_calc_extended_cseq(Vp8RtpFmtUnpackerCtx *ctx, uint16_t cseq);

@@ -23,7 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "vp8rtpfmt.h"
 
 
-#define VP8RTPFMT_DEBUG
+//#define VP8RTPFMT_DEBUG
+#define VP8RTPFMT_OUTPUT_INCOMPLETE_FRAMES
 
 
 #ifdef VP8RTPFMT_DEBUG
@@ -318,6 +319,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			frame->outputted = TRUE;
 		} else if (is_frame_marker_present(frame) == TRUE) {
 			if (is_first_partition_present_in_frame(frame) == TRUE) {
+#ifdef VP8RTPFMT_OUTPUT_INCOMPLETE_FRAMES
 				/* Output the valid partitions of the frame. */
 				nb_partitions = ms_list_size(frame->partitions_list);
 				for (i = 0; i < nb_partitions; i++) {
@@ -330,17 +332,24 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					}
 				}
 				frame->outputted = TRUE;
+#else
+				/* Drop the frame for which some partitions are missing/invalid. */
+				frame->discarded = TRUE;
+#endif
+				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 			} else {
 				/* Drop the frame for which the first partition is missing. */
-				ms_error("VP8 frame without first partition.");
+				ms_warning("VP8 frame without first partition.");
 				frame->discarded = TRUE;
+				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 			}
 		} else {
 			/* The last packet of the frame has not been received.
 			 * Wait for the next iteration of the filter to see if we have it then. */
-			ms_error("VP8 frame without last packet.");
+			ms_warning("VP8 frame without last packet.");
 			// TODO: Try to get the missing packets at the next iteration of the filter.
 			frame->discarded = TRUE;
+			ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 		}
 	}
 }
@@ -431,7 +440,8 @@ static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 }
 
 
-void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx) {
+void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f) {
+	ctx->filter = f;
 	ctx->frames_list = NULL;
 	ms_queue_init(&ctx->output_queue);
 	ctx->initialized_last_ts = FALSE;
@@ -475,7 +485,7 @@ void vp8rtpfmt_unpacker_process(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *inout) {
 		ms_list_free(ctx->frames_list);
 		ctx->frames_list = NULL;
 	} else {
-		ms_error("VP8 frames are remaining for next iteration of the filter.");
+		ms_message("VP8 frames are remaining for next iteration of the filter.");
 	}
 }
 

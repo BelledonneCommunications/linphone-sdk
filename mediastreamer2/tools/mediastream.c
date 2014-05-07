@@ -527,6 +527,10 @@ static void video_stream_event_cb(void *user_pointer, const MSFilter *f, const u
 			ms_warning("Video decoding error");
 			video_stream_send_pli(md->video);
 			break;
+		case MS_VIDEO_DECODER_SEND_PLI:
+			ms_message("Send PLI");
+			video_stream_send_pli(md->video);
+			break;
 		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
 			ms_message("First video frame decoded successfully");
 			break;

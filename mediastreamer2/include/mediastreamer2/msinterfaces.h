@@ -179,11 +179,13 @@ typedef enum _MSRecorderState MSRecorderState;
 
 /** Interface definitions for video decoders */
 #define MS_VIDEO_DECODER_DECODING_ERRORS \
-		MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface,0)
+	MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface,0)
 #define MS_VIDEO_DECODER_FIRST_IMAGE_DECODED \
-        MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface,1)
+	MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface,1)
+#define MS_VIDEO_DECODER_SEND_PLI \
+	MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface, 2)
 #define MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION \
-    MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 0)
+	MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 0)
 
 /** Interface definitions for video capture */
 #define MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION \
