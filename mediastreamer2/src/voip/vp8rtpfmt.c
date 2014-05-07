@@ -597,7 +597,7 @@ static void packer_process_frame_part(void *p, void *c) {
 		pdm->b_cont = dm;
 		rptr += dlen;
 
-		ms_queue_put(&ctx->output_queue, pdm);
+		ms_queue_put(ctx->output_queue, pdm);
 	}
 
 	/* Set marker bit on last packet. */
@@ -612,15 +612,14 @@ static void packer_process_frame_part(void *p, void *c) {
 
 
 void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx, uint8_t nb_partitions) {
-	ms_queue_init(&ctx->output_queue);
 	ctx->nb_partitions = nb_partitions;
 }
 
 void vp8rtpfmt_packer_uninit(Vp8RtpFmtPackerCtx *ctx) {
-	ms_queue_flush(&ctx->output_queue);
 }
 
-void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in) {
+void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in, MSQueue *out) {
+	ctx->output_queue = out;
 	ms_list_for_each2(in, packer_process_frame_part, ctx);
 	ms_list_for_each(in, free_packet);
 	ms_list_free(in);

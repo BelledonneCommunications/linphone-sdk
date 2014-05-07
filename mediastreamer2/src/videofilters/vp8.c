@@ -31,12 +31,6 @@
 #undef interface
 #define interface (vpx_codec_vp8_cx())
 
-#define VP8_PAYLOAD_DESC_X_MASK      0x80
-#define VP8_PAYLOAD_DESC_RSV_MASK    0x40
-#define VP8_PAYLOAD_DESC_N_MASK      0x20
-#define VP8_PAYLOAD_DESC_S_MASK      0x10
-#define VP8_PAYLOAD_DESC_PARTID_MASK 0x0F
-
 #define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps) \
 	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, NULL }
 
@@ -84,22 +78,21 @@ static const MSVideoConfiguration multicore_vp8_conf_list[] = {
 typedef struct EncState {
 	vpx_codec_ctx_t codec;
 	vpx_codec_enc_cfg_t cfg;
+	vpx_codec_pts_t frame_count;
 	Vp8RtpFmtPackerCtx packer;
-	long long frame_count;
-	uint8_t picture_id;
-	int last_fir_seq_nr;
-	bool_t req_vfu;
-	bool_t ready;
-	const MSVideoConfiguration *vconf_list;
 	MSVideoConfiguration vconf;
+	const MSVideoConfiguration *vconf_list;
+	int last_fir_seq_nr;
+	uint8_t picture_id;
+	uint8_t token_partitions;
+	bool_t force_keyframe;
+	bool_t ready;
 } EncState;
 
 static void enc_init(MSFilter *f) {
 	vpx_codec_err_t res;
 	MSVideoSize vsize;
 	EncState *s=(EncState *)ms_new0(EncState,1);
-
-	vp8rtpfmt_packer_init(&s->packer, 4);
 
 	ms_message("Using %s\n",vpx_codec_iface_name(interface));
 
@@ -134,6 +127,10 @@ static void enc_init(MSFilter *f) {
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
 	s->cfg.g_error_resilient = VPX_ERROR_RESILIENT_DEFAULT|VPX_ERROR_RESILIENT_PARTITIONS;
 	s->cfg.g_lag_in_frames = 0;
+	s->picture_id = random() & 0x7F;
+	s->token_partitions = 2; /* Output 4 partitions per frame */
+
+	vp8rtpfmt_packer_init(&s->packer, (1 << s->token_partitions));
 
 	f->data = s;
 }
@@ -154,22 +151,20 @@ static void enc_preprocess(MSFilter *f) {
 	/* Initialize codec */
 	res =  vpx_codec_enc_init(&s->codec, interface, &s->cfg, VPX_CODEC_USE_OUTPUT_PARTITION);
 	if (res) {
-		ms_error("vpx_codec_enc_init failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
+		ms_error("vpx_codec_enc_init failed: %s (%s)", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
 	/*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
-	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, (s->cfg.g_threads > 1) ? 10 : 10); 
+	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, (s->cfg.g_threads > 1) ? 10 : 10);
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
 	vpx_codec_control(&s->codec, VP8E_SET_MAX_INTRA_BITRATE_PCT, 400); /*limite iFrame size to 4 pframe*/
-	vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 2);
+	vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, s->token_partitions);
 
-	s->picture_id = random() & 0x7F;
 	s->ready=TRUE;
 }
 
 static void enc_process(MSFilter *f) {
 	mblk_t *im;
-	mblk_t *om;
 	uint64_t timems=f->ticker->time;
 	uint32_t timestamp=timems*90;
 	EncState *s=(EncState*)f->data;
@@ -186,10 +181,10 @@ static void enc_process(MSFilter *f) {
 		ms_yuv_buf_init_from_mblk(&yuv, im);
 		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->vconf.vsize.width, s->vconf.vsize.height, 1, yuv.planes[0]);
 
-		if (s->req_vfu){
-			ms_message("Forcing vp8 key frame for filter [%p]",f);
+		if (s->force_keyframe == TRUE){
+			ms_message("Forcing vp8 key frame for filter [%p]", f);
 			flags = VPX_EFLAG_FORCE_KF;
-			s->req_vfu=FALSE;
+			s->force_keyframe = FALSE;
 		}
 
 		err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, VPX_DL_REALTIME);
@@ -223,10 +218,7 @@ static void enc_process(MSFilter *f) {
 					list = ms_list_append(list, packet);
 				}
 			}
-			vp8rtpfmt_packer_process(&s->packer, list);
-			while ((om = ms_queue_get(&s->packer.output_queue)) != NULL) {
-				ms_queue_put(f->outputs[0], om);
-			}
+			vp8rtpfmt_packer_process(&s->packer, list, f->outputs[0]);
 		}
 		freemsg(im);
 	}
@@ -320,14 +312,14 @@ static int enc_set_br(MSFilter *f, void*data) {
 }
 
 static int enc_req_vfu(MSFilter *f, void *unused){
-	EncState *s=(EncState*)f->data;
-	s->req_vfu=TRUE;
+	EncState *s = (EncState *)f->data;
+	s->force_keyframe = TRUE;
 	return 0;
 }
 
 static int enc_notify_pli(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
-	s->req_vfu = TRUE;	/* For the moment generate Intra Frame on Picture Loss Indication */
+	s->force_keyframe = TRUE;
 	return 0;
 }
 
@@ -335,7 +327,7 @@ static int enc_notify_fir(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	uint8_t seq_nr = *((uint8_t *)data);
 	if (seq_nr != s->last_fir_seq_nr) {
-		s->req_vfu = TRUE;
+		s->force_keyframe = TRUE;
 		s->last_fir_seq_nr = seq_nr;
 	}
 	return 0;
