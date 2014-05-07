@@ -239,21 +239,28 @@ static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, MSList **packets_list) {
 	if (ms_list_size(*packets_list) > 0) {
 		frame = ms_new0(Vp8RtpFmtFrame, 1);
 		generate_partitions_list(ctx, frame, *packets_list);
-		partition = ms_list_nth_data(frame->partitions_list, 0);
-		if (partition->m->b_rptr[0] & 0x01) {
-			frame->is_key = FALSE;
+		if (ms_list_size(frame->partitions_list) > 0) {
+			partition = ms_list_nth_data(frame->partitions_list, 0);
+			if (partition->m->b_rptr[0] & 0x01) {
+				frame->is_key = FALSE;
+			} else {
+				frame->is_key = TRUE;
+			}
+			if (is_first_partition_present_in_frame(frame) == TRUE) {
+				/* The first packet of the frame is really the start of the frame. */
+			} else {
+				frame->error = Vp8RtpFmtIncompleteFrame;
+			}
+			ctx->frames_list = ms_list_append(ctx->frames_list, (void *)frame);
 		} else {
-			frame->is_key = TRUE;
+			/* There are no valid partitions in the frame. */
+			ms_warning("VP8 frame without any valid partition.");
+			ms_free(frame);
+			ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 		}
-		if (is_first_partition_present_in_frame(frame) == TRUE) {
-			/* The first packet of the frame is really the start of the frame. */
-		} else {
-			frame->error = Vp8RtpFmtIncompleteFrame;
-		}
-		ctx->frames_list = ms_list_append(ctx->frames_list, (void *)frame);
-		ms_list_free(*packets_list);
-		*packets_list = NULL;
 	}
+	ms_list_free(*packets_list);
+	*packets_list = NULL;
 }
 
 static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, MSList *packets_list) {
