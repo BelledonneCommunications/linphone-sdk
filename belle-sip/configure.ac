@@ -89,16 +89,30 @@ else
 	CFLAGS="$CFLAGS -g"
 fi
 
-STRICT_OPTIONS=" -Wall -Werror -Wno-error=unknown-pragmas"
+AC_ARG_ENABLE(strict,
+		[  --disable-strict    Turn off strict mode compilation, no warnings allowed (default=yes)],
+		[case "${enableval}" in
+		yes) strict=true ;;
+		no)  strict=false ;;
+		*) AC_MSG_ERROR(bad value ${enableval} for --enable-strict) ;;
+		esac],[strict=true])
 
-case "$CC" in
-	*clang*)
-	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unknown-warning-option"
-	;;
-	gcc*)
-	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=pragmas"
-	;;
-esac
+STRICT_OPTIONS="-Wall"
+
+if test "$strict" = "true"; then
+
+	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wno-error=unknown-pragmas"
+
+	case "$CC" in
+		*clang*)
+		STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unknown-warning-option"
+		;;
+		gcc*)
+		STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=pragmas"
+		;;
+	esac
+
+fi
 
 dnl because of antlr3 we must accept a few warnings...
 dnl more portable for the moment
