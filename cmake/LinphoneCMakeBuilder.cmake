@@ -59,6 +59,53 @@ if(MSVC)
 	execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${MINGWEX_LIBRARY}" "${CMAKE_INSTALL_PREFIX}/lib/mingwex.lib")
 endif(MSVC)
 
+find_program(PKG_CONFIG_PROGRAM
+	NAMES pkg-config pkg-config.exe
+	HINTS "C:/MinGW/bin"
+)
+
+if(NOT PKG_CONFIG_PROGRAM)
+	if(MINGW)
+		message(STATUS "Installing pkg-config to C:/MinGW/bin")
+		set(_pkg_config_dir ${CMAKE_CURRENT_BINARY_DIR}/pkg-config)
+		file(MAKE_DIRECTORY ${_pkg_config_dir})
+		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/dependencies/pkg-config_0.26-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/pkg-config.zip")
+		execute_process(
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/pkg-config.zip"
+			WORKING_DIRECTORY ${_pkg_config_dir}
+		)
+		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/dependencies/pkg-config-dev_0.26-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/pkg-config-dev.zip")
+		execute_process(
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/pkg-config-dev.zip"
+			WORKING_DIRECTORY ${_pkg_config_dir}
+		)
+		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/dependencies/gettext-runtime_0.18.1.1-2_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/gettext-runtime.zip")
+		execute_process(
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/gettext-runtime.zip"
+			WORKING_DIRECTORY ${_pkg_config_dir}
+		)
+		file(DOWNLOAD http://ftp.acc.umu.se/pub/gnome/binaries/win32/glib/2.28/glib_2.28.8-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/glib.zip")
+		execute_process(
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/glib.zip"
+			WORKING_DIRECTORY ${_pkg_config_dir}
+		)
+		file(RENAME "${_pkg_config_dir}/bin/pkg-config.exe" "C:/MinGW/bin/pkg-config.exe")
+		file(RENAME "${_pkg_config_dir}/share/aclocal/pkg.m4" "C:/MinGw/share/aclocal/pkg.m4")
+		file(RENAME "${_pkg_config_dir}/bin/libglib-2.0-0.dll" "C:/MinGW/bin/libglib-2.0-0.dll")
+		file(RENAME "${_pkg_config_dir}/bin/intl.dll" "C:/MinGW/bin/intl.dll")
+		unset(_pkg_config_dir)
+	endif()
+
+	find_program(PKG_CONFIG_PROGRAM
+		NAMES pkg-config pkg-config.exe
+		HINTS "C:/MinGW/bin"
+	)
+endif()
+
+if (NOT PKG_CONFIG_PROGRAM)
+	message(FATAL_ERROR "Could not find the pkg-config program.")
+endif()
+
 find_program(PATCH_PROGRAM
 	NAMES patch patch.exe
 )
@@ -368,7 +415,7 @@ function(linphone_builder_add_project PROJNAME)
 		endif()
 
 		if("${EP_${PROJNAME}_PKG_CONFIG}" STREQUAL "")
-			set(LINPHONE_BUILDER_PKG_CONFIG "pkg-config")
+			set(LINPHONE_BUILDER_PKG_CONFIG "${PKG_CONFIG_PROGRAM}")
 		else("${EP_${PROJNAME}_PKG_CONFIG}" STREQUAL "")
 			set(LINPHONE_BUILDER_PKG_CONFIG "${EP_${PROJNAME}_PKG_CONFIG}")
 		endif("${EP_${PROJNAME}_PKG_CONFIG}" STREQUAL "")
