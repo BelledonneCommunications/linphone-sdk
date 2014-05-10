@@ -35,6 +35,10 @@ set(EP_bzrtp_CROSS_COMPILATION_OPTIONS
 set(EP_bzrtp_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_bzrtp_DEPENDENCIES EP_polarssl EP_xml2)
 
+if(MINGW)
+	set(EP_bzrtp_EXTRA_CPPFLAGS "-D__USE_MINGW_ANSI_STDIO")
+endif()
+
 if(${ENABLE_UNIT_TESTS})
 	list(APPEND EP_bzrtp_DEPENDENCIES EP_cunit)
 else()
