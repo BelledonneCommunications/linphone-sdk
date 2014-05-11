@@ -66,6 +66,12 @@ else()
 		list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-speex")
 	endif(${ENABLE_SPEEX})
 
+	if(${ENABLE_VIDEO})
+		list(APPEND EP_ms2_CONFIGURE_OPTIONS "--enable-video")
+	else()
+		list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-video")
+	endif()
+
 	if(${ENABLE_FFMPEG})
 		list(APPEND EP_ms2_DEPENDENCIES EP_ffmpeg)
 	else(${ENABLE_FFMPEG})
