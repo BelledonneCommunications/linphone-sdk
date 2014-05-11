@@ -130,7 +130,7 @@ endif()
 
 find_program(INTLTOOLIZE_PROGRAM
 	NAMES intltoolize
-	HINTS "C:/MinGW/bin"
+	HINTS "C:/MinGW/msys/1.0/bin"
 )
 
 #if(NOT INTLTOOLIZE_PROGRAM)
@@ -162,7 +162,7 @@ find_program(INTLTOOLIZE_PROGRAM
 
 	find_program(INTLTOOLIZE_PROGRAM
 		NAMES intltoolize
-		HINTS "C:/MinGW/bin"
+		HINTS "C:/MinGW/msys/1.0/bin"
 	)
 #endif()
 
