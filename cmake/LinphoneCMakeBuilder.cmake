@@ -36,7 +36,7 @@ endif(${CMAKE_VERBOSE_MAKEFILE})
 find_package(PythonInterp)
 if(NOT PYTHONINTERP_FOUND)
 	message(FATAL_ERROR "Could not find python!")
-endif(NOT PYTHONINTERP_FOUND)
+endif()
 
 if(MSVC)
 	find_program(SH_PROGRAM
@@ -57,7 +57,29 @@ if(MSVC)
 		HINTS "C:/MinGW/lib"
 	)
 	execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${MINGWEX_LIBRARY}" "${CMAKE_INSTALL_PREFIX}/lib/mingwex.lib")
-endif(MSVC)
+endif()
+
+find_program(PATCH_PROGRAM
+	NAMES patch patch.exe
+)
+if(NOT PATCH_PROGRAM)
+	if(WIN32)
+		message(FATAL_ERROR "Could not find the patch.exe program. Please install it from http://gnuwin32.sourceforge.net/packages/patch.htm")
+	else()
+		message(FATAL_ERROR "Could not find the patch program.")
+	endif()
+endif()
+
+find_program(SED_PROGRAM
+	NAMES sed sed.exe
+)
+if(NOT SED_PROGRAM)
+	if(WIN32)
+		message(FATAL_ERROR "Could not find the sed.exe program. Please install it from http://gnuwin32.sourceforge.net/packages/sed.htm")
+	else()
+		message(FATAL_ERROR "Could not find the sed program.")
+	endif()
+endif()
 
 find_program(PKG_CONFIG_PROGRAM
 	NAMES pkg-config pkg-config.exe
@@ -90,7 +112,7 @@ if(NOT PKG_CONFIG_PROGRAM)
 			WORKING_DIRECTORY ${_pkg_config_dir}
 		)
 		file(RENAME "${_pkg_config_dir}/bin/pkg-config.exe" "C:/MinGW/bin/pkg-config.exe")
-		file(RENAME "${_pkg_config_dir}/share/aclocal/pkg.m4" "C:/MinGw/share/aclocal/pkg.m4")
+		file(RENAME "${_pkg_config_dir}/share/aclocal/pkg.m4" "C:/MinGW/share/aclocal/pkg.m4")
 		file(RENAME "${_pkg_config_dir}/bin/libglib-2.0-0.dll" "C:/MinGW/bin/libglib-2.0-0.dll")
 		file(RENAME "${_pkg_config_dir}/bin/intl.dll" "C:/MinGW/bin/intl.dll")
 		unset(_pkg_config_dir)
@@ -102,20 +124,51 @@ if(NOT PKG_CONFIG_PROGRAM)
 	)
 endif()
 
-if (NOT PKG_CONFIG_PROGRAM)
+if(NOT PKG_CONFIG_PROGRAM)
 	message(FATAL_ERROR "Could not find the pkg-config program.")
 endif()
 
-find_program(PATCH_PROGRAM
-	NAMES patch patch.exe
+find_program(INTLTOOLIZE_PROGRAM
+	NAMES intltoolize
+	HINTS "C:/MinGW/bin"
 )
-if(NOT PATCH_PROGRAM)
-	if(WIN32)
-		message(FATAL_ERROR "Could not find the patch.exe program. Please install it from http://gnuwin32.sourceforge.net/packages/patch.htm")
-	else(WIN32)
-		message(FATAL_ERROR "Could not find the patch program.")
-	endif(WIN32)
-endif(NOT PATCH_PROGRAM)
+
+#if(NOT INTLTOOLIZE_PROGRAM)
+	if(MINGW)
+		message(STATUS "Installing intltoolize to C:/MinGW/bin")
+		set(_intltoolize_dir ${CMAKE_CURRENT_BINARY_DIR}/intltoolize)
+		file(MAKE_DIRECTORY ${_intltoolize_dir})
+		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/intltool/0.40/intltool_0.40.4-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/intltoolize.zip")
+		execute_process(
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/intltoolize.zip"
+			WORKING_DIRECTORY ${_intltoolize_dir}
+		)
+		execute_process(
+			COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-extract"
+			COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-merge"
+			COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-prepare"
+			COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-update"
+		)
+		file(RENAME "${_intltoolize_dir}/bin/intltoolize" "C:/MinGW/msys/1.0/bin/intltoolize")
+		file(RENAME "${_intltoolize_dir}/bin/intltool-extract" "C:/MinGW/bin/intltool-extract")
+		file(RENAME "${_intltoolize_dir}/bin/intltool-merge" "C:/MinGW/bin/intltool-merge")
+		file(RENAME "${_intltoolize_dir}/bin/intltool-prepare" "C:/MinGW/bin/intltool-prepare")
+		file(RENAME "${_intltoolize_dir}/bin/intltool-update" "C:/MinGW/bin/intltool-update")
+		file(RENAME "${_intltoolize_dir}/share/aclocal/intltool.m4" "C:/MinGW/share/aclocal/intltool.m4")
+		file(MAKE_DIRECTORY "C:/MinGW/msys/1.0/share/intltool")
+		file(RENAME "${_intltoolize_dir}/share/intltool/Makefile.in.in" "C:/MinGW/msys/1.0/share/intltool/Makefile.in.in")
+		unset(_intltoolize_dir)
+	endif()
+
+	find_program(INTLTOOLIZE_PROGRAM
+		NAMES intltoolize
+		HINTS "C:/MinGW/bin"
+	)
+#endif()
+
+if(NOT INTLTOOLIZE_PROGRAM)
+	message(FATAL_ERROR "Could not find the intltoolize program.")
+endif()
 
 set(LINPHONE_BUILDER_EP_VARS)
 set(LINPHONE_BUILDER_INCLUDED_BUILDERS)
