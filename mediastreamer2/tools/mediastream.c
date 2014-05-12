@@ -507,7 +507,6 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 				return FALSE;
 			}
 		}else if (strcmp(argv[i],"--interactive")==0){
-			i++;
 			out->interactive=TRUE;
 		}
 		else if (strcmp(argv[i],"--help")==0){
