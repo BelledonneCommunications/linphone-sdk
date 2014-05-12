@@ -70,16 +70,16 @@ void VideoStarter::deactivate()
 
 static const MSVideoConfiguration openh264_conf_list[] = {
 #if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
-	MS_OPENH264_CONF(0, 512000, QVGA, 12)
+	MS_OPENH264_CONF(0, 512000, QVGA, 12),
 #else
 	MS_OPENH264_CONF(1024000, 1536000, SVGA, 25),
 	MS_OPENH264_CONF( 512000, 1024000,  VGA, 25),
 	MS_OPENH264_CONF( 256000,  512000,  VGA, 15),
 	MS_OPENH264_CONF( 170000,  256000, QVGA, 15),
+#endif
 	MS_OPENH264_CONF( 128000,  170000, QCIF, 10),
 	MS_OPENH264_CONF(  64000,  128000, QCIF,  7),
 	MS_OPENH264_CONF(      0,   64000, QCIF,  5)
-#endif
 };
 
 static const MSVideoConfiguration multicore_openh264_conf_list[] = {
@@ -89,7 +89,7 @@ static const MSVideoConfiguration multicore_openh264_conf_list[] = {
 	MS_OPENH264_CONF( 750000, 1024000,        XGA, 15),
 	MS_OPENH264_CONF( 500000,  750000,       SVGA, 15),
 	MS_OPENH264_CONF( 300000,  500000,        VGA, 12),
-	MS_OPENH264_CONF(      0,  300000,       QVGA, 12)
+	MS_OPENH264_CONF(      0,  300000,       QVGA, 12),
 #else
 	MS_OPENH264_CONF(1536000,  2560000, SXGA_MINUS, 15),
 	MS_OPENH264_CONF(1536000,  2560000,       720P, 15),
@@ -97,10 +97,10 @@ static const MSVideoConfiguration multicore_openh264_conf_list[] = {
 	MS_OPENH264_CONF( 512000,  1024000,       SVGA, 15),
 	MS_OPENH264_CONF( 256000,   512000,        VGA, 15),
 	MS_OPENH264_CONF( 170000,   256000,       QVGA, 15),
+#endif
 	MS_OPENH264_CONF( 128000,   170000,       QCIF, 10),
 	MS_OPENH264_CONF(  64000,   128000,       QCIF,  7),
 	MS_OPENH264_CONF(      0,    64000,       QCIF,  5)
-#endif
 };
 
 
