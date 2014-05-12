@@ -130,6 +130,7 @@ typedef struct _MediastreamDatas {
 	char* srtp_remote_master_key;
 	int netsim_bw;
 	int netsim_lossrate;
+	int netsim_latency;
 	float zoom;
 	float zoom_cx, zoom_cy;
 	
@@ -203,6 +204,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)\n"
 								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)\n"
 								"[ --netsim-lossrate <0-100> (simulates a network lost rate)\n"
+								"[ --netsim-latency <latency in ms> (simulates a network latency)\n"
 								"[ --zoom zoomfactor]\n"
 								"[ --ice-local-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
 								"[ --ice-remote-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
@@ -494,6 +496,9 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 				ms_warning("%d > 100, wrong value for --lost-rate: set to 100", out->netsim_lossrate);
 				out->netsim_lossrate=100;
 			}
+		} else if (strcmp(argv[i], "--netsim-latency") == 0) {
+			i++;
+			out->netsim_latency = atoi(argv[i]);
 		} else if (strcmp(argv[i],"--zoom")==0){
 			i++;
 			if (sscanf(argv[i], "%f,%f,%f", &out->zoom, &out->zoom_cx, &out->zoom_cy) != 3) {
@@ -768,6 +773,10 @@ void setup_media_streams(MediastreamDatas* args) {
 	if (args->netsim_lossrate>0){
 		params.enabled=TRUE;
 		params.loss_rate=args->netsim_lossrate;
+	}
+	if (args->netsim_latency > 0) {
+		params.enabled = TRUE;
+		params.latency = args->netsim_latency;
 	}
 	if (params.enabled){
 		rtp_session_enable_network_simulation(args->session,&params);
