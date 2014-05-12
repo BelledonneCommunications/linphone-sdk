@@ -23,10 +23,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilerec.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/mstonedetector.h"
+#include "mediastreamer2/bitratecontrol.h"
 #include "private.h"
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
-
 #include <stdio.h>
 #include "CUnit/Basic.h"
 
@@ -36,7 +36,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static RtpProfile rtp_profile;
-
 #define H263_PAYLOAD_TYPE 34
 #define H264_PAYLOAD_TYPE 102
 #define VP8_PAYLOAD_TYPE 103
@@ -72,13 +71,18 @@ typedef struct _video_stream_manager_t {
 	VideoStream* stream;
 	int local_rtp;
 	int local_rtcp;
-
+	struct {
+		float loss;
+		float rtt;
+		bool_t stable_network;
+	} latest_stats;
 } video_stream_manager_t ;
 static video_stream_manager_t * video_stream_manager_new() {
 	video_stream_manager_t * mgr =  ms_new0(video_stream_manager_t,1);
 	mgr->local_rtp= (rand() % ((2^16)-1024) + 1024) & ~0x1;
 	mgr->local_rtcp=mgr->local_rtp+1;
 	mgr->stream = video_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
+	mgr->latest_stats.stable_network = TRUE;
 	return mgr;
 
 }
@@ -110,22 +114,45 @@ static void video_manager_start(	video_stream_manager_t * mgr
 #define THIRDGENERATION_BW 200000
 #define CU_ASSERT_IN_RANGE(value, inf, sup) CU_ASSERT_TRUE(value >= inf); CU_ASSERT_TRUE(value <= sup)
 
-static float adaptive_video_stream(int payload, int initial_bitrate,int target_bw, float loss_rate, int max_recv_rtcp_packet) {
+static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue * evq) {
+	OrtpEvent *ev;
+	while (NULL != (ev=ortp_ev_queue_get(evq))){
+		OrtpEventType evt=ortp_event_get_type(ev);
+		OrtpEventData *evd=ortp_event_get_data(ev);
+		/*linphone_call_stats_fill(&call->stats[stream_index],ms,ev);*/
+		if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED || evt == ORTP_EVENT_RTCP_PACKET_EMITTED) {
+			const report_block_t *rb=NULL;
+			if (rtcp_is_SR(evd->packet)){
+				rb=rtcp_SR_get_report_block(evd->packet,0);
+			}else if (rtcp_is_RR(evd->packet)){
+				rb=rtcp_RR_get_report_block(evd->packet,0);
+			}
+			printf("%s RTCP thing\n", (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) ? "RECEIVED" : "EMITTED");
+
+			stream_mgr->latest_stats.loss=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
+			stream_mgr->latest_stats.rtt=rtp_session_get_round_trip_propagation(stream_mgr->stream->ms.sessions.rtp_session);
+			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED)
+				stream_mgr->latest_stats.stable_network=ms_qos_analyser_is_network_stable(ms_bitrate_controller_get_qos_analyser(stream_mgr->stream->ms.rc));
+			printf("loss=%f\n",stream_mgr->latest_stats.loss);
+			printf("RTT=%f\n",stream_mgr->latest_stats.rtt);
+			printf("stable_network=%d\n",stream_mgr->latest_stats.stable_network);
+		}
+		ortp_event_destroy(ev);
+	}
+}
+
+static void start_adaptive_video_stream(video_stream_manager_t * marielle, video_stream_manager_t * margaux, int payload, int initial_bitrate,int target_bw, float loss_rate, int latency, int max_recv_rtcp_packet) {
 	MSWebCam * marielle_webcam = ms_web_cam_manager_get_default_cam (ms_web_cam_manager_get());
 	MSWebCam * margaux_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
-	video_stream_manager_t * marielle = video_stream_manager_new();
-	video_stream_manager_t * margaux = video_stream_manager_new();
 
 	OrtpNetworkSimulatorParams params={0};
 	params.enabled=TRUE;
 	params.loss_rate=loss_rate;
 	params.max_bandwidth=target_bw;
-	// params.max_buffer_size=initial_bitrate;
-	float bw_usage_ratio = 0.;
-	// this variable should not be changed, since algorithm results rely on this value
-	// (the bigger it is, the more accurate is bandwidth estimation)
+	params.latency=latency;
+	/*this variable should not be changed, since algorithm results rely on this value
+	(the bigger it is, the more accurate is bandwidth estimation)*/
 	int rtcp_interval = 2500;
-	float marielle_send_bw;
 
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
 
@@ -136,32 +163,70 @@ static float adaptive_video_stream(int payload, int initial_bitrate,int target_b
 	rtp_session_enable_network_simulation(margaux->stream->ms.sessions.rtp_session,&params);
 
 	rtp_session_set_rtcp_report_interval(margaux->stream->ms.sessions.rtp_session, rtcp_interval);
-	// just wait for timeout
-	wait_for_until(&marielle->stream->ms,&margaux->stream->ms,&marielle->local_rtp,100000,rtcp_interval*max_recv_rtcp_packet);
 
-	marielle_send_bw=media_stream_get_up_bw(&marielle->stream->ms);
-	bw_usage_ratio=(params.max_bandwidth > 0) ? marielle_send_bw/params.max_bandwidth : 0;
-	ms_message("marielle sent bw=[%f], target was [%f] bw_usage_ratio [%f]",marielle_send_bw,params.max_bandwidth,bw_usage_ratio);
+	OrtpEvQueue * evq = ortp_ev_queue_new();
+	rtp_session_register_event_queue(marielle->stream->ms.sessions.rtp_session,evq);
 
-	video_stream_manager_delete(marielle);
-	video_stream_manager_delete(margaux);
-	return bw_usage_ratio;
+	/*just wait for timeout*/
+	int retry=0;
+	int timeout_ms=rtcp_interval*max_recv_rtcp_packet;
+	while (retry++ <timeout_ms/100) {
+		media_stream_iterate(&marielle->stream->ms);
+		media_stream_iterate(&margaux->stream->ms);
+		handle_queue_events(marielle, evq);
+		if (retry%10==0) {
+			 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	,
+			 	&marielle->stream->ms, media_stream_get_down_bw(&marielle->stream->ms)/1000, media_stream_get_up_bw(&marielle->stream->ms)/1000);
+			 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	,
+			 	&margaux->stream->ms, media_stream_get_down_bw(&margaux->stream->ms)/1000, media_stream_get_up_bw(&margaux->stream->ms)/1000);
+		 }
+		ms_usleep(100000);
+
+	}
 }
 
 static void lossy_network() {
-	bool_t supported = TRUE;//ms_filter_codec_supported("speex");
+	/*verify that some webcam is supported*/
+	bool_t supported = (ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get()) != NULL);
+	video_stream_manager_t * marielle = video_stream_manager_new();
+	video_stream_manager_t * margaux = video_stream_manager_new();
 	if( supported ) {
 		float bw_usage;
 		int loss_rate = getenv("GPP_LOSS") ? atoi(getenv("GPP_LOSS")) : 0;
 		int max_bw = getenv("GPP_MAXBW") ? atoi(getenv("GPP_MAXBW")) * 1000: 0;
-		// printf("\nloss_rate=%d(GPP_LOSS) max_bw=%d(GPP_MAXBW)\n", loss_rate, max_bw);
-		bw_usage = adaptive_video_stream(VP8_PAYLOAD_TYPE, 300000, max_bw, loss_rate, 20);
+		int latency = getenv("GPP_LAG") ? atoi(getenv("GPP_LAG")): 0;
+
+		printf("\nloss_rate=%d(GPP_LOSS)\n", loss_rate);
+		printf("max_bw=%d(GPP_MAXBW)\n", max_bw);
+		printf("latency=%d(GPP_LAG)\n", latency);
+
+		start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, max_bw, loss_rate, latency, 20);
+
+		float marielle_send_bw=media_stream_get_up_bw(&marielle->stream->ms);
+		bw_usage=(max_bw > 0) ? marielle_send_bw/max_bw : 0;
+		ms_message("marielle sent bw=[%f], target was [%d] bw_usage [%f]",marielle_send_bw,max_bw,bw_usage);
+
 		CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
 	}
+	video_stream_manager_delete(marielle);
+	video_stream_manager_delete(margaux);
+}
+
+static void stability_network_detection() {
+	video_stream_manager_t * marielle = video_stream_manager_new();
+	video_stream_manager_t * margaux = video_stream_manager_new();
+
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500, 10);
+	CU_ASSERT_TRUE(marielle->latest_stats.stable_network);
+
+	video_stream_manager_delete(marielle);
+	video_stream_manager_delete(margaux);
 }
 
 static test_t tests[] = {
 	{ "Lossy network", lossy_network },
+	{ "Stability detection", stability_network_detection },
+
 };
 
 test_suite_t video_stream_test_suite = {

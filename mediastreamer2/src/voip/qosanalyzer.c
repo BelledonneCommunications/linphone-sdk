@@ -139,6 +139,7 @@ typedef struct _MSSimpleQosAnalyser{
 	bool_t pad[3];
 
 	double points[150][2];
+	bool_t stable_network;
 }MSSimpleQosAnalyser;
 
 
@@ -262,12 +263,13 @@ static void compute_available_bw(MSSimpleQosAnalyser *obj){
 		printf("\tfor line is %f kbit/s\n", avail_bw);
 		printf("\t\ty=%f x + %f\n", m, b);
 
-		lossy_network |= m < .03f;
+		lossy_network |= (m < .03f && b > 0.05);
 	} else {
-		printf("\tunsufficient difference between BW min and BW max: %f\n", diff);
+		printf("\tinsufficient difference between BW min and BW max: %f\n", diff);
 	}
 	printf("\tavg_dist=%f\n", avg_dist);
 	printf("\t\tI think it is a %s network\n", lossy_network ? "LOSSY/UNSTABLE" : "stable");
+	obj->stable_network = !lossy_network;
 }
 
 static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControlAction *action){
@@ -303,7 +305,7 @@ static bool_t simple_analyser_has_improved(MSQosAnalyser *objbase){
 		}else goto end;
 	}
 	if (obj->rt_prop_doubled && cur->rt_prop<prev->rt_prop){
-		ms_message("MSQosAnalyser: rt prop decrased");
+		ms_message("MSQosAnalyser: rt prop decreased");
 		obj->rt_prop_doubled=FALSE;
 		return TRUE;
 	}
@@ -311,6 +313,11 @@ static bool_t simple_analyser_has_improved(MSQosAnalyser *objbase){
 end:
 	ms_message("MSQosAnalyser: no improvements.");
 	return FALSE;
+}
+
+bool_t ms_qos_analyser_is_network_stable(const MSQosAnalyser *objbase){
+	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
+	return obj->stable_network;
 }
 
 static MSQosAnalyserDesc simple_analyser_desc={
@@ -323,6 +330,7 @@ MSQosAnalyser * ms_simple_qos_analyser_new(RtpSession *session){
 	MSSimpleQosAnalyser *obj=ms_new0(MSSimpleQosAnalyser,1);
 	obj->session=session;
 	obj->parent.desc=&simple_analyser_desc;
+	obj->stable_network=TRUE;
 	return (MSQosAnalyser*)obj;
 }
 

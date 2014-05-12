@@ -98,6 +98,7 @@ MSQosAnalyser * ms_qos_analyser_ref(MSQosAnalyser *obj);
 void ms_qos_analyser_unref(MSQosAnalyser *obj);
 void ms_qos_analyser_suggest_action(MSQosAnalyser *obj, MSRateControlAction *action);
 bool_t ms_qos_analyser_has_improved(MSQosAnalyser *obj);
+bool_t ms_qos_analyser_is_network_stable(const MSQosAnalyser *obj);
 bool_t ms_qos_analyser_process_rtcp(MSQosAnalyser *obj, mblk_t *rtcp);
 
 /**
@@ -136,13 +137,17 @@ MSBitrateController *ms_bitrate_controller_new(MSQosAnalyser *qosanalyser, MSBit
 void ms_bitrate_controller_process_rtcp(MSBitrateController *obj, mblk_t *rtcp);
 
 /**
+ * Return the QoS analyser associated to the bitrate controller
+**/
+const MSQosAnalyser * ms_bitrate_controller_get_qos_analyser(MSBitrateController *obj);
+
+/**
  * Destroys the bitrate controller
- * 
+ *
  * If no other entity holds references to the underlyings MSQosAnalyser and MSBitrateDriver object,
  * then they will be destroyed too.
 **/
 void ms_bitrate_controller_destroy(MSBitrateController *obj);
-
 
 /**
  * Convenience function to create a bitrate controller managing a single audio stream.
