@@ -113,7 +113,8 @@ typedef struct _MediastreamDatas {
 	bool_t use_rc;
 	bool_t enable_srtp;
 	bool_t interactive;
-	bool_t pad[2];
+	bool_t enable_avpf;
+	bool_t pad;
 	float el_speed;
 	float el_thres;
 	float el_force;
@@ -208,6 +209,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --ice-remote-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
 								"[ --mtu <mtu> (specify MTU)]\n"
 								"[ --interactive (run in interactive mode)]\n"
+								"[ --avpf]\n"
 		;
 
 #if TARGET_OS_IPHONE
@@ -301,6 +303,7 @@ MediastreamDatas* init_default_args() {
 	args->custom_pt=NULL;
 	args->video_window_id = -1;
 	args->preview_window_id = -1;
+	args->enable_avpf = FALSE;
 	/* starting values echo canceller */
 	args->ec_len_ms=args->ec_delay_ms=args->ec_framesize=0;
 	args->enable_srtp = FALSE;
@@ -509,6 +512,8 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		}else if (strcmp(argv[i],"--interactive")==0){
 			i++;
 			out->interactive=TRUE;
+		} else if (strcmp(argv[i], "--avpf") == 0) {
+			out->enable_avpf = TRUE;
 		}
 		else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
@@ -607,6 +612,11 @@ void setup_media_streams(MediastreamDatas* args) {
 	if (args->pt==NULL){
 		printf("Error: no payload defined with number %i.\n",args->payload);
 		exit(-1);
+	}
+	if (args->enable_avpf == TRUE) {
+		payload_type_set_flag(args->pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
+	} else {
+		payload_type_unset_flag(args->pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
 	}
 	if (args->fmtp!=NULL) payload_type_set_send_fmtp(args->pt,args->fmtp);
 	if (args->bitrate>0) args->pt->normal_bitrate=args->bitrate;
@@ -1142,9 +1152,6 @@ static PayloadType* create_custom_payload_type(const char *type, const char *sub
 		exit(-1);
 	}
 	pt->mime_type=ms_strdup(subtype);
-	if (strcasecmp(pt->mime_type,"VP8")==0) { /*special case for vp8*/
-		pt->flags=PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED;
-	}
 	pt->clock_rate=atoi(rate);
 	pt->channels=atoi(channels);
 	return pt;	
