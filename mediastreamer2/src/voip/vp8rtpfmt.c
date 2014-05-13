@@ -302,7 +302,7 @@ static void output_partition(MSQueue *out, Vp8RtpFmtPartition *partition) {
 static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 	Vp8RtpFmtPartition *partition;
 	int nb_partitions = ms_list_size(frame->partitions_list);
-	mblk_t *om;
+	mblk_t *om = NULL;
 	mblk_t *curm;
 	int i;
 
@@ -316,8 +316,10 @@ static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 		}
 		partition->outputted = TRUE;
 	}
-	mblk_set_marker_info(om, 1);
-	ms_queue_put(out, (void *)om);
+	if (om != NULL) {
+		mblk_set_marker_info(om, 1);
+		ms_queue_put(out, (void *)om);
+	}
 }
 
 static bool_t is_keyframe(Vp8RtpFmtFrame *frame) {
