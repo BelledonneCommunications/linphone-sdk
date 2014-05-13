@@ -99,6 +99,7 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC) {
 	context->cachedSecret.pbxsecretLength = 0;
 	context->cachedSecret.auxsecret = NULL;
 	context->cachedSecret.auxsecretLength = 0;
+	context->cacheMismatchFlag = 0;
 	
 	/* initialise key buffers */
 	context->ZRTPSess = NULL;

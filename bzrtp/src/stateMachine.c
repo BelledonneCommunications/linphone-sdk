@@ -486,25 +486,44 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 
 			/* Check shared secret hash found in the DHPart1 message */
 			/* if we do not have the secret, don't check it as we do not expect the other part to have it neither */
-			/* TODO: in case of cache mismatch, warn the user and erase secret as it must not be used to compute s0 */
+			/* check matching secret is: check if locally computed(by the initiator) rs1 matches the responder rs1 or rs2 */
+			/* if it doesn't check with initiator's rs2 and responder(received in DHPart1) rs1 or rs2 */
+			/* In case of cache mismatch, warn the user(reset the Previously Verified Sas Flag) and erase secret as it must not be used to compute s0 */
 			if (zrtpContext->cachedSecret.rs1!=NULL) {
+				/* check if rs1 match peer's one */
 				if (memcmp(zrtpContext->responderCachedSecretHash.rs1ID, dhPart1Message->rs1ID,8) != 0) {
-					free(zrtpContext->cachedSecret.rs1);
-					zrtpContext->cachedSecret.rs1= NULL;
-					zrtpContext->cachedSecret.rs1Length = 0;
-					/*bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;*/
+					/* they don't match but self rs1 may match peer rs2 */
+					if (memcmp(zrtpContext->responderCachedSecretHash.rs1ID, dhPart1Message->rs2ID,8) != 0) {
+						/* They don't match either : erase rs1 and set the cache mismatch flag(which may be unset if self rs2 match peer rs1 or peer rs2 */
+						free(zrtpContext->cachedSecret.rs1);
+						zrtpContext->cachedSecret.rs1= NULL;
+						zrtpContext->cachedSecret.rs1Length = 0;
+						zrtpContext->cacheMismatchFlag = 1;
+						/*bzrtp_freeZrtpPacket(zrtpPacket);
+						return BZRTP_ERROR_CACHEMISMATCH;*/
+					}
 				}
 			}
-			if (zrtpContext->cachedSecret.rs2!=NULL) {
-				if (memcmp(zrtpContext->responderCachedSecretHash.rs2ID, dhPart1Message->rs2ID,8) != 0) {
-					free(zrtpContext->cachedSecret.rs2);
-					zrtpContext->cachedSecret.rs2= NULL;
-					zrtpContext->cachedSecret.rs2Length = 0;
-					/*bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;*/
+
+			/* we didn't have a match with rs1 and have a rs2; check if it matches responder rs1 or rs2 */
+			if ((zrtpContext->cacheMismatchFlag == 1) && (zrtpContext->cachedSecret.rs2!=NULL)) {
+				/* does it match rs1 */
+				if (memcmp(zrtpContext->responderCachedSecretHash.rs2ID, dhPart1Message->rs1ID,8) != 0) {
+					/* it doesn't match rs1 but may match rs2 */
+					if (memcmp(zrtpContext->responderCachedSecretHash.rs2ID, dhPart1Message->rs2ID,8) != 0) {
+						free(zrtpContext->cachedSecret.rs2);
+						zrtpContext->cachedSecret.rs2= NULL;
+						zrtpContext->cachedSecret.rs2Length = 0;
+						/*bzrtp_freeZrtpPacket(zrtpPacket);
+						return BZRTP_ERROR_CACHEMISMATCH;*/
+					} else { /* it matches rs2, reset the cache mismatch flag */
+						zrtpContext->cacheMismatchFlag = 0;
+					}
+				} else { /* it matches rs1, reset the cache mismatch flag */
+					zrtpContext->cacheMismatchFlag = 0;
 				}
 			}
+
 			if (zrtpContext->cachedSecret.auxsecret!=NULL) {
 				if (memcmp(zrtpChannelContext->responderAuxsecretID, dhPart1Message->auxsecretID,8) != 0) {
 					free(zrtpContext->cachedSecret.auxsecret);
@@ -522,6 +541,14 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 					/*bzrtp_freeZrtpPacket(zrtpPacket);
 					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
+			}
+
+			/* in case of cache mismatch, be sure the Previously Verified Sas flag is reset in cache and in the context */
+			if (zrtpContext->cacheMismatchFlag == 1) {
+				uint8_t pvsFlag = 0;
+				zrtpContext->cachedSecret.previouslyVerifiedSas = 0;
+				bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
+
 			}
 
 			/* Check that the received PV is not 1 or Prime-1 TODO*/
@@ -733,24 +760,52 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 
 			/* Check shared secret hash found in the DHPart2 message */
 			/* if we do not have the secret, don't check it as we do not expect the other part to have it neither */
+			/* shared secret matching is: check if initiator rs1(received in DHPart2) match responder(computed from cache) rs1 or rs2 */
+			/* of not check if received rs2 match local rs1 or rs2 */
+			/* keep the rs1 or rs2 in cachedSecret only if it matches the received one, it will the be used to compute s0 */
+			/* In case of cache mismatch, warn the user(reset the previously verified Sas flag) and erase secret as it must not be used to compute s0 */
+			uint8_t cacheMatchFlag = 0;
 			if (zrtpContext->cachedSecret.rs1!=NULL) {
+				/* check if rs1 match peer's one */
 				if (memcmp(zrtpContext->initiatorCachedSecretHash.rs1ID, dhPart2Message->rs1ID,8) != 0) {
+					/* they don't match but self rs2 may match peer rs1 */
+					if (zrtpContext->cachedSecret.rs2!=NULL) {
+						if (memcmp(zrtpContext->initiatorCachedSecretHash.rs2ID, dhPart2Message->rs1ID,8) == 0) {
+							/* responder rs2 match initiator rs1, erase responder rs1 */
+							cacheMatchFlag = 1;
+							free(zrtpContext->cachedSecret.rs1);
+							zrtpContext->cachedSecret.rs1= NULL;
+							zrtpContext->cachedSecret.rs1Length = 0;
+						}
+					}
+				} else { /* responder rs1 match initiator rs1 */
+					cacheMatchFlag = 1;
+				}
+			}
+
+			/* if we didn't found a match yet(initiator rs1 isn't match responder rs1 or rs2) */
+			if ((zrtpContext->cachedSecret.rs1!=NULL) && (cacheMatchFlag == 0)) {
+				/* does it match initiator rs2 */
+				if (memcmp(zrtpContext->initiatorCachedSecretHash.rs1ID, dhPart2Message->rs2ID,8) != 0) {
+					/* it doesn't match rs1 (erase it) but may match rs2 */
 					free(zrtpContext->cachedSecret.rs1);
 					zrtpContext->cachedSecret.rs1= NULL;
 					zrtpContext->cachedSecret.rs1Length = 0;
-					/*bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;*/
+
+					if (zrtpContext->cachedSecret.rs2!=NULL) {
+						if (memcmp(zrtpContext->initiatorCachedSecretHash.rs2ID, dhPart2Message->rs2ID,8) != 0) {
+							/* no match found erase rs2 and set the cache mismatch flag */
+							free(zrtpContext->cachedSecret.rs2);
+							zrtpContext->cachedSecret.rs2= NULL;
+							zrtpContext->cachedSecret.rs2Length = 0;
+							zrtpContext->cacheMismatchFlag = 1;
+						}
+					} else {
+							zrtpContext->cacheMismatchFlag = 1;
+					}
 				}
 			}
-			if (zrtpContext->cachedSecret.rs2!=NULL) {
-				if (memcmp(zrtpContext->initiatorCachedSecretHash.rs2ID, dhPart2Message->rs2ID,8) != 0) {
-					free(zrtpContext->cachedSecret.rs2);
-					zrtpContext->cachedSecret.rs2= NULL;
-					zrtpContext->cachedSecret.rs2Length = 0;
-					/*bzrtp_freeZrtpPacket(zrtpPacket);
-					return BZRTP_ERROR_CACHEMISMATCH;*/
-				}
-			}
+
 			if (zrtpContext->cachedSecret.auxsecret!=NULL) {
 				if (memcmp(zrtpChannelContext->initiatorAuxsecretID, dhPart2Message->auxsecretID,8) != 0) {
 					free(zrtpContext->cachedSecret.auxsecret);
@@ -769,6 +824,15 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 					return BZRTP_ERROR_CACHEMISMATCH;*/
 				}
 			}
+
+			/* in case of cache mismatch, be sure the Previously Verified Sas flag is reset in cache and in the context */
+			if (zrtpContext->cacheMismatchFlag == 1) {
+				uint8_t pvsFlag = 0;
+				zrtpContext->cachedSecret.previouslyVerifiedSas = 0;
+				bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
+
+			}
+
 
 			/* Check that the received PV is not 1 or Prime-1 TODO*/
 
