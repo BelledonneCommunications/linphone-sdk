@@ -72,17 +72,18 @@ static void event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata)
 
 static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	VideoStream *stream = (VideoStream *)media_stream;
+	unsigned int i;
+
 	do{
 		if (rtcp_is_SR(m)){
 			const report_block_t *rb;
 			rb=rtcp_SR_get_report_block(m,0);
 			if (rb){
-				unsigned int ij;
 				float rt=rtp_session_get_round_trip_propagation(stream->ms.sessions.rtp_session);
 				float flost;
-				ij=report_block_get_interarrival_jitter(rb);
+				i=report_block_get_interarrival_jitter(rb);
 				flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
-				ms_message("video_stream_process_rtcp[%p]: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",stream,ij,flost,rt);
+				ms_message("video_stream_process_rtcp[%p]: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",stream,i,flost,rt);
 				if (stream->ms.rc)
 					ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
 			}
@@ -91,12 +92,11 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 				/* Special case for FIR where the packet sender ssrc must be equal to 0. */
 				if ((rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session))
 					&& (rtcp_PSFB_get_packet_sender_ssrc(m) == 0)) {
-					unsigned int i;
 					for (i = 0; ; i++) {
 						rtcp_fb_fir_fci_t *fci = rtcp_PSFB_fir_get_fci(m, i);
 						if (fci == NULL) break;
-						if (rtcp_PSFB_fir_fci_get_ssrc(fci) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
-							uint8_t seq_nr = rtcp_PSFB_fir_fci_get_seq_nr(fci);
+						if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
+							uint8_t seq_nr = rtcp_fb_fir_fci_get_seq_nr(fci);
 							ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_FIR, &seq_nr);
 							break;
 						}
@@ -108,6 +108,26 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 					switch (rtcp_PSFB_get_type(m)) {
 						case RTCP_PSFB_PLI:
 							ms_filter_call_method_noarg(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_PLI);
+							break;
+						case RTCP_PSFB_SLI:
+							for (i = 0; ; i++) {
+								rtcp_fb_sli_fci_t *fci = rtcp_PSFB_sli_get_fci(m, i);
+								MSVideoCodecSLI sli;
+								if (fci == NULL) break;
+								sli.first = rtcp_fb_sli_fci_get_first(fci);
+								sli.number = rtcp_fb_sli_fci_get_number(fci);
+								sli.picture_id = rtcp_fb_sli_fci_get_picture_id(fci);
+								ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_SLI, &sli);
+							}
+							break;
+						case RTCP_PSFB_RPSI:
+						{
+							rtcp_fb_rpsi_fci_t *fci = rtcp_PSFB_rpsi_get_fci(m);
+							MSVideoCodecRPSI rpsi;
+							rpsi.bit_string = rtcp_fb_rpsi_fci_get_bit_string(fci);
+							rpsi.bit_string_len = rtcp_PSFB_rpsi_get_fci_bit_string_len(m);
+							ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_RPSI, &rpsi);
+						}
 							break;
 						default:
 							break;
@@ -636,6 +656,18 @@ void video_stream_send_fir(VideoStream *stream) {
 void video_stream_send_pli(VideoStream *stream) {
 	if (stream->ms.sessions.rtp_session != NULL) {
 		rtp_session_send_rtcp_fb_pli(stream->ms.sessions.rtp_session);
+	}
+}
+
+void video_stream_send_sli(VideoStream *stream, uint16_t first, uint16_t number, uint8_t picture_id) {
+	if (stream->ms.sessions.rtp_session != NULL) {
+		rtp_session_send_rtcp_fb_sli(stream->ms.sessions.rtp_session, first, number, picture_id);
+	}
+}
+
+void video_stream_send_rpsi(VideoStream *stream, uint8_t *bit_string, uint16_t bit_string_len) {
+	if (stream->ms.sessions.rtp_session != NULL) {
+		rtp_session_send_rtcp_fb_rpsi(stream->ms.sessions.rtp_session, bit_string, bit_string_len);
 	}
 }
 

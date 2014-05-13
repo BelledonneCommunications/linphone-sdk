@@ -20,6 +20,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msinterfaces_h
 #define msinterfaces_h
 
+typedef struct _MSVideoCodecSLI MSVideoCodecSLI;
+
+struct _MSVideoCodecSLI {
+	uint16_t first;
+	uint16_t number;
+	uint8_t picture_id;
+};
+
+typedef struct _MSVideoCodecRPSI MSVideoCodecRPSI;
+
+struct _MSVideoCodecRPSI {
+	uint8_t *bit_string;
+	uint16_t bit_string_len;
+};
+
 /**
  * Interface definition for video display filters.
 **/
@@ -184,6 +199,10 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface,1)
 #define MS_VIDEO_DECODER_SEND_PLI \
 	MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface, 2)
+#define MS_VIDEO_DECODER_SEND_SLI \
+	MS_FILTER_EVENT(MSFilterVideoDecoderInterface, 3, const MSVideoCodecSLI *)
+#define MS_VIDEO_DECODER_SEND_RPSI \
+	MS_FILTER_EVENT(MSFilterVideoDecoderInterface, 4, const MSVideoCodecRPSI *)
 #define MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION \
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 0)
 
@@ -200,7 +219,10 @@ typedef enum _MSRecorderState MSRecorderState;
 	
 #define MS_DECODER_HAVE_PLC MS_AUDIO_DECODER_HAVE_PLC /*for backward compatibility*/
 
-/** Interface definitions for video encoders */
+/**
+ * Interface definition for video encoders.
+**/
+
 #define MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER \
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 0, bool_t)
 /* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
@@ -214,6 +236,10 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoEncoderInterface, 4)
 #define MS_VIDEO_ENCODER_NOTIFY_FIR \
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 5, uint8_t *)
+#define MS_VIDEO_ENCODER_NOTIFY_SLI \
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 6, const MSVideoCodecSLI *)
+#define MS_VIDEO_ENCODER_NOTIFY_RPSI \
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 7, const MSVideoCodecRPSI *)
 
 /** Interface definitions for audio capture */
 /* Start numbering from the end for hacks */
