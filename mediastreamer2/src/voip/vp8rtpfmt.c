@@ -558,6 +558,7 @@ static void packer_process_frame_part(void *p, void *c) {
 		pdm = allocb(pdsize, 0);
 		memset(pdm->b_wptr, 0, pdsize);
 		mblk_set_timestamp_info(pdm, mblk_get_timestamp_info(packet->m));
+		mblk_set_marker_info(pdm, mblk_get_marker_info(packet->m));
 		/* Fill the mandatory octet of the payload descriptor. */
 		if (packet->pd->extended_control_bits_present == TRUE) *pdm->b_wptr |= (1 << 7);
 		if (packet->pd->non_reference_frame == TRUE) *pdm->b_wptr |= (1 << 5);
@@ -610,19 +611,12 @@ static void packer_process_frame_part(void *p, void *c) {
 		ms_queue_put(ctx->output_queue, pdm);
 	}
 
-	/* Set marker bit on last packet. */
-	if (packet->pd->pid == ctx->nb_partitions) {
-		mblk_set_marker_info(pdm, TRUE);
-		mblk_set_marker_info(dm, TRUE);
-	}
-
 	freeb(packet->m);
 	packet->m = NULL;
 }
 
 
-void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx, uint8_t nb_partitions) {
-	ctx->nb_partitions = nb_partitions;
+void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx) {
 }
 
 void vp8rtpfmt_packer_uninit(Vp8RtpFmtPackerCtx *ctx) {

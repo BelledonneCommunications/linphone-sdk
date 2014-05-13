@@ -96,11 +96,10 @@ extern "C"{
 
 	typedef struct Vp8RtpFmtPackerCtx {
 		MSQueue *output_queue;
-		uint8_t nb_partitions;
 	} Vp8RtpFmtPackerCtx;
 
 
-	void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx, uint8_t nb_partitions);
+	void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx);
 	void vp8rtpfmt_packer_uninit(Vp8RtpFmtPackerCtx *ctx);
 	void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in, MSQueue *out);
 

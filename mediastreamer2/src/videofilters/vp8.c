@@ -28,8 +28,6 @@
 #include <vpx/vpx_encoder.h>
 #include <vpx/vp8cx.h>
 
-#undef interface
-#define interface (vpx_codec_vp8_cx())
 
 #define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps) \
 	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, NULL }
@@ -79,27 +77,38 @@ typedef struct EncState {
 	vpx_codec_ctx_t codec;
 	vpx_codec_enc_cfg_t cfg;
 	vpx_codec_pts_t frame_count;
+	vpx_codec_iface_t *iface;
+	vpx_codec_flags_t flags;
 	Vp8RtpFmtPackerCtx packer;
 	MSVideoConfiguration vconf;
 	const MSVideoConfiguration *vconf_list;
 	int last_fir_seq_nr;
 	uint8_t picture_id;
-	uint8_t token_partitions;
 	bool_t force_keyframe;
 	bool_t ready;
 } EncState;
 
 static void enc_init(MSFilter *f) {
-	vpx_codec_err_t res;
+	EncState *s = (EncState *)ms_new0(EncState, 1);
 	MSVideoSize vsize;
-	EncState *s=(EncState *)ms_new0(EncState,1);
+	vpx_codec_err_t res;
+	vpx_codec_caps_t caps;
 
-	ms_message("Using %s\n",vpx_codec_iface_name(interface));
+	s->iface = vpx_codec_vp8_cx();
+	s->flags = 0;
+
+	ms_message("Using %s", vpx_codec_iface_name(s->iface));
 
 	/* Populate encoder configuration */
-	res = vpx_codec_enc_config_default(interface, &s->cfg, 0);
+	caps = vpx_codec_get_caps(s->iface);
+#ifdef VPX_CODEC_CAP_OUTPUT_PARTITION
+	if (caps & VPX_CODEC_CAP_OUTPUT_PARTITION) {
+		s->flags |= VPX_CODEC_USE_OUTPUT_PARTITION;
+	}
+#endif
+	res = vpx_codec_enc_config_default(s->iface, &s->cfg, 0);
 	if(res) {
-		ms_error("Failed to get config: %s\n", vpx_codec_err_to_string(res));
+		ms_error("Failed to get config: %s", vpx_codec_err_to_string(res));
 	}
 
 	if (ms_get_cpu_count() > 1) s->vconf_list = &multicore_vp8_conf_list[0];
@@ -127,9 +136,8 @@ static void enc_init(MSFilter *f) {
 	s->cfg.g_error_resilient = VPX_ERROR_RESILIENT_DEFAULT|VPX_ERROR_RESILIENT_PARTITIONS;
 	s->cfg.g_lag_in_frames = 0;
 	s->picture_id = random() & 0x7F;
-	s->token_partitions = 2; /* Output 4 partitions per frame */
 
-	vp8rtpfmt_packer_init(&s->packer, (1 << s->token_partitions));
+	vp8rtpfmt_packer_init(&s->packer);
 
 	f->data = s;
 }
@@ -151,7 +159,7 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.g_timebase.den=s->vconf.fps;
 	s->cfg.kf_max_dist = (unsigned int)(s->vconf.fps * 10); /* 1 keyframe each 10s. */
 	/* Initialize codec */
-	res =  vpx_codec_enc_init(&s->codec, interface, &s->cfg, VPX_CODEC_USE_OUTPUT_PARTITION);
+	res =  vpx_codec_enc_init(&s->codec, s->iface, &s->cfg, s->flags);
 	if (res) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
@@ -159,7 +167,7 @@ static void enc_preprocess(MSFilter *f) {
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
 	vpx_codec_control(&s->codec, VP8E_SET_MAX_INTRA_BITRATE_PCT, 400); /*limite iFrame size to 4 pframe*/
-	vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, s->token_partitions);
+	vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 2); /* Output 4 partitions per frame */
 
 	s->ready=TRUE;
 }
@@ -208,7 +216,6 @@ static void enc_process(MSFilter *f) {
 					packet->m->b_wptr += pkt->data.frame.sz;
 					mblk_set_timestamp_info(packet->m, timestamp);
 					packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
-					packet->pd->pid = (uint8_t)pkt->data.frame.partition_id;
 					packet->pd->start_of_partition = TRUE;
 					if (pkt->data.frame.flags & VPX_FRAME_IS_DROPPABLE) {
 						packet->pd->non_reference_frame = TRUE;
@@ -216,6 +223,18 @@ static void enc_process(MSFilter *f) {
 					packet->pd->extended_control_bits_present = TRUE;
 					packet->pd->pictureid_present = TRUE;
 					packet->pd->pictureid = s->picture_id;
+#ifdef VPX_CODEC_CAP_OUTPUT_PARTITION
+					if (s->flags & VPX_CODEC_USE_OUTPUT_PARTITION) {
+						packet->pd->pid = (uint8_t)pkt->data.frame.partition_id;
+						if (!(pkt->data.frame.flags & VPX_FRAME_IS_FRAGMENT)) {
+							mblk_set_marker_info(packet->m, TRUE);
+						}
+					} else
+#endif
+					{
+						packet->pd->pid = 0;
+						mblk_set_marker_info(packet->m, TRUE);
+					}
 					list = ms_list_append(list, packet);
 				}
 			}
@@ -421,7 +440,7 @@ static void dec_init(MSFilter *f) {
 	vpx_codec_iface_t *iface = vpx_codec_vp8_dx();
 	vpx_codec_caps_t caps = vpx_codec_get_caps(iface);
 
-	ms_message("Using %s", vpx_codec_iface_name(interface));
+	ms_message("Using %s", vpx_codec_iface_name(iface));
 
 	/* Initialize codec */
 	if (caps & VPX_CODEC_CAP_INPUT_FRAGMENTS) {
