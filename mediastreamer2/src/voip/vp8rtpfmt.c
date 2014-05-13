@@ -248,6 +248,7 @@ static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, MSList **packets_list) {
 			/* There are no valid partitions in the frame. */
 			ms_warning("VP8 frame without any valid partition.");
 			ms_free(frame);
+			ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
 			ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 		}
 	}
@@ -361,11 +362,13 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					/* Drop the frame for which some partitions are missing/invalid. */
 					frame->discarded = TRUE;
 				}
+				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
 				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 			} else {
 				/* Drop the frame for which the first partition is missing. */
 				ms_warning("VP8 frame without first partition.");
 				frame->discarded = TRUE;
+				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
 				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 			}
 		} else {
@@ -374,6 +377,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			ms_warning("VP8 frame without last packet.");
 			// TODO: Try to get the missing packets at the next iteration of the filter.
 			frame->discarded = TRUE;
+			ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
 			ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 		}
 	}

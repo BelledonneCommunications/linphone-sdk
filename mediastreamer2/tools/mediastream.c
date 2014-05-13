@@ -534,7 +534,6 @@ static void video_stream_event_cb(void *user_pointer, const MSFilter *f, const u
 	switch (event_id) {
 		case MS_VIDEO_DECODER_DECODING_ERRORS:
 			ms_warning("Decoding error on videostream [%p]", md->video);
-			video_stream_send_pli(md->video);
 			break;
 		case MS_VIDEO_DECODER_SEND_PLI:
 			ms_message("Send PLI on videostream [%p]", md->video);
