@@ -320,6 +320,17 @@ static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 	ms_queue_put(out, (void *)om);
 }
 
+static bool_t is_keyframe(Vp8RtpFmtFrame *frame) {
+	Vp8RtpFmtPartition *partition;
+	int nb_partitions = ms_list_size(frame->partitions_list);
+
+	if (nb_partitions < 1) return FALSE;
+	partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
+	if (partition->m->b_rptr[0] & 0x01) return FALSE;
+
+	return TRUE;
+}
+
 static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 	Vp8RtpFmtPartition *partition = NULL;
 	Vp8RtpFmtFrame *frame;
@@ -331,18 +342,26 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 	for (i = 0; i < nb_frames; i++) {
 		frame = ms_list_nth_data(ctx->frames_list, i);
 		if (frame->error == Vp8RtpFmtOk) {
-			/* Output the complete valid frame. */
-			if (ctx->output_partitions == TRUE) {
-				nb_partitions = ms_list_size(frame->partitions_list);
-				for (j = 0; j < nb_partitions; j++) {
-					partition = ms_list_nth_data(frame->partitions_list, j);
-					output_partition(out, partition);
-				}
-			} else {
-				/* Output the full frame in one mblk_t. */
-				output_frame(out, frame);
+			if (is_keyframe(frame) == TRUE) {
+				ctx->valid_keyframe_received = TRUE;
 			}
-			frame->outputted = TRUE;
+			if (ctx->valid_keyframe_received == TRUE) {
+				/* Output the complete valid frame if the first keyframe has been received. */
+				if (ctx->output_partitions == TRUE) {
+					nb_partitions = ms_list_size(frame->partitions_list);
+					for (j = 0; j < nb_partitions; j++) {
+						partition = ms_list_nth_data(frame->partitions_list, j);
+						output_partition(out, partition);
+					}
+				} else {
+					/* Output the full frame in one mblk_t. */
+					output_frame(out, frame);
+				}
+				frame->outputted = TRUE;
+			} else {
+				/* Drop frames until the first keyframe is successfully received. */
+				frame->discarded = TRUE;
+			}
 		} else if (is_frame_marker_present(frame) == TRUE) {
 			if (is_first_partition_present_in_frame(frame) == TRUE) {
 				if (ctx->output_partitions == TRUE) {
@@ -481,9 +500,10 @@ static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 
 void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t output_partitions) {
 	ctx->filter = f;
-	ctx->output_partitions = output_partitions;
 	ctx->frames_list = NULL;
 	ms_queue_init(&ctx->output_queue);
+	ctx->output_partitions = output_partitions;
+	ctx->valid_keyframe_received = FALSE;
 	ctx->initialized_last_ts = FALSE;
 	ctx->initialized_ref_cseq = FALSE;
 }

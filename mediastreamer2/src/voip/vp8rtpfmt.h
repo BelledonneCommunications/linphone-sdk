@@ -91,6 +91,7 @@ extern "C"{
 		uint32_t last_ts;
 		uint32_t ref_cseq;
 		bool_t output_partitions;
+		bool_t valid_keyframe_received;
 		bool_t initialized_last_ts;
 		bool_t initialized_ref_cseq;
 	} Vp8RtpFmtUnpackerCtx;
