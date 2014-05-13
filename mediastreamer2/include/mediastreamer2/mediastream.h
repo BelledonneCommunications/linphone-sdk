@@ -288,11 +288,11 @@ MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile *
 
 /**
  * Starts an audio stream from/to local wav files or soundcards.
- * 
+ *
  * This method starts the processing of the audio stream, that is playing from wav file or soundcard, voice processing, encoding,
  * sending through RTP, receiving from RTP, decoding, voice processing and wav file recording or soundcard playback.
- * 
- * 
+ *
+ *
  * @param stream an AudioStream previously created with audio_stream_new().
  * @param prof a RtpProfile containing all PayloadType possible during the audio session.
  * @param rem_rtp_ip remote IP address where to send the encoded audio.
@@ -362,16 +362,16 @@ MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessio
 
 MS2_PUBLIC uint32_t audio_stream_get_features(AudioStream *st);
 MS2_PUBLIC void audio_stream_set_features(AudioStream *st, uint32_t features);
-	
+
 MS2_PUBLIC void audio_stream_prepare_sound(AudioStream *st, MSSndCard *playcard, MSSndCard *captcard);
 MS2_PUBLIC void audio_stream_unprepare_sound(AudioStream *st);
 MS2_PUBLIC bool_t audio_stream_started(AudioStream *stream);
 /**
  * Starts an audio stream from local soundcards.
- * 
+ *
  * This method starts the processing of the audio stream, that is capture from soundcard, voice processing, encoding,
  * sending through RTP, receiving from RTP, decoding, voice processing and soundcard playback.
- * 
+ *
  * @param stream an AudioStream previously created with audio_stream_new().
  * @param prof a RtpProfile containing all PayloadType possible during the audio session.
  * @param remip remote IP address where to send the encoded audio.

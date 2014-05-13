@@ -74,7 +74,7 @@ typedef struct _video_stream_manager_t {
 	struct {
 		float loss;
 		float rtt;
-		bool_t stable_network;
+		uint8_t network_state;
 	} latest_stats;
 } video_stream_manager_t ;
 static video_stream_manager_t * video_stream_manager_new() {
@@ -82,7 +82,6 @@ static video_stream_manager_t * video_stream_manager_new() {
 	mgr->local_rtp= (rand() % ((2^16)-1024) + 1024) & ~0x1;
 	mgr->local_rtcp=mgr->local_rtp+1;
 	mgr->stream = video_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
-	mgr->latest_stats.stable_network = TRUE;
 	return mgr;
 
 }
@@ -119,7 +118,7 @@ static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue
 	while (NULL != (ev=ortp_ev_queue_get(evq))){
 		OrtpEventType evt=ortp_event_get_type(ev);
 		OrtpEventData *evd=ortp_event_get_data(ev);
-		/*linphone_call_stats_fill(&call->stats[stream_index],ms,ev);*/
+
 		if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED || evt == ORTP_EVENT_RTCP_PACKET_EMITTED) {
 			const report_block_t *rb=NULL;
 			if (rtcp_is_SR(evd->packet)){
@@ -127,21 +126,27 @@ static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue
 			}else if (rtcp_is_RR(evd->packet)){
 				rb=rtcp_RR_get_report_block(evd->packet,0);
 			}
-			printf("%s RTCP thing\n", (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) ? "RECEIVED" : "EMITTED");
 
-			stream_mgr->latest_stats.loss=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
-			stream_mgr->latest_stats.rtt=rtp_session_get_round_trip_propagation(stream_mgr->stream->ms.sessions.rtp_session);
-			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED)
-				stream_mgr->latest_stats.stable_network=ms_qos_analyser_is_network_stable(ms_bitrate_controller_get_qos_analyser(stream_mgr->stream->ms.rc));
-			printf("loss=%f\n",stream_mgr->latest_stats.loss);
-			printf("RTT=%f\n",stream_mgr->latest_stats.rtt);
-			printf("stable_network=%d\n",stream_mgr->latest_stats.stable_network);
+			if (rb) {
+
+				stream_mgr->latest_stats.loss=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
+				stream_mgr->latest_stats.rtt=rtp_session_get_round_trip_propagation(stream_mgr->stream->ms.sessions.rtp_session);
+				if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED)
+					stream_mgr->latest_stats.network_state=ms_qos_analyser_get_network_state(ms_bitrate_controller_get_qos_analyser(stream_mgr->stream->ms.rc));
+				ms_message("mediastreamer2_video_stream_tester: %s RTCP packet: loss=%f, RTT=%f, network_state=%d\n",
+					(evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) ? "RECEIVED" : "EMITTED",
+					stream_mgr->latest_stats.loss,
+					stream_mgr->latest_stats.rtt,
+					stream_mgr->latest_stats.network_state);
+			}
 		}
 		ortp_event_destroy(ev);
 	}
 }
 
-static void start_adaptive_video_stream(video_stream_manager_t * marielle, video_stream_manager_t * margaux, int payload, int initial_bitrate,int target_bw, float loss_rate, int latency, int max_recv_rtcp_packet) {
+static void start_adaptive_video_stream(video_stream_manager_t * marielle, video_stream_manager_t * margaux,
+	int payload, int initial_bitrate,int target_bw, float loss_rate, int latency, int max_recv_rtcp_packet) {
+
 	MSWebCam * marielle_webcam = ms_web_cam_manager_get_default_cam (ms_web_cam_manager_get());
 	MSWebCam * margaux_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
 
@@ -181,17 +186,27 @@ static void start_adaptive_video_stream(video_stream_manager_t * marielle, video
 			 	&margaux->stream->ms, media_stream_get_down_bw(&margaux->stream->ms)/1000, media_stream_get_up_bw(&margaux->stream->ms)/1000);
 		 }
 		ms_usleep(100000);
-
 	}
+
+	rtp_session_unregister_event_queue(marielle->stream->ms.sessions.rtp_session,evq);
+	ortp_ev_queue_destroy(evq);
 }
 
+#define INIT() \
+	marielle = video_stream_manager_new(); \
+	margaux = video_stream_manager_new();
+
+#define DEINIT() \
+	video_stream_manager_delete(marielle); \
+	video_stream_manager_delete(margaux);
+
 static void lossy_network() {
+	video_stream_manager_t * marielle, * margaux;
 	/*verify that some webcam is supported*/
 	bool_t supported = (ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get()) != NULL);
-	video_stream_manager_t * marielle = video_stream_manager_new();
-	video_stream_manager_t * margaux = video_stream_manager_new();
 	if( supported ) {
 		float bw_usage;
+		//for test purpose only
 		int loss_rate = getenv("GPP_LOSS") ? atoi(getenv("GPP_LOSS")) : 0;
 		int max_bw = getenv("GPP_MAXBW") ? atoi(getenv("GPP_MAXBW")) * 1000: 0;
 		int latency = getenv("GPP_LAG") ? atoi(getenv("GPP_LAG")): 0;
@@ -200,27 +215,35 @@ static void lossy_network() {
 		printf("max_bw=%d(GPP_MAXBW)\n", max_bw);
 		printf("latency=%d(GPP_LAG)\n", latency);
 
+		INIT();
 		start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, max_bw, loss_rate, latency, 20);
 
 		float marielle_send_bw=media_stream_get_up_bw(&marielle->stream->ms);
-		bw_usage=(max_bw > 0) ? marielle_send_bw/max_bw : 0;
+		bw_usage=(max_bw > 0) ? marielle_send_bw/max_bw : 1;
 		ms_message("marielle sent bw=[%f], target was [%d] bw_usage [%f]",marielle_send_bw,max_bw,bw_usage);
+		DEINIT();
+
 
 		CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
 	}
-	video_stream_manager_delete(marielle);
-	video_stream_manager_delete(margaux);
 }
 
 static void stability_network_detection() {
-	video_stream_manager_t * marielle = video_stream_manager_new();
-	video_stream_manager_t * margaux = video_stream_manager_new();
-
+	video_stream_manager_t * marielle, * margaux;
+	INIT();
 	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500, 10);
-	CU_ASSERT_TRUE(marielle->latest_stats.stable_network);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_FINE);
+	DEINIT();
 
-	video_stream_manager_delete(marielle);
-	video_stream_manager_delete(margaux);
+	INIT();
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 50000, 0, 250, 10);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_CONGESTED);
+	DEINIT();
+
+	INIT();
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250, 10);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_UNSTABLE);
+	DEINIT();
 }
 
 static test_t tests[] = {

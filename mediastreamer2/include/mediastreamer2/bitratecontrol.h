@@ -86,7 +86,7 @@ struct _MSQosAnalyserDesc{
 };
 
 /**
- * A MSQosAnalyzer is responsible to analyze RTCP feedback and suggest actions on bitrate or packet rate accordingly.
+ * A MSQosAnalyser is responsible to analyze RTCP feedback and suggest actions on bitrate or packet rate accordingly.
  * This is an abstract interface.
 **/
 struct _MSQosAnalyser{
@@ -94,15 +94,19 @@ struct _MSQosAnalyser{
 	int refcnt;
 };
 
+#define MS_QOS_ANALYSER_NETWORK_FINE 0
+#define MS_QOS_ANALYSER_NETWORK_UNSTABLE 1
+#define MS_QOS_ANALYSER_NETWORK_CONGESTED 2
+
 MSQosAnalyser * ms_qos_analyser_ref(MSQosAnalyser *obj);
 void ms_qos_analyser_unref(MSQosAnalyser *obj);
 void ms_qos_analyser_suggest_action(MSQosAnalyser *obj, MSRateControlAction *action);
 bool_t ms_qos_analyser_has_improved(MSQosAnalyser *obj);
-bool_t ms_qos_analyser_is_network_stable(const MSQosAnalyser *obj);
+uint32_t ms_qos_analyser_get_network_state(const MSQosAnalyser *obj);
 bool_t ms_qos_analyser_process_rtcp(MSQosAnalyser *obj, mblk_t *rtcp);
 
 /**
- * The simple qos analyzer is an implementation of MSQosAnalyser that performs analysis for single stream.
+ * The simple qos analyser is an implementation of MSQosAnalyser that performs analysis for single stream.
 **/
 MSQosAnalyser * ms_simple_qos_analyser_new(RtpSession *session);
 

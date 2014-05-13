@@ -153,6 +153,8 @@ static void basic_audio_stream() {
 
 	rtp_profile_set_payload (profile,0,&payload_type_pcmu8000);
 
+	/*recorder should be initialized before sender to avoid missing the first
+	emitted packets*/
 	CU_ASSERT_EQUAL(audio_stream_start_full(margaux
 											, profile
 											, MARIELLE_IP
