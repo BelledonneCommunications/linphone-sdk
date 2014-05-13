@@ -360,7 +360,10 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 				frame->outputted = TRUE;
 			} else {
 				/* Drop frames until the first keyframe is successfully received. */
+				ms_warning("VP8 frame dropped because keyframe has not been received yet.");
 				frame->discarded = TRUE;
+				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
+				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 			}
 		} else if (is_frame_marker_present(frame) == TRUE) {
 			if (is_first_partition_present_in_frame(frame) == TRUE) {
@@ -379,6 +382,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					frame->outputted = TRUE;
 				} else {
 					/* Drop the frame for which some partitions are missing/invalid. */
+					ms_warning("VP8 frame with some partitions missing/invalid.");
 					frame->discarded = TRUE;
 				}
 				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
