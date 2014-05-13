@@ -604,13 +604,13 @@ static void packer_process_frame_part(void *p, void *c) {
 	if (packet->pd->tl0picidx_present == TRUE) pdsize++;
 	if ((packet->pd->tid_present == TRUE) || (packet->pd->keyidx_present == TRUE)) pdsize++;
 
+	mblk_set_marker_info(packet->m, FALSE);
 	for (rptr = packet->m->b_rptr; rptr < packet->m->b_wptr;) {
 		/* Allocate the payload descriptor. */
 		pdm = allocb(pdsize, 0);
 		memset(pdm->b_wptr, 0, pdsize);
 		mblk_set_timestamp_info(pdm, mblk_get_timestamp_info(packet->m));
 		mblk_set_marker_info(pdm, FALSE);
-		mblk_set_marker_info(dm, FALSE);
 		/* Fill the mandatory octet of the payload descriptor. */
 		if (packet->pd->extended_control_bits_present == TRUE) *pdm->b_wptr |= (1 << 7);
 		if (packet->pd->non_reference_frame == TRUE) *pdm->b_wptr |= (1 << 5);
