@@ -117,6 +117,7 @@ endif
 
 ifeq ($(_BUILD_VIDEO),1)
 LOCAL_SRC_FILES += \
+	voip/videostarter.c \
 	voip/videostream.c \
 	voip/rfc3984.c \
 	voip/vp8rtpfmt.c \

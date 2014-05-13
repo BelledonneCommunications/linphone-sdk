@@ -237,6 +237,7 @@ if(MS2_ENABLE_VIDEO)
 		voip/msvideo_neon.h
 		voip/rfc2429.h
 		voip/rfc3984.c
+		voip/videostarter.c
 		voip/videostream.c
 		voip/vp8rtpfmt.c
 	)

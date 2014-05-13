@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msticker.h"
+#include "mediastreamer2/videostarter.h"
 
 #ifdef _WIN32
 #include <ws2tcpip.h>
@@ -125,36 +126,6 @@ void ms_ffmpeg_check_init(){
 	}
 }
 
-/* the goal of this small object is to tell when to send I frames at startup:
-at 2 and 4 seconds*/
-typedef struct VideoStarter{
-	uint64_t next_time;
-	int i_frame_count;
-}VideoStarter;
-
-static void video_starter_init(VideoStarter *vs){
-	vs->next_time=0;
-	vs->i_frame_count=0;
-}
-
-static void video_starter_first_frame(VideoStarter *vs, uint64_t curtime){
-	vs->next_time=curtime+2000;
-}
-
-static bool_t video_starter_need_i_frame(VideoStarter *vs, uint64_t curtime){
-	if (vs->next_time==0) return FALSE;
-	if (curtime>=vs->next_time){
-		vs->i_frame_count++;
-		if (vs->i_frame_count==1){
-			vs->next_time+=2000;
-		}else{
-			vs->next_time=0;
-		}
-		return TRUE;
-	}
-	return FALSE;
-}
-
 typedef struct EncState{
 	AVCodecContext av_context;
 	AVCodec *av_codec;
@@ -164,7 +135,7 @@ typedef struct EncState{
 	int profile;
 	int qmin;
 	uint32_t framenum;
-	VideoStarter starter;
+	MSVideoStarter starter;
 	bool_t req_vfu;
 	const MSVideoConfiguration *vconf_list;
 	MSVideoConfiguration vconf;
@@ -392,7 +363,7 @@ static void enc_preprocess(MSFilter *f){
 		ms_error("avcodec_open() failed: %i",error);
 		return;
 	}
-	video_starter_init(&s->starter);
+	ms_video_starter_init(&s->starter);
 	ms_debug("image format is %i.",s->av_context.pix_fmt);
 	ms_message("qmin=%i qmax=%i",s->av_context.qmin,s->av_context.qmax);
 	s->framenum=0;
@@ -820,8 +791,8 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 	
 	/* timestamp used by ffmpeg, unset here */
 	pict.pts=AV_NOPTS_VALUE;
-		
-	if (video_starter_need_i_frame (&s->starter,f->ticker->time)){
+
+	if (ms_video_starter_need_i_frame (&s->starter, f->ticker->time)){
 		/*sends an I frame at 2 seconds and 4 seconds after the beginning of the call*/
 		s->req_vfu=TRUE;
 	}
@@ -846,7 +817,7 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 	else if (got_packet){
 		s->framenum++;
 		if (s->framenum==1){
-			video_starter_first_frame (&s->starter,f->ticker->time);
+			ms_video_starter_first_frame(&s->starter, f->ticker->time);
 		}
 		if (c->coded_frame->pict_type==FF_I_TYPE){
 			ms_message("Emitting I-frame");
