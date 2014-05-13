@@ -591,8 +591,8 @@ uint32_t vp8rtpfmt_unpacker_calc_extended_cseq(Vp8RtpFmtUnpackerCtx *ctx, uint16
 static void packer_process_frame_part(void *p, void *c) {
 	Vp8RtpFmtPacket *packet = (Vp8RtpFmtPacket *)p;
 	Vp8RtpFmtPackerCtx *ctx = (Vp8RtpFmtPackerCtx *)c;
-	mblk_t *pdm;
-	mblk_t *dm;
+	mblk_t *pdm = NULL;
+	mblk_t *dm = NULL;
 	uint8_t *rptr;
 	uint8_t pdsize = 1;
 	int max_size = ms_get_payload_max_size();
@@ -668,8 +668,8 @@ static void packer_process_frame_part(void *p, void *c) {
 	}
 
 	/* Set marker bit on last packet if required. */
-	mblk_set_marker_info(pdm, marker_info);
-	mblk_set_marker_info(dm, marker_info);
+	if (pdm != NULL) mblk_set_marker_info(pdm, marker_info);
+	if (dm != NULL) mblk_set_marker_info(dm, marker_info);
 
 	freeb(packet->m);
 	packet->m = NULL;
