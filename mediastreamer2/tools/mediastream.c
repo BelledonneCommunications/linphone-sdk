@@ -211,7 +211,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --ice-remote-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
 								"[ --mtu <mtu> (specify MTU)]\n"
 								"[ --interactive (run in interactive mode)]\n"
-								"[ --avpf]\n"
+								"[ --no-avpf]\n"
 		;
 
 #if TARGET_OS_IPHONE
@@ -305,7 +305,7 @@ MediastreamDatas* init_default_args() {
 	args->custom_pt=NULL;
 	args->video_window_id = -1;
 	args->preview_window_id = -1;
-	args->enable_avpf = FALSE;
+	args->enable_avpf = TRUE;
 	/* starting values echo canceller */
 	args->ec_len_ms=args->ec_delay_ms=args->ec_framesize=0;
 	args->enable_srtp = FALSE;
@@ -516,8 +516,8 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			}
 		}else if (strcmp(argv[i],"--interactive")==0){
 			out->interactive=TRUE;
-		} else if (strcmp(argv[i], "--avpf") == 0) {
-			out->enable_avpf = TRUE;
+		} else if (strcmp(argv[i], "--no-avpf") == 0) {
+			out->enable_avpf = FALSE;
 		}
 		else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
