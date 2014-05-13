@@ -158,7 +158,7 @@ static bool_t simple_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtcp)
 		cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
 
 		obj->points[obj->curindex-1][0]=rtp_session_get_send_bandwidth(obj->session)/1000.0;
-		obj->points[obj->curindex-1][1]=cur->lost_percentage;
+		obj->points[obj->curindex-1][1]=cur->lost_percentage/100.0;
 		obj->points[obj->curindex-1][2]=cur->rt_prop;
 		ms_message("MSQosAnalyser: lost_percentage=%f, int_jitter=%f ms, rt_prop=%f sec, send_bw=%f",cur->lost_percentage,cur->int_jitter,cur->rt_prop,obj->points[obj->curindex][0]);
 
@@ -231,19 +231,20 @@ static void compute_available_bw(MSSimpleQosAnalyser *obj){
 	/*to compute estimated BW, we need a minimum x-axis interval size*/
 	if (diff > 0.05) {
 		double avail_bw = (fabs(m) > 0.0001f) ? -b/m : mean_bw;
-		printf("\tfor line is %f kbit/s:\ty=%f x + %f\n", avail_bw, m, b);
+		printf("\tEstimated BW by interpolation is %f kbit/s:\ty=%f x + %f\n", avail_bw, m, b);
 
-		lossy_network |= (m < .03f && b > 0.05);
+		lossy_network |= (m < .005f && b > 0.05);
 
-		if (!lossy_network && (m>.03f||b>0.05)){
+		if (!lossy_network && (m>.005f||b>0.05)){
 			obj->network_state = MS_QOS_ANALYSER_NETWORK_CONGESTED;
 		}
-	} else {
-		lossy_network |= (y_mean > 0.05);
+
 	}
 
+	lossy_network |= (y_mean > 0.05);
+
 	if (lossy_network) {
-		/*since congestion may loss a high count of packets, stay in congested network while
+		/*since congestion may loss a high number of packets, stay in congested network while
 		this is not a bit more stable*/
 		if (previous_state == MS_QOS_ANALYSER_NETWORK_CONGESTED) {
 			obj->network_state = MS_QOS_ANALYSER_NETWORK_CONGESTED;

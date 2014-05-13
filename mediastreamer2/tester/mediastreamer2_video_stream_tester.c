@@ -133,7 +133,7 @@ static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue
 				stream_mgr->latest_stats.rtt=rtp_session_get_round_trip_propagation(stream_mgr->stream->ms.sessions.rtp_session);
 				if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED)
 					stream_mgr->latest_stats.network_state=ms_qos_analyser_get_network_state(ms_bitrate_controller_get_qos_analyser(stream_mgr->stream->ms.rc));
-				ms_message("mediastreamer2_video_stream_tester: %s RTCP packet: loss=%f, RTT=%f, network_state=%d\n",
+				ms_message("mediastreamer2_video_stream_tester: %s RTCP packet: loss=%f, RTT=%f, network_state=%d",
 					(evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) ? "RECEIVED" : "EMITTED",
 					stream_mgr->latest_stats.loss,
 					stream_mgr->latest_stats.rtt,

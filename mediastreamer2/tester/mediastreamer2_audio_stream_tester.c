@@ -254,7 +254,7 @@ static void adaptive_opus_audio_stream()  {
 		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 14);
 		CU_ASSERT_IN_RANGE(bw_usage, 2.f, 3.f); // bad! since this codec cant change its ptime and it is the lower bitrate, no improvement can occur
 		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 48000, EDGE_BW, 0, 11);
-		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 1.2f); // bad!
+		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 1.4f); // bad!
 
 		// on 3G BW, both should be at max
 		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 5);
@@ -269,8 +269,9 @@ static void adaptive_speex16_audio_stream()  {
 	if( supported ) {
 		// at 16KHz -> 20 kb/s
 		// at 32KHz -> 30 kb/s
-
-		adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW / 2., 0, 120);
+		float bw_usage;
+		bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW / 2., 0, 10);
+		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 5.f);
 	}
 }
 
@@ -285,24 +286,6 @@ static void adaptive_pcma_audio_stream() {
 		CU_ASSERT_IN_RANGE(bw_usage,6.f, 8.f); // this is bad!
 		bw_usage = adaptive_audio_stream(PCMA8_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 5);
 		CU_ASSERT_IN_RANGE(bw_usage, .3f, .5f);
-	}
-}
-
-static void lossy_network_speex_audio_stream() {
-	bool_t supported = ms_filter_codec_supported("speex");
-	if( supported ) {
-		// at 16KHz -> 20 kb/s
-		// at 32KHz -> 30 kb/s
-		float bw_usage;
-		int loss_rate = getenv("GPP_LOSS") ? atoi(getenv("GPP_LOSS")) : 0;
-		int max_bw = getenv("GPP_MAXBW") ? atoi(getenv("GPP_MAXBW")) * 1000: 0;
-		printf("\nloss_rate=%d(GPP_LOSS) max_bw=%d(GPP_MAXBW)\n", loss_rate, max_bw);
-		bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, max_bw, loss_rate, 20);
-		CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
-		// bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 16000, EDGE_BW, 8);
-		// CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
-		// bw_usage = adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, THIRDGENERATION_BW, 5);
-		// CU_ASSERT_IN_RANGE(bw_usage, .1f, .2f);
 	}
 }
 
@@ -352,7 +335,6 @@ static test_t tests[] = {
 	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
 	{ "Adaptive audio stream [speex]", adaptive_speex16_audio_stream },
 	{ "Adaptive audio stream [pcma]", adaptive_pcma_audio_stream },
-	{ "Lossy network", lossy_network_speex_audio_stream },
 };
 
 test_suite_t audio_stream_test_suite = {
