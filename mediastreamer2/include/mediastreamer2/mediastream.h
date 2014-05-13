@@ -547,6 +547,7 @@ struct _VideoStream
 	bool_t display_filter_auto_rotate_enabled;
 	bool_t source_performs_encoding;
 	bool_t output_performs_decoding;
+	uint64_t last_reported_decoding_error_time;
 };
 
 typedef struct _VideoStream VideoStream;
@@ -685,6 +686,20 @@ static inline void video_stream_get_local_rtp_stats(VideoStream *stream, rtp_sta
 static inline int video_stream_set_dscp(VideoStream *stream, int dscp) {
 	return media_stream_set_dscp(&stream->ms, dscp);
 }
+
+/**
+ * Ask the video stream whether a decoding error should be reported (eg. to send a VFU request).
+ * @param[in] stream The VideoStream object.
+ * @param[in] ms The minimum interval in milliseconds between to decoding error report.
+ * @return TRUE if the decoding error should be reported, FALSE otherwise.
+ */
+MS2_PUBLIC bool_t video_stream_is_decoding_error_to_be_reported(VideoStream *stream, uint32_t ms);
+
+/**
+ * Tell the video stream that a decoding error has been reported.
+ * @param[in] stream The VideoStream object.
+ */
+MS2_PUBLIC void video_stream_decoding_error_reported(VideoStream *stream);
 
 /**
  * Small API to display a local preview window.
