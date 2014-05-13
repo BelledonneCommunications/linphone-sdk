@@ -101,11 +101,9 @@ static void enc_init(MSFilter *f) {
 
 	/* Populate encoder configuration */
 	caps = vpx_codec_get_caps(s->iface);
-#ifdef VPX_CODEC_CAP_OUTPUT_PARTITION
 	if (caps & VPX_CODEC_CAP_OUTPUT_PARTITION) {
 		s->flags |= VPX_CODEC_USE_OUTPUT_PARTITION;
 	}
-#endif
 	res = vpx_codec_enc_config_default(s->iface, &s->cfg, 0);
 	if(res) {
 		ms_error("Failed to get config: %s", vpx_codec_err_to_string(res));
@@ -223,15 +221,12 @@ static void enc_process(MSFilter *f) {
 					packet->pd->extended_control_bits_present = TRUE;
 					packet->pd->pictureid_present = TRUE;
 					packet->pd->pictureid = s->picture_id;
-#ifdef VPX_CODEC_CAP_OUTPUT_PARTITION
 					if (s->flags & VPX_CODEC_USE_OUTPUT_PARTITION) {
 						packet->pd->pid = (uint8_t)pkt->data.frame.partition_id;
 						if (!(pkt->data.frame.flags & VPX_FRAME_IS_FRAGMENT)) {
 							mblk_set_marker_info(packet->m, TRUE);
 						}
-					} else
-#endif
-					{
+					} else {
 						packet->pd->pid = 0;
 						mblk_set_marker_info(packet->m, TRUE);
 					}
