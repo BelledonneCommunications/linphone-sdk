@@ -543,6 +543,7 @@ static void packer_process_frame_part(void *p, void *c) {
 	uint8_t pdsize = 1;
 	int max_size = ms_get_payload_max_size();
 	int dlen;
+	bool_t marker_info = mblk_get_marker_info(packet->m);
 
 	/* Calculate the payload descriptor size. */
 	if (packet->pd->extended_control_bits_present == TRUE) pdsize++;
@@ -558,7 +559,8 @@ static void packer_process_frame_part(void *p, void *c) {
 		pdm = allocb(pdsize, 0);
 		memset(pdm->b_wptr, 0, pdsize);
 		mblk_set_timestamp_info(pdm, mblk_get_timestamp_info(packet->m));
-		mblk_set_marker_info(pdm, mblk_get_marker_info(packet->m));
+		mblk_set_marker_info(pdm, FALSE);
+		mblk_set_marker_info(dm, FALSE);
 		/* Fill the mandatory octet of the payload descriptor. */
 		if (packet->pd->extended_control_bits_present == TRUE) *pdm->b_wptr |= (1 << 7);
 		if (packet->pd->non_reference_frame == TRUE) *pdm->b_wptr |= (1 << 5);
@@ -610,6 +612,10 @@ static void packer_process_frame_part(void *p, void *c) {
 
 		ms_queue_put(ctx->output_queue, pdm);
 	}
+
+	/* Set marker bit on last packet if required. */
+	mblk_set_marker_info(pdm, marker_info);
+	mblk_set_marker_info(dm, marker_info);
 
 	freeb(packet->m);
 	packet->m = NULL;
