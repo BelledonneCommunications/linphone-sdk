@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 /*#define VP8RTPFMT_DEBUG*/
-#define VP8RTPFMT_OUTPUT_INCOMPLETE_FRAMES
 
 
 #ifdef VP8RTPFMT_DEBUG
@@ -299,6 +298,27 @@ static void output_partition(MSQueue *out, Vp8RtpFmtPartition *partition) {
 	partition->outputted = TRUE;
 }
 
+static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
+	Vp8RtpFmtPartition *partition;
+	int nb_partitions = ms_list_size(frame->partitions_list);
+	mblk_t *om;
+	mblk_t *curm;
+	int i;
+
+	for (i = 0; i < nb_partitions; i++) {
+		partition = ms_list_nth_data(frame->partitions_list, i);
+		if (i == 0) {
+			om = partition->m;
+			curm = om;
+		} else {
+			curm = concatb(curm, partition->m);
+		}
+		partition->outputted = TRUE;
+	}
+	mblk_set_marker_info(om, 1);
+	ms_queue_put(out, (void *)om);
+}
+
 static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 	Vp8RtpFmtPartition *partition = NULL;
 	Vp8RtpFmtFrame *frame;
@@ -311,31 +331,36 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 		frame = ms_list_nth_data(ctx->frames_list, i);
 		if (frame->error == Vp8RtpFmtOk) {
 			/* Output the complete valid frame. */
-			nb_partitions = ms_list_size(frame->partitions_list);
-			for (j = 0; j < nb_partitions; j++) {
-				partition = ms_list_nth_data(frame->partitions_list, j);
-				output_partition(out, partition);
+			if (ctx->output_partitions == TRUE) {
+				nb_partitions = ms_list_size(frame->partitions_list);
+				for (j = 0; j < nb_partitions; j++) {
+					partition = ms_list_nth_data(frame->partitions_list, j);
+					output_partition(out, partition);
+				}
+			} else {
+				/* Output the full frame in one mblk_t. */
+				output_frame(out, frame);
 			}
 			frame->outputted = TRUE;
 		} else if (is_frame_marker_present(frame) == TRUE) {
 			if (is_first_partition_present_in_frame(frame) == TRUE) {
-#ifdef VP8RTPFMT_OUTPUT_INCOMPLETE_FRAMES
-				/* Output the valid partitions of the frame. */
-				nb_partitions = ms_list_size(frame->partitions_list);
-				for (i = 0; i < nb_partitions; i++) {
-					partition = ms_list_nth_data(frame->partitions_list, i);
-					if (partition->error == Vp8RtpFmtOk) {
-						if (i == (nb_partitions - 1)) {
-							partition->last_partition_of_frame = TRUE;
+				if (ctx->output_partitions == TRUE) {
+					/* Output the valid partitions of the frame. */
+					nb_partitions = ms_list_size(frame->partitions_list);
+					for (i = 0; i < nb_partitions; i++) {
+						partition = ms_list_nth_data(frame->partitions_list, i);
+						if (partition->error == Vp8RtpFmtOk) {
+							if (i == (nb_partitions - 1)) {
+								partition->last_partition_of_frame = TRUE;
+							}
+							output_partition(out, partition);
 						}
-						output_partition(out, partition);
 					}
+					frame->outputted = TRUE;
+				} else {
+					/* Drop the frame for which some partitions are missing/invalid. */
+					frame->discarded = TRUE;
 				}
-				frame->outputted = TRUE;
-#else
-				/* Drop the frame for which some partitions are missing/invalid. */
-				frame->discarded = TRUE;
-#endif
 				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 			} else {
 				/* Drop the frame for which the first partition is missing. */
@@ -450,8 +475,9 @@ static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 }
 
 
-void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f) {
+void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t output_partitions) {
 	ctx->filter = f;
+	ctx->output_partitions = output_partitions;
 	ctx->frames_list = NULL;
 	ms_queue_init(&ctx->output_queue);
 	ctx->initialized_last_ts = FALSE;

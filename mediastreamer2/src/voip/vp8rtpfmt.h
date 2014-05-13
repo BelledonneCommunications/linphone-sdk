@@ -90,6 +90,7 @@ extern "C"{
 		MSQueue output_queue;
 		uint32_t last_ts;
 		uint32_t ref_cseq;
+		bool_t output_partitions;
 		bool_t initialized_last_ts;
 		bool_t initialized_ref_cseq;
 	} Vp8RtpFmtUnpackerCtx;
@@ -103,7 +104,7 @@ extern "C"{
 	void vp8rtpfmt_packer_uninit(Vp8RtpFmtPackerCtx *ctx);
 	void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in, MSQueue *out);
 
-	void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f);
+	void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t output_partitions);
 	void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx);
 	void vp8rtpfmt_unpacker_process(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *inout);
 	uint32_t vp8rtpfmt_unpacker_calc_extended_cseq(Vp8RtpFmtUnpackerCtx *ctx, uint16_t cseq);
