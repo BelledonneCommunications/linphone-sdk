@@ -22,6 +22,7 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
+#include "mediastreamer2/videostarter.h"
 #include "vp8rtpfmt.h"
 
 #define VPX_CODEC_DISABLE_COMPAT 1
@@ -80,6 +81,7 @@ typedef struct EncState {
 	vpx_codec_iface_t *iface;
 	vpx_codec_flags_t flags;
 	Vp8RtpFmtPackerCtx packer;
+	MSVideoStarter starter;
 	MSVideoConfiguration vconf;
 	const MSVideoConfiguration *vconf_list;
 	int last_fir_seq_nr;
@@ -170,6 +172,9 @@ static void enc_preprocess(MSFilter *f) {
 	}
 
 	vp8rtpfmt_packer_init(&s->packer);
+	if (s->avpf_enabled != TRUE) {
+		ms_video_starter_init(&s->starter);
+	}
 	s->ready = TRUE;
 }
 
@@ -198,6 +203,9 @@ static void enc_process(MSFilter *f) {
 		ms_yuv_buf_init_from_mblk(&yuv, im);
 		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->vconf.vsize.width, s->vconf.vsize.height, 1, yuv.planes[0]);
 
+		if ((s->avpf_enabled != TRUE) && ms_video_starter_need_i_frame(&s->starter, f->ticker->time)) {
+			s->force_keyframe = TRUE;
+		}
 		if (s->force_keyframe == TRUE) {
 			ms_message("Forcing vp8 key frame for filter [%p]", f);
 			flags = VPX_EFLAG_FORCE_KF;
@@ -213,6 +221,9 @@ static void enc_process(MSFilter *f) {
 			MSList *list = NULL;
 
 			s->frame_count++;
+			if ((s->avpf_enabled != TRUE) && (s->frame_count == 1)) {
+				ms_video_starter_first_frame(&s->starter, f->ticker->time);
+			}
 			s->picture_id++;
 			if (s->picture_id == 0x80) s->picture_id = 0;
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
