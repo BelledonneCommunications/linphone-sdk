@@ -367,6 +367,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	MSVideoSize disp_size;
 	JBParameters jbp;
 	const int socket_buf_size=2000000;
+	bool_t avpf_enabled = FALSE;
 
 	if (cam==NULL){
 		cam=ms_web_cam_manager_get_default_cam (
@@ -378,6 +379,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		ms_error("videostream.c: undefined payload type.");
 		return -1;
 	}
+	if (pt->flags & PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED) avpf_enabled = TRUE;
 
 	if ((cam != NULL) && (cam->desc->encode_to_mime_type != NULL) && (cam->desc->encode_to_mime_type(cam, pt->mime_type) == TRUE)) {
 		stream->source_performs_encoding = TRUE;
@@ -433,6 +435,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		if (pt->send_fmtp){
 			ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
 		}
+		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_ENABLE_AVPF, &avpf_enabled);
 		if (stream->use_preview_window){
 			if (stream->rendercb==NULL){
 				stream->output2=ms_filter_new_from_name (stream->display_name);
@@ -512,6 +515,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}
 		if (pt->recv_fmtp!=NULL)
 			ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
+		ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_ENABLE_AVPF, &avpf_enabled);
 
 		/*force the decoder to output YUV420P */
 		format=MS_YUV420P;

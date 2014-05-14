@@ -205,6 +205,8 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_EVENT(MSFilterVideoDecoderInterface, 4, const MSVideoCodecRPSI *)
 #define MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION \
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 0)
+#define MS_VIDEO_DECODER_ENABLE_AVPF \
+	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 1, bool_t)
 
 /** Interface definitions for video capture */
 #define MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION \
@@ -240,6 +242,8 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 6, const MSVideoCodecSLI *)
 #define MS_VIDEO_ENCODER_NOTIFY_RPSI \
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 7, const MSVideoCodecRPSI *)
+#define MS_VIDEO_ENCODER_ENABLE_AVPF \
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 8, bool_t)
 
 /** Interface definitions for audio capture */
 /* Start numbering from the end for hacks */
