@@ -535,29 +535,8 @@ static void video_stream_event_cb(void *user_pointer, const MSFilter *f, const u
 		case MS_VIDEO_DECODER_DECODING_ERRORS:
 			ms_warning("Decoding error on videostream [%p]", md->video);
 			break;
-		case MS_VIDEO_DECODER_SEND_PLI:
-			ms_message("Send PLI on videostream [%p]", md->video);
-			video_stream_send_pli(md->video);
-			break;
-		case MS_VIDEO_DECODER_SEND_SLI:
-		{
-			const MSVideoCodecSLI *sli = (const MSVideoCodecSLI *)args;
-			ms_message("Send SLI on videostream [%p]", md->video);
-			video_stream_send_sli(md->video, sli->first, sli->number, sli->picture_id);
-		}
-			break;
-		case MS_VIDEO_DECODER_SEND_RPSI:
-		{
-			const MSVideoCodecRPSI *rpsi = (const MSVideoCodecRPSI *)args;
-			ms_message("Send RPSI on videostream [%p]", md->video);
-			video_stream_send_rpsi(md->video, rpsi->bit_string, rpsi->bit_string_len);
-		}
-			break;
 		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
 			ms_message("First video frame decoded successfully on videostream [%p]", md->video);
-			break;
-		default:
-			ms_warning("Unhandled event %i for videostream [%p]", event_id, md->video);
 			break;
 	}
 }

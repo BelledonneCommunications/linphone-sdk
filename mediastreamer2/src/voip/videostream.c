@@ -70,6 +70,29 @@ static void event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata)
 	}
 }
 
+static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *eventdata) {
+	VideoStream *stream = (VideoStream *)ud;
+	const MSVideoCodecSLI *sli;
+	const MSVideoCodecRPSI *rpsi;
+
+	switch (event) {
+		case MS_VIDEO_DECODER_SEND_PLI:
+			ms_message("Send PLI on videostream [%p]", stream);
+			video_stream_send_pli(stream);
+			break;
+		case MS_VIDEO_DECODER_SEND_SLI:
+			sli = (const MSVideoCodecSLI *)eventdata;
+			ms_message("Send SLI on videostream [%p]", stream);
+			video_stream_send_sli(stream, sli->first, sli->number, sli->picture_id);
+			break;
+		case MS_VIDEO_DECODER_SEND_RPSI:
+			rpsi = (const MSVideoCodecRPSI *)eventdata;
+			ms_message("Send RPSI on videostream [%p]", stream);
+			video_stream_send_rpsi(stream, rpsi->bit_string, rpsi->bit_string_len);
+			break;
+	}
+}
+
 static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	VideoStream *stream = (VideoStream *)media_stream;
 	unsigned int i;
@@ -503,7 +526,8 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			ms_fatal("No video display filter could be instantiated. Please check build-time configuration");
 		}
 
-		ms_filter_add_notify_callback(stream->ms.decoder, event_cb, stream,FALSE);
+		ms_filter_add_notify_callback(stream->ms.decoder, event_cb, stream, FALSE);
+		ms_filter_add_notify_callback(stream->ms.decoder, internal_event_cb, stream, FALSE);
 
 		stream->ms.rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
