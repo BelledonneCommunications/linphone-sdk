@@ -320,6 +320,7 @@ static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 		partition->outputted = TRUE;
 	}
 	if (om != NULL) {
+		if (om->b_cont) msgpullup(om, -1);
 		mblk_set_marker_info(om, 1);
 		ms_queue_put(out, (void *)om);
 	}
