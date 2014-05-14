@@ -90,12 +90,12 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 		} else if (rtcp_is_PSFB(m)) {
 			if (rtcp_PSFB_get_type(m) == RTCP_PSFB_FIR) {
 				/* Special case for FIR where the packet sender ssrc must be equal to 0. */
-				if ((rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session))
+				if ((rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session))
 					&& (rtcp_PSFB_get_packet_sender_ssrc(m) == 0)) {
 					for (i = 0; ; i++) {
 						rtcp_fb_fir_fci_t *fci = rtcp_PSFB_fir_get_fci(m, i);
 						if (fci == NULL) break;
-						if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
+						if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session)) {
 							uint8_t seq_nr = rtcp_fb_fir_fci_get_seq_nr(fci);
 							ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_FIR, &seq_nr);
 							break;
@@ -103,8 +103,8 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 					}
 				}
 			} else {
-				if ((rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session))
-					&& (rtcp_PSFB_get_packet_sender_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session))) {
+				if ((rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session))
+					&& (rtcp_PSFB_get_packet_sender_ssrc(m) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session))) {
 					switch (rtcp_PSFB_get_type(m)) {
 						case RTCP_PSFB_PLI:
 							ms_filter_call_method_noarg(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_PLI);
