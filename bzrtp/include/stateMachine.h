@@ -193,4 +193,15 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event);
  *
  */
 int state_secure(bzrtpEvent_t event);
+
+/**
+ * @brief Compute the new rs1 and update the cached secrets according to rfc section 4.6.1
+ *
+ * param[in]		zrtpContext			The context we are operation on
+ * param[in/out]	zrtpChannelContext	The channel context we are operation on(contains s0)
+ *
+ * return 0 on success, error code otherwise
+ */
+int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
+
 #endif /* STATEMACHINE_H */

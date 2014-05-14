@@ -1636,7 +1636,14 @@ void test_stateMachine() {
 	}
 
 	/* compare SAS and check we are in secure mode */
-	CU_ASSERT_TRUE((memcmp(contextAlice->channelContext[0]->srtpSecrets.sas, contextBob->channelContext[0]->srtpSecrets.sas, 4) == 0) && (contextAlice->isSecure == 1) && (contextBob->isSecure == 1));
+	if ((contextAlice->isSecure == 1) && (contextBob->isSecure == 1)) { /* don't compare sas if we're not secure at we may not have it */
+		CU_ASSERT_TRUE((memcmp(contextAlice->channelContext[0]->srtpSecrets.sas, contextBob->channelContext[0]->srtpSecrets.sas, 4) == 0));
+		/* call the set verified Sas function */
+		bzrtp_SASVerified(contextAlice);
+		bzrtp_SASVerified(contextBob);
+	} else {
+		CU_FAIL("Unable to reach secure state");
+	}
 	
 	/*** Send alice a ping message from Bob ***/
 	uint8_t pingPacketString[ZRTP_PACKET_OVERHEAD+ZRTP_PINGMESSAGE_FIXED_LENGTH]; /* there is no builder for ping packet and it is 24 bytes long(12 bytes of message header, 12 of data + packet overhead*/

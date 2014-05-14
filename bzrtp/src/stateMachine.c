@@ -2100,12 +2100,18 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
  */
 int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
 	
+
 	/* if this channel context is in multistream mode, do nothing */
 	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) {
 		/* destroy s0 */
 		bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
 		free(zrtpChannelContext->s0);
 		zrtpChannelContext->s0 = NULL;
+		return 0;
+	}
+
+	/* if we had a cache mismatch, the update must be delayed until Sas confirmation by user, just do nothing, the update function will be called again when done */
+	if (zrtpContext->cacheMismatchFlag == 1) {
 		return 0;
 	}
 
@@ -2121,7 +2127,7 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 		zrtpContext->cachedSecret.rs1 = (uint8_t *)malloc(RETAINED_SECRET_LENGTH);
 		zrtpContext->cachedSecret.rs1Length = RETAINED_SECRET_LENGTH;
 	}
-	bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"retained secret", 15, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 32, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpContext->cachedSecret.rs1);
+	bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"retained secret", 15, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, RETAINED_SECRET_LENGTH, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, zrtpContext->cachedSecret.rs1);
 	bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"rs1", 3, zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
 
 	/* if exist, call the callback function to perform custom cache operation that may use s0(writing exported key into cache) */

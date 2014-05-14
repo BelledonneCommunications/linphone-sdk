@@ -467,6 +467,11 @@ int bzrtp_isSecure(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
  */
 void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
 	if (zrtpContext != NULL) {
+		/* check if we must update the cache(delayed until sas verified in case of cache mismatch) */
+		if (zrtpContext->cacheMismatchFlag  == 1) {
+			zrtpContext->cacheMismatchFlag  = 0;
+			bzrtp_updateCachedSecrets(zrtpContext, zrtpContext->channelContext[0]); /* channel[0] is the only one in DHM mode, so the only one able to have a cache mismatch */
+		}
 		uint8_t pvsFlag = 1;
 		bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
 	}
