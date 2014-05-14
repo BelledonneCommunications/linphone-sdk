@@ -34,10 +34,10 @@
 
 static const MSVideoConfiguration vp8_conf_list[] = {
 #if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
-	MS_VP8_CONF(300000, 600000,    VGA, 12),
-	MS_VP8_CONF(100000, 300000,   QVGA, 12),
-	MS_VP8_CONF(  64000,  100000, QCIF, 12),
-	MS_VP8_CONF(      0,   64000, QCIF,  5)
+	MS_VP8_CONF(300000, 600000,  VGA, 12),
+	MS_VP8_CONF(100000, 300000, QVGA, 12),
+	MS_VP8_CONF( 64000, 100000, QCIF, 12),
+	MS_VP8_CONF(     0,  64000, QCIF,  5)
 #else
 	MS_VP8_CONF(1024000, 1536000,  VGA, 25),
 	MS_VP8_CONF( 350000,  600000,  VGA, 15),
@@ -175,9 +175,9 @@ static void enc_preprocess(MSFilter *f) {
 
 static void enc_process(MSFilter *f) {
 	mblk_t *im;
-	uint64_t timems=f->ticker->time;
-	uint32_t timestamp=timems*90;
-	EncState *s=(EncState*)f->data;
+	uint64_t timems = f->ticker->time;
+	uint32_t timestamp = timems*90;
+	EncState *s = (EncState *)f->data;
 	unsigned int flags = 0;
 	vpx_codec_err_t err;
 	YuvBuf yuv;
@@ -191,22 +191,20 @@ static void enc_process(MSFilter *f) {
 		return;
 	}
 
-	while((im=ms_queue_get(f->inputs[0]))!=NULL){
+	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
 		vpx_image_t img;
 
 		flags = 0;
-
 		ms_yuv_buf_init_from_mblk(&yuv, im);
 		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->vconf.vsize.width, s->vconf.vsize.height, 1, yuv.planes[0]);
 
-		if (s->force_keyframe == TRUE){
+		if (s->force_keyframe == TRUE) {
 			ms_message("Forcing vp8 key frame for filter [%p]", f);
 			flags = VPX_EFLAG_FORCE_KF;
 			s->force_keyframe = FALSE;
 		}
 
 		err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, VPX_DL_REALTIME);
-
 		if (err) {
 			ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
 		} else {
@@ -291,41 +289,35 @@ static int enc_set_vsize(MSFilter *f, void *data) {
 	return 0;
 }
 
-static int enc_get_vsize(MSFilter *f, void *data){
-	EncState *s=(EncState*)f->data;
-	MSVideoSize *vs=(MSVideoSize*)data;
+static int enc_get_vsize(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	MSVideoSize *vs = (MSVideoSize *)data;
 	*vs = s->vconf.vsize;
 	return 0;
 }
 
-static int enc_add_attr(MSFilter *f, void*data){
-	/*const char *attr=(const char*)data;
-	EncState *s=(EncState*)f->data;*/
-	return 0;
-}
-
-static int enc_set_fps(MSFilter *f, void *data){
-	float *fps=(float*)data;
-	EncState *s=(EncState*)f->data;
-	s->vconf.fps=*fps;
+static int enc_set_fps(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	float *fps = (float *)data;
+	s->vconf.fps = *fps;
 	enc_set_configuration(f, &s->vconf);
 	return 0;
 }
 
-static int enc_get_fps(MSFilter *f, void *data){
-	EncState *s=(EncState*)f->data;
-	float *fps=(float*)data;
-	*fps=s->vconf.fps;
+static int enc_get_fps(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	float *fps = (float *)data;
+	*fps = s->vconf.fps;
 	return 0;
 }
 
-static int enc_get_br(MSFilter *f, void*data){
-	EncState *s=(EncState*)f->data;
-	*(int*)data=s->vconf.required_bitrate;
+static int enc_get_br(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	*(int *)data = s->vconf.required_bitrate;
 	return 0;
 }
 
-static int enc_set_br(MSFilter *f, void*data) {
+static int enc_set_br(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	int br = *(int *)data;
 	if (s->ready) {
@@ -339,7 +331,7 @@ static int enc_set_br(MSFilter *f, void*data) {
 	return 0;
 }
 
-static int enc_req_vfu(MSFilter *f, void *unused){
+static int enc_req_vfu(MSFilter *f, void *unused) {
 	EncState *s = (EncState *)f->data;
 	s->force_keyframe = TRUE;
 	return 0;
@@ -379,7 +371,6 @@ static MSFilterMethod enc_methods[] = {
 	{ MS_FILTER_SET_FPS,                       enc_set_fps                },
 	{ MS_FILTER_GET_VIDEO_SIZE,                enc_get_vsize              },
 	{ MS_FILTER_GET_FPS,                       enc_get_fps                },
-	{ MS_FILTER_ADD_ATTR,                      enc_add_attr               },
 	{ MS_FILTER_SET_BITRATE,                   enc_set_br                 },
 	{ MS_FILTER_GET_BITRATE,                   enc_get_br                 },
 	{ MS_FILTER_REQ_VFU,                       enc_req_vfu                },
@@ -392,40 +383,50 @@ static MSFilterMethod enc_methods[] = {
 	{ 0,                                       NULL                       }
 };
 
+#define MS_VP8_ENC_NAME        "MSVp8Enc"
+#define MS_VP8_ENC_DESCRIPTION "A VP8 video encoder using libvpx library."
+#define MS_VP8_ENC_CATEGORY    MS_FILTER_ENCODER
+#define MS_VP8_ENC_ENC_FMT     "VP8"
+#define MS_VP8_ENC_NINPUTS     1 /*MS_YUV420P is assumed on this input */
+#define MS_VP8_ENC_NOUTPUTS    1
+#define MS_VP8_ENC_FLAGS       0
+
 #ifdef _MSC_VER
 
-MSFilterDesc ms_vp8_enc_desc={
+MSFilterDesc ms_vp8_enc_desc = {
 	MS_VP8_ENC_ID,
-	"MSVp8Enc",
-	N_("A video VP8 encoder using libvpx library."),
-	MS_FILTER_ENCODER,
-	"VP8",
-	1, /*MS_YUV420P is assumed on this input */
-	1,
+	MS_VP8_ENC_NAME,
+	MS_VP8_ENC_DESCRIPTION,
+	MS_VP8_ENC_CATEGORY,
+	MS_VP8_ENC_ENC_FMT,
+	MS_VP8_ENC_NINPUTS,
+	MS_VP8_ENC_NOUTPUTS,
 	enc_init,
 	enc_preprocess,
 	enc_process,
 	enc_postprocess,
 	enc_uninit,
-	enc_methods
+	enc_methods,
+	MS_VP8_ENC_FLAGS
 };
 
 #else
 
-MSFilterDesc ms_vp8_enc_desc={
-	.id=MS_VP8_ENC_ID,
-	.name="MSVp8Enc",
-	.text=N_("A video VP8 encoder using libvpx library."),
-	.category=MS_FILTER_ENCODER,
-	.enc_fmt="VP8",
-	.ninputs=1, /*MS_YUV420P is assumed on this input */
-	.noutputs=1,
-	.init=enc_init,
-	.preprocess=enc_preprocess,
-	.process=enc_process,
-	.postprocess=enc_postprocess,
-	.uninit=enc_uninit,
-	.methods=enc_methods
+MSFilterDesc ms_vp8_enc_desc = {
+	.id = MS_VP8_ENC_ID,
+	.name = MS_VP8_ENC_NAME,
+	.text = MS_VP8_ENC_DESCRIPTION,
+	.category = MS_VP8_ENC_CATEGORY,
+	.enc_fmt = MS_VP8_ENC_ENC_FMT,
+	.ninputs = MS_VP8_ENC_NINPUTS,
+	.noutputs = MS_VP8_ENC_NOUTPUTS,
+	.init = enc_init,
+	.preprocess = enc_preprocess,
+	.process = enc_process,
+	.postprocess = enc_postprocess,
+	.uninit = enc_uninit,
+	.methods = enc_methods,
+	.flags = MS_VP8_ENC_FLAGS
 };
 
 #endif
@@ -456,7 +457,7 @@ typedef struct DecState {
 
 
 static void dec_init(MSFilter *f) {
-	DecState *s=(DecState *)ms_new(DecState,1);
+	DecState *s = (DecState *)ms_new(DecState, 1);
 
 	s->iface = vpx_codec_vp8_dx();
 	ms_message("Using %s", vpx_codec_iface_name(s->iface));
@@ -499,21 +500,16 @@ static void dec_preprocess(MSFilter* f) {
 }
 
 static void dec_uninit(MSFilter *f) {
-	DecState *s=(DecState*)f->data;
+	DecState *s = (DecState *)f->data;
 	vpx_codec_destroy(&s->codec);
-
-	if (s->curframe!=NULL)
-		freemsg(s->curframe);
-	if (s->yuv_msg)
-		freemsg(s->yuv_msg);
-
+	if (s->curframe != NULL) freemsg(s->curframe);
+	if (s->yuv_msg) freemsg(s->yuv_msg);
 	ms_queue_flush(&s->q);
-
 	ms_free(s);
 }
 
 static void dec_process(MSFilter *f) {
-	DecState *s=(DecState*)f->data;
+	DecState *s = (DecState *)f->data;
 	mblk_t *im;
 	vpx_codec_err_t err;
 	vpx_image_t *img;
@@ -538,26 +534,24 @@ static void dec_process(MSFilter *f) {
 	}
 
 	/* browse decoded frames */
-	while((img = vpx_codec_get_frame(&s->codec, &iter))) {
-		int i,j;
+	while ((img = vpx_codec_get_frame(&s->codec, &iter))) {
+		int i, j;
 
 		if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
-			if (s->yuv_msg)
-				freemsg(s->yuv_msg);
+			if (s->yuv_msg) freemsg(s->yuv_msg);
 			s->yuv_msg = ms_yuv_buf_alloc(&s->outbuf, img->d_w, img->d_h);
 			s->yuv_width = img->d_w;
 			s->yuv_height = img->d_h;
 		}
 
 		/* scale/copy frame to destination mblk_t */
-		for(i=0; i<3; i++) {
-			uint8_t* dest = s->outbuf.planes[i];
-			uint8_t* src = img->planes[i];
-			int h = img->d_h >> ((i>0)?1:0);
+		for (i = 0; i < 3; i++) {
+			uint8_t *dest = s->outbuf.planes[i];
+			uint8_t *src = img->planes[i];
+			int h = img->d_h >> ((i > 0) ? 1 : 0);
 
-			for(j=0; j<h; j++) {
+			for (j = 0; j < h; j++) {
 				memcpy(dest, src, s->outbuf.strides[i]);
-
 				dest += s->outbuf.strides[i];
 				src += img->stride[i];
 			}
@@ -569,7 +563,7 @@ static void dec_process(MSFilter *f) {
 		}
 		if (!s->first_image_decoded) {
 			s->first_image_decoded = TRUE;
-			ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+			ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 		}
 	}
 
@@ -615,40 +609,50 @@ static MSFilterMethod dec_methods[] = {
 	{ 0,                                               NULL                  }
 };
 
+#define MS_VP8_DEC_NAME        "MSVp8Dec"
+#define MS_VP8_DEC_DESCRIPTION "A VP8 video decoder using libvpx library."
+#define MS_VP8_DEC_CATEGORY    MS_FILTER_DECODER
+#define MS_VP8_DEC_ENC_FMT     "VP8"
+#define MS_VP8_DEC_NINPUTS     1
+#define MS_VP8_DEC_NOUTPUTS    1
+#define MS_VP8_DEC_FLAGS       0
+
 #ifdef _MSC_VER
 
-MSFilterDesc ms_vp8_dec_desc={
+MSFilterDesc ms_vp8_dec_desc = {
 	MS_VP8_DEC_ID,
-	"MSVp8Dec",
-	"A VP8 decoder using libvpx library",
-	MS_FILTER_DECODER,
-	"VP8",
-	1,
-	1,
+	MS_VP8_DEC_NAME,
+	MS_VP8_DEC_DESCRIPTION,
+	MS_VP8_DEC_CATEGORY,
+	MS_VP8_DEC_ENC_FMT,
+	MS_VP8_DEC_NINPUTS,
+	MS_VP8_DEC_NOUTPUTS,
 	dec_init,
 	dec_preprocess,
 	dec_process,
 	dec_postprocess,
 	dec_uninit,
-	dec_methods
+	dec_methods,
+	MS_VP8_DEC_FLAGS
 };
 
 #else
 
-MSFilterDesc ms_vp8_dec_desc={
-	.id=MS_VP8_DEC_ID,
-	.name="MSVp8Dec",
-	.text="A VP8 decoder using libvpx library",
-	.category=MS_FILTER_DECODER,
-	.enc_fmt="VP8",
-	.ninputs=1,
-	.noutputs=1,
-	.init=dec_init,
-	.preprocess=dec_preprocess,
-	.process=dec_process,
-	.postprocess=dec_postprocess,
-	.uninit=dec_uninit,
-	.methods=dec_methods
+MSFilterDesc ms_vp8_dec_desc = {
+	.id = MS_VP8_DEC_ID,
+	.name = MS_VP8_DEC_NAME,
+	.text = MS_VP8_DEC_DESCRIPTION,
+	.category = MS_VP8_DEC_CATEGORY,
+	.enc_fmt = MS_VP8_DEC_ENC_FMT,
+	.ninputs = MS_VP8_DEC_NINPUTS,
+	.noutputs = MS_VP8_DEC_NOUTPUTS,
+	.init = dec_init,
+	.preprocess = dec_preprocess,
+	.process = dec_process,
+	.postprocess = dec_postprocess,
+	.uninit = dec_uninit,
+	.methods = dec_methods,
+	.flags = MS_VP8_DEC_FLAGS
 };
 
 #endif
