@@ -452,6 +452,7 @@ MS_FILTER_DESC_EXPORT(ms_vp8_enc_desc)
 typedef struct DecState {
 	vpx_codec_ctx_t codec;
 	vpx_codec_iface_t *iface;
+	vpx_codec_flags_t flags;
 	Vp8RtpFmtUnpackerCtx unpacker;
 	mblk_t *curframe;
 	long last_cseq; /*last receive sequence number, used to locate missing partition fragment*/
@@ -487,25 +488,25 @@ static void dec_init(MSFilter *f) {
 
 static void dec_preprocess(MSFilter* f) {
 	DecState *s = (DecState *)f->data;
-	vpx_codec_flags_t flags = 0;
 	vpx_codec_caps_t caps = vpx_codec_get_caps(s->iface);
 
 	/* Initialize codec */
+	s->flags = 0;
 	if ((s->avpf_enabled == TRUE) && (caps & VPX_CODEC_CAP_INPUT_FRAGMENTS)) {
-		flags |= VPX_CODEC_USE_INPUT_FRAGMENTS;
+		s->flags |= VPX_CODEC_USE_INPUT_FRAGMENTS;
 	}
 	if (caps & VPX_CODEC_CAP_ERROR_CONCEALMENT) {
-		flags |= VPX_CODEC_USE_ERROR_CONCEALMENT;
+		s->flags |= VPX_CODEC_USE_ERROR_CONCEALMENT;
 	}
 #ifdef VPX_CODEC_CAP_FRAME_THREADING
 	if ((caps & VPX_CODEC_CAP_FRAME_THREADING) && (ms_get_cpu_count() > 1)) {
-		flags |= VPX_CODEC_USE_FRAME_THREADING;
+		s->flags |= VPX_CODEC_USE_FRAME_THREADING;
 	}
 #endif
-	if(vpx_codec_dec_init(&s->codec, s->iface, NULL, flags))
+	if(vpx_codec_dec_init(&s->codec, s->iface, NULL, s->flags))
 		ms_error("Failed to initialize decoder");
 
-	vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, (flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
+	vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
 
 	s->first_image_decoded = FALSE;
 }
@@ -535,7 +536,7 @@ static void dec_process(MSFilter *f) {
 	/* Decode unpacked VP8 partitions. */
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
 		err = vpx_codec_decode(&s->codec, im->b_rptr, im->b_wptr - im->b_rptr, NULL, 0);
-		if (!err && mblk_get_marker_info(im)) {
+		if ((s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) && (!err && mblk_get_marker_info(im))) {
 			err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
 		}
 		if (err) {
