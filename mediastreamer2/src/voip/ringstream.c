@@ -117,9 +117,7 @@ void ring_stop(RingStream *stream){
 	ms_filter_destroy(stream->source);
 	ms_filter_destroy(stream->gendtmf);
 	ms_filter_destroy(stream->sndwrite);
+	if (stream->write_resampler)
+		ms_filter_destroy(stream->write_resampler);
 	ms_free(stream);
-#ifdef _WIN32_WCE
-	ms_warning("Sleeping a bit after closing the audio device...");
-	ms_sleep(1);
-#endif
 }

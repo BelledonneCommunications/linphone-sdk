@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #define MIXER_MAX_CHANNELS 20
-#define MAX_LATENCY 0.08
 #define ALWAYS_STREAMOUT 1
 
 static void accumulate(int32_t *sum, int16_t* contrib, int nwords){
@@ -217,7 +216,7 @@ static void mixer_process(MSFilter *f){
 			if (channel_process_in(&s->channels[i],q,s->sum,nwords))
 				got_something=TRUE;
 			if ((skip=channel_flow_control(&s->channels[i],s->skip_threshold,f->ticker->time,do_purge))>0){
-				if (do_purge) ms_warning("Too much data in channel %i, %i ms skipped",i,(skip*1000)/(2*s->nchannels*s->rate));
+				ms_warning("Too much data in channel %i, %i ms in excess %s",i,(skip*1000)/(2*s->nchannels*s->rate),do_purge ? "were skipped.":".");
 			}
 		}
 	}

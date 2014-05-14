@@ -153,11 +153,9 @@ bool_t audio_stream_alive(AudioStream * stream, int timeout){
 			stream->last_packet_time=ms_time(NULL);
 		}
 	}
-	if (stats->recv!=0){
-		if (ms_time(NULL)-stream->last_packet_time>timeout){
-			/* more than timeout seconds of inactivity*/
-			return FALSE;
-		}
+	if (ms_time(NULL)-stream->last_packet_time>timeout){
+		/* more than timeout seconds of inactivity*/
+		return FALSE;
 	}
 	return TRUE;
 }
@@ -643,7 +641,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 				,stream->ms.rtprecv
 				,NULL);
 
-	stream->ms.start_time=ms_time(NULL);
+	stream->ms.start_time=stream->last_packet_time=ms_time(NULL);
 	stream->ms.is_beginning=TRUE;
 	stream->ms.state=MSStreamStarted;
 

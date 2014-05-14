@@ -161,18 +161,14 @@ static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControl
 	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
 	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
 	/*big losses and big jitter */
-	if (cur->lost_percentage>=unacceptable_loss_rate && cur->int_jitter>=big_jitter){
+	if (cur->lost_percentage>=unacceptable_loss_rate){
 		action->type=MSRateControlActionDecreaseBitrate;
 		action->value=MIN(cur->lost_percentage,50);
-		ms_message("MSQosAnalyser: loss rate unacceptable and big jitter");
+		ms_message("MSQosAnalyser: loss rate unacceptable");
 	}else if (rt_prop_increased(obj)){
 		action->type=MSRateControlActionDecreaseBitrate;
 		action->value=20;
 		ms_message("MSQosAnalyser: rt_prop doubled.");
-	}else if (cur->lost_percentage>=unacceptable_loss_rate){
-		/*big loss rate but no jitter, and no big rtp_prop: pure lossy network*/
-		action->type=MSRateControlActionDecreasePacketRate;
-		ms_message("MSQosAnalyser: loss rate unacceptable.");
 	}else{
 		action->type=MSRateControlActionDoNothing;
 		ms_message("MSQosAnalyser: everything is fine.");
