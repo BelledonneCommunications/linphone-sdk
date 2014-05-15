@@ -136,6 +136,87 @@ static int cseq_compare(const void *d1, const void *d2) {
 	return (p1->extended_cseq > p2->extended_cseq);
 }
 
+static bool_t is_key_frame(Vp8RtpFmtFrame *frame) {
+	Vp8RtpFmtPartition *partition;
+	int nb_partitions = ms_list_size(frame->partitions_list);
+	if (nb_partitions < 1) return FALSE;
+	partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
+	if (partition->m->b_rptr[0] & 0x01) return FALSE;
+	return TRUE;
+}
+
+static bool_t is_reference_frame(Vp8RtpFmtFrame *frame, Vp8RtpFmtPayloadDescriptor **pd) {
+	Vp8RtpFmtPartition *partition;
+	Vp8RtpFmtPacket *packet;
+	int nb_packets;
+	int nb_partitions = ms_list_size(frame->partitions_list);
+	if (nb_partitions < 1) return FALSE;
+	partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
+	nb_packets = ms_list_size(partition->packets_list);
+	if (nb_packets < 1) return FALSE;
+	packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, 0);
+	if (packet->pd->non_reference_frame == TRUE) {
+		return FALSE;
+	} else {
+		*pd = packet->pd;
+		return TRUE;
+	}
+}
+
+static MSVideoSize get_size_from_key_frame(Vp8RtpFmtFrame *frame) {
+	MSVideoSize vs;
+	Vp8RtpFmtPartition *partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
+	vs.width = ((partition->m->b_rptr[7] << 8) | (partition->m->b_rptr[6])) & 0x3FFF;
+	vs.height = ((partition->m->b_rptr[9] << 8) | (partition->m->b_rptr[8])) & 0x3FFF;
+	return vs;
+}
+
+static void send_pli(Vp8RtpFmtUnpackerCtx *ctx) {
+	if (ctx->avpf_enabled == TRUE) {
+		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
+	} else {
+		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
+	}
+}
+
+static void send_sli_if_reference_frame(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
+	Vp8RtpFmtPayloadDescriptor *pd;
+
+	if (ctx->avpf_enabled == TRUE) {
+		if (is_reference_frame(frame, &pd) && (pd->pictureid_present == TRUE)) {
+			MSVideoCodecSLI sli;
+			sli.first = 0;
+			sli.number = (ctx->video_size.width * ctx->video_size.height) / (16 * 16);
+			sli.picture_id = pd->pictureid & 0x3F;
+			ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_SLI, &sli);
+		}
+	} else {
+		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
+	}
+}
+
+static void send_rpsi_if_reference_frame(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
+	Vp8RtpFmtPayloadDescriptor *pd;
+
+	if (ctx->avpf_enabled == TRUE) {
+		if (is_reference_frame(frame, &pd) && (pd->pictureid_present == TRUE)) {
+			MSVideoCodecRPSI rpsi;
+			uint16_t picture_id16;
+			uint8_t picture_id8;
+			if (pd->pictureid & 0x8000) {
+				picture_id16 = htons(pd->pictureid);
+				rpsi.bit_string = (uint8_t *)&picture_id16;
+				rpsi.bit_string_len = 16;
+			} else {
+				picture_id8 = pd->pictureid & 0xFF;
+				rpsi.bit_string = (uint8_t *)&picture_id8;
+				rpsi.bit_string_len = 8;
+			}
+			ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_RPSI, &rpsi);
+		}
+	}
+}
+
 static void add_partition_to_frame(Vp8RtpFmtFrame *frame, Vp8RtpFmtPartition *partition) {
 	Vp8RtpFmtPacket *packet;
 	int nb_packets;
@@ -248,11 +329,7 @@ static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, MSList **packets_list) {
 			/* There are no valid partitions in the frame. */
 			ms_warning("VP8 frame without any valid partition.");
 			ms_free(frame);
-			if (ctx->avpf_enabled == TRUE) {
-				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
-			} else {
-				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
-			}
+			send_pli(ctx);
 		}
 	}
 	ms_list_free(*packets_list);
@@ -326,37 +403,9 @@ static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 	}
 }
 
-static bool_t is_key_frame(Vp8RtpFmtFrame *frame) {
-	Vp8RtpFmtPartition *partition;
-	int nb_partitions = ms_list_size(frame->partitions_list);
-	if (nb_partitions < 1) return FALSE;
-	partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
-	if (partition->m->b_rptr[0] & 0x01) return FALSE;
-	return TRUE;
-}
-
-static bool_t is_reference_frame(Vp8RtpFmtFrame *frame, Vp8RtpFmtPayloadDescriptor **pd) {
-	Vp8RtpFmtPartition *partition;
-	Vp8RtpFmtPacket *packet;
-	int nb_packets;
-	int nb_partitions = ms_list_size(frame->partitions_list);
-	if (nb_partitions < 1) return FALSE;
-	partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
-	nb_packets = ms_list_size(partition->packets_list);
-	if (nb_packets < 1) return FALSE;
-	packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, 0);
-	if (packet->pd->non_reference_frame == TRUE) {
-		return FALSE;
-	} else {
-		*pd = packet->pd;
-		return TRUE;
-	}
-}
-
 static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 	Vp8RtpFmtPartition *partition = NULL;
 	Vp8RtpFmtFrame *frame;
-	Vp8RtpFmtPayloadDescriptor *pd;
 	int nb_frames = ms_list_size(ctx->frames_list);
 	int nb_partitions;
 	int i;
@@ -367,6 +416,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 		if (frame->error == Vp8RtpFmtOk) {
 			if (is_key_frame(frame) == TRUE) {
 				ctx->valid_keyframe_received = TRUE;
+				ctx->video_size = get_size_from_key_frame(frame);
 			}
 			if (ctx->valid_keyframe_received == TRUE) {
 				/* Output the complete valid frame if the first keyframe has been received. */
@@ -381,32 +431,12 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					output_frame(out, frame);
 				}
 				frame->outputted = TRUE;
-				if (is_reference_frame(frame, &pd)) {
-					if (pd->pictureid_present == TRUE) {
-						MSVideoCodecRPSI rpsi;
-						uint16_t picture_id16;
-						uint8_t picture_id8;
-						if (pd->pictureid & 0x8000) {
-							picture_id16 = htons(pd->pictureid);
-							rpsi.bit_string = (uint8_t *)&picture_id16;
-							rpsi.bit_string_len = 16;
-						} else {
-							picture_id8 = pd->pictureid & 0xFF;
-							rpsi.bit_string = (uint8_t *)&picture_id8;
-							rpsi.bit_string_len = 8;
-						}
-						ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_RPSI, &rpsi);
-					}
-				}
+				send_rpsi_if_reference_frame(ctx, frame);
 			} else {
 				/* Drop frames until the first keyframe is successfully received. */
 				ms_warning("VP8 frame dropped because keyframe has not been received yet.");
 				frame->discarded = TRUE;
-				if (ctx->avpf_enabled == TRUE) {
-					ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
-				} else {
-					ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
-				}
+				send_pli(ctx);
 			}
 		} else if (is_frame_marker_present(frame) == TRUE) {
 			if (is_first_partition_present_in_frame(frame) == TRUE) {
@@ -428,20 +458,12 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					ms_warning("VP8 frame with some partitions missing/invalid.");
 					frame->discarded = TRUE;
 				}
-				if (ctx->avpf_enabled == TRUE) {
-					ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
-				} else {
-					ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
-				}
+				send_sli_if_reference_frame(ctx, frame);
 			} else {
 				/* Drop the frame for which the first partition is missing. */
 				ms_warning("VP8 frame without first partition.");
 				frame->discarded = TRUE;
-				if (ctx->avpf_enabled == TRUE) {
-					ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
-				} else {
-					ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
-				}
+				send_sli_if_reference_frame(ctx, frame);
 			}
 		} else {
 			/* The last packet of the frame has not been received.
@@ -449,11 +471,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			ms_warning("VP8 frame without last packet.");
 			// TODO: Try to get the missing packets at the next iteration of the filter.
 			frame->discarded = TRUE;
-			if (ctx->avpf_enabled == TRUE) {
-				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
-			} else {
-				ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
-			}
+			send_sli_if_reference_frame(ctx, frame);
 		}
 	}
 }

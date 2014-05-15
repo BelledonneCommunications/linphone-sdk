@@ -515,6 +515,31 @@ static int enc_notify_fir(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int enc_notify_sli(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	MSVideoCodecSLI *sli = (MSVideoCodecSLI *)data;
+	bool_t golden_lost = FALSE;
+	bool_t altref_lost = FALSE;
+
+	if ((s->frames_state.golden.picture_id & 0x3F) == sli->picture_id) {
+		/* Last golden frame has been lost. */
+		golden_lost = TRUE;
+	}
+	if ((s->frames_state.altref.picture_id & 0x3F) == sli->picture_id) {
+		/* Last altref frame has been lost. */
+		altref_lost = TRUE;
+	}
+	if ((golden_lost == TRUE) && (altref_lost == TRUE)) {
+		/* Last key frame has been lost. */
+		s->force_keyframe = TRUE;
+	} else if (golden_lost == TRUE) {
+		// TODO: Generate golden frame
+	} else if (altref_lost == TRUE) {
+		// TODO: Generate altref frame
+	}
+	return 0;
+}
+
 static int enc_notify_rpsi(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	MSVideoCodecRPSI *rpsi = (MSVideoCodecRPSI *)data;
@@ -556,6 +581,7 @@ static MSFilterMethod enc_methods[] = {
 	{ MS_VIDEO_ENCODER_REQ_VFU,                enc_req_vfu                },
 	{ MS_VIDEO_ENCODER_NOTIFY_PLI,             enc_notify_pli             },
 	{ MS_VIDEO_ENCODER_NOTIFY_FIR,             enc_notify_fir             },
+	{ MS_VIDEO_ENCODER_NOTIFY_SLI,             enc_notify_sli             },
 	{ MS_VIDEO_ENCODER_NOTIFY_RPSI,            enc_notify_rpsi            },
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, enc_get_configuration_list },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      enc_set_configuration      },
