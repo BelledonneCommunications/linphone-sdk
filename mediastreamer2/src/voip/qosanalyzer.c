@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
 #include "mediastreamer2/bitratecontrol.h"
+#include "qosanalyzer.h"
 
 #include <math.h>
 
@@ -79,32 +80,9 @@ const char *ms_rate_control_action_type_name(MSRateControlActionType t){
 	return "bad action type";
 }
 
-typedef struct rtpstats{
-	uint64_t high_seq_recv; /*highest sequence number received*/
-	float lost_percentage; /*percentage of lost packet since last report*/
-	float int_jitter; /*interrarrival jitter */
-	float rt_prop; /*round trip propagation*/
-}rtpstats_t;
-
 /******************************************************************************/
 /***************************** Simple QoS analyser ****************************/
 /******************************************************************************/
-#define STATS_HISTORY 3
-
-static const float unacceptable_loss_rate=10;
-static const int big_jitter=10; /*ms */
-static const float significant_delay=0.2; /*seconds*/
-
-typedef struct _MSSimpleQosAnalyser{
-	MSQosAnalyser parent;
-	RtpSession *session;
-	int clockrate;
-	rtpstats_t stats[STATS_HISTORY];
-	int curindex;
-	bool_t rt_prop_doubled;
-	bool_t pad[3];
-}MSSimpleQosAnalyser;
-
 static bool_t rt_prop_doubled(rtpstats_t *cur,rtpstats_t *prev){
 	/*ms_message("AudioBitrateController: cur=%f, prev=%f",cur->rt_prop,prev->rt_prop);*/
 	if (cur->rt_prop>=significant_delay && prev->rt_prop>0){
@@ -222,21 +200,6 @@ MSQosAnalyser * ms_simple_qos_analyser_new(RtpSession *session){
 /******************************************************************************/
 /***************************** Stateful QoS analyser ****************************/
 /******************************************************************************/
-
-
-typedef struct _MSStatefulQosAnalyser{
-	MSQosAnalyser parent;
-	RtpSession *session;
-	int clockrate;
-	rtpstats_t stats[STATS_HISTORY];
-	int curindex;
-	bool_t rt_prop_doubled;
-	bool_t pad[3];
-
-	double points[150][3];
-	MSQosAnalyserNetworkState network_state;
-}MSStatefulQosAnalyser;
-
 const char *ms_qos_analyser_network_state_name(MSQosAnalyserNetworkState state){
 	switch(state){
 		case MSQosAnalyserNetworkFine:
@@ -506,9 +469,13 @@ static bool_t stateful_analyser_has_improved(MSQosAnalyser *objbase){
 	return FALSE;
 }
 
-uint32_t ms_qos_analyser_get_network_state(const MSQosAnalyser *objbase){
-	MSStatefulQosAnalyser *obj=(MSStatefulQosAnalyser*)objbase;
-	return obj->network_state;
+MSQosAnalyserNetworkState ms_qos_analyser_get_network_state(const MSQosAnalyser *objbase){
+	if (objbase && sizeof(*objbase) == sizeof(MSStatefulQosAnalyser)){
+		MSStatefulQosAnalyser *obj=(MSStatefulQosAnalyser*)objbase;
+		return obj->network_state;
+	}else{
+		return MSQosAnalyserNetworkFine;
+	}
 }
 
 static MSQosAnalyserDesc stateful_analyser_desc={

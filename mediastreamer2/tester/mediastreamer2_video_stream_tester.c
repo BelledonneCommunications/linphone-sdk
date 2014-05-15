@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>
 #include "CUnit/Basic.h"
 
+#include "qosanalyzer.h"
 
 #ifdef _MSC_VER
 #define unlink _unlink
@@ -128,11 +129,10 @@ static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue
 			}
 
 			if (rb) {
-
 				stream_mgr->latest_stats.loss=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
 				stream_mgr->latest_stats.rtt=rtp_session_get_round_trip_propagation(stream_mgr->stream->ms.sessions.rtp_session);
 
-				/*stream_mgr->latest_stats.network_state=ms_qos_analyser_get_network_state(ms_bitrate_controller_get_qos_analyser(stream_mgr->stream->ms.rc));*/
+				stream_mgr->latest_stats.network_state=ms_qos_analyser_get_network_state(ms_bitrate_controller_get_qos_analyser(stream_mgr->stream->ms.rc));
 				ms_message("mediastreamer2_video_stream_tester: %s RTCP packet: loss=%f, RTT=%f, network_state=%d"
 					,(evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) ? "RECEIVED" : "EMITTED"
 					,stream_mgr->latest_stats.loss
