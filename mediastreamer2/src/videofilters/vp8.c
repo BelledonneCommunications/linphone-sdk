@@ -217,6 +217,18 @@ static vpx_ref_frame_type_t enc_get_type_of_reference_frame_to_generate(EncState
 	return VP8_GOLD_FRAME; /* Send a golden frame after a keyframe. */
 }
 
+static bool_t enc_is_last_reference_frame_of_type(EncState *s, vpx_ref_frame_type_t ft) {
+	switch (ft) {
+		case VP8_GOLD_FRAME:
+			return (s->frames_state.golden.count > s->frames_state.altref.count) ? TRUE : FALSE;
+		case VP8_ALTR_FRAME:
+			return (s->frames_state.altref.count > s->frames_state.golden.count) ? TRUE : FALSE;
+			break;
+		default:
+			return FALSE;
+	}
+}
+
 static void enc_mark_reference_frame_as_sent(EncState *s, vpx_ref_frame_type_t ft) {
 	switch (ft) {
 		case VP8_GOLD_FRAME:
@@ -244,6 +256,17 @@ static void enc_acknowledge_reference_frame(EncState *s, uint16_t picture_id) {
 	}
 }
 
+static bool_t enc_is_reference_frame_acknowledged(EncState *s, vpx_ref_frame_type_t ft) {
+	switch (ft) {
+		case VP8_GOLD_FRAME:
+			return s->frames_state.golden.acknowledged;
+		case VP8_ALTR_FRAME:
+			return s->frames_state.altref.acknowledged;
+		default:
+			return FALSE;
+	}
+}
+
 static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 	vpx_ref_frame_type_t ft = VP8_LAST_FRAME;
 	if (s->force_keyframe == TRUE) {
@@ -262,6 +285,14 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 				case VP8_LAST_FRAME:
 				default:
 					break;
+			}
+		} else {
+			if ((enc_is_last_reference_frame_of_type(s, VP8_GOLD_FRAME) == TRUE)
+				&& (enc_is_reference_frame_acknowledged(s, VP8_GOLD_FRAME) != TRUE)) {
+				*flags |= VP8_EFLAG_NO_REF_GF;
+			} else if ((enc_is_last_reference_frame_of_type(s, VP8_ALTR_FRAME) == TRUE)
+				&& (enc_is_reference_frame_acknowledged(s, VP8_ALTR_FRAME) != TRUE)) {
+				*flags |= VP8_EFLAG_NO_REF_ARF;
 			}
 		}
 	}
