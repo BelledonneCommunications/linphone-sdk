@@ -119,7 +119,7 @@ static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue
 		OrtpEventType evt=ortp_event_get_type(ev);
 		OrtpEventData *evd=ortp_event_get_data(ev);
 
-		if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED || evt == ORTP_EVENT_RTCP_PACKET_EMITTED) {
+		if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED/* || evt == ORTP_EVENT_RTCP_PACKET_EMITTED*/) {
 			const report_block_t *rb=NULL;
 			if (rtcp_is_SR(evd->packet)){
 				rb=rtcp_SR_get_report_block(evd->packet,0);
@@ -223,7 +223,6 @@ static void lossy_network() {
 		ms_message("marielle sent bw=[%f], target was [%d] bw_usage [%f]",marielle_send_bw,max_bw,bw_usage);
 		DEINIT();
 
-
 		CU_ASSERT_IN_RANGE(bw_usage, .9f, 1.f);
 	}
 }
@@ -246,10 +245,47 @@ static void stability_network_detection() {
 	DEINIT();
 }
 
+static void adaptive_vp8() {
+	video_stream_manager_t * marielle, * margaux;
+	int bitrate;
+	int has_get_bitrate;
+/*	INIT();
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0,25, 500, 10);
+	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
+	CU_ASSERT_EQUAL(has_get_bitrate, 0);
+	CU_ASSERT_EQUAL(bitrate, 200000);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_LOSSY);
+	DEINIT();*/
+/*
+	INIT();
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 40000,0, 50, 10);
+	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
+	CU_ASSERT_EQUAL(has_get_bitrate, 0);
+	CU_ASSERT_EQUAL(bitrate, 64000);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_CONGESTED);
+	DEINIT();*/
+
+/*	INIT();
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50, 10);
+	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
+	CU_ASSERT_EQUAL(has_get_bitrate, 0);
+	CU_ASSERT_EQUAL(bitrate, 64000);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_FINE);
+	DEINIT();*/
+
+	INIT();
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50, 100);
+	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
+	CU_ASSERT_EQUAL(has_get_bitrate, 0);
+	CU_ASSERT_EQUAL(bitrate, 64000);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_LOSSY);
+	DEINIT();
+}
+
 static test_t tests[] = {
 	{ "Lossy network", lossy_network },
 	{ "Stability detection", stability_network_detection },
-
+	{ "Adaptive video stream [VP8]", adaptive_vp8 },
 };
 
 test_suite_t video_stream_test_suite = {
