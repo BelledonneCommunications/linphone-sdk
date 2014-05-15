@@ -62,7 +62,13 @@ extern "C" {
 		bool_t pad[3];
 
 		MSQosAnalyserNetworkState network_state;
-		double points[150][3];
+		struct {
+			double bandwidth;
+			double loss_percent;
+			double rtt;
+		} points[150];
+		double avg_network_loss;
+		double congestion_bw;
 	}MSStatefulQosAnalyser;
 #ifdef __cplusplus
 }
