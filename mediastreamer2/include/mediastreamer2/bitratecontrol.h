@@ -41,10 +41,17 @@ enum _MSRateControlActionType{
 	MSRateControlActionDecreasePacketRate,
 	MSRateControlActionIncreaseQuality,
 };
-
 typedef enum _MSRateControlActionType MSRateControlActionType;
-
 const char *ms_rate_control_action_type_name(MSRateControlActionType t);
+
+enum _MSQosAnalyserNetworkState{
+	MSQosAnalyserNetworkFine,
+	MSQosAnalyserNetworkUnstable,
+	MSQosAnalyserNetworkCongested,
+	MSQosAnalyserNetworkLossy,
+};
+typedef enum _MSQosAnalyserNetworkState MSQosAnalyserNetworkState;
+const char *ms_qos_analyser_network_state_name(MSQosAnalyserNetworkState state);
 
 typedef struct _MSRateControlAction{
 	MSRateControlActionType type;
@@ -60,7 +67,7 @@ struct _MSBitrateDriverDesc{
 };
 
 /*
- * The MSBitrateDriver has the responsability to execute rate control actions.
+ * The MSBitrateDriver has the responsibility to execute rate control actions.
  * This is an abstract interface.
 **/
 struct _MSBitrateDriver{
@@ -74,6 +81,7 @@ void ms_bitrate_driver_unref(MSBitrateDriver *obj);
 
 MSBitrateDriver *ms_audio_bitrate_driver_new(RtpSession *session, MSFilter *encoder);
 MSBitrateDriver *ms_av_bitrate_driver_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
+MSBitrateDriver *ms_bandwidth_bitrate_driver_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
 
 typedef struct _MSQosAnalyser MSQosAnalyser;
 typedef struct _MSQosAnalyserDesc MSQosAnalyserDesc;
@@ -94,16 +102,11 @@ struct _MSQosAnalyser{
 	int refcnt;
 };
 
-#define MS_QOS_ANALYSER_NETWORK_FINE 0
-#define MS_QOS_ANALYSER_NETWORK_UNSTABLE 1
-#define MS_QOS_ANALYSER_NETWORK_CONGESTED 2
-#define MS_QOS_ANALYSER_NETWORK_LOSSY 3
 
 MSQosAnalyser * ms_qos_analyser_ref(MSQosAnalyser *obj);
 void ms_qos_analyser_unref(MSQosAnalyser *obj);
 void ms_qos_analyser_suggest_action(MSQosAnalyser *obj, MSRateControlAction *action);
 bool_t ms_qos_analyser_has_improved(MSQosAnalyser *obj);
-uint32_t ms_qos_analyser_get_network_state(const MSQosAnalyser *obj);
 bool_t ms_qos_analyser_process_rtcp(MSQosAnalyser *obj, mblk_t *rtcp);
 
 /**
@@ -111,10 +114,11 @@ bool_t ms_qos_analyser_process_rtcp(MSQosAnalyser *obj, mblk_t *rtcp);
 **/
 MSQosAnalyser * ms_simple_qos_analyser_new(RtpSession *session);
 
+MSQosAnalyser * ms_stateful_qos_analyser_new(RtpSession *session);
 /**
  * The audio/video qos analyser is an implementation of MSQosAnalyser that performs analysis of two audio and video streams.
 **/
-MSQosAnalyser * ms_av_qos_analyser_new(RtpSession *asession, RtpSession *vsession);
+/*MSQosAnalyser * ms_av_qos_analyser_new(RtpSession *asession, RtpSession *vsession);*/
 
 /**
  * The MSBitrateController the overall behavior and state machine of the adaptive rate control system.

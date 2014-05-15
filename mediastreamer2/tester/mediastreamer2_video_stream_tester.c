@@ -131,13 +131,13 @@ static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue
 
 				stream_mgr->latest_stats.loss=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
 				stream_mgr->latest_stats.rtt=rtp_session_get_round_trip_propagation(stream_mgr->stream->ms.sessions.rtp_session);
-				if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED)
-					stream_mgr->latest_stats.network_state=ms_qos_analyser_get_network_state(ms_bitrate_controller_get_qos_analyser(stream_mgr->stream->ms.rc));
-				ms_message("mediastreamer2_video_stream_tester: %s RTCP packet: loss=%f, RTT=%f, network_state=%d",
-					(evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) ? "RECEIVED" : "EMITTED",
-					stream_mgr->latest_stats.loss,
-					stream_mgr->latest_stats.rtt,
-					stream_mgr->latest_stats.network_state);
+
+				/*stream_mgr->latest_stats.network_state=ms_qos_analyser_get_network_state(ms_bitrate_controller_get_qos_analyser(stream_mgr->stream->ms.rc));*/
+				ms_message("mediastreamer2_video_stream_tester: %s RTCP packet: loss=%f, RTT=%f, network_state=%d"
+					,(evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) ? "RECEIVED" : "EMITTED"
+					,stream_mgr->latest_stats.loss
+					,stream_mgr->latest_stats.rtt
+					,stream_mgr->latest_stats.network_state);
 			}
 		}
 		ortp_event_destroy(ev);
@@ -231,17 +231,17 @@ static void stability_network_detection() {
 	video_stream_manager_t * marielle, * margaux;
 	INIT();
 	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500, 10);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_FINE);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkFine);
 	DEINIT();
 
 	INIT();
 	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 50000, 0, 250, 10);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_CONGESTED);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkCongested);
 	DEINIT();
 
 	INIT();
 	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250, 10);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_UNSTABLE);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkUnstable);
 	DEINIT();
 }
 
@@ -254,7 +254,7 @@ static void adaptive_vp8() {
 	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
 	CU_ASSERT_EQUAL(has_get_bitrate, 0);
 	CU_ASSERT_EQUAL(bitrate, 200000);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_LOSSY);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkLossy);
 	DEINIT();*/
 /*
 	INIT();
@@ -262,7 +262,7 @@ static void adaptive_vp8() {
 	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
 	CU_ASSERT_EQUAL(has_get_bitrate, 0);
 	CU_ASSERT_EQUAL(bitrate, 64000);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_CONGESTED);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkCongested);
 	DEINIT();*/
 
 /*	INIT();
@@ -270,7 +270,7 @@ static void adaptive_vp8() {
 	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
 	CU_ASSERT_EQUAL(has_get_bitrate, 0);
 	CU_ASSERT_EQUAL(bitrate, 64000);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_FINE);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkFine);
 	DEINIT();*/
 
 	INIT();
@@ -278,7 +278,7 @@ static void adaptive_vp8() {
 	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
 	CU_ASSERT_EQUAL(has_get_bitrate, 0);
 	CU_ASSERT_EQUAL(bitrate, 64000);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MS_QOS_ANALYSER_NETWORK_LOSSY);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkLossy);
 	DEINIT();
 }
 

@@ -65,21 +65,6 @@ void ms_qos_analyser_unref(MSQosAnalyser *obj){
 	}
 }
 
-#define STATS_HISTORY 3
-
-static const float unacceptable_loss_rate=10;
-static const float significant_delay=0.2; /*seconds*/
-
-
-typedef struct rtpstats{
-	uint64_t high_seq_recv; /*highest sequence number received*/
-	float lost_percentage; /*percentage of lost packet since last report*/
-	float int_jitter; /*interrarrival jitter */
-	float rt_prop; /*round trip propagation*/
-	float send_bw; /*bandwidth consummation*/
-}rtpstats_t;
-
-
 const char *ms_rate_control_action_type_name(MSRateControlActionType t){
 	switch(t){
 		case MSRateControlActionDoNothing:
@@ -94,20 +79,21 @@ const char *ms_rate_control_action_type_name(MSRateControlActionType t){
 	return "bad action type";
 }
 
-static const char *ms_qos_analyser_network_state_name(uint8_t state){
-	switch(state){
-		case MS_QOS_ANALYSER_NETWORK_FINE:
-			return "fine";
-		case MS_QOS_ANALYSER_NETWORK_UNSTABLE:
-			return "unstable";
-		case MS_QOS_ANALYSER_NETWORK_CONGESTED:
-			return "congested";
-		case MS_QOS_ANALYSER_NETWORK_LOSSY:
-			return "lossy";
-	}
-	return "bad state type";
-}
+typedef struct rtpstats{
+	uint64_t high_seq_recv; /*highest sequence number received*/
+	float lost_percentage; /*percentage of lost packet since last report*/
+	float int_jitter; /*interrarrival jitter */
+	float rt_prop; /*round trip propagation*/
+}rtpstats_t;
 
+/******************************************************************************/
+/***************************** Simple QoS analyser ****************************/
+/******************************************************************************/
+#define STATS_HISTORY 3
+
+static const float unacceptable_loss_rate=10;
+static const int big_jitter=10; /*ms */
+static const float significant_delay=0.2; /*seconds*/
 
 typedef struct _MSSimpleQosAnalyser{
 	MSQosAnalyser parent;
@@ -117,12 +103,7 @@ typedef struct _MSSimpleQosAnalyser{
 	int curindex;
 	bool_t rt_prop_doubled;
 	bool_t pad[3];
-
-	double points[150][3];
-	uint8_t network_state;
 }MSSimpleQosAnalyser;
-
-
 
 static bool_t rt_prop_doubled(rtpstats_t *cur,rtpstats_t *prev){
 	/*ms_message("AudioBitrateController: cur=%f, prev=%f",cur->rt_prop,prev->rt_prop);*/
@@ -135,7 +116,7 @@ static bool_t rt_prop_doubled(rtpstats_t *cur,rtpstats_t *prev){
 	return FALSE;
 }
 
-static bool_t rt_prop_increased(MSSimpleQosAnalyser *obj){
+static bool_t simple_rt_prop_increased(MSSimpleQosAnalyser *obj){
 	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
 	rtpstats_t *prev=&obj->stats[(STATS_HISTORY+obj->curindex-1) % STATS_HISTORY];
 
@@ -171,6 +152,141 @@ static bool_t simple_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtcp)
 		cur->int_jitter=1000.0*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
 		cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
 
+		ms_message("MSQosAnalyser: lost_percentage=%f, int_jitter=%f ms, rt_prop=%fsec",
+			cur->lost_percentage,cur->int_jitter,cur->rt_prop);
+	}
+	return rb!=NULL;
+}
+
+static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControlAction *action){
+	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
+	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
+
+	/*big losses and big jitter */
+	if (cur->lost_percentage>=unacceptable_loss_rate && cur->int_jitter>=big_jitter){
+		action->type=MSRateControlActionDecreaseBitrate;
+		action->value=MIN(cur->lost_percentage,50);
+		ms_message("MSQosAnalyser: loss rate unacceptable and big jitter");
+	}else if (simple_rt_prop_increased(obj)){
+		action->type=MSRateControlActionDecreaseBitrate;
+		action->value=20;
+		ms_message("MSQosAnalyser: rt_prop doubled.");
+	}else if (cur->lost_percentage>=unacceptable_loss_rate){
+		/*big loss rate but no jitter, and no big rtp_prop: pure lossy network*/
+		action->type=MSRateControlActionDecreasePacketRate;
+		ms_message("MSQosAnalyser: loss rate unacceptable.");
+	}else{
+		action->type=MSRateControlActionDoNothing;
+		ms_message("MSQosAnalyser: everything is fine.");
+	}
+}
+
+static bool_t simple_analyser_has_improved(MSQosAnalyser *objbase){
+	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
+	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
+	rtpstats_t *prev=&obj->stats[(STATS_HISTORY+obj->curindex-1) % STATS_HISTORY];
+
+	if (prev->lost_percentage>=unacceptable_loss_rate){
+		if (cur->lost_percentage<prev->lost_percentage){
+			ms_message("MSQosAnalyser: lost percentage has improved");
+			return TRUE;
+		}else goto end;
+	}
+	if (obj->rt_prop_doubled && cur->rt_prop<prev->rt_prop){
+		ms_message("MSQosAnalyser: rt prop decreased");
+		obj->rt_prop_doubled=FALSE;
+		return TRUE;
+	}
+
+	end:
+	ms_message("MSQosAnalyser: no improvements.");
+	return FALSE;
+}
+
+static MSQosAnalyserDesc simple_analyser_desc={
+	simple_analyser_process_rtcp,
+	simple_analyser_suggest_action,
+	simple_analyser_has_improved
+};
+
+MSQosAnalyser * ms_simple_qos_analyser_new(RtpSession *session){
+	MSSimpleQosAnalyser *obj=ms_new0(MSSimpleQosAnalyser,1);
+	obj->session=session;
+	obj->parent.desc=&simple_analyser_desc;
+	return (MSQosAnalyser*)obj;
+}
+
+
+
+
+/******************************************************************************/
+/***************************** Stateful QoS analyser ****************************/
+/******************************************************************************/
+
+
+typedef struct _MSStatefulQosAnalyser{
+	MSQosAnalyser parent;
+	RtpSession *session;
+	int clockrate;
+	rtpstats_t stats[STATS_HISTORY];
+	int curindex;
+	bool_t rt_prop_doubled;
+	bool_t pad[3];
+
+	double points[150][3];
+	MSQosAnalyserNetworkState network_state;
+}MSStatefulQosAnalyser;
+
+const char *ms_qos_analyser_network_state_name(MSQosAnalyserNetworkState state){
+	switch(state){
+		case MSQosAnalyserNetworkFine:
+			return "fine";
+		case MSQosAnalyserNetworkUnstable:
+			return "unstable";
+		case MSQosAnalyserNetworkCongested:
+			return "congested";
+		case MSQosAnalyserNetworkLossy:
+			return "lossy";
+	}
+	return "bad state type";
+}
+
+static bool_t stateful_rt_prop_increased(MSStatefulQosAnalyser *obj){
+	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
+	rtpstats_t *prev=&obj->stats[(STATS_HISTORY+obj->curindex-1) % STATS_HISTORY];
+
+	if (rt_prop_doubled(cur,prev)){
+		obj->rt_prop_doubled=TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static bool_t stateful_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtcp){
+	MSStatefulQosAnalyser *obj=(MSStatefulQosAnalyser*)objbase;
+	rtpstats_t *cur;
+	const report_block_t *rb=NULL;
+	if (rtcp_is_SR(rtcp)){
+		rb=rtcp_SR_get_report_block(rtcp,0);
+	}else if (rtcp_is_RR(rtcp)){
+		rb=rtcp_RR_get_report_block(rtcp,0);
+	}
+	if (rb && report_block_get_ssrc(rb)==rtp_session_get_send_ssrc(obj->session)){
+
+		obj->curindex++;
+		cur=&obj->stats[obj->curindex % STATS_HISTORY];
+
+		if (obj->clockrate==0){
+			PayloadType *pt=rtp_profile_get_payload(rtp_session_get_send_profile(obj->session),rtp_session_get_send_payload_type(obj->session));
+			if (pt!=NULL) obj->clockrate=pt->clock_rate;
+			else return FALSE;
+		}
+
+		cur->high_seq_recv=report_block_get_high_ext_seq(rb);
+		cur->lost_percentage=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
+		cur->int_jitter=1000.0*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
+		cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
+
 		obj->points[obj->curindex-1][0]=rtp_session_get_send_bandwidth(obj->session)/1000.0;
 		obj->points[obj->curindex-1][1]=cur->lost_percentage/100.0;
 		obj->points[obj->curindex-1][2]=cur->rt_prop;
@@ -181,7 +297,7 @@ static bool_t simple_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtcp)
 	return rb!=NULL;
 }
 
-static float compute_available_bw(MSSimpleQosAnalyser *obj){
+static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	int i;
 	double x_mean = 0.;
 	double y_mean = 0.;
@@ -199,10 +315,10 @@ static float compute_available_bw(MSSimpleQosAnalyser *obj){
 	bool_t lossy_network = FALSE;
 	double diff, m, b;
 	uint8_t previous_state = obj->network_state;
-	uint8_t unstable_state = MS_QOS_ANALYSER_NETWORK_UNSTABLE;
+	uint8_t unstable_state = MSQosAnalyserNetworkUnstable;
 	double rtt = obj->points[last][2];
 
-	obj->network_state = MS_QOS_ANALYSER_NETWORK_FINE;
+	obj->network_state = MSQosAnalyserNetworkFine;
 
 	if (n <= 1) {
 		mean_bw = obj->points[0][0] * obj->points[0][1];
@@ -240,7 +356,7 @@ static float compute_available_bw(MSSimpleQosAnalyser *obj){
 	printf("sum=%f xmin=%d xmax=%d\n", x_mean, x_min_ind, x_max_ind);
 	diff = (obj->points[x_max_ind][0] - obj->points[x_min_ind][0]) / x_mean;
 
-	if (n > 2 && diff > 0.05) unstable_state = MS_QOS_ANALYSER_NETWORK_LOSSY;
+	if (n > 2 && diff > 0.05) unstable_state = MSQosAnalyserNetworkLossy;
 
 	m = (x_y_sum - x_mean * y_mean * n) /
 		(x_square_sum - x_mean * x_mean * n);
@@ -273,19 +389,19 @@ static float compute_available_bw(MSSimpleQosAnalyser *obj){
 
 			/*if we are below the limitation BW, consider network is now fine*/
 			if (obj->points[last][0] < .95*mean_bw){
-				obj->network_state = MS_QOS_ANALYSER_NETWORK_FINE;
+				obj->network_state = MSQosAnalyserNetworkFine;
 			}else{
-				obj->network_state = MS_QOS_ANALYSER_NETWORK_CONGESTED;
+				obj->network_state = MSQosAnalyserNetworkCongested;
 			}
 		}
 	}
 
-	if (obj->network_state == MS_QOS_ANALYSER_NETWORK_FINE){
+	if (obj->network_state == MSQosAnalyserNetworkFine){
 		if (lossy_network) {
 			/*since congestion may loss a high number of packets, stay in congested network while
 			this is not a bit more stable*/
-			if (previous_state == MS_QOS_ANALYSER_NETWORK_CONGESTED) {
-				obj->network_state = MS_QOS_ANALYSER_NETWORK_CONGESTED;
+			if (previous_state == MSQosAnalyserNetworkCongested) {
+				obj->network_state = MSQosAnalyserNetworkCongested;
 
 				obj->network_state = unstable_state; // !!!
 			} else {
@@ -293,15 +409,15 @@ static float compute_available_bw(MSSimpleQosAnalyser *obj){
 			}
 		/*another hint for a bad network: packets drop mean difference is high*/
 		} else if (mean_diff > .1) {
-			obj->network_state = (rtt > .5) ? MS_QOS_ANALYSER_NETWORK_CONGESTED : unstable_state;
+			obj->network_state = (rtt > .5) ? MSQosAnalyserNetworkCongested : unstable_state;
 		}
 	}
 
-	if (obj->network_state == MS_QOS_ANALYSER_NETWORK_LOSSY){
+	if (obj->network_state == MSQosAnalyserNetworkLossy){
 		if (obj->points[x_min_ind][0] / mean_bw > 1.){
 			printf("Network was suggested lossy, but since we did not try its lower bound capability, "
 				"we will consider this is congestion for yet\n");
-			obj->network_state = MS_QOS_ANALYSER_NETWORK_CONGESTED;
+			obj->network_state = MSQosAnalyserNetworkCongested;
 		}
 	}
 
@@ -310,7 +426,7 @@ static float compute_available_bw(MSSimpleQosAnalyser *obj){
 		printf("BW should be %f\n", mean_bw);
 	}
 	if (diff > 0.05 && b < -0.05){
-		if (obj->network_state != MS_QOS_ANALYSER_NETWORK_CONGESTED){
+		if (obj->network_state != MSQosAnalyserNetworkCongested){
 			printf("Even if network state is now %s, the congestion limit might be at %f\n",
 				ms_qos_analyser_network_state_name(obj->network_state), mean_bw);
 		}
@@ -318,7 +434,7 @@ static float compute_available_bw(MSSimpleQosAnalyser *obj){
 	printf("%f\n", y_mean);
 	printf("\t\tI think it is a %s network\n", ms_qos_analyser_network_state_name(obj->network_state));
 
-	if (obj->network_state == MS_QOS_ANALYSER_NETWORK_LOSSY){
+	if (obj->network_state == MSQosAnalyserNetworkLossy){
 		//hack
 		if (obj->points[last][0]>x_mean && obj->points[last][1]>1.5*y_mean){
 			printf("lossy network and congestion probably too!\n");
@@ -330,18 +446,18 @@ static float compute_available_bw(MSSimpleQosAnalyser *obj){
 	return mean_bw;
 }
 
-static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControlAction *action){
-	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
+static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControlAction *action){
+	MSStatefulQosAnalyser *obj=(MSStatefulQosAnalyser*)objbase;
 	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
 
 	float bw = /*0; if (FALSE)*/ compute_available_bw(obj);
 	float curbw = obj->points[obj->curindex-1][0];
-	if (obj->network_state == MS_QOS_ANALYSER_NETWORK_CONGESTED){
+	if (obj->network_state == MSQosAnalyserNetworkCongested){
 		action->type=MSRateControlActionDecreaseBitrate;
 		action->value=MAX(10,3*(100. - bw * 100. / curbw));
 		ms_message("MSQosAnalyser: congested network - decrease %%%d", action->value);
-	} else if (obj->network_state == MS_QOS_ANALYSER_NETWORK_LOSSY){
-/*		if (curbw > bw){
+	} else if (obj->network_state == MSQosAnalyserNetworkLossy){
+	/*if (curbw > bw){
 			action->type=MSRateControlActionDecreaseBitrate;
 			action->value=MAX(0,3*(100. - bw * 100. / curbw));
 			ms_message("MSQosAnalyser: lossy network - decrease quality %%%d", action->value);
@@ -356,9 +472,9 @@ static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControl
 	/*big losses and big jitter */
 	if (cur->lost_percentage>=unacceptable_loss_rate){
 		action->type=MSRateControlActionDecreaseBitrate;
-		action->value=MIN(cur->lost_percentage,50);
-		ms_message("MSQosAnalyser: loss rate unacceptable");
-	}else if (rt_prop_increased(obj)){
+		action->value=cur->lost_percentage ;//MIN(cur->lost_percentage,50);
+		ms_message("MSQosAnalyser: loss rate unacceptable and big jitter");
+	}else if (stateful_rt_prop_increased(obj)){
 		action->type=MSRateControlActionDecreaseBitrate;
 		action->value=20;
 		ms_message("MSQosAnalyser: rt_prop doubled.");
@@ -368,8 +484,8 @@ static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControl
 	}
 }
 
-static bool_t simple_analyser_has_improved(MSQosAnalyser *objbase){
-	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
+static bool_t stateful_analyser_has_improved(MSQosAnalyser *objbase){
+	MSStatefulQosAnalyser *obj=(MSStatefulQosAnalyser*)objbase;
 	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
 	rtpstats_t *prev=&obj->stats[(STATS_HISTORY+obj->curindex-1) % STATS_HISTORY];
 
@@ -385,26 +501,27 @@ static bool_t simple_analyser_has_improved(MSQosAnalyser *objbase){
 		return TRUE;
 	}
 
-end:
+	end:
 	ms_message("MSQosAnalyser: no improvements.");
 	return FALSE;
 }
 
 uint32_t ms_qos_analyser_get_network_state(const MSQosAnalyser *objbase){
-	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
+	MSStatefulQosAnalyser *obj=(MSStatefulQosAnalyser*)objbase;
 	return obj->network_state;
 }
 
-static MSQosAnalyserDesc simple_analyser_desc={
-	simple_analyser_process_rtcp,
-	simple_analyser_suggest_action,
-	simple_analyser_has_improved
+static MSQosAnalyserDesc stateful_analyser_desc={
+	stateful_analyser_process_rtcp,
+	stateful_analyser_suggest_action,
+	stateful_analyser_has_improved
 };
 
-MSQosAnalyser * ms_simple_qos_analyser_new(RtpSession *session){
-	MSSimpleQosAnalyser *obj=ms_new0(MSSimpleQosAnalyser,1);
+MSQosAnalyser * ms_stateful_qos_analyser_new(RtpSession *session){
+	MSStatefulQosAnalyser *obj=ms_new0(MSStatefulQosAnalyser,1);
 	obj->session=session;
-	obj->parent.desc=&simple_analyser_desc;
+	obj->parent.desc=&stateful_analyser_desc;
 	return (MSQosAnalyser*)obj;
 }
+
 
