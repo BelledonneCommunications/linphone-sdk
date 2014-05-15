@@ -94,6 +94,20 @@ const char *ms_rate_control_action_type_name(MSRateControlActionType t){
 	return "bad action type";
 }
 
+static const char *ms_qos_analyser_network_state_name(uint8_t state){
+	switch(state){
+		case MS_QOS_ANALYSER_NETWORK_FINE:
+			return "fine";
+		case MS_QOS_ANALYSER_NETWORK_UNSTABLE:
+			return "unstable";
+		case MS_QOS_ANALYSER_NETWORK_CONGESTED:
+			return "congested";
+		case MS_QOS_ANALYSER_NETWORK_LOSSY:
+			return "lossy";
+	}
+	return "bad state type";
+}
+
 
 typedef struct _MSSimpleQosAnalyser{
 	MSQosAnalyser parent;
@@ -160,14 +174,14 @@ static bool_t simple_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtcp)
 		obj->points[obj->curindex-1][0]=rtp_session_get_send_bandwidth(obj->session)/1000.0;
 		obj->points[obj->curindex-1][1]=cur->lost_percentage/100.0;
 		obj->points[obj->curindex-1][2]=cur->rt_prop;
-		ms_message("MSQosAnalyser: lost_percentage=%f, int_jitter=%f ms, rt_prop=%f sec, send_bw=%f",cur->lost_percentage,cur->int_jitter,cur->rt_prop,obj->points[obj->curindex][0]);
+		ms_message("MSQosAnalyser: lost_percentage=%f, int_jitter=%f ms, rt_prop=%f sec, send_bw=%f",cur->lost_percentage,cur->int_jitter,cur->rt_prop,obj->points[obj->curindex-1][0]);
 
 		if (obj->curindex>2) printf("one more %d: %f %f\n", obj->curindex-1, obj->points[obj->curindex-1][0], obj->points[obj->curindex-1][1]);
 	}
 	return rb!=NULL;
 }
 
-static void compute_available_bw(MSSimpleQosAnalyser *obj){
+static float compute_available_bw(MSSimpleQosAnalyser *obj){
 	int i;
 	double x_mean = 0.;
 	double y_mean = 0.;
@@ -180,18 +194,30 @@ static void compute_available_bw(MSSimpleQosAnalyser *obj){
 	double mean_diff = 0.;
 	int x_min_ind = f;
 	int x_max_ind = f;
+	int x_mean_inf_ind = f;
+	int x_mean_sup_ind = f;
 	bool_t lossy_network = FALSE;
 	double diff, m, b;
 	uint8_t previous_state = obj->network_state;
+	uint8_t unstable_state = MS_QOS_ANALYSER_NETWORK_UNSTABLE;
+	double rtt = obj->points[last][2];
 
 	obj->network_state = MS_QOS_ANALYSER_NETWORK_FINE;
 
 	if (n <= 1) {
-		printf("Estimated BW is %f kbit/s\n", obj->points[0][0] * obj->points[0][1]);
+		mean_bw = obj->points[0][0] * obj->points[0][1];
+		printf("Estimated BW is %f kbit/s\n", mean_bw);
 
-		return;
+		return mean_bw;
 	}
 
+	if (obj->points[f][0] < obj->points[last][0]){
+		x_mean_inf_ind=f;
+		x_mean_sup_ind=last;
+	}else{
+		x_mean_inf_ind=last;
+		x_mean_sup_ind=f;
+	}
 	for (i = f; i <= last; i++) {
 		double x = obj->points[i][0];
 		double y = obj->points[i][1];
@@ -211,9 +237,10 @@ static void compute_available_bw(MSSimpleQosAnalyser *obj){
 	mean_bw /= n;
 	printf("\tEstimated BW by avg is %f kbit/s\n", mean_bw);
 
-
 	printf("sum=%f xmin=%d xmax=%d\n", x_mean, x_min_ind, x_max_ind);
 	diff = (obj->points[x_max_ind][0] - obj->points[x_min_ind][0]) / x_mean;
+
+	if (n > 2 && diff > 0.05) unstable_state = MS_QOS_ANALYSER_NETWORK_LOSSY;
 
 	m = (x_y_sum - x_mean * y_mean * n) /
 		(x_square_sum - x_mean * x_mean * n);
@@ -224,53 +251,107 @@ static void compute_available_bw(MSSimpleQosAnalyser *obj){
 		double x = obj->points[i][0];
 		double y = obj->points[i][1];
 
+		if (y > y_mean && x < obj->points[x_mean_sup_ind][0] && x > obj->points[x_mean_inf_ind][0]) x_mean_sup_ind = i;
+		else if (y < y_mean && x > obj->points[x_mean_inf_ind][0] && x < obj->points[x_mean_sup_ind][0]) x_mean_inf_ind = i;
+
 		mean_diff += fabs(m * x + b - y);
 	}
 	mean_diff /= n;
+	lossy_network |= (y_mean > 0.1);
 
+	printf("x_mean_inf=%d x_mean_sup=%d\n",x_mean_inf_ind,x_mean_sup_ind);
 	/*to compute estimated BW, we need a minimum x-axis interval size*/
 	if (diff > 0.05) {
 		double avail_bw = (fabs(m) > 0.0001f) ? -b/m : mean_bw;
 		printf("\tEstimated BW by interpolation is %f kbit/s:\ty=%f x + %f\n", avail_bw, m, b);
 
-		lossy_network |= (m < .005f && b > 0.05);
+		if (b > 0.1){
+			lossy_network = TRUE;
+		/*}else if (m > 0.05){*/
+		}else if ((obj->points[x_max_ind][1] - obj->points[x_min_ind][1]) / y_mean > 0.1){
+			lossy_network = FALSE;
 
-		if (!lossy_network && (m>.005f||b>0.05)){
-			obj->network_state = MS_QOS_ANALYSER_NETWORK_CONGESTED;
+			/*if we are below the limitation BW, consider network is now fine*/
+			if (obj->points[last][0] < .95*mean_bw){
+				obj->network_state = MS_QOS_ANALYSER_NETWORK_FINE;
+			}else{
+				obj->network_state = MS_QOS_ANALYSER_NETWORK_CONGESTED;
+			}
 		}
-
 	}
 
-	lossy_network |= (y_mean > 0.05);
+	if (obj->network_state == MS_QOS_ANALYSER_NETWORK_FINE){
+		if (lossy_network) {
+			/*since congestion may loss a high number of packets, stay in congested network while
+			this is not a bit more stable*/
+			if (previous_state == MS_QOS_ANALYSER_NETWORK_CONGESTED) {
+				obj->network_state = MS_QOS_ANALYSER_NETWORK_CONGESTED;
 
-	if (lossy_network) {
-		/*since congestion may loss a high number of packets, stay in congested network while
-		this is not a bit more stable*/
-		if (previous_state == MS_QOS_ANALYSER_NETWORK_CONGESTED) {
-			obj->network_state = MS_QOS_ANALYSER_NETWORK_CONGESTED;
-		} else {
-			obj->network_state = MS_QOS_ANALYSER_NETWORK_UNSTABLE;
+				obj->network_state = unstable_state; // !!!
+			} else {
+				obj->network_state = unstable_state;
+			}
+		/*another hint for a bad network: packets drop mean difference is high*/
+		} else if (mean_diff > .1) {
+			obj->network_state = (rtt > .5) ? MS_QOS_ANALYSER_NETWORK_CONGESTED : unstable_state;
 		}
-	/*another hint for a bad network: packets drop mean difference is high*/
-	} else if (mean_diff > .1) {
-		double rtt = obj->points[last][2];
-		obj->network_state = (rtt > .5) ? MS_QOS_ANALYSER_NETWORK_CONGESTED : MS_QOS_ANALYSER_NETWORK_UNSTABLE;
 	}
 
-	if (obj->network_state == MS_QOS_ANALYSER_NETWORK_CONGESTED)
-		printf("\t\tI think it is a %s network\n", "C-O-N-G-E-S-T-E-D");
-	else if (obj->network_state == MS_QOS_ANALYSER_NETWORK_UNSTABLE)
-		printf("\t\tI think it is a %s network\n", "UNSTABLE");
-	else
-		printf("\t\tI think it is a %s network\n", "stable");
+	if (obj->network_state == MS_QOS_ANALYSER_NETWORK_LOSSY){
+		if (obj->points[x_min_ind][0] / mean_bw > 1.){
+			printf("Network was suggested lossy, but since we did not try its lower bound capability, "
+				"we will consider this is congestion for yet\n");
+			obj->network_state = MS_QOS_ANALYSER_NETWORK_CONGESTED;
+		}
+	}
 
+	/*printf("mean_diff=%f y_mean=%f\n", mean_diff, y_mean);*/
+	if (y_mean > 0.05){
+		printf("BW should be %f\n", mean_bw);
+	}
+	if (diff > 0.05 && b < -0.05){
+		if (obj->network_state != MS_QOS_ANALYSER_NETWORK_CONGESTED){
+			printf("Even if network state is now %s, the congestion limit might be at %f\n",
+				ms_qos_analyser_network_state_name(obj->network_state), mean_bw);
+		}
+	}
+	printf("%f\n", y_mean);
+	printf("\t\tI think it is a %s network\n", ms_qos_analyser_network_state_name(obj->network_state));
+
+	if (obj->network_state == MS_QOS_ANALYSER_NETWORK_LOSSY){
+		//hack
+		if (obj->points[last][0]>x_mean && obj->points[last][1]>1.5*y_mean){
+			printf("lossy network and congestion probably too!\n");
+			return (1 - (obj->points[x_max_ind][1] - y_mean)) * obj->points[x_max_ind][0];
+		}
+		printf("Average error %f %%\n", y_mean);
+		return obj->points[last][0] * 2;
+	}
+	return mean_bw;
 }
 
 static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControlAction *action){
 	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
 	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
 
-	compute_available_bw(obj);
+	float bw = /*0; if (FALSE)*/ compute_available_bw(obj);
+	float curbw = obj->points[obj->curindex-1][0];
+	if (obj->network_state == MS_QOS_ANALYSER_NETWORK_CONGESTED){
+		action->type=MSRateControlActionDecreaseBitrate;
+		action->value=MAX(10,3*(100. - bw * 100. / curbw));
+		ms_message("MSQosAnalyser: congested network - decrease %%%d", action->value);
+	} else if (obj->network_state == MS_QOS_ANALYSER_NETWORK_LOSSY){
+/*		if (curbw > bw){
+			action->type=MSRateControlActionDecreaseBitrate;
+			action->value=MAX(0,3*(100. - bw * 100. / curbw));
+			ms_message("MSQosAnalyser: lossy network - decrease quality %%%d", action->value);
+		}else{*/
+			action->type=MSRateControlActionIncreaseQuality;
+			action->value=MAX(0,curbw * 100. / bw);
+			/*action->value=50;*/
+			ms_message("MSQosAnalyser: lossy network - increase quality %%%d", action->value);
+		/*}*/
+	}
 
 	/*big losses and big jitter */
 	if (cur->lost_percentage>=unacceptable_loss_rate){

@@ -97,6 +97,7 @@ struct _MSQosAnalyser{
 #define MS_QOS_ANALYSER_NETWORK_FINE 0
 #define MS_QOS_ANALYSER_NETWORK_UNSTABLE 1
 #define MS_QOS_ANALYSER_NETWORK_CONGESTED 2
+#define MS_QOS_ANALYSER_NETWORK_LOSSY 3
 
 MSQosAnalyser * ms_qos_analyser_ref(MSQosAnalyser *obj);
 void ms_qos_analyser_unref(MSQosAnalyser *obj);
