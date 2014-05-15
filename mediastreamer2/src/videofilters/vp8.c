@@ -74,12 +74,25 @@ static const MSVideoConfiguration multicore_vp8_conf_list[] = {
 #endif
 };
 
+typedef struct EncFrameState {
+	vpx_codec_pts_t count;
+	uint16_t picture_id;
+	bool_t acknowledged;
+} EncFrameState;
+
+typedef struct EncFramesState {
+	EncFrameState golden;
+	EncFrameState altref;
+	uint16_t ref_frames_interval;
+} EncFramesState;
+
 typedef struct EncState {
 	vpx_codec_ctx_t codec;
 	vpx_codec_enc_cfg_t cfg;
 	vpx_codec_pts_t frame_count;
 	vpx_codec_iface_t *iface;
 	vpx_codec_flags_t flags;
+	EncFramesState frames_state;
 	Vp8RtpFmtPackerCtx packer;
 	MSVideoStarter starter;
 	MSVideoConfiguration vconf;
@@ -132,8 +145,13 @@ static void enc_preprocess(MSFilter *f) {
 		ms_error("Failed to get config: %s", vpx_codec_err_to_string(res));
 		return;
 	}
-	/* encoder automatically places keyframes */
-	s->cfg.kf_mode = VPX_KF_AUTO;
+	if (s->avpf_enabled == TRUE) {
+		s->cfg.kf_mode = VPX_KF_DISABLED;
+		s->frames_state.ref_frames_interval = (uint16_t)(s->vconf.fps * 2); /* 1 reference frame each 5s. */
+	} else {
+		s->cfg.kf_mode = VPX_KF_AUTO; /* encoder automatically places keyframes */
+		s->cfg.kf_max_dist = (unsigned int)(s->vconf.fps * 10); /* 1 keyframe each 10s. */
+	}
 	s->cfg.rc_target_bitrate = ((float)s->vconf.required_bitrate) * 0.92 / 1024.0; //0.9=take into account IP/UDP/RTP overhead, in average.
 	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
 	s->cfg.g_timebase.num = 1;
@@ -153,7 +171,6 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.g_w = s->vconf.vsize.width;
 	s->cfg.g_h = s->vconf.vsize.height;
 	s->cfg.g_timebase.den = s->vconf.fps;
-	s->cfg.kf_max_dist = (unsigned int)(s->vconf.fps * 10); /* 1 keyframe each 10s. */
 
 	/* Initialize codec */
 	res =  vpx_codec_enc_init(&s->codec, s->iface, &s->cfg, s->flags);
@@ -176,6 +193,62 @@ static void enc_preprocess(MSFilter *f) {
 		ms_video_starter_init(&s->starter);
 	}
 	s->ready = TRUE;
+}
+
+static vpx_codec_pts_t enc_last_reference_frame_count(EncState *s) {
+	return MAX(s->frames_state.golden.count, s->frames_state.altref.count);
+}
+
+static bool_t enc_should_generate_reference_frame(EncState *s) {
+	return ((s->frame_count - enc_last_reference_frame_count(s)) == s->frames_state.ref_frames_interval) ? TRUE : FALSE;
+}
+
+static vpx_ref_frame_type_t enc_get_type_of_reference_frame_to_generate(EncState *s) {
+	if (s->frames_state.golden.count < s->frames_state.altref.count)
+		return VP8_GOLD_FRAME;
+	if (s->frames_state.golden.count > s->frames_state.altref.count)
+		return VP8_ALTR_FRAME;
+	return VP8_GOLD_FRAME; /* Send a golden frame after a keyframe. */
+}
+
+static void enc_mark_reference_frame_as_sent(EncState *s, vpx_ref_frame_type_t ft) {
+	switch (ft) {
+		case VP8_GOLD_FRAME:
+			s->frames_state.golden.count = s->frame_count;
+			s->frames_state.golden.picture_id = s->picture_id;
+			s->frames_state.golden.acknowledged = FALSE;
+			break;
+		case VP8_ALTR_FRAME:
+			s->frames_state.altref.count = s->frame_count;
+			s->frames_state.altref.picture_id = s->picture_id;
+			s->frames_state.altref.acknowledged = FALSE;
+			break;
+		default:
+			break;
+	}
+}
+
+static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
+	vpx_ref_frame_type_t ft = VP8_LAST_FRAME;
+	if (s->force_keyframe == TRUE) {
+		*flags = VPX_EFLAG_FORCE_KF;
+	} else {
+		*flags = VP8_EFLAG_NO_REF_LAST;
+		if (enc_should_generate_reference_frame(s) == TRUE) {
+			ft = enc_get_type_of_reference_frame_to_generate(s);
+			switch (ft) {
+				case VP8_GOLD_FRAME:
+					*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF);
+					break;
+				case VP8_ALTR_FRAME:
+					*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF);
+					break;
+				case VP8_LAST_FRAME:
+				default:
+					break;
+			}
+		}
+	}
 }
 
 static void enc_process(MSFilter *f) {
@@ -209,8 +282,11 @@ static void enc_process(MSFilter *f) {
 		if (s->force_keyframe == TRUE) {
 			ms_message("Forcing vp8 key frame for filter [%p]", f);
 			flags = VPX_EFLAG_FORCE_KF;
-			s->force_keyframe = FALSE;
+		} else if (s->avpf_enabled == TRUE) {
+			if (s->frame_count == 0) s->force_keyframe = TRUE;
+			enc_fill_encoder_flags(s, &flags);
 		}
+		ms_error("VP8 encoder flags: 0x%x", flags);
 
 		err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, VPX_DL_REALTIME);
 		if (err) {
@@ -220,12 +296,20 @@ static void enc_process(MSFilter *f) {
 			const vpx_codec_cx_pkt_t *pkt;
 			MSList *list = NULL;
 
-			s->frame_count++;
-			if ((s->avpf_enabled != TRUE) && (s->frame_count == 1)) {
-				ms_video_starter_first_frame(&s->starter, f->ticker->time);
+			/* Update the frames state. */
+			if (flags & VPX_EFLAG_FORCE_KF) {
+				enc_mark_reference_frame_as_sent(s, VP8_GOLD_FRAME);
+				enc_mark_reference_frame_as_sent(s, VP8_ALTR_FRAME);
+				s->force_keyframe = FALSE;
 			}
-			s->picture_id++;
-			if (s->picture_id == 0x80) s->picture_id = 0;
+			if (flags & VP8_EFLAG_FORCE_GF) {
+				enc_mark_reference_frame_as_sent(s, VP8_GOLD_FRAME);
+			}
+			if (flags & VP8_EFLAG_FORCE_ARF) {
+				enc_mark_reference_frame_as_sent(s, VP8_ALTR_FRAME);
+			}
+
+			/* Pack the encoded frame. */
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
 				if ((pkt->kind == VPX_CODEC_CX_FRAME_PKT) && (pkt->data.frame.sz > 0)) {
 					Vp8RtpFmtPacket *packet = ms_new0(Vp8RtpFmtPacket, 1);
@@ -235,8 +319,11 @@ static void enc_process(MSFilter *f) {
 					mblk_set_timestamp_info(packet->m, timestamp);
 					packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
 					packet->pd->start_of_partition = TRUE;
-					if (pkt->data.frame.flags & VPX_FRAME_IS_DROPPABLE) {
-						packet->pd->non_reference_frame = TRUE;
+					ms_error("VP8 encoded packet flags: 0x%x", pkt->data.frame.flags);
+					packet->pd->non_reference_frame = TRUE;
+					if ((s->avpf_enabled == TRUE)
+						&& ((flags & VPX_EFLAG_FORCE_KF) || (flags & VP8_EFLAG_FORCE_GF) || (flags & VP8_EFLAG_FORCE_ARF))) {
+						packet->pd->non_reference_frame = FALSE;
 					}
 					packet->pd->extended_control_bits_present = TRUE;
 					packet->pd->pictureid_present = TRUE;
@@ -254,6 +341,16 @@ static void enc_process(MSFilter *f) {
 				}
 			}
 			vp8rtpfmt_packer_process(&s->packer, list, f->outputs[0]);
+
+			/* Handle video starter if AVPF is not enabled. */
+			s->frame_count++;
+			if ((s->avpf_enabled != TRUE) && (s->frame_count == 1)) {
+				ms_video_starter_first_frame(&s->starter, f->ticker->time);
+			}
+
+			/* Increment the pictureID. */
+			s->picture_id++;
+			if (s->picture_id == 0x80) s->picture_id = 0;
 		}
 		freemsg(im);
 	}
@@ -548,6 +645,11 @@ static void dec_process(MSFilter *f) {
 	/* browse decoded frames */
 	while ((img = vpx_codec_get_frame(&s->codec, &iter))) {
 		int i, j;
+
+		int update = 0;
+		if (vpx_codec_control(&s->codec, VP8D_GET_LAST_REF_UPDATES, &update) == 0) {
+			ms_message("VP8 decode: %s%s%s", (update & VP8_LAST_FRAME) ? "L" : " ", (update & VP8_GOLD_FRAME) ? "G" : " ", (update & VP8_ALTR_FRAME) ? "A" : " ");
+		}
 
 		if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
 			if (s->yuv_msg) freemsg(s->yuv_msg);
