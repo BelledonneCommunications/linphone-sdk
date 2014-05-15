@@ -100,6 +100,11 @@ struct _MSQosAnalyserDesc{
 struct _MSQosAnalyser{
 	MSQosAnalyserDesc *desc;
 	int refcnt;
+
+	enum {
+		Simple,
+		Stateful,
+	} type;
 };
 
 
@@ -185,6 +190,7 @@ MSBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, MSFilt
 **/
 MSBitrateController *ms_av_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
 
+MSBitrateController *ms_bandwidth_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
 #ifdef __cplusplus
 }
 #endif

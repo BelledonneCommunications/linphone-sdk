@@ -380,7 +380,7 @@ static void configure_video_source(VideoStream *stream){
 		stream->ms.rc=NULL;
 	}
 	if (stream->ms.use_rc){
-		stream->ms.rc=ms_av_bitrate_controller_new(NULL,NULL,stream->ms.sessions.rtp_session,stream->ms.encoder);
+		stream->ms.rc=ms_bandwidth_bitrate_controller_new(NULL,NULL,stream->ms.sessions.rtp_session,stream->ms.encoder);
 	}
 }
 

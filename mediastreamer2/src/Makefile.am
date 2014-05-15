@@ -65,7 +65,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/qualityindicator.c \
 					voip/audioconference.c \
 					voip/bitratedriver.c \
-					voip/qosanalyzer.c \
+					voip/qosanalyzer.c voip/qosanalyzer.h \
 					voip/bitratecontrol.c
 else
 libmediastreamer_base_la_SOURCES+=	ortp-deps/logging.c \

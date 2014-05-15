@@ -64,8 +64,6 @@ extern "C" {
 		MSQosAnalyserNetworkState network_state;
 		double points[150][3];
 	}MSStatefulQosAnalyser;
-
-	MSQosAnalyserNetworkState ms_qos_analyser_get_network_state(const MSQosAnalyser *objbase);
 #ifdef __cplusplus
 }
 #endif

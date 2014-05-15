@@ -191,6 +191,7 @@ MSQosAnalyser * ms_simple_qos_analyser_new(RtpSession *session){
 	MSSimpleQosAnalyser *obj=ms_new0(MSSimpleQosAnalyser,1);
 	obj->session=session;
 	obj->parent.desc=&simple_analyser_desc;
+	obj->parent.type=Simple;
 	return (MSQosAnalyser*)obj;
 }
 
@@ -359,7 +360,10 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 		}
 	}
 
+
 	if (obj->network_state == MSQosAnalyserNetworkFine){
+		lossy_network |= (y_mean > .1 && obj->points[last][1] > y_mean / 2.);
+
 		if (lossy_network) {
 			/*since congestion may loss a high number of packets, stay in congested network while
 			this is not a bit more stable*/
@@ -469,15 +473,6 @@ static bool_t stateful_analyser_has_improved(MSQosAnalyser *objbase){
 	return FALSE;
 }
 
-MSQosAnalyserNetworkState ms_qos_analyser_get_network_state(const MSQosAnalyser *objbase){
-	if (objbase && sizeof(*objbase) == sizeof(MSStatefulQosAnalyser)){
-		MSStatefulQosAnalyser *obj=(MSStatefulQosAnalyser*)objbase;
-		return obj->network_state;
-	}else{
-		return MSQosAnalyserNetworkFine;
-	}
-}
-
 static MSQosAnalyserDesc stateful_analyser_desc={
 	stateful_analyser_process_rtcp,
 	stateful_analyser_suggest_action,
@@ -488,6 +483,7 @@ MSQosAnalyser * ms_stateful_qos_analyser_new(RtpSession *session){
 	MSStatefulQosAnalyser *obj=ms_new0(MSStatefulQosAnalyser,1);
 	obj->session=session;
 	obj->parent.desc=&stateful_analyser_desc;
+	obj->parent.type=Stateful;
 	return (MSQosAnalyser*)obj;
 }
 

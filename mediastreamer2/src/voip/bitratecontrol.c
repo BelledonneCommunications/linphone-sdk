@@ -147,4 +147,9 @@ MSBitrateController *ms_av_bitrate_controller_new(RtpSession *asession, MSFilter
 	                                 ms_av_bitrate_driver_new(asession, aenc, vsession, venc));
 }
 
+MSBitrateController *ms_bandwidth_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc){
+	return ms_bitrate_controller_new(
+	                                 ms_stateful_qos_analyser_new(vsession),
+	                                 ms_bandwidth_bitrate_driver_new(aenc,venc));
+}
 

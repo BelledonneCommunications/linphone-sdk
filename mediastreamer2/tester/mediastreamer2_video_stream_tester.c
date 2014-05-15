@@ -75,7 +75,7 @@ typedef struct _video_stream_manager_t {
 	struct {
 		float loss;
 		float rtt;
-		uint8_t network_state;
+		MSQosAnalyserNetworkState network_state;
 	} latest_stats;
 } video_stream_manager_t ;
 static video_stream_manager_t * video_stream_manager_new() {
@@ -129,10 +129,15 @@ static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue
 			}
 
 			if (rb) {
+				const MSQosAnalyser *analyser=ms_bitrate_controller_get_qos_analyser(stream_mgr->stream->ms.rc);
+				if (analyser->type==Stateful){
+					stream_mgr->latest_stats.network_state=
+						((const MSStatefulQosAnalyser*)analyser)->network_state;
+				}
+
 				stream_mgr->latest_stats.loss=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
 				stream_mgr->latest_stats.rtt=rtp_session_get_round_trip_propagation(stream_mgr->stream->ms.sessions.rtp_session);
 
-				stream_mgr->latest_stats.network_state=ms_qos_analyser_get_network_state(ms_bitrate_controller_get_qos_analyser(stream_mgr->stream->ms.rc));
 				ms_message("mediastreamer2_video_stream_tester: %s RTCP packet: loss=%f, RTT=%f, network_state=%d"
 					,(evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) ? "RECEIVED" : "EMITTED"
 					,stream_mgr->latest_stats.loss
@@ -241,7 +246,7 @@ static void stability_network_detection() {
 
 	INIT();
 	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250, 10);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkUnstable);
+	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkLossy);
 	DEINIT();
 }
 
