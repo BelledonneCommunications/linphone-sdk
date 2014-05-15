@@ -81,9 +81,10 @@ static void state_machine(MSBitrateController *obj){
 		break;
 		case Probing:
 			obj->stable_count=0;
-			if (ms_qos_analyser_has_improved(obj->analyser)){
+/*			if (ms_qos_analyser_has_improved(obj->analyser)){
 				obj->state=Stable;
-			}else{
+			}else{*/
+				{
 				ms_qos_analyser_suggest_action(obj->analyser,&action);
 				if (action.type!=MSRateControlActionDoNothing){
 					execute_action(obj,&action);
