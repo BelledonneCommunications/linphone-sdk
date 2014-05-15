@@ -25,6 +25,8 @@
 #include "mediastreamer2/videostarter.h"
 #include "vp8rtpfmt.h"
 
+#define PICTURE_ID_ON_16_BITS
+
 #define VPX_CODEC_DISABLE_COMPAT 1
 #include <vpx/vpx_encoder.h>
 #include <vpx/vp8cx.h>
@@ -98,7 +100,7 @@ typedef struct EncState {
 	MSVideoConfiguration vconf;
 	const MSVideoConfiguration *vconf_list;
 	int last_fir_seq_nr;
-	uint8_t picture_id;
+	uint16_t picture_id;
 	bool_t force_keyframe;
 	bool_t avpf_enabled;
 	bool_t ready;
@@ -117,7 +119,11 @@ static void enc_init(MSFilter *f) {
 	s->vconf = ms_video_find_best_configuration_for_size(s->vconf_list, vsize);
 	s->frame_count = 0;
 	s->last_fir_seq_nr = -1;
-	s->picture_id = random() & 0x7F;
+#ifdef PICTURE_ID_ON_16_BITS
+	s->picture_id = (random() & 0x7FFF) | 0x8000;
+#else
+	s->picture_id = random() & 0x007F;
+#endif
 	s->avpf_enabled = FALSE;
 
 	f->data = s;
@@ -228,6 +234,16 @@ static void enc_mark_reference_frame_as_sent(EncState *s, vpx_ref_frame_type_t f
 	}
 }
 
+static void enc_acknowledge_reference_frame(EncState *s, uint16_t picture_id) {
+	ms_error("VP8 picture_id 0x%04x acknowledged", picture_id);
+	if (s->frames_state.golden.picture_id == picture_id) {
+		s->frames_state.golden.acknowledged = TRUE;
+	}
+	if (s->frames_state.altref.picture_id == picture_id) {
+		s->frames_state.altref.acknowledged = TRUE;
+	}
+}
+
 static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 	vpx_ref_frame_type_t ft = VP8_LAST_FRAME;
 	if (s->force_keyframe == TRUE) {
@@ -287,6 +303,7 @@ static void enc_process(MSFilter *f) {
 			enc_fill_encoder_flags(s, &flags);
 		}
 		ms_error("VP8 encoder flags: 0x%x", flags);
+		ms_error("VP8 encoder picture_id: 0x%04x", s->picture_id);
 
 		err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, VPX_DL_REALTIME);
 		if (err) {
@@ -350,7 +367,13 @@ static void enc_process(MSFilter *f) {
 
 			/* Increment the pictureID. */
 			s->picture_id++;
-			if (s->picture_id == 0x80) s->picture_id = 0;
+#ifdef PICTURE_ID_ON_16_BITS
+			if (s->picture_id == 0)
+				s->picture_id = 0x8000;
+#else
+			if (s->picture_id == 0x0080)
+				s->picture_id = 0;
+#endif
 		}
 		freemsg(im);
 	}
@@ -461,6 +484,23 @@ static int enc_notify_fir(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int enc_notify_rpsi(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	MSVideoCodecRPSI *rpsi = (MSVideoCodecRPSI *)data;
+	uint16_t picture_id;
+
+	if (rpsi->bit_string_len == 8) {
+		picture_id = *((uint8_t *)rpsi->bit_string);
+	} else if (rpsi->bit_string_len == 16) {
+		picture_id = ntohs(*((uint16_t *)rpsi->bit_string));
+	} else {
+		ms_warning("VP8 invalid RPSI received");
+		return -1;
+	}
+	enc_acknowledge_reference_frame(s, picture_id);
+	return 0;
+}
+
 static int enc_get_configuration_list(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	const MSVideoConfiguration **vconf_list = (const MSVideoConfiguration **)data;
@@ -485,6 +525,7 @@ static MSFilterMethod enc_methods[] = {
 	{ MS_VIDEO_ENCODER_REQ_VFU,                enc_req_vfu                },
 	{ MS_VIDEO_ENCODER_NOTIFY_PLI,             enc_notify_pli             },
 	{ MS_VIDEO_ENCODER_NOTIFY_FIR,             enc_notify_fir             },
+	{ MS_VIDEO_ENCODER_NOTIFY_RPSI,            enc_notify_rpsi            },
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, enc_get_configuration_list },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      enc_set_configuration      },
 	{ MS_VIDEO_ENCODER_ENABLE_AVPF,            enc_enable_avpf            },

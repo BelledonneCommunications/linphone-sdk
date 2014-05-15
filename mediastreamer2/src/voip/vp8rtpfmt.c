@@ -326,20 +326,37 @@ static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 	}
 }
 
-static bool_t is_keyframe(Vp8RtpFmtFrame *frame) {
+static bool_t is_key_frame(Vp8RtpFmtFrame *frame) {
 	Vp8RtpFmtPartition *partition;
 	int nb_partitions = ms_list_size(frame->partitions_list);
-
 	if (nb_partitions < 1) return FALSE;
 	partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
 	if (partition->m->b_rptr[0] & 0x01) return FALSE;
-
 	return TRUE;
+}
+
+static bool_t is_reference_frame(Vp8RtpFmtFrame *frame, Vp8RtpFmtPayloadDescriptor **pd) {
+	Vp8RtpFmtPartition *partition;
+	Vp8RtpFmtPacket *packet;
+	int nb_packets;
+	int nb_partitions = ms_list_size(frame->partitions_list);
+	if (nb_partitions < 1) return FALSE;
+	partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
+	nb_packets = ms_list_size(partition->packets_list);
+	if (nb_packets < 1) return FALSE;
+	packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, 0);
+	if (packet->pd->non_reference_frame == TRUE) {
+		return FALSE;
+	} else {
+		*pd = packet->pd;
+		return TRUE;
+	}
 }
 
 static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 	Vp8RtpFmtPartition *partition = NULL;
 	Vp8RtpFmtFrame *frame;
+	Vp8RtpFmtPayloadDescriptor *pd;
 	int nb_frames = ms_list_size(ctx->frames_list);
 	int nb_partitions;
 	int i;
@@ -348,7 +365,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 	for (i = 0; i < nb_frames; i++) {
 		frame = ms_list_nth_data(ctx->frames_list, i);
 		if (frame->error == Vp8RtpFmtOk) {
-			if (is_keyframe(frame) == TRUE) {
+			if (is_key_frame(frame) == TRUE) {
 				ctx->valid_keyframe_received = TRUE;
 			}
 			if (ctx->valid_keyframe_received == TRUE) {
@@ -364,6 +381,23 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					output_frame(out, frame);
 				}
 				frame->outputted = TRUE;
+				if (is_reference_frame(frame, &pd)) {
+					if (pd->pictureid_present == TRUE) {
+						MSVideoCodecRPSI rpsi;
+						uint16_t picture_id16;
+						uint8_t picture_id8;
+						if (pd->pictureid & 0x8000) {
+							picture_id16 = htons(pd->pictureid);
+							rpsi.bit_string = (uint8_t *)&picture_id16;
+							rpsi.bit_string_len = 16;
+						} else {
+							picture_id8 = pd->pictureid & 0xFF;
+							rpsi.bit_string = (uint8_t *)&picture_id8;
+							rpsi.bit_string_len = 8;
+						}
+						ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_RPSI, &rpsi);
+					}
+				}
 			} else {
 				/* Drop frames until the first keyframe is successfully received. */
 				ms_warning("VP8 frame dropped because keyframe has not been received yet.");
