@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #if !defined(_X11_HELPER_H_)
 #define _X11_HELPER_H_
 
+#ifdef HAVE_X11_XLIB_H
+
 #include <X11/Xlib.h>
 
 typedef struct _x11_helper {
@@ -37,5 +39,7 @@ int ms_x11_helper_get_window_size(MSX11Helper* x11, int* width, int* height);
 int ms_x11_helper_destroy_window(MSX11Helper* x11);
 
 int ms_x11_helper_uninit(MSX11Helper* x11);
+
+#endif
 
 #endif

@@ -18,6 +18,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#ifdef HAVE_X11_XLIB_H
 #include "mediastreamer2/x11_helper.h"
 #include "mediastreamer2/mscommon.h"
 #include <ortp/port.h>
@@ -91,3 +92,4 @@ int ms_x11_helper_uninit(MSX11Helper* x11) {
 
 	return 0;
 }
+#endif
