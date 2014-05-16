@@ -426,7 +426,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			if ((ctx->avpf_enabled == TRUE) && (is_reference_frame(frame, NULL) == TRUE)) {
 				ctx->waiting_for_reference_frame = FALSE;
 			}
-			if ((ctx->valid_keyframe_received == TRUE) || (ctx->waiting_for_reference_frame == FALSE)) {
+			if ((ctx->valid_keyframe_received == TRUE) && (ctx->waiting_for_reference_frame == FALSE)) {
 				/* Output the complete valid frame if a reference frame has been received. */
 				if (ctx->output_partitions == TRUE) {
 					nb_partitions = ms_list_size(frame->partitions_list);
@@ -441,10 +441,14 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 				frame->outputted = TRUE;
 				send_rpsi_if_reference_frame(ctx, frame);
 			} else {
-				/* Drop frames until the first keyframe is successfully received. */
-				ms_warning("VP8 frame dropped because keyframe has not been received yet.");
-				frame->discarded = TRUE;
-				send_pli(ctx);
+				if (ctx->waiting_for_reference_frame == TRUE) {
+					/* Do not decode frames while we are waiting for a reference frame. */
+				} else {
+					/* Drop frames until the first keyframe is successfully received. */
+					ms_warning("VP8 frame dropped because keyframe has not been received yet.");
+					frame->discarded = TRUE;
+					send_pli(ctx);
+				}
 			}
 		} else if (is_frame_marker_present(frame) == TRUE) {
 			if (is_first_partition_present_in_frame(frame) == TRUE) {
