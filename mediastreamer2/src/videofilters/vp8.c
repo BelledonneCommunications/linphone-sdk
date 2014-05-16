@@ -102,6 +102,7 @@ typedef struct EncState {
 	int last_fir_seq_nr;
 	uint16_t picture_id;
 	bool_t force_keyframe;
+	bool_t invalid_frame_reported;
 	bool_t avpf_enabled;
 	bool_t ready;
 } EncState;
@@ -272,7 +273,12 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 	if (s->force_keyframe == TRUE) {
 		*flags = VPX_EFLAG_FORCE_KF;
 	} else {
-		*flags = 0;
+		if (s->invalid_frame_reported == TRUE) {
+			/* If an invalid frame has been reported, do not reference the last frame. */
+			*flags = VP8_EFLAG_NO_REF_LAST;
+		} else {
+			*flags = 0;
+		}
 		if (enc_should_generate_reference_frame(s) == TRUE) {
 			ft = enc_get_type_of_reference_frame_to_generate(s);
 			switch (ft) {
@@ -515,6 +521,21 @@ static int enc_notify_fir(MSFilter *f, void *data) {
 	return 0;
 }
 
+static bool_t picture_id_newer_than_last_acknowledged_reference_picture_id(EncState *s, uint8_t picture_id) {
+	uint8_t reference_picture_id;
+
+	if ((s->frames_state.golden.acknowledged == FALSE) && (s->frames_state.altref.acknowledged == FALSE)) {
+		return TRUE;
+	}
+	if (s->frames_state.golden.count > s->frames_state.altref.count) {
+		reference_picture_id = s->frames_state.golden.picture_id & 0x3F;
+	} else {
+		reference_picture_id = s->frames_state.altref.picture_id & 0x3F;
+	}
+	if ((picture_id - reference_picture_id) < (1 << 5)) return TRUE;
+	return FALSE;
+}
+
 static int enc_notify_sli(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	MSVideoCodecSLI *sli = (MSVideoCodecSLI *)data;
@@ -532,10 +553,12 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 	if ((golden_lost == TRUE) && (altref_lost == TRUE)) {
 		/* Last key frame has been lost. */
 		s->force_keyframe = TRUE;
-	} else if (golden_lost == TRUE) {
-		// TODO: Generate golden frame
-	} else if (altref_lost == TRUE) {
-		// TODO: Generate altref frame
+	} else {
+		if (picture_id_newer_than_last_acknowledged_reference_picture_id(s, sli->picture_id) == TRUE) {
+			s->invalid_frame_reported = TRUE;
+		} else {
+			/* The reported loss is older than the last reference frame, so ignore it. */
+		}
 	}
 	return 0;
 }
