@@ -272,15 +272,15 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 	if (s->force_keyframe == TRUE) {
 		*flags = VPX_EFLAG_FORCE_KF;
 	} else {
-		*flags = VP8_EFLAG_NO_REF_LAST;
+		*flags = 0;
 		if (enc_should_generate_reference_frame(s) == TRUE) {
 			ft = enc_get_type_of_reference_frame_to_generate(s);
 			switch (ft) {
 				case VP8_GOLD_FRAME:
-					*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF);
+					*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_LAST);
 					break;
 				case VP8_ALTR_FRAME:
-					*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF);
+					*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF | VP8_EFLAG_NO_REF_LAST);
 					break;
 				case VP8_LAST_FRAME:
 				default:
