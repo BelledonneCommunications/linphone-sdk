@@ -69,6 +69,8 @@ extern "C" {
 		} points[150];
 		double avg_network_loss;
 		double congestion_bw;
+		uint64_t last_sent_count;
+		uint64_t last_timestamp;
 	}MSStatefulQosAnalyser;
 #ifdef __cplusplus
 }

@@ -25,6 +25,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <math.h>
 
+#define RED "[1m[31m"
+#define YELLOW "[1m[33m"
+#define GREEN "[1m[32m"
+#define RESET "[0m"
+#define P(c, ...) printf(GREEN c RESET,  __VA_ARGS__)
+#define P2(c) printf(GREEN c RESET)
+
 /**
  * Analyses a received RTCP packet.
  * Returns TRUE is relevant information has been found in the rtcp message, FALSE otherwise.
@@ -252,13 +259,81 @@ static bool_t stateful_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtc
 		cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
 
 		obj->points[obj->curindex-1].bandwidth=rtp_session_get_send_bandwidth(obj->session)/1000.0;
+		P(RED "%f vs %f\n", (obj->session->rtp.stats.sent - obj->last_sent_count)*0.01/(time(0) - obj->last_timestamp),
+			rtp_session_get_send_bandwidth(obj->session)/1000.0);
+		/*obj->points[obj->curindex-1].bandwidth=(obj->session->rtp.stats.sent - obj->last_sent_count)*.01/(time(0) - obj->last_timestamp);*/
 		obj->points[obj->curindex-1].loss_percent=cur->lost_percentage/100.0;
 		obj->points[obj->curindex-1].rtt=cur->rt_prop;
+		obj->last_timestamp = time(0);
+		obj->last_sent_count = obj->session->rtp.stats.sent;
 		ms_message("MSQosAnalyser: lost_percentage=%f, int_jitter=%f ms, rt_prop=%f sec, send_bw=%f",cur->lost_percentage,cur->int_jitter,cur->rt_prop,obj->points[obj->curindex-1].bandwidth);
 
-		if (obj->curindex>2) printf("one more %d: %f %f\n", obj->curindex-1, obj->points[obj->curindex-1].bandwidth, obj->points[obj->curindex-1].loss_percent);
+		if (obj->curindex>2) P(YELLOW "one more %d: %f %f\n", obj->curindex-1, obj->points[obj->curindex-1].bandwidth, obj->points[obj->curindex-1].loss_percent);
 	}
 	return rb!=NULL;
+}
+
+/*static float histogram(MSStatefulQosAnalyser *obj){
+	int i,j;
+	int last = obj->curindex - 1;
+	int f = last > 15 ? last - 13 : 2; //always skip the 2 first ones
+	int x_min_ind = f;
+	int x_max_ind = f;
+	double histogram[10]={0}; //split in 10 parts
+
+	for (i = f; i <= last; i++){
+		double x = obj->points[i].bandwidth;
+
+		if (x < obj->points[x_min_ind].bandwidth) x_min_ind = i;
+		if (x > obj->points[x_max_ind].bandwidth) x_max_ind = i;
+	}
+	double step = 1 / 10.0 * (obj->points[x_max_ind].bandwidth - obj->points[x_min_ind].bandwidth);
+	for (i=0; i<10; ++i){
+		int count = 0;
+		double cur_bw =	obj->points[x_min_ind].bandwidth + i * step;
+		for (j = f; j <= last; j++){
+			double x = obj->points[j].bandwidth;
+			double y = obj->points[j].loss_percent;
+			if (x >= cur_bw && x < cur_bw + step){
+				count++;
+				histogram[i] += y;
+			}
+		}
+		if (count)
+			histogram[i] /= count;
+		else
+			histogram[i] = histogram[i-1];*/
+		/*printf("\t%d: [%f-%f] %f(%d)\n", i, cur_bw, cur_bw+step, histogram[i],count);
+	}
+
+	while (i<9){
+		if (histogram[i] < .9*histogram[i+1]){
+			return obj->points[x_min_ind].bandwidth + (i+1)*step;
+		}
+	}
+	return 2*obj->points[x_max_ind].bandwidth;
+}
+*/
+
+static void sort_array(MSStatefulQosAnalyser *obj,int start, int end){
+	int i,j;
+
+	for (i = start; i < end; ++i){
+		for (j = i+1; j <= end; j++){
+			if (obj->points[i].bandwidth > obj->points[j].bandwidth){
+				double tmp[3];
+				tmp[0] = obj->points[i].bandwidth;
+				tmp[1] = obj->points[i].loss_percent;
+				tmp[2] = obj->points[i].rtt;
+				obj->points[i].bandwidth = obj->points[j].bandwidth;
+				obj->points[i].loss_percent = obj->points[j].loss_percent;
+				obj->points[i].rtt = obj->points[j].rtt;
+				obj->points[j].bandwidth = tmp[0];
+				obj->points[j].loss_percent = tmp[1];
+				obj->points[j].rtt = tmp[2];
+			}
+		}
+	}
 }
 
 static float compute_available_bw(MSStatefulQosAnalyser *obj){
@@ -268,37 +343,35 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	double x_square_sum = 0.;
 	double x_y_sum = 0.;
 	int last = obj->curindex - 1;
-	int f = last > 15 ? last - 13 : 2; //always skip the 2 first ones
+	int f = 2;//last > 15 ? last - 13 : 2; //always skip the 2 first ones
 	int n = (last - f + 1);
 	double mean_bw = 0.;
 	double mean_diff = 0.;
 	int x_min_ind = f;
 	int x_max_ind = f;
-	int x_mean_inf_ind = f;
-	int x_mean_sup_ind = f;
 	bool_t lossy_network = FALSE;
 	double diff, m, b;
 	uint8_t previous_state = obj->network_state;
 	uint8_t unstable_state = MSQosAnalyserNetworkUnstable;
 	double rtt = obj->points[last].rtt;
 
+
 	obj->network_state = MSQosAnalyserNetworkFine;
 
-	if (n <= 1) {
-		mean_bw = obj->points[0].bandwidth * obj->points[1].loss_percent;
-		printf("Estimated BW is %f kbit/s\n", mean_bw);
+	if (n <= 1){
+		mean_bw = obj->points[f].bandwidth * (1 - obj->points[f].loss_percent);
+		P("Estimated BW is %f kbit/s\n", mean_bw);
 
 		return mean_bw;
 	}
 
-	if (obj->points[f].bandwidth < obj->points[last].bandwidth){
-		x_mean_inf_ind=f;
-		x_mean_sup_ind=last;
-	}else{
-		x_mean_inf_ind=last;
-		x_mean_sup_ind=f;
-	}
-	for (i = f; i <= last; i++) {
+	/*test code*/
+/*	mean_bw = histogram(obj);
+	printf("Target bandwidth is %f\n", mean_bw);
+	return mean_bw;*/
+	/*test code*/
+
+	for (i = f; i <= last; i++){
 		double x = obj->points[i].bandwidth;
 		double y = obj->points[i].loss_percent;
 
@@ -315,9 +388,8 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	x_mean /= n;
 	y_mean /= n;
 	mean_bw /= n;
-	printf("\tEstimated BW by avg is %f kbit/s\n", mean_bw);
+	P("\tEstimated BW by avg is %f kbit/s\n", mean_bw);
 
-	printf("sum=%f xmin=%d xmax=%d\n", x_mean, x_min_ind, x_max_ind);
 	diff = (obj->points[x_max_ind].bandwidth - obj->points[x_min_ind].bandwidth) / x_mean;
 
 	if (n > 2 && diff > 0.05) unstable_state = MSQosAnalyserNetworkLossy;
@@ -327,23 +399,19 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 
 	b = (y_mean - m * x_mean);
 
-	for (i = f; i <= last; i++) {
+	for (i = f; i <= last; i++){
 		double x = obj->points[i].bandwidth;
 		double y = obj->points[i].loss_percent;
-
-		if (y > y_mean && x < obj->points[x_mean_sup_ind].bandwidth && x > obj->points[x_mean_inf_ind].bandwidth) x_mean_sup_ind = i;
-		else if (y < y_mean && x > obj->points[x_mean_inf_ind].bandwidth && x < obj->points[x_mean_sup_ind].bandwidth) x_mean_inf_ind = i;
 
 		mean_diff += fabs(m * x + b - y);
 	}
 	mean_diff /= n;
 	lossy_network |= (y_mean > 0.1);
 
-	printf("x_mean_inf=%d x_mean_sup=%d\n",x_mean_inf_ind,x_mean_sup_ind);
 	/*to compute estimated BW, we need a minimum x-axis interval size*/
-	if (diff > 0.05) {
+	if (diff > 0.05){
 		double avail_bw = (fabs(m) > 0.0001f) ? -b/m : mean_bw;
-		printf("\tEstimated BW by interpolation is %f kbit/s:\ty=%f x + %f\n", avail_bw, m, b);
+		P("\tEstimated BW by interpolation is %f kbit/s:\ty=%f x + %f\n", avail_bw, m, b);
 
 		if (b > 0.1){
 			lossy_network = TRUE;
@@ -364,52 +432,109 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	if (obj->network_state == MSQosAnalyserNetworkFine){
 		lossy_network |= (y_mean > .1 && obj->points[last].loss_percent > y_mean / 2.);
 
-		if (lossy_network) {
+		if (lossy_network){
 			/*since congestion may loss a high number of packets, stay in congested network while
 			this is not a bit more stable*/
-			if (previous_state == MSQosAnalyserNetworkCongested) {
+			if (previous_state == MSQosAnalyserNetworkCongested){
 				obj->network_state = MSQosAnalyserNetworkCongested;
 
 				obj->network_state = unstable_state; // !!!
-			} else {
+			} else{
 				obj->network_state = unstable_state;
 			}
 		/*another hint for a bad network: packets drop mean difference is high*/
-		} else if (mean_diff > .1) {
+		} else if (mean_diff > .1){
 			obj->network_state = (rtt > .5) ? MSQosAnalyserNetworkCongested : unstable_state;
 		}
 	}
 
 	if (obj->network_state == MSQosAnalyserNetworkLossy){
 		if (obj->points[x_min_ind].bandwidth / mean_bw > 1.){
-			printf("Network was suggested lossy, but since we did not try its lower bound capability, "
+			P2(RED "Network was suggested lossy, but since we did not try its lower bound capability, "
 				"we will consider this is congestion for yet\n");
 			obj->network_state = MSQosAnalyserNetworkCongested;
 		}
 	}
 
-	/*printf("mean_diff=%f y_mean=%f\n", mean_diff, y_mean);*/
-	if (y_mean > 0.05){
-		printf("BW should be %f\n", mean_bw);
-	}
 	if (diff > 0.05 && b < -0.05){
 		if (obj->network_state != MSQosAnalyserNetworkCongested){
-			printf("Even if network state is now %s, the congestion limit might be at %f\n",
+			P("Even if network state is now %s, the congestion limit might be at %f\n",
 				ms_qos_analyser_network_state_name(obj->network_state), mean_bw);
 		}
 	}
-	printf("%f\n", y_mean);
-	printf("\t\tI think it is a %s network\n", ms_qos_analyser_network_state_name(obj->network_state));
+	P("\tavg_lost_rate=%f\n", y_mean);
+	P("I think it is a %s network\n", ms_qos_analyser_network_state_name(obj->network_state));
 
 	if (obj->network_state == MSQosAnalyserNetworkLossy){
 		//hack
 		if (obj->points[last].bandwidth>x_mean && obj->points[last].loss_percent>1.5*y_mean){
-			printf("lossy network and congestion probably too!\n");
-			return (1 - (obj->points[x_max_ind].loss_percent - y_mean)) * obj->points[x_max_ind].bandwidth;
+			P2(RED "lossy network and congestion probably too!\n");
+			mean_bw = (1 - (obj->points[x_max_ind].loss_percent - y_mean)) * obj->points[x_max_ind].bandwidth;
 		}
-		printf("Average error %f %%\n", y_mean);
-		return obj->points[last].bandwidth * 2;
+		mean_bw = obj->points[last].bandwidth * 2;
 	}
+
+
+	/*test*/
+	sort_array(obj, f, last);
+
+	double total = 0;
+	int current = f;
+	double loss = obj->points[current].loss_percent;
+/*	double total = 0.;
+	int current = f;
+	double loss = obj->points[current].loss_percent;
+	do{
+		printf("\t%d is stable\n", current);
+		total+=loss;
+
+		for (i = last; i > current;--i){
+			if (obj->points[i].loss_percent <= obj->points[current].loss_percent){
+				printf("\t\t%d is less than %d\n", i, current);
+				while (current!=i){
+					total+=obj->points[current].loss_percent;
+					current++;
+				}
+				break;
+			}
+		}
+		current++;
+		loss = obj->points[current].loss_percent;
+	} while (current<=last && loss<=1.1*total/(current-f));
+*/
+	while (current == f ||
+		(current<=last && loss<=1.*total/(current-f)
+		 )){
+
+		P("\t%d is stable\n", current);
+
+		total+=loss;
+
+		for (i = last; i > current;--i){
+			if (obj->points[i].loss_percent <= obj->points[current].loss_percent){
+				P("\t\t%d is less than %d\n", i, current);
+				while (current!=i){
+					total+=obj->points[current].loss_percent;
+					current++;
+				}
+				break;
+			}
+		}
+		current++;
+		loss = obj->points[current].loss_percent;
+	}
+
+
+	if (current == last+1) mean_bw = 2 * obj->points[current-1].bandwidth;
+	else mean_bw = .5*(obj->points[current-1].bandwidth+obj->points[current].bandwidth);
+	P(RED "[%d->%d] Last stable is %d(%f;%f)",
+		f, last, current-1, obj->points[current-1].bandwidth, obj->points[current-1].loss_percent);
+	if (current!=last+1) P(RED ", first unstable is %d(%f;%f)", current, obj->points[current].bandwidth, obj->points[current].loss_percent);
+	/*test*/
+	P(RED " --> estimated_available_bw=%f\n", mean_bw);
+
+	/*try a burst every 50sec (10RTCP packets)*/
+	if (obj->curindex % 10 == 0) return 3 * mean_bw;
 	return mean_bw;
 }
 
@@ -417,8 +542,19 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 	MSStatefulQosAnalyser *obj=(MSStatefulQosAnalyser*)objbase;
 	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
 
-	float bw = /*0; if (FALSE)*/ compute_available_bw(obj);
 	float curbw = obj->points[obj->curindex-1].bandwidth;
+	float bw = /*0; if (FALSE)*/ compute_available_bw(obj);
+
+	if (bw > curbw){
+		action->type=MSRateControlActionIncreaseQuality;
+		action->value=MAX(0, 100.* (bw - curbw) / curbw);
+	}else{
+		action->type=MSRateControlActionDecreaseBitrate;
+		action->value=MAX(10,(100. - bw * 100. / curbw));
+	}
+	P(YELLOW "%s of value %d\n", ms_rate_control_action_type_name(action->type), action->value);
+	return;
+
 	if (obj->network_state == MSQosAnalyserNetworkCongested){
 		action->type=MSRateControlActionDecreaseBitrate;
 		action->value=MAX(10,3*(100. - bw * 100. / curbw));
