@@ -587,12 +587,11 @@ void belle_sip_message_init(belle_sip_message_t *message);
 struct _belle_sip_message {
 	belle_sip_object_t base;
 	belle_sip_list_t* header_list;
-	char* body;
-	unsigned int body_length;
+	belle_sip_body_handler_t *body_handler;
 };
 
 struct _belle_sip_request {
-	belle_sip_message_t message;
+	belle_sip_message_t base;
 	char* method;
 	belle_sip_uri_t* uri;
 	belle_sip_dialog_t *dialog;/*set if request was created by a dialog to avoid to search in dialog list*/
@@ -974,5 +973,31 @@ belle_sip_header_extension_t* belle_sip_header_extension_create (const char* nam
 const char* belle_sip_header_extension_get_value(const belle_sip_header_extension_t* extension);
 void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extension,const char* value);
 #define BELLE_SIP_HEADER_EXTENSION(t) BELLE_SIP_CAST(t,belle_sip_header_extension_t)
+
+
+/****************
+ * belle_sip_body_handler_t object
+ ***************/
+
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_body_handler_t,belle_sip_object_t)
+	void (*chunk_recv)(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, size_t offset, const uint8_t *buf, size_t size);
+	int (*chunk_send)(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t * size);
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+void belle_sip_body_handler_begin_transfer(belle_sip_body_handler_t *obj);
+void belle_sip_body_handler_recv_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, const uint8_t *buf, size_t size);
+int belle_sip_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, uint8_t *buf, size_t *size);
+void belle_sip_body_handler_end_transfer(belle_sip_body_handler_t *obj);
+
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_memory_body_handler_t,belle_sip_body_handler_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_user_body_handler_t,belle_sip_body_handler_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t,belle_sip_body_handler_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 #endif

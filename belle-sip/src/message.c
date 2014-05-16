@@ -93,8 +93,8 @@ static void belle_sip_headers_container_delete(headers_container_t *obj){
 
 static void belle_sip_message_destroy(belle_sip_message_t *msg){
 	belle_sip_list_free_with_data(msg->header_list,(void (*)(void*))belle_sip_headers_container_delete);
-	if (msg->body)
-		belle_sip_free(msg->body);
+	if (msg->body_handler)
+		belle_sip_object_unref(msg->body_handler);
 }
 
 /*very sub-optimal clone method */
@@ -339,6 +339,7 @@ static void belle_sip_request_clone(belle_sip_request_t *request, const belle_si
 
 belle_sip_error_code belle_sip_request_marshal(belle_sip_request_t* request, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_snprintf(buff,buff_size,offset,"%s ",belle_sip_request_get_method(request));
+
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_uri_marshal(belle_sip_request_get_uri(request),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
@@ -346,10 +347,7 @@ belle_sip_error_code belle_sip_request_marshal(belle_sip_request_t* request, cha
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(request),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
-	if (BELLE_SIP_MESSAGE(request)->body) {
-		error=belle_sip_snprintf(buff,buff_size,offset, "%s",BELLE_SIP_MESSAGE(request)->body);
-		if (error!=BELLE_SIP_OK) return error;
-	}
+	
 	return error;
 }
 
@@ -419,34 +417,39 @@ char *belle_sip_message_to_string(belle_sip_message_t *msg){
 	return belle_sip_object_to_string(BELLE_SIP_OBJECT(msg));
 }
 
-const char* belle_sip_message_get_body(belle_sip_message_t *msg) {
-	return msg->body;
+belle_sip_body_handler_t *belle_sip_message_get_body_handler(const belle_sip_message_t *msg){
+	return msg->body_handler;
 }
 
-unsigned int belle_sip_message_get_body_size(const belle_sip_message_t *msg){
-	return msg->body_length;
+void belle_sip_message_set_body_handler(belle_sip_message_t *msg, belle_sip_body_handler_t *body_handler){
+	SET_OBJECT_PROPERTY(msg,body_handler,body_handler);
+}
+
+const char* belle_sip_message_get_body(belle_sip_message_t *msg) {
+	if (msg->body_handler==NULL) return NULL;
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg->body_handler, belle_sip_memory_body_handler_t)){
+		return (const char*)belle_sip_memory_body_handler_get_buffer(
+			BELLE_SIP_MEMORY_BODY_HANDLER(msg->body_handler)
+		);
+	}
+	belle_sip_error("belle_sip_message_get_body(): body cannot be returned as pointer.");
+	return NULL;
+}
+
+size_t belle_sip_message_get_body_size(const belle_sip_message_t *msg){
+	if (msg->body_handler==NULL) return 0;
+	return belle_sip_body_handler_get_size(msg->body_handler);
 }
 
 void belle_sip_message_set_body(belle_sip_message_t *msg, const char* body, unsigned int size) {
-	if (msg->body) {
-		belle_sip_free(msg->body);
-		msg->body_length=0;
-		msg->body=NULL;
-	}
-	if (body){
-		msg->body = belle_sip_malloc(size+1);
-		msg->body_length=size;
-		memcpy(msg->body,body,size);
-		msg->body[size]='\0';
-	}
+	belle_sip_body_handler_t *bh=NULL;
+	if (body && size) bh=(belle_sip_body_handler_t*)belle_sip_memory_body_handler_new_copy_from_buffer(body,size,NULL,NULL);
+	belle_sip_message_set_body_handler(msg,bh);
 }
 
 void belle_sip_message_assign_body(belle_sip_message_t *msg, char* body, unsigned int size) {
-	if (msg->body) {
-		belle_sip_free(msg->body);
-	}
-	msg->body = body;
-	msg->body_length = size;
+	belle_sip_body_handler_t *bh=(belle_sip_body_handler_t*)belle_sip_memory_body_handler_new_from_buffer(body,size,NULL,NULL);
+	belle_sip_message_set_body_handler(msg,bh);
 }
 
 struct _belle_sip_response{
@@ -541,18 +544,15 @@ static void belle_sip_response_clone(belle_sip_response_t *resp, const belle_sip
 
 belle_sip_error_code belle_sip_response_marshal(belle_sip_response_t *resp, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_snprintf(	buff
-													,buff_size
-													,offset
-													,"SIP/2.0 %i %s\r\n"
-													,belle_sip_response_get_status_code(resp)
-													,belle_sip_response_get_reason_phrase(resp)?belle_sip_response_get_reason_phrase(resp):"");
+						,buff_size
+						,offset
+						,"SIP/2.0 %i %s\r\n"
+						,belle_sip_response_get_status_code(resp)
+						,belle_sip_response_get_reason_phrase(resp)?belle_sip_response_get_reason_phrase(resp):"");
+	
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(resp),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
-	if (BELLE_SIP_MESSAGE(resp)->body) {
-		error=belle_sip_snprintf(buff,buff_size,offset, "%s",BELLE_SIP_MESSAGE(resp)->body);
-		if (error!=BELLE_SIP_OK) return error;
-	}
 	return error;
 }
 
@@ -782,15 +782,8 @@ int belle_sip_response_fix_contact(const belle_sip_response_t* response,belle_si
 
 belle_sip_request_t * belle_sip_request_clone_with_body(const belle_sip_request_t *initial_req) {
 	belle_sip_request_t* req=BELLE_SIP_REQUEST(belle_sip_object_clone(BELLE_SIP_OBJECT(initial_req)));
-	if (belle_sip_message_get_body(BELLE_SIP_MESSAGE(initial_req))) {
-		belle_sip_header_content_length_t* content_lenth=belle_sip_message_get_header_by_type(initial_req,belle_sip_header_content_length_t);
-		if (content_lenth)
-			belle_sip_message_set_body(BELLE_SIP_MESSAGE(req)
-										,belle_sip_message_get_body(BELLE_SIP_MESSAGE(initial_req))
-										,belle_sip_header_content_length_get_content_length(content_lenth));
-		else
-			belle_sip_error("Cannot clone body from request [%p] because no content lenght header",initial_req);
-	}
+	if (initial_req->base.body_handler) req->base.body_handler=BELLE_SIP_BODY_HANDLER(belle_sip_object_clone_and_ref(
+		(belle_sip_object_t*)initial_req->base.body_handler));
 	return req;
 }
 

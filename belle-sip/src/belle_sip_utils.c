@@ -302,12 +302,14 @@ void belle_sip_list_for_each2(const belle_sip_list_t* list, void (*func)(void *,
 }
 
 belle_sip_list_t * belle_sip_list_pop_front(belle_sip_list_t *list, void **front_data){
-	if (list==NULL){
+	belle_sip_list_t *front_elem=list;
+	if (front_elem==NULL){
 		*front_data=NULL;
 		return NULL;
 	}
-	*front_data=list->data;
-	list=belle_sip_list_remove_link(list,list);
+	*front_data=front_elem->data;
+	list=belle_sip_list_remove_link(list,front_elem);
+	belle_sip_free(front_elem);
 	return list;
 }
 

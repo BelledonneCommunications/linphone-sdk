@@ -49,8 +49,9 @@ libbellesip_la_SOURCES=				\
 									generic-uri.c \
 									http-provider.c \
 									http-message.c \
-									http-listener.c
-									
+									http-listener.c \
+									bodyhandler.c
+
 
 if BUILD_IOS
 libbellesip_la_SOURCES+=backgroundtask.m

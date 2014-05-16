@@ -31,6 +31,7 @@ typedef struct belle_http_response_event belle_http_response_event_t;
 
 
 #define BELLE_HTTP_INTERFACE_FUNCS(argT) \
+	void (*process_response_headers)(argT *user_ctx, const belle_http_response_event_t *event); \
 	void (*process_response)(argT *user_ctx, const belle_http_response_event_t *event); \
 	void (*process_io_error)(argT *user_ctx, const belle_sip_io_error_event_t *event); \
 	void (*process_timeout)(argT *user_ctx, const belle_sip_timeout_event_t *event); \

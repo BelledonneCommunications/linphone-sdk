@@ -28,6 +28,12 @@ struct belle_http_callbacks{
 	void *user_ctx;
 };
 
+static void process_response_headers(belle_http_request_listener_t *l, const belle_http_response_event_t *event){
+	belle_http_callbacks_t *obj=(belle_http_callbacks_t*)l;
+	if (obj->cbs.process_response_headers)
+		obj->cbs.process_response_headers(obj->user_ctx,event);
+}
+
 static void process_response_event(belle_http_request_listener_t *l, const belle_http_response_event_t *event){
 	belle_http_callbacks_t *obj=(belle_http_callbacks_t*)l;
 	if (obj->cbs.process_response)
@@ -57,6 +63,7 @@ static void process_auth_requested(belle_http_request_listener_t *l, belle_sip_a
 /*BELLE_SIP_DECLARE_VPTR(belle_http_callbacks_t);*/
 
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_http_callbacks_t,belle_http_request_listener_t)
+	process_response_headers,
 	process_response_event,
 	process_io_error,
 	process_timeout,

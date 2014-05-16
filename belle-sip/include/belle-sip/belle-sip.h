@@ -41,6 +41,7 @@
 #include "belle-sip/http-listener.h"
 #include "belle-sip/http-message.h"
 #include "belle-sip/belle-sdp.h"
+#include "belle-sip/bodyhandler.h"
 
 
 #define BELLE_SIP_POINTER_TO_INT(p)	((int)(long)(p))

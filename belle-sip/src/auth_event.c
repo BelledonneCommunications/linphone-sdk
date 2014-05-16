@@ -72,9 +72,7 @@ belle_sip_signing_key_t* belle_sip_auth_event_get_signing_key(const belle_sip_au
 }
 
 void belle_sip_auth_event_set_signing_key(belle_sip_auth_event_t* event, belle_sip_signing_key_t* value) {
-	if (event->key) belle_sip_object_unref(event->key);
-	event->key=value;
-	if (event->key) belle_sip_object_ref(event->key);
+	SET_OBJECT_PROPERTY(event,key,value);
 }
 
 belle_sip_auth_mode_t belle_sip_auth_event_get_mode(const belle_sip_auth_event_t* event) {

@@ -124,7 +124,26 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	if (ev) belle_sip_auth_event_destroy(ev);
 	return ret;
 }
+
+static void http_channel_context_handle_response_headers(belle_http_channel_context_t *ctx , belle_sip_channel_t *chan, belle_http_response_t *response){
+	belle_http_request_t *req=ctx->pending_requests ? (belle_http_request_t*) ctx->pending_requests->data : NULL;
+	belle_http_response_event_t ev={0};
+	int code;
 	
+	if (req==NULL){
+		belle_sip_error("Receiving http response headers not matching any request.");
+		return;
+	}
+	code=belle_http_response_get_status_code(response);
+	if (code!=401 && code!=407){
+		/*else notify the app about the response headers received*/
+		ev.source=(belle_sip_object_t*)ctx->provider;
+		ev.request=req;
+		ev.response=response;
+		BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_response_headers,&ev);
+	}
+}
+
 static void http_channel_context_handle_response(belle_http_channel_context_t *ctx , belle_sip_channel_t *chan, belle_http_response_t *response){
 	belle_http_request_t *req=NULL;
 	belle_http_response_event_t ev={0};
@@ -173,20 +192,26 @@ static void http_channel_context_handle_io_error(belle_http_channel_context_t *c
 		ev.transport=belle_sip_channel_get_transport_name(chan);
 		BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_io_error,&ev);
 	}
+	
 }
 
-static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, unsigned int revents){
+/* we are called here by the channel when receiving a message for which a body is expected.
+ * We can notify the application so that it can setup an appropriate body handler.
+ */
+static void channel_on_message_headers(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_http_channel_context_t *ctx=BELLE_HTTP_CHANNEL_CONTEXT(obj);
-	if (revents & BELLE_SIP_EVENT_READ){
-		belle_sip_message_t *msg;
-		while((msg=belle_sip_channel_pick_message(chan))!=NULL){
-			if (msg && BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_http_response_t)){
-				http_channel_context_handle_response(ctx,chan,(belle_http_response_t*)msg);
-			}
-			belle_sip_object_unref(msg);
-		}
-	}
-	return 0;
+	
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_http_response_t)){
+		http_channel_context_handle_response_headers(ctx,chan,(belle_http_response_t*)msg);
+	}/*ignore requests*/
+}
+
+static void channel_on_message(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
+	belle_http_channel_context_t *ctx=BELLE_HTTP_CHANNEL_CONTEXT(obj);
+	
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_http_response_t)){
+		http_channel_context_handle_response(ctx,chan,(belle_http_response_t*)msg);
+	}/*ignore requests*/
 }
 
 static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, const char* distinguished_name){
@@ -252,7 +277,8 @@ belle_http_channel_context_t * belle_http_channel_context_new(belle_sip_channel_
 
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_http_channel_context_t,belle_sip_channel_listener_t)
 	channel_state_changed,
-	channel_on_event,
+	channel_on_message_headers,
+	channel_on_message,
 	channel_on_sending,
 	channel_on_auth_requested
 BELLE_SIP_IMPLEMENT_INTERFACE_END

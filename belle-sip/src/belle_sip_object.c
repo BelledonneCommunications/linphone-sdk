@@ -242,8 +242,9 @@ static int belle_sip_object_data_find(const void* a, const void* b)
 static void belle_sip_object_data_destroy(void* data)
 {
 	struct belle_sip_object_data* da = (struct belle_sip_object_data*)data;
-	if(da->destroy_func ) da->destroy_func(da->data);
+	if (da->destroy_func) da->destroy_func(da->data);
 	belle_sip_free(da->name);
+	belle_sip_free(da);
 }
 
 int belle_sip_object_data_set( belle_sip_object_t *obj, const char* name, void* data, belle_sip_data_destroy destroy_func )

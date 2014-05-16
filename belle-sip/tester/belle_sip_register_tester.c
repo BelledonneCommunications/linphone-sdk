@@ -375,9 +375,11 @@ static void stateful_register_udp_delayed(void){
 }
 
 static void stateful_register_udp_with_send_error(void){
+	belle_sip_request_t *req;
 	belle_sip_stack_set_send_error(stack,-1);
-	try_register_user_at_domain(stack, prov, NULL,1,"tester",test_domain,NULL,0);
+	req=try_register_user_at_domain(stack, prov, NULL,1,"tester",test_domain,NULL,0);
 	belle_sip_stack_set_send_error(stack,0);
+	if (req) belle_sip_object_unref(req);
 }
 
 static void stateful_register_tcp(void){

@@ -54,27 +54,32 @@ typedef struct belle_sip_channel belle_sip_channel_t;
 
 BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_sip_channel_listener_t)
 void (*on_state_changed)(belle_sip_channel_listener_t *l, belle_sip_channel_t *, belle_sip_channel_state_t state);
-int (*on_event)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, unsigned revents);
+void (*on_message_headers)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, belle_sip_message_t *msg);
+void (*on_message)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, belle_sip_message_t *msg);
 void (*on_sending)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, belle_sip_message_t *msg);
 int (*on_auth_requested)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, const char* distinghised_name);
 BELLE_SIP_DECLARE_INTERFACE_END
 
 #define BELLE_SIP_CHANNEL_LISTENER(obj) BELLE_SIP_INTERFACE_CAST(obj,belle_sip_channel_listener_t)
-#define MAX_CHANNEL_BUFF_SIZE 64000 + 1500 + 1
 
 typedef enum input_stream_state {
-	WAITING_MESSAGE_START=0
-	,MESSAGE_AQUISITION=1
-	,BODY_AQUISITION=2
+	WAITING_MESSAGE_START,
+	MESSAGE_AQUISITION,
+	BODY_AQUISITION
 }input_stream_state_t;
+
+typedef enum output_stream_state{
+	OUTPUT_STREAM_IDLE,
+	OUTPUT_STREAM_SENDING_HEADERS,
+	OUTPUT_STREAM_SENDING_BODY
+}output_stream_state_t;
 
 typedef struct belle_sip_channel_input_stream{
 	input_stream_state_t state;
-	char buff[MAX_CHANNEL_BUFF_SIZE];
+	char buff[belle_sip_network_buffer_size];
 	char* read_ptr;
 	char* write_ptr;
 	belle_sip_message_t *msg;
-	unsigned char *body; /*used when receiving a chunked body*/
 	int content_length;
 	int chuncked_mode;
 	int chunk_size;
@@ -101,8 +106,13 @@ struct belle_sip_channel{
 	struct addrinfo *peer_list;
 	struct addrinfo *current_peer;
 	belle_sip_list_t *outgoing_messages;
-	belle_sip_list_t* incoming_messages;
+	belle_sip_message_t *cur_out_message;
+	output_stream_state_t out_state;
+	uint8_t *ewouldblock_buffer;
+	size_t ewouldblock_size;
+	size_t ewouldblock_offset;
 	belle_sip_channel_input_stream_t input_stream;
+	belle_sip_list_t* incoming_messages;
 	belle_sip_source_t *inactivity_timer;
 	uint64_t last_recv_time;
 	int simulated_recv_return; /* used to simulate network error. 0= no data (disconnected) >0= do nothing -1= network error*/

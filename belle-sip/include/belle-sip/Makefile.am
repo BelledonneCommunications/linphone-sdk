@@ -26,6 +26,7 @@ bellesip_HEADERS=\
 				http-message.h \
 				http-listener.h \
 				generic-uri.h \
-				types.h
+				types.h \
+				bodyhandler.h
 
 EXTRA_DIST=$(bellesip_HEADERS)

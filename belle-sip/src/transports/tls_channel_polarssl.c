@@ -98,6 +98,8 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 	if (obj->cur_debug_msg)
 		belle_sip_free(obj->cur_debug_msg);
 	belle_sip_object_unref(obj->verify_ctx);
+	if (obj->client_cert_chain) belle_sip_object_unref(obj->client_cert_chain);
+	if (obj->client_cert_key) belle_sip_object_unref(obj->client_cert_key);
 }
 
 static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
@@ -105,6 +107,7 @@ static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 	int err = ssl_write(&channel->sslctx,buf,buflen);
 	if (err<0){
 		char tmp[256]={0};
+		if (err==POLARSSL_ERR_NET_WANT_WRITE) return -BELLESIP_EWOULDBLOCK;
 		error_strerror(err,tmp,sizeof(tmp));
 		belle_sip_error("Channel [%p]: ssl_write() error [%i]: %s",obj,err,tmp);
 	}
@@ -419,16 +422,11 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_
 }
 
 void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_tls_channel_t *channel, belle_sip_certificates_chain_t* cert_chain) {
-	if (cert_chain) belle_sip_object_ref(cert_chain);
-	if (channel->client_cert_chain) belle_sip_object_unref(channel->client_cert_chain);
-	channel->client_cert_chain=cert_chain;
+	SET_OBJECT_PROPERTY(channel,client_cert_chain,cert_chain);
 
 }
 void belle_sip_tls_channel_set_client_certificate_key(belle_sip_tls_channel_t *channel, belle_sip_signing_key_t* key){
-	if (key) belle_sip_object_ref(key);
-	if (channel->client_cert_key) belle_sip_object_unref(channel->client_cert_key);
-	channel->client_cert_key=key;
-
+	SET_OBJECT_PROPERTY(channel,client_cert_key,key);
 }
 
 
@@ -537,12 +535,12 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t si
 #if POLARSSL_VERSION_NUMBER < 0x01030000
 	if ((err=x509parse_key(&signing_key->key,(const unsigned char *)buff,size,(const unsigned char*)passwd,passwd?strlen(passwd):0)) <0) {
 #else
-    pk_init(&signing_key->key);
-    /* for API v1.3 or greater also parses public keys other than RSA */
+	pk_init(&signing_key->key);
+	/* for API v1.3 or greater also parses public keys other than RSA */
 	err=pk_parse_key(&signing_key->key,(const unsigned char *)buff,size,(const unsigned char*)passwd,passwd?strlen(passwd):0);
-     /* make sure cipher is RSA to be consistent with API v1.2 */
-    if(err==0 && !pk_can_do(&signing_key->key,POLARSSL_PK_RSA))
-    	err=POLARSSL_ERR_PK_TYPE_MISMATCH;
+	/* make sure cipher is RSA to be consistent with API v1.2 */
+	if(err==0 && !pk_can_do(&signing_key->key,POLARSSL_PK_RSA))
+	err=POLARSSL_ERR_PK_TYPE_MISMATCH;
 	if (err<0) {
 #endif
 		char tmp[128];
@@ -567,12 +565,12 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path,const
 #if POLARSSL_VERSION_NUMBER < 0x01030000
 	if ((err=x509parse_keyfile(&signing_key->key,path, passwd)) <0) {
 #else
-    pk_init(&signing_key->key);
-    /* for API v1.3 or greater also parses public keys other than RSA */
-    err=pk_parse_keyfile(&signing_key->key,path, passwd);
-    /* make sure cipher is RSA to be consistent with API v1.2 */
-    if(err==0 && !pk_can_do(&signing_key->key,POLARSSL_PK_RSA))
-    	err=POLARSSL_ERR_PK_TYPE_MISMATCH;
+	pk_init(&signing_key->key);
+	/* for API v1.3 or greater also parses public keys other than RSA */
+	err=pk_parse_keyfile(&signing_key->key,path, passwd);
+	/* make sure cipher is RSA to be consistent with API v1.2 */
+	if(err==0 && !pk_can_do(&signing_key->key,POLARSSL_PK_RSA))
+	err=POLARSSL_ERR_PK_TYPE_MISMATCH;
 	if (err<0) {
 #endif
 		char tmp[128];

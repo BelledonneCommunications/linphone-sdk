@@ -33,6 +33,7 @@ static void belle_http_request_destroy(belle_http_request_t *req){
 	DESTROY_STRING(req,method)
 	belle_http_request_set_listener(req,NULL);
 	SET_OBJECT_PROPERTY(req,orig_uri,NULL);
+	SET_OBJECT_PROPERTY(req,response,NULL);
 }
 
 static void belle_http_request_clone(belle_http_request_t *obj, const belle_http_request_t *orig){
@@ -49,10 +50,7 @@ static belle_sip_error_code belle_http_request_marshal(const belle_http_request_
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(request),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
-	if (BELLE_SIP_MESSAGE(request)->body) {
-		error=belle_sip_snprintf(buff,buff_size,offset, "%s",BELLE_SIP_MESSAGE(request)->body);
-		if (error!=BELLE_SIP_OK) return error;
-	}
+	
 	return error;
 }
 GET_SET_STRING(belle_http_request,method);
@@ -97,15 +95,11 @@ belle_generic_uri_t *belle_http_request_get_uri(const belle_http_request_t *req)
 }
 
 void belle_http_request_set_uri(belle_http_request_t* request, belle_generic_uri_t* uri) {
-	if (uri) belle_sip_object_ref(uri);
-	if (request->req_uri) belle_sip_object_unref(request->req_uri);
-	request->req_uri=uri;
+	SET_OBJECT_PROPERTY(request,req_uri,uri);
 }
 
 void belle_http_request_set_response(belle_http_request_t *req, belle_http_response_t *resp){
-	if (resp) belle_sip_object_ref(resp);
-	if (req->response) belle_sip_object_unref(req->response);
-	req->response=resp;
+	SET_OBJECT_PROPERTY(req,response,resp);
 }
 
 belle_http_response_t *belle_http_request_get_response(belle_http_request_t *req){
@@ -147,10 +141,7 @@ belle_sip_error_code belle_http_response_marshal(belle_http_response_t *resp, ch
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(resp),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
-	if (BELLE_SIP_MESSAGE(resp)->body) {
-		error=belle_sip_snprintf(buff,buff_size,offset, "%s",BELLE_SIP_MESSAGE(resp)->body);
-		if (error!=BELLE_SIP_OK) return error;
-	}
+	
 	return error;
 }
 

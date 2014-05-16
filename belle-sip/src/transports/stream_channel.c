@@ -46,8 +46,6 @@ int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t
 		int errnum=get_socket_error();
 		if (!belle_sip_error_code_is_would_block(errnum)){
 			belle_sip_error("Could not send stream packet on channel [%p]: %s",obj,belle_sip_get_socket_error_string());
-		}else{
-			belle_sip_warning("Channel [%p]: stream_channel_send EWOULDBLOCK",obj);
 		}
 		return -errnum;
 	}
