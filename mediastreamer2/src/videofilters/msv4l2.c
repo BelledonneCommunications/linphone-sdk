@@ -278,7 +278,6 @@ static int msv4l2_do_mmap(V4l2State *s){
 		if (-1==v4l2_ioctl (s->fd, VIDIOC_QBUF, &buf)){
 			ms_error("VIDIOC_QBUF failed: %s",strerror(errno));
 		}else {
-			ms_debug("v4l2: queue buf %i",k);
 			inc_ref(s->frames[i]);
 			s->queued++;
 		}
