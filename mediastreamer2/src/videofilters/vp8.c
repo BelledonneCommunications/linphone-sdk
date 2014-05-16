@@ -153,7 +153,7 @@ static void enc_preprocess(MSFilter *f) {
 	}
 	if (s->avpf_enabled == TRUE) {
 		s->cfg.kf_mode = VPX_KF_DISABLED;
-		s->frames_state.ref_frames_interval = (uint16_t)(s->vconf.fps * 2); /* 1 reference frame each 5s. */
+		s->frames_state.ref_frames_interval = (uint16_t)(s->vconf.fps * 3); /* 1 reference frame each 3s. */
 	} else {
 		s->cfg.kf_mode = VPX_KF_AUTO; /* encoder automatically places keyframes */
 		s->cfg.kf_max_dist = (unsigned int)(s->vconf.fps * 10); /* 1 keyframe each 10s. */
