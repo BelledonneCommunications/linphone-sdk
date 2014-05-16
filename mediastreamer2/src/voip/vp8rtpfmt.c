@@ -145,22 +145,23 @@ static bool_t is_key_frame(Vp8RtpFmtFrame *frame) {
 	return TRUE;
 }
 
-static bool_t is_reference_frame(Vp8RtpFmtFrame *frame, Vp8RtpFmtPayloadDescriptor **pd) {
+static Vp8RtpFmtPayloadDescriptor * get_frame_payload_descriptor(Vp8RtpFmtFrame *frame) {
 	Vp8RtpFmtPartition *partition;
 	Vp8RtpFmtPacket *packet;
 	int nb_packets;
 	int nb_partitions = ms_list_size(frame->partitions_list);
-	if (nb_partitions < 1) return FALSE;
+	if (nb_partitions < 1) return NULL;
 	partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
 	nb_packets = ms_list_size(partition->packets_list);
-	if (nb_packets < 1) return FALSE;
+	if (nb_packets < 1) return NULL;
 	packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, 0);
-	if (packet->pd->non_reference_frame == TRUE) {
-		return FALSE;
-	} else {
-		*pd = packet->pd;
-		return TRUE;
-	}
+	return packet->pd;
+}
+
+static bool_t is_reference_frame(Vp8RtpFmtFrame *frame, Vp8RtpFmtPayloadDescriptor **pd) {
+	Vp8RtpFmtPayloadDescriptor *desc = get_frame_payload_descriptor(frame);
+	if (pd != NULL) *pd = desc;
+	return (desc->non_reference_frame == TRUE) ? FALSE : TRUE;
 }
 
 static MSVideoSize get_size_from_key_frame(Vp8RtpFmtFrame *frame) {
@@ -174,31 +175,31 @@ static MSVideoSize get_size_from_key_frame(Vp8RtpFmtFrame *frame) {
 static void send_pli(Vp8RtpFmtUnpackerCtx *ctx) {
 	if (ctx->avpf_enabled == TRUE) {
 		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
+		ctx->waiting_for_reference_frame = TRUE;
 	} else {
 		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
 	}
 }
 
-static void send_sli_if_reference_frame(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
-	Vp8RtpFmtPayloadDescriptor *pd;
-
+static void send_sli(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
 	if (ctx->avpf_enabled == TRUE) {
-		if (is_reference_frame(frame, &pd) && (pd->pictureid_present == TRUE)) {
+		Vp8RtpFmtPayloadDescriptor *pd = get_frame_payload_descriptor(frame);
+		if ((pd != NULL) && (pd->pictureid_present == TRUE)) {
 			MSVideoCodecSLI sli;
 			sli.first = 0;
 			sli.number = (ctx->video_size.width * ctx->video_size.height) / (16 * 16);
 			sli.picture_id = pd->pictureid & 0x3F;
 			ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_SLI, &sli);
 		}
+		ctx->waiting_for_reference_frame = TRUE;
 	} else {
 		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
 	}
 }
 
 static void send_rpsi_if_reference_frame(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
-	Vp8RtpFmtPayloadDescriptor *pd;
-
 	if (ctx->avpf_enabled == TRUE) {
+		Vp8RtpFmtPayloadDescriptor *pd;
 		if (is_reference_frame(frame, &pd) && (pd->pictureid_present == TRUE)) {
 			MSVideoCodecRPSI rpsi;
 			uint16_t picture_id16;
@@ -258,11 +259,15 @@ static void generate_partitions_list(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *
 	for (i = 0; i < nb_packets; i++) {
 		packet = (Vp8RtpFmtPacket *)ms_list_nth_data(packets_list, i);
 		if ((i > 0) && (packet->extended_cseq != (last_cseq + 1))) {
+			/* There was a gap in the sequence numbers. */
 			if (partition != NULL) {
-				/* There was a gap in the sequence numbers, the current partition is incomplete. */
+				/* The current partition is incomplete. */
 				partition->packets_list = ms_list_append(partition->packets_list, (void *)packet);
 				partition->error = Vp8RtpFmtIncompletePartition;
 				frame->error = Vp8RtpFmtIncompleteFrame;
+			} else {
+				/* Notify that at least one frame has been completely lost. */
+				send_pli(ctx);
 			}
 		}
 		if (packet->error == Vp8RtpFmtOk) {
@@ -418,8 +423,11 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 				ctx->valid_keyframe_received = TRUE;
 				ctx->video_size = get_size_from_key_frame(frame);
 			}
-			if (ctx->valid_keyframe_received == TRUE) {
-				/* Output the complete valid frame if the first keyframe has been received. */
+			if ((ctx->avpf_enabled == TRUE) && (is_reference_frame(frame, NULL) == TRUE)) {
+				ctx->waiting_for_reference_frame = FALSE;
+			}
+			if ((ctx->valid_keyframe_received == TRUE) || (ctx->waiting_for_reference_frame == FALSE)) {
+				/* Output the complete valid frame if a reference frame has been received. */
 				if (ctx->output_partitions == TRUE) {
 					nb_partitions = ms_list_size(frame->partitions_list);
 					for (j = 0; j < nb_partitions; j++) {
@@ -440,6 +448,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			}
 		} else if (is_frame_marker_present(frame) == TRUE) {
 			if (is_first_partition_present_in_frame(frame) == TRUE) {
+#if 0
 				if (ctx->output_partitions == TRUE) {
 					/* Output the valid partitions of the frame. */
 					nb_partitions = ms_list_size(frame->partitions_list);
@@ -453,17 +462,19 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 						}
 					}
 					frame->outputted = TRUE;
-				} else {
+				} else
+#endif
+				{
 					/* Drop the frame for which some partitions are missing/invalid. */
 					ms_warning("VP8 frame with some partitions missing/invalid.");
 					frame->discarded = TRUE;
 				}
-				send_sli_if_reference_frame(ctx, frame);
+				send_sli(ctx, frame);
 			} else {
 				/* Drop the frame for which the first partition is missing. */
 				ms_warning("VP8 frame without first partition.");
 				frame->discarded = TRUE;
-				send_sli_if_reference_frame(ctx, frame);
+				send_sli(ctx, frame);
 			}
 		} else {
 			/* The last packet of the frame has not been received.
@@ -471,7 +482,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			ms_warning("VP8 frame without last packet.");
 			// TODO: Try to get the missing packets at the next iteration of the filter.
 			frame->discarded = TRUE;
-			send_sli_if_reference_frame(ctx, frame);
+			send_sli(ctx, frame);
 		}
 	}
 }
@@ -579,6 +590,7 @@ void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf
 	ctx->avpf_enabled = avpf_enabled;
 	ctx->output_partitions = output_partitions;
 	ctx->valid_keyframe_received = FALSE;
+	ctx->waiting_for_reference_frame = TRUE;
 	ctx->initialized_last_ts = FALSE;
 	ctx->initialized_ref_cseq = FALSE;
 }
