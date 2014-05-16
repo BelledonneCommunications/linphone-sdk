@@ -211,12 +211,24 @@ static bool_t enc_should_generate_reference_frame(EncState *s) {
 	return ((s->frame_count - enc_last_reference_frame_count(s)) == s->frames_state.ref_frames_interval) ? TRUE : FALSE;
 }
 
-static vpx_ref_frame_type_t enc_get_type_of_reference_frame_to_generate(EncState *s) {
-	if (s->frames_state.golden.count < s->frames_state.altref.count)
+static uint8_t enc_get_type_of_reference_frame_to_generate(EncState *s) {
+	if ((s->frames_state.golden.acknowledged == FALSE) && (s->frames_state.altref.acknowledged == FALSE)) {
+		/* Generate a keyframe again. */
+		return VP8_GOLD_FRAME | VP8_ALTR_FRAME;
+	} else if (s->frames_state.golden.acknowledged == FALSE) {
+		/* Last golden frame has not been acknowledged, send a new one. */
 		return VP8_GOLD_FRAME;
-	if (s->frames_state.golden.count > s->frames_state.altref.count)
+	} else if (s->frames_state.altref.acknowledged == FALSE) {
+		/* Last altref frame has not been acknowledged, send a new one. */
 		return VP8_ALTR_FRAME;
-	return VP8_GOLD_FRAME; /* Send a golden frame after a keyframe. */
+	} else {
+		/* Both golden and altref frames have been acknowledged. */
+		if (s->frames_state.golden.count < s->frames_state.altref.count)
+			return VP8_GOLD_FRAME;
+		if (s->frames_state.golden.count > s->frames_state.altref.count)
+			return VP8_ALTR_FRAME;
+		return VP8_GOLD_FRAME; /* Send a golden frame after a keyframe. */
+	}
 }
 
 static bool_t enc_is_last_reference_frame_of_type(EncState *s, vpx_ref_frame_type_t ft) {
@@ -270,9 +282,10 @@ static bool_t enc_is_reference_frame_acknowledged(EncState *s, vpx_ref_frame_typ
 }
 
 static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
-	vpx_ref_frame_type_t ft = VP8_LAST_FRAME;
+	uint8_t frame_type;
 	if (s->force_keyframe == TRUE) {
 		*flags = VPX_EFLAG_FORCE_KF;
+		s->invalid_frame_reported = FALSE;
 	} else {
 		if (s->invalid_frame_reported == TRUE) {
 			/* If an invalid frame has been reported, do not reference the last frame. */
@@ -282,17 +295,13 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 			*flags = 0;
 		}
 		if (enc_should_generate_reference_frame(s) == TRUE) {
-			ft = enc_get_type_of_reference_frame_to_generate(s);
-			switch (ft) {
-				case VP8_GOLD_FRAME:
-					*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_GF | VP8_EFLAG_NO_REF_LAST);
-					break;
-				case VP8_ALTR_FRAME:
-					*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF | VP8_EFLAG_NO_REF_ARF | VP8_EFLAG_NO_REF_LAST);
-					break;
-				case VP8_LAST_FRAME:
-				default:
-					break;
+			frame_type = enc_get_type_of_reference_frame_to_generate(s);
+			if ((frame_type & VP8_GOLD_FRAME) && (frame_type & VP8_ALTR_FRAME)) {
+				*flags = VPX_EFLAG_FORCE_KF;
+			} else if (frame_type & VP8_GOLD_FRAME) {
+				*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_GF | VP8_EFLAG_NO_REF_LAST);
+			} else if (frame_type & VP8_ALTR_FRAME) {
+				*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF | VP8_EFLAG_NO_REF_ARF | VP8_EFLAG_NO_REF_LAST);
 			}
 		} else {
 			if ((enc_is_last_reference_frame_of_type(s, VP8_GOLD_FRAME) == TRUE)
