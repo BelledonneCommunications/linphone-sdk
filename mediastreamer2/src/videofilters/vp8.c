@@ -26,6 +26,7 @@
 #include "vp8rtpfmt.h"
 
 #define PICTURE_ID_ON_16_BITS
+#define AVPF_DEBUG
 
 #define VPX_CODEC_DISABLE_COMPAT 1
 #include <vpx/vpx_encoder.h>
@@ -248,7 +249,7 @@ static void enc_mark_reference_frame_as_sent(EncState *s, vpx_ref_frame_type_t f
 }
 
 static void enc_acknowledge_reference_frame(EncState *s, uint16_t picture_id) {
-	ms_error("VP8 picture_id 0x%04x acknowledged", picture_id);
+	ms_message("VP8 picture_id 0x%04x acknowledged", picture_id);
 	if (s->frames_state.golden.picture_id == picture_id) {
 		s->frames_state.golden.acknowledged = TRUE;
 	}
@@ -276,6 +277,7 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 		if (s->invalid_frame_reported == TRUE) {
 			/* If an invalid frame has been reported, do not reference the last frame. */
 			*flags = VP8_EFLAG_NO_REF_LAST;
+			s->invalid_frame_reported = FALSE;
 		} else {
 			*flags = 0;
 		}
@@ -283,10 +285,10 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 			ft = enc_get_type_of_reference_frame_to_generate(s);
 			switch (ft) {
 				case VP8_GOLD_FRAME:
-					*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_LAST);
+					*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_GF | VP8_EFLAG_NO_REF_LAST);
 					break;
 				case VP8_ALTR_FRAME:
-					*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF | VP8_EFLAG_NO_REF_LAST);
+					*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF | VP8_EFLAG_NO_REF_ARF | VP8_EFLAG_NO_REF_LAST);
 					break;
 				case VP8_LAST_FRAME:
 				default:
@@ -339,8 +341,14 @@ static void enc_process(MSFilter *f) {
 			if (s->frame_count == 0) s->force_keyframe = TRUE;
 			enc_fill_encoder_flags(s, &flags);
 		}
-		ms_error("VP8 encoder flags: 0x%x", flags);
-		ms_error("VP8 encoder picture_id: 0x%04x", s->picture_id);
+
+#ifdef AVPF_DEBUG
+		ms_message("VP8 encoder frames state:");
+		ms_message("\tgolden: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
+			s->frames_state.golden.count, s->frames_state.golden.picture_id, (s->frames_state.golden.acknowledged == TRUE) ? "Y" : "N");
+		ms_message("\taltref: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
+			s->frames_state.altref.count, s->frames_state.altref.picture_id, (s->frames_state.altref.acknowledged == TRUE) ? "Y" : "N");
+#endif
 
 		err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, VPX_DL_REALTIME);
 		if (err) {
@@ -373,10 +381,8 @@ static void enc_process(MSFilter *f) {
 					mblk_set_timestamp_info(packet->m, timestamp);
 					packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
 					packet->pd->start_of_partition = TRUE;
-					ms_error("VP8 encoded packet flags: 0x%x", pkt->data.frame.flags);
 					packet->pd->non_reference_frame = TRUE;
-					if ((s->avpf_enabled == TRUE)
-						&& ((flags & VPX_EFLAG_FORCE_KF) || (flags & VP8_EFLAG_FORCE_GF) || (flags & VP8_EFLAG_FORCE_ARF))) {
+					if ((s->avpf_enabled == TRUE) && ((flags & VPX_EFLAG_FORCE_KF) || (flags & VP8_EFLAG_NO_REF_LAST))) {
 						packet->pd->non_reference_frame = FALSE;
 					}
 					packet->pd->extended_control_bits_present = TRUE;
@@ -394,6 +400,19 @@ static void enc_process(MSFilter *f) {
 					list = ms_list_append(list, packet);
 				}
 			}
+
+#ifdef AVPF_DEBUG
+			ms_message("VP8 encoder picture_id=0x%04x", s->picture_id);
+			if (flags & VPX_EFLAG_FORCE_KF) ms_message("\tVPX_EFLAG_FORCE_KF");
+			if (flags & VP8_EFLAG_FORCE_GF) ms_message("\tVP8_EFLAG_FORCE_GF");
+			if (flags & VP8_EFLAG_FORCE_ARF) ms_message("\tVP8_EFLAG_FORCE_ARF");
+			if (flags & VP8_EFLAG_NO_UPD_GF) ms_message("\tVP8_EFLAG_NO_UPD_GF");
+			if (flags & VP8_EFLAG_NO_UPD_ARF) ms_message("\tVP8_EFLAG_NO_UPD_ARF");
+			if (flags & VP8_EFLAG_NO_REF_GF) ms_message("\tVP8_EFLAG_NO_REF_GF");
+			if (flags & VP8_EFLAG_NO_REF_ARF) ms_message("\tVP8_EFLAG_NO_REF_ARF");
+			if (flags & VP8_EFLAG_NO_REF_LAST) ms_message("\tVP8_EFLAG_NO_REF_LAST\tref!");
+#endif
+
 			vp8rtpfmt_packer_process(&s->packer, list, f->outputs[0]);
 
 			/* Handle video starter if AVPF is not enabled. */
@@ -766,11 +785,6 @@ static void dec_process(MSFilter *f) {
 	/* browse decoded frames */
 	while ((img = vpx_codec_get_frame(&s->codec, &iter))) {
 		int i, j;
-
-		int update = 0;
-		if (vpx_codec_control(&s->codec, VP8D_GET_LAST_REF_UPDATES, &update) == 0) {
-			ms_message("VP8 decode: %s%s%s", (update & VP8_LAST_FRAME) ? "L" : " ", (update & VP8_GOLD_FRAME) ? "G" : " ", (update & VP8_ALTR_FRAME) ? "A" : " ");
-		}
 
 		if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
 			if (s->yuv_msg) freemsg(s->yuv_msg);
