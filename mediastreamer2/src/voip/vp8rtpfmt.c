@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "vp8rtpfmt.h"
 
 
+/*#define VP8RTPFMT_OUTPUT_INCOMPLETE_PARTITIONS*/
 /*#define VP8RTPFMT_DEBUG*/
 
 
@@ -73,7 +74,7 @@ static void print_partition(void *data) {
 
 static void print_frame(void *data) {
 	Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)data;
-	ms_message("frame [%p]:\tts=%u\tpictureid=%u\tN=%d\terror=%d",
+	ms_message("frame [%p]:\tts=%u\tpictureid=0x%04x\tN=%d\terror=%d",
 		frame, get_frame_ts(frame), get_frame_pictureid(frame), is_frame_non_reference(frame), frame->error);
 	ms_list_for_each(frame->partitions_list, print_partition);
 }
@@ -267,6 +268,7 @@ static void generate_partitions_list(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *
 				frame->error = Vp8RtpFmtIncompleteFrame;
 			} else {
 				/* Notify that at least one frame has been completely lost. */
+				ms_warning("VP8 decoder gap in sequence numbers.");
 				send_pli(ctx);
 			}
 		}
@@ -308,6 +310,12 @@ static void generate_partitions_list(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *
 	}
 }
 
+static void mark_last_present_partition_as_last_in_frame(Vp8RtpFmtFrame *frame) {
+	uint8_t nb_partitions = ms_list_size(frame->partitions_list);
+	Vp8RtpFmtPartition *partition = ms_list_nth_data(frame->partitions_list, nb_partitions - 1);
+	partition->last_partition_of_frame = TRUE;
+}
+
 static bool_t is_first_partition_present_in_frame(Vp8RtpFmtFrame *frame) {
 	Vp8RtpFmtPartition *partition = ms_list_nth_data(frame->partitions_list, 0);
 	Vp8RtpFmtPacket *packet = ms_list_nth_data(partition->packets_list, 0);
@@ -317,6 +325,36 @@ static bool_t is_first_partition_present_in_frame(Vp8RtpFmtFrame *frame) {
 	return FALSE;
 }
 
+static bool_t is_last_partition_present_in_frame(Vp8RtpFmtFrame *frame) {
+	uint8_t nb_partitions = ms_list_size(frame->partitions_list);
+	Vp8RtpFmtPartition *partition = ms_list_nth_data(frame->partitions_list, nb_partitions - 1);
+	return partition->last_partition_of_frame;
+}
+
+static bool_t are_all_partitions_present_in_frame(Vp8RtpFmtFrame *frame) {
+	uint8_t nb_partitions = ms_list_size(frame->partitions_list);
+	Vp8RtpFmtPartition *partition;
+	Vp8RtpFmtPacket *packet;
+	uint8_t i;
+
+	for (i = 0; i < nb_partitions; i++) {
+		partition = ms_list_nth_data(frame->partitions_list, i);
+		packet = ms_list_nth_data(partition->packets_list, 0);
+		if (packet->pd->pid != i) return FALSE;
+	}
+
+	return TRUE;
+}
+
+static bool_t is_complete_frame(Vp8RtpFmtFrame *frame) {
+	if (is_first_partition_present_in_frame(frame) != TRUE) return FALSE;
+	if (is_last_partition_present_in_frame(frame) != TRUE) {
+		mark_last_present_partition_as_last_in_frame(frame);
+		return FALSE;
+	}
+	return are_all_partitions_present_in_frame(frame);
+}
+
 static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, MSList **packets_list) {
 	Vp8RtpFmtFrame *frame;
 
@@ -324,9 +362,7 @@ static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, MSList **packets_list) {
 		frame = ms_new0(Vp8RtpFmtFrame, 1);
 		generate_partitions_list(ctx, frame, *packets_list);
 		if (ms_list_size(frame->partitions_list) > 0) {
-			if (is_first_partition_present_in_frame(frame) == TRUE) {
-				/* The first packet of the frame is really the start of the frame. */
-			} else {
+			if (is_complete_frame(frame) != TRUE) {
 				frame->error = Vp8RtpFmtIncompleteFrame;
 			}
 			ctx->frames_list = ms_list_append(ctx->frames_list, (void *)frame);
@@ -367,6 +403,11 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, MSList *packets_list
 			/* The current packet is the last of the current frame. */
 			add_frame(ctx, &frame_packets_list);
 		}
+	}
+
+	if (ms_list_size(frame_packets_list) > 0) {
+		/* If some packets are left, add incomplete frame. */
+		add_frame(ctx, &frame_packets_list);
 	}
 }
 
@@ -409,8 +450,11 @@ static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 }
 
 static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
-	Vp8RtpFmtPartition *partition = NULL;
 	Vp8RtpFmtFrame *frame;
+	Vp8RtpFmtPartition *partition = NULL;
+#ifdef VP8RTPFMT_DEBUG
+	Vp8RtpFmtPacket *packet = NULL;
+#endif
 	int nb_frames = ms_list_size(ctx->frames_list);
 	int nb_partitions;
 	int i;
@@ -434,6 +478,12 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 						partition = ms_list_nth_data(frame->partitions_list, j);
 						output_partition(out, partition);
 					}
+#ifdef VP8RTPFMT_DEBUG
+					packet = ms_list_nth_data(partition->packets_list, 0);
+					if (packet->pd->pictureid_present == TRUE) {
+						ms_message("VP8 decoder: Output frame with pictureID=0x%04x", packet->pd->pictureid);
+					}
+#endif
 				} else {
 					/* Output the full frame in one mblk_t. */
 					output_frame(out, frame);
@@ -443,6 +493,20 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			} else {
 				if (ctx->waiting_for_reference_frame == TRUE) {
 					/* Do not decode frames while we are waiting for a reference frame. */
+#ifdef VP8RTPFMT_DEBUG
+					nb_partitions = ms_list_size(frame->partitions_list);
+					if (nb_partitions > 0) {
+						partition = ms_list_nth_data(frame->partitions_list, 0);
+						packet = ms_list_nth_data(partition->packets_list, 0);
+					} else {
+						packet = NULL;
+					}
+					if (packet && (packet->pd->pictureid_present == TRUE)) {
+						ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame: pictureID=0x%04x", packet->pd->pictureid);
+					} else
+#endif
+						ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame.");
+					frame->discarded = TRUE;
 				} else {
 					/* Drop frames until the first keyframe is successfully received. */
 					ms_warning("VP8 frame dropped because keyframe has not been received yet.");
@@ -452,7 +516,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			}
 		} else if (is_frame_marker_present(frame) == TRUE) {
 			if (is_first_partition_present_in_frame(frame) == TRUE) {
-#if 0
+#ifdef VP8RTPFMT_OUTPUT_INCOMPLETE_PARTITIONS
 				if (ctx->output_partitions == TRUE) {
 					/* Output the valid partitions of the frame. */
 					nb_partitions = ms_list_size(frame->partitions_list);
@@ -470,21 +534,40 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 #endif
 				{
 					/* Drop the frame for which some partitions are missing/invalid. */
-					ms_warning("VP8 frame with some partitions missing/invalid.");
+#ifdef VP8RTPFMT_DEBUG
+					partition = ms_list_nth_data(frame->partitions_list, 0);
+					packet = ms_list_nth_data(partition->packets_list, 0);
+					if (packet->pd->pictureid_present == TRUE) {
+						ms_warning("VP8 frame with some partitions missing/invalid: pictureID=0x%04x", packet->pd->pictureid);
+					} else
+#endif
+						ms_warning("VP8 frame with some partitions missing/invalid.");
 					frame->discarded = TRUE;
 				}
 				send_sli(ctx, frame);
 			} else {
 				/* Drop the frame for which the first partition is missing. */
-				ms_warning("VP8 frame without first partition.");
+#ifdef VP8RTPFMT_DEBUG
+				partition = ms_list_nth_data(frame->partitions_list, 0);
+				packet = ms_list_nth_data(partition->packets_list, 0);
+				if (packet->pd->pictureid_present == TRUE) {
+					ms_warning("VP8 frame without first partition: pictureID=0x%04x", packet->pd->pictureid);
+				} else
+#endif
+					ms_warning("VP8 frame without first partition.");
 				frame->discarded = TRUE;
 				send_sli(ctx, frame);
 			}
 		} else {
-			/* The last packet of the frame has not been received.
-			 * Wait for the next iteration of the filter to see if we have it then. */
-			ms_warning("VP8 frame without last packet.");
-			// TODO: Try to get the missing packets at the next iteration of the filter.
+			/* The last packet of the frame has not been received. */
+#ifdef VP8RTPFMT_DEBUG
+			partition = ms_list_nth_data(frame->partitions_list, 0);
+			packet = ms_list_nth_data(partition->packets_list, 0);
+			if (packet->pd->pictureid_present == TRUE) {
+				ms_warning("VP8 frame without last packet: pictureID=0x%04x", packet->pd->pictureid);
+			} else
+#endif
+				ms_warning("VP8 frame without last packet.");
 			frame->discarded = TRUE;
 			send_sli(ctx, frame);
 		}
