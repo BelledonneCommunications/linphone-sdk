@@ -344,6 +344,8 @@ static void smooth_values(MSStatefulQosAnalyser *obj,int start, int end){
 	//smooth values
 	int i = start;
 	float prev = obj->points[i].loss_percent;
+	/*float w = obj->points[i].bandwidth/obj->points[i+1].bandwidth;
+	obj->points[i].loss_percent = (prev + obj->points[i+1].loss_percent*w)/(1+w);*/
 	obj->points[i].loss_percent = lerp(prev, obj->points[i+1].loss_percent, .25);
 	for (i = start+1; i < end-1; ++i){
 		float v = (obj->points[i].bandwidth - obj->points[i-1].bandwidth) /
@@ -352,6 +354,8 @@ static void smooth_values(MSStatefulQosAnalyser *obj,int start, int end){
 		prev = obj->points[i].loss_percent;
 		obj->points[i].loss_percent = (obj->points[i].loss_percent + new_loss) / 2.;
 	}
+	/*w = obj->points[i-1].bandwidth/obj->points[i].bandwidth;
+	obj->points[i].loss_percent = (obj->points[i].loss_percent + prev*w)/(1+w);*/
 	obj->points[i].loss_percent = lerp(prev, obj->points[i].loss_percent, .75);
 }
 static float compute_available_bw(MSStatefulQosAnalyser *obj){
@@ -480,7 +484,6 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 				ms_qos_analyser_network_state_name(obj->network_state), mean_bw);
 		}
 	}
-	P("\tavg_lost_rate=%f\n", y_mean);
 	P("I think it is a %s network\n", ms_qos_analyser_network_state_name(obj->network_state));
 
 	if (obj->network_state == MSQosAnalyserNetworkLossy){
@@ -496,6 +499,10 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	/*test*/
 	sort_array(obj, f, last);
 	smooth_values(obj, f, last);
+
+	/*test only - suppose that first point is a reliable estimation of the network fixed loss rate*/
+	y_mean = obj->points[2].loss_percent;
+	P("\tavg_lost_rate=%f\n", y_mean);
 
 	double total = 0;
 	int current = f;
@@ -525,7 +532,7 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 		P(YELLOW "\t\t\tsorted values %d: %f %f\n", i, obj->points[i].bandwidth, obj->points[i].loss_percent);
 	}
 	while (current == f ||
-		(current<=last && (loss<=1.*total/(current-f)||loss<y_mean))
+		(current<=last && loss<0.01+MAX(total/(current-f),y_mean))
 		){
 
 		P("\t%d is stable\n", current);
@@ -533,7 +540,7 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 		total+=loss;
 
 		for (i = last; i > current;--i){
-			if (obj->points[i].loss_percent <= obj->points[current].loss_percent){
+			if (obj->points[i].loss_percent <= 0.01 + obj->points[current].loss_percent){
 				P("\t\t%d is less than %d\n", i, current);
 				while (current!=i){
 					total+=obj->points[current].loss_percent;
@@ -560,6 +567,13 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 		P2(YELLOW "try burst!\n");
 		return 3 * mean_bw;
 	}
+
+	/*test only - test a min burst*/
+	if (obj->curindex % 10 == 5){
+		P2(YELLOW "try minimal burst!\n");
+		return .5 * mean_bw;
+	}
+
 	return mean_bw;
 }
 
