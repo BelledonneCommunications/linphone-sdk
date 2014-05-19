@@ -26,7 +26,7 @@
 #include "vp8rtpfmt.h"
 
 #define PICTURE_ID_ON_16_BITS
-#define AVPF_DEBUG
+/*#define AVPF_DEBUG*/
 
 #define VPX_CODEC_DISABLE_COMPAT 1
 #include <vpx/vpx_encoder.h>
