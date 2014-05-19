@@ -283,34 +283,44 @@ static bool_t enc_is_reference_frame_acknowledged(EncState *s, vpx_ref_frame_typ
 
 static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 	uint8_t frame_type;
+
 	if (s->force_keyframe == TRUE) {
 		*flags = VPX_EFLAG_FORCE_KF;
 		s->invalid_frame_reported = FALSE;
-	} else {
-		if (s->invalid_frame_reported == TRUE) {
-			/* If an invalid frame has been reported, do not reference the last frame. */
-			*flags = VP8_EFLAG_NO_REF_LAST;
-			s->invalid_frame_reported = FALSE;
-		} else {
-			*flags = 0;
+		return;
+	}
+
+	if (s->invalid_frame_reported == TRUE) {
+		/* If an invalid frame has been reported. */
+		s->invalid_frame_reported = FALSE;
+		if ((enc_is_reference_frame_acknowledged(s, VP8_GOLD_FRAME) != TRUE)
+			&& (enc_is_reference_frame_acknowledged(s, VP8_ALTR_FRAME) != TRUE)) {
+			/* No reference frame has been acknowledged and last frame can not be used
+				as reference. Therefore, generate a new keyframe. */
+			*flags = VPX_EFLAG_FORCE_KF;
+			return;
 		}
-		if (enc_should_generate_reference_frame(s) == TRUE) {
-			frame_type = enc_get_type_of_reference_frame_to_generate(s);
-			if ((frame_type & VP8_GOLD_FRAME) && (frame_type & VP8_ALTR_FRAME)) {
-				*flags = VPX_EFLAG_FORCE_KF;
-			} else if (frame_type & VP8_GOLD_FRAME) {
-				*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_GF | VP8_EFLAG_NO_REF_LAST);
-			} else if (frame_type & VP8_ALTR_FRAME) {
-				*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF | VP8_EFLAG_NO_REF_ARF | VP8_EFLAG_NO_REF_LAST);
-			}
-		} else {
-			if ((enc_is_last_reference_frame_of_type(s, VP8_GOLD_FRAME) == TRUE)
-				&& (enc_is_reference_frame_acknowledged(s, VP8_GOLD_FRAME) != TRUE)) {
-				*flags |= VP8_EFLAG_NO_REF_GF;
-			} else if ((enc_is_last_reference_frame_of_type(s, VP8_ALTR_FRAME) == TRUE)
-				&& (enc_is_reference_frame_acknowledged(s, VP8_ALTR_FRAME) != TRUE)) {
-				*flags |= VP8_EFLAG_NO_REF_ARF;
-			}
+		/* Do not reference the last frame. */
+		*flags = VP8_EFLAG_NO_REF_LAST;
+	} else {
+		*flags = 0;
+	}
+	if (enc_should_generate_reference_frame(s) == TRUE) {
+		frame_type = enc_get_type_of_reference_frame_to_generate(s);
+		if ((frame_type & VP8_GOLD_FRAME) && (frame_type & VP8_ALTR_FRAME)) {
+			*flags = VPX_EFLAG_FORCE_KF;
+		} else if (frame_type & VP8_GOLD_FRAME) {
+			*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_GF | VP8_EFLAG_NO_REF_LAST);
+		} else if (frame_type & VP8_ALTR_FRAME) {
+			*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF | VP8_EFLAG_NO_REF_ARF | VP8_EFLAG_NO_REF_LAST);
+		}
+	} else {
+		if ((enc_is_last_reference_frame_of_type(s, VP8_GOLD_FRAME) == TRUE)
+			&& (enc_is_reference_frame_acknowledged(s, VP8_GOLD_FRAME) != TRUE)) {
+			*flags |= VP8_EFLAG_NO_REF_GF;
+		} else if ((enc_is_last_reference_frame_of_type(s, VP8_ALTR_FRAME) == TRUE)
+			&& (enc_is_reference_frame_acknowledged(s, VP8_ALTR_FRAME) != TRUE)) {
+			*flags |= VP8_EFLAG_NO_REF_ARF;
 		}
 	}
 }
@@ -325,6 +335,10 @@ static void enc_process(MSFilter *f) {
 	YuvBuf yuv;
 
 	ms_filter_lock(f);
+
+#ifdef AVPF_DEBUG
+	ms_message("VP8 enc_process:");
+#endif
 
 	if (!s->ready) {
 		while ((im = ms_queue_get(f->inputs[0])) != NULL) {
