@@ -749,20 +749,40 @@ static void test_replaces_escaped_header(void) {
 
 }
 
-static void test_date_header(void){
+static void _test_date_header(void){
 	belle_sip_header_date_t *date,*date2;
 	time_t utc;
 #define DATE_EXAMPLE "Thu, 21 Feb 2002 13:02:03 GMT"
+#define DATE_UTC_EXAMPLE 1014296523L /* the above date in UTC */
 	date=belle_sip_header_date_parse("Date: " DATE_EXAMPLE);
 	CU_ASSERT_PTR_NOT_NULL(date);
 	utc=belle_sip_header_date_get_time(date);
-	CU_ASSERT_TRUE(utc!=(time_t)-1);
-	
+	CU_ASSERT_EQUAL(utc,DATE_UTC_EXAMPLE);
+
 	date2=belle_sip_header_date_create_from_time(&utc);
 	CU_ASSERT_PTR_NOT_NULL(date2);
 	CU_ASSERT_TRUE(strcmp(belle_sip_header_date_get_date(date2),DATE_EXAMPLE)==0);
 	CU_ASSERT_PTR_NULL(belle_sip_header_date_parse("nimportequoi"));
+}
 
+static void test_date_header(void){
+	char *tz;
+	/* test in our timezone */
+	_test_date_header();
+
+	/* test within another timezone */
+	tz = getenv("TZ");
+	setenv("TZ","Etc/GMT+4",1);
+	tzset();
+
+	_test_date_header();
+
+	/* reset to original timezone */
+	if(tz)
+		setenv("TZ", tz, 1);
+	else
+		unsetenv("TZ");
+	tzset();
 }
 
 static void test_p_preferred_identity_header(void) {
