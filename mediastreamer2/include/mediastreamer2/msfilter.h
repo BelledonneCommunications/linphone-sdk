@@ -459,7 +459,6 @@ MS2_PUBLIC bool_t ms_filter_has_method(MSFilter *f, unsigned int id);
  * @param fn       A MSFilterNotifyFunc that will be called.
  * @param userdata A pointer to private data.
  * @param synchronous boolean that indicates whether this callback must be called synchronously.
- * @deprecated use ms_filter_add_notify_callback()
  *
  */
 MS2_PUBLIC void ms_filter_add_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *userdata, bool_t synchronous);

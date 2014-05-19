@@ -106,7 +106,7 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 		from_rate=8000;
 	}
 	if (to_rate == 0){
-		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method, assuming 8000hz", from->desc->name);
+		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method, assuming 8000hz", to->desc->name);
 		to_rate=8000;
 	}
 	ms_filter_call_method(resampler,MS_FILTER_SET_SAMPLE_RATE,&from_rate);
