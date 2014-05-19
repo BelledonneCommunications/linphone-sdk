@@ -535,7 +535,11 @@ static int enc_req_vfu(MSFilter *f, void *unused) {
 
 static int enc_notify_pli(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
-	s->force_keyframe = TRUE;
+	if (s->avpf_enabled == TRUE) {
+		s->invalid_frame_reported = TRUE;
+	} else {
+		s->force_keyframe = TRUE;
+	}
 	return 0;
 }
 
