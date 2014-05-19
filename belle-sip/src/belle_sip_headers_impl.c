@@ -1617,7 +1617,8 @@ BELLESIP_EXPORT time_t belle_sip_header_date_get_time(belle_sip_header_date_t *o
 	char tmp2[16] ={0};
 	int i,j;
 	time_t seconds;
-	time_t adjust_timezone = timezone;
+	time_t adjust_timezone;
+
 
 	/* time headers are in GMT as spec says */
 	sscanf(obj->date,"%3c,%d %16s %d %d:%d:%d",tmp1,&ret.tm_mday,tmp2,
@@ -1645,8 +1646,10 @@ success:
 	seconds = timegm(&ret);
 	adjust_timezone = 0;
 #else
-	seconds=mktime(&ret);
+	seconds = mktime(&ret);
+	adjust_timezone = timezone;
 #endif
+
 	if (seconds==(time_t)-1){
 		belle_sip_error("mktime() failed: %s",strerror(errno));
 		return (time_t)-1;
