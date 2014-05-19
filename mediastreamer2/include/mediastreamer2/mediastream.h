@@ -589,29 +589,6 @@ MS2_PUBLIC void video_stream_iterate(VideoStream *stream);
 MS2_PUBLIC void video_stream_send_fir(VideoStream *stream);
 
 /**
- * Ask the video stream to send a Picture Loss Indication.
- * @param[in] stream The videostream object.
- */
-MS2_PUBLIC void video_stream_send_pli(VideoStream *stream);
-
-/**
- * Ask the video stream to send a Slice Loss Indication.
- * @param[in] stream The videostream object.
- * @param[in] first The address of the first lost macroblock.
- * @param[in] number The number of lost macroblocks.
- * @param[in] picture_id The six least significant bits of the picture ID.
- */
-MS2_PUBLIC void video_stream_send_sli(VideoStream *stream, uint16_t first, uint16_t number, uint8_t picture_id);
-
-/**
- * Ask the video stream to send a Reference Picture Selection Indication.
- * @param[in] stream The videostream object.
- * @param[in] bit_string A pointer to the variable length native RPSI bit string to include in the RTCP FB message.
- * @param[in] bit_string_len The length of the bit_string in bits.
- */
-MS2_PUBLIC void video_stream_send_rpsi(VideoStream *stream, uint8_t *bit_string, uint16_t bit_string_len);
-
-/**
  * Ask the video stream to generate a Video Fast Update (generally after receiving a Full-Intra Request.
  * @param[in] stream The videostream object.
  */
