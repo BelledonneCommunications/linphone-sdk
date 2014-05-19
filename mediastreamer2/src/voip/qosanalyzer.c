@@ -336,6 +336,24 @@ static void sort_array(MSStatefulQosAnalyser *obj,int start, int end){
 	}
 }
 
+static float lerp(float inf, float sup, float v){
+	return inf + (sup - inf) * v;
+}
+
+static void smooth_values(MSStatefulQosAnalyser *obj,int start, int end){
+	//smooth values
+	int i = start;
+	float prev = obj->points[i].loss_percent;
+	obj->points[i].loss_percent = lerp(prev, obj->points[i+1].loss_percent, .25);
+	for (i = start+1; i < end-1; ++i){
+		float v = (obj->points[i].bandwidth - obj->points[i-1].bandwidth) /
+			(obj->points[i+1].bandwidth - obj->points[i-1].bandwidth);
+		float new_loss = lerp(prev, obj->points[i+1].loss_percent, v);
+		prev = obj->points[i].loss_percent;
+		obj->points[i].loss_percent = (obj->points[i].loss_percent + new_loss) / 2.;
+	}
+	obj->points[i].loss_percent = lerp(prev, obj->points[i].loss_percent, .75);
+}
 static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	int i;
 	double x_mean = 0.;
@@ -477,6 +495,7 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 
 	/*test*/
 	sort_array(obj, f, last);
+	smooth_values(obj, f, last);
 
 	double total = 0;
 	int current = f;
@@ -502,9 +521,12 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 		loss = obj->points[current].loss_percent;
 	} while (current<=last && loss<=1.1*total/(current-f));
 */
+	for (i = current; i <= last; ++i){
+		P(YELLOW "\t\t\tsorted values %d: %f %f\n", i, obj->points[i].bandwidth, obj->points[i].loss_percent);
+	}
 	while (current == f ||
-		(current<=last && loss<=1.*total/(current-f)
-		 )){
+		(current<=last && (loss<=1.*total/(current-f)||loss<y_mean))
+		){
 
 		P("\t%d is stable\n", current);
 
@@ -534,7 +556,10 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	P(RED " --> estimated_available_bw=%f\n", mean_bw);
 
 	/*try a burst every 50sec (10RTCP packets)*/
-	if (obj->curindex % 10 == 0) return 3 * mean_bw;
+	if (obj->curindex % 10 == 0){
+		P2(YELLOW "try burst!\n");
+		return 3 * mean_bw;
+	}
 	return mean_bw;
 }
 
@@ -545,7 +570,10 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 	float curbw = obj->points[obj->curindex-1].bandwidth;
 	float bw = /*0; if (FALSE)*/ compute_available_bw(obj);
 
-	if (bw > curbw){
+	/*not bandwidth estimation computed*/
+	if (bw <= 0){
+		action->type=MSRateControlActionDoNothing;
+	}else if (bw > curbw){
 		action->type=MSRateControlActionIncreaseQuality;
 		action->value=MAX(0, 100.* (bw - curbw) / curbw);
 	}else{
@@ -553,6 +581,7 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 		action->value=MAX(10,(100. - bw * 100. / curbw));
 	}
 	P(YELLOW "%s of value %d\n", ms_rate_control_action_type_name(action->type), action->value);
+
 	return;
 
 	if (obj->network_state == MSQosAnalyserNetworkCongested){
