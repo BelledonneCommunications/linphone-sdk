@@ -77,12 +77,15 @@ typedef struct _video_stream_manager_t {
 		float rtt;
 		MSQosAnalyserNetworkState network_state;
 	} latest_stats;
+
+	float loss_estim;
+	float congestion_bw_estim;
 } video_stream_manager_t ;
 static video_stream_manager_t * video_stream_manager_new() {
-	video_stream_manager_t * mgr =  ms_new0(video_stream_manager_t,1);
+	video_stream_manager_t * mgr= ms_new0(video_stream_manager_t,1);
 	mgr->local_rtp= (rand() % ((2^16)-1024) + 1024) & ~0x1;
 	mgr->local_rtcp=mgr->local_rtp+1;
-	mgr->stream = video_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
+	mgr->stream=video_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
 	return mgr;
 
 }
@@ -98,7 +101,7 @@ static void video_manager_start(	video_stream_manager_t * mgr
 									,MSWebCam * cam) {
 	media_stream_set_target_network_bitrate(&mgr->stream->ms,target_bitrate);
 
-	int result = 	video_stream_start(mgr->stream
+	int result=	video_stream_start(mgr->stream
 												, &rtp_profile
 												, "127.0.0.1"
 												, remote_port
@@ -112,7 +115,10 @@ static void video_manager_start(	video_stream_manager_t * mgr
 
 #define EDGE_BW 10000
 #define THIRDGENERATION_BW 200000
-#define CU_ASSERT_IN_RANGE(value, inf, sup) CU_ASSERT_TRUE(value >= inf); CU_ASSERT_TRUE(value <= sup)
+#define CU_ASSERT_IN_RANGE(value, inf, sup) \
+		printf(#value ": %f <= ? %f <= ? %f\n", (double)inf, (double)value, (double)sup); \
+		CU_ASSERT_TRUE(value >= inf); \
+		CU_ASSERT_TRUE(value <= sup);
 
 static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue * evq) {
 	OrtpEvent *ev;
@@ -131,8 +137,10 @@ static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue
 			if (rb) {
 				const MSQosAnalyser *analyser=ms_bitrate_controller_get_qos_analyser(stream_mgr->stream->ms.rc);
 				if (analyser->type==Stateful){
-					stream_mgr->latest_stats.network_state=
-						((const MSStatefulQosAnalyser*)analyser)->network_state;
+					const MSStatefulQosAnalyser *stateful_analyser=((const MSStatefulQosAnalyser*)analyser);
+					stream_mgr->latest_stats.network_state=stateful_analyser->network_state;
+					stream_mgr->loss_estim =100*stateful_analyser->network_loss_rate;
+					stream_mgr->congestion_bw_estim =stateful_analyser->congestion_bandwidth;
 				}
 
 				stream_mgr->latest_stats.loss=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
@@ -152,8 +160,8 @@ static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue
 static void start_adaptive_video_stream(video_stream_manager_t * marielle, video_stream_manager_t * margaux,
 	int payload, int initial_bitrate,int target_bw, float loss_rate, int latency, int max_recv_rtcp_packet) {
 
-	MSWebCam * marielle_webcam = ms_web_cam_manager_get_default_cam (ms_web_cam_manager_get());
-	MSWebCam * margaux_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
+	MSWebCam * marielle_webcam=ms_web_cam_manager_get_default_cam (ms_web_cam_manager_get());
+	MSWebCam * margaux_webcam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
 
 	OrtpNetworkSimulatorParams params={0};
 	params.enabled=TRUE;
@@ -162,7 +170,7 @@ static void start_adaptive_video_stream(video_stream_manager_t * marielle, video
 	params.latency=latency;
 	/*this variable should not be changed, since algorithm results rely on this value
 	(the bigger it is, the more accurate is bandwidth estimation)*/
-	int rtcp_interval = 2500;
+	int rtcp_interval=2500;
 
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
 
@@ -174,12 +182,13 @@ static void start_adaptive_video_stream(video_stream_manager_t * marielle, video
 
 	rtp_session_set_rtcp_report_interval(margaux->stream->ms.sessions.rtp_session, rtcp_interval);
 
-	OrtpEvQueue * evq = ortp_ev_queue_new();
+	OrtpEvQueue * evq=ortp_ev_queue_new();
 	rtp_session_register_event_queue(marielle->stream->ms.sessions.rtp_session,evq);
 
 	/*just wait for timeout*/
 	int retry=0;
-	int timeout_ms=rtcp_interval*max_recv_rtcp_packet;
+	int packets_after_start=max_recv_rtcp_packet - (15000.0/rtcp_interval);
+	int timeout_ms=((packets_after_start > 0) ? 15000 + (packets_after_start + .5) * 5000 : (max_recv_rtcp_packet + .5) * rtcp_interval);
 	while (retry++ <timeout_ms/100) {
 		media_stream_iterate(&marielle->stream->ms);
 		media_stream_iterate(&margaux->stream->ms);
@@ -198,8 +207,8 @@ static void start_adaptive_video_stream(video_stream_manager_t * marielle, video
 }
 
 #define INIT() \
-	marielle = video_stream_manager_new(); \
-	margaux = video_stream_manager_new();
+	marielle=video_stream_manager_new(); \
+	margaux=video_stream_manager_new();
 
 #define DEINIT() \
 	video_stream_manager_delete(marielle); \
@@ -208,13 +217,13 @@ static void start_adaptive_video_stream(video_stream_manager_t * marielle, video
 static void lossy_network() {
 	video_stream_manager_t * marielle, * margaux;
 	/*verify that some webcam is supported*/
-	bool_t supported = (ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get()) != NULL);
+	bool_t supported=(ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get()) != NULL);
 	if( supported ) {
 		float bw_usage;
 		//for test purpose only
-		int loss_rate = getenv("GPP_LOSS") ? atoi(getenv("GPP_LOSS")) : 0;
-		int max_bw = getenv("GPP_MAXBW") ? atoi(getenv("GPP_MAXBW")) * 1000: 0;
-		int latency = getenv("GPP_LAG") ? atoi(getenv("GPP_LAG")): 0;
+		int loss_rate=getenv("GPP_LOSS") ? atoi(getenv("GPP_LOSS")) : 0;
+		int max_bw=getenv("GPP_MAXBW") ? atoi(getenv("GPP_MAXBW")) * 1000: 0;
+		int latency=getenv("GPP_LAG") ? atoi(getenv("GPP_LAG")): 0;
 
 		printf("\nloss_rate=%d(GPP_LOSS)\n", loss_rate);
 		printf("max_bw=%d(GPP_MAXBW)\n", max_bw);
@@ -252,48 +261,38 @@ static void stability_network_detection() {
 
 static void adaptive_vp8() {
 	video_stream_manager_t * marielle, * margaux;
-	int bitrate;
-	int has_get_bitrate;
-/*	INIT();
-	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0,25, 500, 10);
-	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
-	CU_ASSERT_EQUAL(has_get_bitrate, 0);
-	CU_ASSERT_EQUAL(bitrate, 200000);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkLossy);
-	DEINIT();*/
-/*
 	INIT();
-	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 40000,0, 50, 10);
-	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
-	CU_ASSERT_EQUAL(has_get_bitrate, 0);
-	CU_ASSERT_EQUAL(bitrate, 64000);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkCongested);
-	DEINIT();*/
-
-/*	INIT();
-	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50, 10);
-	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
-	CU_ASSERT_EQUAL(has_get_bitrate, 0);
-	CU_ASSERT_EQUAL(bitrate, 64000);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkFine);
-	DEINIT();*/
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0,25, 500, 16);
+	CU_ASSERT_IN_RANGE(marielle->loss_estim, 20, 30);
+	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 200, 1000);
+	DEINIT();
 
 	INIT();
-	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50, 100);
-	has_get_bitrate = ms_filter_call_method(marielle->stream->ms.encoder,MS_FILTER_GET_BITRATE,&bitrate);
-	CU_ASSERT_EQUAL(has_get_bitrate, 0);
-	CU_ASSERT_EQUAL(bitrate, 64000);
-	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkLossy);
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 40000,0, 50, 16);
+	CU_ASSERT_IN_RANGE(marielle->loss_estim, 0, 10);
+	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 20, 65);
+	DEINIT();
+
+	INIT();
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50, 16);
+	CU_ASSERT_IN_RANGE(marielle->loss_estim, 0, 10);
+	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 50, 90);
+	DEINIT();
+
+	INIT();
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50, 16);
+	CU_ASSERT_IN_RANGE(marielle->loss_estim, 10, 20);
+	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 80, 120);
 	DEINIT();
 }
 
-static test_t tests[] = {
+static test_t tests[]={
 	{ "Lossy network", lossy_network },
 	{ "Stability detection", stability_network_detection },
 	{ "Adaptive video stream [VP8]", adaptive_vp8 },
 };
 
-test_suite_t video_stream_test_suite = {
+test_suite_t video_stream_test_suite={
 	"VideoStream",
 	tester_init,
 	tester_cleanup,

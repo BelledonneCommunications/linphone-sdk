@@ -347,7 +347,12 @@ static void smooth_values(MSStatefulQosAnalyser *obj,int start, int end){
 	/*float w = obj->points[i].bandwidth/obj->points[i+1].bandwidth;
 	obj->points[i].loss_percent = (prev + obj->points[i+1].loss_percent*w)/(1+w);*/
 	obj->points[i].loss_percent = lerp(prev, obj->points[i+1].loss_percent, .25);
-	for (i = start+1; i < end-1; ++i){
+	/*obj->points[i].loss_percent = MIN(prev, obj->points[i+1].loss_percent);*/
+	/*obj->points[i].loss_percent = obj->points[i+1].loss_percent;*/
+	/*float w1 = obj->points[i].bandwidth;
+	float w2 = obj->points[i+1].bandwidth;
+	obj->points[i].loss_percent = (w2*prev + w1*obj->points[i+1].loss_percent)/(w1+w2);*/
+	for (i = start+1; i < end; ++i){
 		float v = (obj->points[i].bandwidth - obj->points[i-1].bandwidth) /
 			(obj->points[i+1].bandwidth - obj->points[i-1].bandwidth);
 		float new_loss = lerp(prev, obj->points[i+1].loss_percent, v);
@@ -357,6 +362,11 @@ static void smooth_values(MSStatefulQosAnalyser *obj,int start, int end){
 	/*w = obj->points[i-1].bandwidth/obj->points[i].bandwidth;
 	obj->points[i].loss_percent = (obj->points[i].loss_percent + prev*w)/(1+w);*/
 	obj->points[i].loss_percent = lerp(prev, obj->points[i].loss_percent, .75);
+	/*obj->points[i].loss_percent = MAX(prev, obj->points[i].loss_percent);*/
+	/*obj->points[i].loss_percent = prev;*/
+	/*w1 = obj->points[i-1].bandwidth;
+	w2 = obj->points[i].bandwidth;
+	obj->points[i].loss_percent = (w1*prev + w2*obj->points[i].loss_percent)/(w1+w2);*/
 }
 static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	int i;
@@ -388,11 +398,6 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	}
 
 	/*test code*/
-/*	mean_bw = histogram(obj);
-	printf("Target bandwidth is %f\n", mean_bw);
-	return mean_bw;*/
-	/*test code*/
-
 	for (i = f; i <= last; i++){
 		double x = obj->points[i].bandwidth;
 		double y = obj->points[i].loss_percent;
@@ -504,7 +509,6 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	y_mean = obj->points[2].loss_percent;
 	P("\tavg_lost_rate=%f\n", y_mean);
 
-	double total = 0;
 	int current = f;
 	double loss = obj->points[current].loss_percent;
 /*	double total = 0.;
@@ -532,18 +536,15 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 		P(YELLOW "\t\t\tsorted values %d: %f %f\n", i, obj->points[i].bandwidth, obj->points[i].loss_percent);
 	}
 	while (current == f ||
-		(current<=last && loss<0.01+MAX(total/(current-f),y_mean))
+		(current<=last && loss<0.03+y_mean)
 		){
 
 		P("\t%d is stable\n", current);
 
-		total+=loss;
-
 		for (i = last; i > current;--i){
-			if (obj->points[i].loss_percent <= 0.01 + obj->points[current].loss_percent){
+			if (obj->points[i].loss_percent <= 0.03 + obj->points[current].loss_percent){
 				P("\t\t%d is less than %d\n", i, current);
 				while (current!=i){
-					total+=obj->points[current].loss_percent;
 					current++;
 				}
 				break;
@@ -562,17 +563,8 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	/*test*/
 	P(RED " --> estimated_available_bw=%f\n", mean_bw);
 
-	/*try a burst every 50sec (10RTCP packets)*/
-	if (obj->curindex % 10 == 0){
-		P2(YELLOW "try burst!\n");
-		return 3 * mean_bw;
-	}
-
-	/*test only - test a min burst*/
-	if (obj->curindex % 10 == 5){
-		P2(YELLOW "try minimal burst!\n");
-		return .5 * mean_bw;
-	}
+	obj->network_loss_rate = y_mean;
+	obj->congestion_bandwidth = mean_bw;
 
 	return mean_bw;
 }
@@ -584,15 +576,31 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 	float curbw = obj->points[obj->curindex-1].bandwidth;
 	float bw = /*0; if (FALSE)*/ compute_available_bw(obj);
 
+
+	/*try a burst every 50sec (10RTCP packets)*/
+	if (obj->curindex % 10 == 0){
+		P2(YELLOW "try burst!\n");
+		bw *= 3;
+	}
+	/*test only - test a min burst*/
+	else if (obj->curindex % 10 == 5){
+		P2(YELLOW "try minimal burst!\n");
+		bw *= .5;
+	}
+
 	/*not bandwidth estimation computed*/
 	if (bw <= 0){
 		action->type=MSRateControlActionDoNothing;
-	}else if (bw > curbw){
+/*	}else if (bw > curbw){
 		action->type=MSRateControlActionIncreaseQuality;
 		action->value=MAX(0, 100.* (bw - curbw) / curbw);
 	}else{
 		action->type=MSRateControlActionDecreaseBitrate;
-		action->value=MAX(10,(100. - bw * 100. / curbw));
+		action->value=MAX(10,(100. - bw * 100. / curbw));*/
+	}
+	else{
+		action->type=MSRateControlActionIncreaseQuality;
+		action->value=bw*1000;
 	}
 	P(YELLOW "%s of value %d\n", ms_rate_control_action_type_name(action->type), action->value);
 

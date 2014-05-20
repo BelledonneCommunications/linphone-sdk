@@ -67,8 +67,8 @@ extern "C" {
 			double loss_percent;
 			double rtt;
 		} points[150];
-		double avg_network_loss;
-		double congestion_bw;
+		double network_loss_rate;
+		double congestion_bandwidth;
 		uint64_t last_sent_count;
 		uint64_t last_timestamp;
 	}MSStatefulQosAnalyser;
