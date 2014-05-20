@@ -296,9 +296,7 @@ static void remove_tasks_for_filter(MSTicker *ticker, MSFilter *f){
 }
 
 static uint64_t get_cur_time_ms(void *unused){
-	MSTimeSpec ts;
-	ms_get_cur_time(&ts);
-	return (ts.tv_sec*1000LL) + ((ts.tv_nsec+500000LL)/1000000LL);
+	return ms_get_cur_time_ms();
 }
 
 static void sleepMs(int ms){

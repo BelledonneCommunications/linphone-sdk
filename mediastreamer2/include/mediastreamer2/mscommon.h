@@ -104,6 +104,7 @@ static inline void ms_debug(const char *fmt,...)
 typedef ortpTimeSpec MSTimeSpec;
 
 #define ms_get_cur_time ortp_get_cur_time
+#define ms_get_cur_time_ms ortp_get_cur_time_ms
 
 struct _MSList {
 	struct _MSList *next;
