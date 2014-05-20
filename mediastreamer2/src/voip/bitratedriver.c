@@ -332,7 +332,7 @@ static int bandwidth_inc_video_bitrate(MSBandwidthBitrateDriver *obj, const MSRa
 		ms_message("MSBandwidthBitrateDriver: current bitrate was not known.");
 		return -1; /*current  bitrate was not known*/
 	}
-	newbr=action->value;// (float)obj->cur_bitrate*(100.0+(float)action->value)/100.0;
+	newbr= (float)obj->cur_bitrate*(100.0+(float)action->value)/100.0;
 	if (newbr>obj->nom_bitrate){
 		newbr=obj->nom_bitrate;
 		ret=-1;

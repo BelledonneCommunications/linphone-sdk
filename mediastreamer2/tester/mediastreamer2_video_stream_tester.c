@@ -267,22 +267,24 @@ static void adaptive_vp8() {
 	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 200, 1000);
 	DEINIT();
 
+	/*very low bandwidth cause a lot of packets to be dropped since congestion is
+	always present even if we are below the limit due to encoding variance*/
 	INIT();
 	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 40000,0, 50, 16);
-	CU_ASSERT_IN_RANGE(marielle->loss_estim, 0, 10);
+	CU_ASSERT_IN_RANGE(marielle->loss_estim, 0, 15);
 	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 20, 65);
 	DEINIT();
 
 	INIT();
 	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50, 16);
 	CU_ASSERT_IN_RANGE(marielle->loss_estim, 0, 10);
-	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 50, 90);
+	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 50, 95);
 	DEINIT();
 
 	INIT();
 	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50, 16);
 	CU_ASSERT_IN_RANGE(marielle->loss_estim, 10, 20);
-	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 80, 120);
+	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 80, 125);
 	DEINIT();
 }
 

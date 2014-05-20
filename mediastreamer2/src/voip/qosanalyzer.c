@@ -273,48 +273,6 @@ static bool_t stateful_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtc
 	return rb!=NULL;
 }
 
-/*static float histogram(MSStatefulQosAnalyser *obj){
-	int i,j;
-	int last = obj->curindex - 1;
-	int f = last > 15 ? last - 13 : 2; //always skip the 2 first ones
-	int x_min_ind = f;
-	int x_max_ind = f;
-	double histogram[10]={0}; //split in 10 parts
-
-	for (i = f; i <= last; i++){
-		double x = obj->points[i].bandwidth;
-
-		if (x < obj->points[x_min_ind].bandwidth) x_min_ind = i;
-		if (x > obj->points[x_max_ind].bandwidth) x_max_ind = i;
-	}
-	double step = 1 / 10.0 * (obj->points[x_max_ind].bandwidth - obj->points[x_min_ind].bandwidth);
-	for (i=0; i<10; ++i){
-		int count = 0;
-		double cur_bw =	obj->points[x_min_ind].bandwidth + i * step;
-		for (j = f; j <= last; j++){
-			double x = obj->points[j].bandwidth;
-			double y = obj->points[j].loss_percent;
-			if (x >= cur_bw && x < cur_bw + step){
-				count++;
-				histogram[i] += y;
-			}
-		}
-		if (count)
-			histogram[i] /= count;
-		else
-			histogram[i] = histogram[i-1];*/
-		/*printf("\t%d: [%f-%f] %f(%d)\n", i, cur_bw, cur_bw+step, histogram[i],count);
-	}
-
-	while (i<9){
-		if (histogram[i] < .9*histogram[i+1]){
-			return obj->points[x_min_ind].bandwidth + (i+1)*step;
-		}
-	}
-	return 2*obj->points[x_max_ind].bandwidth;
-}
-*/
-
 static void sort_array(MSStatefulQosAnalyser *obj,int start, int end){
 	int i,j;
 
@@ -368,6 +326,7 @@ static void smooth_values(MSStatefulQosAnalyser *obj,int start, int end){
 	w2 = obj->points[i].bandwidth;
 	obj->points[i].loss_percent = (w1*prev + w2*obj->points[i].loss_percent)/(w1+w2);*/
 }
+
 static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	int i;
 	double x_mean = 0.;
@@ -511,27 +470,6 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 
 	int current = f;
 	double loss = obj->points[current].loss_percent;
-/*	double total = 0.;
-	int current = f;
-	double loss = obj->points[current].loss_percent;
-	do{
-		printf("\t%d is stable\n", current);
-		total+=loss;
-
-		for (i = last; i > current;--i){
-			if (obj->points[i].loss_percent <= obj->points[current].loss_percent){
-				printf("\t\t%d is less than %d\n", i, current);
-				while (current!=i){
-					total+=obj->points[current].loss_percent;
-					current++;
-				}
-				break;
-			}
-		}
-		current++;
-		loss = obj->points[current].loss_percent;
-	} while (current<=last && loss<=1.1*total/(current-f));
-*/
 	for (i = current; i <= last; ++i){
 		P(YELLOW "\t\t\tsorted values %d: %f %f\n", i, obj->points[i].bandwidth, obj->points[i].loss_percent);
 	}
@@ -560,7 +498,6 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	P(RED "[%d->%d] Last stable is %d(%f;%f)",
 		f, last, current-1, obj->points[current-1].bandwidth, obj->points[current-1].loss_percent);
 	if (current!=last+1) P(RED ", first unstable is %d(%f;%f)", current, obj->points[current].bandwidth, obj->points[current].loss_percent);
-	/*test*/
 	P(RED " --> estimated_available_bw=%f\n", mean_bw);
 
 	obj->network_loss_rate = y_mean;
@@ -585,23 +522,23 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 	/*test only - test a min burst*/
 	else if (obj->curindex % 10 == 5){
 		P2(YELLOW "try minimal burst!\n");
-		bw *= .5;
+		bw *= .33;
 	}
 
 	/*not bandwidth estimation computed*/
 	if (bw <= 0){
 		action->type=MSRateControlActionDoNothing;
-/*	}else if (bw > curbw){
+	}else if (bw > curbw){
 		action->type=MSRateControlActionIncreaseQuality;
 		action->value=MAX(0, 100.* (bw - curbw) / curbw);
 	}else{
 		action->type=MSRateControlActionDecreaseBitrate;
-		action->value=MAX(10,(100. - bw * 100. / curbw));*/
-	}
+		action->value=MAX(10,(100. - bw * 100. / curbw));
+/*	}
 	else{
 		action->type=MSRateControlActionIncreaseQuality;
 		action->value=bw*1000;
-	}
+*/	}
 	P(YELLOW "%s of value %d\n", ms_rate_control_action_type_name(action->type), action->value);
 
 	return;
