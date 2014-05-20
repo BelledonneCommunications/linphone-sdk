@@ -132,7 +132,7 @@ struct _MediaStream {
 	bool_t owns_sessions;
 	bool_t pad[1];
 	/**
-	 * defines encoder target network bit rate, uses #media_stream_set_network_bitrate() setter.
+	 * defines encoder target network bit rate, uses #media_stream_set_target_network_bitrate() setter.
 	 * */
 	int target_bitrate;
 	media_stream_process_rtcp process_rtcp;

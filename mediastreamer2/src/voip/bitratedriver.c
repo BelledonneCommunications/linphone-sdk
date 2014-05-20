@@ -48,6 +48,7 @@ void ms_bitrate_driver_unref(MSBitrateDriver *obj){
 
 struct _MSAudioBitrateDriver{
 	MSBitrateDriver parent;
+	RtpSession *session;
 	MSFilter *encoder;
 	int min_ptime;
 	int nom_bitrate;
@@ -139,6 +140,8 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 				if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE,&new_br)!=0){
 					ms_message("MSAudioBitrateDriver: SET_BITRATE failed, incrementing ptime");
 					return inc_ptime(obj);
+				} else {
+					rtp_session_set_target_upload_bandwidth(obj->session, new_br);
 				}
 				new_br=0;
 				ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&new_br);
@@ -157,7 +160,10 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 				ms_message("MSAudioBitrateDriver: increasing bitrate of codec to %i",obj->cur_bitrate);
 				if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE,&obj->cur_bitrate)!=0){
 					ms_message("MSAudioBitrateDriver: could not set codec bitrate to %i",obj->cur_bitrate);
-				}else obj->cur_bitrate=obj->nom_bitrate; /* so that we do not attempt this anymore*/
+				}else {
+					rtp_session_set_target_upload_bandwidth(obj->session, obj->cur_bitrate);
+					obj->cur_bitrate=obj->nom_bitrate; /* so that we do not attempt this anymore*/
+				}
 				return 0;
 			}
 			}else ms_warning("MSAudioBitrateDriver: MS_FILTER_GET_BITRATE failed.");
@@ -181,9 +187,10 @@ static MSBitrateDriverDesc audio_bitrate_driver={
 };
 
 
-MSBitrateDriver *ms_audio_bitrate_driver_new(MSFilter *encoder){
+MSBitrateDriver *ms_audio_bitrate_driver_new(RtpSession *session, MSFilter *encoder){
 	MSAudioBitrateDriver *obj=ms_new0(MSAudioBitrateDriver,1);
 	obj->parent.desc=&audio_bitrate_driver;
+	obj->session = session;
 	obj->encoder=encoder;
 	obj->min_ptime=20;
 	obj->cur_ptime=0;
@@ -196,6 +203,7 @@ static const int min_video_bitrate=64000;
 typedef struct _MSAVBitrateDriver{
 	MSBitrateDriver parent;
 	MSBitrateDriver *audio_driver;
+	RtpSession *vsession;
 	MSFilter *venc;
 	int nom_bitrate;
 	int cur_bitrate;
@@ -212,6 +220,7 @@ static int dec_video_bitrate(MSAVBitrateDriver *obj, const MSRateControlAction *
 	}
 	ms_message("MSAVBitrateDriver: targeting %i bps for video encoder.",new_br);
 	ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&new_br);
+	rtp_session_set_target_upload_bandwidth(obj->vsession, new_br);
 	obj->cur_bitrate=new_br;
 	return new_br==min_video_bitrate ? -1 : 0;
 }
@@ -229,6 +238,7 @@ static int inc_video_bitrate(MSAVBitrateDriver *obj, const MSRateControlAction *
 	obj->cur_bitrate=newbr;
 	ms_message("MSAVBitrateDriver: increasing bitrate to %i bps for video encoder.",obj->cur_bitrate);
 	ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&obj->cur_bitrate);
+	rtp_session_set_target_upload_bandwidth(obj->vsession, obj->cur_bitrate);
 	return ret;
 }
 
@@ -273,10 +283,11 @@ static MSBitrateDriverDesc av_bitrate_driver={
 	av_bitrate_driver_uninit
 };
 
-MSBitrateDriver *ms_av_bitrate_driver_new(MSFilter *aenc, MSFilter *venc){
+MSBitrateDriver *ms_av_bitrate_driver_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc){
 	MSAVBitrateDriver *obj=ms_new0(MSAVBitrateDriver,1);
 	obj->parent.desc=&av_bitrate_driver;
-	obj->audio_driver=(aenc!=NULL) ? ms_bitrate_driver_ref(ms_audio_bitrate_driver_new(aenc)) : NULL;
+	obj->audio_driver=((asession != NULL) && (aenc!=NULL)) ? ms_bitrate_driver_ref(ms_audio_bitrate_driver_new(asession, aenc)) : NULL;
+	obj->vsession = vsession;
 	obj->venc=venc;
 
 	return (MSBitrateDriver*)obj;

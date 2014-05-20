@@ -133,13 +133,13 @@ void ms_bitrate_controller_destroy(MSBitrateController *obj){
 MSBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, MSFilter *encoder, unsigned int flags){
 	return ms_bitrate_controller_new(
 	                                 ms_simple_qos_analyser_new(session),
-	                                 ms_audio_bitrate_driver_new(encoder));
+	                                 ms_audio_bitrate_driver_new(session, encoder));
 }
 
 MSBitrateController *ms_av_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc){
 	return ms_bitrate_controller_new(
 	                                 ms_simple_qos_analyser_new(vsession),
-	                                 ms_av_bitrate_driver_new(aenc,venc));
+	                                 ms_av_bitrate_driver_new(asession, aenc, vsession, venc));
 }
 
 

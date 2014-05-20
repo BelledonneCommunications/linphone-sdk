@@ -512,6 +512,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_message("Setting audio encoder network bitrate to [%i] on stream [%p]",stream->ms.target_bitrate,stream);
 		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&stream->ms.target_bitrate);
 	}
+	rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, stream->ms.target_bitrate);
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&nchannels);
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_NCHANNELS,&nchannels);
