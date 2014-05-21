@@ -233,6 +233,9 @@ static bool_t stateful_rt_prop_increased(MSStatefulQosAnalyser *obj){
 	return FALSE;
 }
 
+static int earlier_than(const rtcpstatspoint_t *p, const time_t * now){
+	return p->timestamp > *now;
+}
 static int sort_points(const rtcpstatspoint_t *p1, const rtcpstatspoint_t *p2){
 	return p1->bandwidth > p2->bandwidth;
 }
@@ -268,17 +271,21 @@ static bool_t stateful_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtc
 				P(YELLOW "SKIPPED first MIN burst %d: %f %f\n", obj->curindex-1, rtp_session_get_send_bandwidth(obj->session)/1000.0, cur->lost_percentage/100.0);
 			}else{
 				obj->latest=ms_new0(rtcpstatspoint_t, 1);
+				obj->latest->timestamp=time(0);
 				obj->latest->bandwidth=rtp_session_get_send_bandwidth(obj->session)/1000.0;
-				P(RED "%f vs %f\n", (obj->session->rtp.stats.sent - obj->last_sent_count)*0.01/(time(0) - obj->last_timestamp),
-					rtp_session_get_send_bandwidth(obj->session)/1000.0);
-				/*obj->latest->bandwidth=(obj->session->rtp.stats.sent - obj->last_sent_count)*.01/(time(0) - obj->last_timestamp);*/
 				obj->latest->loss_percent=cur->lost_percentage/100.0;
 				obj->latest->rtt=cur->rt_prop;
-				obj->last_timestamp = time(0);
-				obj->last_sent_count = obj->session->rtp.stats.sent;
 				obj->rtcpstatspoint = ms_list_insert_sorted(obj->rtcpstatspoint, obj->latest, (MSCompareFunc)sort_points);
 
 				P(YELLOW "one more %d: %f %f\n", obj->curindex-1, obj->latest->bandwidth, obj->latest->loss_percent);
+			}
+
+			if (ms_list_size(obj->rtcpstatspoint) > ESTIM_HISTORY){
+				P(RED "Reached list maximum capacity (count=%d)", ms_list_size(obj->rtcpstatspoint));
+				/*clean everything which occured 60sec or more ago*/
+				time_t now = time(0) - 60;
+				obj->rtcpstatspoint = ms_list_remove_custom(obj->rtcpstatspoint, (MSCompareFunc)earlier_than, &now);
+				P(RED "--> Cleaned list (count=%d)\n", ms_list_size(obj->rtcpstatspoint));
 			}
 		}
 	}

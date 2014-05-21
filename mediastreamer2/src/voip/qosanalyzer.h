@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 extern "C" {
 #endif
 	#define STATS_HISTORY 3
+	#define ESTIM_HISTORY 30
 	static const float unacceptable_loss_rate=10;
 	static const int big_jitter=10; /*ms */
 	static const float significant_delay=0.2; /*seconds*/
@@ -52,7 +53,7 @@ extern "C" {
 	}MSSimpleQosAnalyser;
 
 	typedef struct rtcpstatspoint{
-		uint64_t timestamp;
+		time_t timestamp;
 		double bandwidth;
 		double loss_percent;
 		double rtt;
@@ -73,8 +74,6 @@ extern "C" {
 		rtcpstatspoint_t *latest;
 		double network_loss_rate;
 		double congestion_bandwidth;
-		uint64_t last_sent_count;
-		uint64_t last_timestamp;
 	}MSStatefulQosAnalyser;
 #ifdef __cplusplus
 }
