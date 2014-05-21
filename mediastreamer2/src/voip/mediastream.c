@@ -276,7 +276,7 @@ static int check_srtp_session_created(MediaStream *stream){
 	return 0;
 }
 
-static bool_t add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char* b64_key, bool_t inbound)
+static int add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char* b64_key, bool_t inbound)
 {
 	srtp_policy_t policy;
 	uint8_t* key;
@@ -313,6 +313,9 @@ static bool_t add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, c
 		case MS_AES_256_SHA1_32:
 			crypto_policy_set_aes_cm_256_hmac_sha1_32(&policy.rtp);
 			crypto_policy_set_aes_cm_256_hmac_sha1_32(&policy.rtcp);
+			break;
+		case MS_CRYPTO_SUITE_INVALID:
+			return -1;
 			break;
 	}
 	key_size = b64_decode(b64_key, b64_key_length, 0, 0);
@@ -555,3 +558,65 @@ bool_t media_stream_is_secured (const MediaStream *stream) {
 MSStreamState media_stream_get_state(const MediaStream *stream) {
 	return stream->state;
 }
+
+#define keywordcmp(key,b) strncmp(key,b,sizeof(key))
+
+/* see  http://www.iana.org/assignments/sdp-security-descriptions/sdp-security-descriptions.xhtml#sdp-security-descriptions-3 */
+
+
+
+MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNameParams *descrption){
+	const char *name=descrption->name, *parameters=descrption->params;
+	if (keywordcmp ( "AES_CM_128_HMAC_SHA1_80",name ) == 0 ){
+		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) return MS_NO_CIPHER_SHA1_80;
+		else if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) return MS_AES_128_NO_AUTH;
+		else return MS_AES_128_SHA1_80;
+	}else if ( keywordcmp ( "AES_CM_128_HMAC_SHA1_32",name ) == 0 ){
+		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
+		if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) return MS_AES_128_NO_AUTH;
+		else return MS_AES_128_SHA1_32;
+	}else if ( keywordcmp ( "AES_CM_256_HMAC_SHA1_32",name ) == 0 ){
+		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
+		if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) goto error;
+		return MS_AES_256_SHA1_32;
+	}else if ( keywordcmp ( "AES_CM_256_HMAC_SHA1_80",name ) == 0 ){
+		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
+		if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) goto error;
+		return MS_AES_256_SHA1_80;
+	}
+error:
+	ms_error("Unsupported crypto suite '%s' with parameters '%s'",name, parameters ? parameters : "");
+	return MS_CRYPTO_SUITE_INVALID;
+}
+
+int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *params ){
+	params->name=NULL;
+	params->params=NULL;
+	switch(cs){
+		case MS_CRYPTO_SUITE_INVALID:
+			break;
+		case MS_AES_128_SHA1_80:
+			params->name= "AES_CM_128_HMAC_SHA1_80";
+			break;
+		case MS_AES_128_SHA1_32:
+			params->name="AES_CM_128_HMAC_SHA1_32";
+			break; 
+		case MS_AES_128_NO_AUTH:
+			params->name="AES_CM_128_HMAC_SHA1_80";
+			params->params="UNAUTHENTICATED_SRTP";
+			break;
+		case MS_NO_CIPHER_SHA1_80:
+			params->name="AES_CM_128_HMAC_SHA1_80";
+			params->params="UNENCRYPTED_SRTP UNENCRYPTED_SRTCP";
+			break;
+		case MS_AES_256_SHA1_80:
+			params->name="AES_CM_256_HMAC_SHA1_80";
+			break;
+		case MS_AES_256_SHA1_32:
+			params->name="AES_CM_256_HMAC_SHA1_32";
+			break;
+	}
+	if (params->name==NULL) return -1;
+	return 0;
+}
+
