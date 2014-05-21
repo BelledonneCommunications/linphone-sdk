@@ -249,7 +249,7 @@ static void stability_network_detection() {
 	DEINIT();
 
 	INIT();
-	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 50000, 0, 250, 10);
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 70000, 0, 250, 10);
 	CU_ASSERT_EQUAL(marielle->latest_stats.network_state, MSQosAnalyserNetworkCongested);
 	DEINIT();
 
@@ -261,6 +261,7 @@ static void stability_network_detection() {
 
 static void adaptive_vp8() {
 	video_stream_manager_t * marielle, * margaux;
+
 	INIT();
 	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0,25, 500, 16);
 	CU_ASSERT_IN_RANGE(marielle->loss_estim, 20, 30);

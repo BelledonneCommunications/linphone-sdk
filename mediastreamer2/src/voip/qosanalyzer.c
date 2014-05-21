@@ -282,7 +282,7 @@ static bool_t stateful_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtc
 
 			if (ms_list_size(obj->rtcpstatspoint) > ESTIM_HISTORY){
 				P(RED "Reached list maximum capacity (count=%d)", ms_list_size(obj->rtcpstatspoint));
-				/*clean everything which occured 60sec or more ago*/
+				/*clean everything which occurred 60 sec or more ago*/
 				time_t now = time(0) - 60;
 				obj->rtcpstatspoint = ms_list_remove_custom(obj->rtcpstatspoint, (MSCompareFunc)earlier_than, &now);
 				P(RED "--> Cleaned list (count=%d)\n", ms_list_size(obj->rtcpstatspoint));
@@ -548,7 +548,10 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 
 	obj->network_loss_rate = y_mean;
 	obj->congestion_bandwidth = mean_bw;
-
+	obj->network_state =
+				(current==NULL && y_mean < .1) ?	MSQosAnalyserNetworkFine
+				: (y_mean > .1) ?					MSQosAnalyserNetworkLossy
+				:									MSQosAnalyserNetworkCongested;
 	return mean_bw;
 }
 
@@ -565,7 +568,7 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 		P2(YELLOW "try burst!\n");
 		bw *= 3;
 	}
-	/*test only - test a min burst to avoid overestimation of available bandwidth*/
+	/*test a min burst to avoid overestimation of available bandwidth*/
 	else if (obj->curindex % 10 == 5 || obj->curindex % 10 == 6){
 		P2(YELLOW "try minimal burst!\n");
 		bw *= .33;
@@ -574,6 +577,7 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 	/*not bandwidth estimation computed*/
 	if (bw <= 0){
 		action->type=MSRateControlActionDoNothing;
+		action->value=0;
 	}else if (bw > curbw){
 		action->type=MSRateControlActionIncreaseQuality;
 		action->value=MAX(0, 100.* (bw - curbw) / curbw);
