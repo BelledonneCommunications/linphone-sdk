@@ -411,6 +411,11 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	rtp_session_set_profile(rtps,profile);
 	if (rem_rtp_port>0)
 		rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
+	if (rem_rtcp_port > 0) {
+		rtp_session_enable_rtcp(rtps, TRUE);
+	} else {
+		rtp_session_enable_rtcp(rtps, FALSE);
+	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
@@ -595,7 +600,6 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
 
 	stream->ms.start_time=ms_time(NULL);
-	stream->ms.is_beginning=TRUE;
 
 	/* attach the graphs */
 	if (stream->source)
@@ -611,6 +615,7 @@ void video_stream_prepare_video(VideoStream *stream){
 	video_stream_unprepare_video(stream);
 	stream->ms.rtprecv=ms_filter_new(MS_RTP_RECV_ID);
 	rtp_session_set_payload_type(stream->ms.sessions.rtp_session,0);
+	rtp_session_enable_rtcp(stream->ms.sessions.rtp_session, FALSE);
 	ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
 	stream->ms.voidsink=ms_filter_new(MS_VOID_SINK_ID);
 	ms_filter_link(stream->ms.rtprecv,0,stream->ms.voidsink,0);

@@ -192,6 +192,7 @@ void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndC
 	audio_stream_unprepare_sound(stream);
 	stream->dummy=ms_filter_new(MS_RTP_RECV_ID);
 	rtp_session_set_payload_type(stream->ms.sessions.rtp_session,0);
+	rtp_session_enable_rtcp(stream->ms.sessions.rtp_session, FALSE);
 	ms_filter_call_method(stream->dummy,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
 
 	if (captcard && playcard){
@@ -337,8 +338,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	rtp_session_set_profile(rtps,profile);
 	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
-	if (rem_rtcp_port<=0){
-		rtp_session_enable_rtcp(rtps,FALSE);
+	if (rem_rtcp_port > 0) {
+		rtp_session_enable_rtcp(rtps, TRUE);
+	} else {
+		rtp_session_enable_rtcp(rtps, FALSE);
 	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
@@ -521,7 +524,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_message("Setting audio encoder network bitrate to [%i] on stream [%p]",stream->ms.target_bitrate,stream);
 		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&stream->ms.target_bitrate);
 	}
-	rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, stream->ms.target_bitrate);
+	rtp_session_set_target_upload_bandwidth(rtps, stream->ms.target_bitrate);
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&nchannels);
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_NCHANNELS,&nchannels);
@@ -652,7 +655,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 				,NULL);
 
 	stream->ms.start_time=stream->last_packet_time=ms_time(NULL);
-	stream->ms.is_beginning=TRUE;
 	stream->ms.state=MSStreamStarted;
 
 	return 0;
