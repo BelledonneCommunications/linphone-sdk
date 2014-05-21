@@ -320,6 +320,7 @@ static int bandwidth_dec_video_bitrate(MSBandwidthBitrateDriver *obj, const MSRa
 	ms_message("MSBandwidthBitrateDriver: targeting %i bps for video encoder.",new_br);
 	ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&new_br);
 	obj->cur_bitrate=new_br;
+	rtp_session_set_target_upload_bandwidth(obj->vsession, obj->cur_bitrate);
 	return new_br==min_video_bitrate ? -1 : 0;
 }
 
@@ -339,6 +340,7 @@ static int bandwidth_inc_video_bitrate(MSBandwidthBitrateDriver *obj, const MSRa
 	}
 	ms_message("MSBandwidthBitrateDriver: increasing bitrate from %i to %i bps for video encoder.",obj->cur_bitrate,newbr);
 	obj->cur_bitrate=newbr;
+	rtp_session_set_target_upload_bandwidth(obj->vsession, obj->cur_bitrate);
 	ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&obj->cur_bitrate);
 	return ret;
 }
