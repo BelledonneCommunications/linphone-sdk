@@ -431,7 +431,7 @@ MS2_PUBLIC int ms_filter_call_method_noarg(MSFilter *f, unsigned int id);
  * @param f    A MSFilter object.
  * @param id   A method ID.
  *
- * Returns: 0 if successfull, -1 otherwise.
+ * Returns: TRUE if method is implemented, FALSE otherwise.
  */
 MS2_PUBLIC bool_t ms_filter_has_method(MSFilter *f, unsigned int id);
 

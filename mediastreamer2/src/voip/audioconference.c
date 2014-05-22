@@ -103,7 +103,9 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote){
 	ep->out_cut_point=just_before(st->ms.encoder);
 	ms_filter_unlink(ep->out_cut_point.filter,ep->out_cut_point.pin,st->ms.encoder,0);
 
-	ms_filter_call_method(st->ms.rtpsend,MS_FILTER_GET_SAMPLE_RATE,&ep->samplerate);
+	if (ms_filter_has_method(st->ms.encoder,MS_FILTER_GET_SAMPLE_RATE)){
+		ms_filter_call_method(st->ms.encoder,MS_FILTER_GET_SAMPLE_RATE,&ep->samplerate);
+	}else ms_warning("MSAudioConference: filter %s does not implement MS_FILTER_GET_SAMPLE_RATE, assuming 8khz",st->ms.encoder->desc->name);
 
 	if (is_remote){
 		ep->mixer_in.filter=ep->in_cut_point_prev.filter;
