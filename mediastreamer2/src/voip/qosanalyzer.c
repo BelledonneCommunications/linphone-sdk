@@ -25,12 +25,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <math.h>
 
-#define RED "[1m[31m"
-#define YELLOW "[1m[33m"
-#define GREEN "[1m[32m"
-#define RESET "[0m"
-#define P(c, ...) printf(GREEN c RESET,  __VA_ARGS__)
-#define P2(c) printf(GREEN c RESET)
+#define RED 		"[1m[31m"
+#define YELLOW 		"[1m[33m"
+#define GREEN 		"[1m[32m"
+#define RESET 		"[0m"
+#define VA_ARGS(...) , ##__VA_ARGS__
+#define P(c, ...) 	printf(GREEN c RESET VA_ARGS(__VA_ARGS__))
 
 /**
  * Analyses a received RTCP packet.
@@ -393,7 +393,7 @@ static bool_t stateful_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtc
 
 // 	if (obj->network_state == MSQosAnalyserNetworkLossy){
 // 		if (obj->rtcpstatspoint[x_min_ind].bandwidth / mean_bw > 1.){
-// 			P2(RED "Network was suggested lossy, but since we did not try its lower bound capability, "
+// 			P(RED "Network was suggested lossy, but since we did not try its lower bound capability, "
 // 				"we will consider this is congestion for yet\n");
 // 			obj->network_state = MSQosAnalyserNetworkCongested;
 // 		}
@@ -410,7 +410,7 @@ static bool_t stateful_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtc
 // 	if (obj->network_state == MSQosAnalyserNetworkLossy){
 // 		//hack
 // 		if (obj->rtcpstatspoint[last].bandwidth>x_mean && obj->rtcpstatspoint[last].loss_percent>1.5*y_mean){
-// 			P2(RED "lossy network and congestion probably too!\n");
+// 			P(RED "lossy network and congestion probably too!\n");
 // 			mean_bw = (1 - (obj->rtcpstatspoint[x_max_ind].loss_percent - y_mean)) * obj->rtcpstatspoint[x_max_ind].bandwidth;
 // 		}
 // 		mean_bw = obj->rtcpstatspoint[last].bandwidth * 2;
@@ -447,7 +447,7 @@ static void smooth_values(MSStatefulQosAnalyser *obj){
 	curr = (rtcpstatspoint_t *)it->data;
 	/*float w = obj->rtcpstatspoint[i].bandwidth/obj->rtcpstatspoint[i+1].bandwidth;
 	obj->rtcpstatspoint[i].loss_percent = (prev + obj->rtcpstatspoint[i+1].loss_percent*w)/(1+w);*/
- 	((rtcpstatspoint_t *)it->prev->data)->loss_percent = lerp(prev_loss, curr->loss_percent, .25);
+	((rtcpstatspoint_t *)it->prev->data)->loss_percent = lerp(prev_loss, curr->loss_percent, .25);
 	/*obj->rtcpstatspoint[i].loss_percent = MIN(prev, obj->rtcpstatspoint[i+1].loss_percent);*/
 	/*obj->rtcpstatspoint[i].loss_percent = obj->rtcpstatspoint[i+1].loss_percent;*/
 	/*float w1 = obj->rtcpstatspoint[i].bandwidth;
@@ -477,13 +477,13 @@ static void smooth_values(MSStatefulQosAnalyser *obj){
 
 static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	MSList *it;
-	double y_mean = 0.;
+	double constant_network_loss = 0.;
 	double mean_bw = 0.;
 	MSList *current = obj->rtcpstatspoint;
 	MSList *last = current;
 	int size = ms_list_size(obj->rtcpstatspoint);
 	if (current == NULL){
-		P2(RED "Not points available for computation.\n");
+		P(RED "Not points available for computation.\n");
 		return -1;
 	}else if (size == 1){
 		rtcpstatspoint_t *p = (rtcpstatspoint_t *)current->data;
@@ -498,20 +498,20 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	/*suppose that first point is a reliable estimation of the constant network loss rate*/
 	if (size > 3){
 		smooth_values(obj);
-		y_mean = ((rtcpstatspoint_t *)obj->rtcpstatspoint->next->data)->loss_percent;
+		constant_network_loss = ((rtcpstatspoint_t *)obj->rtcpstatspoint->next->data)->loss_percent;
 	}else{
-		y_mean = ((rtcpstatspoint_t *)obj->rtcpstatspoint->data)->loss_percent;
+		constant_network_loss = ((rtcpstatspoint_t *)obj->rtcpstatspoint->data)->loss_percent;
 	}
 
 
-	P("\tavg_lost_rate=%f\n", y_mean);
+	P("\tconstant_network_loss=%f\n", constant_network_loss);
 	for (it = obj->rtcpstatspoint; it != NULL; it=it->next){
 		rtcpstatspoint_t * point = (rtcpstatspoint_t *)it->data;
-		P(YELLOW "\t\t\tsorted values %d: %f %f\n",
+		P(YELLOW "\t\tsorted values %d: %f %f\n",
 			ms_list_position(obj->rtcpstatspoint, it), point->bandwidth, point->loss_percent);
 	}
 
-	while (current == obj->rtcpstatspoint || (current!=NULL && ((rtcpstatspoint_t*)current->data)->loss_percent<0.03+y_mean)){
+	while (current == obj->rtcpstatspoint || (current!=NULL && ((rtcpstatspoint_t*)current->data)->loss_percent<0.03+constant_network_loss)){
 		P("\t%d is stable\n", ms_list_position(obj->rtcpstatspoint, current));
 
 		for (it=last;it!=current;it=it->prev){
@@ -532,26 +532,27 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 		/*there is some congestion*/
 		mean_bw = .5*(((rtcpstatspoint_t*)current->prev->data)->bandwidth+((rtcpstatspoint_t*)current->data)->bandwidth);
 	}
-	rtcpstatspoint_t * prev = (rtcpstatspoint_t*) (current ? current->prev->data : last->data);
+
 	P(RED "[0->%d] Last stable is %d(%f;%f)"
 		, ms_list_position(obj->rtcpstatspoint, last)
 		, ms_list_position(obj->rtcpstatspoint, (current ? current->prev : last))
-		, prev->bandwidth
-		, prev->loss_percent);
-
-	if (current!=NULL)
+		, ((rtcpstatspoint_t*) (current ? current->prev->data : last->data))->bandwidth
+		, ((rtcpstatspoint_t*) (current ? current->prev->data : last->data))->loss_percent);
+	if (current!=NULL){
 		P(RED ", first unstable is %d(%f;%f)"
 			, ms_list_position(obj->rtcpstatspoint, current)
 			, ((rtcpstatspoint_t*) current->data)->bandwidth
 			, ((rtcpstatspoint_t*) current->data)->loss_percent);
+	}
 	P(RED " --> estimated_available_bw=%f\n", mean_bw);
 
-	obj->network_loss_rate = y_mean;
+	obj->network_loss_rate = constant_network_loss;
 	obj->congestion_bandwidth = mean_bw;
 	obj->network_state =
-				(current==NULL && y_mean < .1) ?	MSQosAnalyserNetworkFine
-				: (y_mean > .1) ?					MSQosAnalyserNetworkLossy
-				:									MSQosAnalyserNetworkCongested;
+		(current==NULL && constant_network_loss < .1) ?	MSQosAnalyserNetworkFine
+		: (constant_network_loss > .1) ?				MSQosAnalyserNetworkLossy
+		:												MSQosAnalyserNetworkCongested;
+
 	return mean_bw;
 }
 
@@ -565,12 +566,12 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 
 	/*try a burst every 50 seconds (10 RTCP packets)*/
 	if (obj->curindex % 10 < 2){
-		P2(YELLOW "try burst!\n");
+		P(YELLOW "try burst!\n");
 		bw *= 3;
 	}
 	/*test a min burst to avoid overestimation of available bandwidth*/
 	else if (obj->curindex % 10 == 5 || obj->curindex % 10 == 6){
-		P2(YELLOW "try minimal burst!\n");
+		P(YELLOW "try minimal burst!\n");
 		bw *= .33;
 	}
 
