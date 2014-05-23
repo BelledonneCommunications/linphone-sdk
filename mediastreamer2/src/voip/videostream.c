@@ -315,7 +315,7 @@ static void configure_video_source(VideoStream *stream){
 	MSVideoSize vsize,cam_vsize;
 	float fps=15;
 	MSPixFmt format;
-	bool_t encoder_has_builtin_converter = FALSE;
+	MSVideoEncoderPixFmt encoder_supports_source_format;
 
 	/* transmit orientation to source filter */
 	ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
@@ -328,7 +328,6 @@ static void configure_video_source(VideoStream *stream){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
 
-	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER, &encoder_has_builtin_converter);
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
@@ -359,7 +358,12 @@ static void configure_video_source(VideoStream *stream){
 	/* get the output format for webcam reader */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 
-	if ((encoder_has_builtin_converter == TRUE) || (stream->source_performs_encoding == TRUE)) {
+	encoder_supports_source_format.supported = FALSE;
+	encoder_supports_source_format.pixfmt = format;
+
+	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SUPPORTS_PIXFMT, &encoder_supports_source_format);
+
+	if ((encoder_supports_source_format.supported == TRUE) || (stream->source_performs_encoding == TRUE)) {
 		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_PIX_FMT, &format);
 	} else {
 		if (format==MS_MJPEG){
@@ -563,7 +567,17 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			disp_size.width=MS_VIDEO_SIZE_CIF_W;
 			disp_size.height=MS_VIDEO_SIZE_CIF_H;
 			ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-			ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
+
+			/* if pixconv is used, force yuv420 */
+			if (stream->pixconv || !stream->source)
+				ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
+			/* else, use format from input */
+			else {
+				MSPixFmt source_format;
+				ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&source_format);
+				ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&source_format);
+			}
+
 			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
 			if (stream->window_id!=0){
 				autofit = 0;

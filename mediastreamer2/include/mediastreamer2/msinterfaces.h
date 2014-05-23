@@ -35,6 +35,13 @@ struct _MSVideoCodecRPSI {
 	uint16_t bit_string_len;
 };
 
+typedef struct _MSVideoEncoderPixFmt MSVideoEncoderPixFmt;
+
+struct _MSVideoEncoderPixFmt {
+	uint32_t pixfmt;
+	bool_t supported;
+};
+
 /**
  * Interface definition for video display filters.
 **/
@@ -224,8 +231,8 @@ typedef enum _MSRecorderState MSRecorderState;
  * Interface definition for video encoders.
 **/
 
-#define MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER \
-	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 0, bool_t)
+#define MS_VIDEO_ENCODER_SUPPORTS_PIXFMT \
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 0, MSVideoEncoderPixFmt*)
 /* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
 #define MS_VIDEO_ENCODER_REQ_VFU \
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoEncoderInterface, 1)
