@@ -66,7 +66,6 @@ void ms_qos_analyser_unref(MSQosAnalyser *obj){
 #define STATS_HISTORY 3
 
 static const float unacceptable_loss_rate=10;
-static const int big_jitter=10; /*ms */
 static const float significant_delay=0.2; /*seconds*/
 
 

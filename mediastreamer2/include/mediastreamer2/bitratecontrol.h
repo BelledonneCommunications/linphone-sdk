@@ -72,8 +72,8 @@ int ms_bitrate_driver_execute_action(MSBitrateDriver *obj, const MSRateControlAc
 MSBitrateDriver * ms_bitrate_driver_ref(MSBitrateDriver *obj);
 void ms_bitrate_driver_unref(MSBitrateDriver *obj);
 
-MSBitrateDriver *ms_audio_bitrate_driver_new(MSFilter *encoder);
-MSBitrateDriver *ms_av_bitrate_driver_new(MSFilter *a_encoder, MSFilter *venc);
+MSBitrateDriver *ms_audio_bitrate_driver_new(RtpSession *session, MSFilter *encoder);
+MSBitrateDriver *ms_av_bitrate_driver_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
 
 typedef struct _MSQosAnalyser MSQosAnalyser;
 typedef struct _MSQosAnalyserDesc MSQosAnalyserDesc;

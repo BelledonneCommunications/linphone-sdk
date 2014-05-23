@@ -454,6 +454,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			} else {
 				ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &pt->normal_bitrate);
 			}
+			rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, pt->normal_bitrate);
 		}
 		if (pt->send_fmtp){
 			ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);

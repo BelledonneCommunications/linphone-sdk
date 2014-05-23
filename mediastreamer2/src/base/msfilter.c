@@ -211,6 +211,10 @@ bool_t ms_filter_desc_implements_interface(MSFilterDesc *desc, MSFilterInterface
 	return FALSE;
 }
 
+bool_t ms_filter_implements_interface(MSFilter *f, MSFilterInterfaceId id){
+	return ms_filter_desc_implements_interface(f->desc,id);
+}
+
 MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id){
 	MSList *ret=NULL;
 	MSList *elem;
