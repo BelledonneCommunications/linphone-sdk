@@ -35,7 +35,7 @@ struct _mblk_video_header {
 	uint16_t w, h;
 	int pad[3];
 };
-typedef struct _mblk_video_header mblk_video_header; 
+typedef struct _mblk_video_header mblk_video_header;
 
 static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 	int ysize,usize;
@@ -57,7 +57,7 @@ int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	int w,h;
 
 	// read header
-	mblk_video_header* hdr = (mblk_video_header*)m->b_datap->db_base; 
+	mblk_video_header* hdr = (mblk_video_header*)m->b_datap->db_base;
 	w = hdr->w;
 	h = hdr->h;
 
@@ -111,7 +111,7 @@ mblk_t * ms_yuv_buf_alloc(YuvBuf *buf, int w, int h){
 	const int padding=16;
 	mblk_t *msg=allocb(header_size + size+padding,0);
 	// write width/height in header
-	mblk_video_header* hdr = (mblk_video_header*)msg->b_wptr; 
+	mblk_video_header* hdr = (mblk_video_header*)msg->b_wptr;
 	hdr->w = w;
 	hdr->h = h;
 	msg->b_rptr += header_size;
@@ -125,7 +125,7 @@ mblk_t* ms_yuv_buf_alloc_from_buffer(int w, int h, mblk_t* buffer) {
 	const int header_size =sizeof(mblk_video_header);
 	mblk_t *msg=allocb(header_size,0);
 	// write width/height in header
-	mblk_video_header* hdr = (mblk_video_header*)msg->b_wptr; 
+	mblk_video_header* hdr = (mblk_video_header*)msg->b_wptr;
 	hdr->w = w;
 	hdr->h = h;
 	msg->b_rptr += header_size;
@@ -425,7 +425,7 @@ static MSScalerContext *ff_create_swscale_context(int src_w, int src_h, MSPixFmt
 
 static int ff_sws_scale(MSScalerContext *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]){
 	MSFFScalerContext *fctx=(MSFFScalerContext*)ctx;
-#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)	
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)
 	int err=sws_scale(fctx->ctx,(const uint8_t * const*)src,src_strides,0,fctx->src_h,dst,dst_strides);
 #else
 	int err=sws_scale(fctx->ctx,(uint8_t **)src,src_strides,0,fctx->src_h,dst,dst_strides);
@@ -659,9 +659,9 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 #ifdef __arm__
 			if (hasNeon) {
 				deinterlace_down_scale_neon(y, cbcr, pict.planes[0], u_dest, v_dest, w, h, y_byte_per_row, cbcr_byte_per_row,down_scale);
-			} else 
+			} else
 #endif
-			{	
+			{
 				// plain copy
 				for(i=0; i<h; i++) {
 					memcpy(&pict.planes[0][i*w], &y[i*y_byte_per_row], w);
@@ -678,7 +678,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 #ifdef __arm__
 			if (hasNeon) {
 				deinterlace_down_scale_and_rotate_180_neon(y, cbcr, pict.planes[0], u_dest, v_dest, w, h, y_byte_per_row, cbcr_byte_per_row,down_scale);
-			} else 
+			} else
 #endif
 {
 				// 180° y rotation
@@ -705,7 +705,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 			} else {
 				rotate_down_scale_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0], down_scale);
 			}
-		} else 
+		} else
 #endif
 {
 			uint8_t* dsty = pict.planes[0];
@@ -716,7 +716,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 #ifdef __arm__
 		if (hasNeon) {
 			rotate_down_scale_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[2], pict.planes[1],clockwise,down_scale);
-		} else 
+		} else
 #endif
 {
 			// Copying U
@@ -771,7 +771,7 @@ void ms_video_init_average_fps(MSAverageFPS* afps, const char* ctx) {
 	afps->context = ctx;
 	if (!ctx || strstr(ctx, "%f") == 0) {
 		ms_error("Invalid MSAverageFPS context given '%s' (must be not null and must contain one occurence of '%%f'", ctx);
-	} 
+	}
 }
 
 bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time) {
