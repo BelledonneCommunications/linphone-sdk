@@ -149,6 +149,9 @@ static int msv4l2_configure(V4l2State *s){
 	struct v4l2_capability cap;
 	struct v4l2_format fmt;
 	MSVideoSize vsize;
+	int prefered_formats[4];
+	bool_t yuv420_native_support = FALSE, yuyv_native_support = FALSE;
+	bool_t format_found = FALSE;
 
 	if (v4l2_ioctl (s->fd, VIDIOC_QUERYCAP, &cap)<0) {
 		ms_message("Not a v4lv2 driver.");
@@ -165,6 +168,43 @@ static int msv4l2_configure(V4l2State *s){
 		return -1;
 	}
 
+	/* default preference */
+	prefered_formats[0] = V4L2_PIX_FMT_YUV420;
+	prefered_formats[1] = V4L2_PIX_FMT_YUYV;
+	prefered_formats[2] = V4L2_PIX_FMT_RGB24;
+	prefered_formats[3] = V4L2_PIX_FMT_MJPEG;
+
+	/* query supported (native) formats */
+	{
+		struct v4l2_fmtdesc fmt2;
+		memset(&fmt2, 0, sizeof(fmt2));
+		fmt2.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+		while (v4l2_ioctl(s->fd, VIDIOC_ENUM_FMT, &fmt2) >= 0) {
+			if (!(fmt2.flags & V4L2_FMT_FLAG_EMULATED)) {
+				switch (fmt2.pixelformat)  {
+					case V4L2_PIX_FMT_YUV420:
+						ms_message("YUV420 natively supported (%08x)", fmt2.flags);
+						yuv420_native_support = TRUE;
+						break;
+					case V4L2_PIX_FMT_YUYV:
+						ms_message("YUYV natively supported (%08x)", fmt2.flags);
+						yuyv_native_support = TRUE;
+						break;
+					default:
+						break;
+				}
+			}
+			fmt2.index++;
+		}
+
+		/* if YUYV is natively supported and YUV420 isn't, prefer YUYV */
+		if (yuyv_native_support && !yuv420_native_support) {
+			prefered_formats[0] = V4L2_PIX_FMT_YUYV;
+			prefered_formats[1] = V4L2_PIX_FMT_YUV420;
+		}
+	}
+
 	ms_message("Driver is %s",cap.driver);
 	memset(&fmt,0,sizeof(fmt));
 
@@ -173,35 +213,47 @@ static int msv4l2_configure(V4l2State *s){
 		ms_error("VIDIOC_G_FMT failed: %s",strerror(errno));
 	}
 	vsize=s->vsize;
+
 	do{
+		int i;
 		fmt.fmt.pix.width       = s->vsize.width;
 		fmt.fmt.pix.height      = s->vsize.height;
-		ms_message("v4l2: trying %ix%i",s->vsize.width,s->vsize.height);
-		if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_YUV420)){
-			s->pix_fmt=MS_YUV420P;
-			s->int_pix_fmt=V4L2_PIX_FMT_YUV420;
-			ms_message("v4lv2: YUV420P chosen");
-			break;
-		}else if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_YUYV)){
-			s->pix_fmt=MS_YUYV;
-			s->int_pix_fmt=V4L2_PIX_FMT_YUYV;
-			ms_message("v4lv2: V4L2_PIX_FMT_YUYV chosen");
-			break;
-		}else if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_RGB24)){
-			s->pix_fmt=MS_RGB24;
-			s->int_pix_fmt=V4L2_PIX_FMT_RGB24;
-			ms_message("v4lv2: RGB24 chosen");
-			break;
-		}else if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_MJPEG)){
-			s->pix_fmt=MS_MJPEG;
-			s->int_pix_fmt=V4L2_PIX_FMT_MJPEG;
-			ms_message("v4lv2: MJPEG chosen");
-			break;
-		}else{
+
+		s->pix_fmt = MS_PIX_FMT_UNKNOWN;
+
+		for (i=0; i<4; i++) {
+			ms_message("v4l2: trying %ix%i",s->vsize.width,s->vsize.height);
+			if (v4lv2_try_format(s,&fmt, prefered_formats[i])){
+				switch(prefered_formats[i]) {
+					case V4L2_PIX_FMT_YUV420:
+						s->pix_fmt=MS_YUV420P;
+						ms_message("v4lv2: YUV420P chosen (as choice #%d)", i);
+						break;
+					case V4L2_PIX_FMT_YUYV:
+						s->pix_fmt=MS_YUYV;
+						ms_message("v4lv2: YUYV chosen (as choice #%d)", i);
+						break;
+					case V4L2_PIX_FMT_RGB24:
+						s->pix_fmt=MS_RGB24;
+						ms_message("v4lv2: RGB24 chosen (as choice #%d)", i);
+						break;
+					case V4L2_PIX_FMT_MJPEG:
+						s->pix_fmt=MS_MJPEG;
+						ms_message("v4lv2: MJPEG chosen (as choice #%d)", i);
+						break;
+				}
+				s->int_pix_fmt=prefered_formats[i];
+				s->vsize=ms_video_size_get_just_lower_than(s->vsize);
+				format_found = TRUE;
+				break;
+			}
+		}
+
+		if (s->pix_fmt == MS_PIX_FMT_UNKNOWN) {
 			ms_error("Could not find supported pixel format for %ix%i", s->vsize.width, s->vsize.height);
 		}
-		s->vsize=ms_video_size_get_just_lower_than(s->vsize);
-	}while(s->vsize.width!=0);
+	}while(s->vsize.width!=0 && !format_found);
+
 	if (s->vsize.width==0){
 		ms_message("Could not find any combination of resolution/pixel-format that works !");
 		s->vsize=vsize;
@@ -638,6 +690,7 @@ static void msv4l2_detect(MSWebCamManager *obj){
 	struct v4l2_capability cap;
 	char devname[32];
 	int i;
+
 	for(i=0;i<10;++i){
 		int fd;
 		snprintf(devname,sizeof(devname),"/dev/video%i",i);
