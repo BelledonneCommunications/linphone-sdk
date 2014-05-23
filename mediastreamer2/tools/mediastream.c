@@ -114,6 +114,7 @@ typedef struct _MediastreamDatas {
 	bool_t enable_srtp;
 	bool_t interactive;
 	bool_t enable_avpf;
+	bool_t enable_rtcp;
 	bool_t pad;
 	float el_speed;
 	float el_thres;
@@ -212,7 +213,8 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --mtu <mtu> (specify MTU)]\n"
 								"[ --interactive (run in interactive mode)]\n"
 								"[ --no-avpf]\n"
-		;
+								"[ --no-rtcp]\n"
+								;
 
 #if TARGET_OS_IPHONE
 int g_argc;
@@ -306,6 +308,7 @@ MediastreamDatas* init_default_args() {
 	args->video_window_id = -1;
 	args->preview_window_id = -1;
 	args->enable_avpf = TRUE;
+	args->enable_rtcp = TRUE;
 	/* starting values echo canceller */
 	args->ec_len_ms=args->ec_delay_ms=args->ec_framesize=0;
 	args->enable_srtp = FALSE;
@@ -508,18 +511,19 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 				ms_error("Invalid zoom triplet");
 				return FALSE;
 			}
-		}else if (strcmp(argv[i],"--mtu")==0){
+		} else if (strcmp(argv[i],"--mtu")==0){
 			i++;
 			if (sscanf(argv[i], "%i", &out->mtu) != 1) {
 				ms_error("Invalid mtu value");
 				return FALSE;
 			}
-		}else if (strcmp(argv[i],"--interactive")==0){
+		} else if (strcmp(argv[i],"--interactive")==0){
 			out->interactive=TRUE;
 		} else if (strcmp(argv[i], "--no-avpf") == 0) {
 			out->enable_avpf = FALSE;
-		}
-		else if (strcmp(argv[i],"--help")==0){
+		} else if (strcmp(argv[i], "--no-rtcp") == 0) {
+			out->enable_rtcp = FALSE;
+		} else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return FALSE;
 		}
@@ -659,7 +663,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		audio_stream_enable_adaptive_bitrate_control(args->audio,args->use_rc);
 		printf("Starting audio stream.\n");
 
-		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->ip,args->remoteport+1, args->payload, args->jitter,args->infile,args->outfile,
+		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->ip,args->enable_rtcp?args->remoteport+1:-1, args->payload, args->jitter,args->infile,args->outfile,
 		                        args->outfile==NULL ? play : NULL ,args->infile==NULL ? capt : NULL,args->infile!=NULL ? FALSE: args->ec);
 
 		if (args->ice_local_candidates_nb || args->ice_remote_candidates_nb) {
@@ -767,7 +771,7 @@ void setup_media_streams(MediastreamDatas* args) {
 			cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
 		video_stream_start(args->video,args->profile,
 					args->ip,args->remoteport,
-					args->ip,args->remoteport+1,
+					args->ip,args->enable_rtcp?args->remoteport+1:-1,
 					args->payload,
 					args->jitter,cam
 					);
