@@ -70,6 +70,7 @@ LOCAL_SRC_FILES := \
 	siplistener.c \
 	sipstack.c \
 	transaction.c \
+	bodyhandler.c \
 	transports/stream_channel.c \
 	transports/stream_listeningpoint.c \
 	transports/tls_channel_polarssl.c \
