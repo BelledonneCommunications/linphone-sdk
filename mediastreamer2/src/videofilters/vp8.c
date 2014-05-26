@@ -155,6 +155,7 @@ static void enc_preprocess(MSFilter *f) {
 	}
 	if (s->avpf_enabled == TRUE) {
 		s->cfg.kf_mode = VPX_KF_DISABLED;
+		memset(&s->frames_state, 0, sizeof(s->frames_state));
 		s->frames_state.ref_frames_interval = (uint16_t)(s->vconf.fps * 3); /* 1 reference frame each 3s. */
 	} else {
 		s->cfg.kf_mode = VPX_KF_AUTO; /* encoder automatically places keyframes */
@@ -196,6 +197,8 @@ static void enc_preprocess(MSFilter *f) {
 		vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 0);
 	}
 
+	s->force_keyframe = TRUE;
+	s->invalid_frame_reported = FALSE;
 	vp8rtpfmt_packer_init(&s->packer);
 	if (s->avpf_enabled != TRUE) {
 		ms_video_starter_init(&s->starter);
