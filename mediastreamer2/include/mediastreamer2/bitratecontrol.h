@@ -114,6 +114,7 @@ void ms_qos_analyser_unref(MSQosAnalyser *obj);
 void ms_qos_analyser_suggest_action(MSQosAnalyser *obj, MSRateControlAction *action);
 bool_t ms_qos_analyser_has_improved(MSQosAnalyser *obj);
 bool_t ms_qos_analyser_process_rtcp(MSQosAnalyser *obj, mblk_t *rtcp);
+void ms_qos_analyser_update(MSQosAnalyser *obj);
 
 /**
  * The simple qos analyser is an implementation of MSQosAnalyser that performs analysis for single stream.
@@ -150,6 +151,8 @@ MSBitrateController *ms_bitrate_controller_new(MSQosAnalyser *qosanalyser, MSBit
  * output bitrate.
 **/
 void ms_bitrate_controller_process_rtcp(MSBitrateController *obj, mblk_t *rtcp);
+
+void ms_bitrate_controller_update(MSBitrateController *obj);
 
 /**
  * Return the QoS analyser associated to the bitrate controller

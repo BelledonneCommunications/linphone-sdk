@@ -329,12 +329,19 @@ static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_
 
 #endif
 
+static void upload_bandwidth_computation() {
+	bool_t supported = ms_filter_codec_supported("pcma");
+	if( supported ) {
+		adaptive_audio_stream(PCMA8_PAYLOAD_TYPE, 8000, 0, 0, 10);
+	}
+}
 
 static test_t tests[] = {
 	{ "Basic audio stream", basic_audio_stream },
 	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
 	{ "Adaptive audio stream [speex]", adaptive_speex16_audio_stream },
 	{ "Adaptive audio stream [pcma]", adaptive_pcma_audio_stream },
+	{ "Upload bandwidth computation", upload_bandwidth_computation },
 };
 
 test_suite_t audio_stream_test_suite = {

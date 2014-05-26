@@ -125,6 +125,10 @@ void ms_bitrate_controller_process_rtcp(MSBitrateController *obj, mblk_t *rtcp){
 	}
 }
 
+void ms_bitrate_controller_update(MSBitrateController *obj){
+	ms_qos_analyser_update(obj->analyser);
+}
+
 const MSQosAnalyser * ms_bitrate_controller_get_qos_analyser(MSBitrateController *obj){
 	return obj->analyser;
 }
@@ -149,7 +153,7 @@ MSBitrateController *ms_av_bitrate_controller_new(RtpSession *asession, MSFilter
 
 MSBitrateController *ms_bandwidth_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc){
 	return ms_bitrate_controller_new(
-	                                 ms_stateful_qos_analyser_new(vsession),
+	                                 ms_stateful_qos_analyser_new(vsession?vsession:asession),
 	                                 ms_bandwidth_bitrate_driver_new(asession, aenc, vsession, venc));
 }
 

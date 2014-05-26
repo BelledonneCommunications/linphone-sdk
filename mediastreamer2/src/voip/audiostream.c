@@ -114,7 +114,7 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
 	ms_message("configuring %s-->%s from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
-	           from->desc->name, to->desc->name, from_rate, to_rate, from_channels, to_channels);
+			   from->desc->name, to->desc->name, from_rate, to_rate, from_channels, to_channels);
 }
 
 static void audio_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
@@ -134,7 +134,7 @@ static void audio_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 			ij=report_block_get_interarrival_jitter(rb);
 			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
 			ms_message("audio_stream_iterate[%p]: remote statistics available\n\tremote's interarrival jitter=%u\n"
-			           "\tremote's lost packets percentage since last report=%f\n\tround trip time=%f seconds",stream,ij,flost,rt);
+					   "\tremote's lost packets percentage since last report=%f\n\tround trip time=%f seconds",stream,ij,flost,rt);
 			if (stream->ms.rc) ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
 			if (stream->ms.qi) ms_quality_indicator_update_from_feedback(stream->ms.qi,m);
 		}
@@ -167,7 +167,7 @@ static  mblk_t* audio_stream_payload_picker(MSRtpPayloadPickerContext* context,u
 
 static void stop_preload_graph(AudioStream *stream){
 	ms_ticker_detach(stream->ms.sessions.ticker,stream->dummy);
-	
+
 	if (stream->ms.voidsink) {
 		ms_filter_unlink(stream->dummy,0,stream->ms.voidsink,0);
 		ms_filter_destroy(stream->ms.voidsink);
@@ -248,15 +248,15 @@ static void player_callback(void *ud, MSFilter *f, unsigned int id, void *arg){
 static void setup_local_player(AudioStream *stream, int samplerate, int channels){
 	MSConnectionHelper cnx;
 	int master=0;
-	
+
 	stream->local_player=ms_filter_new(MS_FILE_PLAYER_ID);
 	stream->local_player_resampler=ms_filter_new(MS_RESAMPLE_ID);
-	
+
 	ms_connection_helper_start(&cnx);
 	ms_connection_helper_link(&cnx,stream->local_player,-1,0);
 	ms_connection_helper_link(&cnx,stream->local_player_resampler,0,0);
 	ms_connection_helper_link(&cnx,stream->local_mixer,1,-1);
-	
+
 	ms_filter_call_method(stream->local_player_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&samplerate);
 	ms_filter_call_method(stream->local_player_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&channels);
 	ms_filter_call_method(stream->local_mixer,MS_FILTER_SET_SAMPLE_RATE,&samplerate);
@@ -380,14 +380,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	tel_ev=rtp_profile_get_payload_from_mime (profile,"telephone-event");
 
 	if ((stream->features & AUDIO_STREAM_FEATURE_DTMF_ECHO) != 0 && (tel_ev==NULL || ( (tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_RECV) && !(tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_SEND)))
-	    && ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
+		&& ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
 		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
 		  inband dtmf*/
 		stream->dtmfgen_rtp=ms_filter_new (MS_DTMF_GEN_ID);
 	} else {
 		stream->dtmfgen_rtp=NULL;
 	}
-	
+
 	if (ms_filter_call_method(stream->ms.rtpsend,MS_FILTER_GET_SAMPLE_RATE,&sample_rate)!=0){
 		ms_error("Sample rate is unknown for RTP side !");
 		return -1;
@@ -414,7 +414,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_error("audio_stream_start_full: No decoder or encoder available for payload %s.",pt->mime_type);
 		return -1;
 	}
-	
+
 	/* check echo canceller max frequency and adjust sampling rate if needed when codec used is opus */
 	if (stream->ec!=NULL) {
 		if ((ms_filter_get_id(stream->ms.encoder) == MS_OPUS_ENC_ID) && (ms_filter_get_id(stream->ec) == MS_WEBRTC_AEC_ID)) { /* AECM allow 8000 or 16000 Hz or it will be bypassed */
@@ -427,7 +427,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	/*hack for opus, that claims stereo all the time, but we can't support stereo yet*/
 	if (strcasecmp(pt->mime_type,"opus")==0)
 		nchannels=1;
-	
+
 	if (ms_filter_has_method(stream->ms.decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
 		ms_message("Decoder has FEC capabilities");
 		picker_context.filter_graph_manager=stream;
@@ -485,7 +485,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		}
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	}
-	
+
 	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING){
 		int val=0;
 		int pin=1;
@@ -500,7 +500,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_filter_call_method(stream->send_tee,MS_TEE_MUTE,&pin);
 		ms_filter_call_method(stream->recorder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 		ms_filter_call_method(stream->recorder,MS_FILTER_SET_NCHANNELS,&nchannels);
-		
+
 	}
 
 	/* give the encoder/decoder some parameters*/
@@ -539,7 +539,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		}
 	}else
 		stream->equalizer=NULL;
-	
+
 	/*configure resamplers if needed*/
 	if (stream->read_resampler){
 		audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.encoder);
@@ -548,11 +548,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (stream->write_resampler){
 		audio_stream_configure_resampler(stream->write_resampler,stream->ms.decoder,stream->soundwrite);
 	}
-	
+
 	if (stream->ms.use_rc){
-		stream->ms.rc=ms_audio_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder,0);
+		stream->ms.rc=ms_bandwidth_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder,0,0);
 	}
-	
+
 	/* Create generic PLC if not handled by the decoder directly*/
 	if ((stream->features & AUDIO_STREAM_FEATURE_PLC) != 0) {
 		int decoder_have_plc = 0;
@@ -574,7 +574,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	} else {
 		stream->plc = NULL;
 	}
-	
+
 	if (stream->features & AUDIO_STREAM_FEATURE_LOCAL_PLAYING){
 		stream->local_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
 	}
@@ -585,7 +585,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		/*we were using the dummy preload graph, destroy it but keep sound filters*/
 		_audio_stream_unprepare_sound(stream,TRUE);
 	}
-	
+
 	/* and then connect all */
 	/* tip: draw yourself the picture if you don't understand */
 
@@ -635,7 +635,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_filter_link(stream->recv_tee,1,stream->recorder_mixer,1);
 		ms_filter_link(stream->recorder_mixer,0,stream->recorder,0);
 	}
-	
+
 	/*to make sure all preprocess are done before befre processing audio*/
 	ms_ticker_attach_multiple(stream->ms.sessions.ticker
 				,stream->soundread
@@ -775,7 +775,7 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
 	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSOslec");
-	
+
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
 
@@ -904,11 +904,11 @@ static void dismantle_local_player(AudioStream *stream){
 void audio_stream_stop(AudioStream * stream){
 	if (stream->ms.sessions.ticker){
 		MSConnectionHelper h;
-		
+
 		if (stream->ms.state==MSStreamPreparing){
 			audio_stream_unprepare_sound(stream);
 		}else if (stream->ms.state==MSStreamStarted){
-		
+
 			ms_ticker_detach(stream->ms.sessions.ticker,stream->soundread);
 			ms_ticker_detach(stream->ms.sessions.ticker,stream->ms.rtprecv);
 
@@ -958,7 +958,7 @@ void audio_stream_stop(AudioStream * stream){
 			if (stream->write_resampler!=NULL)
 				ms_connection_helper_unlink(&h,stream->write_resampler,0,0);
 			ms_connection_helper_unlink(&h,stream->soundwrite,0,-1);
-			
+
 			/*dismantle the call recording */
 			if (stream->recorder){
 				ms_filter_unlink(stream->send_tee,1,stream->recorder_mixer,0);
@@ -980,7 +980,7 @@ int audio_stream_send_dtmf(AudioStream *stream, char dtmf)
 	return 0;
 }
 
-void audio_stream_mute_rtp(AudioStream *stream, bool_t val) 
+void audio_stream_mute_rtp(AudioStream *stream, bool_t val)
 {
 	if (stream->ms.rtpsend){
 		if (val)

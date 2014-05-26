@@ -476,6 +476,9 @@ void media_stream_iterate(MediaStream *stream){
 		if (stream->qi && curtime>stream->last_iterate_time) ms_quality_indicator_update_local(stream->qi);
 	}
 	stream->last_iterate_time=curtime;
+
+	if (stream->rc) ms_bitrate_controller_update(stream->rc);
+
 	if (stream->evq){
 		OrtpEvent *ev=NULL;
 

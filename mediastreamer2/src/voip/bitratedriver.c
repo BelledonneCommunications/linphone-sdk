@@ -348,7 +348,7 @@ static int bandwidth_inc_video_bitrate(MSBandwidthBitrateDriver *obj, const MSRa
 static int bandwidth_driver_execute_action(MSBitrateDriver *objbase, const MSRateControlAction *action){
 	MSBandwidthBitrateDriver *obj=(MSBandwidthBitrateDriver*)objbase;
 	int ret=0;
-	if (obj->nom_bitrate==0){
+	if (obj->nom_bitrate==0&&obj->venc){
 		ms_filter_call_method(obj->venc,MS_FILTER_GET_BITRATE,&obj->nom_bitrate);
 		if (obj->nom_bitrate==0){
 			ms_warning("MSBandwidthBitrateDriver: Not doing adaptive rate control on video encoder, it does not seem to support that.");
@@ -358,7 +358,9 @@ static int bandwidth_driver_execute_action(MSBitrateDriver *objbase, const MSRat
 
 	switch(action->type){
 		case MSRateControlActionDecreaseBitrate:
-			ret=bandwidth_dec_video_bitrate(obj,action);
+			if (obj->venc){
+				ret=bandwidth_dec_video_bitrate(obj,action);
+			}
 		break;
 		case MSRateControlActionDecreasePacketRate:
 			if (obj->audio_driver){
@@ -368,7 +370,11 @@ static int bandwidth_driver_execute_action(MSBitrateDriver *objbase, const MSRat
 			}
 		break;
 		case MSRateControlActionIncreaseQuality:
-			ret=bandwidth_inc_video_bitrate(obj,action);
+			if (obj->venc){
+				ret=bandwidth_inc_video_bitrate(obj,action);
+			}else{
+				ret=1;
+			}
 			if (ret != 0){
 				if (obj->audio_driver){
 					ret=ms_bitrate_driver_execute_action(obj->audio_driver,action);
