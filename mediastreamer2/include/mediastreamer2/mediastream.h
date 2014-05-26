@@ -137,7 +137,6 @@ struct _MediaStream {
 	time_t start_time;
 	time_t last_iterate_time;
 	bool_t use_rc;
-	bool_t is_beginning;
 	bool_t owns_sessions;
 	bool_t pad[1];
 	/**
