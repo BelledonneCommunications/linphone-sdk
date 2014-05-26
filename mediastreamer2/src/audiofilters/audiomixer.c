@@ -83,7 +83,7 @@ static int channel_process_in(Channel *chan, MSQueue *q, int32_t *sum, int nsamp
 	return 0;
 }
 
-static int channel_flow_control(Channel *chan, int threshold, uint64_t time, bool_t do_purge){
+static int channel_flow_control(Channel *chan, int threshold, uint64_t time){
 	int size;
 	int skip=0;
 	if (chan->last_flow_control==(uint64_t)-1){
@@ -96,7 +96,7 @@ static int channel_flow_control(Channel *chan, int threshold, uint64_t time, boo
 	if (time-chan->last_flow_control>=5000){
 		if (chan->min_fullness>=threshold){
 			skip=chan->min_fullness-(threshold/2);
-			if (do_purge) ms_bufferizer_skip_bytes(&chan->bufferizer,skip);
+			ms_bufferizer_skip_bytes(&chan->bufferizer,skip);
 		}
 		chan->last_flow_control=time;
 		chan->min_fullness=-1;
@@ -210,13 +210,12 @@ static void mixer_process(MSFilter *f){
 	/* read from all inputs and sum everybody */
 	for(i=0;i<MIXER_MAX_CHANNELS;++i){
 		MSQueue *q=f->inputs[i];
-		
-		int do_purge=i!=s->master_channel;
+
 		if (q){
 			if (channel_process_in(&s->channels[i],q,s->sum,nwords))
 				got_something=TRUE;
-			if ((skip=channel_flow_control(&s->channels[i],s->skip_threshold,f->ticker->time,do_purge))>0){
-				ms_warning("Too much data in channel %i, %i ms in excess %s",i,(skip*1000)/(2*s->nchannels*s->rate),do_purge ? "were skipped.":".");
+			if ((skip=channel_flow_control(&s->channels[i],s->skip_threshold,f->ticker->time))>0){
+				ms_warning("Too much data in channel %i, %i ms in excess dropped",i,(skip*1000)/(2*s->nchannels*s->rate));
 			}
 		}
 	}
@@ -225,30 +224,27 @@ static void mixer_process(MSFilter *f){
 #endif
 	/* compute outputs. In conference mode each one has a different output, because its channel own contribution has to be removed*/
 	if (got_something){
-		do{
-			if (s->conf_mode==0){
-				mblk_t *om=NULL;
-				for(i=0;i<MIXER_MAX_CHANNELS;++i){
-					MSQueue *q=f->outputs[i];
-					if (q){
-						if (om==NULL){
-							om=make_output(s->sum,nwords);
-						}else{
-							om=dupb(om);
-						}
-						ms_queue_put(q,om);
+		if (s->conf_mode==0){
+			mblk_t *om=NULL;
+			for(i=0;i<MIXER_MAX_CHANNELS;++i){
+				MSQueue *q=f->outputs[i];
+				if (q){
+					if (om==NULL){
+						om=make_output(s->sum,nwords);
+					}else{
+						om=dupb(om);
 					}
-				}
-			}else{
-				for(i=0;i<MIXER_MAX_CHANNELS;++i){
-					MSQueue *q=f->outputs[i];
-					if (q){
-						ms_queue_put(q,channel_process_out(&s->channels[i],s->sum,nwords));
-					}
+					ms_queue_put(q,om);
 				}
 			}
-			skip-=s->bytespertick;
-		}while(skip>=s->bytespertick);
+		}else{
+			for(i=0;i<MIXER_MAX_CHANNELS;++i){
+				MSQueue *q=f->outputs[i];
+				if (q){
+					ms_queue_put(q,channel_process_out(&s->channels[i],s->sum,nwords));
+				}
+			}
+		}
 	}
 }
 
@@ -304,6 +300,8 @@ static int mixer_set_conference_mode(MSFilter *f, void *data){
 	return 0;
 }
 
+
+/*not implemented yet. A master channel is a channel that is used as a reference to mix other inputs. Samples from the master channel should never be dropped*/
 static int mixer_set_master_channel(MSFilter *f, void *data){
 	MixerState *s=(MixerState *)f->data;
 	s->master_channel=*(int*)data;
