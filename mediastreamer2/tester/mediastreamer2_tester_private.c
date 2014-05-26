@@ -200,3 +200,71 @@ void ms_tester_tone_generation_and_detection_loop(void) {
 	}
 }
 
+bool_t wait_for_list(MSList *mss, int *counter, int value, int timeout_ms) {
+	return wait_for_list_with_parse_events(mss, counter, value, timeout_ms, NULL, NULL);
+}
+
+bool_t wait_for_list_with_parse_events(MSList *mss, int *counter, int value, int timeout_ms, MSList *cbs, MSList *ptrs) {
+	MSList *msi;
+	MSList *cbi;
+	MSList *ptri;
+	int retry = 0;
+
+	while ((*counter < value) && (retry++ < (timeout_ms / 100))) {
+		for (msi = mss, cbi = cbs, ptri = ptrs; msi != NULL; msi = msi->next) {
+			MediaStream *stream = (MediaStream *)msi->data;
+			ms_tester_iterate_cb cb = NULL;
+			media_stream_iterate(stream);
+			if ((retry % 10) == 0) {
+				ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec",
+					stream,
+					media_stream_get_down_bw(stream) / 1000,
+					media_stream_get_up_bw(stream) / 1000);
+			}
+			if (cbi && ptri) {
+				cb = (ms_tester_iterate_cb)cbi->data;
+				cb(stream, ptri->data);
+			}
+			if (cbi) cbi = cbi->next;
+			if (ptri) ptri = ptri->next;
+		}
+		ms_usleep(100000);
+	}
+
+	if (*counter < value)
+		return FALSE;
+	return TRUE;
+}
+
+bool_t wait_for_until(MediaStream *ms_1, MediaStream *ms_2, int *counter, int value, int timeout_ms) {
+	return wait_for_until_with_parse_events(ms_1, ms_2, counter, value, timeout_ms, NULL, NULL, NULL, NULL);
+}
+
+bool_t wait_for_until_with_parse_events(MediaStream *ms1, MediaStream *ms2, int *counter, int value, int timeout_ms, ms_tester_iterate_cb cb1, void *ptr1, ms_tester_iterate_cb cb2, void *ptr2) {
+	MSList *mss = NULL;
+	MSList *cbs = NULL;
+	MSList *ptrs = NULL;
+	bool_t result;
+
+	if (ms1) {
+		mss = ms_list_append(mss, ms1);
+		if (cb1 && ptr1) {
+			cbs = ms_list_append(cbs, cb1);
+			ptrs = ms_list_append(ptrs, ptr1);
+		}
+	}
+	if (ms2) {
+		mss = ms_list_append(mss, ms2);
+		if (cb2 && ptr2) {
+			cbs = ms_list_append(cbs, cb2);
+			ptrs = ms_list_append(ptrs, ptr2);
+		}
+	}
+	result = wait_for_list_with_parse_events(mss, counter, value, timeout_ms, cbs, ptrs);
+	ms_list_free(mss);
+	return result;
+}
+
+bool_t wait_for(MediaStream* ms_1, MediaStream* ms_2, int *counter, int value) {
+	return wait_for_until(ms_1, ms_2, counter, value, 2000);
+}
