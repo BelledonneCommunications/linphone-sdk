@@ -90,6 +90,7 @@ struct _MSQosAnalyserDesc{
 	bool_t (*process_rtcp)(MSQosAnalyser *obj, mblk_t *rtcp);
 	void (*suggest_action)(MSQosAnalyser *obj, MSRateControlAction *action);
 	bool_t (*has_improved)(MSQosAnalyser *obj);
+	void (*update)(MSQosAnalyser *);
 	void (*uninit)(MSQosAnalyser *);
 };
 

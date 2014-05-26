@@ -59,6 +59,12 @@ extern "C" {
 		double rtt;
 	} rtcpstatspoint_t;
 
+	typedef enum _MSStatefulQosAnalyserBurstState{
+		MSStatefulQosAnalyserBurstEnable,
+		MSStatefulQosAnalyserBurstInProgress,
+		MSStatefulQosAnalyserBurstDisable,
+	}MSStatefulQosAnalyserBurstState;
+
 	typedef struct _MSStatefulQosAnalyser{
 		MSQosAnalyser parent;
 		RtpSession *session;
@@ -66,14 +72,23 @@ extern "C" {
 		rtpstats_t stats[STATS_HISTORY];
 		int curindex;
 		bool_t rt_prop_doubled;
-		bool_t pad[3];
 
 		MSQosAnalyserNetworkState network_state;
-
 		MSList *rtcpstatspoint;
 		rtcpstatspoint_t *latest;
 		double network_loss_rate;
 		double congestion_bandwidth;
+
+		int cum_loss_prev;
+		int last_seq;
+
+		MSStatefulQosAnalyserBurstState burst_state;
+		uint32_t start_seq_number;
+		uint32_t last_seq_number;
+		struct timeval start_time;
+
+		uint32_t interval_count;
+		double upload_bandwidth_sum;
 	}MSStatefulQosAnalyser;
 #ifdef __cplusplus
 }

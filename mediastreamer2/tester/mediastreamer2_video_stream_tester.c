@@ -126,7 +126,7 @@ static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue
 		OrtpEventType evt=ortp_event_get_type(ev);
 		OrtpEventData *evd=ortp_event_get_data(ev);
 
-		if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED/* || evt == ORTP_EVENT_RTCP_PACKET_EMITTED*/) {
+		if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) {
 			const report_block_t *rb=NULL;
 			if (rtcp_is_SR(evd->packet)){
 				rb=rtcp_SR_get_report_block(evd->packet,0);
@@ -146,8 +146,7 @@ static void handle_queue_events(video_stream_manager_t * stream_mgr, OrtpEvQueue
 				stream_mgr->latest_stats.loss=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
 				stream_mgr->latest_stats.rtt=rtp_session_get_round_trip_propagation(stream_mgr->stream->ms.sessions.rtp_session);
 
-				ms_message("mediastreamer2_video_stream_tester: %s RTCP packet: loss=%f, RTT=%f, network_state=%d"
-					,(evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) ? "RECEIVED" : "EMITTED"
+				ms_message("mediastreamer2_video_stream_tester: received RTCP packet: loss=%f, RTT=%f, network_state=%d"
 					,stream_mgr->latest_stats.loss
 					,stream_mgr->latest_stats.rtt
 					,stream_mgr->latest_stats.network_state);
@@ -175,7 +174,7 @@ static void start_adaptive_video_stream(video_stream_manager_t * marielle, video
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
 
 	video_manager_start(marielle, payload, margaux->local_rtp, initial_bitrate, marielle_webcam);
-
+	video_stream_set_direction(margaux->stream,VideoStreamRecvOnly);
 
 	video_manager_start(margaux, payload, marielle->local_rtp, -1, margaux_webcam);
 	rtp_session_enable_network_simulation(margaux->stream->ms.sessions.rtp_session,&params);
@@ -263,7 +262,7 @@ static void adaptive_vp8() {
 	video_stream_manager_t * marielle, * margaux;
 
 	INIT();
-	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0,25, 500, 16);
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 0, 25, 50, 16);
 	CU_ASSERT_IN_RANGE(marielle->loss_estim, 20, 30);
 	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 200, 1000);
 	DEINIT();
@@ -271,7 +270,7 @@ static void adaptive_vp8() {
 	/*very low bandwidth cause a lot of packets to be dropped since congestion is
 	always present even if we are below the limit due to encoding variance*/
 	INIT();
-	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 40000,0, 50, 16);
+	start_adaptive_video_stream(marielle, margaux, VP8_PAYLOAD_TYPE, 300000, 40000, 0, 50, 16);
 	CU_ASSERT_IN_RANGE(marielle->loss_estim, 0, 15);
 	CU_ASSERT_IN_RANGE(marielle->congestion_bw_estim, 20, 65);
 	DEINIT();
@@ -289,10 +288,72 @@ static void adaptive_vp8() {
 	DEINIT();
 }
 
+static void packet_duplication() {
+	video_stream_manager_t * marielle, * margaux;
+	int loss_rate = 42;
+	int target_bw = 0;
+	int latency = 0;
+	int payload = VP8_PAYLOAD_TYPE;
+	int initial_bitrate = 300000;
+	int max_recv_rtcp_packet = 6;
+	float dup_ratio = 1;
+
+	MSWebCam * marielle_webcam=ms_web_cam_manager_get_default_cam (ms_web_cam_manager_get());
+	MSWebCam * margaux_webcam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
+	OrtpNetworkSimulatorParams params={0};
+	/*this variable should not be changed, since algorithm results rely on this value
+	(the bigger it is, the more accurate is bandwidth estimation)*/
+	int rtcp_interval=2500;
+
+	INIT();
+	params.enabled=TRUE;
+	params.loss_rate=loss_rate;
+	params.max_bandwidth=target_bw;
+	params.latency=latency;
+
+	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
+	rtp_session_set_duplication_ratio(marielle->stream->ms.sessions.rtp_session, dup_ratio);
+	video_manager_start(marielle, payload, margaux->local_rtp, initial_bitrate, marielle_webcam);
+	video_stream_set_direction(margaux->stream,VideoStreamRecvOnly);
+	video_manager_start(margaux, payload, marielle->local_rtp, -1, margaux_webcam);
+	rtp_session_enable_network_simulation(margaux->stream->ms.sessions.rtp_session,&params);
+	rtp_session_set_rtcp_report_interval(margaux->stream->ms.sessions.rtp_session, rtcp_interval);
+
+	OrtpEvQueue * evq=ortp_ev_queue_new();
+	rtp_session_register_event_queue(marielle->stream->ms.sessions.rtp_session,evq);
+
+	/*just wait for timeout*/
+	int retry=0;
+	int packets_after_start=max_recv_rtcp_packet - (15000.0/rtcp_interval);
+	int timeout_ms=((packets_after_start > 0) ? 15000 + (packets_after_start + .5) * 5000 : (max_recv_rtcp_packet + .5) * rtcp_interval);
+	while (retry++ <timeout_ms/100) {
+		media_stream_iterate(&marielle->stream->ms);
+		media_stream_iterate(&margaux->stream->ms);
+		handle_queue_events(marielle, evq);
+		if (retry%10==0) {
+			 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	,
+			 	&marielle->stream->ms, media_stream_get_down_bw(&marielle->stream->ms)/1000, media_stream_get_up_bw(&marielle->stream->ms)/1000);
+			 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	,
+			 	&margaux->stream->ms, media_stream_get_down_bw(&margaux->stream->ms)/1000, media_stream_get_up_bw(&margaux->stream->ms)/1000);
+		 }
+		ms_usleep(100000);
+	}
+	rtp_session_unregister_event_queue(marielle->stream->ms.sessions.rtp_session,evq);
+	ortp_ev_queue_destroy(evq);
+
+
+	const rtp_stats_t *stats = rtp_session_get_stats(margaux->stream->ms.sessions.rtp_session);
+	CU_ASSERT_EQUAL(stats->duplicated, stats->packet_recv / 2);
+	CU_ASSERT_EQUAL(stats->cum_packet_loss, -stats->duplicated);
+
+	DEINIT();
+}
+
 static test_t tests[]={
 	{ "Lossy network", lossy_network },
 	{ "Stability detection", stability_network_detection },
 	{ "Adaptive video stream [VP8]", adaptive_vp8 },
+	{ "Packet duplication", packet_duplication },
 };
 
 test_suite_t video_stream_test_suite={
