@@ -60,9 +60,9 @@ extern "C" {
 	} rtcpstatspoint_t;
 
 	typedef enum _MSStatefulQosAnalyserBurstState{
-		MSStatefulQosAnalyserBurstEnable,
-		MSStatefulQosAnalyserBurstInProgress,
 		MSStatefulQosAnalyserBurstDisable,
+		MSStatefulQosAnalyserBurstInProgress,
+		MSStatefulQosAnalyserBurstEnable,
 	}MSStatefulQosAnalyserBurstState;
 
 	typedef struct _MSStatefulQosAnalyser{
