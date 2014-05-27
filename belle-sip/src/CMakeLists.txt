@@ -96,6 +96,7 @@ set(SOURCE_FILES
 	belle_sip_resolver.c
 	belle_sip_uri_impl.c
 	belle_sip_utils.c
+	bodyhandler.c
 	channel.c
 	channel.h
 	clock_gettime.c
