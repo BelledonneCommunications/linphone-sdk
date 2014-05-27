@@ -416,9 +416,23 @@ static void upload_bandwidth_computation() {
 	if( supported ) {
 		stream_manager_t * marielle, * margaux;
 		OrtpEvQueue * evq;
+		int i;
+		const MSQosAnalyser *analyser;
+		double cur_up_bw;
 
 		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, 0, 0,  0);
-		iterate_adaptive_stream(marielle, margaux, evq, 10, &marielle->audio_stats.number_of_EndOfFile, 10);
+		analyser=ms_bitrate_controller_get_qos_analyser(marielle->audio_stream->ms.rc);
+		if (analyser->type==Stateful){
+			const MSStatefulQosAnalyser *stateful_analyser=((const MSStatefulQosAnalyser*)analyser);
+
+			for (i = 0; i < 5; i++){
+				rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
+				iterate_adaptive_stream(marielle, margaux, evq, 2, NULL, 0);
+				cur_up_bw = stateful_analyser->interval_count ? stateful_analyser->upload_bandwidth_sum/stateful_analyser->interval_count : 0;
+				/*since PCMA uses 80kbit/s, upload bandwidth should just be 80x(duplication_ratio+1) kbits/s */
+				CU_ASSERT_TRUE(fabs(cur_up_bw - 80.*(i+1)) < 1.f);
+			}
+		}
 		DEINIT();
 	}
 }

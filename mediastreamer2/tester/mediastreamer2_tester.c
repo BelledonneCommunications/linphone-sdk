@@ -278,6 +278,8 @@ int main (int argc, char *argv[]) {
 		}
 #endif
 		else {
+			fprintf(stderr, "Unknown option \"%s\"\n", argv[i]); \
+
 			helper(argv[0]);
 			return -1;
 		}
@@ -288,7 +290,6 @@ int main (int argc, char *argv[]) {
 	} else {
 		putenv("MEDIASTREAMER_DEBUG=0");
 	}
-
 	ret = mediastreamer2_tester_run_tests(suite_name, test_name);
 	mediastreamer2_tester_uninit();
 	return ret;

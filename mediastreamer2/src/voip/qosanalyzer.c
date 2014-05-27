@@ -290,7 +290,7 @@ static bool_t stateful_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtc
 			if (obj->last_seq > 0){
 				int total_emitted=uniq_emitted * (1 + obj->session->duplication_ratio);
 				printf("RECEIVE cumloss=%d uniq_emitted=%d total_emitted=%d\n", cum_loss_curr, uniq_emitted, total_emitted);
-				loss_rate=100 * (1. - (uniq_emitted - cum_loss_curr) * 1.f / total_emitted);
+				loss_rate=(1. - (uniq_emitted - cum_loss_curr) * 1.f / total_emitted);
 				/*printf("RECEIVE expec=%d - received=%d =%d --> cum_loss=%ld\n", expected_packets, stream->hwrcv_since_last_SR, packet_loss, stream->stats.cum_packet_loss);*/
 				printf("RECEIVE estimated loss rate=%f vs 'real'=%f\n", loss_rate, report_block_get_fraction_lost(rb)/2.56);
 			}
@@ -455,10 +455,11 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 
 	/*rtp_session_set_duplication_ratio(obj->session, 0);*/
 	/*try a burst every 50 seconds (10 RTCP packets)*/
-	if (obj->curindex > 10){
+	if (obj->curindex % 10 == 0){
 		P(YELLOW "try burst!\n");
 		/*bw *= 3;*/
-		rtp_session_set_duplication_ratio(obj->session, 2);
+		/*rtp_session_set_duplication_ratio(obj->session, 2);*/
+		obj->burst_state = MSStatefulQosAnalyserBurstEnable;
 	}
 	/*test a min burst to avoid overestimation of available bandwidth*/
 	else if (obj->curindex % 10 == 5 || obj->curindex % 10 == 6){
@@ -537,7 +538,6 @@ static bool_t stateful_analyser_has_improved(MSQosAnalyser *objbase){
 
 static void stateful_analyser_update(MSQosAnalyser *objbase){
 	MSStatefulQosAnalyser *obj=(MSStatefulQosAnalyser*)objbase;
-
 	static time_t last_measure;
 
 	if (last_measure != ms_time(0)){
