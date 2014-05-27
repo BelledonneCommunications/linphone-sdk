@@ -171,6 +171,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sdp_origin_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_phone_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_raw_attribute_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_repeate_time_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_rtcp_fb_attribute_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_rtcp_xr_attribute_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_session_description_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_session_name_t);

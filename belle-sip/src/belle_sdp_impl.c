@@ -43,6 +43,7 @@ struct attribute_name_func_pair {
 	attribute_parse_func func;
 };
 static struct attribute_name_func_pair attribute_table[] = {
+	{ "rtcp-fb", (attribute_parse_func)belle_sdp_rtcp_fb_attribute_parse },
 	{ "rtcp-xr", (attribute_parse_func)belle_sdp_rtcp_xr_attribute_parse }
 };
 struct _belle_sdp_attribute {
@@ -142,6 +143,101 @@ void belle_sdp_raw_attribute_set_value(belle_sdp_raw_attribute_t* attribute, con
 		attribute->value = belle_sip_strdup(value);
 	} else attribute->value = NULL;
 }
+/***************************************************************************************
+ * RTCP-FB Attribute
+ *
+ **************************************************************************************/
+struct _belle_sdp_rtcp_fb_attribute {
+	belle_sdp_attribute_t base;
+	belle_sdp_rtcp_fb_val_type_t type;
+	belle_sdp_rtcp_fb_val_param_t param;
+	uint8_t trr_int;
+	int8_t id;
+};
+BELLESIP_EXPORT unsigned int belle_sdp_rtcp_fb_attribute_has_pli(const belle_sdp_rtcp_fb_attribute_t* attribute);
+BELLESIP_EXPORT void belle_sdp_rtcp_fb_attribute_set_pli(belle_sdp_rtcp_fb_attribute_t* attribute, unsigned int enable);
+BELLESIP_EXPORT unsigned int belle_sdp_rtcp_fb_attribute_has_sli(const belle_sdp_rtcp_fb_attribute_t* attribute);
+BELLESIP_EXPORT void belle_sdp_rtcp_fb_attribute_set_sli(belle_sdp_rtcp_fb_attribute_t* attribute, unsigned int enable);
+BELLESIP_EXPORT unsigned int belle_sdp_rtcp_fb_attribute_has_rpsi(const belle_sdp_rtcp_fb_attribute_t* attribute);
+BELLESIP_EXPORT void belle_sdp_rtcp_fb_attribute_set_rpsi(belle_sdp_rtcp_fb_attribute_t* attribute, unsigned int enable);
+BELLESIP_EXPORT unsigned int belle_sdp_rtcp_fb_attribute_has_app(const belle_sdp_rtcp_fb_attribute_t* attribute);
+BELLESIP_EXPORT void belle_sdp_rtcp_fb_attribute_set_app(belle_sdp_rtcp_fb_attribute_t* attribute, unsigned int enable);
+void belle_sdp_rtcp_fb_attribute_destroy(belle_sdp_rtcp_fb_attribute_t* attribute) {
+}
+void belle_sdp_rtcp_fb_attribute_clone(belle_sdp_rtcp_fb_attribute_t* attribute, const belle_sdp_rtcp_fb_attribute_t *orig) {
+	attribute->type = orig->type;
+	attribute->param = orig->param;
+	attribute->trr_int = orig->trr_int;
+	attribute->id = orig->id;
+}
+belle_sip_error_code belle_sdp_rtcp_fb_attribute_marshal(belle_sdp_rtcp_fb_attribute_t* attribute, char * buff, size_t buff_size, size_t *offset) {
+	int8_t id = belle_sdp_rtcp_fb_attribute_get_id(attribute);
+	belle_sdp_rtcp_fb_val_type_t type = belle_sdp_rtcp_fb_attribute_get_type(attribute);
+	belle_sdp_rtcp_fb_val_param_t param = belle_sdp_rtcp_fb_attribute_get_param(attribute);
+	belle_sip_error_code error = belle_sdp_attribute_marshal(BELLE_SDP_ATTRIBUTE(attribute), buff, buff_size, offset);
+	if (error != BELLE_SIP_OK) return error;
+	if (id < 0) {
+		error = belle_sip_snprintf(buff, buff_size, offset, ":* ");
+	} else {
+		error = belle_sip_snprintf(buff, buff_size, offset, ":%u ", id);
+	}
+	if (error != BELLE_SIP_OK) return error;
+	switch (type) {
+		case BELLE_SDP_RTCP_FB_ACK:
+			error = belle_sip_snprintf(buff, buff_size, offset, "ack");
+			if (error != BELLE_SIP_OK) return error;
+			switch (param) {
+				default:
+				case BELLE_SDP_RTCP_FB_NONE:
+					break;
+				case BELLE_SDP_RTCP_FB_RPSI:
+					error = belle_sip_snprintf(buff, buff_size, offset, " rpsi");
+					break;
+				case BELLE_SDP_RTCP_FB_APP:
+					error = belle_sip_snprintf(buff, buff_size, offset, " app");
+					break;
+			}
+			break;
+		case BELLE_SDP_RTCP_FB_NACK:
+			error = belle_sip_snprintf(buff, buff_size, offset, "nack");
+			if (error != BELLE_SIP_OK) return error;
+			switch (param) {
+				default:
+				case BELLE_SDP_RTCP_FB_NONE:
+					break;
+				case BELLE_SDP_RTCP_FB_PLI:
+					error = belle_sip_snprintf(buff, buff_size, offset, " pli");
+					break;
+				case BELLE_SDP_RTCP_FB_SLI:
+					error = belle_sip_snprintf(buff, buff_size, offset, " sli");
+					break;
+				case BELLE_SDP_RTCP_FB_RPSI:
+					error = belle_sip_snprintf(buff, buff_size, offset, " rpsi");
+					break;
+				case BELLE_SDP_RTCP_FB_APP:
+					error = belle_sip_snprintf(buff, buff_size, offset, " app");
+					break;
+			}
+			break;
+		case BELLE_SDP_RTCP_FB_TRR_INT:
+			error = belle_sip_snprintf(buff, buff_size, offset, "trr-int %u", belle_sdp_rtcp_fb_attribute_get_trr_int(attribute));
+			break;
+	}
+	return error;
+}
+static void belle_sdp_rtcp_fb_attribute_init(belle_sdp_rtcp_fb_attribute_t* attribute) {
+	belle_sdp_attribute_set_name(BELLE_SDP_ATTRIBUTE(attribute), "rtcp-fb");
+	attribute->id = -1;
+	attribute->type = BELLE_SDP_RTCP_FB_TRR_INT;
+	attribute->param = BELLE_SDP_RTCP_FB_NONE;
+	attribute->trr_int = 0;
+}
+BELLE_SDP_NEW_WITH_CTR(rtcp_fb_attribute,belle_sdp_attribute)
+BELLE_SDP_PARSE(rtcp_fb_attribute)
+GET_SET_INT(belle_sdp_rtcp_fb_attribute,id,int8_t)
+GET_SET_INT(belle_sdp_rtcp_fb_attribute,type,belle_sdp_rtcp_fb_val_type_t)
+GET_SET_INT(belle_sdp_rtcp_fb_attribute,param,belle_sdp_rtcp_fb_val_param_t)
+GET_SET_INT(belle_sdp_rtcp_fb_attribute,trr_int,uint8_t)
 /***************************************************************************************
  * RTCP-XR Attribute
  *

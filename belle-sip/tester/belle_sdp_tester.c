@@ -70,6 +70,31 @@ static void test_attribute_2(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 }
 
+static void test_rtcp_fb_attribute(void) {
+	belle_sdp_rtcp_fb_attribute_t* lAttribute;
+
+	lAttribute = BELLE_SDP_RTCP_FB_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-fb:* ack"));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-fb");
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_id(lAttribute), -1);
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_type(lAttribute), BELLE_SDP_RTCP_FB_ACK);
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_param(lAttribute), BELLE_SDP_RTCP_FB_NONE);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
+	lAttribute = BELLE_SDP_RTCP_FB_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-fb:98 nack rpsi"));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-fb");
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_id(lAttribute), 98);
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_type(lAttribute), BELLE_SDP_RTCP_FB_NACK);
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_param(lAttribute), BELLE_SDP_RTCP_FB_RPSI);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
+	lAttribute = BELLE_SDP_RTCP_FB_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-fb:* trr-int 3"));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-fb");
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_id(lAttribute), -1);
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_type(lAttribute), BELLE_SDP_RTCP_FB_TRR_INT);
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_trr_int(lAttribute), 3);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+}
+
 static void test_rtcp_xr_attribute(void) {
 	belle_sdp_rtcp_xr_attribute_t* lAttribute;
 
@@ -594,6 +619,7 @@ static void test_mime_parameter(void) {
 test_t sdp_tests[] = {
 	{ "a= (attribute)", test_attribute },
 	{ "a= (attribute) 2", test_attribute_2 },
+	{ "a=rtcp-fb", test_rtcp_fb_attribute },
 	{ "a=rtcp-xr", test_rtcp_xr_attribute },
 	{ "b= (bandwidth)", test_bandwidth },
 	{ "o= (IPv4 origin)", test_origin },
