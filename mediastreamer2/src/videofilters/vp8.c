@@ -197,10 +197,11 @@ static void enc_preprocess(MSFilter *f) {
 		vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 0);
 	}
 
-	s->force_keyframe = TRUE;
 	s->invalid_frame_reported = FALSE;
 	vp8rtpfmt_packer_init(&s->packer);
-	if (s->avpf_enabled != TRUE) {
+	if (s->avpf_enabled == TRUE) {
+		s->force_keyframe = TRUE;
+	} else if (s->frame_count == 0) {
 		ms_video_starter_init(&s->starter);
 	}
 	s->ready = TRUE;
