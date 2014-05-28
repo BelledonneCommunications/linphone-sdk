@@ -294,11 +294,14 @@ static OrtpEvQueue * start_adaptive_stream(StreamType type, stream_manager_t ** 
 	return evq;
 }
 
-static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_t * margaux,
-	OrtpEvQueue * evq, int max_recv_rtcp_packet, int* current, int expected){
-	int retry=0;
+static int timeout_receive_rtcp(int max_recv_rtcp_packet){
 	int packets_after_start=max_recv_rtcp_packet - (15000.0/2500);
-	int timeout_ms=((packets_after_start > 0) ? 15000 + (packets_after_start + .5) * 5000 : (max_recv_rtcp_packet + .5) * 2500);
+	return ((packets_after_start > 0) ? 15000 + (packets_after_start + .5) * 5000 : (max_recv_rtcp_packet + .5) * 2500);
+}
+
+static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_t * margaux,
+	OrtpEvQueue * evq, int timeout_ms, int* current, int expected){
+	int retry=0;
 
 	MediaStream *marielle_ms,*margaux_ms;
 	if (marielle->type == AudioStreamType){
@@ -344,27 +347,27 @@ static void adaptive_opus_audio_stream()  {
 		OrtpEvQueue * evq;
 
 		// on EDGEBW, both should be overconsumming
-		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0,  0);
-		iterate_adaptive_stream(marielle, margaux, evq, 14, &marielle->audio_stats.number_of_EndOfFile, 10);
+		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0, 0);
+		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(14), &marielle->audio_stats.number_of_EndOfFile, 10);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
 		CU_ASSERT_IN_RANGE(bw_usage, 2.f, 3.f); // bad! since this codec cant change its ptime and it is the lower bitrate, no improvement can occur
 		DEINIT();
 
-		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 48000, EDGE_BW, 0, 0,  0);
-		iterate_adaptive_stream(marielle, margaux, evq, 11, &marielle->audio_stats.number_of_EndOfFile, 10);
+		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 48000, EDGE_BW, 0, 0, 0);
+		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(11), &marielle->audio_stats.number_of_EndOfFile, 10);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 1.4f); // bad!
 		DEINIT();
 
 		// on 3G BW, both should be at max
-		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 0,  0);
-		iterate_adaptive_stream(marielle, margaux, evq, 5, &marielle->audio_stats.number_of_EndOfFile, 10);
+		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 0, 0);
+		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(5), &marielle->audio_stats.number_of_EndOfFile, 10);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
 		CU_ASSERT_IN_RANGE(bw_usage, .1f, .15f);
 		DEINIT();
 
-		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 48000, THIRDGENERATION_BW, 0, 0,  0);
-		iterate_adaptive_stream(marielle, margaux, evq, 5, &marielle->audio_stats.number_of_EndOfFile, 10);
+		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 48000, THIRDGENERATION_BW, 0, 0, 0);
+		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(5), &marielle->audio_stats.number_of_EndOfFile, 10);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
 		CU_ASSERT_IN_RANGE(bw_usage, .2f, .3f);
 		DEINIT();
@@ -380,8 +383,8 @@ static void adaptive_speex16_audio_stream()  {
 		stream_manager_t * marielle, * margaux;
 		OrtpEvQueue * evq;
 
-		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW / 2., 0, 0,  0);
-		iterate_adaptive_stream(marielle, margaux, evq, 10, &marielle->audio_stats.number_of_EndOfFile, 10);
+		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW / 2., 0, 0, 0);
+		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), &marielle->audio_stats.number_of_EndOfFile, 10);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 5.f);
 		DEINIT();
@@ -397,14 +400,14 @@ static void adaptive_pcma_audio_stream() {
 		OrtpEvQueue * evq;
 
 		// yet non-adaptative codecs cannot respect low throughput limitations
-		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0,  0);
-		iterate_adaptive_stream(marielle, margaux, evq, 10, &marielle->audio_stats.number_of_EndOfFile, 10);
+		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0, 0);
+		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), &marielle->audio_stats.number_of_EndOfFile, 10);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
 		CU_ASSERT_IN_RANGE(bw_usage,6.f, 8.f); // this is bad!
 		DEINIT();
 
-		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 0,  0);
-		iterate_adaptive_stream(marielle, margaux, evq, 5, &marielle->audio_stats.number_of_EndOfFile, 10);
+		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 0, 0);
+		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(5), &marielle->audio_stats.number_of_EndOfFile, 10);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
 		CU_ASSERT_IN_RANGE(bw_usage, .3f, .5f);
 		DEINIT();
@@ -418,19 +421,17 @@ static void upload_bandwidth_computation() {
 		OrtpEvQueue * evq;
 		int i;
 		const MSQosAnalyser *analyser;
-		double cur_up_bw;
 
-		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, 0, 0,  0);
+		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, 0, 0, 0);
 		analyser=ms_bitrate_controller_get_qos_analyser(marielle->audio_stream->ms.rc);
 		if (analyser->type==Stateful){
 			const MSStatefulQosAnalyser *stateful_analyser=((const MSStatefulQosAnalyser*)analyser);
 
 			for (i = 0; i < 5; i++){
 				rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
-				iterate_adaptive_stream(marielle, margaux, evq, 2, NULL, 0);
-				cur_up_bw = stateful_analyser->interval_count ? stateful_analyser->upload_bandwidth_sum/stateful_analyser->interval_count : 0;
+				iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(2), NULL, 0);
 				/*since PCMA uses 80kbit/s, upload bandwidth should just be 80x(duplication_ratio+1) kbits/s */
-				CU_ASSERT_TRUE(fabs(cur_up_bw - 80.*(i+1)) < 1.f);
+				CU_ASSERT_TRUE(fabs(stateful_analyser->upload_bandwidth_latest - 80.*(i+1)) < 1.f);
 			}
 		}
 		DEINIT();
@@ -440,18 +441,18 @@ static void upload_bandwidth_computation() {
 static void stability_network_detection() {
 	stream_manager_t * marielle, * margaux;
 	OrtpEvQueue * evq;
-	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500,  0);
-	iterate_adaptive_stream(marielle, margaux, evq, 10, NULL, 0);
+	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), NULL, 0);
 	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyserNetworkFine);
 	DEINIT();
 
-	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000, 0, 250, 0);
-	iterate_adaptive_stream(marielle, margaux, evq, 10, NULL, 0);
+	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000, 0, 250,0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), NULL, 0);
 	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyserNetworkCongested);
 	DEINIT();
 
-	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250, 0);
-	iterate_adaptive_stream(marielle, margaux, evq, 10, NULL, 0);
+	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250,0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), NULL, 0);
 	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyserNetworkLossy);
 	DEINIT();
 }
@@ -461,27 +462,27 @@ static void adaptive_vp8() {
 	OrtpEvQueue * evq;
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 25, 50, 0);
-	iterate_adaptive_stream(marielle, margaux, evq, 16, NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(13), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 20, 30);
-	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 200, 1000);
+	CU_ASSERT_TRUE(marielle->video_stats.congestion_bw_estim > 200);
 	DEINIT();
 
 	/*very low bandwidth cause a lot of packets to be dropped since congestion is
 	always present even if we are below the limit due to encoding variance*/
-	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 40000, 0, 50, 0);
-	iterate_adaptive_stream(marielle, margaux, evq, 16, NULL, 0);
+	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 40000, 0, 50,0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(13), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 0, 15);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 20, 65);
 	DEINIT();
 
-	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50, 0);
-	iterate_adaptive_stream(marielle, margaux, evq, 16, NULL, 0);
+	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50,0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(13), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 0, 10);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 50, 95);
 	DEINIT();
 
-	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50, 0);
-	iterate_adaptive_stream(marielle, margaux, evq, 16, NULL, 0);
+	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50,0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(13), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 10, 20);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 80, 125);
 	DEINIT();
@@ -494,8 +495,8 @@ static void packet_duplication() {
 	OrtpEvQueue * evq;
 
 	dup_ratio = 0;
-	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50, dup_ratio);
-	iterate_adaptive_stream(marielle, margaux, evq, 2, NULL, 0);
+	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(2), NULL, 0);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
 	CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
 	/*in theory, cumulative loss should be the invert of duplicated count, but
@@ -505,8 +506,8 @@ static void packet_duplication() {
 	DEINIT();
 
 	dup_ratio = 1;
-	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50, dup_ratio);
-	iterate_adaptive_stream(marielle, margaux, evq, 2, NULL, 0);
+	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(2), NULL, 0);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
 	CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
 	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
