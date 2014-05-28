@@ -462,7 +462,7 @@ static void adaptive_vp8() {
 	OrtpEvQueue * evq;
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 25, 50, 0);
-	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(13), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(18), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 20, 30);
 	CU_ASSERT_TRUE(marielle->video_stats.congestion_bw_estim > 200);
 	DEINIT();
@@ -470,19 +470,19 @@ static void adaptive_vp8() {
 	/*very low bandwidth cause a lot of packets to be dropped since congestion is
 	always present even if we are below the limit due to encoding variance*/
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 40000, 0, 50,0);
-	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(13), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(18), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 0, 15);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 20, 65);
 	DEINIT();
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50,0);
-	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(13), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(18), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 0, 10);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 50, 95);
 	DEINIT();
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50,0);
-	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(13), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(18), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 10, 20);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 80, 125);
 	DEINIT();

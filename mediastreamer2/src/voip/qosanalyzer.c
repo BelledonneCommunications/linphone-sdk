@@ -227,8 +227,12 @@ const char *ms_qos_analyser_network_state_name(MSQosAnalyserNetworkState state){
 	return "bad state type";
 }
 
-static int earlier_than(const rtcpstatspoint_t *p, const time_t * now){
-	return p->timestamp > *now;
+static int earlier_than(rtcpstatspoint_t *p, const time_t * now){
+	if (p->timestamp < *now){
+		ms_free(p);
+		return FALSE;
+	}
+	return TRUE;
 }
 static int sort_points(const rtcpstatspoint_t *p1, const rtcpstatspoint_t *p2){
 	return p1->bandwidth > p2->bandwidth;
@@ -541,11 +545,17 @@ static void stateful_analyser_update(MSQosAnalyser *objbase){
 	}
 }
 
+static void stateful_analyser_uninit(MSQosAnalyser *objbase){
+	MSStatefulQosAnalyser *obj=(MSStatefulQosAnalyser*)objbase;
+	ms_list_for_each(obj->rtcpstatspoint, ms_free);
+}
+
 static MSQosAnalyserDesc stateful_analyser_desc={
 	stateful_analyser_process_rtcp,
 	stateful_analyser_suggest_action,
 	stateful_analyser_has_improved,
-	stateful_analyser_update
+	stateful_analyser_update,
+	stateful_analyser_uninit,
 };
 
 MSQosAnalyser * ms_stateful_qos_analyser_new(RtpSession *session){
