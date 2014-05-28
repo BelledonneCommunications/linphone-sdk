@@ -933,9 +933,7 @@ static int send_buffer(belle_sip_channel_t *obj, const char *buffer, size_t size
 				,obj->peer_name
 				,obj->peer_port);
 			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
-		}else{
-			handle_ewouldblock(obj,buffer,size);
-		}
+		}/*ewouldblock error has to be handled by caller*/
 	}else if (size==(size_t)ret){
 		logbuf=make_logbuf(BELLE_SIP_LOG_MESSAGE, buffer,size);
 		belle_sip_message("channel [%p]: message sent to [%s://%s:%i], size: [%i] bytes\n%s"
@@ -1005,8 +1003,8 @@ static void _send_message(belle_sip_channel_t *obj){
 			}
 			return; /*we prefer poll again to be sure we can write*/
 		}else if (belle_sip_error_code_is_would_block(-sendret)) {
-			belle_sip_error("channel [%p]: send ewouldblock error twice, should not happen", obj);
-				return;
+			/*we got an ewouldblock again. Nothing to do, we'll be called later in order to retry*/
+			return;
 		}else {/*error or disconnection case*/
 			goto done;
 		}
@@ -1049,6 +1047,7 @@ static void _send_message(belle_sip_channel_t *obj){
 					break;
 				}
 			}else if (belle_sip_error_code_is_would_block(-sendret)) {
+				handle_ewouldblock(obj,buffer+off,len-off);
 				return;
 			}else {/*error or disconnection case*/
 				goto done;
@@ -1069,6 +1068,7 @@ static void _send_message(belle_sip_channel_t *obj){
 							break;
 						}
 					}else if (belle_sip_error_code_is_would_block(-sendret)) {
+						handle_ewouldblock(obj,buffer+off,chunk_len-off);
 						return;
 					}else {/*error or disconnection case*/
 						goto done;

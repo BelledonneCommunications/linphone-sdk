@@ -475,7 +475,7 @@ static void ipv6_dns_server(void) {
 	int timeout;
 	endpoint_t *client;
 	const char *nameservers[]={
-		"2a01:e00::2",
+		"2001:4860:4860::8888",
 		NULL
 	};
 	
