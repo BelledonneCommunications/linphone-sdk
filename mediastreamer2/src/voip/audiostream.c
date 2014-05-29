@@ -980,6 +980,8 @@ void audio_stream_stop(AudioStream * stream){
 			}
 		}
 	}
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"telephone-event",(RtpCallback)on_dtmf_received);
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)mediastream_payload_type_changed);
 	audio_stream_free(stream);
 	ms_filter_log_statistics();
 }
@@ -1025,6 +1027,8 @@ void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){
 	else if (!stream->ms.sessions.is_secured)
 		ortp_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context,stream->ms.sessions.rtp_session);
 }
+
 bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 	return stream->ms.sessions.zrtp_context!=NULL;
 }
+
