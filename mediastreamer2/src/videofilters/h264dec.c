@@ -243,7 +243,7 @@ static void dec_process(MSFilter *f){
 	DecData *d=(DecData*)f->data;
 	mblk_t *im;
 	MSQueue nalus;
-	AVFrame orig;
+	
 	ms_queue_init(&nalus);
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		/*push the sps/pps given in sprop-parameter-sets if any*/
@@ -270,6 +270,9 @@ static void dec_process(MSFilter *f){
 				int len;
 				int got_picture=0;
 				AVPacket pkt;
+				AVFrame orig;
+				/*it is required to memset the structure, because avcodec_get_frame_defaults() eventually frees non-null content*/
+				memset(&orig,0,sizeof(orig));
 				avcodec_get_frame_defaults(&orig);
 				av_init_packet(&pkt);
 				pkt.data = p;
