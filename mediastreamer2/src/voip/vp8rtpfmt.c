@@ -466,6 +466,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			if (is_key_frame(frame) == TRUE) {
 				ctx->valid_keyframe_received = TRUE;
 				ctx->video_size = get_size_from_key_frame(frame);
+				ctx->waiting_for_reference_frame = FALSE;
 			}
 			if ((ctx->avpf_enabled == TRUE) && (is_reference_frame(frame, NULL) == TRUE)) {
 				ctx->waiting_for_reference_frame = FALSE;
