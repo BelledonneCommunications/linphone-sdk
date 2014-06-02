@@ -316,6 +316,7 @@ static void configure_video_source(VideoStream *stream){
 	float fps=15;
 	MSPixFmt format;
 	MSVideoEncoderPixFmt encoder_supports_source_format;
+	int ret;
 
 	/* transmit orientation to source filter */
 	ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
@@ -361,7 +362,12 @@ static void configure_video_source(VideoStream *stream){
 	encoder_supports_source_format.supported = FALSE;
 	encoder_supports_source_format.pixfmt = format;
 
-	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SUPPORTS_PIXFMT, &encoder_supports_source_format);
+	ret = ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SUPPORTS_PIXFMT, &encoder_supports_source_format);
+
+	if (ret == -1) {
+		// Encoder doesn't have MS_VIDEO_ENCODER_SUPPORTS_PIXFMT method
+		encoder_supports_source_format.supported = (format == MS_YUV420P);
+	}
 
 	if ((encoder_supports_source_format.supported == TRUE) || (stream->source_performs_encoding == TRUE)) {
 		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_PIX_FMT, &format);
