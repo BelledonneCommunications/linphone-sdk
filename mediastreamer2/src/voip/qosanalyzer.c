@@ -388,12 +388,6 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	if (current == NULL){
 		P(RED "Not points available for computation.\n");
 		return -1;
-	}else if (size == 1){
-		rtcpstatspoint_t *p = (rtcpstatspoint_t *)current->data;
-		mean_bw = p->bandwidth * (1 - p->loss_percent);
-		P(RED "One single point available for computation. Estimated BW is %f kbit/s\n", mean_bw);
-
-		return mean_bw;
 	}
 
 	while (last->next) last = last->next;
@@ -401,9 +395,7 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 	/*suppose that first point is a reliable estimation of the constant network loss rate*/
 	if (size > 3){
 		smooth_values(obj);
-/*		constant_network_loss = ((rtcpstatspoint_t *)obj->rtcpstatspoint->next->data)->loss_percent;
-	}else{
-*/	}
+	}
 	constant_network_loss = ((rtcpstatspoint_t *)obj->rtcpstatspoint->data)->loss_percent;
 
 
