@@ -77,17 +77,17 @@ static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *e
 
 	switch (event) {
 		case MS_VIDEO_DECODER_SEND_PLI:
-			ms_message("Send PLI on videostream [%p]", stream);
+			ms_message("Request sending of PLI on videostream [%p]", stream);
 			video_stream_send_pli(stream);
 			break;
 		case MS_VIDEO_DECODER_SEND_SLI:
 			sli = (const MSVideoCodecSLI *)eventdata;
-			ms_message("Send SLI on videostream [%p]", stream);
+			ms_message("Request sending of SLI on videostream [%p]", stream);
 			video_stream_send_sli(stream, sli->first, sli->number, sli->picture_id);
 			break;
 		case MS_VIDEO_DECODER_SEND_RPSI:
 			rpsi = (const MSVideoCodecRPSI *)eventdata;
-			ms_message("Send RPSI on videostream [%p]", stream);
+			ms_message("Request sending of RPSI on videostream [%p]", stream);
 			video_stream_send_rpsi(stream, rpsi->bit_string, rpsi->bit_string_len);
 			break;
 	}
