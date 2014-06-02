@@ -133,6 +133,7 @@ static void audio_manager_start(stream_manager_t * mgr
 								,int target_bitrate
 								,const char* player_file
 								,const char* recorder_file){
+
 	media_stream_set_target_network_bitrate(&mgr->audio_stream->ms,target_bitrate);
 
 	CU_ASSERT_EQUAL(audio_stream_start_full(mgr->audio_stream
@@ -155,7 +156,6 @@ static void video_manager_start(	stream_manager_t * mgr
 									,int remote_port
 									,int target_bitrate
 									,MSWebCam * cam) {
-
 	media_stream_set_target_network_bitrate(&mgr->video_stream->ms,target_bitrate);
 
 	int result=video_stream_start(mgr->video_stream
@@ -191,8 +191,8 @@ static void basic_audio_stream() {
 
 	/*recorder should be initialized before sender to avoid missing the first
 	emitted packets*/
-	audio_manager_start(margaux, 0, marielle->local_rtp,0,0,RECORDED_8K_1S_FILE);
-	audio_manager_start(marielle, 0, margaux->local_rtp,0,HELLO_8K_1S_FILE,0);
+	audio_manager_start(margaux, 0, marielle->local_rtp,0,NULL,RECORDED_8K_1S_FILE);
+	audio_manager_start(marielle, 0, margaux->local_rtp,0,HELLO_8K_1S_FILE,NULL);
 
 	ms_filter_add_notify_callback(marielle->audio_stream->soundread, notify_cb,
 		&marielle->audio_stats,TRUE);
@@ -277,16 +277,17 @@ static OrtpEvQueue * start_adaptive_stream(StreamType type, stream_manager_t ** 
 	rtp_session_set_duplication_ratio(marielle_ms->sessions.rtp_session, dup_ratio);
 
 	if (marielle->type == AudioStreamType){
-		audio_manager_start(marielle,payload, margaux->local_rtp,initial_bitrate,HELLO_16K_1S_FILE,NULL);
+		audio_manager_start(marielle,payload,margaux->local_rtp,initial_bitrate,HELLO_16K_1S_FILE,NULL);
 		ms_filter_call_method(marielle->audio_stream->soundread,MS_FILE_PLAYER_LOOP,&pause_time);
 
-		audio_manager_start(margaux,payload, marielle->local_rtp,-1,NULL,RECORDED_16K_1S_FILE);
+		audio_manager_start(margaux,payload,marielle->local_rtp,0,NULL,RECORDED_16K_1S_FILE);
 	}else{
-		video_manager_start(marielle, payload, margaux->local_rtp, initial_bitrate, marielle_webcam);
+		video_manager_start(marielle,payload,margaux->local_rtp,0,marielle_webcam);
 		video_stream_set_direction(margaux->video_stream,VideoStreamRecvOnly);
 
-		video_manager_start(margaux, payload, marielle->local_rtp, -1, NULL);
+		video_manager_start(margaux,payload,marielle->local_rtp,0,NULL);
 	}
+
 	rtp_session_enable_network_simulation(margaux_ms->sessions.rtp_session,&params);
 
 	evq=ortp_ev_queue_new();
@@ -318,9 +319,9 @@ static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_
 		handle_queue_events(marielle, evq);
 		if (retry%10==0) {
 			 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	,
-			 	marielle_ms, media_stream_get_down_bw(marielle_ms)/1000, media_stream_get_up_bw(marielle_ms)/1000);
+				marielle_ms, media_stream_get_down_bw(marielle_ms)/1000, media_stream_get_up_bw(marielle_ms)/1000);
 			 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	,
-			 	margaux_ms, media_stream_get_down_bw(margaux_ms)/1000, media_stream_get_up_bw(margaux_ms)/1000);
+				margaux_ms, media_stream_get_down_bw(margaux_ms)/1000, media_stream_get_up_bw(margaux_ms)/1000);
 		 }
 		ms_usleep(100000);
 	}
@@ -464,17 +465,15 @@ static void adaptive_vp8() {
 	CU_ASSERT_TRUE(marielle->video_stats.congestion_bw_estim > 200);
 	DEINIT();
 
-	/*very low bandwidth causes a lot of packets to be dropped since congestion is
-	always present even if we are below the limit due to encoder bit-rate variation*/
-	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 40000, 0, 50,0);
+	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 45000, 0, 50,0);
 	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(17), NULL, 0);
-	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 0, 15);
-	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 20, 65);
+	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 0, 2);
+	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 30, 60);
 	DEINIT();
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50,0);
 	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(17), NULL, 0);
-	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 0, 10);
+	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 0, 2);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 50, 95);
 	DEINIT();
 
@@ -498,7 +497,7 @@ static void packet_duplication() {
 	CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
 	/*in theory, cumulative loss should be the invert of duplicated count, but
 	since cumulative loss is computed only on received RTCP report and duplicated
-	count is updated on each RTP packet received, we cannot accurately verify the values*/
+	count is updated on each RTP packet received, we cannot accurately compare these values*/
 	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
 	DEINIT();
 
