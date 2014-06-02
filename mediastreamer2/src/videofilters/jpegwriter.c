@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef struct {
 	FILE *file;
 	AVCodec *codec;
+	AVFrame* pict;
 }JpegWriter;
 
 static void jpg_init(MSFilter *f){
@@ -40,6 +41,7 @@ static void jpg_init(MSFilter *f){
 	if (s->codec==NULL){
 		ms_error("Could not find CODEC_ID_MJPEG !");
 	}
+	s->pict = avcodec_alloc_frame();
 	f->data=s;
 }
 
@@ -48,6 +50,7 @@ static void jpg_uninit(MSFilter *f){
 	if (s->file!=NULL){
 		fclose(s->file);
 	}
+	if (s->pict) avcodec_free_frame(&s->pict);
 	ms_free(s);
 }
 
@@ -86,14 +89,13 @@ static void jpg_process(MSFilter *f){
 			int error,got_pict;
 			int comp_buf_sz=msgdsize(m);
 			uint8_t *comp_buf=(uint8_t*)alloca(comp_buf_sz);
-			AVFrame pict;
 			mblk_t *jpegm;
 			struct SwsContext *sws_ctx;
 			struct AVPacket packet;
 			AVCodecContext *avctx=avcodec_alloc_context3(s->codec);
-			
+
 			memset(&packet, 0, sizeof(packet));
-			
+
 			avctx->width=yuvbuf.w;
 			avctx->height=yuvbuf.h;
 			avctx->time_base.num = 1;
@@ -115,7 +117,7 @@ static void jpg_process(MSFilter *f){
 				goto end;
 			}
 			jpegm=ms_yuv_buf_alloc (&yuvjpeg,avctx->width, avctx->height);
-#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)	
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)
 			if (sws_scale(sws_ctx,(const uint8_t *const*)yuvbuf.planes,yuvbuf.strides,0,avctx->height,yuvjpeg.planes,yuvjpeg.strides)<0){
 #else
 			if (sws_scale(sws_ctx,(uint8_t **)yuvbuf.planes,yuvbuf.strides,0,avctx->height,yuvjpeg.planes,yuvjpeg.strides)<0){
@@ -127,11 +129,11 @@ static void jpg_process(MSFilter *f){
 				goto end;
 			}
 			sws_freeContext(sws_ctx);
-			
-			avcodec_get_frame_defaults(&pict);
-			avpicture_fill((AVPicture*)&pict,(uint8_t*)jpegm->b_rptr,avctx->pix_fmt,avctx->width,avctx->height);
+
+			avcodec_get_frame_defaults(s->pict);
+			avpicture_fill((AVPicture*)s->pict,(uint8_t*)jpegm->b_rptr,avctx->pix_fmt,avctx->width,avctx->height);
 			packet.data=comp_buf; packet.size=comp_buf_sz;
-			error=avcodec_encode_video2(avctx, &packet, &pict, &got_pict);
+			error=avcodec_encode_video2(avctx, &packet, s->pict, &got_pict);
 			if (error<0){
 				ms_error("Could not encode jpeg picture.");
 			}else{

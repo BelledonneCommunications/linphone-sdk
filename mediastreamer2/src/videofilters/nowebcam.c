@@ -56,12 +56,12 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 #ifndef NO_FFMPEG
 	AVCodecContext av_context;
 	int got_picture=0;
-	AVFrame orig;
 	mblk_t *ret;
 	struct SwsContext *sws_ctx;
 	AVPacket pkt;
 	MSPicture dest;
 	AVCodec *codec=avcodec_find_decoder(CODEC_ID_MJPEG);
+	AVFrame* orig = avcodec_alloc_frame();
 
 	if (codec==NULL){
 		ms_error("Could not find MJPEG decoder in ffmpeg.");
@@ -77,8 +77,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	pkt.data=jpgbuf;
 	pkt.size=bufsize;
 
-	memset(&orig, 0, sizeof(orig));
-	if (avcodec_decode_video2(&av_context,&orig,&got_picture,&pkt) < 0) {
+	if (avcodec_decode_video2(&av_context,orig,&got_picture,&pkt) < 0) {
 		ms_error("jpeg2yuv: avcodec_decode_video failed");
 		avcodec_close(&av_context);
 		return NULL;
@@ -96,10 +95,10 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 		return NULL;
 	}
 
-#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)	
-	if (sws_scale(sws_ctx,(const uint8_t* const *)orig.data,orig.linesize,0,av_context.height,dest.planes,dest.strides)<0){
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)
+	if (sws_scale(sws_ctx,(const uint8_t* const *)orig->data,orig->linesize,0,av_context.height,dest.planes,dest.strides)<0){
 #else
-	if (sws_scale(sws_ctx,(uint8_t**)orig.data,orig.linesize,0,av_context.height,dest.planes,dest.strides)<0){
+	if (sws_scale(sws_ctx,(uint8_t**)orig->data,orig->linesize,0,av_context.height,dest.planes,dest.strides)<0){
 #endif
 		ms_error("jpeg2yuv: ms_sws_scale() failed.");
 		sws_freeContext(sws_ctx);
@@ -108,13 +107,14 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 		return NULL;
 	}
 	sws_freeContext(sws_ctx);
+	avcodec_free_frame(&orig);
 	avcodec_close(&av_context);
 	return ret;
 #elif TARGET_OS_IPHONE
 	MSPicture dest;
 	CGDataProviderRef dataProvider = CGDataProviderCreateWithData(NULL, jpgbuf, bufsize, NULL);
 	// use the data provider to get a CGImage; release the data provider
-	CGImageRef image = CGImageCreateWithJPEGDataProvider(dataProvider, NULL, FALSE, 
+	CGImageRef image = CGImageCreateWithJPEGDataProvider(dataProvider, NULL, FALSE,
 						kCGRenderingIntentDefault);
 						CGDataProviderRelease(dataProvider);
 	reqsize->width = CGImageGetWidth(image);
@@ -138,7 +138,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 			uint8_t b = tmp[y * reqsize->width * 4 + x * 4 + 2];
 
 			// Y
-			*dest.planes[0]++ = (uint8_t)((0.257 * r) + (0.504 * g) + (0.098 * b) + 16);		
+			*dest.planes[0]++ = (uint8_t)((0.257 * r) + (0.504 * g) + (0.098 * b) + 16);
 
 			// U/V subsampling
 			if ((y % 2==0) && (x%2==0)) {
@@ -177,7 +177,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	uint8_t *jpgbuf;
 	DWORD err;
 	HANDLE fd;
-	
+
 #ifdef UNICODE
 	WCHAR wUnicode[1024];
 	MultiByteToWideChar(CP_UTF8, 0, jpgpath, -1, wUnicode, 1024);
@@ -208,8 +208,8 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 		return NULL;
 	}
 	err=0;
-	ReadFile(fd, jpgbuf, st_sizel, &err, NULL) ;            
-	
+	ReadFile(fd, jpgbuf, st_sizel, &err, NULL) ;
+
 	if (err!=st_sizel){
 		  ms_error("Could not read as much as wanted !");
 	}
@@ -395,12 +395,12 @@ static int static_image_set_image(MSFilter *f, void *arg){
 	SIData *d=(SIData*)f->data;
 	const char *image = (const char *)arg;
 	ms_filter_lock(f);
-	
+
 	if (d->nowebcamimage) {
 		ms_free(d->nowebcamimage);
 		d->nowebcamimage=NULL;
 	}
-	
+
 	if (image!=NULL && image[0]!='\0')
 		d->nowebcamimage=ms_strdup(image);
 
@@ -449,7 +449,7 @@ static void static_image_detect(MSWebCamManager *obj);
 
 static void static_image_cam_init(MSWebCam *cam){
 	cam->name=ms_strdup("Static picture");
-	
+
 	if (def_image==NULL)
 		def_image=ms_strdup(def_image_path);
 }

@@ -129,6 +129,7 @@ void ms_ffmpeg_check_init(){
 typedef struct EncState{
 	AVCodecContext av_context;
 	AVCodec *av_codec;
+	AVFrame* pict;
 	enum CodecID codec;
 	mblk_t *comp_buf;
 	int mtu;	/* network maximum transmission unit in bytes */
@@ -230,6 +231,7 @@ static void enc_init(MSFilter *f, enum CodecID codec)
 	s->av_context.codec=NULL;
 	s->vconf_list = get_vconf_list(s);
 	s->vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, 500000);
+	s->pict = avcodec_alloc_frame();
 }
 
 static void enc_h263_init(MSFilter *f){
@@ -268,7 +270,7 @@ static void prepare(EncState *s){
 
 	/* put codec parameters */
 	/* in order to take in account RTP protocol overhead and avoid possible
-	 bitrate peaks especially on low bandwidth, we make a correction on the 
+	 bitrate peaks especially on low bandwidth, we make a correction on the
 	 codec's target bitrate.
 	*/
 	c->bit_rate=(float)s->vconf.required_bitrate*0.92;
@@ -300,7 +302,7 @@ static void prepare(EncState *s){
 	if (s->codec==CODEC_ID_SNOW){
 		c->strict_std_compliance=-2;
 	}
-	
+
 	ms_message("Codec size set to w=%i/h=%i",c->width, c->height);
 
 }
@@ -334,6 +336,7 @@ static void prepare_mpeg4(EncState *s){
 
 static void enc_uninit(MSFilter  *f){
 	EncState *s=(EncState*)f->data;
+	if (s->pict) avcodec_free_frame(&s->pict);
 	ms_free(s);
 }
 
@@ -438,7 +441,7 @@ static int get_gbsc_bytealigned(uint8_t *begin, uint8_t *end){
 
 static void rfc2190_generate_packets(MSFilter *f, EncState *s, mblk_t *frame, uint32_t timestamp){
 	mblk_t *packet=NULL;
-	
+
 	while (frame->b_rptr<frame->b_wptr){
 		packet=dupb(frame);
 		/*frame->b_rptr=packet->b_wptr=packet->b_rptr+get_gbsc(packet->b_rptr, MIN(packet->b_rptr+s->mtu,frame->b_wptr));*/
@@ -472,15 +475,15 @@ static void mpeg4_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint3
 static void rfc4629_generate_follow_on_packets(MSFilter *f, EncState *s, mblk_t *frame, uint32_t timestamp, uint8_t *psc, uint8_t *end, bool_t last_packet){
 	mblk_t *packet;
 	int len=end-psc;
-	
-	packet=dupb(frame);	
+
+	packet=dupb(frame);
 	packet->b_rptr=psc;
 	packet->b_wptr=end;
 	/*ms_message("generating packet of size %i",end-psc);*/
 	rfc2429_set_P(psc,1);
 	mblk_set_timestamp_info(packet,timestamp);
 
-	
+
 	if (len>s->mtu){
 		/*need to slit the packet using "follow-on" packets */
 		/*compute the number of packets need (rounded up)*/
@@ -592,9 +595,9 @@ static void mjpeg_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint3
 	struct jpeghdr_qtable qtblhdr;
 	int bytes_left = msgdsize(frame);
 	int data_len;
-	
+
 	mblk_t *packet;
-	
+
 	/* Initialize JPEG header
 	 */
 	//jpghdr.tspec = typespec;
@@ -653,9 +656,9 @@ static void mjpeg_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint3
 			mblk_set_marker_info(packet,TRUE);
 		}
 
-		memcpy(packet->b_wptr, frame->b_rptr + jpghdr.off, data_len);	
+		memcpy(packet->b_wptr, frame->b_rptr + jpghdr.off, data_len);
 		packet->b_wptr=packet->b_wptr + data_len;
-				
+
 		mblk_set_timestamp_info(packet,timestamp);
 		ms_queue_put(f->outputs[0],packet);
 
@@ -687,7 +690,7 @@ static int find_marker(uint8_t **pbuf_ptr, uint8_t *buf_end){
 static mblk_t *skip_jpeg_headers(mblk_t *full_frame, mblk_t **lqt, mblk_t **cqt){
 	int err;
 	uint8_t *pbuf_ptr=full_frame->b_rptr;
-	uint8_t *buf_end=full_frame->b_wptr;	
+	uint8_t *buf_end=full_frame->b_wptr;
 
 	ms_message("image size: %li)", (long)(buf_end-pbuf_ptr));
 
@@ -733,7 +736,7 @@ static void split_and_send(MSFilter *f, EncState *s, mblk_t *frame){
 	uint8_t *lastpsc;
 	uint8_t *psc;
 	uint32_t timestamp=f->ticker->time*90LL;
-	
+
 	if (s->codec==CODEC_ID_MPEG4 || s->codec==CODEC_ID_SNOW)
 	{
 		mpeg4_fragment_and_send(f,s,frame,timestamp);
@@ -775,7 +778,7 @@ static void split_and_send(MSFilter *f, EncState *s, mblk_t *frame){
 
 static void process_frame(MSFilter *f, mblk_t *inm){
 	EncState *s=(EncState*)f->data;
-	AVFrame pict;
+
 	AVCodecContext *c=&s->av_context;
 	int error,got_packet;
 	mblk_t *comp_buf=s->comp_buf;
@@ -786,18 +789,18 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 
 	ms_yuv_buf_init_from_mblk(&yuv, inm);
 	/* convert image if necessary */
-	avcodec_get_frame_defaults(&pict);
-	avpicture_fill((AVPicture*)&pict,yuv.planes[0],c->pix_fmt,c->width,c->height);
-	
+	avcodec_get_frame_defaults(s->pict);
+	avpicture_fill((AVPicture*)s->pict,yuv.planes[0],c->pix_fmt,c->width,c->height);
+
 	/* timestamp used by ffmpeg, unset here */
-	pict.pts=AV_NOPTS_VALUE;
+	s->pict->pts=AV_NOPTS_VALUE;
 
 	if (ms_video_starter_need_i_frame (&s->starter, f->ticker->time)){
 		/*sends an I frame at 2 seconds and 4 seconds after the beginning of the call*/
 		s->req_vfu=TRUE;
 	}
 	if (s->req_vfu){
-		pict.pict_type=FF_I_TYPE;
+		s->pict->pict_type=FF_I_TYPE;
 		s->req_vfu=FALSE;
 	}
 	comp_buf->b_rptr=comp_buf->b_wptr=comp_buf->b_datap->db_base;
@@ -811,7 +814,7 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 
 	packet.data=comp_buf->b_wptr;
 	packet.size=comp_buf_sz;
-	error=avcodec_encode_video2(c, &packet, &pict, &got_packet);
+	error=avcodec_encode_video2(c, &packet, s->pict, &got_packet);
 
 	if (error<0) ms_warning("ms_AVencoder_process: error %i.",error);
 	else if (got_packet){
