@@ -33,6 +33,15 @@ struct _belle_sdp_mime_parameter {
 
 };
 
+
+static void belle_sip_object_freefunc(void* obj) {
+	belle_sip_object_unref(BELLE_SIP_OBJECT(obj));
+}
+static void* belle_sip_object_copyfunc(void* obj) {
+	return belle_sip_object_clone_and_ref(BELLE_SIP_OBJECT(obj));
+}
+
+
 /***************************************************************************************
  * Attribute
  *
@@ -262,13 +271,13 @@ void belle_sdp_rtcp_xr_attribute_add_stat_summary_flag(belle_sdp_rtcp_xr_attribu
 }
 void belle_sdp_rtcp_xr_attribute_destroy(belle_sdp_rtcp_xr_attribute_t* attribute) {
 	DESTROY_STRING(attribute,rcvr_rtt_mode)
-	belle_sip_list_free(attribute->stat_summary_flags);
+	belle_sip_list_free_with_data(attribute->stat_summary_flags, belle_sip_object_freefunc);
 }
 void belle_sdp_rtcp_xr_attribute_clone(belle_sdp_rtcp_xr_attribute_t* attribute, const belle_sdp_rtcp_xr_attribute_t *orig) {
 	CLONE_STRING(belle_sdp_rtcp_xr_attribute,rcvr_rtt_mode,attribute,orig)
 	attribute->rcvr_rtt_max_size = orig->rcvr_rtt_max_size;
 	attribute->stat_summary = orig->stat_summary;
-	attribute->stat_summary_flags = belle_sip_list_copy(orig->stat_summary_flags);
+	attribute->stat_summary_flags = belle_sip_list_copy_with_data(orig->stat_summary_flags, belle_sip_object_copyfunc);
 	attribute->voip_metrics = orig->voip_metrics;
 }
 belle_sip_error_code belle_sdp_rtcp_xr_attribute_marshal(belle_sdp_rtcp_xr_attribute_t* attribute, char * buff, size_t buff_size, size_t *offset) {
@@ -500,13 +509,6 @@ GET_SET_INT(belle_sdp_media,port_count,int)
 /************************
  * base_description
  ***********************/
-static void belle_sip_object_freefunc(void* obj) {
-	belle_sip_object_unref(BELLE_SIP_OBJECT(obj));
-}
-static void* belle_sip_object_copyfunc(void* obj) {
-	return belle_sip_object_clone_and_ref(BELLE_SIP_OBJECT(obj));
-}
-
 typedef struct _belle_sdp_base_description {
 	belle_sip_object_t base;
 	belle_sdp_info_t* info;
