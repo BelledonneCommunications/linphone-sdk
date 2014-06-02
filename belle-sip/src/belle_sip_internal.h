@@ -286,11 +286,12 @@ BELLESIP_INTERNAL_EXPORT unsigned int belle_sip_random(void);
 		return obj->attribute;\
 	}\
 	void object_type##_set_##attribute (object_type##_t* obj,const char* value) {\
-		if (obj->attribute != NULL) belle_sip_free((void*)obj->attribute);\
+		const char* previous_value = obj->attribute;  /*preserve if same value re-asigned*/ \
 		if (value) {\
 			obj->attribute=belle_sip_strdup(value); \
 		} else obj->attribute=NULL;\
-	}
+		if (previous_value != NULL) belle_sip_free((void*)previous_value);\
+}
 /*#define GET_SET_STRING_PARAM_NULL_ALLOWED(object_type,attribute) \
 	GET_STRING_PARAM2(object_type,attribute,attribute) \
 	void object_type##_set_##func_name (object_type##_t* obj,const char* value) {\
