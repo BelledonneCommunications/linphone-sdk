@@ -88,6 +88,7 @@ extern "C"{
 	typedef struct Vp8RtpFmtUnpackerCtx {
 		MSFilter *filter;
 		MSList *frames_list;
+		MSList *non_processed_packets_list;
 		MSQueue output_queue;
 		MSVideoSize video_size;
 		uint32_t last_ts;

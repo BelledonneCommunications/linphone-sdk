@@ -380,10 +380,21 @@ static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, MSList **packets_list) {
 static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, MSList *packets_list) {
 	Vp8RtpFmtPacket *packet;
 	MSList *frame_packets_list = NULL;
-	int nb_packets = ms_list_size(packets_list);
+	int nb_packets;
 	uint32_t ts;
 	int i;
 
+	/* If we have some packets from the previous iteration, put them in the frame_packets_list. */
+	nb_packets = ms_list_size(ctx->non_processed_packets_list);
+	for (i = 0; i < nb_packets; i++) {
+		packet = ms_list_nth_data(ctx->non_processed_packets_list, i);
+		frame_packets_list = ms_list_append(frame_packets_list, packet);
+	}
+	ms_list_free(ctx->non_processed_packets_list);
+	ctx->non_processed_packets_list = NULL;
+
+	/* Process newly received packets. */
+	nb_packets = ms_list_size(packets_list);
 	for (i = 0; i < nb_packets; i++) {
 		packet = ms_list_nth_data(packets_list, i);
 		ts = mblk_get_timestamp_info(packet->m);
@@ -405,9 +416,11 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, MSList *packets_list
 		}
 	}
 
-	if (ms_list_size(frame_packets_list) > 0) {
-		/* If some packets are left, add incomplete frame. */
-		add_frame(ctx, &frame_packets_list);
+	/* If some packets are left, put them in a list for next iteration. */
+	nb_packets = ms_list_size(frame_packets_list);
+	for (i = 0; i < nb_packets; i++) {
+		packet = ms_list_nth_data(frame_packets_list, i);
+		ctx->non_processed_packets_list = ms_list_append(ctx->non_processed_packets_list, packet);
 	}
 }
 
@@ -674,6 +687,7 @@ static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf_enabled, bool_t output_partitions) {
 	ctx->filter = f;
 	ctx->frames_list = NULL;
+	ctx->non_processed_packets_list = NULL;
 	ms_queue_init(&ctx->output_queue);
 	ctx->avpf_enabled = avpf_enabled;
 	ctx->output_partitions = output_partitions;
@@ -685,6 +699,7 @@ void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf
 
 void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx) {
 	ms_list_free(ctx->frames_list);
+	ms_list_free(ctx->non_processed_packets_list);
 	ms_queue_flush(&ctx->output_queue);
 }
 
@@ -716,11 +731,11 @@ void vp8rtpfmt_unpacker_process(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *inout) {
 	clean_outputted_partitions(ctx);
 	clean_discarded_partitions(ctx);
 
-	if (ms_list_size(ctx->frames_list) == 0) {
-		ms_list_free(ctx->frames_list);
-		ctx->frames_list = NULL;
+	if (ms_list_size(ctx->non_processed_packets_list) == 0) {
+		ms_list_free(ctx->non_processed_packets_list);
+		ctx->non_processed_packets_list = NULL;
 	} else {
-		ms_message("VP8 frames are remaining for next iteration of the filter.");
+		ms_message("VP8 packets are remaining for next iteration of the filter.");
 	}
 }
 
