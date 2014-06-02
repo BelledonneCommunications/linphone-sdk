@@ -356,6 +356,12 @@ static void smooth_values(MSStatefulQosAnalyser *obj){
 	}else{
 		it = first_loss;
 	}
+
+	/*nothing to smooth*/
+	if (it == NULL){
+		return;
+	}
+
 	curr = (rtcpstatspoint_t *)it->data;
 
 	while (it->next != NULL){
