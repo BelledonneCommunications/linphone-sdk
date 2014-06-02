@@ -53,6 +53,7 @@ struct _belle_sdp_attribute {
 };
 void belle_sdp_attribute_destroy(belle_sdp_attribute_t* attribute) {
 	DESTROY_STRING(attribute,name)
+	DESTROY_STRING(attribute,unparsed_value)
 }
 void belle_sdp_attribute_clone(belle_sdp_attribute_t *attribute, const belle_sdp_attribute_t *orig){
 	CLONE_STRING(belle_sdp_attribute,name,attribute,orig)
