@@ -356,29 +356,31 @@ static int bandwidth_driver_execute_action(MSBitrateDriver *objbase, const MSRat
 		}
 	}
 
+	if (!obj->venc){
+		ret=1;
+	}
 	switch(action->type){
 		case MSRateControlActionDecreaseBitrate:
 			if (obj->venc){
 				ret=bandwidth_dec_video_bitrate(obj,action);
+			}
+			if (ret!=0 && obj->audio_driver){
+				ret=ms_bitrate_driver_execute_action(obj->audio_driver,action);
 			}
 		break;
 		case MSRateControlActionDecreasePacketRate:
 			if (obj->audio_driver){
 				ret=bandwidth_change_ptime((MSAudioBitrateDriver*) obj->audio_driver, 100);
 			}else{
-				ret=-1;
+				ret=1;
 			}
 		break;
 		case MSRateControlActionIncreaseQuality:
 			if (obj->venc){
 				ret=bandwidth_inc_video_bitrate(obj,action);
-			}else{
-				ret=1;
 			}
-			if (ret != 0){
-				if (obj->audio_driver){
-					ret=ms_bitrate_driver_execute_action(obj->audio_driver,action);
-				}
+			if (ret!=0 && obj->audio_driver){
+				ret=ms_bitrate_driver_execute_action(obj->audio_driver,action);
 			}
 		break;
 		case MSRateControlActionDoNothing:

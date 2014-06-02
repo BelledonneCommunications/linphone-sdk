@@ -304,7 +304,7 @@ static bool_t stateful_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtc
 				obj->latest=ms_new0(rtcpstatspoint_t, 1);
 				obj->latest->timestamp=ms_time(0);
 				obj->latest->bandwidth=up_bw;
-				obj->latest->loss_percent=loss_rate;
+				obj->latest->loss_percent=MAX(0,loss_rate);
 				obj->latest->rtt=cur->rt_prop;
 
 				obj->rtcpstatspoint=ms_list_insert_sorted(obj->rtcpstatspoint, obj->latest, (MSCompareFunc)sort_points);
@@ -331,21 +331,13 @@ static float lerp(float inf, float sup, float v){
 }
 
 static void smooth_values(MSStatefulQosAnalyser *obj){
-	//smooth values
 	MSList *it = obj->rtcpstatspoint;
-	double prev_loss;
 	rtcpstatspoint_t *curr = (rtcpstatspoint_t *)it->data;
-	prev_loss = curr->loss_percent;
+	double prev_loss = curr->loss_percent;
 	it = it->next;
 	curr = (rtcpstatspoint_t *)it->data;
-	/*float w = obj->rtcpstatspoint[i].bandwidth/obj->rtcpstatspoint[i+1].bandwidth;
-	obj->rtcpstatspoint[i].loss_percent = (prev + obj->rtcpstatspoint[i+1].loss_percent*w)/(1+w);*/
+
 	((rtcpstatspoint_t *)it->prev->data)->loss_percent = lerp(prev_loss, curr->loss_percent, .25);
-	/*obj->rtcpstatspoint[i].loss_percent = MIN(prev, obj->rtcpstatspoint[i+1].loss_percent);*/
-	/*obj->rtcpstatspoint[i].loss_percent = obj->rtcpstatspoint[i+1].loss_percent;*/
-	/*float w1 = obj->rtcpstatspoint[i].bandwidth;
-	float w2 = obj->rtcpstatspoint[i+1].bandwidth;
-	obj->rtcpstatspoint[i].loss_percent = (w2*prev + w1*obj->rtcpstatspoint[i+1].loss_percent)/(w1+w2);*/
 	while (it->next != NULL){
 		curr = (rtcpstatspoint_t *)it->data;
 		rtcpstatspoint_t *prev = ((rtcpstatspoint_t *)it->prev->data);
@@ -358,14 +350,7 @@ static void smooth_values(MSStatefulQosAnalyser *obj){
 		it = it->next;
 	}
 	curr = (rtcpstatspoint_t *)it->data;
-	/*w = obj->rtcpstatspoint[i-1].bandwidth/obj->rtcpstatspoint[i].bandwidth;
-	obj->rtcpstatspoint[i].loss_percent = (obj->rtcpstatspoint[i].loss_percent + prev*w)/(1+w);*/
 	curr->loss_percent = lerp(prev_loss, curr->loss_percent, .75);
-	/*obj->rtcpstatspoint[i].loss_percent = MAX(prev, obj->rtcpstatspoint[i].loss_percent);*/
-	/*obj->rtcpstatspoint[i].loss_percent = prev;*/
-	/*w1 = obj->rtcpstatspoint[i-1].bandwidth;
-	w2 = obj->rtcpstatspoint[i].bandwidth;
-	obj->rtcpstatspoint[i].loss_percent = (w1*prev + w2*obj->rtcpstatspoint[i].loss_percent)/(w1+w2);*/
 }
 
 static float compute_available_bw(MSStatefulQosAnalyser *obj){
@@ -485,24 +470,8 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 }
 
 static bool_t stateful_analyser_has_improved(MSQosAnalyser *objbase){
-	MSStatefulQosAnalyser *obj=(MSStatefulQosAnalyser*)objbase;
-	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
-	rtpstats_t *prev=&obj->stats[(STATS_HISTORY+obj->curindex-1) % STATS_HISTORY];
-
-	if (prev->lost_percentage>=unacceptable_loss_rate){
-		if (cur->lost_percentage<prev->lost_percentage){
-			ms_message("MSQosAnalyser: lost percentage has improved");
-			return TRUE;
-		}else goto end;
-	}
-	if (obj->rt_prop_doubled && cur->rt_prop<prev->rt_prop){
-		ms_message("MSQosAnalyser: rt prop decreased");
-		obj->rt_prop_doubled=FALSE;
-		return TRUE;
-	}
-
-	end:
-	ms_message("MSQosAnalyser: no improvements.");
+	/*never tell the controller that situation has improved to avoid 'Stable' state
+	which is not necessary for this analyser*/
 	return FALSE;
 }
 
@@ -516,27 +485,29 @@ static void stateful_analyser_update(MSQosAnalyser *objbase){
 	}
 	last_measure = ms_time(0);
 
-	switch (obj->burst_state){
-	case MSStatefulQosAnalyserBurstEnable:{
-		obj->burst_state=MSStatefulQosAnalyserBurstInProgress;
-		ortp_gettimeofday(&obj->start_time, NULL);
-		rtp_session_set_duplication_ratio(obj->session, obj->burst_ratio);
-		obj->start_seq_number=obj->last_seq_number=obj->session->rtp.snd_seq;
-	} case MSStatefulQosAnalyserBurstInProgress: {
-		struct timeval now;
-		double elapsed;
+	if (obj->burst_duration_ms>0){
+		switch (obj->burst_state){
+		case MSStatefulQosAnalyserBurstEnable:{
+			obj->burst_state=MSStatefulQosAnalyserBurstInProgress;
+			ortp_gettimeofday(&obj->start_time, NULL);
+			rtp_session_set_duplication_ratio(obj->session, obj->burst_ratio);
+			obj->start_seq_number=obj->last_seq_number=obj->session->rtp.snd_seq;
+		} case MSStatefulQosAnalyserBurstInProgress: {
+			struct timeval now;
+			double elapsed;
 
-		ortp_gettimeofday(&now,NULL);
-		elapsed=((now.tv_sec-obj->start_time.tv_sec)*1000.0) +  ((now.tv_usec-obj->start_time.tv_usec)/1000.0);
+			ortp_gettimeofday(&now,NULL);
+			elapsed=((now.tv_sec-obj->start_time.tv_sec)*1000.0) +  ((now.tv_usec-obj->start_time.tv_usec)/1000.0);
 
-		obj->last_seq_number=obj->session->rtp.snd_seq;
+			obj->last_seq_number=obj->session->rtp.snd_seq;
 
-		if (elapsed > obj->burst_duration_ms){
-			obj->burst_state=MSStatefulQosAnalyserBurstDisable;
-			rtp_session_set_duplication_ratio(obj->session, 0);
+			if (elapsed > obj->burst_duration_ms){
+				obj->burst_state=MSStatefulQosAnalyserBurstDisable;
+				rtp_session_set_duplication_ratio(obj->session, 0);
+			}
+		} case MSStatefulQosAnalyserBurstDisable: {
 		}
-	} case MSStatefulQosAnalyserBurstDisable: {
-	}
+		}
 	}
 }
 

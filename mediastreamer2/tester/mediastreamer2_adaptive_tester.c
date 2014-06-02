@@ -384,7 +384,7 @@ static void adaptive_speex16_audio_stream()  {
 		OrtpEvQueue * evq;
 
 		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW / 2., 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), &marielle->audio_stats.number_of_EndOfFile, 10);
+		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(9), &marielle->audio_stats.number_of_EndOfFile, 10);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./(EDGE_BW / 2.);
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 5.f);
 		DEINIT();
@@ -401,7 +401,7 @@ static void adaptive_pcma_audio_stream() {
 
 		// yet non-adaptative codecs cannot respect low throughput limitations
 		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), &marielle->audio_stats.number_of_EndOfFile, 10);
+		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(9), &marielle->audio_stats.number_of_EndOfFile, 10);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
 		CU_ASSERT_IN_RANGE(bw_usage,6.f, 8.f); // this is bad!
 		DEINIT();
@@ -420,19 +420,16 @@ static void upload_bandwidth_computation() {
 		stream_manager_t * marielle, * margaux;
 		OrtpEvQueue * evq;
 		int i;
-		const MSQosAnalyser *analyser;
 
 		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, 0, 0, 0);
-		analyser=ms_bitrate_controller_get_qos_analyser(marielle->audio_stream->ms.rc);
-		if (analyser->type==Stateful){
-			const MSStatefulQosAnalyser *stateful_analyser=((const MSStatefulQosAnalyser*)analyser);
+		media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 
-			for (i = 0; i < 5; i++){
-				rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
-				iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(2), NULL, 0);
-				/*since PCMA uses 80kbit/s, upload bandwidth should just be 80x(duplication_ratio+1) kbits/s */
-				CU_ASSERT_TRUE(fabs(stateful_analyser->upload_bandwidth_latest - 80.*(i+1)) < 1.f);
-			}
+		for (i = 0; i < 5; i++){
+			rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
+			iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(2), NULL, 0);
+			/*since PCMA uses 80kbit/s, upload bandwidth should just be 80+80*duplication_ratio kbit/s */
+			CU_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 1.f);
+			printf("%f vs %f\n", rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000., 80.*(i+1));
 		}
 		DEINIT();
 	}
@@ -442,17 +439,17 @@ static void stability_network_detection() {
 	stream_manager_t * marielle, * margaux;
 	OrtpEvQueue * evq;
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500, 0);
-	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(9), NULL, 0);
 	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyserNetworkFine);
 	DEINIT();
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000, 0, 250,0);
-	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(9), NULL, 0);
 	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyserNetworkCongested);
 	DEINIT();
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250,0);
-	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(9), NULL, 0);
 	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyserNetworkLossy);
 	DEINIT();
 }
@@ -462,27 +459,27 @@ static void adaptive_vp8() {
 	OrtpEvQueue * evq;
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 25, 50, 0);
-	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(18), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(17), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 20, 30);
 	CU_ASSERT_TRUE(marielle->video_stats.congestion_bw_estim > 200);
 	DEINIT();
 
-	/*very low bandwidth cause a lot of packets to be dropped since congestion is
-	always present even if we are below the limit due to encoding variance*/
+	/*very low bandwidth causes a lot of packets to be dropped since congestion is
+	always present even if we are below the limit due to encoder bit-rate variation*/
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 40000, 0, 50,0);
-	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(18), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(17), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 0, 15);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 20, 65);
 	DEINIT();
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50,0);
-	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(18), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(17), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 0, 10);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 50, 95);
 	DEINIT();
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50,0);
-	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(18), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(17), NULL, 0);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.loss_estim, 10, 20);
 	CU_ASSERT_IN_RANGE(marielle->video_stats.congestion_bw_estim, 80, 125);
 	DEINIT();
