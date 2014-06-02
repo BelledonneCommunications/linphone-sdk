@@ -349,26 +349,26 @@ static void adaptive_opus_audio_stream()  {
 		// on EDGEBW, both should be overconsumming
 		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0, 0);
 		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(14), &marielle->audio_stats.number_of_EndOfFile, 10);
-		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
+		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, 2.f, 3.f); // bad! since this codec cant change its ptime and it is the lower bitrate, no improvement can occur
 		DEINIT();
 
 		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 48000, EDGE_BW, 0, 0, 0);
 		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(11), &marielle->audio_stats.number_of_EndOfFile, 10);
-		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
+		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 1.4f); // bad!
 		DEINIT();
 
 		// on 3G BW, both should be at max
 		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 0, 0);
 		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(5), &marielle->audio_stats.number_of_EndOfFile, 10);
-		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
+		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./THIRDGENERATION_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, .1f, .15f);
 		DEINIT();
 
 		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 48000, THIRDGENERATION_BW, 0, 0, 0);
 		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(5), &marielle->audio_stats.number_of_EndOfFile, 10);
-		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
+		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./THIRDGENERATION_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, .2f, .3f);
 		DEINIT();
 	}
@@ -385,7 +385,7 @@ static void adaptive_speex16_audio_stream()  {
 
 		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW / 2., 0, 0, 0);
 		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), &marielle->audio_stats.number_of_EndOfFile, 10);
-		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
+		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./(EDGE_BW / 2.);
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 5.f);
 		DEINIT();
 	}
@@ -402,13 +402,13 @@ static void adaptive_pcma_audio_stream() {
 		// yet non-adaptative codecs cannot respect low throughput limitations
 		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0, 0);
 		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(10), &marielle->audio_stats.number_of_EndOfFile, 10);
-		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
+		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
 		CU_ASSERT_IN_RANGE(bw_usage,6.f, 8.f); // this is bad!
 		DEINIT();
 
 		evq=start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 0, 0);
 		iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(5), &marielle->audio_stats.number_of_EndOfFile, 10);
-		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms);
+		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./THIRDGENERATION_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, .3f, .5f);
 		DEINIT();
 	}

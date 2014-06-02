@@ -258,7 +258,7 @@ static double stateful_qos_analyser_upload_bandwidth(MSStatefulQosAnalyser *obj)
 	obj->upload_bandwidth_sum=0;
 
 	P(GREEN "latest_up_bw=%f vs sum_up_bw=%f\n", up_bw, obj->upload_bandwidth_latest);
-	return up_bw;
+	return obj->upload_bandwidth_latest;
 }
 
 static bool_t stateful_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtcp){
@@ -294,9 +294,8 @@ static bool_t stateful_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtc
 			int uniq_emitted=report_block_get_high_ext_seq(rb) - obj->previous_ext_high_seq_num_rec;
 
 			if (obj->previous_ext_high_seq_num_rec > 0){
-				printf("RECEIVE cumloss=%d uniq_emitted=%d total_emitted=%d\n", cum_loss_curr, uniq_emitted, total_emitted);
 				loss_rate=(1. - (uniq_emitted - cum_loss_curr) * 1.f / total_emitted);
-				printf("RECEIVE estimated loss rate=%f vs 'real'=%f\n", loss_rate, report_block_get_fraction_lost(rb)/2.56);
+				printf("RECEIVE estimated loss rate=%f vs 'real'=%f\n", loss_rate, report_block_get_fraction_lost(rb)/256.);
 			}
 
 			if (obj->curindex % 10 == 6){
@@ -460,12 +459,9 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 	float curbw = obj->latest ? obj->latest->bandwidth : 0.f;
 	float bw = compute_available_bw(obj);
 
-	/*rtp_session_set_duplication_ratio(obj->session, 0);*/
 	/*try a burst every 50 seconds (10 RTCP packets)*/
 	if (obj->curindex % 10 == 0){
 		P(YELLOW "try burst!\n");
-		/*bw *= 3;*/
-		/*rtp_session_set_duplication_ratio(obj->session, 2);*/
 		obj->burst_state = MSStatefulQosAnalyserBurstEnable;
 	}
 	/*test a min burst to avoid overestimation of available bandwidth*/
@@ -473,7 +469,7 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 		P(YELLOW "try minimal burst!\n");
 		bw *= .33;
 	}
-	/*not bandwidth estimation computed*/
+	/*no bandwidth estimation computed*/
 	if (bw <= 0){
 		action->type=MSRateControlActionDoNothing;
 		action->value=0;
@@ -524,7 +520,7 @@ static void stateful_analyser_update(MSQosAnalyser *objbase){
 	case MSStatefulQosAnalyserBurstEnable:{
 		obj->burst_state=MSStatefulQosAnalyserBurstInProgress;
 		ortp_gettimeofday(&obj->start_time, NULL);
-		rtp_session_set_duplication_ratio(obj->session, 2);
+		rtp_session_set_duplication_ratio(obj->session, obj->burst_ratio);
 		obj->start_seq_number=obj->last_seq_number=obj->session->rtp.snd_seq;
 	} case MSStatefulQosAnalyserBurstInProgress: {
 		struct timeval now;
@@ -535,7 +531,6 @@ static void stateful_analyser_update(MSQosAnalyser *objbase){
 
 		obj->last_seq_number=obj->session->rtp.snd_seq;
 
-		/*burst should last 1sec*/
 		if (elapsed > obj->burst_duration_ms){
 			obj->burst_state=MSStatefulQosAnalyserBurstDisable;
 			rtp_session_set_duplication_ratio(obj->session, 0);
@@ -563,8 +558,9 @@ MSQosAnalyser * ms_stateful_qos_analyser_new(RtpSession *session){
 	obj->session=session;
 	obj->parent.desc=&stateful_analyser_desc;
 	obj->parent.type=Stateful;
+	/*double the upload bandwidth based on a 5 sec RTCP reports interval*/
 	obj->burst_duration_ms=1000;
-	obj->burst_ratio=2;
+	obj->burst_ratio=9;
 	return (MSQosAnalyser*)obj;
 }
 
