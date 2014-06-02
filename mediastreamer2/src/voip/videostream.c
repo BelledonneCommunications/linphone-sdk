@@ -533,7 +533,8 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}
 
 		ms_filter_add_notify_callback(stream->ms.decoder, event_cb, stream, FALSE);
-		ms_filter_add_notify_callback(stream->ms.decoder, internal_event_cb, stream, FALSE);
+		/* It is important that the internal_event_cb is called synchronously! */
+		ms_filter_add_notify_callback(stream->ms.decoder, internal_event_cb, stream, TRUE);
 
 		stream->ms.rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
