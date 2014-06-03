@@ -40,6 +40,9 @@ static void belle_sip_object_freefunc(void* obj) {
 static void* belle_sip_object_copyfunc(void* obj) {
 	return belle_sip_object_clone_and_ref(BELLE_SIP_OBJECT(obj));
 }
+static void * belle_sip_string_copyfunc(void *obj) {
+	return (void *)belle_sip_strdup((const char *)obj);
+}
 
 
 /***************************************************************************************
@@ -260,24 +263,21 @@ struct _belle_sdp_rtcp_xr_attribute {
 	belle_sip_list_t* stat_summary_flags;
 	unsigned int voip_metrics;
 };
-belle_sip_list_t* belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(const belle_sdp_rtcp_xr_attribute_t* attribute) {
+const belle_sip_list_t* belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(const belle_sdp_rtcp_xr_attribute_t* attribute) {
 	return attribute->stat_summary_flags;
-}
-void belle_sdp_rtcp_xr_attribute_set_stat_summary_flags(belle_sdp_rtcp_xr_attribute_t* attribute, belle_sip_list_t* flags) {
-	attribute->stat_summary_flags = flags;
 }
 void belle_sdp_rtcp_xr_attribute_add_stat_summary_flag(belle_sdp_rtcp_xr_attribute_t* attribute, const char* flag) {
 	attribute->stat_summary_flags = belle_sip_list_append(attribute->stat_summary_flags, belle_sip_strdup(flag));
 }
 void belle_sdp_rtcp_xr_attribute_destroy(belle_sdp_rtcp_xr_attribute_t* attribute) {
 	DESTROY_STRING(attribute,rcvr_rtt_mode)
-	belle_sip_list_free_with_data(attribute->stat_summary_flags, belle_sip_object_freefunc);
+	belle_sip_list_free_with_data(attribute->stat_summary_flags, belle_sip_free);
 }
 void belle_sdp_rtcp_xr_attribute_clone(belle_sdp_rtcp_xr_attribute_t* attribute, const belle_sdp_rtcp_xr_attribute_t *orig) {
 	CLONE_STRING(belle_sdp_rtcp_xr_attribute,rcvr_rtt_mode,attribute,orig)
 	attribute->rcvr_rtt_max_size = orig->rcvr_rtt_max_size;
 	attribute->stat_summary = orig->stat_summary;
-	attribute->stat_summary_flags = belle_sip_list_copy_with_data(orig->stat_summary_flags, belle_sip_object_copyfunc);
+	attribute->stat_summary_flags = belle_sip_list_copy_with_data(orig->stat_summary_flags, belle_sip_string_copyfunc);
 	attribute->voip_metrics = orig->voip_metrics;
 }
 belle_sip_error_code belle_sdp_rtcp_xr_attribute_marshal(belle_sdp_rtcp_xr_attribute_t* attribute, char * buff, size_t buff_size, size_t *offset) {

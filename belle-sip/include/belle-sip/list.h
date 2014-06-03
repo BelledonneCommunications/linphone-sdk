@@ -43,7 +43,7 @@ BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_free(belle_sip_list_t *list);
 BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_free_with_data(belle_sip_list_t *list, void (*freefunc)(void*));
 
 typedef  int (*belle_sip_compare_func)(const void *, const void*);
-BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_find_custom(belle_sip_list_t * list, belle_sip_compare_func cmp, const void *user_data);
+BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_find_custom(const belle_sip_list_t * list, belle_sip_compare_func cmp, const void *user_data);
 BELLESIP_EXPORT void * belle_sip_list_nth_data(const belle_sip_list_t * list, int index);
 BELLESIP_EXPORT int belle_sip_list_position(const belle_sip_list_t * list, belle_sip_list_t * elem);
 BELLESIP_EXPORT int belle_sip_list_index(const belle_sip_list_t * list, void *data);

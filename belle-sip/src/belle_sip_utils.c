@@ -342,9 +342,9 @@ belle_sip_list_t* belle_sip_list_find(belle_sip_list_t* list, void *data){
 	return NULL;
 }
 
-belle_sip_list_t* belle_sip_list_find_custom(belle_sip_list_t* list, belle_sip_compare_func compare_func, const void *user_data){
+belle_sip_list_t* belle_sip_list_find_custom(const belle_sip_list_t* list, belle_sip_compare_func compare_func, const void *user_data){
 	for(;list!=NULL;list=list->next){
-		if (compare_func(list->data,user_data)==0) return list;
+		if (compare_func(list->data,user_data)==0) return (belle_sip_list_t *)list;
 	}
 	return NULL;
 }
