@@ -555,6 +555,11 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 				stream->tee2=ms_filter_new(MS_TEE_ID);
 		}
 
+		/* Define target upload bandwidth for RTCP packets sending. */
+		if (pt->normal_bitrate > 0) {
+			rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, pt->normal_bitrate);
+		}
+
 		/* set parameters to the decoder*/
 		if (pt->send_fmtp){
 			ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
