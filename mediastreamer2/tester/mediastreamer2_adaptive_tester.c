@@ -85,7 +85,7 @@ typedef struct _audio_stats_t {
 typedef struct _video_stats_t {
 	float loss;
 	float rtt;
-	MSQosAnalyserNetworkState network_state;
+	MSQosAnalyzerNetworkState network_state;
 	float loss_estim;
 	float congestion_bw_estim;
 } video_stats_t;
@@ -227,12 +227,12 @@ static void handle_queue_events(stream_manager_t * stream_mgr, OrtpEvQueue * evq
 
 			if (rb && stream_mgr->type==VideoStreamType) {
 				if (stream_mgr->video_stream->ms.use_rc){
-					const MSQosAnalyser *analyser=ms_bitrate_controller_get_qos_analyser(stream_mgr->video_stream->ms.rc);
-					if (analyser->type==Stateful){
-						const MSStatefulQosAnalyser *stateful_analyser=((const MSStatefulQosAnalyser*)analyser);
-						stream_mgr->video_stats.network_state=stateful_analyser->network_state;
-						stream_mgr->video_stats.loss_estim =100*stateful_analyser->network_loss_rate;
-						stream_mgr->video_stats.congestion_bw_estim =stateful_analyser->congestion_bandwidth;
+					const MSQosAnalyzer *analyzer=ms_bitrate_controller_get_qos_analyzer(stream_mgr->video_stream->ms.rc);
+					if (analyzer->type==Stateful){
+						const MSStatefulQosAnalyzer *stateful_analyzer=((const MSStatefulQosAnalyzer*)analyzer);
+						stream_mgr->video_stats.network_state=stateful_analyzer->network_state;
+						stream_mgr->video_stats.loss_estim =100*stateful_analyzer->network_loss_rate;
+						stream_mgr->video_stats.congestion_bw_estim =stateful_analyzer->congestion_bandwidth;
 					}
 				}
 
@@ -441,17 +441,17 @@ static void stability_network_detection() {
 	OrtpEvQueue * evq;
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500, 0);
 	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(9), NULL, 0);
-	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyserNetworkFine);
+	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyzerNetworkFine);
 	DEINIT();
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000, 0, 250,0);
 	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(9), NULL, 0);
-	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyserNetworkCongested);
+	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyzerNetworkCongested);
 	DEINIT();
 
 	evq=start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250,0);
 	iterate_adaptive_stream(marielle, margaux, evq, timeout_receive_rtcp(9), NULL, 0);
-	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyserNetworkLossy);
+	CU_ASSERT_EQUAL(marielle->video_stats.network_state, MSQosAnalyzerNetworkLossy);
 	DEINIT();
 }
 
