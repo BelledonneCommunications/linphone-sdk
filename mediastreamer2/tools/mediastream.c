@@ -59,7 +59,7 @@ extern void libmssilk_init();
 #endif
 #ifdef HAVE_ISAC
 extern void libmsisac_init();
-#endif  
+#endif
 #endif
 
 #ifdef ANDROID
@@ -135,8 +135,8 @@ typedef struct _MediastreamDatas {
 	int netsim_latency;
 	float zoom;
 	float zoom_cx, zoom_cy;
-	
-	AudioStream *audio;	
+
+	AudioStream *audio;
 	PayloadType *pt;
 	RtpSession *session;
 	OrtpEvQueue *q;
@@ -220,7 +220,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 int g_argc;
 char** g_argv;
 static int _main(int argc, char * argv[]);
- 
+
 static void* apple_main(void* data) {
 	 _main(g_argc,g_argv);
 	 return NULL;
@@ -258,11 +258,11 @@ int main(int argc, char * argv[])
 	setup_media_streams(args);
 
 	mediastream_run_loop(args);
-	
+
 	clear_mediastreams(args);
 
 	free(args);
-	
+
 	return 0;
 }
 
@@ -523,8 +523,11 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			out->enable_avpf = FALSE;
 		} else if (strcmp(argv[i], "--no-rtcp") == 0) {
 			out->enable_rtcp = FALSE;
-		} else if (strcmp(argv[i],"--help")==0){
+		} else if (strcmp(argv[i],"--help")==0) {
 			printf("%s",usage);
+			return FALSE;
+		} else {
+			printf("Unknown option '%s'\n", argv[i]);
 			return FALSE;
 		}
 	}
@@ -550,7 +553,7 @@ static void video_stream_event_cb(void *user_pointer, const MSFilter *f, const u
 void setup_media_streams(MediastreamDatas* args) {
 	/*create the rtp session */
 	OrtpNetworkSimulatorParams params={0};
-#ifdef VIDEO_ENABLED	
+#ifdef VIDEO_ENABLED
 	MSWebCam *cam=NULL;
 #endif
 	ortp_init();
@@ -573,10 +576,10 @@ void setup_media_streams(MediastreamDatas* args) {
 #endif
 #if defined (HAVE_ISAC)
 	libmsisac_init();
-#endif	
+#endif
 
 #endif /* IPHONE | ANDROID */
-	
+
 	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
 	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
 	rtp_profile_set_payload(&av_profile,112,&payload_type_ilbc);
@@ -591,7 +594,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,100,&payload_type_x_snow);
 	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
 	rtp_profile_set_payload(&av_profile,103,&payload_type_vp8);
-	
+
 	args->video=NULL;
 #endif
 	args->profile=rtp_profile_clone_full(&av_profile);
@@ -620,7 +623,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	}
 	if (args->fmtp!=NULL) payload_type_set_send_fmtp(args->pt,args->fmtp);
 	if (args->bitrate>0) args->pt->normal_bitrate=args->bitrate;
-	
+
 	if (args->pt->normal_bitrate==0){
 		printf("Error: no default bitrate specified for codec %s/%i. "
 			"Please specify a network bitrate with --bitrate option.\n",args->pt->mime_type,args->pt->clock_rate);
@@ -647,7 +650,7 @@ void setup_media_streams(MediastreamDatas* args) {
 			args->srtp_remote_master_key[40] = '\0';
 			ms_message("Generated remote srtp key: '%s'", args->srtp_remote_master_key);
 		}
-	}	
+	}
 
 	if (args->pt->type!=PAYLOAD_VIDEO){
 		MSSndCardManager *manager=ms_snd_card_manager_get();
@@ -728,13 +731,13 @@ void setup_media_streams(MediastreamDatas* args) {
 
 			args->session=args->audio->ms.sessions.rtp_session;
 		}
-		
+
 		if (args->enable_srtp) {
-			ms_message("SRTP enabled: %d", 
+			ms_message("SRTP enabled: %d",
 				audio_stream_enable_srtp(
-					args->audio, 
+					args->audio,
 					MS_AES_128_SHA1_80,
-					args->srtp_local_master_key, 
+					args->srtp_local_master_key,
 					args->srtp_remote_master_key));
 		}
 	}else{
@@ -779,11 +782,11 @@ void setup_media_streams(MediastreamDatas* args) {
 
 		ms_filter_call_method(args->video->output,MS_VIDEO_DISPLAY_ZOOM, zoom);
 		if (args->enable_srtp) {
-			ms_message("SRTP enabled: %d", 
+			ms_message("SRTP enabled: %d",
 				video_stream_enable_strp(
-					args->video, 
+					args->video,
 					MS_AES_128_SHA1_80,
-					args->srtp_local_master_key, 
+					args->srtp_local_master_key,
 					args->srtp_remote_master_key));
 		}
 #else
@@ -819,12 +822,12 @@ static void mediastream_tool_iterate(MediastreamDatas* args) {
 #ifndef WIN32
 	struct pollfd pfd;
 	int err;
-	
+
 	if (args->interactive){
 		pfd.fd=STDIN_FILENO;
 		pfd.events=POLLIN;
 		pfd.revents=0;
-	
+
 		err=poll(&pfd,1,10);
 		if (err==1 && (pfd.revents & POLLIN)){
 			char commands[128];
@@ -1158,7 +1161,7 @@ static PayloadType* create_custom_payload_type(const char *type, const char *sub
 	pt->mime_type=ms_strdup(subtype);
 	pt->clock_rate=atoi(rate);
 	pt->channels=atoi(channels);
-	return pt;	
+	return pt;
 }
 
 static PayloadType* parse_custom_payload(const char *name){
