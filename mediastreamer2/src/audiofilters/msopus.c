@@ -282,15 +282,15 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 	if (normalized_cbr<6000) {
 		int initial_value = normalized_cbr;
 		normalized_cbr = 6000;
-		d->max_network_bitrate = ((normalized_cbr*d->ptime/8000) + 12 + 8 + 20) *8000/d->ptime;
-		ms_warning("Opus encoder doesn't support bitrate [%i] set to 6kbps network bitrate [%d]", initial_value, d->max_network_bitrate);
+		d->max_network_bitrate = (normalized_cbr/(pps*8) + 12 + 8 + 20) *8*pps;
+		ms_warning("Opus encoder doesn't support bitrate [%i] set to 6kbps, network bitrate [%d]", initial_value, d->max_network_bitrate);
 	}
 
 	if (normalized_cbr>510000) {
 		int initial_value = normalized_cbr;
 		normalized_cbr = 510000;
-		d->max_network_bitrate = ((normalized_cbr*d->ptime/8000) + 12 + 8 + 20) *8000/d->ptime;
-		ms_warning("Opus encoder doesn't support bitrate [%i] set to 510kbps network bitrate [%d]", initial_value, d->max_network_bitrate);
+		d->max_network_bitrate = (normalized_cbr/(pps*8) + 12 + 8 + 20) *8*pps;
+		ms_warning("Opus encoder doesn't support bitrate [%i] set to 510kbps, network bitrate [%d]", initial_value, d->max_network_bitrate);
 	}
 
 	d->bitrate = normalized_cbr;
@@ -375,6 +375,8 @@ static int ms_opus_enc_set_bitrate(MSFilter *f, void *arg) {
 	int bitrate = *((int *)arg); // the argument is the network bitrate requested
 
 
+
+
 	/* this function also manage the ptime, check if we are increasing or decreasing the bitrate in order to possibly decrease or increase ptime */
 	if (d->bitrate>0 && d->ptime>0) { /* at first call to set_bitrate(bitrate is initialised at -1), do not modify ptime, neither if it wasn't initialised too */
 		if (bitrate > d->max_network_bitrate ) {
@@ -396,14 +398,16 @@ static int ms_opus_enc_set_bitrate(MSFilter *f, void *arg) {
 			ptimeStepValue = 20;
 		}
 	}
-
-
 	d->max_network_bitrate = bitrate;
 	ms_message("opus setbitrate to %d",d->max_network_bitrate);
-	ms_filter_lock(f);
-	compute_max_bitrate(d, ptimeStepValue*ptimeStepSign);
-	apply_max_bitrate(d);
-	ms_filter_unlock(f);
+
+	if (d->bitrate>0 && d->ptime>0) { /*don't apply bitrate before prepocess*/
+		ms_filter_lock(f);
+		compute_max_bitrate(d, ptimeStepValue*ptimeStepSign);
+		apply_max_bitrate(d);
+		ms_filter_unlock(f);
+	}
+
 	return 0;
 }
 

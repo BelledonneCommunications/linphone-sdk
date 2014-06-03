@@ -71,13 +71,22 @@ MS2_PUBLIC void ring_stop (RingStream * stream);
 /*
  * Crypto suite used configure encrypted stream*/
 typedef enum _MSCryptoSuite{
-	MS_AES_128_SHA1_80 = 1,
+	MS_CRYPTO_SUITE_INVALID=0,
+	MS_AES_128_SHA1_80,
 	MS_AES_128_SHA1_32,
 	MS_AES_128_NO_AUTH,
 	MS_NO_CIPHER_SHA1_80,
 	MS_AES_256_SHA1_80,
 	MS_AES_256_SHA1_32
 } MSCryptoSuite;
+
+typedef struct _MSCryptoSuiteNameParams{
+	const char *name;
+	const char *params;
+}MSCryptoSuiteNameParams;
+
+MS2_PUBLIC MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNameParams *nameparams);
+MS2_PUBLIC int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *nameparams);
 
 typedef enum StreamType {
 	AudioStreamType,
@@ -128,7 +137,6 @@ struct _MediaStream {
 	time_t start_time;
 	time_t last_iterate_time;
 	bool_t use_rc;
-	bool_t is_beginning;
 	bool_t owns_sessions;
 	bool_t pad;
 	/**
@@ -587,29 +595,6 @@ MS2_PUBLIC void video_stream_iterate(VideoStream *stream);
  * @param[in] stream The videostream object.
  */
 MS2_PUBLIC void video_stream_send_fir(VideoStream *stream);
-
-/**
- * Ask the video stream to send a Picture Loss Indication.
- * @param[in] stream The videostream object.
- */
-MS2_PUBLIC void video_stream_send_pli(VideoStream *stream);
-
-/**
- * Ask the video stream to send a Slice Loss Indication.
- * @param[in] stream The videostream object.
- * @param[in] first The address of the first lost macroblock.
- * @param[in] number The number of lost macroblocks.
- * @param[in] picture_id The six least significant bits of the picture ID.
- */
-MS2_PUBLIC void video_stream_send_sli(VideoStream *stream, uint16_t first, uint16_t number, uint8_t picture_id);
-
-/**
- * Ask the video stream to send a Reference Picture Selection Indication.
- * @param[in] stream The videostream object.
- * @param[in] bit_string A pointer to the variable length native RPSI bit string to include in the RTCP FB message.
- * @param[in] bit_string_len The length of the bit_string in bits.
- */
-MS2_PUBLIC void video_stream_send_rpsi(VideoStream *stream, uint8_t *bit_string, uint16_t bit_string_len);
 
 /**
  * Ask the video stream to generate a Video Fast Update (generally after receiving a Full-Intra Request.

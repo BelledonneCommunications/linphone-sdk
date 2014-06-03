@@ -1,6 +1,6 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2010  Belledonne Communications SARL 
+Copyright (C) 2010  Belledonne Communications SARL
 Author: Simon Morlat <simon.morlat@linphone.org>
 
 This program is free software; you can redistribute it and/or
@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef struct _DecData{
 	mblk_t *yuv_msg;
 	mblk_t *sps,*pps;
+	AVFrame* orig;
 	Rfc3984Context unpacker;
 	MSPicture outbuf;
 	struct SwsContext *sws_ctx;
@@ -78,6 +79,10 @@ static void dec_init(MSFilter *f){
 	d->outbuf.h=0;
 	d->bitstream_size=65536;
 	d->bitstream=ms_malloc0(d->bitstream_size);
+	d->orig = avcodec_alloc_frame();
+	if (!d->orig) {
+		ms_error("Could not allocate frame");
+	}
 	f->data=d;
 }
 
@@ -98,6 +103,7 @@ static void dec_uninit(MSFilter *f){
 	if (d->yuv_msg) freemsg(d->yuv_msg);
 	if (d->sps) freemsg(d->sps);
 	if (d->pps) freemsg(d->pps);
+	if (d->orig) avcodec_free_frame(&d->orig);
 	ms_free(d->bitstream);
 	ms_free(d);
 }
@@ -120,7 +126,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecData *s, AVFrame *orig){
 			ctx->width,ctx->height,PIX_FMT_YUV420P,SWS_FAST_BILINEAR,
                 	NULL, NULL, NULL);
 	}
-#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)	
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)
 	if (sws_scale(s->sws_ctx,(const uint8_t * const *)orig->data,orig->linesize, 0,
 					ctx->height, s->outbuf.planes, s->outbuf.strides)<0){
 #else
@@ -215,7 +221,7 @@ static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps){
 				*dst++=0;
 				start_picture=FALSE;
 			}
-		
+
 			/*prepend nal marker*/
 			*dst++=0;
 			*dst++=0;
@@ -243,7 +249,7 @@ static void dec_process(MSFilter *f){
 	DecData *d=(DecData*)f->data;
 	mblk_t *im;
 	MSQueue nalus;
-	AVFrame orig;
+
 	ms_queue_init(&nalus);
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		/*push the sps/pps given in sprop-parameter-sets if any*/
@@ -270,18 +276,18 @@ static void dec_process(MSFilter *f){
 				int len;
 				int got_picture=0;
 				AVPacket pkt;
-				avcodec_get_frame_defaults(&orig);
+				avcodec_get_frame_defaults(d->orig);
 				av_init_packet(&pkt);
 				pkt.data = p;
 				pkt.size = end-p;
-				len=avcodec_decode_video2(&d->av_context,&orig,&got_picture,&pkt);
+				len=avcodec_decode_video2(&d->av_context,d->orig,&got_picture,&pkt);
 				if (len<=0) {
 					ms_warning("ms_AVdecoder_process: error %i.",len);
 					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
 					break;
 				}
 				if (got_picture) {
-					ms_queue_put(f->outputs[0],get_as_yuvmsg(f,d,&orig));
+					ms_queue_put(f->outputs[0],get_as_yuvmsg(f,d,d->orig));
 					if (!d->first_image_decoded) {
 						d->first_image_decoded = TRUE;
 						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);

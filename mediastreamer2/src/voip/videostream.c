@@ -77,17 +77,17 @@ static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *e
 
 	switch (event) {
 		case MS_VIDEO_DECODER_SEND_PLI:
-			ms_message("Send PLI on videostream [%p]", stream);
+			ms_message("Request sending of PLI on videostream [%p]", stream);
 			video_stream_send_pli(stream);
 			break;
 		case MS_VIDEO_DECODER_SEND_SLI:
 			sli = (const MSVideoCodecSLI *)eventdata;
-			ms_message("Send SLI on videostream [%p]", stream);
+			ms_message("Request sending of SLI on videostream [%p]", stream);
 			video_stream_send_sli(stream, sli->first, sli->number, sli->picture_id);
 			break;
 		case MS_VIDEO_DECODER_SEND_RPSI:
 			rpsi = (const MSVideoCodecRPSI *)eventdata;
-			ms_message("Send RPSI on videostream [%p]", stream);
+			ms_message("Request sending of RPSI on videostream [%p]", stream);
 			video_stream_send_rpsi(stream, rpsi->bit_string, rpsi->bit_string_len);
 			break;
 	}
@@ -317,7 +317,8 @@ static void configure_video_source(VideoStream *stream){
 	MSVideoSize vsize,cam_vsize;
 	float fps=15;
 	MSPixFmt format;
-	bool_t encoder_has_builtin_converter = FALSE;
+	MSVideoEncoderPixFmt encoder_supports_source_format;
+	int ret;
 
 	/* transmit orientation to source filter */
 	ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
@@ -330,7 +331,6 @@ static void configure_video_source(VideoStream *stream){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
 
-	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER, &encoder_has_builtin_converter);
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
@@ -361,7 +361,17 @@ static void configure_video_source(VideoStream *stream){
 	/* get the output format for webcam reader */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 
-	if ((encoder_has_builtin_converter == TRUE) || (stream->source_performs_encoding == TRUE)) {
+	encoder_supports_source_format.supported = FALSE;
+	encoder_supports_source_format.pixfmt = format;
+
+	ret = ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SUPPORTS_PIXFMT, &encoder_supports_source_format);
+
+	if (ret == -1) {
+		// Encoder doesn't have MS_VIDEO_ENCODER_SUPPORTS_PIXFMT method
+		encoder_supports_source_format.supported = (format == MS_YUV420P);
+	}
+
+	if ((encoder_supports_source_format.supported == TRUE) || (stream->source_performs_encoding == TRUE)) {
 		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_PIX_FMT, &format);
 	} else {
 		if (format==MS_MJPEG){
@@ -413,6 +423,11 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	rtp_session_set_profile(rtps,profile);
 	if (rem_rtp_port>0)
 		rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
+	if (rem_rtcp_port > 0) {
+		rtp_session_enable_rtcp(rtps, TRUE);
+	} else {
+		rtp_session_enable_rtcp(rtps, FALSE);
+	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
@@ -530,7 +545,8 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}
 
 		ms_filter_add_notify_callback(stream->ms.decoder, event_cb, stream, FALSE);
-		ms_filter_add_notify_callback(stream->ms.decoder, internal_event_cb, stream, FALSE);
+		/* It is important that the internal_event_cb is called synchronously! */
+		ms_filter_add_notify_callback(stream->ms.decoder, internal_event_cb, stream, TRUE);
 
 		stream->ms.rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
@@ -559,7 +575,17 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			disp_size.width=MS_VIDEO_SIZE_CIF_W;
 			disp_size.height=MS_VIDEO_SIZE_CIF_H;
 			ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-			ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
+
+			/* if pixconv is used, force yuv420 */
+			if (stream->pixconv || !stream->source)
+				ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
+			/* else, use format from input */
+			else {
+				MSPixFmt source_format;
+				ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&source_format);
+				ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&source_format);
+			}
+
 			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
 			if (stream->window_id!=0){
 				autofit = 0;
@@ -597,7 +623,6 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
 
 	stream->ms.start_time=ms_time(NULL);
-	stream->ms.is_beginning=TRUE;
 
 	/* attach the graphs */
 	if (stream->source)
@@ -613,6 +638,7 @@ void video_stream_prepare_video(VideoStream *stream){
 	video_stream_unprepare_video(stream);
 	stream->ms.rtprecv=ms_filter_new(MS_RTP_RECV_ID);
 	rtp_session_set_payload_type(stream->ms.sessions.rtp_session,0);
+	rtp_session_enable_rtcp(stream->ms.sessions.rtp_session, FALSE);
 	ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
 	stream->ms.voidsink=ms_filter_new(MS_VOID_SINK_ID);
 	ms_filter_link(stream->ms.rtprecv,0,stream->ms.voidsink,0);

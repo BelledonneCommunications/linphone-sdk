@@ -431,9 +431,18 @@ MS2_PUBLIC int ms_filter_call_method_noarg(MSFilter *f, unsigned int id);
  * @param f    A MSFilter object.
  * @param id   A method ID.
  *
- * Returns: 0 if successfull, -1 otherwise.
+ * Returns: TRUE if method is implemented, FALSE otherwise.
  */
 MS2_PUBLIC bool_t ms_filter_has_method(MSFilter *f, unsigned int id);
+
+/**
+ * Returns whether a filter implements a given interface.
+ * @param f a MSFilter object
+ * @param id an interface id.
+ * 
+ * Returns TRUE if interface is implemented, FALSE, otherwise.
+**/
+bool_t ms_filter_implements_interface(MSFilter *f, MSFilterInterfaceId id);
 
 /**
  * Set a callback on filter's to be informed of private filter's event.

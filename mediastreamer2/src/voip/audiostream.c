@@ -86,7 +86,11 @@ static void on_dtmf_received(RtpSession *s, int dtmf, void * user_data)
 	}
 }
 
-static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,MSFilter *to) {
+/*
+ * note: since not all filters implement MS_FILTER_GET_SAMPLE_RATE, fallback_from_rate and fallback_to_rate are expected to provide sample rates
+ * obtained by another context, such as the RTP clock rate for example.
+ */
+static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from, MSFilter *to, int fallback_from_rate, int fallback_to_rate) {
 	int from_rate=0, to_rate=0;
 	int from_channels = 0, to_channels = 0;
 	ms_filter_call_method(from,MS_FILTER_GET_SAMPLE_RATE,&from_rate);
@@ -102,12 +106,12 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", to->desc->name);
 	}
 	if (from_rate == 0){
-		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method, assuming 8000hz", from->desc->name);
-		from_rate=8000;
+		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method", from->desc->name);
+		from_rate=fallback_from_rate;
 	}
 	if (to_rate == 0){
-		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method, assuming 8000hz", to->desc->name);
-		to_rate=8000;
+		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method", to->desc->name);
+		to_rate=fallback_to_rate;
 	}
 	ms_filter_call_method(resampler,MS_FILTER_SET_SAMPLE_RATE,&from_rate);
 	ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&to_rate);
@@ -188,6 +192,7 @@ void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndC
 	audio_stream_unprepare_sound(stream);
 	stream->dummy=ms_filter_new(MS_RTP_RECV_ID);
 	rtp_session_set_payload_type(stream->ms.sessions.rtp_session,0);
+	rtp_session_enable_rtcp(stream->ms.sessions.rtp_session, FALSE);
 	ms_filter_call_method(stream->dummy,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
 
 	if (captcard && playcard){
@@ -333,8 +338,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	rtp_session_set_profile(rtps,profile);
 	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
-	if (rem_rtcp_port<=0){
-		rtp_session_enable_rtcp(rtps,FALSE);
+	if (rem_rtcp_port > 0) {
+		rtp_session_enable_rtcp(rtps, TRUE);
+	} else {
+		rtp_session_enable_rtcp(rtps, FALSE);
 	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
@@ -360,14 +367,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}else {
 		stream->soundread=ms_filter_new(MS_FILE_PLAYER_ID);
 		stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
-		if (infile!=NULL) audio_stream_play(stream,infile);
 	}
 	if (playcard!=NULL) {
 		if (stream->soundwrite==NULL)
 			stream->soundwrite=ms_snd_card_create_writer(playcard);
 	}else {
 		stream->soundwrite=ms_filter_new(MS_FILE_REC_ID);
-		if (outfile!=NULL) audio_stream_record(stream,outfile);
 	}
 
 	/* creates the couple of encoder/decoder */
@@ -444,6 +449,13 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		stream->volrecv=NULL;
 	audio_stream_enable_echo_limiter(stream,stream->el_type);
 	audio_stream_enable_noise_gate(stream,stream->use_ng);
+	
+	if (ms_filter_implements_interface(stream->soundread,MSFilterPlayerInterface) && infile){
+		audio_stream_play(stream,infile);
+	}
+	if (ms_filter_implements_interface(stream->soundwrite,MSFilterPlayerInterface) && outfile){
+		audio_stream_record(stream,outfile);
+	}
 
 	if (stream->use_agc){
 		int tmp=1;
@@ -512,7 +524,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_message("Setting audio encoder network bitrate to [%i] on stream [%p]",stream->ms.target_bitrate,stream);
 		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&stream->ms.target_bitrate);
 	}
-	rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, stream->ms.target_bitrate);
+	rtp_session_set_target_upload_bandwidth(rtps, stream->ms.target_bitrate);
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&nchannels);
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_NCHANNELS,&nchannels);
@@ -542,11 +554,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	/*configure resamplers if needed*/
 	if (stream->read_resampler){
-		audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.encoder);
+		audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.encoder,8000,pt->clock_rate);
 	}
 
 	if (stream->write_resampler){
-		audio_stream_configure_resampler(stream->write_resampler,stream->ms.decoder,stream->soundwrite);
+		audio_stream_configure_resampler(stream->write_resampler,stream->ms.decoder,stream->soundwrite,pt->clock_rate,8000);
 	}
 
 	if (stream->ms.use_rc){
@@ -643,7 +655,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 				,NULL);
 
 	stream->ms.start_time=stream->last_packet_time=ms_time(NULL);
-	stream->ms.is_beginning=TRUE;
 	stream->ms.state=MSStreamStarted;
 
 	return 0;
@@ -698,7 +709,9 @@ void audio_stream_play(AudioStream *st, const char *name){
 		if (name != NULL) {
 			ms_filter_call_method(st->soundread,MS_FILE_PLAYER_OPEN,(void*)name);
 			if (st->read_resampler){
-				audio_stream_configure_resampler(st->read_resampler,st->soundread,st->ms.rtpsend);
+				int fallback_to_rate=8000;
+				ms_filter_call_method(st->ms.rtpsend,MS_FILTER_GET_SAMPLE_RATE,&fallback_to_rate);
+				audio_stream_configure_resampler(st->read_resampler,st->soundread,st->ms.encoder, 8000, fallback_to_rate);
 			}
 			ms_filter_call_method_noarg(st->soundread,MS_FILE_PLAYER_START);
 		}
@@ -967,6 +980,8 @@ void audio_stream_stop(AudioStream * stream){
 			}
 		}
 	}
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"telephone-event",(RtpCallback)on_dtmf_received);
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)mediastream_payload_type_changed);
 	audio_stream_free(stream);
 	ms_filter_log_statistics();
 }
@@ -1012,6 +1027,8 @@ void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){
 	else if (!stream->ms.sessions.is_secured)
 		ortp_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context,stream->ms.sessions.rtp_session);
 }
+
 bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 	return stream->ms.sessions.zrtp_context!=NULL;
 }
+

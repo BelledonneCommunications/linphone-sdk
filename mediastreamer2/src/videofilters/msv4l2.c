@@ -111,17 +111,16 @@ static int msv4l2_close(V4l2State *s){
 	return 0;
 }
 
-static bool_t v4lv2_try_format( V4l2State *s, struct v4l2_format *fmt, int fmtid){
-
+static bool_t v4lv2_try_format( int fd, struct v4l2_format *fmt, int fmtid){
 	fmt->type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	fmt->fmt.pix.pixelformat = fmtid;
 	fmt->fmt.pix.field = V4L2_FIELD_ANY;
 
-        if (v4l2_ioctl (s->fd, VIDIOC_TRY_FMT, fmt)<0){
+	if (v4l2_ioctl (fd, VIDIOC_TRY_FMT, fmt)<0){
 		ms_message("VIDIOC_TRY_FMT: %s",strerror(errno));
 		return FALSE;
 	}
-	if (v4l2_ioctl (s->fd, VIDIOC_S_FMT, fmt)<0){
+	if (v4l2_ioctl (fd, VIDIOC_S_FMT, fmt)<0){
 		ms_message("VIDIOC_S_FMT: %s",strerror(errno));
 		return FALSE;
 	}
@@ -145,6 +144,126 @@ static int get_picture_buffer_size(MSPixFmt pix_fmt, int w, int h){
 	return 0;
 }
 
+static int query_max_fps_for_format_resolution(int fd, int pixelformat, MSVideoSize vsize) {
+	int fps = -1;
+	struct v4l2_frmivalenum frmival;
+	frmival.index = 0;
+	frmival.pixel_format = pixelformat;
+	frmival.width = vsize.width;
+	frmival.height = vsize.height;
+
+	while (v4l2_ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmival) >= 0) {
+		frmival.index++;
+		if (frmival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
+			fps = MAX(fps, (int) (frmival.discrete.denominator / frmival.discrete.numerator));
+		}
+	}
+	return fps;
+}
+
+typedef struct _V4L2FormatDescription {
+	/* format */
+	int pixel_format;
+	/* native or emulated */
+	bool_t native;
+	/* compressed or not */
+	bool_t compressed;
+	/* max fps */
+	int max_fps;
+} V4L2FormatDescription;
+
+static const V4L2FormatDescription* query_format_description_for_size(int fd, MSVideoSize vsize) {
+	/* hardcode supported format */
+	static V4L2FormatDescription formats[4];
+	formats[0].pixel_format = V4L2_PIX_FMT_YUV420;
+	formats[0].max_fps = -1;
+	formats[1].pixel_format = V4L2_PIX_FMT_YUYV;
+	formats[1].max_fps = -1;
+	formats[2].pixel_format = V4L2_PIX_FMT_MJPEG;
+	formats[2].max_fps = -1;
+	formats[3].pixel_format = V4L2_PIX_FMT_RGB24;
+	formats[3].max_fps = -1;
+
+	{
+		struct v4l2_fmtdesc fmt;
+		memset(&fmt, 0, sizeof(fmt));
+		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+		while (v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmt) >= 0) {
+			int i;
+			for (i=0; i<4; i++) {
+				if (fmt.pixelformat == formats[i].pixel_format) {
+					formats[i].max_fps = query_max_fps_for_format_resolution(fd, fmt.pixelformat, vsize);
+					formats[i].native = !(fmt.flags & V4L2_FMT_FLAG_EMULATED);
+					formats[i].compressed = fmt.flags & V4L2_FMT_FLAG_COMPRESSED;
+					break;
+				}
+			}
+			fmt.index++;
+		}
+	}
+	return formats;
+}
+
+static MSPixFmt v4l2_format_to_ms(int v4l2format) {
+	switch (v4l2format) {
+		case V4L2_PIX_FMT_YUV420:
+			return MS_YUV420P;
+		case V4L2_PIX_FMT_YUYV:
+			return MS_YUYV;
+		case V4L2_PIX_FMT_MJPEG:
+			return MS_MJPEG;
+		case V4L2_PIX_FMT_RGB24:
+			return MS_RGB24;
+		default:
+			ms_error("Unknown v4l2 format 0x%08x", v4l2format);
+			return MS_PIX_FMT_UNKNOWN;
+	}
+}
+
+static MSPixFmt pick_best_format(int fd, const V4L2FormatDescription* format_desc, MSVideoSize vsize) {
+	/* rules for picking a format are:
+	    - only max_fps >= 15 images/sec are considered
+	    - native > compressed > emulated
+	*/
+	enum { PREFER_NATIVE = 0, PREFER_COMPRESSED, NO_PREFERENCE} i;
+	int j;
+	for (i=PREFER_NATIVE; i<=NO_PREFERENCE; i++) {
+		for (j=0; j<4; j++) {
+			int candidate = -1;
+			if (format_desc[j].max_fps >= 15) {
+				switch (i) {
+					case PREFER_NATIVE:
+						if (format_desc[j].native && !format_desc[j].compressed)
+							candidate = j;
+						break;
+					case PREFER_COMPRESSED:
+						if (format_desc[j].compressed)
+							candidate = j;
+						break;
+					case NO_PREFERENCE:
+					default:
+						candidate = j;
+						break;
+				}
+			}
+
+			if (candidate != -1) {
+				struct v4l2_format fmt;
+				fmt.fmt.pix.width       = vsize.width;
+				fmt.fmt.pix.height      = vsize.height;
+
+				if (v4lv2_try_format(fd, &fmt, format_desc[j].pixel_format)) {
+					return v4l2_format_to_ms(format_desc[j].pixel_format);
+				}
+			}
+		}
+	}
+
+	ms_error("No compatible format found");
+	return MS_PIX_FMT_UNKNOWN;
+}
+
 static int msv4l2_configure(V4l2State *s){
 	struct v4l2_capability cap;
 	struct v4l2_format fmt;
@@ -165,7 +284,9 @@ static int msv4l2_configure(V4l2State *s){
 		return -1;
 	}
 
+
 	ms_message("Driver is %s",cap.driver);
+
 	memset(&fmt,0,sizeof(fmt));
 
 	fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -173,35 +294,16 @@ static int msv4l2_configure(V4l2State *s){
 		ms_error("VIDIOC_G_FMT failed: %s",strerror(errno));
 	}
 	vsize=s->vsize;
+
+
 	do{
-		fmt.fmt.pix.width       = s->vsize.width;
-		fmt.fmt.pix.height      = s->vsize.height;
-		ms_message("v4l2: trying %ix%i",s->vsize.width,s->vsize.height);
-		if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_YUV420)){
-			s->pix_fmt=MS_YUV420P;
-			s->int_pix_fmt=V4L2_PIX_FMT_YUV420;
-			ms_message("v4lv2: YUV420P chosen");
-			break;
-		}else if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_YUYV)){
-			s->pix_fmt=MS_YUYV;
-			s->int_pix_fmt=V4L2_PIX_FMT_YUYV;
-			ms_message("v4lv2: V4L2_PIX_FMT_YUYV chosen");
-			break;
-		}else if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_RGB24)){
-			s->pix_fmt=MS_RGB24;
-			s->int_pix_fmt=V4L2_PIX_FMT_RGB24;
-			ms_message("v4lv2: RGB24 chosen");
-			break;
-		}else if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_MJPEG)){
-			s->pix_fmt=MS_MJPEG;
-			s->int_pix_fmt=V4L2_PIX_FMT_MJPEG;
-			ms_message("v4lv2: MJPEG chosen");
-			break;
-		}else{
-			ms_error("Could not find supported pixel format for %ix%i", s->vsize.width, s->vsize.height);
-		}
-		s->vsize=ms_video_size_get_just_lower_than(s->vsize);
-	}while(s->vsize.width!=0);
+		const V4L2FormatDescription* formats_desc = query_format_description_for_size(s->fd, s->vsize);
+		s->pix_fmt = pick_best_format(s->fd, formats_desc, s->vsize);
+
+		if (s->pix_fmt == MS_PIX_FMT_UNKNOWN)
+			s->vsize=ms_video_size_get_just_lower_than(s->vsize);
+	} while(s->vsize.width!=0 && (s->pix_fmt == MS_PIX_FMT_UNKNOWN));
+
 	if (s->vsize.width==0){
 		ms_message("Could not find any combination of resolution/pixel-format that works !");
 		s->vsize=vsize;
@@ -214,7 +316,7 @@ static int msv4l2_configure(V4l2State *s){
 	if (v4l2_ioctl (s->fd, VIDIOC_G_FMT, &fmt)<0){
 		ms_error("VIDIOC_G_FMT failed: %s",strerror(errno));
 	}else{
-		ms_message("Size of webcam delivered pictures is %ix%i",fmt.fmt.pix.width,fmt.fmt.pix.height);
+		ms_message("Size of webcam delivered pictures is %ix%i. Format:0x%08x",fmt.fmt.pix.width,fmt.fmt.pix.height, s->pix_fmt);
 		s->vsize.width=fmt.fmt.pix.width;
 		s->vsize.height=fmt.fmt.pix.height;
 	}
@@ -638,6 +740,7 @@ static void msv4l2_detect(MSWebCamManager *obj){
 	struct v4l2_capability cap;
 	char devname[32];
 	int i;
+
 	for(i=0;i<10;++i){
 		int fd;
 		snprintf(devname,sizeof(devname),"/dev/video%i",i);

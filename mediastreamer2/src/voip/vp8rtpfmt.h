@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/mscommon.h>
 #include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/msqueue.h>
+#include <mediastreamer2/msvideo.h>
 
 /**
  * This file declares an API useful to pack/unpack a VP8 stream in RTP packets
@@ -87,11 +88,14 @@ extern "C"{
 	typedef struct Vp8RtpFmtUnpackerCtx {
 		MSFilter *filter;
 		MSList *frames_list;
+		MSList *non_processed_packets_list;
 		MSQueue output_queue;
+		MSVideoSize video_size;
 		uint32_t last_ts;
 		uint32_t ref_cseq;
 		bool_t avpf_enabled;
 		bool_t output_partitions;
+		bool_t waiting_for_reference_frame;
 		bool_t valid_keyframe_received;
 		bool_t initialized_last_ts;
 		bool_t initialized_ref_cseq;

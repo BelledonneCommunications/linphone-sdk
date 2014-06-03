@@ -9,12 +9,16 @@ if BUILD_TESTS
 noinst_PROGRAMS=mediastreamer2_tester
 
 mediastreamer2_tester_SOURCES=	\
-								mediastreamer2_tester.c mediastreamer2_tester.h \
-								mediastreamer2_tester_private.c mediastreamer2_tester_private.h \
-								mediastreamer2_basic_audio_tester.c \
-								mediastreamer2_sound_card_tester.c \
-								mediastreamer2_adaptive_tester.c \
-								mediastreamer2_framework_tester.c
+	mediastreamer2_tester.c mediastreamer2_tester.h \
+	mediastreamer2_tester_private.c mediastreamer2_tester_private.h \
+	mediastreamer2_basic_audio_tester.c \
+	mediastreamer2_sound_card_tester.c \
+	mediastreamer2_adaptive_tester.c \
+	mediastreamer2_audio_stream_tester.c \
+	mediastreamer2_framework_tester.c
+if BUILD_VIDEO
+mediastreamer2_tester_SOURCES+=	mediastreamer2_video_stream_tester.c
+endif
 
 
 AM_CPPFLAGS=\
@@ -38,6 +42,10 @@ LDADD=$(top_builddir)/src/libmediastreamer_base.la \
 AM_LDFLAGS=-no-undefined -export-dynamic
 
 AM_CFLAGS=$(STRICT_OPTIONS) $(ORTP_CFLAGS) $(CUNIT_CFLAGS)
+
+if BUILD_VIDEO
+AM_CFLAGS+=$(VIDEO_CFLAGS) $(GLEW_CFLAGS)
+endif
 
 
 test: mediastreamer2_tester

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define _MEDIASTREAMER2_TESTER_PRIVATE_H
 
 
+#include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 
@@ -87,6 +88,13 @@ void ms_tester_tone_generation_loop(void);
 void ms_tester_tone_detection_loop(void);
 void ms_tester_tone_generation_and_detection_loop(void);
 
+typedef void (*ms_tester_iterate_cb)(MediaStream *ms, void *user_pointer);
+
+bool_t wait_for_list(MSList *mss, int *counter, int value, int timeout_ms);
+bool_t wait_for_list_with_parse_events(MSList *mss, int *counter, int value, int timeout_ms, MSList *cbs, MSList *ptrs);
+bool_t wait_for_until(MediaStream *ms1, MediaStream *ms2, int *counter, int value, int timeout_ms);
+bool_t wait_for_until_with_parse_events(MediaStream *ms1, MediaStream *ms2, int *counter, int value, int timeout_ms, ms_tester_iterate_cb cb1, void *ptr1, ms_tester_iterate_cb cb2, void *ptr2);
+bool_t wait_for(MediaStream* ms1, MediaStream* ms2, int *counter, int value);
 
 
 #endif /* _MEDIASTREAMER2_TESTER_PRIVATE_H */

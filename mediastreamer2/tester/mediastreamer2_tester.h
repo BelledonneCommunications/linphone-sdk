@@ -50,17 +50,14 @@ extern "C" {
 extern test_suite_t basic_audio_test_suite;
 extern test_suite_t sound_card_test_suite;
 extern test_suite_t adaptive_test_suite;
+extern test_suite_t audio_stream_test_suite;
+extern test_suite_t video_stream_test_suite;
 extern test_suite_t framework_test_suite;
 
 #define CU_ASSERT_IN_RANGE(value, inf, sup) \
 		printf(#value ": %f <= ? %f <= ? %f\n", (double)inf, (double)value, (double)sup); \
 		CU_ASSERT_TRUE(value >= inf); \
 		CU_ASSERT_TRUE(value <= sup);
-
-
-bool_t wait_for_list(MSList* mss,int* counter,int value,int timeout_ms);
-bool_t wait_for_until(MediaStream* ms_1, MediaStream* ms_2,int* counter,int value,int timeout);
-bool_t wait_for(MediaStream* ms_1, MediaStream* ms_2,int* counter,int value);
 
 extern int mediastreamer2_tester_nb_test_suites(void);
 extern int mediastreamer2_tester_nb_tests(const char *suite_name);

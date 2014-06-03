@@ -45,13 +45,14 @@ typedef struct DecState{
 	int dci_size;
 	bool_t snow_initialized;
 	bool_t first_image_decoded;
+	AVFrame* orig;
 }DecState;
 
 
 static void dec_init(MSFilter *f, enum CodecID cid){
 	DecState *s=(DecState *)ms_new0(DecState,1);
 	ms_ffmpeg_check_init();
-	
+
 	avcodec_get_context_defaults3(&s->av_context, NULL);
 	s->av_codec=NULL;
 	s->codec=cid;
@@ -67,6 +68,10 @@ static void dec_init(MSFilter *f, enum CodecID cid){
 	s->av_codec=avcodec_find_decoder(s->codec);
 	if (s->av_codec==NULL){
 		ms_error("Could not find decoder %i!",s->codec);
+	}
+	s->orig = avcodec_alloc_frame();
+	if (!s->orig) {
+		ms_error("Could not allocate frame");
 	}
 
 	/*
@@ -93,6 +98,10 @@ static void dec_snow_init(MSFilter *f){
 
 static void dec_uninit(MSFilter *f){
 	DecState *s=(DecState*)f->data;
+	if (s->orig) {
+		avcodec_free_frame(&s->orig);
+		s->orig = NULL;
+	}
 	if (s->av_context.codec!=NULL){
 		avcodec_close(&s->av_context);
 		s->av_context.codec=NULL;
@@ -129,7 +138,7 @@ static int dec_add_fmtp(MSFilter *f, void *data){
 static void dec_preprocess(MSFilter *f){
 	DecState *s=(DecState*)f->data;
 	int error;
-	
+
 	s->first_image_decoded = FALSE;
 	if (s->av_context.codec==NULL){
 		/* we must know picture size before initializing snow decoder*/
@@ -149,7 +158,7 @@ static void dec_postprocess(MSFilter *f){
 
 static mblk_t * skip_rfc2190_header(mblk_t *inm){
 	uint8_t *ph = inm->b_rptr;
-	uint8_t sbit = (ph[0] >> 3) & 0x07; 
+	uint8_t sbit = (ph[0] >> 3) & 0x07;
 	//unsigned int ebit = ph[0] & 0x7;
 	bool_t isIFrame=0;
 	unsigned hdrLen;
@@ -177,7 +186,7 @@ static mblk_t * skip_rfc2190_header(mblk_t *inm){
 		inm->b_rptr += hdrLen;
 	} else {
 		ms_warning("RFC2190 packet mode:%c%s too small (size %d)", mode, isIFrame ?
-				" (I-Frame)":"", (int)msgdsize(inm)); 
+				" (I-Frame)":"", (int)msgdsize(inm));
 		freemsg(inm);
 		inm=NULL;
 	}
@@ -191,7 +200,7 @@ static mblk_t * skip_rfc2429_header(mblk_t *inm){
 		int PLEN;
 		/*int gob_num;*/
 		bool_t P;
-		
+
 		P=rfc2429_get_P(ph);
 		PLEN=rfc2429_get_PLEN(ph);
 		/*printf("receiving new packet; P=%i; V=%i; PLEN=%i; PEBIT=%i\n",P,rfc2429_get_V(ph),PLEN,rfc2429_get_PEBIT(ph));
@@ -199,7 +208,7 @@ static mblk_t * skip_rfc2429_header(mblk_t *inm){
 		/*gob_num = (ntohl(*p) >> 10) & 0x1f;*/
 		/*ms_message("gob %i, size %i", gob_num, msgdsize(inm));
 		ms_message("ms_AVdecoder_process: received %08x %08x", ntohl(p[0]), ntohl(p[1]));*/
-		
+
 		/* remove H.263 Payload Header */
 		if (PLEN>0){
 			/* we ignore the redundant picture header and
@@ -553,7 +562,7 @@ read_rfc2435_header(DecState *s,mblk_t *inm)
 			dri = ntohs(rsthdr->dri);
 			inm->b_rptr += sizeof(struct jpeghdr_rst);
 		}
-			
+
 		if (off==0){
 			if (hdr->q>=128){
 				inm->b_rptr++; /* MBZ */
@@ -573,7 +582,7 @@ read_rfc2435_header(DecState *s,mblk_t *inm)
 				headers = allocb(495 + table_len + (dri > 0 ? 6 : 0), 0);
 				len = MakeHeaders(headers->b_rptr, hdr->type, hdr->width, hdr->height,
 					lqt_cqt, lqt_cqt+64, table_len, dri);
-				headers->b_wptr += len; 
+				headers->b_wptr += len;
 			}
 		}
 
@@ -620,7 +629,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 		ms_error("%s: missing rescaling context.",f->desc->name);
 		return NULL;
 	}
-#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)	
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)
 	if (sws_scale(s->sws_ctx,(const uint8_t* const*)orig->data,orig->linesize, 0,
 					ctx->height, s->outbuf.planes, s->outbuf.strides)<0){
 #else
@@ -636,10 +645,10 @@ static unsigned char smasks[7] = { 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01 };
 
 static void dec_process_frame(MSFilter *f, mblk_t *inm){
 	DecState *s=(DecState*)f->data;
-	AVFrame orig;
+
 	int got_picture;
 	/* get a picture from the input queue */
-	
+
 	if (f->desc->id==MS_H263_DEC_ID) inm=skip_rfc2429_header(inm);
 	else if (f->desc->id==MS_H263_OLD_DEC_ID) inm=skip_rfc2190_header(inm);
 	else if (s->codec==CODEC_ID_SNOW && s->input==NULL) inm=parse_snow_header(s,inm);
@@ -649,9 +658,9 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 		/* accumulate the video packet until we have the rtp markbit*/
 		if (s->input==NULL){
 			s->input=inm;
-		}else{ 
+		}else{
 			uint8_t sbit = (inm->reserved2 >> 11) & 0x7;
-			if (sbit!=0) {	
+			if (sbit!=0) {
 				mblk_t *mp = s->input;
 				while ( mp->b_cont != NULL ) mp = mp->b_cont;
 				mp->b_wptr--;
@@ -661,12 +670,12 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 			}
 			concatb(s->input,inm);
 		}
-		
+
 		if (mblk_get_marker_info(inm)){
 			mblk_t *frame;
 			int remain,len;
 			/*ms_message("got marker bit !");*/
-			/*append some padding bytes for ffmpeg to safely 
+			/*append some padding bytes for ffmpeg to safely
 			read extra bytes...*/
 			msgpullup(s->input,msgdsize(s->input)+8);
 			frame=s->input;
@@ -676,14 +685,14 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 				av_init_packet(&pkt);
 				pkt.data = frame->b_rptr;
 				pkt.size = remain;
-				len=avcodec_decode_video2(&s->av_context,&orig,&got_picture,&pkt);
+				len=avcodec_decode_video2(&s->av_context, s->orig, &got_picture,&pkt);
 				if (len<=0) {
 					ms_warning("ms_AVdecoder_process: error %i.",len);
 					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
 					break;
 				}
 				if (got_picture) {
-					mblk_t *om = get_as_yuvmsg(f,s,&orig);
+					mblk_t *om = get_as_yuvmsg(f,s,s->orig);
 					if (om!=NULL)
 						ms_queue_put(f->outputs[0],om);
 
