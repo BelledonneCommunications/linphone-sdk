@@ -13,4 +13,4 @@ override_dh_installchangelogs:
 	dh_installchangelogs NEWS
 
 override_dh_strip:
-	dh_strip --dbg-package=libmediastreamer1-dbg
+	dh_strip --dbg-package=libmediastreamer2-dbg
