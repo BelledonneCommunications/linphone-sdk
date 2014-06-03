@@ -229,12 +229,6 @@ static int msopenh264_enc_add_fmtp(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int msopenh264_enc_has_builtin_converter(MSFilter *f, void *arg) {
-	bool_t *conv = static_cast<bool_t *>(arg);
-	*conv = FALSE;
-	return 0;
-}
-
 static int msopenh264_enc_req_vfu(MSFilter *f, void *arg) {
 	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
 	e->requestVFU();
@@ -263,7 +257,6 @@ static MSFilterMethod msopenh264_enc_methods[] = {
 	{ MS_FILTER_SET_VIDEO_SIZE,                msopenh264_enc_set_vsize              },
 	{ MS_FILTER_GET_VIDEO_SIZE,                msopenh264_enc_get_vsize              },
 	{ MS_FILTER_ADD_FMTP,                      msopenh264_enc_add_fmtp               },
-	{ MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER,  msopenh264_enc_has_builtin_converter  },
 	{ MS_FILTER_REQ_VFU,                       msopenh264_enc_req_vfu                },
 #ifdef MS_VIDEO_ENCODER_REQ_VFU
 	{ MS_VIDEO_ENCODER_REQ_VFU,                msopenh264_enc_req_vfu                },
