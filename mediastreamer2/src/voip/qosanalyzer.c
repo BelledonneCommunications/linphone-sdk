@@ -406,7 +406,7 @@ static float compute_available_bw(MSStatefulQosAnalyser *obj){
 			ms_list_position(obj->rtcpstatspoint, it), point->bandwidth, point->loss_percent);
 	}
 
-	while (current == obj->rtcpstatspoint || (current!=NULL && ((rtcpstatspoint_t*)current->data)->loss_percent<0.03+constant_network_loss)){
+	while (current!=NULL && ((rtcpstatspoint_t*)current->data)->loss_percent<0.03+constant_network_loss){
 		P("\t%d is stable\n", ms_list_position(obj->rtcpstatspoint, current));
 
 		for (it=last;it!=current;it=it->prev){
@@ -478,10 +478,10 @@ static void stateful_analyser_suggest_action(MSQosAnalyser *objbase, MSRateContr
 		action->value=0;
 	}else if (bw > curbw){
 		action->type=MSRateControlActionIncreaseQuality;
-		action->value=MAX(0, 100.* (bw - curbw) / curbw);
+		action->value=MAX(0, 100. * (bw / curbw - 1));
 	}else{
 		action->type=MSRateControlActionDecreaseBitrate;
-		action->value=MAX(10,(100. - bw * 100. / curbw));
+		action->value=MAX(10, -100. * (bw / curbw - 1));
 	}
 
 	P(YELLOW "%s of value %d\n", ms_rate_control_action_type_name(action->type), action->value);
