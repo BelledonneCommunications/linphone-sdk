@@ -76,7 +76,7 @@ options {
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 }
-/*
+
 @rulecatch 
 {
     if (HASEXCEPTION())
@@ -88,7 +88,7 @@ options {
     EXCEPTION->type = ANTLR3_RECOGNITION_EXCEPTION;
     }
 }
-*/
+
 
 @includes { 
 #include "belle-sip/defs.h"
