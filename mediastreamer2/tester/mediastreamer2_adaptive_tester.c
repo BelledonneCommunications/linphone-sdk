@@ -220,9 +220,10 @@ static void start_adaptive_stream(StreamType type, stream_manager_t ** pmarielle
 	params.latency=latency;
 	int pause_time=0;
 	MediaStream *marielle_ms,*margaux_ms;
+	MSWebCam * marielle_webcam=ms_web_cam_manager_get_default_cam (ms_web_cam_manager_get());
 
-	stream_manager_t * marielle = *pmarielle=stream_manager_new(type);
-	stream_manager_t * margaux = *pmargaux=stream_manager_new(type);
+	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);
+	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);
 
 	if (type == AudioStreamType){
 		marielle_ms=&marielle->audio_stream->ms;
@@ -232,7 +233,11 @@ static void start_adaptive_stream(StreamType type, stream_manager_t ** pmarielle
 		margaux_ms=&margaux->video_stream->ms;
 	}
 
-	MSWebCam * marielle_webcam=ms_web_cam_manager_get_default_cam (ms_web_cam_manager_get());
+	/* Disable avpf. */
+	PayloadType* pt = rtp_profile_get_payload(&rtp_profile, VP8_PAYLOAD_TYPE);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(pt);
+	payload_type_unset_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
+
 
 	media_stream_enable_adaptive_bitrate_control(marielle_ms,TRUE);
 	rtp_session_set_duplication_ratio(marielle_ms->sessions.rtp_session, dup_ratio);
@@ -377,7 +382,6 @@ static void upload_bandwidth_computation() {
 			iterate_adaptive_stream(marielle, margaux, timeout_receive_rtcp(2), NULL, 0);
 			/*since PCMA uses 80kbit/s, upload bandwidth should just be 80+80*duplication_ratio kbit/s */
 			CU_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 1.f);
-			printf("%f vs %f\n", rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000., 80.*(i+1));
 		}
 		stop_adaptive_stream(marielle,margaux);
 	}
@@ -456,11 +460,11 @@ static void packet_duplication() {
 
 static test_t tests[] = {
 	{ "Packet duplication", packet_duplication},
+	{ "Upload bandwidth computation", upload_bandwidth_computation },
+	{ "Stability detection", stability_network_detection },
 	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
 	{ "Adaptive audio stream [speex]", adaptive_speex16_audio_stream },
 	{ "Adaptive audio stream [pcma]", adaptive_pcma_audio_stream },
-	{ "Upload bandwidth computation", upload_bandwidth_computation },
-	{ "Stability detection", stability_network_detection },
 	{ "Adaptive video stream [VP8]", adaptive_vp8 },
 };
 
