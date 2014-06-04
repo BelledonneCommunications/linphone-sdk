@@ -89,9 +89,9 @@ typedef struct _stream_manager_t {
 		VideoStream* video_stream;
 	};
 
+	int rtcp_count;
+
 	struct {
-		float loss;
-		float rtt;
 		MSQosAnalyzerNetworkState network_state;
 		float loss_estim;
 		float congestion_bw_estim;
@@ -187,8 +187,10 @@ static void handle_queue_events(stream_manager_t * stream_mgr) {
 				rb=rtcp_RR_get_report_block(evd->packet,0);
 			}
 
-			if (rb && stream_mgr->type==VideoStreamType) {
-				if (stream_mgr->video_stream->ms.use_rc){
+			if (rb){
+				stream_mgr->rtcp_count++;
+
+				if (stream_mgr->type==VideoStreamType&&stream_mgr->video_stream->ms.use_rc){
 					const MSQosAnalyzer *analyzer=ms_bitrate_controller_get_qos_analyzer(stream_mgr->video_stream->ms.rc);
 					if (analyzer->type==Stateful){
 						const MSStatefulQosAnalyzer *stateful_analyzer=((const MSStatefulQosAnalyzer*)analyzer);
@@ -197,14 +199,6 @@ static void handle_queue_events(stream_manager_t * stream_mgr) {
 						stream_mgr->adaptive_stats.congestion_bw_estim =stateful_analyzer->congestion_bandwidth;
 					}
 				}
-
-				stream_mgr->adaptive_stats.loss=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
-				stream_mgr->adaptive_stats.rtt=rtp_session_get_round_trip_propagation(stream_mgr->video_stream->ms.sessions.rtp_session);
-
-				ms_message("mediastreamer2_video_stream_tester: received RTCP packet: loss=%f, RTT=%f, network_state=%d"
-					,stream_mgr->adaptive_stats.loss
-					,stream_mgr->adaptive_stats.rtt
-					,stream_mgr->adaptive_stats.network_state);
 			}
 		}
 		ortp_event_destroy(ev);
@@ -255,11 +249,6 @@ static void start_adaptive_stream(StreamType type, stream_manager_t ** pmarielle
 	}
 
 	rtp_session_enable_network_simulation(margaux_ms->sessions.rtp_session,&params);
-}
-
-static int timeout_receive_rtcp(int max_recv_rtcp_packet){
-	int packets_after_start=max_recv_rtcp_packet - (15000.0/2500);
-	return ((packets_after_start > 0) ? 15000 + (packets_after_start + .5) * 5000 : (max_recv_rtcp_packet + .5) * 2500);
 }
 
 static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_t * margaux,
@@ -379,7 +368,7 @@ static void upload_bandwidth_computation() {
 
 		for (i = 0; i < 5; i++){
 			rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
-			iterate_adaptive_stream(marielle, margaux, timeout_receive_rtcp(2), NULL, 0);
+			iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
 			/*since PCMA uses 80kbit/s, upload bandwidth should just be 80+80*duplication_ratio kbit/s */
 			CU_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 1.f);
 		}
@@ -390,17 +379,17 @@ static void upload_bandwidth_computation() {
 static void stability_network_detection() {
 	stream_manager_t * marielle, * margaux;
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500, 0);
-	iterate_adaptive_stream(marielle, margaux, timeout_receive_rtcp(9), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
 	CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkFine);
 	stop_adaptive_stream(marielle,margaux);
 
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000, 0, 250,0);
-	iterate_adaptive_stream(marielle, margaux, timeout_receive_rtcp(9), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
 	CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkCongested);
 	stop_adaptive_stream(marielle,margaux);
 
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250,0);
-	iterate_adaptive_stream(marielle, margaux, timeout_receive_rtcp(9), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
 	CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkLossy);
 	stop_adaptive_stream(marielle,margaux);
 }
@@ -409,25 +398,25 @@ static void adaptive_vp8() {
 	stream_manager_t * marielle, * margaux;
 
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 25, 50, 0);
-	iterate_adaptive_stream(marielle, margaux, timeout_receive_rtcp(17), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 17);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 20, 30);
 	CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim > 200);
 	stop_adaptive_stream(marielle,margaux);
 
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 45000, 0, 50,0);
-	iterate_adaptive_stream(marielle, margaux, timeout_receive_rtcp(17), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 17);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 30, 60);
 	stop_adaptive_stream(marielle,margaux);
 
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50,0);
-	iterate_adaptive_stream(marielle, margaux, timeout_receive_rtcp(17), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 17);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 50, 95);
 	stop_adaptive_stream(marielle,margaux);
 
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50,0);
-	iterate_adaptive_stream(marielle, margaux, timeout_receive_rtcp(17), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 17);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 10, 20);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 80, 125);
 	stop_adaptive_stream(marielle,margaux);
@@ -440,7 +429,7 @@ static void packet_duplication() {
 
 	dup_ratio = 0;
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
-	iterate_adaptive_stream(marielle, margaux, timeout_receive_rtcp(2), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
 	CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
 	/*in theory, cumulative loss should be the invert of duplicated count, but
@@ -451,7 +440,7 @@ static void packet_duplication() {
 
 	dup_ratio = 1;
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
-	iterate_adaptive_stream(marielle, margaux, timeout_receive_rtcp(2), NULL, 0);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
 	CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
 	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);

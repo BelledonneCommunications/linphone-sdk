@@ -390,12 +390,14 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 		return -1;
 	}
 
-	while (last->next) last = last->next;
+	while (last->next){
+		last = last->next;
+	}
 
-	/*suppose that first point is a reliable estimation of the constant network loss rate*/
 	if (size > 3){
 		smooth_values(obj);
 	}
+	/*suppose that first point is a reliable estimation of the constant network loss rate*/
 	constant_network_loss = ((rtcpstatspoint_t *)obj->rtcpstatspoint->data)->loss_percent;
 
 
@@ -406,42 +408,48 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 			ms_list_position(obj->rtcpstatspoint, it), point->bandwidth, point->loss_percent);
 	}
 
-	while (current!=NULL && ((rtcpstatspoint_t*)current->data)->loss_percent<0.03+constant_network_loss){
-		P("\t%d is stable\n", ms_list_position(obj->rtcpstatspoint, current));
+	if (size == 1){
+		P(RED "One single point");
+		rtcpstatspoint_t *p = (rtcpstatspoint_t *)current->data;
+		mean_bw = p->bandwidth * ((p->loss_percent>1e-5) ? (1-p->loss_percent):2);
+	}else{
+		while (current!=NULL && ((rtcpstatspoint_t*)current->data)->loss_percent<0.03+constant_network_loss){
+			P("\t%d is stable\n", ms_list_position(obj->rtcpstatspoint, current));
 
-		for (it=last;it!=current;it=it->prev){
-			if (((rtcpstatspoint_t *)it->data)->loss_percent <= 0.03 + ((rtcpstatspoint_t*)current->data)->loss_percent){
-				P("\t%d is less than %d\n", ms_list_position(obj->rtcpstatspoint, it), ms_list_position(obj->rtcpstatspoint, current));
-				current = it;
-				break;
+			for (it=last;it!=current;it=it->prev){
+				if (((rtcpstatspoint_t *)it->data)->loss_percent <= 0.03 + ((rtcpstatspoint_t*)current->data)->loss_percent){
+					P("\t%d is less than %d\n", ms_list_position(obj->rtcpstatspoint, it), ms_list_position(obj->rtcpstatspoint, current));
+					current = it;
+					break;
+				}
 			}
+
+			current = current->next;
 		}
 
-		current = current->next;
-	}
+		if (current == NULL){
+			/*constant loss rate - bad network conditions but no congestion*/
+			mean_bw = 2 * ((rtcpstatspoint_t*)last->data)->bandwidth;
+		}else if (current->prev == obj->rtcpstatspoint){
+			/*only first packet is stable - might still be above real bandwidth*/
+			rtcpstatspoint_t *p = (rtcpstatspoint_t *)current->prev->data;
+			mean_bw = p->bandwidth * (1 - p->loss_percent);
+		}else{
+			/*there is some congestion*/
+			mean_bw = .5*(((rtcpstatspoint_t*)current->prev->data)->bandwidth+((rtcpstatspoint_t*)current->data)->bandwidth);
+		}
 
-	if (current == NULL){
-		/*constant loss rate - bad network conditions but no congestion*/
-		mean_bw = 2 * ((rtcpstatspoint_t*)last->data)->bandwidth;
-	}else if (current->prev == obj->rtcpstatspoint){
-		/*only first packet is stable - might still be above real bandwidth*/
-		rtcpstatspoint_t *p = (rtcpstatspoint_t *)current->prev->data;
-		mean_bw = p->bandwidth * (1 - p->loss_percent);
-	}else{
-		/*there is some congestion*/
-		mean_bw = .5*(((rtcpstatspoint_t*)current->prev->data)->bandwidth+((rtcpstatspoint_t*)current->data)->bandwidth);
-	}
-
-	P(RED "[0->%d] Last stable is %d(%f;%f)"
-		, ms_list_position(obj->rtcpstatspoint, last)
-		, ms_list_position(obj->rtcpstatspoint, (current ? current->prev : last))
-		, ((rtcpstatspoint_t*) (current ? current->prev->data : last->data))->bandwidth
-		, ((rtcpstatspoint_t*) (current ? current->prev->data : last->data))->loss_percent);
-	if (current!=NULL){
-		P(RED ", first unstable is %d(%f;%f)"
-			, ms_list_position(obj->rtcpstatspoint, current)
-			, ((rtcpstatspoint_t*) current->data)->bandwidth
-			, ((rtcpstatspoint_t*) current->data)->loss_percent);
+		P(RED "[0->%d] Last stable is %d(%f;%f)"
+			, ms_list_position(obj->rtcpstatspoint, last)
+			, ms_list_position(obj->rtcpstatspoint, (current ? current->prev : last))
+			, ((rtcpstatspoint_t*) (current ? current->prev->data : last->data))->bandwidth
+			, ((rtcpstatspoint_t*) (current ? current->prev->data : last->data))->loss_percent);
+		if (current!=NULL){
+			P(RED ", first unstable is %d(%f;%f)"
+				, ms_list_position(obj->rtcpstatspoint, current)
+				, ((rtcpstatspoint_t*) current->data)->bandwidth
+				, ((rtcpstatspoint_t*) current->data)->loss_percent);
+		}
 	}
 	P(RED " --> estimated_available_bw=%f\n", mean_bw);
 
