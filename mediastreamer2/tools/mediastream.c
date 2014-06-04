@@ -614,7 +614,11 @@ void setup_media_streams(MediastreamDatas* args) {
 		exit(-1);
 	}
 	if (args->enable_avpf == TRUE) {
+		PayloadTypeAvpfParams avpf_params;
 		payload_type_set_flag(args->pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
+		avpf_params.features = PAYLOAD_TYPE_AVPF_FIR | PAYLOAD_TYPE_AVPF_PLI | PAYLOAD_TYPE_AVPF_SLI | PAYLOAD_TYPE_AVPF_RPSI;
+		avpf_params.trr_interval = 3;
+		payload_type_set_avpf_params(args->pt, avpf_params);
 	} else {
 		payload_type_unset_flag(args->pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
 	}
