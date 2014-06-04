@@ -47,7 +47,7 @@ struct _MSBitrateController{
 	enum state_t state;
 	int stable_count;
 	int probing_up_count;
-	
+
 };
 
 MSBitrateController *ms_bitrate_controller_new(MSQosAnalyser *qosanalyser, MSBitrateDriver *driver){
@@ -62,7 +62,7 @@ static int execute_action(MSBitrateController *obj, const MSRateControlAction *a
 }
 
 static void state_machine(MSBitrateController *obj){
-	MSRateControlAction action;
+	MSRateControlAction action = {0};
 	switch(obj->state){
 		case Stable:
 			obj->stable_count++;
@@ -122,6 +122,10 @@ void ms_bitrate_controller_process_rtcp(MSBitrateController *obj, mblk_t *rtcp){
 	if (ms_qos_analyser_process_rtcp(obj->analyser,rtcp)){
 		state_machine(obj);
 	}
+}
+
+MSQosAnalyser * ms_bitrate_controller_get_qos_analyser(MSBitrateController *obj){
+	return obj->analyser;
 }
 
 void ms_bitrate_controller_destroy(MSBitrateController *obj){

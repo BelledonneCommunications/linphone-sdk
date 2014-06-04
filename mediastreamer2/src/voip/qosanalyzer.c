@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /**
  * Analyses a received RTCP packet.
  * Returns TRUE is relevant information has been found in the rtcp message, FALSE otherwise.
-**/ 
+**/
 bool_t ms_qos_analyser_process_rtcp(MSQosAnalyser *obj,mblk_t *msg){
 	if (obj->desc->process_rtcp){
 		return obj->desc->process_rtcp(obj,msg);
@@ -47,6 +47,12 @@ bool_t ms_qos_analyser_has_improved(MSQosAnalyser *obj){
 	}
 	ms_error("Unimplemented has_improved() call.");
 	return TRUE;
+}
+
+void ms_qos_analyser_set_on_action_suggested(MSQosAnalyser *obj,
+	void (*on_action_suggested)(void*, const char*,const char*), void* u){
+	obj->on_action_suggested=on_action_suggested;
+	obj->on_action_suggested_user_pointer=u;
 }
 
 MSQosAnalyser *ms_qos_analyser_ref(MSQosAnalyser *obj){
@@ -106,7 +112,7 @@ typedef struct _MSSimpleQosAnalyser{
 
 static bool_t rt_prop_doubled(rtpstats_t *cur,rtpstats_t *prev){
 	//ms_message("AudioBitrateController: cur=%f, prev=%f",cur->rt_prop,prev->rt_prop);
-	if (cur->rt_prop>=significant_delay && prev->rt_prop>0){	
+	if (cur->rt_prop>=significant_delay && prev->rt_prop>0){
 		if (cur->rt_prop>=(prev->rt_prop*2.0)){
 			/*propagation doubled since last report */
 			return TRUE;
@@ -137,17 +143,16 @@ static bool_t simple_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtcp)
 		rb=rtcp_RR_get_report_block(rtcp,0);
 	}
 	if (rb && report_block_get_ssrc(rb)==rtp_session_get_send_ssrc(obj->session)){
-	
+
 		obj->curindex++;
 		cur=&obj->stats[obj->curindex % STATS_HISTORY];
-	
+
 		if (obj->clockrate==0){
 			PayloadType *pt=rtp_profile_get_payload(rtp_session_get_send_profile(obj->session),rtp_session_get_send_payload_type(obj->session));
 			if (pt!=NULL) obj->clockrate=pt->clock_rate;
 			else return FALSE;
 		}
-	
-		cur->high_seq_recv=report_block_get_high_ext_seq(rb);
+
 		cur->lost_percentage=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
 		cur->int_jitter=1000.0*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
 		cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
@@ -171,6 +176,22 @@ static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControl
 	}else{
 		action->type=MSRateControlActionDoNothing;
 		ms_message("MSQosAnalyser: everything is fine.");
+	}
+
+	if (objbase->on_action_suggested!=NULL){
+		char *input=ms_strdup_printf("lost_percentage=%d rt_prop_increased=%d int_jitter_ms=%d rt_prop_ms=%d"
+			, (int)cur->lost_percentage
+			, (rt_prop_increased(obj)==TRUE)
+			, (int)cur->int_jitter
+			, (int)(1000*cur->rt_prop));
+		char *output=ms_strdup_printf("action_type=%s action_value=%d"
+			, ms_rate_control_action_type_name(action->type)
+			, action->value);
+
+		objbase->on_action_suggested(objbase->on_action_suggested_user_pointer, input, output);
+
+		ms_free(input);
+		ms_free(output);
 	}
 }
 
