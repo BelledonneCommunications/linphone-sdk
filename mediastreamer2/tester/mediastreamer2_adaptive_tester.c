@@ -398,25 +398,25 @@ static void adaptive_vp8() {
 	stream_manager_t * marielle, * margaux;
 
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 25, 50, 0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 17);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 20, 30);
 	CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim > 200);
 	stop_adaptive_stream(marielle,margaux);
 
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 45000, 0, 50,0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 17);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 30, 60);
 	stop_adaptive_stream(marielle,margaux);
 
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50,0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 17);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 50, 95);
 	stop_adaptive_stream(marielle,margaux);
 
 	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50,0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 17);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 10, 20);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 80, 125);
 	stop_adaptive_stream(marielle,margaux);
