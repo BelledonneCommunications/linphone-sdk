@@ -69,7 +69,7 @@ static void dec_init(MSFilter *f, enum CodecID cid){
 	if (s->av_codec==NULL){
 		ms_error("Could not find decoder %i!",s->codec);
 	}
-	s->orig = avcodec_alloc_frame();
+	s->orig = av_frame_alloc();
 	if (!s->orig) {
 		ms_error("Could not allocate frame");
 	}
@@ -99,7 +99,7 @@ static void dec_snow_init(MSFilter *f){
 static void dec_uninit(MSFilter *f){
 	DecState *s=(DecState*)f->data;
 	if (s->orig) {
-		avcodec_free_frame(&s->orig);
+		av_frame_free(&s->orig);
 		s->orig = NULL;
 	}
 	if (s->av_context.codec!=NULL){

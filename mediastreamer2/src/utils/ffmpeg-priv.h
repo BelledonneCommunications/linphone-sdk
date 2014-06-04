@@ -82,5 +82,18 @@ AVCodecContext *avcodec_alloc_context3(AVCodec *codec);
 int avcodec_open2 (AVCodecContext *avctx, const AVCodec *codec, /*AVDictionary*/ void **options);
 #endif
 
+#ifndef HAVE_FUN_av_frame_alloc
+AVFrame* av_frame_alloc (void);
+#endif
+
+#ifndef HAVE_FUN_av_frame_free
+void av_frame_free (AVFrame** frame);
+#endif
+
+#ifndef HAVE_FUN_av_frame_unref
+void av_frame_unref (AVFrame *frame);
+#endif
+
+
 #endif /*iHAVE_LIBAVCODEC_AVCODEC_H*/
 #endif /* FFMPEG_PRIV_H */

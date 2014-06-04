@@ -57,3 +57,31 @@ int avcodec_open2 (AVCodecContext *avctx, const AVCodec *codec, /*AVDictionary*/
 	return avcodec_open(avctx, (AVCodec*)codec);
 }
 #endif
+
+#ifndef HAVE_FUN_av_frame_alloc
+AVFrame* av_frame_alloc (void) {
+    return avcodec_alloc_frame();
+}
+#endif
+
+#ifndef HAVE_FUN_av_frame_free
+void av_frame_free (AVFrame** frame) {
+/*
+ From http://git.videolan.org/?p=ffmpeg.git;a=blob;f=doc/APIchanges
+ 2012-09-24 - 46a3595 / a42aada - lavc 54.59.100 / 54.28.0 - avcodec.h
+    Add avcodec_free_frame(). This function must now
+    be used for freeing an AVFrame.
+*/
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,28,0)
+    avcodec_free_frame(frame);
+#else
+    av_free(*frame);
+#endif
+}
+#endif
+
+#ifndef HAVE_FUN_av_frame_unref
+void av_frame_unref (AVFrame *frame) {
+    avcodec_get_frame_defaults(frame);
+}
+#endif
