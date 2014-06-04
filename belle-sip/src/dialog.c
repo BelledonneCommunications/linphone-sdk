@@ -211,12 +211,16 @@ int belle_sip_dialog_establish_full(belle_sip_dialog_t *obj, belle_sip_request_t
 
 	if (obj->is_server && strcmp(belle_sip_request_get_method(req),"INVITE")==0){
 		belle_sip_dialog_init_200Ok_retrans(obj,resp);
-	} else if (!obj->is_server && !obj->remote_target) {
-		if (!ct) {
+	} else if (!obj->is_server ) {
+		if (!ct && !obj->remote_target) {
 			belle_sip_error("Missing contact header in resp [%p] cannot set remote target for dialog [%p]",resp,obj);
 			return -1;
 		}
-		obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
+		if (ct) {
+			/*remote Contact header may have changed between early dialog to confirmed*/
+			if (obj->remote_target) belle_sip_object_unref(obj->remote_target);
+			obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
+		}
 	}
 	/*update to tag*/
 	set_to_tag(obj,to);
