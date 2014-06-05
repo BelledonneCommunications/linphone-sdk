@@ -163,8 +163,7 @@ MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
  */
 
 /**
- * @defgroup mediastreamer2_init Init API - manage mediastreamer2 library.
- * @ingroup mediastreamer2_api
+ * @addtogroup mediastreamer2_init
  * @{
  */
 

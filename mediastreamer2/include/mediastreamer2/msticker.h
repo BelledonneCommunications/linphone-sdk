@@ -33,8 +33,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
 /**
- * @defgroup mediastreamer2_ticker Ticker API - manage mediastreamer2 graphs.
- * @ingroup mediastreamer2_api
+ * @addtogroup mediastreamer2_ticker
  * @{
  */
 

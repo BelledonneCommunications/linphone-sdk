@@ -32,8 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
 /**
- * @defgroup mediastreamer2_soundcard Sound Card API - manage audio capture/play filters.
- * @ingroup mediastreamer2_api
+ * @addtogroup mediastreamer2_soundcard
  * @{
  */
 
@@ -275,7 +274,7 @@ MS2_PUBLIC MSSndCard * ms_snd_card_new(MSSndCardDesc *desc);
  * Create a new sound card object.
  *
  * @param desc   A sound card description object.
- * @param card mame
+ * @param name The card name
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
@@ -416,7 +415,7 @@ MS2_PUBLIC void ms_snd_card_set_capture(MSSndCard *obj, MSSndCardCapture c);
  *
  * @param obj      A sound card object.
  * @param e        A sound card control object.
- * @param percent  A value for control.
+ * @param val  A value for control.
  *
  * Returns: 0 if successfull, <0 otherwise.
  */
