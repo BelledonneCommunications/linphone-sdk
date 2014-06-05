@@ -547,9 +547,19 @@ void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *s
 	memcpy(sessions,&stream->sessions, sizeof(MSMediaStreamSessions));
 	stream->owns_sessions=FALSE;
 }
-bool_t media_stream_is_secured (const MediaStream *stream) {
+
+bool_t media_stream_secured (const MediaStream *stream) {
 	return stream->sessions.is_secured;
 }
+
+bool_t media_stream_avpf_enabled(const MediaStream *stream) {
+	return rtp_session_avpf_enabled(stream->sessions.rtp_session);
+}
+
+uint8_t media_stream_get_avpf_rr_interval(const MediaStream *stream) {
+	return rtp_session_get_avpf_rr_interval(stream->sessions.rtp_session);
+}
+
 MSStreamState media_stream_get_state(const MediaStream *stream) {
 	return stream->state;
 }

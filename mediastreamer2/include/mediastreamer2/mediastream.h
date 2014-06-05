@@ -176,7 +176,22 @@ MS2_PUBLIC int media_stream_set_srtp_send_key(MediaStream *stream, MSCryptoSuite
  * @param[in] stream MediaStream object
  * @return true if stream is encrypted
  * */
-MS2_PUBLIC bool_t media_stream_is_secured(const MediaStream *stream);
+MS2_PUBLIC bool_t media_stream_secured(const MediaStream *stream);
+#define media_stream_is_secured media_stream_secured
+
+/**
+ * Tells whether AVPF is enabled or not.
+ * @param[in] stream #MediaStream object.
+ * @return True if AVPF is enabled, false otherwise.
+ */
+MS2_PUBLIC bool_t media_stream_avpf_enabled(const MediaStream *stream);
+
+/**
+ * Gets the AVPF Regular RTCP report interval.
+ * @param[in] stream #MediaStream object.
+ * @return The AVPF Regular RTCP report interval in seconds.
+ */
+MS2_PUBLIC uint8_t media_stream_get_avpf_rr_interval(const MediaStream *stream);
 
 
 MS2_PUBLIC const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream);
