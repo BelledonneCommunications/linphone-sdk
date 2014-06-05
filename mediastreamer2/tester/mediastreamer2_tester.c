@@ -177,6 +177,12 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 		}
 	}
 
+	/* Redisplay list of failed tests on end */
+	if (CU_get_number_of_failure_records()){
+		CU_basic_show_failures(CU_get_failure_list());
+		printf("\n");
+	}
+
 	CU_cleanup_registry();
 	return CU_get_error();
 }
