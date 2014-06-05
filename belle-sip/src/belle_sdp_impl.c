@@ -102,14 +102,17 @@ const char *belle_sdp_attribute_get_value(belle_sdp_attribute_t *attribute) {
 	char *ret;
 	char *end;
 
+	
 	if (attribute->unparsed_value) {
 		belle_sip_free(attribute->unparsed_value);
 		attribute->unparsed_value = NULL;
 	}
 	attribute->unparsed_value = belle_sip_object_to_string(attribute);
+	
 	ret = attribute->unparsed_value;
-	ret += strlen(attribute->name) + 3; /* "a=" + name + semicolon */
-	for (; *ret == ' '; ret++) {}; /* skip spaces */
+	ret += strlen(attribute->name) + 2; /* "a=" + name*/
+	if (*ret==':') ret++;
+	for (; *ret == ' '; ret++) {}; /* skip eventual spaces */
 	return ret;
 }
 unsigned int belle_sdp_attribute_has_value(belle_sdp_attribute_t* attribute) {
