@@ -98,7 +98,7 @@ typedef struct _MediaStream MediaStream;
 /*
  * internal cb to process rtcp stream
  * */
-typedef  void (*media_stream_process_rtcp)(MediaStream *stream, mblk_t *m);
+typedef void (*media_stream_process_rtcp_callback_t)(MediaStream *stream, mblk_t *m);
 
 struct _MSMediaStreamSessions{
 	RtpSession *rtp_session;
@@ -136,6 +136,8 @@ struct _MediaStream {
 	IceCheckList *ice_check_list;
 	time_t start_time;
 	time_t last_iterate_time;
+	uint64_t last_packet_count;
+	time_t last_packet_time;
 	bool_t use_rc;
 	bool_t owns_sessions;
 	bool_t pad[1];
@@ -143,7 +145,7 @@ struct _MediaStream {
 	 * defines encoder target network bit rate, uses #media_stream_set_target_network_bitrate() setter.
 	 * */
 	int target_bitrate;
-	media_stream_process_rtcp process_rtcp;
+	media_stream_process_rtcp_callback_t process_rtcp;
 };
 
 
@@ -247,6 +249,11 @@ MS2_PUBLIC void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStream
 void media_stream_iterate(MediaStream * stream);
 
 /**
+ * Returns TRUE if stream was still actively receiving packets (RTP or RTCP) in the last period specified in timeout_seconds.
+**/
+MS2_PUBLIC bool_t media_stream_alive(MediaStream *stream, int timeout_seconds);
+
+/**
  * @returns curret streams tate
  * */
 MS2_PUBLIC MSStreamState media_stream_get_state(const MediaStream *stream);
@@ -279,8 +286,6 @@ struct _AudioStream
 	MSFilter *recorder_mixer;
 	MSFilter *recorder;
 	char *recorder_file;
-	uint64_t last_packet_count;
-	time_t last_packet_time;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
 	uint32_t features;
 	bool_t play_dtmfs;

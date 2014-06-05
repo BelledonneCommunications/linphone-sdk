@@ -123,7 +123,7 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 
 static void audio_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	AudioStream *stream=(AudioStream*)media_stream;
-	stream->last_packet_time=ms_time(NULL);
+	
 	do{
 		const report_block_t *rb=NULL;
 		if (rtcp_is_SR(m)){
@@ -150,18 +150,7 @@ void audio_stream_iterate(AudioStream *stream){
 }
 
 bool_t audio_stream_alive(AudioStream * stream, int timeout){
-	const rtp_stats_t *stats=rtp_session_get_stats(stream->ms.sessions.rtp_session);
-	if (stats->recv!=0){
-		if (stats->recv!=stream->last_packet_count){
-			stream->last_packet_count=stats->recv;
-			stream->last_packet_time=ms_time(NULL);
-		}
-	}
-	if (ms_time(NULL)-stream->last_packet_time>timeout){
-		/* more than timeout seconds of inactivity*/
-		return FALSE;
-	}
-	return TRUE;
+	return media_stream_alive((MediaStream*)stream,timeout);
 }
 
 /*invoked from FEC capable filters*/
@@ -654,7 +643,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 				,stream->ms.rtprecv
 				,NULL);
 
-	stream->ms.start_time=stream->last_packet_time=ms_time(NULL);
+	stream->ms.start_time=stream->ms.last_packet_time=ms_time(NULL);
 	stream->ms.state=MSStreamStarted;
 
 	return 0;
