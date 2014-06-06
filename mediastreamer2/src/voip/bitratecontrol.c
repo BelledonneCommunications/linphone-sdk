@@ -42,7 +42,7 @@ const char *state_name(enum state_t st){
 }
 
 struct _MSBitrateController{
-	MSQosAnalyser *analyser;
+	MSQosAnalyzer *analyzer;
 	MSBitrateDriver *driver;
 	enum state_t state;
 	int stable_count;
@@ -50,9 +50,9 @@ struct _MSBitrateController{
 
 };
 
-MSBitrateController *ms_bitrate_controller_new(MSQosAnalyser *qosanalyser, MSBitrateDriver *driver){
+MSBitrateController *ms_bitrate_controller_new(MSQosAnalyzer *qosanalyzer, MSBitrateDriver *driver){
 	MSBitrateController *obj=ms_new0(MSBitrateController,1);
-	obj->analyser=ms_qos_analyser_ref(qosanalyser);
+	obj->analyzer=ms_qos_analyzer_ref(qosanalyzer);
 	obj->driver=ms_bitrate_driver_ref(driver);
 	return obj;
 }
@@ -67,7 +67,7 @@ static void state_machine(MSBitrateController *obj){
 		case Stable:
 			obj->stable_count++;
 		case Init:
-			ms_qos_analyser_suggest_action(obj->analyser,&action);
+			ms_qos_analyzer_suggest_action(obj->analyzer,&action);
 			if (action.type!=MSRateControlActionDoNothing){
 				execute_action(obj,&action);
 				obj->state=Probing;
@@ -81,10 +81,10 @@ static void state_machine(MSBitrateController *obj){
 		break;
 		case Probing:
 			obj->stable_count=0;
-			if (ms_qos_analyser_has_improved(obj->analyser)){
+			if (ms_qos_analyzer_has_improved(obj->analyzer)){
 				obj->state=Stable;
 			}else{
-				ms_qos_analyser_suggest_action(obj->analyser,&action);
+				ms_qos_analyzer_suggest_action(obj->analyzer,&action);
 				if (action.type!=MSRateControlActionDoNothing){
 					execute_action(obj,&action);
 				}
@@ -93,7 +93,7 @@ static void state_machine(MSBitrateController *obj){
 		case ProbingUp:
 			obj->stable_count=0;
 			obj->probing_up_count++;
-			ms_qos_analyser_suggest_action(obj->analyser,&action);
+			ms_qos_analyzer_suggest_action(obj->analyzer,&action);
 			if (action.type!=MSRateControlActionDoNothing){
 				execute_action(obj,&action);
 				obj->state=Probing;
@@ -119,31 +119,40 @@ static void state_machine(MSBitrateController *obj){
 
 
 void ms_bitrate_controller_process_rtcp(MSBitrateController *obj, mblk_t *rtcp){
-	if (ms_qos_analyser_process_rtcp(obj->analyser,rtcp)){
+	if (ms_qos_analyzer_process_rtcp(obj->analyzer,rtcp)){
 		state_machine(obj);
 	}
 }
 
-MSQosAnalyser * ms_bitrate_controller_get_qos_analyser(MSBitrateController *obj){
-	return obj->analyser;
+void ms_bitrate_controller_update(MSBitrateController *obj){
+	ms_qos_analyzer_update(obj->analyzer);
+}
+
+MSQosAnalyzer * ms_bitrate_controller_get_qos_analyzer(MSBitrateController *obj){
+	return obj->analyzer;
 }
 
 void ms_bitrate_controller_destroy(MSBitrateController *obj){
-	ms_qos_analyser_unref(obj->analyser);
+	ms_qos_analyzer_unref(obj->analyzer);
 	ms_bitrate_driver_unref(obj->driver);
 	ms_free(obj);
 }
 
 MSBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, MSFilter *encoder, unsigned int flags){
 	return ms_bitrate_controller_new(
-	                                 ms_simple_qos_analyser_new(session),
+	                                 ms_simple_qos_analyzer_new(session),
 	                                 ms_audio_bitrate_driver_new(session, encoder));
 }
 
 MSBitrateController *ms_av_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc){
 	return ms_bitrate_controller_new(
-	                                 ms_simple_qos_analyser_new(vsession),
+	                                 ms_simple_qos_analyzer_new(vsession),
 	                                 ms_av_bitrate_driver_new(asession, aenc, vsession, venc));
 }
 
+MSBitrateController *ms_bandwidth_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc){
+	return ms_bitrate_controller_new(
+	                                 ms_stateful_qos_analyzer_new(vsession?vsession:asession),
+	                                 ms_bandwidth_bitrate_driver_new(asession, aenc, vsession, venc));
+}
 

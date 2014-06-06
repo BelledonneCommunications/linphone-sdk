@@ -237,8 +237,6 @@ static float adaptive_audio_stream(int codec_payload, int initial_bitrate,int ta
 	return bw_usage_ratio;
 }
 
-#define CU_ASSERT_IN_RANGE(value, inf, sup) CU_ASSERT_TRUE(value >= inf); CU_ASSERT_TRUE(value <= sup)
-
 static void adaptive_opus_audio_stream()  {
 	bool_t supported = ms_filter_codec_supported("opus");
 	if( supported ) {

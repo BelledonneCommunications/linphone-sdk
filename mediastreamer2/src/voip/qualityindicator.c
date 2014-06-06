@@ -139,7 +139,7 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 
 	recvcnt=stats->packet_recv-qi->last_packet_count;
 	if (recvcnt==0){
-		ms_message("ms_quality_indicator_update_local(): no packet received since last call");
+		// ms_message("ms_quality_indicator_update_local(): no packet received since last call");
 		return;/* no information usable*/
 	}else if (recvcnt<0){
 		qi->last_packet_count=stats->packet_recv;
@@ -149,24 +149,24 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	}else if (qi->last_packet_count==0){
 		qi->last_ext_seq=ext_seq;
 	}
-	
+
 	lost=(ext_seq-qi->last_ext_seq) - (recvcnt);
 	qi->last_ext_seq=ext_seq;
 	qi->last_packet_count=stats->packet_recv;
-	
+
 	late=stats->outoftime-qi->last_late;
 	qi->last_late=stats->outoftime;
-	
+
 
 	if (lost<0) lost=0; /* will be the case at least the first time, because we don't know the initial sequence number*/
 	if (late<0) late=0;
 
 	loss_rate=(float)lost/(float)recvcnt;
 	qi->cur_loss_rate=loss_rate*100.0;
-	
+
 	late_rate=(float)late/(float)recvcnt;
 	qi->cur_late_rate=late_rate*100.0;
-	
+
 	qi->local_rating=compute_rating(loss_rate,0,late_rate,rtp_session_get_round_trip_propagation(qi->session));
 	qi->local_lq_rating=compute_lq_rating(loss_rate,0,late_rate);
 	update_global_rating(qi);

@@ -36,7 +36,6 @@ static int nb_test_suites = 0;
 static unsigned char curses = 0;
 #endif
 
-
 static void add_test_suite(test_suite_t *suite) {
 	if (test_suite == NULL) {
 		test_suite = (test_suite_t **)malloc(10 * sizeof(test_suite_t *));
@@ -113,6 +112,7 @@ const char * mediastreamer2_tester_test_name(const char *suite_name, int test_in
 void mediastreamer2_tester_init(void) {
 	add_test_suite(&basic_audio_test_suite);
 	add_test_suite(&sound_card_test_suite);
+	add_test_suite(&adaptive_test_suite);
 	add_test_suite(&audio_stream_test_suite);
 #ifdef VIDEO_ENABLED
 	add_test_suite(&video_stream_test_suite);
@@ -251,6 +251,8 @@ int main (int argc, char *argv[]) {
 		}
 #endif
 		else {
+			fprintf(stderr, "Unknown option \"%s\"\n", argv[i]); \
+
 			helper(argv[0]);
 			return -1;
 		}
@@ -261,7 +263,6 @@ int main (int argc, char *argv[]) {
 	} else {
 		putenv("MEDIASTREAMER_DEBUG=0");
 	}
-
 	ret = mediastreamer2_tester_run_tests(suite_name, test_name);
 	mediastreamer2_tester_uninit();
 	return ret;

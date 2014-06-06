@@ -192,6 +192,7 @@ set(VOIP_SOURCE_FILES
 	voip/msvoip.c
 	voip/private.h
 	voip/qosanalyzer.c
+	voip/qosanalyzer.h
 	voip/qualityindicator.c
 	voip/ringstream.c
 )

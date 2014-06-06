@@ -95,6 +95,7 @@ static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *e
 
 static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	VideoStream *stream = (VideoStream *)media_stream;
+
 	int i;
 
 	if (rtcp_is_PSFB(m)) {
@@ -395,7 +396,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 	pt=rtp_profile_get_payload(profile,payload);
 	if (pt==NULL){
-		ms_error("videostream.c: undefined payload type.");
+		ms_error("videostream.c: undefined payload type %d.", payload);
 		return -1;
 	}
 	if (pt->flags & PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED) avpf_enabled = TRUE;
