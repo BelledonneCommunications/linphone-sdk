@@ -238,6 +238,7 @@ typedef struct _MSPicture YuvBuf; /*for backward compatibility*/
 extern "C"{
 #endif
 
+MS2_PUBLIC const char *ms_pix_fmt_to_string(MSPixFmt fmt);
 MS2_PUBLIC int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt);
 MS2_PUBLIC MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt);
 MS2_PUBLIC MSPixFmt ms_fourcc_to_pix_fmt(uint32_t fourcc);

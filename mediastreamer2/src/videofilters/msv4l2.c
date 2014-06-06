@@ -172,6 +172,22 @@ typedef struct _V4L2FormatDescription {
 	int max_fps;
 } V4L2FormatDescription;
 
+static MSPixFmt v4l2_format_to_ms(int v4l2format) {
+	switch (v4l2format) {
+		case V4L2_PIX_FMT_YUV420:
+			return MS_YUV420P;
+		case V4L2_PIX_FMT_YUYV:
+			return MS_YUYV;
+		case V4L2_PIX_FMT_MJPEG:
+			return MS_MJPEG;
+		case V4L2_PIX_FMT_RGB24:
+			return MS_RGB24;
+		default:
+			ms_error("Unknown v4l2 format 0x%08x", v4l2format);
+			return MS_PIX_FMT_UNKNOWN;
+	}
+}
+
 static const V4L2FormatDescription* query_format_description_for_size(int fd, MSVideoSize vsize) {
 	/* hardcode supported format */
 	static V4L2FormatDescription formats[4];
@@ -196,6 +212,11 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 					formats[i].max_fps = query_max_fps_for_format_resolution(fd, fmt.pixelformat, vsize);
 					formats[i].native = !(fmt.flags & V4L2_FMT_FLAG_EMULATED);
 					formats[i].compressed = fmt.flags & V4L2_FMT_FLAG_COMPRESSED;
+					ms_message("format %s : max_fps=%i, native=%i, compressed=%i",
+						   ms_pix_fmt_to_string(v4l2_format_to_ms(fmt.pixelformat)),
+						   formats[i].max_fps,
+						   formats[i].native,
+						   formats[i].compressed);
 					break;
 				}
 			}
@@ -203,22 +224,6 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 		}
 	}
 	return formats;
-}
-
-static MSPixFmt v4l2_format_to_ms(int v4l2format) {
-	switch (v4l2format) {
-		case V4L2_PIX_FMT_YUV420:
-			return MS_YUV420P;
-		case V4L2_PIX_FMT_YUYV:
-			return MS_YUYV;
-		case V4L2_PIX_FMT_MJPEG:
-			return MS_MJPEG;
-		case V4L2_PIX_FMT_RGB24:
-			return MS_RGB24;
-		default:
-			ms_error("Unknown v4l2 format 0x%08x", v4l2format);
-			return MS_PIX_FMT_UNKNOWN;
-	}
 }
 
 static MSPixFmt pick_best_format(int fd, const V4L2FormatDescription* format_desc, MSVideoSize vsize) {
@@ -231,7 +236,7 @@ static MSPixFmt pick_best_format(int fd, const V4L2FormatDescription* format_des
 	for (i=PREFER_NATIVE; i<=NO_PREFERENCE; i++) {
 		for (j=0; j<4; j++) {
 			int candidate = -1;
-			if (format_desc[j].max_fps >= 15) {
+			if (format_desc[j].max_fps >= 15 || format_desc[j].max_fps==-1) {
 				switch (i) {
 					case PREFER_NATIVE:
 						if (format_desc[j].native && !format_desc[j].compressed)
@@ -254,7 +259,9 @@ static MSPixFmt pick_best_format(int fd, const V4L2FormatDescription* format_des
 				fmt.fmt.pix.height      = vsize.height;
 
 				if (v4lv2_try_format(fd, &fmt, format_desc[j].pixel_format)) {
-					return v4l2_format_to_ms(format_desc[j].pixel_format);
+					MSPixFmt selected=v4l2_format_to_ms(format_desc[j].pixel_format);
+					ms_message("V4L2: selected format is %s", ms_pix_fmt_to_string(selected));
+					return selected;
 				}
 			}
 		}
@@ -444,14 +451,15 @@ static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 	struct v4l2_buffer buf;
 	unsigned int k;
 	bool_t no_slot_available = TRUE;
-	memset(&buf,0,sizeof(buf));
 	mblk_t *ret=NULL;
+	
+	memset(&buf,0,sizeof(buf));
 
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	buf.memory = V4L2_MEMORY_MMAP;
 
 	/*queue buffers whose ref count is 1, because they are not
-	still used anywhere in the filter chain */
+	 used anywhere in the filter chain */
 	for(k=0;k<s->frame_max;++k){
 		if (s->frames[k]->b_datap->db_ref==1){
 			no_slot_available = FALSE;

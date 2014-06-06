@@ -31,6 +31,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "msvideo_neon.h"
 #endif
 
+const char *ms_pix_fmt_to_string(MSPixFmt fmt){
+	switch(fmt){
+		case MS_YUV420P: return "MS_YUV420P";
+		case MS_YUYV : return "MS_YUYV";
+		case MS_RGB24: return "MS_RGB24";
+		case MS_RGB24_REV: return "MS_RGB24_REV";
+		case MS_MJPEG: return "MS_MJPEG";
+		case MS_UYVY: return "MS_UYVY";
+		case MS_YUY2: return "MS_YUY2";
+		case MS_RGBA32: return "MS_RGBA32";
+		case MS_RGB565: return "MS_RGB565";
+		case MS_H264: return "MS_H264";
+		case MS_PIX_FMT_UNKNOWN: return "MS_PIX_FMT_UNKNOWN";
+	}
+	return "bad format";
+}
+
 struct _mblk_video_header {
 	uint16_t w, h;
 	int pad[3];
