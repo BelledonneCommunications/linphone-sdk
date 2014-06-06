@@ -308,6 +308,13 @@ static void generate_partitions_list(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *
 		}
 		last_cseq = packet->extended_cseq;
 	}
+
+	/* The current partition is not complete. */
+	if (partition != NULL) {
+		partition->error = Vp8RtpFmtIncompletePartition;
+		frame->error = Vp8RtpFmtIncompleteFrame;
+		add_partition_to_frame(frame, partition);
+	}
 }
 
 static void mark_last_present_partition_as_last_in_frame(Vp8RtpFmtFrame *frame) {

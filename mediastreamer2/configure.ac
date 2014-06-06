@@ -567,6 +567,61 @@ fi
 
 fi
 
+
+
+
+dnl check for matroska file support
+AC_ARG_ENABLE(matroska,
+	[AS_HELP_STRING([--enable-matroska], [Enable mkv file support])],
+	[case "${enableval}" in
+		yes)	matroska=true ;;
+		no)	matroska=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-matroska) ;;
+	esac],
+	[matroska=false]
+)
+AC_ARG_WITH(ebml,
+	[AS_HELP_STRING([--with-ebml],[Sets the installation prefix of ebml library (v2) [default=/usr]])],
+	[ ebmldir=${withval} ],
+	[ ebmldir=/usr ]
+)
+AC_ARG_WITH(matroska,
+	[AS_HELP_STRING([--with-matroska],[Sets the installation prefix of matroska library (v2) [default=/usr]])],
+	[ matroskadir=${withval} ],
+	[ matroskadir=/usr ]
+)
+
+if test x$matroska == xtrue; then
+
+build_matroska=yes
+if test x"$ebmldir" != xno ; then
+	test x"$ebmldir" = xyes && ebmldir=/usr
+	MS_CHECK_DEP([ebml library],[EBML],[$ebmldir/include],
+		[$ebmldir/lib],[ebml/ebml.h],[ebml2],[EBML_ElementRender])
+	if test "$ebml_found" == "no" ; then
+		build_matroska=no
+		AC_MSG_ERROR([Could not locate ebml headers or library.])
+	fi
+else
+	build_matroska=no
+fi
+
+if test x"$matroskadir" != xno ; then
+	test x"$matroskadir" = xyes && matroskadir=/usr
+	MS_CHECK_DEP([matroska library],[MATROSKA],[$matroskadir/include],
+		[$matroskadir/lib],[matroska/matroska.h],[matroska2],[MATROSKA_BlockReleaseData],[-lebml2])
+	if test "$matroska_found" == "no" ; then
+		build_matroska=no
+		AC_MSG_ERROR([Could not locate matroska headers or library.])
+	fi
+else
+	build_matroska=no
+fi
+
+fi
+
+
+
 dnl check for spandsp support to bring up g726 codec
 AC_ARG_ENABLE(spandsp,
 	[AS_HELP_STRING([--disable-spandsp], [Disable spandsp support])],
@@ -646,6 +701,7 @@ fi
 
 AM_CONDITIONAL(BUILD_OPUS, test x$have_opus = xtrue)
 AM_CONDITIONAL(BUILD_GSM, test x$build_gsm = xyes )
+AM_CONDITIONAL(BUILD_MATROSKA, test x$build_matroska = xyes )
 AM_CONDITIONAL(BUILD_G726, test "$have_spandsp" = "true" )
 
 MS_CHECK_VIDEO

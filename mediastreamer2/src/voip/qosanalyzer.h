@@ -36,7 +36,6 @@ extern "C" {
 	static const float significant_delay=0.2; /*seconds*/
 
 	typedef struct rtpstats{
-		uint64_t high_seq_recv; /*highest sequence number received*/
 		float lost_percentage; /*percentage of lost packet since last report*/
 		float int_jitter; /*interrarrival jitter */
 		float rt_prop; /*round trip propagation*/

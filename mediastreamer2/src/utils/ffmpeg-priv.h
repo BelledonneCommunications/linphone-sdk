@@ -29,6 +29,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer-config.h"
 #endif
 
+#ifdef __clang__
+/*in case of compile with -g static inline can produce this type of warning*/
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
+
 #include <ortp/port.h>
 
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H)
@@ -81,6 +87,19 @@ AVCodecContext *avcodec_alloc_context3(AVCodec *codec);
 #ifndef HAVE_FUN_avcodec_open2 /**/
 int avcodec_open2 (AVCodecContext *avctx, const AVCodec *codec, /*AVDictionary*/ void **options);
 #endif
+
+#ifndef HAVE_FUN_av_frame_alloc
+AVFrame* av_frame_alloc (void);
+#endif
+
+#ifndef HAVE_FUN_av_frame_free
+void av_frame_free (AVFrame** frame);
+#endif
+
+#ifndef HAVE_FUN_av_frame_unref
+void av_frame_unref (AVFrame *frame);
+#endif
+
 
 #endif /*iHAVE_LIBAVCODEC_AVCODEC_H*/
 #endif /* FFMPEG_PRIV_H */

@@ -61,7 +61,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	AVPacket pkt;
 	MSPicture dest;
 	AVCodec *codec=avcodec_find_decoder(CODEC_ID_MJPEG);
-	AVFrame* orig = avcodec_alloc_frame();
+	AVFrame* orig = av_frame_alloc();
 
 	if (codec==NULL){
 		ms_error("Could not find MJPEG decoder in ffmpeg.");
@@ -107,7 +107,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 		return NULL;
 	}
 	sws_freeContext(sws_ctx);
-	avcodec_free_frame(&orig);
+	av_frame_free(&orig);
 	avcodec_close(&av_context);
 	return ret;
 #elif TARGET_OS_IPHONE

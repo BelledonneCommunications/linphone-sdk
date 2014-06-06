@@ -64,6 +64,12 @@ bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj){
 	return TRUE;
 }
 
+void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj,
+	void (*on_action_suggested)(void*, const char*,const char*), void* u){
+	obj->on_action_suggested=on_action_suggested;
+	obj->on_action_suggested_user_pointer=u;
+}
+
 MSQosAnalyzer *ms_qos_analyzer_ref(MSQosAnalyzer *obj){
 	obj->refcnt++;
 	return obj;
@@ -96,7 +102,7 @@ const char *ms_rate_control_action_type_name(MSRateControlActionType t){
 /***************************** Simple QoS analyzer ****************************/
 /******************************************************************************/
 static bool_t rt_prop_doubled(rtpstats_t *cur,rtpstats_t *prev){
-	/*ms_message("AudioBitrateController: cur=%f, prev=%f",cur->rt_prop,prev->rt_prop);*/
+	//ms_message("AudioBitrateController: cur=%f, prev=%f",cur->rt_prop,prev->rt_prop);
 	if (cur->rt_prop>=significant_delay && prev->rt_prop>0){
 		if (cur->rt_prop>=(prev->rt_prop*2.0)){
 			/*propagation doubled since last report */
@@ -137,7 +143,6 @@ static bool_t simple_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp)
 			else return FALSE;
 		}
 
-		cur->high_seq_recv=report_block_get_high_ext_seq(rb);
 		cur->lost_percentage=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
 		cur->int_jitter=1000.0*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
 		cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
@@ -168,6 +173,22 @@ static void simple_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateControl
 	}else{
 		action->type=MSRateControlActionDoNothing;
 		ms_message("MSQosAnalyzer: everything is fine.");
+	}
+
+	if (objbase->on_action_suggested!=NULL){
+		char *input=ms_strdup_printf("lost_percentage=%d rt_prop_increased=%d int_jitter_ms=%d rt_prop_ms=%d"
+			, (int)cur->lost_percentage
+			, (simple_rt_prop_increased(obj)==TRUE)
+			, (int)cur->int_jitter
+			, (int)(1000*cur->rt_prop));
+		char *output=ms_strdup_printf("action_type=%s action_value=%d"
+			, ms_rate_control_action_type_name(action->type)
+			, action->value);
+
+		objbase->on_action_suggested(objbase->on_action_suggested_user_pointer, input, output);
+
+		ms_free(input);
+		ms_free(output);
 	}
 }
 
@@ -282,7 +303,6 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 			else return FALSE;
 		}
 
-		cur->high_seq_recv=report_block_get_high_ext_seq(rb);
 		cur->lost_percentage=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
 		cur->int_jitter=1000.0*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
 		cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);

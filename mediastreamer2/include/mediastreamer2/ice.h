@@ -267,7 +267,7 @@ MS2_PUBLIC void ice_check_list_destroy(IceCheckList *cl);
 /**
  * Tell whether ICE local candidates have been gathered for an ICE check list or not.
  *
- * @param session A pointer to a check list
+ * @param cl A pointer to a check list
  * @return TRUE if local candidates have been gathered for the check list, FALSE otherwise.
  */
 MS2_PUBLIC bool_t ice_check_list_candidates_gathered(const IceCheckList *cl);
@@ -755,7 +755,7 @@ void ice_handle_stun_packet(IceCheckList* cl, RtpSession* rtp_session, const Ort
  * @param cl A pointer to a check list
  * @param rtp_addr A pointer to the buffer to use to store the remote RTP address
  * @param rtp_port A pointer to the location to store the RTP port to
- * @param rtcp_aadr A pointer to the buffer to use to store the remote RTCP address
+ * @param rtcp_addr A pointer to the buffer to use to store the remote RTCP address
  * @param rtcp_port A pointer to the location to store the RTCP port to
  * @param addr_len The size of the buffer to use to store the remote addresses
  *

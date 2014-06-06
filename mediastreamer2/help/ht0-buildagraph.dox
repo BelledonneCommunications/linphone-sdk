@@ -92,7 +92,7 @@ cards' filters:
 
 	ms_filter_call_method(soundwrite,MS_FILTER_SET_NCHANNELS, &chan);
 
-        /* if you have some fmtp parameters (from SDP for example!)
+        /* if you have some fmtp parameters (from SDP for example!) */
         char *fmtp1 = ** get your fmtp line **;
         char *fmtp2 = ** get your fmtp line **;
 	ms_filter_call_method(stream->encoder,MS_FILTER_ADD_FMTP, (void*)fmtp1);

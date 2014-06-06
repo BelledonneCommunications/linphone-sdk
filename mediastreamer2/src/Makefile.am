@@ -209,6 +209,10 @@ if BUILD_VP8
 libmediastreamer_voip_la_SOURCES+=	videofilters/vp8.c
 endif
 
+if BUILD_MATROSKA
+libmediastreamer_voip_la_SOURCES+=	videofilters/mkv.c
+endif
+
 if BUILD_AVCODEC
 libmediastreamer_voip_la_SOURCES+=	videofilters/videoenc.c \
 					videofilters/videodec.c \
@@ -385,6 +389,14 @@ endif
 if BUILD_VP8
 AM_CFLAGS+=$(VP8_CFLAGS)
 libmediastreamer_voip_la_LIBADD+=$(VP8_LIBS)
+endif
+
+if BUILD_MATROSKA
+AM_CFLAGS+=				$(EBML_CFLAGS) \
+					$(MATROSKA_CFLAGS)
+
+libmediastreamer_voip_la_LIBADD+=	$(MATROSKA_LIBS) \
+					$(EBML_LIBS)
 endif
 
 if BUILD_VIDEO

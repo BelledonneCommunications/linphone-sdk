@@ -213,9 +213,6 @@ static float adaptive_audio_stream(int codec_payload, int initial_bitrate,int ta
 	params.max_bandwidth=target_bw;
 	params.max_buffer_size=initial_bitrate;
 	float bw_usage_ratio;
-	// this variable should not be changed, since algorithm results rely on this value
-	// (the bigger it is, the more accurate is bandwidth estimation)
-	int rtcp_interval = RTCP_DEFAULT_REPORT_INTERVAL;
 	float marielle_send_bw;
 
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
@@ -226,8 +223,7 @@ static float adaptive_audio_stream(int codec_payload, int initial_bitrate,int ta
 	stream_manager_start(margaux,codec_payload, marielle->local_rtp,-1,NULL,RECORDED_16K_1S_FILE);
 	rtp_session_enable_network_simulation(margaux->stream->ms.sessions.rtp_session,&params);
 
-	rtp_session_set_rtcp_report_interval(margaux->stream->ms.sessions.rtp_session, rtcp_interval);
-	wait_for_until(&marielle->stream->ms,&margaux->stream->ms,&marielle->stats.number_of_EndOfFile,10,rtcp_interval*max_recv_rtcp_packet);
+	wait_for_until(&marielle->stream->ms,&margaux->stream->ms,&marielle->stats.number_of_EndOfFile,10,2500*max_recv_rtcp_packet);
 
 	marielle_send_bw=media_stream_get_up_bw(&marielle->stream->ms);
 	bw_usage_ratio=marielle_send_bw/params.max_bandwidth;
@@ -250,7 +246,7 @@ static void adaptive_opus_audio_stream()  {
 
 		// on EDGEBW, both should be overconsumming
 		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 8000, EDGE_BW, 14);
-		CU_ASSERT_IN_RANGE(bw_usage, 2.f, 3.f); // bad! since this codec cant change its ptime and it is the lower bitrate, no improvement can occur
+		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 3.f); // bad! since this codec cant change its ptime and it is the lower bitrate, no improvement can occur
 		bw_usage = adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 48000, EDGE_BW, 11);
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 1.2f); // bad!
 

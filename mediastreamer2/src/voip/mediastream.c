@@ -465,6 +465,32 @@ void mediastream_payload_type_changed(RtpSession *session, unsigned long data) {
 	media_stream_change_decoder(stream, pt);
 }
 
+static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m, time_t curtime){
+	stream->last_packet_time=curtime;
+	ms_message("%s stream [%p]: receiving RTCP %s%s",media_stream_type_str(stream),stream,(rtcp_is_SR(m)?"SR":""),(rtcp_is_RR(m)?"RR":""));
+	do{
+		const report_block_t *rb=NULL;
+		if (rtcp_is_SR(m)){
+			rb=rtcp_SR_get_report_block(m,0);
+		}else if (rtcp_is_RR(m)){
+			rb=rtcp_RR_get_report_block(m,0);
+		}
+		if (rb){
+			unsigned int ij;
+			float rt=rtp_session_get_round_trip_propagation(stream->sessions.rtp_session);
+			float flost;
+			ij=report_block_get_interarrival_jitter(rb);
+			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
+			ms_message("media_stream_process_rtcp[stream=%p]: remote statistics available for [%s] stream\n\tremote's interarrival jitter=%u\n"
+			           "\tremote's lost packets percentage since last report=%f\n\tround trip time=%f seconds",stream,media_stream_type_str(stream),ij,flost,rt);
+			if (stream->use_rc&&stream->rc) ms_bitrate_controller_process_rtcp(stream->rc,m);
+			if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi,m);
+		}
+		stream->process_rtcp(stream,m);
+	}while(rtcp_next_packet(m));
+
+}
+
 void media_stream_iterate(MediaStream *stream){
 	time_t curtime=ms_time(NULL);
 
@@ -484,8 +510,7 @@ void media_stream_iterate(MediaStream *stream){
 			OrtpEventType evt=ortp_event_get_type(ev);
 			if (evt==ORTP_EVENT_RTCP_PACKET_RECEIVED){
 				mblk_t *m=ortp_event_get_data(ev)->packet;
-				ms_message("%s_stream_iterate[%p]: receiving [%p] RTCP %s%s",media_stream_type_str(stream),stream,m,(rtcp_is_SR(m)?"SR":""),(rtcp_is_RR(m)?"RR":""));
-				stream->process_rtcp(stream,m);
+				media_stream_process_rtcp(stream,m,curtime);
 			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
 				ms_message("%s_stream_iterate[%p]: local statistics available\n\tLocal's current jitter buffer size:%f ms",
 					media_stream_type_str(stream), stream, rtp_session_get_jitter_stats(stream->sessions.rtp_session)->jitter_buffer_size_ms);
@@ -499,6 +524,21 @@ void media_stream_iterate(MediaStream *stream){
 			ortp_event_destroy(ev);
 		}
 	}
+}
+
+bool_t media_stream_alive(MediaStream *ms, int timeout){
+	const rtp_stats_t *stats=rtp_session_get_stats(ms->sessions.rtp_session);
+	if (stats->recv!=0){
+		if (stats->recv!=ms->last_packet_count){
+			ms->last_packet_count=stats->recv;
+			ms->last_packet_time=ms_time(NULL);
+		}
+	}
+	if (ms_time(NULL)-ms->last_packet_time>timeout){
+		/* more than timeout seconds of inactivity*/
+		return FALSE;
+	}
+	return TRUE;
 }
 
 float media_stream_get_quality_rating(MediaStream *stream){
@@ -550,9 +590,19 @@ void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *s
 	memcpy(sessions,&stream->sessions, sizeof(MSMediaStreamSessions));
 	stream->owns_sessions=FALSE;
 }
-bool_t media_stream_is_secured (const MediaStream *stream) {
+
+bool_t media_stream_secured (const MediaStream *stream) {
 	return stream->sessions.is_secured;
 }
+
+bool_t media_stream_avpf_enabled(const MediaStream *stream) {
+	return rtp_session_avpf_enabled(stream->sessions.rtp_session);
+}
+
+uint8_t media_stream_get_avpf_rr_interval(const MediaStream *stream) {
+	return rtp_session_get_avpf_rr_interval(stream->sessions.rtp_session);
+}
+
 MSStreamState media_stream_get_state(const MediaStream *stream) {
 	return stream->state;
 }
@@ -598,7 +648,7 @@ int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *pa
 			break;
 		case MS_AES_128_SHA1_32:
 			params->name="AES_CM_128_HMAC_SHA1_32";
-			break; 
+			break;
 		case MS_AES_128_NO_AUTH:
 			params->name="AES_CM_128_HMAC_SHA1_80";
 			params->params="UNAUTHENTICATED_SRTP";

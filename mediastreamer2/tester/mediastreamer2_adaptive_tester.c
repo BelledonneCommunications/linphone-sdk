@@ -116,6 +116,7 @@ static stream_manager_t * stream_manager_new(StreamType type) {
 	}
 	return mgr;
 }
+
 static void stream_manager_delete(stream_manager_t * mgr) {
 
 	if (mgr->type==AudioStreamType){
@@ -368,7 +369,7 @@ static void upload_bandwidth_computation() {
 
 		for (i = 0; i < 5; i++){
 			rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
-			iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
+			iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2*(i+1));
 			/*since PCMA uses 80kbit/s, upload bandwidth should just be 80+80*duplication_ratio kbit/s */
 			CU_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 1.f);
 		}

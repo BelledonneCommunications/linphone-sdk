@@ -62,7 +62,7 @@ static int execute_action(MSBitrateController *obj, const MSRateControlAction *a
 }
 
 static void state_machine(MSBitrateController *obj){
-	MSRateControlAction action;
+	MSRateControlAction action = {0};
 	switch(obj->state){
 		case Stable:
 			obj->stable_count++;
@@ -128,7 +128,7 @@ void ms_bitrate_controller_update(MSBitrateController *obj){
 	ms_qos_analyzer_update(obj->analyzer);
 }
 
-const MSQosAnalyzer * ms_bitrate_controller_get_qos_analyzer(MSBitrateController *obj){
+MSQosAnalyzer * ms_bitrate_controller_get_qos_analyzer(MSBitrateController *obj){
 	return obj->analyzer;
 }
 

@@ -124,6 +124,7 @@ LOCAL_SRC_FILES += \
 	voip/layouts.c \
 	utils/shaders.c \
 	utils/opengles_display.c \
+	utils/ffmpeg-priv.c \
 	videofilters/videoenc.c \
 	videofilters/videodec.c \
 	videofilters/pixconv.c  \

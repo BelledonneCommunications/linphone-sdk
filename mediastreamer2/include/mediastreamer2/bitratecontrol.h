@@ -100,6 +100,8 @@ struct _MSQosAnalyzerDesc{
 **/
 struct _MSQosAnalyzer{
 	MSQosAnalyzerDesc *desc;
+	void (*on_action_suggested)(void*, const char*,const char*);
+	void *on_action_suggested_user_pointer;
 	int refcnt;
 
 	enum {
@@ -108,13 +110,13 @@ struct _MSQosAnalyzer{
 	} type;
 };
 
-
 MSQosAnalyzer * ms_qos_analyzer_ref(MSQosAnalyzer *obj);
 void ms_qos_analyzer_unref(MSQosAnalyzer *obj);
 void ms_qos_analyzer_suggest_action(MSQosAnalyzer *obj, MSRateControlAction *action);
 bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj);
 bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj, mblk_t *rtcp);
 void ms_qos_analyzer_update(MSQosAnalyzer *obj);
+void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj, void (*on_action_suggested)(void*,const char*,const char*),void* u);
 
 /**
  * The simple qos analyzer is an implementation of MSQosAnalyzer that performs analysis for single stream.
@@ -157,7 +159,7 @@ void ms_bitrate_controller_update(MSBitrateController *obj);
 /**
  * Return the QoS analyzer associated to the bitrate controller
 **/
-const MSQosAnalyzer * ms_bitrate_controller_get_qos_analyzer(MSBitrateController *obj);
+MSQosAnalyzer * ms_bitrate_controller_get_qos_analyzer(MSBitrateController *obj);
 
 /**
  * Destroys the bitrate controller

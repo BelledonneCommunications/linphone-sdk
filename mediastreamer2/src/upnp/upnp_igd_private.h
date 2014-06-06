@@ -36,6 +36,12 @@
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
 #endif
+#ifdef __clang__
+
+/*in case of compile with -g static inline can produce this type of warning*/
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
 #include <upnp.h>
 #include <ithread.h>
 

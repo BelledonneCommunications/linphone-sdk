@@ -41,7 +41,7 @@ static void jpg_init(MSFilter *f){
 	if (s->codec==NULL){
 		ms_error("Could not find CODEC_ID_MJPEG !");
 	}
-	s->pict = avcodec_alloc_frame();
+	s->pict = av_frame_alloc();
 	f->data=s;
 }
 
@@ -50,7 +50,7 @@ static void jpg_uninit(MSFilter *f){
 	if (s->file!=NULL){
 		fclose(s->file);
 	}
-	if (s->pict) avcodec_free_frame(&s->pict);
+	if (s->pict) av_frame_free(&s->pict);
 	ms_free(s);
 }
 
@@ -130,7 +130,7 @@ static void jpg_process(MSFilter *f){
 			}
 			sws_freeContext(sws_ctx);
 
-			avcodec_get_frame_defaults(s->pict);
+			av_frame_unref(s->pict);
 			avpicture_fill((AVPicture*)s->pict,(uint8_t*)jpegm->b_rptr,avctx->pix_fmt,avctx->width,avctx->height);
 			packet.data=comp_buf; packet.size=comp_buf_sz;
 			error=avcodec_encode_video2(avctx, &packet, s->pict, &got_pict);

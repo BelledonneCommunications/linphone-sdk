@@ -121,7 +121,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 
 			dnl check for new/old ffmpeg header file layout
 			CPPFLAGS_save=$CPPFLAGS
-			CPPFLAGS="$FFMPEG_CFLAGS $CPPFLAGS"
+			CPPFLAGS="$FFMPEG_CFLAGS $CPPFLAGS -Wno-error"
 			AC_CHECK_HEADERS(libavcodec/avcodec.h)
 			CPPFLAGS=$CPPFLAGS_save
 
@@ -142,7 +142,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			dnl # include "swscale.h" // private linhone swscale.h
 			dnl #endif
 			CPPFLAGS_save=$CPPFLAGS
-			CPPFLAGS="$SWSCALE_CFLAGS $CPPFLAGS"
+			CPPFLAGS="$SWSCALE_CFLAGS $CPPFLAGS -Wno-error"
 			AC_CHECK_HEADERS(libswscale/swscale.h)
 			CPPFLAGS=$CPPFLAGS_save
 
@@ -151,6 +151,9 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			AC_CHECK_LIB(avcodec,avcodec_get_context_defaults3,  [AC_DEFINE([HAVE_FUN_avcodec_get_context_defaults3], [], [Have ffmpeg function])] ,	 , $FFMPEG_LIBS )
 			AC_CHECK_LIB(avcodec,avcodec_open2, [AC_DEFINE([HAVE_FUN_avcodec_open2], [], [Have ffmpeg function])] , , $FFMPEG_LIBS )
 			AC_CHECK_LIB(avcodec,avcodec_encode_video2, [AC_DEFINE([HAVE_FUN_avcodec_encode_video2], [], [Have ffmpeg function])] , , $FFMPEG_LIBS )
+			AC_CHECK_LIB(avutil,av_frame_alloc, [AC_DEFINE([HAVE_FUN_av_frame_alloc], [], [Have ffmpeg function])] , , $FFMPEG_LIBS )
+			AC_CHECK_LIB(avutil,av_frame_free, [AC_DEFINE([HAVE_FUN_av_frame_free], [], [Have ffmpeg function])] , , $FFMPEG_LIBS )
+			AC_CHECK_LIB(avutil,av_frame_unref, [AC_DEFINE([HAVE_FUN_av_frame_unref], [], [Have ffmpeg function])] , , $FFMPEG_LIBS )
 			LIBS=$LIBS_save
 
 

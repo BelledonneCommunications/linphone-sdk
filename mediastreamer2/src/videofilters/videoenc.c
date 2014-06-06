@@ -231,7 +231,7 @@ static void enc_init(MSFilter *f, enum CodecID codec)
 	s->av_context.codec=NULL;
 	s->vconf_list = get_vconf_list(s);
 	s->vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, 500000);
-	s->pict = avcodec_alloc_frame();
+	s->pict = av_frame_alloc();
 }
 
 static void enc_h263_init(MSFilter *f){
@@ -336,7 +336,7 @@ static void prepare_mpeg4(EncState *s){
 
 static void enc_uninit(MSFilter  *f){
 	EncState *s=(EncState*)f->data;
-	if (s->pict) avcodec_free_frame(&s->pict);
+	if (s->pict) av_frame_free(&s->pict);
 	ms_free(s);
 }
 
@@ -789,7 +789,7 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 
 	ms_yuv_buf_init_from_mblk(&yuv, inm);
 	/* convert image if necessary */
-	avcodec_get_frame_defaults(s->pict);
+	av_frame_unref(s->pict);
 	avpicture_fill((AVPicture*)s->pict,yuv.planes[0],c->pix_fmt,c->width,c->height);
 
 	/* timestamp used by ffmpeg, unset here */

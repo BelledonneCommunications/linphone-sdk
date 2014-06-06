@@ -79,7 +79,7 @@ static void dec_init(MSFilter *f){
 	d->outbuf.h=0;
 	d->bitstream_size=65536;
 	d->bitstream=ms_malloc0(d->bitstream_size);
-	d->orig = avcodec_alloc_frame();
+	d->orig = av_frame_alloc();
 	if (!d->orig) {
 		ms_error("Could not allocate frame");
 	}
@@ -103,7 +103,7 @@ static void dec_uninit(MSFilter *f){
 	if (d->yuv_msg) freemsg(d->yuv_msg);
 	if (d->sps) freemsg(d->sps);
 	if (d->pps) freemsg(d->pps);
-	if (d->orig) avcodec_free_frame(&d->orig);
+	if (d->orig) av_frame_free(&d->orig);
 	ms_free(d->bitstream);
 	ms_free(d);
 }
@@ -276,7 +276,7 @@ static void dec_process(MSFilter *f){
 				int len;
 				int got_picture=0;
 				AVPacket pkt;
-				avcodec_get_frame_defaults(d->orig);
+				av_frame_unref(d->orig);
 				av_init_packet(&pkt);
 				pkt.data = p;
 				pkt.size = end-p;

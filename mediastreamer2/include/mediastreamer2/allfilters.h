@@ -141,7 +141,8 @@ typedef enum MSFilterId{
 	MS_OPUS_ENC_ID,
 	MS_OPUS_DEC_ID,
 	MS_QSA_READ_ID,
-	MS_QSA_WRITE_ID
+	MS_QSA_WRITE_ID,
+	MS_MKV_WRITER_ID
 } MSFilterId;
 
 
