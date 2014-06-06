@@ -196,6 +196,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	stream->ms.type = VideoStreamType;
 	stream->ms.sessions=*sessions;
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
+	ms_quality_indicator_set_label(stream->ms.qi,"audio");
 	stream->ms.evq=ortp_ev_queue_new();
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;

@@ -37,6 +37,11 @@ extern "C"{
 MS2_PUBLIC MSQualityIndicator *ms_quality_indicator_new(RtpSession *session);
 
 /**
+ * Set a label, just used for logging.
+**/
+MS2_PUBLIC void ms_quality_indicator_set_label(MSQualityIndicator *obj, const char *label);
+
+/**
  * Updates quality indicator based on a received RTCP packet.
 **/
 MS2_PUBLIC void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *rtcp);

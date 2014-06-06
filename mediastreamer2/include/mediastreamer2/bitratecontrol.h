@@ -100,10 +100,10 @@ struct _MSQosAnalyzerDesc{
 **/
 struct _MSQosAnalyzer{
 	MSQosAnalyzerDesc *desc;
+	char *label;
 	void (*on_action_suggested)(void*, const char*,const char*);
 	void *on_action_suggested_user_pointer;
 	int refcnt;
-
 	enum {
 		Simple,
 		Stateful,
@@ -112,6 +112,7 @@ struct _MSQosAnalyzer{
 
 MSQosAnalyzer * ms_qos_analyzer_ref(MSQosAnalyzer *obj);
 void ms_qos_analyzer_unref(MSQosAnalyzer *obj);
+void ms_qos_analyser_set_label(MSQosAnalyzer *obj, const char *label);
 void ms_qos_analyzer_suggest_action(MSQosAnalyzer *obj, MSRateControlAction *action);
 bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj);
 bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj, mblk_t *rtcp);

@@ -469,23 +469,8 @@ static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m, time_t cur
 	stream->last_packet_time=curtime;
 	ms_message("%s stream [%p]: receiving RTCP %s%s",media_stream_type_str(stream),stream,(rtcp_is_SR(m)?"SR":""),(rtcp_is_RR(m)?"RR":""));
 	do{
-		const report_block_t *rb=NULL;
-		if (rtcp_is_SR(m)){
-			rb=rtcp_SR_get_report_block(m,0);
-		}else if (rtcp_is_RR(m)){
-			rb=rtcp_RR_get_report_block(m,0);
-		}
-		if (rb){
-			unsigned int ij;
-			float rt=rtp_session_get_round_trip_propagation(stream->sessions.rtp_session);
-			float flost;
-			ij=report_block_get_interarrival_jitter(rb);
-			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
-			ms_message("media_stream_process_rtcp[stream=%p]: remote statistics available for [%s] stream\n\tremote's interarrival jitter=%u\n"
-			           "\tremote's lost packets percentage since last report=%f\n\tround trip time=%f seconds",stream,media_stream_type_str(stream),ij,flost,rt);
-			if (stream->use_rc&&stream->rc) ms_bitrate_controller_process_rtcp(stream->rc,m);
-			if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi,m);
-		}
+		if (stream->use_rc&&stream->rc) ms_bitrate_controller_process_rtcp(stream->rc,m);
+		if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi,m);
 		stream->process_rtcp(stream,m);
 	}while(rtcp_next_packet(m));
 

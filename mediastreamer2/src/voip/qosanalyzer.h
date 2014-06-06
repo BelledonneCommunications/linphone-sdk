@@ -44,6 +44,7 @@ extern "C" {
 	typedef struct _MSSimpleQosAnalyzer{
 		MSQosAnalyzer parent;
 		RtpSession *session;
+		OrtpLossRateEstimator *lre;
 		int clockrate;
 		rtpstats_t stats[STATS_HISTORY];
 		int curindex;

@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <math.h>
 
+#define LOSS_RATE_MIN_INTERVAL 120
+
 /**
  * Analyses a received RTCP packet.
  * Returns TRUE is relevant information has been found in the rtcp message, FALSE otherwise.
@@ -63,6 +65,14 @@ void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj,
 	obj->on_action_suggested_user_pointer=u;
 }
 
+void ms_qos_analyser_set_label(MSQosAnalyzer *obj, const char *label){
+	if (obj->label){
+		ms_free(obj->label);
+		obj->label=NULL;
+	}
+	if (label) obj->label=ms_strdup(label);
+}
+
 MSQosAnalyzer *ms_qos_analyzer_ref(MSQosAnalyzer *obj){
 	obj->refcnt++;
 	return obj;
@@ -73,6 +83,7 @@ void ms_qos_analyzer_unref(MSQosAnalyzer *obj){
 	if (obj->refcnt<=0){
 		if (obj->desc->uninit)
 			obj->desc->uninit(obj);
+		if (obj->label) ms_free(obj->label);
 		ms_free(obj);
 	}
 }
@@ -135,13 +146,15 @@ static bool_t simple_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp)
 			if (pt!=NULL) obj->clockrate=pt->clock_rate;
 			else return FALSE;
 		}
-
-		cur->lost_percentage=100.0*(float)report_block_get_fraction_lost(rb)/256.0;
-		cur->int_jitter=1000.0*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
-		cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
-
-		ms_message("MSQosAnalyzer: lost_percentage=%f, int_jitter=%f ms, rt_prop=%fsec",
-			cur->lost_percentage,cur->int_jitter,cur->rt_prop);
+		if (ortp_loss_rate_estimator_process_report_block(obj->lre,rb)){
+			cur->lost_percentage=ortp_loss_rate_estimator_get_value(obj->lre);
+			cur->int_jitter=1000.0*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
+			cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
+			/*
+			ms_message("MSQosAnalyzer[%s]: lost_percentage=%f, int_jitter=%f ms, rt_prop=%f sec",
+				objbase->label ? objbase->label : "", cur->lost_percentage,cur->int_jitter,cur->rt_prop);
+			*/
+		}
 	}
 	return rb!=NULL;
 }
@@ -207,10 +220,17 @@ static bool_t simple_analyzer_has_improved(MSQosAnalyzer *objbase){
 	return FALSE;
 }
 
+static void simple_analyzer_uninit(MSQosAnalyzer *objbase){
+	MSSimpleQosAnalyzer *obj=(MSSimpleQosAnalyzer*)objbase;
+	ortp_loss_rate_estimator_destroy(obj->lre);
+}
+
 static MSQosAnalyzerDesc simple_analyzer_desc={
 	simple_analyzer_process_rtcp,
 	simple_analyzer_suggest_action,
-	simple_analyzer_has_improved
+	simple_analyzer_has_improved,
+	NULL,
+	simple_analyzer_uninit
 };
 
 MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session){
@@ -218,6 +238,7 @@ MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session){
 	obj->session=session;
 	obj->parent.desc=&simple_analyzer_desc;
 	obj->parent.type=Simple;
+	obj->lre=ortp_loss_rate_estimator_new(LOSS_RATE_MIN_INTERVAL, rtp_session_get_seq_number(session));
 	return (MSQosAnalyzer*)obj;
 }
 

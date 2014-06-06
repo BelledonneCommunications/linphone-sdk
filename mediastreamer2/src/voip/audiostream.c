@@ -766,6 +766,7 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
+	ms_quality_indicator_set_label(stream->ms.qi,"audio");
 	stream->ms.process_rtcp=audio_stream_process_rtcp;
 	if (ec_desc!=NULL){
 		stream->ec=ms_filter_new_from_desc(ec_desc);
