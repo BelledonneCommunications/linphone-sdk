@@ -122,27 +122,6 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 }
 
 static void audio_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
-	AudioStream *stream=(AudioStream*)media_stream;
-
-	do{
-		const report_block_t *rb=NULL;
-		if (rtcp_is_SR(m)){
-			rb=rtcp_SR_get_report_block(m,0);
-		}else if (rtcp_is_RR(m)){
-			rb=rtcp_RR_get_report_block(m,0);
-		}
-		if (rb){
-			unsigned int ij;
-			float rt=rtp_session_get_round_trip_propagation(stream->ms.sessions.rtp_session);
-			float flost;
-			ij=report_block_get_interarrival_jitter(rb);
-			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
-			ms_message("audio_stream_iterate[%p]: remote statistics available\n\tremote's interarrival jitter=%u\n"
-					   "\tremote's lost packets percentage since last report=%f\n\tround trip time=%f seconds",stream,ij,flost,rt);
-			if (stream->ms.use_rc&&stream->ms.rc) ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
-			if (stream->ms.qi) ms_quality_indicator_update_from_feedback(stream->ms.qi,m);
-		}
-	}while(rtcp_next_packet(m));
 }
 
 void audio_stream_iterate(AudioStream *stream){
