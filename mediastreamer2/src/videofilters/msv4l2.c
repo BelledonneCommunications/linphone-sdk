@@ -71,7 +71,6 @@ typedef struct V4l2State{
 	bool_t thread_run;
 	queue_t rq;
 	ms_mutex_t mutex;
-	ms_cond_t cond;
 	char *dev;
 	char *mmapdbuf;
 	int msize;/*mmapped size*/
@@ -476,13 +475,8 @@ static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 
 	if (s->queued){
 		ret=v4l2_dequeue_ready_buffer(s,poll_timeout_ms);
-	}
-
-	if (no_slot_available) {
-		ms_mutex_lock(&s->mutex);
-		if (s->thread_run)
-			ms_cond_wait(&s->cond, &s->mutex);
-		ms_mutex_unlock(&s->mutex);
+	}else if (no_slot_available){
+		ms_usleep(100000);
 	}
 	return ret;
 }
@@ -516,7 +510,6 @@ static void msv4l2_init(MSFilter *f){
 	s->vsize=MS_VIDEO_SIZE_CIF;
 	s->fps=15;
 	s->configured=FALSE;
-	ms_cond_init(&s->cond, NULL);
 	f->data=s;
 	qinit(&s->rq);
 }
@@ -526,7 +519,6 @@ static void msv4l2_uninit(MSFilter *f){
 	ms_free(s->dev);
 	flushq(&s->rq,0);
 	ms_mutex_destroy(&s->mutex);
-	ms_cond_destroy(&s->cond);
 	ms_free(s);
 }
 
@@ -613,7 +605,6 @@ static void msv4l2_process(MSFilter *f){
 				om=tmp;
 			}
 		}
-		ms_cond_signal(&s->cond);
 		ms_mutex_unlock(&s->mutex);
 		if (om!=NULL){
 			timestamp=f->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
@@ -642,9 +633,6 @@ static void msv4l2_postprocess(MSFilter *f){
 
 	s->thread_run = FALSE;
 	if(s->thread) {
-		ms_mutex_lock(&s->mutex);
-		ms_cond_signal(&s->cond);
-		ms_mutex_unlock(&s->mutex);
 		ms_thread_join(s->thread,NULL);
 		ms_message("msv4l2 thread has joined.");
 	}
