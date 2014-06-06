@@ -150,7 +150,7 @@ static void plane_copy(const uint8_t *src_plane, int src_stride,
 }
 
 void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[],
-		uint8_t *dst_planes[], const int dst_strides[3], MSVideoSize roi){
+		uint8_t *dst_planes[], const int dst_strides[], MSVideoSize roi){
 	plane_copy(src_planes[0],src_strides[0],dst_planes[0],dst_strides[0],roi);
 	roi.width=roi.width/2;
 	roi.height=roi.height/2;
