@@ -254,14 +254,18 @@ MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session){
 /******************************************************************************/
 /***************************** Stateful QoS analyzer ****************************/
 /******************************************************************************/
+#if 1
+#define RED 		"[1m[31m"
+#define YELLOW 		"[1m[33m"
+#define GREEN 		"[1m[32m"
+#define RESET 		"[0m"
+#define P( X ) 	printf X
+#else
 #define RED
 #define YELLOW
 #define GREEN
 #define RESET
-#if 0
-#define P( X ) 	printf X 
-#else
-#define P( X ) ms_message X 
+#define P( X ) ms_message X
 #endif
 
 const char *ms_qos_analyzer_network_state_name(MSQosAnalyzerNetworkState state){
