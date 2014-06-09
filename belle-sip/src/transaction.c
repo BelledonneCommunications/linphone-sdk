@@ -424,8 +424,11 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 			&& (dialog->state==BELLE_SIP_DIALOG_EARLY || dialog->state==BELLE_SIP_DIALOG_CONFIRMED)){
 			/*make sure this response matches the current dialog, or creates a new one*/
 			if (!belle_sip_dialog_match(dialog,(belle_sip_message_t*)resp,FALSE)){
-				dialog=belle_sip_provider_create_dialog_internal(t->base.provider,BELLE_SIP_TRANSACTION(t),FALSE);/*belle_sip_dialog_new(base);*/
-				belle_sip_message("Handling response creating a new dialog !");
+				dialog=belle_sip_provider_find_dialog_from_message(t->base.provider,(belle_sip_message_t*)resp,FALSE);
+				if (!dialog){
+					dialog=belle_sip_provider_create_dialog_internal(t->base.provider,BELLE_SIP_TRANSACTION(t),FALSE);/*belle_sip_dialog_new(base);*/
+					belle_sip_message("Handling response creating a new dialog !");
+				}
 			}
 		}
 	} else if (should_dialog_be_created(t,resp)) {

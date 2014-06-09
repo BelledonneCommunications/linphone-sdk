@@ -21,8 +21,6 @@
 #include "md5.h"
 #include "belle-sip/message.h"
 
-belle_sip_dialog_t *belle_sip_provider_find_dialog_from_msg(belle_sip_provider_t *prov, belle_sip_request_t *msg, int as_uas);
-
 typedef struct authorization_context {
 	belle_sip_header_call_id_t* callid;
 	const char* scheme;
@@ -96,7 +94,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 		/* Should we limit to ACK ?  */
 		/*Search for a dialog if exist */
 
-		ev.dialog=belle_sip_provider_find_dialog_from_msg(prov,req,1/*request=uas*/);
+		ev.dialog=belle_sip_provider_find_dialog_from_message(prov,(belle_sip_message_t*)req,1/*request=uas*/);
 		if (ev.dialog){
 			if (strcmp("ACK",method)==0){
 				if (belle_sip_dialog_handle_ack(ev.dialog,req)==-1){
@@ -564,21 +562,46 @@ belle_sip_dialog_t * belle_sip_provider_create_dialog_internal(belle_sip_provide
 	return dialog;
 }
 
-/*finds an existing dialog for an outgoing or incoming request */
-belle_sip_dialog_t *belle_sip_provider_find_dialog_from_msg(belle_sip_provider_t *prov, belle_sip_request_t *msg, int as_uas){
-	belle_sip_list_t *elem;
-	belle_sip_dialog_t *dialog;
-	belle_sip_dialog_t *returned_dialog=NULL;
+/*find a dialog given the call id, from-tag and to-tag*/
+belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id, const char* from_tag, const char* to_tag) {
+	belle_sip_list_t* iterator;
+	
+	for(iterator=prov->dialogs;iterator!=NULL;iterator=iterator->next) {
+		belle_sip_dialog_t* dialog=(belle_sip_dialog_t*)iterator->data;
+		if (belle_sip_dialog_get_state(dialog) != BELLE_SIP_DIALOG_NULL && strcmp(belle_sip_header_call_id_get_call_id(belle_sip_dialog_get_call_id(dialog)),call_id)==0) {
+			const char* target_from;
+			const char* target_to;
+			if (belle_sip_dialog_is_server(dialog)) {
+				target_to=belle_sip_dialog_get_local_tag(dialog);
+				target_from=belle_sip_dialog_get_remote_tag(dialog);
+			} else {
+				target_from=belle_sip_dialog_get_local_tag(dialog);
+				target_to=belle_sip_dialog_get_remote_tag(dialog);
+			}
+			if (strcmp(from_tag,target_from)==0 && strcmp(to_tag,target_to)==0) {
+				return dialog;
+			}
+		}
+	}
+	return NULL;
+}
+
+/*finds an existing dialog for an outgoing or incoming message */
+belle_sip_dialog_t *belle_sip_provider_find_dialog_from_message(belle_sip_provider_t *prov, belle_sip_message_t *msg, int as_uas){
+	belle_sip_dialog_t *returned_dialog=NULL,*dialog;
 	belle_sip_header_call_id_t *call_id;
 	belle_sip_header_from_t *from;
 	belle_sip_header_to_t *to;
+	belle_sip_list_t *elem;
 	const char *from_tag;
 	const char *to_tag;
 	const char *call_id_value;
 	const char *local_tag,*remote_tag;
 	
-	if (msg->dialog){
-		return msg->dialog;
+	if (belle_sip_message_is_request(msg)){
+		belle_sip_request_t *req=BELLE_SIP_REQUEST(msg);
+		if (req->dialog)
+			return req->dialog;
 	}
 	
 	to=belle_sip_message_get_header_by_type(msg,belle_sip_header_to_t);
@@ -591,14 +614,12 @@ belle_sip_dialog_t *belle_sip_provider_find_dialog_from_msg(belle_sip_provider_t
 	call_id=belle_sip_message_get_header_by_type(msg,belle_sip_header_call_id_t);
 	from=belle_sip_message_get_header_by_type(msg,belle_sip_header_from_t);
 
-	if (call_id==NULL || from==NULL) return NULL;
+	if (call_id==NULL || from==NULL || (from_tag=belle_sip_header_from_get_tag(from))==NULL) return NULL;
 
 	call_id_value=belle_sip_header_call_id_get_call_id(call_id);
-	from_tag=belle_sip_header_from_get_tag(from);
-	
 	local_tag=as_uas ? to_tag : from_tag;
 	remote_tag=as_uas ? from_tag : to_tag;
-	
+
 	for (elem=prov->dialogs;elem!=NULL;elem=elem->next){
 		dialog=(belle_sip_dialog_t*)elem->data;
 		/*ignore dialog in state BELLE_SIP_DIALOG_NULL, is it really the correct things to do*/
@@ -659,7 +680,7 @@ belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(bel
 			}
 		}
 	}
-	belle_sip_transaction_set_dialog((belle_sip_transaction_t*)t,belle_sip_provider_find_dialog_from_msg(prov,req,FALSE));
+	belle_sip_transaction_set_dialog((belle_sip_transaction_t*)t,belle_sip_provider_find_dialog_from_message(prov,(belle_sip_message_t*)req,FALSE));
 	belle_sip_request_set_dialog(req,NULL);/*get rid of the reference to the dialog, which is no longer needed in the message.
 					This is to avoid circular references.*/
 	return t;
@@ -674,7 +695,7 @@ belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(bel
 		return NULL;
 	}else 
 		t=(belle_sip_server_transaction_t*)belle_sip_nist_new(prov,req);
-	belle_sip_transaction_set_dialog((belle_sip_transaction_t*)t,belle_sip_provider_find_dialog_from_msg(prov,req,TRUE));
+	belle_sip_transaction_set_dialog((belle_sip_transaction_t*)t,belle_sip_provider_find_dialog_from_message(prov,(belle_sip_message_t*)req,TRUE));
 	belle_sip_provider_add_server_transaction(prov,t);
 	return t;
 }
