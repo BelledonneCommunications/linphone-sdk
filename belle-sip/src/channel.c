@@ -309,6 +309,7 @@ static int check_body(belle_sip_channel_t *obj){
 					obj->input_stream.chuncked_mode=1;
 					obj->input_stream.content_length=0;
 					obj->input_stream.chunk_size=-1;
+					obj->input_stream.chunk_read_size=0;
 				}
 			}
 			expect_body=TRUE;
@@ -351,12 +352,13 @@ static int acquire_body_simple(belle_sip_channel_t *obj, int end_of_stream){
 	return BELLE_SIP_STOP;
 }
 
-static int acquire_chuncked_body(belle_sip_channel_t *obj, int end_of_stream){
+static int acquire_chuncked_body(belle_sip_channel_t *obj){
 	belle_sip_channel_input_stream_t *st=&obj->input_stream;
+	int readsize;
 	do{
 		if (st->chunk_size==-1){
 			char *tmp;
-			belle_sip_message("seeing: %s",st->read_ptr);
+			/*belle_sip_message("seeing: %s",st->read_ptr);*/
 			while ( (tmp=strstr(st->read_ptr,"\r\n"))==st->read_ptr){/*skip \r\n*/
 				st->read_ptr+=2;
 			}
@@ -372,8 +374,9 @@ static int acquire_chuncked_body(belle_sip_channel_t *obj, int end_of_stream){
 						belle_sip_channel_message_ready(obj);
 						return BELLE_SIP_CONTINUE;
 					}else{
-						belle_sip_message("Getting chunk of %i bytes",(int)chunksize);
+						belle_sip_message("Will get a chunk of %i bytes",(int)chunksize);
 						st->chunk_size=chunksize;
+						st->chunk_read_size=0;
 						st->read_ptr=tmp+2;
 					}
 				}else{
@@ -386,10 +389,14 @@ static int acquire_chuncked_body(belle_sip_channel_t *obj, int end_of_stream){
 				return BELLE_SIP_STOP;
 			}
 		}
-		if (st->chunk_size<=st->write_ptr-st->read_ptr){
+		readsize=MIN(st->write_ptr-st->read_ptr,st->chunk_size-st->chunk_read_size);
+		if (readsize>0){
+			feed_body(obj,readsize);
+			st->chunk_read_size+=readsize;
+		}
+		if (st->chunk_size==st->chunk_read_size){
 			/*we have a chunk completed*/
 			st->content_length+=st->chunk_size;
-			feed_body(obj,st->chunk_size);
 			belle_sip_message("Chunk of [%i] bytes completed",st->chunk_size);
 			st->chunk_size=-1;/*wait for next chunk indicator*/
 		}else{
@@ -401,7 +408,7 @@ static int acquire_chuncked_body(belle_sip_channel_t *obj, int end_of_stream){
 
 static int acquire_body(belle_sip_channel_t *obj, int end_of_stream){
 	if (obj->input_stream.chuncked_mode)
-		return acquire_chuncked_body(obj,end_of_stream);
+		return acquire_chuncked_body(obj);
 	else return acquire_body_simple(obj,end_of_stream);
 }
 

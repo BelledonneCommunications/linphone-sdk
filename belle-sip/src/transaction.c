@@ -161,6 +161,7 @@ static void belle_sip_transaction_reset_dialog(belle_sip_transaction_t *tr, bell
 }
 
 void belle_sip_transaction_set_dialog(belle_sip_transaction_t *t, belle_sip_dialog_t *dialog){
+	if (t->dialog==dialog) return;
 	if (dialog) belle_sip_object_weak_ref(dialog,(belle_sip_object_destroy_notify_t)belle_sip_transaction_reset_dialog,t);
 	if (t->dialog) belle_sip_object_weak_unref(t->dialog,(belle_sip_object_destroy_notify_t)belle_sip_transaction_reset_dialog,t);
 	t->dialog=dialog;

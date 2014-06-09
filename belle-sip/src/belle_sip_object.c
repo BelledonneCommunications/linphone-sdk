@@ -106,6 +106,7 @@ belle_sip_object_t *belle_sip_object_weak_ref(void *obj, belle_sip_object_destro
 void belle_sip_object_weak_unref(void *obj, belle_sip_object_destroy_notify_t destroy_notify, void *userpointer){
 	belle_sip_object_t *o=BELLE_SIP_OBJECT(obj);
 	weak_ref_t *ref,*prevref=NULL,*next=NULL;
+	int found=FALSE;
 
 	if (o->ref==-1) return; /*too late and avoid recursions*/
 	for(ref=o->weak_refs;ref!=NULL;ref=next){
@@ -114,12 +115,13 @@ void belle_sip_object_weak_unref(void *obj, belle_sip_object_destroy_notify_t de
 			if (prevref==NULL) o->weak_refs=next;
 			else prevref->next=next;
 			belle_sip_free(ref);
-			return;
+			found=TRUE;
+			/*do not break or return, someone could have put twice the same weak ref on the same object*/
 		}else{
 			prevref=ref;
 		}
 	}
-	belle_sip_fatal("Could not find weak_ref, you're a looser.");
+	if (!found) belle_sip_fatal("Could not find weak_ref, you're a looser.");
 }
 
 static void belle_sip_object_loose_weak_refs(belle_sip_object_t *obj){

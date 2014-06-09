@@ -83,6 +83,7 @@ typedef struct belle_sip_channel_input_stream{
 	int content_length;
 	int chuncked_mode;
 	int chunk_size;
+	int chunk_read_size;
 }belle_sip_channel_input_stream_t;
 
 typedef struct belle_sip_stream_channel belle_sip_stream_channel_t;
