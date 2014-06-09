@@ -258,11 +258,10 @@ MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session){
 #define YELLOW
 #define GREEN
 #define RESET
-#define VA_ARGS(...) , ##__VA_ARGS__
 #if 0
-#define P(c, ...) 	printf(GREEN c RESET VA_ARGS(__VA_ARGS__))
+#define P( X ) 	printf X 
 #else
-#define P(c, ...) ms_message(c VA_ARGS(__VA_ARGS__))
+#define P( X ) ms_message X 
 #endif
 
 const char *ms_qos_analyzer_network_state_name(MSQosAnalyzerNetworkState state){
@@ -309,7 +308,7 @@ static double stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj)
 	obj->upload_bandwidth_count=0;
 	obj->upload_bandwidth_sum=0;
 
-	P(GREEN "latest_up_bw=%f vs sum_up_bw=%f\n", up_bw, obj->upload_bandwidth_latest);
+	P(( GREEN "latest_up_bw=%f vs sum_up_bw=%f\n", up_bw, obj->upload_bandwidth_latest ));
 	return obj->upload_bandwidth_latest;
 }
 
@@ -346,7 +345,7 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 
 			if (obj->previous_ext_high_seq_num_rec > 0){
 				loss_rate=(1. - (uniq_emitted - cum_loss_curr) * 1.f / total_emitted);
-				P("RECEIVE estimated loss rate=%f vs 'real'=%f\n", loss_rate, report_block_get_fraction_lost(rb)/256.);
+				P(( "RECEIVE estimated loss rate=%f vs 'real'=%f\n", loss_rate, report_block_get_fraction_lost(rb)/256. ));
 			}
 
 			obj->latest=ms_new0(rtcpstatspoint_t, 1);
@@ -365,14 +364,14 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 					it = it->next;
 				}
 			}
-			P(YELLOW "one more %d: %f %f\n", obj->curindex-2, obj->latest->bandwidth, obj->latest->loss_percent);
+			P(( YELLOW "one more %d: %f %f\n", obj->curindex-2, obj->latest->bandwidth, obj->latest->loss_percent ));
 
 			if (ms_list_size(obj->rtcpstatspoint) > ESTIM_HISTORY){
-				P(RED "Reached list maximum capacity (count=%d)", ms_list_size(obj->rtcpstatspoint));
+				P(( RED "Reached list maximum capacity (count=%d)", ms_list_size(obj->rtcpstatspoint) ));
 				/*clean everything which occurred 60 sec or more ago*/
 				time_t clear_time = ms_time(0) - 60;
 				obj->rtcpstatspoint = ms_list_remove_custom(obj->rtcpstatspoint, (MSCompareFunc)earlier_than, &clear_time);
-				P(RED "--> Cleaned list (count=%d)\n", ms_list_size(obj->rtcpstatspoint));
+				P(( RED "--> Cleaned list (count=%d)\n", ms_list_size(obj->rtcpstatspoint) ));
 			}
 		}
 		obj->cum_loss_prev=report_block_get_cum_packet_loss(rb);
@@ -437,7 +436,7 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 	MSList *last = current;
 	int size = ms_list_size(obj->rtcpstatspoint);
 	if (current == NULL){
-		P(RED "Not points available for computation.\n");
+		P(( RED "Not points available for computation.\n" ));
 		return -1;
 	}
 
@@ -452,24 +451,24 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 	constant_network_loss = ((rtcpstatspoint_t *)obj->rtcpstatspoint->data)->loss_percent;
 
 
-	P("\tconstant_network_loss=%f\n", constant_network_loss);
+	P(( "\tconstant_network_loss=%f\n", constant_network_loss ));
 	for (it = obj->rtcpstatspoint; it != NULL; it=it->next){
 		rtcpstatspoint_t * point = (rtcpstatspoint_t *)it->data;
-		P(YELLOW "\t\tsorted values %d: %f %f\n",
-			ms_list_position(obj->rtcpstatspoint, it), point->bandwidth, point->loss_percent);
+		P(( YELLOW "\t\tsorted values %d: %f %f\n",
+			ms_list_position(obj->rtcpstatspoint, it), point->bandwidth, point->loss_percent));
 	}
 
 	if (size == 1){
-		P(RED "One single point");
+		P(( RED "One single point" ));
 		rtcpstatspoint_t *p = (rtcpstatspoint_t *)current->data;
 		mean_bw = p->bandwidth * ((p->loss_percent>1e-5) ? (1-p->loss_percent):2);
 	}else{
 		while (current!=NULL && ((rtcpstatspoint_t*)current->data)->loss_percent<0.03+constant_network_loss){
-			P("\t%d is stable\n", ms_list_position(obj->rtcpstatspoint, current));
+			P(( "\t%d is stable\n", ms_list_position(obj->rtcpstatspoint, current) ));
 
 			for (it=last;it!=current;it=it->prev){
 				if (((rtcpstatspoint_t *)it->data)->loss_percent <= 0.03 + ((rtcpstatspoint_t*)current->data)->loss_percent){
-					P("\t%d is less than %d\n", ms_list_position(obj->rtcpstatspoint, it), ms_list_position(obj->rtcpstatspoint, current));
+					P(( "\t%d is less than %d\n", ms_list_position(obj->rtcpstatspoint, it), ms_list_position(obj->rtcpstatspoint, current) ));
 					current = it;
 					break;
 				}
@@ -490,19 +489,19 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 			mean_bw = .5*(((rtcpstatspoint_t*)current->prev->data)->bandwidth+((rtcpstatspoint_t*)current->data)->bandwidth);
 		}
 
-		P(RED "[0->%d] Last stable is %d(%f;%f)"
+		P(( RED "[0->%d] Last stable is %d(%f;%f ))"
 			, ms_list_position(obj->rtcpstatspoint, last)
 			, ms_list_position(obj->rtcpstatspoint, (current ? current->prev : last))
 			, ((rtcpstatspoint_t*) (current ? current->prev->data : last->data))->bandwidth
-			, ((rtcpstatspoint_t*) (current ? current->prev->data : last->data))->loss_percent);
+			, ((rtcpstatspoint_t*) (current ? current->prev->data : last->data))->loss_percent));
 		if (current!=NULL){
-			P(RED ", first unstable is %d(%f;%f)"
+			P(( RED ", first unstable is %d(%f;%f ))"
 				, ms_list_position(obj->rtcpstatspoint, current)
 				, ((rtcpstatspoint_t*) current->data)->bandwidth
-				, ((rtcpstatspoint_t*) current->data)->loss_percent);
+				, ((rtcpstatspoint_t*) current->data)->loss_percent));
 		}
 	}
-	P(RED " --> estimated_available_bw=%f\n", mean_bw);
+	P(( RED " --> estimated_available_bw=%f\n", mean_bw ));
 
 	obj->network_loss_rate = constant_network_loss;
 	obj->congestion_bandwidth = mean_bw;
@@ -522,12 +521,12 @@ static void stateful_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateContr
 
 	/*try a burst every 50 seconds (10 RTCP packets)*/
 	if (obj->curindex % 10 == 0){
-		P(YELLOW "try burst!\n");
+		P(( YELLOW "try burst!\n" ));
 		obj->burst_state = MSStatefulQosAnalyzerBurstEnable;
 	}
 	/*test a min burst to avoid overestimation of available bandwidth*/
 	else if (obj->curindex % 10 == 2 || obj->curindex % 10 == 3){
-		P(YELLOW "try minimal burst!\n");
+		P(( YELLOW "try minimal burst!\n" ));
 		bw *= .33;
 	}
 
@@ -543,7 +542,7 @@ static void stateful_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateContr
 		action->value=MAX(10, -100. * (bw / curbw - 1));
 	}
 
-	P(YELLOW "%s of value %d\n", ms_rate_control_action_type_name(action->type), action->value);
+	P(( YELLOW "%s of value %d\n", ms_rate_control_action_type_name(action->type), action->value ));
 }
 
 static bool_t stateful_analyzer_has_improved(MSQosAnalyzer *objbase){
