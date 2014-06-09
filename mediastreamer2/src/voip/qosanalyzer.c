@@ -254,12 +254,12 @@ MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session){
 /******************************************************************************/
 /***************************** Stateful QoS analyzer ****************************/
 /******************************************************************************/
-#define RED 		"[1m[31m"
-#define YELLOW 		"[1m[33m"
-#define GREEN 		"[1m[32m"
-#define RESET 		"[0m"
+#define RED
+#define YELLOW
+#define GREEN
+#define RESET
 #define VA_ARGS(...) , ##__VA_ARGS__
-#if 1
+#if 0
 #define P(c, ...) 	printf(GREEN c RESET VA_ARGS(__VA_ARGS__))
 #else
 #define P(c, ...) ms_message(c VA_ARGS(__VA_ARGS__))
