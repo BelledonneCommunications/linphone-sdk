@@ -213,6 +213,7 @@ float ms_quality_indicator_get_local_late_rate(const MSQualityIndicator *qi){
 
 void ms_quality_indicator_destroy(MSQualityIndicator *qi){
 	ortp_loss_rate_estimator_destroy(qi->lr_estimator);
+	if (qi->label) ms_free(qi->label);
 	ms_free(qi);
 }
 
