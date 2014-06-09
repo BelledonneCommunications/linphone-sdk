@@ -60,7 +60,7 @@ bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj){
 }
 
 void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj,
-	void (*on_action_suggested)(void*, const char*,const char*), void* u){
+	void (*on_action_suggested)(void*, int, const char**), void* u){
 	obj->on_action_suggested=on_action_suggested;
 	obj->on_action_suggested_user_pointer=u;
 }
@@ -182,19 +182,25 @@ static void simple_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateControl
 	}
 
 	if (objbase->on_action_suggested!=NULL){
-		char *input=ms_strdup_printf("lost_percentage=%d rt_prop_increased=%d int_jitter_ms=%d rt_prop_ms=%d"
+		int i;
+		const int datac=4;
+		char *data[datac];
+		data[0]=ms_strdup("lost_percentage rt_prop_increased int_jitter_ms rt_prop_ms");
+		data[1]=ms_strdup_printf("%d %d %d %d"
 			, (int)cur->lost_percentage
 			, (simple_rt_prop_increased(obj)==TRUE)
 			, (int)cur->int_jitter
 			, (int)(1000*cur->rt_prop));
-		char *output=ms_strdup_printf("action_type=%s action_value=%d"
+		data[2]=ms_strdup("action_type action_value");
+		data[3]=ms_strdup_printf("%s %d"
 			, ms_rate_control_action_type_name(action->type)
 			, action->value);
 
-		objbase->on_action_suggested(objbase->on_action_suggested_user_pointer, input, output);
+		objbase->on_action_suggested(objbase->on_action_suggested_user_pointer, datac, (const char**)data);
 
-		ms_free(input);
-		ms_free(output);
+		for (i=0;i<datac;++i){
+			ms_free(data[i]);
+		}
 	}
 }
 

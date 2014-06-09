@@ -101,7 +101,7 @@ struct _MSQosAnalyzerDesc{
 struct _MSQosAnalyzer{
 	MSQosAnalyzerDesc *desc;
 	char *label;
-	void (*on_action_suggested)(void*, const char*,const char*);
+	void (*on_action_suggested)(void*, int, const char**);
 	void *on_action_suggested_user_pointer;
 	int refcnt;
 	enum {
@@ -117,7 +117,7 @@ void ms_qos_analyzer_suggest_action(MSQosAnalyzer *obj, MSRateControlAction *act
 bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj);
 bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj, mblk_t *rtcp);
 void ms_qos_analyzer_update(MSQosAnalyzer *obj);
-void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj, void (*on_action_suggested)(void*,const char*,const char*),void* u);
+void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj, void (*on_action_suggested)(void*,int,const char**),void* u);
 
 /**
  * The simple qos analyzer is an implementation of MSQosAnalyzer that performs analysis for single stream.
