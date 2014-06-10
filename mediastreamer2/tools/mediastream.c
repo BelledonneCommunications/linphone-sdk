@@ -676,7 +676,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		if (args->ice_local_candidates_nb || args->ice_remote_candidates_nb) {
 			args->audio->ms.ice_check_list = ice_check_list_new();
 			rtp_session_set_pktinfo(args->audio->ms.sessions.rtp_session,TRUE);
-			ice_session_add_check_list(args->ice_session, args->audio->ms.ice_check_list);
+			ice_session_add_check_list(args->ice_session, args->audio->ms.ice_check_list, 0);
 		}
 		if (args->ice_local_candidates_nb) {
 			MediastreamIceCandidate *candidate;

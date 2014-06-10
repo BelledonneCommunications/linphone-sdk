@@ -35,6 +35,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 /**
+ * The maximum number of check lists in an ICE session.
+ */
+#define ICE_SESSION_MAX_CHECK_LISTS 8
+
+
+/**
  * ICE agent role.
  *
  * See the terminology in paragraph 3 of the RFC 5245 for more details.
@@ -90,11 +96,13 @@ typedef enum {
 	IS_Failed
 } IceSessionState;
 
+struct _IceCheckList;
+
 /**
  * Structure representing an ICE session.
  */
 typedef struct _IceSession {
-	MSList *streams;	/**< List of IceChecklist structures. Each element of the list represents a media stream */
+	struct _IceCheckList * streams[ICE_SESSION_MAX_CHECK_LISTS];	/**< Table of IceChecklist structure pointers. Each element represents a media stream */
 	char *local_ufrag;	/**< Local username fragment for the session (assigned during the session creation) */
 	char *local_pwd;	/**< Local password for the session (assigned during the session creation) */
 	char *remote_ufrag;	/**< Remote username fragment for the session (provided via SDP by the peer) */
@@ -408,8 +416,9 @@ MS2_PUBLIC bool_t ice_session_has_completed_check_list(const IceSession *session
  *
  * @param session The session that is assigned the check list
  * @param cl The check list to assign to the session
+ * @param idx The index of the check list to add
  */
-MS2_PUBLIC void ice_session_add_check_list(IceSession *session, IceCheckList *cl);
+MS2_PUBLIC void ice_session_add_check_list(IceSession *session, IceCheckList *cl, unsigned int idx);
 
 /**
  * Remove an ICE check list from an ICE session.
@@ -418,6 +427,14 @@ MS2_PUBLIC void ice_session_add_check_list(IceSession *session, IceCheckList *cl
  * @param cl The check list to remove from the session
  */
 MS2_PUBLIC void ice_session_remove_check_list(IceSession *session, IceCheckList *cl);
+
+/**
+ * Remove an ICE check list from an ICE session given its index.
+ *
+ * @param session The session from which to remove the check list
+ * @param idx The index of the check list in the ICE session
+ */
+MS2_PUBLIC void ice_session_remove_check_list_from_idx(IceSession *session, unsigned int idx);
 
 /**
  * Tell whether ICE local candidates have been gathered for an ICE session or not.

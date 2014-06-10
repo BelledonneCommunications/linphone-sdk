@@ -242,7 +242,7 @@ static OrtpRtcpXrPlcStatus audio_stream_get_rtcp_xr_plc_status(unsigned long use
 	AudioStream *stream = (AudioStream *)userdata;
 	if ((stream->features & AUDIO_STREAM_FEATURE_PLC) != 0) {
 		int decoder_have_plc = 0;
-		if (ms_filter_has_method(stream->ms.decoder, MS_AUDIO_DECODER_HAVE_PLC)) {
+		if (stream->ms.decoder && ms_filter_has_method(stream->ms.decoder, MS_AUDIO_DECODER_HAVE_PLC)) {
 			ms_filter_call_method(stream->ms.decoder, MS_AUDIO_DECODER_HAVE_PLC, &decoder_have_plc);
 		}
 		if (decoder_have_plc == 0) {
@@ -257,8 +257,9 @@ static OrtpRtcpXrPlcStatus audio_stream_get_rtcp_xr_plc_status(unsigned long use
 static int audio_stream_get_rtcp_xr_signal_level(unsigned long userdata) {
 	AudioStream *stream = (AudioStream *)userdata;
 	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0) {
-		float volume;
-		ms_filter_call_method(stream->volrecv, MS_VOLUME_GET_MAX, &volume);
+		float volume = 0.f;
+		if (stream->volrecv)
+			ms_filter_call_method(stream->volrecv, MS_VOLUME_GET_MAX, &volume);
 		return (int)volume;
 	}
 	return ORTP_RTCP_XR_UNAVAILABLE_PARAMETER;
@@ -267,8 +268,9 @@ static int audio_stream_get_rtcp_xr_signal_level(unsigned long userdata) {
 static int audio_stream_get_rtcp_xr_noise_level(unsigned long userdata) {
 	AudioStream *stream = (AudioStream *)userdata;
 	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0) {
-		float volume;
-		ms_filter_call_method(stream->volrecv, MS_VOLUME_GET_MIN, &volume);
+		float volume = 0.f;
+		if (stream->volrecv)
+			ms_filter_call_method(stream->volrecv, MS_VOLUME_GET_MIN, &volume);
 		return (int)volume;
 	}
 	return ORTP_RTCP_XR_UNAVAILABLE_PARAMETER;
