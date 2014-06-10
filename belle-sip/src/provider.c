@@ -55,11 +55,26 @@ static void belle_sip_authorization_destroy(authorization_context_t* object) {
 	belle_sip_free(object);
 }
 
+static void finalize_transaction(belle_sip_transaction_t *tr){
+	belle_sip_transaction_state_t state=belle_sip_transaction_get_state(tr);
+	if (state!=BELLE_SIP_TRANSACTION_TERMINATED){
+		belle_sip_message("Transaction [%p] still in state [%s], will force termination.",tr,belle_sip_transaction_state_to_string(state));
+		belle_sip_transaction_terminate(tr);
+	}
+}
+
+static void finalize_transactions(const belle_sip_list_t *l){
+	belle_sip_list_t *copy=belle_sip_list_copy(l);
+	belle_sip_list_free_with_data(copy,(void (*)(void*))finalize_transaction);
+}
+
 static void belle_sip_provider_uninit(belle_sip_provider_t *p){
+	finalize_transactions(p->client_transactions);
+	p->client_transactions=NULL;
+	finalize_transactions(p->server_transactions);
+	p->server_transactions=NULL;
 	p->listeners=belle_sip_list_free(p->listeners);
 	p->internal_listeners=belle_sip_list_free(p->internal_listeners);
-	p->client_transactions=belle_sip_list_free_with_data(p->client_transactions,belle_sip_object_unref);
-	p->server_transactions=belle_sip_list_free_with_data(p->server_transactions,belle_sip_object_unref);
 	p->auth_contexts=belle_sip_list_free_with_data(p->auth_contexts,(void(*)(void*))belle_sip_authorization_destroy);
 	p->dialogs=belle_sip_list_free_with_data(p->dialogs,belle_sip_object_unref);
 	p->lps=belle_sip_list_free_with_data(p->lps,belle_sip_object_unref);

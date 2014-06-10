@@ -370,7 +370,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 			   	   a non-2xx final response, any early dialogs created through
 			   	   provisional responses to that request are terminated.  The mechanism
 			   	   for terminating confirmed dialogs is method specific.*/
-					belle_sip_dialog_delete(obj);
+					delete_dialog=TRUE;
 					break;
 			}
 			if (code>=200 && code<300 && (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0))
@@ -526,6 +526,8 @@ belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *obj, unsign
 			belle_sip_message_add_headers((belle_sip_message_t*)ack,aut);
 		if (prx_aut)
 			belle_sip_message_add_headers((belle_sip_message_t*)ack,prx_aut);
+		/*the ack is sent statelessly, the transaction layer doesn't need the dialog information*/
+		belle_sip_request_set_dialog(ack,NULL);
 	}
 	return ack;
 }
@@ -653,7 +655,7 @@ belle_sip_request_t *belle_sip_dialog_create_queued_request_from(belle_sip_dialo
 
 void belle_sip_dialog_delete(belle_sip_dialog_t *obj){
 	int dropped_transactions;
-	
+	belle_sip_message("dialog [%p] deleted.",obj);
 	belle_sip_dialog_stop_200Ok_retrans(obj); /*if any*/
 	set_state(obj,BELLE_SIP_DIALOG_TERMINATED);
 	dropped_transactions=belle_sip_list_size(obj->queued_ct);

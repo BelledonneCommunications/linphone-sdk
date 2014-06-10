@@ -356,20 +356,13 @@ BELLE_SIP_PARSE(request)
 GET_SET_STRING(belle_sip_request,method);
 GET_SET_STRING(belle_sip_request,rfc2543_branch);
 
+/*caching of the dialog in the request, used when creating a request in dialog to avoid dialog lookup*/
 void belle_sip_request_set_dialog(belle_sip_request_t *req, belle_sip_dialog_t *dialog){
-	if (dialog) belle_sip_object_ref(dialog);
-	if (req->dialog) {
-		belle_sip_object_unref(req->dialog);
-	}
-	req->dialog=dialog;
+	SET_OBJECT_PROPERTY(req,dialog,dialog);
 }
 
 void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri) {
-	belle_sip_object_ref(uri);
-	if (request->uri) {
-		belle_sip_object_unref(request->uri);
-	}
-	request->uri=uri;
+	SET_OBJECT_PROPERTY(request,uri,uri);
 }
 
 belle_sip_uri_t * belle_sip_request_get_uri(const belle_sip_request_t *request){

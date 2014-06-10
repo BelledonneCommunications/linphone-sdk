@@ -170,6 +170,20 @@ BELLESIP_EXPORT belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle
 **/
 BELLESIP_EXPORT void belle_sip_object_enable_marshal_check(int enable);
 
+/**
+ * Activates an object leak detector. When enabled, belle-sip will reference all created objects.
+ * At program termination, application can check if objects remain alive using belle_sip_object_get_object_count() and dump them with
+ * belle_sip_object_dump_active_objects().
+ * @warning this must not be used in multi-threaded programs (when multiple threads can access belle-sip at the same time)
+ * Useful for debug purposes.
+ * @param enable TRUE to enable, FALSE to disable.
+**/
+BELLESIP_EXPORT void belle_sip_object_enable_leak_detector(int enable);
+
+BELLESIP_EXPORT int belle_sip_object_get_object_count(void);
+
+BELLESIP_EXPORT void belle_sip_object_dump_active_objects(void);
+
 int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
 
 /**
