@@ -182,7 +182,7 @@ static void test_dictionary(void)
 
 	belle_sip_dict_clear(obj);
 	// test_str shouldn't exist anymore
-	CU_ASSERT_EQUAL(belle_sip_dict_get_string(obj,"test_str","toto"),"toto");
+	CU_ASSERT_STRING_EQUAL(belle_sip_dict_get_string(obj,"test_str","toto"),"toto");
 
 	belle_sip_object_unref(obj);
 }

@@ -227,7 +227,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 
 			belle_sip_header_t* sip_if_match=belle_sip_message_get_header(BELLE_SIP_MESSAGE(resp),"SIP-If-Match");
 			if (sip_if_match) {
-				CU_ASSERT_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(sip_if_match)),"blablietag");
+				CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(sip_if_match)),"blablietag");
 			}
 			/*check for body*/
 			CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_body(BELLE_SIP_MESSAGE(req)));
