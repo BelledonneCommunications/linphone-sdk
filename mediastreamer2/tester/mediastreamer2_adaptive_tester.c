@@ -459,7 +459,7 @@ static test_t tests[] = {
 };
 
 test_suite_t adaptive_test_suite = {
-	"Adaptive algorithm",
+	"AdaptiveAlgorithm",
 	tester_init,
 	tester_cleanup,
 	sizeof(tests) / sizeof(tests[0]),
