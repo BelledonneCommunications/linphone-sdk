@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <limits.h>
 
-#define VP8RTPFMT_OUTPUT_INCOMPLETE_PARTITIONS
 /*#define VP8RTPFMT_DEBUG*/
 
 #if (defined(__GNUC__) && __GNUC__) || defined(__SUNPRO_C)
@@ -308,6 +307,11 @@ static bool_t parse_frame_header(Vp8RtpFmtFrame *frame) {
 	nb_partitions = (1 << vp8_read_literal(&bc, 2));
 	if (nb_partitions > 8) return FALSE;
 	frame->partitions_info.nb_partitions = nb_partitions;
+	if (nb_partitions == 1) {
+		/* Special case when partitioning is not enabled. */
+		frame->partitions_info.partition_sizes[0] = m->b_wptr - m->b_rptr;
+		return TRUE;
+	}
 	partition_size = data + first_partition_length_in_bytes - m->b_rptr + (3 * (nb_partitions - 1));
 	if (msgdsize(m) != partition_size) return FALSE;
 	frame->partitions_info.partition_sizes[0] = partition_size;
@@ -517,7 +521,7 @@ static void mark_frame_as_invalid(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *fra
 
 static void mark_frame_as_incomplete(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame, uint8_t idx) {
 	frame->error = Vp8RtpFmtIncompleteFrame;
-	if (ctx->output_partitions != TRUE) {
+	if (ctx->freeze_on_error == TRUE) {
 		ctx->waiting_for_reference_frame = TRUE;
 	}
 }
@@ -567,7 +571,7 @@ static void check_frame_partitions_list(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFram
 	}
 
 	/* Check the last partition of the frame. */
-	if (frame->partitions_info.nb_partitions > 0) {
+	if (frame->partitions_info.nb_partitions > 1) {
 		partition = frame->partitions[frame->partitions_info.nb_partitions];
 		if ((partition == NULL) || !partition->has_start || !partition->has_marker) {
 			mark_frame_as_incomplete(ctx, frame, frame->partitions_info.nb_partitions - 1);
@@ -691,6 +695,7 @@ static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 
 	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
 		partition = frame->partitions[i];
+		if (partition == NULL) continue;
 		if (i == 0) {
 			om = partition->m;
 			curm = om;
@@ -756,13 +761,10 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					/* Incomplete keyframe. */
 					frame->discarded = TRUE;
 				} else {
-#ifdef VP8RTPFMT_OUTPUT_INCOMPLETE_PARTITIONS
 					if ((ctx->output_partitions == TRUE) && (ctx->valid_keyframe_received == TRUE) && (ctx->waiting_for_reference_frame == FALSE)) {
 						output_partitions_of_frame(ctx, out, frame);
 						frame->outputted = TRUE;
-					} else
-#endif
-					{
+					} else {
 						/* Drop the frame for which some partitions are missing/invalid. */
 #ifdef VP8RTPFMT_DEBUG
 						if (frame->pictureid_present == TRUE)
@@ -879,12 +881,13 @@ static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 }
 
 
-void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf_enabled, bool_t output_partitions) {
+void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf_enabled, bool_t freeze_on_error, bool_t output_partitions) {
 	ctx->filter = f;
 	ctx->frames_list = NULL;
 	ctx->non_processed_packets_list = NULL;
 	ms_queue_init(&ctx->output_queue);
 	ctx->avpf_enabled = avpf_enabled;
+	ctx->freeze_on_error = freeze_on_error;
 	ctx->output_partitions = output_partitions;
 	ctx->valid_keyframe_received = FALSE;
 	ctx->waiting_for_reference_frame = TRUE;

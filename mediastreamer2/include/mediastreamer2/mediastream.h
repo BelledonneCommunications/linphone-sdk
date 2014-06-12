@@ -575,6 +575,7 @@ struct _VideoStream
 	MSWebCam *cam;
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	bool_t use_preview_window;
+	bool_t freeze_on_error;
 	bool_t display_filter_auto_rotate_enabled;
 	bool_t source_performs_encoding;
 	bool_t output_performs_decoding;
@@ -655,6 +656,7 @@ MS2_PUBLIC unsigned long video_stream_get_native_preview_window_id(VideoStream *
 MS2_PUBLIC void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
 MS2_PUBLIC void video_stream_set_device_rotation(VideoStream *stream, int orientation);
 MS2_PUBLIC void video_stream_show_video(VideoStream *stream, bool_t show);
+MS2_PUBLIC void video_stream_set_freeze_on_error(VideoStream *stream, bool_t yesno);
 
 /**
  * @brief Gets the camera sensor rotation.

@@ -204,6 +204,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, CIF);
 	stream->dir=VideoStreamSendRecv;
 	stream->display_filter_auto_rotate_enabled=0;
+	stream->freeze_on_error = FALSE;
 	stream->source_performs_encoding = FALSE;
 	stream->output_performs_decoding = FALSE;
 	choose_display_name(stream);
@@ -555,6 +556,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		if (pt->recv_fmtp!=NULL)
 			ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
 		ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_ENABLE_AVPF, &avpf_enabled);
+		ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_FREEZE_ON_ERROR, &stream->freeze_on_error);
 
 		/*force the decoder to output YUV420P */
 		format=MS_YUV420P;
@@ -848,6 +850,10 @@ void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
 
 void video_stream_set_device_rotation(VideoStream *stream, int orientation){
 	stream->device_orientation = orientation;
+}
+
+void video_stream_set_freeze_on_error(VideoStream *stream, bool_t yesno) {
+	stream->freeze_on_error = yesno;
 }
 
 int video_stream_get_camera_sensor_rotation(VideoStream *stream) {
