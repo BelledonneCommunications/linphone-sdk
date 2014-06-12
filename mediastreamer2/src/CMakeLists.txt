@@ -160,7 +160,6 @@ set(VOIP_SOURCE_FILES
 	audiofilters/dtmfgen.c
 	audiofilters/equalizer.c
 	audiofilters/flowcontrol.c
-	audiofilters/flowcontrol.h
 	audiofilters/g711.c
 	audiofilters/g711.h
 	audiofilters/genericplc.c
