@@ -67,7 +67,7 @@ typedef unsigned char vp8_prob;
 #define vp8_read_literal vp8_decode_value
 #define vp8_read_bit(R) vp8_read(R, vp8_prob_half)
 
-DECLARE_ALIGNED(16, const unsigned char, vp8_norm[256]) =
+DECLARE_ALIGNED(16, static const unsigned char, vp8_norm[256]) =
 {
     0, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4,
     3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
