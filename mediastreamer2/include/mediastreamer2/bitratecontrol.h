@@ -117,6 +117,7 @@ void ms_qos_analyzer_suggest_action(MSQosAnalyzer *obj, MSRateControlAction *act
 bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj);
 bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj, mblk_t *rtcp);
 void ms_qos_analyzer_update(MSQosAnalyzer *obj);
+const char* ms_qos_analyzer_get_name(MSQosAnalyzer *obj);
 void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj, void (*on_action_suggested)(void*,int,const char**),void* u);
 
 /**

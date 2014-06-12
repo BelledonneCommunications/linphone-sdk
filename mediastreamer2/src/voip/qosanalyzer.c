@@ -73,6 +73,14 @@ void ms_qos_analyser_set_label(MSQosAnalyzer *obj, const char *label){
 	if (label) obj->label=ms_strdup(label);
 }
 
+const char* ms_qos_analyzer_get_name(MSQosAnalyzer *obj){
+	switch (obj->type){
+		case Simple: return "Simple";
+		case Stateful: return "Stateful";
+		default: return "Unknown";
+	}
+}
+
 MSQosAnalyzer *ms_qos_analyzer_ref(MSQosAnalyzer *obj){
 	obj->refcnt++;
 	return obj;
