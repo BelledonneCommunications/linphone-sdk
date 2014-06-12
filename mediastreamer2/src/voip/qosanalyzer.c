@@ -289,8 +289,10 @@ static int stateful_qos_analyzer_get_total_emitted(const MSStatefulQosAnalyzer *
 }
 
 static double stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj){
+#ifdef DEBUG
 	double up_bw=rtp_session_get_send_bandwidth(obj->session)/1000.0;
-	(void)up_bw;
+#endif
+
 	if (obj->upload_bandwidth_count){
 		obj->upload_bandwidth_latest=obj->upload_bandwidth_sum/obj->upload_bandwidth_count;
 	}
@@ -359,8 +361,9 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 				obj, obj->curindex-2, obj->latest->bandwidth, obj->latest->loss_percent);
 
 			if (ms_list_size(obj->rtcpstatspoint) > ESTIM_HISTORY){
+#ifdef DEBUG
 				int prev_size = ms_list_size(obj->rtcpstatspoint);
-				(void)prev_size;
+#endif
 				/*clean everything which occurred 60 sec or more ago*/
 				time_t clear_time = ms_time(0) - 60;
 				obj->rtcpstatspoint = ms_list_remove_custom(obj->rtcpstatspoint, (MSCompareFunc)earlier_than, &clear_time);
@@ -444,14 +447,15 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 	/*suppose that first point is a reliable estimation of the constant network loss rate*/
 	constant_network_loss = ((rtcpstatspoint_t *)obj->rtcpstatspoint->data)->loss_percent;
 
-
 	ms_debug("MSQosStatefulAnalyzer[%p]:\tconstant_network_loss=%f", obj, constant_network_loss);
+#ifdef DEBUG
 	for (it = obj->rtcpstatspoint; it != NULL; it=it->next){
 		rtcpstatspoint_t * point = (rtcpstatspoint_t *)it->data;
 		(void)point;
 		ms_debug("MSQosStatefulAnalyzer[%p]:\t\tsorted values %d: %f %f",
 			obj, ms_list_position(obj->rtcpstatspoint, it), point->bandwidth, point->loss_percent);
 	}
+#endif
 
 	if (size == 1){
 		ms_debug("MSQosStatefulAnalyzer[%p]: One single point", obj);
