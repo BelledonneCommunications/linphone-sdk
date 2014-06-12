@@ -26,7 +26,7 @@
 
 #include <stdint.h>
 
-#include "constants.h"
+#include "isac_constants.h"
 
 /*filter common method*/
 struct _isac_decoder_struct_t {

@@ -1,4 +1,4 @@
-EXTRA_DIST=autogen.sh msisac.iss.in 
+EXTRA_DIST=autogen.sh mswebrtc.iss.in
 isac_VERSION = 1.0.0
 isac_DIR=$(top_builddir)/webrtc
 
@@ -8,7 +8,7 @@ ISAC_COMMON_DIR = webrtc/common_audio/signal_processing
 
 pluginsdir = $(libdir)/mediastreamer/plugins
 
-plugins_LTLIBRARIES=libmsisac.la
+plugins_LTLIBRARIES=libmswebrtc.la
 
 # Build the list of isac source files
 ISAC_BASE_SRCS = $(ISAC_SRC_DIR)/source/fft.c \
@@ -104,40 +104,42 @@ ISAC_BASE_SRCS += $(ISAC_SRC_DIR)/source/decode_plc.c \
 endif
 
 
-libmsisac_la_SOURCES= $(ISAC_BASE_SRCS) isac_dec.c isac_enc.c
+libmswebrtc_la_SOURCES= \
+	mswebrtc.c \
+	$(ISAC_BASE_SRCS) isac_dec.c isac_enc.c
 
 webrtc_repo = git://git.linphone.org/webrtc
 
-BUILT_SOURCES = $(isac_DIR)
+BUILT_SOURCES = $(webrtc_DIR)
 GIT=$(shell which git)
 
-$(isac_DIR):
+$(webrtc_DIR):
 	$(GIT) clone $(webrtc_repo)
 
-extract-sources: $(isac_DIR)
+extract-sources: $(webrtc_DIR)
 
 
-libmsisac_la_LIBADD=\
+libmswebrtc_la_LIBADD= \
 	$(ORTP_LIBS) \
-        $(MEDIASTREAMER_LIBS)
+	$(MEDIASTREAMER_LIBS)
 
-libmsisac_la_LDFLAGS=-module -no-undefined
+libmswebrtc_la_LDFLAGS=-module -no-undefined
 
-isac_CFLAGS = -I$(isac_DIR) \
-               -I$(ISAC_SRC_DIR)/source -I$(ISAC_SRC_DIR)/util -I$(ISAC_SRC_DIR)/interface \
-               -I$(ISAC_COMMON_DIR)/include
+webrtc_CFLAGS = -I$(webrtc_DIR) \
+	-I$(ISAC_SRC_DIR)/source -I$(ISAC_SRC_DIR)/util -I$(ISAC_SRC_DIR)/interface \
+	-I$(ISAC_COMMON_DIR)/include
 
-
-AM_CFLAGS=      $(isac_CFLAGS) \
-                $(MEDIASTREAMER_CFLAGS) \
-				$(STRICT_CFLAGS)
+AM_CFLAGS= \
+	$(webrtc_CFLAGS) \
+	$(MEDIASTREAMER_CFLAGS) \
+	$(STRICT_CFLAGS)
 
 INSTALLDIR=$(shell cd $(top_builddir) && pwd)/$(PACKAGE)-install
 INSTALLDIR_WITH_PREFIX=$(INSTALLDIR)/$(prefix)
 ZIPFILE=$(shell cd $(top_builddir) && pwd)/$(PACKAGE)-win32-$(VERSION).zip
 ZIP_EXCLUDED=include 
 
-ISS_SCRIPT=msisac.iss
+ISS_SCRIPT=mswebrtc.iss
 ISS_SCRIPT_PATH=$(shell cd $(top_srcdir) && pwd)/$(ISS_SCRIPT)
 #path to Inno Setup 5 compiler
 ISCC=ISCC.exe

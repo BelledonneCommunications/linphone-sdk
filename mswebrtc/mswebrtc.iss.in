@@ -2,8 +2,8 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 [Setup]
-AppName=msisac
-AppVerName=msisac version @VERSION@ , plugin for linphone.
+AppName=mswebrtc
+AppVerName=mswebrtc version @VERSION@ , plugin for linphone.
 AppPublisher=linphone.org
 AppPublisherURL=http://www.linphone.org
 AppSupportURL=http://www.linphone.org
@@ -23,4 +23,4 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 ;Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-#include "msisac-win32.filelist"
+#include "mswebrtc-win32.filelist"

@@ -20,7 +20,7 @@
 #include "isacfix.h"
 #include "signal_processing_library.h"
 
-#include "constants.h"
+#include "isac_constants.h"
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mscodecutils.h"
@@ -266,30 +266,3 @@ MSFilterDesc ms_isac_enc_desc = {
 #endif
 
 MS_FILTER_DESC_EXPORT ( ms_isac_enc_desc )
-
-extern MSFilterDesc ms_isac_dec_desc;
-
-#ifndef VERSION
-#define VERSION "debug"
-#endif
-
-#ifdef _MSC_VER
-#define MS_PLUGIN_DECLARE(type) __declspec(dllexport) type
-#else
-#define MS_PLUGIN_DECLARE(type) type
-#endif
-
-MS_PLUGIN_DECLARE ( void ) libmsisac_init() {
-	char isac_version[64];
-	isac_version[0] = 0;
-
-	WebRtcSpl_Init();
-	WebRtcIsacfix_version(isac_version);
-
-	ms_filter_register ( &ms_isac_enc_desc );
-	ms_filter_register ( &ms_isac_dec_desc );
-
-	ms_message ( " libmsisac " VERSION " plugin loaded, iSAC codec version %s", isac_version );
-}
-
-

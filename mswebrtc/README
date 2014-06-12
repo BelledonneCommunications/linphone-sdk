@@ -1,6 +1,6 @@
-msisac - mediastreamer2 (linphone) plugin for iSAC codec.
+mswebrtc - mediastreamer2 (linphone) plugin to include features from WebRTC (iSAC codec, AECM...).
 
-This package downloads and builds the iSAC codec from the WebRTC repository.
+This package downloads code from the WebRTC repository and builds the iSAC codec and/or the AECM.
 
 By default, the upstream package installs into /usr/local.  Please use
 './configure --prefix' to change it

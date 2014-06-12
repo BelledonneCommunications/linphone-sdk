@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([msisac],[1.0.0])
+AC_INIT([mswebrtc],[1.0.0])
 AC_PREREQ(2.63)
 
 AC_CONFIG_AUX_DIR([build-aux])
@@ -87,11 +87,7 @@ fi
 # Create the following files from their .in counterparts
 AC_CONFIG_FILES([
   Makefile
-  msisac.iss
+  mswebrtc.iss
 ])
 
-#  src/Makefile
-#  pkgconfig/Makefile
-#  pkgconfig/silk.pc
-#  man/Makefile
 AC_OUTPUT

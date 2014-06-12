@@ -17,8 +17,8 @@
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#ifndef ISAC_CONSTANTS_H
+#define ISAC_CONSTANTS_H
 
 /* Define codec specific settings */
 
@@ -48,4 +48,4 @@ typedef enum {
 #define ISAC_BITRATE_MAX 32000
 #define ISAC_BITRATE_MIN 10000
 
-#endif // CONSTANTS_H
+#endif // ISAC_CONSTANTS_H
