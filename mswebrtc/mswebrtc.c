@@ -28,6 +28,7 @@
 
 extern MSFilterDesc ms_isac_dec_desc;
 extern MSFilterDesc ms_isac_enc_desc;
+extern MSFilterDesc ms_webrtc_aec_desc;
 
 #ifndef VERSION
 #define VERSION "debug"
@@ -46,10 +47,11 @@ MS_PLUGIN_DECLARE ( void ) libmswebrtc_init() {
 	WebRtcSpl_Init();
 	WebRtcIsacfix_version(isac_version);
 
-	ms_filter_register ( &ms_isac_enc_desc );
-	ms_filter_register ( &ms_isac_dec_desc );
+	ms_filter_register(&ms_isac_enc_desc);
+	ms_filter_register(&ms_isac_dec_desc);
+	ms_filter_register(&ms_webrtc_aec_desc);
 
-	ms_message ( " libmswebrtc " VERSION " plugin loaded, iSAC codec version %s", isac_version );
+	ms_message("libmswebrtc " VERSION " plugin loaded, iSAC codec version %s", isac_version);
 }
 
 

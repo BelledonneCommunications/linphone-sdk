@@ -196,51 +196,60 @@ static int filter_have_plc(MSFilter *f, void *arg)
 	*(int*)arg = 1;
 	return 0;
 }
-static MSFilterMethod filter_methods[]={
+
+static MSFilterMethod filter_methods[] = {
 	{ MS_FILTER_SET_SAMPLE_RATE, filter_set_sample_rate },
 	{ MS_FILTER_GET_SAMPLE_RATE, filter_get_sample_rate },
-	{ MS_DECODER_HAVE_PLC,       filter_have_plc },
-	{ 0,                         NULL}
+	{ MS_DECODER_HAVE_PLC,       filter_have_plc        },
+	{ 0,                         NULL                   }
 };
 
 
 
+#define MS_ISAC_DEC_NAME        "MSiSACDec"
+#define MS_ISAC_DEC_DESCRIPTION "iSAC audio decoder filter."
+#define MS_ISAC_DEC_CATEGORY    MS_FILTER_DECODER
+#define MS_ISAC_DEC_ENC_FMT     "iSAC"
+#define MS_ISAC_DEC_NINPUTS     1
+#define MS_ISAC_DEC_NOUTPUTS    1
+#define MS_ISAC_DEC_FLAGS       MS_FILTER_IS_PUMP
+
 #ifdef _MSC_VER
 
-MSFilterDesc ms_isac_dec_desc={
-	MS_FILTER_PLUGIN_ID, /* from Allfilters.h*/
-	"MSiSACDec",
-	"isac decoder filter.",
-	MS_FILTER_DECODER,
-	"iSAC",
-	1, /*number of inputs*/
-	1, /*number of outputs*/
+MSFilterDesc ms_isac_dec_desc = {
+	MS_FILTER_PLUGIN_ID,
+	MS_ISAC_DEC_NAME,
+	MS_ISAC_DEC_DESCRIPTION,
+	MS_ISAC_DEC_CATEGORY,
+	MS_ISAC_DEC_ENC_FMT,
+	MS_ISAC_DEC_NINPUTS,
+	MS_ISAC_DEC_NOUTPUTS,
 	filter_init,
 	filter_preprocess,
 	filter_process,
 	filter_postprocess,
 	filter_uninit,
 	filter_methods,
-	MS_FILTER_IS_PUMP
+	MS_ISAC_DEC_FLAGS
 };
 
 #else
 
-MSFilterDesc ms_isac_dec_desc={
-	.id=MS_FILTER_PLUGIN_ID, /* from Allfilters.h*/
-	.name="MSiSACDec",
-	.text="iSAC decoder filter.",
-	.category=MS_FILTER_DECODER,
-	.enc_fmt="iSAC",
-	.ninputs=1, /*number of inputs*/
-	.noutputs=1, /*number of outputs*/
-	.init=filter_init,
-	.preprocess=filter_preprocess,
-	.process=filter_process,
-	.postprocess=filter_postprocess,
-	.uninit=filter_uninit,
-	.methods=filter_methods,
-	.flags=MS_FILTER_IS_PUMP
+MSFilterDesc ms_isac_dec_desc = {
+	.id = MS_FILTER_PLUGIN_ID,
+	.name = MS_ISAC_DEC_NAME,
+	.text = MS_ISAC_DEC_DESCRIPTION,
+	.category = MS_ISAC_DEC_CATEGORY,
+	.enc_fmt = MS_ISAC_DEC_ENC_FMT,
+	.ninputs = MS_ISAC_DEC_NINPUTS,
+	.noutputs = MS_ISAC_DEC_NOUTPUTS,
+	.init = filter_init,
+	.preprocess = filter_preprocess,
+	.process = filter_process,
+	.postprocess = filter_postprocess,
+	.uninit = filter_uninit,
+	.methods = filter_methods,
+	.flags = MS_ISAC_DEC_FLAGS
 };
 
 #endif

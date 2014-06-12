@@ -1,10 +1,11 @@
 EXTRA_DIST=autogen.sh mswebrtc.iss.in
-isac_VERSION = 1.0.0
-isac_DIR=$(top_builddir)/webrtc
+webrtc_VERSION = 1.0.0
+webrtc_DIR=$(top_builddir)/webrtc
 
 ISAC_FLAVOUR ?= fix # use 'main' or 'fix'
 ISAC_SRC_DIR = webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
-ISAC_COMMON_DIR = webrtc/common_audio/signal_processing
+AEC_SRC_DIR = webrtc/modules/audio_processing/aecm
+WEBRTC_COMMON_DIR = webrtc/common_audio/signal_processing
 
 pluginsdir = $(libdir)/mediastreamer/plugins
 
@@ -57,42 +58,42 @@ ISAC_BASE_SRCS += $(ISAC_SRC_DIR)/source/decode_plc.c \
 	$(ISAC_SRC_DIR)/source/lattice_c.c \
 	$(ISAC_SRC_DIR)/source/pitch_filter_c.c \
 	$(ISAC_SRC_DIR)/source/lpc_masking_model.c \
-	$(ISAC_COMMON_DIR)/spl_sqrt.c \
-	$(ISAC_COMMON_DIR)/real_fft.c \
-	$(ISAC_COMMON_DIR)/filter_ar_fast_q12.c \
-	$(ISAC_COMMON_DIR)/webrtc_fft_t_1024_8.c \
-	$(ISAC_COMMON_DIR)/complex_bit_reverse.c \
-	$(ISAC_COMMON_DIR)/spl_init.c \
-	$(ISAC_COMMON_DIR)/splitting_filter.c \
-	$(ISAC_COMMON_DIR)/spl_sqrt_floor.c \
-	$(ISAC_COMMON_DIR)/levinson_durbin.c \
-	$(ISAC_COMMON_DIR)/filter_ar.c \
-	$(ISAC_COMMON_DIR)/get_scaling_square.c \
-	$(ISAC_COMMON_DIR)/resample_fractional.c \
-	$(ISAC_COMMON_DIR)/resample.c \
-	$(ISAC_COMMON_DIR)/downsample_fast.c \
-	$(ISAC_COMMON_DIR)/filter_ma_fast_q12.c \
-	$(ISAC_COMMON_DIR)/auto_corr_to_refl_coef.c \
-	$(ISAC_COMMON_DIR)/auto_correlation.c \
-	$(ISAC_COMMON_DIR)/refl_coef_to_lpc.c \
-	$(ISAC_COMMON_DIR)/dot_product_with_scale.c \
-	$(ISAC_COMMON_DIR)/copy_set_operations.c \
-	$(ISAC_COMMON_DIR)/spl_version.c \
-	$(ISAC_COMMON_DIR)/cross_correlation.c \
-	$(ISAC_COMMON_DIR)/sqrt_of_one_minus_x_squared.c \
-	$(ISAC_COMMON_DIR)/ilbc_specific_functions.c \
-	$(ISAC_COMMON_DIR)/resample_by_2.c \
-	$(ISAC_COMMON_DIR)/complex_fft.c \
-	$(ISAC_COMMON_DIR)/resample_48khz.c \
-	$(ISAC_COMMON_DIR)/energy.c \
-	$(ISAC_COMMON_DIR)/get_hanning_window.c \
-	$(ISAC_COMMON_DIR)/randomization_functions.c \
-	$(ISAC_COMMON_DIR)/vector_scaling_operations.c \
-	$(ISAC_COMMON_DIR)/webrtc_fft_t_rad.c \
-	$(ISAC_COMMON_DIR)/resample_by_2_internal.c \
-	$(ISAC_COMMON_DIR)/lpc_to_refl_coef.c \
-	$(ISAC_COMMON_DIR)/min_max_operations.c \
-	$(ISAC_COMMON_DIR)/division_operations.c 
+	$(WEBRTC_COMMON_DIR)/spl_sqrt.c \
+	$(WEBRTC_COMMON_DIR)/real_fft.c \
+	$(WEBRTC_COMMON_DIR)/filter_ar_fast_q12.c \
+	$(WEBRTC_COMMON_DIR)/webrtc_fft_t_1024_8.c \
+	$(WEBRTC_COMMON_DIR)/complex_bit_reverse.c \
+	$(WEBRTC_COMMON_DIR)/spl_init.c \
+	$(WEBRTC_COMMON_DIR)/splitting_filter.c \
+	$(WEBRTC_COMMON_DIR)/spl_sqrt_floor.c \
+	$(WEBRTC_COMMON_DIR)/levinson_durbin.c \
+	$(WEBRTC_COMMON_DIR)/filter_ar.c \
+	$(WEBRTC_COMMON_DIR)/get_scaling_square.c \
+	$(WEBRTC_COMMON_DIR)/resample_fractional.c \
+	$(WEBRTC_COMMON_DIR)/resample.c \
+	$(WEBRTC_COMMON_DIR)/downsample_fast.c \
+	$(WEBRTC_COMMON_DIR)/filter_ma_fast_q12.c \
+	$(WEBRTC_COMMON_DIR)/auto_corr_to_refl_coef.c \
+	$(WEBRTC_COMMON_DIR)/auto_correlation.c \
+	$(WEBRTC_COMMON_DIR)/refl_coef_to_lpc.c \
+	$(WEBRTC_COMMON_DIR)/dot_product_with_scale.c \
+	$(WEBRTC_COMMON_DIR)/copy_set_operations.c \
+	$(WEBRTC_COMMON_DIR)/spl_version.c \
+	$(WEBRTC_COMMON_DIR)/cross_correlation.c \
+	$(WEBRTC_COMMON_DIR)/sqrt_of_one_minus_x_squared.c \
+	$(WEBRTC_COMMON_DIR)/ilbc_specific_functions.c \
+	$(WEBRTC_COMMON_DIR)/resample_by_2.c \
+	$(WEBRTC_COMMON_DIR)/complex_fft.c \
+	$(WEBRTC_COMMON_DIR)/resample_48khz.c \
+	$(WEBRTC_COMMON_DIR)/energy.c \
+	$(WEBRTC_COMMON_DIR)/get_hanning_window.c \
+	$(WEBRTC_COMMON_DIR)/randomization_functions.c \
+	$(WEBRTC_COMMON_DIR)/vector_scaling_operations.c \
+	$(WEBRTC_COMMON_DIR)/webrtc_fft_t_rad.c \
+	$(WEBRTC_COMMON_DIR)/resample_by_2_internal.c \
+	$(WEBRTC_COMMON_DIR)/lpc_to_refl_coef.c \
+	$(WEBRTC_COMMON_DIR)/min_max_operations.c \
+	$(WEBRTC_COMMON_DIR)/division_operations.c 
 
 # TODO: use assembly-optimized versions when possible
 #	$(ISAC_SRC_DIR)/source/filters_neon.c \
@@ -106,6 +107,7 @@ endif
 
 libmswebrtc_la_SOURCES= \
 	mswebrtc.c \
+	aec.c \
 	$(ISAC_BASE_SRCS) isac_dec.c isac_enc.c
 
 webrtc_repo = git://git.linphone.org/webrtc
@@ -127,7 +129,8 @@ libmswebrtc_la_LDFLAGS=-module -no-undefined
 
 webrtc_CFLAGS = -I$(webrtc_DIR) \
 	-I$(ISAC_SRC_DIR)/source -I$(ISAC_SRC_DIR)/util -I$(ISAC_SRC_DIR)/interface \
-	-I$(ISAC_COMMON_DIR)/include
+	-I$(AEC_SRC_DIR)/include -Iwebrtc/common_audio/signal_processing/include
+	-I$(WEBRTC_COMMON_DIR)/include
 
 AM_CFLAGS= \
 	$(webrtc_CFLAGS) \

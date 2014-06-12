@@ -215,52 +215,62 @@ static int filter_get_bitrate ( MSFilter *f, void *arg ) {
 }
 
 static MSFilterMethod filter_methods[]= {
-	{MS_FILTER_GET_SAMPLE_RATE,     filter_get_sample_rate },
-	{MS_FILTER_SET_BITRATE,         filter_set_bitrate },
-	{MS_FILTER_GET_BITRATE,         filter_get_bitrate },
-	#ifdef MS_AUDIO_ENCODER_SET_PTIME
-	{MS_AUDIO_ENCODER_SET_PTIME,    filter_set_ptime },
-	{MS_AUDIO_ENCODER_GET_PTIME,    filter_get_ptime },
-	#endif
-	{0, NULL}
+	{ MS_FILTER_GET_SAMPLE_RATE,  filter_get_sample_rate },
+	{ MS_FILTER_SET_BITRATE,      filter_set_bitrate     },
+	{ MS_FILTER_GET_BITRATE,      filter_get_bitrate     },
+#ifdef MS_AUDIO_ENCODER_SET_PTIME
+	{ MS_AUDIO_ENCODER_SET_PTIME, filter_set_ptime       },
+	{ MS_AUDIO_ENCODER_GET_PTIME, filter_get_ptime       },
+#endif
+	{ 0,                          NULL                   }
 };
 
 
+
+#define MS_ISAC_ENC_NAME        "MSiSACEnc"
+#define MS_ISAC_ENC_DESCRIPTION "iSAC audio encoder filter."
+#define MS_ISAC_ENC_CATEGORY    MS_FILTER_ENCODER
+#define MS_ISAC_ENC_ENC_FMT     "iSAC"
+#define MS_ISAC_ENC_NINPUTS     1
+#define MS_ISAC_ENC_NOUTPUTS    1
+#define MS_ISAC_ENC_FLAGS       0
+
 #ifdef _MSC_VER
 
-MSFilterDesc ms_isac_enc_desc= {
-	MS_FILTER_PLUGIN_ID, /* from Allfilters.h*/
-	"MSiSACEnc",
-	"iSAC audio encoder filter.",
-	MS_FILTER_ENCODER,
-	"iSAC",
-	1, /*number of inputs*/
-	1, /*number of outputs*/
+MSFilterDesc ms_isac_enc_desc = {
+	MS_FILTER_PLUGIN_ID,
+	MS_ISAC_ENC_NAME,
+	MS_ISAC_ENC_DESCRIPTION,
+	MS_ISAC_ENC_CATEGORY,
+	MS_ISAC_ENC_ENC_FMT,
+	MS_ISAC_ENC_NINPUTS,
+	MS_ISAC_ENC_NOUTPUTS,
 	filter_init,
 	filter_preprocess,
 	filter_process,
 	filter_postprocess,
 	filter_uninit,
 	filter_methods,
-	0
+	MS_ISAC_ENC_FLAGS
 };
 
 #else
 
 MSFilterDesc ms_isac_enc_desc = {
-	.id=MS_FILTER_PLUGIN_ID, /* from Allfilters.h*/
-	.name="MSiSACEnc",
-	.text="iSAC audio encoder filter.",
-	.category=MS_FILTER_ENCODER,
-	.enc_fmt="iSAC",
-	.ninputs=1, /*number of inputs*/
-	.noutputs=1, /*number of outputs*/
-	.init=filter_init,
-	.preprocess=filter_preprocess,
-	.process=filter_process,
-	.postprocess=filter_postprocess,
-	.uninit=filter_uninit,
-	.methods=filter_methods
+	.id = MS_FILTER_PLUGIN_ID,
+	.name = MS_ISAC_ENC_NAME,
+	.text = MS_ISAC_ENC_DESCRIPTION,
+	.category = MS_ISAC_ENC_CATEGORY,
+	.enc_fmt = MS_ISAC_ENC_ENC_FMT,
+	.ninputs = MS_ISAC_ENC_NINPUTS,
+	.noutputs = MS_ISAC_ENC_NOUTPUTS,
+	.init = filter_init,
+	.preprocess = filter_preprocess,
+	.process = filter_process,
+	.postprocess = filter_postprocess,
+	.uninit = filter_uninit,
+	.methods = filter_methods,
+	.flags = MS_ISAC_ENC_FLAGS
 };
 
 #endif
