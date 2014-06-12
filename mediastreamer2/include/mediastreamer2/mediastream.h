@@ -93,6 +93,8 @@ typedef enum StreamType {
 	VideoStreamType
 } StreamType;
 
+MS2_PUBLIC const char* ms_stream_type_to_string(StreamType);
+
 /**
  * The MediaStream is an object describing a stream (one of AudioStream or VideoStream).
 **/

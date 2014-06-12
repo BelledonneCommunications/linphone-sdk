@@ -111,8 +111,13 @@ static stream_manager_t * stream_manager_new(StreamType type) {
 		mgr->audio_stream=audio_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
 		rtp_session_register_event_queue(mgr->audio_stream->ms.sessions.rtp_session,mgr->evq);
 	}else{
+#if VIDEO_ENABLED
 		mgr->video_stream=video_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
 		rtp_session_register_event_queue(mgr->video_stream->ms.sessions.rtp_session,mgr->evq);
+#else
+		ms_fatal("Unsupported stream type [%s]",ms_stream_type_to_string(mgr->type));
+#endif
+
 	}
 	return mgr;
 }
@@ -124,8 +129,12 @@ static void stream_manager_delete(stream_manager_t * mgr) {
 		rtp_session_unregister_event_queue(mgr->audio_stream->ms.sessions.rtp_session,mgr->evq);
 		audio_stream_stop(mgr->audio_stream);
 	}else{
+#if VIDEO_ENABLED
 		rtp_session_unregister_event_queue(mgr->video_stream->ms.sessions.rtp_session,mgr->evq);
 		video_stream_stop(mgr->video_stream);
+#else
+		ms_fatal("Unsupported stream type [%s]",ms_stream_type_to_string(mgr->type));
+#endif
 	}
 	ortp_ev_queue_destroy(mgr->evq);
 	ms_free(mgr);
@@ -155,6 +164,7 @@ static void audio_manager_start(stream_manager_t * mgr
 												, 0),0);
 }
 
+#if VIDEO_ENABLED
 static void video_manager_start(	stream_manager_t * mgr
 									,int payload_type
 									,int remote_port
@@ -173,6 +183,7 @@ static void video_manager_start(	stream_manager_t * mgr
 												, cam);
 	CU_ASSERT_EQUAL(result,0);
 }
+#endif
 
 static void handle_queue_events(stream_manager_t * stream_mgr) {
 	OrtpEvent *ev;
@@ -215,8 +226,9 @@ static void start_adaptive_stream(StreamType type, stream_manager_t ** pmarielle
 	params.latency=latency;
 	int pause_time=0;
 	MediaStream *marielle_ms,*margaux_ms;
+#if VIDEO_ENABLED
 	MSWebCam * marielle_webcam=ms_web_cam_manager_get_default_cam (ms_web_cam_manager_get());
-
+#endif
 	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);
 	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);
 
@@ -243,10 +255,14 @@ static void start_adaptive_stream(StreamType type, stream_manager_t ** pmarielle
 
 		audio_manager_start(margaux,payload,marielle->local_rtp,0,NULL,RECORDED_16K_1S_FILE);
 	}else{
+#if VIDEO_ENABLED
 		video_manager_start(marielle,payload,margaux->local_rtp,0,marielle_webcam);
 		video_stream_set_direction(margaux->video_stream,VideoStreamRecvOnly);
 
 		video_manager_start(margaux,payload,marielle->local_rtp,0,NULL);
+#else
+		ms_fatal("Unsupported stream type [%s]",ms_stream_type_to_string(marielle->type));
+#endif
 	}
 
 	rtp_session_enable_network_simulation(margaux_ms->sessions.rtp_session,&params);

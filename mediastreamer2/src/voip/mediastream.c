@@ -175,13 +175,7 @@ void media_stream_start_ticker(MediaStream *stream) {
 }
 
 const char * media_stream_type_str(MediaStream *stream) {
-	switch (stream->type) {
-		default:
-		case AudioStreamType:
-			return "audio";
-		case VideoStreamType:
-			return "video";
-	}
+	return ms_stream_type_to_string(stream->type); 
 }
 
 void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
@@ -651,5 +645,14 @@ int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *pa
 	}
 	if (params->name==NULL) return -1;
 	return 0;
+}
+const char* ms_stream_type_to_string(StreamType type) {
+       switch (type) {
+               case AudioStreamType:
+                       return "audio";
+               case VideoStreamType:
+                       return "video";
+       }
+       return "unknown";
 }
 
