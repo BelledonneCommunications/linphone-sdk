@@ -11,6 +11,43 @@ pluginsdir = $(libdir)/mediastreamer/plugins
 
 plugins_LTLIBRARIES=libmswebrtc.la
 
+WEBRTC_COMMON_SRCS = $(WEBRTC_COMMON_DIR)/spl_sqrt.c \
+	$(WEBRTC_COMMON_DIR)/real_fft.c \
+	$(WEBRTC_COMMON_DIR)/filter_ar_fast_q12.c \
+	$(WEBRTC_COMMON_DIR)/webrtc_fft_t_1024_8.c \
+	$(WEBRTC_COMMON_DIR)/complex_bit_reverse.c \
+	$(WEBRTC_COMMON_DIR)/spl_init.c \
+	$(WEBRTC_COMMON_DIR)/splitting_filter.c \
+	$(WEBRTC_COMMON_DIR)/spl_sqrt_floor.c \
+	$(WEBRTC_COMMON_DIR)/levinson_durbin.c \
+	$(WEBRTC_COMMON_DIR)/filter_ar.c \
+	$(WEBRTC_COMMON_DIR)/get_scaling_square.c \
+	$(WEBRTC_COMMON_DIR)/resample_fractional.c \
+	$(WEBRTC_COMMON_DIR)/resample.c \
+	$(WEBRTC_COMMON_DIR)/downsample_fast.c \
+	$(WEBRTC_COMMON_DIR)/filter_ma_fast_q12.c \
+	$(WEBRTC_COMMON_DIR)/auto_corr_to_refl_coef.c \
+	$(WEBRTC_COMMON_DIR)/auto_correlation.c \
+	$(WEBRTC_COMMON_DIR)/refl_coef_to_lpc.c \
+	$(WEBRTC_COMMON_DIR)/dot_product_with_scale.c \
+	$(WEBRTC_COMMON_DIR)/copy_set_operations.c \
+	$(WEBRTC_COMMON_DIR)/spl_version.c \
+	$(WEBRTC_COMMON_DIR)/cross_correlation.c \
+	$(WEBRTC_COMMON_DIR)/sqrt_of_one_minus_x_squared.c \
+	$(WEBRTC_COMMON_DIR)/ilbc_specific_functions.c \
+	$(WEBRTC_COMMON_DIR)/resample_by_2.c \
+	$(WEBRTC_COMMON_DIR)/complex_fft.c \
+	$(WEBRTC_COMMON_DIR)/resample_48khz.c \
+	$(WEBRTC_COMMON_DIR)/energy.c \
+	$(WEBRTC_COMMON_DIR)/get_hanning_window.c \
+	$(WEBRTC_COMMON_DIR)/randomization_functions.c \
+	$(WEBRTC_COMMON_DIR)/vector_scaling_operations.c \
+	$(WEBRTC_COMMON_DIR)/webrtc_fft_t_rad.c \
+	$(WEBRTC_COMMON_DIR)/resample_by_2_internal.c \
+	$(WEBRTC_COMMON_DIR)/lpc_to_refl_coef.c \
+	$(WEBRTC_COMMON_DIR)/min_max_operations.c \
+	$(WEBRTC_COMMON_DIR)/division_operations.c
+
 # Build the list of isac source files
 ISAC_BASE_SRCS = $(ISAC_SRC_DIR)/source/fft.c \
 	$(ISAC_SRC_DIR)/source/arith_routines.c \
@@ -46,7 +83,7 @@ ISAC_BASE_SRCS += $(ISAC_SRC_DIR)/source/intialize.c \
 	$(ISAC_SRC_DIR)/source/lpc_gain_swb_tables.c \
 	$(ISAC_SRC_DIR)/source/lpc_shape_swb12_tables.c \
 	$(ISAC_SRC_DIR)/source/lpc_shape_swb16_tables.c \
-	$(ISAC_SRC_DIR)/util/utility.c 
+	$(ISAC_SRC_DIR)/util/utility.c
 
 else
 
@@ -57,58 +94,25 @@ ISAC_BASE_SRCS += $(ISAC_SRC_DIR)/source/decode_plc.c \
 	$(ISAC_SRC_DIR)/source/isacfix.c \
 	$(ISAC_SRC_DIR)/source/lattice_c.c \
 	$(ISAC_SRC_DIR)/source/pitch_filter_c.c \
-	$(ISAC_SRC_DIR)/source/lpc_masking_model.c \
-	$(WEBRTC_COMMON_DIR)/spl_sqrt.c \
-	$(WEBRTC_COMMON_DIR)/real_fft.c \
-	$(WEBRTC_COMMON_DIR)/filter_ar_fast_q12.c \
-	$(WEBRTC_COMMON_DIR)/webrtc_fft_t_1024_8.c \
-	$(WEBRTC_COMMON_DIR)/complex_bit_reverse.c \
-	$(WEBRTC_COMMON_DIR)/spl_init.c \
-	$(WEBRTC_COMMON_DIR)/splitting_filter.c \
-	$(WEBRTC_COMMON_DIR)/spl_sqrt_floor.c \
-	$(WEBRTC_COMMON_DIR)/levinson_durbin.c \
-	$(WEBRTC_COMMON_DIR)/filter_ar.c \
-	$(WEBRTC_COMMON_DIR)/get_scaling_square.c \
-	$(WEBRTC_COMMON_DIR)/resample_fractional.c \
-	$(WEBRTC_COMMON_DIR)/resample.c \
-	$(WEBRTC_COMMON_DIR)/downsample_fast.c \
-	$(WEBRTC_COMMON_DIR)/filter_ma_fast_q12.c \
-	$(WEBRTC_COMMON_DIR)/auto_corr_to_refl_coef.c \
-	$(WEBRTC_COMMON_DIR)/auto_correlation.c \
-	$(WEBRTC_COMMON_DIR)/refl_coef_to_lpc.c \
-	$(WEBRTC_COMMON_DIR)/dot_product_with_scale.c \
-	$(WEBRTC_COMMON_DIR)/copy_set_operations.c \
-	$(WEBRTC_COMMON_DIR)/spl_version.c \
-	$(WEBRTC_COMMON_DIR)/cross_correlation.c \
-	$(WEBRTC_COMMON_DIR)/sqrt_of_one_minus_x_squared.c \
-	$(WEBRTC_COMMON_DIR)/ilbc_specific_functions.c \
-	$(WEBRTC_COMMON_DIR)/resample_by_2.c \
-	$(WEBRTC_COMMON_DIR)/complex_fft.c \
-	$(WEBRTC_COMMON_DIR)/resample_48khz.c \
-	$(WEBRTC_COMMON_DIR)/energy.c \
-	$(WEBRTC_COMMON_DIR)/get_hanning_window.c \
-	$(WEBRTC_COMMON_DIR)/randomization_functions.c \
-	$(WEBRTC_COMMON_DIR)/vector_scaling_operations.c \
-	$(WEBRTC_COMMON_DIR)/webrtc_fft_t_rad.c \
-	$(WEBRTC_COMMON_DIR)/resample_by_2_internal.c \
-	$(WEBRTC_COMMON_DIR)/lpc_to_refl_coef.c \
-	$(WEBRTC_COMMON_DIR)/min_max_operations.c \
-	$(WEBRTC_COMMON_DIR)/division_operations.c 
+	$(ISAC_SRC_DIR)/source/lpc_masking_model.c
 
 # TODO: use assembly-optimized versions when possible
 #	$(ISAC_SRC_DIR)/source/filters_neon.c \
 #	$(ISAC_SRC_DIR)/source/lpc_masking_model_neon.S \
 #	$(ISAC_SRC_DIR)/source/pitch_filter_armv6.S \
 #	$(ISAC_SRC_DIR)/source/lattice_neon.S \
-#	$(ISAC_SRC_DIR)/source/lattice_armv7.S 
+#	$(ISAC_SRC_DIR)/source/lattice_armv7.S
 
 endif
 
 
-libmswebrtc_la_SOURCES= \
-	mswebrtc.c \
-	aec.c \
-	$(ISAC_BASE_SRCS) isac_dec.c isac_enc.c
+libmswebrtc_la_SOURCES= mswebrtc.c $(WEBRTC_COMMON_SRCS)
+if BUILD_ISAC
+libmswebrtc_la_SOURCES+= $(ISAC_BASE_SRCS) isac_dec.c isac_enc.c
+endif
+if BUILD_AEC
+libmswebrtc_la_SOURCES+= aec.c
+endif
 
 webrtc_repo = git://git.linphone.org/webrtc
 
@@ -127,10 +131,13 @@ libmswebrtc_la_LIBADD= \
 
 libmswebrtc_la_LDFLAGS=-module -no-undefined
 
-webrtc_CFLAGS = -I$(webrtc_DIR) \
-	-I$(ISAC_SRC_DIR)/source -I$(ISAC_SRC_DIR)/util -I$(ISAC_SRC_DIR)/interface \
-	-I$(AEC_SRC_DIR)/include -Iwebrtc/common_audio/signal_processing/include
-	-I$(WEBRTC_COMMON_DIR)/include
+webrtc_CFLAGS = -I$(webrtc_DIR) -I$(WEBRTC_COMMON_DIR)/include
+if BUILD_ISAC
+webrtc_CFLAGS += -I$(ISAC_SRC_DIR)/source -I$(ISAC_SRC_DIR)/util -I$(ISAC_SRC_DIR)/interface
+endif
+if BUILD_AEC
+webrtc_CFLAGS += -I$(AEC_SRC_DIR)/include -Iwebrtc/common_audio/signal_processing/include
+endif
 
 AM_CFLAGS= \
 	$(webrtc_CFLAGS) \
@@ -174,4 +181,3 @@ zip:
 	cp -f $(top_srcdir)/COPYING $(INSTALLDIR_WITH_PREFIX)/.
 	cd $(INSTALLDIR)/$(prefix) && rm -rf $(ZIP_EXCLUDED) && \
 	zip -r $(ZIPFILE) *
-

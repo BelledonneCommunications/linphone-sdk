@@ -73,6 +73,39 @@ esac
 AM_CONDITIONAL(BUILD_WIN32, test x$mingw_found = xyes)
 
 
+AC_ARG_ENABLE(isac,
+	[AS_HELP_STRING([--disable-isac], [Turn off isac audio codec support (default=no)])],
+	[case "${enableval}" in
+		yes)	build_isac=true ;;
+		no)	build_isac=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-isac) ;;
+	esac],
+	[build_isac=true]
+)
+AM_CONDITIONAL(BUILD_ISAC, test x$build_isac = xtrue)
+if test x${build_isac} = xtrue; then
+	AC_DEFINE(BUILD_ISAC, 1, [Defined iSAC support is built])
+fi
+
+AC_ARG_ENABLE(aec,
+	[AS_HELP_STRING([--disable-aec], [Turn off WebRTC echo canceller support (default=no)])],
+	[case "${enableval}" in
+		yes)	build_aec=true ;;
+		no)	build_aec=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-aec) ;;
+	esac],
+	[build_aec=true]
+)
+AM_CONDITIONAL(BUILD_AEC, test x$build_aec = xtrue)
+if test x${build_aec} = xtrue; then
+	AC_DEFINE(BUILD_AEC, 1, [Defined AEC support is built])
+fi
+
+if test "${build_isac}${build_aec}" = "falsefalse"; then
+	AC_MSG_ERROR([You need to enable at least one feature of WebRTC.])
+fi
+
+
 AC_CONFIG_COMMANDS([libtool-hacking],[
 if test "$mingw_found" = "yes" ; then
 	AC_MSG_NOTICE([Hacking libtool to work with mingw...])
@@ -91,3 +124,7 @@ AC_CONFIG_FILES([
 ])
 
 AC_OUTPUT
+
+echo "Summary of build options:"
+printf "* %-30s %s\n" "iSAC" $build_isac
+printf "* %-30s %s\n" "AEC" $build_aec

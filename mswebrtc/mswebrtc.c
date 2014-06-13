@@ -17,18 +17,26 @@
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-#include "isacfix.h"
-#include "signal_processing_library.h"
+#include "config.h"
 
+#ifdef BUILD_ISAC
 #include "isac_constants.h"
+#include "isacfix.h"
+#endif
+
+#include "signal_processing_library.h"
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mscodecutils.h"
 
 
+#ifdef BUILD_ISAC
 extern MSFilterDesc ms_isac_dec_desc;
 extern MSFilterDesc ms_isac_enc_desc;
+#endif
+#ifdef BUILD_AEC
 extern MSFilterDesc ms_webrtc_aec_desc;
+#endif
 
 #ifndef VERSION
 #define VERSION "debug"
@@ -41,17 +49,27 @@ extern MSFilterDesc ms_webrtc_aec_desc;
 #endif
 
 MS_PLUGIN_DECLARE ( void ) libmswebrtc_init() {
+#ifdef BUILD_ISAC
 	char isac_version[64];
 	isac_version[0] = 0;
+#endif
 
 	WebRtcSpl_Init();
-	WebRtcIsacfix_version(isac_version);
 
+#ifdef BUILD_ISAC
+	WebRtcIsacfix_version(isac_version);
 	ms_filter_register(&ms_isac_enc_desc);
 	ms_filter_register(&ms_isac_dec_desc);
+#endif
+#ifdef BUILD_AEC
 	ms_filter_register(&ms_webrtc_aec_desc);
+#endif
 
-	ms_message("libmswebrtc " VERSION " plugin loaded, iSAC codec version %s", isac_version);
+	ms_message("libmswebrtc " VERSION " plugin loaded"
+#ifdef BUILD_ISAC
+	", iSAC codec version %s", isac_version
+#endif
+	);
 }
 
 
