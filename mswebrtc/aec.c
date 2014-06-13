@@ -369,7 +369,7 @@ static MSFilterMethod webrtc_aec_methods[] = {
 #ifdef _MSC_VER
 
 MSFilterDesc ms_webrtc_aec_desc = {
-	MS_WEBRTC_AEC_ID,
+	MS_FILTER_PLUGIN_ID,
 	MS_WEBRTC_AEC_NAME,
 	MS_WEBRTC_AEC_DESCRIPTION,
 	MS_WEBRTC_AEC_CATEGORY,
@@ -388,7 +388,7 @@ MSFilterDesc ms_webrtc_aec_desc = {
 #else
 
 MSFilterDesc ms_webrtc_aec_desc = {
-	.id = MS_WEBRTC_AEC_ID,
+	.id = MS_FILTER_PLUGIN_ID,
 	.name = MS_WEBRTC_AEC_NAME,
 	.text = MS_WEBRTC_AEC_DESCRIPTION,
 	.category = MS_WEBRTC_AEC_CATEGORY,
