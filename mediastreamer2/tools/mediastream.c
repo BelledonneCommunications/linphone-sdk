@@ -527,6 +527,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			printf("%s",usage);
 			return FALSE;
 		} else {
+			printf("%s",usage);
 			printf("Unknown option '%s'\n", argv[i]);
 			return FALSE;
 		}
