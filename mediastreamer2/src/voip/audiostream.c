@@ -392,7 +392,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	/* check echo canceller max frequency and adjust sampling rate if needed when codec used is opus */
 	if (stream->ec!=NULL) {
-		if ((ms_filter_get_id(stream->ms.encoder) == MS_OPUS_ENC_ID) && (ms_filter_get_id(stream->ec) == MS_WEBRTC_AEC_ID)) { /* AECM allow 8000 or 16000 Hz or it will be bypassed */
+		if ((ms_filter_get_id(stream->ms.encoder) == MS_OPUS_ENC_ID) && (strcmp(ms_filter_get_name(stream->ec), "MSWebRTCAEC") == 0)) { /* AECM allow 8000 or 16000 Hz or it will be bypassed */
 			if (sample_rate>16000) {
 				sample_rate=16000;
 				ms_message("Sampling rate forced to 16kHz to allow the use of WebRTC AECM (Echo canceller)");
@@ -773,11 +773,10 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 	if (ec_desc!=NULL){
 		stream->ec=ms_filter_new_from_desc(ec_desc);
 	}else{
-#if defined(BUILD_WEBRTC_AECM)
-		stream->ec=ms_filter_new(MS_WEBRTC_AEC_ID);
-#else
-		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
-#endif
+		stream->ec = ms_filter_new_from_name("MSWebRTCAEC");
+		if (stream->ec != NULL) {
+			stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
+		}
 	}
 	stream->ms.evq=ortp_ev_queue_new();
 	rtp_session_register_event_queue(stream->ms.sessions.rtp_session,stream->ms.evq);

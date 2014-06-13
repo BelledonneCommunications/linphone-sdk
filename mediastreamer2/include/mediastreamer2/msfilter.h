@@ -490,6 +490,13 @@ MS2_PUBLIC void ms_filter_remove_notify_callback(MSFilter *f, MSFilterNotifyFunc
  */
 MS2_PUBLIC MSFilterId ms_filter_get_id(MSFilter *f);
 
+/**
+ * Get filter's name.
+ * @param[in] f #MSFilter object
+ * @return The name of the filter.
+ */
+MS2_PUBLIC const char * ms_filter_get_name(MSFilter *f);
+
 
 /**
  * Obtain the list of current filter's neighbours, ie filters that are part of same graph.
