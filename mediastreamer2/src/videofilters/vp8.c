@@ -751,7 +751,7 @@ static void dec_init(MSFilter *f) {
 	ms_queue_init(&s->q);
 	s->first_image_decoded = FALSE;
 	s->avpf_enabled = FALSE;
-	s->freeze_on_error = FALSE;
+	s->freeze_on_error = TRUE;
 	f->data = s;
 	ms_video_init_average_fps(&s->fps, "VP8 decoder: FPS: %f");
 }
