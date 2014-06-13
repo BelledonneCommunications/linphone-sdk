@@ -20,10 +20,10 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B16B81A9-BEF2-44C9-B603-1065183AE844}</ProjectGuid>
-    <RootNamespace>msisac</RootNamespace>
+    <RootNamespace>mswebrtc</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
-    <ProjectName>libmsisac</ProjectName>
+    <ProjectName>libmswebrtc</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -68,7 +68,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>$(SolutionDir)$(Platform)\$(Configuration)\include;$(ProjectDir)..\..\..\..\..\ortp\include;$(ProjectDir)..\..\..\..\..\mediastreamer2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;HAVE_AEC;HAVE_ISAC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
@@ -89,7 +89,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <AdditionalIncludeDirectories>$(SolutionDir)$(Platform)\$(Configuration)\include;$(ProjectDir)..\..\..\..\..\ortp\include;$(ProjectDir)..\..\..\..\..\mediastreamer2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;HAVE_AEC;HAVE_ISAC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -112,7 +112,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>$(SolutionDir)$(Platform)\$(Configuration)\include;$(ProjectDir)..\..\..\..\..\ortp\include;$(ProjectDir)..\..\..\..\..\mediastreamer2\include;$(ProjectDir)..\..\..\..\;$(ProjectDir)..\..\..\..\..\webrtc\modules\audio_coding\codecs\isac\fix\interface;$(ProjectDir)..\..\..\..\..\webrtc\common_audio\signal_processing\include;$(ProjectDir)..\..\..\..\..\webrtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;__ARMEL__;WEBRTC_ARCH_ARM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;__ARMEL__;WEBRTC_ARCH_ARM;HAVE_AEC;HAVE_ISAC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
@@ -123,7 +123,7 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;ortp_dll.lib;webrtcisac_dll.lib;mediastreamer2_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;ortp_dll.lib;webrtcwebrtc_dll.lib;mediastreamer2_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
     </Link>
@@ -133,7 +133,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <AdditionalIncludeDirectories>$(SolutionDir)$(Platform)\$(Configuration)\include;$(ProjectDir)..\..\..\..\..\ortp\include;$(ProjectDir)..\..\..\..\..\mediastreamer2\include;$(ProjectDir)..\..\..\..\;$(ProjectDir)..\..\..\..\..\webrtc\modules\audio_coding\codecs\isac\fix\interface;$(ProjectDir)..\..\..\..\..\webrtc\common_audio\signal_processing\include;$(ProjectDir)..\..\..\..\..\webrtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;__ARMEL__;WEBRTC_ARCH_ARM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;__ARMEL__;WEBRTC_ARCH_ARM;HAVE_AEC;HAVE_ISAC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -162,6 +162,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\mswebrtc.c" />
+    <ClCompile Include="..\..\..\..\aec.c" />
     <ClCompile Include="..\..\..\..\isac_enc.c" />
     <ClCompile Include="..\..\..\..\isac_dec.c" />
   </ItemGroup>
