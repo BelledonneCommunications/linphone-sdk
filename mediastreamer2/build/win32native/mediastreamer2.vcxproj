@@ -196,6 +196,7 @@
     <ClInclude Include="basedescs.h" />
     <ClInclude Include="..\..\include\mediastreamer2\dtmfgen.h" />
     <ClInclude Include="..\..\src\dxfilter.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\flowcontrol.h" />
     <ClInclude Include="..\..\src\utils\ffmpeg-priv.h" />
     <ClInclude Include="..\..\src\utils\g711common.h" />
     <ClInclude Include="..\..\include\mediastreamer2\ice.h" />
