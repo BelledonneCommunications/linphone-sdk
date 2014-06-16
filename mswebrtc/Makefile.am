@@ -105,13 +105,21 @@ ISAC_BASE_SRCS += $(ISAC_SRC_DIR)/source/decode_plc.c \
 
 endif
 
+AEC_BASE_SRCS = \
+	$(AEC_SRC_DIR)/echo_control_mobile.c \
+	$(AEC_SRC_DIR)/aecm_core.c \
+	$(AEC_SRC_DIR)/../utility/fft4g.c \
+	$(AEC_SRC_DIR)/../utility/ring_buffer.c \
+	$(AEC_SRC_DIR)/../utility/delay_estimator.c \
+	$(AEC_SRC_DIR)/../utility/delay_estimator_wrapper.c
+
 
 libmswebrtc_la_SOURCES= mswebrtc.c $(WEBRTC_COMMON_SRCS)
 if BUILD_ISAC
 libmswebrtc_la_SOURCES+= $(ISAC_BASE_SRCS) isac_dec.c isac_enc.c
 endif
 if BUILD_AEC
-libmswebrtc_la_SOURCES+= aec.c
+libmswebrtc_la_SOURCES+= $(AEC_BASE_SRCS) aec.c
 endif
 
 webrtc_repo = git://git.linphone.org/webrtc
@@ -131,12 +139,21 @@ libmswebrtc_la_LIBADD= \
 
 libmswebrtc_la_LDFLAGS=-module -no-undefined
 
-webrtc_CFLAGS = -I$(webrtc_DIR) -I$(WEBRTC_COMMON_DIR)/include
+webrtc_CFLAGS = \
+	-I$(webrtc_DIR) \
+	-I$(WEBRTC_COMMON_DIR)/include
 if BUILD_ISAC
-webrtc_CFLAGS += -I$(ISAC_SRC_DIR)/source -I$(ISAC_SRC_DIR)/util -I$(ISAC_SRC_DIR)/interface
+webrtc_CFLAGS += \
+	-I$(ISAC_SRC_DIR)/source \
+	-I$(ISAC_SRC_DIR)/util \
+	-I$(ISAC_SRC_DIR)/interface
 endif
 if BUILD_AEC
-webrtc_CFLAGS += -I$(AEC_SRC_DIR)/include -Iwebrtc/common_audio/signal_processing/include
+webrtc_CFLAGS += \
+	-I$(AEC_SRC_DIR)/include \
+	-Iwebrtc/common_audio/signal_processing/include \
+	-Iwebrtc/modules/audio_processing/utility \
+	-Iwebrtc/system_wrappers/interface
 endif
 
 AM_CFLAGS= \
