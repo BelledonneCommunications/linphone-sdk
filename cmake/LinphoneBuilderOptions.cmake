@@ -60,6 +60,9 @@ linphone_builder_add_feature_info("Silk" ENABLE_SILK "Silk audio encoding/decodi
 option(ENABLE_SPEEX "Enable speex audio codec support." ${DEFAULT_VALUE_ENABLE_SPEEX})
 linphone_builder_add_feature_info("Speex" ENABLE_SPEEX "Speex audio encoding/decoding support.")
 
+option(ENABLE_WEBRTC_AEC "Enable WebRTC echo canceller support." ${DEFAULT_VALUE_ENABLE_WEBRTC_AEC})
+linphone_builder_add_feature_info("WebRTC AEC" ENABLE_WEBRTC_AEC "WebRTC echo canceller support.")
+
 cmake_dependent_option(ENABLE_FFMPEG "Enable ffmpeg support." ${DEFAULT_VALUE_ENABLE_FFMPEG} "ENABLE_VIDEO;ENABLE_GPL_THIRD_PARTIES" OFF)
 linphone_builder_add_feature_info("FFmpeg" ENABLE_FFMPEG "Some video processing features via FFmpeg: MPEG4 encoding/decoding, video scaling...")
 cmake_dependent_option(ENABLE_H263 "Enable H263 video codec support." ${DEFAULT_VALUE_ENABLE_H263} "ENABLE_FFMPEG" OFF)
