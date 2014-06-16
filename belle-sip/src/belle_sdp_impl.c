@@ -811,13 +811,13 @@ const struct static_payload static_payload_list [] ={
 	{17,1,"DVI4",22050},
 	{18,1,"G729",8000},
 	/*video*/
-	{25,-1,"CelB",90000},
-	{26,-1,"JPEG",90000},
-	{28,-1,"nv",90000},
-	{31,-1,"H261",90000},
-	{32,-1,"MPV",90000},
-	{33,-1,"MP2T",90000},
-	{34,-1,"H263",90000}
+	{25,0,"CelB",90000},
+	{26,0,"JPEG",90000},
+	{28,0,"nv",90000},
+	{31,0,"H261",90000},
+	{32,0,"MPV",90000},
+	{33,0,"MP2T",90000},
+	{34,0,"H263",90000}
 };
 
 static const size_t payload_list_elements=sizeof(static_payload_list)/sizeof(struct static_payload);
