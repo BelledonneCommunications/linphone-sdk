@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_x264_GIT_REPOSITORY "git://git.videolan.org/x264.git")
-set(EP_x264_GIT_TAG "f6a8615ab0c922ac2cb5c82c9824f6f4742b1725")
+set(EP_x264_GIT_TAG "adc99d17d8c1fbc164fae8319b40d7c45f30314e")
 set(EP_x264_BUILD_METHOD "autotools")
 set(EP_x264_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
