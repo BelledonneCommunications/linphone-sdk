@@ -757,7 +757,7 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 
 AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
-	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSOslec");
+	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSWebRTCAEC");
 
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
@@ -773,10 +773,7 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 	if (ec_desc!=NULL){
 		stream->ec=ms_filter_new_from_desc(ec_desc);
 	}else{
-		stream->ec = ms_filter_new_from_name("MSWebRTCAEC");
-		if (stream->ec != NULL) {
-			stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
-		}
+		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
 	}
 	stream->ms.evq=ortp_ev_queue_new();
 	rtp_session_register_event_queue(stream->ms.sessions.rtp_session,stream->ms.evq);
