@@ -392,10 +392,17 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	/* check echo canceller max frequency and adjust sampling rate if needed when codec used is opus */
 	if (stream->ec!=NULL) {
-		if ((ms_filter_get_id(stream->ms.encoder) == MS_OPUS_ENC_ID) && (strcmp(ms_filter_get_name(stream->ec), "MSWebRTCAEC") == 0)) { /* AECM allow 8000 or 16000 Hz or it will be bypassed */
-			if (sample_rate>16000) {
-				sample_rate=16000;
-				ms_message("Sampling rate forced to 16kHz to allow the use of WebRTC AECM (Echo canceller)");
+		int ec_sample_rate = sample_rate;
+		ms_filter_call_method(stream->ec, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+		ms_filter_call_method(stream->ec, MS_FILTER_GET_SAMPLE_RATE, &ec_sample_rate);
+		if (sample_rate != ec_sample_rate) {
+			if (ms_filter_get_id(stream->ms.encoder) == MS_OPUS_ENC_ID) {
+				sample_rate = ec_sample_rate;
+				ms_message("Sampling rate forced to %iHz to allow the use of echo canceller", sample_rate);
+			} else {
+				ms_warning("Echo canceller does not support sampling rate %iHz, so it has been disabled", sample_rate);
+				ms_filter_destroy(stream->ec);
+				stream->ec = NULL;
 			}
 		}
 	}
