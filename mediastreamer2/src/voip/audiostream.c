@@ -37,8 +37,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 
-
-
 #include <sys/types.h>
 
 #ifndef WIN32
@@ -67,7 +65,12 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->local_mixer) ms_filter_destroy(stream->local_mixer);
 	if (stream->local_player) ms_filter_destroy(stream->local_player);
 	if (stream->local_player_resampler) ms_filter_destroy(stream->local_player_resampler);
+	if (stream->av_recorder.encoder) ms_filter_destroy(stream->av_recorder.encoder);
+	if (stream->av_recorder.recorder) ms_filter_destroy(stream->av_recorder.recorder);
+	if (stream->av_recorder.resampler) ms_filter_destroy(stream->av_recorder.resampler);
+	if (stream->av_recorder.video_input) ms_filter_destroy(stream->av_recorder.video_input);
 	if (stream->recorder_file) ms_free(stream->recorder_file);
+	
 	ms_free(stream);
 }
 
@@ -286,6 +289,76 @@ static float audio_stream_get_rtcp_xr_average_lq_quality_rating(unsigned long us
 	return audio_stream_get_average_lq_quality_rating(stream);
 }
 
+static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannels){
+	
+	stream->av_recorder.recorder=ms_filter_new(MS_MKV_WRITER_ID);
+	if (stream->av_recorder.recorder){
+		stream->av_recorder.video_input=ms_filter_new(MS_ITC_SOURCE_ID);
+		stream->av_recorder.resampler=ms_filter_new(MS_RESAMPLE_ID);
+		stream->av_recorder.encoder=ms_filter_new(MS_OPUS_ENC_ID);
+		if (stream->av_recorder.encoder==NULL){
+			int g711_rate=8000;
+			int g711_nchannels=1;
+			stream->av_recorder.encoder=ms_filter_new(MS_ULAW_ENC_ID);
+			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&g711_rate);
+			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_NCHANNELS,&nchannels);
+			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&g711_nchannels);
+			
+		}else{
+			int got_sr=0;
+			ms_filter_call_method(stream->av_recorder.encoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+			ms_filter_call_method(stream->av_recorder.encoder,MS_FILTER_GET_SAMPLE_RATE,&got_sr);
+			ms_filter_call_method(stream->av_recorder.encoder,MS_FILTER_SET_NCHANNELS,&nchannels);
+			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&got_sr);
+			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_NCHANNELS,&nchannels);
+			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&nchannels);
+		}
+	}
+}
+
+static void plumb_av_recorder(AudioStream *stream){
+	MSConnectionHelper ch;
+	ms_connection_helper_start(&ch);
+	ms_connection_helper_link(&ch, stream->recorder_mixer,-1, 1);
+	ms_connection_helper_link(&ch, stream->av_recorder.resampler,0,0);
+	ms_connection_helper_link(&ch, stream->av_recorder.encoder,0,0);
+	ms_connection_helper_link(&ch, stream->av_recorder.recorder,0,0);
+	
+	ms_filter_link(stream->av_recorder.video_input,0,stream->av_recorder.recorder,1);
+}
+
+static void unplumb_av_recorder(AudioStream *stream){
+	MSConnectionHelper ch;
+	ms_connection_helper_start(&ch);
+	ms_connection_helper_unlink(&ch, stream->recorder_mixer,-1, 1);
+	ms_connection_helper_unlink(&ch, stream->av_recorder.resampler,0,0);
+	ms_connection_helper_unlink(&ch, stream->av_recorder.encoder,0,0);
+	ms_connection_helper_unlink(&ch, stream->av_recorder.recorder,0,0);
+	
+	ms_filter_unlink(stream->av_recorder.video_input,0,stream->av_recorder.recorder,1);
+}
+
+static void setup_recorder(AudioStream *stream, int sample_rate, int nchannels){
+	int val=0;
+	int pin=1;
+	
+	stream->recorder=ms_filter_new(MS_FILE_REC_ID);
+	stream->recorder_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
+	stream->recv_tee=ms_filter_new(MS_TEE_ID);
+	stream->send_tee=ms_filter_new(MS_TEE_ID);
+	ms_filter_call_method(stream->recorder_mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&val);
+	ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+	ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_NCHANNELS,&nchannels);
+	ms_filter_call_method(stream->recv_tee,MS_TEE_MUTE,&pin);
+	ms_filter_call_method(stream->send_tee,MS_TEE_MUTE,&pin);
+	ms_filter_call_method(stream->recorder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+	ms_filter_call_method(stream->recorder,MS_FILTER_SET_NCHANNELS,&nchannels);
+	
+	setup_av_recorder(stream,sample_rate,nchannels);
+}
+
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec){
@@ -403,11 +476,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (strcasecmp(pt->mime_type,"opus")==0)
 		nchannels=1;
 
-	if (ms_filter_has_method(stream->ms.decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
+	if (ms_filter_has_method(stream->ms.decoder, MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER) || ms_filter_has_method(stream->ms.decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
 		ms_message("Decoder has FEC capabilities");
 		picker_context.filter_graph_manager=stream;
 		picker_context.picker=&audio_stream_payload_picker;
-		ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_RTP_PAYLOAD_PICKER, &picker_context);
+		ms_filter_call_method(stream->ms.decoder,MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER, &picker_context);
 	}
 	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
 		stream->volsend=ms_filter_new(MS_VOLUME_ID);
@@ -423,7 +496,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (ms_filter_implements_interface(stream->soundread,MSFilterPlayerInterface) && infile){
 		audio_stream_play(stream,infile);
 	}
-	if (ms_filter_implements_interface(stream->soundwrite,MSFilterPlayerInterface) && outfile){
+	if (ms_filter_implements_interface(stream->soundwrite,MSFilterRecorderInterface) && outfile){
 		audio_stream_record(stream,outfile);
 	}
 
@@ -468,22 +541,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	}
 
-	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING){
-		int val=0;
-		int pin=1;
-		stream->recorder=ms_filter_new(MS_FILE_REC_ID);
-		stream->recorder_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
-		stream->recv_tee=ms_filter_new(MS_TEE_ID);
-		stream->send_tee=ms_filter_new(MS_TEE_ID);
-		ms_filter_call_method(stream->recorder_mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&val);
-		ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-		ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_NCHANNELS,&nchannels);
-		ms_filter_call_method(stream->recv_tee,MS_TEE_MUTE,&pin);
-		ms_filter_call_method(stream->send_tee,MS_TEE_MUTE,&pin);
-		ms_filter_call_method(stream->recorder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-		ms_filter_call_method(stream->recorder,MS_FILTER_SET_NCHANNELS,&nchannels);
-
-	}
+	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING) setup_recorder(stream,sample_rate,nchannels);
 
 	/* give the encoder/decoder some parameters*/
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
@@ -612,6 +670,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_connection_helper_link(&h,stream->soundwrite,0,-1);
 
 	/*call recording part, attached to both outgoing and incoming graphs*/
+	if (stream->av_recorder.recorder)
+		plumb_av_recorder(stream);
 	if (stream->recorder){
 		ms_filter_link(stream->send_tee,1,stream->recorder_mixer,0);
 		ms_filter_link(stream->recv_tee,1,stream->recorder_mixer,1);
@@ -762,7 +822,7 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
 
-	stream->ms.type = AudioStreamType;
+	stream->ms.type = MSAudio;
 	stream->ms.sessions=*sessions;
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
@@ -944,6 +1004,8 @@ void audio_stream_stop(AudioStream * stream){
 			ms_connection_helper_unlink(&h,stream->soundwrite,0,-1);
 
 			/*dismantle the call recording */
+			if (stream->av_recorder.recorder)
+				unplumb_av_recorder(stream);
 			if (stream->recorder){
 				ms_filter_unlink(stream->send_tee,1,stream->recorder_mixer,0);
 				ms_filter_unlink(stream->recv_tee,1,stream->recorder_mixer,1);
@@ -1002,4 +1064,13 @@ void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){
 bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 	return stream->ms.sessions.zrtp_context!=NULL;
 }
+
+void audio_stream_link_video(AudioStream *stream, VideoStream *video){
+	
+}
+
+void audio_stream_unlink_video(AudioStream *stream, VideoStream *video){
+}
+
+
 

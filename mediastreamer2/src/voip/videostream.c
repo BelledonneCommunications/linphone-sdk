@@ -193,7 +193,7 @@ VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ip
 
 VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
-	stream->ms.type = VideoStreamType;
+	stream->ms.type = MSVideo;
 	stream->ms.sessions=*sessions;
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi,"audio");
@@ -502,6 +502,13 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			ms_error("videostream.c: No decoder available for payload %i:%s.",payload,pt->mime_type);
 			return -1;
 		}
+		/*
+		 * In practice, these filters are needed only for audio+video recording.
+		 */
+		if (ms_factory_lookup_filter_by_id(ms_factory_get_fallback(), MS_MKV_WRITER_ID)){
+			stream->itcsink=ms_filter_new(MS_ITC_SINK_ID);
+			stream->tee3=ms_filter_new(MS_TEE_ID);
+		}
 
 		/* display logic */
 		if (stream->rendercb!=NULL){
@@ -593,7 +600,11 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		ms_connection_helper_start (&ch);
 		ms_connection_helper_link (&ch,stream->ms.rtprecv,-1,0);
 		if (stream->output_performs_decoding == FALSE) {
-			ms_connection_helper_link (&ch,stream->ms.decoder,0,0);
+			if (stream->itcsink){
+				ms_connection_helper_link(&ch,stream->tee3,0,0);
+				ms_filter_link(stream->tee3,1,stream->itcsink,0);
+			}
+			ms_connection_helper_link(&ch,stream->ms.decoder,0,0);
 		}
 		if (stream->tee2){
 			ms_connection_helper_link (&ch,stream->tee2,0,0);
@@ -778,6 +789,10 @@ video_stream_stop (VideoStream * stream)
 				ms_connection_helper_start (&h);
 				ms_connection_helper_unlink (&h,stream->ms.rtprecv,-1,0);
 				if (stream->output_performs_decoding == FALSE) {
+					if (stream->itcsink){
+						ms_connection_helper_unlink(&h,stream->tee3,0,0);
+						ms_filter_unlink(stream->tee3,1,stream->itcsink,0);
+					}
 					ms_connection_helper_unlink (&h,stream->ms.decoder,0,0);
 				}
 				if (stream->tee2){
@@ -972,3 +987,10 @@ bool_t video_stream_is_decoding_error_to_be_reported(VideoStream *stream, uint32
 void video_stream_decoding_error_reported(VideoStream *stream) {
 	stream->last_reported_decoding_error_time = stream->ms.sessions.ticker->time;
 }
+
+const MSFmtDescriptor *video_stream_get_recv_format(VideoStream *stream){
+	int i=rtp_session_get_recv_payload_type(stream->ms.sessions.rtp_session);
+	PayloadType *pt=rtp_profile_get_payload(rtp_session_get_profile(stream->ms.sessions.rtp_session),i);
+	return ms_factory_get_video_format(ms_factory_get_fallback(),pt->mime_type,NULL,NULL);
+}
+

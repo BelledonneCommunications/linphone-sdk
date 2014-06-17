@@ -90,7 +90,7 @@ static void media_stream_change_decoder(MediaStream *stream, int payload) {
 	if (pt != NULL){
 		MSFilter *dec;
 
-		if (stream->type == VideoStreamType){
+		if (stream->type == MSVideo){
 			/* Q: why only video ? this optimization seems relevant for audio too.*/
 			if ((stream->decoder != NULL) && (stream->decoder->desc->enc_fmt != NULL)
 			&& (strcasecmp(pt->mime_type, stream->decoder->desc->enc_fmt) == 0)) {
@@ -170,12 +170,12 @@ void media_stream_start_ticker(MediaStream *stream) {
 	snprintf(name, sizeof(name) - 1, "%s MSTicker", media_stream_type_str(stream));
 	name[0] = toupper(name[0]);
 	params.name = name;
-	params.prio = __ms_get_default_prio((stream->type == VideoStreamType) ? TRUE : FALSE);
+	params.prio = __ms_get_default_prio((stream->type == MSVideo) ? TRUE : FALSE);
 	stream->sessions.ticker = ms_ticker_new_with_params(&params);
 }
 
 const char * media_stream_type_str(MediaStream *stream) {
-	return ms_stream_type_to_string(stream->type); 
+	return ms_format_type_to_string(stream->type);
 }
 
 void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
@@ -646,13 +646,5 @@ int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *pa
 	if (params->name==NULL) return -1;
 	return 0;
 }
-const char* ms_stream_type_to_string(StreamType type) {
-       switch (type) {
-               case AudioStreamType:
-                       return "audio";
-               case VideoStreamType:
-                       return "video";
-       }
-       return "unknown";
-}
+
 

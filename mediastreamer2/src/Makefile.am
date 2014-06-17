@@ -41,6 +41,7 @@ libmediastreamer_base_la_SOURCES=	base/mscommon.c \
 					base/msticker.c \
 					base/eventqueue.c \
 					base/mssndcard.c \
+					base/msfactory.c \
 					otherfilters/tee.c \
 					otherfilters/join.c \
 					base/mswebcam.c \
@@ -81,7 +82,6 @@ if MS2_FILTERS
 libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					audiofilters/ulaw.c \
 					audiofilters/dtmfgen.c \
-					audiofilters/msconf.c \
 					audiofilters/g711.c audiofilters/g711.h \
 					audiofilters/msvolume.c \
 					utils/dsptools.c \

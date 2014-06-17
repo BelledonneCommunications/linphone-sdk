@@ -174,7 +174,7 @@ MSFilterDesc ms_android_opengl_display_desc={
 	.methods=methods
 };
 
-void libmsandroidopengldisplay_init(void){
-	ms_filter_register(&ms_android_opengl_display_desc);
+void libmsandroidopengldisplay_init(MSFactory *factory){
+	ms_factory_register_filter(factory,&ms_android_opengl_display_desc);
 	ms_message("MSAndroidDisplay (OpenGL ES2) registered (id=%d).", MS_ANDROID_DISPLAY_ID);
 }
