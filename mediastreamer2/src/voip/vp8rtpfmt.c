@@ -22,9 +22,307 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "vp8rtpfmt.h"
 
+#include <limits.h>
 
-/*#define VP8RTPFMT_OUTPUT_INCOMPLETE_PARTITIONS*/
 /*#define VP8RTPFMT_DEBUG*/
+
+#if (defined(__GNUC__) && __GNUC__) || defined(__SUNPRO_C)
+#define DECLARE_ALIGNED(n,typ,val)  typ val __attribute__ ((aligned (n)))
+#elif defined(_MSC_VER)
+#define DECLARE_ALIGNED(n,typ,val)  __declspec(align(n)) typ val
+#else
+#warning No alignment directives known for this compiler.
+#define DECLARE_ALIGNED(n,typ,val)  typ val
+#endif
+
+typedef size_t VP8_BD_VALUE;
+
+#define VP8_BD_VALUE_SIZE ((int)sizeof(VP8_BD_VALUE)*CHAR_BIT)
+
+#define VP8_LOTS_OF_BITS (0x40000000)
+
+#define MB_LVL_MAX 2
+#define MB_FEATURE_TREE_PROBS 3
+#define MAX_MB_SEGMENTS 4
+#define MAX_REF_LF_DELTAS 4
+#define MAX_MODE_LF_DELTAS 4
+
+typedef void (vp8_decrypt_cb)(void *decrypt_state, const unsigned char *input,
+                              unsigned char *output, int count);
+
+typedef struct
+{
+    const unsigned char *user_buffer_end;
+    const unsigned char *user_buffer;
+    VP8_BD_VALUE         value;
+    int                  count;
+    unsigned int         range;
+    vp8_decrypt_cb      *decrypt_cb;
+    void                *decrypt_state;
+} BOOL_DECODER;
+
+typedef unsigned char vp8_prob;
+#define vp8_prob_half ( (vp8_prob) 128)
+#define vp8_read vp8dx_decode_bool
+#define vp8_read_literal vp8_decode_value
+#define vp8_read_bit(R) vp8_read(R, vp8_prob_half)
+
+DECLARE_ALIGNED(16, static const unsigned char, vp8_norm[256]) =
+{
+    0, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4,
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+static const int vp8_mb_feature_data_bits[MB_LVL_MAX] = {7, 6};
+
+static void vp8dx_bool_decoder_fill(BOOL_DECODER *br)
+{
+    const unsigned char *bufptr = br->user_buffer;
+    VP8_BD_VALUE value = br->value;
+    int count = br->count;
+    int shift = VP8_BD_VALUE_SIZE - 8 - (count + 8);
+    size_t bytes_left = br->user_buffer_end - bufptr;
+    size_t bits_left = bytes_left * CHAR_BIT;
+    int x = (int)(shift + CHAR_BIT - bits_left);
+    int loop_end = 0;
+    unsigned char decrypted[sizeof(VP8_BD_VALUE) + 1];
+
+    if (br->decrypt_cb) {
+        size_t n = bytes_left > sizeof(decrypted) ? sizeof(decrypted) : bytes_left;
+        br->decrypt_cb(br->decrypt_state, bufptr, decrypted, (int)n);
+        bufptr = decrypted;
+    }
+
+    if(x >= 0)
+    {
+        count += VP8_LOTS_OF_BITS;
+        loop_end = x;
+    }
+
+    if (x < 0 || bits_left)
+    {
+        while(shift >= loop_end)
+        {
+            count += CHAR_BIT;
+            value |= (VP8_BD_VALUE)*bufptr << shift;
+            ++bufptr;
+            ++br->user_buffer;
+            shift -= CHAR_BIT;
+        }
+    }
+
+    br->value = value;
+    br->count = count;
+}
+
+static int vp8dx_start_decode(BOOL_DECODER *br,
+                       const unsigned char *source,
+                       unsigned int source_sz,
+                       vp8_decrypt_cb *decrypt_cb,
+                       void *decrypt_state)
+{
+    br->user_buffer_end = source+source_sz;
+    br->user_buffer     = source;
+    br->value    = 0;
+    br->count    = -8;
+    br->range    = 255;
+    br->decrypt_cb = decrypt_cb;
+    br->decrypt_state = decrypt_state;
+
+    if (source_sz && !source)
+        return 1;
+
+    /* Populate the buffer */
+    vp8dx_bool_decoder_fill(br);
+
+    return 0;
+}
+
+static int vp8dx_decode_bool(BOOL_DECODER *br, int probability) {
+    unsigned int bit = 0;
+    VP8_BD_VALUE value;
+    unsigned int split;
+    VP8_BD_VALUE bigsplit;
+    int count;
+    unsigned int range;
+
+    split = 1 + (((br->range - 1) * probability) >> 8);
+
+    if(br->count < 0)
+        vp8dx_bool_decoder_fill(br);
+
+    value = br->value;
+    count = br->count;
+
+    bigsplit = (VP8_BD_VALUE)split << (VP8_BD_VALUE_SIZE - 8);
+
+    range = split;
+
+    if (value >= bigsplit)
+    {
+        range = br->range - split;
+        value = value - bigsplit;
+        bit = 1;
+    }
+
+    {
+        register unsigned int shift = vp8_norm[range];
+        range <<= shift;
+        value <<= shift;
+        count -= shift;
+    }
+    br->value = value;
+    br->count = count;
+    br->range = range;
+
+    return bit;
+}
+
+static int vp8_decode_value(BOOL_DECODER *br, int bits)
+{
+    int z = 0;
+    int bit;
+
+    for (bit = bits - 1; bit >= 0; bit--)
+    {
+        z |= (vp8dx_decode_bool(br, 0x80) << bit);
+    }
+
+    return z;
+}
+
+static mblk_t * concat_packets_of_partition(Vp8RtpFmtPartition *partition) {
+	Vp8RtpFmtPacket *packet;
+	int nb_packets = ms_list_size(partition->packets_list);
+	int i;
+
+	if (partition->m != NULL) return partition->m;
+	for (i = 0; i < nb_packets; i++) {
+		packet = ms_list_nth_data(partition->packets_list, i);
+		if (partition->m == NULL) {
+			partition->m = packet->m;
+		} else {
+			concatb(partition->m, packet->m);
+		}
+		packet->m = NULL;
+	}
+	if (partition->m != NULL) {
+		msgpullup(partition->m, -1);
+	}
+	return partition->m;
+}
+
+static bool_t parse_frame_header(Vp8RtpFmtFrame *frame) {
+	BOOL_DECODER bc;
+	mblk_t *m = frame->partitions[0]->m;
+	unsigned char *data;
+	unsigned char *data_end;
+	uint32_t size;
+	uint32_t first_partition_length_in_bytes;
+	uint32_t partition_size;
+	bool_t segmentation_enabled;
+	bool_t mode_ref_lf_delta_enabled;
+	int i, j;
+	int nb_partitions;
+
+	if (m == NULL) {
+		m = concat_packets_of_partition(frame->partitions[0]);
+	}
+	if (m == NULL) return FALSE;
+	data = m->b_rptr;
+	data_end = m->b_wptr;
+
+	if (msgdsize(m) < 3) return FALSE;
+	frame->keyframe = !(data[0] & 1);
+	first_partition_length_in_bytes = (data[0] | (data[1] << 8) | (data[2] << 16)) >> 5;
+	data += 3;
+	if (frame->keyframe) {
+		if (msgdsize(m) < 10) return FALSE;
+		data += 7;
+	}
+
+	size = (unsigned int)(data_end - data);
+	if (vp8dx_start_decode(&bc, data, size, NULL, NULL)) return FALSE;
+	if (frame->keyframe) {
+		(void)vp8_read_bit(&bc); /* color space */
+		(void)vp8_read_bit(&bc); /* clamping type */
+	}
+	segmentation_enabled = vp8_read_bit(&bc);
+	if (segmentation_enabled) {
+		bool_t update_mb_segmentation_map = (bool_t)vp8_read_bit(&bc);
+		bool_t update_mb_segmentation_data = (bool_t)vp8_read_bit(&bc);
+		if (update_mb_segmentation_data) {
+			(void)vp8_read_bit(&bc); /* segment feature mode */
+			for (i = 0; i < MB_LVL_MAX; i++) {
+				for (j = 0; j < MAX_MB_SEGMENTS; j++) {
+					if (vp8_read_bit(&bc)) {
+						(void)vp8_read_literal(&bc, vp8_mb_feature_data_bits[i]);
+						(void)vp8_read_bit(&bc); /* sign */
+					}
+				}
+			}
+		}
+		if (update_mb_segmentation_map) {
+			for (i = 0; i < MB_FEATURE_TREE_PROBS; i++) {
+				if (vp8_read_bit(&bc))
+					(void)vp8_read_literal(&bc, 8);
+            }
+		}
+	}
+	(void)vp8_read_bit(&bc); /* filter type */
+	(void)vp8_read_literal(&bc, 6); /* filter level */
+	(void)vp8_read_literal(&bc, 3); /* sharpness level */
+	mode_ref_lf_delta_enabled = (bool_t)vp8_read_bit(&bc);
+	if (mode_ref_lf_delta_enabled) {
+		bool_t mode_ref_lf_delta_update = (bool_t)vp8_read_bit(&bc);
+		if (mode_ref_lf_delta_update) {
+			for (i = 0; i < MAX_REF_LF_DELTAS; i++) {
+				if (vp8_read_bit(&bc)) {
+					(void)vp8_read_literal(&bc, 6);
+					(void)vp8_read_bit(&bc); /* sign */
+				}
+			}
+			for (i = 0; i < MAX_MODE_LF_DELTAS; i++) {
+				if (vp8_read_bit(&bc)) {
+					(void)vp8_read_literal(&bc, 6);
+					(void)vp8_read_bit(&bc); /* sign */
+				}
+			}
+		}
+	}
+	nb_partitions = (1 << vp8_read_literal(&bc, 2));
+	if (nb_partitions > 8) return FALSE;
+	frame->partitions_info.nb_partitions = nb_partitions;
+	if (nb_partitions == 1) {
+		/* Special case when partitioning is not enabled. */
+		frame->partitions_info.partition_sizes[0] = m->b_wptr - m->b_rptr;
+		return TRUE;
+	}
+	partition_size = data + first_partition_length_in_bytes - m->b_rptr + (3 * (nb_partitions - 1));
+	if (msgdsize(m) != partition_size) return FALSE;
+	frame->partitions_info.partition_sizes[0] = partition_size;
+	for (i = 1; i < nb_partitions; i++) {
+		const unsigned char *partition_sizes = data + first_partition_length_in_bytes;
+		const unsigned char *partition_size_ptr = partition_sizes + (i - 1) * 3;
+		frame->partitions_info.partition_sizes[i] = partition_size_ptr[0] + (partition_size_ptr[1] << 8) + (partition_size_ptr[2] << 16);
+	}
+	return TRUE;
+}
+
 
 
 #ifdef VP8RTPFMT_DEBUG
@@ -67,8 +365,8 @@ static void print_packet(void *data) {
 
 static void print_partition(void *data) {
 	Vp8RtpFmtPartition *partition = (Vp8RtpFmtPartition *)data;
-	ms_message("\tpartition [%p]:\tpid=%d\tlast=%d\terror=%d",
-		partition, get_partition_id(partition), partition->last_partition_of_frame, partition->error);
+	ms_message("\tpartition [%p]:\tpid=%d\terror=%d",
+		partition, get_partition_id(partition), partition->error);
 	ms_list_for_each(partition->packets_list, print_packet);
 }
 
@@ -89,30 +387,14 @@ static void free_packet(void *data) {
 	ms_free(packet);
 }
 
-static void free_outputted_partition(void *data) {
+static void free_partition(void *data) {
 	Vp8RtpFmtPartition *partition = (Vp8RtpFmtPartition *)data;
-	ms_list_for_each(partition->packets_list, free_packet);
-	ms_list_free(partition->packets_list);
-	ms_free(partition);
-}
-
-static void free_discarded_partition(void *data) {
-	Vp8RtpFmtPartition *partition = (Vp8RtpFmtPartition *)data;
-	if (partition->m != NULL) {
+	if ((partition->m != NULL) && (partition->outputted != TRUE)) {
 		freemsg(partition->m);
 	}
 	ms_list_for_each(partition->packets_list, free_packet);
 	ms_list_free(partition->packets_list);
 	ms_free(partition);
-}
-
-static void free_partition(void *data) {
-	Vp8RtpFmtPartition *partition = (Vp8RtpFmtPartition *)data;
-	if (partition->outputted == TRUE) {
-		free_outputted_partition(partition);
-	} else {
-		free_discarded_partition(partition);
-	}
 }
 
 static int free_outputted_frame(const void *data, const void *b) {
@@ -137,37 +419,9 @@ static int cseq_compare(const void *d1, const void *d2) {
 	return (p1->extended_cseq > p2->extended_cseq);
 }
 
-static bool_t is_key_frame(Vp8RtpFmtFrame *frame) {
-	Vp8RtpFmtPartition *partition;
-	int nb_partitions = ms_list_size(frame->partitions_list);
-	if (nb_partitions < 1) return FALSE;
-	partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
-	if (partition->m->b_rptr[0] & 0x01) return FALSE;
-	return TRUE;
-}
-
-static Vp8RtpFmtPayloadDescriptor * get_frame_payload_descriptor(Vp8RtpFmtFrame *frame) {
-	Vp8RtpFmtPartition *partition;
-	Vp8RtpFmtPacket *packet;
-	int nb_packets;
-	int nb_partitions = ms_list_size(frame->partitions_list);
-	if (nb_partitions < 1) return NULL;
-	partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
-	nb_packets = ms_list_size(partition->packets_list);
-	if (nb_packets < 1) return NULL;
-	packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, 0);
-	return packet->pd;
-}
-
-static bool_t is_reference_frame(Vp8RtpFmtFrame *frame, Vp8RtpFmtPayloadDescriptor **pd) {
-	Vp8RtpFmtPayloadDescriptor *desc = get_frame_payload_descriptor(frame);
-	if (pd != NULL) *pd = desc;
-	return (desc->non_reference_frame == TRUE) ? FALSE : TRUE;
-}
-
 static MSVideoSize get_size_from_key_frame(Vp8RtpFmtFrame *frame) {
 	MSVideoSize vs;
-	Vp8RtpFmtPartition *partition = (Vp8RtpFmtPartition *)ms_list_nth_data(frame->partitions_list, 0);
+	Vp8RtpFmtPartition *partition = frame->partitions[0];
 	vs.width = ((partition->m->b_rptr[7] << 8) | (partition->m->b_rptr[6])) & 0x3FFF;
 	vs.height = ((partition->m->b_rptr[9] << 8) | (partition->m->b_rptr[8])) & 0x3FFF;
 	return vs;
@@ -176,7 +430,6 @@ static MSVideoSize get_size_from_key_frame(Vp8RtpFmtFrame *frame) {
 static void send_pli(Vp8RtpFmtUnpackerCtx *ctx) {
 	if (ctx->avpf_enabled == TRUE) {
 		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
-		ctx->waiting_for_reference_frame = TRUE;
 	} else {
 		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
 	}
@@ -184,15 +437,15 @@ static void send_pli(Vp8RtpFmtUnpackerCtx *ctx) {
 
 static void send_sli(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
 	if (ctx->avpf_enabled == TRUE) {
-		Vp8RtpFmtPayloadDescriptor *pd = get_frame_payload_descriptor(frame);
-		if ((pd != NULL) && (pd->pictureid_present == TRUE)) {
+		if (frame->pictureid_present == TRUE) {
 			MSVideoCodecSLI sli;
 			sli.first = 0;
 			sli.number = (ctx->video_size.width * ctx->video_size.height) / (16 * 16);
-			sli.picture_id = pd->pictureid & 0x3F;
+			sli.picture_id = frame->pictureid & 0x3F;
 			ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_SLI, &sli);
+		} else {
+			send_pli(ctx);
 		}
-		ctx->waiting_for_reference_frame = TRUE;
 	} else {
 		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
 	}
@@ -200,17 +453,16 @@ static void send_sli(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
 
 static void send_rpsi_if_reference_frame(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
 	if (ctx->avpf_enabled == TRUE) {
-		Vp8RtpFmtPayloadDescriptor *pd;
-		if (is_reference_frame(frame, &pd) && (pd->pictureid_present == TRUE)) {
+		if (frame->reference && frame->pictureid_present) {
 			MSVideoCodecRPSI rpsi;
 			uint16_t picture_id16;
 			uint8_t picture_id8;
-			if (pd->pictureid & 0x8000) {
-				picture_id16 = htons(pd->pictureid);
+			if (frame->pictureid & 0x8000) {
+				picture_id16 = htons(frame->pictureid);
 				rpsi.bit_string = (uint8_t *)&picture_id16;
 				rpsi.bit_string_len = 16;
 			} else {
-				picture_id8 = pd->pictureid & 0xFF;
+				picture_id8 = frame->pictureid & 0xFF;
 				rpsi.bit_string = (uint8_t *)&picture_id8;
 				rpsi.bit_string_len = 8;
 			}
@@ -219,147 +471,135 @@ static void send_rpsi_if_reference_frame(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFra
 	}
 }
 
-static void add_partition_to_frame(Vp8RtpFmtFrame *frame, Vp8RtpFmtPartition *partition) {
-	Vp8RtpFmtPacket *packet;
-	int nb_packets;
-	int i;
-
-	nb_packets = ms_list_size(partition->packets_list);
-	if (partition->error == Vp8RtpFmtOk) {
-		for (i = 0; i < nb_packets; i++) {
-			packet = ms_list_nth_data(partition->packets_list, i);
-			if (partition->m == NULL) {
-				partition->m = packet->m;
-			} else {
-				concatb(partition->m, packet->m);
-			}
-			packet->m = NULL;
-		}
-		if (partition->m != NULL) {
-			msgpullup(partition->m, -1);
-		}
-
-		frame->partitions_list = ms_list_append(frame->partitions_list, (void *)partition);
-	} else {
-		for (i = 0; i < nb_packets; i++) {
-			packet = ms_list_nth_data(partition->packets_list, i);
-			if (packet->error == Vp8RtpFmtOk) {
-				packet->error = Vp8RtpFmtIncompletePartition;
-			}
-		}
-	}
+static Vp8RtpFmtPartition * create_empty_partition(void) {
+	Vp8RtpFmtPartition *partition = ms_new0(Vp8RtpFmtPartition, 1);
+	partition->m = allocb(0, 0);
+	return partition;
 }
 
-static void generate_partitions_list(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame, MSList *packets_list) {
+static void add_packet_to_frame(Vp8RtpFmtFrame *frame, Vp8RtpFmtPacket *packet) {
+	uint8_t pid = packet->pd->pid;
+	Vp8RtpFmtPartition *partition = frame->partitions[pid];
+	if (!packet->pd->non_reference_frame) {
+		frame->reference = TRUE;
+	}
+	if (packet->pd->pictureid_present) {
+		frame->pictureid_present = TRUE;
+		frame->pictureid = packet->pd->pictureid;
+	}
+	if (partition == NULL) {
+		partition = frame->partitions[pid] = ms_new0(Vp8RtpFmtPartition, 1);
+		partition->has_start = packet->pd->start_of_partition;
+	}
+	if (mblk_get_marker_info(packet->m)) {
+		partition->has_marker = TRUE;
+	}
+	partition->packets_list = ms_list_append(partition->packets_list, (void *)packet);
+	partition->size += msgdsize(packet->m);
+}
+
+static void generate_frame_partitions_list(Vp8RtpFmtFrame *frame, MSList *packets_list) {
 	Vp8RtpFmtPacket *packet = NULL;
-	Vp8RtpFmtPartition *partition = NULL;
 	int nb_packets = ms_list_size(packets_list);
-	uint32_t last_cseq;
 	int i;
 
 	for (i = 0; i < nb_packets; i++) {
 		packet = (Vp8RtpFmtPacket *)ms_list_nth_data(packets_list, i);
-		if ((i > 0) && (packet->extended_cseq != (last_cseq + 1))) {
-			/* There was a gap in the sequence numbers. */
-			if (partition != NULL) {
-				/* The current partition is incomplete. */
-				partition->packets_list = ms_list_append(partition->packets_list, (void *)packet);
-				partition->error = Vp8RtpFmtIncompletePartition;
-				frame->error = Vp8RtpFmtIncompleteFrame;
-			} else {
-				/* Notify that at least one frame has been completely lost. */
-				ms_warning("VP8 decoder gap in sequence numbers.");
-				send_pli(ctx);
-			}
-		}
 		if (packet->error == Vp8RtpFmtOk) {
-			if (packet->pd->start_of_partition == TRUE) {
-				if (partition != NULL) {
-					/* The current partition is complete, and the current packet is part of a new partition. */
-					add_partition_to_frame(frame, partition);
-				}
-				partition = ms_new0(Vp8RtpFmtPartition, 1);
-				partition->packets_list = ms_list_append(partition->packets_list, (void *)packet);
-			} else {
-				if (partition != NULL) {
-					/* The current packet is a part of the current partition. */
-					partition->packets_list = ms_list_append(partition->packets_list, (void *)packet);
-				} else {
-					/* The current packet is not a start of partition, but a start of partition was expected. */
-					partition = ms_new0(Vp8RtpFmtPartition, 1);
-					partition->packets_list = ms_list_append(partition->packets_list, (void *)packet);
-					partition->error = Vp8RtpFmtIncompletePartition;
-					frame->error = Vp8RtpFmtIncompleteFrame;
-				}
-			}
+			add_packet_to_frame(frame, packet);
 		} else {
-			/* Malformed packet. */
-			if (partition == NULL) {
-				partition = ms_new0(Vp8RtpFmtPartition, 1);
-			}
-			partition->packets_list = ms_list_append(partition->packets_list, (void *)packet);
-			partition->error = Vp8RtpFmtInvalidPartition;
-			frame->error = Vp8RtpFmtInvalidFrame;
+			/* Malformed packet, ignore it. */
+			free_packet(packet);
 		}
-		if (mblk_get_marker_info(packet->m) == TRUE) {
-			partition->last_partition_of_frame = TRUE;
-			add_partition_to_frame(frame, partition);
-			partition = NULL;
-		}
+	}
+}
+
+static void mark_frame_as_invalid(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
+	frame->error = Vp8RtpFmtInvalidFrame;
+	ctx->waiting_for_reference_frame = TRUE;
+}
+
+static void mark_frame_as_incomplete(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame, uint8_t idx) {
+	frame->error = Vp8RtpFmtIncompleteFrame;
+	if (ctx->freeze_on_error == TRUE) {
+		ctx->waiting_for_reference_frame = TRUE;
+	}
+}
+
+static void check_frame_partitions_list(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
+	Vp8RtpFmtPacket *packet;
+	Vp8RtpFmtPartition *partition;
+	uint32_t last_cseq;
+	int i;
+	bool_t gap = FALSE;
+
+	if (frame->partitions[0] == NULL) {
+		mark_frame_as_invalid(ctx, frame);
+		return;
+	}
+	if ((frame->partitions[0] != NULL) && (!frame->partitions[0]->has_start)) {
+		mark_frame_as_invalid(ctx, frame);
+		return;
+	}
+	packet = (Vp8RtpFmtPacket *)ms_list_nth_data(frame->partitions[0]->packets_list, 0);
+	last_cseq = packet->extended_cseq;
+	for (i = 1; i < ms_list_size(frame->partitions[0]->packets_list); i++) {
+		packet = (Vp8RtpFmtPacket *)ms_list_nth_data(frame->partitions[0]->packets_list, i);
+		if (packet->extended_cseq != (last_cseq + 1)) gap = TRUE;
 		last_cseq = packet->extended_cseq;
 	}
+	if (gap == TRUE) {
+		mark_frame_as_invalid(ctx, frame);
+		return;
+	}
+	if (parse_frame_header(frame) != TRUE) {
+		mark_frame_as_invalid(ctx, frame);
+		return;
+	}
 
-	/* The current partition is not complete. */
-	if (partition != NULL) {
-		partition->error = Vp8RtpFmtIncompletePartition;
-		frame->error = Vp8RtpFmtIncompleteFrame;
-		add_partition_to_frame(frame, partition);
+	/* The partition 0 has been validated, check the following ones. */
+	for (i = 1; i < frame->partitions_info.nb_partitions; i++) {
+		partition = frame->partitions[i];
+		if (partition == NULL) {
+			mark_frame_as_incomplete(ctx, frame, i);
+			continue;
+		}
+		if (partition->size != frame->partitions_info.partition_sizes[i]) {
+			mark_frame_as_incomplete(ctx, frame, i);
+			continue;
+		}
+	}
+
+	/* Check the last partition of the frame. */
+	if (frame->partitions_info.nb_partitions > 1) {
+		partition = frame->partitions[frame->partitions_info.nb_partitions];
+		if ((partition == NULL) || !partition->has_start || !partition->has_marker) {
+			mark_frame_as_incomplete(ctx, frame, frame->partitions_info.nb_partitions - 1);
+		} else {
+			packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, 0);
+			last_cseq = packet->extended_cseq;
+			for (i = 1; i < ms_list_size(partition->packets_list); i++) {
+				packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, i);
+				if (packet->extended_cseq != (last_cseq + 1)) gap = TRUE;
+				last_cseq = packet->extended_cseq;
+			}
+			if (gap == TRUE) {
+				mark_frame_as_incomplete(ctx, frame, frame->partitions_info.nb_partitions - 1);
+			}
+		}
 	}
 }
 
-static void mark_last_present_partition_as_last_in_frame(Vp8RtpFmtFrame *frame) {
-	uint8_t nb_partitions = ms_list_size(frame->partitions_list);
-	Vp8RtpFmtPartition *partition = ms_list_nth_data(frame->partitions_list, nb_partitions - 1);
-	partition->last_partition_of_frame = TRUE;
-}
-
-static bool_t is_first_partition_present_in_frame(Vp8RtpFmtFrame *frame) {
-	Vp8RtpFmtPartition *partition = ms_list_nth_data(frame->partitions_list, 0);
-	Vp8RtpFmtPacket *packet = ms_list_nth_data(partition->packets_list, 0);
-	if ((packet->pd->start_of_partition == TRUE) && (packet->pd->pid == 0)) {
-		return TRUE;
+static void notify_frame_error_if_any(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
+	switch (frame->error) {
+		case Vp8RtpFmtInvalidFrame:
+		case Vp8RtpFmtIncompleteFrame:
+			send_sli(ctx, frame);
+			break;
+		case Vp8RtpFmtOk:
+		default:
+			break;
 	}
-	return FALSE;
-}
-
-static bool_t is_last_partition_present_in_frame(Vp8RtpFmtFrame *frame) {
-	uint8_t nb_partitions = ms_list_size(frame->partitions_list);
-	Vp8RtpFmtPartition *partition = ms_list_nth_data(frame->partitions_list, nb_partitions - 1);
-	return partition->last_partition_of_frame;
-}
-
-static bool_t are_all_partitions_present_in_frame(Vp8RtpFmtFrame *frame) {
-	uint8_t nb_partitions = ms_list_size(frame->partitions_list);
-	Vp8RtpFmtPartition *partition;
-	Vp8RtpFmtPacket *packet;
-	uint8_t i;
-
-	for (i = 0; i < nb_partitions; i++) {
-		partition = ms_list_nth_data(frame->partitions_list, i);
-		packet = ms_list_nth_data(partition->packets_list, 0);
-		if (packet->pd->pid != i) return FALSE;
-	}
-
-	return TRUE;
-}
-
-static bool_t is_complete_frame(Vp8RtpFmtFrame *frame) {
-	if (is_first_partition_present_in_frame(frame) != TRUE) return FALSE;
-	if (is_last_partition_present_in_frame(frame) != TRUE) {
-		mark_last_present_partition_as_last_in_frame(frame);
-		return FALSE;
-	}
-	return are_all_partitions_present_in_frame(frame);
 }
 
 static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, MSList **packets_list) {
@@ -367,18 +607,10 @@ static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, MSList **packets_list) {
 
 	if (ms_list_size(*packets_list) > 0) {
 		frame = ms_new0(Vp8RtpFmtFrame, 1);
-		generate_partitions_list(ctx, frame, *packets_list);
-		if (ms_list_size(frame->partitions_list) > 0) {
-			if (is_complete_frame(frame) != TRUE) {
-				frame->error = Vp8RtpFmtIncompleteFrame;
-			}
-			ctx->frames_list = ms_list_append(ctx->frames_list, (void *)frame);
-		} else {
-			/* There are no valid partitions in the frame. */
-			ms_warning("VP8 frame without any valid partition.");
-			ms_free(frame);
-			send_pli(ctx);
-		}
+		generate_frame_partitions_list(frame, *packets_list);
+		check_frame_partitions_list(ctx, frame);
+		notify_frame_error_if_any(ctx, frame);
+		ctx->frames_list = ms_list_append(ctx->frames_list, (void *)frame);
 	}
 	ms_list_free(*packets_list);
 	*packets_list = NULL;
@@ -431,29 +663,39 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, MSList *packets_list
 	}
 }
 
-static bool_t is_frame_marker_present(Vp8RtpFmtFrame *frame) {
-	int nb_partitions = ms_list_size(frame->partitions_list);
-	Vp8RtpFmtPartition *partition = ms_list_nth_data(frame->partitions_list, nb_partitions - 1);
-	return (bool_t)mblk_get_marker_info(partition->m);
+static void output_partition(MSQueue *out, Vp8RtpFmtPartition **partition, bool_t last) {
+	if (*partition == NULL) {
+		*partition = create_empty_partition();
+	}
+	concat_packets_of_partition(*partition);
+	if ((*partition)->has_marker || (last == TRUE)) {
+		mblk_set_marker_info((*partition)->m, 1);
+	}
+	ms_queue_put(out, (void *)(*partition)->m);
+	(*partition)->outputted = TRUE;
 }
 
-static void output_partition(MSQueue *out, Vp8RtpFmtPartition *partition) {
-	if (partition->last_partition_of_frame) {
-		mblk_set_marker_info(partition->m, 1);
+static void output_partitions_of_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8RtpFmtFrame *frame) {
+	int i;
+#ifdef VP8RTPFMT_DEBUG
+	if (frame->pictureid_present == TRUE) {
+		ms_message("VP8 decoder: Output partitions of frame with pictureID=0x%04x", frame->pictureid);
 	}
-	ms_queue_put(out, (void *)partition->m);
-	partition->outputted = TRUE;
+#endif
+	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
+		output_partition(out, &frame->partitions[i], (i == frame->partitions_info.nb_partitions) ? TRUE : FALSE);
+	}
 }
 
 static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 	Vp8RtpFmtPartition *partition;
-	int nb_partitions = ms_list_size(frame->partitions_list);
 	mblk_t *om = NULL;
 	mblk_t *curm;
 	int i;
 
-	for (i = 0; i < nb_partitions; i++) {
-		partition = ms_list_nth_data(frame->partitions_list, i);
+	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
+		partition = frame->partitions[i];
+		if (partition == NULL) continue;
 		if (i == 0) {
 			om = partition->m;
 			curm = om;
@@ -471,155 +713,103 @@ static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 
 static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 	Vp8RtpFmtFrame *frame;
-	Vp8RtpFmtPartition *partition = NULL;
-#ifdef VP8RTPFMT_DEBUG
-	Vp8RtpFmtPacket *packet = NULL;
-#endif
 	int nb_frames = ms_list_size(ctx->frames_list);
-	int nb_partitions;
 	int i;
-	int j;
 
 	for (i = 0; i < nb_frames; i++) {
 		frame = ms_list_nth_data(ctx->frames_list, i);
-		if (frame->error == Vp8RtpFmtOk) {
-			if (is_key_frame(frame) == TRUE) {
-				ctx->valid_keyframe_received = TRUE;
-				ctx->video_size = get_size_from_key_frame(frame);
-				ctx->waiting_for_reference_frame = FALSE;
-			}
-			if ((ctx->avpf_enabled == TRUE) && (is_reference_frame(frame, NULL) == TRUE)) {
-				ctx->waiting_for_reference_frame = FALSE;
-			}
-			if ((ctx->valid_keyframe_received == TRUE) && (ctx->waiting_for_reference_frame == FALSE)) {
-				/* Output the complete valid frame if a reference frame has been received. */
-				if (ctx->output_partitions == TRUE) {
-					nb_partitions = ms_list_size(frame->partitions_list);
-					for (j = 0; j < nb_partitions; j++) {
-						partition = ms_list_nth_data(frame->partitions_list, j);
-						output_partition(out, partition);
-					}
-#ifdef VP8RTPFMT_DEBUG
-					packet = ms_list_nth_data(partition->packets_list, 0);
-					if (packet->pd->pictureid_present == TRUE) {
-						ms_message("VP8 decoder: Output frame with pictureID=0x%04x", packet->pd->pictureid);
-					}
-#endif
-				} else {
-					/* Output the full frame in one mblk_t. */
-					output_frame(out, frame);
+		switch (frame->error) {
+			case Vp8RtpFmtOk:
+				if (frame->keyframe == TRUE) {
+					ctx->valid_keyframe_received = TRUE;
+					ctx->video_size = get_size_from_key_frame(frame);
+					ctx->waiting_for_reference_frame = FALSE;
 				}
-				frame->outputted = TRUE;
-				send_rpsi_if_reference_frame(ctx, frame);
-			} else {
-				if (ctx->waiting_for_reference_frame == TRUE) {
-					/* Do not decode frames while we are waiting for a reference frame. */
-#ifdef VP8RTPFMT_DEBUG
-					nb_partitions = ms_list_size(frame->partitions_list);
-					if (nb_partitions > 0) {
-						partition = ms_list_nth_data(frame->partitions_list, 0);
-						packet = ms_list_nth_data(partition->packets_list, 0);
+				if ((ctx->avpf_enabled == TRUE) && (frame->reference == TRUE)) {
+					ctx->waiting_for_reference_frame = FALSE;
+				}
+				if ((ctx->valid_keyframe_received == TRUE) && (ctx->waiting_for_reference_frame == FALSE)) {
+					/* Output the complete valid frame if a reference frame has been received. */
+					if (ctx->output_partitions == TRUE) {
+						output_partitions_of_frame(ctx, out, frame);
 					} else {
-						packet = NULL;
-					}
-					if (packet && (packet->pd->pictureid_present == TRUE)) {
-						ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame: pictureID=0x%04x", packet->pd->pictureid);
-					} else
-#endif
-						ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame.");
-					frame->discarded = TRUE;
-				} else {
-					/* Drop frames until the first keyframe is successfully received. */
-					ms_warning("VP8 frame dropped because keyframe has not been received yet.");
-					frame->discarded = TRUE;
-					send_pli(ctx);
-				}
-			}
-		} else if (is_frame_marker_present(frame) == TRUE) {
-			if (is_first_partition_present_in_frame(frame) == TRUE) {
-#ifdef VP8RTPFMT_OUTPUT_INCOMPLETE_PARTITIONS
-				if (ctx->output_partitions == TRUE) {
-					/* Output the valid partitions of the frame. */
-					nb_partitions = ms_list_size(frame->partitions_list);
-					for (i = 0; i < nb_partitions; i++) {
-						partition = ms_list_nth_data(frame->partitions_list, i);
-						if (partition->error == Vp8RtpFmtOk) {
-							if (i == (nb_partitions - 1)) {
-								partition->last_partition_of_frame = TRUE;
-							}
-							output_partition(out, partition);
-						}
+						/* Output the full frame in one mblk_t. */
+						output_frame(out, frame);
 					}
 					frame->outputted = TRUE;
-				} else
-#endif
-				{
-					/* Drop the frame for which some partitions are missing/invalid. */
+					send_rpsi_if_reference_frame(ctx, frame);
+				} else {
+					if (ctx->waiting_for_reference_frame == TRUE) {
+						/* Do not decode frames while we are waiting for a reference frame. */
 #ifdef VP8RTPFMT_DEBUG
-					partition = ms_list_nth_data(frame->partitions_list, 0);
-					packet = ms_list_nth_data(partition->packets_list, 0);
-					if (packet->pd->pictureid_present == TRUE) {
-						ms_warning("VP8 frame with some partitions missing/invalid: pictureID=0x%04x", packet->pd->pictureid);
-					} else
+						if (frame->pictureid_present == TRUE)
+							ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame: pictureID=0x%04x", frame->pictureid);
+						else
 #endif
-						ms_warning("VP8 frame with some partitions missing/invalid.");
-					frame->discarded = TRUE;
+							ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame.");
+						frame->discarded = TRUE;
+					} else {
+						/* Drop frames until the first keyframe is successfully received. */
+						ms_warning("VP8 frame dropped because keyframe has not been received yet.");
+						frame->discarded = TRUE;
+						send_pli(ctx);
+					}
 				}
-				send_sli(ctx, frame);
-			} else {
-				/* Drop the frame for which the first partition is missing. */
+				break;
+			case Vp8RtpFmtIncompleteFrame:
+				if (frame->keyframe == TRUE) {
+					/* Incomplete keyframe. */
+					frame->discarded = TRUE;
+				} else {
+					if ((ctx->output_partitions == TRUE) && (ctx->valid_keyframe_received == TRUE) && (ctx->waiting_for_reference_frame == FALSE)) {
+						output_partitions_of_frame(ctx, out, frame);
+						frame->outputted = TRUE;
+					} else {
+						/* Drop the frame for which some partitions are missing/invalid. */
 #ifdef VP8RTPFMT_DEBUG
-				partition = ms_list_nth_data(frame->partitions_list, 0);
-				packet = ms_list_nth_data(partition->packets_list, 0);
-				if (packet->pd->pictureid_present == TRUE) {
-					ms_warning("VP8 frame without first partition: pictureID=0x%04x", packet->pd->pictureid);
-				} else
+						if (frame->pictureid_present == TRUE)
+							ms_warning("VP8 frame with some partitions missing/invalid: pictureID=0x%04x", frame->pictureid);
+						else
 #endif
-					ms_warning("VP8 frame without first partition.");
+							ms_warning("VP8 frame with some partitions missing/invalid.");
+						frame->discarded = TRUE;
+					}
+				}
+				break;
+			default:
+				/* Drop the invalid frame. */
+#ifdef VP8RTPFMT_DEBUG
+				if (frame->pictureid_present == TRUE)
+					ms_warning("VP8 invalid frame: pictureID=0x%04x", frame->pictureid);
+				else
+#endif
+					ms_warning("VP8 invalid frame.");
 				frame->discarded = TRUE;
-				send_sli(ctx, frame);
-			}
-		} else {
-			/* The last packet of the frame has not been received. */
-#ifdef VP8RTPFMT_DEBUG
-			partition = ms_list_nth_data(frame->partitions_list, 0);
-			packet = ms_list_nth_data(partition->packets_list, 0);
-			if (packet->pd->pictureid_present == TRUE) {
-				ms_warning("VP8 frame without last packet: pictureID=0x%04x", packet->pd->pictureid);
-			} else
-#endif
-				ms_warning("VP8 frame without last packet.");
-			frame->discarded = TRUE;
-			send_sli(ctx, frame);
+				break;
 		}
 	}
 }
 
-static void free_partitions_of_outputted_frames(void *data) {
+static void free_partitions_of_frame(void *data) {
 	Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)data;
-	if (frame->outputted == TRUE) {
-		ms_list_for_each(frame->partitions_list, free_partition);
-		ms_list_free(frame->partitions_list);
-	}
-}
-
-static void free_partitions_of_discarded_frames(void *data) {
-	Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)data;
-	if (frame->discarded == TRUE) {
-		ms_list_for_each(frame->partitions_list, free_partition);
-		ms_list_free(frame->partitions_list);
+	int i;
+	for (i = 0; i < 9; i++) {
+		if (frame->partitions[i] != NULL) {
+			free_partition(frame->partitions[i]);
+			frame->partitions[i] = NULL;
+		}
 	}
 }
 
 static void clean_outputted_partitions(Vp8RtpFmtUnpackerCtx *ctx) {
 	bool_t outputted = TRUE;
-	ms_list_for_each(ctx->frames_list, free_partitions_of_outputted_frames);
+	ms_list_for_each(ctx->frames_list, free_partitions_of_frame);
 	ctx->frames_list = ms_list_remove_custom(ctx->frames_list, free_outputted_frame, &outputted);
 }
 
 static void clean_discarded_partitions(Vp8RtpFmtUnpackerCtx *ctx) {
 	bool_t discarded = TRUE;
-	ms_list_for_each(ctx->frames_list, free_partitions_of_discarded_frames);
+	ms_list_for_each(ctx->frames_list, free_partitions_of_frame);
 	ctx->frames_list = ms_list_remove_custom(ctx->frames_list, free_discarded_frame, &discarded);
 }
 
@@ -691,12 +881,13 @@ static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 }
 
 
-void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf_enabled, bool_t output_partitions) {
+void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf_enabled, bool_t freeze_on_error, bool_t output_partitions) {
 	ctx->filter = f;
 	ctx->frames_list = NULL;
 	ctx->non_processed_packets_list = NULL;
 	ms_queue_init(&ctx->output_queue);
 	ctx->avpf_enabled = avpf_enabled;
+	ctx->freeze_on_error = freeze_on_error;
 	ctx->output_partitions = output_partitions;
 	ctx->valid_keyframe_received = FALSE;
 	ctx->waiting_for_reference_frame = TRUE;

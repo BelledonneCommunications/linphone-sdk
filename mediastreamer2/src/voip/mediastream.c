@@ -45,7 +45,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef MS_MINIMAL_MTU
 /*this is used for determining the minimum size of recv buffers for RTP packets
  Keep 1500 for maximum interoparibility*/
-#define MS_MINIMAL_MTU 1500 
+#define MS_MINIMAL_MTU 1500
 #endif
 
 
@@ -81,12 +81,12 @@ static void media_stream_change_decoder(MediaStream *stream, int payload) {
 	RtpSession *session = stream->sessions.rtp_session;
 	RtpProfile *prof = rtp_session_get_profile(session);
 	PayloadType *pt = rtp_profile_get_payload(prof, payload);
-	
+
 	if (stream->decoder == NULL){
 		ms_message("media_stream_change_decoder(): ignored, no decoder.");
 		return;
 	}
-	
+
 	if (pt != NULL){
 		MSFilter *dec;
 
@@ -175,13 +175,7 @@ void media_stream_start_ticker(MediaStream *stream) {
 }
 
 const char * media_stream_type_str(MediaStream *stream) {
-	switch (stream->type) {
-		default:
-		case AudioStreamType:
-			return "audio";
-		case VideoStreamType:
-			return "video";
-	}
+	return ms_stream_type_to_string(stream->type); 
 }
 
 void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
@@ -225,7 +219,7 @@ void media_stream_free(MediaStream *stream) {
 	if (stream->decoder != NULL) ms_filter_destroy(stream->decoder);
 	if (stream->voidsink != NULL) ms_filter_destroy(stream->voidsink);
 	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
-	
+
 }
 
 void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool) {
@@ -261,7 +255,7 @@ static int check_srtp_session_created(MediaStream *stream){
 		err_status_t err;
 		srtp_t session;
 		RtpTransport *rtp=NULL,*rtcp=NULL;
-			
+
 		err = ortp_srtp_create(&session, NULL);
 		if (err != 0) {
 			ms_error("Failed to create srtp session (%d)", err);
@@ -283,9 +277,9 @@ static int add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, cons
 	err_status_t err;
 	unsigned b64_key_length = strlen(b64_key);
 	ssrc_t ssrc_conf;
-	
+
 	memset(&policy,0,sizeof(policy));
-	
+
 	switch(suite){
 		case MS_AES_128_SHA1_32:
 			crypto_policy_set_aes_cm_128_hmac_sha1_32(&policy.rtp);
@@ -332,22 +326,22 @@ static int add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, cons
 	}
 	if (!inbound)
 		policy.allow_repeat_tx=1; /*necessary for telephone-events*/
-	
+
 	/*ssrc_conf.type=inbound ? ssrc_any_inbound : ssrc_specific;*/
 	ssrc_conf.type=ssrc_specific;
 	ssrc_conf.value=ssrc;
-	
+
 	policy.ssrc = ssrc_conf;
 	policy.key = key;
 	policy.next = NULL;
-	
+
 	err = srtp_add_stream(srtp, &policy);
 	if (err != err_status_ok) {
 		ortp_error("Failed to add stream to srtp session (%d)", err);
 		ortp_free(key);
 		return -1;
 	}
-	
+
 	ortp_free(key);
 	return 0;
 }
@@ -373,7 +367,7 @@ bool_t media_stream_srtp_supported(void){
 }
 
 int media_stream_set_srtp_recv_key(MediaStream *stream, MSCryptoSuite suite, const char* key){
-	
+
 	if (!media_stream_srtp_supported()) {
 		ms_error("ortp srtp support disabled in oRTP or mediastreamer2");
 		return -1;
@@ -382,14 +376,14 @@ int media_stream_set_srtp_recv_key(MediaStream *stream, MSCryptoSuite suite, con
 	{
 		uint32_t ssrc,send_ssrc;
 		bool_t updated=FALSE;
-		
+
 		if (check_srtp_session_created(stream)==-1)
 			return -1;
 
 		/*check if a previous key was configured, in which case remove it*/
 		send_ssrc=rtp_session_get_send_ssrc(stream->sessions.rtp_session);
 		ssrc=find_other_ssrc(stream->sessions.srtp_session,htonl(send_ssrc));
-		
+
 		/*careful: remove_stream takes the SSRC in network byte order...*/
 		if (ortp_srtp_remove_stream(stream->sessions.srtp_session,ssrc)==0)
 			updated=TRUE;
@@ -403,20 +397,20 @@ int media_stream_set_srtp_recv_key(MediaStream *stream, MSCryptoSuite suite, con
 }
 
 int media_stream_set_srtp_send_key(MediaStream *stream, MSCryptoSuite suite, const char* key){
-	
+
 	if (!media_stream_srtp_supported()) {
 		ms_error("ortp srtp support disabled in oRTP or mediastreamer2");
 		return -1;
 	}
-	
+
 #ifdef ORTP_HAVE_SRTP
 	{
 		uint32_t ssrc;
 		bool_t updated=FALSE;
-		
+
 		if (check_srtp_session_created(stream)==-1)
 			return -1;
-		
+
 		/*check if a previous key was configured, in which case remove it*/
 		ssrc=rtp_session_get_send_ssrc(stream->sessions.rtp_session);
 		if (ssrc!=0){
@@ -465,15 +459,29 @@ void mediastream_payload_type_changed(RtpSession *session, unsigned long data) {
 	media_stream_change_decoder(stream, pt);
 }
 
+static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m, time_t curtime){
+	stream->last_packet_time=curtime;
+	ms_message("%s stream [%p]: receiving RTCP %s%s",media_stream_type_str(stream),stream,(rtcp_is_SR(m)?"SR":""),(rtcp_is_RR(m)?"RR":""));
+	do{
+		if (stream->use_rc&&stream->rc) ms_bitrate_controller_process_rtcp(stream->rc,m);
+		if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi,m);
+		stream->process_rtcp(stream,m);
+	}while(rtcp_next_packet(m));
+
+}
+
 void media_stream_iterate(MediaStream *stream){
 	time_t curtime=ms_time(NULL);
-	
+
 	if (stream->ice_check_list) ice_check_list_process(stream->ice_check_list,stream->sessions.rtp_session);
 	/*we choose to update the quality indicator as much as possible, since local statistics can be computed realtime. */
 	if (stream->state==MSStreamStarted){
 		if (stream->qi && curtime>stream->last_iterate_time) ms_quality_indicator_update_local(stream->qi);
 	}
 	stream->last_iterate_time=curtime;
+
+	if (stream->rc) ms_bitrate_controller_update(stream->rc);
+
 	if (stream->evq){
 		OrtpEvent *ev=NULL;
 
@@ -481,8 +489,7 @@ void media_stream_iterate(MediaStream *stream){
 			OrtpEventType evt=ortp_event_get_type(ev);
 			if (evt==ORTP_EVENT_RTCP_PACKET_RECEIVED){
 				mblk_t *m=ortp_event_get_data(ev)->packet;
-				ms_message("%s stream [%p]: receiving RTCP %s%s",media_stream_type_str(stream),stream,(rtcp_is_SR(m)?"SR":""),(rtcp_is_RR(m)?"RR":""));
-				stream->process_rtcp(stream,m);
+				media_stream_process_rtcp(stream,m,curtime);
 			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
 				ms_message("%s_stream_iterate[%p]: local statistics available\n\tLocal's current jitter buffer size:%f ms",
 					media_stream_type_str(stream), stream, rtp_session_get_jitter_stats(stream->sessions.rtp_session)->jitter_buffer_size_ms);
@@ -491,11 +498,26 @@ void media_stream_iterate(MediaStream *stream){
 			} else if (evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) {
 				OrtpEventData *evd=ortp_event_get_data(ev);
 				stream->sessions.is_secured=evd->info.zrtp_stream_encrypted;
-				ms_message("%s stream [%p] is %s ",media_stream_type_str(stream) , stream, stream->sessions.is_secured ? "encrypted" : "not encrypted");
+				ms_message("%s_stream_iterate[%p]: is %s ",media_stream_type_str(stream) , stream, stream->sessions.is_secured ? "encrypted" : "not encrypted");
 			}
 			ortp_event_destroy(ev);
 		}
 	}
+}
+
+bool_t media_stream_alive(MediaStream *ms, int timeout){
+	const rtp_stats_t *stats=rtp_session_get_stats(ms->sessions.rtp_session);
+	if (stats->recv!=0){
+		if (stats->recv!=ms->last_packet_count){
+			ms->last_packet_count=stats->recv;
+			ms->last_packet_time=ms_time(NULL);
+		}
+	}
+	if (ms_time(NULL)-ms->last_packet_time>timeout){
+		/* more than timeout seconds of inactivity*/
+		return FALSE;
+	}
+	return TRUE;
 }
 
 float media_stream_get_quality_rating(MediaStream *stream){
@@ -547,9 +569,19 @@ void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *s
 	memcpy(sessions,&stream->sessions, sizeof(MSMediaStreamSessions));
 	stream->owns_sessions=FALSE;
 }
-bool_t media_stream_is_secured (const MediaStream *stream) {
+
+bool_t media_stream_secured (const MediaStream *stream) {
 	return stream->sessions.is_secured;
 }
+
+bool_t media_stream_avpf_enabled(const MediaStream *stream) {
+	return rtp_session_avpf_enabled(stream->sessions.rtp_session);
+}
+
+uint8_t media_stream_get_avpf_rr_interval(const MediaStream *stream) {
+	return rtp_session_get_avpf_rr_interval(stream->sessions.rtp_session);
+}
+
 MSStreamState media_stream_get_state(const MediaStream *stream) {
 	return stream->state;
 }
@@ -595,7 +627,7 @@ int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *pa
 			break;
 		case MS_AES_128_SHA1_32:
 			params->name="AES_CM_128_HMAC_SHA1_32";
-			break; 
+			break;
 		case MS_AES_128_NO_AUTH:
 			params->name="AES_CM_128_HMAC_SHA1_80";
 			params->params="UNAUTHENTICATED_SRTP";
@@ -613,5 +645,14 @@ int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *pa
 	}
 	if (params->name==NULL) return -1;
 	return 0;
+}
+const char* ms_stream_type_to_string(StreamType type) {
+       switch (type) {
+               case AudioStreamType:
+                       return "audio";
+               case VideoStreamType:
+                       return "video";
+       }
+       return "unknown";
 }
 

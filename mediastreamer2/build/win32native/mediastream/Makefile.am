@@ -1,3 +1,3 @@
-EXTRA_DIST=mediastream.vcproj
+EXTRA_DIST=mediastream.vcxproj
 
 

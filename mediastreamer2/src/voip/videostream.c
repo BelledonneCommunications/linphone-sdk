@@ -95,70 +95,57 @@ static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *e
 
 static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	VideoStream *stream = (VideoStream *)media_stream;
-	unsigned int i;
 
-	do{
-		if (rtcp_is_SR(m)){
-			const report_block_t *rb;
-			rb=rtcp_SR_get_report_block(m,0);
-			if (rb){
-				float rt=rtp_session_get_round_trip_propagation(stream->ms.sessions.rtp_session);
-				float flost;
-				i=report_block_get_interarrival_jitter(rb);
-				flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
-				ms_message("video_stream_process_rtcp[%p]: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",stream,i,flost,rt);
-				if (stream->ms.rc)
-					ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
-			}
-		} else if (rtcp_is_PSFB(m)) {
-			if (rtcp_PSFB_get_type(m) == RTCP_PSFB_FIR) {
-				/* Special case for FIR where the packet sender ssrc must be equal to 0. */
-				if ((rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session))
-					&& (rtcp_PSFB_get_packet_sender_ssrc(m) == 0)) {
-					for (i = 0; ; i++) {
-						rtcp_fb_fir_fci_t *fci = rtcp_PSFB_fir_get_fci(m, i);
-						if (fci == NULL) break;
-						if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session)) {
-							uint8_t seq_nr = rtcp_fb_fir_fci_get_seq_nr(fci);
-							ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_FIR, &seq_nr);
-							break;
-						}
+	int i;
+
+	if (rtcp_is_PSFB(m)) {
+		if (rtcp_PSFB_get_type(m) == RTCP_PSFB_FIR) {
+			/* Special case for FIR where the packet sender ssrc must be equal to 0. */
+			if ((rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session))
+				&& (rtcp_PSFB_get_packet_sender_ssrc(m) == 0)) {
+				for (i = 0; ; i++) {
+					rtcp_fb_fir_fci_t *fci = rtcp_PSFB_fir_get_fci(m, i);
+					if (fci == NULL) break;
+					if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session)) {
+						uint8_t seq_nr = rtcp_fb_fir_fci_get_seq_nr(fci);
+						ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_FIR, &seq_nr);
+						break;
 					}
 				}
-			} else {
-				if ((rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session))
-					&& (rtcp_PSFB_get_packet_sender_ssrc(m) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session))) {
-					switch (rtcp_PSFB_get_type(m)) {
-						case RTCP_PSFB_PLI:
-							ms_filter_call_method_noarg(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_PLI);
-							break;
-						case RTCP_PSFB_SLI:
-							for (i = 0; ; i++) {
-								rtcp_fb_sli_fci_t *fci = rtcp_PSFB_sli_get_fci(m, i);
-								MSVideoCodecSLI sli;
-								if (fci == NULL) break;
-								sli.first = rtcp_fb_sli_fci_get_first(fci);
-								sli.number = rtcp_fb_sli_fci_get_number(fci);
-								sli.picture_id = rtcp_fb_sli_fci_get_picture_id(fci);
-								ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_SLI, &sli);
-							}
-							break;
-						case RTCP_PSFB_RPSI:
-						{
-							rtcp_fb_rpsi_fci_t *fci = rtcp_PSFB_rpsi_get_fci(m);
-							MSVideoCodecRPSI rpsi;
-							rpsi.bit_string = rtcp_fb_rpsi_fci_get_bit_string(fci);
-							rpsi.bit_string_len = rtcp_PSFB_rpsi_get_fci_bit_string_len(m);
-							ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_RPSI, &rpsi);
+			}
+		} else {
+			if ((rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session))
+				&& (rtcp_PSFB_get_packet_sender_ssrc(m) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session))) {
+				switch (rtcp_PSFB_get_type(m)) {
+					case RTCP_PSFB_PLI:
+						ms_filter_call_method_noarg(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_PLI);
+						break;
+					case RTCP_PSFB_SLI:
+						for (i = 0; ; i++) {
+							rtcp_fb_sli_fci_t *fci = rtcp_PSFB_sli_get_fci(m, i);
+							MSVideoCodecSLI sli;
+							if (fci == NULL) break;
+							sli.first = rtcp_fb_sli_fci_get_first(fci);
+							sli.number = rtcp_fb_sli_fci_get_number(fci);
+							sli.picture_id = rtcp_fb_sli_fci_get_picture_id(fci);
+							ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_SLI, &sli);
 						}
-							break;
-						default:
-							break;
+						break;
+					case RTCP_PSFB_RPSI:
+					{
+						rtcp_fb_rpsi_fci_t *fci = rtcp_PSFB_rpsi_get_fci(m);
+						MSVideoCodecRPSI rpsi;
+						rpsi.bit_string = rtcp_fb_rpsi_fci_get_bit_string(fci);
+						rpsi.bit_string_len = rtcp_PSFB_rpsi_get_fci_bit_string_len(m);
+						ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_RPSI, &rpsi);
 					}
+						break;
+					default:
+						break;
 				}
 			}
 		}
-	}while(rtcp_next_packet(m));
+	}
 }
 
 static void stop_preload_graph(VideoStream *stream){
@@ -209,6 +196,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	stream->ms.type = VideoStreamType;
 	stream->ms.sessions=*sessions;
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
+	ms_quality_indicator_set_label(stream->ms.qi,"audio");
 	stream->ms.evq=ortp_ev_queue_new();
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
@@ -216,6 +204,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, CIF);
 	stream->dir=VideoStreamSendRecv;
 	stream->display_filter_auto_rotate_enabled=0;
+	stream->freeze_on_error = FALSE;
 	stream->source_performs_encoding = FALSE;
 	stream->output_performs_decoding = FALSE;
 	choose_display_name(stream);
@@ -409,7 +398,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 	pt=rtp_profile_get_payload(profile,payload);
 	if (pt==NULL){
-		ms_error("videostream.c: undefined payload type.");
+		ms_error("videostream.c: undefined payload type %d.", payload);
 		return -1;
 	}
 	if (pt->flags & PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED) avpf_enabled = TRUE;
@@ -555,6 +544,11 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 				stream->tee2=ms_filter_new(MS_TEE_ID);
 		}
 
+		/* Define target upload bandwidth for RTCP packets sending. */
+		if (pt->normal_bitrate > 0) {
+			rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, pt->normal_bitrate);
+		}
+
 		/* set parameters to the decoder*/
 		if (pt->send_fmtp){
 			ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
@@ -562,6 +556,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		if (pt->recv_fmtp!=NULL)
 			ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
 		ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_ENABLE_AVPF, &avpf_enabled);
+		ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_FREEZE_ON_ERROR, &stream->freeze_on_error);
 
 		/*force the decoder to output YUV420P */
 		format=MS_YUV420P;
@@ -855,6 +850,10 @@ void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
 
 void video_stream_set_device_rotation(VideoStream *stream, int orientation){
 	stream->device_orientation = orientation;
+}
+
+void video_stream_set_freeze_on_error(VideoStream *stream, bool_t yesno) {
+	stream->freeze_on_error = yesno;
 }
 
 int video_stream_get_camera_sensor_rotation(VideoStream *stream) {

@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #include "CUnit/Basic.h"
+#include <mediastreamer2/mediastream.h>
+
 
 
 typedef void (*test_function_t)(void);
@@ -47,10 +49,15 @@ extern "C" {
 
 extern test_suite_t basic_audio_test_suite;
 extern test_suite_t sound_card_test_suite;
+extern test_suite_t adaptive_test_suite;
 extern test_suite_t audio_stream_test_suite;
 extern test_suite_t video_stream_test_suite;
 extern test_suite_t framework_test_suite;
 
+#define CU_ASSERT_IN_RANGE(value, inf, sup) \
+		printf(#value ": %f <= ? %f <= ? %f\n", (double)inf, (double)value, (double)sup); \
+		CU_ASSERT_TRUE(value >= inf); \
+		CU_ASSERT_TRUE(value <= sup);
 
 extern int mediastreamer2_tester_nb_test_suites(void);
 extern int mediastreamer2_tester_nb_tests(const char *suite_name);

@@ -237,6 +237,10 @@ MSFilterId ms_filter_get_id(MSFilter *f){
 	return f->desc->id;
 }
 
+const char * ms_filter_get_name(MSFilter *f) {
+	return f->desc->name;
+}
+
 int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	MSQueue *q;
 	ms_message("ms_filter_link: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);

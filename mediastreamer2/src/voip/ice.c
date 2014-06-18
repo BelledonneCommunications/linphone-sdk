@@ -133,7 +133,6 @@ static int ice_find_use_candidate_valid_pair_from_componentID(const IceValidCand
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static void ice_find_selected_valid_pair_for_componentID(const uint16_t *componentID, CheckList_Bool *cb);
-static int ice_find_running_check_list(const IceCheckList *cl);
 static int ice_find_pair_in_valid_list(IceValidCandidatePair *valid_pair, IceCandidatePair *pair);
 static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
 static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl);
@@ -205,7 +204,7 @@ static char * generate_pwd(void)
 
 static void ice_session_init(IceSession *session)
 {
-	session->streams = NULL;
+	memset(&session->streams, 0, sizeof(session->streams));
 	session->state = IS_Stopped;
 	session->role = IR_Controlling;
 	session->tie_breaker = generate_tie_breaker();
@@ -235,13 +234,18 @@ IceSession * ice_session_new(void)
 
 void ice_session_destroy(IceSession *session)
 {
+	int i;
 	if (session != NULL) {
-		ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_destroy);
+		for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+			if (session->streams[i] != NULL) {
+				ice_check_list_destroy(session->streams[i]);
+				session->streams[i] = NULL;
+			}
+		}
 		if (session->local_ufrag) ms_free(session->local_ufrag);
 		if (session->local_pwd) ms_free(session->local_pwd);
 		if (session->remote_ufrag) ms_free(session->remote_ufrag);
 		if (session->remote_pwd) ms_free(session->remote_pwd);
-		ms_list_free(session->streams);
 		ms_free(session);
 	}
 }
@@ -422,21 +426,21 @@ IceCheckListState ice_check_list_state(const IceCheckList* cl)
 	return cl->state;
 }
 
-static int ice_find_check_list_from_state(const IceCheckList *cl, const IceCheckListState *state)
+static IceCheckList * ice_find_check_list_from_state(const IceSession *session, IceCheckListState state)
 {
-	return (cl->state != *state);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (ice_check_list_state(session->streams[i]) == state) return session->streams[i];
+	}
+	return NULL;
 }
 
 void ice_check_list_set_state(IceCheckList *cl, IceCheckListState state)
 {
-	IceCheckListState check_state;
-
 	if (cl->state != state) {
 		cl->state = state;
-		check_state = ICL_Running;
-		if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_check_list_from_state, &check_state) == NULL) {
-			check_state = ICL_Failed;
-			if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_check_list_from_state, &check_state) != NULL) {
+		if (ice_find_check_list_from_state(cl->session, ICL_Running) == NULL) {
+			if (ice_find_check_list_from_state(cl->session, ICL_Failed) != NULL) {
 				/* Set the state of the session to Failed if at least one check list is in the Failed state. */
 				cl->session->state = IS_Failed;
 			} else {
@@ -655,7 +659,8 @@ bool_t ice_check_list_is_mismatch(const IceCheckList *cl)
 
 IceCheckList * ice_session_check_list(const IceSession *session, unsigned int n)
 {
-	return (IceCheckList *)ms_list_nth_data(session->streams, n);
+	if (n >= ICE_SESSION_MAX_CHECK_LISTS) return NULL;
+	return session->streams[n];
 }
 
 const char * ice_session_local_ufrag(const IceSession *session)
@@ -685,7 +690,11 @@ static void ice_check_list_compute_pair_priorities(IceCheckList *cl)
 
 static void ice_session_compute_pair_priorities(IceSession *session)
 {
-	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_compute_pair_priorities);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			ice_check_list_compute_pair_priorities(session->streams[i]);
+	}
 }
 
 IceSessionState ice_session_state(const IceSession *session)
@@ -743,24 +752,35 @@ void ice_session_set_keepalive_timeout(IceSession *session, uint8_t timeout)
 
 int ice_session_nb_check_lists(IceSession *session)
 {
-	return ms_list_size(session->streams);
-}
-
-static int ice_find_completed_check_list(const IceCheckList *cl, const void *dummy)
-{
-	return (cl->state != ICL_Completed);
+	int i;
+	int nb = 0;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL) nb++;
+	}
+	return nb;
 }
 
 bool_t ice_session_has_completed_check_list(const IceSession *session)
 {
-	MSList *elem = ms_list_find_custom(session->streams, (MSCompareFunc)ice_find_completed_check_list, NULL);
-	if (elem == NULL) return FALSE;
-	else return TRUE;
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if ((session->streams[i] != NULL) && (ice_check_list_state(session->streams[i]) == ICL_Completed))
+			return TRUE;
+	}
+	return FALSE;
 }
 
-void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
+void ice_session_add_check_list(IceSession *session, IceCheckList *cl, unsigned int idx)
 {
-	session->streams = ms_list_append(session->streams, cl);
+	if (idx >= ICE_SESSION_MAX_CHECK_LISTS) {
+		ms_error("ice_session_add_check_list: Wrong idx parameter");
+		return;
+	}
+	if (session->streams[idx] != NULL) {
+		ms_error("ice_session_add_check_list: Existing check list at index %u, remove it first", idx);
+		return;
+	}
+	session->streams[idx] = cl;
 	cl->session = session;
 	if (cl->state == ICL_Running) {
 		session->state = IS_Running;
@@ -769,9 +789,25 @@ void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
 
 void ice_session_remove_check_list(IceSession *session, IceCheckList *cl)
 {
-	if (cl == NULL) return;
-	session->streams = ms_list_remove(session->streams, cl);
-	ice_check_list_destroy(cl);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if ((session->streams[i] != NULL) && (session->streams[i] == cl)) {
+			ice_check_list_destroy(cl);
+			session->streams[i] = NULL;
+			break;
+		}
+	}
+}
+
+void ice_session_remove_check_list_from_idx(IceSession *session, unsigned int idx) {
+	if (idx >= ICE_SESSION_MAX_CHECK_LISTS) {
+		ms_error("ice_session_remove_check_list_from_idx: Wrong idx parameter");
+		return;
+	}
+	if (session->streams[idx] != NULL) {
+		ice_check_list_destroy(session->streams[idx]);
+		session->streams[idx] = NULL;
+	}
 }
 
 static int ice_find_default_candidate_from_componentID(const IceCandidate *candidate, const uint16_t *componentID)
@@ -795,18 +831,17 @@ static void ice_check_list_check_mismatch(IceCheckList *cl)
 
 void ice_session_check_mismatch(IceSession *session)
 {
-	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_check_mismatch);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			ice_check_list_check_mismatch(session->streams[i]);
+	}
 }
 
 
 /******************************************************************************
  * CANDIDATES GATHERING                                                       *
  *****************************************************************************/
-
-static void ice_check_list_candidates_gathered_result_ptr(const IceCheckList *cl, bool_t *result)
-{
-	if (cl->gathering_finished == FALSE) *result = FALSE;
-}
 
 bool_t ice_check_list_candidates_gathered(const IceCheckList *cl)
 {
@@ -815,14 +850,19 @@ bool_t ice_check_list_candidates_gathered(const IceCheckList *cl)
 
 bool_t ice_session_candidates_gathered(const IceSession *session)
 {
-	bool_t result = TRUE;
-	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_candidates_gathered_result_ptr, &result);
-	return result;
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if ((session->streams[i] != NULL) && (ice_check_list_candidates_gathered(session->streams[i]) != TRUE))
+			return FALSE;
+	}
+	return TRUE;
 }
 
-static void ice_check_list_gathering_needed(const IceCheckList *cl, bool_t *gathering_needed)
+static bool_t ice_check_list_gathering_needed(const IceCheckList *cl)
 {
-	if (cl->gathering_finished == FALSE) *gathering_needed = TRUE;
+	if (cl->gathering_finished == FALSE)
+		return TRUE;
+	return FALSE;
 }
 
 static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si)
@@ -859,25 +899,46 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 	}
 }
 
-void ice_session_gather_candidates(IceSession *session,const struct sockaddr* ss, socklen_t ss_len)
+static bool_t ice_session_gathering_needed(const IceSession *session) {
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if ((session->streams[i] != NULL) && (ice_check_list_gathering_needed(session->streams[i]) == TRUE))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+static IceCheckList * ice_session_first_check_list(const IceSession *session) {
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			return session->streams[i];
+	}
+	return NULL;
+}
+
+void ice_session_gather_candidates(IceSession *session, const struct sockaddr* ss, socklen_t ss_len)
 {
 	Session_Index si;
 	OrtpEvent *ev;
-	bool_t gathering_needed = FALSE;
+	int i;
+
 	memcpy(&session->ss,ss,ss_len);
 	session->ss_len = ss_len;
 	si.session = session;
 	si.index = 0;
 	ms_get_cur_time(&session->gathering_start_ts);
-	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_gathering_needed, &gathering_needed);
-	if (gathering_needed == TRUE) {
-		ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_gather_candidates, &si);
+	if (ice_session_gathering_needed(session) == TRUE) {
+		for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+			if (session->streams[i] != NULL)
+				ice_check_list_gather_candidates(session->streams[i], &si);
+		}
 	} else {
 		/* Notify end of gathering since it has already been done. */
 		ev = ortp_event_new(ORTP_EVENT_ICE_GATHERING_FINISHED);
 		ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
 		session->gathering_end_ts = session->gathering_start_ts;
-		rtp_session_dispatch_event(ice_session_check_list(session, 0)->rtp_session, ev);
+		rtp_session_dispatch_event(ice_session_first_check_list(session)->rtp_session, ev);
 	}
 }
 
@@ -909,10 +970,14 @@ static void ice_check_list_sum_gathering_round_trip_times(const IceCheckList *cl
 int ice_session_average_gathering_round_trip_time(IceSession *session)
 {
 	StunRequestRoundTripTime rtt;
+	int i;
 
 	if ((session->gathering_start_ts.tv_sec == -1) || (session->gathering_end_ts.tv_sec == -1)) return -1;
 	memset(&rtt, 0, sizeof(rtt));
-	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_sum_gathering_round_trip_times, &rtt);
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			ice_check_list_sum_gathering_round_trip_times(session->streams[i], &rtt);
+	}
 	if (rtt.nb_responses == 0) return -1;
 	return (rtt.sum / rtt.nb_responses);
 }
@@ -946,7 +1011,11 @@ static void ice_check_list_select_candidates(IceCheckList *cl)
 
 void ice_session_select_candidates(IceSession *session)
 {
-	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_select_candidates);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			ice_check_list_select_candidates(session->streams[i]);
+	}
 }
 
 
@@ -1580,9 +1649,14 @@ static int ice_find_stun_server_check(const IceStunServerCheck *check, const ort
 	return !(check->sock == *sock);
 }
 
-static int ice_find_check_list_gathering_candidates(const IceCheckList *cl, const void *dummy)
+static IceCheckList * ice_find_check_list_gathering_candidates(const IceSession *session)
 {
-	return (cl->gathering_candidates == FALSE);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if ((session->streams[i] != NULL) && (session->streams[i]->gathering_candidates == TRUE))
+			return session->streams[i];
+	}
+	return NULL;
 }
 
 static int ice_find_pair_from_transactionID(const IceTransaction *transaction, const UInt96 *transactionID)
@@ -1816,7 +1890,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 				cl->gathering_finished = TRUE;
 				ms_message("ice: Finished candidates gathering for check list %p", cl);
 				ice_dump_candidates(cl);
-				if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_check_list_gathering_candidates, NULL) == NULL) {
+				if (ice_find_check_list_gathering_candidates(cl->session) == NULL) {
 					/* Notify the application when there is no longer any check list gathering candidates. */
 					ev = ortp_event_new(ORTP_EVENT_ICE_GATHERING_FINISHED);
 					ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
@@ -2184,15 +2258,19 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 	}
 }
 
-static void ice_check_list_has_losing_pairs(const IceCheckList *cl, int *nb_losing_pairs)
+static int ice_check_list_nb_losing_pairs(const IceCheckList *cl)
 {
-	*nb_losing_pairs += ms_list_size(cl->losing_pairs);
+	return ms_list_size(cl->losing_pairs);
 }
 
 int ice_session_nb_losing_pairs(const IceSession *session)
 {
+	int i;
 	int nb_losing_pairs = 0;
-	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_has_losing_pairs, &nb_losing_pairs);
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			nb_losing_pairs += ice_check_list_nb_losing_pairs(session->streams[i]);
+	}
 	return nb_losing_pairs;
 }
 
@@ -2247,7 +2325,11 @@ static void ice_check_list_compute_candidates_foundations(IceCheckList *cl)
 
 void ice_session_compute_candidates_foundations(IceSession *session)
 {
-	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_compute_candidates_foundations);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			ice_check_list_compute_candidates_foundations(session->streams[i]);
+	}
 }
 
 
@@ -2295,7 +2377,11 @@ static void ice_check_list_eliminate_redundant_candidates(IceCheckList *cl)
 
 void ice_session_eliminate_redundant_candidates(IceSession *session)
 {
-	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_eliminate_redundant_candidates);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			ice_check_list_eliminate_redundant_candidates(session->streams[i]);
+	}
 }
 
 
@@ -2343,7 +2429,11 @@ static void ice_check_list_choose_default_candidates(IceCheckList *cl)
 
 void ice_session_choose_default_candidates(IceSession *session)
 {
-	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_choose_default_candidates);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			ice_check_list_choose_default_candidates(session->streams[i]);
+	}
 }
 
 static void ice_check_list_choose_default_remote_candidates(IceCheckList *cl)
@@ -2353,7 +2443,11 @@ static void ice_check_list_choose_default_remote_candidates(IceCheckList *cl)
 
 void ice_session_choose_default_remote_candidates(IceSession *session)
 {
-	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_choose_default_remote_candidates);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			ice_check_list_choose_default_remote_candidates(session->streams[i]);
+	}
 }
 
 
@@ -2535,7 +2629,7 @@ static void ice_compute_pairs_states(IceCheckList *cl)
 	ms_list_for_each2(cl->foundations, (void (*)(void*,void*))ice_set_lowest_componentid_pair_with_foundation_to_waiting_state, cl);
 }
 
-static void ice_check_list_pair_candidates(IceCheckList *cl, IceSession *session)
+static void ice_check_list_pair_candidates(IceCheckList *cl)
 {
 	if (cl->state == ICL_Running) {
 		ice_form_candidate_pairs(cl);
@@ -2547,13 +2641,20 @@ static void ice_check_list_pair_candidates(IceCheckList *cl, IceSession *session
 
 static void ice_session_pair_candidates(IceSession *session)
 {
-	MSList *elem;
-	IceCheckList *cl;
+	IceCheckList *cl = NULL;
+	int i;
 
-	elem = ms_list_find_custom(session->streams, (MSCompareFunc)ice_find_running_check_list, NULL);
-	if (elem != NULL) {
-		cl = (IceCheckList *)elem->data;
-		ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_pair_candidates, session);
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if ((session->streams[i] != NULL) && (ice_check_list_state(session->streams[i]) == ICL_Running)) {
+			cl = session->streams[i];
+			break;
+		}
+	}
+	if (cl != NULL) {
+		for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+			if (session->streams[i] != NULL)
+				ice_check_list_pair_candidates(session->streams[i]);
+		}
 		ice_compute_pairs_states(cl);
 		ice_dump_candidate_pairs_foundations(cl);
 		ice_dump_candidate_pairs(cl);
@@ -2690,28 +2791,46 @@ static void ice_check_list_stop_retransmissions(IceCheckList *cl)
 	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_pair_stop_retransmissions, cl);
 }
 
-static int ice_find_running_check_list(const IceCheckList *cl)
+static IceCheckList * ice_session_find_running_check_list(const IceSession *session)
 {
-	return !(cl->state == ICL_Running);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if ((session->streams[i] != NULL) && (ice_check_list_state(session->streams[i]) == ICL_Running))
+			return session->streams[i];
+	}
+	return NULL;
 }
 
-static int ice_find_unsuccessful_check_list(IceCheckList *cl, const void *dummy)
+static IceCheckList * ice_session_find_unsuccessful_check_list(const IceSession *session)
 {
-	return (cl->state == ICL_Completed);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if ((session->streams[i] != NULL) && (ice_check_list_state(session->streams[i]) != ICL_Completed))
+			return session->streams[i];
+	}
+	return NULL;
+}
+
+static bool_t ice_session_contains_check_list(const IceSession *session, const IceCheckList *cl) {
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if ((session->streams[i] != NULL) && (session->streams[i] == cl))
+			return TRUE;
+	}
+	return FALSE;
 }
 
 static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSession *rtp_session)
 {
-	MSList *elem = ms_list_find(cl->session->streams, cl);
-	if (elem == NULL) {
+	IceCheckList *next_cl;
+	if (ice_session_contains_check_list(cl->session, cl) == FALSE) {
 		ms_error("ice: Could not find check list in the session");
 		return;
 	}
-	elem = ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_running_check_list, NULL);
-	if (elem == NULL) {
+	next_cl = ice_session_find_running_check_list(cl->session);
+	if (next_cl == NULL) {
 		/* This was the last check list of the session. */
-		elem = ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_unsuccessful_check_list, NULL);
-		if (elem == NULL) {
+		if (ice_session_find_unsuccessful_check_list(cl->session) == NULL) {
 			/* All the check lists of the session have completed successfully. */
 			cl->session->state = IS_Completed;
 		} else {
@@ -2723,8 +2842,7 @@ static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSess
 		cl->session->send_event = TRUE;
 	} else {
 		/* Activate the next check list. */
-		cl = (IceCheckList *)elem->data;
-		ice_compute_pairs_states(cl);
+		ice_compute_pairs_states(next_cl);
 	}
 }
 
@@ -2750,7 +2868,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 		cb.result = TRUE;
 		ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_find_nominated_valid_pair_for_componentID, &cb);
 		if (cb.result == TRUE) {
-			ice_check_list_has_losing_pairs(cl, &nb_losing_pairs);
+			nb_losing_pairs = ice_check_list_nb_losing_pairs(cl);
 			if ((cl->state != ICL_Completed) && (nb_losing_pairs == 0)) {
 				cl->state = ICL_Completed;
 				cl->nomination_delay_running = FALSE;
@@ -2827,6 +2945,8 @@ static void ice_check_list_restart(IceCheckList *cl)
 
 void ice_session_restart(IceSession *session)
 {
+	int i;
+
 	ms_warning("ICE session restart");
 	if (session->local_ufrag) ms_free(session->local_ufrag);
 	if (session->local_pwd) ms_free(session->local_pwd);
@@ -2842,20 +2962,16 @@ void ice_session_restart(IceSession *session)
 	memset(&session->event_time, 0, sizeof(session->event_time));
 	session->send_event = FALSE;
 
-	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_restart);
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			ice_check_list_restart(session->streams[i]);
+	}
 }
 
 
 /******************************************************************************
  * GLOBAL PROCESS                                                             *
  *****************************************************************************/
-
-static void ice_check_gathering_timeout_of_check_list(const IceCheckList *cl, Time_Bool *tb)
-{
-	if ((cl->gathering_candidates == TRUE) && (ice_compare_time(tb->time, cl->gathering_start_time) >= ICE_GATHERING_CANDIDATES_TIMEOUT)) {
-		tb->result = TRUE;
-	}
-}
 
 static void ice_check_list_stop_gathering(IceCheckList *cl)
 {
@@ -2865,20 +2981,31 @@ static void ice_check_list_stop_gathering(IceCheckList *cl)
 
 static bool_t ice_check_gathering_timeout(IceCheckList *cl, RtpSession *rtp_session, MSTimeSpec curtime)
 {
-	Time_Bool tb;
 	OrtpEvent *ev;
+	IceCheckList *cl_it;
+	int i;
+	bool_t timeout = FALSE;
 
-	tb.time = curtime;
-	tb.result = FALSE;
-	ms_list_for_each2(cl->session->streams, (void (*)(void*,void*))ice_check_gathering_timeout_of_check_list, &tb);
-	if (tb.result == TRUE) {
-		ms_list_for_each(cl->session->streams, (void (*)(void*))ice_check_list_stop_gathering);
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		cl_it = cl->session->streams[i];
+		if ((cl_it != NULL)
+			&& (cl_it->gathering_candidates == TRUE)
+			&& (ice_compare_time(curtime, cl_it->gathering_start_time) >= ICE_GATHERING_CANDIDATES_TIMEOUT)) {
+			timeout = TRUE;
+			break;
+		}
+	}
+	if (timeout == TRUE) {
+		for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+			if (cl_it->session->streams[i] != NULL)
+				ice_check_list_stop_gathering(cl_it->session->streams[i]);
+		}
 		/* Notify the application that the gathering process has timed out. */
 		ev = ortp_event_new(ORTP_EVENT_ICE_GATHERING_FINISHED);
 		ortp_event_get_data(ev)->info.ice_processing_successful = FALSE;
 		rtp_session_dispatch_event(rtp_session, ev);
 	}
-	return tb.result;
+	return timeout;
 }
 
 static void ice_send_stun_server_checks(IceStunServerCheck *check, IceCheckList *cl)
@@ -3112,7 +3239,11 @@ static void ice_check_list_set_base_for_srflx_candidates(IceCheckList *cl)
 
 void ice_session_set_base_for_srflx_candidates(IceSession *session)
 {
-	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_set_base_for_srflx_candidates);
+	int i;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			ice_check_list_set_base_for_srflx_candidates(session->streams[i]);
+	}
 }
 
 

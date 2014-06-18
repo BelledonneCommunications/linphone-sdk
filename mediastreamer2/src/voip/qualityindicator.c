@@ -25,11 +25,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RATING_SCALE 5.0
 #define WORSE_JITTER 0.2
 #define WORSE_RT_PROP 5.0
-
+#define SEQ_INTERVAL 120
 
 
 struct _MSQualityIndicator{
 	RtpSession *session;
+	char *label;
+	OrtpLossRateEstimator *lr_estimator;
 	int clockrate;
 	double sum_ratings;
 	double sum_lq_ratings;
@@ -50,6 +52,7 @@ struct _MSQualityIndicator{
 MSQualityIndicator *ms_quality_indicator_new(RtpSession *session){
 	MSQualityIndicator *qi=ms_new0(MSQualityIndicator,1);
 	qi->session=session;
+	qi->lr_estimator=ortp_loss_rate_estimator_new(SEQ_INTERVAL,rtp_session_get_seq_number(qi->session));
 	qi->rating=5.0;
 	qi->lq_rating=5.0;
 	qi->local_rating=1.0;
@@ -57,6 +60,14 @@ MSQualityIndicator *ms_quality_indicator_new(RtpSession *session){
 	qi->local_lq_rating=1.0;
 	qi->remote_lq_rating=1.0;
 	return qi;
+}
+
+void ms_quality_indicator_set_label(MSQualityIndicator *obj, const char *label){
+	if (obj->label){
+		ms_free(obj->label);
+		obj->label=NULL;
+	}
+	if (label) obj->label=ms_strdup(label);
 }
 
 float ms_quality_indicator_get_rating(const MSQualityIndicator *qi){
@@ -114,7 +125,7 @@ void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *r
 	}else if (rtcp_is_RR(rtcp)){
 		rb=rtcp_RR_get_report_block(rtcp,0);
 	}else{
-		ms_warning("ms_quality_indicator_update_from_feedback(): not a RTCP report");
+		return;
 	}
 	if (qi->clockrate==0){
 		PayloadType *pt=rtp_profile_get_payload(rtp_session_get_send_profile(qi->session),rtp_session_get_send_payload_type(qi->session));
@@ -122,12 +133,22 @@ void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *r
 		else return;
 	}
 	if (rb){
-		float loss_rate=(float)report_block_get_fraction_lost(rb)/256.0;
+		float loss_rate;
 		float inter_jitter=(float)report_block_get_interarrival_jitter(rb)/(float)qi->clockrate;
 		float rt_prop=rtp_session_get_round_trip_propagation(qi->session);
-		qi->remote_rating=compute_rating(loss_rate,inter_jitter,0,rt_prop);
-		qi->remote_lq_rating=compute_lq_rating(loss_rate,inter_jitter,0);
+		bool_t new_value;
+		
+		new_value=ortp_loss_rate_estimator_process_report_block(qi->lr_estimator,rb);
+		loss_rate=ortp_loss_rate_estimator_get_value(qi->lr_estimator);
+		qi->remote_rating=compute_rating(loss_rate/100.0,inter_jitter,0,rt_prop);
+		qi->remote_lq_rating=compute_lq_rating(loss_rate/100.0,inter_jitter,0);
 		update_global_rating(qi);
+		if (new_value){
+			ms_message("MSQualityIndicator[%p][%s], remote statistics available:",qi,qi->label ? qi->label : "no label");
+			ms_message("Loss-rate:\t\t%f",loss_rate);
+			ms_message("Interarrival-Jitter:\t%f s",inter_jitter);
+			ms_message("RT-propagation:\t%f s",rt_prop);
+		}
 	}
 }
 
@@ -139,7 +160,7 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 
 	recvcnt=stats->packet_recv-qi->last_packet_count;
 	if (recvcnt==0){
-		ms_message("ms_quality_indicator_update_local(): no packet received since last call");
+		// ms_message("ms_quality_indicator_update_local(): no packet received since last call");
 		return;/* no information usable*/
 	}else if (recvcnt<0){
 		qi->last_packet_count=stats->packet_recv;
@@ -149,24 +170,24 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	}else if (qi->last_packet_count==0){
 		qi->last_ext_seq=ext_seq;
 	}
-	
+
 	lost=(ext_seq-qi->last_ext_seq) - (recvcnt);
 	qi->last_ext_seq=ext_seq;
 	qi->last_packet_count=stats->packet_recv;
-	
+
 	late=stats->outoftime-qi->last_late;
 	qi->last_late=stats->outoftime;
-	
+
 
 	if (lost<0) lost=0; /* will be the case at least the first time, because we don't know the initial sequence number*/
 	if (late<0) late=0;
 
 	loss_rate=(float)lost/(float)recvcnt;
 	qi->cur_loss_rate=loss_rate*100.0;
-	
+
 	late_rate=(float)late/(float)recvcnt;
 	qi->cur_late_rate=late_rate*100.0;
-	
+
 	qi->local_rating=compute_rating(loss_rate,0,late_rate,rtp_session_get_round_trip_propagation(qi->session));
 	qi->local_lq_rating=compute_lq_rating(loss_rate,0,late_rate);
 	update_global_rating(qi);
@@ -191,6 +212,8 @@ float ms_quality_indicator_get_local_late_rate(const MSQualityIndicator *qi){
 }
 
 void ms_quality_indicator_destroy(MSQualityIndicator *qi){
+	ortp_loss_rate_estimator_destroy(qi->lr_estimator);
+	if (qi->label) ms_free(qi->label);
 	ms_free(qi);
 }
 

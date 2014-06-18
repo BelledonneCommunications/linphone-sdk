@@ -23,23 +23,23 @@
 
 
 
-typedef struct _AudioFlowController {
+typedef struct _MSAudioFlowController {
 	int target_samples;
 	int total_samples;
 	int current_pos;
 	int current_dropped;
-} AudioFlowController;
+} MSAudioFlowController;
 
 
 #ifdef __cplusplus
 extern "C"{
 #endif
 
-void audio_flow_controller_init(AudioFlowController *ctl);
+void ms_audio_flow_controller_init(MSAudioFlowController *ctl);
 
-void audio_flow_controller_set_target(AudioFlowController *ctl, int samples_to_drop, int total_samples);
+void ms_audio_flow_controller_set_target(MSAudioFlowController *ctl, int samples_to_drop, int total_samples);
 
-mblk_t *audio_flow_controller_process(AudioFlowController *ctl, mblk_t *m);
+mblk_t *ms_audio_flow_controller_process(MSAudioFlowController *ctl, mblk_t *m);
 
 
 #ifdef __cplusplus
@@ -47,4 +47,3 @@ mblk_t *audio_flow_controller_process(AudioFlowController *ctl, mblk_t *m);
 #endif
 
 #endif
-

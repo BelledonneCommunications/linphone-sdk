@@ -238,6 +238,7 @@ typedef struct _MSPicture YuvBuf; /*for backward compatibility*/
 extern "C"{
 #endif
 
+MS2_PUBLIC const char *ms_pix_fmt_to_string(MSPixFmt fmt);
 MS2_PUBLIC int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt);
 MS2_PUBLIC MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt);
 MS2_PUBLIC MSPixFmt ms_fourcc_to_pix_fmt(uint32_t fourcc);
@@ -251,7 +252,7 @@ MS2_PUBLIC mblk_t * ms_yuv_buf_alloc(MSPicture *buf, int w, int h);
 The returned mblk_t points to the external buffer, which is not copied, nor ref'd: the reference is simply transfered to the returned mblk_t*/
 MS2_PUBLIC mblk_t * ms_yuv_buf_alloc_from_buffer(int w, int h, mblk_t* buffer);
 MS2_PUBLIC void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[],
-		uint8_t *dst_planes[], const int dst_strides[3], MSVideoSize roi);
+		uint8_t *dst_planes[], const int dst_strides[], MSVideoSize roi);
 MS2_PUBLIC void ms_yuv_buf_mirror(YuvBuf *buf);
 MS2_PUBLIC void ms_yuv_buf_mirrors(YuvBuf *buf,const MSMirrorType type);
 MS2_PUBLIC void rgb24_mirror(uint8_t *buf, int w, int h, int linesize);

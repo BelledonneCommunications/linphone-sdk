@@ -37,8 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
 /**
- * @defgroup mediastreamer2_filter Filter API - manage mediastreamer2 filters.
- * @ingroup mediastreamer2_api
+ * @addtogroup mediastreamer2_filter
  * @{
  */
 
@@ -292,7 +291,7 @@ MS2_PUBLIC MSFilterDesc * ms_filter_get_decoder(const char *mime);
  * This descriptor can be used to instanciate the filter using ms_filter_new_from_desc()
  * This function can be useful to query the presence of a filter loaded as a plugin, for example.
  *
- * @param name The filter name.
+ * @param filter_name The filter name.
 **/
 MS2_PUBLIC MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name);
 
@@ -478,8 +477,6 @@ MS2_PUBLIC void ms_filter_add_notify_callback(MSFilter *f, MSFilterNotifyFunc fn
  * @param f        A MSFilter object.
  * @param fn       A MSFilterNotifyFunc that will be called.
  * @param userdata A pointer to private data.
- * @param synchronous boolean that indicates whether this callback must be called synchronously.
- * @deprecated use ms_filter_add_notify_callback()
  *
  */
 MS2_PUBLIC void ms_filter_remove_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *userdata);
@@ -492,6 +489,13 @@ MS2_PUBLIC void ms_filter_remove_notify_callback(MSFilter *f, MSFilterNotifyFunc
  * Returns: MSFilterId if successfull, -1 otherwise.
  */
 MS2_PUBLIC MSFilterId ms_filter_get_id(MSFilter *f);
+
+/**
+ * Get filter's name.
+ * @param[in] f #MSFilter object
+ * @return The name of the filter.
+ */
+MS2_PUBLIC const char * ms_filter_get_name(MSFilter *f);
 
 
 /**

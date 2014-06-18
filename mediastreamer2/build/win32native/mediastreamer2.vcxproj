@@ -1,0 +1,241 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{4A07BB2B-F56E-4F1B-A729-D28B782AC128}</ProjectGuid>
+    <RootNamespace>mediastreamer2</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\include;..\..\src\base;..\..\src\utils;..\..\src\voip;..\..\src\audiofilters;..\..\src\otherfilters;..\..\src/videofilters;..\..\..\oRTP\include;.;..\..\..\linphone-deps\include;..\..\..\linphone-deps\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_LIBSWSCALE_SWSCALE_H;HAVE_LIBAVCODEC_AVCODEC_H;HAVE_SPEEXDSP;HAVE_DIRECTSHOW;VIDEO_ENABLED;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <ProgramDataBaseFileName>$(IntDir)libmediastreamer2.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>avcodec.lib;libvpx.a;swscale.lib;avutil.lib;libtheora.lib;vfw32.lib;Ws2_32.lib;Winmm.lib;ortp.lib;libspeex.dll.a;libspeexdsp.dll.a;libgsm.a;libgcc.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(IntDir)mediastreamer2.dll</OutputFile>
+      <AdditionalLibraryDirectories>..\..\..\linphone-deps\lib;..\..\..\linphone-deps\lib\msvc;..\..\..\ortp\build\win32native\$(IntDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)mediastreamer2.pdb</ProgramDatabaseFile>
+      <GenerateMapFile>false</GenerateMapFile>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <ImportLibrary>$(IntDir)mediastreamer2.lib</ImportLibrary>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <AdditionalIncludeDirectories>..\..\include;..\..\src\base;..\..\src\utils;..\..\src\voip;..\..\src\audiofilters;..\..\src\otherfilters;..\..\src/videofilters;..\..\..\oRTP\include;.;..\..\..\linphone-deps\include;..\..\..\linphone-deps\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_LIBSWSCALE_SWSCALE_H;HAVE_LIBAVCODEC_AVCODEC_H;HAVE_SPEEXDSP;HAVE_DIRECTSHOW;VIDEO_ENABLED;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <ProgramDataBaseFileName>$(IntDir)libmediastreamer2.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>avcodec.lib;libvpx.a;swscale.lib;avutil.lib;libtheora.lib;vfw32.lib;Ws2_32.lib;Winmm.lib;ortp.lib;libspeex.dll.a;libspeexdsp.dll.a;libgsm.a;libgcc.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(IntDir)mediastreamer2.dll</OutputFile>
+      <AdditionalLibraryDirectories>..\..\..\linphone-deps\lib;..\..\..\linphone-deps\lib\msvc;..\..\..\ortp\build\win32native\$(IntDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)mediastreamer2.pdb</ProgramDatabaseFile>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <ImportLibrary>$(IntDir)mediastreamer2.lib</ImportLibrary>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\audiofilters\alaw.c" />
+    <ClCompile Include="..\..\src\voip\audioconference.c" />
+    <ClCompile Include="..\..\src\audiofilters\audiomixer.c" />
+    <ClCompile Include="..\..\src\voip\audiostream.c" />
+    <ClCompile Include="..\..\src\voip\bitratecontrol.c" />
+    <ClCompile Include="..\..\src\voip\bitratedriver.c" />
+    <ClCompile Include="..\..\src\audiofilters\chanadapt.c" />
+    <ClCompile Include="..\..\src\videofilters\drawdib-display.c" />
+    <ClCompile Include="..\..\src\utils\dsptools.c" />
+    <ClCompile Include="..\..\src\audiofilters\dtmfgen.c" />
+    <ClCompile Include="..\..\src\audiofilters\equalizer.c" />
+    <ClCompile Include="..\..\src\base\eventqueue.c" />
+    <ClCompile Include="..\..\src\videofilters\extdisplay.c" />
+    <ClCompile Include="..\..\src\utils\ffmpeg-priv.c" />
+    <ClCompile Include="..\..\src\audiofilters\flowcontrol.c" />
+    <ClCompile Include="..\..\src\audiofilters\g711.c" />
+    <ClCompile Include="..\..\src\utils\g722_decode.c" />
+    <ClCompile Include="..\..\src\utils\g722_encode.c" />
+    <ClCompile Include="..\..\src\audiofilters\gsm.c" />
+    <ClCompile Include="..\..\src\videofilters\h264dec.c" />
+    <ClCompile Include="..\..\src\voip\ice.c" />
+    <ClCompile Include="..\..\src\otherfilters\itc.c" />
+    <ClCompile Include="..\..\src\otherfilters\join.c" />
+    <ClCompile Include="..\..\src\videofilters\jpegwriter.c" />
+    <ClCompile Include="..\..\src\utils\kiss_fft.c" />
+    <ClCompile Include="..\..\src\utils\kiss_fftr.c" />
+    <ClCompile Include="..\..\src\audiofilters\l16.c" />
+    <ClCompile Include="..\..\src\voip\layouts.c" />
+    <ClCompile Include="..\..\src\voip\mediastream.c" />
+    <ClCompile Include="..\..\src\videofilters\mire.c" />
+    <ClCompile Include="..\..\src\base\mscommon.c" />
+    <ClCompile Include="..\..\src\audiofilters\msconf.c" />
+    <ClCompile Include="..\..\src\videofilters\msdscap-mingw.cc">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\src\audiofilters\msfileplayer.c" />
+    <ClCompile Include="..\..\src\audiofilters\msfilerec.c" />
+    <ClCompile Include="..\..\src\base\msfilter.c" />
+    <ClCompile Include="..\..\src\audiofilters\msg722.c" />
+    <ClCompile Include="..\..\src\base\msqueue.c" />
+    <ClCompile Include="..\..\src\audiofilters\msresample.c" />
+    <ClCompile Include="..\..\src\otherfilters\msrtp.c" />
+    <ClCompile Include="..\..\src\base\mssndcard.c" />
+    <ClCompile Include="..\..\src\audiofilters\msspeex.c" />
+    <ClCompile Include="..\..\src\base\msticker.c" />
+    <ClCompile Include="..\..\src\voip\msvideo.c" />
+    <ClCompile Include="..\..\src\voip\msvoip.c" />
+    <ClCompile Include="..\..\src\audiofilters\msvolume.c" />
+    <ClCompile Include="..\..\src\base\mswebcam.c" />
+    <ClCompile Include="..\..\src\base\mtu.c" />
+    <ClCompile Include="..\..\src\videofilters\nowebcam.c" />
+    <ClCompile Include="..\..\src\videofilters\pixconv.c" />
+    <ClCompile Include="..\..\src\voip\qosanalyzer.c" />
+    <ClCompile Include="..\..\src\voip\qualityindicator.c" />
+    <ClCompile Include="..\..\src\voip\rfc3984.c" />
+    <ClCompile Include="..\..\src\voip\ringstream.c" />
+    <ClCompile Include="..\..\src\videofilters\sizeconv.c" />
+    <ClCompile Include="..\..\src\audiofilters\speexec.c" />
+    <ClCompile Include="..\..\src\otherfilters\tee.c" />
+    <ClCompile Include="..\..\src\videofilters\theora.c" />
+    <ClCompile Include="..\..\src\audiofilters\tonedetector.c" />
+    <ClCompile Include="..\..\src\audiofilters\ulaw.c" />
+    <ClCompile Include="..\..\src\videofilters\videodec.c" />
+    <ClCompile Include="..\..\src\videofilters\videoenc.c" />
+    <ClCompile Include="..\..\src\voip\videostarter.c" />
+    <ClCompile Include="..\..\src\voip\videostream.c" />
+    <ClCompile Include="..\..\src\otherfilters\void.c" />
+    <ClCompile Include="..\..\src\videofilters\vp8.c" />
+    <ClCompile Include="..\..\src\voip\vp8rtpfmt.c" />
+    <ClCompile Include="..\..\src\audiofilters\winsnd3.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\utils\_kiss_fft_guts.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\allfilters.h" />
+    <ClInclude Include="basedescs.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\dtmfgen.h" />
+    <ClInclude Include="..\..\src\dxfilter.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\flowcontrol.h" />
+    <ClInclude Include="..\..\src\utils\ffmpeg-priv.h" />
+    <ClInclude Include="..\..\src\utils\g711common.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\ice.h" />
+    <ClInclude Include="..\..\src\utils\kiss_fft.h" />
+    <ClInclude Include="..\..\src\utils\kiss_fftr.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\mediastream.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msaudiomixer.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\mschanadapter.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\mscommon.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msconference.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\mseventqueue.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msfileplayer.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msfilerec.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msfilter.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msinterfaces.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msitc.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msqueue.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msrtp.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\mssndcard.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msticker.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msv4l.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msvideo.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msvideoout.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\msvolume.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\mswebcam.h" />
+    <ClInclude Include="..\..\src\voip\nowebcam.h" />
+    <ClInclude Include="..\..\src\voip\rfc2429.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\rfc3984.h" />
+    <ClInclude Include="..\..\src\utils\vfw-missing.h" />
+    <ClInclude Include="voipdescs.h" />
+    <ClInclude Include="..\..\include\mediastreamer2\waveheader.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\ortp\build\win32native\oRTP.vcxproj">
+      <Project>{4a07bb2b-f56e-4f1b-a719-d28b782ac128}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

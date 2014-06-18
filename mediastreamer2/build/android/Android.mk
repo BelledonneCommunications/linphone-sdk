@@ -124,6 +124,7 @@ LOCAL_SRC_FILES += \
 	voip/layouts.c \
 	utils/shaders.c \
 	utils/opengles_display.c \
+	utils/ffmpeg-priv.c \
 	videofilters/videoenc.c \
 	videofilters/videodec.c \
 	videofilters/pixconv.c  \
@@ -217,15 +218,12 @@ LOCAL_STATIC_LIBRARIES += \
 	libspeex \
 	libspeexdsp
 
+ifneq ($(BUILD_WEBRTC_AECM)$(BUILD_WEBRTC_ISAC), 00)
+LOCAL_CFLAGS += -DHAVE_WEBRTC
+LOCAL_STATIC_LIBRARIES += libmswebrtc
+endif
+
 ifneq ($(BUILD_WEBRTC_AECM), 0)
-LOCAL_CFLAGS += -DBUILD_WEBRTC_AECM
-
-LOCAL_C_INCLUDES += \
-	$(LOCAL_PATH)/../../../externals/webrtc/ \
-	$(LOCAL_PATH)/../../../externals/webrtc/modules/audio_processing/aecm/include
-
-LOCAL_SRC_FILES += audiofilters/webrtc_aec.c
-
 LOCAL_STATIC_LIBRARIES += \
 	libwebrtc_aecm \
 	libwebrtc_apm_utility \
@@ -239,8 +237,7 @@ endif
 endif
 
 ifneq ($(BUILD_WEBRTC_ISAC), 0)
-LOCAL_CFLAGS += -DHAVE_ISAC
-LOCAL_STATIC_LIBRARIES += libwebrtc_spl libwebrtc_isacfix libmsisac
+LOCAL_STATIC_LIBRARIES += libwebrtc_spl libwebrtc_isacfix
 endif
 
 

@@ -93,12 +93,17 @@ typedef enum StreamType {
 	VideoStreamType
 } StreamType;
 
+MS2_PUBLIC const char* ms_stream_type_to_string(StreamType);
+
+/**
+ * The MediaStream is an object describing a stream (one of AudioStream or VideoStream).
+**/
 typedef struct _MediaStream MediaStream;
 
 /*
  * internal cb to process rtcp stream
  * */
-typedef  void (*media_stream_process_rtcp)(MediaStream *stream, mblk_t *m);
+typedef void (*media_stream_process_rtcp_callback_t)(MediaStream *stream, mblk_t *m);
 
 struct _MSMediaStreamSessions{
 	RtpSession *rtp_session;
@@ -136,14 +141,16 @@ struct _MediaStream {
 	IceCheckList *ice_check_list;
 	time_t start_time;
 	time_t last_iterate_time;
+	uint64_t last_packet_count;
+	time_t last_packet_time;
 	bool_t use_rc;
 	bool_t owns_sessions;
-	bool_t pad[1];
+	bool_t pad;
 	/**
 	 * defines encoder target network bit rate, uses #media_stream_set_target_network_bitrate() setter.
 	 * */
 	int target_bitrate;
-	media_stream_process_rtcp process_rtcp;
+	media_stream_process_rtcp_callback_t process_rtcp;
 };
 
 
@@ -176,7 +183,22 @@ MS2_PUBLIC int media_stream_set_srtp_send_key(MediaStream *stream, MSCryptoSuite
  * @param[in] stream MediaStream object
  * @return true if stream is encrypted
  * */
-MS2_PUBLIC bool_t media_stream_is_secured(const MediaStream *stream);
+MS2_PUBLIC bool_t media_stream_secured(const MediaStream *stream);
+#define media_stream_is_secured media_stream_secured
+
+/**
+ * Tells whether AVPF is enabled or not.
+ * @param[in] stream #MediaStream object.
+ * @return True if AVPF is enabled, false otherwise.
+ */
+MS2_PUBLIC bool_t media_stream_avpf_enabled(const MediaStream *stream);
+
+/**
+ * Gets the AVPF Regular RTCP report interval.
+ * @param[in] stream #MediaStream object.
+ * @return The AVPF Regular RTCP report interval in seconds.
+ */
+MS2_PUBLIC uint8_t media_stream_get_avpf_rr_interval(const MediaStream *stream);
 
 
 MS2_PUBLIC const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream);
@@ -204,7 +226,7 @@ MS2_PUBLIC int media_stream_set_target_network_bitrate(MediaStream *stream,int t
 /**
  * get the stream target bitrate.
  * @param stream stream to apply parameter on
- * @param target_bitrate in bit per seconds
+ * @return target_bitrate in bit per seconds
  * */
 MS2_PUBLIC int media_stream_get_target_network_bitrate(const MediaStream *stream);
 
@@ -230,6 +252,11 @@ MS2_PUBLIC void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStream
 
 
 void media_stream_iterate(MediaStream * stream);
+
+/**
+ * Returns TRUE if stream was still actively receiving packets (RTP or RTCP) in the last period specified in timeout_seconds.
+**/
+MS2_PUBLIC bool_t media_stream_alive(MediaStream *stream, int timeout_seconds);
 
 /**
  * @returns curret streams tate
@@ -264,8 +291,6 @@ struct _AudioStream
 	MSFilter *recorder_mixer;
 	MSFilter *recorder;
 	char *recorder_file;
-	uint64_t last_packet_count;
-	time_t last_packet_time;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
 	uint32_t features;
 	bool_t play_dtmfs;
@@ -296,24 +321,24 @@ MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile *
 
 /**
  * Starts an audio stream from/to local wav files or soundcards.
- * 
+ *
  * This method starts the processing of the audio stream, that is playing from wav file or soundcard, voice processing, encoding,
  * sending through RTP, receiving from RTP, decoding, voice processing and wav file recording or soundcard playback.
- * 
- * 
+ *
+ *
  * @param stream an AudioStream previously created with audio_stream_new().
- * @param prof a RtpProfile containing all PayloadType possible during the audio session.
+ * @param profile a RtpProfile containing all PayloadType possible during the audio session.
  * @param rem_rtp_ip remote IP address where to send the encoded audio.
  * @param rem_rtp_port remote IP port where to send the encoded audio.
  * @param rem_rtcp_ip remote IP address for RTCP.
  * @param rem_rtcp_port remote port for RTCP.
- * @param payload_type payload type index to use for the sending stream. This index must point to a valid PayloadType in the RtpProfile.
+ * @param payload payload type index to use for the sending stream. This index must point to a valid PayloadType in the RtpProfile.
  * @param jitt_comp Nominal jitter buffer size in milliseconds.
  * @param infile path to wav file to play out (can be NULL)
  * @param outfile path to wav file to record into (can be NULL)
  * @param playcard The soundcard to be used for playback (can be NULL)
  * @param captcard The soundcard to be used for catpure. (can be NULL)
- * @param echo_cancel whether echo cancellation is to be performed.
+ * @param use_ec whether echo cancellation is to be performed.
  * @returns 0 if sucessful, -1 otherwise.
 **/
 MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
@@ -339,8 +364,8 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
 **/
 MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
 
-/**Creates an AudioStream object from an initialized RtpSession.
- * @param rtp_session the RtpSession
+/**Creates an AudioStream object from initialized MSMediaStreamSessions.
+ * @param sessions the MSMediaStreamSessions
  * @returns a new AudioStream
 **/
 MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
@@ -370,16 +395,16 @@ MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessio
 
 MS2_PUBLIC uint32_t audio_stream_get_features(AudioStream *st);
 MS2_PUBLIC void audio_stream_set_features(AudioStream *st, uint32_t features);
-	
+
 MS2_PUBLIC void audio_stream_prepare_sound(AudioStream *st, MSSndCard *playcard, MSSndCard *captcard);
 MS2_PUBLIC void audio_stream_unprepare_sound(AudioStream *st);
 MS2_PUBLIC bool_t audio_stream_started(AudioStream *stream);
 /**
  * Starts an audio stream from local soundcards.
- * 
+ *
  * This method starts the processing of the audio stream, that is capture from soundcard, voice processing, encoding,
  * sending through RTP, receiving from RTP, decoding, voice processing and soundcard playback.
- * 
+ *
  * @param stream an AudioStream previously created with audio_stream_new().
  * @param prof a RtpProfile containing all PayloadType possible during the audio session.
  * @param remip remote IP address where to send the encoded audio.
@@ -552,6 +577,7 @@ struct _VideoStream
 	MSWebCam *cam;
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	bool_t use_preview_window;
+	bool_t freeze_on_error;
 	bool_t display_filter_auto_rotate_enabled;
 	bool_t source_performs_encoding;
 	bool_t output_performs_decoding;
@@ -632,6 +658,7 @@ MS2_PUBLIC unsigned long video_stream_get_native_preview_window_id(VideoStream *
 MS2_PUBLIC void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
 MS2_PUBLIC void video_stream_set_device_rotation(VideoStream *stream, int orientation);
 MS2_PUBLIC void video_stream_show_video(VideoStream *stream, bool_t show);
+MS2_PUBLIC void video_stream_set_freeze_on_error(VideoStream *stream, bool_t yesno);
 
 /**
  * @brief Gets the camera sensor rotation.

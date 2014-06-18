@@ -117,7 +117,7 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 	}
 }
 
-static void init_video_streams(video_stream_tester_t *marielle, video_stream_tester_t *margaux, bool_t avpf, OrtpNetworkSimulatorParams *params) {
+static void init_video_streams(video_stream_tester_t *marielle, video_stream_tester_t *margaux, bool_t avpf, bool_t one_way, OrtpNetworkSimulatorParams *params) {
 	PayloadType *pt;
 	MSWebCam *no_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
 	MSWebCam *default_webcam = ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
@@ -146,6 +146,10 @@ static void init_video_streams(video_stream_tester_t *marielle, video_stream_tes
 	rtp_session_register_event_queue(marielle->vs->ms.sessions.rtp_session, marielle->stats.q);
 	margaux->stats.q = ortp_ev_queue_new();
 	rtp_session_register_event_queue(margaux->vs->ms.sessions.rtp_session, margaux->stats.q);
+
+	if (one_way == TRUE) {
+		video_stream_set_direction(marielle->vs, VideoStreamRecvOnly);
+	}
 
 	CU_ASSERT_EQUAL(
 		video_stream_start(marielle->vs, &rtp_profile, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_IP, MARGAUX_RTCP_PORT, VP8_PAYLOAD_TYPE, 50, default_webcam),
@@ -180,9 +184,23 @@ static void basic_video_stream(void) {
 	video_stream_tester_t marielle;
 	video_stream_tester_t margaux;
 
-	init_video_streams(&marielle, &margaux, FALSE, NULL);
+	init_video_streams(&marielle, &margaux, FALSE, FALSE, NULL);
 
 	CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_SR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
+
+	video_stream_get_local_rtp_stats(marielle.vs, &marielle.stats.rtp);
+	video_stream_get_local_rtp_stats(margaux.vs, &margaux.stats.rtp);
+
+	uninit_video_streams(&marielle, &margaux);
+}
+
+static void basic_one_way_video_stream(void) {
+	video_stream_tester_t marielle;
+	video_stream_tester_t margaux;
+
+	init_video_streams(&marielle, &margaux, FALSE, TRUE, NULL);
+
+	CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_RR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
 
 	video_stream_get_local_rtp_stats(marielle.vs, &marielle.stats.rtp);
 	video_stream_get_local_rtp_stats(margaux.vs, &margaux.stats.rtp);
@@ -197,7 +215,7 @@ static void avpf_video_stream(void) {
 
 	params.enabled = TRUE;
 	params.loss_rate = 5.;
-	init_video_streams(&marielle, &margaux, TRUE, &params);
+	init_video_streams(&marielle, &margaux, TRUE, FALSE, &params);
 
 	CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_SR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
 	CU_ASSERT_TRUE(marielle.stats.number_of_PLI >= 0);
@@ -214,7 +232,7 @@ static void avpf_high_loss_video_stream(void) {
 
 	params.enabled = TRUE;
 	params.loss_rate = 25.;
-	init_video_streams(&marielle, &margaux, TRUE, &params);
+	init_video_streams(&marielle, &margaux, TRUE, FALSE, &params);
 
 	CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_SR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
 	CU_ASSERT_TRUE(marielle.stats.number_of_PLI >= 0);
@@ -227,6 +245,7 @@ static void avpf_high_loss_video_stream(void) {
 
 static test_t tests[] = {
 	{ "Basic video stream", basic_video_stream },
+	{ "Basic one-way video stream", basic_one_way_video_stream },
 	{ "AVPF video stream", avpf_video_stream },
 	{ "AVPF high-loss video stream", avpf_high_loss_video_stream }
 };

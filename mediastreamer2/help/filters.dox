@@ -40,7 +40,6 @@
  *     - Conferencing: src/audiofilters/msconf.c
  *     - DTMF generation: src/audiofilters/dtmfgen.c
  *     - Echo cancellation (speex): src/audiofilters/speexec.c
- *     - Echo cancellation (webrtc) (Android): src/audiofilters/webrtc_aec.c
  *     - Equalizer: src/audiofilters/equalizer.c
  *     - Mixer: src/audiofilters/audiomixer.c
  *     - Packet Loss Concealment (PLC): src/audiofilters/genericplc.c

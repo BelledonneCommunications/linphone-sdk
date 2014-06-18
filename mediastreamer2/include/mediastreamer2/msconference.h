@@ -105,6 +105,7 @@ MS2_PUBLIC void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudi
  * 
  * @param obj the conference
  * @param ep the participant, represented as a MSAudioEndpoint object
+ * @param muted true to mute the participant, false to unmute.
  *
  * By default all participants are unmuted.
 **/
@@ -174,7 +175,6 @@ MS2_PUBLIC void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj);
 
 /**
  * Creates an audio endpoint (or virtual participant) to record the conference into a wav file.
- * @param path Path to the wav file to record.
 **/
 MS2_PUBLIC MSAudioEndpoint * ms_audio_endpoint_new_recorder(void);
 

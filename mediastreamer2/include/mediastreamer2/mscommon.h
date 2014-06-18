@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ortp/str_utils.h>
 #include <ortp/payloadtype.h>
 #include <time.h>
-#if defined(__APPLE__) 
+#if defined(__APPLE__)
 #include "TargetConditionals.h"
 #endif
 
@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ms_new0		ortp_new0
 #define ms_free		ortp_free
 #define ms_strdup	ortp_strdup
+#define ms_strndup	ortp_strndup
 #define ms_strdup_printf	ortp_strdup_printf
 
 #define ms_mutex_t		ortp_mutex_t
@@ -64,15 +65,6 @@ time_t ms_time (time_t *t);
 #define ms_time time
 #endif
 
-#ifdef WIN32
-static inline void ms_debug(const char *fmt,...)
-{
-  va_list args;
-  va_start (args, fmt);
-  ortp_logv(ORTP_DEBUG, fmt, args);
-  va_end (args);
-}
-#else
 #ifdef DEBUG
 static inline void ms_debug(const char *fmt,...)
 {
@@ -82,8 +74,7 @@ static inline void ms_debug(const char *fmt,...)
   va_end (args);
 }
 #else
-#define ms_debug(...)
-#endif	
+#define ms_debug(fmt, ...)
 #endif
 
 #define ms_message	ortp_message
@@ -163,8 +154,7 @@ MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
  */
 
 /**
- * @defgroup mediastreamer2_init Init API - manage mediastreamer2 library.
- * @ingroup mediastreamer2_api
+ * @addtogroup mediastreamer2_init
  * @{
  */
 
@@ -248,9 +238,9 @@ MS2_PUBLIC void ms_usleep(uint64_t usec);
  * Filters that generate data that can be sent through RTP should make packets
  * whose size is below ms_get_payload_max_size().
  * The default value is 1440 computed as the standard internet MTU minus IPv6 header,
- * UDP header and RTP header. As IPV4 header is smaller than IPv6 header, this 
+ * UDP header and RTP header. As IPV4 header is smaller than IPv6 header, this
  * value works for both.
- * 
+ *
 **/
 MS2_PUBLIC int ms_get_payload_max_size();
 
@@ -279,7 +269,7 @@ MS2_PUBLIC int ms_get_mtu(void);
  * Declare how many cpu (cores) are available on the platform
  */
 MS2_PUBLIC void ms_set_cpu_count(unsigned int c);
- 
+
 MS2_PUBLIC unsigned int ms_get_cpu_count();
 
 /**

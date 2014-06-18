@@ -81,7 +81,7 @@
  */
 
 /**
- * @defgroup mediastreamer2_init Starting mediastreamer2 library
+ * @defgroup mediastreamer2_init Init API - Starting mediastreamer2 library
  * @ingroup mediastreamer2_api
  * @brief Starting mediastreamer2 library
  */

@@ -40,9 +40,7 @@ extern "C"{
 		Vp8RtpFmtOk = 0,
 		Vp8RtpFmtInvalidPayloadDescriptor = -1,
 		Vp8RtpFmtIncompleteFrame = -2,
-		Vp8RtpFmtIncompletePartition = -3,
-		Vp8RtpFmtInvalidFrame = -4,
-		Vp8RtpFmtInvalidPartition = -5
+		Vp8RtpFmtInvalidFrame = -3
 	} Vp8RtpFmtErrorCode;
 
 	typedef struct Vp8RtpFmtPayloadDescriptor {
@@ -66,20 +64,30 @@ extern "C"{
 		Vp8RtpFmtPayloadDescriptor *pd;
 		uint32_t extended_cseq;
 		Vp8RtpFmtErrorCode error;
-		bool_t last_packet_of_frame;
 	} Vp8RtpFmtPacket;
 
 	typedef struct Vp8RtpFmtPartition {
 		MSList *packets_list;
-		Vp8RtpFmtErrorCode error;
 		mblk_t *m;
-		bool_t last_partition_of_frame;
+		size_t size;
+		bool_t has_start;
+		bool_t has_marker;
 		bool_t outputted;
 	} Vp8RtpFmtPartition;
 
+	typedef struct Vp8RtpFmtFramePartitionsInfo {
+		uint32_t partition_sizes[8];
+		uint8_t nb_partitions;
+	} Vp8RtpFmtFramePartitionsInfo;
+
 	typedef struct Vp8RtpFmtFrame {
-		MSList *partitions_list;
+		Vp8RtpFmtFramePartitionsInfo partitions_info;
+		Vp8RtpFmtPartition *partitions[9];
 		Vp8RtpFmtErrorCode error;
+		uint16_t pictureid;
+		bool_t pictureid_present;
+		bool_t keyframe;
+		bool_t reference;
 		bool_t outputted;
 		bool_t discarded;
 	} Vp8RtpFmtFrame;
@@ -94,6 +102,7 @@ extern "C"{
 		uint32_t last_ts;
 		uint32_t ref_cseq;
 		bool_t avpf_enabled;
+		bool_t freeze_on_error;
 		bool_t output_partitions;
 		bool_t waiting_for_reference_frame;
 		bool_t valid_keyframe_received;
@@ -110,7 +119,7 @@ extern "C"{
 	void vp8rtpfmt_packer_uninit(Vp8RtpFmtPackerCtx *ctx);
 	void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in, MSQueue *out);
 
-	void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf_enabled, bool_t output_partitions);
+	void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf_enabled, bool_t freeze_on_error, bool_t output_partitions);
 	void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx);
 	void vp8rtpfmt_unpacker_process(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *inout);
 	uint32_t vp8rtpfmt_unpacker_calc_extended_cseq(Vp8RtpFmtUnpackerCtx *ctx, uint16_t cseq);

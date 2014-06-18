@@ -15,8 +15,7 @@ ANDROID_SRC_FILES= \
 	android/android-display-bad.cpp \
 	android/android-opengl-display.c \
 	android/audio.h \
-	android/loader.cpp android/loader.h \
-	audiofilters/webrtc_aec.c
+	android/loader.cpp android/loader.h
 
 EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c  \
 	videofilters/winvideods.c videofilters/wincevideods.c dxfilter.h dxfilter.cpp \
@@ -65,7 +64,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/qualityindicator.c \
 					voip/audioconference.c \
 					voip/bitratedriver.c \
-					voip/qosanalyzer.c \
+					voip/qosanalyzer.c voip/qosanalyzer.h \
 					voip/bitratecontrol.c
 else
 libmediastreamer_base_la_SOURCES+=	ortp-deps/logging.c \
@@ -104,7 +103,7 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					audiofilters/msfileplayer.c \
 					audiofilters/msfilerec.c \
 					audiofilters/waveheader.h \
-					audiofilters/flowcontrol.c audiofilters/flowcontrol.h
+					audiofilters/flowcontrol.c
 
 if BUILD_SPEEX
 libmediastreamer_voip_la_SOURCES+=	audiofilters/msspeex.c audiofilters/speexec.c

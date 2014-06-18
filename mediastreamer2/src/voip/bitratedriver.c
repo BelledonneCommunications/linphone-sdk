@@ -294,3 +294,116 @@ MSBitrateDriver *ms_av_bitrate_driver_new(RtpSession *asession, MSFilter *aenc, 
 }
 
 
+
+typedef struct _MSBandwidthBitrateDriver{
+	MSBitrateDriver parent;
+	MSBitrateDriver *audio_driver;
+	RtpSession *vsession;
+	MSFilter *venc;
+	int nom_bitrate;
+	int cur_bitrate;
+}MSBandwidthBitrateDriver;
+
+static int bandwidth_change_ptime(MSAudioBitrateDriver *obj, int percent){
+	return apply_ptime(obj,obj->min_ptime + (max_ptime - obj->min_ptime) * percent / 100.f);
+}
+
+static int bandwidth_dec_video_bitrate(MSBandwidthBitrateDriver *obj, const MSRateControlAction *action){
+	int new_br;
+
+	ms_filter_call_method(obj->venc,MS_FILTER_GET_BITRATE,&obj->cur_bitrate);
+	new_br=((float)obj->cur_bitrate)*(100.0-(float)action->value)/100.0;
+	if (new_br<min_video_bitrate){
+		ms_message("MSBandwidthBitrateDriver: reaching low bound.");
+		new_br=min_video_bitrate;
+	}
+	ms_message("MSBandwidthBitrateDriver: targeting %i bps for video encoder.",new_br);
+	ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&new_br);
+	obj->cur_bitrate=new_br;
+	rtp_session_set_target_upload_bandwidth(obj->vsession, obj->cur_bitrate);
+	return new_br==min_video_bitrate ? -1 : 0;
+}
+
+static int bandwidth_inc_video_bitrate(MSBandwidthBitrateDriver *obj, const MSRateControlAction *action){
+	int newbr;
+	int ret=0;
+
+	ms_filter_call_method(obj->venc,MS_FILTER_GET_BITRATE,&obj->cur_bitrate);
+	if (obj->cur_bitrate==0){
+		ms_message("MSBandwidthBitrateDriver: current bitrate was not known.");
+		return -1; /*current  bitrate was not known*/
+	}
+	newbr= (float)obj->cur_bitrate*(100.0+(float)action->value)/100.0;
+	if (newbr>obj->nom_bitrate){
+		newbr=obj->nom_bitrate;
+		ret=-1;
+	}
+	ms_message("MSBandwidthBitrateDriver: increasing bitrate from %i to %i bps for video encoder.",obj->cur_bitrate,newbr);
+	obj->cur_bitrate=newbr;
+	rtp_session_set_target_upload_bandwidth(obj->vsession, obj->cur_bitrate);
+	ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&obj->cur_bitrate);
+	return ret;
+}
+
+static int bandwidth_driver_execute_action(MSBitrateDriver *objbase, const MSRateControlAction *action){
+	MSBandwidthBitrateDriver *obj=(MSBandwidthBitrateDriver*)objbase;
+	int ret=0;
+	if (obj->nom_bitrate==0&&obj->venc){
+		ms_filter_call_method(obj->venc,MS_FILTER_GET_BITRATE,&obj->nom_bitrate);
+		if (obj->nom_bitrate==0){
+			ms_warning("MSBandwidthBitrateDriver: Not doing adaptive rate control on video encoder, it does not seem to support that.");
+			return -1;
+		}
+	}
+
+	if (!obj->venc){
+		ret=1;
+	}
+	switch(action->type){
+		case MSRateControlActionDecreaseBitrate:
+			if (obj->venc){
+				ret=bandwidth_dec_video_bitrate(obj,action);
+			}
+			if (ret!=0 && obj->audio_driver){
+				ret=ms_bitrate_driver_execute_action(obj->audio_driver,action);
+			}
+		break;
+		case MSRateControlActionDecreasePacketRate:
+			if (obj->audio_driver){
+				ret=bandwidth_change_ptime((MSAudioBitrateDriver*) obj->audio_driver, 100);
+			}else{
+				ret=1;
+			}
+		break;
+		case MSRateControlActionIncreaseQuality:
+			if (obj->venc){
+				ret=bandwidth_inc_video_bitrate(obj,action);
+			}
+			if (ret!=0 && obj->audio_driver){
+				ret=ms_bitrate_driver_execute_action(obj->audio_driver,action);
+			}
+		break;
+		case MSRateControlActionDoNothing:
+		break;
+	}
+	ms_message("MSBandwidthBitrateDriver: Action %s %s", ms_rate_control_action_type_name(action->type), ret == 0 ? "succeeded" : "failed");
+	return ret;
+}
+
+static void bandwidth_bitrate_driver_uninit(MSBitrateDriver *objbase){
+}
+
+static MSBitrateDriverDesc bandwidth_bitrate_driver={
+	bandwidth_driver_execute_action,
+	bandwidth_bitrate_driver_uninit
+};
+
+MSBitrateDriver *ms_bandwidth_bitrate_driver_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc){
+	MSBandwidthBitrateDriver *obj=ms_new0(MSBandwidthBitrateDriver,1);
+	obj->parent.desc=&bandwidth_bitrate_driver;
+	obj->vsession = vsession;
+	obj->audio_driver=(aenc!=NULL) ? ms_bitrate_driver_ref(ms_audio_bitrate_driver_new(asession,aenc)) : NULL;
+	obj->venc=venc;
+
+	return (MSBitrateDriver*)obj;
+}

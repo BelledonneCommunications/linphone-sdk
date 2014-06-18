@@ -733,6 +733,7 @@ typedef struct DecState {
 	MSAverageFPS fps;
 	bool_t first_image_decoded;
 	bool_t avpf_enabled;
+	bool_t freeze_on_error;
 } DecState;
 
 
@@ -750,6 +751,7 @@ static void dec_init(MSFilter *f) {
 	ms_queue_init(&s->q);
 	s->first_image_decoded = FALSE;
 	s->avpf_enabled = FALSE;
+	s->freeze_on_error = TRUE;
 	f->data = s;
 	ms_video_init_average_fps(&s->fps, "VP8 decoder: FPS: %f");
 }
@@ -774,7 +776,7 @@ static void dec_preprocess(MSFilter* f) {
 	if(vpx_codec_dec_init(&s->codec, s->iface, NULL, s->flags))
 		ms_error("Failed to initialize decoder");
 
-	vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
+	vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error, (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
 
 	s->first_image_decoded = FALSE;
 }
@@ -869,6 +871,12 @@ static int dec_enable_avpf(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int dec_freeze_on_error(MSFilter *f, void *data) {
+	DecState *s = (DecState *)f->data;
+	s->freeze_on_error = *((bool_t *)data) ? TRUE : FALSE;
+	return 0;
+}
+
 static int dec_get_vsize(MSFilter *f, void *data) {
 	DecState *s = (DecState *)f->data;
 	MSVideoSize *vsize = (MSVideoSize *)data;
@@ -885,6 +893,7 @@ static int dec_get_vsize(MSFilter *f, void *data) {
 static MSFilterMethod dec_methods[] = {
 	{ MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, dec_reset_first_image },
 	{ MS_VIDEO_DECODER_ENABLE_AVPF,                    dec_enable_avpf       },
+	{ MS_VIDEO_DECODER_FREEZE_ON_ERROR,                dec_freeze_on_error   },
 	{ MS_FILTER_GET_VIDEO_SIZE,                        dec_get_vsize         },
 	{ 0,                                               NULL                  }
 };
