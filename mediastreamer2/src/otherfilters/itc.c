@@ -25,6 +25,7 @@ typedef struct SourceState{
 	int rate;
 	int nchannels;
 	MSQueue q;
+	const MSFmtDescriptor *fmt;
 }SourceState;
 
 static void itc_source_init(MSFilter *f){
@@ -72,6 +73,12 @@ static int itc_source_get_rate(MSFilter *f, void *data){
 	return 0;
 }
 
+static int itc_source_set_fmt(MSFilter *f, void *data){
+	SourceState *s=(SourceState *)f->data;
+	s->fmt=((MSPinFormat*)data)->fmt;
+	return 0;
+}
+
 static void itc_source_process(MSFilter *f){
 	SourceState *s=(SourceState *)f->data;
 	mblk_t *m;
@@ -84,9 +91,16 @@ static void itc_source_process(MSFilter *f){
 	ms_mutex_unlock(&s->mutex);
 }
 
+static int itc_source_get_out_fmt(MSFilter *f, void *data){
+	SourceState *s=(SourceState *)f->data;
+	((MSPinFormat*)data)->fmt=s->fmt;
+	return 0;
+}
+
 static MSFilterMethod source_methods[]={
 	{	MS_FILTER_GET_SAMPLE_RATE , itc_source_get_rate },
 	{	MS_FILTER_GET_NCHANNELS , itc_source_get_nchannels },
+	{	MS_FILTER_GET_OUTPUT_FMT,	itc_source_get_out_fmt },
 	{ 0,NULL}
 };
 
@@ -181,12 +195,22 @@ static int itc_sink_get_sr(MSFilter *f , void *data){
 	return itc_source_get_rate (other,data);
 }
 
+static int itc_sink_set_fmt(MSFilter *f, void *data){
+	MSFilter *other=(MSFilter *)f->data;
+	if (other==NULL){
+		ms_error("MSItcSink not connected to any source !");
+		return -1;
+	}
+	return itc_source_set_fmt(other,data);
+}
+
 static MSFilterMethod sink_methods[]={
 	{	MS_ITC_SINK_CONNECT , itc_sink_connect },
-	{  MS_FILTER_SET_NCHANNELS , itc_sink_set_nchannels },
-	{  MS_FILTER_SET_SAMPLE_RATE , itc_sink_set_sr },
+	{	MS_FILTER_SET_NCHANNELS , itc_sink_set_nchannels },
+	{	MS_FILTER_SET_SAMPLE_RATE , itc_sink_set_sr },
 	{	MS_FILTER_GET_NCHANNELS, itc_sink_get_nchannels },
 	{	MS_FILTER_GET_SAMPLE_RATE, itc_sink_get_sr },
+	{	MS_FILTER_SET_INPUT_FMT, itc_sink_set_fmt },
 	{ 0, NULL }
 };
 

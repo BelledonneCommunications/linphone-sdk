@@ -165,7 +165,8 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_RECORDER_GET_STATE \
 	MS_FILTER_METHOD(MSFilterRecorderInterface,5,MSRecorderState)
 
-
+#define MS_RECORDER_NEEDS_FIR \
+	MS_FILTER_EVENT_NO_ARG(MSFilterRecorderInterface,0)
 
 
 /** Interface definitions for echo cancellers */

@@ -91,7 +91,7 @@ static void media_stream_change_decoder(MediaStream *stream, int payload) {
 		MSFilter *dec;
 
 		if (stream->type == MSVideo){
-			/* Q: why only video ? this optimization seems relevant for audio too.*/
+			/* Q: why only video ? A: because an audio format can be used at different rates: ex: speex/16000 speex/8000*/
 			if ((stream->decoder != NULL) && (stream->decoder->desc->enc_fmt != NULL)
 			&& (strcasecmp(pt->mime_type, stream->decoder->desc->enc_fmt) == 0)) {
 				/* Same formats behind different numbers, nothing to do. */

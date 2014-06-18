@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mstee.h"
 #include "mediastreamer2/msaudiomixer.h"
 #include "mediastreamer2/mscodecutils.h"
+#include "mediastreamer2/msitc.h"
 #include "private.h"
 
 #ifdef HAVE_CONFIG_H
@@ -293,6 +294,7 @@ static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannel
 	
 	stream->av_recorder.recorder=ms_filter_new(MS_MKV_WRITER_ID);
 	if (stream->av_recorder.recorder){
+		MSPinFormat pinfmt={0};
 		stream->av_recorder.video_input=ms_filter_new(MS_ITC_SOURCE_ID);
 		stream->av_recorder.resampler=ms_filter_new(MS_RESAMPLE_ID);
 		stream->av_recorder.encoder=ms_filter_new(MS_OPUS_ENC_ID);
@@ -304,6 +306,7 @@ static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannel
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&g711_rate);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_NCHANNELS,&nchannels);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&g711_nchannels);
+			pinfmt.fmt=ms_factory_get_audio_format(ms_factory_get_fallback(),"pcmu",g711_rate,g711_nchannels,NULL);
 			
 		}else{
 			int got_sr=0;
@@ -314,7 +317,11 @@ static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannel
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&got_sr);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_NCHANNELS,&nchannels);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&nchannels);
+			pinfmt.fmt=ms_factory_get_audio_format(ms_factory_get_fallback(),"opus",48000,nchannels,NULL);
 		}
+		pinfmt.pin=1;
+		ms_message("Configuring av recorder with audio format %s",ms_fmt_descriptor_to_string(pinfmt.fmt));
+		ms_filter_call_method(stream->av_recorder.recorder,MS_FILTER_SET_INPUT_FMT,&pinfmt);
 	}
 }
 
@@ -779,16 +786,34 @@ int audio_stream_mixed_record_open(AudioStream *st, const char* filename){
 	return 0;
 }
 
+static MSFilter *get_recorder(AudioStream *stream){
+	const char *fname=stream->recorder_file;
+	int len=strlen(fname);
+	
+	if (strstr(fname,".mkv")==fname+len-4){
+		if (stream->av_recorder.recorder){
+			return stream->av_recorder.recorder;
+		}else{
+			ms_error("Cannot record in mkv format, not supported in this build.");
+			return NULL;
+		}
+	}
+	return stream->recorder;
+}
+
 int audio_stream_mixed_record_start(AudioStream *st){
 	if (st->recorder && st->recorder_file){
 		int pin=1;
 		MSRecorderState state;
-		ms_filter_call_method(st->recorder,MS_RECORDER_GET_STATE,&state);
+		MSFilter *recorder=get_recorder(st);
+		
+		if (recorder==NULL) return -1;
+		ms_filter_call_method(recorder,MS_RECORDER_GET_STATE,&state);
 		if (state==MSRecorderClosed){
-			if (ms_filter_call_method(st->recorder,MS_RECORDER_OPEN,st->recorder_file)==-1)
+			if (ms_filter_call_method(recorder,MS_RECORDER_OPEN,st->recorder_file)==-1)
 				return -1;
 		}
-		ms_filter_call_method_noarg(st->recorder,MS_RECORDER_START);
+		ms_filter_call_method_noarg(recorder,MS_RECORDER_START);
 		ms_filter_call_method(st->recv_tee,MS_TEE_UNMUTE,&pin);
 		ms_filter_call_method(st->send_tee,MS_TEE_UNMUTE,&pin);
 		return 0;
@@ -799,10 +824,13 @@ int audio_stream_mixed_record_start(AudioStream *st){
 int audio_stream_mixed_record_stop(AudioStream *st){
 	if (st->recorder && st->recorder_file){
 		int pin=1;
-		ms_filter_call_method_noarg(st->recorder,MS_RECORDER_PAUSE);
+		MSFilter *recorder=get_recorder(st);
+		
+		if (recorder==NULL) return -1;
 		ms_filter_call_method(st->recv_tee,MS_TEE_MUTE,&pin);
 		ms_filter_call_method(st->send_tee,MS_TEE_MUTE,&pin);
-		ms_filter_call_method_noarg(st->recorder,MS_RECORDER_CLOSE);
+		ms_filter_call_method_noarg(recorder,MS_RECORDER_PAUSE);
+		ms_filter_call_method_noarg(recorder,MS_RECORDER_CLOSE);
 	}
 	return 0;
 }
@@ -1065,11 +1093,29 @@ bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 	return stream->ms.sessions.zrtp_context!=NULL;
 }
 
+static void configure_av_recorder(AudioStream *stream){
+	if (stream->av_recorder.video_input){
+		MSPinFormat pinfmt={0};
+		ms_filter_call_method(stream->av_recorder.video_input,MS_FILTER_GET_OUTPUT_FMT,&pinfmt);
+		if (pinfmt.fmt){
+			ms_message("Configuring av recorder with video format %s",ms_fmt_descriptor_to_string(pinfmt.fmt));
+		}
+		pinfmt.pin=0;
+		ms_filter_call_method(stream->av_recorder.recorder,MS_FILTER_SET_INPUT_FMT,&pinfmt);
+	}
+}
+
 void audio_stream_link_video(AudioStream *stream, VideoStream *video){
-	
+	if (stream->av_recorder.video_input && video->itcsink){
+		ms_filter_call_method(video->itcsink,MS_ITC_SINK_CONNECT,stream->av_recorder.video_input);
+		configure_av_recorder(stream);
+	}
 }
 
 void audio_stream_unlink_video(AudioStream *stream, VideoStream *video){
+	if (stream->av_recorder.video_input && video->itcsink){
+		ms_filter_call_method(video->itcsink,MS_ITC_SINK_CONNECT,NULL);
+	}
 }
 
 
