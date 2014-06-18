@@ -57,9 +57,9 @@ extern void libmsopenh264_init();
 #ifdef HAVE_SILK
 extern void libmssilk_init();
 #endif
-#ifdef HAVE_ISAC
-extern void libmsisac_init();
-#endif
+#ifdef HAVE_WEBRTC
+extern void libmswebrtc_init();
+#endif  
 #endif
 
 #ifdef ANDROID
@@ -527,6 +527,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			printf("%s",usage);
 			return FALSE;
 		} else {
+			printf("%s",usage);
 			printf("Unknown option '%s'\n", argv[i]);
 			return FALSE;
 		}
@@ -574,9 +575,9 @@ void setup_media_streams(MediastreamDatas* args) {
 #if defined (HAVE_SILK)
 	libmssilk_init(); /*no plugin on IOS/Android */
 #endif
-#if defined (HAVE_ISAC)
-	libmsisac_init();
-#endif
+#if defined (HAVE_WEBRTC)
+	libmswebrtc_init();
+#endif	
 
 #endif /* IPHONE | ANDROID */
 

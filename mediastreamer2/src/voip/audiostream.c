@@ -472,10 +472,17 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	/* check echo canceller max frequency and adjust sampling rate if needed when codec used is opus */
 	if (stream->ec!=NULL) {
-		if ((ms_filter_get_id(stream->ms.encoder) == MS_OPUS_ENC_ID) && (ms_filter_get_id(stream->ec) == MS_WEBRTC_AEC_ID)) { /* AECM allow 8000 or 16000 Hz or it will be bypassed */
-			if (sample_rate>16000) {
-				sample_rate=16000;
-				ms_message("Sampling rate forced to 16kHz to allow the use of WebRTC AECM (Echo canceller)");
+		int ec_sample_rate = sample_rate;
+		ms_filter_call_method(stream->ec, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+		ms_filter_call_method(stream->ec, MS_FILTER_GET_SAMPLE_RATE, &ec_sample_rate);
+		if (sample_rate != ec_sample_rate) {
+			if (ms_filter_get_id(stream->ms.encoder) == MS_OPUS_ENC_ID) {
+				sample_rate = ec_sample_rate;
+				ms_message("Sampling rate forced to %iHz to allow the use of echo canceller", sample_rate);
+			} else {
+				ms_warning("Echo canceller does not support sampling rate %iHz, so it has been disabled", sample_rate);
+				ms_filter_destroy(stream->ec);
+				stream->ec = NULL;
 			}
 		}
 	}
@@ -845,7 +852,7 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 
 AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
-	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSOslec");
+	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSWebRTCAEC");
 
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
@@ -861,11 +868,7 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 	if (ec_desc!=NULL){
 		stream->ec=ms_filter_new_from_desc(ec_desc);
 	}else{
-#if defined(BUILD_WEBRTC_AECM)
-		stream->ec=ms_filter_new(MS_WEBRTC_AEC_ID);
-#else
 		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
-#endif
 	}
 	stream->ms.evq=ortp_ev_queue_new();
 	rtp_session_register_event_queue(stream->ms.sessions.rtp_session,stream->ms.evq);
