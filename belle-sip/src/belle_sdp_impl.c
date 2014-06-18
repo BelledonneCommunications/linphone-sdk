@@ -167,7 +167,7 @@ struct _belle_sdp_rtcp_fb_attribute {
 	belle_sdp_attribute_t base;
 	belle_sdp_rtcp_fb_val_type_t type;
 	belle_sdp_rtcp_fb_val_param_t param;
-	uint8_t trr_int;
+	uint16_t trr_int;
 	int8_t id;
 };
 BELLESIP_EXPORT unsigned int belle_sdp_rtcp_fb_attribute_has_pli(const belle_sdp_rtcp_fb_attribute_t* attribute);
@@ -253,7 +253,7 @@ BELLE_SDP_PARSE(rtcp_fb_attribute)
 GET_SET_INT(belle_sdp_rtcp_fb_attribute,id,int8_t)
 GET_SET_INT(belle_sdp_rtcp_fb_attribute,type,belle_sdp_rtcp_fb_val_type_t)
 GET_SET_INT(belle_sdp_rtcp_fb_attribute,param,belle_sdp_rtcp_fb_val_param_t)
-GET_SET_INT(belle_sdp_rtcp_fb_attribute,trr_int,uint8_t)
+GET_SET_INT(belle_sdp_rtcp_fb_attribute,trr_int,uint16_t)
 /***************************************************************************************
  * RTCP-XR Attribute
  *

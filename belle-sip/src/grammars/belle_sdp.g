@@ -325,7 +325,7 @@ rtcp_fb_nack_val:
 rtcp_fb_trr_int_val:
 	{IS_TOKEN(trr-int)}? rtcp_fb_attribute_name /*'trr-int'*/ SPACE integer {
 		belle_sdp_rtcp_fb_attribute_set_type($rtcp_fb_attribute::current,BELLE_SDP_RTCP_FB_TRR_INT);
-		belle_sdp_rtcp_fb_attribute_set_trr_int($rtcp_fb_attribute::current,(uint8_t)atoi((const char*)$integer.text->chars));
+		belle_sdp_rtcp_fb_attribute_set_trr_int($rtcp_fb_attribute::current,(uint16_t)atoi((const char*)$integer.text->chars));
 	};
 
 rtcp_fb_id_val:
