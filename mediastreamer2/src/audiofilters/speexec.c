@@ -403,7 +403,8 @@ static MSFilterMethod speex_ec_methods[]={
 	{	MS_ECHO_CANCELLER_SET_BYPASS_MODE	,	speex_ec_set_bypass_mode	},
 	{	MS_ECHO_CANCELLER_GET_BYPASS_MODE	,	speex_ec_get_bypass_mode	},
 	{	MS_ECHO_CANCELLER_GET_STATE_STRING	,	speex_ec_get_state		},
-	{	MS_ECHO_CANCELLER_SET_STATE_STRING	,	speex_ec_set_state		}
+	{	MS_ECHO_CANCELLER_SET_STATE_STRING	,	speex_ec_set_state		},
+	{	0, 0 }
 };
 
 #ifdef _MSC_VER
