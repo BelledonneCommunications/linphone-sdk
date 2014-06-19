@@ -297,7 +297,9 @@ static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannel
 		MSPinFormat pinfmt={0};
 		stream->av_recorder.video_input=ms_filter_new(MS_ITC_SOURCE_ID);
 		stream->av_recorder.resampler=ms_filter_new(MS_RESAMPLE_ID);
+#ifdef REMOVE_ME_WHEN_RECORDER_SUPPORTS_OPUS
 		stream->av_recorder.encoder=ms_filter_new(MS_OPUS_ENC_ID);
+#endif
 		if (stream->av_recorder.encoder==NULL){
 			int g711_rate=8000;
 			int g711_nchannels=1;
@@ -331,9 +333,9 @@ static void plumb_av_recorder(AudioStream *stream){
 	ms_connection_helper_link(&ch, stream->recorder_mixer,-1, 1);
 	ms_connection_helper_link(&ch, stream->av_recorder.resampler,0,0);
 	ms_connection_helper_link(&ch, stream->av_recorder.encoder,0,0);
-	ms_connection_helper_link(&ch, stream->av_recorder.recorder,0,0);
+	ms_connection_helper_link(&ch, stream->av_recorder.recorder,1,-1);
 	
-	ms_filter_link(stream->av_recorder.video_input,0,stream->av_recorder.recorder,1);
+	ms_filter_link(stream->av_recorder.video_input,0,stream->av_recorder.recorder,0);
 }
 
 static void unplumb_av_recorder(AudioStream *stream){
@@ -342,9 +344,9 @@ static void unplumb_av_recorder(AudioStream *stream){
 	ms_connection_helper_unlink(&ch, stream->recorder_mixer,-1, 1);
 	ms_connection_helper_unlink(&ch, stream->av_recorder.resampler,0,0);
 	ms_connection_helper_unlink(&ch, stream->av_recorder.encoder,0,0);
-	ms_connection_helper_unlink(&ch, stream->av_recorder.recorder,0,0);
+	ms_connection_helper_unlink(&ch, stream->av_recorder.recorder,1,-1);
 	
-	ms_filter_unlink(stream->av_recorder.video_input,0,stream->av_recorder.recorder,1);
+	ms_filter_unlink(stream->av_recorder.video_input,0,stream->av_recorder.recorder,0);
 }
 
 static void setup_recorder(AudioStream *stream, int sample_rate, int nchannels){
