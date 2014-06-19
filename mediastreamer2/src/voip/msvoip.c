@@ -108,41 +108,51 @@ extern MSSndCardDesc android_native_snd_opensles_card_desc;
 
 static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef MS2_FILTERS
+
+#ifdef __PULSEAUDIO_ENABLED__
+        &pulse_card_desc,
+#endif
+
 #ifdef __ALSA_ENABLED__
 	&alsa_card_desc,
 #endif
-	#ifdef __QSA_ENABLED__
+
+#ifdef __QSA_ENABLED__
 	&ms_qsa_card_desc,
 #endif
+
 #ifdef HAVE_SYS_SOUNDCARD_H
 	&oss_card_desc,
 #endif
+
 #ifdef __ARTS_ENABLED__
 	&arts_card_desc,
 #endif
+
 #ifdef WIN32
 	&winsnd_card_desc,
 #endif
+
 #ifdef __DIRECTSOUND_ENABLED__
 	&winsndds_card_desc,
 #endif
+
 #ifdef __PORTAUDIO_ENABLED__
 	&pasnd_card_desc,
 #endif
+
 #ifdef __MACSND_ENABLED__
 	&ca_card_desc,
-#endif
-
-#ifdef __PULSEAUDIO_ENABLED__
-	&pulse_card_desc,
 #endif
 
 #if TARGET_OS_IPHONE
 	&au_card_desc,
 #endif
+
 #ifdef __MAC_AQ_ENABLED__
 	&aq_card_desc,
 #endif
+
 #ifdef ANDROID
 	&android_native_snd_opensles_card_desc,
 	&android_native_snd_card_desc,

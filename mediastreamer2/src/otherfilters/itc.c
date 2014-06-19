@@ -141,14 +141,15 @@ MSFilterDesc ms_itc_source_desc={
 
 static void itc_sink_preprocess(MSFilter *f){
 	MSFilter *other=(MSFilter *)f->data;
-	ms_filter_notify(other,MS_ITC_SOURCE_UPDATED,NULL);
+	if (other) ms_filter_notify(other,MS_ITC_SOURCE_UPDATED,NULL);
 }
 
 static void itc_sink_process(MSFilter *f){
 	MSFilter *other=(MSFilter *)f->data;
 	mblk_t *im;
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
-		itc_source_queue_packet(other,im);
+		if (other) itc_source_queue_packet(other,im);
+		else freemsg(im);
 	}
 }
 
