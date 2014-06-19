@@ -578,7 +578,7 @@ bool_t media_stream_avpf_enabled(const MediaStream *stream) {
 	return rtp_session_avpf_enabled(stream->sessions.rtp_session);
 }
 
-uint8_t media_stream_get_avpf_rr_interval(const MediaStream *stream) {
+uint16_t media_stream_get_avpf_rr_interval(const MediaStream *stream) {
 	return rtp_session_get_avpf_rr_interval(stream->sessions.rtp_session);
 }
 

@@ -198,7 +198,7 @@ MS2_PUBLIC bool_t media_stream_avpf_enabled(const MediaStream *stream);
  * @param[in] stream #MediaStream object.
  * @return The AVPF Regular RTCP report interval in seconds.
  */
-MS2_PUBLIC uint8_t media_stream_get_avpf_rr_interval(const MediaStream *stream);
+MS2_PUBLIC uint16_t media_stream_get_avpf_rr_interval(const MediaStream *stream);
 
 
 MS2_PUBLIC const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream);
