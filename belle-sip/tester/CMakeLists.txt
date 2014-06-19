@@ -41,7 +41,11 @@ set(TESTER_SOURCES
 
 add_executable(belle_sip_tester ${TESTER_SOURCES})
 set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
-target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIR})
+if("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
+	target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIR})
+else("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
+	include_directories(${CUNIT_INCLUDE_DIR})
+endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
 target_link_libraries(belle_sip_tester ${CUNIT_LIBRARIES} bellesip)
 add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
 
