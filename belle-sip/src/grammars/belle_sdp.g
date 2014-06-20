@@ -45,7 +45,7 @@ options {
 #pragma GCC diagnostic ignored "-Wparentheses"
 #pragma GCC diagnostic ignored "-Wunused"
 #pragma GCC diagnostic ignored "-Wtautological-compare" 
-#ifndef __clang__
+#ifndef __CLANG__
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
 }

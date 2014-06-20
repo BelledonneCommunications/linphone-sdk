@@ -834,6 +834,22 @@ static void test_privacy_header() {
 	test_privacy("Privacy: id",value2,1);
 }
 
+static void test_event_header(void) {
+	belle_sip_header_event_t* L_tmp;
+	belle_sip_header_event_t* L_event = belle_sip_header_event_parse("Event: presence;id=blabla1");
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_event));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_event));
+	L_tmp = belle_sip_header_event_parse(l_raw_header);
+	L_event = BELLE_SIP_HEADER_EVENT(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_event_get_package_name(L_event), "presence");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_event_get_id(L_event), "blabla1");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_event));
+	CU_ASSERT_PTR_NULL(belle_sip_header_event_parse("nimportequoi"));
+}
+
 test_t headers_tests[] = {
 	{ "Address", test_address_header },
 	{ "Header address (very long)", test_very_long_address_header },
@@ -870,7 +886,8 @@ test_t headers_tests[] = {
 	{ "Via", test_via_header },
 	{ "WWW-Authenticate", test_www_authenticate_header },
 	{ "Header extension", test_header_extension_1 },
-	{ "Header extension 2", test_header_extension_2 }
+	{ "Header extension 2", test_header_extension_2 },
+	{ "Header event", test_event_header }
 
 };
 

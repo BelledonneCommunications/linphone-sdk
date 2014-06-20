@@ -1749,3 +1749,43 @@ belle_sip_header_privacy_t* belle_sip_header_privacy_create(const char* privacy)
 	belle_sip_header_privacy_add_privacy(privacy_header,privacy);
 	return privacy_header;
 }
+
+/**************************
+* Event header object inherent from parameters
+****************************
+*/
+struct _belle_sip_header_event  {
+	belle_sip_parameters_t parameters;
+	const char* package_name;
+};
+
+static void belle_sip_header_event_destroy(belle_sip_header_event_t* event) {
+	DESTROY_STRING(event,package_name);
+}
+
+static void belle_sip_header_event_clone(belle_sip_header_event_t* event, const belle_sip_header_event_t *orig ) {
+	CLONE_STRING(belle_sip_header_event,package_name,event,orig)
+}
+
+belle_sip_error_code belle_sip_header_event_marshal(belle_sip_header_event_t* event, char* buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(event), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sip_snprintf(buff,buff_size,offset,"%s",event->package_name);
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sip_parameters_marshal(BELLE_SIP_PARAMETERS(event), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+	return error;
+}
+
+BELLE_SIP_NEW_HEADER(header_event,parameters,BELLE_SIP_EVENT)
+BELLE_SIP_PARSE(header_event)
+GET_SET_STRING(belle_sip_header_event,package_name);
+GET_SET_STRING_PARAM(belle_sip_header_event,id);
+
+belle_sip_header_event_t* belle_sip_header_event_create (const char* package_name)  {
+	belle_sip_header_event_t* event=belle_sip_header_event_new();
+	belle_sip_header_event_set_package_name(event,package_name);
+	return event;
+}
+
+

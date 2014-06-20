@@ -1278,6 +1278,21 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    $ret=NULL;
 }
 
+header_event  returns [belle_sip_header_event_t* ret] 
+scope { belle_sip_header_event_t* current; }
+@init { $header_event::current = belle_sip_header_event_new();$ret = $header_event::current; } 
+ : {IS_TOKEN(Event)}? token /*"Event"*/ 
+ hcolon event_package {belle_sip_header_event_set_package_name($header_event::current,(const char*)$event_package.text->chars);} 
+ (semi  generic_param [BELLE_SIP_PARAMETERS($header_event::current)])* ;
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($header_event::current);
+   $ret=NULL;
+}
+event_package
+	:	 token;
+
 /*
 Replaces         = "Replaces" HCOLON replaces-values
                           *(COMMA replaces-values)

@@ -179,7 +179,7 @@ belle_sip_uri_t* belle_sip_uri_create (const char* username,const char* host) {
 }
 
 
-char* belle_sip_uri_to_string(belle_sip_uri_t* uri)  {
+char* belle_sip_uri_to_string(const belle_sip_uri_t* uri)  {
 	return belle_sip_object_to_string(BELLE_SIP_OBJECT(uri));
 }
 

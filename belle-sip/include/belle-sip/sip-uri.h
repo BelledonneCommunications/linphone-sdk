@@ -215,7 +215,7 @@ BELLESIP_EXPORT void	belle_sip_uri_set_user_password(belle_sip_uri_t* uri,const 
  * 	          This method returns the URI as a string.
  *
  */
-BELLESIP_EXPORT char*	belle_sip_uri_to_string(belle_sip_uri_t* uri) ;
+BELLESIP_EXPORT char*	belle_sip_uri_to_string(const belle_sip_uri_t* uri) ;
 
 belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff, size_t buff_size, size_t *offset);
 
@@ -238,7 +238,17 @@ BELLESIP_EXPORT int belle_sip_uri_check_components_from_request_uri(const belle_
 BELLESIP_EXPORT int belle_sip_uri_check_components_from_context(const belle_sip_uri_t* uri,const char* method,const char* header_name);
 BELLE_SIP_END_DECLS
 
-
+#if defined(__cplusplus) && defined(BELLE_SIP_USE_STL)
+#include <ostream>
+inline   ostream&
+operator<<( ostream& __os, const belle_sip_uri_t* uri)
+{
+	char* uri_as_string = belle_sip_uri_to_string(uri);
+	__os << uri_as_string;
+	belle_sip_free(uri_as_string);
+	return __os;
+}
+#endif
 
 #endif  /*BELLE_SIP_URI_H_*/
 

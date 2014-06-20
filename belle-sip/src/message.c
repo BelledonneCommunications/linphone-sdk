@@ -481,6 +481,7 @@ static code_phrase_t well_known_codes[]={
 	{	407		,		"Proxy authentication required"	},
 	{	408		,		"Request timeout"	},
 	{	410		,		"Gone"	},
+	{	412		,		"Conditional Request Failed" }, /*rfc3903*/
 	{	413		,		"Request entity too large"	},
 	{	414		,		"Request-URI too long"	},
 	{	415		,		"Unsupported media type"	},
@@ -497,6 +498,7 @@ static code_phrase_t well_known_codes[]={
 	{	486		,		"Busy here"	},
 	{	487		,		"Request terminated"	},
 	{	488		,		"Not acceptable here"	},
+	{	489		,		"Bad Event"	}, /*rfc3265*/
 	{	491		,		"Request pending"	},
 	{	493		,		"Undecipherable"	},
 	{	500		,		"Server internal error"	},

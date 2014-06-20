@@ -650,6 +650,22 @@ BELLESIP_EXPORT belle_sip_list_t* belle_sip_header_privacy_get_privacy(const bel
 #define BELLE_SIP_HEADER_PRIVACY(t) BELLE_SIP_CAST(t,belle_sip_header_privacy_t)
 #define BELLE_SIP_PRIVACY "Privacy"
 
+
+/******************************
+* Event header object inherent from parameters
+*
+******************************/
+typedef struct _belle_sip_header_event belle_sip_header_event_t;
+BELLESIP_EXPORT belle_sip_header_event_t* belle_sip_header_event_new();
+BELLESIP_EXPORT belle_sip_header_event_t* belle_sip_header_event_parse(const char* event) ;
+BELLESIP_EXPORT belle_sip_header_event_t* belle_sip_header_event_create(const char* event);
+BELLESIP_EXPORT const char* belle_sip_header_event_get_package_name(const belle_sip_header_event_t* event);
+BELLESIP_EXPORT void belle_sip_header_event_set_package_name(belle_sip_header_event_t* event, const char* package_name);
+BELLESIP_EXPORT const char* belle_sip_header_event_get_id(const belle_sip_header_event_t* event);
+BELLESIP_EXPORT void belle_sip_header_event_set_id(belle_sip_header_event_t* event, const char* id);
+#define BELLE_SIP_HEADER_EVENT(t) BELLE_SIP_CAST(t,belle_sip_header_event_t)
+#define BELLE_SIP_EVENT "Event"
+
 BELLE_SIP_END_DECLS
 
 
