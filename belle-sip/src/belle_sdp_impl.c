@@ -168,7 +168,7 @@ struct _belle_sdp_rtcp_fb_attribute {
 	belle_sdp_rtcp_fb_val_type_t type;
 	belle_sdp_rtcp_fb_val_param_t param;
 	uint16_t trr_int;
-	int8_t id;
+	int id;
 };
 BELLESIP_EXPORT unsigned int belle_sdp_rtcp_fb_attribute_has_pli(const belle_sdp_rtcp_fb_attribute_t* attribute);
 BELLESIP_EXPORT void belle_sdp_rtcp_fb_attribute_set_pli(belle_sdp_rtcp_fb_attribute_t* attribute, unsigned int enable);
@@ -187,7 +187,7 @@ void belle_sdp_rtcp_fb_attribute_clone(belle_sdp_rtcp_fb_attribute_t* attribute,
 	attribute->id = orig->id;
 }
 belle_sip_error_code belle_sdp_rtcp_fb_attribute_marshal(belle_sdp_rtcp_fb_attribute_t* attribute, char * buff, size_t buff_size, size_t *offset) {
-	int8_t id = belle_sdp_rtcp_fb_attribute_get_id(attribute);
+	int id = belle_sdp_rtcp_fb_attribute_get_id(attribute);
 	belle_sdp_rtcp_fb_val_type_t type = belle_sdp_rtcp_fb_attribute_get_type(attribute);
 	belle_sdp_rtcp_fb_val_param_t param = belle_sdp_rtcp_fb_attribute_get_param(attribute);
 	belle_sip_error_code error = belle_sdp_attribute_marshal(BELLE_SDP_ATTRIBUTE(attribute), buff, buff_size, offset);
@@ -250,7 +250,7 @@ static void belle_sdp_rtcp_fb_attribute_init(belle_sdp_rtcp_fb_attribute_t* attr
 }
 BELLE_SDP_NEW_WITH_CTR(rtcp_fb_attribute,belle_sdp_attribute)
 BELLE_SDP_PARSE(rtcp_fb_attribute)
-GET_SET_INT(belle_sdp_rtcp_fb_attribute,id,int8_t)
+GET_SET_INT(belle_sdp_rtcp_fb_attribute,id,int)
 GET_SET_INT(belle_sdp_rtcp_fb_attribute,type,belle_sdp_rtcp_fb_val_type_t)
 GET_SET_INT(belle_sdp_rtcp_fb_attribute,param,belle_sdp_rtcp_fb_val_param_t)
 GET_SET_INT(belle_sdp_rtcp_fb_attribute,trr_int,uint16_t)
