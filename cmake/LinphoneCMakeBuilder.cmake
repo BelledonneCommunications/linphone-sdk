@@ -124,7 +124,7 @@ if(NOT PKG_CONFIG_PROGRAM)
 	)
 endif()
 
-if(NOT PKG_CONFIG_PROGRAM)
+if(NOT PKG_CONFIG_PROGRAM AND NOT MSVC)
 	message(FATAL_ERROR "Could not find the pkg-config program.")
 endif()
 
