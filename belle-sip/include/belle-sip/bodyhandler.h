@@ -54,9 +54,9 @@ BELLESIP_EXPORT const void *belle_sip_memory_body_handler_get_buffer(const belle
 
 #define BELLE_SIP_USER_BODY_HANDLER(obj)	BELLE_SIP_CAST(obj,belle_sip_user_body_handler_t)
 
-typedef void (*belle_sip_user_body_handler_recv_callback_t)(belle_sip_user_body_handler_t *obj, belle_sip_message_t *msg, void *user_data, size_t offset, const char* buffer, size_t size);
+typedef void (*belle_sip_user_body_handler_recv_callback_t)(belle_sip_user_body_handler_t *obj, belle_sip_message_t *msg, void *user_data, size_t offset, const uint8_t* buffer, size_t size);
 
-typedef int (*belle_sip_user_body_handler_send_callback_t)(belle_sip_user_body_handler_t *obj, belle_sip_message_t *msg, void *user_data, size_t offset, char* buffer, size_t *size);
+typedef int (*belle_sip_user_body_handler_send_callback_t)(belle_sip_user_body_handler_t *obj, belle_sip_message_t *msg, void *user_data, size_t offset, uint8_t* buffer, size_t *size);
 
 BELLESIP_EXPORT belle_sip_user_body_handler_t *belle_sip_user_body_handler_new(
 	size_t total_size,

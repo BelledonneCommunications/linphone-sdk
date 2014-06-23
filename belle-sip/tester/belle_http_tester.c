@@ -195,7 +195,7 @@ const char *multipart_boudary=MULTIPART_BOUNDARY;
 
 const int image_size=250000;
 
-static int on_send_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *msg, void *data, size_t offset, void *buffer, size_t *size){
+static int on_send_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *msg, void *data, size_t offset, uint8_t *buffer, size_t *size){
 	size_t end_of_img=sizeof(MULTIPART_BEGIN)+image_size;
 	if (offset==0){
 		int partlen=sizeof(MULTIPART_BEGIN);
@@ -211,7 +211,7 @@ static int on_send_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *
 		*size=i-offset;
 	}else{
 		*size=sizeof(MULTIPART_END);
-		strncpy(buffer,MULTIPART_END,*size);
+		strncpy((char*)buffer,MULTIPART_END,*size);
 	}
 	return BELLE_SIP_CONTINUE;
 }
@@ -245,7 +245,7 @@ static void https_post_long_body(void){
 	belle_sip_object_unref(l);
 }
 
-static void on_recv_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *msg, void *data, size_t offset, const void *buffer, size_t size){
+static void on_recv_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *msg, void *data, size_t offset, const uint8_t *buffer, size_t size){
 	FILE *file=(FILE*)data;
 	if (file)
 		fwrite(buffer,1,size,file);
