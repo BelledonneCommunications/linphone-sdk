@@ -221,14 +221,14 @@
     <ClInclude Include="..\..\..\include\belle-sip\transaction.h" />
     <ClInclude Include="..\..\..\include\belle-sip\uri.h" />
     <ClInclude Include="..\..\..\include\belle-sip\utils.h" />
-    <ClInclude Include="..\..\..\src\belle_sdpLexer.h" />
-    <ClInclude Include="..\..\..\src\belle_sdpParser.h" />
     <ClInclude Include="..\..\..\src\belle_sip_internal.h" />
-    <ClInclude Include="..\..\..\src\belle_sip_messageLexer.h" />
-    <ClInclude Include="..\..\..\src\belle_sip_messageParser.h" />
     <ClInclude Include="..\..\..\src\belle_sip_resolver.h" />
     <ClInclude Include="..\..\..\src\channel.h" />
     <ClInclude Include="..\..\..\src\dns.h" />
+    <ClInclude Include="..\..\..\src\grammars\belle_sdpLexer.h" />
+    <ClInclude Include="..\..\..\src\grammars\belle_sdpParser.h" />
+    <ClInclude Include="..\..\..\src\grammars\belle_sip_messageLexer.h" />
+    <ClInclude Include="..\..\..\src\grammars\belle_sip_messageParser.h" />
     <ClInclude Include="..\..\..\src\listeningpoint_internal.h" />
     <ClInclude Include="..\..\..\src\md5.h" />
     <ClInclude Include="..\..\..\src\port.h" />
@@ -236,14 +236,10 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\auth_event.c" />
     <ClCompile Include="..\..\..\src\auth_helper.c" />
-    <ClCompile Include="..\..\..\src\belle_sdpLexer.c" />
-    <ClCompile Include="..\..\..\src\belle_sdpParser.c" />
     <ClCompile Include="..\..\..\src\belle_sdp_impl.c" />
     <ClCompile Include="..\..\..\src\belle_sip_dict.c" />
     <ClCompile Include="..\..\..\src\belle_sip_headers_impl.c" />
     <ClCompile Include="..\..\..\src\belle_sip_loop.c" />
-    <ClCompile Include="..\..\..\src\belle_sip_messageLexer.c" />
-    <ClCompile Include="..\..\..\src\belle_sip_messageParser.c" />
     <ClCompile Include="..\..\..\src\belle_sip_object.c" />
     <ClCompile Include="..\..\..\src\belle_sip_parameters.c" />
     <ClCompile Include="..\..\..\src\belle_sip_resolver.c" />
@@ -254,6 +250,10 @@
     <ClCompile Include="..\..\..\src\dialog.c" />
     <ClCompile Include="..\..\..\src\dns.c" />
     <ClCompile Include="..\..\..\src\generic-uri.c" />
+    <ClCompile Include="..\..\..\src\grammars\belle_sdpLexer.c" />
+    <ClCompile Include="..\..\..\src\grammars\belle_sdpParser.c" />
+    <ClCompile Include="..\..\..\src\grammars\belle_sip_messageLexer.c" />
+    <ClCompile Include="..\..\..\src\grammars\belle_sip_messageParser.c" />
     <ClCompile Include="..\..\..\src\http-listener.c" />
     <ClCompile Include="..\..\..\src\http-message.c" />
     <ClCompile Include="..\..\..\src\http-provider.c" />
