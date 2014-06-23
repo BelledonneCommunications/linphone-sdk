@@ -21,7 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <mediastreamer2/msfilter.h>
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #ifdef _MSC_VER
 #define MS_PLUGIN_DECLARE(type) __declspec(dllexport) type
