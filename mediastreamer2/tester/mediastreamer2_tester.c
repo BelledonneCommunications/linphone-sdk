@@ -189,7 +189,9 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 
 void helper(const char *name) {
 	fprintf(stderr, "%s \t--help\n"
+#ifndef _WIN32
 		"\t\t\t--verbose\n"
+#endif
 		"\t\t\t--silent\n"
 #if HAVE_CU_GET_SUITE
 		"\t\t\t--list-suites\n"
@@ -216,8 +218,6 @@ int main (int argc, char *argv[]) {
 	const char *suite_name = NULL;
 	const char *test_name = NULL;
 	unsigned char verbose = FALSE;
-
-	mediastreamer2_tester_init();
 
 	for(i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--help") == 0) {
@@ -258,11 +258,15 @@ int main (int argc, char *argv[]) {
 		}
 	}
 
+#ifndef _WIN32
 	if (verbose) {
 		putenv("MEDIASTREAMER_DEBUG=1");
 	} else {
 		putenv("MEDIASTREAMER_DEBUG=0");
 	}
+#endif
+
+	mediastreamer2_tester_init();
 	ret = mediastreamer2_tester_run_tests(suite_name, test_name);
 	mediastreamer2_tester_uninit();
 	return ret;

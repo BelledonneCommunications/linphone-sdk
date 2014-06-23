@@ -41,6 +41,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_RTP_SIZE	UDP_MAX_SIZE
 
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 MSTickerPrio __ms_get_default_prio(bool_t is_video);
 
 MEDIASTREAMER2_INTERNAL_EXPORT RtpSession * create_duplex_rtpsession(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
@@ -52,7 +57,6 @@ void mediastream_payload_type_changed(RtpSession *session, unsigned long data);
 const char * media_stream_type_str(MediaStream *stream);
 
 void media_stream_free(MediaStream *stream);
-
 
 /**
  * Ask the video stream to send a Picture Loss Indication.
@@ -77,5 +81,8 @@ MS2_PUBLIC void video_stream_send_sli(VideoStream *stream, uint16_t first, uint1
  */
 MS2_PUBLIC void video_stream_send_rpsi(VideoStream *stream, uint8_t *bit_string, uint16_t bit_string_len);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* PRIVATE_H */
