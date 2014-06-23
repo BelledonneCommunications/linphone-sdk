@@ -78,7 +78,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;PACKAGE_VERSION=$(BELLESIP_PACKAGE_VERSION);BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;HAVE_ANTLR_STRING_STREAM_NEW;HAVE_COMPILER_TLS;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;HAVE_ANTLR_STRING_STREAM_NEW;HAVE_COMPILER_TLS;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;USE_FIXED_NAMESERVERS;PACKAGE_VERSION=$(BELLESIP_PACKAGE_VERSION);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\antlr3\runtime\C\include;$(ProjectDir)..\..\..\src;$(ProjectDir)..\..\..\..\polarssl\include;$(ProjectDir)..\..\..\..\tunnel\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -95,7 +95,7 @@
       <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
     </Link>
     <CustomBuild>
-      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
+      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\grammars\ %(FullPath)</Command>
     </CustomBuild>
     <PreBuildEvent>
       <Command>version.bat</Command>
@@ -108,7 +108,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;PACKAGE_VERSION=$(BELLESIP_PACKAGE_VERSION);BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;HAVE_ANTLR_STRING_STREAM_NEW;HAVE_COMPILER_TLS;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;HAVE_ANTLR_STRING_STREAM_NEW;HAVE_COMPILER_TLS;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;USE_FIXED_NAMESERVERS;PACKAGE_VERSION=$(BELLESIP_PACKAGE_VERSION);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\antlr3\runtime\C\include;$(ProjectDir)..\..\..\src;$(ProjectDir)..\..\..\..\polarssl\include;$(ProjectDir)..\..\..\..\tunnel\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <StringPooling>true</StringPooling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -128,7 +128,7 @@
       <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
     </Link>
     <CustomBuild>
-      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
+      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\grammars\ %(FullPath)</Command>
     </CustomBuild>
     <PreBuildEvent>
       <Command>version.bat</Command>
@@ -140,7 +140,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;HAVE_ANTLR_STRING_STREAM_NEW;HAVE_COMPILER_TLS;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;PACKAGE_VERSION=$(BELLESIP_PACKAGE_VERSION);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;HAVE_ANTLR_STRING_STREAM_NEW;HAVE_COMPILER_TLS;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;USE_FIXED_NAMESERVERS;PACKAGE_VERSION=$(BELLESIP_PACKAGE_VERSION);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\antlr3\runtime\C\include;$(ProjectDir)..\..\..\src;$(ProjectDir)..\..\..\..\polarssl\include;$(ProjectDir)..\..\..\..\tunnel\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -158,7 +158,7 @@
       <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
     </Link>
     <CustomBuild>
-      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
+      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\grammars\ %(FullPath)</Command>
     </CustomBuild>
     <PreBuildEvent>
       <Command>version.bat</Command>
@@ -171,7 +171,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;PACKAGE_VERSION=$(BELLESIP_PACKAGE_VERSION);BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;HAVE_ANTLR_STRING_STREAM_NEW;HAVE_COMPILER_TLS;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;HAVE_ANTLR_STRING_STREAM_NEW;HAVE_COMPILER_TLS;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;USE_FIXED_NAMESERVERS;PACKAGE_VERSION=$(BELLESIP_PACKAGE_VERSION);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\antlr3\runtime\C\include;$(ProjectDir)..\..\..\src;$(ProjectDir)..\..\..\..\polarssl\include;$(ProjectDir)..\..\..\..\tunnel\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <StringPooling>true</StringPooling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -191,7 +191,7 @@
       <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
     </Link>
     <CustomBuild>
-      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
+      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\grammars\ %(FullPath)</Command>
     </CustomBuild>
     <PreBuildEvent>
       <Command>version.bat</Command>
@@ -249,9 +249,14 @@
     <ClCompile Include="..\..\..\src\belle_sip_resolver.c" />
     <ClCompile Include="..\..\..\src\belle_sip_uri_impl.c" />
     <ClCompile Include="..\..\..\src\belle_sip_utils.c" />
+    <ClCompile Include="..\..\..\src\bodyhandler.c" />
     <ClCompile Include="..\..\..\src\channel.c" />
     <ClCompile Include="..\..\..\src\dialog.c" />
     <ClCompile Include="..\..\..\src\dns.c" />
+    <ClCompile Include="..\..\..\src\generic-uri.c" />
+    <ClCompile Include="..\..\..\src\http-listener.c" />
+    <ClCompile Include="..\..\..\src\http-message.c" />
+    <ClCompile Include="..\..\..\src\http-provider.c" />
     <ClCompile Include="..\..\..\src\ict.c" />
     <ClCompile Include="..\..\..\src\ist.c" />
     <ClCompile Include="..\..\..\src\listeningpoint.c" />
@@ -276,13 +281,13 @@
     <ClCompile Include="..\..\..\src\transports\udp_listeningpoint.c" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\..\src\belle_sdp.g">
+    <CustomBuild Include="..\..\..\src\grammars\belle_sdp.g">
       <FileType>Document</FileType>
-      <Outputs>$(ProjectDir)..\..\..\src\belle_sdpLexer.c;$(ProjectDir)..\..\..\src\belle_sdpLexer.h;$(ProjectDir)..\..\..\src\belle_sdpParser.c;$(ProjectDir)..\..\..\src\belle_sdpParser.h</Outputs>
+      <Outputs>$(ProjectDir)..\..\..\src\grammars\belle_sdpLexer.c;$(ProjectDir)..\..\..\src\grammars\belle_sdpLexer.h;$(ProjectDir)..\..\..\src\grammars\belle_sdpParser.c;$(ProjectDir)..\..\..\src\grammars\belle_sdpParser.h</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\..\..\src\belle_sip_message.g">
+    <CustomBuild Include="..\..\..\src\grammars\belle_sip_message.g">
       <FileType>Document</FileType>
-      <Outputs>$(ProjectDir)..\..\..\src\belle_sip_messageLexer.c;$(ProjectDir)..\..\..\src\belle_sip_messageLexer.h;$(ProjectDir)..\..\..\src\belle_sip_messageParser.c;$(ProjectDir)..\..\..\src\belle_sip_messageParser.h</Outputs>
+      <Outputs>$(ProjectDir)..\..\..\src\grammars\belle_sip_messageLexer.c;$(ProjectDir)..\..\..\src\grammars\belle_sip_messageLexer.h;$(ProjectDir)..\..\..\src\grammars\belle_sip_messageParser.c;$(ProjectDir)..\..\..\src\grammars\belle_sip_messageParser.h</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Platform)'=='ARM'">

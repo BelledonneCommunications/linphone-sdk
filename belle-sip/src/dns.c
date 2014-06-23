@@ -4238,7 +4238,7 @@ int dns_resconf_load_struct_res_state_nameservers(struct dns_resolv_conf *rescon
 }
 #endif /* USE_STRUCT_RES_STATE_NAMESERVERS */
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(USE_FIXED_NAMESERVERS)
 int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 	FIXED_INFO *pFixedInfo;
 	ULONG ulOutBufLen;
