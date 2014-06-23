@@ -531,7 +531,7 @@ static int ms_base_ref=0;
 void ms_base_init(){
 	int i;
 	long num_cpu=1;
-#ifdef WIN32 && !WINAPI_FAMILY_APP
+#if defined(WIN32) && !WINAPI_FAMILY_APP
 	SYSTEM_INFO sysinfo;
 #endif
 
