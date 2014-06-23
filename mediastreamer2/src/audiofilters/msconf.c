@@ -483,7 +483,7 @@ static void conf_sum(MSFilter *f, ConfState *s){
 	return;
 }
 
-static inline int16_t saturate(int sample){
+static MS2_INLINE int16_t saturate(int sample){
 	if (sample>32000)
 		sample=32000;
 	else if (sample<-32000)

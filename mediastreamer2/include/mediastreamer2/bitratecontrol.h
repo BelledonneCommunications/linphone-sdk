@@ -75,13 +75,13 @@ struct _MSBitrateDriver{
 	int refcnt;
 };
 
-int ms_bitrate_driver_execute_action(MSBitrateDriver *obj, const MSRateControlAction *action);
-MSBitrateDriver * ms_bitrate_driver_ref(MSBitrateDriver *obj);
-void ms_bitrate_driver_unref(MSBitrateDriver *obj);
+MS2_PUBLIC int ms_bitrate_driver_execute_action(MSBitrateDriver *obj, const MSRateControlAction *action);
+MS2_PUBLIC MSBitrateDriver * ms_bitrate_driver_ref(MSBitrateDriver *obj);
+MS2_PUBLIC void ms_bitrate_driver_unref(MSBitrateDriver *obj);
 
-MSBitrateDriver *ms_audio_bitrate_driver_new(RtpSession *session, MSFilter *encoder);
-MSBitrateDriver *ms_av_bitrate_driver_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
-MSBitrateDriver *ms_bandwidth_bitrate_driver_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
+MS2_PUBLIC MSBitrateDriver *ms_audio_bitrate_driver_new(RtpSession *session, MSFilter *encoder);
+MS2_PUBLIC MSBitrateDriver *ms_av_bitrate_driver_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
+MS2_PUBLIC MSBitrateDriver *ms_bandwidth_bitrate_driver_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
 
 typedef struct _MSQosAnalyzer MSQosAnalyzer;
 typedef struct _MSQosAnalyzerDesc MSQosAnalyzerDesc;
@@ -110,22 +110,22 @@ struct _MSQosAnalyzer{
 	} type;
 };
 
-MSQosAnalyzer * ms_qos_analyzer_ref(MSQosAnalyzer *obj);
-void ms_qos_analyzer_unref(MSQosAnalyzer *obj);
-void ms_qos_analyser_set_label(MSQosAnalyzer *obj, const char *label);
-void ms_qos_analyzer_suggest_action(MSQosAnalyzer *obj, MSRateControlAction *action);
-bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj);
-bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj, mblk_t *rtcp);
-void ms_qos_analyzer_update(MSQosAnalyzer *obj);
-const char* ms_qos_analyzer_get_name(MSQosAnalyzer *obj);
-void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj, void (*on_action_suggested)(void*,int,const char**),void* u);
+MS2_PUBLIC MSQosAnalyzer * ms_qos_analyzer_ref(MSQosAnalyzer *obj);
+MS2_PUBLIC void ms_qos_analyzer_unref(MSQosAnalyzer *obj);
+MS2_PUBLIC void ms_qos_analyser_set_label(MSQosAnalyzer *obj, const char *label);
+MS2_PUBLIC void ms_qos_analyzer_suggest_action(MSQosAnalyzer *obj, MSRateControlAction *action);
+MS2_PUBLIC bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj);
+MS2_PUBLIC bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj, mblk_t *rtcp);
+MS2_PUBLIC void ms_qos_analyzer_update(MSQosAnalyzer *obj);
+MS2_PUBLIC const char* ms_qos_analyzer_get_name(MSQosAnalyzer *obj);
+MS2_PUBLIC void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj, void (*on_action_suggested)(void*,int,const char**),void* u);
 
 /**
  * The simple qos analyzer is an implementation of MSQosAnalyzer that performs analysis for single stream.
 **/
-MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session);
+MS2_PUBLIC MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session);
 
-MSQosAnalyzer * ms_stateful_qos_analyzer_new(RtpSession *session);
+MS2_PUBLIC MSQosAnalyzer * ms_stateful_qos_analyzer_new(RtpSession *session);
 /**
  * The audio/video qos analyzer is an implementation of MSQosAnalyzer that performs analysis of two audio and video streams.
 **/
@@ -144,7 +144,7 @@ typedef struct _MSBitrateController MSBitrateController;
  * @param driver a bitrate driver object.
  * The newly created bitrate controller owns references to the analyzer and the driver.
 **/
-MSBitrateController *ms_bitrate_controller_new(MSQosAnalyzer *qosanalyzer, MSBitrateDriver *driver);
+MS2_PUBLIC MSBitrateController *ms_bitrate_controller_new(MSQosAnalyzer *qosanalyzer, MSBitrateDriver *driver);
 
 /**
  * Asks the bitrate controller to process a newly received RTCP packet.
@@ -154,14 +154,14 @@ MSBitrateController *ms_bitrate_controller_new(MSQosAnalyzer *qosanalyzer, MSBit
  * then the bitrate controller may take decision and execute actions on the local media streams to adapt the
  * output bitrate.
 **/
-void ms_bitrate_controller_process_rtcp(MSBitrateController *obj, mblk_t *rtcp);
+MS2_PUBLIC void ms_bitrate_controller_process_rtcp(MSBitrateController *obj, mblk_t *rtcp);
 
-void ms_bitrate_controller_update(MSBitrateController *obj);
+MS2_PUBLIC void ms_bitrate_controller_update(MSBitrateController *obj);
 
 /**
  * Return the QoS analyzer associated to the bitrate controller
 **/
-MSQosAnalyzer * ms_bitrate_controller_get_qos_analyzer(MSBitrateController *obj);
+MS2_PUBLIC MSQosAnalyzer * ms_bitrate_controller_get_qos_analyzer(MSBitrateController *obj);
 
 /**
  * Destroys the bitrate controller
@@ -169,7 +169,7 @@ MSQosAnalyzer * ms_bitrate_controller_get_qos_analyzer(MSBitrateController *obj)
  * If no other entity holds references to the underlyings MSQosAnalyzer and MSBitrateDriver object,
  * then they will be destroyed too.
 **/
-void ms_bitrate_controller_destroy(MSBitrateController *obj);
+MS2_PUBLIC void ms_bitrate_controller_destroy(MSBitrateController *obj);
 
 /**
  * Convenience function to create a bitrate controller managing a single audio stream.
@@ -182,7 +182,7 @@ void ms_bitrate_controller_destroy(MSBitrateController *obj);
  * ms_bitrate_controller_new(ms_simple_qos_analyzer_new(session),ms_audio_bitrate_driver_new(encoder));
  * \endcode
 **/
-MSBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, MSFilter *encoder, unsigned int flags);
+MS2_PUBLIC MSBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, MSFilter *encoder, unsigned int flags);
 
 /**
  * Convenience fonction to create a bitrate controller managing a video and an audio stream.
@@ -196,9 +196,9 @@ MSBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, MSFilt
  * ms_bitrate_controller_new(ms_av_qos_analyzer_new(asession,vsession),ms_av_bitrate_driver_new(aenc,venc));
  * \endcode
 **/
-MSBitrateController *ms_av_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
+MS2_PUBLIC MSBitrateController *ms_av_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
 
-MSBitrateController *ms_bandwidth_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
+MS2_PUBLIC MSBitrateController *ms_bandwidth_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
 #ifdef __cplusplus
 }
 #endif

@@ -26,9 +26,6 @@ extern MSFilterDesc ms_l16_enc_desc;
 extern MSFilterDesc ms_l16_dec_desc;
 extern MSFilterDesc ms_g722_enc_desc;
 extern MSFilterDesc ms_g722_dec_desc;
-#ifdef BUILD_WEBRTC_AECM
-extern MSFilterDesc ms_webrtc_aec_desc;
-#endif
 #ifdef VIDEO_ENABLED
 extern MSFilterDesc ms_v4w_desc;
 extern MSFilterDesc ms_video_out_desc;
@@ -84,9 +81,6 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_l16_dec_desc,
 &ms_g722_enc_desc,
 &ms_g722_dec_desc,
-#ifdef BUILD_WEBRTC_AECM
-&ms_webrtc_aec_desc,
-#endif
 #ifdef VIDEO_ENABLED
 &ms_size_conv_desc,
 &ms_pix_conv_desc,

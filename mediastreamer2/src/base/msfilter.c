@@ -268,7 +268,7 @@ int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	return 0;
 }
 
-static inline bool_t is_interface_method(unsigned int magic){
+static MS2_INLINE bool_t is_interface_method(unsigned int magic){
 	return magic==MS_FILTER_BASE_ID || magic>MSFilterInterfaceBegin;
 }
 
