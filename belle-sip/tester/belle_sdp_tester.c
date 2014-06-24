@@ -18,6 +18,7 @@
 
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_tester.h"
+#include "port.h"
 #include <stdio.h>
 #include "CUnit/Basic.h"
 
@@ -546,13 +547,15 @@ static void test_mime_parameter(void) {
 	belle_sdp_mime_parameter_t* l_param;
 	belle_sdp_mime_parameter_t*  lTmp;
 	belle_sdp_media_t* l_media;
+	belle_sip_list_t* mime_parameter_list;
+	belle_sip_list_t* mime_parameter_list_iterator;
 	belle_sdp_media_description_t* l_media_description_tmp = belle_sdp_media_description_parse(l_src);
 
 	belle_sdp_media_description_t* l_media_description = belle_sdp_media_description_parse(belle_sip_object_to_string(l_media_description_tmp));
 	belle_sip_object_unref(l_media_description_tmp);
 
-	belle_sip_list_t* mime_parameter_list = belle_sdp_media_description_build_mime_parameters(l_media_description);
-	belle_sip_list_t* mime_parameter_list_iterator=mime_parameter_list;
+	mime_parameter_list = belle_sdp_media_description_build_mime_parameters(l_media_description);
+	mime_parameter_list_iterator = mime_parameter_list;
 	CU_ASSERT_PTR_NOT_NULL(mime_parameter_list);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media_description));
 

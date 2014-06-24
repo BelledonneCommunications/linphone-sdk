@@ -500,8 +500,8 @@ static void test_connection_failure(void){
 
 static void test_connection_too_long(void){
 	belle_sip_request_t *req;
-	io_error_count=0;
 	int orig=belle_sip_stack_get_transport_timeout(stack);
+	io_error_count=0;
 	belle_sip_stack_set_transport_timeout(stack,2000);
 	req=try_register_user_at_domain(stack, prov, "TCP",1,"tester","sip.linphone.org",no_response_here,0);
 	CU_ASSERT_TRUE(io_error_count>=1);
@@ -510,9 +510,9 @@ static void test_connection_too_long(void){
 }
 
 static void test_tls_to_tcp(void){
-	io_error_count=0;
 	belle_sip_request_t *req;
 	int orig=belle_sip_stack_get_transport_timeout(stack);
+	io_error_count=0;
 	belle_sip_stack_set_transport_timeout(stack,2000);
 	req=try_register_user_at_domain(stack, prov, "TLS",1,"tester",test_domain,test_domain_tls_to_tcp,0);
 	if (req){

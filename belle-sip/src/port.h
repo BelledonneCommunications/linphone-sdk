@@ -37,7 +37,7 @@
 #include <ws2tcpip.h>
 
 #ifdef _MSC_VER
-#define strcasecmp(a,b) _stricmp(a,b)
+#define strcasecmp _stricmp
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 #define strdup _strdup

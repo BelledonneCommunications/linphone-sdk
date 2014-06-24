@@ -56,7 +56,7 @@ namespace belle_sip_tester_wp8
                 PhoneApplicationService.Current.UserIdleDetectionMode = IdleDetectionMode.Disabled;
             }
 
-            tester = new CainSipTesterNative();
+            tester = new BelleSipTesterNative();
             suite = null;
         }
 
@@ -228,7 +228,7 @@ namespace belle_sip_tester_wp8
             return (suite != null) && (suite.running);
         }
 
-        public CainSipTesterNative tester { get; set; }
+        public BelleSipTesterNative tester { get; set; }
         public UnitTestSuite suite { get; set; }
     }
 }

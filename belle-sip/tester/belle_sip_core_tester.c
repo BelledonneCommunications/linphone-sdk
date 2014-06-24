@@ -28,8 +28,8 @@
 
 #ifndef WIN32
 #include <sys/types.h>
-#endif
 #include <inttypes.h>
+#endif
 
 #define INT_TO_VOIDPTR(i) ((void*)(intptr_t)(i))
 #define VOIDPTR_TO_INT(p) ((int)(intptr_t)(p))

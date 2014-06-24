@@ -31,22 +31,22 @@ static void belleSipNativeOutputTraceHandler(belle_sip_log_level lev, const char
 }
 
 
-CainSipTesterNative::CainSipTesterNative()
+BelleSipTesterNative::BelleSipTesterNative()
 {
 	belle_sip_tester_init();
 }
 
-CainSipTesterNative::~CainSipTesterNative()
+BelleSipTesterNative::~BelleSipTesterNative()
 {
 	belle_sip_tester_uninit();
 }
 
-void CainSipTesterNative::setOutputTraceListener(OutputTraceListener^ traceListener)
+void BelleSipTesterNative::setOutputTraceListener(OutputTraceListener^ traceListener)
 {
 	sTraceListener = traceListener;
 }
 
-void CainSipTesterNative::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
+void BelleSipTesterNative::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
 {
 	std::wstring all(L"ALL");
 	std::wstring wssuitename = suiteName->Data();
@@ -67,12 +67,12 @@ void CainSipTesterNative::run(Platform::String^ suiteName, Platform::String^ cas
 	belle_sip_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename);
 }
 
-unsigned int CainSipTesterNative::nbTestSuites()
+unsigned int BelleSipTesterNative::nbTestSuites()
 {
 	return belle_sip_tester_nb_test_suites();
 }
 
-unsigned int CainSipTesterNative::nbTests(Platform::String^ suiteName)
+unsigned int BelleSipTesterNative::nbTests(Platform::String^ suiteName)
 {
 	std::wstring suitename = suiteName->Data();
 	char cname[MAX_SUITE_NAME_SIZE] = { 0 };
@@ -80,7 +80,7 @@ unsigned int CainSipTesterNative::nbTests(Platform::String^ suiteName)
 	return belle_sip_tester_nb_tests(cname);
 }
 
-Platform::String^ CainSipTesterNative::testSuiteName(int index)
+Platform::String^ BelleSipTesterNative::testSuiteName(int index)
 {
 	const char *cname = belle_sip_tester_test_suite_name(index);
 	wchar_t wcname[MAX_SUITE_NAME_SIZE];
@@ -88,7 +88,7 @@ Platform::String^ CainSipTesterNative::testSuiteName(int index)
 	return ref new String(wcname);
 }
 
-Platform::String^ CainSipTesterNative::testName(Platform::String^ suiteName, int testIndex)
+Platform::String^ BelleSipTesterNative::testName(Platform::String^ suiteName, int testIndex)
 {
 	std::wstring suitename = suiteName->Data();
 	char csuitename[MAX_SUITE_NAME_SIZE] = { 0 };

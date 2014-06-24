@@ -390,10 +390,10 @@ static void test_content_length_header(void) {
 
 static belle_sip_header_t* test_header_extension(const char* name,const char* value) {
 	belle_sip_header_t* L_tmp;
+	belle_sip_header_t* L_extension;
 	char header[256];
 	char* l_raw_header=NULL;
 	snprintf(header,sizeof(header),"%s:%s",name,value);
-	belle_sip_header_t* L_extension;
 	L_extension = belle_sip_header_parse(header);
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_extension));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_extension));
@@ -766,6 +766,9 @@ static void _test_date_header(void){
 }
 
 static void test_date_header(void){
+#ifdef WINAPI_FAMILY_PHONE_APP
+	// TODO: setenv and unsetenv are not available for Windows Phone 8
+#else
 	char *tz;
 	/* test in our timezone */
 	_test_date_header();
@@ -783,6 +786,7 @@ static void test_date_header(void){
 	else
 		unsetenv("TZ");
 	tzset();
+#endif
 }
 
 static void test_p_preferred_identity_header(void) {

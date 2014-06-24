@@ -11,11 +11,11 @@ namespace belle_sip_tester_native
 		void outputTrace(Platform::String^ msg);
 	};
 
-    public ref class CainSipTesterNative sealed
+    public ref class BelleSipTesterNative sealed
     {
     public:
-        CainSipTesterNative();
-		virtual ~CainSipTesterNative();
+        BelleSipTesterNative();
+		virtual ~BelleSipTesterNative();
 		void setOutputTraceListener(OutputTraceListener^ traceListener);
 		unsigned int nbTestSuites();
 		unsigned int nbTests(Platform::String^ suiteName);

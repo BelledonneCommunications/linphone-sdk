@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Deployment xmlns="http://schemas.microsoft.com/windowsphone/2012/deployment" AppPlatformVersion="8.0">
   <DefaultLanguage xmlns="" code="en-US" />
-  <App xmlns="" ProductID="{2cebcf29-6b23-46c2-b579-588321228f3e}" Title="Cain-Sip Tester" RuntimeType="Silverlight" Version="1.0.0.0" Genre="apps.normal" Author="Belledonne Communications" Description="Unit tests for belle-sip" Publisher="Belledonne Communications" PublisherID="{d3d79f42-f87a-4221-aede-ffab79848795}">
+  <App xmlns="" ProductID="{2cebcf29-6b23-46c2-b579-588321228f3e}" Title="Belle-Sip Tester" RuntimeType="Silverlight" Version="1.0.0.0" Genre="apps.normal" Author="Belledonne Communications" Description="Unit tests for belle-sip" Publisher="Belledonne Communications" PublisherID="{d3d79f42-f87a-4221-aede-ffab79848795}">
     <IconPath IsRelative="true" IsResource="false">Assets\ApplicationIcon.png</IconPath>
     <Capabilities>
       <Capability Name="ID_CAP_NETWORKING" />

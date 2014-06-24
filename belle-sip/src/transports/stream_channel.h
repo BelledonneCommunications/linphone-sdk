@@ -43,7 +43,7 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 void belle_sip_stream_channel_init_client(belle_sip_stream_channel_t *obj, belle_sip_stack_t *stack, const char *bindip, int localport,const char *peer_cname, const char *dest, int port);
 
-belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *stack, const char *bindip, int localport, const char *peer_cname, const char *name, int port);
+BELLESIP_INTERNAL_EXPORT belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *stack, const char *bindip, int localport, const char *peer_cname, const char *name, int port);
 belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stack, belle_sip_socket_t sock, struct sockaddr *remote_addr, socklen_t slen);
 
 void stream_channel_close(belle_sip_stream_channel_t *obj);
@@ -55,5 +55,5 @@ int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t bufle
 
 
 /*for testing purpose*/
-void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream);
+BELLESIP_INTERNAL_EXPORT void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream);
 #endif /* STREAM_CHANNEL_H_ */
