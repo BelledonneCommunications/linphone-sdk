@@ -73,13 +73,6 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #ifndef USE_FIXED_NAMESERVERS
-#if WINAPI_FAMILY_PHONE_APP
-#define USE_FIXED_NAMESERVERS 1
-#else
-#define USE_FIXED_NAMESERVERS 0
-#endif
-#endif
-#if !USE_FIXED_NAMESERVERS
 #include <iphlpapi.h>
 #pragma comment(lib, "IPHLPAPI.lib")
 #endif
