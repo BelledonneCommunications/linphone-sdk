@@ -258,13 +258,12 @@ int main (int argc, char *argv[]) {
 		}
 	}
 
-#ifndef _WIN32
+
 	if (verbose) {
 		putenv("MEDIASTREAMER_DEBUG=1");
 	} else {
 		putenv("MEDIASTREAMER_DEBUG=0");
 	}
-#endif
 
 	mediastreamer2_tester_init();
 	ret = mediastreamer2_tester_run_tests(suite_name, test_name);
