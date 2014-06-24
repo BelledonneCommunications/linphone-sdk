@@ -57,14 +57,16 @@ BELLESIP_EXPORT void belle_sdp_raw_attribute_set_value(belle_sdp_raw_attribute_t
 typedef enum _belle_sdp_rtcp_fb_val_type {
 	BELLE_SDP_RTCP_FB_ACK,
 	BELLE_SDP_RTCP_FB_NACK,
-	BELLE_SDP_RTCP_FB_TRR_INT
+	BELLE_SDP_RTCP_FB_TRR_INT,
+	BELLE_SDP_RTCP_FB_CCM
 } belle_sdp_rtcp_fb_val_type_t;
 typedef enum _belle_sdp_rtcp_fb_val_param {
 	BELLE_SDP_RTCP_FB_NONE,
 	BELLE_SDP_RTCP_FB_PLI,
 	BELLE_SDP_RTCP_FB_SLI,
 	BELLE_SDP_RTCP_FB_RPSI,
-	BELLE_SDP_RTCP_FB_APP
+	BELLE_SDP_RTCP_FB_APP,
+	BELLE_SDP_RTCP_FB_FIR
 } belle_sdp_rtcp_fb_val_param_t;
 typedef struct _belle_sdp_rtcp_fb_attribute belle_sdp_rtcp_fb_attribute_t;
 BELLESIP_EXPORT belle_sdp_rtcp_fb_attribute_t* belle_sdp_rtcp_fb_attribute_new();

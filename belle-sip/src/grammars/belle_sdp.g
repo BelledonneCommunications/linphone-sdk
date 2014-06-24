@@ -310,6 +310,7 @@ rtcp_fb_val :
 	(rtcp_fb_ack_val)=>rtcp_fb_ack_val
 |	(rtcp_fb_nack_val)=>rtcp_fb_nack_val
 |	(rtcp_fb_trr_int_val)=>rtcp_fb_trr_int_val
+|	(rtcp_fb_ccm_val)=>rtcp_fb_ccm_val
 |	(rtcp_fb_id_val)=>rtcp_fb_id_val;
 
 rtcp_fb_ack_val:
@@ -326,6 +327,11 @@ rtcp_fb_trr_int_val:
 	{IS_TOKEN(trr-int)}? rtcp_fb_attribute_name /*'trr-int'*/ SPACE integer {
 		belle_sdp_rtcp_fb_attribute_set_type($rtcp_fb_attribute::current,BELLE_SDP_RTCP_FB_TRR_INT);
 		belle_sdp_rtcp_fb_attribute_set_trr_int($rtcp_fb_attribute::current,(uint16_t)atoi((const char*)$integer.text->chars));
+	};
+
+rtcp_fb_ccm_val:
+	{IS_TOKEN(ccm)}? rtcp_fb_attribute_name /*'ccm'*/ SPACE rtcp_fb_ccm_param {
+		belle_sdp_rtcp_fb_attribute_set_type($rtcp_fb_attribute::current,BELLE_SDP_RTCP_FB_CCM);
 	};
 
 rtcp_fb_id_val:
@@ -365,6 +371,15 @@ rtcp_fb_rpsi_param:
 rtcp_fb_app_param:
 	{IS_TOKEN(app)}? rtcp_fb_attribute_name /*'app'*/ (SPACE byte_string) {
 		belle_sdp_rtcp_fb_attribute_set_param($rtcp_fb_attribute::current,BELLE_SDP_RTCP_FB_APP);
+	};
+
+rtcp_fb_ccm_param:
+	(rtcp_fb_fir_param)=>rtcp_fb_fir_param
+|	(rtcp_fb_token_param)=>rtcp_fb_token_param;
+
+rtcp_fb_fir_param:
+	{IS_TOKEN(fir)}? rtcp_fb_attribute_name /*'fir'*/ {
+		belle_sdp_rtcp_fb_attribute_set_param($rtcp_fb_attribute::current,BELLE_SDP_RTCP_FB_FIR);
 	};
 
 rtcp_fb_token_param:

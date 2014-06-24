@@ -238,6 +238,17 @@ belle_sip_error_code belle_sdp_rtcp_fb_attribute_marshal(belle_sdp_rtcp_fb_attri
 		case BELLE_SDP_RTCP_FB_TRR_INT:
 			error = belle_sip_snprintf(buff, buff_size, offset, "trr-int %u", belle_sdp_rtcp_fb_attribute_get_trr_int(attribute));
 			break;
+		case BELLE_SDP_RTCP_FB_CCM:
+			error = belle_sip_snprintf(buff, buff_size, offset, "ccm");
+			if (error != BELLE_SIP_OK) return error;
+			switch (param) {
+				case BELLE_SDP_RTCP_FB_FIR:
+					error = belle_sip_snprintf(buff, buff_size, offset, " fir");
+					break;
+				default:
+					break;
+			}
+			break;
 	}
 	return error;
 }
