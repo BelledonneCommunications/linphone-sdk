@@ -1245,7 +1245,7 @@ static mblk_t *muxer_get_buffer(Muxer *obj, MuxerBufferType *bufferType)
 }
 
 /*********************************************************************************************
- * MKV Writer Filter                                                                         *
+ * MKV Recorder Filter                                                                         *
  *********************************************************************************************/
 #define CLUSTER_MAX_DURATION 5000
 
@@ -1262,11 +1262,11 @@ typedef struct
     MSRecorderState state;
     Muxer muxer;
     ms_bool_t needKeyFrame, firstFrame, haveVideoTrack, haveAudioTrack;
-} MKVWriter;
+} MKVRecorder;
 
-static void writer_init(MSFilter *f)
+static void recorder_init(MSFilter *f)
 {
-    MKVWriter *obj = (MKVWriter *)ms_new(MKVWriter, 1);
+    MKVRecorder *obj = (MKVRecorder *)ms_new(MKVRecorder, 1);
 
     matroska_init(&obj->file);
 
@@ -1292,7 +1292,7 @@ static void writer_init(MSFilter *f)
     f->data=obj;
 }
 
-static matroska_block *write_frame(MKVWriter *obj, mblk_t *buffer, int trackNum, ModuleId moduleId, void *module)
+static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int trackNum, ModuleId moduleId, void *module)
 {
     ms_bool_t isKeyFrame;
     mblk_t *frame;
@@ -1346,9 +1346,9 @@ static void moveBuffers(MSQueue *input, MSQueue *output)
     }
 }
 
-static int writer_open(MSFilter *f, void *arg)
+static int recorder_open_file(MSFilter *f, void *arg)
 {
-    MKVWriter *obj = (MKVWriter *)f->data;
+    MKVRecorder *obj = (MKVRecorder *)f->data;
     const char *filename = (const char *)arg;
     int err = 0;
 
@@ -1411,9 +1411,9 @@ static int writer_open(MSFilter *f, void *arg)
     return err;
 }
 
-static int writer_start(MSFilter *f, void *arg)
+static int recorder_start(MSFilter *f, void *arg)
 {
-    MKVWriter *obj = (MKVWriter *)f->data;
+    MKVRecorder *obj = (MKVRecorder *)f->data;
     int err = 0;
 
     ms_filter_lock(f);
@@ -1431,9 +1431,9 @@ static int writer_start(MSFilter *f, void *arg)
     return err;
 }
 
-static int writer_stop(MSFilter *f, void *arg)
+static int recorder_stop(MSFilter *f, void *arg)
 {
-    MKVWriter *obj = (MKVWriter *)f->data;
+    MKVRecorder *obj = (MKVRecorder *)f->data;
     int err;
 
     ms_filter_lock(f);
@@ -1451,9 +1451,9 @@ static int writer_stop(MSFilter *f, void *arg)
     return err;
 }
 
-static void writer_process(MSFilter *f)
+static void recorder_process(MSFilter *f)
 {
-    MKVWriter *obj = f->data;
+    MKVRecorder *obj = f->data;
 
     ms_filter_lock(f);
     if(obj->state == MSRecorderRunning)
@@ -1562,9 +1562,9 @@ static void writer_process(MSFilter *f)
     ms_filter_unlock(f);
 }
 
-static int writer_close(MSFilter *f, void *arg)
+static int recorder_close(MSFilter *f, void *arg)
 {
-    MKVWriter *obj = (MKVWriter *)f->data;
+    MKVRecorder *obj = (MKVRecorder *)f->data;
 
     ms_filter_lock(f);
     if(obj->state != MSRecorderClosed)
@@ -1630,8 +1630,8 @@ static int writer_close(MSFilter *f, void *arg)
     return 0;
 }
 
-static void writer_uninit(MSFilter *f){
-    MKVWriter *obj = (MKVWriter *)f->data;
+static void recorder_uninit(MSFilter *f){
+    MKVRecorder *obj = (MKVRecorder *)f->data;
     muxer_uninit(&obj->muxer);
     if(obj->state != MSRecorderClosed)
     {
@@ -1640,9 +1640,9 @@ static void writer_uninit(MSFilter *f){
     ms_free(obj);
 }
 
-static int writer_set_fmt(MSFilter *f, void *arg)
+static int recorder_set_input_fmt(MSFilter *f, void *arg)
 {
-    MKVWriter *data=(MKVWriter *)f->data;
+    MKVRecorder *data=(MKVRecorder *)f->data;
     const MSPinFormat *pinFmt = (const MSPinFormat *)arg;
 
     switch(pinFmt->fmt->type)
@@ -1692,45 +1692,45 @@ static int writer_set_fmt(MSFilter *f, void *arg)
     }
 }
 
-static MSFilterMethod writer_methods[]= {
-    {	MS_RECORDER_OPEN            ,	writer_open         },
-    {	MS_RECORDER_CLOSE           ,	writer_close        },
-    {	MS_RECORDER_START           ,	writer_start        },
-    {	MS_RECORDER_PAUSE           ,	writer_stop         },
-    {   MS_FILTER_SET_INPUT_FMT     ,   writer_set_fmt      },
-    {   0                           ,   NULL                }
+static MSFilterMethod recorder_methods[]= {
+    {	MS_RECORDER_OPEN            ,	recorder_open_file         },
+    {	MS_RECORDER_CLOSE           ,	recorder_close             },
+    {	MS_RECORDER_START           ,	recorder_start             },
+    {	MS_RECORDER_PAUSE           ,	recorder_stop              },
+    {   MS_FILTER_SET_INPUT_FMT     ,   recorder_set_input_fmt     },
+    {   0                           ,   NULL                       }
 };
 
 #ifdef _MSC_VER
-MSFilterDesc ms_mkv_writer_desc= {
-    MS_MKV_WRITER_ID,
-    "MSMKVWriter",
-    "Writer of MKV files",
+MSFilterDesc ms_mkv_recorder_desc= {
+    MS_MKV_RECORDER_ID,
+    "MSMKVRecorder",
+    "MKV file recorder",
     MS_FILTER_OTHER,
     2,
     0,
-    writer_init,
+    recorder_init,
     NULL,
-    writer_process,
+    recorder_process,
     NULL,
-    writer_uninit,
-    writer_methods
+    recorder_uninit,
+    recorder_methods
 };
 #else
-MSFilterDesc ms_mkv_writer_desc={
-    .id=MS_MKV_WRITER_ID,
+MSFilterDesc ms_mkv_recorder_desc={
+    .id=MS_MKV_RECORDER_ID,
     .name="MSMKVWriter",
     .text="Writer of MKV files",
     .category=MS_FILTER_OTHER,
     .ninputs=2,
     .noutputs=0,
-    .init=writer_init,
+    .init=recorder_init,
     .preprocess=NULL,
-    .process=writer_process,
+    .process=recorder_process,
     .postprocess=NULL,
-    .uninit=writer_uninit,
-    .methods=writer_methods
+    .uninit=recorder_uninit,
+    .methods=recorder_methods
 };
 #endif
 
-MS_FILTER_DESC_EXPORT(ms_mkv_writer_desc)
+MS_FILTER_DESC_EXPORT(ms_mkv_recorder_desc)

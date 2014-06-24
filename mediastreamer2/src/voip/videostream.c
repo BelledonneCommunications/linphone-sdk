@@ -532,7 +532,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		/*
 		 * In practice, these filters are needed only for audio+video recording.
 		 */
-		if (ms_factory_lookup_filter_by_id(ms_factory_get_fallback(), MS_MKV_WRITER_ID)){
+        if (ms_factory_lookup_filter_by_id(ms_factory_get_fallback(), MS_MKV_RECORDER_ID)){
 			stream->itcsink=ms_filter_new(MS_ITC_SINK_ID);
 			stream->tee3=ms_filter_new(MS_TEE_ID);
 		}
