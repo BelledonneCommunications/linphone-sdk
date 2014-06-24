@@ -93,6 +93,13 @@ static void test_rtcp_fb_attribute(void) {
 	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_type(lAttribute), BELLE_SDP_RTCP_FB_TRR_INT);
 	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_trr_int(lAttribute), 3);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
+	lAttribute = BELLE_SDP_RTCP_FB_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-fb:103 ccm fir"));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-fb");
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_id(lAttribute), 103);
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_type(lAttribute), BELLE_SDP_RTCP_FB_CCM);
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_param(lAttribute), BELLE_SDP_RTCP_FB_FIR);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 }
 
 static void test_rtcp_xr_attribute(void) {

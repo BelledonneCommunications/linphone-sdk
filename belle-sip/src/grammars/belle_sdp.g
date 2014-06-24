@@ -330,7 +330,7 @@ rtcp_fb_trr_int_val:
 	};
 
 rtcp_fb_ccm_val:
-	{IS_TOKEN(ccm)}? rtcp_fb_attribute_name /*'ccm'*/ SPACE rtcp_fb_ccm_param {
+	{IS_TOKEN(ccm)}? rtcp_fb_attribute_name /*'ccm'*/ (SPACE rtcp_fb_ccm_param)? { /* TODO: rtcp_fb_ccm_param should be mandatory */
 		belle_sdp_rtcp_fb_attribute_set_type($rtcp_fb_attribute::current,BELLE_SDP_RTCP_FB_CCM);
 	};
 
@@ -393,7 +393,7 @@ scope { belle_sdp_media_description_t* current; }
                      (connection { belle_sdp_media_description_set_connection($media_description::current,$connection.ret);} CR LF)?
                      (bandwidth {belle_sdp_media_description_add_bandwidth($media_description::current,$bandwidth.ret);} CR LF)*
                      (key_field CR LF)?
-                     (attribute {belle_sdp_media_description_add_attribute($media_description::current,$attribute.ret);} CR LF)*;
+                     (attribute {if ($attribute.ret)belle_sdp_media_description_add_attribute($media_description::current,$attribute.ret);} CR LF)*;
 
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
