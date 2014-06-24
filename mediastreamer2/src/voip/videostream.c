@@ -380,6 +380,16 @@ static void configure_video_source(VideoStream *stream){
 	}
 }
 
+static float video_stream_get_rtcp_xr_average_quality_rating(unsigned long userdata) {
+	VideoStream *stream = (VideoStream *)userdata;
+	return stream ? media_stream_get_average_quality_rating(&stream->ms) : -1;
+}
+
+static float video_stream_get_rtcp_xr_average_lq_quality_rating(unsigned long userdata) {
+	VideoStream *stream = (VideoStream *)userdata;
+	return stream ? media_stream_get_average_lq_quality_rating(&stream->ms) : -1;
+}
+
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	PayloadType *pt;
@@ -389,6 +399,14 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	JBParameters jbp;
 	const int socket_buf_size=2000000;
 	bool_t avpf_enabled = FALSE;
+	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
+		NULL,
+		NULL,
+		NULL,
+		video_stream_get_rtcp_xr_average_quality_rating,
+		video_stream_get_rtcp_xr_average_lq_quality_rating,
+		(unsigned long)stream
+	};
 
 	if (cam==NULL){
 		cam=ms_web_cam_manager_get_default_cam (
@@ -416,6 +434,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
+	rtp_session_set_rtcp_xr_media_callbacks(rtps, &rtcp_xr_media_cbs);
 
 	rtp_session_signal_connect(stream->ms.sessions.rtp_session,"payload_type_changed",
 			(RtpCallback)mediastream_payload_type_changed,(unsigned long)&stream->ms);
