@@ -749,6 +749,7 @@ static void test_replaces_escaped_header(void) {
 
 }
 
+#ifndef WIN32
 static void _test_date_header(void){
 	belle_sip_header_date_t *date,*date2;
 	time_t utc;
@@ -765,9 +766,11 @@ static void _test_date_header(void){
 	CU_ASSERT_PTR_NULL(belle_sip_header_date_parse("nimportequoi"));
 }
 
+#endif
+
 static void test_date_header(void){
-#ifdef WINAPI_FAMILY_PHONE_APP
-	// TODO: setenv and unsetenv are not available for Windows Phone 8
+#ifdef WIN32
+	// TODO: setenv and unsetenv are not available for Windows
 #else
 	char *tz;
 	/* test in our timezone */
