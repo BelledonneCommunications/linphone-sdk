@@ -101,8 +101,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	if (rtcp_is_PSFB(m)) {
 		if (rtcp_PSFB_get_type(m) == RTCP_PSFB_FIR) {
 			/* Special case for FIR where the packet sender ssrc must be equal to 0. */
-			if ((rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session))
-				&& (rtcp_PSFB_get_packet_sender_ssrc(m) == 0)) {
+			if (rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
 				for (i = 0; ; i++) {
 					rtcp_fb_fir_fci_t *fci = rtcp_PSFB_fir_get_fci(m, i);
 					if (fci == NULL) break;
@@ -196,7 +195,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	stream->ms.type = VideoStreamType;
 	stream->ms.sessions=*sessions;
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
-	ms_quality_indicator_set_label(stream->ms.qi,"audio");
+	ms_quality_indicator_set_label(stream->ms.qi,"video");
 	stream->ms.evq=ortp_ev_queue_new();
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
