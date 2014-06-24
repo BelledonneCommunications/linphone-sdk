@@ -101,8 +101,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	if (rtcp_is_PSFB(m)) {
 		if (rtcp_PSFB_get_type(m) == RTCP_PSFB_FIR) {
 			/* Special case for FIR where the packet sender ssrc must be equal to 0. */
-			if ((rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session))
-				&& (rtcp_PSFB_get_packet_sender_ssrc(m) == 0)) {
+			if (rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
 				for (i = 0; ; i++) {
 					rtcp_fb_fir_fci_t *fci = rtcp_PSFB_fir_get_fci(m, i);
 					if (fci == NULL) break;
