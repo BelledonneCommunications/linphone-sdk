@@ -105,7 +105,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 				for (i = 0; ; i++) {
 					rtcp_fb_fir_fci_t *fci = rtcp_PSFB_fir_get_fci(m, i);
 					if (fci == NULL) break;
-					if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session)) {
+					if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
 						uint8_t seq_nr = rtcp_fb_fir_fci_get_seq_nr(fci);
 						ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_FIR, &seq_nr);
 						break;
