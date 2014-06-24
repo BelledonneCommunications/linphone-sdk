@@ -4,6 +4,7 @@
 #include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/msticker.h"
 #include "../audiofilters/waveheader.h"
+#include "mediastreamer2/formats.h"
 #undef bool_t
 
 #define bool_t matroska_bool_t
@@ -12,38 +13,6 @@
 #undef bool_t
 
 #define bool_t ambigous use ms_bool_t or matroska_bool_t
-
-/*********************************************************************************************
- * AudioMetaData and VideoMediaData                                                          *
- *********************************************************************************************/
-typedef struct
-{
-    int sampleRate;
-    int bitrate;
-    int nbChannels;
-} AudioMetaData;
-
-static void audio_meta_data_init(AudioMetaData *obj)
-{
-    obj->sampleRate = 8000;
-    obj->nbChannels = 1;
-    obj->bitrate = obj->nbChannels * obj->sampleRate * 16;
-}
-
-typedef struct
-{
-    int bitrate;
-    float fps;
-    MSVideoSize definition;
-} VideoMetaData;
-
-static void video_meta_data_init(VideoMetaData *obj)
-{
-    obj->fps = -1.0;
-    obj->bitrate = -1;
-    obj->definition.height = -1;
-    obj->definition.width = -1;
-}
 
 /*********************************************************************************************
  * Module interface                                                                          *
@@ -59,6 +28,7 @@ typedef ms_bool_t (*ModuleIsKeyFrameFunc)(const mblk_t *frame);
 
 typedef struct
 {
+    const char *rfcName;
     const char *codecId;
     ModuleInitFunc init;
     ModuleUninitFunc uninit;
@@ -368,6 +338,7 @@ static void h264_module_load_private_data(void *o, const uint8_t *data)
 
 /* h264 module description */
 const ModuleDesc h264_module_desc = {
+    "H264",
     "V_MPEG4/ISO/AVC",
     h264_module_init,
     h264_module_uninit,
@@ -394,15 +365,15 @@ typedef struct
     uint16_t cbSize;
 } WavPrivate;
 
-static void wav_private_set(const AudioMetaData *obj, WavPrivate *data)
+static void wav_private_set(WavPrivate *data, const MSFmtDescriptor *obj)
 {
     uint16_t bitsPerSample = 8;
-    uint16_t nbBlockAlign = (bitsPerSample * obj->nbChannels)/8;
-    uint32_t bitrate = bitsPerSample * obj->nbChannels * obj->sampleRate;
+    uint16_t nbBlockAlign = (bitsPerSample * obj->nchannels)/8;
+    uint32_t bitrate = bitsPerSample * obj->nchannels * obj->rate;
 
     data->wFormatTag = le_uint16((uint16_t)7);
-    data->nbChannels = le_uint16((uint16_t)obj->nbChannels);
-    data->nSamplesPerSec = le_uint32((uint32_t)obj->sampleRate);
+    data->nbChannels = le_uint16((uint16_t)obj->nchannels);
+    data->nSamplesPerSec = le_uint32((uint32_t)obj->rate);
     data->nAvgBytesPerSec = le_uint32(bitrate);
     data->nBlockAlign = le_uint16((uint16_t)nbBlockAlign);
     data->wBitsPerSample = le_uint16(bitsPerSample);
@@ -440,8 +411,8 @@ static void mu_law_module_uninit(void *o)
 static void mu_law_module_set(void *o, const void *data)
 {
     MuLawModule *obj = (MuLawModule *)o;
-    const AudioMetaData *aMeta = (const AudioMetaData *)data;
-    wav_private_set(aMeta, &obj->codecPrivate);
+    const MSFmtDescriptor *aMeta = (const MSFmtDescriptor *)data;
+    wav_private_set(&obj->codecPrivate, aMeta);
 }
 
 static void mu_law_module_get_private_data(const void *o, uint8_t **data, size_t *data_size)
@@ -458,6 +429,7 @@ static void mu_law_module_load_private(void *o, const uint8_t *data)
 
 /* µLaw module description */
 const ModuleDesc mu_law_module_desc = {
+    "pcmu",
     "A_MS/ACM",
     mu_law_module_init,
     mu_law_module_uninit,
@@ -482,6 +454,20 @@ const ModuleDesc const *modules[] = {
     &mu_law_module_desc,
     NULL
 };
+
+static int find_module_id(const char rfcName[])
+{
+    int i;
+    for(i=0; modules[i] != NULL && strcmp(modules[i]->rfcName, rfcName) != 0; i++);
+    if(modules[i] == NULL)
+    {
+        return -1;
+    }
+    else
+    {
+        return i;
+    }
+}
 
 /*********************************************************************************************
  * Matroska                                                                                  *
@@ -772,32 +758,6 @@ static inline timecode_t matroska_get_duration(const Matroska *obj)
 {
     return (timecode_t)EBML_FloatValue((ebml_float *)EBML_MasterFindChild(obj->info, &MATROSKA_ContextDuration));
 }
-
-//static timecode_t matroska_last_block_timecode(const Matroska *obj)
-//{
-//    if(obj->cluster == NULL)
-//    {
-//        return -1;
-//    }
-//    else
-//    {
-//        ebml_element *block, *lastBlock = NULL;
-//        for(block = EBML_MasterFindFirstElt(obj->cluster, &MATROSKA_ContextSimpleBlock, FALSE, FALSE);
-//            block != NULL;
-//            block = EBML_MasterFindNextElt(obj->cluster, block, FALSE, FALSE))
-//        {
-//            lastBlock = block;
-//        }
-//        if(lastBlock == NULL)
-//        {
-//            return -1;
-//        }
-//        else
-//        {
-//            return MATROSKA_BlockTimecode((matroska_block *)lastBlock)/obj->timecodeScale;
-//        }
-//    }
-//}
 
 static void updateElementHeader(ebml_element *element, stream *file)
 {
@@ -1101,7 +1061,7 @@ static int matroska_track_set_codec_private(Matroska *obj, int trackNum, const u
     }
 }
 
-static int matroska_track_set_video_info(Matroska *obj, int trackNum, const VideoMetaData *vMeta)
+static int matroska_track_set_video_info(Matroska *obj, int trackNum, const MSFmtDescriptor *vMeta)
 {
     ebml_element *track = matroska_find_track(obj, trackNum);
     if(track == NULL)
@@ -1119,14 +1079,14 @@ static int matroska_track_set_video_info(Matroska *obj, int trackNum, const Vide
         {
             ebml_element *videoInfo = EBML_MasterGetChild(track, &MATROSKA_ContextVideo);
             EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextFlagInterlaced), 0);
-            EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelWidth), vMeta->definition.width);
-            EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelHeight), vMeta->definition.height);
+            EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelWidth), vMeta->vsize.width);
+            EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelHeight), vMeta->vsize.height);
             return 0;
         }
     }
 }
 
-static int matroska_track_set_audio_info(Matroska *obj, int trackNum, const AudioMetaData *aMeta)
+static int matroska_track_set_audio_info(Matroska *obj, int trackNum, const MSFmtDescriptor *aMeta)
 {
     ebml_element *track = matroska_find_track(obj, trackNum);
     if(track == NULL)
@@ -1143,8 +1103,8 @@ static int matroska_track_set_audio_info(Matroska *obj, int trackNum, const Audi
         else
         {
             ebml_element *audioInfo = EBML_MasterGetChild(track, &MATROSKA_ContextAudio);
-            EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextSamplingFrequency), aMeta->sampleRate);
-            EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextChannels), aMeta->nbChannels);
+            EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextSamplingFrequency), aMeta->rate);
+            EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextChannels), aMeta->nchannels);
             return 0;
         }
     }
@@ -1292,8 +1252,8 @@ static mblk_t *muxer_get_buffer(Muxer *obj, MuxerBufferType *bufferType)
 typedef struct
 {
     Matroska file;
-    VideoMetaData vMeta;
-    AudioMetaData aMeta;
+    const MSFmtDescriptor *vMeta;
+    const MSFmtDescriptor *aMeta;
     int videoInputNum, audioInputNum;
     ModuleId videoModuleId, audioModuleId;
     void *videoModule, *audioModule;
@@ -1310,15 +1270,14 @@ static void writer_init(MSFilter *f)
 
     matroska_init(&obj->file);
 
-    video_meta_data_init(&obj->vMeta);
-    audio_meta_data_init(&obj->aMeta);
-
-    obj->videoModuleId = H264_MOD_ID;
-    obj->audioModuleId = MU_LAW_MOD_ID;
-    obj->videoInputNum = 0;
-    obj->audioInputNum = 1;
-    modules[obj->videoModuleId]->init(&obj->videoModule);
-    modules[obj->audioModuleId]->init(&obj->audioModule);
+    obj->vMeta = NULL;
+    obj->aMeta = NULL;
+    obj->videoModuleId = -1;
+    obj->audioModuleId = -1;
+    obj->videoInputNum = -1;
+    obj->audioInputNum = -1;
+    obj->videoModule = NULL;
+    obj->audioModule = NULL;
 
     obj->state = MSRecorderClosed;
     obj->needKeyFrame = TRUE;
@@ -1416,19 +1375,19 @@ static int writer_open(MSFilter *f, void *arg)
                 matroska_mark_segment_info_position(&obj->file);
                 matroska_write_zeros(&obj->file, 1024);
 
-                if(f->inputs[obj->videoInputNum] != NULL)
+                if(obj->videoInputNum > -1 && f->inputs[obj->videoInputNum] != NULL)
                 {
                     matroska_add_track(&obj->file, 1, TRACK_TYPE_VIDEO, modules[obj->videoModuleId]->codecId);
-                    matroska_track_set_video_info(&obj->file, 1, &obj->vMeta);
+                    matroska_track_set_video_info(&obj->file, 1, obj->vMeta);
                     if(modules[obj->videoModuleId]->set != NULL)
-                        modules[obj->videoModuleId]->set(obj->videoModule, &obj->vMeta);
+                        modules[obj->videoModuleId]->set(obj->videoModule, obj->vMeta);
                 }
-                if(f->inputs[obj->audioInputNum] != NULL)
+                if(obj->audioInputNum > -1 && f->inputs[obj->audioInputNum] != NULL)
                 {
                     matroska_add_track(&obj->file, 2, TRACK_TYPE_AUDIO, modules[obj->audioModuleId]->codecId);
-                    matroska_track_set_audio_info(&obj->file, 2, &obj->aMeta);
+                    matroska_track_set_audio_info(&obj->file, 2, obj->aMeta);
                     if(modules[obj->audioModuleId]->set != NULL)
-                        modules[obj->audioModuleId]->set(obj->audioModule, &obj->aMeta);
+                        modules[obj->audioModuleId]->set(obj->audioModule, obj->aMeta);
                 }
                 obj->duration = -1;
             }
@@ -1502,7 +1461,7 @@ static void writer_process(MSFilter *f)
         mblk_t *buffer;
         MuxerBufferType bufferType;
 
-        if(f->inputs[obj->videoInputNum] != NULL)
+        if(obj->videoInputNum > -1 && f->inputs[obj->videoInputNum] != NULL)
         {
             MSQueue frames, frames_ms;
             ms_queue_init(&frames);
@@ -1515,7 +1474,7 @@ static void writer_process(MSFilter *f)
 
             while((buffer = ms_queue_get(&frames)) != NULL)
             {
-                changeClockRate(buffer, 90000, 1000);
+                changeClockRate(buffer, obj->vMeta->rate, 1000);
                 ms_queue_put(&frames_ms, buffer);
             }
 
@@ -1545,7 +1504,7 @@ static void writer_process(MSFilter *f)
             }
         }
 
-        if(f->inputs[obj->audioInputNum] != NULL)
+        if(obj->audioInputNum > -1 && f->inputs[obj->audioInputNum] != NULL)
         {
             MSQueue audioBuffers;
             ms_queue_init(&audioBuffers);
@@ -1557,7 +1516,7 @@ static void writer_process(MSFilter *f)
 
             while((buffer = ms_queue_get(&audioBuffers)) != NULL)
             {
-                changeClockRate(buffer, obj->aMeta.sampleRate, 1000);
+                changeClockRate(buffer, obj->aMeta->rate, 1000);
                 muxer_put_audio_buffer(&obj->muxer, buffer);
             }
         }
@@ -1595,9 +1554,9 @@ static void writer_process(MSFilter *f)
     }
     else
     {
-        if(f->inputs[obj->videoInputNum] != NULL)
+        if(obj->videoInputNum > -1 && f->inputs[obj->videoInputNum] != NULL)
             ms_queue_flush(f->inputs[obj->videoInputNum]);
-        if(f->inputs[obj->audioInputNum] != NULL)
+        if(obj->audioInputNum > -1 && f->inputs[obj->audioInputNum] != NULL)
             ms_queue_flush(f->inputs[obj->audioInputNum]);
     }
     ms_filter_unlock(f);
@@ -1610,14 +1569,9 @@ static int writer_close(MSFilter *f, void *arg)
     ms_filter_lock(f);
     if(obj->state != MSRecorderClosed)
     {
-        if(f->inputs[obj->videoInputNum] != NULL)
-            ms_queue_flush(f->inputs[obj->videoInputNum]);
-        if(f->inputs[obj->audioInputNum] != NULL)
-            ms_queue_flush(f->inputs[obj->audioInputNum]);
-        muxer_empty_internal_queues(&obj->muxer);
-
-        if(f->inputs[obj->videoInputNum] != NULL)
+        if(obj->videoInputNum > -1 && f->inputs[obj->videoInputNum] != NULL)
         {
+            ms_queue_flush(f->inputs[obj->videoInputNum]);
             if(obj->haveVideoTrack)
             {
                 uint8_t *codecPrivateData;
@@ -1631,8 +1585,9 @@ static int writer_close(MSFilter *f, void *arg)
                 matroska_del_track(&obj->file, 1);
             }
         }
-        if(f->inputs[obj->audioInputNum] != NULL)
+        if(obj->audioInputNum > -1 && f->inputs[obj->audioInputNum] != NULL)
         {
+            ms_queue_flush(f->inputs[obj->audioInputNum]);
             if(obj->haveAudioTrack)
             {
                 uint8_t *codecPrivateData;
@@ -1677,63 +1632,72 @@ static int writer_close(MSFilter *f, void *arg)
 
 static void writer_uninit(MSFilter *f){
     MKVWriter *obj = (MKVWriter *)f->data;
-    ms_filter_lock(f);
-    modules[obj->videoModuleId]->uninit(obj->videoModule);
-    modules[obj->audioModuleId]->uninit(obj->audioModule);
     muxer_uninit(&obj->muxer);
     if(obj->state != MSRecorderClosed)
     {
         matroska_close_file(&obj->file);
     }
     ms_free(obj);
-    ms_filter_unlock(f);
 }
 
-static int setBitrate(MSFilter *f, void *arg)
+static int writer_set_fmt(MSFilter *f, void *arg)
 {
     MKVWriter *data=(MKVWriter *)f->data;
-    data->vMeta.bitrate = *(int *)arg;
-    return 1;
-}
+    const MSPinFormat *pinFmt = (const MSPinFormat *)arg;
 
-static int setFps(MSFilter *f, void *arg)
-{
-    MKVWriter *data=(MKVWriter *)f->data;
-    data->vMeta.fps = *(float *)arg;
-    return 1;
-}
+    switch(pinFmt->fmt->type)
+    {
+    case MSAudio:
+        if(data->audioModule != NULL)
+        {
+            modules[data->audioModuleId]->uninit(data->audioModule);
+            data->audioModule = NULL;
+        }
+        data->audioModuleId = find_module_id(pinFmt->fmt->encoding);
+        if(data->audioModuleId == -1)
+        {
+            return -2;
+        }
+        else
+        {
+            data->aMeta = pinFmt->fmt;
+            data->audioInputNum = pinFmt->pin;
+            modules[data->audioModuleId]->init(&data->audioModule);
+            return 0;
+        }
+        break;
 
-static int setNbChannels(MSFilter *f, void *arg)
-{
-    MKVWriter *data=(MKVWriter *)f->data;
-    data->aMeta.nbChannels = *(int *)arg;
-    return 1;
-}
+    case MSVideo:
+        if(data->videoModule != NULL)
+        {
+            modules[data->videoModuleId]->uninit(data->videoModule);
+            data->videoModule = NULL;
+        }
+        data->videoModuleId = find_module_id(pinFmt->fmt->encoding);
+        if(data->videoModuleId == -1)
+        {
+            return -2;
+        }
+        else
+        {
+            data->vMeta = pinFmt->fmt;
+            data->videoInputNum = pinFmt->pin;
+            modules[data->videoModuleId]->init(&data->videoModule);
+            return 0;
+        }
+        break;
 
-static int setSampleRate(MSFilter *f, void *arg)
-{
-    MKVWriter *data=(MKVWriter *)f->data;
-    data->aMeta.sampleRate = *(int *)arg;
-    return 1;
-}
-
-static int setVideoSize(MSFilter *f, void *arg)
-{
-    MKVWriter *data=(MKVWriter *)f->data;
-    data->vMeta.definition = *(MSVideoSize *)arg;
-    return 1;
+    default:
+        return -1;
+    }
 }
 
 static MSFilterMethod writer_methods[]= {
-    {   MS_FILTER_SET_BITRATE       ,   setBitrate          },
-    {   MS_FILTER_SET_FPS           ,   setFps              },
-    {   MS_FILTER_SET_NCHANNELS     ,   setNbChannels       },
-    {   MS_FILTER_SET_SAMPLE_RATE   ,   setSampleRate       },
-    {   MS_FILTER_SET_VIDEO_SIZE    ,   setVideoSize        },
     {	MS_RECORDER_OPEN            ,	writer_open         },
     {	MS_RECORDER_CLOSE           ,	writer_close        },
     {	MS_RECORDER_START           ,	writer_start        },
     {	MS_RECORDER_PAUSE           ,	writer_stop         },
+    {   MS_FILTER_SET_INPUT_FMT     ,   writer_set_fmt      },
     {   0                           ,   NULL                }
 };
 
