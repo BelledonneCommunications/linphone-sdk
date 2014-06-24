@@ -870,6 +870,7 @@ VideoPreview * video_preview_new(void){
 	VideoPreview *stream = (VideoPreview *)ms_new0 (VideoPreview, 1);
 	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, CIF);
 	choose_display_name(stream);
+	stream->ms.owns_sessions=TRUE;
 	return stream;
 }
 
