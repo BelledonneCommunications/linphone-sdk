@@ -89,7 +89,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\..\mswp8vid\mswp8vid\mswp8vid\mswp8vid.vcxproj">
+    <ProjectReference Include="..\..\..\..\..\..\..\mswp8vid\mswp8vid\mswp8vid.vcxproj">
       <Project>{0565952A-EA62-46A2-8261-F5B4B490DA42}</Project>
       <Name>libmswp8vid</Name>
     </ProjectReference>
