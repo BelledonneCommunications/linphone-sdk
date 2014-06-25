@@ -251,7 +251,7 @@ MS2_PUBLIC float media_stream_get_down_bw(const MediaStream *stream);
 MS2_PUBLIC void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *sessions);
 
 
-void media_stream_iterate(MediaStream * stream);
+MS2_PUBLIC void media_stream_iterate(MediaStream * stream);
 
 /**
  * Returns TRUE if stream was still actively receiving packets (RTP or RTCP) in the last period specified in timeout_seconds.

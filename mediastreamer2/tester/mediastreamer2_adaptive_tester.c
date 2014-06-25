@@ -32,10 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "CUnit/Basic.h"
 
 
-#ifdef _MSC_VER
-#define unlink _unlink
-#endif
-
 static RtpProfile rtp_profile;
 
 #define OPUS_PAYLOAD_TYPE    121
@@ -219,18 +215,19 @@ static void handle_queue_events(stream_manager_t * stream_mgr) {
 
 static void start_adaptive_stream(StreamType type, stream_manager_t ** pmarielle, stream_manager_t ** pmargaux,
 	int payload, int initial_bitrate, int target_bw, float loss_rate, int latency, float dup_ratio) {
-	OrtpNetworkSimulatorParams params={0};
-	params.enabled=TRUE;
-	params.loss_rate=loss_rate;
-	params.max_bandwidth=target_bw;
-	params.latency=latency;
 	int pause_time=0;
+	PayloadType* pt;
 	MediaStream *marielle_ms,*margaux_ms;
+	OrtpNetworkSimulatorParams params={0};
 #if VIDEO_ENABLED
 	MSWebCam * marielle_webcam=ms_web_cam_manager_get_default_cam (ms_web_cam_manager_get());
 #endif
 	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);
 	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);
+	params.enabled=TRUE;
+	params.loss_rate=loss_rate;
+	params.max_bandwidth=target_bw;
+	params.latency=latency;
 
 	if (type == AudioStreamType){
 		marielle_ms=&marielle->audio_stream->ms;
@@ -241,7 +238,7 @@ static void start_adaptive_stream(StreamType type, stream_manager_t ** pmarielle
 	}
 
 	/* Disable avpf. */
-	PayloadType* pt = rtp_profile_get_payload(&rtp_profile, VP8_PAYLOAD_TYPE);
+	pt = rtp_profile_get_payload(&rtp_profile, VP8_PAYLOAD_TYPE);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(pt);
 	payload_type_unset_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
 

@@ -20,7 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2_tester.h"
 
 #include <mediastreamer2/mediastream.h>
+#if HAVE_CONFIG_H
 #include <mediastreamer-config.h>
+#endif
 
 #include <stdio.h>
 #include "CUnit/Basic.h"
