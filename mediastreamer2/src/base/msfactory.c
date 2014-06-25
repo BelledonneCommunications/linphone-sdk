@@ -687,7 +687,7 @@ const MSFmtDescriptor * ms_factory_get_audio_format(MSFactory *obj, const char *
 const MSFmtDescriptor * ms_factory_get_video_format(MSFactory *obj, const char *mime, const MSVideoSize *size, const char *fmtp){
 	MSFmtDescriptor tmp={0};
 	MSVideoSize undef={0};
-    tmp.type=MSVideo;
+	tmp.type=MSVideo;
 	tmp.encoding=(char*)mime;
 	tmp.rate=90000;
 	tmp.vsize=size ? *size : undef;

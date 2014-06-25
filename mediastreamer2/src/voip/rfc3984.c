@@ -25,15 +25,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define TYPE_STAP_A 24  /*single time aggregation packet  0x18*/
 
 
-static inline void nal_header_init(uint8_t *h, uint8_t nri, uint8_t type){
+static MS2_INLINE void nal_header_init(uint8_t *h, uint8_t nri, uint8_t type){
 	*h=((nri&0x3)<<5) | (type & ((1<<5)-1));
 }
 
-static inline uint8_t nal_header_get_type(const uint8_t *h){
+static MS2_INLINE uint8_t nal_header_get_type(const uint8_t *h){
 	return (*h) & ((1<<5)-1);
 }
 
-static inline uint8_t nal_header_get_nri(const uint8_t *h){
+static MS2_INLINE uint8_t nal_header_get_nri(const uint8_t *h){
 	return ((*h) >> 5) & 0x3;
 }
 

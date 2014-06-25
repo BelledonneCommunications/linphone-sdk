@@ -32,11 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "CUnit/Basic.h"
 
 
-#ifdef _MSC_VER
-#define unlink _unlink
-#endif
-
-
 static int tester_init(void) {
 /*	ms_init();
 	ms_filter_enable_statistics(TRUE);
@@ -48,28 +43,28 @@ static int tester_cleanup(void) {
 /*	ms_exit();*/
 	return 0;
 }
-extern MSFilterDesc ms_alaw_dec_desc;
-extern MSFilterDesc ms_void_source_desc;
 
 static void filter_register_tester(void) {
+	MSFilter* filter;
+
 	ms_init();
 	ms_init();
 
-	CU_ASSERT_PTR_NOT_NULL(ms_filter_lookup_by_name(ms_void_source_desc.name));
-	MSFilter* filter= ms_filter_create_decoder(ms_alaw_dec_desc.enc_fmt);
+	CU_ASSERT_PTR_NOT_NULL(ms_filter_lookup_by_name("MSVoidSource"));
+	filter= ms_filter_create_decoder("pcma");
 	CU_ASSERT_PTR_NOT_NULL(filter);
 	ms_filter_destroy(filter);
 
 	ms_exit();
 
-	CU_ASSERT_PTR_NOT_NULL(ms_filter_lookup_by_name(ms_void_source_desc.name));
-	filter= ms_filter_create_decoder(ms_alaw_dec_desc.enc_fmt);
+	CU_ASSERT_PTR_NOT_NULL(ms_filter_lookup_by_name("MSVoidSource"));
+	filter= ms_filter_create_decoder("pcma");
 	CU_ASSERT_PTR_NOT_NULL(filter);
 	ms_filter_destroy(filter);
 
 	ms_exit();
-	CU_ASSERT_PTR_NULL(ms_filter_lookup_by_name(ms_void_source_desc.name));
-	filter= ms_filter_create_decoder(ms_alaw_dec_desc.enc_fmt);
+	CU_ASSERT_PTR_NULL(ms_filter_lookup_by_name("MSVoidSource"));
+	filter= ms_filter_create_decoder("pcma");
 	CU_ASSERT_PTR_NULL(filter);
 }
 

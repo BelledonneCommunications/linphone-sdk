@@ -1084,7 +1084,7 @@ static void matroska_close_cluster(Matroska *obj)
 		ebml_element *voidElt = EBML_ElementCreate(obj->p, &EBML_ContextEbmlVoid, FALSE, NULL);
 		EBML_MasterAppend(obj->segment, voidElt);
 		EBML_VoidSetFullSize(voidElt, EBML_ElementFullSize((ebml_element *)obj->cluster, WRITE_DEFAULT_ELEMENT));
-		Stream_Seek(obj->output, EBML_ElementPosition((ebml_element *)obj->cluster), SEEK_SET);
+		Stream_Seek((ebml_master*)obj->output, EBML_ElementPosition((ebml_element *)obj->cluster), SEEK_SET);
 		EBML_ElementRender(voidElt, obj->output, FALSE, FALSE, FALSE, NULL);
 		EBML_MasterRemove(obj->segment, (ebml_element *)obj->cluster);
 		NodeDelete((node *)obj->cluster);
@@ -1129,17 +1129,17 @@ static int matroska_add_track(Matroska *obj, int trackNum, int trackType, const 
 		{
 			return -2;
 		}
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackNumber), trackNum);
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackUID), trackNum);
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackType), trackType);
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextFlagEnabled), 1);
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextFlagDefault), 1);
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextFlagForced), 0);
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextFlagLacing), 0);
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextMinCache), 1);
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextMaxBlockAdditionID), 0);
-		EBML_StringSetValue((ebml_string *)EBML_MasterGetChild(track, &MATROSKA_ContextCodecID), codecID);
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextCodecDecodeAll), 0);
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextTrackNumber), trackNum);
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextTrackUID), trackNum);
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextTrackType), trackType);
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextFlagEnabled), 1);
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextFlagDefault), 1);
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextFlagForced), 0);
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextFlagLacing), 0);
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextMinCache), 1);
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextMaxBlockAdditionID), 0);
+		EBML_StringSetValue((ebml_string *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextCodecID), codecID);
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextCodecDecodeAll), 0);
 		return 0;
 	}
 }
@@ -1204,7 +1204,7 @@ static int matroska_track_set_codec_private(Matroska *obj, int trackNum, const u
 	}
 	else
 	{
-		ebml_binary *codecPrivate = EBML_MasterGetChild(track, &MATROSKA_ContextCodecPrivate);
+		ebml_binary *codecPrivate = EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextCodecPrivate);
 		if(EBML_BinarySetData(codecPrivate, data, dataSize) != ERR_NONE)
 		{
 			return -2;
@@ -1232,10 +1232,10 @@ static int matroska_track_set_video_info(Matroska *obj, int trackNum, const MSFm
 		}
 		else
 		{
-			ebml_element *videoInfo = EBML_MasterGetChild(track, &MATROSKA_ContextVideo);
-			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextFlagInterlaced), 0);
-			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelWidth), vMeta->vsize.width);
-			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelHeight), vMeta->vsize.height);
+			ebml_element *videoInfo = EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextVideo);
+			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)videoInfo, &MATROSKA_ContextFlagInterlaced), 0);
+			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)videoInfo, &MATROSKA_ContextPixelWidth), vMeta->vsize.width);
+			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)videoInfo, &MATROSKA_ContextPixelHeight), vMeta->vsize.height);
 			return 0;
 		}
 	}
@@ -1257,9 +1257,9 @@ static int matroska_track_set_audio_info(Matroska *obj, int trackNum, const MSFm
 		}
 		else
 		{
-			ebml_element *audioInfo = EBML_MasterGetChild(track, &MATROSKA_ContextAudio);
-			EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextSamplingFrequency), aMeta->rate);
-			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextChannels), aMeta->nchannels);
+			ebml_element *audioInfo = EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextAudio);
+			EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild((ebml_master*)audioInfo, &MATROSKA_ContextSamplingFrequency), aMeta->rate);
+			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)audioInfo, &MATROSKA_ContextChannels), aMeta->nchannels);
 			return 0;
 		}
 	}

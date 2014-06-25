@@ -53,6 +53,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ms_cond_broadcast	ortp_cond_broadcast
 #define ms_cond_destroy		ortp_cond_destroy
 
+#define MS2_INLINE ORTP_INLINE
+
 #if defined(_MSC_VER)
 #define MS2_PUBLIC	__declspec(dllexport)
 #else

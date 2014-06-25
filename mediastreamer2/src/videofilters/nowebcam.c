@@ -177,12 +177,10 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	uint8_t *jpgbuf;
 	DWORD err;
 	HANDLE fd;
-
-#ifdef UNICODE
+#if defined(UNICODE) || WINAPI_FAMILY_PHONE_APP
 	WCHAR wUnicode[1024];
 	MultiByteToWideChar(CP_UTF8, 0, jpgpath, -1, wUnicode, 1024);
-	fd = CreateFile(wUnicode, GENERIC_READ, FILE_SHARE_READ, NULL,
-        OPEN_EXISTING, 0, NULL);
+	fd = CreateFile2(wUnicode, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, NULL);
 #else
 	fd = CreateFile(jpgpath, GENERIC_READ, FILE_SHARE_READ, NULL,
         OPEN_EXISTING, 0, NULL);
@@ -193,7 +191,16 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	}
 	st_sizel=0;
 	st_sizeh=0;
+#if defined(UNICODE) || WINAPI_FAMILY_PHONE_APP
+	{
+		WIN32_FILE_ATTRIBUTE_DATA attr_data;
+		GetFileAttributesEx(wUnicode, GetFileExInfoStandard, &attr_data);
+		st_sizel = attr_data.nFileSizeLow;
+		st_sizeh = attr_data.nFileSizeHigh;
+	}
+#else
 	st_sizel = GetFileSize(fd, &st_sizeh);
+#endif
 	if (st_sizeh>0 || st_sizel<=0)
 	{
 		CloseHandle(fd);
