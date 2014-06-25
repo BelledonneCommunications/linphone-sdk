@@ -123,6 +123,24 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			CPPFLAGS_save=$CPPFLAGS
 			CPPFLAGS="$FFMPEG_CFLAGS $CPPFLAGS -Wno-error"
 			AC_CHECK_HEADERS(libavcodec/avcodec.h)
+			AC_CHECK_HEADER(libavcodec/old_codec_ids.h,[ old_codec_ids_found=yes
+                                                                     AC_DEFINE(HAVE_AVCODEC_OLD_CODEC_IDS,1,[for compatibility purpose with old ffmpeg])]
+                                                                     ,[old_codec_ids_found=no],[#include "libavcodec/avcodec.h"])
+			AC_MSG_CHECKING([AV_CODEC_ID_SNOW])
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <libavcodec/avcodec.h>]],
+                                        		[[enum AVCodecID toto=AV_CODEC_ID_SNOW;if(toto){}]])]
+                                           ,[if test x$old_codec_ids_found = xno ; then
+						AC_DEFINE(CODEC_ID_SNOW,AV_CODEC_ID_SNOW,[for compatibility purpose with old ffmpeg])
+					     fi
+                                            AC_DEFINE(HAVE_AVCODEC_SNOW,1,[for compatibility purpose with old ffmpeg])
+                                            AC_MSG_RESULT([found])]
+                                           ,[AC_MSG_RESULT([not found])])
+			AC_MSG_CHECKING([CODEC_ID_SNOW])
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <libavcodec/avcodec.h>]],
+                                        		[[enum CodecID toto=CODEC_ID_SNOW;if (toto){}]])]
+                                           ,[AC_DEFINE(HAVE_AVCODEC_SNOW,1,[for compatibility purpose with old ffmpeg])
+                                           AC_MSG_RESULT([found])]
+                                           ,[AC_MSG_RESULT([not found])])
 			CPPFLAGS=$CPPFLAGS_save
 
 			LIBS_save=$LIBS

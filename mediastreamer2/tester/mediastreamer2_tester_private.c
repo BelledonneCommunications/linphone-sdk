@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/mstonedetector.h"
+#include "mediastreamer2/mswebcam.h"
 
 
 typedef struct {
@@ -55,6 +56,7 @@ MSFilter *ms_tester_rtpsend = NULL;
 MSFilter *ms_tester_resampler = NULL;
 MSFilter *ms_tester_soundwrite = NULL;
 MSFilter *ms_tester_soundread = NULL;
+MSFilter *ms_tester_videocapture = NULL;
 char *ms_tester_codec_mime = "pcmu";
 unsigned char ms_tester_tone_detected;
 
@@ -95,9 +97,11 @@ void ms_tester_create_filter(MSFilter **filter, MSFilterId id) {
 }
 
 void ms_tester_create_filters(unsigned int filter_mask) {
-	MSSndCardManager *manager;
+	MSSndCardManager *snd_manager;
+	MSWebCamManager *cam_manager;
 	MSSndCard *playcard;
 	MSSndCard *captcard;
+	MSWebCam *camera;
 
 	CREATE_FILTER(FILTER_MASK_FILEPLAY, ms_tester_fileplay, MS_FILE_PLAYER_ID);
 	CREATE_FILTER(FILTER_MASK_FILEREC, ms_tester_filerec, MS_FILE_REC_ID);
@@ -120,19 +124,27 @@ void ms_tester_create_filters(unsigned int filter_mask) {
 	CREATE_FILTER(FILTER_MASK_RESAMPLER, ms_tester_resampler, MS_RESAMPLE_ID);
 	if (filter_mask & FILTER_MASK_SOUNDWRITE) {
 		CU_ASSERT_PTR_NULL(ms_tester_soundwrite);
-		manager = ms_snd_card_manager_get();
-		playcard = ms_snd_card_manager_get_default_playback_card(manager);
+		snd_manager = ms_snd_card_manager_get();
+		playcard = ms_snd_card_manager_get_default_playback_card(snd_manager);
 		CU_ASSERT_PTR_NOT_NULL_FATAL(playcard);
 		ms_tester_soundwrite = ms_snd_card_create_writer(playcard);
 		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_soundwrite);
 	}
 	if (filter_mask & FILTER_MASK_SOUNDREAD) {
 		CU_ASSERT_PTR_NULL(ms_tester_soundread);
-		manager = ms_snd_card_manager_get();
-		captcard = ms_snd_card_manager_get_default_capture_card(manager);
+		snd_manager = ms_snd_card_manager_get();
+		captcard = ms_snd_card_manager_get_default_capture_card(snd_manager);
 		CU_ASSERT_PTR_NOT_NULL_FATAL(captcard);
 		ms_tester_soundread = ms_snd_card_create_reader(captcard);
 		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_soundread);
+	}
+	if (filter_mask & FILTER_MASK_VIDEOCAPTURE) {
+		CU_ASSERT_PTR_NULL(ms_tester_videocapture);
+		cam_manager = ms_web_cam_manager_get();
+		camera = ms_web_cam_manager_get_default_cam(cam_manager);
+		CU_ASSERT_PTR_NOT_NULL_FATAL(camera);
+		ms_tester_videocapture = ms_web_cam_create_reader(camera);
+		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_videocapture);
 	}
 }
 
@@ -164,6 +176,7 @@ void ms_tester_destroy_filters(unsigned int filter_mask) {
 	DESTROY_FILTER(FILTER_MASK_RESAMPLER, ms_tester_resampler);
 	DESTROY_FILTER(FILTER_MASK_SOUNDWRITE, ms_tester_soundwrite);
 	DESTROY_FILTER(FILTER_MASK_SOUNDREAD, ms_tester_soundread);
+	DESTROY_FILTER(FILTER_MASK_VIDEOCAPTURE, ms_tester_videocapture);
 }
 
 void ms_tester_tone_generation_loop(void) {

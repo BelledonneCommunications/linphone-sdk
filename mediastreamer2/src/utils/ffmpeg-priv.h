@@ -66,13 +66,20 @@ static inline int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
 	return avcodec_decode_video(avctx,picture, got_picture_ptr,avpkt->data,avpkt->size);
 }
 #endif
-
-#if (LIBAVCODEC_VERSION_MAJOR >= 56)
+#if HAVE_AVCODEC_OLD_CODEC_IDS 
 #include <libavcodec/old_codec_ids.h>
 #endif
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0) 
+/*CODEC_ID_* and CodecID have been deprecated for a long time and this release removes it altogether. Please use AV_CODEC_ID_* and AVCodecID instead.*/
 #define CodecID AVCodecID
+#ifndef HAVE_AVCODEC_OLD_CODEC_IDS
+	#define CODEC_ID_H264 AV_CODEC_ID_H264 
+	#define CODEC_ID_H263 AV_CODEC_ID_H263 
+	#define CODEC_ID_H263P AV_CODEC_ID_H263P 
+	#define CODEC_ID_MPEG4 AV_CODEC_ID_MPEG4 
+	#define CODEC_ID_MJPEG AV_CODEC_ID_MJPEG 
+#endif
 #endif
 
 #ifndef HAVE_FUN_avcodec_encode_video2

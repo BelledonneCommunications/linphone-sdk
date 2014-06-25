@@ -185,7 +185,7 @@ static void volume_uninit(MSFilter *f){
 	ms_free(f->data);
 }
 
-static inline float linear_to_db(float linear){
+static MS2_INLINE float linear_to_db(float linear){
 	if (linear==0) return MS_VOLUME_DB_LOWEST;
 	return 10*ortp_log10f(linear);
 }
@@ -244,7 +244,7 @@ static float volume_agc_process(Volume *v, mblk_t *om) {
 
 #endif
 
-static inline float compute_gain(Volume *v, float energy, float weight) {
+static MS2_INLINE float compute_gain(Volume *v, float energy, float weight) {
 	float ret = v->static_gain / (1 + (energy * weight));
 	return ret;
 }
@@ -439,7 +439,7 @@ static int volume_remove_dc(MSFilter *f, void *arg){
 	return 0;
 }
 
-static inline int16_t saturate(int val) {
+static MS2_INLINE int16_t saturate(int val) {
 	return (val>32767) ? 32767 : ( (val<-32767) ? -32767 : val);
 }
 

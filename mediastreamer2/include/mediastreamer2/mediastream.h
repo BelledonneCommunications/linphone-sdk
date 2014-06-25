@@ -194,7 +194,7 @@ MS2_PUBLIC bool_t media_stream_avpf_enabled(const MediaStream *stream);
  * @param[in] stream #MediaStream object.
  * @return The AVPF Regular RTCP report interval in seconds.
  */
-MS2_PUBLIC uint8_t media_stream_get_avpf_rr_interval(const MediaStream *stream);
+MS2_PUBLIC uint16_t media_stream_get_avpf_rr_interval(const MediaStream *stream);
 
 
 MS2_PUBLIC const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream);
@@ -247,7 +247,7 @@ MS2_PUBLIC float media_stream_get_down_bw(const MediaStream *stream);
 MS2_PUBLIC void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *sessions);
 
 
-void media_stream_iterate(MediaStream * stream);
+MS2_PUBLIC void media_stream_iterate(MediaStream * stream);
 
 /**
  * Returns TRUE if stream was still actively receiving packets (RTP or RTCP) in the last period specified in timeout_seconds.
@@ -351,7 +351,7 @@ MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile,
 MS2_PUBLIC void audio_stream_play(AudioStream *st, const char *name);
 MS2_PUBLIC void audio_stream_record(AudioStream *st, const char *name);
 
-static inline void audio_stream_set_rtcp_information(AudioStream *st, const char *cname, const char *tool) {
+static MS2_INLINE void audio_stream_set_rtcp_information(AudioStream *st, const char *cname, const char *tool) {
 	media_stream_set_rtcp_information(&st->ms, cname, tool);
 }
 
@@ -452,14 +452,14 @@ MS2_PUBLIC void audio_stream_set_echo_canceller_params(AudioStream *st, int tail
 /**
  * enable adaptive rate control
  * */
-static inline void audio_stream_enable_adaptive_bitrate_control(AudioStream *stream, bool_t enabled) {
+static MS2_INLINE void audio_stream_enable_adaptive_bitrate_control(AudioStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_bitrate_control(&stream->ms, enabled);
 }
 
 /**
  *  Enable adaptive jitter compensation
  *  */
-static inline void audio_stream_enable_adaptive_jittcomp(AudioStream *stream, bool_t enabled) {
+static MS2_INLINE void audio_stream_enable_adaptive_jittcomp(AudioStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_jittcomp(&stream->ms, enabled);
 }
 
@@ -503,7 +503,7 @@ MS2_PUBLIC int audio_stream_mixed_record_stop(AudioStream *st);
 MS2_PUBLIC void audio_stream_set_default_card(int cardindex);
 
 /* retrieve RTP statistics*/
-static inline void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats) {
+static MS2_INLINE void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats) {
 	media_stream_get_local_rtp_stats(&stream->ms, stats);
 }
 
@@ -527,11 +527,11 @@ MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *pa
 bool_t  audio_stream_zrtp_enabled(const AudioStream *stream);
 
 /* enable SRTP on the audio stream */
-static inline bool_t audio_stream_enable_srtp(AudioStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {
+static MS2_INLINE bool_t audio_stream_enable_srtp(AudioStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {
 	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
 }
 
-static inline int audio_stream_set_dscp(AudioStream *stream, int dscp) {
+static MS2_INLINE int audio_stream_set_dscp(AudioStream *stream, int dscp) {
 	return media_stream_set_dscp(&stream->ms, dscp);
 }
 
@@ -596,10 +596,10 @@ typedef struct _VideoStream VideoStream;
 MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
 MS2_PUBLIC VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
 MS2_PUBLIC void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir);
-static inline void video_stream_enable_adaptive_bitrate_control(VideoStream *stream, bool_t enabled) {
+static MS2_INLINE void video_stream_enable_adaptive_bitrate_control(VideoStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_bitrate_control(&stream->ms, enabled);
 }
-static inline void video_stream_enable_adaptive_jittcomp(VideoStream *stream, bool_t enabled) {
+static MS2_INLINE void video_stream_enable_adaptive_jittcomp(VideoStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_jittcomp(&stream->ms, enabled);
 }
 MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
@@ -612,7 +612,7 @@ MS2_PUBLIC void video_stream_unprepare_video(VideoStream *stream);
 
 
 MS2_PUBLIC void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);
-static inline void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool) {
+static MS2_INLINE void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool) {
 	media_stream_set_rtcp_information(&st->ms, cname, tool);
 }
 MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
@@ -689,7 +689,7 @@ MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param);
 
 /* enable SRTP on the video stream */
-static inline bool_t video_stream_enable_strp(VideoStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {
+static MS2_INLINE bool_t video_stream_enable_strp(VideoStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {
 	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
 }
 
@@ -697,11 +697,11 @@ static inline bool_t video_stream_enable_strp(VideoStream* stream, MSCryptoSuite
 MS2_PUBLIC void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable);
 
 /* retrieve RTP statistics*/
-static inline void video_stream_get_local_rtp_stats(VideoStream *stream, rtp_stats_t *stats) {
+static MS2_INLINE void video_stream_get_local_rtp_stats(VideoStream *stream, rtp_stats_t *stats) {
 	media_stream_get_local_rtp_stats(&stream->ms, stats);
 }
 
-static inline int video_stream_set_dscp(VideoStream *stream, int dscp) {
+static MS2_INLINE int video_stream_set_dscp(VideoStream *stream, int dscp) {
 	return media_stream_set_dscp(&stream->ms, dscp);
 }
 

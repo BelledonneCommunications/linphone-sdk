@@ -1,5 +1,5 @@
 
-EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in mediastreamer2.spec.in mediastreamer2.spec 
+EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in mediastreamer2.spec.in mediastreamer2.spec
 
 ACLOCAL_AMFLAGS = -I m4 $(ACLOCAL_MACOS_FLAGS)
 
@@ -81,6 +81,7 @@ build/git-pre-commit-hook \
 build/iphone/basedescs.h \
 build/iphone/voipdescs.h \
 build/winmob/echo/echo.vcproj \
+build/vsx \
 java/.classpath \
 java/.project \
 java/AndroidManifest.xml \

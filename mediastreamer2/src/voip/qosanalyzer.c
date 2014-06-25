@@ -191,8 +191,8 @@ static void simple_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateControl
 
 	if (objbase->on_action_suggested!=NULL){
 		int i;
-		const int datac=4;
-		char *data[datac];
+		char *data[4];
+		int datac = sizeof(data) / sizeof(data[0]);
 		data[0]=ms_strdup("lost_percentage rt_prop_increased int_jitter_ms rt_prop_ms");
 		data[1]=ms_strdup_printf("%d %d %d %d"
 			, (int)cur->lost_percentage
@@ -466,8 +466,8 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 #endif
 
 	if (size == 1){
-		ms_debug("MSQosStatefulAnalyzer[%p]: One single point", obj);
 		rtcpstatspoint_t *p = (rtcpstatspoint_t *)current->data;
+		ms_debug("MSQosStatefulAnalyzer[%p]: One single point", obj);
 		mean_bw = p->bandwidth * ((p->loss_percent>1e-5) ? (1-p->loss_percent):2);
 	}else{
 		while (current!=NULL && ((rtcpstatspoint_t*)current->data)->loss_percent<0.03+constant_network_loss){

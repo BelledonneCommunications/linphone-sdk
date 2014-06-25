@@ -31,10 +31,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "CUnit/Basic.h"
 
 
-#ifdef _MSC_VER
-#define unlink _unlink
-#endif
-
 static RtpProfile rtp_profile;
 
 #define OPUS_PAYLOAD_TYPE    121
@@ -206,14 +202,14 @@ static float adaptive_audio_stream(int codec_payload, int initial_bitrate,int ta
 	stream_manager_t * marielle = stream_manager_new();
 	stream_manager_t * margaux = stream_manager_new();
 	int pause_time=0;
+	float bw_usage_ratio;
+	float marielle_send_bw;
 
 	OrtpNetworkSimulatorParams params={0};
 	params.enabled=TRUE;
 	params.loss_rate=0;
 	params.max_bandwidth=target_bw;
 	params.max_buffer_size=initial_bitrate;
-	float bw_usage_ratio;
-	float marielle_send_bw;
 
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
 

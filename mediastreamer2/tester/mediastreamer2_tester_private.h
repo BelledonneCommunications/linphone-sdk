@@ -25,6 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 
+#ifdef _MSC_VER
+#define unlink _unlink
+#endif
 
 #if WINAPI_FAMILY_PHONE_APP
 	#define SOUND_FILE_PATH		"Assets\\Sounds\\"
@@ -42,6 +45,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 extern MSTicker *ms_tester_ticker;
 extern MSFilter *ms_tester_fileplay;
 extern MSFilter *ms_tester_filerec;
@@ -56,6 +64,7 @@ extern MSFilter *ms_tester_rtpsend;
 extern MSFilter *ms_tester_resampler;
 extern MSFilter *ms_tester_soundwrite;
 extern MSFilter *ms_tester_soundread;
+extern MSFilter *ms_tester_videocapture;
 extern char *ms_tester_codec_mime;
 
 enum {
@@ -71,7 +80,8 @@ enum {
 	FILTER_MASK_RTPSEND = (1 << 9),
 	FILTER_MASK_RESAMPLER = (1 << 10),
 	FILTER_MASK_SOUNDWRITE = (1 << 11),
-	FILTER_MASK_SOUNDREAD = (1 << 12)
+	FILTER_MASK_SOUNDREAD = (1 << 12),
+	FILTER_MASK_VIDEOCAPTURE = (1 << 13)
 } filter_mask_enum;
 
 
@@ -95,6 +105,11 @@ bool_t wait_for_list_with_parse_events(MSList *mss, int *counter, int value, int
 bool_t wait_for_until(MediaStream *ms1, MediaStream *ms2, int *counter, int value, int timeout_ms);
 bool_t wait_for_until_with_parse_events(MediaStream *ms1, MediaStream *ms2, int *counter, int value, int timeout_ms, ms_tester_iterate_cb cb1, void *ptr1, ms_tester_iterate_cb cb2, void *ptr2);
 bool_t wait_for(MediaStream* ms1, MediaStream* ms2, int *counter, int value);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 
 #endif /* _MEDIASTREAMER2_TESTER_PRIVATE_H */

@@ -36,7 +36,7 @@ static void accumulate(int32_t *sum, int16_t* contrib, int nwords){
 	}
 }
 
-static inline int16_t saturate(int32_t s){
+static MS2_INLINE int16_t saturate(int32_t s){
 	if (s>32767) return 32767;
 	if (s<-32767) return -32767;
 	return (int16_t)s;
