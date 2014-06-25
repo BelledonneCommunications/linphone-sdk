@@ -211,8 +211,10 @@ static const MSVideoConfiguration * get_vconf_list(EncState *s) {
 		case CODEC_ID_MPEG4:
 		default:
 			return &mpeg4_conf_list[0];
+#if HAVE_AVCODEC_SNOW
 		case CODEC_ID_SNOW:
 			return &snow_conf_list[0];
+#endif
 	}
 }
 
@@ -241,11 +243,11 @@ static void enc_h263_init(MSFilter *f){
 static void enc_mpeg4_init(MSFilter *f){
 	enc_init(f,CODEC_ID_MPEG4);
 }
-
+#if HAVE_AVCODEC_SNOW
 static void enc_snow_init(MSFilter *f){
 	enc_init(f,CODEC_ID_SNOW);
 }
-
+#endif
 static void enc_mjpeg_init(MSFilter *f){
 	enc_init(f,CODEC_ID_MJPEG);
 }
@@ -281,7 +283,11 @@ static void prepare(EncState *s){
 
 	/* ffmpeg vbv rate control consumes too much cpu above a certain target bitrate.
 	We don't use it above max_br_vbv */
-	if (s->codec!=CODEC_ID_SNOW && s->vconf.required_bitrate<max_br_vbv){
+	if (
+#if HAVE_AVCODEC_SNOW
+		s->codec!=CODEC_ID_SNOW && 
+#endif
+		s->vconf.required_bitrate<max_br_vbv){
 		/*snow does not like 1st pass rate control*/
 		c->rc_max_rate=c->bit_rate;
 		c->rc_min_rate=0;
@@ -299,10 +305,11 @@ static void prepare(EncState *s){
 	c->gop_size=(int)s->vconf.fps*10; /*emit I frame every 10 seconds*/
 	c->pix_fmt=PIX_FMT_YUV420P;
 	s->comp_buf=allocb(c->bit_rate*2,0);
+#if HAVE_AVCODEC_SNOW
 	if (s->codec==CODEC_ID_SNOW){
 		c->strict_std_compliance=-2;
 	}
-
+#endif
 	ms_message("Codec size set to w=%i/h=%i",c->width, c->height);
 
 }
@@ -348,9 +355,12 @@ static void enc_preprocess(MSFilter *f){
 		prepare_h263(s);
 	else if (s->codec==CODEC_ID_MPEG4)
 		prepare_mpeg4(s);
+#if HAVE_AVCODEC_SNOW
 	else if (s->codec==CODEC_ID_SNOW){
 		/**/
-	}else if (s->codec==CODEC_ID_MJPEG){
+	}
+#endif
+	else if (s->codec==CODEC_ID_MJPEG){
 		/**/
 	}else {
 		ms_error("Unsupported codec id %i",s->codec);
@@ -737,7 +747,11 @@ static void split_and_send(MSFilter *f, EncState *s, mblk_t *frame){
 	uint8_t *psc;
 	uint32_t timestamp=f->ticker->time*90LL;
 
-	if (s->codec==CODEC_ID_MPEG4 || s->codec==CODEC_ID_SNOW)
+	if (s->codec==CODEC_ID_MPEG4 
+#if HAVE_AVCODEC_SNOW
+	|| s->codec==CODEC_ID_SNOW
+#endif
+	)
 	{
 		mpeg4_fragment_and_send(f,s,frame,timestamp);
 		return;
@@ -804,6 +818,7 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 		s->req_vfu=FALSE;
 	}
 	comp_buf->b_rptr=comp_buf->b_wptr=comp_buf->b_datap->db_base;
+#if HAVE_AVCODEC_SNOW
 	if (s->codec==CODEC_ID_SNOW){
 		//prepend picture size
 		uint32_t header=((s->vconf.vsize.width&0xffff)<<16) | (s->vconf.vsize.height&0xffff);
@@ -811,7 +826,7 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 		comp_buf->b_wptr+=4;
 		comp_buf_sz-=4;
 	}
-
+#endif
 	packet.data=comp_buf->b_wptr;
 	packet.size=comp_buf_sz;
 	error=avcodec_encode_video2(c, &packet, s->pict, &got_packet);
@@ -999,7 +1014,7 @@ MSFilterDesc ms_mpeg4_enc_desc={
 	enc_uninit,
 	methods
 };
-
+#if HAVE_AVCODEC_SNOW
 MSFilterDesc ms_snow_enc_desc={
 	MS_SNOW_ENC_ID,
 	"MSSnowEnc",
@@ -1015,7 +1030,7 @@ MSFilterDesc ms_snow_enc_desc={
 	enc_uninit,
 	methods
 };
-
+#endif
 MSFilterDesc ms_mjpeg_enc_desc={
 	MS_JPEG_ENC_ID,
 	"MSJpegEnc",
@@ -1081,7 +1096,7 @@ MSFilterDesc ms_mpeg4_enc_desc={
 	.uninit=enc_uninit,
 	.methods=methods
 };
-
+#if HAVE_AVCODEC_SNOW
 MSFilterDesc ms_snow_enc_desc={
 	.id=MS_SNOW_ENC_ID,
 	.name="MSSnowEnc",
@@ -1101,7 +1116,7 @@ MSFilterDesc ms_snow_enc_desc={
 	.uninit=enc_uninit,
 	.methods=methods
 };
-
+#endif
 MSFilterDesc ms_mjpeg_enc_desc={
 	.id=MS_JPEG_ENC_ID,
 	.name="MSMJpegEnc",
@@ -1128,8 +1143,10 @@ void __register_ffmpeg_encoders_if_possible(void){
 		ms_filter_register(&ms_h263_enc_desc);
 		ms_filter_register(&ms_h263_old_enc_desc);
 	}
+#if HAVE_AVCODEC_SNOW
 	if (avcodec_find_encoder(CODEC_ID_SNOW))
 		ms_filter_register(&ms_snow_enc_desc);
+#endif
 	if (avcodec_find_encoder(CODEC_ID_MJPEG))
 	{
 		ms_filter_register(&ms_mjpeg_enc_desc);

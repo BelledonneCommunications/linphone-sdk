@@ -91,11 +91,11 @@ static void dec_mpeg4_init(MSFilter *f){
 static void dec_mjpeg_init(MSFilter *f){
 	dec_init(f,CODEC_ID_MJPEG);
 }
-
 static void dec_snow_init(MSFilter *f){
+#if HAVE_ACVODEC_SNOW
 	dec_init(f,CODEC_ID_SNOW);
+#endif
 }
-
 static void dec_uninit(MSFilter *f){
 	DecState *s=(DecState*)f->data;
 	if (s->orig) {
@@ -142,14 +142,19 @@ static void dec_preprocess(MSFilter *f){
 	s->first_image_decoded = FALSE;
 	if (s->av_context.codec==NULL){
 		/* we must know picture size before initializing snow decoder*/
+#if HAVE_AVCODEC_SNOW
 		if (s->codec!=CODEC_ID_SNOW){
+#endif
 			error=avcodec_open2(&s->av_context, s->av_codec, NULL);
 			if (error!=0) ms_error("avcodec_open() failed: %i",error);
 			if (s->codec==CODEC_ID_MPEG4 && s->dci_size>0){
 				s->av_context.extradata=s->dci;
 				s->av_context.extradata_size=s->dci_size;
 			}
+#if HAVE_AVCODEC_SNOW
 		}
+#endif
+
 	}
 }
 
@@ -225,7 +230,7 @@ static mblk_t * skip_rfc2429_header(mblk_t *inm){
 	}else freemsg(inm);
 	return NULL;
 }
-
+#if HAVE_AVCODEC_SNOW
 static mblk_t * parse_snow_header(DecState *s,mblk_t *inm){
 	if (msgdsize(inm) >= 4){
 		uint32_t h = ntohl(*(uint32_t*)inm->b_rptr);
@@ -249,7 +254,7 @@ static mblk_t * parse_snow_header(DecState *s,mblk_t *inm){
 		return NULL;
 	}
 }
-
+#endif
 struct jpeghdr {
 	//unsigned int tspec:8;   /* type-specific field */
 	unsigned int off:32;    /* fragment byte offset */
@@ -651,7 +656,9 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 
 	if (f->desc->id==MS_H263_DEC_ID) inm=skip_rfc2429_header(inm);
 	else if (f->desc->id==MS_H263_OLD_DEC_ID) inm=skip_rfc2190_header(inm);
+#if HAVE_AVCODEC_SNOW
 	else if (s->codec==CODEC_ID_SNOW && s->input==NULL) inm=parse_snow_header(s,inm);
+#endif
 	else if (s->codec==CODEC_ID_MJPEG && f->desc->id==MS_JPEG_DEC_ID) inm=read_rfc2435_header(s,inm);
 
 	if (inm){
@@ -824,7 +831,6 @@ MSFilterDesc ms_mjpeg_dec_desc={
 	dec_uninit,
 	methods
 };
-
 MSFilterDesc ms_snow_dec_desc={
 	MS_SNOW_DEC_ID,
 	"MSSnowDec",
@@ -840,7 +846,6 @@ MSFilterDesc ms_snow_dec_desc={
 	dec_uninit,
 	methods
 };
-
 #else
 
 MSFilterDesc ms_h263_dec_desc={
@@ -923,7 +928,6 @@ MSFilterDesc ms_mjpeg_dec_desc={
 	.uninit=dec_uninit,
 	.methods= methods
 };
-
 MSFilterDesc ms_snow_dec_desc={
 	.id=MS_SNOW_DEC_ID,
 	.name="MSSnowDec",
@@ -939,7 +943,6 @@ MSFilterDesc ms_snow_dec_desc={
 	.uninit=dec_uninit,
 	.methods= methods
 };
-
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_mpeg4_dec_desc)
