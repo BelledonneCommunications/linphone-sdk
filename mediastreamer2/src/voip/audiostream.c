@@ -291,8 +291,7 @@ static float audio_stream_get_rtcp_xr_average_lq_quality_rating(unsigned long us
 }
 
 static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannels){
-	
-    stream->av_recorder.recorder=ms_filter_new(MS_MKV_RECORDER_ID);
+	stream->av_recorder.recorder=ms_filter_new(MS_MKV_RECORDER_ID);
 	if (stream->av_recorder.recorder){
 		MSPinFormat pinfmt={0};
 		stream->av_recorder.video_input=ms_filter_new(MS_ITC_SOURCE_ID);
