@@ -162,6 +162,10 @@
       <Project>{4BD08CCD-D09F-4489-934E-2D762D6AD243}</Project>
       <Name>mediastreamer2-tester-native</Name>
     </ProjectReference>
+    <ProjectReference Include="Agents\Agents.csproj">
+      <Project>{820034C1-645D-4340-8813-D980C1EF77DE}</Project>
+      <Name>Agents</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />
