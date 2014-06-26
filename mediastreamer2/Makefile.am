@@ -81,7 +81,7 @@ build/git-pre-commit-hook \
 build/iphone/basedescs.h \
 build/iphone/voipdescs.h \
 build/winmob/echo/echo.vcproj \
-build/vsx \
+build/wp8 \
 java/.classpath \
 java/.project \
 java/AndroidManifest.xml \
