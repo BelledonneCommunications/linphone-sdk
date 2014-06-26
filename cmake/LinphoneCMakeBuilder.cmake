@@ -166,7 +166,7 @@ find_program(INTLTOOLIZE_PROGRAM
 	)
 #endif()
 
-if(NOT INTLTOOLIZE_PROGRAM)
+if(NOT INTLTOOLIZE_PROGRAM AND NOT MSVC)
 	message(FATAL_ERROR "Could not find the intltoolize program.")
 endif()
 
