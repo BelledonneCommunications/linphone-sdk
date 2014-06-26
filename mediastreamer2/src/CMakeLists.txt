@@ -120,6 +120,9 @@ if(WIN32)
 		-DWINDOW_NATIVE
 		/FIgitversion.h
 	)
+	if(MSVC)
+		add_definitions(-Dinline=__inline)
+	endif()
 	set(BASE_LIBS ws2_32 ole32 oleaut32 winmm uuid)
 endif(WIN32)
 list(APPEND BASE_LIBS

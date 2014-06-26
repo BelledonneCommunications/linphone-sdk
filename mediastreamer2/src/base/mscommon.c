@@ -313,7 +313,7 @@ int ms_load_plugins(const char *dir){
 	WIN32_FIND_DATA FileData;
 	HANDLE hSearch;
 	char szDirPath[1024];
-#ifdef UNICODE
+#if defined(WINAPI_FAMILY_PHONE_APP) && defined(UNICODE)
 	wchar_t wszDirPath[1024];
 #endif
 	char szPluginFile[1024];
@@ -378,7 +378,7 @@ int ms_load_plugins(const char *dir){
 			char szPluginName[256];
 			char szMethodName[256];
 			char *minus;
-#ifdef UNICODE
+#if defined(WINAPI_FAMILY_PHONE_APP) && defined(UNICODE)
 			snprintf(szPluginName, sizeof(szPluginName), "%s", filename);
 #else
 			snprintf(szPluginName, sizeof(szPluginName), "%s", FileData.cFileName);

@@ -68,7 +68,7 @@ time_t ms_time (time_t *t);
 #endif
 
 #ifdef DEBUG
-static inline void ms_debug(const char *fmt,...)
+static MS2_INLINE void ms_debug(const char *fmt,...)
 {
   va_list args;
   va_start (args, fmt);

@@ -441,7 +441,7 @@ MS2_PUBLIC bool_t ms_filter_has_method(MSFilter *f, unsigned int id);
  * 
  * Returns TRUE if interface is implemented, FALSE, otherwise.
 **/
-bool_t ms_filter_implements_interface(MSFilter *f, MSFilterInterfaceId id);
+MS2_PUBLIC bool_t ms_filter_implements_interface(MSFilter *f, MSFilterInterfaceId id);
 
 /**
  * Set a callback on filter's to be informed of private filter's event.
