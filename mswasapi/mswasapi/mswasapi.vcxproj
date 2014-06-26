@@ -110,7 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\linphone\mediastreamer2\build\wp8\mediastreamer2\mediastreamer2.vcxproj">
-      <Project>{b9bd3213-b7c4-431e-a827-9a92682045af}</Project>
+      <Project>{027bad0e-9179-48c1-9733-7aa7e2c2ec70}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
