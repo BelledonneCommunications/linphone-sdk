@@ -29,7 +29,7 @@ typedef struct SourceState{
 }SourceState;
 
 static void itc_source_init(MSFilter *f){
-	SourceState *s=ms_new(SourceState,1);
+	SourceState *s=ms_new0(SourceState,1);
 	ms_mutex_init(&s->mutex,NULL);
 	ms_queue_init(&s->q);
 	s->rate=44100;
