@@ -35,12 +35,6 @@ ISAC_FLAVOUR=fix
 AC_SUBST([ISAC_FLAVOUR])
 AM_CONDITIONAL(ISAC_FLAVOUR_MAIN, test $ISAC_FLAVOUR = main)
 
-# Checks for programs.
-AC_PATH_PROG([GIT],[git])
-if test -z "$GIT"; then
-   AC_MSG_ERROR(['git' is required to build this package])
-fi
-
 # check for libraries that have pkg-config files installed
 PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.0.0)
 

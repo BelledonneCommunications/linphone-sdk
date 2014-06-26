@@ -122,16 +122,6 @@ if BUILD_AEC
 libmswebrtc_la_SOURCES+= $(AEC_BASE_SRCS) aec.c
 endif
 
-webrtc_repo = git://git.linphone.org/webrtc
-
-BUILT_SOURCES = $(webrtc_DIR)
-GIT=$(shell which git)
-
-$(webrtc_DIR):
-	$(GIT) clone $(webrtc_repo)
-
-extract-sources: $(webrtc_DIR)
-
 
 libmswebrtc_la_LIBADD= \
 	$(ORTP_LIBS) \

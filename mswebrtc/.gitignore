@@ -15,4 +15,3 @@ sdk/webrtc
 *.la
 msisac.iss
 m4/
-webrtc/

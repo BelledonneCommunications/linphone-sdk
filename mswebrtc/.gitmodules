@@ -1,0 +1,3 @@
+[submodule "webrtc"]
+	path = webrtc
+	url = git://git.linphone.org/webrtc.git
