@@ -82,6 +82,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmswebrtc", "..\..\..\..\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "webrtcisac", "..\..\..\..\..\mswebrtc\webrtc\build\wp8\webrtcisac\webrtcisac.vcxproj", "{A5A719E5-FDD6-4DFD-AAF6-68C9534B5562}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opus", "..\..\..\..\..\opus\build\wp8\opus\opus.vcxproj", "{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -270,6 +272,14 @@ Global
 		{A5A719E5-FDD6-4DFD-AAF6-68C9534B5562}.Release|ARM.Build.0 = Release|ARM
 		{A5A719E5-FDD6-4DFD-AAF6-68C9534B5562}.Release|x86.ActiveCfg = Release|Win32
 		{A5A719E5-FDD6-4DFD-AAF6-68C9534B5562}.Release|x86.Build.0 = Release|Win32
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Debug|ARM.ActiveCfg = Debug|ARM
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Debug|ARM.Build.0 = Debug|ARM
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Debug|x86.ActiveCfg = Debug|Win32
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Debug|x86.Build.0 = Debug|Win32
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Release|ARM.ActiveCfg = Release|ARM
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Release|ARM.Build.0 = Release|ARM
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Release|x86.ActiveCfg = Release|Win32
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

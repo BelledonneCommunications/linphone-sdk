@@ -53,7 +53,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\src\base;$(ProjectDir)..\..\..\src\utils;$(ProjectDir)..\..\..\src\voip;$(ProjectDir)..\..\..\src\audiofilters;$(ProjectDil)..\..\..\src\otherfilters;$(ProjectDir)..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\oRTP\build\wp8\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\wp8\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\src\base;$(ProjectDir)..\..\..\src\utils;$(ProjectDir)..\..\..\src\voip;$(ProjectDir)..\..\..\src\audiofilters;$(ProjectDil)..\..\..\src\otherfilters;$(ProjectDir)..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\oRTP\build\wp8\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\wp8\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\opus\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;WIN32;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;HAVE_SPEEXDSP;ORTP_INET6;WINDOW_NATIVE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;VIDEO_ENABLED;NO_FFMPEG;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -150,6 +150,7 @@
     <ClCompile Include="..\..\..\src\audiofilters\msfileplayer.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msfilerec.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msg722.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\msopus.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msresample.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msspeex.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msvolume.c" />
@@ -197,6 +198,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\gsm\build\wp8\gsm\gsm.vcxproj">
       <Project>{746ea080-5ba9-42c5-9e52-ea421c3f3afd}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\opus\build\wp8\opus\opus.vcxproj">
+      <Project>{d450ec75-df02-48b0-a4fb-aca79bd894ab}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\..\speex\build\wp8\speex\speex.vcxproj">
       <Project>{d5ec8c11-c1d9-47e3-bb82-a93c300fd902}</Project>
