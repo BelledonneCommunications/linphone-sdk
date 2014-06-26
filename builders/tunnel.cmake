@@ -24,7 +24,7 @@ set(EP_tunnel_GIT_REPOSITORY "gitosis@git.linphone.org:tunnel.git") # Private re
 if(${LINPHONE_BUILDER_LATEST})
 	set(EP_tunnel_GIT_TAG "master")
 else()
-	set(EP_tunnel_GIT_TAG "e6d100c33e0147ae35cdf693dbcd7b9413cb84ef")
+	set(EP_tunnel_GIT_TAG "e1f78f6ffa80cf226d043d88d4e6cd8029da1100")
 endif()
 set(EP_tunnel_BUILD_METHOD "autotools")
 set(EP_tunnel_USE_AUTOGEN "yes")
