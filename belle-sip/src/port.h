@@ -37,14 +37,13 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-#ifdef _MSC_VER
 #define strcasecmp _stricmp
+#ifdef _MSC_VER
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 #define strdup _strdup
 #else
 #include <stdint.h>
-#include <strings.h>
 #endif
 
 /*AI_NUMERICSERV is not defined for windows XP. Since it is not essential, we define it to 0 (does nothing)*/
