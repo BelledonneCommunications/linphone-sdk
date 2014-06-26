@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{B9BD3213-B7C4-431E-A827-9A92682045AF}</ProjectGuid>
+    <ProjectGuid>{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}</ProjectGuid>
     <RootNamespace>mediastreamer2</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
