@@ -80,7 +80,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agents", "Agents\Agents.csp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmswebrtc", "..\..\..\..\..\mswebrtc\build\wp8\mswebrtc\mswebrtc.vcxproj", "{B16B81A9-BEF2-44C9-B603-1065183AE844}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "webrtcisac", "..\..\..\..\..\mswebrtc\webrtc\build\wp8\webrtcisac\webrtcisac.vcxproj", "{A5A719E5-FDD6-4DFD-AAF6-68C9534B5562}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "webrtc", "..\..\..\..\..\mswebrtc\webrtc\build\wp8\webrtc\webrtc.vcxproj", "{A5A719E5-FDD6-4DFD-AAF6-68C9534B5562}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opus", "..\..\..\..\..\opus\build\wp8\opus\opus.vcxproj", "{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}"
 EndProject
