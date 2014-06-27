@@ -54,8 +54,8 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(Platform)\$(Configuration)\include;$(ProjectDir)..\..\..\..\linphone\ortp\include;$(ProjectDir)..\..\..\..\linphone\mediastreamer2\include;$(ProjectDir)..\..\..\;$(ProjectDir)..\..\..\webrtc\modules\audio_coding\codecs\isac\fix\interface;$(ProjectDir)..\..\..\webrtc\common_audio\signal_processing\include;$(ProjectDir)..\..\..\webrtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;BUILD_ISAC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(Platform)\$(Configuration)\include;$(ProjectDir)..\..\..\..\linphone\ortp\include;$(ProjectDir)..\..\..\..\linphone\mediastreamer2\include;$(ProjectDir)..\..\..\;$(ProjectDir)..\..\..\webrtc\modules\audio_coding\codecs\isac\fix\interface;$(ProjectDir)..\..\..\webrtc\modules\audio_processing\aecm\include;$(ProjectDir)..\..\..\webrtc\common_audio\signal_processing\include;$(ProjectDir)..\..\..\webrtc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;BUILD_ISAC;BUILD_AEC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
@@ -105,6 +105,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\aec.c" />
     <ClCompile Include="..\..\..\mswebrtc.c" />
     <ClCompile Include="..\..\..\isac_enc.c" />
     <ClCompile Include="..\..\..\isac_dec.c" />
@@ -113,7 +114,7 @@
     <ProjectReference Include="..\..\..\..\linphone\mediastreamer2\build\wp8\mediastreamer2\mediastreamer2.vcxproj">
       <Project>{027bad0e-9179-48c1-9733-7aa7e2c2ec70}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\webrtc\build\wp8\webrtcisac\webrtcisac.vcxproj">
+    <ProjectReference Include="..\..\..\webrtc\build\wp8\webrtc\webrtc.vcxproj">
       <Project>{a5a719e5-fdd6-4dfd-aaf6-68c9534b5562}</Project>
     </ProjectReference>
   </ItemGroup>

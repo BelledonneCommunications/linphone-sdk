@@ -74,7 +74,7 @@ ISAC_BASE_SRCS = $(ISAC_SRC_DIR)/source/fft.c \
 if ISAC_FLAVOUR_MAIN
 
 # floating point implementation
-ISAC_BASE_SRCS += $(ISAC_SRC_DIR)/source/intialize.c \
+ISAC_BASE_SRCS += $(ISAC_SRC_DIR)/source/initialize.c \
 	$(ISAC_SRC_DIR)/source/crc.c \
 	$(ISAC_SRC_DIR)/source/encode_lpc_swb.c \
 	$(ISAC_SRC_DIR)/source/filter_functions.c \
