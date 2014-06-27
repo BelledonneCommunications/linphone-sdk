@@ -166,9 +166,10 @@ static void video_manager_start(	stream_manager_t * mgr
 									,int remote_port
 									,int target_bitrate
 									,MSWebCam * cam) {
+	int result;
 	media_stream_set_target_network_bitrate(&mgr->video_stream->ms,target_bitrate);
 
-	int result=video_stream_start(mgr->video_stream
+	result=video_stream_start(mgr->video_stream
 												, &rtp_profile
 												, "127.0.0.1"
 												, remote_port
@@ -330,6 +331,8 @@ static void adaptive_opus_audio_stream()  {
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./THIRDGENERATION_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, .2f, .3f);
 		stop_adaptive_stream(marielle,margaux);
+	} else {
+		ms_error("OPUS codec is not supported!");
 	}
 }
 
@@ -346,6 +349,8 @@ static void adaptive_speex16_audio_stream()  {
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./(EDGE_BW / 2.);
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 5.f);
 		stop_adaptive_stream(marielle,margaux);
+	} else {
+		ms_error("SPEEX codec is not supported!");
 	}
 }
 
@@ -368,6 +373,8 @@ static void adaptive_pcma_audio_stream() {
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./THIRDGENERATION_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, .3f, .5f);
 		stop_adaptive_stream(marielle,margaux);
+	} else {
+		ms_error("PCMA codec is not supported!");
 	}
 }
 
@@ -387,88 +394,110 @@ static void upload_bandwidth_computation() {
 			CU_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 1.f);
 		}
 		stop_adaptive_stream(marielle,margaux);
+	} else {
+		ms_error("PCMA codec is not supported!");
 	}
 }
 
 static void stability_network_detection() {
 	stream_manager_t * marielle, * margaux;
-	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500, 0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
-	CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkFine);
-	stop_adaptive_stream(marielle,margaux);
+	bool_t supported = ms_filter_codec_supported("vp8");
+	if (supported) {
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500, 0);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
+		CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkFine);
+		stop_adaptive_stream(marielle,margaux);
 
-	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000, 0, 250,0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
-	CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkCongested);
-	stop_adaptive_stream(marielle,margaux);
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000, 0, 250,0);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
+		CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkCongested);
+		stop_adaptive_stream(marielle,margaux);
 
-	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250,0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
-	CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkLossy);
-	stop_adaptive_stream(marielle,margaux);
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250,0);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
+		CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkLossy);
+		stop_adaptive_stream(marielle,margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
 }
 
 static void adaptive_vp8() {
 	stream_manager_t * marielle, * margaux;
 
-	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 25, 50, 0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
-	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 20, 30);
-	CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim > 200);
-	stop_adaptive_stream(marielle,margaux);
+	bool_t supported = ms_filter_codec_supported("vp8");
+	if (supported) {
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 25, 50, 0);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
+		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 20, 30);
+		CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim > 200);
+		stop_adaptive_stream(marielle,margaux);
 
-	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 45000, 0, 50,0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
-	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
-	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 30, 60);
-	stop_adaptive_stream(marielle,margaux);
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 45000, 0, 50,0);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
+		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
+		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 30, 60);
+		stop_adaptive_stream(marielle,margaux);
 
-	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50,0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
-	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
-	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 50, 95);
-	stop_adaptive_stream(marielle,margaux);
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50,0);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
+		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
+		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 50, 95);
+		stop_adaptive_stream(marielle,margaux);
 
-	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50,0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
-	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 10, 20);
-	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 80, 125);
-	stop_adaptive_stream(marielle,margaux);
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50,0);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
+		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 10, 20);
+		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 80, 125);
+		stop_adaptive_stream(marielle,margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
 }
 
 static void packet_duplication() {
 	const rtp_stats_t *stats;
 	double dup_ratio;
 	stream_manager_t * marielle, * margaux;
+	bool_t supported = ms_filter_codec_supported("vp8");
+	if (supported) {
+		dup_ratio = 0;
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
+		stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
+		CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
+		/*in theory, cumulative loss should be the invert of duplicated count, but
+		since cumulative loss is computed only on received RTCP report and duplicated
+		count is updated on each RTP packet received, we cannot accurately compare these values*/
+		CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
+		stop_adaptive_stream(marielle,margaux);
 
-	dup_ratio = 0;
-	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
-	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
-	CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
-	/*in theory, cumulative loss should be the invert of duplicated count, but
-	since cumulative loss is computed only on received RTCP report and duplicated
-	count is updated on each RTP packet received, we cannot accurately compare these values*/
-	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
-	stop_adaptive_stream(marielle,margaux);
-
-	dup_ratio = 1;
-	start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
-	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
-	CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
-	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
-	stop_adaptive_stream(marielle,margaux);
+		dup_ratio = 1;
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
+		stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
+		CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
+		CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
+		stop_adaptive_stream(marielle,margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
 }
 
 static test_t tests[] = {
+#ifdef VIDEO_ENABLED
 	{ "Packet duplication", packet_duplication},
+#endif
 	{ "Upload bandwidth computation", upload_bandwidth_computation },
+#ifdef VIDEO_ENABLED
 	{ "Stability detection", stability_network_detection },
+#endif
 	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
 	{ "Adaptive audio stream [speex]", adaptive_speex16_audio_stream },
 	{ "Adaptive audio stream [pcma]", adaptive_pcma_audio_stream },
+#ifdef VIDEO_ENABLED
 	{ "Adaptive video stream [VP8]", adaptive_vp8 },
+#endif
 };
 
 test_suite_t adaptive_test_suite = {

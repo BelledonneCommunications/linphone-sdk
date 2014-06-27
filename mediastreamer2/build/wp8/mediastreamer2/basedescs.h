@@ -13,6 +13,7 @@ MSFilterDesc * ms_base_filter_descs[]={
 &ms_void_source_desc,
 &ms_void_sink_desc,
 &ms_itc_source_desc,
+&ms_itc_sink_desc,
 NULL
 };
 

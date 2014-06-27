@@ -183,63 +183,83 @@ static void uninit_video_streams(video_stream_tester_t *marielle, video_stream_t
 static void basic_video_stream(void) {
 	video_stream_tester_t marielle;
 	video_stream_tester_t margaux;
+	bool_t supported = ms_filter_codec_supported("vp8");
 
-	init_video_streams(&marielle, &margaux, FALSE, FALSE, NULL);
+	if (supported) {
+		init_video_streams(&marielle, &margaux, FALSE, FALSE, NULL);
 
-	CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_SR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_SR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
 
-	video_stream_get_local_rtp_stats(marielle.vs, &marielle.stats.rtp);
-	video_stream_get_local_rtp_stats(margaux.vs, &margaux.stats.rtp);
+		video_stream_get_local_rtp_stats(marielle.vs, &marielle.stats.rtp);
+		video_stream_get_local_rtp_stats(margaux.vs, &margaux.stats.rtp);
 
-	uninit_video_streams(&marielle, &margaux);
+		uninit_video_streams(&marielle, &margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
 }
 
 static void basic_one_way_video_stream(void) {
 	video_stream_tester_t marielle;
 	video_stream_tester_t margaux;
+	bool_t supported = ms_filter_codec_supported("vp8");
 
-	init_video_streams(&marielle, &margaux, FALSE, TRUE, NULL);
+	if (supported) {
+		init_video_streams(&marielle, &margaux, FALSE, TRUE, NULL);
 
-	CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_RR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_RR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
 
-	video_stream_get_local_rtp_stats(marielle.vs, &marielle.stats.rtp);
-	video_stream_get_local_rtp_stats(margaux.vs, &margaux.stats.rtp);
+		video_stream_get_local_rtp_stats(marielle.vs, &marielle.stats.rtp);
+		video_stream_get_local_rtp_stats(margaux.vs, &margaux.stats.rtp);
 
-	uninit_video_streams(&marielle, &margaux);
+		uninit_video_streams(&marielle, &margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
 }
 
 static void avpf_video_stream(void) {
 	video_stream_tester_t marielle;
 	video_stream_tester_t margaux;
 	OrtpNetworkSimulatorParams params = { 0 };
+	bool_t supported = ms_filter_codec_supported("vp8");
 
-	params.enabled = TRUE;
-	params.loss_rate = 5.;
-	init_video_streams(&marielle, &margaux, TRUE, FALSE, &params);
+	if (supported) {
+		params.enabled = TRUE;
+		params.loss_rate = 5.;
+		init_video_streams(&marielle, &margaux, TRUE, FALSE, &params);
 
-	CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_SR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
-	CU_ASSERT_TRUE(marielle.stats.number_of_PLI >= 0);
-	CU_ASSERT_TRUE(marielle.stats.number_of_SLI > 0);
-	CU_ASSERT_TRUE(marielle.stats.number_of_RPSI > 0);
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_SR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
+		CU_ASSERT_TRUE(marielle.stats.number_of_PLI >= 0);
+		CU_ASSERT_TRUE(marielle.stats.number_of_SLI > 0);
+		CU_ASSERT_TRUE(marielle.stats.number_of_RPSI > 0);
 
-	uninit_video_streams(&marielle, &margaux);
+		uninit_video_streams(&marielle, &margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
 }
 
 static void avpf_high_loss_video_stream(void) {
 	video_stream_tester_t marielle;
 	video_stream_tester_t margaux;
 	OrtpNetworkSimulatorParams params = { 0 };
+	bool_t supported = ms_filter_codec_supported("vp8");
 
-	params.enabled = TRUE;
-	params.loss_rate = 25.;
-	init_video_streams(&marielle, &margaux, TRUE, FALSE, &params);
+	if (supported) {
+		params.enabled = TRUE;
+		params.loss_rate = 25.;
+		init_video_streams(&marielle, &margaux, TRUE, FALSE, &params);
 
-	CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_SR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
-	CU_ASSERT_TRUE(marielle.stats.number_of_PLI >= 0);
-	CU_ASSERT_TRUE(marielle.stats.number_of_SLI > 0);
-	CU_ASSERT_TRUE(marielle.stats.number_of_RPSI >= 0);
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_SR, 2, 15000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
+		CU_ASSERT_TRUE(marielle.stats.number_of_PLI >= 0);
+		CU_ASSERT_TRUE(marielle.stats.number_of_SLI > 0);
+		CU_ASSERT_TRUE(marielle.stats.number_of_RPSI >= 0);
 
-	uninit_video_streams(&marielle, &margaux);
+		uninit_video_streams(&marielle, &margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
 }
 
 

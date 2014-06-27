@@ -14,10 +14,13 @@ extern MSFilterDesc ms_speex_enc_desc;
 extern MSFilterDesc ms_gsm_dec_desc;
 extern MSFilterDesc ms_gsm_enc_desc;
 extern MSFilterDesc ms_speex_ec_desc;
+extern MSFilterDesc ms_opus_dec_desc;
+extern MSFilterDesc ms_opus_enc_desc;
 extern MSFilterDesc ms_conf_desc;
 #ifndef NO_RESAMPLE
 extern MSFilterDesc ms_resample_desc;
 #endif
+extern MSFilterDesc ms_channel_adapter_desc;
 extern MSFilterDesc ms_volume_desc;
 extern MSFilterDesc ms_equalizer_desc;
 extern MSFilterDesc ms_audio_mixer_desc;
@@ -69,10 +72,13 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_gsm_dec_desc,
 &ms_gsm_enc_desc,
 &ms_speex_ec_desc,
+&ms_opus_dec_desc,
+&ms_opus_enc_desc,
 &ms_conf_desc,
 #ifndef NORESAMPLE
 &ms_resample_desc,
 #endif
+&ms_channel_adapter_desc,
 &ms_volume_desc,
 &ms_equalizer_desc,
 &ms_audio_mixer_desc,
