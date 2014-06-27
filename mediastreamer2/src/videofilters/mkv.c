@@ -17,8 +17,8 @@
 /*********************************************************************************************
  * Module interface                                                                          *
  *********************************************************************************************/
-typedef void (*ModuleInitFunc)(void **obj);
-typedef void (*ModuleUninitFunc)(void *obj);
+typedef void *(*ModuleNewFunc)();
+typedef void (*ModuleFreeFunc)(void *obj);
 typedef void (*ModuleSetFunc)(void *obj, const void *data);
 typedef void (*ModulePreProFunc)(void *obj, MSQueue *input, MSQueue *output);
 typedef mblk_t *(*ModuleProFunc)(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame);
@@ -30,8 +30,8 @@ typedef struct
 {
 	const char *rfcName;
 	const char *codecId;
-	ModuleInitFunc init;
-	ModuleUninitFunc uninit;
+	ModuleNewFunc new_module;
+	ModuleFreeFunc free_module;
 	ModuleSetFunc set;
 	ModulePreProFunc preprocess;
 	ModuleProFunc process;
@@ -188,16 +188,16 @@ typedef struct
 	H264Private codecPrivate;
 } H264Module;
 
-static void h264_module_init(void **data)
+static void *h264_module_new()
 {
 
 	H264Module *mod = ms_new(H264Module, 1);
 	rfc3984_init(&mod->rfc3984Context);
 	H264Private_init(&mod->codecPrivate);
-	*data = mod;
+	return mod;
 }
 
-static void h264_module_uninit(void *data)
+static void h264_module_free(void *data)
 {
 	H264Module *obj = (H264Module *)data;
 	rfc3984_uninit(&obj->rfc3984Context);
@@ -340,8 +340,8 @@ static void h264_module_load_private_data(void *o, const uint8_t *data)
 const ModuleDesc h264_module_desc = {
 	"H264",
 	"V_MPEG4/ISO/AVC",
-	h264_module_init,
-	h264_module_uninit,
+	h264_module_new,
+	h264_module_free,
 	NULL,
 	h264_module_preprocessing,
 	h264_module_processing,
@@ -393,46 +393,41 @@ static inline void wav_private_load(WavPrivate *obj, const uint8_t *data)
 }
 
 /* µLaw module */
-typedef struct
+static void *mu_law_module_new()
 {
-	WavPrivate codecPrivate;
-} MuLawModule;
-
-static void mu_law_module_init(void **o)
-{
-	*o = ms_new(MuLawModule, 1);
+	return ms_new(WavPrivate, 1);
 }
 
-static void mu_law_module_uninit(void *o)
+static void mu_law_module_free(void *o)
 {
 	ms_free(o);
 }
 
 static void mu_law_module_set(void *o, const void *data)
 {
-	MuLawModule *obj = (MuLawModule *)o;
+	WavPrivate *obj = (WavPrivate *)o;
 	const MSFmtDescriptor *aMeta = (const MSFmtDescriptor *)data;
-	wav_private_set(&obj->codecPrivate, aMeta);
+	wav_private_set(obj, aMeta);
 }
 
 static void mu_law_module_get_private_data(const void *o, uint8_t **data, size_t *data_size)
 {
-	const MuLawModule *obj = (const MuLawModule *)o;
-	wav_private_serialize(&obj->codecPrivate, data, data_size);
+	const WavPrivate *obj = (const WavPrivate *)o;
+	wav_private_serialize(obj, data, data_size);
 }
 
 static void mu_law_module_load_private(void *o, const uint8_t *data)
 {
-	MuLawModule *obj = (MuLawModule *)o;
-	wav_private_load(&obj->codecPrivate, data);
+	WavPrivate *obj = (WavPrivate *)o;
+	wav_private_load(obj, data);
 }
 
 /* µLaw module description */
 const ModuleDesc mu_law_module_desc = {
 	"pcmu",
 	"A_MS/ACM",
-	mu_law_module_init,
-	mu_law_module_uninit,
+	mu_law_module_new,
+	mu_law_module_free,
 	mu_law_module_set,
 	NULL,
 	NULL,
@@ -442,24 +437,26 @@ const ModuleDesc mu_law_module_desc = {
 };
 
 /*********************************************************************************************
- * Available modules                                                                         *
+ * Modules list                                                                              *
  *********************************************************************************************/
-typedef enum {
+typedef enum
+{
 	H264_MOD_ID,
-	MU_LAW_MOD_ID
+	MU_LAW_MOD_ID,
+	NONE_ID
 } ModuleId;
 
-const ModuleDesc const *modules[] = {
+const ModuleDesc const *moduleDescs[] = {
 	&h264_module_desc,
 	&mu_law_module_desc,
 	NULL
 };
 
-static int find_module_id(const char rfcName[])
+static int find_module_id(const char *rfcName)
 {
 	int i;
-	for(i=0; modules[i] != NULL && strcmp(modules[i]->rfcName, rfcName) != 0; i++);
-	if(modules[i] == NULL)
+	for(i=0; moduleDescs[i] != NULL && strcmp(moduleDescs[i]->rfcName, rfcName) != 0; i++);
+	if(moduleDescs[i] == NULL)
 	{
 		return -1;
 	}
@@ -469,11 +466,11 @@ static int find_module_id(const char rfcName[])
 	}
 }
 
-static int find_module_id_by_codec_id(const char codecId[])
+static int find_module_id_by_codec_id(const char *codecId)
 {
 	int i;
-	for(i=0; modules[i] != NULL && strcmp(modules[i]->codecId, codecId) != 0; i++);
-	if(modules[i] == NULL)
+	for(i=0; moduleDescs[i] != NULL && strcmp(moduleDescs[i]->codecId, codecId) != 0; i++);
+	if(moduleDescs[i] == NULL)
 	{
 		return -1;
 	}
@@ -481,6 +478,92 @@ static int find_module_id_by_codec_id(const char codecId[])
 	{
 		return i;
 	}
+}
+
+/*********************************************************************************************
+ * Module                                                                                    *
+ *********************************************************************************************/
+typedef struct
+{
+	ModuleId id;
+	void *data;
+} Module;
+
+static Module *module_new(const char *rfcName)
+{
+	ModuleId id = find_module_id(rfcName);
+	if(id == NONE_ID)
+	{
+		return NULL;
+	}
+	else
+	{
+		Module *module = (Module *)ms_new(Module, 1);
+		module->id = id;
+		module->data = moduleDescs[module->id]->new_module();
+		return module;
+	}
+}
+
+static void module_free(Module *module)
+{
+	moduleDescs[module->id]->free_module(module->data);
+	ms_free(module);
+}
+
+static void module_set(Module *module, const MSFmtDescriptor *format)
+{
+	if(moduleDescs[module->id]->set != NULL)
+		moduleDescs[module->id]->set(module->data, format);
+}
+
+static void module_preprocess(Module *module, MSQueue *input, MSQueue *output)
+{
+	if(moduleDescs[module->id]->preprocess != NULL)
+	{
+		moduleDescs[module->id]->preprocess(module->data, input, output);
+	}
+	else
+	{
+		mblk_t *buffer;
+		while((buffer = ms_queue_get(input)) != NULL)
+		{
+			ms_queue_put(output, buffer);
+		}
+	}
+}
+
+static mblk_t *module_process(Module *module, mblk_t *buffer, ms_bool_t *isKeyFrame)
+{
+	mblk_t *frame;
+	if(moduleDescs[module->id]->process != NULL)
+		frame = moduleDescs[module->id]->process(module->data, buffer, isKeyFrame);
+	else
+	{
+		frame = buffer;
+		*isKeyFrame = TRUE;
+	}
+	return frame;
+}
+
+static inline void module_get_private_data(const Module *module, uint8_t **data, size_t *dataSize)
+{
+	moduleDescs[module->id]->get_private_data(module->data, data, dataSize);
+}
+
+static inline void module_load_private_data(Module *module, const uint8_t *data)
+{
+	moduleDescs[module->id]->load_private_data(module->data, data);
+}
+
+static inline ms_bool_t module_is_key_frame(const Module *module, const mblk_t *frame)
+{
+	return moduleDescs[module->id]->is_key_frame(frame);
+}
+
+static inline const char *module_get_codec_id(const Module *module)
+{
+	return moduleDescs[module->id]->codecId;
 }
 
 /*********************************************************************************************
@@ -551,6 +634,7 @@ static void matroska_init(Matroska *obj)
 	ParserContext_Init(obj->p, NULL, NULL, NULL);
 	loadModules((nodemodule*)obj->p);
 	MATROSKA_Init((nodecontext*)obj->p);
+
 	obj->output = NULL;
 	obj->header = NULL;
 	obj->segment = NULL;
@@ -565,6 +649,13 @@ static void matroska_init(Matroska *obj)
 	obj->currentBlock = NULL;
 	obj->firstCluster = NULL;
 	obj->nbClusters = 0;
+}
+
+static void matroska_uninit(Matroska *obj)
+{
+	MATROSKA_Done((nodecontext*)obj->p);
+	ParserContext_Done(obj->p);
+	ms_free(obj->p);
 }
 
 static int ebml_reading_profile(const ebml_master *head)
@@ -781,10 +872,6 @@ static void matroska_close_file(Matroska *obj)
 	StreamClose(obj->output);
 	NodeDelete((node *)obj->header);
 	NodeDelete((node *)obj->segment);
-
-	MATROSKA_Done((nodecontext*)obj->p);
-	ParserContext_Done(obj->p);
-	ms_free(obj->p);
 }
 
 static void matroska_set_doctype_version(Matroska *obj, int doctypeVersion, int doctypeReadVersion)
@@ -1038,21 +1125,21 @@ static ebml_master *matroska_find_track_entry(const Matroska *obj, int trackNum)
 	return (ebml_master *)trackEntry;
 }
 
-static ms_bool_t matroska_get_codec_private(const Matroska *obj, int trackNum, const uint8_t **data, size_t *length)
+static int matroska_get_codec_private(const Matroska *obj, int trackNum, const uint8_t **data, size_t *length)
 {
 	ebml_master *trackEntry = matroska_find_track_entry(obj, trackNum);
 	if(trackEntry == NULL)
-		return FALSE;
+		return -1;
 	ebml_binary *codecPrivate = (ebml_binary *)EBML_MasterFindChild(trackEntry, &MATROSKA_ContextCodecPrivate);
 	if(codecPrivate == NULL)
-		return FALSE;
+		return -2;
 
 	*length = EBML_ElementDataSize((ebml_element *)codecPrivate, FALSE);
 	*data =  EBML_BinaryGetData(codecPrivate);
 	if(*data == NULL)
-		return FALSE;
+		return -3;
 	else
-		return TRUE;
+		return 0;
 }
 
 static void matroska_start_cluster(Matroska *obj, timecode_t clusterTimecode)
@@ -1115,7 +1202,7 @@ static ebml_element *matroska_find_track(const Matroska *obj, int trackNum)
 	return elt;
 }
 
-static int matroska_add_track(Matroska *obj, int trackNum, int trackType, const char codecID[])
+static int matroska_add_track(Matroska *obj, int trackNum, const char codecID[])
 {
 	ebml_element *track = matroska_find_track(obj, trackNum);
 	if(track != NULL)
@@ -1131,7 +1218,6 @@ static int matroska_add_track(Matroska *obj, int trackNum, int trackType, const 
 		}
 		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextTrackNumber), trackNum);
 		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextTrackUID), trackNum);
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextTrackType), trackType);
 		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextFlagEnabled), 1);
 		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextFlagDefault), 1);
 		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextFlagForced), 0);
@@ -1216,7 +1302,7 @@ static int matroska_track_set_codec_private(Matroska *obj, int trackNum, const u
 	}
 }
 
-static int matroska_track_set_video_info(Matroska *obj, int trackNum, const MSFmtDescriptor *vMeta)
+static int matroska_track_set_info(Matroska *obj, int trackNum, const MSFmtDescriptor *fmt)
 {
 	ebml_element *track = matroska_find_track(obj, trackNum);
 	if(track == NULL)
@@ -1225,43 +1311,24 @@ static int matroska_track_set_video_info(Matroska *obj, int trackNum, const MSFm
 	}
 	else
 	{
-		int trackType = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track, &MATROSKA_ContextTrackType));
-		if(trackType != TRACK_TYPE_VIDEO)
+		switch(fmt->type)
 		{
-			return -2;
-		}
-		else
-		{
+		case MSVideo:
+			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track, &MATROSKA_ContextTrackType), TRACK_TYPE_VIDEO);
 			ebml_element *videoInfo = EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextVideo);
 			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)videoInfo, &MATROSKA_ContextFlagInterlaced), 0);
-			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)videoInfo, &MATROSKA_ContextPixelWidth), vMeta->vsize.width);
-			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)videoInfo, &MATROSKA_ContextPixelHeight), vMeta->vsize.height);
-			return 0;
-		}
-	}
-}
+			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)videoInfo, &MATROSKA_ContextPixelWidth), fmt->vsize.width);
+			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)videoInfo, &MATROSKA_ContextPixelHeight), fmt->vsize.height);
+			break;
 
-static int matroska_track_set_audio_info(Matroska *obj, int trackNum, const MSFmtDescriptor *aMeta)
-{
-	ebml_element *track = matroska_find_track(obj, trackNum);
-	if(track == NULL)
-	{
-		return -1;
-	}
-	else
-	{
-		int trackType = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track, &MATROSKA_ContextTrackType));
-		if(trackType != TRACK_TYPE_AUDIO)
-		{
-			return -2;
-		}
-		else
-		{
+		case MSAudio:
+			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track, &MATROSKA_ContextTrackType), TRACK_TYPE_AUDIO);
 			ebml_element *audioInfo = EBML_MasterGetChild((ebml_master*)track, &MATROSKA_ContextAudio);
-			EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild((ebml_master*)audioInfo, &MATROSKA_ContextSamplingFrequency), aMeta->rate);
-			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)audioInfo, &MATROSKA_ContextChannels), aMeta->nchannels);
-			return 0;
+			EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild((ebml_master*)audioInfo, &MATROSKA_ContextSamplingFrequency), fmt->rate);
+			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild((ebml_master*)audioInfo, &MATROSKA_ContextChannels), fmt->nchannels);
+			break;
 		}
+		return 0;
 	}
 }
 
@@ -1370,75 +1437,75 @@ static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame 
 /*********************************************************************************************
  * Muxer                                                                                     *
  *********************************************************************************************/
-typedef enum {
-	VIDEO_BUFFER,
-	AUDIO_BUFFER
-} MuxerBufferType;
-
 typedef struct
 {
-	MSQueue videoQueue;
-	MSQueue audioQueue;
+	int nqueues;
+	MSQueue *queues;
 } Muxer;
 
-static void muxer_init(Muxer *obj)
+static void muxer_init(Muxer *obj, int ninputs)
 {
-	ms_queue_init(&obj->videoQueue);
-	ms_queue_init(&obj->audioQueue);
+	int i;
+	obj->nqueues = ninputs;
+	obj->queues = (MSQueue *)ms_new(MSQueue, ninputs);
+	for(i=0; i < ninputs; i++)
+	{
+		ms_queue_init(&obj->queues[i]);
+	}
 }
 
 static void muxer_empty_internal_queues(Muxer *obj)
 {
-	ms_queue_flush(&obj->videoQueue);
-	ms_queue_flush(&obj->audioQueue);
+	int i;
+	for(i=0; i< obj->nqueues; i++)
+	{
+		ms_queue_flush(&obj->queues[i]);
+	}
 }
 
 static void muxer_uninit(Muxer *obj)
 {
-	ms_queue_flush(&obj->videoQueue);
-	ms_queue_flush(&obj->audioQueue);
+	muxer_empty_internal_queues(obj);
+	ms_free(obj->queues);
 }
 
-static inline void muxer_put_video_buffer(Muxer *obj, mblk_t *buffer)
+static inline void muxer_put_buffer(Muxer *obj, mblk_t *buffer, int pin)
 {
-	ms_queue_put(&obj->videoQueue, buffer);
+	ms_queue_put(&obj->queues[pin], buffer);
 }
 
-static inline void muxer_put_audio_buffer(Muxer *obj, mblk_t *buffer)
+static mblk_t *muxer_get_buffer(Muxer *obj, int *pin)
 {
-	ms_queue_put(&obj->audioQueue, buffer);
-}
+	int i;
+	MSQueue *minQueue = NULL;
 
-static mblk_t *muxer_get_buffer(Muxer *obj, MuxerBufferType *bufferType)
-{
-	if(ms_queue_empty(&obj->videoQueue) && ms_queue_empty(&obj->audioQueue))
+	for(i=0; i < obj->nqueues; i++)
+	{
+		if(!ms_queue_empty(&obj->queues[i]))
+		{
+			if(minQueue == NULL)
+			{
+				minQueue = &obj->queues[i];
+			}
+			else
+			{
+				uint32_t t1 = mblk_get_timestamp_info(qlast(&minQueue->q));
+				uint32_t t2 = mblk_get_timestamp_info(qlast(&(&obj->queues[i])->q));
+				if(t2 < t1)
+				{
+					minQueue = &obj->queues[i];
+				}
+			}
+		}
+	}
+	if(minQueue == NULL)
 	{
 		return NULL;
 	}
-	else if(!ms_queue_empty(&obj->videoQueue) && ms_queue_empty(&obj->audioQueue))
-	{
-		*bufferType = VIDEO_BUFFER;
-		return ms_queue_get(&obj->videoQueue);
-	}
-	else if(ms_queue_empty(&obj->videoQueue) && !ms_queue_empty(&obj->audioQueue))
-	{
-		*bufferType = AUDIO_BUFFER;
-		return ms_queue_get(&obj->audioQueue);
-	}
 	else
 	{
-		uint32_t videoTimecode = mblk_get_timestamp_info(qfirst(&obj->videoQueue.q));
-		uint32_t audioTimecode = mblk_get_timestamp_info(qfirst(&obj->audioQueue.q));
-		if(videoTimecode <= audioTimecode)
-		{
-			*bufferType = VIDEO_BUFFER;
-			return ms_queue_get(&obj->videoQueue);
-		}
-		else
-		{
-			*bufferType = AUDIO_BUFFER;
-			return ms_queue_get(&obj->audioQueue);
-		}
+		*pin = (minQueue - obj->queues);
+		return ms_queue_get(minQueue);
 	}
 }
 
@@ -1450,58 +1517,62 @@ static mblk_t *muxer_get_buffer(Muxer *obj, MuxerBufferType *bufferType)
 typedef struct
 {
 	Matroska file;
-	const MSFmtDescriptor *vMeta;
-	const MSFmtDescriptor *aMeta;
-	int videoInputNum, audioInputNum;
-	ModuleId videoModuleId, audioModuleId;
-	void *videoModule, *audioModule;
 	timecode_t duration, clusterTime, timeOffset, lastFrameTimecode;
-	ms_bool_t openMode;
+	MatroskaOpenMode openMode;
 	MSRecorderState state;
 	Muxer muxer;
 	ms_bool_t needKeyFrame, firstFrame, haveVideoTrack, haveAudioTrack;
+	const MSFmtDescriptor **inputDescsList;
+	Module **modulesList;
 } MKVRecorder;
 
 static void recorder_init(MSFilter *f)
 {
 	MKVRecorder *obj = (MKVRecorder *)ms_new(MKVRecorder, 1);
 
+	ms_message("MKVRecorder: initialisation");
 	matroska_init(&obj->file);
-
-	obj->vMeta = NULL;
-	obj->aMeta = NULL;
-	obj->videoModuleId = -1;
-	obj->audioModuleId = -1;
-	obj->videoInputNum = -1;
-	obj->audioInputNum = -1;
-	obj->videoModule = NULL;
-	obj->audioModule = NULL;
 
 	obj->state = MSRecorderClosed;
 	obj->needKeyFrame = TRUE;
 	obj->firstFrame = TRUE;
 	obj->haveVideoTrack = FALSE;
 	obj->haveAudioTrack = FALSE;
-
-	muxer_init(&obj->muxer);
-
 	obj->timeOffset = 0;
+
+	muxer_init(&obj->muxer, f->desc->ninputs);
+
+	obj->inputDescsList = (const MSFmtDescriptor **)ms_new0(const MSFmtDescriptor *, f->desc->ninputs);
+	obj->modulesList = (Module **)ms_new0(Module *, f->desc->ninputs);
 
 	f->data=obj;
 }
 
-static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int trackNum, ModuleId moduleId, void *module)
+static void recorder_uninit(MSFilter *f){
+	MKVRecorder *obj = (MKVRecorder *)f->data;
+	int i;
+
+	muxer_uninit(&obj->muxer);
+	if(obj->state != MSRecorderClosed)
+	{
+		matroska_close_file(&obj->file);
+	}
+	matroska_uninit(&obj->file);
+	ms_free(obj->inputDescsList);
+	for(i=0; i < f->desc->ninputs; i++)
+	{
+		if(obj->modulesList[i] != NULL)
+			module_free(obj->modulesList[i]);
+	}
+	ms_free(obj->modulesList);
+	ms_free(obj);
+	ms_message("MKVRecorder: destroyed");
+}
+
+static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int pin)
 {
 	ms_bool_t isKeyFrame;
-	mblk_t *frame;
-
-	if(modules[moduleId]->process != NULL)
-		frame = modules[moduleId]->process(module, buffer, &isKeyFrame);
-	else
-	{
-		frame = buffer;
-		isKeyFrame = TRUE;
-	}
+	mblk_t *frame = module_process(obj->modulesList[pin], buffer, &isKeyFrame);
 
 	matroska_frame m_frame;
 	m_frame.Timecode = ((int64_t)mblk_get_timestamp_info(frame))*1000000LL;
@@ -1514,14 +1585,14 @@ static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int trackNu
 	}
 	else
 	{
-		if((trackNum == 1 && isKeyFrame) || (obj->duration - matroska_current_cluster_timecode(&obj->file) >= CLUSTER_MAX_DURATION))
+		if((obj->inputDescsList[pin]->type == MSVideo && isKeyFrame) || (obj->duration - matroska_current_cluster_timecode(&obj->file) >= CLUSTER_MAX_DURATION))
 		{
 			matroska_close_cluster(&obj->file);
 			matroska_start_cluster(&obj->file, mblk_get_timestamp_info(frame));
 		}
 	}
 
-	matroska_block *block = matroska_write_block(&obj->file, &m_frame, trackNum, isKeyFrame);
+	matroska_block *block = matroska_write_block(&obj->file, &m_frame, pin + 1, isKeyFrame);
 	freemsg(frame);
 	return block;
 }
@@ -1535,20 +1606,20 @@ static void changeClockRate(mblk_t *buffer, uint32_t oldClockRate, uint32_t newC
 	}
 }
 
-static void moveBuffers(MSQueue *input, MSQueue *output)
-{
-	mblk_t *buffer;
-	while((buffer = ms_queue_get(input)) != NULL)
-	{
-		ms_queue_put(output, buffer);
-	}
-}
+//static void moveBuffers(MSQueue *input, MSQueue *output)
+//{
+//	mblk_t *buffer;
+//	while((buffer = ms_queue_get(input)) != NULL)
+//	{
+//		ms_queue_put(output, buffer);
+//	}
+//}
 
 static int recorder_open_file(MSFilter *f, void *arg)
 {
 	MKVRecorder *obj = (MKVRecorder *)f->data;
 	const char *filename = (const char *)arg;
-	int err = 0;
+	int err = 0, i;
 
 	ms_filter_lock(f);
 	if(obj->state == MSRecorderClosed)
@@ -1558,9 +1629,11 @@ static int recorder_open_file(MSFilter *f, void *arg)
 		else
 			obj->openMode = MKV_OPEN_CREATE;
 
-		if(!matroska_open_file(&obj->file, filename, obj->openMode))
+		ms_message("MKVRecoreder: opening file %s in %s mode", filename, obj->openMode == MKV_OPEN_APPEND ? "append" : "create");
+		if(matroska_open_file(&obj->file, filename, obj->openMode) != 0)
 		{
 			err = -1;
+			ms_error("MKVRecorder: fail to open %s", filename);
 		}
 		else
 		{
@@ -1573,36 +1646,31 @@ static int recorder_open_file(MSFilter *f, void *arg)
 				matroska_mark_segment_info_position(&obj->file);
 				matroska_write_zeros(&obj->file, 1024);
 
-				if(obj->videoInputNum > -1 && f->inputs[obj->videoInputNum] != NULL)
+				for(i=0; i < f->desc->ninputs; i++)
 				{
-					matroska_add_track(&obj->file, 1, TRACK_TYPE_VIDEO, modules[obj->videoModuleId]->codecId);
-					matroska_track_set_video_info(&obj->file, 1, obj->vMeta);
-					if(modules[obj->videoModuleId]->set != NULL)
-						modules[obj->videoModuleId]->set(obj->videoModule, obj->vMeta);
-				}
-				if(obj->audioInputNum > -1 && f->inputs[obj->audioInputNum] != NULL)
-				{
-					matroska_add_track(&obj->file, 2, TRACK_TYPE_AUDIO, modules[obj->audioModuleId]->codecId);
-					matroska_track_set_audio_info(&obj->file, 2, obj->aMeta);
-					if(modules[obj->audioModuleId]->set != NULL)
-						modules[obj->audioModuleId]->set(obj->audioModule, obj->aMeta);
+					if(obj->inputDescsList[i] != NULL)
+					{
+						matroska_add_track(&obj->file, i+1, module_get_codec_id(obj->modulesList[i]));
+						matroska_track_set_info(&obj->file, i+1, obj->inputDescsList[i]);
+					}
 				}
 				obj->duration = -1;
 			}
 			else
 			{
-				const uint8_t *data;
-				size_t length;
-				matroska_get_codec_private(&obj->file, 1, &data, &length);
-				modules[obj->videoModuleId]->load_private_data(obj->videoModule, data);
-				if(f->inputs[obj->audioInputNum] != NULL)
+				for(i=0; i < f->desc->ninputs; i++)
 				{
-					matroska_get_codec_private(&obj->file, 2, &data, &length);
-					modules[obj->audioModuleId]->load_private_data(obj->audioModule, data);
+					const uint8_t *data;
+					size_t length;
+					if(matroska_get_codec_private(&obj->file, i+1, &data, &length) == 0)
+					{
+						module_load_private_data(obj->modulesList[i], data);
+					}
 				}
 				obj->duration = matroska_get_duration(&obj->file) + 1;
 			}
 			obj->state = MSRecorderPaused;
+			ms_message("%s successfully opened", filename);
 		}
 	}
 	ms_filter_unlock(f);
@@ -1615,8 +1683,10 @@ static int recorder_start(MSFilter *f, void *arg)
 	int err = 0;
 
 	ms_filter_lock(f);
+	ms_message("MKVRecorder: start recording");
 	if(obj->state == MSRecorderClosed)
 	{
+		ms_error("MKVRecorder: fail to start recording. The file has not been opened");
 		err = -1;
 	}
 	else
@@ -1624,6 +1694,7 @@ static int recorder_start(MSFilter *f, void *arg)
 		obj->state = MSRecorderRunning;
 		obj->needKeyFrame = TRUE;
 		obj->firstFrame = TRUE;
+		ms_message("MKVRecorder: recording successfully started");
 	}
 	ms_filter_unlock(f);
 	return err;
@@ -1635,15 +1706,23 @@ static int recorder_stop(MSFilter *f, void *arg)
 	int err;
 
 	ms_filter_lock(f);
-	if(obj->state == MSRecorderClosed)
+	ms_message("MKVRecorder: stopping recording");
+	switch(obj->state)
 	{
+	case MSRecorderClosed:
 		err = -1;
-	}
-	else
-	{
+		ms_error("MKVRecorder: fail to stop recording. The file has not been opened");
+		break;
+	case MSRecorderPaused:
+		err=0;
+		ms_warning("MKVRecorder: recording has already been stopped");
+		break;
+	case MSRecorderRunning:
 		obj->state = MSRecorderPaused;
 		muxer_empty_internal_queues(&obj->muxer);
 		err = 0;
+		ms_message("MKVRecorder: recording successfully stopped");
+		break;
 	}
 	ms_filter_unlock(f);
 	return err;
@@ -1652,74 +1731,60 @@ static int recorder_stop(MSFilter *f, void *arg)
 static void recorder_process(MSFilter *f)
 {
 	MKVRecorder *obj = f->data;
+	int i;
 
 	ms_filter_lock(f);
 	if(obj->state == MSRecorderRunning)
 	{
 		mblk_t *buffer;
-		MuxerBufferType bufferType;
-
-		if(obj->videoInputNum > -1 && f->inputs[obj->videoInputNum] != NULL)
+		for(i=0; i < f->desc->ninputs; i++)
 		{
-			MSQueue frames, frames_ms;
-			ms_queue_init(&frames);
-			ms_queue_init(&frames_ms);
-
-			if(modules[obj->videoModuleId]->preprocess != NULL)
-				modules[obj->videoModuleId]->preprocess(obj->videoModule, f->inputs[obj->videoInputNum], &frames);
-			else
-				moveBuffers(f->inputs[obj->videoInputNum], &frames);
-
-			while((buffer = ms_queue_get(&frames)) != NULL)
+			if(f->inputs[i] != NULL && obj->inputDescsList[i] == NULL)
 			{
-				changeClockRate(buffer, obj->vMeta->rate, 1000);
-				ms_queue_put(&frames_ms, buffer);
+				ms_queue_flush(f->inputs[i]);
 			}
-
-			if(obj->needKeyFrame)
+			else if(f->inputs[i] != NULL && obj->inputDescsList[i] != NULL)
 			{
-				while((buffer = ms_queue_get(&frames_ms)) != NULL)
+				MSQueue frames, frames_ms;
+				ms_queue_init(&frames);
+				ms_queue_init(&frames_ms);
+
+				module_preprocess(obj->modulesList[i], f->inputs[i], &frames);
+				while((buffer = ms_queue_get(&frames)) != NULL)
 				{
-					if(modules[obj->videoModuleId]->is_key_frame(buffer))
-						break;
-					else
-						freemsg(buffer);
+					changeClockRate(buffer, obj->inputDescsList[i]->rate, 1000);
+					ms_queue_put(&frames_ms, buffer);
 				}
-				if(buffer != NULL)
+
+				if(obj->inputDescsList[i]->type == MSVideo && obj->needKeyFrame)
 				{
-					muxer_put_video_buffer(&obj->muxer, buffer);
 					while((buffer = ms_queue_get(&frames_ms)) != NULL)
-						muxer_put_video_buffer(&obj->muxer, buffer);
-					obj->needKeyFrame = FALSE;
+					{
+						if(module_is_key_frame(obj->modulesList[i], buffer))
+							break;
+						else
+							freemsg(buffer);
+					}
+					if(buffer != NULL)
+					{
+						muxer_put_buffer(&obj->muxer, buffer, i);
+						while((buffer = ms_queue_get(&frames_ms)) != NULL)
+							muxer_put_buffer(&obj->muxer, buffer, i);
+						obj->needKeyFrame = FALSE;
+					}
 				}
-			}
-			else
-			{
-				while((buffer = ms_queue_get(&frames_ms)) != NULL)
+				else
 				{
-					muxer_put_video_buffer(&obj->muxer, buffer);
+					while((buffer = ms_queue_get(&frames_ms)) != NULL)
+					{
+						muxer_put_buffer(&obj->muxer, buffer, i);
+					}
 				}
 			}
 		}
 
-		if(obj->audioInputNum > -1 && f->inputs[obj->audioInputNum] != NULL)
-		{
-			MSQueue audioBuffers;
-			ms_queue_init(&audioBuffers);
-
-			if(f->inputs[obj->audioInputNum] && modules[obj->audioModuleId]->preprocess != NULL)
-				modules[obj->audioModuleId]->preprocess(obj->audioModule, f->inputs[obj->audioInputNum], &audioBuffers);
-			else
-				moveBuffers(f->inputs[obj->audioInputNum], &audioBuffers);
-
-			while((buffer = ms_queue_get(&audioBuffers)) != NULL)
-			{
-				changeClockRate(buffer, obj->aMeta->rate, 1000);
-				muxer_put_audio_buffer(&obj->muxer, buffer);
-			}
-		}
-
-		while((buffer = muxer_get_buffer(&obj->muxer, &bufferType)) != NULL)
+		int pin;
+		while((buffer = muxer_get_buffer(&obj->muxer, &pin)) != NULL)
 		{
 			if(obj->firstFrame)
 			{
@@ -1729,15 +1794,15 @@ static void recorder_process(MSFilter *f)
 			mblk_set_timestamp_info(buffer, mblk_get_timestamp_info(buffer) + obj->timeOffset);
 			timecode_t bufferTimecode = mblk_get_timestamp_info(buffer);
 
-			if(bufferType == VIDEO_BUFFER)
+			matroska_block *block = write_frame(obj, buffer, pin);
+
+			if(obj->inputDescsList[pin]->type == MSVideo)
 			{
-				matroska_block *block = write_frame(obj, buffer, 1, obj->videoModuleId, obj->videoModule);
 				matroska_add_cue(&obj->file, block);
 				obj->haveVideoTrack = TRUE;
 			}
 			else
 			{
-				matroska_block *block = write_frame(obj, buffer, 2, obj->audioModuleId, obj->audioModule);
 				if(!obj->haveVideoTrack)
 				{
 					matroska_add_cue(&obj->file, block);
@@ -1752,10 +1817,12 @@ static void recorder_process(MSFilter *f)
 	}
 	else
 	{
-		if(obj->videoInputNum > -1 && f->inputs[obj->videoInputNum] != NULL)
-			ms_queue_flush(f->inputs[obj->videoInputNum]);
-		if(obj->audioInputNum > -1 && f->inputs[obj->audioInputNum] != NULL)
-			ms_queue_flush(f->inputs[obj->audioInputNum]);
+		int i;
+		for(i=0; i < f->desc->ninputs; i++)
+		{
+			if(f->inputs[i])
+				ms_queue_flush(f->inputs[i]);
+		}
 	}
 	ms_filter_unlock(f);
 }
@@ -1763,43 +1830,35 @@ static void recorder_process(MSFilter *f)
 static int recorder_close(MSFilter *f, void *arg)
 {
 	MKVRecorder *obj = (MKVRecorder *)f->data;
+	int i;
 
 	ms_filter_lock(f);
+	ms_message("MKVRecorder: closing file");
 	if(obj->state != MSRecorderClosed)
 	{
-		if(obj->videoInputNum > -1 && f->inputs[obj->videoInputNum] != NULL)
+		for(i=0; i < f->desc->ninputs; i++)
 		{
-			ms_queue_flush(f->inputs[obj->videoInputNum]);
-			if(obj->haveVideoTrack)
+			if(f->inputs[i] != NULL)
 			{
-				uint8_t *codecPrivateData;
-				size_t codecPrivateDataSize;
-				modules[obj->videoModuleId]->get_private_data(obj->videoModule, &codecPrivateData, &codecPrivateDataSize);
-				matroska_track_set_codec_private(&obj->file, 1, codecPrivateData, codecPrivateDataSize);
-				ms_free(codecPrivateData);
+				ms_queue_flush(f->inputs[i]);
 			}
-			else
+			if(obj->inputDescsList[i] != NULL && f->inputs[i] != NULL)
 			{
-				matroska_del_track(&obj->file, 1);
+				if((obj->inputDescsList[i]->type == MSVideo && obj->haveVideoTrack) || (obj->inputDescsList[i]->type == MSAudio && obj->haveAudioTrack))
+				{
+					uint8_t *codecPrivateData;
+					size_t codecPrivateDataSize;
+					module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
+					matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
+					ms_free(codecPrivateData);
+				}
+				else
+				{
+					matroska_del_track(&obj->file, i + 1);
+				}
 			}
 		}
-		if(obj->audioInputNum > -1 && f->inputs[obj->audioInputNum] != NULL)
-		{
-			ms_queue_flush(f->inputs[obj->audioInputNum]);
-			if(obj->haveAudioTrack)
-			{
-				uint8_t *codecPrivateData;
-				size_t codecPrivateDataSize;
-				modules[obj->audioModuleId]->get_private_data(obj->audioModule, &codecPrivateData, &codecPrivateDataSize);
-				matroska_track_set_codec_private(&obj->file, 2, codecPrivateData, codecPrivateDataSize);
-				ms_free(codecPrivateData);
-			}
-			else
-			{
-				matroska_del_track(&obj->file, 2);
-			}
 
-		}
 
 		matroska_close_cluster(&obj->file);
 		matroska_write_cues(&obj->file);
@@ -1822,72 +1881,65 @@ static int recorder_close(MSFilter *f, void *arg)
 		matroska_close_file(&obj->file);
 
 		obj->state = MSRecorderClosed;
+		ms_message("MKVRecorder: the file has been successfully closed");
+	}
+	else
+	{
+		ms_warning("MKVRecorder: no file has been opened");
 	}
 	ms_filter_unlock(f);
 
 	return 0;
 }
 
-static void recorder_uninit(MSFilter *f){
-	MKVRecorder *obj = (MKVRecorder *)f->data;
-	muxer_uninit(&obj->muxer);
-	if(obj->state != MSRecorderClosed)
-	{
-		matroska_close_file(&obj->file);
-	}
-	ms_free(obj);
-}
-
 static int recorder_set_input_fmt(MSFilter *f, void *arg)
 {
 	MKVRecorder *data=(MKVRecorder *)f->data;
 	const MSPinFormat *pinFmt = (const MSPinFormat *)arg;
+	int err;
 
-	switch(pinFmt->fmt->type)
+	ms_filter_lock(f);
+	if(data->state != MSRecorderClosed)
 	{
-	case MSAudio:
-		if(data->audioModule != NULL)
+		if(data->inputDescsList[pinFmt->pin] != NULL)
 		{
-			modules[data->audioModuleId]->uninit(data->audioModule);
-			data->audioModule = NULL;
+			if(pinFmt->fmt == NULL)
+			{
+				data->inputDescsList[pinFmt->pin] = NULL;
+				module_free(data->modulesList[pinFmt->pin]);
+				data->modulesList[pinFmt->pin] = NULL;
+				ms_message("MKVRecorder: pin #%d disabled", pinFmt->pin);
+				err = 0;
+			}
+			else
+			{
+				ms_warning("MKVRecorder: cannot changed input format when the filter is running");
+				err = -1;
+			}
 		}
-		data->audioModuleId = find_module_id(pinFmt->fmt->encoding);
-		if(data->audioModuleId == -1)
-		{
-			return -2;
-		}
-		else
-		{
-			data->aMeta = pinFmt->fmt;
-			data->audioInputNum = pinFmt->pin;
-			modules[data->audioModuleId]->init(&data->audioModule);
-			return 0;
-		}
-		break;
-
-	case MSVideo:
-		if(data->videoModule != NULL)
-		{
-			modules[data->videoModuleId]->uninit(data->videoModule);
-			data->videoModule = NULL;
-		}
-		data->videoModuleId = find_module_id(pinFmt->fmt->encoding);
-		if(data->videoModuleId == -1)
-		{
-			return -2;
-		}
-		else
-		{
-			data->vMeta = pinFmt->fmt;
-			data->videoInputNum = pinFmt->pin;
-			modules[data->videoModuleId]->init(&data->videoModule);
-			return 0;
-		}
-		break;
-
-	default:
-		return -1;
 	}
+	else
+	{
+		if(data->inputDescsList[pinFmt->pin] != NULL)
+		{
+			module_free(data->modulesList[pinFmt->pin]);
+		}
+		data->modulesList[pinFmt->pin] = module_new(pinFmt->fmt->encoding);
+		if(data->modulesList[pinFmt->pin] == NULL)
+		{
+			ms_error("MKVRecorder: could not set pin #%d format. %s is not supported", pinFmt->pin, pinFmt->fmt->encoding);
+			err = -2;
+		}
+		else
+		{
+			data->inputDescsList[pinFmt->pin] = pinFmt->fmt;
+			module_set(data->modulesList[pinFmt->pin], pinFmt->fmt);
+			ms_message("MKVRecorder: pin #%d set on '%s'", pinFmt->pin, ms_fmt_descriptor_to_string(pinFmt->fmt));
+			err = 0;
+		}
+	}
+	ms_filter_unlock(f);
+	return err;
 }
 
 static MSFilterMethod recorder_methods[]= {
@@ -2008,7 +2060,7 @@ static int player_open_file(MSFilter *f, void *arg)
 					obj->videoModuleId = find_module_id_by_codec_id(codecId);
 					if(obj->videoModuleId > -1)
 					{
-						modules[obj->videoModuleId]->init(&obj->videoModule);
+						moduleDescs[obj->videoModuleId]->new_module(&obj->videoModule);
 					}
 				}
 			}
@@ -2019,7 +2071,7 @@ static int player_open_file(MSFilter *f, void *arg)
 					obj->audioModuleId = find_module_id_by_codec_id(codecId);
 					if(obj->audioModuleId > -1)
 					{
-						modules[obj->audioModuleId]->init(&obj->audioModule);
+						moduleDescs[obj->audioModuleId]->new_module(&obj->audioModule);
 					}
 				}
 			}
@@ -2040,13 +2092,13 @@ static int player_close(MSFilter *f, void *arg)
 		matroska_close_file(&obj->file);
 		if(obj->videoModule != NULL)
 		{
-			modules[obj->videoModuleId]->uninit(obj->videoModule);
+			moduleDescs[obj->videoModuleId]->free_module(obj->videoModule);
 			obj->videoModuleId = -1;
 			obj->videoModule = NULL;
 		}
 		if(obj->audioModule != NULL)
 		{
-			modules[obj->audioModuleId]->uninit(obj->audioModule);
+			moduleDescs[obj->audioModuleId]->free_module(obj->audioModule);
 			obj->audioModuleId = -1;
 			obj->audioModule = NULL;
 		}
