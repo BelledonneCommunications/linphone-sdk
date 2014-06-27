@@ -1103,9 +1103,10 @@ static void configure_av_recorder(AudioStream *stream){
 		ms_filter_call_method(stream->av_recorder.video_input,MS_FILTER_GET_OUTPUT_FMT,&pinfmt);
 		if (pinfmt.fmt){
 			ms_message("Configuring av recorder with video format %s",ms_fmt_descriptor_to_string(pinfmt.fmt));
+			pinfmt.pin=0;
+			ms_filter_call_method(stream->av_recorder.recorder,MS_FILTER_SET_INPUT_FMT,&pinfmt);
 		}
-		pinfmt.pin=0;
-		ms_filter_call_method(stream->av_recorder.recorder,MS_FILTER_SET_INPUT_FMT,&pinfmt);
+		
 	}
 }
 
