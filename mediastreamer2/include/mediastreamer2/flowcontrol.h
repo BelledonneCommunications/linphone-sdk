@@ -35,11 +35,11 @@ typedef struct _MSAudioFlowController {
 extern "C"{
 #endif
 
-void ms_audio_flow_controller_init(MSAudioFlowController *ctl);
+MS2_PUBLIC void ms_audio_flow_controller_init(MSAudioFlowController *ctl);
 
-void ms_audio_flow_controller_set_target(MSAudioFlowController *ctl, int samples_to_drop, int total_samples);
+MS2_PUBLIC void ms_audio_flow_controller_set_target(MSAudioFlowController *ctl, int samples_to_drop, int total_samples);
 
-mblk_t *ms_audio_flow_controller_process(MSAudioFlowController *ctl, mblk_t *m);
+MS2_PUBLIC mblk_t *ms_audio_flow_controller_process(MSAudioFlowController *ctl, mblk_t *m);
 
 
 #ifdef __cplusplus
