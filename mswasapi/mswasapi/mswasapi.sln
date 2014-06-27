@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2012 for Windows Phone
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmswasapi", "mswasapi.vcxproj", "{D22BD217-D0F8-4274-9B3A-F3F35F46482C}"
 	ProjectSection(ProjectDependencies) = postProject
-		{B9BD3213-B7C4-431E-A827-9A92682045AF} = {B9BD3213-B7C4-431E-A827-9A92682045AF}
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70} = {027BAD0E-9179-48C1-9733-7AA7E2C2EC70}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "oRTP", "..\..\linphone\oRTP\build\wp8\oRTP\oRTP.vcxproj", "{FFC7B532-0502-4D88-AC98-9E89071CBC97}"
@@ -14,9 +14,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "speex", "..\..\speex\build\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "speexdsp", "..\..\speex\build\wp8\speex\speexdsp.vcxproj", "{6BD78980-9C71-4341-8775-AD19E9EC7305}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastreamer2", "..\..\linphone\mediastreamer2\build\wp8\mediastreamer2\mediastreamer2.vcxproj", "{B9BD3213-B7C4-431E-A827-9A92682045AF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastreamer2", "..\..\linphone\mediastreamer2\build\wp8\mediastreamer2\mediastreamer2.vcxproj", "{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "srtp", "..\..\srtp\build\wp8\srtp\srtp.vcxproj", "{B4B96BC4-2B72-4964-98E4-7FD048A43363}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opus", "..\..\opus\build\wp8\opus\opus.vcxproj", "{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -66,14 +68,14 @@ Global
 		{6BD78980-9C71-4341-8775-AD19E9EC7305}.Release|ARM.Build.0 = Release|ARM
 		{6BD78980-9C71-4341-8775-AD19E9EC7305}.Release|Win32.ActiveCfg = Release|Win32
 		{6BD78980-9C71-4341-8775-AD19E9EC7305}.Release|Win32.Build.0 = Release|Win32
-		{B9BD3213-B7C4-431E-A827-9A92682045AF}.Debug|ARM.ActiveCfg = Debug|ARM
-		{B9BD3213-B7C4-431E-A827-9A92682045AF}.Debug|ARM.Build.0 = Debug|ARM
-		{B9BD3213-B7C4-431E-A827-9A92682045AF}.Debug|Win32.ActiveCfg = Debug|Win32
-		{B9BD3213-B7C4-431E-A827-9A92682045AF}.Debug|Win32.Build.0 = Debug|Win32
-		{B9BD3213-B7C4-431E-A827-9A92682045AF}.Release|ARM.ActiveCfg = Release|ARM
-		{B9BD3213-B7C4-431E-A827-9A92682045AF}.Release|ARM.Build.0 = Release|ARM
-		{B9BD3213-B7C4-431E-A827-9A92682045AF}.Release|Win32.ActiveCfg = Release|Win32
-		{B9BD3213-B7C4-431E-A827-9A92682045AF}.Release|Win32.Build.0 = Release|Win32
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|ARM.ActiveCfg = Debug|ARM
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|ARM.Build.0 = Debug|ARM
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|Win32.ActiveCfg = Debug|Win32
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|Win32.Build.0 = Debug|Win32
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|ARM.ActiveCfg = Release|ARM
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|ARM.Build.0 = Release|ARM
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|Win32.ActiveCfg = Release|Win32
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|Win32.Build.0 = Release|Win32
 		{B4B96BC4-2B72-4964-98E4-7FD048A43363}.Debug|ARM.ActiveCfg = Debug|ARM
 		{B4B96BC4-2B72-4964-98E4-7FD048A43363}.Debug|ARM.Build.0 = Debug|ARM
 		{B4B96BC4-2B72-4964-98E4-7FD048A43363}.Debug|Win32.ActiveCfg = Debug|Win32
@@ -82,6 +84,14 @@ Global
 		{B4B96BC4-2B72-4964-98E4-7FD048A43363}.Release|ARM.Build.0 = Release|ARM
 		{B4B96BC4-2B72-4964-98E4-7FD048A43363}.Release|Win32.ActiveCfg = Release|Win32
 		{B4B96BC4-2B72-4964-98E4-7FD048A43363}.Release|Win32.Build.0 = Release|Win32
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Debug|ARM.ActiveCfg = Debug|ARM
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Debug|ARM.Build.0 = Debug|ARM
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Debug|Win32.Build.0 = Debug|Win32
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Release|ARM.ActiveCfg = Release|ARM
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Release|ARM.Build.0 = Release|ARM
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Release|Win32.ActiveCfg = Release|Win32
+		{D450EC75-DF02-48B0-A4FB-ACA79BD894AB}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
