@@ -59,8 +59,8 @@ static const MSVideoConfiguration multicore_vp8_conf_list[] = {
 	MS_VP8_CONF(1024000, 1536000, SXGA_MINUS, 12),
 	MS_VP8_CONF( 750000, 1024000,        XGA, 12),
 	MS_VP8_CONF( 500000,  750000,       SVGA, 12),
-	MS_VP8_CONF( 300000,  500000,        VGA, 12),
-	MS_VP8_CONF( 100000,  300000,       QVGA, 12),
+	MS_VP8_CONF( 300000,  500000,        VGA, 15),
+	MS_VP8_CONF( 100000,  300000,       QVGA, 18),
 	MS_VP8_CONF(  64000,  100000,       QCIF, 12),
 	MS_VP8_CONF(      0,   64000,       QCIF,  5)
 #else
@@ -175,7 +175,7 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
 	s->cfg.g_error_resilient = VPX_ERROR_RESILIENT_DEFAULT|VPX_ERROR_RESILIENT_PARTITIONS;
 	s->cfg.g_lag_in_frames = 0;
-	cpuused = 11 - s->cfg.g_threads; /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
+	cpuused = 10 - s->cfg.g_threads; /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 	if (cpuused < 7) cpuused = 7; /*values beneath 7 consume too much CPU*/
 	s->cfg.g_w = s->vconf.vsize.width;
 	s->cfg.g_h = s->vconf.vsize.height;
