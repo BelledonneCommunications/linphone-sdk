@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <pulse/pulseaudio.h>
 
-static const float latency_req=0.02;
+static const float latency_req=0.04;
 
 static void init_pulse_context();
 static void pulse_card_detect(MSSndCardManager *m);
@@ -136,8 +136,8 @@ static void pulse_read_init(MSFilter *f){
 static void pulse_read_preprocess(MSFilter *f){
 	PulseReadState *s=(PulseReadState *)f->data;
 	int err;
-	pa_sample_spec pss;
-	pa_buffer_attr attr;
+	pa_sample_spec pss={0};
+	pa_buffer_attr attr={0};
 
 	if (context==NULL) return;
 	
@@ -257,8 +257,8 @@ static void pulse_write_init(MSFilter *f){
 static void pulse_write_preprocess(MSFilter *f){
 	PulseWriteState *s=(PulseWriteState*)f->data;
 	int err;
-	pa_sample_spec pss;
-	pa_buffer_attr attr;
+	pa_sample_spec pss={0};
+	pa_buffer_attr attr={0};
 
 	if (context==NULL) return;
 	
@@ -266,9 +266,9 @@ static void pulse_write_preprocess(MSFilter *f){
 	pss.channels=s->channels;
 	pss.rate=s->rate;
 
-	s->fragsize=latency_req*(float)s->channels*(float)s->rate*2;
+	s->fragsize=latency_req*(float)s->channels*(float)s->rate*2.0;
 	
-	attr.maxlength=-1;
+	attr.maxlength=s->fragsize*2;
 	attr.tlength=s->fragsize;
 	attr.prebuf=-1;
 	attr.minreq=-1;
@@ -293,10 +293,15 @@ static void pulse_write_process(MSFilter *f){
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		int bsize=msgdsize(im);
 		if (s->stream){
+			int err;
+			int writable;
 			pa_threaded_mainloop_lock(pa_loop);
-			if (pa_stream_writable_size(s->stream)>=bsize){
-				//ms_message("Pushing data to pulseaudio");
-				pa_stream_write(s->stream,im->b_rptr,bsize,NULL,0,PA_SEEK_RELATIVE);
+			writable=pa_stream_writable_size(s->stream);
+			if (writable>=0 && writable<bsize){
+				pa_stream_flush(s->stream,NULL,NULL);
+				ms_warning("pa_stream_writable_size(): not enough space, flushing");
+			}else if ((err=pa_stream_write(s->stream,im->b_rptr,bsize,NULL,0,PA_SEEK_RELATIVE))!=0){
+				ms_error("pa_stream_write(): %s",pa_strerror(err));
 			}
 			pa_threaded_mainloop_unlock(pa_loop);
 		}
