@@ -247,6 +247,9 @@ belle_sip_user_body_handler_t *belle_sip_user_body_handler_new(
  * TODO
 **/
 
+#define MULTIPART_BOUNDARY "---------------------------14737809831466499882746641449"
+#define MULTIPART_SEPARATOR "--" MULTIPART_BOUNDARY "\r\n"
+#define MULTIPART_END "\r\n--" MULTIPART_BOUNDARY "--\r\n"
 struct belle_sip_multipart_body_handler{
 	belle_sip_body_handler_t base;
 	belle_sip_list_t *parts;
@@ -267,7 +270,42 @@ static void belle_sip_multipart_body_handler_recv_chunk(belle_sip_body_handler_t
 
 static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, size_t offset,
 							uint8_t *buffer, size_t *size){
-	/*TODO*/
+
+	belle_sip_multipart_body_handler_t *obj_multipart=(belle_sip_multipart_body_handler_t*)obj;
+
+	if (obj_multipart->parts->data) { /* we have a part, get its content from handler */
+		belle_sip_body_handler_t *current_part = (belle_sip_body_handler_t *)obj_multipart->parts->data;
+		*size -= strlen(MULTIPART_END); /* just in case it will be the end of the message, ask for less characters than possible in order to be able to add the multipart message termination */
+		int retval = BELLE_SIP_STOP;
+
+		if (offset == 0) { /* This is the first part, include a boundary */
+			*size -= strlen(MULTIPART_SEPARATOR);
+			memcpy(buffer, MULTIPART_SEPARATOR, strlen(MULTIPART_SEPARATOR));
+			buffer += strlen(MULTIPART_SEPARATOR);
+		}
+
+		retval = belle_sip_body_handler_send_chunk(current_part, msg, buffer, size);
+		if (offset == 0) {
+			*size+=strlen(MULTIPART_SEPARATOR);
+		}
+
+		if (retval == BELLE_SIP_CONTINUE) {
+			return BELLE_SIP_CONTINUE; /* there is still data to be sent, continue */
+		} else { /* this part has reach the end, pass to next one if there is one */
+			if (obj_multipart->parts->prev!=NULL) { /* there is an other part to be sent */
+				belle_sip_list_t *next_part = obj_multipart->parts->prev;
+				/* add the multipart boundary */
+				memcpy(buffer+*size, MULTIPART_SEPARATOR, strlen(MULTIPART_SEPARATOR));
+				obj_multipart->parts = next_part;
+				*size+=strlen(MULTIPART_SEPARATOR);
+				return BELLE_SIP_CONTINUE;
+			} else { /* there is nothing else, close the message and return STOP */
+				memcpy(buffer+*size, MULTIPART_END, strlen(MULTIPART_END));
+				*size+=strlen(MULTIPART_END);
+				return BELLE_SIP_STOP;
+			}
+		}
+	}
 	return BELLE_SIP_STOP;
 }
 
@@ -289,11 +327,13 @@ belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new(belle_s
 									 belle_sip_body_handler_t *first_part){
 	belle_sip_multipart_body_handler_t *obj=belle_sip_object_new(belle_sip_multipart_body_handler_t);
 	belle_sip_body_handler_init((belle_sip_body_handler_t*)obj,progress_cb,data);
+	obj->base.expected_size = strlen(MULTIPART_END); /* body's length will be part length(including boundary) + multipart end */
 	if (first_part) belle_sip_multipart_body_handler_add_part(obj,first_part);
 	return obj;
 }
 
 void belle_sip_multipart_body_handler_add_part(belle_sip_multipart_body_handler_t *obj, belle_sip_body_handler_t *part){
+	obj->base.expected_size+=part->expected_size+strlen(MULTIPART_SEPARATOR);
 	obj->parts=belle_sip_list_append(obj->parts,belle_sip_object_ref(part));
 }
 
