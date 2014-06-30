@@ -719,6 +719,91 @@ static ms_bool_t matroska_create_file(Matroska *obj, const char path[])
 	return TRUE;
 }
 
+//static ms_bool_t matroska_load_file(Matroska *obj)
+//{
+//	int upperLevels = 0;
+//	ebml_parser_context readContext;
+//	readContext.Context = &MATROSKA_ContextStream;
+//	readContext.EndPosition = INVALID_FILEPOS_T;
+//	readContext.Profile = 0;
+//	readContext.UpContext = NULL;
+
+//	obj->header = EBML_FindNextElement(obj->output, &readContext, &upperLevels, FALSE);
+//	EBML_ElementReadData(obj->header, obj->output, &readContext, FALSE, SCOPE_ALL_DATA, 0);
+//	readContext.Profile = ebml_reading_profile((ebml_master *)obj->header);
+
+//	obj->segment = (ebml_master *)EBML_FindNextElement(obj->output, &readContext, &upperLevels, FALSE);
+////	readContext.EndPosition = EBML_ElementPositionEnd((ebml_element *)obj->segment);
+
+////	ebml_parser_context readSegmentContext;
+////	readSegmentContext.Context = EBML_ElementContext((ebml_element *)obj->segment);
+////	readSegmentContext.EndPosition = EBML_ElementPositionEnd((ebml_element *)obj->segment);
+////	readSegmentContext.UpContext = &readContext;
+////	readSegmentContext.Profile = ebml_reading_profile((ebml_master *)obj->header);
+
+//	ebml_element *elt;
+//	for(elt = EBML_MasterChildren(obj->segment); elt != NULL; elt = EBML_MasterNext(elt))
+//	{
+//		if(EBML_ElementIsType(elt, &MATROSKA_ContextSeekHead))
+//		{
+////			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
+////			EBML_MasterAppend(obj->segment, elt);
+//			obj->metaSeek = (ebml_master*)elt;
+//			matroska_seekpoint *seekPoint;
+//			for(seekPoint = (matroska_seekpoint *)EBML_MasterChildren(obj->metaSeek); seekPoint != NULL; seekPoint = (matroska_seekpoint *)EBML_MasterNext(seekPoint))
+//			{
+//				if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextInfo))
+//				{
+//					obj->infoMeta = seekPoint;
+//				}
+//				else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextTracks))
+//				{
+//					obj->tracksMeta = seekPoint;
+//				}
+//				else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextCues))
+//				{
+//					obj->cuesMeta = seekPoint;
+//				}
+//			}
+//		}
+//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextInfo))
+//		{
+////			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
+////			EBML_MasterAppend(obj->segment, elt);
+//			obj->info = (ebml_master*)elt;
+//			obj->timecodeScale = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(obj->info, &MATROSKA_ContextTimecodeScale));
+//			MATROSKA_LinkMetaSeekElement(obj->infoMeta, (ebml_element *)obj->info);
+//		}
+//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextTracks))
+//		{
+////			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
+////			EBML_MasterAppend(obj->segment, elt);
+//			obj->tracks = (ebml_master*)elt;
+//			MATROSKA_LinkMetaSeekElement(obj->tracksMeta, (ebml_element *)obj->tracks);
+//		}
+//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextCues))
+//		{
+////			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
+////			EBML_MasterAppend(obj->segment, elt);
+//			obj->cues = (ebml_master*)elt;
+//			MATROSKA_LinkMetaSeekElement(obj->cuesMeta, (ebml_element *)obj->cues);
+//		}
+//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextCluster))
+//		{
+////			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_PARTIAL_DATA, 0);
+////			EBML_MasterAppend(obj->segment, elt);
+//			obj->cluster = (ebml_master *)elt;
+//			if(obj->nbClusters == 0)
+//			{
+//				obj->firstCluster = (ebml_element*) obj->cluster;
+//			}
+//			MATROSKA_LinkClusterBlocks((matroska_cluster *)obj->cluster, obj->segment, obj->tracks, FALSE);
+//			obj->nbClusters++;
+//		}
+//	}
+//	return TRUE;
+//}
+
 static ms_bool_t matroska_load_file(Matroska *obj)
 {
 	int upperLevels = 0;
@@ -1230,26 +1315,26 @@ static int matroska_add_track(Matroska *obj, int trackNum, const char codecID[])
 	}
 }
 
-static int matroska_del_track(Matroska *obj, int trackNum)
-{
-	ebml_element *track = matroska_find_track(obj, trackNum);
-	if(track == NULL)
-	{
-		return -1;
-	}
-	else
-	{
-		if(EBML_MasterRemove(obj->tracks, track) != ERR_NONE)
-		{
-			return -2;
-		}
-		else
-		{
-			NodeDelete((node *)track);
-			return 0;
-		}
-	}
-}
+//static int matroska_del_track(Matroska *obj, int trackNum)
+//{
+//	ebml_element *track = matroska_find_track(obj, trackNum);
+//	if(track == NULL)
+//	{
+//		return -1;
+//	}
+//	else
+//	{
+//		if(EBML_MasterRemove(obj->tracks, track) != ERR_NONE)
+//		{
+//			return -2;
+//		}
+//		else
+//		{
+//			NodeDelete((node *)track);
+//			return 0;
+//		}
+//	}
+//}
 
 static int matroska_get_default_track_num(Matroska *obj, int trackType)
 {
@@ -1489,8 +1574,8 @@ static mblk_t *muxer_get_buffer(Muxer *obj, int *pin)
 			}
 			else
 			{
-				uint32_t t1 = mblk_get_timestamp_info(qlast(&minQueue->q));
-				uint32_t t2 = mblk_get_timestamp_info(qlast(&(&obj->queues[i])->q));
+				uint32_t t1 = mblk_get_timestamp_info(qfirst(&minQueue->q));
+				uint32_t t2 = mblk_get_timestamp_info(qfirst(&(&obj->queues[i])->q));
 				if(t2 < t1)
 				{
 					minQueue = &obj->queues[i];
@@ -1509,6 +1594,35 @@ static mblk_t *muxer_get_buffer(Muxer *obj, int *pin)
 	}
 }
 
+//static mblk_t *muxer_get_buffer(Muxer *obj, int *pin)
+//{
+//	int i;
+//	MSQueue *minQueue = NULL;
+
+//	for(i=0; i < obj->nqueues; i++)
+//	{
+//		if(ms_queue_empty(&obj->queues[i]))
+//		{
+//			return NULL;
+//		}
+//		if(minQueue == NULL)
+//		{
+//			minQueue = &obj->queues[i];
+//		}
+//		else
+//		{
+//			uint32_t t1 = mblk_get_timestamp_info(qfirst(&minQueue->q));
+//			uint32_t t2 = mblk_get_timestamp_info(qfirst(&(&obj->queues[i])->q));
+//			if(t2 < t1)
+//			{
+//				minQueue = &obj->queues[i];
+//			}
+//		}
+//	}
+//	*pin = (minQueue - obj->queues);
+//	return ms_queue_get(minQueue);
+//}
+
 /*********************************************************************************************
  * MKV Recorder Filter                                                                       *
  *********************************************************************************************/
@@ -1521,7 +1635,7 @@ typedef struct
 	MatroskaOpenMode openMode;
 	MSRecorderState state;
 	Muxer muxer;
-	ms_bool_t needKeyFrame, firstFrame, haveVideoTrack, haveAudioTrack;
+	ms_bool_t needKeyFrame, firstFrame, haveVideoTrack;
 	const MSFmtDescriptor **inputDescsList;
 	Module **modulesList;
 } MKVRecorder;
@@ -1537,7 +1651,6 @@ static void recorder_init(MSFilter *f)
 	obj->needKeyFrame = TRUE;
 	obj->firstFrame = TRUE;
 	obj->haveVideoTrack = FALSE;
-	obj->haveAudioTrack = FALSE;
 	obj->timeOffset = 0;
 
 	muxer_init(&obj->muxer, f->desc->ninputs);
@@ -1605,15 +1718,6 @@ static void changeClockRate(mblk_t *buffer, uint32_t oldClockRate, uint32_t newC
 		mblk_set_timestamp_info(curBuff, mblk_get_timestamp_info(curBuff) * newClockRate / oldClockRate);
 	}
 }
-
-//static void moveBuffers(MSQueue *input, MSQueue *output)
-//{
-//	mblk_t *buffer;
-//	while((buffer = ms_queue_get(input)) != NULL)
-//	{
-//		ms_queue_put(output, buffer);
-//	}
-//}
 
 static int recorder_open_file(MSFilter *f, void *arg)
 {
@@ -1796,18 +1900,9 @@ static void recorder_process(MSFilter *f)
 
 			matroska_block *block = write_frame(obj, buffer, pin);
 
-			if(obj->inputDescsList[pin]->type == MSVideo)
+			if(obj->inputDescsList[pin]->type == MSVideo || !obj->haveVideoTrack)
 			{
 				matroska_add_cue(&obj->file, block);
-				obj->haveVideoTrack = TRUE;
-			}
-			else
-			{
-				if(!obj->haveVideoTrack)
-				{
-					matroska_add_cue(&obj->file, block);
-				}
-				obj->haveAudioTrack = TRUE;
 			}
 			if(bufferTimecode > obj->duration)
 			{
@@ -1844,18 +1939,11 @@ static int recorder_close(MSFilter *f, void *arg)
 			}
 			if(obj->inputDescsList[i] != NULL && f->inputs[i] != NULL)
 			{
-				if((obj->inputDescsList[i]->type == MSVideo && obj->haveVideoTrack) || (obj->inputDescsList[i]->type == MSAudio && obj->haveAudioTrack))
-				{
-					uint8_t *codecPrivateData;
-					size_t codecPrivateDataSize;
-					module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
-					matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
-					ms_free(codecPrivateData);
-				}
-				else
-				{
-					matroska_del_track(&obj->file, i + 1);
-				}
+				uint8_t *codecPrivateData;
+				size_t codecPrivateDataSize;
+				module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
+				matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
+				ms_free(codecPrivateData);
 			}
 		}
 
@@ -1934,7 +2022,13 @@ static int recorder_set_input_fmt(MSFilter *f, void *arg)
 		{
 			data->inputDescsList[pinFmt->pin] = pinFmt->fmt;
 			module_set(data->modulesList[pinFmt->pin], pinFmt->fmt);
-			ms_message("MKVRecorder: pin #%d set on '%s'", pinFmt->pin, ms_fmt_descriptor_to_string(pinFmt->fmt));
+			if(pinFmt->fmt->type == MSVideo)
+			{
+				data->haveVideoTrack = TRUE;
+			}
+			const char *fmtDescriptorString = ms_fmt_descriptor_to_string(pinFmt->fmt);
+			ms_message("MKVRecorder: pin #%d set on '%s'", pinFmt->pin, fmtDescriptorString);
+			ms_free((void *)fmtDescriptorString);
 			err = 0;
 		}
 	}
