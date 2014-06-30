@@ -236,7 +236,7 @@ static bool_t simple_analyzer_has_improved(MSQosAnalyzer *objbase){
 }
 
 static void simple_analyzer_uninit(MSQosAnalyzer *objbase){
-	MSSimpleQosAnalyzer *obj=(MSSimpleQosAnalyzer*)objbase;
+	/*MSSimpleQosAnalyzer *obj=(MSSimpleQosAnalyzer*)objbase;*/
 }
 
 static MSQosAnalyzerDesc simple_analyzer_desc={

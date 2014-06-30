@@ -811,6 +811,8 @@ video_stream_stop (VideoStream * stream)
 			}
 		}
 	}
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",
+			(RtpCallback)mediastream_payload_type_changed);
 	video_stream_free (stream);
 }
 
