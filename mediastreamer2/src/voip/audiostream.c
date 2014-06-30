@@ -539,7 +539,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 
 	if (stream->ms.use_rc){
-		stream->ms.rc=ms_audio_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder,0);
+		stream->ms.rc=
+			ms_audio_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder,0);
+			// ms_bandwidth_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder, NULL, NULL);
 	}
 
 	/* Create generic PLC if not handled by the decoder directly*/

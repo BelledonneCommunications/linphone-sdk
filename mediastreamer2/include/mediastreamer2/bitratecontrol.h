@@ -100,6 +100,7 @@ struct _MSQosAnalyzerDesc{
 **/
 struct _MSQosAnalyzer{
 	MSQosAnalyzerDesc *desc;
+	OrtpLossRateEstimator *lre;
 	char *label;
 	void (*on_action_suggested)(void*, int, const char**);
 	void *on_action_suggested_user_pointer;

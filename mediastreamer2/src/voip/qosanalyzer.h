@@ -44,7 +44,6 @@ extern "C" {
 	typedef struct _MSSimpleQosAnalyzer{
 		MSQosAnalyzer parent;
 		RtpSession *session;
-		OrtpLossRateEstimator *lre;
 		int clockrate;
 		rtpstats_t stats[STATS_HISTORY];
 		int curindex;
@@ -79,18 +78,12 @@ extern "C" {
 		double network_loss_rate;
 		double congestion_bandwidth;
 
-		int cum_loss_prev;
-		int previous_ext_high_seq_num_rec;
-
 		MSStatefulQosAnalyzerBurstState burst_state;
 		struct timeval start_time;
 
 		uint32_t upload_bandwidth_count;
 		double upload_bandwidth_sum;
 		double upload_bandwidth_latest;
-
-		uint32_t start_seq_number;
-		uint32_t last_seq_number;
 
 		double burst_ratio;
 		double burst_duration_ms;
