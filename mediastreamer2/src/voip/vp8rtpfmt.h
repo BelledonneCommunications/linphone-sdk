@@ -86,6 +86,7 @@ extern "C"{
 		Vp8RtpFmtErrorCode error;
 		uint16_t pictureid;
 		bool_t pictureid_present;
+		bool_t unnumbered_partitions;
 		bool_t keyframe;
 		bool_t reference;
 		bool_t outputted;

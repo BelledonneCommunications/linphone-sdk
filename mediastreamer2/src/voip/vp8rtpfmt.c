@@ -308,7 +308,7 @@ static bool_t parse_frame_header(Vp8RtpFmtFrame *frame) {
 	if (nb_partitions > 8) return FALSE;
 	frame->partitions_info.nb_partitions = nb_partitions;
 	partition_size = data + first_partition_length_in_bytes - m->b_rptr + (3 * (nb_partitions - 1));
-	if (msgdsize(m) != partition_size) return FALSE;
+	if (msgdsize(m) < partition_size) return FALSE;
 	frame->partitions_info.partition_sizes[0] = partition_size;
 	for (i = 1; i < nb_partitions; i++) {
 		const unsigned char *partition_sizes = data + first_partition_length_in_bytes;
@@ -498,6 +498,14 @@ static void generate_frame_partitions_list(Vp8RtpFmtFrame *frame, MSList *packet
 	int nb_packets = ms_list_size(packets_list);
 	int i;
 
+	frame->unnumbered_partitions = TRUE;
+	for (i = 0; i < nb_packets; i++) {
+		packet = (Vp8RtpFmtPacket *)ms_list_nth_data(packets_list, i);
+		if (packet->pd->pid != 0) {
+			frame->unnumbered_partitions = FALSE;
+			break;
+		}
+	}
 	for (i = 0; i < nb_packets; i++) {
 		packet = (Vp8RtpFmtPacket *)ms_list_nth_data(packets_list, i);
 		if (packet->error == Vp8RtpFmtOk) {
@@ -551,6 +559,9 @@ static void check_frame_partitions_list(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFram
 		mark_frame_as_invalid(ctx, frame);
 		return;
 	}
+
+	/* Do not try to perform next checks if the partitions are not numbered. */
+	if (frame->unnumbered_partitions == TRUE) return;
 
 	/* The partition 0 has been validated, check the following ones. */
 	for (i = 1; i < frame->partitions_info.nb_partitions; i++) {
