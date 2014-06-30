@@ -1,11 +1,11 @@
 EXTRA_DIST=autogen.sh mswebrtc.iss.in
 webrtc_VERSION = 1.0.0
-webrtc_DIR=$(top_builddir)/webrtc
+webrtc_DIR=$(top_srcdir)/webrtc
 
 ISAC_FLAVOUR ?= fix # use 'main' or 'fix'
-ISAC_SRC_DIR = webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
-AEC_SRC_DIR = webrtc/modules/audio_processing/aecm
-WEBRTC_COMMON_DIR = webrtc/common_audio/signal_processing
+ISAC_SRC_DIR = $(top_srcdir)/webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
+AEC_SRC_DIR = $(top_srcdir)/webrtc/modules/audio_processing/aecm
+WEBRTC_COMMON_DIR = $(top_srcdir)/webrtc/common_audio/signal_processing
 
 pluginsdir = $(libdir)/mediastreamer/plugins
 
@@ -141,9 +141,9 @@ endif
 if BUILD_AEC
 webrtc_CFLAGS += \
 	-I$(AEC_SRC_DIR)/include \
-	-Iwebrtc/common_audio/signal_processing/include \
-	-Iwebrtc/modules/audio_processing/utility \
-	-Iwebrtc/system_wrappers/interface
+	-I$(top_srcdir)/webrtc/common_audio/signal_processing/include \
+	-I$(top_srcdir)/webrtc/modules/audio_processing/utility \
+	-I$(top_srcdir)/webrtc/system_wrappers/interface
 endif
 
 AM_CFLAGS= \
