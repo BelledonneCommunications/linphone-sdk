@@ -430,7 +430,7 @@ static IceCheckList * ice_find_check_list_from_state(const IceSession *session, 
 {
 	int i;
 	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
-		if (ice_check_list_state(session->streams[i]) == state) return session->streams[i];
+		if (session->streams[i] && ice_check_list_state(session->streams[i]) == state) return session->streams[i];
 	}
 	return NULL;
 }
