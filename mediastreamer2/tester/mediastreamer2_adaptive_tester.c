@@ -204,7 +204,7 @@ static void handle_queue_events(stream_manager_t * stream_mgr) {
 					if (analyzer->type==Stateful){
 						const MSStatefulQosAnalyzer *stateful_analyzer=((const MSStatefulQosAnalyzer*)analyzer);
 						stream_mgr->adaptive_stats.network_state=stateful_analyzer->network_state;
-						stream_mgr->adaptive_stats.loss_estim =100*stateful_analyzer->network_loss_rate;
+						stream_mgr->adaptive_stats.loss_estim = stateful_analyzer->network_loss_rate;
 						stream_mgr->adaptive_stats.congestion_bw_estim =stateful_analyzer->congestion_bandwidth;
 					}
 				}
@@ -486,17 +486,17 @@ static void packet_duplication() {
 
 static test_t tests[] = {
 #ifdef VIDEO_ENABLED
-	{ "Packet duplication", packet_duplication},
+	{ "PacketDuplication", packet_duplication},
 #endif
-	{ "Upload bandwidth computation", upload_bandwidth_computation },
+	{ "UploadBandwidthComputation", upload_bandwidth_computation },
 #ifdef VIDEO_ENABLED
-	{ "Stability detection", stability_network_detection },
+	{ "StabilityDetection", stability_network_detection },
 #endif
-	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
-	{ "Adaptive audio stream [speex]", adaptive_speex16_audio_stream },
-	{ "Adaptive audio stream [pcma]", adaptive_pcma_audio_stream },
+	{ "AdaptiveAudioStreamOPUS", adaptive_opus_audio_stream },
+	{ "AdaptiveAudioStreamSPEEX", adaptive_speex16_audio_stream },
+	{ "AdaptiveAudioStreamPCMA", adaptive_pcma_audio_stream },
 #ifdef VIDEO_ENABLED
-	{ "Adaptive video stream [VP8]", adaptive_vp8 },
+	{ "AdaptiveVideoStreamVP8", adaptive_vp8 },
 #endif
 };
 

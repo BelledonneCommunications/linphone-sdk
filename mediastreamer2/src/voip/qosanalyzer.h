@@ -67,10 +67,7 @@ extern "C" {
 	typedef struct _MSStatefulQosAnalyzer{
 		MSQosAnalyzer parent;
 		RtpSession *session;
-		int clockrate;
-		rtpstats_t stats[STATS_HISTORY];
 		int curindex;
-		bool_t rt_prop_doubled;
 
 		MSQosAnalyzerNetworkState network_state;
 		MSList *rtcpstatspoint;
