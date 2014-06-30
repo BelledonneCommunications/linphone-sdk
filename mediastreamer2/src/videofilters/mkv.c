@@ -630,7 +630,7 @@ typedef struct
 
 static void matroska_init(Matroska *obj)
 {
-	obj->p = (parsercontext *)ms_new(parsercontext, 1);
+	obj->p = (parsercontext *)ms_new0(parsercontext, 1);
 	ParserContext_Init(obj->p, NULL, NULL, NULL);
 	loadModules((nodemodule*)obj->p);
 	MATROSKA_Init((nodecontext*)obj->p);
@@ -808,6 +808,9 @@ static ms_bool_t matroska_load_file(Matroska *obj)
 {
 	int upperLevels = 0;
 	ebml_parser_context readContext;
+	ebml_parser_context readSegmentContext;
+	ebml_element *elt;
+	
 	readContext.Context = &MATROSKA_ContextStream;
 	readContext.EndPosition = INVALID_FILEPOS_T;
 	readContext.Profile = 0;
@@ -820,13 +823,13 @@ static ms_bool_t matroska_load_file(Matroska *obj)
 	obj->segment = (ebml_master *)EBML_FindNextElement(obj->output, &readContext, &upperLevels, FALSE);
 	readContext.EndPosition = EBML_ElementPositionEnd((ebml_element *)obj->segment);
 
-	ebml_parser_context readSegmentContext;
+	
 	readSegmentContext.Context = EBML_ElementContext((ebml_element *)obj->segment);
 	readSegmentContext.EndPosition = EBML_ElementPositionEnd((ebml_element *)obj->segment);
 	readSegmentContext.UpContext = &readContext;
 	readSegmentContext.Profile = ebml_reading_profile((ebml_master *)obj->header);
 
-	ebml_element *elt;
+	
 	for(elt = EBML_FindNextElement(obj->output, &readSegmentContext, &upperLevels, FALSE); elt != NULL; elt = EBML_FindNextElement(obj->output, &readSegmentContext, &upperLevels, FALSE))
 	{
 		if(EBML_ElementIsType(elt, &MATROSKA_ContextSeekHead))
@@ -1001,12 +1004,14 @@ static inline void matroska_start_segment(Matroska *obj)
 static int matroska_write_zeros(Matroska *obj, size_t nbZeros)
 {
 	uint8_t *data = (uint8_t *)ms_new0(uint8_t, nbZeros);
+	size_t written=0;
+	
 	if(data == NULL)
 	{
 		return 0;
 	}
 
-	size_t written;
+	
 	Stream_Write(obj->output, data, nbZeros, &written);
 	ms_free(data);
 	return written;
@@ -1642,7 +1647,7 @@ typedef struct
 
 static void recorder_init(MSFilter *f)
 {
-	MKVRecorder *obj = (MKVRecorder *)ms_new(MKVRecorder, 1);
+	MKVRecorder *obj = (MKVRecorder *)ms_new0(MKVRecorder, 1);
 
 	ms_message("MKVRecorder: initialisation");
 	matroska_init(&obj->file);
@@ -1807,7 +1812,7 @@ static int recorder_start(MSFilter *f, void *arg)
 static int recorder_stop(MSFilter *f, void *arg)
 {
 	MKVRecorder *obj = (MKVRecorder *)f->data;
-	int err;
+	int err=-1;
 
 	ms_filter_lock(f);
 	ms_message("MKVRecorder: stopping recording");
@@ -1984,7 +1989,7 @@ static int recorder_set_input_fmt(MSFilter *f, void *arg)
 {
 	MKVRecorder *data=(MKVRecorder *)f->data;
 	const MSPinFormat *pinFmt = (const MSPinFormat *)arg;
-	int err;
+	int err=0;
 
 	ms_filter_lock(f);
 	if(data->state != MSRecorderClosed)
