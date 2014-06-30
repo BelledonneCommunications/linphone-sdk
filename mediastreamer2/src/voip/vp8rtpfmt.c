@@ -307,11 +307,6 @@ static bool_t parse_frame_header(Vp8RtpFmtFrame *frame) {
 	nb_partitions = (1 << vp8_read_literal(&bc, 2));
 	if (nb_partitions > 8) return FALSE;
 	frame->partitions_info.nb_partitions = nb_partitions;
-	if (nb_partitions == 1) {
-		/* Special case when partitioning is not enabled. */
-		frame->partitions_info.partition_sizes[0] = m->b_wptr - m->b_rptr;
-		return TRUE;
-	}
 	partition_size = data + first_partition_length_in_bytes - m->b_rptr + (3 * (nb_partitions - 1));
 	if (msgdsize(m) != partition_size) return FALSE;
 	frame->partitions_info.partition_sizes[0] = partition_size;
@@ -571,21 +566,19 @@ static void check_frame_partitions_list(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFram
 	}
 
 	/* Check the last partition of the frame. */
-	if (frame->partitions_info.nb_partitions > 1) {
-		partition = frame->partitions[frame->partitions_info.nb_partitions];
-		if ((partition == NULL) || !partition->has_start || !partition->has_marker) {
-			mark_frame_as_incomplete(ctx, frame, frame->partitions_info.nb_partitions - 1);
-		} else {
-			packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, 0);
+	partition = frame->partitions[frame->partitions_info.nb_partitions];
+	if ((partition == NULL) || !partition->has_start || !partition->has_marker) {
+		mark_frame_as_incomplete(ctx, frame, frame->partitions_info.nb_partitions);
+	} else {
+		packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, 0);
+		last_cseq = packet->extended_cseq;
+		for (i = 1; i < ms_list_size(partition->packets_list); i++) {
+			packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, i);
+			if (packet->extended_cseq != (last_cseq + 1)) gap = TRUE;
 			last_cseq = packet->extended_cseq;
-			for (i = 1; i < ms_list_size(partition->packets_list); i++) {
-				packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, i);
-				if (packet->extended_cseq != (last_cseq + 1)) gap = TRUE;
-				last_cseq = packet->extended_cseq;
-			}
-			if (gap == TRUE) {
-				mark_frame_as_incomplete(ctx, frame, frame->partitions_info.nb_partitions - 1);
-			}
+		}
+		if (gap == TRUE) {
+			mark_frame_as_incomplete(ctx, frame, frame->partitions_info.nb_partitions);
 		}
 	}
 }
@@ -696,11 +689,11 @@ static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
 		partition = frame->partitions[i];
 		if (partition == NULL) continue;
-		if (i == 0) {
-			om = partition->m;
+		if (om == NULL) {
+			om = concat_packets_of_partition(partition);
 			curm = om;
 		} else {
-			curm = concatb(curm, partition->m);
+			curm = concatb(curm, concat_packets_of_partition(partition));
 		}
 		partition->outputted = TRUE;
 	}
