@@ -327,12 +327,13 @@ static void player_process(MSFilter *f){
 							ms_message("initial ts=%u, seq=%u",ts,pcap_seq);
 						}
 						diff_ms = ((ts - d->pcap_initial_ts) * 1000) / d->rate;
-						ms_message("diff_ms=%u",diff_ms);
+						//ms_message("diff_ms=%u",diff_ms);
 						if ((f->ticker->time - d->pcap_initial_time) >= diff_ms) {
 							if (pcap_seq >= d->pcap_seq) {
 								om = allocb(bytes, 0);
 								memcpy(om->b_wptr, payload, bytes);
 								om->b_wptr += bytes;
+								mblk_set_cseq(om, pcap_seq);
 								mblk_set_timestamp_info(om, f->ticker->time);
 								mblk_set_marker_info(om,markbit);
 								ms_queue_put(f->outputs[0], om);
