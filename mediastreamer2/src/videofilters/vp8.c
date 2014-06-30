@@ -412,9 +412,14 @@ static void enc_process(MSFilter *f) {
 					if ((s->avpf_enabled == TRUE) && ((flags & VPX_EFLAG_FORCE_KF) || (flags & VP8_EFLAG_NO_REF_LAST))) {
 						packet->pd->non_reference_frame = FALSE;
 					}
-					packet->pd->extended_control_bits_present = TRUE;
-					packet->pd->pictureid_present = TRUE;
-					packet->pd->pictureid = s->picture_id;
+					if (s->avpf_enabled == TRUE) {
+						packet->pd->extended_control_bits_present = TRUE;
+						packet->pd->pictureid_present = TRUE;
+						packet->pd->pictureid = s->picture_id;
+					} else {
+						packet->pd->extended_control_bits_present = FALSE;
+						packet->pd->pictureid_present = FALSE;
+					}
 					if (s->flags & VPX_CODEC_USE_OUTPUT_PARTITION) {
 						packet->pd->pid = (uint8_t)pkt->data.frame.partition_id;
 						if (!(pkt->data.frame.flags & VPX_FRAME_IS_FRAGMENT)) {
