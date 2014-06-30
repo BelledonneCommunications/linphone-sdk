@@ -649,6 +649,8 @@ static void matroska_init(Matroska *obj)
 	obj->currentBlock = NULL;
 	obj->firstCluster = NULL;
 	obj->nbClusters = 0;
+	obj->segmentInfoPosition = -1;
+	obj->timecodeScale = -1;
 }
 
 static void matroska_uninit(Matroska *obj)
@@ -719,91 +721,6 @@ static ms_bool_t matroska_create_file(Matroska *obj, const char path[])
 	return TRUE;
 }
 
-//static ms_bool_t matroska_load_file(Matroska *obj)
-//{
-//	int upperLevels = 0;
-//	ebml_parser_context readContext;
-//	readContext.Context = &MATROSKA_ContextStream;
-//	readContext.EndPosition = INVALID_FILEPOS_T;
-//	readContext.Profile = 0;
-//	readContext.UpContext = NULL;
-
-//	obj->header = EBML_FindNextElement(obj->output, &readContext, &upperLevels, FALSE);
-//	EBML_ElementReadData(obj->header, obj->output, &readContext, FALSE, SCOPE_ALL_DATA, 0);
-//	readContext.Profile = ebml_reading_profile((ebml_master *)obj->header);
-
-//	obj->segment = (ebml_master *)EBML_FindNextElement(obj->output, &readContext, &upperLevels, FALSE);
-////	readContext.EndPosition = EBML_ElementPositionEnd((ebml_element *)obj->segment);
-
-////	ebml_parser_context readSegmentContext;
-////	readSegmentContext.Context = EBML_ElementContext((ebml_element *)obj->segment);
-////	readSegmentContext.EndPosition = EBML_ElementPositionEnd((ebml_element *)obj->segment);
-////	readSegmentContext.UpContext = &readContext;
-////	readSegmentContext.Profile = ebml_reading_profile((ebml_master *)obj->header);
-
-//	ebml_element *elt;
-//	for(elt = EBML_MasterChildren(obj->segment); elt != NULL; elt = EBML_MasterNext(elt))
-//	{
-//		if(EBML_ElementIsType(elt, &MATROSKA_ContextSeekHead))
-//		{
-////			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
-////			EBML_MasterAppend(obj->segment, elt);
-//			obj->metaSeek = (ebml_master*)elt;
-//			matroska_seekpoint *seekPoint;
-//			for(seekPoint = (matroska_seekpoint *)EBML_MasterChildren(obj->metaSeek); seekPoint != NULL; seekPoint = (matroska_seekpoint *)EBML_MasterNext(seekPoint))
-//			{
-//				if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextInfo))
-//				{
-//					obj->infoMeta = seekPoint;
-//				}
-//				else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextTracks))
-//				{
-//					obj->tracksMeta = seekPoint;
-//				}
-//				else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextCues))
-//				{
-//					obj->cuesMeta = seekPoint;
-//				}
-//			}
-//		}
-//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextInfo))
-//		{
-////			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
-////			EBML_MasterAppend(obj->segment, elt);
-//			obj->info = (ebml_master*)elt;
-//			obj->timecodeScale = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(obj->info, &MATROSKA_ContextTimecodeScale));
-//			MATROSKA_LinkMetaSeekElement(obj->infoMeta, (ebml_element *)obj->info);
-//		}
-//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextTracks))
-//		{
-////			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
-////			EBML_MasterAppend(obj->segment, elt);
-//			obj->tracks = (ebml_master*)elt;
-//			MATROSKA_LinkMetaSeekElement(obj->tracksMeta, (ebml_element *)obj->tracks);
-//		}
-//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextCues))
-//		{
-////			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
-////			EBML_MasterAppend(obj->segment, elt);
-//			obj->cues = (ebml_master*)elt;
-//			MATROSKA_LinkMetaSeekElement(obj->cuesMeta, (ebml_element *)obj->cues);
-//		}
-//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextCluster))
-//		{
-////			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_PARTIAL_DATA, 0);
-////			EBML_MasterAppend(obj->segment, elt);
-//			obj->cluster = (ebml_master *)elt;
-//			if(obj->nbClusters == 0)
-//			{
-//				obj->firstCluster = (ebml_element*) obj->cluster;
-//			}
-//			MATROSKA_LinkClusterBlocks((matroska_cluster *)obj->cluster, obj->segment, obj->tracks, FALSE);
-//			obj->nbClusters++;
-//		}
-//	}
-//	return TRUE;
-//}
-
 static ms_bool_t matroska_load_file(Matroska *obj)
 {
 	int upperLevels = 0;
@@ -818,21 +735,13 @@ static ms_bool_t matroska_load_file(Matroska *obj)
 	readContext.Profile = ebml_reading_profile((ebml_master *)obj->header);
 
 	obj->segment = (ebml_master *)EBML_FindNextElement(obj->output, &readContext, &upperLevels, FALSE);
-	readContext.EndPosition = EBML_ElementPositionEnd((ebml_element *)obj->segment);
-
-	ebml_parser_context readSegmentContext;
-	readSegmentContext.Context = EBML_ElementContext((ebml_element *)obj->segment);
-	readSegmentContext.EndPosition = EBML_ElementPositionEnd((ebml_element *)obj->segment);
-	readSegmentContext.UpContext = &readContext;
-	readSegmentContext.Profile = ebml_reading_profile((ebml_master *)obj->header);
+	EBML_ElementReadData(obj->segment, obj->output, &readContext, FALSE, SCOPE_PARTIAL_DATA, 0);
 
 	ebml_element *elt;
-	for(elt = EBML_FindNextElement(obj->output, &readSegmentContext, &upperLevels, FALSE); elt != NULL; elt = EBML_FindNextElement(obj->output, &readSegmentContext, &upperLevels, FALSE))
+	for(elt = EBML_MasterChildren(obj->segment); elt != NULL; elt = EBML_MasterNext(elt))
 	{
 		if(EBML_ElementIsType(elt, &MATROSKA_ContextSeekHead))
 		{
-			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
-			EBML_MasterAppend(obj->segment, elt);
 			obj->metaSeek = (ebml_master*)elt;
 			matroska_seekpoint *seekPoint;
 			for(seekPoint = (matroska_seekpoint *)EBML_MasterChildren(obj->metaSeek); seekPoint != NULL; seekPoint = (matroska_seekpoint *)EBML_MasterNext(seekPoint))
@@ -853,30 +762,22 @@ static ms_bool_t matroska_load_file(Matroska *obj)
 		}
 		else if(EBML_ElementIsType(elt, &MATROSKA_ContextInfo))
 		{
-			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
-			EBML_MasterAppend(obj->segment, elt);
 			obj->info = (ebml_master*)elt;
 			obj->timecodeScale = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(obj->info, &MATROSKA_ContextTimecodeScale));
 			MATROSKA_LinkMetaSeekElement(obj->infoMeta, (ebml_element *)obj->info);
 		}
 		else if(EBML_ElementIsType(elt, &MATROSKA_ContextTracks))
 		{
-			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
-			EBML_MasterAppend(obj->segment, elt);
 			obj->tracks = (ebml_master*)elt;
 			MATROSKA_LinkMetaSeekElement(obj->tracksMeta, (ebml_element *)obj->tracks);
 		}
 		else if(EBML_ElementIsType(elt, &MATROSKA_ContextCues))
 		{
-			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
-			EBML_MasterAppend(obj->segment, elt);
 			obj->cues = (ebml_master*)elt;
 			MATROSKA_LinkMetaSeekElement(obj->cuesMeta, (ebml_element *)obj->cues);
 		}
 		else if(EBML_ElementIsType(elt, &MATROSKA_ContextCluster))
 		{
-			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_PARTIAL_DATA, 0);
-			EBML_MasterAppend(obj->segment, elt);
 			obj->cluster = (ebml_master *)elt;
 			if(obj->nbClusters == 0)
 			{
@@ -888,6 +789,91 @@ static ms_bool_t matroska_load_file(Matroska *obj)
 	}
 	return TRUE;
 }
+
+//static ms_bool_t matroska_load_file(Matroska *obj)
+//{
+//	int upperLevels = 0;
+//	ebml_parser_context readContext;
+//	readContext.Context = &MATROSKA_ContextStream;
+//	readContext.EndPosition = INVALID_FILEPOS_T;
+//	readContext.Profile = 0;
+//	readContext.UpContext = NULL;
+
+//	obj->header = EBML_FindNextElement(obj->output, &readContext, &upperLevels, FALSE);
+//	EBML_ElementReadData(obj->header, obj->output, &readContext, FALSE, SCOPE_ALL_DATA, 0);
+//	readContext.Profile = ebml_reading_profile((ebml_master *)obj->header);
+
+//	obj->segment = (ebml_master *)EBML_FindNextElement(obj->output, &readContext, &upperLevels, FALSE);
+//	readContext.EndPosition = EBML_ElementPositionEnd((ebml_element *)obj->segment);
+
+//	ebml_parser_context readSegmentContext;
+//	readSegmentContext.Context = EBML_ElementContext((ebml_element *)obj->segment);
+//	readSegmentContext.EndPosition = EBML_ElementPositionEnd((ebml_element *)obj->segment);
+//	readSegmentContext.UpContext = &readContext;
+//	readSegmentContext.Profile = ebml_reading_profile((ebml_master *)obj->header);
+
+//	ebml_element *elt;
+//	for(elt = EBML_FindNextElement(obj->output, &readSegmentContext, &upperLevels, FALSE); elt != NULL; elt = EBML_FindNextElement(obj->output, &readSegmentContext, &upperLevels, FALSE))
+//	{
+//		if(EBML_ElementIsType(elt, &MATROSKA_ContextSeekHead))
+//		{
+//			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
+//			EBML_MasterAppend(obj->segment, elt);
+//			obj->metaSeek = (ebml_master*)elt;
+//			matroska_seekpoint *seekPoint;
+//			for(seekPoint = (matroska_seekpoint *)EBML_MasterChildren(obj->metaSeek); seekPoint != NULL; seekPoint = (matroska_seekpoint *)EBML_MasterNext(seekPoint))
+//			{
+//				if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextInfo))
+//				{
+//					obj->infoMeta = seekPoint;
+//				}
+//				else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextTracks))
+//				{
+//					obj->tracksMeta = seekPoint;
+//				}
+//				else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextCues))
+//				{
+//					obj->cuesMeta = seekPoint;
+//				}
+//			}
+//		}
+//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextInfo))
+//		{
+//			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
+//			EBML_MasterAppend(obj->segment, elt);
+//			obj->info = (ebml_master*)elt;
+//			obj->timecodeScale = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(obj->info, &MATROSKA_ContextTimecodeScale));
+//			MATROSKA_LinkMetaSeekElement(obj->infoMeta, (ebml_element *)obj->info);
+//		}
+//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextTracks))
+//		{
+//			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
+//			EBML_MasterAppend(obj->segment, elt);
+//			obj->tracks = (ebml_master*)elt;
+//			MATROSKA_LinkMetaSeekElement(obj->tracksMeta, (ebml_element *)obj->tracks);
+//		}
+//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextCues))
+//		{
+//			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_ALL_DATA, 0);
+//			EBML_MasterAppend(obj->segment, elt);
+//			obj->cues = (ebml_master*)elt;
+//			MATROSKA_LinkMetaSeekElement(obj->cuesMeta, (ebml_element *)obj->cues);
+//		}
+//		else if(EBML_ElementIsType(elt, &MATROSKA_ContextCluster))
+//		{
+//			EBML_ElementReadData(elt, obj->output, &readSegmentContext, FALSE, SCOPE_PARTIAL_DATA, 0);
+//			EBML_MasterAppend(obj->segment, elt);
+//			obj->cluster = (ebml_master *)elt;
+//			if(obj->nbClusters == 0)
+//			{
+//				obj->firstCluster = (ebml_element*) obj->cluster;
+//			}
+//			MATROSKA_LinkClusterBlocks((matroska_cluster *)obj->cluster, obj->segment, obj->tracks, FALSE);
+//			obj->nbClusters++;
+//		}
+//	}
+//	return TRUE;
+//}
 
 static int matroska_open_file(Matroska *obj, const char path[], MatroskaOpenMode mode)
 {
@@ -955,8 +941,24 @@ static int matroska_open_file(Matroska *obj, const char path[], MatroskaOpenMode
 static void matroska_close_file(Matroska *obj)
 {
 	StreamClose(obj->output);
-	NodeDelete((node *)obj->header);
-	NodeDelete((node *)obj->segment);
+	if(obj->header != NULL)
+		Node_Release((node *)obj->header);
+	if(obj->segment != NULL)
+		Node_Release((node *)obj->segment);
+	obj->output = NULL;
+	obj->header = NULL;
+	obj->segment = NULL;
+	obj->metaSeek = NULL;
+	obj->infoMeta = NULL;
+	obj->tracksMeta = NULL;
+	obj->cuesMeta = NULL;
+	obj->info = NULL;
+	obj->tracks = NULL;
+	obj->cues = NULL;
+	obj->cluster = NULL;
+	obj->currentBlock = NULL;
+	obj->firstCluster = NULL;
+	obj->nbClusters = 0;
 }
 
 static void matroska_set_doctype_version(Matroska *obj, int doctypeVersion, int doctypeReadVersion)
@@ -970,12 +972,20 @@ static inline void matroska_write_ebml_header(Matroska *obj)
 	EBML_ElementRender(obj->header, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 }
 
-static void matroska_set_segment_info(Matroska *obj, const char writingApp[], const char muxingApp[], double duration)
+static int matroska_set_segment_info(Matroska *obj, const char writingApp[], const char muxingApp[], double duration)
 {
-	EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextTimecodeScale), obj->timecodeScale);
-	EBML_StringSetValue((ebml_string*)EBML_MasterGetChild(obj->info, &MATROSKA_ContextMuxingApp), muxingApp);
-	EBML_StringSetValue((ebml_string*)EBML_MasterGetChild(obj->info, &MATROSKA_ContextWritingApp), writingApp);
-	EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextDuration), duration);
+	if(obj->timecodeScale == -1)
+	{
+		return -1;
+	}
+	else
+	{
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextTimecodeScale), obj->timecodeScale);
+		EBML_StringSetValue((ebml_string*)EBML_MasterGetChild(obj->info, &MATROSKA_ContextMuxingApp), muxingApp);
+		EBML_StringSetValue((ebml_string*)EBML_MasterGetChild(obj->info, &MATROSKA_ContextWritingApp), writingApp);
+		EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextDuration), duration);
+		return 0;
+	}
 }
 
 static inline timecode_t matroska_get_duration(const Matroska *obj)
@@ -1017,9 +1027,14 @@ static inline void matroska_mark_segment_info_position(Matroska *obj)
 	obj->segmentInfoPosition = Stream_Seek(obj->output, 0, SEEK_CUR);
 }
 
-static inline void matroska_go_to_segment_info_mark(Matroska *obj)
+static int matroska_go_to_segment_info_mark(Matroska *obj)
 {
+	if(obj->segmentInfoPosition == -1)
+	{
+		return -1;
+	}
 	Stream_Seek(obj->output, obj->segmentInfoPosition, SEEK_SET);
+	return 0;
 }
 
 static inline void matroska_go_to_file_end(Matroska *obj)
@@ -1506,17 +1521,24 @@ static inline timecode_t matroska_get_current_cluster_timestamp(const Matroska *
 
 static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame *m_frame, int trackNum, ms_bool_t isKeyFrame)
 {
-	matroska_block *block = (matroska_block *)EBML_MasterAddElt(obj->cluster, &MATROSKA_ContextSimpleBlock, FALSE);
-	block->TrackNumber = trackNum;
-	MATROSKA_LinkBlockWithReadTracks(block, obj->tracks, TRUE);
-	MATROSKA_LinkBlockWriteSegmentInfo(block, obj->info);
-	MATROSKA_BlockSetKeyframe(block, isKeyFrame);
-	MATROSKA_BlockSetDiscardable(block, FALSE);
-	timecode_t clusterTimecode = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->cluster, &MATROSKA_ContextTimecode));
-	MATROSKA_BlockAppendFrame(block, m_frame, clusterTimecode * obj->timecodeScale);
-	EBML_ElementRender((ebml_element *)block, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
-	MATROSKA_BlockReleaseData(block, TRUE);
-	return block;
+	if(obj->timecodeScale == -1)
+	{
+		return NULL;
+	}
+	else
+	{
+		matroska_block *block = (matroska_block *)EBML_MasterAddElt(obj->cluster, &MATROSKA_ContextSimpleBlock, FALSE);
+		block->TrackNumber = trackNum;
+		MATROSKA_LinkBlockWithReadTracks(block, obj->tracks, TRUE);
+		MATROSKA_LinkBlockWriteSegmentInfo(block, obj->info);
+		MATROSKA_BlockSetKeyframe(block, isKeyFrame);
+		MATROSKA_BlockSetDiscardable(block, FALSE);
+		timecode_t clusterTimecode = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->cluster, &MATROSKA_ContextTimecode));
+		MATROSKA_BlockAppendFrame(block, m_frame, clusterTimecode * obj->timecodeScale);
+		EBML_ElementRender((ebml_element *)block, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
+		MATROSKA_BlockReleaseData(block, TRUE);
+		return block;
+	}
 }
 
 /*********************************************************************************************
