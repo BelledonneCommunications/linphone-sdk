@@ -1965,9 +1965,7 @@ static int recorder_set_input_fmt(MSFilter *f, void *arg)
 			{
 				data->haveVideoTrack = TRUE;
 			}
-			const char *fmtDescriptorString = ms_fmt_descriptor_to_string(pinFmt->fmt);
-			ms_message("MKVRecorder: pin #%d set on '%s'", pinFmt->pin, fmtDescriptorString);
-			ms_free((void *)fmtDescriptorString);
+			ms_message("MKVRecorder: pin #%d set on '%s'", pinFmt->pin, ms_fmt_descriptor_to_string(pinFmt->fmt));
 			err = 0;
 		}
 	}

@@ -660,6 +660,7 @@ const char *ms_fmt_descriptor_to_string(const MSFmtDescriptor *obj){
 static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj){
 	if (obj->encoding) ms_free(obj->encoding);
 	if (obj->fmtp) ms_free(obj->fmtp);
+	if (obj->text) ms_free(obj->text);
 	ms_free(obj);
 }
 

@@ -217,6 +217,14 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	stream->output_performs_decoding = FALSE;
 	choose_display_name(stream);
 	stream->ms.process_rtcp=video_stream_process_rtcp;
+	/*
+	 * In practice, these filters are needed only for audio+video recording.
+	 */
+	if (ms_factory_lookup_filter_by_id(ms_factory_get_fallback(), MS_MKV_RECORDER_ID)){
+		stream->itcsink=ms_filter_new(MS_ITC_SINK_ID);
+		stream->tee3=ms_filter_new(MS_TEE_ID);
+	}
+	
 	return stream;
 }
 
@@ -396,7 +404,7 @@ static void configure_itc(VideoStream *stream){
 			MSPinFormat pinfmt={0};
 			pinfmt.pin=0;
 			pinfmt.fmt=fmt;
-			ms_filter_call_method(stream->itcsink,MS_FILTER_SET_OUTPUT_FMT,&pinfmt);
+			ms_filter_call_method(stream->itcsink,MS_FILTER_SET_INPUT_FMT,&pinfmt);
 		}
 	}
 }
@@ -527,13 +535,6 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			/* big problem: we don't have a registered decoderfor this payload...*/
 			ms_error("videostream.c: No decoder available for payload %i:%s.",payload,pt->mime_type);
 			return -1;
-		}
-		/*
-		 * In practice, these filters are needed only for audio+video recording.
-		 */
-        if (ms_factory_lookup_filter_by_id(ms_factory_get_fallback(), MS_MKV_RECORDER_ID)){
-			stream->itcsink=ms_filter_new(MS_ITC_SINK_ID);
-			stream->tee3=ms_filter_new(MS_TEE_ID);
 		}
 
 		/* display logic */

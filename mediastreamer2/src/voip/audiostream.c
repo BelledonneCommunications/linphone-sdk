@@ -45,6 +45,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	#include <netdb.h>
 #endif
 
+static void configure_av_recorder(AudioStream *stream);
+
 static void audio_stream_free(AudioStream *stream) {
 	media_stream_free(&stream->ms);
 	if (stream->soundread!=NULL) ms_filter_destroy(stream->soundread);
@@ -290,6 +292,13 @@ static float audio_stream_get_rtcp_xr_average_lq_quality_rating(unsigned long us
 	return audio_stream_get_average_lq_quality_rating(stream);
 }
 
+static void video_input_updated(void *stream, MSFilter *f, unsigned int event_id, void *arg){
+	if (event_id==MS_ITC_SOURCE_UPDATED){
+		ms_message("Video ITC source updated.");
+		configure_av_recorder((AudioStream*)stream);
+	}
+}
+
 static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannels){
 	stream->av_recorder.recorder=ms_filter_new(MS_MKV_RECORDER_ID);
 	if (stream->av_recorder.recorder){
@@ -323,6 +332,7 @@ static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannel
 		pinfmt.pin=1;
 		ms_message("Configuring av recorder with audio format %s",ms_fmt_descriptor_to_string(pinfmt.fmt));
 		ms_filter_call_method(stream->av_recorder.recorder,MS_FILTER_SET_INPUT_FMT,&pinfmt);
+		ms_filter_add_notify_callback(stream->av_recorder.video_input,video_input_updated,stream,TRUE);
 	}
 }
 
@@ -1112,6 +1122,7 @@ static void configure_av_recorder(AudioStream *stream){
 
 void audio_stream_link_video(AudioStream *stream, VideoStream *video){
 	if (stream->av_recorder.video_input && video->itcsink){
+		ms_message("audio_stream_link_video() connecting itc filters");
 		ms_filter_call_method(video->itcsink,MS_ITC_SINK_CONNECT,stream->av_recorder.video_input);
 		configure_av_recorder(stream);
 	}
