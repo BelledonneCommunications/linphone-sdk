@@ -1406,10 +1406,22 @@ static inline void matroska_write_tracks(Matroska *obj)
 	MATROSKA_MetaSeekUpdate(obj->tracksMeta);
 }
 
-static inline void matroska_write_cues(Matroska *obj)
+static int matroska_write_cues(Matroska *obj)
 {
-	EBML_ElementRender((ebml_element *)obj->cues, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
-	MATROSKA_MetaSeekUpdate(obj->cuesMeta);
+	if(EBML_MasterChildren(obj->cues) != NULL)
+	{
+		EBML_ElementRender((ebml_element *)obj->cues, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
+		MATROSKA_MetaSeekUpdate(obj->cuesMeta);
+		return 0;
+	}
+	else
+	{
+		EBML_MasterRemove(obj->segment, (ebml_element *)obj->cues);
+		EBML_MasterRemove(obj->metaSeek, (ebml_element *)obj->cuesMeta);
+		Node_Release((node *)obj->cues);
+		Node_Release((node *)obj->cuesMeta);
+		return -1;
+	}
 }
 
 static inline void matroska_write_metaSeek(Matroska *obj)
@@ -1666,7 +1678,7 @@ static int recorder_open_file(MSFilter *f, void *arg)
 		}
 		else
 		{
-			if(!obj->openMode)
+			if(obj->openMode == MKV_OPEN_CREATE)
 			{
 				matroska_set_doctype_version(&obj->file, MKV_DOCTYPE_VERSION, MKV_DOCTYPE_READ_VERSION);
 				matroska_write_ebml_header(&obj->file);
@@ -1874,9 +1886,12 @@ static int recorder_close(MSFilter *f, void *arg)
 
 
 		matroska_close_cluster(&obj->file);
-		matroska_write_cues(&obj->file);
+		if(matroska_write_cues(&obj->file) != 0)
+		{
+			ms_warning("MKVRecorder: no cues written");
+		}
 
-		if(!obj->openMode)
+		if(obj->openMode == MKV_OPEN_CREATE)
 		{
 			matroska_go_to_segment_info_mark(&obj->file);
 		}
