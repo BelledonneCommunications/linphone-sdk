@@ -152,6 +152,7 @@ struct belle_sip_dual_resolver_context{
 
 void belle_sip_resolver_context_init(belle_sip_resolver_context_t *obj, belle_sip_stack_t *stack){
 	obj->stack=stack;
+	belle_sip_init_sockets(); /* Need to be called for DNS resolution to work on Windows platform. */
 }
 
 static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx) {
