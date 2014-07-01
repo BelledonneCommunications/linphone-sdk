@@ -1233,26 +1233,26 @@ static int matroska_add_track(Matroska *obj, int trackNum, const char codecID[])
 	}
 }
 
-//static int matroska_del_track(Matroska *obj, int trackNum)
-//{
-//	ebml_element *track = matroska_find_track(obj, trackNum);
-//	if(track == NULL)
-//	{
-//		return -1;
-//	}
-//	else
-//	{
-//		if(EBML_MasterRemove(obj->tracks, track) != ERR_NONE)
-//		{
-//			return -2;
-//		}
-//		else
-//		{
-//			NodeDelete((node *)track);
-//			return 0;
-//		}
-//	}
-//}
+static int matroska_del_track(Matroska *obj, int trackNum)
+{
+	ebml_element *track = matroska_find_track(obj, trackNum);
+	if(track == NULL)
+	{
+		return -1;
+	}
+	else
+	{
+		if(EBML_MasterRemove(obj->tracks, track) != ERR_NONE)
+		{
+			return -2;
+		}
+		else
+		{
+			NodeDelete((node *)track);
+			return 0;
+		}
+	}
+}
 
 static int matroska_get_default_track_num(Matroska *obj, int trackType)
 {
@@ -1354,6 +1354,41 @@ static int matroska_track_get_codec_id(const Matroska *obj, int trackNum, char *
 			EBML_StringGet(codecIdElt, codecId, size);
 			return 0;
 		}
+	}
+}
+
+static ms_bool_t matroska_track_check_block_presence(Matroska *obj, int trackNum)
+{
+	ebml_element *elt1;
+	for(elt1 = EBML_MasterChildren(obj->segment); elt1 != NULL; elt1 = EBML_MasterNext(elt1))
+	{
+		if(EBML_ElementIsType(elt1, &MATROSKA_ContextCluster))
+		{
+			ebml_element *cluster = elt1, *elt2;
+			for(elt2 = EBML_MasterChildren(cluster); elt2 != NULL; elt2 = EBML_MasterNext(elt2))
+			{
+				if(EBML_ElementIsType(elt2, &MATROSKA_ContextSimpleBlock))
+				{
+					matroska_block *block = (matroska_block *)elt2;
+					if(MATROSKA_BlockTrackNum(block) == trackNum)
+					{
+						break;
+					}
+				}
+			}
+			if(elt2 != NULL)
+			{
+				break;
+			}
+		}
+	}
+	if(elt1 == NULL)
+	{
+		return FALSE;
+	}
+	else
+	{
+		return TRUE;
 	}
 }
 
@@ -1876,11 +1911,18 @@ static int recorder_close(MSFilter *f, void *arg)
 			}
 			if(obj->inputDescsList[i] != NULL && f->inputs[i] != NULL)
 			{
-				uint8_t *codecPrivateData;
-				size_t codecPrivateDataSize;
-				module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
-				matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
-				ms_free(codecPrivateData);
+				if(matroska_track_check_block_presence(&obj->file, i+1))
+				{
+					uint8_t *codecPrivateData;
+					size_t codecPrivateDataSize;
+					module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
+					matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
+					ms_free(codecPrivateData);
+				}
+				else
+				{
+					matroska_del_track(&obj->file, i+1);
+				}
 			}
 		}
 
