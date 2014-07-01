@@ -64,6 +64,7 @@ void BelleSipTesterNative::run(Platform::String^ suiteName, Platform::String^ ca
 	belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
 	CU_set_trace_handler(nativeOutputTraceHandler);
 
+	belle_sip_tester_set_root_ca_path("Assets/rootca.pem");
 	belle_sip_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename);
 }
 

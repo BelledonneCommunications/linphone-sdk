@@ -193,6 +193,7 @@ int register_init(void) {
 	if (lp) {
 		/* since test.linphone.org does not have proper certificates, don't verify anything*/
 		belle_sip_tls_listening_point_set_verify_exceptions(BELLE_SIP_TLS_LISTENING_POINT(lp),BELLE_SIP_TLS_LISTENING_POINT_BADCERT_ANY_REASON);
+		belle_sip_tls_listening_point_set_root_ca(BELLE_SIP_TLS_LISTENING_POINT(lp), belle_sip_tester_get_root_ca_path());
 		belle_sip_provider_add_listening_point(prov,lp);
 	}
 

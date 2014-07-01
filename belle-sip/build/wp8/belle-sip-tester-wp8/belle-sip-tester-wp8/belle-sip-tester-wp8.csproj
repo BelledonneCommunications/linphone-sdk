@@ -129,6 +129,9 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\rootca.pem">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="Properties\AppManifest.xml" />
     <None Include="Properties\WMAppManifest.xml">
       <SubType>Designer</SubType>

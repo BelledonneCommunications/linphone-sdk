@@ -29,8 +29,8 @@
 
 extern const char *test_domain;
 extern const char *auth_domain;
-const char *root_ca_path = NULL;
 
+static const char *belle_sip_tester_root_ca_path = NULL;
 static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
 
@@ -123,7 +123,7 @@ int belle_sip_tester_ipv6_available(void){
 	return ipv6_available;
 }
 
-void belle_sip_tester_init(void) {
+void belle_sip_tester_init(const char *root_ca_path) {
 	belle_sip_object_enable_marshal_check(TRUE);
 	ipv6_available=_belle_sip_tester_ipv6_available();
 	add_test_suite(&cast_test_suite);
@@ -139,6 +139,14 @@ void belle_sip_tester_init(void) {
 	add_test_suite(&dialog_test_suite);
 	add_test_suite(&refresher_test_suite);
 	add_test_suite(&http_test_suite);
+}
+
+const char * belle_sip_tester_get_root_ca_path(void) {
+	return belle_sip_tester_root_ca_path;
+}
+
+void belle_sip_tester_set_root_ca_path(const char *root_ca_path) {
+	belle_sip_tester_root_ca_path = root_ca_path;
 }
 
 
@@ -233,6 +241,7 @@ void helper(const char *name) {
 int main (int argc, char *argv[]) {
 	int i;
 	int ret;
+	const char *root_ca_path = NULL;
 	const char *suite_name=NULL;
 	const char *test_name=NULL;
 	const char *env_domain=getenv("TEST_DOMAIN");
@@ -294,6 +303,7 @@ int main (int argc, char *argv[]) {
 		}
 	}
 
+	belle_sip_tester_set_root_ca_path(root_ca_path);
 	ret = belle_sip_tester_run_tests(suite_name, test_name);
 	belle_sip_tester_uninit();
 	return ret;

@@ -22,8 +22,6 @@
 #include "belle_sip_tester.h"
 #include <belle_sip_internal.h>
 
-extern const char *root_ca_path;
-
 typedef struct http_counters{
 	int response_headers_count;
 	int response_count;
@@ -83,9 +81,9 @@ static belle_http_provider_t *prov=NULL;
 static int http_init(void){
 	stack=belle_sip_stack_new(NULL);
 	prov=belle_sip_stack_create_http_provider(stack,"0.0.0.0");
-	if (root_ca_path != NULL) {
+	if (belle_sip_tester_get_root_ca_path() != NULL) {
 		belle_tls_verify_policy_t *policy=belle_tls_verify_policy_new();
-		belle_tls_verify_policy_set_root_ca(policy,root_ca_path);
+		belle_tls_verify_policy_set_root_ca(policy,belle_sip_tester_get_root_ca_path());
 		belle_http_provider_set_tls_verify_policy(prov,policy);
 	}
 	return 0;
