@@ -95,7 +95,7 @@ typedef struct _stream_manager_t {
 
 } stream_manager_t ;
 
-static stream_manager_t * stream_manager_new(StreamType type) {
+stream_manager_t * stream_manager_new(StreamType type) {
 	stream_manager_t * mgr = ms_new0(stream_manager_t,1);
 	mgr->type=type;
 	mgr->local_rtp=(rand() % ((2^16)-1024) + 1024) & ~0x1;
@@ -118,7 +118,7 @@ static stream_manager_t * stream_manager_new(StreamType type) {
 	return mgr;
 }
 
-static void stream_manager_delete(stream_manager_t * mgr) {
+void stream_manager_delete(stream_manager_t * mgr) {
 
 	if (mgr->type==AudioStreamType){
 		unlink(RECORDED_16K_1S_FILE);
@@ -136,7 +136,7 @@ static void stream_manager_delete(stream_manager_t * mgr) {
 	ms_free(mgr);
 }
 
-static void audio_manager_start(stream_manager_t * mgr
+void audio_manager_start(stream_manager_t * mgr
 								,int payload_type
 								,int remote_port
 								,int target_bitrate
@@ -161,7 +161,7 @@ static void audio_manager_start(stream_manager_t * mgr
 }
 
 #if VIDEO_ENABLED
-static void video_manager_start(	stream_manager_t * mgr
+void video_manager_start(	stream_manager_t * mgr
 									,int payload_type
 									,int remote_port
 									,int target_bitrate
@@ -182,7 +182,7 @@ static void video_manager_start(	stream_manager_t * mgr
 }
 #endif
 
-static void handle_queue_events(stream_manager_t * stream_mgr) {
+void handle_queue_events(stream_manager_t * stream_mgr) {
 	OrtpEvent *ev;
 	while (NULL != (ev=ortp_ev_queue_get(stream_mgr->evq))){
 		OrtpEventType evt=ortp_event_get_type(ev);
@@ -214,7 +214,7 @@ static void handle_queue_events(stream_manager_t * stream_mgr) {
 	}
 }
 
-static void start_adaptive_stream(StreamType type, stream_manager_t ** pmarielle, stream_manager_t ** pmargaux,
+void start_adaptive_stream(StreamType type, stream_manager_t ** pmarielle, stream_manager_t ** pmargaux,
 	int payload, int initial_bitrate, int target_bw, float loss_rate, int latency, float dup_ratio) {
 	int pause_time=0;
 	PayloadType* pt;
@@ -266,7 +266,7 @@ static void start_adaptive_stream(StreamType type, stream_manager_t ** pmarielle
 	rtp_session_enable_network_simulation(margaux_ms->sessions.rtp_session,&params);
 }
 
-static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_t * margaux,
+void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_t * margaux,
 	int timeout_ms, int* current, int expected){
 	int retry=0;
 
@@ -280,22 +280,107 @@ static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_
 	}
 
 	while ((!current||*current<expected) && retry++ <timeout_ms/100) {
+		ms_usleep(100000);
 		media_stream_iterate(marielle_ms);
 		media_stream_iterate(margaux_ms);
 		handle_queue_events(marielle);
 		if (retry%10==0) {
-			 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	,
+			 ms_message("stream [%p] bandwidth usage (marielle): [d=%.1f,u=%.1f] kbit/sec"	,
 				marielle_ms, media_stream_get_down_bw(marielle_ms)/1000, media_stream_get_up_bw(marielle_ms)/1000);
-			 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	,
+			 ms_message("stream [%p] bandwidth usage (margaux): [d=%.1f,u=%.1f] kbit/sec"	,
 				margaux_ms, media_stream_get_down_bw(margaux_ms)/1000, media_stream_get_up_bw(margaux_ms)/1000);
 		 }
-		ms_usleep(100000);
 	}
 }
 
-static void stop_adaptive_stream(stream_manager_t *marielle, stream_manager_t *margaux){
+void stop_adaptive_stream(stream_manager_t *marielle, stream_manager_t *margaux){
 	stream_manager_delete(marielle);
 	stream_manager_delete(margaux);
+}
+
+
+
+
+
+static void packet_duplication() {
+	const rtp_stats_t *stats;
+	double dup_ratio;
+	stream_manager_t * marielle, * margaux;
+	bool_t supported = ms_filter_codec_supported("vp8");
+	if (supported) {
+		dup_ratio = 0;
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
+		media_stream_enable_adaptive_bitrate_control(&marielle->video_stream->ms,FALSE);
+		iterate_adaptive_stream(marielle, margaux, 80000, &marielle->rtcp_count, 2);
+		stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
+		CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
+		/*in theory, cumulative loss should be the invert of duplicated count, but
+		since cumulative loss is computed only on received RTCP report and duplicated
+		count is updated on each RTP packet received, we cannot accurately compare these values*/
+		CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
+		stop_adaptive_stream(marielle,margaux);
+
+		dup_ratio = 1;
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
+		media_stream_enable_adaptive_bitrate_control(&marielle->video_stream->ms,FALSE);
+		iterate_adaptive_stream(marielle, margaux, 80000, &marielle->rtcp_count, 2);
+		stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
+		CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
+		CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
+		stop_adaptive_stream(marielle,margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
+}
+
+static void upload_bandwidth_computation() {
+	bool_t supported = ms_filter_codec_supported("pcma");
+	if( supported ) {
+		stream_manager_t * marielle, * margaux;
+		int i;
+
+		start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, 0, 0, 0);
+		media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
+
+		for (i = 0; i < 5; i++){
+			rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
+			iterate_adaptive_stream(marielle, margaux, 80000, &marielle->rtcp_count, 2*(i+1));
+			/*since PCMA uses 80kbit/s, upload bandwidth should just be 80+80*duplication_ratio kbit/s */
+			CU_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 1.f);
+		}
+		stop_adaptive_stream(marielle,margaux);
+	} else {
+		ms_error("PCMA codec is not supported!");
+	}
+}
+
+static void stability_network_detection() {
+	stream_manager_t * marielle, * margaux;
+	bool_t supported = ms_filter_codec_supported("vp8");
+	if (supported) {
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500, 0);
+
+		if (ms_bitrate_controller_get_qos_analyzer(marielle->video_stream->ms.rc)->type!=Stateful){
+			stop_adaptive_stream(marielle,margaux);
+			return;
+		}
+
+		iterate_adaptive_stream(marielle, margaux, 80000, &marielle->rtcp_count, 9);
+		CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkFine);
+		stop_adaptive_stream(marielle,margaux);
+
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000, 0, 250,0);
+		iterate_adaptive_stream(marielle, margaux, 80000, &marielle->rtcp_count, 9);
+		CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkCongested);
+		stop_adaptive_stream(marielle,margaux);
+
+		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250,0);
+		iterate_adaptive_stream(marielle, margaux, 80000, &marielle->rtcp_count, 9);
+		CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkLossy);
+		stop_adaptive_stream(marielle,margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
 }
 
 static void adaptive_opus_audio_stream()  {
@@ -306,28 +391,28 @@ static void adaptive_opus_audio_stream()  {
 		float bw_usage;
 		stream_manager_t * marielle, * margaux;
 
-		// on EDGEBW, both should be overconsumming
+		// on EDGEBW, both should be over consuming
 		start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 16000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
-		CU_ASSERT_IN_RANGE(bw_usage, 2.f, 3.f); // bad! since this codec cant change its ptime and it is the lower bitrate, no improvement can occur
+		CU_ASSERT_IN_RANGE(bw_usage, 1.5f, 3.f); // bad! since this codec cant change its ptime and it is the lower bitrate, no improvement can occur
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 48000, EDGE_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 16000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
-		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 1.4f); // bad!
+		CU_ASSERT_IN_RANGE(bw_usage, 3.5f, 5.5f); // bad!
 		stop_adaptive_stream(marielle,margaux);
 
 		// on 3G BW, both should be at max
 		start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 16000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./THIRDGENERATION_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, .1f, .15f);
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(AudioStreamType, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 48000, THIRDGENERATION_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 16000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./THIRDGENERATION_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, .2f, .3f);
 		stop_adaptive_stream(marielle,margaux);
@@ -345,7 +430,7 @@ static void adaptive_speex16_audio_stream()  {
 		stream_manager_t * marielle, * margaux;
 
 		start_adaptive_stream(AudioStreamType, &marielle, &margaux, SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW / 2., 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 16000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./(EDGE_BW / 2.);
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 5.f);
 		stop_adaptive_stream(marielle,margaux);
@@ -363,13 +448,13 @@ static void adaptive_pcma_audio_stream() {
 
 		// yet non-adaptative codecs cannot respect low throughput limitations
 		start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 16000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
 		CU_ASSERT_IN_RANGE(bw_usage,6.f, 8.f); // this is bad!
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 16000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./THIRDGENERATION_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, .3f, .5f);
 		stop_adaptive_stream(marielle,margaux);
@@ -378,106 +463,45 @@ static void adaptive_pcma_audio_stream() {
 	}
 }
 
-static void upload_bandwidth_computation() {
-	bool_t supported = ms_filter_codec_supported("pcma");
-	if( supported ) {
-		stream_manager_t * marielle, * margaux;
-		int i;
-
-		start_adaptive_stream(AudioStreamType, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, 0, 0, 0);
-		media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
-
-		for (i = 0; i < 5; i++){
-			rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
-			iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2*(i+1));
-			/*since PCMA uses 80kbit/s, upload bandwidth should just be 80+80*duplication_ratio kbit/s */
-			CU_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 1.f);
-		}
-		stop_adaptive_stream(marielle,margaux);
-	} else {
-		ms_error("PCMA codec is not supported!");
-	}
-}
-
-static void stability_network_detection() {
-	stream_manager_t * marielle, * margaux;
-	bool_t supported = ms_filter_codec_supported("vp8");
-	if (supported) {
-		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 500, 0);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
-		CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkFine);
-		stop_adaptive_stream(marielle,margaux);
-
-		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000, 0, 250,0);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
-		CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkCongested);
-		stop_adaptive_stream(marielle,margaux);
-
-		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 15, 250,0);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 9);
-		CU_ASSERT_EQUAL(marielle->adaptive_stats.network_state, MSQosAnalyzerNetworkLossy);
-		stop_adaptive_stream(marielle,margaux);
-	} else {
-		ms_error("VP8 codec is not supported!");
-	}
-}
-
-static void adaptive_vp8() {
+static void adaptive_vp8_video_stream() {
 	stream_manager_t * marielle, * margaux;
 
 	bool_t supported = ms_filter_codec_supported("vp8");
 	if (supported) {
 		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 25, 50, 0);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
-		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 20, 30);
-		CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim > 200);
+		iterate_adaptive_stream(marielle, margaux, 80000, &marielle->rtcp_count, 12);
+		CU_ASSERT_IN_RANGE(media_stream_get_up_bw(&marielle->video_stream->ms)/1000.f, 100, 1000);
+		if (ms_bitrate_controller_get_qos_analyzer(marielle->video_stream->ms.rc)->type==Stateful){
+			CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 20, 30);
+			CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim > 200);
+		}
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 45000, 0, 50,0);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
-		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
-		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 30, 60);
+		iterate_adaptive_stream(marielle, margaux, 80000, &marielle->rtcp_count, 12);
+		CU_ASSERT_IN_RANGE(media_stream_get_up_bw(&marielle->video_stream->ms)/1000.f, 35, 80);
+		if (ms_bitrate_controller_get_qos_analyzer(marielle->video_stream->ms.rc)->type==Stateful){
+			CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
+			CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 30, 60);
+		}
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50,0);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
-		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
-		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 50, 95);
+		iterate_adaptive_stream(marielle, margaux, 80000, &marielle->rtcp_count, 12);
+		CU_ASSERT_IN_RANGE(media_stream_get_up_bw(&marielle->video_stream->ms)/1000.f, 60, 100);
+		if (ms_bitrate_controller_get_qos_analyzer(marielle->video_stream->ms.rc)->type==Stateful){
+			CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
+			CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 50, 95);
+		}
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50,0);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
-		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 10, 20);
-		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 80, 125);
-		stop_adaptive_stream(marielle,margaux);
-	} else {
-		ms_error("VP8 codec is not supported!");
-	}
-}
-
-static void packet_duplication() {
-	const rtp_stats_t *stats;
-	double dup_ratio;
-	stream_manager_t * marielle, * margaux;
-	bool_t supported = ms_filter_codec_supported("vp8");
-	if (supported) {
-		dup_ratio = 0;
-		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
-		stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
-		CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
-		/*in theory, cumulative loss should be the invert of duplicated count, but
-		since cumulative loss is computed only on received RTCP report and duplicated
-		count is updated on each RTP packet received, we cannot accurately compare these values*/
-		CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
-		stop_adaptive_stream(marielle,margaux);
-
-		dup_ratio = 1;
-		start_adaptive_stream(VideoStreamType, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,dup_ratio);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
-		stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
-		CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
-		CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
+		iterate_adaptive_stream(marielle, margaux, 80000, &marielle->rtcp_count, 12);
+		CU_ASSERT_IN_RANGE(media_stream_get_up_bw(&marielle->video_stream->ms)/1000.f, 50, 110);
+		if (ms_bitrate_controller_get_qos_analyzer(marielle->video_stream->ms.rc)->type==Stateful){
+			CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 10, 20);
+			CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 80, 125);
+		}
 		stop_adaptive_stream(marielle,margaux);
 	} else {
 		ms_error("VP8 codec is not supported!");
@@ -492,11 +516,11 @@ static test_t tests[] = {
 #ifdef VIDEO_ENABLED
 	{ "StabilityDetection", stability_network_detection },
 #endif
-	{ "AdaptiveAudioStreamOPUS", adaptive_opus_audio_stream },
-	{ "AdaptiveAudioStreamSPEEX", adaptive_speex16_audio_stream },
-	{ "AdaptiveAudioStreamPCMA", adaptive_pcma_audio_stream },
+	{ "AdaptiveOPUS", adaptive_opus_audio_stream },
+	{ "AdaptiveSPEEX", adaptive_speex16_audio_stream },
+	{ "AdaptivePCMA", adaptive_pcma_audio_stream },
 #ifdef VIDEO_ENABLED
-	{ "AdaptiveVideoStreamVP8", adaptive_vp8 },
+	{ "AdaptiveVP8", adaptive_vp8_video_stream },
 #endif
 };
 

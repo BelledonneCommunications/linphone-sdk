@@ -540,8 +540,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	if (stream->ms.use_rc){
 		stream->ms.rc=
+#if LINPHONE_NEW_WIP_QOS_ANALYZER_ALGO
+			ms_bandwidth_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder, NULL, NULL);
+#else
 			ms_audio_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder,0);
-			// ms_bandwidth_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder, NULL, NULL);
+#endif
 	}
 
 	/* Create generic PLC if not handled by the decoder directly*/

@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SIGNAL_SAMPLE_SIZE  2 // 2 bytes per sample
 
 /* Define codec specific settings */
-#define FRAME_LENGTH			20 // ptime may be 20, 40, 60, 80, 100 or 120, packets composed of multiples 20ms frames 
+#define FRAME_LENGTH			20 // ptime may be 20, 40, 60, 80, 100 or 120, packets composed of multiples 20ms frames
 #define MAX_BYTES_PER_FRAME     500 // Equals peak bitrate of 200 kbps
 #define MAX_INPUT_FRAMES        6
 
@@ -192,7 +192,7 @@ static void ms_opus_enc_process(MSFilter *f) {
 		}
 
 		if (ret > 0) {
-			om = allocb(totalLength+frameNumber + 1, 0); /* opus repacktizer API: allocate at leat number of frame + size of all data added before */ 
+			om = allocb(totalLength+frameNumber + 1, 0); /* opus repacktizer API: allocate at leat number of frame + size of all data added before */
 			ret = opus_repacketizer_out(rp, om->b_wptr, totalLength+frameNumber);
 
 			om->b_wptr += ret;
@@ -298,7 +298,7 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 
 
 static void apply_max_bitrate(OpusEncData *d) {
-	ms_message("Setting opus codec birate to [%i] from network bitrate [%i] with ptime [%i]", d->bitrate, d->max_network_bitrate, d->ptime);
+	ms_message("Setting opus codec bitrate to [%i] from network bitrate [%i] with ptime [%i]", d->bitrate, d->max_network_bitrate, d->ptime);
 	/* give the bitrate to the encoder if exists*/
 	if (d->state) {
 		opus_int32 maxBandwidth;

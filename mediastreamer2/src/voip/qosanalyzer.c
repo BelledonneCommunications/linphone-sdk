@@ -491,14 +491,19 @@ static void stateful_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateContr
 
 	float curbw = obj->latest ? obj->latest->bandwidth : 0.f;
 	float bw = compute_available_bw(obj);
+	rtcpstatspoint_t* greatest_pt = ms_list_size(obj->rtcpstatspoint) ?
+		(rtcpstatspoint_t*)ms_list_nth_data(obj->rtcpstatspoint, ms_list_size(obj->rtcpstatspoint)-1)
+		: NULL;
 
 	/*try a burst every 50 seconds (10 RTCP packets)*/
 	if (obj->curindex % 10 == 0){
 		ms_message("MSStatefulQosAnalyzer[%p]: try burst!", obj);
 		obj->burst_state = MSStatefulQosAnalyzerBurstEnable;
 	}
-	/*test a min burst to avoid overestimation of available bandwidth*/
-	else if (obj->curindex % 10 == 2 || obj->curindex % 10 == 3){
+	/*test a min burst to avoid overestimation of available bandwidth but only
+	if there is some loss*/
+	else if (greatest_pt!=NULL && greatest_pt->loss_percent>1
+			&& (obj->curindex % 10 == 2 || obj->curindex % 10 == 3)){
 		ms_message("MSStatefulQosAnalyzer[%p]: try minimal burst!", obj);
 		bw *= .33;
 	}
