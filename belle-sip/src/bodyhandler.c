@@ -274,9 +274,9 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 	belle_sip_multipart_body_handler_t *obj_multipart=(belle_sip_multipart_body_handler_t*)obj;
 
 	if (obj_multipart->parts->data) { /* we have a part, get its content from handler */
+		int retval = BELLE_SIP_STOP;
 		belle_sip_body_handler_t *current_part = (belle_sip_body_handler_t *)obj_multipart->parts->data;
 		*size -= strlen(MULTIPART_END); /* just in case it will be the end of the message, ask for less characters than possible in order to be able to add the multipart message termination */
-		int retval = BELLE_SIP_STOP;
 
 		if (offset == 0) { /* This is the first part, include a boundary */
 			*size -= strlen(MULTIPART_SEPARATOR);
