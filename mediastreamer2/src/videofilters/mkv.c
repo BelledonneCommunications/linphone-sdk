@@ -1810,8 +1810,17 @@ static void recorder_process(MSFilter *f)
 	int i;
 
 	ms_filter_lock(f);
-	if(obj->state == MSRecorderRunning)
+	if(obj->state != MSRecorderRunning)
 	{
+		for(i=0; i < f->desc->ninputs; i++)
+		{
+			if(f->inputs[i])
+				ms_queue_flush(f->inputs[i]);
+		}
+	}
+	else
+	{
+		int pin;
 		mblk_t *buffer;
 		for(i=0; i < f->desc->ninputs; i++)
 		{
@@ -1859,18 +1868,20 @@ static void recorder_process(MSFilter *f)
 			}
 		}
 
-		int pin;
 		while((buffer = muxer_get_buffer(&obj->muxer, &pin)) != NULL)
 		{
+			matroska_block *block;
+			timecode_t bufferTimecode;
+
 			if(obj->firstFrame)
 			{
 				obj->timeOffset = obj->duration - mblk_get_timestamp_info(buffer) + 1;
 				obj->firstFrame = FALSE;
 			}
 			mblk_set_timestamp_info(buffer, mblk_get_timestamp_info(buffer) + obj->timeOffset);
-			timecode_t bufferTimecode = mblk_get_timestamp_info(buffer);
+			bufferTimecode = mblk_get_timestamp_info(buffer);
 
-			matroska_block *block = write_frame(obj, buffer, pin);
+			block = write_frame(obj, buffer, pin);
 
 			if(obj->inputDescsList[pin]->type == MSVideo || !obj->haveVideoTrack)
 			{
@@ -1880,15 +1891,6 @@ static void recorder_process(MSFilter *f)
 			{
 				obj->duration = bufferTimecode;
 			}
-		}
-	}
-	else
-	{
-		int i;
-		for(i=0; i < f->desc->ninputs; i++)
-		{
-			if(f->inputs[i])
-				ms_queue_flush(f->inputs[i]);
 		}
 	}
 	ms_filter_unlock(f);
