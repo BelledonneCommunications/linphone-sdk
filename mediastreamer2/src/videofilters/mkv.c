@@ -452,32 +452,18 @@ const ModuleDesc const *moduleDescs[] = {
 	NULL
 };
 
-static int find_module_id(const char *rfcName)
+static int find_module_id_from_rfc_name(const char *rfcName)
 {
-	int i;
-	for(i=0; moduleDescs[i] != NULL && strcmp(moduleDescs[i]->rfcName, rfcName) != 0; i++);
-	if(moduleDescs[i] == NULL)
-	{
-		return -1;
-	}
-	else
-	{
-		return i;
-	}
+	int id;
+	for(id=0; moduleDescs[id] != NULL && strcmp(moduleDescs[id]->rfcName, rfcName) != 0; id++);
+	return id;
 }
 
-static int find_module_id_by_codec_id(const char *codecId)
+static int find_module_id_from_codec_id(const char *codecId)
 {
-	int i;
-	for(i=0; moduleDescs[i] != NULL && strcmp(moduleDescs[i]->codecId, codecId) != 0; i++);
-	if(moduleDescs[i] == NULL)
-	{
-		return -1;
-	}
-	else
-	{
-		return i;
-	}
+	int id;
+	for(id=0; moduleDescs[id] != NULL && strcmp(moduleDescs[id]->codecId, codecId) != 0; id++);
+	return id;
 }
 
 /*********************************************************************************************
@@ -491,7 +477,7 @@ typedef struct
 
 static Module *module_new(const char *rfcName)
 {
-	ModuleId id = find_module_id(rfcName);
+	ModuleId id = find_module_id_from_rfc_name(rfcName);
 	if(id == NONE_ID)
 	{
 		return NULL;
@@ -2088,7 +2074,7 @@ static int player_open_file(MSFilter *f, void *arg)
 			{
 				if(matroska_track_get_codec_id(&obj->file, trackNum, codecId, 256) == 0)
 				{
-					obj->videoModuleId = find_module_id_by_codec_id(codecId);
+					obj->videoModuleId = find_module_id_from_codec_id(codecId);
 					if(obj->videoModuleId > -1)
 					{
 						moduleDescs[obj->videoModuleId]->new_module(&obj->videoModule);
@@ -2099,7 +2085,7 @@ static int player_open_file(MSFilter *f, void *arg)
 			{
 				if(matroska_track_get_codec_id(&obj->file, trackNum, codecId, 256) == 0)
 				{
-					obj->audioModuleId = find_module_id_by_codec_id(codecId);
+					obj->audioModuleId = find_module_id_from_codec_id(codecId);
 					if(obj->audioModuleId > -1)
 					{
 						moduleDescs[obj->audioModuleId]->new_module(&obj->audioModule);
