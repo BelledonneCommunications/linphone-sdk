@@ -3508,7 +3508,7 @@ struct dns_hosts *dns_hosts_mortal(struct dns_hosts *hosts) {
 	return hosts;
 } /* dns_hosts_mortal() */
 
-
+#ifdef WINAPI_FAMILY_PHONE_APP
 static int dns_hosts_add_localhost(struct dns_hosts *hosts) {
 	struct dns_hosts_entry ent;
 	memset(&ent, '\0', sizeof(ent));
@@ -3523,6 +3523,7 @@ static int dns_hosts_add_localhost(struct dns_hosts *hosts) {
 	dns_hosts_insert(hosts, ent.af, &ent.addr, ent.host, 1);
 	return 0;
 }
+#endif
 
 struct dns_hosts *dns_hosts_local(int *error_) {
 	struct dns_hosts *hosts;

@@ -123,7 +123,7 @@ int belle_sip_tester_ipv6_available(void){
 	return ipv6_available;
 }
 
-void belle_sip_tester_init(const char *root_ca_path) {
+void belle_sip_tester_init() {
 	belle_sip_object_enable_marshal_check(TRUE);
 	ipv6_available=_belle_sip_tester_ipv6_available();
 	add_test_suite(&cast_test_suite);
