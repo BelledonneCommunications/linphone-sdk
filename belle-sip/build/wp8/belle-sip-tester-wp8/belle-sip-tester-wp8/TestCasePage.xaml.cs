@@ -37,6 +37,7 @@ namespace belle_sip_tester_wp8
         {
             UnitTestCaseName test = (sender as LongListSelector).SelectedItem as UnitTestCaseName;
             if (test == null) return;
+            test.Name = test.Name.Replace("+", "%2B").Replace(" ", "%20");
             if (!(Application.Current as App).suiteRunning())
             {
                 NavigationService.Navigate(new Uri("/TestResultPage.xaml?SuiteName=" + suiteName + "&CaseName=" + test.Name + "&Verbose=" + verbose, UriKind.Relative));
