@@ -3515,12 +3515,12 @@ static int dns_hosts_add_localhost(struct dns_hosts *hosts) {
 	ent.af = AF_INET;
 	dns_inet_pton(ent.af, "127.0.0.1", &ent.addr);
 	dns_d_anchor(ent.host, sizeof(ent.host), "localhost", 9);
-	dns_hosts_insert(hosts, ent.af, &ent.addr, ent.host, FALSE);
+	dns_hosts_insert(hosts, ent.af, &ent.addr, ent.host, 0);
 	memset(&ent, '\0', sizeof(ent));
 	ent.af = AF_INET6;
 	dns_inet_pton(ent.af, "::1", &ent.addr);
 	dns_d_anchor(ent.host, sizeof(ent.host), "localhost", 9);
-	dns_hosts_insert(hosts, ent.af, &ent.addr, ent.host, TRUE);
+	dns_hosts_insert(hosts, ent.af, &ent.addr, ent.host, 1);
 	return 0;
 }
 
