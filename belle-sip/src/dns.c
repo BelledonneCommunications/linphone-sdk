@@ -3509,6 +3509,21 @@ struct dns_hosts *dns_hosts_mortal(struct dns_hosts *hosts) {
 } /* dns_hosts_mortal() */
 
 
+static int dns_hosts_add_localhost(struct dns_hosts *hosts) {
+	struct dns_hosts_entry ent;
+	memset(&ent, '\0', sizeof(ent));
+	ent.af = AF_INET;
+	dns_inet_pton(ent.af, "127.0.0.1", &ent.addr);
+	dns_d_anchor(ent.host, sizeof(ent.host), "localhost", 9);
+	dns_hosts_insert(hosts, ent.af, &ent.addr, ent.host, FALSE);
+	memset(&ent, '\0', sizeof(ent));
+	ent.af = AF_INET6;
+	dns_inet_pton(ent.af, "::1", &ent.addr);
+	dns_d_anchor(ent.host, sizeof(ent.host), "localhost", 9);
+	dns_hosts_insert(hosts, ent.af, &ent.addr, ent.host, TRUE);
+	return 0;
+}
+
 struct dns_hosts *dns_hosts_local(int *error_) {
 	struct dns_hosts *hosts;
 	int error;
@@ -3517,7 +3532,11 @@ struct dns_hosts *dns_hosts_local(int *error_) {
 		goto error;
 		
 #ifdef _WIN32
+#ifdef WINAPI_FAMILY_PHONE_APP
+	if ((error = dns_hosts_add_localhost(hosts)))
+#else
 	if ((error = dns_hosts_loadpath(hosts, "C:/Windows/System32/drivers/etc/hosts")))
+#endif
 #else
 	if ((error = dns_hosts_loadpath(hosts, "/etc/hosts")))
 #endif
