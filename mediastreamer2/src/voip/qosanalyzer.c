@@ -284,10 +284,6 @@ static int sort_points(const rtcpstatspoint_t *p1, const rtcpstatspoint_t *p2){
 }
 
 static double stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj){
-#ifdef DEBUG
-	double up_bw=rtp_session_get_send_bandwidth(obj->session)/1000.0;
-#endif
-
 	if (obj->upload_bandwidth_count){
 		obj->upload_bandwidth_latest=obj->upload_bandwidth_sum/obj->upload_bandwidth_count;
 	}
@@ -295,7 +291,8 @@ static double stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj)
 	obj->upload_bandwidth_count=0;
 	obj->upload_bandwidth_sum=0;
 
-	ms_message("MSStatefulQosAnalyzer[%p]: latest_up_bw=%f vs sum_up_bw=%f", obj, up_bw, obj->upload_bandwidth_latest);
+	ms_message("MSStatefulQosAnalyzer[%p]: latest_up_bw=%f vs sum_up_bw=%f",
+		obj, rtp_session_get_send_bandwidth(obj->session)/1000.0, obj->upload_bandwidth_latest);
 	return obj->upload_bandwidth_latest;
 }
 
@@ -338,9 +335,8 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 				obj, obj->curindex, obj->latest->bandwidth, obj->latest->loss_percent);
 
 			if (ms_list_size(obj->rtcpstatspoint) > ESTIM_HISTORY){
-#ifdef DEBUG
 				int prev_size = ms_list_size(obj->rtcpstatspoint);
-#endif
+
 				/*clean everything which occurred 60 sec or more ago*/
 				time_t clear_time = ms_time(0) - 60;
 				obj->rtcpstatspoint = ms_list_remove_custom(obj->rtcpstatspoint, (MSCompareFunc)earlier_than, &clear_time);
