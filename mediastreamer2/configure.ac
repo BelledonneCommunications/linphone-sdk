@@ -597,9 +597,11 @@ build_matroska=yes
 if test x"$ebmldir" != xno ; then
 	MS_CHECK_DEP([ebml library],[EBML],[${ebmldir}/include],
 		[${ebmldir}/lib],[ebml/ebml.h],[ebml2],[EBML_ElementRender])
-	if test "$matroska$EBML_found" = "trueno" ; then
+	if test "$EBML_found" = "no" ; then
 		build_matroska=no
-		AC_MSG_ERROR([Could not locate ebml headers or library.])
+		if test "$matroska" = "true" ; then
+			AC_MSG_ERROR([Could not locate ebml headers or library.])
+		fi
 	fi
 else
 	build_matroska=no
@@ -608,9 +610,11 @@ fi
 if test x"$matroskadir" != xno ; then
 	MS_CHECK_DEP([matroska library],[MATROSKA],[${matroskadir}/include}],
 		[${matroskadir}/lib],[matroska/matroska.h],[matroska2],[MATROSKA_BlockReleaseData],[-lebml2])
-	if test "$matroska$MATROSKA_found" = "trueno" ; then
+	if test "$MATROSKA_found" = "trueno" ; then
 		build_matroska=no
-		AC_MSG_ERROR([Could not locate matroska headers or library.])
+		if test "$matroska" = "true" ; then
+			AC_MSG_ERROR([Could not locate matroska headers or library.])
+		fi
 	fi
 else
 	build_matroska=no
