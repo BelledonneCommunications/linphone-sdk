@@ -52,7 +52,7 @@ struct _MSQualityIndicator{
 MSQualityIndicator *ms_quality_indicator_new(RtpSession *session){
 	MSQualityIndicator *qi=ms_new0(MSQualityIndicator,1);
 	qi->session=session;
-	qi->lr_estimator=ortp_loss_rate_estimator_new(SEQ_INTERVAL,rtp_session_get_seq_number(qi->session));
+	qi->lr_estimator=ortp_loss_rate_estimator_new(SEQ_INTERVAL, qi->session);
 	qi->rating=5.0;
 	qi->lq_rating=5.0;
 	qi->local_rating=1.0;
@@ -137,7 +137,7 @@ void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *r
 		float inter_jitter=(float)report_block_get_interarrival_jitter(rb)/(float)qi->clockrate;
 		float rt_prop=rtp_session_get_round_trip_propagation(qi->session);
 		bool_t new_value;
-		
+
 		new_value=ortp_loss_rate_estimator_process_report_block(qi->lr_estimator,rb);
 		loss_rate=ortp_loss_rate_estimator_get_value(qi->lr_estimator);
 		qi->remote_rating=compute_rating(loss_rate/100.0,inter_jitter,0,rt_prop);
