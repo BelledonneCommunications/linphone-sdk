@@ -1638,18 +1638,22 @@ static void recorder_uninit(MSFilter *f){
 	int i;
 
 	muxer_uninit(&obj->muxer);
-	if(obj->state != MSRecorderClosed)
-	{
+	if(obj->state != MSRecorderClosed) {
 		matroska_close_file(&obj->file);
 	}
 	matroska_uninit(&obj->file);
 	ms_free(obj->inputDescsList);
 	for(i=0; i < f->desc->ninputs; i++)
 	{
-		if(obj->modulesList[i] != NULL)
+		if(obj->modulesList[i] != NULL) {
 			module_free(obj->modulesList[i]);
+		}
+		if(f->inputs[i] != NULL) {
+			ms_queue_flush(f->inputs[i]);
+		}
 	}
 	ms_free(obj->modulesList);
+	ms_free(obj->inputDescsList);
 	ms_free(obj);
 	ms_message("MKVRecorder: destroyed");
 }
@@ -1698,23 +1702,19 @@ static int recorder_open_file(MSFilter *f, void *arg)
 	int err = 0, i;
 
 	ms_filter_lock(f);
-	if(obj->state == MSRecorderClosed)
-	{
-		if (access(filename, R_OK | W_OK) == 0)
+	if(obj->state == MSRecorderClosed) {
+		if (access(filename, R_OK | W_OK) == 0) {
 			obj->openMode = MKV_OPEN_APPEND;
-		else
+		} else {
 			obj->openMode = MKV_OPEN_CREATE;
+		}
 
 		ms_message("MKVRecoreder: opening file %s in %s mode", filename, obj->openMode == MKV_OPEN_APPEND ? "append" : "create");
-		if(matroska_open_file(&obj->file, filename, obj->openMode) != 0)
-		{
+		if(matroska_open_file(&obj->file, filename, obj->openMode) != 0) {
 			err = -1;
 			ms_error("MKVRecorder: fail to open %s", filename);
-		}
-		else
-		{
-			if(obj->openMode == MKV_OPEN_CREATE)
-			{
+		} else {
+			if(obj->openMode == MKV_OPEN_CREATE) {
 				matroska_set_doctype_version(&obj->file, MKV_DOCTYPE_VERSION, MKV_DOCTYPE_READ_VERSION);
 				matroska_write_ebml_header(&obj->file);
 				matroska_start_segment(&obj->file);
@@ -1722,25 +1722,25 @@ static int recorder_open_file(MSFilter *f, void *arg)
 				matroska_mark_segment_info_position(&obj->file);
 				matroska_write_zeros(&obj->file, 1024);
 
-				for(i=0; i < f->desc->ninputs; i++)
-				{
-					if(obj->inputDescsList[i] != NULL)
-					{
+				for(i=0; i < f->desc->ninputs; i++) {
+					if(obj->inputDescsList[i] != NULL) {
+						obj->modulesList[i] = module_new(obj->inputDescsList[i]->encoding);
+						module_set(obj->modulesList[i], obj->inputDescsList[i]);
 						matroska_add_track(&obj->file, i+1, module_get_codec_id(obj->modulesList[i]));
 						matroska_track_set_info(&obj->file, i+1, obj->inputDescsList[i]);
 					}
 				}
 				obj->duration = -1;
-			}
-			else
-			{
-				for(i=0; i < f->desc->ninputs; i++)
-				{
-					const uint8_t *data;
-					size_t length;
-					if(matroska_get_codec_private(&obj->file, i+1, &data, &length) == 0)
-					{
-						module_load_private_data(obj->modulesList[i], data);
+			} else {
+				for(i=0; i < f->desc->ninputs; i++) {
+					if(obj->inputDescsList[i] != NULL) {
+						const uint8_t *data;
+						size_t length;
+						obj->modulesList[i] = module_new(obj->inputDescsList[i]->encoding);
+						module_set(obj->modulesList[i], obj->inputDescsList[i]);
+						if(matroska_get_codec_private(&obj->file, i+1, &data, &length) == 0) {
+							module_load_private_data(obj->modulesList[i], data);
+						}
 					}
 				}
 				obj->duration = matroska_get_duration(&obj->file) + 1;
@@ -1759,7 +1759,6 @@ static int recorder_start(MSFilter *f, void *arg)
 	int err = 0;
 
 	ms_filter_lock(f);
-	ms_message("MKVRecorder: start recording");
 	if(obj->state == MSRecorderClosed)
 	{
 		ms_error("MKVRecorder: fail to start recording. The file has not been opened");
@@ -1776,13 +1775,11 @@ static int recorder_start(MSFilter *f, void *arg)
 	return err;
 }
 
-static int recorder_stop(MSFilter *f, void *arg)
-{
+static int recorder_stop(MSFilter *f, void *arg) {
 	MKVRecorder *obj = (MKVRecorder *)f->data;
 	int err=-1;
 
 	ms_filter_lock(f);
-	ms_message("MKVRecorder: stopping recording");
 	switch(obj->state)
 	{
 	case MSRecorderClosed:
@@ -1804,77 +1801,63 @@ static int recorder_stop(MSFilter *f, void *arg)
 	return err;
 }
 
-static void recorder_process(MSFilter *f)
-{
+static void recorder_process(MSFilter *f) {
 	MKVRecorder *obj = f->data;
 	int i;
 
 	ms_filter_lock(f);
-	if(obj->state != MSRecorderRunning)
-	{
-		for(i=0; i < f->desc->ninputs; i++)
-		{
-			if(f->inputs[i])
-				ms_queue_flush(f->inputs[i]);
-		}
-	}
-	else
-	{
-		int pin;
-		mblk_t *buffer;
-		for(i=0; i < f->desc->ninputs; i++)
-		{
-			if(f->inputs[i] != NULL && obj->inputDescsList[i] == NULL)
-			{
+	if(obj->state != MSRecorderRunning) {
+		for(i=0; i < f->desc->ninputs; i++) {
+			if(f->inputs[i] != NULL) {
 				ms_queue_flush(f->inputs[i]);
 			}
-			else if(f->inputs[i] != NULL && obj->inputDescsList[i] != NULL)
-			{
+		}
+	} else {
+		int pin;
+		mblk_t *buffer;
+		for(i=0; i < f->desc->ninputs; i++) {
+			if(f->inputs[i] != NULL && obj->inputDescsList[i] == NULL) {
+				ms_queue_flush(f->inputs[i]);
+			}
+			else if(f->inputs[i] != NULL && obj->inputDescsList[i] != NULL) {
 				MSQueue frames, frames_ms;
 				ms_queue_init(&frames);
 				ms_queue_init(&frames_ms);
 
 				module_preprocess(obj->modulesList[i], f->inputs[i], &frames);
-				while((buffer = ms_queue_get(&frames)) != NULL)
-				{
+				while((buffer = ms_queue_get(&frames)) != NULL) {
 					changeClockRate(buffer, obj->inputDescsList[i]->rate, 1000);
 					ms_queue_put(&frames_ms, buffer);
 				}
 
-				if(obj->inputDescsList[i]->type == MSVideo && obj->needKeyFrame)
-				{
-					while((buffer = ms_queue_get(&frames_ms)) != NULL)
-					{
-						if(module_is_key_frame(obj->modulesList[i], buffer))
+				if(obj->inputDescsList[i]->type == MSVideo && obj->needKeyFrame) {
+					while((buffer = ms_queue_get(&frames_ms)) != NULL) {
+						if(module_is_key_frame(obj->modulesList[i], buffer)) {
 							break;
-						else
+						} else {
 							freemsg(buffer);
+						}
 					}
-					if(buffer != NULL)
-					{
+					if(buffer != NULL) {
 						muxer_put_buffer(&obj->muxer, buffer, i);
-						while((buffer = ms_queue_get(&frames_ms)) != NULL)
+						while((buffer = ms_queue_get(&frames_ms)) != NULL) {
 							muxer_put_buffer(&obj->muxer, buffer, i);
+						}
 						obj->needKeyFrame = FALSE;
 					}
-				}
-				else
-				{
-					while((buffer = ms_queue_get(&frames_ms)) != NULL)
-					{
+				} else {
+					while((buffer = ms_queue_get(&frames_ms)) != NULL) {
 						muxer_put_buffer(&obj->muxer, buffer, i);
 					}
 				}
 			}
 		}
 
-		while((buffer = muxer_get_buffer(&obj->muxer, &pin)) != NULL)
-		{
+		while((buffer = muxer_get_buffer(&obj->muxer, &pin)) != NULL) {
 			matroska_block *block;
 			timecode_t bufferTimecode;
 
-			if(obj->firstFrame)
-			{
+			if(obj->firstFrame) {
 				obj->timeOffset = obj->duration - mblk_get_timestamp_info(buffer) + 1;
 				obj->firstFrame = FALSE;
 			}
@@ -1883,12 +1866,10 @@ static void recorder_process(MSFilter *f)
 
 			block = write_frame(obj, buffer, pin);
 
-			if(obj->inputDescsList[pin]->type == MSVideo || !obj->haveVideoTrack)
-			{
+			if(obj->inputDescsList[pin]->type == MSVideo || !obj->haveVideoTrack) {
 				matroska_add_cue(&obj->file, block);
 			}
-			if(bufferTimecode > obj->duration)
-			{
+			if(bufferTimecode > obj->duration) {
 				obj->duration = bufferTimecode;
 			}
 		}
@@ -1896,51 +1877,39 @@ static void recorder_process(MSFilter *f)
 	ms_filter_unlock(f);
 }
 
-static int recorder_close(MSFilter *f, void *arg)
-{
+static int recorder_close(MSFilter *f, void *arg) {
 	MKVRecorder *obj = (MKVRecorder *)f->data;
 	int i;
 
 	ms_filter_lock(f);
 	ms_message("MKVRecorder: closing file");
-	if(obj->state != MSRecorderClosed)
-	{
-		for(i=0; i < f->desc->ninputs; i++)
-		{
-			if(f->inputs[i] != NULL)
-			{
+	if(obj->state != MSRecorderClosed) {
+		for(i=0; i < f->desc->ninputs; i++) {
+			if(f->inputs[i] != NULL) {
 				ms_queue_flush(f->inputs[i]);
 			}
-			if(obj->inputDescsList[i] != NULL && f->inputs[i] != NULL)
-			{
-				if(matroska_track_check_block_presence(&obj->file, i+1))
-				{
+			if(obj->inputDescsList[i] != NULL) {
+				if(matroska_track_check_block_presence(&obj->file, i+1)) {
 					uint8_t *codecPrivateData;
 					size_t codecPrivateDataSize;
 					module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
 					matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
 					ms_free(codecPrivateData);
-				}
-				else
-				{
+				} else {
 					matroska_del_track(&obj->file, i+1);
 				}
+				module_free(obj->modulesList[i]);
+				obj->modulesList[i] = NULL;
 			}
 		}
-
-
 		matroska_close_cluster(&obj->file);
-		if(matroska_write_cues(&obj->file) != 0)
-		{
+		if(matroska_write_cues(&obj->file) != 0) {
 			ms_warning("MKVRecorder: no cues written");
 		}
 
-		if(obj->openMode == MKV_OPEN_CREATE)
-		{
+		if(obj->openMode == MKV_OPEN_CREATE) {
 			matroska_go_to_segment_info_mark(&obj->file);
-		}
-		else
-		{
+		} else {
 			matroska_go_to_segment_info_begin(&obj->file);
 		}
 		matroska_set_segment_info(&obj->file, "libmediastreamer2", "libmediastreamer2", obj->duration);
@@ -1954,9 +1923,7 @@ static int recorder_close(MSFilter *f, void *arg)
 
 		obj->state = MSRecorderClosed;
 		ms_message("MKVRecorder: the file has been successfully closed");
-	}
-	else
-	{
+	} else {
 		ms_warning("MKVRecorder: no file has been opened");
 	}
 	ms_filter_unlock(f);
@@ -1964,54 +1931,49 @@ static int recorder_close(MSFilter *f, void *arg)
 	return 0;
 }
 
-static int recorder_set_input_fmt(MSFilter *f, void *arg)
-{
+static int recorder_set_input_fmt(MSFilter *f, void *arg) {
 	MKVRecorder *data=(MKVRecorder *)f->data;
 	const MSPinFormat *pinFmt = (const MSPinFormat *)arg;
-	int err=0;
+	int err = 0;
 
 	ms_filter_lock(f);
-	if(data->state != MSRecorderClosed)
-	{
-		if(data->inputDescsList[pinFmt->pin] != NULL)
-		{
-			if(pinFmt->fmt == NULL)
-			{
-				data->inputDescsList[pinFmt->pin] = NULL;
-				module_free(data->modulesList[pinFmt->pin]);
-				data->modulesList[pinFmt->pin] = NULL;
-				ms_message("MKVRecorder: pin #%d disabled", pinFmt->pin);
+	if(pinFmt->pin < 0 || pinFmt->pin >= f->desc->ninputs) {
+		ms_error("MKVRecorder: could not set pin #%d. Invalid pin number", pinFmt->pin);
+		err = -1;
+	} else {
+		if(data->state != MSRecorderClosed) {
+			if(pinFmt->fmt == NULL) {
+				ms_error("MKVRecorder: could not disable pin #%d. The file is opened", pinFmt->pin);
+				err = -3;
+			} else  if(data->inputDescsList[pinFmt->pin] == NULL) {
+				ms_error("MKVRecorder: could not set pin #%d video size. That pin is not enabled", pinFmt->pin);
+				err = -4;
+			} else if(pinFmt->fmt->type != MSVideo ||
+					  strcmp(pinFmt->fmt->encoding, data->inputDescsList[pinFmt->pin]->encoding) != 0 ||
+					  pinFmt->fmt->rate != data->inputDescsList[pinFmt->pin]->rate) {
+				ms_error("MKVRecorder: could not set pin #%d video size. The specified format is not compatible with the current format. current={%s}, new={%s}",
+						 pinFmt->pin,
+						 ms_fmt_descriptor_to_string(data->inputDescsList[pinFmt->pin]),
+						 ms_fmt_descriptor_to_string(pinFmt->fmt));
+				err = -5;
+			} else {
+				data->inputDescsList[pinFmt->pin] = pinFmt->fmt;
+				ms_message("MKVRecorder: pin #%d video size set on %dx%d", pinFmt->pin, pinFmt->fmt->vsize.width, pinFmt->fmt->vsize.height);
 				err = 0;
 			}
-			else
-			{
-				ms_warning("MKVRecorder: cannot changed input format when the filter is running");
-				err = -1;
+		} else {
+			if(pinFmt->fmt == NULL) {
+				data->inputDescsList[pinFmt->pin] = pinFmt->fmt;
+				ms_message("MKVRecorder: pin #%d set as disabled", pinFmt->pin);
+				err = 0;
+			} else if(find_module_id_from_rfc_name(pinFmt->fmt->encoding) == NONE_ID) {
+				ms_error("MKVRecorder: could not set pin #%d. %s is not supported", pinFmt->pin, pinFmt->fmt->encoding);
+				err = -2;
+			} else {
+				data->inputDescsList[pinFmt->pin] = pinFmt->fmt;
+				ms_message("MKVRecorder: set pin #%d format. %s", pinFmt->pin, ms_fmt_descriptor_to_string(pinFmt->fmt));
+				err = 0;
 			}
-		}
-	}
-	else
-	{
-		if(data->inputDescsList[pinFmt->pin] != NULL)
-		{
-			module_free(data->modulesList[pinFmt->pin]);
-		}
-		data->modulesList[pinFmt->pin] = module_new(pinFmt->fmt->encoding);
-		if(data->modulesList[pinFmt->pin] == NULL)
-		{
-			ms_error("MKVRecorder: could not set pin #%d format. %s is not supported", pinFmt->pin, pinFmt->fmt->encoding);
-			err = -2;
-		}
-		else
-		{
-			data->inputDescsList[pinFmt->pin] = pinFmt->fmt;
-			module_set(data->modulesList[pinFmt->pin], pinFmt->fmt);
-			if(pinFmt->fmt->type == MSVideo)
-			{
-				data->haveVideoTrack = TRUE;
-			}
-			ms_message("MKVRecorder: pin #%d set on '%s'", pinFmt->pin, ms_fmt_descriptor_to_string(pinFmt->fmt));
-			err = 0;
 		}
 	}
 	ms_filter_unlock(f);
