@@ -137,7 +137,7 @@ static void jpg_process(MSFilter *f){
 			if (error<0){
 				ms_error("Could not encode jpeg picture.");
 			}else{
-				if (fwrite(comp_buf,error,1,s->file)>0){
+				if (fwrite(comp_buf,packet.size,1,s->file)>0){
 					ms_message("Snapshot done");
 				}else{
 					ms_error("Error writing snapshot.");

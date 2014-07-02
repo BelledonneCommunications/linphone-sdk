@@ -65,6 +65,8 @@ void video_stream_free(VideoStream *stream) {
 		ms_filter_destroy(stream->tee3);
 	if (stream->itcsink)
 		ms_filter_destroy(stream->itcsink);
+	if (stream->local_jpegwriter)
+		ms_filter_destroy(stream->local_jpegwriter);
 	if (stream->display_name!=NULL)
 		ms_free(stream->display_name);
 
@@ -233,6 +235,11 @@ void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize){
 	stream->sent_vsize=vsize;
 }
 
+void video_stream_set_preview_size(VideoStream *stream, MSVideoSize vsize){
+	ms_message("Setting preview video size %dx%d", vsize.width, vsize.height);
+	stream->preview_vsize=vsize;
+}
+
 MSVideoSize video_stream_get_sent_video_size(const VideoStream *stream) {
 	MSVideoSize vsize;
 	MS_VIDEO_SIZE_ASSIGN(vsize, UNKNOWN);
@@ -322,6 +329,7 @@ static void configure_video_source(VideoStream *stream){
 	MSPixFmt format;
 	MSVideoEncoderPixFmt encoder_supports_source_format;
 	int ret;
+	MSVideoSize preview_vsize;
 
 	/* transmit orientation to source filter */
 	ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
@@ -336,7 +344,12 @@ static void configure_video_source(VideoStream *stream){
 
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
-	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+	if (stream->preview_vsize.width!=0){
+		preview_vsize=stream->preview_vsize;
+	}else{
+		preview_vsize=vsize;
+	}
+	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&preview_vsize);
 	/*the camera may not support the target size and suggest a one close to the target */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
 	if (cam_vsize.width*cam_vsize.height<=vsize.width*vsize.height &&
@@ -504,6 +517,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		stream->cam=cam;
 		stream->source = ms_web_cam_create_reader(cam);
 		stream->tee = ms_filter_new(MS_TEE_ID);
+		stream->local_jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
 		if (stream->source_performs_encoding == TRUE) {
 			stream->ms.encoder = stream->source;	/* Consider the encoder is the source */
 		}
@@ -537,10 +551,10 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		if (stream->pixconv) {
 			ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
 		}
+		ms_connection_helper_link(&ch, stream->tee, 0, 0);
 		if (stream->sizeconv) {
 			ms_connection_helper_link(&ch, stream->sizeconv, 0, 0);
 		}
-		ms_connection_helper_link(&ch, stream->tee, 0, 0);
 		if (stream->source_performs_encoding == FALSE) {
 			ms_connection_helper_link(&ch, stream->ms.encoder, 0, 0);
 		}
@@ -550,6 +564,9 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 				ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->preview_window_id);
 			}
 			ms_filter_link(stream->tee,1,stream->output2,0);
+		}
+		if (stream->local_jpegwriter){
+			ms_filter_link(stream->tee,2,stream->local_jpegwriter,0);
 		}
 	}
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamRecvOnly){
@@ -600,8 +617,9 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 		if (stream->output_performs_decoding == FALSE) {
 			stream->jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
-			if (stream->jpegwriter)
+			if (stream->jpegwriter){
 				stream->tee2=ms_filter_new(MS_TEE_ID);
+			}
 		}
 
 		/* Define target upload bandwidth for RTCP packets sending. */
@@ -728,8 +746,8 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 			ms_filter_unlink(stream->source, 0, stream->tee, 0);
 		} else {
 			ms_filter_unlink (stream->source, 0, stream->pixconv, 0);
-			ms_filter_unlink (stream->pixconv, 0, stream->sizeconv, 0);
-			ms_filter_unlink (stream->sizeconv, 0, stream->tee, 0);
+			ms_filter_unlink (stream->pixconv, 0, stream->tee, 0);
+			ms_filter_unlink (stream->tee, 0, stream->sizeconv, 0);
 		}
 		/*destroy the filters */
 		if (!keep_source) ms_filter_destroy(stream->source);
@@ -759,8 +777,8 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 		}
 		else {
 			ms_filter_link (stream->source, 0, stream->pixconv, 0);
-			ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
-			ms_filter_link (stream->sizeconv, 0, stream->tee, 0);
+			ms_filter_link (stream->pixconv, 0, stream->tee, 0);
+			ms_filter_link (stream->tee, 0, stream->sizeconv, 0);
 		}
 
 		ms_ticker_attach(stream->ms.sessions.ticker,stream->source);
@@ -824,16 +842,19 @@ video_stream_stop (VideoStream * stream)
 				if (stream->pixconv) {
 					ms_connection_helper_unlink(&ch, stream->pixconv, 0, 0);
 				}
+				ms_connection_helper_unlink(&ch, stream->tee, 0, 0);
 				if (stream->sizeconv) {
 					ms_connection_helper_unlink(&ch, stream->sizeconv, 0, 0);
 				}
-				ms_connection_helper_unlink(&ch, stream->tee, 0, 0);
 				if (stream->source_performs_encoding == FALSE) {
 					ms_connection_helper_unlink(&ch, stream->ms.encoder, 0, 0);
 				}
 				ms_connection_helper_unlink(&ch, stream->ms.rtpsend, 0, -1);
 				if (stream->output2){
 					ms_filter_unlink(stream->tee,1,stream->output2,0);
+				}
+				if (stream->local_jpegwriter){
+					ms_filter_unlink(stream->tee,2,stream->local_jpegwriter,0);
 				}
 			}
 			if (stream->ms.voidsink) {

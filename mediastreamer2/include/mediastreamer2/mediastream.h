@@ -569,7 +569,9 @@ struct _VideoStream
 	MSFilter *output2;
 	MSFilter *tee3;
 	MSFilter *itcsink;
+	MSFilter *local_jpegwriter;
 	MSVideoSize sent_vsize;
+	MSVideoSize preview_vsize;
 	int corner; /*for selfview*/
 	VideoStreamRenderCallback rendercb;
 	void *render_pointer;
@@ -719,6 +721,13 @@ MS2_PUBLIC bool_t video_stream_is_decoding_error_to_be_reported(VideoStream *str
  */
 MS2_PUBLIC void video_stream_decoding_error_reported(VideoStream *stream);
 
+
+/**
+ * Force a resolution for the preview.
+ * @param[in] stream The VideoStream object.
+ * @param[in] vsize video resolution.
+**/
+MS2_PUBLIC void video_stream_set_preview_size(VideoStream *stream, MSVideoSize vsize);
 
 /**
  * Link the audio stream with an existing video stream.

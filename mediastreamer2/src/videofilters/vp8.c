@@ -739,11 +739,12 @@ typedef struct DecState {
 	bool_t first_image_decoded;
 	bool_t avpf_enabled;
 	bool_t freeze_on_error;
+	bool_t ready;
 } DecState;
 
 
 static void dec_init(MSFilter *f) {
-	DecState *s = (DecState *)ms_new(DecState, 1);
+	DecState *s = (DecState *)ms_new0(DecState, 1);
 
 	s->iface = vpx_codec_vp8_dx();
 	ms_message("Using %s", vpx_codec_iface_name(s->iface));
@@ -766,28 +767,32 @@ static void dec_preprocess(MSFilter* f) {
 	vpx_codec_caps_t caps = vpx_codec_get_caps(s->iface);
 
 	/* Initialize codec */
-	s->flags = 0;
-	if ((s->avpf_enabled == TRUE) && (caps & VPX_CODEC_CAP_INPUT_FRAGMENTS)) {
-		s->flags |= VPX_CODEC_USE_INPUT_FRAGMENTS;
-	}
-	if (caps & VPX_CODEC_CAP_ERROR_CONCEALMENT) {
-		s->flags |= VPX_CODEC_USE_ERROR_CONCEALMENT;
-	}
-#ifdef VPX_CODEC_CAP_FRAME_THREADING
-	if ((caps & VPX_CODEC_CAP_FRAME_THREADING) && (ms_get_cpu_count() > 1)) {
-		s->flags |= VPX_CODEC_USE_FRAME_THREADING;
-	}
-#endif
-	if(vpx_codec_dec_init(&s->codec, s->iface, NULL, s->flags))
-		ms_error("Failed to initialize decoder");
+	if (!s->ready){
+		s->flags = 0;
+		if ((s->avpf_enabled == TRUE) && (caps & VPX_CODEC_CAP_INPUT_FRAGMENTS)) {
+			s->flags |= VPX_CODEC_USE_INPUT_FRAGMENTS;
+		}
+		if (caps & VPX_CODEC_CAP_ERROR_CONCEALMENT) {
+			s->flags |= VPX_CODEC_USE_ERROR_CONCEALMENT;
+		}
+	#ifdef VPX_CODEC_CAP_FRAME_THREADING
+		if ((caps & VPX_CODEC_CAP_FRAME_THREADING) && (ms_get_cpu_count() > 1)) {
+			s->flags |= VPX_CODEC_USE_FRAME_THREADING;
+		}
+	#endif
+		if(vpx_codec_dec_init(&s->codec, s->iface, NULL, s->flags))
+			ms_error("Failed to initialize decoder");
 
-	vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error, (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
-
-	s->first_image_decoded = FALSE;
+		vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error, (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
+		s->first_image_decoded = FALSE;
+		s->ready=TRUE;
+	}
+	
 }
 
 static void dec_uninit(MSFilter *f) {
 	DecState *s = (DecState *)f->data;
+	vp8rtpfmt_unpacker_uninit(&s->unpacker);
 	vpx_codec_destroy(&s->codec);
 	if (s->curframe != NULL) freemsg(s->curframe);
 	if (s->yuv_msg) freemsg(s->yuv_msg);
@@ -860,8 +865,6 @@ static void dec_process(MSFilter *f) {
 }
 
 static void dec_postprocess(MSFilter *f) {
-	DecState *s = (DecState *)f->data;
-	vp8rtpfmt_unpacker_uninit(&s->unpacker);
 }
 
 static int dec_reset_first_image(MSFilter* f, void *data) {
