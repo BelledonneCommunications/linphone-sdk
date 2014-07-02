@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msinterfaces_h
 #define msinterfaces_h
 
+#include "mediastreamer2/mscodecutils.h"
+
 typedef struct _MSVideoCodecSLI MSVideoCodecSLI;
 
 struct _MSVideoCodecSLI {
@@ -163,7 +165,8 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_RECORDER_GET_STATE \
 	MS_FILTER_METHOD(MSFilterRecorderInterface,5,MSRecorderState)
 
-
+#define MS_RECORDER_NEEDS_FIR \
+	MS_FILTER_EVENT_NO_ARG(MSFilterRecorderInterface,0)
 
 
 /** Interface definitions for echo cancellers */
@@ -228,6 +231,9 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterAudioDecoderInterface,0,int)
 
 #define MS_DECODER_HAVE_PLC MS_AUDIO_DECODER_HAVE_PLC /*for backward compatibility*/
+
+#define MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER \
+	MS_FILTER_METHOD(MSFilterAudioDecoderInterface,1,MSRtpPayloadPickerContext*)
 
 /**
  * Interface definition for video encoders.

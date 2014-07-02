@@ -28,6 +28,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <ortp/zrtp.h>
 
+static const MSFmtDescriptor *video_stream_get_recv_format(VideoStream *stream){
+	int i=rtp_session_get_recv_payload_type(stream->ms.sessions.rtp_session);
+	PayloadType *pt=rtp_profile_get_payload(rtp_session_get_profile(stream->ms.sessions.rtp_session),i);
+	return ms_factory_get_video_format(ms_factory_get_fallback(),pt->mime_type,NULL,pt->recv_fmtp);
+}
 
 void video_stream_free(VideoStream *stream) {
 	/* Prevent filters from being destroyed two times */
@@ -56,10 +61,14 @@ void video_stream_free(VideoStream *stream) {
 		ms_filter_destroy(stream->jpegwriter);
 	if (stream->output2!=NULL)
 		ms_filter_destroy(stream->output2);
+	if (stream->tee3)
+		ms_filter_destroy(stream->tee3);
+	if (stream->itcsink)
+		ms_filter_destroy(stream->itcsink);
 	if (stream->display_name!=NULL)
 		ms_free(stream->display_name);
 
-	ms_free (stream);
+	ms_free(stream);
 }
 
 static void event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
@@ -192,7 +201,7 @@ VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ip
 
 VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
-	stream->ms.type = VideoStreamType;
+	stream->ms.type = MSVideo;
 	stream->ms.sessions=*sessions;
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi,"video");
@@ -208,6 +217,14 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	stream->output_performs_decoding = FALSE;
 	choose_display_name(stream);
 	stream->ms.process_rtcp=video_stream_process_rtcp;
+	/*
+	 * In practice, these filters are needed only for audio+video recording.
+	 */
+	if (ms_factory_lookup_filter_by_id(ms_factory_get_fallback(), MS_MKV_RECORDER_ID)){
+		stream->itcsink=ms_filter_new(MS_ITC_SINK_ID);
+		stream->tee3=ms_filter_new(MS_TEE_ID);
+	}
+	
 	return stream;
 }
 
@@ -395,6 +412,26 @@ static float video_stream_get_rtcp_xr_average_lq_quality_rating(unsigned long us
 	return stream ? media_stream_get_average_lq_quality_rating(&stream->ms) : -1;
 }
 
+
+static void configure_itc(VideoStream *stream){
+	if (stream->itcsink){
+		const MSFmtDescriptor *fmt=video_stream_get_recv_format(stream);
+		if (fmt){
+			MSPinFormat pinfmt={0};
+			pinfmt.pin=0;
+			pinfmt.fmt=fmt;
+			ms_filter_call_method(stream->itcsink,MS_FILTER_SET_INPUT_FMT,&pinfmt);
+		}
+	}
+}
+
+
+static void video_stream_payload_type_changed(RtpSession *session, unsigned long data){
+	VideoStream *stream = (VideoStream *)data;
+	mediastream_payload_type_changed(session,data);
+	configure_itc(stream);
+}
+
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	PayloadType *pt;
@@ -442,7 +479,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	rtp_session_set_rtcp_xr_media_callbacks(rtps, &rtcp_xr_media_cbs);
 
 	rtp_session_signal_connect(stream->ms.sessions.rtp_session,"payload_type_changed",
-			(RtpCallback)mediastream_payload_type_changed,(unsigned long)&stream->ms);
+			(RtpCallback)video_stream_payload_type_changed,(unsigned long)&stream->ms);
 
 	rtp_session_get_jitter_buffer_params(stream->ms.sessions.rtp_session,&jbp);
 	jbp.max_packets=1000;//needed for high resolution video
@@ -616,7 +653,12 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		ms_connection_helper_start (&ch);
 		ms_connection_helper_link (&ch,stream->ms.rtprecv,-1,0);
 		if (stream->output_performs_decoding == FALSE) {
-			ms_connection_helper_link (&ch,stream->ms.decoder,0,0);
+			if (stream->itcsink){
+				ms_connection_helper_link(&ch,stream->tee3,0,0);
+				ms_filter_link(stream->tee3,1,stream->itcsink,0);
+				configure_itc(stream);
+			}
+			ms_connection_helper_link(&ch,stream->ms.decoder,0,0);
 		}
 		if (stream->tee2){
 			ms_connection_helper_link (&ch,stream->tee2,0,0);
@@ -801,6 +843,10 @@ video_stream_stop (VideoStream * stream)
 				ms_connection_helper_start (&h);
 				ms_connection_helper_unlink (&h,stream->ms.rtprecv,-1,0);
 				if (stream->output_performs_decoding == FALSE) {
+					if (stream->itcsink){
+						ms_connection_helper_unlink(&h,stream->tee3,0,0);
+						ms_filter_unlink(stream->tee3,1,stream->itcsink,0);
+					}
 					ms_connection_helper_unlink (&h,stream->ms.decoder,0,0);
 				}
 				if (stream->tee2){
@@ -814,9 +860,8 @@ video_stream_stop (VideoStream * stream)
 			}
 		}
 	}
-	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",
-			(RtpCallback)mediastream_payload_type_changed);
-	video_stream_free (stream);
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)video_stream_payload_type_changed);
+	video_stream_free(stream);
 }
 
 
@@ -998,3 +1043,5 @@ bool_t video_stream_is_decoding_error_to_be_reported(VideoStream *stream, uint32
 void video_stream_decoding_error_reported(VideoStream *stream) {
 	stream->last_reported_decoding_error_time = stream->ms.sessions.ticker->time;
 }
+
+

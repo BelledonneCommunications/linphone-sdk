@@ -1135,21 +1135,21 @@ MSFilterDesc ms_mjpeg_enc_desc={
 
 #endif
 
-void __register_ffmpeg_encoders_if_possible(void){
+void __register_ffmpeg_encoders_if_possible(MSFactory *obj){
 	ms_ffmpeg_check_init();
 	if (avcodec_find_encoder(CODEC_ID_MPEG4))
-		ms_filter_register(&ms_mpeg4_enc_desc);
+		ms_factory_register_filter(obj,&ms_mpeg4_enc_desc);
 	if (avcodec_find_encoder(CODEC_ID_H263)){
-		ms_filter_register(&ms_h263_enc_desc);
-		ms_filter_register(&ms_h263_old_enc_desc);
+		ms_factory_register_filter(obj,&ms_h263_enc_desc);
+		ms_factory_register_filter(obj,&ms_h263_old_enc_desc);
 	}
 #if HAVE_AVCODEC_SNOW
 	if (avcodec_find_encoder(CODEC_ID_SNOW))
-		ms_filter_register(&ms_snow_enc_desc);
+		ms_factory_register_filter(obj,&ms_snow_enc_desc);
 #endif
 	if (avcodec_find_encoder(CODEC_ID_MJPEG))
 	{
-		ms_filter_register(&ms_mjpeg_enc_desc);
+		ms_factory_register_filter(obj,&ms_mjpeg_enc_desc);
 	}
 }
 

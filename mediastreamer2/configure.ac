@@ -578,7 +578,7 @@ AC_ARG_ENABLE(matroska,
 		no)	matroska=false ;;
 		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-matroska) ;;
 	esac],
-	[matroska=false]
+	[matroska=guess]
 )
 AC_ARG_WITH(ebml,
 	[AS_HELP_STRING([--with-ebml],[Sets the installation prefix of ebml library (v2) [default=/usr]])],
@@ -591,14 +591,13 @@ AC_ARG_WITH(matroska,
 	[ matroskadir=/usr ]
 )
 
-if test x$matroska == xtrue; then
+if test x$matroska != xfalse ; then
 
 build_matroska=yes
 if test x"$ebmldir" != xno ; then
-	test x"$ebmldir" = xyes && ebmldir=/usr
-	MS_CHECK_DEP([ebml library],[EBML],[$ebmldir/include],
-		[$ebmldir/lib],[ebml/ebml.h],[ebml2],[EBML_ElementRender])
-	if test "$ebml_found" == "no" ; then
+	MS_CHECK_DEP([ebml library],[EBML],[${ebmldir}/include],
+		[${ebmldir}/lib],[ebml/ebml.h],[ebml2],[EBML_ElementRender])
+	if test "$matroska$EBML_found" = "trueno" ; then
 		build_matroska=no
 		AC_MSG_ERROR([Could not locate ebml headers or library.])
 	fi
@@ -607,10 +606,9 @@ else
 fi
 
 if test x"$matroskadir" != xno ; then
-	test x"$matroskadir" = xyes && matroskadir=/usr
-	MS_CHECK_DEP([matroska library],[MATROSKA],[$matroskadir/include],
-		[$matroskadir/lib],[matroska/matroska.h],[matroska2],[MATROSKA_BlockReleaseData],[-lebml2])
-	if test "$matroska_found" == "no" ; then
+	MS_CHECK_DEP([matroska library],[MATROSKA],[${matroskadir}/include}],
+		[${matroskadir}/lib],[matroska/matroska.h],[matroska2],[MATROSKA_BlockReleaseData],[-lebml2])
+	if test "$matroska$MATROSKA_found" = "trueno" ; then
 		build_matroska=no
 		AC_MSG_ERROR([Could not locate matroska headers or library.])
 	fi

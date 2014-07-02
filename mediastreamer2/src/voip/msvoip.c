@@ -33,11 +33,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mscodecutils.h"
 #include "mediastreamer2/msfilter.h"
 
-extern void __register_ffmpeg_encoders_if_possible(void);
+extern void __register_ffmpeg_encoders_if_possible(MSFactory *factory);
 extern void ms_ffmpeg_check_init();
-extern bool_t libmsandroiddisplay_init(void);
-extern void libmsandroiddisplaybad_init(void);
-extern void libmsandroidopengldisplay_init(void);
+extern bool_t libmsandroiddisplay_init(MSFactory *factory);
+extern void libmsandroiddisplaybad_init(MSFactory *factory);
+extern void libmsandroidopengldisplay_init(MSFactory *factory);
 
 #include "voipdescs.h"
 #include "mediastreamer2/mssndcard.h"
@@ -108,41 +108,51 @@ extern MSSndCardDesc android_native_snd_opensles_card_desc;
 
 static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef MS2_FILTERS
+
+#ifdef __PULSEAUDIO_ENABLED__
+        &pulse_card_desc,
+#endif
+
 #ifdef __ALSA_ENABLED__
 	&alsa_card_desc,
 #endif
-	#ifdef __QSA_ENABLED__
+
+#ifdef __QSA_ENABLED__
 	&ms_qsa_card_desc,
 #endif
+
 #ifdef HAVE_SYS_SOUNDCARD_H
 	&oss_card_desc,
 #endif
+
 #ifdef __ARTS_ENABLED__
 	&arts_card_desc,
 #endif
+
 #if defined(WIN32) && !WINAPI_FAMILY_APP
 	&winsnd_card_desc,
 #endif
+
 #ifdef __DIRECTSOUND_ENABLED__
 	&winsndds_card_desc,
 #endif
+
 #ifdef __PORTAUDIO_ENABLED__
 	&pasnd_card_desc,
 #endif
+
 #ifdef __MACSND_ENABLED__
 	&ca_card_desc,
-#endif
-
-#ifdef __PULSEAUDIO_ENABLED__
-	&pulse_card_desc,
 #endif
 
 #if TARGET_OS_IPHONE
 	&au_card_desc,
 #endif
+
 #ifdef __MAC_AQ_ENABLED__
 	&aq_card_desc,
 #endif
+
 #ifdef ANDROID
 	&android_native_snd_opensles_card_desc,
 	&android_native_snd_card_desc,
@@ -228,49 +238,76 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #endif
 static int ms_voip_ref=0;
 void ms_voip_init(){
-	MSSndCardManager *cm;
-	int i;
-
 	if (ms_voip_ref++ >0 ) {
 		ms_message ("Skiping ms_voip_init, because [%i] ref",ms_voip_ref);
 		return;
 	}
+	ms_factory_init_voip(ms_factory_get_fallback());
+}
+
+static int managers_ref=0;
+
+void ms_factory_init_voip(MSFactory *obj){
+	MSSndCardManager *cm;
+	int i;
+	
 	/* register builtin VoIP MSFilter's */
 	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
-		ms_filter_register(ms_voip_filter_descs[i]);
+		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);
 	}
-	ms_message("Registering all soundcard handlers");
-	cm=ms_snd_card_manager_get();
-	for (i=0;ms_snd_card_descs[i]!=NULL;i++){
-		ms_snd_card_manager_register_desc(cm,ms_snd_card_descs[i]);
-	}
+	
+	if (managers_ref==0){
+		managers_ref++;
+		cm=ms_snd_card_manager_get();
+		if (cm->descs==NULL){
+			ms_message("Registering all soundcard handlers");
+			for (i=0;ms_snd_card_descs[i]!=NULL;i++){
+				ms_snd_card_manager_register_desc(cm,ms_snd_card_descs[i]);
+			}
+		}
 
 #ifdef VIDEO_ENABLED
-	ms_message("Registering all webcam handlers");
-	{
-		MSWebCamManager *wm;
-		wm=ms_web_cam_manager_get();
-		for (i=0;ms_web_cam_descs[i]!=NULL;i++){
-			ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
+		{
+			MSWebCamManager *wm;
+			wm=ms_web_cam_manager_get();
+			if (wm->descs==NULL){
+				ms_message("Registering all webcam handlers");
+				for (i=0;ms_web_cam_descs[i]!=NULL;i++){
+					ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
+				}
+			}
 		}
-	}
-#if defined(MS2_FILTERS) && !defined(NO_FFMPEG) && defined(HAVE_LIBAVCODEC_AVCODEC_H)
-	ms_ffmpeg_check_init();
-	__register_ffmpeg_encoders_if_possible();
 #endif
+	}
+	
+#if defined(VIDEO_ENABLED) && defined(MS2_FILTERS) && !defined(NO_FFMPEG) && defined(HAVE_LIBAVCODEC_AVCODEC_H)
+	ms_ffmpeg_check_init();
+	__register_ffmpeg_encoders_if_possible(obj);
 #endif
 
 #if defined(ANDROID) && defined (VIDEO_ENABLED)
 	if (1) {
-		libmsandroidopengldisplay_init();
+		libmsandroidopengldisplay_init(obj);
 	} else {
-		if (!libmsandroiddisplay_init()) {
-			libmsandroiddisplaybad_init();
+		if (!libmsandroiddisplay_init(obj)) {
+			libmsandroiddisplaybad_init(obj);
 		}
 	}
 #endif
+	obj->voip_initd=TRUE;
+	ms_message("ms_factory_init_voip() done");
+}
 
-	ms_message("ms_voip_init() done");
+void ms_factory_uninit_voip(MSFactory *obj){
+	if (obj->voip_initd){
+		managers_ref--;
+		if (managers_ref==0){
+			ms_snd_card_manager_destroy();
+#ifdef VIDEO_ENABLED
+			ms_web_cam_manager_destroy();
+#endif
+		}
+	}
 }
 
 void ms_voip_exit(){
@@ -278,9 +315,5 @@ void ms_voip_exit(){
 		ms_message ("Skiping ms_voip_exit, still [%i] ref",ms_voip_ref);
 		return;
 	}
-
-	ms_snd_card_manager_destroy();
-#ifdef VIDEO_ENABLED
-	ms_web_cam_manager_destroy();
-#endif
+	ms_factory_uninit_voip(ms_factory_get_fallback());
 }

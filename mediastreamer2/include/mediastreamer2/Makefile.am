@@ -39,7 +39,9 @@ mediastreamer2_include_HEADERS= ice.h \
 				videostarter.h \
 				bits_rw.h \
 				x11_helper.h \
-				flowcontrol.h
+				flowcontrol.h \
+				formats.h \
+				msfactory.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 

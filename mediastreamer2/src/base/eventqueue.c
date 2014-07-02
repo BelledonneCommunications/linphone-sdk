@@ -157,14 +157,16 @@ MSEventQueue *ms_event_queue_new(){
 }
 
 void ms_event_queue_destroy(MSEventQueue *q){
+	/*compatibility code*/
+	if (q==ms_factory_get_event_queue(ms_factory_get_fallback())){
+		ms_factory_set_event_queue(ms_factory_get_fallback(),NULL);
+	}
 	ms_mutex_destroy(&q->mutex);
 	ms_free(q);
 }
 
-static MSEventQueue *ms_global_event_queue=NULL;
-
 void ms_set_global_event_queue(MSEventQueue *q){
-	ms_global_event_queue=q;
+	ms_factory_set_event_queue(ms_factory_get_fallback(),q);
 }
 
 void ms_event_queue_skip(MSEventQueue *q){
@@ -234,12 +236,12 @@ void ms_filter_set_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *ud)
 
 void ms_filter_notify(MSFilter *f, unsigned int id, void *arg){
 	if (f->notify_callbacks!=NULL){
-		if (ms_global_event_queue==NULL){
+		if (f->factory->evq==NULL){
 			/* synchronous notification */
 			ms_filter_invoke_callbacks(&f,id,arg,Both);
 		}else{
 			ms_filter_invoke_callbacks(&f,id,arg,OnlySynchronous);
-			write_event(ms_global_event_queue,f,id,arg);
+			write_event(f->factory->evq,f,id,arg);
 		}
 	}
 }
@@ -249,7 +251,7 @@ void ms_filter_notify_no_arg(MSFilter *f, unsigned int id){
 }
 
 void ms_filter_clean_pending_events(MSFilter *f){
-	if (ms_global_event_queue)
-		ms_event_queue_clean(ms_global_event_queue,f);
+	if (f->factory->evq)
+		ms_event_queue_clean(f->factory->evq,f);
 }
 

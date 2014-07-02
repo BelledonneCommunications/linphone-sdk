@@ -88,13 +88,6 @@ typedef struct _MSCryptoSuiteNameParams{
 MS2_PUBLIC MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNameParams *nameparams);
 MS2_PUBLIC int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *nameparams);
 
-typedef enum StreamType {
-	AudioStreamType,
-	VideoStreamType
-} StreamType;
-
-MS2_PUBLIC const char* ms_stream_type_to_string(StreamType);
-
 /**
  * The MediaStream is an object describing a stream (one of AudioStream or VideoStream).
 **/
@@ -123,11 +116,14 @@ typedef enum _MSStreamState{
 	MSStreamStarted
 }MSStreamState;
 
+#define AudioStreamType MSAudio
+#define VideoStreamType MSVideo
+
 /**
  * Base struct for both AudioStream and VideoStream structure.
 **/
 struct _MediaStream {
-	StreamType type;
+	MSFormatType type;
 	MSStreamState state;
 	MSMediaStreamSessions sessions;
 	OrtpEvQueue *evq;
@@ -290,6 +286,12 @@ struct _AudioStream
 	MSFilter *recv_tee;
 	MSFilter *recorder_mixer;
 	MSFilter *recorder;
+	struct {
+		MSFilter *resampler;
+		MSFilter *encoder;
+		MSFilter *recorder;
+		MSFilter *video_input;
+	}av_recorder;
 	char *recorder_file;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
 	uint32_t features;
@@ -533,6 +535,7 @@ static MS2_INLINE int audio_stream_set_dscp(AudioStream *stream, int dscp) {
 	return media_stream_set_dscp(&stream->ms, dscp);
 }
 
+
 /**
  * @}
 **/
@@ -564,6 +567,8 @@ struct _VideoStream
 	MSFilter *tee2;
 	MSFilter *jpegwriter;
 	MSFilter *output2;
+	MSFilter *tee3;
+	MSFilter *itcsink;
 	MSVideoSize sent_vsize;
 	int corner; /*for selfview*/
 	VideoStreamRenderCallback rendercb;
@@ -576,12 +581,13 @@ struct _VideoStream
 	VideoStreamDir dir;
 	MSWebCam *cam;
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
+	uint64_t last_reported_decoding_error_time;
 	bool_t use_preview_window;
 	bool_t freeze_on_error;
 	bool_t display_filter_auto_rotate_enabled;
 	bool_t source_performs_encoding;
 	bool_t output_performs_decoding;
-	uint64_t last_reported_decoding_error_time;
+	
 };
 
 typedef struct _VideoStream VideoStream;
@@ -712,6 +718,19 @@ MS2_PUBLIC bool_t video_stream_is_decoding_error_to_be_reported(VideoStream *str
  * @param[in] stream The VideoStream object.
  */
 MS2_PUBLIC void video_stream_decoding_error_reported(VideoStream *stream);
+
+
+/**
+ * Link the audio stream with an existing video stream.
+ * This is necessary to enable recording of audio & video into a multimedia file.
+ */
+MS2_PUBLIC void audio_stream_link_video(AudioStream *stream, VideoStream *video);
+
+/**
+ * Unlink the audio stream from the video stream.
+ * This must be done if the video stream is about to be stopped.
+**/
+MS2_PUBLIC void audio_stream_unlink_video(AudioStream *stream, VideoStream *video);
 
 /**
  * Small API to display a local preview window.

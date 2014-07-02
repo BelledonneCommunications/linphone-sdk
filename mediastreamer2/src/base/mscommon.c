@@ -17,23 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#ifdef HAVE_CONFIG_H
-#include "mediastreamer-config.h"
-#include "gitversion.h"
-#else
-#   ifndef MEDIASTREAMER_VERSION
-#   define MEDIASTREAMER_VERSION "unknown"
-#   endif
-#	ifndef GIT_VERSION
-#	define GIT_VERSION "unknown"
-#	endif
-#endif
+
 
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/mscodecutils.h"
 #include "mediastreamer2/msfilter.h"
-
-#include "basedescs.h"
 
 #if !defined(_WIN32_WCE)
 #include <sys/types.h>
@@ -65,25 +53,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <sys/syspage.h>
 #endif
 
-#ifdef ANDROID
-#include <android/log.h>
-#endif
-
-#if defined(WIN32) && !defined(_WIN32_WCE)
-static MSList *ms_plugins_loaded_list;
-#endif
-
-static char *plugins_dir = NULL;
-
-static unsigned int cpu_count = 1;
-
 unsigned int ms_get_cpu_count() {
-	return cpu_count;
+	return ms_factory_get_cpu_count(ms_factory_get_fallback());
 }
 
 void ms_set_cpu_count(unsigned int c) {
-	ms_message("CPU count set to %d", c);
-	cpu_count = c;
+	ms_factory_set_cpu_count(ms_factory_get_fallback(),c);
 }
 
 MSList *ms_list_new(void *data){
@@ -489,89 +464,25 @@ int ms_load_plugins(const char *dir){
 }
 
 static int ms_plugins_ref=0;
+
 void ms_unload_plugins(){
-#if defined(WIN32) && !defined(_WIN32_WCE)
-	MSList *elem;
-#endif
 	if (--ms_plugins_ref >0 ) {
 		ms_message ("Skiping ms_unload_plugins, still [%i] ref",ms_plugins_ref);
 		return;
 	}
-
-#if defined(WIN32) && !defined(_WIN32_WCE)
-
-	for(elem=ms_plugins_loaded_list;elem!=NULL;elem=elem->next)
-	{
-		HINSTANCE handle=(HINSTANCE )elem->data;
-        FreeLibrary(handle) ;
-	}
-
-	ms_plugins_loaded_list = ms_list_free(ms_plugins_loaded_list);
-#endif
+	ms_factory_uninit_plugins(ms_factory_get_fallback());
 }
 
-#ifdef ANDROID
-#define LOG_DOMAIN "mediastreamer"
-static void ms_android_log_handler(OrtpLogLevel lev, const char *fmt, va_list args){
-	int prio;
-	switch(lev){
-	case ORTP_DEBUG:	prio = ANDROID_LOG_DEBUG;	break;
-	case ORTP_MESSAGE:	prio = ANDROID_LOG_INFO;	break;
-	case ORTP_WARNING:	prio = ANDROID_LOG_WARN;	break;
-	case ORTP_ERROR:	prio = ANDROID_LOG_ERROR;	break;
-	case ORTP_FATAL:	prio = ANDROID_LOG_FATAL;	break;
-	default:		prio = ANDROID_LOG_DEFAULT;	break;
-	}
-	__android_log_vprint(prio, LOG_DOMAIN, fmt, args);
-}
-#endif
 
 static int ms_base_ref=0;
 
 void ms_base_init(){
-	int i;
-	long num_cpu=1;
-#if defined(WIN32) && !WINAPI_FAMILY_APP
-	SYSTEM_INFO sysinfo;
-#endif
 
 	if (ms_base_ref++ >0 ) {
 		ms_message ("Skiping ms_base_init, because [%i] ref",ms_base_ref);
 		return;
 	}
-
-#if defined(ENABLE_NLS)
-	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
-#endif
-
-	if (getenv("MEDIASTREAMER_DEBUG")!=NULL && strcmp(getenv("MEDIASTREAMER_DEBUG"),"1")==0){
-		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-	}
-//#ifdef ANDROID
-//	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-//	ortp_set_log_handler(ms_android_log_handler);
-//#endif
-	ms_message("Mediastreamer2 " MEDIASTREAMER_VERSION " (git: " GIT_VERSION ") starting.");
-	/* register builtin MSFilter's */
-	for (i=0;ms_base_filter_descs[i]!=NULL;i++){
-		ms_filter_register(ms_base_filter_descs[i]);
-	}
-
-#ifdef WIN32 /*fixme to be tested*/
-#if !WINAPI_FAMILY_APP
-	GetSystemInfo( &sysinfo );
-
-	num_cpu = sysinfo.dwNumberOfProcessors;
-#endif
-#elif __APPLE__ || __linux
-	num_cpu = sysconf( _SC_NPROCESSORS_ONLN );
-#elif __QNX__
-	num_cpu = _syspage_ptr->num_cpu;
-#else
-#warning "There is no code that detects the number of CPU for this platform."
-#endif
-	ms_set_cpu_count(num_cpu);
-	ms_message("ms_base_init() done");
+	ms_factory_get_fallback();
 }
 
 void ms_base_exit(){
@@ -579,8 +490,7 @@ void ms_base_exit(){
 		ms_message ("Skiping ms_base_exit, still [%i] ref",ms_base_ref);
 		return;
 	}
-	ms_filter_unregister_all();
-	ms_unload_plugins();
+	ms_factory_destroy(ms_factory_get_fallback());
 }
 
 void ms_plugins_init(void) {
@@ -588,24 +498,11 @@ void ms_plugins_init(void) {
 		ms_message ("Skiping ms_plugins_init, because [%i] ref",ms_plugins_ref);
 		return;
 	}
-	if (plugins_dir == NULL) {
-#ifdef PACKAGE_PLUGINS_DIR
-		plugins_dir = ms_strdup(PACKAGE_PLUGINS_DIR);
-#else
-		plugins_dir = ms_strdup("");
-#endif
-	}
-	if (strlen(plugins_dir) > 0) {
-		ms_message("Loading ms plugins from [%s]",plugins_dir);
-		ms_load_plugins(plugins_dir);
-	}
+	ms_factory_init_plugins(ms_factory_get_fallback());
 }
 
 void ms_set_plugins_dir(const char *path) {
-	if (plugins_dir != NULL) {
-		ms_free(plugins_dir);
-	}
-	plugins_dir = ms_strdup(path);
+	ms_factory_set_plugins_dir(ms_factory_get_fallback(),path);
 }
 
 void ms_sleep(int seconds){
@@ -650,17 +547,12 @@ void ms_usleep(uint64_t usec){
 #endif
 }
 
-#define DEFAULT_MAX_PAYLOAD_SIZE 1440
-
-static int max_payload_size=DEFAULT_MAX_PAYLOAD_SIZE;
-
 int ms_get_payload_max_size(){
-	return max_payload_size;
+	return ms_factory_get_payload_max_size(ms_factory_get_fallback());
 }
 
 void ms_set_payload_max_size(int size){
-	if (size<=0) size=DEFAULT_MAX_PAYLOAD_SIZE;
-	max_payload_size=size;
+	ms_factory_set_payload_max_size(ms_factory_get_fallback(),size);
 }
 
 extern void _android_key_cleanup(void*);

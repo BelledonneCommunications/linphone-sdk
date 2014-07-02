@@ -262,7 +262,7 @@ static void *loadSymbol(void *handle, const char *symbol, int *error){
 
 #define LIBSURFACE21_SO "libui.so"
 
-extern "C" void libmsandroiddisplaybad_init(void){
+extern "C" void libmsandroiddisplaybad_init(MSFactory *factory){
 	void *handle=dlopen(LIBSURFACE22_SO,RTLD_LAZY);
 	if (handle==NULL){
 		android_version=21;
@@ -282,7 +282,7 @@ extern "C" void libmsandroiddisplaybad_init(void){
 			error=1;
 		}
 		if (error==0){
-			ms_filter_register(&ms_android_display_bad_desc);
+			ms_factory_register_filter(factory,&ms_android_display_bad_desc);
 			ms_message("Android display filter (the bad one) loaded.");
 		}
 	}else ms_message("Could not load either "LIBSURFACE22_SO " or "LIBSURFACE21_SO);

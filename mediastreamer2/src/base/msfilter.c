@@ -23,182 +23,52 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_FILTER_METHOD_GET_FID(id)	(((id)>>16) & 0xFFFF)
 #define MS_FILTER_METHOD_GET_INDEX(id) ( ((id)>>8) & 0XFF)
 
-static MSList *desc_list=NULL;
-static bool_t statistics_enabled=FALSE;
-static MSList *stats_list=NULL;
-
-static int compare_stats_with_name(const MSFilterStats *stat, const char *name){
-	return strcmp(stat->name,name);
-}
-
-static MSFilterStats *find_or_create_stats(MSFilterDesc *desc){
-	MSList *elem=ms_list_find_custom(stats_list,(MSCompareFunc)compare_stats_with_name,desc->name);
-	MSFilterStats *ret=NULL;
-	if (elem==NULL){
-		ret=ms_new0(MSFilterStats,1);
-		ret->name=desc->name;
-		stats_list=ms_list_append(stats_list,ret);
-	}else ret=(MSFilterStats*)elem->data;
-	return ret;
-}
 
 void ms_filter_register(MSFilterDesc *desc){
-	if (desc->id==MS_FILTER_NOT_SET_ID){
-		ms_fatal("MSFilterId for %s not set !",desc->name);
-	}
-	/*lastly registered encoder/decoders may replace older ones*/
-	desc_list=ms_list_prepend(desc_list,desc);
+	ms_factory_register_filter(ms_factory_get_fallback(),desc);
 }
 
 void ms_filter_unregister_all(){
-	if (desc_list!=NULL) {
-		ms_list_free(desc_list);
-		desc_list=NULL;
-	}
-	if (stats_list!=NULL){
-		ms_list_for_each(stats_list,ms_free);
-		ms_list_free(stats_list);
-		stats_list=NULL;
-	}
 }
 
 bool_t ms_filter_codec_supported(const char *mime){
-	MSFilterDesc *enc = ms_filter_get_encoding_capturer(mime);
-	MSFilterDesc *dec = ms_filter_get_decoding_renderer(mime);
-
-	if (enc == NULL) enc = ms_filter_get_encoder(mime);
-	if (dec == NULL) dec = ms_filter_get_decoder(mime);
-
-	if(enc!=NULL && dec!=NULL) return TRUE;
-
-	if(enc==NULL) ms_message("Could not find encoder for %s", mime);
-	if(dec==NULL) ms_message("Could not find decoder for %s", mime);
-	return FALSE;
+	return ms_factory_codec_supported(ms_factory_get_fallback(),mime);
 }
 
 MSFilterDesc * ms_filter_get_encoding_capturer(const char *mime) {
-	MSList *elem;
-
-	for (elem = desc_list; elem != NULL; elem = ms_list_next(elem)) {
-		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
-		if (desc->category == MS_FILTER_ENCODING_CAPTURER) {
-			char *saveptr=NULL;
-			char *enc_fmt = ms_strdup(desc->enc_fmt);
-			char *token = strtok_r(enc_fmt, " ", &saveptr);
-			while (token != NULL) {
-				if (strcasecmp(token, mime) == 0) {
-					break;
-				}
-				token = strtok_r(NULL, " ", &saveptr);
-			}
-			ms_free(enc_fmt);
-			if (token != NULL) return desc;
-		}
-	}
-
-	return NULL;
+	return ms_factory_get_encoding_capturer(ms_factory_get_fallback(),mime);
 }
 
 MSFilterDesc * ms_filter_get_decoding_renderer(const char *mime) {
-	MSList *elem;
-
-	for (elem = desc_list; elem != NULL; elem = ms_list_next(elem)) {
-		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
-		if (desc->category == MS_FILTER_DECODER_RENDERER) {
-			char *saveptr=NULL;
-			char *enc_fmt = ms_strdup(desc->enc_fmt);
-			char *token = strtok_r(enc_fmt, " ", &saveptr);
-			while (token != NULL) {
-				if (strcasecmp(token, mime) == 0) {
-					break;
-				}
-				token = strtok_r(NULL, " ", &saveptr);
-			}
-			ms_free(enc_fmt);
-			if (token != NULL) return desc;
-		}
-	}
-
-	return NULL;
+	return ms_factory_get_decoding_renderer(ms_factory_get_fallback(),mime);
 }
 
 MSFilterDesc * ms_filter_get_encoder(const char *mime){
-	MSList *elem;
-	for (elem=desc_list;elem!=NULL;elem=ms_list_next(elem)){
-		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (desc->category==MS_FILTER_ENCODER &&
-			strcasecmp(desc->enc_fmt,mime)==0){
-			return desc;
-		}
-	}
-	return NULL;
+	return ms_factory_get_encoder(ms_factory_get_fallback(),mime);
 }
 
 MSFilterDesc * ms_filter_get_decoder(const char *mime){
-	MSList *elem;
-	for (elem=desc_list;elem!=NULL;elem=ms_list_next(elem)){
-		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (desc->category==MS_FILTER_DECODER &&
-			strcasecmp(desc->enc_fmt,mime)==0){
-			return desc;
-		}
-	}
-	return NULL;
+	return ms_factory_get_decoder(ms_factory_get_fallback(),mime);
 }
 
 MSFilter * ms_filter_create_encoder(const char *mime){
-	MSFilterDesc *desc=ms_filter_get_encoder(mime);
-	if (desc!=NULL) return ms_filter_new_from_desc(desc);
-	return NULL;
+	return ms_factory_create_encoder(ms_factory_get_fallback(),mime);
 }
 
 MSFilter * ms_filter_create_decoder(const char *mime){
-	MSFilterDesc *desc=ms_filter_get_decoder(mime);
-	if (desc!=NULL) return ms_filter_new_from_desc(desc);
-	return NULL;
+	return ms_factory_create_decoder(ms_factory_get_fallback(),mime);
 }
 
 MSFilter *ms_filter_new_from_desc(MSFilterDesc *desc){
-	MSFilter *obj;
-	obj=(MSFilter *)ms_new0(MSFilter,1);
-	ms_mutex_init(&obj->lock,NULL);
-	obj->desc=desc;
-	if (desc->ninputs>0)	obj->inputs=(MSQueue**)ms_new0(MSQueue*,desc->ninputs);
-	if (desc->noutputs>0)	obj->outputs=(MSQueue**)ms_new0(MSQueue*,desc->noutputs);
-
-	if (statistics_enabled){
-		obj->stats=find_or_create_stats(desc);
-	}
-	if (obj->desc->init!=NULL)
-		obj->desc->init(obj);
-	return obj;
+	return ms_factory_create_filter_from_desc(ms_factory_get_fallback(),desc);
 }
 
 MSFilter *ms_filter_new(MSFilterId id){
-	MSList *elem;
-	if (id==MS_FILTER_PLUGIN_ID){
-		ms_warning("cannot create plugin filters with ms_filter_new_from_id()");
-		return NULL;
-	}
-	for (elem=desc_list;elem!=NULL;elem=ms_list_next(elem)){
-		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (desc->id==id){
-			return ms_filter_new_from_desc(desc);
-		}
-	}
-	ms_error("No such filter with id %i",id);
-	return NULL;
+	return ms_factory_create_filter(ms_factory_get_fallback(),id);
 }
 
 MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name){
-	MSList *elem;
-	for (elem=desc_list;elem!=NULL;elem=ms_list_next(elem)){
-		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (strcmp(desc->name,filter_name)==0){
-			return desc;
-		}
-	}
-	return NULL;
+	return ms_factory_lookup_filter_by_name(ms_factory_get_fallback(),filter_name);
 }
 
 bool_t ms_filter_desc_implements_interface(MSFilterDesc *desc, MSFilterInterfaceId id){
@@ -216,20 +86,11 @@ bool_t ms_filter_implements_interface(MSFilter *f, MSFilterInterfaceId id){
 }
 
 MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id){
-	MSList *ret=NULL;
-	MSList *elem;
-	for(elem=desc_list;elem!=NULL;elem=elem->next){
-		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (ms_filter_desc_implements_interface(desc,id))
-			ret=ms_list_append(ret,desc);
-	}
-	return ret;
+	return ms_factory_lookup_filter_by_interface(ms_factory_get_fallback(),id);
 }
 
 MSFilter *ms_filter_new_from_name(const char *filter_name){
-	MSFilterDesc *desc=ms_filter_lookup_by_name(filter_name);
-	if (desc==NULL) return NULL;
-	return ms_filter_new_from_desc(desc);
+	return ms_factory_create_filter_from_name(ms_factory_get_fallback(),filter_name);
 }
 
 
@@ -272,7 +133,7 @@ static MS2_INLINE bool_t is_interface_method(unsigned int magic){
 	return magic==MS_FILTER_BASE_ID || magic>MSFilterInterfaceBegin;
 }
 
-int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg){
+static int _ms_filter_call_method(MSFilter *f, unsigned int id, void *arg){
 	MSFilterMethod *methods=f->desc->methods;
 	int i;
 	unsigned int magic=MS_FILTER_METHOD_GET_FID(id);
@@ -293,6 +154,13 @@ int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg){
 	if (magic!=MS_FILTER_BASE_ID) ms_error("no such method on filter %s, fid=%i method index=%i",f->desc->name,magic,
 	                           MS_FILTER_METHOD_GET_INDEX(id) );
 	return -1;
+}
+
+int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg){
+	/*compatibility stuff*/
+	if (id==MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER && !ms_filter_has_method(f,MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER))
+		id=MS_FILTER_SET_RTP_PAYLOAD_PICKER;
+	return _ms_filter_call_method(f,id,arg);
 }
 
 bool_t ms_filter_has_method(MSFilter *f, unsigned int id){
@@ -463,50 +331,25 @@ int ms_connection_helper_unlink(MSConnectionHelper *h, MSFilter *f, int inpin, i
 }
 
 void ms_filter_enable_statistics(bool_t enabled){
-	statistics_enabled=enabled;
+	ms_factory_enable_statistics(ms_factory_get_fallback(),enabled);
 }
 
 const MSList * ms_filter_get_statistics(void){
-	return stats_list;
+	return ms_factory_get_statistics(ms_factory_get_fallback());
 }
 
 void ms_filter_reset_statistics(void){
-	MSList *elem;
-
-	for(elem=stats_list;elem!=NULL;elem=elem->next){
-		MSFilterStats *stats=(MSFilterStats *)elem->data;
-		stats->elapsed=0;
-		stats->count=0;
-	}
+	ms_factory_reset_statistics(ms_factory_get_fallback());
 }
-
-static int usage_compare(const MSFilterStats *s1, const MSFilterStats *s2){
-	if (s1->elapsed==s2->elapsed) return 0;
-	if (s1->elapsed<s2->elapsed) return 1;
-	return -1;
-}
-
 
 void ms_filter_log_statistics(void){
-	MSList *sorted=NULL;
-	MSList *elem;
-	uint64_t total=1;
-	for(elem=stats_list;elem!=NULL;elem=elem->next){
-		MSFilterStats *stats=(MSFilterStats *)elem->data;
-		sorted=ms_list_insert_sorted(sorted,stats,(MSCompareFunc)usage_compare);
-		total+=stats->elapsed;
-	}
-	ms_message("===========================================================");
-	ms_message("                  FILTER USAGE STATISTICS                  ");
-	ms_message("Name                Count     Time/tick (ms)      CPU Usage");
-	ms_message("-----------------------------------------------------------");
-	for(elem=sorted;elem!=NULL;elem=elem->next){
-		MSFilterStats *stats=(MSFilterStats *)elem->data;
-		double percentage=100.0*((double)stats->elapsed)/(double)total;
-		double tpt=((double)stats->elapsed*1e-6)/((double)stats->count+1.0);
-		ms_message("%-19s %-9i %-19g %-10g",stats->name,stats->count,tpt,percentage);
-	}
-	ms_message("===========================================================");
-	ms_list_free(sorted);
+	ms_factory_log_statistics(ms_factory_get_fallback());
 }
 
+const char * ms_format_type_to_string(MSFormatType type){
+	switch(type){
+		case MSAudio: return "MSAudio";
+		case MSVideo: return "MSVideo";
+	}
+	return "invalid";
+}
