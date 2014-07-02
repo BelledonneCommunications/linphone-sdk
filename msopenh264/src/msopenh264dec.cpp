@@ -94,7 +94,7 @@ void MSOpenH264Decoder::feed()
 			SBufferInfo sDstBufInfo = { 0 };
 			int len = nalusToFrame(&nalus);
 
-			DECODING_STATE state = mDecoder->DecodeFrame2(mBitstream, len, pData, &sDstBufInfo);
+			DECODING_STATE state = mDecoder->DecodeFrame2(mBitstream, len, (uint8_t**)pData, &sDstBufInfo);
 			if (state != dsErrorFree) {
 				ms_error("OpenH264 decoder: DecodeFrame2 failed: 0x%x", state);
 				if (((mFilter->ticker->time - mLastErrorReportTime) > 5000) || (mLastErrorReportTime == 0)) {
