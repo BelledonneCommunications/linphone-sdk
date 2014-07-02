@@ -1727,7 +1727,6 @@ static int recorder_open_file(MSFilter *f, void *arg)
 						obj->modulesList[i] = module_new(obj->inputDescsList[i]->encoding);
 						module_set(obj->modulesList[i], obj->inputDescsList[i]);
 						matroska_add_track(&obj->file, i+1, module_get_codec_id(obj->modulesList[i]));
-						matroska_track_set_info(&obj->file, i+1, obj->inputDescsList[i]);
 					}
 				}
 				obj->duration = -1;
@@ -1893,6 +1892,7 @@ static int recorder_close(MSFilter *f, void *arg) {
 					uint8_t *codecPrivateData;
 					size_t codecPrivateDataSize;
 					module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
+					matroska_track_set_info(&obj->file, i+1, obj->inputDescsList[i]);
 					matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
 					ms_free(codecPrivateData);
 				} else {
