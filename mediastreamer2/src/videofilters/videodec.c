@@ -43,9 +43,10 @@ typedef struct DecState{
 	enum PixelFormat output_pix_fmt;
 	uint8_t dci[512];
 	int dci_size;
+	MSAverageFPS fps;
+	AVFrame* orig;
 	bool_t snow_initialized;
 	bool_t first_image_decoded;
-	AVFrame* orig;
 }DecState;
 
 
@@ -140,6 +141,7 @@ static void dec_preprocess(MSFilter *f){
 	int error;
 
 	s->first_image_decoded = FALSE;
+	ms_average_fps_init(&s->fps, "Video decoder: FPS: %f");
 	if (s->av_context.codec==NULL){
 		/* we must know picture size before initializing snow decoder*/
 #if HAVE_AVCODEC_SNOW
@@ -700,6 +702,7 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 				}
 				if (got_picture) {
 					mblk_t *om = get_as_yuvmsg(f,s,s->orig);
+					ms_average_fps_update(&s->fps, f->ticker->time);
 					if (om!=NULL)
 						ms_queue_put(f->outputs[0],om);
 
@@ -741,11 +744,18 @@ static int dec_get_vsize(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int dec_get_fps(MSFilter *f, void *data){
+	DecState *s = (DecState *)f->data;
+	*(float*)data=ms_average_fps_get(&s->fps);
+	return 0;
+}
+
 
 static MSFilterMethod methods[]={
 	{	MS_FILTER_ADD_FMTP		,	dec_add_fmtp	},
 	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
 	{	MS_FILTER_GET_VIDEO_SIZE,	dec_get_vsize	},
+	{	MS_FILTER_GET_FPS,		dec_get_fps	},
 	{	0		,		NULL			}
 };
 

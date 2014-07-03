@@ -356,8 +356,14 @@ struct _MSAverageFPS {
 	const char* context;
 };
 typedef struct _MSAverageFPS MSAverageFPS;
-MS2_PUBLIC void ms_video_init_average_fps(MSAverageFPS* afps, const char* context);
+MS2_PUBLIC void ms_average_fps_init(MSAverageFPS* afps, const char* context);
+MS2_PUBLIC bool_t ms_average_fps_update(MSAverageFPS* afps, uint32_t current_time);
+MS2_PUBLIC float ms_average_fps_get(const MSAverageFPS* afps);
+
+/*deprecated: for compatibility with plugin*/
+MS2_PUBLIC void ms_video_init_average_fps(MSAverageFPS* afps, const char* ctx);
 MS2_PUBLIC bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time);
+
 
 /**
  * Find the best video configuration from a list of configurations according to a given bitrate limit.

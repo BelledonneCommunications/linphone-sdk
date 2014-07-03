@@ -569,7 +569,10 @@ struct _VideoStream
 	MSFilter *output2;
 	MSFilter *tee3;
 	MSFilter *itcsink;
+	MSFilter *local_jpegwriter;
 	MSVideoSize sent_vsize;
+	MSVideoSize preview_vsize;
+	float fps;
 	int corner; /*for selfview*/
 	VideoStreamRenderCallback rendercb;
 	void *render_pointer;
@@ -652,6 +655,20 @@ MS2_PUBLIC MSVideoSize video_stream_get_sent_video_size(const VideoStream *strea
 MS2_PUBLIC MSVideoSize video_stream_get_received_video_size(const VideoStream *stream);
 
 /**
+ * Gets the framerate of the video that is sent.
+ * @param[in] stream The videostream.
+ * @return The actual framerate, 0 if not available..
+ */
+MS2_PUBLIC float video_stream_get_sent_framerate(const VideoStream *stream);
+
+/**
+ * Gets the framerate of the video that is received.
+ * @param[in] stream The videostream.
+ * @return The received framerate or 0 if not available.
+ */
+MS2_PUBLIC float video_stream_get_received_framerate(const VideoStream *stream);
+
+/**
  * Returns the name of the video display filter on the current platform.
 **/
 const char *video_stream_get_default_video_renderer(void);
@@ -721,6 +738,20 @@ MS2_PUBLIC void video_stream_decoding_error_reported(VideoStream *stream);
 
 
 /**
+ * Force a resolution for the preview.
+ * @param[in] stream The VideoStream object.
+ * @param[in] vsize video resolution.
+**/
+MS2_PUBLIC void video_stream_set_preview_size(VideoStream *stream, MSVideoSize vsize);
+
+/**
+ * Force a resolution for the preview.
+ * @param[in] stream The VideoStream object.
+ * @param[in] fps the frame rate in frame/seconds. A value of zero means "use encoder default value".
+**/
+MS2_PUBLIC void video_stream_set_fps(VideoStream *stream, float fps);
+
+/**
  * Link the audio stream with an existing video stream.
  * This is necessary to enable recording of audio & video into a multimedia file.
  */
@@ -739,10 +770,11 @@ MS2_PUBLIC void audio_stream_unlink_video(AudioStream *stream, VideoStream *vide
 typedef VideoStream VideoPreview;
 
 MS2_PUBLIC VideoPreview * video_preview_new();
-#define video_preview_set_size(p,s) 							video_stream_set_sent_video_size(p,s)
+#define video_preview_set_size(p,s)			video_stream_set_sent_video_size(p,s)
 #define video_preview_set_display_filter_name(p,dt)	video_stream_set_display_filter_name(p,dt)
-#define video_preview_set_native_window_id(p,id)		video_stream_set_native_preview_window_id (p,id)
-#define video_preview_get_native_window_id(p)			video_stream_get_native_preview_window_id (p)
+#define video_preview_set_native_window_id(p,id)	video_stream_set_native_preview_window_id(p,id)
+#define video_preview_get_native_window_id(p)		video_stream_get_native_preview_window_id(p)
+#define video_preview_set_fps(p,fps)			video_stream_set_fps((VideoStream*)p,fps)
 MS2_PUBLIC void video_preview_start(VideoPreview *stream, MSWebCam *device);
 MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
 

@@ -55,6 +55,7 @@ LOCAL_SRC_FILES = \
 	base/mtu.c \
 	base/mswebcam.c \
 	base/eventqueue.c \
+	base/msfactory.c \
 	voip/audioconference.c \
 	voip/mediastream.c \
 	voip/msvoip.c \
@@ -82,7 +83,6 @@ LOCAL_SRC_FILES = \
 	audiofilters/msfileplayer.c \
 	audiofilters/dtmfgen.c \
 	audiofilters/msfilerec.c \
-	audiofilters/msconf.c \
 	audiofilters/msvolume.c \
 	audiofilters/equalizer.c \
 	audiofilters/tonedetector.c \
@@ -276,7 +276,7 @@ ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 			LOCAL_STATIC_LIBRARIES += libmsx264 libx264
 		endif
 		ifeq ($(BUILD_OPENH264),1)
-			LOCAL_STATIC_LIBRARIES += libmsopenh264 libwels
+			LOCAL_STATIC_LIBRARIES += libmsopenh264 libopenh264
 		endif
 		LOCAL_SHARED_LIBRARIES += \
 			libavcodec-linphone \

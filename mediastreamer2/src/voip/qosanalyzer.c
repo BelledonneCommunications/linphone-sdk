@@ -248,7 +248,7 @@ MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session){
 	obj->session=session;
 	obj->parent.desc=&simple_analyzer_desc;
 	obj->parent.type=Simple;
-	obj->parent.lre=ortp_loss_rate_estimator_new(LOSS_RATE_MIN_INTERVAL, rtp_session_get_seq_number(session));
+	obj->parent.lre=ortp_loss_rate_estimator_new(LOSS_RATE_MIN_INTERVAL, session);
 	return (MSQosAnalyzer*)obj;
 }
 
@@ -606,7 +606,7 @@ MSQosAnalyzer * ms_stateful_qos_analyzer_new(RtpSession *session){
 	obj->session=session;
 	obj->parent.desc=&stateful_analyzer_desc;
 	obj->parent.type=Stateful;
-	obj->parent.lre=ortp_loss_rate_estimator_new(LOSS_RATE_MIN_INTERVAL, rtp_session_get_seq_number(session));
+	obj->parent.lre=ortp_loss_rate_estimator_new(LOSS_RATE_MIN_INTERVAL, session);
 
 	/*burst period will double the upload bandwidth assuming 5 sec RTCP reports interval*/
 	obj->burst_duration_ms=1000;

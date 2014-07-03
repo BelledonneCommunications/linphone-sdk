@@ -74,6 +74,8 @@ static int test_suite_index(const char *suite_name) {
 
 	return -1;
 }
+
+#if HAVE_CU_GET_SUITE
 static void list_suite_tests(const char *suite_name) {
 	int j;
 	for( j = 0; j < mediastreamer2_tester_nb_tests(suite_name); j++) {
@@ -88,6 +90,7 @@ static void list_suites() {
 		fprintf(stdout, "%s\n", suite_name);
 	}
 }
+#endif
 
 int mediastreamer2_tester_nb_test_suites(void) {
 	return nb_test_suites;

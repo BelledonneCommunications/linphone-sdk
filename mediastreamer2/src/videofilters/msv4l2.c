@@ -84,8 +84,7 @@ typedef struct V4l2State{
 	int frame_max;
 	float fps;
 	unsigned int start_time;
-	unsigned int last_frame_time;
-	float mean_inter_frame;
+	MSAverageFPS avgfps;
 	int th_frame_count;
 	int queued;
 	bool_t configured;
@@ -577,7 +576,7 @@ static void msv4l2_preprocess(MSFilter *f){
 	s->thread_run=TRUE;
 	ms_thread_create(&s->thread,NULL,msv4l2_thread,s);
 	s->th_frame_count=-1;
-	s->mean_inter_frame=0;
+	ms_average_fps_init(&s->avgfps,"V4L2 capture");
 }
 
 static void msv4l2_process(MSFilter *f){
@@ -611,20 +610,9 @@ static void msv4l2_process(MSFilter *f){
 			mblk_set_timestamp_info(om,timestamp);
 			mblk_set_marker_info(om,TRUE);
 			ms_queue_put(f->outputs[0],om);
-			if (s->last_frame_time!=-1){
-				float frame_interval=(float)(curtime-s->last_frame_time)/1000.0;
-				if (s->mean_inter_frame==0){
-					s->mean_inter_frame=frame_interval;
-				}else{
-					s->mean_inter_frame=(0.8*s->mean_inter_frame)+(0.2*frame_interval);
-				}
-			}
-			s->last_frame_time=curtime;
+			ms_average_fps_update(&s->avgfps,f->ticker->time);
 		}
 		s->th_frame_count++;
-		if (s->th_frame_count%50==0 && s->mean_inter_frame!=0){
-			ms_message("Captured mean fps=%f, expected=%f",1/s->mean_inter_frame, s->fps);
-		}
 	}
 }
 
@@ -688,11 +676,20 @@ static int msv4l2_set_devfile(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int msv4l2_get_fps(MSFilter *f, void *arg){
+	V4l2State *s=(V4l2State*)f->data;
+	if (f->ticker){
+		*(float*)arg=ms_average_fps_get(&s->avgfps);
+	}else *(float*)arg=s->fps;
+	return 0;
+}
+
 static MSFilterMethod msv4l2_methods[]={
 	{	MS_FILTER_SET_FPS	,	msv4l2_set_fps	},
 	{	MS_FILTER_SET_VIDEO_SIZE,	msv4l2_set_vsize	},
 	{	MS_FILTER_GET_VIDEO_SIZE,	msv4l2_get_vsize	},
 	{	MS_FILTER_GET_PIX_FMT	,	msv4l2_get_pixfmt	},
+	{	MS_FILTER_GET_FPS	,	msv4l2_get_fps	},
 	{	0			,	NULL		}
 };
 
