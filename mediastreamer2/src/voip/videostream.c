@@ -212,6 +212,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	stream->ms.ice_check_list=NULL;
 	rtp_session_register_event_queue(stream->ms.sessions.rtp_session,stream->ms.evq);
 	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, CIF);
+	stream->fps=0;
 	stream->dir=VideoStreamSendRecv;
 	stream->display_filter_auto_rotate_enabled=0;
 	stream->freeze_on_error = FALSE;
@@ -240,6 +241,10 @@ void video_stream_set_preview_size(VideoStream *stream, MSVideoSize vsize){
 	stream->preview_vsize=vsize;
 }
 
+void video_stream_set_fps(VideoStream *stream, float fps){
+	stream->fps=fps;
+}
+
 MSVideoSize video_stream_get_sent_video_size(const VideoStream *stream) {
 	MSVideoSize vsize;
 	MS_VIDEO_SIZE_ASSIGN(vsize, UNKNOWN);
@@ -256,6 +261,23 @@ MSVideoSize video_stream_get_received_video_size(const VideoStream *stream) {
 		ms_filter_call_method(stream->ms.decoder, MS_FILTER_GET_VIDEO_SIZE, &vsize);
 	}
 	return vsize;
+}
+
+float video_stream_get_sent_framerate(const VideoStream *stream){
+	float fps=0;
+	if (stream->source){
+		if (ms_filter_has_method(stream->source, MS_FILTER_GET_FPS))
+			ms_filter_call_method(stream->source,MS_FILTER_GET_FPS,&fps);
+	}
+	return fps;
+}
+
+float video_stream_get_received_framerate(const VideoStream *stream){
+	float fps=0;
+	if (stream->ms.decoder != NULL && ms_filter_has_method(stream->ms.decoder, MS_FILTER_GET_FPS)) {
+		ms_filter_call_method(stream->ms.decoder, MS_FILTER_GET_FPS, &fps);
+	}
+	return fps;
 }
 
 void video_stream_set_relay_session_id(VideoStream *stream, const char *id){
@@ -369,6 +391,8 @@ static void configure_video_source(VideoStream *stream){
 	}
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_FPS,&fps);
+	if (stream->fps!=0)
+		fps=stream->fps;
 	ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
 	/* configure the filters */
 	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
@@ -968,13 +992,16 @@ VideoPreview * video_preview_new(void){
 
 void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	MSPixFmt format;
-	float fps=(float)29.97;
+	float fps;
 	int mirroring=1;
 	int corner=-1;
 	MSVideoSize disp_size=stream->sent_vsize;
 	MSVideoSize vsize=disp_size;
 	const char *displaytype=stream->display_name;
 
+	if (stream->fps!=0) fps=stream->fps;
+	else fps=(float)29.97;
+	
 	stream->source = ms_web_cam_create_reader(device);
 
 

@@ -759,7 +759,7 @@ static void dec_init(MSFilter *f) {
 	s->avpf_enabled = FALSE;
 	s->freeze_on_error = TRUE;
 	f->data = s;
-	ms_video_init_average_fps(&s->fps, "VP8 decoder: FPS: %f");
+	ms_average_fps_init(&s->fps, "VP8 decoder: FPS: %f");
 }
 
 static void dec_preprocess(MSFilter* f) {
@@ -850,7 +850,7 @@ static void dec_process(MSFilter *f) {
 		}
 		ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
 
-		if (ms_video_update_average_fps(&s->fps, f->ticker->time)) {
+		if (ms_average_fps_update(&s->fps, f->ticker->time)) {
 			ms_message("VP8 decoder: Frame size: %dx%d", s->yuv_width, s->yuv_height);
 		}
 		if (!s->first_image_decoded) {
@@ -898,11 +898,18 @@ static int dec_get_vsize(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int dec_get_fps(MSFilter *f, void *data){
+	DecState *s = (DecState *)f->data;
+	*(float*)data= ms_average_fps_get(&s->fps);
+	return 0;
+}
+
 static MSFilterMethod dec_methods[] = {
 	{ MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, dec_reset_first_image },
 	{ MS_VIDEO_DECODER_ENABLE_AVPF,                    dec_enable_avpf       },
 	{ MS_VIDEO_DECODER_FREEZE_ON_ERROR,                dec_freeze_on_error   },
 	{ MS_FILTER_GET_VIDEO_SIZE,                        dec_get_vsize         },
+	{ MS_FILTER_GET_FPS,                               dec_get_fps           },
 	{ 0,                                               NULL                  }
 };
 
