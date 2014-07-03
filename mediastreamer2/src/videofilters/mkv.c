@@ -1596,6 +1596,63 @@ static mblk_t *muxer_get_buffer(Muxer *obj, int *pin)
 //}
 
 /*********************************************************************************************
+ * Timestamp corrector                                                                       *
+ *********************************************************************************************/
+typedef struct {
+	timecode_t globalOrigin;
+	timecode_t globalOffset;
+	timecode_t *offsetList;
+	ms_bool_t globalOffsetIsSet;
+	ms_bool_t *offsetIsSet;
+	int nPins;
+	const MSTicker *ticker;
+} TimeCorrector;
+
+static void time_corrector_init(TimeCorrector *obj, int nPins) {
+	obj->globalOrigin = 0;
+	obj->nPins = nPins;
+	obj->offsetList = (timecode_t *)ms_new0(timecode_t, obj->nPins);
+	obj->offsetIsSet = (ms_bool_t *)ms_new0(ms_bool_t, obj->nPins);
+	obj->globalOffsetIsSet = FALSE;
+	obj->ticker = NULL;
+}
+
+static void time_corrector_uninit(TimeCorrector *obj) {
+	ms_free(obj->offsetList);
+	ms_free(obj->offsetIsSet);
+}
+
+static inline void time_corrector_set_origin(TimeCorrector *obj, timecode_t origin) {
+	obj->globalOrigin = origin;
+}
+
+static inline void time_corrector_set_ticker(TimeCorrector *obj, const MSTicker *ticker) {
+	obj->ticker = ticker;
+}
+
+static void time_corrector_reset(TimeCorrector *obj) {
+	int i;
+	obj->globalOffsetIsSet = FALSE;
+	for(i=0; i < obj->nPins; i++) {
+		obj->offsetIsSet[i] = FALSE;
+	}
+}
+
+static void time_corrector_proceed(TimeCorrector *obj, mblk_t *buffer, int pin) {
+	if(!obj->globalOffsetIsSet) {
+		obj->globalOffset = obj->globalOrigin - obj->ticker->time;
+		obj->globalOffsetIsSet = TRUE;
+	}
+	if(!obj->offsetIsSet[pin]) {
+		uint64_t origin = obj->ticker->time + obj->globalOffset;
+		obj->offsetList[pin] = origin - mblk_get_timestamp_info(buffer);
+		obj->offsetIsSet[pin] = TRUE;
+	}
+	mblk_set_timestamp_info(buffer, mblk_get_timestamp_info(buffer) + obj->offsetList[pin]);
+}
+
+
+/*********************************************************************************************
  * MKV Recorder Filter                                                                       *
  *********************************************************************************************/
 #define CLUSTER_MAX_DURATION 5000
@@ -1603,11 +1660,12 @@ static mblk_t *muxer_get_buffer(Muxer *obj, int *pin)
 typedef struct
 {
 	Matroska file;
-	timecode_t duration, clusterTime, timeOffset, lastFrameTimecode;
+	timecode_t duration;
 	MatroskaOpenMode openMode;
 	MSRecorderState state;
 	Muxer muxer;
-	ms_bool_t needKeyFrame, firstFrame, haveVideoTrack;
+	TimeCorrector timeCorrector;
+	ms_bool_t needKeyFrame;
 	const MSFmtDescriptor **inputDescsList;
 	Module **modulesList;
 } MKVRecorder;
@@ -1621,14 +1679,13 @@ static void recorder_init(MSFilter *f)
 
 	obj->state = MSRecorderClosed;
 	obj->needKeyFrame = TRUE;
-	obj->firstFrame = TRUE;
-	obj->haveVideoTrack = FALSE;
-	obj->timeOffset = 0;
 
 	muxer_init(&obj->muxer, f->desc->ninputs);
 
 	obj->inputDescsList = (const MSFmtDescriptor **)ms_new0(const MSFmtDescriptor *, f->desc->ninputs);
 	obj->modulesList = (Module **)ms_new0(Module *, f->desc->ninputs);
+
+	time_corrector_init(&obj->timeCorrector, f->desc->ninputs);
 
 	f->data=obj;
 }
@@ -1643,8 +1700,7 @@ static void recorder_uninit(MSFilter *f){
 	}
 	matroska_uninit(&obj->file);
 	ms_free(obj->inputDescsList);
-	for(i=0; i < f->desc->ninputs; i++)
-	{
+	for(i=0; i < f->desc->ninputs; i++) {
 		if(obj->modulesList[i] != NULL) {
 			module_free(obj->modulesList[i]);
 		}
@@ -1652,14 +1708,28 @@ static void recorder_uninit(MSFilter *f){
 			ms_queue_flush(f->inputs[i]);
 		}
 	}
+	time_corrector_uninit(&obj->timeCorrector);
 	ms_free(obj->modulesList);
 	ms_free(obj->inputDescsList);
 	ms_free(obj);
 	ms_message("MKVRecorder: destroyed");
 }
 
-static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int pin)
-{
+static void recorder_preprocess(MSFilter *f) {
+	MKVRecorder *obj = (MKVRecorder *)f->data;
+	ms_filter_lock(f);
+	time_corrector_set_ticker(&obj->timeCorrector, f->ticker);
+	ms_filter_unlock(f);
+}
+
+static void recorder_postprocess(MSFilter *f) {
+	MKVRecorder *obj = (MKVRecorder *)f->data;
+	ms_filter_lock(f);
+	time_corrector_set_ticker(&obj->timeCorrector, NULL);
+	ms_filter_unlock(f);
+}
+
+static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int pin) {
 	ms_bool_t isKeyFrame;
 	mblk_t *frame = module_process(obj->modulesList[pin], buffer, &isKeyFrame);
 
@@ -1668,14 +1738,10 @@ static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int pin)
 	m_frame.Size = msgdsize(frame);
 	m_frame.Data = frame->b_rptr;
 
-	if(matroska_clusters_count(&obj->file) == 0)
-	{
+	if(matroska_clusters_count(&obj->file) == 0) {
 		matroska_start_cluster(&obj->file, mblk_get_timestamp_info(frame));
-	}
-	else
-	{
-		if((obj->inputDescsList[pin]->type == MSVideo && isKeyFrame) || (obj->duration - matroska_current_cluster_timecode(&obj->file) >= CLUSTER_MAX_DURATION))
-		{
+	} else {
+		if((obj->inputDescsList[pin]->type == MSVideo && isKeyFrame) || (obj->duration - matroska_current_cluster_timecode(&obj->file) >= CLUSTER_MAX_DURATION)) {
 			matroska_close_cluster(&obj->file);
 			matroska_start_cluster(&obj->file, mblk_get_timestamp_info(frame));
 		}
@@ -1686,17 +1752,14 @@ static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int pin)
 	return block;
 }
 
-static void changeClockRate(mblk_t *buffer, uint32_t oldClockRate, uint32_t newClockRate)
-{
+static void changeClockRate(mblk_t *buffer, uint32_t oldClockRate, uint32_t newClockRate) {
 	mblk_t *curBuff;
-	for(curBuff = buffer; curBuff != NULL; curBuff = curBuff->b_cont)
-	{
+	for(curBuff = buffer; curBuff != NULL; curBuff = curBuff->b_cont) {
 		mblk_set_timestamp_info(curBuff, mblk_get_timestamp_info(curBuff) * newClockRate / oldClockRate);
 	}
 }
 
-static int recorder_open_file(MSFilter *f, void *arg)
-{
+static int recorder_open_file(MSFilter *f, void *arg) {
 	MKVRecorder *obj = (MKVRecorder *)f->data;
 	const char *filename = (const char *)arg;
 	int err = 0, i;
@@ -1729,7 +1792,7 @@ static int recorder_open_file(MSFilter *f, void *arg)
 						matroska_add_track(&obj->file, i+1, module_get_codec_id(obj->modulesList[i]));
 					}
 				}
-				obj->duration = -1;
+				obj->duration = 0;
 			} else {
 				for(i=0; i < f->desc->ninputs; i++) {
 					if(obj->inputDescsList[i] != NULL) {
@@ -1742,8 +1805,9 @@ static int recorder_open_file(MSFilter *f, void *arg)
 						}
 					}
 				}
-				obj->duration = matroska_get_duration(&obj->file) + 1;
+				obj->duration = matroska_get_duration(&obj->file);
 			}
+			time_corrector_set_origin(&obj->timeCorrector, obj->duration);
 			obj->state = MSRecorderPaused;
 			ms_message("%s successfully opened", filename);
 		}
@@ -1767,7 +1831,6 @@ static int recorder_start(MSFilter *f, void *arg)
 	{
 		obj->state = MSRecorderRunning;
 		obj->needKeyFrame = TRUE;
-		obj->firstFrame = TRUE;
 		ms_message("MKVRecorder: recording successfully started");
 	}
 	ms_filter_unlock(f);
@@ -1838,34 +1901,29 @@ static void recorder_process(MSFilter *f) {
 						}
 					}
 					if(buffer != NULL) {
-						muxer_put_buffer(&obj->muxer, buffer, i);
-						while((buffer = ms_queue_get(&frames_ms)) != NULL) {
+						do {
+							time_corrector_proceed(&obj->timeCorrector, buffer, i);
 							muxer_put_buffer(&obj->muxer, buffer, i);
-						}
+						} while((buffer = ms_queue_get(&frames_ms)) != NULL);
 						obj->needKeyFrame = FALSE;
 					}
 				} else {
 					while((buffer = ms_queue_get(&frames_ms)) != NULL) {
+						time_corrector_proceed(&obj->timeCorrector, buffer, i);
 						muxer_put_buffer(&obj->muxer, buffer, i);
 					}
 				}
 			}
 		}
-
 		while((buffer = muxer_get_buffer(&obj->muxer, &pin)) != NULL) {
 			matroska_block *block;
 			timecode_t bufferTimecode;
 
-			if(obj->firstFrame) {
-				obj->timeOffset = obj->duration - mblk_get_timestamp_info(buffer) + 1;
-				obj->firstFrame = FALSE;
-			}
-			mblk_set_timestamp_info(buffer, mblk_get_timestamp_info(buffer) + obj->timeOffset);
 			bufferTimecode = mblk_get_timestamp_info(buffer);
 
 			block = write_frame(obj, buffer, pin);
 
-			if(obj->inputDescsList[pin]->type == MSVideo || !obj->haveVideoTrack) {
+			if(obj->inputDescsList[pin]->type == MSVideo) {
 				matroska_add_cue(&obj->file, block);
 			}
 			if(bufferTimecode > obj->duration) {
@@ -1912,6 +1970,7 @@ static int recorder_close(MSFilter *f, void *arg) {
 		} else {
 			matroska_go_to_segment_info_begin(&obj->file);
 		}
+		obj->duration++;
 		matroska_set_segment_info(&obj->file, "libmediastreamer2", "libmediastreamer2", obj->duration);
 		matroska_write_segment_info(&obj->file);
 		matroska_write_tracks(&obj->file);
@@ -1920,7 +1979,7 @@ static int recorder_close(MSFilter *f, void *arg) {
 		matroska_go_to_file_end(&obj->file);
 		matroska_close_segment(&obj->file);
 		matroska_close_file(&obj->file);
-
+		time_corrector_reset(&obj->timeCorrector);
 		obj->state = MSRecorderClosed;
 		ms_message("MKVRecorder: the file has been successfully closed");
 	} else {
@@ -2005,9 +2064,9 @@ MSFilterDesc ms_mkv_recorder_desc= {
 	2,
 	0,
 	recorder_init,
-	NULL,
+	recorder_preprocess,
 	recorder_process,
-	NULL,
+	recorder_postprocess,
 	recorder_uninit,
 	recorder_methods
 };
@@ -2020,9 +2079,9 @@ MSFilterDesc ms_mkv_recorder_desc={
 	.ninputs=2,
 	.noutputs=0,
 	.init=recorder_init,
-	.preprocess=NULL,
+	.preprocess=recorder_preprocess,
 	.process=recorder_process,
-	.postprocess=NULL,
+	.postprocess=recorder_postprocess,
 	.uninit=recorder_uninit,
 	.methods=recorder_methods
 };
