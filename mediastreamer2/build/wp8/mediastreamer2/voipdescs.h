@@ -16,7 +16,6 @@ extern MSFilterDesc ms_gsm_enc_desc;
 extern MSFilterDesc ms_speex_ec_desc;
 extern MSFilterDesc ms_opus_dec_desc;
 extern MSFilterDesc ms_opus_enc_desc;
-extern MSFilterDesc ms_conf_desc;
 #ifndef NO_RESAMPLE
 extern MSFilterDesc ms_resample_desc;
 #endif
@@ -74,7 +73,6 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_speex_ec_desc,
 &ms_opus_dec_desc,
 &ms_opus_enc_desc,
-&ms_conf_desc,
 #ifndef NORESAMPLE
 &ms_resample_desc,
 #endif

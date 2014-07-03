@@ -418,10 +418,13 @@ typedef void (*init_func_t)(MSFactory *);
 
 int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	int num=0;
-#if defined(WIN32)
+#if defined(WIN32) && !defined(_WIN32_WCE)
 	WIN32_FIND_DATA FileData;
 	HANDLE hSearch;
 	char szDirPath[1024];
+#if defined(WINAPI_FAMILY_PHONE_APP) && defined(UNICODE)
+	wchar_t wszDirPath[1024];
+#endif
 	char szPluginFile[1024];
 	BOOL fFinished = FALSE;
 	const char *tmp=getenv("DEBUG");
@@ -430,8 +433,18 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 
 	// Start searching for .dll files in the current directory.
 
+#ifdef WINAPI_FAMILY_PHONE_APP
+	snprintf(szDirPath, sizeof(szDirPath), "%s\\libms*.dll", dir);
+#ifdef UNICODE
+	mbstowcs(wszDirPath, szDirPath, sizeof(wszDirPath));
+	hSearch = FindFirstFileExW(wszDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#else
+	hSearch = FindFirstFileExA(szDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#endif
+#else
 	snprintf(szDirPath, sizeof(szDirPath), "%s\\*.dll", dir);
 	hSearch = FindFirstFile(szDirPath, &FileData);
+#endif
 	if (hSearch == INVALID_HANDLE_VALUE)
 	{
 		ms_message("no plugin (*.dll) found in %s.", szDirPath);
@@ -443,6 +456,18 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	{
 		/* load library */
 		HINSTANCE os_handle;
+#ifdef WINAPI_FAMILY_PHONE_APP
+		wchar_t wszPluginFile[2048];
+#ifdef UNICODE
+		char filename[512];
+		wcstombs(filename, FileData.cFileName, sizeof(filename));
+		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, filename);
+#else
+		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
+#endif
+		mbstowcs(wszPluginFile, szPluginFile, sizeof(wszPluginFile));
+		os_handle = LoadPackagedLibrary(wszPluginFile, 0);
+#else
 		UINT em=0;
 		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
 
@@ -454,19 +479,24 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 			os_handle = LoadLibraryEx (szPluginFile, NULL, 0);
 		}
 		if (!debug) SetErrorMode (em);
+#endif
 		if (os_handle==NULL)
-			ms_error("Fail to load plugin %s", szPluginFile);
+			ms_error("Fail to load plugin %s: error %i", szPluginFile, (int)GetLastError());
 		else{
 			init_func_t initroutine;
 			char szPluginName[256];
 			char szMethodName[256];
 			char *minus;
-			snprintf(szPluginName, 256, "%s", FileData.cFileName);
+#if defined(WINAPI_FAMILY_PHONE_APP) && defined(UNICODE)
+			snprintf(szPluginName, sizeof(szPluginName), "%s", filename);
+#else
+			snprintf(szPluginName, sizeof(szPluginName), "%s", FileData.cFileName);
+#endif
 			/*on mingw, dll names might be libsomething-3.dll. We must skip the -X.dll stuff*/
 			minus=strchr(szPluginName,'-');
 			if (minus) *minus='\0';
 			else szPluginName[strlen(szPluginName)-4]='\0'; /*remove .dll*/
-			snprintf(szMethodName, 256, "%s_init", szPluginName);
+			snprintf(szMethodName, sizeof(szMethodName), "%s_init", szPluginName);
 			initroutine = (init_func_t) GetProcAddress (os_handle, szMethodName);
 				if (initroutine!=NULL){
 					initroutine(factory);

@@ -146,7 +146,6 @@
     <ClCompile Include="..\..\..\src\audiofilters\g711.c" />
     <ClCompile Include="..\..\..\src\audiofilters\gsm.c" />
     <ClCompile Include="..\..\..\src\audiofilters\l16.c" />
-    <ClCompile Include="..\..\..\src\audiofilters\msconf.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msfileplayer.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msfilerec.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msg722.c" />
@@ -159,6 +158,7 @@
     <ClCompile Include="..\..\..\src\audiofilters\ulaw.c" />
     <ClCompile Include="..\..\..\src\base\eventqueue.c" />
     <ClCompile Include="..\..\..\src\base\mscommon.c" />
+    <ClCompile Include="..\..\..\src\base\msfactory.c" />
     <ClCompile Include="..\..\..\src\base\msfilter.c" />
     <ClCompile Include="..\..\..\src\base\msqueue.c" />
     <ClCompile Include="..\..\..\src\base\mssndcard.c" />
