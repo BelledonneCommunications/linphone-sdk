@@ -788,6 +788,10 @@ void audio_stream_play(AudioStream *st, const char *name){
 	}
 }
 
+MSFilter * audio_stream_get_local_player(AudioStream *st) {
+	return st->local_player;
+}
+
 void audio_stream_record(AudioStream *st, const char *name){
 	if (ms_filter_get_id(st->soundwrite)==MS_FILE_REC_ID){
 		ms_filter_call_method_noarg(st->soundwrite,MS_FILE_REC_CLOSE);
