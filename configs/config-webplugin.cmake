@@ -97,11 +97,6 @@ list(APPEND EP_ms2_CONFIGURE_OPTIONS
 
 # openh264
 set(EP_openh264_LINKING_TYPE "-static")
-# Force regeneration of cmake files so that linking type change is effective
-linphone_builder_set_ep_directories(openh264)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/configure.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_openh264_configure.sh)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/build.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_openh264_build.sh)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/install.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_openh264_install.sh)
 
 # opus
 if(NOT MSVC)

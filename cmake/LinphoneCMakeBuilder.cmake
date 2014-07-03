@@ -87,7 +87,7 @@ find_program(PKG_CONFIG_PROGRAM
 )
 
 if(NOT PKG_CONFIG_PROGRAM)
-	if(MINGW)
+	if(WIN32)
 		message(STATUS "Installing pkg-config to C:/MinGW/bin")
 		set(_pkg_config_dir ${CMAKE_CURRENT_BINARY_DIR}/pkg-config)
 		file(MAKE_DIRECTORY ${_pkg_config_dir})
@@ -133,8 +133,8 @@ find_program(INTLTOOLIZE_PROGRAM
 	HINTS "C:/MinGW/msys/1.0/bin"
 )
 
-#if(NOT INTLTOOLIZE_PROGRAM)
-	if(MINGW)
+if(NOT INTLTOOLIZE_PROGRAM)
+	if(WIN32)
 		message(STATUS "Installing intltoolize to C:/MinGW/bin")
 		set(_intltoolize_dir ${CMAKE_CURRENT_BINARY_DIR}/intltoolize)
 		file(MAKE_DIRECTORY ${_intltoolize_dir})
@@ -164,7 +164,7 @@ find_program(INTLTOOLIZE_PROGRAM
 		NAMES intltoolize
 		HINTS "C:/MinGW/msys/1.0/bin"
 	)
-#endif()
+endif()
 
 if(NOT INTLTOOLIZE_PROGRAM AND NOT MSVC)
 	message(FATAL_ERROR "Could not find the intltoolize program.")
@@ -429,10 +429,22 @@ function(linphone_builder_add_project PROJNAME)
 	linphone_builder_expand_external_project_vars()
 
 	if("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "custom")
+		configure_file(${EP_${PROJNAME}_CONFIGURE_COMMAND_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh)
+		configure_file(${EP_${PROJNAME}_BUILD_COMMAND_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh)
+		configure_file(${EP_${PROJNAME}_INSTALL_COMMAND_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh)
+		if(WIN32)
+			set(SCRIPT_EXTENSION bat)
+			set(MSVC_PROJNAME ${PROJNAME})
+			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_configure.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.bat)
+			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_build.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.bat)
+			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_install.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.bat)
+		else()
+			set(SCRIPT_EXTENSION sh)
+		endif()
 		set(BUILD_COMMANDS
-			CONFIGURE_COMMAND ${EP_${PROJNAME}_CONFIGURE_COMMAND}
-			BUILD_COMMAND ${EP_${PROJNAME}_BUILD_COMMAND}
-			INSTALL_COMMAND ${EP_${PROJNAME}_INSTALL_COMMAND}
+			CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.${SCRIPT_EXTENSION}
+			BUILD_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.${SCRIPT_EXTENSION}
+			INSTALL_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.${SCRIPT_EXTENSION}
 		)
 	elseif("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "autotools")
 		linphone_builder_create_autogen_command(${PROJNAME})
