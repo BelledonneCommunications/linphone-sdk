@@ -55,6 +55,7 @@ LOCAL_SRC_FILES = \
 	base/mtu.c \
 	base/mswebcam.c \
 	base/eventqueue.c \
+	base/msfactory.c \
 	voip/audioconference.c \
 	voip/mediastream.c \
 	voip/msvoip.c \
