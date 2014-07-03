@@ -19,6 +19,14 @@ if(MS2_ENABLE_VIDEO)
 	include_directories(src/voip)
 endif(MS2_ENABLE_VIDEO)
 
+set(prefix ${CMAKE_INSTALL_PREFIX})
+set(exec_prefix ${prefix}/bin)
+set(libdir ${prefix}/lib)
+set(includedir ${prefix}/include)
+set(MEDIASTREAMER_VERSION "2.10.0")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mediastreamer.pc.in ${CMAKE_CURRENT_BINARY_DIR}/mediastreamer.pc)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/mediastreamer.pc DESTINATION lib/pkgconfig)
+
 include_directories(${CMAKE_INSTALL_PREFIX}/include)
 
 add_subdirectory(include)
