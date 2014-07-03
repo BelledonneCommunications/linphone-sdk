@@ -75,8 +75,13 @@ CPPFLAGS_save=$CPPFLAGS
 CPPFLAGS="$CPPFLAGS -I${openh264prefix}/include -L${openh264prefix}/lib"
 AC_LANG_SAVE
 AC_LANG_CPLUSPLUS
-AC_CHECK_HEADERS(wels/codec_api.h,
-		[ AC_CHECK_LIB(openh264, WelsCreateDecoder, [ OPENH264_LIBS="-lopenh264"; found_openh264=yes]) ]
+AC_CHECK_HEADERS([stdbool.h wels/codec_api.h],
+		[ AC_CHECK_LIB(openh264, WelsCreateDecoder, [ OPENH264_LIBS="-lopenh264"; found_openh264=yes]) ],
+		[],
+		[[#ifdef HAVE_STDBOOL_H
+# include <stdbool.h>
+#endif
+		]]
 	)
 AC_SUBST(OPENH264_LIBS)
 AC_LANG_RESTORE
