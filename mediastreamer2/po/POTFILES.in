@@ -11,7 +11,6 @@ src/audiofilters/equalizer.c
 src/audiofilters/gsm.c
 src/audiofilters/genericplc.c
 src/audiofilters/macsnd.c
-src/audiofilters/msconf.c
 src/audiofilters/msfileplayer.c
 src/audiofilters/msfilerec.c
 src/audiofilters/msiounit.m
