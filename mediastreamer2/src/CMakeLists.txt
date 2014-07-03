@@ -36,6 +36,7 @@ endif(NOT AWK_PROGRAM)
 set(BASE_SOURCE_FILES
 	base/eventqueue.c
 	base/mscommon.c
+	base/msfactory.c
 	base/msfilter.c
 	base/msqueue.c
 	base/mssndcard.c
