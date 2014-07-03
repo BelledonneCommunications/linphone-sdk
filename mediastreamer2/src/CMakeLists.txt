@@ -167,7 +167,6 @@ set(VOIP_SOURCE_FILES
 	audiofilters/g711.h
 	audiofilters/genericplc.c
 	audiofilters/l16.c
-	audiofilters/msconf.c
 	audiofilters/msfileplayer.c
 	audiofilters/msfilerec.c
 	audiofilters/msg722.c

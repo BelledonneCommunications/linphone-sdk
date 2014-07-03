@@ -82,7 +82,6 @@ LOCAL_SRC_FILES = \
 	audiofilters/msfileplayer.c \
 	audiofilters/dtmfgen.c \
 	audiofilters/msfilerec.c \
-	audiofilters/msconf.c \
 	audiofilters/msvolume.c \
 	audiofilters/equalizer.c \
 	audiofilters/tonedetector.c \
