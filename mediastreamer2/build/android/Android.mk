@@ -276,7 +276,7 @@ ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 			LOCAL_STATIC_LIBRARIES += libmsx264 libx264
 		endif
 		ifeq ($(BUILD_OPENH264),1)
-			LOCAL_STATIC_LIBRARIES += libmsopenh264 libwels
+			LOCAL_STATIC_LIBRARIES += libmsopenh264 libopenh264
 		endif
 		LOCAL_SHARED_LIBRARIES += \
 			libavcodec-linphone \
