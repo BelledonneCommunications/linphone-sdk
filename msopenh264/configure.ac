@@ -73,10 +73,13 @@ AC_ARG_WITH(openh264,
 )
 CPPFLAGS_save=$CPPFLAGS
 CPPFLAGS="$CPPFLAGS -I${openh264prefix}/include -L${openh264prefix}/lib"
+AC_LANG_SAVE
+AC_LANG_CPLUSPLUS
 AC_CHECK_HEADERS(wels/codec_api.h,
 		[ AC_CHECK_LIB(openh264, WelsCreateDecoder, [ OPENH264_LIBS="-lopenh264"; found_openh264=yes]) ]
 	)
 AC_SUBST(OPENH264_LIBS)
+AC_LANG_RESTORE
 CPPFLAGS=$CPPFLAGS_save
 
 if test "${found_openh264}" = "no"; then
