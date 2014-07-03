@@ -86,10 +86,17 @@ static int msopenh264_dec_get_size(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int msopenh264_dec_get_fps(MSFilter *f, void *arg){
+	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
+	*(float*)arg=d->getFps();
+	return 0;
+}
+
 static MSFilterMethod msopenh264_dec_methods[] = {
 	{ MS_FILTER_ADD_FMTP,                              msopenh264_dec_add_fmtp          },
 	{ MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, msopenh264_dec_reset_first_image },
 	{ MS_FILTER_GET_VIDEO_SIZE,                        msopenh264_dec_get_size          },
+	{ MS_FILTER_GET_FPS,                               msopenh264_dec_get_fps           },
 	{ 0,                                               NULL                             }
 };
 

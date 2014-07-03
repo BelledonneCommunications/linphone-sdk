@@ -60,7 +60,7 @@ void MSOpenH264Decoder::initialize()
 		if (ret != 0) {
 			ms_error("OpenH264 decoder: Failed to initialize: %li", ret);
 		} else {
-			ms_video_init_average_fps(&mFPS, "OpenH264 decoder: FPS=%f");
+			ms_average_fps_init(&mFPS, "OpenH264 decoder: FPS=%f");
 			mInitialized = true;
 		}
 	}
@@ -135,7 +135,7 @@ void MSOpenH264Decoder::feed()
 				ms_queue_put(mFilter->outputs[0], dupmsg(mYUVMsg));
 
 				// Update average FPS
-				if (ms_video_update_average_fps(&mFPS, mFilter->ticker->time)) {
+				if (ms_average_fps_update(&mFPS, mFilter->ticker->time)) {
 					ms_message("OpenH264 decoder: Frame size: %dx%d", mWidth, mHeight);
 				}
 
@@ -205,6 +205,10 @@ MSVideoSize MSOpenH264Decoder::getSize() const
 	size.width = mWidth;
 	size.height = mHeight;
 	return size;
+}
+
+float MSOpenH264Decoder::getFps()const{
+	return ms_average_fps_get(&mFPS);
 }
 
 int MSOpenH264Decoder::nalusToFrame(MSQueue *nalus)

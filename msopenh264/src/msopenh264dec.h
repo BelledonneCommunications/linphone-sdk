@@ -36,6 +36,7 @@ public:
 	void provideSpropParameterSets(char *value, int valueSize);
 	void resetFirstImageDecoded();
 	MSVideoSize getSize() const;
+	float getFps()const;
 
 private:
 	int nalusToFrame(MSQueue *nalus);
