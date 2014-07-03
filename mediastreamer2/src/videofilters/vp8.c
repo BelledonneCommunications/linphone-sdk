@@ -39,8 +39,8 @@
 static const MSVideoConfiguration vp8_conf_list[] = {
 #if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
 	MS_VP8_CONF(300000, 600000,  VGA, 12),
-	MS_VP8_CONF(100000, 300000, QVGA, 12),
-	MS_VP8_CONF( 64000, 100000, QCIF, 12),
+	MS_VP8_CONF(100000, 300000, QVGA, 10),
+	MS_VP8_CONF( 64000, 100000, QCIF, 10),
 	MS_VP8_CONF(     0,  64000, QCIF,  5)
 #else
 	MS_VP8_CONF(1024000, 1536000,  VGA, 25),
@@ -167,7 +167,7 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.g_timebase.den = s->vconf.fps;
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
 #if TARGET_IPHONE_SIMULATOR
-	s->cfg.g_threads = 1; /*workaround to remove crash on ipad simulator*/ 
+	s->cfg.g_threads = 1; /*workaround to remove crash on ipad simulator*/
 #else
 	s->cfg.g_threads = ms_get_cpu_count();
 #endif
@@ -175,8 +175,16 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
 	s->cfg.g_error_resilient = VPX_ERROR_RESILIENT_DEFAULT|VPX_ERROR_RESILIENT_PARTITIONS;
 	s->cfg.g_lag_in_frames = 0;
+
 	cpuused = 10 - s->cfg.g_threads; /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 	if (cpuused < 7) cpuused = 7; /*values beneath 7 consume too much CPU*/
+#if (TARGET_OS_IPHONE == 1)
+	if( s->cfg.g_threads == 1 ){
+		/* on mono-core iOS devices, we reduce the quality a bit more due to VP8 being slower with new Clang compilers */
+		cpuused = 16;
+	}
+#endif
+
 	s->cfg.g_w = s->vconf.vsize.width;
 	s->cfg.g_h = s->vconf.vsize.height;
 	s->cfg.g_timebase.den = s->vconf.fps;
