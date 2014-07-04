@@ -29,7 +29,7 @@ static void channel_begin_recv_background_task(belle_sip_channel_t *obj);
 static void channel_end_recv_background_task(belle_sip_channel_t *obj);
 static void channel_process_queue(belle_sip_channel_t *obj);
 static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t size);
-
+static void channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l);
 
 const char *belle_sip_channel_state_to_string(belle_sip_channel_state_t state){
 	switch(state){
@@ -68,7 +68,7 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	if (obj->peer_cname) belle_sip_free(obj->peer_cname);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
-	obj->listeners=for_each_weak_unref_free(obj->listeners,(belle_sip_object_destroy_notify_t)belle_sip_channel_remove_listener,obj);
+	obj->listeners=for_each_weak_unref_free(obj->listeners,(belle_sip_object_destroy_notify_t)channel_remove_listener,obj);
 	if (obj->resolver_ctx>0) belle_sip_resolver_context_cancel(obj->resolver_ctx);
 	if (obj->inactivity_timer){
 		belle_sip_main_loop_remove_source(obj->stack->ml,obj->inactivity_timer);
@@ -666,15 +666,19 @@ void belle_sip_channel_set_socket(belle_sip_channel_t *obj, belle_sip_socket_t s
 									, -1);
 }
 
+static void channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
+	obj->listeners=belle_sip_list_remove(obj->listeners,l);
+}
+
 void belle_sip_channel_add_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
 	obj->listeners=belle_sip_list_append(obj->listeners,
 	                belle_sip_object_weak_ref(l,
-	                (belle_sip_object_destroy_notify_t)belle_sip_channel_remove_listener,obj));
+	                (belle_sip_object_destroy_notify_t)channel_remove_listener,obj));
 }
 
 void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
-	belle_sip_object_weak_unref(l,(belle_sip_object_destroy_notify_t)belle_sip_channel_remove_listener,obj);
-	obj->listeners=belle_sip_list_remove(obj->listeners,l);
+	belle_sip_object_weak_unref(l,(belle_sip_object_destroy_notify_t)channel_remove_listener,obj);
+	channel_remove_listener(obj,l);
 }
 
 int belle_sip_channel_matches(const belle_sip_channel_t *obj, const belle_sip_hop_t *hop, const struct addrinfo *addr){

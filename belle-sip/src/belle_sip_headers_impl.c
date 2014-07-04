@@ -571,11 +571,15 @@ void belle_sip_header_user_agent_set_products(belle_sip_header_user_agent_t* use
 void belle_sip_header_user_agent_add_product(belle_sip_header_user_agent_t* user_agent,const char* product) {
 	user_agent->products = belle_sip_list_append(user_agent->products ,belle_sip_strdup(product));
 }
+
 int belle_sip_header_user_agent_get_products_as_string(const belle_sip_header_user_agent_t* user_agent,char* value,unsigned int value_size) {
 	size_t result = 0;
+	belle_sip_error_code error=BELLE_SIP_OK;
 	belle_sip_list_t* list = user_agent->products;
+	
 	for(;list!=NULL;list=list->next){
-		belle_sip_snprintf(value,value_size,&result,"%s ",(const char *)list->data);
+		error=belle_sip_snprintf(value,value_size,&result,"%s ",(const char *)list->data);
+		if (error!=BELLE_SIP_OK) return -1;
 	}
 	if (result>0) value[result]='\0'; /*remove last space */
 

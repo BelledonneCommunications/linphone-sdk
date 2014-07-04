@@ -372,7 +372,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 		if (belle_sip_transaction_state_is_transient(state)) {
 			/*operation pending, cannot update authorization headers*/
 			belle_sip_header_cseq_t* cseq;
-			belle_sip_message("Refresher [%p] already have transaction [%p] in state [%s]"	,refresher
+			belle_sip_message("Refresher [%p] already has transaction [%p] in state [%s]"	,refresher
 				,refresher->transaction
 				,belle_sip_transaction_state_to_string(state));
 			request=belle_sip_request_clone_with_body(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction)));
