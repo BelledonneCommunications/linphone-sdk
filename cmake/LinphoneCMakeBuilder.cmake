@@ -170,6 +170,13 @@ if(NOT INTLTOOLIZE_PROGRAM AND NOT MSVC)
 	message(FATAL_ERROR "Could not find the intltoolize program.")
 endif()
 
+if(MSVC)
+	# Install headers needed by MSVC
+	file(GLOB MSVC_HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/MSVC/*.h")
+	file(MAKE_DIRECTORY "${CMAKE_INSTALL_PREFIX}/include/MSVC")
+	file(INSTALL ${MSVC_HEADER_FILES} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/MSVC")
+endif()
+
 set(LINPHONE_BUILDER_EP_VARS)
 set(LINPHONE_BUILDER_INCLUDED_BUILDERS)
 
