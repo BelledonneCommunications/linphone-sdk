@@ -545,14 +545,16 @@ function(linphone_builder_add_project PROJNAME)
 
 	if(MSVC)
 		if("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "autotools")
-			ExternalProject_Add_Step(EP_${PROJNAME} postinstall
-				COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DINSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/postinstall.cmake
-				COMMENT "Performing post-installation step"
-				DEPENDEES mkdir update patch download configure build install
-				WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-			)
+			if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/postinstall.cmake)
+				ExternalProject_Add_Step(EP_${PROJNAME} postinstall
+					COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DINSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/postinstall.cmake
+					COMMENT "Performing post-installation step"
+					DEPENDEES mkdir update patch download configure build install
+					WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+				)
+			endif()
 		endif()
-	endif(MSVC)
+	endif()
 endfunction(linphone_builder_add_project)
 
 function(linphone_builder_add_external_projects)
