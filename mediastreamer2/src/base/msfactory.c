@@ -422,7 +422,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	WIN32_FIND_DATA FileData;
 	HANDLE hSearch;
 	char szDirPath[1024];
-#if defined(WINAPI_FAMILY_PHONE_APP) && defined(UNICODE)
+#ifdef UNICODE
 	wchar_t wszDirPath[1024];
 #endif
 	char szPluginFile[1024];
@@ -432,22 +432,20 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
 
 	// Start searching for .dll files in the current directory.
-
 #ifdef WINAPI_FAMILY_PHONE_APP
 	snprintf(szDirPath, sizeof(szDirPath), "%s\\libms*.dll", dir);
+#else
+	snprintf(szDirPath, sizeof(szDirPath), "%s\\*.dll", dir);
+#endif
 #ifdef UNICODE
 	mbstowcs(wszDirPath, szDirPath, sizeof(wszDirPath));
 	hSearch = FindFirstFileExW(wszDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
 #else
 	hSearch = FindFirstFileExA(szDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
 #endif
-#else
-	snprintf(szDirPath, sizeof(szDirPath), "%s\\*.dll", dir);
-	hSearch = FindFirstFile(szDirPath, &FileData);
-#endif
 	if (hSearch == INVALID_HANDLE_VALUE)
 	{
-		ms_message("no plugin (*.dll) found in %s.", szDirPath);
+		ms_message("no plugin (*.dll) found in %s [%d].", szDirPath, GetLastError());
 		return 0;
 	}
 	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
@@ -455,28 +453,37 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	while (!fFinished)
 	{
 		/* load library */
+#ifndef WINAPI_FAMILY_PHONE_APP
+		UINT em=0;
+#endif
 		HINSTANCE os_handle;
-#ifdef WINAPI_FAMILY_PHONE_APP
 		wchar_t wszPluginFile[2048];
 #ifdef UNICODE
 		char filename[512];
 		wcstombs(filename, FileData.cFileName, sizeof(filename));
 		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, filename);
+		mbstowcs(wszPluginFile, szPluginFile, sizeof(wszPluginFile));
 #else
 		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
 #endif
-		mbstowcs(wszPluginFile, szPluginFile, sizeof(wszPluginFile));
+#ifdef WINAPI_FAMILY_PHONE_APP
 		os_handle = LoadPackagedLibrary(wszPluginFile, 0);
 #else
-		UINT em=0;
 		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
 
-		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
-		os_handle = LoadLibraryEx (szPluginFile, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+#if UNICODE
+		os_handle = LoadLibraryExW(wszPluginFile, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+#else
+		os_handle = LoadLibraryExA(szPluginFile, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+#endif
 		if (os_handle==NULL)
 		{
 			ms_message("Fail to load plugin %s with altered search path: error %i",szPluginFile,(int)GetLastError());
-			os_handle = LoadLibraryEx (szPluginFile, NULL, 0);
+#if UNICODE
+			os_handle = LoadLibraryExW(wszPluginFile, NULL, 0);
+#else
+			os_handle = LoadLibraryExA(szPluginFile, NULL, 0);
+#endif
 		}
 		if (!debug) SetErrorMode (em);
 #endif
@@ -487,7 +494,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 			char szPluginName[256];
 			char szMethodName[256];
 			char *minus;
-#if defined(WINAPI_FAMILY_PHONE_APP) && defined(UNICODE)
+#ifdef UNICODE
 			snprintf(szPluginName, sizeof(szPluginName), "%s", filename);
 #else
 			snprintf(szPluginName, sizeof(szPluginName), "%s", FileData.cFileName);
