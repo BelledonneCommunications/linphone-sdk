@@ -28,6 +28,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mediastreamer.pc.in ${CMAKE_CURRENT_B
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/mediastreamer.pc DESTINATION lib/pkgconfig)
 
 include_directories(${CMAKE_INSTALL_PREFIX}/include)
+if(MSVC)
+	include_directories(${CMAKE_INSTALL_PREFIX}/include/MSVC)
+endif()
 
 add_subdirectory(include)
 add_subdirectory(src)
