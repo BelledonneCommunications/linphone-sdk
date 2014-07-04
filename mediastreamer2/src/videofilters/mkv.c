@@ -1699,7 +1699,6 @@ static void recorder_uninit(MSFilter *f){
 		matroska_close_file(&obj->file);
 	}
 	matroska_uninit(&obj->file);
-	ms_free(obj->inputDescsList);
 	for(i=0; i < f->desc->ninputs; i++) {
 		if(obj->modulesList[i] != NULL) {
 			module_free(obj->modulesList[i]);
