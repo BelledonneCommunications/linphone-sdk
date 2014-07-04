@@ -37,6 +37,7 @@ set(EP_openh264_BUILD_METHOD "custom")
 set(EP_openh264_BUILD_IN_SOURCE "yes")
 set(EP_openh264_LINKING_TYPE "-shared")
 set(EP_openh264_BUILD_TYPE "Release")	# Always use Release build type, otherwise the codec is too slow...
+set(EP_openh264_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/permissive.patch")
 set(EP_openh264_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/configure.sh.cmake)
 set(EP_openh264_BUILD_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/build.sh.cmake)
 set(EP_openh264_INSTALL_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/install.sh.cmake)
