@@ -24,7 +24,7 @@ set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
 if(${LINPHONE_BUILDER_LATEST})
 	set(EP_linphone_GIT_TAG "master")
 else()
-	set(EP_linphone_GIT_TAG "278f48022d490c86f2c5f1d34612c0f1369bb6cd")
+	set(EP_linphone_GIT_TAG "34682b3f59094e0d45fbe7e216da9704a7e0ff42")
 endif()
 
 if(MSVC)
