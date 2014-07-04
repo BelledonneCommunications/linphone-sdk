@@ -67,6 +67,12 @@ typedef struct _video_stream_tester_stats_t {
 	int number_of_PLI;
 	int number_of_SLI;
 	int number_of_RPSI;
+
+	int number_of_decoder_decoding_error;
+	int number_of_decoder_first_image_decoded;
+	int number_of_decoder_send_pli;
+	int number_of_decoder_send_sli;
+	int number_of_decoder_send_rpsi;
 } video_stream_tester_stats_t;
 
 typedef struct _video_stream_tester_t {
@@ -78,6 +84,33 @@ typedef struct _video_stream_tester_t {
 static void reset_stats(video_stream_tester_stats_t *s) {
 	memset(s, 0, sizeof(video_stream_tester_stats_t));
 }
+#ifdef VIDEO_ENABLED
+static void video_stream_event_cb(void *user_pointer, const MSFilter *f, const unsigned int event_id, const void *args){
+	video_stream_tester_t* vs_tester = (video_stream_tester_t*) user_pointer;
+	ms_message("Event [%ui] received on video stream [%p]",event_id,vs_tester);
+	switch (event_id) {
+		case MS_VIDEO_DECODER_DECODING_ERRORS:
+			vs_tester->stats.number_of_decoder_decoding_error++;
+			break;
+		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
+			vs_tester->stats.number_of_decoder_first_image_decoded++;
+			break;
+		case MS_VIDEO_DECODER_SEND_PLI:
+			vs_tester->stats.number_of_decoder_send_pli++;
+			break;
+		case MS_VIDEO_DECODER_SEND_SLI:
+			vs_tester->stats.number_of_decoder_send_sli++;
+			break;
+		case MS_VIDEO_DECODER_SEND_RPSI:
+			vs_tester->stats.number_of_decoder_send_rpsi++;
+			/* Handled internally by mediastreamer2. */
+			break;
+		default:
+			ms_warning("Unhandled event %i", event_id);
+			break;
+	}
+}
+#endif
 
 static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 	video_stream_tester_stats_t *st = (video_stream_tester_stats_t *)user_pointer;
@@ -121,6 +154,9 @@ static void init_video_streams(video_stream_tester_t *marielle, video_stream_tes
 	PayloadType *pt;
 	MSWebCam *no_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
 	MSWebCam *default_webcam = ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+#if TARGET_OS_MAC
+	default_webcam=no_webcam; /*cannot acces real camera without mainloop*/
+#endif
 
 	marielle->vs = video_stream_new(MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT, FALSE);
 	margaux->vs = video_stream_new(MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT, FALSE);
@@ -144,8 +180,13 @@ static void init_video_streams(video_stream_tester_t *marielle, video_stream_tes
 
 	marielle->stats.q = ortp_ev_queue_new();
 	rtp_session_register_event_queue(marielle->vs->ms.sessions.rtp_session, marielle->stats.q);
+	video_stream_set_event_callback(marielle->vs,video_stream_event_cb, marielle);
+
 	margaux->stats.q = ortp_ev_queue_new();
 	rtp_session_register_event_queue(margaux->vs->ms.sessions.rtp_session, margaux->stats.q);
+	video_stream_set_event_callback(margaux->vs,video_stream_event_cb, margaux);
+
+
 
 	if (one_way == TRUE) {
 		video_stream_set_direction(marielle->vs, VideoStreamRecvOnly);
@@ -240,6 +281,44 @@ static void avpf_video_stream(void) {
 	}
 }
 
+static void video_stream_first_iframe_lost_vp8_base(bool_t use_avp) {
+	video_stream_tester_t marielle;
+	video_stream_tester_t margaux;
+	OrtpNetworkSimulatorParams params = { 0 };
+	bool_t supported = ms_filter_codec_supported("vp8");
+
+	if (supported) {
+		int dummy=0;
+		params.enabled = TRUE;
+		params.loss_rate = 100.;
+		init_video_streams(&marielle, &margaux, use_avp, FALSE, &params);
+		wait_for_until(&marielle.vs->ms, &margaux.vs->ms,&dummy,1,500);
+		params.enabled=FALSE;
+		/*disable packet losses*/
+		rtp_session_enable_network_simulation(marielle.vs->ms.sessions.rtp_session, &params);
+		rtp_session_enable_network_simulation(margaux.vs->ms.sessions.rtp_session, &params);
+
+		if (use_avp) {
+			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_PLI, 1, 1000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
+			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &margaux.stats.number_of_PLI, 1, 1000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
+			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_decoder_first_image_decoded, 1, 1000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
+			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &margaux.stats.number_of_decoder_first_image_decoded, 1, 1000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
+		} else {
+			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &marielle.stats.number_of_decoder_decoding_error, 1, 1000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
+			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle.vs->ms, &margaux.vs->ms, &margaux.stats.number_of_decoder_decoding_error, 1, 1000, event_queue_cb, &marielle.stats, event_queue_cb, &margaux.stats));
+		}
+
+		uninit_video_streams(&marielle, &margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
+}
+static void video_stream_first_iframe_lost_vp8() {
+	video_stream_first_iframe_lost_vp8_base(FALSE);
+}
+static void avpf_video_stream_first_iframe_lost_vp8() {
+	video_stream_first_iframe_lost_vp8_base(TRUE);
+}
 static void avpf_high_loss_video_stream(void) {
 	video_stream_tester_t marielle;
 	video_stream_tester_t margaux;
@@ -267,7 +346,9 @@ static test_t tests[] = {
 	{ "Basic video stream", basic_video_stream },
 	{ "Basic one-way video stream", basic_one_way_video_stream },
 	{ "AVPF video stream", avpf_video_stream },
-	{ "AVPF high-loss video stream", avpf_high_loss_video_stream }
+	{ "AVPF high-loss video stream", avpf_high_loss_video_stream },
+	{ "AVPF PLI on first iframe lost",avpf_video_stream_first_iframe_lost_vp8},
+	{ "AVP PLI on first iframe lost",video_stream_first_iframe_lost_vp8}
 };
 
 test_suite_t video_stream_test_suite = {
