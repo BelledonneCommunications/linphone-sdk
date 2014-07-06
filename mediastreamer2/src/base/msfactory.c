@@ -429,6 +429,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	BOOL fFinished = FALSE;
 	const char *tmp=getenv("DEBUG");
 	BOOL debug=(tmp!=NULL && atoi(tmp)==1);
+	
 	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
 
 	// Start searching for .dll files in the current directory.
@@ -445,7 +446,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 #endif
 	if (hSearch == INVALID_HANDLE_VALUE)
 	{
-		ms_message("no plugin (*.dll) found in %s [%d].", szDirPath, GetLastError());
+		ms_message("no plugin (*.dll) found in [%s] [%d].", szDirPath, (int)GetLastError());
 		return 0;
 	}
 	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
@@ -457,8 +458,8 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 		UINT em=0;
 #endif
 		HINSTANCE os_handle;
-		wchar_t wszPluginFile[2048];
 #ifdef UNICODE
+		wchar_t wszPluginFile[2048];
 		char filename[512];
 		wcstombs(filename, FileData.cFileName, sizeof(filename));
 		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, filename);
@@ -471,7 +472,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 #else
 		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
 
-#if UNICODE
+#ifdef UNICODE
 		os_handle = LoadLibraryExW(wszPluginFile, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
 #else
 		os_handle = LoadLibraryExA(szPluginFile, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
@@ -479,7 +480,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 		if (os_handle==NULL)
 		{
 			ms_message("Fail to load plugin %s with altered search path: error %i",szPluginFile,(int)GetLastError());
-#if UNICODE
+#ifdef UNICODE
 			os_handle = LoadLibraryExW(wszPluginFile, NULL, 0);
 #else
 			os_handle = LoadLibraryExA(szPluginFile, NULL, 0);
