@@ -125,7 +125,7 @@ MSFilterDesc msopenh264_dec_desc = {
 	.init = msopenh264_dec_init,
 	.preprocess = msopenh264_dec_preprocess,
 	.process = msopenh264_dec_process,
-	.postprocess = NULL,
+	.postprocess = msopenh264_dec_postprocess,
 	.uninit = msopenh264_dec_uninit,
 	.methods = msopenh264_dec_methods,
 	.flags = MSOPENH264_DEC_FLAGS
@@ -144,7 +144,7 @@ MSFilterDesc msopenh264_dec_desc = {
 	msopenh264_dec_init,
 	msopenh264_dec_preprocess,
 	msopenh264_dec_process,
-	NULL,
+	msopenh264_dec_postprocess,
 	msopenh264_dec_uninit,
 	msopenh264_dec_methods,
 	MSOPENH264_DEC_FLAGS

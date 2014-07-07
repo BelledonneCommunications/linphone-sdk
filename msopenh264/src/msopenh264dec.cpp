@@ -23,9 +23,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ortp/b64.h"
 
 MSOpenH264Decoder::MSOpenH264Decoder(MSFilter *f)
-	: mFilter(f), mDecoder(0), mUnpacker(0), mInitialized(false), mSPS(0), mPPS(0), mYUVMsg(0),
+	: mFilter(f), mDecoder(0), mUnpacker(0), mSPS(0), mPPS(0), mYUVMsg(0),
 	mBitstream(0), mBitstreamSize(65536), mLastErrorReportTime(0),
-	mWidth(MS_VIDEO_SIZE_UNKNOWN_W), mHeight(MS_VIDEO_SIZE_UNKNOWN_H), mFirstImageDecoded(false)
+	mWidth(MS_VIDEO_SIZE_UNKNOWN_W), mHeight(MS_VIDEO_SIZE_UNKNOWN_H),
+	mInitialized(false), mFirstImageDecoded(false)
 {
 	long ret = WelsCreateDecoder(&mDecoder);
 	if (ret != 0) {
@@ -118,7 +119,6 @@ void MSOpenH264Decoder::feed()
 					mHeight = sDstBufInfo.UsrData.sSystemBuffer.iHeight;
 					mYUVMsg = ms_yuv_buf_alloc(&mOutbuf, mWidth, mHeight);
 				}
-				sDstBufInfo.UsrData.sSystemBuffer.iFormat;
 
 				// Scale/copy frame to destination mblk_t
 				for (int i = 0; i < 3; i++) {
@@ -217,7 +217,6 @@ int MSOpenH264Decoder::nalusToFrame(MSQueue *nalus)
 	uint8_t *dst = mBitstream;
 	uint8_t *end = mBitstream + mBitstreamSize;
 	bool startPicture = true;
-	uint8_t naluType;
 
 	while ((im = ms_queue_get(nalus)) != NULL) {
 		uint8_t *src = im->b_rptr;
