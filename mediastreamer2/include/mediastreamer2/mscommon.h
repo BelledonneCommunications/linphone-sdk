@@ -244,7 +244,7 @@ MS2_PUBLIC void ms_usleep(uint64_t usec);
  * value works for both.
  *
 **/
-MS2_PUBLIC int ms_get_payload_max_size();
+MS2_PUBLIC int ms_get_payload_max_size(void);
 
 MS2_PUBLIC void ms_set_payload_max_size(int size);
 
@@ -272,7 +272,7 @@ MS2_PUBLIC int ms_get_mtu(void);
  */
 MS2_PUBLIC void ms_set_cpu_count(unsigned int c);
 
-MS2_PUBLIC unsigned int ms_get_cpu_count();
+MS2_PUBLIC unsigned int ms_get_cpu_count(void);
 
 /**
  * Adds a new entry in the SoundDeviceDescription table
