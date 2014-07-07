@@ -29,7 +29,7 @@
 if("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
 	include(CMakePushCheckState)
 endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
-include(CheckLibraryExists)
+include(CheckCXXSymbolExists)
 
 set(_OPENH264_ROOT_PATHS
 	${WITH_OPENH264}
@@ -59,7 +59,7 @@ if(NOT "${OPENH264_INCLUDE_DIR}" STREQUAL "")
 		endif()
 		set(CMAKE_REQUIRED_INCLUDES ${OPENH264_INCLUDE_DIR})
 		set(CMAKE_REQUIRED_LIBRARIES ${OPENH264_LIBRARIES})
-		check_library_exists(${OPENH264_LIBRARIES} "WelsCreateDecoder" "" HAVE_WELS_CREATE_DECODER)
+		check_cxx_symbol_exists("WelsCreateDecoder" "wels/codec_api.h" HAVE_WELS_CREATE_DECODER)
 		if("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
 			cmake_pop_check_state()
 		else()
