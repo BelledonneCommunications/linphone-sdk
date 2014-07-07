@@ -205,6 +205,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
 	stream->ms.type = MSVideo;
 	stream->ms.sessions=*sessions;
+	rtp_session_resync(stream->ms.sessions.rtp_session);
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi,"video");
 	stream->ms.evq=ortp_ev_queue_new();
@@ -227,7 +228,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 		stream->itcsink=ms_filter_new(MS_ITC_SINK_ID);
 		stream->tee3=ms_filter_new(MS_TEE_ID);
 	}
-	
+
 	return stream;
 }
 
@@ -1001,7 +1002,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 
 	if (stream->fps!=0) fps=stream->fps;
 	else fps=(float)29.97;
-	
+
 	stream->source = ms_web_cam_create_reader(device);
 
 
