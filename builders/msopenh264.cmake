@@ -24,13 +24,10 @@ set(EP_msopenh264_GIT_REPOSITORY "git://git.linphone.org/msopenh264.git")
 if(${LINPHONE_BUILDER_LATEST})
 	set(EP_msopenh264_GIT_TAG "master")
 else()
-	set(EP_msopenh264_GIT_TAG "ae2270dcaaabb0cc5980783fc5fb6ac5365ee03f")
+	set(EP_msopenh264_GIT_TAG "8ee5e82ae2ee72f42fc075789de8d621e0dd7fdd")
 endif()
-set(EP_msopenh264_BUILD_METHOD "autotools")
-set(EP_msopenh264_USE_AUTOGEN "yes")
-set(EP_msopenh264_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_HOST}"
-)
-set(EP_msopenh264_LINKING_TYPE "--disable-static" "--enable-shared")
+set(EP_msopenh264_CMAKE_OPTIONS )
+if(MSVC)
+	set(EP_msopenh264_EXTRA_LDFLAGS "/SAFESEH:NO")
+endif(MSVC)
 set(EP_msopenh264_DEPENDENCIES EP_ms2 EP_openh264)
