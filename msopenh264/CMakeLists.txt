@@ -38,6 +38,11 @@ set(VERSION "${PACKAGE_VERSION}")
 set(WITH_OPENH264 "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libopenh264 can be found (ex:/usr or /usr/local)")
 
 
+if(MSVC)
+	include_directories(${CMAKE_INSTALL_PREFIX}/include/MSVC)
+endif()
+
+
 include(CheckIncludeFile)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -68,6 +73,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY
 
 
 include_directories(
+	${MS2_INCLUDE_DIR}
+	${OPENH264_INCLUDE_DIR}
  	src
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src

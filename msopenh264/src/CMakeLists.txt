@@ -20,9 +20,10 @@
 #
 ############################################################################
 
-set(INCLUDES ${OPENH264_INCLUDE_DIR})
-set(LIBS ${OPENH264_LIBRARIES})
-
+set(LIBS
+	${MS2_LIBRARIES}
+	${OPENH264_LIBRARIES}
+)
 if(WIN32)
 	list(APPEND LIBS ws2_32)
 endif()
@@ -44,11 +45,6 @@ if(MSVC)
 	endif()
 endif()
 set_target_properties(msopenh264 PROPERTIES LINKER_LANGUAGE CXX LINK_FLAGS "${LINK_FLAGS}")
-if("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
-	target_include_directories(msopenh264 PUBLIC ${INCLUDES})
-else()
-	include_directories(${INCLUDES})
-endif()
 target_link_libraries(msopenh264 ${LIBS})
 
 install(TARGETS msopenh264

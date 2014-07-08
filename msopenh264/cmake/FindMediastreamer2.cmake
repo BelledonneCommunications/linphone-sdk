@@ -23,7 +23,7 @@
 # - Find the mediastreamer2 include file and library
 #
 #  MS2_FOUND - system has mediastreamer2
-#  MS2_INCLUDE_DIRS - the mediastreamer2 include directory
+#  MS2_INCLUDE_DIR - the mediastreamer2 include directory
 #  MS2_LIBRARIES - The libraries needed to use mediastreamer2
 
 if(UNIX)
