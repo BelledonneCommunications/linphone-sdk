@@ -27,8 +27,7 @@ typedef void (*ModulePrivateDataFunc)(const void *obj, uint8_t **data, size_t *d
 typedef void (*ModulePrivateDataLoadFunc)(void *obj, const uint8_t *data);
 typedef ms_bool_t (*ModuleIsKeyFrameFunc)(const mblk_t *frame);
 
-typedef struct
-{
+typedef struct {
 	const char *rfcName;
 	const char *codecId;
 	ModuleNewFunc new_module;
@@ -46,8 +45,7 @@ typedef struct
  * h264 module                                                                               *
  *********************************************************************************************/
 /* H264Private */
-typedef struct
-{
+typedef struct {
 	uint8_t profile;
 	uint8_t level;
 	uint8_t NALULenghtSizeMinusOne;
@@ -55,36 +53,30 @@ typedef struct
 	MSList *pps_list;
 } H264Private;
 
-static void H264Private_init(H264Private *obj)
-{
+static void H264Private_init(H264Private *obj) {
 	obj->NALULenghtSizeMinusOne = 0xFF;
 	obj->pps_list = NULL;
 	obj->sps_list = NULL;
 }
 
-static inline ms_bool_t mblk_is_equal(mblk_t *b1, mblk_t *b2)
-{
+static inline ms_bool_t mblk_is_equal(mblk_t *b1, mblk_t *b2) {
 	return msgdsize(b1) == msgdsize(b2) && memcmp(b1->b_rptr, b2->b_rptr, msgdsize(b1)) == 0;
 }
 
-static void H264Private_addSPS(H264Private *obj, mblk_t *sps)
-{
+static void H264Private_addSPS(H264Private *obj, mblk_t *sps) {
 	MSList *element;
 	for(element = obj->sps_list; element != NULL && mblk_is_equal((mblk_t *)element->data, sps); element = element->next);
-	if(element != NULL || obj->sps_list == NULL)
-	{
+	if(element != NULL || obj->sps_list == NULL) {
 		obj->profile = sps->b_rptr[1];
 		obj->level = sps->b_rptr[3];
 		obj->sps_list = ms_list_append(obj->sps_list, sps);
 	}
 }
 
-static void H264Private_addPPS(H264Private *obj, mblk_t *pps)
-{
+static void H264Private_addPPS(H264Private *obj, mblk_t *pps) {
 	MSList *element;
 	for(element = obj->pps_list; element != NULL && mblk_is_equal((mblk_t *)element->data, pps); element = element->next);
-	if(element != NULL || obj->pps_list == NULL)
-	{
+	if(element != NULL || obj->pps_list == NULL) {
 		obj->pps_list = ms_list_append(obj->pps_list, pps);
 	}
 }
@@ -97,8 +89,7 @@ static inline const mblk_t *H264Private_getPPS(const H264Private *obj, int index
 	return (mblk_t *)ms_list_nth_data(obj->pps_list, index);
 }
 
-static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t *size)
-{
+static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t *size) {
 	*size = 7;
 
 	uint8_t nbSPS = ms_list_size(obj->sps_list);
@@ -107,13 +98,11 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	*size += (nbSPS + nbPPS) * 2;
 
 	MSList *it;
-	for(it=obj->sps_list;it!=NULL;it=it->next)
-	{
+	for(it=obj->sps_list;it!=NULL;it=it->next) {
 		mblk_t *buff = (mblk_t*)(it->data);
 		*size += msgdsize(buff);
 	}
-	for(it=obj->pps_list;it!=NULL;it=it->next)
-	{
+	for(it=obj->pps_list;it!=NULL;it=it->next) {
 		mblk_t *buff = (mblk_t*)(it->data);
 		*size += msgdsize(buff);
 	}
@@ -126,8 +115,7 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	result[5] = nbSPS & 0x1F;
 
 	int i=6;
-	for(it=obj->sps_list; it!=NULL; it=it->next)
-	{
+	for(it=obj->sps_list; it!=NULL; it=it->next) {
 		mblk_t *buff = (mblk_t*)(it->data);
 		size_t buff_size = msgdsize(buff);
 		uint16_t buff_size_be = htons(buff_size);
@@ -140,8 +128,7 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	result[i] = nbPPS;
 	i++;
 
-	for(it=obj->pps_list; it!=NULL; it=it->next)
-	{
+	for(it=obj->pps_list; it!=NULL; it=it->next) {
 		mblk_t *buff = (mblk_t*)(it->data);
 		int buff_size = msgdsize(buff);
 		uint16_t buff_size_be = htons(buff_size);
@@ -153,8 +140,7 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	*data = result;
 }
 
-static void H264Private_load(H264Private *obj, const uint8_t *data)
-{
+static void H264Private_load(H264Private *obj, const uint8_t *data) {
 	int i;
 
 	obj->profile = data[1];
@@ -163,8 +149,7 @@ static void H264Private_load(H264Private *obj, const uint8_t *data)
 
 	int nbSPS = data[5] & 0x1F;
 	const uint8_t *r_ptr = data + 6;
-	for(i=0;i<nbSPS;i++)
-	{
+	for(i=0;i<nbSPS;i++) {
 		uint16_t nalu_size;
 		memcpy(&nalu_size, r_ptr, sizeof(uint16_t)); r_ptr += sizeof(uint16_t);
 		nalu_size = ntohs(nalu_size);
@@ -174,8 +159,7 @@ static void H264Private_load(H264Private *obj, const uint8_t *data)
 	}
 
 	int nbPPS = *r_ptr; r_ptr += 1;
-	for(i=0;i<nbPPS;i++)
-	{
+	for(i=0;i<nbPPS;i++) {
 		uint16_t nalu_size;
 		memcpy(&nalu_size, r_ptr, sizeof(uint16_t)); r_ptr += sizeof(uint16_t);
 		nalu_size = ntohs(nalu_size);
@@ -185,8 +169,7 @@ static void H264Private_load(H264Private *obj, const uint8_t *data)
 	}
 }
 
-static void H264Private_uninit(H264Private *obj)
-{
+static void H264Private_uninit(H264Private *obj) {
 	ms_list_free_with_data(obj->sps_list,(void (*)(void *))freemsg);
 	ms_list_free_with_data(obj->pps_list,(void (*)(void *))freemsg);
 }
@@ -198,7 +181,6 @@ typedef struct {
 } H264Module;
 
 static void *h264_module_new() {
-
 	H264Module *mod = ms_new0(H264Module, 1);
 	rfc3984_init(&mod->rfc3984Context);
 	H264Private_init(&mod->codecPrivate);
@@ -395,8 +377,7 @@ const ModuleDesc h264_module_desc = {
  * µLaw module                                                                               *
  *********************************************************************************************/
 /* WavPrivate */
-typedef struct
-{
+typedef struct {
 	uint16_t wFormatTag;
 	uint16_t nbChannels;
 	uint32_t nSamplesPerSec;
@@ -406,8 +387,7 @@ typedef struct
 	uint16_t cbSize;
 } WavPrivate;
 
-static void wav_private_set(WavPrivate *data, const MSFmtDescriptor *obj)
-{
+static void wav_private_set(WavPrivate *data, const MSFmtDescriptor *obj) {
 	uint16_t bitsPerSample = 8;
 	uint16_t nbBlockAlign = (bitsPerSample * obj->nchannels)/8;
 	uint32_t bitrate = bitsPerSample * obj->nchannels * obj->rate;
@@ -421,44 +401,37 @@ static void wav_private_set(WavPrivate *data, const MSFmtDescriptor *obj)
 	data->cbSize = 0;
 }
 
-static void wav_private_serialize(const WavPrivate *obj, uint8_t **data, size_t *size)
-{
+static void wav_private_serialize(const WavPrivate *obj, uint8_t **data, size_t *size) {
 	*size = 22;
 	*data = (uint8_t *)ms_new0(uint8_t, *size);
 	memcpy(*data, obj, *size);
 }
 
-static inline void wav_private_load(WavPrivate *obj, const uint8_t *data)
-{
+static inline void wav_private_load(WavPrivate *obj, const uint8_t *data) {
 	memcpy(obj, data, 22);
 }
 
 /* µLaw module */
-static void *mu_law_module_new()
-{
+static void *mu_law_module_new() {
 	return ms_new0(WavPrivate, 1);
 }
 
-static void mu_law_module_free(void *o)
-{
+static void mu_law_module_free(void *o) {
 	ms_free(o);
 }
 
-static void mu_law_module_set(void *o, const void *data)
-{
+static void mu_law_module_set(void *o, const void *data) {
 	WavPrivate *obj = (WavPrivate *)o;
 	const MSFmtDescriptor *aMeta = (const MSFmtDescriptor *)data;
 	wav_private_set(obj, aMeta);
 }
 
-static void mu_law_module_get_private_data(const void *o, uint8_t **data, size_t *data_size)
-{
+static void mu_law_module_get_private_data(const void *o, uint8_t **data, size_t *data_size) {
 	const WavPrivate *obj = (const WavPrivate *)o;
 	wav_private_serialize(obj, data, data_size);
 }
 
-static void mu_law_module_load_private(void *o, const uint8_t *data)
-{
+static void mu_law_module_load_private(void *o, const uint8_t *data) {
 	WavPrivate *obj = (WavPrivate *)o;
 	wav_private_load(obj, data);
 }
@@ -497,8 +470,7 @@ const ModuleDesc mu_law_module_desc = {
 /*********************************************************************************************
  * Modules list                                                                              *
  *********************************************************************************************/
-typedef enum
-{
+typedef enum {
 	H264_MOD_ID,
 	MU_LAW_MOD_ID,
 	NONE_ID
@@ -510,15 +482,13 @@ const ModuleDesc const *moduleDescs[] = {
 	NULL
 };
 
-static int find_module_id_from_rfc_name(const char *rfcName)
-{
+static int find_module_id_from_rfc_name(const char *rfcName) {
 	int id;
 	for(id=0; moduleDescs[id] != NULL && strcmp(moduleDescs[id]->rfcName, rfcName) != 0; id++);
 	return id;
 }
 
-static int find_module_id_from_codec_id(const char *codecId)
-{
+static int find_module_id_from_codec_id(const char *codecId) {
 	int id;
 	for(id=0; moduleDescs[id] != NULL && strcmp(moduleDescs[id]->codecId, codecId) != 0; id++);
 	return id;
@@ -636,8 +606,7 @@ extern const nodemeta EBMLCRC_Class[];
 extern const nodemeta EBMLDate_Class[];
 extern const nodemeta EBMLVoid_Class[];
 
-static void loadModules(nodemodule *modules)
-{
+static void loadModules(nodemodule *modules) {
 	NodeRegisterClassEx(modules, Streams_Class);
 	NodeRegisterClassEx(modules, File_Class);
 	NodeRegisterClassEx(modules, Matroska_Class);
@@ -657,8 +626,7 @@ typedef enum {
 	MKV_OPEN_RO
 } MatroskaOpenMode;
 
-typedef struct
-{
+typedef struct {
 	parsercontext *p;
 	stream *output;
 	ebml_master *header, *segment, *cluster, *info, *tracks, *metaSeek, *cues, *firstCluster, *currentCluster;
@@ -669,10 +637,7 @@ typedef struct
 	int nbClusters;
 } Matroska;
 
-//static int matroska_track_get_type(const Matroska *obj, int trackNum);
-
-static void matroska_init(Matroska *obj)
-{
+static void matroska_init(Matroska *obj) {
 	memset(obj, 0, sizeof(Matroska));
 	obj->p = (parsercontext *)ms_new0(parsercontext, 1);
 	ParserContext_Init(obj->p, NULL, NULL, NULL);
@@ -682,25 +647,21 @@ static void matroska_init(Matroska *obj)
 	obj->timecodeScale = -1;
 }
 
-static void matroska_uninit(Matroska *obj)
-{
+static void matroska_uninit(Matroska *obj) {
 	MATROSKA_Done((nodecontext*)obj->p);
 	ParserContext_Done(obj->p);
 	ms_free(obj->p);
 }
 
-static int ebml_reading_profile(const ebml_master *head)
-{
+static int ebml_reading_profile(const ebml_master *head) {
 	size_t length = EBML_ElementDataSize((ebml_element *)head, FALSE);
 	char *docType = ms_new0(char, length);
 	EBML_StringGet((ebml_string *)EBML_MasterFindChild(head, &EBML_ContextDocType), docType, length);
 	int docTypeReadVersion = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(head, &EBML_ContextDocTypeReadVersion));
 	int profile;
 
-	if(strcmp(docType, "matroska")==0)
-	{
-		switch (docTypeReadVersion)
-		{
+	if(strcmp(docType, "matroska")==0) {
+		switch (docTypeReadVersion) {
 		case 1:
 			profile = PROFILE_MATROSKA_V1;
 			break;
@@ -716,13 +677,9 @@ static int ebml_reading_profile(const ebml_master *head)
 		default:
 			profile = -1;
 		}
-	}
-	else if(strcmp(docType, "webm"))
-	{
+	} else if(strcmp(docType, "webm")) {
 		profile = PROFILE_WEBM;
-	}
-	else
-	{
+	} else {
 		profile = -1;
 	}
 
@@ -730,8 +687,7 @@ static int ebml_reading_profile(const ebml_master *head)
 	return profile;
 }
 
-static ms_bool_t matroska_create_file(Matroska *obj, const char path[])
-{
+static ms_bool_t matroska_create_file(Matroska *obj, const char path[]) {
 	obj->header = (ebml_master *)EBML_ElementCreate(obj->p, &EBML_ContextHead, TRUE, NULL);
 	obj->segment = (ebml_master *)EBML_ElementCreate(obj->p, &MATROSKA_ContextSegment, TRUE, NULL);
 	obj->metaSeek = (ebml_master *)EBML_MasterAddElt(obj->segment, &MATROSKA_ContextSeekHead, FALSE);
@@ -750,8 +706,7 @@ static ms_bool_t matroska_create_file(Matroska *obj, const char path[])
 	return TRUE;
 }
 
-static ms_bool_t matroska_load_file(Matroska *obj)
-{
+static ms_bool_t matroska_load_file(Matroska *obj) {
 	int upperLevels = 0;
 	ebml_parser_context readContext;
 	readContext.Context = &MATROSKA_ContextStream;
@@ -767,49 +722,32 @@ static ms_bool_t matroska_load_file(Matroska *obj)
 	EBML_ElementReadData(obj->segment, obj->output, &readContext, FALSE, SCOPE_PARTIAL_DATA, 0);
 
 	ebml_element *elt;
-	for(elt = EBML_MasterChildren(obj->segment); elt != NULL; elt = EBML_MasterNext(elt))
-	{
-		if(EBML_ElementIsType(elt, &MATROSKA_ContextSeekHead))
-		{
+	for(elt = EBML_MasterChildren(obj->segment); elt != NULL; elt = EBML_MasterNext(elt)) {
+		if(EBML_ElementIsType(elt, &MATROSKA_ContextSeekHead)) {
 			obj->metaSeek = (ebml_master*)elt;
 			matroska_seekpoint *seekPoint;
-			for(seekPoint = (matroska_seekpoint *)EBML_MasterChildren(obj->metaSeek); seekPoint != NULL; seekPoint = (matroska_seekpoint *)EBML_MasterNext(seekPoint))
-			{
-				if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextInfo))
-				{
+			for(seekPoint = (matroska_seekpoint *)EBML_MasterChildren(obj->metaSeek); seekPoint != NULL; seekPoint = (matroska_seekpoint *)EBML_MasterNext(seekPoint)) {
+				if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextInfo)) {
 					obj->infoMeta = seekPoint;
-				}
-				else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextTracks))
-				{
+				} else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextTracks)) {
 					obj->tracksMeta = seekPoint;
-				}
-				else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextCues))
-				{
+				} else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextCues)) {
 					obj->cuesMeta = seekPoint;
 				}
 			}
-		}
-		else if(EBML_ElementIsType(elt, &MATROSKA_ContextInfo))
-		{
+		} else if(EBML_ElementIsType(elt, &MATROSKA_ContextInfo)) {
 			obj->info = (ebml_master*)elt;
 			obj->timecodeScale = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(obj->info, &MATROSKA_ContextTimecodeScale));
 			MATROSKA_LinkMetaSeekElement(obj->infoMeta, (ebml_element *)obj->info);
-		}
-		else if(EBML_ElementIsType(elt, &MATROSKA_ContextTracks))
-		{
+		} else if(EBML_ElementIsType(elt, &MATROSKA_ContextTracks)) {
 			obj->tracks = (ebml_master*)elt;
 			MATROSKA_LinkMetaSeekElement(obj->tracksMeta, (ebml_element *)obj->tracks);
-		}
-		else if(EBML_ElementIsType(elt, &MATROSKA_ContextCues))
-		{
+		} else if(EBML_ElementIsType(elt, &MATROSKA_ContextCues)) {
 			obj->cues = (ebml_master*)elt;
 			MATROSKA_LinkMetaSeekElement(obj->cuesMeta, (ebml_element *)obj->cues);
-		}
-		else if(EBML_ElementIsType(elt, &MATROSKA_ContextCluster))
-		{
+		} else if(EBML_ElementIsType(elt, &MATROSKA_ContextCluster)) {
 			obj->cluster = (ebml_master *)elt;
-			if(obj->nbClusters == 0)
-			{
+			if(obj->nbClusters == 0) {
 				obj->firstCluster = obj->cluster;
 			}
 			MATROSKA_LinkClusterBlocks((matroska_cluster *)obj->cluster, obj->segment, obj->tracks, FALSE);
@@ -819,57 +757,45 @@ static ms_bool_t matroska_load_file(Matroska *obj)
 	return TRUE;
 }
 
-static int matroska_open_file(Matroska *obj, const char path[], MatroskaOpenMode mode)
-{
+static int matroska_open_file(Matroska *obj, const char path[], MatroskaOpenMode mode) {
 	int err = 0;
 
-	switch(mode)
-	{
+	switch(mode) {
 	case MKV_OPEN_CREATE:
-		if((obj->output = StreamOpen(obj->p, path, SFLAG_WRONLY | SFLAG_CREATE)) == NULL)
-		{
+		if((obj->output = StreamOpen(obj->p, path, SFLAG_WRONLY | SFLAG_CREATE)) == NULL) {
 			err = -2;
 			break;
 		}
-		if(!matroska_create_file(obj, path))
-		{
+		if(!matroska_create_file(obj, path)) {
 			err = -3;
 		}
 		break;
 
 	case MKV_OPEN_APPEND:
-		if((obj->output = StreamOpen(obj->p, path, SFLAG_REOPEN)) == NULL)
-		{
+		if((obj->output = StreamOpen(obj->p, path, SFLAG_REOPEN)) == NULL) {
 			err = -2;
 			break;
 		}
-		if(!matroska_load_file(obj))
-		{
+		if(!matroska_load_file(obj)) {
 			err = -3;
 			break;
 		}
-		if(obj->cues == NULL)
-		{
+		if(obj->cues == NULL) {
 			obj->cues = (ebml_master *)EBML_ElementCreate(obj->p, &MATROSKA_ContextCues, FALSE, NULL);
 		}
-		if(obj->cluster == NULL)
-		{
+		if(obj->cluster == NULL) {
 			Stream_Seek(obj->output, 0, SEEK_END);
-		}
-		else
-		{
+		} else {
 			Stream_Seek(obj->output, EBML_ElementPositionEnd((ebml_element *)obj->cluster), SEEK_SET);
 		}
 		break;
 
 	case MKV_OPEN_RO:
-		if((obj->output = StreamOpen(obj->p, path, SFLAG_RDONLY)) == NULL)
-		{
+		if((obj->output = StreamOpen(obj->p, path, SFLAG_RDONLY)) == NULL) {
 			err = -2;
 			break;
 		}
-		if(!matroska_load_file(obj))
-		{
+		if(!matroska_load_file(obj)) {
 			err = -3;
 			break;
 		}
@@ -882,8 +808,7 @@ static int matroska_open_file(Matroska *obj, const char path[], MatroskaOpenMode
 	return err;
 }
 
-static void matroska_close_file(Matroska *obj)
-{
+static void matroska_close_file(Matroska *obj) {
 	if(obj->output != NULL) {
 		StreamClose(obj->output);
 	}
@@ -912,25 +837,19 @@ static void matroska_close_file(Matroska *obj)
 	obj->nbClusters = 0;
 }
 
-static void matroska_set_doctype_version(Matroska *obj, int doctypeVersion, int doctypeReadVersion)
-{
+static void matroska_set_doctype_version(Matroska *obj, int doctypeVersion, int doctypeReadVersion) {
 	EBML_IntegerSetValue((ebml_integer*)EBML_MasterFindChild(obj->header, &EBML_ContextDocTypeVersion), doctypeVersion);
 	EBML_IntegerSetValue((ebml_integer*)EBML_MasterFindChild(obj->header, &EBML_ContextDocTypeReadVersion), doctypeReadVersion);
 }
 
-static inline void matroska_write_ebml_header(Matroska *obj)
-{
+static inline void matroska_write_ebml_header(Matroska *obj) {
 	EBML_ElementRender((ebml_element *)obj->header, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 }
 
-static int matroska_set_segment_info(Matroska *obj, const char writingApp[], const char muxingApp[], double duration)
-{
-	if(obj->timecodeScale == -1)
-	{
+static int matroska_set_segment_info(Matroska *obj, const char writingApp[], const char muxingApp[], double duration) {
+	if(obj->timecodeScale == -1) {
 		return -1;
-	}
-	else
-	{
+	} else {
 		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextTimecodeScale), obj->timecodeScale);
 		EBML_StringSetValue((ebml_string*)EBML_MasterGetChild(obj->info, &MATROSKA_ContextMuxingApp), muxingApp);
 		EBML_StringSetValue((ebml_string*)EBML_MasterGetChild(obj->info, &MATROSKA_ContextWritingApp), writingApp);
@@ -939,13 +858,11 @@ static int matroska_set_segment_info(Matroska *obj, const char writingApp[], con
 	}
 }
 
-static inline timecode_t matroska_get_duration(const Matroska *obj)
-{
+static inline timecode_t matroska_get_duration(const Matroska *obj) {
 	return (timecode_t)EBML_FloatValue((ebml_float *)EBML_MasterFindChild(obj->info, &MATROSKA_ContextDuration));
 }
 
-static void updateElementHeader(ebml_element *element, stream *file)
-{
+static void updateElementHeader(ebml_element *element, stream *file) {
 	filepos_t initial_pos = Stream_Seek(file, 0, SEEK_CUR);
 	Stream_Seek(file, EBML_ElementPosition(element), SEEK_SET);
 	EBML_ElementUpdateSize(element, WRITE_DEFAULT_ELEMENT, FALSE);
@@ -953,60 +870,48 @@ static void updateElementHeader(ebml_element *element, stream *file)
 	Stream_Seek(file, initial_pos, SEEK_SET);
 }
 
-static inline void matroska_start_segment(Matroska *obj)
-{
+static inline void matroska_start_segment(Matroska *obj) {
 	EBML_ElementSetSizeLength((ebml_element *)obj->segment, 8);
 	EBML_ElementRenderHead((ebml_element *)obj->segment, obj->output, FALSE, NULL);
 }
 
-static int matroska_write_zeros(Matroska *obj, size_t nbZeros)
-{
+static int matroska_write_zeros(Matroska *obj, size_t nbZeros) {
 	uint8_t *data = (uint8_t *)ms_new0(uint8_t, nbZeros);
 	size_t written=0;
 	
-	if(data == NULL)
-	{
+	if(data == NULL) {
 		return 0;
 	}
-
-	
 	Stream_Write(obj->output, data, nbZeros, &written);
 	ms_free(data);
 	return written;
 }
 
-static inline void matroska_mark_segment_info_position(Matroska *obj)
-{
+static inline void matroska_mark_segment_info_position(Matroska *obj) {
 	obj->segmentInfoPosition = Stream_Seek(obj->output, 0, SEEK_CUR);
 }
 
-static int matroska_go_to_segment_info_mark(Matroska *obj)
-{
-	if(obj->segmentInfoPosition == -1)
-	{
+static int matroska_go_to_segment_info_mark(Matroska *obj) {
+	if(obj->segmentInfoPosition == -1) {
 		return -1;
 	}
 	Stream_Seek(obj->output, obj->segmentInfoPosition, SEEK_SET);
 	return 0;
 }
 
-static inline void matroska_go_to_file_end(Matroska *obj)
-{
+static inline void matroska_go_to_file_end(Matroska *obj) {
 	Stream_Seek(obj->output, 0, SEEK_END);
 }
 
-static inline void matroska_go_to_segment_begin(Matroska *obj)
-{
+static inline void matroska_go_to_segment_begin(Matroska *obj) {
 	Stream_Seek(obj->output, EBML_ElementPositionData((ebml_element *)obj->segment), SEEK_SET);
 }
 
-static inline void matroska_go_to_last_cluster_end(Matroska *obj)
-{
+static inline void matroska_go_to_last_cluster_end(Matroska *obj) {
 	Stream_Seek(obj->output, EBML_ElementPositionEnd((ebml_element *)obj->cluster), SEEK_SET);
 }
 
-static inline void matroska_go_to_segment_info_begin(Matroska *obj)
-{
+static inline void matroska_go_to_segment_info_begin(Matroska *obj) {
 	Stream_Seek(obj->output, EBML_ElementPosition((ebml_element *)obj->info), SEEK_SET);
 }
 
@@ -1157,27 +1062,22 @@ static int ebml_master_fill_blanks(stream *output, ebml_master *master) {
 	return 0;
 }
 
-static void ebml_master_delete_empty_elements(ebml_master *master)
-{
+static void ebml_master_delete_empty_elements(ebml_master *master) {
 	ebml_element *child;
-	for(child = EBML_MasterChildren(master); child != NULL; child = EBML_MasterNext(child))
-	{
-		if(EBML_ElementDataSize(child, WRITE_DEFAULT_ELEMENT) <= 0)
-		{
+	for(child = EBML_MasterChildren(master); child != NULL; child = EBML_MasterNext(child)) {
+		if(EBML_ElementDataSize(child, WRITE_DEFAULT_ELEMENT) <= 0) {
 			EBML_MasterRemove(master, child);
 			NodeDelete((node *)child);
 		}
 	}
 }
 
-static int matroska_close_segment(Matroska *obj)
-{
+static int matroska_close_segment(Matroska *obj) {
 	filepos_t initialPos = Stream_Seek(obj->output, 0, SEEK_CUR);
 	EBML_ElementUpdateSize(obj->segment, WRITE_DEFAULT_ELEMENT, FALSE);
 	ebml_master_delete_empty_elements(obj->segment);
 	ebml_master_sort(obj->segment);
-	if(ebml_master_fill_blanks(obj->output, obj->segment) < 0)
-	{
+	if(ebml_master_fill_blanks(obj->output, obj->segment) < 0) {
 		return -1;
 	}
 	updateElementHeader((ebml_element *)obj->segment, obj->output);
@@ -1185,8 +1085,7 @@ static int matroska_close_segment(Matroska *obj)
 	return 0;
 }
 
-static ebml_master *matroska_find_track_entry(const Matroska *obj, int trackNum)
-{
+static ebml_master *matroska_find_track_entry(const Matroska *obj, int trackNum) {
 	ebml_element *trackEntry;
 	for(trackEntry = EBML_MasterChildren(obj->tracks);
 		trackEntry != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)trackEntry, &MATROSKA_ContextTrackNumber)) != trackNum;
@@ -1194,8 +1093,7 @@ static ebml_master *matroska_find_track_entry(const Matroska *obj, int trackNum)
 	return (ebml_master *)trackEntry;
 }
 
-static int matroska_get_codec_private(const Matroska *obj, int trackNum, const uint8_t **data, size_t *length)
-{
+static int matroska_get_codec_private(const Matroska *obj, int trackNum, const uint8_t **data, size_t *length) {
 	ebml_master *trackEntry = matroska_find_track_entry(obj, trackNum);
 	if(trackEntry == NULL)
 		return -1;
@@ -1211,11 +1109,9 @@ static int matroska_get_codec_private(const Matroska *obj, int trackNum, const u
 		return 0;
 }
 
-static void matroska_start_cluster(Matroska *obj, timecode_t clusterTimecode)
-{
+static void matroska_start_cluster(Matroska *obj, timecode_t clusterTimecode) {
 	obj->cluster = (ebml_master *)EBML_MasterAddElt(obj->segment, &MATROSKA_ContextCluster, TRUE);
-	if(obj->nbClusters == 0)
-	{
+	if(obj->nbClusters == 0) {
 		obj->firstCluster = obj->cluster;
 	}
 	EBML_ElementSetSizeLength((ebml_element *)obj->cluster, 8);
@@ -1224,19 +1120,14 @@ static void matroska_start_cluster(Matroska *obj, timecode_t clusterTimecode)
 	obj->nbClusters++;
 }
 
-static void matroska_close_cluster(Matroska *obj)
-{
+static void matroska_close_cluster(Matroska *obj) {
 	ebml_element *block;
-	if(obj->cluster == NULL)
-	{
+	if(obj->cluster == NULL) {
 		return;
-	}
-	else
-	{
+	} else {
 		block = EBML_MasterFindChild(obj->cluster, &MATROSKA_ContextSimpleBlock);
 	}
-	if(block == NULL)
-	{
+	if(block == NULL) {
 		ebml_element *voidElt = EBML_ElementCreate(obj->p, &EBML_ContextEbmlVoid, FALSE, NULL);
 		EBML_MasterAppend(obj->segment, voidElt);
 		EBML_VoidSetFullSize(voidElt, EBML_ElementFullSize((ebml_element *)obj->cluster, WRITE_DEFAULT_ELEMENT));
@@ -1245,25 +1136,20 @@ static void matroska_close_cluster(Matroska *obj)
 		EBML_MasterRemove(obj->segment, (ebml_element *)obj->cluster);
 		NodeDelete((node *)obj->cluster);
 		obj->cluster = NULL;
-	}
-	else
-	{
+	} else {
 		updateElementHeader((ebml_element *)obj->cluster, obj->output);
 	}
 }
 
-static inline int matroska_clusters_count(const Matroska *obj)
-{
+static inline int matroska_clusters_count(const Matroska *obj) {
 	return obj->nbClusters;
 }
 
-static inline timecode_t matroska_current_cluster_timecode(const Matroska *obj)
-{
+static inline timecode_t matroska_current_cluster_timecode(const Matroska *obj) {
 	return EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(obj->cluster, &MATROSKA_ContextTimecode));
 }
 
-static ebml_master *matroska_find_track(const Matroska *obj, int trackNum)
-{
+static ebml_master *matroska_find_track(const Matroska *obj, int trackNum) {
 	ebml_element *elt;
 	for(elt = EBML_MasterChildren(obj->tracks);
 		elt != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(elt, &MATROSKA_ContextTrackNumber)) != trackNum;
@@ -1271,18 +1157,13 @@ static ebml_master *matroska_find_track(const Matroska *obj, int trackNum)
 	return (ebml_master *)elt;
 }
 
-static int matroska_add_track(Matroska *obj, int trackNum, const char codecID[])
-{
+static int matroska_add_track(Matroska *obj, int trackNum, const char codecID[]) {
 	ebml_master *track = matroska_find_track(obj, trackNum);
-	if(track != NULL)
-	{
+	if(track != NULL) {
 		return -1;
-	}
-	else
-	{
+	} else {
 		track = (ebml_master *)EBML_MasterAddElt(obj->tracks, &MATROSKA_ContextTrackEntry, FALSE);
-		if(track == NULL)
-		{
+		if(track == NULL) {
 			return -2;
 		}
 		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackNumber), trackNum);
@@ -1299,89 +1180,61 @@ static int matroska_add_track(Matroska *obj, int trackNum, const char codecID[])
 	}
 }
 
-static int matroska_del_track(Matroska *obj, int trackNum)
-{
+static int matroska_del_track(Matroska *obj, int trackNum) {
 	ebml_master *track = matroska_find_track(obj, trackNum);
-	if(track == NULL)
-	{
+	if(track == NULL) {
 		return -1;
-	}
-	else
-	{
-		if(EBML_MasterRemove(obj->tracks, (ebml_element *)track) != ERR_NONE)
-		{
+	} else {
+		if(EBML_MasterRemove(obj->tracks, (ebml_element *)track) != ERR_NONE) {
 			return -2;
-		}
-		else
-		{
+		} else {
 			NodeDelete((node *)track);
 			return 0;
 		}
 	}
 }
 
-static int matroska_get_default_track_num(Matroska *obj, int trackType)
-{
+static int matroska_get_default_track_num(Matroska *obj, int trackType) {
 	ebml_element *track;
-	for(track = EBML_MasterChildren(obj->tracks); track != NULL; track = EBML_MasterNext(track))
-	{
+	for(track = EBML_MasterChildren(obj->tracks); track != NULL; track = EBML_MasterNext(track)) {
 		ebml_integer *trackTypeElt = (ebml_integer *)EBML_MasterFindChild(track, &MATROSKA_ContextTrackType);
 		ebml_integer *flagDefault = (ebml_integer *)EBML_MasterFindChild(track, &MATROSKA_ContextFlagDefault);
-		if(trackTypeElt != NULL && flagDefault != NULL && EBML_IntegerValue(trackTypeElt) == trackType && EBML_IntegerValue(flagDefault) == 1)
-		{
+		if(trackTypeElt != NULL && flagDefault != NULL && EBML_IntegerValue(trackTypeElt) == trackType && EBML_IntegerValue(flagDefault) == 1) {
 			break;
 		}
 	}
-	if(track == NULL)
-	{
+	if(track == NULL) {
 		return -1;
-	}
-	else
-	{
+	} else {
 		ebml_integer *trackNum = (ebml_integer *)EBML_MasterFindChild(track, &MATROSKA_ContextTrackNumber);
-		if(trackNum == NULL)
-		{
+		if(trackNum == NULL) {
 			return -2;
-		}
-		else
-		{
+		} else {
 			return EBML_IntegerValue(trackNum);
 		}
 	}
 }
 
-static int matroska_track_set_codec_private(Matroska *obj, int trackNum, const uint8_t *data, size_t dataSize)
-{
+static int matroska_track_set_codec_private(Matroska *obj, int trackNum, const uint8_t *data, size_t dataSize) {
 	ebml_master *track = matroska_find_track(obj, trackNum);
-	if(track == NULL)
-	{
+	if(track == NULL) {
 		return -1;
-	}
-	else
-	{
+	} else {
 		ebml_binary *codecPrivate = EBML_MasterGetChild(track, &MATROSKA_ContextCodecPrivate);
-		if(EBML_BinarySetData(codecPrivate, data, dataSize) != ERR_NONE)
-		{
+		if(EBML_BinarySetData(codecPrivate, data, dataSize) != ERR_NONE) {
 			return -2;
-		}
-		else
-		{
+		} else {
 			return 0;
 		}
 	}
 }
 
-static int matroska_track_set_info(Matroska *obj, int trackNum, const MSFmtDescriptor *fmt)
-{
+static int matroska_track_set_info(Matroska *obj, int trackNum, const MSFmtDescriptor *fmt) {
 	ebml_master *track = matroska_find_track(obj, trackNum);
-	if(track == NULL)
-	{
+	if(track == NULL) {
 		return -1;
-	}
-	else
-	{
-		switch(fmt->type)
-		{
+	} else {
+		switch(fmt->type) {
 		case MSVideo:
 			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackType), TRACK_TYPE_VIDEO);
 			ebml_master *videoInfo = (ebml_master *)EBML_MasterGetChild(track, &MATROSKA_ContextVideo);
@@ -1456,71 +1309,36 @@ static int matroska_track_get_info(const Matroska *obj, int trackNum, const MSFm
 	}
 }
 
-static ms_bool_t matroska_track_check_block_presence(Matroska *obj, int trackNum)
-{
+static ms_bool_t matroska_track_check_block_presence(Matroska *obj, int trackNum) {
 	ebml_element *elt1;
-	for(elt1 = EBML_MasterChildren(obj->segment); elt1 != NULL; elt1 = EBML_MasterNext(elt1))
-	{
-		if(EBML_ElementIsType(elt1, &MATROSKA_ContextCluster))
-		{
+	for(elt1 = EBML_MasterChildren(obj->segment); elt1 != NULL; elt1 = EBML_MasterNext(elt1)) {
+		if(EBML_ElementIsType(elt1, &MATROSKA_ContextCluster)) {
 			ebml_element *cluster = elt1, *elt2;
-			for(elt2 = EBML_MasterChildren(cluster); elt2 != NULL; elt2 = EBML_MasterNext(elt2))
-			{
-				if(EBML_ElementIsType(elt2, &MATROSKA_ContextSimpleBlock))
-				{
+			for(elt2 = EBML_MasterChildren(cluster); elt2 != NULL; elt2 = EBML_MasterNext(elt2)) {
+				if(EBML_ElementIsType(elt2, &MATROSKA_ContextSimpleBlock)) {
 					matroska_block *block = (matroska_block *)elt2;
-					if(MATROSKA_BlockTrackNum(block) == trackNum)
-					{
+					if(MATROSKA_BlockTrackNum(block) == trackNum) {
 						break;
 					}
 				}
 			}
-			if(elt2 != NULL)
-			{
+			if(elt2 != NULL) {
 				break;
 			}
 		}
 	}
-	if(elt1 == NULL)
-	{
+	if(elt1 == NULL) {
 		return FALSE;
-	}
-	else
-	{
+	} else {
 		return TRUE;
 	}
 }
 
-//static int matroska_track_get_type(const Matroska *obj, int trackNum)
-//{
-//	ebml_element *track = matroska_find_track(obj, trackNum);
-//	if(track == NULL)
-//	{
-//		return -1;
-//	}
-//	else
-//	{
-//		ebml_integer *trackType = (ebml_integer *)EBML_MasterFindChild(track, &MATROSKA_ContextTrackType);
-//		if(trackType == NULL)
-//		{
-//			return -2;
-//		}
-//		else
-//		{
-//			return EBML_IntegerValue(trackType);
-//		}
-//	}
-//}
-
-static int matroska_add_cue(Matroska *obj, matroska_block *block)
-{
+static int matroska_add_cue(Matroska *obj, matroska_block *block) {
 	matroska_cuepoint *cue = (matroska_cuepoint *)EBML_MasterAddElt(obj->cues, &MATROSKA_ContextCuePoint, TRUE);
-	if(cue == NULL)
-	{
+	if(cue == NULL) {
 		return -1;
-	}
-	else
-	{
+	} else {
 		MATROSKA_LinkCuePointBlock(cue, block);
 		MATROSKA_LinkCueSegmentInfo(cue, obj->info);
 		MATROSKA_CuePointUpdate(cue, (ebml_element *)obj->segment);
@@ -1528,28 +1346,22 @@ static int matroska_add_cue(Matroska *obj, matroska_block *block)
 	}
 }
 
-static inline void matroska_write_segment_info(Matroska *obj)
-{
+static inline void matroska_write_segment_info(Matroska *obj) {
 	EBML_ElementRender((ebml_element *)obj->info, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 	MATROSKA_MetaSeekUpdate(obj->infoMeta);
 }
 
-static inline void matroska_write_tracks(Matroska *obj)
-{
+static inline void matroska_write_tracks(Matroska *obj) {
 	EBML_ElementRender((ebml_element *)obj->tracks, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 	MATROSKA_MetaSeekUpdate(obj->tracksMeta);
 }
 
-static int matroska_write_cues(Matroska *obj)
-{
-	if(EBML_MasterChildren(obj->cues) != NULL)
-	{
+static int matroska_write_cues(Matroska *obj) {
+	if(EBML_MasterChildren(obj->cues) != NULL) {
 		EBML_ElementRender((ebml_element *)obj->cues, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 		MATROSKA_MetaSeekUpdate(obj->cuesMeta);
 		return 0;
-	}
-	else
-	{
+	} else {
 		EBML_MasterRemove(obj->segment, (ebml_element *)obj->cues);
 		EBML_MasterRemove(obj->metaSeek, (ebml_element *)obj->cuesMeta);
 		Node_Release((node *)obj->cues);
@@ -1558,24 +1370,18 @@ static int matroska_write_cues(Matroska *obj)
 	}
 }
 
-static inline void matroska_write_metaSeek(Matroska *obj)
-{
+static inline void matroska_write_metaSeek(Matroska *obj) {
 	EBML_ElementRender((ebml_element *)obj->metaSeek, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 }
 
-static inline timecode_t matroska_get_current_cluster_timestamp(const Matroska *obj)
-{
+static inline timecode_t matroska_get_current_cluster_timestamp(const Matroska *obj) {
 	return (timecode_t)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->cluster, &MATROSKA_ContextTimecode));
 }
 
-static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame *m_frame, int trackNum, ms_bool_t isKeyFrame)
-{
-	if(obj->timecodeScale == -1)
-	{
+static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame *m_frame, int trackNum, ms_bool_t isKeyFrame) {
+	if(obj->timecodeScale == -1) {
 		return NULL;
-	}
-	else
-	{
+	} else {
 		matroska_block *block = (matroska_block *)EBML_MasterAddElt(obj->cluster, &MATROSKA_ContextSimpleBlock, FALSE);
 		block->TrackNumber = trackNum;
 		MATROSKA_LinkBlockWithReadTracks(block, obj->tracks, TRUE);
@@ -1593,73 +1399,56 @@ static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame 
 /*********************************************************************************************
  * Muxer                                                                                     *
  *********************************************************************************************/
-typedef struct
-{
+typedef struct {
 	int nqueues;
 	MSQueue *queues;
 } Muxer;
 
-static void muxer_init(Muxer *obj, int ninputs)
-{
+static void muxer_init(Muxer *obj, int ninputs) {
 	int i;
 	obj->nqueues = ninputs;
 	obj->queues = (MSQueue *)ms_new0(MSQueue, ninputs);
-	for(i=0; i < ninputs; i++)
-	{
+	for(i=0; i < ninputs; i++) {
 		ms_queue_init(&obj->queues[i]);
 	}
 }
 
-static void muxer_empty_internal_queues(Muxer *obj)
-{
+static void muxer_empty_internal_queues(Muxer *obj) {
 	int i;
-	for(i=0; i< obj->nqueues; i++)
-	{
+	for(i=0; i< obj->nqueues; i++) {
 		ms_queue_flush(&obj->queues[i]);
 	}
 }
 
-static void muxer_uninit(Muxer *obj)
-{
+static void muxer_uninit(Muxer *obj) {
 	muxer_empty_internal_queues(obj);
 	ms_free(obj->queues);
 }
 
-static inline void muxer_put_buffer(Muxer *obj, mblk_t *buffer, int pin)
-{
+static inline void muxer_put_buffer(Muxer *obj, mblk_t *buffer, int pin) {
 	ms_queue_put(&obj->queues[pin], buffer);
 }
 
-static mblk_t *muxer_get_buffer(Muxer *obj, int *pin)
-{
+static mblk_t *muxer_get_buffer(Muxer *obj, int *pin) {
 	int i;
 	MSQueue *minQueue = NULL;
 
-	for(i=0; i < obj->nqueues; i++)
-	{
-		if(!ms_queue_empty(&obj->queues[i]))
-		{
-			if(minQueue == NULL)
-			{
+	for(i=0; i < obj->nqueues; i++) {
+		if(!ms_queue_empty(&obj->queues[i])) {
+			if(minQueue == NULL) {
 				minQueue = &obj->queues[i];
-			}
-			else
-			{
+			} else {
 				uint32_t t1 = mblk_get_timestamp_info(qfirst(&minQueue->q));
 				uint32_t t2 = mblk_get_timestamp_info(qfirst(&(&obj->queues[i])->q));
-				if(t2 < t1)
-				{
+				if(t2 < t1) {
 					minQueue = &obj->queues[i];
 				}
 			}
 		}
 	}
-	if(minQueue == NULL)
-	{
+	if(minQueue == NULL) {
 		return NULL;
-	}
-	else
-	{
+	} else {
 		*pin = (minQueue - obj->queues);
 		return ms_queue_get(minQueue);
 	}
@@ -1727,8 +1516,7 @@ static void time_corrector_proceed(TimeCorrector *obj, mblk_t *buffer, int pin) 
  *********************************************************************************************/
 #define CLUSTER_MAX_DURATION 5000
 
-typedef struct
-{
+typedef struct {
 	Matroska file;
 	timecode_t duration;
 	MatroskaOpenMode openMode;
@@ -1740,8 +1528,7 @@ typedef struct
 	Module **modulesList;
 } MKVRecorder;
 
-static void recorder_init(MSFilter *f)
-{
+static void recorder_init(MSFilter *f) {
 	MKVRecorder *obj = (MKVRecorder *)ms_new0(MKVRecorder, 1);
 
 	ms_message("MKVRecorder: initialisation");
@@ -1891,13 +1678,10 @@ static int recorder_start(MSFilter *f, void *arg)
 	int err = 0;
 
 	ms_filter_lock(f);
-	if(obj->state == MSRecorderClosed)
-	{
+	if(obj->state == MSRecorderClosed) {
 		ms_error("MKVRecorder: fail to start recording. The file has not been opened");
 		err = -1;
-	}
-	else
-	{
+	} else {
 		obj->state = MSRecorderRunning;
 		obj->needKeyFrame = TRUE;
 		ms_message("MKVRecorder: recording successfully started");
@@ -1911,8 +1695,7 @@ static int recorder_stop(MSFilter *f, void *arg) {
 	int err=-1;
 
 	ms_filter_lock(f);
-	switch(obj->state)
-	{
+	switch(obj->state) {
 	case MSRecorderClosed:
 		err = -1;
 		ms_error("MKVRecorder: fail to stop recording. The file has not been opened");
