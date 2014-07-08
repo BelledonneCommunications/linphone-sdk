@@ -395,14 +395,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	MSRtpPayloadPickerContext picker_context;
 	int nchannels;
 	bool_t has_builtin_ec=FALSE;
-	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
-		audio_stream_get_rtcp_xr_plc_status,
-		audio_stream_get_rtcp_xr_signal_level,
-		audio_stream_get_rtcp_xr_noise_level,
-		audio_stream_get_rtcp_xr_average_quality_rating,
-		audio_stream_get_rtcp_xr_average_lq_quality_rating,
-		(unsigned long)stream
-	};
 
 	rtp_session_set_profile(rtps,profile);
 	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
@@ -413,7 +405,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
-	rtp_session_set_rtcp_xr_media_callbacks(rtps, &rtcp_xr_media_cbs);
 
 	if (rem_rtp_port>0)
 		ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,rtps);
@@ -880,6 +871,14 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
 	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSWebRTCAEC");
+	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
+		audio_stream_get_rtcp_xr_plc_status,
+		audio_stream_get_rtcp_xr_signal_level,
+		audio_stream_get_rtcp_xr_noise_level,
+		audio_stream_get_rtcp_xr_average_quality_rating,
+		audio_stream_get_rtcp_xr_average_lq_quality_rating,
+		(unsigned long)stream
+	};
 
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
@@ -906,6 +905,9 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 	stream->use_agc=FALSE;
 	stream->use_ng=FALSE;
 	stream->features=AUDIO_STREAM_FEATURE_ALL;
+
+	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, &rtcp_xr_media_cbs);
+
 	return stream;
 }
 
@@ -1073,6 +1075,7 @@ void audio_stream_stop(AudioStream * stream){
 			}
 		}
 	}
+	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"telephone-event",(RtpCallback)on_dtmf_received);
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)mediastream_payload_type_changed);
 	audio_stream_free(stream);
