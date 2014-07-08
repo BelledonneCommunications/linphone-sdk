@@ -73,7 +73,7 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->av_recorder.resampler) ms_filter_destroy(stream->av_recorder.resampler);
 	if (stream->av_recorder.video_input) ms_filter_destroy(stream->av_recorder.video_input);
 	if (stream->recorder_file) ms_free(stream->recorder_file);
-	
+
 	ms_free(stream);
 }
 
@@ -317,7 +317,7 @@ static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannel
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_NCHANNELS,&nchannels);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&g711_nchannels);
 			pinfmt.fmt=ms_factory_get_audio_format(ms_factory_get_fallback(),"pcmu",g711_rate,g711_nchannels,NULL);
-			
+
 		}else{
 			int got_sr=0;
 			ms_filter_call_method(stream->av_recorder.encoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
@@ -343,7 +343,7 @@ static void plumb_av_recorder(AudioStream *stream){
 	ms_connection_helper_link(&ch, stream->av_recorder.resampler,0,0);
 	ms_connection_helper_link(&ch, stream->av_recorder.encoder,0,0);
 	ms_connection_helper_link(&ch, stream->av_recorder.recorder,1,-1);
-	
+
 	ms_filter_link(stream->av_recorder.video_input,0,stream->av_recorder.recorder,0);
 }
 
@@ -355,9 +355,9 @@ static void unplumb_av_recorder(AudioStream *stream){
 	ms_connection_helper_unlink(&ch, stream->av_recorder.resampler,0,0);
 	ms_connection_helper_unlink(&ch, stream->av_recorder.encoder,0,0);
 	ms_connection_helper_unlink(&ch, stream->av_recorder.recorder,1,-1);
-	
+
 	ms_filter_unlink(stream->av_recorder.video_input,0,stream->av_recorder.recorder,0);
-	
+
 	if (ms_filter_call_method(stream->av_recorder.recorder,MS_RECORDER_GET_STATE,&rstate)==0){
 		if (rstate!=MSRecorderClosed){
 			ms_filter_call_method_noarg(stream->av_recorder.recorder, MS_RECORDER_CLOSE);
@@ -368,7 +368,7 @@ static void unplumb_av_recorder(AudioStream *stream){
 static void setup_recorder(AudioStream *stream, int sample_rate, int nchannels){
 	int val=0;
 	int pin=1;
-	
+
 	stream->recorder=ms_filter_new(MS_FILE_REC_ID);
 	stream->recorder_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
 	stream->recv_tee=ms_filter_new(MS_TEE_ID);
@@ -380,7 +380,7 @@ static void setup_recorder(AudioStream *stream, int sample_rate, int nchannels){
 	ms_filter_call_method(stream->send_tee,MS_TEE_MUTE,&pin);
 	ms_filter_call_method(stream->recorder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	ms_filter_call_method(stream->recorder,MS_FILTER_SET_NCHANNELS,&nchannels);
-	
+
 	setup_av_recorder(stream,sample_rate,nchannels);
 }
 
@@ -395,14 +395,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	MSRtpPayloadPickerContext picker_context;
 	int nchannels;
 	bool_t has_builtin_ec=FALSE;
-	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
-		audio_stream_get_rtcp_xr_plc_status,
-		audio_stream_get_rtcp_xr_signal_level,
-		audio_stream_get_rtcp_xr_noise_level,
-		audio_stream_get_rtcp_xr_average_quality_rating,
-		audio_stream_get_rtcp_xr_average_lq_quality_rating,
-		(unsigned long)stream
-	};
 
 	rtp_session_set_profile(rtps,profile);
 	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
@@ -413,7 +405,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
-	rtp_session_set_rtcp_xr_media_callbacks(rtps, &rtcp_xr_media_cbs);
 
 	if (rem_rtp_port>0)
 		ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,rtps);
@@ -823,7 +814,7 @@ int audio_stream_mixed_record_open(AudioStream *st, const char* filename){
 static MSFilter *get_recorder(AudioStream *stream){
 	const char *fname=stream->recorder_file;
 	int len=strlen(fname);
-	
+
 	if (strstr(fname,".mkv")==fname+len-4){
 		if (stream->av_recorder.recorder){
 			return stream->av_recorder.recorder;
@@ -840,7 +831,7 @@ int audio_stream_mixed_record_start(AudioStream *st){
 		int pin=1;
 		MSRecorderState state;
 		MSFilter *recorder=get_recorder(st);
-		
+
 		if (recorder==NULL) return -1;
 		ms_filter_call_method(recorder,MS_RECORDER_GET_STATE,&state);
 		if (state==MSRecorderClosed){
@@ -859,7 +850,7 @@ int audio_stream_mixed_record_stop(AudioStream *st){
 	if (st->recorder && st->recorder_file){
 		int pin=1;
 		MSFilter *recorder=get_recorder(st);
-		
+
 		if (recorder==NULL) return -1;
 		ms_filter_call_method(st->recv_tee,MS_TEE_MUTE,&pin);
 		ms_filter_call_method(st->send_tee,MS_TEE_MUTE,&pin);
@@ -880,12 +871,22 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
 	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSWebRTCAEC");
+	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
+		audio_stream_get_rtcp_xr_plc_status,
+		audio_stream_get_rtcp_xr_signal_level,
+		audio_stream_get_rtcp_xr_noise_level,
+		audio_stream_get_rtcp_xr_average_quality_rating,
+		audio_stream_get_rtcp_xr_average_lq_quality_rating,
+		(unsigned long)stream
+	};
 
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
 
+
 	stream->ms.type = MSAudio;
 	stream->ms.sessions=*sessions;
+	rtp_session_resync(stream->ms.sessions.rtp_session);
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
@@ -904,6 +905,9 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 	stream->use_agc=FALSE;
 	stream->use_ng=FALSE;
 	stream->features=AUDIO_STREAM_FEATURE_ALL;
+
+	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, &rtcp_xr_media_cbs);
+
 	return stream;
 }
 
@@ -1071,6 +1075,7 @@ void audio_stream_stop(AudioStream * stream){
 			}
 		}
 	}
+	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"telephone-event",(RtpCallback)on_dtmf_received);
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)mediastream_payload_type_changed);
 	audio_stream_free(stream);
@@ -1132,7 +1137,7 @@ static void configure_av_recorder(AudioStream *stream){
 			pinfmt.pin=0;
 			ms_filter_call_method(stream->av_recorder.recorder,MS_FILTER_SET_INPUT_FMT,&pinfmt);
 		}
-		
+
 	}
 }
 

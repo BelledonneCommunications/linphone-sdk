@@ -159,10 +159,10 @@ static bool_t simple_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp)
 			cur->lost_percentage=ortp_loss_rate_estimator_get_value(objbase->lre);
 			cur->int_jitter=1000.0*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
 			cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
-			/*
-			ms_message("MSQosAnalyzer[%s]: lost_percentage=%f, int_jitter=%f ms, rt_prop=%f sec",
-				objbase->label ? objbase->label : "", cur->lost_percentage,cur->int_jitter,cur->rt_prop);
-			*/
+
+			ms_message("MSSimpleQosAnalyzer: lost_percentage=%f, int_jitter=%f ms, rt_prop=%f sec",
+				cur->lost_percentage,cur->int_jitter,cur->rt_prop);
+
 		}
 	}
 	return rb!=NULL;

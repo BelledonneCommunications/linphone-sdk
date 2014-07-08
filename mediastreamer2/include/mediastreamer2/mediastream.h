@@ -769,7 +769,7 @@ MS2_PUBLIC void audio_stream_unlink_video(AudioStream *stream, VideoStream *vide
 
 typedef VideoStream VideoPreview;
 
-MS2_PUBLIC VideoPreview * video_preview_new();
+MS2_PUBLIC VideoPreview * video_preview_new(void);
 #define video_preview_set_size(p,s)			video_stream_set_sent_video_size(p,s)
 #define video_preview_set_display_filter_name(p,dt)	video_stream_set_display_filter_name(p,dt)
 #define video_preview_set_native_window_id(p,id)	video_stream_set_native_preview_window_id(p,id)

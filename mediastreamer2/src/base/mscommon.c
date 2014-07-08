@@ -280,18 +280,8 @@ int ms_load_plugins(const char *dir){
 	return ms_factory_load_plugins(ms_factory_get_fallback(),dir);
 }
 
-static int ms_plugins_ref=0;
-
-void ms_unload_plugins(){
-	if (--ms_plugins_ref >0 ) {
-		ms_message ("Skiping ms_unload_plugins, still [%i] ref",ms_plugins_ref);
-		return;
-	}
-	ms_factory_uninit_plugins(ms_factory_get_fallback());
-}
-
-
 static int ms_base_ref=0;
+static int ms_plugins_ref=0;
 
 void ms_base_init(){
 
@@ -316,6 +306,14 @@ void ms_plugins_init(void) {
 		return;
 	}
 	ms_factory_init_plugins(ms_factory_get_fallback());
+}
+
+void ms_plugins_exit(void) {
+	if (--ms_plugins_ref >0 ) {
+		ms_message ("Skiping ms_plugins_exit, still [%i] ref",ms_plugins_ref);
+		return;
+	}
+	ms_factory_uninit_plugins(ms_factory_get_fallback());
 }
 
 void ms_set_plugins_dir(const char *path) {

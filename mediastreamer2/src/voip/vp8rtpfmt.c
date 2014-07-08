@@ -743,6 +743,8 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					frame->outputted = TRUE;
 					send_rpsi_if_reference_frame(ctx, frame);
 				} else {
+					frame->discarded = TRUE;
+					send_pli(ctx);
 					if (ctx->waiting_for_reference_frame == TRUE) {
 						/* Do not decode frames while we are waiting for a reference frame. */
 #ifdef VP8RTPFMT_DEBUG
@@ -751,12 +753,9 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 						else
 #endif
 							ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame.");
-						frame->discarded = TRUE;
 					} else {
 						/* Drop frames until the first keyframe is successfully received. */
 						ms_warning("VP8 frame dropped because keyframe has not been received yet.");
-						frame->discarded = TRUE;
-						send_pli(ctx);
 					}
 				}
 				break;
