@@ -41,6 +41,7 @@ if(MSVC)
 			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 		)
 	endif()
+	set_target_properties(msopenh264 PROPERTIES PREFIX "lib")
 endif()
 set_target_properties(msopenh264 PROPERTIES LINKER_LANGUAGE CXX LINK_FLAGS "${LINK_FLAGS}")
 target_link_libraries(msopenh264 ${LIBS})
