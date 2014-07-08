@@ -41,3 +41,6 @@ set(EP_openh264_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOU
 set(EP_openh264_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/configure.sh.cmake)
 set(EP_openh264_BUILD_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/build.sh.cmake)
 set(EP_openh264_INSTALL_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/install.sh.cmake)
+if (MSVC)
+	set(EP_openh264_OS "msvc")
+endif()
