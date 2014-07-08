@@ -35,7 +35,9 @@ set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 
+set(WITH_MS2 "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where the mediastreamer libraries can be found (ex:/usr or /usr/local)")
 set(WITH_OPENH264 "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libopenh264 can be found (ex:/usr or /usr/local)")
+set(WITH_ORTP "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where the oRTP library can be found (ex:/usr or /usr/local)")
 
 
 if(MSVC)
@@ -58,14 +60,18 @@ check_include_file("sys/types.h" HAVE_SYS_TYPES_H)
 check_include_file("unistd.h" HAVE_UNISTD_H)
 check_include_file("stdbool.h" HAVE_STDBOOL_H)
 
+find_package(Ortp)
 find_package(Mediastreamer2)
 find_package(OpenH264)
 
+if(NOT ORTP_FOUND)
+	message(FATAL "Could not find oRTP headers/library!")
+endif()
 if(NOT MEDIASTREAMER2_FOUND)
-	message(WARNING "Could not find mediastreamer2 headers/library!")
+	message(FATAL "Could not find mediastreamer2 headers/library!")
 endif()
 if(NOT OPENH264_FOUND)
-	message(WARNING "Could not find openh264 headers/library!")
+	message(FATAL "Could not find openh264 headers/library!")
 endif()
 
 

@@ -23,10 +23,8 @@
 set(LIBS
 	${MS2_LIBRARIES}
 	${OPENH264_LIBRARIES}
+	${ORTP_LIBRARIES}
 )
-if(WIN32)
-	list(APPEND LIBS ws2_32)
-endif()
 
 set(SOURCE_FILES
 	msopenh264.cpp

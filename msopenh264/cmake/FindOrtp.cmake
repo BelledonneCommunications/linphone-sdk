@@ -1,5 +1,5 @@
 ############################################################################
-# FindMediastreamer2.txt
+# FindOrtp.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,55 +20,49 @@
 #
 ############################################################################
 #
-# - Find the mediastreamer2 include file and library
+# - Find the oRTP include file and library
 #
-#  MS2_FOUND - system has mediastreamer2
-#  MS2_INCLUDE_DIR - the mediastreamer2 include directory
-#  MS2_LIBRARIES - The libraries needed to use mediastreamer2
+#  ORTP_FOUND - system has oRTP
+#  ORTP_INCLUDE_DIR - the oRTP include directory
+#  ORTP_LIBRARIES - The libraries needed to use oRTP
 
 if(UNIX)
 	find_package(PkgConfig)
-	pkg_check_modules(PC_MS2 QUIET mediastreamer>=2.7.0)
+	pkg_check_modules(PC_ORTP QUIET ortp>=0.23.0)
 endif()
 
-set(_MS2_ROOT_PATHS
-	${WITH_MS2}
+set(_ORTP_ROOT_PATHS
+	${WITH_ORTP}
 	${CMAKE_INSTALL_PREFIX}
 )
 
-find_path(MS2_INCLUDE_DIR
-	NAMES mediastreamer2/mscommon.h
-	HINTS _MS2_ROOT_PATHS
+find_path(ORTP_INCLUDE_DIR
+	NAMES ortp/ortp.h
+	HINTS _ORTP_ROOT_PATHS
 	PATH_SUFFIXES include
 )
 
-if(NOT "${MS2_INCLUDE_DIR}" STREQUAL "")
-	set(HAVE_MEDIASTREAMER2_MSCOMMON_H 1)
+if(NOT "${ORTP_INCLUDE_DIR}" STREQUAL "")
+	set(HAVE_ORTP_ORTP_H 1)
 
-	find_library(MS2_BASE_LIBRARIES
-		NAMES mediastreamer_base
-		HINTS ${_MS2_ROOT_PATHS}
+	find_library(ORTP_LIBRARIES
+		NAMES ortp
+		HINTS ${_ORTP_ROOT_PATHS}
 		PATH_SUFFIXES bin lib
 	)
-	find_library(MS2_VOIP_LIBRARIES
-		NAMES mediastreamer_voip
-		HINTS ${_MS2_ROOT_PATHS}
-		PATH_SUFFIXES bin lib
-	)
-	set(MS2_LIBRARIES ${MS2_BASE_LIBRARIES} ${MS2_VOIP_LIBRARIES})
 
-	if(NOT "${MS2_LIBRARIES}" STREQUAL "")
-		set(MS2_FOUND TRUE)
+	if(NOT "${ORTP_LIBRARIES}" STREQUAL "")
+		set(ORTP_FOUND TRUE)
 	endif()
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(mediastreamer2
+find_package_handle_standard_args(ortp
 	REQUIRED_VARS
-		MS2_LIBRARIES
-		MS2_INCLUDE_DIR
+		ORTP_LIBRARIES
+		ORTP_INCLUDE_DIR
 	FAIL_MESSAGE
-		"Could NOT find mediastreamer2"
+		"Could NOT find oRTP"
 )
 
-mark_as_advanced(MS2_INCLUDE_DIR MS2_LIBRARIES)
+mark_as_advanced(ORTP_INCLUDE_DIR ORTP_LIBRARIES)
