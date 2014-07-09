@@ -1194,7 +1194,7 @@ static int matroska_del_track(Matroska *obj, int trackNum) {
 	}
 }
 
-static int matroska_get_default_track_num(Matroska *obj, int trackType) {
+static int matroska_get_default_track_num(const Matroska *obj, int trackType) {
 	ebml_element *track;
 	for(track = EBML_MasterChildren(obj->tracks); track != NULL; track = EBML_MasterNext(track)) {
 		ebml_integer *trackTypeElt = (ebml_integer *)EBML_MasterFindChild(track, &MATROSKA_ContextTrackType);
@@ -1212,6 +1212,20 @@ static int matroska_get_default_track_num(Matroska *obj, int trackType) {
 		} else {
 			return EBML_IntegerValue(trackNum);
 		}
+	}
+}
+
+static int matroska_get_first_track_num_from_type(const Matroska *obj, int trackType) {
+	ebml_element *track;
+	for(track = EBML_MasterChildren(obj->tracks); track != NULL; track = EBML_MasterNext(track)) {
+		if(EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)track, &MATROSKA_ContextTrackType)) == trackType) {
+			break;
+		}
+	}
+	if(track == NULL) {
+		return 0;
+	} else {
+		return EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)track, &MATROSKA_ContextTrackNumber));
 	}
 }
 
@@ -1270,6 +1284,9 @@ static int matroska_track_get_info(const Matroska *obj, int trackNum, const MSFm
 			ebml_binary *codecPrivate;
 			EBML_StringGet((ebml_string *)EBML_MasterFindChild((ebml_master *)track, &MATROSKA_ContextCodecID), codecId, 50);
 			rfcName = codec_id_to_rfc_name(codecId);
+			if(rfcName == NULL) {
+				return -3;
+			}
 			if((codecPrivate = (ebml_binary *)EBML_MasterFindChild(track, &MATROSKA_ContextCodecPrivate)) == NULL) {
 				*codecPrivateData = NULL;
 			} else {
@@ -1280,7 +1297,7 @@ static int matroska_track_get_info(const Matroska *obj, int trackNum, const MSFm
 			case TRACK_TYPE_VIDEO:
 				elt = EBML_MasterFindChild((ebml_master *)track, &MATROSKA_ContextVideo);
 				if(elt == NULL || !EBML_MasterCheckMandatory((ebml_master *)elt, FALSE)) {
-					return -2;
+					return -4;
 				} else {
 					MSVideoSize vsize;
 					vsize.width = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)elt, &MATROSKA_ContextPixelWidth));
@@ -1292,7 +1309,7 @@ static int matroska_track_get_info(const Matroska *obj, int trackNum, const MSFm
 			case TRACK_TYPE_AUDIO:
 				elt = EBML_MasterFindChild((ebml_master *)track, &MATROSKA_ContextAudio);
 				if(elt == NULL || !EBML_MasterCheckMandatory((ebml_master *)elt, FALSE)) {
-					return -2;
+					return -4;
 				} else {
 					int rate, nbChannels;
 					rate = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)elt, &MATROSKA_ContextSamplingFrequency));
@@ -1302,7 +1319,7 @@ static int matroska_track_get_info(const Matroska *obj, int trackNum, const MSFm
 				break;
 
 			default:
-				return -4;
+				return -5;
 			}
 			return 0;
 		}
@@ -1990,7 +2007,7 @@ static int player_open_file(MSFilter *f, void *arg) {
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	const char *filename = (const char *)arg;
 	int err = 0;
-	MSFormatType typeList[2] = {MSVideo, MSAudio};
+	int typeList[2] = {TRACK_TYPE_VIDEO, TRACK_TYPE_AUDIO};
 
 	ms_filter_lock(f);
 	if(obj->state != MSPlayerClosed) {
@@ -2003,17 +2020,33 @@ static int player_open_file(MSFilter *f, void *arg) {
 		} else {
 			int i;
 			for(i=0; i < 2; i++) {
+				const char *typeString[2] = {"video", "audio"};
 				obj->trackNumList[i] = matroska_get_default_track_num(&obj->file, typeList[i]);
 				if(obj->trackNumList[i] <= 0) {
-					ms_warning("MKVPlayer: no default %s track", typeList[i] == MSVideo ? "video" : "audio");
-				} else {
+					ms_warning("MKVPlayer: no default %s track. Looking for first %s track", typeString[i], typeString[i]);
+					obj->trackNumList[i] = matroska_get_first_track_num_from_type(&obj->file, typeList[i]);
+					if(obj->trackNumList[i] <= 0) {
+						ms_warning("MKVPlayer: no %s track found", typeString[i]);
+					}
+				}
+				if(obj->trackNumList[i] > 0) {
 					const uint8_t *codecPrivateData;
-					if(matroska_track_get_info(&obj->file, obj->trackNumList[i], &obj->outputDescsList[i], &codecPrivateData) < 0) {
-						ms_warning("MKVPlayer: the default %s track info could not be read", typeList[i] == MSVideo ? "video" : "audio");
+					int err;
+					if((err = matroska_track_get_info(&obj->file, obj->trackNumList[i], &obj->outputDescsList[i], &codecPrivateData)) < 0) {
+						if(err == -3) {
+							ms_warning("MKVPlayer: the %s track info could not be read. Codec ID not supported", typeString[i]);
+						} else {
+							ms_warning("MKVPlayer: the %s track info could not be read", typeString[i]);
+						}
+						obj->trackNumList[i] = 0;
 					} else {
 						obj->modulesList[i] = module_new(obj->outputDescsList[i]->encoding);
-						if(codecPrivateData != NULL) {
-							module_load_private_data(obj->modulesList[i], codecPrivateData);
+						if(obj->modulesList[i] == NULL) {
+							ms_error("MKVPlayer: %s is not supported", obj->outputDescsList[i]->encoding);
+						} else {
+							if(codecPrivateData != NULL) {
+								module_load_private_data(obj->modulesList[i], codecPrivateData);
+							}
 						}
 					}
 				}
