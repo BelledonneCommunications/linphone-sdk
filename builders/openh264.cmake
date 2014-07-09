@@ -42,5 +42,5 @@ set(EP_openh264_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/op
 set(EP_openh264_BUILD_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/build.sh.cmake)
 set(EP_openh264_INSTALL_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/install.sh.cmake)
 if (MSVC)
-	set(EP_openh264_OS "msvc")
+	set(EP_openh264_ADDITIONAL_OPTIONS "OS=\"msvc\"")
 endif()
