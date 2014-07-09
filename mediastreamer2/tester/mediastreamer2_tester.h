@@ -53,6 +53,7 @@ extern test_suite_t adaptive_test_suite;
 extern test_suite_t audio_stream_test_suite;
 extern test_suite_t video_stream_test_suite;
 extern test_suite_t framework_test_suite;
+extern test_suite_t player_recorder_test_suite;
 
 #define CU_ASSERT_IN_RANGE(value, inf, sup) \
 		printf(#value ": %f <= ? %f <= ? %f\n", (double)inf, (double)value, (double)sup); \

@@ -17,7 +17,8 @@ mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_audio_stream_tester.c \
 	mediastreamer2_framework_tester.c
 if BUILD_VIDEO
-mediastreamer2_tester_SOURCES+=	mediastreamer2_video_stream_tester.c
+mediastreamer2_tester_SOURCES+=	mediastreamer2_video_stream_tester.c \
+	mediastreamer2_player_recorder_tester.c
 endif
 
 
