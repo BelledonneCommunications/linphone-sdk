@@ -123,7 +123,9 @@ void mediastreamer2_tester_init(void) {
 	add_test_suite(&video_stream_test_suite);
 #endif
 	add_test_suite(&framework_test_suite);
+#ifdef HAVE_MATROSKA
 	add_test_suite(&player_recorder_test_suite);
+#endif
 }
 
 void mediastreamer2_tester_uninit(void) {
