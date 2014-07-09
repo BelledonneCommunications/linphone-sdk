@@ -2070,7 +2070,7 @@ static void player_process(MSFilter *f) {
 	ms_filter_lock(f);
 	if(obj->state == MSPlayerPlaying) {
 		obj->time += f->ticker->interval;
-		while(matroska_block_get_timestamp(&obj->file) < obj->time && !eof) {
+		while(!eof && matroska_block_get_timestamp(&obj->file) < obj->time) {
 			int trackNum;
 			mblk_t *frame;
 			trackNum = matroska_block_get_track_num(&obj->file);
