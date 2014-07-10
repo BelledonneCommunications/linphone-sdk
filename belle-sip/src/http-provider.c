@@ -405,7 +405,7 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 	fix_request(req);
 
 	if( req->background_task_id != 0){
-		req->background_task_id = belle_sip_begin_background_task("http", belle_http_end_background_task, req);
+		req->background_task_id = belle_sip_begin_background_task("belle-sip http", belle_http_end_background_task, req);
 	}
 
 	belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(req));

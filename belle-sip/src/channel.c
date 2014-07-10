@@ -768,7 +768,7 @@ static void channel_on_send_background_task_ended(belle_sip_channel_t *obj){
 
 static void channel_begin_send_background_task(belle_sip_channel_t *obj){
 	if (obj->bg_task_id==0){
-		obj->bg_task_id=belle_sip_begin_background_task("belle-sip channel in progress",(void (*)(void*))channel_on_send_background_task_ended, obj);
+		obj->bg_task_id=belle_sip_begin_background_task("belle-sip send channel",(void (*)(void*))channel_on_send_background_task_ended, obj);
 		if (obj->bg_task_id) belle_sip_message("channel [%p]: starting send background task with id=[%x].",obj,obj->bg_task_id);
 	}
 }
@@ -788,7 +788,7 @@ static void channel_on_recv_background_task_ended(belle_sip_channel_t *obj){
 
 static void channel_begin_recv_background_task(belle_sip_channel_t *obj){
 	if (obj->recv_bg_task_id==0){
-		obj->recv_bg_task_id=belle_sip_begin_background_task("belle-sip channel in progress",(void (*)(void*))channel_on_recv_background_task_ended, obj);
+		obj->recv_bg_task_id=belle_sip_begin_background_task("belle-sip recv channel",(void (*)(void*))channel_on_recv_background_task_ended, obj);
 		if (obj->recv_bg_task_id) belle_sip_message("channel [%p]: starting recv background task with id=[%x].",obj,obj->recv_bg_task_id);
 	}
 }

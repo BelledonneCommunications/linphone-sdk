@@ -22,11 +22,19 @@
 
 unsigned int belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
 	UIApplication *app=[UIApplication sharedApplication];
-	UIBackgroundTaskIdentifier bgid=[app beginBackgroundTaskWithExpirationHandler:^{
+	UIBackgroundTaskIdentifier bgid = UIBackgroundTaskInvalid;
+	void (^handler)() = ^{
 		cb(data);
-	}];
+	};
+
+	if([app respondsToSelector:@selector(beginBackgroundTaskWithName:expirationHandler:)]){
+		bgid = [app beginBackgroundTaskWithName:[NSString stringWithUTF8String:name] expirationHandler:handler];
+	} else {
+		bgid = [app beginBackgroundTaskWithExpirationHandler:handler];
+	}
+
 	if (bgid==UIBackgroundTaskInvalid){
-		belle_sip_error("Could not start background task.");
+		belle_sip_error("Could not start background task %s.", name);
 		return 0;
 	}
 	return (unsigned int)bgid;
