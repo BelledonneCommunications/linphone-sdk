@@ -149,10 +149,6 @@ void playback_stream_init(PlaybackStream *obj, MSFilterId player,const char *fil
 
 	obj->ticker = ms_ticker_new();
 	obj->filename = strdup(filename);
-
-	// temporary
-	obj->audioDecoder = ms_factory_create_decoder(ms_factory_get_fallback(), "pcmu");
-	obj->videoDecoder = ms_factory_create_decoder(ms_factory_get_fallback(), "H264");
 }
 
 void playback_stream_uninit(PlaybackStream *obj) {
@@ -166,12 +162,21 @@ void playback_stream_uninit(PlaybackStream *obj) {
 }
 
 void playback_stream_start(PlaybackStream *obj) {
+	MSPinFormat pinFmt;
+	
+	ms_filter_call_method(obj->player, MS_PLAYER_OPEN, "test.mkv");
+	pinFmt.pin = 0;
+	ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &pinFmt);
+	obj->videoDecoder = ms_factory_create_decoder(ms_factory_get_fallback(), pinFmt.fmt->encoding);
+	pinFmt.pin = 1;
+	ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &pinFmt);
+	obj->audioDecoder = ms_factory_create_decoder(ms_factory_get_fallback(), pinFmt.fmt->encoding);
+	
 	ms_filter_link(obj->player, 0, obj->videoDecoder, 0);
 	ms_filter_link(obj->videoDecoder, 0, obj->videoSink, 0);
 	ms_filter_link(obj->player, 1, obj->audioDecoder, 0);
 	ms_filter_link(obj->audioDecoder, 0, obj->audioSink, 0);
 	ms_ticker_attach(obj->ticker, obj->player);
-	ms_filter_call_method(obj->player, MS_PLAYER_OPEN, "test.mkv");
 	ms_filter_call_method_noarg(obj->player, MS_PLAYER_START);
 }
 

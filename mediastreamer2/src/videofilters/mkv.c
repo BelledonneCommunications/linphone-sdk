@@ -2133,7 +2133,28 @@ static int player_stop(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int player_get_output_fmt(MSFilter *f, void *arg) {
+	MKVPlayer *obj = (MKVPlayer *)f->data;
+	MSPinFormat *pinFmt = (MSPinFormat *)arg;
+	int err = 0;
+	ms_filter_lock(f);
+	if(obj->state == MSPlayerClosed) {
+		ms_error("MKVPlayer: cannot get pin format when player is closed");
+		err = -1;
+	} else {
+		if(pinFmt->pin < 0 || pinFmt->pin >= f->desc->noutputs) {
+			ms_error("MKVPlayer: pin #%d does not exist", pinFmt->pin);
+			err = -2;
+		} else {
+			pinFmt->fmt = obj->outputDescsList[pinFmt->pin];
+		}
+	}
+	ms_filter_unlock(f);
+	return err;
+}
+
 static MSFilterMethod player_methods[]= {
+	{	MS_FILTER_GET_OUTPUT_FMT	,	player_get_output_fmt	},
 	{	MS_PLAYER_OPEN		,	player_open_file	},
 	{	MS_PLAYER_CLOSE		,	player_close		},
 	{	MS_PLAYER_START		,	player_start		},
