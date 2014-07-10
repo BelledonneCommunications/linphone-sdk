@@ -197,7 +197,7 @@ static int tester_cleanup() {
 static void mkv_recording_playing() {
 	RecordStream recording;
 	PlaybackStream playback;
-	const char filename[] = "test.h";
+	const char filename[] = "test.mkv";
 
 	if(access(filename, F_OK) == 0) {
 		ms_error("mkv_recording_playing: %s already exists. Test aborted", filename);
