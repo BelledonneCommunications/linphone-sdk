@@ -2153,13 +2153,23 @@ static int player_get_output_fmt(MSFilter *f, void *arg) {
 	return err;
 }
 
+static int player_get_state(MSFilter *f, void *arg) {
+	MKVPlayer *obj = (MKVPlayer *)f->data;
+	MSPlayerState *state = (MSPlayerState *)arg;
+	ms_filter_lock(f);
+	*state = obj->state;
+	ms_filter_unlock(f);
+	return 0;
+}
+
 static MSFilterMethod player_methods[]= {
 	{	MS_FILTER_GET_OUTPUT_FMT	,	player_get_output_fmt	},
-	{	MS_PLAYER_OPEN		,	player_open_file	},
-	{	MS_PLAYER_CLOSE		,	player_close		},
-	{	MS_PLAYER_START		,	player_start		},
-	{	MS_PLAYER_PAUSE		,	player_stop			},
-	{	0					,	NULL				}
+	{	MS_PLAYER_OPEN	,	player_open_file	},
+	{	MS_PLAYER_CLOSE	,	player_close	},
+	{	MS_PLAYER_START	,	player_start	},
+	{	MS_PLAYER_PAUSE	,	player_stop	},
+	{	MS_PLAYER_GET_STATE	,	player_get_state	},
+	{	0	,	NULL	}
 };
 
 #ifdef _MSC_VER
