@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 
@@ -54,7 +54,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	char computed_ha1[33];
 	belle_sip_header_www_authenticate_t* authenticate;
 	int ret=0;
-	
+
 
 	if (req->auth_attempt_count>1){
 		req->auth_attempt_count=0;
@@ -99,7 +99,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		belle_sip_error("No auth info found for request [%p], cannot authenticate",req);
 		ret=-1;
 	}
-	
+
 	if (ha1) {
 		belle_http_header_authorization_t* authorization;
 		req->auth_attempt_count++;
@@ -129,7 +129,7 @@ static void http_channel_context_handle_response_headers(belle_http_channel_cont
 	belle_http_request_t *req=ctx->pending_requests ? (belle_http_request_t*) ctx->pending_requests->data : NULL;
 	belle_http_response_event_t ev={0};
 	int code;
-	
+
 	if (req==NULL){
 		belle_sip_error("Receiving http response headers not matching any request.");
 		return;
@@ -158,7 +158,7 @@ static void http_channel_context_handle_response(belle_http_channel_context_t *c
 	connection=belle_sip_message_get_header((belle_sip_message_t *)response,"Connection");
 	if (connection && strstr(belle_sip_header_get_unparsed_value(connection),"close")!=NULL)
 		chan->about_to_be_closed=TRUE;
-	
+
 	belle_http_request_set_response(req,response);
 	code=belle_http_response_get_status_code(response);
 	if ((code==401 || code==407) && http_channel_context_handle_authentication(ctx,req)==0 ){
@@ -169,6 +169,11 @@ static void http_channel_context_handle_response(belle_http_channel_context_t *c
 		ev.request=req;
 		ev.response=response;
 		BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_response,&ev);
+		if( req->background_task_id ){
+			belle_sip_warning("HTTP request finished: ending bg task id=[%x]", req->background_task_id);
+			belle_sip_end_background_task(req->background_task_id);
+			req->background_task_id = 0;
+		}
 	}
 	belle_sip_object_unref(req);
 }
@@ -177,7 +182,7 @@ static void http_channel_context_handle_io_error(belle_http_channel_context_t *c
 	belle_http_request_t *req=NULL;
 	belle_sip_io_error_event_t ev={0};
 	belle_sip_list_t *elem;
-	
+
 	/*if the error happens before attempting to send the message, the pending_requests is empty*/
 	if (ctx->pending_requests==NULL) elem=chan->outgoing_messages;
 	else elem=ctx->pending_requests;
@@ -191,8 +196,13 @@ static void http_channel_context_handle_io_error(belle_http_channel_context_t *c
 		ev.port=chan->peer_port;
 		ev.transport=belle_sip_channel_get_transport_name(chan);
 		BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_io_error,&ev);
+		if( req->background_task_id ){
+			belle_sip_warning("IO Error on HTTP request: ending bg task id=[%x]", req->background_task_id);
+			belle_sip_end_background_task(req->background_task_id);
+			req->background_task_id = 0;
+		}
 	}
-	
+
 }
 
 /* we are called here by the channel when receiving a message for which a body is expected.
@@ -200,7 +210,7 @@ static void http_channel_context_handle_io_error(belle_http_channel_context_t *c
  */
 static void channel_on_message_headers(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_http_channel_context_t *ctx=BELLE_HTTP_CHANNEL_CONTEXT(obj);
-	
+
 	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_http_response_t)){
 		http_channel_context_handle_response_headers(ctx,chan,(belle_http_response_t*)msg);
 	}/*ignore requests*/
@@ -208,7 +218,7 @@ static void channel_on_message_headers(belle_sip_channel_listener_t *obj, belle_
 
 static void channel_on_message(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_http_channel_context_t *ctx=BELLE_HTTP_CHANNEL_CONTEXT(obj);
-	
+
 	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_http_response_t)){
 		http_channel_context_handle_response(ctx,chan,(belle_http_response_t*)msg);
 	}/*ignore requests*/
@@ -222,7 +232,7 @@ static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_si
 		belle_http_request_t *req=(belle_http_request_t*)chan->outgoing_messages->data;
 		auth_event->mode=BELLE_SIP_AUTH_MODE_TLS;
 		belle_sip_auth_event_set_distinguished_name(auth_event,distinguished_name);
-		
+
 		BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_auth_requested,auth_event);
 		belle_sip_tls_channel_set_client_certificates_chain(tls_chan,auth_event->cert);
 		belle_sip_tls_channel_set_client_certificate_key(tls_chan,auth_event->key);
@@ -313,7 +323,7 @@ static void split_request_url(belle_http_request_t *req){
 	belle_generic_uri_t *new_uri;
 	char *host_value;
 	const char *path;
-	
+
 	if (belle_generic_uri_get_host(uri)==NULL && req->orig_uri!=NULL) return;/*already processed request uri*/
 	path=belle_generic_uri_get_path(uri);
 	if (path==NULL) path="/";
@@ -323,7 +333,7 @@ static void split_request_url(belle_http_request_t *req){
 	belle_generic_uri_set_query(new_uri, belle_generic_uri_get_query(uri));
 	if (belle_generic_uri_get_port(uri)>0)
 		host_value=belle_sip_strdup_printf("%s:%i",belle_generic_uri_get_host(uri),belle_generic_uri_get_port(uri));
-	else 
+	else
 		host_value=belle_sip_strdup(belle_generic_uri_get_host(uri));
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),belle_sip_header_create("Host",host_value));
 	belle_sip_free(host_value);
@@ -355,15 +365,24 @@ static void provider_remove_channel(belle_http_provider_t *obj, belle_sip_channe
 	belle_sip_object_unref(chan);
 }
 
+static void belle_http_end_background_task(void* data) {
+	belle_http_request_t *req = BELLE_HTTP_REQUEST(data);
+	belle_sip_warning("Ending unfinished HTTP transfer background task id=[%x]", req->background_task_id);
+	if( req->background_task_id ){
+		belle_sip_end_background_task(req->background_task_id);
+		req->background_task_id = 0;
+	}
+}
+
 int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener){
 	belle_sip_channel_t *chan;
 	belle_sip_hop_t *hop=belle_sip_hop_new_from_generic_uri(req->orig_uri ? req->orig_uri : req->req_uri);
 	belle_sip_list_t **channels=provider_get_channels(obj,hop->transport);
-	
+
 	if (listener) belle_http_request_set_listener(req,listener);
-	
+
 	chan=belle_sip_channel_find_from_list(*channels,obj->ai_family, hop);
-	
+
 	if (!chan){
 		if (strcasecmp(hop->transport,"tcp")==0){
 			chan=belle_sip_stream_channel_new_client(obj->stack,obj->bind_ip,0,hop->cname,hop->host,hop->port);
@@ -384,6 +403,11 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 	belle_sip_object_unref(hop);
 	split_request_url(req);
 	fix_request(req);
+
+	if( req->background_task_id != 0){
+		req->background_task_id = belle_sip_begin_background_task("http", belle_http_end_background_task, req);
+	}
+
 	belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(req));
 	return 0;
 }
