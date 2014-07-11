@@ -995,10 +995,14 @@ static MSSndCard* android_snd_card_new(void) {
 	if (d->flags & DEVICE_HAS_BUILTIN_OPENSLES_AEC) {
 		obj->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 		context->builtin_aec = true;
+	} else if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
+		ms_warning("Removing MS_SND_CARD_CAP_CAPTURE flag from soundcard to use HAEC Java capture soundcard");
+		obj->capabilities = MS_SND_CARD_CAP_PLAYBACK;
 	}
-	obj->latency = 0; // Force software echo canceller if no builtin echo canceller
+	obj->latency = d->delay;
 	obj->data = context;
 
 	return obj;
 }
+
 

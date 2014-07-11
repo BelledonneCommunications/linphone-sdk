@@ -40,7 +40,6 @@ static SoundDeviceDescription devices[]={
 	{	"HTC",		"HTC Wildfire",	"",			0,	270 },
 	
 	
-	{	"LGE",		"Nexus 4",		"msm8960",	0,	230 }, /* has built-in AEC starting from 4.3*/
 	{	"LGE",		"LS670",		"",			0,	170 },
 	
 	{	"motorola",	"DROID RAZR",	"",			0,	400 },
