@@ -86,15 +86,24 @@ static void test_file_path() {
 	belle_sip_object_unref(uri);
 
 	source_uri = belle_generic_uri_parse("file:///tmp/absolute-file");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(source_uri);
-	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(source_uri),"file");
-	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_host(source_uri),"localhost");
-	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(source_uri),"/tmp/absolute-file");
-	belle_sip_object_unref(source_uri);
+	CU_ASSERT_PTR_NOT_NULL(source_uri);
+	if (source_uri!=NULL){
+		CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(source_uri),"file");
+		CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_host(source_uri),"localhost");
+		CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(source_uri),"/tmp/absolute-file");
+		belle_sip_object_unref(source_uri);
+	}
 
 	//this is INVALID
 	source_uri = belle_generic_uri_parse("file:///./relative-file");
 	CU_ASSERT_PTR_NULL(source_uri);
+
+	// instead, this should be VALID
+	source_uri = belle_generic_uri_parse("./relative-file");
+	CU_ASSERT_PTR_NOT_NULL(source_uri);
+	if (source_uri!=NULL){
+		belle_sip_object_unref(source_uri);
+	}
 }
 
 
