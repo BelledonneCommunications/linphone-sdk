@@ -89,7 +89,7 @@ static void test_file_path() {
 	CU_ASSERT_PTR_NOT_NULL(source_uri);
 	if (source_uri!=NULL){
 		CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(source_uri),"file");
-		CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_host(source_uri),"localhost");
+		CU_ASSERT_PTR_NULL(belle_generic_uri_get_host(source_uri));
 		CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(source_uri),"/tmp/absolute-file");
 		belle_sip_object_unref(source_uri);
 	}
