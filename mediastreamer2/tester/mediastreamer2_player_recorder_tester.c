@@ -14,7 +14,7 @@ typedef struct {
 	char *filename;
 } RecordStream;
 
-void recorder_stream_init(RecordStream *obj, MSFilterId recorderId, const char *filename) {
+static void recorder_stream_init(RecordStream *obj, MSFilterId recorderId, const char *filename) {
 	MSSndCardManager *sndCardManager;
 	MSWebCamManager *webcamManager;
 	MSSndCard *sndCard;
@@ -52,7 +52,7 @@ void recorder_stream_init(RecordStream *obj, MSFilterId recorderId, const char *
 	obj->filename = strdup(filename);
 }
 
-void recorder_stream_uninit(RecordStream *obj) {
+static void recorder_stream_uninit(RecordStream *obj) {
 	ms_filter_destroy(obj->audioSource);
 	ms_filter_destroy(obj->videoSource);
 	ms_filter_destroy(obj->pixConverter);
@@ -65,7 +65,7 @@ void recorder_stream_uninit(RecordStream *obj) {
 	ms_free(obj->filename);
 }
 
-void recorder_stream_set_video_codec(RecordStream *obj, const char *mime) {
+static void recorder_stream_set_video_codec(RecordStream *obj, const char *mime) {
 	MSVideoSize vsize;
 	MSPinFormat pinFmt;
 	if(obj->videoEnc != NULL) {
@@ -79,7 +79,7 @@ void recorder_stream_set_video_codec(RecordStream *obj, const char *mime) {
 	ms_filter_call_method(obj->recorder, MS_FILTER_SET_INPUT_FMT, &pinFmt);
 }
 
-void recorder_stream_set_audio_codec(RecordStream *obj, const char *mime) {
+static void recorder_stream_set_audio_codec(RecordStream *obj, const char *mime) {
 	int samplerate;
 	int nchannels;
 	MSPinFormat pinFmt;
@@ -96,7 +96,7 @@ void recorder_stream_set_audio_codec(RecordStream *obj, const char *mime) {
 	ms_filter_call_method(obj->recorder, MS_FILTER_SET_INPUT_FMT, &pinFmt);
 }
 
-void recorder_stream_start(RecordStream *obj) {
+static void recorder_stream_start(RecordStream *obj) {
 	ms_filter_link(obj->videoSource, 0, obj->pixConverter, 0);
 	ms_filter_link(obj->pixConverter, 0, obj->tee, 0);
 	ms_filter_link(obj->tee, 0, obj->videoSink, 0);
@@ -109,7 +109,7 @@ void recorder_stream_start(RecordStream *obj) {
 	ms_filter_call_method_noarg(obj->recorder, MS_RECORDER_START);
 }
 
-void recorder_stream_stop(RecordStream *obj) {
+static void recorder_stream_stop(RecordStream *obj) {
 	ms_filter_call_method_noarg(obj->recorder, MS_RECORDER_CLOSE);
 	ms_ticker_detach(obj->ticker, obj->recorder);
 	ms_filter_unlink(obj->videoSource, 0, obj->pixConverter, 0);
@@ -131,7 +131,14 @@ typedef struct {
 	char *filename;
 } PlaybackStream;
 
-void playback_stream_init(PlaybackStream *obj, MSFilterId player,const char *filename) {
+static void _playback_stream_player_notify_callback(void *userdata, MSFilter *f, unsigned int id, void *data) {
+	bool_t *eof = (bool_t *)userdata;
+	if(id == MS_PLAYER_EOF) {
+		*eof = TRUE;
+	}
+}
+
+static void playback_stream_init(PlaybackStream *obj, MSFilterId player, const char *filename, bool_t *eof) {
 	MSSndCardManager *sndCardManager;
 	MSSndCard *sndCard;
 	const char *displayName;
@@ -139,6 +146,8 @@ void playback_stream_init(PlaybackStream *obj, MSFilterId player,const char *fil
 	memset(obj, 0, sizeof(PlaybackStream));
 
 	obj->player = ms_filter_new(player);
+	*eof = FALSE;
+	ms_filter_add_notify_callback(obj->player, _playback_stream_player_notify_callback, eof, TRUE);
 
 	sndCardManager = ms_snd_card_manager_get();
 	sndCard = ms_snd_card_manager_get_default_playback_card(sndCardManager);
@@ -151,7 +160,7 @@ void playback_stream_init(PlaybackStream *obj, MSFilterId player,const char *fil
 	obj->filename = strdup(filename);
 }
 
-void playback_stream_uninit(PlaybackStream *obj) {
+static void playback_stream_uninit(PlaybackStream *obj) {
 	ms_filter_destroy(obj->player);
 	ms_filter_destroy(obj->audioSink);
 	ms_filter_destroy(obj->videoSink);
@@ -161,7 +170,7 @@ void playback_stream_uninit(PlaybackStream *obj) {
 	ms_free(obj->filename);
 }
 
-void playback_stream_start(PlaybackStream *obj) {
+static void playback_stream_start(PlaybackStream *obj) {
 	MSPinFormat pinFmt;
 	
 	ms_filter_call_method(obj->player, MS_PLAYER_OPEN, "test.mkv");
@@ -180,7 +189,7 @@ void playback_stream_start(PlaybackStream *obj) {
 	ms_filter_call_method_noarg(obj->player, MS_PLAYER_START);
 }
 
-void playback_stream_stop(PlaybackStream *obj) {
+static void playback_stream_stop(PlaybackStream *obj) {
 	ms_filter_call_method_noarg(obj->player, MS_PLAYER_CLOSE);
 	ms_ticker_detach(obj->ticker, obj->player);
 	ms_filter_unlink(obj->player, 0, obj->videoDecoder, 0);
@@ -199,10 +208,17 @@ static int tester_cleanup() {
 	return 0;
 }
 
+static void wait_until_true(bool_t *eof, useconds_t interval) {
+	while(!*eof) {
+		usleep(interval);
+	}
+}
+
 static void mkv_recording_playing() {
 	RecordStream recording;
 	PlaybackStream playback;
 	const char filename[] = "test.mkv";
+	bool_t eof = FALSE;
 
 	if(access(filename, F_OK) == 0) {
 		ms_error("mkv_recording_playing: %s already exists. Test aborted", filename);
@@ -212,7 +228,7 @@ static void mkv_recording_playing() {
 		recorder_stream_set_audio_codec(&recording, "pcmu");
 		recorder_stream_set_video_codec(&recording, "H264");
 
-		playback_stream_init(&playback, MS_MKV_PLAYER_ID, filename);
+		playback_stream_init(&playback, MS_MKV_PLAYER_ID, filename, &eof);
 
 		ms_message("mkv_recording_playing: start recording");
 		recorder_stream_start(&recording);
@@ -223,7 +239,9 @@ static void mkv_recording_playing() {
 
 		ms_message("mkv_recording_playing: start playback");
 		playback_stream_start(&playback);
-		sleep(11);
+		
+		wait_until_true(&eof, 100000);
+		
 		ms_message("mkv_recording_playing: stop playback");
 		playback_stream_stop((&playback));
 		playback_stream_uninit(&playback);
@@ -232,6 +250,8 @@ static void mkv_recording_playing() {
 		if(access(filename, F_OK) == 0) {
 			remove(filename);
 		}
+		
+		CU_ASSERT_EQUAL(eof, TRUE);
 	}
 }
 

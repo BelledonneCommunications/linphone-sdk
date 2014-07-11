@@ -2083,6 +2083,8 @@ static void player_process(MSFilter *f) {
 			matroska_block_go_next(&obj->file, &eof);
 		}
 		if(eof) {
+			ms_filter_notify_no_arg(f, MS_PLAYER_EOF);
+			matroska_block_go_first(&obj->file);
 			obj->state = MSPlayerPaused;
 		}
 	}
