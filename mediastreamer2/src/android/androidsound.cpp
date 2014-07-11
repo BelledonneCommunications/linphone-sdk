@@ -29,6 +29,7 @@
 #include <jni.h>
 
 #include "audiofilters/devices.h"
+#include "hardware_echo_canceller.h"
 
 #define NATIVE_USE_HARDWARE_RATE 1
 //#define TRACE_SND_WRITE_TIMINGS
@@ -345,52 +346,7 @@ static void android_snd_read_activate_hardware_aec(MSFilter *obj){
 	
 	if (sessionId==-1) return;
 	
-	jclass aecClass = env->FindClass("android/media/audiofx/AcousticEchoCanceler");
-	if (aecClass==NULL){
-		env->ExceptionClear(); //very important.
-		return;
-	}
-	//aecClass= (jclass)env->NewGlobalRef(aecClass);
-	jmethodID isAvailableID = env->GetStaticMethodID(aecClass,"isAvailable","()Z");
-	if (isAvailableID!=NULL){
-		jboolean ret=env->CallStaticBooleanMethod(aecClass,isAvailableID);
-		if (ret){
-			jmethodID createID = env->GetStaticMethodID(aecClass,"create","(I)Landroid/media/audiofx/AcousticEchoCanceler;");
-			if (createID!=NULL){
-				ad->aec=env->CallStaticObjectMethod(aecClass,createID,sessionId);
-				if (ad->aec){
-					ad->aec=env->NewGlobalRef(ad->aec);
-					ms_message("AcousticEchoCanceler successfully created.");
-					jclass effectClass=env->FindClass("android/media/audiofx/AudioEffect");
-					if (effectClass){
-						//effectClass=(jclass)env->NewGlobalRef(effectClass);
-						jmethodID isEnabledID = env->GetMethodID(effectClass,"getEnabled","()Z");
-						jmethodID setEnabledID = env->GetMethodID(effectClass,"setEnabled","(Z)I");
-						if (isEnabledID && setEnabledID){
-							jboolean enabled=env->CallBooleanMethod(ad->aec,isEnabledID);
-							ms_message("AcousticEchoCanceler enabled: %i",(int)enabled);
-							if (!enabled){
-								int ret=env->CallIntMethod(ad->aec,setEnabledID,TRUE);
-								if (ret!=0){
-									ms_error("Could not enable AcousticEchoCanceler: %i",ret);
-								}
-							}
-						}
-						env->DeleteLocalRef(effectClass);
-					}
-				}else{
-					ms_error("Failed to create AcousticEchoCanceler.");
-				}
-			}else{
-				ms_error("create() not found in class AcousticEchoCanceler !");
-				env->ExceptionClear(); //very important.
-			}
-		}
-	}else{
-		ms_error("isAvailable() not found in class AcousticEchoCanceler !");
-		env->ExceptionClear(); //very important.
-	}
-	env->DeleteLocalRef(aecClass);
+	ad->aec = enable_hardware_echo_canceller(env, sessionId);
 }
 
 static void android_snd_read_preprocess(MSFilter *obj){
@@ -439,8 +395,8 @@ static void android_snd_read_postprocess(MSFilter *obj){
 		ad->rec->stop();
 		if (ad->aec){
 			JNIEnv *env=ms_get_jni_env();
-			env->DeleteGlobalRef(ad->aec);
-			ad->aec=NULL;
+			delete_hardware_echo_canceller(env, ad->aec);
+			ad->aec = NULL;
 		}
 		delete ad->rec;
 		ad->rec=0;

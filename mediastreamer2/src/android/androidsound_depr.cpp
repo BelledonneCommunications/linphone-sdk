@@ -32,6 +32,7 @@
 #include <cpu-features.h>
 
 #include "audiofilters/devices.h"
+#include "hardware_echo_canceller.h"
 
 static const float sndwrite_flush_threshold=0.020;	//ms
 static const float sndread_flush_threshold=0.020; //ms
@@ -277,6 +278,7 @@ class msandroid_sound_read_data : public msandroid_sound_data{
 public:
 	msandroid_sound_read_data() : audio_record(0),audio_record_class(0),read_buff(0),read_chunk_size(0) {
 		ms_bufferizer_init(&rb);
+		aec=NULL;
 	}
 	~msandroid_sound_read_data() {
 		ms_bufferizer_uninit (&rb);
@@ -292,6 +294,8 @@ public:
 	int64_t start_time;
 	int64_t read_samples;
 	MSTickerSynchronizer *ticker_synchronizer;
+	jobject aec;
+	bool builtin_aec;
 };
 
 static void compute_timespec(msandroid_sound_read_data *d) {
@@ -436,6 +440,20 @@ static void sound_read_preprocess(MSFilter *f){
 	if (!d->started)
 		sound_read_setup(f);
 	ms_ticker_set_time_func(f->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, d->ticker_synchronizer);
+	
+	if (d->builtin_aec && d->audio_record) {
+		JNIEnv *env=ms_get_jni_env();
+		jmethodID getsession_id=0;
+		int sessionId=-1;
+		getsession_id = env->GetMethodID(d->audio_record_class,"getAudioSessionId", "()I");
+		if(getsession_id==0) {
+			ms_error("cannot find AudioRecord.getAudioSessionId() method");
+			return;
+		}
+		sessionId = env->CallIntMethod(d->audio_record,getsession_id);
+		if (sessionId==-1) return;
+		d->aec = enable_hardware_echo_canceller(env, sessionId);
+	}
 }
 
 static void sound_read_postprocess(MSFilter *f){
@@ -453,6 +471,11 @@ static void sound_read_postprocess(MSFilter *f){
 	if(stop_id==0) {
 		ms_error("cannot find AudioRecord.stop() method");
 		goto end;
+	}
+	
+	if (d->aec) {
+		delete_hardware_echo_canceller(jni_env, d->aec);
+		d->aec = NULL;
 	}
 
 	d->started = false;
@@ -535,7 +558,9 @@ static MSFilterDesc msandroid_sound_read_desc={
 MSFilter *msandroid_sound_read_new(MSSndCard *card){
 	ms_debug("msandroid_sound_read_new");
 	MSFilter *f=ms_filter_new_from_desc(&msandroid_sound_read_desc);
-	f->data=new msandroid_sound_read_data();
+	msandroid_sound_read_data *data=new msandroid_sound_read_data();
+	data->builtin_aec = card->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
+	f->data=data;
 	return f;
 }
 
