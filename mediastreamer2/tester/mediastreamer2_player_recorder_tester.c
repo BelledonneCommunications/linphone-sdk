@@ -129,16 +129,19 @@ typedef struct {
 	MSFilter *videoSink;
 	MSTicker *ticker;
 	char *filename;
+	bool_t eof;
+	uint64_t origTime;
+	bool_t origTimeIsSet;
 } PlaybackStream;
 
-static void _playback_stream_player_notify_callback(void *userdata, MSFilter *f, unsigned int id, void *data) {
-	bool_t *eof = (bool_t *)userdata;
+static void _playback_stream_player_notify_callback(void *playback, MSFilter *f, unsigned int id, void *data) {
+	PlaybackStream *obj = (PlaybackStream *)playback;
 	if(id == MS_PLAYER_EOF) {
-		*eof = TRUE;
+		obj->eof = TRUE;
 	}
 }
 
-static void playback_stream_init(PlaybackStream *obj, MSFilterId player, const char *filename, bool_t *eof) {
+static void playback_stream_init(PlaybackStream *obj, MSFilterId player, const char *filename) {
 	MSSndCardManager *sndCardManager;
 	MSSndCard *sndCard;
 	const char *displayName;
@@ -146,8 +149,7 @@ static void playback_stream_init(PlaybackStream *obj, MSFilterId player, const c
 	memset(obj, 0, sizeof(PlaybackStream));
 
 	obj->player = ms_filter_new(player);
-	*eof = FALSE;
-	ms_filter_add_notify_callback(obj->player, _playback_stream_player_notify_callback, eof, TRUE);
+	ms_filter_add_notify_callback(obj->player, _playback_stream_player_notify_callback, obj, TRUE);
 
 	sndCardManager = ms_snd_card_manager_get();
 	sndCard = ms_snd_card_manager_get_default_playback_card(sndCardManager);
@@ -158,6 +160,9 @@ static void playback_stream_init(PlaybackStream *obj, MSFilterId player, const c
 
 	obj->ticker = ms_ticker_new();
 	obj->filename = strdup(filename);
+	obj->eof = FALSE;
+	
+	obj->origTimeIsSet = FALSE;
 }
 
 static void playback_stream_uninit(PlaybackStream *obj) {
@@ -187,6 +192,9 @@ static void playback_stream_start(PlaybackStream *obj) {
 	ms_filter_link(obj->audioDecoder, 0, obj->audioSink, 0);
 	ms_ticker_attach(obj->ticker, obj->player);
 	ms_filter_call_method_noarg(obj->player, MS_PLAYER_START);
+	
+	obj->origTime = obj->ticker->time;
+	obj->origTimeIsSet = TRUE;
 }
 
 static void playback_stream_stop(PlaybackStream *obj) {
@@ -196,6 +204,15 @@ static void playback_stream_stop(PlaybackStream *obj) {
 	ms_filter_unlink(obj->videoDecoder, 0, obj->videoSink, 0);
 	ms_filter_unlink(obj->player, 1, obj->audioDecoder, 0);
 	ms_filter_unlink(obj->audioDecoder, 0, obj->audioSink, 0);
+	obj->origTimeIsSet = FALSE;
+}
+
+static uint64_t playback_stream_get_time(const PlaybackStream *obj) {
+	if(obj->origTimeIsSet) {
+		return obj->ticker->time - obj->origTime;
+	} else {
+		return 0;
+	}
 }
 
 static int tester_init() {
@@ -208,8 +225,8 @@ static int tester_cleanup() {
 	return 0;
 }
 
-static void wait_until_true(bool_t *eof, useconds_t interval) {
-	while(!*eof) {
+static void wait_until_eof(const PlaybackStream *playback, uint64_t timeout_ms, useconds_t interval) {
+	while(!playback->eof && playback_stream_get_time(playback) < timeout_ms) {
 		usleep(interval);
 	}
 }
@@ -218,7 +235,9 @@ static void mkv_recording_playing() {
 	RecordStream recording;
 	PlaybackStream playback;
 	const char filename[] = "test.mkv";
-	bool_t eof = FALSE;
+	const unsigned int recordingTime = 10; // seconds
+	const double tolerance = 0.05;
+	const uint64_t timeout_ms = recordingTime * 1000 * (1 + tolerance);
 
 	if(access(filename, F_OK) == 0) {
 		ms_error("mkv_recording_playing: %s already exists. Test aborted", filename);
@@ -228,30 +247,31 @@ static void mkv_recording_playing() {
 		recorder_stream_set_audio_codec(&recording, "pcmu");
 		recorder_stream_set_video_codec(&recording, "H264");
 
-		playback_stream_init(&playback, MS_MKV_PLAYER_ID, filename, &eof);
+		playback_stream_init(&playback, MS_MKV_PLAYER_ID, filename);
 
 		ms_message("mkv_recording_playing: start recording");
 		recorder_stream_start(&recording);
-		sleep(10);
+		
+		sleep(recordingTime);
+		
 		ms_message("mkv_recording_playing: stop recording");
 		recorder_stream_stop(&recording);
 		recorder_stream_uninit(&recording);
+		
+		CU_ASSERT_EQUAL(access(filename, F_OK), 0);
 
 		ms_message("mkv_recording_playing: start playback");
 		playback_stream_start(&playback);
 		
-		wait_until_true(&eof, 100000);
+		wait_until_eof(&playback, timeout_ms, 100000);
 		
 		ms_message("mkv_recording_playing: stop playback");
 		playback_stream_stop((&playback));
 		playback_stream_uninit(&playback);
-		ms_filter_log_statistics();
-
-		if(access(filename, F_OK) == 0) {
-			remove(filename);
-		}
 		
-		CU_ASSERT_EQUAL(eof, TRUE);
+		remove(filename);
+		
+		CU_ASSERT_TRUE(playback.eof);
 	}
 }
 
