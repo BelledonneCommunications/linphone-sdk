@@ -174,6 +174,10 @@ void belle_sip_source_uninit(belle_sip_source_t *obj){
 	obj->sock=(belle_sip_socket_t)-1;
 }
 
+void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t func) {
+	s->notify = func;
+}
+
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t sock, unsigned int events, unsigned int timeout_value_ms){
 #ifdef WIN32
 	/*on windows, the fd to poll is not the socket */

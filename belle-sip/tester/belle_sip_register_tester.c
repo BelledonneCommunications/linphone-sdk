@@ -30,7 +30,7 @@ const char *auth_domain="sip.linphone.org";
 const char *client_auth_domain="client.example.org";
 const char *client_auth_outbound_proxy="sips:sip2.linphone.org:5063";
 const char *no_server_running_here="sip:test.linphone.org:3;transport=tcp";
-const char *no_response_here="sip:78.220.48.77:3;transport=tcp";
+const char *no_response_here="sip:78.220.48.77:3;transport=%s";
 const char *test_domain_tls_to_tcp="sip:test.linphone.org:5060;transport=tls";
 
 static int is_register_ok;
@@ -501,15 +501,25 @@ static void test_connection_failure(void){
 	if (req) belle_sip_object_unref(req);
 }
 
-static void test_connection_too_long(void){
+static void test_connection_too_long(const char *transport){
 	belle_sip_request_t *req;
 	int orig=belle_sip_stack_get_transport_timeout(stack);
+	char *no_response_here_with_transport = belle_sip_strdup_printf(no_response_here, transport);
 	io_error_count=0;
 	belle_sip_stack_set_transport_timeout(stack,2000);
-	req=try_register_user_at_domain(stack, prov, "TCP",1,"tester","sip.linphone.org",no_response_here,0);
+	req=try_register_user_at_domain(stack, prov, transport,1,"tester","sip.linphone.org",no_response_here_with_transport,0);
 	CU_ASSERT_TRUE(io_error_count>=1);
 	belle_sip_stack_set_transport_timeout(stack,orig);
+	belle_sip_free(no_response_here_with_transport);
 	if (req) belle_sip_object_unref(req);
+}
+
+static void test_connection_too_long_tcp(void){
+	test_connection_too_long("tcp");
+}
+
+static void test_connection_too_long_tls(void){
+	test_connection_too_long("tls");
 }
 
 static void test_tls_to_tcp(void){
@@ -558,7 +568,8 @@ test_t register_tests[] = {
 	{ "TLS client cert authentication", test_register_client_authenticated },
 	{ "Channel inactive", test_register_channel_inactive },
 	{ "TCP connection failure", test_connection_failure },
-	{ "TCP connection too long", test_connection_too_long },
+	{ "TCP connection too long", test_connection_too_long_tcp },
+	{ "TLS connection too long", test_connection_too_long_tls },
 	{ "TLS connection to TCP server", test_tls_to_tcp },
 	{ "Register with DNS SRV failover TCP", register_dns_srv_tcp },
 	{ "Register with DNS SRV failover TLS", register_dns_srv_tls }

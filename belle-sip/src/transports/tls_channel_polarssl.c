@@ -130,8 +130,7 @@ static int tls_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 static int tls_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	int err= stream_channel_connect((belle_sip_stream_channel_t*)obj,ai);
 	if (err==0){
-		belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)obj);
-		belle_sip_channel_set_socket(obj,sock,(belle_sip_source_func_t)tls_process_data);
+		belle_sip_source_set_notify((belle_sip_source_t *)obj, (belle_sip_source_func_t)tls_process_data);
 		return 0;
 	}
 	return -1;
