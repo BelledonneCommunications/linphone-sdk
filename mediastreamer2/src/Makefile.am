@@ -8,6 +8,7 @@ ANDROID_SRC_FILES= \
 	android/AudioSystem.cpp android/AudioSystem.h \
 	android/AudioTrack.cpp android/AudioTrack.h \
 	android/String8.cpp android/String8.h \
+	android/hardware_echo_canceller.cpp android/hardware_echo_canceller.h \
 	android/androidsound.cpp \
 	android/androidsound_depr.cpp \
 	android/androidvideo.cpp \

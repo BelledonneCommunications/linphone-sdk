@@ -91,6 +91,7 @@ LOCAL_SRC_FILES = \
 	audiofilters/msresample.c \
 	audiofilters/devices.c \
 	audiofilters/flowcontrol.c \
+	android/hardware_echo_canceller.cpp \
 	android/androidsound_depr.cpp \
 	android/loader.cpp \
 	android/androidsound.cpp \
