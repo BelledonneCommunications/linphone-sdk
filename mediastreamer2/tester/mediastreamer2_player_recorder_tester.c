@@ -132,12 +132,19 @@ typedef struct {
 	bool_t eof;
 	uint64_t origTime;
 	bool_t origTimeIsSet;
+	bool_t firstVideoImage;
 } PlaybackStream;
 
-static void _playback_stream_player_notify_callback(void *playback, MSFilter *f, unsigned int id, void *data) {
+static void _playback_stream_notify_callback(void *playback, MSFilter *f, unsigned int id, void *data) {
 	PlaybackStream *obj = (PlaybackStream *)playback;
-	if(id == MS_PLAYER_EOF) {
-		obj->eof = TRUE;
+	switch(id) {
+		case MS_PLAYER_EOF:
+			obj->eof = TRUE;
+			break;
+			
+		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
+			obj->firstVideoImage = TRUE;
+			break;
 	}
 }
 
@@ -149,7 +156,7 @@ static void playback_stream_init(PlaybackStream *obj, MSFilterId player, const c
 	memset(obj, 0, sizeof(PlaybackStream));
 
 	obj->player = ms_filter_new(player);
-	ms_filter_add_notify_callback(obj->player, _playback_stream_player_notify_callback, obj, TRUE);
+	ms_filter_add_notify_callback(obj->player, _playback_stream_notify_callback, obj, TRUE);
 
 	sndCardManager = ms_snd_card_manager_get();
 	sndCard = ms_snd_card_manager_get_default_playback_card(sndCardManager);
@@ -161,8 +168,8 @@ static void playback_stream_init(PlaybackStream *obj, MSFilterId player, const c
 	obj->ticker = ms_ticker_new();
 	obj->filename = strdup(filename);
 	obj->eof = FALSE;
-	
 	obj->origTimeIsSet = FALSE;
+	obj->firstVideoImage = FALSE;
 }
 
 static void playback_stream_uninit(PlaybackStream *obj) {
@@ -182,6 +189,7 @@ static void playback_stream_start(PlaybackStream *obj) {
 	pinFmt.pin = 0;
 	ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &pinFmt);
 	obj->videoDecoder = ms_factory_create_decoder(ms_factory_get_fallback(), pinFmt.fmt->encoding);
+	ms_filter_add_notify_callback(obj->videoDecoder, _playback_stream_notify_callback, obj, TRUE);
 	pinFmt.pin = 1;
 	ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &pinFmt);
 	obj->audioDecoder = ms_factory_create_decoder(ms_factory_get_fallback(), pinFmt.fmt->encoding);
@@ -272,6 +280,7 @@ static void mkv_recording_playing() {
 		remove(filename);
 		
 		CU_ASSERT_TRUE(playback.eof);
+		CU_ASSERT_TRUE(playback.firstVideoImage);
 	}
 }
 
