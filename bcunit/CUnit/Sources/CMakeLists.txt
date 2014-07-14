@@ -31,31 +31,129 @@ set(FRAMEWORK_SOURCE_FILES
 	Framework/TestRun.c
 	Framework/Util.c
 )
+set(FRAMEWORK_SYMBOLS "
+	CU_add_suite
+	CU_add_test
+	CU_assertImplementation
+	CU_cleanup_registry
+	CU_clear_previous_results
+	CU_compare_strings
+	CU_create_new_registry
+	CU_destroy_existing_registry
+	CU_get_all_test_complete_handler
+	CU_get_current_suite
+	CU_get_current_test
+	CU_get_elapsed_time
+	CU_get_error
+	CU_get_error_action
+	CU_get_error_msg
+	CU_get_fail_on_inactive
+	CU_get_failure_list
+	CU_get_number_of_asserts
+	CU_get_number_of_failure_records
+	CU_get_number_of_failures
+	CU_get_number_of_successes
+	CU_get_number_of_suites_failed
+	CU_get_number_of_suites_run
+	CU_get_number_of_tests_failed
+	CU_get_number_of_tests_run
+	CU_get_registry
+	CU_get_run_results_string
+	CU_get_run_summary
+	CU_get_suite
+	CU_get_suite_at_pos
+	CU_get_suite_by_index
+	CU_get_suite_by_name
+	CU_get_suite_cleanup_failure_handler
+	CU_get_suite_complete_handler
+	CU_get_suite_init_failure_handler
+	CU_get_suite_pos
+	CU_get_suite_pos_by_name
+	CU_get_suite_start_handler
+	CU_get_test
+	CU_get_test_at_pos
+	CU_get_test_by_index
+	CU_get_test_by_name
+	CU_get_test_complete_handler
+	CU_get_test_pos
+	CU_get_test_pos_by_name
+	CU_get_test_start_handler
+	CU_initialize_registry
+	CU_is_test_running
+	CU_print_run_results
+	CU_register_nsuites
+	CU_register_suites
+	CU_run_all_tests
+	CU_run_suite
+	CU_run_test
+	CU_set_all_test_complete_handler
+	CU_set_error
+	CU_set_error_action
+	CU_set_fail_on_inactive
+	CU_set_registry
+	CU_set_suite_active
+	CU_set_suite_cleanup_failure_handler
+	CU_set_suite_cleanupfunc
+	CU_set_suite_complete_handler
+	CU_set_suite_init_failure_handler
+	CU_set_suite_initfunc
+	CU_set_suite_name
+	CU_set_suite_start_handler
+	CU_set_test_active
+	CU_set_test_complete_handler
+	CU_set_test_func
+	CU_set_test_name
+	CU_set_test_start_handler
+	CU_translate_special_characters
+	CU_trim
+	CU_trim_left
+	CU_trim_right
+")
 
 set(SOURCE_FILES ${FRAMEWORK_SOURCE_FILES})
 source_group(framework FILES ${FRAMEWORK_SOURCE_FILES})
 if(${ENABLE_BASIC})
 	list(APPEND SOURCE_FILES ${BASIC_SOURCE_FILES})
 	source_group(basic FILES ${BASIC_SOURCE_FILES})
-endif(${ENABLE_BASIC})
+	set(BASIC_SYMBOLS "
+	CU_basic_get_mode
+	CU_basic_run_suite
+	CU_basic_run_test
+	CU_basic_run_tests
+	CU_basic_set_mode
+	CU_basic_show_failures
+	")
+endif()
 if(${ENABLE_AUTOMATED})
 	list(APPEND SOURCE_FILES ${AUTOMATED_SOURCE_FILES})
 	source_group(automated FILES ${AUTOMATED_SOURCE_FILES})
-endif(${ENABLE_AUTOMATED})
+	set(AUTOMATED_SYMBOLS "
+	CU_automated_run_tests
+	CU_list_tests_to_file
+	CU_set_output_filename
+	")
+endif()
 if(${ENABLE_CONSOLE})
 	list(APPEND SOURCE_FILES ${CONSOLE_SOURCE_FILES})
 	source_group(console FILES ${CONSOLE_SOURCE_FILES})
-endif(${ENABLE_CONSOLE})
+	set(CONSOLE_SYMBOLS "
+	CU_console_run_tests
+	")
+endif()
 if(${ENABLE_CURSES})
 	list(APPEND SOURCE_FILES ${CURSES_SOURCE_FILES})
 	source_group(curses FILES ${CURSES_SOURCE_FILES})
-endif(${ENABLE_CURSES})
+endif()
+if(WIN32)
+	configure_file(cunit.def.in cunit.def)
+	list(APPEND SOURCE_FILES ${CMAKE_CURRENT_BINARY_DIR}/cunit.def)
+endif()
 
 
 if(${ENABLE_STATIC})
 	add_library(cunit STATIC ${SOURCE_FILES})
 	target_link_libraries(cunit ${CURSES_LIBRARIES})
-else(${ENABLE_STATIC})
+else()
 	add_library(cunit SHARED ${SOURCE_FILES})
 	set_target_properties(cunit PROPERTIES SOVERSION 1.0.1 VERSION 1)
 	target_link_libraries(cunit ${CURSES_LIBRARIES})
@@ -66,8 +164,8 @@ else(${ENABLE_STATIC})
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
 		endif()
-	endif(MSVC)
-endif(${ENABLE_STATIC})
+	endif()
+endif()
 install(TARGETS cunit
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
@@ -82,4 +180,4 @@ if(${ENABLE_TEST})
 	target_include_directories(cunit_test PUBLIC Test)
 
 	add_subdirectory(Test)
-endif(${ENABLE_TEST})
+endif()
