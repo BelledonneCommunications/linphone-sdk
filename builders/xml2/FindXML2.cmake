@@ -1,5 +1,5 @@
 ############################################################################
-# postinstall.cmake
+# FindXML2.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,6 +19,38 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the libxml2 include file and library
+#
+#  XML2_FOUND - system has libxml2
+#  XML2_INCLUDE_DIRS - the libxml2 include directory
+#  XML2_LIBRARIES - The libraries needed to use libxml2
 
-execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${INSTALL_PREFIX}/lib/libxml2.dll.a" "${INSTALL_PREFIX}/lib/xml2.lib")
-execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${SOURCE_DIR}/builders/xml2/FindXML2.cmake" "${INSTALL_PREFIX}/share/cmake/Modules/FindXML2.cmake")
+set(_XML2_ROOT_PATHS
+	${WITH_XML2}
+	${CMAKE_INSTALL_PREFIX}
+)
+
+find_path(XML2_INCLUDE_DIRS
+	NAMES libxml/xmlreader.h
+	HINTS _XML2_ROOT_PATHS
+	PATH_SUFFIXES include/libxml2
+)
+
+if(XML2_INCLUDE_DIRS)
+	set(HAVE_LIBXML_XMLREADER_H 1)
+endif()
+
+find_library(XML2_LIBRARIES
+	NAMES xml2
+	HINTS ${_XML2_ROOT_PATHS}
+	PATH_SUFFIXES bin lib
+)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(XML2
+	DEFAULT_MSG
+	XML2_INCLUDE_DIRS XML2_LIBRARIES
+)
+
+mark_as_advanced(XML2_INCLUDE_DIRS XML2_LIBRARIES)
