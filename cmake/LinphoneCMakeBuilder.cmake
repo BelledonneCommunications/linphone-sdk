@@ -303,7 +303,7 @@ endmacro(linphone_builder_include_builder)
 
 macro(linphone_builder_add_builder_to_target TARGETNAME BUILDER)
 	linphone_builder_include_builder(${BUILDER})
-	add_dependencies(${TARGETNAME} ${BUILDER})
+	add_dependencies(${TARGETNAME} EP_${BUILDER})
 endmacro(linphone_builder_add_builder_to_target)
 
 
