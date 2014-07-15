@@ -46,6 +46,8 @@ uint8_t bzrtp_charToByte(uint8_t inputChar);
 void bzrtp_writeCache(bzrtpContext_t *zrtpContext);
 
 int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
+	uint8_t *selfZidHex = NULL;
+
 	if (context == NULL) {
 		return ZRTP_ZIDCACHE_INVALID_CONTEXT; 
 	}
@@ -62,7 +64,6 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 		return 0; 
 	}
 
-	uint8_t *selfZidHex = NULL;
 	if (context->cacheBuffer != NULL ) { /* there is a cache, try to find our ZID */
 		xmlNodePtr cur = xmlDocGetRootElement(context->cacheBuffer);
 		/* if we found a root element, parse its children node */
@@ -84,17 +85,19 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 
 	/* if we didn't found anything in cache, or we have no cache at all: generate ZID, cache string and write it to file */
 	if (selfZidHex==NULL) {
+		uint8_t newZidHex[25];
+		xmlNodePtr rootNode;
+
 		/* generate a random ZID */
 		bzrtpCrypto_getRandom(context->RNGContext, selfZID, 12);
 		/* convert it to an Hexa String */
-		uint8_t newZidHex[25];
 		bzrtp_int8ToStr(newZidHex, selfZID, 12);
 		newZidHex[24] = '\0'; /* the string must be null terminated for libxml2 to add it correctly in the element */
 		xmlFree(context->cacheBuffer);
 		/* Create a new xml doc */
 		context->cacheBuffer = xmlNewDoc((const xmlChar *)"1.0");
 		/* root tag is "cache" */
-		xmlNodePtr rootNode = xmlNewDocNode(context->cacheBuffer, NULL, (const xmlChar *)"cache", NULL);
+		rootNode = xmlNewDocNode(context->cacheBuffer, NULL, (const xmlChar *)"cache", NULL);
 	    xmlDocSetRootElement(context->cacheBuffer, rootNode);
 		/* add the ZID child */
 		xmlNewTextChild(rootNode, NULL, (const xmlChar *)"selfZID", newZidHex);
@@ -139,9 +142,11 @@ int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[
 	/* parse the cache to find the peer element matching the given ZID */
 	if (context->cacheBuffer != NULL ) { /* there is a cache, try to find our peer element */
 		uint8_t peerZidHex[24];
+		xmlNodePtr cur;
+
 		bzrtp_int8ToStr(peerZidHex, peerZID, 12); /* compute the peerZID as an Hexa string */
 
-		xmlNodePtr cur = xmlDocGetRootElement(context->cacheBuffer);
+		cur = xmlDocGetRootElement(context->cacheBuffer);
 		/* if we found a root element, parse its children node */
 		if (cur!=NULL) 
 		{
@@ -221,11 +226,12 @@ int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[
  * return 0 on success, error code otherwise
  */
 int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *tagName, uint8_t tagNameLength, uint8_t *tagContent, uint32_t tagContentLength, uint8_t nodeFlag, uint8_t fileFlag) {
+	uint8_t *tagContentHex; /* this one will store the actual value to be written in cache */
+
 	if ((context == NULL) || (context->zrtpCallbacks.bzrtp_loadCache == NULL)) {
 		return ZRTP_ZIDCACHE_INVALID_CONTEXT;
 	}
 
-	uint8_t *tagContentHex; /* this one will store the actual value to be written in cache */
 	if ((nodeFlag&BZRTP_CACHE_ISSTRINGBIT) == BZRTP_CACHE_TAGISBYTE) { /* tag content is a byte buffer, convert it to hexa string */
 		/* turn the tagContent to an hexa string null terminated */
 		tagContentHex = (uint8_t *)malloc(2*tagContentLength+1);
@@ -237,11 +243,12 @@ int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *t
 	}
 
 	if ((fileFlag&BZRTP_CACHE_LOADFILEBIT) == BZRTP_CACHE_LOADFILE) { /* we must reload the cache from file */
+		uint8_t *cacheStringBuffer;
+		uint32_t cacheStringLength;
+
 		/* reload cache from file locking it (TODO: lock) */
 		xmlFreeDoc(context->cacheBuffer);
 		context->cacheBuffer = NULL;
-		uint8_t *cacheStringBuffer;
-		uint32_t cacheStringLength;
 		context->zrtpCallbacks.bzrtp_loadCache(context->channelContext[0]->clientData, &cacheStringBuffer, &cacheStringLength);
 		context->cacheBuffer = xmlParseDoc(cacheStringBuffer);
 		free(cacheStringBuffer);
@@ -250,17 +257,19 @@ int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *t
 	/* parse the cache to find the peer element matching the given ZID */
 	if (context->cacheBuffer != NULL ) { /* there is a cache, try to find our peer element */
 		uint8_t peerZidHex[25];
+		xmlNodePtr rootNode;
+		xmlNodePtr cur = NULL;
+		uint8_t nodeUpdated = 0; /* a boolean flag set if node is updated */
+
 		bzrtp_int8ToStr(peerZidHex, peerZID, 12); /* compute the peerZID as an Hexa string */
 		peerZidHex[24]='\0';
 
-		xmlNodePtr rootNode = xmlDocGetRootElement(context->cacheBuffer);
-		xmlNodePtr cur = NULL;
+		rootNode = xmlDocGetRootElement(context->cacheBuffer);
 		/* if we found a root element, parse its children node */
 		if (rootNode!=NULL) 
 		{
 			cur = rootNode->xmlChildrenNode->next; /* first node is selfZID, don't parse it */
 		}
-		uint8_t nodeUpdated = 0; /* a boolean flag set if node is updated */
 		while (cur!=NULL) {
 			if ((!xmlStrcmp(cur->name, (const xmlChar *)"peer"))){ /* found a peer, check his ZID element */
 				xmlChar *currentZidHex = xmlNodeListGetString(context->cacheBuffer, cur->xmlChildrenNode->xmlChildrenNode, 1); /* ZID is the first element of peer */

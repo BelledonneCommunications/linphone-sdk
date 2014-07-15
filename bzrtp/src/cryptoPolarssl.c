@@ -91,6 +91,8 @@ typedef struct polarsslRNGContext_struct {
 } polarsslRNGContext_t;
 
 bzrtpRNGContext_t *bzrtpCrypto_startRNG(const uint8_t *entropyString, uint16_t entropyStringLength) {
+	bzrtpRNGContext_t *context;
+
 	/* create the polarssl context, it contains entropy and rng contexts */
 	polarsslRNGContext_t *polarsslContext = (polarsslRNGContext_t *)malloc(sizeof(polarsslRNGContext_t));
 	
@@ -101,7 +103,7 @@ bzrtpRNGContext_t *bzrtpCrypto_startRNG(const uint8_t *entropyString, uint16_t e
 	}
 
 	/* create the context and attach the polarssl one in it's unique field */
-	bzrtpRNGContext_t *context = (bzrtpRNGContext_t *)malloc(sizeof(bzrtpRNGContext_t));
+	context = (bzrtpRNGContext_t *)malloc(sizeof(bzrtpRNGContext_t));
 
 	context->cryptoModuleData = (void *)polarsslContext;
 
@@ -159,12 +161,14 @@ void bzrtpCrypto_hmacSha1(const uint8_t *key,
 /* initialise de DHM context according to requested algorithm */
 bzrtpDHMContext_t *bzrtpCrypto_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength)
 {
+	dhm_context *polarsslDhmContext;
+
 	/* create the context */
 	bzrtpDHMContext_t *context = (bzrtpDHMContext_t *)malloc(sizeof(bzrtpDHMContext_t));
 	memset (context, 0, sizeof(bzrtpDHMContext_t));
 
 	/* create the polarssl context for DHM */
-	dhm_context *polarsslDhmContext=(dhm_context *)malloc(sizeof(dhm_context));
+	polarsslDhmContext=(dhm_context *)malloc(sizeof(dhm_context));
 	memset(polarsslDhmContext, 0, sizeof(dhm_context));
 	context->cryptoModuleData=(void *)polarsslDhmContext;
 
@@ -249,12 +253,12 @@ void bzrtpCrypto_aes128CfbEncrypt(const uint8_t key[16],
 		size_t inputLength,
 		uint8_t *output)
 {
+	uint8_t IVbuffer[16];
 	size_t iv_offset=0; /* is not used by us but needed and updated by polarssl */
 	aes_context context;
 	memset (&context, 0, sizeof(aes_context));
 
 	/* make a local copy of IV which is modified by the polar ssl AES-CFB function */
-	uint8_t IVbuffer[16];
 	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
 
 	/* initialise the aes context and key */
@@ -281,12 +285,12 @@ void bzrtpCrypto_aes128CfbDecrypt(const uint8_t key[16],
 		size_t inputLength,
 		uint8_t *output)
 {
+	uint8_t IVbuffer[16];
 	size_t iv_offset=0; /* is not used by us but needed and updated by polarssl */
 	aes_context context;
 	memset (&context, 0, sizeof(aes_context));
 
 	/* make a local copy of IV which is modified by the polar ssl AES-CFB function */
-	uint8_t IVbuffer[16];
 	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
 
 	/* initialise the aes context and key - use the aes_setkey_enc function as requested by the documentation of aes_crypt_cfb128 function */
@@ -429,11 +433,12 @@ void bzrtpCrypto_hmacSha256(const uint8_t *key,
 
 /* compute secret - the ->peer field of context must have been set before calling this function */
 void bzrtpCrypto_DHMComputeSecret(bzrtpDHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
+	size_t keyLength;
 	/* import the peer public value G^Y mod P in the polar ssl context */
 	dhm_read_public((dhm_context *)(context->cryptoModuleData), context->peer, context->primeLength);
 
 	/* compute the secret key */
-	size_t	keyLength= context->primeLength; /* undocumented but this value seems to be in/out, so we must set it to the expected key length */
+	keyLength = context->primeLength; /* undocumented but this value seems to be in/out, so we must set it to the expected key length */
 	context->key = (uint8_t *)malloc(keyLength*sizeof(uint8_t)); /* allocate key buffer */
 	dhm_calc_secret((dhm_context *)(context->cryptoModuleData), context->key, &keyLength);
 }

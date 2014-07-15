@@ -207,6 +207,18 @@ uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length) {
  *
  */
 int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpHelloMessage_t *peerHelloMessage) {
+	uint8_t selfCommonKeyAgreementType[7];
+	uint8_t peerCommonKeyAgreementType[7];
+	uint8_t commonKeyAgreementTypeNumber = 0;
+	uint8_t commonCipherType[7];
+	uint8_t commonCipherTypeNumber;
+	uint8_t commonHashType[7];
+	uint8_t commonHashTypeNumber;
+	uint8_t commonAuthTagType[7];
+	uint8_t commonAuthTagTypeNumber;
+	uint8_t commonSasType[7];
+	uint8_t commonSasTypeNumber;
+
 	/* check context and Message */
 	if (zrtpContext == NULL) {
 		return ZRTP_CRYPTOAGREEMENT_INVALIDCONTEXT;
@@ -225,10 +237,6 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 	}
 
 	/* now check what is in common in self and peer order */
-	uint8_t selfCommonKeyAgreementType[7];
-	uint8_t peerCommonKeyAgreementType[7];
-	uint8_t commonKeyAgreementTypeNumber = 0;
-
 	/* self ordering: get the common list in the self order of preference */
 	commonKeyAgreementTypeNumber = selectCommonAlgo(zrtpContext->supportedKeyAgreement, zrtpContext->kc, peerHelloMessage->supportedKeyAgreement, peerHelloMessage->kc,  selfCommonKeyAgreementType);
 
@@ -257,17 +265,17 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 
 	/*** Cipher block algorithm ***/
 	/* get the self cipher types availables */
-	uint8_t commonCipherType[7];
-	uint8_t commonCipherTypeNumber = selectCommonAlgo(zrtpContext->supportedCipher, zrtpContext->cc, peerHelloMessage->supportedCipher, peerHelloMessage->cc,  commonCipherType);
+	commonCipherTypeNumber = selectCommonAlgo(zrtpContext->supportedCipher, zrtpContext->cc, peerHelloMessage->supportedCipher, peerHelloMessage->cc,  commonCipherType);
 
 	if (commonCipherTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
 	}
 	/* rfc section 5.1.5 specifies that if EC38 is choosen we SHOULD use AES256 or AES192 */
 	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38) {
+		int i=0;
+
 		zrtpChannelContext->cipherAlgo = ZRTP_UNSET_ALGO;
 		/* is AES3 available */
-		int i=0;
 		while (i<commonCipherTypeNumber && zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
 			if (commonCipherType[i] == ZRTP_CIPHER_AES3) {
 				zrtpChannelContext->cipherAlgo = ZRTP_CIPHER_AES3;
@@ -293,17 +301,17 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 	
 	/*** Hash algorithm ***/
 	/* get the self hash types availables */
-	uint8_t commonHashType[7];
-	uint8_t commonHashTypeNumber = selectCommonAlgo(zrtpContext->supportedHash, zrtpContext->hc, peerHelloMessage->supportedHash, peerHelloMessage->hc, commonHashType);
+	commonHashTypeNumber = selectCommonAlgo(zrtpContext->supportedHash, zrtpContext->hc, peerHelloMessage->supportedHash, peerHelloMessage->hc, commonHashType);
 	if (commonHashTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDHASH;
 	}
 	
 	/* rfc section 5.1.5 specifies that if EC38 is choosen we SHOULD use SHA384 */
 	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38) {
+		int i=0;
+
 		zrtpChannelContext->hashAlgo = ZRTP_UNSET_ALGO;
 		/* is S384 available */
-		int i=0;
 		while (i<commonHashTypeNumber && zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
 			if (commonHashType[i] == ZRTP_HASH_S384) {
 				zrtpChannelContext->hashAlgo = ZRTP_HASH_S384;
@@ -319,8 +327,7 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 
 	/*** Authentication Tag algorithm ***/
 	/* get the self authentication tag types availables */
-	uint8_t commonAuthTagType[7];
-	uint8_t commonAuthTagTypeNumber = selectCommonAlgo(zrtpContext->supportedAuthTag, zrtpContext->ac, peerHelloMessage->supportedAuthTag, peerHelloMessage->ac, commonAuthTagType);
+	commonAuthTagTypeNumber = selectCommonAlgo(zrtpContext->supportedAuthTag, zrtpContext->ac, peerHelloMessage->supportedAuthTag, peerHelloMessage->ac, commonAuthTagType);
 	if (commonAuthTagTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDAUTHTAG;
 	}
@@ -328,8 +335,7 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 
 	/*** Sas algorithm ***/
 	/* get the self Sas rendering types availables */
-	uint8_t commonSasType[7];
-	uint8_t commonSasTypeNumber = selectCommonAlgo(zrtpContext->supportedSas, zrtpContext->sc, peerHelloMessage->supportedSas, peerHelloMessage->sc, commonSasType);
+	commonSasTypeNumber = selectCommonAlgo(zrtpContext->supportedSas, zrtpContext->sc, peerHelloMessage->supportedSas, peerHelloMessage->sc, commonSasType);
 	if (commonSasTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDSAS;
 	}

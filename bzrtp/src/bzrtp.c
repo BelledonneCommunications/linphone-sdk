@@ -131,13 +131,14 @@ void bzrtp_initBzrtpContext(bzrtpContext_t *context) {
  *                                                                           
 */
 void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
+	int i;
+	int validChannelsNumber = 0;
+
 	if (context == NULL) {
 		return;
 	}
 
-	int i;
 	/* Find the channel to be destroyed, destroy it and check if we have anymore valid channels */
-	int validChannelsNumber = 0;
 	for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
 		if (context->channelContext[i] != NULL) {
 			if (context->channelContext[i]->selfSSRC == selfSSRC) {
@@ -221,6 +222,9 @@ int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_
 
 
 int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
+	bzrtpChannelContext_t *zrtpChannelContext = NULL;
+	int i=0;
+
 	/* is zrtp context valid */
 	if (zrtpContext==NULL) {
 		return BZRTP_ERROR_INVALIDCONTEXT;
@@ -237,9 +241,6 @@ int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 	}
 
 	/* get the first free channel context from ZRTP context and create a channel context */
-	bzrtpChannelContext_t *zrtpChannelContext = NULL;
-	int i=0;
-
 	while(i<ZRTP_MAX_CHANNEL_NUMBER && zrtpChannelContext==NULL) {
 		if (zrtpContext->channelContext[i] == NULL) {
 			int retval;
@@ -276,6 +277,7 @@ int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
  */
 
 int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
+	bzrtpEvent_t initEvent;
 
 	/* get channel context */
 	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
@@ -291,7 +293,6 @@ int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 	zrtpChannelContext->stateMachine = state_discovery_init;
 
 	/* create an INIT event to call the init state function which will create a hello packet and start sending it */
-	bzrtpEvent_t initEvent;
 	initEvent.eventType = BZRTP_EVENT_INIT;
 	initEvent.bzrtpPacketString = NULL;
 	initEvent.bzrtpPacketStringLength = 0;
@@ -324,11 +325,11 @@ int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeR
 
 	if (zrtpChannelContext->timer.status == BZRTP_TIMER_ON) {
 		if (zrtpChannelContext->timer.firingTime<=timeReference) { /* we must trig the timer */
+			bzrtpEvent_t timerEvent;
 
 			zrtpChannelContext->timer.firingCount++;
 
 			/* create a timer event */
-			bzrtpEvent_t timerEvent;
 			timerEvent.eventType = BZRTP_EVENT_TIMER;
 			timerEvent.bzrtpPacketString = NULL;
 			timerEvent.bzrtpPacketStringLength = 0;
@@ -380,6 +381,10 @@ int bzrtp_setClientData(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, void *cl
  * @return 	0 on success, errorcode otherwise
  */
 int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *zrtpPacketString, uint16_t zrtpPacketStringLength) {
+	int retval;
+	bzrtpPacket_t *zrtpPacket;
+	bzrtpEvent_t event;
+
 	/* get channel context */
 	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
 
@@ -393,8 +398,7 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 	}
 
 	/* first check the packet */
-	int retval;
-	bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(zrtpPacketString, zrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
+	zrtpPacket = bzrtp_packetCheck(zrtpPacketString, zrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
 	if (retval != 0) {
 		/*TODO: check the returned error code and do something or silent drop? */
 		return retval;
@@ -403,11 +407,12 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 	/* TODO: Intercept error and ping zrtp packets */
 	/* if we have a ping packet, just answer with a ping ACK and do not forward to the state machine */
 	if (zrtpPacket->messageType == MSGTYPE_PING) {
+		bzrtpPacket_t *pingAckPacket = NULL;
+
 		bzrtp_packetParser(zrtpContext, zrtpChannelContext, zrtpPacketString, zrtpPacketStringLength, zrtpPacket);
 		/* store ping packet in the channel context as packet creator will need it to create the pingACK */
 		zrtpChannelContext->pingPacket = zrtpPacket;
 		/* create the pingAck packet */
-		bzrtpPacket_t *pingAckPacket = NULL;
 		pingAckPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_PINGACK, &retval);
 		if (retval == 0) {
 			retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, pingAckPacket, zrtpChannelContext->selfSequenceNumber);
@@ -426,7 +431,6 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 	}
 
 	/* build a packet event of it and send it to the state machine */
-	bzrtpEvent_t event;
 	event.eventType = BZRTP_EVENT_MESSAGE;
 	event.bzrtpPacketString = zrtpPacketString;
 	event.bzrtpPacketStringLength = zrtpPacketStringLength;
@@ -467,12 +471,13 @@ int bzrtp_isSecure(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
  */
 void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
 	if (zrtpContext != NULL) {
+		uint8_t pvsFlag = 1;
+
 		/* check if we must update the cache(delayed until sas verified in case of cache mismatch) */
 		if (zrtpContext->cacheMismatchFlag  == 1) {
 			zrtpContext->cacheMismatchFlag  = 0;
 			bzrtp_updateCachedSecrets(zrtpContext, zrtpContext->channelContext[0]); /* channel[0] is the only one in DHM mode, so the only one able to have a cache mismatch */
 		}
-		uint8_t pvsFlag = 1;
 		bzrtp_writePeerNode(zrtpContext, zrtpContext->peerZID, (uint8_t *)"pvs", 3, &pvsFlag, 1, BZRTP_CACHE_TAGISBYTE|BZRTP_CACHE_NOMULTIPLETAGS, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_WRITEFILE);
 	}
 }
@@ -517,6 +522,7 @@ int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12],
 	if (useKDF ==  BZRTP_CUSTOMCACHE_PLAINDATA) { /* write content as provided : content is a string and multiple tag is allowed as we are writing the peer URI(To be modified if needed) */
 		return bzrtp_writePeerNode(zrtpContext, peerZID, tagName, tagNameLength, tagContent, tagContentLength, BZRTP_CACHE_TAGISSTRING|BZRTP_CACHE_ALLOWMULTIPLETAGS, fileFlag);
 	} else { /* we must derive the content using the key derivation function */
+		uint8_t derivedContent[32];
 		
 		/* check we have s0 and KDFContext in channel[0] */
 		bzrtpChannelContext_t *zrtpChannelContext = zrtpContext->channelContext[0];
@@ -524,7 +530,6 @@ int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12],
 			return BZRTP_ERROR_INVALIDCONTEXT;
 		}
 		/* We derive a maximum of 32 bytes for a 256 bit key */
-		uint8_t derivedContent[32];
 		if (derivedDataLength>32) { 
 			derivedDataLength = 32;
 		}
@@ -585,11 +590,12 @@ int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uint32_t selfSSR
  * @return 		a pointer to the channel context, NULL if the context is invalid or channel not found
  */
 bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
+	int i;
+
 	if (zrtpContext==NULL) {
 		return NULL;
 	}
 	
-	int i;
 	for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
 		if (zrtpContext->channelContext[i]!=NULL) {
 			if (zrtpContext->channelContext[i]->selfSSRC == selfSSRC) {

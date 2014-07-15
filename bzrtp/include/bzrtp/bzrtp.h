@@ -23,7 +23,14 @@
  */
 #ifndef BZRTP_H
 #define BZRTP_H
+
 #include <stdint.h>
+
+#ifdef _MSC_VER
+#define BZRTP_EXPORT __declspec(dllexport)
+#else
+#define BZRTP_EXPORT __attribute__ ((visibility ("default")))
+#endif
 
 /**
  * Some defines used internally by zrtp but also needed by client to interpretate the cipher block and auth tag algorithms used by srtp */
@@ -92,7 +99,7 @@ typedef struct bzrtpContext_struct bzrtpContext_t;
  * @return The ZRTP engine context data
  *                                                                        
 */
-__attribute__ ((visibility ("default"))) bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC);
+BZRTP_EXPORT bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC);
 
 /**
  * @brief Perform some initialisation which can't be done without some callback functions:
@@ -100,7 +107,7 @@ __attribute__ ((visibility ("default"))) bzrtpContext_t *bzrtp_createBzrtpContex
  *
  *   @param[in] 	context	The context to initialise
  */
-__attribute__ ((visibility ("default"))) void bzrtp_initBzrtpContext(bzrtpContext_t *context); 
+BZRTP_EXPORT void bzrtp_initBzrtpContext(bzrtpContext_t *context); 
 
 /**
  * Free memory of context structure to a channel, if all channels are freed, free the global zrtp context
@@ -108,7 +115,7 @@ __attribute__ ((visibility ("default"))) void bzrtp_initBzrtpContext(bzrtpContex
  * @param[in]	selfSSRC	The SSRC identifying the channel to be destroyed
  *                                                                           
 */
-__attribute__ ((visibility ("default"))) void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
+BZRTP_EXPORT void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
 
 #define ZRTP_CALLBACK_LOADCACHE						0x0101
 #define ZRTP_CALLBACK_WRITECACHE					0x0102
@@ -125,7 +132,7 @@ __attribute__ ((visibility ("default"))) void bzrtp_destroyBzrtpContext(bzrtpCon
  * @return 0 on success
  *                                                                           
 */
-__attribute__ ((visibility ("default"))) int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_t functionID);
+BZRTP_EXPORT int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_t functionID);
 
 /**
  * @brief Set the client data pointer in a channel context
@@ -137,7 +144,7 @@ __attribute__ ((visibility ("default"))) int bzrtp_setCallback(bzrtpContext_t *c
  * @return 0 on success
  *                                                                           
 */
-__attribute__ ((visibility ("default"))) int bzrtp_setClientData(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, void *clientData);
+BZRTP_EXPORT int bzrtp_setClientData(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, void *clientData);
 
 /**
  * @brief Add a channel to an existing context, this can be done only if the first channel has concluded a DH key agreement
@@ -147,7 +154,7 @@ __attribute__ ((visibility ("default"))) int bzrtp_setClientData(bzrtpContext_t 
  *
  * @return 0 on succes, error code otherwise
  */
-__attribute__ ((visibility ("default"))) int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+BZRTP_EXPORT int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 
 /**
@@ -158,7 +165,7 @@ __attribute__ ((visibility ("default"))) int bzrtp_addChannel(bzrtpContext_t *zr
  *
  * @return			0 on succes, error code otherwise
  */
-__attribute__ ((visibility ("default"))) int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+BZRTP_EXPORT int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 /**
  * @brief Send the current time to a specified channel, it will check if it has to trig some timer
@@ -169,7 +176,7 @@ __attribute__ ((visibility ("default"))) int bzrtp_startChannelEngine(bzrtpConte
  *
  * @return			0 on succes, error code otherwise
  */
-__attribute__ ((visibility ("default"))) int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeReference);
+BZRTP_EXPORT int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeReference);
 
 
 /**
@@ -180,7 +187,7 @@ __attribute__ ((visibility ("default"))) int bzrtp_iterate(bzrtpContext_t *zrtpC
  *
  * @return			0 if this channel is not ready to secure SRTP communication, 1 if it is ready
  */
-__attribute__ ((visibility ("default"))) int bzrtp_isSecure(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+BZRTP_EXPORT int bzrtp_isSecure(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 
 /**
@@ -193,21 +200,21 @@ __attribute__ ((visibility ("default"))) int bzrtp_isSecure(bzrtpContext_t *zrtp
  *
  * @return 	0 on success, errorcode otherwise
  */
-__attribute__ ((visibility ("default"))) int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *zrtpPacketString, uint16_t zrtpPacketStringLength);
+BZRTP_EXPORT int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *zrtpPacketString, uint16_t zrtpPacketStringLength);
 
 /**
  * @brief Called by user when the SAS has been verified
  *
  * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
  */
-__attribute__ ((visibility ("default"))) void bzrtp_SASVerified(bzrtpContext_t *zrtpContext); 
+BZRTP_EXPORT void bzrtp_SASVerified(bzrtpContext_t *zrtpContext); 
 
 /**
  * @brief Called by user when the SAS has been set to unverified
  *
  * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
  */
-__attribute__ ((visibility ("default"))) void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext);
+BZRTP_EXPORT void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext);
 
 /**
  * @brief Reset the retransmission timer of a given channel.
@@ -220,7 +227,7 @@ __attribute__ ((visibility ("default"))) void bzrtp_resetSASVerified(bzrtpContex
  *
  * return 0 on success, error code otherwise
  */
-__attribute__ ((visibility ("default"))) int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+BZRTP_EXPORT int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 #define BZRTP_CUSTOMCACHE_USEKDF 	1
 #define BZRTP_CUSTOMCACHE_PLAINDATA 0
@@ -251,6 +258,6 @@ __attribute__ ((visibility ("default"))) int bzrtp_resetRetransmissionTimer(bzrt
  *
  * @return	0 on success, errorcode otherwise
  */
-__attribute__ ((visibility ("default"))) int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t derivedDataLength, uint8_t useKDF, uint8_t fileFlag);
+BZRTP_EXPORT int bzrtp_addCustomDataInCache(bzrtpContext_t *zrtpContext, uint8_t peerZID[12], uint8_t *tagName, uint16_t tagNameLength, uint8_t *tagContent, uint16_t tagContentLength, uint8_t derivedDataLength, uint8_t useKDF, uint8_t fileFlag);
 
 #endif /* ifndef BZRTP_H */

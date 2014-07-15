@@ -32,13 +32,12 @@
 
 	
 int main(int argc, char *argv[] ) {
+	CU_pSuite cryptoWrapperTestSuite, cryptoUtilsTestSuite, parserTestSuite;
 	
 #ifdef HAVE_LIBXML2
 	xmlInitParser();
 #endif
 	
-	CU_pSuite cryptoWrapperTestSuite, cryptoUtilsTestSuite, parserTestSuite;
-
 	/* initialize the CUnit test registry */
 	if (CUE_SUCCESS != CU_initialize_registry()) {
 		return CU_get_error();

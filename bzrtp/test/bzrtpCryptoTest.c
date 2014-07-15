@@ -284,18 +284,22 @@ void test_aes128CFB(void) {
  *
  */
 void test_dhm2048(void) {
+	bzrtpRNGContext_t *RNGcontext;
+	bzrtpDHMContext_t *DHMaContext;
+	bzrtpDHMContext_t *DHMbContext;
+	bzrtpDHMContext_t *DHMcContext;
 
 	/* start the Random Number Generator */
-	bzrtpRNGContext_t *RNGcontext = bzrtpCrypto_startRNG((uint8_t *)"36 15 Grouiik vous souhaite une bonne journee", 46);
+	RNGcontext = bzrtpCrypto_startRNG((uint8_t *)"36 15 Grouiik vous souhaite une bonne journee", 46);
 
 	/* Create the context for Alice */
-	bzrtpDHMContext_t *DHMaContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH2k, 32);
+	DHMaContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH2k, 32);
 
 	/* Create the public value for Alice G^Xa mod P */
 	bzrtpCrypto_DHMCreatePublic(DHMaContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
 
 	/* Create the context for Bob */
-	bzrtpDHMContext_t *DHMbContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH2k, 32);
+	DHMbContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH2k, 32);
 
 	/* Create the public value for Bob G^Xb mod P */
 	bzrtpCrypto_DHMCreatePublic(DHMbContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
@@ -320,7 +324,7 @@ void test_dhm2048(void) {
 	bzrtpCrypto_DestroyDHMContext(DHMbContext);
 
 	/* create an unused context and destroy it to check the correct implementation of the create/destroy functions */
-	bzrtpDHMContext_t *DHMcContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH2k, 32);
+	DHMcContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH2k, 32);
 	bzrtpCrypto_DestroyDHMContext(DHMcContext);
 
 	/* destroy the RNG context */
@@ -333,18 +337,22 @@ void test_dhm2048(void) {
  *
  */
 void test_dhm3072(void) {
+	bzrtpRNGContext_t *RNGcontext;
+	bzrtpDHMContext_t *DHMaContext;
+	bzrtpDHMContext_t *DHMbContext;
+	bzrtpDHMContext_t *DHMcContext;
 
 	/* start the Random Number Generator */
-	bzrtpRNGContext_t *RNGcontext = bzrtpCrypto_startRNG((uint8_t *)"36 15 Grouiik vous souhaite une bonne journee", 46);
+	RNGcontext = bzrtpCrypto_startRNG((uint8_t *)"36 15 Grouiik vous souhaite une bonne journee", 46);
 
 	/* Create the context for Alice */
-	bzrtpDHMContext_t *DHMaContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH3k, 32);
+	DHMaContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH3k, 32);
 
 	/* Create the public value for Alice G^Xa mod P */
 	bzrtpCrypto_DHMCreatePublic(DHMaContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
 
 	/* Create the context for Bob */
-	bzrtpDHMContext_t *DHMbContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH3k, 32);
+	DHMbContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH3k, 32);
 
 	/* Create the public value for Bob G^Xb mod P */
 	bzrtpCrypto_DHMCreatePublic(DHMbContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
@@ -366,7 +374,7 @@ void test_dhm3072(void) {
 	bzrtpCrypto_DestroyDHMContext(DHMbContext);
 
 	/* create an unused context and destroy it to check the correct implementation of the create/destroy functions */
-	bzrtpDHMContext_t *DHMcContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH3k, 32);
+	DHMcContext = bzrtpCrypto_CreateDHMContext(ZRTP_KEYAGREEMENT_DH3k, 32);
 	bzrtpCrypto_DestroyDHMContext(DHMcContext);
 
 	/* destroy the RNG context */
@@ -457,6 +465,8 @@ void test_CRC32(void) {
 
 void test_algoAgreement(void) {
 	int retval;
+	bzrtpHelloMessage_t *helloMessage;
+
 	/* first we have to create a context */
 	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext(0x12345678); /* we don't use the SSRC for this test, set it to 12345678 */
 
@@ -479,7 +489,7 @@ void test_algoAgreement(void) {
 
 	/* Test 2: now modify the Hello packet to have "DH2k, DH3k" preference order in the hello packet but keep the context order "DH3k, DH2k".
 	 * We shall pick the fastest -> DH2k */
-	bzrtpHelloMessage_t *helloMessage = (bzrtpHelloMessage_t *)helloPacket->messageData;
+	helloMessage = (bzrtpHelloMessage_t *)helloPacket->messageData;
 	helloMessage->supportedKeyAgreement[0] = ZRTP_KEYAGREEMENT_DH2k;
 	helloMessage->supportedKeyAgreement[1] = ZRTP_KEYAGREEMENT_DH3k;
 

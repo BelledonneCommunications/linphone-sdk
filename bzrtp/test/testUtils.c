@@ -29,8 +29,8 @@
 #include "cryptoUtils.h"
 
 void printHex(char *title, uint8_t *data, uint32_t length) {
-	printf ("%s : ", title);
 	int i;
+	printf ("%s : ", title);
 	for (i=0; i<length; i++) {
 		printf ("0x%02x, ", data[i]);
 	}
@@ -48,14 +48,16 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 		switch (zrtpPacket->messageType) {
 			case MSGTYPE_HELLO :
 				{
+					bzrtpHelloMessage_t *messageData;
+					uint8_t algoTypeString[4];
+
 					printf(" - Message Type : Hello\n");
-					bzrtpHelloMessage_t *messageData = (bzrtpHelloMessage_t *)zrtpPacket->messageData;
+					messageData = (bzrtpHelloMessage_t *)zrtpPacket->messageData;
 					printf ("Version %.4s\nIdentifier %.16s\n", messageData->version, messageData->clientIdentifier);
 					printHex ("H3", messageData->H3, 32);
 					printHex ("ZID", messageData->ZID, 12);
 					printf ("S : %d - M : %d - P : %d\nhc : %x - cc : %x - ac : %x - kc : %x - sc : %x\n", messageData->S, messageData->M, messageData->P, messageData->hc, messageData->cc, messageData->ac, messageData->kc, messageData->sc);
 					printf ("hc ");
-					uint8_t algoTypeString[4];
 					for (j=0; j<messageData->hc; j++) {
 						cryptoAlgoTypeIntToString(messageData->supportedHash[j], algoTypeString);
 						printf("%.4s, ", algoTypeString);
@@ -94,8 +96,10 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 			case MSGTYPE_COMMIT:
 				{
 					uint8_t algoTypeString[4];
+					bzrtpCommitMessage_t *messageData;
+
 					printf(" - Message Type : Commit\n");
-					bzrtpCommitMessage_t *messageData = (bzrtpCommitMessage_t *)zrtpPacket->messageData;
+					messageData = (bzrtpCommitMessage_t *)zrtpPacket->messageData;
 					printHex("H2", messageData->H2, 32);
 					printHex("ZID", messageData->ZID, 12);
 					cryptoAlgoTypeIntToString(messageData->hashAlgo, algoTypeString);
@@ -126,12 +130,14 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 			case MSGTYPE_DHPART1:
 			case MSGTYPE_DHPART2:
 				{
+					bzrtpDHPartMessage_t *messageData;
+
 					if (zrtpPacket->messageType == MSGTYPE_DHPART1) {
 						printf(" - Message Type : DHPart1\n");
 					} else {
 						printf(" - Message Type : DHPart2\n");
 					}
-					bzrtpDHPartMessage_t *messageData = (bzrtpDHPartMessage_t *)zrtpPacket->messageData;
+					messageData = (bzrtpDHPartMessage_t *)zrtpPacket->messageData;
 					printHex ("H1", messageData->H1, 32);
 					printHex ("rs1ID", messageData->rs1ID, 8);
 					printHex ("rs2ID", messageData->rs2ID, 8);
@@ -147,12 +153,14 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 			case MSGTYPE_CONFIRM1:
 			case MSGTYPE_CONFIRM2:
 				{
+					bzrtpConfirmMessage_t *messageData;
+
 					if (zrtpPacket->messageType == MSGTYPE_CONFIRM1) {
 						printf(" - Message Type : Confirm1\n");
 					} else {
 						printf(" - Message Type : Confirm2\n");
 					}
-					bzrtpConfirmMessage_t *messageData = (bzrtpConfirmMessage_t *)zrtpPacket->messageData;
+					messageData = (bzrtpConfirmMessage_t *)zrtpPacket->messageData;
 					printHex("H0", messageData->H0, 32);
 					printf("sig_len %d\n", messageData->sig_len);
 					printf("E %d V %d A %d D %d\n", messageData->E,  messageData->V, messageData->A, messageData->D);
