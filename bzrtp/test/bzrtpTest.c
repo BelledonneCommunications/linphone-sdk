@@ -24,6 +24,7 @@
 #include "CUnit/Basic.h"
 #include "bzrtpCryptoTest.h"
 #include "bzrtpParserTest.h"
+#include "typedef.h"
 
 #ifdef HAVE_LIBXML2
 #include <libxml/parser.h>

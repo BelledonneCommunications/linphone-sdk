@@ -28,11 +28,12 @@
 #include <string.h>
 #include "zidCache.h"
 
+#include "typedef.h"
+
 #ifdef HAVE_LIBXML2
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
-#include "typedef.h"
 
 #define MIN_VALID_CACHE_LENGTH 56 /* root tag + selfZID tag size */
 #define XML_HEADER_STRING "<?xml version='1.0' encoding='utf-8'?>"

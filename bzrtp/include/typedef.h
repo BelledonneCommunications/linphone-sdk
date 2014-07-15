@@ -34,6 +34,9 @@
 #define DHPART_MESSAGE_STORE_ID 2
 #define CONFIRM_MESSAGE_STORE_ID 3
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdint.h>
 
