@@ -48,21 +48,23 @@ MSOpenH264Decoder::~MSOpenH264Decoder()
 
 void MSOpenH264Decoder::initialize()
 {
-	mFirstImageDecoded = false;
-	mUnpacker=rfc3984_new();
-	if (mDecoder != 0) {
-		SDecodingParam params = { 0 };
-		params.iOutputColorFormat = videoFormatI420;
-		params.uiTargetDqLayer = (unsigned char) -1;
-		params.uiEcActiveFlag = 1;
-		params.sVideoProperty.size = sizeof(params.sVideoProperty);
-		params.sVideoProperty.eVideoBsType = VIDEO_BITSTREAM_DEFAULT;
-		long ret = mDecoder->Initialize(&params);
-		if (ret != 0) {
-			ms_error("OpenH264 decoder: Failed to initialize: %li", ret);
-		} else {
-			ms_average_fps_init(&mFPS, "OpenH264 decoder: FPS=%f");
-			mInitialized = true;
+	if (!mInitialized) {
+		mFirstImageDecoded = false;
+		mUnpacker=rfc3984_new();
+		if (mDecoder != 0) {
+			SDecodingParam params = { 0 };
+			params.iOutputColorFormat = videoFormatI420;
+			params.uiTargetDqLayer = (unsigned char) -1;
+			params.uiEcActiveFlag = 1;
+			params.sVideoProperty.size = sizeof(params.sVideoProperty);
+			params.sVideoProperty.eVideoBsType = VIDEO_BITSTREAM_DEFAULT;
+			long ret = mDecoder->Initialize(&params);
+			if (ret != 0) {
+				ms_error("OpenH264 decoder: Failed to initialize: %li", ret);
+			} else {
+				ms_average_fps_init(&mFPS, "OpenH264 decoder: FPS=%f");
+				mInitialized = true;
+			}
 		}
 	}
 }

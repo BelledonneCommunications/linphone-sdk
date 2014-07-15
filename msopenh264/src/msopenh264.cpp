@@ -48,13 +48,9 @@ static void msopenh264_dec_process(MSFilter *f) {
 	d->feed();
 }
 
-static void msopenh264_dec_postprocess(MSFilter *f) {
-	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
-	d->uninitialize();
-}
-
 static void msopenh264_dec_uninit(MSFilter *f) {
 	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
+	d->uninitialize();
 	delete d;
 }
 
@@ -125,7 +121,7 @@ MSFilterDesc msopenh264_dec_desc = {
 	.init = msopenh264_dec_init,
 	.preprocess = msopenh264_dec_preprocess,
 	.process = msopenh264_dec_process,
-	.postprocess = msopenh264_dec_postprocess,
+	.postprocess = NULL,
 	.uninit = msopenh264_dec_uninit,
 	.methods = msopenh264_dec_methods,
 	.flags = MSOPENH264_DEC_FLAGS
@@ -144,7 +140,7 @@ MSFilterDesc msopenh264_dec_desc = {
 	msopenh264_dec_init,
 	msopenh264_dec_preprocess,
 	msopenh264_dec_process,
-	msopenh264_dec_postprocess,
+	NULL,
 	msopenh264_dec_uninit,
 	msopenh264_dec_methods,
 	MSOPENH264_DEC_FLAGS
