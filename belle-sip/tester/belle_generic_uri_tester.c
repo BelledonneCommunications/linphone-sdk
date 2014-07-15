@@ -94,13 +94,13 @@ static void test_file_path() {
 		belle_sip_object_unref(source_uri);
 	}
 
-	//this is INVALID
-	source_uri = belle_generic_uri_parse("file:///./relative-file");
+	/*this is INVALID*/
+	source_uri = belle_generic_uri_parse("file://./relative-file");
 	CU_ASSERT_PTR_NULL(source_uri);
 
-	// instead, this should be VALID
+	/* PATH segment always start by / */
 	source_uri = belle_generic_uri_parse("./relative-file");
-	CU_ASSERT_PTR_NOT_NULL(source_uri);
+	CU_ASSERT_PTR_NULL(source_uri);
 	if (source_uri!=NULL){
 		belle_sip_object_unref(source_uri);
 	}

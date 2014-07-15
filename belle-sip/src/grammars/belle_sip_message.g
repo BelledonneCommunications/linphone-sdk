@@ -309,6 +309,8 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 
 hier_part[belle_generic_uri_t* uri] returns [belle_generic_uri_t* ret=NULL]  
 :   (
+ (SLASH SLASH path_segments[NULL])=>( SLASH SLASH path_segments[uri])
+  | 
   (SLASH SLASH)=>( SLASH SLASH authority[uri] (path_segments[uri])?) 
   | 
   ( path_segments[uri]) ) 
