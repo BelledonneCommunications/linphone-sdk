@@ -1,5 +1,8 @@
 #include "mediastreamer2_tester.h"
+#include "mediastreamer2_tester_private.h"
 #include "../include/mediastreamer2/mediastream.h"
+#include "../include/mediastreamer2/msfileplayer.h"
+//#include <../intl/gettextP.h>
 
 typedef struct {
 	MSFilter *audioSource;
@@ -284,8 +287,100 @@ static void mkv_recording_playing() {
 	}
 }
 
+typedef struct {
+	int rtpPort;
+	int rtcpPort;
+	const char *ip;
+	bool_t ipv6;
+} RTPParams;
+
+static const RTPParams marielleAudioRtpParams = { 2564, 2565, "127.0.0.1", FALSE };
+static const RTPParams marielleVideoRtpParams = { 2664, 2665, "127.0.0.1", FALSE };
+static const RTPParams margauxAudioRtpParams = { 9864, 9865, "127.0.0.1", FALSE };
+static const RTPParams margauxVideoRtpParams = { 9964, 9965, "127.0.0.1", FALSE };
+
+static void marielle_notify_cb(void *userData, MSFilter *f, unsigned int id, void *data) {
+	int *nEOF = (int *)userData;
+	if(id == MS_FILE_PLAYER_EOF || id == MS_PLAYER_EOF) {
+		(*nEOF)++;
+	}
+}
+
+static void mkv_recording_playing_streams() {
+	AudioStream *marielleAudio, *margauxAudio;
+	VideoStream *marielleVideo, *margauxVideo;
+	RtpProfile audioProfile, videoProfile;
+	MSWebCam *webcam;
+	int nEOF = 0;
+	const char filepath[] = "test.mkv";
+	const char HELLO_8K_1S_FILE[] = "sounds/hello8000-1s.wav";
+	
+	marielleAudio = audio_stream_new(marielleAudioRtpParams.rtpPort, marielleAudioRtpParams.rtcpPort, marielleAudioRtpParams.ipv6);
+	marielleVideo = video_stream_new(marielleVideoRtpParams.rtpPort, marielleVideoRtpParams.rtcpPort, marielleVideoRtpParams.ipv6);
+	margauxAudio = audio_stream_new(margauxAudioRtpParams.rtpPort, margauxAudioRtpParams.rtcpPort, margauxAudioRtpParams.ipv6);
+	margauxVideo = video_stream_new(margauxVideoRtpParams.rtpPort, margauxVideoRtpParams.rtcpPort, margauxVideoRtpParams.ipv6);
+	audio_stream_link_video(margauxAudio, margauxVideo);
+	
+	memset(&audioProfile, 0, sizeof(RtpProfile));
+	rtp_profile_set_name(&audioProfile, "default audio profile");
+	rtp_profile_set_payload(&audioProfile, 0, &payload_type_pcmu8000);
+	
+	memset(&videoProfile, 0, sizeof(RtpProfile));
+	rtp_profile_set_name(&videoProfile, "default video profile");
+	rtp_profile_set_payload(&videoProfile, 0, &payload_type_h264);
+	
+	webcam = ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+	
+	CU_ASSERT_EQUAL(audio_stream_start_full(
+		marielleAudio,
+		&audioProfile,
+		margauxAudioRtpParams.ip,
+		margauxAudioRtpParams.rtpPort,
+		margauxAudioRtpParams.ip,
+		margauxAudioRtpParams.rtcpPort,
+		0,
+		50,
+		HELLO_8K_1S_FILE,
+		NULL,
+		NULL,
+		NULL,
+		0
+	), 0);
+	
+	CU_ASSERT_EQUAL(video_stream_start(
+		marielleVideo,
+		&videoProfile,
+		margauxVideoRtpParams.ip,
+		margauxVideoRtpParams.rtpPort,
+		margauxVideoRtpParams.ip,
+		margauxVideoRtpParams.rtcpPort,
+		0,
+		50,
+		webcam
+	), 0);
+	
+	ms_filter_add_notify_callback(marielleAudio->soundread, marielle_notify_cb, &nEOF, TRUE);
+	
+	audio_stream_mixed_record_open(margauxAudio, filepath);
+	audio_stream_mixed_record_start(margauxAudio);
+	
+	CU_ASSERT_TRUE(wait_for_until(&marielleAudio->ms, &marielleVideo->ms, &nEOF, 1, 12000));
+	
+	audio_stream_mixed_record_stop(margauxAudio);
+	
+	video_stream_stop(marielleVideo);
+	audio_stream_stop(marielleAudio);
+	
+	audio_stream_unlink_video(margauxAudio, margauxVideo);
+	
+	if(access(filepath, F_OK) == 0) {
+		remove(filepath);
+	}
+}
+
 static test_t tests[] = {
-	{	"MKV file recording and playing"	,	mkv_recording_playing	}
+	{	"MKV file recording and playing"	,	mkv_recording_playing	},
+	{	"MKV file recording with streams"	,	mkv_recording_playing_streams	}
 };
 
 test_suite_t player_recorder_test_suite = {
