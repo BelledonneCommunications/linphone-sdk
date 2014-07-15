@@ -24,12 +24,12 @@ cmake_minimum_required(VERSION 2.8)
 project(BZRTP C)
 
 
-option(ENABLE_STATIC "Build static library (default is shared library)." OFF)
-option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." OFF)
+option(ENABLE_STATIC "Build static library (default is shared library)." NO)
+option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." NO)
 
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules)
-if(${ENABLE_TESTS})
+if(ENABLE_TESTS)
 find_package(CUnit)
 	if(CUNIT_FOUND)
 		check_library_exists(${CUNIT_LIBRARIES} "CU_add_suite" "" HAVE_CU_ADD_SUITE)
@@ -65,7 +65,12 @@ set(LIBS ${CUNIT_LIBRARIES} ${POLARSSL_LIBRARIES} ${XML2_LIBRARIES})
 
 add_subdirectory(include)
 add_subdirectory(src)
-if(${ENABLE_TESTS})
+if(ENABLE_TESTS)
 	enable_testing()
 	add_subdirectory(test)
 endif()
+
+install(FILES FindBZRTP.cmake
+	DESTINATION share/cmake/Modules
+	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+)

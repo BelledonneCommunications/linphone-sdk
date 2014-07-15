@@ -1,5 +1,5 @@
 ############################################################################
-# CMakeLists.txt
+# FindBZRTP.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,36 +19,38 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the bzrtp include file and library
+#
+#  BZRTP_FOUND - system has bzrtp
+#  BZRTP_INCLUDE_DIRS - the bzrtp include directory
+#  BZRTP_LIBRARIES - The libraries needed to use bzrtp
 
-set(SOURCE_FILES
-	bzrtp.c
-	cryptoPolarssl.c
-	cryptoUtils.c
-	packetParser.c
-	stateMachine.c
-	zidCache.c
+set(_BZRTP_ROOT_PATHS
+	${WITH_BZRTP}
+	${CMAKE_INSTALL_PREFIX}
 )
 
-if(ENABLE_STATIC)
-	add_library(bzrtp STATIC ${SOURCE_FILES})
-	target_link_libraries(bzrtp ${LIBS})
-else()
-	add_library(bzrtp SHARED ${SOURCE_FILES})
-	set_target_properties(bzrtp PROPERTIES VERSION 0.1 SOVERSION 0)
-	target_link_libraries(bzrtp ${LIBS})
-	if(MSVC)
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/bzrtp.pdb
-				DESTINATION bin
-				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
-		endif()
-	endif()
+find_path(BZRTP_INCLUDE_DIRS
+	NAMES bzrtp/bzrtp.h
+	HINTS _BZRTP_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+
+if(BZRTP_INCLUDE_DIRS)
+	set(HAVE_BZRTP_BZRTP_H 1)
 endif()
 
-install(TARGETS bzrtp
-	RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+find_library(BZRTP_LIBRARIES
+	NAMES bzrtp
+	HINTS ${_BZRTP_ROOT_PATHS}
+	PATH_SUFFIXES bin lib
 )
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(BZRTP
+	DEFAULT_MSG
+	BZRTP_INCLUDE_DIRS BZRTP_LIBRARIES
+)
+
+mark_as_advanced(BZRTP_INCLUDE_DIRS BZRTP_LIBRARIES)
