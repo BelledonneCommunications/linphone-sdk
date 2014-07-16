@@ -18,11 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
-#include "ortp/ortp_srtp.h"
-#include "ortp/b64.h"
-
 #include "mediastreamer2/mediastream.h"
 #include "private.h"
+
+#include "ortp/ortp_srtp.h"
+#include "ortp/b64.h"
 
 #ifdef ORTP_HAVE_SRTP
 #if defined(ANDROID) || defined(WINAPI_FAMILY_PHONE_APP)
