@@ -106,6 +106,7 @@ extern "C"{
 		bool_t freeze_on_error;
 		bool_t output_partitions;
 		bool_t waiting_for_reference_frame;
+		bool_t error_notified;
 		bool_t valid_keyframe_received;
 		bool_t initialized_last_ts;
 		bool_t initialized_ref_cseq;

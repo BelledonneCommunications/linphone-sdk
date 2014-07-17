@@ -736,6 +736,12 @@ MS2_PUBLIC bool_t video_stream_is_decoding_error_to_be_reported(VideoStream *str
  */
 MS2_PUBLIC void video_stream_decoding_error_reported(VideoStream *stream);
 
+/**
+ * Tell the video stream that a decoding error has been recovered so that new decoding can be reported sooner.
+ * @param[in] stream The VideoStream object.
+ */
+MS2_PUBLIC void video_stream_decoding_error_recovered(VideoStream *stream);
+
 
 /**
  * Force a resolution for the preview.

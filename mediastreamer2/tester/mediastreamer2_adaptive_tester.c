@@ -166,9 +166,10 @@ static void video_manager_start(	stream_manager_t * mgr
 									,int remote_port
 									,int target_bitrate
 									,MSWebCam * cam) {
+	int result;
 	media_stream_set_target_network_bitrate(&mgr->video_stream->ms,target_bitrate);
 
-	int result=video_stream_start(mgr->video_stream
+	result=video_stream_start(mgr->video_stream
 												, &rtp_profile
 												, "127.0.0.1"
 												, remote_port

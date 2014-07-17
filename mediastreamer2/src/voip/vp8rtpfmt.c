@@ -427,6 +427,7 @@ static void send_pli(Vp8RtpFmtUnpackerCtx *ctx) {
 		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 	} else {
 		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
+		ctx->error_notified = TRUE;
 	}
 }
 
@@ -443,6 +444,7 @@ static void send_sli(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
 		}
 	} else {
 		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
+		ctx->error_notified = TRUE;
 	}
 }
 
@@ -728,6 +730,10 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					ctx->valid_keyframe_received = TRUE;
 					ctx->video_size = get_size_from_key_frame(frame);
 					ctx->waiting_for_reference_frame = FALSE;
+					if (ctx->error_notified == TRUE) {
+						ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_RECOVERED_FROM_ERRORS);
+						ctx->error_notified = FALSE;
+					}
 				}
 				if ((ctx->avpf_enabled == TRUE) && (frame->reference == TRUE)) {
 					ctx->waiting_for_reference_frame = FALSE;
@@ -894,6 +900,7 @@ void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf
 	ctx->output_partitions = output_partitions;
 	ctx->valid_keyframe_received = FALSE;
 	ctx->waiting_for_reference_frame = TRUE;
+	ctx->error_notified = FALSE;
 	ctx->initialized_last_ts = FALSE;
 	ctx->initialized_ref_cseq = FALSE;
 }
