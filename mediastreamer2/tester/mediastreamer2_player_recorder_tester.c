@@ -246,7 +246,6 @@ static uint64_t playback_stream_get_time(const PlaybackStream *obj) {
 }
 
 static int tester_init() {
-	ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_ERROR | ORTP_WARNING | ORTP_FATAL);
 	ms_init();
 	return 0;
 }
