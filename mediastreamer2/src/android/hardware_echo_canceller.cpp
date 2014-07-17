@@ -21,7 +21,7 @@
 #include "hardware_echo_canceller.h"
 
 jobject enable_hardware_echo_canceller(JNIEnv *env, int sessionId) {
-	jobject aec;
+	jobject aec = NULL;
 	jclass aecClass = env->FindClass("android/media/audiofx/AcousticEchoCanceler");
 	if (aecClass==NULL){
 		env->ExceptionClear(); //very important.

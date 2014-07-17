@@ -557,6 +557,10 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
 			if (vconf_list != NULL) {
 				MSVideoConfiguration vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, pt->normal_bitrate);
+				/* Adjust configuration video size to use the user preferred video size if it is lower that the configuration one. */
+				if ((stream->sent_vsize.height * stream->sent_vsize.width) < (vconf.vsize.height * vconf.vsize.width)) {
+					vconf.vsize = stream->sent_vsize;
+				}
 				ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
 			} else {
 				ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &pt->normal_bitrate);
