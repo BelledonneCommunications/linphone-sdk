@@ -203,6 +203,7 @@ static void playback_stream_uninit(PlaybackStream *obj) {
 
 static void playback_stream_start(PlaybackStream *obj) {
 	MSPinFormat pinFmt;
+	int samplerate;
 	
 	ms_filter_call_method(obj->player, MS_PLAYER_OPEN, obj->filename);
 	pinFmt.pin = 0;
@@ -212,6 +213,8 @@ static void playback_stream_start(PlaybackStream *obj) {
 	pinFmt.pin = 1;
 	ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &pinFmt);
 	obj->audioDecoder = ms_factory_create_decoder(ms_factory_get_fallback(), pinFmt.fmt->encoding);
+	ms_filter_call_method(obj->audioDecoder, MS_FILTER_GET_SAMPLE_RATE, &samplerate);
+	ms_filter_call_method(obj->audioSink, MS_FILTER_SET_SAMPLE_RATE, &samplerate);
 	
 	ms_filter_link(obj->player, 0, obj->videoDecoder, 0);
 	ms_filter_link(obj->videoDecoder, 0, obj->videoSink, 0);
