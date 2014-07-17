@@ -415,7 +415,7 @@ static void mkv_recording_playing_streams() {
 	audio_stream_mixed_record_open(margauxAudio, filepath);
 	audio_stream_mixed_record_start(margauxAudio);
 	
-	CU_ASSERT_TRUE(wait_for_until(&marielleAudio->ms, &marielleVideo->ms, &nEOF, 1, 12000));
+	wait_for_until(&marielleAudio->ms, &marielleVideo->ms, &nEOF, 1, 12000);
 	
 	audio_stream_mixed_record_stop(margauxAudio);
 	
