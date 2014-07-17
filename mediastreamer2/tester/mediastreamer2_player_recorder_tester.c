@@ -25,14 +25,12 @@ static void recorder_stream_init(RecordStream *obj, MSFilterId recorderId, const
 	const char *videoRendererName;
 	MSPixFmt pixFmt;
 	MSVideoSize vsize;
-	int sampleRate = 48000;
 
 	memset(obj, 0, sizeof(RecordStream));
 
 	sndCardManager = ms_snd_card_manager_get();
 	sndCard = ms_snd_card_manager_get_default_capture_card(sndCardManager);
 	obj->audioSource = ms_snd_card_create_reader(sndCard);
-	ms_filter_call_method(obj->audioSource, MS_FILTER_SET_SAMPLE_RATE, &sampleRate);
 
 	webcamManager = ms_web_cam_manager_get();
 	webcam = ms_web_cam_manager_get_default_cam(webcamManager);
@@ -269,41 +267,38 @@ static void mkv_recording_playing() {
 	const uint64_t timeout_ms = recordingTime * 1000 * (1 + tolerance);
 
 	if(access(filename, F_OK) == 0) {
-		ms_error("mkv_recording_playing: %s already exists. Test aborted", filename);
-	} else {
-
-		recorder_stream_init(&recording, MS_MKV_RECORDER_ID, filename);
-		recorder_stream_set_audio_codec(&recording, "opus");
-		recorder_stream_set_video_codec(&recording, "H264");
-//		recorder_stream_mute(&recording, MSVideo);
-
-		playback_stream_init(&playback, MS_MKV_PLAYER_ID, filename);
-
-		ms_message("mkv_recording_playing: start recording");
-		recorder_stream_start(&recording);
-		
-		sleep(recordingTime);
-		
-		ms_message("mkv_recording_playing: stop recording");
-		recorder_stream_stop(&recording);
-		recorder_stream_uninit(&recording);
-		
-		CU_ASSERT_EQUAL(access(filename, F_OK), 0);
-
-		ms_message("mkv_recording_playing: start playback");
-		playback_stream_start(&playback);
-		
-		wait_until_eof(&playback, timeout_ms, 100000);
-		
-		ms_message("mkv_recording_playing: stop playback");
-		playback_stream_stop((&playback));
-		playback_stream_uninit(&playback);
-		
-//		remove(filename);
-		
-		CU_ASSERT_TRUE(playback.eof);
-		CU_ASSERT_TRUE(playback.firstVideoImage);
+		remove(filename);
 	}
+
+	recorder_stream_init(&recording, MS_MKV_RECORDER_ID, filename);
+	recorder_stream_set_audio_codec(&recording, "opus");
+	recorder_stream_set_video_codec(&recording, "H264");
+//	recorder_stream_mute(&recording, MSVideo);
+
+	playback_stream_init(&playback, MS_MKV_PLAYER_ID, filename);
+
+	ms_message("mkv_recording_playing: start recording");
+	recorder_stream_start(&recording);
+
+	sleep(recordingTime);
+
+	ms_message("mkv_recording_playing: stop recording");
+	recorder_stream_stop(&recording);
+	recorder_stream_uninit(&recording);
+
+	CU_ASSERT_EQUAL(access(filename, F_OK), 0);
+
+	ms_message("mkv_recording_playing: start playback");
+	playback_stream_start(&playback);
+
+	wait_until_eof(&playback, timeout_ms, 100000);
+
+	ms_message("mkv_recording_playing: stop playback");
+	playback_stream_stop((&playback));
+	playback_stream_uninit(&playback);
+
+	CU_ASSERT_TRUE(playback.eof);
+	CU_ASSERT_TRUE(playback.firstVideoImage);
 }
 
 typedef struct {
@@ -333,6 +328,10 @@ static void mkv_recording_playing_streams() {
 	int nEOF = 0;
 	const char filepath[] = "test2.mkv";
 	const char HELLO_8K_1S_FILE[] = "sounds/hello8000-1s.wav";
+
+	if(access(filepath, F_OK) == 0) {
+		remove(filepath);
+	}
 	
 	marielleAudio = audio_stream_new(marielleAudioRtpParams.rtpPort, marielleAudioRtpParams.rtcpPort, marielleAudioRtpParams.ipv6);
 	marielleVideo = video_stream_new(marielleVideoRtpParams.rtpPort, marielleVideoRtpParams.rtcpPort, marielleVideoRtpParams.ipv6);
@@ -391,10 +390,8 @@ static void mkv_recording_playing_streams() {
 	audio_stream_stop(marielleAudio);
 	
 	audio_stream_unlink_video(margauxAudio, margauxVideo);
-	
-//	if(access(filepath, F_OK) == 0) {
-//		remove(filepath);
-//	}
+
+	CU_ASSERT_EQUAL(access(filepath, F_OK), 0);
 }
 
 static test_t tests[] = {
