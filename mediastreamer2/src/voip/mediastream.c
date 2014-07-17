@@ -18,10 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
-#ifdef WIN32
-#include <windows.h>
-#endif
-
+#include "ortp/port.h"
 #include "ortp/ortp_srtp.h"
 #include "ortp/b64.h"
 
