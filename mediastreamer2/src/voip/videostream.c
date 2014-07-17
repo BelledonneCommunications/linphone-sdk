@@ -1098,4 +1098,6 @@ void video_stream_decoding_error_reported(VideoStream *stream) {
 	stream->last_reported_decoding_error_time = stream->ms.sessions.ticker->time;
 }
 
-
+void video_stream_decoding_error_recovered(VideoStream *stream) {
+	stream->last_reported_decoding_error_time = 0;
+}
