@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <pulse/pulseaudio.h>
 
-static const float latency_req=0.04;
+static const int latency_req=40; // ms
 
 static void init_pulse_context();
 static void pulse_card_detect(MSSndCardManager *m);
@@ -144,12 +144,14 @@ static void pulse_read_preprocess(MSFilter *f){
 	pss.format=PA_SAMPLE_S16LE;
 	pss.channels=s->channels;
 	pss.rate=s->rate;
+
+	s->fragsize=(latency_req*s->channels*s->rate*2)/1000;
 	
 	attr.maxlength=-1;
-	attr.tlength=-1;
-	attr.prebuf=-1;
+	attr.tlength=s->fragsize;
+	attr.prebuf=0;
 	attr.minreq=-1;
-	attr.fragsize=s->fragsize=latency_req*(float)s->channels*(float)s->rate*2;
+	attr.fragsize=s->fragsize;
 	
 	s->stream=pa_stream_new(context,"phone",&pss,NULL);
 	if (s->stream==NULL){
@@ -266,13 +268,13 @@ static void pulse_write_preprocess(MSFilter *f){
 	pss.channels=s->channels;
 	pss.rate=s->rate;
 
-	s->fragsize=latency_req*(float)s->channels*(float)s->rate*2.0;
+	s->fragsize=(latency_req*s->channels*s->rate*2)/1000;
 	
-	attr.maxlength=s->fragsize*2;
+	attr.maxlength=-1;
 	attr.tlength=s->fragsize;
-	attr.prebuf=-1;
+	attr.prebuf=0;
 	attr.minreq=-1;
-	attr.fragsize=-1;
+	attr.fragsize=s->fragsize;
 	
 	s->stream=pa_stream_new(context,"phone",&pss,NULL);
 	if (s->stream==NULL){
