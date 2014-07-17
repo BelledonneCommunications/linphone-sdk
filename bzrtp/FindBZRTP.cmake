@@ -26,6 +26,9 @@
 #  BZRTP_INCLUDE_DIRS - the bzrtp include directory
 #  BZRTP_LIBRARIES - The libraries needed to use bzrtp
 
+find_package(PolarSSL REQUIRED)
+find_package(XML2)
+
 set(_BZRTP_ROOT_PATHS
 	${WITH_BZRTP}
 	${CMAKE_INSTALL_PREFIX}
@@ -46,6 +49,13 @@ find_library(BZRTP_LIBRARIES
 	HINTS ${_BZRTP_ROOT_PATHS}
 	PATH_SUFFIXES bin lib
 )
+
+list(APPEND BZRTP_INCLUDE_DIRS ${POLARSSL_INCLUDE_DIRS})
+list(APPEND BZRTP_LIBRARIES ${POLARSSL_LIBRARIES})
+if(XML2_FOUND)
+	list(APPEND BZRTP_INCLUDE_DIRS ${XML2_INCLUDE_DIRS})
+	list(APPEND BZRTP_LIBRARIES ${XML2_LIBRARIES})
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(BZRTP
