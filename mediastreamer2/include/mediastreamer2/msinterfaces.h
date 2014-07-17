@@ -218,6 +218,8 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 7, MSVideoDisplayDecodingSupport*)
 #define MS_VIDEO_DECODER_FREEZE_ON_ERROR \
 	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 8, bool_t)
+#define MS_VIDEO_DECODER_RECOVERED_FROM_ERRORS \
+	MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface, 9)
 
 /** Interface definitions for video capture */
 #define MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION \

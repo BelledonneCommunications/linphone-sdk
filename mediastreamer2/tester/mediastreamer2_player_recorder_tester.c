@@ -2,7 +2,6 @@
 #include "mediastreamer2_tester_private.h"
 #include "../include/mediastreamer2/mediastream.h"
 #include "../include/mediastreamer2/msfileplayer.h"
-//#include <../intl/gettextP.h>
 
 typedef struct {
 	MSFilter *audioSource;
@@ -15,6 +14,7 @@ typedef struct {
 	MSFilter *recorder;
 	MSTicker *ticker;
 	char *filename;
+	bool_t isMute[2];
 } RecordStream;
 
 static void recorder_stream_init(RecordStream *obj, MSFilterId recorderId, const char *filename) {
@@ -95,18 +95,30 @@ static void recorder_stream_set_audio_codec(RecordStream *obj, const char *mime)
 	ms_filter_call_method(obj->audioEnc, MS_FILTER_SET_SAMPLE_RATE, &samplerate);
 	ms_filter_call_method(obj->audioEnc, MS_FILTER_SET_NCHANNELS, &nchannels);
 	pinFmt.pin = 1;
-	pinFmt.fmt = ms_factory_get_audio_format(ms_factory_get_fallback(), mime, samplerate, nchannels, NULL);
+	if(strcmp(mime, "opus") == 0) {
+		pinFmt.fmt = ms_factory_get_audio_format(ms_factory_get_fallback(), mime, 48000, nchannels, NULL);
+	} else {
+		pinFmt.fmt = ms_factory_get_audio_format(ms_factory_get_fallback(), mime, samplerate, nchannels, NULL);
+	}
 	ms_filter_call_method(obj->recorder, MS_FILTER_SET_INPUT_FMT, &pinFmt);
 }
+
+//static inline void recorder_stream_mute(RecordStream *obj, MSFormatType type) {
+//	obj->isMute[type] = TRUE;
+//}
 
 static void recorder_stream_start(RecordStream *obj) {
 	ms_filter_link(obj->videoSource, 0, obj->pixConverter, 0);
 	ms_filter_link(obj->pixConverter, 0, obj->tee, 0);
 	ms_filter_link(obj->tee, 0, obj->videoSink, 0);
 	ms_filter_link(obj->tee, 1, obj->videoEnc, 0);
-	ms_filter_link(obj->videoEnc, 0, obj->recorder, 0);
+	if(!obj->isMute[MSVideo]) {
+		ms_filter_link(obj->videoEnc, 0, obj->recorder, 0);
+	}
 	ms_filter_link(obj->audioSource, 0, obj->audioEnc, 0);
-	ms_filter_link(obj->audioEnc, 0, obj->recorder, 1);
+	if(!obj->isMute[MSAudio]) {
+		ms_filter_link(obj->audioEnc, 0, obj->recorder, 1);
+	}
 	ms_ticker_attach(obj->ticker, obj->recorder);
 	ms_filter_call_method(obj->recorder, MS_RECORDER_OPEN, obj->filename);
 	ms_filter_call_method_noarg(obj->recorder, MS_RECORDER_START);
@@ -119,9 +131,13 @@ static void recorder_stream_stop(RecordStream *obj) {
 	ms_filter_unlink(obj->pixConverter, 0, obj->tee, 0);
 	ms_filter_unlink(obj->tee, 0, obj->videoSink, 0);
 	ms_filter_unlink(obj->tee, 1, obj->videoEnc, 0);
-	ms_filter_unlink(obj->videoEnc, 0, obj->recorder, 0);
+	if(!obj->isMute[MSVideo]) {
+		ms_filter_unlink(obj->videoEnc, 0, obj->recorder, 0);
+	}
 	ms_filter_unlink(obj->audioSource, 0, obj->audioEnc, 0);
-	ms_filter_unlink(obj->audioEnc, 0, obj->recorder, 1);
+	if(!obj->isMute[MSAudio]) {
+		ms_filter_unlink(obj->audioEnc, 0, obj->recorder, 1);
+	}
 }
 
 typedef struct {
@@ -187,8 +203,9 @@ static void playback_stream_uninit(PlaybackStream *obj) {
 
 static void playback_stream_start(PlaybackStream *obj) {
 	MSPinFormat pinFmt;
+	int samplerate;
 	
-	ms_filter_call_method(obj->player, MS_PLAYER_OPEN, "test.mkv");
+	ms_filter_call_method(obj->player, MS_PLAYER_OPEN, obj->filename);
 	pinFmt.pin = 0;
 	ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &pinFmt);
 	obj->videoDecoder = ms_factory_create_decoder(ms_factory_get_fallback(), pinFmt.fmt->encoding);
@@ -196,6 +213,8 @@ static void playback_stream_start(PlaybackStream *obj) {
 	pinFmt.pin = 1;
 	ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &pinFmt);
 	obj->audioDecoder = ms_factory_create_decoder(ms_factory_get_fallback(), pinFmt.fmt->encoding);
+	ms_filter_call_method(obj->audioDecoder, MS_FILTER_GET_SAMPLE_RATE, &samplerate);
+	ms_filter_call_method(obj->audioSink, MS_FILTER_SET_SAMPLE_RATE, &samplerate);
 	
 	ms_filter_link(obj->player, 0, obj->videoDecoder, 0);
 	ms_filter_link(obj->videoDecoder, 0, obj->videoSink, 0);
@@ -245,46 +264,44 @@ static void wait_until_eof(const PlaybackStream *playback, uint64_t timeout_ms, 
 static void mkv_recording_playing() {
 	RecordStream recording;
 	PlaybackStream playback;
-	const char filename[] = "test.mkv";
+	const char filename[] = "test1.mkv";
 	const unsigned int recordingTime = 10; // seconds
 	const double tolerance = 0.05;
 	const uint64_t timeout_ms = recordingTime * 1000 * (1 + tolerance);
 
 	if(access(filename, F_OK) == 0) {
-		ms_error("mkv_recording_playing: %s already exists. Test aborted", filename);
-	} else {
-
-		recorder_stream_init(&recording, MS_MKV_RECORDER_ID, filename);
-		recorder_stream_set_audio_codec(&recording, "pcmu");
-		recorder_stream_set_video_codec(&recording, "H264");
-
-		playback_stream_init(&playback, MS_MKV_PLAYER_ID, filename);
-
-		ms_message("mkv_recording_playing: start recording");
-		recorder_stream_start(&recording);
-		
-		sleep(recordingTime);
-		
-		ms_message("mkv_recording_playing: stop recording");
-		recorder_stream_stop(&recording);
-		recorder_stream_uninit(&recording);
-		
-		CU_ASSERT_EQUAL(access(filename, F_OK), 0);
-
-		ms_message("mkv_recording_playing: start playback");
-		playback_stream_start(&playback);
-		
-		wait_until_eof(&playback, timeout_ms, 100000);
-		
-		ms_message("mkv_recording_playing: stop playback");
-		playback_stream_stop((&playback));
-		playback_stream_uninit(&playback);
-		
 		remove(filename);
-		
-		CU_ASSERT_TRUE(playback.eof);
-		CU_ASSERT_TRUE(playback.firstVideoImage);
 	}
+
+	recorder_stream_init(&recording, MS_MKV_RECORDER_ID, filename);
+	recorder_stream_set_audio_codec(&recording, "opus");
+	recorder_stream_set_video_codec(&recording, "H264");
+//	recorder_stream_mute(&recording, MSVideo);
+
+	playback_stream_init(&playback, MS_MKV_PLAYER_ID, filename);
+
+	ms_message("mkv_recording_playing: start recording");
+	recorder_stream_start(&recording);
+
+	sleep(recordingTime);
+
+	ms_message("mkv_recording_playing: stop recording");
+	recorder_stream_stop(&recording);
+	recorder_stream_uninit(&recording);
+
+	CU_ASSERT_EQUAL(access(filename, F_OK), 0);
+
+	ms_message("mkv_recording_playing: start playback");
+	playback_stream_start(&playback);
+
+	wait_until_eof(&playback, timeout_ms, 100000);
+
+	ms_message("mkv_recording_playing: stop playback");
+	playback_stream_stop((&playback));
+	playback_stream_uninit(&playback);
+
+	CU_ASSERT_TRUE(playback.eof);
+	CU_ASSERT_TRUE(playback.firstVideoImage);
 }
 
 typedef struct {
@@ -310,61 +327,95 @@ static void mkv_recording_playing_streams() {
 	AudioStream *marielleAudio, *margauxAudio;
 	VideoStream *marielleVideo, *margauxVideo;
 	RtpProfile audioProfile, videoProfile;
-	MSWebCam *webcam;
+	MSWebCam *marielleWebcam, *margauxWebcam;
 	int nEOF = 0;
-	const char filepath[] = "test.mkv";
+	const char filepath[] = "test2.mkv";
 	const char HELLO_8K_1S_FILE[] = "sounds/hello8000-1s.wav";
+
+	if(access(filepath, F_OK) == 0) {
+		remove(filepath);
+	}
 	
 	marielleAudio = audio_stream_new(marielleAudioRtpParams.rtpPort, marielleAudioRtpParams.rtcpPort, marielleAudioRtpParams.ipv6);
 	marielleVideo = video_stream_new(marielleVideoRtpParams.rtpPort, marielleVideoRtpParams.rtcpPort, marielleVideoRtpParams.ipv6);
+
 	margauxAudio = audio_stream_new(margauxAudioRtpParams.rtpPort, margauxAudioRtpParams.rtcpPort, margauxAudioRtpParams.ipv6);
 	margauxVideo = video_stream_new(margauxVideoRtpParams.rtpPort, margauxVideoRtpParams.rtcpPort, margauxVideoRtpParams.ipv6);
-	audio_stream_link_video(margauxAudio, margauxVideo);
 	
 	memset(&audioProfile, 0, sizeof(RtpProfile));
 	rtp_profile_set_name(&audioProfile, "default audio profile");
-	rtp_profile_set_payload(&audioProfile, 0, &payload_type_pcmu8000);
+	rtp_profile_set_payload(&audioProfile, 0, &payload_type_opus);
 	
 	memset(&videoProfile, 0, sizeof(RtpProfile));
 	rtp_profile_set_name(&videoProfile, "default video profile");
 	rtp_profile_set_payload(&videoProfile, 0, &payload_type_h264);
 	
-	webcam = ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+	marielleWebcam = ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+	margauxWebcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "MSStaticImage");
 	
 	CU_ASSERT_EQUAL(audio_stream_start_full(
-		marielleAudio,
-		&audioProfile,
-		margauxAudioRtpParams.ip,
-		margauxAudioRtpParams.rtpPort,
-		margauxAudioRtpParams.ip,
-		margauxAudioRtpParams.rtcpPort,
-		0,
-		50,
-		HELLO_8K_1S_FILE,
-		NULL,
-		NULL,
-		NULL,
-		0
-	), 0);
+						marielleAudio,
+						&audioProfile,
+						margauxAudioRtpParams.ip,
+						margauxAudioRtpParams.rtpPort,
+						margauxAudioRtpParams.ip,
+						margauxAudioRtpParams.rtcpPort,
+						0,
+						50,
+						HELLO_8K_1S_FILE,
+						NULL,
+						NULL,
+						NULL,
+						0
+						), 0);
+
+	CU_ASSERT_EQUAL(audio_stream_start_full(
+						margauxAudio,
+						&audioProfile,
+						marielleAudioRtpParams.ip,
+						marielleAudioRtpParams.rtpPort,
+						marielleAudioRtpParams.ip,
+						marielleAudioRtpParams.rtcpPort,
+						0,
+						50,
+						HELLO_8K_1S_FILE,
+						NULL,
+						NULL,
+						NULL,
+						0
+						), 0);
+
+	audio_stream_link_video(margauxAudio, margauxVideo);
+	ms_filter_add_notify_callback(marielleAudio->soundread, marielle_notify_cb, &nEOF, TRUE);
 	
 	CU_ASSERT_EQUAL(video_stream_start(
-		marielleVideo,
-		&videoProfile,
-		margauxVideoRtpParams.ip,
-		margauxVideoRtpParams.rtpPort,
-		margauxVideoRtpParams.ip,
-		margauxVideoRtpParams.rtcpPort,
-		0,
-		50,
-		webcam
-	), 0);
-	
-	ms_filter_add_notify_callback(marielleAudio->soundread, marielle_notify_cb, &nEOF, TRUE);
+						marielleVideo,
+						&videoProfile,
+						margauxVideoRtpParams.ip,
+						margauxVideoRtpParams.rtpPort,
+						margauxVideoRtpParams.ip,
+						margauxVideoRtpParams.rtcpPort,
+						0,
+						50,
+						marielleWebcam
+						), 0);
+
+	CU_ASSERT_EQUAL(video_stream_start(
+						margauxVideo,
+						&videoProfile,
+						marielleVideoRtpParams.ip,
+						marielleVideoRtpParams.rtpPort,
+						marielleVideoRtpParams.ip,
+						marielleVideoRtpParams.rtcpPort,
+						0,
+						50,
+						margauxWebcam
+						), 0);
 	
 	audio_stream_mixed_record_open(margauxAudio, filepath);
 	audio_stream_mixed_record_start(margauxAudio);
 	
-	CU_ASSERT_TRUE(wait_for_until(&marielleAudio->ms, &marielleVideo->ms, &nEOF, 1, 12000));
+	wait_for_until(&marielleAudio->ms, &marielleVideo->ms, &nEOF, 1, 12000);
 	
 	audio_stream_mixed_record_stop(margauxAudio);
 	
@@ -372,10 +423,8 @@ static void mkv_recording_playing_streams() {
 	audio_stream_stop(marielleAudio);
 	
 	audio_stream_unlink_video(margauxAudio, margauxVideo);
-	
-	if(access(filepath, F_OK) == 0) {
-		remove(filepath);
-	}
+
+	CU_ASSERT_EQUAL(access(filepath, F_OK), 0);
 }
 
 static test_t tests[] = {

@@ -53,8 +53,8 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\src\base;$(ProjectDir)..\..\..\src\utils;$(ProjectDir)..\..\..\src\voip;$(ProjectDir)..\..\..\src\audiofilters;$(ProjectDil)..\..\..\src\otherfilters;$(ProjectDir)..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\oRTP\build\wp8\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\wp8\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\opus\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;WIN32;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;HAVE_SPEEXDSP;ORTP_INET6;WINDOW_NATIVE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;VIDEO_ENABLED;NO_FFMPEG;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\src\base;$(ProjectDir)..\..\..\src\utils;$(ProjectDir)..\..\..\src\voip;$(ProjectDir)..\..\..\src\audiofilters;$(ProjectDil)..\..\..\src\otherfilters;$(ProjectDir)..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\oRTP\build\wp8\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\wp8\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\srtp\include;$(ProjectDir)..\..\..\..\..\srtp\crypto\include;$(ProjectDir)..\..\..\..\..\srtp\build\wp8\srtp;$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\opus\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;WIN32;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;HAVE_SPEEXDSP;ORTP_INET6;ORTP_HAVE_SRTP;WINDOW_NATIVE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;VIDEO_ENABLED;NO_FFMPEG;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
@@ -64,7 +64,7 @@
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-      <AdditionalDependencies>ws2_32.lib;ortp.lib;gsm.lib;speex.lib;speexdsp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ImportLibrary>$(TargetDir)$(TargetName).lib</ImportLibrary>
     </Link>
@@ -207,6 +207,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\..\speex\build\wp8\speex\speexdsp.vcxproj">
       <Project>{6bd78980-9c71-4341-8775-ad19e9ec7305}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\srtp\build\wp8\srtp\srtp.vcxproj">
+      <Project>{b4b96bc4-2b72-4964-98e4-7fd048a43363}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\oRTP\build\wp8\oRTP\oRTP.vcxproj">
       <Project>{ffc7b532-0502-4d88-ac98-9e89071cbc97}</Project>

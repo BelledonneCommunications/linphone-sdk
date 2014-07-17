@@ -305,9 +305,9 @@ static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannel
 		MSPinFormat pinfmt={0};
 		stream->av_recorder.video_input=ms_filter_new(MS_ITC_SOURCE_ID);
 		stream->av_recorder.resampler=ms_filter_new(MS_RESAMPLE_ID);
-#ifdef REMOVE_ME_WHEN_RECORDER_SUPPORTS_OPUS
+//#ifdef REMOVE_ME_WHEN_RECORDER_SUPPORTS_OPUS
 		stream->av_recorder.encoder=ms_filter_new(MS_OPUS_ENC_ID);
-#endif
+//#endif
 		if (stream->av_recorder.encoder==NULL){
 			int g711_rate=8000;
 			int g711_nchannels=1;
