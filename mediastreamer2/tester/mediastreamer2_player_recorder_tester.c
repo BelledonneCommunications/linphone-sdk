@@ -246,6 +246,7 @@ static uint64_t playback_stream_get_time(const PlaybackStream *obj) {
 }
 
 static int tester_init() {
+	ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_ERROR | ORTP_WARNING | ORTP_FATAL);
 	ms_init();
 	return 0;
 }
@@ -327,7 +328,7 @@ static void mkv_recording_playing_streams() {
 	AudioStream *marielleAudio, *margauxAudio;
 	VideoStream *marielleVideo, *margauxVideo;
 	RtpProfile audioProfile, videoProfile;
-	MSWebCam *webcam;
+	MSWebCam *marielleWebcam, *margauxWebcam;
 	int nEOF = 0;
 	const char filepath[] = "test2.mkv";
 	const char HELLO_8K_1S_FILE[] = "sounds/hello8000-1s.wav";
@@ -338,9 +339,9 @@ static void mkv_recording_playing_streams() {
 	
 	marielleAudio = audio_stream_new(marielleAudioRtpParams.rtpPort, marielleAudioRtpParams.rtcpPort, marielleAudioRtpParams.ipv6);
 	marielleVideo = video_stream_new(marielleVideoRtpParams.rtpPort, marielleVideoRtpParams.rtcpPort, marielleVideoRtpParams.ipv6);
+
 	margauxAudio = audio_stream_new(margauxAudioRtpParams.rtpPort, margauxAudioRtpParams.rtcpPort, margauxAudioRtpParams.ipv6);
 	margauxVideo = video_stream_new(margauxVideoRtpParams.rtpPort, margauxVideoRtpParams.rtcpPort, margauxVideoRtpParams.ipv6);
-	audio_stream_link_video(margauxAudio, margauxVideo);
 	
 	memset(&audioProfile, 0, sizeof(RtpProfile));
 	rtp_profile_set_name(&audioProfile, "default audio profile");
@@ -350,37 +351,67 @@ static void mkv_recording_playing_streams() {
 	rtp_profile_set_name(&videoProfile, "default video profile");
 	rtp_profile_set_payload(&videoProfile, 0, &payload_type_h264);
 	
-	webcam = ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+	marielleWebcam = ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+	margauxWebcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "MSStaticImage");
 	
 	CU_ASSERT_EQUAL(audio_stream_start_full(
-		marielleAudio,
-		&audioProfile,
-		margauxAudioRtpParams.ip,
-		margauxAudioRtpParams.rtpPort,
-		margauxAudioRtpParams.ip,
-		margauxAudioRtpParams.rtcpPort,
-		0,
-		50,
-		HELLO_8K_1S_FILE,
-		NULL,
-		NULL,
-		NULL,
-		0
-	), 0);
+						marielleAudio,
+						&audioProfile,
+						margauxAudioRtpParams.ip,
+						margauxAudioRtpParams.rtpPort,
+						margauxAudioRtpParams.ip,
+						margauxAudioRtpParams.rtcpPort,
+						0,
+						50,
+						HELLO_8K_1S_FILE,
+						NULL,
+						NULL,
+						NULL,
+						0
+						), 0);
+
+	CU_ASSERT_EQUAL(audio_stream_start_full(
+						margauxAudio,
+						&audioProfile,
+						marielleAudioRtpParams.ip,
+						marielleAudioRtpParams.rtpPort,
+						marielleAudioRtpParams.ip,
+						marielleAudioRtpParams.rtcpPort,
+						0,
+						50,
+						HELLO_8K_1S_FILE,
+						NULL,
+						NULL,
+						NULL,
+						0
+						), 0);
+
+	audio_stream_link_video(margauxAudio, margauxVideo);
+	ms_filter_add_notify_callback(marielleAudio->soundread, marielle_notify_cb, &nEOF, TRUE);
 	
 	CU_ASSERT_EQUAL(video_stream_start(
-		marielleVideo,
-		&videoProfile,
-		margauxVideoRtpParams.ip,
-		margauxVideoRtpParams.rtpPort,
-		margauxVideoRtpParams.ip,
-		margauxVideoRtpParams.rtcpPort,
-		0,
-		50,
-		webcam
-	), 0);
-	
-	ms_filter_add_notify_callback(marielleAudio->soundread, marielle_notify_cb, &nEOF, TRUE);
+						marielleVideo,
+						&videoProfile,
+						margauxVideoRtpParams.ip,
+						margauxVideoRtpParams.rtpPort,
+						margauxVideoRtpParams.ip,
+						margauxVideoRtpParams.rtcpPort,
+						0,
+						50,
+						marielleWebcam
+						), 0);
+
+	CU_ASSERT_EQUAL(video_stream_start(
+						margauxVideo,
+						&videoProfile,
+						marielleVideoRtpParams.ip,
+						marielleVideoRtpParams.rtpPort,
+						marielleVideoRtpParams.ip,
+						marielleVideoRtpParams.rtcpPort,
+						0,
+						50,
+						margauxWebcam
+						), 0);
 	
 	audio_stream_mixed_record_open(margauxAudio, filepath);
 	audio_stream_mixed_record_start(margauxAudio);
