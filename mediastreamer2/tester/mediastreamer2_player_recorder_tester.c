@@ -261,35 +261,41 @@ static void wait_until_eof(const PlaybackStream *playback, uint64_t timeout_ms, 
 	}
 }
 
-static void mkv_recording_playing() {
+typedef struct {
+	const char *videoCodec;
+	const char *audioCodec;
+	const char *filename;
+	int recordingTime;
+	double tolerance;
+} RecordingPlayingTestDesc;
+
+static void recording_playing_test(MSFilterId recorderId, MSFilterId playerId, const RecordingPlayingTestDesc *desc) {
 	RecordStream recording;
 	PlaybackStream playback;
-	const char filename[] = "test1.mkv";
-	const unsigned int recordingTime = 10; // seconds
-	const double tolerance = 0.05;
-	const uint64_t timeout_ms = recordingTime * 1000 * (1 + tolerance);
+	uint64_t timeout_ms;
 
-	if(access(filename, F_OK) == 0) {
-		remove(filename);
+	timeout_ms = desc->recordingTime * 1000 * (1 + desc->tolerance);
+
+	if(access(desc->filename, F_OK) == 0) {
+		remove(desc->filename);
 	}
 
-	recorder_stream_init(&recording, MS_MKV_RECORDER_ID, filename);
-	recorder_stream_set_audio_codec(&recording, "opus");
-	recorder_stream_set_video_codec(&recording, "H264");
-//	recorder_stream_mute(&recording, MSVideo);
+	recorder_stream_init(&recording, recorderId, desc->filename);
+	recorder_stream_set_audio_codec(&recording, desc->audioCodec);
+	recorder_stream_set_video_codec(&recording, desc->videoCodec);
 
-	playback_stream_init(&playback, MS_MKV_PLAYER_ID, filename);
+	playback_stream_init(&playback, playerId, desc->filename);
 
 	ms_message("mkv_recording_playing: start recording");
 	recorder_stream_start(&recording);
 
-	sleep(recordingTime);
+	sleep(desc->recordingTime);
 
 	ms_message("mkv_recording_playing: stop recording");
 	recorder_stream_stop(&recording);
 	recorder_stream_uninit(&recording);
 
-	CU_ASSERT_EQUAL(access(filename, F_OK), 0);
+	CU_ASSERT_EQUAL(access(desc->filename, F_OK), 0);
 
 	ms_message("mkv_recording_playing: start playback");
 	playback_stream_start(&playback);
@@ -302,6 +308,19 @@ static void mkv_recording_playing() {
 
 	CU_ASSERT_TRUE(playback.eof);
 	CU_ASSERT_TRUE(playback.firstVideoImage);
+}
+
+static void mkv_recording_playing_test() {
+	int i;
+	MSFilterId player = MS_MKV_PLAYER_ID, recorder = MS_MKV_RECORDER_ID;
+	const RecordingPlayingTestDesc testDescs[] = {
+		{	"H264"	,	"pcmu"	,	"test1_H264_pcmu.mkv"	,	10	,	0.05	},
+		{	"H264"	,	"opus"	,	"test1_H264_opus.mkv"	,	10	,	0.05	},
+	};
+
+	for(i=0; i<sizeof(testDescs)/sizeof(RecordingPlayingTestDesc); i++) {
+		recording_playing_test(recorder, player, &testDescs[i]);
+	}
 }
 
 typedef struct {
@@ -428,7 +447,7 @@ static void mkv_recording_playing_streams() {
 }
 
 static test_t tests[] = {
-	{	"MKV file recording and playing"	,	mkv_recording_playing	},
+	{	"MKV file recording and playing"	,	mkv_recording_playing_test	},
 	{	"MKV file recording with streams"	,	mkv_recording_playing_streams	}
 };
 
