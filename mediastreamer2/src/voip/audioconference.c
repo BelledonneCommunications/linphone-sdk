@@ -220,13 +220,6 @@ void ms_audio_conference_destroy(MSAudioConference *obj){
 	ms_free(obj);
 }
 
-//MSAudioEndpoint *ms_audio_endpoint_new(void){
-//	MSAudioEndpoint *ep=ms_new0(MSAudioEndpoint,1);
-//	ep->in_resampler=ms_filter_new(MS_RESAMPLE_ID);
-//	ep->out_resampler=ms_filter_new(MS_RESAMPLE_ID);
-//	ep->samplerate=8000;
-//	return ep;
-//}
 
 MSAudioEndpoint *ms_audio_endpoint_new(void){
 	MSAudioEndpoint *ep=ms_new0(MSAudioEndpoint,1);

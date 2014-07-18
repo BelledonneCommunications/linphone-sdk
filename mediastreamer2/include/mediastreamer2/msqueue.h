@@ -70,6 +70,10 @@ static MS2_INLINE bool_t ms_queue_end(const MSQueue *q, const mblk_t *m){
 	return qend(&q->q,m);
 }
 
+static MS2_INLINE mblk_t *ms_queue_peek_next(MSQueue *q, mblk_t *cur){
+	return cur->b_next;
+}
+
 static MS2_INLINE void ms_queue_remove(MSQueue *q, mblk_t *m){
 	remq(&q->q,m);
 }

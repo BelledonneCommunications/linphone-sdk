@@ -210,7 +210,237 @@ MS2_PUBLIC void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
  * @}
  */
 
+/**
+ * @addtogroup mediastreamer2_video_conference
+ * @{
+ */
 
+/**
+ * Structure that holds audio conference parameters
+**/
+struct _MSVideoConferenceParams{
+	int unused;
+};
+
+/**
+ * Typedef to structure that holds conference parameters
+**/
+typedef struct _MSVideoConferenceParams MSVideoConferenceParams;
+
+/**
+ * The MSVideoConference is the object representing a video conference.
+ *
+ * First, the conference has to be created with ms_video_conference_new(), with parameters supplied.
+ * Then, participants to the conference can be added with ms_video_conference_add_member().
+ * Participants can be removed from the conference with ms_video_conference_remove_member().
+ * The conference processing is performed in a new thread run by a MSTicker object, which is owned by the conference.
+ * When all participants are removed, the MSVideoConference object can then be safely destroyed with ms_video_conference_destroy().
+**/
+typedef struct _MSVideoConference MSVideoConference;
+
+
+/**
+ * The MSVideoEndpoint represents a participant in the conference.
+ * It can be constructed from an existing VideoStream object with
+ * ms_video_endpoint_get_from_stream().
+**/
+typedef struct _MSVideoEndpoint MSVideoEndpoint;
+
+/**
+ * The MSAVConference is the object representing an audio/video conference.
+ *
+ * First, the conference has to be created with ms_av_conference_new(), with parameters supplied.
+ * Then, participants to the conference can be added with ms_av_conference_add_member().
+ * Participants can be removed from the conference with ms_av_conference_remove_member().
+ * When all participants are removed, the MSVideoConference object can then be safely destroyed with ms_av_conference_destroy().
+**/
+typedef struct _MSAVConference MSAVConference;
+
+struct _MSAVConferenceParams{
+	MSAudioConferenceParams audio_params;
+	MSVideoConferenceParams video_params;
+	int min_switch_interval;
+};
+
+typedef struct _MSAVConferenceParams MSAVConferenceParams;
+
+/**
+ * The MSAVEndpoint represents a participant in the audio/video conference.
+ * It can be constructed from an existing AudioStream and VideoStream object with
+ * ms_av_endpoint_get_from_streams().
+**/
+typedef struct _MSAVEndpoint MSAVEndpoint;
+
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * Creates a conference.
+ * @param params a MSVideoConferenceParams structure, containing conference parameters.
+ * @returns a MSVideoConference object.
+**/
+MS2_PUBLIC MSVideoConference * ms_video_conference_new(const MSVideoConferenceParams *params);
+
+/**
+ * Gets conference's current parameters.
+ * @param obj the conference.
+ * @returns a read-only pointer to the conference parameters.
+**/
+MS2_PUBLIC const MSVideoConferenceParams *ms_video_conference_get_params(MSVideoConference *obj);
+
+/**
+ * Adds a participant to the conference.
+ * @param obj the conference
+ * @param ep the participant, represented as a MSVideoEndpoint object
+**/
+MS2_PUBLIC void ms_video_conference_add_member(MSVideoConference *obj, MSVideoEndpoint *ep);
+
+/**
+ * Removes a participant from the conference.
+ * @param obj the conference
+ * @param ep the participant, represented as a MSVideoEndpoint object
+**/
+MS2_PUBLIC void ms_video_conference_remove_member(MSVideoConference *obj, MSVideoEndpoint *ep);
+
+
+/**
+ * Returns the size (ie the number of participants) of a conference.
+ * @param obj the conference
+**/
+MS2_PUBLIC int ms_video_conference_get_size(MSVideoConference *obj);
+
+/**
+ * Destroys a conference.
+ * @param obj the conference
+ * All participants must have been removed before destroying the conference.
+**/
+MS2_PUBLIC void ms_video_conference_destroy(MSVideoConference *obj);
+
+/**
+ * Creates an MSVideoEndpoint from an existing VideoStream.
+ *
+ * In order to create graphs for video processing of each participant, the VideoStream object is used, because
+ * this object already handles all the processing for encoding, decoding, etc...
+ *
+ * The construction of the participants depends whether it is a remote participant, that is somebody in the network
+ * sending and receiving video through RTP, or a local participant, that is somebody using the local camera to capture
+ * and local screen to display video.
+ *
+ * To create a remote participant, first create and start a VideoStream for the participant with video_stream_new() and
+ * video_stream_start() with NULL MSWebCam argument.
+ * Then, create a MSVideoEndpoint representing this participant by calling ms_video_endpoint_get_from_stream() with
+ * is_remote=TRUE.
+ *
+ * To create a local participant, first create and start a VideoStream with video_stream_new() and video_stream_start(), 
+ * with the correct MSWebCam to use.
+ * Arguments controlling RTP should be filled with placeholders value and will not be used for conferencing.
+ * Then, create a MSVideoEndpoint representing this local participant by calling ms_video_endpoint_get_from_stream() 
+ * with the video stream and is_remote=FALSE.<br>
+ * For example:<br>
+ * <PRE>
+ * VideoStream *st=video_stream_new(65000,65001,FALSE);
+ * video_stream_start(st, conf->local_dummy_profile,
+ *				"127.0.0.1",
+ *				65000,
+ *				"127.0.0.1",
+ *				65001,
+ *				0,
+ *				40,
+ *				webcam
+ *				);
+ * MSVideoEndpoint *local_endpoint=ms_video_endpoint_get_from_stream(st,FALSE);
+ * </PRE>
+**/
+MS2_PUBLIC MSVideoEndpoint * ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_remote);
+
+/**
+ * Destroys a MSVideoEndpoint that was created from a VideoStream with ms_video_endpoint_get_from_stream().
+ * The VideoStream can then be destroyed if needed.
+**/
+MS2_PUBLIC void ms_video_endpoint_release_from_stream(MSVideoEndpoint *obj);
+
+
+/**
+ * Creates an audio/video conference.
+ * @param params a MSVideoConferenceParams structure, containing conference parameters.
+ * @returns a MSVideoConference object.
+**/
+MS2_PUBLIC MSAVConference * ms_av_conference_new(const MSAVConferenceParams *params);
+
+/**
+ * Gets conference's current parameters.
+ * @param obj the conference.
+ * @returns a read-only pointer to the conference parameters.
+**/
+MS2_PUBLIC const MSAVConferenceParams *ms_av_conference_get_params(MSAVConference *obj);
+
+/**
+ * Adds a participant to the conference.
+ * @param obj the conference
+ * @param ep the participant, represented as a MSVAVEndpoint object
+**/
+MS2_PUBLIC void ms_av_conference_add_member(MSAVConference *obj, MSAVEndpoint *ep);
+
+/**
+ * Removes a participant from the conference.
+ * @param obj the conference
+ * @param ep the participant, represented as a MSAVEndpoint object
+**/
+MS2_PUBLIC void ms_av_conference_remove_member(MSAVConference *obj, MSAVEndpoint *ep);
+
+/**
+ * Returns the underlying MSAudioConference object managing the audio part of the conference.
+ * @param obj the conference
+ * @return the audio conference.
+**/
+MS2_PUBLIC MSAudioConference *ms_av_conference_get_audio_conference(MSAVConference *obj);
+
+/**
+ * Returns the underlying MSVideoConference object managing the video part of the conference.
+ * @param obj the conference
+ * @return the video conference.
+**/
+MS2_PUBLIC MSVideoConference *ms_av_conference_get_video_conference(MSAVConference *obj);
+
+/**
+ * Returns the size (ie the number of participants) of a conference.
+ * @param obj the conference
+**/
+MS2_PUBLIC int ms_av_conference_get_size(MSAVConference *obj);
+
+/**
+ * Destroys a conference.
+ * @param obj the conference
+ * All participants must have been removed before destroying the conference.
+**/
+MS2_PUBLIC void ms_av_conference_destroy(MSAVConference *obj);
+
+/**
+ * Creates an MSAVEndpoint from an existing AudioStream and VideoStream.
+ * This method internally calls ms_audio_endpoint_get_from_stream() and ms_video_endpoint_get_from_stream(), thus please refer
+ * to the documentation of these two functions for details about them.
+ * Please note that one of the audio stream or the video stream may be passed NULL (case of an audio-only participant for example).
+ * 
+**/
+MS2_PUBLIC MSAVEndpoint * ms_av_endpoint_get_from_streams(AudioStream *as, VideoStream *vs, bool_t is_remote);
+
+/**
+ * Destroys a MSAVEndpoint that was created from a VideoStream with ms_video_endpoint_get_from_stream().
+ * The VideoStream can then be destroyed if needed.
+**/
+MS2_PUBLIC void ms_av_endpoint_release_from_stream(MSAVEndpoint *obj);
+
+
+#ifdef __cplusplus
+}
+#endif
+
+/**
+ * @}
+ */
 
 #endif
 
