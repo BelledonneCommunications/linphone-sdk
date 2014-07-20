@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ortp/rtp.h"
 
 #include <stdint.h>
-#include <opus.h>
+#include <opus/opus.h>
 
 #define SIGNAL_SAMPLE_SIZE  2 // 2 bytes per sample
 

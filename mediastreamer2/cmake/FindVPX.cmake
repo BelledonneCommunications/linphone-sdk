@@ -1,5 +1,5 @@
 ############################################################################
-# CMakeLists.txt
+# FindVPX.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,9 +19,37 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the VPX include file and library
+#
+#  VPX_FOUND - system has VPX
+#  VPX_INCLUDE_DIRS - the VPX include directory
+#  VPX_LIBRARIES - The libraries needed to use VPX
 
-file(GLOB HEADER_FILES "mediastreamer2/*.h")
+set(_VPX_ROOT_PATHS
+	${WITH_VPX}
+	${CMAKE_INSTALL_PREFIX}
+)
 
-install(FILES ${HEADER_FILES}
-        DESTINATION include/mediastreamer2
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+find_path(VPX_INCLUDE_DIRS
+	NAMES vpx/vpx_encoder.h
+	HINTS _VPX_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+if(VPX_INCLUDE_DIRS)
+	set(HAVE_VPX_VPX_ENCODER_H 1)
+endif()
+
+find_library(VPX_LIBRARIES
+	NAMES vpx
+	HINTS _VPX_ROOT_PATHS
+	PATH_SUFFIXES bin lib
+)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(VPX
+	DEFAULT_MSG
+	VPX_INCLUDE_DIRS VPX_LIBRARIES
+)
+
+mark_as_advanced(VPX_INCLUDE_DIRS VPX_LIBRARIES)

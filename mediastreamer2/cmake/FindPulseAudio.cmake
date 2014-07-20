@@ -1,5 +1,5 @@
 ############################################################################
-# CMakeLists.txt
+# FindPulseAudio.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,9 +19,43 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the pulseaudio include file and library
+#
+#  PULSEAUDIO_FOUND - system has pulseaudio
+#  PULSEAUDIO_INCLUDE_DIRS - the pulseaudio include directory
+#  PULSEAUDIO_LIBRARIES - The libraries needed to use pulseaudio
 
-file(GLOB HEADER_FILES "mediastreamer2/*.h")
+include(CheckSymbolExists)
 
-install(FILES ${HEADER_FILES}
-        DESTINATION include/mediastreamer2
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+set(_PULSEAUDIO_ROOT_PATHS
+	${WITH_PULSEAUDIO}
+	${CMAKE_INSTALL_PREFIX}
+)
+
+find_path(PULSEAUDIO_INCLUDE_DIRS
+	NAMES pulse/pulseaudio.h
+	HINTS _PULSEAUDIO_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+if(PULSEAUDIO_INCLUDE_DIRS)
+	set(HAVE_PULSE_PULSEAUDIO_H 1)
+endif()
+
+find_library(PULSEAUDIO_LIBRARIES
+	NAMES pulse
+	HINTS _PULSEAUDIO_ROOT_PATHS
+	PATH_SUFFIXES bin lib
+)
+
+if(PULSEAUDIO_LIBRARIES)
+	check_symbol_exists(pa_mainloop_new pulse/pulseaudio.h HAVE_PA_MAINLOOP_NEW)
+endif()
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(PulseAudio
+	DEFAULT_MSG
+	PULSEAUDIO_INCLUDE_DIRS PULSEAUDIO_LIBRARIES HAVE_PA_MAINLOOP_NEW
+)
+
+mark_as_advanced(PULSEAUDIO_INCLUDE_DIRS PULSEAUDIO_LIBRARIES HAVE_PA_MAINLOOP_NEW)

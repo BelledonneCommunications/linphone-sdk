@@ -81,9 +81,10 @@ int ms_bits_reader_ue(MSBitsReader *reader, unsigned int* ret, const char* symbo
 		if (ret)
 			*ret = 0;
 	} else {
+		unsigned int value;
 		if (ms_bits_reader_n_bits(reader, leading_zeros_cnt, &trail, 0) != 0)
 			return -1;
-		unsigned int value = pow(2, leading_zeros_cnt) - 1 + trail;
+		value = pow(2, leading_zeros_cnt) - 1 + trail;
 		if (symbol_name)
 			ms_debug(".%s (ue) : 0x%x | %u", symbol_name, value, value);
 		if (ret)
@@ -96,11 +97,13 @@ int ms_bits_reader_ue(MSBitsReader *reader, unsigned int* ret, const char* symbo
 int ms_bits_reader_se(MSBitsReader *reader, int* ret, const char* symbol_name) {
 	unsigned int code_num;
 	int sign;
+	int value;
+
 	if (ms_bits_reader_ue(reader, &code_num, 0) != 0)
 		return -1;
 
 	sign = (code_num % 2) ? 1 : -1;
-	int value = sign * ceil(code_num / 2.0f);
+	value = sign * ceil(code_num / 2.0f);
 	if (symbol_name)
 		ms_debug(".%s (se) : 0x%x | %d [%x", symbol_name, value, value, code_num);
 	if (ret)
@@ -119,6 +122,10 @@ void ms_bits_writer_init(MSBitsWriter *writer, size_t initialbufsize) {
 int ms_bits_writer_n_bits(MSBitsWriter *writer, int count, unsigned int value, const char* symbol_name) {
 	uint8_t swap[4];
 	int i;
+	int byte_index;
+	int bits_left;
+	int bytes;
+
 	for (i=0; i<4; i++) {
 		swap[i] = (value >> (24 - 8 * i)) & 0xFF;
 	}
@@ -132,12 +139,12 @@ int ms_bits_writer_n_bits(MSBitsWriter *writer, int count, unsigned int value, c
 	}
 
 	/* current byte */
-	int byte_index = writer->bit_index / 8;
+	byte_index = writer->bit_index / 8;
 	/* bits available in current byte */
-	int bits_left = 8 - writer->bit_index % 8;
+	bits_left = 8 - writer->bit_index % 8;
 
 	/* browse bytes containing bits to write */
-	int bytes = count == 32 ? 4 : (1 + count / 8);
+	bytes = count == 32 ? 4 : (1 + count / 8);
 	for (i=0; i < bytes; i++) {
 		const uint8_t v = swap[4 - bytes + i];
 		int cnt = (i == 0) ? (count - (bytes - 1) * 8) : 8;

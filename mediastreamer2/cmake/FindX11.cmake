@@ -1,5 +1,5 @@
 ############################################################################
-# CMakeLists.txt
+# FindX11.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,9 +19,37 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the X11 include file and library
+#
+#  X11_FOUND - system has X11
+#  X11_INCLUDE_DIRS - the X11 include directory
+#  X11_LIBRARIES - The libraries needed to use X11
 
-file(GLOB HEADER_FILES "mediastreamer2/*.h")
+set(_X11_ROOT_PATHS
+	${WITH_X11}
+	${CMAKE_INSTALL_PREFIX}
+)
 
-install(FILES ${HEADER_FILES}
-        DESTINATION include/mediastreamer2
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+find_path(X11_INCLUDE_DIRS
+	NAMES X11/Xlib.h
+	HINTS _X11_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+if(X11_INCLUDE_DIRS)
+	set(HAVE_X11_XLIB_H 1)
+endif()
+
+find_library(X11_LIBRARIES
+	NAMES X11
+	HINTS _X11_ROOT_PATHS
+	PATH_SUFFIXES bin lib
+)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(X11
+	DEFAULT_MSG
+	X11_INCLUDE_DIRS X11_LIBRARIES
+)
+
+mark_as_advanced(X11_INCLUDE_DIRS X11_LIBRARIES)

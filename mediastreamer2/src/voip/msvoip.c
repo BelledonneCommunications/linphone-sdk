@@ -182,14 +182,14 @@ extern MSWebCamDesc ms_vfw_cam_desc;
 extern MSWebCamDesc ms_directx_cam_desc;
 #endif
 
-#if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW)
+#if defined(__MINGW32__) || defined(HAVE_DIRECTSHOW)
 extern MSWebCamDesc ms_dshow_cam_desc;
 #endif
 
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
 extern MSWebCamDesc ms_v4m_cam_desc;
 #endif
-#if HAVE_LIBAVCODEC_AVCODEC_H || TARGET_OS_IPHONE
+#if defined(HAVE_LIBAVCODEC_AVCODEC_H) || TARGET_OS_IPHONE
 extern MSWebCamDesc static_image_desc;
 #endif
 
@@ -228,7 +228,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 	&ms_v4ios_cam_desc,
 #endif
 	&mire_desc,
-#if HAVE_LIBAVCODEC_AVCODEC_H || TARGET_OS_IPHONE
+#if defined(HAVE_LIBAVCODEC_AVCODEC_H) || TARGET_OS_IPHONE
 	&static_image_desc,
 #endif
 #endif /*MS2_FILTERS */

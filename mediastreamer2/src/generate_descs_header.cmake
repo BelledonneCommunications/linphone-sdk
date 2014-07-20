@@ -20,8 +20,31 @@
 #
 ############################################################################
 
-file(GLOB HEADER_FILES "mediastreamer2/*.h")
+set(ABS_SOURCE_FILES )
+string(REPLACE " " ";" SOURCE_FILES ${SOURCE_FILES})
+foreach(SOURCE_FILE ${SOURCE_FILES})
+	list(APPEND ABS_SOURCE_FILES ${INPUT_DIR}/${SOURCE_FILE})
+endforeach()
 
-install(FILES ${HEADER_FILES}
-        DESTINATION include/mediastreamer2
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+execute_process(
+	COMMAND ${AWK_PROGRAM} -f ${AWK_SCRIPTS_DIR}/extract-filters-names.awk ${ABS_SOURCE_FILES}
+	OUTPUT_FILE ${OUTPUT_DIR}/${TYPE}descs.txt
+)
+execute_process(
+	COMMAND ${AWK_PROGRAM} -f ${AWK_SCRIPTS_DIR}/define-filters.awk
+	INPUT_FILE ${OUTPUT_DIR}/${TYPE}descs.txt
+	OUTPUT_FILE ${OUTPUT_DIR}/${TYPE}descs-tmp1.h
+)
+execute_process(
+	COMMAND ${AWK_PROGRAM} -f ${AWK_SCRIPTS_DIR}/define-ms_${TYPE}_filter_descs.awk
+	INPUT_FILE ${OUTPUT_DIR}/${TYPE}descs.txt
+	OUTPUT_FILE ${OUTPUT_DIR}/${TYPE}descs-tmp2.h
+)
+file(READ ${OUTPUT_DIR}/${TYPE}descs-tmp1.h DESCS1)
+file(READ ${OUTPUT_DIR}/${TYPE}descs-tmp2.h DESCS2)
+file(WRITE ${OUTPUT_DIR}/${TYPE}descs.h "${DESCS1}${DESCS2}")
+file(REMOVE
+	${OUTPUT_DIR}/${TYPE}descs.txt
+	${OUTPUT_DIR}/${TYPE}descs-tmp1.h
+	${OUTPUT_DIR}/${TYPE}descs-tmp2.h
+)

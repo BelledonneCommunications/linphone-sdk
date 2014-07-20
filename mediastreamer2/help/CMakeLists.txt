@@ -20,8 +20,18 @@
 #
 ############################################################################
 
-file(GLOB HEADER_FILES "mediastreamer2/*.h")
+find_package(Doxygen)
 
-install(FILES ${HEADER_FILES}
-        DESTINATION include/mediastreamer2
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+if(DOXYGEN_FOUND)
+	if(DOXYGEN_DOT_FOUND)
+		set(top_srcdir ${CMAKE_SOURCE_DIR})
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+		add_custom_target(html-doc ALL
+			${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+		install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doc/html"
+			DESTINATION "${CMAKE_INSTALL_PREFIX}/share/doc/mediastreamer2-${MEDIASTREAMER_VERSION}")
+	else()
+		message(WARNING "The dot program is needed to generate the mediastreamer2 documentation. You can get it from http://www.graphviz.org/.")
+	endif()
+endif()

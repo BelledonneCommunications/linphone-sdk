@@ -1,37 +1,35 @@
+############################################################################
+# CMakeLists.txt
+# Copyright (C) 2014  Belledonne Communications, Grenoble France
+#
+############################################################################
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+############################################################################
+
 if(MSVC)
 	find_library(LIBGCC NAMES gcc)
 	find_library(LIBMINGWEX NAMES mingwex)
 endif()
-find_library(LIBSRTP NAMES srtp)
-find_library(LIBORTP NAMES ortp)
-if(MS2_ENABLE_GSM)
-	find_library(LIBGSM NAMES gsm)
-endif(MS2_ENABLE_GSM)
-if(MS2_ENABLE_OPUS)
-	include_directories(${CMAKE_INSTALL_PREFIX}/include/opus)
-	find_library(LIBOPUS NAMES opus)
-endif(MS2_ENABLE_OPUS)
-if(MS2_ENABLE_SPEEX)
-	find_library(LIBSPEEX NAMES speex)
-	find_library(LIBSPEEXDSP NAMES speexdsp)
-endif(MS2_ENABLE_SPEEX)
-if(MS2_ENABLE_VIDEO)
-	if(MS2_ENABLE_FFMPEG)
-		find_library(LIBAVCODEC NAMES avcodec)
-		find_library(LIBAVUTIL NAMES avutil)
-		find_library(LIBSWSCALE NAMES swscale)
-	endif(MS2_ENABLE_FFMPEG)
-	if(MS2_ENABLE_VPX)
-		find_library(LIBVPX NAMES vpx)
-	endif(MS2_ENABLE_VPX)
-endif(MS2_ENABLE_VIDEO)
 
 
-find_program(GIT_PROGRAM git)
 find_program(AWK_PROGRAM awk)
 if(NOT AWK_PROGRAM)
 	message(FATAL_ERROR "You need the awk program to build mediastreamer2.")
-endif(NOT AWK_PROGRAM)
+endif()
 
 set(BASE_SOURCE_FILES
 	base/eventqueue.c
@@ -53,44 +51,15 @@ set(BASE_GENERATED_SOURCE_FILES
 	${CMAKE_CURRENT_BINARY_DIR}/basedescs.h
 	${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
 )
-execute_process(
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND ${AWK_PROGRAM} -f ../extract-filters-names.awk ${BASE_SOURCE_FILES}
-	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs.txt
-)
-execute_process(
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND ${AWK_PROGRAM} -f ../define-filters.awk
-	INPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs.txt
-	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp1.h
-)
-execute_process(
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND ${AWK_PROGRAM} -f ../define-ms_base_filter_descs.awk
-	INPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs.txt
-	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp2.h
-)
-file(READ ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp1.h BASEDESCS1)
-file(READ ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp2.h BASEDESCS2)
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/basedescs.h "${BASEDESCS1}${BASEDESCS2}")
-
-if(GIT_PROGRAM)
-	execute_process(
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-		COMMAND ${GIT_PROGRAM} describe --always
-		OUTPUT_VARIABLE GIT_VERSION
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-	)
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} -E echo "#define GIT_VERSION \"${GIT_VERSION}\""
-		OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
-	)
-else(GIT_PROGRAM)
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} -E echo "#define GIT_VERSION \"unknown\""
-		OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
-	)
-endif(GIT_PROGRAM)
+set_source_files_properties(${BASE_GENERATED_SOURCE_FILES} PROPERTIES GENERATED TRUE)
+find_package(Git)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
+	COMMAND ${CMAKE_COMMAND} -DGIT_EXECUTABLE=${GIT_EXECUTABLE} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/gitversion.cmake)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/basedescs.h
+	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR=${CMAKE_CURRENT_SOURCE_DIR}/../
+		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+		-DTYPE=base -DSOURCE_FILES="${BASE_SOURCE_FILES}"
+		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake)
 
 add_definitions(
 	-DMEDIASTREAMER2_EXPORTS
@@ -98,45 +67,36 @@ add_definitions(
 	-D_TRUE_TIME
 	-DMS2_INTERNAL
 	-DMS2_FILTERS
-	-DORTP_HAVE_SRTP
 )
-if(MS2_ENABLE_SPEEX)
-add_definitions(-DHAVE_SPEEXDSP)
-endif(MS2_ENABLE_SPEEX)
 
-if(MS2_ENABLE_VIDEO)
-	add_definitions(-DVIDEO_ENABLED)
-	if(MS2_ENABLE_FFMPEG)
-		add_definitions(
-			-DHAVE_LIBAVCODEC_AVCODEC_H
-			-DHAVE_LIBSWSCALE_SWSCALE_H
-		)
-	else(MS2_ENABLE_FFMPEG)
-		add_definitions(-DNO_FFMPEG)
-	endif(MS2_ENABLE_FFMPEG)
-endif(MS2_ENABLE_VIDEO)
-
-if(WIN32)
-	add_definitions(
-		-DWINDOW_NATIVE
-		/FIgitversion.h
-	)
-	if(MSVC)
-		add_definitions(-Dinline=__inline)
-	endif()
-	set(BASE_LIBS ws2_32 ole32 oleaut32 winmm uuid)
-endif(WIN32)
-list(APPEND BASE_LIBS
+set(BASE_LIBS
 	${LIBGCC}
 	${LIBMINGWEX}
-	${LIBSRTP}
-	${LIBORTP}
+	${ORTP_LIBRARIES}
 )
+if(WIN32)
+	list(APPEND BASE_LIBS ole32 oleaut32 uuid)
+endif()
+if(HAVE_DLOPEN)
+	list(APPEND BASE_LIBS dl)
+endif()
 
-add_library(mediastreamer_base SHARED ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
-set_target_properties(mediastreamer_base PROPERTIES VERSION 2.10.0 SOVERSION 3)
-
-target_link_libraries(mediastreamer_base ${BASE_LIBS})
+if(ENABLE_STATIC)
+	add_library(mediastreamer_base STATIC ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
+	target_link_libraries(mediastreamer_base ${BASE_LIBS})
+else()
+	add_library(mediastreamer_base SHARED ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
+	set_target_properties(mediastreamer_base PROPERTIES VERSION ${MEDIASTREAMER_VERSION} SOVERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE C)
+	target_link_libraries(mediastreamer_base ${BASE_LIBS})
+	if(MSVC)
+		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/mediastreamer_base.pdb
+				DESTINATION bin
+				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+			)
+		endif()
+	endif()
+endif()
 
 install(TARGETS mediastreamer_base
 	RUNTIME DESTINATION bin
@@ -144,14 +104,6 @@ install(TARGETS mediastreamer_base
 	ARCHIVE DESTINATION lib
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
-if(WIN32)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/mediastreamer_base.pdb
-	DESTINATION bin
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-)
-endif()
-endif(WIN32)
 
 
 
@@ -199,36 +151,56 @@ set(VOIP_SOURCE_FILES
 	voip/ringstream.c
 )
 
+if(ENABLE_ALSA)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/alsa.c)
+endif()
+if(ENABLE_ARTSC)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/arts.c)
+endif()
+if(ENABLE_MACSND)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/macsnd.c)
+endif()
+if(ENABLE_MACAQSND)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/aqsnd.c)
+endif()
+if(ENABLE_OSS)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/oss.c)
+endif()
+if(ENABLE_PORTAUDIO)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/pasnd.c)
+endif()
+if(ENABLE_PULSEAUDIO)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/pulseaudio.c)
+endif()
+if(ENABLE_QSA)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/qsa.c)
+endif()
+if(IOS)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/msiounit.m audiofilters/aac-eld.c)
+endif()
 if(WIN32)
 	list(APPEND VOIP_SOURCE_FILES audiofilters/winsnd3.c)
-endif(WIN32)
+endif()
 
-if(APPLE)
-	add_definitions(-D__MACSND_ENABLED__)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/macsnd.c)
-endif(APPLE)
-
-if(MS2_ENABLE_GSM)
+if(GSM_FOUND)
 	list(APPEND VOIP_SOURCE_FILES audiofilters/gsm.c)
-endif(MS2_ENABLE_GSM)
-
-if(MS2_ENABLE_OPUS)
+endif()
+if(OPUS_FOUND)
 	list(APPEND VOIP_SOURCE_FILES audiofilters/msopus.c)
-endif(MS2_ENABLE_OPUS)
-
-if(MS2_ENABLE_RESAMPLE)
+endif()
+if(ENABLE_RESAMPLE)
 	list(APPEND VOIP_SOURCE_FILES audiofilters/msresample.c)
-endif(MS2_ENABLE_RESAMPLE)
-
-if(MS2_ENABLE_SPEEX)
+endif()
+if(SPEEX_FOUND)
 	list(APPEND VOIP_SOURCE_FILES
 		audiofilters/msspeex.c
 		audiofilters/speexec.c
 	)
-endif(MS2_ENABLE_SPEEX)
+endif()
 
-if(MS2_ENABLE_VIDEO)
+if(ENABLE_VIDEO)
 	list(APPEND VOIP_SOURCE_FILES
+		utils/bits_rw.c
 		videofilters/extdisplay.c
 		videofilters/mire.c
 		videofilters/pixconv.c
@@ -242,9 +214,26 @@ if(MS2_ENABLE_VIDEO)
 		voip/rfc3984.c
 		voip/videostarter.c
 		voip/videostream.c
-		voip/vp8rtpfmt.c
 	)
-	if(MS2_ENABLE_FFMPEG)
+	if(WIN32)
+		add_definitions(-DHAVE_DIRECTSHOW)
+		list(APPEND VOIP_SOURCE_FILES
+			videofilters/msdscap-mingw.cc
+			videofilters/drawdib-display.c
+		)
+		set_source_files_properties(videofilters/msdscap-mingw.cc PROPERTIES LANGUAGE CXX)
+	endif(WIN32)
+	# if(APPLE)
+		# list(APPEND VOIP_SOURCE_FILES
+			# utils/opengles_display.c
+			# utils/opengles_display.h
+			# utils/shaders.c
+			# utils/shaders.h
+			# videofilters/msosxdisplay.m
+			# videofilters/qtcapture.m
+		# )
+	# endif(APPLE)
+	if(FFMPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES
 			utils/ffmpeg-priv.c
 			utils/ffmpeg-priv.h
@@ -256,119 +245,140 @@ if(MS2_ENABLE_VIDEO)
 			videofilters/videoenc.c
 			voip/nowebcam.h
 		)
-	endif(MS2_ENABLE_FFMPEG)
-	if(MS2_ENABLE_VPX)
-		list(APPEND VOIP_SOURCE_FILES videofilters/vp8.c)
-	endif(MS2_ENABLE_VPX)
-	if(WIN32)
-		add_definitions(-DHAVE_DIRECTSHOW)
-		list(APPEND VOIP_SOURCE_FILES
-			videofilters/msdscap-mingw.cc
-			videofilters/drawdib-display.c
-		)
-		set_source_files_properties(videofilters/msdscap-mingw.cc PROPERTIES LANGUAGE CXX)
-	endif(WIN32)
-	if(APPLE)
+	endif()
+	if(GLX_FOUND)
 		list(APPEND VOIP_SOURCE_FILES
 			utils/opengles_display.c
-			utils/opengles_display.h
 			utils/shaders.c
-			utils/shaders.h
-			videofilters/msosxdisplay.m
-			videofilters/qtcapture.m
+			videofilters/glxvideo.c
 		)
-	endif(APPLE)
-endif(MS2_ENABLE_VIDEO)
+	endif()
+	if(SDL_FOUND)
+		list(APPEND VOIP_SOURCE_FILES videofilters/videoout.c)
+	endif()
+	if(THEORA_FOUND)
+		list(APPEND VOIP_SOURCE_FILES videofilters/theora.c)
+	endif()
+	if(VPX_FOUND)
+		list(APPEND VOIP_SOURCE_FILES
+			videofilters/vp8.c
+			voip/vp8rtpfmt.c
+			voip/vp8rtpfmt.h
+		)
+	endif()
+	if(X11_FOUND)
+		list(APPEND VOIP_SOURCE_FILES utils/x11_helper.c)
+	endif()
+	if(XV_FOUND)
+		list(APEEND VOIP_SOURCE_FILES videofilters/x11video.c)
+	endif()
+endif()
 
 set(VOIP_GENERATED_SOURCE_FILES
 	${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h
 )
-execute_process(
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND ${AWK_PROGRAM} -f ../extract-filters-names.awk ${VOIP_SOURCE_FILES}
-	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.txt
-)
-execute_process(
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND ${AWK_PROGRAM} -f ../define-filters.awk
-	INPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.txt
-	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp1.h
-)
-execute_process(
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND ${AWK_PROGRAM} -f ../define-ms_voip_filter_descs.awk
-	INPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.txt
-	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp2.h
-)
-file(READ ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp1.h VOIPDESCS1)
-file(READ ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp2.h VOIPDESCS2)
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h "${VOIPDESCS1}${VOIPDESCS2}")
+set_source_files_properties(${VOIP_GENERATED_SOURCE_FILES} PROPERTIES GENERATED TRUE)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h
+	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR=${CMAKE_CURRENT_SOURCE_DIR}/../
+		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+		-DTYPE=voip -DSOURCE_FILES="${VOIP_SOURCE_FILES}"
+		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake)
 
-if(APPLE)
-list(APPEND VOIP_GENERATED_SOURCE_FILES
-	${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
-	${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
-)
-execute_process(
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND xxd -i yuv2rgb.fs | sed s/}\;/,0x00}\;/
-	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
-)
-execute_process(
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/
-	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
-)
-endif(APPLE)
+# if(APPLE)
+# list(APPEND VOIP_GENERATED_SOURCE_FILES
+	# ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
+	# ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
+# )
+# execute_process(
+	# WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	# COMMAND xxd -i yuv2rgb.fs | sed s/}\;/,0x00}\;/
+	# OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
+# )
+# execute_process(
+	# WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	# COMMAND xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/
+	# OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
+# )
+# endif(APPLE)
 
-if(WIN32)
-	set(VOIP_LIBS ws2_32 ole32 oleaut32 winmm uuid)
-	if(MS2_ENABLE_VIDEO)
-		list(APPEND VOIP_LIBS gdi32 user32)
-	endif(MS2_ENABLE_VIDEO)
-endif(WIN32)
-list(APPEND VOIP_LIBS
+
+set(VOIP_LIBS
 	${LIBGCC}
 	${LIBMINGWEX}
-	${LIBSRTP}
-	${LIBORTP}
+	${ORTP_LIBRARIES}
 	mediastreamer_base
 )
-if(MS2_ENABLE_GSM)
-	list(APPEND VOIP_LIBS ${LIBGSM})
-endif(MS2_ENABLE_GSM)
-if(MS2_ENABLE_OPUS)
-	list(APPEND VOIP_LIBS ${LIBOPUS})
-endif(MS2_ENABLE_OPUS)
-if(MS2_ENABLE_SPEEX)
-	list(APPEND VOIP_LIBS
-		${LIBSPEEX}
-		${LIBSPEEXDSP}
-	)
-endif(MS2_ENABLE_SPEEX)
-if(MS2_ENABLE_VIDEO)
-	if(MS2_ENABLE_FFMPEG)
-		list(APPEND VOIP_LIBS
-			${LIBAVCODEC}
-			${LIBAVUTIL}
-			${LIBSWSCALE}
-		)
-		if(WIN32)
-			list(APPEND VOIP_LIBS vfw32)
-		endif(WIN32)
-	endif(MS2_ENABLE_FFMPEG)
-	if(MS2_ENABLE_VPX)
-		list(APPEND VOIP_LIBS ${LIBVPX})
-	endif(MS2_ENABLE_VPX)
-	if(APPLE)
-		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework Cocoa -framework OpenGL -framework QuartzCore")
-	endif(APPLE)
-endif(MS2_ENABLE_VIDEO)
+if(WIN32)
+	list(APPEND VOIP_LIBS ole32 oleaut32 uuid)
+	if(ENABLE_VIDEO)
+		list(APPEND VOIP_LIBS gdi32 user32 vfw32)
+	endif(ENABLE_VIDEO)
+endif()
+if(HAVE_DLOPEN)
+	list(APPEND VOIP_LIBS dl)
+endif()
+if(ENABLE_MACSND)
+	list(APPEND CMAKE_SHARED_LINKER_FLAGS "-framework Carbon" "-framework AudioUnit")
+endif()
+if(GSM_FOUND)
+	list(APPEND VOIP_LIBS ${GSM_LIBRARIES})
+endif()
+if(OPUS_FOUND)
+	list(APPEND VOIP_LIBS ${OPUS_LIBRARIES})
+endif()
+if(SPEEX_FOUND)
+	list(APPEND VOIP_LIBS ${SPEEX_LIBRARIES})
+endif()
+if(ALSA_FOUND)
+	list(APPEND VOIP_LIBS ${ALSA_LIBRARIES})
+endif()
+if(ARTS_FOUND)
+	list(APPEND VOIP_LIBS ${ARTS_LIBRARIES})
+endif()
+if(PORTAUDIO_FOUND)
+	list(APPEND VOIP_LIBS ${PORTAUDIO_LIBRARIES})
+endif()
+if(PULSEAUDIO_FOUND)
+	list(APPEND VOIP_LIBS ${PULSEAUDIO_LIBRARIES})
+endif()
+if(QSA_FOUND)
+	list(APPEND VOIP_LIBS ${QSA_LIBRARIES})
+endif()
+if(FFMPEG_FOUND)
+	list(APPEND VOIP_LIBS ${FFMPEG_LIBRARIES})
+	if(MSVC)
+		add_definitions(-Dinline=__inline)
+	endif()
+endif()
+if(X11_FOUND)
+	list(APPEND VOIP_LIBS ${X11_LIBRARIES})
+endif()
+if(XV_FOUND)
+	list(APPEND VOIP_LIBS ${XV_LIBRARIES})
+endif()
+if(GLX_FOUND)
+	list(APPEND VOIP_LIBS ${GLX_LIBRARIES})
+endif()
+if(VPX_FOUND)
+	list(APPEND VOIP_LIBS ${VPX_LIBRARIES})
+endif()
 
-add_library(mediastreamer_voip SHARED ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
-set_target_properties(mediastreamer_voip PROPERTIES VERSION 2.10.0 SOVERSION 3 LINKER_LANGUAGE CXX)
-
-target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
+if(ENABLE_STATIC)
+	add_library(mediastreamer_voip STATIC ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
+	target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
+else()
+	add_library(mediastreamer_voip SHARED ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
+	set_target_properties(mediastreamer_voip PROPERTIES VERSION ${MEDIASTREAMER_VERSION} SOVERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE CXX)
+	target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
+	if(MSVC)
+		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/mediastreamer_voip.pdb
+				DESTINATION bin
+				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+			)
+		endif()
+	endif()
+endif()
 
 install(TARGETS mediastreamer_voip
 	RUNTIME DESTINATION bin
@@ -376,11 +386,17 @@ install(TARGETS mediastreamer_voip
 	ARCHIVE DESTINATION lib
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
-if(WIN32)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/mediastreamer_voip.pdb
-	DESTINATION bin
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-)
+
+if(ENABLE_VIDEO)
+	install(FILES voip/nowebcamCIF.jpg
+		DESTINATION ${PACKAGE_DATA_DIR}/images
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+	)
 endif()
-endif(WIN32)
+
+
+# if(MS2_ENABLE_VIDEO)
+	# if(APPLE)
+		# set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework Cocoa -framework OpenGL -framework QuartzCore")
+	# endif(APPLE)
+# endif(MS2_ENABLE_VIDEO)

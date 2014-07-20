@@ -1,5 +1,5 @@
 ############################################################################
-# CMakeLists.txt
+# FindOpus.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,9 +19,37 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the opus include file and library
+#
+#  OPUS_FOUND - system has opus
+#  OPUS_INCLUDE_DIRS - the opus include directory
+#  OPUS_LIBRARIES - The libraries needed to use opus
 
-file(GLOB HEADER_FILES "mediastreamer2/*.h")
+set(_OPUS_ROOT_PATHS
+	${WITH_OPUS}
+	${CMAKE_INSTALL_PREFIX}
+)
 
-install(FILES ${HEADER_FILES}
-        DESTINATION include/mediastreamer2
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+find_path(OPUS_INCLUDE_DIRS
+	NAMES opus/opus.h
+	HINTS _OPUS_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+if(OPUS_INCLUDE_DIRS)
+	set(HAVE_OPUS_OPUS_H 1)
+endif()
+
+find_library(OPUS_LIBRARIES
+	NAMES opus
+	HINTS _OPUS_ROOT_PATHS
+	PATH_SUFFIXES bin lib
+)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Opus
+	DEFAULT_MSG
+	OPUS_INCLUDE_DIRS OPUS_LIBRARIES
+)
+
+mark_as_advanced(OPUS_INCLUDE_DIRS OPUS_LIBRARIES)

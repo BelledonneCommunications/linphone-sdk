@@ -1,5 +1,5 @@
 ############################################################################
-# CMakeLists.txt
+# FindSpeex.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,9 +19,43 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the speex include file and library
+#
+#  SPEEX_FOUND - system has speex
+#  SPEEX_INCLUDE_DIRS - the speex include directory
+#  SPEEX_LIBRARIES - The libraries needed to use speex
 
-file(GLOB HEADER_FILES "mediastreamer2/*.h")
+set(_SPEEX_ROOT_PATHS
+	${WITH_SPEEX}
+	${CMAKE_INSTALL_PREFIX}
+)
 
-install(FILES ${HEADER_FILES}
-        DESTINATION include/mediastreamer2
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+find_path(SPEEX_INCLUDE_DIRS
+	NAMES speex/speex.h
+	HINTS _SPEEX_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+if(SPEEX_INCLUDE_DIRS)
+	set(HAVE_SPEEX_SPEEX_H 1)
+endif()
+
+find_library(SPEEX_LIBRARIES
+	NAMES speex
+	HINTS _SPEEX_ROOT_PATHS
+	PATH_SUFFIXES bin lib
+)
+find_library(SPEEXDSP_LIBRARIES
+	NAMES speexdsp
+	HINTS _SPEEX_ROOT_PATHS
+	PATH_SUFFIXES bin lib
+)
+list(APPEND SPEEX_LIBRARIES ${SPEEXDSP_LIBRARIES})
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Speex
+	DEFAULT_MSG
+	SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES SPEEXDSP_LIBRARIES
+)
+
+mark_as_advanced(SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES)

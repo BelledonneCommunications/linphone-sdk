@@ -20,8 +20,19 @@
 #
 ############################################################################
 
-file(GLOB HEADER_FILES "mediastreamer2/*.h")
-
-install(FILES ${HEADER_FILES}
-        DESTINATION include/mediastreamer2
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+if(GIT_EXECUTABLE)
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} describe --always
+		OUTPUT_VARIABLE GIT_REVISION
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -E echo "#define GIT_VERSION \"${GIT_REVISION}\""
+		OUTPUT_FILE ${OUTPUT_DIR}/gitversion.h
+	)
+else()
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -E echo "#define GIT_VERSION \"unknown\""
+		OUTPUT_FILE ${OUTPUT_DIR}/gitversion.h
+	)
+endif()

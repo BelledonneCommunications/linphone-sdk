@@ -80,17 +80,17 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = . \
-                         ../include/ \
-			 ../src
+INPUT                  = @top_srcdir@/help \
+                         @top_srcdir@/include/ \
+			 @top_srcdir@/src
 FILE_PATTERNS          = *.h \
                          *.c \
                          *.dox
 RECURSIVE              = YES
-EXCLUDE                = ../src/ortp-deps ../src/utils
+EXCLUDE                = @top_srcdir@/src/ortp-deps @top_srcdir@/src/utils
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
-EXAMPLE_PATH           = ..
+EXAMPLE_PATH           = @top_srcdir@
 EXAMPLE_PATTERNS       = 
 EXAMPLE_RECURSIVE      = NO
 IMAGE_PATH             = 

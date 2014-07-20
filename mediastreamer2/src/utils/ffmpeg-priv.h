@@ -49,7 +49,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #  include <libswscale/swscale.h>
 #endif
 
-#if HAVE_LIBAVCODEC_AVCODEC_H
+#if defined(HAVE_LIBAVCODEC_AVCODEC_H)
 #if LIBAVCODEC_VERSION_INT <= AV_VERSION_INT(52,24,0)
 /*should work as long as nobody uses avformat.h*/
 typedef struct AVPacket{

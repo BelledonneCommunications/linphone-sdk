@@ -1,5 +1,5 @@
 ############################################################################
-# CMakeLists.txt
+# FindArts.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,9 +19,43 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the arts include file and library
+#
+#  ARTS_FOUND - system has arts
+#  ARTS_INCLUDE_DIRS - the arts include directory
+#  ARTS_LIBRARIES - The libraries needed to use arts
 
-file(GLOB HEADER_FILES "mediastreamer2/*.h")
+include(CheckSymbolExists)
 
-install(FILES ${HEADER_FILES}
-        DESTINATION include/mediastreamer2
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+set(_ARTS_ROOT_PATHS
+	${WITH_ARTS}
+	${CMAKE_INSTALL_PREFIX}
+)
+
+find_path(ARTS_INCLUDE_DIRS
+	NAMES kde/artsc/artsc.h
+	HINTS _ARTS_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+if(ARTS_INCLUDE_DIRS)
+	set(HAVE_KDE_ARTSC_ARTSC_H 1)
+endif()
+
+find_library(ARTS_LIBRARIES
+	NAMES artsc
+	HINTS _ARTS_ROOT_PATHS
+	PATH_SUFFIXES bin lib
+)
+
+if(ARTS_LIBRARIES)
+	check_symbol_exists(arts_init kde/artsc/artsc.h HAVE_ARTS_INIT)
+endif()
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Arts
+	DEFAULT_MSG
+	ARTS_INCLUDE_DIRS ARTS_LIBRARIES HAVE_ARTS_INIT
+)
+
+mark_as_advanced(ARTS_INCLUDE_DIRS ARTS_LIBRARIES HAVE_ARTS_INIT)

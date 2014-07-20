@@ -1,5 +1,5 @@
 ############################################################################
-# CMakeLists.txt
+# FindPortAudio.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,9 +19,43 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the portaudio include file and library
+#
+#  PORTAUDIO_FOUND - system has portaudio
+#  PORTAUDIO_INCLUDE_DIRS - the portaudio include directory
+#  PORTAUDIO_LIBRARIES - The libraries needed to use portaudio
 
-file(GLOB HEADER_FILES "mediastreamer2/*.h")
+include(CheckSymbolExists)
 
-install(FILES ${HEADER_FILES}
-        DESTINATION include/mediastreamer2
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+set(_PORTAUDIO_ROOT_PATHS
+	${WITH_PORTAUDIO}
+	${CMAKE_INSTALL_PREFIX}
+)
+
+find_path(PORTAUDIO_INCLUDE_DIRS
+	NAMES portaudio.h
+	HINTS _PORTAUDIO_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+if(PORTAUDIO_INCLUDE_DIRS)
+	set(HAVE_PORTAUDIO_H 1)
+endif()
+
+find_library(PORTAUDIO_LIBRARIES
+	NAMES portaudio
+	HINTS _PORTAUDIO_ROOT_PATHS
+	PATH_SUFFIXES bin lib
+)
+
+if(PORTAUDIO_LIBRARIES)
+	check_symbol_exists(Pa_Initialize portaudio.h HAVE_PA_INITIALIZE)
+endif()
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(PortAudio
+	DEFAULT_MSG
+	PORTAUDIO_INCLUDE_DIRS PORTAUDIO_LIBRARIES HAVE_PA_INITIALIZE
+)
+
+mark_as_advanced(PORTAUDIO_INCLUDE_DIRS PORTAUDIO_LIBRARIES HAVE_PA_INITIALIZE)

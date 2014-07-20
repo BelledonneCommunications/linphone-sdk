@@ -1,5 +1,5 @@
 ############################################################################
-# CMakeLists.txt
+# FindGSM.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,9 +19,37 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the gsm include file and library
+#
+#  GSM_FOUND - system has gsm
+#  GSM_INCLUDE_DIRS - the gsm include directory
+#  GSM_LIBRARIES - The libraries needed to use gsm
 
-file(GLOB HEADER_FILES "mediastreamer2/*.h")
+set(_GSM_ROOT_PATHS
+	${WITH_GSM}
+	${CMAKE_INSTALL_PREFIX}
+)
 
-install(FILES ${HEADER_FILES}
-        DESTINATION include/mediastreamer2
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+find_path(GSM_INCLUDE_DIRS
+	NAMES gsm/gsm.h
+	HINTS _GSM_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+if(GSM_INCLUDE_DIRS)
+	set(HAVE_GSM_GSM_H 1)
+endif()
+
+find_library(GSM_LIBRARIES
+	NAMES gsm
+	HINTS _GSM_ROOT_PATHS
+	PATH_SUFFIXES bin lib
+)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(GSM
+	DEFAULT_MSG
+	GSM_INCLUDE_DIRS GSM_LIBRARIES
+)
+
+mark_as_advanced(GSM_INCLUDE_DIRS GSM_LIBRARIES)
