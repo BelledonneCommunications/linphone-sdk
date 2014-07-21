@@ -350,6 +350,7 @@ static void x11video_process(MSFilter *f){
 	MSPicture src={0};
 	MSRect mainrect,localrect;
 	bool_t precious=FALSE;
+	bool_t local_precious=FALSE;
 	XWindowAttributes wa;
 
 	if ((obj->window_id == 0) || (x11_error == TRUE)) goto end;
@@ -408,6 +409,7 @@ static void x11video_process(MSFilter *f){
 		if (ms_yuv_buf_init_from_mblk(&lsrc,inm)==0){
 			obj->lsize.width=lsrc.w;
 			obj->lsize.height=lsrc.h;
+			local_precious=mblk_get_precious_flag(inm);
 			update=1;
 		}
 	}
@@ -423,7 +425,8 @@ static void x11video_process(MSFilter *f){
 			obj->sws2=ms_scaler_create_context(lsrc.w,lsrc.h,MS_YUV420P,localrect.w,localrect.h,MS_YUV420P,
 			                             MS_SCALER_METHOD_BILINEAR);
 		}
-		ms_scaler_process (obj->sws2,lsrc.planes,lsrc.strides,obj->local_pic.planes,obj->local_pic.strides);
+		ms_scaler_process(obj->sws2,lsrc.planes,lsrc.strides,obj->local_pic.planes,obj->local_pic.strides);
+		if (!local_precious) ms_yuv_buf_mirror(&obj->local_pic);
 	}
 
 	if (update && src.w!=0){
