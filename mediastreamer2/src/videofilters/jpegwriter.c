@@ -61,7 +61,7 @@ static int take_snapshot(MSFilter *f, void *arg){
 		fclose(s->file);
 		s->file=NULL;
 	}
-	s->file=fopen(filename,"w");
+	s->file=fopen(filename,"wb");
 	if (s->file==NULL){
 		ms_error("Could not open %s",filename);
 		return -1;
