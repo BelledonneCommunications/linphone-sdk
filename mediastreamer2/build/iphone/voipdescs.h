@@ -7,7 +7,6 @@ extern MSFilterDesc ms_ulaw_enc_desc;
 extern MSFilterDesc ms_rtp_send_desc;
 extern MSFilterDesc ms_rtp_recv_desc;
 extern MSFilterDesc ms_dtmf_gen_desc;
-extern MSFilterDesc ms_conf_desc;
 extern MSFilterDesc ms_volume_desc;
 extern MSFilterDesc ms_equalizer_desc;
 extern MSFilterDesc ms_channel_adapter_desc;
@@ -57,7 +56,6 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_rtp_send_desc,
 &ms_rtp_recv_desc,
 &ms_dtmf_gen_desc,
-&ms_conf_desc,
 &ms_volume_desc,
 &ms_equalizer_desc,
 &ms_channel_adapter_desc,
