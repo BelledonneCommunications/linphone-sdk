@@ -215,6 +215,7 @@ static void glxvideo_process(MSFilter *f){
 	}
 	if (f->inputs[1]!=NULL && (inm=ms_queue_peek_last(f->inputs[1]))!=0) {
 		if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
+			if (!mblk_get_precious_flag(inm)) ms_yuv_buf_mirror(&src);
 			ogl_display_set_preview_yuv_to_display(obj->glhelper, inm);
 		}
 	}
