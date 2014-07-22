@@ -451,7 +451,10 @@ static void sound_read_preprocess(MSFilter *f){
 			return;
 		}
 		sessionId = env->CallIntMethod(d->audio_record,getsession_id);
-		if (sessionId==-1) return;
+		ms_message("AudioRecord.getAudioSessionId() returned %i", sessionId);
+		if (sessionId==-1) {
+			return;
+		}
 		d->aec = enable_hardware_echo_canceller(env, sessionId);
 	}
 }

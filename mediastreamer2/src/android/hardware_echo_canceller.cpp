@@ -24,6 +24,7 @@ jobject enable_hardware_echo_canceller(JNIEnv *env, int sessionId) {
 	jobject aec = NULL;
 	jclass aecClass = env->FindClass("android/media/audiofx/AcousticEchoCanceler");
 	if (aecClass==NULL){
+		ms_error("Couldn't find android/media/audiofx/AcousticEchoCanceler class !");
 		env->ExceptionClear(); //very important.
 		return NULL;
 	}
@@ -53,17 +54,25 @@ jobject enable_hardware_echo_canceller(JNIEnv *env, int sessionId) {
 								} else {
 									ms_message("AcousticEchoCanceler enabled");
 								}
+							} else {
+								ms_warning("AcousticEchoCanceler already enabled");
 							}
+						} else {
+							ms_error("Couldn't find either getEnabled or setEnabled method in AudioEffect class for AcousticEchoCanceler !");
 						}
 						env->DeleteLocalRef(effectClass);
+					} else {
+						ms_error("Couldn't find android/media/audiofx/AudioEffect class !");
 					}
 				}else{
-					ms_error("Failed to create AcousticEchoCanceler.");
+					ms_error("Failed to create AcousticEchoCanceler !");
 				}
 			}else{
 				ms_error("create() not found in class AcousticEchoCanceler !");
 				env->ExceptionClear(); //very important.
 			}
+		} else {
+			ms_error("AcousticEchoCanceler isn't available !");
 		}
 	}else{
 		ms_error("isAvailable() not found in class AcousticEchoCanceler !");

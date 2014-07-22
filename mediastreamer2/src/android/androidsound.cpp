@@ -343,8 +343,11 @@ static void android_snd_read_activate_hardware_aec(MSFilter *obj){
 	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
 	JNIEnv *env=ms_get_jni_env();
 	int sessionId=ad->rec->getSessionId();
+	ms_message("AudioRecord.getAudioSessionId() returned %i", sessionId);
 	
-	if (sessionId==-1) return;
+	if (sessionId==-1) {
+		return;
+	}
 	
 	ad->aec = enable_hardware_echo_canceller(env, sessionId);
 }
