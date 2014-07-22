@@ -1014,6 +1014,12 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 
 	stream->source = ms_web_cam_create_reader(device);
 
+	/* Transmit orientation to source filter. */
+	ms_filter_call_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, &stream->device_orientation);
+	/* Initialize the capture device orientation. */
+	if (ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
+		ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, &stream->device_orientation);
+	}
 
 	/* configure the filters */
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
@@ -1044,6 +1050,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
+
 	/* create the ticker */
 	stream->ms.sessions.ticker = ms_ticker_new();
 	ms_ticker_set_name(stream->ms.sessions.ticker,"Video MSTicker");
