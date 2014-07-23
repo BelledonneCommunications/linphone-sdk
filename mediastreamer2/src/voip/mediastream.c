@@ -587,6 +587,10 @@ MSStreamState media_stream_get_state(const MediaStream *stream) {
 	return stream->state;
 }
 
+RtpSession * media_stream_get_rtp_session(const MediaStream *stream) {
+	return stream->sessions.rtp_session;
+}
+
 #define keywordcmp(key,b) strncmp(key,b,sizeof(key))
 
 /* see  http://www.iana.org/assignments/sdp-security-descriptions/sdp-security-descriptions.xhtml#sdp-security-descriptions-3 */

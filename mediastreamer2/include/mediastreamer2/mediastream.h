@@ -196,6 +196,12 @@ MS2_PUBLIC bool_t media_stream_avpf_enabled(const MediaStream *stream);
  */
 MS2_PUBLIC uint16_t media_stream_get_avpf_rr_interval(const MediaStream *stream);
 
+/**
+ * Gets the RTP session of the media stream.
+ * @param[in] stream #MediaStream object.
+ * @return The RTP session of the media stream.
+ */
+MS2_PUBLIC RtpSession * media_stream_get_rtp_session(const MediaStream *stream);
 
 MS2_PUBLIC const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream);
 /* *
@@ -535,6 +541,16 @@ static MS2_INLINE int audio_stream_set_dscp(AudioStream *stream, int dscp) {
 	return media_stream_set_dscp(&stream->ms, dscp);
 }
 
+/**
+ * Gets the RTP session of an audio stream.
+ * @param[in] stream #MediaStream object.
+ * @return The RTP session of the audio stream.
+ */
+static MS2_INLINE RtpSession * audio_stream_get_rtp_session(const AudioStream *stream) {
+	return media_stream_get_rtp_session(&stream->ms);
+}
+
+
 
 /**
  * @}
@@ -720,6 +736,15 @@ static MS2_INLINE void video_stream_get_local_rtp_stats(VideoStream *stream, rtp
 
 static MS2_INLINE int video_stream_set_dscp(VideoStream *stream, int dscp) {
 	return media_stream_set_dscp(&stream->ms, dscp);
+}
+
+/**
+ * Gets the RTP session of a video stream.
+ * @param[in] stream #MediaStream object.
+ * @return The RTP session of the video stream.
+ */
+static MS2_INLINE RtpSession * video_stream_get_rtp_session(const VideoStream *stream) {
+	return media_stream_get_rtp_session(&stream->ms);
 }
 
 /**
