@@ -142,7 +142,7 @@ void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
 	 * We limit this dead channel reporting to REGISTER transactions, who are unlikely to be unresponded.
 	**/
 	belle_sip_warning("Transaction [%p] reporting timeout, reporting to channel.",t);
-	
+
 	if (strcmp(belle_sip_request_get_method(t->request),"REGISTER")==0 && belle_sip_channel_notify_timeout(t->channel)==TRUE){
 		t->timed_out=TRUE;
 	}else {
@@ -191,11 +191,11 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 void belle_sip_server_transaction_init(belle_sip_server_transaction_t *t, belle_sip_provider_t *prov,belle_sip_request_t *req){
 	const char *branch;
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header((belle_sip_message_t*)req,"via"));
-	
+
 	branch=belle_sip_header_via_get_branch(via);
 	if (branch==NULL){
 		branch=req->rfc2543_branch;
-		if (branch==NULL) belle_sip_fatal("No computed branch for RFC2543 style of message, this should never happen."); 
+		if (branch==NULL) belle_sip_fatal("No computed branch for RFC2543 style of message, this should never happen.");
 	}
 	t->base.branch_id=belle_sip_strdup(branch);
 	belle_sip_transaction_init((belle_sip_transaction_t*)t,prov,req);
@@ -207,7 +207,7 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 	belle_sip_header_to_t *to=(belle_sip_header_to_t*)belle_sip_message_get_header((belle_sip_message_t*)resp,"to");
 	belle_sip_dialog_t *dialog=base->dialog;
 	int status_code;
-	
+
 	belle_sip_object_ref(resp);
 	if (!base->last_response){
 		belle_sip_hop_t* hop=belle_sip_response_get_return_hop(resp);
@@ -331,7 +331,7 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 	belle_sip_provider_t *prov=t->base.provider;
 	belle_sip_dialog_t *dialog=t->base.dialog;
 	int result=-1;
-	
+
 	if (t->base.state!=BELLE_SIP_TRANSACTION_INIT){
 		belle_sip_error("belle_sip_client_transaction_send_request: bad state.");
 		return -1;
@@ -347,7 +347,7 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 		t->preset_route=outbound_proxy;
 		belle_sip_object_ref(t->preset_route);
 	}
-	
+
 	if (t->base.request->dialog_queued){
 		/*this request was created by belle_sip_dialog_create_queued_request().*/
 		if (belle_sip_dialog_request_pending(dialog)){
@@ -362,11 +362,11 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 			belle_sip_dialog_update_request(dialog,req);
 		}
 	}
-	
+
 	if (dialog){
 		belle_sip_dialog_update(dialog,(belle_sip_transaction_t*)t,BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t));
 	}
-	
+
 	if (!t->next_hop) {
 		if (t->preset_route) {
 			t->next_hop=belle_sip_hop_new_from_uri(t->preset_route);
@@ -469,7 +469,7 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 	belle_sip_client_transaction_t *t=(belle_sip_client_transaction_t*)l;
 	belle_sip_io_error_event_t ev;
 	belle_sip_transaction_state_t tr_state=belle_sip_transaction_get_state((belle_sip_transaction_t*)t);
-	
+
 	belle_sip_message("transaction [%p] channel state changed to [%s]"
 						,t
 						,belle_sip_channel_state_to_string(state));
@@ -493,7 +493,7 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 			}
 			if (t->base.timed_out)
 				notify_timeout((belle_sip_transaction_t*)t);
-			
+
 			belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(t));
 		break;
 		default:
@@ -530,7 +530,7 @@ void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, bell
 	if (!via){
 		belle_sip_fatal("belle_sip_client_transaction_init(): No via in request.");
 	}
-	
+
 	if (strcmp(belle_sip_request_get_method(req),"CANCEL")!=0){
 		obj->base.branch_id=belle_sip_strdup_printf(BELLE_SIP_BRANCH_MAGIC_COOKIE ".%s",belle_sip_random_token(token,sizeof(token)));
 		belle_sip_header_via_set_branch(via,obj->base.branch_id);
@@ -544,7 +544,7 @@ belle_sip_refresher_t* belle_sip_client_transaction_create_refresher(belle_sip_c
 	return belle_sip_refresher_new(t);
 }
 
-belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos) {
+belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos,const char* realm) {
 	belle_sip_request_t* initial_request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(t));
 	belle_sip_request_t* req=belle_sip_request_clone_with_body(initial_request);
 	belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(req,belle_sip_header_cseq_t);
@@ -562,7 +562,7 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
 	belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_PROXY_AUTHORIZATION);
 
 	/*put auth header*/
-	belle_sip_provider_add_authorization(t->base.provider,req,t->base.last_response,NULL,auth_infos);
+	belle_sip_provider_add_authorization(t->base.provider,req,t->base.last_response,NULL,auth_infos,realm);
 	return req;
 }
 

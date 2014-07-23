@@ -62,11 +62,12 @@ BELLESIP_EXPORT void belle_sip_provider_clean_channels(belle_sip_provider_t *p);
  * @param request to be updated
  * @param resp response to take authentication values from, might be NULL
  * @param from_uri optional - an uri to use instead of the from of the request, which can be anonymous.
- * @param auth_infos  A newly allocated belle_sip_auth_info_t object is added to this list. These object contains useful information like realm and username.
+ * @param auth_infos optional - A newly allocated belle_sip_auth_info_t object is added to this list. These object contains useful information like realm and username.
+ * @param realm optional - If an outbound proxy realm is used, nounce can be reused from previous request to avoid re-authentication.
  * @returns 0 in case of success,
  *
  **/
-BELLESIP_EXPORT int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp, belle_sip_uri_t *from_uri, belle_sip_list_t** auth_infos);
+BELLESIP_EXPORT int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp, belle_sip_uri_t *from_uri, belle_sip_list_t** auth_infos, const char* realm);
 
 /**
  * Can be used to simulate network recv error, for tests.
@@ -110,7 +111,7 @@ BELLESIP_EXPORT int belle_sip_provider_is_rport_enabled(belle_sip_provider_t *pr
 
 /**
  * Enable discovery of NAT's public address and port during SIP exchanges.
- * When activated, automatic contacts ( see belle_sip_header_contact_set_automatic() ) 
+ * When activated, automatic contacts ( see belle_sip_header_contact_set_automatic() )
  * will use discovered public IP address and port (if any) instead of local ones.
  * NAT public address and port are discovered using received and rport parameters in via header of responses.
  * As a result, disabling rport ( see  belle_sip_provider_enable_rport() ) will also break this feature.

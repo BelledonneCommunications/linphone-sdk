@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <stdio.h>
@@ -75,18 +75,22 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 	belle_sip_message("process_response_event [%i] [%s]"
 					,status=belle_sip_response_get_status_code(belle_sip_response_event_get_response(event))
 					,belle_sip_response_get_reason_phrase(belle_sip_response_event_get_response(event)));
-	if (status==401) {
+
+
+	if (status==401){
 		belle_sip_header_cseq_t* cseq;
 		belle_sip_client_transaction_t *t;
 		belle_sip_uri_t *dest;
-		
-		CU_ASSERT_NOT_EQUAL_FATAL(number_of_challenge,2);
+		// CU_ASSERT_NOT_EQUAL_FATAL(number_of_challenge,2);
 		CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_client_transaction(event)); /*require transaction mode*/
 		dest=belle_sip_client_transaction_get_route(belle_sip_response_event_get_client_transaction(event));
 		request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(belle_sip_response_event_get_client_transaction(event)));
 		cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CSEQ);
 		belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
-		CU_ASSERT_TRUE_FATAL(belle_sip_provider_add_authorization(prov,request,belle_sip_response_event_get_response(event),NULL,NULL));
+		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_AUTHORIZATION);
+		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_PROXY_AUTHORIZATION);
+		CU_ASSERT_TRUE_FATAL(belle_sip_provider_add_authorization(prov,request,belle_sip_response_event_get_response(event),NULL,NULL,auth_domain));
+
 		t=belle_sip_provider_create_client_transaction(prov,request);
 		belle_sip_client_transaction_send_request_to(t,dest);
 		number_of_challenge++;
@@ -186,7 +190,7 @@ int register_init(void) {
 	stack=belle_sip_stack_new(NULL);
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"UDP");
 	prov=belle_sip_stack_create_provider(stack,lp);
-	
+
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"TCP");
 	belle_sip_provider_add_listening_point(prov,lp);
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7061,"TLS");
@@ -236,9 +240,7 @@ void unregister_user(belle_sip_stack_t * stack
 	belle_sip_header_expires_set_expires(expires_header,0);
 	if (use_transaction){
 		belle_sip_client_transaction_t *t;
-		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_AUTHORIZATION);
-		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_PROXY_AUTHORIZATION);
-		belle_sip_provider_add_authorization(prov,req,NULL,NULL,NULL); /*just in case*/
+		belle_sip_provider_add_authorization(prov,req,NULL,NULL,NULL,NULL); /*just in case*/
 		t=belle_sip_provider_create_client_transaction(prov,req);
 		belle_sip_client_transaction_send_request(t);
 	}else belle_sip_provider_send_request(prov,req);
@@ -250,19 +252,19 @@ void unregister_user(belle_sip_stack_t * stack
 }
 
 belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
-					,belle_sip_provider_t *prov
-					,const char *transport
-					,int use_transaction
-					,const char* username
-					,const char* domain
-					,const char* outbound_proxy
-					,int success_expected) {
+	,belle_sip_provider_t *prov
+	,const char *transport
+	,int use_transaction
+	,const char* username
+	,const char* domain
+	,const char* outbound_proxy
+	,int success_expected) {
 	belle_sip_request_t *req,*copy;
 	char identity[256];
 	char uri[256];
 	int i;
 	char *outbound=NULL;
-	
+
 	number_of_challenge=0;
 	if (transport)
 		snprintf(uri,sizeof(uri),"sip:%s;transport=%s",domain,transport);
@@ -272,7 +274,7 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 		belle_sip_error("No TLS support, test skipped.");
 		return NULL;
 	}
-	
+
 	if (outbound_proxy){
 		if (strstr(outbound_proxy,"sip:")==NULL && strstr(outbound_proxy,"sips:")==NULL){
 			outbound=belle_sip_strdup_printf("sip:%s",outbound_proxy);
@@ -281,14 +283,14 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 
 	snprintf(identity,sizeof(identity),"Tester <sip:%s@%s>",username,domain);
 	req=belle_sip_request_create(
-	                    belle_sip_uri_parse(uri),
-	                    "REGISTER",
-	                    belle_sip_provider_create_call_id(prov),
-	                    belle_sip_header_cseq_create(20,"REGISTER"),
-	                    belle_sip_header_from_create2(identity,BELLE_SIP_RANDOM_TAG),
-	                    belle_sip_header_to_create2(identity,NULL),
-	                    belle_sip_header_via_new(),
-	                    70);
+						belle_sip_uri_parse(uri),
+						"REGISTER",
+						belle_sip_provider_create_call_id(prov),
+						belle_sip_header_cseq_create(20,"REGISTER"),
+						belle_sip_header_from_create2(identity,BELLE_SIP_RANDOM_TAG),
+						belle_sip_header_to_create2(identity,NULL),
+						belle_sip_header_via_new(),
+						70);
 	is_register_ok=0;
 	io_error_count=0;
 	using_transaction=0;
@@ -332,7 +334,7 @@ belle_sip_request_t* register_user(belle_sip_stack_t * stack
 
 static void register_with_outbound(const char *transport, int use_transaction,const char* outbound ) {
 	belle_sip_request_t *req;
-	
+
 	req=register_user(stack, prov, transport,use_transaction,"tester",outbound);
 	if (req) {
 		unregister_user(stack,prov,req,use_transaction);
@@ -421,18 +423,18 @@ static void test_bad_request(void) {
 
 	cbs.process_io_error=bad_req_process_io_error;
 	cbs.process_response_event=bad_req_process_response_event;
-	
+
 	bad_req_listener = belle_sip_listener_create_from_callbacks(&cbs,&bad_request_response_received);
 
 	req=belle_sip_request_create(
-	                    BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_address_get_uri(route_address)))),
-	                    "REGISTER",
-	                    belle_sip_provider_create_call_id(prov),
-	                    belle_sip_header_cseq_create(20,"REGISTER"),
-	                    belle_sip_header_from_create2("sip:toto@titi.com",BELLE_SIP_RANDOM_TAG),
-	                    to,
-	                    belle_sip_header_via_new(),
-	                    70);
+						BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_address_get_uri(route_address)))),
+						"REGISTER",
+						belle_sip_provider_create_call_id(prov),
+						belle_sip_header_cseq_create(20,"REGISTER"),
+						belle_sip_header_from_create2("sip:toto@titi.com",BELLE_SIP_RANDOM_TAG),
+						to,
+						belle_sip_header_via_new(),
+						70);
 
 	belle_sip_uri_set_transport_param(belle_sip_header_address_get_uri(route_address),"tcp");
 	route = belle_sip_header_route_create(route_address);
@@ -448,7 +450,7 @@ static void test_bad_request(void) {
 	CU_ASSERT_TRUE(bad_request_response_received==1);
 	belle_sip_provider_remove_sip_listener(prov,bad_req_listener);
 	belle_sip_object_unref(bad_req_listener);
-	
+
 	belle_sip_listening_point_clean_channels(lp);
 }
 
@@ -559,6 +561,125 @@ static void register_dns_load_balancing(void) {
 	if (req) belle_sip_object_unref(req);
 }
 
+static void process_message_response_event(void *user_ctx, const belle_sip_response_event_t *event){
+	int status;
+	BELLESIP_UNUSED(user_ctx);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_response(event));
+	belle_sip_message("process_response_event [%i] [%s]"
+					,status=belle_sip_response_get_status_code(belle_sip_response_event_get_response(event))
+					,belle_sip_response_get_reason_phrase(belle_sip_response_event_get_response(event)));
+
+	if (status >= 200){
+		is_register_ok=status;
+		belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
+	}
+}
+static belle_sip_request_t* send_message(belle_sip_request_t *initial_request, const char* realm){
+	int i;
+	int io_error_count=0;
+	belle_sip_request_t *message_request=NULL;
+	belle_sip_request_t *clone_request=NULL;
+	// belle_sip_header_authorization_t * h=NULL;
+
+	is_register_ok = 0;
+
+	message_request=belle_sip_request_create(
+								belle_sip_uri_parse("sip:sip.linphone.org;transport=tcp")
+								,"MESSAGE"
+								,belle_sip_provider_create_call_id(prov)
+								,belle_sip_header_cseq_create(22,"MESSAGE")
+								,belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(initial_request), belle_sip_header_from_t)
+								,belle_sip_header_to_parse("To: sip:marie@sip.linphone.org")
+								,belle_sip_header_via_new()
+								,70);
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(message_request),BELLE_SIP_HEADER(belle_sip_header_expires_create(600)));
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(message_request),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
+	belle_sip_provider_add_authorization(prov,message_request,NULL,NULL,NULL,realm);
+	// h = belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(message_request), belle_sip_header_authorization_t);
+	/*if a matching authorization was found, use it as a proxy authorization*/
+	// if (h != NULL){
+	// 	belle_sip_header_set_name(BELLE_SIP_HEADER(h), BELLE_SIP_PROXY_AUTHORIZATION);
+	// }
+	clone_request = (belle_sip_request_t*)belle_sip_object_ref(belle_sip_object_clone((belle_sip_object_t*)message_request));
+	belle_sip_client_transaction_send_request_to(belle_sip_provider_create_client_transaction(prov,message_request),NULL);
+	for(i=0; i<2 && io_error_count==0 &&is_register_ok==0;i++)
+		belle_sip_stack_sleep(stack,5000);
+
+	return clone_request;
+}
+static void reuse_nonce(void) {
+	belle_sip_request_t *register_request;
+
+	register_request=register_user_at_domain(stack, prov, "tcp",1,"marie","sip.linphone.org",NULL);
+	if (register_request) {
+		char * first_nonce_used;
+		belle_sip_header_authorization_t * h = NULL;
+		belle_sip_request_t *message_request;
+		listener_callbacks.process_dialog_terminated=process_dialog_terminated;
+		listener_callbacks.process_io_error=process_io_error;
+		listener_callbacks.process_request_event=process_request_event;
+		listener_callbacks.process_response_event=process_message_response_event;
+		listener_callbacks.process_timeout=process_timeout;
+		listener_callbacks.process_transaction_terminated=process_transaction_terminated;
+		listener_callbacks.process_auth_requested=process_auth_requested;
+		listener_callbacks.listener_destroyed=NULL;
+		listener=belle_sip_listener_create_from_callbacks(&listener_callbacks,NULL);
+
+		belle_sip_provider_add_sip_listener(prov,BELLE_SIP_LISTENER(listener));
+
+		/*currently only one nonce should have been used (the one for the REGISTER)*/
+		CU_ASSERT_EQUAL(belle_sip_list_size(prov->auth_contexts), 1);
+
+		/*this should reuse previous nonce*/
+		message_request=send_message(register_request, auth_domain);
+		CU_ASSERT_EQUAL(is_register_ok, 404);
+		 h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
+					BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
+				));
+		CU_ASSERT_PTR_NOT_NULL_FATAL(h);
+		CU_ASSERT_EQUAL(2, belle_sip_header_authorization_get_nonce_count(h));
+		first_nonce_used = belle_sip_strdup(belle_sip_header_authorization_get_nonce(h));
+
+		belle_sip_object_unref(message_request);
+
+
+		/*new nonce should be created when not using outbound proxy realm*/
+		message_request=send_message(register_request, NULL);
+		CU_ASSERT_EQUAL(is_register_ok, 407);
+		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
+				BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
+			));
+		CU_ASSERT_PTR_NULL_FATAL(h);
+		belle_sip_object_unref(message_request);
+
+
+		/*new nonce should be created here too*/
+		message_request=send_message(register_request, "wrongrealm");
+		CU_ASSERT_EQUAL(is_register_ok, 407);
+		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
+				BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
+			));
+		CU_ASSERT_PTR_NULL_FATAL(h);
+		belle_sip_object_unref(message_request);
+
+
+		/*first nonce created should be reused*/
+		message_request=send_message(register_request, auth_domain);
+		CU_ASSERT_EQUAL(is_register_ok, 404);
+		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
+				BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
+			));
+		CU_ASSERT_PTR_NOT_NULL_FATAL(h);
+		CU_ASSERT_EQUAL(3, belle_sip_header_authorization_get_nonce_count(h));
+		belle_sip_object_unref(message_request);
+
+		belle_sip_provider_remove_sip_listener(prov,BELLE_SIP_LISTENER(listener));
+		unregister_user(stack,prov,register_request,1);
+		belle_sip_object_unref(register_request);
+		belle_sip_free(first_nonce_used);
+	}
+}
+
 
 test_t register_tests[] = {
 	{ "Stateful UDP", stateful_register_udp },
@@ -581,7 +702,8 @@ test_t register_tests[] = {
 	{ "TLS connection to TCP server", test_tls_to_tcp },
 	{ "Register with DNS SRV failover TCP", register_dns_srv_tcp },
 	{ "Register with DNS SRV failover TLS", register_dns_srv_tls },
-	{ "Register with DNS load-balancing", register_dns_load_balancing }
+	{ "Register with DNS load-balancing", register_dns_load_balancing },
+	{ "Nonce reutilization", reuse_nonce }
 };
 
 test_suite_t register_test_suite = {
@@ -591,4 +713,5 @@ test_suite_t register_test_suite = {
 	sizeof(register_tests) / sizeof(register_tests[0]),
 	register_tests
 };
+
 

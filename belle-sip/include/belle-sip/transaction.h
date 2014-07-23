@@ -78,9 +78,10 @@ BELLESIP_EXPORT belle_sip_refresher_t* belle_sip_client_transaction_create_refre
  * <br>This function, update cseq, put route set and try to fill authorization headers. Initial request is not cloned.
  * @param transaction . must be in state completed
  * @param auth_infos  if auth infos cannot be added for an authenticate header,
+ * @param realm optional - If an outbound proxy realm is used, digestion authentication can be optimized.
  * a newly allocated belle_sip_auth_info_t object is added to this list. These object contains useful information like realm and username. May be NULL
  * */
-BELLESIP_EXPORT belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos);
+BELLESIP_EXPORT belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos,const char* realm);
 
 #define BELLE_SIP_TRANSACTION(t) BELLE_SIP_CAST(t,belle_sip_transaction_t)
 #define BELLE_SIP_SERVER_TRANSACTION(t) BELLE_SIP_CAST(t,belle_sip_server_transaction_t)

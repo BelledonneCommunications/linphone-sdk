@@ -320,9 +320,9 @@ static endpoint_t* create_endpoint(const char *ip, int port,const char* transpor
 	endpoint->listener_callbacks=listener_callbacks;
 	endpoint->lp=belle_sip_stack_create_listening_point(endpoint->stack,ip,port,transport);
 	endpoint->connection_family=AF_INET;
-	
+
 	if (endpoint->lp) belle_sip_object_ref(endpoint->lp);
-	
+
 	endpoint->provider=belle_sip_stack_create_provider(endpoint->stack,endpoint->lp);
 	belle_sip_provider_add_sip_listener(endpoint->provider,(endpoint->listener=belle_sip_listener_create_from_callbacks(endpoint->listener_callbacks,endpoint)));
 	sprintf(endpoint->nonce,"%p",endpoint); /*initial nonce*/
@@ -363,7 +363,7 @@ static void refresher_base_with_body(endpoint_t* client
 	uint64_t end;
 	if (client->expire_in_contact) belle_sip_header_contact_set_expires(contact,1);
 
-	
+
 	dest_uri=(belle_sip_uri_t*)belle_sip_object_clone((belle_sip_object_t*)belle_sip_listening_point_get_uri(server->lp));
 	if (client->connection_family==AF_INET6)
 		belle_sip_uri_set_host(dest_uri,"::1");
@@ -403,7 +403,7 @@ static void refresher_base_with_body(endpoint_t* client
 		} else {
 			CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
 			/*update cseq*/
-			req=belle_sip_client_transaction_create_authenticated_request(trans,NULL);
+			req=belle_sip_client_transaction_create_authenticated_request(trans,NULL,NULL);
 			belle_sip_object_unref(trans);
 			trans=belle_sip_provider_create_client_transaction(client->provider,req);
 			belle_sip_object_ref(trans);
@@ -490,7 +490,7 @@ static void subscribe_test(void) {
 	server = create_udp_endpoint(6788,&server_callbacks);
 	server->expire_in_contact=0;
 	server->auth=digest_auth;
-	
+
 	dest_uri=(belle_sip_uri_t*)belle_sip_object_clone((belle_sip_object_t*)belle_sip_listening_point_get_uri(server->lp));
 	belle_sip_uri_set_host(dest_uri,"127.0.0.1");
 	destination_route=belle_sip_header_route_create(belle_sip_header_address_create(NULL,dest_uri));
@@ -516,7 +516,7 @@ static void subscribe_test(void) {
 
 	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
 
-	req=belle_sip_client_transaction_create_authenticated_request(trans,NULL);
+	req=belle_sip_client_transaction_create_authenticated_request(trans,NULL,NULL);
 	belle_sip_object_unref(trans);
 	trans=belle_sip_provider_create_client_transaction(client->provider,req);
 	belle_sip_object_ref(trans);
@@ -629,7 +629,7 @@ static int register_test_with_interfaces(const char *transport, const char *clie
 	client = create_endpoint(client_ip,3452,transport,&client_callbacks);
 	client->connection_family=connection_family;
 	client->register_count=1;
-	
+
 	server = create_endpoint(server_ip,6788,transport,&server_callbacks);
 	server->expire_in_contact=client->expire_in_contact=0;
 	server->auth=none;
@@ -656,7 +656,7 @@ static int register_test_with_random_port(const char *transport, const char *cli
 	client = create_endpoint(client_ip,-1,transport,&client_callbacks);
 	client->connection_family=connection_family;
 	client->register_count=1;
-	
+
 	server = create_endpoint(server_ip,6788,transport,&server_callbacks);
 	server->expire_in_contact=client->expire_in_contact=0;
 	server->auth=none;
