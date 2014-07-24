@@ -319,9 +319,26 @@ static belle_sip_dns_srv_t *srv_elect_one(belle_sip_list_t *srv_list){
 		if (rand_number>=srv->cumulative_weight)
 			return srv;
 	}
-	/*we should not reach this line*/
-	belle_sip_warning("srv_elect_one(): should not happen.");
 	return (belle_sip_dns_srv_t*)srv_list->data;
+}
+
+/*
+ * Order an SRV list with entries having the same priority according to their weight
+ */
+static belle_sip_list_t *srv_elect(belle_sip_list_t **srv_list) {
+	belle_sip_list_t *result = NULL;
+
+	while (*srv_list != NULL) {
+		belle_sip_list_t *it;
+		belle_sip_dns_srv_t *entry = srv_elect_one(*srv_list);
+		result = belle_sip_list_append(result, belle_sip_object_ref(entry));
+		it = belle_sip_list_find(*srv_list, entry);
+		if (it) {
+			*srv_list = belle_sip_list_remove_link(*srv_list, it);
+			belle_sip_free(it);
+		}
+	}
+	return result;
 }
 
 /*
@@ -332,7 +349,7 @@ static belle_sip_list_t *srv_select_by_weight(belle_sip_list_t *srv_list){
 	belle_sip_list_t *elem;
 	belle_sip_dns_srv_t *prev_srv=NULL;
 	belle_sip_list_t *result=NULL;
-	
+
 	for (elem=srv_list;elem!=NULL;elem=elem->next){
 		belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
 		if (prev_srv){
@@ -343,15 +360,14 @@ static belle_sip_list_t *srv_select_by_weight(belle_sip_list_t *srv_list){
 				same_prio=belle_sip_list_insert_sorted(same_prio,srv,srv_sort_weight);
 			}else{
 				if (same_prio){
-					result=belle_sip_list_append(result,belle_sip_object_ref(srv_elect_one(same_prio)));
-					same_prio=NULL;
+					result=belle_sip_list_concat(result,srv_elect(&same_prio));
 				}
 			}
 		}
 		prev_srv=srv;
 	}
 	if (same_prio){
-		result=belle_sip_list_append(result,belle_sip_object_ref(srv_elect_one(same_prio)));
+		result=belle_sip_list_concat(result,srv_elect(&same_prio));
 	}
 	if (result){
 		belle_sip_list_free_with_data(srv_list,belle_sip_object_unref);

@@ -551,6 +551,14 @@ static void register_dns_srv_tls(void){
 	if (req) belle_sip_object_unref(req);
 }
 
+static void register_dns_load_balancing(void) {
+	belle_sip_request_t *req;
+	io_error_count = 0;
+	req = try_register_user_at_domain(stack, prov, "TCP", 1, "tester", client_auth_domain, "sip:belle-sip.net;transport=tcp", 1);
+	CU_ASSERT_TRUE(io_error_count == 0);
+	if (req) belle_sip_object_unref(req);
+}
+
 
 test_t register_tests[] = {
 	{ "Stateful UDP", stateful_register_udp },
@@ -572,7 +580,8 @@ test_t register_tests[] = {
 	{ "TLS connection too long", test_connection_too_long_tls },
 	{ "TLS connection to TCP server", test_tls_to_tcp },
 	{ "Register with DNS SRV failover TCP", register_dns_srv_tcp },
-	{ "Register with DNS SRV failover TLS", register_dns_srv_tls }
+	{ "Register with DNS SRV failover TLS", register_dns_srv_tls },
+	{ "Register with DNS load-balancing", register_dns_load_balancing }
 };
 
 test_suite_t register_test_suite = {
