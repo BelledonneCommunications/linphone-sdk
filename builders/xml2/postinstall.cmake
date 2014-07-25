@@ -20,5 +20,10 @@
 #
 ############################################################################
 
-execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${INSTALL_PREFIX}/lib/libxml2.dll.a" "${INSTALL_PREFIX}/lib/xml2.lib")
+if(EXISTS ${INSTALL_PREFIX}/lib/libxml2.dll.a)
+	execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${INSTALL_PREFIX}/lib/libxml2.dll.a" "${INSTALL_PREFIX}/lib/xml2.lib")
+endif()
+if(EXISTS ${INSTALL_PREFIX}/lib/libxml2.a)
+	execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${INSTALL_PREFIX}/lib/libxml2.a" "${INSTALL_PREFIX}/lib/xml2.lib")
+endif()
 execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${SOURCE_DIR}/builders/xml2/FindXML2.cmake" "${INSTALL_PREFIX}/share/cmake/Modules/FindXML2.cmake")
