@@ -157,17 +157,19 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* p, belle_
 	case 401:
 	case 403:
 	case 407: {
-		const char* nonce = NULL;
-		belle_sip_message_t* req = BELLE_SIP_MESSAGE(belle_sip_transaction_get_request((belle_sip_transaction_t*)t));
-		belle_sip_header_authorization_t* authorization=BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(req, belle_sip_header_proxy_authorization_t));
-		if (authorization==NULL) authorization=belle_sip_message_get_header_by_type(req, belle_sip_header_authorization_t);
-		if (authorization!=NULL){
-			nonce = belle_sip_header_authorization_get_nonce(authorization);
-			if (nonce != NULL){
-				belle_sip_list_t * auth_context_with_nonce = NULL;
-				while ((auth_context_with_nonce = belle_sip_list_find_custom(p->auth_contexts, belle_sip_auth_context_find_by_nonce, nonce)) != NULL){
-					belle_sip_authorization_destroy(auth_context_with_nonce->data);
-					p->auth_contexts = belle_sip_list_delete_link(p->auth_contexts, auth_context_with_nonce);
+		if (t!=NULL){
+			const char* nonce = NULL;
+			belle_sip_message_t* req = BELLE_SIP_MESSAGE(belle_sip_transaction_get_request((belle_sip_transaction_t*)t));
+			belle_sip_header_authorization_t* authorization=BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(req, belle_sip_header_proxy_authorization_t));
+			if (authorization==NULL) authorization=belle_sip_message_get_header_by_type(req, belle_sip_header_authorization_t);
+			if (authorization!=NULL){
+				nonce = belle_sip_header_authorization_get_nonce(authorization);
+				if (nonce != NULL){
+					belle_sip_list_t * auth_context_with_nonce = NULL;
+					while ((auth_context_with_nonce = belle_sip_list_find_custom(p->auth_contexts, belle_sip_auth_context_find_by_nonce, nonce)) != NULL){
+						belle_sip_authorization_destroy(auth_context_with_nonce->data);
+						p->auth_contexts = belle_sip_list_delete_link(p->auth_contexts, auth_context_with_nonce);
+					}
 				}
 			}
 		}
