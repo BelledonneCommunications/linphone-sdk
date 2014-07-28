@@ -609,9 +609,10 @@ static belle_sip_request_t* send_message(belle_sip_request_t *initial_request, c
 }
 static void reuse_nonce(void) {
 	belle_sip_request_t *register_request;
-
+	int initial_auth_context_count=belle_sip_list_size(prov->auth_contexts);
 	register_request=register_user_at_domain(stack, prov, "tcp",1,"marie","sip.linphone.org",NULL);
 	if (register_request) {
+
 		char * first_nonce_used;
 		belle_sip_header_authorization_t * h = NULL;
 		belle_sip_request_t *message_request;
@@ -628,7 +629,7 @@ static void reuse_nonce(void) {
 		belle_sip_provider_add_sip_listener(prov,BELLE_SIP_LISTENER(listener));
 
 		/*currently only one nonce should have been used (the one for the REGISTER)*/
-		CU_ASSERT_EQUAL(belle_sip_list_size(prov->auth_contexts), 1);
+		CU_ASSERT_EQUAL(belle_sip_list_size(prov->auth_contexts), initial_auth_context_count+1);
 
 		/*this should reuse previous nonce*/
 		message_request=send_message(register_request, auth_domain);
