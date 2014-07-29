@@ -982,7 +982,7 @@ static belle_sip_list_t* belle_sip_provider_get_auth_context_by_realm_or_call_id
 	if (result == NULL){
 		const char * from_user=from_uri?belle_sip_uri_get_user(from_uri):NULL;
 
-		belle_sip_debug("belle_sip_provider_auth: no auth_context registered with [call_id=%s], looking for realm..."
+		belle_sip_debug("belle_sip_provider_auth: no auth context registered with [call_id=%s], looking for realm..."
 			, call_id?belle_sip_header_call_id_get_call_id(call_id):"(null)");
 
 		for (auth_context_lst=p->auth_contexts;auth_context_lst!=NULL;auth_context_lst=auth_context_lst->next) {
@@ -1001,7 +1001,7 @@ static belle_sip_list_t* belle_sip_provider_get_auth_context_by_realm_or_call_id
 				&& (from_user && auth_context->user_id && strcmp(auth_context->user_id,from_user)==0)) {
 
 				result=belle_sip_list_append(result,auth_context_lst->data);
-				belle_sip_debug("belle_sip_provider_auth: found a MATCHING realm auth_context!");
+				belle_sip_debug("belle_sip_provider_auth: found a MATCHING realm auth context!");
 			}
 		}
 	}
@@ -1024,7 +1024,7 @@ static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider
 	/*no auth context found, creating one*/
 	auth_context=belle_sip_authorization_create(call_id);
 	belle_sip_debug("belle_sip_provider_auth: no matching auth context, creating one for [realm=%s][user_id=%s][call_id=%s]"
-		, realm?realm:"(null)"
+		, belle_sip_header_www_authenticate_get_realm(authenticate)?belle_sip_header_www_authenticate_get_realm(authenticate):"(null)"
 		, from_uri?belle_sip_uri_get_user(from_uri):"(null)"
 		, call_id?belle_sip_header_call_id_get_call_id(call_id):"(null)");
 	authorization_context_fill_from_auth(auth_context,authenticate,from_uri);
