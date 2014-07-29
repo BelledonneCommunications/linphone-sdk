@@ -16,3 +16,5 @@ Makefile
 Makefile.in
 missing
 
+config.guess
+config.sub
