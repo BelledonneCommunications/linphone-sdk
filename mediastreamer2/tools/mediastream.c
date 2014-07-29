@@ -147,6 +147,7 @@ typedef struct _MediastreamDatas {
 	MediastreamIceCandidate ice_remote_candidates[MEDIASTREAM_MAX_ICE_CANDIDATES];
 	int ice_local_candidates_nb;
 	int ice_remote_candidates_nb;
+	char * video_display_filter;
 } MediastreamDatas;
 
 
@@ -203,6 +204,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --zrtp <secrets file> (enable zrtp) ]\n"
 								"[ --verbose (most verbose messages) ]\n"
 								"[ --video-windows-id <video surface:preview surface>]\n"
+								"[ --video-display-filter <name> ]\n"
 								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)\n"
 								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)\n"
 								"[ --netsim-lossrate <0-100> (simulates a network lost rate)\n"
@@ -326,6 +328,7 @@ MediastreamDatas* init_default_args() {
 	memset(args->ice_local_candidates, 0, sizeof(args->ice_local_candidates));
 	memset(args->ice_remote_candidates, 0, sizeof(args->ice_remote_candidates));
 	args->ice_local_candidates_nb = args->ice_remote_candidates_nb = 0;
+	args->video_display_filter=NULL;
 
 	return args;
 }
@@ -526,6 +529,9 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i],"--help")==0) {
 			printf("%s",usage);
 			return FALSE;
+		} else if (strcmp(argv[i],"--video-display-filter")==0) {
+			i++;
+			out->video_display_filter=argv[i];
 		} else {
 			printf("%s",usage);
 			printf("Unknown option '%s'\n", argv[i]);
@@ -757,6 +763,9 @@ void setup_media_streams(MediastreamDatas* args) {
 		}
 		ms_message("Starting video stream.\n");
 		args->video=video_stream_new(args->localport, args->localport+1, ms_is_ipv6(args->ip));
+		if (args->video_display_filter)
+			video_stream_set_display_filter_name(args->video, args->video_display_filter);
+		
 #ifdef ANDROID
 		if (args->device_rotation >= 0)
 			video_stream_set_device_rotation(args->video, args->device_rotation);
