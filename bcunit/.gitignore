@@ -1,0 +1,15 @@
+*.in
+INSTALL
+configure
+depcomp
+install-sh
+ltmain.sh
+missing
+mkinstalldirs
+aclocal.m4
+autogened
+autom4te.cache/
+compile
+config.guess
+config.sub
+
