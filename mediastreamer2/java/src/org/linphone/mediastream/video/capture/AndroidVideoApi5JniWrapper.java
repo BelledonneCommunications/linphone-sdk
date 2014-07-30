@@ -128,7 +128,7 @@ public class AndroidVideoApi5JniWrapper {
 			exc.printStackTrace(); 
 		}
 	}
-	
+	//select nearest resolution equal or above requested
 	protected static int[] selectNearestResolutionAvailableForCamera(int id, int requestedW, int requestedH) {
 		// inversing resolution since webcams only support landscape ones
 		if (requestedH > requestedW) {
@@ -162,17 +162,17 @@ public class AndroidVideoApi5JniWrapper {
 			int req = rW * rH;
 			int minDist = Integer.MAX_VALUE;
 			int useDownscale = 0;
-			for(Size s: supportedSizes) {
-				int dist = Math.abs(req - s.width * s.height);
-				if (dist < minDist) {
+			for(Size s: supportedSizes) {				
+				int dist = /*Math.abs*/-1*(req - s.width * s.height);
+				if ( ((s.width >= rW && s.height >= rH) || (s.width >= rH && s.height >= rW)) && dist < minDist) {
 					minDist = dist;
 					result = s;
 					useDownscale = 0;
 				}
 				
 				/* MS2 has a NEON downscaler, so we test this too */
-				int downScaleDist = Math.abs(req - s.width * s.height / 4);
-				if (downScaleDist < minDist) {
+				int downScaleDist = /*Math.abs*/-1*(req - s.width * s.height / 4);
+				if (((s.width/2 >= rW && s.height/2 >= rH) || (s.width/2 >= rH && s.height/2 >= rW)) && downScaleDist < minDist) {
 					if (Version.isArmv7() && Version.hasNeon()) {
 						minDist = downScaleDist;
 						result = s;
