@@ -1154,6 +1154,7 @@ static mblk_t *matroska_block_read_frame(Matroska *obj, const uint8_t **codecPri
 			*codecPrivateSize = EBML_ElementDataSize((ebml_element *)codecPrivateElt, FALSE);
 			*codecPrivateData = EBML_BinaryGetData(codecPrivateElt);
 		} else {
+			*codecPrivateSize = 0;
 			*codecPrivateData = NULL;
 		}
 	}
@@ -1439,6 +1440,7 @@ static int matroska_track_get_info(const Matroska *obj, int trackNum, const MSFm
 			}
 			if((codecPrivate = (ebml_binary *)EBML_MasterFindChild(track, &MATROSKA_ContextCodecPrivate)) == NULL) {
 				*codecPrivateData = NULL;
+				*codecPrivateData = 0;
 			} else {
 				*codecPrivateData = EBML_BinaryGetData(codecPrivate);
 				*codecPrivateSize = EBML_ElementDataSize((ebml_element *)codecPrivate, FALSE);
@@ -2208,8 +2210,8 @@ static int player_open_file(MSFilter *f, void *arg) {
 					}
 				}
 				if(obj->trackNumList[i] > 0) {
-					const uint8_t *codecPrivateData;
-					size_t codecPrivateSize;
+					const uint8_t *codecPrivateData = NULL;
+					size_t codecPrivateSize = 0;
 					int err;
 					if((err = matroska_track_get_info(&obj->file, obj->trackNumList[i], &obj->outputDescsList[i], &codecPrivateData, &codecPrivateSize)) < 0) {
 						if(err == -3) {
@@ -2258,7 +2260,7 @@ static void player_process(MSFilter *f) {
 			for(i=0; i < f->desc->noutputs && obj->trackNumList[i] != trackNum; i++);
 			if(i < f->desc->noutputs) {
 				const uint8_t *codecPrivateData = NULL;
-				size_t codecPrivateSize;
+				size_t codecPrivateSize = 0;
 				frame = matroska_block_read_frame(&obj->file, &codecPrivateData, &codecPrivateSize);
 				changeClockRate(frame, 1000, obj->outputDescsList[i]->rate);
 				module_reverse(obj->modulesList[i], frame, f->outputs[i], obj->isFirstFrameList[i], codecPrivateData, codecPrivateSize);
