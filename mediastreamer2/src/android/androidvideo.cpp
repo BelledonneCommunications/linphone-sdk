@@ -90,7 +90,7 @@ struct AndroidReaderContext {
 /************************ Private helper methods       ************************/
 static jclass getHelperClassGlobalRef(JNIEnv *env);
 static int compute_image_rotation_correction(AndroidReaderContext* d, int rotation);
-//static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff);
+static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff);
 static AndroidReaderContext *getContext(MSFilter *f);
 
 
@@ -165,8 +165,8 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 	} else if ((hwSize * downscale * downscale) > rqSize) {
 		ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d) and crop it to match encoder requested resolution\n",
 			d->requestedSize.width, d->requestedSize.height, (int)(res[0] * downscale), (int)(res[1] * downscale));
-		d->usedSize.width = d->hwCapableSize.width;
-		d->usedSize.height = d->hwCapableSize.height;
+		d->usedSize.width = d->requestedSize.width;
+		d->usedSize.height = d->requestedSize.height;
 	} else {
 		d->usedSize.width = d->requestedSize.width;
 		d->usedSize.height = d->requestedSize.height;
@@ -484,13 +484,18 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 	}
 
 	int y_cropping_offset=0, cbcr_cropping_offset=0;
-	//compute_cropping_offsets(d->hwCapableSize, d->requestedSize, &y_cropping_offset, &cbcr_cropping_offset);
+	MSVideoSize targetSize;
+	d->useDownscaling?targetSize.width=d->requestedSize.width*2:targetSize.width=d->requestedSize.width;
+	d->useDownscaling?targetSize.height=d->requestedSize.height*2:targetSize.height=d->requestedSize.height;
+
+	compute_cropping_offsets(d->hwCapableSize, targetSize, &y_cropping_offset, &cbcr_cropping_offset);
 
 	int width = d->hwCapableSize.width;
 	int height = d->hwCapableSize.height;
 
 	uint8_t* y_src = (uint8_t*)(jinternal_buff + y_cropping_offset);
 	uint8_t* cbcr_src = (uint8_t*) (jinternal_buff + width * height + cbcr_cropping_offset);
+
 
 	/* Warning note: image_rotation_correction == 90 does not imply portrait mode !
 	   (incorrect function naming).
@@ -503,9 +508,9 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 														, d->usedSize.width
 														, d->usedSize.height
 														, d->hwCapableSize.width
-														, d->hwCapableSize.width,
-														false,
-														d->useDownscaling);
+														, d->hwCapableSize.width
+														, false
+														, d->useDownscaling);
 	if (yuv_block) {
 		if (d->frame)
 			freemsg(d->frame);
@@ -537,7 +542,7 @@ static int compute_image_rotation_correction(AndroidReaderContext* d, int rotati
 	return result % 360;
 }
 
-#if 0
+
 static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff) {
 	// if hw <= out -> return
 	if (hwSize.width * hwSize.height <= outputSize.width * outputSize.height) {
@@ -552,7 +557,7 @@ static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize,
 	*yoff = hwSize.width * halfDiffH + halfDiffW;
 	*cbcroff = hwSize.width * halfDiffH * 0.5 + halfDiffW;
 }
-#endif
+
 
 static jclass getHelperClassGlobalRef(JNIEnv *env) {
 	ms_message("getHelperClassGlobalRef (env: %p)", env);
