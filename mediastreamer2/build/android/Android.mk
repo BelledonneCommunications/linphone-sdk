@@ -155,7 +155,17 @@ LOCAL_SRC_FILES+= \
 	voip/scaler.c \
 	voip/msvideo.c
 endif
-endif
+
+ifeq ($(BUILD_MATROSKA), 1)
+LOCAL_C_INCLUDES += \
+	$(LOCAL_PATH)/../../../externals/build/libebml2/include \
+	$(LOCAL_PATH)/../../../externals/build/libmatroska/include
+
+LOCAL_SRC_FILES += \
+	videofilters/mkv.c
+endif #BUILD_MATROSKA
+
+endif #_BUILD_VIDEO
 
 ifeq ($(BUILD_OPUS),1)
 LOCAL_CFLAGS += -DHAVE_OPUS
