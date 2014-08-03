@@ -52,12 +52,12 @@ set(GSM_SOURCE_FILES
 	src/table.c
 )
 if(MSVC)
-	list(APPEND GSM_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/build/windows/gsm/gsm/gsm.def)
+	list(APPEND GSM_SOURCE_FILES gsm.def)
 endif(MSVC)
 
-if(${ENABLE_STATIC})
+if(ENABLE_STATIC)
 	add_library(gsm STATIC ${GSM_SOURCE_FILES})
-else(${ENABLE_STATIC})
+else()
 	add_library(gsm SHARED ${GSM_SOURCE_FILES})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -66,8 +66,8 @@ else(${ENABLE_STATIC})
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
 		endif()
-	endif(MSVC)
-endif(${ENABLE_STATIC})
+	endif()
+endif()
 
 install(TARGETS gsm
 	RUNTIME DESTINATION bin
