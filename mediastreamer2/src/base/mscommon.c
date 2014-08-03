@@ -31,10 +31,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #else
 #ifndef PACKAGE_PLUGINS_DIR
 #if (defined(WIN32) || defined(_WIN32_WCE))
-#ifdef WINAPI_FAMILY_APP
-#define PACKAGE_PLUGINS_DIR "."
-#else
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #define PACKAGE_PLUGINS_DIR "lib\\mediastreamer\\plugins\\"
+#else
+#define PACKAGE_PLUGINS_DIR "."
 #endif
 #else
 #define PACKAGE_PLUGINS_DIR "."
@@ -322,12 +322,12 @@ void ms_set_plugins_dir(const char *path) {
 
 void ms_sleep(int seconds){
 #ifdef WIN32
-#if WINAPI_FAMILY_APP
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+	Sleep(seconds*1000);
+#else
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
 	if (!sleepEvent) return;
 	WaitForSingleObjectEx(sleepEvent, seconds * 1000, FALSE);
-#else
-	Sleep(seconds*1000);
 #endif
 #else
 	struct timespec ts,rem;
@@ -343,12 +343,12 @@ void ms_sleep(int seconds){
 
 void ms_usleep(uint64_t usec){
 #ifdef WIN32
-#if WINAPI_FAMILY_APP
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+	Sleep((DWORD)(usec/1000));
+#else
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
 	if (!sleepEvent) return;
 	WaitForSingleObjectEx(sleepEvent, usec / 1000, FALSE);
-#else
-	Sleep((DWORD)(usec/1000));
 #endif
 #else
 	struct timespec ts,rem;

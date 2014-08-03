@@ -301,12 +301,12 @@ static uint64_t get_cur_time_ms(void *unused){
 
 static void sleepMs(int ms){
 #ifdef WIN32
-#if WINAPI_FAMILY_APP
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+	Sleep(ms);
+#else
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
 	if (!sleepEvent) return;
 	WaitForSingleObjectEx(sleepEvent, ms, FALSE);
-#else
-	Sleep(ms);
 #endif
 #else
 	struct timespec ts;
@@ -322,7 +322,7 @@ static int set_high_prio(MSTicker *obj){
 	
 	if (prio>MS_TICKER_PRIO_NORMAL){
 #ifdef WIN32
-#if !WINAPI_FAMILY_APP
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 		MMRESULT mm;
 		TIMECAPS ptc;
 		mm=timeGetDevCaps(&ptc,sizeof(ptc));
@@ -390,7 +390,7 @@ static int set_high_prio(MSTicker *obj){
 
 static void unset_high_prio(int precision){
 #ifdef WIN32
-#if !WINAPI_FAMILY_APP
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 	if(!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL)){
 		ms_warning("SetThreadPriority() failed (%d)\n", (int)GetLastError());
 	}
