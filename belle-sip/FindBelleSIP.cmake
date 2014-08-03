@@ -1,0 +1,70 @@
+############################################################################
+# FindBelleSIP.txt
+# Copyright (C) 2014  Belledonne Communications, Grenoble France
+#
+############################################################################
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+############################################################################
+#
+# - Find the belle-sip include file and library
+#
+#  BELLESIP_FOUND - system has belle-sip
+#  BELLESIP_INCLUDE_DIRS - the belle-sip include directory
+#  BELLESIP_LIBRARIES - The libraries needed to use belle-sip
+
+find_package(Antlr3 REQUIRED)
+find_package(PolarSSL)
+
+set(_BELLESIP_ROOT_PATHS
+	${WITH_BELLESIP}
+	${CMAKE_INSTALL_PREFIX}
+)
+
+find_path(BELLESIP_INCLUDE_DIRS
+	NAMES belle-sip/belle-sip.h
+	HINTS _BELLESIP_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+
+if(BELLESIP_INCLUDE_DIRS)
+	set(HAVE_BELLESIP_BELLESIP_H 1)
+endif()
+
+find_library(BELLESIP_LIBRARIES
+	NAMES bellesip
+	HINTS ${_BELLESIP_ROOT_PATHS}
+	PATH_SUFFIXES bin lib
+)
+
+if(ANTLR3_FOUND)
+	list(APPEND BELLESIP_INCLUDE_DIRS ${ANTLR3_INCLUDE_DIRS})
+	list(APPEND BELLESIP_LIBRARIES ${ANTLR3_LIBRARIES})
+endif()
+if(POLARSSL_FOUND)
+	list(APPEND BELLESIP_INCLUDE_DIRS ${POLARSSL_INCLUDE_DIRS})
+	list(APPEND BELLESIP_LIBRARIES ${POLARSSL_LIBRARIES})
+endif()
+list(REMOVE_DUPLICATES BELLESIP_INCLUDE_DIRS)
+list(REMOVE_DUPLICATES BELLESIP_LIBRARIES)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(BelleSIP
+	DEFAULT_MSG
+	BELLESIP_INCLUDE_DIRS BELLESIP_LIBRARIES
+)
+
+mark_as_advanced(BELLESIP_INCLUDE_DIRS BELLESIP_LIBRARIES)

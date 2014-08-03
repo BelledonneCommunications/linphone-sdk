@@ -140,3 +140,8 @@ if(${ENABLE_TESTS})
 	enable_testing()
 	add_subdirectory(tester)
 endif()
+
+install(FILES FindBelleSIP.cmake
+	DESTINATION share/cmake/Modules
+	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+)
