@@ -314,6 +314,13 @@ add_definitions(-DHAVE_CONFIG_H)
 add_definitions(${ORTP_CPPFLAGS})
 
 
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/FindMS2.cmake
+	DESTINATION share/cmake/Modules
+	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+)
+
+
+add_subdirectory(cmake)
 add_subdirectory(help)
 add_subdirectory(include)
 add_subdirectory(src)
