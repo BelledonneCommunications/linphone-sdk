@@ -403,7 +403,8 @@ static int acquire_chuncked_body(belle_sip_channel_t *obj){
 			/*need more data*/
 			return BELLE_SIP_STOP;
 		}
-	}while(1);
+	}while(st->write_ptr-st->read_ptr>0); /*no need to continue if nothing to read*/
+	return BELLE_SIP_STOP;
 }
 
 static int acquire_body(belle_sip_channel_t *obj, int end_of_stream){
