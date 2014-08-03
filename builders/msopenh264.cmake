@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_msopenh264_GIT_REPOSITORY "git://git.linphone.org/msopenh264.git")
-if(${LINPHONE_BUILDER_LATEST})
+if(LINPHONE_BUILDER_LATEST)
 	set(EP_msopenh264_GIT_TAG "master")
 else()
 	set(EP_msopenh264_GIT_TAG "bba709ebd9fccf0ec2e895275a5bea3c27eece13")
@@ -29,5 +29,5 @@ endif()
 set(EP_msopenh264_CMAKE_OPTIONS )
 if(MSVC)
 	set(EP_msopenh264_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif(MSVC)
+endif()
 set(EP_msopenh264_DEPENDENCIES EP_ms2 EP_openh264)

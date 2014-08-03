@@ -28,7 +28,7 @@ include(FeatureSummary)
 set(LINPHONE_BUILDER_CONFIG_FILE "configs/config-desktop.cmake" CACHE STRING "Path to the linphone builder configuration file.")
 set(LINPHONE_BUILDER_WORK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/WORK" CACHE PATH "Working directory for the build.")
 set(LINPHONE_BUILDER_TARGET "linphone" CACHE STRING "Target to build: one of belle-sip, ortp, ms2, ms2-plugins, linphone.")
-option(LINPHONE_BUILDER_LATEST "Build latest versions (from git)." OFF)
+option(LINPHONE_BUILDER_LATEST "Build latest versions (from git)." NO)
 
 
 # Include macros definition to be used by builders
@@ -65,4 +65,4 @@ linphone_builder_add_external_projects()
 if("${CMAKE_VERSION}" VERSION_GREATER "2.8.2")
 	feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
 	feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
-endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.2")
+endif()

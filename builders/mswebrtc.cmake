@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_mswebrtc_GIT_REPOSITORY "git://git.linphone.org/mswebrtc.git")
-if(${LINPHONE_BUILDER_LATEST})
+if(LINPHONE_BUILDER_LATEST)
 	set(EP_mswebrtc_GIT_TAG "master")
 else()
 	set(EP_mswebrtc_GIT_TAG "0032453985975530356fb702c6ea46e45ecd3eb2")
@@ -36,9 +36,9 @@ set(EP_mswebrtc_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_mswebrtc_DEPENDENCIES EP_ms2)
 
 set(EP_mswebrtc_CONFIGURE_OPTIONS )
-if(NOT ${ENABLE_ISAC})
+if(NOT ENABLE_ISAC)
 	list(APPEND EP_mswebrtc_CONFIGURE_OPTIONS "--disable-isac")
 endif()
-if(NOT ${ENABLE_WEBRTC_AEC})
+if(NOT ENABLE_WEBRTC_AEC)
 	list(APPEND EP_mswebrtc_CONFIGURE_OPTIONS "--disable-aec")
 endif()

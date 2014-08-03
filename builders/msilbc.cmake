@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_msilbc_GIT_REPOSITORY "git://git.linphone.org/msilbc.git")
-if(${LINPHONE_BUILDER_LATEST})
+if(LINPHONE_BUILDER_LATEST)
 	set(EP_msilbc_GIT_TAG "master")
 else()
 	set(EP_msilbc_GIT_TAG "00bd16fc869414dc9a68a56251ed3f895f106f2f")
@@ -34,4 +34,3 @@ set(EP_msilbc_CROSS_COMPILATION_OPTIONS
 )
 set(EP_msilbc_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_msilbc_DEPENDENCIES EP_ms2 EP_libilbcrfc3951)
-

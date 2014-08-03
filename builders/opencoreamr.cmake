@@ -31,12 +31,8 @@ set(EP_opencoreamr_CROSS_COMPILATION_OPTIONS
 )
 set(EP_opencoreamr_LINKING_TYPE "--disable-static" "--enable-shared")
 
-if(${ENABLE_AMRNB})
-	list(APPEND EP_opencoreamr_CONFIGURE_OPTIONS
-		"--enable-amrnb-decoder" "--enable-amrnb-encoder"
-	)
-else(${ENABLE_AMRNB})
-	list(APPEND EP_opencoreamr_CONFIGURE_OPTIONS
-		"--disable-amrnb-decoder" "--disable-amrnb-encoder"
-	)
-endif(${ENABLE_AMRNB})
+if(ENABLE_AMRNB)
+	list(APPEND EP_opencoreamr_CONFIGURE_OPTIONS "--enable-amrnb-decoder" "--enable-amrnb-encoder")
+else()
+	list(APPEND EP_opencoreamr_CONFIGURE_OPTIONS "--disable-amrnb-decoder" "--disable-amrnb-encoder")
+endif()

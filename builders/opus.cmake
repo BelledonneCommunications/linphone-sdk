@@ -31,4 +31,3 @@ set(EP_opus_CONFIGURE_OPTIONS
 	"--disable-doc"
 )
 set(EP_opus_LINKING_TYPE "--disable-static" "--enable-shared")
-

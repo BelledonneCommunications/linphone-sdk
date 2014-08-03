@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_msx264_GIT_REPOSITORY "git://git.linphone.org/msx264.git")
-if(${LINPHONE_BUILDER_LATEST})
+if(LINPHONE_BUILDER_LATEST)
 	set(EP_msx264_GIT_TAG "master")
 else()
 	set(EP_msx264_GIT_TAG "6532dd845c59631a9149e9146ba5cf9426db906b")

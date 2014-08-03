@@ -39,7 +39,7 @@ set(EP_vpx_CONFIGURE_OPTIONS
 
 if(WIN32)
 	set(EP_vpx_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/vpx/enable-shared-on-windows.patch")
-endif(WIN32)
+endif()
 if(APPLE)
 	set(EP_vpx_TARGET "x86-darwin10-gcc")
 	set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared --enable-pic")

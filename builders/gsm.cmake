@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_gsm_GIT_REPOSITORY "git://git.linphone.org/gsm.git")
-if(${LINPHONE_BUILDER_LATEST})
+if(LINPHONE_BUILDER_LATEST)
 	set(EP_gsm_GIT_TAG "linphone")
 else()
 	set(EP_gsm_GIT_TAG "e59f14f7640f243d33c67f255d9e4de1c61435ba")
@@ -30,4 +30,4 @@ set(EP_gsm_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_
 set(EP_gsm_LINKING_TYPE "-DENABLE_STATIC=0")
 if(MSVC)
 	set(EP_gsm_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif(MSVC)
+endif()

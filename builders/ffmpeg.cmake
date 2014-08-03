@@ -42,21 +42,21 @@ set(EP_ffmpeg_CONFIGURE_OPTIONS
 	"--disable-vaapi"
 	"--disable-vdpau"
 )
-if(${ENABLE_H263})
+if(ENABLE_H263)
 	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
 		"--enable-decoder=h263"
 		"--enable-encoder=h263"
 	)
-endif(${ENABLE_H263})
-if(${ENABLE_H263P})
+endif()
+if(ENABLE_H263P)
 	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-encoder=h263p")
-endif(${ENABLE_H263P})
-if(${ENABLE_MPEG4})
+endif()
+if(ENABLE_MPEG4)
 	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
 		"--enable-decoder=mpeg4"
 		"--enable-encoder=mpeg4"
 	)
-endif(${ENABLE_MPEG4})
+endif()
 set(EP_ffmpeg_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch")
 set(EP_ffmpeg_ARCH "i386")
@@ -65,14 +65,14 @@ if(WIN32)
 	set(EP_ffmpeg_TARGET_OS "mingw32")
 	set(EP_ffmpeg_EXTRA_LDFLAGS "-static-libgcc")
 	set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/mingw-no-lib.patch")
-else(WIN32)
+else()
 	if(APPLE)
 		set(EP_ffmpeg_TARGET_OS "darwin")
 		set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch")
-	else(APPLE)
+	else()
 		set(EP_ffmpeg_TARGET_OS "linux")
-	endif(APPLE)
-endif(WIN32)
+	endif()
+endif()
 
 set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
@@ -80,6 +80,6 @@ set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
 	"--target-os=${EP_ffmpeg_TARGET_OS}"
 )
 
-if(${ENABLE_X264})
+if(ENABLE_X264)
 	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-decoder=h264")
-endif(${ENABLE_X264})
+endif()

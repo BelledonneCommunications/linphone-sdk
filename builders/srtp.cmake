@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_srtp_GIT_REPOSITORY "git://git.linphone.org/srtp.git")
-if(${LINPHONE_BUILDER_LATEST})
+if(LINPHONE_BUILDER_LATEST)
 	set(EP_srtp_GIT_TAG "master")
 else()
 	set(EP_srtp_GIT_TAG "34727169f7442318922963fd491937393fa7c83c")
@@ -29,4 +29,4 @@ endif()
 set(EP_srtp_LINKING_TYPE "-DENABLE_STATIC=0")
 if(MSVC)
 	set(EP_srtp_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif(MSVC)
+endif()

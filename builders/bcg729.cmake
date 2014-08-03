@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_bcg729_GIT_REPOSITORY "git://git.linphone.org/bcg729.git")
-if(${LINPHONE_BUILDER_HOST})
+if(LINPHONE_BUILDER_LATEST)
 	set(EP_bcg729_GIT_TAG "master")
 else()
 	set(EP_bcg729_GIT_TAG "a2fd44b70eb31485bb773925ad17e69a332c1506")
@@ -34,4 +34,3 @@ set(EP_bcg729_CROSS_COMPILATION_OPTIONS
 )
 set(EP_bcg729_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_bcg729_DEPENDENCIES EP_ms2)
-

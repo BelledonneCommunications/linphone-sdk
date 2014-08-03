@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_bzrtp_GIT_REPOSITORY "git://git.linphone.org/bzrtp.git")
-if(${LINPHONE_BUILDER_LATEST})
+if(LINPHONE_BUILDER_LATEST)
 	set(EP_bzrtp_GIT_TAG "master")
 else()
 	set(EP_bzrtp_GIT_TAG "8ceda7ef0d35130057affc2e5a61c0667cde15aa")
@@ -31,12 +31,12 @@ set(EP_bzrtp_LINKING_TYPE "-DENABLE_STATIC=0")
 set(EP_bzrtp_DEPENDENCIES EP_polarssl EP_xml2)
 if(MSVC)
 	set(EP_bzrtp_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif(MSVC)
+endif()
 if(MINGW)
 	set(EP_bzrtp_EXTRA_CPPFLAGS "-D__USE_MINGW_ANSI_STDIO")
 endif()
 
-if(${ENABLE_UNIT_TESTS})
+if(ENABLE_UNIT_TESTS)
 	list(APPEND EP_bzrtp_CMAKE_OPTIONS "-DENABLE_TESTS=1")
 	list(APPEND EP_bzrtp_DEPENDENCIES EP_cunit)
 else()
