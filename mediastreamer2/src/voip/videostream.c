@@ -1058,7 +1058,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	stream->ms.state=MSStreamStarted;
 }
 
-void video_preview_stop(VideoStream *stream){
+void video_preview_stop(VideoPreview *stream){
 	ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
 	ms_filter_unlink(stream->source,0,stream->pixconv,0);
 	ms_filter_unlink(stream->pixconv,0,stream->output2,0);
