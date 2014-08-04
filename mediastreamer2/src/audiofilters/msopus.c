@@ -27,7 +27,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ortp/rtp.h"
 
 #include <stdint.h>
+#ifdef ANDROID
+#include <opus.h>
+#else
 #include <opus/opus.h>
+#endif
 
 #define SIGNAL_SAMPLE_SIZE  2 // 2 bytes per sample
 
