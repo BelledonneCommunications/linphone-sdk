@@ -860,7 +860,7 @@ static ms_bool_t matroska_load_file(Matroska *obj) {
 	for(elt = EBML_MasterChildren(obj->segment); elt != NULL; elt = EBML_MasterNext(elt)) {
 		if(EBML_ElementIsType(elt, &MATROSKA_ContextSeekHead)) {
 			obj->metaSeek = (ebml_master*)elt;
-			matroska_seekpoint *seekPoint;
+			matroska_seekpoint *seekPoint = NULL;
 			for(seekPoint = (matroska_seekpoint *)EBML_MasterChildren(obj->metaSeek); seekPoint != NULL; seekPoint = (matroska_seekpoint *)EBML_MasterNext(seekPoint)) {
 				if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextInfo)) {
 					obj->infoMeta = seekPoint;
@@ -953,23 +953,9 @@ static void matroska_close_file(Matroska *obj) {
 	if(obj->segment != NULL) {
 		Node_Release((node *)obj->segment);
 	}
-	obj->output = NULL;
-	obj->header = NULL;
-	obj->segment = NULL;
-	obj->cluster = NULL;
-	obj->info = NULL;
-	obj->tracks = NULL;
-	obj->metaSeek = NULL;
-	obj->cues = NULL;
-	obj->firstCluster = NULL;
-	obj->currentCluster = NULL;
-	obj->infoMeta = NULL;
-	obj->tracksMeta = NULL;
-	obj->cuesMeta = NULL;
-	obj->currentBlock = NULL;
+	memset(obj, 0, sizeof(Matroska));
 	obj->timecodeScale = -1;
 	obj->segmentInfoPosition = -1;
-	obj->nbClusters = 0;
 }
 
 static void matroska_set_doctype_version(Matroska *obj, int doctypeVersion, int doctypeReadVersion) {
@@ -1010,7 +996,7 @@ static inline void matroska_start_segment(Matroska *obj) {
 	EBML_ElementRenderHead((ebml_element *)obj->segment, obj->output, FALSE, NULL);
 }
 
-static int matroska_write_zeros(Matroska *obj, size_t nbZeros) {
+static size_t matroska_write_zeros(Matroska *obj, size_t nbZeros) {
 	uint8_t *data = (uint8_t *)ms_new0(uint8_t, nbZeros);
 	size_t written=0;
 	
@@ -1051,7 +1037,7 @@ static inline void matroska_go_to_segment_info_begin(Matroska *obj) {
 }
 
 static matroska_block *_matroska_first_block(const ebml_master *cluster, ms_bool_t *endOfCluster) {
-	ebml_element *elt;
+	ebml_element *elt = NULL;
 	*endOfCluster = FALSE;
 	for(elt = EBML_MasterChildren(cluster);
 		elt != NULL && !EBML_ElementIsType(elt, &MATROSKA_ContextSimpleBlock) && !EBML_ElementIsType(elt, &MATROSKA_ContextBlockGroup);
@@ -1069,7 +1055,7 @@ static matroska_block *_matroska_first_block(const ebml_master *cluster, ms_bool
 }
 
 static matroska_block *_matroska_next_block(const matroska_block *block, ms_bool_t *endOfCluster) {
-	ebml_element *elt;
+	ebml_element *elt = NULL;
 	*endOfCluster = FALSE;
 	if(EBML_ElementIsType((ebml_element *)block, &MATROSKA_ContextSimpleBlock)) {
 		for(elt = EBML_MasterNext((ebml_element *)block);
@@ -1135,7 +1121,7 @@ static inline timecode_t matroska_block_get_timestamp(const Matroska *obj) {
 
 static mblk_t *matroska_block_read_frame(Matroska *obj, const uint8_t **codecPrivateData, size_t *codecPrivateSize) {
 	matroska_frame frame;
-	mblk_t *frameBuffer;
+	mblk_t *frameBuffer = NULL;
 
 	MATROSKA_BlockReadData(obj->currentBlock, obj->output);
 	MATROSKA_BlockGetFrame(obj->currentBlock, 0, &frame, TRUE);
@@ -1146,8 +1132,8 @@ static mblk_t *matroska_block_read_frame(Matroska *obj, const uint8_t **codecPri
 	MATROSKA_BlockReleaseData(obj->currentBlock, TRUE);
 
 	if(EBML_ElementIsType((ebml_element *)obj->currentBlock, &MATROSKA_ContextBlock)) {
-		ebml_master *blockGroup;
-		ebml_binary *codecPrivateElt;
+		ebml_master *blockGroup = NULL;
+		ebml_binary *codecPrivateElt = NULL;
 		blockGroup = (ebml_master *)EBML_ElementParent((ebml_element *)obj->currentBlock);
 		codecPrivateElt = (ebml_binary *)EBML_MasterFindChild(blockGroup, &MATROSKA_ContextCodecState);
 		if(codecPrivateElt != NULL) {
@@ -1171,12 +1157,12 @@ static int ebml_element_cmp_position(const void *a, const void *b) {
 
 static void ebml_master_sort(ebml_master *master_elt) {
 	MSList *elts = NULL;
-	ebml_element *elt;
+	ebml_element *elt = NULL;
 	for(elt = EBML_MasterChildren(master_elt); elt != NULL; elt = EBML_MasterNext(elt)) {
 		elts = ms_list_insert_sorted(elts, elt, (MSCompareFunc)ebml_element_cmp_position);
 	}
 	EBML_MasterClear(master_elt);
-	MSList *it;
+	MSList *it = NULL;
 	for(it = elts; it != NULL; it = ms_list_next(it)) {
 		EBML_MasterAppend(master_elt, (ebml_element *)it->data);
 	}
@@ -1185,7 +1171,7 @@ static void ebml_master_sort(ebml_master *master_elt) {
 
 static int ebml_master_fill_blanks(stream *output, ebml_master *master) {
 	MSList *voids = NULL;
-	ebml_element *elt1, *elt2;
+	ebml_element *elt1 = NULL, *elt2 = NULL;
 	for(elt1 = EBML_MasterChildren(master), elt2 = EBML_MasterNext(elt1); elt2 != NULL; elt1 = EBML_MasterNext(elt1), elt2 = EBML_MasterNext(elt2)) {
 		filepos_t elt1_end_pos = EBML_ElementPositionEnd(elt1);
 		filepos_t elt2_pos = EBML_ElementPosition(elt2);
@@ -1205,7 +1191,7 @@ static int ebml_master_fill_blanks(stream *output, ebml_master *master) {
 		}
 	}
 
-	MSList *it;
+	MSList *it = NULL;
 	for(it = voids; it != NULL; it = ms_list_next(it)) {
 		EBML_MasterAppend(master, (ebml_element *)it->data);
 	}
@@ -1214,7 +1200,7 @@ static int ebml_master_fill_blanks(stream *output, ebml_master *master) {
 }
 
 static void ebml_master_delete_empty_elements(ebml_master *master) {
-	ebml_element *child;
+	ebml_element *child = NULL;
 	for(child = EBML_MasterChildren(master); child != NULL; child = EBML_MasterNext(child)) {
 		if(EBML_ElementDataSize(child, WRITE_DEFAULT_ELEMENT) <= 0) {
 			EBML_MasterRemove(master, child);
@@ -1237,7 +1223,7 @@ static int matroska_close_segment(Matroska *obj) {
 }
 
 static ebml_master *matroska_find_track_entry(const Matroska *obj, int trackNum) {
-	ebml_element *trackEntry;
+	ebml_element *trackEntry = NULL;
 	for(trackEntry = EBML_MasterChildren(obj->tracks);
 		trackEntry != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)trackEntry, &MATROSKA_ContextTrackNumber)) != trackNum;
 		trackEntry = EBML_MasterNext(trackEntry));
@@ -1272,7 +1258,7 @@ static void matroska_start_cluster(Matroska *obj, timecode_t clusterTimecode) {
 }
 
 static void matroska_close_cluster(Matroska *obj) {
-	ebml_element *block;
+	ebml_element *block = NULL;
 	if(obj->cluster == NULL) {
 		return;
 	} else {
@@ -1301,7 +1287,7 @@ static inline timecode_t matroska_current_cluster_timecode(const Matroska *obj) 
 }
 
 static ebml_master *matroska_find_track(const Matroska *obj, int trackNum) {
-	ebml_element *elt;
+	ebml_element *elt = NULL;
 	for(elt = EBML_MasterChildren(obj->tracks);
 		elt != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(elt, &MATROSKA_ContextTrackNumber)) != trackNum;
 		elt = EBML_MasterNext(elt));
@@ -1346,7 +1332,7 @@ static int matroska_del_track(Matroska *obj, int trackNum) {
 }
 
 static int matroska_get_default_track_num(const Matroska *obj, int trackType) {
-	ebml_element *track;
+	ebml_element *track = NULL;
 	for(track = EBML_MasterChildren(obj->tracks); track != NULL; track = EBML_MasterNext(track)) {
 		ebml_integer *trackTypeElt = (ebml_integer *)EBML_MasterFindChild(track, &MATROSKA_ContextTrackType);
 		ebml_integer *flagDefault = (ebml_integer *)EBML_MasterFindChild(track, &MATROSKA_ContextFlagDefault);
@@ -1367,7 +1353,7 @@ static int matroska_get_default_track_num(const Matroska *obj, int trackType) {
 }
 
 static int matroska_get_first_track_num_from_type(const Matroska *obj, int trackType) {
-	ebml_element *track;
+	ebml_element *track = NULL;
 	for(track = EBML_MasterChildren(obj->tracks); track != NULL; track = EBML_MasterNext(track)) {
 		if(EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)track, &MATROSKA_ContextTrackType)) == trackType) {
 			break;
@@ -1429,10 +1415,10 @@ static int matroska_track_get_info(const Matroska *obj, int trackNum, const MSFm
 			return -2;
 		} else {
 			char codecId[50];
-			const char *rfcName;
+			const char *rfcName = NULL;
 			int trackType;
-			ebml_element *elt;
-			ebml_binary *codecPrivate;
+			ebml_element *elt = NULL;
+			ebml_binary *codecPrivate = NULL;
 			EBML_StringGet((ebml_string *)EBML_MasterFindChild((ebml_master *)track, &MATROSKA_ContextCodecID), codecId, 50);
 			rfcName = codec_id_to_rfc_name(codecId);
 			if(rfcName == NULL) {
@@ -1480,10 +1466,10 @@ static int matroska_track_get_info(const Matroska *obj, int trackNum, const MSFm
 }
 
 static ms_bool_t matroska_track_check_block_presence(Matroska *obj, int trackNum) {
-	ebml_element *elt1;
+	ebml_element *elt1 = NULL;
 	for(elt1 = EBML_MasterChildren(obj->segment); elt1 != NULL; elt1 = EBML_MasterNext(elt1)) {
 		if(EBML_ElementIsType(elt1, &MATROSKA_ContextCluster)) {
-			ebml_element *cluster = elt1, *elt2;
+			ebml_element *cluster = elt1, *elt2 = NULL;
 			for(elt2 = EBML_MasterChildren(cluster); elt2 != NULL; elt2 = EBML_MasterNext(elt2)) {
 				if(EBML_ElementIsType(elt2, &MATROSKA_ContextSimpleBlock)) {
 					matroska_block *block = (matroska_block *)elt2;
@@ -1559,7 +1545,7 @@ static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame 
 		if(codecPrivateData == NULL) {
 			block = (matroska_block *)EBML_MasterAddElt(obj->cluster, &MATROSKA_ContextSimpleBlock, FALSE);
 		} else {
-			ebml_binary *codecPrivateElt;
+			ebml_binary *codecPrivateElt = NULL;
 			blockGroup = (ebml_master *)EBML_MasterAddElt(obj->cluster, &MATROSKA_ContextBlockGroup, FALSE);
 			block = (matroska_block *)EBML_MasterAddElt(blockGroup, &MATROSKA_ContextBlock, FALSE);
 			codecPrivateElt = (ebml_binary *)EBML_MasterAddElt(blockGroup, &MATROSKA_ContextCodecState, FALSE);
@@ -1844,7 +1830,7 @@ static int recorder_open_file(MSFilter *f, void *arg) {
 			} else {
 				for(i=0; i < f->desc->ninputs; i++) {
 					if(obj->inputDescsList[i] != NULL) {
-						const uint8_t *data;
+						const uint8_t *data = NULL;
 						size_t length;
 						obj->modulesList[i] = module_new(obj->inputDescsList[i]->encoding);
 						module_set(obj->modulesList[i], obj->inputDescsList[i]);
@@ -1920,7 +1906,7 @@ static void recorder_process(MSFilter *f) {
 		}
 	} else {
 		int pin;
-		mblk_t *buffer;
+		mblk_t *buffer = NULL;
 		for(i=0; i < f->desc->ninputs; i++) {
 			if(f->inputs[i] != NULL && obj->inputDescsList[i] == NULL) {
 				ms_queue_flush(f->inputs[i]);
@@ -1991,7 +1977,7 @@ static int recorder_close(MSFilter *f, void *arg) {
 			}
 			if(obj->inputDescsList[i] != NULL) {
 				if(matroska_track_check_block_presence(&obj->file, i+1)) {
-					uint8_t *codecPrivateData;
+					uint8_t *codecPrivateData = NULL;
 					size_t codecPrivateDataSize;
 					module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
 					matroska_track_set_info(&obj->file, i+1, obj->inputDescsList[i]);
