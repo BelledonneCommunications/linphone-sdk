@@ -953,9 +953,24 @@ static void matroska_close_file(Matroska *obj) {
 	if(obj->segment != NULL) {
 		Node_Release((node *)obj->segment);
 	}
-	memset(obj, 0, sizeof(Matroska));
+	obj->output = NULL;
+	obj->header = NULL;
+	obj->header = NULL;
+	obj->segment = NULL;
+	obj->cluster = NULL;
+	obj->info = NULL;
+	obj->tracks = NULL;
+	obj->metaSeek = NULL;
+	obj->cues = NULL;
+	obj->firstCluster = NULL;
+	obj->currentCluster = NULL;
+	obj->infoMeta = NULL;
+	obj->tracksMeta = NULL;
+	obj->cuesMeta = NULL;
+	obj->currentBlock = NULL;
 	obj->timecodeScale = -1;
 	obj->segmentInfoPosition = -1;
+	obj->nbClusters = 0;
 }
 
 static void matroska_set_doctype_version(Matroska *obj, int doctypeVersion, int doctypeReadVersion) {
