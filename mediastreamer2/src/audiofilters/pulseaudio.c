@@ -73,27 +73,27 @@ static void state_notify(pa_context *ctx, void *userdata){
 	pa_context_state_t state=pa_context_get_state(ctx);
 	const char *sname="";
 	switch (state){
-		case PA_CONTEXT_UNCONNECTED:
-			sname="PA_CONTEXT_UNCONNECTED";
+	case PA_CONTEXT_UNCONNECTED:
+		sname="PA_CONTEXT_UNCONNECTED";
 		break;
-		case PA_CONTEXT_CONNECTING:
-			sname="PA_CONTEXT_CONNECTING";
+	case PA_CONTEXT_CONNECTING:
+		sname="PA_CONTEXT_CONNECTING";
 		break;
-		case PA_CONTEXT_AUTHORIZING:
-			sname="PA_CONTEXT_AUTHORIZING";
+	case PA_CONTEXT_AUTHORIZING:
+		sname="PA_CONTEXT_AUTHORIZING";
 		break;
-		case PA_CONTEXT_SETTING_NAME:
-			sname="PA_CONTEXT_SETTING_NAME";
+	case PA_CONTEXT_SETTING_NAME:
+		sname="PA_CONTEXT_SETTING_NAME";
 		break;
-		case PA_CONTEXT_READY:
-			sname="PA_CONTEXT_READY";
-			pa_ready=TRUE;
+	case PA_CONTEXT_READY:
+		sname="PA_CONTEXT_READY";
+		pa_ready=TRUE;
 		break;
-		case PA_CONTEXT_FAILED:
-			sname="PA_CONTEXT_FAILED";
+	case PA_CONTEXT_FAILED:
+		sname="PA_CONTEXT_FAILED";
 		break;
-		case PA_CONTEXT_TERMINATED:
-			sname="PA_CONTEXT_TERMINATED";
+	case PA_CONTEXT_TERMINATED:
+		sname="PA_CONTEXT_TERMINATED";
 		break;
 	}
 	ms_message("New PulseAudio context state: %s",sname);
@@ -103,7 +103,7 @@ static void init_pulse_context(){
 	if (context==NULL){
 		pa_loop=pa_threaded_mainloop_new();
 		context=pa_context_new(pa_threaded_mainloop_get_api(pa_loop),NULL);
-		pa_context_set_state_callback(context,state_notify,NULL);	
+		pa_context_set_state_callback(context,state_notify,NULL);
 		pa_context_connect(context,NULL,0,NULL);
 		pa_threaded_mainloop_start(pa_loop);
 		atexit(uninit_pulse_context);
@@ -118,16 +118,16 @@ static void check_pulse_ready(){
 }
 
 typedef struct _PulseReadState{
-    pa_sample_spec sampleSpec;
+	pa_sample_spec sampleSpec;
 	pa_stream *stream;
 }PulseReadState;
 
 static void pulse_read_init(MSFilter *f){
 	PulseReadState *s=ms_new0(PulseReadState,1);
 	
-    s->sampleSpec.format = PA_SAMPLE_S16LE;
-    s->sampleSpec.channels=1;
-    s->sampleSpec.rate=8000;
+	s->sampleSpec.format = PA_SAMPLE_S16LE;
+	s->sampleSpec.channels=1;
+	s->sampleSpec.rate=8000;
 	f->data=s;
 	check_pulse_ready();
 }
@@ -136,19 +136,19 @@ static void pulse_read_preprocess(MSFilter *f){
 	PulseReadState *s=(PulseReadState *)f->data;
 	int err;
 	pa_buffer_attr attr={0};
-    uint32_t fragsize;
+	uint32_t fragsize;
 
-    if (context==NULL) return;
+	if (context==NULL) return;
 
-    fragsize=pa_usec_to_bytes(latency_req * 1000, &s->sampleSpec);
+	fragsize=pa_usec_to_bytes(latency_req * 1000, &s->sampleSpec);
 	
 	attr.maxlength=-1;
-    attr.tlength=fragsize;
+	attr.tlength=fragsize;
 	attr.prebuf=0;
 	attr.minreq=-1;
-    attr.fragsize=fragsize;
+	attr.fragsize=fragsize;
 	
-    s->stream=pa_stream_new(context,"phone",&s->sampleSpec,NULL);
+	s->stream=pa_stream_new(context,"phone",&s->sampleSpec,NULL);
 	if (s->stream==NULL){
 		ms_error("pa_stream_new() failed: %s",pa_strerror(pa_context_errno(context)));
 		return;
@@ -195,30 +195,30 @@ static void pulse_read_postprocess(MSFilter *f){
 }
 
 static void pulse_read_uninit(MSFilter *f) {
-    ms_free(f->data);
+	ms_free(f->data);
 }
 
 static int pulse_read_set_sr(MSFilter *f, void *arg){
 	PulseReadState *s=(PulseReadState *)f->data;
-    s->sampleSpec.rate=*(int*)arg;
+	s->sampleSpec.rate=*(int*)arg;
 	return 0;
 }
 
 static int pulse_read_get_sr(MSFilter *f, void *arg){
 	PulseReadState *s=(PulseReadState *)f->data;
-    *(int*)arg=s->sampleSpec.rate;
+	*(int*)arg=s->sampleSpec.rate;
 	return 0;
 }
 
 static int pulse_read_set_nchannels(MSFilter *f, void *arg){
 	PulseReadState *s=(PulseReadState *)f->data;
-    s->sampleSpec.channels=*(int*)arg;
+	s->sampleSpec.channels=*(int*)arg;
 	return 0;
 }
 
 static int pulse_read_get_nchannels(MSFilter *f, void *arg){
 	PulseReadState *s=(PulseReadState *)f->data;
-    *(int*)arg=s->sampleSpec.channels;
+	*(int*)arg=s->sampleSpec.channels;
 	return 0;
 }
 
@@ -241,7 +241,7 @@ static MSFilterDesc pulse_read_desc={
 	.preprocess=pulse_read_preprocess,
 	.process=pulse_read_process,
 	.postprocess=pulse_read_postprocess,
-    .uninit=pulse_read_uninit,
+	.uninit=pulse_read_uninit,
 	.methods=pulse_read_methods
 };
 
@@ -250,9 +250,9 @@ typedef struct _PulseReadState PulseWriteState;
 
 static void pulse_write_init(MSFilter *f){
 	PulseWriteState *s=ms_new0(PulseWriteState,1);
-    s->sampleSpec.format = PA_SAMPLE_S16LE;
-    s->sampleSpec.rate=8000;
-    s->sampleSpec.channels=1;
+	s->sampleSpec.format = PA_SAMPLE_S16LE;
+	s->sampleSpec.rate=8000;
+	s->sampleSpec.channels=1;
 	f->data=s;
 	check_pulse_ready();
 }
@@ -261,19 +261,19 @@ static void pulse_write_preprocess(MSFilter *f){
 	PulseWriteState *s=(PulseWriteState*)f->data;
 	int err;
 	pa_buffer_attr attr={0};
-    uint32_t fragsize;
+	uint32_t fragsize;
 
 	if (context==NULL) return;
 
-    fragsize = pa_usec_to_bytes(latency_req * 1000, &s->sampleSpec);
+	fragsize = pa_usec_to_bytes(latency_req * 1000, &s->sampleSpec);
 	
 	attr.maxlength=-1;
-    attr.tlength=fragsize;
+	attr.tlength=fragsize;
 	attr.prebuf=0;
 	attr.minreq=-1;
-    attr.fragsize=fragsize;
+	attr.fragsize=fragsize;
 	
-    s->stream=pa_stream_new(context,"phone",&s->sampleSpec,NULL);
+	s->stream=pa_stream_new(context,"phone",&s->sampleSpec,NULL);
 	if (s->stream==NULL){
 		ms_error("pa_stream_new() failed: %s",pa_strerror(pa_context_errno(context)));
 		return;
@@ -319,7 +319,7 @@ static void pulse_write_postprocess(MSFilter *f){
 }
 
 static void pulse_write_uninit(MSFilter *f) {
-    ms_free(f->data);
+	ms_free(f->data);
 }
 
 static MSFilterDesc pulse_write_desc={
@@ -333,7 +333,7 @@ static MSFilterDesc pulse_write_desc={
 	.preprocess=pulse_write_preprocess,
 	.process=pulse_write_process,
 	.postprocess=pulse_write_postprocess,
-    .uninit=pulse_write_uninit,
+	.uninit=pulse_write_uninit,
 	.methods=pulse_read_methods
 };
 
