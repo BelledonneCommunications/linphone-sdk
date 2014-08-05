@@ -88,8 +88,6 @@ namespace fake_opensles {
 	}
 }
 
-#define NATIVE_USE_HARDWARE_RATE 1
-
 static int sdk_version = 0;
 
 static const int flowControlIntervalMs = 1000;
@@ -121,11 +119,13 @@ static MSFilter *ms_android_snd_write_new(void);
 struct OpenSLESContext {
 	OpenSLESContext() {
 		samplerate = DeviceFavoriteSampleRate;
+		forced_sample_rate = 0;
 		nchannels = 1;
 		builtin_aec = false;
 	}
 
 	int samplerate;
+	int forced_sample_rate;
 	int nchannels;
 	bool builtin_aec;
 
@@ -553,14 +553,14 @@ static void android_snd_read_uninit(MSFilter *obj) {
 }
 
 static int android_snd_read_set_sample_rate(MSFilter *obj, void *data) {
-#ifndef NATIVE_USE_HARDWARE_RATE
 	int *n = (int*)data;
 	OpenSLESInputContext *ictx = (OpenSLESInputContext*)obj->data;
+	if (ictx->opensles_context->forced_sample_rate > 0) {
+		ms_warning("Sample rate is forced by mediastreamer2 device table, skipping...");
+		return -1;
+	}
 	ictx->opensles_context->samplerate = *n;
 	return 0;
-#else
-	return -1;
-#endif
 }
 
 static int android_snd_read_get_sample_rate(MSFilter *obj, void *data) {
@@ -844,14 +844,14 @@ static void android_snd_write_uninit(MSFilter *obj){
 }
 
 static int android_snd_write_set_sample_rate(MSFilter *obj, void *data) {
-#ifndef NATIVE_USE_HARDWARE_RATE
 	int *n = (int*)data;
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
+	if (octx->opensles_context->forced_sample_rate > 0) {
+		ms_warning("Sample rate is forced by mediastreamer2 device table, skipping...");
+		return -1;
+	}
 	octx->opensles_context->samplerate = *n;
 	return 0;
-#else
-	return -1;
-#endif
 }
 
 static int android_snd_write_get_sample_rate(MSFilter *obj, void *data) {
@@ -1001,6 +1001,7 @@ static MSSndCard* android_snd_card_new(void) {
 	}
 	obj->latency = d->delay;
 	obj->data = context;
+	context->forced_sample_rate = context->samplerate = d->recommended_rate;
 
 	return obj;
 }

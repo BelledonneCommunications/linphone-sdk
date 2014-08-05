@@ -163,6 +163,7 @@ MSSndCard *msandroid_sound_card_new(){
 	if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
 		card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	}
+	card->preferred_sample_rate = d->recommended_rate;
 	return card;
 }
 
@@ -176,7 +177,7 @@ void msandroid_sound_detect(MSSndCardManager *m){
 /*************filter commun functions*********/
 class msandroid_sound_data {
 public:
-	msandroid_sound_data() : bits(16),rate(8000),nchannels(1),started(false),thread_id(0){
+	msandroid_sound_data() : bits(16),rate(8000),nchannels(1),started(false),thread_id(0),forced_rate(false){
 		ms_mutex_init(&mutex,NULL);
 	};
 	~msandroid_sound_data() {
@@ -189,6 +190,7 @@ public:
 	ms_thread_t     thread_id;
 	ms_mutex_t		mutex;
 	int	buff_size; /*buffer size in bytes*/
+	bool	forced_rate;
 };
 
 
@@ -246,6 +248,11 @@ static int set_read_rate(MSFilter *f, void *arg){
 	unsigned int proposed_rate = *((unsigned int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
 	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
+	if (d->forced_rate) {
+		ms_warning("sample rate is forced by mediastreamer2 device table, skipping...");
+		return -1;
+	}
+	
 	d->rate=get_supported_rate(proposed_rate);
 	if (d->rate == proposed_rate)
 		return 0;
@@ -324,6 +331,7 @@ static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 		goto end;
 	}
 	//start recording
+	ms_message("Start recording");
 	jni_env->CallVoidMethod(d->audio_record,record_id);
 
 	// int read (byte[] audioData, int offsetInBytes, int sizeInBytes)
@@ -563,6 +571,11 @@ MSFilter *msandroid_sound_read_new(MSSndCard *card){
 	MSFilter *f=ms_filter_new_from_desc(&msandroid_sound_read_desc);
 	msandroid_sound_read_data *data=new msandroid_sound_read_data();
 	data->builtin_aec = card->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
+	if (card->preferred_sample_rate) {
+		data->rate = card->preferred_sample_rate;
+		data->forced_rate = true;
+		ms_warning("Using forced sample rate %i", data->rate);
+	}
 	f->data=data;
 	return f;
 }
@@ -573,6 +586,11 @@ MS_FILTER_DESC_EXPORT(msandroid_sound_read_desc)
 static int set_write_rate(MSFilter *f, void *arg){
 #ifndef USE_HARDWARE_RATE
 	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
+	if (d->forced_rate) {
+		ms_warning("sample rate is forced by mediastreamer2 device table, skipping...");
+		return -1;
+	}
+	
 	int proposed_rate = *((int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
 	d->rate=proposed_rate;
@@ -873,7 +891,13 @@ static MSFilterDesc msandroid_sound_write_desc={
 MSFilter *msandroid_sound_write_new(MSSndCard *card){
 	ms_debug("msandroid_sound_write_new");
 	MSFilter *f=ms_filter_new_from_desc(&msandroid_sound_write_desc);
-	f->data=new msandroid_sound_write_data();
+	msandroid_sound_write_data *data = new msandroid_sound_write_data();
+	if (card->preferred_sample_rate) {
+		data->rate = card->preferred_sample_rate;
+		data->forced_rate = true;
+		ms_warning("Using forced sample rate %i", data->rate);
+	}
+	f->data = data;
 	return f;
 }
 
