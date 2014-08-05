@@ -111,7 +111,7 @@ stream_manager_t * stream_manager_new(MSFormatType type) {
 		mgr->video_stream=video_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
 		rtp_session_register_event_queue(mgr->video_stream->ms.sessions.rtp_session,mgr->evq);
 #else
-		ms_fatal("Unsupported stream type [%s]",ms_stream_type_to_string(mgr->type));
+		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(mgr->type));
 #endif
 
 	}
@@ -129,7 +129,7 @@ static void stream_manager_delete(stream_manager_t * mgr) {
 		rtp_session_unregister_event_queue(mgr->video_stream->ms.sessions.rtp_session,mgr->evq);
 		video_stream_stop(mgr->video_stream);
 #else
-		ms_fatal("Unsupported stream type [%s]",ms_stream_type_to_string(mgr->type));
+		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(mgr->type));
 #endif
 	}
 	ortp_ev_queue_destroy(mgr->evq);
@@ -259,7 +259,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 
 		video_manager_start(margaux,payload,marielle->local_rtp,0,NULL);
 #else
-		ms_fatal("Unsupported stream type [%s]",ms_stream_type_to_string(marielle->type));
+		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(marielle->type));
 #endif
 	}
 
