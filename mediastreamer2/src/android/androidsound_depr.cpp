@@ -163,7 +163,7 @@ MSSndCard *msandroid_sound_card_new(){
 	if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
 		card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	}
-	card->preferred_sample_rate = d->recommended_rate;
+	card->data = d;
 	return card;
 }
 
@@ -571,10 +571,13 @@ MSFilter *msandroid_sound_read_new(MSSndCard *card){
 	MSFilter *f=ms_filter_new_from_desc(&msandroid_sound_read_desc);
 	msandroid_sound_read_data *data=new msandroid_sound_read_data();
 	data->builtin_aec = card->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
-	if (card->preferred_sample_rate) {
-		data->rate = card->preferred_sample_rate;
-		data->forced_rate = true;
-		ms_warning("Using forced sample rate %i", data->rate);
+	if (card->data != NULL) {
+		SoundDeviceDescription *d = (SoundDeviceDescription *)card->data;
+		if (d->recommended_rate > 0) {
+			data->rate = d->recommended_rate;
+			data->forced_rate = true;
+			ms_warning("Using forced sample rate %i", data->rate);
+		}
 	}
 	f->data=data;
 	return f;
@@ -892,10 +895,13 @@ MSFilter *msandroid_sound_write_new(MSSndCard *card){
 	ms_debug("msandroid_sound_write_new");
 	MSFilter *f=ms_filter_new_from_desc(&msandroid_sound_write_desc);
 	msandroid_sound_write_data *data = new msandroid_sound_write_data();
-	if (card->preferred_sample_rate) {
-		data->rate = card->preferred_sample_rate;
-		data->forced_rate = true;
-		ms_warning("Using forced sample rate %i", data->rate);
+	if (card->data != NULL) {
+		SoundDeviceDescription *d = (SoundDeviceDescription *)card->data;
+		if (d->recommended_rate > 0) {
+			data->rate = d->recommended_rate;
+			data->forced_rate = true;
+			ms_warning("Using forced sample rate %i", data->rate);
+		}
 	}
 	f->data = data;
 	return f;
