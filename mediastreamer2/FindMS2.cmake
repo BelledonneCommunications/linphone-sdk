@@ -25,6 +25,7 @@
 #  MS2_FOUND - system has mediastreamer2
 #  MS2_INCLUDE_DIRS - the mediastreamer2 include directory
 #  MS2_LIBRARIES - The libraries needed to use mediastreamer2
+#  MS2_CPPFLAGS - The compilation flags needed to use mediastreamer2
 
 find_package(ORTP REQUIRED)
 find_package(GSM)
@@ -128,11 +129,12 @@ if(WIN32)
 endif(WIN32)
 list(REMOVE_DUPLICATES MS2_INCLUDE_DIRS)
 list(REMOVE_DUPLICATES MS2_LIBRARIES)
+set(MS2_CPPFLAGS ${ORTP_CPPFLAGS})
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(MS2
 	DEFAULT_MSG
-	MS2_INCLUDE_DIRS MS2_LIBRARIES MS2_BASE_LIBRARY MS2_VOIP_LIBRARY
+	MS2_INCLUDE_DIRS MS2_LIBRARIES MS2_BASE_LIBRARY MS2_VOIP_LIBRARY MS2_CPPFLAGS
 )
 
-mark_as_advanced(MS2_INCLUDE_DIRS MS2_LIBRARIES MS2_BASE_LIBRARY MS2_VOIP_LIBRARY)
+mark_as_advanced(MS2_INCLUDE_DIRS MS2_LIBRARIES MS2_BASE_LIBRARY MS2_VOIP_LIBRARY MS2_CPPFLAGS)
