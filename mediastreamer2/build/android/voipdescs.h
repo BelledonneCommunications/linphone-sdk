@@ -42,6 +42,8 @@ extern MSFilterDesc ms_webrtc_aec_desc;
 #endif
 extern MSFilterDesc ms_opus_dec_desc;
 extern MSFilterDesc ms_opus_enc_desc;
+extern MSFilterDesc ms_mkv_recorder_desc;
+extern MSFilterDesc ms_mkv_player_desc;
 
 
 MSFilterDesc * ms_voip_filter_descs[]={
@@ -80,7 +82,11 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_vp8_enc_desc,
 &ms_vp8_dec_desc,
 &ms_jpeg_writer_desc,
-#endif
+#ifdef BUILD_MATROSKA
+&ms_mkv_recorder_desc,
+&ms_mkv_player_desc,
+#endif 
+#endif //VIDEO_ENABLED
 #if defined(BUILD_WEBRTC_AECM)
 &ms_webrtc_aec_desc,
 #endif
