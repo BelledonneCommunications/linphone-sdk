@@ -4,9 +4,8 @@ GITVERSION_FILE_TMP=gitversion.h.tmp
 ## This command is used to check if the sources are cloned in a git repo.
 ## We can't only depend on the presence of the .git/ directory anymore, 
 ## because of gits submodule handling.
-## We now simply issue a git status and if there's an error, the $(GITSTATUS)
-## variable won't contain "GITOK"
-GITSTATUS=`cd $(top_srcdir) && git status > /dev/null && echo GITOK`
+## We now simply issue a git log on configure.ac and if the output is empty (error or file not tracked), then we are not in git.
+GITLOG=$(shell git log -1 $(top_srcdir)/configure.ac)
 
 ECHO=/bin/echo
 
@@ -434,7 +433,7 @@ imgdir=$(datadir)/images/
 img_DATA=voip/nowebcamCIF.jpg
 
 make_gitversion_h:
-	if test "$(GITSTATUS)" == "GITOK" ; then \
+	if test -n "$(GITLOG)" ; then \
 		$(ECHO) -n "#define GIT_VERSION " > $(GITVERSION_FILE_TMP) &&\
 		$(ECHO) \"`cd $(top_srcdir) && git describe --always`\" >> $(GITVERSION_FILE_TMP) &&\
 		if test "`cat $(GITVERSION_FILE_TMP)`" != "`cat $(srcdir)/$(GITVERSION_FILE)`" ; then \
