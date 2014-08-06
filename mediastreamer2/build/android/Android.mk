@@ -76,6 +76,7 @@ LOCAL_SRC_FILES = \
 	otherfilters/tee.c \
 	otherfilters/join.c \
 	otherfilters/void.c \
+	otherfilters/itc.c \
 	audiofilters/audiomixer.c \
 	audiofilters/alaw.c \
 	audiofilters/ulaw.c \
@@ -157,12 +158,18 @@ LOCAL_SRC_FILES+= \
 endif
 
 ifeq ($(BUILD_MATROSKA), 1)
+LOCAL_CFLAGS += -DHAVE_MATROSKA
 LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/../../../externals/build/libebml2/include \
 	$(LOCAL_PATH)/../../../externals/build/libmatroska/include
 
 LOCAL_SRC_FILES += \
 	videofilters/mkv.c
+
+LOCAL_STATIC_LIBRARIES += \
+	libebml2 \
+	libmatroska2
+
 endif #BUILD_MATROSKA
 
 endif #_BUILD_VIDEO

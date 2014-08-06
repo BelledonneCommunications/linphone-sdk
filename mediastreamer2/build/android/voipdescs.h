@@ -44,7 +44,8 @@ extern MSFilterDesc ms_opus_dec_desc;
 extern MSFilterDesc ms_opus_enc_desc;
 extern MSFilterDesc ms_mkv_recorder_desc;
 extern MSFilterDesc ms_mkv_player_desc;
-
+extern MSFilterDesc ms_itc_source_desc;
+extern MSFilterDesc ms_itc_sink_desc;
 
 MSFilterDesc * ms_voip_filter_descs[]={
 &ms_alaw_dec_desc,
@@ -82,7 +83,7 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_vp8_enc_desc,
 &ms_vp8_dec_desc,
 &ms_jpeg_writer_desc,
-#ifdef BUILD_MATROSKA
+#ifdef HAVE_MATROSKA
 &ms_mkv_recorder_desc,
 &ms_mkv_player_desc,
 #endif 
@@ -94,6 +95,8 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_opus_dec_desc,
 &ms_opus_enc_desc,
 #endif
+&ms_itc_source_desc,
+&ms_itc_sink_desc,
 NULL
 };
 
