@@ -63,11 +63,27 @@ file(COPY "${CMAKE_INSTALL_PREFIX}/share/sounds" DESTINATION "${CMAKE_CURRENT_BI
 file(GLOB_RECURSE LINPHONE_DATA_FILES RELATIVE "${CMAKE_CURRENT_BINARY_DIR}/linphone" "${CMAKE_CURRENT_BINARY_DIR}/linphone/*")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/setup.py.cmake" "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
 
-# Generate the installer
+if(WIN32)
 #set(ENV{VS90COMNTOOLS} "$ENV{VS110COMNTOOLS}")
+
+# Generate the installer
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/linphone.exe"
 	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
 	COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist_wininst"
 )
+add_custom_target(pylinphone_exe ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.exe")
 
-add_custom_target(custom_pylinphone ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.exe")
+# Generate the msi
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/linphone.msi"
+	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
+	COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist_msi"
+)
+add_custom_target(pylinphone_msi ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.msi")
+
+# Generate the zip
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/linphone.zip"
+	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
+	COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist" "--format=zip"
+)
+add_custom_target(pylinphone_zip ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.zip")
+endif()
