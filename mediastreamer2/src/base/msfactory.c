@@ -433,10 +433,10 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
 
 	// Start searching for .dll files in the current directory.
-#ifdef WINAPI_FAMILY_PHONE_APP
-	snprintf(szDirPath, sizeof(szDirPath), "%s\\libms*.dll", dir);
-#else
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 	snprintf(szDirPath, sizeof(szDirPath), "%s\\*.dll", dir);
+#else
+	snprintf(szDirPath, sizeof(szDirPath), "%s\\libms*.dll", dir);
 #endif
 #ifdef UNICODE
 	mbstowcs(wszDirPath, szDirPath, sizeof(wszDirPath));
@@ -454,7 +454,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	while (!fFinished)
 	{
 		/* load library */
-#ifndef WINAPI_FAMILY_PHONE_APP
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 		UINT em=0;
 #endif
 		HINSTANCE os_handle;
@@ -467,9 +467,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 #else
 		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
 #endif
-#ifdef WINAPI_FAMILY_PHONE_APP
-		os_handle = LoadPackagedLibrary(wszPluginFile, 0);
-#else
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
 
 #ifdef UNICODE
@@ -487,6 +485,8 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 #endif
 		}
 		if (!debug) SetErrorMode (em);
+#else
+		os_handle = LoadPackagedLibrary(wszPluginFile, 0);
 #endif
 		if (os_handle==NULL)
 			ms_error("Fail to load plugin %s: error %i", szPluginFile, (int)GetLastError());

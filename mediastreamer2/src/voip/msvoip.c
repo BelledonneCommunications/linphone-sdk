@@ -70,7 +70,7 @@ extern MSSndCardDesc oss_card_desc;
 extern MSSndCardDesc arts_card_desc;
 #endif
 
-#if defined(WIN32) && !WINAPI_FAMILY_APP
+#if defined(WIN32) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 extern MSSndCardDesc winsnd_card_desc;
 #endif
 
@@ -129,7 +129,7 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 	&arts_card_desc,
 #endif
 
-#if defined(WIN32) && !WINAPI_FAMILY_APP
+#if defined(WIN32) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 	&winsnd_card_desc,
 #endif
 

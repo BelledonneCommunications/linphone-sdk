@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "private.h"
 
 #ifdef ORTP_HAVE_SRTP
-#if defined(ANDROID) || defined(WINAPI_FAMILY_PHONE_APP)
+#if defined(ANDROID) || (defined(WIN32) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP))
 // Android and Windows phone don't use make install
 #include <srtp_priv.h>
 #else

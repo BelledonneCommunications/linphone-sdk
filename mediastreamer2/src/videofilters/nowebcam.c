@@ -177,7 +177,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	uint8_t *jpgbuf;
 	DWORD err;
 	HANDLE fd;
-#if defined(UNICODE) && defined(WINAPI_FAMILY_PHONE_APP)
+#if defined(UNICODE) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 	WCHAR wUnicode[1024];
 	MultiByteToWideChar(CP_UTF8, 0, jpgpath, -1, wUnicode, 1024);
 	fd = CreateFile2(wUnicode, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, NULL);
@@ -191,7 +191,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	}
 	st_sizel=0;
 	st_sizeh=0;
-#if defined(UNICODE) && defined(WINAPI_FAMILY_PHONE_APP)
+#if defined(UNICODE) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 	{
 		WIN32_FILE_ATTRIBUTE_DATA attr_data;
 		GetFileAttributesEx(wUnicode, GetFileExInfoStandard, &attr_data);
