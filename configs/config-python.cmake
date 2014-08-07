@@ -89,6 +89,7 @@ set(EP_cunit_LINKING_TYPE "-DENABLE_STATIC=YES")
 set(EP_gsm_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # linphone
+set(EP_linphone_GIT_TAG "dev_python")
 if(MSVC)
 	set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=YES")
 else()
@@ -118,6 +119,9 @@ endif()
 # polarssl
 set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=NO")
 
+# speex
+set(EP_speex_LINKING_TYPE "-DENABLE_STATIC=YES")
+
 # srtp
 set(EP_srtp_LINKING_TYPE "-DENABLE_STATIC=YES")
 
@@ -129,3 +133,15 @@ set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 
 # xml2
 set(EP_xml2_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
+
+
+# Python module
+linphone_builder_expand_external_project_vars()
+ExternalProject_Add(TARGET_pylinphone
+	DEPENDS TARGET_linphone
+	DOWNLOAD_COMMAND ""
+	PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}/python" "<SOURCE_DIR>"
+	CMAKE_GENERATOR ${CMAKE_GENERATOR}
+	CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS}
+	INSTALL_COMMAND ""
+)
