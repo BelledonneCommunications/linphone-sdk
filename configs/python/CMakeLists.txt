@@ -24,13 +24,24 @@ cmake_minimum_required(VERSION 2.8.12)
 project(PYLINPHONE C) # Dummy project
 
 find_package(PythonInterp REQUIRED)
+find_package(Git)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules)
 find_package(Linphone REQUIRED)
-message("LINPHONE_LIBRARIES: ${LINPHONE_LIBRARIES}")
-message("LINPHONE_INCLUDE_DIRS: ${LINPHONE_INCLUDE_DIRS}")
 
 set(LINPHONE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../EP_linphone")
+
+if(GIT_EXECUTABLE)
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} describe --always
+		OUTPUT_VARIABLE LINPHONE_GIT_REVISION
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		WORKING_DIRECTORY ${LINPHONE_SOURCE_DIR}
+	)
+else()
+	set(LINPHONE_GIT_REVISION "0.0.0")
+endif()
+STRING(REGEX REPLACE "([0-9.]+)-?.*" "\\1" LINPHONE_VERSION "${LINPHONE_GIT_REVISION}")
 
 # Find the doxygen XML directory
 file(GLOB XML_DIR "${CMAKE_INSTALL_PREFIX}/share/doc/linphone-*/xml")
@@ -67,23 +78,29 @@ if(WIN32)
 #set(ENV{VS90COMNTOOLS} "$ENV{VS110COMNTOOLS}")
 
 # Generate the installer
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/linphone.exe"
+set(EXE_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/dist/linphone-${LINPHONE_VERSION}.win32-py2.7.exe")
+add_custom_command(OUTPUT ${EXE_FILENAME}
 	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
 	COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist_wininst"
 )
-add_custom_target(pylinphone_exe ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.exe")
+add_custom_target(pylinphone_exe ALL DEPENDS ${EXE_FILENAME})
+install(FILES ${EXE_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.win32-py2.7.exe")
 
 # Generate the msi
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/linphone.msi"
+set(MSI_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/dist/linphone-${LINPHONE_VERSION}.win32-py2.7.msi")
+add_custom_command(OUTPUT ${MSI_FILENAME}
 	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
 	COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist_msi"
 )
-add_custom_target(pylinphone_msi ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.msi")
+add_custom_target(pylinphone_msi ALL DEPENDS ${MSI_FILENAME})
+install(FILES ${MSI_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.win32-py2.7.msi")
 
 # Generate the zip
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/linphone.zip"
+set(ZIP_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/dist/linphone-${LINPHONE_VERSION}.win32.zip")
+add_custom_command(OUTPUT ${ZIP_FILENAME}
 	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
 	COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist" "--format=zip"
 )
-add_custom_target(pylinphone_zip ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.zip")
+add_custom_target(pylinphone_zip ALL DEPENDS ${ZIP_FILENAME})
+install(FILES ${ZIP_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.win32-py2.7.zip")
 endif()

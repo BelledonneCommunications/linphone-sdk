@@ -20,6 +20,7 @@ import os
 import string
 from distutils.core import setup, Extension
 
+version = "@LINPHONE_VERSION@"
 macros = "@LINPHONE_CPPFLAGS@"
 include_dirs = "@LINPHONE_INCLUDE_DIRS@"
 libraries = "@LINPHONE_LIBRARIES@"
@@ -47,7 +48,7 @@ ext = Extension('linphone',
 	sources = ['linphone.c']
 )
 setup(name = 'linphone',
-	version = '1.0',
+	version = version,
 	description = 'Linphone package for Python',
 	author = "Belledonne Communications",
 	url = "http://www.linphone.org/",
