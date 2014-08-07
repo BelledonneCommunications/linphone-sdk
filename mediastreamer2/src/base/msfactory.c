@@ -152,7 +152,7 @@ void ms_factory_init(MSFactory *obj){
 	}
 
 #ifdef WIN32 /*fixme to be tested*/
-	GetSystemInfo( &sysinfo );
+	GetNativeSystemInfo( &sysinfo );
 
 	num_cpu = sysinfo.dwNumberOfProcessors;
 #elif __APPLE__ || __linux
