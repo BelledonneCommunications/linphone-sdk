@@ -89,7 +89,6 @@ set(EP_cunit_LINKING_TYPE "-DENABLE_STATIC=YES")
 set(EP_gsm_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # linphone
-set(EP_linphone_GIT_TAG "dev_python")
 if(MSVC)
 	set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=YES")
 	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
