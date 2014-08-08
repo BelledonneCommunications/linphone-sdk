@@ -30,11 +30,18 @@ setup.exe: zip
 	rm -f $(INSTALLDIR_WITH_PREFIX)/$(PACKAGE_WIN32_FILELIST)
 	rm -f $(INSTALLDIR_WITH_PREFIX)/$(ISS_SCRIPT)
 
-zip:
+dll_deps=libopencore-amrnb-0.dll libopencore-amrwb-0.dll libvo-amrwbenc-0.dll
+
+installfiles:
 	rm -f $(ZIPFILE)
 	rm -rf $(INSTALLDIR)
 	mkdir -p $(INSTALLDIR)
 	make install DESTDIR=$(INSTALLDIR)
+	- for file in $(dll_deps) ; do \
+		cp -f $(prefix)/bin/$$file $(INSTALLDIR_WITH_PREFIX)/lib/mediastreamer/plugins/. ;\
+	done
+
+zip:	installfiles
 	cp -f $(top_srcdir)/README $(INSTALLDIR_WITH_PREFIX)/.
 	cp -f $(top_srcdir)/COPYING $(INSTALLDIR_WITH_PREFIX)/.
 	cd $(INSTALLDIR)/$(prefix) && rm -rf $(ZIP_EXCLUDED) && \
