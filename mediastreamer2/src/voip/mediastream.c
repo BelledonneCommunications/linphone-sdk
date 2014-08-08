@@ -165,7 +165,7 @@ RtpSession * create_duplex_rtpsession(int loc_rtp_port, int loc_rtcp_port, bool_
 
 void media_stream_start_ticker(MediaStream *stream) {
 	MSTickerParams params = {0};
-	char name[16];
+	char name[32] = {0};
 
 	if (stream->sessions.ticker) return;
 	snprintf(name, sizeof(name) - 1, "%s MSTicker", media_stream_type_str(stream));
