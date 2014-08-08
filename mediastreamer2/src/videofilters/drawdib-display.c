@@ -150,6 +150,10 @@ static LRESULT CALLBACK window_proc(
 {
 	DDDisplay *wd=(DDDisplay*)GetWindowLongPtr(hwnd,GWLP_USERDATA);
 	switch(uMsg){
+		case WM_CREATE:
+			wd=(DDDisplay*)((LPCREATESTRUCT)lParam)->lpCreateParams;
+			SetWindowLongPtr(hwnd,GWL_USERDATA,(long)wd);
+			break;
 		case WM_DESTROY:
 			if (wd){
 				wd->window=NULL;
@@ -181,7 +185,7 @@ static LRESULT CALLBACK window_proc(
 	return 0;
 }
 
-static HWND create_window(int w, int h)
+static HWND create_window(int w, int h, DDDisplay *dd)
 {
 	WNDCLASS wc;
 	HINSTANCE hInstance = GetModuleHandle(NULL);
@@ -213,7 +217,7 @@ static HWND create_window(int w, int h)
 	hwnd=CreateWindow("Video Window", "Video window", 
 		WS_OVERLAPPEDWINDOW /*WS_THICKFRAME*/ | WS_VISIBLE ,
 		CW_USEDEFAULT, CW_USEDEFAULT, rect.right-rect.left,rect.bottom-rect.top,
-													NULL, NULL, hInstance, NULL);
+													NULL, NULL, hInstance, dd);
 	if (hwnd==NULL){
 		ms_error("Fail to create video window");
 	}
@@ -247,8 +251,7 @@ static void dd_display_prepare(MSFilter *f){
 	
 	if (dd->window==NULL) {
 		if(dd->auto_window) {
-			dd->window=create_window(dd->wsize.width,dd->wsize.height);
-			SetWindowLong(dd->window,GWL_USERDATA,(long)dd);
+			dd->window=create_window(dd->wsize.width,dd->wsize.height,dd);
 		}
 	}
 	if (dd->ddh==NULL)
