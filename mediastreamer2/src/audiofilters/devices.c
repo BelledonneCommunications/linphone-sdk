@@ -59,20 +59,20 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",	"GT-I9001",		"",			0,	150 }, /* Galaxy S+ */
 	{	"samsung",	"GT-I9070",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S Advance */
 	{	"samsung",	"SPH-D700",		"",			0,	200 }, /* Galaxy S Epic 4G*/
-	{	"samsung",	"GT-I9100",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /*Galaxy S2*/
-	{	"samsung",	"GT-I9100P",	"s5pc210",	DEVICE_HAS_BUILTIN_AEC,	0 }, /*Galaxy S2*/
+	{	"samsung",	"GT-I9100",		"",			DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /*Galaxy S2*/
+	{	"samsung",	"GT-I9100P",	"s5pc210",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /*Galaxy S2*/
 	{	"samsung",	"GT-S7562",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /*<Galaxy S Duo*/
 	{	"samsung",	"SCH-I415",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S ??*/
 	{	"samsung",	"SCH-I425",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S ??*/
 	{	"samsung",	"SCH-I535",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S ??*/
-	{	"samsung",	"SPH-D710",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S2 Epic 4G*/
-	{	"samsung",	"GT-I9300",		"exynos4",	DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy S3*/
-	{	"samsung",	"SAMSUNG-SGH-I747","",		DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S3*/
-	{	"samsung",	"SPH-L710","",				DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S3*/
-	{	"samsung",	"SPH-D710","",				DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S3*/
-	{	"samsung",	"SGH-T999",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy S3*/
-	{	"samsung",	"SAMSUNG-SGH-I337","",		DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S4 ? */
-	{	"samsung",	"GT-I9195",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S4 mini*/
+	{	"samsung",	"SPH-D710",		"",			DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S2 Epic 4G*/
+	{	"samsung",	"GT-I9300",		"exynos4",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 },  /*Galaxy S3*/
+	{	"samsung",	"SAMSUNG-SGH-I747","",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S3*/
+	{	"samsung",	"SPH-L710","",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S3*/
+	{	"samsung",	"SPH-D710","",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S3*/
+	{	"samsung",	"SGH-T999",		"",			DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 },  /*Galaxy S3*/
+	{	"samsung",	"SAMSUNG-SGH-I337","",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 ? */
+	{	"samsung",	"GT-I9195",		"",			DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 mini*/
 	{	"samsung",	"GT-N7000",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note*/
 	{	"samsung",	"GT-N7100",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
 	{	"samsung",	"GT-N7105",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
@@ -84,8 +84,8 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",	"GT-P7500",		"",			DEVICE_HAS_BUILTIN_AEC, 0 }, /* Galaxy Tab*/
 	{	"samsung",	"GT-P7510",		"",			DEVICE_HAS_BUILTIN_AEC, 0 }, /* Galaxy Tab*/
 	{	"samsung",	"GT-I915",		"",			DEVICE_HAS_BUILTIN_AEC, 0 }, /* Verizon Tab*/
-	{	"samsung",	"GT-I8190N",	"montblanc",	DEVICE_HAS_BUILTIN_AEC, 0, 16000 }, /* Galaxy S3 Mini*/
-	{	"samsung",	"GT-I8190",	"montblanc",	DEVICE_HAS_BUILTIN_AEC,	0, 16000 },  /*Galaxy S3 mini*/
+	{	"samsung",	"GT-I8190N",	"montblanc",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 16000 }, /* Galaxy S3 Mini*/
+	{	"samsung",	"GT-I8190",	"montblanc",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0, 16000 },  /*Galaxy S3 mini*/
 	
 	
 	{	"Sony Ericsson","ST15a",	"",			0, 	150 },

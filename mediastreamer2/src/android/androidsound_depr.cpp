@@ -144,10 +144,6 @@ MSSndCardDesc msandroid_sound_card_desc = {
 MSSndCard *msandroid_sound_duplicate(MSSndCard *obj){
 	MSSndCard *card=ms_snd_card_new(&msandroid_sound_card_desc);
 	card->name=ms_strdup(obj->name);
-
-	ms_warning("Removing MS_SND_CARD_CAP_PLAYBACK flag from soundcard to use OpenSLES output soundcard");
-	card->capabilities = MS_SND_CARD_CAP_CAPTURE;
-
 	return card;
 }
 
@@ -155,9 +151,6 @@ MSSndCard *msandroid_sound_card_new(){
 	SoundDeviceDescription *d;
 	MSSndCard *card=ms_snd_card_new(&msandroid_sound_card_desc);
 	card->name=ms_strdup("Android Sound card");
-
-	ms_warning("Removing MS_SND_CARD_CAP_PLAYBACK flag from soundcard to use OpenSLES output soundcard");
-	card->capabilities = MS_SND_CARD_CAP_CAPTURE;
 
 	d = sound_device_description_get();
 	if (d->flags & DEVICE_HAS_BUILTIN_AEC) {

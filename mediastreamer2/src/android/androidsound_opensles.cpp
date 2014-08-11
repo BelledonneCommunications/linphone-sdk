@@ -119,13 +119,11 @@ static MSFilter *ms_android_snd_write_new(void);
 struct OpenSLESContext {
 	OpenSLESContext() {
 		samplerate = DeviceFavoriteSampleRate;
-		forced_sample_rate = 0;
 		nchannels = 1;
 		builtin_aec = false;
 	}
 
 	int samplerate;
-	int forced_sample_rate;
 	int nchannels;
 	bool builtin_aec;
 
@@ -553,6 +551,7 @@ static void android_snd_read_uninit(MSFilter *obj) {
 }
 
 static int android_snd_read_set_sample_rate(MSFilter *obj, void *data) {
+#if 0
 	int *n = (int*)data;
 	OpenSLESInputContext *ictx = (OpenSLESInputContext*)obj->data;
 	if (ictx->opensles_context->forced_sample_rate > 0) {
@@ -561,6 +560,8 @@ static int android_snd_read_set_sample_rate(MSFilter *obj, void *data) {
 	}
 	ictx->opensles_context->samplerate = *n;
 	return 0;
+#endif
+	return -1; /*don't accept custom sample rates, use recommended rate always*/
 }
 
 static int android_snd_read_get_sample_rate(MSFilter *obj, void *data) {
@@ -653,61 +654,61 @@ static SLresult opensles_mixer_init(OpenSLESOutputContext *octx) {
 
 static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 	SLresult result;
-        SLuint32 sample_rate = convertSamplerate(octx->opensles_context->samplerate);
+	SLuint32 sample_rate = convertSamplerate(octx->opensles_context->samplerate);
 	SLuint32 channels = (SLuint32) octx->opensles_context->nchannels;
 
-        SLDataFormat_PCM format_pcm;
-	
+	SLDataFormat_PCM format_pcm;
+
 	format_pcm.formatType = SL_DATAFORMAT_PCM;
-        format_pcm.numChannels = channels;
-        format_pcm.samplesPerSec = sample_rate;
-        format_pcm.bitsPerSample = SL_PCMSAMPLEFORMAT_FIXED_16;
-        format_pcm.containerSize = SL_PCMSAMPLEFORMAT_FIXED_16;
-        format_pcm.endianness = SL_BYTEORDER_LITTLEENDIAN;
+	format_pcm.numChannels = channels;
+	format_pcm.samplesPerSec = sample_rate;
+	format_pcm.bitsPerSample = SL_PCMSAMPLEFORMAT_FIXED_16;
+	format_pcm.containerSize = SL_PCMSAMPLEFORMAT_FIXED_16;
+	format_pcm.endianness = SL_BYTEORDER_LITTLEENDIAN;
 	if (channels == 1) {
-	        format_pcm.channelMask = SL_SPEAKER_FRONT_CENTER;
+		format_pcm.channelMask = SL_SPEAKER_FRONT_CENTER;
 	} else if (channels == 2) {
-	        format_pcm.channelMask = SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT;
+		format_pcm.channelMask = SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT;
 	} else {
 		ms_error("OpenSLES Error trying to use %i channels", channels);
 	}
 
-        SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {
-                SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 
-                2
-        };
+	SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {
+		SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 
+		2
+	};
 
-        SLDataSource audio_src = {
-                &loc_bufq,
-                &format_pcm
-        };
+	SLDataSource audio_src = {
+		&loc_bufq,
+		&format_pcm
+	};
 
-        SLDataLocator_OutputMix loc_outmix = {
-                SL_DATALOCATOR_OUTPUTMIX,
-                octx->outputMixObject
-        };
+	SLDataLocator_OutputMix loc_outmix = {
+		SL_DATALOCATOR_OUTPUTMIX,
+		octx->outputMixObject
+	};
 
-        SLDataSink audio_sink = {
-                &loc_outmix,
-                NULL
-        };
+	SLDataSink audio_sink = {
+		&loc_outmix,
+		NULL
+	};
 
-        const SLuint32 nbInterface = 3;
-        const SLInterfaceID ids[] = { SLW_IID_VOLUME, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, SLW_IID_ANDROIDCONFIGURATION };
-        const SLboolean req[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE };
-        result = (*octx->opensles_context->engineEngine)->CreateAudioPlayer(
-                octx->opensles_context->engineEngine,
-                &(octx->playerObject),
-                &audio_src,
-                &audio_sink,
-                nbInterface,
-                ids,
-                req
-                );
-        if (result != SL_RESULT_SUCCESS) {
+	const SLuint32 nbInterface = 3;
+	const SLInterfaceID ids[] = { SLW_IID_VOLUME, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, SLW_IID_ANDROIDCONFIGURATION };
+	const SLboolean req[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE };
+	result = (*octx->opensles_context->engineEngine)->CreateAudioPlayer(
+	octx->opensles_context->engineEngine,
+		&(octx->playerObject),
+		&audio_src,
+		&audio_sink,
+		nbInterface,
+		ids,
+		req
+	);
+	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while creating ouput audio player", result);
 		return result;
-        }
+	}
 
 	result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_ANDROIDCONFIGURATION, &octx->playerConfig);
 	if (result != SL_RESULT_SUCCESS) {
@@ -796,8 +797,8 @@ static SLresult opensles_player_callback_init(OpenSLESOutputContext *octx) {
 		return result;
 	}
 
-        result = (*octx->playerBufferQueue)->RegisterCallback(octx->playerBufferQueue, opensles_player_callback, octx);
-        if (result != SL_RESULT_SUCCESS) {
+	result = (*octx->playerBufferQueue)->RegisterCallback(octx->playerBufferQueue, opensles_player_callback, octx);
+	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while registering player callback", result);
 		return result;
 	}
@@ -844,6 +845,7 @@ static void android_snd_write_uninit(MSFilter *obj){
 }
 
 static int android_snd_write_set_sample_rate(MSFilter *obj, void *data) {
+#if 0
 	int *n = (int*)data;
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
 	if (octx->opensles_context->forced_sample_rate > 0) {
@@ -852,6 +854,8 @@ static int android_snd_write_set_sample_rate(MSFilter *obj, void *data) {
 	}
 	octx->opensles_context->samplerate = *n;
 	return 0;
+#endif
+	return -1; /*don't accept custom sample rates, use recommended rate always*/
 }
 
 static int android_snd_write_get_sample_rate(MSFilter *obj, void *data) {
@@ -899,7 +903,7 @@ static void android_snd_write_process(MSFilter *obj) {
 
 	if (((uint32_t)(obj->ticker->time - octx->flowControlStart)) >= flowControlIntervalMs) {
 		int threshold = (flowControlThresholdMs * octx->opensles_context->nchannels * 2 * octx->opensles_context->samplerate) / 1000;
-		ms_message("OpenSLES Time to flow control: minBufferFilling=%i, threshold=%i", octx->minBufferFilling, threshold);
+		//ms_message("OpenSLES Time to flow control: minBufferFilling=%i, threshold=%i", octx->minBufferFilling, threshold);
 		if (octx->minBufferFilling > threshold) {
 			int drop = octx->minBufferFilling - (threshold/4); //keep a bit in order not to risk an underrun in the next period.
 			ms_warning("OpenSLES Too many samples waiting in sound writer (minBufferFilling=%i ms, threshold=%i ms), dropping %i ms", 
@@ -927,18 +931,18 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 	}
 
 	if (octx->playerObject != NULL)
-        {
-                (*octx->playerObject)->Destroy(octx->playerObject);
-                octx->playerObject = NULL;
-                octx->playerPlay = NULL;
-                octx->playerBufferQueue = NULL;
-        }
+	{
+		(*octx->playerObject)->Destroy(octx->playerObject);
+		octx->playerObject = NULL;
+		octx->playerPlay = NULL;
+		octx->playerBufferQueue = NULL;
+	}
 
 	if (octx->outputMixObject != NULL)
-        {
-                (*octx->outputMixObject)->Destroy(octx->outputMixObject);
-                octx->outputMixObject = NULL;
-        }
+	{
+			(*octx->outputMixObject)->Destroy(octx->outputMixObject);
+			octx->outputMixObject = NULL;
+	}
 }
 
 static MSFilterMethod android_snd_write_methods[] = {
@@ -1001,8 +1005,9 @@ static MSSndCard* android_snd_card_new(void) {
 	}
 	obj->latency = d->delay;
 	obj->data = context;
-	context->forced_sample_rate = context->samplerate = d->recommended_rate;
-
+	if (d->recommended_rate){
+		context->samplerate = d->recommended_rate;
+	}
 	return obj;
 }
 
