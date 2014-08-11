@@ -1801,11 +1801,8 @@ static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int pin) {
 	return block;
 }
 
-static void changeClockRate(mblk_t *buffer, uint32_t oldClockRate, uint32_t newClockRate) {
-	mblk_t *curBuff;
-	for(curBuff = buffer; curBuff != NULL; curBuff = curBuff->b_cont) {
-		mblk_set_timestamp_info(curBuff, mblk_get_timestamp_info(curBuff) * newClockRate / oldClockRate);
-	}
+static inline void changeClockRate(mblk_t *buffer, unsigned int oldClockRate, unsigned int newClockRate) {
+	mblk_set_timestamp_info(buffer, (uint64_t)mblk_get_timestamp_info(buffer) * (uint64_t)newClockRate / (uint64_t)oldClockRate);
 }
 
 static int recorder_open_file(MSFilter *f, void *arg) {
@@ -1925,8 +1922,7 @@ static void recorder_process(MSFilter *f) {
 		for(i=0; i < f->desc->ninputs; i++) {
 			if(f->inputs[i] != NULL && obj->inputDescsList[i] == NULL) {
 				ms_queue_flush(f->inputs[i]);
-			}
-			else if(f->inputs[i] != NULL && obj->inputDescsList[i] != NULL) {
+			} else if(f->inputs[i] != NULL && obj->inputDescsList[i] != NULL) {
 				MSQueue frames, frames_ms;
 				ms_queue_init(&frames);
 				ms_queue_init(&frames_ms);
