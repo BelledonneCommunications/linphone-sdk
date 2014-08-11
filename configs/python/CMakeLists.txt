@@ -31,6 +31,16 @@ find_package(Linphone REQUIRED)
 
 set(LINPHONE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../EP_linphone")
 
+if(MSVC)
+	string(REGEX REPLACE "Visual Studio ([0-9]+)" "\\1" MSVC_VERSION "${CMAKE_GENERATOR}")
+endif()
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+	find_file(MSVCR_LIB msvcr${MSVC_VERSION}0d.dll PATHS "C:/Windows/System32")
+else()
+	find_file(MSVCR_LIB msvcr${MSVC_VERSION}0.dll PATHS "C:/Windows/System32")
+endif()
+
 if(GIT_EXECUTABLE)
 	execute_process(
 		COMMAND ${GIT_EXECUTABLE} describe --always
@@ -68,6 +78,9 @@ endif()
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/linphone")
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/linphone/__init__.py" "import linphone")
 file(COPY ${LINPHONE_DYNAMIC_LIBRARIES} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone")
+if(MSVC)
+	file(COPY ${MSVCR_LIB} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone")
+endif()
 file(COPY "${CMAKE_INSTALL_PREFIX}/share/images" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone/share/")
 file(COPY "${CMAKE_INSTALL_PREFIX}/share/linphone" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone/share/")
 file(COPY "${CMAKE_INSTALL_PREFIX}/share/sounds" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone/share/")
