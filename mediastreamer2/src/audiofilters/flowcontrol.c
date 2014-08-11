@@ -73,28 +73,26 @@ static void discard_well_choosed_samples(mblk_t *m, int nsamples, int todrop)
 	}
 }
 
-mblk_t *ms_audio_flow_controller_process(MSAudioFlowController *ctl, mblk_t *m)
-{
+mblk_t *ms_audio_flow_controller_process(MSAudioFlowController *ctl, mblk_t *m){
 	if (ctl->total_samples > 0 && ctl->target_samples > 0) {
 		int nsamples = (m->b_wptr - m->b_rptr) / 2;
-		if (ctl->target_samples * 16 > ctl->total_samples) {
-			ms_warning("Too many samples to drop, dropping entire frames");
-			freemsg(m);
-			ctl->current_pos += nsamples;
-			m=NULL;
-		} else {
-			int th_dropped;
-			int todrop;
+		int th_dropped;
+		int todrop;
 
-			ctl->current_pos += nsamples;
-			th_dropped = (ctl->target_samples * ctl->current_pos) / ctl->total_samples;
-			todrop = th_dropped - ctl->current_dropped;
-			if (todrop > 0) {
-				if (todrop > nsamples) todrop = nsamples;
+		ctl->current_pos += nsamples;
+		th_dropped = (ctl->target_samples * ctl->current_pos) / ctl->total_samples;
+		todrop = th_dropped - ctl->current_dropped;
+		if (todrop > 0) {
+			if (todrop*8<nsamples){
 				discard_well_choosed_samples(m, nsamples, todrop);
-				/*ms_message("th_dropped=%i, current_dropped=%i, %i samples dropped.",th_dropped,ctl->current_dropped,todrop);*/
-				ctl->current_dropped += todrop;
+			}else{
+				ms_warning("Too many samples to drop, dropping entire frame.");
+				freemsg(m);
+				m=NULL;
+				todrop=nsamples;
 			}
+			/*ms_message("th_dropped=%i, current_dropped=%i, %i samples dropped.",th_dropped,ctl->current_dropped,todrop);*/
+			ctl->current_dropped += todrop;
 		}
 		if (ctl->current_pos >= ctl->total_samples) ctl->target_samples = 0; /*stop discarding*/
 	}
