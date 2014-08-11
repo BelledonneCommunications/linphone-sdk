@@ -267,7 +267,7 @@ static void pulse_write_preprocess(MSFilter *f){
 
 	fragsize = pa_usec_to_bytes(latency_req * 1000, &s->sampleSpec);
 	
-	attr.maxlength=-1;
+	attr.maxlength=fragsize*3;
 	attr.tlength=fragsize;
 	attr.prebuf=0;
 	attr.minreq=-1;
