@@ -85,10 +85,22 @@ file(COPY "${CMAKE_INSTALL_PREFIX}/share/images" DESTINATION "${CMAKE_CURRENT_BI
 file(COPY "${CMAKE_INSTALL_PREFIX}/share/linphone" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone/share/")
 file(COPY "${CMAKE_INSTALL_PREFIX}/share/sounds" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone/share/")
 file(GLOB_RECURSE LINPHONE_DATA_FILES RELATIVE "${CMAKE_CURRENT_BINARY_DIR}/linphone" "${CMAKE_CURRENT_BINARY_DIR}/linphone/*")
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+	set(PDB_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/build/lib.win32-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/linphone/linphone.pdb")
+	list(APPEND LINPHONE_DATA_FILES ${PDB_FILENAME})
+endif()
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/setup.py.cmake" "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
 
 if(WIN32)
 #set(ENV{VS90COMNTOOLS} "$ENV{VS110COMNTOOLS}")
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+	add_custom_command(OUTPUT ${PDB_FILENAME}
+		DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
+		COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "build" "--debug"
+	)
+	add_custom_target(pylinphone_debug ALL DEPENDS ${PDB_FILENAME})
+endif()
 
 # Generate the installer
 set(EXE_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/dist/linphone-${LINPHONE_VERSION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.exe")
