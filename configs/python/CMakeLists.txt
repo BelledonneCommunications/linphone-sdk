@@ -53,6 +53,11 @@ else()
 endif()
 STRING(REGEX REPLACE "([0-9.]+)-?.*" "\\1" LINPHONE_VERSION "${LINPHONE_GIT_REVISION}")
 
+execute_process(
+	COMMAND ${CMAKE_COMMAND} -E echo "#define LINPHONE_GIT_REVISION \"${LINPHONE_GIT_REVISION}\""
+	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
+)
+
 # Find the doxygen XML directory
 file(GLOB XML_DIR "${CMAKE_INSTALL_PREFIX}/share/doc/linphone-*/xml")
 
