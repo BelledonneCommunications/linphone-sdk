@@ -428,9 +428,8 @@ public:
             ssize_t     write(const void* buffer, size_t size);
 
 private:
-	uint8_t *mThis;
 	class AudioTrackImpl *mImpl;
-
+	uint8_t *mThis;
 };
 
 
@@ -464,6 +463,11 @@ public:
 	Function3<status_t,int*,audio_stream_type_t,int> mGetMinFrameCount;
 	Function1<uint32_t,void*> mLatency;
 	Function2<status_t,void*,uint32_t*> mGetPosition;
+	//indicates whether the memory is owned by us. Since we don't create the strong pointer owning the real object, we do not take any reference to it.
+	//Starting from 4.4 this is causing problem as the real object is destroyed by strong pointer somewhere else holding the real object.
+	//This reference appears to be dropped in the stop() method. As a result we shall not call the destructor, otherwise it is called twice.
+	//The same thing happens for the AudioRecord.
+	bool mOwnThis;
 private:
 	AudioTrackImpl(Library *lib);
 	static AudioTrackImpl *sImpl;

@@ -20,6 +20,7 @@
 
 #include "mediastreamer2/mscommon.h"
 #include "AudioRecord.h"
+#include "AudioTrack.h"
 
 namespace fake_android{
 
@@ -51,8 +52,10 @@ AudioRecord::AudioRecord(audio_source_t inputSource,
      * Also destroys all resources assotiated with the AudioRecord.
      */
 AudioRecord::~AudioRecord(){
-	mImpl->mDtor.invoke(mThis);
-	delete mThis;
+	if (AudioTrackImpl::get()->mOwnThis){
+		mImpl->mDtor.invoke(mThis);
+		delete mThis;
+	}
 }
 
 
