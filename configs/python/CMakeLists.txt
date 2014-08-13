@@ -32,7 +32,7 @@ find_package(Linphone REQUIRED)
 set(LINPHONE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../EP_linphone")
 
 if(MSVC)
-	string(REGEX REPLACE "Visual Studio ([0-9]+)" "\\1" MSVC_VERSION "${CMAKE_GENERATOR}")
+	string(REGEX REPLACE "Visual Studio ([0-9]+).*" "\\1" MSVC_VERSION "${CMAKE_GENERATOR}")
 endif()
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
@@ -62,15 +62,15 @@ execute_process(
 file(GLOB XML_DIR "${CMAKE_INSTALL_PREFIX}/share/doc/linphone-*/xml")
 
 # Generate the API in XML format from the doxygen XML files
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/api.xml"
+add_custom_target(api_xml
+	${PYTHON_EXECUTABLE} "${LINPHONE_SOURCE_DIR}/tools/genapixml.py" "--pretty" "--outputfile" "${CMAKE_CURRENT_BINARY_DIR}/api.xml" "${XML_DIR}"
 	DEPENDS ${XML_FILES}
-	COMMAND ${PYTHON_EXECUTABLE} "${LINPHONE_SOURCE_DIR}/tools/genapixml.py" "--pretty" "--outputfile" "${CMAKE_CURRENT_BINARY_DIR}/api.xml" "${XML_DIR}"
 )
 
 # Generate the Python wrapper source code for the API in XML format
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
-	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/api.xml"
-	COMMAND ${PYTHON_EXECUTABLE} "${LINPHONE_SOURCE_DIR}/tools/python/apixml2python.py" "--outputfile" "${CMAKE_CURRENT_BINARY_DIR}/linphone.c" "${CMAKE_CURRENT_BINARY_DIR}/api.xml"
+add_custom_target(pylinphone_source
+	${PYTHON_EXECUTABLE} "${LINPHONE_SOURCE_DIR}/tools/python/apixml2python.py" "--outputfile" "${CMAKE_CURRENT_BINARY_DIR}/linphone.c" "${CMAKE_CURRENT_BINARY_DIR}/api.xml"
+	DEPENDS api_xml
 	WORKING_DIRECTORY "${LINPHONE_SOURCE_DIR}/tools/python"
 )
 
@@ -83,54 +83,55 @@ endif()
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/linphone")
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/linphone/__init__.py" "import linphone")
 file(COPY ${LINPHONE_DYNAMIC_LIBRARIES} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone")
-if(MSVC)
+if(MSVC AND NOT "${MSVC_VERSION}" STREQUAL "9")
 	file(COPY ${MSVCR_LIB} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone")
 endif()
 file(COPY "${CMAKE_INSTALL_PREFIX}/share/images" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone/share/")
 file(COPY "${CMAKE_INSTALL_PREFIX}/share/linphone" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone/share/")
 file(COPY "${CMAKE_INSTALL_PREFIX}/share/sounds" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/linphone/share/")
 file(GLOB_RECURSE LINPHONE_DATA_FILES RELATIVE "${CMAKE_CURRENT_BINARY_DIR}/linphone" "${CMAKE_CURRENT_BINARY_DIR}/linphone/*")
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+if(MSVC AND "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
 	set(PDB_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/build/lib.win32-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/linphone/linphone.pdb")
 	list(APPEND LINPHONE_DATA_FILES ${PDB_FILENAME})
 endif()
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/setup.py.cmake" "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
 
-if(WIN32)
-#set(ENV{VS90COMNTOOLS} "$ENV{VS110COMNTOOLS}")
+if(MSVC)
+
+if(NOT "${MSVC_VERSION}" STREQUAL "9")
+	set(ENV{VS90COMNTOOLS} "$ENV{VS${MSVC_VERSION}0COMNTOOLS}")
+endif()
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-	add_custom_command(OUTPUT ${PDB_FILENAME}
-		DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
-		COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "build" "--debug"
+	add_custom_target(pylinphone_debug ALL
+		${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "build" "--debug"
+		DEPENDS pylinphone_source
 	)
-	add_custom_target(pylinphone_debug ALL DEPENDS ${PDB_FILENAME})
+else()
+	add_custom_target(pylinphone_debug)
 endif()
 
 # Generate the installer
 set(EXE_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/dist/linphone-${LINPHONE_VERSION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.exe")
-add_custom_command(OUTPUT ${EXE_FILENAME}
-	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
-	COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist_wininst"
+add_custom_target(pylinphone_exe ALL
+	${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist_wininst"
+	DEPENDS pylinphone_source pylinphone_debug
 )
-add_custom_target(pylinphone_exe ALL DEPENDS ${EXE_FILENAME})
 install(FILES ${EXE_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.exe")
 
 # Generate the msi
 set(MSI_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/dist/linphone-${LINPHONE_VERSION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.msi")
-add_custom_command(OUTPUT ${MSI_FILENAME}
-	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
-	COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist_msi"
+add_custom_target(pylinphone_msi ALL
+	${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist_msi"
+	DEPENDS pylinphone_source pylinphone_debug
 )
-add_custom_target(pylinphone_msi ALL DEPENDS ${MSI_FILENAME})
 install(FILES ${MSI_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.msi")
 
 # Generate the zip
 set(ZIP_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/dist/linphone-${LINPHONE_VERSION}.win32.zip")
-add_custom_command(OUTPUT ${ZIP_FILENAME}
-	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/linphone.c"
-	COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist" "--format=zip"
+add_custom_target(pylinphone_zip ALL
+	${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist" "--format=zip"
+	DEPENDS pylinphone_source pylinphone_debug
 )
-add_custom_target(pylinphone_zip ALL DEPENDS ${ZIP_FILENAME})
 install(FILES ${ZIP_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.zip")
 endif()
