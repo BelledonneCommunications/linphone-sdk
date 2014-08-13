@@ -1697,6 +1697,40 @@ static void time_corrector_proceed(TimeCorrector *obj, mblk_t *buffer, int pin) 
 	mblk_set_timestamp_info(buffer, mblk_get_timestamp_info(buffer) + obj->offsetList[pin]);
 }
 
+/*********************************************************************************************
+ * TimeLoopCanceler																			 *
+ *********************************************************************************************/
+typedef struct {
+	int64_t offset;
+	int module;
+	int64_t prevTimestamp;
+} TimeLoopCanceler;
+
+static void time_loop_canceler_init(TimeLoopCanceler *obj) {
+	obj->offset = -1;
+	obj->module = 0;
+	obj->prevTimestamp = -1;
+}
+
+static TimeLoopCanceler *time_loop_canceler_new(void) {
+    TimeLoopCanceler *obj = ms_new0(TimeLoopCanceler, 1);
+    time_loop_canceler_init(obj);
+    return obj;
+}
+
+static uint32_t time_loop_canceler_apply(TimeLoopCanceler *obj, uint32_t timestamp) {
+	if(obj->offset < 0) {
+		obj->offset = timestamp;
+	}
+	if(obj->prevTimestamp >= 0) {
+		int64_t delta = (int64_t)timestamp - obj->prevTimestamp;
+		if(delta < 0 && -delta >= (int64_t)1<<31) {
+			obj->module++;
+		}
+	}
+	obj->prevTimestamp = timestamp;
+    return (uint64_t)timestamp + (uint64_t)0x00000000ffffffff * (uint64_t)obj->module - (uint64_t)obj->offset;
+}
 
 /*********************************************************************************************
  * MKV Recorder Filter                                                                       *
@@ -1713,6 +1747,7 @@ typedef struct {
 	ms_bool_t needKeyFrame;
 	const MSFmtDescriptor **inputDescsList;
 	Module **modulesList;
+    TimeLoopCanceler **timeLoopCancelers;
 } MKVRecorder;
 
 static void recorder_init(MSFilter *f) {
@@ -1728,6 +1763,7 @@ static void recorder_init(MSFilter *f) {
 
 	obj->inputDescsList = (const MSFmtDescriptor **)ms_new0(const MSFmtDescriptor *, f->desc->ninputs);
 	obj->modulesList = (Module **)ms_new0(Module *, f->desc->ninputs);
+    obj->timeLoopCancelers = (TimeLoopCanceler **)ms_new0(TimeLoopCanceler *, f->desc->ninputs);
 
 	time_corrector_init(&obj->timeCorrector, f->desc->ninputs);
 
@@ -1744,14 +1780,12 @@ static void recorder_uninit(MSFilter *f){
 	}
 	matroska_uninit(&obj->file);
 	for(i=0; i < f->desc->ninputs; i++) {
-		if(obj->modulesList[i] != NULL) {
-			module_free(obj->modulesList[i]);
-		}
-		if(f->inputs[i] != NULL) {
-			ms_queue_flush(f->inputs[i]);
-		}
+        if(obj->modulesList[i] != NULL) module_free(obj->modulesList[i]);
+        if(f->inputs[i] != NULL) ms_queue_flush(f->inputs[i]);
+        if(obj->timeLoopCancelers[i] != NULL) ms_free(obj->timeLoopCancelers[i]);
 	}
 	time_corrector_uninit(&obj->timeCorrector);
+    ms_free(obj->timeLoopCancelers);
 	ms_free(obj->modulesList);
 	ms_free(obj->inputDescsList);
 	ms_free(obj);
@@ -1836,6 +1870,7 @@ static int recorder_open_file(MSFilter *f, void *arg) {
 						obj->modulesList[i] = module_new(obj->inputDescsList[i]->encoding);
 						module_set(obj->modulesList[i], obj->inputDescsList[i]);
 						matroska_add_track(&obj->file, i+1, module_get_codec_id(obj->modulesList[i]));
+                        obj->timeLoopCancelers[i] = time_loop_canceler_new();
 					}
 				}
 				obj->duration = 0;
@@ -1849,6 +1884,7 @@ static int recorder_open_file(MSFilter *f, void *arg) {
 						if(matroska_get_codec_private(&obj->file, i+1, &data, &length) == 0) {
 							module_load_private_data(obj->modulesList[i], data, length);
 						}
+                        obj->timeLoopCancelers[i] = time_loop_canceler_new();
 					}
 				}
 				obj->duration = matroska_get_duration(&obj->file);
@@ -1929,6 +1965,7 @@ static void recorder_process(MSFilter *f) {
 
 				module_preprocess(obj->modulesList[i], f->inputs[i], &frames);
 				while((buffer = ms_queue_get(&frames)) != NULL) {
+                    mblk_set_timestamp_info(buffer, time_loop_canceler_apply(obj->timeLoopCancelers[i], mblk_get_timestamp_info(buffer)));
 					changeClockRate(buffer, obj->inputDescsList[i]->rate, 1000);
 					ms_queue_put(&frames_ms, buffer);
 				}
@@ -2000,7 +2037,9 @@ static int recorder_close(MSFilter *f, void *arg) {
 					matroska_del_track(&obj->file, i+1);
 				}
 				module_free(obj->modulesList[i]);
+                ms_free(obj->timeLoopCancelers[i]);
 				obj->modulesList[i] = NULL;
+                obj->timeLoopCancelers[i]= NULL;
 			}
 		}
 		matroska_close_cluster(&obj->file);
