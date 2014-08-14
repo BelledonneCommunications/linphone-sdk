@@ -68,7 +68,7 @@ add_custom_target(api_xml
 )
 
 # Generate the Python wrapper source code for the API in XML format
-add_custom_target(pylinphone_source
+add_custom_target(pylinphone_source ALL
 	${PYTHON_EXECUTABLE} "${LINPHONE_SOURCE_DIR}/tools/python/apixml2python.py" "--outputfile" "${CMAKE_CURRENT_BINARY_DIR}/linphone.c" "${CMAKE_CURRENT_BINARY_DIR}/api.xml"
 	DEPENDS api_xml
 	WORKING_DIRECTORY "${LINPHONE_SOURCE_DIR}/tools/python"
@@ -108,14 +108,14 @@ if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
 		DEPENDS pylinphone_source
 	)
 else()
-	add_custom_target(pylinphone_debug)
+	add_custom_target(pylinphone_debug ALL DEPENDS pylinphone_source)
 endif()
 
 # Generate the installer
 set(EXE_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/dist/linphone-${LINPHONE_VERSION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.exe")
 add_custom_target(pylinphone_exe ALL
 	${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist_wininst"
-	DEPENDS pylinphone_source pylinphone_debug
+	DEPENDS pylinphone_debug
 )
 install(FILES ${EXE_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.exe")
 
@@ -123,7 +123,7 @@ install(FILES ${EXE_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_RE
 set(MSI_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/dist/linphone-${LINPHONE_VERSION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.msi")
 add_custom_target(pylinphone_msi ALL
 	${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist_msi"
-	DEPENDS pylinphone_source pylinphone_debug
+	DEPENDS pylinphone_exe
 )
 install(FILES ${MSI_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.msi")
 
@@ -131,7 +131,7 @@ install(FILES ${MSI_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_RE
 set(ZIP_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/dist/linphone-${LINPHONE_VERSION}.win32.zip")
 add_custom_target(pylinphone_zip ALL
 	${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist" "--format=zip"
-	DEPENDS pylinphone_source pylinphone_debug
+	DEPENDS pylinphone_zip
 )
 install(FILES ${ZIP_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.zip")
 endif()
