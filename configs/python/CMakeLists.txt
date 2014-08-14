@@ -64,13 +64,13 @@ file(GLOB XML_DIR "${CMAKE_INSTALL_PREFIX}/share/doc/linphone-*/xml")
 # Generate the API in XML format from the doxygen XML files
 add_custom_target(api_xml
 	${PYTHON_EXECUTABLE} "${LINPHONE_SOURCE_DIR}/tools/genapixml.py" "--pretty" "--outputfile" "${CMAKE_CURRENT_BINARY_DIR}/api.xml" "${XML_DIR}"
-	DEPENDS ${XML_FILES}
+	DEPENDS ${XML_FILES} "${LINPHONE_SOURCE_DIR}/tools/genapixml.py"
 )
 
 # Generate the Python wrapper source code for the API in XML format
 add_custom_target(pylinphone_source ALL
 	${PYTHON_EXECUTABLE} "${LINPHONE_SOURCE_DIR}/tools/python/apixml2python.py" "--outputfile" "${CMAKE_CURRENT_BINARY_DIR}/linphone.c" "${CMAKE_CURRENT_BINARY_DIR}/api.xml"
-	DEPENDS api_xml
+	DEPENDS api_xml "${LINPHONE_SOURCE_DIR}/tools/python/apixml2python.py" "${LINPHONE_SOURCE_DIR}/tools/python/apixml2python/linphone.py"
 	WORKING_DIRECTORY "${LINPHONE_SOURCE_DIR}/tools/python"
 )
 
@@ -131,7 +131,7 @@ install(FILES ${MSI_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_RE
 set(ZIP_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/dist/linphone-${LINPHONE_VERSION}.win32.zip")
 add_custom_target(pylinphone_zip ALL
 	${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/setup.py" "bdist" "--format=zip"
-	DEPENDS pylinphone_zip
+	DEPENDS pylinphone_msi
 )
 install(FILES ${ZIP_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.zip")
 endif()
