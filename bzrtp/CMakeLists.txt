@@ -29,6 +29,11 @@ option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." NO)
 
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules)
+
+if(MSVC)
+	list(APPEND CMAKE_REQUIRED_INCLUDES ${CMAKE_PREFIX_PATH}/include/MSVC)
+endif()
+
 if(ENABLE_TESTS)
 find_package(CUnit)
 	if(CUNIT_FOUND)
@@ -55,12 +60,21 @@ add_definitions("-DHAVE_CONFIG_H")
 include_directories(
 	include
 	${CMAKE_CURRENT_BINARY_DIR}
+	${POLARSSL_INCLUDE_DIRS}
 )
 
-
-set(INCLUDES ${CUNIT_INCLUDE_DIRS} ${POLARSSL_INCLUDE_DIRS} ${XML2_INCLUDE_DIRS})
-include_directories(${INCLUDES})
-set(LIBS ${CUNIT_LIBRARIES} ${POLARSSL_LIBRARIES} ${XML2_LIBRARIES})
+set(LIBS ${POLARSSL_LIBRARIES})
+if(CUNIT_FOUND)
+	include_directories(${CUNIT_INCLUDE_DIRS})
+	list(APPEND LIBS ${CUNIT_LIBRARIES})
+endif()
+if(XML2_FOUND)
+	include_directories(${XML2_INCLUDE_DIRS})
+	list(APPEND LIBS ${XML2_LIBRARIES})
+endif()
+if(MSVC)
+	include_directories(${CMAKE_PREFIX_PATH}/include/MSVC)
+endif()
 
 
 add_subdirectory(include)
