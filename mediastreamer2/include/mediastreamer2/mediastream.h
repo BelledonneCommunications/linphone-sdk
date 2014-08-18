@@ -271,6 +271,12 @@ typedef enum EchoLimiterType{
 	ELControlFull
 } EchoLimiterType;
 
+
+typedef enum EqualizerLocation {
+	MSEqualizerHP = 0,
+	MSEqualizerMic
+} EqualizerLocation;
+
 struct _AudioStream
 {
 	MediaStream ms;
@@ -300,6 +306,7 @@ struct _AudioStream
 	}av_recorder;
 	char *recorder_file;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
+	EqualizerLocation eq_loc;
 	uint32_t features;
 	bool_t play_dtmfs;
 	bool_t use_gc;
@@ -323,9 +330,9 @@ MS2_PUBLIC AudioStream *audio_stream_start_with_sndcards(RtpProfile * prof, int 
 
 
 MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile * prof,
-					    const char *remip, int remport, int rem_rtcp_port,
-					    int pt, int jitt_comp,
-					    const char * infile,  const char * outfile);
+						const char *remip, int remport, int rem_rtcp_port,
+						int pt, int jitt_comp,
+						const char * infile,  const char * outfile);
 
 /**
  * Starts an audio stream from/to local wav files or soundcards.
@@ -606,7 +613,7 @@ struct _VideoStream
 	bool_t display_filter_auto_rotate_enabled;
 	bool_t source_performs_encoding;
 	bool_t output_performs_decoding;
-	
+
 };
 
 typedef struct _VideoStream VideoStream;

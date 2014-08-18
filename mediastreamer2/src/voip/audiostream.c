@@ -662,6 +662,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_connection_helper_link(&h,stream->soundread,-1,0);
 	if (stream->read_resampler)
 		ms_connection_helper_link(&h,stream->read_resampler,0,0);
+	if( stream->equalizer && stream->eq_loc == MSEqualizerMic )
+		ms_connection_helper_link(&h,stream->equalizer, 0, 0);
 	if (stream->ec)
 		ms_connection_helper_link(&h,stream->ec,1,1);
 	if (stream->volsend)
@@ -685,7 +687,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_connection_helper_link(&h,stream->volrecv,0,0);
 	if (stream->recv_tee)
 		ms_connection_helper_link(&h,stream->recv_tee,0,0);
-	if (stream->equalizer)
+	if (stream->equalizer && stream->eq_loc == MSEqualizerHP)
 		ms_connection_helper_link(&h,stream->equalizer,0,0);
 	if (stream->local_mixer){
 		ms_connection_helper_link(&h,stream->local_mixer,0,0);
@@ -1030,6 +1032,8 @@ void audio_stream_stop(AudioStream * stream){
 			ms_connection_helper_unlink(&h,stream->soundread,-1,0);
 			if (stream->read_resampler!=NULL)
 				ms_connection_helper_unlink(&h,stream->read_resampler,0,0);
+			if( stream->equalizer && stream->eq_loc == MSEqualizerMic)
+				ms_connection_helper_unlink(&h, stream->equalizer, 0,0);
 			if (stream->ec!=NULL)
 				ms_connection_helper_unlink(&h,stream->ec,1,1);
 			if (stream->volsend!=NULL)
@@ -1053,7 +1057,7 @@ void audio_stream_stop(AudioStream * stream){
 				ms_connection_helper_unlink(&h,stream->volrecv,0,0);
 			if (stream->recv_tee)
 				ms_connection_helper_unlink(&h,stream->recv_tee,0,0);
-			if (stream->equalizer!=NULL)
+			if (stream->equalizer!=NULL && stream->eq_loc == MSEqualizerHP)
 				ms_connection_helper_unlink(&h,stream->equalizer,0,0);
 			if (stream->local_mixer){
 				ms_connection_helper_unlink(&h,stream->local_mixer,0,0);

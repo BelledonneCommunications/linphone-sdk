@@ -53,7 +53,6 @@ static void equalizer_state_flatten(EqualizerState *s){
 		s->fft_cpx[i]=val;
 }
 
-/* TODO: rate also beyond 8000 */
 static EqualizerState * equalizer_state_new(int nfft){
 	EqualizerState *s=(EqualizerState *)ms_new0(EqualizerState,1);
 	s->rate=8000;
@@ -191,7 +190,7 @@ static void norm_and_apodize(ms_word16_t *s, int len){
 		w=0.54 - (0.46*cos(x));
 		//w=0.42 - (0.5*cos(x)) + (0.08*cos(2*x));
 		s[i]=w*(float)s[i];
-	}	
+	}
 }
 
 static void equalizer_state_compute_impulse_response(EqualizerState *s){
