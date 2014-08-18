@@ -107,6 +107,29 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 
+set(prefix ${CMAKE_INSTALL_PREFIX})
+set(exec_prefix ${prefix}/bin)
+set(libdir ${prefix}/lib)
+set(includedir ${prefix}/include)
+get_filename_component(antlr3c_library_path "${ANTLR3C_LIBRARIES}" PATH)
+set(LIBS_PRIVATE "-L${antlr3c_library_path} -lantlr3c")
+if(CUNIT_FOUND)
+	set(REQUIRES_PRIVATE "${REQUIRES_PRIVATE} cunit")
+endif()
+if(HAVE_POLARSSL)
+	get_filename_component(polarssl_library_path "${POLARSSL_LIBRARIES}" PATH)
+	set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${polarssl_library_path} -lpolarssl")
+endif()
+if(HAVE_LIBDL)
+	set(LIBS_PRIVATE "${LIBS_PRIVATE} -ldl")
+endif()
+if(HAVE_LIBRT)
+	set(LIBS_PRIVATE "${LIBS_PRIVATE} -lrt")
+endif()
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/belle-sip.pc.in ${CMAKE_CURRENT_BINARY_DIR}/belle-sip.pc)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/belle-sip.pc DESTINATION lib/pkgconfig)
+
+
 include_directories(
 	include
  	src
