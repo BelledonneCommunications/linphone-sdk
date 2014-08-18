@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ortp/rtp.h"
 
 #include <stdint.h>
-#ifdef ANDROID
+#if defined(ANDROID) || (defined(WIN32) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP))
 #include <opus.h>
 #else
 #include <opus/opus.h>
