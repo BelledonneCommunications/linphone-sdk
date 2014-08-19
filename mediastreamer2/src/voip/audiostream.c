@@ -599,6 +599,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		if(stream->equalizer) {
 			tmp=stream->eq_active;
 			ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
+			ms_filter_call_method(stream->equalizer,MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 		}
 	}else
 		stream->equalizer=NULL;
