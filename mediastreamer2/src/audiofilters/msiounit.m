@@ -113,6 +113,7 @@ if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) (%s:%d)",method, audio
 #define ms_debug ms_message
 #endif
 static const char* AU_CARD_RECEIVER = "Audio Unit Receiver";
+static const char* AU_CARD_NOVOICEPROC = "Audio Unit NoVoiceProc";
 static const char* AU_CARD_FAST_IOUNIT = "Audio Unit Fast Receiver"; /*Same as AU_CARD_RECEIVER but whiout audio session handling which are delagated to the application*/
 
 static const char* AU_CARD_SPEAKER = "Audio Unit Speaker";
@@ -208,6 +209,13 @@ static void create_io_unit (AudioUnit* au, MSSndCard* sndcard) {
 	
 	check_audiounit_call( AudioComponentInstanceNew(foundComponent, au) );
 	
+    // disable voice processing for NOVOICEPROC cards
+    if( *au && strcasecmp(sndcard->name, AU_CARD_NOVOICEPROC) == 0){
+        ms_error("Disabling voice process for Audio Unit");
+        UInt32 bypassVoiceProcess = 1;
+        check_audiounit_call( AudioUnitSetProperty(*au, kAUVoiceIOProperty_BypassVoiceProcessing, kAudioUnitScope_Global, 0, &bypassVoiceProcess, sizeof(bypassVoiceProcess) ) );
+    }
+
 	ms_message("AudioUnit created.");
 }
 
@@ -285,6 +293,8 @@ static void au_detect(MSSndCardManager *m){
 	ms_snd_card_manager_add_card(m,card);
 	card=au_card_new(AU_CARD_FAST_IOUNIT); 
 	ms_snd_card_manager_add_card(m,card);
+    card = au_card_new(AU_CARD_NOVOICEPROC);
+    ms_snd_card_manager_add_card(m,card);
 }
 
 static OSStatus au_read_cb (
