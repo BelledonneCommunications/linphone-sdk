@@ -208,7 +208,7 @@ static void create_io_unit (AudioUnit* au, MSSndCard* sndcard) {
 	foundComponent = AudioComponentFindNext (NULL,&au_description);
 	
 	check_audiounit_call( AudioComponentInstanceNew(foundComponent, au) );
-	
+
     // disable voice processing for NOVOICEPROC cards
     if( *au && strcasecmp(sndcard->name, AU_CARD_NOVOICEPROC) == 0){
         ms_error("Disabling voice process for Audio Unit");
@@ -409,7 +409,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 
 		if (!d->audio_session_configured || changed) {
 			check_session_call( AudioSessionSetActive(true) );
-		
+
 			if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
 				audioCategory= kAudioSessionCategory_AmbientSound;
 				ms_message("Configuring audio session for playback");
@@ -433,7 +433,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 	au_card_t* card=d->card;
 	if (!d->card->io_unit_started && (d->card->last_failed_iounit_start_time == 0 || (time - d->card->last_failed_iounit_start_time)>100)) {
-		
+
 		check_audiounit_call(AudioUnitInitialize(card->io_unit));
 		ms_message("io unit initialized");
 		
@@ -463,7 +463,7 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
                                                   , 0
                                                   , &voiceProcess
                                                   , &voiceProcessSize));
-		
+
 		
 		ms_error("I/O unit latency [%f], quality [%li], BypassVoice: [%li]",delay,quality,voiceProcess);
 		Float32 hwoutputlatency;
@@ -551,7 +551,7 @@ static void au_read_preprocess(MSFilter *f){
 
 	check_audio_unit(card);
 	configure_audio_session(card, f->ticker->time);
-	
+
 	if (!card->io_unit) create_io_unit(&card->io_unit, card->ms_snd_card);
 
 	//Always configure readcb
@@ -566,7 +566,7 @@ static void au_read_preprocess(MSFilter *f){
 								   &renderCallbackStruct,
 								   sizeof (renderCallbackStruct)
 								   ));
-	
+
 	if (card->io_unit_started) {
 		ms_message("Audio Unit already started");
 		return;
@@ -620,7 +620,7 @@ static void au_write_preprocess(MSFilter *f){
 	OSStatus auresult;
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	au_card_t* card=d->base.card;
-	
+
 	check_audio_unit(card);
 	
 	if (card->io_unit_started) {
@@ -733,17 +733,19 @@ static void au_write_preprocess(MSFilter *f){
 	 * Apparently the driver doesn't recover from this situation.
 	 * The workaround is then to request 44100 Hz instead of 48khz.
 	 */
-	if (hwsamplerate!=card->rate){
-		hwsamplerate=card->rate;
-		if (hwsamplerate<44100){
-			auresult=AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareSampleRate
-									 ,sizeof(hwsamplerate)
-									 , &hwsamplerate);
-			check_au_session_result(auresult,"set kAudioSessionProperty_PreferredHardwareSampleRate");
-		}else{
-			ms_message("Not applying kAudioSessionProperty_PreferredHardwareSampleRate because card's rate is [%i]",card->rate); 
-		}
-	}
+    if( hwsamplerate != card->rate) {
+        if(card->rate <= 44100 ){
+            hwsamplerate=card->rate;
+            auresult=AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareSampleRate
+                                             ,sizeof(hwsamplerate)
+                                             , &hwsamplerate);
+            check_au_session_result(auresult,"set kAudioSessionProperty_PreferredHardwareSampleRate");
+        } else {
+            ms_message("Not applying kAudioSessionProperty_PreferredHardwareSampleRate because asked rate is too high [%i]",((int)hwsamplerate));
+        }
+    } else {
+        ms_message("Not applying kAudioSessionProperty_PreferredHardwareSampleRate because HW rate already correct [%i]",((int)hwsamplerate));
+    }
 }
 
 static void au_write_postprocess(MSFilter *f){
