@@ -521,7 +521,9 @@ static void generate_frame_partitions_list(Vp8RtpFmtFrame *frame, MSList *packet
 
 static void mark_frame_as_invalid(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
 	frame->error = Vp8RtpFmtInvalidFrame;
-	ctx->waiting_for_reference_frame = TRUE;
+	if (ctx->freeze_on_error == TRUE) {
+		ctx->waiting_for_reference_frame = TRUE;
+	}
 }
 
 static void mark_frame_as_incomplete(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame, uint8_t idx) {
