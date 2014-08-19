@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define GAIN_ZERODB 1.0
 #endif
 
-#define TAPS 128
+#define EQUALIZER_DEFAULT_RATE 8000
 
 typedef struct _EqualizerState{
 	int rate;
@@ -53,16 +53,32 @@ static void equalizer_state_flatten(EqualizerState *s){
 		s->fft_cpx[i]=val;
 }
 
-static EqualizerState * equalizer_state_new(int nfft){
-	EqualizerState *s=(EqualizerState *)ms_new0(EqualizerState,1);
-	s->rate=8000;
-	s->nfft=nfft;
+static void equalizer_rate_update( EqualizerState* s, int rate ){
+    int nFFT;
+
+    if( rate < 16000 ){
+        nFFT = 128;
+    } else if( rate < 32000){
+        nFFT = 256;
+    } else {
+        nFFT = 512;
+    }
+    ms_message("Equalizer rate: %d, selecting %d steps for FFT", rate, nFFT);
+
+    s->rate=rate;
+	s->nfft=nFFT;
 	s->fft_cpx=(ms_word16_t*)ms_new0(ms_word16_t,s->nfft);
 	equalizer_state_flatten(s);
 	s->fir_len=s->nfft;
 	s->fir=(ms_word16_t*)ms_new(ms_word16_t,s->fir_len);
 	s->mem=(ms_mem_t*)ms_new0(ms_mem_t,s->fir_len);
 	s->needs_update=TRUE;
+}
+
+
+static EqualizerState * equalizer_state_new(int rate){
+	EqualizerState *s=(EqualizerState *)ms_new0(EqualizerState,1);
+	equalizer_rate_update(s,rate);
 	s->active=TRUE;
 	return s;
 }
@@ -249,7 +265,7 @@ static void equalizer_state_run(EqualizerState *s, int16_t *samples, int nsample
 
 
 static void equalizer_init(MSFilter *f){
-	f->data=equalizer_state_new(TAPS);
+	f->data=equalizer_state_new(EQUALIZER_DEFAULT_RATE);
 }
 
 static void equalizer_uninit(MSFilter *f){
@@ -284,8 +300,7 @@ static int equalizer_get_gain(MSFilter *f, void *data){
 
 static int equalizer_set_rate(MSFilter *f, void *data){
 	EqualizerState *s=(EqualizerState*)f->data;
-	s->rate=*(int*)data;
-	s->needs_update=TRUE;
+	equalizer_rate_update(s,*(int*)data);
 	return 0;
 }
 
