@@ -18,9 +18,9 @@
 
 import os
 import string
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 
-version = "@LINPHONE_VERSION@"
+version = "@BUILD_VERSION@"
 macros = "@LINPHONE_CPPFLAGS@"
 include_dirs = "@LINPHONE_INCLUDE_DIRS@"
 libraries = "@LINPHONE_LIBRARIES@"
@@ -45,15 +45,33 @@ ext = Extension('linphone',
 	include_dirs = include_dirs,
 	libraries = libraries,
 	library_dirs = library_dirs,
-	sources = ['linphone.c']
+	sources = ['@SOURCE_FILENAME@']
 )
 setup(name = 'linphone',
 	version = version,
 	description = 'Linphone package for Python',
 	author = "Belledonne Communications",
+	author_email = "contact@belledonne-communications.com",
 	url = "http://www.linphone.org/",
 	packages = ['linphone'],
 	ext_package = 'linphone',
 	ext_modules = [ext],
-	package_data = {'linphone': data_files}
+	package_data = {'linphone': data_files},
+	zip_safe = True,
+	keywords = ["sip", "voip"],
+	classifiers = [
+		"Development Status :: 4 - Beta",
+		"Environment :: Win32 (MS Windows)",
+		"Intended Audience :: Developers",
+		"Intended Audience :: Telecommunications Industry",
+		"License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+		"Natural Language :: English",
+		"Operating System :: Microsoft :: Windows",
+		"Programming Language :: C",
+		"Programming Language :: C++",
+		"Programming Language :: Python :: 2.7",
+		"Topic :: Communications :: Chat",
+		"Topic :: Communications :: Internet Phone",
+		"Topic :: Communications :: Telephony"
+	]
 )
