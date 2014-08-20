@@ -140,7 +140,7 @@ add_custom_target(pylinphone_msi ALL
 	DEPENDS pylinphone_exe
 	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/build_msi/linphone"
 )
-install(FILES ${MSI_FILENAME} DESTINATION ".")
+install(FILES ${MSI_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.win32-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.msi")
 
 # Generate the zip
 set(ZIP_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/build_zip/linphone/dist/linphone-${LINPHONE_GIT_REVISION}.win32.zip")
