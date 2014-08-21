@@ -159,6 +159,7 @@ RtpSession * create_duplex_rtpsession(int loc_rtp_port, int loc_rtcp_port, bool_
 	rtp_session_signal_connect(rtpr, "timestamp_jump", (RtpCallback)rtp_session_resync, (long)NULL);
 	rtp_session_signal_connect(rtpr, "ssrc_changed", (RtpCallback)rtp_session_resync, (long)NULL);
 	rtp_session_set_ssrc_changed_threshold(rtpr, 0);
+	rtp_session_set_rtcp_report_interval(rtpr, 2500);	/* At the beginning of the session send more reports. */
 	disable_checksums(rtp_session_get_rtp_socket(rtpr));
 	return rtpr;
 }
@@ -477,6 +478,10 @@ void media_stream_iterate(MediaStream *stream){
 	if (stream->ice_check_list) ice_check_list_process(stream->ice_check_list,stream->sessions.rtp_session);
 	/*we choose to update the quality indicator as much as possible, since local statistics can be computed realtime. */
 	if (stream->state==MSStreamStarted){
+		if (stream->is_beginning && (curtime-stream->start_time>15)){
+			rtp_session_set_rtcp_report_interval(stream->sessions.rtp_session,5000);
+			stream->is_beginning=FALSE;
+		}
 		if (stream->qi && curtime>stream->last_iterate_time) ms_quality_indicator_update_local(stream->qi);
 	}
 	stream->last_iterate_time=curtime;

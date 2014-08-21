@@ -732,6 +732,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
 
 	stream->ms.start_time=ms_time(NULL);
+	stream->ms.is_beginning=TRUE;
 
 	/* attach the graphs */
 	if (stream->source)

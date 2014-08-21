@@ -716,6 +716,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 				,NULL);
 
 	stream->ms.start_time=stream->ms.last_packet_time=ms_time(NULL);
+	stream->ms.is_beginning=TRUE;
 	stream->ms.state=MSStreamStarted;
 
 	return 0;
