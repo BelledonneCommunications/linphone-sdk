@@ -1,5 +1,5 @@
 ############################################################################
-# generate_descs_header.cmake
+# generate_yuv2rgb_header.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,31 +20,12 @@
 #
 ############################################################################
 
-set(ABS_SOURCE_FILES )
-string(REPLACE " " ";" SOURCE_FILES ${SOURCE_FILES})
-foreach(SOURCE_FILE ${SOURCE_FILES})
-	list(APPEND ABS_SOURCE_FILES ${INPUT_DIR}/${SOURCE_FILE})
-endforeach()
-
 execute_process(
-	COMMAND ${AWK_PROGRAM} -f ${AWK_SCRIPTS_DIR}/extract-filters-names.awk ${ABS_SOURCE_FILES}
-	OUTPUT_FILE ${OUTPUT_DIR}/${TYPE}descs.txt
+	COMMAND "${XXD_PROGRAM}" "-i" "${SOURCE_FILE}"
+	OUTPUT_FILE "${OUTPUT_DIR}/${SOURCE_FILE}.tmp"
+	WORKING_DIRECTORY ${INPUT_DIR}
 )
 execute_process(
-	COMMAND ${AWK_PROGRAM} -f ${AWK_SCRIPTS_DIR}/define-filters.awk
-	INPUT_FILE ${OUTPUT_DIR}/${TYPE}descs.txt
-	OUTPUT_FILE ${OUTPUT_DIR}/${TYPE}descs-tmp1.h
-)
-execute_process(
-	COMMAND ${AWK_PROGRAM} -f ${AWK_SCRIPTS_DIR}/define-ms_${TYPE}_filter_descs.awk
-	INPUT_FILE ${OUTPUT_DIR}/${TYPE}descs.txt
-	OUTPUT_FILE ${OUTPUT_DIR}/${TYPE}descs-tmp2.h
-)
-file(READ ${OUTPUT_DIR}/${TYPE}descs-tmp1.h DESCS1)
-file(READ ${OUTPUT_DIR}/${TYPE}descs-tmp2.h DESCS2)
-file(WRITE ${OUTPUT_DIR}/${TYPE}descs.h "${DESCS1}${DESCS2}")
-file(REMOVE
-	${OUTPUT_DIR}/${TYPE}descs.txt
-	${OUTPUT_DIR}/${TYPE}descs-tmp1.h
-	${OUTPUT_DIR}/${TYPE}descs-tmp2.h
+	COMMAND "${SED_PROGRAM}" "s/}\;/,0x00}\;/" "${OUTPUT_DIR}/${SOURCE_FILE}.tmp"
+	OUTPUT_FILE "${OUTPUT_DIR}/${SOURCE_FILE}.h"
 )

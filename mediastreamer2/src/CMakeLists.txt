@@ -277,29 +277,36 @@ endif()
 set(VOIP_GENERATED_SOURCE_FILES
 	${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h
 )
-set_source_files_properties(${VOIP_GENERATED_SOURCE_FILES} PROPERTIES GENERATED TRUE)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h
 	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR=${CMAKE_CURRENT_SOURCE_DIR}/../
 		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 		-DTYPE=voip -DSOURCE_FILES="${VOIP_SOURCE_FILES}"
 		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake)
-
-# if(APPLE)
-# list(APPEND VOIP_GENERATED_SOURCE_FILES
-	# ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
-	# ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
-# )
-# execute_process(
-	# WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	# COMMAND xxd -i yuv2rgb.fs | sed s/}\;/,0x00}\;/
-	# OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
-# )
-# execute_process(
-	# WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	# COMMAND xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/
-	# OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
-# )
-# endif(APPLE)
+if(APPLE OR GLX_FOUND)
+find_program(XXD_PROGRAM xxd)
+if(NOT XXD_PROGRAM)
+	message(FATAL_ERROR "You need the xxd program to build mediastreamer2.")
+endif()
+find_program(SED_PROGRAM sed)
+if(NOT SED_PROGRAM)
+	message(FATAL_ERROR "You need the sed program to build mediastreamer2.")
+endif()
+list(APPEND VOIP_GENERATED_SOURCE_FILES
+	${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
+	${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
+)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
+	COMMAND ${CMAKE_COMMAND} -DXXD_PROGRAM=${XXD_PROGRAM} -DSED_PROGRAM=${SED_PROGRAM}
+		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+		-DSOURCE_FILE="yuv2rgb.fs"
+		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
+	COMMAND ${CMAKE_COMMAND} -DXXD_PROGRAM=${XXD_PROGRAM} -DSED_PROGRAM=${SED_PROGRAM}
+		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+		-DSOURCE_FILE="yuv2rgb.vs"
+		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake)
+endif(UNIX)
+set_source_files_properties(${VOIP_GENERATED_SOURCE_FILES} PROPERTIES GENERATED TRUE)
 
 
 set(VOIP_LIBS

@@ -531,7 +531,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	/* Close the search handle. */
 	FindClose(hSearch);
 
-#elif HAVE_DLOPEN
+#elif defined(HAVE_DLOPEN)
 	char plugin_name[64];
 	DIR *ds;
 	MSList *loaded_plugins = NULL;
