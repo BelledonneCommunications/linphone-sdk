@@ -148,5 +148,59 @@ bool AudioSystemImpl::init(Library *lib){
 
 AudioSystemImpl *AudioSystemImpl::sImpl=NULL;
 
+bool RefBaseImpl::init(Library *lib){
+	RefBaseImpl *impl=new RefBaseImpl(lib);
+	bool fail=false;
+	
+	if (!impl->mIncStrong.isFound()){
+		ms_error("RefBase::incStrong() not found");
+		fail=true;
+	}
+	if (!impl->mDecStrong.isFound()){
+		ms_error("RefBase::decStrong() not found");
+		fail=true;
+	}
+	if (fail){
+		delete impl;
+		return false;
+	}else{
+		sImpl=impl;
+		return true;
+	}
+}
+
+RefBaseImpl * RefBaseImpl::sImpl=0;
+
+
+RefBaseImpl::RefBaseImpl(Library *lib) :
+	mIncStrong(lib,"_ZNK7android7RefBase9incStrongEPKv"),
+	mDecStrong(lib,"_ZNK7android7RefBase9decStrongEPKv")
+{
+	
+}
+
+RefBase::RefBase(){
+	mImpl=RefBaseImpl::get();
+	mCnt=0;
+}
+
+RefBase::~RefBase(){
+}
+
+void RefBase::incStrong(const void* id) const{
+	mCnt++;
+	mImpl->mIncStrong.invoke(getRealThis(),this);
+}
+
+void RefBase::decStrong(const void* id) const{
+	mImpl->mDecStrong.invoke(getRealThis(),this);
+	mCnt--;
+	if (mCnt==0){
+		delete this;
+	}
+}
+
+
+
 }
 

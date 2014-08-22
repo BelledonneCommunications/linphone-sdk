@@ -29,7 +29,7 @@ namespace fake_android {
 class AudioRecordImpl;
 // ----------------------------------------------------------------------------
 
-class AudioRecord
+class AudioRecord : public RefBase
 {
 public:
 
@@ -351,7 +351,10 @@ public:
      * Unit: the number of input audio frames
      */
             unsigned int  getInputFramesLost() const;
-
+	/* ms2 addition:*/
+	virtual void *getRealThis()const{
+		return mThis;
+	}
 private:
 	uint8_t *mThis;
 	AudioRecordImpl *mImpl;

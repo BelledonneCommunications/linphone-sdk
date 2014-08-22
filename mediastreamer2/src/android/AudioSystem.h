@@ -261,6 +261,76 @@ private:
 	static AudioSystemImpl *sImpl;
 };
 
+class RefBaseImpl{
+public:
+	static bool init(Library *lib);
+	static RefBaseImpl * get(){
+		return sImpl;
+	}
+	Function2<void,void*,const void*> mIncStrong;
+	Function2<void,void*,const void*> mDecStrong;
+private:
+	RefBaseImpl(Library *lib);
+	static RefBaseImpl *sImpl;
+};
+
+class RefBase{
+public:
+	RefBase();
+	virtual ~RefBase();
+	void incStrong(const void* id) const;
+	void decStrong(const void* id) const;
+	virtual void *getRealThis()const =0;
+private:
+	RefBaseImpl *mImpl;
+	mutable int mCnt;
+};
+
+template <typename _T>
+class sp{
+public:
+	sp() : mPtr(0){
+	}
+	sp(_T *p) : mPtr(0){
+		assign(p);
+	}
+	sp(const sp<_T> &other) : mPtr(0){
+		assign(other.mPtr);
+	}
+	void reset(){
+		assign(0);
+	}
+	~sp(){
+		reset();
+	}
+	_T * operator->(){
+		return mPtr;
+	}
+	bool operator==(const sp<_T> & other)const{
+		return mPtr==other.mPtr;
+	}
+	sp<_T> & operator=(const sp<_T> & other){
+		assign(other.mPtr);
+		return *this;
+	}
+	bool operator!(){
+		return !mPtr;
+	}
+	bool operator!=(const sp<_T> & other){
+		return mPtr!=other.mPtr;
+	}
+private:
+	void assign(_T *ptr){
+		if (ptr) ptr->incStrong(this);
+		if (mPtr) {
+			mPtr->decStrong(this);
+			mPtr=0;
+		}
+		mPtr=ptr;
+	}
+	_T *mPtr;
+};
+
 };  // namespace android
 
 #endif  /*ANDROID_AUDIOSYSTEM_H_*/

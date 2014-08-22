@@ -45,10 +45,6 @@ namespace fake_android{
 	}
 	
 	AudioTrack::~AudioTrack(){
-		if (mImpl->mOwnThis){
-			mImpl->mDtor.invoke(mThis);
-			delete [] mThis;
-		}
 	}
 	
 	void AudioTrack::start(){
@@ -150,23 +146,18 @@ namespace fake_android{
 		mFlush(lib,"_ZN7android10AudioTrack5flushEv"),
 		mGetMinFrameCount(lib,"_ZN7android10AudioTrack16getMinFrameCountEPiij"),
 		mLatency(lib,"_ZNK7android10AudioTrack7latencyEv"),
-		mGetPosition(lib,"_ZNK7android10AudioTrack11getPositionEPj"), //4.4 symbol
-		mOwnThis(true)
+		mGetPosition(lib,"_ZNK7android10AudioTrack11getPositionEPj") //4.4 symbol
 	{
 		// Try some Android 2.2 symbols if not found
 		if (!mCtor.isFound()) {
 			mCtor.load(lib,"_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_i");
 			if (!mCtor.isFound())
 				mCtor.load(lib,"_ZN7android10AudioTrackC1E19audio_stream_type_tj14audio_format_tji20audio_output_flags_tPFviPvS4_ES4_ii");
-#if USE_ON_4_4
 			//4.4 symbol
 			if (!mCtor.isFound()){
 				mCtor.load(lib,"_ZN7android10AudioTrackC1E19audio_stream_type_tj14audio_format_t"
 				"ji20audio_output_flags_tPFviPvS4_ES4_iiNS0_13transfer_typeEPK20audio_offload_info_ti");
-				if (mCtor.isFound()){
-					mOwnThis=false;
 			}
-#endif
 		}
 
 		// Then try some Android 4.1 symbols if still not found

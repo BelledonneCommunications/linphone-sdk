@@ -52,10 +52,6 @@ AudioRecord::AudioRecord(audio_source_t inputSource,
      * Also destroys all resources assotiated with the AudioRecord.
      */
 AudioRecord::~AudioRecord(){
-	if (AudioTrackImpl::get()->mOwnThis){
-		mImpl->mDtor.invoke(mThis);
-		delete mThis;
-	}
 }
 
 

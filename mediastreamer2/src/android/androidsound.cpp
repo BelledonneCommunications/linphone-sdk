@@ -140,7 +140,6 @@ struct AndroidSndReadData{
 	~AndroidSndReadData(){
 		ms_mutex_destroy(&mutex);
 		flushq(&q,0);
-		if (rec) delete rec;
 		rec=0;
 	}
 	void setCard(MSSndCard *card){
@@ -158,7 +157,7 @@ struct AndroidSndReadData{
 	int nchannels;
 	ms_mutex_t mutex;
 	queue_t q;
-	AudioRecord *rec;
+	sp<AudioRecord> rec;
 	int nbufs;
 	int rec_buf_size;
 	MSTickerSynchronizer *mTickerSynchronizer;
@@ -194,7 +193,7 @@ struct AndroidSndWriteData{
 	int nchannels;
 	ms_mutex_t mutex;
 	MSBufferizer bf;
-	AudioTrack *tr;
+	sp<AudioTrack> tr;
 	int nbufs;
 	int nFramesRequested;
 	bool mStarted;
@@ -219,6 +218,7 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	bool audio_track_loaded=false;
 	bool audio_system_loaded=false;
 	bool string8_loaded=false;
+	bool refbase_loaded=false;
 
 	/* libmedia and libutils static variable may survive to Linphone restarts
 	 It is then necessary to perform the *::init() calls even if the libmedia and libutils are there.*/
@@ -233,8 +233,9 @@ static void android_snd_card_detect(MSSndCardManager *m){
 		audio_track_loaded=AudioTrackImpl::init(libmedia);
 		audio_system_loaded=AudioSystemImpl::init(libmedia);
 		string8_loaded=String8Impl::init(libutils);
+		refbase_loaded=RefBaseImpl::init(libutils);
 	}
-	if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded){
+	if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded && refbase_loaded){
 		ms_message("Native android sound support available.");
 		MSSndCard *card=android_snd_card_new();
 		ms_snd_card_manager_add_card(m,card);
@@ -369,13 +370,12 @@ static void android_snd_read_preprocess(MSFilter *obj){
 						AUDIO_FORMAT_PCM_16_BIT,
 						audio_channel_in_mask_from_count(ad->nchannels),
 						ad->rec_buf_size,
-						android_snd_read_cb,ad,notify_frames,0);
+						android_snd_read_cb,ad,notify_frames,0,AudioRecord::TRANSFER_DEFAULT,AUDIO_INPUT_FLAG_FAST);
 		ss=ad->rec->initCheck();
 		ms_message("Setting up AudioRecord  source=%i,rate=%i,framecount=%i",ad->audio_source,ad->rate,ad->rec_buf_size);
 
 		if (ss!=0){
 			ms_error("Problem when setting up AudioRecord:%s ",strerror(-ss));
-			delete ad->rec;
 			ad->rec=0;
 			if (i == 0) {
 				ms_error("Retrying with AUDIO_SOURCE_MIC");
@@ -401,7 +401,6 @@ static void android_snd_read_postprocess(MSFilter *obj){
 			delete_hardware_echo_canceller(env, ad->aec);
 			ad->aec = NULL;
 		}
-		delete ad->rec;
 		ad->rec=0;
 	}
 	ms_ticker_set_time_func(obj->ticker,NULL,NULL);
@@ -674,12 +673,11 @@ static void android_snd_write_preprocess(MSFilter *obj){
                      AUDIO_FORMAT_PCM_16_BIT,
                      channel_mask_for_audio_track(ad->nchannels),
                      play_buf_size,
-                     AUDIO_OUTPUT_FLAG_NONE, // AUDIO_OUTPUT_FLAG_NONE,
+                     AUDIO_OUTPUT_FLAG_FAST, // or  AUDIO_OUTPUT_FLAG_NONE ?
                      android_snd_write_cb, ad,notify_frames,0, AudioTrack::TRANSFER_CALLBACK);
 	s=ad->tr->initCheck();
 	if (s!=0) {
 		ms_error("Problem setting up AudioTrack: %s",strerror(-s));
-		delete ad->tr;
 		ad->tr=NULL;
 		return;
 	}
@@ -745,7 +743,6 @@ static void android_snd_write_postprocess(MSFilter *obj){
 	ms_message("Sound playback stopped");
 	ad->tr->flush();
 	ms_message("Sound playback flushed, deleting");
-	if (ad->tr) delete ad->tr;
 	ad->tr=NULL;
 	ad->mCard->disableVoipMode();
 	ad->mStarted=false;

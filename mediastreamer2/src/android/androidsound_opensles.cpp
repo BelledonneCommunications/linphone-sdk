@@ -255,7 +255,7 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 	ms_message("SDK version [%i] detected", sdk_version);
 	jni_env->DeleteLocalRef(version_class);
 	
-	if (sdk_version >= 19) { // Use only if Android OS >= KIT_KAT (4.4)
+	if (sdk_version > 19) { // Use only if Android OS > KIT_KAT (4.4), since libmedia module cannot be validated yet on > 4.4
 		if (initOpenSLES() == 0) { // Try to dlopen libOpenSLES
 			ms_message("Android version is %i, libOpenSLES correctly loaded, creating OpenSLES MS soundcard", sdk_version);
 			MSSndCard *card = android_snd_card_new();
@@ -264,7 +264,7 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 			ms_warning("Android version is %i, failed to dlopen libOpenSLES, OpenSLES MS soundcard unavailable", sdk_version);
 		}
 	} else {
-		ms_warning("Android version is %i, OpenSLES MS soundcard unavailable on Android < 4.4", sdk_version);
+		ms_message("Android version is %i, OpenSLES MS soundcard unavailable on Android < 4.4", sdk_version);
 	}
 }
 
@@ -975,7 +975,7 @@ static MSFilter* ms_android_snd_write_new(void) {
 }
 
 MSSndCardDesc android_native_snd_opensles_card_desc = {
-	"libmedia",
+	"openSLES",
 	android_snd_card_detect,
 	android_native_snd_card_init,
 	NULL,
@@ -993,7 +993,7 @@ static MSSndCard* android_snd_card_new(void) {
 	SoundDeviceDescription *d;
 	
 	obj = ms_snd_card_new(&android_native_snd_opensles_card_desc);
-	obj->name = ms_strdup("android opensles sound card");
+	obj->name = ms_strdup("android sound card");
 	d = sound_device_description_get();
 	OpenSLESContext *context = opensles_context_init();
 	if (d->flags & DEVICE_HAS_BUILTIN_OPENSLES_AEC) {
