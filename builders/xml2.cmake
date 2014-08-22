@@ -37,6 +37,8 @@ set(EP_xml2_CONFIGURE_OPTIONS
 	"--with-reader"
 	"--with-writer"
 	"--with-sax1"
+	"--without-lzma"
+	"--without-zlib"
 	"--enable-rebuild-docs=no"
 )
 set(EP_xml2_LINKING_TYPE "--disable-static" "--enable-shared")

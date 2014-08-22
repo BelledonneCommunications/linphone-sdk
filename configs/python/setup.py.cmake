@@ -18,6 +18,7 @@
 
 import os
 import string
+import sys
 from setuptools import setup, Extension
 
 version = "@BUILD_VERSION@"
@@ -37,7 +38,20 @@ libraries = libraries.split(';')
 library_dirs = [os.path.dirname(item) for item in libraries if os.path.dirname(item) != '']
 library_dirs = list(set(library_dirs))
 libraries = [os.path.basename(item) for item in libraries]
-libraries = [string.replace(item, '.lib', '') for item in libraries]
+extra_link_args = []
+if sys.platform.startswith("win32"):
+	libraries = [string.replace(item, '.lib', '') for item in libraries]
+else:
+	libraries = [item[3:] for item in libraries]
+	static_libraries = [item for item in libraries if item.endswith('.a')]
+	dynamic_libraries = [item for item in libraries if '.so' in item]
+	static_libraries = [string.replace(item, '.a', '') for item in static_libraries]
+	dynamic_libraries = [string.replace(item, '.so', '') for item in dynamic_libraries]
+	extra_link_args.append("-Wl,--start-group")
+	extra_link_args += ['-l' + item for item in static_libraries]
+	extra_link_args.append("-Wl,--end-group")
+	extra_link_args.append("-Wl,-rpath=$ORIGIN")
+	libraries = dynamic_libraries
 data_files = data_files.split(';')
 
 ext = Extension('linphone',
@@ -45,6 +59,7 @@ ext = Extension('linphone',
 	include_dirs = include_dirs,
 	libraries = libraries,
 	library_dirs = library_dirs,
+	extra_link_args = extra_link_args,
 	sources = ['@SOURCE_FILENAME@']
 )
 setup(name = 'linphone',

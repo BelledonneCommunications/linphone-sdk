@@ -62,6 +62,7 @@ if (UNIX)
 		set(LINPHONE_BUILDER_LDFLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -arch ${CMAKE_OSX_ARCHITECTURES}")
 	else()
 		set(BUILD_V4L "yes")
+		set(LINPHONE_BUILDER_LDFLAGS "-Wl,-Bsymbolic -fPIC")
 	endif()
 endif()
 if(WIN32)
@@ -85,24 +86,19 @@ set(EP_bzrtp_LINKING_TYPE "-DENABLE_STATIC=YES")
 # cunit
 set(EP_cunit_LINKING_TYPE "-DENABLE_STATIC=YES")
 
+# ffmpeg
+set(EP_ffmpeg_LINKING_TYPE "--disable-static" "--enable-shared")
+
 # gsm
 set(EP_gsm_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # linphone
-if(MSVC)
-	set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=YES")
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
-else()
-	set(EP_linphone_LINKING_TYPE "--enable-static" "--disable-shared")
-endif()
+set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=YES")
+list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
 
 # ms2
-if(MSVC)
-	set(EP_ms2_LINKING_TYPE "-DENABLE_STATIC=YES")
-	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
-else()
-	set(EP_ms2_LINKING_TYPE "--enable-static" "--disable-shared")
-endif()
+set(EP_ms2_LINKING_TYPE "-DENABLE_STATIC=YES")
+list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
 
 # opus
 if(NOT MSVC)
@@ -111,11 +107,7 @@ if(NOT MSVC)
 endif()
 
 # ortp
-if(MSVC)
-	set(EP_ortp_LINKING_TYPE "-DENABLE_STATIC=YES")
-else()
-	set(EP_ortp_LINKING_TYPE "--enable-static" "--disable-shared")
-endif()
+set(EP_ortp_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # polarssl
 set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=NO")

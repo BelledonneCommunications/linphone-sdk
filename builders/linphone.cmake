@@ -27,53 +27,24 @@ else()
 	set(EP_linphone_GIT_TAG "eca15bf8c07daa2391ddda055ca6d08bc443c51d")
 endif()
 
-if(MSVC)
-	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
-	set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
-	set(EP_linphone_EXTRA_LDFLAGS "/SAFESEH:NO")
+set(EP_linphone_CMAKE_OPTIONS )
+set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=NO")
+set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
+if(ENABLE_VIDEO)
+	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_VIDEO=YES")
 else()
-	set(EP_linphone_BUILD_METHOD "autotools")
-	set(EP_linphone_USE_AUTOGEN "yes")
-	set(EP_linphone_CROSS_COMPILATION_OPTIONS
-		"--prefix=${CMAKE_INSTALL_PREFIX}"
-		"--host=${LINPHONE_BUILDER_HOST}"
-	)
-	set(EP_linphone_CONFIGURE_OPTIONS
-		"--disable-strict"
-		"--enable-bellesip"
-		"--enable-external-ortp"
-		"--enable-external-mediastreamer"
-	)
-	set(EP_linphone_LINKING_TYPE "--disable-static" "--enable-shared")
-	set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
-
-	if(${ENABLE_SPEEX})
-		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--enable-speex")
-	else(${ENABLE_SPEEX})
-		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-speex")
-	endif(${ENABLE_SPEEX})
-	if(${ENABLE_VIDEO})
-		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--enable-video")
-	else(${ENABLE_VIDEO})
-		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-video")
-	endif(${ENABLE_VIDEO})
-
-	if(${ENABLE_ZRTP})
-		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--enable-zrtp")
-	else(${ENABLE_ZRTP})
-		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-zrtp")
-	endif(${ENABLE_ZRTP})
-
-	if(${ENABLE_TUNNEL})
-		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--enable-tunnel")
-		list(APPEND EP_linphone_DEPENDENCIES EP_tunnel)
-	else(${ENABLE_TUNNEL})
-		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-tunnel")
-	endif(${ENABLE_TUNNEL})
-
-	if(${ENABLE_UNIT_TESTS})
-		list(APPEND EP_linphone_DEPENDENCIES EP_cunit)
-	else(${ENABLE_UNIT_TESTS})
-		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-tests")
-	endif(${ENABLE_UNIT_TESTS})
+	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_VIDEO=NO")
+endif()
+if(ENABLE_TUNNEL)
+	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_TUNNEL=YES")
+else()
+	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_TUNNEL=NO")
+endif()
+if(ENABLE_UNIT_TESTS)
+	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_UNIT_TESTS=YES")
+else()
+	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_UNIT_TESTS=NO")
+endif()
+if(MSVC)
+	set(EP_linphone_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()
