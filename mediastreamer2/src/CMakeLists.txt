@@ -259,6 +259,14 @@ if(ENABLE_VIDEO)
 	if(THEORA_FOUND)
 		list(APPEND VOIP_SOURCE_FILES videofilters/theora.c)
 	endif()
+	if(V4L_FOUND)
+		if(HAVE_LINUX_VIDEODEV_H)
+			list(APPEND VOIP_SOURCE_FILES videofilters/msv4l.c)
+		endif()
+		if(HAVE_LINUX_VIDEODEV2_H)
+			list(APPEND VOIP_SOURCE_FILES videofilters/msv4l2.c)
+		endif()
+	endif()
 	if(VPX_FOUND)
 		list(APPEND VOIP_SOURCE_FILES
 			videofilters/vp8.c
@@ -305,7 +313,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
 		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 		-DSOURCE_FILE="yuv2rgb.vs"
 		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake)
-endif(UNIX)
+endif()
 set_source_files_properties(${VOIP_GENERATED_SOURCE_FILES} PROPERTIES GENERATED TRUE)
 
 
@@ -356,6 +364,9 @@ if(FFMPEG_FOUND)
 	if(MSVC)
 		add_definitions(-Dinline=__inline)
 	endif()
+endif()
+if(V4L_FOUND)
+	list(APPEND VOIP_LIBS ${V4L_LIBRARIES})
 endif()
 if(X11_FOUND)
 	list(APPEND VOIP_LIBS ${X11_LIBRARIES})
