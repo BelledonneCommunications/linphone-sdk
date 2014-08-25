@@ -189,13 +189,16 @@ RefBase::~RefBase(){
 
 void RefBase::incStrong(const void* id) const{
 	mCnt++;
-	mImpl->mIncStrong.invoke(getRealThis(),this);
+	if (isRefCounted()) mImpl->mIncStrong.invoke(getRealThis(),this);
 }
 
 void RefBase::decStrong(const void* id) const{
-	mImpl->mDecStrong.invoke(getRealThis(),this);
+	if (isRefCounted()) mImpl->mDecStrong.invoke(getRealThis(),this);
 	mCnt--;
 	if (mCnt==0){
+		if (!isRefCounted()){
+			destroy();
+		}
 		delete this;
 	}
 }

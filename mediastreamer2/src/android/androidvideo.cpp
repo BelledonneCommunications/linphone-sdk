@@ -137,6 +137,7 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 	jobject resArray = env->CallStaticObjectMethod(d->helperClass, method, ((AndroidWebcamConfig*)d->webcam->data)->id, d->requestedSize.width, d->requestedSize.height);
 
 	if (!resArray) {
+		ms_mutex_unlock(&d->mutex);
 		ms_error("Failed to retrieve camera '%d' supported resolutions\n", ((AndroidWebcamConfig*)d->webcam->data)->id);
 		return -1;
 	}
@@ -146,7 +147,7 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
     //   - 1 : height
     //   - 2 : useDownscaling
 	jint res[3];
-   env->GetIntArrayRegion((jintArray)resArray, 0, 3, res);
+	env->GetIntArrayRegion((jintArray)resArray, 0, 3, res);
 	ms_message("Camera selected resolution is: %dx%d (requested: %dx%d) with downscaling?%d\n", res[0], res[1], d->requestedSize.width, d->requestedSize.height, res[2]);
 	d->hwCapableSize.width =  res[0];
 	d->hwCapableSize.height = res[1];
@@ -247,7 +248,6 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 						(jint)d->fps,
 						(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
 						(jlong)d));
-
 		}
 		// if previewWindow AND camera are valid => set preview window
 		if (w && d->androidCamera)
@@ -262,9 +262,9 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 }
 
 static int video_get_native_preview_window(MSFilter *f, void *arg) {
-    AndroidReaderContext* d = (AndroidReaderContext*) f->data;
-    arg = &d->previewWindow;
-    return 0;
+	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
+	arg = &d->previewWindow;
+	return 0;
 }
 
 static int video_set_device_rotation(MSFilter* f, void* arg) {

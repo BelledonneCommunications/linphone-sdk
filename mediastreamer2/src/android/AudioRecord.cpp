@@ -108,7 +108,16 @@ void AudioRecord::readBuffer(const void *p_info, Buffer *buffer){
 	}
 }
 
-bool AudioRecordImpl::init(Library *lib){
+bool AudioRecord::isRefCounted()const{
+	return mImpl->mSdkVersion>=19;
+}
+
+void AudioRecord::destroy()const{
+	mImpl->mDtor.invoke(mThis);
+	delete []mThis;
+}
+
+bool AudioRecordImpl::init(Library *lib, int sdkVersion){
 	bool fail=false;
 	AudioRecordImpl *impl=new AudioRecordImpl(lib);
 	if (!impl->mCtorBeforeAPI17.isFound() && !impl->mCtor.isFound()) {
@@ -130,6 +139,7 @@ bool AudioRecordImpl::init(Library *lib){
 		fail=true;
 		ms_error("AudioRecord::start() not found.");
 	}
+	impl->mSdkVersion=sdkVersion;
 	if (fail){
 		delete impl;
 		return false;

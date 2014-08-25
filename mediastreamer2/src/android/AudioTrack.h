@@ -429,10 +429,10 @@ public:
             ssize_t     write(const void* buffer, size_t size);
 
 	/* ms2 addition:*/
-	virtual void *getRealThis()const{
-		return mThis;
-	}
-			
+protected:
+	virtual void *getRealThis()const;
+	virtual bool isRefCounted()const;
+	virtual void destroy()const;
 private:
 	class AudioTrackImpl *mImpl;
 	uint8_t *mThis;
@@ -441,7 +441,7 @@ private:
 
 class AudioTrackImpl{
 public:
-	static bool init(Library *lib);
+	static bool init(Library *lib, int sdk_version);
 	static AudioTrackImpl *get(){
 		return sImpl;
 	}
@@ -469,6 +469,7 @@ public:
 	Function3<status_t,int*,audio_stream_type_t,int> mGetMinFrameCount;
 	Function1<uint32_t,void*> mLatency;
 	Function2<status_t,void*,uint32_t*> mGetPosition;
+	int mSdkVersion;
 private:
 	AudioTrackImpl(Library *lib);
 	static AudioTrackImpl *sImpl;

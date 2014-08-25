@@ -134,6 +134,19 @@ namespace fake_android{
 		}
 	}
 
+	void *AudioTrack::getRealThis()const{
+		return mThis;
+	}
+	
+	bool AudioTrack::isRefCounted()const{
+		return mImpl->mSdkVersion>=19;
+	}
+	
+	void AudioTrack::destroy()const{
+		mImpl->mDtor.invoke(mThis);
+		delete mThis;
+	}
+	
 	
 	AudioTrackImpl::AudioTrackImpl(Library *lib) :
 		// By default, try to load Android 2.3 symbols
@@ -169,7 +182,7 @@ namespace fake_android{
 		}
 	}
 	
-	bool AudioTrackImpl::init(Library *lib){
+	bool AudioTrackImpl::init(Library *lib, int sdkVersion){
 		bool fail=false;
 		AudioTrackImpl *impl=new AudioTrackImpl(lib);
 		
@@ -203,6 +216,7 @@ namespace fake_android{
 			ms_error("AudioTrack::getPosition() not found");
 			fail=true;
 		}
+		impl->mSdkVersion=sdkVersion;
 		if (!fail){
 			sImpl=impl;
 			return true;

@@ -213,6 +213,8 @@ static MSFilter *android_snd_card_create_writer(MSSndCard *card){
 	return f;
 }
 
+static int sdk_version = 0;
+
 static void android_snd_card_detect(MSSndCardManager *m){
 	bool audio_record_loaded=false;
 	bool audio_track_loaded=false;
@@ -220,6 +222,11 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	bool string8_loaded=false;
 	bool refbase_loaded=false;
 
+	if (sdk_version>19){
+		ms_message("Native android sound support not tested on SDK [%i], disabled.",sdk_version);
+		return;
+	}
+	
 	/* libmedia and libutils static variable may survive to Linphone restarts
 	 It is then necessary to perform the *::init() calls even if the libmedia and libutils are there.*/
 	if (!libmedia)
@@ -229,8 +236,8 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	
 	if (libmedia && libutils){
 		/*perform initializations in order rather than in a if statement so that all missing symbols are shown in logs*/
-		audio_record_loaded=AudioRecordImpl::init(libmedia);
-		audio_track_loaded=AudioTrackImpl::init(libmedia);
+		audio_record_loaded=AudioRecordImpl::init(libmedia,sdk_version);
+		audio_track_loaded=AudioTrackImpl::init(libmedia,sdk_version);
 		audio_system_loaded=AudioSystemImpl::init(libmedia);
 		string8_loaded=String8Impl::init(libutils);
 		refbase_loaded=RefBaseImpl::init(libutils);
@@ -244,7 +251,7 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	ms_message("Native android sound support is NOT available.");
 }
 
-static int sdk_version = 0;
+
 
 static void android_native_snd_card_init(MSSndCard *card) {
 	/* Get Android SDK version. */

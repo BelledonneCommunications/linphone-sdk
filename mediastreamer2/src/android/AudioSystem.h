@@ -280,7 +280,10 @@ public:
 	virtual ~RefBase();
 	void incStrong(const void* id) const;
 	void decStrong(const void* id) const;
+protected:
 	virtual void *getRealThis()const =0;
+	virtual bool isRefCounted()const =0;
+	virtual void destroy()const=0; //used when the object is not refcounted*/
 private:
 	RefBaseImpl *mImpl;
 	mutable int mCnt;
