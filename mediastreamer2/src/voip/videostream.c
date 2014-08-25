@@ -782,6 +782,11 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 			ms_filter_unlink (stream->source, 0, stream->pixconv, 0);
 			ms_filter_unlink (stream->pixconv, 0, stream->tee, 0);
 			ms_filter_unlink (stream->tee, 0, stream->sizeconv, 0);
+			if (stream->source_performs_encoding == FALSE) {
+				ms_filter_unlink(stream->sizeconv, 0, stream->ms.encoder, 0);
+			} else {
+				ms_filter_unlink(stream->sizeconv, 0, stream->ms.rtpsend, 0);
+			}
 		}
 		/*destroy the filters */
 		if (!keep_source) ms_filter_destroy(stream->source);
@@ -813,6 +818,11 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 			ms_filter_link (stream->source, 0, stream->pixconv, 0);
 			ms_filter_link (stream->pixconv, 0, stream->tee, 0);
 			ms_filter_link (stream->tee, 0, stream->sizeconv, 0);
+			if (stream->source_performs_encoding == FALSE) {
+				ms_filter_link(stream->sizeconv, 0, stream->ms.encoder, 0);
+			} else {
+				ms_filter_link(stream->sizeconv, 0, stream->ms.rtpsend, 0);
+			}
 		}
 
 		ms_ticker_attach(stream->ms.sessions.ticker,stream->source);
