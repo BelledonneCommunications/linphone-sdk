@@ -90,6 +90,10 @@ static void glxvideo_uninit(MSFilter *f){
 
 	glxvideo_unprepare(f);
 	if (obj->own_window){
+		if (obj->glContext) {
+			glXDestroyContext(obj->display, obj->glContext);
+			obj->glContext = NULL;
+		}
 		XDestroyWindow(obj->display,obj->window_id);
 	}
 	if (obj->display){
