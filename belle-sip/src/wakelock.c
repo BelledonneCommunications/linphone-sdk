@@ -9,38 +9,38 @@ void bellesip_wake_lock_init(JavaVM *jvm, jobject powerManager) {
 		_jvm = jvm;
 		_powerManager = powerManager;
 	} else {
-		ms_error("bellesip_wake_lock_init(): the wakelock system has already been initialized");
+		belle_sip_error("bellesip_wake_lock_init(): the wakelock system has already been initialized");
 	}
 }
 
 unsigned long wake_lock_acquire(const char *tag) {
 	if(_jvm != NULL && _powerManager != NULL) {
 		JNIEnv *env;
-		if(AttachCurrentThread(_jvm, &env, NULL) == JNI_OK) {
-			jclass PowerManager = FindClass(env, "android/os/PowerManager");
-			jclass WakeLock = FindClass(env, "android/os/PowerManager/WakeLock");
-			jint PARTIAL_WAKE_LOCK = getStaticIntField(
-						env,
-						powerManager,
-						GetFieldId(env, PowerManager, "PARTIAL_WAKE_LOCK", "I")
+		if((*_jvm)->AttachCurrentThread(_jvm, &env, NULL) == JNI_OK) {
+			jclass PowerManager = (*env)->FindClass(env, "android/os/PowerManager");
+			jclass WakeLock = (*env)->FindClass(env, "android/os/PowerManager/WakeLock");
+			jint PARTIAL_WAKE_LOCK = (*env)->GetStaticIntField(
+						env, 
+						PowerManager,
+						(*env)->GetStaticFieldID(env, PowerManager, "PARTIAL_WAKE_LOCK", "I")
 						);
-			jobject lock = CallObjectMethod(
-						env,
+			jobject lock = (*env)->CallObjectMethod(
+						env, 
 						_powerManager,
-						GetMethodID(env, PowerManager, "newWakeLock", "(ILjava/lang/String;)Landroid/os/PowerManager/WakeLock;" ),
+						(*env)->GetMethodID(env, PowerManager, "newWakeLock", "(ILjava/lang/String;)Landroid/os/PowerManager/WakeLock;" ),
 						PARTIAL_WAKE_LOCK,
 						tag);
-			CallVoidMethod(
-						env,
+			(*env)->CallVoidMethod(
+						env, 
 						lock,
-						GetMethodID(env, WakeLock, "acquire", ""));
-			DetachCurrentThread(_jvm);
-			return (unsigned long)NewGlobalRef(env, lock);
+						(*env)->GetMethodID(env, WakeLock, "acquire", "()V"));
+			(*_jvm)->DetachCurrentThread(_jvm);
+			return (unsigned long)(*env)->NewGlobalRef(env, lock);
 		} else {
-			ms_error("bellesip_wake_lock_acquire(): cannot attach current thread to the JVM");
+			belle_sip_error("bellesip_wake_lock_acquire(): cannot attach current thread to the JVM");
 		}
 	} else {
-		ms_error("bellesip_wake_lock_acquire(): cannot acquire wake lock. No jvm found");
+		belle_sip_error("bellesip_wake_lock_acquire(): cannot acquire wake lock. No jvm found");
 	}
 	return 0;
 }
@@ -50,19 +50,19 @@ void wake_lock_release(unsigned long id) {
 		if(id != 0) {
 			jobject lock = (jobject)id;
 			JNIEnv *env;
-			if(AttachCurrentThread(_jvm, &env, NULL) == JNI_OK) {
-				jclass WakeLock = FindClass(env, "android/os/PowerManager/WakeLock");
-				CallVoidMethod(
+			if((*_jvm)->AttachCurrentThread(_jvm, &env, NULL) == JNI_OK) {
+				jclass WakeLock = (*env)->FindClass(env, "android/os/PowerManager/WakeLock");
+				(*env)->CallVoidMethod(
 							env,
 							lock,
-							GetMethodID(env, WakeLock, "release", "()V"));
-				DeleteGlobalRef(env, lock);
-				DetachCurrentThread(_jvm);
+							(*env)->GetMethodID(env, WakeLock, "release", "()V"));
+				(*env)->DeleteGlobalRef(env, lock);
+				(*_jvm)->DetachCurrentThread(_jvm);
 			} else {
-				ms_error("bellesip_wake_lock_release(): cannot attach current thread to the JVM");
+				belle_sip_error("bellesip_wake_lock_release(): cannot attach current thread to the JVM");
 			}
 		}
 	} else {
-		ms_error("wake_lock_release(): cannot release wake lock. No jvm found");
+		belle_sip_error("wake_lock_release(): cannot release wake lock. No jvm found");
 	}
 }

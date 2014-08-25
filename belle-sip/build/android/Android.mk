@@ -76,7 +76,8 @@ LOCAL_SRC_FILES := \
 	transports/tls_channel_polarssl.c \
 	transports/tls_listeningpoint_polarssl.c \
 	transports/udp_channel.c \
-	transports/udp_listeningpoint.c
+	transports/udp_listeningpoint.c \
+	wakelock.c
 
 ifeq ($(BUILD_TUNNEL), 1)
 LOCAL_CFLAGS += -DHAVE_TUNNEL
