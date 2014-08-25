@@ -43,6 +43,10 @@
 #include "belle-sip/belle-sdp.h"
 #include "belle-sip/bodyhandler.h"
 
+#ifdef ANDROID
+#include "belle-sip/wakelock.h"
+#endif
+
 
 #define BELLE_SIP_POINTER_TO_INT(p)	((int)(long)(p))
 #define BELLE_SIP_INT_TO_POINTER(i)	((void*)(long)(i))
