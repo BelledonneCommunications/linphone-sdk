@@ -199,7 +199,9 @@ static belle_sip_error_code _belle_sip_header_address_marshal(belle_sip_header_a
 	belle_sip_error_code error=BELLE_SIP_OK;
 	/*1 display name*/
 	if (header->displayname) {
-		error=belle_sip_snprintf(buff,buff_size,offset,"\"%s\" ",header->displayname);
+		char* escaped_display_name = belle_sip_display_name_to_backslashed_escaped_string(header->displayname);
+		error=belle_sip_snprintf(buff,buff_size,offset,"\"%s\" ",escaped_display_name);
+		belle_sip_free(escaped_display_name);
 		if (error!=BELLE_SIP_OK) return error;
 	}
 	if (header->uri) {

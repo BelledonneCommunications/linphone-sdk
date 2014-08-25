@@ -37,4 +37,17 @@ BELLESIP_INTERNAL_EXPORT void belle_sip_header_set_next(belle_sip_header_t* head
 BELLESIP_INTERNAL_EXPORT char* belle_sip_to_unescaped_string(const char* buff);
 belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* value);
 char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string);
+
+/**
+ * quoted-string  =  SWS DQUOTE *(qdtext / quoted-pair ) DQUOTE
+      qdtext         =  LWS / %x21 / %x23-5B / %x5D-7E
+                        / UTF8-NONASCII
+ quoted-pair  =  "\" (%x00-09 / %x0B-0C
+                / %x0E-7F)
+
+remove any \
+ * */
+BELLESIP_INTERNAL_EXPORT char* belle_sip_string_to_backslash_less_unescaped_string(const char* buff);
+BELLESIP_INTERNAL_EXPORT char* belle_sip_display_name_to_backslashed_escaped_string(const char* buff);
+
 #endif

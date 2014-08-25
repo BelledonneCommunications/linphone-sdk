@@ -1045,3 +1045,33 @@ char* belle_generic_uri_to_escaped_path(const char* buff) {
 	return belle_sip_escape(buff, get_generic_uri_path_noescapes());
 }
 
+char* belle_sip_string_to_backslash_less_unescaped_string(const char* buff) {
+	char *output_buff=belle_sip_malloc(strlen(buff)+1);
+	unsigned int i;
+	unsigned int out_buff_index=0;
+
+	for(i=0; buff[i] != '\0'; i++) {
+		if (buff[i] == '\\') {
+			i++;/*skip \*/
+		}
+		/*make sure to only remove one \ in case of \\*/
+		output_buff[out_buff_index++]=buff[i];
+	}
+	output_buff[out_buff_index]='\0';
+	return output_buff;
+}
+char* belle_sip_display_name_to_backslashed_escaped_string(const char* buff) {
+	char output_buff[BELLE_SIP_MAX_TO_STRING_SIZE];
+	unsigned int i;
+	unsigned int out_buff_index=0;
+	for(i=0; buff[i] != '\0' && out_buff_index < sizeof(output_buff)-2; i++) {
+		/*-3 to make sure last param can be stored in escaped form*/
+		const char c = buff[i];
+		if (c == '\"' || c == '\\') {
+			output_buff[out_buff_index++]='\\'; /*insert escape character*/
+		}
+		output_buff[out_buff_index++]=c;
+	}
+	output_buff[out_buff_index]='\0';
+	return belle_sip_strdup(output_buff);
+}

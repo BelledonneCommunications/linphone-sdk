@@ -616,8 +616,15 @@ static void test_address_with_error_header(void) {
 
 static void test_address_header(void) {
 	belle_sip_uri_t* L_uri;
+	char* L_raw;
 	belle_sip_header_address_t* laddress = belle_sip_header_address_parse("\"toto\" <sip:liblinphone_tester@81.56.11.2:5060>");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(laddress);
+	CU_ASSERT_PTR_NOT_NULL(laddress);
+	L_raw = belle_sip_object_to_string(BELLE_SIP_OBJECT(laddress));
+	CU_ASSERT_PTR_NOT_NULL(L_raw);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+	laddress = belle_sip_header_address_parse(L_raw);
+	belle_sip_free(L_raw);
+
 	CU_ASSERT_STRING_EQUAL("toto",belle_sip_header_address_get_displayname(laddress))
 	L_uri = belle_sip_header_address_get_uri(laddress);
 
@@ -626,6 +633,19 @@ static void test_address_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "liblinphone_tester");
 	CU_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+
+	laddress = belle_sip_header_address_parse("\"\\\"to\\\\to\\\"\" <sip:liblinphone_tester@81.56.11.2:5060>");
+	CU_ASSERT_PTR_NOT_NULL(laddress);
+	L_raw = belle_sip_object_to_string(BELLE_SIP_OBJECT(laddress));
+	CU_ASSERT_PTR_NOT_NULL(L_raw);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+	laddress = belle_sip_header_address_parse(L_raw);
+	belle_sip_free(L_raw);
+	CU_ASSERT_STRING_EQUAL("\"to\\to\"",belle_sip_header_address_get_displayname(laddress))
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+
+
+
 }
 
 static void test_very_long_address_header(void) {

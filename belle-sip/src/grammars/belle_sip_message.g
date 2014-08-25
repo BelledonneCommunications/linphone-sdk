@@ -391,7 +391,7 @@ gen_value
 
 quoted_string 
 options { greedy = false; }
-  : DQUOTE unquoted_value=(.*) DQUOTE ;
+  : DQUOTE (~(DQUOTE | BSLASH) | (BSLASH .))*  DQUOTE ;
 
 /*
 accept_encoding  
@@ -645,7 +645,12 @@ paramless_addr_spec[belle_sip_header_address_t* object]
   
 display_name[belle_sip_header_address_t* object]  
   :  token {belle_sip_header_address_set_displayname(object,(const char*)($token.text->chars));}
-     | quoted_string {belle_sip_header_address_set_quoted_displayname(object,(const char*)($quoted_string.text->chars));}
+     | quoted_string 
+     	{
+     	char* unescaped_char = belle_sip_string_to_backslash_less_unescaped_string((const char*)($quoted_string.text->chars));
+     	belle_sip_header_address_set_quoted_displayname(object,(const char*)unescaped_char);
+     	belle_sip_free(unescaped_char);
+     	}
      ;
 
 contact_params     
