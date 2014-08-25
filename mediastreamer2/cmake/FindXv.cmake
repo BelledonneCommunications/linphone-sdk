@@ -36,15 +36,28 @@ set(_XV_ROOT_PATHS
 	${CMAKE_INSTALL_PREFIX}
 )
 
-find_path(XV_INCLUDE_DIRS
+find_path(XV_H_INCLUDE_DIR
 	NAMES X11/extensions/Xv.h
 	HINTS _XV_ROOT_PATHS
 	PATH_SUFFIXES include
 )
-if(XV_INCLUDE_DIRS)
-	check_include_file(X11/extensions/Xv.h HAVE_X11_EXTENSIONS_XV_H)
-	check_include_file(X11/extensions/Xvlib.h HAVE_X11_EXTENSIONS_XVLIB_H)
+find_path(XVLIB_H_INCLUDE_DIR
+	NAMES X11/extensions/Xvlib.h
+	HINTS _XV_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+if(XV_H_INCLUDE_DIR)
+	set(HAVE_X11_EXTENSIONS_XV_H 1)
 endif()
+if(XVLIB_H_INCLUDE_DIR)
+	set(HAVE_X11_EXTENSIONS_XVLIB_H 1)
+endif()
+if(XV_H_INCLUDE_DIR AND XVLIB_H_INCLUDE_DIR)
+	set(XV_INCLUDE_DIRS ${XV_H_INCLUDE_DIR} ${XVLIB_H_INCLUDE_DIR})
+endif()
+
+set(XV_INCLUDE_DIRS ${XV_INCLUDE_DIRS} ${X11_INCLUDE_DIRS})
+list(REMOVE_DUPLICATES XV_INCLUDE_DIRS)
 
 find_library(XV_LIBRARIES
 	NAMES Xv
@@ -53,12 +66,14 @@ find_library(XV_LIBRARIES
 )
 
 if(XV_LIBRARIES)
-	check_symbol_exists(XvCreateImage X11/extensions/Xv.h HAVE_XV_CREATE_IMAGE)
+	cmake_push_check_state(RESET)
+	list(APPEND CMAKE_REQUIRED_INCLUDES ${XV_INCLUDE_DIRS})
+	list(APPEND CMAKE_REQUIRED_LIBRARIES ${XV_LIBRARIES})
+	check_symbol_exists(XvCreateImage "X11/Xlib.h;X11/extensions/Xv.h;X11/extensions/Xvlib.h" HAVE_XV_CREATE_IMAGE)
+	cmake_pop_check_state()
 endif()
 
-set(XV_INCLUDE_DIRS ${XV_INCLUDE_DIRS} ${X11_INCLUDE_DIRS})
 set(XV_LIBRARIES ${XV_LIBRARIES} ${X11_LIBRARIES})
-list(REMOVE_DUPLICATES XV_INCLUDE_DIRS)
 list(REMOVE_DUPLICATES XV_LIBRARIES)
 
 include(FindPackageHandleStandardArgs)

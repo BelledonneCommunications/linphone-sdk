@@ -278,7 +278,7 @@ if(ENABLE_VIDEO)
 		list(APPEND VOIP_SOURCE_FILES utils/x11_helper.c)
 	endif()
 	if(XV_FOUND)
-		list(APEEND VOIP_SOURCE_FILES videofilters/x11video.c)
+		list(APPEND VOIP_SOURCE_FILES videofilters/x11video.c)
 	endif()
 endif()
 
