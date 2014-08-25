@@ -4,10 +4,10 @@
 static JavaVM *_jvm = NULL;
 static jobject _powerManager = NULL;
 
-void bellesip_wake_lock_init(JavaVM *jvm, jobject powerManager) {
+void bellesip_wake_lock_init(JavaVM *jvm, jobject pm) {
 	if(_jvm == NULL) {
 		_jvm = jvm;
-		_powerManager = powerManager;
+		_powerManager = pm;
 	} else {
 		belle_sip_error("bellesip_wake_lock_init(): the wakelock system has already been initialized");
 	}
@@ -34,6 +34,7 @@ unsigned long wake_lock_acquire(const char *tag) {
 						env, 
 						lock,
 						(*env)->GetMethodID(env, WakeLock, "acquire", "()V"));
+			belle_sip_message("Android wake lock acquired [ref=%p]", (void *)lock);
 			(*_jvm)->DetachCurrentThread(_jvm);
 			return (unsigned long)(*env)->NewGlobalRef(env, lock);
 		} else {
@@ -44,6 +45,8 @@ unsigned long wake_lock_acquire(const char *tag) {
 	}
 	return 0;
 }
+
+
 
 void wake_lock_release(unsigned long id) {
 	if(_jvm != NULL && _powerManager != NULL) {
@@ -56,6 +59,7 @@ void wake_lock_release(unsigned long id) {
 							env,
 							lock,
 							(*env)->GetMethodID(env, WakeLock, "release", "()V"));
+				belle_sip_message("Android wake lock released [ref=%p]", (void *)lock);
 				(*env)->DeleteGlobalRef(env, lock);
 				(*_jvm)->DetachCurrentThread(_jvm);
 			} else {
