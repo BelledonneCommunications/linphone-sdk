@@ -21,6 +21,7 @@ import string
 import sys
 from setuptools import setup, Extension
 
+build_type = "@CMAKE_BUILD_TYPE@"
 version = "@BUILD_VERSION@"
 macros = "@LINPHONE_CPPFLAGS@"
 include_dirs = "@LINPHONE_INCLUDE_DIRS@"
@@ -38,6 +39,7 @@ libraries = libraries.split(';')
 library_dirs = [os.path.dirname(item) for item in libraries if os.path.dirname(item) != '']
 library_dirs = list(set(library_dirs))
 libraries = [os.path.basename(item) for item in libraries]
+extra_compile_args = []
 extra_link_args = []
 if sys.platform.startswith("win32"):
 	libraries = [string.replace(item, '.lib', '') for item in libraries]
@@ -52,6 +54,8 @@ else:
 	extra_link_args.append("-Wl,--end-group")
 	extra_link_args.append("-Wl,-rpath=$ORIGIN")
 	libraries = dynamic_libraries
+	if build_type == "Debug":
+		extra_compile_args = ["-O0"]
 data_files = data_files.split(';')
 
 ext = Extension('linphone',
@@ -59,6 +63,7 @@ ext = Extension('linphone',
 	include_dirs = include_dirs,
 	libraries = libraries,
 	library_dirs = library_dirs,
+	extra_compile_args = extra_compile_args,
 	extra_link_args = extra_link_args,
 	sources = ['@SOURCE_FILENAME@']
 )
