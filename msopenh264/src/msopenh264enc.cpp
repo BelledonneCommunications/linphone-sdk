@@ -304,7 +304,10 @@ void MSOpenH264Encoder::generateKeyframe()
 {
 	if (isInitialized()) {
 		ms_filter_lock(mFilter);
-		int ret = mEncoder->ForceIntraFrame(true);
+		int ret=0;
+		if (mFrameCount>0){
+			ret = mEncoder->ForceIntraFrame(true);
+		}else ms_message("ForceIntraFrame() ignored since no frame has been generated yet.");
 		ms_filter_unlock(mFilter);
 		if (ret != 0) {
 			ms_error("OpenH264 encoder: Failed forcing intra-frame: %d", ret);
