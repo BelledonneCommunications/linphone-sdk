@@ -128,7 +128,7 @@ public class AndroidVideoApi5JniWrapper {
 			exc.printStackTrace(); 
 		}
 	}
-	//select nearest resolution equal or above requested
+	//select nearest resolution equal or above requested, if none, return highest resolution from the supported list
 	protected static int[] selectNearestResolutionAvailableForCamera(int id, int requestedW, int requestedH) {
 		// inversing resolution since webcams only support landscape ones
 		if (requestedH > requestedW) {
@@ -158,7 +158,7 @@ public class AndroidVideoApi5JniWrapper {
 		
 		try { 
 			// look for nearest size
-			Size result = null;
+			Size result = supportedSizes.get(0); /*by default return first value*/
 			int req = rW * rH;
 			int minDist = Integer.MAX_VALUE;
 			int useDownscale = 0;
@@ -192,8 +192,7 @@ public class AndroidVideoApi5JniWrapper {
 			Log.d("mediastreamer", "resolution selection done (" + r[0] + ", " + r[1] + ", " + r[2] + ")");
 			return r;
 		} catch (Exception exc) {
-			Log.e("mediastreamer", "resolution selection failed");
-			exc.printStackTrace();
+			Log.e(exc,"mediastreamer", " resolution selection failed");
 			return null;
 		}	
 	}
