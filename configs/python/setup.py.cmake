@@ -22,6 +22,8 @@ import sys
 from setuptools import setup, Extension
 
 build_type = "@CMAKE_BUILD_TYPE@"
+install_prefix = "@CMAKE_INSTALL_PREFIX@"
+lib_install_prefix = os.path.join(install_prefix, 'lib')
 version = "@BUILD_VERSION@"
 macros = "@LINPHONE_CPPFLAGS@"
 include_dirs = "@LINPHONE_INCLUDE_DIRS@"
@@ -36,8 +38,9 @@ for macro in macros:
 		define_macros.append((macro, None))
 include_dirs = list(set(include_dirs.split(';')))
 libraries = libraries.split(';')
-library_dirs = [os.path.dirname(item) for item in libraries if os.path.dirname(item) != '']
+library_dirs = [os.path.dirname(item) for item in libraries if os.path.dirname(item) != '' and os.path.dirname(item) != lib_install_prefix]
 library_dirs = list(set(library_dirs))
+library_dirs.insert(0, lib_install_prefix)
 libraries = [os.path.basename(item) for item in libraries]
 extra_compile_args = []
 extra_link_args = []
