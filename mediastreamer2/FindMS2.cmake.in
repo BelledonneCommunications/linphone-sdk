@@ -76,7 +76,7 @@ if(@ENABLE_VIDEO@)
 	endif()
 endif()
 
-set(_MS2ROOT_PATHS
+set(_MS2_ROOT_PATHS
 	${WITH_MS2}
 	${CMAKE_INSTALL_PREFIX}
 )
