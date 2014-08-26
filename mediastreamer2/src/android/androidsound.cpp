@@ -213,7 +213,19 @@ static MSFilter *android_snd_card_create_writer(MSSndCard *card){
 	return f;
 }
 
-static int sdk_version = 0;
+static int get_sdk_version(){
+	static int sdk_version = 0;
+	if (sdk_version==0){
+		/* Get Android SDK version. */
+		JNIEnv *jni_env = ms_get_jni_env();
+		jclass version_class = jni_env->FindClass("android/os/Build$VERSION");
+		jfieldID fid = jni_env->GetStaticFieldID(version_class, "SDK_INT", "I");
+		sdk_version = jni_env->GetStaticIntField(version_class, fid);
+		ms_message("SDK version [%i] detected", sdk_version);
+		jni_env->DeleteLocalRef(version_class);
+	}
+	return sdk_version;
+}
 
 static void android_snd_card_detect(MSSndCardManager *m){
 	bool audio_record_loaded=false;
@@ -222,8 +234,8 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	bool string8_loaded=false;
 	bool refbase_loaded=false;
 
-	if (sdk_version>19){
-		ms_message("Native android sound support not tested on SDK [%i], disabled.",sdk_version);
+	if (get_sdk_version()>19){
+		ms_message("Native android sound support not tested on SDK [%i], disabled.",get_sdk_version());
 		return;
 	}
 	
@@ -236,8 +248,8 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	
 	if (libmedia && libutils){
 		/*perform initializations in order rather than in a if statement so that all missing symbols are shown in logs*/
-		audio_record_loaded=AudioRecordImpl::init(libmedia,sdk_version);
-		audio_track_loaded=AudioTrackImpl::init(libmedia,sdk_version);
+		audio_record_loaded=AudioRecordImpl::init(libmedia,get_sdk_version());
+		audio_track_loaded=AudioTrackImpl::init(libmedia,get_sdk_version());
 		audio_system_loaded=AudioSystemImpl::init(libmedia);
 		string8_loaded=String8Impl::init(libutils);
 		refbase_loaded=RefBaseImpl::init(libutils);
@@ -251,16 +263,8 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	ms_message("Native android sound support is NOT available.");
 }
 
-
-
 static void android_native_snd_card_init(MSSndCard *card) {
-	/* Get Android SDK version. */
-	JNIEnv *jni_env = ms_get_jni_env();
-	jclass version_class = jni_env->FindClass("android/os/Build$VERSION");
-	jfieldID fid = jni_env->GetStaticFieldID(version_class, "SDK_INT", "I");
-	sdk_version = jni_env->GetStaticIntField(version_class, fid);
-	ms_message("SDK version [%i] detected", sdk_version);
-	jni_env->DeleteLocalRef(version_class);
+	
 }
 
 static void android_native_snd_card_uninit(MSSndCard *card){
@@ -648,7 +652,7 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 static int channel_mask_for_audio_track(int nchannels) {
 	int channel_mask;
 	channel_mask = audio_channel_out_mask_from_count(nchannels);
-	if (sdk_version < 14) {
+	if (get_sdk_version() < 14) {
 		ms_message("Android version older than ICS, apply audio channel hack for AudioTrack");
 		if ((channel_mask & AUDIO_CHANNEL_OUT_MONO) == AUDIO_CHANNEL_OUT_MONO) {
 			channel_mask = 0x4;
