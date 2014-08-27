@@ -922,9 +922,22 @@ void mediastream_run_loop(MediastreamDatas* args) {
 		}
 		rtp_stats_display(rtp_session_get_stats(args->session),"RTP stats");
 		if (args->session){
+			float audio_load = 0;
+			float video_load = 0;
+			
 			ms_message("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
 				rtp_session_get_recv_bandwidth(args->session)*1e-3,
 				rtp_session_get_send_bandwidth(args->session)*1e-3);
+			
+			if (args->audio) {
+				audio_load = ms_ticker_get_average_load(args->audio->ms.sessions.ticker);
+			}
+#if defined(VIDEO_ENABLED)
+			if (args->video) {
+				video_load = ms_ticker_get_average_load(args->video->ms.sessions.ticker);
+			}
+#endif
+			ms_message("Thread processing load: audio=%f\tvideo=%f", audio_load, video_load);
 			parse_events(args->session,args->q);
 			ms_message("Quality indicator : %f\n",args->audio ? audio_stream_get_quality_rating(args->audio) : media_stream_get_quality_rating((MediaStream*)args->video));
 		}
