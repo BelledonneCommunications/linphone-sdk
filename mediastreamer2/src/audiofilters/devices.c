@@ -41,6 +41,7 @@ static SoundDeviceDescription devices[]={
 	
 	
 	{	"LGE",		"LS670",		"",			0,	170 },
+	{	"LGE",		"Nexus 5",		"msm8974",	0,	0 , 16000 },
 	
 	{	"motorola",	"DROID RAZR",	"",			0,	400 },
 	{	"motorola",	"MB860",		"",			0,	200 },
