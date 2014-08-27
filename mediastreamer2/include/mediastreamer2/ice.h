@@ -500,7 +500,13 @@ MS2_PUBLIC IceCheckListState ice_check_list_state(const IceCheckList *cl);
  * @param state The new state of the check list
  */
 MS2_PUBLIC void ice_check_list_set_state(IceCheckList *cl, IceCheckListState state);
-
+/**
+ * Humanly readable IceCheckListState
+ *
+ * @param state The state of the check list
+ * @return a humanly readable IceCheckListState.
+ */
+MS2_PUBLIC const char* ice_check_list_state_to_string(const IceCheckListState state);
 /**
  * Assign an RTP session to an ICE check list.
  *

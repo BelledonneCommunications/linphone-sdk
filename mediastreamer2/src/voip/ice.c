@@ -886,6 +886,8 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 				check->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION);
 			}
 			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
+		} else {
+			ms_error("ice: no rtp socket found for session [%p]",cl->rtp_session);
 		}
 		sock = rtp_session_get_rtcp_socket(cl->rtp_session);
 		if (sock > 0) {
@@ -894,8 +896,12 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 			check->srcport = rtp_session_get_local_rtcp_port(cl->rtp_session);
 			check->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION);
 			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
+		}else {
+			ms_message("ice: no rtcp socket found for session [%p]",cl->rtp_session);
 		}
 		si->index++;
+	} else {
+		ms_message("ice: candidate gathering skipped for rtp session [%p] with check list [%p] in state [%s]",cl->rtp_session,cl,ice_check_list_state_to_string(cl->state));
 	}
 }
 
@@ -1072,6 +1078,8 @@ static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struc
 		transactionID2string(&msg.msgHdr.tr_id, tr_id_str);
 		ms_message("ice: Send STUN binding request from port %u [%s]", check->srcport, tr_id_str);
 		sendMessage(sock, buf, len, htonl(servaddr->sin_addr.s_addr), htons(servaddr->sin_port));
+	} else {
+		ms_error("ice: encoding stun binding request from port %u [%s] failed", check->srcport, tr_id_str);
 	}
 }
 
@@ -3441,4 +3449,11 @@ void ice_dump_componentIDs(const IceCheckList* cl)
 	if (cl == NULL) return;
 	ms_message("Component IDs:");
 	ms_list_for_each(cl->local_componentIDs, (void (*)(void*))ice_dump_componentID);
+}
+const char* ice_check_list_state_to_string(const IceCheckListState state) {
+	switch (state) {
+		case 	ICL_Running: return "ICL_Running";
+		case 	ICL_Completed: return "ICL_Completed";
+		case 	ICL_Failed: return "ICL_Failed";
+	}
 }
