@@ -338,6 +338,10 @@ static void video_capture_postprocess(MSFilter *f){
 	}
 	d->androidCamera = 0;
 	d->previewWindow = 0;
+	if (d->frame){
+		freemsg(d->frame);
+		d->frame=NULL;
+	}
 	ms_mutex_unlock(&d->mutex);
 }
 
