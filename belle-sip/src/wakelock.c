@@ -39,7 +39,7 @@ void bellesip_wake_lock_init(JNIEnv *env, jobject pm) {
 
 		belle_sip_message("bellesip_wake_lock_init(): initialization succeed");
 	} else {
-		belle_sip_error("bellesip_wake_lock_init(): the wakelock system has already been initialized");
+		belle_sip_warning("bellesip_wake_lock_init(): the wakelock system has already been initialized");
 	}
 }
 
@@ -51,6 +51,11 @@ void bellesip_wake_lock_uninit(JNIEnv *env) {
 	}
 }
 
+/**
+ * @brief Callback called when a thread terminates it-self.
+ * It detaches the thread from the JVM.
+ * @param data Unused.
+ */
 static void jni_key_cleanup(void *data) {
 	belle_sip_message("Thread end. Cleanup wake lock jni environment");
 	JNIEnv *env = pthread_getspecific(ctx.jniEnvKey);
@@ -64,6 +69,13 @@ static void jni_key_cleanup(void *data) {
 	}
 }
 
+/**
+ * @brief Get a JNI environment.
+ * Get a JNI by attaching the current thread
+ * to the internaly stored JVM. That function can be safely
+ * called several times.
+ * @return JNI environement pointer. NULL if the function fails.
+ */
 static JNIEnv *get_jni_env(void) {
 	JNIEnv *jenv = NULL;
 	if(ctx.jvm != NULL) {
