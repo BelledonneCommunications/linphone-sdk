@@ -3456,4 +3456,5 @@ const char* ice_check_list_state_to_string(const IceCheckListState state) {
 		case 	ICL_Completed: return "ICL_Completed";
 		case 	ICL_Failed: return "ICL_Failed";
 	}
+	return "Invalid ICE state";
 }
