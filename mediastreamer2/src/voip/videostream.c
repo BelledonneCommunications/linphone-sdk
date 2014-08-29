@@ -421,6 +421,7 @@ static void configure_video_source(VideoStream *stream){
 	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
 		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
 	}
+	if (stream->fps!=0) ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&fps);
 	/* get the output format for webcam reader */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 
