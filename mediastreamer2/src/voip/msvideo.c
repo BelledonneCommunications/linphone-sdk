@@ -845,18 +845,18 @@ MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoC
 }
 
 MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConfiguration *vconf_list, MSVideoSize vsize) {
-	const MSVideoConfiguration *current_vconf = vconf_list;
-	const MSVideoConfiguration *closer_to_best_vconf = NULL;
-	MSVideoConfiguration best_vconf;
+	const MSVideoConfiguration *vconf_it = vconf_list;
+	MSVideoConfiguration best_vconf={0};
+	int min_score=INT32_MAX;
+	int ref_pixels=vsize.height*vsize.width;
 
-	while (closer_to_best_vconf == NULL) {
-		if ((current_vconf->vsize.width * current_vconf->vsize.height) <= (vsize.width * vsize.height)) {
-			closer_to_best_vconf = current_vconf;
-		} else {
-			current_vconf++;
+	for(;vconf_it->required_bitrate!=0;vconf_it++){
+		int pixels=vconf_it->vsize.width*vconf_it->vsize.height;
+		int score=abs(pixels-ref_pixels);
+		if (score<min_score){
+			best_vconf=*vconf_it;
+			min_score=score;
 		}
 	}
-
-	memcpy(&best_vconf, closer_to_best_vconf, sizeof(best_vconf));
 	return best_vconf;
 }
