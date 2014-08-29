@@ -576,7 +576,7 @@ static void msv4l2_preprocess(MSFilter *f){
 	s->thread_run=TRUE;
 	ms_thread_create(&s->thread,NULL,msv4l2_thread,s);
 	s->th_frame_count=-1;
-	ms_average_fps_init(&s->avgfps,"V4L2 capture");
+	ms_average_fps_init(&s->avgfps,"V4L2 capture: fps=%f");
 }
 
 static void msv4l2_process(MSFilter *f){
