@@ -148,6 +148,7 @@ typedef struct _MediastreamDatas {
 	int ice_local_candidates_nb;
 	int ice_remote_candidates_nb;
 	char * video_display_filter;
+	FILE * logfile;
 } MediastreamDatas;
 
 
@@ -216,6 +217,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --interactive (run in interactive mode)]\n"
 								"[ --no-avpf]\n"
 								"[ --no-rtcp]\n"
+								"[ --log <file>]\n"
 								;
 
 #if TARGET_OS_IPHONE
@@ -323,6 +325,7 @@ MediastreamDatas* init_default_args() {
 	args->pt = NULL;
 	args->q = NULL;
 	args->profile = NULL;
+	args->logfile = NULL;
 
 	args->ice_session = NULL;
 	memset(args->ice_local_candidates, 0, sizeof(args->ice_local_candidates));
@@ -532,6 +535,9 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i],"--video-display-filter")==0) {
 			i++;
 			out->video_display_filter=argv[i];
+		} else if (strcmp(argv[i], "--log") == 0) {
+			i++;
+			out->logfile = fopen(argv[i], "a+");
 		} else {
 			printf("%s",usage);
 			printf("Unknown option '%s'\n", argv[i]);
@@ -564,6 +570,9 @@ void setup_media_streams(MediastreamDatas* args) {
 	MSWebCam *cam=NULL;
 #endif
 	ortp_init();
+	if (args->logfile)
+		ortp_set_log_file(args->logfile);
+	
 	if (args->is_verbose) {
 		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	} else {
@@ -922,9 +931,22 @@ void mediastream_run_loop(MediastreamDatas* args) {
 		}
 		rtp_stats_display(rtp_session_get_stats(args->session),"RTP stats");
 		if (args->session){
+			float audio_load = 0;
+			float video_load = 0;
+			
 			ms_message("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
 				rtp_session_get_recv_bandwidth(args->session)*1e-3,
 				rtp_session_get_send_bandwidth(args->session)*1e-3);
+			
+			if (args->audio) {
+				audio_load = ms_ticker_get_average_load(args->audio->ms.sessions.ticker);
+			}
+#if defined(VIDEO_ENABLED)
+			if (args->video) {
+				video_load = ms_ticker_get_average_load(args->video->ms.sessions.ticker);
+			}
+#endif
+			ms_message("Thread processing load: audio=%f\tvideo=%f", audio_load, video_load);
 			parse_events(args->session,args->q);
 			ms_message("Quality indicator : %f\n",args->audio ? audio_stream_get_quality_rating(args->audio) : media_stream_get_quality_rating((MediaStream*)args->video));
 		}
@@ -949,6 +971,9 @@ void clear_mediastreams(MediastreamDatas* args) {
 	ortp_ev_queue_destroy(args->q);
 	rtp_profile_destroy(args->profile);
 
+	if (args->logfile)
+		fclose(args->logfile);
+	
 	ms_exit();
 }
 

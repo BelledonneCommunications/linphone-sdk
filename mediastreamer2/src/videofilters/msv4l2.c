@@ -537,11 +537,13 @@ static void *msv4l2_thread(void *ptr){
 		ms_warning("msv4l2 could not be configured");
 		goto close;
 	}
+	
 	if (msv4l2_do_mmap(s)!=0)
 	{
 		ms_warning("msv4l2 do mmap");
 		goto close;
 	}
+	
 	ms_message("V4L2 video capture started.");
 	while(s->thread_run)
 	{

@@ -31,9 +31,44 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct {
 	FILE *file;
+	char *filename;
+	char *tmpFilename;
 	AVCodec *codec;
 	AVFrame* pict;
 }JpegWriter;
+
+static const char EXTENSION[] = ".part";
+
+static bool_t open_file(JpegWriter *obj, const char *filename) {
+	char *tmpFilename = ms_strndup(filename, strlen(filename) + strlen(EXTENSION));
+	strcat(tmpFilename, EXTENSION);
+	obj->file = fopen(tmpFilename, "wb");
+	if(obj->file) {
+		obj->filename = ms_strdup(filename);
+		obj->tmpFilename = tmpFilename;
+		return TRUE;
+	} else {
+		ms_error("Could not open %s for write", tmpFilename);
+		obj->filename = NULL;
+		obj->tmpFilename = NULL;
+		ms_free(tmpFilename);
+		return FALSE;
+	}
+}
+
+static void close_file(JpegWriter *obj, bool_t doRenaming) {
+	fclose(obj->file);
+	if(doRenaming) {
+		if(rename(obj->tmpFilename, obj->filename) != 0) {
+			ms_error("Could not rename %s into %s", obj->tmpFilename, obj->filename);
+		}
+	}
+	ms_free(obj->filename);
+	ms_free(obj->tmpFilename);
+	obj->file = NULL;
+	obj->filename = NULL;
+	obj->tmpFilename = NULL;
+}
 
 static void jpg_init(MSFilter *f){
 	JpegWriter *s=ms_new0(JpegWriter,1);
@@ -48,7 +83,7 @@ static void jpg_init(MSFilter *f){
 static void jpg_uninit(MSFilter *f){
 	JpegWriter *s=(JpegWriter*)f->data;
 	if (s->file!=NULL){
-		fclose(s->file);
+		close_file(s, FALSE);
 	}
 	if (s->pict) av_frame_free(&s->pict);
 	ms_free(s);
@@ -56,23 +91,20 @@ static void jpg_uninit(MSFilter *f){
 
 static int take_snapshot(MSFilter *f, void *arg){
 	JpegWriter *s=(JpegWriter*)f->data;
-	const char *filename=(const char*)arg;
+	const char *filename = (const char *)arg;
+	int err = 0;
+	ms_filter_lock(f);
 	if (s->file!=NULL){
-		fclose(s->file);
-		s->file=NULL;
+		close_file(s, FALSE);
 	}
-	s->file=fopen(filename,"wb");
-	if (s->file==NULL){
-		ms_error("Could not open %s",filename);
-		return -1;
-	}
-	return 0;
+	if(!open_file(s, filename)) err=-1;
+	ms_filter_unlock(f);
+	return err;
 }
 
-static void cleanup(JpegWriter *s, AVCodecContext *avctx){
+static void cleanup(JpegWriter *s, AVCodecContext *avctx, bool_t success){
 	if (s->file){
-		fclose(s->file);
-		s->file=NULL;
+		close_file(s, success);
 	}
 	if (avctx){
 		avcodec_close(avctx);
@@ -82,6 +114,7 @@ static void cleanup(JpegWriter *s, AVCodecContext *avctx){
 
 static void jpg_process(MSFilter *f){
 	JpegWriter *s=(JpegWriter*)f->data;
+	ms_filter_lock(f);
 	if (s->file!=NULL && s->codec!=NULL){
 		MSPicture yuvbuf, yuvjpeg;
 		mblk_t *m=ms_queue_peek_last(f->inputs[0]);
@@ -105,15 +138,15 @@ static void jpg_process(MSFilter *f){
 			error=avcodec_open2(avctx,s->codec,NULL);
 			if (error!=0) {
 				ms_error("avcodec_open() failed: %i",error);
-				cleanup(s,NULL);
+				cleanup(s,NULL, FALSE);
 				av_free(avctx);
-				return;
+				goto end;
 			}
 			sws_ctx=sws_getContext(avctx->width,avctx->height,PIX_FMT_YUV420P,
 				avctx->width,avctx->height,avctx->pix_fmt,SWS_FAST_BILINEAR,NULL, NULL, NULL);
 			if (sws_ctx==NULL) {
 				ms_error(" sws_getContext() failed.");
-				cleanup(s,avctx);
+				cleanup(s,avctx, FALSE);
 				goto end;
 			}
 			jpegm=ms_yuv_buf_alloc (&yuvjpeg,avctx->width, avctx->height);
@@ -124,7 +157,7 @@ static void jpg_process(MSFilter *f){
 #endif
 				ms_error("sws_scale() failed.");
 				sws_freeContext(sws_ctx);
-				cleanup(s,avctx);
+				cleanup(s,avctx, FALSE);
 				freemsg(jpegm);
 				goto end;
 			}
@@ -143,12 +176,13 @@ static void jpg_process(MSFilter *f){
 					ms_error("Error writing snapshot.");
 				}
 			}
-			cleanup(s,avctx);
+			cleanup(s,avctx, TRUE);
 			freemsg(jpegm);
 		}
 		goto end;
 	}
 	end:
+	ms_filter_unlock(f);
 	ms_queue_flush(f->inputs[0]);
 }
 
