@@ -40,11 +40,11 @@ typedef struct {
 static const char EXTENSION[] = ".part";
 
 static bool_t open_file(JpegWriter *obj, const char *filename) {
-	char *tmpFilename = strndup(filename, strlen(filename) + strlen(EXTENSION));
+	char *tmpFilename = ms_strndup(filename, strlen(filename) + strlen(EXTENSION));
 	strcat(tmpFilename, EXTENSION);
 	obj->file = fopen(tmpFilename, "wb");
 	if(obj->file) {
-		obj->filename = strdup(filename);
+		obj->filename = ms_strdup(filename);
 		obj->tmpFilename = tmpFilename;
 		return TRUE;
 	} else {
