@@ -37,36 +37,33 @@ typedef struct {
 	AVFrame* pict;
 }JpegWriter;
 
-static const char EXTENSION[] = ".part";
+static void close_file(JpegWriter *obj, bool_t doRenaming);
 
 static bool_t open_file(JpegWriter *obj, const char *filename) {
-	char *tmpFilename = ms_strndup(filename, strlen(filename) + strlen(EXTENSION));
-	strcat(tmpFilename, EXTENSION);
-	obj->file = fopen(tmpFilename, "wb");
-	if(obj->file) {
-		obj->filename = ms_strdup(filename);
-		obj->tmpFilename = tmpFilename;
-		return TRUE;
-	} else {
-		ms_error("Could not open %s for write", tmpFilename);
-		obj->filename = NULL;
-		obj->tmpFilename = NULL;
-		ms_free(tmpFilename);
-		return FALSE;
+	obj->filename=ms_strdup(filename);
+	obj->tmpFilename=ms_strdup_printf("%s.part",filename);
+	obj->file = fopen(obj->tmpFilename, "wb");
+	if(!obj->file) {
+		ms_error("Could not open %s for write", obj->tmpFilename);
+		close_file(obj,FALSE);
 	}
+	return TRUE;
 }
 
 static void close_file(JpegWriter *obj, bool_t doRenaming) {
-	fclose(obj->file);
+	if (obj->file) {
+		fclose(obj->file);
+		obj->file = NULL;
+	}
 	if(doRenaming) {
 		if(rename(obj->tmpFilename, obj->filename) != 0) {
 			ms_error("Could not rename %s into %s", obj->tmpFilename, obj->filename);
 		}
 	}
 	ms_free(obj->filename);
-	ms_free(obj->tmpFilename);
-	obj->file = NULL;
 	obj->filename = NULL;
+	
+	ms_free(obj->tmpFilename);
 	obj->tmpFilename = NULL;
 }
 
