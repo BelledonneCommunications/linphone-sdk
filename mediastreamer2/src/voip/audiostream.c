@@ -62,7 +62,6 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->dtmfgen_rtp!=NULL) ms_filter_destroy(stream->dtmfgen_rtp);
 	if (stream->dummy) ms_filter_destroy(stream->dummy);
 	if (stream->recv_tee) ms_filter_destroy(stream->recv_tee);
-	if (stream->send_tee) ms_filter_destroy(stream->send_tee);
 	if (stream->recorder) ms_filter_destroy(stream->recorder);
 	if (stream->recorder_mixer) ms_filter_destroy(stream->recorder_mixer);
 	if (stream->local_mixer) ms_filter_destroy(stream->local_mixer);
@@ -72,6 +71,7 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->av_recorder.recorder) ms_filter_destroy(stream->av_recorder.recorder);
 	if (stream->av_recorder.resampler) ms_filter_destroy(stream->av_recorder.resampler);
 	if (stream->av_recorder.video_input) ms_filter_destroy(stream->av_recorder.video_input);
+	if (stream->outbound_mixer) ms_filter_destroy(stream->outbound_mixer);
 	if (stream->recorder_file) ms_free(stream->recorder_file);
 
 	ms_free(stream);
@@ -292,6 +292,186 @@ static float audio_stream_get_rtcp_xr_average_lq_quality_rating(unsigned long us
 	return audio_stream_get_average_lq_quality_rating(stream);
 }
 
+static bool_t ci_ends_with(const char *filename, const char*suffix){
+	int filename_len=strlen(filename);
+	int suffix_len=strlen(suffix);
+	if (filename_len<suffix_len) return FALSE;
+	return strcasecmp(filename+filename_len-suffix_len,suffix)==0;
+}
+
+static MSFilter *create_av_player(const char *filename){
+	if (ci_ends_with(filename,".mkv"))
+		return ms_filter_new(MS_MKV_PLAYER_ID);
+	else if (ci_ends_with(filename,".wav"))
+		return ms_filter_new(MS_FILE_PLAYER_ID);
+	return NULL;
+}
+
+static void unplumb_av_player(AudioStream *stream){
+	struct _AVPlayer *player=&stream->av_player;
+	MSConnectionHelper ch;
+	bool_t reattach=stream->ms.state==MSStreamStarted;
+	
+	if (!player->plumbed) return;
+	
+	if (player->videopin!=-1){
+		ms_connection_helper_start(&ch);
+		ms_connection_helper_unlink(&ch,player->player,-1,player->videopin);
+		ms_connection_helper_unlink(&ch,player->video_output,0,0);
+	}
+	ms_connection_helper_start(&ch);
+	ms_connection_helper_unlink(&ch,player->player,-1,player->audiopin);
+	ms_connection_helper_unlink(&ch,player->decoder,0,0);
+	ms_connection_helper_unlink(&ch,player->resampler,0,0);
+	/*detach the outbound graph before attaching to the outbound mixer*/
+	if (reattach) ms_ticker_detach(stream->ms.sessions.ticker,stream->soundread);
+	ms_connection_helper_unlink(&ch,stream->outbound_mixer,1,-1);
+	/*and attach back*/
+	if (reattach) ms_ticker_attach(stream->ms.sessions.ticker,stream->soundread);
+}
+
+static void close_av_player(AudioStream *stream){
+	struct _AVPlayer *player=&stream->av_player;
+	
+	if (player->player){
+		unplumb_av_player(stream);
+		MSPlayerState st=MSPlayerClosed;
+		if (ms_filter_call_method(player->player,MS_PLAYER_GET_STATE,&st)==0){
+			if (st!=MSPlayerClosed)
+				ms_filter_call_method_noarg(player->player,MS_PLAYER_CLOSE);
+		}
+		ms_filter_destroy(player->player);
+		player->player=NULL;
+	}
+	if (player->resampler){
+		ms_filter_destroy(player->resampler);
+		player->resampler=NULL;
+	}
+	if (player->decoder){
+		ms_filter_destroy(player->decoder);
+		player->decoder=NULL;
+	}
+}
+
+static void configure_av_player(AudioStream *stream, const MSFmtDescriptor *audiofmt, const MSFmtDescriptor *videofmt){
+	struct _AVPlayer *player=&stream->av_player;
+	int stream_rate=0;
+	int stream_channels=0;
+	if (audiofmt->nchannels>0){
+		ms_filter_call_method(player->decoder,MS_FILTER_SET_NCHANNELS,(void*)&audiofmt->nchannels);
+	}
+	if (audiofmt->rate>0){
+		ms_filter_call_method(player->decoder,MS_FILTER_SET_SAMPLE_RATE,(void*)&audiofmt->rate);
+	}
+	ms_filter_call_method(player->resampler,MS_FILTER_SET_NCHANNELS,(void*)&audiofmt->nchannels);
+	ms_filter_call_method(player->resampler,MS_FILTER_SET_SAMPLE_RATE,(void*)&audiofmt->rate);
+	
+	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_GET_SAMPLE_RATE,&stream_rate);
+	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_GET_NCHANNELS,&stream_channels);
+	ms_filter_call_method(player->resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&stream_channels);
+	ms_filter_call_method(player->resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&stream_rate);
+	if (videofmt){
+		MSPinFormat pf;
+		pf.pin=0;
+		pf.fmt=videofmt;
+		ms_filter_call_method(player->video_output,MS_FILTER_SET_OUTPUT_FMT,&pf);
+	}
+}
+
+static void plumb_av_player(AudioStream *stream){
+	struct _AVPlayer *player=&stream->av_player;
+	MSConnectionHelper ch;
+	bool_t reattach=stream->ms.state==MSStreamStarted;
+	
+	if (player->videopin!=-1){
+		ms_connection_helper_start(&ch);
+		ms_connection_helper_link(&ch,player->player,-1,player->videopin);
+		ms_connection_helper_link(&ch,player->video_output,0,0);
+	}
+	ms_connection_helper_start(&ch);
+	ms_connection_helper_link(&ch,player->player,-1,player->audiopin);
+	ms_connection_helper_link(&ch,player->decoder,0,0);
+	ms_connection_helper_link(&ch,player->resampler,0,0);
+	/*detach the outbound graph before attaching to the outbound mixer*/
+	if (reattach) ms_ticker_detach(stream->ms.sessions.ticker,stream->soundread);
+	ms_connection_helper_link(&ch,stream->outbound_mixer,1,-1);
+	/*and attach back*/
+	if (reattach) ms_ticker_attach(stream->ms.sessions.ticker,stream->soundread);
+	player->plumbed=TRUE;
+}
+
+static int open_av_player(AudioStream *stream, const char *filename){
+	struct _AVPlayer *player=&stream->av_player;
+	MSPinFormat fmt1={0},fmt2={0};
+	MSPinFormat *audiofmt=NULL;
+	MSPinFormat *videofmt=NULL;
+	
+	if (player->player) close_av_player(stream);
+	player->player=create_av_player(filename);
+	if (player->player==NULL){
+		ms_warning("AudioStream[%p]: no way to open [%s].",stream,filename);
+		return -1;
+	}
+	if (ms_filter_call_method(player->player,MS_PLAYER_OPEN,(void*)filename)==-1){
+		close_av_player(stream);
+		return -1;
+	}
+	fmt1.pin=0;
+	ms_filter_call_method(player->player,MS_FILTER_GET_OUTPUT_FMT,&fmt1);
+	fmt2.pin=1;
+	ms_filter_call_method(player->player,MS_FILTER_GET_OUTPUT_FMT,&fmt2);
+	if (fmt1.fmt==NULL){
+		/*assume PCM*/
+		int sr=8000;
+		int channels=1;
+		player->decoder=ms_filter_new(MS_L16_DEC_ID);
+		ms_filter_call_method(player->player,MS_FILTER_GET_SAMPLE_RATE,&sr);
+		ms_filter_call_method(player->player,MS_FILTER_GET_NCHANNELS,&channels);
+		fmt1.fmt=ms_factory_get_audio_format(ms_factory_get_fallback(),"pcm", sr, channels, NULL);
+		audiofmt=&fmt1;
+	}else{
+		if (fmt1.fmt->type==MSAudio) {
+			audiofmt=&fmt1;
+			videofmt=&fmt2;
+			player->audiopin=0;
+			player->videopin=1;
+		}else{
+			videofmt=&fmt1;
+			audiofmt=&fmt2;
+			player->audiopin=1;
+			player->videopin=0;
+		}
+		player->decoder=ms_filter_create_decoder(audiofmt->fmt->encoding);
+		if (player->decoder==NULL){
+			ms_warning("AudioStream[%p]: no way to decode [%s]",stream,filename);
+			close_av_player(stream);
+			return -1;
+		}
+	}
+	player->resampler=ms_filter_new(MS_RESAMPLE_ID);
+	if (videofmt) player->video_output=ms_filter_new(MS_ITC_SINK_ID);
+	else player->videopin=-1;
+	configure_av_player(stream,audiofmt->fmt,videofmt ? videofmt->fmt : NULL);
+	plumb_av_player(stream);
+	return 0;
+}
+
+MSFilter * audio_stream_open_remote_play(AudioStream *stream, const char *filename){
+	if (stream->ms.state!=MSStreamStarted){
+		ms_warning("AudioStream[%p]: audio_stream_play_to_remote() works only when the stream is started.",stream);
+		return NULL;
+	}
+	if (stream->outbound_mixer==NULL){
+		ms_warning("AudioStream[%p]: audio_stream_play_to_remote() works only when the stream has AUDIO_STREAM_FEATURE_REMOTE_PLAYING capability.",stream);
+		return NULL;
+	}
+	if (open_av_player(stream,filename)==-1){
+		return NULL;
+	}
+	return stream->av_player.player;
+}
+
+
 static void video_input_updated(void *stream, MSFilter *f, unsigned int event_id, void *arg){
 	if (event_id==MS_ITC_SOURCE_UPDATED){
 		ms_message("Video ITC source updated.");
@@ -367,16 +547,18 @@ static void unplumb_av_recorder(AudioStream *stream){
 static void setup_recorder(AudioStream *stream, int sample_rate, int nchannels){
 	int val=0;
 	int pin=1;
+	MSAudioMixerCtl mctl={0};
 
 	stream->recorder=ms_filter_new(MS_FILE_REC_ID);
 	stream->recorder_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
 	stream->recv_tee=ms_filter_new(MS_TEE_ID);
-	stream->send_tee=ms_filter_new(MS_TEE_ID);
 	ms_filter_call_method(stream->recorder_mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&val);
 	ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_NCHANNELS,&nchannels);
 	ms_filter_call_method(stream->recv_tee,MS_TEE_MUTE,&pin);
-	ms_filter_call_method(stream->send_tee,MS_TEE_MUTE,&pin);
+	mctl.pin=pin;
+	mctl.param.enabled=FALSE;
+	ms_filter_call_method(stream->outbound_mixer,MS_AUDIO_MIXER_ENABLE_OUTPUT,&mctl);
 	ms_filter_call_method(stream->recorder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	ms_filter_call_method(stream->recorder,MS_FILTER_SET_NCHANNELS,&nchannels);
 
@@ -562,6 +744,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		}
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	}
+	
+	stream->outbound_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
 
 	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING) setup_recorder(stream,sample_rate,nchannels);
 
@@ -646,6 +830,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (stream->features & AUDIO_STREAM_FEATURE_LOCAL_PLAYING){
 		stream->local_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
 	}
+	
+	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_SET_NCHANNELS,&nchannels);
 
 	/* create ticker */
 	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
@@ -670,8 +857,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_connection_helper_link(&h,stream->volsend,0,0);
 	if (stream->dtmfgen_rtp)
 		ms_connection_helper_link(&h,stream->dtmfgen_rtp,0,0);
-	if (stream->send_tee)
-		ms_connection_helper_link(&h,stream->send_tee,0,0);
+	if (stream->outbound_mixer)
+		ms_connection_helper_link(&h,stream->outbound_mixer,0,0);
 	ms_connection_helper_link(&h,stream->ms.encoder,0,0);
 	ms_connection_helper_link(&h,stream->ms.rtpsend,0,-1);
 
@@ -703,7 +890,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (stream->av_recorder.recorder)
 		plumb_av_recorder(stream);
 	if (stream->recorder){
-		ms_filter_link(stream->send_tee,1,stream->recorder_mixer,0);
+		ms_filter_link(stream->outbound_mixer,1,stream->recorder_mixer,0);
 		ms_filter_link(stream->recv_tee,1,stream->recorder_mixer,1);
 		ms_filter_link(stream->recorder_mixer,0,stream->recorder,0);
 	}
@@ -833,6 +1020,7 @@ int audio_stream_mixed_record_start(AudioStream *st){
 	if (st->recorder && st->recorder_file){
 		int pin=1;
 		MSRecorderState state;
+		MSAudioMixerCtl mctl={0};
 		MSFilter *recorder=get_recorder(st);
 
 		if (recorder==NULL) return -1;
@@ -843,7 +1031,9 @@ int audio_stream_mixed_record_start(AudioStream *st){
 		}
 		ms_filter_call_method_noarg(recorder,MS_RECORDER_START);
 		ms_filter_call_method(st->recv_tee,MS_TEE_UNMUTE,&pin);
-		ms_filter_call_method(st->send_tee,MS_TEE_UNMUTE,&pin);
+		mctl.pin=pin;
+		mctl.param.enabled=TRUE;
+		ms_filter_call_method(st->outbound_mixer,MS_AUDIO_MIXER_ENABLE_OUTPUT,&mctl);
 		return 0;
 	}
 	return -1;
@@ -853,10 +1043,13 @@ int audio_stream_mixed_record_stop(AudioStream *st){
 	if (st->recorder && st->recorder_file){
 		int pin=1;
 		MSFilter *recorder=get_recorder(st);
+		MSAudioMixerCtl mctl={0};
 
 		if (recorder==NULL) return -1;
 		ms_filter_call_method(st->recv_tee,MS_TEE_MUTE,&pin);
-		ms_filter_call_method(st->send_tee,MS_TEE_MUTE,&pin);
+		mctl.pin=pin;
+		mctl.param.enabled=FALSE;
+		ms_filter_call_method(st->outbound_mixer,MS_AUDIO_MIXER_ENABLE_OUTPUT,&mctl);
 		ms_filter_call_method_noarg(recorder,MS_RECORDER_PAUSE);
 		ms_filter_call_method_noarg(recorder,MS_RECORDER_CLOSE);
 	}
@@ -1017,7 +1210,7 @@ void audio_stream_stop(AudioStream * stream){
 		if (stream->ms.state==MSStreamPreparing){
 			audio_stream_unprepare_sound(stream);
 		}else if (stream->ms.state==MSStreamStarted){
-
+			stream->ms.state=MSStreamStopped;
 			ms_ticker_detach(stream->ms.sessions.ticker,stream->soundread);
 			ms_ticker_detach(stream->ms.sessions.ticker,stream->ms.rtprecv);
 
@@ -1041,8 +1234,8 @@ void audio_stream_stop(AudioStream * stream){
 				ms_connection_helper_unlink(&h,stream->volsend,0,0);
 			if (stream->dtmfgen_rtp)
 				ms_connection_helper_unlink(&h,stream->dtmfgen_rtp,0,0);
-			if (stream->send_tee)
-				ms_connection_helper_unlink(&h,stream->send_tee,0,0);
+			if (stream->outbound_mixer)
+				ms_connection_helper_unlink(&h,stream->outbound_mixer,0,0);
 			ms_connection_helper_unlink(&h,stream->ms.encoder,0,0);
 			ms_connection_helper_unlink(&h,stream->ms.rtpsend,0,-1);
 
@@ -1074,10 +1267,12 @@ void audio_stream_stop(AudioStream * stream){
 			if (stream->av_recorder.recorder)
 				unplumb_av_recorder(stream);
 			if (stream->recorder){
-				ms_filter_unlink(stream->send_tee,1,stream->recorder_mixer,0);
+				ms_filter_unlink(stream->outbound_mixer,1,stream->recorder_mixer,0);
 				ms_filter_unlink(stream->recv_tee,1,stream->recorder_mixer,1);
 				ms_filter_unlink(stream->recorder_mixer,0,stream->recorder,0);
 			}
+			/*dismantle the remote play part*/
+			close_av_player(stream);
 		}
 	}
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);

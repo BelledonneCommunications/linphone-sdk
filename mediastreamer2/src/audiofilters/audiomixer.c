@@ -54,17 +54,19 @@ typedef struct Channel{
 	MSBufferizer bufferizer;
 	int16_t *input;	/*the channel contribution, for removal at output*/
 	float gain;
-	int active;
 	int min_fullness;
 	uint64_t last_flow_control;
 	uint64_t last_activity;
+	bool_t active;
+	bool_t output_enabled;
 } Channel;
 
 static void channel_init(Channel *chan){
 	ms_bufferizer_init(&chan->bufferizer);
 	chan->input=NULL;
 	chan->gain=1.0;
-	chan->active=1;
+	chan->active=TRUE;
+	chan->output_enabled=TRUE;
 }
 
 static void channel_prepare(Channel *chan, int bytes_per_tick){
@@ -172,11 +174,12 @@ static void mixer_uninit(MSFilter *f){
 	ms_free(s);
 }
 
-static bool_t has_single_output(MSFilter *f){
+static bool_t has_single_output(MSFilter *f, MixerState *s){
 	int i;
 	int count=0;
 	for (i=0;i<f->desc->noutputs;++i){
-		if (f->outputs[i]) count++;
+		Channel *chan=&s->channels[i];
+		if (f->outputs[i] && chan->output_enabled) count++;
 	}
 	return count==1;
 }
@@ -192,7 +195,7 @@ static void mixer_preprocess(MSFilter *f){
 	/*ms_message("bytespertick=%i, purgeoffset=%i",s->bytespertick,s->purgeoffset);*/
 	s->skip_threshold=s->bytespertick*2;
 	s->bypass_mode=FALSE;
-	s->single_output=has_single_output(f);
+	s->single_output=has_single_output(f,s);
 }
 
 static void mixer_postprocess(MSFilter *f){
@@ -219,7 +222,8 @@ static void mixer_dispatch_output(MSFilter *f, MixerState*s, MSQueue *inq){
 	int i;
 	for (i=0;i<f->desc->noutputs;i++){
 		MSQueue *outq=f->outputs[i];
-		if (outq){
+		Channel *chan=&s->channels[i];
+		if (outq && chan->output_enabled){
 			mblk_t *m;
 			if (s->single_output){
 				while((m=ms_queue_get(inq))!=NULL){
@@ -286,8 +290,11 @@ static void mixer_process(MSFilter *f){
 	int skip=0;
 	bool_t got_something=FALSE;
 
-	if (mixer_check_bypass(f,s))
+	ms_filter_lock(f);
+	if (mixer_check_bypass(f,s)){
+		ms_filter_unlock(f);
 		return;
+	}
 	
 	memset(s->sum,0,nwords*sizeof(int32_t));
 
@@ -312,7 +319,8 @@ static void mixer_process(MSFilter *f){
 			mblk_t *om=NULL;
 			for(i=0;i<MIXER_MAX_CHANNELS;++i){
 				MSQueue *q=f->outputs[i];
-				if (q){
+				Channel *chan=&s->channels[i];
+				if (q && chan->output_enabled){
 					if (om==NULL){
 						om=make_output(s->sum,nwords);
 					}else{
@@ -324,12 +332,14 @@ static void mixer_process(MSFilter *f){
 		}else{
 			for(i=0;i<MIXER_MAX_CHANNELS;++i){
 				MSQueue *q=f->outputs[i];
-				if (q){
+				Channel *chan=&s->channels[i];
+				if (q && chan->output_enabled){
 					ms_queue_put(q,channel_process_out(&s->channels[i],s->sum,nwords));
 				}
 			}
 		}
 	}
+	ms_filter_unlock(f);
 }
 
 static int mixer_set_rate(MSFilter *f, void *data){
@@ -378,6 +388,21 @@ static int mixer_set_active(MSFilter *f, void *data){
 	return 0;
 }
 
+static int mixer_enable_output(MSFilter *f, void *data){
+	MixerState *s=(MixerState *)f->data;
+	MSAudioMixerCtl *ctl=(MSAudioMixerCtl*)data;
+	if (ctl->pin<0 || ctl->pin>=MIXER_MAX_CHANNELS){
+		ms_warning("mixer_enable_output: invalid pin number %i",ctl->pin);
+		return -1;
+	}
+	ms_filter_lock(f);
+	s->channels[ctl->pin].output_enabled=ctl->param.enabled;
+	s->single_output=has_single_output(f,s);
+	ms_filter_unlock(f);
+	return 0;
+}
+
+
 static int mixer_set_conference_mode(MSFilter *f, void *data){
 	MixerState *s=(MixerState *)f->data;
 	s->conf_mode=*(int*)data;
@@ -401,6 +426,7 @@ static MSFilterMethod methods[]={
 	{	MS_AUDIO_MIXER_SET_ACTIVE , mixer_set_active },
 	{	MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE, mixer_set_conference_mode	},
 	{	MS_AUDIO_MIXER_SET_MASTER_CHANNEL , mixer_set_master_channel },
+	{	MS_AUDIO_MIXER_ENABLE_OUTPUT,	mixer_enable_output },
 	{0,NULL}
 };
 

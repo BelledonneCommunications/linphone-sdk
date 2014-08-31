@@ -113,7 +113,8 @@ MS2_PUBLIC void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions)
 typedef enum _MSStreamState{
 	MSStreamInitialized,
 	MSStreamPreparing,
-	MSStreamStarted
+	MSStreamStarted,
+	MSStreamStopped
 }MSStreamState;
 
 #define AudioStreamType MSAudio
@@ -295,16 +296,25 @@ struct _AudioStream
 	MSFilter *write_resampler;
 	MSFilter *equalizer;
 	MSFilter *dummy;
-	MSFilter *send_tee;
 	MSFilter *recv_tee;
 	MSFilter *recorder_mixer;
 	MSFilter *recorder;
+	MSFilter *outbound_mixer;
 	struct {
 		MSFilter *resampler;
 		MSFilter *encoder;
 		MSFilter *recorder;
 		MSFilter *video_input;
 	}av_recorder;
+	struct _AVPlayer{
+		MSFilter *player;
+		MSFilter *resampler;
+		MSFilter *decoder;
+		MSFilter *video_output;
+		int audiopin;
+		int videopin;
+		bool_t plumbed;
+	}av_player;
 	char *recorder_file;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
 	EqualizerLocation eq_loc;
@@ -395,6 +405,7 @@ MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessio
 #define AUDIO_STREAM_FEATURE_DTMF_ECHO		(1 << 6)
 #define AUDIO_STREAM_FEATURE_MIXED_RECORDING	(1 << 7)
 #define AUDIO_STREAM_FEATURE_LOCAL_PLAYING	(1 << 8)
+#define AUDIO_STREAM_FEATURE_REMOTE_PLAYING	(1 << 9)
 
 #define AUDIO_STREAM_FEATURE_ALL	(\
 					AUDIO_STREAM_FEATURE_PLC | \
@@ -405,7 +416,8 @@ MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessio
 					AUDIO_STREAM_FEATURE_DTMF | \
 					AUDIO_STREAM_FEATURE_DTMF_ECHO |\
 					AUDIO_STREAM_FEATURE_MIXED_RECORDING |\
-					AUDIO_STREAM_FEATURE_LOCAL_PLAYING \
+					AUDIO_STREAM_FEATURE_LOCAL_PLAYING | \
+					AUDIO_STREAM_FEATURE_REMOTE_PLAYING \
 					)
 
 
@@ -513,6 +525,12 @@ MS2_PUBLIC int audio_stream_mixed_record_open(AudioStream *st, const char*filena
 MS2_PUBLIC int audio_stream_mixed_record_start(AudioStream *st);
 
 MS2_PUBLIC int audio_stream_mixed_record_stop(AudioStream *st);
+
+/**
+ * Open a player to play an audio/video file to remote end.
+ * The player is returned as a MSFilter so that application can make usual player controls on it using the MSPlayerInterface.
+**/
+MS2_PUBLIC MSFilter * audio_stream_open_remote_play(AudioStream *stream, const char *filename);
 
 MS2_PUBLIC void audio_stream_set_default_card(int cardindex);
 

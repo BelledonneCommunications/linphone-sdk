@@ -25,15 +25,18 @@ typedef struct MSAudioMixerCtl{
 	int pin;
 	union param_t { 
 		float gain; /**<gain correction */
-		int active; /**< to mute or unmute the channel */
+		int active; /**< to mute or unmute the input channel */
+		int enabled; /**< to mute/unmute the output channel*/
 	} param;
 } MSAudioMixerCtl;
 
 #define MS_AUDIO_MIXER_SET_INPUT_GAIN			MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,0,MSAudioMixerCtl)
-#define MS_AUDIO_MIXER_SET_ACTIVE				MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,1,MSAudioMixerCtl)
-#define MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE	MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,2,int)
+/** Tells whether channel contributes to the mix.*/
+#define MS_AUDIO_MIXER_SET_ACTIVE			MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,1,MSAudioMixerCtl)
+#define MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE		MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,2,int)
 
 /**The master channel is the one that is used to synchronize the others. No flow control is done on the master channel*/
 #define MS_AUDIO_MIXER_SET_MASTER_CHANNEL		MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,3,int)
 
+#define MS_AUDIO_MIXER_ENABLE_OUTPUT			MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,4,MSAudioMixerCtl)
 #endif
