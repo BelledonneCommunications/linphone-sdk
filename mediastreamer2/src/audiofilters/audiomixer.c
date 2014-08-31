@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MIXER_MAX_CHANNELS 20
 #define ALWAYS_STREAMOUT 1
+#define BYPASS_MODE_TIMEOUT 1000
 
 static void accumulate(int32_t *sum, int16_t* contrib, int nwords){
 	int i;
@@ -56,6 +57,7 @@ typedef struct Channel{
 	int active;
 	int min_fullness;
 	uint64_t last_flow_control;
+	uint64_t last_activity;
 } Channel;
 
 static void channel_init(Channel *chan){
@@ -67,6 +69,8 @@ static void channel_init(Channel *chan){
 
 static void channel_prepare(Channel *chan, int bytes_per_tick){
 	chan->input=ms_malloc0(bytes_per_tick);
+	chan->last_flow_control=(uint64_t)-1;
+	chan->last_activity=(uint64_t)-1;
 }
 
 static int channel_process_in(Channel *chan, MSQueue *q, int32_t *sum, int nsamples){
@@ -141,6 +145,8 @@ typedef struct MixerState{
 	int conf_mode;
 	int skip_threshold;
 	int master_channel;
+	bool_t bypass_mode;
+	bool_t single_output;
 } MixerState;
 
 
@@ -166,6 +172,15 @@ static void mixer_uninit(MSFilter *f){
 	ms_free(s);
 }
 
+static bool_t has_single_output(MSFilter *f){
+	int i;
+	int count=0;
+	for (i=0;i<f->desc->noutputs;++i){
+		if (f->outputs[i]) count++;
+	}
+	return count==1;
+}
+
 static void mixer_preprocess(MSFilter *f){
 	MixerState *s=(MixerState *)f->data;
 	int i;
@@ -176,6 +191,8 @@ static void mixer_preprocess(MSFilter *f){
 		channel_prepare(&s->channels[i],s->bytespertick);
 	/*ms_message("bytespertick=%i, purgeoffset=%i",s->bytespertick,s->purgeoffset);*/
 	s->skip_threshold=s->bytespertick*2;
+	s->bypass_mode=FALSE;
+	s->single_output=has_single_output(f);
 }
 
 static void mixer_postprocess(MSFilter *f){
@@ -198,6 +215,70 @@ static mblk_t *make_output(int32_t *sum, int nwords){
 	return om;
 }
 
+static void mixer_dispatch_output(MSFilter *f, MixerState*s, MSQueue *inq){
+	int i;
+	for (i=0;i<f->desc->noutputs;i++){
+		MSQueue *outq=f->outputs[i];
+		if (outq){
+			mblk_t *m;
+			if (s->single_output){
+				while((m=ms_queue_get(inq))!=NULL){
+					ms_queue_put(outq,m);
+				}
+				break;
+			}else{
+				for(m=ms_queue_peek_first(inq);!ms_queue_end(inq,m);m=ms_queue_next(inq,m)){
+					ms_queue_put(outq,dupmsg(m));
+				}
+			}
+		}
+	}
+	ms_queue_flush(inq);
+}
+
+/* the bypass mode is an optimization for the case of a single contributing channel. In such case there is no need to synchronize with other channels
+ * and to make a sum. The processing is greatly simplified by just distributing the packets from the single contributing channels to the output channels.*/
+static bool_t mixer_check_bypass(MSFilter *f, MixerState *s){
+	int i;
+	int active_cnt=0;
+	MSQueue *activeq=NULL;
+	uint64_t curtime=f->ticker->time;
+	for (i=0;i<f->desc->ninputs;i++){
+		MSQueue *q=f->inputs[i];
+		if (q){
+			Channel *chan=&s->channels[i];
+			if (!ms_queue_empty(q)){
+				chan->last_activity=curtime;
+				activeq=q;
+				active_cnt++;
+			}else{
+				if (chan->last_activity==(uint64_t)-1){
+					chan->last_activity=curtime;
+				}else if (curtime-chan->last_activity<BYPASS_MODE_TIMEOUT){
+					activeq=q;
+					active_cnt++;
+				}
+			}
+		}
+	}
+	if (active_cnt==1){
+		if (!s->bypass_mode){
+			s->bypass_mode=TRUE;
+			ms_message("MSAudioMixer [%p] is entering bypass mode.",f);
+		}
+		mixer_dispatch_output(f,s,activeq);
+		return TRUE;
+	}else if (active_cnt>1){
+		if (s->bypass_mode){
+			s->bypass_mode=FALSE;
+			ms_message("MSAudioMixer [%p] is leaving bypass mode.",f);
+		}
+		return FALSE;
+	}
+	/*last case: no contributing channels at all. There is then nothing to do.*/
+	return TRUE;
+}
+
 static void mixer_process(MSFilter *f){
 	MixerState *s=(MixerState *)f->data;
 	int i;
@@ -205,10 +286,13 @@ static void mixer_process(MSFilter *f){
 	int skip=0;
 	bool_t got_something=FALSE;
 
+	if (mixer_check_bypass(f,s))
+		return;
+	
 	memset(s->sum,0,nwords*sizeof(int32_t));
 
 	/* read from all inputs and sum everybody */
-	for(i=0;i<MIXER_MAX_CHANNELS;++i){
+	for(i=0;i<f->desc->ninputs;++i){
 		MSQueue *q=f->inputs[i];
 
 		if (q){
