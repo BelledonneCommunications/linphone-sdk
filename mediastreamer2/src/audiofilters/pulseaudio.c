@@ -269,9 +269,9 @@ static void pulse_write_preprocess(MSFilter *f){
 	
 	attr.maxlength=fragsize*3;
 	attr.tlength=fragsize;
-	attr.prebuf=0;
+	attr.prebuf=-1;
 	attr.minreq=-1;
-	attr.fragsize=fragsize;
+	attr.fragsize=-1;
 	
 	s->stream=pa_stream_new(context,"phone",&s->sampleSpec,NULL);
 	if (s->stream==NULL){
