@@ -334,8 +334,8 @@ static void close_av_player(AudioStream *stream){
 	struct _AVPlayer *player=&stream->av_player;
 	
 	if (player->player){
-		unplumb_av_player(stream);
 		MSPlayerState st=MSPlayerClosed;
+		unplumb_av_player(stream);
 		if (ms_filter_call_method(player->player,MS_PLAYER_GET_STATE,&st)==0){
 			if (st!=MSPlayerClosed)
 				ms_filter_call_method_noarg(player->player,MS_PLAYER_CLOSE);
