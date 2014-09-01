@@ -27,6 +27,7 @@
 #  ALSA_LIBRARIES - The libraries needed to use ALSA
 
 include(CheckSymbolExists)
+include(CMakePushCheckState)
 
 set(_ALSA_ROOT_PATHS
 	${WITH_ALSA}
