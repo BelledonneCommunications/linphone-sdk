@@ -75,26 +75,13 @@ include(builders/CMakeLists.txt)
 list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_SERVER_SOCKETS=0")
 
 # linphone
-list(APPEND EP_linphone_CONFIGURE_OPTIONS
-	"--disable-nls"
-	"--with-readline=none"
-	"--enable-gtk_ui=no"
-	"--enable-console_ui=no"
-	"--disable-tutorials"
-	"--enable-tools"
-	"--disable-msg-storage"
-	"--enable-relativeprefix=yes"
-)
+list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
 
 # mediastreamer2
-list(APPEND EP_ms2_CONFIGURE_OPTIONS
-	"--disable-nls"
-	"--disable-theora"
-	"--disable-sdl"
-	"--enable-x11=no"
-	"--disable-glx"
-	"--enable-relativeprefix=yes"
-)
+list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
+if(UNIX AND NOT APPLE)
+	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_ALSA=YES" "-DENABLE_PULSEAUDIO=NO" "-DENABLE_OSS=NO" "-DENABLE_GLX=NO" "-DENABLE_X11=YES" "-DENABLE_XV=YES")
+endif()
 
 # openh264
 set(EP_openh264_LINKING_TYPE "-static")
