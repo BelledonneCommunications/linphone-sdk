@@ -214,18 +214,26 @@ endif()
 
 if(UNIX)
 
+if(APPLE)
+	set(PLATFORM_OS "macosx-10.5")
+else()
+	set(PLATFORM_OS "linux")
+endif()
+string(REPLACE "-" "_" UNDERSCORE_PLATFORM_OS ${PLATFORM_OS})
+string(REPLACE "." "_" UNDERSCORE_PLATFORM_OS ${UNDERSCORE_PLATFORM_OS})
+
 # Generate the zip
-set(ZIP_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/build_zip/linphone/dist/linphone-${LINPHONE_GIT_REVISION}.linux-${PLATFORM_ARCH_NAME}.zip")
+set(ZIP_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/build_zip/linphone/dist/linphone-${LINPHONE_GIT_REVISION}.${PLATFORM_OS}-${PLATFORM_ARCH_NAME}.zip")
 add_custom_target(pylinphone_zip ALL
 	${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/build_zip/linphone/setup.py" "bdist" "--format=zip"
 	DEPENDS pylinphone_debug
 	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/build_zip/linphone"
 )
-install(FILES ${ZIP_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.linux-${PLATFORM_ARCH_NAME}-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.zip")
+install(FILES ${ZIP_FILENAME} DESTINATION "." RENAME "linphone-${LINPHONE_GIT_REVISION}.${PLATFORM_OS}-${PLATFORM_ARCH_NAME}-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.zip")
 
 # Generate the wheel package
 string(REPLACE "-" "_" LINPHONE_UNDERSCORE_GIT_REVISION ${LINPHONE_GIT_REVISION})
-set(WHEEL_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/build_wheel/linphone/dist/linphone-${LINPHONE_UNDERSCORE_GIT_REVISION}-cp27-none-linux_${PLATFORM_ARCH_NAME}.whl")
+set(WHEEL_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/build_wheel/linphone/dist/linphone-${LINPHONE_UNDERSCORE_GIT_REVISION}-cp27-none-${UNDERSCORE_PLATFORM_OS}_${PLATFORM_ARCH_NAME}.whl")
 add_custom_target(pylinphone_wheel ALL
 	${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/build_wheel/linphone/setup.py" "bdist_wheel"
 	DEPENDS pylinphone_zip
