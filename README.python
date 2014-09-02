@@ -21,6 +21,9 @@ the version used by Python.
  - xxd (only for Linux and Mac OS X)
  - pkg-config (automatically installed when building on Windows)
  - intltoolize (automatically installed when building on Windows)
+ - doxygen
+ - dot (graphviz)
+ - pystache
  - MinGw (only on Windows): Follow the instructions at http://mingw.org/wiki/Getting_Started
 
 BUILDING THE SDK ON LINUX AND MAC OS X
