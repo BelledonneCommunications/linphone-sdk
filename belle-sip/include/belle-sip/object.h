@@ -206,12 +206,12 @@ typedef void (*belle_sip_object_destroy_notify_t)(void *userpointer, belle_sip_o
  * This allows another object to be informed when object is destroyed, and then possibly
  * cleanups pointer it holds to this object.
 **/
-belle_sip_object_t *belle_sip_object_weak_ref(void *obj, belle_sip_object_destroy_notify_t destroy_notify, void *userpointer);
+BELLESIP_EXPORT belle_sip_object_t *belle_sip_object_weak_ref(void *obj, belle_sip_object_destroy_notify_t destroy_notify, void *userpointer);
 
 /**
  * Remove a weak reference to object.
 **/
-void belle_sip_object_weak_unref(void *obj, belle_sip_object_destroy_notify_t destroy_notify, void *userpointer);
+BELLESIP_EXPORT void belle_sip_object_weak_unref(void *obj, belle_sip_object_destroy_notify_t destroy_notify, void *userpointer);
 
 /**
  * Set object name.
