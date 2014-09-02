@@ -1,19 +1,19 @@
 /*
 	belle-sdp - SIP (RFC4566) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "belle-sip/belle-sip.h"
 #include "grammars/belle_sdpParser.h"
@@ -102,13 +102,13 @@ const char *belle_sdp_attribute_get_value(belle_sdp_attribute_t *attribute) {
 	char *ret;
 	char *end;
 
-	
+
 	if (attribute->unparsed_value) {
 		belle_sip_free(attribute->unparsed_value);
 		attribute->unparsed_value = NULL;
 	}
 	attribute->unparsed_value = belle_sip_object_to_string(attribute);
-	
+
 	ret = attribute->unparsed_value;
 	ret += strlen(attribute->name) + 2; /* "a=" + name*/
 	if (*ret==':') ret++;
@@ -486,16 +486,16 @@ void belle_sdp_media_clone(belle_sdp_media_t *media, const belle_sdp_media_t *or
 belle_sip_error_code belle_sdp_media_marshal(belle_sdp_media_t* media, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_list_t* list=media->media_formats;
 	belle_sip_error_code error=belle_sip_snprintf(buff,buff_size,offset,"m=%s %i",media->media_type,media->media_port);
-	if (error!=BELLE_SIP_OK) return error; 
+	if (error!=BELLE_SIP_OK) return error;
 	if (media->port_count>1) {
 		error=belle_sip_snprintf(buff,buff_size,offset,"/%i",media->port_count);
-		if (error!=BELLE_SIP_OK) return error; 
+		if (error!=BELLE_SIP_OK) return error;
 	}
 	error=belle_sip_snprintf(buff,buff_size,offset," %s",media->protocol);
 	if (error!=BELLE_SIP_OK) return error;
 	for(;list!=NULL;list=list->next){
 		error=belle_sip_snprintf(buff,buff_size,offset," %li",(long)list->data);
-		if (error!=BELLE_SIP_OK) return error; 
+		if (error!=BELLE_SIP_OK) return error;
 	}
 	return error;
 }
@@ -503,10 +503,10 @@ belle_sip_error_code belle_sdp_media_marshal(belle_sdp_media_t* media, char* buf
 BELLE_SDP_NEW_WITH_CTR(media,belle_sip_object)
 BELLE_SDP_PARSE(media)
 belle_sdp_media_t* belle_sdp_media_create(const char* media_type
-                         ,int media_port
-                         ,int port_count
-                         ,const char* protocol
-                         ,belle_sip_list_t* static_media_formats) {
+						 ,int media_port
+						 ,int port_count
+						 ,const char* protocol
+						 ,belle_sip_list_t* static_media_formats) {
 	belle_sdp_media_t* media= belle_sdp_media_new();
 	belle_sdp_media_set_media_type(media,media_type);
 	belle_sdp_media_set_media_port(media,media_port);
@@ -555,7 +555,7 @@ belle_sip_error_code belle_sdp_base_description_marshal(belle_sdp_base_descripti
 		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(base_description->info),buff,buff_size,offset);
 		if (error!=BELLE_SIP_OK) return error;
 		error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
-		if (error!=BELLE_SIP_OK) return error; 
+		if (error!=BELLE_SIP_OK) return error;
 	}
 	if (base_description->connection) {
 		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(base_description->connection),buff,buff_size,offset);
@@ -661,12 +661,19 @@ void belle_sdp_base_description_set_attributes(belle_sdp_base_description_t* bas
 	SET_LIST(base_description->attributes,attributes)
 }
 void belle_sdp_base_description_set_bandwidth(belle_sdp_base_description_t* base_description, const char* type, int value) {
-	belle_sdp_bandwidth_t* bandwidth = belle_sdp_bandwidth_new();
-	belle_sdp_bandwidth_set_type(bandwidth,type);
-	belle_sdp_bandwidth_set_value(bandwidth,value);
-	base_description->bandwidths = belle_sip_list_append(base_description->bandwidths,belle_sip_object_ref(bandwidth));
+
+	belle_sdp_bandwidth_t* bandwidth = BELLE_SDP_BANDWIDTH(belle_sdp_base_description_get_attribute(base_description, type));
+	if( bandwidth == NULL ){
+		bandwidth= belle_sdp_bandwidth_new();
+		belle_sdp_bandwidth_set_type(bandwidth,type);
+		belle_sdp_bandwidth_set_value(bandwidth,value);
+		base_description->bandwidths = belle_sip_list_append(base_description->bandwidths,belle_sip_object_ref(bandwidth));
+	} else {
+		belle_sdp_bandwidth_set_value(bandwidth,value);
+	}
 }
 void belle_sdp_base_description_add_bandwidth(belle_sdp_base_description_t* base_description, const belle_sdp_bandwidth_t* bandwidth) {
+
 	base_description->bandwidths = belle_sip_list_append(base_description->bandwidths,(void *)belle_sip_object_ref((void *)bandwidth));
 }
 void belle_sdp_base_description_set_bandwidths(belle_sdp_base_description_t* base_description, belle_sip_list_t* bandwidths) {
@@ -708,10 +715,10 @@ belle_sip_error_code belle_sdp_media_description_marshal(belle_sdp_media_descrip
 
 BELLE_SDP_NEW(media_description,belle_sdp_base_description)
 belle_sdp_media_description_t* belle_sdp_media_description_create(const char* media_type
-                         	 	 	 	 	 	 	 	 	 	 ,int media_port
-                         	 	 	 	 	 	 	 	 	 	 ,int port_count
-                         	 	 	 	 	 	 	 	 	 	 ,const char* protocol
-                         	 	 	 	 	 	 	 	 	 	 ,belle_sip_list_t* static_media_formats) {
+																 ,int media_port
+																 ,int port_count
+																 ,const char* protocol
+																 ,belle_sip_list_t* static_media_formats) {
 	belle_sdp_media_description_t* media_desc=belle_sdp_media_description_new();
 	belle_sdp_media_description_set_media(media_desc,belle_sdp_media_create(media_type,media_port,port_count,protocol,static_media_formats));
 	return media_desc;
@@ -757,46 +764,46 @@ struct static_payload {
 /*
  * rfc 3551
  * PT   encoding    media type  clock rate   channels
-                    name                    (Hz)
-               ___________________________________________________
-               0    PCMU        A            8,000       1
-               1    reserved    A
-               2    reserved    A
-               3    GSM         A            8,000       1
-               4    G723        A            8,000       1
-               5    DVI4        A            8,000       1
-               6    DVI4        A           16,000       1
-               7    LPC         A            8,000       1
-               8    PCMA        A            8,000       1
-               9    G722        A            8,000       1
-               10   L16         A           44,100       2
-               11   L16         A           44,100       1
-               12   QCELP       A            8,000       1
-               13   CN          A            8,000       1
-               14   MPA         A           90,000       (see text)
-               15   G728        A            8,000       1
-               16   DVI4        A           11,025       1
-               17   DVI4        A           22,050       1
-               18   G729        A            8,000       1
-               Table 4: Payload types (PT) for audio encodings
+					name                    (Hz)
+			   ___________________________________________________
+			   0    PCMU        A            8,000       1
+			   1    reserved    A
+			   2    reserved    A
+			   3    GSM         A            8,000       1
+			   4    G723        A            8,000       1
+			   5    DVI4        A            8,000       1
+			   6    DVI4        A           16,000       1
+			   7    LPC         A            8,000       1
+			   8    PCMA        A            8,000       1
+			   9    G722        A            8,000       1
+			   10   L16         A           44,100       2
+			   11   L16         A           44,100       1
+			   12   QCELP       A            8,000       1
+			   13   CN          A            8,000       1
+			   14   MPA         A           90,000       (see text)
+			   15   G728        A            8,000       1
+			   16   DVI4        A           11,025       1
+			   17   DVI4        A           22,050       1
+			   18   G729        A            8,000       1
+			   Table 4: Payload types (PT) for audio encodings
 
   PT      encoding    media type  clock rate
-                       name                    (Hz)
-               _____________________________________________
-               24      unassigned  V
-               25      CelB        V           90,000
-               26      JPEG        V           90,000
-               27      unassigned  V
-               28      nv          V           90,000
-               29      unassigned  V
-               30      unassigned  V
-               31      H261        V           90,000
-               32      MPV         V           90,000
-               33      MP2T        AV          90,000
-               34      H263        V           90,000
+					   name                    (Hz)
+			   _____________________________________________
+			   24      unassigned  V
+			   25      CelB        V           90,000
+			   26      JPEG        V           90,000
+			   27      unassigned  V
+			   28      nv          V           90,000
+			   29      unassigned  V
+			   30      unassigned  V
+			   31      H261        V           90,000
+			   32      MPV         V           90,000
+			   33      MP2T        AV          90,000
+			   34      H263        V           90,000
 
-               Table 5: Payload types (PT) for video and combined
-                        encodings
+			   Table 5: Payload types (PT) for video and combined
+						encodings
 
 
  *
@@ -836,10 +843,10 @@ static const size_t payload_list_elements=sizeof(static_payload_list)/sizeof(str
 static int mime_parameter_is_static(const belle_sdp_mime_parameter_t *param){
 	const struct static_payload* iterator;
 	int i;
-	
+
 	for (iterator = static_payload_list,i=0;i<payload_list_elements;i++,iterator++) {
-		if (iterator->number == param->media_format && 
-			strcasecmp(iterator->type,param->type)==0 && 
+		if (iterator->number == param->media_format &&
+			strcasecmp(iterator->type,param->type)==0 &&
 			iterator->channel_count==param->channel_count &&
 			iterator->rate==param->rate ) {
 			return TRUE;
@@ -851,7 +858,7 @@ static int mime_parameter_is_static(const belle_sdp_mime_parameter_t *param){
 static int mime_parameter_fill_from_static(belle_sdp_mime_parameter_t *mime_parameter,int format) {
 	const struct static_payload* iterator;
 	int i;
-	
+
 	for (iterator = static_payload_list,i=0;i<payload_list_elements;i++,iterator++) {
 		if (iterator->number == format) {
 			belle_sdp_mime_parameter_set_type(mime_parameter,iterator->type);
@@ -922,7 +929,7 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 	int ptime_as_int=-1;
 	int max_ptime_as_int=-1;
 	int is_audio=0;
-	
+
 	if (!media) {
 		belle_sip_error("belle_sdp_media_description_build_mime_parameters: no media");
 		return NULL;
@@ -939,7 +946,7 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 		belle_sdp_mime_parameter_set_ptime(mime_parameter,ptime_as_int);
 		belle_sdp_mime_parameter_set_max_ptime(mime_parameter,max_ptime_as_int);
 		belle_sdp_mime_parameter_set_media_format(mime_parameter,(int)(long)media_formats->data);
-		
+
 		/*get rtpmap*/
 		rtpmap = belle_sdp_media_description_a_attr_value_get_with_pt(media_description
 																		,belle_sdp_mime_parameter_get_media_format(mime_parameter)
@@ -1217,20 +1224,20 @@ void belle_sdp_session_description_clone(belle_sdp_session_description_t *sessio
 
 belle_sip_error_code belle_sdp_session_description_marshal(belle_sdp_session_description_t* session_description, char* buff, size_t buff_size, size_t *offset) {
 /*session_description:   proto_version CR LF
-                         origin_field
-                         session_name_field
-                         (info CR LF)?
-                         uri_field?
-                         (email CR LF)*
-                         phone_field*
-                         (connection CR LF)?
-                         (bandwidth CR LF)*
-                         time_field
-                         (repeat_time CR LF)?
-                         (zone_adjustments CR LF)?
-                         (key_field CR LF)?
-                         (attribute CR LF)*
-                         media_descriptions;
+						 origin_field
+						 session_name_field
+						 (info CR LF)?
+						 uri_field?
+						 (email CR LF)*
+						 phone_field*
+						 (connection CR LF)?
+						 (bandwidth CR LF)*
+						 time_field
+						 (repeat_time CR LF)?
+						 (zone_adjustments CR LF)?
+						 (key_field CR LF)?
+						 (attribute CR LF)*
+						 media_descriptions;
  */
 	belle_sip_error_code error=BELLE_SIP_OK;
 	belle_sip_list_t* media_descriptions;
@@ -1254,7 +1261,7 @@ belle_sip_error_code belle_sdp_session_description_marshal(belle_sdp_session_des
 
 	error=belle_sdp_base_description_marshal((belle_sdp_base_description_t*)(&session_description->base_description),buff,buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
-	
+
 	error=belle_sip_snprintf(buff, buff_size, offset, "t=");
 	if (error!=BELLE_SIP_OK) return error;
 	for(times=session_description->times;times!=NULL;times=times->next){
