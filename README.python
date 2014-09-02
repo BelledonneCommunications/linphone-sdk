@@ -1,0 +1,54 @@
+********************************************************************
+**              LIBLINPHONE PYTHON EXTENSION MODULE               **
+********************************************************************
+
+BUILD PREREQUISITES
+*******************
+
+The common prerequisites listed in the README file are requested to build the 
+liblinphone Python extension module.
+You will also need to install some additional tools needed during the build 
+process. On linux, you can generally get them from your distribution. On Mac OS 
+X, you can get them from MacPorts. On Windows you will need to download and 
+install them manually. Here are these tools:
+ - A C and C++ compiler. On Windows you will need Visual Studio 2008 as it is 
+the version used by Python.
+ - Python 2.7.x
+ - Java
+ - awk (on Windows, get it from http://gnuwin32.sourceforge.net/downlinks/gawk.php)
+ - patch (on Windows, get it from http://gnuwin32.sourceforge.net/downlinks/patch.php)
+ - sed (on Windows, get it from http://sourceforge.net/projects/gnuwin32/files/sed/4.2.1/sed-4.2.1-setup.exe/download)
+ - xxd (only for Linux and Mac OS X)
+ - pkg-config (automatically installed when building on Windows)
+ - intltoolize (automatically installed when building on Windows)
+ - MinGw (only on Windows): Follow the instructions at http://mingw.org/wiki/Getting_Started
+
+BUILDING THE SDK ON LINUX AND MAC OS X
+**************************************
+
+Run the following command in a shell after having setup the build prerequisites:
+
+    $ mkdir WORK/cmake-python
+    $ cd WORK/cmake-python
+    $ cmake ../.. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=`pwd`/../../OUTPUT -DCMAKE_INSTALL_PREFIX=`pwd`/../../OUTPUT -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-python.cmake
+    $ make
+
+If everything is successful (and after a few minutes) you will find the Python
+wheel package of the liblinphone Python extension module in the OUTPUT directory.
+
+BUILDING THE SDK ON WINDOWS
+***************************
+
+Run the following command in Windows command prompt after having setup the build
+prerequisites (replacing #PATH_TO_SOURCE# by the good path with forward slashes):
+
+    > md WORK\cmake-python
+    > cd WORK\cmake-python
+    > cmake ../.. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=#PATH_TO_SOURCE#/OUTPUT -DCMAKE_INSTALL_PREFIX=#PATH_TO_SOURCE#/OUTPUT -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-python.cmake
+
+Then open the Visual Studio solution that have been created in the WORK\cmake-python
+directory and build the solution in Release mode.
+
+If everything is successful (and after a few minutes) you will find the Python
+wheel package and installers of the liblinphone Python extension module in the
+OUTPUT directory.
