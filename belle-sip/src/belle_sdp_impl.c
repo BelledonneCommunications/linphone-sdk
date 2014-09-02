@@ -624,7 +624,7 @@ void belle_sdp_base_description_remove_attribute(belle_sdp_base_description_t* b
 	attribute = belle_sip_list_find_custom(base_description->attributes, (belle_sip_compare_func)belle_sdp_base_description_attribute_comp_func, name);
 	if (attribute) {
 		belle_sip_object_unref(BELLE_SIP_OBJECT(attribute->data));
-		base_description->attributes = belle_sip_list_remove_link(base_description->attributes,attribute);
+		base_description->attributes = belle_sip_list_delete_link(base_description->attributes,attribute);
 	}
 
 }
@@ -633,7 +633,7 @@ void belle_sdp_base_description_remove_bandwidth(belle_sdp_base_description_t* b
 	bandwidth = belle_sip_list_find_custom(base_description->bandwidths, (belle_sip_compare_func)belle_sdp_base_description_bandwidth_comp_func, name);
 	if (bandwidth) {
 		belle_sip_object_unref(BELLE_SIP_OBJECT(bandwidth->data));
-		base_description->bandwidths = belle_sip_list_remove_link(base_description->bandwidths,bandwidth);
+		base_description->bandwidths = belle_sip_list_delete_link(base_description->bandwidths,bandwidth);
 	}
 }
 void belle_sdp_base_description_set_attribute_value(belle_sdp_base_description_t* base_description, const char* name, const char* value) {
