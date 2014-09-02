@@ -17,6 +17,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 import os
+import re
 import string
 import sys
 from setuptools import setup, Extension
@@ -28,6 +29,8 @@ version = "@BUILD_VERSION@"
 macros = "@LINPHONE_CPPFLAGS@"
 include_dirs = "@LINPHONE_INCLUDE_DIRS@"
 libraries = "@LINPHONE_LIBRARIES@"
+static_libraries = "@LINPHONE_STATIC_LIBRARIES@"
+dynamic_libraries = "@LINPHONE_DYNAMIC_LIBRARIES@"
 data_files = "@LINPHONE_DATA_FILES@"
 
 define_macros = []
@@ -38,25 +41,32 @@ for macro in macros:
 		define_macros.append((macro, None))
 include_dirs = list(set(include_dirs.split(';')))
 libraries = libraries.split(';')
-library_dirs = [os.path.dirname(item) for item in libraries if os.path.dirname(item) != '' and os.path.dirname(item) != lib_install_prefix]
+if static_libraries != '':
+	static_libraries = static_libraries.split(';')
+if dynamic_libraries != '':
+	dynamic_libraries = dynamic_libraries.split(';')
+library_dirs = []
+for l in [libraries, static_libraries, dynamic_libraries]:
+	library_dirs += [os.path.dirname(item) for item in l if os.path.dirname(item) != '' and os.path.dirname(item) != lib_install_prefix]
 library_dirs = list(set(library_dirs))
 library_dirs.insert(0, lib_install_prefix)
 libraries = [os.path.basename(item) for item in libraries]
+static_libraries = [os.path.basename(item) for item in static_libraries]
+dynamic_libraries = [os.path.basename(item) for item in dynamic_libraries]
 extra_compile_args = []
 extra_link_args = []
 if sys.platform.startswith("win32"):
 	libraries = [string.replace(item, '.lib', '') for item in libraries]
 else:
-	libraries = [item[3:] for item in libraries]
-	static_libraries = [item for item in libraries if item.endswith('.a')]
-	dynamic_libraries = [item for item in libraries if '.so' in item]
-	static_libraries = [string.replace(item, '.a', '') for item in static_libraries]
-	dynamic_libraries = [string.replace(item, '.so', '') for item in dynamic_libraries]
-	extra_link_args.append("-Wl,--start-group")
-	extra_link_args += ['-l' + item for item in static_libraries]
-	extra_link_args.append("-Wl,--end-group")
-	extra_link_args.append("-Wl,-rpath=$ORIGIN")
-	libraries = dynamic_libraries
+	if sys.platform.startswith("darwin"):
+		dynext = '.dylib'
+	else:
+		dynext = '.so'
+	static_libraries = [re.search('lib(\w+).*', item).group(1) for item in static_libraries]
+	dynamic_libraries = [re.search('lib(\w+).*', item).group(1) for item in dynamic_libraries]
+	if sys.platform.startswith("linux"):
+		extra_link_args.append("-Wl,-rpath=$ORIGIN")
+	libraries = static_libraries + dynamic_libraries
 	if build_type == "Debug":
 		extra_compile_args = ["-O0"]
 data_files = data_files.split(';')

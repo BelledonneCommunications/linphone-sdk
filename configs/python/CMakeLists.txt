@@ -92,22 +92,50 @@ if(WIN32)
 	file(GLOB LINPHONE_DYNAMIC_LIBRARIES "${CMAKE_INSTALL_PREFIX}/bin/*.dll")
 	list(APPEND _BUILDS "exe" "msi" "zip" "wheel")
 endif()
-if(UNIX AND NOT APPLE)
-	set(LINPHONE_DYNAMIC_LIBRARIES
-		"${CMAKE_INSTALL_PREFIX}/lib/libavcodec.so.53"
-		"${CMAKE_INSTALL_PREFIX}/lib/libavutil.so.51"
-		"${CMAKE_INSTALL_PREFIX}/lib/libswscale.so.2"
-	)
+if(UNIX)
+	set(LINPHONE_STATIC_LIBRARIES )
+	set(LINPHONE_DYNAMIC_LIBRARIES )
+	foreach(lib ${LINPHONE_LIBRARIES})
+		if(${lib} MATCHES "\\.a$")
+			list(APPEND LINPHONE_STATIC_LIBRARIES ${lib})
+		else()
+			list(APPEND LINPHONE_DYNAMIC_LIBRARIES ${lib})
+		endif()
+	endforeach()
+	find_program(LORDER_EXECUTABLE lorder)
+	if(NOT LORDER_EXECUTABLE)
+		message(FATAL_ERROR "lorder executable is needed.")
+	endif()
+	find_program(TSORT_EXECUTABLE tsort)
+	if(NOT TSORT_EXECUTABLE)
+		message(FATAL_ERROR "tsort executable is needed.")
+	endif()
+	execute_process(COMMAND ${LORDER_EXECUTABLE} ${LINPHONE_STATIC_LIBRARIES} OUTPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/lorder.out")
+	execute_process(COMMAND ${TSORT_EXECUTABLE} OUTPUT_VARIABLE LINPHONE_STATIC_LIBRARIES INPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/lorder.out")
+	separate_arguments(LINPHONE_STATIC_LIBRARIES UNIX_COMMAND "${LINPHONE_STATIC_LIBRARIES}")
+	if(APPLE)
+		set(LINPHONE_DYNAMIC_LIBRARIES_TO_INSTALL
+			"${CMAKE_INSTALL_PREFIX}/lib/libavcodec.53.61.100.dylib"
+			"${CMAKE_INSTALL_PREFIX}/lib/libavutil.51.35.100.dylib"
+			"${CMAKE_INSTALL_PREFIX}/lib/libswscale.2.1.100.dylib"
+		)
+	else()
+		set(LINPHONE_DYNAMIC_LIBRARIES_TO_INSTALL
+			"${CMAKE_INSTALL_PREFIX}/lib/libavcodec.so.53.61.100"
+			"${CMAKE_INSTALL_PREFIX}/lib/libavutil.so.51.35.100"
+			"${CMAKE_INSTALL_PREFIX}/lib/libswscale.so.2.1.100"
+		)
+	endif()
 	list(APPEND _BUILDS "zip" "wheel")
 endif()
 foreach(_BUILD ${_BUILDS})
 	file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/build_${_BUILD}/linphone/linphone")
 	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/__init__.py.cmake" "${CMAKE_CURRENT_BINARY_DIR}/build_${_BUILD}/linphone/linphone/__init__.py")
-	if(UNIX AND NOT APPLE)
-		foreach(lib ${LINPHONE_DYNAMIC_LIBRARIES})
-			get_filename_component(libname ${lib} NAME)
-			file(GLOB reallib "${lib}.*")
+	if(UNIX)
+		foreach(reallib ${LINPHONE_DYNAMIC_LIBRARIES_TO_INSTALL})
+			get_filename_component(libpath ${reallib} DIRECTORY)
 			get_filename_component(reallibname ${reallib} NAME)
+			string(REGEX REPLACE "([0-9]+)\\.[0-9]+\\.[0-9]+" "\\1" libname ${reallibname})
 			file(COPY ${reallib} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/build_${_BUILD}/linphone/linphone")
 			file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/build_${_BUILD}/linphone/linphone/${reallibname}" "${CMAKE_CURRENT_BINARY_DIR}/build_${_BUILD}/linphone/linphone/${libname}")
 		endforeach()
