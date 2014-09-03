@@ -68,18 +68,20 @@ execute_process(
 file(GLOB XML_DIR "${CMAKE_INSTALL_PREFIX}/share/doc/linphone-*/xml")
 
 # Generate the API in XML format from the doxygen XML files
-add_custom_target(api_xml
-	${PYTHON_EXECUTABLE} "${LINPHONE_SOURCE_DIR}/tools/genapixml.py" "--pretty" "--outputfile" "${CMAKE_CURRENT_BINARY_DIR}/api.xml" "${XML_DIR}"
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/api.xml"
+	COMMAND ${PYTHON_EXECUTABLE} "${LINPHONE_SOURCE_DIR}/tools/genapixml.py" "--pretty" "--outputfile" "${CMAKE_CURRENT_BINARY_DIR}/api.xml" "${XML_DIR}"
 	DEPENDS ${XML_FILES} "${LINPHONE_SOURCE_DIR}/tools/genapixml.py"
 )
+add_custom_target(api_xml DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/api.xml")
 
 # Generate the Python wrapper source code for the API in XML format
 set(SOURCE_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/linphone.c")
-add_custom_target(pylinphone_source
-	${PYTHON_EXECUTABLE} "${LINPHONE_SOURCE_DIR}/tools/python/apixml2python.py" "--outputfile" "${SOURCE_FILENAME}" "${CMAKE_CURRENT_BINARY_DIR}/api.xml"
+add_custom_command(OUTPUT "${SOURCE_FILENAME}"
+	COMMAND ${PYTHON_EXECUTABLE} "${LINPHONE_SOURCE_DIR}/tools/python/apixml2python.py" "--outputfile" "${SOURCE_FILENAME}" "${CMAKE_CURRENT_BINARY_DIR}/api.xml"
 	DEPENDS api_xml "${LINPHONE_SOURCE_DIR}/tools/python/apixml2python.py" "${LINPHONE_SOURCE_DIR}/tools/python/apixml2python/linphone.py"
 	WORKING_DIRECTORY "${LINPHONE_SOURCE_DIR}/tools/python"
 )
+add_custom_target(pylinphone_source DEPENDS "${SOURCE_FILENAME}")
 
 # Generate setup.py file that will be used to generate the package
 set(_BUILDS )
