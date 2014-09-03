@@ -223,16 +223,16 @@ if(ENABLE_VIDEO)
 		)
 		set_source_files_properties(videofilters/msdscap-mingw.cc PROPERTIES LANGUAGE CXX)
 	endif(WIN32)
-	# if(APPLE)
-		# list(APPEND VOIP_SOURCE_FILES
-			# utils/opengles_display.c
-			# utils/opengles_display.h
-			# utils/shaders.c
-			# utils/shaders.h
-			# videofilters/msosxdisplay.m
-			# videofilters/qtcapture.m
-		# )
-	# endif(APPLE)
+	if(APPLE)
+		list(APPEND VOIP_SOURCE_FILES
+			utils/opengles_display.c
+			utils/opengles_display.h
+			utils/shaders.c
+			utils/shaders.h
+			videofilters/msosxdisplay.m
+			videofilters/qtcapture.m
+		)
+	endif()
 	if(FFMPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES
 			utils/ffmpeg-priv.c
@@ -332,9 +332,6 @@ endif()
 if(HAVE_DLOPEN)
 	list(APPEND VOIP_LIBS dl)
 endif()
-if(ENABLE_MACSND)
-	list(APPEND CMAKE_SHARED_LINKER_FLAGS "-framework Carbon" "-framework AudioUnit")
-endif()
 if(GSM_FOUND)
 	list(APPEND VOIP_LIBS ${GSM_LIBRARIES})
 endif()
@@ -397,6 +394,18 @@ else()
 		endif()
 	endif()
 endif()
+if(APPLE)
+	set(APPLE_SPECIFIC_LINK_FLAGS )
+	if(ENABLE_VIDEO)
+		list(APPEND APPLE_SPECIFIC_LINK_FLAGS "-framework Cocoa" "-framework OpenGL" "-framework QuartzCore")
+	endif()
+	if(ENABLE_MACSND)
+		list(APPEND APPLE_SPECIFIC_LINK_FLAGS "-framework Carbon" "-framework AudioUnit")
+	endif()
+	if(APPLE_SPECIFIC_LINK_FLAGS)
+		set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS ${APPLE_SPECIFIC_LINK_FLAGS})
+	endif()
+endif()
 
 install(TARGETS mediastreamer_voip
 	RUNTIME DESTINATION bin
@@ -411,10 +420,3 @@ if(ENABLE_VIDEO)
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 	)
 endif()
-
-
-# if(MS2_ENABLE_VIDEO)
-	# if(APPLE)
-		# set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework Cocoa -framework OpenGL -framework QuartzCore")
-	# endif(APPLE)
-# endif(MS2_ENABLE_VIDEO)
