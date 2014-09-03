@@ -67,7 +67,8 @@ if sys.platform.startswith("win32"):
 	libraries = [string.replace(item, '.lib', '') for item in libraries]
 else:
 	if sys.platform.startswith("darwin"):
-		extra_link_args = static_libraries + dynamic_libraries + extra_link_args
+		os.environ['LDFLAGS'] = ' '.join(extra_link_args)
+		extra_link_args = static_libraries + dynamic_libraries
 		libraries = []
 	else:
 		dynamic_libraries = [os.path.basename(item) for item in dynamic_libraries]
