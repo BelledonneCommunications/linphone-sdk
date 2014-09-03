@@ -26,9 +26,17 @@ if(DOXYGEN_FOUND)
 	if(DOXYGEN_DOT_FOUND)
 		set(top_srcdir ${CMAKE_SOURCE_DIR})
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
-		add_custom_target(html-doc ALL
-			${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+		file(GLOB DOC_INPUT_FILES
+			[^.]*.dox
+			../include/mediastreamer2/[^.]*.h
+			src/[^.]*/[^.]*.h
+			src/[^.]*/[^.]*.c
+		)
+		add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/doc/html/index.html"
+			COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile ${DOC_INPUT_FILES}
+		)
+		add_custom_target(html-doc ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc/html/index.html")
 		install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doc/html"
 			DESTINATION "${CMAKE_INSTALL_PREFIX}/share/doc/mediastreamer2-${MEDIASTREAMER_VERSION}")
 	else()
