@@ -27,6 +27,7 @@ install_prefix = "@CMAKE_INSTALL_PREFIX@"
 lib_install_prefix = os.path.join(install_prefix, 'lib')
 version = "@BUILD_VERSION@"
 macros = "@LINPHONE_CPPFLAGS@"
+extra_link_args = "@LINPHONE_LDFLAGS@"
 include_dirs = "@LINPHONE_INCLUDE_DIRS@"
 libraries = "@LINPHONE_LIBRARIES@"
 static_libraries = "@LINPHONE_STATIC_LIBRARIES@"
@@ -39,11 +40,19 @@ for macro in macros:
 	if macro.startswith('-D'):
 		macro = macro[2:]
 		define_macros.append((macro, None))
+if extra_link_args == '':
+	extra_link_args = []
+else:
+	extra_link_args = extra_link_args.split(';')
 include_dirs = list(set(include_dirs.split(';')))
 libraries = libraries.split(';')
-if static_libraries != '':
+if static_libraries == '':
+	static_libraries = []
+else:
 	static_libraries = static_libraries.split(';')
-if dynamic_libraries != '':
+if dynamic_libraries == '':
+	dynamic_libraries = []
+else:
 	dynamic_libraries = dynamic_libraries.split(';')
 library_dirs = []
 for l in [libraries, static_libraries, dynamic_libraries]:
@@ -51,21 +60,19 @@ for l in [libraries, static_libraries, dynamic_libraries]:
 library_dirs = list(set(library_dirs))
 library_dirs.insert(0, lib_install_prefix)
 extra_compile_args = []
-extra_link_args = []
 if sys.platform.startswith("win32"):
 	libraries = [os.path.basename(item) for item in libraries]
 	static_libraries = [os.path.basename(item) for item in static_libraries]
 	dynamic_libraries = [os.path.basename(item) for item in dynamic_libraries]
 	libraries = [string.replace(item, '.lib', '') for item in libraries]
 else:
-	dynamic_libraries = [os.path.basename(item) for item in dynamic_libraries]
-	dynamic_libraries = [re.search('lib(\w+).*', item).group(1) for item in dynamic_libraries]
 	if sys.platform.startswith("darwin"):
-		dynext = '.dylib'
-		extra_link_args += static_libraries
-		libraries = dynamic_libraries
+		extra_link_args = static_libraries + dynamic_libraries + extra_link_args
+		libraries = []
 	else:
-		dynext = '.so'
+		dynamic_libraries = [os.path.basename(item) for item in dynamic_libraries]
+		dynamic_libraries = [re.search('lib(\w+).*', item).group(1) for item in dynamic_libraries]
+		static_libraries = [os.path.basename(item) for item in static_libraries]
 		static_libraries = [re.search('lib(\w+).*', item).group(1) for item in static_libraries]
 		extra_link_args.append("-Wl,-rpath=$ORIGIN")
 		libraries = static_libraries + dynamic_libraries
