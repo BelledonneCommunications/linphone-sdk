@@ -50,23 +50,25 @@ for l in [libraries, static_libraries, dynamic_libraries]:
 	library_dirs += [os.path.dirname(item) for item in l if os.path.dirname(item) != '' and os.path.dirname(item) != lib_install_prefix]
 library_dirs = list(set(library_dirs))
 library_dirs.insert(0, lib_install_prefix)
-libraries = [os.path.basename(item) for item in libraries]
-static_libraries = [os.path.basename(item) for item in static_libraries]
-dynamic_libraries = [os.path.basename(item) for item in dynamic_libraries]
 extra_compile_args = []
 extra_link_args = []
 if sys.platform.startswith("win32"):
+	libraries = [os.path.basename(item) for item in libraries]
+	static_libraries = [os.path.basename(item) for item in static_libraries]
+	dynamic_libraries = [os.path.basename(item) for item in dynamic_libraries]
 	libraries = [string.replace(item, '.lib', '') for item in libraries]
 else:
+	dynamic_libraries = [os.path.basename(item) for item in dynamic_libraries]
+	dynamic_libraries = [re.search('lib(\w+).*', item).group(1) for item in dynamic_libraries]
 	if sys.platform.startswith("darwin"):
 		dynext = '.dylib'
+		extra_link_args += static_libraries
+		libraries = dynamic_libraries
 	else:
 		dynext = '.so'
-	static_libraries = [re.search('lib(\w+).*', item).group(1) for item in static_libraries]
-	dynamic_libraries = [re.search('lib(\w+).*', item).group(1) for item in dynamic_libraries]
-	if sys.platform.startswith("linux"):
+		static_libraries = [re.search('lib(\w+).*', item).group(1) for item in static_libraries]
 		extra_link_args.append("-Wl,-rpath=$ORIGIN")
-	libraries = static_libraries + dynamic_libraries
+		libraries = static_libraries + dynamic_libraries
 	if build_type == "Debug":
 		extra_compile_args = ["-O0"]
 data_files = data_files.split(';')
