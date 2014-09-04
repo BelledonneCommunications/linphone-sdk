@@ -823,7 +823,7 @@ bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time){
 }
 
 float ms_average_fps_get(const MSAverageFPS* afps){
-	return afps->mean_inter_frame!=0 ? 1.0/afps->mean_inter_frame : 0;
+	return afps->mean_inter_frame!=0 ? 1.0/afps->mean_inter_frame : 0.0;
 }
 
 MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoConfiguration *vconf_list, int bitrate) {

@@ -321,6 +321,7 @@ typedef struct v4mState {
 	float fps;
 	float start_time;
 	int frame_count;
+	MSAverageFPS afps;
 } v4mState;
 
 
@@ -391,6 +392,7 @@ static void v4m_process(MSFilter * obj){
 			mblk_set_marker_info(om,TRUE);	
 			ms_queue_put(obj->outputs[0],om);
 			s->frame_count++;
+			ms_average_fps_update(&s->afps, obj->ticker->time);
 		}
 	} else {
 		flushq([s->webcam rq],0);
@@ -402,18 +404,27 @@ static void v4m_process(MSFilter * obj){
 }
 
 static void v4m_preprocess(MSFilter *f) {
-	v4m_start(f,NULL);
-        
+	v4mState *s = (v4mState *)f->data;
+	ms_average_fps_init(&s->afps, "QuickTime capture average fps = %f");
+	v4m_start(f,NULL);    
 }
 
 static void v4m_postprocess(MSFilter *f) {
+	v4mState *s = (v4mState *)f->data;
 	v4m_stop(f,NULL);
+	ms_average_fps_init(&s->afps, "QuickTime capture average fps = %f");
 }
 
 static int v4m_set_fps(MSFilter *f, void *arg) {
 	v4mState *s = (v4mState*)f->data;
 	s->fps = *((float*)arg);
 	s->frame_count = -1;
+	return 0;
+}
+
+static int v4m_get_fps(MSFilter *f, void *arg) {
+	v4mState *s = (v4mState *)f->data;
+	*((float *)arg) = ms_average_fps_get(&s->afps);
 	return 0;
 }
 
@@ -443,6 +454,7 @@ static int v4m_get_vsize(MSFilter *f, void *arg) {
 
 static MSFilterMethod methods[] = {
 	{	MS_FILTER_SET_FPS		,	v4m_set_fps		},
+	{	MS_FILTER_GET_FPS		,	v4m_get_fps		},
 	{	MS_FILTER_GET_PIX_FMT	,	v4m_get_pix_fmt	},
 	{	MS_FILTER_SET_VIDEO_SIZE, 	v4m_set_vsize	},
 	{	MS_V4L_START			,	v4m_start		},
