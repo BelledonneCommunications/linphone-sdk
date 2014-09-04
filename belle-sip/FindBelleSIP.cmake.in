@@ -25,6 +25,7 @@
 #  BELLESIP_FOUND - system has belle-sip
 #  BELLESIP_INCLUDE_DIRS - the belle-sip include directory
 #  BELLESIP_LIBRARIES - The libraries needed to use belle-sip
+#  BELLESIP_LDFLAGS - The linking flags needed to use belle-sip
 
 find_package(Antlr3 REQUIRED)
 find_package(PolarSSL)
@@ -50,6 +51,18 @@ find_library(BELLESIP_LIBRARIES
 	PATH_SUFFIXES bin lib
 )
 
+if(@HAVE_LIBDL@)
+	list(APPEND BELLESIP_LIBRARIES dl)
+endif()
+if(@HAVE_LIBRT@)
+	list(APPEND BELLESIP_LIBRARIES rt)
+endif()
+if(@HAVE_RESINIT@)
+	list(APPEND BELLESIP_LIBRARIES resolv)
+endif()
+if(APPLE)
+	set(BELLESIP_LDFLAGS "-framework CoreFoundation -framework CFNetwork")
+endif()
 if(ANTLR3C_FOUND)
 	list(APPEND BELLESIP_INCLUDE_DIRS ${ANTLR3C_INCLUDE_DIRS})
 	list(APPEND BELLESIP_LIBRARIES ${ANTLR3C_LIBRARIES})
@@ -67,4 +80,4 @@ find_package_handle_standard_args(BelleSIP
 	BELLESIP_INCLUDE_DIRS BELLESIP_LIBRARIES
 )
 
-mark_as_advanced(BELLESIP_INCLUDE_DIRS BELLESIP_LIBRARIES)
+mark_as_advanced(BELLESIP_INCLUDE_DIRS BELLESIP_LIBRARIES BELLESIP_LDFLAGS)

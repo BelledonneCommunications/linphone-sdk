@@ -149,22 +149,25 @@ if(NOT MSVC)
 		add_definitions(-Werror -Wno-error=pragmas)
 	endif()
 endif()
-if("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
+if(APPLE)
 	set(LINK_FLAGS "${LINK_FLAGS} -framework CoreFoundation -framework CFNetwork")
 endif()
 if(WIN32)
 	add_definitions(-DBELLESIP_EXPORTS)
 endif()
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/FindBelleSIP.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/FindBelleSIP.cmake @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/FindBelleSIP.cmake
+	DESTINATION share/cmake/Modules
+	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+)
+
+
 add_subdirectory(include)
 add_subdirectory(src)
+
 
 if(${ENABLE_TESTS})
 	enable_testing()
 	add_subdirectory(tester)
 endif()
-
-install(FILES FindBelleSIP.cmake
-	DESTINATION share/cmake/Modules
-	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-)
