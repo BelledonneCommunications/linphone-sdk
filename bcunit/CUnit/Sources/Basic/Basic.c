@@ -58,7 +58,7 @@ extern void OutputDebugStringPrintf(const char *fmt, ...);
 #endif
 #ifdef ANDROID
 extern void AndroidPrintf(FILE *stream, const char *fmt, ...);
-#define fprintf(file, fmt, ...) AndroidPrintf(file, fmt, ##__VA_ARGS__)  
+#define fprintf(file, fmt, ...) AndroidPrintf(file, fmt, ##__VA_ARGS__)
 #endif
 
 cunit_trace_handler_t CU_trace_handler = NULL;
@@ -154,9 +154,13 @@ void CU_basic_show_failures(CU_pFailureRecord pFailure)
   int i;
 
   for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
-    fprintf(stdout, "\n  %d. %s:%u  - %s", i,
+    fprintf(stdout, "\n  %d. %s:%u  - %s/%s - %s", i,
         (NULL != pFailure->strFileName) ? pFailure->strFileName : "",
         pFailure->uiLineNumber,
+        (NULL !=  pFailure->pSuite->pName) ?  pFailure->pSuite->pName : "",
+        (NULL !=  pFailure->pTest->pName) ?  pFailure->pTest->pName : "",
+
+
         (NULL != pFailure->strCondition) ? pFailure->strCondition : "");
   }
 }
