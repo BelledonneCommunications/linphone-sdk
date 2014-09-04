@@ -47,7 +47,7 @@ prerequisites (replacing #PATH_TO_SOURCE# by the good path with forward slashes)
 
     > md WORK\cmake-python
     > cd WORK\cmake-python
-    > cmake ../.. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=#PATH_TO_SOURCE#/OUTPUT -DCMAKE_INSTALL_PREFIX=#PATH_TO_SOURCE#/OUTPUT -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-python.cmake
+    > cmake ../.. -G "Visual Studio 9 2008" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=#PATH_TO_SOURCE#/OUTPUT -DCMAKE_INSTALL_PREFIX=#PATH_TO_SOURCE#/OUTPUT -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-python.cmake
 
 Then open the Visual Studio solution that have been created in the WORK\cmake-python
 directory and build the solution in Release mode.
