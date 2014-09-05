@@ -56,9 +56,13 @@ struct _MSEventQueue{
 static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *arg){
 	int argsize=ev_id & 0xff;
 	int size=argsize+16;
-	uint8_t *nextpos=q->wptr+size;
+	uint8_t *nextpos;
+	
+	ms_mutex_lock(&q->mutex);
+	nextpos=q->wptr+size;
 
 	if (q->freeroom<size){
+		ms_mutex_unlock(&q->mutex);
 		ms_error("Dropped event, no more free space in event buffer !");
 		return;
 	}
@@ -73,7 +77,7 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 	*(long*)(q->wptr+8)=(long)ev_id;
 	if (argsize>0) memcpy(q->wptr+16,arg,argsize);
 	q->wptr=nextpos;
-	ms_mutex_lock(&q->mutex);
+	
 	q->freeroom-=size;
 	ms_mutex_unlock(&q->mutex);
 }

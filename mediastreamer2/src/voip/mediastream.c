@@ -77,15 +77,16 @@ static void disable_checksums(ortp_socket_t sock) {
  * This is a dirty hack that works anyway.
  * It would be interesting to have something that does the job
  * more easily within the MSTicker API.
+ * return TRUE if the decoder was changed, FALSE otherwise.
  */
-static void media_stream_change_decoder(MediaStream *stream, int payload) {
+static bool_t media_stream_change_decoder(MediaStream *stream, int payload) {
 	RtpSession *session = stream->sessions.rtp_session;
 	RtpProfile *prof = rtp_session_get_profile(session);
 	PayloadType *pt = rtp_profile_get_payload(prof, payload);
 
 	if (stream->decoder == NULL){
 		ms_message("media_stream_change_decoder(): ignored, no decoder.");
-		return;
+		return FALSE;
 	}
 
 	if (pt != NULL){
@@ -96,7 +97,7 @@ static void media_stream_change_decoder(MediaStream *stream, int payload) {
 			if ((stream->decoder != NULL) && (stream->decoder->desc->enc_fmt != NULL)
 			&& (strcasecmp(pt->mime_type, stream->decoder->desc->enc_fmt) == 0)) {
 				/* Same formats behind different numbers, nothing to do. */
-				return;
+				return FALSE;
 			}
 		}
 
@@ -113,12 +114,14 @@ static void media_stream_change_decoder(MediaStream *stream, int payload) {
 			ms_filter_link(stream->rtprecv, 0, stream->decoder, 0);
 			ms_filter_link(stream->decoder, 0, nextFilter, 0);
 			ms_filter_preprocess(stream->decoder,stream->sessions.ticker);
+			return TRUE;
 		} else {
 			ms_warning("No decoder found for %s", pt->mime_type);
 		}
 	} else {
 		ms_warning("No payload defined with number %i", payload);
 	}
+	return FALSE;
 }
 
 MSTickerPrio __ms_get_default_prio(bool_t is_video) {
@@ -455,10 +458,10 @@ bool_t ms_is_ipv6(const char *remote) {
 	return ret;
 }
 
-void mediastream_payload_type_changed(RtpSession *session, unsigned long data) {
+bool_t mediastream_payload_type_changed(RtpSession *session, unsigned long data) {
 	MediaStream *stream = (MediaStream *)data;
 	int pt = rtp_session_get_recv_payload_type(stream->sessions.rtp_session);
-	media_stream_change_decoder(stream, pt);
+	return media_stream_change_decoder(stream, pt);
 }
 
 static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m, time_t curtime){

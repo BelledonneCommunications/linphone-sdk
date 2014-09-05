@@ -477,10 +477,21 @@ static void configure_itc(VideoStream *stream){
 	}
 }
 
+static void configure_decoder(VideoStream *stream, PayloadType *pt){
+	bool_t avpf_enabled=!!(pt->flags & PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
+	ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_ENABLE_AVPF, &avpf_enabled);
+	ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_FREEZE_ON_ERROR, &stream->freeze_on_error);
+	ms_filter_add_notify_callback(stream->ms.decoder, event_cb, stream, FALSE);
+	/* It is important that the internal_event_cb is called synchronously! */
+	ms_filter_add_notify_callback(stream->ms.decoder, internal_event_cb, stream, TRUE);
+}
 
 static void video_stream_payload_type_changed(RtpSession *session, unsigned long data){
 	VideoStream *stream = (VideoStream *)data;
-	mediastream_payload_type_changed(session,data);
+	RtpProfile *prof = rtp_session_get_profile(session);
+	PayloadType *pt = rtp_profile_get_payload(prof, rtp_session_get_recv_payload_type(session));
+	if (mediastream_payload_type_changed(session,data) && pt)
+		configure_decoder(stream,pt);
 	configure_itc(stream);
 }
 
@@ -642,9 +653,6 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			ms_fatal("No video display filter could be instantiated. Please check build-time configuration");
 		}
 
-		ms_filter_add_notify_callback(stream->ms.decoder, event_cb, stream, FALSE);
-		/* It is important that the internal_event_cb is called synchronously! */
-		ms_filter_add_notify_callback(stream->ms.decoder, internal_event_cb, stream, TRUE);
 
 		stream->ms.rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
@@ -667,8 +675,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}
 		if (pt->recv_fmtp!=NULL)
 			ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
-		ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_ENABLE_AVPF, &avpf_enabled);
-		ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_FREEZE_ON_ERROR, &stream->freeze_on_error);
+		configure_decoder(stream,pt);
 
 		/*force the decoder to output YUV420P */
 		format=MS_YUV420P;

@@ -191,11 +191,11 @@ typedef enum _MSRecorderState MSRecorderState;
 
 /** retrieve echo canceller internal state, as a base64 encoded string */
 #define MS_ECHO_CANCELLER_GET_STATE_STRING \
-	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,5,char **)
+	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,5,char *)
 
 /** restore a previous state suppling the echo canceller config as base64 encoded string */
 #define MS_ECHO_CANCELLER_SET_STATE_STRING \
-	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,6, const char *)
+	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,6, const char)
 
 
 
@@ -207,15 +207,15 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_VIDEO_DECODER_SEND_PLI \
 	MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface, 2)
 #define MS_VIDEO_DECODER_SEND_SLI \
-	MS_FILTER_EVENT(MSFilterVideoDecoderInterface, 3, const MSVideoCodecSLI *)
+	MS_FILTER_EVENT(MSFilterVideoDecoderInterface, 3, MSVideoCodecSLI)
 #define MS_VIDEO_DECODER_SEND_RPSI \
-	MS_FILTER_EVENT(MSFilterVideoDecoderInterface, 4, const MSVideoCodecRPSI *)
+	MS_FILTER_EVENT(MSFilterVideoDecoderInterface, 4, MSVideoCodecRPSI)
 #define MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION \
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 5)
 #define MS_VIDEO_DECODER_ENABLE_AVPF \
 	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 6, bool_t)
 #define MS_VIDEO_DECODER_SUPPORT_RENDERING \
-	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 7, MSVideoDisplayDecodingSupport*)
+	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 7, MSVideoDisplayDecodingSupport)
 #define MS_VIDEO_DECODER_FREEZE_ON_ERROR \
 	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 8, bool_t)
 #define MS_VIDEO_DECODER_RECOVERED_FROM_ERRORS \
@@ -235,29 +235,29 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_DECODER_HAVE_PLC MS_AUDIO_DECODER_HAVE_PLC /*for backward compatibility*/
 
 #define MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER \
-	MS_FILTER_METHOD(MSFilterAudioDecoderInterface,1,MSRtpPayloadPickerContext*)
+	MS_FILTER_METHOD(MSFilterAudioDecoderInterface,1,MSRtpPayloadPickerContext)
 
 /**
  * Interface definition for video encoders.
 **/
 
 #define MS_VIDEO_ENCODER_SUPPORTS_PIXFMT \
-	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 0, MSVideoEncoderPixFmt*)
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 0, MSVideoEncoderPixFmt)
 /* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
 #define MS_VIDEO_ENCODER_REQ_VFU \
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoEncoderInterface, 1)
 #define MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST \
-	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 2, const MSVideoConfiguration **)
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 2, const MSVideoConfiguration *)
 #define MS_VIDEO_ENCODER_SET_CONFIGURATION \
-	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 3, const MSVideoConfiguration *)
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 3, const MSVideoConfiguration )
 #define MS_VIDEO_ENCODER_NOTIFY_PLI \
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoEncoderInterface, 4)
 #define MS_VIDEO_ENCODER_NOTIFY_FIR \
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 5, uint8_t *)
 #define MS_VIDEO_ENCODER_NOTIFY_SLI \
-	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 6, const MSVideoCodecSLI *)
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 6, MSVideoCodecSLI)
 #define MS_VIDEO_ENCODER_NOTIFY_RPSI \
-	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 7, const MSVideoCodecRPSI *)
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 7, MSVideoCodecRPSI)
 #define MS_VIDEO_ENCODER_ENABLE_AVPF \
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 8, bool_t)
 
