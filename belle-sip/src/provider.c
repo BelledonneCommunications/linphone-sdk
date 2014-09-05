@@ -29,6 +29,7 @@ typedef struct authorization_context {
 	const char* qop;
 	const char* opaque;
 	const char* user_id;
+	const char* algorithm;
 	int nonce_count;
 	int is_proxy;
 }authorization_context_t;
@@ -39,6 +40,7 @@ GET_SET_STRING(authorization_context,qop)
 GET_SET_STRING(authorization_context,scheme)
 GET_SET_STRING(authorization_context,opaque)
 GET_SET_STRING(authorization_context,user_id)
+GET_SET_STRING(authorization_context,algorithm)
 GET_SET_INT(authorization_context,nonce_count,int)
 static authorization_context_t* belle_sip_authorization_create(belle_sip_header_call_id_t* call_id) {
 	authorization_context_t* result = malloc(sizeof(authorization_context_t));
@@ -54,6 +56,7 @@ static void belle_sip_authorization_destroy(authorization_context_t* object) {
 	DESTROY_STRING(object,qop);
 	DESTROY_STRING(object,opaque);
 	DESTROY_STRING(object,user_id);
+	DESTROY_STRING(object,algorithm);
 	belle_sip_object_unref(object->callid);
 	belle_sip_free(object);
 }
@@ -948,6 +951,7 @@ static void authorization_context_fill_from_auth(authorization_context_t* auth_c
 		auth_context->nonce_count=0;
 	}
 	authorization_context_set_nonce(auth_context,belle_sip_header_www_authenticate_get_nonce(authenticate));
+	authorization_context_set_algorithm(auth_context,belle_sip_header_www_authenticate_get_algorithm(authenticate));
 	authorization_context_set_qop(auth_context,belle_sip_header_www_authenticate_get_qop_first(authenticate));
 	authorization_context_set_scheme(auth_context,belle_sip_header_www_authenticate_get_scheme(authenticate));
 	authorization_context_set_opaque(auth_context,belle_sip_header_www_authenticate_get_opaque(authenticate));
@@ -1141,6 +1145,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 			belle_sip_header_authorization_set_nonce(authorization,auth_context->nonce);
 			belle_sip_header_authorization_set_qop(authorization,auth_context->qop);
 			belle_sip_header_authorization_set_opaque(authorization,auth_context->opaque);
+			belle_sip_header_authorization_set_algorithm(authorization,auth_context->algorithm);
 			belle_sip_header_authorization_set_uri(authorization,(belle_sip_uri_t*)belle_sip_request_get_uri(request));
 			if (auth_context->qop){
 				++auth_context->nonce_count;
