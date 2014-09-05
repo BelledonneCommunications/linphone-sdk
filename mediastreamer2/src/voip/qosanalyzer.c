@@ -61,6 +61,9 @@ bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj){
 
 void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj,
 	void (*on_action_suggested)(void*, int, const char**), void* u){
+	if (obj->on_action_suggested_user_pointer!=NULL){
+		ms_free(obj->on_action_suggested_user_pointer);
+	}
 	obj->on_action_suggested=on_action_suggested;
 	obj->on_action_suggested_user_pointer=u;
 }

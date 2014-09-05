@@ -182,14 +182,7 @@ const char * media_stream_type_str(MediaStream *stream) {
 
 void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 	if (sessions->srtp_session) {
-		RtpTransport *rtptr=NULL,*rtcptr=NULL;
 		ortp_srtp_dealloc(sessions->srtp_session);
-		if (sessions->rtp_session){
-			rtp_session_get_transports(sessions->rtp_session,&rtptr,&rtcptr);
-			rtp_session_set_transports(sessions->rtp_session,NULL,NULL);
-			if (rtptr) srtp_transport_destroy(rtptr);
-			if (rtcptr) srtp_transport_destroy(rtcptr);
-		}
 		sessions->srtp_session=NULL;
 	}
 	if (sessions->rtp_session) {
