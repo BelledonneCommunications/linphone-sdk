@@ -1284,6 +1284,18 @@ belle_sip_channel_t *belle_sip_channel_find_from_list_with_addrinfo(belle_sip_li
 	}
 	return NULL;
 }
+
+/*
+ * Horrible bug: glibc seems to ignore AI_NUMERICHOST when hints as AF_INET6 family, resulting in very lengthly getaddrinfo() execution.
+ * In order to workaround it, we request getaddrinfo() only in cases where the destination we want to lookup is an IP address.*/
+
+static int seems_numeric_ip_address(const char *ip){
+	int a,b,c,d;
+	if (strchr(ip,':')) return TRUE; /*should be an IPv6*/
+	if (sscanf(ip,"%i.%i.%i.%i",&a,&b,&c,&d)==4) return TRUE;
+	return FALSE;
+}
+
 /* search a matching channel from a list according to supplied hop. The ai_family tells which address family is supported by the list of channels*/
 belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int ai_family, const belle_sip_hop_t *hop){
 	struct addrinfo *res=NULL;
@@ -1291,13 +1303,14 @@ belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int a
 	char portstr[20];
 	belle_sip_channel_t *chan;
 
-	hints.ai_family=ai_family;
-	hints.ai_flags=AI_NUMERICHOST|AI_NUMERICSERV;
-	hints.ai_socktype=SOCK_STREAM; // needed on some platforms that return an error otherwise (QNX)
-	if (ai_family==AF_INET6) hints.ai_flags=AI_V4MAPPED;
-	
-	snprintf(portstr,sizeof(portstr),"%i",hop->port);
-	getaddrinfo(hop->host,portstr,&hints,&res);
+	if (seems_numeric_ip_address(hop->host)){
+		hints.ai_family=ai_family;
+		hints.ai_flags=AI_NUMERICHOST|AI_NUMERICSERV;
+		hints.ai_socktype=SOCK_STREAM; // needed on some platforms that return an error otherwise (QNX)
+		if (ai_family==AF_INET6) hints.ai_flags=AI_V4MAPPED;
+		snprintf(portstr,sizeof(portstr),"%i",hop->port);
+		getaddrinfo(hop->host,portstr,&hints,&res);
+	}
 	chan=belle_sip_channel_find_from_list_with_addrinfo(l,hop,res);
 	if (res) freeaddrinfo(res);
 	return chan;
