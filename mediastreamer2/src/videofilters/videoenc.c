@@ -880,7 +880,11 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 	if (vconf->extra != NULL) {
 		s->qmin = *((int *)vconf->extra);
 	}
-	ms_message("Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d", s->vconf.required_bitrate, s->vconf.fps, s->vconf.vsize.width, s->vconf.vsize.height);
+	ms_message("Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d for encoder [%p]", s->vconf.required_bitrate
+																								, s->vconf.fps
+																								, s->vconf.vsize.width
+																								, s->vconf.vsize.height
+																								, f);
 	return 0;
 }
 

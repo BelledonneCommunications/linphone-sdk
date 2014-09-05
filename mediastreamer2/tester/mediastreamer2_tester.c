@@ -29,7 +29,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #if HAVE_CU_CURSES
 #include "CUnit/CUCurses.h"
 #endif
-
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif
 static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
 
@@ -137,7 +139,7 @@ void mediastreamer2_tester_uninit(void) {
 }
 
 int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_name) {
-	int i;
+	int i,ret;
 
 	/* initialize the CUnit test registry */
 	if (CUE_SUCCESS != CU_initialize_registry())
@@ -191,8 +193,9 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 		printf("\n");
 	}
 
+	ret=CU_get_number_of_tests_failed()!=0;
 	CU_cleanup_registry();
-	return CU_get_error();
+	return ret;
 }
 
 void helper(const char *name) {
@@ -220,7 +223,11 @@ void helper(const char *name) {
 	}
 
 #ifndef WINAPI_FAMILY_PHONE_APP
+#if TARGET_OS_MAC
+int _main (int argc, char *argv[]) {
+#else
 int main (int argc, char *argv[]) {
+#endif
 	int i;
 	int ret;
 	const char *suite_name = NULL;

@@ -255,7 +255,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 }
 
 void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize){
-	ms_message("Setting video size %dx%d", vsize.width, vsize.height);
+	ms_message("Setting video size %dx%d on stream [%p]", vsize.width, vsize.height,stream);
 	stream->sent_vsize=vsize;
 }
 
@@ -554,7 +554,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 		if (pt->normal_bitrate>0){
 			MSVideoConfiguration *vconf_list = NULL;
-			ms_message("Limiting bitrate of video encoder to %i bits/s",pt->normal_bitrate);
+			ms_message("Limiting bitrate of video encoder to %i bits/s for stream [%p]",pt->normal_bitrate,stream);
 			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
 			if (vconf_list != NULL) {
 				MSVideoConfiguration vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, pt->normal_bitrate);

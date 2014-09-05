@@ -15,7 +15,12 @@ mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_sound_card_tester.c \
 	mediastreamer2_adaptive_tester.c \
 	mediastreamer2_audio_stream_tester.c \
-	mediastreamer2_framework_tester.c
+	mediastreamer2_framework_tester.c 
+
+if BUILD_MACOSX
+mediastreamer2_tester_SOURCES+=	mediastream_tester_cocoa.m
+endif #BUILD_MACOSX
+	
 if BUILD_VIDEO
 mediastreamer2_tester_SOURCES+=	mediastreamer2_video_stream_tester.c
 if BUILD_MATROSKA
