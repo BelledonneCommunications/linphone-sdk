@@ -2231,7 +2231,7 @@ static int player_open_file(MSFilter *f, void *arg) {
 		err = -1;
 	} else {
 		if(matroska_open_file(&obj->file, filename, MKV_OPEN_RO) != 0) {
-			err = -2;
+			err = -1;
 			ms_error("MKVPlayer: %s could not be opened in read-only mode", filename);
 		} else {
 			int i;
@@ -2271,7 +2271,7 @@ static int player_open_file(MSFilter *f, void *arg) {
 			}
 			if(matroska_block_go_first(&obj->file) < 0) {
 				ms_error("MKVPlayer: %s is empty", filename);
-				err = -3;
+				err = -1;
 			} else {
 				
 				obj->state = MSPlayerPaused;
@@ -2370,7 +2370,7 @@ static int player_get_output_fmt(MSFilter *f, void *arg) {
 	} else {
 		if(pinFmt->pin < 0 || pinFmt->pin >= f->desc->noutputs) {
 			ms_error("MKVPlayer: pin #%d does not exist", pinFmt->pin);
-			err = -2;
+			err = -1;
 		} else {
 			pinFmt->fmt = obj->outputDescsList[pinFmt->pin];
 		}
