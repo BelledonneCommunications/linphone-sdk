@@ -239,7 +239,11 @@ int media_stream_set_dscp(MediaStream *stream, int dscp) {
 }
 
 void media_stream_enable_adaptive_bitrate_control(MediaStream *stream, bool_t enabled) {
-	stream->use_rc = enabled;
+	stream->rc_enable = enabled;
+}
+
+void media_stream_set_adaptive_bitrate_algorithm(MediaStream *stream, MSQosAnalyzerAlgorithm algorithm) {
+	stream->rc_algorithm = algorithm;
 }
 
 void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled) {
@@ -470,7 +474,7 @@ static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m, time_t cur
 	stream->last_packet_time=curtime;
 	ms_message("%s stream [%p]: receiving RTCP %s%s",media_stream_type_str(stream),stream,(rtcp_is_SR(m)?"SR":""),(rtcp_is_RR(m)?"RR":""));
 	do{
-		if (stream->use_rc&&stream->rc) ms_bitrate_controller_process_rtcp(stream->rc,m);
+		if (stream->rc_enable&&stream->rc) ms_bitrate_controller_process_rtcp(stream->rc,m);
 		if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi,m);
 		stream->process_rtcp(stream,m);
 	}while(rtcp_next_packet(m));

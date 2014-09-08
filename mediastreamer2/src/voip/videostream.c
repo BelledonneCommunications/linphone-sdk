@@ -453,13 +453,15 @@ static void configure_video_source(VideoStream *stream){
 		ms_bitrate_controller_destroy(stream->ms.rc);
 		stream->ms.rc=NULL;
 	}
-	if (stream->ms.use_rc){
-		stream->ms.rc=
-#if LINPHONE_NEW_WIP_QOS_ANALYZER_ALGO
-			ms_bandwidth_bitrate_controller_new(NULL, NULL, stream->ms.sessions.rtp_session,stream->ms.encoder);
-#else
-			ms_av_bitrate_controller_new(NULL,NULL,stream->ms.sessions.rtp_session,stream->ms.encoder);
-#endif
+	if (stream->ms.rc_enable){
+		switch (stream->ms.rc_algorithm){
+		case MSQosAnalyzerAlgorithmSimple:
+			stream->ms.rc=ms_av_bitrate_controller_new(NULL,NULL,stream->ms.sessions.rtp_session,stream->ms.encoder);
+			break;
+		case MSQosAnalyzerAlgorithmStateful:
+			stream->ms.rc=ms_bandwidth_bitrate_controller_new(NULL, NULL, stream->ms.sessions.rtp_session,stream->ms.encoder);
+			break;
+		}
 	}
 }
 

@@ -311,9 +311,9 @@ static void unplumb_av_player(AudioStream *stream){
 	struct _AVPlayer *player=&stream->av_player;
 	MSConnectionHelper ch;
 	bool_t reattach=stream->ms.state==MSStreamStarted;
-	
+
 	if (!player->plumbed) return;
-	
+
 	if (player->videopin!=-1){
 		ms_connection_helper_start(&ch);
 		ms_connection_helper_unlink(&ch,player->player,-1,player->videopin);
@@ -332,7 +332,7 @@ static void unplumb_av_player(AudioStream *stream){
 
 static void close_av_player(AudioStream *stream){
 	struct _AVPlayer *player=&stream->av_player;
-	
+
 	if (player->player){
 		MSPlayerState st=MSPlayerClosed;
 		unplumb_av_player(stream);
@@ -365,7 +365,7 @@ static void configure_av_player(AudioStream *stream, const MSFmtDescriptor *audi
 	}
 	ms_filter_call_method(player->resampler,MS_FILTER_SET_NCHANNELS,(void*)&audiofmt->nchannels);
 	ms_filter_call_method(player->resampler,MS_FILTER_SET_SAMPLE_RATE,(void*)&audiofmt->rate);
-	
+
 	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_GET_SAMPLE_RATE,&stream_rate);
 	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_GET_NCHANNELS,&stream_channels);
 	ms_filter_call_method(player->resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&stream_channels);
@@ -382,7 +382,7 @@ static void plumb_av_player(AudioStream *stream){
 	struct _AVPlayer *player=&stream->av_player;
 	MSConnectionHelper ch;
 	bool_t reattach=stream->ms.state==MSStreamStarted;
-	
+
 	if (player->videopin!=-1){
 		ms_connection_helper_start(&ch);
 		ms_connection_helper_link(&ch,player->player,-1,player->videopin);
@@ -405,7 +405,7 @@ static int open_av_player(AudioStream *stream, const char *filename){
 	MSPinFormat fmt1={0},fmt2={0};
 	MSPinFormat *audiofmt=NULL;
 	MSPinFormat *videofmt=NULL;
-	
+
 	if (player->player) close_av_player(stream);
 	player->player=create_av_player(filename);
 	if (player->player==NULL){
@@ -744,7 +744,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		}
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	}
-	
+
 	stream->outbound_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
 
 	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING) setup_recorder(stream,sample_rate,nchannels);
@@ -796,13 +796,15 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		audio_stream_configure_resampler(stream->write_resampler,stream->ms.decoder,stream->soundwrite,pt->clock_rate,8000);
 	}
 
-	if (stream->ms.use_rc){
-		stream->ms.rc=
-#if LINPHONE_NEW_WIP_QOS_ANALYZER_ALGO
-			ms_bandwidth_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder, NULL, NULL);
-#else
-			ms_audio_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder,0);
-#endif
+	if (stream->ms.rc_enable){
+		switch (stream->ms.rc_algorithm){
+		case MSQosAnalyzerAlgorithmSimple:
+			stream->ms.rc=ms_audio_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder,0);
+			break;
+		case MSQosAnalyzerAlgorithmStateful:
+			stream->ms.rc=ms_bandwidth_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder, NULL, NULL);
+			break;
+		}
 	}
 
 	/* Create generic PLC if not handled by the decoder directly*/
@@ -830,7 +832,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (stream->features & AUDIO_STREAM_FEATURE_LOCAL_PLAYING){
 		stream->local_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
 	}
-	
+
 	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_SET_NCHANNELS,&nchannels);
 

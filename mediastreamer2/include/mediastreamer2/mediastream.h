@@ -140,7 +140,8 @@ struct _MediaStream {
 	time_t last_iterate_time;
 	uint64_t last_packet_count;
 	time_t last_packet_time;
-	bool_t use_rc;
+	bool_t rc_enable;
+	MSQosAnalyzerAlgorithm rc_algorithm;
 	bool_t is_beginning;
 	bool_t owns_sessions;
 	bool_t pad;
@@ -166,6 +167,8 @@ MS2_PUBLIC void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_
 MS2_PUBLIC int media_stream_set_dscp(MediaStream *stream, int dscp);
 
 MS2_PUBLIC void media_stream_enable_adaptive_bitrate_control(MediaStream *stream, bool_t enabled);
+
+MS2_PUBLIC void media_stream_set_adaptive_bitrate_algorithm(MediaStream *stream, MSQosAnalyzerAlgorithm algorithm);
 
 MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled);
 

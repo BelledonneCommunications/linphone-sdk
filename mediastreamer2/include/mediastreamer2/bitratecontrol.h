@@ -94,8 +94,16 @@ struct _MSQosAnalyzerDesc{
 	void (*uninit)(MSQosAnalyzer *);
 };
 
+enum _MSQosAnalyzerAlgorithm {
+	MSQosAnalyzerAlgorithmSimple,
+	MSQosAnalyzerAlgorithmStateful
+};
+typedef enum _MSQosAnalyzerAlgorithm MSQosAnalyzerAlgorithm;
+const char* ms_qos_analyzer_algorithm_to_string(MSQosAnalyzerAlgorithm alg);
+
 /**
- * A MSQosAnalyzer is responsible to analyze RTCP feedback and suggest actions on bitrate or packet rate accordingly.
+ * A MSQosAnalyzer is responsible to analyze RTCP feedback and suggest
+ * actions on bitrate or packet rate accordingly.
  * This is an abstract interface.
 **/
 struct _MSQosAnalyzer{
@@ -105,11 +113,9 @@ struct _MSQosAnalyzer{
 	void (*on_action_suggested)(void*, int, const char**);
 	void *on_action_suggested_user_pointer;
 	int refcnt;
-	enum {
-		Simple,
-		Stateful,
-	} type;
+	MSQosAnalyzerAlgorithm type;
 };
+
 
 MS2_PUBLIC MSQosAnalyzer * ms_qos_analyzer_ref(MSQosAnalyzer *obj);
 MS2_PUBLIC void ms_qos_analyzer_unref(MSQosAnalyzer *obj);

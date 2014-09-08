@@ -76,12 +76,16 @@ void ms_qos_analyser_set_label(MSQosAnalyzer *obj, const char *label){
 	if (label) obj->label=ms_strdup(label);
 }
 
-const char* ms_qos_analyzer_get_name(MSQosAnalyzer *obj){
-	switch (obj->type){
-		case Simple: return "Simple";
-		case Stateful: return "Stateful";
-		default: return "Unknown";
+const char* ms_qos_analyzer_algorithm_to_string(MSQosAnalyzerAlgorithm alg) {
+	switch (alg){
+		case MSQosAnalyzerAlgorithmSimple: return "Simple";
+		case MSQosAnalyzerAlgorithmStateful: return "Stateful";
+		default: return NULL;
 	}
+}
+
+const char* ms_qos_analyzer_get_name(MSQosAnalyzer *obj){
+	return ms_qos_analyzer_algorithm_to_string(obj->type);
 }
 
 MSQosAnalyzer *ms_qos_analyzer_ref(MSQosAnalyzer *obj){
@@ -250,7 +254,7 @@ MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session){
 	MSSimpleQosAnalyzer *obj=ms_new0(MSSimpleQosAnalyzer,1);
 	obj->session=session;
 	obj->parent.desc=&simple_analyzer_desc;
-	obj->parent.type=Simple;
+	obj->parent.type=MSQosAnalyzerAlgorithmSimple;
 	obj->parent.lre=ortp_loss_rate_estimator_new(LOSS_RATE_MIN_INTERVAL, session);
 	return (MSQosAnalyzer*)obj;
 }
@@ -630,7 +634,7 @@ MSQosAnalyzer * ms_stateful_qos_analyzer_new(RtpSession *session){
 	MSStatefulQosAnalyzer *obj=ms_new0(MSStatefulQosAnalyzer,1);
 	obj->session=session;
 	obj->parent.desc=&stateful_analyzer_desc;
-	obj->parent.type=Stateful;
+	obj->parent.type=MSQosAnalyzerAlgorithmStateful;
 	obj->parent.lre=ortp_loss_rate_estimator_new(LOSS_RATE_MIN_INTERVAL, session);
 
 	/*burst period will float the upload bandwidth assuming 5 sec RTCP reports interval*/

@@ -199,9 +199,9 @@ static void handle_queue_events(stream_manager_t * stream_mgr) {
 			if (rb){
 				stream_mgr->rtcp_count++;
 
-				if (stream_mgr->type==MSVideo && stream_mgr->video_stream->ms.use_rc){
+				if (stream_mgr->type==MSVideo && stream_mgr->video_stream->ms.rc_enable){
 					const MSQosAnalyzer *analyzer=ms_bitrate_controller_get_qos_analyzer(stream_mgr->video_stream->ms.rc);
-					if (analyzer->type==Stateful){
+					if (analyzer->type==MSQosAnalyzerAlgorithmStateful){
 						const MSStatefulQosAnalyzer *stateful_analyzer=((const MSStatefulQosAnalyzer*)analyzer);
 						stream_mgr->adaptive_stats.network_state=stateful_analyzer->network_state;
 						stream_mgr->adaptive_stats.loss_estim =100*stateful_analyzer->network_loss_rate;
@@ -245,6 +245,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 
 
 	media_stream_enable_adaptive_bitrate_control(marielle_ms,TRUE);
+	media_stream_set_adaptive_bitrate_algorithm(marielle_ms, MSQosAnalyzerAlgorithmStateful);
 	rtp_session_set_duplication_ratio(marielle_ms->sessions.rtp_session, dup_ratio);
 
 	if (marielle->type == MSAudio){
