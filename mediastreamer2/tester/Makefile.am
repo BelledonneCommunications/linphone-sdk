@@ -15,19 +15,7 @@ mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_sound_card_tester.c \
 	mediastreamer2_adaptive_tester.c \
 	mediastreamer2_audio_stream_tester.c \
-	mediastreamer2_framework_tester.c 
-
-if BUILD_MACOSX
-mediastreamer2_tester_SOURCES+=	mediastream_tester_cocoa.m
-endif #BUILD_MACOSX
-	
-if BUILD_VIDEO
-mediastreamer2_tester_SOURCES+=	mediastreamer2_video_stream_tester.c
-if BUILD_MATROSKA
-mediastreamer2_tester_SOURCES+= mediastreamer2_player_recorder_tester.c
-endif
-endif
-
+	mediastreamer2_framework_tester.c
 
 AM_CPPFLAGS=\
 	-I$(top_srcdir)/ \
@@ -46,6 +34,22 @@ LDADD=$(top_builddir)/src/libmediastreamer_base.la \
 	$(top_builddir)/src/libmediastreamer_voip.la \
 	$(ORTP_LIBS) \
 	$(CUNIT_LIBS)
+
+if BUILD_MACOSX
+noinst_LTLIBRARIES=libmediastreamer2_tester_cocoa.la
+libmediastreamer2_tester_cocoa_la_SOURCES = mediastream_tester_cocoa.m
+LDADD+=libmediastreamer2_tester_cocoa.la
+endif BUILD_MACOSX
+
+if BUILD_VIDEO
+mediastreamer2_tester_SOURCES+=	mediastreamer2_video_stream_tester.c
+if BUILD_MATROSKA
+mediastreamer2_tester_SOURCES+= mediastreamer2_player_recorder_tester.c
+endif
+endif
+
+
+
 
 AM_LDFLAGS=-no-undefined -export-dynamic
 
