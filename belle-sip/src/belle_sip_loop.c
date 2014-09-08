@@ -471,6 +471,7 @@ void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){
 	ml->run=1;
 	while(ml->run){
 		belle_sip_main_loop_iterate(ml);
+		if (ml->in_iterate) break;
 	}
 }
 
