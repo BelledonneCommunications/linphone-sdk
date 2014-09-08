@@ -686,3 +686,6 @@ void belle_sip_refresher_enable_manual_mode(belle_sip_refresher_t *refresher, in
 	refresher->manual=enabled;
 }
 
+char *belle_sip_refresher_get_public_uri(belle_sip_refresher_t* refresher)  {
+	return belle_sip_channel_get_public_ip_port(refresher->transaction->base.channel);
+}

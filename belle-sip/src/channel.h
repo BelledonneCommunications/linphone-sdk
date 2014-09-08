@@ -46,8 +46,8 @@ typedef enum belle_sip_channel_state{
 const char * belle_sip_channel_state_to_string(belle_sip_channel_state_t state);
 
 /**
-* belle_sip_channel_t is an object representing a single communication channel ( socket or file descriptor), 
-* unlike the belle_sip_listening_point_t that can owns several channels for TCP or TLS (incoming server child sockets or 
+* belle_sip_channel_t is an object representing a single communication channel ( socket or file descriptor),
+* unlike the belle_sip_listening_point_t that can owns several channels for TCP or TLS (incoming server child sockets or
 * outgoing client sockets).
 **/
 typedef struct belle_sip_channel belle_sip_channel_t;
@@ -167,6 +167,7 @@ int belle_sip_channel_is_reliable(const belle_sip_channel_t *obj);
 
 const char * belle_sip_channel_get_transport_name(const belle_sip_channel_t *obj);
 const char * belle_sip_channel_get_transport_name_lower_case(const belle_sip_channel_t *obj);
+char *belle_sip_channel_get_public_ip_port(belle_sip_channel_t *obj);
 
 const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj);
 

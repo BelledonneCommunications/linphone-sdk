@@ -105,7 +105,7 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
 	int err;
 	struct sockaddr_storage saddr;
 	socklen_t slen=sizeof(saddr);
-	
+
 	if (!origin) {
 		belle_sip_warning("cannot fix via for message [%p], probably a test",msg);
 		return;
@@ -120,10 +120,10 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
 	via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header((belle_sip_message_t*)msg,"via"));
 	if (via){
 		const char* host = belle_sip_header_via_get_host(via);
-		
+
 		if (strcmp(host,received)!=0)
 				belle_sip_header_via_set_received(via,received);
-			
+
 		if (belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(via),"rport")){
 			int port = belle_sip_header_via_get_listening_port(via);
 			int rport_int=atoi(rport);
@@ -201,7 +201,7 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 
 static void belle_sip_channel_input_stream_rewind(belle_sip_channel_input_stream_t* input_stream){
 	int remaining;
-	
+
 	remaining=input_stream->write_ptr-input_stream->read_ptr;
 	if (remaining>0){
 		/* copy remaning bytes at top of buffer*/
@@ -226,11 +226,18 @@ static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_i
 	return sizeof(input_stream->buff) - (input_stream->write_ptr-input_stream->buff);
 }
 
+char *belle_sip_channel_get_public_ip_port(belle_sip_channel_t *obj){
+	if (obj->public_ip){
+		return belle_sip_strdup_printf("%s:%d", obj->public_ip, obj->public_port);
+	}
+	return NULL;
+}
+
 void belle_sip_channel_set_public_ip_port(belle_sip_channel_t *obj, const char *public_ip, int port){
 	if (obj->public_ip){
 		int ip_changed=0;
 		int port_changed=0;
-		
+
 		if (public_ip && strcmp(obj->public_ip,public_ip)!=0){
 			ip_changed=1;
 		}
@@ -255,7 +262,7 @@ static void belle_sip_channel_learn_public_ip_port(belle_sip_channel_t *obj, bel
 	belle_sip_header_via_t *via=belle_sip_message_get_header_by_type(resp,belle_sip_header_via_t);
 	const char *received;
 	int rport;
-	
+
 	if (!via){
 		belle_sip_error("channel [%p]: no via in response.",obj);
 		return;
@@ -265,7 +272,7 @@ static void belle_sip_channel_learn_public_ip_port(belle_sip_channel_t *obj, bel
 		/*use address from via*/;
 		received=belle_sip_header_via_get_host(via);
 	}
-	
+
 	rport=belle_sip_header_via_get_rport(via);
 	if (rport<=0){
 		/* no rport, the via port might be good then*/
@@ -298,15 +305,15 @@ static int check_body(belle_sip_channel_t *obj){
 	belle_sip_message_t *msg=obj->input_stream.msg;
 	belle_sip_header_content_length_t* content_length_header = belle_sip_message_get_header_by_type(msg,belle_sip_header_content_length_t);
 	int expect_body=FALSE;
-	
+
 	obj->input_stream.content_length= content_length_header ? belle_sip_header_content_length_get_content_length(content_length_header) : 0;
-	
+
 	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_sip_response_t) || BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_sip_request_t)){
 		expect_body=obj->input_stream.content_length>0;
 	}else{/*http*/
 		if (belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t)!=NULL){
 			belle_sip_header_t *transfer_encoding=belle_sip_message_get_header(msg,"Transfer-Encoding");
-			
+
 			if (transfer_encoding){
 				const char *value=belle_sip_header_get_unparsed_value(transfer_encoding);
 				if (strstr(value,"chunked")!=0){
@@ -338,7 +345,7 @@ static int acquire_body_simple(belle_sip_channel_t *obj, int end_of_stream){
 	belle_sip_message_t *msg=obj->input_stream.msg;
 	belle_sip_body_handler_t *bh=belle_sip_message_get_body_handler(msg);
 	size_t cursize=belle_sip_body_handler_get_transfered_size(bh);
-	
+
 	to_read=MIN(content_length-cursize, to_read);
 
 	feed_body(obj,to_read);
@@ -366,7 +373,7 @@ static int acquire_chuncked_body(belle_sip_channel_t *obj){
 			while ( (tmp=strstr(st->read_ptr,"\r\n"))==st->read_ptr){/*skip \r\n*/
 				st->read_ptr+=2;
 			}
-			
+
 			if (tmp!=NULL){
 				/*the chunk length is there*/
 				long chunksize=strtol(st->read_ptr,NULL,16);
@@ -420,7 +427,7 @@ static int acquire_body(belle_sip_channel_t *obj, int end_of_stream){
 static void notify_incoming_messages(belle_sip_channel_t *obj){
 	belle_sip_list_t *elem,*l_it;
 	belle_sip_list_t *listeners=belle_sip_list_copy_with_data(obj->listeners,(void *(*)(void*))belle_sip_object_ref);
-	
+
 	for(l_it=listeners;l_it!=NULL;l_it=l_it->next){
 		belle_sip_channel_listener_t *listener=(belle_sip_channel_listener_t*)l_it->data;
 		for(elem=obj->incoming_messages;elem!=NULL;elem=elem->next){
@@ -440,9 +447,9 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream)
 	int offset;
 	size_t read_size=0;
 	int num;
-	
+
 	while ((num=(obj->input_stream.write_ptr-obj->input_stream.read_ptr))>0){
-	
+
 		if (obj->input_stream.state == WAITING_MESSAGE_START) {
 			int i;
 			/*first, make sure there is \r\n in the buffer, otherwise, micro parser cannot conclude, because we need a complete request or response line somewhere*/
@@ -495,7 +502,7 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream)
 					belle_sip_object_ref(obj->input_stream.msg);
 					if (belle_sip_message_is_request(obj->input_stream.msg)) fix_incoming_via(BELLE_SIP_REQUEST(obj->input_stream.msg),obj->current_peer);
 					/*check for body*/
-					
+
 					if (check_body(obj)){
 						obj->input_stream.state=BODY_AQUISITION;
 					} else {
@@ -528,10 +535,10 @@ static void belle_sip_channel_process_stream(belle_sip_channel_t *obj, int eos){
 static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 	int num;
 	int ret=BELLE_SIP_CONTINUE;
-	
+
 	/*prevent system to suspend the process until we have finish reading everything from the socket and notified the upper layer*/
 	channel_begin_recv_background_task(obj);
-	
+
 	if (obj->simulated_recv_return>0) {
 		num=belle_sip_channel_recv(obj,obj->input_stream.write_ptr,belle_sip_channel_input_stream_get_buff_length(&obj->input_stream)-1);
 	} else {
@@ -621,7 +628,7 @@ static void update_inactivity_timer(belle_sip_channel_t *obj, int from_recv){
 void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,const char *bindip,int localport,const char *peer_cname, const char *peername, int peer_port){
 	/*to initialize our base class:*/
 	belle_sip_channel_set_socket(obj,-1,NULL);
-	
+
 	/*then initialize members*/
 	obj->ai_family=AF_INET;
 	obj->peer_cname=peer_cname ? belle_sip_strdup(peer_cname) : NULL;
@@ -651,7 +658,7 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 	char remoteip[64];
 	struct addrinfo ai;
 	int peer_port;
-	
+
 	memset(&ai,0,sizeof(ai));
 	ai.ai_family=peer_addr->sa_family;
 	ai.ai_addr=(struct sockaddr*)peer_addr;
@@ -706,19 +713,19 @@ belle_sip_uri_t *belle_sip_channel_create_routable_uri(belle_sip_channel_t *chan
 	const char *transport = belle_sip_channel_get_transport_name_lower_case(chan);
 	belle_sip_uri_t* uri = belle_sip_uri_new();
 	unsigned char natted = chan->public_ip && strcmp(chan->public_ip,chan->local_ip)!=0;
-	
+
 	if (natted) {
 		belle_sip_uri_set_host(uri, chan->public_ip);
 		belle_sip_uri_set_port(uri, chan->public_port);
 	} else {
-		
+
 		belle_sip_uri_set_host(uri, chan->local_ip);
 		// With streamed protocols listening port is what we want
 		if (chan->lp)
 			belle_sip_uri_set_port(uri, belle_sip_uri_get_port(chan->lp->listening_uri));
 		else belle_sip_uri_set_port(uri,chan->local_port);
 	}
-	
+
 	belle_sip_uri_set_transport_param(uri, transport);
 	belle_sip_uri_set_lr_param(uri, TRUE);
 	return uri;
@@ -835,7 +842,7 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 			return;
 		}/*else we have already tried all the ip addresses, so give up and notify the error*/
 	}/*else the channel was previously working good with the current ip address but now fails, so let's notify the error*/
-	
+
 	obj->state=BELLE_SIP_CHANNEL_ERROR;
 	channel_end_send_background_task(obj);
 	/*Because error notification will in practice trigger the destruction of possible transactions and this channel,
@@ -857,7 +864,7 @@ int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj){
 
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state) {
 	belle_sip_message("channel %p: state %s",obj,belle_sip_channel_state_to_string(state));
-	
+
 	if (state==BELLE_SIP_CHANNEL_ERROR){
 		belle_sip_channel_handle_error(obj);
 	}else{
@@ -901,7 +908,7 @@ static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t s
 	char truncate_msg[128]={0};
 	int limit=3000;
 	size_t non_ascii_pos;
-	
+
 	if (!belle_sip_log_level_enabled(level)){
 		return belle_sip_malloc0(1);
 	}
@@ -931,7 +938,7 @@ static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t s
 static int send_buffer(belle_sip_channel_t *obj, const char *buffer, size_t size){
 	int ret=0;
 	char *logbuf=NULL;
-	
+
 	if (!obj->stack->send_error){
 		ret=belle_sip_channel_send(obj,buffer,size);
 	}else{
@@ -1009,7 +1016,7 @@ static void _send_message(belle_sip_channel_t *obj){
 	int sendret;
 	size_t off;
 	int ret;
-	
+
 	if (obj->ewouldblock_buffer){
 		sendret=send_buffer(obj,(const char*)obj->ewouldblock_buffer+obj->ewouldblock_offset,obj->ewouldblock_size-obj->ewouldblock_offset);
 		if (sendret>0){
@@ -1025,7 +1032,7 @@ static void _send_message(belle_sip_channel_t *obj){
 			goto done;
 		}
 	}
-	
+
 	if (obj->out_state==OUTPUT_STREAM_SENDING_HEADERS){
 		BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_sending,obj,msg);
 		check_content_length(msg,body_len);
@@ -1037,7 +1044,7 @@ static void _send_message(belle_sip_channel_t *obj){
 		/*send the headers and eventually the body if it fits in our buffer*/
 		if (bh){
 			size_t max_body_len=sizeof(buffer)-1-len;
-			
+
 			if (body_len>0 && body_len<=max_body_len){ /*if size is known and fits into our buffer, send together with headers*/
 				belle_sip_body_handler_begin_transfer(bh);
 				do{
@@ -1146,7 +1153,7 @@ static void channel_prepare_continue(belle_sip_channel_t *obj){
 static void channel_process_queue(belle_sip_channel_t *obj){
 	belle_sip_message_t *msg;
 	belle_sip_object_ref(obj);/* we need to ref ourself because code below may trigger our destruction*/
-	
+
 	if (obj->out_state!=OUTPUT_STREAM_IDLE)
 		_send_message(obj);
 
@@ -1166,9 +1173,9 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 		struct sockaddr_storage saddr;
 		socklen_t slen2=sizeof(saddr);
 		int err;
-		
+
 		belle_sip_address_remove_v4_mapping(addr,(struct sockaddr*) &saddr,&slen2);
-		
+
 		err=getnameinfo((struct sockaddr*)&saddr,slen,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
 		if (err!=0){
 			belle_sip_error("belle_sip_channel_set_ready(): getnameinfo() failed: %s",gai_strerror(err));
@@ -1213,11 +1220,11 @@ void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 
 void belle_sip_channel_connect(belle_sip_channel_t *obj){
 	char ip[64];
-	
+
 	channel_set_state(obj,BELLE_SIP_CHANNEL_CONNECTING);
 	belle_sip_addrinfo_to_ip(obj->current_peer,ip,sizeof(ip),NULL);
 	belle_sip_message("Trying to connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(obj),ip,obj->peer_port);
-	
+
 	if(BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->connect(obj,obj->current_peer)) {
 		belle_sip_error("Cannot connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
@@ -1275,7 +1282,7 @@ void belle_sip_channel_force_close(belle_sip_channel_t *obj){
 belle_sip_channel_t *belle_sip_channel_find_from_list_with_addrinfo(belle_sip_list_t *l, const belle_sip_hop_t *hop, const struct addrinfo *addr){
 	belle_sip_list_t *elem;
 	belle_sip_channel_t *chan;
-	
+
 	for(elem=l;elem!=NULL;elem=elem->next){
 		chan=(belle_sip_channel_t*)elem->data;
 		if (!chan->about_to_be_closed && belle_sip_channel_matches(chan,hop,addr)){
