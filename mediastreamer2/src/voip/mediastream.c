@@ -185,14 +185,7 @@ const char * media_stream_type_str(MediaStream *stream) {
 
 void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 	if (sessions->srtp_session) {
-		RtpTransport *rtptr=NULL,*rtcptr=NULL;
 		ortp_srtp_dealloc(sessions->srtp_session);
-		if (sessions->rtp_session){
-			rtp_session_get_transports(sessions->rtp_session,&rtptr,&rtcptr);
-			rtp_session_set_transports(sessions->rtp_session,NULL,NULL);
-			if (rtptr) srtp_transport_destroy(rtptr);
-			if (rtcptr) srtp_transport_destroy(rtcptr);
-		}
 		sessions->srtp_session=NULL;
 	}
 	if (sessions->rtp_session) {
@@ -260,6 +253,7 @@ static int check_srtp_session_created(MediaStream *stream){
 		err_status_t err;
 		srtp_t session;
 		RtpTransport *rtp=NULL,*rtcp=NULL;
+		RtpTransportModifier *rtp_modifier, *rtcp_modifier;
 
 		err = ortp_srtp_create(&session, NULL);
 		if (err != 0) {
@@ -267,7 +261,15 @@ static int check_srtp_session_created(MediaStream *stream){
 			return -1;
 		}
 		stream->sessions.srtp_session=session;
-		srtp_transport_new(session,&rtp,&rtcp);
+		srtp_transport_modifier_new(session,&rtp_modifier,&rtcp_modifier);
+		rtp_session_get_transports(stream->sessions.rtp_session,&rtp,&rtcp);
+		/*if transports are set, we assume they are meta transporters, otherwise create them*/
+		if (rtp==NULL&&rtcp==NULL){
+			meta_rtp_transport_new(&rtp, TRUE, NULL, 0);
+			meta_rtp_transport_new(&rtcp, FALSE, NULL, 0);
+		}
+		meta_rtp_transport_append_modifier(rtp, rtp_modifier);
+		meta_rtp_transport_append_modifier(rtcp, rtcp_modifier);
 		rtp_session_set_transports(stream->sessions.rtp_session,rtp,rtcp);
 		stream->sessions.is_secured=TRUE;
 	}
