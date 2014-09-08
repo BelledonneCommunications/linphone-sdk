@@ -27,14 +27,27 @@ struct belle_sip_body_handler{
 	belle_sip_body_handler_progress_callback_t progress_cb;
 	size_t expected_size; /* 0 if unknown*/
 	size_t transfered_size;
+	char *header; /* used when this body is part of a multipart message to store the header of this part */
 	void *user_data;
 };
+
+void belle_sip_body_handler_set_header(belle_sip_body_handler_t *obj, char *header) {
+	if (obj->header != NULL) {
+		free(obj->header);
+	}
+	if (header != NULL) {
+		obj->header = belle_sip_strdup(header);
+	} else {
+		obj->header = NULL;
+	}
+}
 
 static void belle_sip_body_handler_clone(belle_sip_body_handler_t *obj, const belle_sip_body_handler_t *orig){
 	obj->progress_cb=orig->progress_cb;
 	obj->user_data=orig->user_data;
 	obj->expected_size=orig->expected_size;
 	obj->transfered_size=orig->transfered_size;
+	belle_sip_body_handler_set_header(obj, orig->header);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_body_handler_t);
@@ -53,6 +66,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 void belle_sip_body_handler_init(belle_sip_body_handler_t *obj, belle_sip_body_handler_progress_callback_t progress_cb, void *user_data){
 	obj->user_data=user_data;
 	obj->progress_cb=progress_cb;
+	obj->header = NULL; /* header is not used in most of the case, set it using a dedicated function if needed */
 }
 
 size_t belle_sip_body_handler_get_size(const belle_sip_body_handler_t *obj){
@@ -278,26 +292,31 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 		belle_sip_body_handler_t *current_part = (belle_sip_body_handler_t *)obj_multipart->parts->data;
 		*size -= strlen(MULTIPART_END); /* just in case it will be the end of the message, ask for less characters than possible in order to be able to add the multipart message termination */
 
-		if (offset == 0) { /* This is the first part, include a boundary */
-			*size -= strlen(MULTIPART_SEPARATOR);
+		size_t offsetSize = 0; /* used to store size of data added by this function and not given by the body handler of current part */
+		if (current_part->transfered_size == 0) { /* Nothing transfered yet on this part, include a separator and the header if exists */
+			/* separator */
+			offsetSize = strlen(MULTIPART_SEPARATOR);
 			memcpy(buffer, MULTIPART_SEPARATOR, strlen(MULTIPART_SEPARATOR));
 			buffer += strlen(MULTIPART_SEPARATOR);
+			/* part header */
+			if (current_part->header != NULL) {
+				offsetSize += strlen(current_part->header);
+				memcpy(buffer, current_part->header, strlen(current_part->header));
+				buffer += strlen(current_part->header);
+			}
+			*size -=offsetSize; /* ask less data to the current part handler */
 		}
 
 		retval = belle_sip_body_handler_send_chunk(current_part, msg, buffer, size);
-		if (offset == 0) {
-			*size+=strlen(MULTIPART_SEPARATOR);
-		}
+
+		*size +=offsetSize; /* restore total of data given including potential separator and header */
 
 		if (retval == BELLE_SIP_CONTINUE) {
 			return BELLE_SIP_CONTINUE; /* there is still data to be sent, continue */
 		} else { /* this part has reach the end, pass to next one if there is one */
 			if (obj_multipart->parts->prev!=NULL) { /* there is an other part to be sent */
 				belle_sip_list_t *next_part = obj_multipart->parts->prev;
-				/* add the multipart boundary */
-				memcpy(buffer+*size, MULTIPART_SEPARATOR, strlen(MULTIPART_SEPARATOR));
 				obj_multipart->parts = next_part;
-				*size+=strlen(MULTIPART_SEPARATOR);
 				return BELLE_SIP_CONTINUE;
 			} else { /* there is nothing else, close the message and return STOP */
 				memcpy(buffer+*size, MULTIPART_END, strlen(MULTIPART_END));
@@ -333,7 +352,10 @@ belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new(belle_s
 }
 
 void belle_sip_multipart_body_handler_add_part(belle_sip_multipart_body_handler_t *obj, belle_sip_body_handler_t *part){
-	obj->base.expected_size+=part->expected_size+strlen(MULTIPART_SEPARATOR);
+	obj->base.expected_size+=part->expected_size+strlen(MULTIPART_SEPARATOR); /* add the separator length to the body length as each part start with a separator */
+	if (part->header != NULL) { /* there is a declared header for this part, add its length to the expected total length */
+		obj->base.expected_size+=strlen(part->header);
+	}
 	obj->parts=belle_sip_list_append(obj->parts,belle_sip_object_ref(part));
 }
 
