@@ -110,7 +110,17 @@ struct _MSQosAnalyzer{
 	MSQosAnalyzerDesc *desc;
 	OrtpLossRateEstimator *lre;
 	char *label;
-	void (*on_action_suggested)(void*, int, const char**);
+	/**
+	* Each time the algorithm suggest an action, this callback is called with the userpointer
+	* @param userpointer on_action_suggested_user_pointer pointer given
+	* @param argc number of arguments on the third argument array
+	* @param argv array containing various algorithm dependent information
+	**/
+	void (*on_action_suggested)(void* userpointer, int argc, const char** argv);
+	/**
+	* User pointer used in #on_action_suggested . Be careful: This pointer is
+	* automatically freed by the QosAnalyzer on change or on destroy
+	**/
 	void *on_action_suggested_user_pointer;
 	int refcnt;
 	MSQosAnalyzerAlgorithm type;

@@ -100,6 +100,8 @@ void ms_qos_analyzer_unref(MSQosAnalyzer *obj){
 			obj->desc->uninit(obj);
 		if (obj->label) ms_free(obj->label);
 		if (obj->lre) ortp_loss_rate_estimator_destroy(obj->lre);
+		if (obj->on_action_suggested_user_pointer) ms_free(obj->on_action_suggested_user_pointer);
+
 		ms_free(obj);
 	}
 }
