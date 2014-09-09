@@ -377,7 +377,8 @@ static void configure_video_source(VideoStream *stream){
 	MSVideoSize preview_vsize;
 
 	/* transmit orientation to source filter */
-	ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+	if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
+		ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 	/* initialize the capture device orientation for preview */
 	if( ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION) )
 		ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
@@ -428,8 +429,11 @@ static void configure_video_source(VideoStream *stream){
 	encoder_supports_source_format.supported = FALSE;
 	encoder_supports_source_format.pixfmt = format;
 
-	ret = ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SUPPORTS_PIXFMT, &encoder_supports_source_format);
-
+	if (ms_filter_has_method(stream->ms.encoder, MS_VIDEO_ENCODER_SUPPORTS_PIXFMT) == TRUE) {
+		ret = ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SUPPORTS_PIXFMT, &encoder_supports_source_format);
+	} else {
+		ret = -1;
+	}
 	if (ret == -1) {
 		// Encoder doesn't have MS_VIDEO_ENCODER_SUPPORTS_PIXFMT method
 		encoder_supports_source_format.supported = (format == MS_YUV420P);
@@ -706,7 +710,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 				ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->window_id);
 			}
 			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_AUTOFIT,&autofit);
-			if (stream->display_filter_auto_rotate_enabled) {
+			if (stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->output, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
 				ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 			}
 		}
@@ -811,11 +815,12 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 
 		/* update orientation */
 		if (stream->source){
-			ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
-			if (!stream->display_filter_auto_rotate_enabled)
+			if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
+				ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+			if (!stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION))
 				ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 		}
-		if (stream->output && stream->display_filter_auto_rotate_enabled) {
+		if (stream->output && stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->output, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
 			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 		}
 
@@ -1036,7 +1041,8 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	stream->source = ms_web_cam_create_reader(device);
 
 	/* Transmit orientation to source filter. */
-	ms_filter_call_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, &stream->device_orientation);
+	if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
+		ms_filter_call_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, &stream->device_orientation);
 	/* Initialize the capture device orientation. */
 	if (ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
 		ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, &stream->device_orientation);
