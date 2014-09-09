@@ -29,3 +29,5 @@ stamp-h1
 *.swp
 .deps
 .libs
+INSTALL
+m4
