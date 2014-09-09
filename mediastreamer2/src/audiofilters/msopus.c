@@ -422,7 +422,7 @@ static int ms_opus_enc_get_bitrate(MSFilter *f, void *arg) {
 }
 
 /* ptime can be set using this function only at first call (between init and preprocess) */
-/* other calls will return -1 to force the adaptative bit rate to use the set bitrate function */
+/* other calls will return -1 to force the adaptive bit rate to use the set bitrate function */
 /* the ptime is managed by the set bitrate function which increase ptime only at low bitrate */
 static int ms_opus_enc_set_ptime(MSFilter *f, void *arg) {
 	OpusEncData *d = (OpusEncData *)f->data;
