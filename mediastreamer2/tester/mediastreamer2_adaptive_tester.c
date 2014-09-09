@@ -358,7 +358,7 @@ static void adaptive_pcma_audio_stream() {
 		float bw_usage;
 		stream_manager_t * marielle, * margaux;
 
-		// yet non-adaptative codecs cannot respect low throughput limitations
+		// yet non-adaptive codecs cannot respect low throughput limitations
 		start_adaptive_stream(MSAudio, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0, 0);
 		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
