@@ -50,12 +50,15 @@ static void belle_sip_body_handler_clone(belle_sip_body_handler_t *obj, const be
 	belle_sip_body_handler_set_header(obj, orig->header);
 }
 
+static void belle_sip_body_handler_destroy(belle_sip_body_handler_t *obj){
+}
+
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_body_handler_t);
 
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_body_handler_t)
 	{
 		BELLE_SIP_VPTR_INIT(belle_sip_body_handler_t,belle_sip_object_t,TRUE),
-		(belle_sip_object_destroy_t) NULL,
+		(belle_sip_object_destroy_t) belle_sip_body_handler_destroy,
 		(belle_sip_object_clone_t) belle_sip_body_handler_clone,
 		NULL,/*no marshal*/
 	},
