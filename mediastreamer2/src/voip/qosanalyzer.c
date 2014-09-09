@@ -84,9 +84,9 @@ const char* ms_qos_analyzer_algorithm_to_string(MSQosAnalyzerAlgorithm alg) {
 	}
 }
 const MSQosAnalyzerAlgorithm ms_qos_analyzer_algorithm_from_string(const char* alg) {
-	if (alg == NULL || strcmp(alg, "Simple")==0)
+	if (alg == NULL || strcasecmp(alg, "Simple")==0)
 		return MSQosAnalyzerAlgorithmSimple;
-	else if (strcmp(alg, "Stateful")==0)
+	else if (strcasecmp(alg, "Stateful")==0)
 		return MSQosAnalyzerAlgorithmStateful;
 
 	ms_error("Invalid qos analyzer: %s", alg);
