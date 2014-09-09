@@ -115,8 +115,8 @@ if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) (%s:%d)",method, audio
 static const char* AU_CARD_RECEIVER = "Audio Unit Receiver";
 static const char* AU_CARD_NOVOICEPROC = "Audio Unit NoVoiceProc";
 static const char* AU_CARD_FAST_IOUNIT = "Audio Unit Fast Receiver"; /*Same as AU_CARD_RECEIVER but whiout audio session handling which are delagated to the application*/
-
 static const char* AU_CARD_SPEAKER = "Audio Unit Speaker";
+static const char* AU_CARD_TESTER = "Audio Unit Tester";
 
 
 static MSFilter *ms_au_read_new(MSSndCard *card);
@@ -139,6 +139,7 @@ typedef  struct  au_card {
 	CFRunLoopTimerRef shutdown_timer;
 	bool_t is_ringer;
 	bool_t is_fast;
+	bool_t is_tester;
 	bool_t io_unit_started;
 	bool_t audio_session_configured;
 	bool_t read_started;
@@ -240,6 +241,8 @@ static void au_init(MSSndCard *card){
 		d->is_ringer=TRUE;
 	} else if (strcmp(card->name,AU_CARD_FAST_IOUNIT)==0) {
 		d->is_fast=TRUE;
+	} else if( strcmp(card->name,AU_CARD_TESTER)==0){
+		d->is_tester=TRUE;
 	}
 	d->bits=16;
 	d->rate=0; /*not set*/
@@ -294,6 +297,8 @@ static void au_detect(MSSndCardManager *m){
 	card=au_card_new(AU_CARD_FAST_IOUNIT); 
 	ms_snd_card_manager_add_card(m,card);
     card = au_card_new(AU_CARD_NOVOICEPROC);
+    ms_snd_card_manager_add_card(m,card);
+    card = au_card_new(AU_CARD_TESTER);
     ms_snd_card_manager_add_card(m,card);
 }
 
@@ -842,7 +847,11 @@ static void au_read_uninit(MSFilter *f) {
 	ms_mutex_lock(&card->mutex);
 	card->read_data=NULL;
 	ms_mutex_unlock(&card->mutex);
-	check_unused(card);
+	if( card->is_tester){
+		stop_audio_unit(card);
+	} else {
+		check_unused(card);
+	}
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
 }
@@ -853,7 +862,11 @@ static void au_write_uninit(MSFilter *f) {
 	ms_mutex_lock(&card->mutex);
 	card->write_data=NULL;
 	ms_mutex_unlock(&card->mutex);
-	check_unused(card);
+	if( card->is_tester){
+		stop_audio_unit(card);
+	} else {
+		check_unused(card);
+	}
 	ms_mutex_destroy(&d->mutex);
 	ms_bufferizer_destroy(d->bufferizer);
 	ms_free(d);
