@@ -223,7 +223,7 @@ void helper(const char *name) {
 	}
 
 #ifndef WINAPI_FAMILY_PHONE_APP
-#if TARGET_OS_MAC
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
 int _main (int argc, char *argv[]) {
 #else
 int main (int argc, char *argv[]) {
