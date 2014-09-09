@@ -67,10 +67,13 @@ static void equalizer_rate_update( EqualizerState* s, int rate ){
 
     s->rate=rate;
 	s->nfft=nFFT;
+	if (s->fft_cpx != NULL) ms_free(s->fft_cpx);
 	s->fft_cpx=(ms_word16_t*)ms_new0(ms_word16_t,s->nfft);
 	equalizer_state_flatten(s);
 	s->fir_len=s->nfft;
+	if (s->fir != NULL) ms_free(s->fir);
 	s->fir=(ms_word16_t*)ms_new(ms_word16_t,s->fir_len);
+	if (s->mem != NULL) ms_free(s->mem);
 	s->mem=(ms_mem_t*)ms_new0(ms_mem_t,s->fir_len);
 	s->needs_update=TRUE;
 }
