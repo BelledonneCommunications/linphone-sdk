@@ -44,14 +44,6 @@ enum _MSRateControlActionType{
 typedef enum _MSRateControlActionType MSRateControlActionType;
 const char *ms_rate_control_action_type_name(MSRateControlActionType t);
 
-enum _MSQosAnalyzerNetworkState{
-	MSQosAnalyzerNetworkFine,
-	MSQosAnalyzerNetworkUnstable,
-	MSQosAnalyzerNetworkCongested,
-	MSQosAnalyzerNetworkLossy,
-};
-typedef enum _MSQosAnalyzerNetworkState MSQosAnalyzerNetworkState;
-const char *ms_qos_analyzer_network_state_name(MSQosAnalyzerNetworkState state);
 
 typedef struct _MSRateControlAction{
 	MSRateControlActionType type;

@@ -276,20 +276,6 @@ MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session){
 /******************************************************************************/
 /***************************** Stateful QoS analyzer ****************************/
 /******************************************************************************/
-const char *ms_qos_analyzer_network_state_name(MSQosAnalyzerNetworkState state){
-	switch(state){
-		case MSQosAnalyzerNetworkFine:
-			return "fine";
-		case MSQosAnalyzerNetworkUnstable:
-			return "unstable";
-		case MSQosAnalyzerNetworkCongested:
-			return "congested";
-		case MSQosAnalyzerNetworkLossy:
-			return "lossy";
-	}
-	return "bad state type";
-}
-
 static int earlier_than(rtcpstatspoint_t *p, const time_t * now){
 	if (p->timestamp < *now){
 		ms_free(p);
@@ -345,7 +331,7 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 			// Always skip the 2 first reports, since values might be erroneous due
 			// to initialization of multiples objects (encoder/decoder/stats computing..)
 			if (obj->curindex==1)  {
-				return rb!=NULL;
+				return FALSE;
 			}
 
 			if (obj->previous_ext_high_seq_num_rec > 0){
@@ -380,9 +366,10 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 				ms_message("MSStatefulQosAnalyzer[%p]: Reached list maximum capacity (count=%d) --> Cleaned list (count=%d)",
 					obj, prev_size, ms_list_size(obj->rtcpstatspoint));
 			}
+			return TRUE;
 		}
 	}
-	return rb!=NULL;
+	return FALSE;
 }
 
 static float lerp(float inf, float sup, float v){
@@ -515,10 +502,6 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 
 	obj->network_loss_rate = constant_network_loss;
 	obj->congestion_bandwidth = mean_bw;
-	obj->network_state =
-		(current==NULL && constant_network_loss < .1) ?	MSQosAnalyzerNetworkFine
-		: (constant_network_loss > .1) ?				MSQosAnalyzerNetworkLossy
-		:												MSQosAnalyzerNetworkCongested;
 
 	return mean_bw;
 }

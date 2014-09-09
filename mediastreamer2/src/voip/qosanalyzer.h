@@ -69,7 +69,6 @@ extern "C" {
 		RtpSession *session;
 		int curindex;
 
-		MSQosAnalyzerNetworkState network_state;
 		MSList *rtcpstatspoint;
 		rtcpstatspoint_t *latest;
 		double network_loss_rate;
