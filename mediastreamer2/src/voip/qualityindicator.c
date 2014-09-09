@@ -138,7 +138,7 @@ void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *r
 		float rt_prop=rtp_session_get_round_trip_propagation(qi->session);
 		bool_t new_value;
 
-		new_value=ortp_loss_rate_estimator_process_report_block(qi->lr_estimator,rb);
+		new_value=ortp_loss_rate_estimator_process_report_block(qi->lr_estimator,&qi->session->rtp,rb);
 		loss_rate=ortp_loss_rate_estimator_get_value(qi->lr_estimator);
 		qi->remote_rating=compute_rating(loss_rate/100.0,inter_jitter,0,rt_prop);
 		qi->remote_lq_rating=compute_lq_rating(loss_rate/100.0,inter_jitter,0);

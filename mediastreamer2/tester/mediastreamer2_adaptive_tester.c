@@ -390,6 +390,63 @@ static void upload_bandwidth_computation() {
 	}
 }
 
+typedef struct {
+		OrtpLossRateEstimator *estimator;
+		OrtpEvQueue *q;
+		int loss_rate;
+}LossRateEstimatorCtx;
+static void event_queue_cb(MediaStream *ms, void *user_pointer) {
+	LossRateEstimatorCtx *ctx = (LossRateEstimatorCtx*)user_pointer;
+	if (ctx->q != NULL) {
+		OrtpEvent *ev = NULL;
+		while ((ev = ortp_ev_queue_get(ctx->q)) != NULL) {
+			OrtpEventType evt = ortp_event_get_type(ev);
+			OrtpEventData *evd = ortp_event_get_data(ev);
+			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) {
+				do {
+					const report_block_t *rb=NULL;
+					if (rtcp_is_SR(evd->packet)){
+						rb=rtcp_SR_get_report_block(evd->packet,0);
+					}else if (rtcp_is_RR(evd->packet)){
+						rb=rtcp_RR_get_report_block(evd->packet,0);
+					}
+
+					if (rb&&ortp_loss_rate_estimator_process_report_block(ctx->estimator,&ms->sessions.rtp_session->rtp,rb)){
+						float diff = fabs(ortp_loss_rate_estimator_get_value(ctx->estimator) - ctx->loss_rate);
+						CU_ASSERT_IN_RANGE(diff, 0, 10);
+					}
+				} while (rtcp_next_packet(evd->packet));
+			}
+			ortp_event_destroy(ev);
+		}
+	}
+}
+static void loss_rate_estimation() {
+	bool_t supported = ms_filter_codec_supported("pcma");
+	if( supported ) {
+		LossRateEstimatorCtx ctx;
+		stream_manager_t * marielle, * margaux;
+		int loss_rate = 15;
+
+		start_adaptive_stream(MSAudio, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, loss_rate, 0, 0);
+		ctx.estimator=ortp_loss_rate_estimator_new(120, marielle->audio_stream->ms.sessions.rtp_session);
+		ctx.q = ortp_ev_queue_new();
+		rtp_session_register_event_queue(marielle->audio_stream->ms.sessions.rtp_session, ctx.q);
+		ctx.loss_rate = loss_rate;
+
+		/*loss rate should be the initial one*/
+		wait_for_until_with_parse_events(&marielle->audio_stream->ms, &margaux->audio_stream->ms, &loss_rate, 100, 10000, event_queue_cb,&ctx,NULL,NULL);
+
+		/*let's set some duplication. loss rate should NOT be changed */
+		rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, 10);
+		wait_for_until_with_parse_events(&marielle->audio_stream->ms, &margaux->audio_stream->ms, &loss_rate, 100, 10000, event_queue_cb,&ctx,NULL,NULL);
+
+		stop_adaptive_stream(marielle,margaux);
+		ortp_loss_rate_estimator_destroy(ctx.estimator);
+		ortp_ev_queue_destroy(ctx.q);
+	}
+}
+
 static void adaptive_vp8() {
 	ms_warning("Temporary disabled %s",__FUNCTION__);
 #if 0
@@ -431,11 +488,11 @@ static void packet_duplication() {
 	media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
-	CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
+	CU_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
 	/*in theory, cumulative loss should be the invert of duplicated count, but
 	since cumulative loss is computed only on received RTCP report and duplicated
 	count is updated on each RTP packet received, we cannot accurately compare these values*/
-	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
+	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->packet_dup_recv);
 	stop_adaptive_stream(marielle,margaux);
 
 	dup_ratio = 1;
@@ -443,14 +500,15 @@ static void packet_duplication() {
 	media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
-	CU_ASSERT_EQUAL(stats->duplicated, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
-	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->duplicated);
+	CU_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
+	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->packet_dup_recv);
 	stop_adaptive_stream(marielle,margaux);
 }
 
 static test_t tests[] = {
 	{ "Packet duplication", packet_duplication},
 	{ "Upload bandwidth computation", upload_bandwidth_computation },
+	{ "Loss rate estimation", loss_rate_estimation },
 	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
 	{ "Adaptive audio stream [speex]", adaptive_speex16_audio_stream },
 	{ "Adaptive audio stream [pcma]", adaptive_pcma_audio_stream },

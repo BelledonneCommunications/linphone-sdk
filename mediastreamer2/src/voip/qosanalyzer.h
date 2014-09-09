@@ -83,11 +83,6 @@ extern "C" {
 
 		double burst_ratio;
 		double burst_duration_ms;
-
-		uint32_t start_seq_number;
-		uint32_t last_seq_number;
-		int cum_loss_prev;
-		int previous_ext_high_seq_num_rec;
 	}MSStatefulQosAnalyzer;
 #ifdef __cplusplus
 }

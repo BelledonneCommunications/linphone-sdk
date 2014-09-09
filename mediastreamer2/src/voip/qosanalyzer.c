@@ -173,7 +173,7 @@ static bool_t simple_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp)
 			if (pt!=NULL) obj->clockrate=pt->clock_rate;
 			else return FALSE;
 		}
-		if (ortp_loss_rate_estimator_process_report_block(objbase->lre,rb)){
+		if (ortp_loss_rate_estimator_process_report_block(objbase->lre,&obj->session->rtp,rb)){
 			cur->lost_percentage=ortp_loss_rate_estimator_get_value(objbase->lre);
 			cur->int_jitter=1000.0*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
 			cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
@@ -300,15 +300,6 @@ static float stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj){
 	return obj->upload_bandwidth_latest;
 }
 
-static int stateful_qos_analyzer_get_total_emitted(const MSStatefulQosAnalyzer *obj, const report_block_t *rb){
-	float dup = obj->burst_ratio;
-	int burst_within_start = MAX(obj->previous_ext_high_seq_num_rec, obj->start_seq_number);
-	int burst_within_end = MIN(report_block_get_high_ext_seq(rb), obj->last_seq_number);
-	int uniq_emitted=report_block_get_high_ext_seq(rb) - obj->previous_ext_high_seq_num_rec;
-
-	return uniq_emitted + MAX(0,burst_within_end - burst_within_start) * dup;
-}
-
 static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp){
 	MSStatefulQosAnalyzer *obj=(MSStatefulQosAnalyzer*)objbase;
 	const report_block_t *rb=NULL;
@@ -319,12 +310,8 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 	}
 
 	if (rb && report_block_get_ssrc(rb)==rtp_session_get_send_ssrc(obj->session)){
-		if (ortp_loss_rate_estimator_process_report_block(objbase->lre,rb)){
-			int total_emitted=stateful_qos_analyzer_get_total_emitted(obj, rb);
-			int uniq_emitted=report_block_get_high_ext_seq(rb) - obj->previous_ext_high_seq_num_rec;
-			int cum_loss=report_block_get_cum_packet_loss(rb);
-			int cum_loss_curr=cum_loss - obj->cum_loss_prev;
-			float loss_rate = (float)report_block_get_fraction_lost(rb)/256.0;
+		if (ortp_loss_rate_estimator_process_report_block(objbase->lre,&obj->session->rtp,rb)){
+			float loss_rate = ortp_loss_rate_estimator_get_value(objbase->lre);
 			float up_bw = stateful_qos_analyzer_upload_bandwidth(obj);
 			obj->curindex++;
 
@@ -334,14 +321,10 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 				return FALSE;
 			}
 
-			if (obj->previous_ext_high_seq_num_rec > 0){
-				loss_rate=(1. - (uniq_emitted - cum_loss_curr) * 1.f / total_emitted);
-			}
-
 			obj->latest=ms_new0(rtcpstatspoint_t, 1);
 			obj->latest->timestamp=ms_time(0);
 			obj->latest->bandwidth=up_bw;
-			obj->latest->loss_percent=MAX(0,loss_rate);/*ortp_loss_rate_estimator_get_value(objbase->lre);*/
+			obj->latest->loss_percent=MAX(0,loss_rate);/**/
 			obj->latest->rtt=rtp_session_get_round_trip_propagation(obj->session);
 
 			obj->rtcpstatspoint=ms_list_insert_sorted(obj->rtcpstatspoint, obj->latest, (MSCompareFunc)sort_points);
@@ -591,15 +574,12 @@ static void stateful_analyzer_update(MSQosAnalyzer *objbase){
 			obj->burst_state=MSStatefulQosAnalyzerBurstInProgress;
 			ortp_gettimeofday(&obj->start_time, NULL);
 			rtp_session_set_duplication_ratio(obj->session, obj->burst_ratio);
-			obj->start_seq_number=obj->last_seq_number=obj->session->rtp.snd_seq;
 		} case MSStatefulQosAnalyzerBurstInProgress: {
 			struct timeval now;
 			float elapsed;
 
 			ortp_gettimeofday(&now,NULL);
 			elapsed=((now.tv_sec-obj->start_time.tv_sec)*1000.0) +  ((now.tv_usec-obj->start_time.tv_usec)/1000.0);
-
-			obj->last_seq_number=obj->session->rtp.snd_seq;
 
 			if (elapsed > obj->burst_duration_ms){
 				obj->burst_state=MSStatefulQosAnalyzerBurstDisable;
