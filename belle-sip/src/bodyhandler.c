@@ -292,10 +292,10 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 
 	if (obj_multipart->parts->data) { /* we have a part, get its content from handler */
 		int retval = BELLE_SIP_STOP;
+		size_t offsetSize = 0; /* used to store size of data added by this function and not given by the body handler of current part */
 		belle_sip_body_handler_t *current_part = (belle_sip_body_handler_t *)obj_multipart->parts->data;
 		*size -= strlen(MULTIPART_END); /* just in case it will be the end of the message, ask for less characters than possible in order to be able to add the multipart message termination */
 
-		size_t offsetSize = 0; /* used to store size of data added by this function and not given by the body handler of current part */
 		if (current_part->transfered_size == 0) { /* Nothing transfered yet on this part, include a separator and the header if exists */
 			/* separator */
 			offsetSize = strlen(MULTIPART_SEPARATOR);
