@@ -248,8 +248,8 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	
 	if (libmedia && libutils){
 		/*perform initializations in order rather than in a if statement so that all missing symbols are shown in logs*/
-		audio_record_loaded=AudioRecordImpl::init(libmedia,get_sdk_version());
-		audio_track_loaded=AudioTrackImpl::init(libmedia,get_sdk_version());
+		audio_record_loaded=AudioRecordImpl::init(libmedia);
+		audio_track_loaded=AudioTrackImpl::init(libmedia);
 		audio_system_loaded=AudioSystemImpl::init(libmedia);
 		string8_loaded=String8Impl::init(libutils);
 		refbase_loaded=RefBaseImpl::init(libutils);

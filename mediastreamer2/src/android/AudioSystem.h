@@ -255,6 +255,7 @@ public:
 	Function2<status_t,audio_io_handle_t,const String8 &> mSetParameters;
 	Function1<status_t, audio_mode_t> mSetPhoneState;
 	Function2<status_t, audio_policy_force_use_t, audio_policy_forced_cfg_t> mSetForceUse;
+	Function0<int> mNewAudioSessionId;
 	//Function6<audio_io_handle_t,audio_source_t,uint32_t,audio_format_t,uint32_t,audio_in_acoustics_t,int> mGetInput;
 private:
 	AudioSystemImpl(Library *lib);

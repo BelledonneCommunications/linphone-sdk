@@ -38,11 +38,18 @@ AudioRecord::AudioRecord(audio_source_t inputSource,
                                     audio_input_flags_t flags){
 	mThis=new uint8_t[512];
 	mImpl=AudioRecordImpl::get();
+	mSessionId=-1;
 
 	if (mImpl->mCtorBeforeAPI17.isFound()) {
 		mImpl->mCtorBeforeAPI17.invoke(mThis,inputSource,sampleRate,format,channelMask,frameCount,(record_flags)0,cbf,user,notificationFrames,sessionId);
 	} else {
 		/* The flags parameter was removed in Android 4.2 (API level 17). */
+		if (AudioTrackImpl::get()->mSdkVersion>=19 && sessionId==0){
+			sessionId=AudioSystem::newAudioSessionId();
+			if (sessionId==-1){
+				sessionId=0;
+			}else mSessionId=sessionId;
+		}
 		mImpl->mCtor.invoke(mThis,inputSource,sampleRate,format,channelMask,frameCount,cbf,user,notificationFrames,sessionId,transferType,flags);
 	}
 }
@@ -92,7 +99,8 @@ audio_io_handle_t AudioRecord::getInput() const{
 int AudioRecord::getSessionId() const{
 	if (mImpl->mGetSessionId.isFound()){
 		return mImpl->mGetSessionId.invoke(mThis);
-	}
+	}else if (mSessionId!=-1)
+		return mSessionId;
 	ms_warning("AudioRecord::getSessionId() not available");
 	return -1;
 }
@@ -109,7 +117,7 @@ void AudioRecord::readBuffer(const void *p_info, Buffer *buffer){
 }
 
 bool AudioRecord::isRefCounted()const{
-	return mImpl->mSdkVersion>=19;
+	return AudioTrackImpl::get()->mSdkVersion>=19;
 }
 
 void AudioRecord::destroy()const{
@@ -117,7 +125,7 @@ void AudioRecord::destroy()const{
 	delete []mThis;
 }
 
-bool AudioRecordImpl::init(Library *lib, int sdkVersion){
+bool AudioRecordImpl::init(Library *lib){
 	bool fail=false;
 	AudioRecordImpl *impl=new AudioRecordImpl(lib);
 	if (!impl->mCtorBeforeAPI17.isFound() && !impl->mCtor.isFound()) {
@@ -139,7 +147,6 @@ bool AudioRecordImpl::init(Library *lib, int sdkVersion){
 		fail=true;
 		ms_error("AudioRecord::start() not found.");
 	}
-	impl->mSdkVersion=sdkVersion;
 	if (fail){
 		delete impl;
 		return false;

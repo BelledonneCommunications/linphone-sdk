@@ -110,6 +110,8 @@ static SoundDeviceDescription devices[]={
 	
 	{	"Amazon",		"KFTT",		"omap4",	DEVICE_USE_ANDROID_MIC,200},
 	{	"LENOVO",		"Lenovo B6000-F",		"",DEVICE_HAS_BUILTIN_AEC_CRAPPY,300},
+	
+	{	"Enspert",		"IGGY",		""		,	0,	320 ,0}, /*Wiko iggy*/
 	{	NULL, NULL, NULL, 0, 0,0}
 };
 
@@ -250,8 +252,7 @@ SoundDeviceDescription * sound_device_description_get(void){
 	}else exact_match=TRUE;
 	
 	if (d) {
-		ms_message("Found AEC information for [%s/%s/%s] from internal table: builtin=[%s], delay=[%i] ms",
-				manufacturer,model,platform, (d->flags & DEVICE_HAS_BUILTIN_AEC) ? "yes" : "no", d->delay);
+		ms_message("Found AEC information for [%s/%s/%s] from internal table",manufacturer,model,platform);
 	}else d=&undefined;
 	
 	if (declares_builtin_aec){
@@ -262,6 +263,8 @@ SoundDeviceDescription * sound_device_description_get(void){
 			d->delay=0;
 		}
 	}
+	ms_message("Sound device information for [%s/%s/%s] is: builtin=[%s], delay=[%i] ms",
+				manufacturer,model,platform, (d->flags & DEVICE_HAS_BUILTIN_AEC) ? "yes" : "no", d->delay);
 	return d;
 }
 

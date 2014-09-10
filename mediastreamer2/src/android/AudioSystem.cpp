@@ -59,6 +59,15 @@ status_t AudioSystem::setForceUse(audio_policy_force_use_t usage, audio_policy_f
 	return AudioSystemImpl::get()->mSetForceUse.invoke(usage, config);
 }
 
+int AudioSystem::newAudioSessionId(){
+	if (AudioSystemImpl::get()->mNewAudioSessionId.isFound())
+		return AudioSystemImpl::get()->mNewAudioSessionId.invoke();
+	else{
+		ms_warning("AudioSystem::newAudioSessionId() not found.");
+		return -1;
+	}
+}
+
 audio_io_handle_t AudioSystem::getInput(audio_source_t inputSource,
                                     uint32_t samplingRate,
                                     audio_format_t format,
@@ -78,7 +87,8 @@ AudioSystemImpl::AudioSystemImpl(Library *lib) :
 	mGetOutputLatency(lib, "_ZN7android11AudioSystem16getOutputLatencyEPji"),
 	mSetParameters(lib,"_ZN7android11AudioSystem13setParametersEiRKNS_7String8E"),
 	mSetPhoneState(lib, "_ZN7android11AudioSystem13setPhoneStateEi"),
-	mSetForceUse(lib, "_ZN7android11AudioSystem11setForceUseENS0_9force_useENS0_13forced_configE") {
+	mSetForceUse(lib, "_ZN7android11AudioSystem11setForceUseENS0_9force_useENS0_13forced_configE"),
+	mNewAudioSessionId(lib,"_ZN7android11AudioSystem17newAudioSessionIdEv"){
 	//mGetInput(lib,"_ZN7android11AudioSystem8getInputEijjjNS0_18audio_in_acousticsE"){
 	mApi18=false;
 	// Try some Android 4.0 symbols if not found

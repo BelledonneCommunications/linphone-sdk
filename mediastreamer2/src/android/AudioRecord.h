@@ -361,11 +361,12 @@ protected:
 private:
 	uint8_t *mThis;
 	AudioRecordImpl *mImpl;
+	int mSessionId;
 };
 
 class AudioRecordImpl{
 public:
-	static bool init(Library *lib, int sdkVersion);
+	static bool init(Library *lib);
 	static AudioRecordImpl *get(){
 		return sImpl;
 	}
@@ -401,7 +402,6 @@ public:
 	Function4<status_t, int*, uint32_t, int, int> mGetMinFrameCount;
 	Function1<int,const void *> mGetSessionId;
 	//Function1<audio_io_handle_t,void*> mGetInput;
-	int mSdkVersion;
 private:
 	AudioRecordImpl(Library *lib);
 	static AudioRecordImpl *sImpl;

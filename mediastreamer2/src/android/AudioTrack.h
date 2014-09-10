@@ -441,7 +441,7 @@ private:
 
 class AudioTrackImpl{
 public:
-	static bool init(Library *lib, int sdk_version);
+	static bool init(Library *lib);
 	static AudioTrackImpl *get(){
 		return sImpl;
 	}

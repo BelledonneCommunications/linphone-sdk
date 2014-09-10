@@ -161,6 +161,7 @@ namespace fake_android{
 		mLatency(lib,"_ZNK7android10AudioTrack7latencyEv"),
 		mGetPosition(lib,"_ZNK7android10AudioTrack11getPositionEPj") //4.4 symbol
 	{
+		mSdkVersion=0;
 		// Try some Android 2.2 symbols if not found
 		if (!mCtor.isFound()) {
 			mCtor.load(lib,"_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_i");
@@ -170,6 +171,9 @@ namespace fake_android{
 			if (!mCtor.isFound()){
 				mCtor.load(lib,"_ZN7android10AudioTrackC1E19audio_stream_type_tj14audio_format_t"
 				"ji20audio_output_flags_tPFviPvS4_ES4_iiNS0_13transfer_typeEPK20audio_offload_info_ti");
+				if (mCtor.isFound()){
+					mSdkVersion=19;
+				}
 			}
 		}
 
@@ -182,7 +186,7 @@ namespace fake_android{
 		}
 	}
 	
-	bool AudioTrackImpl::init(Library *lib, int sdkVersion){
+	bool AudioTrackImpl::init(Library *lib){
 		bool fail=false;
 		AudioTrackImpl *impl=new AudioTrackImpl(lib);
 		
@@ -216,9 +220,11 @@ namespace fake_android{
 			ms_error("AudioTrack::getPosition() not found");
 			fail=true;
 		}
-		impl->mSdkVersion=sdkVersion;
 		if (!fail){
 			sImpl=impl;
+			if (impl->mSdkVersion>=19){
+				ms_message("AudioTrack and AudioRecord need refcounting.");
+			}
 			return true;
 		}else{
 			delete impl;
