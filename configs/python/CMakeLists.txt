@@ -112,7 +112,7 @@ endif()
 
 add_library(pylinphone MODULE "${SOURCE_FILENAME}")
 target_compile_options(pylinphone PUBLIC ${LINPHONE_CPPFLAGS})
-target_include_directories(pylinphone PUBLIC ${LINPHONE_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS})
+target_include_directories(pylinphone PUBLIC ${LINPHONE_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../../Source/EP_linphone/coreapi" "${CMAKE_CURRENT_BINARY_DIR}/../../Source/EP_linphone/include")
 set(PYLINPHONE_LINK_LIBRARIES ${LINPHONE_LIBRARIES})
 if(WIN32)
 	find_library(GCC_LIBRARIES gcc)
