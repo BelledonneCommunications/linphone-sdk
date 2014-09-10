@@ -495,8 +495,8 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 static void stateful_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateControlAction *action){
 	MSStatefulQosAnalyzer *obj=(MSStatefulQosAnalyzer*)objbase;
 
-	float curbw;
-	float bw;
+	float curbw = 0;
+	float bw = 0;
 	rtcpstatspoint_t* greatest_pt = NULL;
 	/*if this is the first measure, there is not enough reliable data to use; we
 	assume loss rate is due to non congestionned network. This is mainly useful
