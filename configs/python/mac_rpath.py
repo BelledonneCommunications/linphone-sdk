@@ -16,7 +16,7 @@ def list_files(source_dir):
   for file in os.listdir(source_dir):
     if os.path.isdir(os.path.join(source_dir, file)) ==  False:
       root, ext = os.path.splitext(file)
-      if ext == '.dylib':
+      if ext == '.dylib' or ext == '.so':
         filelist.append(file)
   return filelist
 
