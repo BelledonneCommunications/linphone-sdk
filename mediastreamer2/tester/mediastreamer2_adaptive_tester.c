@@ -202,8 +202,8 @@ static void handle_queue_events(stream_manager_t * stream_mgr) {
 					const MSQosAnalyzer *analyzer=ms_bitrate_controller_get_qos_analyzer(stream_mgr->video_stream->ms.rc);
 					if (analyzer->type==MSQosAnalyzerAlgorithmStateful){
 						const MSStatefulQosAnalyzer *stateful_analyzer=((const MSStatefulQosAnalyzer*)analyzer);
-						stream_mgr->adaptive_stats.loss_estim =100*stateful_analyzer->network_loss_rate;
-						stream_mgr->adaptive_stats.congestion_bw_estim =stateful_analyzer->congestion_bandwidth;
+						stream_mgr->adaptive_stats.loss_estim=stateful_analyzer->network_loss_rate;
+						stream_mgr->adaptive_stats.congestion_bw_estim=stateful_analyzer->congestion_bandwidth;
 					}
 				}
 			}
@@ -213,7 +213,7 @@ static void handle_queue_events(stream_manager_t * stream_mgr) {
 }
 
 void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, stream_manager_t ** pmargaux,
-	int payload, int initial_bitrate, int target_bw, float loss_rate, int latency, float dup_ratio) {
+	int payload, int initial_bitrate, int max_bw, float loss_rate, int latency, float dup_ratio) {
 	int pause_time=0;
 	PayloadType* pt;
 	MediaStream *marielle_ms,*margaux_ms;
@@ -225,7 +225,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);
 	params.enabled=TRUE;
 	params.loss_rate=loss_rate;
-	params.max_bandwidth=target_bw;
+	params.max_bandwidth=max_bw;
 	params.latency=latency;
 
 	if (type == MSAudio){
@@ -341,9 +341,9 @@ static void adaptive_speex16_audio_stream()  {
 		float bw_usage;
 		stream_manager_t * marielle, * margaux;
 
-		start_adaptive_stream(MSAudio, &marielle, &margaux, SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW / 2., 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
-		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./(EDGE_BW / 2.);
+		start_adaptive_stream(MSAudio, &marielle, &margaux, SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW, 0, 0, 0);
+		iterate_adaptive_stream(marielle, margaux, 15000, NULL, 0);
+		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 5.f);
 		stop_adaptive_stream(marielle,margaux);
 	}
@@ -448,20 +448,18 @@ static void loss_rate_estimation() {
 }
 
 static void adaptive_vp8() {
-	ms_warning("Temporary disabled %s",__FUNCTION__);
-#if 0
 	stream_manager_t * marielle, * margaux;
+
+	start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,0);
+	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
+	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 1);
+	CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim > 200);
+	stop_adaptive_stream(marielle,margaux);
 
 	start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 25, 50, 0);
 	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 20, 30);
 	CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim > 200);
-	stop_adaptive_stream(marielle,margaux);
-
-	start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 45000, 0, 50,0);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
-	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
-	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 30, 60);
 	stop_adaptive_stream(marielle,margaux);
 
 	start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50,0);
@@ -475,7 +473,6 @@ static void adaptive_vp8() {
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 10, 20);
 	CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 80, 125);
 	stop_adaptive_stream(marielle,margaux);
-#endif
 }
 
 static void packet_duplication() {

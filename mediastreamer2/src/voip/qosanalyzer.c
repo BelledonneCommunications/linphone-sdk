@@ -315,20 +315,23 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 			float up_bw = stateful_qos_analyzer_upload_bandwidth(obj);
 			obj->curindex++;
 
-			// Always skip the 2 first reports, since values might be erroneous due
+			// Always skip the first report, since values might be erroneous due
 			// to initialization of multiples objects (encoder/decoder/stats computing..)
+			// Instead assume loss rate is a good estimation of network capacity
 			if (obj->curindex==1)  {
-				return FALSE;
+				obj->network_loss_rate=loss_rate;
+				return TRUE;
 			}
 
 			obj->latest=ms_new0(rtcpstatspoint_t, 1);
 			obj->latest->timestamp=ms_time(0);
 			obj->latest->bandwidth=up_bw;
-			obj->latest->loss_percent=MAX(0,loss_rate);/**/
+			obj->latest->loss_percent=loss_rate;
 			obj->latest->rtt=rtp_session_get_round_trip_propagation(obj->session);
 
 			obj->rtcpstatspoint=ms_list_insert_sorted(obj->rtcpstatspoint, obj->latest, (MSCompareFunc)sort_points);
 
+			/*if the measure was 0% loss, reset to 0% every measures below it*/
 			if (obj->latest->loss_percent < 1e-5){
 				MSList *it=obj->rtcpstatspoint;
 				MSList *latest_pos=ms_list_find(obj->rtcpstatspoint,obj->latest);
@@ -338,7 +341,7 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 				}
 			}
 			ms_message("MSStatefulQosAnalyzer[%p]: one more %d: %f %f",
-				obj, obj->curindex, obj->latest->bandwidth, obj->latest->loss_percent);
+				obj, obj->curindex-1, obj->latest->bandwidth, obj->latest->loss_percent);
 
 			if (ms_list_size(obj->rtcpstatspoint) > ESTIM_HISTORY){
 				int prev_size = ms_list_size(obj->rtcpstatspoint);
@@ -492,35 +495,50 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 static void stateful_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateControlAction *action){
 	MSStatefulQosAnalyzer *obj=(MSStatefulQosAnalyzer*)objbase;
 
-	float curbw = obj->latest ? obj->latest->bandwidth : 0.f;
-	float bw = compute_available_bw(obj);
-	rtcpstatspoint_t* greatest_pt = ms_list_size(obj->rtcpstatspoint) ?
-		(rtcpstatspoint_t*)ms_list_nth_data(obj->rtcpstatspoint, ms_list_size(obj->rtcpstatspoint)-1)
-		: NULL;
+	float curbw;
+	float bw;
+	rtcpstatspoint_t* greatest_pt = NULL;
+	/*if this is the first measure, there is not enough reliable data to use; we
+	assume loss rate is due to non congestionned network. This is mainly useful
+	in the case loss rate is high (>30%), to reduce quality even before the second
+	RTCP report which can be really used.
+	*/
+	if (obj->curindex==1){
+		if (obj->network_loss_rate!=0.f){
+			action->type=MSRateControlActionDecreaseBitrate;
+			action->value=obj->network_loss_rate;
+		}
+	}else {
+		curbw = obj->latest ? obj->latest->bandwidth : 0.f;
+		bw = compute_available_bw(obj);
+		greatest_pt = ms_list_size(obj->rtcpstatspoint) ?
+			(rtcpstatspoint_t*)ms_list_nth_data(obj->rtcpstatspoint, ms_list_size(obj->rtcpstatspoint)-1)
+			: NULL;
 
-	/*try a burst every 50 seconds (10 RTCP packets)*/
-	if (obj->curindex % 10 == 0){
-		ms_message("MSStatefulQosAnalyzer[%p]: try burst!", obj);
-		obj->burst_state = MSStatefulQosAnalyzerBurstEnable;
-	}
-	/*test a min burst to avoid overestimation of available bandwidth but only
-	if there is some loss*/
-	else if (greatest_pt!=NULL && greatest_pt->loss_percent>1
-			&& (obj->curindex % 10 == 2 || obj->curindex % 10 == 3)){
-		ms_message("MSStatefulQosAnalyzer[%p]: try minimal burst!", obj);
-		bw *= .33;
-	}
+		/*try a burst every 50 seconds (10 RTCP packets)*/
+		if (obj->curindex % 10 == 0){
+			ms_message("MSStatefulQosAnalyzer[%p]: try burst!", obj);
+			obj->burst_state = MSStatefulQosAnalyzerBurstEnable;
+		}
+		/*test a min burst to avoid overestimation of available bandwidth but only
+		if there is some loss*/
+		else if (greatest_pt!=NULL && greatest_pt->loss_percent>1
+				&& (obj->curindex % 10 == 2 || obj->curindex % 10 == 3)){
+			ms_message("MSStatefulQosAnalyzer[%p]: try minimal burst!", obj);
+			bw *= .33;
+		}
 
-	/*no bandwidth estimation computed*/
-	if (bw <= 0 || curbw <= 0){
-		action->type=MSRateControlActionDoNothing;
-		action->value=0;
-	}else if (bw > curbw){
-		action->type=MSRateControlActionIncreaseQuality;
-		action->value=MAX(0, 100. * (bw / curbw - 1));
-	}else{
-		action->type=MSRateControlActionDecreaseBitrate;
-		action->value=MAX(10, -100. * (bw / curbw - 1));
+		/*no bandwidth estimation computed*/
+		if (bw <= 0 || curbw <= 0){
+			action->type=MSRateControlActionDoNothing;
+			action->value=0;
+		}else if (bw > curbw){
+			action->type=MSRateControlActionIncreaseQuality;
+			action->value=MAX(0, 100. * (bw / curbw - 1));
+		}else{
+			action->type=MSRateControlActionDecreaseBitrate;
+			action->value=MAX(10, -100. * (bw / curbw - 1));
+		}
 	}
 
 	ms_message("MSStatefulQosAnalyzer[%p]: %s of value %d",
