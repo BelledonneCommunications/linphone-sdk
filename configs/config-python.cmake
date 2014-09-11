@@ -135,9 +135,13 @@ set(EP_xml2_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
 
 
 # Python module
+linphone_builder_apply_flags()
+linphone_builder_set_ep_directories(pylinphone)
 linphone_builder_expand_external_project_vars()
 ExternalProject_Add(TARGET_pylinphone
 	DEPENDS TARGET_linphone
+	TMP_DIR ${ep_tmp}
+	BINARY_DIR ${ep_build}
 	DOWNLOAD_COMMAND ""
 	PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}/python" "<SOURCE_DIR>"
 	CMAKE_GENERATOR ${CMAKE_GENERATOR}
