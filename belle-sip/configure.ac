@@ -29,7 +29,7 @@ AM_INIT_AUTOMAKE([subdir-objects])
 AM_SILENT_RULES(yes)
 
 # Checks for programs.
-dnl don't put anythingelse before AC_PROG_CC unless checking if macro still work for clang
+dnl do not put anythingelse before AC_PROG_CC unless checking if macro still work for clang
 dnl because of tunnel library wrapper, C++ is required.
 AC_PROG_CXX(["xcrun clang++" g++])
 AC_PROG_CC(["xcrun clang" gcc])
@@ -55,7 +55,7 @@ esac
 
 AM_CONDITIONAL([BUILD_IOS], [test "x$build_ios" = "xyes"])
 
-dnl Workaround for mingw, whose compiler doesn't check in /usr/include ...
+dnl Workaround for mingw, whose compiler does not check in /usr/include ...
 case "$target_os" in
 	*mingw*)
 		if test "$cross_compiling" != "yes"; then
@@ -99,22 +99,30 @@ AC_ARG_ENABLE(strict,
 
 STRICT_OPTIONS="-Wall"
 
+case "$CC" in
+	*clang*)
+	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unknown-warning-option -Qunused-arguments -Wno-tautological-compare -Wno-keyword-compat -Wno-builtin-requires-header -Wno-unused-function -Wno-gnu-designator "
+	#disabled due to wrong optimization false positive with small string
+	#(cf. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=35903)
+	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-array-bounds "
+	;;
+	gcc*)
+	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=pragmas"
+	;;
+esac
+
+# because Darwin's gcc is actually clang, we need to check it...
+case "$target_os" in
+	*darwin*)
+	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unknown-warning-option -Qunused-arguments -Wno-tautological-compare -Wno-unused-function "
+	#disabled due to wrong optimization false positive with small string
+	#(cf. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=35903)
+	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-array-bounds "
+	;;
+esac
+
 if test "$strict" = "true"; then
-
 	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wno-error=unknown-pragmas -Wdeclaration-after-statement -Wuninitialized"
-
-	case "$CC" in
-		*clang*)
-		STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unknown-warning-option -Qunused-arguments -Wno-tautological-compare -Wno-keyword-compat -Wno-builtin-requires-header -Wno-unused-function -Wno-gnu-designator "
-		#disabled due to wrong optimization false positive with small string
-		#(cf. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=35903)
-		STRICT_OPTIONS="$STRICT_OPTIONS -Wno-array-bounds "
-		;;
-		gcc*)
-		STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=pragmas"
-		;;
-	esac
-
 fi
 
 dnl because of antlr3 we must accept a few warnings...
