@@ -274,7 +274,7 @@ MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session){
 
 
 /******************************************************************************/
-/***************************** Stateful QoS analyzer ****************************/
+/***************************** Stateful QoS analyzer **************************/
 /******************************************************************************/
 static int earlier_than(rtcpstatspoint_t *p, const time_t * now){
 	if (p->timestamp < *now){
@@ -287,7 +287,7 @@ static int sort_points(const rtcpstatspoint_t *p1, const rtcpstatspoint_t *p2){
 	return p1->bandwidth > p2->bandwidth;
 }
 
-static float stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj){
+static float stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj, uint32_t seq_num){
 	if (obj->upload_bandwidth_count){
 		obj->upload_bandwidth_latest=obj->upload_bandwidth_sum/obj->upload_bandwidth_count;
 	}
@@ -295,8 +295,20 @@ static float stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj){
 	obj->upload_bandwidth_count=0;
 	obj->upload_bandwidth_sum=0;
 
-	ms_message("MSStatefulQosAnalyzer[%p]: latest_up_bw=%f vs sum_up_bw=%f",
-		obj, rtp_session_get_send_bandwidth(obj->session)/1000.0, obj->upload_bandwidth_latest);
+	int latest_bw=obj->upload_bandwidth_cur;
+	while (obj->upload_bandwidth[latest_bw].seq_number<seq_num){
+		latest_bw = (latest_bw+1)%BW_HISTORY;
+		if (latest_bw==obj->upload_bandwidth_cur) break;
+	}
+	float last_action_bw=obj->upload_bandwidth[latest_bw].up_bandwidth;
+
+
+	ms_message("MSStatefulQosAnalyzer[%p]: estimate_bw=%f vs sum_up_bw=%f vs last_action_bw=%f"
+				, obj
+				, rtp_session_get_send_bandwidth(obj->session)/1000.0
+				, obj->upload_bandwidth_latest
+				, last_action_bw);
+
 	return obj->upload_bandwidth_latest;
 }
 
@@ -309,15 +321,21 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 		rb=rtcp_RR_get_report_block(rtcp,0);
 	}
 
+
 	if (rb && report_block_get_ssrc(rb)==rtp_session_get_send_ssrc(obj->session)){
+		/* Save bandwidth used at this time */
+		obj->upload_bandwidth[obj->upload_bandwidth_cur].seq_number = rb->ext_high_seq_num_rec;
+		obj->upload_bandwidth[obj->upload_bandwidth_cur].up_bandwidth = rtp_session_get_send_bandwidth(obj->session)/1000.0;
+		obj->upload_bandwidth_cur = (obj->upload_bandwidth_cur+1)%BW_HISTORY;
+
 		if (ortp_loss_rate_estimator_process_report_block(objbase->lre,&obj->session->rtp,rb)){
 			float loss_rate = ortp_loss_rate_estimator_get_value(objbase->lre);
-			float up_bw = stateful_qos_analyzer_upload_bandwidth(obj);
+			float up_bw = stateful_qos_analyzer_upload_bandwidth(obj,rb->ext_high_seq_num_rec);
 			obj->curindex++;
 
-			// Always skip the first report, since values might be erroneous due
-			// to initialization of multiples objects (encoder/decoder/stats computing..)
-			// Instead assume loss rate is a good estimation of network capacity
+			/* Always skip the first report, since values might be erroneous due
+			to initialization of multiples objects (encoder/decoder/stats computing..)
+			Instead assume loss rate is a good estimation of network capacity */
 			if (obj->curindex==1)  {
 				obj->network_loss_rate=loss_rate;
 				return TRUE;
@@ -612,6 +630,7 @@ static void stateful_analyzer_update(MSQosAnalyzer *objbase){
 static void stateful_analyzer_uninit(MSQosAnalyzer *objbase){
 	MSStatefulQosAnalyzer *obj=(MSStatefulQosAnalyzer*)objbase;
 	ms_list_for_each(obj->rtcpstatspoint, ms_free);
+	ms_list_free(obj->rtcpstatspoint);
 }
 
 static MSQosAnalyzerDesc stateful_analyzer_desc={

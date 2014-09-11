@@ -29,6 +29,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+	/**************************************************************************/
+	/*************************** Simple QoS analyzer **************************/
+	/**************************************************************************/
 	#define STATS_HISTORY 3
 	#define ESTIM_HISTORY 30
 	static const float unacceptable_loss_rate=10;
@@ -51,12 +56,24 @@ extern "C" {
 		bool_t pad[3];
 	}MSSimpleQosAnalyzer;
 
-	typedef struct rtcpstatspoint{
+
+	/**************************************************************************/
+	/************************* Stateful QoS analyzer **************************/
+	/**************************************************************************/
+	#define BW_HISTORY 5
+
+	typedef struct {
 		time_t timestamp;
 		double bandwidth;
 		double loss_percent;
 		double rtt;
 	} rtcpstatspoint_t;
+
+	typedef struct {
+		uint32_t seq_number;
+		float up_bandwidth;
+	} bandwidthseqnum;
+
 
 	typedef enum _MSStatefulQosAnalyzerBurstState{
 		MSStatefulQosAnalyzerBurstDisable,
@@ -80,6 +97,8 @@ extern "C" {
 		uint32_t upload_bandwidth_count;
 		double upload_bandwidth_sum;
 		double upload_bandwidth_latest;
+		int upload_bandwidth_cur;
+		bandwidthseqnum upload_bandwidth[BW_HISTORY];
 
 		double burst_ratio;
 		double burst_duration_ms;
