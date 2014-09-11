@@ -31,7 +31,7 @@ AM_SILENT_RULES(yes)
 # Checks for programs.
 dnl don't put anythingelse before AC_PROG_CC unless checking if macro still work for clang
 dnl because of tunnel library wrapper, C++ is required.
-AC_PROG_CXX(["xcrun clang++" g++]) 
+AC_PROG_CXX(["xcrun clang++" g++])
 AC_PROG_CC(["xcrun clang" gcc])
 AC_PROG_OBJC(["xcrun clang" gcc])
 
@@ -90,7 +90,7 @@ else
 fi
 
 AC_ARG_ENABLE(strict,
-		[  --disable-strict    Turn off strict mode compilation, no warnings allowed (default=yes)],
+		[  --enable-strict    Turn on strict mode compilation, no warnings allowed (default=yes)],
 		[case "${enableval}" in
 		yes) strict=true ;;
 		no)  strict=false ;;
@@ -101,7 +101,7 @@ STRICT_OPTIONS="-Wall"
 
 if test "$strict" = "true"; then
 
-	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wno-error=unknown-pragmas"
+	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wno-error=unknown-pragmas -Wdeclaration-after-statement -Wuninitialized"
 
 	case "$CC" in
 		*clang*)
@@ -116,7 +116,7 @@ fi
 
 dnl because of antlr3 we must accept a few warnings...
 dnl more portable for the moment
-       LESS_STRICT_OPTIONS= 
+       LESS_STRICT_OPTIONS=
 dnl       LESS_STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unused-function \
 dnl        -Wno-error=uninitialized -Wno-error=unused-variable \
 dnl        -Wno-error=unused-but-set-variable "
@@ -152,14 +152,14 @@ resolv_h_hav_res_ndestroy=no
 LIBS_save=$LIBS
 
 LIBS="$LIBS -lresolv"
-	
+
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <resolv.h>]],
                       			[[res_getservers(NULL,NULL,0)]])]
 								,[libresolv_have_res_get_servers=yes
 									AC_MSG_NOTICE([res_getservers usable])]
 								,[LIBS=$LIBS_save
 									AC_MSG_WARN([res_getservers not usable])])
-			
+
 AC_CHECK_DECL([res_ndestroy],
 		[resolv_h_hav_res_ndestroy=yes],
 		[foo=bar],
@@ -200,7 +200,7 @@ antlr_java_prefixes="$antlr_prefix/share/java /usr/local/share/java /usr/share/j
 	AC_PATH_PROG([JAVA],[java],[no])
 	if test $JAVA = "no" ; then
 		AC_MSG_ERROR([Could not find java prog. Please install java ])
-	else	
+	else
 		ANTLR="$JAVA -jar $antlr_jar"
 	fi
 fi
@@ -235,7 +235,7 @@ if test "$use_tls" = "true" ; then
 	LIBS="$LIBS $POLARSSL_LIBS"
 	AC_CHECK_HEADERS(polarssl/ssl.h,
 		[
-		AC_LINK_IFELSE([AC_LANG_PROGRAM([[	
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 			#include <polarssl/version.h>
 			#include <polarssl/x509.h>
 			#if POLARSSL_VERSION_NUMBER >= 0x01030000
@@ -247,7 +247,7 @@ if test "$use_tls" = "true" ; then
 			POLARSSL_LIBS=" -lpolarssl"
 			AC_MSG_NOTICE([polarssl usable])]
 			,[AC_MSG_WARN([polarssl not usable])])
-			
+
 		])
 	CPPFLAGS=$CPPFLAGS_save
 	LIBS=$LIBS_save
@@ -263,7 +263,7 @@ if test "x$found_polarssl" = "xyes" ; then
 	TLS_LIBS=$POLARSSL_LIBS
 fi
 AC_SUBST(TLS_CFLAGS)
-AC_SUBST(TLS_LIBS)	
+AC_SUBST(TLS_LIBS)
 AC_SUBST(TLS_PC)
 
 AC_ARG_ENABLE(server_sockets,
@@ -298,7 +298,7 @@ if test "$found_pkg_config_cunit" = "no" ; then
 				found_cunit=yes
 				CUNIT_LIBS+=" -lcunit"
 			])
-			
+
 		])
 else
 	found_cunit=yes
@@ -319,7 +319,7 @@ AC_SUBST(LIBBELLESIP_CFLAGS)
 
 if test "$found_cunit" = "no" ; then
 	AC_MSG_WARN([Could not find cunit framework, tests are not compiled.])
-else 
+else
 	AC_CHECK_LIB(cunit,CU_get_suite,[
 					AC_DEFINE(HAVE_CU_GET_SUITE,1,[defined when CU_get_suite is available])
 					],[foo=bar],[$CUNIT_LIBS])
