@@ -49,20 +49,27 @@ MS_PUBLIC_CFLAGS=
 gl_LD_OUTPUT_DEF
 
 AC_MSG_CHECKING([warning make an error on compilation])
+
 AC_ARG_ENABLE(strict,
-	[AS_HELP_STRING([--enable-strict], [Enable error on compilation warning (default=no)])],
-	[wall_werror=$enableval],
-	[wall_werror=yes]
+	AC_HELP_STRING([--enable-strict], [Build with stricter options @<:@yes@:>@]),
+	[strictness="${enableval}"],
+	[strictness=yes]
 )
+
+STRICT_OPTIONS="-Wall -Wdeclaration-after-statement -Wuninitialized"
+
 #for clang
 
 case $CC in
-        *clang*)
-                CFLAGS="$CFLAGS -Qunused-arguments"
-        ;;
+	*clang*)
+		STRICT_OPTIONS="$STRICT_OPTIONS -Qunused-arguments "
+	;;
 esac
 
-
+if test "$strictness" = "yes" ; then
+	STRICT_OPTIONS="$STRICT_OPTIONS -Werror"
+	CFLAGS="$CFLAGS -fno-strict-aliasing"
+fi
 
 dnl enable timestamp support
 AC_ARG_ENABLE(ntp-timestamp,
@@ -134,11 +141,6 @@ if test x$ac_cv_c_bigendian = xyes ; then
 	CFLAGS="$CFLAGS -D_BIGENDIAN "
 fi
 
-if test $GCC = yes && test $wall_werror = yes;  then
-	CFLAGS="$CFLAGS -Werror -Wno-error=deprecated-declarations"
-	OBJCFLAGS="$OBJCFLAGS -Werror"
-fi
-
 macosx_found=no
 ios_found=false
 mingw32ce_found=no
@@ -155,7 +157,7 @@ case $host in
                 CXXFLAGS="$CXXFLAGS -mmacosx-version-min=10.6"
                 CFLAGS="$CFLAGS -mmacosx-version-min=10.6"
 		OBJCFLAGS="$OBJCFLAGS -mmacosx-version-min=10.6"
-		
+
 	;;
   	*mingw32ce)
 		CFLAGS="$CFLAGS -D_WIN32_WINNT=0x0501  -D_WIN32_WCE  -DORTP_STATIC"
@@ -658,7 +660,7 @@ AC_ARG_ENABLE(upnp,
 )
 
 if test "$build_upnp" != "false" ; then
-	PKG_CHECK_MODULES([LIBUPNP], [libupnp], 
+	PKG_CHECK_MODULES([LIBUPNP], [libupnp],
 		[if  pkg-config --atleast-version=1.6 "libupnp < 1.7"; then
 			build_upnp=true
 			old_CFLAGS="$CFLAGS"
@@ -923,7 +925,7 @@ if test x$enable_pcap == xyes ; then
 		AC_SUBST(PCAP_CFLAGS)
 		AC_DEFINE(HAVE_PCAP,1,[whether we compile with libpcap support])
 	fi
-	
+
 fi
 
 
