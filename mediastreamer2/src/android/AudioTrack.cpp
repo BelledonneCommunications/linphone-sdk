@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- */
+ */ 
 
 
 #include "mediastreamer2/mscommon.h"
@@ -40,8 +40,25 @@ namespace fake_android{
                                     const audio_offload_info_t *offloadInfo,
                                     int uid){
 		mThis=new uint8_t[512];
+		memset(mThis,0,512);
 		mImpl=AudioTrackImpl::get();
 		mImpl->mCtor.invoke(mThis,streamType,sampleRate,format,channelMask,frameCount,flags,cbf,user,notificationFrames,sessionId,transferType,(void*)offloadInfo,uid);
+		mIsRefCounted=false;
+		mSkipDestroy=false;
+		if (mImpl->mSdkVersion>=19){
+			mIsRefCounted=true;
+			int refcnt=RefBaseImpl::get()->mGetStrongCount.invoke(mThis);
+			if (refcnt>10){
+				/*detection of 4.4 version seen on Moto G, where AudioTrack inherits _virtually_ from RefBase.
+				 * The virtual inheritance seems a mistake, there is no reason for it in this case, however it changes the memory layout
+				 * of the AudioTrack object, the RefBase part being somewhere in the memory, not at the beginning.
+				 * By taking the getStrongCount(), we can detect that we go to read in the vptr part and obtain a crazy value.
+				 **/
+				ms_warning("Refcounting not usable");
+				mSkipDestroy=true;
+				mIsRefCounted=false;
+			}
+		}
 	}
 	
 	AudioTrack::~AudioTrack(){
@@ -139,12 +156,14 @@ namespace fake_android{
 	}
 	
 	bool AudioTrack::isRefCounted()const{
-		return mImpl->mSdkVersion>=19;
+		return mIsRefCounted;
 	}
 	
 	void AudioTrack::destroy()const{
-		mImpl->mDtor.invoke(mThis);
-		delete mThis;
+		if (!mSkipDestroy){
+			mImpl->mDtor.invoke(mThis);
+			delete []mThis;
+		}
 	}
 	
 	

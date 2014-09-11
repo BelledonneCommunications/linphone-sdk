@@ -436,6 +436,8 @@ protected:
 private:
 	class AudioTrackImpl *mImpl;
 	uint8_t *mThis;
+	bool mIsRefCounted;
+	bool mSkipDestroy;
 };
 
 

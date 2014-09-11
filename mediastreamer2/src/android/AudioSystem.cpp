@@ -183,8 +183,10 @@ RefBaseImpl * RefBaseImpl::sImpl=0;
 
 
 RefBaseImpl::RefBaseImpl(Library *lib) :
+	mCtor(lib,"_ZN7android7RefBaseC2Ev"),
 	mIncStrong(lib,"_ZNK7android7RefBase9incStrongEPKv"),
-	mDecStrong(lib,"_ZNK7android7RefBase9decStrongEPKv")
+	mDecStrong(lib,"_ZNK7android7RefBase9decStrongEPKv"),
+	mGetStrongCount(lib,"_ZNK7android7RefBase14getStrongCountEv")
 {
 	
 }
@@ -199,11 +201,15 @@ RefBase::~RefBase(){
 
 void RefBase::incStrong(const void* id) const{
 	mCnt++;
-	if (isRefCounted()) mImpl->mIncStrong.invoke(getRealThis(),this);
+	if (isRefCounted()) {
+		mImpl->mIncStrong.invoke(getRealThis(),this);
+	}
 }
 
 void RefBase::decStrong(const void* id) const{
-	if (isRefCounted()) mImpl->mDecStrong.invoke(getRealThis(),this);
+	if (isRefCounted()) {
+		mImpl->mDecStrong.invoke(getRealThis(),this);
+	}
 	mCnt--;
 	if (mCnt==0){
 		if (!isRefCounted()){

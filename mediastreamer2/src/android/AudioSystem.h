@@ -268,8 +268,10 @@ public:
 	static RefBaseImpl * get(){
 		return sImpl;
 	}
+	Function1<void,void*> mCtor;
 	Function2<void,void*,const void*> mIncStrong;
 	Function2<void,void*,const void*> mDecStrong;
+	Function1<int32_t,void*> mGetStrongCount;
 private:
 	RefBaseImpl(Library *lib);
 	static RefBaseImpl *sImpl;
@@ -281,6 +283,7 @@ public:
 	virtual ~RefBase();
 	void incStrong(const void* id) const;
 	void decStrong(const void* id) const;
+	int32_t getStrongCount() const;
 protected:
 	virtual void *getRealThis()const =0;
 	virtual bool isRefCounted()const =0;
