@@ -45,7 +45,7 @@ static bool_t avcodec_initialized=FALSE;
 
 static const int qmin2 = 2;
 static const int qmin3 = 3;
-static const int qmin4 = 4;
+// static const int qmin4 = 4;
 static const int qmin5 = 5;
 
 static const MSVideoConfiguration h263_conf_list[] = {
@@ -88,6 +88,7 @@ static const MSVideoConfiguration mpeg4_conf_list[] = {
 	MS_VIDEOENC_CONF(      0,  128000, QCIF,  5, 5)
 };
 
+#if HAVE_AVCODEC_SNOW
 static const MSVideoConfiguration snow_conf_list[] = {
 	MS_VIDEOENC_CONF(1024000, 1536000, SVGA, 25, 2),
 	MS_VIDEOENC_CONF( 800000, 1024000,  VGA, 25, 2),
@@ -98,6 +99,7 @@ static const MSVideoConfiguration snow_conf_list[] = {
 	MS_VIDEOENC_CONF(  64000,  128000, QCIF,  7, 4),
 	MS_VIDEOENC_CONF(      0,   64000, QCIF,  5, 5)
 };
+#endif
 
 #ifndef FF_I_TYPE
 #define FF_I_TYPE AV_PICTURE_TYPE_I
@@ -285,7 +287,7 @@ static void prepare(EncState *s){
 	We don't use it above max_br_vbv */
 	if (
 #if HAVE_AVCODEC_SNOW
-		s->codec!=CODEC_ID_SNOW && 
+		s->codec!=CODEC_ID_SNOW &&
 #endif
 		s->vconf.required_bitrate<max_br_vbv){
 		/*snow does not like 1st pass rate control*/
@@ -747,7 +749,7 @@ static void split_and_send(MSFilter *f, EncState *s, mblk_t *frame){
 	uint8_t *psc;
 	uint32_t timestamp=f->ticker->time*90LL;
 
-	if (s->codec==CODEC_ID_MPEG4 
+	if (s->codec==CODEC_ID_MPEG4
 #if HAVE_AVCODEC_SNOW
 	|| s->codec==CODEC_ID_SNOW
 #endif

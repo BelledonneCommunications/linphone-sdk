@@ -29,11 +29,11 @@ static MSFilter *pulse_card_create_writer(MSSndCard *card);
 
 
 static void pulse_card_init(MSSndCard *obj){
-	
+
 }
 
 static void pulse_card_uninit(MSSndCard *obj){
-	
+
 }
 
 
@@ -69,8 +69,8 @@ static void uninit_pulse_context(){
 }
 
 static void context_state_notify_cb(pa_context *ctx, void *userdata){
-	contextState=pa_context_get_state(ctx);
 	const char *sname="";
+	contextState=pa_context_get_state(ctx);
 	switch (contextState){
 	case PA_CONTEXT_UNCONNECTED:
 		sname="PA_CONTEXT_UNCONNECTED";

@@ -130,6 +130,7 @@ MSFactory *ms_factory_get_fallback(void){
 void ms_factory_init(MSFactory *obj){
 	int i;
 	long num_cpu=1;
+	char *debug_log_enabled;
 #ifdef WIN32
 	SYSTEM_INFO sysinfo;
 #endif
@@ -137,8 +138,8 @@ void ms_factory_init(MSFactory *obj){
 #if defined(ENABLE_NLS)
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 #endif
-
-	if (getenv("MEDIASTREAMER_DEBUG")!=NULL && strcmp(getenv("MEDIASTREAMER_DEBUG"),"1")==0){
+	debug_log_enabled=getenv("MEDIASTREAMER_DEBUG");
+	if (debug_log_enabled!=NULL && (strcmp("1",debug_log_enabled)==0) ){
 		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 

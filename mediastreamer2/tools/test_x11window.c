@@ -32,13 +32,14 @@ int main(int argc, char *argv[]){
 #ifdef HAVE_X11_XLIB_H
 	Display *display=XOpenDisplay(getenv("DISPLAY"));
 	XSetWindowAttributes wa;
+	Window w;
 	memset(&wa,0,sizeof(wa));
 	wa.event_mask=StructureNotifyMask;
 	if (display==NULL){
 		printf("Could not open display.\n");
 		return -1;
 	}
-	Window w=XCreateWindow(display,DefaultRootWindow(display),200,200,
+	w=XCreateWindow(display,DefaultRootWindow(display),200,200,
 	                      352, 288,0,CopyFromParent,CopyFromParent,CopyFromParent,
 	                CWEventMask|CWBackPixel,&wa);
 	XMapWindow(display,w);

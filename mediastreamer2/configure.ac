@@ -63,6 +63,9 @@ STRICT_OPTIONS="-Wall -Wdeclaration-after-statement -Wuninitialized"
 case $CC in
 	*clang*)
 		STRICT_OPTIONS="$STRICT_OPTIONS -Qunused-arguments "
+		#disabled due to wrong optimization false positive with small string
+		#(cf. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=35903)
+		STRICT_OPTIONS="$STRICT_OPTIONS -Wno-array-bounds "
 	;;
 esac
 
@@ -70,6 +73,8 @@ if test "$strictness" = "yes" ; then
 	STRICT_OPTIONS="$STRICT_OPTIONS -Werror"
 	CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
+AC_SUBST(STRICT_OPTIONS)
+
 
 dnl enable timestamp support
 AC_ARG_ENABLE(ntp-timestamp,

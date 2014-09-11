@@ -43,7 +43,7 @@ static int configure_fd(int fd, int bits,int stereo, int rate, int *minsz)
 	int i=0;
 	int min_size=0,blocksize=512;
 	int err;
-	
+
 	//g_message("opening sound device");
 	/* unset nonblocking mode */
 	/* We wanted non blocking open but now put it back to normal ; thanks Xine !*/
@@ -51,15 +51,15 @@ static int configure_fd(int fd, int bits,int stereo, int rate, int *minsz)
 
 	/* reset is maybe not needed but takes time*/
 	/*ioctl(fd, SNDCTL_DSP_RESET, 0); */
-	
+
 	p=AFMT_S16_NE;
-	
+
 	err=ioctl(fd,SNDCTL_DSP_SETFMT,&p);
 	if (err<0){
 		ms_warning("oss_open: can't set sample format:%s.",strerror(errno));
 	}
 
-	
+
 	p =  bits;  /* 16 bits */
 	err=ioctl(fd, SNDCTL_DSP_SAMPLESIZE, &p);
 	if (err<0){
@@ -71,13 +71,13 @@ static int configure_fd(int fd, int bits,int stereo, int rate, int *minsz)
 	if (err<0){
 		ms_warning("oss_open: can't set sample rate to %i:%s.",rate,strerror(errno));
 	}
-	
+
 	p =  stereo;  /* stereo or not */
 	err=ioctl(fd, SNDCTL_DSP_STEREO, &p);
 	if (err<0){
 		ms_warning("oss_open: can't set mono/stereo mode:%s.",strerror(errno));
 	}
-	
+
 	if (rate==16000) blocksize=4096;	/* oss emulation is not very good at 16khz */
 	else blocksize=blocksize*(rate/8000);
 
@@ -88,8 +88,9 @@ static int configure_fd(int fd, int bits,int stereo, int rate, int *minsz)
 	 */
 	if (min_size>blocksize) {
 		int size_selector=0;
+		int frag;
 		while ((blocksize >> size_selector) != 1)size_selector++; /*compute selector blocksize = 1<< size_selector*/
-		int frag = (2 << 16) | (size_selector);
+		frag = (2 << 16) | (size_selector);
 		if (ioctl(fd, SNDCTL_DSP_SETFRAGMENT, &frag) == -1) {
 			ms_warning("This OSS driver does not support trying SNDCTL_DSP_SETFRAGMENT");
 			ioctl(fd, SNDCTL_DSP_GETBLKSIZE, &min_size);
@@ -125,15 +126,15 @@ static int configure_fd(int fd, int bits,int stereo, int rate, int *minsz)
 
 	ms_message("/dev/dsp opened: rate=%i,bits=%i,stereo=%i blocksize=%i.",
 			rate,bits,stereo,min_size);
-	
+
 	/* start recording !!! Alex */
 	{
 		int fl,res;
-		
+
 		fl=PCM_ENABLE_OUTPUT|PCM_ENABLE_INPUT;
 		res=ioctl(fd, SNDCTL_DSP_SETTRIGGER, &fl);
 		if (res<0) ms_warning("OSS_TRIGGER: %s",strerror(errno));
-	} 
+	}
 	*minsz=min_size;
 	return fd;
 }
@@ -245,7 +246,7 @@ static void oss_set_source(MSSndCard *card, MSSndCardCapture source)
 			p = 1 << SOUND_MIXER_LINE;
 		break;
 	}
-	
+
 	mix_fd = open(d->mixdev, O_WRONLY);
 	ioctl(mix_fd, SOUND_MIXER_WRITE_RECSRC, &p);
 	close(mix_fd);
@@ -331,7 +332,7 @@ static void * oss_thread(void *p){
 	int err;
 	mblk_t *rm=NULL;
 	bool_t did_read=FALSE;
-	
+
 	oss_open(d,&bsize);
 	if (d->pcmfd_read>=0){
 		rtmpbuff=(uint8_t*)alloca(bsize);

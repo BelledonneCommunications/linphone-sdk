@@ -163,7 +163,7 @@ static void glxvideo_process(MSFilter *f){
 	mblk_t *inm;
 	MSPicture src={0};
 	bool_t precious=FALSE;
-	
+
 	XWindowAttributes wa;
 	XGetWindowAttributes(obj->display,obj->window_id,&wa);
 	if (wa.width!=obj->wsize.width || wa.height!=obj->wsize.height){
@@ -172,7 +172,7 @@ static void glxvideo_process(MSFilter *f){
 		obj->wsize.height=wa.height;
 		ogl_display_init(obj->glhelper, wa.width, wa.height);
 	}
-	
+
 	ms_filter_lock(f);
 	if (!obj->show) {
 		goto end;
@@ -194,7 +194,7 @@ static void glxvideo_process(MSFilter *f){
 				obj->vsize=newsize;
 				if (obj->autofit){
 					MSVideoSize new_window_size;
-					static const MSVideoSize min_size=MS_VIDEO_SIZE_QVGA;					
+					static const MSVideoSize min_size=MS_VIDEO_SIZE_QVGA;
 					/*don't resize less than QVGA, it is too small*/
 					if (min_size.width*min_size.height>newsize.width*newsize.height){
 						new_window_size.width=newsize.width*2;
@@ -256,7 +256,7 @@ static int glxvideo_zoom(MSFilter *f, void *arg){
 
 	ms_filter_lock(f);
 	ogl_display_zoom(s->glhelper, arg);
-	
+
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -289,7 +289,15 @@ static bool_t createX11GLWindow(Display* display, MSVideoSize size, GLXContext* 
 	None
 	};
 	int glx_major, glx_minor;
- 
+	int fbcount;
+	GLXFBConfig *fbc;
+	int best_fbc = -1, worst_fbc = -1, best_num_samp = -1, worst_num_samp = 999;
+	int i;
+	GLXFBConfig bestFbc;
+	XVisualInfo *vi;
+	XSetWindowAttributes swa;
+	Colormap cmap;
+
 	// FBConfigs were added in GLX version 1.3.
 	if ( !glXQueryVersion( display, &glx_major, &glx_minor ) ||		 ( ( glx_major == 1 ) && ( glx_minor < 3 ) ) || ( glx_major < 1 ) ) {
 		ms_error( "Invalid GLX version" );
@@ -297,8 +305,7 @@ static bool_t createX11GLWindow(Display* display, MSVideoSize size, GLXContext* 
 	}
 
 	ms_message( "Getting matching framebuffer configs" );
-	int fbcount;
-	GLXFBConfig *fbc = glXChooseFBConfig( display, DefaultScreen( display ), 
+	fbc = glXChooseFBConfig( display, DefaultScreen( display ),
 							visual_attribs, &fbcount );
 	if ( !fbc ) {
 		ms_error( "Failed to retrieve a framebuffer config" );
@@ -307,20 +314,18 @@ static bool_t createX11GLWindow(Display* display, MSVideoSize size, GLXContext* 
 	ms_message( "Found %d matching FB configs.", fbcount );
 	// Pick the FB config/visual with the most samples per pixel
 	ms_message( "Getting XVisualInfos" );
-	int best_fbc = -1, worst_fbc = -1, best_num_samp = -1, worst_num_samp = 999;
- 
-	int i;
+
 	for ( i = 0; i < fbcount; i++ ) {
 		XVisualInfo *vi = glXGetVisualFromFBConfig( display, fbc[i] );
 		if ( vi ) {
 			int samp_buf, samples;
 			glXGetFBConfigAttrib( display, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf );
 			glXGetFBConfigAttrib( display, fbc[i], GLX_SAMPLES	 , &samples  );
- 
+
 			ms_message( "  Matching fbconfig %d, visual ID 0x%lu: SAMPLE_BUFFERS = %d,"
-		  " SAMPLES = %d", 
+		  " SAMPLES = %d",
 		  i, vi -> visualid, samp_buf, samples );
- 
+
 			if ( best_fbc < 0 || (samp_buf && samples > best_num_samp) )
 				best_fbc = i, best_num_samp = samples;
 			if ( worst_fbc < 0 || (!samp_buf || samples < worst_num_samp) )
@@ -328,28 +333,26 @@ static bool_t createX11GLWindow(Display* display, MSVideoSize size, GLXContext* 
 		}
 		XFree( vi );
 	}
-	GLXFBConfig bestFbc = fbc[ best_fbc ];
- 
+	bestFbc = fbc[ best_fbc ];
+
 	// Be sure to free the FBConfig list allocated by glXChooseFBConfig()
 	XFree( fbc );
 
 	// Get a visual
-	XVisualInfo *vi = glXGetVisualFromFBConfig( display, bestFbc );
+	vi = glXGetVisualFromFBConfig( display, bestFbc );
 	ms_message( "Chosen visual ID = 0x%lu", vi->visualid );
- 
+
 	ms_message( "Creating colormap" );
-	XSetWindowAttributes swa;
-	Colormap cmap;
 	swa.colormap = cmap = XCreateColormap( display,
-							 RootWindow( display, vi->screen ), 
+							 RootWindow( display, vi->screen ),
 							 vi->visual, AllocNone );
 	swa.background_pixmap = None ;
 	swa.border_pixel	= 0;
 	swa.event_mask	  = StructureNotifyMask;
 	ms_message( "Creating window" );
-	*win = XCreateWindow( display, RootWindow( display, vi->screen ), 
-					200, 200, size.width, size.height, 0, vi->depth, InputOutput, 
-					vi->visual, 
+	*win = XCreateWindow( display, RootWindow( display, vi->screen ),
+					200, 200, size.width, size.height, 0, vi->depth, InputOutput,
+					vi->visual,
 					CWBorderPixel|CWColormap|CWEventMask, &swa );
 	if ( !(*win) ) {
 		ms_error( "Failed to create window." );
@@ -357,12 +360,12 @@ static bool_t createX11GLWindow(Display* display, MSVideoSize size, GLXContext* 
 	}
 	// Done with the visual info data
 	XFree( vi );
- 
+
 	XStoreName( display, *win, "Video" );
- 
+
 	ms_message( "Mapping window" );
 	XMapWindow( display, *win );
- 
+
 	// Get the default screen's GLX extension list
 	*ctx = glXCreateNewContext( display, bestFbc, GLX_RGBA_TYPE, 0, True );
 

@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qosanalyzer.h"
 
 #include <math.h>
+#include <strings.h>
 
 #define LOSS_RATE_MIN_INTERVAL 120
 
@@ -288,6 +289,8 @@ static int sort_points(const rtcpstatspoint_t *p1, const rtcpstatspoint_t *p2){
 }
 
 static float stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj, uint32_t seq_num){
+	int latest_bw;
+	float last_action_bw;
 	if (obj->upload_bandwidth_count){
 		obj->upload_bandwidth_latest=obj->upload_bandwidth_sum/obj->upload_bandwidth_count;
 	}
@@ -295,12 +298,12 @@ static float stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj, 
 	obj->upload_bandwidth_count=0;
 	obj->upload_bandwidth_sum=0;
 
-	int latest_bw=obj->upload_bandwidth_cur;
+	latest_bw=obj->upload_bandwidth_cur;
 	while (obj->upload_bandwidth[latest_bw].seq_number<seq_num){
 		latest_bw = (latest_bw+1)%BW_HISTORY;
 		if (latest_bw==obj->upload_bandwidth_cur) break;
 	}
-	float last_action_bw=obj->upload_bandwidth[latest_bw].up_bandwidth;
+	last_action_bw=obj->upload_bandwidth[latest_bw].up_bandwidth;
 
 
 	ms_message("MSStatefulQosAnalyzer[%p]: estimate_bw=%f vs sum_up_bw=%f vs last_action_bw=%f"
