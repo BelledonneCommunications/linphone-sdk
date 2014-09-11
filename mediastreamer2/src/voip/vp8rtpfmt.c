@@ -669,6 +669,10 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, MSList *packets_list
 		packet = ms_list_nth_data(frame_packets_list, i);
 		ctx->non_processed_packets_list = ms_list_append(ctx->non_processed_packets_list, packet);
 	}
+
+	if (frame_packets_list != NULL){
+		ms_list_free(frame_packets_list);
+	}
 }
 
 static void output_partition(MSQueue *out, Vp8RtpFmtPartition **partition, bool_t last) {
