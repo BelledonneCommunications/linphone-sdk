@@ -91,8 +91,8 @@ enum _MSQosAnalyzerAlgorithm {
 	MSQosAnalyzerAlgorithmStateful
 };
 typedef enum _MSQosAnalyzerAlgorithm MSQosAnalyzerAlgorithm;
-const char* ms_qos_analyzer_algorithm_to_string(MSQosAnalyzerAlgorithm alg);
-const MSQosAnalyzerAlgorithm ms_qos_analyzer_algorithm_from_string(const char* alg);
+MS2_PUBLIC const char* ms_qos_analyzer_algorithm_to_string(MSQosAnalyzerAlgorithm alg);
+MS2_PUBLIC const MSQosAnalyzerAlgorithm ms_qos_analyzer_algorithm_from_string(const char* alg);
 
 /**
  * A MSQosAnalyzer is responsible to analyze RTCP feedback and suggest
