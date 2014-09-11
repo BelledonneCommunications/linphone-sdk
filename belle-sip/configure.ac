@@ -105,7 +105,10 @@ if test "$strict" = "true"; then
 
 	case "$CC" in
 		*clang*)
-		STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unknown-warning-option"
+		STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unknown-warning-option -Qunused-arguments -Wno-tautological-compare -Wno-keyword-compat -Wno-builtin-requires-header -Wno-unused-function -Wno-gnu-designator "
+		#disabled due to wrong optimization false positive with small string
+		#(cf. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=35903)
+		STRICT_OPTIONS="$STRICT_OPTIONS -Wno-array-bounds "
 		;;
 		gcc*)
 		STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=pragmas"
