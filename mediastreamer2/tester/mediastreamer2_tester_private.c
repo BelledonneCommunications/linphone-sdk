@@ -275,6 +275,8 @@ bool_t wait_for_until_with_parse_events(MediaStream *ms1, MediaStream *ms2, int 
 	}
 	result = wait_for_list_with_parse_events(mss, counter, value, timeout_ms, cbs, ptrs);
 	ms_list_free(mss);
+	ms_list_free(cbs);
+	ms_list_free(ptrs);
 	return result;
 }
 
