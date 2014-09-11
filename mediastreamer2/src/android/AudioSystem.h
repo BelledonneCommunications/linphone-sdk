@@ -317,6 +317,10 @@ public:
 		assign(other.mPtr);
 		return *this;
 	}
+	sp<_T> & operator=(_T *ptr){
+		assign(ptr);
+		return *this;
+	}
 	bool operator!(){
 		return !mPtr;
 	}
