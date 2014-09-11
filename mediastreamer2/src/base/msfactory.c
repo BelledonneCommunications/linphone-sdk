@@ -124,9 +124,6 @@ static MSFilterStats *find_or_create_stats(MSFactory *factory, MSFilterDesc *des
  * Do not use in an application.
 **/
 MSFactory *ms_factory_get_fallback(void){
-	if (fallback_factory==NULL){
-		fallback_factory=ms_factory_new();
-	}
 	return fallback_factory;
 }
 
@@ -167,6 +164,12 @@ void ms_factory_init(MSFactory *obj){
 	ms_message("ms_factory_init() done");
 }
 
+MSFactory *ms_factory_create_fallback(void){
+	if (fallback_factory==NULL){
+		fallback_factory=ms_factory_new();
+	}
+	return fallback_factory;
+}
 
 MSFactory *ms_factory_new(void){
 	MSFactory *obj=ms_new0(MSFactory,1);
@@ -336,7 +339,7 @@ MSFilterDesc *ms_factory_lookup_filter_by_name(MSFactory* factory, const char *f
 
 MSFilterDesc* ms_factory_lookup_filter_by_id( MSFactory* factory, MSFilterId id){
 	MSList *elem;
-	
+
 	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
 		if (desc->id==id){
@@ -429,7 +432,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	BOOL fFinished = FALSE;
 	const char *tmp=getenv("DEBUG");
 	BOOL debug=(tmp!=NULL && atoi(tmp)==1);
-	
+
 	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
 
 	// Start searching for .dll files in the current directory.

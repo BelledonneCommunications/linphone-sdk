@@ -42,6 +42,11 @@ typedef struct _MSFactory MSFactory;
 MS2_PUBLIC MSFactory *ms_factory_new(void);
 
 /**
+ * Create the factory default callback.
+**/
+MS2_PUBLIC MSFactory *ms_factory_create_fallback(void);
+
+/**
  * Used by the legacy functions before MSFactory was added.
  * Do not use in an application.
 **/

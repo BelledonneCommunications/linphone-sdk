@@ -284,16 +284,18 @@ static int ms_base_ref=0;
 static int ms_plugins_ref=0;
 
 void ms_base_init(){
-
-	if (ms_base_ref++ >0 ) {
+	ms_base_ref++;
+	if ( ms_base_ref>1 ) {
 		ms_message ("Skiping ms_base_init, because [%i] ref",ms_base_ref);
 		return;
 	}
+	ms_factory_create_fallback();
 	ms_factory_get_fallback();
 }
 
 void ms_base_exit(){
-	if (--ms_base_ref >0 ) {
+	--ms_base_ref;
+	if ( ms_base_ref>0 ) {
 		ms_message ("Skiping ms_base_exit, still [%i] ref",ms_base_ref);
 		return;
 	}
@@ -301,7 +303,8 @@ void ms_base_exit(){
 }
 
 void ms_plugins_init(void) {
-	if (ms_plugins_ref++ >0 ) {
+	ms_plugins_ref++;
+	if ( ms_plugins_ref>1 ) {
 		ms_message ("Skiping ms_plugins_init, because [%i] ref",ms_plugins_ref);
 		return;
 	}
@@ -309,7 +312,8 @@ void ms_plugins_init(void) {
 }
 
 void ms_plugins_exit(void) {
-	if (--ms_plugins_ref >0 ) {
+	--ms_plugins_ref;
+	if ( ms_plugins_ref>0 ) {
 		ms_message ("Skiping ms_plugins_exit, still [%i] ref",ms_plugins_ref);
 		return;
 	}

@@ -63,9 +63,7 @@ static void filter_register_tester(void) {
 	ms_filter_destroy(filter);
 
 	ms_exit();
-	CU_ASSERT_PTR_NULL(ms_filter_lookup_by_name("MSVoidSource"));
-	filter= ms_filter_create_decoder("pcma");
-	CU_ASSERT_PTR_NULL(filter);
+	CU_ASSERT_PTR_NULL(ms_factory_get_fallback());
 }
 
 static test_t tests[] = {
