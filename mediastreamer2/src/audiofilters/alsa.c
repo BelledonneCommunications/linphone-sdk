@@ -873,7 +873,6 @@ static void compute_timespec(AlsaReadData *d) {
 	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
 	double av_skew;
 	MSTimeSpec ts;
-	double av_skew;
 	ts.tv_nsec = ns % 1000000000;
 	ts.tv_sec = ns / 1000000000;
 	av_skew = ms_ticker_synchronizer_set_external_time(d->ticker_synchronizer, &ts);
