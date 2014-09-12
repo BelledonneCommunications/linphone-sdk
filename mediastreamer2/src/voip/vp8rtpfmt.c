@@ -521,7 +521,8 @@ static void generate_frame_partitions_list(Vp8RtpFmtFrame *frame, MSList *packet
 
 static void mark_frame_as_invalid(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
 	frame->error = Vp8RtpFmtInvalidFrame;
-	if (ctx->freeze_on_error == TRUE) {
+	/*even if freeze_on_error is FALSE, if avpf is enabled it is preferable not to output an invalid frame.*/
+	if (ctx->freeze_on_error || ctx->avpf_enabled) {
 		ctx->waiting_for_reference_frame = TRUE;
 	}
 }

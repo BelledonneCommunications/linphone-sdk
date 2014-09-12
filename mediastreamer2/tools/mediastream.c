@@ -111,11 +111,14 @@ typedef struct _MediastreamDatas {
 	bool_t two_windows;
 	bool_t el;
 	bool_t use_rc;
+	
 	bool_t enable_srtp;
 	bool_t interactive;
 	bool_t enable_avpf;
 	bool_t enable_rtcp;
-	bool_t pad;
+	
+	bool_t freeze_on_error;
+	bool_t pad[3];
 	float el_speed;
 	float el_thres;
 	float el_force;
@@ -216,6 +219,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --mtu <mtu> (specify MTU)]\n"
 								"[ --interactive (run in interactive mode)]\n"
 								"[ --no-avpf]\n"
+								"[ --freeze-on-error (for video, stop upon decoding error until next valid frame)]\n"
 								"[ --no-rtcp]\n"
 								"[ --log <file>]\n"
 								;
@@ -538,6 +542,8 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i], "--log") == 0) {
 			i++;
 			out->logfile = fopen(argv[i], "a+");
+		} else if (strcmp(argv[i], "--freeze-on-error") == 0) {
+			out->freeze_on_error=TRUE;
 		} else {
 			printf("%s",usage);
 			printf("Unknown option '%s'\n", argv[i]);
@@ -789,7 +795,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		ms_set_cpu_count(cpucount);
 #endif
 		video_stream_set_event_callback(args->video,video_stream_event_cb, args);
-
+		video_stream_set_freeze_on_error(args->video,args->freeze_on_error);
 		video_stream_enable_adaptive_bitrate_control(args->video,args->use_rc);
 		if (args->camera)
 			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),args->camera);
