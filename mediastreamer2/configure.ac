@@ -126,9 +126,9 @@ AC_ARG_ENABLE([debug],
 
 AS_CASE([$enable_debug],
 		[yes],[
-			CFLAGS="$CFLAGS -g -DDEBUG"
-			CXXFLAGS="$CXXFLAGS -g -DDEBUG"
-			OBJCFLAGS="$OBJCFLAGS -g -DDEBUG"
+			CFLAGS="$CFLAGS -g -O0 -DDEBUG"
+			CXXFLAGS="$CXXFLAGS -g -O0 -DDEBUG"
+			OBJCFLAGS="$OBJCFLAGS -g -O0 -DDEBUG"
 		],
 		[no],
 		[
