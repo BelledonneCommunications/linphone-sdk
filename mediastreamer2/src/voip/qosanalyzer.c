@@ -56,15 +56,12 @@ bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj){
 	if (obj->desc->has_improved){
 		return obj->desc->has_improved(obj);
 	}
-	ms_error("Unimplemented has_improved() call.");
+	ms_error("MSQosAnalyzer: Unimplemented has_improved() call.");
 	return TRUE;
 }
 
 void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj,
 	void (*on_action_suggested)(void*, int, const char**), void* u){
-	if (obj->on_action_suggested_user_pointer!=NULL){
-		ms_free(obj->on_action_suggested_user_pointer);
-	}
 	obj->on_action_suggested=on_action_suggested;
 	obj->on_action_suggested_user_pointer=u;
 }
@@ -90,7 +87,7 @@ const MSQosAnalyzerAlgorithm ms_qos_analyzer_algorithm_from_string(const char* a
 	else if (strcasecmp(alg, "Stateful")==0)
 		return MSQosAnalyzerAlgorithmStateful;
 
-	ms_error("Invalid qos analyzer: %s", alg);
+	ms_error("MSQosAnalyzer: Invalid QoS analyzer: %s", alg);
 	return MSQosAnalyzerAlgorithmSimple;
 }
 
@@ -110,7 +107,6 @@ void ms_qos_analyzer_unref(MSQosAnalyzer *obj){
 			obj->desc->uninit(obj);
 		if (obj->label) ms_free(obj->label);
 		if (obj->lre) ortp_loss_rate_estimator_destroy(obj->lre);
-		if (obj->on_action_suggested_user_pointer) ms_free(obj->on_action_suggested_user_pointer);
 
 		ms_free(obj);
 	}
@@ -284,34 +280,59 @@ static int earlier_than(rtcpstatspoint_t *p, const time_t * now){
 	}
 	return TRUE;
 }
-static int sort_points(const rtcpstatspoint_t *p1, const rtcpstatspoint_t *p2){
+static int sort_by_bandwidth(const rtcpstatspoint_t *p1, const rtcpstatspoint_t *p2){
 	return p1->bandwidth > p2->bandwidth;
 }
 
 static float stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj, uint32_t seq_num){
 	int latest_bw;
-	float last_action_bw;
-	if (obj->upload_bandwidth_count){
-		obj->upload_bandwidth_latest=obj->upload_bandwidth_sum/obj->upload_bandwidth_count;
-	}
+	float bw_per_seqnum=0.f;
+	float bw_per_avg=0.f;
 
+	/*First method to compute bandwidth*/
+	if (obj->upload_bandwidth_count){
+		bw_per_avg=obj->upload_bandwidth_sum/obj->upload_bandwidth_count;
+	}
 	obj->upload_bandwidth_count=0;
 	obj->upload_bandwidth_sum=0;
 
-	latest_bw=obj->upload_bandwidth_cur;
-	while (obj->upload_bandwidth[latest_bw].seq_number<seq_num){
-		latest_bw = (latest_bw+1)%BW_HISTORY;
-		if (latest_bw==obj->upload_bandwidth_cur) break;
+	for (latest_bw=0;latest_bw<BW_HISTORY;++latest_bw){
+		ms_debug("MSStatefulQosAnalyzer[%p]:\t%u\t-->\t%f", obj,
+			obj->upload_bandwidth[latest_bw].seq_number,
+			obj->upload_bandwidth[latest_bw].up_bandwidth);
 	}
-	last_action_bw=obj->upload_bandwidth[latest_bw].up_bandwidth;
 
+	if (obj->upload_bandwidth[(obj->upload_bandwidth_cur+1)%BW_HISTORY].seq_number>seq_num){
+		ms_warning("MSStatefulQosAnalyzer[%p]: saved to much points - seq_number lower "
+			"than oldest measure! Increase BW_HISTORY or reduce ptime!", obj);
+	}else{
+		int count = 0;
+		latest_bw=obj->upload_bandwidth_cur;
+		/*Get the average of all measures with seq number lower than the one from the report*/
+		for (latest_bw=0; latest_bw<BW_HISTORY; ++latest_bw){
+			if (obj->upload_bandwidth[latest_bw].seq_number>0
+				&& obj->upload_bandwidth[latest_bw].seq_number<seq_num){
+				count++;
+				bw_per_seqnum+=obj->upload_bandwidth[latest_bw].up_bandwidth;
+			}
+		}
+		// invalid, no measures available
+		if (count==0){
+			ms_error("MSStatefulQosAnalyzer[%p]: no measures available to compute bandwidth for ext_seq=%u", obj, seq_num);
+			bw_per_seqnum = rtp_session_get_send_bandwidth(obj->session)/1000.0;
+		}else{
+			bw_per_seqnum /= count;//((BW_HISTORY + obj->upload_bandwidth_cur - latest_bw) % BW_HISTORY);
+			ms_debug("MSStatefulQosAnalyzer[%p]: found average bandwidth for seq_num=%u", obj, seq_num);
+		}
+	}
 
-	ms_message("MSStatefulQosAnalyzer[%p]: estimate_bw=%f vs sum_up_bw=%f vs last_action_bw=%f"
+	ms_message("MSStatefulQosAnalyzer[%p]: bw_curent=%f vs bw_per_avg=%f vs bw_per_seqnum=%f"
 				, obj
 				, rtp_session_get_send_bandwidth(obj->session)/1000.0
-				, obj->upload_bandwidth_latest
-				, last_action_bw);
+				, bw_per_avg
+				, bw_per_seqnum);
 
+	obj->upload_bandwidth_latest = bw_per_seqnum;
 	return obj->upload_bandwidth_latest;
 }
 
@@ -326,15 +347,19 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 
 
 	if (rb && report_block_get_ssrc(rb)==rtp_session_get_send_ssrc(obj->session)){
-		/* Save bandwidth used at this time */
-		obj->upload_bandwidth[obj->upload_bandwidth_cur].seq_number = rb->ext_high_seq_num_rec;
-		obj->upload_bandwidth[obj->upload_bandwidth_cur].up_bandwidth = rtp_session_get_send_bandwidth(obj->session)/1000.0;
-		obj->upload_bandwidth_cur = (obj->upload_bandwidth_cur+1)%BW_HISTORY;
-
 		if (ortp_loss_rate_estimator_process_report_block(objbase->lre,&obj->session->rtp,rb)){
+			int i;
 			float loss_rate = ortp_loss_rate_estimator_get_value(objbase->lre);
-			float up_bw = stateful_qos_analyzer_upload_bandwidth(obj,rb->ext_high_seq_num_rec);
+			float up_bw = stateful_qos_analyzer_upload_bandwidth(obj,report_block_get_high_ext_seq(rb));
 			obj->curindex++;
+
+			/*flush bandwidth estimation measures for seq number lower than remote report block received*/
+			for (i=0;i<BW_HISTORY;i++){
+				if (obj->upload_bandwidth[i].seq_number<report_block_get_high_ext_seq(rb)){
+					obj->upload_bandwidth[i].seq_number=0;
+					obj->upload_bandwidth[i].up_bandwidth=0.f;
+				}
+			}
 
 			/* Always skip the first report, since values might be erroneous due
 			to initialization of multiples objects (encoder/decoder/stats computing..)
@@ -350,7 +375,8 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 			obj->latest->loss_percent=loss_rate;
 			obj->latest->rtt=rtp_session_get_round_trip_propagation(obj->session);
 
-			obj->rtcpstatspoint=ms_list_insert_sorted(obj->rtcpstatspoint, obj->latest, (MSCompareFunc)sort_points);
+			obj->rtcpstatspoint=ms_list_insert_sorted(obj->rtcpstatspoint,
+				obj->latest, (MSCompareFunc)sort_by_bandwidth);
 
 			/*if the measure was 0% loss, reset to 0% every measures below it*/
 			if (obj->latest->loss_percent < 1e-5){
@@ -369,8 +395,10 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 
 				/*clean everything which occurred 60 sec or more ago*/
 				time_t clear_time = ms_time(0) - 60;
-				obj->rtcpstatspoint = ms_list_remove_custom(obj->rtcpstatspoint, (MSCompareFunc)earlier_than, &clear_time);
-				ms_message("MSStatefulQosAnalyzer[%p]: Reached list maximum capacity (count=%d) --> Cleaned list (count=%d)",
+				obj->rtcpstatspoint = ms_list_remove_custom(obj->rtcpstatspoint,
+					(MSCompareFunc)earlier_than, &clear_time);
+				ms_message("MSStatefulQosAnalyzer[%p]: reached list maximum capacity "
+					"(count=%d) --> Cleaned list (count=%d)",
 					obj, prev_size, ms_list_size(obj->rtcpstatspoint));
 			}
 			return TRUE;
@@ -400,7 +428,8 @@ static void smooth_values(MSStatefulQosAnalyzer *obj){
 
 	if (first_loss == obj->rtcpstatspoint){
 		prev_loss = curr->loss_percent;
-		curr->loss_percent = lerp(curr->loss_percent, ((rtcpstatspoint_t *)it->next->data)->loss_percent, .25);
+		curr->loss_percent = lerp(curr->loss_percent,
+			((rtcpstatspoint_t *)it->next->data)->loss_percent, .25);
 		it = it->next;
 	}else{
 		it = first_loss;
@@ -435,7 +464,7 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 	MSList *last = current;
 	int size = ms_list_size(obj->rtcpstatspoint);
 	if (current == NULL){
-		ms_message("MSStatefulQosAnalyzer[%p]: Not points available for computation.", obj);
+		ms_message("MSStatefulQosAnalyzer[%p]: no points available for estimation", obj);
 		return -1;
 	}
 
@@ -461,7 +490,7 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 
 	if (size == 1){
 		rtcpstatspoint_t *p = (rtcpstatspoint_t *)current->data;
-		ms_message("MSStatefulQosAnalyzer[%p]: One single point", obj);
+		ms_message("MSStatefulQosAnalyzer[%p]: one single point", obj);
 		mean_bw = p->bandwidth * ((p->loss_percent>1e-5) ? (100-p->loss_percent)/100.f:2);
 	}else{
 		while (current!=NULL && ((rtcpstatspoint_t*)current->data)->loss_percent<3+constant_network_loss){
@@ -491,7 +520,7 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 			mean_bw = .5*(((rtcpstatspoint_t*)current->prev->data)->bandwidth+((rtcpstatspoint_t*)current->data)->bandwidth);
 		}
 
-		ms_message("MSStatefulQosAnalyzer[%p]: [0->%d] Last stable is %d(%f;%f)"
+		ms_message("MSStatefulQosAnalyzer[%p]: [0->%d] last stable is %d(%f;%f)"
 			, obj
 			, ms_list_position(obj->rtcpstatspoint, last)
 			, ms_list_position(obj->rtcpstatspoint, (current ? current->prev : last))
@@ -537,7 +566,7 @@ static void stateful_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateContr
 			: NULL;
 
 		/*try a burst every 50 seconds (10 RTCP packets)*/
-		if (obj->curindex % 10 == 0){
+		if (obj->curindex % 10 == 6){
 			ms_message("MSStatefulQosAnalyzer[%p]: try burst!", obj);
 			obj->burst_state = MSStatefulQosAnalyzerBurstEnable;
 		}
@@ -601,9 +630,18 @@ static void stateful_analyzer_update(MSQosAnalyzer *objbase){
 	MSStatefulQosAnalyzer *obj=(MSStatefulQosAnalyzer*)objbase;
 	static time_t last_measure;
 
+	/* Every seconds, save the bandwidth used. This is needed to know how much
+	bandwidth was used when receiving a receiver report. Since the report contains
+	the "last sequence number", it allows us to precisely know which interval to
+	consider */
 	if (last_measure != ms_time(0)){
 		obj->upload_bandwidth_count++;
 		obj->upload_bandwidth_sum+=rtp_session_get_send_bandwidth(obj->session)/1000.0;
+
+		/* Save bandwidth used at this time */
+		obj->upload_bandwidth[obj->upload_bandwidth_cur].seq_number = rtp_session_get_seq_number(obj->session);
+		obj->upload_bandwidth[obj->upload_bandwidth_cur].up_bandwidth = rtp_session_get_send_bandwidth(obj->session)/1000.0;
+		obj->upload_bandwidth_cur = (obj->upload_bandwidth_cur+1)%BW_HISTORY;
 	}
 	last_measure = ms_time(0);
 

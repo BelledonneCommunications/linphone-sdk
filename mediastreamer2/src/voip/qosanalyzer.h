@@ -60,7 +60,7 @@ extern "C" {
 	/**************************************************************************/
 	/************************* Stateful QoS analyzer **************************/
 	/**************************************************************************/
-	#define BW_HISTORY 5
+	#define BW_HISTORY 10
 
 	typedef struct {
 		time_t timestamp;
@@ -94,8 +94,8 @@ extern "C" {
 		MSStatefulQosAnalyzerBurstState burst_state;
 		struct timeval start_time;
 
-		uint32_t upload_bandwidth_count;
-		double upload_bandwidth_sum;
+		uint32_t upload_bandwidth_count; /*deprecated*/
+		double upload_bandwidth_sum; /*deprecated*/
 		double upload_bandwidth_latest;
 		int upload_bandwidth_cur;
 		bandwidthseqnum upload_bandwidth[BW_HISTORY];
@@ -108,5 +108,3 @@ extern "C" {
 #endif
 
 #endif
-
-

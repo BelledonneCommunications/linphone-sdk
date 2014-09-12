@@ -335,8 +335,11 @@ static int bandwidth_inc_video_bitrate(MSBandwidthBitrateDriver *obj, const MSRa
 	}
 	newbr= (float)obj->cur_bitrate*(100.0+(float)action->value)/100.0;
 	if (newbr>obj->nom_bitrate){
+		if (obj->cur_bitrate==obj->nom_bitrate){
+			ms_message("MSBandwidthBitrateDriver: bitrate already at maximum level.");
+			return -1;
+		}
 		newbr=obj->nom_bitrate;
-		ret=-1;
 	}
 	ms_message("MSBandwidthBitrateDriver: increasing bitrate from %i to %i bps for video encoder.",obj->cur_bitrate,newbr);
 	obj->cur_bitrate=newbr;

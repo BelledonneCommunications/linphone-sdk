@@ -110,10 +110,7 @@ struct _MSQosAnalyzer{
 	* @param argv array containing various algorithm dependent information
 	**/
 	void (*on_action_suggested)(void* userpointer, int argc, const char** argv);
-	/**
-	* User pointer used in #on_action_suggested . Be careful: This pointer is
-	* automatically freed by the QosAnalyzer on change or on destroy
-	**/
+	/** User pointer given at #on_action_suggested callback **/
 	void *on_action_suggested_user_pointer;
 	int refcnt;
 	MSQosAnalyzerAlgorithm type;

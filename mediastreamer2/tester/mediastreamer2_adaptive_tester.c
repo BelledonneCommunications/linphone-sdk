@@ -78,8 +78,6 @@ typedef struct _stream_manager_t {
 	int local_rtp;
 	int local_rtcp;
 
-	OrtpEvQueue * evq;
-
 	union{
 		AudioStream* audio_stream;
 		VideoStream* video_stream;
@@ -100,15 +98,11 @@ stream_manager_t * stream_manager_new(MSFormatType type) {
 	mgr->local_rtp=(rand() % ((2^16)-1024) + 1024) & ~0x1;
 	mgr->local_rtcp=mgr->local_rtp+1;
 
-	mgr->evq=ortp_ev_queue_new();
-
 	if (mgr->type==MSAudio){
 		mgr->audio_stream=audio_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
-		rtp_session_register_event_queue(mgr->audio_stream->ms.sessions.rtp_session,mgr->evq);
 	}else{
 #if VIDEO_ENABLED
 		mgr->video_stream=video_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
-		rtp_session_register_event_queue(mgr->video_stream->ms.sessions.rtp_session,mgr->evq);
 #else
 		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(mgr->type));
 #endif
@@ -121,17 +115,15 @@ static void stream_manager_delete(stream_manager_t * mgr) {
 
 	if (mgr->type==MSAudio){
 		unlink(RECORDED_16K_1S_FILE);
-		rtp_session_unregister_event_queue(mgr->audio_stream->ms.sessions.rtp_session,mgr->evq);
+
 		audio_stream_stop(mgr->audio_stream);
 	}else{
 #if VIDEO_ENABLED
-		rtp_session_unregister_event_queue(mgr->video_stream->ms.sessions.rtp_session,mgr->evq);
 		video_stream_stop(mgr->video_stream);
 #else
 		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(mgr->type));
 #endif
 	}
-	ortp_ev_queue_destroy(mgr->evq);
 	ms_free(mgr);
 }
 
@@ -181,34 +173,17 @@ static void video_manager_start(	stream_manager_t * mgr
 }
 #endif
 
-static void handle_queue_events(stream_manager_t * stream_mgr) {
-	OrtpEvent *ev;
-	while (NULL != (ev=ortp_ev_queue_get(stream_mgr->evq))){
-		OrtpEventType evt=ortp_event_get_type(ev);
-		OrtpEventData *evd=ortp_event_get_data(ev);
-
-		if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) {
-			const report_block_t *rb=NULL;
-			if (rtcp_is_SR(evd->packet)){
-				rb=rtcp_SR_get_report_block(evd->packet,0);
-			}else if (rtcp_is_RR(evd->packet)){
-				rb=rtcp_RR_get_report_block(evd->packet,0);
-			}
-
-			if (rb){
-				stream_mgr->rtcp_count++;
-
-				if (stream_mgr->type==MSVideo && stream_mgr->video_stream->ms.rc_enable){
-					const MSQosAnalyzer *analyzer=ms_bitrate_controller_get_qos_analyzer(stream_mgr->video_stream->ms.rc);
-					if (analyzer->type==MSQosAnalyzerAlgorithmStateful){
-						const MSStatefulQosAnalyzer *stateful_analyzer=((const MSStatefulQosAnalyzer*)analyzer);
-						stream_mgr->adaptive_stats.loss_estim=stateful_analyzer->network_loss_rate;
-						stream_mgr->adaptive_stats.congestion_bw_estim=stateful_analyzer->congestion_bandwidth;
-					}
-				}
-			}
+static void qos_analyzer_on_action_suggested(void *user_data, int datac, const char** datav){
+	stream_manager_t *mgr = (stream_manager_t*)user_data;
+	mgr->rtcp_count++;
+	ms_error("MSStatefulQosAnalyzer bw_per_seqnum one more %d", mgr->rtcp_count);
+	if (mgr->type==MSVideo && mgr->video_stream->ms.rc_enable){
+		const MSQosAnalyzer *analyzer=ms_bitrate_controller_get_qos_analyzer(mgr->video_stream->ms.rc);
+		if (analyzer->type==MSQosAnalyzerAlgorithmStateful){
+			const MSStatefulQosAnalyzer *stateful_analyzer=((const MSStatefulQosAnalyzer*)analyzer);
+			mgr->adaptive_stats.loss_estim=stateful_analyzer->network_loss_rate;
+			mgr->adaptive_stats.congestion_bw_estim=stateful_analyzer->congestion_bandwidth;
 		}
-		ortp_event_destroy(ev);
 	}
 }
 
@@ -262,6 +237,9 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 #endif
 	}
 
+	ms_qos_analyzer_set_on_action_suggested(ms_bitrate_controller_get_qos_analyzer(marielle_ms->rc),
+						qos_analyzer_on_action_suggested,
+						*pmarielle);
 	rtp_session_enable_network_simulation(margaux_ms->sessions.rtp_session,&params);
 }
 
@@ -281,7 +259,7 @@ static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_
 	while ((!current||*current<expected) && retry++ <timeout_ms/100) {
 		media_stream_iterate(marielle_ms);
 		media_stream_iterate(margaux_ms);
-		handle_queue_events(marielle);
+		// handle_queue_events(marielle);
 		if (retry%10==0) {
 			 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	,
 				marielle_ms, media_stream_get_down_bw(marielle_ms)/1000, media_stream_get_up_bw(marielle_ms)/1000);
@@ -427,7 +405,7 @@ static void adaptive_speex16_audio_stream()  {
 		stream_manager_t * marielle, * margaux;
 
 		start_adaptive_stream(MSAudio, &marielle, &margaux, SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 15000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 15000, &marielle->rtcp_count, 7);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 5.f);
 		stop_adaptive_stream(marielle,margaux);
@@ -443,13 +421,13 @@ static void adaptive_pcma_audio_stream() {
 
 		// yet non-adaptive codecs cannot respect low throughput limitations
 		start_adaptive_stream(MSAudio, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 10000, &marielle->rtcp_count, 7);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
 		CU_ASSERT_IN_RANGE(bw_usage,6.f, 8.f); // this is bad!
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(MSAudio, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 10000, &marielle->rtcp_count, 7);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./THIRDGENERATION_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, .3f, .5f);
 		stop_adaptive_stream(marielle,margaux);
@@ -467,7 +445,7 @@ static void upload_bandwidth_computation() {
 
 		for (i = 0; i < 5; i++){
 			rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
-			iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2*(i+1));
+			iterate_adaptive_stream(marielle, margaux, 5000, NULL, 0);
 			/*since PCMA uses 80kbit/s, upload bandwidth should just be 80+80*duplication_ratio kbit/s */
 			CU_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 1.f);
 		}
@@ -482,25 +460,25 @@ static void adaptive_vp8() {
 		stream_manager_t * marielle, * margaux;
 
 		start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 0, 50,0);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 7);
 		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 1);
 		CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim > 200);
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 0, 25, 50, 0);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 7);
 		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 20, 30);
 		CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim > 200);
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 70000,0, 50,0);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 7);
 		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 0, 2);
 		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 50, 95);
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300000, 100000,15, 50,0);
-		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 12);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 7);
 		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, 10, 20);
 		CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, 80, 125);
 		stop_adaptive_stream(marielle,margaux);
