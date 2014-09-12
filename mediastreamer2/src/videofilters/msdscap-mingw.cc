@@ -611,7 +611,7 @@ static int find_best_format(SharedComPtr<IAMStreamConfig> streamConfig, int coun
 			mediaType->formattype == FORMAT_VideoInfo &&
 			mediaType->cbFormat >= sizeof(VIDEOINFOHEADER) ) {
 			VIDEOINFOHEADER *infoHeader = (VIDEOINFOHEADER*)mediaType->pbFormat;
-			ms_message("Seeing format %ix%i %s",infoHeader->bmiHeader.biWidth,infoHeader->bmiHeader.biHeight,
+			ms_message("Seeing format %ix%i %s",(int)infoHeader->bmiHeader.biWidth,(int)infoHeader->bmiHeader.biHeight,
 					fourcc_to_char(fccstr,infoHeader->bmiHeader.biCompression));
 			if (ms_fourcc_to_pix_fmt(infoHeader->bmiHeader.biCompression)==requested_fmt){
 				MSVideoSize cur;
@@ -807,7 +807,7 @@ int DSCapture::startDshowGraph(){
 	}
 	HRESULT r=_mediaControl->Run();
 	if (r!=S_OK && r!=S_FALSE){
-		ms_error("Error starting graph (%i)",r);
+		ms_error("Error starting graph (%i)",(int)r);
 		return -1;
 	}
 	ms_message("Graph started");

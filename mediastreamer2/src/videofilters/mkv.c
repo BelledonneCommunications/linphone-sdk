@@ -256,16 +256,17 @@ static ms_bool_t h264_is_key_frame(const mblk_t *frame) {
 
 static void nalus_to_frame(mblk_t *buffer, mblk_t **frame, MSList **spsList, MSList **ppsList, ms_bool_t *isKeyFrame) {
 	mblk_t *curNalu = NULL;
+	uint32_t timecode = mblk_get_timestamp_info(buffer);
 	*frame = NULL;
 	*isKeyFrame = FALSE;
-	uint32_t timecode = mblk_get_timestamp_info(buffer);
+	
 
 	for(curNalu = buffer; curNalu != NULL;) {
 		mblk_t *buff = curNalu;
+		int type = h264_nalu_type(buff);
+		
 		curNalu = curNalu->b_cont;
 		buff->b_cont = NULL;
-
-		int type = h264_nalu_type(buff);
 		switch(type) {
 		case 7:
 			*spsList = ms_list_append(*spsList, buff);
@@ -276,20 +277,23 @@ static void nalus_to_frame(mblk_t *buffer, mblk_t **frame, MSList **spsList, MSL
 			break;
 
 		default:
-			if(type == 5) {
-				*isKeyFrame = TRUE;
-			}
-			uint32_t bufferSize = htonl(msgdsize(buff));
-			mblk_t *size = allocb(4, 0);
-			memcpy(size->b_wptr, &bufferSize, sizeof(bufferSize));
-			size->b_wptr = size->b_wptr + sizeof(bufferSize);
-			concatb(size, buff);
-			buff = size;
+			{
+				uint32_t bufferSize = htonl(msgdsize(buff));
+				mblk_t *size = allocb(4, 0);
+				
+				if(type == 5) {
+					*isKeyFrame = TRUE;
+				}
+				memcpy(size->b_wptr, &bufferSize, sizeof(bufferSize));
+				size->b_wptr = size->b_wptr + sizeof(bufferSize);
+				concatb(size, buff);
+				buff = size;
 
-			if(*frame == NULL) {
-				*frame = buff;
-			} else {
-				concatb(*frame, buff);
+				if(*frame == NULL) {
+					*frame = buff;
+				} else {
+					concatb(*frame, buff);
+				}
 			}
 		}
 	}
@@ -791,11 +795,14 @@ static void matroska_uninit(Matroska *obj) {
 static int ebml_reading_profile(const ebml_master *head) {
 	size_t length = EBML_ElementDataSize((ebml_element *)head, FALSE);
 	char *docType = ms_new0(char, length);
-	EBML_StringGet((ebml_string *)EBML_MasterFindChild(head, &EBML_ContextDocType), docType, length);
-	int docTypeReadVersion = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(head, &EBML_ContextDocTypeReadVersion));
 	int profile;
+	int docTypeReadVersion;
+	
+	EBML_StringGet((ebml_string *)EBML_MasterFindChild(head, &EBML_ContextDocType), docType, length);
+	docTypeReadVersion = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(head, &EBML_ContextDocTypeReadVersion));
+	
 
-	if(strcmp(docType, "matroska")==0) {
+	if (strcmp(docType, "matroska")==0) {
 		switch (docTypeReadVersion) {
 		case 1:
 			profile = PROFILE_MATROSKA_V1;
@@ -844,6 +851,8 @@ static ms_bool_t matroska_create_file(Matroska *obj, const char path[]) {
 static ms_bool_t matroska_load_file(Matroska *obj) {
 	int upperLevels = 0;
 	ebml_parser_context readContext;
+	ebml_element *elt;
+	
 	readContext.Context = &MATROSKA_ContextStream;
 	readContext.EndPosition = INVALID_FILEPOS_T;
 	readContext.Profile = 0;
@@ -856,11 +865,11 @@ static ms_bool_t matroska_load_file(Matroska *obj) {
 	obj->segment = (ebml_master *)EBML_FindNextElement(obj->output, &readContext, &upperLevels, FALSE);
 	EBML_ElementReadData(obj->segment, obj->output, &readContext, FALSE, SCOPE_PARTIAL_DATA, 0);
 
-	ebml_element *elt;
 	for(elt = EBML_MasterChildren(obj->segment); elt != NULL; elt = EBML_MasterNext(elt)) {
 		if(EBML_ElementIsType(elt, &MATROSKA_ContextSeekHead)) {
-			obj->metaSeek = (ebml_master*)elt;
 			matroska_seekpoint *seekPoint = NULL;
+			obj->metaSeek = (ebml_master*)elt;
+			
 			for(seekPoint = (matroska_seekpoint *)EBML_MasterChildren(obj->metaSeek); seekPoint != NULL; seekPoint = (matroska_seekpoint *)EBML_MasterNext(seekPoint)) {
 				if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextInfo)) {
 					obj->infoMeta = seekPoint;
@@ -1172,12 +1181,14 @@ static int ebml_element_cmp_position(const void *a, const void *b) {
 
 static void ebml_master_sort(ebml_master *master_elt) {
 	MSList *elts = NULL;
+	MSList *it = NULL;
 	ebml_element *elt = NULL;
+	
 	for(elt = EBML_MasterChildren(master_elt); elt != NULL; elt = EBML_MasterNext(elt)) {
 		elts = ms_list_insert_sorted(elts, elt, (MSCompareFunc)ebml_element_cmp_position);
 	}
 	EBML_MasterClear(master_elt);
-	MSList *it = NULL;
+	
 	for(it = elts; it != NULL; it = ms_list_next(it)) {
 		EBML_MasterAppend(master_elt, (ebml_element *)it->data);
 	}
@@ -1186,7 +1197,9 @@ static void ebml_master_sort(ebml_master *master_elt) {
 
 static int ebml_master_fill_blanks(stream *output, ebml_master *master) {
 	MSList *voids = NULL;
+	MSList *it = NULL;
 	ebml_element *elt1 = NULL, *elt2 = NULL;
+	
 	for(elt1 = EBML_MasterChildren(master), elt2 = EBML_MasterNext(elt1); elt2 != NULL; elt1 = EBML_MasterNext(elt1), elt2 = EBML_MasterNext(elt2)) {
 		filepos_t elt1_end_pos = EBML_ElementPositionEnd(elt1);
 		filepos_t elt2_pos = EBML_ElementPosition(elt2);
@@ -1206,7 +1219,6 @@ static int ebml_master_fill_blanks(stream *output, ebml_master *master) {
 		}
 	}
 
-	MSList *it = NULL;
 	for(it = voids; it != NULL; it = ms_list_next(it)) {
 		EBML_MasterAppend(master, (ebml_element *)it->data);
 	}
@@ -1247,9 +1259,10 @@ static ebml_master *matroska_find_track_entry(const Matroska *obj, int trackNum)
 
 static int matroska_get_codec_private(const Matroska *obj, int trackNum, const uint8_t **data, size_t *length) {
 	ebml_master *trackEntry = matroska_find_track_entry(obj, trackNum);
+	ebml_binary *codecPrivate;
 	if(trackEntry == NULL)
 		return -1;
-	ebml_binary *codecPrivate = (ebml_binary *)EBML_MasterFindChild(trackEntry, &MATROSKA_ContextCodecPrivate);
+	codecPrivate = (ebml_binary *)EBML_MasterFindChild(trackEntry, &MATROSKA_ContextCodecPrivate);
 	if(codecPrivate == NULL)
 		return -2;
 
@@ -1397,13 +1410,15 @@ static int matroska_track_set_codec_private(Matroska *obj, int trackNum, const u
 
 static int matroska_track_set_info(Matroska *obj, int trackNum, const MSFmtDescriptor *fmt) {
 	ebml_master *track = matroska_find_track(obj, trackNum);
+	ebml_master *videoInfo;
+	ebml_master *audioInfo;
 	if(track == NULL) {
 		return -1;
 	} else {
 		switch(fmt->type) {
 		case MSVideo:
 			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackType), TRACK_TYPE_VIDEO);
-			ebml_master *videoInfo = (ebml_master *)EBML_MasterGetChild(track, &MATROSKA_ContextVideo);
+			videoInfo = (ebml_master *)EBML_MasterGetChild(track, &MATROSKA_ContextVideo);
 			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextFlagInterlaced), 0);
 			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelWidth), fmt->vsize.width);
 			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelHeight), fmt->vsize.height);
@@ -1411,7 +1426,7 @@ static int matroska_track_set_info(Matroska *obj, int trackNum, const MSFmtDescr
 
 		case MSAudio:
 			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackType), TRACK_TYPE_AUDIO);
-			ebml_master *audioInfo = (ebml_master *)EBML_MasterGetChild(track, &MATROSKA_ContextAudio);
+			audioInfo = (ebml_master *)EBML_MasterGetChild(track, &MATROSKA_ContextAudio);
 			EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextSamplingFrequency), fmt->rate);
 			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextChannels), fmt->nchannels);
 			break;

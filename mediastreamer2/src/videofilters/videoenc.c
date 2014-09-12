@@ -45,7 +45,9 @@ static bool_t avcodec_initialized=FALSE;
 
 static const int qmin2 = 2;
 static const int qmin3 = 3;
-// static const int qmin4 = 4;
+#if HAVE_AVCODEC_SNOW
+static const int qmin4 = 4;
+#endif
 static const int qmin5 = 5;
 
 static const MSVideoConfiguration h263_conf_list[] = {
