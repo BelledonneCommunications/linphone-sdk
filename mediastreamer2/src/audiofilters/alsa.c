@@ -69,7 +69,7 @@ static void alsa_resume(snd_pcm_t *handle){
 	snd_pcm_status_t *status=NULL;
 
 	snd_pcm_status_alloca(&status);
-	
+
 	if ((err=snd_pcm_status(handle,status))!=0){
 		ms_warning("snd_pcm_status() failed: %s",snd_strerror(err));
 		return;
@@ -96,16 +96,16 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 	snd_pcm_uframes_t buffersize;
 	int err;
 	int format;
-	
+
 	/* Allocate the snd_pcm_hw_params_t structure on the stack. */
 	snd_pcm_hw_params_alloca(&hwparams);
-	
+
 	/* Init hwparams with full configuration space */
 	if (snd_pcm_hw_params_any(pcm_handle, hwparams) < 0) {
 		ms_warning("alsa_set_params: Cannot configure this PCM device.");
 		return -1;
 	}
-	
+
 	if (snd_pcm_hw_params_set_access(pcm_handle, hwparams, SND_PCM_ACCESS_RW_INTERLEAVED) < 0) {
 		ms_warning("alsa_set_params: Error setting access.");
 		return -1;
@@ -124,7 +124,7 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 		return -1;
 	}
 	/* Set sample rate. If the exact rate is not supported */
-	/* by the hardware, use nearest possible rate.         */ 
+	/* by the hardware, use nearest possible rate.         */
 	exact_uvalue=rate;
 	dir=0;
 	if ((err=snd_pcm_hw_params_set_rate_near(pcm_handle, hwparams, &exact_uvalue, &dir))<0){
@@ -136,8 +136,8 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 		"==> Using %d Hz instead.", rate, exact_uvalue);
 	}
 	/* choose greater period size when rate is high */
-	periodsize=periodsize*(rate/8000);	
-	
+	periodsize=periodsize*(rate/8000);
+
 	/* Set buffer size (in frames). The resulting latency is given by */
 	/* latency = periodsize * periods / (rate * bytes_per_frame)     */
 	/* set period size */
@@ -153,7 +153,7 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 	}
 	ms_warning("alsa_set_params: periodsize:%d Using %d", periodsize, (int)exact_ulvalue);
 	periodsize=exact_ulvalue;
-	/* Set number of periods. Periods used to be called fragments. */ 
+	/* Set number of periods. Periods used to be called fragments. */
 	exact_uvalue=periods;
 	dir=0;
 	if (snd_pcm_hw_params_set_periods_near(pcm_handle, hwparams, &exact_uvalue, &dir) < 0) {
@@ -171,7 +171,7 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 		buffersize=0;
 		ms_warning("alsa_set_params: could not obtain hw buffer size.");
 	}
-	
+
 	/* Apply HW parameter settings to */
 	/* PCM device and prepare device  */
 	if ((err=snd_pcm_hw_params(pcm_handle, hwparams)) < 0) {
@@ -194,7 +194,7 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 			return -1;
 		}
 	}
-	return 0;	
+	return 0;
 }
 
 #ifdef EPIPE_BUGFIX
@@ -255,7 +255,7 @@ static snd_pcm_t * alsa_open_r(const char *pcmdev,int bits,int stereo,int rate)
 	struct timezone tz;
 	int diff = 0;
 	err = gettimeofday(&tv1, &tz);
-	while (1) { 
+	while (1) {
 		if (!(alsa_set_params(pcm_handle,0,bits,stereo,rate)<0)){
 			ms_message("alsa_open_r: Audio params set");
 			break;
@@ -287,7 +287,7 @@ static snd_pcm_t * alsa_open_w(const char *pcmdev,int bits,int stereo,int rate)
 	snd_pcm_t *pcm_handle;
 
 	ms_message("alsa_open_w: opening %s at %iHz, bits=%i, stereo=%i",pcmdev,rate,bits,stereo);
-	
+
 	if (snd_pcm_open(&pcm_handle, pcmdev,SND_PCM_STREAM_PLAYBACK,SND_PCM_NONBLOCK) < 0) {
 		ms_warning("alsa_open_w: Error opening PCM device %s",pcmdev );
 		return NULL;
@@ -300,7 +300,7 @@ static snd_pcm_t * alsa_open_w(const char *pcmdev,int bits,int stereo,int rate)
 	int diff = 0;
 	int err;
 	err = gettimeofday(&tv1, &tz);
-	while (1) { 
+	while (1) {
 		if (!(alsa_set_params(pcm_handle,1,bits,stereo,rate)<0)){
 			ms_message("alsa_open_w: Audio params set");
 			break;
@@ -339,14 +339,14 @@ static int alsa_can_read(snd_pcm_t *dev)
 		ms_error("*** alsa_can_read fixup, trying to recover");
 		snd_pcm_drain(dev); /* Ignore possible error, at least -EAGAIN.*/
 		err = snd_pcm_recover(dev, avail, 0);
-		if (err){ 
+		if (err){
 			ms_error("snd_pcm_recover() failed with err %d: %s", err, snd_strerror(err));
 			return -1;
 		}
 		err = snd_pcm_start(dev);
-		if (err){ 
-			ms_error("snd_pcm_start() failed with err %d: %s", err, snd_strerror(err)); 
-			return -1; 
+		if (err){
+			ms_error("snd_pcm_start() failed with err %d: %s", err, snd_strerror(err));
+			return -1;
 		}
 		ms_message("Recovery done");
 	}
@@ -468,7 +468,7 @@ static int get_mixer_element(snd_mixer_t *mixer,const char *name, MixerAction ac
 				}
 				break;
 				case CAPTURE_SWITCH:
-				
+
 				break;
 				case PLAYBACK_SWITCH:
 
@@ -477,7 +477,7 @@ static int get_mixer_element(snd_mixer_t *mixer,const char *name, MixerAction ac
 		}
 		elem=snd_mixer_elem_next(elem);
 	}
-	
+
 	return value;
 }
 
@@ -488,9 +488,9 @@ static void set_mixer_element(snd_mixer_t *mixer,const char *name, int level,Mix
 	long sndMixerPMin=0;
 	long sndMixerPMax=0;
 	long newvol=0;
-	
+
 	elem=snd_mixer_first_elem(mixer);
-	
+
 	while (elem!=NULL){
 		elemname=snd_mixer_selem_get_name(elem);
 		//ms_message("Found alsa mixer element %s.",elemname);
@@ -537,7 +537,7 @@ static void set_mixer_element(snd_mixer_t *mixer,const char *name, int level,Mix
 
 
 static void alsa_card_set_level(MSSndCard *obj,MSSndCardMixerElem e,int a)
-{	
+{
 	snd_mixer_t *mixer;
 	AlsaData *ad=(AlsaData*)obj->data;
 	mixer=alsa_mixer_open(ad->mixdev);
@@ -695,7 +695,7 @@ static MSSndCard * alsa_card_new(int id)
 	char *name=NULL;
 	AlsaData *ad;
 	int err;
-	
+
 	if (id!=-1){
 		err=snd_card_get_name(id,&name);
 		if (err<0) {
@@ -823,7 +823,7 @@ static void * alsa_write_thread(void *p){
 		continue;
 	      }
 	    //ms_warning(" read %i", err);
-	    
+
 	    size=err*2;
 	    om->b_wptr+=size;
 
@@ -871,6 +871,7 @@ static void alsa_stop_r(AlsaReadData *d){
 static void compute_timespec(AlsaReadData *d) {
 	static int count = 0;
 	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
+	double av_skew;
 	MSTimeSpec ts;
 	double av_skew;
 	ts.tv_nsec = ns % 1000000000;
@@ -928,7 +929,7 @@ void alsa_read_process(MSFilter *obj){
 	}
 	if (ad->handle==NULL) return;
 	while (alsa_can_read(ad->handle)>=samples){
-	  
+
 		int size=samples*2*ad->nchannels;
 		om=allocb(size,0);
 		if ((err=alsa_read(ad->handle,om->b_wptr,samples))<=0) {
@@ -953,12 +954,12 @@ void alsa_read_process(MSFilter *obj){
 	mblk_t *om=NULL;
 	int samples=(160*ad->rate)/8000;
 	int size=samples*2*ad->nchannels;
-	
+
 	ms_mutex_lock(&ad->mutex);
 	while (ms_bufferizer_get_avail(ad->bufferizer)>=size){
-	  
+
 	  om=allocb(size,0);
-	  ms_bufferizer_read(ad->bufferizer,om->b_wptr,size);	  
+	  ms_bufferizer_read(ad->bufferizer,om->b_wptr,size);
 	  om->b_wptr+=size;
 	  /*ms_message("alsa_read_process: Outputing %i bytes",size);*/
 	  ms_queue_put(obj->outputs[0],om);

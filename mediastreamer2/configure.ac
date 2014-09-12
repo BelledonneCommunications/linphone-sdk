@@ -4,7 +4,7 @@ AC_INIT([mediastreamer],[2.10.0])
 AC_MSG_NOTICE([$PACKAGE_NAME-$PACKAGE_VERSION		A mediastreaming library for telephony application.])
 AC_MSG_NOTICE([licensed under the terms of the General Public License (GPL)])
 
-dnl don't put anythingelse before AC_PROG_CC unless checking if macro still work for clang
+dnl do not put anything else before AC_PROG_CC unless checking if macro still work for clang
 AC_PROG_CXX(["xcrun clang++" g++])
 AC_PROG_CC(["xcrun clang" gcc])
 AC_PROG_OBJC(["xcrun clang" gcc])
@@ -66,6 +66,16 @@ case $CC in
 		#disabled due to wrong optimization false positive with small string
 		#(cf. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=35903)
 		STRICT_OPTIONS="$STRICT_OPTIONS -Wno-array-bounds "
+	;;
+esac
+
+# because Darwin's gcc is actually clang, we need to check it...
+case "$target_os" in
+	*darwin*)
+	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unknown-warning-option -Qunused-arguments -Wno-tautological-compare -Wno-unused-function "
+	#disabled due to wrong optimization false positive with small string
+	#(cf. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=35903)
+	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-array-bounds "
 	;;
 esac
 
