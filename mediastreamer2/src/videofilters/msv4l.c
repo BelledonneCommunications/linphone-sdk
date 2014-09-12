@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <string.h>
 #include <sys/mman.h>
 
-#include <linux/videodev.h>
 #ifdef HAVE_LINUX_VIDEODEV2_H
 #include <linux/videodev2.h>
 #endif
@@ -88,7 +87,7 @@ static bool_t v4lv2_try_format(V4lState *s, int fmtid){
 	memset(&fmt,0,sizeof(fmt));
 
 	fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	fmt.fmt.pix.width       = s->vsize.width; 
+	fmt.fmt.pix.width       = s->vsize.width;
 	fmt.fmt.pix.height      = s->vsize.height;
 	fmt.fmt.pix.pixelformat = fmtid;
 	fmt.fmt.pix.field = V4L2_FIELD_ANY;
@@ -104,7 +103,7 @@ static bool_t v4lv2_try_format(V4lState *s, int fmtid){
 static int v4lv2_configure(V4lState *s)
 {
 	struct v4l2_capability cap;
-	
+
         if (ioctl (s->fd, VIDIOC_QUERYCAP, &cap)<0) {
 		ms_message("Not a v4lv2 driver.");
 		return -1;
@@ -151,39 +150,39 @@ static int v4lv2_do_mmap(V4lState *s){
 	struct v4l2_requestbuffers req;
 	int i;
 	enum v4l2_buf_type type;
-	
+
 	memset(&req,0,sizeof(req));
-	
+
 	req.count               = 4;
 	req.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	req.memory              = V4L2_MEMORY_MMAP;
-	
+
 	if (ioctl (s->fd, VIDIOC_REQBUFS, &req)<0) {
 		ms_error("Error requesting info on mmap'd buffers: %s",strerror(errno));
 		return -1;
 	}
-	
+
 	for (i=0; i<req.count; ++i) {
 		struct v4l2_buffer buf;
 		mblk_t *msg;
 		void *start;
 		memset(&buf,0,sizeof(buf));
-	
+
 		buf.type=V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		buf.memory=V4L2_MEMORY_MMAP;
 		buf.index=i;
-	
+
 		if (ioctl (s->fd, VIDIOC_QUERYBUF, &buf)<0){
 			ms_error("Could not VIDIOC_QUERYBUF : %s",strerror(errno));
 			return -1;
 		}
-		
+
 		start=mmap (NULL /* start anywhere */,
 			buf.length,
 			PROT_READ | PROT_WRITE /* required */,
 			MAP_SHARED /* recommended */,
 			s->fd, buf.m.offset);
-	
+
 		if (start==NULL){
 			ms_error("Could not mmap: %s",strerror(errno));
 		}
@@ -191,7 +190,7 @@ static int v4lv2_do_mmap(V4lState *s){
 		/* adjust to real size of picture*/
 		if (s->pix_fmt==MS_RGB24)
 			msg->b_wptr+=s->vsize.width*s->vsize.height*3;
-		else 
+		else
 			msg->b_wptr+=(s->vsize.width*s->vsize.height*3)/2;
 
 		s->frames[i]=msg;
@@ -222,8 +221,8 @@ static int v4lv2_do_mmap(V4lState *s){
 static mblk_t * v4lv2_grab_image(V4lState *s){
 	struct v4l2_buffer buf;
 	unsigned int k;
-	memset(&buf,0,sizeof(buf));
 	mblk_t *ret=NULL;
+	memset(&buf,0,sizeof(buf));
 
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	buf.memory = V4L2_MEMORY_MMAP;
@@ -349,7 +348,7 @@ static int v4l_start(MSFilter *f, void *arg)
 #endif
 			struct video_capability vidcap;
 			err=v4l_configure(s);
-			if (err<0) 
+			if (err<0)
 			{
 				ms_error("MSV4l: could not get configuration of video device");
 				close(s->fd);
@@ -472,7 +471,7 @@ static int v4l_do_mmap(V4lState *s){
 		/* adjust to real size of picture*/
 		if (s->pix_fmt==MS_RGB24)
 			buf->b_wptr+=s->vsize.width*s->vsize.height*3;
-		else 
+		else
 			buf->b_wptr+=(s->vsize.width*s->vsize.height*3)/2;
 		s->frames[i]=ms_yuv_buf_alloc_from_buffer(s->vsize.width, s->vsize.height, buf);
 	}
@@ -525,7 +524,7 @@ static int v4l_configure(V4lState *s)
 	int i;
 	int fps = 0;
 	int found=0;
-	
+
 	memset(&chan,0,sizeof(chan));
 	memset(&pict,0,sizeof(pict));
 	memset(&cap,0,sizeof(cap));
@@ -563,7 +562,7 @@ static int v4l_configure(V4lState *s)
 	if (found) ms_message("A valid video channel was found.");
 	/* select this channel */
 	ioctl(s->fd,VIDIOCSCHAN,&chan);
-	
+
 	/* get picture properties */
 	err=ioctl(s->fd,VIDIOCGPICT,&pict);
 	if (err<0){
@@ -572,7 +571,7 @@ static int v4l_configure(V4lState *s)
 	}
 	ms_message("Default picture properties: brightness=%i,hue=%i,colour=%i,contrast=%i,depth=%i, palette=%i.",
 						pict.brightness,pict.hue,pict.colour, pict.contrast,pict.depth, pict.palette);
-	
+
 	/* trying color format */
 	if (try_format(s->fd,&pict,VIDEO_PALETTE_YUV420P,16)){
 		ms_message("Driver supports YUV420P, using that format.");
@@ -586,7 +585,7 @@ static int v4l_configure(V4lState *s)
 	}else if (try_format(s->fd, &pict,VIDEO_PALETTE_UYVY, 16)){
 		ms_message("Driver supports UYVY, using that format.");
 		s->pix_fmt=MS_UYVY;
-	}else{	
+	}else{
 	  s->vsize.width=MS_VIDEO_SIZE_CIF_W;
 	  s->vsize.height=MS_VIDEO_SIZE_CIF_H;
 		s->pix_fmt=MS_YUV420P;
@@ -618,9 +617,9 @@ static int v4l_configure(V4lState *s)
 		ms_message("v4l_configure: cannot set HW frame rate control");
 	else
 		ms_message("v4l_configure: set HW fps to be : %d", fps);
-	
+
 	return 0;
-}	
+}
 
 
 int ms_to_v4l_pix_fmt(MSPixFmt p){
@@ -650,7 +649,7 @@ static void plane_copy(uint8_t *dest, int dw, int dh, uint8_t *src, int sw, int 
 	int sstartx=(diffw<0) ? diffw/2 : 0;
 	int sstarty=(diffh<0) ? diffh/2 : 0;
 	uint8_t *tmp1=dest;
-	uint8_t *tmp2=src;	
+	uint8_t *tmp2=src;
 
 	/* copy orig into dest */
 	tmp2+=sstarty*slsize;
@@ -704,7 +703,7 @@ static mblk_t * v4l_grab_image_mmap(V4lState *s){
 	vmap.width=s->got_vsize.width;
 	vmap.height=s->got_vsize.height;
 	vmap.format=ms_to_v4l_pix_fmt(s->pix_fmt);
-	
+
 	query_frame=(s->frame_ind) % s->frame_max;
 	/*ms_message("v4l_mmap_process: query_frame=%i",
 			obj->query_frame);*/
@@ -724,7 +723,7 @@ static mblk_t * v4l_grab_image_mmap(V4lState *s){
 		/*ms_message("Syncing on frame %i",syncframe);*/
 		err=ioctl(s->fd,VIDIOCSYNC,&syncframe);
 		if (err<0) {
-			ms_warning("v4l_grab_image_mmap: error in VIDIOCSYNC: %s.",strerror(errno));	
+			ms_warning("v4l_grab_image_mmap: error in VIDIOCSYNC: %s.",strerror(errno));
 			return NULL;
 		}
 		/*g_message("got frame %i",syncframe);*/
@@ -742,7 +741,7 @@ static mblk_t * v4l_grab_image_mmap(V4lState *s){
 static mblk_t * v4l_make_mire(V4lState *s){
 	unsigned char *data;
 	int i,j,line,pos;
-	int patternw=s->vsize.width/6; 
+	int patternw=s->vsize.width/6;
 	int patternh=s->vsize.height/6;
 	int red,green=0,blue=0;
 	if (s->mire==NULL){
@@ -756,10 +755,10 @@ static mblk_t * v4l_make_mire(V4lState *s){
 		else red= 0;
 		for (j=0;j<s->vsize.width;++j){
 			pos=line+(j*3);
-			
+
 			if ( ((j+s->frame_ind)/patternw) & 0x1) blue=255;
 			else blue= 0;
-			
+
 			data[pos]=red;
 			data[pos+1]=green;
 			data[pos+2]=blue;
@@ -788,7 +787,7 @@ static void v4l_purge(V4lState *s){
 		ms_message("syncing last frame");
 		err=ioctl(s->fd,VIDIOCSYNC,&syncframe);
 		if (err<0) {
-			ms_warning("v4l_mmap_process: error in VIDIOCSYNC: %s.",strerror(errno));	
+			ms_warning("v4l_mmap_process: error in VIDIOCSYNC: %s.",strerror(errno));
 		}
 	}
 }
@@ -800,7 +799,7 @@ static void v4lv2_purge(V4lState *s){
 
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	buf.memory = V4L2_MEMORY_MMAP;
-	
+
 	for(;s->queued>0;s->queued--){
 		if (ioctl(s->fd, VIDIOC_DQBUF, &buf)==-1){
 			ms_warning("v4lv2_purge: Could not DQ buffer: %s",strerror(errno));
@@ -872,7 +871,7 @@ static void *v4l_thread(void *ptr){
 
 		if (s->vsize.width!=s->got_vsize.width){
 			if (m){
-				/* mblock was allocated by crop or pad! */ 
+				/* mblock was allocated by crop or pad! */
 				ms_mutex_lock(&s->mutex);
 				putq(&s->rq,m);
 				ms_mutex_unlock(&s->mutex);
@@ -1032,7 +1031,7 @@ static MSFilter *v4l_create_reader(MSWebCam *obj){
 static void v4l_detect(MSWebCamManager *obj);
 
 static void v4l_cam_init(MSWebCam *cam){
-	
+
 }
 
 MSWebCamDesc v4l_desc={
