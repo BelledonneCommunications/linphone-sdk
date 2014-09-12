@@ -11,7 +11,7 @@ video real-time streaming and processing. Written in pure C,
 it is based upon the ortp library.
 
 Design:
-------
+-------------------------------------
 
 Using mediastreamer2 will allow you to chain filters in a graph. Each
 filter will be responsible for doing some kind of processing and will
@@ -24,7 +24,7 @@ file.
 There is a doxygen documentation for more information.
 
 Compilation and installation
-----------------------------
+-------------------------------------
 
 * Required dependencies:
 	- oRTP
@@ -54,8 +54,23 @@ Compilation and installation
 	2) Download latest linphone-deps-win32 zip from http://download-mirror.savannah.gnu.org/releases/linphone/misc/ and unpack it in the linphone-deps directory.
 	3) open build/win32native/mediastreamer2.sln
 
+	* Known issues on MacOSX
+		If you get the following error during 'make' command:
+
+			libtool: compile: unable to infer tagged configuration
+			libtool: compile: specify a tag with `--tag'
+
+		This is probably because you set CC to something else than 'xcrun clang'.
+		However this is the only compiler supported to link correctly objective C
+		files (.m) and c in .la library file. Try unsetting your custom CC compiler
+		and reconfigure:
+			$> unset CC
+			$> ./configure && make
+
+
+
 Contact information:
---------------------
+-------------------------------------
 
 Use the *linphone* mailing list for question about mediastreamer2.
   <linphone-developers@nongnu.org>.
@@ -66,11 +81,13 @@ Notes about third parties compilation
 -------------------------------------
 
 * libmatroska2:
- - get the source with 
+ - get the source with
 	$ git clone git://git.linphone.org/libmatroska-c.git
  - compilation:
 	$ make -f Makefile
 	$ make -f Makefile install
+
+
 
 
 
