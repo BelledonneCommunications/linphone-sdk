@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <string.h>
 #include <sys/mman.h>
 
+#include <linux/videodev.h>
 #ifdef HAVE_LINUX_VIDEODEV2_H
 #include <linux/videodev2.h>
 #endif
