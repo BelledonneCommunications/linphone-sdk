@@ -27,18 +27,14 @@ struct belle_sip_body_handler{
 	belle_sip_body_handler_progress_callback_t progress_cb;
 	size_t expected_size; /* 0 if unknown*/
 	size_t transfered_size;
-	char *header; /* used when this body is part of a multipart message to store the header of this part */
+	belle_sip_list_t *headers; /**> used when this body is part of a multipart message to store the header of this part */
+	char *headerStringBuffer; /**> buffer populated with a string created from marshaling the headers */
 	void *user_data;
 };
 
-void belle_sip_body_handler_set_header(belle_sip_body_handler_t *obj, char *header) {
-	if (obj->header != NULL) {
-		free(obj->header);
-	}
+void belle_sip_body_handler_add_header(belle_sip_body_handler_t *obj, belle_sip_header_t *header) {
 	if (header != NULL) {
-		obj->header = belle_sip_strdup(header);
-	} else {
-		obj->header = NULL;
+		obj->headers=belle_sip_list_append(obj->headers,belle_sip_object_ref(header));
 	}
 }
 
@@ -47,10 +43,15 @@ static void belle_sip_body_handler_clone(belle_sip_body_handler_t *obj, const be
 	obj->user_data=orig->user_data;
 	obj->expected_size=orig->expected_size;
 	obj->transfered_size=orig->transfered_size;
-	belle_sip_body_handler_set_header(obj, orig->header);
+	obj->headers=belle_sip_list_copy_with_data(orig->headers,(void *(*)(void*))belle_sip_object_clone_and_ref);
+	if (orig->headerStringBuffer!=NULL) {
+		obj->headerStringBuffer = strdup(orig->headerStringBuffer);
+	}
 }
 
 static void belle_sip_body_handler_destroy(belle_sip_body_handler_t *obj){
+	belle_sip_list_free_with_data(obj->headers,belle_sip_object_unref);
+	belle_sip_free(obj->headerStringBuffer);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_body_handler_t);
@@ -69,7 +70,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 void belle_sip_body_handler_init(belle_sip_body_handler_t *obj, belle_sip_body_handler_progress_callback_t progress_cb, void *user_data){
 	obj->user_data=user_data;
 	obj->progress_cb=progress_cb;
-	obj->header = NULL; /* header is not used in most of the case, set it using a dedicated function if needed */
+	obj->headers = NULL; /* header is not used in most of the case, set it using a dedicated function if needed */
+	obj->headerStringBuffer = NULL; /* header string buffer is set when adding a body handler to a multipart body handler */
 }
 
 size_t belle_sip_body_handler_get_size(const belle_sip_body_handler_t *obj){
@@ -297,17 +299,28 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 		*size -= strlen(MULTIPART_END); /* just in case it will be the end of the message, ask for less characters than possible in order to be able to add the multipart message termination */
 
 		if (current_part->transfered_size == 0) { /* Nothing transfered yet on this part, include a separator and the header if exists */
-			/* separator */
+			size_t headersSize = 0;
 			offsetSize = strlen(MULTIPART_SEPARATOR);
-			memcpy(buffer, MULTIPART_SEPARATOR, strlen(MULTIPART_SEPARATOR));
-			buffer += strlen(MULTIPART_SEPARATOR);
-			/* part header */
-			if (current_part->header != NULL) {
-				offsetSize += strlen(current_part->header);
-				memcpy(buffer, current_part->header, strlen(current_part->header));
-				buffer += strlen(current_part->header);
+
+			if (current_part->headerStringBuffer != NULL) {
+				headersSize = strlen(current_part->headerStringBuffer);
 			}
-			*size -=offsetSize; /* ask less data to the current part handler */
+
+			/* check if buffer is large enough to get the whole header + separtor and at least a byte of data */
+			if (*size < headersSize+offsetSize+1) {
+				return BELLE_SIP_BUFFER_OVERFLOW;
+			}
+
+			/* insert separator */
+			memcpy(buffer, MULTIPART_SEPARATOR, offsetSize);
+			/* insert part header */
+			if (headersSize!=0) {
+				memcpy(buffer+offsetSize, current_part->headerStringBuffer, headersSize);
+				offsetSize += headersSize;
+			}
+
+			*size -=offsetSize; /* decrease data length requested to the current part handler */
+			buffer +=offsetSize; /* increase buffer pointer to have it pointing to the begining of free space, just after header */
 		}
 
 		retval = belle_sip_body_handler_send_chunk(current_part, msg, buffer, size);
@@ -317,9 +330,8 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 		if (retval == BELLE_SIP_CONTINUE) {
 			return BELLE_SIP_CONTINUE; /* there is still data to be sent, continue */
 		} else { /* this part has reach the end, pass to next one if there is one */
-			if (obj_multipart->parts->prev!=NULL) { /* there is an other part to be sent */
-				belle_sip_list_t *next_part = obj_multipart->parts->prev;
-				obj_multipart->parts = next_part;
+			if (obj_multipart->parts->next!=NULL) { /* there is an other part to be sent */
+				obj_multipart->parts = belle_sip_list_next(obj_multipart->parts);
 				return BELLE_SIP_CONTINUE;
 			} else { /* there is nothing else, close the message and return STOP */
 				memcpy(buffer+*size, MULTIPART_END, strlen(MULTIPART_END));
@@ -354,10 +366,32 @@ belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new(belle_s
 	return obj;
 }
 
+#define DEFAULT_HEADER_STRING_SIZE 512
 void belle_sip_multipart_body_handler_add_part(belle_sip_multipart_body_handler_t *obj, belle_sip_body_handler_t *part){
 	obj->base.expected_size+=part->expected_size+strlen(MULTIPART_SEPARATOR); /* add the separator length to the body length as each part start with a separator */
-	if (part->header != NULL) { /* there is a declared header for this part, add its length to the expected total length */
-		obj->base.expected_size+=strlen(part->header);
+	if (part->headers != NULL) { /* there is a declared header for this part, add its length to the expected total length */
+		size_t headerStringBufferSize = DEFAULT_HEADER_STRING_SIZE;
+		size_t offset = 0;
+		belle_sip_list_t *headerList = part->headers;
+		part->headerStringBuffer = (char *)belle_sip_malloc(DEFAULT_HEADER_STRING_SIZE);
+
+		while (headerList != NULL) {
+			size_t offsetBackup=offset; /* we must backup the offset as it will be messed up by the marshal function in case of failure */
+			belle_sip_error_code returnCode = belle_sip_object_marshal(headerList->data, part->headerStringBuffer, headerStringBufferSize-5, &offset); /* -5 to leave room for carriage returns */
+			if (returnCode == BELLE_SIP_BUFFER_OVERFLOW) { /* increase buffer size */
+				offset=offsetBackup; /* restore the offset, no data were written to the buffer */
+				headerStringBufferSize+=DEFAULT_HEADER_STRING_SIZE;
+				part->headerStringBuffer = (char *)belle_sip_realloc(part->headerStringBuffer, headerStringBufferSize);
+			} else if (returnCode == BELLE_SIP_OK) { /* add the carriage return chars */
+				part->headerStringBuffer[offset++]='\r';
+				part->headerStringBuffer[offset++]='\n';
+				headerList = belle_sip_list_next(headerList);
+			}
+		}
+		part->headerStringBuffer[offset++]='\r';
+		part->headerStringBuffer[offset++]='\n';
+		obj->base.expected_size += offset;
+		part->headerStringBuffer[offset++]='\0'; /* null terminate the buffer in order to be able to get it length later using strlen */
 	}
 	obj->parts=belle_sip_list_append(obj->parts,belle_sip_object_ref(part));
 }
