@@ -117,6 +117,8 @@ const char * mediastreamer2_tester_test_name(const char *suite_name, int test_in
 }
 
 void mediastreamer2_tester_init(void) {
+	int i;
+
 	add_test_suite(&basic_audio_test_suite);
 	add_test_suite(&sound_card_test_suite);
 	add_test_suite(&adaptive_test_suite);
@@ -128,6 +130,11 @@ void mediastreamer2_tester_init(void) {
 #ifdef HAVE_MATROSKA
 	add_test_suite(&player_recorder_test_suite);
 #endif
+
+	for (i = 0; i < mediastreamer2_tester_nb_test_suites(); i++) {
+		run_test_suite(test_suite[i]);
+	}
+
 }
 
 void mediastreamer2_tester_uninit(void) {
@@ -139,15 +146,7 @@ void mediastreamer2_tester_uninit(void) {
 }
 
 int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_name) {
-	int i,ret;
-
-	/* initialize the CUnit test registry */
-	if (CUE_SUCCESS != CU_initialize_registry())
-		return CU_get_error();
-
-	for (i = 0; i < mediastreamer2_tester_nb_test_suites(); i++) {
-		run_test_suite(test_suite[i]);
-	}
+	int ret;
 
 #if HAVE_CU_GET_SUITE
 	if (suite_name){
@@ -155,17 +154,17 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 		CU_basic_set_mode(CU_BRM_VERBOSE);
 		suite=CU_get_suite(suite_name);
 		if (!suite) {
-			ms_error("Could not find suite '%s'. Available suites are:", suite_name);
+			fprintf(stderr, "Could not find suite '%s'. Available suites are:\n", suite_name);
 			list_suites();
 		} else if (test_name) {
 			CU_pTest test=CU_get_test_by_name(test_name, suite);
 			if (!test) {
-				ms_error("Could not find test '%s' in suite '%s'. Available tests are:", test_name, suite_name);
+				fprintf(stderr, "Could not find test '%s' in suite '%s'. Available tests are:\n", test_name, suite_name);
 				// do not use suite_name here, since this method is case sentisitive
 				list_suite_tests(suite->pName);
 			} else {
 				CU_ErrorCode err= CU_basic_run_test(suite, test);
-				if (err != CUE_SUCCESS) ms_error("CU_basic_run_test error %d", err);
+				if (err != CUE_SUCCESS) fprintf(stderr, "CU_basic_run_test error=%d\n", err);
 			}
 		} else {
 			CU_basic_run_suite(suite);
@@ -194,7 +193,6 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 	}
 
 	ret=CU_get_number_of_tests_failed()!=0;
-	CU_cleanup_registry();
 	return ret;
 }
 
@@ -234,6 +232,12 @@ int main (int argc, char *argv[]) {
 	const char *test_name = NULL;
 	unsigned char verbose = FALSE;
 
+	/* initialize the CUnit test registry */
+	if (CUE_SUCCESS != CU_initialize_registry())
+		return CU_get_error();
+
+	mediastreamer2_tester_init();
+
 	for(i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--help") == 0) {
 			helper(argv[0]);
@@ -256,8 +260,14 @@ int main (int argc, char *argv[]) {
 		} else if (strcmp(argv[i],"--list-tests")==0){
 			CHECK_ARG("--list-tests", ++i, argc);
 			suite_name = argv[i];
-			list_suite_tests(suite_name);
-			return 0;
+			if (CU_get_suite(suite_name)==NULL){
+				fprintf(stderr, "Could not find suite '%s'. Available suites are:\n", suite_name);
+				list_suites();
+				return -1;
+			}else{
+				list_suite_tests(suite_name);
+				return 0;
+			}
 		}
 #endif
 #if HAVE_CU_CURSES
@@ -280,8 +290,8 @@ int main (int argc, char *argv[]) {
 		putenv("MEDIASTREAMER_DEBUG=0");
 	}
 
-	mediastreamer2_tester_init();
 	ret = mediastreamer2_tester_run_tests(suite_name, test_name);
+	CU_cleanup_registry();
 	mediastreamer2_tester_uninit();
 	return ret;
 }
