@@ -35,7 +35,7 @@ AC_ARG_ENABLE(debug,
   [cu_do_debug="no"])
 if test x"$cu_do_debug" = xyes ; then
 	echo "++++++++++ Enabling debug mode compilation."
-	CFLAGS="$CFLAGS -D_DEBUG -g3 -Wall"
+	CFLAGS="$CFLAGS -D_DEBUG -g3 -O0 -Wall"
 	LDFLAGS="$LDFLAGS -g"
 	ENABLE_DEBUG="TRUE"
 else
