@@ -34,6 +34,7 @@ static const MSFmtDescriptor *video_stream_get_recv_format(VideoStream *stream){
 	return ms_factory_get_video_format(ms_factory_get_fallback(),pt->mime_type,NULL,pt->recv_fmtp);
 }
 
+
 void video_stream_free(VideoStream *stream) {
 	/* Prevent filters from being destroyed two times */
 	if (stream->source_performs_encoding == TRUE) {
@@ -339,8 +340,8 @@ static void ext_display_cb(void *ud, MSFilter* f, unsigned int event, void *even
 	VideoStream *st=(VideoStream*)ud;
 	if (st->rendercb!=NULL){
 		st->rendercb(st->render_pointer,
-		            output->local_view.w!=0 ? &output->local_view : NULL,
-		            output->remote_view.w!=0 ? &output->remote_view : NULL);
+					output->local_view.w!=0 ? &output->local_view : NULL,
+					output->remote_view.w!=0 ? &output->remote_view : NULL);
 	}
 }
 
@@ -404,8 +405,8 @@ static void configure_video_source(VideoStream *stream){
 	} else if (cam_vsize.width*cam_vsize.height>vsize.width*vsize.height){
 #if TARGET_IPHONE_SIMULATOR || defined(__arm__)
 		ms_error("Camera is proposing a size bigger than encoder's suggested size (%ix%i > %ix%i) "
-		           "Using the camera size as fallback because cropping or resizing is not implemented for arm.",
-		           cam_vsize.width,cam_vsize.height,vsize.width,vsize.height);
+				   "Using the camera size as fallback because cropping or resizing is not implemented for arm.",
+				   cam_vsize.width,cam_vsize.height,vsize.width,vsize.height);
 		vsize=cam_vsize;
 #else
 		vsize=get_with_same_orientation(vsize,cam_vsize);
@@ -502,6 +503,15 @@ static void video_stream_payload_type_changed(RtpSession *session, unsigned long
 
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
+	if (cam==NULL){
+		cam = ms_web_cam_manager_get_default_cam( ms_web_cam_manager_get() );
+	}
+	return video_stream_start_with_source(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, ms_web_cam_create_reader(cam));
+}
+
+
+int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam* cam, MSFilter* source){
 	PayloadType *pt;
 	RtpSession *rtps=stream->ms.sessions.rtp_session;
 	MSPixFmt format;
@@ -510,9 +520,9 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	const int socket_buf_size=2000000;
 	bool_t avpf_enabled = FALSE;
 
-	if (cam==NULL){
-		cam=ms_web_cam_manager_get_default_cam (
-		      ms_web_cam_manager_get());
+	if( source == NULL ){
+		ms_error("videostream.c: no defined source");
+		return -1;
 	}
 
 	pt=rtp_profile_get_payload(profile,payload);
@@ -561,7 +571,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}
 		/* creates the filters */
 		stream->cam=cam;
-		stream->source = ms_web_cam_create_reader(cam);
+		stream->source = source;
 		stream->tee = ms_filter_new(MS_TEE_ID);
 		stream->local_jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
 		if (stream->source_performs_encoding == TRUE) {
@@ -988,7 +998,7 @@ unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
 	}
 	if (stream->source){
 		if (ms_filter_has_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID)
-		    && ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
+			&& ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
 	}
 	return stream->preview_window_id;
@@ -1091,6 +1101,19 @@ void video_preview_stop(VideoPreview *stream){
 	video_stream_free(stream);
 }
 
+MSFilter* video_preview_stop_reuse_source(VideoPreview *stream){
+	MSFilter* source = stream->source;
+	ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
+	ms_filter_unlink(stream->source,0,stream->pixconv,0);
+	ms_filter_unlink(stream->pixconv,0,stream->output2,0);
+
+	ms_message("video_preview_stop_reuse_source: keep %p", source);
+	stream->source = NULL; // prevent destroy
+	video_stream_free(stream);
+	return source;
+}
+
+
 int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp){
 	video_stream_set_direction(videostream,VideoStreamRecvOnly);
 	return video_stream_start(videostream,profile,addr,port,addr,port+1,used_pt,jitt_comp,NULL);
@@ -1121,7 +1144,7 @@ void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZr
 }
 
 void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable) {
-    stream->display_filter_auto_rotate_enabled = enable;
+	stream->display_filter_auto_rotate_enabled = enable;
 }
 
 bool_t video_stream_is_decoding_error_to_be_reported(VideoStream *stream, uint32_t ms) {

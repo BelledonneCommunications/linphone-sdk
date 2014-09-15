@@ -653,6 +653,8 @@ static MS2_INLINE void video_stream_enable_adaptive_jittcomp(VideoStream *stream
 MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEventCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
+MS2_PUBLIC int video_stream_start_with_source(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+		const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam* cam, MSFilter* source);
 MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port, const char *rem_rtcp_ip, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
 MS2_PUBLIC void video_stream_prepare_video(VideoStream *stream);
@@ -838,6 +840,14 @@ MS2_PUBLIC VideoPreview * video_preview_new(void);
 #define video_preview_set_device_rotation(p, r) video_stream_set_device_rotation(p, r)
 MS2_PUBLIC void video_preview_start(VideoPreview *stream, MSWebCam *device);
 MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
+
+/**
+ * Stops the video preview graph but keep the source filter for reuse.
+ * This is useful when transitioning from a preview-only to a duplex video.
+ * The filter needs to be passed to the #video_stream_start_with_source function,
+ * otherwise you should detroy it.
+ */
+MS2_PUBLIC MSFilter* video_preview_stop_reuse_source(VideoPreview *stream);
 
 /**
  * @}
