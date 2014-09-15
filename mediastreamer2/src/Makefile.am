@@ -2,7 +2,7 @@ GITVERSION_FILE=gitversion.h
 GITVERSION_FILE_TMP=gitversion.h.tmp
 
 ## This command is used to check if the sources are cloned in a git repo.
-## We can't only depend on the presence of the .git/ directory anymore, 
+## We can't only depend on the presence of the .git/ directory anymore,
 ## because of gits submodule handling.
 ## We now simply issue a git log on configure.ac and if the output is empty (error or file not tracked), then we are not in git.
 GITLOG=$(shell git log -1 --pretty=format:%H $(top_srcdir)/configure.ac)
@@ -343,10 +343,10 @@ AM_CPPFLAGS=\
 
 AM_CFLAGS=\
 	$(STRICT_OPTIONS) \
+	$(STRICT_OPTIONS_CC) \
 	$(ORTP_CFLAGS)   \
 	$(SPEEX_CFLAGS)  \
 	$(GSM_CFLAGS)    \
-	$(STRICT_OPTIONS) \
 	$(LIBPULSE_CFLAGS) \
 	$(SPANDSP_CFLAGS)  \
 	$(MSSILK_CFLAGS) \
@@ -355,6 +355,7 @@ AM_CFLAGS=\
 
 AM_CXXFLAGS=\
 	$(STRICT_OPTIONS) \
+	$(STRICT_OPTIONS_CXX) \
 	$(ORTP_CFLAGS)
 
 DEFS=@DEFS@  -DPACKAGE_PLUGINS_DIR=\"$(PACKAGE_PLUGINS_DIR)\" -DLOCALEDIR=\"$(localedir)\" -DMS2_INTERNAL

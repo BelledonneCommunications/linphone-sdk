@@ -85,10 +85,11 @@ endif
 AM_CFLAGS=\
 	$(ORTP_CFLAGS) \
 	$(STRICT_OPTIONS) \
+	$(STRICT_OPTIONS_CC) \
 	$(VIDEO_CFLAGS) \
 	$(PCAP_CFLAGS)
 
 AM_LDFLAGS=-export-dynamic
 
 endif !BUILD_IOS
-endif 
+endif
