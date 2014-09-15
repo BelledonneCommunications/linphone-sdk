@@ -176,7 +176,7 @@ static void video_manager_start(	stream_manager_t * mgr
 static void qos_analyzer_on_action_suggested(void *user_data, int datac, const char** datav){
 	stream_manager_t *mgr = (stream_manager_t*)user_data;
 	mgr->rtcp_count++;
-	ms_error("MSStatefulQosAnalyzer bw_per_seqnum one more %d", mgr->rtcp_count);
+
 	if (mgr->type==MSVideo && mgr->video_stream->ms.rc_enable){
 		const MSQosAnalyzer *analyzer=ms_bitrate_controller_get_qos_analyzer(mgr->video_stream->ms.rc);
 		if (analyzer->type==MSQosAnalyzerAlgorithmStateful){
@@ -284,7 +284,7 @@ static void packet_duplication() {
 	dup_ratio = 0;
 	start_adaptive_stream(MSAudio, &marielle, &margaux, SPEEX16_PAYLOAD_TYPE, 32000, 0, 0, 50,dup_ratio);
 	media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
+	iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
 	CU_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
 	/*in theory, cumulative loss should be the invert of duplicated count, but
@@ -296,7 +296,7 @@ static void packet_duplication() {
 	dup_ratio = 1;
 	start_adaptive_stream(MSAudio, &marielle, &margaux, SPEEX16_PAYLOAD_TYPE, 32000, 0, 0, 50,dup_ratio);
 	media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
-	iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 2);
+	iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
 	CU_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
 	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->packet_dup_recv);
