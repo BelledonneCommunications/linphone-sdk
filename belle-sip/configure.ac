@@ -98,6 +98,8 @@ AC_ARG_ENABLE(strict,
 		esac],[strict=true])
 
 STRICT_OPTIONS="-Wall"
+STRICT_OPTIONS_CC=""
+STRICT_OPTIONS_CXX=""
 
 case "$CC" in
 	*clang*)
@@ -122,7 +124,8 @@ case "$target_os" in
 esac
 
 if test "$strict" = "true"; then
-	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wno-error=unknown-pragmas -Wdeclaration-after-statement -Wuninitialized"
+	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wno-error=unknown-pragmas -Wuninitialized"
+	STRICT_OPTIONS_CC="$STRICT_OPTIONS_CC -Wdeclaration-after-statement"
 fi
 
 dnl because of antlr3 we must accept a few warnings...
@@ -133,6 +136,7 @@ dnl        -Wno-error=uninitialized -Wno-error=unused-variable \
 dnl        -Wno-error=unused-but-set-variable "
 
 AC_SUBST(STRICT_OPTIONS)
+AC_SUBST(STRICT_OPTIONS_CC)
 AC_SUBST(LESS_STRICT_OPTIONS)
 
 # Checks for libraries.

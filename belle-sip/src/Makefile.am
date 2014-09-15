@@ -56,7 +56,7 @@ libbellesip_la_SOURCES=				\
 if BUILD_IOS
 libbellesip_la_SOURCES+=backgroundtask.m
 endif
-									
+
 if BUILD_TUNNEL
 libbellesip_la_SOURCES+=			transports/tunnel_listeningpoint.c \
 									transports/tunnel_channel.c \
@@ -64,15 +64,15 @@ libbellesip_la_SOURCES+=			transports/tunnel_listeningpoint.c \
 endif
 
 
-libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS) 
-libbellesip_la_CXXFLAGS=$(STRICT_OPTIONS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
+libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(STRICT_OPTIONS_CC) $(ANTLR_CFLAGS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
+libbellesip_la_CXXFLAGS=$(STRICT_OPTIONS) $(STRICT_OPTIONS_CXX) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
 
 libbellesip_la_LIBADD=grammars/libbellesip_generated.la libbellesip_tls.la $(ANTLR_LIBS) $(TLS_LIBS) $(TUNNEL_LIBS)
 
 libbellesip_la_LDFLAGS=-no-undefined -version-info $(BELLESIP_SO_VERSION) $(LDFLAGS)
 
 
-AM_CPPFLAGS=-I$(top_srcdir)/include -I$(builddir)/grammars 
+AM_CPPFLAGS=-I$(top_srcdir)/include -I$(builddir)/grammars
 
 discovery:
 	touch specs.c
