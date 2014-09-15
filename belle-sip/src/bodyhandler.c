@@ -128,7 +128,6 @@ void belle_sip_body_handler_end_transfer(belle_sip_body_handler_t *obj){
 struct belle_sip_memory_body_handler{
 	belle_sip_body_handler_t base;
 	uint8_t *buffer;
-	size_t size;
 };
 
 static void belle_sip_memory_body_handler_destroy(belle_sip_memory_body_handler_t *obj){
@@ -137,11 +136,10 @@ static void belle_sip_memory_body_handler_destroy(belle_sip_memory_body_handler_
 
 static void belle_sip_memory_body_handler_clone(belle_sip_memory_body_handler_t *obj, const belle_sip_memory_body_handler_t *orig){
 	if (orig->buffer) {
-		obj->buffer=belle_sip_malloc(orig->size+1);
-		memcpy(obj->buffer,orig->buffer,orig->size);
-		obj->buffer[orig->size]='\0';
+		obj->buffer=belle_sip_malloc(orig->base.expected_size+1);
+		memcpy(obj->buffer,orig->buffer,orig->base.expected_size);
+		obj->buffer[orig->base.expected_size]='\0';
 	}
-	obj->size=orig->size;
 }
 
 static void belle_sip_memory_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, const uint8_t *buf, size_t size){
@@ -153,10 +151,10 @@ static void belle_sip_memory_body_handler_recv_chunk(belle_sip_body_handler_t *b
 
 static int belle_sip_memory_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t *size){
 	belle_sip_memory_body_handler_t *obj=(belle_sip_memory_body_handler_t*)base;
-	size_t to_send=MIN(*size,obj->size-offset);
+	size_t to_send=MIN(*size,obj->base.expected_size-offset);
 	memcpy(buf,obj->buffer+offset,to_send);
 	*size=to_send;
-	return (obj->size-offset==*size) ? BELLE_SIP_STOP : BELLE_SIP_CONTINUE;
+	return (obj->base.expected_size-offset==*size) ? BELLE_SIP_STOP : BELLE_SIP_CONTINUE;
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_memory_body_handler_t);
@@ -187,7 +185,7 @@ belle_sip_memory_body_handler_t *belle_sip_memory_body_handler_new_from_buffer(v
 	belle_sip_memory_body_handler_t *obj=belle_sip_object_new(belle_sip_memory_body_handler_t);
 	belle_sip_body_handler_init((belle_sip_body_handler_t*)obj,cb,user_data);
 	obj->buffer=(uint8_t*)buffer;
-	obj->base.expected_size=obj->size=bufsize;
+	obj->base.expected_size=bufsize;
 	return obj;
 }
 
@@ -196,7 +194,7 @@ belle_sip_memory_body_handler_t *belle_sip_memory_body_handler_new_copy_from_buf
 	belle_sip_body_handler_init((belle_sip_body_handler_t*)obj,cb,user_data);
 	obj->buffer=(uint8_t*)belle_sip_malloc(bufsize+1);
 	obj->buffer[bufsize]='\0';
-	obj->base.expected_size=obj->size=bufsize;
+	obj->base.expected_size=bufsize;
 	memcpy(obj->buffer,buffer,bufsize);
 	return obj;
 }
