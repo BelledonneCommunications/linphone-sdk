@@ -1027,7 +1027,7 @@ AM_CONDITIONAL(WITH_EPM,test $EPM != false && test $MKEPMLIST != false && test $
 dnl Check for xxd
 AC_CHECK_PROG(xxd_found, xxd, yes)
 if test "$xxd_found" != yes ;then
- 	AC_MSG_ERROR("xxd is required")
+ 	AC_MSG_ERROR("xxd is required (provided by vim package)")
 fi
 
 # Preferred packaging system, as per EPM terminology
