@@ -20,7 +20,7 @@ belle_sip_tester_SOURCES=	belle_sip_tester.c belle_sip_tester.h\
 				belle_http_tester.c
 
 
-belle_sip_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS) $(TLS_CFLAGS)
+belle_sip_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS) $(STRICT_OPTIONS_CC) $(TLS_CFLAGS)
 
 belle_sip_tester_LDFLAGS=$(CUNIT_LIBS) $(AM_LDFLAGS)
 
@@ -32,11 +32,11 @@ belle_http_get_SOURCES=get.c
 
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
 
-LDADD=$(top_builddir)/src/libbellesip.la 
+LDADD=$(top_builddir)/src/libbellesip.la
 
-AM_LDFLAGS=-no-undefined -export-dynamic 
+AM_LDFLAGS=-no-undefined -export-dynamic
 
-AM_CFLAGS=$(STRICT_OPTIONS) 
+AM_CFLAGS=$(STRICT_OPTIONS) $(STRICT_OPTIONS_CC)
 
 
 test: belle_sip_tester

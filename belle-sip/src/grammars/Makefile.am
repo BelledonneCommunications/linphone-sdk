@@ -1,17 +1,17 @@
 
 noinst_LTLIBRARIES=libbellesip_generated.la
 
-libbellesip_generated_la_CFLAGS=$(LIBBELLESIP_CFLAGS)  $(ANTLR_CFLAGS) $(STRICT_OPTIONS)
+libbellesip_generated_la_CFLAGS=$(LIBBELLESIP_CFLAGS)  $(ANTLR_CFLAGS) $(STRICT_OPTIONS) $(STRICT_OPTIONS_CC)
 
-						
+
 nodist_libbellesip_generated_la_SOURCES= \
 			belle_sip_messageParser.c belle_sip_messageParser.h \
 			belle_sip_messageLexer.c belle_sip_messageLexer.h \
 			belle_sdpParser.c belle_sdpParser.h \
-			belle_sdpLexer.c belle_sdpLexer.h 
-	
+			belle_sdpLexer.c belle_sdpLexer.h
+
 .NOTPARALLEL 	$(builddir)/belle_sip_messageParser.c $(builddir)/belle_sip_messageParser.h \
-				$(builddir)/belle_sip_messageLexer.c $(builddir)/belle_sip_messageLexer.h  : belle_sip_message.g 
+				$(builddir)/belle_sip_messageLexer.c $(builddir)/belle_sip_messageLexer.h  : belle_sip_message.g
 	$(ANTLR)  -make -Xmultithreaded  -fo  $(builddir) $(srcdir)/belle_sip_message.g
 
 .NOTPARALLEL 	$(builddir)/belle_sdpLexer.c \
@@ -21,9 +21,9 @@ nodist_libbellesip_generated_la_SOURCES= \
 	$(ANTLR)  -make -Xmultithreaded  -fo $(builddir)  $<
 
 
-AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src 
+AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
 
-EXTRA_DIST= belle_sdp.g belle_sip_message.g 
+EXTRA_DIST= belle_sdp.g belle_sip_message.g
 
-CLEANFILES=$(nodist_libbellesip_generated_la_SOURCES) *.tokens 
+CLEANFILES=$(nodist_libbellesip_generated_la_SOURCES) *.tokens
 

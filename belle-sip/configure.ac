@@ -137,6 +137,7 @@ dnl        -Wno-error=unused-but-set-variable "
 
 AC_SUBST(STRICT_OPTIONS)
 AC_SUBST(STRICT_OPTIONS_CC)
+AC_SUBST(STRICT_OPTIONS_CXX)
 AC_SUBST(LESS_STRICT_OPTIONS)
 
 # Checks for libraries.
