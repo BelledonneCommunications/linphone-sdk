@@ -11,14 +11,23 @@ Commercial licensing can be purchased for that purpose from Belledonne Communica
 
 Dependencies
 ************
-
+*libtool
+*intltool
+*pkg-config
 *libantlr3c-3.2 or 3.4
 *antlr3-3.2 or 3.4
+*C++ compiler (for instance g++ or clang++)
 Newer versions won't compile.
 
 Optional:
 *CUinit-2.x
 *polarssl>=1.2
+
+Here is the command line to get these dependencies installed for Ubuntu && Debian:
+	# apt-get install libtool intltool pkg-config libantlr3c-dev antlr3 g++ make 
+
+	+ for optional library
+	# apt-get install libcunit1-dev libpolarssl-dev
 
 
 On windows you have to edit /usr/local/include/antl3defs.h
