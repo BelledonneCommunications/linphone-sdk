@@ -33,6 +33,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mscodecutils.h"
 #include "mediastreamer2/msfilter.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 extern void __register_ffmpeg_encoders_if_possible(MSFactory *factory);
 extern void ms_ffmpeg_check_init();
 extern bool_t libmsandroiddisplay_init(MSFactory *factory);
@@ -250,12 +254,12 @@ static int managers_ref=0;
 void ms_factory_init_voip(MSFactory *obj){
 	MSSndCardManager *cm;
 	int i;
-	
+
 	/* register builtin VoIP MSFilter's */
 	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
 		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);
 	}
-	
+
 	if (managers_ref==0){
 		managers_ref++;
 		cm=ms_snd_card_manager_get();
@@ -279,7 +283,7 @@ void ms_factory_init_voip(MSFactory *obj){
 		}
 #endif
 	}
-	
+
 #if defined(VIDEO_ENABLED) && defined(MS2_FILTERS) && !defined(NO_FFMPEG) && defined(HAVE_LIBAVCODEC_AVCODEC_H)
 	ms_ffmpeg_check_init();
 	__register_ffmpeg_encoders_if_possible(obj);
@@ -317,3 +321,7 @@ void ms_voip_exit(){
 	}
 	ms_factory_uninit_voip(ms_factory_get_fallback());
 }
+
+#ifdef __cplusplus
+}
+#endif

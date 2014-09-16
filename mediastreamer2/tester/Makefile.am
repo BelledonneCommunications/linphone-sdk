@@ -37,6 +37,7 @@ LDADD=$(top_builddir)/src/libmediastreamer_base.la \
 
 if BUILD_MACOSX
 noinst_LTLIBRARIES=libmediastreamer2_tester_cocoa.la
+libmediastreamer2_tester_cocoa_la_LIBTOOLFLAGS = --tag=CC
 libmediastreamer2_tester_cocoa_la_SOURCES = mediastream_tester_cocoa.m
 LDADD+=libmediastreamer2_tester_cocoa.la
 endif BUILD_MACOSX

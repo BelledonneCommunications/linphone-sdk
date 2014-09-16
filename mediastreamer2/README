@@ -55,20 +55,6 @@ Compilation and installation
 	2) Download latest linphone-deps-win32 zip from http://download-mirror.savannah.gnu.org/releases/linphone/misc/ and unpack it in the linphone-deps directory.
 	3) open build/win32native/mediastreamer2.sln
 
-	* Known issues on MacOSX
-		If you get the following error during 'make' command:
-
-			libtool: compile: unable to infer tagged configuration
-			libtool: compile: specify a tag with `--tag'
-
-		This is probably because you set CC to something else than 'xcrun clang'.
-		However this is the only compiler supported to link correctly objective C
-		files (.m) and c in .la library file. Try unsetting your custom CC compiler
-		and reconfigure:
-			$> unset CC
-			$> ./configure && make
-
-
 
 Contact information:
 -------------------------------------

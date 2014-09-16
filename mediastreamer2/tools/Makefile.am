@@ -62,6 +62,7 @@ if BUILD_MACOSX
 
 noinst_LTLIBRARIES=libmediastream_cocoa.la
 
+libmediastream_cocoa_la_LIBTOOLFLAGS = --tag=CC
 libmediastream_cocoa_la_SOURCES = mediastream_cocoa.m
 
 mediastream_LDADD+=libmediastream_cocoa.la

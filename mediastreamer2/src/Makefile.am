@@ -35,6 +35,24 @@ BUILT_SOURCES=basedescs.h $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
 CLEANFILES=basedescs.h voipdescs.h basedescs.txt voipdescs.txt $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
+libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
+					$(ORTP_LIBS) \
+					$(VP8_LIBS) \
+					$(PORTAUDIO_LIBS) \
+					$(ALSA_LIBS) \
+					$(QSA_LIBS) \
+					$(ARTS_LIBS) \
+					$(LIBPULSE_LIBS) \
+					$(SPEEX_LIBS) \
+					$(GSM_LIBS) \
+					$(LIBV4L1_LIBS) \
+					$(LIBV4L2_LIBS) \
+					$(LIBV4LCONVERT_LIBS) \
+					$(SPANDSP_LIBS) \
+					$(PCAP_LIBS) \
+					$(OPUS_LIBS)
+
+
 lib_LTLIBRARIES=libmediastreamer_base.la
 if BUILD_VOIP_LIBRARY
 lib_LTLIBRARIES+=libmediastreamer_voip.la
@@ -176,10 +194,15 @@ endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
-libmediastreamer_voip_la_SOURCES+=	videofilters/qtcapture.m \
+
+noinst_LTLIBRARIES=libqtcapture_cocoa.la
+libqtcapture_cocoa_la_LIBTOOLFLAGS= --tag=CC
+libqtcapture_cocoa_la_SOURCES = videofilters/qtcapture.m \
 					videofilters/msosxdisplay.m \
-					utils/shaders.c utils/shaders.h \
+libqtcapture_cocoa_la_SOURCES += utils/shaders.c utils/shaders.h \
 					utils/opengles_display.c utils/opengles_display.h
+
+libmediastreamer_voip_la_LIBADD+=libqtcapture_cocoa.la
 nodist_libmediastreamer_voip_la_SOURCES = yuv2rgb.fs.h yuv2rgb.fs.h
 endif
 
@@ -368,23 +391,6 @@ if BUILD_VIDEO
 AM_CFLAGS+=$(VIDEO_CFLAGS) $(GLEW_CFLAGS)
 endif
 
-
-libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
-					$(ORTP_LIBS) \
-					$(VP8_LIBS) \
-					$(PORTAUDIO_LIBS) \
-					$(ALSA_LIBS) \
-					$(QSA_LIBS) \
-					$(ARTS_LIBS) \
-					$(LIBPULSE_LIBS) \
-					$(SPEEX_LIBS) \
-					$(GSM_LIBS) \
-					$(LIBV4L1_LIBS) \
-					$(LIBV4L2_LIBS) \
-					$(LIBV4LCONVERT_LIBS) \
-					$(SPANDSP_LIBS) \
-					$(PCAP_LIBS) \
-					$(OPUS_LIBS)
 
 if BUILD_WIN32
 libmediastreamer_voip_la_LIBADD+=       -lole32 \

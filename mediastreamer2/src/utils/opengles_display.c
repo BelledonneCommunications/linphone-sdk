@@ -21,6 +21,10 @@
 #include "mediastreamer2/mscommon.h"
 #include "shaders.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 enum ImageType {
 	REMOTE_IMAGE = 0,
 	PREVIEW_IMAGE,
@@ -588,5 +592,9 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDispl
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDisplay_render(JNIEnv * env, jobject obj, jint ptr) {
 	struct opengles_display* d = (struct opengles_display*) ptr;
 	ogl_display_render(d, 0);
+}
+#endif
+
+#ifdef __cplusplus
 }
 #endif
