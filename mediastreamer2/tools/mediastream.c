@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #include <math.h>
-#include "mediastreamer2/mediastream.h"
+#include "common.h"
 #include "mediastreamer2/msequalizer.h"
 #include "mediastreamer2/msvolume.h"
 #ifdef VIDEO_ENABLED
@@ -174,8 +174,6 @@ static bool_t parse_ice_addr(char* addr, char* type, int type_len, char* ip, int
 static void display_items(void *user_data, uint32_t csrc, rtcp_sdes_type_t t, const char *content, uint8_t content_len);
 static void parse_rtcp(mblk_t *m);
 static void parse_events(RtpSession *session, OrtpEvQueue *q);
-static PayloadType* create_custom_payload_type(const char *type, const char *subtype, const char *rate, const char *channels, int number);
-static PayloadType* parse_custom_payload(const char *name);
 static bool_t parse_window_ids(const char *ids, int* video_id, int* preview_id);
 
 const char *usage="mediastream --local <port> --remote <ip:port> \n"
@@ -397,7 +395,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 				out->payload=atoi(argv[i]);
 			}else {
 				out->payload=114;
-				out->custom_pt=parse_custom_payload(argv[i]);
+				out->custom_pt=ms_tools_parse_custom_payload(argv[i]);
 			}
 		}else if (strcmp(argv[i],"--fmtp")==0){
 			i++;
@@ -1191,61 +1189,6 @@ static void parse_events(RtpSession *session, OrtpEvQueue *q){
 		}
 		ortp_event_destroy(ev);
 	}
-}
-
-static PayloadType* create_custom_payload_type(const char *type, const char *subtype, const char *rate, const char *channels, int number){
-	PayloadType *pt=payload_type_new();
-	if (strcasecmp(type,"audio")==0){
-		pt->type=PAYLOAD_AUDIO_PACKETIZED;
-	}else if (strcasecmp(type,"video")==0){
-		pt->type=PAYLOAD_VIDEO;
-	}else{
-		fprintf(stderr,"Unsupported payload type should be audio or video, not %s\n",type);
-		exit(-1);
-	}
-	pt->mime_type=ms_strdup(subtype);
-	pt->clock_rate=atoi(rate);
-	pt->channels=atoi(channels);
-	return pt;
-}
-
-static PayloadType* parse_custom_payload(const char *name){
-	char type[64]={0};
-	char subtype[64]={0};
-	char clockrate[64]={0};
-	char nchannels[64];
-	char *separator;
-
-	if (strlen(name)>=sizeof(clockrate)-1){
-		fprintf(stderr,"Cannot parse %s: too long.\n",name);
-		exit(-1);
-	}
-
-	separator=strchr(name,'/');
-	if (separator){
-		char *separator2;
-
-		strncpy(type,name,separator-name);
-		separator2=strchr(separator+1,'/');
-		if (separator2){
-			char *separator3;
-
-			strncpy(subtype,separator+1,separator2-separator-1);
-			separator3=strchr(separator2+1,'/');
-			if (separator3){
-				strncpy(clockrate,separator2+1,separator3-separator2-1);
-				strcpy(nchannels,separator3+1);
-			} else {
-				nchannels[0]='1';
-				nchannels[1]='\0';
-				strcpy(clockrate,separator2+1);
-			}
-			fprintf(stdout,"Found custom payload type=%s, mime=%s, clockrate=%s nchannels=%s\n", type, subtype, clockrate, nchannels);
-			return create_custom_payload_type(type,subtype,clockrate,nchannels,114);
-		}
-	}
-	fprintf(stderr,"Error parsing payload name %s.\n",name);
-	exit(-1);
 }
 
 static bool_t parse_window_ids(const char *ids, int* video_id, int* preview_id)

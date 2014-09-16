@@ -52,8 +52,8 @@ bin_PROGRAMS+=pcap_playback
 endif
 endif
 
-mediastream_SOURCES = mediastream.c
-pcap_playback_SOURCES = pcap_playback.c
+mediastream_SOURCES = mediastream.c common.c common.h
+pcap_playback_SOURCES = pcap_playback.c common.c common.h
 
 mediastream_LDADD=$(TEST_DEPLIBS)
 pcap_playback_LDADD=$(TEST_DEPLIBS)

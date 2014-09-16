@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <math.h>
 
-#include "mediastreamer2/mediastream.h"
+#include "common.h"
 #include "mediastreamer2/msequalizer.h"
 #include "mediastreamer2/msfileplayer.h"
 #include "mediastreamer2/msvolume.h"
@@ -137,6 +137,9 @@ static bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
 			i++;
 			if (isdigit(argv[i][0])) {
 				out->payload = atoi(argv[i]);
+			}else {
+				out->payload=114;
+				out->pt=ms_tools_parse_custom_payload(argv[i]);
 			}
 		} else if (strcmp(argv[i], "--playback-card") == 0) {
 			i++;
@@ -196,7 +199,8 @@ static void setup_media_streams(MediastreamDatas *args)
 	ms_filter_reset_statistics();
 
 	signal(SIGINT, stop_handler);
-	args->pt = rtp_profile_get_payload(args->profile, args->payload);
+	if (args->pt==NULL)
+		args->pt = rtp_profile_get_payload(args->profile, args->payload);
 	if (args->pt == NULL) {
 		printf("Error: no payload defined with number %i.", args->payload);
 		exit(-1);
