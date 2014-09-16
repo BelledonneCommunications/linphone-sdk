@@ -199,7 +199,7 @@ noinst_LTLIBRARIES=libqtcapture_cocoa.la
 libqtcapture_cocoa_la_LIBTOOLFLAGS= --tag=CC
 libqtcapture_cocoa_la_SOURCES = videofilters/qtcapture.m \
 					videofilters/msosxdisplay.m \
-libqtcapture_cocoa_la_SOURCES += utils/shaders.c utils/shaders.h \
+					utils/shaders.c utils/shaders.h \
 					utils/opengles_display.c utils/opengles_display.h
 
 libmediastreamer_voip_la_LIBADD+=libqtcapture_cocoa.la
