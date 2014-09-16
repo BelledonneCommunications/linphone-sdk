@@ -183,13 +183,13 @@ static const char * const candidate_pair_state_values[] = {
 
 static uint64_t generate_tie_breaker(void)
 {
-	return (((uint64_t)random()) << 32) | (((uint64_t)random()) & 0xffffffff);
+	return (((uint64_t)ortp_random()) << 32) | (((uint64_t)ortp_random()) & 0xffffffff);
 }
 
 static char * generate_ufrag(void)
 {
 	char *ufrag = ms_malloc(9);
-	sprintf(ufrag, "%08x", (int)random());
+	sprintf(ufrag, "%08x", (int)ortp_random());
 	ufrag[8] = '\0';
 	return ufrag;
 }
@@ -197,7 +197,7 @@ static char * generate_ufrag(void)
 static char * generate_pwd(void)
 {
 	char *pwd = ms_malloc(25);
-	sprintf(pwd, "%08x%08x%08x", (int)random(), (int)random(), (int)random());
+	sprintf(pwd, "%08x%08x%08x", (int)ortp_random(), (int)ortp_random(), (int)ortp_random());
 	pwd[24] = '\0';
 	return pwd;
 }
@@ -1508,7 +1508,7 @@ static void ice_generate_arbitrary_foundation(char *foundation, int len, MSList 
 	MSList *elem;
 
 	do {
-		r = (((uint64_t)random()) << 32) | (((uint64_t)random()) & 0xffffffff);
+		r = (((uint64_t)ortp_random()) << 32) | (((uint64_t)ortp_random()) & 0xffffffff);
 		snprintf(foundation, len, "%" PRIx64, r);
 		elem = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_foundation, foundation);
 	} while (elem != NULL);

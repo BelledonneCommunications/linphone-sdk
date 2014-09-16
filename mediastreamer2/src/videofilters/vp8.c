@@ -122,9 +122,9 @@ static void enc_init(MSFilter *f) {
 	s->frame_count = 0;
 	s->last_fir_seq_nr = -1;
 #ifdef PICTURE_ID_ON_16_BITS
-	s->picture_id = (random() & 0x7FFF) | 0x8000;
+	s->picture_id = (ortp_random() & 0x7FFF) | 0x8000;
 #else
-	s->picture_id = random() & 0x007F;
+	s->picture_id = ortp_random() & 0x007F;
 #endif
 	s->avpf_enabled = FALSE;
 
