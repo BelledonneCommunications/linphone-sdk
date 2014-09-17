@@ -950,7 +950,7 @@ void vp8rtpfmt_unpacker_process(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *inout) {
 		ms_list_free(ctx->non_processed_packets_list);
 		ctx->non_processed_packets_list = NULL;
 	} else {
-		ms_message("VP8 packets are remaining for next iteration of the filter.");
+		ms_debug("VP8 packets are remaining for next iteration of the filter.");
 	}
 }
 
