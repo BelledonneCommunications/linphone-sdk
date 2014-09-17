@@ -65,36 +65,36 @@ static const char * audio_unit_format_error (OSStatus error) {
 		case kAudioUnitErr_Unauthorized: return "kAudioUnitErr_Unauthorized";
 		default: return "unkown error";
 	}
-	
+
 }
 
 
 static const char *audio_session_format_error(OSStatus error)
 {
 	switch (error) {
-        case kAudioSessionNotInitialized: 
-            return "kAudioSessionNotInitialized";
-        case kAudioSessionAlreadyInitialized: 
-            return "kAudioSessionAlreadyInitialized";
-        case kAudioSessionInitializationError: 
-            return "kAudioSessionInitializationError";
-        case kAudioSessionUnsupportedPropertyError: 
-            return "kAudioSessionUnsupportedPropertyError";
-        case kAudioSessionBadPropertySizeError: 
-            return "kAudioSessionBadPropertySizeError";
-        case kAudioSessionNotActiveError: 
-            return "kAudioSessionNotActiveError";
-        case kAudioServicesNoHardwareError: 
-            return "kAudioServicesNoHardwareError";
-        case kAudioSessionNoCategorySet: 
-            return "kAudioSessionNoCategorySet";
-        case kAudioSessionIncompatibleCategory: 
-            return "kAudioSessionIncompatibleCategory";
-        case kAudioSessionUnspecifiedError: 
-            return "kAudioSessionUnspecifiedError";
+		case kAudioSessionNotInitialized:
+			return "kAudioSessionNotInitialized";
+		case kAudioSessionAlreadyInitialized:
+			return "kAudioSessionAlreadyInitialized";
+		case kAudioSessionInitializationError:
+			return "kAudioSessionInitializationError";
+		case kAudioSessionUnsupportedPropertyError:
+			return "kAudioSessionUnsupportedPropertyError";
+		case kAudioSessionBadPropertySizeError:
+			return "kAudioSessionBadPropertySizeError";
+		case kAudioSessionNotActiveError:
+			return "kAudioSessionNotActiveError";
+		case kAudioServicesNoHardwareError:
+			return "kAudioServicesNoHardwareError";
+		case kAudioSessionNoCategorySet:
+			return "kAudioSessionNoCategorySet";
+		case kAudioSessionIncompatibleCategory:
+			return "kAudioSessionIncompatibleCategory";
+		case kAudioSessionUnspecifiedError:
+			return "kAudioSessionUnspecifiedError";
 		default: return "unkown error";
-    }
-	
+	}
+
  }
 
 #define check_au_session_result(au,method) \
@@ -165,7 +165,7 @@ struct au_filter_write_data{
 	ms_mutex_t	mutex;
 	MSBufferizer	*bufferizer;
 	unsigned int n_lost_frame;
-	
+
 };
 
 static void  stop_audio_unit (au_card_t* d);
@@ -200,24 +200,21 @@ static OSStatus au_render_cb (
 static void create_io_unit (AudioUnit* au, MSSndCard* sndcard) {
 	AudioComponentDescription au_description;
 	AudioComponent foundComponent;
+
+	bool_t noVoiceProc = (*au && strcasecmp(sndcard->name, AU_CARD_NOVOICEPROC) == 0);
+	OSType subtype = noVoiceProc ? kAudioUnitSubType_RemoteIO : kAudioUnitSubType_VoiceProcessingIO;
+
 	au_description.componentType          = kAudioUnitType_Output;
-	au_description.componentSubType       = kAudioUnitSubType_VoiceProcessingIO;
+	au_description.componentSubType       = subtype;
 	au_description.componentManufacturer  = kAudioUnitManufacturer_Apple;
 	au_description.componentFlags         = 0;
 	au_description.componentFlagsMask     = 0;
-	
+
 	foundComponent = AudioComponentFindNext (NULL,&au_description);
-	
+
 	check_audiounit_call( AudioComponentInstanceNew(foundComponent, au) );
 
-    // disable voice processing for NOVOICEPROC cards
-    if( *au && strcasecmp(sndcard->name, AU_CARD_NOVOICEPROC) == 0){
-        ms_error("Disabling voice process for Audio Unit");
-        UInt32 bypassVoiceProcess = 1;
-        check_audiounit_call( AudioUnitSetProperty(*au, kAUVoiceIOProperty_BypassVoiceProcessing, kAudioUnitScope_Global, 0, &bypassVoiceProcess, sizeof(bypassVoiceProcess) ) );
-    }
-
-	ms_message("AudioUnit created.");
+	ms_message("AudioUnit created with type %x.", subtype);
 }
 
 
@@ -286,7 +283,7 @@ static MSSndCard *au_duplicate(MSSndCard *obj){
 }
 
 static MSSndCard *au_card_new(const char* name){
-	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,name);	
+	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,name);
 	return card;
 }
 
@@ -294,12 +291,12 @@ static void au_detect(MSSndCardManager *m){
 	ms_debug("au_detect");
 	MSSndCard *card=au_card_new(AU_CARD_RECEIVER);
 	ms_snd_card_manager_add_card(m,card);
-	card=au_card_new(AU_CARD_FAST_IOUNIT); 
+	card=au_card_new(AU_CARD_FAST_IOUNIT);
 	ms_snd_card_manager_add_card(m,card);
-    card = au_card_new(AU_CARD_NOVOICEPROC);
-    ms_snd_card_manager_add_card(m,card);
-    card = au_card_new(AU_CARD_TESTER);
-    ms_snd_card_manager_add_card(m,card);
+	card = au_card_new(AU_CARD_NOVOICEPROC);
+	ms_snd_card_manager_add_card(m,card);
+	card = au_card_new(AU_CARD_TESTER);
+	ms_snd_card_manager_add_card(m,card);
 }
 
 static OSStatus au_read_cb (
@@ -311,7 +308,7 @@ static OSStatus au_read_cb (
 							  AudioBufferList             *ioData
 )
 {
-	
+
 	au_card_t* card = (au_card_t*)inRefCon;
 	ms_mutex_lock(&card->mutex);
 	if (!card->read_data) {
@@ -326,7 +323,7 @@ static OSStatus au_read_cb (
 	OSStatus err=0;
 	mblk_t * rm=NULL;
 	AudioBufferList readAudioBufferList;
-	readAudioBufferList.mBuffers[0].mDataByteSize=inNumberFrames*d->base.card->bits/8; 
+	readAudioBufferList.mBuffers[0].mDataByteSize=inNumberFrames*d->base.card->bits/8;
 	readAudioBufferList.mNumberBuffers=1;
 	readAudioBufferList.mBuffers[0].mNumberChannels=d->base.card->nchannels;
 
@@ -341,9 +338,9 @@ static OSStatus au_read_cb (
 			ms_mutex_unlock(&d->mutex);
 			d->readTimeStamp.mSampleTime+=readAudioBufferList.mBuffers[0].mDataByteSize/(d->base.card->bits/2);
 		} else {
-            check_au_unit_result(err, "AudioUnitRender");
-            freeb(rm);
-        }
+			check_au_unit_result(err, "AudioUnitRender");
+			freeb(rm);
+		}
 	}
 	ms_mutex_unlock(&card->mutex);
 	return err;
@@ -364,9 +361,9 @@ static OSStatus au_write_cb (
 	ms_mutex_lock(&card->mutex);
 	ioData->mBuffers[0].mDataByteSize=inNumberFrames*card->bits/8;
 	ioData->mNumberBuffers=1;
-		
+
 	au_filter_write_data_t *d=card->write_data;
-	
+
 	if (d!=NULL){
 		ms_mutex_lock(&d->mutex);
 		if(ms_bufferizer_get_avail(d->bufferizer) >= inNumberFrames*d->base.card->bits/8) {
@@ -385,7 +382,7 @@ static OSStatus au_write_cb (
 			ms_mutex_unlock(&d->mutex);
 		}
 	}
-	//writing silence;	
+	//writing silence;
 	memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
 	ms_debug("nothing to write, pushing silences,  framezize is %lu bytes mDataByteSize %u"
 			 ,inNumberFrames*card->bits/8
@@ -396,17 +393,17 @@ static OSStatus au_write_cb (
 
 /****************config**************/
 static void configure_audio_session (au_card_t* d,uint64_t time) {
-	OSStatus auresult;	
+	OSStatus auresult;
 	UInt32 audioCategory;
 	UInt32 doSetProperty      = 1;
 	UInt32 audioCategorySize=sizeof(audioCategory);
 	bool_t changed;
-	
+
 	if (!d->is_fast){
-		
+
 		if (d->audio_session_configured){
 			/*check that category wasn't changed*/
-            check_session_call(AudioSessionGetProperty(kAudioSessionProperty_AudioCategory,&audioCategorySize,&audioCategory));
+			check_session_call(AudioSessionGetProperty(kAudioSessionProperty_AudioCategory,&audioCategorySize,&audioCategory));
 
 			changed=(audioCategory!=kAudioSessionCategory_AmbientSound && d->is_ringer)
 				||(audioCategory!=kAudioSessionCategory_PlayAndRecord && !d->is_ringer);
@@ -423,7 +420,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 				ms_message("Configuring audio session for playback/record");
 			}
 
-            check_audiounit_call(AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory));
+			check_audiounit_call(AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory));
 
 		}else{
 			ms_message("Audio session already correctly configured.");
@@ -432,7 +429,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 	} else {
 		ms_message("Fast iounit mode, audio session configuration must be done at application level.");
 	}
-	
+
 }
 
 static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
@@ -441,7 +438,7 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 
 		check_audiounit_call(AudioUnitInitialize(card->io_unit));
 		ms_message("io unit initialized");
-		
+
 		Float64 delay;
 		UInt32 delaySize = sizeof(delay);
 		check_audiounit_call(AudioUnitGetProperty(card->io_unit
@@ -450,7 +447,7 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 									  , 0
 									  , &delay
 									  , &delaySize));
-		
+
 		UInt32 quality;
 		UInt32 qualitySize = sizeof(quality);
 		check_audiounit_call(AudioUnitGetProperty(card->io_unit
@@ -459,18 +456,8 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 									  , 0
 									  , &quality
 									  , &qualitySize));
-		
-		UInt32 voiceProcess;
-		UInt32 voiceProcessSize = sizeof(voiceProcess);
-		check_audiounit_call(AudioUnitGetProperty(card->io_unit
-                                                  , kAUVoiceIOProperty_BypassVoiceProcessing
-                                                  , kAudioUnitScope_Global
-                                                  , 0
-                                                  , &voiceProcess
-                                                  , &voiceProcessSize));
 
-		
-		ms_error("I/O unit latency [%f], quality [%li], BypassVoice: [%li]",delay,quality,voiceProcess);
+		ms_error("I/O unit latency [%f], quality [%li]",delay,quality);
 		Float32 hwoutputlatency;
 		UInt32 hwoutputlatencySize=sizeof(hwoutputlatency);
 
@@ -482,35 +469,35 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 		check_session_call(AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareInputLatency
 										 ,&hwinputlatencySize
 										 , &hwinputlatency));
-		
+
 		Float32 hwiobuf;
 		UInt32 hwiobufSize=sizeof(hwiobuf);
 		check_session_call( AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareIOBufferDuration
 										 ,&hwiobufSize
 										 , &hwiobuf));
-		
+
 		Float64 hwsamplerate;
 		UInt32 hwsamplerateSize=sizeof(hwsamplerate);
 		check_session_call( AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareSampleRate
 										 ,&hwsamplerateSize
 										 ,&hwsamplerate));
-		
-        OSStatus auresult;
-        check_audiounit_call( (auresult = AudioOutputUnitStart(card->io_unit)) );
+
+		OSStatus auresult;
+		check_audiounit_call( (auresult = AudioOutputUnitStart(card->io_unit)) );
 		card->io_unit_started = (auresult ==0);
 		if (!card->io_unit_started) {
 			ms_message("AudioUnit could not be started, current hw output latency [%f] input [%f] iobuf[%f] hw sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 			d->card->last_failed_iounit_start_time=time;
 		} else {
-			
+
 			ms_message("AudioUnit started, current hw output latency [%f] input [%f] iobuf[%f] hw sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 			d->card->last_failed_iounit_start_time=0;
 		}
-	} 
+	}
 	return card->io_unit_started;
-	
+
 }
-	
+
 static void destroy_audio_unit (au_card_t* d) {
 	if (d->io_unit) {
 		AudioComponentInstanceDispose (d->io_unit);
@@ -527,12 +514,12 @@ static void stop_audio_unit (au_card_t* d) {
 		ms_message("AudioUnit stopped");
 		d->io_unit_started=FALSE;
 		d->audio_session_configured=FALSE;
-		
+
 	}
 	if (d->io_unit) {
 		check_audiounit_call( AudioUnitUninitialize(d->io_unit) );
 	}
-	
+
 	if (d->io_unit) {
 		destroy_audio_unit(d);
 	}
@@ -560,9 +547,9 @@ static void au_read_preprocess(MSFilter *f){
 	if (!card->io_unit) create_io_unit(&card->io_unit, card->ms_snd_card);
 
 	//Always configure readcb
-	AURenderCallbackStruct renderCallbackStruct;            
-	renderCallbackStruct.inputProc       = au_read_cb;  
-	renderCallbackStruct.inputProcRefCon = card;          	
+	AURenderCallbackStruct renderCallbackStruct;
+	renderCallbackStruct.inputProc       = au_read_cb;
+	renderCallbackStruct.inputProcRefCon = card;
 	check_audiounit_call(AudioUnitSetProperty (
 								   card->io_unit,
 								   kAudioOutputUnitProperty_SetInputCallback,
@@ -576,18 +563,18 @@ static void au_read_preprocess(MSFilter *f){
 		ms_message("Audio Unit already started");
 		return;
 	}
-	
+
 	/*format are always set in the write preprocess*/
 	Float32 preferredBufferSize;
 	switch (card->rate) {
 		case 11025:
-		case 22050: 
+		case 22050:
 			preferredBufferSize= .020;
 			break;
 		default:
 			preferredBufferSize= .015;
 	}
-	
+
 	check_session_call( AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareIOBufferDuration
 									 ,sizeof(preferredBufferSize)
 									 , &preferredBufferSize) );
@@ -612,7 +599,7 @@ static void au_read_process(MSFilter *f){
 		ms_mutex_lock(&d->mutex);
 		m=getq(&d->rq);
 		ms_mutex_unlock(&d->mutex);
-		if (m != NULL) ms_queue_put(f->outputs[0],m); 
+		if (m != NULL) ms_queue_put(f->outputs[0],m);
 	}while(m!=NULL);
 }
 
@@ -627,18 +614,18 @@ static void au_write_preprocess(MSFilter *f){
 	au_card_t* card=d->base.card;
 
 	check_audio_unit(card);
-	
+
 	if (card->io_unit_started) {
 		ms_message("AudioUnit already started");
 		return;
 	}
 	configure_audio_session(card, f->ticker->time);
-	
-	
+
+
 	if (!card->io_unit) create_io_unit(&card->io_unit, card->ms_snd_card);
-	
-	
-	
+
+
+
 	AudioStreamBasicDescription audioFormat;
 	/*card sampling rate is fixed at that time*/
 	audioFormat.mSampleRate			= card->rate;
@@ -650,11 +637,11 @@ static void au_write_preprocess(MSFilter *f){
 	audioFormat.mBytesPerPacket		= card->bits / 8;
 	audioFormat.mBytesPerFrame		= card->nchannels * card->bits / 8;
 
-	UInt32 doNotSetProperty    = 0;	
-	UInt32 doSetProperty    = 1;	
+	UInt32 doNotSetProperty    = 0;
+	UInt32 doSetProperty    = 1;
 	Float64 hwsamplerate;
 	UInt32 hwsamplerateSize=sizeof(hwsamplerate);
-	
+
 
 	//enable speaker output
 	auresult =AudioUnitSetProperty (
@@ -666,7 +653,7 @@ static void au_write_preprocess(MSFilter *f){
 									sizeof (doSetProperty)
 									);
 	check_au_unit_result(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Output");
-	
+
 	/*enable mic for scheduling render call back, why ?*/
 	auresult=AudioUnitSetProperty (/*enable mic input*/
 								   card->io_unit,
@@ -676,7 +663,7 @@ static void au_write_preprocess(MSFilter *f){
 								   &doSetProperty,
 								   sizeof (doSetProperty)
 								   );
-	
+
 	check_au_unit_result(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");
 	auresult=AudioUnitSetProperty (
 								   card->io_unit,
@@ -688,7 +675,7 @@ static void au_write_preprocess(MSFilter *f){
 								   );
 	check_au_unit_result(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Output");
 	/*end of: enable mic for scheduling render call back, why ?*/
-	
+
 	//setup stream format
 	auresult=AudioUnitSetProperty (
 								   card->io_unit,
@@ -699,7 +686,7 @@ static void au_write_preprocess(MSFilter *f){
 								   sizeof (audioFormat)
 								   );
 	check_au_unit_result(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Input");
-	
+
 	//disable unit buffer allocation
 	auresult=AudioUnitSetProperty (
 								   card->io_unit,
@@ -709,27 +696,27 @@ static void au_write_preprocess(MSFilter *f){
 								   &doNotSetProperty,
 								   sizeof (doNotSetProperty)
 								   );
-	check_au_unit_result(auresult,"kAudioUnitProperty_ShouldAllocateBuffer,kAudioUnitScope_Output");	
-	AURenderCallbackStruct renderCallbackStruct;            
-	renderCallbackStruct.inputProc       = au_write_cb;  
-	renderCallbackStruct.inputProcRefCon = card;          
-	
+	check_au_unit_result(auresult,"kAudioUnitProperty_ShouldAllocateBuffer,kAudioUnitScope_Output");
+	AURenderCallbackStruct renderCallbackStruct;
+	renderCallbackStruct.inputProc       = au_write_cb;
+	renderCallbackStruct.inputProcRefCon = card;
+
 	auresult=AudioUnitSetProperty (
-								   card->io_unit,                                  
-								   kAudioUnitProperty_SetRenderCallback,        
-								   kAudioUnitScope_Input,                       
-								   outputBus,                                   
-								   &renderCallbackStruct,                              
-								   sizeof (renderCallbackStruct)                       
+								   card->io_unit,
+								   kAudioUnitProperty_SetRenderCallback,
+								   kAudioUnitScope_Input,
+								   outputBus,
+								   &renderCallbackStruct,
+								   sizeof (renderCallbackStruct)
 								   );
 	check_au_unit_result(auresult,"kAudioUnitProperty_SetRenderCallback,kAudioUnitScope_Input");
-	
+
 	auresult=AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareSampleRate
 									 ,&hwsamplerateSize
 									 ,&hwsamplerate);
 	check_au_session_result(auresult,"get kAudioSessionProperty_PreferredHardwareSampleRate");
-	
-	
+
+
 	/*
 	 * Bluetooth bug: on iphone5s at least, some low end BT headset create a bug in iOS when requesting 48khz hardware sampling rate.
 	 * These headset don't support this frequency, which result in the hardware sampling rate finally set to 8khz by iOS.
@@ -738,19 +725,19 @@ static void au_write_preprocess(MSFilter *f){
 	 * Apparently the driver doesn't recover from this situation.
 	 * The workaround is then to request 44100 Hz instead of 48khz.
 	 */
-    if( hwsamplerate != card->rate) {
-        if(card->rate <= 44100 ){
-            hwsamplerate=card->rate;
-            auresult=AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareSampleRate
-                                             ,sizeof(hwsamplerate)
-                                             , &hwsamplerate);
-            check_au_session_result(auresult,"set kAudioSessionProperty_PreferredHardwareSampleRate");
-        } else {
-            ms_message("Not applying kAudioSessionProperty_PreferredHardwareSampleRate because asked rate is too high [%i]",((int)hwsamplerate));
-        }
-    } else {
-        ms_message("Not applying kAudioSessionProperty_PreferredHardwareSampleRate because HW rate already correct [%i]",((int)hwsamplerate));
-    }
+	if( hwsamplerate != card->rate) {
+		if(card->rate <= 44100 ){
+			hwsamplerate=card->rate;
+			auresult=AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareSampleRate
+											 ,sizeof(hwsamplerate)
+											 , &hwsamplerate);
+			check_au_session_result(auresult,"set kAudioSessionProperty_PreferredHardwareSampleRate");
+		} else {
+			ms_message("Not applying kAudioSessionProperty_PreferredHardwareSampleRate because asked rate is too high [%i]",((int)hwsamplerate));
+		}
+	} else {
+		ms_message("Not applying kAudioSessionProperty_PreferredHardwareSampleRate because HW rate already correct [%i]",((int)hwsamplerate));
+	}
 }
 
 static void au_write_postprocess(MSFilter *f){
@@ -925,7 +912,7 @@ static MSFilter *ms_au_write_new(MSSndCard *mscard){
 	d->base.card=card;
 	card->write_data=d;
 	f->data=d;
-	
+
 	if (card->rate == 0){ /*iounit stopped set initial value*/
 		card->rate=ms_snd_card_get_preferred_sample_rate(card->ms_snd_card);
 	}
@@ -941,4 +928,4 @@ void ms_au_register_card() {
 	 * register audio unit plugin should be move to linphone code
 	 */
 	ms_snd_card_manager_register_desc(ms_snd_card_manager_get(),&au_card_desc);
-}	
+}
