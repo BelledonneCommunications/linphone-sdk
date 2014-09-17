@@ -630,10 +630,12 @@ static void testMalformedMandatoryField(void){
 }
 
 
-static void testRFC2543Compat(void) {
+
+
+static void testRFC2543_base(char* branch) {
 	belle_sip_server_transaction_t *tr;
-	const char* raw_message = 	"INVITE sip:me@127.0.0.1 SIP/2.0\r\n"
-			"Via: SIP/2.0/UDP 192.168.1.12:15060;rport=15060;received=81.56.113.2\r\n"
+	const char* raw_message_base = 	"INVITE sip:me@127.0.0.1 SIP/2.0\r\n"
+			"Via: SIP/2.0/UDP 192.168.1.12:15060;%srport=15060;received=81.56.113.2\r\n"
 			"Record-Route: <sip:37.59.129.73;lr;transport=tcp>\r\n"
 			"Record-Route: <sip:37.59.129.73;lr>\r\n"
 			"Max-Forwards: 70\r\n"
@@ -649,24 +651,33 @@ static void testRFC2543Compat(void) {
 			"Extended: \r\n" /*fixme lexer*/
 			"\r\n";
 
+	char raw_message[2048];
+	snprintf(raw_message,sizeof(raw_message),raw_message_base,branch);
+
 	belle_sip_request_t* request;
 	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
 	belle_sip_provider_t *prov=belle_sip_provider_new(stack,NULL);
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
-	
+
 	belle_sip_object_ref(message);
 	belle_sip_object_ref(message); /*yes double ref: originally the message is created with 0 refcount, and dispatch_message will unref() it.*/
 	belle_sip_provider_dispatch_message(prov,message);
 	request = BELLE_SIP_REQUEST(message);
-	
+
 	CU_ASSERT_PTR_NOT_NULL(request);
 	tr=belle_sip_provider_create_server_transaction(prov,request);
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_provider_find_matching_server_transaction(prov,request)); /*make sure branch id is properly set*/
 	CU_ASSERT_PTR_NOT_NULL(tr);
 	belle_sip_object_unref(prov);
 	belle_sip_object_unref(stack);
 	belle_sip_object_unref(message);
 }
-
+static void testRFC2543Compat(void) {
+	testRFC2543_base("");
+}
+static void testRFC2543CompatWithBranch() {
+	testRFC2543_base("branch=blablabla;");
+}
 static void testUriHeadersInInvite(void)  {
 	belle_sip_request_t* request;
 	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
@@ -923,6 +934,7 @@ test_t message_tests[] = {
 	{ "Channel parser truncated start", channel_parser_truncated_start},
 	{ "Channel parser truncated start with garbage",channel_parser_truncated_start_with_garbage},
 	{ "RFC2543 compatibility", testRFC2543Compat},
+	{ "RFC2543 compatibility with branch id",testRFC2543CompatWithBranch},
 	{ "Uri headers in sip INVITE",testUriHeadersInInvite},
 	{ "Uris components in request",testUrisComponentsForRequest},
 	{ "Generic message test",testGenericMessage},	

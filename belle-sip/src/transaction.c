@@ -191,9 +191,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 void belle_sip_server_transaction_init(belle_sip_server_transaction_t *t, belle_sip_provider_t *prov,belle_sip_request_t *req){
 	const char *branch;
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header((belle_sip_message_t*)req,"via"));
-
 	branch=belle_sip_header_via_get_branch(via);
-	if (branch==NULL){
+	if (branch==NULL || strncmp(branch,BELLE_SIP_BRANCH_MAGIC_COOKIE,strlen(BELLE_SIP_BRANCH_MAGIC_COOKIE))!=0){
 		branch=req->rfc2543_branch;
 		if (branch==NULL) belle_sip_fatal("No computed branch for RFC2543 style of message, this should never happen.");
 	}
