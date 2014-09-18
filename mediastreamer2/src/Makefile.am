@@ -310,9 +310,9 @@ basedescs.h:	Makefile $(libmediastreamer_base_la_SOURCES)
 	awk 'BEGIN { print("#include \"mediastreamer2/msfilter.h\"\n") } { printf("extern MSFilterDesc %s;\n",$$1) } ' $(abs_builddir)/basedescs.txt > $(abs_builddir)/$@ && \
 	awk 'BEGIN { print("MSFilterDesc * ms_base_filter_descs[]={") } { printf("&%s,\n",$$1) } END{ print("NULL\n};\n") } ' $(abs_builddir)/basedescs.txt >> $(abs_builddir)/$@
 
-voipdescs.h:	Makefile $(libmediastreamer_voip_la_SOURCES)
+voipdescs.h:	Makefile $(libmediastreamer_voip_la_SOURCES) $(libqtcapture_cocoa_la_SOURCES)
 	cd $(srcdir) && \
-	awk 'BEGIN { FS="[()]" ; }; /^\t*MS_FILTER_DESC_EXPORT/{ printf("%s\n", $$2) } '  > $(abs_builddir)/voipdescs.txt $(libmediastreamer_voip_la_SOURCES) && \
+	awk 'BEGIN { FS="[()]" ; }; /^\t*MS_FILTER_DESC_EXPORT/{ printf("%s\n", $$2) } '  > $(abs_builddir)/voipdescs.txt $(libmediastreamer_voip_la_SOURCES) $(libqtcapture_cocoa_la_SOURCES) && \
 	awk 'BEGIN { print("#include \"mediastreamer2/msfilter.h\"\n") } { printf("extern MSFilterDesc %s;\n",$$1) } ' $(abs_builddir)/voipdescs.txt > $(abs_builddir)/$@ && \
 	awk 'BEGIN { print("MSFilterDesc * ms_voip_filter_descs[]={") } { printf("&%s,\n",$$1) } END{ print("NULL\n};\n") } ' $(abs_builddir)/voipdescs.txt >> $(abs_builddir)/$@
 
@@ -346,9 +346,9 @@ endif
 
 if BUILD_WIN32
 libmediastreamer_base_la_LIBADD+=	-lole32 \
-					-loleaut32\
-					-lwinmm \
-					-luuid
+									-loleaut32\
+									-lwinmm \
+									-luuid
 endif
 
 if BUILD_WIN32_WCE
@@ -394,9 +394,9 @@ endif
 
 if BUILD_WIN32
 libmediastreamer_voip_la_LIBADD+=       -lole32 \
-                                        -loleaut32\
-                                        -lwinmm \
-                                        -luuid
+										-loleaut32\
+										-lwinmm \
+										-luuid
 endif
 
 if BUILD_VP8
