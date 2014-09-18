@@ -652,13 +652,14 @@ static void testRFC2543_base(char* branch) {
 			"\r\n";
 
 	char raw_message[2048];
-	snprintf(raw_message,sizeof(raw_message),raw_message_base,branch);
-
 	belle_sip_request_t* request;
 	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
 	belle_sip_provider_t *prov=belle_sip_provider_new(stack,NULL);
-	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
+	belle_sip_message_t* message;
 
+	snprintf(raw_message,sizeof(raw_message),raw_message_base,branch);
+
+	message = belle_sip_message_parse(raw_message);
 	belle_sip_object_ref(message);
 	belle_sip_object_ref(message); /*yes double ref: originally the message is created with 0 refcount, and dispatch_message will unref() it.*/
 	belle_sip_provider_dispatch_message(prov,message);
