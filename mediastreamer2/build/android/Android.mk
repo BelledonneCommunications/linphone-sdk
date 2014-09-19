@@ -72,6 +72,7 @@ LOCAL_SRC_FILES = \
 	utils/msjava.c \
 	utils/g722_decode.c \
 	utils/g722_encode.c \
+	utils/audiodiff.c \
 	otherfilters/msrtp.c \
 	otherfilters/tee.c \
 	otherfilters/join.c \

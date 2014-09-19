@@ -45,7 +45,7 @@ TEST_DEPLIBS+=\
 
 if ORTP_ENABLED
 if MS2_FILTERS
-bin_PROGRAMS=mediastream
+bin_PROGRAMS=mediastream msaudiocmp
 if HAVE_PCAP
 if ENABLE_PCAP
 bin_PROGRAMS+=pcap_playback
@@ -57,6 +57,9 @@ pcap_playback_SOURCES = pcap_playback.c common.c common.h
 
 mediastream_LDADD=$(TEST_DEPLIBS)
 pcap_playback_LDADD=$(TEST_DEPLIBS)
+
+msaudiocmp_SOURCES = msaudiocmp.c
+msaudiocmp_LDADD=$(TEST_DEPLIBS)
 
 if BUILD_MACOSX
 

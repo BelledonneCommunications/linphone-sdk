@@ -181,7 +181,7 @@ static int player_open(MSFilter *f, void *arg){
 		player_close(f,NULL);
 	}
 	if ((fd=open(file,O_RDONLY|O_BINARY))==-1){
-		ms_warning("Failed to open %s",file);
+		ms_warning("Failed to open %s: %s",file,strerror(errno));
 		return -1;
 	}
 	d->state=MSPlayerPaused;
