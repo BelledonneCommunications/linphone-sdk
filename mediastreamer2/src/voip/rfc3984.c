@@ -209,6 +209,7 @@ static mblk_t * aggregate_fua(Rfc3984Context *ctx, mblk_t *im){
 	start=fu_header>>7;
 	end=(fu_header>>6)&0x1;
 	if (start){
+		mblk_t *new_header;
 		nri=nal_header_get_nri(im->b_rptr);
 		if (ctx->m!=NULL){
 			ms_error("receiving FU-A start while previous FU-A is not "
@@ -216,9 +217,14 @@ static mblk_t * aggregate_fua(Rfc3984Context *ctx, mblk_t *im){
 			freemsg(ctx->m);
 			ctx->m=NULL;
 		}
-		im->b_rptr++;
-		nal_header_init(im->b_rptr,nri,type);
-		ctx->m=im;
+		im->b_rptr+=2; /*skip the nal header and the fu header*/
+		new_header=allocb(1,0); /* allocate small fragment to put the correct nal header, this is to avoid to write on the buffer
+					which can break processing of other users of the buffers */
+		nal_header_init(new_header->b_wptr,nri,type);
+		new_header->b_wptr++;
+		mblk_meta_copy(im,new_header);
+		concatb(new_header,im);
+		ctx->m=new_header;
 	}else{
 		if (ctx->m!=NULL){
 			im->b_rptr+=2;
