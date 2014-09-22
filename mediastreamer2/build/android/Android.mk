@@ -159,16 +159,23 @@ LOCAL_SRC_FILES+= \
 endif
 
 ifeq ($(BUILD_MATROSKA), 1)
-LOCAL_CFLAGS += -DHAVE_MATROSKA
+LOCAL_CFLAGS += \
+	-DHAVE_MATROSKA \
+	-DCONFIG_EBML_WRITING \
+	-DCONFIG_EBML_UNICODE \
+	-DCONFIG_STDIO \
+	-DCONFIG_FILEPOS_64 \
+	-DNDEBUG
+
 LOCAL_C_INCLUDES += \
-	$(LOCAL_PATH)/../../../externals/build/libebml2/include \
-	$(LOCAL_PATH)/../../../externals/build/libmatroska/include
+	$(LOCAL_PATH)/../../../externals/libmatroska/corec \
+	$(LOCAL_PATH)/../../../externals/libmatroska/libebml2 \
+	$(LOCAL_PATH)/../../../externals/libmatroska/libmatroska2
 
 LOCAL_SRC_FILES += \
 	videofilters/mkv.c
 
 LOCAL_STATIC_LIBRARIES += \
-	libebml2 \
 	libmatroska2
 
 endif #BUILD_MATROSKA
