@@ -181,9 +181,10 @@ static int player_open(MSFilter *f, void *arg){
 		player_close(f,NULL);
 	}
 	if ((fd=open(file,O_RDONLY|O_BINARY))==-1){
-		ms_warning("Failed to open %s: %s",file,strerror(errno));
+		ms_warning("MSFilePlayer[%p]: failed to open %s: %s",f,file,strerror(errno));
 		return -1;
 	}
+
 	d->state=MSPlayerPaused;
 	d->fd=fd;
 	d->ts=0;
@@ -194,7 +195,7 @@ static int player_open(MSFilter *f, void *arg){
 		char err[PCAP_ERRBUF_SIZE];
 		d->pcap = pcap_open_offline(file, err);
 		if (d->pcap == NULL) {
-			ms_error("Failed to open pcap file: %s", err);
+			ms_error("MSFilePlayer[%p]: failed to open pcap file: %s",f,err);
 			d->fd=-1;
 			close(fd);
 			return -1;
@@ -205,7 +206,7 @@ static int player_open(MSFilter *f, void *arg){
 		ms_warning("File %s has .wav extension but wav header could be found.",file);
 	}
 	ms_filter_notify_no_arg(f,MS_PLAYER_FORMAT_CHANGED);
-	ms_message("%s opened: rate=%i,channel=%i",file,d->rate,d->nchannels);
+	ms_message("MSFilePlayer[%p]: %s opened: rate=%i,channel=%i",f,file,d->rate,d->nchannels);
 	return 0;
 }
 
