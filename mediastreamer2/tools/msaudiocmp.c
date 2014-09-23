@@ -27,14 +27,14 @@ static void completion_cb(void *user_data, int percentage){
 }
 
 int main(int argc, char *argv[]){
-	float ret;
+	double ret=0;
 	if (argc<3){
 		fprintf(stderr,"%s: file1 file2\nCompare two wav audio files and display a similarity factor between 0 and 1.\n",argv[0]);
 		return -1;
 	}
 	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	if (ms_audio_diff(argv[1],argv[2],&ret,completion_cb,NULL)==0){
-		fprintf(stdout,"%s and %s are similar with a degree of %f.\n",argv[1],argv[2],ret);
+		fprintf(stdout,"%s and %s are similar with a degree of %g.\n",argv[1],argv[2],ret);
 		return 0;
 	}else{
 		fprintf(stderr,"Error encountered during processing, exiting.\n");

@@ -120,11 +120,11 @@ static int compute_cross_correlation(int16_t *s1, int n1, int16_t *s2, int n2, d
 
 static double energy(int16_t *s1, int n1){
 	int i;
-	double ret=0;
+	int64_t ret=0;
 	for(i=0;i<n1;++i){
-		ret+=(double)s1[i]*(double)s1[i];
+		ret+=(int)s1[i]*(int)s1[i];
 	}
-	return ret;
+	return (double)ret;
 }
 
 void file_info_compute_energy(FileInfo *fi){
@@ -136,7 +136,7 @@ void file_info_compute_energy(FileInfo *fi){
 /**
  * Utility that compares two PCM 16 bits audio files and returns a similarity factor between 0 and 1.
 **/
-int ms_audio_diff(const char *file1, const char *file2, float *ret, MSAudioDiffProgressNotify func, void *user_data){
+int ms_audio_diff(const char *file1, const char *file2, double *ret, MSAudioDiffProgressNotify func, void *user_data){
 	FileInfo *fi1,*fi2;
 	double *xcorr;
 	int xcorr_size;
@@ -172,9 +172,9 @@ int ms_audio_diff(const char *file1, const char *file2, float *ret, MSAudioDiffP
 	max_index=compute_cross_correlation(fi1->buffer,fi1->nsamples,fi2->buffer,fi2->nsamples,xcorr,xcorr_size, func, user_data);
 	max=xcorr[max_index];
 	ms_free(xcorr);
-	file_info_destroy(fi1);
-	file_info_destroy(fi2);
 	*ret=max/(sqrt(fi1->energy)*sqrt(fi2->energy));
-	ms_message("Max cross-correlation obtained at position [%i], similarity factor=%f",max_index,*ret);
+	ms_message("Max cross-correlation obtained at position [%i], similarity factor=%g",max_index,*ret);
+	file_info_destroy(fi1);
+        file_info_destroy(fi2);
 	return 0;
 }

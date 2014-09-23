@@ -384,7 +384,7 @@ void ms_fir_mem16(const ms_word16_t *x, const ms_coef_t *num, ms_word16_t *y, in
 
 typedef void (*MSAudioDiffProgressNotify)(void* user_data, int percentage);
 /*utility function to check similarity between two audio wav files*/
-int ms_audio_diff(const char *file1, const char *file2, float *ret, MSAudioDiffProgressNotify func, void *user_data);
+int ms_audio_diff(const char *file1, const char *file2, double *ret, MSAudioDiffProgressNotify func, void *user_data);
 
 #ifdef __cplusplus
 }
