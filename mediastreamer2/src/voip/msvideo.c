@@ -31,6 +31,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "msvideo_neon.h"
 #endif
 
+#ifndef INT32_MAX
+#define INT32_MAX 017777777777
+#endif
+
 const char *ms_pix_fmt_to_string(MSPixFmt fmt){
 	switch(fmt){
 		case MS_YUV420P: return "MS_YUV420P";
