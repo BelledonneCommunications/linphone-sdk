@@ -171,8 +171,7 @@ MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
  * Helper macro for backward compatibility.
  * Use ms_base_exit() and ms_voip_exit() instead.
  */
-#define ms_exit()	ms_plugins_exit(), ms_voip_exit(), ms_base_exit()
-
+#define ms_exit()	ms_voip_exit(), ms_plugins_exit(), ms_base_exit()
 
 /**
  * Initialize the mediastreamer2 base library.
