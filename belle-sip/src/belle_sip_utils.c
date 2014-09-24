@@ -22,7 +22,7 @@
 
 #include "belle_sip_internal.h"
 
-#include <time.h>
+#include <sys/time.h>
 #include "clock_gettime.h" /*for apple*/
 
 static FILE *__log_file=0;
@@ -152,6 +152,12 @@ void belle_sip_logv(int level, const char *fmt, va_list args)
 static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_list args){
         const char *lname="undef";
         char *msg;
+#if !defined(WIN32) && !defined(_WIN32_WCE)
+    	struct timeval tp;
+        struct tm *lt;
+    	gettimeofday(&tp,NULL);
+    	lt = localtime((const time_t*)&tp.tv_sec);
+#endif
         if (__log_file==NULL) __log_file=stderr;
         switch(lev){
                 case BELLE_SIP_LOG_DEBUG:
@@ -188,8 +194,12 @@ static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_li
 		}
 	#endif
 #endif
-        fprintf(__log_file,"belle-sip-%s-%s" ENDLINE,lname,msg);
-        fflush(__log_file);
+#if !defined(WIN32) && !defined(_WIN32_WCE)
+		fprintf(__log_file,"%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i belle-sip-%s-%s" ENDLINE,1900+lt->tm_year,lt->tm_mon,lt->tm_mday,lt->tm_hour,lt->tm_min,lt->tm_sec,(int)(tp.tv_usec/1000), lname,msg);
+#else
+		fprintf(__log_file,"belle-sip-%s-%s" ENDLINE, lname, msg);
+#endif
+		fflush(__log_file);
         free(msg);
 }
 

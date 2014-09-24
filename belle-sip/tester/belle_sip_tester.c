@@ -158,6 +158,53 @@ void belle_sip_tester_uninit(void) {
 		nb_test_suites = 0;
 	}
 }
+
+/*derivated from cunit*/
+static void test_complete_message_handler(const CU_pTest pTest,
+                                                const CU_pSuite pSuite,
+                                                const CU_pFailureRecord pFailureList) {
+    int i;
+    CU_pFailureRecord pFailure = pFailureList;
+	if (pFailure) {
+		belle_sip_warning("\nSuite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
+		printf("\nSuite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
+	} else {
+		belle_sip_warning(" passed");
+		printf(" passed");
+	}
+      for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
+    	  belle_sip_warning("\n    %d. %s:%u  - %s", i,
+            (NULL != pFailure->strFileName) ? pFailure->strFileName : "",
+            pFailure->uiLineNumber,
+            (NULL != pFailure->strCondition) ? pFailure->strCondition : "");
+    	  printf("\n    %d. %s:%u  - %s", i,
+            (NULL != pFailure->strFileName) ? pFailure->strFileName : "",
+            pFailure->uiLineNumber,
+            (NULL != pFailure->strCondition) ? pFailure->strCondition : "");
+      }
+ }
+
+
+static void test_all_tests_complete_message_handler(const CU_pFailureRecord pFailure) {
+  belle_sip_warning("\n\n %s",CU_get_run_results_string());
+  printf("\n\n %s",CU_get_run_results_string());
+}
+
+static void test_suite_init_failure_message_handler(const CU_pSuite pSuite) {
+    belle_sip_warning("Suite initialization failed for [%s].", pSuite->pName);
+    printf("Suite initialization failed for [%s].", pSuite->pName);
+}
+
+static void test_suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
+	belle_sip_warning("Suite cleanup failed for '%s'.", pSuite->pName);
+	printf("Suite cleanup failed for [%s].", pSuite->pName);
+}
+
+static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
+	belle_sip_warning("\nSuite [%s] Test [%s]", pSuite->pName,pTest->pName);
+	printf("\nSuite [%s] Test [%s]", pSuite->pName,pTest->pName);
+}
+
 int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 	int i,ret;
 	belle_sip_object_pool_t *pool;
@@ -170,11 +217,17 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 		run_test_suite(test_suite[i]);
 	}
 	pool=belle_sip_object_pool_push();
+	CU_set_test_start_handler(test_start_message_handler);
+	CU_set_test_complete_handler(test_complete_message_handler);
+	CU_set_all_test_complete_handler(test_all_tests_complete_message_handler);
+	CU_set_suite_init_failure_handler(test_suite_init_failure_message_handler);
+	CU_set_suite_cleanup_failure_handler(test_suite_cleanup_failure_message_handler);
+
+
 	
 #ifdef HAVE_CU_GET_SUITE
 	if (suite_name){
 		CU_pSuite suite;
-		CU_basic_set_mode(CU_BRM_VERBOSE);
 		suite=CU_get_suite(suite_name);
 		if (suite==NULL){
 			fprintf(stderr,"There is no suite named '%s'",suite_name);
@@ -186,9 +239,9 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 				fprintf(stderr,"There is no test named '%s'",suite_name);
 				exit(-1);
 			}
-			CU_basic_run_test(suite, test);
+			CU_run_test(suite, test);
 		} else
-			CU_basic_run_suite(suite);
+			CU_run_suite(suite);
 	} else
 #endif
 	{
@@ -200,9 +253,7 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 		else
 #endif
 		{
-			/* Run all tests using the CUnit Basic interface */
-			CU_basic_set_mode(CU_BRM_VERBOSE);
-			CU_basic_run_tests();
+			CU_run_all_tests();
 		}
 	}
 
@@ -219,6 +270,7 @@ void helper(const char *name) {
 		"\t\t\t--domain <test sip domain>\n"
 		"\t\t\t--auth-domain <test auth domain>\n"
 		"\t\t\t--root-ca <root ca file path>\n"
+		"\t\t\t--log-file <output log file path>\n"
 #ifdef HAVE_CU_GET_SUITE
 		"\t\t\t--list-suites\n"
 		"\t\t\t--list-tests <suite>\n"
@@ -238,6 +290,7 @@ void helper(const char *name) {
 	}
 
 #ifndef WINAPI_FAMILY_PHONE_APP
+
 int main (int argc, char *argv[]) {
 	int i;
 	int ret;
@@ -245,6 +298,7 @@ int main (int argc, char *argv[]) {
 	const char *suite_name=NULL;
 	const char *test_name=NULL;
 	const char *env_domain=getenv("TEST_DOMAIN");
+	FILE* log_file=NULL;
 
 	belle_sip_tester_init();
 
@@ -257,6 +311,15 @@ int main (int argc, char *argv[]) {
 			return 0;
 		}else if (strcmp(argv[i],"--verbose")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+		}else if (strcmp(argv[i],"--log-file")==0){
+			CHECK_ARG("--log-file", ++i, argc);
+			log_file=fopen(argv[i],"w");
+			if (!log_file) {
+				belle_sip_fatal("Cannot open file [%s] for writting logs because [%s]",argv[i],strerror(errno));
+			} else {
+				belle_sip_set_log_file(log_file);
+			}
+
 		}else if (strcmp(argv[i],"--domain")==0){
 			CHECK_ARG("--domain", ++i, argc);
 			test_domain=argv[i];
@@ -306,6 +369,7 @@ int main (int argc, char *argv[]) {
 	belle_sip_tester_set_root_ca_path(root_ca_path);
 	ret = belle_sip_tester_run_tests(suite_name, test_name);
 	belle_sip_tester_uninit();
+	if (log_file) fclose(log_file);
 	return ret;
 }
 #endif
