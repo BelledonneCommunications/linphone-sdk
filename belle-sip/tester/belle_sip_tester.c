@@ -33,7 +33,7 @@ extern const char *auth_domain;
 static const char *belle_sip_tester_root_ca_path = NULL;
 static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
-
+static int belle_sip_tester_use_log_file=0;
 
 #ifdef HAVE_CU_CURSES
 	static unsigned char curses = 0;
@@ -166,14 +166,14 @@ static void test_complete_message_handler(const CU_pTest pTest,
     int i;
     CU_pFailureRecord pFailure = pFailureList;
 	if (pFailure) {
-		belle_sip_warning("\nSuite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
+		if (belle_sip_tester_use_log_file) belle_sip_warning("\nSuite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
 		printf("\nSuite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
 	} else {
-		belle_sip_warning(" passed");
+		if (belle_sip_tester_use_log_file) belle_sip_warning(" passed");
 		printf(" passed");
 	}
       for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
-    	  belle_sip_warning("\n    %d. %s:%u  - %s", i,
+    	  if (belle_sip_tester_use_log_file) belle_sip_warning("\n    %d. %s:%u  - %s", i,
             (NULL != pFailure->strFileName) ? pFailure->strFileName : "",
             pFailure->uiLineNumber,
             (NULL != pFailure->strCondition) ? pFailure->strCondition : "");
@@ -186,22 +186,22 @@ static void test_complete_message_handler(const CU_pTest pTest,
 
 
 static void test_all_tests_complete_message_handler(const CU_pFailureRecord pFailure) {
-  belle_sip_warning("\n\n %s",CU_get_run_results_string());
+	if (belle_sip_tester_use_log_file) belle_sip_warning("\n\n %s",CU_get_run_results_string());
   printf("\n\n %s",CU_get_run_results_string());
 }
 
 static void test_suite_init_failure_message_handler(const CU_pSuite pSuite) {
-    belle_sip_warning("Suite initialization failed for [%s].", pSuite->pName);
+	if (belle_sip_tester_use_log_file) belle_sip_warning("Suite initialization failed for [%s].", pSuite->pName);
     printf("Suite initialization failed for [%s].", pSuite->pName);
 }
 
 static void test_suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
-	belle_sip_warning("Suite cleanup failed for '%s'.", pSuite->pName);
+	if (belle_sip_tester_use_log_file) belle_sip_warning("Suite cleanup failed for '%s'.", pSuite->pName);
 	printf("Suite cleanup failed for [%s].", pSuite->pName);
 }
 
 static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
-	belle_sip_warning("\nSuite [%s] Test [%s]", pSuite->pName,pTest->pName);
+	if (belle_sip_tester_use_log_file) belle_sip_warning("\nSuite [%s] Test [%s]", pSuite->pName,pTest->pName);
 	printf("\nSuite [%s] Test [%s]", pSuite->pName,pTest->pName);
 }
 
@@ -317,6 +317,7 @@ int main (int argc, char *argv[]) {
 			if (!log_file) {
 				belle_sip_fatal("Cannot open file [%s] for writting logs because [%s]",argv[i],strerror(errno));
 			} else {
+				belle_sip_tester_use_log_file=1;
 				belle_sip_set_log_file(log_file);
 			}
 
