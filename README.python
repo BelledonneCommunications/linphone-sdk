@@ -13,23 +13,29 @@ X, you can get them from MacPorts. On Windows you will need to download and
 install them manually. Here are these tools:
  - A C and C++ compiler. On Windows you will need Visual Studio 2008 as it is 
 the version used by Python.
- - Python 2.7.x
+ - Python 2.7.x, with 'pip' command. On windows, add c:\Python27\Scripts in the PATH.
  - Java
  - awk (on Windows, get it from http://gnuwin32.sourceforge.net/downlinks/gawk.php)
- - patch (on Windows, get it from http://gnuwin32.sourceforge.net/downlinks/patch.php)
  - sed (on Windows, get it from http://sourceforge.net/projects/gnuwin32/files/sed/4.2.1/sed-4.2.1-setup.exe/download)
  - xxd (only for Linux and Mac OS X)
  - pkg-config (automatically installed when building on Windows)
  - intltoolize (automatically installed when building on Windows)
  - doxygen
  - dot (graphviz)
- - pystache
+ - pystache (install with pip install pystache in terminal)
  - MinGw (only on Windows): Follow the instructions at http://mingw.org/wiki/Getting_Started
+
+On windows, append the following to your PATH if not the case:
+c:\Program Files (x86)\GnuWin32\bin
+c:\MinGW\bin
+c:\Python27\Scripts
+ 
+Once done, within the system's shell (unix terminal, windows cmd), place into 
+the root of linphone-cmake-builder project and run the following commands:
 
 BUILDING THE SDK ON LINUX AND MAC OS X
 **************************************
 
-Run the following command in a shell after having setup the build prerequisites:
 
     $ mkdir WORK/cmake-python
     $ cd WORK/cmake-python
@@ -49,9 +55,10 @@ prerequisites (replacing #PATH_TO_SOURCE# by the good path with forward slashes)
     > cd WORK\cmake-python
     > cmake ../.. -G "Visual Studio 9 2008" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=#PATH_TO_SOURCE#/OUTPUT -DCMAKE_INSTALL_PREFIX=#PATH_TO_SOURCE#/OUTPUT -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-python.cmake
 
-Then open the Visual Studio solution that have been created in the WORK\cmake-python
+Then open the Visual Studio solution (Project.sln) that has been created in the WORK\cmake-python
 directory and build the solution in Release mode.
 
 If everything is successful (and after a few minutes) you will find the Python
 wheel package and installers of the liblinphone Python extension module in the
 OUTPUT directory.
+

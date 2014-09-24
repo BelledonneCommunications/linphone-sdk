@@ -61,6 +61,7 @@ endif()
 
 find_program(PATCH_PROGRAM
 	NAMES patch patch.exe
+	HINTS "C:/MinGW/msys/1.0/bin"
 )
 if(NOT PATCH_PROGRAM)
 	if(WIN32)
