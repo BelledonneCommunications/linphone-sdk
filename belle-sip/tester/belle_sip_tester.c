@@ -166,7 +166,7 @@ static void test_complete_message_handler(const CU_pTest pTest,
     int i;
     CU_pFailureRecord pFailure = pFailureList;
 	if (pFailure) {
-		if (belle_sip_tester_use_log_file) belle_sip_warning("\nSuite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
+		if (belle_sip_tester_use_log_file) belle_sip_warning("Suite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
 		printf("\nSuite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
 	} else {
 		if (belle_sip_tester_use_log_file) belle_sip_warning(" passed");
@@ -186,7 +186,7 @@ static void test_complete_message_handler(const CU_pTest pTest,
 
 
 static void test_all_tests_complete_message_handler(const CU_pFailureRecord pFailure) {
-	if (belle_sip_tester_use_log_file) belle_sip_warning("\n\n %s",CU_get_run_results_string());
+  if (belle_sip_tester_use_log_file) belle_sip_warning("\n\n %s",CU_get_run_results_string());
   printf("\n\n %s",CU_get_run_results_string());
 }
 
@@ -201,10 +201,13 @@ static void test_suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
 }
 
 static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
-	if (belle_sip_tester_use_log_file) belle_sip_warning("\nSuite [%s] Test [%s]", pSuite->pName,pTest->pName);
+	if (belle_sip_tester_use_log_file) belle_sip_warning("Suite [%s] Test [%s]", pSuite->pName,pTest->pName);
 	printf("\nSuite [%s] Test [%s]", pSuite->pName,pTest->pName);
 }
-
+static void test_suite_start_message_handler(const CU_pSuite pSuite) {
+	if (belle_sip_tester_use_log_file) belle_sip_warning("Suite [%s]", pSuite->pName);
+	printf("\nSuite [%s]", pSuite->pName);
+}
 int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 	int i,ret;
 	belle_sip_object_pool_t *pool;
@@ -222,6 +225,7 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 	CU_set_all_test_complete_handler(test_all_tests_complete_message_handler);
 	CU_set_suite_init_failure_handler(test_suite_init_failure_message_handler);
 	CU_set_suite_cleanup_failure_handler(test_suite_cleanup_failure_message_handler);
+	CU_set_suite_start_handler(test_suite_start_message_handler);
 
 
 	
@@ -318,6 +322,7 @@ int main (int argc, char *argv[]) {
 				belle_sip_fatal("Cannot open file [%s] for writting logs because [%s]",argv[i],strerror(errno));
 			} else {
 				belle_sip_tester_use_log_file=1;
+				printf ("Redirecting traces to file [%s]",argv[i]);
 				belle_sip_set_log_file(log_file);
 			}
 
