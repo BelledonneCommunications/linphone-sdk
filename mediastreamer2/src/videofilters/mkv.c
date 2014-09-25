@@ -2306,10 +2306,10 @@ static void player_process(MSFilter *f) {
 		obj->time += f->ticker->interval;
 		while(!eof && matroska_block_get_timestamp(&obj->file) < obj->time) {
 			int trackNum;
-			mblk_t *frame;
+			mblk_t *frame = NULL;
 			trackNum = matroska_block_get_track_num(&obj->file);
 			for(i=0; i < f->desc->noutputs && obj->trackNumList[i] != trackNum; i++);
-			if(i < f->desc->noutputs) {
+			if(i < f->desc->noutputs && f->outputs[i] != NULL) {
 				const uint8_t *codecPrivateData = NULL;
 				size_t codecPrivateSize = 0;
 				frame = matroska_block_read_frame(&obj->file, &codecPrivateData, &codecPrivateSize);
