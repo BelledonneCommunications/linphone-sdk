@@ -64,51 +64,37 @@ void VideoStarter::deactivate()
 }
 
 
-#define MS_OPENH264_CONF(required_bitrate, bitrate_limit, resolution, fps) \
-	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, NULL }
+#define MS_OPENH264_CONF(required_bitrate, bitrate_limit, resolution, fps, cpus) \
+	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, cpus, NULL }
 
 
 static const MSVideoConfiguration openh264_conf_list[] = {
 #if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
-	MS_OPENH264_CONF(0, 512000, QVGA, 12),
+	MS_OPENH264_CONF(2048000, 3072000,       UXGA, 15, 4),
+	MS_OPENH264_CONF(1024000, 1536000, SXGA_MINUS, 15, 4),
+	MS_OPENH264_CONF( 750000, 1024000,        XGA, 15, 4),
+	MS_OPENH264_CONF( 500000,  750000,       SVGA, 15, 2),
+	MS_OPENH264_CONF( 300000,  500000,        VGA, 12 ,2),
+	MS_OPENH264_CONF( 128000,  300000,       QVGA, 12, 2),
+	MS_OPENH264_CONF( 170000,  512000,       QVGA, 12 ,1),
 #else
-	MS_OPENH264_CONF(1024000, 1536000, SVGA, 25),
-	MS_OPENH264_CONF( 512000, 1024000,  VGA, 25),
-	MS_OPENH264_CONF( 256000,  512000,  VGA, 15),
-	MS_OPENH264_CONF( 170000,  256000, QVGA, 15),
+	MS_OPENH264_CONF(1536000,  2560000, SXGA_MINUS, 15, 4),
+	MS_OPENH264_CONF(1536000,  2560000,       720P, 15, 4),
+	MS_OPENH264_CONF(1024000,  1536000,        XGA, 15, 4),
+	MS_OPENH264_CONF( 512000,  1024000,       SVGA, 15, 2),
+	MS_OPENH264_CONF( 256000,   512000,        VGA, 15, 1),
+	MS_OPENH264_CONF( 170000,   256000,       QVGA, 15, 1),
 #endif
-	MS_OPENH264_CONF( 128000,  170000, QCIF, 10),
-	MS_OPENH264_CONF(  64000,  128000, QCIF,  7),
-	MS_OPENH264_CONF(      0,   64000, QCIF,  5)
-};
-
-static const MSVideoConfiguration multicore_openh264_conf_list[] = {
-#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
-	MS_OPENH264_CONF(2048000, 3072000,       UXGA, 15),
-	MS_OPENH264_CONF(1024000, 1536000, SXGA_MINUS, 15),
-	MS_OPENH264_CONF( 750000, 1024000,        XGA, 15),
-	MS_OPENH264_CONF( 500000,  750000,       SVGA, 15),
-	MS_OPENH264_CONF( 300000,  500000,        VGA, 12),
-	MS_OPENH264_CONF(      0,  300000,       QVGA, 12),
-#else
-	MS_OPENH264_CONF(1536000,  2560000, SXGA_MINUS, 15),
-	MS_OPENH264_CONF(1536000,  2560000,       720P, 15),
-	MS_OPENH264_CONF(1024000,  1536000,        XGA, 15),
-	MS_OPENH264_CONF( 512000,  1024000,       SVGA, 15),
-	MS_OPENH264_CONF( 256000,   512000,        VGA, 15),
-	MS_OPENH264_CONF( 170000,   256000,       QVGA, 15),
-#endif
-	MS_OPENH264_CONF( 128000,   170000,       QCIF, 10),
-	MS_OPENH264_CONF(  64000,   128000,       QCIF,  7),
-	MS_OPENH264_CONF(      0,    64000,       QCIF,  5)
+	MS_OPENH264_CONF( 128000,   170000,       QCIF, 10, 1),
+	MS_OPENH264_CONF(  64000,   128000,       QCIF,  7, 1),
+	MS_OPENH264_CONF(      0,    64000,       QCIF,  5, 1)
 };
 
 
 MSOpenH264Encoder::MSOpenH264Encoder(MSFilter *f)
 	: mFilter(f), mPacker(0), mPacketisationMode(0), mVConfList(openh264_conf_list), mFrameCount(0), mInitialized(false)
 {
-	if (ms_get_cpu_count() > 1) mVConfList = &multicore_openh264_conf_list[0];
-	mVConf = ms_video_find_best_configuration_for_bitrate(mVConfList, 384000);
+	mVConf = ms_video_find_best_configuration_for_bitrate(mVConfList, 384000,ms_get_cpu_count());
 
 	long ret = WelsCreateSVCEncoder(&mEncoder);
 	if (ret != 0) {
@@ -254,14 +240,14 @@ void MSOpenH264Encoder::setBitrate(int bitrate)
 		mVConf.required_bitrate = bitrate;
 		setConfiguration(mVConf);
 	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(mVConfList, bitrate);
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(mVConfList, bitrate, ms_get_cpu_count());
 		setConfiguration(best_vconf);
 	}
 }
 
 void MSOpenH264Encoder::setSize(MSVideoSize size)
 {
-	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size(mVConfList, size);
+	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size(mVConfList, size, ms_get_cpu_count());
 	mVConf.vsize = size;
 	mVConf.fps = best_vconf.fps;
 	mVConf.bitrate_limit = best_vconf.bitrate_limit;
