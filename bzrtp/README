@@ -7,3 +7,20 @@ By default, the upstream package installs into /usr/local.  Please use
 './configure --prefix' to change it
 
 Linphone plugin is compiled if both mediastremer2 and ortp are installed
+
+----------------------------------------------------------------------------------
+Compatibility with RFC6189 - ZRTP: Media Path Key Agreement for Unicast Secure RTP
+----------------------------------------------------------------------------------
+*** Mandatory but NOT implemented
+  - Sas Relay mechanism (section 7.3)
+  - Error message generation, emission or reception(which doesn't imply any security problem, they are mostly for debug purpose)
+
+*** Optional and implementd
+  - multistream mode
+  - cacheless implementation
+  - key agreement DH2048
+
+*** Optional and NOT implemented
+  - zrtp-hash attribute in SDP
+  - Go Clear/Clear ACK messages
+  - SAS signing
