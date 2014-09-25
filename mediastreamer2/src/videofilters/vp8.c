@@ -33,47 +33,33 @@
 #include <vpx/vp8cx.h>
 
 
-#define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps) \
-	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, NULL }
+#define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps, cpus) \
+	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, cpus, NULL }
 
 static const MSVideoConfiguration vp8_conf_list[] = {
 #if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
-	MS_VP8_CONF(300000, 600000,  VGA, 12),
-	MS_VP8_CONF(100000, 300000, QVGA, 10),
-	MS_VP8_CONF( 64000, 100000, QCIF, 10),
-	MS_VP8_CONF(     0,  64000, QCIF,  5)
+	MS_VP8_CONF(2048000, 2560000,       UXGA, 12, 2),
+	MS_VP8_CONF(1024000, 1536000, SXGA_MINUS, 12, 2),
+	MS_VP8_CONF( 750000, 1024000,        XGA, 12, 2),
+	MS_VP8_CONF( 500000,  750000,       SVGA, 12, 2),
+	MS_VP8_CONF( 300000,  500000,        VGA, 15, 2),
+	MS_VP8_CONF( 100000,  300000,       QVGA, 18, 2),
+	MS_VP8_CONF(  64000,  100000,       QCIF, 12, 2),
+	MS_VP8_CONF(300000, 600000,          VGA, 12, 1),
+	MS_VP8_CONF(100000, 300000,         QVGA, 10, 1),
+	MS_VP8_CONF( 64000, 100000,         QCIF, 10, 1),
+	MS_VP8_CONF(      0,   64000,       QCIF,  5, 1)
 #else
-	MS_VP8_CONF(1024000, 1536000,  VGA, 25),
-	MS_VP8_CONF( 350000,  600000,  VGA, 15),
-	MS_VP8_CONF( 200000,  350000,  CIF, 15),
-	MS_VP8_CONF( 150000,  200000, QVGA, 15),
-	MS_VP8_CONF( 100000,  150000, QVGA, 10),
-	MS_VP8_CONF(  64000,  100000, QCIF, 12),
-	MS_VP8_CONF(      0,   64000, QCIF,  5)
-#endif
-};
-
-static const MSVideoConfiguration multicore_vp8_conf_list[] = {
-#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
-	MS_VP8_CONF(2048000, 2560000,       UXGA, 12),
-	MS_VP8_CONF(1024000, 1536000, SXGA_MINUS, 12),
-	MS_VP8_CONF( 750000, 1024000,        XGA, 12),
-	MS_VP8_CONF( 500000,  750000,       SVGA, 12),
-	MS_VP8_CONF( 300000,  500000,        VGA, 15),
-	MS_VP8_CONF( 100000,  300000,       QVGA, 18),
-	MS_VP8_CONF(  64000,  100000,       QCIF, 12),
-	MS_VP8_CONF(      0,   64000,       QCIF,  5)
-#else
-	MS_VP8_CONF(1536000,  2560000, SXGA_MINUS, 15),
-	MS_VP8_CONF(1536000,  2560000,       720P, 15),
-	MS_VP8_CONF(1024000,  1536000,        XGA, 15),
-	MS_VP8_CONF( 600000,  1024000,       SVGA, 20),
-	MS_VP8_CONF( 350000,   600000,        VGA, 20),
-	MS_VP8_CONF( 200000,   350000,        CIF, 18),
-	MS_VP8_CONF( 150000,   200000,       QVGA, 15),
-	MS_VP8_CONF( 100000,   150000,       QVGA, 10),
-	MS_VP8_CONF(  64000,   100000,       QCIF, 12),
-	MS_VP8_CONF(      0,    64000,       QCIF,  5)
+	MS_VP8_CONF(1536000,  2560000, SXGA_MINUS, 20, 4),
+	MS_VP8_CONF(1536000,  2560000,       720P, 20, 4),
+	MS_VP8_CONF(1024000,  1536000,        XGA, 20, 4),
+	MS_VP8_CONF( 600000,  1024000,       SVGA, 20, 2),
+	MS_VP8_CONF( 350000,   600000,        VGA, 20, 1),
+	MS_VP8_CONF( 200000,   350000,        CIF, 18, 1),
+	MS_VP8_CONF( 150000,   200000,       QVGA, 15, 1),
+	MS_VP8_CONF( 100000,   150000,       QVGA, 10, 1),
+	MS_VP8_CONF(  64000,   100000,       QCIF, 12, 1),
+	MS_VP8_CONF(      0,    64000,       QCIF,  5 ,1)
 #endif
 };
 
@@ -115,10 +101,9 @@ static void enc_init(MSFilter *f) {
 	s->iface = vpx_codec_vp8_cx();
 	ms_message("Using %s", vpx_codec_iface_name(s->iface));
 
-	if (ms_get_cpu_count() > 1) s->vconf_list = &multicore_vp8_conf_list[0];
-	else s->vconf_list = &vp8_conf_list[0];
+	s->vconf_list = &vp8_conf_list[0];
 	MS_VIDEO_SIZE_ASSIGN(vsize, CIF);
-	s->vconf = ms_video_find_best_configuration_for_size(s->vconf_list, vsize);
+	s->vconf = ms_video_find_best_configuration_for_size(s->vconf_list, vsize, ms_get_cpu_count());
 	s->frame_count = 0;
 	s->last_fir_seq_nr = -1;
 #ifdef PICTURE_ID_ON_16_BITS
@@ -513,7 +498,7 @@ static int enc_set_vsize(MSFilter *f, void *data) {
 	MSVideoConfiguration best_vconf;
 	MSVideoSize *vs = (MSVideoSize *)data;
 	EncState *s = (EncState *)f->data;
-	best_vconf = ms_video_find_best_configuration_for_size(s->vconf_list, *vs);
+	best_vconf = ms_video_find_best_configuration_for_size(s->vconf_list, *vs, ms_get_cpu_count());
 	s->vconf.vsize = *vs;
 	s->vconf.fps = best_vconf.fps;
 	s->vconf.bitrate_limit = best_vconf.bitrate_limit;
@@ -557,7 +542,7 @@ static int enc_set_br(MSFilter *f, void *data) {
 		s->vconf.required_bitrate = br;
 		enc_set_configuration(f, &s->vconf);
 	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br);
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br, ms_get_cpu_count());
 		enc_set_configuration(f, &best_vconf);
 	}
 	return 0;

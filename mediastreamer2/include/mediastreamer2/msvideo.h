@@ -141,6 +141,7 @@ struct _MSVideoConfiguration {
 	int bitrate_limit;	/**< The maximum bitrate to use when this video configuration is used. */
 	MSVideoSize vsize;	/**< The video size that is used when using this video configuration. */
 	float fps;	/**< The FPS that is used when using this video configuration. */
+	int mincpu;	/**< The minimum cpu count necessary when this configuration is used */
 	void *extra;	/**< A pointer to some extra parameters that may be used by the encoder when using this video configuration. */
 };
 
@@ -369,17 +370,19 @@ MS2_PUBLIC bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t curre
  * Find the best video configuration from a list of configurations according to a given bitrate limit.
  * @param[in] vconf_list The list of video configurations to choose from.
  * @param[in] bitrate The maximum bitrate limit the chosen configuration is allowed to use.
+ * @param[in] cpucount the number of cpu that can be used for this encoding.
  * @return The best video configuration found in the given list.
  */
-MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoConfiguration *vconf_list, int bitrate);
+MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoConfiguration *vconf_list, int bitrate, int cpucount);
 
 /**
  * Find the best video configuration from a list of configuration according to a given video size.
  * @param[in] vconf_list The list of video configurations to choose from.
  * @param[in] vsize The maximum video size the chosen configuration is allowed to use.
+ * @param[in] cpucount the number of cpu that can be used for this encoding.
  * @return The best video configuration found in the given list.
  */
-MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConfiguration *vconf_list, MSVideoSize vsize);
+MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConfiguration *vconf_list, MSVideoSize vsize, int cpucount);
 
 #ifdef __cplusplus
 }

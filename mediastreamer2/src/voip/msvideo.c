@@ -830,36 +830,49 @@ float ms_average_fps_get(const MSAverageFPS* afps){
 	return afps->mean_inter_frame!=0 ? 1.0/afps->mean_inter_frame : 0.0;
 }
 
-MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoConfiguration *vconf_list, int bitrate) {
-	const MSVideoConfiguration *current_vconf = vconf_list;
-	const MSVideoConfiguration *closer_to_best_vconf = NULL;
-	MSVideoConfiguration best_vconf;
+MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoConfiguration *vconf_list, int bitrate , int cpu_count) {
+	const MSVideoConfiguration *vconf_it = vconf_list;
+	MSVideoConfiguration best_vconf={0};
+	int max_pixels=0;
 
-	while (closer_to_best_vconf == NULL) {
-		if ((bitrate >= current_vconf->required_bitrate) || (current_vconf->required_bitrate == 0)) {
-			closer_to_best_vconf = current_vconf;
-		} else {
-			current_vconf++;
+	/* search for configuration that has compatible cpu count, compatible bitrate, biggest video size, and greater fps*/
+	do{
+		int pixels=vconf_it->vsize.width*vconf_it->vsize.height;
+		if ((cpu_count>=vconf_it->mincpu && bitrate>=vconf_it->required_bitrate) || vconf_it->required_bitrate==0){
+			if (pixels>max_pixels){
+				best_vconf=*vconf_it;
+				max_pixels=pixels;
+			}else if (pixels==max_pixels){
+				if (best_vconf.fps<vconf_it->fps){
+					best_vconf=*vconf_it;
+				}
+			}
 		}
-	}
-
-	memcpy(&best_vconf, closer_to_best_vconf, sizeof(best_vconf));
-	best_vconf.required_bitrate = bitrate;
+		vconf_it++;
+	}while(vconf_it->required_bitrate!=0);
 	return best_vconf;
 }
 
-MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConfiguration *vconf_list, MSVideoSize vsize) {
+MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConfiguration *vconf_list, MSVideoSize vsize, int cpu_count) {
 	const MSVideoConfiguration *vconf_it = vconf_list;
 	MSVideoConfiguration best_vconf={0};
 	int min_score=INT32_MAX;
 	int ref_pixels=vsize.height*vsize.width;
 
+	/* search for configuration that is first nearest to target video size, then second has the greater fps,
+	 * but any case making sure the the cpu count is sufficient*/
 	for(;vconf_it->required_bitrate!=0;vconf_it++){
 		int pixels=vconf_it->vsize.width*vconf_it->vsize.height;
 		int score=abs(pixels-ref_pixels);
-		if (score<min_score){
-			best_vconf=*vconf_it;
-			min_score=score;
+		if (cpu_count>=vconf_it->mincpu){
+			if (score<min_score){
+				best_vconf=*vconf_it;
+				min_score=score;
+			}else if (score==min_score){
+				if (best_vconf.fps<vconf_it->fps){
+					best_vconf=*vconf_it;
+				}
+			}
 		}
 	}
 	return best_vconf;

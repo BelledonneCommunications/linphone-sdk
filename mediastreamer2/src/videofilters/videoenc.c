@@ -38,8 +38,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define RATE_CONTROL_MARGIN 15000 /*bits/second*/
 
-#define MS_VIDEOENC_CONF(required_bitrate, bitrate_limit, resolution, fps, qminvalue) \
-	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, (void *)&qmin ## qminvalue }
+#define MS_VIDEOENC_CONF(required_bitrate, bitrate_limit, resolution, fps, cpu, qminvalue) \
+	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, cpu, (void *)&qmin ## qminvalue }
 
 static bool_t avcodec_initialized=FALSE;
 
@@ -51,55 +51,54 @@ static const int qmin4 = 4;
 static const int qmin5 = 5;
 
 static const MSVideoConfiguration h263_conf_list[] = {
-	MS_VIDEOENC_CONF(1024000, 1536000, SVGA, 25, 2),
-	MS_VIDEOENC_CONF( 800000, 1024000,  VGA, 25, 2),
-	MS_VIDEOENC_CONF( 512000,  800000,  CIF, 25, 2),
-	MS_VIDEOENC_CONF( 256000,  512000,  CIF, 17, 3),
-	MS_VIDEOENC_CONF( 128000,  256000, QCIF, 10, 3),
-	MS_VIDEOENC_CONF(      0,  128000, QCIF,  5, 5)
+	MS_VIDEOENC_CONF( 800000, 1024000,  4CIF, 25, 2, 2),
+	MS_VIDEOENC_CONF( 512000,  800000,  CIF, 25, 1, 2),
+	MS_VIDEOENC_CONF( 256000,  512000,  CIF, 17, 1, 3),
+	MS_VIDEOENC_CONF( 128000,  256000, QCIF, 10, 1, 3),
+	MS_VIDEOENC_CONF(      0,  128000, QCIF,  5, 1, 5)
 };
 
 static const MSVideoConfiguration h263p_conf_list[] = {
-	MS_VIDEOENC_CONF(800000, 1024000, 4CIF, 25, 2),
-	MS_VIDEOENC_CONF(512000,  800000,  CIF, 25, 2),
-	MS_VIDEOENC_CONF(256000,  512000,  CIF, 17, 3),
-	MS_VIDEOENC_CONF(128000,  256000, QCIF, 10, 3),
-	MS_VIDEOENC_CONF(     0,  128000, QCIF,  5, 5)
+	MS_VIDEOENC_CONF(800000, 1024000, 4CIF, 25, 2, 2),
+	MS_VIDEOENC_CONF(512000,  800000,  CIF, 25, 1, 2),
+	MS_VIDEOENC_CONF(256000,  512000,  CIF, 17, 1, 3),
+	MS_VIDEOENC_CONF(128000,  256000, QCIF, 10, 1, 3),
+	MS_VIDEOENC_CONF(     0,  128000, QCIF,  5, 1, 5)
 };
 
 static const MSVideoConfiguration mjpeg_conf_list[] = {
-	MS_VIDEOENC_CONF(1024000, 1536000, SVGA, 25, 2),
-	MS_VIDEOENC_CONF( 800000, 1024000,  VGA, 25, 2),
-	MS_VIDEOENC_CONF( 512000,  800000,  CIF, 25, 2),
-	MS_VIDEOENC_CONF( 256000,  512000,  CIF, 17, 3),
-	MS_VIDEOENC_CONF( 170000,  256000, QVGA, 15, 3),
-	MS_VIDEOENC_CONF( 128000,  170000, QCIF, 10, 3),
-	MS_VIDEOENC_CONF(      0,  128000, QCIF,  5, 5)
+	MS_VIDEOENC_CONF(1024000, 1536000, SVGA, 25, 1, 2),
+	MS_VIDEOENC_CONF( 800000, 1024000,  VGA, 25, 1, 2),
+	MS_VIDEOENC_CONF( 512000,  800000,  CIF, 25, 1, 2),
+	MS_VIDEOENC_CONF( 256000,  512000,  CIF, 17, 1, 3),
+	MS_VIDEOENC_CONF( 170000,  256000, QVGA, 15, 1, 3),
+	MS_VIDEOENC_CONF( 128000,  170000, QCIF, 10, 1, 3),
+	MS_VIDEOENC_CONF(      0,  128000, QCIF,  5, 1, 5)
 };
 
 static const MSVideoConfiguration mpeg4_conf_list[] = {
-    	MS_VIDEOENC_CONF(2048000, 2560000, SXGA_MINUS, 25, 2),
-	MS_VIDEOENC_CONF(2048000, 2560000, 720P, 25, 2),
-    	MS_VIDEOENC_CONF(1536000, 2048000,  XGA, 25, 2),
-	MS_VIDEOENC_CONF(1024000, 1536000, SVGA, 25, 2),
-	MS_VIDEOENC_CONF( 800000, 1024000,  VGA, 25, 2),
-	MS_VIDEOENC_CONF( 512000,  800000,  CIF, 25, 2),
-	MS_VIDEOENC_CONF( 256000,  512000,  CIF, 17, 3),
-	MS_VIDEOENC_CONF( 170000,  256000, QVGA, 15, 3),
-	MS_VIDEOENC_CONF( 128000,  170000, QCIF, 10, 3),
-	MS_VIDEOENC_CONF(      0,  128000, QCIF,  5, 5)
+    	MS_VIDEOENC_CONF(2048000, 2560000, SXGA_MINUS, 25, 4, 2),
+	MS_VIDEOENC_CONF(2048000, 2560000, 720P, 25, 4, 2),
+    	MS_VIDEOENC_CONF(1536000, 2048000,  XGA, 25, 4, 2),
+	MS_VIDEOENC_CONF(1024000, 1536000, SVGA, 25, 2, 2),
+	MS_VIDEOENC_CONF( 800000, 1024000,  VGA, 25, 1, 2),
+	MS_VIDEOENC_CONF( 512000,  800000,  CIF, 25, 1, 2),
+	MS_VIDEOENC_CONF( 256000,  512000,  CIF, 17, 1, 3),
+	MS_VIDEOENC_CONF( 170000,  256000, QVGA, 15, 1, 3),
+	MS_VIDEOENC_CONF( 128000,  170000, QCIF, 10, 1, 3),
+	MS_VIDEOENC_CONF(      0,  128000, QCIF,  5, 1, 5)
 };
 
 #if HAVE_AVCODEC_SNOW
 static const MSVideoConfiguration snow_conf_list[] = {
-	MS_VIDEOENC_CONF(1024000, 1536000, SVGA, 25, 2),
-	MS_VIDEOENC_CONF( 800000, 1024000,  VGA, 25, 2),
-	MS_VIDEOENC_CONF( 512000,  800000,  CIF, 25, 2),
-	MS_VIDEOENC_CONF( 256000,  512000,  CIF, 17, 3),
-	MS_VIDEOENC_CONF( 170000,  256000, QVGA, 15, 3),
-	MS_VIDEOENC_CONF( 128000,  170000, QCIF, 10, 3),
-	MS_VIDEOENC_CONF(  64000,  128000, QCIF,  7, 4),
-	MS_VIDEOENC_CONF(      0,   64000, QCIF,  5, 5)
+	MS_VIDEOENC_CONF(1024000, 1536000, SVGA, 25, 2, 2),
+	MS_VIDEOENC_CONF( 800000, 1024000,  VGA, 25, 1, 2),
+	MS_VIDEOENC_CONF( 512000,  800000,  CIF, 25, 1, 2),
+	MS_VIDEOENC_CONF( 256000,  512000,  CIF, 17, 1, 3),
+	MS_VIDEOENC_CONF( 170000,  256000, QVGA, 15, 1, 3),
+	MS_VIDEOENC_CONF( 128000,  170000, QCIF, 10, 1, 3),
+	MS_VIDEOENC_CONF(  64000,  128000, QCIF,  7, 1, 4),
+	MS_VIDEOENC_CONF(      0,   64000, QCIF,  5, 1, 5)
 };
 #endif
 
@@ -236,7 +235,7 @@ static void enc_init(MSFilter *f, enum CodecID codec)
 	s->framenum=0;
 	s->av_context.codec=NULL;
 	s->vconf_list = get_vconf_list(s);
-	s->vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, 500000);
+	s->vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, 500000, ms_get_cpu_count());
 	s->pict = av_frame_alloc();
 }
 
@@ -909,7 +908,7 @@ static int enc_set_vsize(MSFilter *f, void *arg) {
 	MSVideoConfiguration best_vconf;
 	MSVideoSize *vs = (MSVideoSize *)arg;
 	EncState *s=(EncState*)f->data;
-	best_vconf = ms_video_find_best_configuration_for_size(s->vconf_list, *vs);
+	best_vconf = ms_video_find_best_configuration_for_size(s->vconf_list, *vs, ms_get_cpu_count());
 	s->vconf.vsize = *vs;
 	s->vconf.fps = best_vconf.fps;
 	s->vconf.bitrate_limit = best_vconf.bitrate_limit;
@@ -943,7 +942,7 @@ static int enc_set_br(MSFilter *f, void *arg) {
 		s->vconf.required_bitrate = br;
 		enc_set_configuration(f, &s->vconf);
 	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br);
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br, ms_get_cpu_count());
 		enc_set_configuration(f, &best_vconf);
 	}
 	return 0;

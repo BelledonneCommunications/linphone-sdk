@@ -582,7 +582,7 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 			ms_message("Limiting bitrate of video encoder to %i bits/s for stream [%p]",pt->normal_bitrate,stream);
 			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
 			if (vconf_list != NULL) {
-				MSVideoConfiguration vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, pt->normal_bitrate);
+				MSVideoConfiguration vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, pt->normal_bitrate, ms_get_cpu_count());
 				/* Adjust configuration video size to use the user preferred video size if it is lower that the configuration one. */
 				if ((stream->sent_vsize.height * stream->sent_vsize.width) < (vconf.vsize.height * vconf.vsize.width)) {
 					vconf.vsize = stream->sent_vsize;
