@@ -234,21 +234,20 @@ static MSPixFmt pick_best_format(int fd, const V4L2FormatDescription* format_des
 	for (i=PREFER_NATIVE; i<=NO_PREFERENCE; i++) {
 		for (j=0; j<4; j++) {
 			int candidate = -1;
-			if (format_desc[j].max_fps >= 15 || format_desc[j].max_fps==-1) {
-				switch (i) {
-					case PREFER_NATIVE:
-						if (format_desc[j].native && !format_desc[j].compressed)
-							candidate = j;
-						break;
-					case PREFER_COMPRESSED:
-						if (format_desc[j].compressed)
-							candidate = j;
-						break;
-					case NO_PREFERENCE:
-					default:
+			switch (i) {
+				case PREFER_NATIVE:
+					if (format_desc[j].max_fps >= 15 && format_desc[j].native && !format_desc[j].compressed)
 						candidate = j;
-						break;
-				}
+					break;
+				case PREFER_COMPRESSED:
+					/*usually compressed format allow the biggest picture size*/
+					if (format_desc[j].compressed)
+						candidate = j;
+					break;
+				case NO_PREFERENCE:
+				default:
+					candidate = j;
+					break;
 			}
 
 			if (candidate != -1) {

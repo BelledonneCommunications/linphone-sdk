@@ -359,16 +359,20 @@ static void configure_av_player(AudioStream *stream, const MSFmtDescriptor *audi
 	int stream_rate=0;
 	int stream_channels=0;
 	
-	if (player->decoder){
-		if (audiofmt->nchannels>0){
-			ms_filter_call_method(player->decoder,MS_FILTER_SET_NCHANNELS,(void*)&audiofmt->nchannels);
+	ms_message("AudioStream [%p] Configure av_player, audiofmt=%s videofmt=%s",stream,ms_fmt_descriptor_to_string(audiofmt),ms_fmt_descriptor_to_string(videofmt));
+	
+	if (audiofmt){
+		if (player->decoder){
+			if (audiofmt->nchannels>0){
+				ms_filter_call_method(player->decoder,MS_FILTER_SET_NCHANNELS,(void*)&audiofmt->nchannels);
+			}
+			if (audiofmt->rate>0){
+				ms_filter_call_method(player->decoder,MS_FILTER_SET_SAMPLE_RATE,(void*)&audiofmt->rate);
+			}
 		}
-		if (audiofmt->rate>0){
-			ms_filter_call_method(player->decoder,MS_FILTER_SET_SAMPLE_RATE,(void*)&audiofmt->rate);
-		}
+		ms_filter_call_method(player->resampler,MS_FILTER_SET_NCHANNELS,(void*)&audiofmt->nchannels);
+		ms_filter_call_method(player->resampler,MS_FILTER_SET_SAMPLE_RATE,(void*)&audiofmt->rate);
 	}
-	ms_filter_call_method(player->resampler,MS_FILTER_SET_NCHANNELS,(void*)&audiofmt->nchannels);
-	ms_filter_call_method(player->resampler,MS_FILTER_SET_SAMPLE_RATE,(void*)&audiofmt->rate);
 
 	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_GET_SAMPLE_RATE,&stream_rate);
 	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_GET_NCHANNELS,&stream_channels);
@@ -425,7 +429,7 @@ static int open_av_player(AudioStream *stream, const char *filename){
 	ms_filter_call_method(player->player,MS_FILTER_GET_OUTPUT_FMT,&fmt1);
 	fmt2.pin=1;
 	ms_filter_call_method(player->player,MS_FILTER_GET_OUTPUT_FMT,&fmt2);
-	if (fmt1.fmt==NULL){
+	if (fmt1.fmt==NULL && fmt2.fmt==NULL){
 		/*assume PCM*/
 		int sr=8000;
 		int channels=1;
@@ -434,7 +438,7 @@ static int open_av_player(AudioStream *stream, const char *filename){
 		fmt1.fmt=ms_factory_get_audio_format(ms_factory_get_fallback(),"pcm", sr, channels, NULL);
 		audiofmt=&fmt1;
 	}else{
-		if (fmt1.fmt->type==MSAudio) {
+		if (fmt1.fmt && fmt1.fmt->type==MSAudio) {
 			audiofmt=&fmt1;
 			videofmt=&fmt2;
 			player->audiopin=0;
@@ -446,7 +450,7 @@ static int open_av_player(AudioStream *stream, const char *filename){
 			player->videopin=0;
 		}
 	}
-	if (strcasecmp(audiofmt->fmt->encoding,"pcm")!=0){
+	if (audiofmt && audiofmt->fmt && strcasecmp(audiofmt->fmt->encoding,"pcm")!=0){
 		player->decoder=ms_filter_create_decoder(audiofmt->fmt->encoding);
 		if (player->decoder==NULL){
 			ms_warning("AudioStream[%p]: no way to decode [%s]",stream,filename);
@@ -455,9 +459,9 @@ static int open_av_player(AudioStream *stream, const char *filename){
 		}
 	}
 	player->resampler=ms_filter_new(MS_RESAMPLE_ID);
-	if (videofmt) player->video_output=ms_filter_new(MS_ITC_SINK_ID);
+	if (videofmt && videofmt->fmt) player->video_output=ms_filter_new(MS_ITC_SINK_ID);
 	else player->videopin=-1;
-	configure_av_player(stream,audiofmt->fmt,videofmt ? videofmt->fmt : NULL);
+	configure_av_player(stream,audiofmt ? audiofmt->fmt : NULL ,videofmt ? videofmt->fmt : NULL);
 	plumb_av_player(stream);
 	return 0;
 }

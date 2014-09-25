@@ -687,6 +687,7 @@ static MSFmtDescriptor * ms_fmt_descriptor_new_copy(const MSFmtDescriptor *orig)
 
 const char *ms_fmt_descriptor_to_string(const MSFmtDescriptor *obj){
 	MSFmtDescriptor *mutable_fmt=(MSFmtDescriptor*)obj;
+	if (!obj) return "null";
 	if (obj->text==NULL){
 		if (obj->type==MSAudio){
 			mutable_fmt->text=ms_strdup_printf("type=audio;encoding=%s;rate=%i;channels=%i;fmtp='%s'",

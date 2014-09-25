@@ -140,7 +140,7 @@ static void enc_preprocess(MSFilter *f) {
 	EncState *s = (EncState *)f->data;
 	vpx_codec_err_t res;
 	vpx_codec_caps_t caps;
-	int cpuused;
+	int cpuused=0;
 
 	/* Populate encoder configuration */
 	s->flags = 0;
@@ -176,9 +176,10 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.g_error_resilient = VPX_ERROR_RESILIENT_DEFAULT|VPX_ERROR_RESILIENT_PARTITIONS;
 	s->cfg.g_lag_in_frames = 0;
 
+	
+#if defined(ANDROID) || TARGET_OS_IPHONE==1
 	cpuused = 10 - s->cfg.g_threads; /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 	if (cpuused < 7) cpuused = 7; /*values beneath 7 consume too much CPU*/
-#if (TARGET_OS_IPHONE == 1)
 	if( s->cfg.g_threads == 1 ){
 		/* on mono-core iOS devices, we reduce the quality a bit more due to VP8 being slower with new Clang compilers */
 		cpuused = 16;
