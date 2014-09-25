@@ -1481,7 +1481,7 @@ static int matroska_track_get_info(const Matroska *obj, int trackNum, const MSFm
 					return -4;
 				} else {
 					int rate, nbChannels;
-					rate = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)elt, &MATROSKA_ContextSamplingFrequency));
+					rate = (int)EBML_FloatValue((ebml_float *)EBML_MasterFindChild((ebml_master *)elt, &MATROSKA_ContextSamplingFrequency));
 					nbChannels = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)elt, &MATROSKA_ContextChannels));
 					*fmt = ms_factory_get_audio_format(ms_factory_get_fallback(), rfcName, rate, nbChannels, NULL);
 				}
