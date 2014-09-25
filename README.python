@@ -29,6 +29,7 @@ On windows, append the following to your PATH if not the case:
 c:\Program Files (x86)\GnuWin32\bin
 c:\MinGW\bin
 c:\Python27\Scripts
+C:\Program Files (x86)\Graphviz2.38
  
 Once done, within the system's shell (unix terminal, windows cmd), place into 
 the root of linphone-cmake-builder project and run the following commands:
