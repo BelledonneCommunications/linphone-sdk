@@ -167,8 +167,8 @@ static void stream_connect(Stream *s, StreamType type, pa_buffer_attr *attr) {
 				err=pa_stream_connect_record(s->stream,NULL,attr, PA_STREAM_ADJUST_LATENCY);
 			}
 			pa_threaded_mainloop_unlock(pa_loop);
-			if (err!=0 || !stream_wait_for_state(s, PA_STREAM_READY, PA_STREAM_FAILED)) {
-				ms_error("fails to connect PulseAudio stream");
+			if(err < 0) {
+				ms_error("Fails to connect pulseaudio stream");
 			}
 		} else {
 			ms_error("fails to create PulseAudio stream");
@@ -223,8 +223,8 @@ static void pulse_read_process(MSFilter *f){
 		const void *buffer=NULL;
 		size_t nbytes;
 
-		if (s->stream!=NULL){
-			pa_threaded_mainloop_lock(pa_loop);
+		pa_threaded_mainloop_lock(pa_loop);
+		if (s->stream!=NULL && s->state == PA_STREAM_READY){
 			while(pa_stream_readable_size(s->stream) > 0) {
 				if(pa_stream_peek(s->stream, &buffer, &nbytes) >= 0) {
 					if(buffer != NULL) {
@@ -240,8 +240,10 @@ static void pulse_read_process(MSFilter *f){
 					ms_error("pa_stream_peek() failed");
 				}
 			}
-			pa_threaded_mainloop_unlock(pa_loop);
+		}else {
+			ms_error("Record stream not ready");
 		}
+		pa_threaded_mainloop_unlock(pa_loop);
 	}
 }
 
@@ -347,7 +349,7 @@ static void pulse_write_process(MSFilter *f){
 		mblk_t *im;
 		while((im=ms_queue_get(f->inputs[0]))!=NULL){
 			int bsize=msgdsize(im);
-			if (s->stream){
+			if (s->stream && s->state == PA_STREAM_READY){
 				int err;
 				int writable;
 				pa_threaded_mainloop_lock(pa_loop);
@@ -359,6 +361,8 @@ static void pulse_write_process(MSFilter *f){
 					ms_error("pa_stream_write(): %s",pa_strerror(err));
 				}
 				pa_threaded_mainloop_unlock(pa_loop);
+			} else {
+				ms_error("playback stream not ready");
 			}
 			freemsg(im);
 		}
