@@ -353,8 +353,10 @@ static void x11video_process(MSFilter *f){
 	bool_t local_precious=FALSE;
 	XWindowAttributes wa;
 
+	ms_filter_lock(f);
+	
 	if ((obj->window_id == 0) || (x11_error == TRUE)) goto end;
-
+	
 	XGetWindowAttributes(obj->display,obj->window_id,&wa);
 	if (x11_error == TRUE) {
 		ms_error("Could not get window attributes for window %lu", obj->window_id);
@@ -364,9 +366,10 @@ static void x11video_process(MSFilter *f){
 		ms_warning("Resized to %ix%i", wa.width,wa.height);
 		obj->wsize.width=wa.width;
 		obj->wsize.height=wa.height;
+		XClearWindow(obj->display,obj->window_id);
 	}
 
-	ms_filter_lock(f);
+	
 	if (!obj->show) {
 		goto end;
 	}
@@ -532,6 +535,7 @@ static int x11video_get_native_window_id(MSFilter *f, void*arg){
 static int x11video_set_native_window_id(MSFilter *f, void*arg){
 	X11Video *s=(X11Video*)f->data;
 	unsigned long id=*(unsigned long*)arg;
+	ms_filter_lock(f);
 	if(id != MS_FILTER_VIDEO_NONE) {
 		x11video_unprepare(f);
 		s->autofit=FALSE;
@@ -542,6 +546,7 @@ static int x11video_set_native_window_id(MSFilter *f, void*arg){
 		s->window_id=0;
 		s->auto_window=FALSE;
 	}
+	ms_filter_unlock(f);
 	return 0;
 }
 

@@ -344,9 +344,10 @@ static void pulse_write_preprocess(MSFilter *f){
 }
 
 static void pulse_write_process(MSFilter *f){
-	if(f->data != NULL) {
-		PlaybackStream *s=(PlaybackStream*)f->data;
+	PlaybackStream *s=(PlaybackStream*)f->data;
+	if(s != NULL) {
 		mblk_t *im;
+		
 		while((im=ms_queue_get(f->inputs[0]))!=NULL){
 			int bsize=msgdsize(im);
 			if (s->stream && s->state == PA_STREAM_READY){

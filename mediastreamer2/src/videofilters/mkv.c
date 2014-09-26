@@ -1778,7 +1778,7 @@ static void recorder_init(MSFilter *f) {
 
 	obj->inputDescsList = (const MSFmtDescriptor **)ms_new0(const MSFmtDescriptor *, f->desc->ninputs);
 	obj->modulesList = (Module **)ms_new0(Module *, f->desc->ninputs);
-    obj->timeLoopCancelers = (TimeLoopCanceler **)ms_new0(TimeLoopCanceler *, f->desc->ninputs);
+	obj->timeLoopCancelers = (TimeLoopCanceler **)ms_new0(TimeLoopCanceler *, f->desc->ninputs);
 
 	time_corrector_init(&obj->timeCorrector, f->desc->ninputs);
 
@@ -1800,7 +1800,7 @@ static void recorder_uninit(MSFilter *f){
         if(obj->timeLoopCancelers[i] != NULL) ms_free(obj->timeLoopCancelers[i]);
 	}
 	time_corrector_uninit(&obj->timeCorrector);
-    ms_free(obj->timeLoopCancelers);
+	ms_free(obj->timeLoopCancelers);
 	ms_free(obj->modulesList);
 	ms_free(obj->inputDescsList);
 	ms_free(obj);
