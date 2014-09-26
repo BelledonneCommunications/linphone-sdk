@@ -366,7 +366,7 @@ static void pulse_write_process(MSFilter *f){
 			}
 			freemsg(im);
 		}
-	}
+	}else ms_queue_flush(f->inputs[0]);
 }
 
 static void pulse_write_postprocess(MSFilter *f){
