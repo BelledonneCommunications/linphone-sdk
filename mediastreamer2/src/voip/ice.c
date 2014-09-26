@@ -188,18 +188,12 @@ static uint64_t generate_tie_breaker(void)
 
 static char * generate_ufrag(void)
 {
-	char *ufrag = ms_malloc(9);
-	sprintf(ufrag, "%08x", (int)ortp_random());
-	ufrag[8] = '\0';
-	return ufrag;
+	return ms_strdup_printf("%08x", (int)ortp_random());
 }
 
 static char * generate_pwd(void)
 {
-	char *pwd = ms_malloc(25);
-	sprintf(pwd, "%08x%08x%08x", (int)ortp_random(), (int)ortp_random(), (int)ortp_random());
-	pwd[24] = '\0';
-	return pwd;
+	return ms_strdup_printf("%08x%08x%08x", (int)ortp_random(), (int)ortp_random(), (int)ortp_random());
 }
 
 static void ice_session_init(IceSession *session)
@@ -1458,7 +1452,7 @@ static int ice_check_received_binding_request_username(const IceCheckList *cl, c
 	memcpy(username, msg->username.value, msg->username.sizeValue);
 	colon = strchr(username, ':');
 	if ((colon == NULL) || (strncmp(username, ice_check_list_local_ufrag(cl), colon - username) != 0)) {
-		ms_error("ice: Wrong USERNAME attribute");
+		ms_error("ice: Wrong USERNAME attribute (colon=%p)",colon);
 		ice_send_error_response(rtp_session, evt_data, msg, 4, 1, remote_addr, "Wrong USERNAME attribute");
 		return -1;
 	}
@@ -3210,11 +3204,9 @@ static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str,
 
 	if (*ufrag) ms_free(*ufrag);
 	if (*pwd) ms_free(*pwd);
-	*ufrag = ms_malloc(len_ufrag + 1);
-	strncpy(*ufrag, ufrag_str, len_ufrag);
+	*ufrag=ms_strdup(ufrag_str);
+	*pwd=ms_strdup(pwd_str);
 	(*ufrag)[len_ufrag] = '\0';
-	*pwd = ms_malloc(len_pwd + 1);
-	strncpy(*pwd, pwd_str, len_pwd);
 	(*pwd)[len_pwd] = '\0';
 }
 
