@@ -358,13 +358,14 @@ static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_s
 	return wished_size;
 }
 
-static MSVideoSize get_with_same_orientation(MSVideoSize size, MSVideoSize refsize){
+static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideoSize refsize){
 	if (ms_video_size_get_orientation(refsize)!=ms_video_size_get_orientation(size)){
 		int tmp;
 		tmp=size.width;
 		size.width=size.height;
 		size.height=tmp;
 	}
+	size.height=(size.width*refsize.height)/refsize.width;
 	return size;
 }
 
@@ -408,7 +409,7 @@ static void configure_video_source(VideoStream *stream){
 				   cam_vsize.width,cam_vsize.height,vsize.width,vsize.height);
 		vsize=cam_vsize;
 #else
-		vsize=get_with_same_orientation(vsize,cam_vsize);
+		vsize=get_with_same_orientation_and_ratio(vsize,cam_vsize);
 		ms_warning("Camera video size greater than encoder one. A scaling filter will be used!\n");
 #endif
 	}
