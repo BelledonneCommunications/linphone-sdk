@@ -238,6 +238,7 @@ static void pulse_read_process(MSFilter *f){
 					}
 				} else {
 					ms_error("pa_stream_peek() failed");
+					break;
 				}
 			}
 		}else {
