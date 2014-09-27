@@ -318,12 +318,12 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 			}
 
 			*size -=offsetSize; /* decrease data length requested to the current part handler */
-			buffer +=offsetSize; /* increase buffer pointer to have it pointing to the begining of free space, just after header */
 		}
 
-		retval = belle_sip_body_handler_send_chunk(current_part, msg, buffer, size);
+		retval = belle_sip_body_handler_send_chunk(current_part, msg, buffer+offsetSize, size); /* add offsetSize to the buffer address in order to point at the begining of free space (after header if included) */
 
 		*size +=offsetSize; /* restore total of data given including potential separator and header */
+
 
 		if (retval == BELLE_SIP_CONTINUE) {
 			return BELLE_SIP_CONTINUE; /* there is still data to be sent, continue */
