@@ -385,6 +385,8 @@ static void dd_display_process(MSFilter *f){
 
 	wsize.width=rect.right;
 	wsize.height=rect.bottom;
+	if (!ms_video_size_equal(wsize,obj->wsize))
+		obj->need_repaint=TRUE;
 	obj->wsize=wsize;
 	/*get most recent message and draw it*/
 	if (corner!=-1 && f->inputs[1]!=NULL && (local_im=ms_queue_peek_last(f->inputs[1]))!=NULL) {
