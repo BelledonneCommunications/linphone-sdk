@@ -23,6 +23,7 @@ the version used by Python.
  - doxygen
  - dot (graphviz)
  - pystache (install with pip install pystache in terminal)
+ - wheel (install with pip install wheel in terminal)
  - MinGw (only on Windows): Follow the instructions at http://mingw.org/wiki/Getting_Started
 
 On windows, append the following to your PATH if not the case:
