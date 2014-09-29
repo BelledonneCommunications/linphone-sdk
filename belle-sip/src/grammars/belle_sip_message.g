@@ -642,8 +642,10 @@ addr_spec[belle_sip_header_address_t* object]
 paramless_addr_spec[belle_sip_header_address_t* object]      
   :  lws? paramless_uri {belle_sip_header_address_set_uri(object,$paramless_uri.ret);} lws? ;//| absoluteURI;
   
+display_name_tokens 
+	:token (lws token)* ;
 display_name[belle_sip_header_address_t* object]  
-  :  token {belle_sip_header_address_set_displayname(object,(const char*)($token.text->chars));}
+  :  display_name_tokens {belle_sip_header_address_set_displayname(object,(const char*)($display_name_tokens.text->chars));}
      | quoted_string 
      	{
      	char* unescaped_char = belle_sip_string_to_backslash_less_unescaped_string((const char*)($quoted_string.text->chars));

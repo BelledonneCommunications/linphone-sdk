@@ -76,13 +76,13 @@ static void test_complex_contact_header(void) {
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_contact));
 
-	L_contact = belle_sip_header_contact_parse("Contact: toto <sip:titi.com>;expires=3600; q=0.7");
+	L_contact = belle_sip_header_contact_parse("Contact: super toto <sip:titi.com>;expires=3600; q=0.7");
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_contact));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_contact));
 	L_contact = belle_sip_header_contact_parse(l_raw_header);
 	belle_sip_free(l_raw_header);
 
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname((belle_sip_header_address_t*)L_contact), "toto");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname((belle_sip_header_address_t*)L_contact), "super toto");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_contact));
 	CU_ASSERT_PTR_NULL(belle_sip_header_contact_parse("m:sip:titi.com, nimportequoi"));
 }
