@@ -79,6 +79,6 @@ cmake_dependent_option(ENABLE_OPENH264 "Enable H.264 video encoder support with 
 linphone_builder_add_feature_info("openh264" ENABLE_OPENH264 "H.264 video encoding support with the openh264 library.")
 
 option(ENABLE_TUNNEL "Enable tunnel support." ${DEFAULT_VALUE_ENABLE_TUNNEL})
-linphone_builder_add_feature_info("Tunnel" ENABLE_TUNNEL "Secure tunnel for SIP/RTP .")
+linphone_builder_add_feature_info("Tunnel" ENABLE_TUNNEL "Secure tunnel for SIP/RTP.")
 option(ENABLE_UNIT_TESTS "Enable unit tests support with CUnit library." ${DEFAULT_VALUE_ENABLE_UNIT_TESTS})
 linphone_builder_add_feature_info("Unit tests" ENABLE_UNIT_TESTS "Build unit tests programs for belle-sip, mediastreamer2 and linphone.")
