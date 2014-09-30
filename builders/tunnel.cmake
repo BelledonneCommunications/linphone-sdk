@@ -24,16 +24,8 @@ set(EP_tunnel_GIT_REPOSITORY "gitosis@git.linphone.org:tunnel.git") # Private re
 if(LINPHONE_BUILDER_LATEST)
 	set(EP_tunnel_GIT_TAG "master")
 else()
-	set(EP_tunnel_GIT_TAG "e1f78f6ffa80cf226d043d88d4e6cd8029da1100")
+	set(EP_tunnel_GIT_TAG "3caf299320061e8ec1f8d8a817c2d9c71b16a0c3")
 endif()
-set(EP_tunnel_BUILD_METHOD "autotools")
-set(EP_tunnel_USE_AUTOGEN "yes")
-set(EP_tunnel_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_HOST}"
-)
-set(EP_tunnel_CONFIGURE_OPTIONS
-	"--disable-servers"
-)
-set(EP_tunnel_LINKING_TYPE "--disable-static" "--enable-shared")
+set(EP_tunnel_LINKING_TYPE "-DENABLE_STATIC=0")
+set(EP_tunnel_CMAKE_OPTIONS "-DENABLE_SERVERS=0")
 set(EP_tunnel_DEPENDENCIES EP_polarssl)
