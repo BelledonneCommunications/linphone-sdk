@@ -22,8 +22,11 @@
 
 #include "belle_sip_internal.h"
 
-#include <sys/time.h>
 #include "clock_gettime.h" /*for apple*/
+
+#ifndef WIN32
+#include <sys/time.h> /*for gettimeofday*/
+#endif
 
 static FILE *__log_file=0;
 
@@ -143,64 +146,88 @@ belle_sip_error_code belle_sip_snprintf_valist(char *buff, size_t buff_size, siz
 #if     defined(WIN32) || defined(_WIN32_WCE)
 void belle_sip_logv(int level, const char *fmt, va_list args)
 {
-        if (belle_sip_logv_out!=NULL && belle_sip_log_level_enabled(level))
-                belle_sip_logv_out(level,fmt,args);
-        if ((level)==BELLE_SIP_LOG_FATAL) abort();
+	if (belle_sip_logv_out!=NULL && belle_sip_log_level_enabled(level))
+		belle_sip_logv_out(level,fmt,args);
+	if ((level)==BELLE_SIP_LOG_FATAL) abort();
 }
 #endif
 
-static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_list args){
-        const char *lname="undef";
-        char *msg;
-#if !defined(WIN32) && !defined(_WIN32_WCE)
-    	struct timeval tp;
-        struct tm *lt;
-    	gettimeofday(&tp,NULL);
-    	lt = localtime((const time_t*)&tp.tv_sec);
+
+#ifdef WIN32
+static int belle_sip_gettimeofday (struct timeval *tv, void* tz)
+{
+	union
+	{
+		__int64 ns100; /*time since 1 Jan 1601 in 100ns units */
+		FILETIME fileTime;
+	} now;
+
+	GetSystemTimeAsFileTime (&now.fileTime);
+	tv->tv_usec = (long) ((now.ns100 / 10LL) % 1000000LL);
+	tv->tv_sec = (long) ((now.ns100 - 116444736000000000LL) / 10000000LL);
+	return 0;
+}
+#else
+#define belle_sip_gettimeofday gettimeofday
 #endif
-        if (__log_file==NULL) __log_file=stderr;
-        switch(lev){
-                case BELLE_SIP_LOG_DEBUG:
-                        lname="debug";
-                        break;
-                case BELLE_SIP_LOG_MESSAGE:
-                        lname="message";
-                        break;
-                case BELLE_SIP_LOG_WARNING:
-                        lname="warning";
-                        break;
-                case BELLE_SIP_LOG_ERROR:
-                        lname="error";
-                        break;
-                case BELLE_SIP_LOG_FATAL:
-                        lname="fatal";
-                        break;
-                default:
-                        belle_sip_fatal("Bad level !");
-        }
-        msg=belle_sip_strdup_vprintf(fmt,args);
+
+static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_list args){
+	const char *lname="undef";
+	char *msg;
+	struct timeval tp;
+	struct tm *lt;
+#ifndef WIN32
+	struct tm tmstorage;
+#endif
+	time_t curtime;
+	
+	belle_sip_gettimeofday(&tp,NULL);
+	curtime=tp.tv_sec;
+#ifdef WIN32
+	lt = localtime(&curtime);
+#else
+	lt = localtime_r(&curtime,&tmstorage);
+#endif
+	
+	if (__log_file==NULL) __log_file=stderr;
+	switch(lev){
+		case BELLE_SIP_LOG_DEBUG:
+			lname="debug";
+			break;
+		case BELLE_SIP_LOG_MESSAGE:
+			lname="message";
+			break;
+		case BELLE_SIP_LOG_WARNING:
+			lname="warning";
+			break;
+		case BELLE_SIP_LOG_ERROR:
+			lname="error";
+			break;
+		case BELLE_SIP_LOG_FATAL:
+			lname="fatal";
+			break;
+		default:
+			belle_sip_fatal("Bad level !");
+	}
+	msg=belle_sip_strdup_vprintf(fmt,args);
 #if defined(_MSC_VER) && !defined(_WIN32_WCE)
 	#ifndef _UNICODE
-        OutputDebugStringA(msg);
-        OutputDebugStringA("\r\n");
+	OutputDebugStringA(msg);
+	OutputDebugStringA("\r\n");
 	#else
-		{
-			int len=strlen(msg);
-			wchar_t *tmp=(wchar_t*)belle_sip_malloc((len+1)*sizeof(wchar_t));
-			mbstowcs(tmp,msg,len);
-			OutputDebugStringW(tmp);
-			OutputDebugStringW(L"\r\n");
-			belle_sip_free(tmp);
-		}
+	{
+		int len=strlen(msg);
+		wchar_t *tmp=(wchar_t*)belle_sip_malloc((len+1)*sizeof(wchar_t));
+		mbstowcs(tmp,msg,len);
+		OutputDebugStringW(tmp);
+		OutputDebugStringW(L"\r\n");
+		belle_sip_free(tmp);
+	}
 	#endif
 #endif
-#if !defined(WIN32) && !defined(_WIN32_WCE)
-		fprintf(__log_file,"%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i belle-sip-%s-%s" ENDLINE,1900+lt->tm_year,lt->tm_mon,lt->tm_mday,lt->tm_hour,lt->tm_min,lt->tm_sec,(int)(tp.tv_usec/1000), lname,msg);
-#else
-		fprintf(__log_file,"belle-sip-%s-%s" ENDLINE, lname, msg);
-#endif
-		fflush(__log_file);
-        free(msg);
+	fprintf(__log_file,"%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i belle-sip-%s-%s" ENDLINE,1900+lt->tm_year,lt->tm_mon,lt->tm_mday,lt->tm_hour,lt->tm_min,lt->tm_sec,(int)(tp.tv_usec/1000), lname,msg);
+	fflush(__log_file);
+	free(msg);
 }
 
 belle_sip_list_t* belle_sip_list_new(void *data){
