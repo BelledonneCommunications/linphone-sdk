@@ -515,7 +515,7 @@ static void testMalformedFrom(void){
 
 	const char* raw_message = "INVITE sip:us2@172.1.1.1 SIP/2.0\r\n"
 			"Via: SIP/2.0/TCP " LISTENING_POINT_HOSTPORT ";branch=z9hG4bK-edx-U_1zoIkaq72GJPqpSmDpJQ-ouBelFuLODzf9oS5J9MeFUA;rport\r\n"
-			"From: cm test <sip:00_12_34_56_78_90@us2>;tag=klsk+kwDc\r\n" /** 'cm test' should be enclosed in double quotes */
+			"From: c\x8e test <sip:00_12_34_56_78_90@us2>;tag=klsk+kwDc\r\n" /** 'cé test' should be enclosed in double quotes */
 			"To: <sip:us2@172.1.1.1;transport=tcp>\r\n"
 			"Contact: <sip:00_12_34_56_78_90@172.2.2.2>\r\n"
 			"Call-ID: 2b6fb0320-1384-179494-426025-23b6b0-2e3303331@172.16.42.1\r\n"
