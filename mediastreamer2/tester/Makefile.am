@@ -15,7 +15,8 @@ mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_sound_card_tester.c \
 	mediastreamer2_adaptive_tester.c \
 	mediastreamer2_audio_stream_tester.c \
-	mediastreamer2_framework_tester.c
+	mediastreamer2_framework_tester.c \
+	mediastreamer2_player_tester.c
 
 AM_CPPFLAGS=\
 	-I$(top_srcdir)/ \
@@ -44,12 +45,7 @@ endif BUILD_MACOSX
 
 if BUILD_VIDEO
 mediastreamer2_tester_SOURCES+=	mediastreamer2_video_stream_tester.c
-if BUILD_MATROSKA
-mediastreamer2_tester_SOURCES+= mediastreamer2_player_recorder_tester.c
 endif
-endif
-
-
 
 
 AM_LDFLAGS=-no-undefined -export-dynamic
@@ -58,9 +54,10 @@ AM_CFLAGS=$(STRICT_OPTIONS) $(STRICT_OPTIONS_CC) $(ORTP_CFLAGS) $(CUNIT_CFLAGS)
 
 if BUILD_VIDEO
 AM_CFLAGS+=$(VIDEO_CFLAGS) $(GLEW_CFLAGS)
+endif
+
 if BUILD_MATROSKA
 AM_CFLAGS+=-DHAVE_MATROSKA
-endif
 endif
 
 

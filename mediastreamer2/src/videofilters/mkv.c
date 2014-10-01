@@ -445,13 +445,13 @@ static void wav_private_set(WavPrivate *data, const MSFmtDescriptor *obj) {
 }
 
 static void wav_private_serialize(const WavPrivate *obj, uint8_t **data, size_t *size) {
-	*size = 22;
+	*size = sizeof(WavPrivate);
 	*data = (uint8_t *)ms_new0(uint8_t, *size);
 	memcpy(*data, obj, *size);
 }
 
 static inline void wav_private_load(WavPrivate *obj, const uint8_t *data) {
-	memcpy(obj, data, 22);
+	memcpy(obj, data, sizeof(WavPrivate));
 }
 
 /* µLaw module */
@@ -2405,12 +2405,12 @@ static int player_get_state(MSFilter *f, void *arg) {
 
 static MSFilterMethod player_methods[]= {
 	{	MS_FILTER_GET_OUTPUT_FMT	,	player_get_output_fmt	},
-	{	MS_PLAYER_OPEN	,	player_open_file	},
-	{	MS_PLAYER_CLOSE	,	player_close	},
-	{	MS_PLAYER_START	,	player_start	},
-	{	MS_PLAYER_PAUSE	,	player_stop	},
-	{	MS_PLAYER_GET_STATE	,	player_get_state	},
-	{	0	,	NULL	}
+	{	MS_PLAYER_OPEN				,	player_open_file		},
+	{	MS_PLAYER_CLOSE				,	player_close			},
+	{	MS_PLAYER_START				,	player_start			},
+	{	MS_PLAYER_PAUSE				,	player_stop				},
+	{	MS_PLAYER_GET_STATE			,	player_get_state		},
+	{	0							,	NULL					}
 };
 
 #ifdef _MSC_VER
