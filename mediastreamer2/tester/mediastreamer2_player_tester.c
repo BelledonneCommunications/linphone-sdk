@@ -44,7 +44,7 @@ static void wait_for_eof(Eof *obj, int refresh_time_ms, int timeout_ms) {
 static void play_file(const char *filepath, bool_t unsupported_format) {
 	bool_t succeed;
 	Eof eof;
-	FilePlayer *file_player = NULL;
+	MSFilePlayer *file_player = NULL;
 //	MSSndCard *snd_card = ms_snd_card_manager_get_default_card(ms_snd_card_manager_get());
 	MSSndCard *snd_card = ms_snd_card_manager_get_card(ms_snd_card_manager_get(), "ALSA: default device");
 	const char *display_name = video_stream_get_default_video_renderer();
