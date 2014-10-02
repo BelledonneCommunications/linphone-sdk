@@ -97,6 +97,7 @@ void ms_file_player_free(MSFilePlayer *obj) {
 	ms_file_player_close(obj);
 	ms_ticker_destroy(obj->ticker);
 	ms_free_if_not_null(obj->video_display);
+	ms_free(obj);
 }
 
 bool_t ms_file_player_open(MSFilePlayer *obj, const char *filepath) {
