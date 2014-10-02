@@ -45,8 +45,7 @@ static void play_file(const char *filepath, bool_t unsupported_format) {
 	bool_t succeed;
 	Eof eof;
 	MSFilePlayer *file_player = NULL;
-//	MSSndCard *snd_card = ms_snd_card_manager_get_default_card(ms_snd_card_manager_get());
-	MSSndCard *snd_card = ms_snd_card_manager_get_card(ms_snd_card_manager_get(), "ALSA: default device");
+	MSSndCard *snd_card = ms_snd_card_manager_get_default_card(ms_snd_card_manager_get());
 	const char *display_name = video_stream_get_default_video_renderer();
 
 	eof_init(&eof);

@@ -155,7 +155,7 @@ bool_t ms_file_player_open(MSFilePlayer *obj, const char *filepath) {
 		_destroy_graph(obj);
 		return FALSE;
 	}
-	ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, FALSE);
+	ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, TRUE);
 	ms_ticker_attach(obj->ticker, obj->player);
 	obj->is_open = TRUE;
 	obj->filename = ms_strdup(filepath);
