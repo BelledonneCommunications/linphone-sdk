@@ -202,6 +202,8 @@ void ms_file_player_pause(MSFilePlayer *obj) {
 bool_t ms_file_player_seek(MSFilePlayer *obj, int seek_pos_ms) {
 	if(obj->is_open) {
 		return ms_filter_call_method(obj->player, MS_PLAYER_SEEK_MS, &seek_pos_ms) == 0 ? TRUE : FALSE;
+	} else {
+		return FALSE;
 	}
 }
 
