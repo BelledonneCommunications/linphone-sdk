@@ -213,6 +213,7 @@ typedef struct {
 static void *h264_module_new() {
 	H264Module *mod = ms_new0(H264Module, 1);
 	rfc3984_init(&mod->rfc3984Context);
+	rfc3984_set_mode(&mod->rfc3984Context,1);
 	return mod;
 }
 
@@ -1471,7 +1472,8 @@ static int matroska_track_get_info(const Matroska *obj, int trackNum, const MSFm
 					MSVideoSize vsize;
 					vsize.width = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)elt, &MATROSKA_ContextPixelWidth));
 					vsize.height = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)elt, &MATROSKA_ContextPixelHeight));
-					*fmt = ms_factory_get_video_format(ms_factory_get_fallback(), rfcName, &vsize, NULL);
+					/*TODO: add fps here*/
+					*fmt = ms_factory_get_video_format(ms_factory_get_fallback(), rfcName, vsize, 0, NULL);
 				}
 				break;
 

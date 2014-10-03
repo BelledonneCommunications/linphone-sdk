@@ -81,6 +81,11 @@ MS2_PUBLIC void video_stream_send_sli(VideoStream *stream, uint16_t first, uint1
  */
 MS2_PUBLIC void video_stream_send_rpsi(VideoStream *stream, uint8_t *bit_string, uint16_t bit_string_len);
 
+
+void video_stream_open_player(VideoStream *stream, MSFilter *sink);
+
+void video_stream_close_player(VideoStream *stream);
+
 #ifdef __cplusplus
 }
 #endif

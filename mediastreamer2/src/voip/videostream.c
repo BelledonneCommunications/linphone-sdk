@@ -24,16 +24,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvideoout.h"
 #include "mediastreamer2/msextdisplay.h"
+#include "mediastreamer2/msitc.h"
 #include "private.h"
 
 #include <ortp/zrtp.h>
 
-static const MSFmtDescriptor *video_stream_get_recv_format(VideoStream *stream){
-	int i=rtp_session_get_recv_payload_type(stream->ms.sessions.rtp_session);
-	PayloadType *pt=rtp_profile_get_payload(rtp_session_get_profile(stream->ms.sessions.rtp_session),i);
-	return ms_factory_get_video_format(ms_factory_get_fallback(),pt->mime_type,NULL,pt->recv_fmtp);
-}
-
+static void configure_itc(VideoStream *stream);
 
 void video_stream_free(VideoStream *stream) {
 	/* Prevent filters from being destroyed two times */
@@ -68,6 +64,7 @@ void video_stream_free(VideoStream *stream) {
 		ms_filter_destroy(stream->itcsink);
 	if (stream->local_jpegwriter)
 		ms_filter_destroy(stream->local_jpegwriter);
+	
 	if (stream->display_name!=NULL)
 		ms_free(stream->display_name);
 
@@ -101,12 +98,14 @@ static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *e
 			ms_message("Request sending of RPSI on videostream [%p]", stream);
 			video_stream_send_rpsi(stream, rpsi->bit_string, rpsi->bit_string_len);
 			break;
+		case MS_FILTER_OUTPUT_FMT_CHANGED:
+			if (stream->itcsink) configure_itc(stream);
+			break;
 	}
 }
 
 static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	VideoStream *stream = (VideoStream *)media_stream;
-
 	int i;
 
 	if (rtcp_is_PSFB(m)) {
@@ -372,23 +371,26 @@ static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideo
 static void configure_video_source(VideoStream *stream){
 	MSVideoSize vsize,cam_vsize;
 	float fps=15;
-	MSPixFmt format;
+	MSPixFmt format=MS_PIX_FMT_UNKNOWN;
 	MSVideoEncoderPixFmt encoder_supports_source_format;
 	int ret;
 	MSVideoSize preview_vsize;
+	MSPinFormat pf={0};
+	bool_t is_player=ms_filter_get_id(stream->source)==MS_ITC_SOURCE_ID;
+	
 
 	/* transmit orientation to source filter */
 	if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
 		ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 	/* initialize the capture device orientation for preview */
-	if( ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION) )
+	if (!stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION))
 		ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 
 	/* transmit its preview window id if any to source filter*/
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
-
+	
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	if (stream->preview_vsize.width!=0){
@@ -396,9 +398,22 @@ static void configure_video_source(VideoStream *stream){
 	}else{
 		preview_vsize=vsize;
 	}
-	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&preview_vsize);
-	/*the camera may not support the target size and suggest a one close to the target */
-	ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
+	
+	if (is_player){
+		ms_filter_call_method(stream->source,MS_FILTER_GET_OUTPUT_FMT,&pf);
+		if (pf.fmt==NULL || pf.fmt->vsize.width==0){
+			MSVideoSize vsize={640,480};
+			ms_error("Player does not give its format correctly [%s]",ms_fmt_descriptor_to_string(pf.fmt));
+			/*put a default format as the error handling is complicated here*/
+			pf.fmt=ms_factory_get_video_format(ms_factory_get_fallback(),"VP8",vsize,0,NULL);
+		}
+		cam_vsize=pf.fmt->vsize;
+	}else{
+		ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&preview_vsize);
+		/*the camera may not support the target size and suggest a one close to the target */
+		ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
+	}
+
 	if (cam_vsize.width*cam_vsize.height<=vsize.width*vsize.height){
 		vsize=cam_vsize;
 		ms_message("Output video size adjusted to match camera resolution (%ix%i)\n",vsize.width,vsize.height);
@@ -415,16 +430,24 @@ static void configure_video_source(VideoStream *stream){
 	}
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_FPS,&fps);
-	if (stream->fps!=0)
-		fps=stream->fps;
-	ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
-	/* configure the filters */
-	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
-		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
+	
+	if (is_player){
+		fps=pf.fmt->fps;
+		if (fps==0) fps=15;
+		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&fps);
+	}else{
+		if (stream->fps!=0)
+			fps=stream->fps;
+		ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
+		/* configure the filters */
+		if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
+			ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
+			ms_filter_call_method(stream->source,MS_FILTER_GET_FPS,&fps);
+		}
+		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&fps);
+		/* get the output format for webcam reader */
+		ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 	}
-	if (stream->fps!=0) ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&fps);
-	/* get the output format for webcam reader */
-	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 
 	encoder_supports_source_format.supported = FALSE;
 	encoder_supports_source_format.pixfmt = format;
@@ -435,8 +458,9 @@ static void configure_video_source(VideoStream *stream){
 		ret = -1;
 	}
 	if (ret == -1) {
-		// Encoder doesn't have MS_VIDEO_ENCODER_SUPPORTS_PIXFMT method
-		encoder_supports_source_format.supported = (format == MS_YUV420P);
+		/*encoder doesn't have MS_VIDEO_ENCODER_SUPPORTS_PIXFMT method*/
+		/*we prefer in this case consider that it is not required to get the optimization of not going through pixconv and sizeconv*/
+		encoder_supports_source_format.supported = FALSE;
 	}
 
 	if ((encoder_supports_source_format.supported == TRUE) || (stream->source_performs_encoding == TRUE)) {
@@ -444,6 +468,8 @@ static void configure_video_source(VideoStream *stream){
 	} else {
 		if (format==MS_MJPEG){
 			stream->pixconv=ms_filter_new(MS_MJPEG_DEC_ID);
+		}else if (format==MS_PIX_FMT_UNKNOWN){
+			stream->pixconv = ms_filter_create_decoder(pf.fmt->encoding);
 		}else{
 			stream->pixconv = ms_filter_new(MS_PIX_CONV_ID);
 			/*set it to the pixconv */
@@ -473,12 +499,21 @@ static void configure_video_source(VideoStream *stream){
 
 static void configure_itc(VideoStream *stream){
 	if (stream->itcsink){
-		const MSFmtDescriptor *fmt=video_stream_get_recv_format(stream);
-		if (fmt){
+		MSPinFormat pf={0};
+		ms_filter_call_method(stream->ms.decoder,MS_FILTER_GET_OUTPUT_FMT,&pf);
+		if (pf.fmt){
 			MSPinFormat pinfmt={0};
-			pinfmt.pin=0;
-			pinfmt.fmt=fmt;
-			ms_filter_call_method(stream->itcsink,MS_FILTER_SET_INPUT_FMT,&pinfmt);
+			RtpSession *session=stream->ms.sessions.rtp_session;
+			PayloadType *pt=rtp_profile_get_payload(rtp_session_get_profile(session),rtp_session_get_recv_payload_type(session));
+			if (!pt) pt=rtp_profile_get_payload(rtp_session_get_profile(session),rtp_session_get_send_payload_type(session));
+			if (pt){
+				MSFmtDescriptor tmp=*pf.fmt;
+				tmp.encoding="VP8";
+				tmp.rate=pt->clock_rate;
+				pinfmt.pin=0;
+				pinfmt.fmt=ms_factory_get_format(ms_factory_get_fallback(),&tmp);
+				ms_filter_call_method(stream->itcsink,MS_FILTER_SET_INPUT_FMT,&pinfmt);
+			}
 		}
 	}
 }
@@ -555,7 +590,7 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 	rtp_session_set_jitter_buffer_params(stream->ms.sessions.rtp_session,&jbp);
 	rtp_session_set_rtp_socket_recv_buffer_size(stream->ms.sessions.rtp_session,socket_buf_size);
 	rtp_session_set_rtp_socket_send_buffer_size(stream->ms.sessions.rtp_session,socket_buf_size);
-
+	
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamSendOnly){
 		MSConnectionHelper ch;
 		/*plumb the outgoing stream */
@@ -792,8 +827,8 @@ void video_stream_update_video_params(VideoStream *stream){
 	video_stream_change_camera(stream,stream->cam);
 }
 
-void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
-	bool_t keep_source=(cam==stream->cam);
+static void _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter *sink){
+	bool_t keep_source=!(cam!=stream->cam || stream->player_active!=(sink!=NULL));
 	bool_t encoder_has_builtin_converter = (!stream->pixconv && !stream->sizeconv);
 
 	if (stream->ms.sessions.ticker && stream->source){
@@ -819,16 +854,18 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 		}
 
 		/*re create new ones and configure them*/
-		if (!keep_source) stream->source = ms_web_cam_create_reader(cam);
-		stream->cam=cam;
-
-		/* update orientation */
-		if (stream->source){
-			if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
-				ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
-			if (!stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION))
-				ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+		if (!keep_source) {
+			if (sink){
+				stream->source = ms_filter_new(MS_ITC_SOURCE_ID);
+				ms_filter_call_method(sink,MS_ITC_SINK_CONNECT,stream->source);
+				stream->player_active=TRUE;
+			}else{
+				stream->source = ms_web_cam_create_reader(cam);
+				stream->cam=cam;
+			}
 		}
+
+		/* update orientation for video output*/
 		if (stream->output && stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->output, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
 			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 		}
@@ -851,6 +888,19 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 
 		ms_ticker_attach(stream->ms.sessions.ticker,stream->source);
 	}
+}
+
+void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
+	_video_stream_change_camera(stream, cam, NULL);
+}
+
+void video_stream_open_player(VideoStream *stream, MSFilter *sink){
+	ms_message("video_stream_open_player(): sink=%p",sink);
+	_video_stream_change_camera(stream,stream->cam,sink);
+}
+
+void video_stream_close_player(VideoStream *stream){
+	_video_stream_change_camera(stream,stream->cam,NULL);
 }
 
 void video_stream_send_fir(VideoStream *stream) {

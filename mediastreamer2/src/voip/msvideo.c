@@ -60,7 +60,7 @@ typedef struct _mblk_video_header mblk_video_header;
 
 static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 	int ysize,usize;
-	ysize=w*h;
+	ysize=w*(h & 0x1 ? h +1 : h);
 	usize=ysize/4;
 	buf->w=w;
 	buf->h=h;
@@ -127,8 +127,8 @@ int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt,
 }
 
 mblk_t * ms_yuv_buf_alloc(YuvBuf *buf, int w, int h){
-	int size=(w*h*3)/2;
-	const int header_size =sizeof(mblk_video_header);
+	int size=(w * (h & 0x1 ? h+1 : h) *3)/2; /*swscale doesn't like odd numbers of line*/
+	const int header_size = sizeof(mblk_video_header);
 	const int padding=16;
 	mblk_t *msg=allocb(header_size + size+padding,0);
 	// write width/height in header

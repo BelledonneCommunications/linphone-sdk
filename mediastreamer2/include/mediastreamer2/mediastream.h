@@ -322,6 +322,7 @@ struct _AudioStream
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
 	EqualizerLocation eq_loc;
 	uint32_t features;
+	struct _VideoStream *videostream;/*the stream with which this audiostream is paired*/
 	bool_t play_dtmfs;
 	bool_t use_gc;
 	bool_t use_agc;
@@ -535,6 +536,8 @@ MS2_PUBLIC int audio_stream_mixed_record_stop(AudioStream *st);
 **/
 MS2_PUBLIC MSFilter * audio_stream_open_remote_play(AudioStream *stream, const char *filename);
 
+MS2_PUBLIC void audio_stream_close_remote_play(AudioStream *stream);
+
 MS2_PUBLIC void audio_stream_set_default_card(int cardindex);
 
 /* retrieve RTP statistics*/
@@ -635,6 +638,7 @@ struct _VideoStream
 	bool_t display_filter_auto_rotate_enabled;
 	bool_t source_performs_encoding;
 	bool_t output_performs_decoding;
+	bool_t player_active;
 
 };
 

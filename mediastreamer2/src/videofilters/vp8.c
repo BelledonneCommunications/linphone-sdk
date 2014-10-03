@@ -832,6 +832,7 @@ static void dec_process(MSFilter *f) {
 			s->yuv_msg = ms_yuv_buf_alloc(&s->outbuf, img->d_w, img->d_h);
 			s->yuv_width = img->d_w;
 			s->yuv_height = img->d_h;
+			ms_filter_notify_no_arg(f,MS_FILTER_OUTPUT_FMT_CHANGED);
 		}
 
 		/* scale/copy frame to destination mblk_t */
@@ -902,12 +903,20 @@ static int dec_get_fps(MSFilter *f, void *data){
 	return 0;
 }
 
+static int dec_get_out_fmt(MSFilter *f, void *data){
+	DecState *s = (DecState *)f->data;
+	MSPinFormat *pf=(MSPinFormat*)data;
+	pf->fmt=ms_factory_get_video_format(f->factory,"YUV420P",ms_video_size_make(s->yuv_width,s->yuv_height),0,NULL);
+	return 0;
+}
+
 static MSFilterMethod dec_methods[] = {
 	{ MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, dec_reset_first_image },
 	{ MS_VIDEO_DECODER_ENABLE_AVPF,                    dec_enable_avpf       },
 	{ MS_VIDEO_DECODER_FREEZE_ON_ERROR,                dec_freeze_on_error   },
 	{ MS_FILTER_GET_VIDEO_SIZE,                        dec_get_vsize         },
 	{ MS_FILTER_GET_FPS,                               dec_get_fps           },
+	{ MS_FILTER_GET_OUTPUT_FMT,                        dec_get_out_fmt       },
 	{ 0,                                               NULL                  }
 };
 

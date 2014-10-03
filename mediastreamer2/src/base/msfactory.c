@@ -670,6 +670,7 @@ static int compare_fmt(const MSFmtDescriptor *a, const MSFmtDescriptor *b){
 	if (a->fmtp && b->fmtp && strcmp(a->fmtp,b->fmtp)!=0) return -1;
 	if (a->type==MSVideo){
 		if (a->vsize.width!=b->vsize.width || a->vsize.height!=b->vsize.height) return -1;
+		if (a->fps!=b->fps) return -1;
 	}
 	return 0;
 }
@@ -682,6 +683,7 @@ static MSFmtDescriptor * ms_fmt_descriptor_new_copy(const MSFmtDescriptor *orig)
 	if (orig->fmtp) obj->fmtp=ms_strdup(orig->fmtp);
 	if (orig->encoding) obj->encoding=ms_strdup(orig->encoding);
 	obj->vsize=orig->vsize;
+	obj->fps=orig->fps;
 	return obj;
 }
 
@@ -693,8 +695,8 @@ const char *ms_fmt_descriptor_to_string(const MSFmtDescriptor *obj){
 			mutable_fmt->text=ms_strdup_printf("type=audio;encoding=%s;rate=%i;channels=%i;fmtp='%s'",
 							 obj->encoding,obj->rate,obj->nchannels,obj->fmtp ? obj->fmtp : "");
 		}else{
-			mutable_fmt->text=ms_strdup_printf("type=video;encoding=%s;vsize=%ix%i;fmtp='%s'",
-							 obj->encoding,obj->vsize.width,obj->vsize.height,obj->fmtp ? obj->fmtp : "");
+			mutable_fmt->text=ms_strdup_printf("type=video;encoding=%s;vsize=%ix%i;fps=%f;fmtp='%s'",
+							 obj->encoding,obj->vsize.width,obj->vsize.height,obj->fps,obj->fmtp ? obj->fmtp : "");
 		}
 	}
 	return obj->text;
@@ -707,7 +709,7 @@ static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj){
 	ms_free(obj);
 }
 
-static MSFmtDescriptor *ms_factory_lookup_format(MSFactory *obj, const MSFmtDescriptor *ref){
+const MSFmtDescriptor *ms_factory_get_format(MSFactory *obj, const MSFmtDescriptor *ref){
 	MSFmtDescriptor *ret;
 	MSList *found;
 	if ((found=ms_list_find_custom(obj->formats,(int (*)(const void*, const void*))compare_fmt, ref))==NULL){
@@ -725,16 +727,17 @@ const MSFmtDescriptor * ms_factory_get_audio_format(MSFactory *obj, const char *
 	tmp.rate=rate;
 	tmp.nchannels=channels;
 	tmp.fmtp=(char*)fmtp;
-	return ms_factory_lookup_format(obj,&tmp);
+	return ms_factory_get_format(obj,&tmp);
 }
 
-const MSFmtDescriptor * ms_factory_get_video_format(MSFactory *obj, const char *mime, const MSVideoSize *size, const char *fmtp){
+const MSFmtDescriptor * ms_factory_get_video_format(MSFactory *obj, const char *mime, MSVideoSize size, float fps, const char *fmtp){
 	MSFmtDescriptor tmp={0};
-	MSVideoSize undef={0};
 	tmp.type=MSVideo;
 	tmp.encoding=(char*)mime;
 	tmp.rate=90000;
-	tmp.vsize=size ? *size : undef;
+	tmp.vsize=size;
 	tmp.fmtp=(char*)fmtp;
-	return ms_factory_lookup_format(obj,&tmp);
+	tmp.fps=fps;
+	return ms_factory_get_format(obj,&tmp);
 }
+

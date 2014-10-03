@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static void ring_player_event_handler(void *ud, MSFilter *f, unsigned int evid, void *arg){
 	RingStream *stream=(RingStream*)ud;
 	int channels,rate;
-	if (evid==MS_PLAYER_FORMAT_CHANGED){
+	if (evid==MS_FILTER_OUTPUT_FMT_CHANGED){
 		ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&channels);
 		ms_filter_call_method(stream->source,MS_FILTER_GET_SAMPLE_RATE,&rate);
 		ms_message("Configuring resampler input with rate=[%i], nchannels=[%i]",rate,channels);

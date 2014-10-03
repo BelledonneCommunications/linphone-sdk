@@ -666,4 +666,12 @@ int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *pa
 	return 0;
 }
 
+/*stubs*/
+#ifndef VIDEO_ENABLED
+void video_stream_open_player(VideoStream *stream, MSFilter *sink){
+}
+
+void video_stream_close_player(VideoStream *stream){
+}
+#endif
 

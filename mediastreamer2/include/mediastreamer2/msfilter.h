@@ -641,6 +641,13 @@ the method index (_cnt_) and the argument size */
 #define MS_FILTER_EVENT_NO_ARG(_id_,_count_)\
 	MS_FILTER_METHOD_ID(_id_,_count_,0)
 
+	
+#define MS_FILTER_BASE_EVENT(_count_,_argtype_) \
+	MS_FILTER_EVENT(MS_FILTER_BASE_ID,_count_,_argtype_)
+
+#define MS_FILTER_BASE_EVENT_NO_ARG(_count_) \
+	MS_FILTER_EVENT_NO_ARG(MS_FILTER_BASE_ID,_count_)
+	
 /**
  *  some MSFilter base generic methods:
  **/
@@ -695,6 +702,12 @@ typedef struct _MSPinFormat{
  * Set the format of a filter on a given output
  */
 #define MS_FILTER_SET_OUTPUT_FMT MS_FILTER_BASE_METHOD(33,MSPinFormat)
+
+
+/**
+ * MSFilter generic events
+**/
+#define MS_FILTER_OUTPUT_FMT_CHANGED MS_FILTER_BASE_EVENT_NO_ARG(0) /**<triggered whenever a filter decides to change its output format for one or more more output pins*/
 
 
 /* DEPRECATED  specific methods: to be moved into implementation specific header files - DO NOT USE IN NEW CODE*/

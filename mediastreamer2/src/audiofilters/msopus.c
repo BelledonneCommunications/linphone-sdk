@@ -664,6 +664,8 @@ static void ms_opus_dec_process(MSFilter *f) {
 	mblk_t *im;
 	mblk_t *om;
 	int frames;
+	
+	if (!d->state) ms_queue_flush(f->inputs[0]);
 
 	/* decode available packets */
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {

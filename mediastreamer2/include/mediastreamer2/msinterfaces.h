@@ -134,8 +134,6 @@ typedef enum _MSPlayerState MSPlayerState;
 #define MS_PLAYER_EOF \
 	MS_FILTER_EVENT_NO_ARG(MSFilterPlayerInterface,0)
 
-#define MS_PLAYER_FORMAT_CHANGED\
-	MS_FILTER_EVENT_NO_ARG(MSFilterPlayerInterface,1)
 
 /**
   * Interface definitions for recorders

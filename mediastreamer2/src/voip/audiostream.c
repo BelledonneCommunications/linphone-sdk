@@ -211,7 +211,7 @@ static void player_callback(void *ud, MSFilter *f, unsigned int id, void *arg){
 	int sr=0;
 	int channels=0;
 	switch(id){
-		case MS_PLAYER_FORMAT_CHANGED:
+		case MS_FILTER_OUTPUT_FMT_CHANGED:
 			ms_filter_call_method(f,MS_FILTER_GET_SAMPLE_RATE,&sr);
 			ms_filter_call_method(f,MS_FILTER_GET_NCHANNELS,&channels);
 			if (f==stream->local_player){
@@ -382,7 +382,7 @@ static void configure_av_player(AudioStream *stream, const MSFmtDescriptor *audi
 		MSPinFormat pf;
 		pf.pin=0;
 		pf.fmt=videofmt;
-		ms_filter_call_method(player->video_output,MS_FILTER_SET_OUTPUT_FMT,&pf);
+		ms_filter_call_method(player->video_output,MS_FILTER_SET_INPUT_FMT,&pf);
 	}
 }
 
@@ -462,6 +462,7 @@ static int open_av_player(AudioStream *stream, const char *filename){
 	if (videofmt && videofmt->fmt) player->video_output=ms_filter_new(MS_ITC_SINK_ID);
 	else player->videopin=-1;
 	configure_av_player(stream,audiofmt ? audiofmt->fmt : NULL ,videofmt ? videofmt->fmt : NULL);
+	if (stream->videostream) video_stream_open_player(stream->videostream,player->video_output);
 	plumb_av_player(stream);
 	return 0;
 }
@@ -481,9 +482,18 @@ MSFilter * audio_stream_open_remote_play(AudioStream *stream, const char *filena
 	return stream->av_player.player;
 }
 
+void audio_stream_close_remote_play(AudioStream *stream){
+	MSPlayerState state;
+	if (stream->av_player.player){
+		ms_filter_call_method(stream->av_player.player,MS_PLAYER_GET_STATE,&state);
+		if (state!=MSPlayerClosed)
+			ms_filter_call_method_noarg(stream->av_player.player,MS_PLAYER_CLOSE);
+	}
+	if (stream->videostream) video_stream_close_player(stream->videostream);
+}
 
 static void video_input_updated(void *stream, MSFilter *f, unsigned int event_id, void *arg){
-	if (event_id==MS_ITC_SOURCE_UPDATED){
+	if (event_id==MS_FILTER_OUTPUT_FMT_CHANGED){
 		ms_message("Video ITC source updated.");
 		configure_av_recorder((AudioStream*)stream);
 	}
@@ -1349,11 +1359,11 @@ static void configure_av_recorder(AudioStream *stream){
 			pinfmt.pin=0;
 			ms_filter_call_method(stream->av_recorder.recorder,MS_FILTER_SET_INPUT_FMT,&pinfmt);
 		}
-
 	}
 }
 
 void audio_stream_link_video(AudioStream *stream, VideoStream *video){
+	stream->videostream=video;
 	if (stream->av_recorder.video_input && video->itcsink){
 		ms_message("audio_stream_link_video() connecting itc filters");
 		ms_filter_call_method(video->itcsink,MS_ITC_SINK_CONNECT,stream->av_recorder.video_input);
@@ -1362,6 +1372,7 @@ void audio_stream_link_video(AudioStream *stream, VideoStream *video){
 }
 
 void audio_stream_unlink_video(AudioStream *stream, VideoStream *video){
+	stream->videostream=NULL;
 	if (stream->av_recorder.video_input && video->itcsink){
 		ms_filter_call_method(video->itcsink,MS_ITC_SINK_CONNECT,NULL);
 	}

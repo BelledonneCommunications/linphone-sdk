@@ -215,6 +215,6 @@ public class AndroidVideoApi5JniWrapper {
 			Log.d("mediastreamer", "Preview framerate set:" + params.getPreviewFrameRate());
 		}
 		
-		camera.setParameters(params);		
+		camera.setParameters(params);
 	}
 }

@@ -23,6 +23,5 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MS_ITC_SINK_CONNECT MS_FILTER_METHOD(MS_ITC_SINK_ID,0,MSFilter)
 
-#define MS_ITC_SOURCE_UPDATED MS_FILTER_EVENT_NO_ARG(MS_ITC_SOURCE_ID,0)
 
 #endif
