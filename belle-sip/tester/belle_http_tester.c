@@ -150,7 +150,7 @@ static void one_https_get(void){
 
 static void https_get_long_body(void){
 	http_counters_t counters={0};
-	one_get("https://www.linphone.org/technical-corner/linphone.html",&counters, &counters.response_count);
+	one_get("https://www.linphone.org/technical-corner/linphone/overview",&counters, &counters.response_count);
 	CU_ASSERT_TRUE(counters.response_count==1);
 	CU_ASSERT_TRUE(counters.io_error_count==0);
 	CU_ASSERT_EQUAL(counters.two_hundred,1);
