@@ -481,6 +481,16 @@ BELLE_SIP_END_DECLS
  * 	BELLE_SIP_DECLARE_VPTR(belle_sip_dns_srv_t);
  */
 
-
+#if defined(__cplusplus) && defined(BELLE_SIP_USE_STL)
+#include <ostream>
+inline   ostream&
+operator<<( ostream& __os, const belle_sip_object_t* object)
+{
+	char* object_as_string = belle_sip_object_to_string((void*)object);
+	__os << object_as_string;
+	belle_sip_free(object_as_string);
+	return __os;
+}
+#endif
 #endif
 
