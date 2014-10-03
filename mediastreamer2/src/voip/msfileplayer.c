@@ -225,6 +225,15 @@ void ms_file_player_set_eof_callback(MSFilePlayer *obj, MSFilePlayerEofCallback 
 	ms_mutex_unlock(&obj->cb_access);
 }
 
+bool_t ms_file_player_matroska_supported(void) {
+#ifdef HAVE_MATROSKA
+	return TRUE;
+#else
+	return FALSE;
+#endif
+}
+
+/* Private functions */
 static bool_t _get_format(const char *filepath, FileFormat *format) {
 	FourCC four_cc;
 	size_t data_read;

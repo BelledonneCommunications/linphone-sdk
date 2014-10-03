@@ -408,7 +408,8 @@ endif
 
 if BUILD_MATROSKA
 AM_CFLAGS+=				$(EBML_CFLAGS) \
-					$(MATROSKA_CFLAGS)
+					$(MATROSKA_CFLAGS) \
+					-DHAVE_MATROSKA
 
 libmediastreamer_voip_la_LIBADD+=	$(MATROSKA_LIBS) \
 					$(EBML_LIBS)

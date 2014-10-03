@@ -85,4 +85,10 @@ MS2_PUBLIC bool_t ms_file_player_seek(MSFilePlayer *obj, int seek_pos_ms);
  */
 MS2_PUBLIC MSPlayerState ms_file_player_get_state(MSFilePlayer *obj);
 
+/**
+ * @brief Check whether Matroska format is supported by the player
+ * @return TRUE if supported
+ */
+MS2_PUBLIC bool_t ms_file_player_matroska_supported(void);
+
 #endif
