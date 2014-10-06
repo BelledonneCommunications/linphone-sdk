@@ -34,7 +34,7 @@ static void wait_for_eof(Eof *obj, int refresh_time_ms, int timeout_ms) {
 	ms_mutex_lock(&obj->mutex);
 	while(obj->time_ms < timeout_ms && !obj->eof) {
 		ms_mutex_unlock(&obj->mutex);
-		usleep((useconds_t)(refresh_time_ms) * 1000U);
+		ms_usleep((useconds_t)(refresh_time_ms) * 1000U);
 		obj->time_ms += refresh_time_ms;
 		ms_mutex_lock(&obj->mutex);
 	}
