@@ -86,6 +86,20 @@ MS2_PUBLIC bool_t ms_file_player_seek(MSFilePlayer *obj, int seek_pos_ms);
 MS2_PUBLIC MSPlayerState ms_file_player_get_state(MSFilePlayer *obj);
 
 /**
+ * @brief Get the duration of the opened media
+ * @param obj A pointer on a MSFilePlayer
+ * @return The duration in milliseconds. -1 if failure
+ */
+MS2_PUBLIC int ms_file_player_get_duration(MSFilePlayer *obj);
+
+/**
+ * @brief Get the position of the playback
+ * @param obj The player
+ * @return The position in milliseconds. -1 if failure
+ */
+MS2_PUBLIC int ms_file_player_get_current_position(MSFilePlayer *obj);
+
+/**
  * @brief Check whether Matroska format is supported by the player
  * @return TRUE if supported
  */

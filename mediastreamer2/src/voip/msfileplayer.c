@@ -218,6 +218,32 @@ MSPlayerState ms_file_player_get_state(MSFilePlayer *obj) {
 	}
 }
 
+int ms_file_player_get_duration(MSFilePlayer *obj) {
+	int duration;
+	if(!obj->is_open) {
+		ms_error("Could not get duration. No file is open");
+		return -1;
+	}
+	if(ms_filter_call_method(obj->player, MS_PLAYER_GET_DURATION, &duration) == -1) {
+		ms_error("Could not get duration");
+		return -1;
+	}
+	return duration;
+}
+
+int ms_file_player_get_current_position(MSFilePlayer *obj) {
+	int position;
+	if(!obj->is_open) {
+		ms_error("Could not get position. No file is open");
+		return -1;
+	}
+	if(ms_filter_call_method(obj->player, MS_PLAYER_GET_CURRENT_POSITION, &position) == -1) {
+		ms_error("Could not get position");
+		return -1;
+	}
+	return position;
+}
+
 void ms_file_player_set_eof_callback(MSFilePlayer *obj, MSFilePlayerEofCallback cb, void *user_data) {
 	ms_mutex_lock(&obj->cb_access);
 	obj->eof_cb = cb;
