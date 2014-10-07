@@ -266,7 +266,7 @@ MSFilterDesc * ms_factory_get_encoder(MSFactory* factory, const char *mime){
 	MSList *elem;
 	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (desc->category==MS_FILTER_ENCODER &&
+		if ((desc->category==MS_FILTER_ENCODER || desc->category==MS_FILTER_ENCODING_CAPTURER) &&
 			strcasecmp(desc->enc_fmt,mime)==0){
 			return desc;
 		}
@@ -278,7 +278,7 @@ MSFilterDesc * ms_factory_get_decoder(MSFactory* factory, const char *mime){
 	MSList *elem;
 	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (desc->category==MS_FILTER_DECODER &&
+		if ((desc->category==MS_FILTER_DECODER || desc->category==MS_FILTER_DECODER_RENDERER) &&
 			strcasecmp(desc->enc_fmt,mime)==0){
 			return desc;
 		}
