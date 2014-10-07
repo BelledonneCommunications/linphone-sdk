@@ -131,6 +131,12 @@ typedef enum _MSPlayerState MSPlayerState;
 #define MS_PLAYER_SET_LOOP \
 	MS_FILTER_METHOD(MSFilterPlayerInterface,6,int)
 
+#define MS_PLAYER_GET_DURATION \
+	MS_FILTER_METHOD(MSFilterPlayerInterface,7,int)
+
+#define MS_PLAYER_GET_CURRENT_POSITION \
+	MS_FILTER_METHOD(MSFilterPlayerInterface,8,int)
+
 #define MS_PLAYER_EOF \
 	MS_FILTER_EVENT_NO_ARG(MSFilterPlayerInterface,0)
 

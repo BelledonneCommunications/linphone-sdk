@@ -85,28 +85,6 @@ static void H264Private_free(H264Private *obj) {
 	ms_free(obj);
 }
 
-//static inline ms_bool_t mblk_is_equal(mblk_t *b1, mblk_t *b2) {
-//	return msgdsize(b1) == msgdsize(b2) && memcmp(b1->b_rptr, b2->b_rptr, msgdsize(b1)) == 0;
-//}
-
-//static void H264Private_addSPS(H264Private *obj, mblk_t *sps) {
-//	MSList *element;
-//	for(element = obj->sps_list; element != NULL && mblk_is_equal((mblk_t *)element->data, sps); element = element->next);
-//	if(element != NULL || obj->sps_list == NULL) {
-//		obj->profile = sps->b_rptr[1];
-//		obj->level = sps->b_rptr[3];
-//		obj->sps_list = ms_list_append(obj->sps_list, sps);
-//	}
-//}
-
-//static void H264Private_addPPS(H264Private *obj, mblk_t *pps) {
-//	MSList *element;
-//	for(element = obj->pps_list; element != NULL && mblk_is_equal((mblk_t *)element->data, pps); element = element->next);
-//	if(element != NULL || obj->pps_list == NULL) {
-//		obj->pps_list = ms_list_append(obj->pps_list, pps);
-//	}
-//}
-
 static inline const MSList *H264Private_getSPS(const H264Private *obj) {
 	return obj->sps_list;
 }
@@ -1006,6 +984,10 @@ static int matroska_set_segment_info(Matroska *obj, const char writingApp[], con
 
 static inline timecode_t matroska_get_duration(const Matroska *obj) {
 	return (timecode_t)EBML_FloatValue((ebml_float *)EBML_MasterFindChild(obj->info, &MATROSKA_ContextDuration));
+}
+
+static inline timecode_t matroska_get_timecode_scale(const Matroska *obj) {
+	return obj->timecodeScale;
 }
 
 static void updateElementHeader(ebml_element *element, stream *file) {
@@ -2363,6 +2345,11 @@ static int player_close(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int player_seek_ms(MSFilter *f, void *arg) {
+	ms_error("Seeking is not implemented for the MKV player yet");
+	return -1;
+}
+
 static int player_start(MSFilter *f, void *arg) {
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	ms_filter_lock(f);
@@ -2418,14 +2405,49 @@ static int player_get_state(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int player_get_duration(MSFilter *f, void *arg) {
+	MKVPlayer *obj = (MKVPlayer *)f->data;
+	ms_filter_lock(f);
+	if(obj->state == MSPlayerClosed) {
+		ms_error("MKVPlayer: cannot get duration. No file is open");
+		goto fail;
+	}
+	*(int *)arg = (int)((((uint64_t)matroska_get_duration(obj->file)) * (uint64_t)matroska_get_timecode_scale(obj->file)) / 1000000UL);
+	ms_filter_unlock(f);
+	return 0;
+
+	fail:
+	ms_filter_unlock(f);
+	return -1;
+}
+
+static int player_get_current_position(MSFilter *f, void *arg) {
+	MKVPlayer *obj = (MKVPlayer *)f->data;
+	ms_filter_lock(f);
+	if(obj->state == MSPlayerClosed) {
+		ms_error("MKVPlayer: cannot get current duration. No file is open");
+		goto fail;
+	}
+	*(int *)arg = (int)(((uint64_t)matroska_block_get_timestamp(obj->file)) * (uint64_t)matroska_get_timecode_scale(obj->file)) / 1000000UL;
+	ms_filter_unlock(f);
+	return 0;
+
+	fail:
+	ms_filter_unlock(f);
+	return -1;
+}
+
 static MSFilterMethod player_methods[]= {
-	{	MS_FILTER_GET_OUTPUT_FMT	,	player_get_output_fmt	},
-	{	MS_PLAYER_OPEN				,	player_open_file		},
-	{	MS_PLAYER_CLOSE				,	player_close			},
-	{	MS_PLAYER_START				,	player_start			},
-	{	MS_PLAYER_PAUSE				,	player_stop				},
-	{	MS_PLAYER_GET_STATE			,	player_get_state		},
-	{	0							,	NULL					}
+	{	MS_FILTER_GET_OUTPUT_FMT         ,	player_get_output_fmt        },
+	{	MS_PLAYER_OPEN                   ,	player_open_file             },
+	{	MS_PLAYER_CLOSE                  ,	player_close                 },
+	{	MS_PLAYER_SEEK_MS                ,	player_seek_ms               },
+	{	MS_PLAYER_START                  ,	player_start                 },
+	{	MS_PLAYER_PAUSE                  ,	player_stop                  },
+	{	MS_PLAYER_GET_STATE              ,	player_get_state             },
+	{	MS_PLAYER_GET_DURATION           ,	player_get_duration          },
+	{	MS_PLAYER_GET_CURRENT_POSITION   ,	player_get_current_position  },
+	{	0                                ,	NULL                         }
 };
 
 #ifdef _MSC_VER
