@@ -35,6 +35,7 @@ typedef struct _DecData{
 	Rfc3984Context unpacker;
 	MSPicture outbuf;
 	struct SwsContext *sws_ctx;
+	MSAverageFPS fps;
 	AVCodecContext av_context;
 	unsigned int packet_num;
 	uint8_t *bitstream;
@@ -80,6 +81,7 @@ static void dec_init(MSFilter *f){
 	d->bitstream_size=65536;
 	d->bitstream=ms_malloc0(d->bitstream_size);
 	d->orig = av_frame_alloc();
+	ms_average_fps_init(&d->fps, "ffmpeg H264 decoder: FPS: %f");
 	if (!d->orig) {
 		ms_error("Could not allocate frame");
 	}
@@ -292,6 +294,9 @@ static void dec_process(MSFilter *f){
 						d->first_image_decoded = TRUE;
 						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 					}
+					if (ms_average_fps_update(&d->fps, f->ticker->time)) {
+						ms_message("ffmpeg H264 decoder: Frame size: %dx%d", d->outbuf.w,  d->outbuf.h);
+					}
 				}
 				p+=len;
 			}
@@ -339,10 +344,17 @@ static int dec_get_vsize(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int dec_get_fps(MSFilter *f, void *data){
+	DecData *s = (DecData *)f->data;
+	*(float*)data= ms_average_fps_get(&s->fps);
+	return 0;
+}
+
 static MSFilterMethod  h264_dec_methods[]={
 	{	MS_FILTER_ADD_FMTP	,	dec_add_fmtp	},
-	{   MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
+	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
 	{	MS_FILTER_GET_VIDEO_SIZE,	dec_get_vsize	},
+	{	MS_FILTER_GET_FPS	,	dec_get_fps	},
 	{	0			,	NULL	}
 };
 

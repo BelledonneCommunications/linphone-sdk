@@ -36,6 +36,10 @@ struct _MSFactory{
 
 typedef struct _MSFactory MSFactory;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Create a mediastreamer2 factory. This is the root object that will create everything else from mediastreamer2.
 **/
@@ -243,4 +247,9 @@ MS2_PUBLIC const struct _MSFmtDescriptor * ms_factory_get_audio_format(MSFactory
 MS2_PUBLIC const struct _MSFmtDescriptor * ms_factory_get_video_format(MSFactory *obj, const char *mime, MSVideoSize size, float fps, const char *fmtp);
 
 MS2_PUBLIC const MSFmtDescriptor *ms_factory_get_format(MSFactory *obj, const MSFmtDescriptor *ref);
+
+#ifdef __cplusplus
+}
+#endif
+	
 #endif

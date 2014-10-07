@@ -288,8 +288,11 @@ MSVideoSize video_stream_get_received_video_size(const VideoStream *stream) {
 float video_stream_get_sent_framerate(const VideoStream *stream){
 	float fps=0;
 	if (stream->source){
-		if (ms_filter_has_method(stream->source, MS_FILTER_GET_FPS))
+		if (ms_filter_has_method(stream->source, MS_FILTER_GET_FPS)){
 			ms_filter_call_method(stream->source,MS_FILTER_GET_FPS,&fps);
+		}else if (stream->pixconv && ms_filter_has_method(stream->pixconv, MS_FILTER_GET_FPS)){
+			ms_filter_call_method(stream->pixconv,MS_FILTER_GET_FPS,&fps);
+		}
 	}
 	return fps;
 }
@@ -417,15 +420,21 @@ static void configure_video_source(VideoStream *stream){
 	if (cam_vsize.width*cam_vsize.height<=vsize.width*vsize.height){
 		vsize=cam_vsize;
 		ms_message("Output video size adjusted to match camera resolution (%ix%i)\n",vsize.width,vsize.height);
-	} else {
+	} else {	
 #if TARGET_IPHONE_SIMULATOR || defined(__arm__)
 		ms_error("Camera is proposing a size bigger than encoder's suggested size (%ix%i > %ix%i) "
 				   "Using the camera size as fallback because cropping or resizing is not implemented for arm.",
 				   cam_vsize.width,cam_vsize.height,vsize.width,vsize.height);
 		vsize=cam_vsize;
 #else
-		vsize=get_with_same_orientation_and_ratio(vsize,cam_vsize);
-		ms_warning("Camera video size greater than encoder one. A scaling filter will be used!\n");
+		MSVideoSize resized=get_with_same_orientation_and_ratio(vsize,cam_vsize);
+		if (resized.width & 0x1 || resized.height & 0x1){
+			ms_warning("Resizing avoided because downsizing to an odd number of pixels (%ix%i)",resized.width,resized.height);
+			vsize=cam_vsize;
+		}else{
+			vsize=resized;
+			ms_warning("Camera video size greater than encoder one. A scaling filter will be used!\n");
+		}
 #endif
 	}
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
