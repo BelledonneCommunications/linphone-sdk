@@ -66,6 +66,7 @@ LOCAL_SRC_FILES = \
 	voip/bitratecontrol.c \
 	voip/bitratedriver.c \
 	voip/qosanalyzer.c \
+	voip/msfileplayer.c \
 	utils/dsptools.c \
 	utils/kiss_fft.c \
 	utils/kiss_fftr.c \
