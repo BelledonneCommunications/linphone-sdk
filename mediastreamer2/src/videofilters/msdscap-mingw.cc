@@ -537,30 +537,23 @@ STDMETHODIMP_(ULONG) DSCapture::Release()
 	return m_refCount;
 }
 
-static void dummy(void*p){
-}
-
 STDMETHODIMP DSCapture::SampleCB( double par1 , IMediaSample * sample)
 {
 	uint8_t *p;
 	unsigned int size;
+	
 	if (sample->GetPointer(&p)!=S_OK){
 		ms_error("error in GetPointer()");
 		return S_OK;
 	}
 	size=sample->GetSize();
 	//ms_message( "DSCapture::SampleCB pointer=%p, size=%i",p,size);
-	mblk_t *m;
-	if (_pixfmt!=MS_RGB24_REV){
-		m=esballoc(p,size,0,dummy);
-		m->b_wptr+=size;
-	}else{
-		/* make a copy for BGR24 buffers into a new end-padded buffer, because swscale
-		is doing invalid reads past the end of the original buffers */
-		m=allocb(size+128,0);
-		memcpy(m->b_wptr,p,size);
-		m->b_wptr+=size;
-	}
+	mblk_t *m=allocb(size+128,0);
+	/* make a copy into new buffer with extra bytes, because swscale
+	is doing invalid reads past the end of the original buffers due to mmx optimisations */
+	memcpy(m->b_wptr,p,size);
+	m->b_wptr+=size;
+	
 	ms_mutex_lock(&_mutex);
 	putq(&_rq,ms_yuv_buf_alloc_from_buffer(_vsize.width,_vsize.height,m));
 	ms_mutex_unlock(&_mutex);
