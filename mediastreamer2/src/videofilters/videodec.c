@@ -710,6 +710,8 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 						s->first_image_decoded = TRUE;
 						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 					}
+					if (s->codec==CODEC_ID_MJPEG)
+						break;/*assume one frame per packet for mjpeg, to workaround errors while decoding mjpeg from cameras*/
 				}
 				frame->b_rptr+=len;
 			}

@@ -50,11 +50,12 @@ static const MSVideoConfiguration vp8_conf_list[] = {
 	MS_VP8_CONF( 64000, 100000,         QCIF, 10, 1),
 	MS_VP8_CONF(      0,   64000,       QCIF,  5, 1)
 #else
-	MS_VP8_CONF(1536000,  2560000, SXGA_MINUS, 20, 4),
-	MS_VP8_CONF(800000,  2000000,       720P, 20, 4),
-	MS_VP8_CONF(800000,  1536000,        XGA, 20, 4),
-	MS_VP8_CONF( 600000,  1024000,       SVGA, 20, 2),
-	MS_VP8_CONF( 350000,   600000,        VGA, 20, 1),
+	MS_VP8_CONF(1536000,  2560000, SXGA_MINUS, 25, 4),
+	MS_VP8_CONF(800000,  2000000,       720P, 25, 4),
+	MS_VP8_CONF(800000,  1536000,        XGA, 25, 4),
+	MS_VP8_CONF( 600000,  1024000,       SVGA, 25, 2),
+	MS_VP8_CONF( 350000,   600000,        VGA, 25, 2),
+	MS_VP8_CONF( 350000,   600000,        VGA, 15, 1),
 	MS_VP8_CONF( 200000,   350000,        CIF, 18, 1),
 	MS_VP8_CONF( 150000,   200000,       QVGA, 15, 1),
 	MS_VP8_CONF( 100000,   150000,       QVGA, 10, 1),
@@ -81,6 +82,7 @@ typedef struct EncState {
 	vpx_codec_pts_t frame_count;
 	vpx_codec_iface_t *iface;
 	vpx_codec_flags_t flags;
+	uint64_t last_frame_time;
 	EncFramesState frames_state;
 	Vp8RtpFmtPackerCtx packer;
 	MSVideoStarter starter;
@@ -103,7 +105,7 @@ static void enc_init(MSFilter *f) {
 
 	s->vconf_list = &vp8_conf_list[0];
 	MS_VIDEO_SIZE_ASSIGN(vsize, CIF);
-	s->vconf = ms_video_find_best_configuration_for_size(s->vconf_list, vsize, ms_get_cpu_count());
+	s->vconf = ms_video_find_best_configuration_for_size(s->vconf_list, vsize, ms_factory_get_cpu_count(f->factory));
 	s->frame_count = 0;
 	s->last_fir_seq_nr = -1;
 #ifdef PICTURE_ID_ON_16_BITS
@@ -138,23 +140,23 @@ static void enc_preprocess(MSFilter *f) {
 		ms_error("Failed to get config: %s", vpx_codec_err_to_string(res));
 		return;
 	}
+	s->cfg.rc_target_bitrate = ((float)s->vconf.required_bitrate) * 0.92 / 1024.0; //0.9=take into account IP/UDP/RTP overhead, in average.
+	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
+	s->cfg.g_timebase.num = 1;
+	s->cfg.g_timebase.den = 1000;
+	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
 	if (s->avpf_enabled == TRUE) {
 		s->cfg.kf_mode = VPX_KF_DISABLED;
 		memset(&s->frames_state, 0, sizeof(s->frames_state));
 		s->frames_state.ref_frames_interval = (uint16_t)(s->vconf.fps * 3); /* 1 reference frame each 3s. */
 	} else {
 		s->cfg.kf_mode = VPX_KF_AUTO; /* encoder automatically places keyframes */
-		s->cfg.kf_max_dist = (unsigned int)(s->vconf.fps * 10); /* 1 keyframe each 10s. */
+		s->cfg.kf_max_dist = 10 * s->cfg.g_timebase.den; /* 1 keyframe each 10s. */
 	}
-	s->cfg.rc_target_bitrate = ((float)s->vconf.required_bitrate) * 0.92 / 1024.0; //0.9=take into account IP/UDP/RTP overhead, in average.
-	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
-	s->cfg.g_timebase.num = 1;
-	s->cfg.g_timebase.den = s->vconf.fps;
-	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
 #if TARGET_IPHONE_SIMULATOR
 	s->cfg.g_threads = 1; /*workaround to remove crash on ipad simulator*/
 #else
-	s->cfg.g_threads = ms_get_cpu_count();
+	s->cfg.g_threads = ms_factory_get_cpu_count(f->factory);
 #endif
 	ms_message("VP8 g_threads=%d", s->cfg.g_threads);
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
@@ -173,7 +175,6 @@ static void enc_preprocess(MSFilter *f) {
 
 	s->cfg.g_w = s->vconf.vsize.width;
 	s->cfg.g_h = s->vconf.vsize.height;
-	s->cfg.g_timebase.den = s->vconf.fps;
 
 	/* Initialize codec */
 	res =  vpx_codec_enc_init(&s->codec, s->iface, &s->cfg, s->flags);
@@ -198,6 +199,7 @@ static void enc_preprocess(MSFilter *f) {
 	} else if (s->frame_count == 0) {
 		ms_video_starter_init(&s->starter);
 	}
+	s->last_frame_time=(uint64_t)-1;
 	s->ready = TRUE;
 }
 
@@ -347,7 +349,7 @@ static void enc_process(MSFilter *f) {
 
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
 		vpx_image_t img;
-
+		long unsigned int frame_duration;
 		flags = 0;
 		ms_yuv_buf_init_from_mblk(&yuv, im);
 		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->vconf.vsize.width, s->vconf.vsize.height, 1, yuv.planes[0]);
@@ -370,8 +372,14 @@ static void enc_process(MSFilter *f) {
 		ms_message("\taltref: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
 			s->frames_state.altref.count, s->frames_state.altref.picture_id, (s->frames_state.altref.acknowledged == TRUE) ? "Y" : "N");
 #endif
-
-		err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, VPX_DL_REALTIME);
+		if (s->last_frame_time==(uint64_t)-1){
+			frame_duration=s->cfg.g_timebase.den/(int)s->vconf.fps;
+		}else{
+			frame_duration=f->ticker->time-s->last_frame_time;
+		}
+		s->last_frame_time=f->ticker->time;
+		//err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, VPX_DL_REALTIME);
+		err = vpx_codec_encode(&s->codec, &img, f->ticker->time, frame_duration, flags, 1000000LL/(2*(int)s->vconf.fps)); /*encoder has half a framerate interval to encode*/
 		if (err) {
 			ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
 		} else {
@@ -498,7 +506,7 @@ static int enc_set_vsize(MSFilter *f, void *data) {
 	MSVideoConfiguration best_vconf;
 	MSVideoSize *vs = (MSVideoSize *)data;
 	EncState *s = (EncState *)f->data;
-	best_vconf = ms_video_find_best_configuration_for_size(s->vconf_list, *vs, ms_get_cpu_count());
+	best_vconf = ms_video_find_best_configuration_for_size(s->vconf_list, *vs, ms_factory_get_cpu_count(f->factory));
 	s->vconf.vsize = *vs;
 	s->vconf.fps = best_vconf.fps;
 	s->vconf.bitrate_limit = best_vconf.bitrate_limit;
@@ -542,7 +550,7 @@ static int enc_set_br(MSFilter *f, void *data) {
 		s->vconf.required_bitrate = br;
 		enc_set_configuration(f, &s->vconf);
 	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br, ms_get_cpu_count());
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br, ms_factory_get_cpu_count(f->factory));
 		enc_set_configuration(f, &best_vconf);
 	}
 	return 0;
@@ -774,7 +782,7 @@ static void dec_preprocess(MSFilter* f) {
 			s->flags |= VPX_CODEC_USE_ERROR_CONCEALMENT;
 		}
 	#ifdef VPX_CODEC_CAP_FRAME_THREADING
-		if ((caps & VPX_CODEC_CAP_FRAME_THREADING) && (ms_get_cpu_count() > 1)) {
+		if ((caps & VPX_CODEC_CAP_FRAME_THREADING) && (ms_factory_get_cpu_count(f->factory) > 1)) {
 			s->flags |= VPX_CODEC_USE_FRAME_THREADING;
 		}
 	#endif
