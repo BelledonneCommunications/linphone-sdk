@@ -850,6 +850,7 @@ MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoC
 		}
 		vconf_it++;
 	}while(vconf_it->required_bitrate!=0);
+	best_vconf.required_bitrate=bitrate>best_vconf.bitrate_limit ? best_vconf.bitrate_limit : bitrate;
 	return best_vconf;
 }
 
@@ -875,5 +876,6 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConf
 			}
 		}
 	}
+	best_vconf.vsize=vsize;
 	return best_vconf;
 }
