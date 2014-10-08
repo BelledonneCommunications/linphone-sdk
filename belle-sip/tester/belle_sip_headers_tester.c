@@ -489,10 +489,14 @@ static void check_header_authenticate(belle_sip_header_www_authenticate_t* authe
 
 static void test_www_authenticate_header(void) {
 	const char* l_header = "WWW-Authenticate: Digest "
-			"algorithm=MD5, realm=\"atlanta.com\", opaque=\"1bc7f9097684320\","
+			"algorithm=MD5,\r\n   realm=\"atlanta.com\",\r\n  opaque=\"1bc7f9097684320\","
 			" qop=\"auth,auth-int\", nonce=\"c60f3082ee1212b402a21831ae\", stale=true, domain=\"sip:boxesbybob.com\"";
+	const char* l_header_1 = "WWW-Authenticate: Digest realm=\"toto.com\",\r\n   nonce=\"b543409177c9036dbf3054aea940e9703dc8f84c0108\""
+			",\r\n   opaque=\"ALU:QbkRBthOEgEQAkgVEwwHRAIBHgkdHwQCQ1lFRkRWEAkic203MSEzJCgoZS8iI3VlYWRj\",\r\n   algorithm=MD5"
+			",\r\n   qop=\"auth\"";
+
 	belle_sip_header_www_authenticate_t* L_tmp;
-	belle_sip_header_www_authenticate_t* l_authenticate = belle_sip_header_www_authenticate_parse(l_header);
+	belle_sip_header_www_authenticate_t *l_authenticate = belle_sip_header_www_authenticate_parse(l_header);
 
 
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_authenticate));
@@ -502,6 +506,15 @@ static void test_www_authenticate_header(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
 	check_header_authenticate(l_authenticate);
+
+
+	l_authenticate = belle_sip_header_www_authenticate_parse(l_header_1);
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_authenticate));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_authenticate));
+	L_tmp = belle_sip_header_www_authenticate_parse(l_raw_header);
+	l_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_authenticate));
+
 	CU_ASSERT_PTR_NULL(belle_sip_header_www_authenticate_parse("nimportequoi"));
 
 }

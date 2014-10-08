@@ -1373,7 +1373,7 @@ header_name
 header_value[const char* name, ANTLR3_BOOLEAN is_http] returns [belle_sip_header_t* ret] 
 options { greedy = false; }      
  @init {$ret=NULL;}  
-  :  (~(SP|CRLF) ~(CRLF)* )  {
+  :  (~(SP|CRLF) ((CRLF SP) | ~CRLF)* )  {
                     if ($is_http) {
                     	$ret=belle_http_header_create($name,(const char*)$header_value.text->chars);
                     }else {

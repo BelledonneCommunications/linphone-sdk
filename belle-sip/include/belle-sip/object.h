@@ -483,8 +483,8 @@ BELLE_SIP_END_DECLS
 
 #if defined(__cplusplus) && defined(BELLE_SIP_USE_STL)
 #include <ostream>
-inline   ostream&
-operator<<( ostream& __os, const belle_sip_object_t* object)
+inline   std::ostream&
+operator<<( std::ostream& __os, const belle_sip_object_t* object)
 {
 	char* object_as_string = belle_sip_object_to_string((void*)object);
 	__os << object_as_string;

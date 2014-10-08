@@ -152,7 +152,7 @@ static void test401ResponseWithoutResponsePhrase(void) {
 								"Server: Cirpack/v4.42x (gw_sip)\r\n"
 								"To: <sip:0033482176@sip.ovh.net>;tag=00-08075-24212984-22e348d97\r\n"
 								"Via: SIP/2.0/UDP 192.168.0.18:5062;received=81.56.113.2;rport=5062;branch=z9hG4bK1939354046\r\n"
-								"WWW-Authenticate: Digest realm=\"sip.ovh.net\",nonce=\"24212965507cde726e8bc37e04686459\",opaque=\"241b9fb347752f2\",stale=false,algorithm=MD5\r\n"
+								"WWW-Authenticate: Digest realm=\"sip.ovh.net\",\r\n   nonce=\"24212965507cde726e8bc37e04686459\",opaque=\"241b9fb347752f2\",stale=false,algorithm=MD5\r\n"
 								"Content-Length: 0\r\n\r\n";
 	belle_sip_response_t* response;
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);

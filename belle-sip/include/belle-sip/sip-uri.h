@@ -222,8 +222,8 @@ BELLE_SIP_END_DECLS
 
 #if defined(__cplusplus) && defined(BELLE_SIP_USE_STL)
 #include <ostream>
-inline   ostream&
-operator<<( ostream& __os, const belle_sip_uri_t* uri)
+inline   std::ostream&
+operator<<( std::ostream& __os, const belle_sip_uri_t* uri)
 {
 	char* uri_as_string = belle_sip_uri_to_string(uri);
 	__os << uri_as_string;
