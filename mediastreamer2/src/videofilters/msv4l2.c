@@ -162,12 +162,15 @@ static int query_max_fps_for_format_resolution(int fd, int pixelformat, MSVideoS
 typedef struct _V4L2FormatDescription {
 	/* format */
 	int pixel_format;
+	/* max fps */
+	int max_fps;
 	/* native or emulated */
 	bool_t native;
 	/* compressed or not */
 	bool_t compressed;
-	/* max fps */
-	int max_fps;
+	/*format is supported*/
+	bool_t supported;
+	
 } V4L2FormatDescription;
 
 static MSPixFmt v4l2_format_to_ms(int v4l2format) {
@@ -187,8 +190,9 @@ static MSPixFmt v4l2_format_to_ms(int v4l2format) {
 }
 
 static const V4L2FormatDescription* query_format_description_for_size(int fd, MSVideoSize vsize) {
-	/* hardcode supported format */
+	/* hardcode supported format in preferred order*/
 	static V4L2FormatDescription formats[4];
+	memset(formats,0,sizeof(formats));
 	formats[0].pixel_format = V4L2_PIX_FMT_YUV420;
 	formats[0].max_fps = -1;
 	formats[1].pixel_format = V4L2_PIX_FMT_YUYV;
@@ -210,6 +214,7 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 					formats[i].max_fps = query_max_fps_for_format_resolution(fd, fmt.pixelformat, vsize);
 					formats[i].native = !(fmt.flags & V4L2_FMT_FLAG_EMULATED);
 					formats[i].compressed = fmt.flags & V4L2_FMT_FLAG_COMPRESSED;
+					formats[i].supported = TRUE;
 					ms_message("format %s : max_fps=%i, native=%i, compressed=%i",
 						   ms_pix_fmt_to_string(v4l2_format_to_ms(fmt.pixelformat)),
 						   formats[i].max_fps,
@@ -234,9 +239,10 @@ static MSPixFmt pick_best_format(int fd, const V4L2FormatDescription* format_des
 	for (i=PREFER_NATIVE; i<=NO_PREFERENCE; i++) {
 		for (j=0; j<4; j++) {
 			int candidate = -1;
+			if (!format_desc[j].supported) continue;
 			switch (i) {
 				case PREFER_NATIVE:
-					if (format_desc[j].max_fps >= 15 && format_desc[j].native && !format_desc[j].compressed)
+					if (format_desc[j].max_fps >= 15 && format_desc[j].native)
 						candidate = j;
 					break;
 				case PREFER_COMPRESSED:
@@ -254,6 +260,7 @@ static MSPixFmt pick_best_format(int fd, const V4L2FormatDescription* format_des
 				struct v4l2_format fmt;
 				fmt.fmt.pix.width       = vsize.width;
 				fmt.fmt.pix.height      = vsize.height;
+				ms_message("Candidate: %i",candidate);
 
 				if (v4lv2_try_format(fd, &fmt, format_desc[j].pixel_format)) {
 					MSPixFmt selected=v4l2_format_to_ms(format_desc[j].pixel_format);
