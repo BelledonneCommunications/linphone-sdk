@@ -1017,14 +1017,14 @@ static void _send_message(belle_sip_channel_t *obj){
 	size_t off;
 	int ret;
 
-	if (obj->ewouldblock_buffer){
+	while (obj->ewouldblock_buffer){
 		sendret=send_buffer(obj,(const char*)obj->ewouldblock_buffer+obj->ewouldblock_offset,obj->ewouldblock_size-obj->ewouldblock_offset);
 		if (sendret>0){
 			obj->ewouldblock_offset+=sendret;
 			if (obj->ewouldblock_offset==obj->ewouldblock_size){
 				free_ewouldblock_buffer(obj);
 			}
-			return; /*we prefer poll again to be sure we can write*/
+			/* continue to expedite the ewouldblock error until we it is completed or get a new ewouldblock*/
 		}else if (belle_sip_error_code_is_would_block(-sendret)) {
 			/*we got an ewouldblock again. Nothing to do, we'll be called later in order to retry*/
 			return;

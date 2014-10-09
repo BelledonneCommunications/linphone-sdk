@@ -227,17 +227,21 @@ struct belle_sip_source{
 	unsigned long id;
 	belle_sip_fd_t fd;
 	unsigned short events,revents;
+#ifdef WIN32
+	unsigned short armed_events;
+	unsigned short pad;
+#endif
 	int timeout;
 	void *data;
 	uint64_t expire_ms;
 	int index; /* index in pollfd table */
 	belle_sip_source_func_t notify;
 	belle_sip_source_remove_callback_t on_remove;
+	belle_sip_socket_t sock;
 	unsigned char cancelled;
 	unsigned char expired;
 	unsigned char oneshot;
 	unsigned char notify_required; /*for testing purpose, use to ask for being scheduled*/
-	belle_sip_socket_t sock;
 };
 
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
