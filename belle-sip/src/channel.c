@@ -1007,7 +1007,7 @@ static void check_content_length(belle_sip_message_t *msg, size_t body_len){
 }
 
 static void _send_message(belle_sip_channel_t *obj){
-	char buffer[belle_sip_network_buffer_size];
+	char buffer[belle_sip_send_network_buffer_size];
 	size_t len=0;
 	belle_sip_error_code error=BELLE_SIP_OK;
 	belle_sip_message_t *msg=obj->cur_out_message;

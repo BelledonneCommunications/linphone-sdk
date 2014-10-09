@@ -31,6 +31,7 @@ unsigned int belle_sip_begin_background_task(const char *name, belle_sip_backgro
 void belle_sip_end_background_task(unsigned int id);
 
 #define belle_sip_network_buffer_size 65535
+#define belle_sip_send_network_buffer_size 16384
 
 typedef enum belle_sip_channel_state{
 	BELLE_SIP_CHANNEL_INIT,
