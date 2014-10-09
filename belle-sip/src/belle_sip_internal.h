@@ -551,7 +551,7 @@ void belle_sip_provider_add_client_transaction(belle_sip_provider_t *prov, belle
 belle_sip_client_transaction_t *belle_sip_provider_find_matching_client_transaction(belle_sip_provider_t *prov, belle_sip_response_t *resp);
 void belle_sip_provider_remove_client_transaction(belle_sip_provider_t *prov, belle_sip_client_transaction_t *t);
 void belle_sip_provider_add_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t);
-belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transaction(belle_sip_provider_t *prov,belle_sip_request_t *req);
+BELLESIP_INTERNAL_EXPORT belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transaction(belle_sip_provider_t *prov,belle_sip_request_t *req);
 void belle_sip_provider_remove_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t);
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t);
 belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const belle_sip_hop_t *hop);
