@@ -326,16 +326,11 @@ static void _create_sinks(MSFilePlayer *obj) {
 			if(ms_filter_call_method(obj->audio_sink, MS_FILTER_SET_SAMPLE_RATE, &sample_rate) == -1) {
 				ms_warning("The sound card (%s) does not support %dHz", obj->snd_card->name, sample_rate);
 				ms_filter_call_method(obj->audio_sink, MS_FILTER_GET_SAMPLE_RATE, &sink_sample_rate);
-				if(obj->audio_decoder == NULL) {
-					ms_message("Resampling to %dHz", sink_sample_rate);
-					obj->resampler = ms_filter_new(MS_RESAMPLE_ID);
-					ms_filter_call_method(obj->resampler, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
-					ms_filter_call_method(obj->resampler, MS_FILTER_SET_OUTPUT_SAMPLE_RATE, &sink_sample_rate);
-					ms_filter_call_method(obj->resampler, MS_FILTER_SET_NCHANNELS, &nchannels);
-				} else {
-					ms_message("Setting output sampling rate of the audio decoder to %dHz", sink_sample_rate);
-					ms_filter_call_method(obj->audio_decoder, MS_FILTER_SET_SAMPLE_RATE, &sink_sample_rate);
-				}
+				ms_message("Resampling to %dHz", sink_sample_rate);
+				obj->resampler = ms_filter_new(MS_RESAMPLE_ID);
+				ms_filter_call_method(obj->resampler, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+				ms_filter_call_method(obj->resampler, MS_FILTER_SET_OUTPUT_SAMPLE_RATE, &sink_sample_rate);
+				ms_filter_call_method(obj->resampler, MS_FILTER_SET_NCHANNELS, &nchannels);
 			}
 			ms_filter_call_method(obj->audio_sink, MS_FILTER_SET_NCHANNELS, &nchannels);
 		} else {
