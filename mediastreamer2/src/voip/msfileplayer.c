@@ -1,6 +1,7 @@
 #include "../../include/mediastreamer2/fileplayer.h"
 #include "../../include/mediastreamer2/msfilter.h"
 #include "../../include/mediastreamer2/msticker.h"
+#include "../../include/mediastreamer2/msextdisplay.h"
 #include "../audiofilters/waveheader.h"
 
 #define ms_filter_destroy_and_reset(obj) \
@@ -55,15 +56,18 @@ struct _MSFilePlayer {
 	ms_mutex_t cb_access;
 	MSSndCard *snd_card;
 	char *video_display;
+	MSFilePlayerRenderCb render_cb;
+	void *render_user_data;
 };
 
 static bool_t _get_format(const char *filepath, FileFormat *format);
-static void _eof_filter_notify_cb(void *userdata, struct _MSFilter *f, unsigned int id, void *arg);
 static void _create_decoders(MSFilePlayer *obj);
 static void _create_sinks(MSFilePlayer *obj);
 static void _destroy_graph(MSFilePlayer *obj);
 static bool_t _link_all(MSFilePlayer *obj);
 static void _unlink_all(MSFilePlayer *obj);
+static void _eof_filter_notify_cb(void *userdata, struct _MSFilter *f, unsigned int id, void *arg);
+static void _renderer_filter_notify_cb(void *user_data, struct _MSFilter *f, unsigned int id, void *arg);
 
 static bool_t four_cc_compare(const FourCC arg1, const FourCC arg2) {
 	return arg1[0] == arg2[0]
@@ -98,6 +102,16 @@ void ms_file_player_free(MSFilePlayer *obj) {
 	ms_ticker_destroy(obj->ticker);
 	ms_free_if_not_null(obj->video_display);
 	ms_free(obj);
+}
+
+bool_t ms_file_player_set_render_callback(MSFilePlayer *obj, MSFilePlayerRenderCb cb, void *user_data) {
+	if(obj->is_open) {
+		ms_error("MSFilePlayer: Render callback cannot be set when a file is open");
+		return FALSE;
+	}
+	obj->render_cb = cb;
+	obj->render_user_data = user_data;
+	return TRUE;
 }
 
 bool_t ms_file_player_open(MSFilePlayer *obj, const char *filepath) {
@@ -337,10 +351,15 @@ static void _create_sinks(MSFilePlayer *obj) {
 			ms_error("Could not create audio sink. Soundcard=%s", obj->snd_card->name);
 		}
 	}
-	if(obj->video_pin_fmt.fmt && obj->video_display) {
-		obj->video_sink = ms_filter_new_from_name(obj->video_display);
-		if(obj->video_sink == NULL) {
-			ms_error("Could not create video sink: %s", obj->video_display);
+	if(obj->video_pin_fmt.fmt) {
+		if(obj->render_cb) {
+			obj->video_sink = ms_filter_new(MS_EXT_DISPLAY_ID);
+			ms_filter_add_notify_callback(obj->video_sink, _renderer_filter_notify_cb, obj, TRUE);
+		} else if(obj->video_display) {
+			obj->video_sink = ms_filter_new_from_name(obj->video_display);
+			if(obj->video_sink == NULL) {
+				ms_error("Could not create video sink: %s", obj->video_display);
+			}
 		}
 	}
 }
@@ -406,4 +425,12 @@ static void _eof_filter_notify_cb(void *userdata, struct _MSFilter *f, unsigned 
 		obj->eof_cb(obj->user_data_cb);
 	}
 	ms_mutex_unlock(&obj->cb_access);
+}
+
+static void _renderer_filter_notify_cb(void *user_data, struct _MSFilter *f, unsigned int id, void *arg) {
+	if(id == MS_EXT_DISPLAY_ON_DRAW) {
+		MSFilePlayer *player = (MSFilePlayer *)user_data;
+		MSExtDisplayOutput *pictures = (MSExtDisplayOutput *)arg;
+		player->render_cb(&pictures->remote_view, player->render_user_data);
+	}
 }
