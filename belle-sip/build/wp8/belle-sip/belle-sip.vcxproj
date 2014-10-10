@@ -105,10 +105,15 @@
     <ClInclude Include="..\..\..\include\belle-sip\auth-helper.h" />
     <ClInclude Include="..\..\..\include\belle-sip\belle-sdp.h" />
     <ClInclude Include="..\..\..\include\belle-sip\belle-sip.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\bodyhandler.h" />
     <ClInclude Include="..\..\..\include\belle-sip\defs.h" />
     <ClInclude Include="..\..\..\include\belle-sip\dialog.h" />
     <ClInclude Include="..\..\..\include\belle-sip\dict.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\generic-uri.h" />
     <ClInclude Include="..\..\..\include\belle-sip\headers.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\http-listener.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\http-message.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\http-provider.h" />
     <ClInclude Include="..\..\..\include\belle-sip\list.h" />
     <ClInclude Include="..\..\..\include\belle-sip\listener.h" />
     <ClInclude Include="..\..\..\include\belle-sip\listeningpoint.h" />
@@ -117,14 +122,17 @@
     <ClInclude Include="..\..\..\include\belle-sip\object.h" />
     <ClInclude Include="..\..\..\include\belle-sip\parameters.h" />
     <ClInclude Include="..\..\..\include\belle-sip\provider.h" />
-    <ClInclude Include="..\..\..\include\belle-sip\refresher-helper.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\refresher.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\resolver.h" />
     <ClInclude Include="..\..\..\include\belle-sip\sipstack.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\sip-uri.h" />
     <ClInclude Include="..\..\..\include\belle-sip\transaction.h" />
-    <ClInclude Include="..\..\..\include\belle-sip\uri.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\types.h" />
     <ClInclude Include="..\..\..\include\belle-sip\utils.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\wakelock.h" />
     <ClInclude Include="..\..\..\src\belle_sip_internal.h" />
-    <ClInclude Include="..\..\..\src\belle_sip_resolver.h" />
     <ClInclude Include="..\..\..\src\channel.h" />
+    <ClInclude Include="..\..\..\src\clock_gettime.h" />
     <ClInclude Include="..\..\..\src\dns.h" />
     <ClInclude Include="..\..\..\src\grammars\belle_sdpLexer.h" />
     <ClInclude Include="..\..\..\src\grammars\belle_sdpParser.h" />
@@ -132,7 +140,9 @@
     <ClInclude Include="..\..\..\src\grammars\belle_sip_messageParser.h" />
     <ClInclude Include="..\..\..\src\listeningpoint_internal.h" />
     <ClInclude Include="..\..\..\src\md5.h" />
+    <ClInclude Include="..\..\..\src\parserutils.h" />
     <ClInclude Include="..\..\..\src\port.h" />
+    <ClInclude Include="..\..\..\src\wakelock_internal.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\auth_event.c" />
