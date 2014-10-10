@@ -85,6 +85,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/mediastream.c \
 					voip/audiostream.c \
 					voip/ringstream.c \
+					voip/msfileplayer.c \
 					voip/ice.c \
 					otherfilters/msrtp.c \
 					voip/qualityindicator.c \
@@ -287,8 +288,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
 					videofilters/extdisplay.c \
 					utils/bits_rw.c \
 					utils/x11_helper.c \
-					voip/layouts.c voip/layouts.h \
-					voip/msfileplayer.c
+					voip/layouts.c voip/layouts.h 
 
 if ORTP_ENABLED
 libmediastreamer_voip_la_SOURCES+=	voip/videostream.c

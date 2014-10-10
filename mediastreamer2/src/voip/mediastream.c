@@ -673,5 +673,9 @@ void video_stream_open_player(VideoStream *stream, MSFilter *sink){
 
 void video_stream_close_player(VideoStream *stream){
 }
+
+const char *video_stream_get_default_video_renderer(void){
+	return NULL;
+}
 #endif
 

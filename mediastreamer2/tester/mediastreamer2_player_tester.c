@@ -2,6 +2,7 @@
 #include "../include/mediastreamer2/fileplayer.h"
 
 static int tester_init() {
+	ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
 	ms_init();
 	return 0;
 }
@@ -30,6 +31,10 @@ static void eof_callback(void *user_data) {
 	ms_mutex_unlock(&obj->mutex);
 }
 
+static void render_callback(MSPicture *picture, void *user_data) {
+	(*(int *)user_data)++;
+}
+
 static void wait_for_eof(Eof *obj, int refresh_time_ms, int timeout_ms) {
 	ms_mutex_lock(&obj->mutex);
 	while(obj->time_ms < timeout_ms && !obj->eof) {
@@ -41,9 +46,10 @@ static void wait_for_eof(Eof *obj, int refresh_time_ms, int timeout_ms) {
 	ms_mutex_unlock(&obj->mutex);
 }
 
-static void play_file(const char *filepath, bool_t unsupported_format) {
+static void play_file(const char *filepath, bool_t unsupported_format, bool_t test_render_callback) {
 	bool_t succeed;
 	Eof eof;
+	int render_count = 0;
 	MSFilePlayer *file_player = NULL;
 	MSSndCard *snd_card = ms_snd_card_manager_get_default_card(ms_snd_card_manager_get());
 	const char *display_name = video_stream_get_default_video_renderer();
@@ -55,6 +61,10 @@ static void play_file(const char *filepath, bool_t unsupported_format) {
 	if(file_player == NULL) return;
 
 	ms_file_player_set_eof_callback(file_player, eof_callback, &eof);
+	if(test_render_callback) {
+		succeed = ms_file_player_set_render_callback(file_player, render_callback, &render_count);
+		CU_ASSERT_TRUE(succeed);
+	}
 
 	succeed = ms_file_player_open(file_player, filepath);
 	if(unsupported_format) {
@@ -77,39 +87,52 @@ static void play_file(const char *filepath, bool_t unsupported_format) {
 	ms_file_player_close(file_player);
 	ms_file_player_free(file_player);
 	CU_ASSERT_TRUE(eof.eof);
+	if(test_render_callback) {
+		CU_ASSERT_TRUE(render_count > 0);
+	}
 }
 
 static void play_hello_8000_wav(void) {
-	play_file("./sounds/hello8000.wav", FALSE);
+	play_file("./sounds/hello8000.wav", FALSE, FALSE);
 }
 
 static void play_hello_16000_wav(void) {
-	play_file("./sounds/hello16000.wav", FALSE);
+	play_file("./sounds/hello16000.wav", FALSE, FALSE);
 }
 
 static void play_hello_pcmu_mka(void) {
-	play_file("./sounds/hello_pcmu.mka", !ms_file_player_matroska_supported());
+	play_file("./sounds/hello_pcmu.mka", !ms_file_player_matroska_supported(), FALSE);
 }
 
 static void play_hello_opus_mka(void) {
-	play_file("./sounds/hello_opus.mka", !ms_file_player_matroska_supported());
+	play_file("./sounds/hello_opus.mka", !ms_file_player_matroska_supported(), FALSE);
 }
 
 static void play_hello_pcmu_h264_mkv(void) {
-	play_file("./sounds/hello_pcmu_h264.mkv", !ms_file_player_matroska_supported());
+	play_file("./sounds/hello_pcmu_h264.mkv", !ms_file_player_matroska_supported(), FALSE);
 }
 
 static void play_hello_opus_h264_mkv(void) {
-	play_file("./sounds/hello_opus_h264.mkv", !ms_file_player_matroska_supported());
+	play_file("./sounds/hello_opus_h264.mkv", !ms_file_player_matroska_supported(), FALSE);
+}
+
+static void play_sintel(void) {
+	play_file("./sounds/sintel.mkv", !ms_file_player_matroska_supported(), FALSE);
+}
+
+static void play_sintel_with_render_callback(void) {
+	play_file("./sounds/sintel.mkv", !ms_file_player_matroska_supported(), TRUE);
 }
 
 static test_t tests[] = {
-	{	"Play hello8000.wav"				,	play_hello_8000_wav				},
-	{	"Play hello16000.wav"				,	play_hello_16000_wav			},
-	{	"Play hello_pcmu.mka"				,	play_hello_pcmu_mka				},
-	{	"Play hello_opus.mka"				,	play_hello_opus_mka				},
-	{	"Play hello_pcmu_h264.mkv"			,	play_hello_pcmu_h264_mkv		},
-	{	"Play hello_opus_h264.mkv"			,	play_hello_opus_h264_mkv		}
+	{	"Play hello8000.wav"                ,	play_hello_8000_wav               },
+	{	"Play hello16000.wav"               ,	play_hello_16000_wav              },
+	{	"Play hello_pcmu.mka"               ,	play_hello_pcmu_mka               },
+	{	"Play hello_opus.mka"               ,	play_hello_opus_mka               },
+	{	"Play hello_pcmu_h264.mkv"          ,	play_hello_pcmu_h264_mkv          },
+	{	"Play hello_opus_h264.mkv"          ,	play_hello_opus_h264_mkv          },
+	{	"Play sintel"                       ,	play_sintel                       },
+	{	"Play sintel with render callback"  ,	play_sintel_with_render_callback  }
 };
 
 test_suite_t player_test_suite = {

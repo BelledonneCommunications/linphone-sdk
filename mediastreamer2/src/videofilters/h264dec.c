@@ -350,11 +350,18 @@ static int dec_get_fps(MSFilter *f, void *data){
 	return 0;
 }
 
+static int dec_get_outfmt(MSFilter *f, void *data){
+	DecData *s = (DecData *)f->data;
+	((MSPinFormat*)data)->fmt=ms_factory_get_video_format(f->factory,"YUV420P",ms_video_size_make(s->outbuf.w,s->outbuf.h),0,NULL);
+	return 0;
+}
+
 static MSFilterMethod  h264_dec_methods[]={
 	{	MS_FILTER_ADD_FMTP	,	dec_add_fmtp	},
 	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
 	{	MS_FILTER_GET_VIDEO_SIZE,	dec_get_vsize	},
 	{	MS_FILTER_GET_FPS	,	dec_get_fps	},
+	{	MS_FILTER_GET_OUTPUT_FMT,	dec_get_outfmt	},
 	{	0			,	NULL	}
 };
 

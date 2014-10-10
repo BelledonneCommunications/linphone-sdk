@@ -517,13 +517,14 @@ static void configure_itc(VideoStream *stream){
 			if (!pt) pt=rtp_profile_get_payload(rtp_session_get_profile(session),rtp_session_get_send_payload_type(session));
 			if (pt){
 				MSFmtDescriptor tmp=*pf.fmt;
-				tmp.encoding="VP8";
+				tmp.encoding=pt->mime_type;
 				tmp.rate=pt->clock_rate;
 				pinfmt.pin=0;
 				pinfmt.fmt=ms_factory_get_format(ms_factory_get_fallback(),&tmp);
 				ms_filter_call_method(stream->itcsink,MS_FILTER_SET_INPUT_FMT,&pinfmt);
+				ms_message("configure_itc(): format set to %s",ms_fmt_descriptor_to_string(pinfmt.fmt));
 			}
-		}
+		}else ms_warning("configure_itc(): video decoder doesn't give output format.");
 	}
 }
 
