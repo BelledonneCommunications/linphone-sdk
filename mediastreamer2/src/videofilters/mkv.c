@@ -1069,7 +1069,7 @@ static matroska_block *_matroska_next_block(const matroska_block *block, ms_bool
 			elt != NULL && !EBML_ElementIsType(elt, &MATROSKA_ContextSimpleBlock) && !EBML_ElementIsType(elt, &MATROSKA_ContextBlockGroup);
 			elt = EBML_MasterNext(elt));
 	} else {
-		ebml_master *blockGroup = EBML_ElementParent((ebml_element *)block);
+		ebml_master *blockGroup = (ebml_master *)EBML_ElementParent((ebml_element *)block);
 		for(elt = EBML_MasterNext((ebml_element *)blockGroup);
 			elt != NULL && !EBML_ElementIsType(elt, &MATROSKA_ContextSimpleBlock) && !EBML_ElementIsType(elt, &MATROSKA_ContextBlockGroup);
 			elt = EBML_MasterNext(elt));
@@ -1382,7 +1382,7 @@ static int matroska_track_set_codec_private(Matroska *obj, int trackNum, const u
 	if(track == NULL) {
 		return -1;
 	} else {
-		ebml_binary *codecPrivate = EBML_MasterGetChild(track, &MATROSKA_ContextCodecPrivate);
+		ebml_binary *codecPrivate = (ebml_binary *)EBML_MasterGetChild(track, &MATROSKA_ContextCodecPrivate);
 		if(EBML_BinarySetData(codecPrivate, data, dataSize) != ERR_NONE) {
 			return -2;
 		} else {
