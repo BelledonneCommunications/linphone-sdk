@@ -69,6 +69,7 @@ typedef struct EncFrameState {
 	vpx_codec_pts_t count;
 	uint16_t picture_id;
 	bool_t acknowledged;
+	bool_t is_independant;
 } EncFrameState;
 
 typedef struct EncFramesState {
@@ -92,6 +93,7 @@ typedef struct EncState {
 	const MSVideoConfiguration *vconf_list;
 	int last_fir_seq_nr;
 	uint16_t picture_id;
+	uint16_t last_sli_id;
 	bool_t force_keyframe;
 	bool_t invalid_frame_reported;
 	bool_t avpf_enabled;
@@ -220,27 +222,18 @@ static bool_t enc_should_generate_reference_frame(EncState *s) {
 }
 
 static uint8_t enc_get_type_of_reference_frame_to_generate(EncState *s) {
-	if ((s->frames_state.golden.acknowledged == FALSE) && (s->frames_state.altref.acknowledged == FALSE)) {
-		/* Generate a keyframe again. */
-		return VP8_GOLD_FRAME | VP8_ALTR_FRAME;
-	} else if (s->frames_state.golden.acknowledged == FALSE) {
-		ms_message("SM: golden not acknowledged sending new one");
-		/* Last golden frame has not been acknowledged, send a new one. */
-		return VP8_GOLD_FRAME;
-	} else if (s->frames_state.altref.acknowledged == FALSE) {
-		ms_message("SM: altref not acknowledged sending new one");
-		/* Last altref frame has not been acknowledged, send a new one. */
-		return VP8_ALTR_FRAME;
-	} else {
-		/* Both golden and altref frames have been acknowledged. */
-		if (s->frames_state.golden.count < s->frames_state.altref.count){
-			return VP8_GOLD_FRAME;
+	int ret=0;
+	if (s->frames_state.golden.count < s->frames_state.altref.count){
+		ret=VP8_GOLD_FRAME;
+		if (!s->frames_state.altref.acknowledged)
+			ret |= VP8_ALTR_FRAME;
+	}else if (s->frames_state.golden.count > s->frames_state.altref.count){
+		ret=VP8_ALTR_FRAME;
+		if (!s->frames_state.golden.acknowledged){
+			ret|=VP8_GOLD_FRAME;
 		}
-		if (s->frames_state.golden.count > s->frames_state.altref.count){
-			return VP8_ALTR_FRAME;
-		}
-		return VP8_GOLD_FRAME; /* Send a golden frame after a keyframe. */
-	}
+	}else ret= VP8_GOLD_FRAME; /* Send a golden frame after a keyframe. */
+	return ret;
 }
 
 static void check_most_recent(EncFrameState **found, vpx_codec_pts_t *most_recent, vpx_ref_frame_type_t type, 
@@ -261,12 +254,22 @@ static EncFrameState * enc_get_most_recent_reference_frame(EncState *s, bool_t o
 	//ms_message("SM: last reference frame type (only_acknoledged=%i): %i",(int)only_acknoledged,(int) (found ? found->type : 0));
 	return found;
 }
-/*
-static bool_t enc_is_last_reference_frame_of_type(EncState *s, vpx_ref_frame_type_t ft) {
-	EncFrameState *found=enc_get_most_recent_reference_frame(s,FALSE);
-	return found && found->type==ft;
+
+static EncFrameState *enc_get_reference_frame(EncState *s, vpx_ref_frame_type_t ft){
+	switch(ft){
+		case VP8_LAST_FRAME:
+			return &s->frames_state.reconstruct;
+		break;
+		case VP8_GOLD_FRAME:
+			return &s->frames_state.golden;
+		break;
+		case VP8_ALTR_FRAME:
+			return &s->frames_state.altref;
+		break;
+	}
+	return NULL;
 }
-*/
+
 static void enc_mark_reference_frame_as_sent(EncState *s, vpx_ref_frame_type_t ft) {
 	switch (ft) {
 		case VP8_GOLD_FRAME:
@@ -287,17 +290,28 @@ static void enc_mark_reference_frame_as_sent(EncState *s, vpx_ref_frame_type_t f
 	}
 }
 
+static bool_t is_reference_sane(EncState *s, EncFrameState *fs){
+	int diff=fs->picture_id-s->last_sli_id;
+	bool_t ret;
+	
+	if (!fs->is_independant && diff<s->frames_state.ref_frames_interval){
+		ret=FALSE;
+	}else ret=TRUE;
+	ms_message("SM: reference frame type %i with picture id %i sanity=%i.",fs->type,fs->picture_id,(int)ret);
+	return ret;
+}
+
 static void enc_acknowledge_reference_frame(EncState *s, uint16_t picture_id) {
 	ms_message("SM: VP8 picture_id %i acknowledged, last gold=%i last ref=%i, last reconstructed=%i",
 		   (int)picture_id, (int)s->frames_state.golden.picture_id,
 		   (int)s->frames_state.altref.picture_id, (int)s->frames_state.reconstruct.picture_id);
-	if (s->frames_state.golden.picture_id == picture_id) {
+	if (s->frames_state.golden.picture_id == picture_id && is_reference_sane(s,&s->frames_state.golden) ) {
 		s->frames_state.golden.acknowledged = TRUE;
 	}
-	if (s->frames_state.altref.picture_id == picture_id) {
+	if (s->frames_state.altref.picture_id == picture_id && is_reference_sane(s,&s->frames_state.altref)) {
 		s->frames_state.altref.acknowledged = TRUE;
 	}
-	if (s->frames_state.reconstruct.picture_id == picture_id) {
+	if (s->frames_state.reconstruct.picture_id == picture_id ) {
 		s->frames_state.reconstruct.acknowledged = TRUE;
 	}
 }
@@ -330,6 +344,8 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 			&& (enc_is_reference_frame_acknowledged(s, VP8_ALTR_FRAME) != TRUE)) {
 			/* No reference frame has been acknowledged and last frame can not be used
 				as reference. Therefore, generate a new keyframe. */
+			s->frames_state.golden.is_independant=TRUE;
+			s->frames_state.altref.is_independant=TRUE;
 			*flags = VPX_EFLAG_FORCE_KF;
 			return;
 		}
@@ -340,18 +356,26 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 	}
 	if (enc_should_generate_reference_frame(s) == TRUE) {
 		EncFrameState *last;
+		EncFrameState *newref;
 		frame_type = enc_get_type_of_reference_frame_to_generate(s);
 		if ((frame_type & VP8_GOLD_FRAME) && (frame_type & VP8_ALTR_FRAME)) {
 			*flags = VPX_EFLAG_FORCE_KF;
+			s->frames_state.golden.is_independant=TRUE;
+			s->frames_state.altref.is_independant=TRUE;
 		} else if (frame_type & VP8_GOLD_FRAME) {
 			*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_GF);
+			//*flags |= VP8_EFLAG_FORCE_GF;
 		} else if (frame_type & VP8_ALTR_FRAME) {
 			*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF | VP8_EFLAG_NO_REF_ARF);
+			//*flags |= VP8_EFLAG_FORCE_ARF;
 		}
-		last=enc_get_most_recent_reference_frame(s,FALSE);
-		if (last && last->type==VP8_LAST_FRAME && !last->acknowledged){
-			ms_message("SM: gold or altref should not depend on last frame");
-			*flags |= VP8_EFLAG_NO_REF_LAST;
+		if (!(*flags & VPX_EFLAG_FORCE_KF)){
+			last=enc_get_most_recent_reference_frame(s,FALSE);
+			newref=enc_get_reference_frame(s,frame_type);
+			if (last && last->type==VP8_LAST_FRAME){
+				*flags |= VP8_EFLAG_NO_REF_LAST;
+			}
+			if (newref) newref->is_independant=!!(*flags & VP8_EFLAG_NO_REF_LAST);
 		}
 	}
 	
@@ -361,10 +385,6 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 	if (!s->frames_state.altref.acknowledged){
 		*flags |= VP8_EFLAG_NO_REF_ARF;
 	}
-
-	if (*flags & VP8_EFLAG_FORCE_GF) ms_message("SM sending golden frame with picture id %i",(int)s->picture_id);
-	if (*flags & VP8_EFLAG_FORCE_ARF) ms_message("SM sending alt ref frame with picture id %i",(int)s->picture_id);
-	if (*flags & VPX_EFLAG_FORCE_KF) ms_message("SM sending key frame with picture id %i",(int)s->picture_id);
 }
 
 static void enc_process(MSFilter *f) {
@@ -430,6 +450,7 @@ static void enc_process(MSFilter *f) {
 			MSList *list = NULL;
 
 			/* Update the frames state. */
+			is_ref_frame=FALSE;
 			if (flags & VPX_EFLAG_FORCE_KF) {
 				enc_mark_reference_frame_as_sent(s, VP8_GOLD_FRAME);
 				enc_mark_reference_frame_as_sent(s, VP8_ALTR_FRAME);
@@ -449,6 +470,7 @@ static void enc_process(MSFilter *f) {
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
 				if ((pkt->kind == VPX_CODEC_CX_FRAME_PKT) && (pkt->data.frame.sz > 0)) {
 					Vp8RtpFmtPacket *packet = ms_new0(Vp8RtpFmtPacket, 1);
+					
 					packet->m = allocb(pkt->data.frame.sz, 0);
 					memcpy(packet->m->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
 					packet->m->b_wptr += pkt->data.frame.sz;
@@ -476,12 +498,23 @@ static void enc_process(MSFilter *f) {
 					list = ms_list_append(list, packet);
 				}
 			}
-			if (is_ref_frame)
-				ms_message("SM: reference frame sent with pic id %i (is-reconstruction: %i)",(int)s->picture_id,
-				!!(flags & VP8_EFLAG_NO_REF_LAST));
+
+			if (is_ref_frame){
+				/*ms_message("SM: send frame of type %s with pic-id %i, is-independant: %i",
+					   (flags & VPX_EFLAG_FORCE_KF) ? "keyframe" :
+					   (flags & VP8_EFLAG_FORCE_GF) ? "gold" :
+					   (flags & VP8_EFLAG_FORCE_ARF) ? "altref" : "recons",
+					   (int)s->picture_id, (int)!!(flags & VP8_EFLAG_NO_REF_LAST) || (flags & VPX_EFLAG_FORCE_KF));
+					   */
+			}
 			
-#ifdef AVPF_DEBUG
-			ms_message("VP8 encoder picture_id=0x%04x", s->picture_id);
+
+			ms_message("SM VP8 encoder picture_id=%i %s | %s | %s | %s", (int)s->picture_id,
+				(flags & VPX_EFLAG_FORCE_KF) ? "KF " : (flags & VP8_EFLAG_FORCE_GF) ? "GF " :  (flags & VP8_EFLAG_FORCE_ARF) ? "ARF" : "   ",  
+				(flags & VP8_EFLAG_NO_REF_GF) ? "NOREFGF" : "       ",
+				(flags & VP8_EFLAG_NO_REF_ARF) ? "NOREFARF" : "        ",
+				(flags & VP8_EFLAG_NO_REF_LAST) ? "NOREFLAST" : "         ");
+#if 0		
 			if (flags & VPX_EFLAG_FORCE_KF) ms_message("\tVPX_EFLAG_FORCE_KF");
 			if (flags & VP8_EFLAG_FORCE_GF) ms_message("\tVP8_EFLAG_FORCE_GF");
 			if (flags & VP8_EFLAG_FORCE_ARF) ms_message("\tVP8_EFLAG_FORCE_ARF");
@@ -489,7 +522,7 @@ static void enc_process(MSFilter *f) {
 			if (flags & VP8_EFLAG_NO_UPD_ARF) ms_message("\tVP8_EFLAG_NO_UPD_ARF");
 			if (flags & VP8_EFLAG_NO_REF_GF) ms_message("\tVP8_EFLAG_NO_REF_GF");
 			if (flags & VP8_EFLAG_NO_REF_ARF) ms_message("\tVP8_EFLAG_NO_REF_ARF");
-			if (flags & VP8_EFLAG_NO_REF_LAST) ms_message("\tVP8_EFLAG_NO_REF_LAST\tref!");
+			if (flags & VP8_EFLAG_NO_REF_LAST) ms_message("\tVP8_EFLAG_NO_REF_LAST");
 #endif
 
 			vp8rtpfmt_packer_process(&s->packer, list, f->outputs[0]);
@@ -607,12 +640,29 @@ static int enc_req_vfu(MSFilter *f, void *unused) {
 	return 0;
 }
 
+static bool_t should_generate_key_frame(EncState *s){
+	int min_interval=s->vconf.fps*3;
+	/*as the PLI has no picture id reference, we don't know if it is still current.
+	 * Thus we need to avoid to send too many keyframes. Send one and wait for rpsi to arrive first.
+	 * The receiver sends PLI for each new frame it receives when it does not have the keyframe*/
+	if (s->frame_count > s->frames_state.golden.count + min_interval &&
+		s->frame_count > s->frames_state.altref.count + min_interval &&
+		s->frames_state.golden.count!=0 && s->frames_state.altref.count!=0){
+		return TRUE;
+	}
+	return FALSE;
+}
+
 static int enc_notify_pli(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
-	if (s->avpf_enabled == TRUE) {
-		s->invalid_frame_reported = TRUE;
-	} else {
-		s->force_keyframe = TRUE;
+	ms_message("SM: PLI requested");
+	if (should_generate_key_frame(s)){
+		ms_message("SM: PLI accepted");
+		if (s->avpf_enabled == TRUE) {
+			s->invalid_frame_reported = TRUE;
+		} else {
+			s->force_keyframe = TRUE;
+		}
 	}
 	return 0;
 }
@@ -627,15 +677,13 @@ static int enc_notify_fir(MSFilter *f, void *data) {
 	return 0;
 }
 
-static bool_t picture_id_newer_than_last_acknowledged_reference_picture_id(EncState *s, uint8_t picture_id) {
+static bool_t picture_id_newer_than_last_acknowledged_reference_picture_id(EncState *s, EncFrameState *lastref, uint8_t picture_id) {
 	uint8_t reference_picture_id;
-	EncFrameState *fs;
 	
-	fs=enc_get_most_recent_reference_frame(s,TRUE);
-	if (!fs) {
+	if (!lastref) {
 		return TRUE;
 	}
-	reference_picture_id=fs->picture_id & 0x3F;
+	reference_picture_id=lastref->picture_id & 0x3F;
 	if ((picture_id - reference_picture_id) < (1 << 5)) return TRUE;
 	return FALSE;
 }
@@ -645,7 +693,16 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 	MSVideoCodecSLI *sli = (MSVideoCodecSLI *)data;
 	bool_t golden_lost = FALSE;
 	bool_t altref_lost = FALSE;
-
+	EncFrameState *fs;
+	int base_pic_id;
+	
+	fs=enc_get_most_recent_reference_frame(s,TRUE);
+	if (fs) base_pic_id=fs->picture_id;
+	else base_pic_id=s->picture_id;
+	base_pic_id&=~0x3f;
+	s->last_sli_id=sli->picture_id | base_pic_id;
+	
+	ms_message("SM: receiving SLI with pic id %i",s->last_sli_id);
 	if ((s->frames_state.golden.picture_id & 0x3F) == sli->picture_id) {
 		/* Last golden frame has been lost. */
 		golden_lost = TRUE;
@@ -658,10 +715,11 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 		/* Last key frame has been lost. */
 		s->force_keyframe = TRUE;
 	} else {
-		if (picture_id_newer_than_last_acknowledged_reference_picture_id(s, sli->picture_id) == TRUE) {
+		if (picture_id_newer_than_last_acknowledged_reference_picture_id(s, fs, sli->picture_id) == TRUE) {
 			s->invalid_frame_reported = TRUE;
 		} else {
 			/* The reported loss is older than the last reference frame, so ignore it. */
+			ms_message("SM: Ignored SLI with picture_id %i",s->last_sli_id);
 		}
 	}
 	return 0;

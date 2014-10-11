@@ -757,7 +757,7 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					send_rpsi_if_reference_frame(ctx, frame);
 				} else {
 					frame->discarded = TRUE;
-					send_pli(ctx);
+					if (!ctx->valid_keyframe_received) send_pli(ctx);
 					if (ctx->waiting_for_reference_frame == TRUE) {
 						/* Do not decode frames while we are waiting for a reference frame. */
 #ifdef VP8RTPFMT_DEBUG
