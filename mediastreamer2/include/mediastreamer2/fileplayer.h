@@ -14,7 +14,6 @@ typedef struct _MSFilePlayer MSFilePlayer;
  * Callbacks definitions
  */
 typedef void (*MSFilePlayerEofCallback)(void *user_data);
-typedef void (*MSFilePlayerRenderCb)(MSPicture *picture, void *user_data);
 
 /**
  * @brief Instanciate a file player
@@ -37,17 +36,6 @@ MS2_PUBLIC void ms_file_player_free(MSFilePlayer *obj);
  * @param user_data Data which will be passed to the function
  */
 MS2_PUBLIC void ms_file_player_set_eof_callback(MSFilePlayer *obj, MSFilePlayerEofCallback cb, void *user_data);
-
-/**
- * @brief Set a callback to be notify that a buffer is ready to be render.
- * If a callback is set, the video display specified by ms_file_player_new() will
- * be disabled.
- * @param obj The player
- * @param cb Function to call
- * @param user_data Data which will be passed to the function
- * @return TRUE if successful
- */
-MS2_PUBLIC bool_t ms_file_player_set_render_callback(MSFilePlayer *obj, MSFilePlayerRenderCb cb, void *user_data);
 
 /**
  * @brief Open a media file
