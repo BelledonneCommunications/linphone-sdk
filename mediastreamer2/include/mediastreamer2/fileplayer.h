@@ -19,9 +19,10 @@ typedef void (*MSFilePlayerEofCallback)(void *user_data);
  * @brief Instanciate a file player
  * @param snd_card Playback sound card
  * @param video_display_name Video out
+ * @param window_id Pointer on the drawing window
  * @return A pointer on the created MSFilePlayer
  */
-MS2_PUBLIC MSFilePlayer *ms_file_player_new(MSSndCard *snd_card, const char *video_display_name);
+MS2_PUBLIC MSFilePlayer *ms_file_player_new(MSSndCard *snd_card, const char *video_display_name, void *window_id);
 
 /**
  * @brief Free a file player
@@ -43,7 +44,7 @@ MS2_PUBLIC void ms_file_player_set_eof_callback(MSFilePlayer *obj, MSFilePlayerE
  * @param filepath Path of the file to open
  * @return TRUE if the file could be opened
  */
-bool_t ms_file_player_open(MSFilePlayer *obj, const char *filepath);
+MS2_PUBLIC bool_t ms_file_player_open(MSFilePlayer *obj, const char *filepath);
 
 /**
  * @brief Close a media file

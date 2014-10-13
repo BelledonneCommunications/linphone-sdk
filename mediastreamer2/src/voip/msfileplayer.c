@@ -56,6 +56,7 @@ struct _MSFilePlayer {
 	ms_mutex_t cb_access;
 	MSSndCard *snd_card;
 	char *video_display;
+	void *window_id;
 };
 
 static bool_t _get_format(const char *filepath, FileFormat *format);
@@ -83,13 +84,14 @@ static FileFormat four_cc_to_file_format(const FourCC four_cc) {
 	return FILE_FORMAT_UNKNOWN;
 }
 
-MSFilePlayer *ms_file_player_new(MSSndCard *snd_card, const char *video_display_name) {
+MSFilePlayer *ms_file_player_new(MSSndCard *snd_card, const char *video_display_name, void *window_id) {
 	MSFilePlayer *obj = (MSFilePlayer *)ms_new0(MSFilePlayer, 1);
 	obj->ticker = ms_ticker_new();
 	ms_mutex_init(&obj->cb_access, NULL);
 	obj->snd_card = snd_card;
 	if(video_display_name != NULL && strlen(video_display_name) > 0) {
 		obj->video_display = ms_strdup(video_display_name);
+		obj->window_id = window_id;
 	}
 	return obj;
 }
@@ -341,7 +343,9 @@ static void _create_sinks(MSFilePlayer *obj) {
 	if(obj->video_pin_fmt.fmt) {
 		if(obj->video_display) {
 			obj->video_sink = ms_filter_new_from_name(obj->video_display);
-			if(obj->video_sink == NULL) {
+			if(obj->video_sink) {
+				if(obj->window_id) ms_filter_call_method(obj->video_sink, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &obj->window_id);
+			} else {
 				ms_error("Could not create video sink: %s", obj->video_display);
 			}
 		}

@@ -51,7 +51,7 @@ static void play_file(const char *filepath, bool_t unsupported_format) {
 
 	eof_init(&eof);
 
-	file_player = ms_file_player_new(snd_card, display_name);
+	file_player = ms_file_player_new(snd_card, display_name, NULL);
 	CU_ASSERT_PTR_NOT_NULL(file_player);
 	if(file_player == NULL) return;
 
