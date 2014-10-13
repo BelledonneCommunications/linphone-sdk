@@ -655,9 +655,9 @@ static bool_t should_generate_key_frame(EncState *s){
 
 static int enc_notify_pli(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
-	ms_message("SM: PLI requested");
+	ms_message("PLI requested");
 	if (should_generate_key_frame(s)){
-		ms_message("SM: PLI accepted");
+		ms_message("PLI accepted");
 		if (s->avpf_enabled == TRUE) {
 			s->invalid_frame_reported = TRUE;
 		} else {
@@ -677,16 +677,7 @@ static int enc_notify_fir(MSFilter *f, void *data) {
 	return 0;
 }
 
-static bool_t picture_id_newer_than_last_acknowledged_reference_picture_id(EncState *s, EncFrameState *lastref, uint8_t picture_id) {
-	uint8_t reference_picture_id;
-	
-	if (!lastref) {
-		return TRUE;
-	}
-	reference_picture_id=lastref->picture_id & 0x3F;
-	if ((picture_id - reference_picture_id) < (1 << 5)) return TRUE;
-	return FALSE;
-}
+#define SLI_NEWER_THAN(s1,s2)	( (uint16_t)((uint16_t)s1-(uint16_t)s2) < 1<<15)
 
 static int enc_notify_sli(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
@@ -694,15 +685,15 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 	bool_t golden_lost = FALSE;
 	bool_t altref_lost = FALSE;
 	EncFrameState *fs;
-	int base_pic_id;
+	int diff;
+	int most_recent;
 	
-	fs=enc_get_most_recent_reference_frame(s,TRUE);
-	if (fs) base_pic_id=fs->picture_id;
-	else base_pic_id=s->picture_id;
-	base_pic_id&=~0x3f;
-	s->last_sli_id=sli->picture_id | base_pic_id;
+	/* extend the SLI received picture-id (6 bits) to a normal picture id*/
+	most_recent=s->picture_id;
 	
-	ms_message("SM: receiving SLI with pic id %i",s->last_sli_id);
+	diff=(64 + (int)(most_recent & 0x3F) - (int)(sli->picture_id & 0x3F)) % 64;
+	s->last_sli_id=most_recent-diff;
+	ms_message("receiving SLI with pic id [%i], most recent pic id=[%i]",s->last_sli_id,most_recent);
 	if ((s->frames_state.golden.picture_id & 0x3F) == sli->picture_id) {
 		/* Last golden frame has been lost. */
 		golden_lost = TRUE;
@@ -715,11 +706,12 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 		/* Last key frame has been lost. */
 		s->force_keyframe = TRUE;
 	} else {
-		if (picture_id_newer_than_last_acknowledged_reference_picture_id(s, fs, sli->picture_id) == TRUE) {
+		fs=enc_get_most_recent_reference_frame(s,TRUE);
+		if (!fs || SLI_NEWER_THAN(s->last_sli_id,fs->picture_id)) {
 			s->invalid_frame_reported = TRUE;
 		} else {
 			/* The reported loss is older than the last reference frame, so ignore it. */
-			ms_message("SM: Ignored SLI with picture_id %i",s->last_sli_id);
+			ms_message("SM: Ignored SLI with picture_id [%i] last-ref-ackd=[%i]",(int)s->last_sli_id, (int)fs->picture_id);
 		}
 	}
 	return 0;
