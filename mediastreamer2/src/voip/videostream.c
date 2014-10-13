@@ -554,6 +554,23 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	return video_stream_start_with_source(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, ms_web_cam_create_reader(cam));
 }
 
+static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
+	MSVideoConfiguration *vconf_list = NULL;
+	ms_message("Limiting bitrate of video encoder to %i bits/s for stream [%p]",pt->normal_bitrate,stream);
+	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
+	if (vconf_list != NULL) {
+		MSVideoConfiguration vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, pt->normal_bitrate, ms_get_cpu_count());
+		/* Adjust configuration video size to use the user preferred video size if it is lower that the configuration one. */
+		if ((stream->sent_vsize.height * stream->sent_vsize.width) < (vconf.vsize.height * vconf.vsize.width)) {
+			vconf.vsize = stream->sent_vsize;
+		}
+		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
+	} else {
+		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &pt->normal_bitrate);
+	}
+	rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, pt->normal_bitrate);
+}
+
 
 int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam* cam, MSFilter* source){
@@ -624,20 +641,7 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 		}
 
 		if (pt->normal_bitrate>0){
-			MSVideoConfiguration *vconf_list = NULL;
-			ms_message("Limiting bitrate of video encoder to %i bits/s for stream [%p]",pt->normal_bitrate,stream);
-			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
-			if (vconf_list != NULL) {
-				MSVideoConfiguration vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, pt->normal_bitrate, ms_get_cpu_count());
-				/* Adjust configuration video size to use the user preferred video size if it is lower that the configuration one. */
-				if ((stream->sent_vsize.height * stream->sent_vsize.width) < (vconf.vsize.height * vconf.vsize.width)) {
-					vconf.vsize = stream->sent_vsize;
-				}
-				ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
-			} else {
-				ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &pt->normal_bitrate);
-			}
-			rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, pt->normal_bitrate);
+			apply_bitrate_limit(stream, pt);
 		}
 		if (pt->send_fmtp){
 			ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
@@ -838,6 +842,9 @@ void video_stream_update_video_params(VideoStream *stream){
 }
 
 static void _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter *sink){
+	PayloadType *pt;
+	RtpProfile *profile;
+	int payload;
 	bool_t keep_source=!(cam!=stream->cam || stream->player_active!=(sink!=NULL));
 	bool_t encoder_has_builtin_converter = (!stream->pixconv && !stream->sizeconv);
 
@@ -878,6 +885,14 @@ static void _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFi
 		/* update orientation for video output*/
 		if (stream->output && stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->output, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
 			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+		}
+
+		/* Apply bitrate limit to increase video size if the preferred one has changed. */
+		profile = rtp_session_get_profile(stream->ms.sessions.rtp_session);
+		payload = rtp_session_get_send_payload_type(stream->ms.sessions.rtp_session);
+		pt = rtp_profile_get_payload(profile, payload);
+		if (pt->normal_bitrate > 0){
+			apply_bitrate_limit(stream ,pt);
 		}
 
 		configure_video_source(stream);
