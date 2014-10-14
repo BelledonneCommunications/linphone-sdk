@@ -765,7 +765,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	}
 
-	stream->outbound_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
+	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING || stream->features & AUDIO_STREAM_FEATURE_REMOTE_PLAYING){
+		stream->outbound_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
+	}
 
 	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING) setup_recorder(stream,sample_rate,nchannels);
 
@@ -853,8 +855,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		stream->local_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
 	}
 
-	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-	ms_filter_call_method(stream->outbound_mixer,MS_FILTER_SET_NCHANNELS,&nchannels);
+	if (stream->outbound_mixer){
+		ms_filter_call_method(stream->outbound_mixer,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+		ms_filter_call_method(stream->outbound_mixer,MS_FILTER_SET_NCHANNELS,&nchannels);
+	}
 
 	/* create ticker */
 	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
@@ -1351,7 +1355,7 @@ bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 }
 
 static void configure_av_recorder(AudioStream *stream){
-	if (stream->av_recorder.video_input){
+	if (stream->av_recorder.video_input && stream->av_recorder.recorder){
 		MSPinFormat pinfmt={0};
 		ms_filter_call_method(stream->av_recorder.video_input,MS_FILTER_GET_OUTPUT_FMT,&pinfmt);
 		if (pinfmt.fmt){
