@@ -61,7 +61,7 @@ BELLESIP_EXPORT struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, c
  * @param transport the queried transport ("udp", "tcp", "tls")
  * @param name the SIP domain name
  * @param port a port that will be filled in the addrinfo list returned by the callback, for the case where no SRV records are found.
- * @param family address family expected in the addrinfo result list. AF_INET or AF_INET6. If AF_INET6 is used but no IPv4 records are found, the IPv4 addresses
+ * @param family address family expected in the addrinfo result list. AF_INET or AF_INET6. If AF_INET6 is used but no IPv6 records are found, the IPv4 addresses
  * will be returned as IPv6 with v4 mapping (AI_V4MAPPED).
  * @param cb a callback function that will be called to notify the results.
  * @param data a user pointer passed through the callback as first argument.

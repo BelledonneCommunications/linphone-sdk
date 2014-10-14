@@ -1,7 +1,7 @@
 
 if ENABLE_TESTS
 
-noinst_PROGRAMS=belle_sip_tester belle_sip_object_describe belle_sip_parse belle_http_get
+noinst_PROGRAMS=belle_sip_tester belle_sip_object_describe belle_sip_parse belle_http_get belle_sip_resolve
 
 belle_sip_tester_SOURCES=	belle_sip_tester.c belle_sip_tester.h\
 				belle_sdp_tester.c \
@@ -29,6 +29,8 @@ belle_sip_object_describe_SOURCES=describe.c
 belle_sip_parse_SOURCES=parse.c
 
 belle_http_get_SOURCES=get.c
+
+belle_sip_resolve_SOURCES=resolve.c
 
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
 
