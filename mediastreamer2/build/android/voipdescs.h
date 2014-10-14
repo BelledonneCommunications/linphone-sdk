@@ -36,6 +36,8 @@ extern MSFilterDesc ms_g722_dec_desc;
 extern MSFilterDesc ms_g722_enc_desc;
 extern MSFilterDesc ms_l16_enc_desc;
 extern MSFilterDesc ms_l16_dec_desc;
+extern MSFilterDesc ms_aac_eld_dec_desc;
+extern MSFilterDesc ms_aac_eld_enc_desc;
 extern MSFilterDesc ms_jpeg_writer_desc;
 #if defined(BUILD_WEBRTC_AECM)
 extern MSFilterDesc ms_webrtc_aec_desc;
@@ -71,6 +73,8 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_g722_enc_desc,
 &ms_l16_enc_desc,
 &ms_l16_dec_desc,
+&ms_aac_eld_enc_desc,
+&ms_aac_eld_dec_desc,
 #ifdef VIDEO_ENABLED
 &ms_mpeg4_enc_desc,
 &ms_mpeg4_dec_desc,
@@ -86,7 +90,7 @@ MSFilterDesc * ms_voip_filter_descs[]={
 #ifdef HAVE_MATROSKA
 &ms_mkv_recorder_desc,
 &ms_mkv_player_desc,
-#endif 
+#endif
 #endif //VIDEO_ENABLED
 #if defined(BUILD_WEBRTC_AECM)
 &ms_webrtc_aec_desc,

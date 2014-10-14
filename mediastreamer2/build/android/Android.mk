@@ -94,6 +94,7 @@ LOCAL_SRC_FILES = \
 	audiofilters/msresample.c \
 	audiofilters/devices.c \
 	audiofilters/flowcontrol.c \
+	audiofilters/aac-eld-android.cpp \
 	android/hardware_echo_canceller.cpp \
 	android/androidsound_depr.cpp \
 	android/loader.cpp \
@@ -102,9 +103,9 @@ LOCAL_SRC_FILES = \
 	android/AudioTrack.cpp \
 	android/AudioSystem.cpp \
 	android/String8.cpp \
-	android/androidsound_opensles.cpp
+	android/androidsound_opensles.cpp \
 
-LOCAL_STATIC_LIBRARIES := 
+LOCAL_STATIC_LIBRARIES :=
 
 ##if BUILD_ALSA
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
@@ -186,10 +187,10 @@ endif #_BUILD_VIDEO
 ifeq ($(BUILD_OPUS),1)
 LOCAL_CFLAGS += -DHAVE_OPUS
 LOCAL_SRC_FILES += \
-	audiofilters/msopus.c 
+	audiofilters/msopus.c
 
 LOCAL_C_INCLUDES += \
-	$(LOCAL_PATH)/../../../externals/opus/include 
+	$(LOCAL_PATH)/../../../externals/opus/include
 endif
 
 ifeq ($(BUILD_UPNP),1)
@@ -205,7 +206,7 @@ LOCAL_C_INCLUDES += \
         $(LOCAL_PATH)/../../../externals/libupnp/threadutil/inc \
 	$(LOCAL_PATH)/../../../externals/libupnp/ixml/inc \
 
-LOCAL_STATIC_LIBRARIES += libupnp 
+LOCAL_STATIC_LIBRARIES += libupnp
 
 endif
 

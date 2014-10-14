@@ -130,7 +130,8 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					audiofilters/msfileplayer.c \
 					audiofilters/msfilerec.c \
 					audiofilters/waveheader.h \
-					audiofilters/flowcontrol.c
+					audiofilters/flowcontrol.c \
+					audiofilters/aac-eld-android.cpp
 
 if BUILD_SPEEX
 libmediastreamer_voip_la_SOURCES+=	audiofilters/msspeex.c audiofilters/speexec.c
@@ -288,7 +289,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
 					videofilters/extdisplay.c \
 					utils/bits_rw.c \
 					utils/x11_helper.c \
-					voip/layouts.c voip/layouts.h 
+					voip/layouts.c voip/layouts.h
 
 if ORTP_ENABLED
 libmediastreamer_voip_la_SOURCES+=	voip/videostream.c
