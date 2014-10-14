@@ -1,17 +1,17 @@
 /*
  mediastreamer2 library - modular sound and video processing and streaming
  Copyright (C) 2012  Belledonne Communications, Grenoble, France
- 
+
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
  as published by the Free Software Foundation; either version 2
  of the License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -21,6 +21,10 @@
 #define mscodecutils_h
 
 #include "mediastreamer2/mscommon.h"
+
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 /**
  * Helper object for audio decoders to determine whether PLC (packet loss concealment is needed).
@@ -85,7 +89,7 @@ MS2_PUBLIC unsigned int ms_concealer_ts_context_is_concealement_required(MSConce
  * Call this function whenever you decoded a packet, for true or in PLC mode, to inform the concealer
  * of how the audio stream is going.
  * @param obj the concealer object
- * @param current_ts the current time converted in timestamp units, usually (f->ticker->time*clock_rate)/1000 
+ * @param current_ts the current time converted in timestamp units, usually (f->ticker->time*clock_rate)/1000
  * @param ts_increment the duration of audio decoded expressed in timestamp units
  * @param got_packet set to 1 if a real frame was decoded, 0 if it was a PLC frame.
  * @returns if a PLC period terminates, returns the duration of this PLC period in timestamp units, 0 otherwise.
@@ -98,10 +102,14 @@ MS2_PUBLIC unsigned long ms_concealer_ts_context_get_total_number_of_plc(MSConce
 
 /*FEC API*/
 typedef struct _MSRtpPayloadPickerContext MSRtpPayloadPickerContext;
-typedef mblk_t* (*RtpPayloadPicker)(MSRtpPayloadPickerContext* context,unsigned int sequence_number); 
+typedef mblk_t* (*RtpPayloadPicker)(MSRtpPayloadPickerContext* context,unsigned int sequence_number);
 struct _MSRtpPayloadPickerContext {
 	void* filter_graph_manager; /*I.E stream*/
 	RtpPayloadPicker picker;
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
