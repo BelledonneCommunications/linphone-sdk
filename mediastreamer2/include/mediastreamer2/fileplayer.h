@@ -31,6 +31,13 @@ MS2_PUBLIC MSFilePlayer *ms_file_player_new(MSSndCard *snd_card, const char *vid
 MS2_PUBLIC void ms_file_player_free(MSFilePlayer *obj);
 
 /**
+ * @brief Get the window ID
+ * @param obj The player
+ * @return The window ID
+ */
+MS2_PUBLIC void *ms_file_player_get_window_id(const MSFilePlayer *obj);
+
+/**
  * @brief Set the "End of File" callback
  * @param obj A MSFilePlayer object pointer
  * @param cb Function to call

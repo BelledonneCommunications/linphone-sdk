@@ -103,6 +103,10 @@ void ms_file_player_free(MSFilePlayer *obj) {
 	ms_free(obj);
 }
 
+void *ms_file_player_get_window_id(const MSFilePlayer *obj) {
+	return obj->window_id;
+}
+
 bool_t ms_file_player_open(MSFilePlayer *obj, const char *filepath) {
 	wave_header_t header;
 	int fd;
