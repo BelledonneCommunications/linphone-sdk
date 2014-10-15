@@ -22,7 +22,8 @@ ANDROID_SRC_FILES= \
 	android/android-display-bad.cpp \
 	android/android-opengl-display.c \
 	android/audio.h \
-	android/loader.cpp android/loader.h
+	android/loader.cpp android/loader.h \
+	audiofilters/aac-eld-android.cpp
 
 EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c  \
 	videofilters/winvideods.c videofilters/wincevideods.c dxfilter.h dxfilter.cpp \
@@ -130,8 +131,7 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					audiofilters/msfileplayer.c \
 					audiofilters/msfilerec.c \
 					audiofilters/waveheader.h \
-					audiofilters/flowcontrol.c \
-					audiofilters/aac-eld-android.cpp
+					audiofilters/flowcontrol.c 
 
 if BUILD_SPEEX
 libmediastreamer_voip_la_SOURCES+=	audiofilters/msspeex.c audiofilters/speexec.c
