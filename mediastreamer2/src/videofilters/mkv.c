@@ -2365,7 +2365,23 @@ static int player_close(MSFilter *f, void *arg) {
 }
 
 static int player_seek_ms(MSFilter *f, void *arg) {
-	ms_error("Seeking is not implemented for the MKV player yet");
+	MKVPlayer *obj = (MKVPlayer *)f->data;
+	timecode_t target_position = *((int *)arg);
+	ms_bool_t eof;
+	ms_filter_lock(f);
+	if(target_position < 0 || target_position > matroska_get_duration(&obj->file)) {
+		ms_error("MKVPlayer: cannot seek to %ld ms. Poisition out of bounds", target_position);
+		goto fail;
+	}
+	matroska_block_go_first(&obj->file);
+	while(matroska_block_get_timestamp(&obj->file) < target_position) {
+		matroska_block_go_next(&obj->file, &eof);
+	}
+	ms_filter_unlock(f);
+	return 0;
+
+	fail:
+	ms_filter_unlock(f);
 	return -1;
 }
 
