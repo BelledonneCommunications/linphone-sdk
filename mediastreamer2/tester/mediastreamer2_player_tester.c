@@ -74,21 +74,26 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	CU_ASSERT_PTR_NOT_NULL(file_player);
 	if(file_player == NULL) return;
 
+	CU_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed);
 	ms_media_player_set_eof_callback(file_player, eof_callback, &eof);
 
 	succeed = ms_media_player_open(file_player, filepath);
 	if(unsupported_format) {
 		CU_ASSERT_FALSE(succeed);
+		CU_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed);
 	} else {
 		CU_ASSERT_TRUE(succeed);
+		CU_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerPaused);
 	}
 	if(!succeed) {
 		ms_media_player_free(file_player);
 		return;
 	}
 
+
 	succeed = ms_media_player_start(file_player);
 	CU_ASSERT_TRUE(succeed);
+	CU_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerPlaying);
 
 	if(seeking_test) {
 		CU_ASSERT_TRUE(ms_media_player_seek(file_player, 5000));
@@ -99,6 +104,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	}
 
 	ms_media_player_close(file_player);
+	CU_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed);
 	ms_media_player_free(file_player);
 	CU_ASSERT_TRUE(eof.eof);
 }

@@ -221,7 +221,7 @@ MSPlayerState ms_media_player_get_state(MSMediaPlayer *obj) {
 		ms_filter_call_method(obj->player, MS_PLAYER_GET_STATE, &state);
 		return state;
 	} else {
-		return MS_PLAYER_CLOSE;
+		return MSPlayerClosed;
 	}
 }
 
