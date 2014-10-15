@@ -33,6 +33,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RTP_HDR_SZ 12
 #define IP4_HDR_SZ 20
 
+static int ip_bitrate_to_codec_bitrate(int sampleRate, int ip_br) {
+	/* 1 frame per packet */
+	int pkt_per_sec = sampleRate / 512;
+	int overhead = AU_HDR_SZ + RTP_HDR_SZ + UDP_HDR_SZ + IP4_HDR_SZ;
+	int codec_br = (ip_br / 8 - pkt_per_sec * overhead) * 8;
+
+	/* SoftAACEncoder2  W  Requested bitrate XXXX unsupported, using 16008 */
+	if (codec_br < 16008)
+		codec_br = 16008;
+	ms_message("ip_bitrate_to_codec_bitrate(sample_rate=%d, ip_br=%d) -> %d", sampleRate, ip_br, codec_br);
+	return codec_br;
+}
+
+static int codec_bitrate_to_ip_bitrate(int sampleRate, int codec_br) {
+	/* 1 frame per packet */
+	int pkt_per_sec = sampleRate / 512;
+	int overhead = AU_HDR_SZ + RTP_HDR_SZ + UDP_HDR_SZ + IP4_HDR_SZ;
+	int ip_br = (codec_br / 8 + pkt_per_sec * overhead) * 8;
+	ms_message("codec_bitrate_to_ip_bitrate(sample_rate=%d, codec_br=%d) -> %d", sampleRate, codec_br, ip_br);
+	return ip_br;
+}
+
 static int get_sdk_version(){
 	static int sdk_version = 0;
 	if (sdk_version==0){
@@ -62,6 +84,7 @@ class AACFilterJniWrapper {
 	jmethodID encoder[2];
 	jmethodID decoder[2];
 	jmethodID postProcessMethod;
+	jmethodID getEncoderBitRateMethod;
 
 	jbyteArray array;
 
@@ -70,7 +93,7 @@ class AACFilterJniWrapper {
 
 public:
 	void init(JNIEnv* jni_env);
-	bool preprocess(JNIEnv* jni_env, int sampleRate, int channelCount, int bitrate);
+	int preprocess(JNIEnv* jni_env, int sampleRate, int channelCount, int bitrate);
 	bool postprocess(JNIEnv* jni_env);
 	mblk_t* pullFromEncoder(JNIEnv* jni_env);
 	void pushToEncoder(JNIEnv* jni_env, uint8_t* data, int size);
@@ -138,17 +161,12 @@ static void enc_preprocess ( MSFilter *f ) {
 	struct EncState *s= ( struct EncState* ) f->data;
 	if (!s) return;
 
-	/* check sampling and bit rate, must be either 44100Hz and 64000b/s or 22050Hz and 32000b/s */
-	if ( ! ( ( s->samplingRate==22050 && s->bitRate == 32000 ) || ( s->samplingRate==44100 && s->bitRate == 64000 ) ) ) {
-		// ms_message ( "AAC-ELD encoder received incorrect sampling/bitrate settings (sr%d br%d). Switch back sampling rate setting %dHz",s->samplingRate, s->bitRate, s->samplingRate );
-		if (s->samplingRate == 22050) {
-			s->bitRate = 32000;
-		} else {
-			s->bitRate = 64000;
-		}
-	}
+	s->bitRate = s->jni_wrapper.preprocess(ms_get_jni_env(), s->samplingRate, s->nchannels, s->bitRate);
 
-	s->jni_wrapper.preprocess(ms_get_jni_env(), s->samplingRate, s->nchannels, s->bitRate);
+	if (s->bitRate == -1) {
+		ms_error("AAC encoder pre-process went wrong");
+	}
+	ms_message("AAC encoder bitrate: %d", s->bitRate);
 
 	/* update the nbytes value */
 	enc_update ( s );
@@ -166,7 +184,7 @@ static void enc_process ( MSFilter *f ) {
 
 	/* Encoder works asynchronously */
 	/* Read coded audio from encoder */
-	{
+	if (!ms_queue_empty(f->inputs[0])) {
 		int frameCount = 0;
 		mblk_t* frame = NULL, *au_headers = NULL, *frames = NULL;
 
@@ -174,6 +192,8 @@ static void enc_process ( MSFilter *f ) {
 		while ( (frame = s->jni_wrapper.pullFromEncoder(jni_env) )) {
 			/* Build frame AU-header according to RFC3640 3.3.6 */
 			int frame_length = msgdsize(frame);
+			/* ms_message("Pull from encoder %d bytes", frame_length); */
+
 			mblk_t* header = allocb(2, 0);
 			header->b_wptr[0] = (uint8_t) (((frame_length << 3) & 0xFF00) >> 8);
 			header->b_wptr[1] = (uint8_t) ((frame_length << 3) & 0xFF);
@@ -191,6 +211,7 @@ static void enc_process ( MSFilter *f ) {
 				frames = frame;
 			}
 			frameCount++;
+			break; // BUG if we try to pack multiple frames in a single packet
 		}
 
 		if (au_headers) {
@@ -224,6 +245,7 @@ static void enc_process ( MSFilter *f ) {
 		while ( ms_bufferizer_get_avail ( s->bufferizer ) >=s->nbytes ) {
 			/* ... then feed the encoder with chunks of SIGNAL_FRAME_SIZE bytes */
 			ms_bufferizer_read ( s->bufferizer, s->inputBuffer, SIGNAL_FRAME_SIZE );
+			/* ms_message("Push to encoder %d bytes", SIGNAL_FRAME_SIZE); */
 			s->jni_wrapper.pushToEncoder(jni_env, s->inputBuffer, SIGNAL_FRAME_SIZE);
 		}
 	}
@@ -250,6 +272,7 @@ static void enc_uninit ( MSFilter *f ) {
 
 
 static int set_ptime ( struct EncState *s, int value ) {
+
 	/* at first call to this function, set the maxptime to MAX (50, value) but not higher than 100 */
 	if (s->maxptime<0) {
 		s->maxptime = MIN(100,MAX(value, 50));
@@ -297,17 +320,11 @@ static int enc_add_fmtp ( MSFilter *f, void *arg ) {
 static int enc_set_sr ( MSFilter *f, void *arg ) {
 	struct EncState *s= ( struct EncState* ) f->data;
 	if (!s) return -1;
+
+	int ip_br = codec_bitrate_to_ip_bitrate(s->samplingRate, s->bitRate);
 	s->samplingRate = ( ( int* ) arg ) [0];
-	/* sampling rate modify also the bitrate, only 2 configs possibles */
-	if (s->samplingRate == 44100) {
-		s->bitRate = 64000;
-	} else if (s->samplingRate == 22050) {
-		s->bitRate = 32000;
-	} else {
-		ms_message("AAC-ELD codec, try to set unsupported sampling rate %d Hz, fallback to 22050Hz", s->samplingRate);
-		s->samplingRate = 22050;
-		s->bitRate = 32000;
-	}
+	s->bitRate = ip_bitrate_to_codec_bitrate(s->samplingRate, ip_br);
+
 	return 0;
 }
 
@@ -319,9 +336,8 @@ static int enc_get_sr ( MSFilter *f, void *arg ) {
 }
 
 static int enc_set_br ( MSFilter *f, void *arg ) {
-	/* ignore bit rate setting */
-	/* bit rate is fixed according to sampling rate : 44100Hz-> 64kbps */
-	/* 22050Hz->32kbps */
+	struct EncState *s= ( struct EncState* ) f->data;
+	s->bitRate = ip_bitrate_to_codec_bitrate(s->samplingRate, *((int*) arg));
 	return 0;
 }
 
@@ -330,7 +346,8 @@ static int enc_get_br ( MSFilter *f, void *arg ) {
 	if (!s) return -1;
 	/* in s->bitRate, we have the codec bitrate but this function must return the network bitrate */
 	/* network_bitrate = ((codec_bitrate*ptime/8) + AU Header + RTP Header + UDP Header + IP Header)*8/ptime */
-	( ( int* ) arg ) [0]= (s->bitRate*s->ptime/8 + AU_HDR_SZ + RTP_HDR_SZ + UDP_HDR_SZ + IP4_HDR_SZ) *8 / s->ptime;
+	( ( int* ) arg ) [0]= codec_bitrate_to_ip_bitrate(s->samplingRate, s->bitRate);
+	ms_message("READ back sample rate from jni");
 	return 0;
 }
 
@@ -349,6 +366,7 @@ static int enc_set_ptime(MSFilter *f, void *arg) {
 	ms_filter_lock ( f );
 	retval = set_ptime ( s, *(int *)arg );
 	ms_filter_unlock ( f );
+
 
 	return retval;
 }
@@ -429,7 +447,7 @@ static void dec_process ( MSFilter *f ) {
 
 	/* Decoder works asynchronously */
 	/* Read decoded audio */
-	{
+	if (!ms_queue_empty(f->inputs[0])) {
 		int frameCount = 0;
 		mblk_t* m = NULL;
 		/* Read available frames from decoder if any */
@@ -601,6 +619,7 @@ void AACFilterJniWrapper::init(JNIEnv* jni_env) {
 	decoder[AACFilterJniWrapper::Push] = lookupMethod(jni_env, "pushToDecoder", "([BI)Z", false);
 	decoder[AACFilterJniWrapper::Pull] = lookupMethod(jni_env, "pullFromDecoder", "([B)I", false);
 	postProcessMethod = lookupMethod(jni_env, "postprocess", "()Z", false);
+	// getEncoderBitRateMethod = lookupMethod(jni_env, "getEncoderBitRate", "()I", false);
 
 	/* Instance */
 	AACFilterInstance = reinterpret_cast<jobject> (jni_env->NewGlobalRef(
@@ -608,12 +627,16 @@ void AACFilterJniWrapper::init(JNIEnv* jni_env) {
 	if (AACFilterInstance == 0) {
 		ms_error("Failed to instanciate AACFilter JNI");
 	}
-
-	array = (jbyteArray)jni_env->NewGlobalRef(jni_env->NewByteArray(1024 * 2));
+	array = (jbyteArray)jni_env->NewGlobalRef(jni_env->NewByteArray(8192));
 }
 
-bool AACFilterJniWrapper::preprocess(JNIEnv* jni_env, int sampleRate, int channelCount, int bitrate) {
-	return jni_env->CallBooleanMethod(AACFilterInstance, preProcessMethod, sampleRate, channelCount, bitrate);
+int AACFilterJniWrapper::preprocess(JNIEnv* jni_env, int sampleRate, int channelCount, int bitrate) {
+
+	bool p = jni_env->CallBooleanMethod(AACFilterInstance, preProcessMethod, sampleRate, channelCount, bitrate);
+	if (!p)
+		return -1;
+	// return jni_env->CallIntMethod(AACFilterInstance, getEncoderBitRateMethod);
+	return bitrate;
 }
 bool AACFilterJniWrapper::postprocess(JNIEnv* jni_env) {
 	return jni_env->CallBooleanMethod(AACFilterInstance, postProcessMethod);

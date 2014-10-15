@@ -1,3 +1,21 @@
+/*
+Log.java
+Copyright (C) 2011  Belledonne Communications, Grenoble, France
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
 package org.linphone.mediastream;
 
 import java.nio.ByteBuffer;
@@ -7,55 +25,57 @@ import android.media.MediaCodec;
 import android.media.MediaCodec.BufferInfo;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
+import android.view.inputmethod.InputBinding;
 @TargetApi(16)
 public class AACFilter {
 	int sampleRate, channelCount, bitrate;
-	
+
 	MediaCodec encoder;
 	BufferInfo encoderBufferInfo;
+	ByteBuffer[] encoderOutputBuffers, encoderInputBuffers;
 	MediaCodec decoder;
 	BufferInfo decoderBufferInfo;
+	ByteBuffer[] decoderOutputBuffers, decoderInputBuffers;
 	boolean initialized;
-	
-	/* Pattern to handle unload/reload of Java class 
+
+	/* Pattern to handle unload/reload of Java class
     private static native void nativeInit();
 
     static {
         nativeInit();
     }*/
-	
+
 	private static AACFilter singleton;
 	public static AACFilter instance() {
 		if (singleton == null) singleton = new AACFilter();
 		return singleton;
 	}
-	
+
 	public AACFilter() {
 		initialized = false;
 	}
-	
+
 	public boolean preprocess(int sampleRate, int channelCount, int bitrate) {
 		if (initialized)
 			return true;
-		Log.i("Init: sampleRate=" + sampleRate + ", channel=" + channelCount + ", br=" + bitrate);
-		
+
 		this.sampleRate = sampleRate;
 		this.channelCount = channelCount;
 		this.bitrate = bitrate;
-		
+
 		byte[] asc = null;
 		try {
 			MediaFormat mediaFormat = MediaFormat.createAudioFormat("audio/mp4a-latm", sampleRate, channelCount);
 			mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectELD);
 			mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
-			
+
 			encoder = MediaCodec.createByCodecName("OMX.google.aac.encoder");
 			encoder.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-			
+
 			encoder.start();
-			
+
 			encoderBufferInfo = new MediaCodec.BufferInfo();
-			
+
 			int ascPollCount = 0;
 			while (asc == null && ascPollCount < 1000) {
 				// Try to get the asc
@@ -71,6 +91,8 @@ public class AACFilter {
 				}
 				ascPollCount++;
 			}
+			encoderOutputBuffers= encoder.getOutputBuffers();
+			encoderInputBuffers= encoder.getInputBuffers();
 			if (asc == null) {
 				Log.e("Sigh, failed to read asc from encoder");
 			}
@@ -91,30 +113,36 @@ public class AACFilter {
 				mediaFormat = MediaFormat.createAudioFormat("audio/mp4a-latm", sampleRate, channelCount);
 				mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
 			}
-			
-			
-			// MediaCodecList.getCodecInfoAt(0);
+
 			decoder = MediaCodec.createByCodecName("OMX.google.aac.decoder");
 			decoder.configure(mediaFormat, null, null, 0);
-			Log.i("DECODER SAMPLE RATE:" + mediaFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE));
 			decoder.start();
-			
+
+			decoderOutputBuffers= decoder.getOutputBuffers();
+			decoderInputBuffers= decoder.getInputBuffers();
+
 			decoderBufferInfo = new MediaCodec.BufferInfo();
 		} catch (Exception exc) {
 			Log.e(exc, "Unable to create AAC Decoder");
 			return false;
 		}
-		
+
 		Log.i("AAC decoder initialized");
 		initialized = true;
+
+		try {
+			Log.i("Encoder bitrate: "+ getEncoderBitRate());
+		} catch (Exception exc) {
+
+		}
 		return true;
 	}
-	
+
 	public boolean pushToDecoder(byte[] data, int size) {
 		try {
 			if (data != null && decoder != null) {
 				/* request available input buffer (0 == no wait) */
-				return queueData(decoder, data, size);
+				return queueData(decoder, decoderInputBuffers, data, size);
 			} else {
 				return false;
 			}
@@ -123,21 +151,27 @@ public class AACFilter {
 			return false;
 		}
 	}
-	
+
 	public int pullFromDecoder(byte[] b) {
 		try {
 			/* read available decoded data */
-			return dequeueData(decoder, decoderBufferInfo, b);
+			int result = dequeueData(decoder, decoderOutputBuffers, decoderBufferInfo, b);
+			if (result == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
+				decoderOutputBuffers = decoder.getOutputBuffers();
+				return pullFromDecoder(b);
+			} else {
+				return result;
+			}
 		} catch (Exception e) {
 			return 0;
 		}
 	}
-	
+
 	public boolean pushToEncoder(byte[] data, int size) {
 		try {
 			if (data != null && encoder != null) {
 				/* request available input buffer (0 == no wait) */
-				return queueData(encoder, data, size);
+				return queueData(encoder, encoderInputBuffers, data, size);
 			} else {
 				return false;
 			}
@@ -146,16 +180,22 @@ public class AACFilter {
 			return false;
 		}
 	}
-	
+
 	public int pullFromEncoder(byte[] b) {
 		try {
 			/* read available decoded data */
-			return dequeueData(encoder, encoderBufferInfo, b);
+			int result = dequeueData(encoder, encoderOutputBuffers, encoderBufferInfo, b);
+			if (result == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
+				encoderOutputBuffers = encoder.getOutputBuffers();
+				return pullFromDecoder(b);
+			} else {
+				return result;
+			}
 		} catch (Exception e) {
 			return 0;
 		}
 	}
-			
+
 	public boolean postprocess() {
 		if (initialized) {
 			Log.i("Stopping encoder");
@@ -172,22 +212,30 @@ public class AACFilter {
 		}
 		return true;
 	}
-	
-	static private boolean queueData(MediaCodec codec, byte[] data, int size) {
+
+	public int getEncoderBitRate() {
+		if (initialized)
+			return encoder.getOutputFormat().getInteger(MediaFormat.KEY_BIT_RATE);
+		else
+			return -1;
+	}
+
+	static private boolean queueData(MediaCodec codec, ByteBuffer[] inputBuffers, byte[] data, int size) {
 		int bufdex = codec.dequeueInputBuffer(0);
 		if (bufdex >= 0) {
-			codec.getInputBuffers()[bufdex].position(0);
-			codec.getInputBuffers()[bufdex].put(data, 0, size);
+			inputBuffers[bufdex].position(0);
+			inputBuffers[bufdex].put(data, 0, size);
 			codec.queueInputBuffer(bufdex, 0, size, 0, 0);
 			return true;
 		} else {
 			return false;
 		}
 	}
-	static private int dequeueData(MediaCodec codec, BufferInfo bufferInfo, byte[] b) {
+	static private int dequeueData(MediaCodec codec, ByteBuffer[] ouputBuffers, BufferInfo bufferInfo, byte[] b) {
 		int pcmbufPollCount = 0;
 		while (pcmbufPollCount < 1) {
 			int decBufIdx = codec.dequeueOutputBuffer(bufferInfo, 0);
+
 			if (decBufIdx >= 0) {
 				if (b.length < bufferInfo.size)
 					Log.e("array is too small " + b.length + " < " + bufferInfo.size);
@@ -197,15 +245,16 @@ public class AACFilter {
 				}
 				codec.getOutputBuffers()[decBufIdx].get(b, 0, bufferInfo.size);
 				codec.getOutputBuffers()[decBufIdx].position(0);
+
 				codec.releaseOutputBuffer(decBufIdx, false);
 				return bufferInfo.size;
 			} else if (decBufIdx == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
-				Log.i("MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED");
+				return MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED;
 			} else if (decBufIdx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
 				Log.i("MediaCodec.INFO_OUTPUT_FORMAT_CHANGED");
 				Log.i("CHANNEL_COUNT: " + codec.getOutputFormat().getInteger(MediaFormat.KEY_CHANNEL_COUNT));
 				Log.i("SAMPLE_RATE: " + codec.getOutputFormat().getInteger(MediaFormat.KEY_SAMPLE_RATE));
-				
+
 			} else if (decBufIdx == MediaCodec.INFO_TRY_AGAIN_LATER) {
 				// Log.i("MediaCodec.INFO_TRY_AGAIN_LATER");
 			}
