@@ -2463,7 +2463,7 @@ static int player_get_current_position(MSFilter *f, void *arg) {
 		ms_error("MKVPlayer: cannot get current duration. No file is open");
 		goto fail;
 	}
-	*(int *)arg = (int)(((uint64_t)matroska_block_get_timestamp(&obj->file)) * (uint64_t)matroska_get_timecode_scale(&obj->file)) / 1000000UL;
+	*(int *)arg = matroska_block_get_timestamp(&obj->file);
 	ms_filter_unlock(f);
 	return 0;
 
