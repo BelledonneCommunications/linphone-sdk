@@ -86,7 +86,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/mediastream.c \
 					voip/audiostream.c \
 					voip/ringstream.c \
-					voip/msfileplayer.c \
+					voip/msmediaplayer.c \
 					voip/ice.c \
 					otherfilters/msrtp.c \
 					voip/qualityindicator.c \

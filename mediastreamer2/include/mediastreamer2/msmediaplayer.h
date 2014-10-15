@@ -8,12 +8,11 @@
 /**
  * @brief Media file player
  */
-typedef struct _MSFilePlayer MSFilePlayer;
+typedef struct _MSMediaPlayer MSMediaPlayer;
 
 /**
- * Callbacks definitions
- */
-typedef void (*MSFilePlayerEofCallback)(void *user_data);
+ * Callbacks definitions */
+typedef void (*MSMediaPlayerEofCallback)(void *user_data);
 
 /**
  * @brief Instanciate a file player
@@ -22,20 +21,20 @@ typedef void (*MSFilePlayerEofCallback)(void *user_data);
  * @param window_id Pointer on the drawing window
  * @return A pointer on the created MSFilePlayer
  */
-MS2_PUBLIC MSFilePlayer *ms_file_player_new(MSSndCard *snd_card, const char *video_display_name, void *window_id);
+MS2_PUBLIC MSMediaPlayer *ms_media_player_new(MSSndCard *snd_card, const char *video_display_name, void *window_id);
 
 /**
  * @brief Free a file player
  * @param obj Pointer on the MSFilePlayer to free
  */
-MS2_PUBLIC void ms_file_player_free(MSFilePlayer *obj);
+MS2_PUBLIC void ms_media_player_free(MSMediaPlayer *obj);
 
 /**
  * @brief Get the window ID
  * @param obj The player
  * @return The window ID
  */
-MS2_PUBLIC void *ms_file_player_get_window_id(const MSFilePlayer *obj);
+MS2_PUBLIC void *ms_media_player_get_window_id(const MSMediaPlayer *obj);
 
 /**
  * @brief Set the "End of File" callback
@@ -43,7 +42,7 @@ MS2_PUBLIC void *ms_file_player_get_window_id(const MSFilePlayer *obj);
  * @param cb Function to call
  * @param user_data Data which will be passed to the function
  */
-MS2_PUBLIC void ms_file_player_set_eof_callback(MSFilePlayer *obj, MSFilePlayerEofCallback cb, void *user_data);
+MS2_PUBLIC void ms_media_player_set_eof_callback(MSMediaPlayer *obj, MSMediaPlayerEofCallback cb, void *user_data);
 
 /**
  * @brief Open a media file
@@ -51,21 +50,21 @@ MS2_PUBLIC void ms_file_player_set_eof_callback(MSFilePlayer *obj, MSFilePlayerE
  * @param filepath Path of the file to open
  * @return TRUE if the file could be opened
  */
-MS2_PUBLIC bool_t ms_file_player_open(MSFilePlayer *obj, const char *filepath);
+MS2_PUBLIC bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath);
 
 /**
  * @brief Close a media file
  * That function can be safly call even if no file has been opend
  * @param obj A pointer to a MSFilePlayer
  */
-MS2_PUBLIC void ms_file_player_close(MSFilePlayer *obj);
+MS2_PUBLIC void ms_media_player_close(MSMediaPlayer *obj);
 
 /**
  * @brief Start playback
  * @param obj A pointer on a MSFilePlayer
  * @return TRUE if playback has been successfuly started
  */
-MS2_PUBLIC bool_t ms_file_player_start(MSFilePlayer *obj);
+MS2_PUBLIC bool_t ms_media_player_start(MSMediaPlayer *obj);
 
 /**
  * @brief Stop a playback
@@ -73,13 +72,13 @@ MS2_PUBLIC bool_t ms_file_player_start(MSFilePlayer *obj);
  * the begining of the file.
  * @param obj A pointer on a MSFilePlayer
  */
-MS2_PUBLIC void ms_file_player_stop(MSFilePlayer *obj);
+MS2_PUBLIC void ms_media_player_stop(MSMediaPlayer *obj);
 
 /**
  * @brief Turn playback to paused.
  * @param obj A pointer on a MSFilePlayer
  */
-MS2_PUBLIC void ms_file_player_pause(MSFilePlayer *obj);
+MS2_PUBLIC void ms_media_player_pause(MSMediaPlayer *obj);
 
 /**
  * @brief Seek into the opened file
@@ -88,33 +87,33 @@ MS2_PUBLIC void ms_file_player_pause(MSFilePlayer *obj);
  * @param seek_pos_ms Position where to seek on (in milliseconds)
  * @return
  */
-MS2_PUBLIC bool_t ms_file_player_seek(MSFilePlayer *obj, int seek_pos_ms);
+MS2_PUBLIC bool_t ms_media_player_seek(MSMediaPlayer *obj, int seek_pos_ms);
 
 /**
  * @brief Get the state of the player
  * @param obj A pointer on a MSFilePlayer
  * @return An MSPLayerSate enum
  */
-MS2_PUBLIC MSPlayerState ms_file_player_get_state(MSFilePlayer *obj);
+MS2_PUBLIC MSPlayerState ms_media_player_get_state(MSMediaPlayer *obj);
 
 /**
  * @brief Get the duration of the opened media
  * @param obj A pointer on a MSFilePlayer
  * @return The duration in milliseconds. -1 if failure
  */
-MS2_PUBLIC int ms_file_player_get_duration(MSFilePlayer *obj);
+MS2_PUBLIC int ms_media_player_get_duration(MSMediaPlayer *obj);
 
 /**
  * @brief Get the position of the playback
  * @param obj The player
  * @return The position in milliseconds. -1 if failure
  */
-MS2_PUBLIC int ms_file_player_get_current_position(MSFilePlayer *obj);
+MS2_PUBLIC int ms_media_player_get_current_position(MSMediaPlayer *obj);
 
 /**
  * @brief Check whether Matroska format is supported by the player
  * @return TRUE if supported
  */
-MS2_PUBLIC bool_t ms_file_player_matroska_supported(void);
+MS2_PUBLIC bool_t ms_media_player_matroska_supported(void);
 
 #endif

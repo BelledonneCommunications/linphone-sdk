@@ -1,4 +1,4 @@
-#include "mediastreamer2/fileplayer.h"
+#include "mediastreamer2/msmediaplayer.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msextdisplay.h"
@@ -38,7 +38,7 @@ static const FormatDesc _format_desc_list[] = {
 static bool_t four_cc_compare(const FourCC arg1, const FourCC arg2);
 static FileFormat four_cc_to_file_format(const FourCC four_cc);
 
-struct _MSFilePlayer {
+struct _MSMediaPlayer {
 	MSFilter *player;
 	MSFilter *audio_decoder;
 	MSFilter *audio_sink;
@@ -51,7 +51,7 @@ struct _MSFilePlayer {
 	FileFormat format;
 	bool_t is_open;
 	char *filename;
-	MSFilePlayerEofCallback eof_cb;
+	MSMediaPlayerEofCallback eof_cb;
 	void *user_data_cb;
 	ms_mutex_t cb_access;
 	MSSndCard *snd_card;
@@ -60,11 +60,11 @@ struct _MSFilePlayer {
 };
 
 static bool_t _get_format(const char *filepath, FileFormat *format);
-static void _create_decoders(MSFilePlayer *obj);
-static void _create_sinks(MSFilePlayer *obj);
-static void _destroy_graph(MSFilePlayer *obj);
-static bool_t _link_all(MSFilePlayer *obj);
-static void _unlink_all(MSFilePlayer *obj);
+static void _create_decoders(MSMediaPlayer *obj);
+static void _create_sinks(MSMediaPlayer *obj);
+static void _destroy_graph(MSMediaPlayer *obj);
+static bool_t _link_all(MSMediaPlayer *obj);
+static void _unlink_all(MSMediaPlayer *obj);
 static void _eof_filter_notify_cb(void *userdata, struct _MSFilter *f, unsigned int id, void *arg);
 
 static bool_t four_cc_compare(const FourCC arg1, const FourCC arg2) {
@@ -84,8 +84,8 @@ static FileFormat four_cc_to_file_format(const FourCC four_cc) {
 	return FILE_FORMAT_UNKNOWN;
 }
 
-MSFilePlayer *ms_file_player_new(MSSndCard *snd_card, const char *video_display_name, void *window_id) {
-	MSFilePlayer *obj = (MSFilePlayer *)ms_new0(MSFilePlayer, 1);
+MSMediaPlayer *ms_media_player_new(MSSndCard *snd_card, const char *video_display_name, void *window_id) {
+	MSMediaPlayer *obj = (MSMediaPlayer *)ms_new0(MSMediaPlayer, 1);
 	obj->ticker = ms_ticker_new();
 	ms_mutex_init(&obj->cb_access, NULL);
 	obj->snd_card = snd_card;
@@ -96,18 +96,18 @@ MSFilePlayer *ms_file_player_new(MSSndCard *snd_card, const char *video_display_
 	return obj;
 }
 
-void ms_file_player_free(MSFilePlayer *obj) {
-	ms_file_player_close(obj);
+void ms_media_player_free(MSMediaPlayer *obj) {
+	ms_media_player_close(obj);
 	ms_ticker_destroy(obj->ticker);
 	ms_free_if_not_null(obj->video_display);
 	ms_free(obj);
 }
 
-void *ms_file_player_get_window_id(const MSFilePlayer *obj) {
+void *ms_media_player_get_window_id(const MSMediaPlayer *obj) {
 	return obj->window_id;
 }
 
-bool_t ms_file_player_open(MSFilePlayer *obj, const char *filepath) {
+bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	wave_header_t header;
 	int fd;
 	char *tmp;
@@ -170,7 +170,7 @@ bool_t ms_file_player_open(MSFilePlayer *obj, const char *filepath) {
 	return TRUE;
 }
 
-void ms_file_player_close(MSFilePlayer *obj) {
+void ms_media_player_close(MSMediaPlayer *obj) {
 	if(obj->is_open) {
 		ms_ticker_detach(obj->ticker, obj->player);
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_CLOSE);
@@ -181,7 +181,7 @@ void ms_file_player_close(MSFilePlayer *obj) {
 	}
 }
 
-bool_t ms_file_player_start(MSFilePlayer *obj) {
+bool_t ms_media_player_start(MSMediaPlayer *obj) {
 	if(!obj->is_open) {
 		ms_error("Cannot start playing. No file has been opened");
 		return FALSE;
@@ -193,7 +193,7 @@ bool_t ms_file_player_start(MSFilePlayer *obj) {
 	return TRUE;
 }
 
-void ms_file_player_stop(MSFilePlayer *obj) {
+void ms_media_player_stop(MSMediaPlayer *obj) {
 	int seek_pos = 0;
 	if(obj->is_open) {
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_PAUSE);
@@ -201,13 +201,13 @@ void ms_file_player_stop(MSFilePlayer *obj) {
 	}
 }
 
-void ms_file_player_pause(MSFilePlayer *obj) {
+void ms_media_player_pause(MSMediaPlayer *obj) {
 	if(obj->is_open) {
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_PAUSE);
 	}
 }
 
-bool_t ms_file_player_seek(MSFilePlayer *obj, int seek_pos_ms) {
+bool_t ms_media_player_seek(MSMediaPlayer *obj, int seek_pos_ms) {
 	if(obj->is_open) {
 		return ms_filter_call_method(obj->player, MS_PLAYER_SEEK_MS, &seek_pos_ms) == 0 ? TRUE : FALSE;
 	} else {
@@ -215,7 +215,7 @@ bool_t ms_file_player_seek(MSFilePlayer *obj, int seek_pos_ms) {
 	}
 }
 
-MSPlayerState ms_file_player_get_state(MSFilePlayer *obj) {
+MSPlayerState ms_media_player_get_state(MSMediaPlayer *obj) {
 	if(obj->is_open) {
 		MSPlayerState state;
 		ms_filter_call_method(obj->player, MS_PLAYER_GET_STATE, &state);
@@ -225,7 +225,7 @@ MSPlayerState ms_file_player_get_state(MSFilePlayer *obj) {
 	}
 }
 
-int ms_file_player_get_duration(MSFilePlayer *obj) {
+int ms_media_player_get_duration(MSMediaPlayer *obj) {
 	int duration;
 	if(!obj->is_open) {
 		ms_error("Could not get duration. No file is open");
@@ -238,7 +238,7 @@ int ms_file_player_get_duration(MSFilePlayer *obj) {
 	return duration;
 }
 
-int ms_file_player_get_current_position(MSFilePlayer *obj) {
+int ms_media_player_get_current_position(MSMediaPlayer *obj) {
 	int position;
 	if(!obj->is_open) {
 		ms_error("Could not get position. No file is open");
@@ -251,14 +251,14 @@ int ms_file_player_get_current_position(MSFilePlayer *obj) {
 	return position;
 }
 
-void ms_file_player_set_eof_callback(MSFilePlayer *obj, MSFilePlayerEofCallback cb, void *user_data) {
+void ms_media_player_set_eof_callback(MSMediaPlayer *obj, MSMediaPlayerEofCallback cb, void *user_data) {
 	ms_mutex_lock(&obj->cb_access);
 	obj->eof_cb = cb;
 	obj->user_data_cb = user_data;
 	ms_mutex_unlock(&obj->cb_access);
 }
 
-bool_t ms_file_player_matroska_supported(void) {
+bool_t ms_media_player_matroska_supported(void) {
 #ifdef HAVE_MATROSKA
 	return TRUE;
 #else
@@ -286,7 +286,7 @@ static bool_t _get_format(const char *filepath, FileFormat *format) {
 	return TRUE;
 }
 
-static void _create_decoders(MSFilePlayer *obj) {
+static void _create_decoders(MSMediaPlayer *obj) {
 	int sample_rate, nchannels;
 	switch(obj->format) {
 	case FILE_FORMAT_WAVE:
@@ -324,7 +324,7 @@ static void _create_decoders(MSFilePlayer *obj) {
 	}
 }
 
-static void _create_sinks(MSFilePlayer *obj) {
+static void _create_sinks(MSMediaPlayer *obj) {
 	int sink_sample_rate, sample_rate, nchannels;
 	if(obj->audio_pin_fmt.fmt && obj->snd_card) {
 		sample_rate = obj->audio_pin_fmt.fmt->rate;
@@ -356,7 +356,7 @@ static void _create_sinks(MSFilePlayer *obj) {
 	}
 }
 
-static void _destroy_graph(MSFilePlayer *obj) {
+static void _destroy_graph(MSMediaPlayer *obj) {
 	ms_filter_destroy_and_reset_if_not_null(obj->player);
 	ms_filter_destroy_and_reset_if_not_null(obj->audio_decoder);
 	ms_filter_destroy_and_reset_if_not_null(obj->video_decoder);
@@ -367,7 +367,7 @@ static void _destroy_graph(MSFilePlayer *obj) {
 	obj->video_pin_fmt.fmt = NULL;
 }
 
-static bool_t _link_all(MSFilePlayer *obj) {
+static bool_t _link_all(MSMediaPlayer *obj) {
 	MSConnectionHelper helper;
 	if(obj->player == NULL) {
 		ms_error("Could not link graph. There is no playing filter");
@@ -393,7 +393,7 @@ static bool_t _link_all(MSFilePlayer *obj) {
 	return TRUE;
 }
 
-static void _unlink_all(MSFilePlayer *obj) {
+static void _unlink_all(MSMediaPlayer *obj) {
 	MSConnectionHelper helper;
 	if(obj->audio_pin_fmt.fmt && obj->audio_sink) {
 		ms_connection_helper_start(&helper);
@@ -411,7 +411,7 @@ static void _unlink_all(MSFilePlayer *obj) {
 }
 
 static void _eof_filter_notify_cb(void *userdata, struct _MSFilter *f, unsigned int id, void *arg) {
-	MSFilePlayer *obj = (MSFilePlayer *)userdata;
+	MSMediaPlayer *obj = (MSMediaPlayer *)userdata;
 	ms_mutex_lock(&obj->cb_access);
 	if(f == obj->player && id == MS_PLAYER_EOF && obj->eof_cb != NULL) {
 		obj->eof_cb(obj->user_data_cb);
