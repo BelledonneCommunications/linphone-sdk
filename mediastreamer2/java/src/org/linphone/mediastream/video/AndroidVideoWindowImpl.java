@@ -39,10 +39,10 @@ public class AndroidVideoWindowImpl {
 	private SurfaceView mVideoPreviewView;
 	
 	private boolean useGLrendering;
-	private Bitmap mBitmap; 
+	private Bitmap mBitmap = null; 
 
-	private Surface mSurface; 
-	private VideoWindowListener mListener;
+	private Surface mSurface = null; 
+	private VideoWindowListener mListener = null;
 	private Renderer renderer;
 	
 	/**
@@ -58,20 +58,33 @@ public class AndroidVideoWindowImpl {
 	};
 	
 	/**
+	 * Constructor
 	 * @param renderingSurface Surface created by the application that will be used to render decoded video stream
 	 * @param previewSurface Surface created by the application used by Android's Camera preview framework
+	 * @param listener Specified a listener. null is accepted
+	 */
+	public AndroidVideoWindowImpl(SurfaceView renderingSurface, SurfaceView previewSurface, VideoWindowListener listener) {
+		mVideoRenderingView = renderingSurface;
+		mVideoPreviewView = previewSurface;
+		useGLrendering = (renderingSurface instanceof GLSurfaceView);
+		mListener = listener;
+		init();
+	}
+	
+	/**
+	 * @param renderingSurface Surface created by the application that will be used to render decoded video stream
+	 * @param previewSurface Surface created by the application used by Android's Camera preview framework
+	 * @deprecated Use the new constructor instead
 	 */
 	public AndroidVideoWindowImpl(SurfaceView renderingSurface, SurfaceView previewSurface) {
 		mVideoRenderingView = renderingSurface;
 		mVideoPreviewView = previewSurface;
-		
 		useGLrendering = (renderingSurface instanceof GLSurfaceView);
-		
-		mBitmap = null;
-		mSurface = null;
-		mListener = null;
 	}
-	
+
+	/**
+	 * @deprecated It is now automatically called by the new constructor
+	 */
 	public void init() {
 		// register callback for rendering surface events
 		mVideoRenderingView.getHolder().addCallback(new Callback(){
@@ -138,6 +151,11 @@ public class AndroidVideoWindowImpl {
 		//mSensorMgr.unregisterListener(this);
 	}
 
+	/**
+	 * Set a listener
+	 * @param l A listener
+	 * @deprecated Specify pass a listener to the constructor instead. 
+	 */
 	public void setListener(VideoWindowListener l){
 		mListener=l; 
 	}
