@@ -33,6 +33,34 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RTP_HDR_SZ 12
 #define IP4_HDR_SZ 20
 
+/* ptime can be increased to mitigate network overhead */
+const int sample_rate_min_ptime[] = {
+	10, /* 16 kHz */
+	10, /* 22 kHz */
+	10, /* 32 kHz */
+	10, /* 44 kHz */
+	10, /* 48 kHz */
+};
+
+const int sample_rate_min_codec_br[] = {
+	16008, /* 16 kHz */
+	18008, /* 22 kHz */
+	30000, /* 32 kHz */
+	65459, /* 44 kHz */
+	80000, /* 48 kHz */
+};
+
+static int sample_rate_to_index(int sampleRate) {
+	switch (sampleRate) {
+		case 16000: return 0;
+		case 22050: return 1;
+		case 32000: return 2;
+		case 44100: return 3;
+		case 48000: return 4;
+		default: return 4;
+	}
+}
+
 static int ip_bitrate_to_codec_bitrate(int sampleRate, int ip_br) {
 	/* 1 frame per packet */
 	int pkt_per_sec = sampleRate / 512;
@@ -40,8 +68,8 @@ static int ip_bitrate_to_codec_bitrate(int sampleRate, int ip_br) {
 	int codec_br = (ip_br / 8 - pkt_per_sec * overhead) * 8;
 
 	/* SoftAACEncoder2  W  Requested bitrate XXXX unsupported, using 16008 */
-	if (codec_br < 16008)
-		codec_br = 16008;
+	codec_br = MAX(codec_br, sample_rate_min_codec_br[sample_rate_to_index(sampleRate)]);
+	/* TODO: add minimum codec_br per sample_rate */
 	ms_message("ip_bitrate_to_codec_bitrate(sample_rate=%d, ip_br=%d) -> %d", sampleRate, ip_br, codec_br);
 	return codec_br;
 }
@@ -145,7 +173,7 @@ static void enc_init ( MSFilter *f ) {
 
 	s->timeStamp=0;
 	s->bufferizer=ms_bufferizer_new();
-	s->ptime = 10;
+	s->ptime=10;
 	s->maxptime = -1;
 	s->samplingRate=22050; /* default is narrow band : 22050Hz and 32000b/s */
 	s->bitRate=32000;
@@ -161,12 +189,14 @@ static void enc_preprocess ( MSFilter *f ) {
 	struct EncState *s= ( struct EncState* ) f->data;
 	if (!s) return;
 
+	s->ptime = MAX(s->ptime, sample_rate_min_ptime[sample_rate_to_index(s->samplingRate)]);
+
 	s->bitRate = s->jni_wrapper.preprocess(ms_get_jni_env(), s->samplingRate, s->nchannels, s->bitRate);
 
 	if (s->bitRate == -1) {
 		ms_error("AAC encoder pre-process went wrong");
 	}
-	ms_message("AAC encoder bitrate: %d", s->bitRate);
+	ms_message("AAC encoder bitrate: %d, ptime: %d", s->bitRate, s->ptime);
 
 	/* update the nbytes value */
 	enc_update ( s );
@@ -201,7 +231,7 @@ static void enc_process ( MSFilter *f ) {
 
 			/* Add to message */
 			if (au_headers)
-				au_headers = concatb(au_headers, header);
+				concatb(au_headers, header);
 			else
 				au_headers = header;
 
@@ -211,7 +241,6 @@ static void enc_process ( MSFilter *f ) {
 				frames = frame;
 			}
 			frameCount++;
-			break; // BUG if we try to pack multiple frames in a single packet
 		}
 
 		if (au_headers) {
@@ -272,14 +301,13 @@ static void enc_uninit ( MSFilter *f ) {
 
 
 static int set_ptime ( struct EncState *s, int value ) {
-
 	/* at first call to this function, set the maxptime to MAX (50, value) but not higher than 100 */
 	if (s->maxptime<0) {
 		s->maxptime = MIN(100,MAX(value, 50));
 	}
 
 	if ( value>0 && value<=s->maxptime ) {
-		s->ptime=value;
+		s->ptime = MAX(value, sample_rate_min_ptime[sample_rate_to_index(s->samplingRate)]);
 		ms_message ( "AAC-ELD encoder using ptime=%i",value );
 		enc_update ( s );
 		return 0;

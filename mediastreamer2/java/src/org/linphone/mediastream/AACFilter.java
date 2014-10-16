@@ -243,8 +243,8 @@ public class AACFilter {
 					Log.i("JUST READ MediaCodec.BUFFER_FLAG_CODEC_CONFIG buffer");
 
 				}
-				codec.getOutputBuffers()[decBufIdx].get(b, 0, bufferInfo.size);
-				codec.getOutputBuffers()[decBufIdx].position(0);
+				ouputBuffers[decBufIdx].get(b, 0, bufferInfo.size);
+				ouputBuffers[decBufIdx].position(0);
 
 				codec.releaseOutputBuffer(decBufIdx, false);
 				return bufferInfo.size;
