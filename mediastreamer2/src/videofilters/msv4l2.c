@@ -275,13 +275,40 @@ static MSPixFmt pick_best_format(int fd, const V4L2FormatDescription* format_des
 	return MS_PIX_FMT_UNKNOWN;
 }
 
-static int msv4l2_configure(V4l2State *s){
-	struct v4l2_capability cap;
-	struct v4l2_format fmt;
+static int set_camera_feature(V4l2State *s, unsigned int ctl_id, int value, const char *feature_name){
 	struct v4l2_ext_control ctl={0};
 	struct v4l2_ext_controls ctls={0};
 	struct v4l2_queryctrl queryctrl={0};
+	
+	queryctrl.id = ctl_id;
+	if (ioctl (s->fd, VIDIOC_QUERYCTRL, &queryctrl)!=0) {
+		ms_warning("%s not supported: %s",feature_name,strerror(errno));
+		return -1;
+	} else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+		ms_warning("%s setting disabled.",feature_name);
+		return -1;
+	}else {
+		ctl.id=ctl_id;
+		ctl.value=value;
+		ctl.size=sizeof(int);
+		ctls.count=1;
+		ctls.controls=&ctl;
+		ctls.ctrl_class=V4L2_CTRL_CLASS_CAMERA;
+
+		if (v4l2_ioctl(s->fd,VIDIOC_S_EXT_CTRLS,&ctls)!=0){
+			ms_warning("Could not enable %s: %s", feature_name, strerror(errno));
+			return -1;
+		}
+	}
+	return 0;
+}
+
+
+static int msv4l2_configure(V4l2State *s){
+	struct v4l2_capability cap;
+	struct v4l2_format fmt;
 	MSVideoSize vsize;
+	const char *focus;
 
 	if (v4l2_ioctl (s->fd, VIDIOC_QUERYCAP, &cap)<0) {
 		ms_message("Not a v4lv2 driver.");
@@ -335,21 +362,14 @@ static int msv4l2_configure(V4l2State *s){
 	}
 	s->picture_size=get_picture_buffer_size(s->pix_fmt,s->vsize.width,s->vsize.height);
 	
-	queryctrl.id = V4L2_CID_FOCUS_AUTO;
-	if (ioctl (s->fd, VIDIOC_QUERYCTRL, &queryctrl)!=0) {
-		ms_warning("Auto-focus not supported: %s",strerror(errno));
-	} else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
-		ms_warning("Autofocus setting disabled.");
-	}else {
-		ctl.id=V4L2_CID_FOCUS_AUTO;
-		ctl.value=1;
-		ctl.size=sizeof(int);
-		ctls.count=1;
-		ctls.controls=&ctl;
-		ctls.ctrl_class=V4L2_CTRL_CLASS_CAMERA;
-
-		if (v4l2_ioctl(s->fd,VIDIOC_S_EXT_CTRLS,&ctls)!=0){
-			ms_warning("Could not enable auto-focus: %s", strerror(errno));
+	focus=getenv("MS2_CAM_FOCUS");
+	if (focus){
+		if (strcasecmp(focus,"auto")==0){
+			set_camera_feature(s,V4L2_CID_AUTO_FOCUS_RANGE,V4L2_AUTO_FOCUS_RANGE_AUTO ,"auto range");
+			set_camera_feature(s,V4L2_CID_FOCUS_AUTO,1,"auto-focus");
+		}else if (strcasecmp(focus,"infinity")==0){
+			set_camera_feature(s,V4L2_CID_AUTO_FOCUS_RANGE,V4L2_AUTO_FOCUS_RANGE_INFINITY ,"infinity range");
+			set_camera_feature(s,V4L2_CID_FOCUS_AUTO,1,"auto-focus");
 		}
 	}
 	
