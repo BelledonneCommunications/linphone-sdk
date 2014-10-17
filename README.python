@@ -17,6 +17,7 @@ the version used by Python.
  - Java
  - awk (on Windows, get it from http://gnuwin32.sourceforge.net/downlinks/gawk.php)
  - sed (on Windows, get it from http://sourceforge.net/projects/gnuwin32/files/sed/4.2.1/sed-4.2.1-setup.exe/download)
+ - nasm (on Windows, get it from http://www.nasm.us/)
  - xxd (only for Linux and Mac OS X)
  - pkg-config (automatically installed when building on Windows)
  - intltoolize (automatically installed when building on Windows)
