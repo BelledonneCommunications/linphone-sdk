@@ -112,7 +112,6 @@ class AACFilterJniWrapper {
 	jmethodID encoder[2];
 	jmethodID decoder[2];
 	jmethodID postProcessMethod;
-	jmethodID getEncoderBitRateMethod;
 
 	jbyteArray array;
 
@@ -647,7 +646,6 @@ void AACFilterJniWrapper::init(JNIEnv* jni_env) {
 	decoder[AACFilterJniWrapper::Push] = lookupMethod(jni_env, "pushToDecoder", "([BI)Z", false);
 	decoder[AACFilterJniWrapper::Pull] = lookupMethod(jni_env, "pullFromDecoder", "([B)I", false);
 	postProcessMethod = lookupMethod(jni_env, "postprocess", "()Z", false);
-	// getEncoderBitRateMethod = lookupMethod(jni_env, "getEncoderBitRate", "()I", false);
 
 	/* Instance */
 	AACFilterInstance = reinterpret_cast<jobject> (jni_env->NewGlobalRef(
@@ -663,7 +661,6 @@ int AACFilterJniWrapper::preprocess(JNIEnv* jni_env, int sampleRate, int channel
 	bool p = jni_env->CallBooleanMethod(AACFilterInstance, preProcessMethod, sampleRate, channelCount, bitrate);
 	if (!p)
 		return -1;
-	// return jni_env->CallIntMethod(AACFilterInstance, getEncoderBitRateMethod);
 	return bitrate;
 }
 bool AACFilterJniWrapper::postprocess(JNIEnv* jni_env) {

@@ -25,7 +25,6 @@ import android.media.MediaCodec;
 import android.media.MediaCodec.BufferInfo;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
-import android.view.inputmethod.InputBinding;
 @TargetApi(16)
 public class AACFilter {
 	int sampleRate, channelCount, bitrate;
@@ -130,11 +129,6 @@ public class AACFilter {
 		Log.i("AAC decoder initialized");
 		initialized = true;
 
-		try {
-			Log.i("Encoder bitrate: "+ getEncoderBitRate());
-		} catch (Exception exc) {
-
-		}
 		return true;
 	}
 
@@ -211,13 +205,6 @@ public class AACFilter {
 			initialized = false;
 		}
 		return true;
-	}
-
-	public int getEncoderBitRate() {
-		if (initialized)
-			return encoder.getOutputFormat().getInteger(MediaFormat.KEY_BIT_RATE);
-		else
-			return -1;
 	}
 
 	static private boolean queueData(MediaCodec codec, ByteBuffer[] inputBuffers, byte[] data, int size) {
