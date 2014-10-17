@@ -278,6 +278,9 @@ static MSPixFmt pick_best_format(int fd, const V4L2FormatDescription* format_des
 static int msv4l2_configure(V4l2State *s){
 	struct v4l2_capability cap;
 	struct v4l2_format fmt;
+	struct v4l2_ext_control ctl={0};
+	struct v4l2_ext_controls ctls={0};
+	struct v4l2_queryctrl queryctrl={0};
 	MSVideoSize vsize;
 
 	if (v4l2_ioctl (s->fd, VIDIOC_QUERYCAP, &cap)<0) {
@@ -306,7 +309,6 @@ static int msv4l2_configure(V4l2State *s){
 	}
 	vsize=s->vsize;
 
-
 	do{
 		const V4L2FormatDescription* formats_desc = query_format_description_for_size(s->fd, s->vsize);
 		s->pix_fmt = pick_best_format(s->fd, formats_desc, s->vsize);
@@ -332,6 +334,25 @@ static int msv4l2_configure(V4l2State *s){
 		s->vsize.height=fmt.fmt.pix.height;
 	}
 	s->picture_size=get_picture_buffer_size(s->pix_fmt,s->vsize.width,s->vsize.height);
+	
+	queryctrl.id = V4L2_CID_FOCUS_AUTO;
+	if (ioctl (s->fd, VIDIOC_QUERYCTRL, &queryctrl)!=0) {
+		ms_warning("Auto-focus not supported: %s",strerror(errno));
+	} else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+		ms_warning("Autofocus setting disabled.");
+	}else {
+		ctl.id=V4L2_CID_FOCUS_AUTO;
+		ctl.value=1;
+		ctl.size=sizeof(int);
+		ctls.count=1;
+		ctls.controls=&ctl;
+		ctls.ctrl_class=V4L2_CTRL_CLASS_CAMERA;
+
+		if (v4l2_ioctl(s->fd,VIDIOC_S_EXT_CTRLS,&ctls)!=0){
+			ms_warning("Could not enable auto-focus: %s", strerror(errno));
+		}
+	}
+	
 	s->configured=TRUE;
 	return 0;
 }
