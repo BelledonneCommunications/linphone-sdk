@@ -36,6 +36,23 @@ clean-desktop:
 	rm -rf WORK/Build-desktop && \
 	rm -rf WORK/tmp-desktop
 
+
+build-flexisip:
+	export ODBC_PATH=../../OUTPUT
+	mkdir -p WORK/cmake-flexisip && \
+	cd WORK/cmake-flexisip && \
+	cmake ../.. -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-flexisip.cmake \
+		-DLINPHONE_BUILDER_TARGET=flexisip \
+		-DCMAKE_PREFIX_PATH=../../OUTPUT\
+		-DCMAKE_INSTALL_PREFIX=../../OUTPUT \
+		 $(filter -D%,$(MAKEFLAGS)) && \
+	make -j $(NUMCPUS)
+#	make VERBOSE=1
+	
+clean-flexisip:
+	rm -rf WORK/tmp-flexisip && \
+	rm -rf WORK/Build-flexisip
+
 build-bb10-i486:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
 	mkdir -p WORK/cmake-bb10-i486 && \
