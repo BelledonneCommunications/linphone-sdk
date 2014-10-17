@@ -589,6 +589,7 @@ belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char 
 /*
  * SIP and http messages
 **/
+#define BELLESIP_MULTIPART_BOUNDARY "---------------------------14737809831466499882746641449"
 
 void belle_sip_message_init(belle_sip_message_t *message);
 

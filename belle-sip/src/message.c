@@ -415,6 +415,15 @@ belle_sip_body_handler_t *belle_sip_message_get_body_handler(const belle_sip_mes
 }
 
 void belle_sip_message_set_body_handler(belle_sip_message_t *msg, belle_sip_body_handler_t *body_handler){
+	/* In case of multipart message, we must add the message Content-Type header containing the boundary */
+	if (body_handler != NULL) {
+		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(body_handler, belle_sip_multipart_body_handler_t)){
+			char *content_type = belle_sip_strdup_printf("multipart/form-data; boundary=%s",BELLESIP_MULTIPART_BOUNDARY);
+			belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), belle_sip_header_create("Content-type",content_type));
+			belle_sip_free(content_type);
+		}
+	}
+
 	SET_OBJECT_PROPERTY(msg,body_handler,body_handler);
 }
 

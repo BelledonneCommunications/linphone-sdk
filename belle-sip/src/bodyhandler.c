@@ -264,9 +264,8 @@ belle_sip_user_body_handler_t *belle_sip_user_body_handler_new(
  * TODO
 **/
 
-#define MULTIPART_BOUNDARY "---------------------------14737809831466499882746641449"
-#define MULTIPART_SEPARATOR "--" MULTIPART_BOUNDARY "\r\n"
-#define MULTIPART_END "\r\n--" MULTIPART_BOUNDARY "--\r\n"
+#define MULTIPART_SEPARATOR "--" BELLESIP_MULTIPART_BOUNDARY "\r\n"
+#define MULTIPART_END "\r\n--" BELLESIP_MULTIPART_BOUNDARY "--\r\n"
 struct belle_sip_multipart_body_handler{
 	belle_sip_body_handler_t base;
 	belle_sip_list_t *parts;
