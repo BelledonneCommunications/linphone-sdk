@@ -432,7 +432,7 @@ unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* o
 
 	if(obj->sample_time == -1) return 0; /*no valid value*/
 
-	if (obj->sample_time < current_time){
+	if (obj->sample_time <= current_time){
 		int plc_duration;
 		if (obj->plc_start_time==-1)
 			obj->plc_start_time=obj->sample_time;
