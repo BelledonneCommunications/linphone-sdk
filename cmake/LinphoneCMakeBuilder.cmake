@@ -60,7 +60,7 @@ if(MSVC)
 endif()
 
 if(WIN32)
-	message(STATUS "Installing windows tools to C:/MinGW/bin")
+	message(STATUS "Installing windows tools")
 	set(_windows_tools_dir ${CMAKE_CURRENT_BINARY_DIR}/windows_tools)
 	file(MAKE_DIRECTORY ${_windows_tools_dir})
 	file(DOWNLOAD https://www.linphone.org/files/linphone_builder_windows_tools.zip "${CMAKE_CURRENT_BINARY_DIR}/linphone_builder_windows_tools.zip")
@@ -68,21 +68,22 @@ if(WIN32)
 		COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/linphone_builder_windows_tools.zip"
 		WORKING_DIRECTORY ${_windows_tools_dir}
 	)
-	file(RENAME "${_windows_tools_dir}/awk.exe" "C:/MinGW/bin/awk.exe")
-	file(RENAME "${_windows_tools_dir}/nasm.exe" "C:/MinGW/bin/nasm.exe")
-	file(RENAME "${_windows_tools_dir}/patch.exe" "C:/MinGW/bin/patch.exe")
-	file(RENAME "${_windows_tools_dir}/sed.exe" "C:/MinGW/bin/sed.exe")
+	file(MAKE_DIRECTORY "${LINPHONE_BUILDER_WORK_DIR}/windows_tools")
+	file(RENAME "${_windows_tools_dir}/awk.exe" "${LINPHONE_BUILDER_WORK_DIR}/windows_tools/awk.exe")
+	file(RENAME "${_windows_tools_dir}/nasm.exe" "${LINPHONE_BUILDER_WORK_DIR}/windows_tools/nasm.exe")
+	file(RENAME "${_windows_tools_dir}/patch.exe" "${LINPHONE_BUILDER_WORK_DIR}/windows_tools/patch.exe")
+	file(RENAME "${_windows_tools_dir}/sed.exe" "${LINPHONE_BUILDER_WORK_DIR}/windows_tools/sed.exe")
 	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-		file(RENAME "${_windows_tools_dir}/yasm-1.3.0-win64.exe" "C:/MinGW/bin/yasm.exe")
+		file(RENAME "${_windows_tools_dir}/yasm-1.3.0-win64.exe" "${LINPHONE_BUILDER_WORK_DIR}/windows_tools/yasm.exe")
 	else()
-		file(RENAME "${_windows_tools_dir}/yasm-1.3.0-win32.exe" "C:/MinGW/bin/yasm.exe")
+		file(RENAME "${_windows_tools_dir}/yasm-1.3.0-win32.exe" "${LINPHONE_BUILDER_WORK_DIR}/windows_tools/yasm.exe")
 	endif()
 	unset(_pkg_config_dir)
 endif()
 
 find_program(PATCH_PROGRAM
 	NAMES patch patch.exe
-	HINTS "C:/MinGW/bin"
+	HINTS "${LINPHONE_BUILDER_WORK_DIR}/windows_tools"
 )
 if(NOT PATCH_PROGRAM)
 	if(WIN32)
@@ -94,7 +95,7 @@ endif()
 
 find_program(SED_PROGRAM
 	NAMES sed sed.exe
-	HINTS "C:/MinGW/bin"
+	HINTS "${LINPHONE_BUILDER_WORK_DIR}/windows_tools"
 )
 if(NOT SED_PROGRAM)
 	if(WIN32)
