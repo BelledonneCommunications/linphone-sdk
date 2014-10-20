@@ -365,10 +365,14 @@ static int msv4l2_configure(V4l2State *s){
 	focus=getenv("MS2_CAM_FOCUS");
 	if (focus){
 		if (strcasecmp(focus,"auto")==0){
+#ifdef V4L2_CID_AUTO_FOCUS_RANGE
 			set_camera_feature(s,V4L2_CID_AUTO_FOCUS_RANGE,V4L2_AUTO_FOCUS_RANGE_AUTO ,"auto range");
+#endif
 			set_camera_feature(s,V4L2_CID_FOCUS_AUTO,1,"auto-focus");
 		}else if (strcasecmp(focus,"infinity")==0){
+#ifdef V4L2_CID_AUTO_FOCUS_RANGE
 			set_camera_feature(s,V4L2_CID_AUTO_FOCUS_RANGE,V4L2_AUTO_FOCUS_RANGE_INFINITY ,"infinity range");
+#endif
 			set_camera_feature(s,V4L2_CID_FOCUS_AUTO,1,"auto-focus");
 		}
 	}
