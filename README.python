@@ -15,9 +15,10 @@ install them manually. Here are these tools:
 the version used by Python.
  - Python 2.7.x, with 'pip' command. On windows, add c:\Python27\Scripts in the PATH.
  - Java
- - awk (on Windows, get it from http://gnuwin32.sourceforge.net/downlinks/gawk.php)
- - sed (on Windows, get it from http://sourceforge.net/projects/gnuwin32/files/sed/4.2.1/sed-4.2.1-setup.exe/download)
- - nasm (on Windows, get it from http://www.nasm.us/)
+ - awk (automatically installed when building on Windows)
+ - sed (automatically installed when building on Windows)
+ - patch (automatically installed when building on Windows)
+ - yasm (automatically installed when building on Windows)
  - xxd (only for Linux and Mac OS X)
  - pkg-config (automatically installed when building on Windows)
  - intltoolize (automatically installed when building on Windows)
