@@ -259,6 +259,84 @@ belle_sip_user_body_handler_t *belle_sip_user_body_handler_new(
 }
 
 
+/**
+ * File body handler implementation
+**/
+
+struct belle_sip_file_body_handler{
+	belle_sip_body_handler_t base;
+	char *filepath;
+};
+
+static void belle_sip_file_body_handler_destroy(belle_sip_file_body_handler_t *obj) {
+	if (obj->filepath) belle_sip_free(obj->filepath);
+}
+
+static void belle_sip_file_body_handler_clone(belle_sip_file_body_handler_t *obj, const belle_sip_file_body_handler_t *orig) {
+	obj->filepath = belle_sip_strdup(orig->filepath);
+}
+
+static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, const uint8_t *buf, size_t size) {
+	FILE *f;
+	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
+	if (obj->filepath == NULL) return;
+	f = fopen(obj->filepath, "ab");
+	if (f == NULL) return;
+	fwrite(buf, 1, size, f);
+	fclose(f);
+}
+
+static int belle_sip_file_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t *size) {
+	FILE *f;
+	int ret;
+	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
+	size_t to_send = MIN(*size, obj->base.expected_size - offset);
+	if (obj->filepath == NULL) return BELLE_SIP_STOP;
+	f = fopen(obj->filepath, "rb");
+	if (f == NULL) return BELLE_SIP_STOP;
+	ret = fseek(f, offset, SEEK_SET);
+	if (ret < 0) {
+		fclose(f);
+		return BELLE_SIP_STOP;
+	}
+	ret = fread(buf, 1, to_send, f);
+	if (ret < 0) {
+		fclose(f);
+		return BELLE_SIP_STOP;
+	}
+	*size = ret;
+	fclose(f);
+	return (((obj->base.expected_size - offset) == *size) || (*size == 0)) ? BELLE_SIP_STOP : BELLE_SIP_CONTINUE;
+}
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_file_body_handler_t);
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_file_body_handler_t)
+	{
+		{
+			BELLE_SIP_VPTR_INIT(belle_sip_file_body_handler_t,belle_sip_body_handler_t,TRUE),
+			(belle_sip_object_destroy_t) belle_sip_file_body_handler_destroy,
+			(belle_sip_object_clone_t)belle_sip_file_body_handler_clone,
+			NULL
+		},
+		belle_sip_file_body_handler_recv_chunk,
+		belle_sip_file_body_handler_send_chunk
+	}
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
+
+belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(const char *filepath, belle_sip_body_handler_progress_callback_t progress_cb, void *data) {
+	struct stat statbuf;
+	FILE *f;
+	int ret;
+	belle_sip_file_body_handler_t *obj = belle_sip_object_new(belle_sip_file_body_handler_t);
+	belle_sip_body_handler_init((belle_sip_body_handler_t*)obj, progress_cb, data);
+	obj->filepath = belle_sip_strdup(filepath);
+	if (stat(obj->filepath, &statbuf) == 0) {
+		obj->base.expected_size = statbuf.st_size;
+	}
+	return obj;
+}
+
+
 /*
  * Multipart body handler implementation
  * TODO

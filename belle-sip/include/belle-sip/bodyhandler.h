@@ -67,6 +67,15 @@ BELLESIP_EXPORT belle_sip_user_body_handler_t *belle_sip_user_body_handler_new(
 	void *data);
 
 
+/**
+ * Body handler that gets/puts data from/to a file.
+**/
+
+#define BELLE_SIP_FILE_BODY_HANDLER(obj)	BELLE_SIP_CAST(obj, belle_sip_file_body_handler_t)
+
+BELLESIP_EXPORT belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(const char *filepath, belle_sip_body_handler_progress_callback_t progress_cb, void *data);
+
+
 /*
  * Multipart body handler
  */
