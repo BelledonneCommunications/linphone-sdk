@@ -121,6 +121,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecData *s, AVFrame *orig){
 			s->yuv_msg=NULL;
 		}
 		ms_message("Getting yuv picture of %ix%i",ctx->width,ctx->height);
+		ms_filter_notify_no_arg(f,MS_FILTER_OUTPUT_FMT_CHANGED);
 		s->yuv_msg=ms_yuv_buf_alloc(&s->outbuf,ctx->width,ctx->height);
 		s->outbuf.w=ctx->width;
 		s->outbuf.h=ctx->height;
