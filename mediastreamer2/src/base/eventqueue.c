@@ -100,6 +100,12 @@ static bool_t read_event(MSEventQueue *q){
 		void *data;
 		int argsize;
 		int evsize;
+
+		ms_mutex_lock(&q->mutex);/*q->endptr can be changed by write_event() so mutex is needed*/
+		if (q->rptr>=q->endptr){
+			q->rptr=q->buffer;
+		}
+		ms_mutex_unlock(&q->mutex);
 		
 		evsize=parse_event(q->rptr,&f,&id,&data,&argsize);
 		if (f) {
@@ -108,9 +114,7 @@ static bool_t read_event(MSEventQueue *q){
 			q->current_notifier=NULL;
 		}
 		q->rptr+=evsize;
-		if (q->rptr>=q->endptr){
-			q->rptr=q->buffer;
-		}
+		
 		ms_mutex_lock(&q->mutex);
 		q->freeroom+=evsize;
 		ms_mutex_unlock(&q->mutex);
