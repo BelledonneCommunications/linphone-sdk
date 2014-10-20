@@ -325,8 +325,6 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(const char *filepath, belle_sip_body_handler_progress_callback_t progress_cb, void *data) {
 	struct stat statbuf;
-	FILE *f;
-	int ret;
 	belle_sip_file_body_handler_t *obj = belle_sip_object_new(belle_sip_file_body_handler_t);
 	belle_sip_body_handler_init((belle_sip_body_handler_t*)obj, progress_cb, data);
 	obj->filepath = belle_sip_strdup(filepath);
