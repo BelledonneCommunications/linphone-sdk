@@ -4,6 +4,11 @@
 #include "mediastreamer2/msextdisplay.h"
 #include "../audiofilters/waveheader.h"
 
+#include <mmsystem.h>
+#ifdef _MSC_VER
+#include <mmreg.h>
+#endif
+
 #define ms_filter_destroy_and_reset(obj) \
 	ms_filter_destroy(obj); \
 	obj = NULL

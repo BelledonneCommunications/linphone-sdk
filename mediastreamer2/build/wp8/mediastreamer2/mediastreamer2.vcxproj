@@ -118,6 +118,7 @@
     <ClInclude Include="..\..\..\include\mediastreamer2\msfilter.h" />
     <ClInclude Include="..\..\..\include\mediastreamer2\msinterfaces.h" />
     <ClInclude Include="..\..\..\include\mediastreamer2\msitc.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msmediaplayer.h" />
     <ClInclude Include="..\..\..\include\mediastreamer2\msqueue.h" />
     <ClInclude Include="..\..\..\include\mediastreamer2\msrtp.h" />
     <ClInclude Include="..\..\..\include\mediastreamer2\mssndcard.h" />
@@ -187,6 +188,7 @@
     <ClCompile Include="..\..\..\src\voip\ice.c" />
     <ClCompile Include="..\..\..\src\voip\layouts.c" />
     <ClCompile Include="..\..\..\src\voip\mediastream.c" />
+    <ClCompile Include="..\..\..\src\voip\msmediaplayer.c" />
     <ClCompile Include="..\..\..\src\voip\msvideo.c" />
     <ClCompile Include="..\..\..\src\voip\msvoip.c" />
     <ClCompile Include="..\..\..\src\voip\qosanalyzer.c" />

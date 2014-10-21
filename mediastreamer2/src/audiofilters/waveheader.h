@@ -33,6 +33,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #	ifndef W_OK
 #		define W_OK 0x6
 #	endif
+#   ifndef F_OK
+#       define F_OK 0x0
+#   endif
 
 #	ifndef S_IRUSR
 #	define S_IRUSR S_IREAD
