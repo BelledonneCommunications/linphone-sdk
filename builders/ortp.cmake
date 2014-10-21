@@ -24,7 +24,7 @@ set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
 if(LINPHONE_BUILDER_LATEST)
 	set(EP_ortp_GIT_TAG "master")
 else()
-	set(EP_ortp_GIT_TAG "f4ecaee9570f411ff2689e2cb348505833320616")
+	set(EP_ortp_GIT_TAG "4077e127ee731b0797a9303d55f0d61bcb947bf8")
 endif()
 
 set(EP_ortp_CMAKE_OPTIONS )
