@@ -35,6 +35,7 @@ set(EP_vpx_CONFIGURE_OPTIONS
 	"--disable-debug-libs"
 	"--disable-examples"
 	"--disable-unit-tests"
+	"--as=yasm"
 )
 
 if(WIN32)
