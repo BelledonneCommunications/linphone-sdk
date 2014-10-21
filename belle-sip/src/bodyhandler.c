@@ -278,11 +278,16 @@ static void belle_sip_file_body_handler_clone(belle_sip_file_body_handler_t *obj
 
 static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, const uint8_t *buf, size_t size) {
 	FILE *f;
+	int ret;
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
 	if (obj->filepath == NULL) return;
 	f = fopen(obj->filepath, "ab");
 	if (f == NULL) return;
-	fwrite(buf, 1, size, f);
+	ret = fwrite(buf, 1, size, f);
+	if (ret != size) {
+		fclose(f);
+		return;
+	}
 	fclose(f);
 }
 
