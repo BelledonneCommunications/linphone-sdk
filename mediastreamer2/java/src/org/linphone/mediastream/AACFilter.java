@@ -192,14 +192,16 @@ public class AACFilter {
 
 	public boolean postprocess() {
 		if (initialized) {
+			encoder.flush();
 			Log.i("Stopping encoder");
 			encoder.stop();
 			Log.i("Stopping decoder");
+			decoder.flush();
 			decoder.stop();
 			Log.i("Release encoder");
-			// crashes encoder.release();
+			encoder.release();
 			Log.i("Release decoder");
-			// crashes decoder.release();
+			decoder.release();
 			encoder = null;
 			decoder = null;
 			initialized = false;
@@ -221,7 +223,7 @@ public class AACFilter {
 	static private int dequeueData(MediaCodec codec, ByteBuffer[] ouputBuffers, BufferInfo bufferInfo, byte[] b) {
 		int pcmbufPollCount = 0;
 		while (pcmbufPollCount < 1) {
-			int decBufIdx = codec.dequeueOutputBuffer(bufferInfo, 0);
+			int decBufIdx = codec.dequeueOutputBuffer(bufferInfo, 100);
 
 			if (decBufIdx >= 0) {
 				if (b.length < bufferInfo.size)

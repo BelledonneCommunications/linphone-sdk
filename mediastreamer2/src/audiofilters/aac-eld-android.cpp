@@ -213,7 +213,7 @@ static void enc_process ( MSFilter *f ) {
 
 	/* Encoder works asynchronously */
 	/* Read coded audio from encoder */
-	if (!ms_queue_empty(f->inputs[0])) {
+	{
 		int frameCount = 0;
 		mblk_t* frame = NULL, *au_headers = NULL, *frames = NULL;
 
@@ -474,7 +474,7 @@ static void dec_process ( MSFilter *f ) {
 
 	/* Decoder works asynchronously */
 	/* Read decoded audio */
-	if (!ms_queue_empty(f->inputs[0])) {
+	{
 		int frameCount = 0;
 		mblk_t* m = NULL;
 		/* Read available frames from decoder if any */
