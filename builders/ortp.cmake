@@ -27,7 +27,7 @@ else()
 	set(EP_ortp_GIT_TAG "4077e127ee731b0797a9303d55f0d61bcb947bf8")
 endif()
 
-if(${EP_ortp_FORCE_AUTOTOOLS} STREQUAL "yes")
+if("${EP_ortp_FORCE_AUTOTOOLS}" STREQUAL "yes")
 	set(EP_ortp_LINKING_TYPE "--enable-static")
 	set(EP_ortp_USE_AUTOGEN "yes")
 else()
