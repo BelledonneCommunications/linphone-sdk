@@ -37,4 +37,5 @@ set(EP_unixodbc_CROSS_COMPILATION_OPTIONS
 list(APPEND EP_unixodbc_CONFIGURE_OPTIONS "--without-boostlog" )
 
 set(EP_unixodbc_SPEC_FILE "unixodbc.spec")
+set(EP_unixodbc_RPMBUILD_NAME "unixODBC")
 set(EP_unixodbc_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "<SOURCE_DIR>/${EP_unixodbc_SPEC_FILE}" "<BINARY_DIR>")
