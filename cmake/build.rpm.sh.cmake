@@ -20,5 +20,18 @@ export PKG_CONFIG="@LINPHONE_BUILDER_PKG_CONFIG@"
 export PKG_CONFIG_PATH="@LINPHONE_BUILDER_PKG_CONFIG_PATH@"
 export PKG_CONFIG_LIBDIR="@LINPHONE_BUILDER_PKG_CONFIG_LIBDIR@"
 
+export RPM_TOPDIR="@LINPHONE_BUILDER_WORK_DIR@/rpmbuild"
+
+VERBOSE=""
+if [[ @AUTOTOOLS_VERBOSE_MAKEFILE@ ]]; then
+	VERBOSE="--verbose"
+fi
+
+# SPEC_PREFIX=""
+# if [ @LINPHONE_BUILDER_SPEC_PREFIX@ != "" ]; then
+# 	SPEC_PREFIX="--define \"_prefix @LINPHONE_BUILDER_SPEC_PREFIX@\""
+# fi
+
 cd @ep_build@
-make V=@AUTOTOOLS_VERBOSE_MAKEFILE@ @ep_redirect_to_file@
+# TODO rpmbuild -ba @ep_build@/@LINPHONE_BUILDER_SPEC_FILE@ --define "_topdir $RPM_TOPDIR" $SPEC_PREFIX --with bc $VERBOSE @ep_redirect_to_file@
+rpmbuild -ba @ep_build@/@LINPHONE_BUILDER_SPEC_FILE@ --define "_topdir $RPM_TOPDIR" @LINPHONE_BUILDER_RPMBUILD_OPTIONS@ $VERBOSE @ep_redirect_to_file@

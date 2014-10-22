@@ -433,25 +433,25 @@ macro(linphone_builder_create_autogen_command PROJNAME)
 			foreach(OPTION ${EP_${PROJNAME}_CROSS_COMPILATION_OPTIONS} ${EP_${PROJNAME}_LINKING_TYPE} ${EP_${PROJNAME}_CONFIGURE_OPTIONS})
 				set(ep_autogen_options "${ep_autogen_options} \"${OPTION}\"")
 			endforeach(OPTION)
-		endif("${EP_${PROJNAME}_CONFIGURE_OPTIONS_PASSED_TO_AUTOGEN}" STREQUAL "yes")
+		endif()
 		set(ep_autogen_command "${ep_source}/autogen.sh ${ep_autogen_options}")
-	else("${EP_${PROJNAME}_USE_AUTOGEN}" STREQUAL "yes")
+	else()
 		set(ep_autogen_command "")
-	endif("${EP_${PROJNAME}_USE_AUTOGEN}" STREQUAL "yes")
+	endif()
 endmacro(linphone_builder_create_autogen_command)
 
 
 macro(linphone_builder_create_configure_command PROJNAME)
 	if("${EP_${PROJNAME}_CONFIGURE_OPTIONS_PASSED_TO_AUTOGEN}" STREQUAL "yes")
 		set(ep_configure_command "")
-	else("${EP_${PROJNAME}_CONFIGURE_OPTIONS_PASSED_TO_AUTOGEN}" STREQUAL "yes")
+	else()
 		set(ep_configure_options "")
 		foreach(OPTION ${EP_${PROJNAME}_CROSS_COMPILATION_OPTIONS} ${EP_${PROJNAME}_LINKING_TYPE} ${EP_${PROJNAME}_CONFIGURE_OPTIONS})
 			set(ep_configure_options "${ep_configure_options} \"${OPTION}\"")
 		endforeach(OPTION)
 		set(ep_configure_env "${EP_${PROJNAME}_CONFIGURE_ENV}")
 		set(ep_configure_command "${ep_source}/configure ${ep_configure_options}")
-	endif("${EP_${PROJNAME}_CONFIGURE_OPTIONS_PASSED_TO_AUTOGEN}" STREQUAL "yes")
+	endif()
 endmacro(linphone_builder_create_configure_command)
 
 
@@ -527,6 +527,70 @@ function(linphone_builder_add_project PROJNAME)
 			BUILD_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.${SCRIPT_EXTENSION}
 			INSTALL_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.${SCRIPT_EXTENSION}
 		)
+	elseif("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "rpm")
+		
+		if(WIN32)
+			message( SEND_ERROR "rpm build not supported on WIN32")
+		endif()
+
+		linphone_builder_create_autogen_command(${PROJNAME})
+		linphone_builder_create_configure_command(${PROJNAME})
+		
+		if("${EP_${PROJNAME}_CONFIG_H_FILE}" STREQUAL "")
+			set(ep_config_h_file config.h)
+		else()
+			set(ep_config_h_file ${EP_${PROJNAME}_CONFIG_H_FILE})
+		endif()
+		
+		if("${EP_${PROJNAME}_INSTALL_TARGET}" STREQUAL "")
+			set(ep_install_target "install")
+		else()
+			set(ep_install_target "${EP_${PROJNAME}_INSTALL_TARGET}")
+		endif()
+
+		if("${EP_${PROJNAME}_SPEC_FILE}" STREQUAL "")
+			message( SEND_ERROR "rpm build requires EP_${PROJNAME}_SPEC_FILE to be defined")
+		else()
+			set(LINPHONE_BUILDER_SPEC_FILE "${EP_${PROJNAME}_SPEC_FILE}")
+		endif()
+
+		# a distinctive name of the generated RPM. It is used to find the rpms to install
+		# in the install step. Defaults to $PROJNAME but could be something else
+		if("${EP_${PROJNAME}_RPMBUILD_NAME}" STREQUAL "")
+			set(LINPHONE_BUILDER_RPMBUILD_NAME "${PROJNAME}")
+		else()
+			set(LINPHONE_BUILDER_RPMBUILD_NAME "${EP_${PROJNAME}_RPMBUILD_NAME}")
+		endif()
+		
+		# a distinctive name of the generated RPM. It is used to find the rpms to install
+		# in the install step. Defaults to $PROJNAME but could be something else
+		if(NOT "${EP_${PROJNAME}_RPMBUILD_OPTIONS}" STREQUAL "")
+			set(LINPHONE_BUILDER_RPMBUILD_OPTIONS "${EP_${PROJNAME}_RPMBUILD_OPTIONS}")
+		endif()
+		
+
+		set(LINPHONE_BUILDER_SPEC_PREFIX "${EP_${PROJNAME}_SPEC_PREXIX}")
+
+		if("${EP_${PROJNAME}_PKG_CONFIG}" STREQUAL "")
+			set(LINPHONE_BUILDER_PKG_CONFIG "${PKG_CONFIG_PROGRAM}")
+		else()
+			set(LINPHONE_BUILDER_PKG_CONFIG "${EP_${PROJNAME}_PKG_CONFIG}")
+		endif()
+
+
+		if(NOT "${EP_${PROJNAME}_CONFIGURE_EXTRA_CMD}" STREQUAL "")
+			set(LINPHONE_BUILDER_CONFIGURE_EXTRA_CMD "${EP_${PROJNAME}_CONFIGURE_EXTRA_CMD}")
+		endif()
+
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure_rpm.sh)
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build_rpm.sh)
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/install.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install_rpm.sh)
+
+		set(BUILD_COMMANDS
+			CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure_rpm.sh
+			BUILD_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build_rpm.sh
+			INSTALL_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install_rpm.sh
+		)
 	else()
 		# Use CMake build method
 		if("${CMAKE_VERSION}" VERSION_GREATER "2.8.3")
@@ -577,6 +641,15 @@ function(linphone_builder_add_project PROJNAME)
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		)
 	endif()
+	if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/postconfig.cmake)
+		ExternalProject_Add_Step(EP_${PROJNAME} postinstall
+			COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DINSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/postinstall.cmake
+			COMMENT "Performing post-installation step"
+			DEPENDEES mkdir update patch download configure build install
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+		)
+	endif()
+
 endfunction(linphone_builder_add_project)
 
 function(linphone_builder_add_external_projects)

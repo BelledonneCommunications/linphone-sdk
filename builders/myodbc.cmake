@@ -27,4 +27,9 @@ set(EP_myodbc_CMAKE_OPTIONS "-DWITH_UNIXODBC=1")
 set(EP_myodbc_LINKING_TYPE )
 set(EP_myodbc_DEPENDENCIES EP_unixodbc )
 
+set(EP_myodbc_SPEC_FILE "scripts/myodbc3.spec")
+set(EP_myodbc_CONFIG_H_FILE "scripts/myodbc3.spec")
 
+
+set(EP_myodbc_CONFIGURE_EXTRA_CMD "cd scripts && make && cd -")
+set(EP_myodbc_RPMBUILD_NAME "mysql-connector")

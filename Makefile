@@ -47,11 +47,30 @@ build-flexisip:
 		-DCMAKE_INSTALL_PREFIX=../../OUTPUT \
 		 $(filter -D%,$(MAKEFLAGS)) && \
 	make -j $(NUMCPUS)
-#	make VERBOSE=1
 	
 clean-flexisip:
 	rm -rf WORK/tmp-flexisip && \
 	rm -rf WORK/Build-flexisip
+
+
+build-flexisip-rpm:
+	export ODBC_PATH=../../OUTPUT
+	mkdir -p WORK/cmake-flexisip-rpm && \
+	cd WORK/cmake-flexisip-rpm && \
+	cmake ../.. -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-flexisip-rpm.cmake \
+		-DLINPHONE_BUILDER_TARGET=flexisip \
+		-DCMAKE_PREFIX_PATH=../../OUTPUT\
+		-DCMAKE_INSTALL_PREFIX=../../OUTPUT \
+		 $(filter -D%,$(MAKEFLAGS)) && \
+	make
+#	make -j $(NUMCPUS)
+	
+clean-flexisip-rpm:
+	rm -rf WORK/tmp-flexisip-rpm && \
+	rm -rf WORK/Build-flexisip-rpm
+# needed: ?
+#	rm -rf WORK/Build-flexisip-rpm && \
+#	rm -rf WORK/rpmbuild/RPMS/*
 
 build-bb10-i486:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \

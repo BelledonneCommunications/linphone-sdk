@@ -32,8 +32,8 @@ set(EP_flexisip_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
 	"--host=${LINPHONE_BUILDER_HOST}"
 )
-set(EP_flexisip_CONFIG_H_FILE "flexisip-config.h")
+set(EP_flexisip_CONFIG_H_FILE "flexisip.spec")
 
 list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder" "--enable-redis" "--with-odbc=${CMAKE_INSTALL_PREFIX}" )
 
-#PKG_CONFIG_PATH=/opt/belledonne-communications/lib64/pkgconfig ./configure --with-odbc=/opt/belledonne-communications --disable-transcoder --disable-pushnotification --enable-redis
+set(EP_flexisip_SPEC_FILE "flexisip.spec")

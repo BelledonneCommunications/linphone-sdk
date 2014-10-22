@@ -20,5 +20,22 @@ export PKG_CONFIG="@LINPHONE_BUILDER_PKG_CONFIG@"
 export PKG_CONFIG_PATH="@LINPHONE_BUILDER_PKG_CONFIG_PATH@"
 export PKG_CONFIG_LIBDIR="@LINPHONE_BUILDER_PKG_CONFIG_LIBDIR@"
 
+export RPM_TOPDIR="@LINPHONE_BUILDER_WORK_DIR@/rpmbuild"
+
+
 cd @ep_build@
-make V=@AUTOTOOLS_VERBOSE_MAKEFILE@ @ep_redirect_to_file@
+
+# create rpmbuild workdir if needed
+for dir in BUILDROOT RPMS SOURCES SPECS SRPMS; do
+	mkdir -p "$RPM_TOPDIR/$dir"
+done
+
+if [ ! -f @ep_config_h_file@ ]
+then
+	@ep_autogen_command@ @ep_autogen_redirect_to_file@
+	@ep_configure_env@ @ep_configure_command@ @ep_configure_redirect_to_file@
+	make dist V=@AUTOTOOLS_VERBOSE_MAKEFILE@ @ep_redirect_to_file@
+	cp *.tar.gz "$RPM_TOPDIR/SOURCES"
+	@LINPHONE_BUILDER_CONFIGURE_EXTRA_CMD@
+	touch @ep_config_h_file@
+fi
