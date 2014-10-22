@@ -4,8 +4,8 @@
 #include "mediastreamer2/msextdisplay.h"
 #include "../audiofilters/waveheader.h"
 
-#include <mmsystem.h>
 #ifdef _MSC_VER
+#include <mmsystem.h>
 #include <mmreg.h>
 #endif
 
