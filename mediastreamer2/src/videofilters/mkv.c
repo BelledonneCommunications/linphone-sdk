@@ -2370,7 +2370,7 @@ static int player_seek_ms(MSFilter *f, void *arg) {
 	ms_bool_t eof;
 	ms_filter_lock(f);
 	if(target_position < 0 || target_position > matroska_get_duration(&obj->file)) {
-		ms_error("MKVPlayer: cannot seek to %ld ms. Poisition out of bounds", target_position);
+		ms_error("MKVPlayer: cannot seek to %d ms. Poisition out of bounds", (int)target_position);
 		goto fail;
 	}
 	matroska_block_go_first(&obj->file);
