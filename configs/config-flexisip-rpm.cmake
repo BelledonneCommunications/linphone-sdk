@@ -92,5 +92,5 @@ set(EP_flexisip_CONFIGURE_OPTIONS "--with-odbc=${RPM_INSTALL_PREFIX}" "--disable
 set(EP_ortp_RPMBUILD_OPTIONS      "--with bc")
 set(EP_unixodbc_RPMBUILD_OPTIONS  "--with bc")
 set(EP_myodbc_RPMBUILD_OPTIONS    "--with bc")
-set(EP_sofiasip_RPMBUILD_OPTIONS  "--with bc")
+set(EP_sofiasip_RPMBUILD_OPTIONS  "--with bc --without glib")
 set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --without protobuf --without boostlog")
