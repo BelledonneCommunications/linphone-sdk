@@ -20,6 +20,8 @@
 #
 ############################################################################
 
+include(GNUInstallDirs)
+
 # Define default values for the linphone builder options
 set(DEFAULT_VALUE_ENABLE_VIDEO OFF)
 set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES OFF)
