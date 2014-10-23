@@ -67,14 +67,14 @@ MSWASAPIReader::MSWASAPIReader()
 	}
 
 	result = ActivateAudioInterface(mCaptureId, IID_IAudioClient2, (void **)&mAudioClient);
-	REPORT_ERROR("Could not activate the MSWASAPI audio input interface [%i]", result);
+	REPORT_ERROR("Could not activate the MSWASAPI audio input interface [%x]", result);
 	properties.cbSize = sizeof AudioClientProperties;
 	properties.bIsOffload = false;
 	properties.eCategory = AudioCategory_Communications;
 	result = mAudioClient->SetClientProperties(&properties);
-	REPORT_ERROR("Could not set properties of the MSWASAPI audio output interface [%i]", result);
+	REPORT_ERROR("Could not set properties of the MSWASAPI audio output interface [%x]", result);
 	result = mAudioClient->GetMixFormat(&pWfx);
-	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio input interface [%i]", result);
+	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio input interface [%x]", result);
 	mRate = pWfx->nSamplesPerSec;
 	mNChannels = pWfx->nChannels;
 	FREE_PTR(pWfx);
@@ -128,15 +128,15 @@ int MSWASAPIReader::activate()
 	} else if (result == S_FALSE) {
 		pUsedWfx = pSupportedWfx;
 	} else {
-		REPORT_ERROR("Audio format not supported by the MSWASAPI audio input interface [%i]", result);
+		REPORT_ERROR("Audio format not supported by the MSWASAPI audio input interface [%x]", result);
 	}
 	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedDuration, 0, pUsedWfx, NULL);
-	REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%i]", result);
+	REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%x]", result);
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
-	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio input interface [%i]", result);
+	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio input interface [%x]", result);
 	ms_message("MSWASAPI audio input interface buffer size: %i", mBufferFrameCount);
 	result = mAudioClient->GetService(IID_IAudioCaptureClient, (void **)&mAudioCaptureClient);
-	REPORT_ERROR("Could not get render service from the MSWASAPI audio input interface [%i]", result);
+	REPORT_ERROR("Could not get render service from the MSWASAPI audio input interface [%x]", result);
 	mIsActivated = true;
 	return 0;
 
@@ -160,7 +160,7 @@ void MSWASAPIReader::start()
 		mIsStarted = true;
 		result = mAudioClient->Start();
 		if (result != S_OK) {
-			ms_error("Could not start playback on the MSWASAPI audio input interface [%i]", result);
+			ms_error("Could not start playback on the MSWASAPI audio input interface [%x]", result);
 		}
 	}
 }
@@ -173,7 +173,7 @@ void MSWASAPIReader::stop()
 		mIsStarted = false;
 		result = mAudioClient->Stop();
 		if (result != S_OK) {
-			ms_error("Could not stop playback on the MSWASAPI audio input interface [%i]", result);
+			ms_error("Could not stop playback on the MSWASAPI audio input interface [%x]", result);
 		}
 	}
 }
@@ -189,7 +189,7 @@ int MSWASAPIReader::feed(MSFilter *f)
 
 	if (isStarted()) {
 		result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);
-		REPORT_ERROR("Could not get next packet size for the MSWASAPI audio input interface [%i]", result);
+		REPORT_ERROR("Could not get next packet size for the MSWASAPI audio input interface [%x]", result);
 		if (numFramesInNextPacket > 0) {
 			m = allocb(numFramesInNextPacket * bytesPerFrame, 0);
 			if (m == NULL) {
@@ -197,7 +197,7 @@ int MSWASAPIReader::feed(MSFilter *f)
 				goto error;
 			}
 			result = mAudioCaptureClient->GetBuffer(&pData, &numFramesInNextPacket, &flags, NULL, NULL);
-			REPORT_ERROR("Could not get buffer from the MSWASAPI audio input interface [%i]", result);
+			REPORT_ERROR("Could not get buffer from the MSWASAPI audio input interface [%x]", result);
 			if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
 				memset(m->b_wptr, 0, numFramesInNextPacket * bytesPerFrame);
 			} else {
@@ -205,7 +205,7 @@ int MSWASAPIReader::feed(MSFilter *f)
 			}
 			m->b_wptr += numFramesInNextPacket * bytesPerFrame;
 			result = mAudioCaptureClient->ReleaseBuffer(numFramesInNextPacket);
-			REPORT_ERROR("Could not release buffer of the MSWASAPI audio input interface [%i]", result);
+			REPORT_ERROR("Could not release buffer of the MSWASAPI audio input interface [%x]", result);
 			ms_queue_put(f->outputs[0], m);
 		}
 	} else {
