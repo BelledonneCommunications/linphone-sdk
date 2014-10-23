@@ -42,14 +42,6 @@ const int sample_rate_min_ptime[] = {
 	10, /* 48 kHz */
 };
 
-const int sample_rate_min_codec_br[] = {
-	16008, /* 16 kHz */
-	18008, /* 22 kHz */
-	30000, /* 32 kHz */
-	65459, /* 44 kHz */
-	80000, /* 48 kHz */
-};
-
 static int sample_rate_to_index(int sampleRate) {
 	switch (sampleRate) {
 		case 16000: return 0;
@@ -68,8 +60,8 @@ static int ip_bitrate_to_codec_bitrate(int sampleRate, int ip_br) {
 	int codec_br = (ip_br / 8 - pkt_per_sec * overhead) * 8;
 
 	/* SoftAACEncoder2  W  Requested bitrate XXXX unsupported, using 16008 */
-	codec_br = MAX(codec_br, sample_rate_min_codec_br[sample_rate_to_index(sampleRate)]);
-	/* TODO: add minimum codec_br per sample_rate */
+	codec_br = MAX(codec_br, 16000);
+
 	ms_message("ip_bitrate_to_codec_bitrate(sample_rate=%d, ip_br=%d) -> %d", sampleRate, ip_br, codec_br);
 	return codec_br;
 }
