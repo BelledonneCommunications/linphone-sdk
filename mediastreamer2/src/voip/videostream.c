@@ -844,7 +844,7 @@ static void _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFi
 	PayloadType *pt;
 	RtpProfile *profile;
 	int payload;
-	bool_t keep_source=!(cam!=stream->cam || stream->player_active!=(sink!=NULL));
+	bool_t keep_source=!(cam!=stream->cam || (sink && !stream->player_active) || (!sink && stream->player_active));
 	bool_t encoder_has_builtin_converter = (!stream->pixconv && !stream->sizeconv);
 
 	if (stream->ms.sessions.ticker && stream->source){
@@ -878,6 +878,7 @@ static void _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFi
 			}else{
 				stream->source = ms_web_cam_create_reader(cam);
 				stream->cam=cam;
+				stream->player_active=FALSE;
 			}
 		}
 
