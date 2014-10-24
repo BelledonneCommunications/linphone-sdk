@@ -86,6 +86,7 @@ typedef struct EncState {
 	vpx_codec_iface_t *iface;
 	vpx_codec_flags_t flags;
 	uint64_t last_frame_time;
+	uint64_t first_frame_time;
 	EncFramesState frames_state;
 	Vp8RtpFmtPackerCtx packer;
 	MSVideoStarter starter;
@@ -209,7 +210,7 @@ static void enc_preprocess(MSFilter *f) {
 	} else if (s->frame_count == 0) {
 		ms_video_starter_init(&s->starter);
 	}
-	s->last_frame_time=(uint64_t)-1;
+	s->first_frame_time=s->last_frame_time=(uint64_t)-1;
 	s->ready = TRUE;
 }
 
@@ -432,11 +433,12 @@ static void enc_process(MSFilter *f) {
 #endif
 		if (s->last_frame_time==(uint64_t)-1){
 			frame_duration=s->cfg.g_timebase.den/(int)s->vconf.fps;
+			s->first_frame_time=f->ticker->time;
 		}else{
 			frame_duration=f->ticker->time-s->last_frame_time;
 		}
 		s->last_frame_time=f->ticker->time;
-		err = vpx_codec_encode(&s->codec, &img, f->ticker->time, frame_duration, flags, 1000000LL/(2*(int)s->vconf.fps)); /*encoder has half a framerate interval to encode*/
+		err = vpx_codec_encode(&s->codec, &img, f->ticker->time-s->first_frame_time, frame_duration, flags, 1000000LL/(2*(int)s->vconf.fps)); /*encoder has half a framerate interval to encode*/
 		if (err) {
 			ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
 		} else {
