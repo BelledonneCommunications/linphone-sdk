@@ -329,6 +329,7 @@ static void unplumb_av_player(AudioStream *stream){
 	ms_connection_helper_unlink(&ch,stream->outbound_mixer,1,-1);
 	/*and attach back*/
 	if (reattach) ms_ticker_attach(stream->ms.sessions.ticker,stream->soundread);
+	player->plumbed = FALSE;
 }
 
 static void close_av_player(AudioStream *stream){
