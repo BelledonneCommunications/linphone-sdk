@@ -314,6 +314,8 @@ static void unplumb_av_player(AudioStream *stream){
 
 	if (!player->plumbed) return;
 
+	/*detach the outbound graph before modifying the graph*/
+	ms_ticker_detach(stream->ms.sessions.ticker,stream->soundread);
 	if (player->videopin!=-1){
 		ms_connection_helper_start(&ch);
 		ms_connection_helper_unlink(&ch,player->player,-1,player->videopin);
@@ -324,8 +326,6 @@ static void unplumb_av_player(AudioStream *stream){
 	if (player->decoder)
 		ms_connection_helper_unlink(&ch,player->decoder,0,0);
 	ms_connection_helper_unlink(&ch,player->resampler,0,0);
-	/*detach the outbound graph before attaching to the outbound mixer*/
-	if (reattach) ms_ticker_detach(stream->ms.sessions.ticker,stream->soundread);
 	ms_connection_helper_unlink(&ch,stream->outbound_mixer,1,-1);
 	/*and attach back*/
 	if (reattach) ms_ticker_attach(stream->ms.sessions.ticker,stream->soundread);
