@@ -155,6 +155,8 @@ static bool_t simple_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp)
 	MSSimpleQosAnalyzer *obj=(MSSimpleQosAnalyzer*)objbase;
 	rtpstats_t *cur;
 	const report_block_t *rb=NULL;
+	bool_t got_stats=FALSE;
+	
 	if (rtcp_is_SR(rtcp)){
 		rb=rtcp_SR_get_report_block(rtcp,0);
 	}else if (rtcp_is_RR(rtcp)){
@@ -177,10 +179,10 @@ static bool_t simple_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp)
 
 			ms_message("MSSimpleQosAnalyzer: lost_percentage=%f, int_jitter=%f ms, rt_prop=%f sec",
 				cur->lost_percentage,cur->int_jitter,cur->rt_prop);
-
+			got_stats=TRUE;
 		}
 	}
-	return rb!=NULL;
+	return got_stats;
 }
 
 static void simple_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateControlAction *action){
