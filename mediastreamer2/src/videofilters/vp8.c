@@ -101,6 +101,9 @@ typedef struct EncState {
 	bool_t ready;
 } EncState;
 
+
+static bool_t should_generate_key_frame(EncState *s);
+
 static void enc_init(MSFilter *f) {
 	EncState *s = (EncState *)ms_new0(EncState, 1);
 	MSVideoSize vsize;
@@ -337,7 +340,7 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 		s->invalid_frame_reported = FALSE;
 		/* If an invalid frame has been reported. */
 		if ((enc_is_reference_frame_acknowledged(s, VP8_GOLD_FRAME) != TRUE)
-			&& (enc_is_reference_frame_acknowledged(s, VP8_ALTR_FRAME) != TRUE)) {
+			&& (enc_is_reference_frame_acknowledged(s, VP8_ALTR_FRAME) != TRUE && should_generate_key_frame(s))) {
 			/* No reference frame has been acknowledged and last frame can not be used
 				as reference. Therefore, generate a new keyframe. */
 			s->frames_state.golden.is_independant=TRUE;
@@ -374,12 +377,14 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 			if (newref) newref->is_independant=!!(*flags & VP8_EFLAG_NO_REF_LAST);
 		}
 	}
-	
-	if (!s->frames_state.golden.acknowledged && s->frames_state.golden.count!=0){
-		*flags |= VP8_EFLAG_NO_REF_GF;
-	}
-	if (!s->frames_state.altref.acknowledged && s->frames_state.altref.count!=0){
-		*flags |= VP8_EFLAG_NO_REF_ARF;
+	/*if a keyframe was sent, we should not ask the encoder not to reference it, regardless of whether it was acknowledged or not*/
+	if (s->frames_state.golden.count!=s->frames_state.altref.count){
+		if (!s->frames_state.golden.acknowledged && s->frames_state.golden.count!=0){
+			*flags |= VP8_EFLAG_NO_REF_GF;
+		}
+		if (!s->frames_state.altref.acknowledged && s->frames_state.altref.count!=0){
+			*flags |= VP8_EFLAG_NO_REF_ARF;
+		}
 	}
 }
 
@@ -625,8 +630,7 @@ static bool_t should_generate_key_frame(EncState *s){
 	 * Thus we need to avoid to send too many keyframes. Send one and wait for rpsi to arrive first.
 	 * The receiver sends PLI for each new frame it receives when it does not have the keyframe*/
 	if (s->frame_count > s->frames_state.golden.count + min_interval &&
-		s->frame_count > s->frames_state.altref.count + min_interval &&
-		s->frames_state.golden.count!=0 && s->frames_state.altref.count!=0){
+		s->frame_count > s->frames_state.altref.count + min_interval){
 		return TRUE;
 	}
 	return FALSE;
@@ -681,7 +685,7 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 		/* Last altref frame has been lost. */
 		altref_lost = TRUE;
 	}
-	if ((golden_lost == TRUE) && (altref_lost == TRUE)) {
+	if ((golden_lost == TRUE) && (altref_lost == TRUE) && should_generate_key_frame(s)) {
 		/* Last key frame has been lost. */
 		s->force_keyframe = TRUE;
 	} else {
