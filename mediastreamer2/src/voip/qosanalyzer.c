@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <math.h>
 
 #define LOSS_RATE_MIN_INTERVAL 120
+#define LOSS_RATE_MIN_TIME 3000
 
 /**
  * Analyses a received RTCP packet.
@@ -262,7 +263,7 @@ MSQosAnalyzer * ms_simple_qos_analyzer_new(RtpSession *session){
 	obj->session=session;
 	obj->parent.desc=&simple_analyzer_desc;
 	obj->parent.type=MSQosAnalyzerAlgorithmSimple;
-	obj->parent.lre=ortp_loss_rate_estimator_new(LOSS_RATE_MIN_INTERVAL, session);
+	obj->parent.lre=ortp_loss_rate_estimator_new(LOSS_RATE_MIN_INTERVAL, LOSS_RATE_MIN_TIME, session);
 	return (MSQosAnalyzer*)obj;
 }
 
@@ -686,7 +687,7 @@ MSQosAnalyzer * ms_stateful_qos_analyzer_new(RtpSession *session){
 	obj->session=session;
 	obj->parent.desc=&stateful_analyzer_desc;
 	obj->parent.type=MSQosAnalyzerAlgorithmStateful;
-	obj->parent.lre=ortp_loss_rate_estimator_new(LOSS_RATE_MIN_INTERVAL, session);
+	obj->parent.lre=ortp_loss_rate_estimator_new(LOSS_RATE_MIN_INTERVAL, LOSS_RATE_MIN_TIME, session);
 
 	/*burst period will float the upload bandwidth assuming 5 sec RTCP reports interval*/
 	obj->burst_duration_ms=1000;

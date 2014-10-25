@@ -342,7 +342,7 @@ static void loss_rate_estimation() {
 		int loss_rate = 15;
 
 		start_adaptive_stream(MSAudio, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, loss_rate, 0, 0);
-		ctx.estimator=ortp_loss_rate_estimator_new(120, marielle->audio_stream->ms.sessions.rtp_session);
+		ctx.estimator=ortp_loss_rate_estimator_new(120, 2500, marielle->audio_stream->ms.sessions.rtp_session);
 		ctx.q = ortp_ev_queue_new();
 		rtp_session_register_event_queue(marielle->audio_stream->ms.sessions.rtp_session, ctx.q);
 		ctx.loss_rate = loss_rate;

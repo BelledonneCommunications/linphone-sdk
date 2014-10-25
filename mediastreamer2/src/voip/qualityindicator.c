@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define WORSE_JITTER 0.2
 #define WORSE_RT_PROP 5.0
 #define SEQ_INTERVAL 120
+#define TIME_INTERVAL 3000
 
 
 struct _MSQualityIndicator{
@@ -52,7 +53,7 @@ struct _MSQualityIndicator{
 MSQualityIndicator *ms_quality_indicator_new(RtpSession *session){
 	MSQualityIndicator *qi=ms_new0(MSQualityIndicator,1);
 	qi->session=session;
-	qi->lr_estimator=ortp_loss_rate_estimator_new(SEQ_INTERVAL, qi->session);
+	qi->lr_estimator=ortp_loss_rate_estimator_new(SEQ_INTERVAL, TIME_INTERVAL, qi->session);
 	qi->rating=5.0;
 	qi->lq_rating=5.0;
 	qi->local_rating=1.0;
