@@ -337,7 +337,9 @@ MSFilterDesc msopenh264_enc_desc = {
 #endif
 
 MS_PLUGIN_DECLARE(void) libmsopenh264_init(void){
+#ifdef OPENH264_DECODER_ENABLED
 	ms_filter_register(&msopenh264_dec_desc);
+#endif
 	ms_filter_register(&msopenh264_enc_desc);
 	ms_message("msopenh264-" VERSION " plugin registered.");
 }
