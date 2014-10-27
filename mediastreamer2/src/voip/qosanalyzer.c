@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <math.h>
 
-#define LOSS_RATE_MIN_INTERVAL 120
+#define LOSS_RATE_MIN_INTERVAL 60
 #define LOSS_RATE_MIN_TIME 3000
 
 /**
