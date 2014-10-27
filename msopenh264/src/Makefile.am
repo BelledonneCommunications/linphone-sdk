@@ -4,7 +4,7 @@ plugins_LTLIBRARIES=libmsopenh264.la
 
 libmsopenh264_la_SOURCES=msopenh264.cpp msopenh264dec.cpp msopenh264enc.cpp
 
-libmsopenh264_la_CFLAGS=-DOPENH264_DECODER_ENABLED
+libmsopenh264_la_CPPFLAGS=-DOPENH264_DECODER_ENABLED
 
 libmsopenh264_la_LIBADD=$(MEDIASTREAMER_LIBS) $(OPENH264_LIBS)
 
