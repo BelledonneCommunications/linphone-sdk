@@ -353,10 +353,12 @@ static void h264_module_reverse(void *data, mblk_t *input, MSQueue *output, ms_b
 		for(it = H264Private_getSPS(selectedCodecPrivate); it != NULL; it = it->next) {
 			mblk_t *sps = copymsg((mblk_t *)it->data);
 			ms_queue_put(&queue, sps);
+			ms_message("MKVPlayer: send SPS");
 		}
 		for(it = H264Private_getPPS(selectedCodecPrivate); it != NULL; it = it->next) {
 			mblk_t *pps = copymsg((mblk_t *)it->data);
 			ms_queue_put(&queue, pps);
+			ms_message("MKVPlayer: send PPS");
 		}
 	}
 
