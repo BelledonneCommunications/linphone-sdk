@@ -881,6 +881,9 @@ static void _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFi
 				stream->player_active=FALSE;
 			}
 		}
+		if (stream->source_performs_encoding == TRUE) {
+			stream->ms.encoder = stream->source;	/* Consider the encoder is the source */
+		}
 
 		/* update orientation for video output*/
 		if (stream->output && stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->output, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
