@@ -51,6 +51,22 @@ struct EncState {
 };
 
 /* Encoder */
+typedef struct { int sampling; int min_bitrate; } aac_supported_rates_t;
+
+static aac_supported_rates_t supported_srs[] = {
+	{ 48000, 36000},
+	{ 44100, 36000},
+	{ 32000, 24000},
+	{ 22050, 24000},
+	{ 16000, 24000}
+};
+static int supported_srs_size = sizeof(supported_srs)/sizeof(*supported_srs);
+
+/* initial values */
+#define AAC_DEFAULT_SR 22050
+#define AAC_DEFAULT_BR 24000
+
+/* Encoder */
 /* called at init and any modification of ptime: compute the input data length */
 static void enc_update ( struct EncState *s ) {
 	s->nbytes= ( sizeof ( AudioSampleType ) *s->nchannels*s->samplingRate*s->ptime ) /1000; /* input is 16 bits LPCM: 2 bytes per sample, ptime is in ms so /1000 */
@@ -74,8 +90,8 @@ static void enc_init ( MSFilter *f ) {
 	s->bufferizer=ms_bufferizer_new();
 	s->ptime = 10;
 	s->maxptime = -1;
-	s->samplingRate=22050; /* default is narrow band : 22050Hz and 32000b/s */
-	s->bitRate=32000;
+	s->samplingRate=AAC_DEFAULT_SR;
+	s->bitRate=AAC_DEFAULT_BR;
 	s->nchannels=1;
 	s->inputBuffer= NULL;
 	memset ( & ( s->sourceFormat ), 0, sizeof ( AudioStreamBasicDescription ) );
@@ -90,16 +106,6 @@ static void enc_init ( MSFilter *f ) {
 /* pre process: at this point the sampling rate, ptime, number of channels have been correctly setted, so we can initialize the encoder */
 static void enc_preprocess ( MSFilter *f ) {
 	struct EncState *s= ( struct EncState* ) f->data;
-
-	/* check sampling and bit rate, must be either 44100Hz and 64000b/s or 22050Hz and 32000b/s */
-	if ( ! ( ( s->samplingRate==22050 && s->bitRate == 32000 ) || ( s->samplingRate==44100 && s->bitRate == 64000 ) ) ) {
-		ms_message ( "AAC-ELD encoder received incorrect sampling/bitrate settings (sr%d br%d). Switch back sampling rate setting %dHz",s->samplingRate, s->bitRate, s->samplingRate );
-		if (s->samplingRate == 22050) {
-			s->bitRate = 32000;
-		} else {
-			s->bitRate = 64000;
-		}
-	}
 
 	/* update the nbytes value */
 	enc_update ( s );
@@ -309,29 +315,50 @@ static int enc_add_fmtp ( MSFilter *f, void *arg ) {
 
 static int enc_set_sr ( MSFilter *f, void *arg ) {
 	struct EncState *s= ( struct EncState* ) f->data;
+	bool_t found = FALSE;
+	int i;
+
 	s->samplingRate = ( ( int* ) arg ) [0];
+	for( i=0; i<supported_srs_size;i++){
+		if( s->samplingRate == supported_srs[i].sampling ){
 	/* sampling rate modify also the bitrate, only 2 configs possibles */
-	if (s->samplingRate == 44100) {
-		s->bitRate = 64000;
-	} else if (s->samplingRate == 22050) {
-		s->bitRate = 32000;
-	} else {
-		ms_message("AAC-ELD codec, try to set unsupported sampling rate %d Hz, fallback to 22050Hz", s->samplingRate);
-		s->samplingRate = 22050;
-		s->bitRate = 32000;
+			s->bitRate = MAX(supported_srs[i].min_bitrate, s->bitRate);
+			found = TRUE;
+		}
 	}
+
+	if(!found) {
+		ms_message("AAC-ELD codec, try to set unsupported sampling rate %d Hz, fallback to 22050Hz", s->samplingRate);
+		s->samplingRate = AAC_DEFAULT_SR;
+		s->bitRate = AAC_DEFAULT_BR;
+	}
+	ms_error("AAC-ELD encoder SR set to %d (asked %d)", s->samplingRate, *(int*)arg);
+
 	return 0;
 }
 
 static int enc_get_sr ( MSFilter *f, void *arg ) {
 	struct EncState *s= ( struct EncState* ) f->data;
 	( ( int* ) arg ) [0]=s->samplingRate;
+	ms_error("AAC-ELD encoder SR is %d", s->samplingRate);
 	return 0;
 }
 
 static int enc_set_br ( MSFilter *f, void *arg ) {
+	struct EncState *s= ( struct EncState* ) f->data;
+	int i;
+	bool_t found = FALSE;
+	int bitrate = ((int*)arg)[0];
 	/* ignore bit rate setting */
+	for( i=0; i<supported_srs_size;i++){
+		if( s->samplingRate == supported_srs[i].sampling ){
 	/* bit rate is fixed according to sampling rate : 44100Hz-> 64kbps */
+			s->bitRate = MAX(supported_srs[i].min_bitrate, bitrate);
+			found = TRUE;
+			ms_message("AAC bitrate set to %d", s->bitRate);
+		}
+	}
+	if( !found ) ms_warning("AAC could not set bitrate to %d, keeping %d", bitrate, s->bitRate);
 	/* 22050Hz->32kbps */
 	return 0;
 }
@@ -549,7 +576,7 @@ static void dec_process ( MSFilter *f ) {
 													  outputPacketDesc );
 
 			outputMessage->b_wptr += SIGNAL_FRAME_SIZE; // increment write pointer of output message by the amount of data written by the decoder
-			s->decodeBuffer += frameLength; /* increase the read pointer to the begining of next frame (if any, otherwise, it won't be used) */
+			s->decodeBuffer = (UInt8*)s->decodeBuffer + frameLength; /* increase the read pointer to the begining of next frame (if any, otherwise, it won't be used) */
 		}
 		/* insert the output message with all decoded frame in the queue and free the input message */
 		ms_queue_put ( f->outputs[0],outputMessage ); /* insert the decoded message in the output queue for MSFilter */
@@ -626,16 +653,31 @@ static int dec_add_fmtp ( MSFilter *f, void *data ) {
 	return 0;
 }
 
-/* set the sampling rate (22050 or 44100 Hz) */
 static int dec_set_sr ( MSFilter *f, void *arg ) {
 	struct DecState *s= ( struct DecState* ) f->data;
+	bool_t found = FALSE;
+	int i;
+
 	s->samplingRate = ( ( int* ) arg ) [0];
+	for( i=0; i<supported_srs_size;i++){
+		if( s->samplingRate == supported_srs[i].sampling ){
+			found = TRUE;
+		}
+	}
+
+	if(!found) {
+		// unlike the encoder, we fall back to 44100 here so that we can still do lower in any case
+		ms_message("AAC-ELD decoder, try to set unsupported sampling rate %d Hz, fallback to 44100Hz", s->samplingRate);
+		s->samplingRate = 44100;
+	}
+	ms_error("AAC-ELD decoder SR set to %d (asked %d)", s->samplingRate, *(int*)arg);
 	return 0;
 }
 
 static int dec_get_sr ( MSFilter *f, void *arg ) {
 	struct DecState *s= ( struct DecState* ) f->data;
 	( ( int* ) arg ) [0]=s->samplingRate;
+	ms_error("AAC-ELD decoder SR: %d", s->samplingRate);
 	return 0;
 }
 
