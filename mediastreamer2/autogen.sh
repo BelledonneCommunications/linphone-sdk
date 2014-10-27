@@ -16,14 +16,7 @@ else
 	AUTOMAKE=automake-${AM_VERSION}
 fi
 
-INTLTOOLIZE=/usr/bin/intltoolize
-
-if test -f /opt/local/bin/intltoolize ; then
-INTLTOOLIZE=/opt/local/bin/intltoolize
-else
-INTLTOOLIZE=/usr/bin/intltoolize
-fi
-
+INTLTOOLIZE=$(which intltoolize)
 
 libtoolize="libtoolize"
 for lt in glibtoolize libtoolize15 libtoolize14 libtoolize13 ; do
