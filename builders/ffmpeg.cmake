@@ -20,6 +20,10 @@
 #
 ############################################################################
 
+if(WIN32)
+	set(EP_ffmpeg_PATCH_OPTIONS "--binary")
+endif()
+
 set(EP_ffmpeg_URL "http://ffmpeg.org/releases/ffmpeg-0.10.2.tar.gz")
 set(EP_ffmpeg_URL_HASH "MD5=f449c9fb925e80c457e82187e6c20910")
 set(EP_ffmpeg_BUILD_METHOD "autotools")
@@ -58,17 +62,17 @@ if(ENABLE_MPEG4)
 	)
 endif()
 set(EP_ffmpeg_LINKING_TYPE "--disable-static" "--enable-shared")
-set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch")
+set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch" ${EP_ffmpeg_PATCH_OPTIONS})
 set(EP_ffmpeg_ARCH "i386")
 
 if(WIN32)
 	set(EP_ffmpeg_TARGET_OS "mingw32")
 	set(EP_ffmpeg_EXTRA_LDFLAGS "-static-libgcc")
-	set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/mingw-no-lib.patch")
+	set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/mingw-no-lib.patch" ${EP_ffmpeg_PATCH_OPTIONS})
 else()
 	if(APPLE)
 		set(EP_ffmpeg_TARGET_OS "darwin")
-		set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch")
+		set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch" ${EP_ffmpeg_PATCH_OPTIONS})
 	else()
 		set(EP_ffmpeg_TARGET_OS "linux")
 	endif()
