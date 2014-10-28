@@ -17,6 +17,8 @@
 #ifndef ANDROID_AUDIOSYSTEM_H_
 #define ANDROID_AUDIOSYSTEM_H_
 
+#include <cstddef>
+
 
 #include "audio.h"
 #include "loader.h"
@@ -330,6 +332,9 @@ public:
 	bool operator!=(const sp<_T> & other){
 		return mPtr!=other.mPtr;
 	}
+	_T * get()const{
+		return mPtr;
+	}
 private:
 	void assign(_T *ptr){
 		if (ptr) ptr->incStrong(this);
@@ -341,6 +346,10 @@ private:
 	}
 	_T *mPtr;
 };
+
+ptrdiff_t findRefbaseOffset(void *obj, size_t size);
+
+void dumpMemory(void *obj, size_t size);
 
 };  // namespace android
 

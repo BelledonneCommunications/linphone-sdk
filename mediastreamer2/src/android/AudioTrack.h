@@ -34,6 +34,7 @@ typedef void * audio_offload_info_t;
 
 class AudioTrack : public RefBase
 {
+	friend class AudioTrackImpl;
 public:
     enum channel_index {
         MONO   = 0,
@@ -436,8 +437,6 @@ protected:
 private:
 	class AudioTrackImpl *mImpl;
 	uint8_t *mThis;
-	bool mIsRefCounted;
-	bool mSkipDestroy;
 };
 
 
@@ -463,6 +462,7 @@ public:
 		void*,
 		int> mCtor;
 	Function1<void,void*> mDtor;
+	Function1<void,void*> mDefaultCtor;
 	Function1<status_t,const void *> mInitCheck;
 	Function1<void,void *> mStop;
 	Function1<void, void *> mStart;
@@ -472,6 +472,8 @@ public:
 	Function1<uint32_t,void*> mLatency;
 	Function2<status_t,void*,uint32_t*> mGetPosition;
 	int mSdkVersion;
+	ptrdiff_t mRefBaseOffset;
+	static const int sObjSize=512;
 private:
 	AudioTrackImpl(Library *lib);
 	static AudioTrackImpl *sImpl;

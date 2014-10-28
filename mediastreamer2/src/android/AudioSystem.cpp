@@ -202,12 +202,14 @@ RefBase::~RefBase(){
 void RefBase::incStrong(const void* id) const{
 	mCnt++;
 	if (isRefCounted()) {
+		ms_message("incStrong(%p)",getRealThis());
 		mImpl->mIncStrong.invoke(getRealThis(),this);
 	}
 }
 
 void RefBase::decStrong(const void* id) const{
 	if (isRefCounted()) {
+		ms_message("decStrong(%p)",getRealThis());
 		mImpl->mDecStrong.invoke(getRealThis(),this);
 	}
 	mCnt--;
@@ -219,7 +221,35 @@ void RefBase::decStrong(const void* id) const{
 	}
 }
 
+ptrdiff_t findRefbaseOffset(void *obj, size_t size){
+	uint8_t *base_vptr=(uint8_t*)*(void **)obj;
+	const long vptrMemRange=0x1000000;
+	size_t i;
+	int ret=-1;
+	
+	if (base_vptr==NULL){
+		ms_warning("findRefbaseOffset(): no base vptr");
+	}
+	ms_message("base_vptr is %p for obj %p",base_vptr, obj);
+	for (i=0;i<size;i+=sizeof(void*)){
+		uint8_t *ptr= ((uint8_t*)obj) + i;
+		uint8_t *candidate=(uint8_t*)*(void**)ptr;
+		if (i!=0 && labs((ptrdiff_t)(candidate-base_vptr))<vptrMemRange){
+			ret=i;
+			break;
+		}
+	}
+	if (ret==-1) ms_message("findRefbaseOffset(): no refbase vptr found");
+	return ret;
+}
 
+void dumpMemory(void *obj, size_t size){
+	int i;
+	ms_message("Dumping memory at %p",obj);
+	for (i=0;i<size;i+=sizeof(long)){
+		ms_message("%4i\t%lx",i,*(long*)(((uint8_t*)obj)+i));
+	}
+}
 
 }
 

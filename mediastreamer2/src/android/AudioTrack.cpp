@@ -39,26 +39,18 @@ namespace fake_android{
 									transfer_type transferType,
                                     const audio_offload_info_t *offloadInfo,
                                     int uid){
-		mThis=new uint8_t[512];
-		memset(mThis,0,512);
+		mThis=new uint8_t[AudioTrackImpl::sObjSize];
+		memset(mThis,0,AudioTrackImpl::sObjSize);
 		mImpl=AudioTrackImpl::get();
 		mImpl->mCtor.invoke(mThis,streamType,sampleRate,format,channelMask,frameCount,flags,cbf,user,notificationFrames,sessionId,transferType,(void*)offloadInfo,uid);
-		mIsRefCounted=false;
-		mSkipDestroy=false;
-		if (mImpl->mSdkVersion>=19){
-			mIsRefCounted=true;
-			int refcnt=RefBaseImpl::get()->mGetStrongCount.invoke(mThis);
-			if (refcnt>10){
-				/*detection of 4.4 version seen on Moto G, where AudioTrack inherits _virtually_ from RefBase.
-				 * The virtual inheritance seems a mistake, there is no reason for it in this case, however it changes the memory layout
-				 * of the AudioTrack object, the RefBase part being somewhere in the memory, not at the beginning.
-				 * By taking the getStrongCount(), we can detect that we go to read in the vptr part and obtain a crazy value.
-				 **/
-				ms_warning("Refcounting not usable");
-				mSkipDestroy=true;
-				mIsRefCounted=false;
-			}
-		}
+		//dumpMemory(mThis,AudioTrackImpl::sObjSize);
+	}
+	
+	AudioTrack::AudioTrack(){
+		mThis=new uint8_t[AudioTrackImpl::sObjSize];
+		memset(mThis,0,AudioTrackImpl::sObjSize);
+		mImpl=AudioTrackImpl::get();
+		mImpl->mDefaultCtor.invoke(mThis);
 	}
 	
 	AudioTrack::~AudioTrack(){
@@ -152,18 +144,16 @@ namespace fake_android{
 	}
 
 	void *AudioTrack::getRealThis()const{
-		return mThis;
+		return mThis + mImpl->mRefBaseOffset;
 	}
 	
 	bool AudioTrack::isRefCounted()const{
-		return mIsRefCounted;
+		return mImpl->mSdkVersion >= 19;
 	}
 	
 	void AudioTrack::destroy()const{
-		if (!mSkipDestroy){
-			mImpl->mDtor.invoke(mThis);
-			delete []mThis;
-		}
+		mImpl->mDtor.invoke(mThis);
+		delete []mThis;
 	}
 	
 	
@@ -171,6 +161,7 @@ namespace fake_android{
 		// By default, try to load Android 2.3 symbols
 		mCtor(lib,"_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_ii"),
 		mDtor(lib,"_ZN7android10AudioTrackD1Ev"),
+		mDefaultCtor(lib,"_ZN7android10AudioTrackC1Ev"),
 		mInitCheck(lib,"_ZNK7android10AudioTrack9initCheckEv"),
 		mStop(lib,"_ZN7android10AudioTrack4stopEv"),
 		mStart(lib,"_ZN7android10AudioTrack5startEv"),
@@ -180,6 +171,7 @@ namespace fake_android{
 		mLatency(lib,"_ZNK7android10AudioTrack7latencyEv"),
 		mGetPosition(lib,"_ZNK7android10AudioTrack11getPositionEPj") //4.4 symbol
 	{
+		mRefBaseOffset=0;
 		mSdkVersion=0;
 		// Try some Android 2.2 symbols if not found
 		if (!mCtor.isFound()) {
@@ -210,7 +202,7 @@ namespace fake_android{
 		AudioTrackImpl *impl=new AudioTrackImpl(lib);
 		
 		if (!impl->mCtor.isFound()) {
-			ms_error("AudioTrack::AudioTrack() not found");
+			ms_error("AudioTrack::AudioTrack(...) not found");
 			fail=true;
 		}
 		if (!impl->mDtor.isFound()) {
@@ -239,10 +231,23 @@ namespace fake_android{
 			ms_error("AudioTrack::getPosition() not found");
 			fail=true;
 		}
+		if (impl->mSdkVersion>=19 && !impl->mCtor.isFound()) {
+			ms_error("AudioTrack::AudioTrack() not found");
+			fail=true;
+		}
 		if (!fail){
 			sImpl=impl;
 			if (impl->mSdkVersion>=19){
-				ms_message("AudioTrack and AudioRecord need refcounting.");
+				ms_message("AudioTrack needs refcounting.");
+				/*
+				AudioTrack *test=new AudioTrack();
+				ptrdiff_t offset=findRefbaseOffset(test->mThis,sObjSize);
+				if (offset==-1){
+					offset=0;
+				}
+				impl->mRefBaseOffset=offset;
+				ms_message("Found offset [%i] for RefBase in AudioTrack",offset);
+				*/
 			}
 			return true;
 		}else{

@@ -36,7 +36,8 @@ AudioRecord::AudioRecord(audio_source_t inputSource,
                                     int sessionId, 
 									transfer_type transferType,
                                     audio_input_flags_t flags){
-	mThis=new uint8_t[512];
+	mThis=new uint8_t[AudioRecordImpl::sObjSize];
+	memset(mThis,0,AudioRecordImpl::sObjSize);
 	mImpl=AudioRecordImpl::get();
 	mSessionId=-1;
 
@@ -45,13 +46,22 @@ AudioRecord::AudioRecord(audio_source_t inputSource,
 	} else {
 		/* The flags parameter was removed in Android 4.2 (API level 17). */
 		if (AudioTrackImpl::get()->mSdkVersion>=19 && sessionId==0){
-			sessionId=AudioSystem::newAudioSessionId();
+			sessionId=AudioSystem::newAudioSessionId(); /*we allocate a sessionID by ourselves because otherwise it is not accessible
+				because the method is inlined*/
 			if (sessionId==-1){
 				sessionId=0;
 			}else mSessionId=sessionId;
 		}
 		mImpl->mCtor.invoke(mThis,inputSource,sampleRate,format,channelMask,frameCount,cbf,user,notificationFrames,sessionId,transferType,flags);
 	}
+	//dumpMemory(mThis,AudioRecordImpl::sObjSize);
+}
+
+AudioRecord::AudioRecord(){
+	mThis=new uint8_t[AudioRecordImpl::sObjSize];
+	memset(mThis,0,AudioRecordImpl::sObjSize);
+	mImpl=AudioRecordImpl::get();
+	mImpl->mDefaultCtor.invoke(mThis);
 }
 
 
@@ -117,7 +127,7 @@ void AudioRecord::readBuffer(const void *p_info, Buffer *buffer){
 }
 
 bool AudioRecord::isRefCounted()const{
-	return AudioTrackImpl::get()->mSdkVersion>=19;
+	return mImpl->mApiVersion>=19;
 }
 
 void AudioRecord::destroy()const{
@@ -125,12 +135,17 @@ void AudioRecord::destroy()const{
 	delete []mThis;
 }
 
+void *AudioRecord::getRealThis()const{
+	void *ret= mThis + mImpl->mRefBaseOffset;
+	return ret;
+}
+
 bool AudioRecordImpl::init(Library *lib){
 	bool fail=false;
 	AudioRecordImpl *impl=new AudioRecordImpl(lib);
 	if (!impl->mCtorBeforeAPI17.isFound() && !impl->mCtor.isFound()) {
 		fail=true;
-		ms_error("AudioRecord::AudioRecord() not found.");
+		ms_error("AudioRecord::AudioRecord(...) not found.");
 	}
 	if (!impl->mDtor.isFound()) {
 		fail=true;
@@ -147,11 +162,27 @@ bool AudioRecordImpl::init(Library *lib){
 		fail=true;
 		ms_error("AudioRecord::start() not found.");
 	}
+	if (impl->mApiVersion>=19 && !impl->mDefaultCtor.isFound()){
+		fail=true;
+		ms_error("AudioRecord::AudioRecord() not found.");
+	}
 	if (fail){
 		delete impl;
 		return false;
 	}
 	sImpl=impl;
+	if (impl->mApiVersion>=19){
+		ms_message("AudioRecord needs refcounting.");
+		/*
+		AudioRecord *test=new AudioRecord();
+		ptrdiff_t offset=findRefbaseOffset(test->mThis,sObjSize);
+		if (offset==-1){
+			offset=0;
+		}
+		impl->mRefBaseOffset=offset;
+		ms_message("AudioRecord's offset for RefBase is %i",offset);
+		*/
+	}
 	return true;
 }
 
@@ -162,23 +193,30 @@ AudioRecordImpl::AudioRecordImpl(Library *lib) :
 	mCtorBeforeAPI17(lib,"_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_ii"),
 	mCtor(lib, "_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiPFviPvS3_ES3_iiNS0_13transfer_typeE19audio_input_flags_t"),	// 4.4 symbol
 	mDtor(lib,"_ZN7android11AudioRecordD1Ev"),
+	mDefaultCtor(lib,"_ZN7android11AudioRecordC1Ev"),
 	mInitCheck(lib,"_ZNK7android11AudioRecord9initCheckEv"),
 	mStop(lib,"_ZN7android11AudioRecord4stopEv"),
 	mStart(lib,"_ZN7android11AudioRecord5startEv"),
 	mGetMinFrameCount(lib,"_ZN7android11AudioRecord16getMinFrameCountEPijii"),
 	mGetSessionId(lib,"_ZNK7android11AudioRecord12getSessionIdEv")
 {
-	// Try some Android 2.2 symbols if not found
-	if (!mCtorBeforeAPI17.isFound()) {
-		mCtorBeforeAPI17.load(lib,"_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_i");
-	}
-	// Then try some Android 4.1 symbols if still not found
-	if (!mCtorBeforeAPI17.isFound()) {
-		mCtorBeforeAPI17.load(lib,"_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiNS0_12record_flagsEPFviPvS4_ES4_ii");
-	}
-	// Try to load Android 4.2 constructor
-	if (!mCtorBeforeAPI17.isFound() && !mCtor.isFound()) {
-		mCtor.load(lib,"_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiPFviPvS3_ES3_ii");
+	mApiVersion=0;
+	mRefBaseOffset=0;
+	if (!mCtor.isFound()){
+		// Try some Android 2.2 symbols if not found
+		if (!mCtorBeforeAPI17.isFound()) {
+			mCtorBeforeAPI17.load(lib,"_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_i");
+		}
+		// Then try some Android 4.1 symbols if still not found
+		if (!mCtorBeforeAPI17.isFound()) {
+			mCtorBeforeAPI17.load(lib,"_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiNS0_12record_flagsEPFviPvS4_ES4_ii");
+		}
+		// Try to load Android 4.2 constructor
+		if (!mCtorBeforeAPI17.isFound()) {
+			mCtor.load(lib,"_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiPFviPvS3_ES3_ii");
+		}
+	}else {
+		mApiVersion=19;
 	}
 	
 	if (!mStart.isFound()) {
