@@ -38,3 +38,5 @@ tester/belle_sip_object_describe
 tester/belle_sip_parse
 tester/belle_sip_tester
 
+tester/belle_http_get
+tester/belle_sip_resolve
