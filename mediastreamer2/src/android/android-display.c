@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msjava.h"
 #include "layouts.h"
-
+8
 #include <android/bitmap.h>
 
 #include <dlfcn.h>
@@ -81,6 +81,7 @@ static int vsize_get_orientation(MSVideoSize vs){
 	return vs.width>=vs.height ? LANDSCAPE : PORTRAIT;
 }
 
+#if 0
 static void select_orientation(AndroidDisplay *ad, MSVideoSize wsize, MSVideoSize vsize){
 	int wo,vo;
 	JNIEnv *jenv=ms_get_jni_env();
@@ -92,6 +93,7 @@ static void select_orientation(AndroidDisplay *ad, MSVideoSize wsize, MSVideoSiz
 		ad->orientation_change_pending=TRUE;
 	}
 }
+#endif
 
 
 static void android_display_process(MSFilter *f){
