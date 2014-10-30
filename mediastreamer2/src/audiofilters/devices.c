@@ -193,7 +193,7 @@ void ms_sound_device_description_add(const char *manufacturer, const char *model
 	sound_device_descriptions = ms_list_append(sound_device_descriptions, new_sound_device_description);
 }
 
-#ifndef PROV_VALUE_MAX
+#ifndef PROP_VALUE_MAX
 #define PROP_VALUE_MAX 256
 #endif
 
