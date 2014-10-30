@@ -28,8 +28,8 @@ static JavaVM *ms2_vm=NULL;
 static pthread_key_t jnienv_key;
 
 void _android_key_cleanup(void *data){
-	ms_message("Thread end, detaching jvm from current thread");
 	JNIEnv* env=(JNIEnv*)pthread_getspecific(jnienv_key);
+	ms_message("Thread end, detaching jvm from current thread");
 	if (env != NULL) {
 		(*ms2_vm)->DetachCurrentThread(ms2_vm);
 		pthread_setspecific(jnienv_key,NULL);

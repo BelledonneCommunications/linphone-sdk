@@ -228,8 +228,7 @@ LOCAL_CFLAGS += \
 	-include $(LOCAL_PATH)/../build/android/libmediastreamer2_AndroidConfig.h \
 	-DMS2_INTERNAL \
 	-DMS2_FILTERS \
-	-D_POSIX_SOURCE -Wall
-
+	-D_POSIX_SOURCE -Wall -Werror -Wno-error=strict-aliasing -Wuninitialized
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_CFLAGS += -DUSE_HARDWARE_RATE=1
@@ -326,6 +325,8 @@ ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 else
 	include $(BUILD_STATIC_LIBRARY)
 endif
+LOCAL_CPPFLAGS = $(LOCAL_CLFAGS)
+LOCAL_CFLAGS += -Wdeclaration-after-statement
 
 $(call import-module,android/cpufeatures)
 
