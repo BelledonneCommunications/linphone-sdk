@@ -234,6 +234,7 @@ static void enc_process ( MSFilter *f ) {
 
 			if ( status != noErr ) {
 				ms_message ( "AAC-ELD unable to encode, exit status : %ld",status );
+            	ms_filter_unlock(f);
 				return;
 			}
 
