@@ -48,6 +48,7 @@ struct EncState {
 	AudioConverterRef            audioConverter;
 	UInt32 maxOutputPacketSize; /* maximum size of the output packet */
 	UInt32 bytesToEncode;
+	bool_t sbr_enabled;
 };
 
 /* Encoder */
@@ -121,8 +122,11 @@ static void enc_preprocess ( MSFilter *f ) {
 	s->sourceFormat.mChannelsPerFrame = s->nchannels;
 	s->sourceFormat.mBitsPerChannel = 8*sizeof ( AudioSampleType );
 
-	/* initialise the ouput audio stream description AAC-ELD */
-	s->destinationFormat.mFormatID         = kAudioFormatMPEG4AAC_ELD;
+	s->destinationFormat.mFormatID     = kAudioFormatMPEG4AAC_ELD;
+	/* initialize the ouput audio stream description AAC-ELD */
+	if( s->sbr_enabled ){
+		s->destinationFormat.mFormatID = kAudioFormatMPEG4AAC_ELD_SBR;
+	}
 	s->destinationFormat.mChannelsPerFrame = s->nchannels;
 	s->destinationFormat.mSampleRate       = s->samplingRate;
 
@@ -189,17 +193,17 @@ static void enc_process ( MSFilter *f ) {
 	ms_bufferizer_put_from_queue ( s->bufferizer,f->inputs[0] );
 
 	UInt16 frameNumber = s->nbytes/SIGNAL_FRAME_SIZE; /* number of frame in the packet */
-	
+
 	/* until we find at least the requested amount of input data in the input buffer, process it */
 	while ( ms_bufferizer_get_avail ( s->bufferizer ) >=s->nbytes ) {
 		mblk_t *outputMessage=allocb ( (s->maxOutputPacketSize+2)*frameNumber+2,0 ); /* create an output message of requested size(max ouput size * number of frame in the packet + 2 bytes per frame for au header and 2 bytes for au header length) */
 		UInt16 messageLength = 2 + 2*frameNumber; /* store in bytes the complete message length to increment the write pointer of output message at the end of the encoding, initialise with au header length */
-		
+
 		/* insert the header accoring to RC3640 3.3.6: 2 bytes of AU-Header section and one AU-HEader of 2 bytes */
 		/* au header length is frame number*16(2 bytes per frame) */
 		outputMessage->b_wptr[0] = (UInt8)(frameNumber>>4);
 		outputMessage->b_wptr[1] = (UInt8)(frameNumber<<4);
-		
+
 		/*** encoding ***/
 		/* create an audio stream packet description to feed the encoder in order to get the description of encoded data */
 		AudioStreamPacketDescription outPacketDesc[1];
@@ -244,7 +248,7 @@ static void enc_process ( MSFilter *f ) {
 			outputBuffer += encodedFrameLength;
 		}
 		outputMessage->b_wptr += messageLength;
-		
+
 		/* set timeStamp in the output Message */
 		mblk_set_timestamp_info ( outputMessage,s->timeStamp );
 		s->timeStamp += s->nbytes/ ( sizeof ( AudioSampleType ) *s->nchannels ); /* increment timeStamp by the number of sample processed (divided by the number of channels) */
@@ -275,7 +279,7 @@ static int set_ptime ( struct EncState *s, int value ) {
 	if (s->maxptime<0) {
 		s->maxptime = MIN(100,MAX(value, 50));
 	}
-	
+
 	if ( value>0 && value<=s->maxptime ) {
 		s->ptime=value;
 		ms_message ( "AAC-ELD encoder using ptime=%i",value );
@@ -304,11 +308,18 @@ static int enc_add_fmtp ( MSFilter *f, void *arg ) {
 	struct EncState *s= ( struct EncState* ) f->data;
 	char tmp[16]= {0};
 	int retval=0;
-	
+
 	if ( fmtp_get_value ( fmtp,"ptime",tmp,sizeof ( tmp ) ) ) {
 		ms_filter_lock ( f );
 		retval = set_ptime ( s,atoi ( tmp ) );
 		ms_filter_unlock ( f );
+	}
+	if( fmtp_get_value(fmtp, "SBR-enabled", tmp, sizeof(tmp)) ){
+		int enabled = atoi(tmp);
+		ms_message("AAC encoder using SBR-enabled value: %d", enabled);
+		if( enabled != 0){
+			s->sbr_enabled = TRUE;
+		}
 	}
 	return retval;
 }
@@ -380,7 +391,7 @@ static int enc_set_nchannels(MSFilter *f, void *arg) {
 static int enc_set_ptime(MSFilter *f, void *arg) {
 	struct EncState *s = (struct EncState *)f->data;
 	int retval=0;
-	
+
 	ms_filter_lock ( f );
 	retval = set_ptime ( s, *(int *)arg );
 	ms_filter_unlock ( f );
@@ -436,6 +447,7 @@ struct DecState {
 	void                        *decodeBuffer;
 	AudioStreamPacketDescription packetDesc[1];
 	UInt32                       maxOutputPacketSize;
+	bool_t sbr_enabled;
 };
 
 static void dec_init ( MSFilter *f ) {
@@ -468,6 +480,11 @@ static void dec_preprocess ( MSFilter *f ) {
 	s->sourceFormat.mFormatID         = kAudioFormatMPEG4AAC_ELD;
 	s->sourceFormat.mChannelsPerFrame = s->nchannels;
 	s->sourceFormat.mSampleRate       = s->samplingRate;
+
+	if(s->sbr_enabled){
+		ms_message("Source format has SBR");
+		s->sourceFormat.mFormatID = kAudioFormatMPEG4AAC_ELD_SBR;
+	}
 
 	/* Get the rest of the format info */
 	UInt32 dataSize = sizeof ( s->sourceFormat );
@@ -539,7 +556,7 @@ static void dec_process ( MSFilter *f ) {
 	/* get the input message from queue */
 	mblk_t *inputMessage;
 
-	UInt32 numOutputDataPackets; 
+	UInt32 numOutputDataPackets;
 
 	while ( ( inputMessage=ms_queue_get ( f->inputs[0] ) ) ) {
 		numOutputDataPackets = SIGNAL_FRAME_SIZE / s->maxOutputPacketSize;
@@ -548,15 +565,15 @@ static void dec_process ( MSFilter *f ) {
 		UInt16 frameNumber = ((((UInt16)(inputMessage->b_rptr[0]))<<8) + ((UInt16)(inputMessage->b_rptr[1])))/16;
 		UInt16 headerOffset = 2*frameNumber + 2; /* actual frame start at this offset in input message */
 		mblk_t *outputMessage = allocb ( SIGNAL_FRAME_SIZE*frameNumber, 0 ); /* fixed size output frame, allocate the requested amount in the output message */
-		
+
 		int frameIndex;
 		s->decodeBuffer=inputMessage->b_rptr + headerOffset; /* initialise the read pointer to the beginning of the first frame */
 		for (frameIndex=0; frameIndex<frameNumber; frameIndex++) {
-			
+
 			/* get the frame length from the header */
 			UInt16 frameLength = ((((UInt16)(inputMessage->b_rptr[2+2*frameIndex]))<<8) + ((UInt16)(inputMessage->b_rptr[2+2*frameIndex+1])))>>3;
 			s->bytesToDecode = frameLength;
-			
+
 			/* Create the output buffer list */
 			AudioBufferList outBufferList;
 			outBufferList.mNumberBuffers = 1;
@@ -584,27 +601,27 @@ static void dec_process ( MSFilter *f ) {
 		ms_concealer_ts_context_inc_sample_ts(s->concealer,  f->ticker->time*s->samplingRate/1000, frameNumber*SIGNAL_FRAME_SIZE/sizeof(AudioSampleType), 1);
 		freemsg ( inputMessage );
 	}
-	
+
 	/* is concealment needed? */
 	if(ms_concealer_ts_context_is_concealement_required(s->concealer, f->ticker->time*s->samplingRate/1000)) {
 		mblk_t *outputMessage = allocb (SIGNAL_FRAME_SIZE, 0);
-		
+
 		/* send a zero frame to the decoder (2 bytes at 0) */
 		s->bytesToDecode = 2;
 		UInt16 zerobytes = 0;
 		s->decodeBuffer = &zerobytes;
 		numOutputDataPackets = SIGNAL_FRAME_SIZE / s->maxOutputPacketSize;
-		
+
 		/* Create the output buffer list */
 		AudioBufferList outBufferList;
 		outBufferList.mNumberBuffers = 1;
 		outBufferList.mBuffers[0].mNumberChannels = s->nchannels;
 		outBufferList.mBuffers[0].mDataByteSize   = SIGNAL_FRAME_SIZE;
 		outBufferList.mBuffers[0].mData           = outputMessage->b_wptr;
-		
+
 		OSStatus status = noErr;
 		AudioStreamPacketDescription outputPacketDesc[512]; //ouput is 512 samples
-		
+
 		/* Start the decoding process */
 		status = AudioConverterFillComplexBuffer ( s->audioConverter,
 												  decoderCallback,
@@ -612,7 +629,7 @@ static void dec_process ( MSFilter *f ) {
 												  &numOutputDataPackets,
 												  &outBufferList,
 												  outputPacketDesc );
-		
+
 		outputMessage->b_wptr += SIGNAL_FRAME_SIZE;
 		mblk_set_plc_flag(outputMessage, 1);
 		ms_queue_put (f->outputs[0], outputMessage);
@@ -621,7 +638,7 @@ static void dec_process ( MSFilter *f ) {
 }
 
 static void dec_postprocess ( MSFilter *f ) {
-	
+
 }
 
 static void dec_uninit ( MSFilter *f ) {
@@ -649,6 +666,13 @@ static int dec_add_fmtp ( MSFilter *f, void *data ) {
 		}
 		s->audioConverterProperty_size=j;
 		ms_message ( "Got mpeg4 config string: %s",config );
+	}
+	if( fmtp_get_value( fmtp, "SBR-enabled", config, sizeof(config) ) ){
+		int enabled = atoi(config);
+		ms_message("AAC Decoder using SBR-enabled = %d", enabled);
+		if( enabled) {
+			s->sbr_enabled = TRUE;
+		}
 	}
 	return 0;
 }
