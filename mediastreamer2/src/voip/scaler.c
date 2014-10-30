@@ -66,8 +66,6 @@ static void init_premults(){
 }
 
 
-static int32_t yuvmax[4]={255<<13,255<<13,255<<13,255<<13};
-
 #if !defined (__ARM_NEON__) 
 
 static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8_t *u, const uint8_t *v, int16_t *r1, int16_t *g1, int16_t *b1, int16_t *r2, int16_t *g2, int16_t *b2){
@@ -122,6 +120,8 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 #endif
 
 #if defined (__ARM_NEON__) 
+static int32_t yuvmax[4]={255<<13,255<<13,255<<13,255<<13};
+
 static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8_t *u, const uint8_t *v, int16_t *r1, int16_t *g1, int16_t *b1, int16_t *r2, int16_t *g2, int16_t *b2){
 	int32x4_t ry1;
 	int32x4_t ry2;
