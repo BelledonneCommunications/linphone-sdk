@@ -77,11 +77,11 @@ static void android_display_preprocess(MSFilter *f){
 #define LANDSCAPE 0
 #define PORTRAIT 1
 
+#if 0
 static int vsize_get_orientation(MSVideoSize vs){
 	return vs.width>=vs.height ? LANDSCAPE : PORTRAIT;
 }
 
-#if 0
 static void select_orientation(AndroidDisplay *ad, MSVideoSize wsize, MSVideoSize vsize){
 	int wo,vo;
 	JNIEnv *jenv=ms_get_jni_env();
