@@ -244,7 +244,7 @@ ptrdiff_t findRefbaseOffset(void *obj, size_t size){
 }
 
 void dumpMemory(void *obj, size_t size){
-	int i;
+	size_t i;
 	ms_message("Dumping memory at %p",obj);
 	for (i=0;i<size;i+=sizeof(long)){
 		ms_message("%4i\t%lx",i,*(long*)(((uint8_t*)obj)+i));
