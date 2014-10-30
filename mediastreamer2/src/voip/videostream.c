@@ -360,6 +360,7 @@ static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_s
 	return wished_size;
 }
 
+#if !TARGET_IPHONE_SIMULATOR && !defined(__arm__)
 static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideoSize refsize){
 	if (ms_video_size_get_orientation(refsize)!=ms_video_size_get_orientation(size)){
 		int tmp;
@@ -370,6 +371,7 @@ static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideo
 	size.height=(size.width*refsize.height)/refsize.width;
 	return size;
 }
+#endif
 
 static void configure_video_source(VideoStream *stream){
 	MSVideoSize vsize,cam_vsize;
