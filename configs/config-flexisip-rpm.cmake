@@ -21,6 +21,7 @@
 ############################################################################
 
 include(GNUInstallDirs)
+include(${CMAKE_SOURCE_DIR}/cmake/FindLinuxPlatform.cmake)
 
 # Define default values for the linphone builder options
 set(DEFAULT_VALUE_ENABLE_VIDEO OFF)
@@ -94,3 +95,10 @@ set(EP_unixodbc_RPMBUILD_OPTIONS  "--with bc")
 set(EP_myodbc_RPMBUILD_OPTIONS    "--with bc")
 set(EP_sofiasip_RPMBUILD_OPTIONS  "--with bc --without glib")
 set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --without protobuf --without boostlog")
+
+message( STATUS "PLATFORM is ${PLATFORM}")
+message( STATUS "SYSTEM is ${CMAKE_SYSTEM}")
+
+if(PLATFORM STREQUAL "Debian")
+	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTION "--nodeps")
+endif()
