@@ -54,7 +54,7 @@ public class AACFilter {
 		initialized = false;
 	}
 
-	public boolean preprocess(int sampleRate, int channelCount, int bitrate) {
+	public boolean preprocess(int sampleRate, int channelCount, int bitrate, boolean sbr_enabled) {
 		if (initialized)
 			return true;
 
@@ -64,9 +64,16 @@ public class AACFilter {
 
 		byte[] asc = null;
 		try {
-			MediaFormat mediaFormat = MediaFormat.createAudioFormat("audio/mp4a-latm", sampleRate, channelCount);
-			mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectELD);
-			mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
+            MediaFormat mediaFormat = MediaFormat.createAudioFormat("audio/mp4a-latm", sampleRate, channelCount);
+            mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectELD);
+            mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
+
+            // Configuring the SBR for AAC requires API lvl 21, which is not out there right now (Oct 2014)
+            // AAC is supposed to autoconfigure itself, but we should react to fmtp, so activate this when
+            // the API is here.
+            // if( sbr_enabled ) {
+            //      mediaFormat.setInteger(MediaFormat.KEY_AAC_SBR_MODE, 2);
+            // }
 
 			encoder = MediaCodec.createByCodecName("OMX.google.aac.encoder");
 			encoder.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);

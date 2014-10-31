@@ -112,7 +112,7 @@ class AACFilterJniWrapper {
 
 public:
 	void init(JNIEnv* jni_env);
-	int preprocess(JNIEnv* jni_env, int sampleRate, int channelCount, int bitrate);
+	int preprocess(JNIEnv* jni_env, int sampleRate, int channelCount, int bitrate, bool_t sbr_enabled);
 	bool postprocess(JNIEnv* jni_env);
 	mblk_t* pullFromEncoder(JNIEnv* jni_env);
 	void pushToEncoder(JNIEnv* jni_env, uint8_t* data, int size);
@@ -133,6 +133,7 @@ struct EncState {
 	int nchannels; /* number of channels, default 1(mono) */
 	MSBufferizer *bufferizer; /* buffer to store data from input queue before processing them */
 	uint8_t *inputBuffer; /* buffer to store nbytes of input data and send them to the encoder */
+	bool_t sbr_enabled;
 };
 
 /* Encoder */
@@ -163,6 +164,7 @@ static void enc_init ( MSFilter *f ) {
 	s->jni_wrapper.init(ms_get_jni_env());
 
 	s->timeStamp=0;
+	s->sbr_enabled = 0;
 	s->bufferizer=ms_bufferizer_new();
 	s->ptime=10;
 	s->maxptime = -1;
@@ -182,7 +184,7 @@ static void enc_preprocess ( MSFilter *f ) {
 
 	s->ptime = MAX(s->ptime, sample_rate_min_ptime[sample_rate_to_index(s->samplingRate)]);
 
-	s->bitRate = s->jni_wrapper.preprocess(ms_get_jni_env(), s->samplingRate, s->nchannels, s->bitRate);
+	s->bitRate = s->jni_wrapper.preprocess(ms_get_jni_env(), s->samplingRate, s->nchannels, s->bitRate, s->sbr_enabled);
 
 	if (s->bitRate == -1) {
 		ms_error("AAC encoder pre-process went wrong");
@@ -333,6 +335,11 @@ static int enc_add_fmtp ( MSFilter *f, void *arg ) {
 		retval = set_ptime ( s,atoi ( tmp ) );
 		ms_filter_unlock ( f );
 	}
+	if( fmtp_get_value( fmtp, "SBR-enabled", tmp, sizeof(tmp) )){
+		int enabled = atoi(tmp);
+		s->sbr_enabled = enabled;
+		ms_message("AAC Encoder SBR enabled: %d", enabled);
+	}
 	return retval;
 }
 
@@ -431,6 +438,7 @@ struct DecState {
 	int nchannels; /* number of channels, default 1(mono) */
 	int nbytes; /* size of ouput buffer for the decoder */
 	MSConcealerTsContext *concealer; /* concealment management */
+	bool_t sbr_enabled;
 };
 
 static void dec_init ( MSFilter *f ) {
@@ -554,6 +562,11 @@ static int dec_add_fmtp ( MSFilter *f, void *data ) {
 		s->audioConverterProperty_size=j;
 		// ms_message ( "Got mpeg4 config string: %s",config );
 	}
+	if( fmtp_get_value( fmtp, "SBR-enabled", config, sizeof(config) )){
+		int enabled = atoi(config);
+		s->sbr_enabled = enabled;
+		ms_message("AAC Decoder SBR enabled: %d", enabled);
+	}
 	return 0;
 }
 
@@ -632,7 +645,7 @@ void AACFilterJniWrapper::init(JNIEnv* jni_env) {
 
 	/* Methods */
 	jmethodID instanceMethod = lookupMethod(jni_env, "instance", "()Lorg/linphone/mediastream/AACFilter;", true);
-	preProcessMethod = lookupMethod(jni_env, "preprocess", "(III)Z", false);
+	preProcessMethod = lookupMethod(jni_env, "preprocess", "(IIIZ)Z", false);
 	encoder[AACFilterJniWrapper::Push] = lookupMethod(jni_env, "pushToEncoder", "([BI)Z", false);
 	encoder[AACFilterJniWrapper::Pull] = lookupMethod(jni_env, "pullFromEncoder", "([B)I", false);
 	decoder[AACFilterJniWrapper::Push] = lookupMethod(jni_env, "pushToDecoder", "([BI)Z", false);
@@ -648,9 +661,9 @@ void AACFilterJniWrapper::init(JNIEnv* jni_env) {
 	array = (jbyteArray)jni_env->NewGlobalRef(jni_env->NewByteArray(8192));
 }
 
-int AACFilterJniWrapper::preprocess(JNIEnv* jni_env, int sampleRate, int channelCount, int bitrate) {
+int AACFilterJniWrapper::preprocess(JNIEnv* jni_env, int sampleRate, int channelCount, int bitrate, bool_t sbr_enabled) {
 
-	bool p = jni_env->CallBooleanMethod(AACFilterInstance, preProcessMethod, sampleRate, channelCount, bitrate);
+	bool p = jni_env->CallBooleanMethod(AACFilterInstance, preProcessMethod, sampleRate, channelCount, bitrate, sbr_enabled);
 	if (!p)
 		return -1;
 	return bitrate;
