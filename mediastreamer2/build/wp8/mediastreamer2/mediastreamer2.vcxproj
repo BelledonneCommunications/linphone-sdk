@@ -54,7 +54,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\src\base;$(ProjectDir)..\..\..\src\utils;$(ProjectDir)..\..\..\src\voip;$(ProjectDir)..\..\..\src\audiofilters;$(ProjectDil)..\..\..\src\otherfilters;$(ProjectDir)..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\oRTP\build\wp8\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\wp8\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\srtp\include;$(ProjectDir)..\..\..\..\..\srtp\crypto\include;$(ProjectDir)..\..\..\..\..\srtp\build\wp8\srtp;$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\opus\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;WIN32;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;HAVE_SPEEXDSP;ORTP_INET6;ORTP_HAVE_SRTP;WINDOW_NATIVE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;VIDEO_ENABLED;NO_FFMPEG;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;WIN32;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;HAVE_SPEEXDSP;ORTP_INET6;ORTP_HAVE_SRTP;WINDOW_NATIVE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;VIDEO_ENABLED;NO_FFMPEG;UNICODE;HAVE_CONFIG_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
@@ -68,6 +68,12 @@
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ImportLibrary>$(TargetDir)$(TargetName).lib</ImportLibrary>
     </Link>
+    <PreBuildEvent>
+      <Command>version.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Batch script to get the git version</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
@@ -136,6 +142,8 @@
     <ClInclude Include="..\..\..\src\voip\private.h" />
     <ClInclude Include="..\..\..\src\voip\rfc2429.h" />
     <ClInclude Include="basedescs.h" />
+    <ClInclude Include="gitversion.h" />
+    <ClInclude Include="mediastreamer-config.h" />
     <ClInclude Include="voipdescs.h" />
   </ItemGroup>
   <ItemGroup>
