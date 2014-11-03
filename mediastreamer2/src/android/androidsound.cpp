@@ -248,11 +248,11 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	
 	if (libmedia && libutils){
 		/*perform initializations in order rather than in a if statement so that all missing symbols are shown in logs*/
+		string8_loaded=String8Impl::init(libutils);
+		refbase_loaded=RefBaseImpl::init(libutils);
 		audio_record_loaded=AudioRecordImpl::init(libmedia);
 		audio_track_loaded=AudioTrackImpl::init(libmedia);
 		audio_system_loaded=AudioSystemImpl::init(libmedia);
-		string8_loaded=String8Impl::init(libutils);
-		refbase_loaded=RefBaseImpl::init(libutils);
 	}
 	if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded && refbase_loaded){
 		ms_message("Native android sound support available.");

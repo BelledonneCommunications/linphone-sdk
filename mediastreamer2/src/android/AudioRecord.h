@@ -404,6 +404,7 @@ public:
 	//Function1<audio_io_handle_t,void*> mGetInput;
 	ptrdiff_t mRefBaseOffset;
 	int mApiVersion;
+	bool mUseRefcount;
 	static const size_t sObjSize=512;
 private:
 	AudioRecordImpl(Library *lib);

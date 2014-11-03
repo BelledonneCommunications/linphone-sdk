@@ -127,7 +127,7 @@ void AudioRecord::readBuffer(const void *p_info, Buffer *buffer){
 }
 
 bool AudioRecord::isRefCounted()const{
-	return mImpl->mApiVersion>=19;
+	return mImpl->mUseRefcount;
 }
 
 void AudioRecord::destroy()const{
@@ -172,16 +172,16 @@ bool AudioRecordImpl::init(Library *lib){
 	}
 	sImpl=impl;
 	if (impl->mApiVersion>=19){
-		ms_message("AudioRecord needs refcounting.");
-		/*
 		AudioRecord *test=new AudioRecord();
-		ptrdiff_t offset=findRefbaseOffset(test->mThis,sObjSize);
-		if (offset==-1){
-			offset=0;
+		//dumpMemory(test->getRealThis(),AudioRecordImpl::sObjSize);
+		if (findRefbaseOffset(test->getRealThis(),AudioRecordImpl::sObjSize)>(ptrdiff_t)sizeof(void*)){
+			ms_message("AudioRecord does not need refcounting despite it is 4.4");
+			impl->mUseRefcount=false;
+		}else{
+			ms_message("AudioRecord needs refcounting.");
+			impl->mUseRefcount=true;
 		}
-		impl->mRefBaseOffset=offset;
-		ms_message("AudioRecord's offset for RefBase is %i",offset);
-		*/
+		sp<AudioRecord> st(test);
 	}
 	return true;
 }
@@ -201,6 +201,7 @@ AudioRecordImpl::AudioRecordImpl(Library *lib) :
 	mGetSessionId(lib,"_ZNK7android11AudioRecord12getSessionIdEv")
 {
 	mApiVersion=0;
+	mUseRefcount=false;
 	mRefBaseOffset=0;
 	if (!mCtor.isFound()){
 		// Try some Android 2.2 symbols if not found

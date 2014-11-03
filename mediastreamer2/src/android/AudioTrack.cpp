@@ -148,7 +148,7 @@ namespace fake_android{
 	}
 	
 	bool AudioTrack::isRefCounted()const{
-		return mImpl->mSdkVersion >= 19;
+		return mImpl->mUseRefCount;
 	}
 	
 	void AudioTrack::destroy()const{
@@ -173,6 +173,7 @@ namespace fake_android{
 	{
 		mRefBaseOffset=0;
 		mSdkVersion=0;
+		mUseRefCount=false;
 		// Try some Android 2.2 symbols if not found
 		if (!mCtor.isFound()) {
 			mCtor.load(lib,"_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_i");
@@ -238,16 +239,18 @@ namespace fake_android{
 		if (!fail){
 			sImpl=impl;
 			if (impl->mSdkVersion>=19){
-				ms_message("AudioTrack needs refcounting.");
-				/*
+				impl->mUseRefCount=true;
 				AudioTrack *test=new AudioTrack();
-				ptrdiff_t offset=findRefbaseOffset(test->mThis,sObjSize);
-				if (offset==-1){
-					offset=0;
+				//dumpMemory(test->getRealThis(),AudioTrackImpl::sObjSize);
+				ptrdiff_t offset=findRefbaseOffset(test->getRealThis(),AudioTrackImpl::sObjSize);
+				
+				if (offset>(ptrdiff_t)sizeof(void*)){
+					ms_message("AudioTrack uses virtual RefBase despite it is 4.4");
+					impl->mRefBaseOffset=offset;
+				}else{
+					ms_message("AudioTrack needs refcounting.");
 				}
-				impl->mRefBaseOffset=offset;
-				ms_message("Found offset [%i] for RefBase in AudioTrack",offset);
-				*/
+				sp<AudioTrack> st(test);
 			}
 			return true;
 		}else{
@@ -257,7 +260,4 @@ namespace fake_android{
 	}
 	
 	AudioTrackImpl * AudioTrackImpl::sImpl=NULL;
-	
-	
-	
 }//end of namespace

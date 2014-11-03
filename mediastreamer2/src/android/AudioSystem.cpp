@@ -221,6 +221,10 @@ void RefBase::decStrong(const void* id) const{
 	}
 }
 
+int32_t RefBase::getStrongCount() const{
+	return mImpl->mGetStrongCount.invoke(getRealThis());
+}
+
 ptrdiff_t findRefbaseOffset(void *obj, size_t size){
 	uint8_t *base_vptr=(uint8_t*)*(void **)obj;
 	const long vptrMemRange=0x1000000;
@@ -231,7 +235,7 @@ ptrdiff_t findRefbaseOffset(void *obj, size_t size){
 		ms_warning("findRefbaseOffset(): no base vptr");
 	}
 	ms_message("base_vptr is %p for obj %p",base_vptr, obj);
-	for (i=0;i<size;i+=sizeof(void*)){
+	for (i=(size/sizeof(void*))*sizeof(void*);i>0;i-=sizeof(void*)){
 		uint8_t *ptr= ((uint8_t*)obj) + i;
 		uint8_t *candidate=(uint8_t*)*(void**)ptr;
 		if (i!=0 && labs((ptrdiff_t)(candidate-base_vptr))<vptrMemRange){

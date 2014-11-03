@@ -473,6 +473,7 @@ public:
 	Function2<status_t,void*,uint32_t*> mGetPosition;
 	int mSdkVersion;
 	ptrdiff_t mRefBaseOffset;
+	bool mUseRefCount;
 	static const int sObjSize=512;
 private:
 	AudioTrackImpl(Library *lib);
