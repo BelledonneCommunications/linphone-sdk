@@ -218,10 +218,12 @@ static int dec_video_bitrate(MSAVBitrateDriver *obj, const MSRateControlAction *
 		ms_message("MSAVBitrateDriver: reaching low bound.");
 		new_br=min_video_bitrate;
 	}
-	ms_message("MSAVBitrateDriver: targeting %i bps for video encoder.",new_br);
-	ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&new_br);
-	rtp_session_set_target_upload_bandwidth(obj->vsession, new_br);
-	obj->cur_bitrate=new_br;
+	if (new_br!=obj->cur_bitrate){
+		ms_message("MSAVBitrateDriver: targeting %i bps for video encoder.",new_br);
+		ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&new_br);
+		rtp_session_set_target_upload_bandwidth(obj->vsession, new_br);
+		obj->cur_bitrate=new_br;
+	}
 	return new_br==min_video_bitrate ? -1 : 0;
 }
 
@@ -235,10 +237,12 @@ static int inc_video_bitrate(MSAVBitrateDriver *obj, const MSRateControlAction *
 		newbr=obj->nom_bitrate;
 		ret=-1;
 	}
-	obj->cur_bitrate=newbr;
-	ms_message("MSAVBitrateDriver: increasing bitrate to %i bps for video encoder.",obj->cur_bitrate);
-	ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&obj->cur_bitrate);
-	rtp_session_set_target_upload_bandwidth(obj->vsession, obj->cur_bitrate);
+	if (newbr!=obj->cur_bitrate){
+		obj->cur_bitrate=newbr;
+		ms_message("MSAVBitrateDriver: increasing bitrate to %i bps for video encoder.",obj->cur_bitrate);
+		ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&obj->cur_bitrate);
+		rtp_session_set_target_upload_bandwidth(obj->vsession, obj->cur_bitrate);
+	}
 	return ret;
 }
 
