@@ -399,7 +399,7 @@ static void video_configuration_stream_base(MSVideoConfiguration* asked, MSVideo
 
 		CU_ASSERT_TRUE(ms_video_size_equal(video_stream_get_received_video_size(marielle->vs),
 			margaux->vconf->vsize));
-		CU_ASSERT_TRUE(abs(video_stream_get_received_framerate(marielle->vs)-margaux->vconf->fps) <2);
+		CU_ASSERT_TRUE(fabs(video_stream_get_received_framerate(marielle->vs)-margaux->vconf->fps) <2);
 		if (ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture")
 				!= ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get())) {
 			// CU_ASSERT_TRUE(abs(media_stream_get_down_bw((MediaStream*)marielle->vs) - margaux->vconf->required_bitrate) < 0.20f * margaux->vconf->required_bitrate);
