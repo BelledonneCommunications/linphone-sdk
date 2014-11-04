@@ -583,6 +583,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
+    ms_init();
 
 #if TARGET_OS_IPHONE || defined(ANDROID)
 #if defined (HAVE_X264) && defined (VIDEO_ENABLED)
@@ -620,7 +621,6 @@ void setup_media_streams(MediastreamDatas* args) {
 	args->profile=rtp_profile_clone_full(&av_profile);
 	args->q=ortp_ev_queue_new();
 
-	ms_init();
 	if (args->mtu) ms_set_mtu(args->mtu);
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
