@@ -20,7 +20,15 @@
 #
 ############################################################################
 
-execute_process(COMMAND "lib" "/def:${INSTALL_PREFIX}/lib/avcodec-53.def" "/out:${INSTALL_PREFIX}/lib/avcodec.lib" "/machine:X86")
-execute_process(COMMAND "lib" "/def:${INSTALL_PREFIX}/lib/avutil-51.def" "/out:${INSTALL_PREFIX}/lib/avutil.lib" "/machine:X86")
-execute_process(COMMAND "lib" "/def:${INSTALL_PREFIX}/lib/swresample-0.def" "/out:${INSTALL_PREFIX}/lib/swresample.lib" "/machine:X86")
-execute_process(COMMAND "lib" "/def:${INSTALL_PREFIX}/lib/swscale-2.def" "/out:${INSTALL_PREFIX}/lib/swscale.lib" "/machine:X86")
+if(EXISTS ${INSTALL_PREFIX}/lib/avcodec-53.def)
+	execute_process(COMMAND "lib" "/def:${INSTALL_PREFIX}/lib/avcodec-53.def" "/out:${INSTALL_PREFIX}/lib/avcodec.lib" "/machine:X86")
+endif()
+if(EXISTS ${INSTALL_PREFIX}/lib/avutil-51.def)
+	execute_process(COMMAND "lib" "/def:${INSTALL_PREFIX}/lib/avutil-51.def" "/out:${INSTALL_PREFIX}/lib/avutil.lib" "/machine:X86")
+endif()
+if(EXISTS ${INSTALL_PREFIX}/lib/swresample-0.def)
+	execute_process(COMMAND "lib" "/def:${INSTALL_PREFIX}/lib/swresample-0.def" "/out:${INSTALL_PREFIX}/lib/swresample.lib" "/machine:X86")
+endif()
+if(EXISTS ${INSTALL_PREFIX}/lib/swscale-2.def)
+	execute_process(COMMAND "lib" "/def:${INSTALL_PREFIX}/lib/swscale-2.def" "/out:${INSTALL_PREFIX}/lib/swscale.lib" "/machine:X86")
+endif()

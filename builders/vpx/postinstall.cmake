@@ -20,4 +20,6 @@
 #
 ############################################################################
 
-execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${INSTALL_PREFIX}/lib/libvpx.a" "${INSTALL_PREFIX}/lib/vpx.lib")
+if(EXISTS ${INSTALL_PREFIX}/lib/libvpx.a)
+	execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${INSTALL_PREFIX}/lib/libvpx.a" "${INSTALL_PREFIX}/lib/vpx.lib")
+endif()

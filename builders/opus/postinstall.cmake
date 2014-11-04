@@ -20,4 +20,6 @@
 #
 ############################################################################
 
-execute_process(COMMAND "${PYTHON_EXECUTABLE}" "${SOURCE_DIR}/cmake/importlib.py" "${INSTALL_PREFIX}/bin/libopus-0.dll" "${INSTALL_PREFIX}/lib/opus.lib")
+if(EXISTS ${INSTALL_PREFIX}/bin/libopus-0.dll)
+	execute_process(COMMAND "${PYTHON_EXECUTABLE}" "${SOURCE_DIR}/cmake/importlib.py" "${INSTALL_PREFIX}/bin/libopus-0.dll" "${INSTALL_PREFIX}/lib/opus.lib")
+endif()
