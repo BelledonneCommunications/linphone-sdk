@@ -105,6 +105,26 @@ static int resample_channel_adapt(int in_nchannels, int out_nchannels, mblk_t *i
 	return 0;
 }
 
+static void resample_init_speex(ResampleData *dt){
+	int err=0;
+	int quality=SPEEX_RESAMPLER_QUALITY_VOIP; /*default value is voip*/
+#if __arm__ /*on ARM, NEON optimization are mandatory to support this quality, else using basic mode*/
+#if SPEEX_LIB_SET_CPU_FEATURES
+	if (dt->cpuFeatures != SPEEX_LIB_CPU_FEATURE_NEON)
+		quality=SPEEX_RESAMPLER_QUALITY_MIN;
+#elif !__ARM_NEON__
+	quality=SPEEX_RESAMPLER_QUALITY_MIN;
+#endif /*SPEEX_LIB_SET_CPU_FEATURES*/
+#endif /*__arm__*/
+	ms_message("Initializing speex resampler in mode [%s] ",(quality==SPEEX_RESAMPLER_QUALITY_VOIP?"voip":"min"));
+	dt->handle=speex_resampler_init(dt->in_nchannels, dt->input_rate, dt->output_rate, quality, &err);
+}
+
+static void resample_preprocess(MSFilter *obj){
+	ResampleData *dt=(ResampleData*)obj->data;
+	resample_init_speex(dt);
+}
+
 static void resample_process_ms2(MSFilter *obj){
 	ResampleData *dt=(ResampleData*)obj->data;
 	mblk_t *im, *om = NULL, *om_chan = NULL;
@@ -130,18 +150,7 @@ static void resample_process_ms2(MSFilter *obj){
 		}
 	}
 	if (dt->handle==NULL){
-		int err=0;
-		int quality=SPEEX_RESAMPLER_QUALITY_VOIP; /*default value is voip*/
-#if __arm__ /*on ARM, NEON optimization are mandatory to support this quality, else using basic mode*/
-	#if SPEEX_LIB_SET_CPU_FEATURES
-		if (dt->cpuFeatures != SPEEX_LIB_CPU_FEATURE_NEON)
-			quality=SPEEX_RESAMPLER_QUALITY_MIN;
-	#elif !__ARM_NEON__
-		quality=SPEEX_RESAMPLER_QUALITY_MIN;
-	#endif /*SPEEX_LIB_SET_CPU_FEATURES*/
-#endif /*__arm__*/
-		ms_message("Initializing speex resampler in mode [%s] ",(quality==SPEEX_RESAMPLER_QUALITY_VOIP?"voip":"min"));
-		dt->handle=speex_resampler_init(dt->in_nchannels, dt->input_rate, dt->output_rate, quality, &err);
+		resample_init_speex(dt);
 	}
 
 	
@@ -241,7 +250,7 @@ MSFilterDesc ms_resample_desc={
 	1,
 	1,
 	resample_init,
-	NULL,
+	resample_preprocess,
 	resample_process_ms2,
 	NULL,
 	resample_uninit,
@@ -258,6 +267,7 @@ MSFilterDesc ms_resample_desc={
 	.ninputs=1,
 	.noutputs=1,
 	.init=resample_init,
+	.preprocess=resample_preprocess,
 	.process=resample_process_ms2,
 	.uninit=resample_uninit,
 	.methods=methods
