@@ -33,6 +33,8 @@
 #include <vpx/vp8cx.h>
 
 
+#define PICID_NEWER_THAN(s1,s2)	( (uint16_t)((uint16_t)s1-(uint16_t)s2) < 1<<15)
+
 #define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps, cpus) \
 	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, cpus, NULL }
 
@@ -85,8 +87,6 @@ typedef struct EncState {
 	vpx_codec_pts_t frame_count;
 	vpx_codec_iface_t *iface;
 	vpx_codec_flags_t flags;
-	uint64_t last_frame_time;
-	uint64_t first_frame_time;
 	EncFramesState frames_state;
 	Vp8RtpFmtPackerCtx packer;
 	MSVideoStarter starter;
@@ -101,8 +101,9 @@ typedef struct EncState {
 	bool_t ready;
 } EncState;
 
+#define MIN_KEY_FRAME_DIST 4 /*since one i-frame is allowed to be 4 times bigger of the target bitrate*/
 
-static bool_t should_generate_key_frame(EncState *s);
+static bool_t should_generate_key_frame(EncState *s, int min_interval);
 
 static void enc_init(MSFilter *f) {
 	EncState *s = (EncState *)ms_new0(EncState, 1);
@@ -158,7 +159,7 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.rc_target_bitrate = ((float)s->vconf.required_bitrate) * 0.92 / 1024.0; //0.9=take into account IP/UDP/RTP overhead, in average.
 	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
 	s->cfg.g_timebase.num = 1;
-	s->cfg.g_timebase.den = 1000;
+	s->cfg.g_timebase.den = (int)s->vconf.fps;
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
 	if (s->avpf_enabled == TRUE) {
 		s->cfg.kf_mode = VPX_KF_DISABLED;
@@ -198,7 +199,7 @@ static void enc_preprocess(MSFilter *f) {
 	}
 	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, cpuused);
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
-	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
+	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, !s->avpf_enabled);
 	vpx_codec_control(&s->codec, VP8E_SET_MAX_INTRA_BITRATE_PCT, 400); /*limite iFrame size to 4 pframe*/
 	if (s->flags & VPX_CODEC_USE_OUTPUT_PARTITION) {
 		vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 2); /* Output 4 partitions per frame */
@@ -213,7 +214,6 @@ static void enc_preprocess(MSFilter *f) {
 	} else if (s->frame_count == 0) {
 		ms_video_starter_init(&s->starter);
 	}
-	s->first_frame_time=s->last_frame_time=(uint64_t)-1;
 	s->ready = TRUE;
 }
 
@@ -226,18 +226,23 @@ static bool_t enc_should_generate_reference_frame(EncState *s) {
 }
 
 static uint8_t enc_get_type_of_reference_frame_to_generate(EncState *s) {
-	int ret=0;
-	if (s->frames_state.golden.count < s->frames_state.altref.count){
-		ret=VP8_GOLD_FRAME;
-		if (!s->frames_state.altref.acknowledged)
-			ret |= VP8_ALTR_FRAME;
-	}else if (s->frames_state.golden.count > s->frames_state.altref.count){
-		ret=VP8_ALTR_FRAME;
-		if (!s->frames_state.golden.acknowledged){
-			ret|=VP8_GOLD_FRAME;
-		}
-	}else ret= VP8_GOLD_FRAME; /* Send a golden frame after a keyframe. */
-	return ret;
+	if ((s->frames_state.golden.acknowledged == FALSE) && (s->frames_state.altref.acknowledged == FALSE)) {
+		/* Generate a keyframe again. */
+		return VP8_GOLD_FRAME | VP8_ALTR_FRAME;
+	} else if (s->frames_state.golden.acknowledged == FALSE) {
+		/* Last golden frame has not been acknowledged, send a new one, so that the encoder can continue to refer to the altref */
+		return VP8_GOLD_FRAME;
+	} else if (s->frames_state.altref.acknowledged == FALSE) {
+		/* Last altref frame has not been acknowledged, send a new one, so that the encoder can continue to refer to the golden  */
+		return VP8_ALTR_FRAME;
+	} else {
+		/* Both golden and altref frames have been acknowledged. */
+		if (s->frames_state.golden.count < s->frames_state.altref.count)
+			return VP8_GOLD_FRAME;
+		if (s->frames_state.golden.count > s->frames_state.altref.count)
+			return VP8_ALTR_FRAME;
+		return VP8_GOLD_FRAME; /* Send a golden frame after a keyframe. */
+	}
 }
 
 static void check_most_recent(EncFrameState **found, vpx_codec_pts_t *most_recent, vpx_ref_frame_type_t type, 
@@ -303,6 +308,17 @@ static bool_t is_reference_sane(EncState *s, EncFrameState *fs){
 	return ret;
 }
 
+static bool_t is_reconstruction_frame_sane(EncState *s, unsigned int flags){
+	if ( !(flags & VP8_EFLAG_NO_REF_ARF) && !(flags & VP8_EFLAG_NO_REF_GF)){
+		return s->frames_state.altref.acknowledged && s->frames_state.golden.acknowledged;
+	}else if ((flags & VP8_EFLAG_NO_REF_GF) && !(flags & VP8_EFLAG_NO_REF_ARF)){
+		return s->frames_state.altref.acknowledged;
+	}else if ((flags & VP8_EFLAG_NO_REF_ARF) && !(flags & VP8_EFLAG_NO_REF_GF)){
+		return s->frames_state.golden.acknowledged;
+	}
+	return FALSE;
+}
+
 static void enc_acknowledge_reference_frame(EncState *s, uint16_t picture_id) {
 	if (s->frames_state.golden.picture_id == picture_id && is_reference_sane(s,&s->frames_state.golden) ) {
 		s->frames_state.golden.acknowledged = TRUE;
@@ -310,7 +326,10 @@ static void enc_acknowledge_reference_frame(EncState *s, uint16_t picture_id) {
 	if (s->frames_state.altref.picture_id == picture_id && is_reference_sane(s,&s->frames_state.altref)) {
 		s->frames_state.altref.acknowledged = TRUE;
 	}
+	/*if not gold or altref, it is a "last frame"*/
 	if (s->frames_state.reconstruct.picture_id == picture_id ) {
+		s->frames_state.reconstruct.acknowledged = TRUE;
+	}else if (PICID_NEWER_THAN(s->frames_state.reconstruct.picture_id,picture_id)){
 		s->frames_state.reconstruct.acknowledged = TRUE;
 	}
 }
@@ -340,11 +359,9 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 		s->invalid_frame_reported = FALSE;
 		/* If an invalid frame has been reported. */
 		if ((enc_is_reference_frame_acknowledged(s, VP8_GOLD_FRAME) != TRUE)
-			&& (enc_is_reference_frame_acknowledged(s, VP8_ALTR_FRAME) != TRUE && should_generate_key_frame(s))) {
+			&& (enc_is_reference_frame_acknowledged(s, VP8_ALTR_FRAME) != TRUE && should_generate_key_frame(s,MIN_KEY_FRAME_DIST))) {
 			/* No reference frame has been acknowledged and last frame can not be used
 				as reference. Therefore, generate a new keyframe. */
-			s->frames_state.golden.is_independant=TRUE;
-			s->frames_state.altref.is_independant=TRUE;
 			*flags = VPX_EFLAG_FORCE_KF;
 			return;
 		}
@@ -359,8 +376,6 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 		frame_type = enc_get_type_of_reference_frame_to_generate(s);
 		if ((frame_type & VP8_GOLD_FRAME) && (frame_type & VP8_ALTR_FRAME)) {
 			*flags = VPX_EFLAG_FORCE_KF;
-			s->frames_state.golden.is_independant=TRUE;
-			s->frames_state.altref.is_independant=TRUE;
 		} else if (frame_type & VP8_GOLD_FRAME) {
 			*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_GF);
 			//*flags |= VP8_EFLAG_FORCE_GF;
@@ -377,12 +392,13 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 			if (newref) newref->is_independant=!!(*flags & VP8_EFLAG_NO_REF_LAST);
 		}
 	}
-	/*if a keyframe was sent, we should not ask the encoder not to reference it, regardless of whether it was acknowledged or not*/
-	if (s->frames_state.golden.count!=s->frames_state.altref.count){
-		if (!s->frames_state.golden.acknowledged && s->frames_state.golden.count!=0){
+
+	if (s->frames_state.golden.count > s->frames_state.altref.count){
+		if (!s->frames_state.golden.acknowledged){
 			*flags |= VP8_EFLAG_NO_REF_GF;
 		}
-		if (!s->frames_state.altref.acknowledged && s->frames_state.altref.count!=0){
+	}else if (s->frames_state.golden.count < s->frames_state.altref.count){
+		if (!s->frames_state.altref.acknowledged){
 			*flags |= VP8_EFLAG_NO_REF_ARF;
 		}
 	}
@@ -405,15 +421,14 @@ static void enc_process(MSFilter *f) {
 #endif
 
 	if (!s->ready) {
-		while ((im = ms_queue_get(f->inputs[0])) != NULL) {
-			freemsg(im);
-		}
+		ms_queue_flush(f->inputs[0]);
+		ms_filter_unlock(f);
 		return;
 	}
 
-	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
+	if ((im = ms_queue_peek_last(f->inputs[0])) != NULL) {
 		vpx_image_t img;
-		long unsigned int frame_duration;
+		
 		flags = 0;
 		ms_yuv_buf_init_from_mblk(&yuv, im);
 		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->vconf.vsize.width, s->vconf.vsize.height, 1, yuv.planes[0]);
@@ -436,14 +451,7 @@ static void enc_process(MSFilter *f) {
 		ms_message("\taltref: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
 			s->frames_state.altref.count, s->frames_state.altref.picture_id, (s->frames_state.altref.acknowledged == TRUE) ? "Y" : "N");
 #endif
-		if (s->last_frame_time==(uint64_t)-1){
-			frame_duration=s->cfg.g_timebase.den/(int)s->vconf.fps;
-			s->first_frame_time=f->ticker->time;
-		}else{
-			frame_duration=f->ticker->time-s->last_frame_time;
-		}
-		s->last_frame_time=f->ticker->time;
-		err = vpx_codec_encode(&s->codec, &img, f->ticker->time-s->first_frame_time, frame_duration, flags, 1000000LL/(2*(int)s->vconf.fps)); /*encoder has half a framerate interval to encode*/
+		err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, 1000000LL/(2*(int)s->vconf.fps)); /*encoder has half a framerate interval to encode*/
 		if (err) {
 			ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
 		} else {
@@ -456,6 +464,8 @@ static void enc_process(MSFilter *f) {
 			if (flags & VPX_EFLAG_FORCE_KF) {
 				enc_mark_reference_frame_as_sent(s, VP8_GOLD_FRAME);
 				enc_mark_reference_frame_as_sent(s, VP8_ALTR_FRAME);
+				s->frames_state.golden.is_independant=TRUE;
+				s->frames_state.altref.is_independant=TRUE;
 				s->force_keyframe = FALSE;
 				is_ref_frame=TRUE;
 			}else if (flags & VP8_EFLAG_FORCE_GF) {
@@ -466,7 +476,7 @@ static void enc_process(MSFilter *f) {
 				is_ref_frame=TRUE;
 			}else if (flags & VP8_EFLAG_NO_REF_LAST) {
 				enc_mark_reference_frame_as_sent(s, VP8_LAST_FRAME);
-				is_ref_frame=TRUE;
+				is_ref_frame=is_reconstruction_frame_sane(s,flags);
 			}
 			/* Pack the encoded frame. */
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
@@ -501,8 +511,8 @@ static void enc_process(MSFilter *f) {
 				}
 			}
 			
-#ifdef AVPF_DEBUG		
-			ms_message("VP8 encoder picture_id=%i %s | %s | %s | %s", (int)s->picture_id,
+#ifdef AVPF_DEBUG
+			ms_message("VP8 encoder picture_id=%i ***| %s | %s | %s | %s", (int)s->picture_id,
 				(flags & VPX_EFLAG_FORCE_KF) ? "KF " : (flags & VP8_EFLAG_FORCE_GF) ? "GF " :  (flags & VP8_EFLAG_FORCE_ARF) ? "ARF" : "   ",  
 				(flags & VP8_EFLAG_NO_REF_GF) ? "NOREFGF" : "       ",
 				(flags & VP8_EFLAG_NO_REF_ARF) ? "NOREFARF" : "        ",
@@ -527,10 +537,9 @@ static void enc_process(MSFilter *f) {
 				s->picture_id = 0;
 #endif
 		}
-		freemsg(im);
 	}
-
 	ms_filter_unlock(f);
+	ms_queue_flush(f->inputs[0]);
 }
 
 static void enc_postprocess(MSFilter *f) {
@@ -556,11 +565,8 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 		return 0;
 	}
 
-	ms_message("Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d for encoder [%p]"	, s->vconf.required_bitrate
-																								, s->vconf.fps
-																								, s->vconf.vsize.width
-																								, s->vconf.vsize.height
-																								, f);
+	ms_message("Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d for encoder [%p]"	, s->vconf.required_bitrate,
+		   s->vconf.fps, s->vconf.vsize.width, s->vconf.vsize.height, f);
 	return 0;
 }
 
@@ -624,8 +630,7 @@ static int enc_req_vfu(MSFilter *f, void *unused) {
 	return 0;
 }
 
-static bool_t should_generate_key_frame(EncState *s){
-	int min_interval=s->vconf.fps*3;
+static bool_t should_generate_key_frame(EncState *s, int min_interval){
 	/*as the PLI has no picture id reference, we don't know if it is still current.
 	 * Thus we need to avoid to send too many keyframes. Send one and wait for rpsi to arrive first.
 	 * The receiver sends PLI for each new frame it receives when it does not have the keyframe*/
@@ -639,7 +644,7 @@ static bool_t should_generate_key_frame(EncState *s){
 static int enc_notify_pli(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	ms_message("PLI requested");
-	if (should_generate_key_frame(s)){
+	if (should_generate_key_frame(s,s->vconf.fps)){
 		ms_message("PLI accepted");
 		if (s->avpf_enabled == TRUE) {
 			s->invalid_frame_reported = TRUE;
@@ -660,7 +665,6 @@ static int enc_notify_fir(MSFilter *f, void *data) {
 	return 0;
 }
 
-#define SLI_NEWER_THAN(s1,s2)	( (uint16_t)((uint16_t)s1-(uint16_t)s2) < 1<<15)
 
 static int enc_notify_sli(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
@@ -671,32 +675,36 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 	int diff;
 	int most_recent;
 	
+	ms_filter_lock(f);
 	/* extend the SLI received picture-id (6 bits) to a normal picture id*/
 	most_recent=s->picture_id;
 	
 	diff=(64 + (int)(most_recent & 0x3F) - (int)(sli->picture_id & 0x3F)) % 64;
 	s->last_sli_id=most_recent-diff;
-	ms_message("receiving SLI with pic id [%i], most recent pic id=[%i]",s->last_sli_id,most_recent);
-	if ((s->frames_state.golden.picture_id & 0x3F) == sli->picture_id) {
+	fs=enc_get_most_recent_reference_frame(s,FALSE);
+	ms_message("VP8: receiving SLI with pic id [%i], last-ref=[%i], most recent pic id=[%i]",s->last_sli_id, fs ? (int)fs->picture_id : 0, most_recent);
+	if (s->frames_state.golden.picture_id == s->last_sli_id) {
 		/* Last golden frame has been lost. */
 		golden_lost = TRUE;
 	}
-	if ((s->frames_state.altref.picture_id & 0x3F) == sli->picture_id) {
+	if (s->frames_state.altref.picture_id == s->last_sli_id) {
 		/* Last altref frame has been lost. */
 		altref_lost = TRUE;
 	}
-	if ((golden_lost == TRUE) && (altref_lost == TRUE) && should_generate_key_frame(s)) {
+	if ((golden_lost == TRUE) && (altref_lost == TRUE) && should_generate_key_frame(s,MIN_KEY_FRAME_DIST)) {
 		/* Last key frame has been lost. */
 		s->force_keyframe = TRUE;
 	} else {
-		fs=enc_get_most_recent_reference_frame(s,TRUE);
-		if (!fs || SLI_NEWER_THAN(s->last_sli_id,fs->picture_id)) {
+		if (!fs || PICID_NEWER_THAN(s->last_sli_id,fs->picture_id)) {
 			s->invalid_frame_reported = TRUE;
 		} else {
+#ifdef AVPF_DEBUG
 			/* The reported loss is older than the last reference frame, so ignore it. */
-			ms_warning("Ignored SLI with picture_id [%i] last-ref-ackd=[%i]",(int)s->last_sli_id, (int)fs->picture_id);
+			ms_message("VP8: Ignored SLI with picture_id [%i] last-ref=[%i]",(int)s->last_sli_id, (int)fs->picture_id);
+#endif
 		}
 	}
+	ms_filter_unlock(f);
 	return 0;
 }
 
@@ -713,6 +721,7 @@ static int enc_notify_rpsi(MSFilter *f, void *data) {
 		ms_warning("VP8 invalid RPSI received");
 		return -1;
 	}
+	ms_message("VP8: receiving RPSI for picture_id %u",(unsigned)picture_id);
 	enc_acknowledge_reference_frame(s, picture_id);
 	return 0;
 }
@@ -864,7 +873,7 @@ static void dec_preprocess(MSFilter* f) {
 	#endif
 		if(vpx_codec_dec_init(&s->codec, s->iface, NULL, s->flags))
 			ms_error("Failed to initialize decoder");
-
+		ms_message("VP8: initializing decoder context: avpf=[%i] freeze_on_error=[%i]",s->avpf_enabled,s->freeze_on_error);
 		vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error, (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
 		s->first_image_decoded = FALSE;
 		s->ready=TRUE;

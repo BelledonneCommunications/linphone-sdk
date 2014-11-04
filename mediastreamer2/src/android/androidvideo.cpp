@@ -112,7 +112,7 @@ static int video_capture_set_autofocus(MSFilter *f, void* data){
 
 static int video_capture_get_fps(MSFilter *f, void *arg){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
-	*((float*)arg) = d->fps;
+	*((float*)arg) = ms_average_fps_get(&d->averageFps);
 	return 0;
 }
 

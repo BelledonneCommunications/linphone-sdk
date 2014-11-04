@@ -17,6 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include <math.h>
+
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msinterfaces.h"
@@ -165,8 +167,33 @@ static void stop_preload_graph(VideoStream *stream){
 	stream->ms.voidsink=stream->ms.rtprecv=NULL;
 }
 
+static void video_stream_track_fps_changes(VideoStream *stream){
+	uint64_t curtime=ortp_get_cur_time_ms();
+	if (stream->last_fps_check==(uint64_t)-1){
+		stream->last_fps_check=curtime;
+		return;
+	}
+	if (curtime-stream->last_fps_check>=2000 && stream->configured_fps>0){
+		if (stream->source && stream->ms.encoder &&
+			ms_filter_has_method(stream->source,MS_FILTER_GET_FPS) &&
+			ms_filter_has_method(stream->ms.encoder,MS_FILTER_SET_FPS)){
+			float fps=0;
+			if (ms_filter_call_method(stream->source,MS_FILTER_GET_FPS,&fps)==0 && fps!=0){
+				if (fabsf(fps-stream->configured_fps)/stream->configured_fps>0.2){
+					ms_warning("Measured and target fps significantly different (%f<->%f), updating encoder.",
+						fps,stream->configured_fps);
+					stream->configured_fps=fps;
+					ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&stream->configured_fps);
+				}
+			}
+		}
+		stream->last_fps_check=curtime;
+	}
+}
+
 void video_stream_iterate(VideoStream *stream){
 	media_stream_iterate(&stream->ms);
+	video_stream_track_fps_changes(stream);
 }
 
 const char *video_stream_get_default_video_renderer(void){
@@ -458,6 +485,7 @@ static void configure_video_source(VideoStream *stream){
 		/* get the output format for webcam reader */
 		ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 	}
+	stream->configured_fps=fps;
 
 	encoder_supports_source_format.supported = FALSE;
 	encoder_supports_source_format.pixfmt = format;
@@ -805,6 +833,7 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
 
 	stream->ms.start_time=ms_time(NULL);
+	stream->last_fps_check=(uint64_t)-1;
 	stream->ms.is_beginning=TRUE;
 
 	/* attach the graphs */

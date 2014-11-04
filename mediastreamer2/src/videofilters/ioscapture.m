@@ -565,7 +565,7 @@ static void ioscapture_postprocess(MSFilter *f) {
 static int ioscapture_get_fps(MSFilter *f, void *arg) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
 	if (thiz != NULL) {
-		*((float*)arg) = thiz->fps;
+		*((float*)arg) = ms_average_fps_get(&thiz->averageFps);
 	}
 	return 0;
 }

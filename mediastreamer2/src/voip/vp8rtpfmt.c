@@ -760,11 +760,9 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					if (!ctx->valid_keyframe_received) send_pli(ctx);
 					if (ctx->waiting_for_reference_frame == TRUE) {
 						/* Do not decode frames while we are waiting for a reference frame. */
-#ifdef VP8RTPFMT_DEBUG
 						if (frame->pictureid_present == TRUE)
-							ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame: pictureID=0x%04x", frame->pictureid);
+							ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame: pictureID=%i", (int)frame->pictureid);
 						else
-#endif
 							ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame.");
 					} else {
 						/* Drop frames until the first keyframe is successfully received. */
@@ -782,11 +780,9 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 						frame->outputted = TRUE;
 					} else {
 						/* Drop the frame for which some partitions are missing/invalid. */
-#ifdef VP8RTPFMT_DEBUG
 						if (frame->pictureid_present == TRUE)
-							ms_warning("VP8 frame with some partitions missing/invalid: pictureID=0x%04x", frame->pictureid);
+							ms_warning("VP8 frame with some partitions missing/invalid: pictureID=%i", (int)frame->pictureid);
 						else
-#endif
 							ms_warning("VP8 frame with some partitions missing/invalid.");
 						frame->discarded = TRUE;
 					}
@@ -794,11 +790,10 @@ static void output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 				break;
 			default:
 				/* Drop the invalid frame. */
-#ifdef VP8RTPFMT_DEBUG
+
 				if (frame->pictureid_present == TRUE)
-					ms_warning("VP8 invalid frame: pictureID=0x%04x", frame->pictureid);
+					ms_warning("VP8 invalid frame: pictureID=%i", (int)frame->pictureid);
 				else
-#endif
 					ms_warning("VP8 invalid frame.");
 				frame->discarded = TRUE;
 				break;

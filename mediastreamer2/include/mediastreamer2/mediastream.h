@@ -620,7 +620,8 @@ struct _VideoStream
 	MSFilter *local_jpegwriter;
 	MSVideoSize sent_vsize;
 	MSVideoSize preview_vsize;
-	float fps;
+	float fps; /*the target fps explicitely set by application, overrides internally selected fps*/
+	float configured_fps; /*the fps that was configured to the encoder. It might be different from the one really obtained from camera.*/
 	int corner; /*for selfview*/
 	VideoStreamRenderCallback rendercb;
 	void *render_pointer;
@@ -633,6 +634,7 @@ struct _VideoStream
 	MSWebCam *cam;
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	uint64_t last_reported_decoding_error_time;
+	uint64_t last_fps_check;
 	bool_t use_preview_window;
 	bool_t freeze_on_error;
 	bool_t display_filter_auto_rotate_enabled;
