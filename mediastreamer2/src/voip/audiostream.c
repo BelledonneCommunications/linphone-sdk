@@ -775,7 +775,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	/* give the encoder/decoder some parameters*/
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	if (stream->ms.target_bitrate<=0) {
-		ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i",stream,stream->ms.target_bitrate=pt->normal_bitrate);
+		stream->ms.target_bitrate=pt->normal_bitrate;
+		ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i",stream,stream->ms.target_bitrate);
 	}
 	if (stream->ms.target_bitrate>0){
 		ms_message("Setting audio encoder network bitrate to [%i] on stream [%p]",stream->ms.target_bitrate,stream);
