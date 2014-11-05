@@ -62,6 +62,13 @@ enum _MSTickerPrio{
 
 typedef enum _MSTickerPrio MSTickerPrio;
 
+struct _MSTickerLateEvent{
+	int lateMs; /**<number of milliseconds late*/
+	uint64_t time; /**<time of late event, in milliseconds*/
+};
+
+typedef struct _MSTickerLateEvent MSTickerLateEvent;
+
 struct _MSTicker
 {
 	ms_mutex_t lock;
@@ -81,6 +88,7 @@ struct _MSTicker
 	MSTickerPrio prio;
 	MSTickerTickFunc wait_next_tick;
 	void *wait_next_tick_data;
+	MSTickerLateEvent late_event;
 	bool_t run;       /* flag to indicate whether the ticker must be run or not */
 };
 
@@ -226,6 +234,13 @@ MS2_PUBLIC void ms_ticker_print_graphs(MSTicker *ticker);
 **/
 MS2_PUBLIC float ms_ticker_get_average_load(MSTicker *ticker);
 
+
+/**
+ * Get last late tick event description.
+ * @param ticker the MSTicker
+ * @param ev a MSTickerLaterEvent structure that will be filled in return by the ticker.
+**/
+MS2_PUBLIC void ms_ticker_get_last_late_tick(MSTicker *ticker, MSTickerLateEvent *ev);
 /**
  * Create a ticker synchronizer.
  *
