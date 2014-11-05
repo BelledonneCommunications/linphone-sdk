@@ -44,7 +44,7 @@ static const MSVideoConfiguration vp8_conf_list[] = {
 	MS_VP8_CONF(1024000, 1536000, SXGA_MINUS, 12, 2),
 	MS_VP8_CONF( 750000, 1024000,        XGA, 12, 2),
 	MS_VP8_CONF( 500000,  750000,       SVGA, 12, 2),
-	MS_VP8_CONF( 300000,  500000,        VGA, 15, 2),
+	MS_VP8_CONF( 300000,  500000,        VGA, 12, 2),
 	MS_VP8_CONF( 100000,  300000,       QVGA, 18, 2),
 	MS_VP8_CONF(  64000,  100000,       QCIF, 12, 2),
 	MS_VP8_CONF(300000, 600000,          VGA, 12, 1),
