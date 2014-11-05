@@ -66,10 +66,9 @@ build-flexisip-rpm:
 #	make -j $(NUMCPUS)
 	
 clean-flexisip-rpm:
-	rm -rf WORK/tmp-flexisip-rpm && \
+	rm -rf WORK/tmp-flexisip-rpm
 	rm -rf WORK/Build-flexisip-rpm
 # needed: ?
-#	rm -rf WORK/Build-flexisip-rpm && \
 #	rm -rf WORK/rpmbuild/RPMS/*
 
 build-bb10-i486:

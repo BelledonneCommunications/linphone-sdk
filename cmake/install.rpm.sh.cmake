@@ -23,10 +23,11 @@ export PKG_CONFIG_LIBDIR="@LINPHONE_BUILDER_PKG_CONFIG_LIBDIR@"
 export RPM_TOPDIR="@LINPHONE_BUILDER_WORK_DIR@/rpmbuild"
 
 if [[ "@PLATFORM@" -eq "Debian" ]]; then
-	cd "$RPM_TOPDIR/RPMS"
-	find "$RPM_TOPDIR/RPMS" -name "*@LINPHONE_BUILDER_RPMBUILD_NAME@*.rpm" -exec fakeroot alien -d {} +
-	find "$RPM_TOPDIR/RPMS" -name "*@LINPHONE_BUILDER_RPMBUILD_NAME@*.deb" -exec sudo dpkg -i {} +
+	DEBS_TOPDIR="$RPM_TOPDIR/DEBS"
+	mkdir -p "$DEBS_TOPDIR" && cd "$DEBS_TOPDIR"
+	find "$RPM_TOPDIR/RPMS" -iname "*@LINPHONE_BUILDER_RPMBUILD_NAME@*.rpm" -exec fakeroot alien -d {} +
+	find "$DEBS_TOPDIR" -iname "*@LINPHONE_BUILDER_RPMBUILD_NAME@*.deb" -exec sudo dpkg -i {} +
 else
-	find "$RPM_TOPDIR/RPMS" -name "*@LINPHONE_BUILDER_RPMBUILD_NAME@*.rpm" -exec sudo rpm -ivh --force {} +
+	find "$RPM_TOPDIR/RPMS" -iname "*@LINPHONE_BUILDER_RPMBUILD_NAME@*.rpm" -exec sudo rpm -ivh --force {} +
 	#sudo rpm -ivh WORK/rpmbuild/RPMS/x86_64/*.rpm --force
 fi

@@ -59,25 +59,29 @@ if(APPLE)
 	set(LINPHONE_BUILDER_LDFLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -arch ${CMAKE_OSX_ARCHITECTURES}")
 endif(APPLE)
 
+set(RPM_INSTALL_PREFIX "/opt/belledonne-communications")
+
 # Adjust PKG_CONFIG_PATH to include install directory
 if(UNIX)
-	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig/:$ENV{PKG_CONFIG_PATH}:/usr/${CMAKE_INSTALL_LIBDIR}/pkgconfig/:/usr/${CMAKE_INSTALL_LIBDIR}/x86_64-linux-gnu/pkgconfig/:/usr/share/pkgconfig/:/usr/local/${CMAKE_INSTALL_LIBDIR}/pkgconfig/:/opt/local/${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
+	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${RPM_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig/:${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig/:$ENV{PKG_CONFIG_PATH}:/usr/${CMAKE_INSTALL_LIBDIR}/pkgconfig/:/usr/${CMAKE_INSTALL_LIBDIR}/x86_64-linux-gnu/pkgconfig/:/usr/share/pkgconfig/:/usr/local/${CMAKE_INSTALL_LIBDIR}/pkgconfig/:/opt/local/${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
+	message(STATUS "PKG CONFIG PATH: ${LINPHONE_BUILDER_PKG_CONFIG_PATH}")
+	message(STATUS "LIBDIR: ${LIBDIR}")
 else() # Windows
 	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/")
 endif()
 
+# needed *before* the include 
 set(EP_ortp_FORCE_AUTOTOOLS "yes")
+
 # Include builders
 include(builders/CMakeLists.txt)
 
 
-set(RPM_INSTALL_PREFIX "/opt/belledonne-communications")
-
 set(EP_ortp_GIT_TAG "master")
 
-set(EP_ortp_BUILD_METHOD "rpm")
+set(EP_ortp_BUILD_METHOD     "rpm")
 set(EP_unixodbc_BUILD_METHOD "rpm")
-set(EP_myodbc_BUILD_METHOD "rpm")
+set(EP_myodbc_BUILD_METHOD   "rpm")
 set(EP_sofiasip_BUILD_METHOD "rpm")
 set(EP_flexisip_BUILD_METHOD "rpm")
 
@@ -100,5 +104,5 @@ message( STATUS "PLATFORM is ${PLATFORM}")
 message( STATUS "SYSTEM is ${CMAKE_SYSTEM}")
 
 if(PLATFORM STREQUAL "Debian")
-	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTION "--nodeps")
+	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTION "--nodeps --define 'dist deb' --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}'")
 endif()

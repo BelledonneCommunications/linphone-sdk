@@ -32,10 +32,11 @@ done
 
 if [ ! -f @ep_config_h_file@ ]
 then
-	@ep_autogen_command@ @ep_autogen_redirect_to_file@
+ 	@ep_autogen_command@ @ep_autogen_redirect_to_file@
 	@ep_configure_env@ @ep_configure_command@ @ep_configure_redirect_to_file@
 	make dist V=@AUTOTOOLS_VERBOSE_MAKEFILE@ @ep_redirect_to_file@
 	cp *.tar.gz "$RPM_TOPDIR/SOURCES"
 	@LINPHONE_BUILDER_CONFIGURE_EXTRA_CMD@
-	touch @ep_config_h_file@
+#	touch @ep_config_h_file@
+
 fi
