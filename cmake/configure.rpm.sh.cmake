@@ -37,6 +37,4 @@ then
 	make dist V=@AUTOTOOLS_VERBOSE_MAKEFILE@ @ep_redirect_to_file@
 	cp *.tar.gz "$RPM_TOPDIR/SOURCES"
 	@LINPHONE_BUILDER_CONFIGURE_EXTRA_CMD@
-#	touch @ep_config_h_file@
-
 fi
