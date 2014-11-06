@@ -94,7 +94,7 @@ set(EP_myodbc_SPEC_PREFIX   "${RPM_INSTALL_PREFIX}")
 set(EP_myodbc_CONFIGURE_OPTIONS   "--with-unixODBC=${RPM_INSTALL_PREFIX}")
 set(EP_flexisip_CONFIGURE_OPTIONS "--with-odbc=${RPM_INSTALL_PREFIX}" "--disable-transcoder" "--disable-pushnotification" "--enable-redis")
 
-set(EP_ortp_RPMBUILD_OPTIONS      "--with bc")
+set(EP_ortp_RPMBUILD_OPTIONS      "--with bc --without srtp")
 set(EP_unixodbc_RPMBUILD_OPTIONS  "--with bc")
 set(EP_myodbc_RPMBUILD_OPTIONS    "--with bc")
 set(EP_sofiasip_RPMBUILD_OPTIONS  "--with bc --without glib")
