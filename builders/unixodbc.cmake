@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_unixodbc_GIT_REPOSITORY "git://git.linphone.org/unixODBC.git")
-set(EP_unixodbc_GIT_TAG "35a82939ed0d28d0d777124ea55406a947ed5173")
+set(EP_unixodbc_GIT_TAG "095a70fea9e4f6b486813032868f69f44973260a")
 
 
 set(EP_unixodbc_DEPENDENCIES )
