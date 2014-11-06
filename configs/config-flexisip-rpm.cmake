@@ -23,6 +23,43 @@
 include(GNUInstallDirs)
 include(${CMAKE_SOURCE_DIR}/cmake/FindLinuxPlatform.cmake)
 
+# Check if we have everything to compile correctly
+
+FUNCTION(CHECK_PROGRAM progname)
+	find_program(${progname}_PROGRAM
+		NAMES ${progname}
+	)
+	if(NOT ${progname}_PROGRAM)
+		message(FATAL_ERROR "Could not find the ${progname} program, which is needed for RPMBuild")
+	else()
+		message(STATUS "Found ${progname} : ${${progname}_PROGRAM}.")
+	endif()
+ENDFUNCTION()
+
+FUNCTION(CHECK_LIBRARY libname)
+	find_library(${libname}_LIBRARY
+		NAMES ${libname}
+	)
+	if(NOT ${libname}_LIBRARY)
+		message(FATAL_ERROR "Could not find the ${libname} library, which is needed for RPMBuild of flexisip")
+	else()
+		message(STATUS "Found ${libname} : ${${libname}_LIBRARY}.")
+	endif()
+ENDFUNCTION()
+
+# Doxygen can be found through CMake
+find_package(Doxygen REQUIRED)
+
+# the rest will be checked manually
+FOREACH(PROGNAME rpmbuild alien fakeroot bison)
+	CHECK_PROGRAM(${PROGNAME})
+ENDFOREACH()
+
+FOREACH(LIBNAME hiredis ssl mysqlclient mysqlclient_r)
+	CHECK_LIBRARY(${LIBNAME})
+ENDFOREACH()
+
+
 # Define default values for the linphone builder options
 set(DEFAULT_VALUE_ENABLE_VIDEO OFF)
 set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES OFF)
