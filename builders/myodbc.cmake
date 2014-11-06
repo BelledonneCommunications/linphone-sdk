@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_myodbc_GIT_REPOSITORY "git://git.linphone.org/myodbc.git")
-set(EP_myodbc_GIT_TAG "e0a9a8990bbd0fbf8a2624077fc0338d35ef7e21")
+set(EP_myodbc_GIT_TAG "ae4f84f004e26c89c827163ab1bdc1684f16a328")
 
 set(EP_myodbc_CMAKE_OPTIONS "-DWITH_UNIXODBC=1")
 set(EP_myodbc_LINKING_TYPE )
