@@ -39,6 +39,7 @@ ENDFUNCTION()
 FUNCTION(CHECK_LIBRARY libname)
 	find_library(${libname}_LIBRARY
 		NAMES ${libname}
+		PATHS /usr/lib/mysql/
 	)
 	if(NOT ${libname}_LIBRARY)
 		message(FATAL_ERROR "Could not find the ${libname} library, which is needed for RPMBuild of flexisip")
@@ -142,7 +143,7 @@ message( STATUS "PLATFORM is ${PLATFORM}")
 message( STATUS "SYSTEM is ${CMAKE_SYSTEM}")
 
 if(PLATFORM STREQUAL "Debian")
-	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTION "--nodeps --define 'dist deb' --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}'")
+	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTION "--nodeps --define 'dist deb' --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}' --define '_buildshell /bin/bash'")
 	CHECK_PROGRAM(alien)
 	CHECK_PROGRAM(fakeroot)
 endif()
