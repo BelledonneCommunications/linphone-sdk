@@ -51,9 +51,10 @@ ENDFUNCTION()
 find_package(Doxygen REQUIRED)
 
 # the rest will be checked manually
-FOREACH(PROGNAME rpmbuild alien fakeroot bison)
+FOREACH(PROGNAME rpmbuild bison)
 	CHECK_PROGRAM(${PROGNAME})
 ENDFOREACH()
+
 
 FOREACH(LIBNAME hiredis ssl mysqlclient mysqlclient_r)
 	CHECK_LIBRARY(${LIBNAME})
@@ -142,4 +143,6 @@ message( STATUS "SYSTEM is ${CMAKE_SYSTEM}")
 
 if(PLATFORM STREQUAL "Debian")
 	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTION "--nodeps --define 'dist deb' --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}'")
+	CHECK_PROGRAM(alien)
+	CHECK_PROGRAM(fakeroot)
 endif()
