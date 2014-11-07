@@ -370,26 +370,26 @@ static void adaptive_opus_audio_stream()  {
 
 		// on EDGEBW, both should be overconsumming
 		start_adaptive_stream(MSAudio, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 8000, EDGE_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 15000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 3.f); // bad! since this codec cant change its ptime and it is the lower bitrate, no improvement can occur
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(MSAudio, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 48000, EDGE_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 15000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./EDGE_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, 1.f, 2.f); // bad!
 		stop_adaptive_stream(marielle,margaux);
 
 		// on 3G BW, both should be at max
 		start_adaptive_stream(MSAudio, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 8000, THIRDGENERATION_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 15000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./THIRDGENERATION_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, .1f, .15f);
 		stop_adaptive_stream(marielle,margaux);
 
 		start_adaptive_stream(MSAudio, &marielle, &margaux, OPUS_PAYLOAD_TYPE, 48000, THIRDGENERATION_BW, 0, 0, 0);
-		iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
+		iterate_adaptive_stream(marielle, margaux, 15000, NULL, 0);
 		bw_usage=media_stream_get_up_bw(&marielle->audio_stream->ms)*1./THIRDGENERATION_BW;
 		CU_ASSERT_IN_RANGE(bw_usage, .2f, .3f);
 		stop_adaptive_stream(marielle,margaux);
