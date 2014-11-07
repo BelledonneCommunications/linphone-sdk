@@ -37,8 +37,6 @@ set(EP_sofiasip_CROSS_COMPILATION_OPTIONS
 	"--host=${LINPHONE_BUILDER_HOST}"
 )
 
-list(APPEND EP_sofiasip_CONFIGURE_OPTIONS "--without-boostlog" )
-
 # RPM 
 set(EP_sofiasip_SPEC_FILE "packages/sofia-sip-1.12.11devel.spec")
 set(EP_sofiasip_RPMBUILD_NAME "sofia-sip")
