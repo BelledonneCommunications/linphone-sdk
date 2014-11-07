@@ -141,8 +141,21 @@ set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --without prot
 
 set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "bc-")
 
+# prepare the RPMBUILD options that we need to pass
+
+set(RPMBUILD_OPTIONS "--define '_mandir %{_prefix}' --define '_sysconfdir %{_prefix}/etc'")
+
 if(PLATFORM STREQUAL "Debian")
-	set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTION "--nodeps --define 'dist deb' --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}' --define '_buildshell /bin/bash'")
+	# dependencies cannot be checked by rpmbuild in debian
+	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --nodeps"
+	# dist is not defined in debian for rpmbuild..
+	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define 'dist deb'") 
+	# debian has multi-arch lib dir instead of lib and lib64
+	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}'") 
+	# some debians are using dash as shell, which doesn't support "export -n", so we override and use bash
+	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_buildshell /bin/bash'")
 	CHECK_PROGRAM(alien)
 	CHECK_PROGRAM(fakeroot)
 endif()
+
+set(LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTION ${RPMBUILD_OPTIONS})
