@@ -21,3 +21,4 @@ AVAILABLE BUILD TARGETS
 The following targets are supported:
  - Linphone for BlackBerry10 - see README.bb10
  - Liblinphone Python extension module - see README.python
+ - Flexisip and dependencies - see README.flexisip.md
