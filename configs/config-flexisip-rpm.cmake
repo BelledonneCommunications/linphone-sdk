@@ -147,7 +147,7 @@ set(RPMBUILD_OPTIONS "--define '_mandir %{_prefix}' --define '_sysconfdir %{_pre
 
 if(PLATFORM STREQUAL "Debian")
 	# dependencies cannot be checked by rpmbuild in debian
-	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --nodeps"
+	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --nodeps")
 	# dist is not defined in debian for rpmbuild..
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define 'dist deb'") 
 	# debian has multi-arch lib dir instead of lib and lib64
