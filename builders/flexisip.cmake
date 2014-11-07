@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_flexisip_GIT_REPOSITORY "gitosis@git.linphone.org:flexisip")
-set(EP_flexisip_GIT_TAG "487226847780845a3fa8c6494da9b8ba1897bb1c")
+set(EP_flexisip_GIT_TAG "58fceba9598897611d48184d3a3c6a3ed9a23e3e")
 
 set(EP_flexisip_DEPENDENCIES EP_ortp EP_unixodbc EP_myodbc EP_sofiasip )
 set(EP_flexisip_LINKING_TYPE "--disable-static" "--enable-shared")

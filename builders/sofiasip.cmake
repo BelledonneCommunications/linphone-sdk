@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_sofiasip_GIT_REPOSITORY "git://git.linphone.org/sofia-sip.git")
-set(EP_sofiasip_GIT_TAG "6e9298b4e830a33c55f937aadc77b43dde92367d")
+set(EP_sofiasip_GIT_TAG "869aff4a3c2b6a554f3546b804c0ca3f991b9f26")
 
 #set(EP_sofiasip_CMAKE_OPTIONS )
 #set(EP_sofiasip_LINKING_TYPE "-DENABLE_STATIC=0")
