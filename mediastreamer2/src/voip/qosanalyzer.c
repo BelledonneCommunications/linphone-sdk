@@ -200,7 +200,8 @@ static void simple_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateControl
 		ms_message("MSSimpleQosAnalyzer: rt_prop doubled.");
 	}else if (cur->lost_percentage>=unacceptable_loss_rate){
 		/*big loss rate but no jitter, and no big rtp_prop: pure lossy network*/
-		action->type=MSRateControlActionDecreasePacketRate;
+		action->type=MSRateControlActionDecreaseBitrate;
+		action->value=MIN(cur->lost_percentage,50);
 		ms_message("MSSimpleQosAnalyzer: loss rate unacceptable.");
 	}else{
 		action->type=MSRateControlActionDoNothing;

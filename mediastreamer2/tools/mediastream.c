@@ -133,9 +133,7 @@ typedef struct _MediastreamDatas {
 	int ec_len_ms, ec_delay_ms, ec_framesize;
 	char* srtp_local_master_key;
 	char* srtp_remote_master_key;
-	int netsim_bw;
-	int netsim_lossrate;
-	int netsim_latency;
+	OrtpNetworkSimulatorParams netsim;
 	float zoom;
 	float zoom_cx, zoom_cy;
 
@@ -498,21 +496,24 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			}
 		} else if (strcmp(argv[i],"--netsim-bandwidth")==0){
 			i++;
-			out->netsim_bw=atoi(argv[i]);
+			out->netsim.max_bandwidth=atoi(argv[i]);
+			out->netsim.enabled=TRUE;
 		} else if (strcmp(argv[i],"--netsim-lossrate")==0){
 			i++;
-			out->netsim_lossrate=atoi(argv[i]);
-			if(out->netsim_lossrate < 0) {
-				ms_warning("%d < 0, wrong value for --lost-rate: set to 0", out->netsim_lossrate);
-				out->netsim_lossrate=0;
+			out->netsim.loss_rate=atoi(argv[i]);
+			if(out->netsim.loss_rate < 0) {
+				ms_warning("%g < 0, wrong value for --lost-rate: set to 0", out->netsim.loss_rate);
+				out->netsim.loss_rate=0;
 			}
-			if(out->netsim_lossrate > 100) {
-				ms_warning("%d > 100, wrong value for --lost-rate: set to 100", out->netsim_lossrate);
-				out->netsim_lossrate=100;
+			if(out->netsim.loss_rate > 100) {
+				ms_warning("%g > 100, wrong value for --lost-rate: set to 100", out->netsim.loss_rate);
+				out->netsim.loss_rate=100;
 			}
+			out->netsim.enabled=TRUE;
 		} else if (strcmp(argv[i], "--netsim-latency") == 0) {
 			i++;
-			out->netsim_latency = atoi(argv[i]);
+			out->netsim.latency = atoi(argv[i]);
+			out->netsim.enabled=TRUE;
 		} else if (strcmp(argv[i],"--zoom")==0){
 			i++;
 			if (sscanf(argv[i], "%f,%f,%f", &out->zoom, &out->zoom_cx, &out->zoom_cy) != 3) {
@@ -569,7 +570,6 @@ static void video_stream_event_cb(void *user_pointer, const MSFilter *f, const u
 
 void setup_media_streams(MediastreamDatas* args) {
 	/*create the rtp session */
-	OrtpNetworkSimulatorParams params={0};
 #ifdef VIDEO_ENABLED
 	MSWebCam *cam=NULL;
 #endif
@@ -826,20 +826,8 @@ void setup_media_streams(MediastreamDatas* args) {
 	ice_session_choose_default_remote_candidates(args->ice_session);
 	ice_session_start_connectivity_checks(args->ice_session);
 
-	if (args->netsim_bw>0){
-		params.enabled=TRUE;
-		params.max_bandwidth=args->netsim_bw;
-	}
-	if (args->netsim_lossrate>0){
-		params.enabled=TRUE;
-		params.loss_rate=args->netsim_lossrate;
-	}
-	if (args->netsim_latency > 0) {
-		params.enabled = TRUE;
-		params.latency = args->netsim_latency;
-	}
-	if (params.enabled){
-		rtp_session_enable_network_simulation(args->session,&params);
+	if (args->netsim.enabled){
+		rtp_session_enable_network_simulation(args->session,&args->netsim);
 	}
 
 }
@@ -890,12 +878,14 @@ static void mediastream_tool_iterate(MediastreamDatas* args) {
 					}
 					printf("\nOK\n");
 				}else if (sscanf(commands,"lossrate %i",&intarg)==1){
-					OrtpNetworkSimulatorParams params={0};
-					params.enabled=TRUE;
-					params.loss_rate=intarg;
-					rtp_session_enable_network_simulation(args->session,&params);
-				}
-				else if (strstr(commands,"quit")){
+					args->netsim.enabled=TRUE;
+					args->netsim.loss_rate=intarg;
+					rtp_session_enable_network_simulation(args->session,&args->netsim);
+				}else if (sscanf(commands,"bandwidth %i",&intarg)==1){
+					args->netsim.enabled=TRUE;
+					args->netsim.max_bandwidth=intarg;
+					rtp_session_enable_network_simulation(args->session,&args->netsim);
+				}else if (strstr(commands,"quit")){
 					cond=0;
 				}else printf("Cannot understand this.\n");
 			}

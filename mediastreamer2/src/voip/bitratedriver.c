@@ -152,26 +152,29 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 	}else if (action->type==MSRateControlActionDecreasePacketRate){
 		return inc_ptime(obj);
 	}else if (action->type==MSRateControlActionIncreaseQuality){
-		if (obj->nom_bitrate>0){
-			if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&obj->cur_bitrate)==0){
-				if (obj->cur_bitrate > 0  && obj->cur_bitrate<obj->nom_bitrate){
-				obj->cur_bitrate=(obj->cur_bitrate*140)/100;
-				if (obj->cur_bitrate> obj->nom_bitrate) obj->cur_bitrate=obj->nom_bitrate;
-				ms_message("MSAudioBitrateDriver: increasing bitrate of codec to %i",obj->cur_bitrate);
-				if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE,&obj->cur_bitrate)!=0){
-					ms_message("MSAudioBitrateDriver: could not set codec bitrate to %i",obj->cur_bitrate);
-				}else {
-					rtp_session_set_target_upload_bandwidth(obj->session, obj->cur_bitrate);
-					obj->cur_bitrate=obj->nom_bitrate; /* so that we do not attempt this anymore*/
-				}
-				return 0;
-			}
-			}else ms_warning("MSAudioBitrateDriver: MS_FILTER_GET_BITRATE failed.");
-
-		}
+		int ret=0;
 		if (obj->cur_ptime>obj->min_ptime){
-			return dec_ptime(obj);
-		}else return -1;
+			ret=dec_ptime(obj);
+		}
+		if (obj->nom_bitrate>0){
+			int cur_bitrate=0;
+			if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&cur_bitrate)==0){
+				if (cur_bitrate > 0  && cur_bitrate<obj->nom_bitrate){
+					obj->cur_bitrate=(obj->cur_bitrate*140)/100;
+					if (obj->cur_bitrate>= obj->nom_bitrate) {
+						obj->cur_bitrate=obj->nom_bitrate;
+						ret=-1;/*we reached the nominal value*/
+					}
+					ms_message("MSAudioBitrateDriver: increasing bitrate of codec to %i",obj->cur_bitrate);
+					if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE,&obj->cur_bitrate)!=0){
+						ms_message("MSAudioBitrateDriver: could not set codec bitrate to %i",obj->cur_bitrate);
+					}else {
+						rtp_session_set_target_upload_bandwidth(obj->session, obj->cur_bitrate);
+					}
+				}
+			}else ms_warning("MSAudioBitrateDriver: MS_FILTER_GET_BITRATE failed.");
+		}
+		return ret;
 	}
 	return 0;
 }
