@@ -164,6 +164,7 @@ struct AndroidSndReadData{
 	int64_t read_samples;
 	audio_io_handle_t iohandle;
 	jobject aec;
+	double av_skew;
 	bool started;
 	bool builtin_aec;
 };
@@ -312,24 +313,37 @@ static void android_snd_read_init(MSFilter *obj){
 }
 
 static void compute_timespec(AndroidSndReadData *d) {
-	static int count = 0;
 	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
 	MSTimeSpec ts;
 	ts.tv_nsec = ns % 1000000000;
 	ts.tv_sec = ns / 1000000000;
-	double av_skew = ms_ticker_synchronizer_set_external_time(d->mTickerSynchronizer, &ts);
-	if ((++count) % 100 == 0)
-		ms_message("sound/wall clock skew is average=%f ms", av_skew);
+	d->av_skew = ms_ticker_synchronizer_set_external_time(d->mTickerSynchronizer, &ts);
 }
 
+/*
+ * This is a callback function called by AudioRecord's thread. This thread is not created by ortp/ms2 and is not able to attach to a JVM without crashing
+ * at the end, despite it is detached (since android 4.4).
+ * We must not output a single log within this callback in the event that the application is using LinphoneCoreFactory.setLogHandler(), in which case
+ * the log would be upcalled to java, which will attach the thread to the jvm.
+**/
 static void android_snd_read_cb(int event, void* user, void *p_info){
 	AndroidSndReadData *ad=(AndroidSndReadData*)user;
 	
 	if (!ad->started) return;
 	if (ad->mTickerSynchronizer==NULL){
 		MSFilter *obj=ad->mFilter;
+		/*
+		 * ABSOLUTE HORRIBLE HACK. We temporarily disable logs to prevent ms_ticker_set_time_func() to output a debug log.
+		 * This is horrible because this also suspends logs for all concurrent threads during these two lines of code.
+		 * Possible way to do better:
+		 *  1) understand why AudioRecord thread doesn't detach.
+		 *  2) disable logs just for this thread (using a TLS)
+		 */
+		int loglevel=ortp_get_log_level_mask();
+		ortp_set_log_level_mask(ORTP_ERROR|ORTP_FATAL);
 		ad->mTickerSynchronizer = ms_ticker_synchronizer_new();
 		ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ad->mTickerSynchronizer);
+		ortp_set_log_level_mask(loglevel);
 	}
 	if (event==AudioRecord::EVENT_MORE_DATA){
 		AudioRecord::Buffer info;
@@ -344,10 +358,11 @@ static void android_snd_read_cb(int event, void* user, void *p_info){
 			compute_timespec(ad);
 			putq(&ad->q,m);
 			ms_mutex_unlock(&ad->mutex);
-			//ms_message("android_snd_read_cb: got %i bytes",info->size);
 		}
 	}else if (event==AudioRecord::EVENT_OVERRUN){
+#ifdef TRACE_SND_READ_TIMINGS
 		ms_warning("AudioRecord overrun");
+#endif
 	}
 }
 
@@ -431,6 +446,7 @@ static void android_snd_read_uninit(MSFilter *obj){
 static void android_snd_read_process(MSFilter *obj){
 	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
 	mblk_t *om;
+	
 	ms_mutex_lock(&ad->mutex);
 	if (ad->rec == 0 ) {
 		ms_mutex_unlock(&ad->mutex);
@@ -445,6 +461,9 @@ static void android_snd_read_process(MSFilter *obj){
 		ad->nbufs++;
 	}
 	ms_mutex_unlock(&ad->mutex);
+	
+	if (ad->nbufs % 100 == 0)
+		ms_message("sound/wall clock skew is average=%f ms", ad->av_skew);
 }
 
 static int android_snd_read_set_sample_rate(MSFilter *obj, void *param){
@@ -581,7 +600,12 @@ static int android_snd_write_get_nchannels(MSFilter *obj, void *data){
 	return 0;
 }
 
-
+/*
+ * This is a callback function called by AudioTrack's thread. This thread is not created by ortp/ms2 and is not able to attach to a JVM without crashing
+ * at the end, despite it is detached (since android 4.4).
+ * We must not output a single log within this callback in the event that the application is using LinphoneCoreFactory.setLogHandler(), in which case
+ * the log would be upcalled to java, which will attach the thread to the jvm.
+**/
 static void android_snd_write_cb(int event, void *user, void * p_info){
 	AndroidSndWriteData *ad=(AndroidSndWriteData*)user;
 	
@@ -642,11 +666,13 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 			ms_get_cur_time(&ts);
 			ms_warning("%03u.%03u: PCM playback underrun: available %d", (uint32_t) ts.tv_sec, (uint32_t) (ts.tv_nsec / 1000), ms_bufferizer_get_avail(&ad->bf));
 		}
-#else
-		ms_warning("PCM playback underrun: available %d", ms_bufferizer_get_avail(&ad->bf));
 #endif
 		ms_mutex_unlock(&ad->mutex);
-	}else ms_error("Untracked event %i",event);
+	}else{
+#ifdef TRACE_SND_WRITE_TIMINGS
+		ms_error("Untracked event %i",event);
+#endif
+	}
 }
 
 static int channel_mask_for_audio_track(int nchannels) {

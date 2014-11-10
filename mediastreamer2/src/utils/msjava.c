@@ -27,10 +27,15 @@ static JavaVM *ms2_vm=NULL;
 
 static pthread_key_t jnienv_key;
 
+/*
+ * Do not forget that any log within this routine may cause re-attach of the thread to the jvm because the logs can callback the java application
+ * (see LinphoneCoreFactory.setLogHandler() ).
+**/
 void _android_key_cleanup(void *data){
 	JNIEnv* env=(JNIEnv*)pthread_getspecific(jnienv_key);
-	ms_message("Thread end, detaching jvm from current thread");
+	
 	if (env != NULL) {
+		ms_message("Thread end, detaching jvm from current thread");
 		(*ms2_vm)->DetachCurrentThread(ms2_vm);
 		pthread_setspecific(jnienv_key,NULL);
 	}
