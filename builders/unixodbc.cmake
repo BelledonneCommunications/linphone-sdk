@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_unixodbc_GIT_REPOSITORY "git://git.linphone.org/unixODBC.git")
-set(EP_unixodbc_GIT_TAG "5fd6b4484c4c43d4ff9b0a748c3cb91b4721d781")
+set(EP_unixodbc_GIT_TAG "ae5bd0740e3d643ba2483fc33b068b014f513afd")
 
 
 set(EP_unixodbc_DEPENDENCIES )
@@ -34,7 +34,7 @@ set(EP_unixodbc_CROSS_COMPILATION_OPTIONS
 	"--host=${LINPHONE_BUILDER_HOST}"
 )
 
-list(APPEND EP_unixodbc_CONFIGURE_OPTIONS "--enable-drivers --enable-driver-conf" )
+list(APPEND EP_unixodbc_CONFIGURE_OPTIONS "--enable-drivers" "--enable-driver-conf" )
 
 set(EP_unixodbc_SPEC_FILE "unixodbc.spec")
 set(EP_unixodbc_RPMBUILD_NAME "unixODBC")
