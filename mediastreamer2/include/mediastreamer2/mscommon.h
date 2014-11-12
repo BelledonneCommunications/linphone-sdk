@@ -39,6 +39,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ms_strdup	ortp_strdup
 #define ms_strndup	ortp_strndup
 #define ms_strdup_printf	ortp_strdup_printf
+#define ms_strcat_printf	ortp_strcat_printf
 
 #define ms_mutex_t		ortp_mutex_t
 #define ms_mutex_init		ortp_mutex_init
