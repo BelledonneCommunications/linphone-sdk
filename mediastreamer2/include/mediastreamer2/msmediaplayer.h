@@ -40,7 +40,7 @@ typedef void (*MSMediaPlayerEofCallback)(void *user_data);
  * @param window_id Pointer on the drawing window
  * @return A pointer on the created MSMediaPlayer
  */
-MS2_PUBLIC MSMediaPlayer *ms_media_player_new(MSSndCard *snd_card, const char *video_display_name, void *window_id);
+MS2_PUBLIC MSMediaPlayer *ms_media_player_new(MSSndCard *snd_card, const char *video_display_name, unsigned long window_id);
 
 /**
  * @brief Free a media player
@@ -53,7 +53,7 @@ MS2_PUBLIC void ms_media_player_free(MSMediaPlayer *obj);
  * @param obj The player
  * @return The window ID
  */
-MS2_PUBLIC void *ms_media_player_get_window_id(const MSMediaPlayer *obj);
+MS2_PUBLIC unsigned long ms_media_player_get_window_id(const MSMediaPlayer *obj);
 
 /**
  * @brief Set the "End of File" callback

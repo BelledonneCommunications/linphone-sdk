@@ -70,7 +70,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 
 	eof_init(&eof);
 
-	file_player = ms_media_player_new(snd_card, display_name, NULL);
+	file_player = ms_media_player_new(snd_card, display_name, 0);
 	CU_ASSERT_PTR_NOT_NULL(file_player);
 	if(file_player == NULL) return;
 
