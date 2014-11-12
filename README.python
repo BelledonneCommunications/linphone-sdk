@@ -40,11 +40,7 @@ the root of linphone-cmake-builder project and run the following commands:
 BUILDING THE SDK ON LINUX AND MAC OS X
 **************************************
 
-
-    $ mkdir WORK/cmake-python
-    $ cd WORK/cmake-python
-    $ cmake ../.. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=`pwd`/../../OUTPUT -DCMAKE_INSTALL_PREFIX=`pwd`/../../OUTPUT -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-python.cmake
-    $ make
+    $ make build-python -- -DCMAKE_BUILD_TYPE=Release
 
 If everything is successful (and after a few minutes) you will find the Python
 wheel package of the liblinphone Python extension module in the OUTPUT directory.
@@ -54,7 +50,7 @@ BUILDING THE SDK ON WINDOWS
 
 Run the following command in Windows command prompt after having setup the build prerequisites:
 
-	> build_python.bat
+    > build_python.bat
 
 If everything is successful (and after a few minutes) you will find the Python
 wheel package and installers of the liblinphone Python extension module in the
