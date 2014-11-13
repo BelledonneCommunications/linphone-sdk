@@ -982,8 +982,8 @@ JNIEXPORT jint JNICALL  JNI_OnLoad(JavaVM *ajvm, void *reserved)
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVideoWindowId
   (JNIEnv *env, jobject obj, jobject id, jint _args) {
-	MediastreamDatas* args =  (MediastreamDatas*)_args;
 #ifdef VIDEO_ENABLED
+	MediastreamDatas* args =  (MediastreamDatas*)_args;
 	if (!args->video)
 		return;
 	video_stream_set_native_window_id(args->video,(unsigned long)id);
@@ -992,8 +992,8 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVi
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVideoPreviewWindowId
   (JNIEnv *env, jobject obj, jobject id, jint _args) {
-	MediastreamDatas* args =  (MediastreamDatas*)_args;
 #ifdef VIDEO_ENABLED
+	MediastreamDatas* args =  (MediastreamDatas*)_args;
 	if (!args->video)
 		return;
 	video_stream_set_native_preview_window_id(args->video,(unsigned long)id);
@@ -1002,8 +1002,8 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVi
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setDeviceRotation
   (JNIEnv *env, jobject thiz, jint rotation, jint _args) {
-	MediastreamDatas* args =  (MediastreamDatas*)_args;
 #ifdef VIDEO_ENABLED
+	MediastreamDatas* args =  (MediastreamDatas*)_args;
 	if (!args->video)
 		return;
 	video_stream_set_device_rotation(args->video, rotation);
@@ -1012,8 +1012,8 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setDe
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_changeCamera
   (JNIEnv *env, jobject obj, jint camId, jint _args) {
-	MediastreamDatas* args =  (MediastreamDatas*)_args;
 #ifdef VIDEO_ENABLED
+	MediastreamDatas* args =  (MediastreamDatas*)_args;
 	if (!args->video)
 		return;
 	char* id = (char*)malloc(15);

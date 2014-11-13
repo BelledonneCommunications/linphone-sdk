@@ -278,6 +278,7 @@ LOCAL_STATIC_LIBRARIES += cpufeatures
 
 ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 	LOCAL_SRC_FILES += \
+		../tools/common.c \
 		../tools/mediastream.c
 
 	ifneq ($(_BUILD_AMR), 0)
@@ -308,9 +309,7 @@ ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 			LOCAL_STATIC_LIBRARIES += libmsopenh264 libopenh264
 		endif
 		LOCAL_SHARED_LIBRARIES += \
-			libavcodec-linphone \
-			libswscale-linphone \
-			libavutil-linphone
+			libffmpeg-linphone
 		LOCAL_LDLIBS += -lGLESv2
 	endif
 	ifeq ($(BUILD_SRTP),1)
