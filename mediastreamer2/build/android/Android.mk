@@ -107,6 +107,8 @@ LOCAL_SRC_FILES = \
 
 LOCAL_STATIC_LIBRARIES :=
 
+LOCAL_CFLAGS += -D_XOPEN_SOURCE=600
+
 ##if BUILD_ALSA
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
 LOCAL_SRC_FILES += audiofilters/alsa.c
