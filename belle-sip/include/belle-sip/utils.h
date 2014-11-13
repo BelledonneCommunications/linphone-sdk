@@ -194,6 +194,9 @@ typedef int belle_sip_fd_t;
 
 #endif
 
+BELLESIP_EXPORT int belle_sip_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
+BELLESIP_EXPORT void belle_sip_freeaddrinfo(struct addrinfo *res);
+
 BELLE_SIP_END_DECLS
 
 #endif

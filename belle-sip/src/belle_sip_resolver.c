@@ -591,7 +591,7 @@ struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipadd
 	if (family==AF_INET6 && strchr(ipaddress,'.')!=NULL) {
 		hints.ai_flags|=AI_V4MAPPED;
 	}
-	err=getaddrinfo(ipaddress,serv,&hints,&res);
+	err=belle_sip_getaddrinfo(ipaddress,serv,&hints,&res);
 
 	if (err!=0){
 		if (err!=EAI_NONAME)

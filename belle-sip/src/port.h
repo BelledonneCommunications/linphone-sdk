@@ -58,6 +58,9 @@
 #	ifndef AI_V4MAPPED
 #	define AI_V4MAPPED 0x00000800
 #	endif
+#	ifndef AI_ALL
+#	define AI_ALL 0x00000000
+#	endif
 #endif
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
