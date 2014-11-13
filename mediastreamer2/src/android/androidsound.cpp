@@ -459,11 +459,10 @@ static void android_snd_read_process(MSFilter *obj){
 		//ms_message("android_snd_read_process: Outputing %i bytes",msgdsize(om));
 		ms_queue_put(obj->outputs[0],om);
 		ad->nbufs++;
+		if (ad->nbufs % 100 == 0)
+			ms_message("sound/wall clock skew is average=%g ms", ad->av_skew);
 	}
 	ms_mutex_unlock(&ad->mutex);
-	
-	if (ad->nbufs % 100 == 0)
-		ms_message("sound/wall clock skew is average=%f ms", ad->av_skew);
 }
 
 static int android_snd_read_set_sample_rate(MSFilter *obj, void *param){
