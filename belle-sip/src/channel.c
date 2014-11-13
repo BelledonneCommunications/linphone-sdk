@@ -1176,7 +1176,7 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 
 		belle_sip_address_remove_v4_mapping(addr,(struct sockaddr*) &saddr,&slen2);
 
-		err=getnameinfo((struct sockaddr*)&saddr,slen,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+		err=getnameinfo((struct sockaddr*)&saddr,slen2,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
 		if (err!=0){
 			belle_sip_error("belle_sip_channel_set_ready(): getnameinfo() failed: %s",gai_strerror(err));
 		}else{

@@ -257,7 +257,7 @@ int belle_sip_getaddrinfo(const char *node, const char *service, const struct ad
 		
 		if (hints) memcpy(&lhints,hints,sizeof(lhints));
 		
-		lhints.ai_flags &= ~(AI_ALL & AI_V4MAPPED); /*remove the unsupported flags*/
+		lhints.ai_flags &= ~(AI_ALL | AI_V4MAPPED); /*remove the unsupported flags*/
 		if (hints->ai_flags & AI_ALL){
 			lhints.ai_family=AF_INET6;
 			err=getaddrinfo(node, service, &lhints, &res6);
