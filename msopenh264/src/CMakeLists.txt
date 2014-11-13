@@ -32,6 +32,10 @@ set(SOURCE_FILES
 	msopenh264enc.cpp
 )
 
+if(ENABLE_DECODER)
+	add_definitions(-DOPENH264_DECODER_ENABLED)
+endif()
+
 add_library(msopenh264 SHARED ${SOURCE_FILES})
 set_target_properties(msopenh264 PROPERTIES VERSION ${PACKAGE_VERSION} SOVERSION 0)
 if(MSVC)
