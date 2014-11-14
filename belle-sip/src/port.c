@@ -293,10 +293,11 @@ void belle_sip_freeaddrinfo(struct addrinfo *res){
 		if (it->ai_flags & AI_V4MAPPED){
 			allocated_by_belle_sip=it;
 			if (previt) previt->ai_next=NULL;
+			break;
 		}
 		previt=it;
 	}
-	freeaddrinfo(res);
+	if (res!=allocated_by_belle_sip) freeaddrinfo(res);
 	if (allocated_by_belle_sip) _belle_sip_freeaddrinfo(allocated_by_belle_sip);
 }
 
