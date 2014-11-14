@@ -218,6 +218,7 @@ struct addrinfo *convert_to_v4mapped(const struct addrinfo *ai){
 		struct sockaddr_in6 *sin6;
 		struct sockaddr_in *sin;
 		v4m=_belle_sip_alloc_addrinfo(AF_INET6, it->ai_socktype, it->ai_protocol);
+		v4m->ai_flags|=AI_V4MAPPED;
 		sin6=(struct sockaddr_in6*)v4m->ai_addr;
 		sin=(struct sockaddr_in*)it->ai_addr;
 		sin6->sin6_family=AF_INET6;

@@ -64,7 +64,7 @@ static void belle_sip_dns_srv_destroy(belle_sip_dns_srv_t *obj){
 		obj->a_resolver=NULL;
 	}
 	if (obj->a_results){
-		freeaddrinfo(obj->a_results);
+		belle_sip_freeaddrinfo(obj->a_results);
 		obj->a_results=NULL;
 	}
 }
@@ -617,7 +617,7 @@ static void belle_sip_combined_resolver_context_destroy(belle_sip_combined_resol
 }
 
 static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_context_t *ctx){
-	/* Do not free elements of ctx->ai_list with freeaddrinfo(). Let the caller do it, otherwise
+	/* Do not free elements of ctx->ai_list with belle_sip_freeaddrinfo(). Let the caller do it, otherwise
 	   it will not be able to use them after the resolver has been destroyed. */
 	if (ctx->name != NULL) {
 		belle_sip_free(ctx->name);
@@ -647,11 +647,11 @@ static void belle_sip_dual_resolver_context_destroy(belle_sip_dual_resolver_cont
 		obj->aaaa_ctx=NULL;
 	}
 	if (obj->a_results){
-		freeaddrinfo(obj->a_results);
+		belle_sip_freeaddrinfo(obj->a_results);
 		obj->a_results=NULL;
 	}
 	if (obj->aaaa_results){
-		freeaddrinfo(obj->aaaa_results);
+		belle_sip_freeaddrinfo(obj->aaaa_results);
 		obj->aaaa_results=NULL;
 	}
 	if (obj->name){
@@ -1004,7 +1004,7 @@ fail:
 		if (res != NULL) {
 			memcpy(src,res->ai_addr,MIN((size_t)*srclen,res->ai_addrlen));
 			*srclen=res->ai_addrlen;
-			freeaddrinfo(res);
+			belle_sip_freeaddrinfo(res);
 		} else {
 			belle_sip_fatal("belle_sip_get_src_addr_for(): belle_sip_ip_address_to_addrinfo() failed");
 		}

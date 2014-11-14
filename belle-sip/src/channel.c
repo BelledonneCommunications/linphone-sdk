@@ -68,7 +68,7 @@ static belle_sip_list_t * for_each_weak_unref_free(belle_sip_list_t *l, belle_si
 }
 
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
-	if (obj->peer_list) freeaddrinfo(obj->peer_list);
+	if (obj->peer_list) belle_sip_freeaddrinfo(obj->peer_list);
 	if (obj->peer_cname) belle_sip_free(obj->peer_cname);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
@@ -646,7 +646,7 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,c
 	if (peername){
 		/*check if we are given a real dns name or just an ip address*/
 		struct addrinfo *ai=belle_sip_ip_address_to_addrinfo(AF_UNSPEC,peername,peer_port);
-		if (ai) freeaddrinfo(ai);
+		if (ai) belle_sip_freeaddrinfo(ai);
 		else obj->has_name=TRUE;
 	}
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
@@ -1308,7 +1308,7 @@ belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int a
 	belle_sip_getaddrinfo(hop->host,portstr,&hints,&res);
 
 	chan=belle_sip_channel_find_from_list_with_addrinfo(l,hop,res);
-	if (res) freeaddrinfo(res);
+	if (res) belle_sip_freeaddrinfo(res);
 	return chan;
 }
 
