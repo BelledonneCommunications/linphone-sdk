@@ -1006,6 +1006,31 @@ case "$target_os" in
 	;;
 esac
 
+dnl check for libzrtp support (RFC 6189: Media Path Key Agreement for Unicast Secure RTP)
+AC_ARG_ENABLE(zrtp,
+	[AS_HELP_STRING([--enable-zrtp], [Turn on or off compilation of zrtp (default=no)])],
+	[case "${enableval}" in
+		yes)	zrtp=true ;;
+		no)	zrtp=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-zrtp) ;;
+	esac],
+	[zrtp=false]
+)
+
+if test "$zrtp" = "true" ; then
+	PKG_CHECK_MODULES(LIBBZRTP, libbzrtp >= 0.0.0)
+	if test "$have_srtp" = "no" ; then
+		AC_MSG_ERROR("ZRTP requires SRTP")
+	fi
+	AC_DEFINE(HAVE_zrtp, 1, [Defined when zrtp support is compiled])
+    LIBS="$LIBS $LIBBZRTP_LIBS"
+	CFLAGS="$CFLAGS $LIBBZRTP_CFLAGS"
+else
+	echo "ZRTP compilation is disabled."
+fi
+AM_CONDITIONAL(LIBBZRTP,test x$zrtp != xfalse)
+
+
 dnl ##################################################
 dnl # Check for doxygen
 dnl ##################################################

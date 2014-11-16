@@ -193,7 +193,7 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 		sessions->rtp_session=NULL;
 	}
 	if (sessions->zrtp_context != NULL) {
-		ortp_zrtp_context_destroy(sessions->zrtp_context);
+		ms_zrtp_context_destroy(sessions->zrtp_context);
 		sessions->zrtp_context = NULL;
 	}
 	if (sessions->ticker){
@@ -280,13 +280,13 @@ static int check_srtp_session_created(MediaStream *stream){
 	return 0;
 }
 
-static int add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char* b64_key, bool_t inbound)
+static int add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char* b64_key, bool_t keyisb64, bool_t inbound)
 {
 	srtp_policy_t policy;
 	uint8_t* key;
 	int key_size;
 	err_status_t err;
-	unsigned b64_key_length = strlen(b64_key);
+	unsigned b64_key_length;
 	ssrc_t ssrc_conf;
 
 	memset(&policy,0,sizeof(policy));
@@ -322,18 +322,24 @@ static int add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, cons
 			return -1;
 			break;
 	}
-	key_size = b64_decode(b64_key, b64_key_length, 0, 0);
-	if (key_size != policy.rtp.cipher_key_len) {
-		ortp_error("Key size (%d) doesn't match the selected srtp profile (required %d)",
-			key_size,
-			policy.rtp.cipher_key_len);
+
+	if (keyisb64==TRUE) {
+		b64_key_length = strlen(b64_key);
+		key_size = b64_decode(b64_key, b64_key_length, 0, 0);
+		if (key_size != policy.rtp.cipher_key_len) {
+			ortp_error("Key size (%d) doesn't match the selected srtp profile (required %d)",
+				key_size,
+				policy.rtp.cipher_key_len);
+				return -1;
+		}
+		key = (uint8_t*) ortp_malloc0(key_size+2); /*srtp uses padding*/
+		if (b64_decode(b64_key, b64_key_length, key, key_size) != key_size) {
+			ortp_error("Error decoding key");
+			ortp_free(key);
 			return -1;
-	}
-	key = (uint8_t*) ortp_malloc0(key_size+2); /*srtp uses padding*/
-	if (b64_decode(b64_key, b64_key_length, key, key_size) != key_size) {
-		ortp_error("Error decoding key");
-		ortp_free(key);
-		return -1;
+		}
+	} else {
+		key=(uint8_t *)b64_key;
 	}
 	if (!inbound)
 		policy.allow_repeat_tx=1; /*necessary for telephone-events*/
@@ -349,11 +355,15 @@ static int add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, cons
 	err = srtp_add_stream(srtp, &policy);
 	if (err != err_status_ok) {
 		ortp_error("Failed to add stream to srtp session (%d)", err);
-		ortp_free(key);
+		if (keyisb64==TRUE) {
+			ortp_free(key);
+		}
 		return -1;
 	}
 
-	ortp_free(key);
+	if (keyisb64==TRUE) {
+		ortp_free(key);
+	}
 	return 0;
 }
 
@@ -377,7 +387,7 @@ bool_t media_stream_srtp_supported(void){
 	return _ORTP_HAVE_SRTP & ortp_srtp_supported();
 }
 
-int media_stream_set_srtp_recv_key(MediaStream *stream, MSCryptoSuite suite, const char* key){
+int media_stream_set_srtp_recv_key(MediaStream *stream, MSCryptoSuite suite, const char* key, bool_t keyisb64){
 
 	if (!media_stream_srtp_supported()) {
 		ms_error("ortp srtp support disabled in oRTP or mediastreamer2");
@@ -400,14 +410,14 @@ int media_stream_set_srtp_recv_key(MediaStream *stream, MSCryptoSuite suite, con
 			updated=TRUE;
 		ssrc=rtp_session_get_recv_ssrc(stream->sessions.rtp_session);
 		ms_message("media_stream_set_srtp_recv_key(): %s key %s",updated ? "changing to" : "starting with", key);
-		return add_srtp_stream(stream->sessions.srtp_session,suite,ssrc,key,TRUE);
+		return add_srtp_stream(stream->sessions.srtp_session,suite,ssrc,key,keyisb64,TRUE);
 	}
 #else
 	return -1;
 #endif
 }
 
-int media_stream_set_srtp_send_key(MediaStream *stream, MSCryptoSuite suite, const char* key){
+int media_stream_set_srtp_send_key(MediaStream *stream, MSCryptoSuite suite, const char* key, bool_t keyisb64){
 
 	if (!media_stream_srtp_supported()) {
 		ms_error("ortp srtp support disabled in oRTP or mediastreamer2");
@@ -430,7 +440,7 @@ int media_stream_set_srtp_send_key(MediaStream *stream, MSCryptoSuite suite, con
 				updated=TRUE;
 		}
 		ms_message("media_stream_set_srtp_send_key(): %s key %s",updated ? "changing to" : "starting with", key);
-		return add_srtp_stream(stream->sessions.srtp_session,suite,ssrc,key,FALSE);
+		return add_srtp_stream(stream->sessions.srtp_session,suite,ssrc,key,keyisb64,FALSE);
 	}
 #else
 	return -1;
@@ -439,7 +449,7 @@ int media_stream_set_srtp_send_key(MediaStream *stream, MSCryptoSuite suite, con
 
 /*deprecated*/
 bool_t media_stream_enable_srtp(MediaStream *stream, MSCryptoSuite suite, const char *snd_key, const char *rcv_key) {
-	return media_stream_set_srtp_recv_key(stream,suite,rcv_key)==0 && media_stream_set_srtp_send_key(stream,suite,snd_key)==0;
+	return media_stream_set_srtp_recv_key(stream,suite,rcv_key,TRUE)==0 && media_stream_set_srtp_send_key(stream,suite,snd_key,TRUE)==0;
 }
 
 const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream){

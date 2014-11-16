@@ -54,6 +54,10 @@ libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(OPUS_LIBS)
 
 
+if LIBBZRTP
+libmediastreamer_voip_la_LIBADD+=$(LIBBZRTP_LIB)
+endif
+
 lib_LTLIBRARIES=libmediastreamer_base.la
 if BUILD_VOIP_LIBRARY
 lib_LTLIBRARIES+=libmediastreamer_voip.la
@@ -103,6 +107,12 @@ libmediastreamer_base_la_SOURCES+=	ortp-deps/b64.c \
 					ortp-deps/payloadtype.c
 endif
 endif
+
+if LIBBZRTP
+libmediastreamer_voip_la_SOURCES+=voip/zrtp.c
+endif
+
+
 
 if MS2_FILTERS
 libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
@@ -394,6 +404,9 @@ if BUILD_VIDEO
 AM_CFLAGS+=$(VIDEO_CFLAGS) $(GLEW_CFLAGS)
 endif
 
+if LIBBZRTP
+AM_CFLAGS+=$(LIBBZRTP_CFLAGS)
+endif
 
 if BUILD_WIN32
 libmediastreamer_voip_la_LIBADD+=       -lole32 \

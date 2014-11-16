@@ -747,7 +747,7 @@ void setup_media_streams(MediastreamDatas* args) {
 
             #ifndef TARGET_OS_IPHONE
 			if (args->zrtp_secrets != NULL) {
-				OrtpZrtpParams params;
+				MSZrtpParams params;
 				params.zid_file=args->zrtp_secrets;
 				audio_stream_enable_zrtp(args->audio,&params);
 			}

@@ -27,9 +27,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideoout.h"
 #include "mediastreamer2/msextdisplay.h"
 #include "mediastreamer2/msitc.h"
+#include "mediastreamer2/zrtp.h"
 #include "private.h"
 
-#include <ortp/zrtp.h>
 
 static void configure_itc(VideoStream *stream);
 
@@ -1245,11 +1245,11 @@ void video_stream_send_only_stop(VideoStream *vs){
 }
 
 /* enable ZRTP on the video stream using information from the audio stream */
-void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param){
+void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtpParams *param){
 	if (astream->ms.sessions.zrtp_context != NULL && vstream->ms.sessions.zrtp_context == NULL) {
-		vstream->ms.sessions.zrtp_context=ortp_zrtp_multistream_new(astream->ms.sessions.zrtp_context, vstream->ms.sessions.rtp_session, param);
+		vstream->ms.sessions.zrtp_context=ms_zrtp_multistream_new((MediaStream *)vstream, astream->ms.sessions.zrtp_context, vstream->ms.sessions.rtp_session, param);
 	} else if (vstream->ms.sessions.zrtp_context && !vstream->ms.sessions.is_secured)
-		ortp_zrtp_reset_transmition_timer(vstream->ms.sessions.zrtp_context,vstream->ms.sessions.rtp_session);
+		ms_zrtp_reset_transmition_timer(vstream->ms.sessions.zrtp_context,vstream->ms.sessions.rtp_session);
 }
 
 void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable) {
