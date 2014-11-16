@@ -468,7 +468,7 @@ MSZrtpContext* ms_zrtp_context_new(MediaStream *stream, RtpSession *s, MSZrtpPar
 	return NULL;
 }
 
-MSZrtpContext* ms_zrtp_multistream_new(MSZrtpContext* activeContext, RtpSession *s, MSZrtpParams *params) {
+MSZrtpContext* ms_zrtp_multistream_new(MediaStream *stream, MSZrtpContext* activeContext, RtpSession *s, MSZrtpParams *params) {
 	ms_message("ZRTP is disabled - not implemented yet - not adding stream");
 	return NULL;
 }

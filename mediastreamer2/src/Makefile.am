@@ -97,7 +97,8 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/audioconference.c \
 					voip/bitratedriver.c \
 					voip/qosanalyzer.c voip/qosanalyzer.h \
-					voip/bitratecontrol.c
+					voip/bitratecontrol.c \
+					voip/zrtp.c
 else
 libmediastreamer_base_la_SOURCES+=	ortp-deps/logging.c \
 					ortp-deps/port.c \
@@ -107,12 +108,6 @@ libmediastreamer_base_la_SOURCES+=	ortp-deps/b64.c \
 					ortp-deps/payloadtype.c
 endif
 endif
-
-if LIBBZRTP
-libmediastreamer_voip_la_SOURCES+=voip/zrtp.c
-endif
-
-
 
 if MS2_FILTERS
 libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
