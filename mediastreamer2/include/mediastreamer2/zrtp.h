@@ -28,7 +28,7 @@ extern "C"{
 #endif
 
 /* defined in mediastream.h */
-typedef struct _MediaStream MediaStream;
+struct _MediaStream; 
 
 typedef struct MSZrtpParams {
 	const char *zid_file; // File where to store secrets and other information
@@ -43,14 +43,14 @@ MS2_PUBLIC bool_t ms_zrtp_available(void);
   * @deprecated Use ms_zrtp_transport_modifier_new() instead. Using #srtp_transport_new will prevent usage of multiple
   * encryptions and/or custom packets transmission.
 */
-MS2_PUBLIC MSZrtpContext* ms_zrtp_context_new(MediaStream *stream, RtpSession *s, MSZrtpParams *params);
+MS2_PUBLIC MSZrtpContext* ms_zrtp_context_new(struct _MediaStream *stream, RtpSession *s, MSZrtpParams *params);
 MS2_PUBLIC void ms_zrtp_context_destroy(MSZrtpContext *ctx);
 /**
  * can be used to give more time for establishing zrtp session
  * */
 MS2_PUBLIC void ms_zrtp_reset_transmition_timer(MSZrtpContext* ctx, RtpSession *s);
 
-MS2_PUBLIC MSZrtpContext* ms_zrtp_multistream_new(MediaStream *stream, MSZrtpContext* activeContext, RtpSession *s, MSZrtpParams *params);
+MS2_PUBLIC MSZrtpContext* ms_zrtp_multistream_new(struct _MediaStream *stream, MSZrtpContext* activeContext, RtpSession *s, MSZrtpParams *params);
 
 MS2_PUBLIC void ms_zrtp_sas_verified(MSZrtpContext* ctx);
 MS2_PUBLIC void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx);
