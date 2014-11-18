@@ -247,7 +247,8 @@ libmediastreamer_voip_la_SOURCES+=	videofilters/vp8.c
 endif
 
 if BUILD_MATROSKA
-libmediastreamer_voip_la_SOURCES+=	videofilters/mkv.c
+libmediastreamer_voip_la_SOURCES+=	videofilters/mkv.c \
+					utils/mkv_reader.c
 endif
 
 if BUILD_AVCODEC
@@ -294,6 +295,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
 					videofilters/extdisplay.c \
 					utils/bits_rw.c \
 					utils/x11_helper.c \
+					utils/stream_regulator.c \
 					voip/layouts.c voip/layouts.h
 
 if ORTP_ENABLED
