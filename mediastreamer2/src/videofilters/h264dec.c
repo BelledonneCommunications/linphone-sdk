@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msticker.h"
+#include "utils/stream_regulator.h"
 
 #include "ffmpeg-priv.h"
 
@@ -41,6 +42,7 @@ typedef struct _DecData{
 	uint8_t *bitstream;
 	int bitstream_size;
 	bool_t first_image_decoded;
+	MSStreamRegulator *regulator;
 }DecData;
 
 static void ffmpeg_init(){
@@ -85,17 +87,24 @@ static void dec_init(MSFilter *f){
 	if (!d->orig) {
 		ms_error("Could not allocate frame");
 	}
+	d->regulator = NULL;
 	f->data=d;
 }
 
 static void dec_preprocess(MSFilter* f) {
 	DecData *s=(DecData*)f->data;
 	s->first_image_decoded = FALSE;
+	s->regulator = ms_stream_regulator_new(f->ticker, 90000);
 }
 
 static void dec_reinit(DecData *d){
 	avcodec_close(&d->av_context);
 	dec_open(d);
+}
+
+static void dec_postprocess(MSFilter *f) {
+	DecData *s=(DecData*)f->data;
+	ms_stream_regulator_free(s->regulator);
 }
 
 static void dec_uninit(MSFilter *f){
@@ -138,6 +147,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecData *s, AVFrame *orig){
 #endif
 		ms_error("%s: error in sws_scale().",f->desc->name);
 	}
+	mblk_set_timestamp_info(s->yuv_msg, orig->pkt_pts);
 	return dupmsg(s->yuv_msg);
 }
 
@@ -250,7 +260,7 @@ static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps){
 
 static void dec_process(MSFilter *f){
 	DecData *d=(DecData*)f->data;
-	mblk_t *im;
+	mblk_t *im, *om;
 	MSQueue nalus;
 
 	ms_queue_init(&nalus);
@@ -283,6 +293,7 @@ static void dec_process(MSFilter *f){
 				av_init_packet(&pkt);
 				pkt.data = p;
 				pkt.size = end-p;
+				pkt.pts = mblk_get_timestamp_info(im);
 				len=avcodec_decode_video2(&d->av_context,d->orig,&got_picture,&pkt);
 				if (len<=0) {
 					ms_warning("ms_AVdecoder_process: error %i.",len);
@@ -290,19 +301,22 @@ static void dec_process(MSFilter *f){
 					break;
 				}
 				if (got_picture) {
-					ms_queue_put(f->outputs[0],get_as_yuvmsg(f,d,d->orig));
-					if (!d->first_image_decoded) {
-						d->first_image_decoded = TRUE;
-						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
-					}
-					if (ms_average_fps_update(&d->fps, f->ticker->time)) {
-						ms_message("ffmpeg H264 decoder: Frame size: %dx%d", d->outbuf.w,  d->outbuf.h);
-					}
+					ms_stream_regulator_push(d->regulator, get_as_yuvmsg(f,d,d->orig));
 				}
 				p+=len;
 			}
 		}
 		d->packet_num++;
+	}
+	while((om = ms_stream_regulator_get(d->regulator))) {
+		ms_queue_put(f->outputs[0], om);
+		if (!d->first_image_decoded) {
+			d->first_image_decoded = TRUE;
+			ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+		}
+		if (ms_average_fps_update(&d->fps, f->ticker->time)) {
+			ms_message("ffmpeg H264 decoder: Frame size: %dx%d", d->outbuf.w,  d->outbuf.h);
+		}
 	}
 }
 
@@ -379,8 +393,10 @@ MSFilterDesc ms_h264_dec_desc={
 	.init=dec_init,
 	.preprocess=dec_preprocess,
 	.process=dec_process,
+	.postprocess=dec_postprocess,
 	.uninit=dec_uninit,
-	.methods=h264_dec_methods
+	.methods=h264_dec_methods,
+	.flags=MS_FILTER_IS_PUMP
 };
 
 #else
@@ -397,9 +413,10 @@ MSFilterDesc ms_h264_dec_desc={
 	dec_init,
 	dec_preprocess,
 	dec_process,
-	NULL,
+	dec_postprocess,
 	dec_uninit,
-	h264_dec_methods
+	h264_dec_methods,
+	MS_FILTER_IS_PUMP
 };
 
 #endif
