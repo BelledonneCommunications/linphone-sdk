@@ -531,7 +531,12 @@ void media_stream_iterate(MediaStream *stream){
 }
 
 bool_t media_stream_alive(MediaStream *ms, int timeout){
-	const rtp_stats_t *stats=rtp_session_get_stats(ms->sessions.rtp_session);
+	const rtp_stats_t *stats;
+	
+	if (ms->state!=MSStreamStarted){
+		return TRUE;
+	}
+	stats=rtp_session_get_stats(ms->sessions.rtp_session);
 	if (stats->recv!=0){
 		if (stats->recv!=ms->last_packet_count){
 			ms->last_packet_count=stats->recv;

@@ -223,6 +223,11 @@ struct _MSFilter * ms_snd_card_create_writer(MSSndCard *obj){
 	return NULL;
 }
 
+void ms_snd_card_set_usage_hint(MSSndCard *obj, bool_t is_going_to_be_used){
+	if (obj->desc->usage_hint!=NULL)
+		return obj->desc->usage_hint(obj, is_going_to_be_used);
+}
+
 void ms_snd_card_destroy(MSSndCard *obj){
 	if (obj->desc->uninit!=NULL) obj->desc->uninit(obj);
 	if (obj->name!=NULL) ms_free(obj->name);
