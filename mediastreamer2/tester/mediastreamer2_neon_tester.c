@@ -23,9 +23,9 @@
 #include <speex/speex.h>
 //#include "libspeex/resample_neon.h"
 #include <ortp/port.h>
-#include <arm_neon.h>
 
 #ifdef __ARM_NEON__
+#include <arm_neon.h>
 
 static int tester_init() {
     ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
