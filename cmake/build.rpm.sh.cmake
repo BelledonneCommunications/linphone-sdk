@@ -35,7 +35,7 @@ fi
 cd @ep_build@
 # TODO rpmbuild -ba @ep_build@/@LINPHONE_BUILDER_SPEC_FILE@ --define "_topdir $RPM_TOPDIR" $SPEC_PREFIX --with bc $VERBOSE @ep_redirect_to_file@
 rpmbuild -ba @ep_build@/@LINPHONE_BUILDER_SPEC_FILE@ \
-	--define "_topdir $RPM_TOPDIR" \
+	--define "_topdir $RPM_TOPDIR" --define '_PKG_CONFIG_PATH $PKG_CONFIG_PATH'\
 	@LINPHONE_BUILDER_RPMBUILD_GLOBAL_OPTION@ \
 	@LINPHONE_BUILDER_RPMBUILD_OPTIONS@ \
 	$VERBOSE @ep_redirect_to_file@
