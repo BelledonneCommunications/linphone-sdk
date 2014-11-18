@@ -21,7 +21,7 @@
 #include <time.h>
 #include "mediastreamer2_tester.h"
 #include <speex/speex.h>
-#include "libspeex/resample_neon.h"
+//#include "libspeex/resample_neon.h"
 #include <ortp/port.h>
 #include <arm_neon.h>
 
@@ -42,6 +42,7 @@ static int tester_cleanup() {
 
 // tests the inner product with and without neon (using speex)
 extern int libspeex_cpu_features;
+extern spx_int32_t inner_prod( const spx_int16_t* a, const spx_int16_t* b, int len);
 
 //
 spx_int32_t inner_product_neon_xcode(const spx_int16_t *a, const spx_int16_t *b, unsigned int len){
@@ -238,9 +239,15 @@ static void inner_product_test(void) {
     ms_debug("XCode: %10d, NON Neon: %10d - diff: %d - percent off: %f",
                non_neon_result, neon_result, abs(non_neon_result-neon_result), percent_off);
 
+    bool_t fast_enough = (float)neon_ms < (float)soft_ms/5;
+
     // we expect the result to be very similar and at least 5 times faster with NEON
     CU_ASSERT(percent_off < 1.0);
-    CU_ASSERT((float)neon_ms < (float)soft_ms/5);
+    CU_ASSERT(fast_enough);
+    if( !fast_enough ){
+        ms_error("NEON not fast enough it seems: NEON = %llu ms, SOFT: %llu ms", neon_ms, soft_ms);
+    }
+
 
 }
 
