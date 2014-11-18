@@ -131,13 +131,13 @@ set(EP_flexisip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_myodbc_SPEC_PREFIX   "${RPM_INSTALL_PREFIX}")
 
 set(EP_myodbc_CONFIGURE_OPTIONS   "--with-unixODBC=${RPM_INSTALL_PREFIX}")
-set(EP_flexisip_CONFIGURE_OPTIONS "--with-odbc=${RPM_INSTALL_PREFIX}" "--disable-transcoder" "--disable-pushnotification" "--enable-redis")
+set(EP_flexisip_CONFIGURE_OPTIONS "--with-odbc=${RPM_INSTALL_PREFIX}" "--disable-transcoder" "--enable-redis")
 
 set(EP_ortp_RPMBUILD_OPTIONS      "--with bc --without srtp")
 set(EP_unixodbc_RPMBUILD_OPTIONS  "--with bc")
 set(EP_myodbc_RPMBUILD_OPTIONS    "--with bc")
 set(EP_sofiasip_RPMBUILD_OPTIONS  "--with bc --without glib")
-set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --without boostlog")
+set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --without boostlog --with push")
 
 set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "bc-")
 
@@ -154,6 +154,11 @@ if(PLATFORM STREQUAL "Debian")
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}'") 
 	# some debians are using dash as shell, which doesn't support "export -n", so we override and use bash
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_buildshell /bin/bash'")
+
+	# boost doesn't like debian's multiarch lib dirs
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-boost-libdir=/usr/${CMAKE_INSTALL_LIBDIR}")
+	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'boostlibdir /usr/${CMAKE_INSTALL_LIBDIR}'")
+
 	CHECK_PROGRAM(alien)
 	CHECK_PROGRAM(fakeroot)
 endif()
