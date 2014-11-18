@@ -2222,12 +2222,16 @@ static int player_open_file(MSFilter *f, void *arg) {
 		if(track) {
 			obj->players[i] = mkv_track_player_new(obj->reader, track);
 			if(obj->players[i] == NULL) {
-				ms_error("MKVPlayer: could not instanciate MKVTrackPlayer for track #%d", track->num);
-				goto fail;
+				ms_warning("MKVPlayer: could not instanciate MKVTrackPlayer for track #%d", track->num);
 			}
 		}
-		obj->state = MSPlayerPaused;
 	}
+	if(obj->players[0] == NULL && obj->players[1] == NULL) {
+		ms_error("MKVPlayer: no tack found");
+		goto fail;
+	}
+	obj->state = MSPlayerPaused;
+
 	ms_filter_unlock(f);
 	return 0;
 
