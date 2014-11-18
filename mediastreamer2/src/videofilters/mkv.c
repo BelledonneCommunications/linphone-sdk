@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 #include "../audiofilters/waveheader.h"
 #include "mediastreamer2/formats.h"
-#include "utils/mkv_reader.h"
+#include "mkv_reader.h"
 #undef bool_t
 
 #define bool_t matroska_bool_t
