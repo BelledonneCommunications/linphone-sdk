@@ -644,7 +644,7 @@ static bool_t should_generate_key_frame(EncState *s, int min_interval){
 static int enc_notify_pli(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	ms_message("PLI requested");
-	if (should_generate_key_frame(s,s->vconf.fps)){
+	if (should_generate_key_frame(s,MIN_KEY_FRAME_DIST)){
 		ms_message("PLI accepted");
 		if (s->avpf_enabled == TRUE) {
 			s->invalid_frame_reported = TRUE;
