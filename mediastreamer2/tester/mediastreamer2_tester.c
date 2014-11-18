@@ -32,11 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef __APPLE__
 #include "TargetConditionals.h"
 #endif
-#if TARGET_OS_IPHONE
-#import <UIKit/UIKit.h>
-#include <AudioToolbox/AudioToolbox.h>
-#include <CoreFoundation/CFRunLoop.h>
-#endif
+
 
 static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
@@ -227,33 +223,8 @@ void helper(const char *name) {
 	}
 
 #ifndef WINAPI_FAMILY_PHONE_APP
-#if TARGET_OS_MAC && !TARGET_OS_IPHONE
-int _main (int argc, char *argv[]) {
-#elif TARGET_OS_IPHONE
-    int g_argc;
-    char** g_argv;
-    static int _main(int argc, char * argv[]);
-    void stop_handler(int sig) {
-        return;
-    }
-
-    static void* apple_main(void* data) {
-        _main(g_argc,g_argv);
-        return NULL;
-    }
-    int main(int argc, char * argv[]) {
-        pthread_t main_thread;
-        g_argc=argc;
-        g_argv=argv;
-        pthread_create(&main_thread,NULL,apple_main,NULL);
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-        int value = UIApplicationMain(0, nil, nil, nil);
-        [pool release];
-        return value;
-        pthread_join(main_thread,NULL);
-        return 0;
-    }
-    static int _main(int argc, char * argv[]) {
+#if TARGET_OS_MAC || TARGET_OS_IPHONE
+int apple_main (int argc, char *argv[]) {
 #else
 int main (int argc, char *argv[]) {
 #endif

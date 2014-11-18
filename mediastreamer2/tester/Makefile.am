@@ -18,6 +18,7 @@ mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_framework_tester.c \
 	mediastreamer2_player_tester.c
 
+
 AM_CPPFLAGS=\
 	-I$(top_srcdir)/ \
 	-I$(top_srcdir)/include/ \
@@ -60,6 +61,18 @@ if BUILD_MATROSKA
 AM_CFLAGS+=-DHAVE_MATROSKA
 endif
 
+
+if BUILD_IOS
+
+noinst_LTLIBRARIES=libmediastreamer2_tester_ios.la
+libmediastreamer2_tester_ios_la_SOURCES      = mediastreamer2_tester_ios.m
+libmediastreamer2_tester_ios_la_LIBTOOLFLAGS = --tag=CC
+LDADD+=libmediastreamer2_tester_ios.la
+
+mediastreamer2_tester_SOURCES +=  mediastreamer2_neon_tester.c
+AM_CFLAGS    += $(SPEEX_CFLAGS)
+AM_OBJCFLAGS  = $(AM_CFLAGS)
+endif
 
 test: mediastreamer2_tester
 	./mediastreamer2_tester $(TEST_OPTIONS)

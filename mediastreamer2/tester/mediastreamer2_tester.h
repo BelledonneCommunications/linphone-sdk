@@ -70,6 +70,10 @@ extern void mediastreamer2_tester_init(void);
 extern void mediastreamer2_tester_uninit(void);
 extern int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_name);
 
+#if TARGET_OS_MAC || TARGET_OS_IPHONE
+    int apple_main(int argc, char *argv[]);
+#endif
+
 
 #ifdef __cplusplus
 };
