@@ -67,6 +67,7 @@ LOCAL_SRC_FILES = \
 	voip/bitratedriver.c \
 	voip/qosanalyzer.c \
 	voip/msmediaplayer.c \
+	voip/zrtp.c \
 	utils/dsptools.c \
 	utils/kiss_fft.c \
 	utils/kiss_fftr.c \
@@ -246,6 +247,12 @@ LOCAL_STATIC_LIBRARIES += \
 	libortp \
 	libspeex \
 	libspeexdsp
+
+ifeq ($(BUILD_ZRTP), 1)
+LOCAL_STATIC_LIBRARIES += libbzrtp
+LOCAL_CFLAGS += -DHAVE_zrtp
+LOCAL_C_INCLUDES += $(ZRTP_C_INCLUDE)
+endif #ZRTP
 
 ifneq ($(BUILD_WEBRTC_AECM)$(BUILD_WEBRTC_ISAC), 00)
 LOCAL_CFLAGS += -DHAVE_WEBRTC

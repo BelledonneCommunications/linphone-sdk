@@ -132,6 +132,7 @@
     <ClInclude Include="..\..\..\include\mediastreamer2\msvolume.h" />
     <ClInclude Include="..\..\..\include\mediastreamer2\mswebcam.h" />
     <ClInclude Include="..\..\..\include\mediastreamer2\videostarter.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\zrtp.h" />
     <ClInclude Include="..\..\..\src\audiofilters\g711.h" />
     <ClInclude Include="..\..\..\src\utils\g722.h" />
     <ClInclude Include="..\..\..\src\utils\kiss_fft.h" />
@@ -206,6 +207,7 @@
     <ClCompile Include="..\..\..\src\voip\ringstream.c" />
     <ClCompile Include="..\..\..\src\voip\videostarter.c" />
     <ClCompile Include="..\..\..\src\voip\videostream.c" />
+    <ClCompile Include="..\..\..\src\voip\zrtp.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\gsm\build\wp8\gsm\gsm.vcxproj">
