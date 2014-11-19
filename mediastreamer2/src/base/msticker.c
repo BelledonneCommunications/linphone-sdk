@@ -80,7 +80,7 @@ MSTicker *ms_ticker_new(){
 }
 
 MSTicker *ms_ticker_new_with_params(const MSTickerParams *params){
-	MSTicker *obj=(MSTicker *)ms_new(MSTicker,1);
+	MSTicker *obj=(MSTicker *)ms_new0(MSTicker,1);
 	ms_ticker_init(obj,params);
 	return obj;
 }

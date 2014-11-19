@@ -172,11 +172,13 @@ static void video_stream_track_fps_changes(VideoStream *stream){
 		MSTickerLateEvent late_ev={0};
 		/*we must check that no late tick occured during the last 2 seconds, otherwise the fps measurement is severely biased.*/
 		ms_ticker_get_last_late_tick(stream->ms.sessions.ticker,&late_ev);
+		
 		if (curtime > late_ev.time + 2000){
 			if (stream->source && stream->ms.encoder &&
 				ms_filter_has_method(stream->source,MS_FILTER_GET_FPS) &&
 				ms_filter_has_method(stream->ms.encoder,MS_FILTER_SET_FPS)){
 				float fps=0;
+				
 				if (ms_filter_call_method(stream->source,MS_FILTER_GET_FPS,&fps)==0 && fps!=0){
 					if (fabsf(fps-stream->configured_fps)/stream->configured_fps>0.2){
 						ms_warning("Measured and target fps significantly different (%f<->%f), updating encoder.",
