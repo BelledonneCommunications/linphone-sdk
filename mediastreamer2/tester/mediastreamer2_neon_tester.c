@@ -44,8 +44,8 @@ static int tester_cleanup() {
 extern int libspeex_cpu_features;
 extern spx_int32_t inner_prod( const spx_int16_t* a, const spx_int16_t* b, int len);
 
-//
-spx_int32_t inner_product_neon_xcode(const spx_int16_t *a, const spx_int16_t *b, unsigned int len){
+#if 0 /* These are inner product implementations that we used for fixing speex's one */
+spx_int32_t ms_inner_product_neon_xcode(const spx_int16_t *a, const spx_int16_t *b, unsigned int len){
     int16x4_t a4;
     int16x4_t b4;
     spx_int32_t sum = 0; // sum is 0
@@ -81,7 +81,7 @@ spx_int32_t inner_product_neon_xcode(const spx_int16_t *a, const spx_int16_t *b,
 
 }
 
-spx_int32_t inner_product_neon_xcode_optim(const spx_int16_t *a, const spx_int16_t *b, unsigned int len){
+spx_int32_t ms_inner_product_neon_xcode_optim(const spx_int16_t *a, const spx_int16_t *b, unsigned int len){
     int16x4_t a4;
     int16x4_t b4;
     spx_int32_t sum = 0; // sum is 0
@@ -107,7 +107,7 @@ spx_int32_t inner_product_neon_xcode_optim(const spx_int16_t *a, const spx_int16
     
 }
 
-spx_int32_t inner_product_neon_xcode_optim8(const spx_int16_t *a, const spx_int16_t *b, unsigned int len){
+spx_int32_t ms_inner_product_neon_xcode_optim8(const spx_int16_t *a, const spx_int16_t *b, unsigned int len){
     int16x8_t a8;
     int16x8_t b8;
     spx_int32_t sum = 0; // sum is 0
@@ -134,7 +134,7 @@ spx_int32_t inner_product_neon_xcode_optim8(const spx_int16_t *a, const spx_int1
     
 }
 
-spx_int32_t inner_product_neon_xcode_optim16(const spx_int16_t *a, const spx_int16_t *b, unsigned int len){
+spx_int32_t ms_inner_product_neon_xcode_optim16(const spx_int16_t *a, const spx_int16_t *b, unsigned int len){
     int16x8_t a8,b8;
     int16x8_t c8,d8;
     spx_int32_t sum = 0; // sum is 0
@@ -169,7 +169,7 @@ spx_int32_t inner_product_neon_xcode_optim16(const spx_int16_t *a, const spx_int
 }
 
 /* intrinsics */
-spx_int32_t inner_product_neon_intrinsics(const spx_int16_t *a, const spx_int16_t *b, unsigned int len){
+spx_int32_t ms_inner_product_neon_intrinsics(const spx_int16_t *a, const spx_int16_t *b, unsigned int len){
     int16x8_t a8;
     int16x8_t b8;
     int32x4_t partial = vdupq_n_s32(0);
@@ -190,6 +190,7 @@ spx_int32_t inner_product_neon_intrinsics(const spx_int16_t *a, const spx_int16_
 
     return vgetq_lane_s64(back, 0) + vgetq_lane_s64(back, 1);
 }
+#endif
 
 
 static void inner_product_test(void) {
