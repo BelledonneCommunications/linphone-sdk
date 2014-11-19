@@ -2257,6 +2257,7 @@ static void player_process(MSFilter *f) {
 					MKVBlock *block;
 					while((block = mkv_block_queue_pull(t_player->block_queue))) {
 						mkv_track_player_send_block(t_player, block, f->outputs[i]);
+						mkv_block_free(block);
 					}
 					mkv_block_group_maker_get_next_group(t_player->group_maker, t_player->block_queue, &t_player->eot);
 				}
