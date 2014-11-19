@@ -124,12 +124,12 @@ void MSOpenH264Encoder::initialize()
 			int targetBitrate, maxBitrate;
 			calcBitrates(targetBitrate, maxBitrate);
 			params.iUsageType = CAMERA_VIDEO_REAL_TIME;
-			params.iInputCsp = videoFormatI420;
+			//params.iInputCsp = videoFormatI420;
 			params.iPicWidth = mVConf.vsize.width;
 			params.iPicHeight = mVConf.vsize.height;
 			params.iTargetBitrate = targetBitrate;
 			params.iMaxBitrate = maxBitrate;
-			params.iRCMode = RC_LOW_BW_MODE;
+			params.iRCMode = RC_BITRATE_MODE;
 			params.fMaxFrameRate = mVConf.fps;
 			params.uiIntraPeriod=mVConf.fps*10;
 			params.bEnableSpsPpsIdAddition=0;
@@ -199,7 +199,7 @@ void MSOpenH264Encoder::feed()
 			srcPic.uiTimeStamp = ts;
 			int ret = mEncoder->EncodeFrame(&srcPic, &sFbi);
 			if (ret == cmResultSuccess) {
-				if ((sFbi.eOutputFrameType != videoFrameTypeSkip) && (sFbi.eOutputFrameType != videoFrameTypeInvalid)) {
+				if ((sFbi.eFrameType != videoFrameTypeSkip) && (sFbi.eFrameType != videoFrameTypeInvalid)) {
 					if (mFrameCount == 0) {
 						mVideoStarter.firstFrame(mFilter->ticker->time);
 					}
@@ -310,11 +310,11 @@ void MSOpenH264Encoder::fillNalusQueue(SFrameBSInfo &sFbi, MSQueue *nalus)
 			unsigned char *ptr = layerBsInfo->pBsBuf;
 			for (int j = 0; j < layerBsInfo->iNalCount; j++) {
 				// Skip the NAL markers (first 4 bytes)
-				int len = layerBsInfo->iNalLengthInByte[j] - 4;
+				int len = layerBsInfo->pNalLengthInByte[j] - 4;
 				m = allocb(len, 0);
 				memcpy(m->b_wptr, ptr + 4, len);
 				m->b_wptr += len;
-				ptr += layerBsInfo->iNalLengthInByte[j];
+				ptr += layerBsInfo->pNalLengthInByte[j];
 				ms_queue_put(nalus, m);
 			}
 		}
