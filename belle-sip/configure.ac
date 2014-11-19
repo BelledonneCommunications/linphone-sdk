@@ -47,7 +47,7 @@ case "$target" in
                 CXXFLAGS="$CXXFLAGS -mmacosx-version-min=10.6"
                 CFLAGS="$CFLAGS -mmacosx-version-min=10.6"
         ;;
-        i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*)
+        i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*|arm64-apple*|aarch64-apple*)
 		LIBS="$LIBS -framework Foundation -framework CoreFoundation -framework CFNetwork -framework UIKit"
 		build_ios=yes
 	;;
