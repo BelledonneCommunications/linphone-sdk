@@ -245,12 +245,7 @@ static void ms_opus_enc_uninit(MSFilter *f) {
 static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 	int normalized_cbr = 0;
 	float pps;
-
-	/* check maxaverage bit rate parameter */
-	if (d->maxaveragebitrate>0 && d->maxaveragebitrate<d->max_network_bitrate) {
-		ms_warning("Opus encoder can't apply network bitrate [%i] because of maxaveragebitrate [%i] requested by fmtp line. Fall back to fmtp bitrate setting.", d->max_network_bitrate, d->maxaveragebitrate);
-		d->max_network_bitrate = d->maxaveragebitrate;
-	}
+	int maxaveragebitrate=510000;
 
 	if (d->ptime==-1) {
 		pps = 50; // if this function is called before ptime being set, use default ptime 20ms
@@ -289,12 +284,14 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 		d->max_network_bitrate = (normalized_cbr/(pps*8) + 12 + 8 + 20) *8*pps;
 		ms_warning("Opus encoder doesn't support bitrate [%i] set to 6kbps, network bitrate [%d]", initial_value, d->max_network_bitrate);
 	}
-
-	if (normalized_cbr>510000) {
+	if (d->maxaveragebitrate>0)
+		maxaveragebitrate=d->maxaveragebitrate;
+	
+	if (normalized_cbr>maxaveragebitrate) {
 		int initial_value = normalized_cbr;
-		normalized_cbr = 510000;
+		normalized_cbr = maxaveragebitrate;
 		d->max_network_bitrate = (normalized_cbr/(pps*8) + 12 + 8 + 20) *8*pps;
-		ms_warning("Opus encoder doesn't support bitrate [%i] set to 510kbps, network bitrate [%d]", initial_value, d->max_network_bitrate);
+		ms_warning("Opus encoder cannot set codec bitrate to [%i] because of maxaveragebitrate constraint or absolute maximum bitrate value. New network bitrate is [%i]", initial_value, d->max_network_bitrate);
 	}
 
 	d->bitrate = normalized_cbr;
@@ -516,27 +513,35 @@ static int ms_opus_enc_add_fmtp(MSFilter *f, void *arg) {
 
 	if ( fmtp_get_value ( fmtp,"maxplaybackrate",buf,sizeof ( buf ) ) ) {
 		d->maxplaybackrate=atoi(buf);
-	} else if ( fmtp_get_value ( fmtp,"maxptime",buf,sizeof ( buf ) ) ) {
+	}
+	if ( fmtp_get_value ( fmtp,"maxptime",buf,sizeof ( buf ) ) ) {
 		d->maxptime=MIN(atoi(buf),120);
-	} else if ( fmtp_get_value ( fmtp,"ptime",buf,sizeof ( buf ) ) ) {
+	}
+	if ( fmtp_get_value ( fmtp,"ptime",buf,sizeof ( buf ) ) ) {
 		int val=atoi(buf);
 		ms_opus_enc_set_ptime(f,&val);
-	} else if ( fmtp_get_value ( fmtp,"minptime",buf,sizeof ( buf ) ) ) {
+	}
+	if ( fmtp_get_value ( fmtp,"minptime",buf,sizeof ( buf ) ) ) {
 		d->minptime=MAX(atoi(buf),20); // minimum shall be 3 but we do not provide less than 20ms ptime.
-	} else if ( fmtp_get_value ( fmtp,"maxaveragebitrate",buf,sizeof ( buf ) ) ) {
+	}
+	if ( fmtp_get_value ( fmtp,"maxaveragebitrate",buf,sizeof ( buf ) ) ) {
 		d->maxaveragebitrate = atoi(buf);
-	} else if ( fmtp_get_value ( fmtp,"stereo",buf,sizeof ( buf ) ) ) {
+	}
+	if ( fmtp_get_value ( fmtp,"stereo",buf,sizeof ( buf ) ) ) {
 		d->stereo = atoi(buf);
-	} else if ( fmtp_get_value ( fmtp,"cbr",buf,sizeof ( buf ) ) ) {
+	}
+	if ( fmtp_get_value ( fmtp,"cbr",buf,sizeof ( buf ) ) ) {
 		if (atoi(buf) == 1 ) {
 			d->vbr = 0;
 		} else {
 			d->vbr = 1;
 		}
 		ms_opus_enc_set_vbr(f);
-	} else if ( fmtp_get_value ( fmtp,"useinbandfec",buf,sizeof ( buf ) ) ) {
+	}
+	if ( fmtp_get_value ( fmtp,"useinbandfec",buf,sizeof ( buf ) ) ) {
 		d->useinbandfec = atoi(buf);
-	} else if ( fmtp_get_value ( fmtp,"usedtx",buf,sizeof ( buf ) ) ) {
+	}
+	if ( fmtp_get_value ( fmtp,"usedtx",buf,sizeof ( buf ) ) ) {
 		d->usedtx = atoi(buf);
 	}
 
