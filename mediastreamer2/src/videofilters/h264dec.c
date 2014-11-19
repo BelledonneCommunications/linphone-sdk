@@ -295,7 +295,9 @@ static void dec_process(MSFilter *f){
 				av_init_packet(&pkt);
 				pkt.data = p;
 				pkt.size = end-p;
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(50,43,0) // backward compatibility with Debian Squeeze (6.0)
 				pkt.pts = mblk_get_timestamp_info(im);
+#endif
 				len=avcodec_decode_video2(&d->av_context,d->orig,&got_picture,&pkt);
 				if (len<=0) {
 					ms_warning("ms_AVdecoder_process: error %i.",len);
