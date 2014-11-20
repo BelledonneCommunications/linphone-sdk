@@ -112,6 +112,7 @@ static void dec_uninit(MSFilter *f){
 	if (d->sps) freemsg(d->sps);
 	if (d->pps) freemsg(d->pps);
 	if (d->orig) av_frame_free(&d->orig);
+	if (d->sws_ctx) sws_freeContext(d->sws_ctx);
 	ms_free(d->bitstream);
 	ms_free(d);
 }

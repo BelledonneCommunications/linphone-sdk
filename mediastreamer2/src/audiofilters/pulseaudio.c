@@ -163,6 +163,7 @@ static void stream_free(Stream *s) {
 	if(s->stream) {
 		stream_disconnect(s);
 	}
+	ms_free(s);
 }
 
 static bool_t stream_connect(Stream *s, StreamType type, pa_buffer_attr *attr) {

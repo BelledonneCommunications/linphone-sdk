@@ -46,7 +46,7 @@ static void _load_modules(nodemodule *modules);
 struct _MKVTrackReader {
 	int track_num;
 	ebml_parser_context parser;
-	ebml_element *track_elt;
+	const ebml_element *track_elt;
 	ebml_element *current_cluster;
 	ebml_element *current_frame_elt;
 	stream *file;
@@ -113,6 +113,7 @@ void mkv_reader_close(MKVReader *obj) {
 		if(obj->tracks) ms_list_free_with_data(obj->tracks, (void(*)(void *))_mkv_track_free);
 		ms_list_free_with_data(obj->readers, (void(*)(void *))_mkv_track_reader_destroy);
 		MATROSKA_Done((nodecontext *)&obj->p);
+		ParserContext_Done(&obj->p);
 		ms_free(obj);
 	}
 }
@@ -171,6 +172,7 @@ MKVTrackReader *mkv_reader_get_track_reader(MKVReader *reader, int track_num) {
 	Stream_Seek(track_reader->file, reader->first_cluster_pos, SEEK_SET);
 	track_reader->current_cluster = EBML_FindNextElement(track_reader->file, &track_reader->parser, &upper_levels, FALSE);
 	EBML_ElementReadData(track_reader->current_cluster, track_reader->file, &track_reader->parser, FALSE, SCOPE_PARTIAL_DATA, FALSE);
+	reader->readers = ms_list_append(reader->readers, track_reader);
 	return track_reader;
 }
 
@@ -460,6 +462,7 @@ static void _mkv_track_free(MKVTrack *obj) {
 }
 
 static void _mkv_track_reader_destroy(MKVTrackReader *obj) {
+	NodeDelete((node *)obj->current_cluster);
 	StreamClose(obj->file);
 	ms_free(obj);
 }
