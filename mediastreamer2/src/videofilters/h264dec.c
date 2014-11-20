@@ -278,6 +278,9 @@ static void dec_process(MSFilter *f){
 			int size;
 			uint8_t *p,*end;
 			bool_t need_reinit=FALSE;
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(50,43,0) // backward compatibility with Debian Squeeze (6.0)
+			uint32_t frame_ts = mblk_get_timestamp_info(ms_queue_peek_first(&nalus));
+#endif
 
 			size=nalusToFrame(d,&nalus,&need_reinit);
 			if (need_reinit)
@@ -293,7 +296,7 @@ static void dec_process(MSFilter *f){
 				pkt.data = p;
 				pkt.size = end-p;
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(50,43,0) // backward compatibility with Debian Squeeze (6.0)
-				pkt.pts = mblk_get_timestamp_info(im);
+				pkt.pts = frame_ts;
 #endif
 				len=avcodec_decode_video2(&d->av_context,d->orig,&got_picture,&pkt);
 				if (len<=0) {
