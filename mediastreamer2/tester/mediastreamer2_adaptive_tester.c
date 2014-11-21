@@ -68,10 +68,10 @@ static int tester_cleanup(void) {
 	return 0;
 }
 
-#define HELLO_8K_1S_FILE SOUND_FILE_PATH "hello8000-1s.wav"
-#define HELLO_16K_1S_FILE SOUND_FILE_PATH "hello16000-1s.wav"
-#define RECORDED_8K_1S_FILE WRITE_FILE_PATH "recorded_hello8000-1s.wav"
-#define RECORDED_16K_1S_FILE WRITE_FILE_PATH "recorded_hello16000-1s.wav"
+#define HELLO_8K_1S_FILE  "hello8000-1s.wav"
+#define HELLO_16K_1S_FILE  "hello16000-1s.wav"
+#define RECORDED_8K_1S_FILE  "recorded_hello8000-1s.wav"
+#define RECORDED_16K_1S_FILE  "recorded_hello16000-1s.wav"
 
 typedef struct _stream_manager_t {
 	MSFormatType type;
@@ -90,6 +90,8 @@ typedef struct _stream_manager_t {
 		float congestion_bw_estim;
 	} adaptive_stats;
 
+    void* user_data;
+
 } stream_manager_t ;
 
 stream_manager_t * stream_manager_new(MSFormatType type) {
@@ -97,6 +99,7 @@ stream_manager_t * stream_manager_new(MSFormatType type) {
 	mgr->type=type;
 	mgr->local_rtp=(rand() % ((2^16)-1024) + 1024) & ~0x1;
 	mgr->local_rtcp=mgr->local_rtp+1;
+    mgr->user_data = 0;
 
 	if (mgr->type==MSAudio){
 		mgr->audio_stream=audio_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
@@ -114,7 +117,10 @@ stream_manager_t * stream_manager_new(MSFormatType type) {
 static void stream_manager_delete(stream_manager_t * mgr) {
 
 	if (mgr->type==MSAudio){
-		unlink(RECORDED_16K_1S_FILE);
+        if( mgr->user_data){
+            unlink((char*)mgr->user_data);
+            // don't reset user_data, it is up to the user to free() it
+        }
 
 		audio_stream_stop(mgr->audio_stream);
 	}else{
@@ -198,6 +204,11 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 #endif
 	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);
 	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);
+
+    char* file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), HELLO_16K_1S_FILE);
+    char* recorded_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), RECORDED_16K_1S_FILE);
+
+    marielle->user_data = recorded_file;
 	params.enabled=TRUE;
 	params.loss_rate=loss_rate;
 	params.max_bandwidth=max_bw;
@@ -222,10 +233,10 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 	rtp_session_set_duplication_ratio(marielle_ms->sessions.rtp_session, dup_ratio);
 
 	if (marielle->type == MSAudio){
-		audio_manager_start(marielle,payload,margaux->local_rtp,initial_bitrate,HELLO_16K_1S_FILE,NULL);
+		audio_manager_start(marielle,payload,margaux->local_rtp,initial_bitrate,file,NULL);
 		ms_filter_call_method(marielle->audio_stream->soundread,MS_FILE_PLAYER_LOOP,&pause_time);
 
-		audio_manager_start(margaux,payload,marielle->local_rtp,0,NULL,RECORDED_16K_1S_FILE);
+		audio_manager_start(margaux,payload,marielle->local_rtp,0,NULL,recorded_file);
 	}else{
 #if VIDEO_ENABLED
 		video_manager_start(marielle,payload,margaux->local_rtp,0,marielle_webcam);
@@ -241,6 +252,10 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 						qos_analyzer_on_action_suggested,
 						*pmarielle);
 	rtp_session_enable_network_simulation(margaux_ms->sessions.rtp_session,&params);
+
+    ms_free(recorded_file);
+    ms_free(file);
+
 }
 
 static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_t * margaux,

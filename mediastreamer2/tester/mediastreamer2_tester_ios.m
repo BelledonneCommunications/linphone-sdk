@@ -33,7 +33,18 @@ void stop_handler(int sig) {
 }
 
 static void* _apple_main(void* data) {
+    NSString *bundlePath = [[[NSBundle mainBundle] bundlePath] retain];
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentPath = [[paths objectAtIndex:0] retain];
+    NSLog(@"Bundle path: %@", bundlePath);
+    NSLog(@"Document path: %@", documentPath);
+
+    mediastreamer2_tester_set_file_root( [bundlePath UTF8String] );
+    mediastreamer2_tester_set_writable_dir( [documentPath UTF8String] );
     apple_main(g_argc,g_argv);
+
+    [bundlePath release];
+    [documentPath release];
     return NULL;
 }
 int main(int argc, char * argv[]) {
