@@ -665,6 +665,7 @@ void belle_sip_transaction_set_dialog(belle_sip_transaction_t *t, belle_sip_dial
 
 void belle_sip_transaction_set_state(belle_sip_transaction_t *t, belle_sip_transaction_state_t state);
 
+
 /*
  *
  *
@@ -687,6 +688,7 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, belle_sip_provider_t *prov, belle_sip_request_t *req);
 void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp);
 void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp);
+int belle_sip_client_transaction_send_request_to_using_queue(belle_sip_client_transaction_t *t,belle_sip_uri_t* outbound_proxy,int use_queue);
 
 struct belle_sip_ict{
 	belle_sip_client_transaction_t base;
