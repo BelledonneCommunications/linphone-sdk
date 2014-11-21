@@ -132,6 +132,7 @@ static void fileplay_soundwrite(const char *filename) {
 	int sample_rate = 8000;
 	int nchannels = 1;
 	int done = FALSE;
+    int elapsed = 0;
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
@@ -164,7 +165,9 @@ static void fileplay_soundwrite(const char *filename) {
 	ms_connection_helper_link(&h, ms_tester_soundwrite, 0, -1);
 	ms_ticker_attach(ms_tester_ticker, ms_tester_fileplay);
 
-	while (done != TRUE) {
+
+	while (done != TRUE && elapsed < 6000) {
+        elapsed++;
 		ms_usleep(10000);
 	}
 
