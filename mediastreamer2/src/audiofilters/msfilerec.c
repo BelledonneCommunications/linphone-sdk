@@ -105,8 +105,9 @@ static int rec_open(MSFilter *f, void *arg){
 	if (s->size>0){
 		struct stat statbuf;
 		if (fstat(s->fd,&statbuf)==0){
-			if (lseek(s->fd,statbuf.st_size,SEEK_SET)!=0){
-				ms_error("Could not lseek to end of file: %s",strerror(errno));
+			if (lseek(s->fd,statbuf.st_size,SEEK_SET) == -1){
+				int err = errno;
+				ms_error("Could not lseek to end of file: %s",strerror(err));
 			}
 		}else ms_error("fstat() failed: %s",strerror(errno));
 	}
