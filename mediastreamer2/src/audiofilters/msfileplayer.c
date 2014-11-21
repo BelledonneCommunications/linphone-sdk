@@ -338,7 +338,7 @@ static void player_process(MSFilter *f){
 								mblk_set_timestamp_info(om, f->ticker->time);
 								mblk_set_marker_info(om,markbit);
 								ms_queue_put(f->outputs[0], om);
-								ms_message("Outputting RTP packet of size %i, markbit=%i", bytes,(int)markbit);
+								ms_message("Outputting RTP packet of size %i, seq=%u markbit=%i", bytes, pcap_seq, (int)markbit);
 							}
 							d->pcap_seq = pcap_seq;
 							d->pcap_hdr = NULL;

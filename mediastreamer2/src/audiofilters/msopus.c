@@ -115,7 +115,11 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 
 	/* set complexity to 0 for single processor arm devices */
 #ifdef __arm__
-	opus_encoder_ctl(d->state, (ms_factory_get_cpu_count(f->factory)==1) ? OPUS_SET_COMPLEXITY(0) : OPUS_SET_COMPLEXITY(5));
+	if (ms_factory_get_cpu_count(f->factory)==1){
+		opus_encoder_ctl(d->state, OPUS_SET_COMPLEXITY(0));
+	}else{
+		opus_encoder_ctl(d->state, OPUS_SET_COMPLEXITY(5));
+	}
 #endif
 	error = opus_encoder_ctl(d->state, OPUS_SET_PACKET_LOSS_PERC(10));
 	if (error != OPUS_OK) {
