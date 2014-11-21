@@ -179,7 +179,9 @@ LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/../../../externals/libmatroska/libmatroska2
 
 LOCAL_SRC_FILES += \
+	utils/mkv_reader.c \
 	videofilters/mkv.c
+
 
 LOCAL_STATIC_LIBRARIES += \
 	libmatroska2

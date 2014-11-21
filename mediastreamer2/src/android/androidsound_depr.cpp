@@ -28,7 +28,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include "ortp/zrtp.h"
+#include "mediastreamer2/zrtp.h"
 #include <cpu-features.h>
 
 #include "audiofilters/devices.h"
@@ -50,7 +50,7 @@ JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasNeon(J
 }
 
 JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasZrtp(JNIEnv *env, jclass c) {
-	return ortp_zrtp_available();
+	return ms_zrtp_available();
 }
 
 JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasVideo(JNIEnv *env, jclass c) {
@@ -63,11 +63,11 @@ JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasVideo(
 
 #ifdef __cplusplus
 }
-#endif 
+#endif
 
 static void set_high_prio(void){
 	/*
-		This pthread based code does nothing on linux. The linux kernel has 
+		This pthread based code does nothing on linux. The linux kernel has
 		sched_get_priority_max(SCHED_OTHER)=sched_get_priority_max(SCHED_OTHER)=0.
 		As long as we can't use SCHED_RR or SCHED_FIFO, the only way to increase priority of a calling thread
 		is to use setpriority().
@@ -245,7 +245,7 @@ static int set_read_rate(MSFilter *f, void *arg){
 		ms_warning("sample rate is forced by mediastreamer2 device table, skipping...");
 		return -1;
 	}
-	
+
 	d->rate=get_supported_rate(proposed_rate);
 	if (d->rate == proposed_rate)
 		return 0;
@@ -379,7 +379,7 @@ static void sound_read_setup(MSFilter *f){
 		return;
 	}
 	d->buff_size = jni_env->CallStaticIntMethod(d->audio_record_class,min_buff_size_id,d->rate,2/*CHANNEL_CONFIGURATION_MONO*/,2/*  ENCODING_PCM_16BIT */);
-	d->read_chunk_size = d->buff_size/4;	
+	d->read_chunk_size = d->buff_size/4;
 	d->buff_size*=2;/*double the size for configuring the recorder: this does not affect latency but prevents "AudioRecordThread: buffer overflow"*/
 
 	if (d->buff_size > 0) {
@@ -441,7 +441,7 @@ static void sound_read_preprocess(MSFilter *f){
 	if (!d->started)
 		sound_read_setup(f);
 	ms_ticker_set_time_func(f->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, d->ticker_synchronizer);
-	
+
 	if (d->builtin_aec && d->audio_record) {
 		JNIEnv *env=ms_get_jni_env();
 		jmethodID getsession_id=0;
@@ -476,7 +476,7 @@ static void sound_read_postprocess(MSFilter *f){
 		ms_error("cannot find AudioRecord.stop() method");
 		goto end;
 	}
-	
+
 	if (d->aec) {
 		delete_hardware_echo_canceller(jni_env, d->aec);
 		d->aec = NULL;
@@ -586,7 +586,7 @@ static int set_write_rate(MSFilter *f, void *arg){
 		ms_warning("sample rate is forced by mediastreamer2 device table, skipping...");
 		return -1;
 	}
-	
+
 	int proposed_rate = *((int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
 	d->rate=proposed_rate;
@@ -739,7 +739,7 @@ void msandroid_sound_write_preprocess(MSFilter *f){
 	jmethodID min_buff_size_id;
 
 	JNIEnv *jni_env = ms_get_jni_env();
-	
+
 	if (d->audio_track_class == 0) {
 		return;
 	}
@@ -852,7 +852,7 @@ end: {
 
 void msandroid_sound_write_process(MSFilter *f){
 	msandroid_sound_write_data *d=(msandroid_sound_write_data*)f->data;
-	
+
 	mblk_t *m;
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
 		if (d->started){
