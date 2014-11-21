@@ -100,6 +100,7 @@ extern inline const MKVSegmentInfo *mkv_reader_get_segment_info(const MKVReader 
 extern const MKVTrack *mkv_reader_get_default_track(MKVReader *r, int track_type);
 extern const MKVTrack *mkv_reader_get_first_track(MKVReader *r, int track_type);
 extern MKVTrackReader *mkv_reader_get_track_reader(MKVReader *reader, int track_num);
+extern int mkv_reader_seek(MKVReader *reader, int pos_ms);
 
 extern void mkv_track_reader_next_block(MKVTrackReader *reader, MKVBlock **block, bool_t *end_of_track);
 extern void mkv_track_reader_reset(MKVTrackReader *reader);
