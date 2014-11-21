@@ -68,10 +68,10 @@ static int tester_cleanup(void) {
 	return 0;
 }
 
-#define HELLO_8K_1S_FILE  "hello8000-1s.wav"
-#define HELLO_16K_1S_FILE  "hello16000-1s.wav"
-#define RECORDED_8K_1S_FILE  "recorded_hello8000-1s.wav"
-#define RECORDED_16K_1S_FILE  "recorded_hello16000-1s.wav"
+#define HELLO_8K_1S_FILE  "sounds/hello8000-1s.wav"
+#define HELLO_16K_1S_FILE  "sounds/hello16000-1s.wav"
+#define RECORDED_8K_1S_FILE  "sounds/recorded_hello8000-1s.wav"
+#define RECORDED_16K_1S_FILE  "sounds/recorded_hello16000-1s.wav"
 
 typedef struct _stream_manager_t {
 	MSFormatType type;

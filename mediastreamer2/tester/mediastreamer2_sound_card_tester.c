@@ -108,14 +108,14 @@ static void dtmfgen_soundwrite(void) {
 	ms_tester_destroy_ticker();
 }
 
-#define CHIMES_48000_STEREO_FILE_NAME		"chimes_48000_stereo.wav"
-#define BIRD_44100_STEREO_FILE_NAME			"bird_44100_stereo.wav"
-#define PUNCH_16000_STEREO_FILE_NAME		"punch_16000_stereo.wav"
-#define PIANO_8000_STEREO_FILE_NAME			"piano_8000_stereo.wav"
-#define NYLON_48000_MONO_FILE_NAME			"nylon_48000_mono.wav"
-#define OWL_44100_MONO_FILE_NAME			"owl_44100_mono.wav"
-#define LASERROCKET_16000_MONO_FILE_NAME	"laserrocket_16000_mono.wav"
-#define ARPEGGIO_8000_MONO_FILE_NAME		"arpeggio_8000_mono.wav"
+#define CHIMES_48000_STEREO_FILE_NAME		"sounds/chimes_48000_stereo.wav"
+#define BIRD_44100_STEREO_FILE_NAME			"sounds/bird_44100_stereo.wav"
+#define PUNCH_16000_STEREO_FILE_NAME		"sounds/punch_16000_stereo.wav"
+#define PIANO_8000_STEREO_FILE_NAME			"sounds/piano_8000_stereo.wav"
+#define NYLON_48000_MONO_FILE_NAME			"sounds/nylon_48000_mono.wav"
+#define OWL_44100_MONO_FILE_NAME			"sounds/owl_44100_mono.wav"
+#define LASERROCKET_16000_MONO_FILE_NAME	"sounds/laserrocket_16000_mono.wav"
+#define ARPEGGIO_8000_MONO_FILE_NAME		"sounds/arpeggio_8000_mono.wav"
 
 static void fileplay_eof(void *user_data, MSFilter *f, unsigned int event, void *event_data) {
 	if (event == MS_FILE_PLAYER_EOF) {
