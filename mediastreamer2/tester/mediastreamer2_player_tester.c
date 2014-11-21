@@ -124,31 +124,31 @@ static void play_root_file(const char *filepath, bool_t unsupported_format, bool
 }
 
 static void play_hello_8000_wav(void) {
-	play_root_file("./sounds/hello8000.wav", FALSE, FALSE, FALSE, 20000);
+	play_root_file("sounds/hello8000.wav", FALSE, FALSE, FALSE, 20000);
 }
 
 static void play_hello_16000_wav(void) {
-	play_root_file("./sounds/hello16000.wav", FALSE, FALSE, FALSE, 20000);
+	play_root_file("sounds/hello16000.wav", FALSE, FALSE, FALSE, 20000);
 }
 
 static void play_hello_pcmu_mka(void) {
-	play_root_file("./sounds/hello_pcmu.mka", !ms_media_player_matroska_supported(), FALSE, FALSE, 20000);
+	play_root_file("sounds/hello_pcmu.mka", !ms_media_player_matroska_supported(), FALSE, FALSE, 20000);
 }
 
 static void play_hello_opus_mka(void) {
-	play_root_file("./sounds/hello_opus.mka", !ms_media_player_matroska_supported(), FALSE, FALSE, 20000);
+	play_root_file("sounds/hello_opus.mka", !ms_media_player_matroska_supported(), FALSE, FALSE, 20000);
 }
 
 static void play_hello_pcmu_h264_mkv(void) {
-	play_root_file("./sounds/hello_pcmu_h264.mkv", !ms_media_player_matroska_supported(), FALSE, FALSE, 20000);
+	play_root_file("sounds/hello_pcmu_h264.mkv", !ms_media_player_matroska_supported(), FALSE, FALSE, 20000);
 }
 
 static void play_hello_opus_h264_mkv(void) {
-	play_root_file("./sounds/hello_opus_h264.mkv", !ms_media_player_matroska_supported(), FALSE, FALSE, 20000);
+	play_root_file("sounds/hello_opus_h264.mkv", !ms_media_player_matroska_supported(), FALSE, FALSE, 20000);
 }
 
 static void seeking_test(void) {
-	play_root_file("./sounds/hello_opus_h264.mkv", !ms_media_player_matroska_supported(), TRUE, FALSE, 15000);
+	play_root_file("sounds/hello_opus_h264.mkv", !ms_media_player_matroska_supported(), TRUE, FALSE, 15000);
 }
 
 static void playing_twice_test(void) {
