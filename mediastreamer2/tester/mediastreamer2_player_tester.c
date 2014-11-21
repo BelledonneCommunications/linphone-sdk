@@ -119,7 +119,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 
 static void play_root_file(const char *filepath, bool_t unsupported_format, bool_t seeking_test, bool_t play_twice, int timeout){
     char* file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), filepath);
-    play_file(file, FALSE, FALSE, FALSE, 20000);
+    play_file(file, unsupported_format, seeking_test, play_twice, timeout);
     ms_free(file);
 }
 

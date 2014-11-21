@@ -127,7 +127,7 @@ int ms_read_wav_header_from_fd(wave_header_t *header,int fd){
 			goto not_a_wav;
 		}
 		if (strncmp(data_chunk->data, "data", 4)!=0){
-			ms_warning("skipping chunk=%s len=%i", data_chunk->data, data_chunk->len);
+			ms_warning("skipping chunk=%c%c%c%c len=%i", data_chunk->data[0],data_chunk->data[1],data_chunk->data[2],data_chunk->data[3], data_chunk->len);
 			lseek(fd,le_uint32(data_chunk->len),SEEK_CUR);
 			count++;
 			hsize+=len+le_uint32(data_chunk->len);
