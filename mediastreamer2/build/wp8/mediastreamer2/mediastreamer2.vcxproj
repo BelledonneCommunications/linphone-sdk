@@ -186,6 +186,7 @@
     <ClCompile Include="..\..\..\src\utils\g722_encode.c" />
     <ClCompile Include="..\..\..\src\utils\kiss_fft.c" />
     <ClCompile Include="..\..\..\src\utils\kiss_fftr.c" />
+    <ClCompile Include="..\..\..\src\utils\stream_regulator.c" />
     <ClCompile Include="..\..\..\src\videofilters\extdisplay.c" />
     <ClCompile Include="..\..\..\src\videofilters\mire.c" />
     <ClCompile Include="..\..\..\src\videofilters\nowebcam.c" />
