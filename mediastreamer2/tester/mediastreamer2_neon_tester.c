@@ -207,10 +207,8 @@ static void inner_product_test(void) {
         test_sample2[i] = ortp_random() % 16384;
     }
 
-    if( (libspeex_cpu_features & SPEEX_LIB_CPU_FEATURE_NEON) != SPEEX_LIB_CPU_FEATURE_NEON){
-        ms_error("Can't test NEON features, skipping");
-        return;
-    }
+    // ARM_NEON is enabled, we can force libspeex to use it
+    libspeex_cpu_features = SPEEX_LIB_CPU_FEATURE_NEON;
 
     // disable neon & perform inner product
     libspeex_cpu_features &= ~SPEEX_LIB_CPU_FEATURE_NEON;
