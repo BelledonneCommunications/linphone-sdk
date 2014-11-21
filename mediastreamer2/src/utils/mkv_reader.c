@@ -203,13 +203,13 @@ int mkv_reader_seek(MKVReader *reader, int pos_ms) {
 	if(cue_point==NULL) cue_point = next_cue_point;
 	if(cue_point) {
 		ebml_element *track_position;
-		filepos_t pos;
+		filepos_t pos = 0;
 		ms_list_for_each(reader->readers, (MSIterateFunc)_mkv_track_reader_edit_seek);
 		for(track_position=EBML_MasterFindChild((ebml_master *)cue_point, &MATROSKA_ContextCueTrackPositions);
 			track_position!=NULL;
 			track_position = EBML_MasterFindNextElt((ebml_master *)cue_point, track_position, FALSE, FALSE)) {
 			int track_num = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)track_position, &MATROSKA_ContextCueTrack));
-			MKVTrackReader *t_reader;
+			MKVTrackReader *t_reader = NULL;
 			for(it = reader->readers; it != NULL; it=it->next) {
 				t_reader = (MKVTrackReader *)it->data;
 				if(t_reader->track_num == track_num) break;
