@@ -23,10 +23,14 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(PYLINPHONE C) # Dummy project
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-	set(PLATFORM_ARCH_NAME "x86_64")
+if(APPLE)
+	set(PLATFORM_ARCH_NAME "${CMAKE_OSX_ARCHITECTURES}")
 else()
-	set(PLATFORM_ARCH_NAME "i386")
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		set(PLATFORM_ARCH_NAME "x86_64")
+	else()
+		set(PLATFORM_ARCH_NAME "i386")
+	endif()
 endif()
 
 find_package(PythonInterp REQUIRED)
@@ -199,7 +203,7 @@ endif()
 if(UNIX)
 
 if(APPLE)
-	set(PLATFORM_OS "macosx-10.5")
+	set(PLATFORM_OS "macosx-${CMAKE_OSX_DEPLOYMENT_TARGET}")
 else()
 	set(PLATFORM_OS "linux")
 endif()
