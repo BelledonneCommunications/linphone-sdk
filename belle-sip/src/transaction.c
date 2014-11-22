@@ -332,6 +332,7 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 	belle_sip_channel_t *chan;
 	belle_sip_provider_t *prov=t->base.provider;
 	belle_sip_dialog_t *dialog=t->base.dialog;
+	belle_sip_request_t *req=t->base.request;
 	int result=-1;
 
 	if (t->base.state!=BELLE_SIP_TRANSACTION_INIT){
@@ -350,19 +351,21 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 		belle_sip_object_ref(t->preset_route);
 	}
 
-	if (t->base.request->dialog_queued){
+	if (t->base.sent_by_dialog_queue){
+		
+		/*it can be sent immediately, so update the request with latest cseq and route_set */
+		/*update route and contact just in case they changed*/
+		belle_sip_dialog_update_request(dialog,req);
+	} else if (t->base.request->dialog_queued){
 		/*this request was created by belle_sip_dialog_create_queued_request().*/
-		if (belle_sip_dialog_request_pending(dialog)){
+		if (belle_sip_dialog_request_pending(dialog) || dialog->queued_ct!=NULL){
 			/*it cannot be sent immediately, queue the transaction into dialog*/
-			belle_sip_message("belle_sip_client_transaction_send_request(): transaction [%p], cannot send request now because dialog is busy, so queuing into dialog.",t);
+			belle_sip_message("belle_sip_client_transaction_send_request(): transaction [%p], cannot send request now because dialog is busy"
+			" or other transactions are queued, so queuing into dialog.",t);
 			belle_sip_dialog_queue_client_transaction(dialog,t);
 			return 0;
-		}else{
-			belle_sip_request_t *req=t->base.request;
-			/*it can be sent immediately, so update the request with latest cseq and route_set */
-			/*update route and contact just in case they changed*/
-			belle_sip_dialog_update_request(dialog,req);
 		}
+		belle_sip_dialog_update_request(dialog,req);
 	}
 
 	if (dialog){

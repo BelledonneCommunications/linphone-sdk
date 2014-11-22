@@ -876,6 +876,7 @@ static void _belle_sip_dialog_process_queue(belle_sip_dialog_t* dialog){
 	dialog->queued_ct=belle_sip_list_pop_front(dialog->queued_ct,(void**)&tr);
 	if (tr){
 		belle_sip_message("Dialog [%p]: sending queued request.",dialog);
+		tr->base.sent_by_dialog_queue=TRUE;
 		belle_sip_client_transaction_send_request(tr);
 		belle_sip_object_unref(tr);
 	}
