@@ -289,7 +289,7 @@ void mkv_track_reader_next_block(MKVTrackReader *reader, MKVBlock **block, bool_
 	MATROSKA_BlockGetFrame(block_elt, 0, &m_frame, TRUE);
 	(*block)->timestamp = MATROSKA_BlockTimecode(block_elt) / 1000000LL;
 	(*block)->data_length = m_frame.Size;
-	(*block)->data = ms_new(uint8_t, m_frame.Size);
+	(*block)->data = ms_new0(uint8_t, m_frame.Size);
 	memcpy((*block)->data, m_frame.Data, m_frame.Size);
 	MATROSKA_BlockReleaseData(block_elt, TRUE);
 }

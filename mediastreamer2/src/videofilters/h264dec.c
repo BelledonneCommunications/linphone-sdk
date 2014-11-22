@@ -68,7 +68,7 @@ static void dec_open(DecData *d){
 }
 
 static void dec_init(MSFilter *f){
-	DecData *d=(DecData*)ms_new(DecData,1);
+	DecData *d=ms_new0(DecData,1);
 	ffmpeg_init();
 	d->sps=NULL;
 	d->pps=NULL;

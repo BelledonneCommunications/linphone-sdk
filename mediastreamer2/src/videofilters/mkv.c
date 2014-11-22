@@ -95,7 +95,7 @@ static void H264Private_uninit(H264Private *obj) {
 }
 
 static H264Private *H264Private_new(const MSList *spsList, const MSList *ppsList) {
-	H264Private *obj = (H264Private *)ms_new(H264Private, 1);
+	H264Private *obj = (H264Private *)ms_new0(H264Private, 1);
 	H264Private_init(obj, spsList, ppsList);
 	return obj;
 }
@@ -549,7 +549,7 @@ static inline void opus_codec_private_load(OpusCodecPrivate *obj, const uint8_t 
 
 // OpusModule
 static void *opus_module_new() {
-	OpusCodecPrivate *obj = ms_new(OpusCodecPrivate, 1);
+	OpusCodecPrivate *obj = ms_new0(OpusCodecPrivate, 1);
 	opus_codec_private_init(obj);
 	return obj;
 }

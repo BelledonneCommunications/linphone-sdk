@@ -30,7 +30,7 @@ typedef struct AdapterState{
 }AdapterState;
 
 static void adapter_init(MSFilter *f){
-	AdapterState *s=ms_new(AdapterState,1);
+	AdapterState *s=ms_new0(AdapterState,1);
 	s->inputchans=1;
 	s->outputchans=1;
 	f->data=s;

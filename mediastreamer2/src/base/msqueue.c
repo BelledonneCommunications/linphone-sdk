@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 MSQueue * ms_queue_new(struct _MSFilter *f1, int pin1, struct _MSFilter *f2, int pin2 ){
-	MSQueue *q=(MSQueue*)ms_new(MSQueue,1);
+	MSQueue *q=(MSQueue*)ms_new0(MSQueue,1);
 	qinit(&q->q);
 	q->prev.filter=f1;
 	q->prev.pin=pin1;
@@ -63,7 +63,7 @@ void ms_bufferizer_init(MSBufferizer *obj){
 }
 
 MSBufferizer * ms_bufferizer_new(){
-	MSBufferizer *obj=(MSBufferizer *)ms_new(MSBufferizer,1);
+	MSBufferizer *obj=(MSBufferizer *)ms_new0(MSBufferizer,1);
 	ms_bufferizer_init(obj);
 	return obj;
 }

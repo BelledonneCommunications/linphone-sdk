@@ -198,7 +198,6 @@ static char * generate_pwd(void)
 
 static void ice_session_init(IceSession *session)
 {
-	memset(&session->streams, 0, sizeof(session->streams));
 	session->state = IS_Stopped;
 	session->role = IR_Controlling;
 	session->tie_breaker = generate_tie_breaker();
@@ -209,7 +208,6 @@ static void ice_session_init(IceSession *session)
 	session->local_pwd = generate_pwd();
 	session->remote_ufrag = NULL;
 	session->remote_pwd = NULL;
-	memset(&session->event_time, 0, sizeof(session->event_time));
 	session->send_event = FALSE;
 	session->gathering_start_ts.tv_sec = session->gathering_start_ts.tv_nsec = -1;
 	session->gathering_end_ts.tv_sec = session->gathering_end_ts.tv_nsec = -1;
@@ -217,7 +215,7 @@ static void ice_session_init(IceSession *session)
 
 IceSession * ice_session_new(void)
 {
-	IceSession *session = ms_new(IceSession, 1);
+	IceSession *session = ms_new0(IceSession, 1);
 	if (session == NULL) {
 		ms_error("ice: Memory allocation of ICE session failed");
 		return NULL;
@@ -271,7 +269,7 @@ static void ice_check_list_init(IceCheckList *cl)
 
 IceCheckList * ice_check_list_new(void)
 {
-	IceCheckList *cl = ms_new(IceCheckList, 1);
+	IceCheckList *cl = ms_new0(IceCheckList, 1);
 	if (cl == NULL) {
 		ms_error("ice_check_list_new: Memory allocation failed");
 		return NULL;
@@ -1757,7 +1755,7 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 		/* The candidate pair is already in the check list, add it to the valid list. */
 		pair = (IceCandidatePair *)elem->data;
 	}
-	valid_pair = ms_new(IceValidCandidatePair, 1);
+	valid_pair = ms_new0(IceValidCandidatePair, 1);
 	valid_pair->valid = pair;
 	valid_pair->generated_from = succeeded_pair;
 	valid_pair->selected = FALSE;
@@ -2594,7 +2592,7 @@ static void ice_generate_pair_foundations_list(const IceCandidatePair *pair, MSL
 
 	elem = ms_list_find_custom(*list, (MSCompareFunc)ice_find_pair_foundation, &foundation);
 	if (elem == NULL) {
-		dyn_foundation = ms_new(IcePairFoundation, 1);
+		dyn_foundation = ms_new0(IcePairFoundation, 1);
 		memcpy(dyn_foundation, &foundation, sizeof(foundation));
 		*list = ms_list_append(*list, dyn_foundation);
 	}

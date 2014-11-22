@@ -31,7 +31,7 @@ struct EncState {
 
 static void enc_init(MSFilter *f)
 {
-	struct EncState *s=(struct EncState*)ms_new(struct EncState,1);
+	struct EncState *s=ms_new0(struct EncState,1);
 	s->ts=0;
 	s->bufferizer=ms_bufferizer_new();
 	s->ptime = 10;

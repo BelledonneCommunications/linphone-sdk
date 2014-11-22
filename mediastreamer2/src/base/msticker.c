@@ -574,7 +574,7 @@ static uint64_t get_wallclock_ms(void){
 static const double clock_coef = .01;
 
 MSTickerSynchronizer* ms_ticker_synchronizer_new(void) {
-	MSTickerSynchronizer *obj=(MSTickerSynchronizer *)ms_new(MSTickerSynchronizer,1);
+	MSTickerSynchronizer *obj=(MSTickerSynchronizer *)ms_new0(MSTickerSynchronizer,1);
 	obj->av_skew = 0;
 	obj->offset = 0;
 	return obj;

@@ -766,7 +766,7 @@ struct _AlsaReadData{
 typedef struct _AlsaReadData AlsaReadData;
 
 void alsa_read_init(MSFilter *obj){
-	AlsaReadData *ad=ms_new(AlsaReadData,1);
+	AlsaReadData *ad=ms_new0(AlsaReadData,1);
 	ad->pcmdev=NULL;
 	ad->handle=NULL;
 	ad->rate=forced_rate!=-1 ? forced_rate : 8000;
@@ -1025,7 +1025,7 @@ static MSFilter * ms_alsa_read_new(const char *dev){
 typedef struct _AlsaReadData AlsaWriteData;
 
 void alsa_write_init(MSFilter *obj){
-	AlsaWriteData *ad=ms_new(AlsaWriteData,1);
+	AlsaWriteData *ad=ms_new0(AlsaWriteData,1);
 	ad->pcmdev=NULL;
 	ad->handle=NULL;
 	ad->rate=forced_rate!=-1 ? forced_rate : 8000;

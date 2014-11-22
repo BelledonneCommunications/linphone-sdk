@@ -36,7 +36,7 @@ typedef struct RecState{
 } RecState;
 
 static void rec_init(MSFilter *f){
-	RecState *s=ms_new(RecState,1);
+	RecState *s=ms_new0(RecState,1);
 	s->fd=-1;
 	s->rate=8000;
 	s->nchannels = 1;

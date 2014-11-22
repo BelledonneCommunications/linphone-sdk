@@ -922,7 +922,7 @@ void vp8rtpfmt_unpacker_process(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *inout) {
 	ms_message("vp8rtpfmt_unpacker_process:");
 #endif
 	while ((m = ms_queue_get(inout)) != NULL) {
-		packet = ms_new(Vp8RtpFmtPacket, 1);
+		packet = ms_new0(Vp8RtpFmtPacket, 1);
 		packet->m = m;
 		packet->extended_cseq = vp8rtpfmt_unpacker_calc_extended_cseq(ctx, mblk_get_cseq(m));
 		packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);

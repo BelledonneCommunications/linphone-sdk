@@ -78,7 +78,7 @@ typedef struct SpeexECState{
 }SpeexECState;
 
 static void speex_ec_init(MSFilter *f){
-	SpeexECState *s=(SpeexECState *)ms_new(SpeexECState,1);
+	SpeexECState *s=ms_new0(SpeexECState,1);
 
 	s->samplerate=8000;
 	ms_bufferizer_init(&s->delayed_ref);

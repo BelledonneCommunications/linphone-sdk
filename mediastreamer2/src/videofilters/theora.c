@@ -36,7 +36,7 @@ typedef struct EncState{
 } EncState;
 
 static void enc_init(MSFilter *f){
-	EncState *s=(EncState *)ms_new(EncState,1);
+	EncState *s=ms_new0(EncState,1);
 	theora_info_init(&s->tinfo);
 	s->tinfo.width=MS_VIDEO_SIZE_CIF_W;
 	s->tinfo.height=MS_VIDEO_SIZE_CIF_H;
@@ -407,7 +407,7 @@ typedef struct DecState{
 }DecState;
 
 static void dec_init(MSFilter *f){
-	DecState *s=(DecState *)ms_new(DecState,1);
+	DecState *s=ms_new0(DecState,1);
 	s->ready=FALSE;
 	theora_info_init(&s->tinfo);
 	s->yuv=NULL;
