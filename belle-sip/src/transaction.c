@@ -353,7 +353,6 @@ int belle_sip_client_transaction_send_request_to_using_queue(belle_sip_client_tr
 	}
 
 	if (t->base.request->dialog_queued){
-		belle_sip_request_t *req;
 		/*this request was created by belle_sip_dialog_create_queued_request().*/
 		if (belle_sip_dialog_request_pending(dialog)){
 			/*it cannot be sent immediately, queue the transaction into dialog*/
@@ -374,7 +373,7 @@ int belle_sip_client_transaction_send_request_to_using_queue(belle_sip_client_tr
 			dialog->queued_ct=belle_sip_list_pop_front(dialog->queued_ct,(void**)&t);
 		}
 
-		req=t->base.request;
+		belle_sip_request_t *req=t->base.request;
 		/*it can be sent immediately, so update the request with latest cseq and route_set */
 		/*update route and contact just in case they changed*/
 		belle_sip_dialog_update_request(dialog,req);
