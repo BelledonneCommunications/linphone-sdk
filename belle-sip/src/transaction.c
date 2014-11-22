@@ -141,7 +141,7 @@ void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
 	 * Otherwise it will report the error.
 	 * We limit this dead channel reporting to REGISTER transactions, who are unlikely to be unresponded.
 	**/
-
+	
 
 	if (strcmp(belle_sip_request_get_method(t->request),"REGISTER")==0){
 		if ( belle_sip_channel_notify_timeout(t->channel)==TRUE){
@@ -325,12 +325,10 @@ belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_clien
 
 int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t){
 	return belle_sip_client_transaction_send_request_to(t,NULL);
+
 }
 
 int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t *t,belle_sip_uri_t* outbound_proxy) {
-	return belle_sip_client_transaction_send_request_to_using_queue(t,NULL,TRUE);
-}
-int belle_sip_client_transaction_send_request_to_using_queue(belle_sip_client_transaction_t *t,belle_sip_uri_t* outbound_proxy,int use_queue) {
 	belle_sip_channel_t *chan;
 	belle_sip_provider_t *prov=t->base.provider;
 	belle_sip_dialog_t *dialog=t->base.dialog;
@@ -356,27 +354,15 @@ int belle_sip_client_transaction_send_request_to_using_queue(belle_sip_client_tr
 		/*this request was created by belle_sip_dialog_create_queued_request().*/
 		if (belle_sip_dialog_request_pending(dialog)){
 			/*it cannot be sent immediately, queue the transaction into dialog*/
-			belle_sip_message("belle_sip_client_transaction_send_request(): transaction [%p], cannot send "
-				"request now because dialog is busy, so queuing into dialog.",t);
+			belle_sip_message("belle_sip_client_transaction_send_request(): transaction [%p], cannot send request now because dialog is busy, so queuing into dialog.",t);
 			belle_sip_dialog_queue_client_transaction(dialog,t);
 			return 0;
-		/*queue is not empty, so we should NOT break order and go before queue events; take the latest request
-		and store the current one. However when sending request from the queue itself, we should not
-		check this again because it will reverse requests order. (eg. r1 is being sent (pending) and r2 is coming,
-		thus we store it using upon test. then r3 is coming, and we store it again. then r1 is done, so dialog will
-		try to unqueue earliest request, and if we do this check, it will revert order and send r3 instead of r3
-		which is not the expected behavior and will actually break order.*/
-		}else if (use_queue&&dialog->queued_ct != NULL) {
-			belle_sip_message("belle_sip_client_transaction_send_request(): transaction [%p], cannot send current"
-				" request now because there are already queued requests, so queuing this and sending the oldest one.",t);
-			belle_sip_dialog_queue_client_transaction(dialog,t);
-			dialog->queued_ct=belle_sip_list_pop_front(dialog->queued_ct,(void**)&t);
+		}else{
+			belle_sip_request_t *req=t->base.request;
+			/*it can be sent immediately, so update the request with latest cseq and route_set */
+			/*update route and contact just in case they changed*/
+			belle_sip_dialog_update_request(dialog,req);
 		}
-
-		belle_sip_request_t *req=t->base.request;
-		/*it can be sent immediately, so update the request with latest cseq and route_set */
-		/*update route and contact just in case they changed*/
-		belle_sip_dialog_update_request(dialog,req);
 	}
 
 	if (dialog){
