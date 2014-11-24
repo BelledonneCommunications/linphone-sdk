@@ -33,6 +33,12 @@ typedef struct _MSMediaPlayer MSMediaPlayer;
  * Callbacks definitions */
 typedef void (*MSMediaPlayerEofCallback)(void *user_data);
 
+typedef enum {
+	MS_FILE_FORMAT_UNKNOWN,
+	MS_FILE_FORMAT_WAVE,
+	MS_FILE_FORMAT_MATROSKA
+} MSFileFormat;
+
 /**
  * @brief Instanciate a media player
  * @param snd_card Playback sound card
@@ -134,5 +140,12 @@ MS2_PUBLIC int ms_media_player_get_current_position(MSMediaPlayer *obj);
  * @return TRUE if supported
  */
 MS2_PUBLIC bool_t ms_media_player_matroska_supported(void);
+
+/**
+ * @brief Return format of the current opened file
+ * @param obj Player
+ * @return Format of the file. UNKNOWN_FORMAT when no file is opened
+ */
+MS2_PUBLIC MSFileFormat ms_media_player_get_file_format(const MSMediaPlayer *obj);
 
 #endif
