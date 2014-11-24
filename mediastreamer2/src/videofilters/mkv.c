@@ -2064,6 +2064,14 @@ static MKVBlockGroupMaker *mkv_block_group_maker_new(MKVTrackReader *t_reader) {
 	return obj;
 }
 
+static void mkv_block_group_maker_reset(MKVBlockGroupMaker *obj) {
+	mkv_block_queue_flush(obj->queue);
+	mkv_block_free(obj->waiting_block);
+	obj->waiting_block = NULL;
+	obj->prev_timestamp = -1;
+	obj->prev_min_ts = 0;
+}
+
 static void mkv_block_group_maker_free(MKVBlockGroupMaker *obj) {
 	mkv_block_queue_free(obj->queue);
 	if(obj->waiting_block) mkv_block_free(obj->waiting_block);
@@ -2077,7 +2085,7 @@ static void mkv_block_group_maker_get_next_group(MKVBlockGroupMaker *obj, MKVBlo
 		mkv_track_reader_next_block(obj->track_reader, &block, &_eot);
 		if(_eot) {
 			*eot = TRUE;
-			mkv_block_queue_push(out_queue, obj->waiting_block);
+			if(obj->waiting_block) mkv_block_queue_push(out_queue, obj->waiting_block);
 			obj->waiting_block = NULL;
 			return;
 		}
@@ -2159,11 +2167,19 @@ static void mkv_track_player_send_block(MKVTrackPlayer *obj, const MKVBlock *blo
 	}
 }
 
+static void mkv_track_player_reset(MKVTrackPlayer *obj) {
+	obj->first_frame = TRUE;
+	mkv_block_queue_flush(obj->block_queue);
+	mkv_block_group_maker_reset(obj->group_maker);
+	obj->eot = FALSE;
+}
+
 typedef struct {
 	MKVReader *reader;
 	MSPlayerState state;
 	timecode_t time;
 	MKVTrackPlayer *players[2];
+	ms_bool_t position_changed;
 } MKVPlayer;
 
 static int player_close(MSFilter *f, void *arg);
@@ -2247,6 +2263,14 @@ static void player_process(MSFilter *f) {
 	if(obj->state == MSPlayerPlaying) {
 		obj->time += f->ticker->interval;
 
+		if(obj->position_changed) {
+			for(i=0; i<2; i++) {
+				if(obj->players[i]) mkv_track_player_reset(obj->players[i]);
+			}
+			ms_queue_put(f->outputs[0], allocb(0, 0));
+			obj->position_changed = FALSE;
+		}
+
 		for(i=0; i<2; i++) {
 			MKVTrackPlayer *t_player = obj->players[i];
 			if(t_player && f->outputs[i]) {
@@ -2300,6 +2324,7 @@ static int player_seek_ms(MSFilter *f, void *arg) {
 		goto fail;
 	}
 	obj->time = mkv_reader_seek(obj->reader, target_position);
+	obj->position_changed = TRUE;
 	ms_filter_unlock(f);
 	return 0;
 

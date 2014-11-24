@@ -265,6 +265,15 @@ static void dec_process(MSFilter *f){
 
 	ms_queue_init(&nalus);
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
+		// Reset all contexts when an empty packet is received
+		if(msgdsize(im) == 0) {
+			rfc3984_uninit(&d->unpacker);
+			rfc3984_init(&d->unpacker);
+			dec_reinit(d);
+			ms_stream_regulator_reset(d->regulator);
+			freemsg(im);
+			continue;
+		}
 		/*push the sps/pps given in sprop-parameter-sets if any*/
 		if (d->packet_num==0 && d->sps && d->pps){
 			mblk_set_timestamp_info(d->sps,mblk_get_timestamp_info(im));
