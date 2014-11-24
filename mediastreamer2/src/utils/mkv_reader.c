@@ -184,7 +184,6 @@ MKVTrackReader *mkv_reader_get_track_reader(MKVReader *reader, int track_num) {
 
 int mkv_reader_seek(MKVReader *reader, int pos_ms) {
 	ebml_element *cue_point, *next_cue_point;
-	int time = -1, next_time = -1;
 	MSList *it;
 	if(reader->cues == NULL) {
 		ms_error("MKVReader: unable to seek. No cues table");
@@ -194,9 +193,7 @@ int mkv_reader_seek(MKVReader *reader, int pos_ms) {
 		next_cue_point!=NULL;
 		cue_point = next_cue_point, next_cue_point = EBML_MasterNext(next_cue_point)) {
 		MATROSKA_LinkCueSegmentInfo((matroska_cuepoint *)next_cue_point, (ebml_master *)reader->info_elt);
-		time = next_time;
-		next_time = (int)(MATROSKA_CueTimecode((matroska_cuepoint *)next_cue_point)/1000000LL);
-		if(next_time > (timecode_t)pos_ms) {
+		if(MATROSKA_CueTimecode((matroska_cuepoint *)next_cue_point) > (timecode_t)pos_ms * 1000000LL) {
 			break;
 		}
 	}
@@ -228,7 +225,7 @@ int mkv_reader_seek(MKVReader *reader, int pos_ms) {
 			}
 		}
 	}
-	return time;
+	return (int)(MATROSKA_CueTimecode((matroska_cuepoint *)cue_point) / 1000000LL);
 }
 
 void mkv_track_reader_next_block(MKVTrackReader *reader, MKVBlock **block, bool_t *end_of_track) {
@@ -546,6 +543,7 @@ static void _mkv_track_reader_seek(MKVTrackReader *obj, filepos_t pos) {
 	if(obj->current_cluster) NodeDelete((node *)obj->current_cluster);
 	Stream_Seek(obj->file, obj->root->first_level1_pos + pos, SEEK_SET);
 	obj->current_cluster = EBML_FindNextElement(obj->file, &obj->parser, &upper_level, FALSE);
+	EBML_ElementReadData(obj->current_cluster, obj->file, &obj->parser, FALSE, SCOPE_PARTIAL_DATA, 0);
 }
 
 static void _mkv_track_reader_edit_seek(MKVTrackReader *obj) {
