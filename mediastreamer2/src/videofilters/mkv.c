@@ -2066,7 +2066,7 @@ static MKVBlockGroupMaker *mkv_block_group_maker_new(MKVTrackReader *t_reader) {
 
 static void mkv_block_group_maker_reset(MKVBlockGroupMaker *obj) {
 	mkv_block_queue_flush(obj->queue);
-	mkv_block_free(obj->waiting_block);
+	if(obj->waiting_block) mkv_block_free(obj->waiting_block);
 	obj->waiting_block = NULL;
 	obj->prev_timestamp = -1;
 	obj->prev_min_ts = 0;
