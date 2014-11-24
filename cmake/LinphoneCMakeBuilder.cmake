@@ -462,6 +462,7 @@ function(linphone_builder_add_project PROJNAME)
 	linphone_builder_expand_external_project_vars()
 
 	if("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "custom")
+		set(ep_redirect_to_file "2>&1 >> ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}.log")
 		configure_file(${EP_${PROJNAME}_CONFIGURE_COMMAND_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh)
 		configure_file(${EP_${PROJNAME}_BUILD_COMMAND_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh)
 		configure_file(${EP_${PROJNAME}_INSTALL_COMMAND_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh)
