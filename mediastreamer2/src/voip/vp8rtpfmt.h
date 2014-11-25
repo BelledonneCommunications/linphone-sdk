@@ -62,8 +62,8 @@ extern "C"{
 	typedef struct Vp8RtpFmtPacket {
 		mblk_t *m;
 		Vp8RtpFmtPayloadDescriptor *pd;
-		uint32_t extended_cseq;
 		Vp8RtpFmtErrorCode error;
+		bool_t cseq_inconsistency;
 	} Vp8RtpFmtPacket;
 
 	typedef struct Vp8RtpFmtPartition {
@@ -98,10 +98,9 @@ extern "C"{
 		MSFilter *filter;
 		MSList *frames_list;
 		MSList *non_processed_packets_list;
-		MSQueue output_queue;
 		MSVideoSize video_size;
 		uint32_t last_ts;
-		uint32_t ref_cseq;
+		uint16_t ref_cseq;
 		bool_t avpf_enabled;
 		bool_t freeze_on_error;
 		bool_t output_partitions;
