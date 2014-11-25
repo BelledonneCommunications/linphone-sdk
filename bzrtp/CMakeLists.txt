@@ -34,6 +34,8 @@ if(MSVC)
 	list(APPEND CMAKE_REQUIRED_INCLUDES ${CMAKE_PREFIX_PATH}/include/MSVC)
 endif()
 
+include(CheckLibraryExists)
+check_library_exists("m" "sqrt" "" HAVE_SQRT)
 if(ENABLE_TESTS)
 find_package(CUnit)
 	if(CUNIT_FOUND)
