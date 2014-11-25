@@ -2409,18 +2409,18 @@ static int player_get_duration(MSFilter *f, void *arg) {
 }
 
 static int player_get_current_position(MSFilter *f, void *arg) {
-//	MKVPlayer *obj = (MKVPlayer *)f->data;
-//	ms_filter_lock(f);
-//	if(obj->state == MSPlayerClosed) {
-//		ms_error("MKVPlayer: cannot get current duration. No file is open");
-//		goto fail;
-//	}
-//	*(int *)arg = matroska_block_get_timestamp(&obj->file);
-//	ms_filter_unlock(f);
-//	return 0;
+	MKVPlayer *obj = (MKVPlayer *)f->data;
+	ms_filter_lock(f);
+	if(obj->state == MSPlayerClosed) {
+		ms_error("MKVPlayer: cannot get current duration. No file is open");
+		goto fail;
+	}
+	*(int *)arg = obj->time;
+	ms_filter_unlock(f);
+	return 0;
 
-//	fail:
-//	ms_filter_unlock(f);
+	fail:
+	ms_filter_unlock(f);
 	return -1;
 }
 
