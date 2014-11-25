@@ -723,10 +723,10 @@ static inline const char *module_get_codec_id(const Module *module) {
 /*********************************************************************************************
  * Matroska                                                                                  *
  *********************************************************************************************/
-#define WRITE_DEFAULT_ELEMENT TRUE
+#define WRITE_DEFAULT_ELEMENT FALSE
 
 static const timecode_t MKV_TIMECODE_SCALE = 1000000;
-static const int MKV_DOCTYPE_VERSION = 2;
+static const int MKV_DOCTYPE_VERSION = 4;
 static const int MKV_DOCTYPE_READ_VERSION = 2;
 
 extern const nodemeta LangStr_Class[];
