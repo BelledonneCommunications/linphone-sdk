@@ -205,10 +205,13 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --verbose (most verbose messages) ]\n"
 								"[ --video-windows-id <video surface:preview surface>]\n"
 								"[ --video-display-filter <name> ]\n"
-								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)\n"
-								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)\n"
-								"[ --netsim-lossrate <0-100> (simulates a network lost rate)\n"
-								"[ --netsim-latency <latency in ms> (simulates a network latency)\n"
+								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)]\n"
+								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)]\n"
+								"[ --netsim-lossrate <0-100> (simulates a network lost rate)]\n"
+								"[ --netsim-consecutive-loss-probability <0-1> (to simulate bursts of lost packets)]\n"
+								"[ --netsim-latency <latency in ms> (simulates a network latency)]\n"
+								"[ --netsim-jitter-strength <0-100> (strength of the jitter simulation)]\n"
+								"[ --netsim-jitter-burst-density <0-10> (density of gap/burst events, 1.0=one gap/burst per second in average)]\n" 
 								"[ --zoom zoomfactor]\n"
 								"[ --ice-local-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
 								"[ --ice-remote-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
@@ -496,25 +499,76 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			}
 		} else if (strcmp(argv[i],"--netsim-bandwidth")==0){
 			i++;
-			out->netsim.max_bandwidth=atoi(argv[i]);
-			out->netsim.enabled=TRUE;
-		} else if (strcmp(argv[i],"--netsim-lossrate")==0){
-			i++;
-			out->netsim.loss_rate=atoi(argv[i]);
-			if(out->netsim.loss_rate < 0) {
-				ms_warning("%g < 0, wrong value for --lost-rate: set to 0", out->netsim.loss_rate);
-				out->netsim.loss_rate=0;
+			if (i<argc){
+				out->netsim.max_bandwidth=atoi(argv[i]);
+				out->netsim.enabled=TRUE;
+			}else{
+				ms_error("Missing argument for --netsim-bandwidth");
+				return FALSE;
 			}
-			if(out->netsim.loss_rate > 100) {
-				ms_warning("%g > 100, wrong value for --lost-rate: set to 100", out->netsim.loss_rate);
-				out->netsim.loss_rate=100;
-			}
-			out->netsim.enabled=TRUE;
-		} else if (strcmp(argv[i], "--netsim-latency") == 0) {
+		}else if (strcmp(argv[i],"--netsim-lossrate")==0){
 			i++;
-			out->netsim.latency = atoi(argv[i]);
-			out->netsim.enabled=TRUE;
-		} else if (strcmp(argv[i],"--zoom")==0){
+			if (i<argc){
+				out->netsim.loss_rate=atoi(argv[i]);
+				if (out->netsim.loss_rate < 0 || out->netsim.loss_rate>100) {
+					ms_error("Loss rate must be between 0 and 100.");
+					return FALSE;
+				}
+				out->netsim.enabled=TRUE;
+			}else{
+				ms_error("Missing argument for --netsim-lossrate");
+				return FALSE;
+			}
+		}else if (strcmp(argv[i],"--netsim-consecutive-loss-probability")==0){
+			i++;
+			if (i<argc){
+				sscanf(argv[i],"%f",&out->netsim.consecutive_loss_probability);
+				if (out->netsim.consecutive_loss_probability < 0 || out->netsim.consecutive_loss_probability>1) {
+					ms_error("The consecutive loss probability must be between 0 and 1.");
+					return FALSE;
+				}
+				
+				out->netsim.enabled=TRUE;
+			}else{
+				ms_error("Missing argument for --netsim-consecutive-loss-probability");
+				return FALSE;
+			}
+		}else if (strcmp(argv[i], "--netsim-latency") == 0) {
+			i++;
+			if (i<argc){
+				out->netsim.latency = atoi(argv[i]);
+				out->netsim.enabled=TRUE;
+			}else{
+				ms_error("Missing argument for --netsim-latency");
+				return FALSE;
+			}
+		}else if (strcmp(argv[i], "--netsim-jitter-burst-density") == 0) {
+			i++;
+			if (i<argc){
+				sscanf(argv[i],"%f",&out->netsim.jitter_burst_density);
+				if (out->netsim.jitter_burst_density<0 || out->netsim.jitter_burst_density>10){
+					ms_error("The jitter burst density must be between 0 and 10");
+					return FALSE;
+				}
+				out->netsim.enabled=TRUE;
+			}else{
+				ms_error("Missing argument for --netsim-jitter-burst-density");
+				return FALSE;
+			}
+		}else if (strcmp(argv[i], "--netsim-jitter-strength") == 0) {
+			i++;
+			if (i<argc){
+				sscanf(argv[i],"%f",&out->netsim.jitter_strength);
+				if (out->netsim.jitter_strength<0 || out->netsim.jitter_strength>100){
+					ms_error("The jitter strength must be between 0 and 100.");
+					return FALSE;
+				}
+				out->netsim.enabled=TRUE;
+			}else{
+				ms_error("Missing argument for --netsim-jitter-strength");
+				return FALSE;
+			}
+		}else if (strcmp(argv[i],"--zoom")==0){
 			i++;
 			if (sscanf(argv[i], "%f,%f,%f", &out->zoom, &out->zoom_cx, &out->zoom_cy) != 3) {
 				ms_error("Invalid zoom triplet");
@@ -548,6 +602,10 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			printf("Unknown option '%s'\n", argv[i]);
 			return FALSE;
 		}
+	}
+	if (out->netsim.jitter_burst_density>0 && out->netsim.max_bandwidth==0){
+		ms_error("Jitter probability settings requires --netsim-bandwidth to be set.");
+		return FALSE;
 	}
 	return TRUE;
 }
@@ -649,7 +707,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	if (args->bitrate>0) args->pt->normal_bitrate=args->bitrate;
 
 	if (args->pt->normal_bitrate==0){
-		printf("Error: no default bitrate specified for codec %s/%i. "
+		fprintf(stderr,"Error: no default bitrate specified for codec %s/%i. "
 			"Please specify a network bitrate with --bitrate option.\n",args->pt->mime_type,args->pt->clock_rate);
 		exit(-1);
 	}
@@ -829,7 +887,6 @@ void setup_media_streams(MediastreamDatas* args) {
 	if (args->netsim.enabled){
 		rtp_session_enable_network_simulation(args->session,&args->netsim);
 	}
-
 }
 
 
