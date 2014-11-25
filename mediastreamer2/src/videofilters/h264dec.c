@@ -42,6 +42,7 @@ typedef struct _DecData{
 	int bitstream_size;
 	bool_t first_image_decoded;
 	MSStreamRegulator *regulator;
+	MSYuvBufAllocator *buf_allocator;
 }DecData;
 
 static void ffmpeg_init(){
@@ -86,6 +87,7 @@ static void dec_init(MSFilter *f){
 		ms_error("Could not allocate frame");
 	}
 	d->regulator = NULL;
+	d->buf_allocator = ms_yuv_buf_allocator_new();
 	f->data=d;
 }
 
@@ -114,6 +116,7 @@ static void dec_uninit(MSFilter *f){
 	if (d->orig) av_frame_free(&d->orig);
 	if (d->sws_ctx) sws_freeContext(d->sws_ctx);
 	ms_free(d->bitstream);
+	ms_yuv_buf_allocator_free(d->buf_allocator);
 	ms_free(d);
 }
 
@@ -135,7 +138,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecData *s, AVFrame *orig){
                 	NULL, NULL, NULL);
 		ms_filter_notify_no_arg(f,MS_FILTER_OUTPUT_FMT_CHANGED);
 	}
-	yuv_msg=ms_yuv_buf_alloc(&pic,ctx->width,ctx->height);
+	yuv_msg=ms_yuv_buf_allocator_get(s->buf_allocator, &pic,ctx->width,ctx->height);
 #if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)
 	if (sws_scale(s->sws_ctx,(const uint8_t * const *)orig->data,orig->linesize, 0,
 					ctx->height, pic.planes, pic.strides)<0){
@@ -227,9 +230,9 @@ static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps){
 		}else{
 			nalu_type=(*src) & ((1<<5)-1);
 			if (nalu_type==7)
-				*new_sps_pps=check_sps_change(d,im) || *new_sps_pps;
+				*new_sps_pps=(check_sps_change(d,im) || *new_sps_pps);
 			if (nalu_type==8)
-				*new_sps_pps=check_pps_change(d,im) || *new_sps_pps;
+				*new_sps_pps=(check_pps_change(d,im) || *new_sps_pps);
 			if (start_picture || nalu_type==7/*SPS*/ || nalu_type==8/*PPS*/ ){
 				*dst++=0;
 				start_picture=FALSE;
@@ -386,12 +389,12 @@ static int dec_get_outfmt(MSFilter *f, void *data){
 }
 
 static MSFilterMethod  h264_dec_methods[]={
-	{	MS_FILTER_ADD_FMTP	,	dec_add_fmtp	},
-	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
-	{	MS_FILTER_GET_VIDEO_SIZE,	dec_get_vsize	},
-	{	MS_FILTER_GET_FPS	,	dec_get_fps	},
-	{	MS_FILTER_GET_OUTPUT_FMT,	dec_get_outfmt	},
-	{	0			,	NULL	}
+	{	MS_FILTER_ADD_FMTP                                 ,	dec_add_fmtp      },
+	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    ,	reset_first_image },
+	{	MS_FILTER_GET_VIDEO_SIZE                           ,	dec_get_vsize     },
+	{	MS_FILTER_GET_FPS                                  ,	dec_get_fps       },
+	{	MS_FILTER_GET_OUTPUT_FMT                           ,	dec_get_outfmt    },
+	{	0                                                  ,	NULL              }
 };
 
 #ifndef _MSC_VER
