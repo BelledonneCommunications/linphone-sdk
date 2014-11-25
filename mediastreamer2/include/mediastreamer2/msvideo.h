@@ -231,6 +231,8 @@ typedef struct _MSPicture{
 
 typedef struct _MSPicture YuvBuf; /*for backward compatibility*/
 
+typedef msgb_allocator_t MSYuvBufAllocator;
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -256,6 +258,10 @@ MS2_PUBLIC void rgb24_mirror(uint8_t *buf, int w, int h, int linesize);
 MS2_PUBLIC void rgb24_revert(uint8_t *buf, int w, int h, int linesize);
 MS2_PUBLIC void rgb24_copy_revert(uint8_t *dstbuf, int dstlsz,
 				const uint8_t *srcbuf, int srclsz, MSVideoSize roi);
+
+MS2_PUBLIC MSYuvBufAllocator *ms_yuv_buf_allocator_new(void);
+MS2_PUBLIC mblk_t *ms_yuv_buf_allocator_get(MSYuvBufAllocator *obj, MSPicture *buf, int w, int h);
+MS2_PUBLIC void ms_yuv_buf_allocator_free(MSYuvBufAllocator *obj);
 
 MS2_PUBLIC void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]);
 

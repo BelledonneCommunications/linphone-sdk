@@ -179,6 +179,32 @@ void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[],
 	plane_copy(src_planes[2],src_strides[2],dst_planes[2],dst_strides[2],roi);
 }
 
+MSYuvBufAllocator *ms_yuv_buf_allocator_new(void) {
+	msgb_allocator_t *allocator = (msgb_allocator_t *)ms_new0(msgb_allocator_t, 1);
+	msgb_allocator_init(allocator);
+	return allocator;
+}
+
+mblk_t *ms_yuv_buf_allocator_get(MSYuvBufAllocator *obj, MSPicture *buf, int w, int h) {
+	int size=(w * (h & 0x1 ? h+1 : h) *3)/2; /*swscale doesn't like odd numbers of line*/
+	const int header_size = sizeof(mblk_video_header);
+	const int padding=16;
+	mblk_t *msg = msgb_allocator_alloc(obj, header_size + size+padding);
+	mblk_video_header* hdr = (mblk_video_header*)msg->b_wptr;
+	hdr->w = w;
+	hdr->h = h;
+	msg->b_rptr += header_size;
+	msg->b_wptr += header_size;
+	yuv_buf_init(buf,w,h,msg->b_wptr);
+	msg->b_wptr+=size;
+	return msg;
+}
+
+void ms_yuv_buf_allocator_free(MSYuvBufAllocator *obj) {
+	msgb_allocator_uninit(obj);
+	ms_free(obj);
+}
+
 static void plane_horizontal_mirror(uint8_t *p, int linesize, int w, int h){
 	int i,j;
 	uint8_t tmp;
