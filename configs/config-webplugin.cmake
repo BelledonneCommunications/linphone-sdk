@@ -90,6 +90,9 @@ endif()
 
 # openh264
 set(EP_openh264_LINKING_TYPE "-static")
+if (APPLE)
+	set(EP_openh264_ADDITIONAL_OPTIONS "ARCH=\"x86\"")
+endif()
 
 # opus
 if(NOT MSVC)
