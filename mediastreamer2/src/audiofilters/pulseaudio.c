@@ -136,6 +136,7 @@ static void stream_disconnect(Stream *s);
 
 static void stream_state_notify_cb(pa_stream *p, void *userData) {
 	Stream *ctx = (Stream *)userData;
+	ms_warning("stream_state_notify_cb(): state=%d", pa_stream_get_state(p));
 	ctx->state = pa_stream_get_state(p);
 	pa_threaded_mainloop_signal(pa_loop, 0);
 }
@@ -200,7 +201,7 @@ static void stream_disconnect(Stream *s) {
 		pa_threaded_mainloop_lock(pa_loop);
 		err = pa_stream_disconnect(s->stream);
 		pa_threaded_mainloop_unlock(pa_loop);
-		if(err!=0) {
+		if(err!=0 || !stream_wait_for_state(s, PA_STREAM_TERMINATED, PA_STREAM_FAILED)) {
 			ms_error("pa_stream_disconnect() failed. err=%d", err);
 		}
 		pa_stream_unref(s->stream);
