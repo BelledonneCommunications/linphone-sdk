@@ -305,17 +305,36 @@ belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, cha
 	belle_sip_list_t* headers_list;
 	belle_sip_list_t* header_list;
 	belle_sip_error_code error=BELLE_SIP_OK;
+#ifdef BELLE_SIP_WORKAROUND_TECHNICOLOR_SIP_ALG_ROUTER_BUG
+	belle_sip_header_t *content_length=NULL;
+#endif
+	
 	for(headers_list=message->header_list;headers_list!=NULL;headers_list=headers_list->next){
 		for(header_list=((headers_container_t*)(headers_list->data))->header_list
 				;header_list!=NULL
 				;header_list=header_list->next)	{
 			belle_sip_header_t *h=BELLE_SIP_HEADER(header_list->data);
-			error=belle_sip_object_marshal(BELLE_SIP_OBJECT(h),buff,buff_size,offset);
-			if (error!=BELLE_SIP_OK) return error;
-			error=belle_sip_snprintf(buff,buff_size,offset,"%s","\r\n");
-			if (error!=BELLE_SIP_OK) return error;
+#ifdef BELLE_SIP_WORKAROUND_TECHNICOLOR_SIP_ALG_ROUTER_BUG
+			if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(h,belle_sip_header_content_length_t)){
+				content_length=h;
+			}else
+#endif
+			{
+				error=belle_sip_object_marshal(BELLE_SIP_OBJECT(h),buff,buff_size,offset);
+				if (error!=BELLE_SIP_OK) return error;
+				error=belle_sip_snprintf(buff,buff_size,offset,"%s","\r\n");
+				if (error!=BELLE_SIP_OK) return error;
+			}
 		}
 	}
+#ifdef BELLE_SIP_WORKAROUND_TECHNICOLOR_SIP_ALG_ROUTER_BUG
+	if (content_length){
+		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(content_length),buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff,buff_size,offset,"%s","\r\n");
+		if (error!=BELLE_SIP_OK) return error;
+	}
+#endif
 	error=belle_sip_snprintf(buff,buff_size,offset,"%s","\r\n");
 	if (error!=BELLE_SIP_OK) return error;
 	return error;
