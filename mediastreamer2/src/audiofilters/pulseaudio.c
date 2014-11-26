@@ -136,7 +136,6 @@ static void stream_disconnect(Stream *s);
 
 static void stream_state_notify_cb(pa_stream *p, void *userData) {
 	Stream *ctx = (Stream *)userData;
-	ms_warning("stream_state_notify_cb(): state=%d", pa_stream_get_state(p));
 	ctx->state = pa_stream_get_state(p);
 	pa_threaded_mainloop_signal(pa_loop, 0);
 }
