@@ -129,6 +129,7 @@ set(VOIP_SOURCE_FILES
 	audiofilters/waveheader.h
 	otherfilters/msrtp.c
 	utils/_kiss_fft_guts.h
+	utils/audiodiff.c
 	utils/dsptools.c
 	utils/g722.h
 	utils/g722_decode.c
@@ -144,6 +145,7 @@ set(VOIP_SOURCE_FILES
 	voip/bitratedriver.c
 	voip/ice.c
 	voip/mediastream.c
+	voip/msmediaplayer.c
 	voip/msvoip.c
 	voip/private.h
 	voip/qosanalyzer.c

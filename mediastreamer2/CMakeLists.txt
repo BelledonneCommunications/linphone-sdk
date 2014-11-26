@@ -234,6 +234,7 @@ endif()
 
 include_directories(
 	include/
+	src/audiofilters/
 	src/utils/
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src/
