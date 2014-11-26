@@ -308,11 +308,12 @@ static void _create_decoders(MSMediaPlayer *obj) {
 			if(obj->audio_decoder == NULL) {
 				ms_error("Could not create audio decoder for %s", obj->audio_pin_fmt.fmt->encoding);
 				obj->audio_pin_fmt.fmt = NULL;
+			} else {
+				sample_rate = obj->audio_pin_fmt.fmt->rate;
+				nchannels = obj->audio_pin_fmt.fmt->nchannels;
+				ms_filter_call_method(obj->audio_decoder, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+				ms_filter_call_method(obj->audio_decoder, MS_FILTER_SET_NCHANNELS, &nchannels);
 			}
-			sample_rate = obj->audio_pin_fmt.fmt->rate;
-			nchannels = obj->audio_pin_fmt.fmt->nchannels;
-			ms_filter_call_method(obj->audio_decoder, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
-			ms_filter_call_method(obj->audio_decoder, MS_FILTER_SET_NCHANNELS, &nchannels);
 		}
 		if(obj->video_pin_fmt.fmt) {
 			obj->video_decoder = ms_factory_create_decoder(ms_factory_get_fallback(), obj->video_pin_fmt.fmt->encoding);
