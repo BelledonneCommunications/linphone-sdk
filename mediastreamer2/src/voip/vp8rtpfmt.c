@@ -341,15 +341,15 @@ static uint32_t get_partition_ts(Vp8RtpFmtPartition *partition) {
 }
 
 static uint16_t get_frame_pictureid(Vp8RtpFmtFrame *frame) {
-	return get_partition_pictureid(ms_list_nth_data(frame->partitions_list, 0));
+	return get_partition_pictureid(frame->partitions[0]);
 }
 
 static int is_frame_non_reference(Vp8RtpFmtFrame *frame) {
-	return is_partition_non_reference(ms_list_nth_data(frame->partitions_list, 0));
+	return is_partition_non_reference(frame->partitions[0]);
 }
 
 static uint32_t get_frame_ts(Vp8RtpFmtFrame *frame) {
-	return get_partition_ts(ms_list_nth_data(frame->partitions_list, 0));
+	return get_partition_ts(frame->partitions[0]);
 }
 
 static void print_packet(void *data) {
@@ -358,18 +358,19 @@ static void print_packet(void *data) {
 		packet->extended_cseq, packet->pd->start_of_partition, packet->error);
 }
 
-static void print_partition(void *data) {
-	Vp8RtpFmtPartition *partition = (Vp8RtpFmtPartition *)data;
-	ms_message("\tpartition [%p]:\tpid=%d\terror=%d",
-		partition, get_partition_id(partition), partition->error);
+static void print_partition(Vp8RtpFmtPartition *partition) {
+	ms_message("\tpartition [%p]:\tpid=%d", partition, get_partition_id(partition));
 	ms_list_for_each(partition->packets_list, print_packet);
 }
 
 static void print_frame(void *data) {
+	uint8_t i;
 	Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)data;
 	ms_message("frame [%p]:\tts=%u\tpictureid=0x%04x\tN=%d\terror=%d",
 		frame, get_frame_ts(frame), get_frame_pictureid(frame), is_frame_non_reference(frame), frame->error);
-	ms_list_for_each(frame->partitions_list, print_partition);
+	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
+		print_partition(frame->partitions[i]);
+	}
 }
 #endif /* VP8RTPFMT_DEBUG */
 
@@ -387,8 +388,10 @@ static void free_partition(void *data) {
 	if ((partition->m != NULL) && (partition->outputted != TRUE)) {
 		freemsg(partition->m);
 	}
-	ms_list_for_each(partition->packets_list, free_packet);
-	ms_list_free(partition->packets_list);
+	if (partition->packets_list != NULL) {
+		ms_list_for_each(partition->packets_list, free_packet);
+		ms_list_free(partition->packets_list);
+	}
 	ms_free(partition);
 }
 
@@ -527,6 +530,36 @@ static void mark_frame_as_incomplete(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *
 	}
 }
 
+static check_frame_partitions_have_start(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
+	Vp8RtpFmtPacket *packet;
+	Vp8RtpFmtPartition *partition;
+	int i;
+	int j;
+
+	if (frame->unnumbered_partitions == TRUE) return;
+
+	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
+		partition = frame->partitions[i];
+		for (j = 0; j < ms_list_size(frame->partitions[i]->packets_list); j++) {
+			packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, j);
+			if ((j == 0) && !partition->has_start && !packet->cseq_inconsistency) {
+				/**
+				 * We have detected a partition does not start at the beginning of a packet.
+				 * Do not output partitions but the entire frame. Also consider frame has
+				 * unnumbered partitions to prevent checks on the partitions.
+				 * WARNING: This is a workaround because the partitions are now built according
+				 * to the partition id of the packet header. However a packet can contain parts of
+				 * several partitions. In this case we should split the packet in several parts and
+				 * put these parts in the corresponding partitions and check from the partition sizes
+				 * that we get from parsing the frame header.
+				 */
+				frame->unnumbered_partitions = TRUE;
+				ctx->output_partitions = FALSE;
+			}
+		}
+	}
+}
+
 static bool_t has_sequence_inconsistency(const MSList *packets){
 	Vp8RtpFmtPacket *packet;
 	const MSList *elem;
@@ -558,6 +591,8 @@ static void check_frame_partitions_list(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFram
 		mark_frame_as_invalid(ctx, frame);
 		return;
 	}
+
+	check_frame_partitions_have_start(ctx, frame);
 
 	/* Do not try to perform next checks if the partitions are not numbered. */
 	if (frame->unnumbered_partitions == TRUE) return;
