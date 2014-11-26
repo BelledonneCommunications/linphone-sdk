@@ -2243,7 +2243,7 @@ static int player_open_file(MSFilter *f, void *arg) {
 		}
 	}
 	if(obj->players[0] == NULL && obj->players[1] == NULL) {
-		ms_error("MKVPlayer: no tack found");
+		ms_error("MKVPlayer: no track found");
 		goto fail;
 	}
 	obj->state = MSPlayerPaused;
@@ -2287,7 +2287,9 @@ static void player_process(MSFilter *f) {
 				}
 			}
 		}
-		if((!obj->players[0] || obj->players[0]->eot) && (!obj->players[1] || obj->players[1]->eot)) {
+		if((!obj->players[0] || !f->outputs[0] || obj->players[0]->eot)
+				&& (!obj->players[1] || !f->outputs[1] || obj->players[1]->eot)) {
+
 			ms_filter_notify_no_arg(f, MS_PLAYER_EOF);
 			for(i=0; i<2; i++) {
 				if(obj->players[i]) mkv_track_reader_reset(obj->players[i]->track_reader);
