@@ -24,6 +24,7 @@ cmake.exe ../.. -G "Visual Studio 9 2008" -DCMAKE_BUILD_TYPE=%build_type% -DCMAK
 
 cd ..\..
 
+"%program_files_x86%\Microsoft Visual Studio 9.0\VC\vcpackages\vcbuild.exe" "%linphone_builder_path%\WORK\cmake-python\Project.sln" "%build_type%|Win32" /M%NUMBER_OF_PROCESSORS% /errfile:%errfile% /wrnfile:%wrnfile% /logfile:%logfile%
+
 set PATH=%old_path%
 
-"%program_files_x86%\Microsoft Visual Studio 9.0\VC\vcpackages\vcbuild.exe" "%linphone_builder_path%\WORK\cmake-python\Project.sln" "%build_type%|Win32" /M%NUMBER_OF_PROCESSORS% /errfile:%errfile% /wrnfile:%wrnfile% /logfile:%logfile%
