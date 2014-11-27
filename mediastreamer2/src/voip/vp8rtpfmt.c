@@ -530,7 +530,7 @@ static void mark_frame_as_incomplete(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *
 	}
 }
 
-static check_frame_partitions_have_start(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
+static void check_frame_partitions_have_start(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
 	Vp8RtpFmtPacket *packet;
 	Vp8RtpFmtPartition *partition;
 	int i;
