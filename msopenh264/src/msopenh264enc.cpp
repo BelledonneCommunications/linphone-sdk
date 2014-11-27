@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "wels/codec_app_def.h"
 
 
-static const int RC_MARGIN = 10000; // bits per sec
+//static const int RC_MARGIN = 10000; // bits per sec
 #if MSOPENH264_DEBUG
 static int debugLevel = 4;
 #else

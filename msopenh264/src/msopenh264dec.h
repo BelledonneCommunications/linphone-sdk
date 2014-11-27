@@ -47,7 +47,6 @@ private:
 	int32_t getVCLNal();
 
 	MSFilter *mFilter;
-	SDecodingParam mDecoderParams;
 	ISVCDecoder *mDecoder;
 	Rfc3984Context *mUnpacker;
 	MSPicture mOutbuf;
