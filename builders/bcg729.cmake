@@ -24,13 +24,8 @@ set(EP_bcg729_GIT_REPOSITORY "git://git.linphone.org/bcg729.git")
 if(LINPHONE_BUILDER_LATEST)
 	set(EP_bcg729_GIT_TAG "master")
 else()
-	set(EP_bcg729_GIT_TAG "97c9b61028056b11aeb553216d2e67ddbf35e036")
+	set(EP_bcg729_GIT_TAG "acc69ee785ef910ad70f2039573feb94e3de849f")
 endif()
-set(EP_bcg729_BUILD_METHOD "autotools")
-set(EP_bcg729_USE_AUTOGEN "yes")
-set(EP_bcg729_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_HOST}"
-)
-set(EP_bcg729_LINKING_TYPE "--disable-static" "--enable-shared")
+set(EP_linphone_CMAKE_OPTIONS )
+set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=NO")
 set(EP_bcg729_DEPENDENCIES EP_ms2)
