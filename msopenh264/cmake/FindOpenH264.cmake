@@ -23,12 +23,10 @@
 # - Find the openh264 include file and library
 #
 #  OPENH264_FOUND - system has openh264
-#  OPENH264_INCLUDE_DIR - the openh264 include directory
+#  OPENH264_INCLUDE_DIRS - the openh264 include directory
 #  OPENH264_LIBRARIES - The libraries needed to use openh264
 
-if("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
-	include(CMakePushCheckState)
-endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
+include(CMakePushCheckState)
 include(CheckCXXSymbolExists)
 
 set(_OPENH264_ROOT_PATHS
@@ -36,40 +34,36 @@ set(_OPENH264_ROOT_PATHS
 	${CMAKE_INSTALL_PREFIX}
 )
 
-find_path(OPENH264_INCLUDE_DIR
+find_path(OPENH264_INCLUDE_DIRS
 	NAMES wels/codec_api.h
 	HINTS _OPENH264_ROOT_PATHS
 	PATH_SUFFIXES include
 )
-if(NOT "${OPENH264_INCLUDE_DIR}" STREQUAL "")
+if(OPENH264_INCLUDE_DIRS)
 	set(HAVE_WELS_CODEC_API_H 1)
+endif()
 
-	find_library(OPENH264_LIBRARIES
-		NAMES openh264
-		HINTS _OPENH264_ROOT_PATHS
-		PATH_SUFFIXES bin lib
-	)
+find_library(OPENH264_LIBRARIES
+	NAMES openh264
+	HINTS _OPENH264_ROOT_PATHS
+	PATH_SUFFIXES bin lib
+)
 
-	if(NOT "${OPENH264_LIBRARIES}" STREQUAL "")
-		if("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
-			cmake_push_check_state(RESET)
-		else()
-			set(SAVE_CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES})
-			set(SAVE_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
-		endif()
-		set(CMAKE_REQUIRED_INCLUDES ${OPENH264_INCLUDE_DIR})
-		set(CMAKE_REQUIRED_LIBRARIES ${OPENH264_LIBRARIES})
-		check_cxx_symbol_exists("WelsCreateDecoder" "wels/codec_api.h" HAVE_WELS_CREATE_DECODER)
-		if("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
-			cmake_pop_check_state()
-		else()
-			set(CMAKE_REQUIRED_INCLUDES ${SAVE_CMAKE_REQUIRED_INCLUDES})
-			set(CMAKE_REQUIRED_LIBRARIES ${SAVE_CMAKE_REQUIRED_LIBRARIES})
-		endif()
-		if(HAVE_WELS_CREATE_DECODER)
-			set(OPENH264_FOUND TRUE)
-		endif()
+if(OPENH264_LIBRARIES)
+	cmake_push_check_state(RESET)
+	list(APPEND CMAKE_REQUIRED_INCLUDES ${OPENH264_INCLUDE_DIRS})
+	list(APPEND CMAKE_REQUIRED_LIBRARIES ${OPENH264_LIBRARIES})
+	check_cxx_symbol_exists("WelsCreateDecoder" "wels/codec_api.h" HAVE_WELS_CREATE_DECODER)
+	cmake_pop_check_state()
+	if(HAVE_WELS_CREATE_DECODER)
+		set(OPENH264_FOUND TRUE)
 	endif()
 endif()
 
-mark_as_advanced(OPENH264_INCLUDE_DIR OPENH264_LIBRARIES)
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(OpenH264
+	DEFAULT_MSG
+	OPENH264_INCLUDE_DIRS OPENH264_LIBRARIES HAVE_WELS_CODEC_API_H HAVE_WELS_CREATE_DECODER
+)
+
+mark_as_advanced(OPENH264_INCLUDE_DIRS OPENH264_LIBRARIES HAVE_WELS_CODEC_API_H HAVE_WELS_CREATE_DECODER)

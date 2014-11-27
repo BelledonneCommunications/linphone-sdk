@@ -46,9 +46,9 @@ if(MSVC)
 endif()
 
 
-include(CheckIncludeFile)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+include(CheckIncludeFile)
 check_include_file("dlfcn.h" HAVE_DLFCN_H)
 check_include_file("inttypes.h" HAVE_INTTYPES_H)
 check_include_file("memory.h" HAVE_MEMORY_H)
@@ -61,14 +61,14 @@ check_include_file("sys/types.h" HAVE_SYS_TYPES_H)
 check_include_file("unistd.h" HAVE_UNISTD_H)
 check_include_file("stdbool.h" HAVE_STDBOOL_H)
 
-find_package(Ortp)
-find_package(Mediastreamer2)
+find_package(ORTP)
+find_package(MS2)
 find_package(OpenH264)
 
 if(NOT ORTP_FOUND)
 	message(FATAL "Could not find oRTP headers/library!")
 endif()
-if(NOT MEDIASTREAMER2_FOUND)
+if(NOT MS2_FOUND)
 	message(FATAL "Could not find mediastreamer2 headers/library!")
 endif()
 if(NOT OPENH264_FOUND)
@@ -80,8 +80,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY
 
 
 include_directories(
-	${MS2_INCLUDE_DIR}
-	${OPENH264_INCLUDE_DIR}
+	${MS2_INCLUDE_DIRS}
+	${OPENH264_INCLUDE_DIRS}
  	src
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
