@@ -22,6 +22,7 @@
 
 find_program(NASM_PROGRAM
 	NAMES nasm nasm.exe
+	HINTS "${LINPHONE_BUILDER_WORK_DIR}/windows_tools"
 )
 if(NOT NASM_PROGRAM)
 	if(WIN32)
