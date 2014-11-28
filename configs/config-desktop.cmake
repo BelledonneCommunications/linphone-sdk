@@ -70,6 +70,12 @@ else() # Windows
 endif()
 
 
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" _IS_SYSTEM_DIR)
+if("${_IS_SYSTEM_DIR}" STREQUAL "-1")
+   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+endif()
+
+
 # Include builders
 include(builders/CMakeLists.txt)
 
