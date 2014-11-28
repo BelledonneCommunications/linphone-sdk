@@ -540,7 +540,8 @@ static void check_frame_partitions_have_start(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpF
 
 	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
 		partition = frame->partitions[i];
-		for (j = 0; j < ms_list_size(frame->partitions[i]->packets_list); j++) {
+		if (partition == NULL) continue;
+		for (j = 0; j < ms_list_size(partition->packets_list); j++) {
 			packet = (Vp8RtpFmtPacket *)ms_list_nth_data(partition->packets_list, j);
 			if ((j == 0) && !partition->has_start && !packet->cseq_inconsistency) {
 				/**
