@@ -24,7 +24,7 @@
 
 static void check_uri_and_headers(belle_sip_message_t* message) {
 	if (belle_sip_message_is_request(message)) {
-		CU_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(BELLE_SIP_REQUEST(message)));
+		CU_ASSERT_TRUE(belle_sip_request_get_uri(BELLE_SIP_REQUEST(message))|| belle_sip_request_get_absolute_uri(BELLE_SIP_REQUEST(message)) );
 
 		CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Max-Forwards"));
 		CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_MAX_FORWARDS(belle_sip_message_get_header(message,"Max-Forwards")));
@@ -116,6 +116,39 @@ static void testInviteMessage(void) {
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Authorization"));
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Type"));
 	check_uri_and_headers(message);
+	belle_sip_object_unref(message);
+	belle_sip_free(encoded_message);
+}
+
+static void testInviteMessageWithTelUri(void) {
+	const char* raw_message = "INVITE tel:11234567888;phone-context=vzims.fr SIP/2.0\r\n"\
+							"Via: SIP/2.0/UDP 10.23.17.117:22600;branch=z9hG4bK-d8754z-4d7620d2feccbfac-1---d8754z-;rport=4820;received=202.165.193.129\r\n"\
+							"Max-Forwards: 70\r\n"\
+							"Contact: <sip:bcheong@202.165.193.129:4820>\r\n"\
+							"To: <tel:+3311234567888;tot=titi>\r\n"\
+							"From: tel:11234567888;tag=werwrw\r\n"\
+							"Call-ID: Y2NlNzg0ODc0ZGIxODU1MWI5MzhkNDVkNDZhOTQ4YWU.\r\n"\
+							"CSeq: 1 INVITE\r\n"\
+							"Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO\r\n"\
+							"c: application/sdp\r\n"\
+							"Supported: replaces\r\n"\
+							"Authorization: Digest username=\"003332176\", realm=\"sip.ovh.net\", nonce=\"24212965507cde726e8bc37e04686459\", uri=\"sip:sip.ovh.net\", response=\"896e786e9c0525ca3085322c7f1bce7b\", algorithm=MD5, opaque=\"241b9fb347752f2\"\r\n"\
+							"User-Agent: X-Lite 4 release 4.0 stamp 58832\r\n"\
+							"Content-Length: 230\r\n\r\n";
+	belle_sip_request_t* request;
+	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
+	char* encoded_message = belle_sip_object_to_string(BELLE_SIP_OBJECT(message));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
+	message = belle_sip_message_parse(encoded_message);
+	request = BELLE_SIP_REQUEST(message);
+	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"INVITE");
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Authorization"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Type"));
+	check_uri_and_headers(message);
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(belle_sip_message_get_header_by_type(message,belle_sip_header_from_t))));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(belle_sip_message_get_header_by_type(message,belle_sip_header_to_t))));
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(belle_sip_request_get_absolute_uri(request)),"11234567888;phone-context=vzims.fr");
 	belle_sip_object_unref(message);
 	belle_sip_free(encoded_message);
 }
@@ -400,7 +433,7 @@ void channel_parser_tester_recovery_from_error_base (const char* prelude,const c
 }
 void channel_parser_tester_recovery_from_error () {
 	const char * raw_message=	"debut de stream tout pourri\r\n"
-			"INVITE je_suis_une_fausse_request_uri_hihihi SIP/2.0\r\n"
+			"INVITE je_suis_une_fausse _request_uri_hihihi SIP/2.0\r\n"
 			"Via: SIP/2.0/UDP 192.168.1.12:15060;rport=15060;branch=z9hG4bK1596944937;received=81.56.113.2\r\n"
 			"Via: SIP/2.0/TCP 37.59.129.73;branch=z9hG4bK.SKvK9U327e8mU68XUv5rt144pg\r\n"
 			"Record-Route: <sip:37.59.129.73;lr;transport=tcp>\r\n"
@@ -919,6 +952,7 @@ void channel_parser_http_response () {
 test_t message_tests[] = {
 	{ "REGISTER", testRegisterMessage },
 	{ "INVITE", testInviteMessage },
+	{ "INVITE with tel uri", testInviteMessageWithTelUri},
 	{ "Option message", testOptionMessage },
 	{ "REGISTER (Raw)", testRegisterRaw },
 	{ "401 Response", test401Response },

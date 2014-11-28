@@ -343,6 +343,7 @@ belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, cha
 static void belle_sip_request_destroy(belle_sip_request_t* request) {
 	if (request->method) belle_sip_free(request->method);
 	if (request->uri) belle_sip_object_unref(request->uri);
+	if (request->absolute_uri) belle_sip_object_unref(request->absolute_uri);
 	if (request->dialog) belle_sip_object_unref(request->dialog);
 	if (request->rfc2543_branch) belle_sip_free(request->rfc2543_branch);
 }
@@ -353,6 +354,7 @@ static void belle_sip_request_init(belle_sip_request_t *message){
 static void belle_sip_request_clone(belle_sip_request_t *request, const belle_sip_request_t *orig){
 	if (orig->method) request->method=belle_sip_strdup(orig->method);
 	if (orig->uri) request->uri=(belle_sip_uri_t*)belle_sip_object_ref(belle_sip_object_clone((belle_sip_object_t*)orig->uri));
+	if (orig->absolute_uri) request->absolute_uri=(belle_generic_uri_t*)belle_sip_object_ref(belle_sip_object_clone((belle_sip_object_t*)orig->absolute_uri));
 	if (orig->rfc2543_branch) request->rfc2543_branch=belle_sip_strdup(orig->rfc2543_branch);
 }
 
@@ -360,7 +362,16 @@ belle_sip_error_code belle_sip_request_marshal(belle_sip_request_t* request, cha
 	belle_sip_error_code error=belle_sip_snprintf(buff,buff_size,offset,"%s ",belle_sip_request_get_method(request));
 
 	if (error!=BELLE_SIP_OK) return error;
-	error=belle_sip_uri_marshal(belle_sip_request_get_uri(request),buff,buff_size,offset);
+	if (request->uri)
+		error=belle_sip_uri_marshal(belle_sip_request_get_uri(request),buff,buff_size,offset);
+	else if (request->absolute_uri)
+		error=belle_generic_uri_marshal(belle_sip_request_get_absolute_uri(request),buff,buff_size,offset);
+	else {
+		belle_sip_error("Missing uri for marshaling request [%p]",request);
+		/*fixme better to have an error code*/
+		error=BELLE_SIP_OK;
+	}
+
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset," %s","SIP/2.0\r\n");
 	if (error!=BELLE_SIP_OK) return error;
@@ -382,11 +393,28 @@ void belle_sip_request_set_dialog(belle_sip_request_t *req, belle_sip_dialog_t *
 
 void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri) {
 	SET_OBJECT_PROPERTY(request,uri,uri);
+	if (request->absolute_uri && uri) {
+		belle_sip_warning("absolute uri [%p] already set for request [%p], cleaning it",request->absolute_uri, request);
+		belle_sip_request_set_absolute_uri(request,NULL);
+	}
 }
 
 belle_sip_uri_t * belle_sip_request_get_uri(const belle_sip_request_t *request){
 	return request->uri;
 }
+
+void belle_sip_request_set_absolute_uri(belle_sip_request_t* request,belle_generic_uri_t* absolute_uri) {
+	SET_OBJECT_PROPERTY(request,absolute_uri,absolute_uri);
+	if (request->uri && absolute_uri) {
+		belle_sip_warning("sip  uri [%p] already set for request [%p], cleaning it",request->uri, request);
+		belle_sip_request_set_uri(request,NULL);
+	}
+}
+
+belle_generic_uri_t * belle_sip_request_get_absolute_uri(const belle_sip_request_t *request){
+	return request->absolute_uri;
+}
+
 
 belle_sip_uri_t* belle_sip_request_extract_origin(const belle_sip_request_t* req) {
 	belle_sip_header_via_t* via_header = belle_sip_message_get_header_by_type(req,belle_sip_header_via_t);

@@ -123,7 +123,10 @@ scope { belle_sip_request_t* current; }
 @init {$request_line::current = belle_sip_request_new(); $ret=$request_line::current; }  
 	:	  method {belle_sip_request_set_method($request_line::current,(const char*)($method.text->chars));} 
 	    SP 
-	    uri {belle_sip_request_set_uri($request_line::current,$uri.ret);}
+	    (	uri {belle_sip_request_set_uri($request_line::current,$uri.ret);} 
+	    	| 
+	    	generic_uri {belle_sip_request_set_absolute_uri($request_line::current,$generic_uri.ret);} 
+	     )
 	    SP 
 	    sip_version 
 	    CRLF ;
@@ -291,13 +294,44 @@ catch [ANTLR3_RECOGNITION_EXCEPTION]
   abs_path      = "/"  path_segments
 */
 
+/*comma, semicolon, or question
+   mark*/
 
+opaque_part_for_from_to_contact_addr_spec
+	:  uric_no_slash_for_from_to_contact_addr_spec uric_for_from_to_contact_addr_spec*;
+opaque_part
+	:  uric_no_slash uric*;
+
+uric_no_slash_for_from_to_contact_addr_spec	
+	: unreserved | escaped  | COLON | AT| AND | EQUAL | PLUS | DOLLARD;	
+uric_no_slash
+	:COMMA | SEMI | QMARK  | uric_no_slash_for_from_to_contact_addr_spec ;
+                  
  scheme: alpha ( alphanum | PLUS | DASH | DOT )*;
+
+/*remove hiearachy part because complex to handle the :comma, semicolon, or question
+   markexception see rfc3261 section 20.10 Contact*/
+generic_uri_for_from_to_contact_addr_spec  returns [belle_generic_uri_t* ret=NULL]    
+scope { belle_generic_uri_t* current; }
+@init { $generic_uri_for_from_to_contact_addr_spec::current = $ret = belle_generic_uri_new(); }
+   : scheme {belle_generic_uri_set_scheme($generic_uri_for_from_to_contact_addr_spec::current,(const char*)$scheme.text->chars);}  
+   COLON  opaque_part_for_from_to_contact_addr_spec  {belle_generic_uri_set_opaque_part($generic_uri_for_from_to_contact_addr_spec::current,(const char*)$opaque_part_for_from_to_contact_addr_spec.text->chars) ;} ;
+catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($generic_uri::current);
+   $ret=NULL;
+}
+
+
 
 generic_uri  returns [belle_generic_uri_t* ret=NULL]    
 scope { belle_generic_uri_t* current; }
 @init { $generic_uri::current = $ret = belle_generic_uri_new(); }
-   :  (scheme {belle_generic_uri_set_scheme($generic_uri::current,(const char*)$scheme.text->chars);}  COLON)? hier_part[$generic_uri::current] ;
+   :  hier_part[$generic_uri::current]
+      | (scheme {belle_generic_uri_set_scheme($generic_uri::current,(const char*)$scheme.text->chars);}  
+      	COLON  (opaque_part {belle_generic_uri_set_opaque_part($generic_uri::current,(const char*)$opaque_part.text->chars) ;}
+      		| hier_part[$generic_uri::current]) ) ;
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
@@ -335,6 +369,8 @@ pchar:  unreserved | escaped | COLON | AT | AND | EQUAL | PLUS | DOLLARD | COMMA
 
 query: uric+;
 uric: reserved | unreserved | escaped;
+
+uric_for_from_to_contact_addr_spec: reserved_for_from_to_contact_addr_spec | unreserved | escaped;
                         
 authority[belle_generic_uri_t* uri] 
 :     
@@ -626,8 +662,8 @@ header_address returns [belle_sip_header_address_t* ret]
 
 header_address_base[belle_sip_header_address_t* obj]      returns [belle_sip_header_address_t* ret]   
 @init { $ret=obj; }
-     :   name_addr[BELLE_SIP_HEADER_ADDRESS($ret)] 
-       | addr_spec[BELLE_SIP_HEADER_ADDRESS($ret)];
+     :   name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)] 
+       | addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)];
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
   belle_sip_object_unref($ret);
@@ -636,12 +672,28 @@ catch [ANTLR3_RECOGNITION_EXCEPTION]
 name_addr[belle_sip_header_address_t* object]      
   :      (lws? display_name[object])? sp_laquot  addr_spec[object] raquot_sp;
 
+name_addr_with_generic_uri[belle_sip_header_address_t* object]      
+  :      (lws? display_name[object])? sp_laquot  addr_spec_with_generic_uri[object] raquot_sp;
+
+
 addr_spec[belle_sip_header_address_t* object]      
   :  lws? uri {belle_sip_header_address_set_uri(object,$uri.ret);} lws?;//| absoluteURI;
 
+addr_spec_with_generic_uri[belle_sip_header_address_t* object]      
+  :  lws? (	uri {belle_sip_header_address_set_uri(object,$uri.ret);}  
+  	| 
+  	generic_uri{belle_sip_header_address_set_absolute_uri(object,$generic_uri.ret);}
+  	) lws?;
+  
 paramless_addr_spec[belle_sip_header_address_t* object]      
   :  lws? paramless_uri {belle_sip_header_address_set_uri(object,$paramless_uri.ret);} lws? ;//| absoluteURI;
   
+paramless_addr_spec_with_generic_uri[belle_sip_header_address_t* object]      
+  :  lws? (	paramless_uri {belle_sip_header_address_set_uri(object,$paramless_uri.ret);} 
+  	| 
+  	generic_uri_for_from_to_contact_addr_spec{belle_sip_header_address_set_absolute_uri(object,$generic_uri_for_from_to_contact_addr_spec.ret);}
+  	) lws? ;
+    
 display_name_tokens 
 	:token (lws token)* ;
 display_name[belle_sip_header_address_t* object]  
@@ -843,7 +895,7 @@ catch [ANTLR3_RECOGNITION_EXCEPTION]
 } 
   
 from_spec   
-  :   ( name_addr[BELLE_SIP_HEADER_ADDRESS($header_from::current)] | paramless_addr_spec[BELLE_SIP_HEADER_ADDRESS($header_from::current)] )
+  :   ( name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($header_from::current)] | paramless_addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($header_from::current)] )
                ( SEMI lws? from_param lws?)*;
 from_param  
   :   /*tag_param |*/ generic_param [BELLE_SIP_PARAMETERS($header_from::current)];
@@ -1133,7 +1185,7 @@ catch [ANTLR3_RECOGNITION_EXCEPTION]
    $ret=NULL;
 }  
 to_spec   
-  :   ( name_addr[BELLE_SIP_HEADER_ADDRESS($header_to::current)] | paramless_addr_spec[BELLE_SIP_HEADER_ADDRESS($header_to::current)] )
+  :   ( name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($header_to::current)] | paramless_addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($header_to::current)] )
                ( SEMI lws? to_param lws?)*;
 to_param  
   :   /*tag_param |*/ generic_param [BELLE_SIP_PARAMETERS($header_to::current)];
@@ -1530,9 +1582,11 @@ three_digit: (DIGIT) => DIGIT
 token       
   :   (alphanum | mark | PERCENT | PLUS | BQUOTE  )+;
 
+reserved_for_from_to_contact_addr_spec: 
+	COLON | AT | AND | EQUAL | PLUS | DOLLARD  | SLASH;
+	
 reserved    
-  :   SEMI | SLASH | QMARK | COLON | AT | AND | EQUAL | PLUS
-                     | DOLLARD | COMMA;
+  :   SEMI | COMMA  | QMARK  | reserved_for_from_to_contact_addr_spec ;
                      
 unreserved :    alphanum |mark;  
 alphanum :     alpha | DIGIT ;                      

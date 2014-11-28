@@ -21,6 +21,7 @@
 
 #include "belle-sip/defs.h"
 #include "belle-sip/sip-uri.h"
+#include "belle-sip/generic-uri.h"
 #include "belle-sip/utils.h"
 #include "belle-sip/parameters.h"
 
@@ -46,16 +47,35 @@ BELLESIP_EXPORT belle_sip_header_address_t* belle_sip_header_address_new();
  * */
 BELLESIP_EXPORT belle_sip_header_address_t* belle_sip_header_address_create(const char* display, belle_sip_uri_t* uri);
 
+/*
+ * creates an address from a display name and an absolute uri
+ * Note the uri not copied but only its ref count is incremented
+ * @param  display display name. May be null.
+ * @param uri uri set to the newly created header_address
+ * @return
+ * */
+BELLESIP_EXPORT belle_sip_header_address_t* belle_sip_header_address_create2(const char* display, belle_generic_uri_t* uri);
+
+
 BELLESIP_EXPORT belle_sip_header_address_t* belle_sip_header_address_parse (const char* address) ;
 
 /**
- *
+ * returns a sip uri. A header address cannot have both a sip uri and an absolute uri.
  */
 BELLESIP_EXPORT belle_sip_uri_t* belle_sip_header_address_get_uri(const belle_sip_header_address_t* address);
 /**
- *
+ * set an absolute uri. A header address cannot have both a sip uri and an absolute uri. This function also to absolute uri to NULL
  */
 BELLESIP_EXPORT void belle_sip_header_address_set_uri(belle_sip_header_address_t* address, belle_sip_uri_t* uri);
+
+/**
+ * returns an absolute uri. A header address cannot have both a sip uri and an absolute uri.
+ */
+BELLESIP_EXPORT belle_generic_uri_t* belle_sip_header_address_get_absolute_uri(const belle_sip_header_address_t* address);
+/**
+ * set an absolute uri. A header address cannot have both a sip uri and an absolute uri. This function also to uri to NULL
+ */
+BELLESIP_EXPORT void belle_sip_header_address_set_absolute_uri(belle_sip_header_address_t* address, belle_generic_uri_t* uri);
 
 /**
  *

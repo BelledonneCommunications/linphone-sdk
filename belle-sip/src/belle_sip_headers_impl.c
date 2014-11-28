@@ -178,6 +178,7 @@ struct _belle_sip_header_address {
 	belle_sip_parameters_t base;
 	char* displayname;
 	belle_sip_uri_t* uri;
+	belle_generic_uri_t* absolute_uri;
 };
 
 static void belle_sip_header_address_init(belle_sip_header_address_t* object){
@@ -194,6 +195,9 @@ static void belle_sip_header_address_clone(belle_sip_header_address_t *addr, con
 	if (belle_sip_header_address_get_uri(orig)) {
 		belle_sip_header_address_set_uri(addr,BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_address_get_uri(orig)))));
 	}
+	if (belle_sip_header_address_get_absolute_uri(orig)) {
+		belle_sip_header_address_set_absolute_uri(addr,BELLE_GENERIC_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_address_get_absolute_uri(orig)))));
+	}
 }
 
 static belle_sip_error_code _belle_sip_header_address_marshal(belle_sip_header_address_t* header, char* buff, size_t buff_size, size_t *offset, int force_angle_quote) {
@@ -205,18 +209,26 @@ static belle_sip_error_code _belle_sip_header_address_marshal(belle_sip_header_a
 		belle_sip_free(escaped_display_name);
 		if (error!=BELLE_SIP_OK) return error;
 	}
-	if (header->uri) {
+	if (header->uri || header->absolute_uri) {
 		/*cases where < is required*/
-		if (force_angle_quote || header->displayname
+		if (force_angle_quote
+			|| header->displayname
+			|| header->absolute_uri
 			|| belle_sip_parameters_get_parameter_names((belle_sip_parameters_t*)header->uri)
 			|| belle_sip_uri_get_header_names(header->uri)
 			|| belle_sip_parameters_get_parameter_names(&header->base)) {
 			error=belle_sip_snprintf(buff,buff_size,offset,"%s","<");
 			if (error!=BELLE_SIP_OK) return error;
 		}
-		error=belle_sip_uri_marshal(header->uri,buff,buff_size,offset);
+		if (header->uri) {
+			error=belle_sip_uri_marshal(header->uri,buff,buff_size,offset);
+		} else {
+			error=belle_generic_uri_marshal(header->absolute_uri,buff,buff_size,offset);
+		}
 		if (error!=BELLE_SIP_OK) return error;
-		if (force_angle_quote || header->displayname
+		if (force_angle_quote
+				|| header->displayname
+				|| header->absolute_uri
 				|| belle_sip_parameters_get_parameter_names((belle_sip_parameters_t*)header->uri)
 				|| belle_sip_uri_get_header_names(header->uri)
 				|| belle_sip_parameters_get_parameter_names(&header->base)) {
@@ -250,17 +262,44 @@ belle_sip_uri_t* belle_sip_header_address_get_uri(const belle_sip_header_address
 }
 
 void belle_sip_header_address_set_uri(belle_sip_header_address_t* address, belle_sip_uri_t* uri) {
-	belle_sip_object_ref(uri);
+	if (uri) belle_sip_object_ref(uri);
 	if (address->uri){
 		belle_sip_object_unref(address->uri);
 	}
 	address->uri=uri;
+	if (address->absolute_uri && uri) {
+		belle_sip_warning("sip absolute uri [%p] already set for header_address [%p], cleaning it",address->absolute_uri, address);
+		belle_sip_header_address_set_absolute_uri(address,NULL);
+	}
+}
+
+belle_generic_uri_t* belle_sip_header_address_get_absolute_uri(const belle_sip_header_address_t* address) {
+	return address->absolute_uri;
+}
+
+void belle_sip_header_address_set_absolute_uri(belle_sip_header_address_t* address, belle_generic_uri_t* absolute_uri) {
+	belle_sip_object_ref(absolute_uri);
+	if (address->absolute_uri){
+		belle_sip_object_unref(address->absolute_uri);
+	}
+	address->absolute_uri=absolute_uri;
+	if (address->uri && absolute_uri) {
+		belle_sip_warning("sip uri [%p] already set for header_address [%p], cleaning it",address->uri, address);
+		belle_sip_header_address_set_uri(address,NULL);
+	}
 }
 
 belle_sip_header_address_t* belle_sip_header_address_create(const char* display, belle_sip_uri_t* uri) {
 	belle_sip_header_address_t* address = belle_sip_header_address_new();
 	belle_sip_header_address_set_displayname(address,display);
 	belle_sip_header_address_set_uri(address,uri);
+	return address;
+}
+
+belle_sip_header_address_t* belle_sip_header_address_create2(const char* display, belle_generic_uri_t* uri) {
+	belle_sip_header_address_t* address = belle_sip_header_address_new();
+	belle_sip_header_address_set_displayname(address,display);
+	belle_sip_header_address_set_absolute_uri(address,uri);
 	return address;
 }
 

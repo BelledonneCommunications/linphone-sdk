@@ -90,6 +90,7 @@ static void test_complex_contact_header(void) {
 static void test_from_header(void) {
 	belle_sip_header_from_t* L_tmp;
 	belle_sip_uri_t* L_uri;
+	belle_generic_uri_t* L_absoluteUri;
 	belle_sip_header_from_t* L_from = belle_sip_header_from_parse("f:<sip:titi.com;transport=tcp>;tag=dlfjklcn6545614XX");
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_from));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
@@ -104,6 +105,22 @@ static void test_from_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"dlfjklcn6545614XX");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
+
+	L_from = belle_sip_header_from_parse("From: <tel:+33124585454;toto=titi>;tag=dlfjklcn6545614XX");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_from));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
+	L_tmp = belle_sip_header_from_parse(l_raw_header);
+	L_from = BELLE_SIP_HEADER_FROM(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+
+	L_absoluteUri = belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(L_from));
+	CU_ASSERT_PTR_NULL(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_from)));
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(L_absoluteUri), "+33124585454;toto=titi");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(L_absoluteUri), "tel");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"dlfjklcn6545614XX");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
+
 
 	/*test factory*/
 	L_from = belle_sip_header_from_create2("super <sip:titi.com:5060;lr;ttl=1;method=INVITE;maddr=192.168.0.1;transport=tcp?header=123>","12345-abc");
@@ -126,15 +143,36 @@ static void test_from_header(void) {
 }
 
 static void test_from_header_with_paramless_address_spec(void) {
+	belle_generic_uri_t *L_absoluteUri;
 	belle_sip_header_from_t* L_from = belle_sip_header_from_parse("From: sip:bob@titi.com;tag=dlfjklcn6545614XX");
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_header_from_get_tag(L_from));
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"dlfjklcn6545614XX");
 	belle_sip_object_unref(L_from);
+
+	L_from = belle_sip_header_from_parse("From: tel:1234567;tag=dlfjklcn6545614XX");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_header_from_get_tag(L_from));
+	L_absoluteUri = belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(L_from));
+	CU_ASSERT_PTR_NULL(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_from)));
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(L_absoluteUri), "1234567");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(L_absoluteUri), "tel");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"dlfjklcn6545614XX");
+	belle_sip_object_unref(L_from);
+
 }
 
 static void test_to_header_with_paramless_address_spec(void) {
+	belle_generic_uri_t *L_absoluteUri;
 	belle_sip_header_to_t* L_to = belle_sip_header_to_parse("To: sip:bob@titi.com;tag=dlfjklcn6545614XX");
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_header_to_get_tag(L_to));
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"dlfjklcn6545614XX");
+	belle_sip_object_unref(L_to);
+
+	L_to = belle_sip_header_to_parse("To: tel:1234567;tag=dlfjklcn6545614XX");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_header_to_get_tag(L_to));
+	L_absoluteUri = belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(L_to));
+	CU_ASSERT_PTR_NULL(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_to)));
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(L_absoluteUri), "1234567");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(L_absoluteUri), "tel");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"dlfjklcn6545614XX");
 	belle_sip_object_unref(L_to);
 	CU_ASSERT_PTR_NULL(belle_sip_header_to_parse("nimportequoi"));
@@ -148,7 +186,8 @@ static void test_contact_header_with_paramless_address_spec(void) {
 
 static void test_to_header(void) {
 	belle_sip_uri_t* L_uri;
-	belle_sip_header_to_t* L_to = belle_sip_header_to_parse("t : < sip:titi.com;transport=tcp> ; tag = dlfjklcn6545614XX");
+	belle_generic_uri_t* L_absoluteUri;
+	belle_sip_header_to_t *L_tmp, *L_to = belle_sip_header_to_parse("t : < sip:titi.com;transport=tcp> ; tag = dlfjklcn6545614XX");
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_to));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_to));
 	L_to = belle_sip_header_to_parse(l_raw_header);
@@ -176,6 +215,22 @@ static void test_to_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname(BELLE_SIP_HEADER_ADDRESS(L_to)), "super man");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"12345-abc");
 	belle_sip_object_unref(L_to);
+
+	L_to = belle_sip_header_to_parse("To: <tel:+33124585454;toto=titi>;tag=dlfjklcn6545614XX");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_to));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_to));
+	L_tmp = belle_sip_header_to_parse(l_raw_header);
+	L_to = BELLE_SIP_HEADER_TO(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+
+	L_absoluteUri = belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(L_to));
+	CU_ASSERT_PTR_NULL(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_to)));
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(L_absoluteUri), "+33124585454;toto=titi");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(L_absoluteUri), "tel");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"dlfjklcn6545614XX");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_to));
+
 
 }
 
@@ -661,6 +716,25 @@ static void test_address_header(void) {
 
 }
 
+static void test_address_header_with_tel_uri(void) {
+	belle_generic_uri_t* L_uri;
+	char* L_raw;
+	belle_sip_header_address_t* laddress = belle_sip_header_address_parse("\"toto\" <tel:123456>");
+	CU_ASSERT_PTR_NOT_NULL(laddress);
+	L_raw = belle_sip_object_to_string(BELLE_SIP_OBJECT(laddress));
+	CU_ASSERT_PTR_NOT_NULL(L_raw);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+	laddress = belle_sip_header_address_parse(L_raw);
+	belle_sip_free(L_raw);
+
+	CU_ASSERT_STRING_EQUAL("toto",belle_sip_header_address_get_displayname(laddress));
+	L_uri = belle_sip_header_address_get_absolute_uri(laddress);
+
+	CU_ASSERT_PTR_NOT_NULL(belle_generic_uri_get_opaque_part(L_uri));
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(L_uri), "123456");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+}
+
 static void test_very_long_address_header(void) {
 	belle_sip_uri_t* L_uri;
 	const char* raw = "<sip:jehan@sip.linphone.org"
@@ -892,6 +966,7 @@ static void test_event_header(void) {
 
 test_t headers_tests[] = {
 	{ "Address", test_address_header },
+	{ "Address tel uri", test_address_header_with_tel_uri },
 	{ "Header address (very long)", test_very_long_address_header },
 	{ "Address with error", test_address_with_error_header },
 	{ "Allow", test_allow_header },

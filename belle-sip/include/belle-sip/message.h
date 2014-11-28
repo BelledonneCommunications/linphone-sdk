@@ -71,6 +71,19 @@ BELLESIP_EXPORT belle_sip_uri_t* belle_sip_request_extract_origin(const belle_si
  */
 BELLESIP_EXPORT belle_sip_request_t * belle_sip_request_clone_with_body(const belle_sip_request_t *initial_req);
 
+/**
+ * returns an absolute uri. A header address cannot have both a sip uri and an absolute uri.
+ */
+BELLESIP_EXPORT belle_generic_uri_t* belle_sip_request_get_absolute_uri(const belle_sip_request_t* req);
+/**
+ * set an absolute uri. A header address cannot have both a sip uri and an absolute uri. This function also to uri to NULL
+ */
+BELLESIP_EXPORT void belle_sip_request_set_absolute_uri(belle_sip_request_t* req, belle_generic_uri_t* uri);
+
+
+
+
+
 BELLESIP_EXPORT int belle_sip_message_is_response(const belle_sip_message_t *msg);
 
 BELLESIP_EXPORT belle_sip_header_t *belle_sip_message_get_header(const belle_sip_message_t *msg, const char *header_name);

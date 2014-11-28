@@ -603,6 +603,7 @@ struct _belle_sip_request {
 	belle_sip_message_t base;
 	char* method;
 	belle_sip_uri_t* uri;
+	belle_generic_uri_t *absolute_uri;
 	belle_sip_dialog_t *dialog;/*set if request was created by a dialog to avoid to search in dialog list*/
 	char *rfc2543_branch; /*computed 'branch' id in case we receive this request from an old RFC2543 stack*/
 	unsigned char dialog_queued;

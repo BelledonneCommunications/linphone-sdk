@@ -105,12 +105,39 @@ static void test_file_path() {
 		belle_sip_object_unref(source_uri);
 	}
 }
+static void test_absolute_uri() {
 
+	belle_generic_uri_t* source_uri = belle_generic_uri_parse("tel:+33123457");
+	char* source_uri_raw = belle_generic_uri_to_string(source_uri);
+	belle_generic_uri_t* first_uri = belle_generic_uri_parse(source_uri_raw);
+	belle_generic_uri_t* uri=BELLE_GENERIC_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(first_uri)));
+	belle_sip_free(source_uri_raw);
+	belle_sip_object_unref(source_uri);
+	belle_sip_object_unref(first_uri);
+
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(uri),"tel");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(uri),"+33123457");
+	belle_sip_object_unref(uri);
+
+	source_uri = belle_generic_uri_parse("tel:11234567888;phone-context=vzims.com");
+	source_uri_raw = belle_generic_uri_to_string(source_uri);
+	first_uri = belle_generic_uri_parse(source_uri_raw);
+	uri=BELLE_GENERIC_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(first_uri)));
+	belle_sip_free(source_uri_raw);
+	belle_sip_object_unref(source_uri);
+	belle_sip_object_unref(first_uri);
+
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(uri),"tel");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(uri),"11234567888;phone-context=vzims.com");
+	belle_sip_object_unref(uri);
+
+}
 
 static test_t tests[] = {
 	{ "Simple uri", test_basic_uri },
 	{ "Complex uri", test_complex_uri },
-	{ "File path", test_file_path }
+	{ "File path", test_file_path },
+	{ "Absolute uri", test_absolute_uri }
 };
 
 test_suite_t generic_uri_test_suite = {
