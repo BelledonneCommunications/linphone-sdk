@@ -248,7 +248,7 @@ endif
 
 if BUILD_MATROSKA
 libmediastreamer_voip_la_SOURCES+=	videofilters/mkv.c \
-					utils/mkv_reader.c
+					utils/mkv_reader.c utils/mkv_reader.h
 endif
 
 if BUILD_AVCODEC
