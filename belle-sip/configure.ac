@@ -217,7 +217,7 @@ antlr_java_prefixes="$antlr_prefix/share/java /usr/local/share/java /usr/share/j
 	if test $JAVA = "no" ; then
 		AC_MSG_ERROR([Could not find java prog. Please install java ])
 	else
-		ANTLR="$JAVA -jar $antlr_jar"
+		ANTLR="$JAVA -Xmx256m -jar $antlr_jar"
 	fi
 fi
 AC_SUBST(ANTLR_CFLAGS)
