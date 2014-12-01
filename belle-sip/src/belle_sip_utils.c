@@ -307,14 +307,18 @@ belle_sip_list_t * belle_sip_list_free_with_data(belle_sip_list_t *list, void (*
 }
 
 
-belle_sip_list_t*  belle_sip_list_remove(belle_sip_list_t* first, void *data){
+belle_sip_list_t*  _belle_sip_list_remove(belle_sip_list_t* first, void *data, int warn_if_not_found){
 	belle_sip_list_t* it;
 	it=belle_sip_list_find(first,data);
 	if (it) return belle_sip_list_delete_link(first,it);
-	else {
+	else if (warn_if_not_found){
 		belle_sip_warning("belle_sip_list_remove: no element with %p data was in the list", data);
-		return first;
 	}
+	return first;
+}
+
+belle_sip_list_t*  belle_sip_list_remove(belle_sip_list_t* first, void *data){
+	return _belle_sip_list_remove(first, data, TRUE);
 }
 
 int belle_sip_list_size(const belle_sip_list_t* first){

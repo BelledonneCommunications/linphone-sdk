@@ -65,6 +65,7 @@ typedef unsigned int belle_sip_type_id_t;
 
 #define BELLE_SIP_VPTR_INIT(object_type,parent_type,unowned) \
 		BELLE_SIP_TYPE_ID(object_type), \
+		sizeof(object_type), \
 		#object_type,\
 		unowned,\
 		(belle_sip_object_get_vptr_t)BELLE_SIP_OBJECT_GET_VPTR_FUNC(parent_type), \
@@ -131,6 +132,7 @@ typedef struct _belle_sip_object_vptr *(*belle_sip_object_get_vptr_t)(void);
 
 struct _belle_sip_object_vptr{
 	belle_sip_type_id_t id;
+	size_t size; /*the size of the object - not the vptr size*/
 	const char *type_name;
 	int initially_unowned;
 	belle_sip_object_get_vptr_t get_parent;
@@ -145,7 +147,6 @@ typedef struct _belle_sip_object_vptr belle_sip_object_vptr_t;
 
 struct _belle_sip_object{
 	belle_sip_object_vptr_t *vptr;
-	size_t size;
 	int ref;
 	char* name;
 	struct weak_ref *weak_refs;
@@ -183,6 +184,12 @@ BELLESIP_EXPORT void belle_sip_object_enable_leak_detector(int enable);
 BELLESIP_EXPORT int belle_sip_object_get_object_count(void);
 
 BELLESIP_EXPORT void belle_sip_object_dump_active_objects(void);
+
+/**
+ * Suspend leak detector from this point. If the leak detector wasn't activated, this function does nothing.
+ * This can be useful to make object allocation that have to remain active beyond the scope of a test.
+**/
+BELLESIP_EXPORT void belle_sip_object_inhibit_leak_detector(int yes);
 
 int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
 

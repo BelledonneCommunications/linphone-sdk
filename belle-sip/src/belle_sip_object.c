@@ -43,17 +43,22 @@ void belle_sip_object_enable_marshal_check(int enable) {
 
 static belle_sip_list_t *all_objects=NULL;
 static int belle_sip_leak_detector_enabled=FALSE;
+static int belle_sip_leak_detector_inhibited=FALSE;
 
 static void add_new_object(belle_sip_object_t *obj){
-	if (belle_sip_leak_detector_enabled){
+	if (belle_sip_leak_detector_enabled && !belle_sip_leak_detector_inhibited){
 		all_objects=belle_sip_list_prepend(all_objects,obj);
 	}
 }
 
 static void remove_free_object(belle_sip_object_t *obj){
-	if (belle_sip_leak_detector_enabled){
-		all_objects=belle_sip_list_remove(all_objects,obj);
+	if (belle_sip_leak_detector_enabled && !belle_sip_leak_detector_inhibited){
+		all_objects=_belle_sip_list_remove(all_objects,obj,FALSE); /*it may fail if the leak detector was inhibitted at the time the object was created*/
 	}
+}
+
+void belle_sip_object_inhibit_leak_detector(int yes){
+	belle_sip_leak_detector_inhibited=yes ? TRUE : FALSE;
 }
 
 void belle_sip_object_enable_leak_detector(int enable){
@@ -77,11 +82,10 @@ void belle_sip_object_dump_active_objects(void){
 }
 
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr){
-	belle_sip_object_t *obj=(belle_sip_object_t *)belle_sip_malloc0(objsize);
+	belle_sip_object_t *obj=(belle_sip_object_t *)belle_sip_malloc0(vptr->size);
 
 	obj->ref=vptr->initially_unowned ? 0 : 1;
 	obj->vptr=vptr;
-	obj->size=objsize;
 	if (obj->ref==0){
 		belle_sip_object_pool_t *pool=belle_sip_object_pool_get_current();
 		if (pool) belle_sip_object_pool_add(pool,obj);
@@ -191,6 +195,7 @@ static belle_sip_object_vptr_t *no_parent(void){
 
 belle_sip_object_vptr_t belle_sip_object_t_vptr={
 	BELLE_SIP_TYPE_ID(belle_sip_object_t),
+	sizeof(belle_sip_object_t),
 	"belle_sip_object_t",
 	FALSE,
 	no_parent, /*no parent, it's god*/
@@ -251,10 +256,9 @@ void _belle_sip_object_copy(belle_sip_object_t *newobj, const belle_sip_object_t
 belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){
 	belle_sip_object_t *newobj;
 
-	newobj=belle_sip_malloc0(obj->size);
+	newobj=belle_sip_malloc0(obj->vptr->size);
 	newobj->ref=obj->vptr->initially_unowned ? 0 : 1;
 	newobj->vptr=obj->vptr;
-	newobj->size=obj->size;
 	_belle_sip_object_copy(newobj,obj);
 	if (newobj->ref==0){
 		belle_sip_object_pool_t *pool=belle_sip_object_pool_get_current();

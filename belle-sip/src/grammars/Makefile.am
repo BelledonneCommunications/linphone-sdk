@@ -10,11 +10,11 @@ nodist_libbellesip_generated_la_SOURCES= \
 			belle_sdpParser.c belle_sdpParser.h \
 			belle_sdpLexer.c belle_sdpLexer.h
 
-.NOTPARALLEL 	$(builddir)/belle_sip_messageParser.c $(builddir)/belle_sip_messageParser.h \
+$(builddir)/belle_sip_messageParser.c $(builddir)/belle_sip_messageParser.h \
 				$(builddir)/belle_sip_messageLexer.c $(builddir)/belle_sip_messageLexer.h  : belle_sip_message.g
 	$(ANTLR)  -make -Xmultithreaded  -fo  $(builddir) $(srcdir)/belle_sip_message.g
 
-.NOTPARALLEL 	$(builddir)/belle_sdpLexer.c \
+$(builddir)/belle_sdpLexer.c \
 				$(builddir)/belle_sdpParser.c \
 				$(builddir)/belle_sdpLexer.h \
 				$(builddir)/belle_sdpParser.h : $(srcdir)/belle_sdp.g
@@ -26,4 +26,6 @@ AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
 EXTRA_DIST= belle_sdp.g belle_sip_message.g
 
 CLEANFILES=$(nodist_libbellesip_generated_la_SOURCES) *.tokens
+
+.NOTPARALLEL:
 
