@@ -39,7 +39,7 @@ option(ENABLE_WIDEBAND "Enable AMR wideband." No)
 set(WITH_MS2 "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where the mediastreamer libraries can be found (ex:/usr or /usr/local)")
 set(WITH_OPENCOREAMR "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libopencoreamr can be found (ex:/usr or /usr/local)")
 set(WITH_ORTP "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where the oRTP library can be found (ex:/usr or /usr/local)")
-set(WITH_VO_AMRWBENC "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libvo-amrwbenc can be found (ex:/usr or /usr/local)")
+set(WITH_VOAMRWBENC "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libvo-amrwbenc can be found (ex:/usr or /usr/local)")
 
 
 if(MSVC)

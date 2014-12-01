@@ -1,5 +1,5 @@
 ############################################################################
-# FindOpenCoreAMRWB.cmake
+# FindVoAMRWBEnc.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,36 +20,36 @@
 #
 ############################################################################
 #
-# - Find the opencoreamrwb include file and library
+# - Find the vo-amrwbenc include file and library
 #
-#  OPENCOREAMRWB_FOUND - system has opencoreamrwb
-#  OPENCOREAMRWB_INCLUDE_DIRS - the opencoreamrwb include directory
-#  OPENCOREAMRWB_LIBRARIES - The libraries needed to use opencoreamrwb
+#  VOAMRWBENC_FOUND - system has vo-amrwbenc
+#  VOAMRWBENC_INCLUDE_DIRS - the vo-amrwbenc include directory
+#  VOAMRWBENC_LIBRARIES - The libraries needed to use vo-amrwbenc
 
-set(_OPENCOREAMRWB_ROOT_PATHS
-	${WITH_OPENCOREAMRWB}
+set(_VOAMRWBENC_ROOT_PATHS
+	${WITH_VOAMRWBENC}
 	${CMAKE_INSTALL_PREFIX}
 )
 
-find_path(OPENCOREAMRWB_INCLUDE_DIRS
-	NAMES opencore-amrwb/dec_if.h
-	HINTS _OPENCOREAMRWB_ROOT_PATHS
+find_path(VOAMRWBENC_INCLUDE_DIRS
+	NAMES vo-amrwbenc/enc_if.h
+	HINTS _VOAMRWBENC_ROOT_PATHS
 	PATH_SUFFIXES include
 )
-if(OPENCOREAMRWB_INCLUDE_DIRS)
-	set(HAVE_OPENCOREAMRWB_DEC_IF_H 1)
+if(VOAMRWBENC_INCLUDE_DIRS)
+	set(HAVE_VOAMRWBENC_ENC_IF_H 1)
 endif()
 
-find_library(OPENCOREAMRWB_LIBRARIES
-	NAMES opencore-amrwb
-	HINTS _OPENCOREAMRWB_ROOT_PATHS
+find_library(VOAMRWBENC_LIBRARIES
+	NAMES vo-amrwbenc
+	HINTS _VOAMRWBENC_ROOT_PATHS
 	PATH_SUFFIXES bin lib
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(OpenCoreAMRWB
+find_package_handle_standard_args(VoAMRWBEnc
 	DEFAULT_MSG
-	OPENCOREAMRWB_INCLUDE_DIRS OPENCOREAMRWB_LIBRARIES HAVE_OPENCOREAMRWB_DEC_IF_H
+	VOAMRWBENC_INCLUDE_DIRS VOAMRWBENC_LIBRARIES HAVE_VOAMRWBENC_ENC_IF_H
 )
 
-mark_as_advanced(OPENCOREAMRWB_INCLUDE_DIRS OPENCOREAMRWB_LIBRARIES HAVE_OPENCOREAMRWB_DEC_IF_H)
+mark_as_advanced(VOAMRWBENC_INCLUDE_DIRS VOAMRWBENC_LIBRARIES HAVE_VOAMRWBENC_ENC_IF_H)

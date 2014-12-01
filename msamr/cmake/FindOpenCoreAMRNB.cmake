@@ -26,9 +26,6 @@
 #  OPENCOREAMRNB_INCLUDE_DIRS - the opencoreamrnb include directory
 #  OPENCOREAMRNB_LIBRARIES - The libraries needed to use opencoreamrnb
 
-include(CMakePushCheckState)
-include(CheckCXXSymbolExists)
-
 set(_OPENCOREAMRNB_ROOT_PATHS
 	${WITH_OPENCOREAMRNB}
 	${CMAKE_INSTALL_PREFIX}
