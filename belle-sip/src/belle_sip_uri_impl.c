@@ -95,7 +95,7 @@ belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buf
 	error=belle_sip_snprintf(buff,buff_size,offset,"%s:",uri->secure?"sips":"sip");
 	if (error!=BELLE_SIP_OK) return error;
 	
-	if (uri->user) {
+	if (uri->user && uri->user[0]!='\0') {
 		char* escaped_username=belle_sip_uri_to_escaped_username(uri->user);
 		error=belle_sip_snprintf(buff,buff_size,offset,"%s",escaped_username);
 		belle_sip_free(escaped_username);
