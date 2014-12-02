@@ -92,6 +92,9 @@ if(UNIX AND NOT APPLE)
 	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_ALSA=YES" "-DENABLE_PULSEAUDIO=NO" "-DENABLE_OSS=NO" "-DENABLE_GLX=NO" "-DENABLE_X11=YES" "-DENABLE_XV=YES")
 endif()
 
+# opencoreamr
+set(EP_opencoreamr_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
+
 # openh264
 set(EP_openh264_LINKING_TYPE "-static")
 if (APPLE)
@@ -110,6 +113,9 @@ endif()
 
 # v4l
 set(EP_v4l_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
+
+# voamrwbenc
+set(EP_voamrwbenc_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
 
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
