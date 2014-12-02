@@ -20,7 +20,6 @@
 #
 ############################################################################
 
-NUMCPUS?=$(shell grep -c '^processor' /proc/cpuinfo || echo "1")
 PWD=$(shell pwd)
 
 .PHONY: all \
@@ -38,7 +37,7 @@ build-desktop:
 	mkdir -p WORK/cmake-desktop && \
 	cd WORK/cmake-desktop && \
 	cmake ../.. $(filter -D%,$(MAKEFLAGS)) && \
-	make -j $(NUMCPUS)
+	make
 
 clean-desktop:
 	rm -rf WORK/Build-desktop && \
@@ -53,8 +52,8 @@ build-flexisip:
 		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT\
 		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT \
 		 $(filter -D%,$(MAKEFLAGS)) && \
-	make -j $(NUMCPUS)
-	
+	make
+
 clean-flexisip:
 	rm -rf WORK/tmp-flexisip && \
 	rm -rf WORK/Build-flexisip
@@ -69,8 +68,8 @@ build-flexisip-rpm:
 		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT \
 		 $(filter -D%,$(MAKEFLAGS)) && \
 	make
-#	make -j $(NUMCPUS)
-	
+#	make
+
 clean-flexisip-rpm:
 	rm -rf WORK/tmp-flexisip-rpm
 	rm -rf WORK/Build-flexisip-rpm
@@ -81,7 +80,7 @@ build-python:
 	mkdir -p WORK/cmake-python && \
 	cd WORK/cmake-python && \
 	cmake ../.. -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-python.cmake -DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT -DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT $(filter -D%,$(MAKEFLAGS)) && \
-	make -j $(NUMCPUS)
+	make
 
 clean-python:
 	rm -rf WORK/Build-python && \
@@ -97,7 +96,7 @@ build-bb10-i486:
 		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT/liblinphone-bb10-sdk/i486 \
 		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT/liblinphone-bb10-sdk/i486 \
 		$(filter -D%,$(MAKEFLAGS)) && \
-	make -j $(NUMCPUS)
+	make
 
 build-bb10-arm:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
@@ -108,7 +107,7 @@ build-bb10-arm:
 		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT/liblinphone-bb10-sdk/arm \
 		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT/liblinphone-bb10-sdk/arm \
 		$(filter -D%,$(MAKEFLAGS)) && \
-	make -j $(NUMCPUS)
+	make
 
 build-bb10: build-bb10-i486 build-bb10-arm
 
@@ -147,7 +146,7 @@ build-ios-i386:
 		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT/liblinphone-ios-sdk/i386 \
 		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT/liblinphone-ios-sdk/i386 \
 		$(filter -D%,$(MAKEFLAGS)) && \
-	make -j $(NUMCPUS)
+	make
 
 build-ios-armv7:
 	mkdir -p OUTPUT/liblinphone-ios-sdk && \
@@ -158,7 +157,7 @@ build-ios-armv7:
 		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT/liblinphone-ios-sdk/armv7 \
 		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT/liblinphone-ios-sdk/armv7 \
 		$(filter -D%,$(MAKEFLAGS)) && \
-	make -j $(NUMCPUS)
+	make
 
 build-ios-armv7s:
 	mkdir -p OUTPUT/liblinphone-ios-sdk && \
@@ -169,7 +168,7 @@ build-ios-armv7s:
 		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT/liblinphone-ios-sdk/armv7s \
 		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT/liblinphone-ios-sdk/armv7s \
 		$(filter -D%,$(MAKEFLAGS)) && \
-	make -j $(NUMCPUS)
+	make
 
 build-ios: build-ios-i386 build-ios-armv7 build-ios-armv7s
 
