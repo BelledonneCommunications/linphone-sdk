@@ -581,14 +581,38 @@ bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, co
 	return TRUE;
 }
 
+static int ice_find_host_pair_identical_to_reflexive_pair(const IceCandidatePair *p1, const IceCandidatePair *p2)
+{
+	return !((ice_compare_transport_addresses(&p1->local->taddr, &p2->local->taddr) == 0)
+		&& (p1->local->componentID == p2->local->componentID)
+		&& (ice_compare_transport_addresses(&p1->remote->taddr, &p2->remote->taddr) == 0)
+		&& (p1->remote->componentID == p2->remote->componentID)
+		&& (p1->remote->type == ICT_HostCandidate));
+}
+
 IceCandidateType ice_check_list_selected_valid_candidate_type(const IceCheckList *cl)
 {
+	IceCandidatePair *pair = NULL;
+	IceCandidateType type = ICT_RelayedCandidate;
 	MSList *elem;
 	uint16_t componentID = 1;
 
 	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
-	if (elem == NULL) return ICT_RelayedCandidate;
-	return ((IceValidCandidatePair *)elem->data)->valid->remote->type;
+	if (elem == NULL) return type;
+	pair = ((IceValidCandidatePair *)elem->data)->valid;
+	type = pair->remote->type;
+	/**
+	 * If the pair is reflexive, check if there is a pair with the same addresses and componentID that is of host type to
+	 * report host connection instead of reflexive connection. This might happen if the ICE checks discover reflexives
+	 * candidates before the signaling layer has communicated the host candidates to the other peer.
+	 */
+	if ((type == ICT_ServerReflexiveCandidate) || (type == ICT_PeerReflexiveCandidate)) {
+		elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_host_pair_identical_to_reflexive_pair, pair);
+		if (elem != NULL) {
+			type = ((IceCandidatePair *)elem->data)->remote->type;
+		}
+	}
+	return type;
 }
 
 void ice_check_list_check_completed(IceCheckList *cl)
@@ -2158,7 +2182,10 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, cons
 
 static int ice_find_pair_in_valid_list(IceValidCandidatePair *valid_pair, IceCandidatePair *pair)
 {
-	return (valid_pair->valid != pair);
+	return !((ice_compare_transport_addresses(&valid_pair->valid->local->taddr, &pair->local->taddr) == 0)
+		&& (valid_pair->valid->local->componentID == pair->local->componentID)
+		&& (ice_compare_transport_addresses(&valid_pair->valid->remote->taddr, &pair->remote->taddr) == 0)
+		&& (valid_pair->valid->remote->componentID == pair->remote->componentID));
 }
 
 static void ice_check_if_losing_pair_should_cause_restart(const IceCandidatePair *pair, LosingRemoteCandidate_InProgress_Failed *lif)
@@ -2254,7 +2281,8 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 	} else {
 		valid_pair = (IceValidCandidatePair *)elem->data;
 		valid_pair->selected = TRUE;
-		ms_message("ice: Select losing valid pair");
+		ms_message("ice: Select losing valid pair: cl=%p, componentID=%u, local_addr=%s, local_port=%d, remote_addr=%s, remote_port=%d",
+			cl, componentID, local_addr, local_port, remote_addr, remote_port);
 	}
 }
 
