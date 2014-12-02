@@ -150,7 +150,7 @@ if(PLATFORM STREQUAL "Debian")
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --nodeps")
 	
 	# dist is not defined in debian for rpmbuild..
-	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define 'dist deb'") 
+	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define 'dist .deb'") 
 	
 	# debian has multi-arch lib dir instead of lib and lib64
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}'") 
