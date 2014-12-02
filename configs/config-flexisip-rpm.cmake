@@ -143,15 +143,18 @@ set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "bc-")
 
 # prepare the RPMBUILD options that we need to pass
 
-set(RPMBUILD_OPTIONS "--define '_mandir %{_prefix}' --define '_sysconfdir %{_prefix}/etc'")
+set(RPMBUILD_OPTIONS "--define '_mandir %{_prefix}'")
 
 if(PLATFORM STREQUAL "Debian")
 	# dependencies cannot be checked by rpmbuild in debian
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --nodeps")
+	
 	# dist is not defined in debian for rpmbuild..
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define 'dist deb'") 
+	
 	# debian has multi-arch lib dir instead of lib and lib64
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}'") 
+	
 	# some debians are using dash as shell, which doesn't support "export -n", so we override and use bash
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_buildshell /bin/bash'")
 
