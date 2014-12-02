@@ -1,9 +1,6 @@
-********************************************************************
-** LIBLINPHONE SDK FOR BLACKBERRY 10 USING LINPHONE CMAKE BUILDER **
-********************************************************************
+# LIBLINPHONE SDK FOR BLACKBERRY 10 USING LINPHONE CMAKE BUILDER #
 
-BUILD PREREQUISITES
-*******************
+## BUILD PREREQUISITES
 
 The common prerequisites listed in the README file are requested to build the 
 liblinphone SDK for BlackBerry 10.
@@ -12,8 +9,7 @@ can get it from http://developer.blackberry.com/native/downloads/
 Note that building the liblinphone SDK for BlackBerry 10 requires to be 
 building on a Linux or Mac OS X computer.
 
-BUILDING THE SDK
-****************
+## BUILDING THE SDK
 
 Run the following command after having setup the build prerequisites:
 
@@ -25,8 +21,7 @@ It contains the header files, the built libraries and the resource files
 for ARM and i486 (simulator) architectures needed to build a project based on 
 linphone.
 
-OTHER COMMANDS
-**************
+## OTHER COMMANDS
 
 You can clean the build tree (without deleting the downloaded source code) by 
 running:

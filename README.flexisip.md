@@ -1,9 +1,6 @@
-********************************************************************
-** FLEXISIP DEB AND RPM FILES                                     **
-********************************************************************
+# FLEXISIP DEB AND RPM FILES #
 
-BUILD PREREQUISITES
-*******************
+## BUILD PREREQUISITES
 
 The common prerequisites listed in the README file are needed.
 Note that building flexisip packages requires to be building on a Linux host.
@@ -23,4 +20,3 @@ To be able to build Flexisip debs on a Debian machine, you will have to install 
     sudo aptitude install cmake rpm libmysqlclient-dev libmysql++-dev libmysqld-dev libssl-dev bison doxygen
     sudo aptitude install alien fakeroot libhiredis-dev
     make build-flexisip
- 
