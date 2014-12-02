@@ -23,3 +23,6 @@
 if(EXISTS ${INSTALL_PREFIX}/lib/libvo-amrwbenc.dll.a)
 	execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${INSTALL_PREFIX}/lib/libvo-amrwbenc.dll.a" "${INSTALL_PREFIX}/lib/vo-amrwbenc.lib")
 endif()
+if(EXISTS ${INSTALL_PREFIX}/lib/libvo-amrwbenc.a)
+	execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${INSTALL_PREFIX}/lib/libvo-amrwbenc.a" "${INSTALL_PREFIX}/lib/vo-amrwbenc.lib")
+endif()
