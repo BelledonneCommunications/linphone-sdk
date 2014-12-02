@@ -20,7 +20,14 @@
 #
 ############################################################################
 
+if(MSVC)
+	find_library(LIBGCC NAMES gcc)
+	find_library(LIBMINGWEX NAMES mingwex)
+endif()
+
 set(LIBS
+	${LIBGCC}
+	${LIBMINGWEX}
 	${MS2_LIBRARIES}
 	${ORTP_LIBRARIES}
 )
