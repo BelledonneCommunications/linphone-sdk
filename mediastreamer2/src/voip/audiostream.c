@@ -620,6 +620,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		stream->dtmfgen=NULL;
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,(unsigned long)stream);
 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)mediastream_payload_type_changed,(unsigned long)&stream->ms);
+	
+	if (stream->ms.state==MSStreamPreparing){
+		/*we were using the dummy preload graph, destroy it but keep sound filters unless no soundcard is given*/
+		_audio_stream_unprepare_sound(stream,captcard!=NULL);
+	}
+	
 	/* creates the local part */
 	if (captcard!=NULL){
 		if (stream->soundread==NULL)
@@ -864,10 +870,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	/* create ticker */
 	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
-	if (stream->ms.state==MSStreamPreparing){
-		/*we were using the dummy preload graph, destroy it but keep sound filters*/
-		_audio_stream_unprepare_sound(stream,TRUE);
-	}
 
 	/* and then connect all */
 	/* tip: draw yourself the picture if you don't understand */
