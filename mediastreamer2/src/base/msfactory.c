@@ -154,7 +154,7 @@ void ms_factory_init(MSFactory *obj){
 
 	num_cpu = sysinfo.dwNumberOfProcessors;
 #elif __APPLE__ || __linux
-	num_cpu = sysconf( _SC_NPROCESSORS_ONLN );
+	num_cpu = sysconf( _SC_NPROCESSORS_CONF); /*check the number of processors configured, not just the one that are currently active.*/
 #elif __QNX__
 	num_cpu = _syspage_ptr->num_cpu;
 #else

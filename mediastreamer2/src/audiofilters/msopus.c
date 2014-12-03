@@ -306,46 +306,32 @@ static void apply_max_bitrate(OpusEncData *d) {
 	ms_message("Setting opus codec bitrate to [%i] from network bitrate [%i] with ptime [%i]", d->bitrate, d->max_network_bitrate, d->ptime);
 	/* give the bitrate to the encoder if exists*/
 	if (d->state) {
-		opus_int32 maxBandwidth;
+		opus_int32 maxBandwidth=0;
 
+		/*tell the target bitrate, opus will choose internally the bandwidth to use*/
 		int error = opus_encoder_ctl(d->state, OPUS_SET_BITRATE(d->bitrate));
 		if (error != OPUS_OK) {
 			ms_error("could not set bit rate to opus encoder: %s", opus_strerror(error));
 		}
 
-		/* set output sampling rate according to bitrate and RFC section 3.1.1 */
-		if (d->bitrate<12000) {
+		/* implement maxplaybackrate parameter, which is constraint on top of bitrate */
+		if (d->maxplaybackrate <= 8000) {
 			maxBandwidth = OPUS_BANDWIDTH_NARROWBAND;
-		} else if (d->bitrate<20000) {
+		} else if (d->maxplaybackrate <= 12000) {
+			maxBandwidth = OPUS_BANDWIDTH_MEDIUMBAND;
+		} else if (d->maxplaybackrate <= 16000) {
 			maxBandwidth = OPUS_BANDWIDTH_WIDEBAND;
-		} else if (d->bitrate<40000) {
-			maxBandwidth = OPUS_BANDWIDTH_FULLBAND;
-		} else if (d->bitrate<64000) {
-			maxBandwidth = OPUS_BANDWIDTH_FULLBAND;
+		} else if (d->maxplaybackrate <= 24000) {
+			maxBandwidth = OPUS_BANDWIDTH_SUPERWIDEBAND;
 		} else {
 			maxBandwidth = OPUS_BANDWIDTH_FULLBAND;
 		}
 
-		/* check if selected maxBandwidth is compatible with the maxplaybackrate parameter */
-		if (d->maxplaybackrate < 12000) {
-			maxBandwidth = OPUS_BANDWIDTH_NARROWBAND;
-		} else if (d->maxplaybackrate < 16000) {
-			if (maxBandwidth != OPUS_BANDWIDTH_NARROWBAND) {
-				maxBandwidth = OPUS_BANDWIDTH_MEDIUMBAND;
+		if (maxBandwidth!=0){
+			error = opus_encoder_ctl(d->state, OPUS_SET_MAX_BANDWIDTH(maxBandwidth));
+			if (error != OPUS_OK) {
+				ms_error("could not set max bandwidth to opus encoder: %s", opus_strerror(error));
 			}
-		} else if (d->maxplaybackrate < 24000) {
-			if (maxBandwidth != OPUS_BANDWIDTH_NARROWBAND) {
-				maxBandwidth = OPUS_BANDWIDTH_WIDEBAND;
-			}
-		} else if (d->maxplaybackrate < 48000) {
-			if (maxBandwidth == OPUS_BANDWIDTH_FULLBAND) {
-				maxBandwidth = OPUS_BANDWIDTH_SUPERWIDEBAND;
-			}
-		}
-
-		error = opus_encoder_ctl(d->state, OPUS_SET_MAX_BANDWIDTH(maxBandwidth));
-		if (error != OPUS_OK) {
-			ms_error("could not set max bandwidth to opus encoder: %s", opus_strerror(error));
 		}
 	}
 
@@ -378,9 +364,6 @@ static int ms_opus_enc_set_bitrate(MSFilter *f, void *arg) {
 	int ptimeStepSign = 1;
 	int ptimeTarget = d->ptime;
 	int bitrate = *((int *)arg); // the argument is the network bitrate requested
-
-
-
 
 	/* this function also manage the ptime, check if we are increasing or decreasing the bitrate in order to possibly decrease or increase ptime */
 	if (d->bitrate>0 && d->ptime>0) { /* at first call to set_bitrate(bitrate is initialised at -1), do not modify ptime, neither if it wasn't initialised too */
