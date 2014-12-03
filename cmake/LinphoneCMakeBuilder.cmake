@@ -26,6 +26,12 @@ set(ep_base ${LINPHONE_BUILDER_WORK_DIR})
 set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
 
 
+# Define the architecture. It will be used to generate the URL to get prebuilt dependencies.
+if(WIN32)
+	set(LINPHONE_BUILDER_ARCHITECTURE "Win32")
+endif()
+
+
 if(${CMAKE_VERBOSE_MAKEFILE})
 	set(AUTOTOOLS_VERBOSE_MAKEFILE 1)
 else(${CMAKE_VERBOSE_MAKEFILE})
@@ -466,7 +472,14 @@ function(linphone_builder_add_project PROJNAME)
 	linphone_builder_apply_extra_flags(${PROJNAME})
 	linphone_builder_expand_external_project_vars()
 
-	if("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "custom")
+	if("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "prebuilt")
+		message("Using prebuilt ${PROJNAME}")
+		set(BUILD_COMMANDS
+			CONFIGURE_COMMAND ${CMAKE_COMMAND} -E echo ""
+			BUILD_COMMAND ${CMAKE_COMMAND} -E echo ""
+			INSTALL_COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=<SOURCE_DIR> -DINSTALL_DIR=${CMAKE_INSTALL_PREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/install_prebuilt.cmake
+		)
+	elseif("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "custom")
 		set(ep_redirect_to_file "2>&1 >> ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}.log")
 		configure_file(${EP_${PROJNAME}_CONFIGURE_COMMAND_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh)
 		configure_file(${EP_${PROJNAME}_BUILD_COMMAND_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh)

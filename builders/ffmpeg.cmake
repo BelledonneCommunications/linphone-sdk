@@ -20,70 +20,84 @@
 #
 ############################################################################
 
-if(WIN32)
-	set(EP_ffmpeg_PATCH_OPTIONS "--binary")
-endif()
-
-set(EP_ffmpeg_URL "http://ffmpeg.org/releases/ffmpeg-0.10.2.tar.gz")
-set(EP_ffmpeg_URL_HASH "MD5=f449c9fb925e80c457e82187e6c20910")
-set(EP_ffmpeg_BUILD_METHOD "autotools")
-set(EP_ffmpeg_CONFIGURE_OPTIONS
-	"--disable-zlib"
-	"--disable-bzlib"
-	"--disable-mmx"
-	"--disable-ffplay"
-	"--disable-ffprobe"
-	"--disable-ffserver"
-	"--disable-avdevice"
-	"--disable-avfilter"
-	"--disable-network"
-	"--disable-avformat"
-	"--disable-everything"
-	"--enable-decoder=mjpeg"
-	"--enable-encoder=mjpeg"
-	# Disable video acceleration support for compatibility with older Mac OS X versions (vda, vaapi, vdpau).
-	"--disable-vda"
-	"--disable-vaapi"
-	"--disable-vdpau"
-)
-if(ENABLE_H263)
-	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
-		"--enable-decoder=h263"
-		"--enable-encoder=h263"
-	)
-endif()
-if(ENABLE_H263P)
-	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-encoder=h263p")
-endif()
-if(ENABLE_MPEG4)
-	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
-		"--enable-decoder=mpeg4"
-		"--enable-encoder=mpeg4"
-	)
-endif()
-set(EP_ffmpeg_LINKING_TYPE "--disable-static" "--enable-shared")
-set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch" ${EP_ffmpeg_PATCH_OPTIONS})
-set(EP_ffmpeg_ARCH "i386")
-
-if(WIN32)
-	set(EP_ffmpeg_TARGET_OS "mingw32")
-	set(EP_ffmpeg_EXTRA_LDFLAGS "-static-libgcc")
-	set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/mingw-no-lib.patch" ${EP_ffmpeg_PATCH_OPTIONS})
-else()
-	if(APPLE)
-		set(EP_ffmpeg_TARGET_OS "darwin")
-		set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch" ${EP_ffmpeg_PATCH_OPTIONS})
-	else()
-		set(EP_ffmpeg_TARGET_OS "linux")
+if(LINPHONE_BUILDER_PREBUILT_URL)
+	set(EP_ffmpeg_FILENAME "ffmpeg-0.10.2-${LINPHONE_BUILDER_ARCHITECTURE}.zip")
+	file(DOWNLOAD "${LINPHONE_BUILDER_PREBUILT_URL}/${EP_ffmpeg_FILENAME}" "${CMAKE_CURRENT_BINARY_DIR}/${EP_ffmpeg_FILENAME}" STATUS EP_ffmpeg_FILENAME_STATUS)
+	list(GET EP_ffmpeg_FILENAME_STATUS 0 EP_ffmpeg_DOWNLOAD_STATUS)
+	if(NOT EP_ffmpeg_DOWNLOAD_STATUS)
+		set(EP_ffmpeg_PREBUILT 1)
 	endif()
 endif()
 
-set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--arch=${EP_ffmpeg_ARCH}"
-	"--target-os=${EP_ffmpeg_TARGET_OS}"
-)
+if(EP_ffmpeg_PREBUILT)
+	set(EP_ffmpeg_URL "${CMAKE_CURRENT_BINARY_DIR}/${EP_ffmpeg_FILENAME}")
+	set(EP_ffmpeg_BUILD_METHOD "prebuilt")
+else()
+	if(WIN32)
+		set(EP_ffmpeg_PATCH_OPTIONS "--binary")
+	endif()
 
-if(ENABLE_X264)
-	list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-decoder=h264")
+	set(EP_ffmpeg_URL "http://ffmpeg.org/releases/ffmpeg-0.10.2.tar.gz")
+	set(EP_ffmpeg_URL_HASH "MD5=f449c9fb925e80c457e82187e6c20910")
+	set(EP_ffmpeg_BUILD_METHOD "autotools")
+	set(EP_ffmpeg_CONFIGURE_OPTIONS
+		"--disable-zlib"
+		"--disable-bzlib"
+		"--disable-mmx"
+		"--disable-ffplay"
+		"--disable-ffprobe"
+		"--disable-ffserver"
+		"--disable-avdevice"
+		"--disable-avfilter"
+		"--disable-network"
+		"--disable-avformat"
+		"--disable-everything"
+		"--enable-decoder=mjpeg"
+		"--enable-encoder=mjpeg"
+		# Disable video acceleration support for compatibility with older Mac OS X versions (vda, vaapi, vdpau).
+		"--disable-vda"
+		"--disable-vaapi"
+		"--disable-vdpau"
+	)
+	if(ENABLE_H263)
+		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
+			"--enable-decoder=h263"
+			"--enable-encoder=h263"
+		)
+	endif()
+	if(ENABLE_H263P)
+		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-encoder=h263p")
+	endif()
+	if(ENABLE_MPEG4)
+		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
+			"--enable-decoder=mpeg4"
+			"--enable-encoder=mpeg4"
+		)
+	endif()
+	set(EP_ffmpeg_LINKING_TYPE "--disable-static" "--enable-shared")
+	set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch" ${EP_ffmpeg_PATCH_OPTIONS})
+	set(EP_ffmpeg_ARCH "i386")
+
+	if(WIN32)
+		set(EP_ffmpeg_TARGET_OS "mingw32")
+		set(EP_ffmpeg_EXTRA_LDFLAGS "-static-libgcc")
+		set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/mingw-no-lib.patch" ${EP_ffmpeg_PATCH_OPTIONS})
+	else()
+		if(APPLE)
+			set(EP_ffmpeg_TARGET_OS "darwin")
+			set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch" ${EP_ffmpeg_PATCH_OPTIONS})
+		else()
+			set(EP_ffmpeg_TARGET_OS "linux")
+		endif()
+	endif()
+
+	set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
+		"--prefix=${CMAKE_INSTALL_PREFIX}"
+		"--arch=${EP_ffmpeg_ARCH}"
+		"--target-os=${EP_ffmpeg_TARGET_OS}"
+	)
+
+	if(ENABLE_X264)
+		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-decoder=h264")
+	endif()
 endif()

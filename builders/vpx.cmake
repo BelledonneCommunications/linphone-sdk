@@ -20,47 +20,61 @@
 #
 ############################################################################
 
-set(EP_vpx_URL "http://webm.googlecode.com/files/libvpx-v1.3.0.tar.bz2")
-set(EP_vpx_URL_HASH "MD5=14783a148872f2d08629ff7c694eb31f")
-set(EP_vpx_BUILD_METHOD "autotools")
-set(EP_vpx_CONFIG_H_FILE vpx_config.h)
-set(EP_vpx_CONFIGURE_OPTIONS
-	"--enable-error-concealment"
-	"--enable-realtime-only"
-	"--enable-spatial-resampling"
-	"--enable-vp8"
-	"--disable-vp9"
-	"--enable-libs"
-	"--disable-install-docs"
-	"--disable-debug-libs"
-	"--disable-examples"
-	"--disable-unit-tests"
-	"--as=yasm"
-)
-
-if(WIN32)
-	set(EP_vpx_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/vpx/enable-shared-on-windows.patch" "--binary")
-	set(EP_vpx_TARGET "x86-win32-gcc")
-	set(EP_vpx_LINKING_TYPE "--disable-static" "--enable-shared")
-elseif(APPLE)
-	if(CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
-		set(EP_vpx_TARGET "x86_64-darwin10-gcc")
-	else()
-		set(EP_vpx_TARGET "x86-darwin10-gcc")
+if(LINPHONE_BUILDER_PREBUILT_URL)
+	set(EP_vpx_FILENAME "vpx-v1.3.0-${LINPHONE_BUILDER_ARCHITECTURE}.zip")
+	file(DOWNLOAD "${LINPHONE_BUILDER_PREBUILT_URL}/${EP_vpx_FILENAME}" "${CMAKE_CURRENT_BINARY_DIR}/${EP_vpx_FILENAME}" STATUS EP_vpx_FILENAME_STATUS)
+	list(GET EP_vpx_FILENAME_STATUS 0 EP_vpx_DOWNLOAD_STATUS)
+	if(NOT EP_vpx_DOWNLOAD_STATUS)
+		set(EP_vpx_PREBUILT 1)
 	endif()
-	set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
-	set(EP_vpx_BUILD_IN_SOURCE "yes")
-else()
-	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-		set(EP_vpx_TARGET "x86_64-linux-gcc")
-	else()
-		set(EP_vpx_TARGET "x86-linux-gcc")
-	endif()
-	set(EP_vpx_LINKING_TYPE "--disable-static" "--enable-shared")
 endif()
 
-set(EP_vpx_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--target=${EP_vpx_TARGET}"
-)
-set(EP_vpx_CONFIGURE_ENV "LD=$CC")
+if(EP_vpx_PREBUILT)
+	set(EP_vpx_URL "${CMAKE_CURRENT_BINARY_DIR}/${EP_vpx_FILENAME}")
+	set(EP_vpx_BUILD_METHOD "prebuilt")
+else()
+	set(EP_vpx_URL "http://webm.googlecode.com/files/libvpx-v1.3.0.tar.bz2")
+	set(EP_vpx_URL_HASH "MD5=14783a148872f2d08629ff7c694eb31f")
+	set(EP_vpx_BUILD_METHOD "autotools")
+	set(EP_vpx_CONFIG_H_FILE vpx_config.h)
+	set(EP_vpx_CONFIGURE_OPTIONS
+		"--enable-error-concealment"
+		"--enable-realtime-only"
+		"--enable-spatial-resampling"
+		"--enable-vp8"
+		"--disable-vp9"
+		"--enable-libs"
+		"--disable-install-docs"
+		"--disable-debug-libs"
+		"--disable-examples"
+		"--disable-unit-tests"
+		"--as=yasm"
+	)
+
+	if(WIN32)
+		set(EP_vpx_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/vpx/enable-shared-on-windows.patch" "--binary")
+		set(EP_vpx_TARGET "x86-win32-gcc")
+		set(EP_vpx_LINKING_TYPE "--disable-static" "--enable-shared")
+	elseif(APPLE)
+		if(CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
+			set(EP_vpx_TARGET "x86_64-darwin10-gcc")
+		else()
+			set(EP_vpx_TARGET "x86-darwin10-gcc")
+		endif()
+		set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
+		set(EP_vpx_BUILD_IN_SOURCE "yes")
+	else()
+		if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+			set(EP_vpx_TARGET "x86_64-linux-gcc")
+		else()
+			set(EP_vpx_TARGET "x86-linux-gcc")
+		endif()
+		set(EP_vpx_LINKING_TYPE "--disable-static" "--enable-shared")
+	endif()
+
+	set(EP_vpx_CROSS_COMPILATION_OPTIONS
+		"--prefix=${CMAKE_INSTALL_PREFIX}"
+		"--target=${EP_vpx_TARGET}"
+	)
+	set(EP_vpx_CONFIGURE_ENV "LD=$CC")
+endif()

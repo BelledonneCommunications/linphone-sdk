@@ -20,18 +20,32 @@
 #
 ############################################################################
 
-set(EP_opencoreamr_URL "http://downloads.sourceforge.net/project/opencore-amr/opencore-amr/opencore-amr-0.1.3.tar.gz")
-set(EP_opencoreamr_URL_HASH "MD5=09d2c5dfb43a9f6e9fec8b1ae678e725")
-set(EP_opencoreamr_BUILD_METHOD "autotools")
-set(EP_opencoreamr_CONFIGURE_OPTIONS )
-set(EP_opencoreamr_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_HOST}"
-)
-set(EP_opencoreamr_LINKING_TYPE "--disable-static" "--enable-shared")
+if(LINPHONE_BUILDER_PREBUILT_URL)
+	set(EP_opencoreamr_FILENAME "opencoreamr-0.1.3-${LINPHONE_BUILDER_ARCHITECTURE}.zip")
+	file(DOWNLOAD "${LINPHONE_BUILDER_PREBUILT_URL}/${EP_opencoreamr_FILENAME}" "${CMAKE_CURRENT_BINARY_DIR}/${EP_opencoreamr_FILENAME}" STATUS EP_opencoreamr_FILENAME_STATUS)
+	list(GET EP_opencoreamr_FILENAME_STATUS 0 EP_opencoreamr_DOWNLOAD_STATUS)
+	if(NOT EP_opencoreamr_DOWNLOAD_STATUS)
+		set(EP_opencoreamr_PREBUILT 1)
+	endif()
+endif()
 
-if(ENABLE_AMRNB)
-	list(APPEND EP_opencoreamr_CONFIGURE_OPTIONS "--enable-amrnb-decoder" "--enable-amrnb-encoder")
+if(EP_opencoreamr_PREBUILT)
+	set(EP_opencoreamr_URL "${CMAKE_CURRENT_BINARY_DIR}/${EP_opencoreamr_FILENAME}")
+	set(EP_opencoreamr_BUILD_METHOD "prebuilt")
 else()
-	list(APPEND EP_opencoreamr_CONFIGURE_OPTIONS "--disable-amrnb-decoder" "--disable-amrnb-encoder")
+	set(EP_opencoreamr_URL "http://downloads.sourceforge.net/project/opencore-amr/opencore-amr/opencore-amr-0.1.3.tar.gz")
+	set(EP_opencoreamr_URL_HASH "MD5=09d2c5dfb43a9f6e9fec8b1ae678e725")
+	set(EP_opencoreamr_BUILD_METHOD "autotools")
+	set(EP_opencoreamr_CONFIGURE_OPTIONS )
+	set(EP_opencoreamr_CROSS_COMPILATION_OPTIONS
+		"--prefix=${CMAKE_INSTALL_PREFIX}"
+		"--host=${LINPHONE_BUILDER_HOST}"
+	)
+	set(EP_opencoreamr_LINKING_TYPE "--disable-static" "--enable-shared")
+
+	if(ENABLE_AMRNB)
+		list(APPEND EP_opencoreamr_CONFIGURE_OPTIONS "--enable-amrnb-decoder" "--enable-amrnb-encoder")
+	else()
+		list(APPEND EP_opencoreamr_CONFIGURE_OPTIONS "--disable-amrnb-decoder" "--disable-amrnb-encoder")
+	endif()
 endif()

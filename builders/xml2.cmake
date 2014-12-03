@@ -20,29 +20,43 @@
 #
 ############################################################################
 
-set(EP_xml2_GIT_REPOSITORY "git://git.gnome.org/libxml2")
-set(EP_xml2_GIT_TAG "v2.8.0")
-set(EP_xml2_BUILD_METHOD "autotools")
-set(EP_xml2_USE_AUTOGEN "yes")
-set(EP_xml2_CONFIGURE_OPTIONS_PASSED_TO_AUTOGEN "yes")
-set(EP_xml2_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_HOST}"
-)
-set(EP_xml2_CONFIGURE_OPTIONS
-	"--with-minimum"
-	"--with-xpath"
-	"--with-tree"
-	"--with-schemas"
-	"--with-reader"
-	"--with-writer"
-	"--with-sax1"
-	"--without-lzma"
-	"--without-zlib"
-	"--enable-rebuild-docs=no"
-)
-set(EP_xml2_LINKING_TYPE "--disable-static" "--enable-shared")
+if(LINPHONE_BUILDER_PREBUILT_URL)
+	set(EP_xml2_FILENAME "xml2-v2.8.0-${LINPHONE_BUILDER_ARCHITECTURE}.zip")
+	file(DOWNLOAD "${LINPHONE_BUILDER_PREBUILT_URL}/${EP_xml2_FILENAME}" "${CMAKE_CURRENT_BINARY_DIR}/${EP_xml2_FILENAME}" STATUS EP_xml2_FILENAME_STATUS)
+	list(GET EP_xml2_FILENAME_STATUS 0 EP_xml2_DOWNLOAD_STATUS)
+	if(NOT EP_xml2_DOWNLOAD_STATUS)
+		set(EP_xml2_PREBUILT 1)
+	endif()
+endif()
 
-if(WIN32)
-	set(EP_xml2_EXTRA_LDFLAGS "-static-libgcc")
+if(EP_xml2_PREBUILT)
+	set(EP_xml2_URL "${CMAKE_CURRENT_BINARY_DIR}/${EP_xml2_FILENAME}")
+	set(EP_xml2_BUILD_METHOD "prebuilt")
+else()
+	set(EP_xml2_GIT_REPOSITORY "git://git.gnome.org/libxml2")
+	set(EP_xml2_GIT_TAG "v2.8.0")
+	set(EP_xml2_BUILD_METHOD "autotools")
+	set(EP_xml2_USE_AUTOGEN "yes")
+	set(EP_xml2_CONFIGURE_OPTIONS_PASSED_TO_AUTOGEN "yes")
+	set(EP_xml2_CROSS_COMPILATION_OPTIONS
+		"--prefix=${CMAKE_INSTALL_PREFIX}"
+		"--host=${LINPHONE_BUILDER_HOST}"
+	)
+	set(EP_xml2_CONFIGURE_OPTIONS
+		"--with-minimum"
+		"--with-xpath"
+		"--with-tree"
+		"--with-schemas"
+		"--with-reader"
+		"--with-writer"
+		"--with-sax1"
+		"--without-lzma"
+		"--without-zlib"
+		"--enable-rebuild-docs=no"
+	)
+	set(EP_xml2_LINKING_TYPE "--disable-static" "--enable-shared")
+
+	if(WIN32)
+		set(EP_xml2_EXTRA_LDFLAGS "-static-libgcc")
+	endif()
 endif()

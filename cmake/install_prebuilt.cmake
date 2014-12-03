@@ -1,5 +1,5 @@
 ############################################################################
-# opus.cmake
+# install_prebuilt.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,28 +20,9 @@
 #
 ############################################################################
 
-if(LINPHONE_BUILDER_PREBUILT_URL)
-	set(EP_opus_FILENAME "opus-1.0.3-${LINPHONE_BUILDER_ARCHITECTURE}.zip")
-	file(DOWNLOAD "${LINPHONE_BUILDER_PREBUILT_URL}/${EP_opus_FILENAME}" "${CMAKE_CURRENT_BINARY_DIR}/${EP_opus_FILENAME}" STATUS EP_opus_FILENAME_STATUS)
-	list(GET EP_opus_FILENAME_STATUS 0 EP_opus_DOWNLOAD_STATUS)
-	if(NOT EP_opus_DOWNLOAD_STATUS)
-		set(EP_opus_PREBUILT 1)
-	endif()
-endif()
-
-if(EP_opus_PREBUILT)
-	set(EP_opus_URL "${CMAKE_CURRENT_BINARY_DIR}/${EP_opus_FILENAME}")
-	set(EP_opus_BUILD_METHOD "prebuilt")
-else()
-	set(EP_opus_URL "http://downloads.xiph.org/releases/opus/opus-1.0.3.tar.gz")
-	set(EP_opus_URL_HASH "MD5=86eedbd3c5a0171d2437850435e6edff")
-	set(EP_opus_BUILD_METHOD "autotools")
-	set(EP_opus_CROSS_COMPILATION_OPTIONS
-		"--prefix=${CMAKE_INSTALL_PREFIX}"
-		"--host=${LINPHONE_BUILDER_HOST}"
-	)
-	set(EP_opus_CONFIGURE_OPTIONS
-		"--disable-doc"
-	)
-	set(EP_opus_LINKING_TYPE "--disable-static" "--enable-shared")
-endif()
+file(GLOB_RECURSE FILES_TO_INSTALL RELATIVE ${SOURCE_DIR} "${SOURCE_DIR}/*")
+foreach(FILE_TO_INSTALL ${FILES_TO_INSTALL})
+	get_filename_component(INSTALL_SUBDIR ${FILE_TO_INSTALL} DIRECTORY)
+	file(MAKE_DIRECTORY ${INSTALL_SUBDIR})
+	file(COPY ${SOURCE_DIR}/${FILE_TO_INSTALL} DESTINATION ${INSTALL_DIR}/${INSTALL_SUBDIR})
+endforeach()

@@ -29,6 +29,7 @@ set(LINPHONE_BUILDER_CONFIG_FILE "configs/config-desktop.cmake" CACHE STRING "Pa
 set(LINPHONE_BUILDER_WORK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/WORK" CACHE PATH "Working directory for the build.")
 set(LINPHONE_BUILDER_TARGET "linphone" CACHE STRING "Target to build.")
 set_property(CACHE LINPHONE_BUILDER_TARGET PROPERTY STRINGS "belle-sip" "ortp" "ms2" "ms2-plugins" "linphone" "flexisip")
+set(LINPHONE_BUILDER_PREBUILT_URL "" CACHE STRING "URL to download some prebuilt dependencies.")
 option(LINPHONE_BUILDER_LATEST "Build latest versions (from git)." NO)
 
 
