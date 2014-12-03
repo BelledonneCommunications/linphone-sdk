@@ -39,6 +39,11 @@ typedef enum {
 	MS_FILE_FORMAT_MATROSKA
 } MSFileFormat;
 
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 /**
  * @brief Instanciate a media player
  * @param snd_card Playback sound card
@@ -147,5 +152,10 @@ MS2_PUBLIC bool_t ms_media_player_matroska_supported(void);
  * @return Format of the file. UNKNOWN_FORMAT when no file is opened
  */
 MS2_PUBLIC MSFileFormat ms_media_player_get_file_format(const MSMediaPlayer *obj);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif
