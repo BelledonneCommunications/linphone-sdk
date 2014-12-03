@@ -21,8 +21,13 @@
 ############################################################################
 
 set(EP_unixodbc_GIT_REPOSITORY "git://git.linphone.org/unixODBC.git")
-set(EP_unixodbc_GIT_TAG "9558dcfdfa89c75699d4d47c0cf4ae14962a3374")
 
+
+if(LINPHONE_BUILDER_LATEST)
+	set(EP_unixodbc_GIT_TAG "master")
+else()
+	set(EP_unixodbc_GIT_TAG "9558dcfdfa89c75699d4d47c0cf4ae14962a3374")
+endif()
 
 set(EP_unixodbc_DEPENDENCIES )
 set(EP_unixodbc_LINKING_TYPE "--disable-static" "--enable-shared")
