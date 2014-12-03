@@ -87,6 +87,8 @@ set(DEFAULT_VALUE_ENABLE_X264 OFF)
 set(DEFAULT_VALUE_ENABLE_TUNNEL OFF)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
 
+set(LINPHONE_BUILD_LATEST 1)
+
 # Global configuration
 set(LINPHONE_BUILDER_HOST "")
 if(APPLE)
@@ -114,9 +116,6 @@ set(EP_ortp_FORCE_AUTOTOOLS "yes")
 
 # Include builders
 include(builders/CMakeLists.txt)
-
-
-set(EP_ortp_GIT_TAG "master")
 
 set(EP_ortp_BUILD_METHOD     "rpm")
 set(EP_unixodbc_BUILD_METHOD "rpm")
