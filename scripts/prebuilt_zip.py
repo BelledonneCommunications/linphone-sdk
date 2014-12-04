@@ -20,7 +20,7 @@ def main(argv=None):
     if not os.path.exists(rootdir):
       os.makedirs(rootdir)
     fin = open(log_filename, 'r')
-    regexp1 = re.compile(r'^((.*?)/bin/)?install ((-c|-m [0-9]+) )*(.*)$')
+    regexp1 = re.compile(r'^((.*?)/bin/)?install ((-c|-m [0-9]+) )+(.*)$')
     regexp2 = re.compile(r'^cp -p (.*)$')
     for line in fin:
       l = None
