@@ -1,5 +1,5 @@
 ############################################################################
-# linphone.cmake
+# sqlite3.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,31 +20,8 @@
 #
 ############################################################################
 
-set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
-if(${LINPHONE_BUILDER_LATEST})
-	set(EP_linphone_GIT_TAG "master")
-else()
-	set(EP_linphone_GIT_TAG "381744b0f4f2b68bb2c56fbbd7482808a312c830")
-endif()
-
-set(EP_linphone_CMAKE_OPTIONS )
-set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=NO")
-set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_sqlite3 EP_xml2)
-if(ENABLE_VIDEO)
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_VIDEO=YES")
-else()
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_VIDEO=NO")
-endif()
-if(ENABLE_TUNNEL)
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_TUNNEL=YES")
-else()
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_TUNNEL=NO")
-endif()
-if(ENABLE_UNIT_TESTS)
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_UNIT_TESTS=YES")
-else()
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_UNIT_TESTS=NO")
-endif()
-if(MSVC)
-	set(EP_linphone_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif()
+set(EP_sqlite3_URL "http://www.sqlite.org/2014/sqlite-amalgamation-3080702.zip")
+set(EP_sqlite3_URL_HASH "MD5=10587262e4381358b707df75392c895f")
+set(EP_sqlite3_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/sqlite3/CMakeLists.txt" "<SOURCE_DIR>")
+list(APPEND EP_sqlite3_PATCH_COMMAND "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/sqlite3/FindSqlite3.cmake" "<SOURCE_DIR>")
+set(EP_sqlite3_LINKING_TYPE "-DENABLE_STATIC=0")

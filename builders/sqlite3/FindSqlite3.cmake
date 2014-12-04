@@ -1,5 +1,5 @@
 ############################################################################
-# linphone.cmake
+# FindSqlite3.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,32 +19,38 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the sqlite3 include file and library
+#
+#  SQLITE3_FOUND - system has sqlite3
+#  SQLITE3_INCLUDE_DIRS - the sqlite3 include directory
+#  SQLITE3_LIBRARIES - The libraries needed to use sqlite3
 
-set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
-if(${LINPHONE_BUILDER_LATEST})
-	set(EP_linphone_GIT_TAG "master")
-else()
-	set(EP_linphone_GIT_TAG "381744b0f4f2b68bb2c56fbbd7482808a312c830")
+set(_SQLITE3_ROOT_PATHS
+	${WITH_SQLITE3}
+	${CMAKE_INSTALL_PREFIX}
+)
+
+find_path(SQLITE3_INCLUDE_DIRS
+	NAMES sqlite3/sqlite3.h
+	HINTS _SQLITE3_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+
+if(SQLITE3_INCLUDE_DIRS)
+	set(HAVE_SQLITE3_SQLITE3_H 1)
 endif()
 
-set(EP_linphone_CMAKE_OPTIONS )
-set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=NO")
-set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_sqlite3 EP_xml2)
-if(ENABLE_VIDEO)
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_VIDEO=YES")
-else()
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_VIDEO=NO")
-endif()
-if(ENABLE_TUNNEL)
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_TUNNEL=YES")
-else()
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_TUNNEL=NO")
-endif()
-if(ENABLE_UNIT_TESTS)
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_UNIT_TESTS=YES")
-else()
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_UNIT_TESTS=NO")
-endif()
-if(MSVC)
-	set(EP_linphone_EXTRA_LDFLAGS "/SAFESEH:NO")
-endif()
+find_library(SQLITE3_LIBRARIES
+	NAMES sqlite3
+	HINTS ${_SQLITE3_ROOT_PATHS}
+	PATH_SUFFIXES bin lib
+)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Sqlite3
+	DEFAULT_MSG
+	SQLITE3_INCLUDE_DIRS SQLITE3_LIBRARIES HAVE_SQLITE3_SQLITE3_H
+)
+
+mark_as_advanced(SQLITE3_INCLUDE_DIRS SQLITE3_LIBRARIES HAVE_SQLITE3_SQLITE3_H)

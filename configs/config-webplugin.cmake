@@ -111,6 +111,9 @@ if(NOT MSVC)
 	set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
 endif()
 
+# sqlite3
+set(EP_sqlite3_LINKING_TYPE "-DENABLE_STATIC=1")
+
 # v4l
 set(EP_v4l_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
 
