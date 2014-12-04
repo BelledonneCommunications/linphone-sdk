@@ -34,3 +34,7 @@ set(EP_odb_RPMBUILD_NAME "odb-")
 set(EP_odb_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
 set(EP_odb_PATCH_COMMAND ${EP_odb_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONE_BUILDER_WORK_DIR}/Download/EP_odb/${odb_filename}" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
 set(EP_odb_PATCH_COMMAND ${EP_odb_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" ${EP_odb_CONFIG_H_FILE} "<BINARY_DIR>")
+
+set(EP_odb_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/odb/configure.sh.cmake)
+set(EP_odb_BUILD_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/odb/build.sh.cmake)
+set(EP_odb_INSTALL_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/install.rpm.sh.cmake)

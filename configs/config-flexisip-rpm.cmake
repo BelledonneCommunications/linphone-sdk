@@ -122,6 +122,7 @@ set(EP_unixodbc_BUILD_METHOD "rpm")
 set(EP_myodbc_BUILD_METHOD   "rpm")
 set(EP_sofiasip_BUILD_METHOD "rpm")
 set(EP_flexisip_BUILD_METHOD "rpm")
+set(EP_odb_BUILD_METHOD      "custom")
 
 set(EP_ortp_SPEC_PREFIX     "${RPM_INSTALL_PREFIX}")
 set(EP_unixodbc_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
