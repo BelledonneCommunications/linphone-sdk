@@ -20,11 +20,18 @@ def main(argv=None):
     if not os.path.exists(rootdir):
       os.makedirs(rootdir)
     fin = open(log_filename, 'r')
-    regexp = re.compile(r'^(.*?)/bin/install ((-c|-m [0-9]+) )*(.*)$')
+    regexp1 = re.compile(r'^((.*?)/bin/)?install ((-c|-m [0-9]+) )*(.*)$')
+    regexp2 = re.compile(r'^cp -p (.*)$')
     for line in fin:
-      result = regexp.match(line)
+      l = None
+      result = regexp1.match(line)
       if result is not None:
-        l = result.group(4).split()
+        l = result.group(5).split()
+      else:
+        result = regexp2.match(line)
+        if result is not None:
+          l = result.group(1).split()
+      if l is not None:
         if len(l) < 2:
           continue
         l = [item.replace('"', '').replace("'", "") for item in l]
@@ -38,7 +45,10 @@ def main(argv=None):
           if not os.path.exists(curpath):
             os.makedirs(curpath)
           for src in srcs:
-            shutil.copy(os.path.join(dst, src), curpath)
+            if '*' in src:
+              # TODO: handle wildcard and multiline with '\'
+              continue
+            shutil.copy(os.path.join(dst, os.path.basename(src)), curpath)
         else:
           if not os.path.exists(os.path.dirname(curpath)):
             os.makedirs(os.path.dirname(curpath))
