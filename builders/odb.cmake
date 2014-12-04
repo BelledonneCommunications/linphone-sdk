@@ -28,6 +28,8 @@ set(EP_odb_BUILD_METHOD "rpm")
 set(EP_odb_SPEC_FILE "odb.spec" )
 set(EP_odb_CONFIG_H_FILE "${CMAKE_CURRENT_SOURCE_DIR}/builders/odb/${EP_odb_SPEC_FILE}" )
 
+set(EP_odb_RPMBUILD_NAME "odb-")
+
 #create source dir and copy the tar.gz inside
 set(EP_odb_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
 set(EP_odb_PATCH_COMMAND ${EP_odb_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONE_BUILDER_WORK_DIR}/Download/EP_odb/${odb_filename}" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")

@@ -30,9 +30,7 @@ endif()
 
 set(EP_flexisip_DEPENDENCIES EP_ortp EP_unixodbc EP_myodbc EP_sofiasip )
 
-if(PLATFORM STREQUAL "Debian")
-	list(APPEND EP_flexisip_DEPENDENCIES EP_libodbmysql)
-endif()
+list(APPEND EP_flexisip_DEPENDENCIES EP_libodbmysql)
 
 set(EP_flexisip_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_flexisip_BUILD_METHOD "autotools")

@@ -27,7 +27,7 @@ set(EP_libodb_BUILD_METHOD "rpm")
 
 set(EP_libodb_SPEC_FILE "libodb.spec" )
 set(EP_libodb_CONFIG_H_FILE "${CMAKE_CURRENT_SOURCE_DIR}/builders/libodb/${EP_libodb_SPEC_FILE}" )
-# set(EP_libodb_DEPENDENCIES EP_odb)
+set(EP_libodb_DEPENDENCIES EP_odb)
 
 #create source dir and copy the tar.gz inside
 set(EP_libodb_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
