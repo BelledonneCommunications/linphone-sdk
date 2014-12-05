@@ -55,6 +55,7 @@ else()
 		"--enable-rebuild-docs=no"
 	)
 	set(EP_xml2_LINKING_TYPE "--disable-static" "--enable-shared")
+	set(EP_xml2_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/xml2/no_devhelp.patch")
 
 	if(WIN32)
 		set(EP_xml2_EXTRA_LDFLAGS "-static-libgcc")
