@@ -30,6 +30,8 @@ set(EP_libodbmysql_SPEC_FILE "libodbmysql.spec" )
 set(EP_libodbmysql_CONFIG_H_FILE "${CMAKE_CURRENT_SOURCE_DIR}/builders/libodbmysql/${EP_libodbmysql_SPEC_FILE}" )
 set(EP_libodbmysql_DEPENDENCIES EP_libodb)
 
+set(EP_libodbmysql_RPMBUILD_NAME "libodb-mysql")
+
 #create source dir and copy the tar.gz inside
 set(EP_libodbmysql_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
 set(EP_libodbmysql_PATCH_COMMAND ${EP_libodbmysql_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONE_BUILDER_WORK_DIR}/Download/EP_libodbmysql/${libodbmysql_filename}" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
