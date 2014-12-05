@@ -112,6 +112,8 @@ endif()
 # needed *before* the include 
 set(EP_ortp_FORCE_AUTOTOOLS "yes")
 
+
+
 # Include builders
 include(builders/CMakeLists.txt)
 
@@ -158,9 +160,6 @@ if(PLATFORM STREQUAL "Debian")
 	# boost doesn't like debian's multiarch lib dirs
 	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-boost-libdir=/usr/${CMAKE_INSTALL_LIBDIR}")
 	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'boostlibdir /usr/${CMAKE_INSTALL_LIBDIR}'")
-
-	# debian doesn't package odb/libodb/libodb-mysql. We have to do it manually
-	set(EP_flexisip_DEPENDENCIES ${EP_flexisip_DEPENDENCIES} EP_libodbmysl )
 
 	CHECK_PROGRAM(alien)
 	CHECK_PROGRAM(fakeroot)

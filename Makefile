@@ -76,23 +76,6 @@ clean-flexisip-rpm:
 # needed: ?
 #	rm -rf WORK/rpmbuild/RPMS/*
 
-
-build-odb:
-	export ODBC_PATH=../../OUTPUT
-	mkdir -p WORK/cmake-odb && \
-	cd WORK/cmake-odb && \
-	cmake ../.. -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-flexisip-rpm.cmake \
-		-DLINPHONE_BUILDER_TARGET=odb \
-		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT\
-		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT \
-		 $(filter -D%,$(MAKEFLAGS)) && \
-	make VERBOSE=1
-
-clean-odb:
-	rm -rf WORK/tmp-odb && \
-	rm -rf WORK/Build-odb
-
-
 build-python:
 	mkdir -p WORK/cmake-python && \
 	cd WORK/cmake-python && \
