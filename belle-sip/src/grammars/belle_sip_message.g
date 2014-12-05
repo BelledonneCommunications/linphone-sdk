@@ -1540,8 +1540,8 @@ scope {int is_hvalue; }
 hname           :  ( hnv_unreserved | unreserved | escaped )+;
 hvalue          :  ( hnv_unreserved | unreserved | escaped )+;
 
-
-hnv_unreserved  :   LSBRAQUET | RSBRAQUET  | OR | QMARK | COLON | PLUS | DOLLARD ;
+/*hnv-unreserved  =  "[" / "]" / "/" / "?" / ":" / "+" / "$"*/
+hnv_unreserved  :   LSBRAQUET | RSBRAQUET  | SLASH | QMARK | COLON | PLUS | DOLLARD ;
 
 
 //****************SIP end**********************/	

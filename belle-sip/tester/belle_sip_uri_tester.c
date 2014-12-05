@@ -186,6 +186,12 @@ static void test_headers(void) {
 	belle_sip_object_unref(L_uri);
 }
 static void test_escaped_headers(void) {
+	const char* raw_uri_2=	"sip:eNgwBpkNcH6EdTHlX0cq8@toto.com?"
+							"P-Group-Id=Fu0hHIQ23H4hveVT:New%20Group"
+							"&P-Expert-Profile-Id=zKQOBOB2jTmUOjkB:New%20Group"
+							"&P-Reverse-Charging=0&P-Campaign-Id=none"
+							"&P-Embed-Url=https://toto.com/caller/?1.4.0-dev-42-91bdf0c%26id%3DFu0hHIQ23H4hveVT%26CAMPAIGN_ID%3Dnone";
+
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:toto@sip.linhone.org?User-to-User=323a313030363a3230385a48363039313941364b4342463845495936%3Bencoding%3Dhex");
 	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
@@ -193,8 +199,16 @@ static void test_escaped_headers(void) {
 	belle_sip_free(l_raw_uri);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"User-to-User"));
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"User-to-User"), "323a313030363a3230385a48363039313941364b4342463845495936;encoding=hex");
-
 	belle_sip_object_unref(L_uri);
+
+	L_uri = belle_sip_uri_parse(raw_uri_2);
+	l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
+	belle_sip_free(l_raw_uri);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"P-Embed-Url"));
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"P-Embed-Url"), "https://toto.com/caller/?1.4.0-dev-42-91bdf0c&id=Fu0hHIQ23H4hveVT&CAMPAIGN_ID=none");
+	belle_sip_object_unref(L_uri);
+
+
 }
 
 static void testSIMPLEURI_error(void) {

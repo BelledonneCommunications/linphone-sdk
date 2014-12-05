@@ -1037,7 +1037,7 @@ static void belle_sip_header_extension_clone(belle_sip_header_extension_t* exten
 belle_sip_error_code belle_sip_header_extension_marshal(belle_sip_header_extension_t* extension, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(extension), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
-	error=belle_sip_snprintf(buff,buff_size,offset,"%s",extension->value);
+	if (extension->value) error=belle_sip_snprintf(buff,buff_size,offset,"%s",extension->value);
 	if (error!=BELLE_SIP_OK) return error;
 	return error;
 }
