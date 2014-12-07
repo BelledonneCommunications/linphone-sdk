@@ -272,13 +272,13 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			}else belle_sip_warning("Receiving 423 but no min-expires header.");
 			break;
 		}
-		case 408:
-		case 480:
-		case 503:
-		case 504:
-			if (refresher->target_expires>0) retry_later(refresher);
+		case 505:
+		case 501:
+			/*irrecoverable errors, probably no need to retry later*/
 			break;
 		default:
+			/*for all other errors, retry later*/
+			if (refresher->target_expires>0) retry_later(refresher);
 			break;
 		}
 	}
