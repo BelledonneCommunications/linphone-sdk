@@ -16,10 +16,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "belle-sip/auth-helper.h"
 #include "belle_sip_tester.h"
 #include <stdio.h>
 #include "CUnit/Basic.h"
+
+#ifdef HAVE_POLARSSL
+#include <polarssl/version.h>
+#endif
 
 
 static void test_authentication(void) {
@@ -77,6 +86,8 @@ static void test_proxy_authentication(void) {
 #define TEMPORARY_CERTIFICATE_DIR "/belle_sip_tester_crt"
 
 static void test_generate_and_parse_certificates(void) {
+#ifdef HAVE_POLARSSL
+#if POLARSSL_VERSION_NUMBER >= 0x01030000
 /* function not available on windows yet - need to add the create and parse directory */
 #ifndef WIN32
 	belle_sip_certificates_chain_t *certificate, *parsed_certificate;
@@ -121,19 +132,26 @@ static void test_generate_and_parse_certificates(void) {
 	belle_sip_object_unref(key);
 	belle_sip_object_unref(parsed_key);
 #endif /* WIN32 */
+#endif /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
+#endif /* HAVE_POLARSSL */
 }
 
 static void test_certificate_fingerprint(void) {
+#ifdef HAVE_POLARSSL
+#if POLARSSL_VERSION_NUMBER >= 0x01030000
 	unsigned char *fingerprint;
 	/* parse certificate defined in belle_sip_register_tester.c */
 	belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(belle_sip_tester_client_cert,strlen(belle_sip_tester_client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
 	/* generate fingerprint */
 	fingerprint = belle_sip_generate_certificate_fingerprint(cert);
 
+	CU_ASSERT_TRUE_FATAL(fingerprint!=NULL);
 	CU_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_client_cert_fingerprint);
 
 	free(fingerprint);
 	belle_sip_object_unref(cert);
+#endif /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
+#endif /* HAVE_POLARSSL */
 }
 
 test_t authentication_helper_tests[] = {

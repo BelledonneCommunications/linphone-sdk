@@ -62,6 +62,14 @@ struct belle_sip_signing_key {
 /**
  * Retrieve key or certificate in a string(PEM format)
  */
+#if POLARSSL_VERSION_NUMBER < 0x01030000
+unsigned char *belle_sip_get_certificates_pem(belle_sip_certificates_chain_t *cert) {
+	return NULL;
+}
+unsigned char *belle_sip_get_key_pem(belle_sip_signing_key_t *key) {
+	return NULL;
+}
+#else /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
 unsigned char *belle_sip_get_certificates_pem(belle_sip_certificates_chain_t *cert) {
 	unsigned char *pem_certificate = NULL;
 	size_t olen=0;
@@ -79,6 +87,7 @@ unsigned char *belle_sip_get_key_pem(belle_sip_signing_key_t *key) {
 	pk_write_key_pem( &(key->key), (unsigned char *)pem_key, 4096);
 	return pem_key;
 }
+#endif /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
 
 /*************tls********/
 
@@ -592,6 +601,9 @@ int belle_sip_get_certificate_and_pkey_in_dir(const char *path, const char *subj
 
 int belle_sip_generate_self_signed_certificate(const char* path, const char *subject, belle_sip_certificates_chain_t **certificate, belle_sip_signing_key_t **pkey) {
 #ifdef HAVE_POLARSSL
+#if POLARSSL_VERSION_NUMBER < 0x01030000
+	return -1;
+#else /* POLARSSL_VERSION_NUMBER < 0x01030000 */
     entropy_context entropy;
     ctr_drbg_context ctr_drbg;
 	int ret;
@@ -721,6 +733,7 @@ int belle_sip_generate_self_signed_certificate(const char* path, const char *sub
 	}
 
 	return 0;
+#endif /* else POLARSSL_VERSION_NUMBER < 0x01030000 */
 #else /* ! HAVE_POLARSSL */
 	return -1;
 #endif
@@ -729,6 +742,9 @@ int belle_sip_generate_self_signed_certificate(const char* path, const char *sub
 /* Note : this code is duplicated in mediastreamer2/src/voip/dtls_srtp.c but get directly a x509_crt as input parameter */
 unsigned char *belle_sip_generate_certificate_fingerprint(belle_sip_certificates_chain_t *certificate) {
 #ifdef HAVE_POLARSSL
+#if POLARSSL_VERSION_NUMBER < 0x01030000
+	return NULL;
+#else /* POLARSSL_VERSION_NUMBER < 0x01030000 */
 	unsigned char buffer[64]; /* buffer is max length of returned hash, which is 64 in case we use sha-512 */
 	size_t hash_length = 0;
 	char hash_alg_string[8]; /* buffer to store the string description of the algo, longest is SHA-512(7 chars + null termination) */
@@ -764,6 +780,7 @@ unsigned char *belle_sip_generate_certificate_fingerprint(belle_sip_certificates
 	}
 
 	return fingerprint;
+#endif /* else POLARSSL_VERSION_NUMBER < 0x01030000 */
 #else /* ! HAVE_POLARSSL */
 	return NULL;
 #endif
