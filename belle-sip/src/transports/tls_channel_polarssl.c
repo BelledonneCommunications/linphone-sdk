@@ -26,6 +26,7 @@
 #include <polarssl/version.h>
 #include <polarssl/error.h>
 #include "polarssl/sha1.h"
+#include <polarssl/pem.h>
 #if POLARSSL_VERSION_NUMBER >= 0x01030000
 #include <polarssl/x509.h>
 #include <polarssl/entropy.h>
@@ -66,7 +67,7 @@ unsigned char *belle_sip_get_certificates_pem(belle_sip_certificates_chain_t *ce
 	size_t olen=0;
 	if (cert == NULL) return NULL;
 
-	pem_certificate = (char *)malloc(4096);
+	pem_certificate = (unsigned char *)belle_sip_malloc(4096);
 	pem_write_buffer("-----BEGIN CERTIFICATE-----\n", "-----END CERTIFICATE-----\n", cert->cert.raw.p, cert->cert.raw.len, pem_certificate, 4096, &olen );
 	return pem_certificate;
 }
@@ -74,7 +75,7 @@ unsigned char *belle_sip_get_certificates_pem(belle_sip_certificates_chain_t *ce
 unsigned char *belle_sip_get_key_pem(belle_sip_signing_key_t *key) {
 	unsigned char *pem_key;
 	if (key == NULL) return NULL;
-	pem_key = (char *)malloc(4096);
+	pem_key = (unsigned char *)belle_sip_malloc(4096);
 	pk_write_key_pem( &(key->key), (unsigned char *)pem_key, 4096);
 	return pem_key;
 }
@@ -593,7 +594,7 @@ int belle_sip_generate_self_signed_certificate(const char* path, const char *sub
 #ifdef HAVE_POLARSSL
     entropy_context entropy;
     ctr_drbg_context ctr_drbg;
-	int i,ret;
+	int ret;
 	mpi serial;
 	x509write_cert crt;
 	FILE *fd;
@@ -678,14 +679,14 @@ int belle_sip_generate_self_signed_certificate(const char* path, const char *sub
 
 	x509write_crt_free(&crt);
 
-	if ( (ret = x509_crt_parse(&((*certificate)->cert), file_buffer, strlen(file_buffer)) ) != 0) {
+	if ( (ret = x509_crt_parse(&((*certificate)->cert), (unsigned char *)file_buffer, strlen(file_buffer)) ) != 0) {
 		belle_sip_error("Certificate generation can't parse crt pem: -%x", -ret);
 		return -1;
 	}
 
 	/* write the file if needed */
 	if (path!=NULL) {
-		name_with_path = (char *)malloc(strlen(path)+257); /* max filename is 256 bytes in dirent structure, +1 for / */
+		name_with_path = (char *)belle_sip_malloc(strlen(path)+257); /* max filename is 256 bytes in dirent structure, +1 for / */
 		path_length = strlen(path);
 		memcpy(name_with_path, path, path_length);
 		name_with_path[path_length] = '/';
@@ -753,10 +754,10 @@ unsigned char *belle_sip_generate_certificate_fingerprint(belle_sip_certificates
 		int fingerprint_index = strlen(hash_alg_string);
 		char prefix=' ';
 		/* fingerprint will be : hash_alg_string+' '+HEX : separated values: length is strlen(hash_alg_string)+3*hash_lenght + 1 for null termination */
-		fingerprint = (unsigned char *)malloc(fingerprint_index+3*hash_length+1);
-		sprintf(fingerprint, "%s", hash_alg_string);
+		fingerprint = (unsigned char *)belle_sip_malloc(fingerprint_index+3*hash_length+1);
+		sprintf((char*)fingerprint, "%s", hash_alg_string);
 		for (i=0; i<hash_length; i++, fingerprint_index+=3) {
-			sprintf(fingerprint+fingerprint_index,"%c%02X", prefix,buffer[i]);
+			sprintf((char*)fingerprint+fingerprint_index,"%c%02X", prefix,buffer[i]);
 			prefix=':';
 		}
 		*(fingerprint+fingerprint_index) = '\0';
