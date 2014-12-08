@@ -139,6 +139,9 @@ const char* belle_sip_tester_client_cert = /*for URI:sip:tester@client.example.o
 		"oEncRDdPOA==\n"
 		"-----END CERTIFICATE-----";
 
+/* fingerprint of certificate generated using openssl x509 -fingerprint */
+const char* belle_sip_tester_client_cert_fingerprint =
+		"SHA-1 79:2F:9E:8B:28:CC:38:53:90:1D:71:DC:8F:70:66:75:E5:34:CE:C4";
 
 const char* belle_sip_tester_private_key =
 		"-----BEGIN ENCRYPTED PRIVATE KEY-----\n"

@@ -1017,4 +1017,23 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t,belle_sip_body_handler_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
+/**
+ * file manipulation
+ */
+/**
+ * Parse a directory and return all files in it.
+ *
+ * @param[in]	path		The directory to be parsed
+ * @param[in]	file_type	if not NULL return only the file with the given extension, must include the '.', ex:".pem"
+ * @return		a belle_sip list containing all found file or NULL if no file were found or directory doesn't exist. List must be destroyed using belle_sip_list_free_with_data(<ret_list>, belle_sip_free)
+ */
+belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_type); 
+
+/**
+ * create a directory if it doesn't already exists
+ *
+ * @param[in] 	path		The directory to be created
+ * @return 0 in case of succes, -1 otherwise, note it returns -1 if the directory already exists
+ */
+int belle_sip_mkdir(const char *path);
 #endif

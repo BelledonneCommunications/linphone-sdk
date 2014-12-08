@@ -19,13 +19,14 @@
 
 #define _CRT_RAND_S
 #include <stdlib.h>
-
+#include <sys/stat.h>
 #include "belle_sip_internal.h"
 
 #include "clock_gettime.h" /*for apple*/
 
 #ifndef WIN32
 #include <sys/time.h> /*for gettimeofday*/
+#include <dirent.h> /* available on POSIX system only */
 #endif
 
 static FILE *__log_file=0;
@@ -1115,4 +1116,49 @@ char* belle_sip_display_name_to_backslashed_escaped_string(const char* buff) {
 	}
 	output_buff[out_buff_index]='\0';
 	return belle_sip_strdup(output_buff);
+}
+
+belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_type) {
+#ifdef WIN32
+	/* TODO: implement this function for non POSIX compiler */
+	return NULL;
+#else /* WIN 32 */
+	DIR *dir;
+	struct dirent *ent;
+	belle_sip_list_t* file_list = NULL;
+
+	if ((dir = opendir(path)) != NULL) {
+		/* create a string containing the path, adding a final / */
+		char *name_with_path = (char *)belle_sip_malloc(strlen(path)+256); /* max filename is 256 bytes in dirent structure */
+		int path_length = strlen(path);
+		memcpy(name_with_path, path, strlen(path));
+		name_with_path[path_length] = '/';
+		path_length++;
+		/* loop on all directory files */
+		while ((ent = readdir (dir)) != NULL) { /* loop on all files present in the given dir */
+			/* filter on file type if given */
+			if (file_type==NULL
+					|| (strncmp(ent->d_name+strlen(ent->d_name)-strlen(file_type), file_type, strlen(file_type))==0) ) {
+				memcpy(name_with_path+path_length, ent->d_name, strlen(ent->d_name)+1); /* +1 to get the null termination */
+				/* append the filename to the current list */
+				file_list = belle_sip_list_append(file_list, belle_sip_strdup(name_with_path));
+			}
+		}
+		belle_sip_free(name_with_path);
+		closedir(dir);
+		return file_list;
+	} else { /* unable to open dir */
+		printf("non on l'a pas ouvert avec succes\n");
+		return NULL;
+	}
+#endif /* !WIN32 */
+}
+
+int belle_sip_mkdir(const char *path) {
+#ifdef WIN32
+	/* TODO: implement this function for non POSIX compiler */
+	return -1;
+#else /* WIN 32 */
+	return mkdir(path, 0700);
+#endif
 }

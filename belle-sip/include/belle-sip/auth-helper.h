@@ -136,15 +136,60 @@ BELLESIP_EXPORT belle_sip_signing_key_t* belle_sip_signing_key_parse(const char*
 BELLESIP_EXPORT belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse_file(const char* path, belle_sip_certificate_raw_format_t format);
 
 /**
+ * Parse a directory for *.pem file containing a certificate and private key in PEM format or a single DER cert with subject CNAME as given
+ *
+ * @param[in]	path			directory to parse
+ * @param[in]	subject			subject CNAME to look for
+ * @param[out]	certificate		result certificate, NULL if not found. Is allocated by this function, caller must do a belle_sip_object_unref on it after use
+ * @param[out]	pkey			result private key, NULL if not found. Is allocated by this function, caller must do a belle_sip_object_unref on it after use
+ * @param[in]	format			either PEM or DER
+ * @return  0 if we found a certificate and key matching given subject common name
+ */
+BELLESIP_EXPORT int belle_sip_get_certificate_and_pkey_in_dir(const char *path, const char *subject, belle_sip_certificates_chain_t **certificate, belle_sip_signing_key_t **pkey, belle_sip_certificate_raw_format_t format);
+
+/**
+ * Generate a self signed certificate and key and save them in a file if a path is given, file will be <subject>.pem
+ *
+ * @param[in]	path		If not NULL a file will be written in the given directory. filename is <subject>.pem
+ * @param[in]	subject		used in the CN= field of issuer and subject name
+ * @param[out]	certificate	the generated certificate. Must be destroyed using belle_sip_certificates_chain_destroy
+ * @param[out]	key			the generated key. Must be destroyed using belle_sip_signing_key_destroy
+ * @return 0 on success
+ */
+BELLESIP_EXPORT int belle_sip_generate_self_signed_certificate(const char* path, const char *subject, belle_sip_certificates_chain_t **certificate, belle_sip_signing_key_t **pkey);
+
+/**
+ * Convert a certificate into a its PEM format string
+ *
+ * @param[in]	cert	The certificate to be converted into PEM format string
+ * @return	the PEM representation of certificate. Buffer is allocated by this function and must be freed by caller
+ */
+BELLESIP_EXPORT unsigned char *belle_sip_get_certificates_pem(belle_sip_certificates_chain_t *cert);
+
+/**
+ * Convert a key into a its PEM format string
+ *
+ * @param[in]	key		The key to be converted into PEM format string
+ * @return	the PEM representation of key. Buffer is allocated by this function and must be freed by caller
+ */
+BELLESIP_EXPORT unsigned char *belle_sip_get_key_pem(belle_sip_signing_key_t *key);
+
+/**
+ * Generate a certificate fingerprint as described in RFC4572
+ * Note: only SHA1 signing algo is supported for now
+ *
+ * @param[in]	certificate		The certificate used to generate the fingerprint
+ * @return		The generated fingerprint formatted according to RFC4572 section 5. Is a null terminated string, must be freed by caller
+ */
+BELLESIP_EXPORT unsigned char *belle_sip_generate_certificate_fingerprint(belle_sip_certificates_chain_t *certificate);
+
+/**
  * Parse a pather containing either a private or public rsa key
  * @param path file
  * @param passwd password (optionnal)
  * @return list of belle_sip_signing_key_t or NUL iff cannot be decoded
  */
 BELLESIP_EXPORT belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path, const char* passwd);
-
-
-
 
 BELLESIP_EXPORT belle_tls_verify_policy_t *belle_tls_verify_policy_new(void);
 BELLESIP_EXPORT int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj, const char *path);

@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include "CUnit/Basic.h"
+#include "CUnit/MyMem.h"
 #ifdef HAVE_CU_CURSES
 #include "CUnit/CUCurses.h"
 #endif
@@ -34,6 +35,12 @@ static const char *belle_sip_tester_root_ca_path = NULL;
 static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
 static int belle_sip_tester_use_log_file=0;
+
+#ifdef ANDROID
+const char *belle_sip_tester_writable_dir_prefix = "/data/data/org.linphone.tester/cache";
+#else
+const char *belle_sip_tester_writable_dir_prefix = ".";
+#endif
 
 #ifdef HAVE_CU_CURSES
 	static unsigned char curses = 0;
@@ -186,8 +193,13 @@ static void test_complete_message_handler(const CU_pTest pTest,
 
 
 static void test_all_tests_complete_message_handler(const CU_pFailureRecord pFailure) {
+  char *result_string;
   if (belle_sip_tester_use_log_file) belle_sip_warning("\n\n %s",CU_get_run_results_string());
-  printf("\n\n %s",CU_get_run_results_string());
+  result_string = CU_get_run_results_string();
+  if (result_string != NULL) {
+	  printf("\n\n %s",result_string);
+	  CU_FREE(result_string);
+  }
 }
 
 static void test_suite_init_failure_message_handler(const CU_pSuite pSuite) {
