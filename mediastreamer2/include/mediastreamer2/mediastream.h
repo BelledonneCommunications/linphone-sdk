@@ -252,6 +252,20 @@ MS2_PUBLIC float media_stream_get_up_bw(const MediaStream *stream);
 MS2_PUBLIC float media_stream_get_down_bw(const MediaStream *stream);
 
 /**
+ * get current stream rtcp upload bitrate. Value is updated every seconds
+ * @param stream
+ * @return bitrate in bit per seconds
+ * */
+MS2_PUBLIC float media_stream_get_rtcp_up_bw(const MediaStream *stream);
+
+/**
+ * get current stream rtcp download bitrate. Value is updated every seconds
+ * @param stream
+ * @return bitrate in bit per seconds
+ * */
+MS2_PUBLIC float media_stream_get_rtcp_down_bw(const MediaStream *stream);
+
+/**
  * Returns the sessions that were used in the media stream (RTP, SRTP, ZRTP...) so that they can be re-used.
  * As a result of calling this function, the media stream no longer owns the sessions and thus will not free them.
 **/

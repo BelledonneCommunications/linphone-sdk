@@ -588,11 +588,19 @@ int media_stream_get_target_network_bitrate(const MediaStream *stream) {
 }
 
 float media_stream_get_up_bw(const MediaStream *stream) {
-	return rtp_session_get_send_bandwidth(stream->sessions.rtp_session);
+	return rtp_session_get_rtp_send_bandwidth(stream->sessions.rtp_session);
 }
 
 float media_stream_get_down_bw(const MediaStream *stream) {
-	return rtp_session_get_recv_bandwidth(stream->sessions.rtp_session);
+	return rtp_session_get_rtp_recv_bandwidth(stream->sessions.rtp_session);
+}
+
+float media_stream_get_rtcp_up_bw(const MediaStream *stream) {
+	return rtp_session_get_rtcp_send_bandwidth(stream->sessions.rtp_session);
+}
+
+float media_stream_get_rtcp_down_bw(const MediaStream *stream) {
+	return rtp_session_get_rtcp_recv_bandwidth(stream->sessions.rtp_session);
 }
 
 void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *sessions){
