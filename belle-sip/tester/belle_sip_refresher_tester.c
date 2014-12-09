@@ -419,7 +419,7 @@ static void refresher_base_with_body(endpoint_t* client
 	begin = belle_sip_time_ms();
 	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0),client->register_count*1000 + 1000));
 	end = belle_sip_time_ms();
-	CU_ASSERT_TRUE(end-begin>=client->register_count*1000);
+	CU_ASSERT_TRUE(end-begin>=client->register_count*1000*.9); /*because refresh is at 90% of expire*/
 	CU_ASSERT_TRUE(end-begin<(client->register_count*1000 + 2000));
 	/*unregister twice to make sure refresh operation can be safely cascaded*/
 	belle_sip_refresher_refresh(refresher,0);
