@@ -446,7 +446,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 
 static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 	au_card_t* card=d->card;
-	if (!d->card->io_unit_started && (d->card->last_failed_iounit_start_time == 0 || (time - d->card->last_failed_iounit_start_time)>100)) {
+	if (!card->io_unit_started && (card->last_failed_iounit_start_time == 0 || (time - card->last_failed_iounit_start_time)>100)) {
 
 		check_audiounit_call(AudioUnitInitialize(card->io_unit));
 		ms_message("io unit initialized");
@@ -825,7 +825,9 @@ static void shutdown_timer(CFRunLoopTimerRef timer, void *info){
 }
 
 static void check_unused(au_card_t *card){
-	if (card->read_data==NULL && card->write_data==NULL && card->shutdown_timer==NULL){
+	if (card->read_data==NULL && card->write_data==NULL ){
+
+		if( !card->is_tester && card->shutdown_timer==NULL){
 		/*program the shutdown of the audio unit in a few seconds*/
 		CFRunLoopTimerContext ctx={0};
 		ctx.info=card;
@@ -839,20 +841,22 @@ static void check_unused(au_card_t *card){
 											&ctx
 											);
 		CFRunLoopAddTimer(CFRunLoopGetMain(), card->shutdown_timer,kCFRunLoopCommonModes);
+		} else if( card->is_tester ){
+			stop_audio_unit(card);
+		}
 	}
 }
 
 static void au_read_uninit(MSFilter *f) {
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
 	au_card_t* card=d->base.card;
+
 	ms_mutex_lock(&card->mutex);
 	card->read_data=NULL;
-	if (card->is_tester){
-		stop_audio_unit(card);
-	} else {
-		check_unused(card);
-	}
 	ms_mutex_unlock(&card->mutex);
+
+	check_unused(card);
+
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
 }
@@ -860,14 +864,13 @@ static void au_read_uninit(MSFilter *f) {
 static void au_write_uninit(MSFilter *f) {
 	au_filter_write_data_t *d=(au_filter_write_data_t*)f->data;
 	au_card_t* card=d->base.card;
+
 	ms_mutex_lock(&card->mutex);
 	card->write_data=NULL;
 	ms_mutex_unlock(&card->mutex);
-	if( card->is_tester){
-		stop_audio_unit(card);
-	} else {
+
 		check_unused(card);
-	}
+
 	ms_mutex_destroy(&d->mutex);
 	ms_bufferizer_destroy(d->bufferizer);
 	ms_free(d);
