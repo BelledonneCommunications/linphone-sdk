@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include "CUnit/Basic.h"
 #include "CUnit/MyMem.h"
+#include "CUnit/Automated.h"
 #ifdef HAVE_CU_CURSES
 #include "CUnit/CUCurses.h"
 #endif
@@ -32,6 +33,7 @@ extern const char *test_domain;
 extern const char *auth_domain;
 
 static const char *belle_sip_tester_root_ca_path = NULL;
+static const char *belle_sip_tester_junit_file = NULL;
 static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
 static int belle_sip_tester_use_log_file=0;
@@ -45,6 +47,8 @@ const char *belle_sip_tester_writable_dir_prefix = ".";
 #ifdef HAVE_CU_CURSES
 	static unsigned char curses = 0;
 #endif
+
+static unsigned char junit = 0;
 
 
 static void add_test_suite(test_suite_t *suite) {
@@ -156,6 +160,9 @@ void belle_sip_tester_set_root_ca_path(const char *root_ca_path) {
 	belle_sip_tester_root_ca_path = root_ca_path;
 }
 
+void belle_sip_tester_set_junit_output(const char *junit_path ) {
+	belle_sip_tester_junit_file = junit_path;
+}
 
 
 void belle_sip_tester_uninit(void) {
@@ -239,37 +246,42 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 	CU_set_suite_cleanup_failure_handler(test_suite_cleanup_failure_message_handler);
 	CU_set_suite_start_handler(test_suite_start_message_handler);
 
-
-	
+	if( belle_sip_tester_junit_file != NULL ){
+		CU_set_output_filename(belle_sip_tester_junit_file);
+	}
+	if( junit ){
+		CU_automated_run_tests();
+	} else {	
 #ifdef HAVE_CU_GET_SUITE
-	if (suite_name){
-		CU_pSuite suite;
-		suite=CU_get_suite(suite_name);
-		if (suite==NULL){
-			fprintf(stderr,"There is no suite named '%s'",suite_name);
-			exit(-1);
-		}
-		if (test_name) {
-			CU_pTest test=CU_get_test_by_name(test_name, suite);
-			if (test==NULL){
-				fprintf(stderr,"There is no test named '%s'",suite_name);
+		if (suite_name){
+			CU_pSuite suite;
+			suite=CU_get_suite(suite_name);
+			if (suite==NULL){
+				fprintf(stderr,"There is no suite named '%s'",suite_name);
 				exit(-1);
 			}
-			CU_run_test(suite, test);
+			if (test_name) {
+				CU_pTest test=CU_get_test_by_name(test_name, suite);
+				if (test==NULL){
+					fprintf(stderr,"There is no test named '%s'",suite_name);
+					exit(-1);
+				}
+				CU_run_test(suite, test);
+			} else
+				CU_run_suite(suite);
 		} else
-			CU_run_suite(suite);
-	} else
-#endif
-	{
-#ifdef HAVE_CU_CURSES
-		if (curses) {
-			/* Run tests using the CUnit curses interface */
-			CU_curses_run_tests();
-		}
-		else
 #endif
 		{
-			CU_run_all_tests();
+#ifdef HAVE_CU_CURSES
+			if (curses) {
+				/* Run tests using the CUnit curses interface */
+				CU_curses_run_tests();
+			}
+			else
+#endif
+			{
+				CU_run_all_tests();
+			}
 		}
 	}
 
@@ -296,6 +308,8 @@ void helper(const char *name) {
 #ifdef HAVE_CU_CURSES
 		"\t\t\t--curses\n"
 #endif
+		"\t\t\t--junit\n"		
+		"\t\t\t--junit-file <junit file prefix (will be suffixed by '-Results.xml')>\n"		
 		, name);
 }
 
@@ -313,6 +327,7 @@ int main (int argc, char *argv[]) {
 	const char *root_ca_path = NULL;
 	const char *suite_name=NULL;
 	const char *test_name=NULL;
+	const char *junit_file=NULL;
 	const char *env_domain=getenv("TEST_DOMAIN");
 	FILE* log_file=NULL;
 
@@ -347,6 +362,11 @@ int main (int argc, char *argv[]) {
 		} else if (strcmp(argv[i], "--root-ca") == 0) {
 			CHECK_ARG("--root-ca", ++i, argc);
 			root_ca_path = argv[i];
+		} else if (strcmp(argv[i], "--junit-file") == 0){
+			CHECK_ARG("--junit-file", ++i, argc);
+			junit_file = argv[i];
+		} else if (strcmp(argv[i], "--junit") == 0){
+			junit = 1;
 		}
 #ifdef HAVE_CU_GET_SUITE
 		else if (strcmp(argv[i],"--list-suites")==0){
@@ -384,6 +404,21 @@ int main (int argc, char *argv[]) {
 		}
 	}
 
+#ifdef HAVE_CU_CURSES
+	if( junit && curses ){
+		printf("Cannot use both junit and curses\n");
+		return -1;
+	}
+#endif
+
+	if( junit && (suite_name || test_name) ){
+		printf("Cannot use both junit and specific test suite\n");
+		return -1;
+	}
+
+	if( junit_file != NULL ){
+		belle_sip_tester_set_junit_output(junit_file);
+	}
 	belle_sip_tester_set_root_ca_path(root_ca_path);
 	ret = belle_sip_tester_run_tests(suite_name, test_name);
 	belle_sip_tester_uninit();
