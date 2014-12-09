@@ -79,7 +79,7 @@ static void audio_stream_free(AudioStream *stream) {
 
 static int dtmf_tab[16]={'0','1','2','3','4','5','6','7','8','9','*','#','A','B','C','D'};
 
-static void on_dtmf_received(RtpSession *s, int dtmf, void * user_data)
+static void on_dtmf_received(RtpSession *s, unsigned long dtmf, unsigned long dummy, void * user_data)
 {
 	AudioStream *stream=(AudioStream*)user_data;
 	if (dtmf>15){
