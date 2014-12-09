@@ -641,7 +641,7 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
 	rtp_session_signal_connect(stream->ms.sessions.rtp_session,"payload_type_changed",
-			(RtpCallback)video_stream_payload_type_changed,(unsigned long)&stream->ms);
+			(RtpCallback)video_stream_payload_type_changed,&stream->ms);
 
 	rtp_session_get_jitter_buffer_params(stream->ms.sessions.rtp_session,&jbp);
 	jbp.max_packets=1000;//needed for high resolution video
