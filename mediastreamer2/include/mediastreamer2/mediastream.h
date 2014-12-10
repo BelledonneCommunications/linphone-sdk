@@ -35,6 +35,7 @@ typedef struct srtp_ctx_t *MSSrtpCtx;
 #include <mediastreamer2/qualityindicator.h>
 #include <mediastreamer2/ice.h>
 #include <mediastreamer2/zrtp.h>
+#include <mediastreamer2/dtls_srtp.h>
 
 
 #define PAYLOAD_TYPE_FLAG_CAN_RECV	PAYLOAD_TYPE_USER_FLAG_1
@@ -102,6 +103,7 @@ struct _MSMediaStreamSessions{
 	RtpSession *rtp_session;
 	MSSrtpCtx srtp_session;
 	MSZrtpContext *zrtp_context;
+	MSDtlsSrtpContext *dtls_context;
 	MSTicker *ticker;
 	bool_t is_secured;
 };
@@ -159,6 +161,8 @@ struct _MediaStream {
 **/
 
 MS2_PUBLIC bool_t media_stream_srtp_supported(void);
+
+MS2_PUBLIC bool_t media_stream_dtls_supported(void);
 
 MS2_PUBLIC void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool);
 
@@ -563,6 +567,9 @@ MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, MSZrtpParams *para
  * return TRUE if zrtp is enabled, it does not mean that stream is encrypted, but only that zrtp is configured to know encryption status, uses #
  * */
 bool_t  audio_stream_zrtp_enabled(const AudioStream *stream);
+
+/* enable DTLS on the audio stream */
+MS2_PUBLIC void audio_stream_enable_dtls(AudioStream *stream, MSDtlsSrtpParams *params);
 
 /* enable SRTP on the audio stream */
 static MS2_INLINE bool_t audio_stream_enable_srtp(AudioStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {

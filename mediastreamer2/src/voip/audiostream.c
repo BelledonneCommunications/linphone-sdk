@@ -1356,6 +1356,11 @@ bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 	return stream->ms.sessions.zrtp_context!=NULL;
 }
 
+void audio_stream_enable_dtls(AudioStream *stream, MSDtlsSrtpParams *params){
+	if (stream->ms.sessions.dtls_context==NULL)
+		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new((MediaStream *)stream, stream->ms.sessions.rtp_session, params);
+}
+
 static void configure_av_recorder(AudioStream *stream){
 	if (stream->av_recorder.video_input && stream->av_recorder.recorder){
 		MSPinFormat pinfmt={0};

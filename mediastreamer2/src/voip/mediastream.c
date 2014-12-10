@@ -387,6 +387,10 @@ bool_t media_stream_srtp_supported(void){
 	return _ORTP_HAVE_SRTP & ortp_srtp_supported();
 }
 
+bool_t media_stream_dtls_supported(void){
+	return ms_dtls_available();
+}
+
 int media_stream_set_srtp_recv_key(MediaStream *stream, MSCryptoSuite suite, const char* key, bool_t keyisb64){
 
 	if (!media_stream_srtp_supported()) {
@@ -523,6 +527,10 @@ void media_stream_iterate(MediaStream *stream){
 			} else if (evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) {
 				OrtpEventData *evd=ortp_event_get_data(ev);
 				stream->sessions.is_secured=evd->info.zrtp_stream_encrypted;
+				ms_message("%s_stream_iterate[%p]: is %s ",media_stream_type_str(stream) , stream, stream->sessions.is_secured ? "encrypted" : "not encrypted");
+			} else if (evt == ORTP_EVENT_DTLS_ENCRYPTION_CHANGED) {
+				OrtpEventData *evd=ortp_event_get_data(ev);
+				stream->sessions.is_secured=evd->info.dtls_stream_encrypted;
 				ms_message("%s_stream_iterate[%p]: is %s ",media_stream_type_str(stream) , stream, stream->sessions.is_secured ? "encrypted" : "not encrypted");
 			}
 			ortp_event_destroy(ev);

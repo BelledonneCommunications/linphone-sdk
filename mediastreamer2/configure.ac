@@ -1029,6 +1029,66 @@ else
 fi
 AM_CONDITIONAL(LIBBZRTP,test x$zrtp != xfalse)
 
+dnl Polarssl lib is requested for DTLS
+AC_ARG_WITH( polarssl,
+      [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr, /usr/local)[default=PREFIX] ],
+      [ polarssl_prefix=${withval}],[ polarssl_prefix=${prefix} ])
+
+if test "$polarssl_prefix" != "NONE" ; then
+	POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
+	POLARSSL_LIBS="-L${polarssl_prefix}/lib"
+fi
+
+POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"
+found_polarssl=no
+
+dnl check for DTLS-SRTP support, need polarssl version >= 1.4
+AC_ARG_ENABLE(dtls,
+	[AS_HELP_STRING([--enable-dtls], [Turn on or off compilation of dtls (default=no)])],
+	[case "${enableval}" in
+		yes)	dtls=true ;;
+		no)	dtls=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-dtls) ;;
+	esac],
+	[dtls=false]
+)
+
+if test "$dtls" = "true" ; then
+	if test "$have_srtp" = "no" ; then
+		AC_MSG_ERROR("DTLS-SRTP requires SRTP")
+	fi
+
+	dnl check for polarssl presence and support for DTLS
+	CPPFLAGS_save=$CPPFLAGS
+	LIBS_save=$LIBS
+
+	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
+	LIBS="$LIBS $POLARSSL_LIBS"
+	AC_CHECK_HEADERS(polarssl/ssl.h,
+		[
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+			#include <polarssl/ssl.h>
+			]],
+			[[ssl_set_dtls_srtp_protection_profiles(0,0,0)]])]
+			,[found_polarssl=yes
+			AC_MSG_NOTICE([polarssl usable for DTLS-SRTP])]
+			,[AC_MSG_WARN([polarssl not usable for DTLS-SRTP])])
+
+		])
+	CPPFLAGS=$CPPFLAGS_save
+	LIBS=$LIBS_save
+
+	if test "x$found_polarssl" = "xyes" ; then
+		AC_DEFINE(HAVE_dtls, 1, [Defined when dtls support is compiled])
+		AC_MSG_NOTICE([polarssl usable for DTLS-SRTP])
+		CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
+		LIBS="$LIBS $POLARSSL_LIBS"
+	fi
+
+else
+	echo "DTLS-SRTP compilation is disabled."
+fi
+
 
 dnl ##################################################
 dnl # Check for doxygen
