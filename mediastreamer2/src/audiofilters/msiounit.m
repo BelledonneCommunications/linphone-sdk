@@ -263,10 +263,8 @@ static void au_uninit(MSSndCard *card){
 static void au_usage_hint(MSSndCard *card, bool_t used){
 	au_card_t *d=(au_card_t*)card->data;
 	if (!used){
-		ms_mutex_lock(&d->mutex);
 		cancel_audio_unit_timer(d);
 		stop_audio_unit(d);
-		ms_mutex_unlock(&d->mutex);
 	}
 }
 
@@ -373,6 +371,10 @@ static OSStatus au_write_cb (
 	ms_debug("render cb");
 	au_card_t* card = (au_card_t*)inRefCon;
 	ms_mutex_lock(&card->mutex);
+	if( !card->write_data ){
+		ms_mutex_unlock(&card->mutex);
+		return -1;
+	}
 	ioData->mBuffers[0].mDataByteSize=inNumberFrames*card->bits/8;
 	ioData->mNumberBuffers=1;
 
@@ -869,7 +871,7 @@ static void au_write_uninit(MSFilter *f) {
 	card->write_data=NULL;
 	ms_mutex_unlock(&card->mutex);
 
-		check_unused(card);
+	check_unused(card);
 
 	ms_mutex_destroy(&d->mutex);
 	ms_bufferizer_destroy(d->bufferizer);
