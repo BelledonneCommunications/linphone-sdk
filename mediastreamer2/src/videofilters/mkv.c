@@ -95,7 +95,7 @@ static void H264Private_uninit(H264Private *obj) {
 }
 
 static H264Private *H264Private_new(const MSList *spsList, const MSList *ppsList) {
-	H264Private *obj = (H264Private *)ms_new(H264Private, 1);
+	H264Private *obj = (H264Private *)ms_new0(H264Private, 1);
 	H264Private_init(obj, spsList, ppsList);
 	return obj;
 }
@@ -549,7 +549,7 @@ static inline void opus_codec_private_load(OpusCodecPrivate *obj, const uint8_t 
 
 // OpusModule
 static void *opus_module_new() {
-	OpusCodecPrivate *obj = ms_new(OpusCodecPrivate, 1);
+	OpusCodecPrivate *obj = ms_new0(OpusCodecPrivate, 1);
 	opus_codec_private_init(obj);
 	return obj;
 }
@@ -726,7 +726,7 @@ static inline const char *module_get_codec_id(const Module *module) {
 #define WRITE_DEFAULT_ELEMENT TRUE
 
 static const timecode_t MKV_TIMECODE_SCALE = 1000000;
-static const int MKV_DOCTYPE_VERSION = 2;
+static const int MKV_DOCTYPE_VERSION = 4;
 static const int MKV_DOCTYPE_READ_VERSION = 2;
 
 extern const nodemeta LangStr_Class[];
@@ -2064,6 +2064,14 @@ static MKVBlockGroupMaker *mkv_block_group_maker_new(MKVTrackReader *t_reader) {
 	return obj;
 }
 
+static void mkv_block_group_maker_reset(MKVBlockGroupMaker *obj) {
+	mkv_block_queue_flush(obj->queue);
+	if(obj->waiting_block) mkv_block_free(obj->waiting_block);
+	obj->waiting_block = NULL;
+	obj->prev_timestamp = -1;
+	obj->prev_min_ts = 0;
+}
+
 static void mkv_block_group_maker_free(MKVBlockGroupMaker *obj) {
 	mkv_block_queue_free(obj->queue);
 	if(obj->waiting_block) mkv_block_free(obj->waiting_block);
@@ -2077,7 +2085,7 @@ static void mkv_block_group_maker_get_next_group(MKVBlockGroupMaker *obj, MKVBlo
 		mkv_track_reader_next_block(obj->track_reader, &block, &_eot);
 		if(_eot) {
 			*eot = TRUE;
-			mkv_block_queue_push(out_queue, obj->waiting_block);
+			if(obj->waiting_block) mkv_block_queue_push(out_queue, obj->waiting_block);
 			obj->waiting_block = NULL;
 			return;
 		}
@@ -2159,11 +2167,19 @@ static void mkv_track_player_send_block(MKVTrackPlayer *obj, const MKVBlock *blo
 	}
 }
 
+static void mkv_track_player_reset(MKVTrackPlayer *obj) {
+	obj->first_frame = TRUE;
+	mkv_block_queue_flush(obj->block_queue);
+	mkv_block_group_maker_reset(obj->group_maker);
+	obj->eot = FALSE;
+}
+
 typedef struct {
 	MKVReader *reader;
 	MSPlayerState state;
 	timecode_t time;
 	MKVTrackPlayer *players[2];
+	ms_bool_t position_changed;
 } MKVPlayer;
 
 static int player_close(MSFilter *f, void *arg);
@@ -2227,7 +2243,7 @@ static int player_open_file(MSFilter *f, void *arg) {
 		}
 	}
 	if(obj->players[0] == NULL && obj->players[1] == NULL) {
-		ms_error("MKVPlayer: no tack found");
+		ms_error("MKVPlayer: no track found");
 		goto fail;
 	}
 	obj->state = MSPlayerPaused;
@@ -2247,6 +2263,14 @@ static void player_process(MSFilter *f) {
 	if(obj->state == MSPlayerPlaying) {
 		obj->time += f->ticker->interval;
 
+		if(obj->position_changed) {
+			for(i=0; i<2; i++) {
+				if(obj->players[i]) mkv_track_player_reset(obj->players[i]);
+			}
+			ms_queue_put(f->outputs[0], allocb(0, 0));
+			obj->position_changed = FALSE;
+		}
+
 		for(i=0; i<2; i++) {
 			MKVTrackPlayer *t_player = obj->players[i];
 			if(t_player && f->outputs[i]) {
@@ -2257,12 +2281,15 @@ static void player_process(MSFilter *f) {
 					MKVBlock *block;
 					while((block = mkv_block_queue_pull(t_player->block_queue))) {
 						mkv_track_player_send_block(t_player, block, f->outputs[i]);
+						mkv_block_free(block);
 					}
 					mkv_block_group_maker_get_next_group(t_player->group_maker, t_player->block_queue, &t_player->eot);
 				}
 			}
 		}
-		if((!obj->players[0] || obj->players[0]->eot) && (!obj->players[1] || obj->players[1]->eot)) {
+		if((!obj->players[0] || !f->outputs[0] || obj->players[0]->eot)
+				&& (!obj->players[1] || !f->outputs[1] || obj->players[1]->eot)) {
+
 			ms_filter_notify_no_arg(f, MS_PLAYER_EOF);
 			for(i=0; i<2; i++) {
 				if(obj->players[i]) mkv_track_reader_reset(obj->players[i]->track_reader);
@@ -2291,23 +2318,20 @@ static int player_close(MSFilter *f, void *arg) {
 }
 
 static int player_seek_ms(MSFilter *f, void *arg) {
-//	MKVPlayer *obj = (MKVPlayer *)f->data;
-//	timecode_t target_position = *((int *)arg);
-//	ms_bool_t eof;
-//	ms_filter_lock(f);
-//	if(target_position < 0 || target_position > matroska_get_duration(&obj->file)) {
-//		ms_error("MKVPlayer: cannot seek to %d ms. Poisition out of bounds", (int)target_position);
-//		goto fail;
-//	}
-//	matroska_block_go_first(&obj->file);
-//	while(matroska_block_get_timestamp(&obj->file) < target_position) {
-//		matroska_block_go_next(&obj->file, &eof);
-//	}
-//	ms_filter_unlock(f);
-//	return 0;
+	MKVPlayer *obj = (MKVPlayer *)f->data;
+	int target_position = *((int *)arg);
+	ms_filter_lock(f);
+	if(obj->state==MSPlayerClosed) {
+		ms_error("MKVPlayer: cannot seek. No file open");
+		goto fail;
+	}
+	obj->time = mkv_reader_seek(obj->reader, target_position);
+	obj->position_changed = TRUE;
+	ms_filter_unlock(f);
+	return 0;
 
-//	fail:
-//	ms_filter_unlock(f);
+	fail:
+	ms_filter_unlock(f);
 	return -1;
 }
 
@@ -2387,18 +2411,18 @@ static int player_get_duration(MSFilter *f, void *arg) {
 }
 
 static int player_get_current_position(MSFilter *f, void *arg) {
-//	MKVPlayer *obj = (MKVPlayer *)f->data;
-//	ms_filter_lock(f);
-//	if(obj->state == MSPlayerClosed) {
-//		ms_error("MKVPlayer: cannot get current duration. No file is open");
-//		goto fail;
-//	}
-//	*(int *)arg = matroska_block_get_timestamp(&obj->file);
-//	ms_filter_unlock(f);
-//	return 0;
+	MKVPlayer *obj = (MKVPlayer *)f->data;
+	ms_filter_lock(f);
+	if(obj->state == MSPlayerClosed) {
+		ms_error("MKVPlayer: cannot get current duration. No file is open");
+		goto fail;
+	}
+	*(int *)arg = obj->time;
+	ms_filter_unlock(f);
+	return 0;
 
-//	fail:
-//	ms_filter_unlock(f);
+	fail:
+	ms_filter_unlock(f);
 	return -1;
 }
 

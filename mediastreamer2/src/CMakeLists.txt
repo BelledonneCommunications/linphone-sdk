@@ -129,6 +129,7 @@ set(VOIP_SOURCE_FILES
 	audiofilters/waveheader.h
 	otherfilters/msrtp.c
 	utils/_kiss_fft_guts.h
+	utils/audiodiff.c
 	utils/dsptools.c
 	utils/g722.h
 	utils/g722_decode.c
@@ -137,18 +138,21 @@ set(VOIP_SOURCE_FILES
 	utils/kiss_fft.h
 	utils/kiss_fftr.c
 	utils/kiss_fftr.h
+	utils/stream_regulator.c
 	voip/audioconference.c
 	voip/audiostream.c
 	voip/bitratecontrol.c
 	voip/bitratedriver.c
 	voip/ice.c
 	voip/mediastream.c
+	voip/msmediaplayer.c
 	voip/msvoip.c
 	voip/private.h
 	voip/qosanalyzer.c
 	voip/qosanalyzer.h
 	voip/qualityindicator.c
 	voip/ringstream.c
+	voip/zrtp.c
 )
 
 if(ENABLE_ALSA)
@@ -182,9 +186,6 @@ if(WIN32)
 	list(APPEND VOIP_SOURCE_FILES audiofilters/winsnd3.c)
 endif()
 
-if(BZRTP_FOUND)
-	list(APPEND VOIP_SOURCE_FILES voip/zrtp.c)
-endif()
 if(GSM_FOUND)
 	list(APPEND VOIP_SOURCE_FILES audiofilters/gsm.c)
 endif()

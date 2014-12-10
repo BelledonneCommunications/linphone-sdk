@@ -75,6 +75,7 @@ LOCAL_SRC_FILES = \
 	utils/g722_decode.c \
 	utils/g722_encode.c \
 	utils/audiodiff.c \
+	utils/stream_regulator.c \
 	otherfilters/msrtp.c \
 	otherfilters/tee.c \
 	otherfilters/join.c \
@@ -178,7 +179,9 @@ LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/../../../externals/libmatroska/libmatroska2
 
 LOCAL_SRC_FILES += \
+	utils/mkv_reader.c \
 	videofilters/mkv.c
+
 
 LOCAL_STATIC_LIBRARIES += \
 	libmatroska2

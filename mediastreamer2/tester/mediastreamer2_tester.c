@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2_tester.h"
+#include "mediastreamer2_tester_private.h"
 
 #include <mediastreamer2/mediastream.h>
 #if HAVE_CONFIG_H
@@ -36,6 +37,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
+static const char* tester_fileroot = SOUND_FILE_PATH;
+static const char* tester_writable_dir= WRITE_FILE_PATH;
+
 
 
 #if HAVE_CU_CURSES
@@ -95,6 +99,23 @@ static void list_suites() {
 	}
 }
 #endif
+
+
+const char* mediastreamer2_tester_get_file_root(){
+    return tester_fileroot;
+}
+
+void mediastreamer2_tester_set_file_root(const char* fileroot){
+    tester_fileroot = fileroot;
+}
+
+const char* mediastreamer2_tester_get_writable_dir(){
+    return tester_writable_dir;
+}
+void mediastreamer2_tester_set_writable_dir(const char* writable_dir){
+    tester_writable_dir = writable_dir;
+}
+
 
 int mediastreamer2_tester_nb_test_suites(void) {
 	return nb_test_suites;

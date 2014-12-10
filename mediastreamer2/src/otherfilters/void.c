@@ -30,7 +30,7 @@ typedef struct VoidSourceState VoidSourceState;
 
 
 static void void_source_init(MSFilter *f) {
-	VoidSourceState *s = (VoidSourceState *)ms_new(VoidSourceState, 1);
+	VoidSourceState *s = ms_new0(VoidSourceState, 1);
 	s->rate = 8000;
 	s->nchannels = 1;
 	f->data = s;

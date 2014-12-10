@@ -27,9 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static MSWebCamManager *scm=NULL;
 
 static MSWebCamManager * create_manager(){
-	MSWebCamManager *obj=(MSWebCamManager *)ms_new(MSWebCamManager,1);
-	obj->cams=NULL;
-	obj->descs=NULL;
+	MSWebCamManager *obj=(MSWebCamManager *)ms_new0(MSWebCamManager,1);
 	return obj;
 }
 
@@ -99,11 +97,8 @@ void ms_web_cam_manager_reload(MSWebCamManager *m){
 }
 
 MSWebCam * ms_web_cam_new(MSWebCamDesc *desc){
-	MSWebCam *obj=(MSWebCam *)ms_new(MSWebCam,1);
+	MSWebCam *obj=(MSWebCam *)ms_new0(MSWebCam,1);
 	obj->desc=desc;
-	obj->name=NULL;
-	obj->data=NULL;
-	obj->id=NULL;
 	if (desc->init!=NULL)
 		desc->init(obj);
 	return obj;

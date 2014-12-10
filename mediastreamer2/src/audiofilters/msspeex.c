@@ -46,9 +46,9 @@ typedef struct SpeexEncState{
 } SpeexEncState;
 
 static void enc_init(MSFilter *f){
-	SpeexEncState *s=(SpeexEncState *)ms_new(SpeexEncState,1);
+	SpeexEncState *s=ms_new0(SpeexEncState,1);
 #ifdef SPEEX_LIB_SET_CPU_FEATURES
-    int cpuFeatures = 0;
+	int cpuFeatures = 0;
 #endif
 	s->rate=8000;
 	s->bitrate=-1;
@@ -66,19 +66,19 @@ static void enc_init(MSFilter *f){
 
 #ifdef SPEEX_LIB_SET_CPU_FEATURES
 #ifdef __ARM_NEON__
-        #ifdef ANDROID
-        if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM
-                && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
-                cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
-        }
-        #else
-        cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
-        #endif
+	#ifdef ANDROID
+	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM
+		&& (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
+		cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
+	}
+	#else
+	cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
+	#endif
 #endif
-        ms_message("speex_lib_ctl init with neon ? %d", (cpuFeatures == SPEEX_LIB_CPU_FEATURE_NEON));
-        speex_lib_ctl(SPEEX_LIB_SET_CPU_FEATURES, &cpuFeatures);
+	ms_message("speex_lib_ctl init with neon ? %d", (cpuFeatures == SPEEX_LIB_CPU_FEATURE_NEON));
+	speex_lib_ctl(SPEEX_LIB_SET_CPU_FEATURES, &cpuFeatures);
 #else
-        ms_message("speex_lib_ctl does not support SPEEX_LIB_CPU_FEATURE_NEON");
+	ms_message("speex_lib_ctl does not support SPEEX_LIB_CPU_FEATURE_NEON");
 #endif
 }
 
@@ -481,7 +481,7 @@ typedef struct DecState{
 } DecState;
 
 static void dec_init(MSFilter *f){
-	DecState *s=(DecState *)ms_new(DecState,1);
+	DecState *s=ms_new0(DecState,1);
 	s->rate=8000;
 	s->frsz=0;
 	s->state=NULL;
@@ -494,9 +494,7 @@ static void dec_init(MSFilter *f){
 
 static void dec_uninit(MSFilter *f){
 	DecState *s=(DecState*)f->data;
-    if (s==NULL)
-		return;
-    if (s->state!=NULL)
+	if (s->state!=NULL)
 		speex_decoder_destroy(s->state);
 	ms_free(s);
 }

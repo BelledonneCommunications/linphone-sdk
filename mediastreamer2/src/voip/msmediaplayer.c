@@ -21,27 +21,21 @@
 
 #define ms_free_if_not_null(obj) if(obj != NULL) ms_free(obj)
 
-typedef enum _FileFormat {
-	FILE_FORMAT_UNKNOWN,
-	FILE_FORMAT_WAVE,
-	FILE_FORMAT_MATROSKA
-} FileFormat;
-
 typedef uint8_t FourCC[4];
 
 typedef struct _FormatDesc {
-	FileFormat format;
+	MSFileFormat format;
 	FourCC four_cc;
 } FormatDesc;
 
 static const FormatDesc _format_desc_list[] = {
-	{	FILE_FORMAT_WAVE		,	{ 'R', 'I', 'F', 'F' }		},
-	{	FILE_FORMAT_MATROSKA	,	{ 0x1a, 0x45, 0xdf, 0xa3 }	},
-	{	FILE_FORMAT_UNKNOWN		,	{ 0x0, 0x0, 0x0, 0x0 }		},
+	{	MS_FILE_FORMAT_WAVE		,	{ 'R', 'I', 'F', 'F' }		},
+	{	MS_FILE_FORMAT_MATROSKA	,	{ 0x1a, 0x45, 0xdf, 0xa3 }	},
+	{	MS_FILE_FORMAT_UNKNOWN		,	{ 0x0, 0x0, 0x0, 0x0 }		},
 };
 
 static bool_t four_cc_compare(const FourCC arg1, const FourCC arg2);
-static FileFormat four_cc_to_file_format(const FourCC four_cc);
+static MSFileFormat four_cc_to_file_format(const FourCC four_cc);
 
 struct _MSMediaPlayer {
 	MSFilter *player;
@@ -53,7 +47,7 @@ struct _MSMediaPlayer {
 	MSPinFormat audio_pin_fmt;
 	MSPinFormat video_pin_fmt;
 	MSTicker *ticker;
-	FileFormat format;
+	MSFileFormat format;
 	bool_t is_open;
 	char *filename;
 	MSMediaPlayerEofCallback eof_cb;
@@ -64,7 +58,7 @@ struct _MSMediaPlayer {
 	unsigned long window_id;
 };
 
-static bool_t _get_format(const char *filepath, FileFormat *format);
+static bool_t _get_format(const char *filepath, MSFileFormat *format);
 static void _create_decoders(MSMediaPlayer *obj);
 static void _create_sinks(MSMediaPlayer *obj);
 static void _destroy_graph(MSMediaPlayer *obj);
@@ -79,14 +73,14 @@ static bool_t four_cc_compare(const FourCC arg1, const FourCC arg2) {
 			&& arg1[3] == arg2[3];
 }
 
-static FileFormat four_cc_to_file_format(const FourCC four_cc) {
+static MSFileFormat four_cc_to_file_format(const FourCC four_cc) {
 	int i;
-	for(i=0; _format_desc_list[i].format != FILE_FORMAT_UNKNOWN; i++) {
+	for(i=0; _format_desc_list[i].format != MS_FILE_FORMAT_UNKNOWN; i++) {
 		if(four_cc_compare(four_cc, _format_desc_list[i].four_cc)) {
 			return _format_desc_list[i].format;
 		}
 	}
-	return FILE_FORMAT_UNKNOWN;
+	return MS_FILE_FORMAT_UNKNOWN;
 }
 
 MSMediaPlayer *ms_media_player_new(MSSndCard *snd_card, const char *video_display_name, unsigned long window_id) {
@@ -126,7 +120,7 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 		return FALSE;
 	}
 	switch(obj->format) {
-	case FILE_FORMAT_WAVE:
+	case MS_FILE_FORMAT_WAVE:
 		fd = open(filepath, O_RDONLY);
 		if(fd == -1) {
 			ms_error("Cannot open %s", filepath);
@@ -143,13 +137,13 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 		}
 		obj->player = ms_filter_new(MS_FILE_PLAYER_ID);
 		break;
-	case FILE_FORMAT_MATROSKA:
+	case MS_FILE_FORMAT_MATROSKA:
 		if((obj->player = ms_filter_new(MS_MKV_PLAYER_ID)) == NULL) {
 			ms_error("Cannot open %s. Matroska file support is disabled", filepath);
 			return FALSE;
 		}
 		break;
-	case FILE_FORMAT_UNKNOWN:
+	case MS_FILE_FORMAT_UNKNOWN:
 		ms_error("Cannot open %s. Unknown format", filepath);
 		return FALSE;
 	}
@@ -271,20 +265,24 @@ bool_t ms_media_player_matroska_supported(void) {
 #endif
 }
 
+MSFileFormat ms_media_player_get_file_format(const MSMediaPlayer *obj) {
+	return obj->format;
+}
+
 /* Private functions */
-static bool_t _get_format(const char *filepath, FileFormat *format) {
+static bool_t _get_format(const char *filepath, MSFileFormat *format) {
 	FourCC four_cc;
 	size_t data_read;
 	FILE *file = fopen(filepath, "r");
 	if(file == NULL) {
 		ms_error("Cannot open %s", filepath);
-		*format = FILE_FORMAT_UNKNOWN;
+		*format = MS_FILE_FORMAT_UNKNOWN;
 		return FALSE;
 	}
 	data_read = fread(four_cc, 4, 1, file);
 	fclose(file);
 	if(data_read < 1) {
-		*format = FILE_FORMAT_UNKNOWN;
+		*format = MS_FILE_FORMAT_UNKNOWN;
 		return FALSE;
 	}
 	*format = four_cc_to_file_format(four_cc);
@@ -294,13 +292,13 @@ static bool_t _get_format(const char *filepath, FileFormat *format) {
 static void _create_decoders(MSMediaPlayer *obj) {
 	int sample_rate, nchannels;
 	switch(obj->format) {
-	case FILE_FORMAT_WAVE:
+	case MS_FILE_FORMAT_WAVE:
 		ms_filter_call_method(obj->player, MS_FILTER_GET_SAMPLE_RATE, &sample_rate);
 		ms_filter_call_method(obj->player, MS_FILTER_GET_NCHANNELS, &nchannels);
 		obj->audio_pin_fmt.pin = 0;
 		obj->audio_pin_fmt.fmt = ms_factory_get_audio_format(ms_factory_get_fallback(), "pcm", sample_rate, nchannels, NULL);
 		break;
-	case FILE_FORMAT_MATROSKA:
+	case MS_FILE_FORMAT_MATROSKA:
 		obj->audio_pin_fmt.pin = 1;
 		obj->video_pin_fmt.pin = 0;
 		ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &obj->audio_pin_fmt);
@@ -310,11 +308,12 @@ static void _create_decoders(MSMediaPlayer *obj) {
 			if(obj->audio_decoder == NULL) {
 				ms_error("Could not create audio decoder for %s", obj->audio_pin_fmt.fmt->encoding);
 				obj->audio_pin_fmt.fmt = NULL;
+			} else {
+				sample_rate = obj->audio_pin_fmt.fmt->rate;
+				nchannels = obj->audio_pin_fmt.fmt->nchannels;
+				ms_filter_call_method(obj->audio_decoder, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+				ms_filter_call_method(obj->audio_decoder, MS_FILTER_SET_NCHANNELS, &nchannels);
 			}
-			sample_rate = obj->audio_pin_fmt.fmt->rate;
-			nchannels = obj->audio_pin_fmt.fmt->nchannels;
-			ms_filter_call_method(obj->audio_decoder, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
-			ms_filter_call_method(obj->audio_decoder, MS_FILTER_SET_NCHANNELS, &nchannels);
 		}
 		if(obj->video_pin_fmt.fmt) {
 			obj->video_decoder = ms_factory_create_decoder(ms_factory_get_fallback(), obj->video_pin_fmt.fmt->encoding);

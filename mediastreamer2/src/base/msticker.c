@@ -80,7 +80,7 @@ MSTicker *ms_ticker_new(){
 }
 
 MSTicker *ms_ticker_new_with_params(const MSTickerParams *params){
-	MSTicker *obj=(MSTicker *)ms_new(MSTicker,1);
+	MSTicker *obj=(MSTicker *)ms_new0(MSTicker,1);
 	ms_ticker_init(obj,params);
 	return obj;
 }
@@ -574,7 +574,7 @@ static uint64_t get_wallclock_ms(void){
 static const double clock_coef = .01;
 
 MSTickerSynchronizer* ms_ticker_synchronizer_new(void) {
-	MSTickerSynchronizer *obj=(MSTickerSynchronizer *)ms_new(MSTickerSynchronizer,1);
+	MSTickerSynchronizer *obj=(MSTickerSynchronizer *)ms_new0(MSTickerSynchronizer,1);
 	obj->av_skew = 0;
 	obj->offset = 0;
 	return obj;

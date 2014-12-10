@@ -197,12 +197,15 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	rtp_session_destroy(rtps);
 }
 
-#define DTMFGEN_FILE_NAME WRITE_FILE_PATH "dtmfgen_file.raw"
+#define DTMFGEN_FILE_NAME  "dtmfgen_file.raw"
 
 static void dtmfgen_filerec_fileplay_tonedet(void) {
 	MSConnectionHelper h;
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_FILEREC
 		| FILTER_MASK_FILEPLAY | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
+
+    char* recorded_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), DTMFGEN_FILE_NAME);
+
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
@@ -211,7 +214,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 
 	// Generate tones and save them to a file
 	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_CLOSE);
-	ms_filter_call_method(ms_tester_filerec, MS_FILE_REC_OPEN, DTMFGEN_FILE_NAME);
+	ms_filter_call_method(ms_tester_filerec, MS_FILE_REC_OPEN, recorded_file);
 	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_START);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_voidsource, -1, 0);
@@ -228,7 +231,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 
 	// Read the previous file and detect the tones
 	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
-	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, DTMFGEN_FILE_NAME);
+	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, recorded_file);
 	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_START);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_fileplay, -1, 0);
@@ -245,7 +248,8 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	ms_filter_log_statistics();
 	ms_tester_destroy_filters(filter_mask);
 	ms_tester_destroy_ticker();
-	unlink(DTMFGEN_FILE_NAME);
+	unlink(recorded_file);
+    ms_free(recorded_file);
 }
 
 

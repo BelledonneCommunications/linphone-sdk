@@ -37,7 +37,7 @@ typedef struct PixConvState{
 }PixConvState;
 
 static void pixconv_init(MSFilter *f){
-	PixConvState *s=(PixConvState *)ms_new(PixConvState,1);
+	PixConvState *s=ms_new0(PixConvState,1);
 	s->yuv_msg=NULL;
 	s->size.width = MS_VIDEO_SIZE_CIF_W;
 	s->size.height = MS_VIDEO_SIZE_CIF_H;

@@ -38,7 +38,7 @@ typedef struct _MireData{
 }MireData;
 
 void mire_init(MSFilter *f){
-	MireData *d=(MireData*)ms_new(MireData,1);
+	MireData *d=ms_new0(MireData,1);
 	d->vsize.width=MS_VIDEO_SIZE_CIF_W;
 	d->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	d->fps=15;

@@ -42,7 +42,7 @@ typedef struct _ResampleData{
 } ResampleData;
 
 static ResampleData * resample_data_new(){
-	ResampleData *obj=(ResampleData *)ms_new(ResampleData,1);
+	ResampleData *obj=ms_new0(ResampleData,1);
 	obj->bz=ms_bufferizer_new();
 	obj->ts=0;
 	obj->input_rate=8000;

@@ -65,10 +65,10 @@ static int tester_cleanup(void) {
 #define MARGAUX_RTCP_PORT 9865
 #define MARGAUX_IP "127.0.0.1"
 
-#define HELLO_8K_1S_FILE SOUND_FILE_PATH "hello8000-1s.wav"
-#define HELLO_16K_1S_FILE SOUND_FILE_PATH "hello16000-1s.wav"
-#define RECORDED_8K_1S_FILE WRITE_FILE_PATH "recorded_hello8000-1s.wav"
-#define RECORDED_16K_1S_FILE WRITE_FILE_PATH "recorded_hello16000-1s.wav"
+#define HELLO_8K_1S_FILE  "sounds/hello8000-1s.wav"
+#define HELLO_16K_1S_FILE  "sounds/hello16000-1s.wav"
+#define RECORDED_8K_1S_FILE  "sounds/recorded_hello8000-1s.wav"
+#define RECORDED_16K_1S_FILE  "sounds/recorded_hello16000-1s.wav"
 
 
 typedef struct _stats_t {
@@ -101,11 +101,15 @@ static void basic_audio_stream() {
 	AudioStream * 	margaux = audio_stream_new (MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE);
 	stats_t margaux_stats;
 	RtpProfile* profile = rtp_profile_new("default profile");
+    char* hello_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), HELLO_8K_1S_FILE);
+    char* recorded_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), RECORDED_8K_1S_FILE);
 
 	reset_stats(&marielle_stats);
 	reset_stats(&margaux_stats);
 
 	rtp_profile_set_payload (profile,0,&payload_type_pcmu8000);
+
+
 
 	CU_ASSERT_EQUAL(audio_stream_start_full(margaux
 											, profile
@@ -116,7 +120,7 @@ static void basic_audio_stream() {
 											, 0
 											, 50
 											, NULL
-											, RECORDED_8K_1S_FILE
+											, recorded_file
 											, NULL
 											, NULL
 											, 0),0);
@@ -129,7 +133,7 @@ static void basic_audio_stream() {
 											, MARGAUX_RTCP_PORT
 											, 0
 											, 50
-											, HELLO_8K_1S_FILE
+											, hello_file
 											, NULL
 											, NULL
 											, NULL
@@ -148,7 +152,9 @@ static void basic_audio_stream() {
 	audio_stream_stop(marielle);
 	audio_stream_stop(margaux);
 
-	unlink(RECORDED_8K_1S_FILE);
+	unlink(recorded_file);
+    ms_free(recorded_file);
+    ms_free(hello_file);
 }
 
 #if 0

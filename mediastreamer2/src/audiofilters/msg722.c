@@ -41,7 +41,7 @@ struct EncState {
 
 static void enc_init(MSFilter *f)
 {
-	struct EncState *s=(struct EncState*)ms_new(struct EncState,1);
+	struct EncState *s=ms_new0(struct EncState,1);
 	s->state = g722_encode_init(NULL, 64000, 0);
 	s->ts=0;
 	s->bufferizer=ms_bufferizer_new();
@@ -184,7 +184,7 @@ struct DecState {
 };
 
 static void dec_init(MSFilter *f){
-	struct DecState *s=(struct DecState*)ms_new(struct DecState,1);
+	struct DecState *s=ms_new0(struct DecState,1);
 	f->data=s;
 
 	s->state = g722_decode_init(NULL, 64000, 0);

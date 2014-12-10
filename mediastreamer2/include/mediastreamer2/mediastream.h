@@ -256,6 +256,20 @@ MS2_PUBLIC float media_stream_get_up_bw(const MediaStream *stream);
 MS2_PUBLIC float media_stream_get_down_bw(const MediaStream *stream);
 
 /**
+ * get current stream rtcp upload bitrate. Value is updated every seconds
+ * @param stream
+ * @return bitrate in bit per seconds
+ * */
+MS2_PUBLIC float media_stream_get_rtcp_up_bw(const MediaStream *stream);
+
+/**
+ * get current stream rtcp download bitrate. Value is updated every seconds
+ * @param stream
+ * @return bitrate in bit per seconds
+ * */
+MS2_PUBLIC float media_stream_get_rtcp_down_bw(const MediaStream *stream);
+
+/**
  * Returns the sessions that were used in the media stream (RTP, SRTP, ZRTP...) so that they can be re-used.
  * As a result of calling this function, the media stream no longer owns the sessions and thus will not free them.
 **/
@@ -852,6 +866,7 @@ MS2_PUBLIC VideoPreview * video_preview_new(void);
 #define video_preview_set_fps(p,fps)			video_stream_set_fps((VideoStream*)p,fps)
 #define video_preview_set_device_rotation(p, r) video_stream_set_device_rotation(p, r)
 MS2_PUBLIC void video_preview_start(VideoPreview *stream, MSWebCam *device);
+MS2_PUBLIC MSVideoSize video_preview_get_current_size(VideoPreview *stream);
 MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
 
 /**

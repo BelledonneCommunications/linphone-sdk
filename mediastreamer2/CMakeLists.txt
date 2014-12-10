@@ -234,6 +234,7 @@ endif()
 
 include_directories(
 	include/
+	src/audiofilters/
 	src/utils/
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src/
@@ -337,6 +338,7 @@ if(APPLE)
 	if(ENABLE_MACSND)
 		list(APPEND APPLE_SPECIFIC_LINK_FLAGS "-framework Carbon" "-framework AudioUnit" "-framework CoreAudio -framework CoreServices")
 	endif()
+	set(PLUGINS_EXT ".dylib")
 endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mediastreamer-config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/mediastreamer-config.h)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/mediastreamer-config.h PROPERTIES GENERATED ON)

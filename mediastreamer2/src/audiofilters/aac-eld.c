@@ -472,7 +472,7 @@ static void enc_update_bitrate( struct EncState* s, int new_bitrate){
             ms_warning("Could not set bitrate for AAC encoder (%x), reverting to default encoder bitRate: %d", ( unsigned int)status, (int)currentBitRate);
             dataSize = sizeof ( outputBitrate );
             status = AudioConverterSetProperty ( s->audioConverter, kAudioConverterEncodeBitRate, dataSize, &currentBitRate );
-            ms_debug("set kAudioConverterEncodeBitRate to %d -> %x", (unsigned int)outBitRate, (unsigned int)status);
+            ms_debug("set kAudioConverterEncodeBitRate to %d -> %x", (unsigned int)currentBitRate, (unsigned int)status);
         } else {
             ms_message("AAC target bitrate changed from %d to %d", (unsigned int)currentBitRate, s->bitRate);
         }

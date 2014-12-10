@@ -43,7 +43,7 @@ typedef struct SizeConvState{
 For now it only supports QCIF->CIF, QVGA->CIF and CIF->CIF (does nothing in this case)*/
 
 static void size_conv_init(MSFilter *f){
-	SizeConvState *s=(SizeConvState *)ms_new(SizeConvState,1);
+	SizeConvState *s=ms_new0(SizeConvState,1);
 	s->target_vsize.width = MS_VIDEO_SIZE_CIF_W;
 	s->target_vsize.height = MS_VIDEO_SIZE_CIF_H;
 	s->in_vsize.width=0;

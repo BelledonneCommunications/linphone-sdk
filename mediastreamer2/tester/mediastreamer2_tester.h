@@ -70,6 +70,12 @@ extern void mediastreamer2_tester_init(void);
 extern void mediastreamer2_tester_uninit(void);
 extern int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_name);
 
+extern const char* mediastreamer2_tester_get_file_root();
+/* without / at the end */
+extern void mediastreamer2_tester_set_file_root(const char* fileroot);
+extern const char* mediastreamer2_tester_get_writable_dir();
+extern void mediastreamer2_tester_set_writable_dir(const char* writable_dir);
+
 #if TARGET_OS_MAC || TARGET_OS_IPHONE
     int apple_main(int argc, char *argv[]);
 #endif

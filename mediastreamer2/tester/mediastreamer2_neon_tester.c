@@ -207,10 +207,8 @@ static void inner_product_test(void) {
         test_sample2[i] = ortp_random() % 16384;
     }
 
-    if( (libspeex_cpu_features & SPEEX_LIB_CPU_FEATURE_NEON) != SPEEX_LIB_CPU_FEATURE_NEON){
-        ms_error("Can't test NEON features, skipping");
-        return;
-    }
+    // ARM_NEON is enabled, we can force libspeex to use it
+    libspeex_cpu_features = SPEEX_LIB_CPU_FEATURE_NEON;
 
     // disable neon & perform inner product
     libspeex_cpu_features &= ~SPEEX_LIB_CPU_FEATURE_NEON;
@@ -245,8 +243,9 @@ static void inner_product_test(void) {
     // we expect the result to be very similar and at least 5 times faster with NEON
     CU_ASSERT(percent_off < 1.0);
     CU_ASSERT(fast_enough);
+    ms_message("NEON = %llu ms, SOFT: %llu ms", neon_ms, soft_ms);
     if( !fast_enough ){
-        ms_error("NEON not fast enough it seems: NEON = %llu ms, SOFT: %llu ms", neon_ms, soft_ms);
+        ms_error("NEON not fast enough it seems");
     }
 
 

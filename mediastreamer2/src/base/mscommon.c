@@ -62,8 +62,7 @@ void ms_set_cpu_count(unsigned int c) {
 }
 
 MSList *ms_list_new(void *data){
-	MSList *new_elem=(MSList *)ms_new(MSList,1);
-	new_elem->prev=new_elem->next=NULL;
+	MSList *new_elem=(MSList *)ms_new0(MSList,1);
 	new_elem->data=data;
 	return new_elem;
 }
@@ -402,7 +401,7 @@ unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* o
 }
 
 MSConcealerContext* ms_concealer_context_new(unsigned int max_plc_time){
-	MSConcealerContext *obj=(MSConcealerContext *) ms_new(MSConcealerContext,1);
+	MSConcealerContext *obj=(MSConcealerContext *) ms_new0(MSConcealerContext,1);
 	obj->sample_time=-1;
 	obj->plc_start_time=-1;
 	obj->total_number_for_plc=0;
@@ -463,7 +462,7 @@ unsigned long ms_concealer_ts_context_get_total_number_of_plc(MSConcealerTsConte
 }
 
 MSConcealerTsContext* ms_concealer_ts_context_new(unsigned int max_plc_ts){
-	MSConcealerTsContext *obj=(MSConcealerTsContext *) ms_new(MSConcealerTsContext,1);
+	MSConcealerTsContext *obj=(MSConcealerTsContext *) ms_new0(MSConcealerTsContext,1);
 	obj->sample_ts=-1;
 	obj->plc_start_ts=-1;
 	obj->total_number_for_plc=0;

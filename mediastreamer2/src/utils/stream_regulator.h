@@ -23,12 +23,46 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ortp/str_utils.h"
 #include "mediastreamer2/msticker.h"
 
+/**
+ * @brief MSStreamRegulator aims to synchronise a stream of mblk_t with a ticker
+ */
 typedef struct _MSStreamRegulator MSStreamRegulator;
 
+/**
+ * @brief Create an MSStreamRegulator
+ * @param ticker Ticker which will be used to synchronise the mblkt
+ * @param clock_rate Clock rate used to encode timestamp in the mblk_t
+ * @return The pointer on the created MSStreamRegulator
+ */
 extern MSStreamRegulator *ms_stream_regulator_new(MSTicker *ticker, int64_t clock_rate);
+
+/**
+ * @brief Destroy an MSStreamRegulator
+ * @param obj Stream regulator to destroy
+ */
 extern void ms_stream_regulator_free(MSStreamRegulator *obj);
+
+/**
+ * @brief Put an mblk_t buffer in the waiting queue of the stream regulator
+ * @param obj MSStreamRegulator
+ * @param pkt Buffer to store
+ */
 extern void ms_stream_regulator_push(MSStreamRegulator *obj, mblk_t *pkt);
+
+/**
+ * @brief Get the next waiting buffer.
+ * If the timestamp of the next buffer is greater than ticker time, the buffer is unqueued
+ * and the function return a pointer on it. Else, no buffer is unqueued and NULL is returned
+ * @param obj MSStreamRegulator
+ * @return Pointer on the unqueued buffer
+ */
 extern mblk_t *ms_stream_regulator_get(MSStreamRegulator *obj);
+
+/**
+ * @brief Reset the stream regulator
+ * All waiting buffer are destroyed
+ * @param obj MSStreamRegulator
+ */
 extern void ms_stream_regulator_reset(MSStreamRegulator *obj);
 
 #endif

@@ -223,7 +223,7 @@ static const MSVideoConfiguration * get_vconf_list(EncState *s) {
 
 static void enc_init(MSFilter *f, enum CodecID codec)
 {
-	EncState *s=(EncState *)ms_new(EncState,1);
+	EncState *s=ms_new0(EncState,1);
 	f->data=s;
 	ms_ffmpeg_check_init();
 	s->profile=0;/*always default to profile 0*/

@@ -182,7 +182,7 @@ static SoundDeviceDescription *lookup_by_platform(const char *platform) {
 }
 
 void ms_sound_device_description_add(const char *manufacturer, const char *model, const char *platform, unsigned int flags, int delay, int recommended_rate) {
-	SoundDeviceDescription *new_sound_device_description = ms_new(SoundDeviceDescription, 1);
+	SoundDeviceDescription *new_sound_device_description = ms_new0(SoundDeviceDescription, 1);
 	new_sound_device_description->manufacturer = ms_strdup(manufacturer);
 	new_sound_device_description->model = ms_strdup(model);
 	new_sound_device_description->platform = ms_strdup(platform);

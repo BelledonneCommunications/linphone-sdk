@@ -104,6 +104,7 @@ typedef struct EncState {
 #define MIN_KEY_FRAME_DIST 4 /*since one i-frame is allowed to be 4 times bigger of the target bitrate*/
 
 static bool_t should_generate_key_frame(EncState *s, int min_interval);
+static void enc_reset_frames_state(EncState *s);
 
 static void enc_init(MSFilter *f) {
 	EncState *s = (EncState *)ms_new0(EncState, 1);
@@ -123,6 +124,7 @@ static void enc_init(MSFilter *f) {
 	s->picture_id = ortp_random() & 0x007F;
 #endif
 	s->avpf_enabled = FALSE;
+	enc_reset_frames_state(s);
 	f->data = s;
 }
 
@@ -163,7 +165,6 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
 	if (s->avpf_enabled == TRUE) {
 		s->cfg.kf_mode = VPX_KF_DISABLED;
-		enc_reset_frames_state(s);
 	} else {
 		s->cfg.kf_mode = VPX_KF_AUTO; /* encoder automatically places keyframes */
 		s->cfg.kf_max_dist = 10 * s->cfg.g_timebase.den; /* 1 keyframe each 10s. */

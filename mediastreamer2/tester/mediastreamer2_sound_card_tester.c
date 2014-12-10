@@ -108,14 +108,14 @@ static void dtmfgen_soundwrite(void) {
 	ms_tester_destroy_ticker();
 }
 
-#define CHIMES_48000_STEREO_FILE_NAME		SOUND_FILE_PATH "chimes_48000_stereo.wav"
-#define BIRD_44100_STEREO_FILE_NAME			SOUND_FILE_PATH "bird_44100_stereo.wav"
-#define PUNCH_16000_STEREO_FILE_NAME		SOUND_FILE_PATH "punch_16000_stereo.wav"
-#define PIANO_8000_STEREO_FILE_NAME			SOUND_FILE_PATH "piano_8000_stereo.wav"
-#define NYLON_48000_MONO_FILE_NAME			SOUND_FILE_PATH "nylon_48000_mono.wav"
-#define OWL_44100_MONO_FILE_NAME			SOUND_FILE_PATH "owl_44100_mono.wav"
-#define LASERROCKET_16000_MONO_FILE_NAME	SOUND_FILE_PATH "laserrocket_16000_mono.wav"
-#define ARPEGGIO_8000_MONO_FILE_NAME		SOUND_FILE_PATH "arpeggio_8000_mono.wav"
+#define CHIMES_48000_STEREO_FILE_NAME		"sounds/chimes_48000_stereo.wav"
+#define BIRD_44100_STEREO_FILE_NAME			"sounds/bird_44100_stereo.wav"
+#define PUNCH_16000_STEREO_FILE_NAME		"sounds/punch_16000_stereo.wav"
+#define PIANO_8000_STEREO_FILE_NAME			"sounds/piano_8000_stereo.wav"
+#define NYLON_48000_MONO_FILE_NAME			"sounds/nylon_48000_mono.wav"
+#define OWL_44100_MONO_FILE_NAME			"sounds/owl_44100_mono.wav"
+#define LASERROCKET_16000_MONO_FILE_NAME	"sounds/laserrocket_16000_mono.wav"
+#define ARPEGGIO_8000_MONO_FILE_NAME		"sounds/arpeggio_8000_mono.wav"
 
 static void fileplay_eof(void *user_data, MSFilter *f, unsigned int event, void *event_data) {
 	if (event == MS_FILE_PLAYER_EOF) {
@@ -132,6 +132,7 @@ static void fileplay_soundwrite(const char *filename) {
 	int sample_rate = 8000;
 	int nchannels = 1;
 	int done = FALSE;
+    int elapsed = 0;
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
@@ -164,7 +165,9 @@ static void fileplay_soundwrite(const char *filename) {
 	ms_connection_helper_link(&h, ms_tester_soundwrite, 0, -1);
 	ms_ticker_attach(ms_tester_ticker, ms_tester_fileplay);
 
-	while (done != TRUE) {
+
+	while (done != TRUE && elapsed < 6000) {
+        elapsed++;
 		ms_usleep(10000);
 	}
 
@@ -184,36 +187,42 @@ static void fileplay_soundwrite(const char *filename) {
 	ms_tester_destroy_ticker();
 }
 
+static void fileplay_soundwrite_from_file(const char *filepath){
+    char* file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), filepath);
+    fileplay_soundwrite(file);
+    ms_free(file);
+}
+
 static void fileplay_soundwrite_48000_stereo(void) {
-	fileplay_soundwrite(CHIMES_48000_STEREO_FILE_NAME);
+	fileplay_soundwrite_from_file(CHIMES_48000_STEREO_FILE_NAME);
 }
 
 static void fileplay_soundwrite_44100_stereo(void) {
-	fileplay_soundwrite(BIRD_44100_STEREO_FILE_NAME);
+	fileplay_soundwrite_from_file(BIRD_44100_STEREO_FILE_NAME);
 }
 
 static void fileplay_soundwrite_16000_stereo(void) {
-	fileplay_soundwrite(PUNCH_16000_STEREO_FILE_NAME);
+	fileplay_soundwrite_from_file(PUNCH_16000_STEREO_FILE_NAME);
 }
 
 static void fileplay_soundwrite_8000_stereo(void) {
-	fileplay_soundwrite(PIANO_8000_STEREO_FILE_NAME);
+	fileplay_soundwrite_from_file(PIANO_8000_STEREO_FILE_NAME);
 }
 
 static void fileplay_soundwrite_48000_mono(void) {
-	fileplay_soundwrite(NYLON_48000_MONO_FILE_NAME);
+	fileplay_soundwrite_from_file(NYLON_48000_MONO_FILE_NAME);
 }
 
 static void fileplay_soundwrite_44100_mono(void) {
-	fileplay_soundwrite(OWL_44100_MONO_FILE_NAME);
+	fileplay_soundwrite_from_file(OWL_44100_MONO_FILE_NAME);
 }
 
 static void fileplay_soundwrite_16000_mono(void) {
-	fileplay_soundwrite(LASERROCKET_16000_MONO_FILE_NAME);
+	fileplay_soundwrite_from_file(LASERROCKET_16000_MONO_FILE_NAME);
 }
 
 static void fileplay_soundwrite_8000_mono(void) {
-	fileplay_soundwrite(ARPEGGIO_8000_MONO_FILE_NAME);
+	fileplay_soundwrite_from_file(ARPEGGIO_8000_MONO_FILE_NAME);
 }
 
 static void soundread_soundwrite(void) {
@@ -347,7 +356,7 @@ static void soundread_speexenc_speexdec_soundwrite(void) {
 	ms_tester_destroy_ticker();
 }
 
-#define SOUNDREAD_FILE_NAME WRITE_FILE_PATH "soundread_file.raw"
+#define SOUNDREAD_FILE_NAME "soundread_file.raw"
 
 static void soundread_filerec_fileplay_soundwrite(void) {
 	MSConnectionHelper h;
@@ -356,6 +365,7 @@ static void soundread_filerec_fileplay_soundwrite(void) {
 	int playback_sample_rate = 8000;
 	int capture_nchannels = 1;
 	int playback_nchannels = 1;
+    char *writable_filename = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), SOUNDREAD_FILE_NAME);
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
@@ -367,7 +377,7 @@ static void soundread_filerec_fileplay_soundwrite(void) {
 	ms_filter_call_method(ms_tester_filerec, MS_FILTER_SET_SAMPLE_RATE, &capture_sample_rate);
 	ms_filter_call_method(ms_tester_filerec, MS_FILTER_SET_NCHANNELS, &capture_nchannels);
 	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_CLOSE);
-	ms_filter_call_method(ms_tester_filerec, MS_FILE_REC_OPEN, SOUNDREAD_FILE_NAME);
+	ms_filter_call_method(ms_tester_filerec, MS_FILE_REC_OPEN, writable_filename);
 	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_START);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_soundread, -1, 0);
@@ -389,7 +399,7 @@ static void soundread_filerec_fileplay_soundwrite(void) {
 		ms_tester_create_filter(&ms_tester_resampler, MS_RESAMPLE_ID);
 	}
 	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
-	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, SOUNDREAD_FILE_NAME);
+	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, writable_filename);
 	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_START);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_fileplay, -1, 0);
@@ -417,7 +427,8 @@ static void soundread_filerec_fileplay_soundwrite(void) {
 	ms_tester_destroy_filters(filter_mask);
 	ms_tester_destroy_ticker();
 
-	unlink(SOUNDREAD_FILE_NAME);
+	unlink(writable_filename);
+    ms_free(writable_filename);
 }
 
 

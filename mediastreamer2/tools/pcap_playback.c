@@ -52,6 +52,7 @@ static int cond = 1;
 typedef struct _MediastreamDatas {
 	int payload;
 	bool_t is_verbose;
+	bool_t avpf;
 	char *playback_card;
 	char *infile;
 	PayloadType *pt;
@@ -79,6 +80,7 @@ static void stop_handler(int signum);
 
 const char *usage = "pcap_playback --infile <pcapfile>\n"
                     "--payload <payload type number or payload name like 'audio/pmcu/8000'>\n"
+		    "--avpf [assume RTP/AVPF profile]\n"
                     "[ --playback-card <name> ]\n"
                     "[ --verbose (most verbose messages) ]\n"
                     ;
@@ -152,6 +154,8 @@ static bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
 		} else if (strcmp(argv[i], "--help") == 0) {
 			printf("%s", usage);
 			return FALSE;
+		}else if (strcmp(argv[i],"--avpf")==0){
+			out->avpf=TRUE;
 		}
 	}
 	return TRUE;
@@ -162,6 +166,25 @@ static void reader_notify_cb(void *user_data, MSFilter *f, unsigned int event, v
 {
 	if (event == MS_FILE_PLAYER_EOF) {
 		cond = 0;
+	}
+}
+
+static void video_decoder_callback(void *user_data, MSFilter *f, unsigned int event, void *eventdata){
+	MSVideoCodecRPSI *rpsi;
+	uint16_t picture_id=0;
+	switch(event){
+		case MS_VIDEO_DECODER_SEND_RPSI:
+			rpsi=(MSVideoCodecRPSI*)eventdata;
+			if (rpsi->bit_string_len == 8) {
+				picture_id = *((uint8_t *)rpsi->bit_string);
+			} else if (rpsi->bit_string_len == 16) {
+				picture_id = ntohs(*((uint16_t *)rpsi->bit_string));
+			}
+			ms_message("Decoder would like to send RPSI for pic-id=%u",picture_id);
+		break;
+		case MS_VIDEO_DECODER_SEND_SLI:
+			ms_message("Decoder would like to send SLI");
+		break;
 	}
 }
 
@@ -225,6 +248,13 @@ static void setup_media_streams(MediastreamDatas *args)
 		args->read = ms_filter_new(MS_FILE_PLAYER_ID);
 		args->write = ms_filter_new_from_name(display_name);
 		args->decoder = ms_filter_create_decoder(args->pt->mime_type);
+		if (args->decoder==NULL){
+			fprintf(stderr,"No decoder available for %s.\n",args->pt->mime_type);
+			exit(-1);
+		}
+		if (ms_filter_call_method(args->decoder,MS_VIDEO_DECODER_ENABLE_AVPF,&args->avpf)==0){
+			ms_filter_add_notify_callback(args->decoder, video_decoder_callback, NULL, TRUE);
+		}
 		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_CLOSE);
 		ms_filter_call_method(args->read, MS_FILE_PLAYER_OPEN, args->infile);
 		ms_filter_call_method(args->read, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);

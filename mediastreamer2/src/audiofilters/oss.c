@@ -253,7 +253,7 @@ static void oss_set_source(MSSndCard *card, MSSndCardCapture source)
 }
 
 static void oss_init(MSSndCard *card){
-	OssData *d=ms_new(OssData,1);
+	OssData *d=ms_new0(OssData,1);
 	d->pcmdev=NULL;
 	d->mixdev=NULL;
 	d->pcmfd_read=-1;

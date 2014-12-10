@@ -53,7 +53,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
-#ifndef NO_FFMPEG
+#if !defined(NO_FFMPEG) && !TARGET_OS_IPHONE /* this code must never be used for iOS */
 	AVCodecContext av_context;
 	int got_picture=0;
 	mblk_t *ret;

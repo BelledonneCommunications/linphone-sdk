@@ -172,11 +172,13 @@ static void video_stream_track_fps_changes(VideoStream *stream){
 		MSTickerLateEvent late_ev={0};
 		/*we must check that no late tick occured during the last 2 seconds, otherwise the fps measurement is severely biased.*/
 		ms_ticker_get_last_late_tick(stream->ms.sessions.ticker,&late_ev);
+		
 		if (curtime > late_ev.time + 2000){
 			if (stream->source && stream->ms.encoder &&
 				ms_filter_has_method(stream->source,MS_FILTER_GET_FPS) &&
 				ms_filter_has_method(stream->ms.encoder,MS_FILTER_SET_FPS)){
 				float fps=0;
+				
 				if (ms_filter_call_method(stream->source,MS_FILTER_GET_FPS,&fps)==0 && fps!=0){
 					if (fabsf(fps-stream->configured_fps)/stream->configured_fps>0.2){
 						ms_warning("Measured and target fps significantly different (%f<->%f), updating encoder.",
@@ -639,7 +641,7 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
 	rtp_session_signal_connect(stream->ms.sessions.rtp_session,"payload_type_changed",
-			(RtpCallback)video_stream_payload_type_changed,(unsigned long)&stream->ms);
+			(RtpCallback)video_stream_payload_type_changed,&stream->ms);
 
 	rtp_session_get_jitter_buffer_params(stream->ms.sessions.rtp_session,&jbp);
 	jbp.max_packets=1000;//needed for high resolution video
@@ -1143,6 +1145,13 @@ VideoPreview * video_preview_new(void){
 	return stream;
 }
 
+MSVideoSize video_preview_get_current_size(VideoPreview *stream){
+	MSVideoSize ret={0};
+	if (stream->source){
+		ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&ret);
+	}
+	return ret;
+}
 
 void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	MSPixFmt format;

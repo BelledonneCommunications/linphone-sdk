@@ -79,7 +79,7 @@ static void audio_stream_free(AudioStream *stream) {
 
 static int dtmf_tab[16]={'0','1','2','3','4','5','6','7','8','9','*','#','A','B','C','D'};
 
-static void on_dtmf_received(RtpSession *s, int dtmf, void * user_data)
+static void on_dtmf_received(RtpSession *s, unsigned long dtmf, unsigned long dummy, void * user_data)
 {
 	AudioStream *stream=(AudioStream*)user_data;
 	if (dtmf>15){
@@ -618,8 +618,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		stream->dtmfgen=ms_filter_new(MS_DTMF_GEN_ID);
 	else
 		stream->dtmfgen=NULL;
-	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,(unsigned long)stream);
-	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)mediastream_payload_type_changed,(unsigned long)&stream->ms);
+	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,stream);
+	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)mediastream_payload_type_changed,&stream->ms);
+	
+	if (stream->ms.state==MSStreamPreparing){
+		/*we were using the dummy preload graph, destroy it but keep sound filters unless no soundcard is given*/
+		_audio_stream_unprepare_sound(stream,captcard!=NULL);
+	}
+	
 	/* creates the local part */
 	if (captcard!=NULL){
 		if (stream->soundread==NULL)
@@ -864,10 +870,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	/* create ticker */
 	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
-	if (stream->ms.state==MSStreamPreparing){
-		/*we were using the dummy preload graph, destroy it but keep sound filters*/
-		_audio_stream_unprepare_sound(stream,TRUE);
-	}
 
 	/* and then connect all */
 	/* tip: draw yourself the picture if you don't understand */

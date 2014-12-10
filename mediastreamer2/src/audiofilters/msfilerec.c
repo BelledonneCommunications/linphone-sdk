@@ -36,7 +36,7 @@ typedef struct RecState{
 } RecState;
 
 static void rec_init(MSFilter *f){
-	RecState *s=ms_new(RecState,1);
+	RecState *s=ms_new0(RecState,1);
 	s->fd=-1;
 	s->rate=8000;
 	s->nchannels = 1;
@@ -105,8 +105,9 @@ static int rec_open(MSFilter *f, void *arg){
 	if (s->size>0){
 		struct stat statbuf;
 		if (fstat(s->fd,&statbuf)==0){
-			if (lseek(s->fd,statbuf.st_size,SEEK_SET)!=0){
-				ms_error("Could not lseek to end of file: %s",strerror(errno));
+			if (lseek(s->fd,statbuf.st_size,SEEK_SET) == -1){
+				int err = errno;
+				ms_error("Could not lseek to end of file: %s",strerror(err));
 			}
 		}else ms_error("fstat() failed: %s",strerror(errno));
 	}

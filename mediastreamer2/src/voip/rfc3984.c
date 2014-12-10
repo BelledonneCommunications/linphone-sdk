@@ -38,8 +38,8 @@ static MS2_INLINE uint8_t nal_header_get_nri(const uint8_t *h){
 }
 
 Rfc3984Context *rfc3984_new(void){
-	Rfc3984Context *ctx=ms_new(Rfc3984Context,1);
-	rfc3984_init (ctx);
+	Rfc3984Context *ctx=ms_new0(Rfc3984Context,1);
+	rfc3984_init(ctx);
 	return ctx;
 }
 

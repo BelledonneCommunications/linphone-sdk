@@ -127,7 +127,7 @@ int ms_read_wav_header_from_fd(wave_header_t *header,int fd){
 			goto not_a_wav;
 		}
 		if (strncmp(data_chunk->data, "data", 4)!=0){
-			ms_warning("skipping chunk=%s len=%i", data_chunk->data, data_chunk->len);
+			ms_warning("skipping chunk=%c%c%c%c len=%i", data_chunk->data[0],data_chunk->data[1],data_chunk->data[2],data_chunk->data[3], data_chunk->len);
 			lseek(fd,le_uint32(data_chunk->len),SEEK_CUR);
 			count++;
 			hsize+=len+le_uint32(data_chunk->len);
@@ -338,7 +338,7 @@ static void player_process(MSFilter *f){
 								mblk_set_timestamp_info(om, f->ticker->time);
 								mblk_set_marker_info(om,markbit);
 								ms_queue_put(f->outputs[0], om);
-								ms_message("Outputting RTP packet of size %i, markbit=%i", bytes,(int)markbit);
+								ms_message("Outputting RTP packet of size %i, seq=%u markbit=%i", bytes, pcap_seq, (int)markbit);
 							}
 							d->pcap_seq = pcap_seq;
 							d->pcap_hdr = NULL;

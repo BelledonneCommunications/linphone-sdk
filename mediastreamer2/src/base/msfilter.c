@@ -248,7 +248,7 @@ void ms_filter_postpone_task(MSFilter *f, MSFilterFunc taskfunc){
 		ms_error("ms_filter_postpone_task(): this method cannot be called outside of filter's process method.");
 		return;
 	}
-	task=ms_new(MSFilterTask,1);
+	task=ms_new0(MSFilterTask,1);
 	task->f=f;
 	task->taskfunc=taskfunc;
 	ticker->task_list=ms_list_prepend(ticker->task_list,task);

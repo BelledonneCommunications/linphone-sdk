@@ -163,6 +163,7 @@ static void stream_free(Stream *s) {
 	if(s->stream) {
 		stream_disconnect(s);
 	}
+	ms_free(s);
 }
 
 static bool_t stream_connect(Stream *s, StreamType type, pa_buffer_attr *attr) {
@@ -179,7 +180,7 @@ static bool_t stream_connect(Stream *s, StreamType type, pa_buffer_attr *attr) {
 	pa_stream_set_state_callback(s->stream, stream_state_notify_cb, s);
 	pa_threaded_mainloop_lock(pa_loop);
 	if(type == STREAM_TYPE_PLAYBACK) {
-		err=pa_stream_connect_playback(s->stream,NULL,attr, PA_STREAM_ADJUST_LATENCY | PA_STREAM_VARIABLE_RATE, NULL, NULL);
+		err=pa_stream_connect_playback(s->stream,NULL,attr, PA_STREAM_ADJUST_LATENCY, NULL, NULL);
 	} else {
 		err=pa_stream_connect_record(s->stream,NULL,attr, PA_STREAM_ADJUST_LATENCY);
 	}
@@ -210,24 +211,23 @@ static void stream_disconnect(Stream *s) {
 typedef Stream RecordStream;
 
 static void pulse_read_init(MSFilter *f){
-	RecordStream *s;
-	pa_buffer_attr attr;
 	if(!wait_for_context_state(PA_CONTEXT_READY, PA_CONTEXT_FAILED)) {
-		f->data = NULL;
 		ms_error("Could not connect to a pulseaudio server");
 		return;
 	}
-	s = stream_new();
+	f->data = stream_new();
+}
+
+static void pulse_read_preprocess(MSFilter *f) {
+	RecordStream *s=(RecordStream *)f->data;
+	pa_buffer_attr attr;
 	attr.maxlength = -1;
 	attr.fragsize = pa_usec_to_bytes(fragtime * 1000, &s->sampleSpec);
 	attr.tlength = -1;
 	attr.minreq = -1;
 	attr.prebuf = -1;
-	if(stream_connect(s, STREAM_TYPE_RECORD, &attr)) {
-		f->data = s;
-	} else {
-		stream_free(s);
-		f->data = NULL;
+	if(!stream_connect(s, STREAM_TYPE_RECORD, &attr)) {
+		ms_error("Pulseaudio: fail to connect record stream");
 	}
 }
 
@@ -236,8 +236,8 @@ static void pulse_read_process(MSFilter *f){
 	const void *buffer=NULL;
 	size_t nbytes;
 
-	if(f->data == NULL) {
-		ms_error("Record stream not ready");
+	if(s->stream == NULL) {
+		ms_error("Record stream not connected");
 		return;
 	}
 	pa_threaded_mainloop_lock(pa_loop);
@@ -260,46 +260,37 @@ static void pulse_read_process(MSFilter *f){
 	pa_threaded_mainloop_unlock(pa_loop);
 }
 
+static void pulse_read_postprocess(MSFilter *f) {
+	RecordStream *s=(RecordStream *)f->data;
+	stream_disconnect(s);
+}
+
 static void pulse_read_uninit(MSFilter *f) {
-	if(f->data != NULL) stream_free((Stream *)f->data);
+	stream_free((Stream *)f->data);
 }
 
 static int pulse_read_set_sr(MSFilter *f, void *arg){
-	if(f->data == NULL) {
-		ms_error("Cannot set sample rate. Filter has not been instanciated");
-		return -1;
-	}
-	return -1;
+	RecordStream *s = (RecordStream *)f->data;
+	s->sampleSpec.rate = *(int *)arg;
+	return 0;
 }
 
-static int pulse_read_get_sr(MSFilter *f, void *arg){
-	if(f->data != NULL) {
-		RecordStream *s=(RecordStream *)f->data;
-		*(int*)arg=s->sampleSpec.rate;
-		return 0;
-	} else {
-		ms_error("Cannot get sample rate. Filter has not been instanciated");
-		return -1;
-	}
+static int pulse_read_get_sr(MSFilter *f, void *arg) {
+	RecordStream *s = (RecordStream *)f->data;
+	*(int *)arg = s->sampleSpec.rate;
+	return 0;
 }
 
 static int pulse_read_set_nchannels(MSFilter *f, void *arg){
-	if(f->data == NULL) {
-		ms_error("Cannot set the number of channels. Filter has not been instanciated");
-		return -1;
-	}
-	return -1;
+	RecordStream *s = (RecordStream *)f->data;
+	s->sampleSpec.channels = *(int *)arg;
+	return 0;
 }
 
 static int pulse_read_get_nchannels(MSFilter *f, void *arg){
-	if(f->data != NULL) {
-		RecordStream *s=(RecordStream *)f->data;
-		*(int*)arg=s->sampleSpec.channels;
-		return 0;
-	} else {
-		ms_error("Cannot get N channels. Filter has not been instanciated");
-		return -1;
-	}
+	RecordStream *s = (RecordStream *)f->data;
+	*(int *)arg = s->sampleSpec.channels;
+	return 0;
 }
 
 static MSFilterMethod pulse_read_methods[]={
@@ -318,9 +309,9 @@ static MSFilterDesc pulse_read_desc={
 	.noutputs=1,
 	.category=MS_FILTER_OTHER,
 	.init=pulse_read_init,
-	.preprocess=NULL,
+	.preprocess=pulse_read_preprocess,
 	.process=pulse_read_process,
-	.postprocess=NULL,
+	.postprocess=pulse_read_postprocess,
 	.uninit=pulse_read_uninit,
 	.methods=pulse_read_methods
 };
@@ -329,24 +320,23 @@ static MSFilterDesc pulse_read_desc={
 typedef Stream PlaybackStream;
 
 static void pulse_write_init(MSFilter *f){
-	PlaybackStream *s;
 	if(!wait_for_context_state(PA_CONTEXT_READY, PA_CONTEXT_FAILED)) {
 		ms_error("Could not connect to a pulseaudio server");
-		f->data = NULL;
 		return;
 	}
-	s = stream_new();
-	if(stream_connect(s, STREAM_TYPE_PLAYBACK, NULL)) {
-		f->data=s;
-	} else {
-		stream_free(s);
-		f->data = NULL;
+	f->data = stream_new();
+}
+
+static void pulse_write_preprocess(MSFilter *f) {
+	PlaybackStream *s=(PlaybackStream*)f->data;
+	if(!stream_connect(s, STREAM_TYPE_PLAYBACK, NULL)) {
+		ms_error("Pulseaudio: fail to connect playback stream");
 	}
 }
 
 static void pulse_write_process(MSFilter *f){
 	PlaybackStream *s=(PlaybackStream*)f->data;
-	if(s) {
+	if(s->stream) {
 		mblk_t *im;
 		while((im=ms_queue_get(f->inputs[0]))) {
 			int err, writable;
@@ -367,8 +357,13 @@ static void pulse_write_process(MSFilter *f){
 	}
 }
 
+static void pulse_write_postprocess(MSFilter *f) {
+	PlaybackStream *s=(PlaybackStream*)f->data;
+	stream_disconnect(s);
+}
+
 static void pulse_write_uninit(MSFilter *f) {
-	if(f->data) stream_free((Stream *)f->data);
+	stream_free((Stream *)f->data);
 }
 
 static MSFilterDesc pulse_write_desc={
@@ -379,9 +374,9 @@ static MSFilterDesc pulse_write_desc={
 	.noutputs=0,
 	.category=MS_FILTER_OTHER,
 	.init=pulse_write_init,
-	.preprocess=NULL,
+	.preprocess=pulse_write_preprocess,
 	.process=pulse_write_process,
-	.postprocess=NULL,
+	.postprocess=pulse_write_postprocess,
 	.uninit=pulse_write_uninit,
 	.methods=pulse_read_methods
 };

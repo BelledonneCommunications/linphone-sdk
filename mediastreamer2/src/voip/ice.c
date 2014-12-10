@@ -198,7 +198,6 @@ static char * generate_pwd(void)
 
 static void ice_session_init(IceSession *session)
 {
-	memset(&session->streams, 0, sizeof(session->streams));
 	session->state = IS_Stopped;
 	session->role = IR_Controlling;
 	session->tie_breaker = generate_tie_breaker();
@@ -209,7 +208,6 @@ static void ice_session_init(IceSession *session)
 	session->local_pwd = generate_pwd();
 	session->remote_ufrag = NULL;
 	session->remote_pwd = NULL;
-	memset(&session->event_time, 0, sizeof(session->event_time));
 	session->send_event = FALSE;
 	session->gathering_start_ts.tv_sec = session->gathering_start_ts.tv_nsec = -1;
 	session->gathering_end_ts.tv_sec = session->gathering_end_ts.tv_nsec = -1;
@@ -217,7 +215,7 @@ static void ice_session_init(IceSession *session)
 
 IceSession * ice_session_new(void)
 {
-	IceSession *session = ms_new(IceSession, 1);
+	IceSession *session = ms_new0(IceSession, 1);
 	if (session == NULL) {
 		ms_error("ice: Memory allocation of ICE session failed");
 		return NULL;
@@ -271,7 +269,7 @@ static void ice_check_list_init(IceCheckList *cl)
 
 IceCheckList * ice_check_list_new(void)
 {
-	IceCheckList *cl = ms_new(IceCheckList, 1);
+	IceCheckList *cl = ms_new0(IceCheckList, 1);
 	if (cl == NULL) {
 		ms_error("ice_check_list_new: Memory allocation failed");
 		return NULL;
@@ -502,6 +500,16 @@ void ice_check_list_set_remote_credentials(IceCheckList *cl, const char *ufrag, 
 	ice_set_credentials(&cl->remote_ufrag, &cl->remote_pwd, ufrag, pwd);
 }
 
+const char* ice_check_list_get_remote_ufrag(const IceCheckList *cl)
+{
+	return cl->remote_ufrag;
+}
+
+const char* ice_check_list_get_remote_pwd(const IceCheckList *cl)
+{
+	return cl->remote_pwd;
+}
+
 bool_t ice_check_list_default_local_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port)
 {
 	IceCandidate *candidate = NULL;
@@ -583,14 +591,38 @@ bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, co
 	return TRUE;
 }
 
+static int ice_find_host_pair_identical_to_reflexive_pair(const IceCandidatePair *p1, const IceCandidatePair *p2)
+{
+	return !((ice_compare_transport_addresses(&p1->local->taddr, &p2->local->taddr) == 0)
+		&& (p1->local->componentID == p2->local->componentID)
+		&& (ice_compare_transport_addresses(&p1->remote->taddr, &p2->remote->taddr) == 0)
+		&& (p1->remote->componentID == p2->remote->componentID)
+		&& (p1->remote->type == ICT_HostCandidate));
+}
+
 IceCandidateType ice_check_list_selected_valid_candidate_type(const IceCheckList *cl)
 {
+	IceCandidatePair *pair = NULL;
+	IceCandidateType type = ICT_RelayedCandidate;
 	MSList *elem;
 	uint16_t componentID = 1;
 
 	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
-	if (elem == NULL) return ICT_RelayedCandidate;
-	return ((IceValidCandidatePair *)elem->data)->valid->remote->type;
+	if (elem == NULL) return type;
+	pair = ((IceValidCandidatePair *)elem->data)->valid;
+	type = pair->remote->type;
+	/**
+	 * If the pair is reflexive, check if there is a pair with the same addresses and componentID that is of host type to
+	 * report host connection instead of reflexive connection. This might happen if the ICE checks discover reflexives
+	 * candidates before the signaling layer has communicated the host candidates to the other peer.
+	 */
+	if ((type == ICT_ServerReflexiveCandidate) || (type == ICT_PeerReflexiveCandidate)) {
+		elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_host_pair_identical_to_reflexive_pair, pair);
+		if (elem != NULL) {
+			type = ((IceCandidatePair *)elem->data)->remote->type;
+		}
+	}
+	return type;
 }
 
 void ice_check_list_check_completed(IceCheckList *cl)
@@ -1757,7 +1789,7 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 		/* The candidate pair is already in the check list, add it to the valid list. */
 		pair = (IceCandidatePair *)elem->data;
 	}
-	valid_pair = ms_new(IceValidCandidatePair, 1);
+	valid_pair = ms_new0(IceValidCandidatePair, 1);
 	valid_pair->valid = pair;
 	valid_pair->generated_from = succeeded_pair;
 	valid_pair->selected = FALSE;
@@ -2160,7 +2192,10 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, cons
 
 static int ice_find_pair_in_valid_list(IceValidCandidatePair *valid_pair, IceCandidatePair *pair)
 {
-	return (valid_pair->valid != pair);
+	return !((ice_compare_transport_addresses(&valid_pair->valid->local->taddr, &pair->local->taddr) == 0)
+		&& (valid_pair->valid->local->componentID == pair->local->componentID)
+		&& (ice_compare_transport_addresses(&valid_pair->valid->remote->taddr, &pair->remote->taddr) == 0)
+		&& (valid_pair->valid->remote->componentID == pair->remote->componentID));
 }
 
 static void ice_check_if_losing_pair_should_cause_restart(const IceCandidatePair *pair, LosingRemoteCandidate_InProgress_Failed *lif)
@@ -2256,7 +2291,8 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 	} else {
 		valid_pair = (IceValidCandidatePair *)elem->data;
 		valid_pair->selected = TRUE;
-		ms_message("ice: Select losing valid pair");
+		ms_message("ice: Select losing valid pair: cl=%p, componentID=%u, local_addr=%s, local_port=%d, remote_addr=%s, remote_port=%d",
+			cl, componentID, local_addr, local_port, remote_addr, remote_port);
 	}
 }
 
@@ -2594,7 +2630,7 @@ static void ice_generate_pair_foundations_list(const IceCandidatePair *pair, MSL
 
 	elem = ms_list_find_custom(*list, (MSCompareFunc)ice_find_pair_foundation, &foundation);
 	if (elem == NULL) {
-		dyn_foundation = ms_new(IcePairFoundation, 1);
+		dyn_foundation = ms_new0(IcePairFoundation, 1);
 		memcpy(dyn_foundation, &foundation, sizeof(foundation));
 		*list = ms_list_append(*list, dyn_foundation);
 	}
