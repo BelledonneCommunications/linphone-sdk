@@ -821,9 +821,7 @@ static MSFilterMethod au_methods[]={
 
 static void shutdown_timer(CFRunLoopTimerRef timer, void *info){
 	au_card_t *card=(au_card_t*)info;
-	ms_mutex_lock(&card->mutex);
 	stop_audio_unit(card);
-	ms_mutex_unlock(&card->mutex);
 }
 
 static void check_unused(au_card_t *card){
