@@ -1145,6 +1145,13 @@ VideoPreview * video_preview_new(void){
 	return stream;
 }
 
+MSVideoSize video_preview_get_current_size(VideoPreview *stream){
+	MSVideoSize ret={0};
+	if (stream->source){
+		ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&ret);
+	}
+	return ret;
+}
 
 void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	MSPixFmt format;

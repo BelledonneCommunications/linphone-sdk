@@ -859,6 +859,7 @@ MS2_PUBLIC VideoPreview * video_preview_new(void);
 #define video_preview_set_fps(p,fps)			video_stream_set_fps((VideoStream*)p,fps)
 #define video_preview_set_device_rotation(p, r) video_stream_set_device_rotation(p, r)
 MS2_PUBLIC void video_preview_start(VideoPreview *stream, MSWebCam *device);
+MS2_PUBLIC MSVideoSize video_preview_get_current_size(VideoPreview *stream);
 MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
 
 /**

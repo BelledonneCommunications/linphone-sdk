@@ -327,9 +327,10 @@ static void video_capture_process(MSFilter *f){
 static void video_capture_postprocess(MSFilter *f){
 	ms_message("Postprocessing of Android VIDEO capture filter");
 	AndroidReaderContext* d = getContext(f);
-	ms_mutex_lock(&d->mutex);
 	JNIEnv *env = ms_get_jni_env();
-
+	
+	ms_mutex_lock(&d->mutex);
+	
 	if (d->androidCamera) {
 		jmethodID method = env->GetStaticMethodID(d->helperClass,"stopRecording", "(Ljava/lang/Object;)V");
 
@@ -464,9 +465,13 @@ extern "C" {
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi5JniWrapper_putImage(JNIEnv*  env,
 		jclass  thiz,jlong nativePtr,jbyteArray frame) {
 	AndroidReaderContext* d = (AndroidReaderContext*) nativePtr;
-	if (!d->androidCamera)
-		return;
+	
 	ms_mutex_lock(&d->mutex);
+	
+	if (!d->androidCamera){
+		ms_mutex_unlock(&d->mutex);
+		return;
+	}
 
 	if (!ms_video_capture_new_frame(&d->fpsControl,d->filter->ticker->time)) {
 		ms_mutex_unlock(&d->mutex);
