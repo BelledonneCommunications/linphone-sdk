@@ -500,6 +500,16 @@ void ice_check_list_set_remote_credentials(IceCheckList *cl, const char *ufrag, 
 	ice_set_credentials(&cl->remote_ufrag, &cl->remote_pwd, ufrag, pwd);
 }
 
+const char* ice_check_list_get_remote_ufrag(const IceCheckList *cl)
+{
+	return cl->remote_ufrag;
+}
+
+const char* ice_check_list_get_remote_pwd(const IceCheckList *cl)
+{
+	return cl->remote_pwd;
+}
+
 bool_t ice_check_list_default_local_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port)
 {
 	IceCandidate *candidate = NULL;
