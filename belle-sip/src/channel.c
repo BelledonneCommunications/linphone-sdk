@@ -346,9 +346,16 @@ static int acquire_body_simple(belle_sip_channel_t *obj, int end_of_stream){
 	belle_sip_body_handler_t *bh=belle_sip_message_get_body_handler(msg);
 	size_t cursize=belle_sip_body_handler_get_transfered_size(bh);
 
-	to_read=MIN(content_length-cursize, to_read);
+	if ((cursize == 0) && (to_read == 0)) {
+		/**
+		 * No data has been received yet, so do not call feed_body() with a size
+		 * of 0 that is meaning that the transfer is finished.
+		 */
+	} else {
+		to_read=MIN(content_length-cursize, to_read);
+		feed_body(obj,to_read);
+	}
 
-	feed_body(obj,to_read);
 	if (end_of_stream ||  belle_sip_body_handler_get_transfered_size(bh)>=content_length){
 		/*great body completed
 		belle_sip_message("channel [%p] read [%i] bytes of body from %s:%i\n%s"	,obj
