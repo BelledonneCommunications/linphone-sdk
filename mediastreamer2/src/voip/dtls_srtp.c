@@ -60,7 +60,7 @@ typedef struct _DtlsRawPacket {
 
 #define READ_TIMEOUT_MS 1000
 
-typedef struct _MSDtlsSrtpContext{
+struct _MSDtlsSrtpContext{
 	RtpSession *session;
 	MediaStream *stream;
 	RtpTransportModifier *rtp_modifier;
@@ -70,7 +70,7 @@ typedef struct _MSDtlsSrtpContext{
 	MSDtlsSrtpRole role; /**< can be unset(at init on caller side), client or server */
 	uint64_t time_reference; /**< an epoch in ms, used to manage retransmission when we are client */
 	char peer_fingerprint[256]; /**< used to store peer fingerprint passed through SDP */
-} MSDtlsSrtpContext;
+};
 
 // Helper functions
 static ORTP_INLINE uint64_t get_timeval_in_millis() {
@@ -109,7 +109,6 @@ static int ms_dtls_srtp_sendData (void *ctx, const unsigned char *data, size_t l
 	RtpSession *session = context->session;
 	RtpTransport *rtpt=NULL;
 	mblk_t *msg;
-	int i;
 
 	ms_message("DTLS Send packet len %d :\n", (int)length);
 
@@ -129,7 +128,6 @@ static int ms_dtls_srtp_DTLSread (void *ctx, unsigned char *buf, size_t len) {
 	if (context->incoming_buffer == NULL) {
 		return POLARSSL_ERR_NET_WANT_READ;
 	} else { /* read the first packet in the buffer and delete it */
-		int i;
 		DtlsRawPacket *next_packet = context->incoming_buffer->next;
 		size_t dataLength = context->incoming_buffer->length;
 		memcpy(buf, context->incoming_buffer->data, dataLength);
@@ -218,7 +216,6 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 
 	/* check if it is a DTLS packet (first byte B as 19 < B < 64) rfc5764 section 5.1.2 */
 	if ((*(msg->b_rptr)>19) && (*(msg->b_rptr)<64)) {
-		int i;
 		DtlsRawPacket *incoming_dtls_packet = (DtlsRawPacket *)ms_malloc0(sizeof(DtlsRawPacket));
 		incoming_dtls_packet->next=NULL;
 		incoming_dtls_packet->data=(unsigned char *)ms_malloc(msgLength);
@@ -249,7 +246,6 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 		}
 
 		if ((ret==0) && (ctx->channel_status == DTLS_STATUS_CONTEXT_READY)) { /* handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
-			int i;
 			unsigned char *computed_peer_fingerprint = NULL;
 			
 

@@ -1072,7 +1072,7 @@ if test "$dtls" = "true" ; then
 			[[ssl_set_dtls_srtp_protection_profiles(0,0,0)]])]
 			,[found_polarssl=yes
 			AC_MSG_NOTICE([polarssl usable for DTLS-SRTP])]
-			,[AC_MSG_WARN([polarssl not usable for DTLS-SRTP])])
+			,[AC_MSG_ERROR([polarssl not usable for DTLS-SRTP])])
 
 		])
 	CPPFLAGS=$CPPFLAGS_save
@@ -1081,8 +1081,8 @@ if test "$dtls" = "true" ; then
 	if test "x$found_polarssl" = "xyes" ; then
 		AC_DEFINE(HAVE_dtls, 1, [Defined when dtls support is compiled])
 		AC_MSG_NOTICE([polarssl usable for DTLS-SRTP])
-		CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
-		LIBS="$LIBS $POLARSSL_LIBS"
+		AC_SUBST(POLARSSL_CFLAGS)
+		AC_SUBST(POLARSSL_LIBS)
 	fi
 
 else

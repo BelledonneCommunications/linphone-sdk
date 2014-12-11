@@ -381,7 +381,7 @@ MS2_PUBLIC void ice_session_set_remote_credentials(IceSession *session, const ch
  *
  * This function is to be called once the remote credentials have been received via SDP.
  */
-MS2_PUBLIC const char* ice_check_list_set_remote_ufrag(const IceCheckList *cl);
+MS2_PUBLIC const char* ice_check_list_get_remote_ufrag(const IceCheckList *cl);
 
 /**
  * get the remote pwd of an ICE check list.
@@ -390,7 +390,7 @@ MS2_PUBLIC const char* ice_check_list_set_remote_ufrag(const IceCheckList *cl);
  *
  * This function is to be called once the remote credentials have been received via SDP.
  */
-MS2_PUBLIC const char* ice_check_list_set_remote_pwd(const IceCheckList *cl);
+MS2_PUBLIC const char* ice_check_list_get_remote_pwd(const IceCheckList *cl);
 
 /**
  * Define the maximum number of connectivity checks that will be performed by the agent.
