@@ -60,7 +60,7 @@ typedef struct _DtlsRawPacket {
 
 #define READ_TIMEOUT_MS 1000
 
-typedef struct _MSDtlsSrtpContext{
+struct _MSDtlsSrtpContext{
 	RtpSession *session;
 	MediaStream *stream;
 	RtpTransportModifier *rtp_modifier;
@@ -70,7 +70,7 @@ typedef struct _MSDtlsSrtpContext{
 	MSDtlsSrtpRole role; /**< can be unset(at init on caller side), client or server */
 	uint64_t time_reference; /**< an epoch in ms, used to manage retransmission when we are client */
 	char peer_fingerprint[256]; /**< used to store peer fingerprint passed through SDP */
-} MSDtlsSrtpContext;
+};
 
 // Helper functions
 static ORTP_INLINE uint64_t get_timeval_in_millis() {
