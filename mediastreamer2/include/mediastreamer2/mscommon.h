@@ -119,6 +119,8 @@ typedef void (*MSIterate2Func)(void *a, void *b);
 #ifdef __cplusplus
 extern "C"{
 #endif
+/*for stun*/
+typedef struct { unsigned char octet[12]; }  UInt96;
 
 MS2_PUBLIC void ms_thread_exit(void* ret_val);
 MS2_PUBLIC MSList * ms_list_append(MSList *elem, void * data);

@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <inttypes.h>
 
+#include "stun.h"
 #include "mediastreamer2/ice.h"
 #include "ortp/ortp.h"
 

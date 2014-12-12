@@ -74,7 +74,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <ortp/port.h>
-#include <ortp/stun_udp.h>
+#include "mediastreamer2/mscommon.h"
+#include "stun_udp.h"
 
 #ifdef __APPLE__
    #include "TargetConditionals.h"
@@ -106,7 +107,6 @@ typedef unsigned __int64 uint64_t;
 typedef unsigned long long uint64_t;
 #endif
 #endif
-typedef struct { unsigned char octet[12]; }  UInt96;
 
 /* define a structure to hold a stun address  */
 #define  IPv4Family  0x01
