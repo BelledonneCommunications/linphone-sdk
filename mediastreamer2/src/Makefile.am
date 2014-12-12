@@ -100,6 +100,8 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/qosanalyzer.c voip/qosanalyzer.h \
 					voip/bitratecontrol.c \
 					voip/zrtp.c \
+					voip/stun.c \
+					voip/stun_udp.c \
 					voip/dtls_srtp.c 
 else
 libmediastreamer_base_la_SOURCES+=	ortp-deps/logging.c \

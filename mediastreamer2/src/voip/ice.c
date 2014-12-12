@@ -1295,9 +1295,6 @@ static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpE
 	response.msgHdr.msgType = (STUN_METHOD_BINDING | STUN_SUCCESS_RESP);
 	response.hasMessageIntegrity = TRUE;
 	response.hasFingerprint = TRUE;
-	response.hasUsername = TRUE;
-	memcpy(response.username.value, msg->username.value, msg->username.sizeValue);
-	response.username.sizeValue = msg->username.sizeValue;
 
 	/* Add the mapped address to the response. */
 	response.hasXorMappedAddress = TRUE;
@@ -1719,8 +1716,8 @@ static int ice_check_received_binding_response_addresses(const RtpSession *rtp_s
 
 static int ice_check_received_binding_response_attributes(const StunMessage *msg, const StunAddress4 *remote_addr)
 {
-	if (!msg->hasUsername) {
-		ms_warning("ice: Received binding response missing USERNAME attribute");
+	if (!msg->hasMessageIntegrity) {
+		ms_warning("ice: Received binding response missing MESSAGE-INTEGRITY attribute");
 		return -1;
 	}
 	if (!msg->hasFingerprint) {
