@@ -110,7 +110,7 @@
 
 #include <string.h>
 
-#include "stun_udp.h"
+#include "mediastreamer2/stun_udp.h"
 #include "ortp/ortp.h"
 
 #if !defined(WIN32) && !defined(_WIN32_WCE)

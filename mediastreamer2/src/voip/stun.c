@@ -112,8 +112,8 @@
 #endif /* __QNX__ */
 
 
-#include "stun_udp.h"
-#include "stun.h"
+#include "mediastreamer2/stun_udp.h"
+#include "mediastreamer2/stun.h"
 #include "ortp/ortp.h"
 
 static char *ipaddr(const StunAddress4 *addr)

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define B64_NO_NAMESPACE
 #endif
 #include "ortp/b64.h"
-#include "stun.h"
+#include "mediastreamer2/stun.h"
 
 static const int default_dtmf_duration_ms=100; /*in milliseconds*/
 
