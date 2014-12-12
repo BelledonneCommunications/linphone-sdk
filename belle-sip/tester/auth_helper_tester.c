@@ -136,6 +136,35 @@ static void test_generate_and_parse_certificates(void) {
 #endif /* HAVE_POLARSSL */
 }
 
+
+const char* belle_sip_tester_fingerprint256_cert = /*for URI:sip:tester@client.example.org*/
+		"-----BEGIN CERTIFICATE-----\n"
+		"MIIDtTCCAh2gAwIBAgIBATANBgkqhkiG9w0BAQsFADAcMRowGAYDVQQDExF0ZXN0\n"
+		"X2NlcnRpZmljYXRlMTAeFw0wMTAxMDEwMDAwMDBaFw0zMDAxMDEwMDAwMDBaMBwx\n"
+		"GjAYBgNVBAMTEXRlc3RfY2VydGlmaWNhdGUxMIIBojANBgkqhkiG9w0BAQEFAAOC\n"
+		"AY8AMIIBigKCAYEAoI6Dpdyc8ARM9KTIkuagImUgpybuWrKayPfrAeUE/gnyd8bO\n"
+		"Bf7CkGdpHv82c1BdUxE5Z1j19TMR0MHCtFD5z0PWtW3erWQqUdxdFYIUknIi5ObU\n"
+		"AlXgqAIYLCSMaGWzmavdsC95HfHiuPC+YTLwr1vhNC6IWCSKt9N7xek/InY73cBh\n"
+		"pNw/kJOB/AzB9r40uxcye6+6Hp3dAd2YOGOiuKlAFBlAeq/T70VKBvdw/D8QFi5Z\n"
+		"BJ2+xX9jQBshzHi9JdMS6ZhLdtjBHwi37k1l1KyRh+qVTbze5pN7YCRmj8Q4dS0S\n"
+		"3ozV27AXM60kXbX4+PWQG9nuL/PO2NxTx0olIaTkzjM+roxWE6srhAEQ+aXn3tCq\n"
+		"bHND6AN2Yjm/mzQI2ig143gHraLRaHx+uTtRonMeWMvTeUlX/BwUoffjppmWqICd\n"
+		"OiBFNXOpp3hlzZDdoEhwKgIVMu3WbEsOTG7uphkUGZo/VaTVW0zvYAS2JXC/0s/S\n"
+		"85dB5M3Y9l/8v0T7AgMBAAGjAjAAMA0GCSqGSIb3DQEBCwUAA4IBgQBm5N00W7+G\n"
+		"ygF6OUM3143N5B/41vTk5FDZ/iU/UJaPSLBM/aZhA2FjoTswjpFfY8V6IkALrtUH\n"
+		"20FVip3lguMc7md9L9qMRVYj/2H94A2Bg/zx+PlhJNI0bshITzS6pHgM2qKk+KRB\n"
+		"yZaHQTa8DjRCYuAp1roh4NKNDa16WdY4Dk5ncRORqzcxczBJ2LSbq4b78pdEl/iL\n"
+		"nHOoFOSmiQQ2ui7H89bSUxRmVJFiNfPlTeYUKjc753LJCuri30rQVnHE+HMBmE5y\n"
+		"sM6FiGawJxUKAcS0zuKeroHNXLzL0qIGgeLkoPb267se0tCAcJZImiqyK0y1cuHw\n"
+		"o9BZ5t/I6UvTJLE9+p+wG7nR8TdszaZ+bLzSdHWDRPS2Ux4J+Ux3dnIAH/ZcD5CD\n"
+		"/mj4F12yW0ZNukFVkptneS6ab1lQb3PT7tzkuzKud00QNHswZLbORQrXnvuk5LrR\n"
+		"V7PbeVUz1FxaOjFwHXkkvFqrbwRdBc7GVqQZDVV40WVvciGGcBhemqc=\n"
+		"-----END CERTIFICATE-----";
+
+/* fingerprint of certificate generated using openssl x509 -fingerprint -sha256 */
+const char* belle_sip_tester_fingerprint256_cert_fingerprint =
+		"SHA-256 A0:98:2D:3E:68:F3:14:8D:ED:50:40:DB:ED:A4:28:BC:1E:1A:6A:05:59:9E:69:3F:02:E2:F8:22:BF:4C:92:14";
+
 static void test_certificate_fingerprint(void) {
 #ifdef HAVE_POLARSSL
 #if POLARSSL_VERSION_NUMBER >= 0x01030000
@@ -150,6 +179,18 @@ static void test_certificate_fingerprint(void) {
 
 	free(fingerprint);
 	belle_sip_object_unref(cert);
+
+	/* parse certificate defined above, signing algo is sha256 */
+	cert = belle_sip_certificates_chain_parse(belle_sip_tester_fingerprint256_cert,strlen(belle_sip_tester_fingerprint256_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
+	/* generate fingerprint */
+	fingerprint = belle_sip_generate_certificate_fingerprint(cert);
+
+	CU_ASSERT_TRUE_FATAL(fingerprint!=NULL);
+	CU_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_fingerprint256_cert_fingerprint);
+
+	free(fingerprint);
+	belle_sip_object_unref(cert);
+
 #endif /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
 #endif /* HAVE_POLARSSL */
 }

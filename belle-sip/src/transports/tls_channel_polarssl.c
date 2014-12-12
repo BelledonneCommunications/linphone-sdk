@@ -25,12 +25,14 @@
 #include <polarssl/ssl.h>
 #include <polarssl/version.h>
 #include <polarssl/error.h>
-#include "polarssl/sha1.h"
 #include <polarssl/pem.h>
 #if POLARSSL_VERSION_NUMBER >= 0x01030000
 #include <polarssl/x509.h>
 #include <polarssl/entropy.h>
 #include <polarssl/ctr_drbg.h>
+#include <polarssl/sha1.h>
+#include <polarssl/sha256.h>
+#include <polarssl/sha512.h>
 #endif
 #endif
 
@@ -650,7 +652,7 @@ int belle_sip_generate_self_signed_certificate(const char* path, const char *sub
 
 	/* generate the certificate */
 	x509write_crt_init( &crt );
-	x509write_crt_set_md_alg( &crt, POLARSSL_MD_SHA1 );
+	x509write_crt_set_md_alg( &crt, POLARSSL_MD_SHA256 );
 
 	mpi_init( &serial );
 
@@ -759,6 +761,30 @@ unsigned char *belle_sip_generate_certificate_fingerprint(belle_sip_certificates
 			sha1(crt.raw.p, crt.raw.len, buffer);
 			hash_length = 20;
 			memcpy(hash_alg_string, "SHA-1", 6);
+		break;
+
+		case POLARSSL_MD_SHA224:
+			sha256(crt.raw.p, crt.raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-224 and not sha-256 */
+			hash_length = 28;
+			memcpy(hash_alg_string, "SHA-224", 8);
+		break;
+
+		case POLARSSL_MD_SHA256:
+			sha256(crt.raw.p, crt.raw.len, buffer, 0);
+			hash_length = 32;
+			memcpy(hash_alg_string, "SHA-256", 8);
+		break;
+
+		case POLARSSL_MD_SHA384:
+			sha512(crt.raw.p, crt.raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
+			hash_length = 48;
+			memcpy(hash_alg_string, "SHA-384", 8);
+		break;
+
+		case POLARSSL_MD_SHA512:
+			sha512(crt.raw.p, crt.raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
+			hash_length = 64;
+			memcpy(hash_alg_string, "SHA-512", 8);
 		break;
 
 		default:
