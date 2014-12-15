@@ -760,31 +760,31 @@ unsigned char *belle_sip_generate_certificate_fingerprint(belle_sip_certificates
 		case POLARSSL_MD_SHA1:
 			sha1(crt.raw.p, crt.raw.len, buffer);
 			hash_length = 20;
-			memcpy(hash_alg_string, "SHA-1", 6);
+			memcpy(hash_alg_string, "sha-1", 6);
 		break;
 
 		case POLARSSL_MD_SHA224:
 			sha256(crt.raw.p, crt.raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-224 and not sha-256 */
 			hash_length = 28;
-			memcpy(hash_alg_string, "SHA-224", 8);
+			memcpy(hash_alg_string, "sha-224", 8);
 		break;
 
 		case POLARSSL_MD_SHA256:
 			sha256(crt.raw.p, crt.raw.len, buffer, 0);
 			hash_length = 32;
-			memcpy(hash_alg_string, "SHA-256", 8);
+			memcpy(hash_alg_string, "sha-256", 8);
 		break;
 
 		case POLARSSL_MD_SHA384:
 			sha512(crt.raw.p, crt.raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
 			hash_length = 48;
-			memcpy(hash_alg_string, "SHA-384", 8);
+			memcpy(hash_alg_string, "sha-384", 8);
 		break;
 
 		case POLARSSL_MD_SHA512:
 			sha512(crt.raw.p, crt.raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
 			hash_length = 64;
-			memcpy(hash_alg_string, "SHA-512", 8);
+			memcpy(hash_alg_string, "sha-512", 8);
 		break;
 
 		default:
