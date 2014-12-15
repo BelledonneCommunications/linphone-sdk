@@ -1270,7 +1270,7 @@ static int ice_get_recv_port_from_rtp_session(const RtpSession *rtp_session, con
 	} else return -1;
 }
 
-static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *dest)
+static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *dest)
 {
 	StunMessage response;
 	StunAtrString password;
@@ -1296,6 +1296,17 @@ static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpE
 	response.msgHdr.msgType = (STUN_METHOD_BINDING | STUN_SUCCESS_RESP);
 	response.hasMessageIntegrity = TRUE;
 	response.hasFingerprint = TRUE;
+
+	/*add username for message integrity*/
+	response.hasUsername = FALSE;
+	snprintf(response.username.value, sizeof(response.username.value) - 1, "%s:%s", ice_check_list_local_ufrag(cl), ice_check_list_remote_ufrag(cl));
+	response.username.sizeValue = strlen(response.username.value);
+
+	/*add passwd for message integrity*/
+	response.hasPassword = FALSE;
+	snprintf(password.value, sizeof(password.value) - 1, "%s", ice_check_list_local_pwd(cl));
+	password.sizeValue = strlen(password.value);
+
 
 	/* Add the mapped address to the response. */
 	response.hasXorMappedAddress = TRUE;
@@ -1672,7 +1683,7 @@ static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rt
 	prflx_candidate = ice_learn_peer_reflexive_candidate(cl, evt_data, msg, &taddr);
 	pair = ice_trigger_connectivity_check_on_binding_request(cl, rtp_session, evt_data, prflx_candidate, &taddr);
 	if (pair != NULL) ice_update_nominated_flag_on_binding_request(cl, msg, pair);
-	ice_send_binding_response(rtp_session, evt_data, msg, remote_addr);
+	ice_send_binding_response(cl,rtp_session, evt_data, msg, remote_addr);
 	ice_conclude_processing(cl, rtp_session);
 }
 
