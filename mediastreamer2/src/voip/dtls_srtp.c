@@ -177,31 +177,31 @@ unsigned char *ms_dtls_srtp_generate_certificate_fingerprint(const x509_crt *cer
 		case POLARSSL_MD_SHA1:
 			sha1(certificate->raw.p, certificate->raw.len, buffer);
 			hash_length = 20;
-			memcpy(hash_alg_string, "SHA-1", 6);
+			memcpy(hash_alg_string, "sha-1", 6);
 		break;
 
 		case POLARSSL_MD_SHA224:
 			sha256(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-224 and not sha-256 */
 			hash_length = 28;
-			memcpy(hash_alg_string, "SHA-224", 8);
+			memcpy(hash_alg_string, "sha-224", 8);
 		break;
 
 		case POLARSSL_MD_SHA256:
 			sha256(certificate->raw.p, certificate->raw.len, buffer, 0);
 			hash_length = 32;
-			memcpy(hash_alg_string, "SHA-256", 8);
+			memcpy(hash_alg_string, "sha-256", 8);
 		break;
 
 		case POLARSSL_MD_SHA384:
 			sha512(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
 			hash_length = 48;
-			memcpy(hash_alg_string, "SHA-384", 8);
+			memcpy(hash_alg_string, "sha-384", 8);
 		break;
 
 		case POLARSSL_MD_SHA512:
 			sha512(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
 			hash_length = 64;
-			memcpy(hash_alg_string, "SHA-512", 8);
+			memcpy(hash_alg_string, "sha-512", 8);
 		break;
 
 		default:
@@ -274,49 +274,54 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 		}
 
 		if ((ret==0) && (ctx->channel_status == DTLS_STATUS_CONTEXT_READY)) { /* handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
-			unsigned char *computed_peer_fingerprint = NULL;
-			
+			ctx->channel_status = DTLS_STATUS_HANDSHAKE_OVER;
 
-			computed_peer_fingerprint = ms_dtls_srtp_generate_certificate_fingerprint(ssl_get_peer_cert(&(ctx->dtls_context->ssl)));
-			if (strcmp((const char *)computed_peer_fingerprint, ctx->peer_fingerprint) == 0) {
-				uint8_t *key = (uint8_t *)ms_malloc0(256);
-				OrtpEventData *eventData;
-				OrtpEvent *ev;
-				ms_message("DTLS Handshake successful and fingerprints match");
-						
-				ctx->channel_status = DTLS_STATUS_HANDSHAKE_OVER;
-				ctx->time_reference = 0; /* unarm the timer */
-			
-				if (ctx->role == MSDtlsSrtpRoleIsServer) {
-					/* reception(client write) key and salt +16bits padding */
-					memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, 128);
-					memcpy(key + 128, ctx->dtls_context->ssl.dtls_srtp_keys+240, 112);
-					media_stream_set_srtp_recv_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
-					/* emission(server write) key and salt +16bits padding */
-					memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+128, 128);
-					memcpy(key + 128, ctx->dtls_context->ssl.dtls_srtp_keys+368, 112);
-					media_stream_set_srtp_send_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
-				} else if (ctx->role == MSDtlsSrtpRoleIsClient){ /* this enpoint act as DTLS client */
-					/* emission(client write) key and salt +16bits padding */
-					memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, 128);
-					memcpy(key + 128, ctx->dtls_context->ssl.dtls_srtp_keys+240, 112);
-					media_stream_set_srtp_send_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
-					/* reception(server write) key and salt +16bits padding */
-					memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+128, 128);
-					memcpy(key + 128, ctx->dtls_context->ssl.dtls_srtp_keys+368, 112);
-					media_stream_set_srtp_recv_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
-				}
-
-				/* send event */
-				ev=ortp_event_new(ORTP_EVENT_DTLS_ENCRYPTION_CHANGED);
-				eventData=ortp_event_get_data(ev);
-				eventData->info.dtls_stream_encrypted=1;
-				rtp_session_dispatch_event(ctx->session, ev);
-				ms_message("Event dispatched to all: secrets are on");
-
-				ms_free(key);
+			/* check the srtp profile get selected during handshake */
+			if ( ctx->dtls_context->ssl.chosen_dtls_srtp_profile == SRTP_UNSET_PROFILE) {
+				ms_message("DTLS Handshake successful but unable to agree on srtp_profile to use");
 			} else {
-				ms_message("DTLS Handshake successful but fingerprints differ received : %s computed %s", ctx->peer_fingerprint, computed_peer_fingerprint);
+				unsigned char *computed_peer_fingerprint = NULL;
+
+				computed_peer_fingerprint = ms_dtls_srtp_generate_certificate_fingerprint(ssl_get_peer_cert(&(ctx->dtls_context->ssl)));
+				if (strcmp((const char *)computed_peer_fingerprint, ctx->peer_fingerprint) == 0) {
+					uint8_t *key = (uint8_t *)ms_malloc0(256);
+					OrtpEventData *eventData;
+					OrtpEvent *ev;
+					ms_message("DTLS Handshake successful and fingerprints match, profile %d", ctx->dtls_context->ssl.chosen_dtls_srtp_profile);
+
+					ctx->time_reference = 0; /* unarm the timer */
+
+					if (ctx->role == MSDtlsSrtpRoleIsServer) {
+						/* reception(client write) key and salt +16bits padding */
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, 128);
+						memcpy(key + 128, ctx->dtls_context->ssl.dtls_srtp_keys+240, 112);
+						media_stream_set_srtp_recv_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
+						/* emission(server write) key and salt +16bits padding */
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+128, 128);
+						memcpy(key + 128, ctx->dtls_context->ssl.dtls_srtp_keys+368, 112);
+						media_stream_set_srtp_send_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
+					} else if (ctx->role == MSDtlsSrtpRoleIsClient){ /* this enpoint act as DTLS client */
+						/* emission(client write) key and salt +16bits padding */
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, 128);
+						memcpy(key + 128, ctx->dtls_context->ssl.dtls_srtp_keys+240, 112);
+						media_stream_set_srtp_send_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
+						/* reception(server write) key and salt +16bits padding */
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+128, 128);
+						memcpy(key + 128, ctx->dtls_context->ssl.dtls_srtp_keys+368, 112);
+						media_stream_set_srtp_recv_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
+					}
+
+					/* send event */
+					ev=ortp_event_new(ORTP_EVENT_DTLS_ENCRYPTION_CHANGED);
+					eventData=ortp_event_get_data(ev);
+					eventData->info.dtls_stream_encrypted=1;
+					rtp_session_dispatch_event(ctx->session, ev);
+					ms_message("Event dispatched to all: secrets are on");
+
+					ms_free(key);
+				} else {
+					ms_message("DTLS Handshake successful but fingerprints differ received : %s computed %s", ctx->peer_fingerprint, computed_peer_fingerprint);
+				}
 			}
 		}
 		return 0;
@@ -472,7 +477,7 @@ MSDtlsSrtpContext* ms_dtls_srtp_context_new(MediaStream *stream, RtpSession *s, 
 
 	userData->channel_status = DTLS_STATUS_CONTEXT_READY;
 
-	return userData;//ms_dtls_srtp_configure_context(userData,s);
+	return userData;
 }
 
 void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
@@ -480,6 +485,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 		ms_warning("DTLS start but no context\n");
 		return;
 	}
+	ms_message("DTLS start stream\n");
 	/* if we are client, start the handshake(send a clientHello) */
 	if (context->role == MSDtlsSrtpRoleIsClient) {
 		ssl_set_endpoint(&(context->dtls_context->ssl), SSL_IS_CLIENT);
