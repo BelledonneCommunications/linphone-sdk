@@ -58,6 +58,7 @@ file(COPY "${LINPHONE_RESOURCES_PREFIX}/share/linphone" DESTINATION "${OUTPUT_DI
 file(COPY "${LINPHONE_RESOURCES_PREFIX}/share/sounds" DESTINATION "${OUTPUT_DIR}/linphone/share/")
 file(COPY "${LINPHONE_SOURCE_DIR}/tools/python/unittests" DESTINATION "${OUTPUT_DIR}/linphone/")
 file(COPY "${LINPHONE_SOURCE_DIR}/tester/certificates" DESTINATION "${OUTPUT_DIR}/linphone/unittests/")
+file(COPY "${LINPHONE_SOURCE_DIR}/tester/images" DESTINATION "${OUTPUT_DIR}/linphone/unittests/")
 file(COPY "${LINPHONE_SOURCE_DIR}/tester/rcfiles" DESTINATION "${OUTPUT_DIR}/linphone/unittests/")
 file(COPY "${LINPHONE_SOURCE_DIR}/tester/sounds" DESTINATION "${OUTPUT_DIR}/linphone/unittests/")
 file(COPY "${LINPHONE_SOURCE_DIR}/tester/tester_hosts" DESTINATION "${OUTPUT_DIR}/linphone/unittests/")
