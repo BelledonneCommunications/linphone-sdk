@@ -24,7 +24,7 @@ set(EP_libilbcrfc3951_GIT_REPOSITORY "git://git.linphone.org/libilbc-rfc3951.git
 if(LINPHONE_BUILDER_LATEST)
 	set(EP_libilbcrfc3951_GIT_TAG "master")
 else()
-	set(EP_libilbcrfc3951_GIT_TAG "fcf42f92c13d020441a6b64e8ffe80aa4fb11885")
+	set(EP_libilbcrfc3951_GIT_TAG "488f2159378d2c1956135604736dfddaeb947ef5")
 endif()
 set(EP_libilbcrfc3951_BUILD_METHOD "autotools")
 set(EP_libilbcrfc3951_USE_AUTOGEN "yes")
