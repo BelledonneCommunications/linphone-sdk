@@ -73,7 +73,7 @@ int main(int argc, char *argv[]){
 		return -1;
 	}
 	close(fd);
-	belle_sip_set_log_level(BELLE_SIP_LOG_WARNING);
+	belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
 	
 	for (i=0;i<st.st_size;){
 		size_t read;
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]){
 			if (msg){
 				printf("Succesfully parsed %s message of %i bytes.\n",protocol,(int)read);
 			}else{
-				fprintf(stderr,"Failed to parse message.");
+				fprintf(stderr,"Failed to parse message.\n");
 				break;
 			}
 			i+=read;
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]){
 			if (sdp){
 				printf("Succesfully parsed %s message of %i bytes.\n",protocol,(int)strlen(str));
 			}else{
-				fprintf(stderr,"Failed to parse SDP message.");
+				fprintf(stderr,"Failed to parse SDP message.\n");
 			}
 			break;
 		}
