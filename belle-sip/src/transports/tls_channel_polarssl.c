@@ -65,14 +65,14 @@ struct belle_sip_signing_key {
  * Retrieve key or certificate in a string(PEM format)
  */
 #if POLARSSL_VERSION_NUMBER < 0x01030000
-unsigned char *belle_sip_get_certificates_pem(belle_sip_certificates_chain_t *cert) {
+char *belle_sip_certificates_chain_get_pem(belle_sip_certificates_chain_t *cert) {
 	return NULL;
 }
-unsigned char *belle_sip_get_key_pem(belle_sip_signing_key_t *key) {
+char *belle_sip_signing_key_get_pem(belle_sip_signing_key_t *key) {
 	return NULL;
 }
 #else /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
-unsigned char *belle_sip_get_certificates_pem(belle_sip_certificates_chain_t *cert) {
+char *belle_sip_certificates_chain_get_pem(belle_sip_certificates_chain_t *cert) {
 	unsigned char *pem_certificate = NULL;
 	size_t olen=0;
 	if (cert == NULL) return NULL;
@@ -82,7 +82,7 @@ unsigned char *belle_sip_get_certificates_pem(belle_sip_certificates_chain_t *ce
 	return pem_certificate;
 }
 
-unsigned char *belle_sip_get_key_pem(belle_sip_signing_key_t *key) {
+char *belle_sip_signing_key_get_pem(belle_sip_signing_key_t *key) {
 	unsigned char *pem_key;
 	if (key == NULL) return NULL;
 	pem_key = (unsigned char *)belle_sip_malloc(4096);
@@ -606,8 +606,8 @@ int belle_sip_generate_self_signed_certificate(const char* path, const char *sub
 #if POLARSSL_VERSION_NUMBER < 0x01030000
 	return -1;
 #else /* POLARSSL_VERSION_NUMBER < 0x01030000 */
-    entropy_context entropy;
-    ctr_drbg_context ctr_drbg;
+	entropy_context entropy;
+	ctr_drbg_context ctr_drbg;
 	int ret;
 	mpi serial;
 	x509write_cert crt;
@@ -742,64 +742,66 @@ int belle_sip_generate_self_signed_certificate(const char* path, const char *sub
 }
 
 /* Note : this code is duplicated in mediastreamer2/src/voip/dtls_srtp.c but get directly a x509_crt as input parameter */
-unsigned char *belle_sip_generate_certificate_fingerprint(belle_sip_certificates_chain_t *certificate) {
+char *belle_sip_certificates_chain_get_fingerprint(belle_sip_certificates_chain_t *certificate) {
 #ifdef HAVE_POLARSSL
 #if POLARSSL_VERSION_NUMBER < 0x01030000
 	return NULL;
 #else /* POLARSSL_VERSION_NUMBER < 0x01030000 */
-	unsigned char buffer[64]; /* buffer is max length of returned hash, which is 64 in case we use sha-512 */
+	unsigned char buffer[64]={0}; /* buffer is max length of returned hash, which is 64 in case we use sha-512 */
 	size_t hash_length = 0;
-	char hash_alg_string[8]; /* buffer to store the string description of the algo, longest is SHA-512(7 chars + null termination) */
-	unsigned char *fingerprint = NULL;
-	x509_crt crt;
+	const char *hash_alg_string=NULL;
+	char *fingerprint = NULL;
+	x509_crt *crt;
 	if (certificate == NULL) return NULL;
 
-	crt = certificate->cert;
+	crt = &certificate->cert;
 	/* fingerprint is a hash of the DER formated certificate (found in crt->raw.p) using the same hash function used by certificate signature */
 	switch (crt.sig_md) {
 		case POLARSSL_MD_SHA1:
-			sha1(crt.raw.p, crt.raw.len, buffer);
+			sha1(crt->raw.p, crt->raw.len, buffer);
 			hash_length = 20;
-			memcpy(hash_alg_string, "sha-1", 6);
+			hash_alg_string="SHA-1";
 		break;
 
 		case POLARSSL_MD_SHA224:
-			sha256(crt.raw.p, crt.raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-224 and not sha-256 */
+			sha256(crt->raw.p, crt->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-224 and not sha-256 */
 			hash_length = 28;
-			memcpy(hash_alg_string, "sha-224", 8);
+			hash_alg_string="SHA-224";
 		break;
 
 		case POLARSSL_MD_SHA256:
-			sha256(crt.raw.p, crt.raw.len, buffer, 0);
+			sha256(crt->raw.p, crt->raw.len, buffer, 0);
 			hash_length = 32;
-			memcpy(hash_alg_string, "sha-256", 8);
+			hash_alg_string="SHA-256";
 		break;
 
 		case POLARSSL_MD_SHA384:
-			sha512(crt.raw.p, crt.raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
+			sha512(crt->raw.p, crt->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
 			hash_length = 48;
-			memcpy(hash_alg_string, "sha-384", 8);
+			hash_alg_string="SHA-384";
 		break;
 
 		case POLARSSL_MD_SHA512:
-			sha512(crt.raw.p, crt.raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
+			sha512(crt->raw.p, crt->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
 			hash_length = 64;
-			memcpy(hash_alg_string, "sha-512", 8);
+			hash_alg_string="SHA-512";
 		break;
 
 		default:
+			return NULL;
 		break;
 	}
 
 	if (hash_length>0) {
 		int i;
 		int fingerprint_index = strlen(hash_alg_string);
+		size_t size=fingerprint_index+3*hash_length+1;
 		char prefix=' ';
 		/* fingerprint will be : hash_alg_string+' '+HEX : separated values: length is strlen(hash_alg_string)+3*hash_lenght + 1 for null termination */
-		fingerprint = (unsigned char *)belle_sip_malloc(fingerprint_index+3*hash_length+1);
-		sprintf((char*)fingerprint, "%s", hash_alg_string);
+		fingerprint = belle_sip_malloc0(size);
+		snprintf(fingerprint, size, "%s", hash_alg_string);
 		for (i=0; i<hash_length; i++, fingerprint_index+=3) {
-			sprintf((char*)fingerprint+fingerprint_index,"%c%02X", prefix,buffer[i]);
+			snprintf((char*)fingerprint+fingerprint_index, size-fingerprint_index, "%c%02X", prefix,buffer[i]);
 			prefix=':';
 		}
 		*(fingerprint+fingerprint_index) = '\0';

@@ -105,11 +105,13 @@ BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_qop_auth(	const char*
 /*TLS client certificate auth*/
 /**
  * Format of certificate buffer
- * */
+ **/
 typedef enum  belle_sip_certificate_raw_format {
 	BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM, /** PEM format*/
 	BELLE_SIP_CERTIFICATE_RAW_FORMAT_DER /** ASN.1 raw format*/
-}belle_sip_certificate_raw_format_t;/**
+}belle_sip_certificate_raw_format_t;
+
+/**
  * Parse a buffer containing either a certificate chain order in PEM format or a single DER cert
  * @param buff raw buffer
  * @param size buffer size
@@ -164,7 +166,7 @@ BELLESIP_EXPORT int belle_sip_generate_self_signed_certificate(const char* path,
  * @param[in]	cert	The certificate to be converted into PEM format string
  * @return	the PEM representation of certificate. Buffer is allocated by this function and must be freed by caller
  */
-BELLESIP_EXPORT unsigned char *belle_sip_get_certificates_pem(belle_sip_certificates_chain_t *cert);
+BELLESIP_EXPORT char *belle_sip_certificates_chain_get_pem(belle_sip_certificates_chain_t *cert);
 
 /**
  * Convert a key into a its PEM format string
@@ -172,7 +174,7 @@ BELLESIP_EXPORT unsigned char *belle_sip_get_certificates_pem(belle_sip_certific
  * @param[in]	key		The key to be converted into PEM format string
  * @return	the PEM representation of key. Buffer is allocated by this function and must be freed by caller
  */
-BELLESIP_EXPORT unsigned char *belle_sip_get_key_pem(belle_sip_signing_key_t *key);
+BELLESIP_EXPORT char *belle_sip_signing_key_get_pem(belle_sip_signing_key_t *key);
 
 /**
  * Generate a certificate fingerprint as described in RFC4572
@@ -181,7 +183,7 @@ BELLESIP_EXPORT unsigned char *belle_sip_get_key_pem(belle_sip_signing_key_t *ke
  * @param[in]	certificate		The certificate used to generate the fingerprint
  * @return		The generated fingerprint formatted according to RFC4572 section 5. Is a null terminated string, must be freed by caller
  */
-BELLESIP_EXPORT unsigned char *belle_sip_generate_certificate_fingerprint(belle_sip_certificates_chain_t *certificate);
+BELLESIP_EXPORT char *belle_sip_certificates_chain_get_fingerprint(belle_sip_certificates_chain_t *certificate);
 
 /**
  * Parse a pather containing either a private or public rsa key

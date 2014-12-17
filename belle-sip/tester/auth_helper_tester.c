@@ -177,7 +177,7 @@ static void test_certificate_fingerprint(void) {
 	CU_ASSERT_TRUE_FATAL(fingerprint!=NULL);
 	CU_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_client_cert_fingerprint);
 
-	free(fingerprint);
+	belle_sip_free(fingerprint);
 	belle_sip_object_unref(cert);
 
 	/* parse certificate defined above, signing algo is sha256 */
@@ -188,7 +188,7 @@ static void test_certificate_fingerprint(void) {
 	CU_ASSERT_TRUE_FATAL(fingerprint!=NULL);
 	CU_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_fingerprint256_cert_fingerprint);
 
-	free(fingerprint);
+	belle_sip_free(fingerprint);
 	belle_sip_object_unref(cert);
 
 #endif /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
