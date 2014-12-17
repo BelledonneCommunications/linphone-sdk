@@ -174,6 +174,7 @@ LOCAL_CFLAGS += \
 	-DNDEBUG
 
 LOCAL_C_INCLUDES += \
+	$(LOCAL_PATH)/../../../externals/libmatroska \
 	$(LOCAL_PATH)/../../../externals/libmatroska/corec \
 	$(LOCAL_PATH)/../../../externals/libmatroska/libebml2 \
 	$(LOCAL_PATH)/../../../externals/libmatroska/libmatroska2
