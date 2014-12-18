@@ -92,7 +92,7 @@ static void test_generate_and_parse_certificates(void) {
 #ifndef WIN32
 	belle_sip_certificates_chain_t *certificate, *parsed_certificate;
 	belle_sip_signing_key_t *key, *parsed_key;
-	unsigned char *pem_certificate, *pem_parsed_certificate, *pem_key, *pem_parsed_key;
+	char *pem_certificate, *pem_parsed_certificate, *pem_key, *pem_parsed_key;
 	int ret = 0;
 	char *belle_sip_certificate_temporary_dir=belle_sip_malloc(strlen(belle_sip_tester_writable_dir_prefix)+strlen(TEMPORARY_CERTIFICATE_DIR)+1);
 	strcpy(belle_sip_certificate_temporary_dir, belle_sip_tester_writable_dir_prefix);
@@ -110,16 +110,16 @@ static void test_generate_and_parse_certificates(void) {
 	CU_ASSERT_EQUAL_FATAL(0, ret);
 
 	/* get pem version of generated and parsed certificate and compare them */
-	pem_certificate = belle_sip_get_certificates_pem(certificate);
+	pem_certificate = belle_sip_certificates_chain_get_pem(certificate);
 	CU_ASSERT_TRUE_FATAL(pem_certificate!=NULL);
-	pem_parsed_certificate = belle_sip_get_certificates_pem(parsed_certificate);
+	pem_parsed_certificate = belle_sip_certificates_chain_get_pem(parsed_certificate);
 	CU_ASSERT_TRUE_FATAL(pem_parsed_certificate!=NULL);
 	CU_ASSERT_STRING_EQUAL(pem_certificate, pem_parsed_certificate);
 
 	/* get pem version of generated and parsed key and compare them */
-	pem_key = belle_sip_get_key_pem(key);
+	pem_key = belle_sip_signing_key_get_pem(key);
 	CU_ASSERT_TRUE_FATAL(pem_key!=NULL);
-	pem_parsed_key = belle_sip_get_key_pem(parsed_key);
+	pem_parsed_key = belle_sip_signing_key_get_pem(parsed_key);
 	CU_ASSERT_TRUE_FATAL(pem_parsed_key!=NULL);
 	CU_ASSERT_STRING_EQUAL(pem_key, pem_parsed_key);
 
@@ -168,11 +168,11 @@ const char* belle_sip_tester_fingerprint256_cert_fingerprint =
 static void test_certificate_fingerprint(void) {
 #ifdef HAVE_POLARSSL
 #if POLARSSL_VERSION_NUMBER >= 0x01030000
-	unsigned char *fingerprint;
+	char *fingerprint;
 	/* parse certificate defined in belle_sip_register_tester.c */
 	belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(belle_sip_tester_client_cert,strlen(belle_sip_tester_client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
 	/* generate fingerprint */
-	fingerprint = belle_sip_generate_certificate_fingerprint(cert);
+	fingerprint = belle_sip_certificates_chain_get_fingerprint(cert);
 
 	CU_ASSERT_TRUE_FATAL(fingerprint!=NULL);
 	CU_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_client_cert_fingerprint);
@@ -183,7 +183,7 @@ static void test_certificate_fingerprint(void) {
 	/* parse certificate defined above, signing algo is sha256 */
 	cert = belle_sip_certificates_chain_parse(belle_sip_tester_fingerprint256_cert,strlen(belle_sip_tester_fingerprint256_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
 	/* generate fingerprint */
-	fingerprint = belle_sip_generate_certificate_fingerprint(cert);
+	fingerprint = belle_sip_certificates_chain_get_fingerprint(cert);
 
 	CU_ASSERT_TRUE_FATAL(fingerprint!=NULL);
 	CU_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_fingerprint256_cert_fingerprint);

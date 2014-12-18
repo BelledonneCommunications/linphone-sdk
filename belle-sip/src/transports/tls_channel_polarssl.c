@@ -73,19 +73,19 @@ char *belle_sip_signing_key_get_pem(belle_sip_signing_key_t *key) {
 }
 #else /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
 char *belle_sip_certificates_chain_get_pem(belle_sip_certificates_chain_t *cert) {
-	unsigned char *pem_certificate = NULL;
+	char *pem_certificate = NULL;
 	size_t olen=0;
 	if (cert == NULL) return NULL;
 
-	pem_certificate = (unsigned char *)belle_sip_malloc(4096);
-	pem_write_buffer("-----BEGIN CERTIFICATE-----\n", "-----END CERTIFICATE-----\n", cert->cert.raw.p, cert->cert.raw.len, pem_certificate, 4096, &olen );
+	pem_certificate = (char*)belle_sip_malloc(4096);
+	pem_write_buffer("-----BEGIN CERTIFICATE-----\n", "-----END CERTIFICATE-----\n", cert->cert.raw.p, cert->cert.raw.len, (unsigned char*)pem_certificate, 4096, &olen );
 	return pem_certificate;
 }
 
 char *belle_sip_signing_key_get_pem(belle_sip_signing_key_t *key) {
-	unsigned char *pem_key;
+	char *pem_key;
 	if (key == NULL) return NULL;
-	pem_key = (unsigned char *)belle_sip_malloc(4096);
+	pem_key = (char *)belle_sip_malloc(4096);
 	pk_write_key_pem( &(key->key), (unsigned char *)pem_key, 4096);
 	return pem_key;
 }
@@ -756,7 +756,7 @@ char *belle_sip_certificates_chain_get_fingerprint(belle_sip_certificates_chain_
 
 	crt = &certificate->cert;
 	/* fingerprint is a hash of the DER formated certificate (found in crt->raw.p) using the same hash function used by certificate signature */
-	switch (crt.sig_md) {
+	switch (crt->sig_md) {
 		case POLARSSL_MD_SHA1:
 			sha1(crt->raw.p, crt->raw.len, buffer);
 			hash_length = 20;
