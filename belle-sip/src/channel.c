@@ -701,7 +701,7 @@ void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_chann
 }
 
 int belle_sip_channel_matches(const belle_sip_channel_t *obj, const belle_sip_hop_t *hop, const struct addrinfo *addr){
-	if (hop && strcmp(hop->host,obj->peer_name)==0 && hop->port==obj->peer_port){
+	if (hop && strcmp(hop->host,obj->peer_name)==0 && (hop->port==obj->peer_port || obj->srv_overrides_port)){
 		if (hop->cname && obj->peer_cname && strcmp(hop->cname,obj->peer_cname)!=0)
 			return 0; /*cname mismatch*/
 		return 1;
@@ -1227,9 +1227,16 @@ void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 
 void belle_sip_channel_connect(belle_sip_channel_t *obj){
 	char ip[64];
+	int port=obj->peer_port;
 
 	channel_set_state(obj,BELLE_SIP_CHANNEL_CONNECTING);
-	belle_sip_addrinfo_to_ip(obj->current_peer,ip,sizeof(ip),&obj->peer_port);/* update peer_port as it may have been overriden by SRV resolution*/
+	belle_sip_addrinfo_to_ip(obj->current_peer,ip,sizeof(ip),&port);
+	/* update peer_port as it may have been overriden by SRV resolution*/
+	if (port!=obj->peer_port){
+		/*the SRV resolution provided a port number that must be used*/
+		obj->srv_overrides_port=TRUE;
+		obj->peer_port=port;
+	}
 	belle_sip_message("Trying to connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(obj),ip,obj->peer_port);
 
 	if(BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->connect(obj,obj->current_peer)) {

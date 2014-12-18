@@ -124,6 +124,7 @@ struct belle_sip_channel{
 	unsigned char learnt_ip_port;
 	unsigned char has_name; /*set when the name of the peer is known, which is not the case of inboud connections*/
 	unsigned char about_to_be_closed;
+	unsigned char srv_overrides_port; /*set when this channel was connected to destination port provided by SRV resolution*/
 };
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)

@@ -30,9 +30,9 @@
 #define IPV4_SIP_BAD_DOMAIN	"dummy.linphone.org"
 #define IPV4_MULTIRES_DOMAIN	"google.com"
 
-/* videolan.org has an IPv6 and an IPv4 IP*/
-#define IPV6_SIP_DOMAIN		"videolan.org"
-#define IPV6_SIP_IP		"2a01:e0d:1:3:58bf:fa02:0:1"
+/* sip2.linphone.org has an IPv6 and an IPv4 IP*/
+#define IPV6_SIP_DOMAIN		"sip2.linphone.org"
+#define IPV6_SIP_IP		"2001:41d0:2:14b0::1"
 #define IPV6_SIP_IPV4		"88.191.250.2"
 
 #define SRV_DOMAIN		"linphone.org"
