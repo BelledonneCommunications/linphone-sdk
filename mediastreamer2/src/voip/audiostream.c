@@ -1325,9 +1325,9 @@ void audio_stream_mute_rtp(AudioStream *stream, bool_t val)
 {
 	if (stream->ms.rtpsend){
 		if (val)
-			ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_MUTE_MIC,&val);
+			ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_MUTE,&val);
 		else
-			ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_UNMUTE_MIC,&val);
+			ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_UNMUTE,&val);
 	}
 }
 
