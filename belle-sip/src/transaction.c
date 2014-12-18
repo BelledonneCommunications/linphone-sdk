@@ -111,9 +111,14 @@ int belle_sip_transaction_state_is_transient(const belle_sip_transaction_state_t
 
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_TERMINATED) {
+		int is_client=BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_client_transaction_t);
 		belle_sip_transaction_set_state(t,BELLE_SIP_TRANSACTION_TERMINATED);
-		belle_sip_message("%s%s %s transaction [%p] terminated"	,BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_client_transaction_t)?"Client":"Server"
-									,t->is_internal?" internal":""
+		if (t->dialog && (!t->last_response || belle_sip_response_get_status_code(t->last_response)<200)){
+			/*inform the dialog if a transaction terminates without final response.*/
+			belle_sip_dialog_update(t->dialog,t,!is_client);
+		}
+		belle_sip_message("%s%s %s transaction [%p] terminated"	,is_client ? "Client":"Server"
+									,t->is_internal ? " internal":""
 									,belle_sip_request_get_method(belle_sip_transaction_get_request(t))
 									,t);
 		BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);

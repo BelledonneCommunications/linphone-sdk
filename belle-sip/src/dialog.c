@@ -328,7 +328,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	int delete_dialog=FALSE;
 	belle_sip_request_t *req=belle_sip_transaction_get_request(transaction);
 	belle_sip_response_t *resp=belle_sip_transaction_get_response(transaction);
-	int code=-1;
+	int code=0;
 
 	belle_sip_message("Dialog [%p]: now updated by transaction [%p].",obj, transaction);
 	
@@ -341,8 +341,8 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 		SET_OBJECT_PROPERTY(obj,privacy,privacy_header);
 	}
 	
-	if (!resp)
-		return 0;
+	if (resp)
+		code=belle_sip_response_get_status_code(resp);
 
 
 	/*first update local/remote cseq*/
@@ -351,7 +351,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 		obj->remote_cseq=belle_sip_header_cseq_get_seq_number(cseq);
 	}
 
-	code=belle_sip_response_get_status_code(resp);
+	
 	switch (obj->state){
 		case BELLE_SIP_DIALOG_NULL:
 			/*alway establish a dialog*/
@@ -377,7 +377,6 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				belle_sip_dialog_establish_full(obj,req,resp);
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
-			code=belle_sip_response_get_status_code(resp);
 			if (strcmp(belle_sip_request_get_method(req),"INVITE")==0){
 				if (code>=200 && code<300){
 					/*refresh the remote_target*/
@@ -403,7 +402,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 					/*final response, ack will be automatically sent by transaction layer*/
 					obj->needs_ack=FALSE;
 				}
-			} else if (strcmp(belle_sip_request_get_method(req),"BYE")==0 && (/*(*/code>=200 /*&& code<300) || code==481 || code==408*/)){
+			} else if (strcmp(belle_sip_request_get_method(req),"BYE")==0){
 				/*15.1.1 UAC Behavior
 
 				   A BYE request is constructed as would any other request within a
@@ -419,8 +418,10 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				   returned by the client transaction), the UAC MUST consider the
 				   session and the dialog terminated. */
 				/*what should we do with other reponse >300 ?? */
-				obj->needs_ack=FALSE; /*no longuer need ACK*/
-				if (obj->terminate_on_bye) delete_dialog=TRUE;
+				if (code>=200 || (code==0 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED)){
+					obj->needs_ack=FALSE; /*no longuer need ACK*/
+					if (obj->terminate_on_bye) delete_dialog=TRUE;
+				}
 			}
 		break;
 		case BELLE_SIP_DIALOG_TERMINATED:
