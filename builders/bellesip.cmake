@@ -21,11 +21,9 @@
 ############################################################################
 
 set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git")
-if(LINPHONE_BUILDER_LATEST)
-	set(EP_bellesip_GIT_TAG "master")
-else()
-	set(EP_bellesip_GIT_TAG "a83140a531e8bbb8c43c11bc1a506fa42548f83a")
-endif()
+set(EP_bellesip_GIT_TAG_LATEST "master")
+set(EP_bellesip_GIT_TAG "a83140a531e8bbb8c43c11bc1a506fa42548f83a")
+
 set(EP_bellesip_CMAKE_OPTIONS )
 set(EP_bellesip_LINKING_TYPE "-DENABLE_STATIC=0")
 set(EP_bellesip_DEPENDENCIES EP_antlr3c EP_polarssl)

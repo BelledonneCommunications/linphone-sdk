@@ -21,11 +21,9 @@
 ############################################################################
 
 set(EP_msilbc_GIT_REPOSITORY "git://git.linphone.org/msilbc.git")
-if(LINPHONE_BUILDER_LATEST)
-	set(EP_msilbc_GIT_TAG "master")
-else()
-	set(EP_msilbc_GIT_TAG "00bd16fc869414dc9a68a56251ed3f895f106f2f")
-endif()
+set(EP_msilbc_GIT_TAG_LATEST "master")
+set(EP_msilbc_GIT_TAG "00bd16fc869414dc9a68a56251ed3f895f106f2f")
+
 set(EP_msilbc_BUILD_METHOD "autotools")
 set(EP_msilbc_USE_AUTOGEN "yes")
 set(EP_msilbc_CROSS_COMPILATION_OPTIONS

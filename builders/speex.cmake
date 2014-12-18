@@ -21,11 +21,9 @@
 ############################################################################
 
 set(EP_speex_GIT_REPOSITORY "git://git.linphone.org/speex.git")
-if(LINPHONE_BUILDER_LATEST)
-	set(EP_speex_GIT_TAG "linphone")
-else()
-	set(EP_speex_GIT_TAG "d472c4c38a3105c4d0ca574547c2c4865491df1d")
-endif()
+set(EP_speex_GIT_TAG_LATEST "linphone")
+set(EP_speex_GIT_TAG "d472c4c38a3105c4d0ca574547c2c4865491df1d")
+
 set(EP_speex_LINKING_TYPE "-DENABLE_STATIC=0")
 if(MSVC)
 	set(EP_speex_EXTRA_LDFLAGS "/SAFESEH:NO")

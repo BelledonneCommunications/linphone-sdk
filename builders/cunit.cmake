@@ -21,11 +21,9 @@
 ############################################################################
 
 set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git")
-if(LINPHONE_BUILDER_LATEST)
-	set(EP_cunit_GIT_TAG "linphone")
-else()
-	set(EP_cunit_GIT_TAG "eb4626ad1d68cdb29e4d9719f9de3948d35c449d")
-endif()
+set(EP_cunit_GIT_TAG_LATEST "linphone")
+set(EP_cunit_GIT_TAG "eb4626ad1d68cdb29e4d9719f9de3948d35c449d")
+
 set(EP_cunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=1" "-DENABLE_CONSOLE=0")
 set(EP_cunit_LINKING_TYPE "-DENABLE_STATIC=0")
 if(MSVC)

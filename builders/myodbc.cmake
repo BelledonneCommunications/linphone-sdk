@@ -21,11 +21,8 @@
 ############################################################################
 
 set(EP_myodbc_GIT_REPOSITORY "git://git.linphone.org/myodbc.git")
-if(LINPHONE_BUILDER_LATEST)
-	set(EP_myodbc_GIT_TAG "master")
-else()
-	set(EP_myodbc_GIT_TAG "1806820618f15e2c7ca298b6ec4006c8f48bcf7d")
-endif()
+set(EP_myodbc_GIT_TAG_LATEST "master")
+set(EP_myodbc_GIT_TAG "1806820618f15e2c7ca298b6ec4006c8f48bcf7d")
 
 set(EP_myodbc_CMAKE_OPTIONS "-DWITH_UNIXODBC=1")
 set(EP_myodbc_LINKING_TYPE )

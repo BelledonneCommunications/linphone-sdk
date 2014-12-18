@@ -21,11 +21,9 @@
 ############################################################################
 
 set(EP_msopenh264_GIT_REPOSITORY "git://git.linphone.org/msopenh264.git")
-if(LINPHONE_BUILDER_LATEST)
-	set(EP_msopenh264_GIT_TAG "master")
-else()
-	set(EP_msopenh264_GIT_TAG "e58cda7e1dc4bd9001d3cd4cd57b4cdc5dce6178")
-endif()
+set(EP_msopenh264_GIT_TAG_LATEST "master")
+set(EP_msopenh264_GIT_TAG "e58cda7e1dc4bd9001d3cd4cd57b4cdc5dce6178")
+
 set(EP_msopenh264_CMAKE_OPTIONS )
 if(APPLE)
 	set(EP_msopenh264_EXTRA_LDFLAGS "-Wl,-read_only_relocs,suppress")

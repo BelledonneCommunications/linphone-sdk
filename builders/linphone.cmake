@@ -21,11 +21,8 @@
 ############################################################################
 
 set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
-if(${LINPHONE_BUILDER_LATEST})
-	set(EP_linphone_GIT_TAG "master")
-else()
-	set(EP_linphone_GIT_TAG "88c902d12dea1fe5332c3a8a3b0e8bd63e4690a2")
-endif()
+set(EP_linphone_GIT_TAG_LATEST "master")
+set(EP_linphone_GIT_TAG "88c902d12dea1fe5332c3a8a3b0e8bd63e4690a2")
 
 set(EP_linphone_CMAKE_OPTIONS )
 set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=NO")

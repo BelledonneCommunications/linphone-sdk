@@ -21,11 +21,9 @@
 ############################################################################
 
 set(EP_mssilk_GIT_REPOSITORY "git://git.linphone.org/mssilk.git")
-if(LINPHONE_BUILDER_LATEST)
-	set(EP_mssilk_GIT_TAG "master")
-else()
-	set(EP_mssilk_GIT_TAG "a5a4cd468e7a5dd95f3f18e044c245cdc4788520")
-endif()
+set(EP_mssilk_GIT_TAG_LATEST "master")
+set(EP_mssilk_GIT_TAG "a5a4cd468e7a5dd95f3f18e044c245cdc4788520")
+
 set(EP_mssilk_BUILD_METHOD "autotools")
 set(EP_mssilk_USE_AUTOGEN "yes")
 set(EP_mssilk_CROSS_COMPILATION_OPTIONS

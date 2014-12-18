@@ -21,11 +21,9 @@
 ############################################################################
 
 set(EP_bzrtp_GIT_REPOSITORY "git://git.linphone.org/bzrtp.git")
-if(LINPHONE_BUILDER_LATEST)
-	set(EP_bzrtp_GIT_TAG "master")
-else()
-	set(EP_bzrtp_GIT_TAG "f0bda2c4f58e90142fc0f4a4f33363aa38c0cdc7")
-endif()
+set(EP_bzrtp_GIT_TAG_LATEST "master")
+set(EP_bzrtp_GIT_TAG "f0bda2c4f58e90142fc0f4a4f33363aa38c0cdc7")
+
 set(EP_bzrtp_CMAKE_OPTIONS )
 set(EP_bzrtp_LINKING_TYPE "-DENABLE_STATIC=0")
 set(EP_bzrtp_DEPENDENCIES EP_polarssl EP_xml2)

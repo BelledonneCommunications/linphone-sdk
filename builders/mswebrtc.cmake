@@ -21,11 +21,9 @@
 ############################################################################
 
 set(EP_mswebrtc_GIT_REPOSITORY "git://git.linphone.org/mswebrtc.git")
-if(LINPHONE_BUILDER_LATEST)
-	set(EP_mswebrtc_GIT_TAG "master")
-else()
-	set(EP_mswebrtc_GIT_TAG "0032453985975530356fb702c6ea46e45ecd3eb2")
-endif()
+set(EP_mswebrtc_GIT_TAG_LATEST "master")
+set(EP_mswebrtc_GIT_TAG "0032453985975530356fb702c6ea46e45ecd3eb2")
+
 set(EP_mswebrtc_BUILD_METHOD "autotools")
 set(EP_mswebrtc_USE_AUTOGEN "yes")
 set(EP_mswebrtc_CROSS_COMPILATION_OPTIONS

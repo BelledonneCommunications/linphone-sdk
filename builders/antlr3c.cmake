@@ -21,11 +21,9 @@
 ############################################################################
 
 set(EP_antlr3c_GIT_REPOSITORY "git://git.linphone.org/antlr3.git")
-if(LINPHONE_BUILDER_LATEST)
-	set(EP_antlr3c_GIT_TAG "linphone")
-else()
-	set(EP_antlr3c_GIT_TAG "8b8f6295c2c48136c8c6f2925d6fe8acef6162dc")
-endif()
+set(EP_antlr3c_GIT_TAG_LATEST "linphone")
+set(EP_antlr3c_GIT_TAG "8b8f6295c2c48136c8c6f2925d6fe8acef6162dc")
+
 set(EP_antlr3c_CMAKE_OPTIONS "-DENABLE_DEBUGGER=0")
 set(EP_antlr3c_LINKING_TYPE "-DENABLE_STATIC=0")
 if(MSVC)

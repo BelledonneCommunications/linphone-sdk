@@ -21,12 +21,8 @@
 ############################################################################
 
 set(EP_flexisip_GIT_REPOSITORY "gitosis@git.linphone.org:flexisip")
-
-if(LINPHONE_BUILDER_LATEST)
-	set(EP_flexisip_GIT_TAG "master")
-else()
-	set(EP_flexisip_GIT_TAG "7892114eb03c28a4983dd5626aed704cca9efa1b")
-endif()
+set(EP_flexisip_GIT_TAG_LATEST "master")
+set(EP_flexisip_GIT_TAG "7892114eb03c28a4983dd5626aed704cca9efa1b")
 
 set(EP_flexisip_DEPENDENCIES EP_ortp EP_unixodbc EP_myodbc EP_sofiasip )
 
