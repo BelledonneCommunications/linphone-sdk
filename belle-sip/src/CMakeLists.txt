@@ -49,7 +49,7 @@ set(SDP_GENERATED_SOURCE_FILES
 )
 add_custom_command(
 	OUTPUT ${SDP_GENERATED_SOURCE_FILES}
-	COMMAND ${ANTLR3_COMMAND} -make -Xmultithreaded -fo ${CMAKE_CURRENT_BINARY_DIR}/grammars ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sdp.g
+	COMMAND ${ANTLR3_COMMAND} -make -Xmultithreaded -Xconversiontimeout 10000 -fo ${CMAKE_CURRENT_BINARY_DIR}/grammars ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sdp.g
 	DEPENDS grammars/belle_sdp.g
 )
 
@@ -61,7 +61,7 @@ set(SIP_MESSAGE_GENERATED_SOURCE_FILES
 )
 add_custom_command(
 	OUTPUT ${SIP_MESSAGE_GENERATED_SOURCE_FILES}
-	COMMAND ${ANTLR3_COMMAND} -make -Xmultithreaded -fo ${CMAKE_CURRENT_BINARY_DIR}/grammars ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sip_message.g
+	COMMAND ${ANTLR3_COMMAND} -make -Xmultithreaded -Xconversiontimeout 10000 -fo ${CMAKE_CURRENT_BINARY_DIR}/grammars ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sip_message.g
 	DEPENDS grammars/belle_sip_message.g
 )
 

@@ -12,13 +12,13 @@ nodist_libbellesip_generated_la_SOURCES= \
 
 $(builddir)/belle_sip_messageParser.c $(builddir)/belle_sip_messageParser.h \
 				$(builddir)/belle_sip_messageLexer.c $(builddir)/belle_sip_messageLexer.h  : belle_sip_message.g
-	$(ANTLR)  -make -Xmultithreaded  -fo  $(builddir) $(srcdir)/belle_sip_message.g
+	$(ANTLR)  -make -Xmultithreaded -Xconversiontimeout 10000 -fo  $(builddir) $(srcdir)/belle_sip_message.g
 
 $(builddir)/belle_sdpLexer.c \
 				$(builddir)/belle_sdpParser.c \
 				$(builddir)/belle_sdpLexer.h \
 				$(builddir)/belle_sdpParser.h : $(srcdir)/belle_sdp.g
-	$(ANTLR)  -make -Xmultithreaded  -fo $(builddir)  $<
+	$(ANTLR)  -make -Xmultithreaded -Xconversiontimeout 10000 -fo $(builddir)  $<
 
 
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
