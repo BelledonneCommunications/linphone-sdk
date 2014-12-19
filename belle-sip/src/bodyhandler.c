@@ -78,6 +78,10 @@ size_t belle_sip_body_handler_get_size(const belle_sip_body_handler_t *obj){
 	return obj->expected_size;
 }
 
+void belle_sip_body_handler_set_size(belle_sip_body_handler_t *obj, size_t size){
+	obj->expected_size=size;
+}
+
 size_t belle_sip_body_handler_get_transfered_size(const belle_sip_body_handler_t *obj){
 	return obj->transfered_size;
 }

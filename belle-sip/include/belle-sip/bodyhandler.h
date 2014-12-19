@@ -32,6 +32,7 @@ typedef void (*belle_sip_body_handler_progress_callback_t)(belle_sip_body_handle
 
 BELLESIP_EXPORT void belle_sip_body_handler_add_header(belle_sip_body_handler_t *obj, belle_sip_header_t *header);
 BELLESIP_EXPORT size_t belle_sip_body_handler_get_size(const belle_sip_body_handler_t *obj);
+BELLESIP_EXPORT void belle_sip_body_handler_set_size(belle_sip_body_handler_t *obj, size_t size);
 BELLESIP_EXPORT size_t belle_sip_body_handler_get_transfered_size(const belle_sip_body_handler_t *obj);
 
 
