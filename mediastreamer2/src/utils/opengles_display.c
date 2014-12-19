@@ -230,13 +230,16 @@ static void ogl_display_set_yuv(struct opengles_display* gldisp, mblk_t *yuv, en
 		return;
 	}
 	ms_mutex_lock(&gldisp->yuv_mutex);
-	if (gldisp->yuv[type])
+	if (gldisp->yuv[type]){
 		freemsg(gldisp->yuv[type]);
-	gldisp->yuv[type] = dupmsg(yuv);
-	for(j = 0; j < TEXTURE_BUFFER_SIZE; ++j) {
-		gldisp->new_yuv_image[j][type] = TRUE;
+		gldisp->yuv[type]=NULL;
 	}
-
+	if (yuv){
+		gldisp->yuv[type] = dupmsg(yuv);
+		for(j = 0; j < TEXTURE_BUFFER_SIZE; ++j) {
+			gldisp->new_yuv_image[j][type] = TRUE;
+		}
+	}
 	ms_mutex_unlock(&gldisp->yuv_mutex);
 }
 
