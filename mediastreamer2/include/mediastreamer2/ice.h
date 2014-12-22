@@ -127,7 +127,7 @@ typedef struct _IceStunServerCheckTransaction {
 } IceStunServerCheckTransaction;
 
 typedef struct _IceStunServerCheck {
-	ortp_socket_t sock;
+	RtpTransport *rtptp;
 	int srcport;
 	MSList *transactions;	/**< List of IceStunServerCheckTransaction structures. */
 	MSTimeSpec next_transmission_time;

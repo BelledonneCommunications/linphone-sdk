@@ -267,14 +267,8 @@ static int check_srtp_session_created(MediaStream *stream){
 		stream->sessions.srtp_session=session;
 		srtp_transport_modifier_new(session,&rtp_modifier,&rtcp_modifier);
 		rtp_session_get_transports(stream->sessions.rtp_session,&rtp,&rtcp);
-		/*if transports are set, we assume they are meta transporters, otherwise create them*/
-		if (rtp==NULL&&rtcp==NULL){
-			meta_rtp_transport_new(&rtp, TRUE, NULL, 0);
-			meta_rtp_transport_new(&rtcp, FALSE, NULL, 0);
-		}
 		meta_rtp_transport_append_modifier(rtp, rtp_modifier);
 		meta_rtp_transport_append_modifier(rtcp, rtcp_modifier);
-		rtp_session_set_transports(stream->sessions.rtp_session,rtp,rtcp);
 		stream->sessions.is_secured=TRUE;
 	}
 	return 0;
