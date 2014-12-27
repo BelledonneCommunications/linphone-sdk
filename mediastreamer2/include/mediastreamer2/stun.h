@@ -331,6 +331,7 @@ typedef struct
       StunAtrString password;
 	
       bool_t hasMessageIntegrity;
+      bool_t hasDummyMessageIntegrity; /*use to compute dummy message integrity for backward compatibility*/
       StunAtrIntegrity messageIntegrity;
 	
       bool_t hasErrorCode;

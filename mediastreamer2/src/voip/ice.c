@@ -212,6 +212,7 @@ static void ice_session_init(IceSession *session)
 	session->send_event = FALSE;
 	session->gathering_start_ts.tv_sec = session->gathering_start_ts.tv_nsec = -1;
 	session->gathering_end_ts.tv_sec = session->gathering_end_ts.tv_nsec = -1;
+	session->check_message_integrity=TRUE;
 }
 
 IceSession * ice_session_new(void)
@@ -243,6 +244,9 @@ void ice_session_destroy(IceSession *session)
 	}
 }
 
+void ice_session_enable_message_integrity_check(IceSession *session,bool_t enable) {
+	session->check_message_integrity=enable;
+}
 
 /******************************************************************************
  * CHECK LIST INITIALISATION AND DEINITIALISATION                             *
@@ -314,6 +318,7 @@ static IceCandidatePair *ice_pair_new(IceCheckList *cl, IceCandidate* local_cand
 	pair->retransmissions = 0;
 	pair->role = cl->session->role;
 	ice_compute_pair_priority(pair, &cl->session->role);
+	pair->retry_with_dummy_message_integrity=!cl->session->check_message_integrity;
 	return pair;
 }
 
@@ -1234,6 +1239,9 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 		transaction = ice_create_transaction(cl, pair, &msg.msgHdr.tr_id);
 	}
 
+	/*for backward compatibility*/
+	msg.hasDummyMessageIntegrity=pair->use_dummy_hmac;
+
 	len = stunEncodeMessage(&msg, buf, len, &password);
 	if (len > 0) {
 		transactionID2string(&transaction->transactionID, tr_id_str);
@@ -1322,9 +1330,17 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 	response.msgHdr.msgType = (STUN_METHOD_BINDING | STUN_SUCCESS_RESP);
 	response.hasMessageIntegrity = TRUE;
 	response.hasFingerprint = TRUE;
+	/*for backward compatibility*/
+	response.hasDummyMessageIntegrity=msg->hasDummyMessageIntegrity;
+
 
 	/*add username for message integrity*/
-	response.hasUsername = FALSE;
+	if (msg->hasDummyMessageIntegrity && !cl->session->check_message_integrity) {
+		/*legacy case, put username for bacward compatibility*/
+		response.hasUsername = TRUE;
+	} else
+		response.hasUsername = FALSE;
+
 	snprintf(response.username.value, sizeof(response.username.value) - 1, "%s:%s", ice_check_list_local_ufrag(cl), ice_check_list_remote_ufrag(cl));
 	response.username.sizeValue = strlen(response.username.value);
 
@@ -1430,6 +1446,9 @@ static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *
 	indication.msgHdr.msgType = (STUN_METHOD_BINDING|STUN_INDICATION);
 	indication.hasFingerprint = TRUE;
 
+	/*for backward compatibility*/
+	indication.hasDummyMessageIntegrity=pair->use_dummy_hmac;
+
 	len = stunEncodeMessage(&indication, buf, len, NULL);
 	if (len > 0) {
 		ms_message("ice: Send indication for pair %p: %s:%u:%s --> %s:%u:%s", pair,
@@ -1512,8 +1531,12 @@ static int ice_check_received_binding_request_integrity(const IceCheckList *cl, 
 	memcpy(lenpos, &newlen, sizeof(uint16_t));
 	if (memcmp(msg->messageIntegrity.hash, hmac, sizeof(hmac)) != 0) {
 		ms_error("ice: Wrong MESSAGE-INTEGRITY in received binding request");
-		ice_send_error_response(rtp_session, evt_data, msg, 4, 1, remote_addr, "Wrong MESSAGE-INTEGRITY attribute");
-		return -1;
+		if (!cl->session->check_message_integrity && msg->hasDummyMessageIntegrity) {
+			ms_message("ice: skipping message integrity check for cl [%p]",cl);
+		} else {
+			ice_send_error_response(rtp_session, evt_data, msg, 4, 1, remote_addr, "Wrong MESSAGE-INTEGRITY attribute");
+			return -1;
+		}
 	}
 	return 0;
 }
@@ -1764,11 +1787,12 @@ static int ice_check_received_binding_response_addresses(const RtpSession *rtp_s
 	return 0;
 }
 
-static int ice_check_received_binding_response_attributes(const StunMessage *msg, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_response_attributes(const StunMessage *msg, const StunAddress4 *remote_addr,bool_t check_integrity)
 {
 	if (!msg->hasMessageIntegrity) {
 		ms_warning("ice: Received binding response missing MESSAGE-INTEGRITY attribute");
-		return -1;
+		if (check_integrity)
+			return -1;
 	}
 	if (!msg->hasFingerprint) {
 		ms_warning("ice: Received binding response missing FINGERPRINT attribute");
@@ -1996,7 +2020,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 
 	succeeded_pair = (IceCandidatePair *)((IceTransaction *)elem->data)->pair;
 	if (ice_check_received_binding_response_addresses(rtp_session, evt_data, succeeded_pair, remote_addr) < 0) return;
-	if (ice_check_received_binding_response_attributes(msg, remote_addr) < 0) return;
+	if (ice_check_received_binding_response_attributes(msg, remote_addr,cl->session->check_message_integrity) < 0) return;
 
 	succeeded_pair_previous_state = succeeded_pair->state;
 	candidate = ice_discover_peer_reflexive_candidate(cl, succeeded_pair, msg);
@@ -2016,11 +2040,21 @@ static void ice_handle_received_error_response(IceCheckList *cl, RtpSession *rtp
 	}
 
 	pair = (IceCandidatePair *)((IceTransaction *)elem->data)->pair;
-	ice_pair_set_state(pair, ICP_Failed);
-	ms_message("ice: Error response, set state to Failed for pair %p: %s:%u:%s --> %s:%u:%s", pair,
-		pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
-		pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
+	if (	msg->hasErrorCode
+			&& (msg->errorCode.errorClass == 4)
+			&& (msg->errorCode.number == 1)
+			&& pair->retry_with_dummy_message_integrity) {
+		ms_warning("ice pair [%p], retry skipping message integrity for compatibility with older version",pair);
+		pair->retry_with_dummy_message_integrity=FALSE;
+		pair->use_dummy_hmac=TRUE;
+		return;
 
+	} else {
+		ice_pair_set_state(pair, ICP_Failed);
+		ms_message("ice: Error response, set state to Failed for pair %p: %s:%u:%s --> %s:%u:%s", pair,
+				pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
+				pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
+	}
 	if (msg->hasErrorCode && (msg->errorCode.errorClass == 4) && (msg->errorCode.number == 87)) {
 		/* Handle error 487 (Role Conflict) according to 7.1.3.1. */
 		switch (pair->role) {

@@ -545,6 +545,9 @@ stunParseMessage( char* buf, unsigned int bufLen, StunMessage *msg)
 			   ortp_error("stun: problem parsing SA_MESSAGEINTEGRITY");
 			   return FALSE;
 			}
+			if (memcmp(msg->messageIntegrity.hash, "hmac-not-implemented", 20) == 0) {
+				msg->hasDummyMessageIntegrity=TRUE;
+			}
 	  }
 	  else if (atrType == SA_ERRORCODE)
 	  {
@@ -1167,8 +1170,15 @@ stunEncodeMessage( const StunMessage *msg,
 	  //ortp_debug("stun: HMAC with password: %s\n", password->value );
 
 	  encode16(lengthp, &remaining, (uint16_t)(ptr - buf - sizeof(StunMsgHdr)+24));
-	  stunCalculateIntegrity_shortterm(integrity.hash, buf, (int)(ptr-buf) ,
-		password->value);
+	  if (msg->hasDummyMessageIntegrity) {
+		  strncpy(integrity.hash,"hmac-not-implemented",20);
+		  ms_message("hmac-not-implemented for stun message [%p]",msg);
+	  } else
+		  stunCalculateIntegrity_shortterm(		integrity.hash
+				  	  	  	  	  	  	  	  , buf
+				  	  	  	  	  	  	  	  , (int)(ptr-buf)
+				  	  	  	  	  	  	  	  , password->value);
+
 	  ptr = encodeAtrIntegrity(ptr, &remaining, &integrity);
    }
 

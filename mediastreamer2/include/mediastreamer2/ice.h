@@ -118,6 +118,7 @@ typedef struct _IceSession {
 	socklen_t ss_len;	/**< Length of the STUN server address to use for the candidates gathering process */
 	MSTimeSpec gathering_start_ts;
 	MSTimeSpec gathering_end_ts;
+	bool_t check_message_integrity; /*set to false for backward compatibility only*/
 } IceSession;
 
 typedef struct _IceStunServerCheckTransaction {
@@ -172,6 +173,8 @@ typedef struct _IceCandidatePair {
 	bool_t use_candidate;	/**< Boolean value telling if the USE-CANDIDATE attribute must be set for the connectivity checks send for the candidate pair */
 	bool_t is_nominated;	/**< Boolean value telling whether this candidate pair is nominated or not */
 	bool_t wait_transaction_timeout;	/**< Boolean value telling to create a new binding request on retransmission timeout */
+	bool_t retry_with_dummy_message_integrity; /** use to tell to retry with dummy message integrity. Useful to keep backward compatibility with older version*/
+	bool_t use_dummy_hmac; /*don't compute real hmac. used for backward compatibility*/
 } IceCandidatePair;
 
 /**
@@ -774,6 +777,16 @@ MS2_PUBLIC void ice_session_start_connectivity_checks(IceSession *session);
  */
 MS2_PUBLIC void ice_session_check_mismatch(IceSession *session);
 
+
+/**
+ * Disable/enable strong message integrity check. Used for backward compatibility only
+ * default value is enabled
+ * @param session A pointer to a session
+ * @param enable value
+ *
+ */
+MS2_PUBLIC void ice_session_enable_message_integrity_check(IceSession *session,bool_t enable);
+
 /**
  * Core ICE check list processing.
  *
@@ -849,6 +862,7 @@ MS2_PUBLIC void ice_dump_check_list(const IceCheckList *cl);
  * Dump the triggered checks queue of an ICE check list in the traces (debug function).
  */
 MS2_PUBLIC void ice_dump_triggered_checks_queue(const IceCheckList *cl);
+
 
 #ifdef __cplusplus
 }
