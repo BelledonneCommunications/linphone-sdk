@@ -163,8 +163,18 @@ static void test_from_header_with_paramless_address_spec(void) {
 static void test_to_header_with_paramless_address_spec(void) {
 	belle_generic_uri_t *L_absoluteUri;
 	belle_sip_header_to_t* L_to = belle_sip_header_to_parse("To: sip:bob@titi.com;tag=dlfjklcn6545614XX");
+	belle_sip_uri_t *L_uri;
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_header_to_get_tag(L_to));
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"dlfjklcn6545614XX");
+	belle_sip_object_unref(L_to);
+
+	L_to = belle_sip_header_to_parse("To:sip:1002@192.168.1.199;tag=as1f0a0817");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_header_to_get_tag(L_to));
+	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_to));
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri),"1002");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "192.168.1.199");
+
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"as1f0a0817");
 	belle_sip_object_unref(L_to);
 
 	L_to = belle_sip_header_to_parse("To: tel:1234567;tag=dlfjklcn6545614XX");

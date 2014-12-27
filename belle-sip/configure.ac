@@ -37,6 +37,7 @@ AC_PROG_OBJC(["xcrun clang" gcc])
 
 AM_PROG_CC_C_O
 
+INSTALL="$INSTALL -C"
 dnl AC_PROG_CC_C99
 LT_INIT(win32-dll)
 

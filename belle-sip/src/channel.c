@@ -357,12 +357,11 @@ static int acquire_body_simple(belle_sip_channel_t *obj, int end_of_stream){
 	}
 
 	if (end_of_stream ||  belle_sip_body_handler_get_transfered_size(bh)>=content_length){
-		/*great body completed
-		belle_sip_message("channel [%p] read [%i] bytes of body from %s:%i\n%s"	,obj
+		/*great body completed*/
+		belle_sip_message("channel [%p] read [%i] bytes of body from [%s:%i]"	,obj
 			,content_length
 			,obj->peer_name
-			,obj->peer_port
-			,obj->input_stream.read_ptr);*/
+			,obj->peer_port);
 		belle_sip_channel_message_ready(obj);
 		return BELLE_SIP_CONTINUE;
 	}
@@ -913,7 +912,7 @@ static size_t find_non_asci(const char *buffer, size_t size){
 static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t size){
 	char *logbuf;
 	char truncate_msg[128]={0};
-	int limit=3000;
+	int limit=5000; /*big message when many ice candidates*/
 	size_t non_ascii_pos;
 
 	if (!belle_sip_log_level_enabled(level)){
