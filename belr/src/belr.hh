@@ -6,27 +6,26 @@
 using namespace ::std;
 
 namespace belr{
+	
+string tolower(const string &str);
 
 class Recognizer{
 public:
 	void setName(const string &name);
-	void reset();
 	size_t feed(const string &input, size_t pos);
 protected:
 	Recognizer();
-	virtual void _reset()=0;
 	virtual size_t _feed(const string &input, size_t pos)=0;
 	string mName;
 };
 
 class CharRecognizer : public Recognizer{
 public:
-	CharRecognizer(char to_recognize);
-	
+	CharRecognizer(int to_recognize, bool caseSensitive=false);
 private:
-	virtual void _reset();
 	virtual size_t _feed(const string &input, size_t pos);
-	const char mToRecognize;
+	int mToRecognize;
+	bool mCaseSensitive;
 };
 
 class Selector : public Recognizer, public enable_shared_from_this<Selector>{
@@ -34,7 +33,6 @@ public:
 	Selector();
 	shared_ptr<Selector> addRecognizer(const shared_ptr<Recognizer> &element);
 private:
-	virtual void _reset();
 	virtual size_t _feed(const string &input, size_t pos);
 	list<shared_ptr<Recognizer>> mElements;
 };
@@ -44,7 +42,6 @@ public:
 	Sequence();
 	shared_ptr<Sequence> addRecognizer(const shared_ptr<Recognizer> &element);
 private:
-	virtual void _reset();
 	virtual size_t _feed(const string &input, size_t pos);
 	list<shared_ptr<Recognizer>> mElements;
 };
@@ -54,7 +51,6 @@ public:
 	Loop();
 	shared_ptr<Loop> setRecognizer(const shared_ptr<Recognizer> &element, int min=0, int max=-1);
 private:
-	virtual void _reset();
 	virtual size_t _feed(const string &input, size_t pos);
 	shared_ptr<Recognizer> mRecognizer;
 	int mMin, mMax;
@@ -63,7 +59,7 @@ private:
 
 class Foundation{
 public:
-	static shared_ptr<CharRecognizer> charRecognizer(char character);
+	static shared_ptr<CharRecognizer> charRecognizer(int character, bool caseSensitive=false);
 	static shared_ptr<Selector> selector();
 	static shared_ptr<Sequence> sequence();
 	static shared_ptr<Loop> loop();
@@ -81,7 +77,6 @@ public:
 	shared_ptr<Recognizer> getPointed();
 	void setPointed(const shared_ptr<Recognizer> &r);
 private:
-	virtual void _reset();
 	virtual size_t _feed(const string &input, size_t pos);
 	shared_ptr<Recognizer> mRecognizer;
 };
@@ -100,7 +95,6 @@ public:
 private:
 	void assignRule(const string &name, const shared_ptr<Recognizer> &rule);
 	map<string,shared_ptr<Recognizer>> mRules;
-	string toLower(const string &str);
 	string mName;
 };
 

@@ -41,19 +41,15 @@ void CoreRules::bit(){
 }
 
 void CoreRules::char_(){
-	shared_ptr<Selector> selector=make_shared<Selector>();
-	for(int i=0x1;i<0x7f;++i){
-		selector->addRecognizer(make_shared<CharRecognizer>(i));
-	}
-	addRule("char",selector);
+	addRule("char",Utils::char_range(0x1,0x7f));
 }
 
 void CoreRules::cr(){
-	addRule("cr", Foundation::charRecognizer(0x0d));
+	addRule("cr", Foundation::charRecognizer(0x0d,true));
 }
 
 void CoreRules::lf(){
-	addRule("lf",Foundation::charRecognizer(0x0a));
+	addRule("lf",Foundation::charRecognizer(0x0a,true));
 }
 
 void CoreRules::crlf(){
@@ -66,7 +62,7 @@ void CoreRules::ctl(){
 	addRule("ctl",
 		Foundation::selector()
 			->addRecognizer(Utils::char_range(0x00, 0x1f))
-			->addRecognizer(Foundation::charRecognizer(0x7f))
+			->addRecognizer(Foundation::charRecognizer(0x7f,true))
 	);
 }
 
@@ -75,18 +71,23 @@ void CoreRules::digit(){
 }
 
 void CoreRules::dquote(){
-	addRule("dquote",Foundation::charRecognizer(0x22));
+	addRule("dquote",Foundation::charRecognizer(0x22,true));
 }
 
 void CoreRules::hexdig(){
 	addRule("hexdig", Foundation::selector()
 		->addRecognizer(getRule("digit"))
-		->addRecognizer(Utils::char_range('A','F'))
+		->addRecognizer(Foundation::charRecognizer('A'))
+		->addRecognizer(Foundation::charRecognizer('B'))
+		->addRecognizer(Foundation::charRecognizer('C'))
+		->addRecognizer(Foundation::charRecognizer('D'))
+		->addRecognizer(Foundation::charRecognizer('E'))
+		->addRecognizer(Foundation::charRecognizer('F'))
 	);
 }
 
 void CoreRules::htab(){
-	addRule("htab",Foundation::charRecognizer(0x09));
+	addRule("htab",Foundation::charRecognizer(0x09,true));
 }
 
 void CoreRules::octet(){
@@ -94,7 +95,7 @@ void CoreRules::octet(){
 }
 
 void CoreRules::sp(){
-	addRule("sp",Foundation::charRecognizer(0x20));
+	addRule("sp",Foundation::charRecognizer(0x20,true));
 }
 
 void CoreRules::vchar(){
@@ -150,7 +151,7 @@ ABNFGrammar::ABNFGrammar(): Grammar("ABNF"){
 
 void ABNFGrammar::comment(){
 	addRule("comment", Foundation::sequence()
-		->addRecognizer(Foundation::charRecognizer(';'))
+		->addRecognizer(Foundation::charRecognizer(';',true))
 		->addRecognizer(
 			Foundation::loop()->setRecognizer(
 				Foundation::selector()
