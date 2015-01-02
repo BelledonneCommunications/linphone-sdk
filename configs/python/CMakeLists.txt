@@ -33,6 +33,7 @@ else()
 	endif()
 endif()
 
+set(Python_ADDITIONAL_VERSIONS 2.7)
 find_package(PythonInterp REQUIRED)
 find_package(PythonLibs 2.7 REQUIRED)
 find_package(Git)
