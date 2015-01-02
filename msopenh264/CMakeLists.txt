@@ -36,6 +36,7 @@ set(VERSION "${PACKAGE_VERSION}")
 
 
 option(ENABLE_DECODER "Enable the openh264 decoder" Yes)
+option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 set(WITH_MS2 "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where the mediastreamer libraries can be found (ex:/usr or /usr/local)")
 set(WITH_OPENH264 "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libopenh264 can be found (ex:/usr or /usr/local)")
 set(WITH_ORTP "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where the oRTP library can be found (ex:/usr or /usr/local)")

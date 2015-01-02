@@ -36,16 +36,20 @@ if(ENABLE_DECODER)
 	add_definitions(-DOPENH264_DECODER_ENABLED)
 endif()
 
-add_library(msopenh264 SHARED ${SOURCE_FILES})
-set_target_properties(msopenh264 PROPERTIES VERSION ${PACKAGE_VERSION} SOVERSION 0)
-if(MSVC)
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmsopenh264.pdb
-			DESTINATION bin
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		)
+if(ENABLE_STATIC)
+	add_library(msopenh264 STATIC ${SOURCE_FILES})
+else()
+	add_library(msopenh264 MODULE ${SOURCE_FILES})
+	set_target_properties(msopenh264 PROPERTIES VERSION ${PACKAGE_VERSION} SOVERSION 0)
+	if(MSVC)
+		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmsopenh264.pdb
+				DESTINATION bin
+				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+			)
+		endif()
+		set_target_properties(msopenh264 PROPERTIES PREFIX "lib")
 	endif()
-	set_target_properties(msopenh264 PROPERTIES PREFIX "lib")
 endif()
 set_target_properties(msopenh264 PROPERTIES LINKER_LANGUAGE CXX LINK_FLAGS "${LINK_FLAGS}")
 target_link_libraries(msopenh264 ${LIBS})
