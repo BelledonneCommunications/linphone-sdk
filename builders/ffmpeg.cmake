@@ -80,6 +80,7 @@ else()
 
 	if(WIN32)
 		set(EP_ffmpeg_TARGET_OS "mingw32")
+		set(EP_ffmpeg_EXTRA_CFLAGS "-include windows.h")
 		set(EP_ffmpeg_EXTRA_LDFLAGS "-static-libgcc")
 		set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/mingw-no-lib.patch" ${EP_ffmpeg_PATCH_OPTIONS})
 	else()
