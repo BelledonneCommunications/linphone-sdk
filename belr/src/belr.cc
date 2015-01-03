@@ -1,6 +1,7 @@
 
 
 #include "belr.hh"
+#include "parser.hh"
 #include <algorithm>
 #include <iostream>
 
@@ -13,12 +14,23 @@ void Recognizer::setName(const string& name){
 	mName=name;
 }
 
-size_t Recognizer::feed(const string &input, size_t pos){
-	size_t match=_feed(input, pos);
-	if (match!=string::npos && match>0 && mName.size()>0){
-		string matched=input.substr(pos,match);
-		cout<<"Matched recognizer '"<<mName<<"' with sequence '"<<matched<<"'."<<endl;
+const string &Recognizer::getName()const{
+	return mName;
+}
+
+size_t Recognizer::feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
+	size_t match;
+	
+	shared_ptr<HandlerContext> hctx=ctx->beginParse(shared_from_this());
+	match=_feed(ctx, input, pos);
+	if (match!=string::npos && match>0){
+		if (0 && mName.size()>0){
+			string matched=input.substr(pos,match);
+			cout<<"Matched recognizer '"<<mName<<"' with sequence '"<<matched<<"'."<<endl;
+		}
 	}
+	ctx->endParse(shared_from_this(), hctx, input, pos, match);
+	
 	return match;
 }
 
@@ -31,7 +43,7 @@ CharRecognizer::CharRecognizer(int to_recognize, bool caseSensitive) : mToRecogn
 	}
 }
 
-size_t CharRecognizer::_feed(const string &input, size_t pos){
+size_t CharRecognizer::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
 	if (mCaseSensitive){
 		return input[pos]==mToRecognize ? 1 : string::npos;
 	}
@@ -43,20 +55,26 @@ Selector::Selector(){
 
 shared_ptr<Selector> Selector::addRecognizer(const shared_ptr<Recognizer> &r){
 	mElements.push_back(r);
-	return shared_from_this();
+	return static_pointer_cast<Selector> (shared_from_this());
 }
 
-size_t Selector::_feed(const string &input, size_t pos){
+size_t Selector::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
 	size_t matched=0;
 	size_t bestmatch=0;
+	shared_ptr<ParserContext> bestCtx;
 	
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
-		matched=(*it)->feed(input, pos);
+		shared_ptr<ParserContext> currentCtx=make_shared<ParserContext>();
+		matched=(*it)->feed(currentCtx, input, pos);
 		if (matched!=string::npos && matched>bestmatch) {
 			bestmatch=matched;
+			bestCtx=currentCtx;
 		}
 	}
 	if (bestmatch==0) return string::npos;
+	if (bestmatch!=string::npos){
+		ctx->push(bestCtx);
+	}
 	return bestmatch;
 }
 
@@ -65,15 +83,15 @@ Sequence::Sequence(){
 
 shared_ptr<Sequence> Sequence::addRecognizer(const shared_ptr<Recognizer> &element){
 	mElements.push_back(element);
-	return shared_from_this();
+	return static_pointer_cast<Sequence>( shared_from_this());
 }
 
-size_t Sequence::_feed(const string &input, size_t pos){
+size_t Sequence::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
 	size_t matched=0;
 	size_t total=0;
 	
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
-		matched=(*it)->feed(input, pos);
+		matched=(*it)->feed(ctx, input, pos);
 		if (matched==string::npos){
 			return string::npos;
 		}
@@ -92,16 +110,16 @@ shared_ptr<Loop> Loop::setRecognizer(const shared_ptr<Recognizer> &element, int 
 	mMin=min;
 	mMax=max;
 	mRecognizer=element;
-	return shared_from_this();
+	return static_pointer_cast<Loop>(shared_from_this());
 }
 
-size_t Loop::_feed(const string &input, size_t pos){
+size_t Loop::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
 	size_t matched=0;
 	size_t total=0;
 	int repeat;
 	
 	for(repeat=0;mMax!=-1 ? repeat<mMax : true;repeat++){
-		matched=mRecognizer->feed(input,pos);
+		matched=mRecognizer->feed(ctx, input, pos);
 		if (matched==string::npos) break;
 		total+=matched;
 		pos+=matched;
@@ -152,9 +170,9 @@ shared_ptr<Recognizer> RecognizerPointer::getPointed(){
 	return mRecognizer;
 }
 
-size_t RecognizerPointer::_feed(const string &input, size_t pos){
+size_t RecognizerPointer::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
 	if (mRecognizer){
-		return mRecognizer->feed(input,pos);
+		return mRecognizer->feed(ctx, input, pos);
 	}else{
 		cerr<<"RecognizerPointer is undefined"<<endl;
 		abort();
@@ -183,9 +201,9 @@ void Grammar::assignRule(const string &argname, const shared_ptr<Recognizer> &ru
 			cerr<<"Error: rule '"<<name<<"' is being redefined !"<<endl;
 			abort();
 		}
-	}else{
-		mRules[name]=rule;
 	}
+	/*in any case the map should contain real recognizers (not just pointers) */
+	mRules[name]=rule;
 }
 
 shared_ptr<Recognizer> Grammar::getRule(const string &argname){
@@ -235,5 +253,30 @@ string tolower(const string &str){
 	transform(ret.begin(),ret.end(), ret.begin(), ::tolower);
 	return ret;
 }
+
+ParserContext::Element::Element(const shared_ptr<Recognizer> &recognizer, size_t begin, size_t count) :
+	mRecognizer(recognizer), mBegin(begin), mCount(count)
+{
+}
+
+ParserContext::ParserContext(){
+}
+
+void ParserContext::addParsingEvent(const shared_ptr<Recognizer>& recognizer, size_t begin, size_t end){
+	mEvents.push_back(Element(recognizer, begin, end));
+}
+
+void ParserContext::push(const shared_ptr< ParserContext >& ctx){
+	mEvents.splice(mEvents.end(), ctx->mEvents);
+}
+
+const list<ParserContext::Element> &ParserContext::getEvents()const{
+	return mEvents;
+}
+
+size_t ParserContext::size()const{
+	return mEvents.size();
+}
+
 
 }

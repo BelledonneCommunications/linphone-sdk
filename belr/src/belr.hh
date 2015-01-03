@@ -1,3 +1,6 @@
+#ifndef belr_hh
+#define belr_hh
+
 
 #include <list>
 #include <map>
@@ -9,13 +12,16 @@ namespace belr{
 	
 string tolower(const string &str);
 
-class Recognizer{
+class ParserContext;
+
+class Recognizer : public enable_shared_from_this<Recognizer>{
 public:
 	void setName(const string &name);
-	size_t feed(const string &input, size_t pos);
+	const string &getName()const;
+	size_t feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
 protected:
 	Recognizer();
-	virtual size_t _feed(const string &input, size_t pos)=0;
+	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos)=0;
 	string mName;
 };
 
@@ -23,35 +29,35 @@ class CharRecognizer : public Recognizer{
 public:
 	CharRecognizer(int to_recognize, bool caseSensitive=false);
 private:
-	virtual size_t _feed(const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
 	int mToRecognize;
 	bool mCaseSensitive;
 };
 
-class Selector : public Recognizer, public enable_shared_from_this<Selector>{
+class Selector : public Recognizer{
 public:
 	Selector();
 	shared_ptr<Selector> addRecognizer(const shared_ptr<Recognizer> &element);
 private:
-	virtual size_t _feed(const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
 	list<shared_ptr<Recognizer>> mElements;
 };
 
-class Sequence : public Recognizer, public enable_shared_from_this<Sequence>{
+class Sequence : public Recognizer{
 public:
 	Sequence();
 	shared_ptr<Sequence> addRecognizer(const shared_ptr<Recognizer> &element);
 private:
-	virtual size_t _feed(const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
 	list<shared_ptr<Recognizer>> mElements;
 };
 
-class Loop : public Recognizer, public enable_shared_from_this<Loop>{
+class Loop : public Recognizer{
 public:
 	Loop();
 	shared_ptr<Loop> setRecognizer(const shared_ptr<Recognizer> &element, int min=0, int max=-1);
 private:
-	virtual size_t _feed(const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
 	shared_ptr<Recognizer> mRecognizer;
 	int mMin, mMax;
 };
@@ -77,7 +83,7 @@ public:
 	shared_ptr<Recognizer> getPointed();
 	void setPointed(const shared_ptr<Recognizer> &r);
 private:
-	virtual size_t _feed(const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
 	shared_ptr<Recognizer> mRecognizer;
 };
 
@@ -85,6 +91,9 @@ class Grammar{
 public:
 	Grammar(const string &name);
 	void include(const shared_ptr<Grammar>& grammar);
+	/* the grammar takes ownership of the recognizer, which must not be used outside of this grammar.
+	 * TODO: use unique_ptr to enforce this, or make a copy ?
+	**/
 	template <typename _recognizerT>
 	shared_ptr<_recognizerT> addRule(const string & name, const shared_ptr<_recognizerT> &rule){
 		assignRule(name, rule);
@@ -98,4 +107,9 @@ private:
 	string mName;
 };
 
+
+
+
 }
+
+#endif

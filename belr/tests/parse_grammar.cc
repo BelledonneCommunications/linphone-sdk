@@ -2,6 +2,7 @@
 
 
 #include "abnf.hh"
+#include "parser.hh"
 #include <iostream>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -16,7 +17,7 @@ int main(int argc, char *argv[]){
 	int fd;
 	struct stat sb;
 	char *grammar;
-	shared_ptr<Recognizer> parser;
+	shared_ptr<Parser> parser;
 	
 	if (argc<2){
 		cerr<<argv[0]<< "grammarfile-to-load"<<endl;
@@ -35,15 +36,16 @@ int main(int argc, char *argv[]){
 		return -1;
 	}
 	cout<<"Building ABNF recognizer"<<endl;
-	ABNFGrammar abnf_grammar;
-	if (!abnf_grammar.isComplete()){
+	shared_ptr<ABNFGrammar> abnf_grammar=make_shared<ABNFGrammar>();
+	if (!abnf_grammar->isComplete()){
 		cerr<<"ABNF Grammar not complete, aborting."<<endl;
 		return -1;
 	}
-	parser=abnf_grammar.getRule("rulelist");
+	parser=make_shared<Parser>(abnf_grammar);
 	cout<<"Finished ABNF recognizer construction, starting parsing"<<endl;
 	string sgrammar(grammar);
-	parser->feed(sgrammar,0);
+	size_t parsed;
+	parser->parseInput("rulelist",sgrammar,&parsed);
 	cout<<"parsing done"<<endl;
 	delete []grammar;
 	return 0;
