@@ -25,7 +25,7 @@ CoreRules::CoreRules() : Grammar("core rules"){
 }
 
 void CoreRules::alpha(){
-	shared_ptr<Selector> selector=make_shared<Selector>();
+	shared_ptr<Selector> selector=Foundation::selector(true);
 	
 	selector->addRecognizer(Utils::char_range('a','z'));
 	selector->addRecognizer(Utils::char_range('A','Z'));
@@ -34,7 +34,7 @@ void CoreRules::alpha(){
 }
 
 void CoreRules::bit(){
-	shared_ptr<Selector> selector=make_shared<Selector>();
+	shared_ptr<Selector> selector=Foundation::selector(true);
 	selector->addRecognizer(make_shared<CharRecognizer>('0'));
 	selector->addRecognizer(make_shared<CharRecognizer>('1'));
 	addRule("bit",selector);
@@ -60,7 +60,7 @@ void CoreRules::crlf(){
 
 void CoreRules::ctl(){
 	addRule("ctl",
-		Foundation::selector()
+		Foundation::selector(true)
 			->addRecognizer(Utils::char_range(0x00, 0x1f))
 			->addRecognizer(Foundation::charRecognizer(0x7f,true))
 	);
@@ -75,7 +75,7 @@ void CoreRules::dquote(){
 }
 
 void CoreRules::hexdig(){
-	addRule("hexdig", Foundation::selector()
+	addRule("hexdig", Foundation::selector(true)
 		->addRecognizer(getRule("digit"))
 		->addRecognizer(Foundation::charRecognizer('A'))
 		->addRecognizer(Foundation::charRecognizer('B'))
@@ -103,14 +103,14 @@ void CoreRules::vchar(){
 }
 
 void CoreRules::wsp(){
-	addRule("wsp", Foundation::selector()
+	addRule("wsp", Foundation::selector(true)
 		->addRecognizer(getRule("sp"))
 		->addRecognizer(getRule("htab"))
 	);
 }
 
 void CoreRules::lwsp(){
-	addRule("lwsp", Foundation::loop()->setRecognizer(Foundation::selector()
+	addRule("lwsp", Foundation::loop()->setRecognizer(Foundation::selector(true)
 		->addRecognizer(getRule("wsp"))
 		->addRecognizer(Foundation::sequence()
 			->addRecognizer(getRule("crlf"))
@@ -154,7 +154,7 @@ void ABNFGrammar::comment(){
 		->addRecognizer(Foundation::charRecognizer(';',true))
 		->addRecognizer(
 			Foundation::loop()->setRecognizer(
-				Foundation::selector()
+				Foundation::selector(true)
 					->addRecognizer(getRule("wsp"))
 					->addRecognizer(getRule("vchar"))
 				)
@@ -173,7 +173,8 @@ void ABNFGrammar::c_wsp(){
 	addRule("c-wsp",Foundation::selector()
 		->addRecognizer(getRule("wsp"))
 		->addRecognizer(Foundation::sequence()
-			->addRecognizer(getRule("c-nl"))->addRecognizer(getRule("wsp"))
+			->addRecognizer(getRule("c-nl"))
+			->addRecognizer(getRule("wsp"))
 		)
 	);
 }
@@ -183,9 +184,10 @@ void ABNFGrammar::rulename(){
 	addRule("rulename", Foundation::sequence()
 		->addRecognizer(getRule("alpha"))
 		->addRecognizer(Foundation::loop()->setRecognizer(
-			Foundation::selector()->addRecognizer(getRule("alpha"))
-					->addRecognizer(getRule("digit"))
-					->addRecognizer(Foundation::charRecognizer('-'))
+			Foundation::selector(true)
+				->addRecognizer(getRule("alpha"))
+				->addRecognizer(getRule("digit"))
+				->addRecognizer(Foundation::charRecognizer('-'))
 			)
 		)
 	);
@@ -369,7 +371,7 @@ void ABNFGrammar::char_val(){
 		->addRecognizer(getRule("dquote"))
 		->addRecognizer(
 			Foundation::loop()->setRecognizer(
-				Foundation::selector()
+				Foundation::selector(true)
 					->addRecognizer(Utils::char_range(0x20,0x21))
 					->addRecognizer(Utils::char_range(0x23,0x7e))
 			)
@@ -385,7 +387,7 @@ void ABNFGrammar::num_val(){
 	addRule("num-val", Foundation::sequence()
 		->addRecognizer(Foundation::charRecognizer('%'))
 		->addRecognizer(
-			Foundation::selector()
+			Foundation::selector(true)
 				->addRecognizer(getRule("bin-val"))
 				->addRecognizer(getRule("dec-val"))
 				->addRecognizer(getRule("hex-val"))
@@ -397,12 +399,11 @@ void ABNFGrammar::num_val(){
  * prose-val      =  "<" *(%x20-3D / %x3F-7E) ">"
  */
 void ABNFGrammar::prose_val(){
-	shared_ptr<Sequence> seq=make_shared<Sequence>();
 	addRule("prose-val", Foundation::sequence()
 		->addRecognizer(Foundation::charRecognizer('<'))
 		->addRecognizer(
 			Foundation::loop()->setRecognizer(
-				Foundation::selector()
+				Foundation::selector(true)
 					->addRecognizer(Utils::char_range(0x20,0x3d))
 					->addRecognizer(Utils::char_range(0x3f,0x7e))
 			)

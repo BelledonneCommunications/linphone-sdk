@@ -34,13 +34,30 @@ private:
 	bool mCaseSensitive;
 };
 
+/*this is an optimization of a selector with multiple individual char recognizer*/
+class CharRange : public Recognizer{
+public:
+	CharRange(int begin, int end);
+private:
+	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
+	int mBegin,mEnd;
+};
+
 class Selector : public Recognizer{
 public:
 	Selector();
 	shared_ptr<Selector> addRecognizer(const shared_ptr<Recognizer> &element);
-private:
+protected:
 	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
 	list<shared_ptr<Recognizer>> mElements;
+};
+
+/**This is an optimization of the first one for the case where there can be only a single match*/
+class ExclusiveSelector : public Selector{
+public:
+	ExclusiveSelector();
+private:
+	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
 };
 
 class Sequence : public Recognizer{
@@ -66,7 +83,7 @@ private:
 class Foundation{
 public:
 	static shared_ptr<CharRecognizer> charRecognizer(int character, bool caseSensitive=false);
-	static shared_ptr<Selector> selector();
+	static shared_ptr<Selector> selector(bool isExclusive=false);
 	static shared_ptr<Sequence> sequence();
 	static shared_ptr<Loop> loop();
 };

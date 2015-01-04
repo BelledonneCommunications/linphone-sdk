@@ -61,22 +61,41 @@ shared_ptr<Selector> Selector::addRecognizer(const shared_ptr<Recognizer> &r){
 size_t Selector::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
 	size_t matched=0;
 	size_t bestmatch=0;
-	shared_ptr<ParserContext> bestCtx;
+	shared_ptr<HandlerContext> bestBranch;
 	
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
-		shared_ptr<ParserContext> currentCtx=make_shared<ParserContext>();
-		matched=(*it)->feed(currentCtx, input, pos);
+		auto br=ctx->branch();
+		matched=(*it)->feed(ctx, input, pos);
 		if (matched!=string::npos && matched>bestmatch) {
 			bestmatch=matched;
-			bestCtx=currentCtx;
+			if (bestBranch) ctx->removeBranch(bestBranch);
+			bestBranch=br;
+		}else{
+			ctx->removeBranch(br);
 		}
 	}
 	if (bestmatch==0) return string::npos;
 	if (bestmatch!=string::npos){
-		ctx->push(bestCtx);
+		ctx->merge(bestBranch);
 	}
 	return bestmatch;
 }
+
+ExclusiveSelector::ExclusiveSelector(){
+}
+
+size_t ExclusiveSelector::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
+	size_t matched=0;
+	
+	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
+		matched=(*it)->feed(ctx, input, pos);
+		if (matched!=string::npos && matched>0) {
+			return matched;
+		}
+	}
+	return string::npos;
+}
+
 
 Sequence::Sequence(){
 }
@@ -128,12 +147,21 @@ size_t Loop::_feed(const shared_ptr<ParserContext> &ctx, const string &input, si
 	return total;
 }
 
+CharRange::CharRange(int begin, int end) : mBegin(begin), mEnd(end){
+}
+
+size_t CharRange::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
+	int c=input[pos];
+	if (c>=mBegin && c<=mEnd) return 1;
+	return string::npos;
+}
+
 shared_ptr<CharRecognizer> Foundation::charRecognizer(int character, bool caseSensitive){
 	return make_shared<CharRecognizer>(character, caseSensitive);
 }
 
-shared_ptr<Selector> Foundation::selector(){
-	return make_shared<Selector>();
+shared_ptr<Selector> Foundation::selector(bool isExclusive){
+	return isExclusive ? make_shared<ExclusiveSelector>() : make_shared<Selector>();
 }
 
 shared_ptr<Sequence> Foundation::sequence(){
@@ -154,13 +182,7 @@ shared_ptr<Recognizer> Utils::literal(const string & lt){
 }
 
 shared_ptr<Recognizer> Utils::char_range(int begin, int end){
-	auto sel=Foundation::selector();
-	for(int i=begin; i<=end; i++){
-		sel->addRecognizer(
-			Foundation::charRecognizer(i,true)
-		);
-	}
-	return sel;
+	return make_shared<CharRange>(begin, end);
 }
 
 RecognizerPointer::RecognizerPointer() : mRecognizer(NULL){
@@ -253,30 +275,5 @@ string tolower(const string &str){
 	transform(ret.begin(),ret.end(), ret.begin(), ::tolower);
 	return ret;
 }
-
-ParserContext::Element::Element(const shared_ptr<Recognizer> &recognizer, size_t begin, size_t count) :
-	mRecognizer(recognizer), mBegin(begin), mCount(count)
-{
-}
-
-ParserContext::ParserContext(){
-}
-
-void ParserContext::addParsingEvent(const shared_ptr<Recognizer>& recognizer, size_t begin, size_t end){
-	mEvents.push_back(Element(recognizer, begin, end));
-}
-
-void ParserContext::push(const shared_ptr< ParserContext >& ctx){
-	mEvents.splice(mEvents.end(), ctx->mEvents);
-}
-
-const list<ParserContext::Element> &ParserContext::getEvents()const{
-	return mEvents;
-}
-
-size_t ParserContext::size()const{
-	return mEvents.size();
-}
-
 
 }
