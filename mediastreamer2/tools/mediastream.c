@@ -486,7 +486,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			i++;
 			out->device_rotation=atoi(argv[i]);
 		} else if (strcmp(argv[i], "--srtp")==0) {
-			if (!media_stream_srtp_supported()) {
+			if (!ms_srtp_supported()) {
 				ms_error("srtp support not enabled");
 				return FALSE;
 			}

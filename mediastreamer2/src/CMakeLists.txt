@@ -25,7 +25,6 @@ if(MSVC)
 	find_library(LIBMINGWEX NAMES mingwex)
 endif()
 
-
 find_program(AWK_PROGRAM awk)
 if(NOT AWK_PROGRAM)
 	message(FATAL_ERROR "You need the awk program to build mediastreamer2.")
@@ -153,6 +152,7 @@ set(VOIP_SOURCE_FILES
 	voip/qualityindicator.c
 	voip/ringstream.c
 	voip/zrtp.c
+	crypto/ms_srtp.c
 )
 
 if(ENABLE_ALSA)
@@ -338,6 +338,9 @@ if(HAVE_DLOPEN)
 endif()
 if(BZRTP_FOUND)
 	list(APPEND VOIP_LIBS ${BZRTP_LIBRARIES})
+endif()
+if(SRTP_FOUND)
+	list(APPEND VOIP_LIBS ${SRTP_LIBRARIES})
 endif()
 if(GSM_FOUND)
 	list(APPEND VOIP_LIBS ${GSM_LIBRARIES})
