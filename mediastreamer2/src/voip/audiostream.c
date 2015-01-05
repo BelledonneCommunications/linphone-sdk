@@ -18,8 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
-#include "mediastreamer2/mediastream.h"
+#ifdef HAVE_CONFIG_H
+#include "mediastreamer-config.h"
+#endif
 
+#include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/dtmfgen.h"
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msrtp.h"
@@ -33,9 +36,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msitc.h"
 #include "private.h"
 
-#ifdef HAVE_CONFIG_H
-#include "mediastreamer-config.h"
-#endif
 
 
 #include <sys/types.h>

@@ -22,11 +22,6 @@
 #endif
 #include "ortp/ortp.h"
 
-#undef PACKAGE_NAME
-#undef PACKAGE_STRING
-#undef PACKAGE_TARNAME
-#undef PACKAGE_VERSION
-
 #include "mediastreamer2/ms_srtp.h"
 #include "mediastreamer2/mediastream.h"
 
