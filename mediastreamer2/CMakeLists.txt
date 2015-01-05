@@ -238,6 +238,7 @@ include_directories(
 	src/utils/
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src/
+	${ORTP_INCLUDE_DIRS}
 )
 
 if(ENABLE_VIDEO)
