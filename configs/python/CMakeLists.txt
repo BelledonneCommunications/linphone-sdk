@@ -21,7 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 2.8.12)
-project(PYLINPHONE C) # Dummy project
+project(PYLINPHONE C CXX) # Dummy project
 
 if(APPLE)
 	set(PLATFORM_ARCH_NAME "${CMAKE_OSX_ARCHITECTURES}")
@@ -116,8 +116,15 @@ if(UNIX)
 endif()
 
 add_library(pylinphone MODULE "${SOURCE_FILENAME}")
+if(ENABLE_OPENH264)
+	find_library(MSOPENH264_LIBRARY msopenh264 HINTS "${CMAKE_INSTALL_PREFIX}/lib/mediastreamer/plugins")
+	find_library(OPENH264_LIBRARY openh264)
+	target_compile_definitions(pylinphone PRIVATE "ENABLE_OPENH264=1")
+	target_link_libraries(pylinphone ${MSOPENH264_LIBRARY} ${OPENH264_LIBRARY})
+endif()
 target_compile_options(pylinphone PUBLIC ${LINPHONE_CPPFLAGS})
 target_include_directories(pylinphone PUBLIC ${LINPHONE_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS} PRIVATE "${LINPHONE_SOURCE_DIR}/coreapi" "${LINPHONE_SOURCE_DIR}/include")
+set_target_properties(pylinphone PROPERTIES LINKER_LANGUAGE CXX)
 set(PYLINPHONE_LINK_LIBRARIES ${LINPHONE_LIBRARIES})
 if(WIN32)
 	find_library(GCC_LIBRARIES gcc)
