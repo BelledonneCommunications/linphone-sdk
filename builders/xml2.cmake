@@ -35,28 +35,7 @@ if(EP_xml2_PREBUILT)
 else()
 	set(EP_xml2_GIT_REPOSITORY "git://git.gnome.org/libxml2")
 	set(EP_xml2_GIT_TAG "v2.8.0")
-	set(EP_xml2_BUILD_METHOD "autotools")
-	set(EP_xml2_USE_AUTOGEN "yes")
-	set(EP_xml2_CONFIGURE_OPTIONS_PASSED_TO_AUTOGEN "yes")
-	set(EP_xml2_CROSS_COMPILATION_OPTIONS
-		"--prefix=${CMAKE_INSTALL_PREFIX}"
-		"--host=${LINPHONE_BUILDER_HOST}"
-	)
-	set(EP_xml2_CONFIGURE_OPTIONS
-		"--with-minimum"
-		"--with-xpath"
-		"--with-tree"
-		"--with-schemas"
-		"--with-reader"
-		"--with-writer"
-		"--with-sax1"
-		"--without-lzma"
-		"--without-zlib"
-		"--enable-rebuild-docs=no"
-	)
-	set(EP_xml2_LINKING_TYPE "--disable-static" "--enable-shared")
-
-	if(WIN32)
-		set(EP_xml2_EXTRA_LDFLAGS "-static-libgcc")
-	endif()
+	set(EP_xml2_LINKING_TYPE "-DENABLE_STATIC=0")
+	set(EP_xml2_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/xml2/CMakeLists.txt" "<SOURCE_DIR>")
+	set(EP_xml2_PATCH_COMMAND "${EP_xml2_PATCH_COMMAND}" "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/xml2/config.h.cmake" "<SOURCE_DIR>")
 endif()
