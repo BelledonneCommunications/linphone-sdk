@@ -29,7 +29,6 @@
 #undef PACKAGE_STRING
 #undef PACKAGE_TARNAME
 #undef PACKAGE_VERSION
-#include <srtp/srtp.h>
 #include <bzrtp/bzrtp.h>
 
 struct _MSZrtpContext{
@@ -119,9 +118,9 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, bzrtpSrtpSecrets_t
 		memcpy(key + secrets->peerSrtpKeyLength, secrets->peerSrtpSalt, secrets->peerSrtpSaltLength);
 
 		if (secrets->authTagAlgo == ZRTP_AUTHTAG_HS32){
-			media_stream_set_srtp_recv_key(userData->stream, MS_AES_128_SHA1_32, (const char *)key, FALSE);
+			media_stream_set_srtp_recv_key(userData->stream, MS_AES_128_SHA1_32, (const char *)key, (secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength));
 		}else if (secrets->authTagAlgo == ZRTP_AUTHTAG_HS80){
-			media_stream_set_srtp_recv_key(userData->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
+			media_stream_set_srtp_recv_key(userData->stream, MS_AES_128_SHA1_80, (const char *)key, (secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength));
 		}else{
 			ms_fatal("unsupported auth tag");
 		}
@@ -134,9 +133,9 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, bzrtpSrtpSecrets_t
 		memcpy(key + secrets->selfSrtpKeyLength, secrets->selfSrtpSalt, secrets->selfSrtpSaltLength);
 
 		if (secrets->authTagAlgo == ZRTP_AUTHTAG_HS32){
-			media_stream_set_srtp_send_key(userData->stream, MS_AES_128_SHA1_32, (const char *)key, FALSE);
+			media_stream_set_srtp_send_key(userData->stream, MS_AES_128_SHA1_32, (const char *)key, (secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength));
 		}else if (secrets->authTagAlgo == ZRTP_AUTHTAG_HS80){
-			media_stream_set_srtp_send_key(userData->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
+			media_stream_set_srtp_send_key(userData->stream, MS_AES_128_SHA1_80, (const char *)key, (secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength));
 		}else{
 			ms_fatal("unsupported auth tag");
 		}

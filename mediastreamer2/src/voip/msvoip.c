@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/mscodecutils.h"
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/ms_srtp.h"
+#include "private.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -246,6 +248,7 @@ void ms_voip_init(){
 		ms_message ("Skiping ms_voip_init, because [%i] ref",ms_voip_ref);
 		return;
 	}
+	ms_srtp_init();
 	ms_factory_init_voip(ms_factory_get_fallback());
 }
 
@@ -319,6 +322,7 @@ void ms_voip_exit(){
 		ms_message ("Skiping ms_voip_exit, still [%i] ref",ms_voip_ref);
 		return;
 	}
+	ms_srtp_shutdown();
 	ms_factory_uninit_voip(ms_factory_get_fallback());
 }
 

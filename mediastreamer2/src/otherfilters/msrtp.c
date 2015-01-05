@@ -47,7 +47,7 @@ struct SenderData {
 	char dtmf;
 	bool_t dtmf_start;
 	bool_t skip;
-	bool_t mute_mic;
+	bool_t mute;
 	bool_t use_task;
 };
 
@@ -85,7 +85,7 @@ static void sender_init(MSFilter * f)
 	d->dtmf = 0;
 	d->dtmf_duration = 800;
 	d->dtmf_ts_step=160;
-	d->mute_mic=FALSE;
+	d->mute=FALSE;
 	d->relay_session_id_size=0;
 	d->last_rsi_time=0;
 	d->last_sent_time=-1;
@@ -146,20 +146,20 @@ static int sender_set_session(MSFilter * f, void *arg)
 	return 0;
 }
 
-static int sender_mute_mic(MSFilter * f, void *arg)
+static int sender_mute(MSFilter * f, void *arg)
 {
 	SenderData *d = (SenderData *) f->data;
 	ms_filter_lock(f);
-	d->mute_mic=TRUE;
+	d->mute=TRUE;
 	ms_filter_unlock(f);
 	return 0;
 }
 
-static int sender_unmute_mic(MSFilter * f, void *arg)
+static int sender_unmute(MSFilter * f, void *arg)
 {
 	SenderData *d = (SenderData *) f->data;
 	ms_filter_lock(f);
-	d->mute_mic=FALSE;
+	d->mute=FALSE;
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -288,7 +288,6 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start)
 		  tev_type=TEV_DTMF_A;
 		  break;
 
-
 		case 'B':
 		case 'b':
 		  tev_type=TEV_DTMF_B;
@@ -344,6 +343,18 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start)
 	return 0;
 }
 
+static void check_stun_sending(MSFilter *f) {
+	SenderData *d = (SenderData *) f->data;
+	RtpSession *s = d->session;
+
+	if ((d->last_stun_sent_time == -1) || ((f->ticker->time - d->last_stun_sent_time) >= 500)) {
+		d->last_stun_sent_time = f->ticker->time;
+	}
+	if (d->last_stun_sent_time == f->ticker->time) {
+		send_stun_packet(s);
+	}
+}
+
 static void _sender_process(MSFilter * f)
 {
 	SenderData *d = (SenderData *) f->data;
@@ -380,11 +391,16 @@ static void _sender_process(MSFilter * f)
 			}
 		}
 		if (im){
-			if (d->skip == FALSE && d->mute_mic==FALSE){
+			if (d->skip == FALSE && d->mute==FALSE){
 				header = rtp_session_create_packet(s, 12, NULL, 0);
 				rtp_set_markbit(header, mblk_get_marker_info(im));
 				header->b_cont = im;
 				rtp_session_sendm_with_ts(s, header, timestamp);
+			} else if (d->mute==TRUE && d->skip == FALSE) {
+				freemsg(im);
+
+				//Send STUN packet as RTP keep alive
+				check_stun_sending(f);
 			}else{
 				freemsg(im);
 			}
@@ -392,13 +408,9 @@ static void _sender_process(MSFilter * f)
 	}while ((im = ms_queue_get(f->inputs[0])) != NULL);
 
 	if (d->last_sent_time == -1) {
-		if ((d->last_stun_sent_time == -1) || ((f->ticker->time - d->last_stun_sent_time) >= 500)) {
-			d->last_stun_sent_time = f->ticker->time;
-		}
-		if (d->last_stun_sent_time == f->ticker->time) {
-			send_stun_packet(s);
-		}
+		check_stun_sending(f);
 	}
+
 	/*every second, compute output bandwidth*/
 	if (f->ticker->time % 1000 == 0) rtp_session_compute_send_bandwidth(d->session);
 	ms_filter_unlock(f);
@@ -418,8 +430,8 @@ static void sender_process(MSFilter * f){
 
 
 static MSFilterMethod sender_methods[] = {
-	{MS_RTP_SEND_MUTE_MIC, sender_mute_mic},
-	{MS_RTP_SEND_UNMUTE_MIC, sender_unmute_mic},
+	{MS_RTP_SEND_MUTE, sender_mute},
+	{MS_RTP_SEND_UNMUTE, sender_unmute},
 	{MS_RTP_SEND_SET_SESSION, sender_set_session},
 	{MS_RTP_SEND_SEND_DTMF, sender_send_dtmf},
 	{MS_RTP_SEND_SET_RELAY_SESSION_ID, sender_set_relay_session_id},

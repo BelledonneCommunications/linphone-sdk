@@ -52,6 +52,7 @@ libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(SPANDSP_LIBS) \
 					$(PCAP_LIBS) \
 					$(OPUS_LIBS) \
+					$(SRTP_LIBS) \
 					$(POLARSSL_LIBS)
 
 
@@ -102,6 +103,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/zrtp.c \
 					voip/stun.c \
 					voip/stun_udp.c \
+					crypto/ms_srtp.c \
 					voip/dtls_srtp.c 
 else
 libmediastreamer_base_la_SOURCES+=	ortp-deps/logging.c \
@@ -389,6 +391,7 @@ AM_CFLAGS=\
 	$(MSSILK_CFLAGS) \
 	$(PCAP_CFLAGS) \
 	$(OPUS_CFLAGS) \
+	$(SRTP_FLAGS) \
 	$(POLARSSL_CFLAGS)
 
 AM_CXXFLAGS=\

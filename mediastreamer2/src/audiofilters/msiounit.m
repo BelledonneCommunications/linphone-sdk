@@ -258,11 +258,12 @@ static void au_uninit(MSSndCard *card){
 	stop_audio_unit(d);
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
+	card->data = NULL;
 }
 
 static void au_usage_hint(MSSndCard *card, bool_t used){
 	au_card_t *d=(au_card_t*)card->data;
-	if (!used){
+	if (!used && d){
 		cancel_audio_unit_timer(d);
 		stop_audio_unit(d);
 	}
@@ -821,9 +822,7 @@ static MSFilterMethod au_methods[]={
 
 static void shutdown_timer(CFRunLoopTimerRef timer, void *info){
 	au_card_t *card=(au_card_t*)info;
-	ms_mutex_lock(&card->mutex);
 	stop_audio_unit(card);
-	ms_mutex_unlock(&card->mutex);
 }
 
 static void check_unused(au_card_t *card){

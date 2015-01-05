@@ -36,6 +36,7 @@ typedef struct srtp_ctx_t *MSSrtpCtx;
 #include <mediastreamer2/ice.h>
 #include <mediastreamer2/zrtp.h>
 #include <mediastreamer2/dtls_srtp.h>
+#include <mediastreamer2/ms_srtp.h>
 
 
 #define PAYLOAD_TYPE_FLAG_CAN_RECV	PAYLOAD_TYPE_USER_FLAG_1
@@ -160,8 +161,6 @@ struct _MediaStream {
  * @{
 **/
 
-MS2_PUBLIC bool_t media_stream_srtp_supported(void);
-
 MS2_PUBLIC bool_t media_stream_dtls_supported(void);
 
 MS2_PUBLIC void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool);
@@ -181,9 +180,6 @@ MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_
 **/
 MS2_PUBLIC bool_t media_stream_enable_srtp(MediaStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key);
 
-MS2_PUBLIC int media_stream_set_srtp_recv_key(MediaStream *stream, MSCryptoSuite suite, const char* key, bool_t keyisb64);
-
-MS2_PUBLIC int media_stream_set_srtp_send_key(MediaStream *stream, MSCryptoSuite suite, const char* key, bool_t keyisb64);
 /**
  * @param[in] stream MediaStream object
  * @return true if stream is encrypted

@@ -31,15 +31,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct v4mState;
 
 // Define != NULL to have QT Framework convert hardware device pixel format to another one.
-#if TARGET_CPU_X86 /*for an unknown reason kCVPixelFormatType_420YpCbCr8Planar does not work for 32bits compilation*/
-static OSType forcedPixelFormat=kCVPixelFormatType_24RGB;
-#else
-static OSType forcedPixelFormat=kCVPixelFormatType_420YpCbCr8Planar;
-#endif
+static OSType forcedPixelFormat=kCVPixelFormatType_422YpCbCr8_yuvs;
 //static OSType forcedPixelFormat=0;
 
 static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
-	// ms_message("OSType= %i", pixelFormat);
+        ms_message("OSType= %i", pixelFormat);
         switch(pixelFormat){
                 case kCVPixelFormatType_420YpCbCr8Planar:
                 	if (printFmtName) ms_message("FORMAT = MS_YUV420P");
@@ -210,11 +206,11 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 				if (msfmt != MS_PIX_FMT_UNKNOWN) {
 					return msfmt;
 				}
-            		}
-        	}
-    	} else {
-    		ms_error("The camera wasn't opened when asking for pixel format");
-    	}
+            }
+        }
+    } else {
+        ms_error("The camera wasn't opened when asking for pixel format");
+    }
 
 	ms_warning("No compatible format found, using MS_YUV420P pixel format");
 	// Configure the output to convert the uncompatible hardware pixel format to MS_YUV420P

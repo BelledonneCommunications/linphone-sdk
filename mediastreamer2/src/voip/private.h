@@ -86,6 +86,17 @@ void video_stream_open_player(VideoStream *stream, MSFilter *sink);
 
 void video_stream_close_player(VideoStream *stream);
 
+/**
+ * Initialise srtp library, shall be called once but multiple call is supported
+ * @return 0 on success, error code from srtp/crypto/include/err.h otherwise
+ */
+MS2_PUBLIC int ms_srtp_init(void);
+
+/**
+ * Shutdown the srtp library
+ */
+MS2_PUBLIC void ms_srtp_shutdown(void);
+
 #ifdef __cplusplus
 }
 #endif

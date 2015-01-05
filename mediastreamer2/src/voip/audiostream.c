@@ -79,7 +79,7 @@ static void audio_stream_free(AudioStream *stream) {
 
 static int dtmf_tab[16]={'0','1','2','3','4','5','6','7','8','9','*','#','A','B','C','D'};
 
-static void on_dtmf_received(RtpSession *s, unsigned long dtmf, unsigned long dummy, void * user_data)
+static void on_dtmf_received(RtpSession *s, unsigned long dtmf, void * user_data)
 {
 	AudioStream *stream=(AudioStream*)user_data;
 	if (dtmf>15){
@@ -1325,9 +1325,9 @@ void audio_stream_mute_rtp(AudioStream *stream, bool_t val)
 {
 	if (stream->ms.rtpsend){
 		if (val)
-			ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_MUTE_MIC,&val);
+			ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_MUTE,&val);
 		else
-			ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_UNMUTE_MIC,&val);
+			ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_UNMUTE,&val);
 	}
 }
 

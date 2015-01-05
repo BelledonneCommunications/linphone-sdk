@@ -59,6 +59,7 @@ option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 option(ENABLE_DEBUG_LOGS "Enable the display of traces showing the execution of the library." NO)
 option(ENABLE_FIXED_POINT "Turn on fixed point computations." ${ENABLE_FIXED_POINT_DEFAULT_VALUE})
 option(ENABLE_RELATIVE_PREFIX "Find resources relatively to the installation directory." NO)
+option(ENABLE_SRTP "Build with the SRTP transport support." YES)
 option(ENABLE_ZRTP "Build with ZRTP support." YES)
 
 option(ENABLE_SOUND "Can be used to turn off all possible sound backends." YES)
@@ -88,6 +89,14 @@ cmake_dependent_option(ENABLE_VPX "Build mediastreamer2 with VPX codec." YES "EN
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+if(ENABLE_SRTP)
+	find_package(SRTP)
+	if(NOT SRTP_FOUND)
+		message(WARNING "Could not find SRTP library, Mediastreamer2 will be compiled without SRTP support.")
+		set(ENABLE_SRTP OFF CACHE BOOL "Build with the SRTP transport support." FORCE)
+	endif()
+endif()
 
 include(CheckIncludeFile)
 include(CheckLibraryExists)
@@ -238,11 +247,16 @@ include_directories(
 	src/utils/
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src/
+	${ORTP_INCLUDE_DIRS}
 )
 
 if(ENABLE_VIDEO)
 	include_directories(src/voip)
 endif()
+if(SRTP_FOUND)
+	include_directories(${SRTP_INCLUDE_DIRS})
+endif()
+
 if(BZRTP_FOUND)
 	include_directories(${BZRTP_INCLUDE_DIRS})
 endif()
@@ -298,6 +312,9 @@ if(ENABLE_DEBUG_LOGS)
 endif()
 if(ENABLE_FIXED_POINT)
 	set(MS_FIXED_POINT 1)
+endif()
+if(SRTP_FOUND)
+	set(HAVE_SRTP 1)
 endif()
 if(ENABLE_ALSA)
 	set(__ALSA_ENABLED__ 1)
