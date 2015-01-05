@@ -1,6 +1,7 @@
 
 #include "abnf.hh"
 #include "grammarbuilder.hh"
+#include "parser-impl.cc"
 
 #include <iostream>
 

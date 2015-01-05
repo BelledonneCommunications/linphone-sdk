@@ -18,10 +18,10 @@ const string &Recognizer::getName()const{
 	return mName;
 }
 
-size_t Recognizer::feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
+size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	size_t match;
 	
-	shared_ptr<HandlerContext> hctx=ctx->beginParse(shared_from_this());
+	shared_ptr<HandlerContextBase> hctx=ctx->beginParse(shared_from_this());
 	match=_feed(ctx, input, pos);
 	if (match!=string::npos && match>0){
 		if (0 && mName.size()>0){
@@ -43,7 +43,7 @@ CharRecognizer::CharRecognizer(int to_recognize, bool caseSensitive) : mToRecogn
 	}
 }
 
-size_t CharRecognizer::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
+size_t CharRecognizer::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	if (mCaseSensitive){
 		return input[pos]==mToRecognize ? 1 : string::npos;
 	}
@@ -58,10 +58,10 @@ shared_ptr<Selector> Selector::addRecognizer(const shared_ptr<Recognizer> &r){
 	return static_pointer_cast<Selector> (shared_from_this());
 }
 
-size_t Selector::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
+size_t Selector::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	size_t matched=0;
 	size_t bestmatch=0;
-	shared_ptr<HandlerContext> bestBranch;
+	shared_ptr<HandlerContextBase> bestBranch;
 	
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
 		auto br=ctx->branch();
@@ -84,7 +84,7 @@ size_t Selector::_feed(const shared_ptr<ParserContext> &ctx, const string &input
 ExclusiveSelector::ExclusiveSelector(){
 }
 
-size_t ExclusiveSelector::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
+size_t ExclusiveSelector::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	size_t matched=0;
 	
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
@@ -105,7 +105,7 @@ shared_ptr<Sequence> Sequence::addRecognizer(const shared_ptr<Recognizer> &eleme
 	return static_pointer_cast<Sequence>( shared_from_this());
 }
 
-size_t Sequence::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
+size_t Sequence::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	size_t matched=0;
 	size_t total=0;
 	
@@ -132,7 +132,7 @@ shared_ptr<Loop> Loop::setRecognizer(const shared_ptr<Recognizer> &element, int 
 	return static_pointer_cast<Loop>(shared_from_this());
 }
 
-size_t Loop::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
+size_t Loop::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	size_t matched=0;
 	size_t total=0;
 	int repeat;
@@ -150,7 +150,7 @@ size_t Loop::_feed(const shared_ptr<ParserContext> &ctx, const string &input, si
 CharRange::CharRange(int begin, int end) : mBegin(begin), mEnd(end){
 }
 
-size_t CharRange::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
+size_t CharRange::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	int c=input[pos];
 	if (c>=mBegin && c<=mEnd) return 1;
 	return string::npos;
@@ -192,7 +192,7 @@ shared_ptr<Recognizer> RecognizerPointer::getPointed(){
 	return mRecognizer;
 }
 
-size_t RecognizerPointer::_feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos){
+size_t RecognizerPointer::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	if (mRecognizer){
 		return mRecognizer->feed(ctx, input, pos);
 	}else{

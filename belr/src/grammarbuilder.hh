@@ -15,7 +15,7 @@ private:
 	void addRule(void *list, void *rule);
 	void *createRuleList();
 	void *createRule();
-	Parser mParser;
+	Parser<void*> mParser;
 };
 
 }

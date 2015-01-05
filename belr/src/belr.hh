@@ -12,16 +12,16 @@ namespace belr{
 	
 string tolower(const string &str);
 
-class ParserContext;
+class ParserContextBase;
 
 class Recognizer : public enable_shared_from_this<Recognizer>{
 public:
 	void setName(const string &name);
 	const string &getName()const;
-	size_t feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
+	size_t feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 protected:
 	Recognizer();
-	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos)=0;
+	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos)=0;
 	string mName;
 };
 
@@ -29,7 +29,7 @@ class CharRecognizer : public Recognizer{
 public:
 	CharRecognizer(int to_recognize, bool caseSensitive=false);
 private:
-	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	int mToRecognize;
 	bool mCaseSensitive;
 };
@@ -39,7 +39,7 @@ class CharRange : public Recognizer{
 public:
 	CharRange(int begin, int end);
 private:
-	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	int mBegin,mEnd;
 };
 
@@ -48,7 +48,7 @@ public:
 	Selector();
 	shared_ptr<Selector> addRecognizer(const shared_ptr<Recognizer> &element);
 protected:
-	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	list<shared_ptr<Recognizer>> mElements;
 };
 
@@ -57,7 +57,7 @@ class ExclusiveSelector : public Selector{
 public:
 	ExclusiveSelector();
 private:
-	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 };
 
 class Sequence : public Recognizer{
@@ -65,7 +65,7 @@ public:
 	Sequence();
 	shared_ptr<Sequence> addRecognizer(const shared_ptr<Recognizer> &element);
 private:
-	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	list<shared_ptr<Recognizer>> mElements;
 };
 
@@ -74,7 +74,7 @@ public:
 	Loop();
 	shared_ptr<Loop> setRecognizer(const shared_ptr<Recognizer> &element, int min=0, int max=-1);
 private:
-	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	shared_ptr<Recognizer> mRecognizer;
 	int mMin, mMax;
 };
@@ -100,7 +100,7 @@ public:
 	shared_ptr<Recognizer> getPointed();
 	void setPointed(const shared_ptr<Recognizer> &r);
 private:
-	virtual size_t _feed(const shared_ptr<ParserContext> &ctx, const string &input, size_t pos);
+	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	shared_ptr<Recognizer> mRecognizer;
 };
 
