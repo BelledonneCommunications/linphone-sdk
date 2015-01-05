@@ -4,10 +4,10 @@
 
 
 namespace belr{
-	
-CollectorBase::~CollectorBase(){
-}
 
+
+HandlerContextBase::~HandlerContextBase(){
+}
 
 
 

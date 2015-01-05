@@ -13,12 +13,35 @@
 
 namespace belr{
 
-	
+ABNFBuilder::~ABNFBuilder(){
+}
+
+ABNFRule *ABNFRule::create(){
+	cout<<"Rule created."<<endl;
+	return new ABNFRule();
+}
+shared_ptr<Recognizer> ABNFRule::buildRecognizer(){
+	return NULL;
+}
+
+ABNFRuleList *ABNFRuleList::create(){
+	cout<<"Rulelist created."<<endl;
+	return new ABNFRuleList();
+}
+
+void ABNFRuleList::addRule(ABNFRule *rule){
+	cout<<"Rule "<<rule<<" added to rulelist "<<this<<endl;
+}
+
+shared_ptr<Recognizer> ABNFRuleList::buildRecognizer(){
+	return NULL;
+}
+
 ABNFGrammarBuilder::ABNFGrammarBuilder()
 : mParser(make_shared<ABNFGrammar>()){
-	mParser.setHandler("rulelist", bind(mem_fn(&ABNFGrammarBuilder::createRuleList),this))
-		->setCollector<void*>("rule",bind(mem_fn(&ABNFGrammarBuilder::addRule),this, placeholders::_1, placeholders::_2));
-	mParser.setHandler("rule", bind(mem_fn(&ABNFGrammarBuilder::createRule),this));
+	mParser.setHandler("rulelist", make_ptrfn(&ABNFRuleList::create))
+		->setCollector("rule", make_memfn(&ABNFRuleList::addRule));
+	mParser.setHandler("rule", make_ptrfn(&ABNFRule::create));
 }
 
 shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &path){
@@ -45,20 +68,6 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &path){
 		cerr<<"Only "<<parsed<<" bytes parsed over a total of "<< sb.st_size <<endl;
 	}
 	return NULL;
-}
-
-void *ABNFGrammarBuilder::createRule(){
-	cout<<"Rule created"<<endl;
-	return (void*)0x1;
-}
-
-void *ABNFGrammarBuilder::createRuleList(){
-	cout<<"RuleList created"<<endl;
-	return (void*)0x2;
-}
-
-void ABNFGrammarBuilder::addRule(void *list, void *rule){
-	cout<<"Rule "<<rule<<" added to rule list "<<list<<endl;
 }
 
 }//end of namespace

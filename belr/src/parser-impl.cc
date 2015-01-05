@@ -6,25 +6,36 @@
 namespace belr{
 
 template <typename _parserElementT>
+AbstractCollector<_parserElementT>::~AbstractCollector(){
+}
+
+template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
+void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value){
+	mFunc(static_cast<_derivedParserElementT>(obj),value);
+}
+
+template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
+void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT value){
+	mFunc(static_cast<_derivedParserElementT>(obj),static_cast<_valueT>(value));
+}
+
+template <typename _parserElementT>
 void Assignment<_parserElementT>::invoke(_parserElementT parent, const string &input){
 	if (mChild){
-		shared_ptr<ParserCollector<_parserElementT,_parserElementT>> cc=dynamic_pointer_cast<ParserCollector<_parserElementT,_parserElementT>>(mCollector);
-		if (cc){
-			cc->invoke(parent, mChild->realize(input));
-		}
+		mCollector->invokeWithChild(parent, mChild->realize(input));
 	}else{
 		string value=input.substr(mBegin, mCount);
-		shared_ptr<ParserCollector<_parserElementT,const string&>> cc1=dynamic_pointer_cast<ParserCollector<_parserElementT,const string&>>(mCollector);
+		shared_ptr<CollectorBase<_parserElementT,const string&>> cc1=dynamic_pointer_cast<CollectorBase<_parserElementT,const string&>>(mCollector);
 		if (cc1){
 			cc1->invoke(parent, value);
 			return;
 		}
-		shared_ptr<ParserCollector<_parserElementT,const char*>> cc2=dynamic_pointer_cast<ParserCollector<_parserElementT,const char*>>(mCollector);
+		shared_ptr<CollectorBase<_parserElementT,const char*>> cc2=dynamic_pointer_cast<CollectorBase<_parserElementT,const char*>>(mCollector);
 		if (cc2){
 			cc2->invoke(parent, value.c_str());
 			return;
 		}
-		shared_ptr<ParserCollector<_parserElementT,int>> cc3=dynamic_pointer_cast<ParserCollector<_parserElementT,int>>(mCollector);
+		shared_ptr<CollectorBase<_parserElementT,int>> cc3=dynamic_pointer_cast<CollectorBase<_parserElementT,int>>(mCollector);
 		if (cc3){
 			cc3->invoke(parent, atoi(value.c_str()));
 			return;
@@ -122,7 +133,7 @@ void ParserContext<_parserElementT>::removeBranch(const shared_ptr<HandlerContex
 }
 
 template <typename _parserElementT>
-shared_ptr<HandlerContext<_parserElementT>> ParserHandler<_parserElementT>::createContext(){
+shared_ptr<HandlerContext<_parserElementT>> ParserHandlerBase<_parserElementT>::createContext(){
 	return make_shared<HandlerContext<_parserElementT>>(this->shared_from_this());
 }
 	

@@ -7,55 +7,71 @@
 
 namespace belr{
 
-class CollectorBase{
+template<typename _parserElementT>
+class AbstractCollector{
 public:
-	virtual ~CollectorBase();
+	virtual void invokeWithChild(_parserElementT obj, _parserElementT child)=0;
+	virtual ~AbstractCollector();
 };
 
-template <typename _parserElementT, typename _valueT>
-class ParserCollector : public CollectorBase{
+template<typename _parserElementT, typename _valueT>
+class CollectorBase : public AbstractCollector<_parserElementT>{
 public:
-	ParserCollector(const function<void (_parserElementT , _valueT)> &fn) : mFunc(fn){
+	virtual void invoke(_parserElementT obj, _valueT value)=0;
+};
+
+template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
+class ParserCollector : public CollectorBase<_parserElementT,_valueT>{
+public:
+	ParserCollector(const function<void (_derivedParserElementT , _valueT)> &fn) : mFunc(fn){
 	}
-	function<void (_parserElementT, _valueT)> mFunc;
-	void invoke(_parserElementT obj, _valueT value){
-		mFunc(obj,value);
-	}
+	virtual void invoke(_parserElementT obj, _valueT value);
+	void invokeWithChild(_parserElementT obj, _parserElementT child);
+private:
+	function<void (_derivedParserElementT, _valueT)> mFunc;
 };
 
 template <typename _parserElementT>
 class HandlerContext;
 
 template <typename _parserElementT>
-class ParserHandler :  public enable_shared_from_this<ParserHandler<_parserElementT>>{
-public:
+class ParserHandlerBase : public enable_shared_from_this<ParserHandlerBase<_parserElementT>>{
 	friend class HandlerContext<_parserElementT>;
-	ParserHandler(const function<_parserElementT ()> &create)
+public:
+	virtual _parserElementT invoke()=0;
+	shared_ptr<HandlerContext<_parserElementT>> createContext();
+protected:
+	map<string, shared_ptr<AbstractCollector<_parserElementT>> > mCollectors;
+};
+
+template <typename _derivedParserElementT, typename _parserElementT>
+class ParserHandler :  public ParserHandlerBase<_parserElementT>{
+public:
+	ParserHandler(const function<_derivedParserElementT ()> &create)
 		: mHandlerCreateFunc(create){
 	}
+	
 	template <typename _valueT>
-	shared_ptr<ParserHandler<_parserElementT>> setCollector(const string &child_rule_name, function<void (_parserElementT , _valueT)> fn){
-		mCollectors[child_rule_name]=make_shared<ParserCollector<_parserElementT,_valueT>>(fn);
-		return this->shared_from_this();
+	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , _valueT)> fn){
+		this->mCollectors[child_rule_name]=make_shared<ParserCollector<_derivedParserElementT,_parserElementT,_valueT>>(fn);
+		return static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
 	_parserElementT invoke(){
-		return mHandlerCreateFunc();
+		return static_cast<_parserElementT>(mHandlerCreateFunc());
 	}
-	shared_ptr<HandlerContext<_parserElementT>> createContext();
 private:
-	function<_parserElementT ()> mHandlerCreateFunc;
-	map<string, shared_ptr<CollectorBase> > mCollectors;
+	function<_derivedParserElementT ()> mHandlerCreateFunc;
 };
 
 template <typename _parserElementT>
 class Assignment{
 private:
-	shared_ptr<CollectorBase> mCollector;
+	shared_ptr<AbstractCollector<_parserElementT>> mCollector;
 	size_t mBegin;
 	size_t mCount;
 	shared_ptr<HandlerContext<_parserElementT>> mChild;
 public:
-	Assignment(const shared_ptr<CollectorBase> &c, size_t begin, size_t count, const shared_ptr<HandlerContext<_parserElementT>> &child)
+	Assignment(const shared_ptr<AbstractCollector<_parserElementT>> &c, size_t begin, size_t count, const shared_ptr<HandlerContext<_parserElementT>> &child)
 		: mCollector(c), mBegin(begin), mCount(count), mChild(child)
 	{
 	}
@@ -63,12 +79,14 @@ public:
 };
 
 class HandlerContextBase{
+public:
+	virtual ~HandlerContextBase();
 };
 
 template <typename _parserElementT>
 class HandlerContext : public HandlerContextBase{
 public:
-	HandlerContext(const shared_ptr<ParserHandler<_parserElementT>> &handler) : 
+	HandlerContext(const shared_ptr<ParserHandlerBase<_parserElementT>> &handler) : 
 		mHandler(handler){
 	}
 	void setChild(const string &subrule_name, size_t begin, size_t count, const shared_ptr<HandlerContext> &child){
@@ -78,7 +96,7 @@ public:
 		}
 	}
 	_parserElementT realize(const string &input){
-		void *ret=mHandler->invoke();
+		_parserElementT ret=mHandler->invoke();
 		for (auto it=mAssignments.begin(); it!=mAssignments.end(); ++it){
 			(*it).invoke(ret,input);
 		}
@@ -91,7 +109,7 @@ public:
 		mAssignments.splice(mAssignments.begin(), other->mAssignments);
 	}
 private:
-	shared_ptr<ParserHandler<_parserElementT>> mHandler;
+	shared_ptr<ParserHandlerBase<_parserElementT>> mHandler;
 	list<Assignment<_parserElementT>> mAssignments;
 };
 
@@ -134,17 +152,35 @@ class Parser{
 friend class ParserContext<_parserElementT>;
 public:
 	Parser(const shared_ptr<Grammar> &grammar);
-	shared_ptr<ParserHandler<_parserElementT>> setHandler(const string &rulename, function<_parserElementT ()> handler){
-		shared_ptr<ParserHandler<_parserElementT>> ret;
-		mHandlers[rulename]=ret=make_shared<ParserHandler<_parserElementT>>(handler);
+	template <typename _derivedParserElementT> 
+	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setHandler(const string &rulename,const function<_derivedParserElementT ()> & handler){
+		shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> ret;
+		mHandlers[rulename]=ret=make_shared<ParserHandler<_derivedParserElementT,_parserElementT>>(handler);
 		return ret;
 		
 	}
 	_parserElementT parseInput(const string &rulename, const string &input, size_t *parsed_size);
 private:
 	shared_ptr<Grammar> mGrammar;
-	map<string, shared_ptr<ParserHandler<_parserElementT>>> mHandlers;
+	map<string, shared_ptr<ParserHandlerBase<_parserElementT>>> mHandlers;
 };
+
+
+template <typename _retT>
+function< _retT ()> make_ptrfn(_retT (*arg)()){
+	return function<_retT ()>(arg);
+}
+
+template <typename _arg1T, typename _arg2T>
+function< void (_arg1T,_arg2T)> make_ptrfn(void (*arg)(_arg1T,_arg2T)){
+	return function< void (_arg1T,_arg2T)>(arg);
+}
+
+template <typename _klassT, typename _argT>
+function< void (_klassT*,_argT)> make_memfn(void (_klassT::*arg)(_argT)){
+	return function< void (_klassT*,_argT)>(mem_fn(arg));
+}
+
 
 
 }
