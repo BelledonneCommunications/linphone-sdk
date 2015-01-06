@@ -106,6 +106,7 @@ LOCAL_SRC_FILES = \
 	android/AudioSystem.cpp \
 	android/String8.cpp \
 	android/androidsound_opensles.cpp \
+	crypto/ms_srtp.c
 
 LOCAL_STATIC_LIBRARIES :=
 
@@ -119,7 +120,7 @@ endif
 
 ifeq ($(BUILD_SRTP), 1)
 	LOCAL_C_INCLUDES += $(SRTP_C_INCLUDE)
-	LOCAL_CFLAGS += -DORTP_HAVE_SRTP
+	LOCAL_CFLAGS += -DHAVE_SRTP
 else
 
 endif

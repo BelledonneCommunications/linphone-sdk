@@ -248,7 +248,7 @@ static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, c
 
 	/* check if key length match given policy */
 	if (key_length != policy.rtp.cipher_key_len) {
-		ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length, policy.rtp.cipher_key_len);	
+		ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length, policy.rtp.cipher_key_len);
 		return -1;
 	}
 
@@ -358,7 +358,7 @@ int media_stream_set_srtp_recv_key(struct _MediaStream *stream, MSCryptoSuite su
 	}
 	ssrc=rtp_session_get_recv_ssrc(stream->sessions.rtp_session);
 	ms_message("media_stream_set_srtp_recv_key(): %s key %02x..%02x",updated ? "changing to" : "starting with", (uint8_t)key[0], (uint8_t)key[key_length-1]);
-	
+
 	return ms_add_srtp_stream(stream->sessions.srtp_session,suite, ssrc, key, key_length, TRUE);
 }
 
