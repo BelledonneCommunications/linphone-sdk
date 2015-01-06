@@ -31,6 +31,17 @@ private:
 	function<void (_derivedParserElementT, _valueT)> mFunc;
 };
 
+template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
+class ParserChildCollector : public CollectorBase<_parserElementT,_valueT>{
+public:
+	ParserChildCollector(const function<void (_derivedParserElementT , _valueT)> &fn) : mFunc(fn){
+	}
+	virtual void invoke(_parserElementT obj, _valueT value);
+	virtual void invokeWithChild(_parserElementT obj, _parserElementT child);
+private:
+	function<void (_derivedParserElementT, _valueT)> mFunc;
+};
+
 template <typename _parserElementT>
 class HandlerContext;
 
@@ -50,15 +61,16 @@ public:
 	ParserHandler(const function<_derivedParserElementT ()> &create)
 		: mHandlerCreateFunc(create){
 	}
-	
-	template <typename _valueT>
-	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , _valueT)> fn){
-		this->mCollectors[child_rule_name]=make_shared<ParserCollector<_derivedParserElementT,_parserElementT,_valueT>>(fn);
+	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , const string & )> fn){
+		this->mCollectors[child_rule_name]=make_shared<ParserCollector<_derivedParserElementT,_parserElementT,const string&>>(fn);
 		return static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
-	_parserElementT invoke(){
-		return static_cast<_parserElementT>(mHandlerCreateFunc());
+	template <typename _valueT>
+	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , _valueT)> fn){
+		this->mCollectors[child_rule_name]=make_shared<ParserChildCollector<_derivedParserElementT,_parserElementT,_valueT>>(fn);
+		return static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
+	_parserElementT invoke();
 private:
 	function<_derivedParserElementT ()> mHandlerCreateFunc;
 };
@@ -167,18 +179,23 @@ private:
 
 
 template <typename _retT>
-function< _retT ()> make_ptrfn(_retT (*arg)()){
+function< _retT ()> make_fn(_retT (*arg)()){
 	return function<_retT ()>(arg);
 }
 
 template <typename _arg1T, typename _arg2T>
-function< void (_arg1T,_arg2T)> make_ptrfn(void (*arg)(_arg1T,_arg2T)){
+function< void (_arg1T,_arg2T)> make_fn(void (*arg)(_arg1T,_arg2T)){
 	return function< void (_arg1T,_arg2T)>(arg);
 }
 
 template <typename _klassT, typename _argT>
-function< void (_klassT*,_argT)> make_memfn(void (_klassT::*arg)(_argT)){
+function< void (_klassT*,_argT)> make_fn(void (_klassT::*arg)(_argT)){
 	return function< void (_klassT*,_argT)>(mem_fn(arg));
+}
+
+template <typename _klassT, typename _argT>
+function< void (shared_ptr<_klassT>,_argT)> make_sfn(void (_klassT::*arg)(_argT)){
+	return function< void (shared_ptr<_klassT>,_argT)>(mem_fn(arg));
 }
 
 

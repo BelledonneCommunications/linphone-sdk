@@ -16,32 +16,99 @@ namespace belr{
 ABNFBuilder::~ABNFBuilder(){
 }
 
-ABNFRule *ABNFRule::create(){
-	cout<<"Rule created."<<endl;
-	return new ABNFRule();
+shared_ptr<ABNFConcatenation> ABNFConcatenation::create(){
+	return make_shared<ABNFConcatenation>();
 }
-shared_ptr<Recognizer> ABNFRule::buildRecognizer(){
+
+shared_ptr<Recognizer> ABNFConcatenation::buildRecognizer(const shared_ptr<Grammar> &grammar){
 	return NULL;
 }
 
-ABNFRuleList *ABNFRuleList::create(){
+shared_ptr<ABNFAlternation> ABNFAlternation::create(){
+	return make_shared<ABNFAlternation>();
+}
+
+void ABNFAlternation::addConcatenation(const shared_ptr<ABNFConcatenation> &c){
+	cout<<"Concatenation "<<c<<"added to alternation "<<this<<endl;
+	mConcatenations.push_back(c);
+}
+
+shared_ptr<Recognizer> ABNFAlternation::buildRecognizer(const shared_ptr<Grammar> &grammar){
+	if (mConcatenations.size()==1) return mConcatenations.front()->buildRecognizer(grammar);
+	return buildRecognizerNoOptim(grammar);
+}
+
+shared_ptr< Recognizer > ABNFAlternation::buildRecognizerNoOptim(const shared_ptr< Grammar >& grammar){
+	auto sel=Foundation::selector();
+	for (auto it=mConcatenations.begin(); it!=mConcatenations.end(); ++it){
+		sel->addRecognizer((*it)->buildRecognizer(grammar));
+	}
+	return sel;
+}
+
+
+shared_ptr<ABNFRule> ABNFRule::create(){
+	cout<<"Rule created."<<endl;
+	return make_shared<ABNFRule>();
+}
+
+void ABNFRule::setName(const string& name){
+	if (!mName.empty())
+		cerr<<"Rule "<<this<<" is renamed !!!!!"<<endl;
+	cout<<"Rule "<<this<<" is named "<<name<<endl;
+	mName=name;
+}
+
+void ABNFRule::setAlternation(const shared_ptr<ABNFAlternation> &a){
+	cout<<"Rule "<<this<<" is given alternation "<<a<<endl;
+	mAlternation=a;
+}
+
+bool ABNFRule::isExtension()const{
+	return mDefinedAs.find('/')!=string::npos;
+}
+
+shared_ptr<Recognizer> ABNFRule::buildRecognizer(const shared_ptr<Grammar> &grammar){
+	return mAlternation->buildRecognizer(grammar);
+}
+
+void ABNFRule::setDefinedAs(const string& defined_as){
+	mDefinedAs=defined_as;
+}
+
+
+shared_ptr<ABNFRuleList> ABNFRuleList::create(){
 	cout<<"Rulelist created."<<endl;
-	return new ABNFRuleList();
+	return make_shared<ABNFRuleList>();
 }
 
-void ABNFRuleList::addRule(ABNFRule *rule){
+void ABNFRuleList::addRule(const shared_ptr<ABNFRule>& rule){
 	cout<<"Rule "<<rule<<" added to rulelist "<<this<<endl;
+	mRules.push_back(rule);
 }
 
-shared_ptr<Recognizer> ABNFRuleList::buildRecognizer(){
+shared_ptr<Recognizer> ABNFRuleList::buildRecognizer(const shared_ptr<Grammar> &grammar){
+	for (auto it=mRules.begin(); it!=mRules.end(); ++it){
+		shared_ptr<ABNFRule> rule=(*it);
+		if (rule->isExtension()){
+			grammar->extendRule(rule->getName(), rule->buildRecognizer(grammar));
+		}else{
+			grammar->addRule(rule->getName(), rule->buildRecognizer(grammar));
+		}
+	}
 	return NULL;
 }
 
 ABNFGrammarBuilder::ABNFGrammarBuilder()
 : mParser(make_shared<ABNFGrammar>()){
-	mParser.setHandler("rulelist", make_ptrfn(&ABNFRuleList::create))
-		->setCollector("rule", make_memfn(&ABNFRuleList::addRule));
-	mParser.setHandler("rule", make_ptrfn(&ABNFRule::create));
+	mParser.setHandler("rulelist", make_fn(&ABNFRuleList::create))
+		->setCollector("rule", make_sfn(&ABNFRuleList::addRule));
+	mParser.setHandler("rule", make_fn(&ABNFRule::create))
+		->setCollector("rulename",make_sfn(&ABNFRule::setName))
+		->setCollector("defined-as",make_sfn(&ABNFRule::setDefinedAs))
+		->setCollector("alternation",make_sfn(&ABNFRule::setAlternation));
+	mParser.setHandler("alternation", make_fn(&ABNFAlternation::create))
+		->setCollector("concatenation",make_sfn(&ABNFAlternation::addConcatenation));
 }
 
 shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &path){

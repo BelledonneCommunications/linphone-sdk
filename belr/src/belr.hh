@@ -116,10 +116,16 @@ public:
 		assignRule(name, rule);
 		return rule;
 	}
+	template <typename _recognizerT>
+	shared_ptr<_recognizerT> extendRule(const string & name, const shared_ptr<_recognizerT> &rule){
+		_extendRule(name, rule);
+		return rule;
+	}
 	shared_ptr<Recognizer> getRule(const string &name);
 	bool isComplete()const;
 private:
 	void assignRule(const string &name, const shared_ptr<Recognizer> &rule);
+	void _extendRule(const string &name, const shared_ptr<Recognizer> &rule);
 	map<string,shared_ptr<Recognizer>> mRules;
 	string mName;
 };

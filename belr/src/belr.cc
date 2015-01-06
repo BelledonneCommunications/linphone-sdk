@@ -228,6 +228,24 @@ void Grammar::assignRule(const string &argname, const shared_ptr<Recognizer> &ru
 	mRules[name]=rule;
 }
 
+void Grammar::_extendRule(const string &argname, const shared_ptr<Recognizer> &rule){
+	string name=tolower(argname);
+	rule->setName("");
+	auto it=mRules.find(name);
+	if (it!=mRules.end()){
+		shared_ptr<Selector> sel=dynamic_pointer_cast<Selector>((*it).second);
+		if (sel){
+			sel->addRecognizer(rule);
+		}else{
+			cerr<<"Error: rule '"<<name<<"' cannot be extended because it was not defined with a Selector."<<endl;
+			abort();
+		}
+	}else{
+		cerr<<"Error: rule '"<<name<<"' cannot be extended because it is not defined."<<endl;
+		abort();
+	}
+}
+
 shared_ptr<Recognizer> Grammar::getRule(const string &argname){
 	shared_ptr<Recognizer> ret;
 	string name=tolower(argname);

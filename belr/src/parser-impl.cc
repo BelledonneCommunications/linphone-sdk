@@ -5,18 +5,40 @@
 
 namespace belr{
 
+template <class T, class U>
+T universal_pointer_cast(const shared_ptr<U>& sp){
+	return static_pointer_cast<typename T::element_type>(sp);
+}
+
+template <class T, class U>
+T universal_pointer_cast(U * p){
+	return static_cast<T>(p);
+}
+	
 template <typename _parserElementT>
 AbstractCollector<_parserElementT>::~AbstractCollector(){
 }
 
 template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
 void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value){
-	mFunc(static_cast<_derivedParserElementT>(obj),value);
+	mFunc(universal_pointer_cast<_derivedParserElementT>(obj),value);
 }
 
 template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
-void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT value){
-	mFunc(static_cast<_derivedParserElementT>(obj),static_cast<_valueT>(value));
+void ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT child){
+	cerr<<"We should never be called in ParserCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT child)"<<endl;
+	abort();
+}
+
+template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
+void ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invokeWithChild(_parserElementT obj, _parserElementT value){
+	mFunc(universal_pointer_cast<_derivedParserElementT>(obj),universal_pointer_cast<typename decay<_valueT>::type>(value));
+}
+
+template <typename _derivedParserElementT, typename _parserElementT, typename _valueT>
+void ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value){
+	cerr<<"We should never be called in ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invoke(_parserElementT obj, _valueT value)"<<endl;
+	abort();
 }
 
 template <typename _parserElementT>
@@ -41,6 +63,11 @@ void Assignment<_parserElementT>::invoke(_parserElementT parent, const string &i
 			return;
 		}
 	}
+}
+
+template <typename _derivedParserElementT, typename _parserElementT>
+_parserElementT ParserHandler<_derivedParserElementT,_parserElementT>::invoke(){
+	return universal_pointer_cast<_parserElementT>(mHandlerCreateFunc());
 }
 
 template <typename _parserElementT>
