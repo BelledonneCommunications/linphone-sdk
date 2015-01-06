@@ -289,7 +289,7 @@ err_status_t ms_srtp_init(void)
 		if (st==0) {
 			srtp_init_done++;
 		}else{
-			ms_fatal("Couldn't initialize SRTP library.");
+			ms_fatal("Couldn't initialize SRTP library: %d.", st);
 			err_reporting_init("mediastreamer2");
 		}
 	}else srtp_init_done++;
