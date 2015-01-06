@@ -175,6 +175,10 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 		ms_srtp_dealloc(sessions->srtp_session);
 		sessions->srtp_session=NULL;
 	}
+	if (sessions->srtp_rtcp_session) {
+		ms_srtp_dealloc(sessions->srtp_rtcp_session);
+		sessions->srtp_rtcp_session=NULL;
+	}
 	if (sessions->rtp_session) {
 		rtp_session_destroy(sessions->rtp_session);
 		sessions->rtp_session=NULL;

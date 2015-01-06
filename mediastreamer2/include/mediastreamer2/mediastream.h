@@ -103,6 +103,7 @@ typedef void (*media_stream_process_rtcp_callback_t)(MediaStream *stream, mblk_t
 struct _MSMediaStreamSessions{
 	RtpSession *rtp_session;
 	MSSrtpCtx srtp_session;
+	MSSrtpCtx srtp_rtcp_session;
 	MSZrtpContext *zrtp_context;
 	MSDtlsSrtpContext *dtls_context;
 	MSTicker *ticker;

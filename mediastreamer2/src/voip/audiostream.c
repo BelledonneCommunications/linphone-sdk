@@ -1359,8 +1359,10 @@ bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 }
 
 void audio_stream_enable_dtls(AudioStream *stream, MSDtlsSrtpParams *params){
-	if (stream->ms.sessions.dtls_context==NULL)
-		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new((MediaStream *)stream, stream->ms.sessions.rtp_session, params);
+	if (stream->ms.sessions.dtls_context==NULL) {
+		//stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new((MediaStream *)stream, stream->ms.sessions.rtp_session, params);
+		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new((MediaStream *)stream, params);
+	}
 }
 
 static void configure_av_recorder(AudioStream *stream){

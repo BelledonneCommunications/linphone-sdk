@@ -57,6 +57,10 @@ typedef struct _DtlsRawPacket {
 	void *next;
 } DtlsRawPacket;
 
+/* DTLS only allow use of AES128 so we have 16 bytes key and 14 byte salt in any case */
+#define DTLS_SRTP_KEY_LEN 16
+#define DTLS_SRTP_SALT_LEN 14
+
 #define DTLS_STATUS_CONTEXT_NOT_READY 0
 #define DTLS_STATUS_CONTEXT_READY 1
 #define DTLS_STATUS_ON_GOING_HANDSHAKE 2
@@ -264,13 +268,15 @@ static MSCryptoSuite ms_polarssl_dtls_srtp_protection_profile_to_ms_crypto_suite
 
 /**
  * Check if the incoming message is a DTLS packet.
- * If it is, store it in the context incoming buffer.
+ * If it is, store it in the context incoming buffer and call the polarssl function wich will process it.
+ * This function also manages the client retransmission timer
  *
- * @param[in] 	msg	the incoming message
- * @param[out]	ctx	the context containing the incoming buffer to store the DTLS packet
+ * @param[in] 		msg	the incoming message
+ * @param[in/out]	ctx	the context containing the incoming buffer to store the DTLS packet
+ * @param[out]		ret	the value returned by the polarssl function processing the packet(ssl_handshake)
  * @return TRUE if packet is a DTLS one, false otherwise
  */
-static bool_t ms_dtls_srtp_is_a_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *ctx) {
+static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *ctx, int *ret) {
 	size_t msgLength = msgdsize(msg);
 	// check if incoming message length is compatible with potential DTLS message
 	if (msgLength<RTP_FIXED_HEADER_SIZE) {
@@ -293,8 +299,39 @@ static bool_t ms_dtls_srtp_is_a_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *ctx)
 			while (last_packet->next != NULL) last_packet = last_packet->next;
 			last_packet->next = incoming_dtls_packet;
 		}
+		
+		/* role is unset but we receive a packet: we are caller and shall initialise as server and then process the incoming packet */
+		if (ctx->role == MSDtlsSrtpRoleUnset) {
+			ms_dtls_srtp_set_role(ctx, MSDtlsSrtpRoleIsServer); /* this call will update role and complete server setup */
+		}
+
+		/* process the packet and store result */
+		*ret = ssl_handshake(&(ctx->dtls_context->ssl));
+
+		/* when we are server, we may issue a hello verify, so reset session, keep cookies(transport id) and expect an other Hello from client */
+		if (*ret==POLARSSL_ERR_SSL_HELLO_VERIFY_REQUIRED) {
+			ssl_session_reset(&(ctx->dtls_context->ssl));
+			ssl_set_client_transport_id(&(ctx->dtls_context->ssl), (const unsigned char *)(&(ctx->session->snd.ssrc)), 4); 
+		}
+
+		/* if we are client, manage the retransmission timer */
+		if (ctx->role == MSDtlsSrtpRoleIsClient) {
+			ctx->time_reference = get_timeval_in_millis();
+		}
+
 		return TRUE;
+	} else { /* it is not a dtls packet, but manage anyway the retransmission timer */
+		if (ctx->role == MSDtlsSrtpRoleIsClient) { /* only if we are client */
+			if (ctx->time_reference>0) { /* only when retransmission timer is armed */
+				if (get_timeval_in_millis() - ctx->time_reference > READ_TIMEOUT_MS) {
+					ssl_handshake(&(ctx->dtls_context->ssl));
+					ctx->time_reference = get_timeval_in_millis();
+				}
+			}
+		}
+
 	}
+
 	return FALSE;
 
 }
@@ -315,26 +352,11 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 		return msgLength;
 	}
 
-	/* check if it is a DTLS packet (first byte B as 19 < B < 64) rfc5764 section 5.1.2, if it is a DTLS packet, it will be enqueued in the incoming DTLS packets buffer */
-	if (ms_dtls_srtp_is_a_dtls_packet(msg, ctx) == TRUE){
-		/* role is unset but we receive a packet: we are caller and shall initialise as server and then process the incoming packet */
-		if (ctx->role == MSDtlsSrtpRoleUnset) {
-			ms_dtls_srtp_set_role(ctx, MSDtlsSrtpRoleIsServer); /* this call will update role and complete server setup */
-		}
+	/* check if it is a DTLS packet and process it */
+	if (ms_dtls_srtp_process_dtls_packet(msg, ctx, &ret) == TRUE){
 
-		/* process the packet */
-		ret = ssl_handshake(&(ctx->dtls_context->ssl));
-
-		/* when we are server, we may issue a hello verify, so reset session, keep cookies(transport id) and expect an other Hello from client */
-		if (ret==POLARSSL_ERR_SSL_HELLO_VERIFY_REQUIRED) {
-			ssl_session_reset(&(ctx->dtls_context->ssl));
-			ssl_set_client_transport_id(&(ctx->dtls_context->ssl), (const unsigned char *)(&(ctx->session->snd.ssrc)), 4); 
-		}
-
-		if (ctx->role == MSDtlsSrtpRoleIsClient) { /* if we are client, manage the retransmission timer */
-			ctx->time_reference = get_timeval_in_millis();
-		}
-
+		
+		
 		if ((ret==0) && (ctx->channel_status == DTLS_STATUS_CONTEXT_READY)) { /* handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
 			MSCryptoSuite agreed_srtp_protection_profile = MS_CRYPTO_SUITE_INVALID;
 
@@ -360,28 +382,26 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 					}
 					printf("\n");
 
-#define SRTP_KEY_LEN 16
-#define SRTP_SALT_LEN 14
 					if (ctx->role == MSDtlsSrtpRoleIsServer) {
 						printf("On est serveur\n");
 						/* reception(client write) key and salt +16bits padding */
-						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, SRTP_KEY_LEN);
-						memcpy(key + SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*SRTP_KEY_LEN, SRTP_SALT_LEN);
-						media_stream_set_srtp_recv_key(ctx->stream, agreed_srtp_protection_profile, (const char *)key, SRTP_KEY_LEN+SRTP_SALT_LEN);
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
+						media_stream_set_srtp_recv_key(ctx->stream, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 						/* emission(server write) key and salt +16bits padding */
-						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+SRTP_KEY_LEN, SRTP_KEY_LEN);
-						memcpy(key + SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*SRTP_KEY_LEN+SRTP_SALT_LEN, SRTP_SALT_LEN);
-						media_stream_set_srtp_send_key(ctx->stream, agreed_srtp_protection_profile, (const char *)key, SRTP_KEY_LEN+SRTP_SALT_LEN);
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
+						media_stream_set_srtp_send_key(ctx->stream, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 					} else if (ctx->role == MSDtlsSrtpRoleIsClient){ /* this enpoint act as DTLS client */
 						printf("On est client\n");
 						/* emission(client write) key and salt +16bits padding */
-						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, SRTP_KEY_LEN);
-						memcpy(key + SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*SRTP_KEY_LEN, SRTP_SALT_LEN);
-						media_stream_set_srtp_send_key(ctx->stream, agreed_srtp_protection_profile, (const char *)key, SRTP_KEY_LEN+SRTP_SALT_LEN);
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
+						media_stream_set_srtp_send_key(ctx->stream, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 						/* reception(server write) key and salt +16bits padding */
-						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+SRTP_KEY_LEN, SRTP_KEY_LEN);
-						memcpy(key + SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*SRTP_KEY_LEN+SRTP_SALT_LEN, SRTP_SALT_LEN);
-						media_stream_set_srtp_recv_key(ctx->stream, agreed_srtp_protection_profile, (const char *)key, SRTP_KEY_LEN+SRTP_SALT_LEN);
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
+						media_stream_set_srtp_recv_key(ctx->stream, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 					}
 
 					ms_free(key);
@@ -416,17 +436,6 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 			}
 		}
 		return 0;
-	} else {
-		if (ctx->role == MSDtlsSrtpRoleIsClient) { /* if we are client, manage the retransmission timer */
-			if (ctx->time_reference>0) { /* only when retransmission timer is armed */
-				printf("RTP timer %ld current %ld\n", ctx->time_reference, get_timeval_in_millis());
-				if (get_timeval_in_millis() - ctx->time_reference > READ_TIMEOUT_MS) {
-					ssl_handshake(&(ctx->dtls_context->ssl));
-					ctx->time_reference = get_timeval_in_millis();
-				}
-			}
-		}
-
 	}
 	return msgLength;
 }
@@ -444,17 +453,7 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 	}
 
 	/* check if it is a DTLS packet (first byte B as 19 < B < 64) rfc5764 section 5.1.2 */
-	if (ms_dtls_srtp_is_a_dtls_packet(msg, ctx) == TRUE){
-		/*  process it */
-		ret = ssl_handshake(&(ctx->dtls_context->ssl));
-		if (ret==POLARSSL_ERR_SSL_HELLO_VERIFY_REQUIRED) {
-			ssl_session_reset(&(ctx->dtls_context->ssl));
-			ssl_set_client_transport_id(&(ctx->dtls_context->ssl), (const unsigned char *)(&(ctx->session->snd.ssrc)), 4);
-		}
-
-		if (ctx->role == MSDtlsSrtpRoleIsClient) { /* if we are client, manage the retransmission timer */
-			ctx->time_reference = get_timeval_in_millis();
-		}
+	if (ms_dtls_srtp_process_dtls_packet(msg, ctx, &ret) == TRUE){
 
 		if ((ret==0) && (ctx->channel_status == DTLS_STATUS_RTCP_HANDSHAKE_ONGOING)) { /* rtcp handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
 			OrtpEventData *eventData;
@@ -474,23 +473,23 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 			if (ctx->role == MSDtlsSrtpRoleIsServer) {
 						printf("On est serveur\n");
 						/* reception(client write) key and salt +16bits padding */
-						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, SRTP_KEY_LEN);
-						memcpy(key + SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*SRTP_KEY_LEN, SRTP_SALT_LEN);
-				//		media_stream_set_srtp_recv_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
+						media_stream_set_srtp_recv_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 						/* emission(server write) key and salt +16bits padding */
-						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+SRTP_KEY_LEN, SRTP_KEY_LEN);
-						memcpy(key + SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*SRTP_KEY_LEN+SRTP_SALT_LEN, SRTP_SALT_LEN);
-				//		media_stream_set_srtp_send_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
+						media_stream_set_srtp_send_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 					} else if (ctx->role == MSDtlsSrtpRoleIsClient){ /* this enpoint act as DTLS client */
 						printf("On est client\n");
 						/* emission(client write) key and salt +16bits padding */
-						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, SRTP_KEY_LEN);
-						memcpy(key + SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*SRTP_KEY_LEN, SRTP_SALT_LEN);
-				//		media_stream_set_srtp_send_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
+						media_stream_set_srtp_send_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 						/* reception(server write) key and salt +16bits padding */
-						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+SRTP_KEY_LEN, SRTP_KEY_LEN);
-						memcpy(key + SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*SRTP_KEY_LEN+SRTP_SALT_LEN, SRTP_SALT_LEN);
-				//		media_stream_set_srtp_recv_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, FALSE);
+						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
+						media_stream_set_srtp_recv_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 					}
 
 			ms_free(key);
@@ -506,20 +505,8 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 			printf("DTLS : close ssl returns %d", ret);
 		}
 
-
-	} else {
-		if (ctx->role == MSDtlsSrtpRoleIsClient) { /* if we are client, manage the retransmission timer */
-			if (ctx->time_reference>0) { /* only when retransmission timer is armed */
-				printf("RTCP timer %ld current %ld\n", ctx->time_reference, get_timeval_in_millis());
-				if (get_timeval_in_millis() - ctx->time_reference > READ_TIMEOUT_MS) {
-					ssl_handshake(&(ctx->dtls_context->ssl));
-					ctx->time_reference = get_timeval_in_millis();
-				}
-			}
-		}
-
-	}
-
+		return 0;
+	} 
 	return msgdsize(msg);
 }
 
@@ -576,13 +563,14 @@ static void ms_dtls_srtp_set_transport(MSDtlsSrtpContext *userData, RtpSession *
 	userData->rtp_modifier = rtp_modifier;
 }
 
-MSDtlsSrtpContext* ms_dtls_srtp_context_new(MediaStream *stream, RtpSession *s, MSDtlsSrtpParams *params){
+MSDtlsSrtpContext* ms_dtls_srtp_context_new(MediaStream *stream, MSDtlsSrtpParams *params){
 	MSDtlsSrtpContext *userData;
 	int ret;
 	enum DTLS_SRTP_protection_profiles dtls_srtp_protection_profiles[2] = {SRTP_AES128_CM_HMAC_SHA1_80, SRTP_AES128_CM_HMAC_SHA1_32};
+	RtpSession *s = stream->sessions.rtp_session;
 	
 	/* Create and init the DTLS context */
-	DtlsPolarsslContext *dtlsContext = ortp_new0(DtlsPolarsslContext,1);
+	DtlsPolarsslContext *dtlsContext = ms_new0(DtlsPolarsslContext,1);
 	
 	ms_message("Creating DTLS-SRTP engine on session [%p] as %s", s, params->role==MSDtlsSrtpRoleIsServer?"server":(params->role==MSDtlsSrtpRoleIsClient?"client":"unset role"));
 
@@ -599,8 +587,7 @@ MSDtlsSrtpContext* ms_dtls_srtp_context_new(MediaStream *stream, RtpSession *s, 
 	ssl_cookie_init( &(dtlsContext->cookie_ctx) );
 	x509_crt_init( &(dtlsContext->crt) );
 	entropy_init( &(dtlsContext->entropy) );
-	ctr_drbg_init( &(dtlsContext->ctr_drbg), entropy_func, &(dtlsContext->entropy),
-                               NULL, 0 );
+	ctr_drbg_init( &(dtlsContext->ctr_drbg), entropy_func, &(dtlsContext->entropy), NULL, 0 );
 	
 	/* initialise certificate */
 	ret = x509_crt_parse( &(dtlsContext->crt), (const unsigned char *) params->pem_certificate, strlen( params->pem_certificate ) );
