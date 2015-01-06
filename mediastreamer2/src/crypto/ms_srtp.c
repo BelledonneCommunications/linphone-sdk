@@ -22,11 +22,6 @@
 #endif
 #include "ortp/ortp.h"
 
-#undef PACKAGE_NAME
-#undef PACKAGE_STRING
-#undef PACKAGE_TARNAME
-#undef PACKAGE_VERSION
-
 #include "mediastreamer2/ms_srtp.h"
 #include "mediastreamer2/mediastream.h"
 
@@ -36,9 +31,16 @@
 #include <srtp.h>
 #include <srtp_priv.h>
 #else
-#include <srtp/srtp_priv.h>
 #include <srtp/srtp.h>
+#include <srtp/srtp_priv.h>
 #endif
+
+/*srtp defines all this stuff*/
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_VERSION
 
 #include "ortp/b64.h"
 
@@ -528,11 +530,11 @@ bool_t ms_srtp_supported(void){
 	return FALSE;
 }
 
-int ortp_srtp_init(void) {
+int ms_srtp_init(void) {
 	return -1;
 }
 
-void ortp_srtp_shutdown(void){
+void ms_srtp_shutdown(void){
 }
 
 int media_stream_set_srtp_recv_key_b64(struct _MediaStream *stream, MSCryptoSuite suite, const char* b64_key){

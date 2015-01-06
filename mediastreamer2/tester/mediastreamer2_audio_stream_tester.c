@@ -158,65 +158,70 @@ static void basic_audio_stream() {
 
 static void encrypted_audio_stream() {
 	AudioStream * 	marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
-	stats_t marielle_stats;
 	AudioStream * 	margaux = audio_stream_new (MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE);
-	stats_t margaux_stats;
 	RtpProfile* profile = rtp_profile_new("default profile");
 	char* hello_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), HELLO_8K_1S_FILE);
 	char* recorded_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), RECORDED_8K_1S_FILE);
+	stats_t marielle_stats;
+	stats_t margaux_stats;
+	if (ms_srtp_supported()) {
+		reset_stats(&marielle_stats);
+		reset_stats(&margaux_stats);
 
-	reset_stats(&marielle_stats);
-	reset_stats(&margaux_stats);
+		rtp_profile_set_payload (profile,0,&payload_type_pcmu8000);
 
-	rtp_profile_set_payload (profile,0,&payload_type_pcmu8000);
+		CU_ASSERT_EQUAL(audio_stream_start_full(margaux
+				, profile
+				, MARIELLE_IP
+				, MARIELLE_RTP_PORT
+				, MARIELLE_IP
+				, MARIELLE_RTCP_PORT
+				, 0
+				, 50
+				, NULL
+				, recorded_file
+				, NULL
+				, NULL
+				, 0),0);
 
-	CU_ASSERT_EQUAL(audio_stream_start_full(margaux
-											, profile
-											, MARIELLE_IP
-											, MARIELLE_RTP_PORT
-											, MARIELLE_IP
-											, MARIELLE_RTCP_PORT
-											, 0
-											, 50
-											, NULL
-											, recorded_file
-											, NULL
-											, NULL
-											, 0),0);
+		CU_ASSERT_EQUAL(audio_stream_start_full(marielle
+				, profile
+				, MARGAUX_IP
+				, MARGAUX_RTP_PORT
+				, MARGAUX_IP
+				, MARGAUX_RTCP_PORT
+				, 0
+				, 50
+				, hello_file
+				, NULL
+				, NULL
+				, NULL
+				, 0),0);
 
-	CU_ASSERT_EQUAL(audio_stream_start_full(marielle
-											, profile
-											, MARGAUX_IP
-											, MARGAUX_RTP_PORT
-											, MARGAUX_IP
-											, MARGAUX_RTCP_PORT
-											, 0
-											, 50
-											, hello_file
-											, NULL
-											, NULL
-											, NULL
-											, 0),0);
+		CU_ASSERT_FATAL(media_stream_set_srtp_send_key_b64((MediaStream *)marielle, MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
+		CU_ASSERT_FATAL(media_stream_set_srtp_recv_key_b64((MediaStream *)margaux, MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") ==0);
 
-	CU_ASSERT_FATAL(media_stream_set_srtp_send_key_b64((MediaStream *)marielle, MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
-	CU_ASSERT_FATAL(media_stream_set_srtp_recv_key_b64((MediaStream *)margaux, MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") ==0);
+		ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 
-	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
+		CU_ASSERT_TRUE(wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,1,12000));
 
-	CU_ASSERT_TRUE(wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,1,12000));
+		audio_stream_get_local_rtp_stats(marielle,&marielle_stats.rtp);
+		audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
 
-	audio_stream_get_local_rtp_stats(marielle,&marielle_stats.rtp);
-	audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
+		/* No packet loss is assumed */
+		CU_ASSERT_EQUAL(marielle_stats.rtp.sent,margaux_stats.rtp.recv);
 
-	/* No packet loss is assumed */
-	CU_ASSERT_EQUAL(marielle_stats.rtp.sent,margaux_stats.rtp.recv);
+
+		unlink(recorded_file);
+		ms_free(recorded_file);
+		ms_free(hello_file);
+	} else {
+		ms_warning("srtp not available, skiping...");
+	}
 
 	audio_stream_stop(marielle);
 	audio_stream_stop(margaux);
 
-	unlink(recorded_file);
-	ms_free(recorded_file);
-	ms_free(hello_file);
 }
 
 #if 0

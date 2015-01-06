@@ -20,27 +20,35 @@
 #ifndef ms_srtp_h
 #define ms_srtp_h
 
-
-
-/*srtp defines all this stuff*/
-#undef PACKAGE_BUGREPORT
-#undef PACKAGE_NAME
-#undef PACKAGE_STRING
-#undef PACKAGE_TARNAME
-#undef PACKAGE_VERSION
-
 #include <ortp/rtpsession.h>
 #include "mediastreamer2/mscommon.h"
-
-
 
 #ifdef __cplusplus
 extern "C"{
 #endif
-
 /* defined in mediastream.h */
 struct _MediaStream;
-enum _MSCryptoSuite;
+
+/*
+ * Crypto suite used configure encrypted stream*/
+typedef enum _MSCryptoSuite{
+        MS_CRYPTO_SUITE_INVALID=0,
+        MS_AES_128_SHA1_80,
+        MS_AES_128_SHA1_32,
+        MS_AES_128_NO_AUTH,
+        MS_NO_CIPHER_SHA1_80,
+        MS_AES_256_SHA1_80,
+        MS_AES_256_SHA1_32
+} MSCryptoSuite;
+
+typedef struct _MSCryptoSuiteNameParams{
+        const char *name;
+        const char *params;
+}MSCryptoSuiteNameParams;
+
+MS2_PUBLIC MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNameParams *nameparams);
+MS2_PUBLIC int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *nameparams);
+
 
 /* defined in srtp.h*/
 typedef struct srtp_ctx_t *MSSrtpCtx;
@@ -65,7 +73,7 @@ MS2_PUBLIC bool_t ms_srtp_supported(void);
  * @param[in]		key	Srtp master key and master salt in a base 64 NULL terminated string
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int media_stream_set_srtp_recv_key_b64(struct _MediaStream *stream, enum _MSCryptoSuite suite, const char* key);
+MS2_PUBLIC int media_stream_set_srtp_recv_key_b64(struct _MediaStream *stream, MSCryptoSuite suite, const char* key);
 
 /**
  * Set srtp receiver key for the given media stream.
@@ -78,7 +86,7 @@ MS2_PUBLIC int media_stream_set_srtp_recv_key_b64(struct _MediaStream *stream, e
  * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int media_stream_set_srtp_recv_key(struct _MediaStream *stream, enum _MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
+MS2_PUBLIC int media_stream_set_srtp_recv_key(struct _MediaStream *stream, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
 
 /**
  * Set srtp sender key for the given media stream.
@@ -89,7 +97,7 @@ MS2_PUBLIC int media_stream_set_srtp_recv_key(struct _MediaStream *stream, enum 
  * @param[in]		key	Srtp master key and master salt in a base 64 NULL terminated string
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int media_stream_set_srtp_send_key_b64(struct _MediaStream *stream, enum _MSCryptoSuite suite, const char* key);
+MS2_PUBLIC int media_stream_set_srtp_send_key_b64(struct _MediaStream *stream, MSCryptoSuite suite, const char* key);
 
 /**
  * Set srtp sender key for the given media stream.
@@ -102,7 +110,7 @@ MS2_PUBLIC int media_stream_set_srtp_send_key_b64(struct _MediaStream *stream, e
  * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int media_stream_set_srtp_send_key(struct _MediaStream *stream, enum _MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
+MS2_PUBLIC int media_stream_set_srtp_send_key(struct _MediaStream *stream, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
 
 /**
  * Deallocate ressources for a srtp session

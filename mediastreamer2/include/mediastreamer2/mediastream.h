@@ -70,26 +70,6 @@ MS2_PUBLIC void ring_stop (RingStream * stream);
 /**
  * @}
 **/
-/*
- * Crypto suite used configure encrypted stream*/
-typedef enum _MSCryptoSuite{
-	MS_CRYPTO_SUITE_INVALID=0,
-	MS_AES_128_SHA1_80,
-	MS_AES_128_SHA1_32,
-	MS_AES_128_NO_AUTH,
-	MS_NO_CIPHER_SHA1_80,
-	MS_AES_256_SHA1_80,
-	MS_AES_256_SHA1_32
-} MSCryptoSuite;
-
-typedef struct _MSCryptoSuiteNameParams{
-	const char *name;
-	const char *params;
-}MSCryptoSuiteNameParams;
-
-MS2_PUBLIC MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNameParams *nameparams);
-MS2_PUBLIC int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *nameparams);
-
 /**
  * The MediaStream is an object describing a stream (one of AudioStream or VideoStream).
 **/

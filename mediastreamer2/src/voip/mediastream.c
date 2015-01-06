@@ -18,17 +18,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
-#include "ortp/port.h"
-
-#include "mediastreamer2/mediastream.h"
-#include "private.h"
-
-#include <ctype.h>
-
-
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
 #endif
+
+#include "ortp/port.h"
+#include "mediastreamer2/mediastream.h"
+#include "private.h"
+#include <ctype.h>
+
+
 
 #ifndef MS_MINIMAL_MTU
 /*this is used for determining the minimum size of recv buffers for RTP packets
