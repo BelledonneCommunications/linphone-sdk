@@ -56,7 +56,7 @@
 #cmakedefine __PORTAUDIO_ENABLED__
 #cmakedefine __PULSEAUDIO_ENABLED__
 #cmakedefine __QSA_ENABLED__
-#cmakedefine ORTP_HAVE_SRTP
+#cmakedefine HAVE_SRTP
 #cmakedefine HAVE_SPEEXDSP
 #cmakedefine PACKAGE_PLUGINS_DIR "${PACKAGE_PLUGINS_DIR}"
 #cmakedefine PACKAGE_DATA_DIR "${PACKAGE_DATA_DIR}"
