@@ -43,7 +43,7 @@ if(ENABLE_WIDEBAND)
 endif()
 
 add_library(msamr SHARED ${SOURCE_FILES})
-set_target_properties(msamr PROPERTIES VERSION ${PACKAGE_VERSION} SOVERSION 0)
+set_target_properties(msamr PROPERTIES VERSION 0)
 if(MSVC)
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmsamr.pdb
