@@ -26,6 +26,14 @@
 #include "mediastreamer2/mediastream.h"
 
 #ifdef HAVE_SRTP
+
+/*srtp defines all this stuff*/
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_VERSION
+
 #if defined(ANDROID) || !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 // Android and Windows phone don't use make install
 #include <srtp.h>
@@ -35,12 +43,6 @@
 #include <srtp/srtp_priv.h>
 #endif
 
-/*srtp defines all this stuff*/
-#undef PACKAGE_BUGREPORT
-#undef PACKAGE_NAME
-#undef PACKAGE_STRING
-#undef PACKAGE_TARNAME
-#undef PACKAGE_VERSION
 
 #include "ortp/b64.h"
 

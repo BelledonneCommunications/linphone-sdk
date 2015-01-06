@@ -23,8 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <ortp/ortp.h>
 #include <ortp/event.h>
-/* defined in srtp.h*/
-typedef struct srtp_ctx_t *MSSrtpCtx;
 
 #include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/msticker.h>

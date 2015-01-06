@@ -645,7 +645,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 		ssl_set_endpoint(&(context->dtls_context->ssl), SSL_IS_CLIENT);
 		ssl_handshake(&(context->dtls_context->ssl));
 		context->time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
-		printf("DTLS timer is %ld\n", context->time_reference);
+		printf("DTLS timer is %llu\n", context->time_reference);
 	}
 
 }
