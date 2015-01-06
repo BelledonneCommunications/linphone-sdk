@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <polarssl/entropy.h>
 #include <polarssl/ctr_drbg.h>
 #include <polarssl/ssl_cookie.h>
+#include <polarssl/ssl_cache.h>
 #include <polarssl/sha1.h>
 #include <polarssl/sha256.h>
 #include <polarssl/sha512.h>
@@ -46,6 +47,7 @@ typedef struct _DtlsPolarsslContexts {
 	ssl_cookie_ctx cookie_ctx;
 	pk_context pkey;
 	ssl_session saved_session;
+	ssl_cache_context cache;
 } DtlsPolarsslContext;
 
 /**
@@ -121,10 +123,10 @@ static int ms_dtls_srtp_sendData (void *ctx, const unsigned char *data, size_t l
 	RtpTransport *rtpt=NULL, *rtcpt=NULL;
 	mblk_t *msg;
 
-	ms_message("DTLS Send packet len %d :\n", (int)length);
+	ms_message("DTLS Send packet len %d", (int)length);
 
 	if ( context->channel_status >=  DTLS_STATUS_RTCP_HANDSHAKE_ONGOING ) {
-		ms_message("DTLS RTCP Send packet len %d :\n", (int)length);
+		ms_message("DTLS RTCP Send packet len %d", (int)length);
 		/* get RTCP transport from session */
 		rtp_session_get_transports(session,NULL,&rtcpt);
 
@@ -133,7 +135,7 @@ static int ms_dtls_srtp_sendData (void *ctx, const unsigned char *data, size_t l
 
 		return meta_rtp_transport_modifier_inject_packet(rtcpt, context->rtcp_modifier, msg , 0);
 	} else { /* we are on the RTP handshake */
-		ms_message("DTLS RTP Send packet len %d :\n", (int)length);
+		ms_message("DTLS RTP Send packet len %d", (int)length);
 		/* get RTP transport from session */
 		rtp_session_get_transports(session,&rtpt,NULL);
 
@@ -181,6 +183,8 @@ void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role) {
 			ssl_set_dtls_cookies( &(context->dtls_context->ssl), ssl_cookie_write, ssl_cookie_check, &(context->dtls_context->cookie_ctx) );
 			ssl_session_reset( &(context->dtls_context->ssl) );
 			ssl_set_client_transport_id(&(context->dtls_context->ssl), (const unsigned char *)(&(context->session->snd.ssrc)), 4);
+			ssl_cache_init( &(context->dtls_context->cache) );
+			ssl_set_session_cache( &(context->dtls_context->ssl), ssl_cache_get, &(context->dtls_context->cache), ssl_cache_set, &(context->dtls_context->cache) );
 		}
 		context->role = role;
 	}
@@ -354,8 +358,6 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 
 	/* check if it is a DTLS packet and process it */
 	if (ms_dtls_srtp_process_dtls_packet(msg, ctx, &ret) == TRUE){
-
-		
 		
 		if ((ret==0) && (ctx->channel_status == DTLS_STATUS_CONTEXT_READY)) { /* handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
 			MSCryptoSuite agreed_srtp_protection_profile = MS_CRYPTO_SUITE_INVALID;
@@ -370,7 +372,7 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 				unsigned char *computed_peer_fingerprint = NULL;
 
 				computed_peer_fingerprint = ms_dtls_srtp_generate_certificate_fingerprint(ssl_get_peer_cert(&(ctx->dtls_context->ssl)));
-				if (strcmp((const char *)computed_peer_fingerprint, ctx->peer_fingerprint) == 0) {
+				if (strncasecmp((const char *)computed_peer_fingerprint, ctx->peer_fingerprint, strlen((const char *)computed_peer_fingerprint)) == 0) {
 					int i;
 					uint8_t *key = (uint8_t *)ms_malloc0(256);
 					ms_message("DTLS Handshake successful and fingerprints match, srtp protection profile %d", ctx->dtls_context->ssl.chosen_dtls_srtp_profile);
@@ -402,36 +404,39 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
 						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
 						media_stream_set_srtp_recv_key(ctx->stream, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
+
+						/* if we are client save the session */
+						if( ( ret = ssl_get_session( &(ctx->dtls_context->ssl), &(ctx->dtls_context->saved_session) ) ) != 0 )
+						{
+							printf( " failed\n  ! ssl_get_session returned -0x%x\n\n", -ret );
+						} else {
+							printf ("DTLS session saved\n");
+						}
 					}
 
 					ms_free(key);
-
-					if( ( ret = ssl_get_session( &(ctx->dtls_context->ssl), &(ctx->dtls_context->saved_session) ) ) != 0 )
-					{
-						printf( " failed\n  ! ssl_get_session returned -0x%x\n\n", -ret );
-					} else {
-						printf ("DTLS session saved\n");
-					}
 
 
 				        ret = ssl_close_notify( &(ctx->dtls_context->ssl) );
 					printf("DTLS : close ssl returns %d", ret);
 
 					ssl_session_reset(&(ctx->dtls_context->ssl));
-					ssl_set_client_transport_id(&(ctx->dtls_context->ssl), (const unsigned char *)(&(ctx->session->snd.ssrc)), 4);
+					ctx->channel_status = DTLS_STATUS_RTCP_HANDSHAKE_ONGOING;
 
-					if( ( ret = ssl_set_session( &(ctx->dtls_context->ssl), &(ctx->dtls_context->saved_session) ) ) != 0 ) {
-						printf( " failed\n  ! ssl_set_session returned %d\n\n", ret );
+					if (ctx->role == MSDtlsSrtpRoleIsClient){ /* We are client, try to resume session and start RTCP handshake */
+						if( ( ret = ssl_set_session( &(ctx->dtls_context->ssl), &(ctx->dtls_context->saved_session) ) ) != 0 ) {
+							printf( " failed\n  ! ssl_set_session returned %d\n\n", ret );
+						}
+
+						/* start the DTLS handshake on rtcp channel */
+						ret = ssl_handshake(&(ctx->dtls_context->ssl));
+						printf("Le premier handshake RTCP retourne %d\n", ret);
+					} else { /* we are server, just reload the transport_id and wait for clientHello */
+						ssl_set_client_transport_id(&(ctx->dtls_context->ssl), (const unsigned char *)(&(ctx->session->snd.ssrc)), 4);
 					}
 
-					/* start the DTLS handshake on rtcp channel */
-					printf("DTLS On passe en statut DTLS_STATUS_RTCP_HANDSHAKE_ONGOING");
-					ctx->channel_status = DTLS_STATUS_RTCP_HANDSHAKE_ONGOING;
-					ret = ssl_handshake(&(ctx->dtls_context->ssl));
-					printf("Le premier handshake RTCP retourne %d\n", ret);
-
 				} else {
-					ms_message("DTLS Handshake successful but fingerprints differ received : %s computed %s", ctx->peer_fingerprint, computed_peer_fingerprint);
+					ms_error("DTLS Handshake successful but fingerprints differ received : %s computed %s", ctx->peer_fingerprint, computed_peer_fingerprint);
 				}
 			}
 		}
@@ -440,7 +445,6 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 	return msgLength;
 }
 
-/* Nothing to do on rtcp packets, just return packet length */
 static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t, mblk_t *msg)  {
 	MSDtlsSrtpContext *ctx = (MSDtlsSrtpContext *)t->data;
 
@@ -452,7 +456,7 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 		return msgLength;
 	}
 
-	/* check if it is a DTLS packet (first byte B as 19 < B < 64) rfc5764 section 5.1.2 */
+	/* check if it is a DTLS packet and process it */
 	if (ms_dtls_srtp_process_dtls_packet(msg, ctx, &ret) == TRUE){
 
 		if ((ret==0) && (ctx->channel_status == DTLS_STATUS_RTCP_HANDSHAKE_ONGOING)) { /* rtcp handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
@@ -460,17 +464,31 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 			OrtpEvent *ev;
 			uint8_t *key = (uint8_t *)ms_malloc0(256);
 			int i;
-			printf("DTLS fini le RTCP handshake\n\n");
-			ms_message("DTLS Handshake successful and fingerprints match, srtp protection profile %d", ctx->dtls_context->ssl.chosen_dtls_srtp_profile);
 
-			printf("On recupere les bits generes: %ld\n",ctx->dtls_context->ssl.dtls_srtp_keys_len);
-			for (i=0; i<ctx->dtls_context->ssl.dtls_srtp_keys_len; i++) {
-				printf("%02x",ctx->dtls_context->ssl.dtls_srtp_keys[i]);
-			}
-			printf("\n");
+			MSCryptoSuite agreed_srtp_protection_profile = MS_CRYPTO_SUITE_INVALID;
 
-			ctx->time_reference = 0; /* unarm the timer */
-			if (ctx->role == MSDtlsSrtpRoleIsServer) {
+			ctx->channel_status = DTLS_STATUS_RTCP_HANDSHAKE_OVER;
+
+			/* check the srtp profile get selected during handshake */
+			agreed_srtp_protection_profile = ms_polarssl_dtls_srtp_protection_profile_to_ms_crypto_suite(ssl_get_dtls_srtp_protection_profile(&(ctx->dtls_context->ssl)));
+			if ( agreed_srtp_protection_profile == MS_CRYPTO_SUITE_INVALID) {
+				ms_message("DTLS RTCP Handshake successful but unable to agree on srtp_profile to use");
+			} else {
+				unsigned char *computed_peer_fingerprint = NULL;
+
+				computed_peer_fingerprint = ms_dtls_srtp_generate_certificate_fingerprint(ssl_get_peer_cert(&(ctx->dtls_context->ssl)));
+				if (strncasecmp((const char *)computed_peer_fingerprint, ctx->peer_fingerprint, strlen((const char *)computed_peer_fingerprint)) == 0) {
+
+					ms_message("DTLS RTCP Handshake successful and fingerprints match, srtp protection profile %d", ctx->dtls_context->ssl.chosen_dtls_srtp_profile);
+
+					printf("On recupere les bits generes: %ld\n",ctx->dtls_context->ssl.dtls_srtp_keys_len);
+					for (i=0; i<ctx->dtls_context->ssl.dtls_srtp_keys_len; i++) {
+						printf("%02x",ctx->dtls_context->ssl.dtls_srtp_keys[i]);
+					}
+					printf("\n");
+
+					ctx->time_reference = 0; /* unarm the timer */
+					if (ctx->role == MSDtlsSrtpRoleIsServer) {
 						printf("On est serveur\n");
 						/* reception(client write) key and salt +16bits padding */
 						memcpy(key, ctx->dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
@@ -492,17 +510,19 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 						media_stream_set_srtp_recv_key(ctx->stream, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 					}
 
-			ms_free(key);
+					ms_free(key);
 
-			/* send event */
-			ev=ortp_event_new(ORTP_EVENT_DTLS_ENCRYPTION_CHANGED);
-			eventData=ortp_event_get_data(ev);
-			eventData->info.dtls_stream_encrypted=1;
-			rtp_session_dispatch_event(ctx->session, ev);
-			ms_message("Event dispatched to all: secrets are on");
+					/* send event */
+					ev=ortp_event_new(ORTP_EVENT_DTLS_ENCRYPTION_CHANGED);
+					eventData=ortp_event_get_data(ev);
+					eventData->info.dtls_stream_encrypted=1;
+					rtp_session_dispatch_event(ctx->session, ev);
+					ms_message("Event dispatched to all: secrets are on");
 
-			ret = ssl_close_notify( &(ctx->dtls_context->ssl) );
-			printf("DTLS : close ssl returns %d", ret);
+					ret = ssl_close_notify( &(ctx->dtls_context->ssl) );
+					printf("DTLS : close ssl returns %d", ret);
+				}
+			}
 		}
 
 		return 0;
@@ -561,6 +581,7 @@ static void ms_dtls_srtp_set_transport(MSDtlsSrtpContext *userData, RtpSession *
 
 	/* save transport modifier into context, needed to inject packets generated by DTLS */
 	userData->rtp_modifier = rtp_modifier;
+	userData->rtcp_modifier = rtcp_modifier;
 }
 
 MSDtlsSrtpContext* ms_dtls_srtp_context_new(MediaStream *stream, MSDtlsSrtpParams *params){
@@ -645,7 +666,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 		ssl_set_endpoint(&(context->dtls_context->ssl), SSL_IS_CLIENT);
 		ssl_handshake(&(context->dtls_context->ssl));
 		context->time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
-		printf("DTLS timer is %llu\n", context->time_reference);
+		printf("DTLS timer is %llu\n", (long long unsigned int)context->time_reference);
 	}
 
 }
