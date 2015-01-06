@@ -415,11 +415,11 @@ bool_t ms_srtp_supported(void){
 	return FALSE;
 }
 
-err_status_t ortp_srtp_init(void) {
+err_status_t ms_srtp_init(void) {
 	return -1;
 }
 
-void ortp_srtp_shutdown(void){
+void ms_srtp_shutdown(void){
 }
 
 int media_stream_set_srtp_recv_key_b64(struct _MediaStream *stream, MSCryptoSuite suite, const char* b64_key){
