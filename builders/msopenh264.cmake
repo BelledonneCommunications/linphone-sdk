@@ -22,7 +22,7 @@
 
 set(EP_msopenh264_GIT_REPOSITORY "git://git.linphone.org/msopenh264.git")
 set(EP_msopenh264_GIT_TAG_LATEST "master")
-set(EP_msopenh264_GIT_TAG "4ccb0d81646e8954bed432d578c0f5a12ad8b99f")
+set(EP_msopenh264_GIT_TAG "20100cb26e0599ca32dd7300f10f35fb5aec2054")
 
 set(EP_msopenh264_CMAKE_OPTIONS )
 if(APPLE)

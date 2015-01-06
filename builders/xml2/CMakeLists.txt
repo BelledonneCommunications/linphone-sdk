@@ -343,7 +343,7 @@ if(ENABLE_STATIC)
 	add_library(xml2 STATIC ${SOURCE_FILES})
 else()
 	add_library(xml2 SHARED ${SOURCE_FILES})
-	set_target_properties(xml2 PROPERTIES VERSION 2.8.0 SOVERSION 2 LINKER_LANGUAGE C)
+	set_target_properties(xml2 PROPERTIES VERSION 2 LINKER_LANGUAGE C)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/xml2.pdb

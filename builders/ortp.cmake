@@ -22,7 +22,7 @@
 
 set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
 set(EP_ortp_GIT_TAG_LATEST "master")
-set(EP_ortp_GIT_TAG "211d12a2a2f4ed6f9c518be57fffa7955a04633e")
+set(EP_ortp_GIT_TAG "79806074d5707ade74048b37071c87f0e1decf6f")
 
 if("${EP_ortp_FORCE_AUTOTOOLS}" STREQUAL "yes")
 	set(EP_ortp_LINKING_TYPE "--enable-static")

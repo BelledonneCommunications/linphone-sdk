@@ -22,7 +22,7 @@
 
 set(EP_srtp_GIT_REPOSITORY "git://git.linphone.org/srtp.git")
 set(EP_srtp_GIT_TAG_LATEST "master")
-set(EP_srtp_GIT_TAG "662e37c9d5cc2a73e1755b50c7d89a5f00081a4d")
+set(EP_srtp_GIT_TAG "5f3254ea869495fbdf7707bb77a11bc4d297c671")
 
 set(EP_srtp_LINKING_TYPE "-DENABLE_STATIC=0")
 if(MSVC)
