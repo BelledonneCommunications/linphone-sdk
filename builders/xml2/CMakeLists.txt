@@ -355,7 +355,7 @@ else()
 endif()
 if(MSVC)
 	target_compile_definitions(xml2 PRIVATE "snprintf=_snprintf")
-else()
+elseif(NOT APPLE)
 	set_target_properties(xml2 PROPERTIES LINK_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libxml2.syms")
 endif()
 
