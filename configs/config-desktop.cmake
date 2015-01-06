@@ -79,7 +79,3 @@ endif()
 
 # Include builders
 include(builders/CMakeLists.txt)
-
-
-# xml2
-list(APPEND EP_xml2_CONFIGURE_OPTIONS "--with-sax1")

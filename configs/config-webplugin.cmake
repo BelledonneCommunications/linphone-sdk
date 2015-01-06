@@ -112,7 +112,7 @@ if(NOT MSVC)
 endif()
 
 # sqlite3
-set(EP_sqlite3_LINKING_TYPE "-DENABLE_STATIC=1")
+set(EP_sqlite3_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # v4l
 set(EP_v4l_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
@@ -124,4 +124,4 @@ set(EP_voamrwbenc_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic"
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 
 # xml2
-set(EP_xml2_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
+set(EP_xml2_LINKING_TYPE "-DENABLE_STATIC=YES")

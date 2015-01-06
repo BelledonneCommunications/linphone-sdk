@@ -74,19 +74,19 @@ include(builders/CMakeLists.txt)
 
 
 # antlr3c
-set(EP_antlr3c_LINKING_TYPE "-DENABLE_STATIC=1")
+set(EP_antlr3c_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # belle-sip
-set(EP_bellesip_LINKING_TYPE "-DENABLE_STATIC=1")
+set(EP_bellesip_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # cunit
-set(EP_cunit_LINKING_TYPE "-DENABLE_STATIC=1")
+set(EP_cunit_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # ffmpeg
 set(EP_ffmpeg_LINKING_TYPE "--enable-static" "--disable-shared")
 
 # gsm
-set(EP_gsm_LINKING_TYPE "-DENABLE_STATIC=1")
+set(EP_gsm_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # linphone
 list(APPEND EP_linphone_CONFIGURE_OPTIONS
@@ -127,13 +127,13 @@ set(EP_ortp_LINKING_TYPE "--enable-static" "--disable-shared")
 set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=0")
 
 # speex
-set(EP_speex_LINKING_TYPE "-DENABLE_STATIC=1")
+set(EP_speex_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # srtp
-set(EP_srtp_LINKING_TYPE "-DENABLE_STATIC=1")
+set(EP_srtp_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")
 
 # xml2
-set(EP_xml2_LINKING_TYPE "--enable-static" "--disable-shared")
+set(EP_xml2_LINKING_TYPE "-DENABLE_STATIC=YES")
