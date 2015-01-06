@@ -123,6 +123,15 @@ const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip
 	return &stack->timer_config;
 }
 
+void belle_sip_stack_set_timer_config(belle_sip_stack_t *stack,const belle_sip_timer_config_t *timer_config){
+	belle_sip_message("Setting timer config to T1 [%i], T2 [%i], T3 [%i], T4 [%i] on stack [%p]", timer_config->T1
+																								, timer_config->T2
+																								, timer_config->T3
+																								, timer_config->T4
+																								, stack);
+	stack->timer_config=*timer_config;
+}
+
 void belle_sip_stack_set_transport_timeout(belle_sip_stack_t *stack, int timeout_ms){
 	stack->transport_timeout=timeout_ms;
 }

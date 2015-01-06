@@ -531,7 +531,6 @@ belle_sip_hop_t* belle_sip_hop_new_from_uri(const belle_sip_uri_t *uri);
 belle_sip_hop_t* belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *uri);
 
 belle_sip_hop_t * belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req);
-const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip_stack_t *stack);
 
 /*
  belle_sip_provider_t

@@ -945,11 +945,13 @@ static int send_buffer(belle_sip_channel_t *obj, const char *buffer, size_t size
 	int ret=0;
 	char *logbuf=NULL;
 
-	if (!obj->stack->send_error){
+	if (obj->stack->send_error == 0){
 		ret=belle_sip_channel_send(obj,buffer,size);
-	}else{
+	}else if (obj->stack->send_error<0){
 		/*for testing purpose only */
 		ret=obj->stack->send_error;
+	} else {
+		ret=size; /*to silently discard message*/
 	}
 
 	if (ret<0){
@@ -965,8 +967,9 @@ static int send_buffer(belle_sip_channel_t *obj, const char *buffer, size_t size
 		}/*ewouldblock error has to be handled by caller*/
 	}else if (size==(size_t)ret){
 		logbuf=make_logbuf(BELLE_SIP_LOG_MESSAGE, buffer,size);
-		belle_sip_message("channel [%p]: message sent to [%s://%s:%i], size: [%i] bytes\n%s"
+		belle_sip_message("channel [%p]: message %s to [%s://%s:%i], size: [%i] bytes\n%s"
 							,obj
+							,obj->stack->send_error==0?"sent":"silently discarded"
 							,belle_sip_channel_get_transport_name(obj)
 							,obj->peer_name
 							,obj->peer_port
