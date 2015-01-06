@@ -208,6 +208,40 @@ void bzrtpCrypto_aes128CfbDecrypt(const uint8_t *key,
 		uint8_t *output);
 
 /**
+ * @brief Wrapper for AES-256 in CFB128 mode encryption
+ * The key must be 32 bytes long and the IV must be 16 bytes long
+ *
+ * @param[in]	key			encryption key, 256 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bzrtpCrypto_aes256CfbEncrypt(const uint8_t *key,
+		const uint8_t *IV,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output);
+
+/**
+ * @brief Wrapper for AES-256 in CFB128 mode decryption
+ * The key must be 32 bytes long and the IV must be 16 bytes long
+ *
+ * @param[in]	key			decryption key, 256 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bzrtpCrypto_aes256CfbDecrypt(const uint8_t *key,
+		const uint8_t *IV,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output);
+
+/**
  * @brief Context for the Diffie-Hellman-Merkle key exchange
  *	ZRTP specifies the use of RFC3526 values for G and P so we do not need to store them in this context
  */

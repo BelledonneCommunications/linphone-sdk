@@ -58,7 +58,8 @@ uint8_t bzrtpCrypto_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableT
 			break;
 		case ZRTP_CIPHERBLOCK_TYPE:
 			availableTypes[0] = ZRTP_CIPHER_AES1;
-			return 1;
+			availableTypes[1] = ZRTP_CIPHER_AES3;
+			return 2;
 			break;
 		case ZRTP_AUTHTAG_TYPE:
 			availableTypes[0] = ZRTP_AUTHTAG_HS32;
@@ -297,6 +298,64 @@ void bzrtpCrypto_aes128CfbDecrypt(const uint8_t key[16],
 	aes_setkey_enc(&context, key, 128);
 
 	/* encrypt */
+	aes_crypt_cfb128 (&context, AES_DECRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+}
+
+/*
+ * @brief Wrapper for AES-256 in CFB128 mode encryption
+ * The key must be 32 bytes long and the IV must be 16 bytes long, IV is not updated
+ *
+ * @param[in]	key			encryption key, 256 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bzrtpCrypto_aes256CfbEncrypt(const uint8_t key[32],
+		const uint8_t IV[16],
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output)
+{
+	uint8_t IVbuffer[16];
+	size_t iv_offset=0;
+	aes_context context;
+
+	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+	memset (&context, 0, sizeof(aes_context));
+	aes_setkey_enc(&context, key, 256);
+
+	/* encrypt */
+	aes_crypt_cfb128 (&context, AES_ENCRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+}
+
+/*
+ * @brief Wrapper for AES-256 in CFB128 mode decryption
+ * The key must be 32 bytes long and the IV must be 16 bytes long, IV is not updated
+ *
+ * @param[in]	key			decryption key, 256 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bzrtpCrypto_aes256CfbDecrypt(const uint8_t key[32],
+		const uint8_t IV[16],
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output)
+{
+	uint8_t IVbuffer[16];
+	size_t iv_offset=0;
+	aes_context context;
+
+	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+	memset (&context, 0, sizeof(aes_context));
+	aes_setkey_enc(&context, key, 256);
+
+	/* decrypt */
 	aes_crypt_cfb128 (&context, AES_DECRYPT, inputLength, &iv_offset, IVbuffer, input, output);
 }
 

@@ -382,6 +382,11 @@ int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
 			zrtpChannelContext->cipherDecryptionFunction = bzrtpCrypto_aes128CfbDecrypt;
 			zrtpChannelContext->cipherKeyLength = 16;
 			break;
+		case ZRTP_CIPHER_AES3 :
+			zrtpChannelContext->cipherEncryptionFunction = bzrtpCrypto_aes256CfbEncrypt;
+			zrtpChannelContext->cipherDecryptionFunction = bzrtpCrypto_aes256CfbDecrypt;
+			zrtpChannelContext->cipherKeyLength = 32;
+			break;
 		case ZRTP_UNSET_ALGO :
 			zrtpChannelContext->cipherEncryptionFunction = NULL;
 			zrtpChannelContext->cipherDecryptionFunction = NULL;
