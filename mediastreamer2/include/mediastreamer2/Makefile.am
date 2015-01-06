@@ -43,7 +43,8 @@ mediastreamer2_include_HEADERS= ice.h \
 				formats.h \
 				msfactory.h \
 				msmediaplayer.h \
-				zrtp.h
+				zrtp.h \
+				ms_srtp.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 
