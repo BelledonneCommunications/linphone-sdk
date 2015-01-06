@@ -157,7 +157,7 @@ linphone_builder_apply_flags()
 linphone_builder_set_ep_directories(pylinphone)
 linphone_builder_expand_external_project_vars()
 ExternalProject_Add(TARGET_pylinphone
-	DEPENDS TARGET_linphone
+	DEPENDS TARGET_linphone_builder
 	TMP_DIR ${ep_tmp}
 	BINARY_DIR ${ep_build}
 	DOWNLOAD_COMMAND ""
