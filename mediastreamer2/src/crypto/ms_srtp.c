@@ -248,7 +248,7 @@ static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, c
 
 	/* check if key length match given policy */
 	if (key_length != policy.rtp.cipher_key_len) {
-		ms_error("Key size (%ld) doesn't match the selected srtp profile (required %d)", key_length, policy.rtp.cipher_key_len);	
+		ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length, policy.rtp.cipher_key_len);	
 		return -1;
 	}
 
