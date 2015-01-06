@@ -40,7 +40,7 @@ if(ENABLE_STATIC)
 	add_library(msopenh264 STATIC ${SOURCE_FILES})
 else()
 	add_library(msopenh264 SHARED ${SOURCE_FILES})
-	set_target_properties(msopenh264 PROPERTIES VERSION ${PACKAGE_VERSION} SOVERSION 0)
+	set_target_properties(msopenh264 PROPERTIES VERSION 0)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmsopenh264.pdb
