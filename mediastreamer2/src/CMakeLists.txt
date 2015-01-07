@@ -126,6 +126,7 @@ set(VOIP_SOURCE_FILES
 	audiofilters/tonedetector.c
 	audiofilters/ulaw.c
 	audiofilters/waveheader.h
+	crypto/ms_srtp.c
 	otherfilters/msrtp.c
 	utils/_kiss_fft_guts.h
 	utils/audiodiff.c
@@ -142,6 +143,7 @@ set(VOIP_SOURCE_FILES
 	voip/audiostream.c
 	voip/bitratecontrol.c
 	voip/bitratedriver.c
+	voip/dtls_srtp.c
 	voip/ice.c
 	voip/mediastream.c
 	voip/msmediaplayer.c
@@ -151,8 +153,8 @@ set(VOIP_SOURCE_FILES
 	voip/qosanalyzer.h
 	voip/qualityindicator.c
 	voip/ringstream.c
+	voip/stun.c
 	voip/zrtp.c
-	crypto/ms_srtp.c
 )
 
 if(ENABLE_ALSA)
