@@ -24,7 +24,7 @@
 #include <malloc.h>
 #endif
 
-#ifdef HAVE_zrtp
+#ifdef HAVE_ZRTP
 #undef PACKAGE_NAME
 #undef PACKAGE_STRING
 #undef PACKAGE_TARNAME

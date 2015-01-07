@@ -1081,7 +1081,7 @@ if test "$zrtp" = "true" ; then
 	if test "$have_srtp" = "no" ; then
 		AC_MSG_ERROR("ZRTP requires SRTP")
 	fi
-	AC_DEFINE(HAVE_zrtp, 1, [Defined when zrtp support is compiled])
+	AC_DEFINE(HAVE_ZRTP, 1, [Defined when zrtp support is compiled])
     LIBS="$LIBS $LIBBZRTP_LIBS"
 	CFLAGS="$CFLAGS $LIBBZRTP_CFLAGS"
 else
