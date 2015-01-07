@@ -154,6 +154,7 @@ set(VOIP_SOURCE_FILES
 	voip/qualityindicator.c
 	voip/ringstream.c
 	voip/stun.c
+	voip/stun_udp.c
 	voip/zrtp.c
 )
 

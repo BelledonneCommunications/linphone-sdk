@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h>
 #endif
 
-#ifdef HAVE_dtls
+#ifdef HAVE_DTLS
 
 #include <polarssl/ssl.h>
 #include <polarssl/entropy.h>
@@ -680,8 +680,8 @@ void ms_dtls_srtp_transport_modifier_destroy(RtpTransportModifier *tp)  {
 	ms_free(tp);
 }
 
-#else /* HAVE_dtls */
+#else /* HAVE_DTLS */
 
 bool_t ms_dtls_available(){return FALSE;}
 
-#endif /* HAVE_dtls */
+#endif /* HAVE_DTLS */

@@ -1139,7 +1139,7 @@ if test "$dtls" = "true" ; then
 	LIBS=$LIBS_save
 
 	if test "x$found_polarssl" = "xyes" ; then
-		AC_DEFINE(HAVE_dtls, 1, [Defined when dtls support is compiled])
+		AC_DEFINE(HAVE_DTLS, 1, [Defined when dtls support is compiled])
 		AC_MSG_NOTICE([polarssl usable for DTLS-SRTP])
 		AC_SUBST(POLARSSL_CFLAGS)
 		AC_SUBST(POLARSSL_LIBS)
