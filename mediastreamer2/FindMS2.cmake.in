@@ -77,6 +77,14 @@ if(@ENABLE_VIDEO@)
 	endif()
 endif()
 
+if(@ENABLE_SRTP@)
+	find_package(SRTP)
+endif()
+if(@ENABLE_ZRTP@)
+	find_package(BZRTP)
+endif()
+
+
 set(_MS2_ROOT_PATHS
 	${WITH_MS2}
 	${CMAKE_INSTALL_PREFIX}
@@ -156,6 +164,14 @@ endif()
 if(VPX_FOUND)
 	list(APPEND MS2_INCLUDE_DIRS ${VPX_INCLUDE_DIRS})
 	list(APPEND MS2_LIBRARIES ${VPX_LIBRARIES})
+endif()
+if(SRTP_FOUND)
+	list(APPEND MS2_INCLUDE_DIRS ${SRTP_INCLUDE_DIRS})
+	list(APPEND MS2_LIBRARIES ${SRTP_LIBRARIES})
+endif()
+if(BZRTP_FOUND)
+	list(APPEND MS2_INCLUDE_DIRS ${BZRTP_INCLUDE_DIRS})
+	list(APPEND MS2_LIBRARIES ${BZRTP_LIBRARIES})
 endif()
 if(WIN32)
 	list(APPEND MS2_LIBRARIES ole32 oleaut32 uuid gdi32 user32 vfw32)
