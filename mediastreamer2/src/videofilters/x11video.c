@@ -107,12 +107,14 @@ static void x11video_init(MSFilter  *f){
 	obj->show=TRUE;
 	obj->port=-1;
 	f->data=obj;
+
+	XSetErrorHandler(x11error_handler);
 }
 
 
 static void x11video_uninit(MSFilter *f){
 	X11Video *obj=(X11Video*)f->data;
-	
+
 	x11video_unprepare(f);
 	if (obj->own_window){
 		XDestroyWindow(obj->display,obj->window_id);
@@ -139,7 +141,7 @@ static Window createX11Window(X11Video *s){
 	w=XCreateWindow(s->display,DefaultRootWindow(s->display),200,200,
 	                      s->wsize.width, s->wsize.height,0,CopyFromParent,CopyFromParent,CopyFromParent,
 	                CWEventMask|CWBackPixel,&wa);
-	
+
 	if (w==0){
 		ms_error("Could not create X11 window.");
 		return 0;
@@ -171,7 +173,7 @@ static void x11video_prepare(MSFilter *f){
 	int imgfmt_id=0;
 	XShmSegmentInfo *shminfo=&s->shminfo;
 	XWindowAttributes wa;
-	
+
 	if (s->display==NULL) return;
 	if (s->window_id==0){
 		if(s->auto_window) {
@@ -179,7 +181,12 @@ static void x11video_prepare(MSFilter *f){
 		}
 		if (s->window_id==0) return;
 		s->own_window=TRUE;
-	}else if (s->own_window==FALSE){
+	}
+
+	/* Make sure X11 window is ready to use*/
+	XSync(s->display, False);
+
+	if (s->own_window==FALSE){
 		/*we need to register for resize events*/
 		XSelectInput(s->display,s->window_id,StructureNotifyMask);
 	}
@@ -195,13 +202,13 @@ static void x11video_prepare(MSFilter *f){
 	s->wsize.height=wa.height;
 	s->fbuf.w=s->vsize.width;
 	s->fbuf.h=s->vsize.height;
-	
+
 	s->port=-1;
 	if (XvQueryExtension(s->display, &n, &n, &n, &n, &n)!=0){
 		ms_error("Fail to query xv extension");
 		return;
 	}
-	
+
 	if (XShmQueryExtension(s->display)==0){
 		ms_error("Fail to query xshm extension");
 		return;
@@ -212,12 +219,12 @@ static void x11video_prepare(MSFilter *f){
 		ms_error("XvQueryAdaptors failed.");
 		return;
 	}
-	XSetErrorHandler(x11error_handler);
+
 	for (n=0;n<nadaptors && port==-1;++n){
 		XvAdaptorInfo *ai=&xai[n];
 		XvImageFormatValues *imgfmt;
 		int nimgfmt=0;
-		
+
 		ms_message("Found output adaptor; name=%s num_ports=%i, with %i formats:",
 		           ai->name,(int)ai->num_ports,(int)ai->num_formats);
 		imgfmt=XvListImageFormats(s->display,ai->base_id,&nimgfmt);
@@ -298,7 +305,7 @@ static void x11video_prepare(MSFilter *f){
 		x11video_unprepare(f);
 		return ;
 	}
-	
+
 	s->ready=TRUE;
 }
 
@@ -354,9 +361,9 @@ static void x11video_process(MSFilter *f){
 	XWindowAttributes wa;
 
 	ms_filter_lock(f);
-	
+
 	if ((obj->window_id == 0) || (x11_error == TRUE)) goto end;
-	
+
 	XGetWindowAttributes(obj->display,obj->window_id,&wa);
 	if (x11_error == TRUE) {
 		ms_error("Could not get window attributes for window %lu", obj->window_id);
@@ -369,7 +376,7 @@ static void x11video_process(MSFilter *f){
 		XClearWindow(obj->display,obj->window_id);
 	}
 
-	
+
 	if (!obj->show) {
 		goto end;
 	}
@@ -389,7 +396,7 @@ static void x11video_process(MSFilter *f){
 				obj->vsize=newsize;
 				if (obj->autofit){
 					MSVideoSize new_window_size;
-					static const MSVideoSize min_size=MS_VIDEO_SIZE_QVGA;					
+					static const MSVideoSize min_size=MS_VIDEO_SIZE_QVGA;
 					/*don't resize less than QVGA, it is too small*/
 					if (min_size.width*min_size.height>newsize.width*newsize.height){
 						new_window_size.width=newsize.width*2;
@@ -456,7 +463,7 @@ static void x11video_process(MSFilter *f){
 		MSRect rect;
 		ms_layout_center_rectangle(obj->wsize,obj->vsize,&rect);
 		//ms_message("XvShmPutImage() %ix%i --> %ix%i",obj->fbuf.w,obj->fbuf.h,obj->wsize.width,obj->wsize.height);
-		
+
 		XvShmPutImage(obj->display,obj->port,obj->window_id,obj->gc, obj->xv_image,
 		              0,0,obj->fbuf.w,obj->fbuf.h,
 		              rect.x,rect.y,rect.w,rect.h,TRUE);
