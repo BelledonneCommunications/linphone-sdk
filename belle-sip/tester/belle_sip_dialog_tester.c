@@ -105,6 +105,7 @@ static void caller_process_request_event(void *user_ctx, const belle_sip_request
 	belle_sip_dialog_t* dialog;
 	belle_sip_header_to_t* to=belle_sip_message_get_header_by_type(belle_sip_request_event_get_request(event),belle_sip_header_to_t);
 	if (!belle_sip_uri_equals(BELLE_SIP_URI(user_ctx),belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(to)))) {
+		belle_sip_message("Message [%p] not for caller, skipping",belle_sip_request_event_get_request(event));
 		return; /*not for the caller*/
 	}
 	belle_sip_message("caller_process_request_event received [%s] message",belle_sip_request_get_method(belle_sip_request_event_get_request(event)));
@@ -127,6 +128,7 @@ static void callee_process_request_event(void *user_ctx, const belle_sip_request
 	belle_sip_header_to_t* to=belle_sip_message_get_header_by_type(belle_sip_request_event_get_request(event),belle_sip_header_to_t);
 	const char* method;
 	if (!belle_sip_uri_equals(BELLE_SIP_URI(user_ctx),belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(to)))) {
+		belle_sip_message("Message [%p] not for callee, skipping",belle_sip_request_event_get_request(event));
 		return; /*not for the callee*/
 	}
 	method = belle_sip_request_get_method(belle_sip_request_event_get_request(event));
@@ -172,6 +174,7 @@ static void caller_process_response_event(void *user_ctx, const belle_sip_respon
 	belle_sip_dialog_t* dialog;
 	int status;
 	if (!belle_sip_uri_equals(BELLE_SIP_URI(user_ctx),belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(from)))) {
+		belle_sip_message("Message [%p] not for caller, skipping",belle_sip_response_event_get_response(event));
 		return; /*not for the caller*/
 	}
 
@@ -204,6 +207,7 @@ static void callee_process_response_event(void *user_ctx, const belle_sip_respon
 	belle_sip_header_from_t* from=belle_sip_message_get_header_by_type(belle_sip_response_event_get_response(event),belle_sip_header_from_t);
 	int status = belle_sip_response_get_status_code(belle_sip_response_event_get_response(event));
 	if (!belle_sip_uri_equals(BELLE_SIP_URI(user_ctx),belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(from)))) {
+		belle_sip_message("Message [%p] not for callee, skipping",belle_sip_response_event_get_response(event));
 		return; /*not for the callee*/
 	}
 	CU_ASSERT_PTR_NOT_NULL_FATAL(client_transaction);
@@ -263,6 +267,7 @@ static void do_simple_call(void) {
 	belle_sip_header_content_type_t* content_type ;
 	belle_sip_header_content_length_t* content_length;
 	belle_sip_client_transaction_t* client_transaction;
+	char  cookie[4];
 
 	caller_listener_callbacks.process_dialog_terminated=process_dialog_terminated;
 	caller_listener_callbacks.process_io_error=process_io_error;
@@ -288,7 +293,11 @@ static void do_simple_call(void) {
 	}
 
 	from=belle_sip_header_address_create(NULL,belle_sip_uri_create(CALLER,test_domain));
+	/*to make sure unexpected messages are ignored*/
+	belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(from),"cookie",belle_sip_random_token(cookie,sizeof(cookie)));
+	/*to make sure unexpected messages are ignored*/
 	to=belle_sip_header_address_create(NULL,belle_sip_uri_create(CALLEE,test_domain));
+	belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(to),"cookie",belle_sip_random_token(cookie,sizeof(cookie)));
 
 	belle_sip_provider_add_sip_listener(prov,caller_listener=belle_sip_listener_create_from_callbacks(&caller_listener_callbacks,belle_sip_object_ref(belle_sip_header_address_get_uri((belle_sip_header_address_t*)from))));
 	belle_sip_provider_add_sip_listener(prov,callee_listener=belle_sip_listener_create_from_callbacks(&callee_listener_callbacks,belle_sip_object_ref(belle_sip_header_address_get_uri((belle_sip_header_address_t*)to))));
