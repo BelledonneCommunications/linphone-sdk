@@ -35,7 +35,7 @@ static OSType forcedPixelFormat=kCVPixelFormatType_422YpCbCr8_yuvs;
 //static OSType forcedPixelFormat=0;
 
 static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
-        ms_message("OSType= %i", pixelFormat);
+        ms_message("OSType= %i", (int)pixelFormat);
         switch(pixelFormat){
                 case kCVPixelFormatType_420YpCbCr8Planar:
                 	if (printFmtName) ms_message("FORMAT = MS_YUV420P");
