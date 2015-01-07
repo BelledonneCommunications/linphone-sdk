@@ -299,9 +299,7 @@ err_status_t ms_srtp_init(void)
 void ms_srtp_shutdown(void){
 	srtp_init_done--;
 	if (srtp_init_done==0){
-#ifdef HAVE_SRTP_SHUTDOWN
 		srtp_shutdown();
-#endif
 	}
 }
 
