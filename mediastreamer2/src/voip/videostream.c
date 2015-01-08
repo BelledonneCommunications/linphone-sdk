@@ -1261,6 +1261,12 @@ void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtp
 		ms_zrtp_reset_transmition_timer(vstream->ms.sessions.zrtp_context,vstream->ms.sessions.rtp_session);
 }
 
+void video_stream_enable_dtls(VideoStream *stream, MSDtlsSrtpParams *params){
+	if (stream->ms.sessions.dtls_context==NULL) {
+		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new((MediaStream *)stream, params);
+	}
+}
+
 void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable) {
 	stream->display_filter_auto_rotate_enabled = enable;
 }
