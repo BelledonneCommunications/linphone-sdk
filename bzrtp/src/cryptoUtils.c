@@ -482,7 +482,7 @@ uint8_t cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily) {
 					return ZRTP_CIPHER_AES1;
 				} else if (memcmp(algoType, "AES2", 4) == 0) {
 					return ZRTP_CIPHER_AES2;
-				} else if (memcmp(algoType, "AES2", 4) == 0) {
+				} else if (memcmp(algoType, "AES3", 4) == 0) {
 					return ZRTP_CIPHER_AES3;
 				} else if (memcmp(algoType, "2FS1", 4) == 0) {
 					return ZRTP_CIPHER_2FS1;
