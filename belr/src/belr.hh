@@ -123,6 +123,7 @@ public:
 	}
 	shared_ptr<Recognizer> getRule(const string &name);
 	bool isComplete()const;
+	int getNumRules()const;
 private:
 	void assignRule(const string &name, const shared_ptr<Recognizer> &rule);
 	void _extendRule(const string &name, const shared_ptr<Recognizer> &rule);

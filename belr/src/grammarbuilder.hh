@@ -4,6 +4,7 @@
 
 
 #include "parser.hh"
+#include <vector>
 
 namespace belr{
 class ABNFAlternation;
@@ -40,15 +41,31 @@ private:
 	list<shared_ptr<ABNFRule>> mRules;
 };
 
+class ABNFNumval : public ABNFBuilder{
+public:
+	static shared_ptr<ABNFNumval> create();
+	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
+	void setDecVal(const string &decval);
+	void setHexVal(const string &hexval);
+	void setBinVal(const string &binval);
+private:
+	void parseValues(const string &val, int base);
+	vector<int> mValues;
+	bool mIsRange;
+};
+
 class ABNFElement : public ABNFBuilder{
 public:
 	static shared_ptr<ABNFElement> create();
 	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
 	void setElement(const shared_ptr<ABNFBuilder> &e);
 	void setRulename(const string &rulename);
+	void setCharVal(const string &charval);
+	void setProseVal(const string &prose);
 private:
 	shared_ptr<ABNFBuilder> mElement;
 	string mRulename;
+	string mCharVal;
 };
 
 class ABNFGroup : public ABNFBuilder{
@@ -76,6 +93,15 @@ private:
 	shared_ptr<ABNFElement> mElement;
 };
 
+class ABNFOption : public ABNFBuilder{
+public:
+	static shared_ptr<ABNFOption> create();
+	void setAlternation(const shared_ptr<ABNFAlternation> &a);
+	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
+private:
+	shared_ptr<ABNFAlternation> mAlternation;
+};
+
 class ABNFConcatenation : public ABNFBuilder{
 public:
 	static shared_ptr<ABNFConcatenation> create();
@@ -94,6 +120,7 @@ public:
 private:
 	list<shared_ptr<ABNFConcatenation>> mConcatenations;
 };
+
 
 class ABNFGrammarBuilder{
 public:

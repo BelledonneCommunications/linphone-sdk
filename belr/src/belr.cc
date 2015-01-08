@@ -24,7 +24,7 @@ size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &
 	shared_ptr<HandlerContextBase> hctx=ctx->beginParse(shared_from_this());
 	match=_feed(ctx, input, pos);
 	if (match!=string::npos && match>0){
-		if (0 && mName.size()>0){
+		if (1 && mName.size()>0){
 			string matched=input.substr(pos,match);
 			cout<<"Matched recognizer '"<<mName<<"' with sequence '"<<matched<<"'."<<endl;
 		}
@@ -287,6 +287,11 @@ bool Grammar::isComplete()const{
 	}
 	return ret;
 }
+
+int Grammar::getNumRules() const{
+	return mRules.size();
+}
+
 
 string tolower(const string &str){
 	string ret(str);

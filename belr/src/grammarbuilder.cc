@@ -9,11 +9,77 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <cstdio>
 
 
 namespace belr{
 
 ABNFBuilder::~ABNFBuilder(){
+}
+
+shared_ptr< ABNFNumval > ABNFNumval::create(){
+	return make_shared<ABNFNumval>();
+}
+
+shared_ptr< Recognizer > ABNFNumval::buildRecognizer(const shared_ptr< Grammar >& grammar){
+	if (mIsRange){
+		return Utils::char_range(mValues[0],mValues[1]);
+	}else{
+		auto seq=Foundation::sequence();
+		for (auto it=mValues.begin();it!=mValues.end();++it){
+			seq->addRecognizer(Foundation::charRecognizer(*it,true));
+		}
+		return seq;
+	}
+}
+
+void ABNFNumval::parseValues(const string &val, int base){
+	size_t dash=val.find('-');
+	if (dash!=string::npos){
+		mIsRange=true;
+		string first=val.substr(1,dash-1);
+		string last=val.substr(dash+1,string::npos);
+		mValues.push_back(strtol(first.c_str(),NULL,base));
+		mValues.push_back(strtol(last.c_str(),NULL,base));
+	}else{
+		mIsRange=false;
+		string tmp=val.substr(1,string::npos);
+		const char *s=tmp.c_str();
+		char *endptr=NULL;
+		do{
+			long lv=strtol(s,&endptr,base);
+			if (*endptr=='.') s=endptr+1;
+			else s=endptr;
+			mValues.push_back(lv);
+		}while(*s!='\0');
+	}
+}
+
+void ABNFNumval::setDecVal(const string& decval){
+	cout<<"setDecVal "<<decval<<endl;
+	parseValues(decval,10);
+}
+
+void ABNFNumval::setHexVal(const string& hexval){
+	cout<<"setHexVal "<<hexval<<endl;
+	parseValues(hexval,16);
+}
+
+void ABNFNumval::setBinVal(const string& binval){
+	cout<<"setBinVal "<<binval<<endl;
+	parseValues(binval,2);
+}
+
+shared_ptr< Recognizer > ABNFOption::buildRecognizer(const shared_ptr< Grammar >& grammar){
+	return Foundation::loop()->setRecognizer(mAlternation->buildRecognizer(grammar),0,1);
+}
+
+shared_ptr< ABNFOption > ABNFOption::create(){
+	return make_shared<ABNFOption>();
+}
+
+void ABNFOption::setAlternation(const shared_ptr< ABNFAlternation >& a){
+	mAlternation=a;
 }
 
 shared_ptr< ABNFGroup > ABNFGroup::create(){
@@ -28,14 +94,16 @@ void ABNFGroup::setAlternation(const shared_ptr< ABNFAlternation >& a){
 	mAlternation=a;
 }
 
-
-
-
 shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar >& grammar){
-	if (mRulename.empty())
+	if (mElement)
 		return mElement->buildRecognizer(grammar);
-	else
+	if (!mRulename.empty())
 		return grammar->getRule(mRulename);
+	if (!mCharVal.empty())
+		return Utils::literal(mCharVal);
+	cerr<<"ABNFElement::buildRecognizer is empty, should not happen!"<<endl;
+	abort();
+	return NULL;
 }
 
 shared_ptr< ABNFElement > ABNFElement::create(){
@@ -49,6 +117,18 @@ void ABNFElement::setElement(const shared_ptr< ABNFBuilder >& e){
 void ABNFElement::setRulename(const string& rulename){
 	mRulename=rulename;
 }
+
+void ABNFElement::setCharVal(const string& charval){
+	mCharVal=charval.substr(1,charval.size()-2); //in order to remove surrounding quotes
+}
+
+void ABNFElement::setProseVal(const string& prose){
+	if (!prose.empty()){
+		cerr<<"prose-val is not supported."<<endl;
+		abort();
+	}
+}
+
 
 
 shared_ptr< ABNFRepetition > ABNFRepetition::create(){
@@ -124,7 +204,7 @@ shared_ptr<ABNFAlternation> ABNFAlternation::create(){
 }
 
 void ABNFAlternation::addConcatenation(const shared_ptr<ABNFConcatenation> &c){
-	cout<<"Concatenation "<<c<<"added to alternation "<<this<<endl;
+	cout<<"Concatenation "<<c<<" added to alternation "<<this<<endl;
 	mConcatenations.push_back(c);
 }
 
@@ -216,11 +296,17 @@ ABNFGrammarBuilder::ABNFGrammarBuilder()
 		->setCollector("rulename", make_sfn(&ABNFElement::setRulename))
 		->setCollector("group", make_sfn(&ABNFElement::setElement))
 		->setCollector("option", make_sfn(&ABNFElement::setElement))
-		->setCollector("char-val", make_sfn(&ABNFElement::setElement))
+		->setCollector("char-val", make_sfn(&ABNFElement::setCharVal))
 		->setCollector("num-val", make_sfn(&ABNFElement::setElement))
 		->setCollector("prose-val", make_sfn(&ABNFElement::setElement));
 	mParser.setHandler("group", make_fn(&ABNFGroup::create))
 		->setCollector("alternation", make_sfn(&ABNFGroup::setAlternation));
+	mParser.setHandler("option", make_fn(&ABNFOption::create))
+		->setCollector("alternation", make_sfn(&ABNFOption::setAlternation));
+	mParser.setHandler("num-val", make_fn(&ABNFNumval::create))
+		->setCollector("bin-val", make_sfn(&ABNFNumval::setBinVal))
+		->setCollector("hex-val", make_sfn(&ABNFNumval::setHexVal))
+		->setCollector("dec-val", make_sfn(&ABNFNumval::setDecVal));
 }
 
 shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &path){
@@ -242,11 +328,20 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &path){
 	}
 	string sgrammar(grammar);
 	delete []grammar;
-	mParser.parseInput("rulelist",sgrammar,&parsed);
+	shared_ptr<ABNFBuilder> builder = mParser.parseInput("rulelist",sgrammar,&parsed);
 	if (parsed<(size_t)sb.st_size){
-		cerr<<"Only "<<parsed<<" bytes parsed over a total of "<< sb.st_size <<endl;
+		cerr<<"ERROR: only "<<parsed<<" bytes parsed over a total of "<< sb.st_size <<endl;
+		return NULL;
 	}
-	return NULL;
+	shared_ptr<Grammar> gram=make_shared<Grammar>(path);
+	builder->buildRecognizer(gram);
+	cout<<"Succesfully created grammar with "<<gram->getNumRules()<<" rules."<<endl;
+	if (gram->isComplete()){
+		cout<<"Grammar is complete."<<endl;
+	}else{
+		cout<<"WARNING: grammar is not complete."<<endl;
+	}
+	return gram;
 }
 
 }//end of namespace

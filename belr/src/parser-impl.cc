@@ -90,13 +90,15 @@ void ParserContext<_parserElementT>::_endParse(const shared_ptr<Recognizer> &rec
 	if (ctx){
 		mHandlerStack.pop_back();
 	}
-	if (!mHandlerStack.empty()){
-		/*assign object to parent */
-		mHandlerStack.back()->setChild(rec->getName(), begin, count, ctx);
-		
-	}else{
-		/*no parent, this is our root object*/
-		mRoot=ctx;
+	if (count!=string::npos && count>0){
+		if (!mHandlerStack.empty()){
+			/*assign object to parent */
+			mHandlerStack.back()->setChild(rec->getName(), begin, count, ctx);
+			
+		}else{
+			/*no parent, this is our root object*/
+			mRoot=ctx;
+		}
 	}
 }
 
