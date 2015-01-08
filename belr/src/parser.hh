@@ -65,6 +65,10 @@ public:
 		this->mCollectors[child_rule_name]=make_shared<ParserCollector<_derivedParserElementT,_parserElementT,const string&>>(fn);
 		return static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
+	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , int )> fn){
+		this->mCollectors[child_rule_name]=make_shared<ParserCollector<_derivedParserElementT,_parserElementT,int>>(fn);
+		return static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
+	}
 	template <typename _valueT>
 	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , _valueT)> fn){
 		this->mCollectors[child_rule_name]=make_shared<ParserChildCollector<_derivedParserElementT,_parserElementT,_valueT>>(fn);

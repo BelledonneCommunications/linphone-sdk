@@ -40,6 +40,9 @@ private:
 	void c_wsp();
 	void rulename();
 	void repeat();
+	void repeat_min();
+	void repeat_max();
+	void repeat_count();
 	void defined_as();
 	void rulelist();
 	void rule();

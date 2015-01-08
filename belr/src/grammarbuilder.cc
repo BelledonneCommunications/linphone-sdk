@@ -16,12 +16,107 @@ namespace belr{
 ABNFBuilder::~ABNFBuilder(){
 }
 
+shared_ptr< ABNFGroup > ABNFGroup::create(){
+	return make_shared<ABNFGroup>();
+}
+
+shared_ptr< Recognizer > ABNFGroup::buildRecognizer(const shared_ptr< Grammar >& grammar){
+	return mAlternation->buildRecognizer(grammar);
+}
+
+void ABNFGroup::setAlternation(const shared_ptr< ABNFAlternation >& a){
+	mAlternation=a;
+}
+
+
+
+
+shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar >& grammar){
+	if (mRulename.empty())
+		return mElement->buildRecognizer(grammar);
+	else
+		return grammar->getRule(mRulename);
+}
+
+shared_ptr< ABNFElement > ABNFElement::create(){
+	return make_shared<ABNFElement>();
+}
+
+void ABNFElement::setElement(const shared_ptr< ABNFBuilder >& e){
+	mElement=e;
+}
+
+void ABNFElement::setRulename(const string& rulename){
+	mRulename=rulename;
+}
+
+
+shared_ptr< ABNFRepetition > ABNFRepetition::create(){
+	return make_shared<ABNFRepetition>();
+}
+
+void ABNFRepetition::setCount(int count){
+	mCount=count;
+}
+
+void ABNFRepetition::setMin(int min){
+	mMin=min;
+}
+
+void ABNFRepetition::setMax(int max){
+	mMax=max;
+}
+
+void ABNFRepetition::setRepeat(const string& r){
+	mRepeat=r;
+}
+
+
+shared_ptr< Recognizer > ABNFRepetition::buildRecognizer(const shared_ptr< Grammar >& grammar){
+	if (mRepeat.empty()) return mElement->buildRecognizer(grammar);
+	cout<<"Building repetition recognizer with count="<<mCount<<" min="<<mMin<<" max="<<mMax<<endl;
+	if (mCount!=-1){
+		return Foundation::loop()->setRecognizer(mElement->buildRecognizer(grammar), mCount, mCount);
+	}else{
+		return Foundation::loop()->setRecognizer(mElement->buildRecognizer(grammar), mMin, mMax);
+	}
+}
+
+ABNFRepetition::ABNFRepetition(){
+	mMin=0;
+	mMax=-1;
+	mCount=-1;
+}
+
+
+void ABNFRepetition::setElement(const shared_ptr< ABNFElement >& e){
+	mElement=e;
+}
+
+
 shared_ptr<ABNFConcatenation> ABNFConcatenation::create(){
 	return make_shared<ABNFConcatenation>();
 }
 
 shared_ptr<Recognizer> ABNFConcatenation::buildRecognizer(const shared_ptr<Grammar> &grammar){
+	if (mRepetitions.size()==0){
+		cerr<<"No repetitions set !"<<endl;
+		abort();
+	}
+	if (mRepetitions.size()==1){
+		return mRepetitions.front()->buildRecognizer(grammar);
+	}else{
+		auto seq=Foundation::sequence();
+		for (auto it=mRepetitions.begin(); it!=mRepetitions.end(); ++it){
+			seq->addRecognizer((*it)->buildRecognizer(grammar));
+		}
+		return seq;
+	}
 	return NULL;
+}
+
+void ABNFConcatenation::addRepetition(const shared_ptr< ABNFRepetition >& r){
+	mRepetitions.push_back(r);
 }
 
 shared_ptr<ABNFAlternation> ABNFAlternation::create(){
@@ -109,6 +204,23 @@ ABNFGrammarBuilder::ABNFGrammarBuilder()
 		->setCollector("alternation",make_sfn(&ABNFRule::setAlternation));
 	mParser.setHandler("alternation", make_fn(&ABNFAlternation::create))
 		->setCollector("concatenation",make_sfn(&ABNFAlternation::addConcatenation));
+	mParser.setHandler("concatenation", make_fn(&ABNFConcatenation::create))
+		->setCollector("repetition", make_sfn(&ABNFConcatenation::addRepetition));
+	mParser.setHandler("repetition", make_fn(&ABNFRepetition::create))
+		->setCollector("repeat", make_sfn(&ABNFRepetition::setRepeat))
+		->setCollector("repeat-min", make_sfn(&ABNFRepetition::setMin))
+		->setCollector("repeat-max", make_sfn(&ABNFRepetition::setMax))
+		->setCollector("repeat-count", make_sfn(&ABNFRepetition::setCount))
+		->setCollector("element", make_sfn(&ABNFRepetition::setElement));
+	mParser.setHandler("element", make_fn(&ABNFElement::create))
+		->setCollector("rulename", make_sfn(&ABNFElement::setRulename))
+		->setCollector("group", make_sfn(&ABNFElement::setElement))
+		->setCollector("option", make_sfn(&ABNFElement::setElement))
+		->setCollector("char-val", make_sfn(&ABNFElement::setElement))
+		->setCollector("num-val", make_sfn(&ABNFElement::setElement))
+		->setCollector("prose-val", make_sfn(&ABNFElement::setElement));
+	mParser.setHandler("group", make_fn(&ABNFGroup::create))
+		->setCollector("alternation", make_sfn(&ABNFGroup::setAlternation));
 }
 
 shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &path){

@@ -136,6 +136,9 @@ ABNFGrammar::ABNFGrammar(): Grammar("ABNF"){
 	c_nl();
 	c_wsp();
 	rulename();
+	repeat_count();
+	repeat_max();
+	repeat_min();
 	repeat();
 	defined_as();
 	rulelist();
@@ -193,21 +196,35 @@ void ABNFGrammar::rulename(){
 	);
 }
 
+void ABNFGrammar::repeat_count(){
+	addRule("repeat-count", Foundation::loop()->setRecognizer(getRule("digit"),1));
+}
+
+void ABNFGrammar::repeat_max(){
+	addRule("repeat-max", Foundation::loop()->setRecognizer(getRule("digit")));
+}
+
+void ABNFGrammar::repeat_min(){
+	addRule("repeat-min", Foundation::loop()->setRecognizer(getRule("digit")));
+}
+
+
+
 /* 1*DIGIT / (*DIGIT "*" *DIGIT) */
 void ABNFGrammar::repeat(){
 	addRule("repeat", Foundation::selector()
 		->addRecognizer(
-			Foundation::loop()->setRecognizer(getRule("digit"),1)
+			getRule("repeat-count")
 		)
 		->addRecognizer(Foundation::sequence()
 			->addRecognizer(
-				Foundation::loop()->setRecognizer(getRule("digit"))
+				getRule("repeat-min")
 			)
 			->addRecognizer(
 				Foundation::charRecognizer('*')
 			)
 			->addRecognizer(
-				Foundation::loop()->setRecognizer(getRule("digit"))
+				getRule("repeat-max")
 			)
 		)
 	);
