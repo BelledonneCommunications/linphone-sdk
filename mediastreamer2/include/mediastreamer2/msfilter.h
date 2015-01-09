@@ -301,7 +301,7 @@ MS2_PUBLIC MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name);
  * Returns a list of filter descriptions implementing a given interface.
  * The list itself must be freed by the caller of this function, but not the MSFilterDesc pointed by the list elements.
  * @param id a filter interface id
- * @returns a newly allocated MSList of #MSFilterDesc.
+ * @return a newly allocated MSList of #MSFilterDesc.
 **/
 MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id);
 

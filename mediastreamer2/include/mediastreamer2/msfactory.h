@@ -134,7 +134,7 @@ MS2_PUBLIC MSFilterDesc* ms_factory_lookup_filter_by_id( MSFactory* factory, MSF
  * Returns a list of filter descriptions implementing a given interface.
  * The list itself must be freed by the caller of this function, but not the MSFilterDesc pointed by the list elements.
  * @param id a filter interface id
- * @returns a newly allocated MSList of #MSFilterDesc.
+ * @return a newly allocated MSList of #MSFilterDesc.
 **/
 MSList *ms_factory_lookup_filter_by_interface(MSFactory *factory, MSFilterInterfaceId id);
 

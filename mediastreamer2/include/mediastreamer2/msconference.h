@@ -75,14 +75,14 @@ extern "C" {
 /**
  * Creates a conference.
  * @param params a MSAudioConferenceParams structure, containing conference parameters.
- * @returns a MSAudioConference object.
+ * @return a MSAudioConference object.
 **/
 MS2_PUBLIC MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params);
 
 /**
  * Gets conference's current parameters.
  * @param obj the conference.
- * @returns a read-only pointer to the conference parameters.
+ * @return a read-only pointer to the conference parameters.
 **/
 MS2_PUBLIC const MSAudioConferenceParams *ms_audio_conference_get_params(MSAudioConference *obj);
 
