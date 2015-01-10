@@ -24,7 +24,7 @@ size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &
 	shared_ptr<HandlerContextBase> hctx=ctx->beginParse(shared_from_this());
 	match=_feed(ctx, input, pos);
 	if (match!=string::npos && match>0){
-		if (1 && mName.size()>0){
+		if (0 && mName.size()>0){
 			string matched=input.substr(pos,match);
 			cout<<"Matched recognizer '"<<mName<<"' with sequence '"<<matched<<"'."<<endl;
 		}
@@ -196,7 +196,7 @@ size_t RecognizerPointer::_feed(const shared_ptr<ParserContextBase> &ctx, const 
 	if (mRecognizer){
 		return mRecognizer->feed(ctx, input, pos);
 	}else{
-		cerr<<"RecognizerPointer is undefined"<<endl;
+		cerr<<"RecognizerPointer with name '"<<mName<<"' is undefined"<<endl;
 		abort();
 	}
 	return string::npos;
@@ -262,6 +262,7 @@ shared_ptr<Recognizer> Grammar::getRule(const string &argname){
 		return (*it).second;
 	}else{/*the rule doesn't exist yet: return a pointer*/
 		ret=make_shared<RecognizerPointer>();
+		ret->setName(string("@")+name);
 		mRules[name]=ret;
 	}
 	return ret;

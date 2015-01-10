@@ -125,7 +125,7 @@ private:
 class ABNFGrammarBuilder{
 public:
 	ABNFGrammarBuilder();
-	shared_ptr<Grammar> createFromAbnf(const string &path);
+	shared_ptr<Grammar> createFromAbnf(const string &path, const shared_ptr<Grammar> &grammar=NULL);
 private:
 	Parser<shared_ptr<ABNFBuilder>> mParser;
 };

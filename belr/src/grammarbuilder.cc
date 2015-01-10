@@ -4,12 +4,8 @@
 #include "parser-impl.cc"
 
 #include <iostream>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <cstdio>
+#include <fstream>
+#include <sstream>
 
 
 namespace belr{
@@ -56,17 +52,14 @@ void ABNFNumval::parseValues(const string &val, int base){
 }
 
 void ABNFNumval::setDecVal(const string& decval){
-	cout<<"setDecVal "<<decval<<endl;
 	parseValues(decval,10);
 }
 
 void ABNFNumval::setHexVal(const string& hexval){
-	cout<<"setHexVal "<<hexval<<endl;
 	parseValues(hexval,16);
 }
 
 void ABNFNumval::setBinVal(const string& binval){
-	cout<<"setBinVal "<<binval<<endl;
 	parseValues(binval,2);
 }
 
@@ -154,7 +147,7 @@ void ABNFRepetition::setRepeat(const string& r){
 
 shared_ptr< Recognizer > ABNFRepetition::buildRecognizer(const shared_ptr< Grammar >& grammar){
 	if (mRepeat.empty()) return mElement->buildRecognizer(grammar);
-	cout<<"Building repetition recognizer with count="<<mCount<<" min="<<mMin<<" max="<<mMax<<endl;
+	//cout<<"Building repetition recognizer with count="<<mCount<<" min="<<mMin<<" max="<<mMax<<endl;
 	if (mCount!=-1){
 		return Foundation::loop()->setRecognizer(mElement->buildRecognizer(grammar), mCount, mCount);
 	}else{
@@ -204,7 +197,7 @@ shared_ptr<ABNFAlternation> ABNFAlternation::create(){
 }
 
 void ABNFAlternation::addConcatenation(const shared_ptr<ABNFConcatenation> &c){
-	cout<<"Concatenation "<<c<<" added to alternation "<<this<<endl;
+	//cout<<"Concatenation "<<c<<" added to alternation "<<this<<endl;
 	mConcatenations.push_back(c);
 }
 
@@ -223,19 +216,18 @@ shared_ptr< Recognizer > ABNFAlternation::buildRecognizerNoOptim(const shared_pt
 
 
 shared_ptr<ABNFRule> ABNFRule::create(){
-	cout<<"Rule created."<<endl;
 	return make_shared<ABNFRule>();
 }
 
 void ABNFRule::setName(const string& name){
 	if (!mName.empty())
 		cerr<<"Rule "<<this<<" is renamed !!!!!"<<endl;
-	cout<<"Rule "<<this<<" is named "<<name<<endl;
+	//cout<<"Rule "<<this<<" is named "<<name<<endl;
 	mName=name;
 }
 
 void ABNFRule::setAlternation(const shared_ptr<ABNFAlternation> &a){
-	cout<<"Rule "<<this<<" is given alternation "<<a<<endl;
+	//cout<<"Rule "<<this<<" is given alternation "<<a<<endl;
 	mAlternation=a;
 }
 
@@ -253,12 +245,12 @@ void ABNFRule::setDefinedAs(const string& defined_as){
 
 
 shared_ptr<ABNFRuleList> ABNFRuleList::create(){
-	cout<<"Rulelist created."<<endl;
+	//cout<<"Rulelist created."<<endl;
 	return make_shared<ABNFRuleList>();
 }
 
 void ABNFRuleList::addRule(const shared_ptr<ABNFRule>& rule){
-	cout<<"Rule "<<rule<<" added to rulelist "<<this<<endl;
+	//cout<<"Rule "<<rule<<" added to rulelist "<<this<<endl;
 	mRules.push_back(rule);
 }
 
@@ -309,34 +301,27 @@ ABNFGrammarBuilder::ABNFGrammarBuilder()
 		->setCollector("dec-val", make_sfn(&ABNFNumval::setDecVal));
 }
 
-shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &path){
-	struct stat sb;
-	char *grammar;
+shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &path, const shared_ptr<Grammar> &gram){
 	size_t parsed;
 	
-	if (stat(path.c_str(),&sb)==-1){
-		cerr<<"Could not stat "<<path<<endl;
+	ifstream istr(path);
+	if (!istr.is_open()){
+		cerr<<"Could not open "<<path<<endl;
 		return NULL;
 	}
-	int fd=open(path.c_str(),O_RDONLY);
-	grammar=new char[sb.st_size+1];
-	grammar[sb.st_size]='\0';
-	if (read(fd,grammar,sb.st_size)!=sb.st_size){
-		cerr<<"Could not read "<<path<<endl;
-		close(fd);
+	stringstream sstr;
+	sstr<<istr.rdbuf();
+	shared_ptr<ABNFBuilder> builder = mParser.parseInput("rulelist",sstr.str(),&parsed);
+	if (parsed<(size_t)sstr.str().size()){
+		cerr<<"ERROR: only "<<parsed<<" bytes parsed over a total of "<< sstr.str().size() <<endl;
 		return NULL;
 	}
-	string sgrammar(grammar);
-	delete []grammar;
-	shared_ptr<ABNFBuilder> builder = mParser.parseInput("rulelist",sgrammar,&parsed);
-	if (parsed<(size_t)sb.st_size){
-		cerr<<"ERROR: only "<<parsed<<" bytes parsed over a total of "<< sb.st_size <<endl;
-		return NULL;
-	}
-	shared_ptr<Grammar> gram=make_shared<Grammar>(path);
-	builder->buildRecognizer(gram);
-	cout<<"Succesfully created grammar with "<<gram->getNumRules()<<" rules."<<endl;
-	if (gram->isComplete()){
+	shared_ptr<Grammar> retGram;
+	if (gram==NULL) retGram=make_shared<Grammar>(path);
+	else retGram=gram;
+	builder->buildRecognizer(retGram);
+	cout<<"Succesfully created grammar with "<<retGram->getNumRules()<<" rules."<<endl;
+	if (retGram->isComplete()){
 		cout<<"Grammar is complete."<<endl;
 	}else{
 		cout<<"WARNING: grammar is not complete."<<endl;

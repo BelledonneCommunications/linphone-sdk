@@ -44,7 +44,7 @@ void ParserChildCollector<_derivedParserElementT,_parserElementT, _valueT>::invo
 template <typename _parserElementT>
 void Assignment<_parserElementT>::invoke(_parserElementT parent, const string &input){
 	if (mChild){
-		mCollector->invokeWithChild(parent, mChild->realize(input));
+		mCollector->invokeWithChild(parent, mChild->realize(input,mBegin,mCount));
 	}else{
 		string value=input.substr(mBegin, mCount);
 		shared_ptr<CollectorBase<_parserElementT,const string&>> cc1=dynamic_pointer_cast<CollectorBase<_parserElementT,const string&>>(mCollector);
@@ -66,8 +66,12 @@ void Assignment<_parserElementT>::invoke(_parserElementT parent, const string &i
 }
 
 template <typename _derivedParserElementT, typename _parserElementT>
-_parserElementT ParserHandler<_derivedParserElementT,_parserElementT>::invoke(){
-	return universal_pointer_cast<_parserElementT>(mHandlerCreateFunc());
+_parserElementT ParserHandler<_derivedParserElementT,_parserElementT>::invoke(const string &input, size_t begin, size_t count){
+	if (mHandlerCreateFunc)
+		return universal_pointer_cast<_parserElementT>(mHandlerCreateFunc());
+	if (mHandlerCreateDebugFunc)
+		return universal_pointer_cast<_parserElementT>(mHandlerCreateDebugFunc(mRulename, input.substr(begin, count)));
+	return NULL;
 }
 
 template <typename _parserElementT>
@@ -104,11 +108,14 @@ void ParserContext<_parserElementT>::_endParse(const shared_ptr<Recognizer> &rec
 
 template <typename _parserElementT>
 _parserElementT ParserContext<_parserElementT>::createRootObject(const string &input){
-	 return mRoot ? mRoot->realize(input) : NULL;
+	 return mRoot ? mRoot->realize(input,0,input.size()) : NULL;
 }
 
 template <typename _parserElementT>
 shared_ptr<HandlerContext<_parserElementT>> ParserContext<_parserElementT>::_branch(){
+	if (mHandlerStack.empty()){
+		cerr<<"Cannot branch while stack is empty"<<endl;
+	}
 	shared_ptr<HandlerContext<_parserElementT>> ret=mHandlerStack.back()->branch();
 	mHandlerStack.push_back(ret);
 	return ret;
