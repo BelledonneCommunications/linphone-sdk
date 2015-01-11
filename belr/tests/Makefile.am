@@ -1,7 +1,7 @@
-noinst_PROGRAMS=parse_grammar
+bin_PROGRAMS=belr-parse
 
-parse_grammar_SOURCES=parse_grammar.cc
+belr_parse_SOURCES=belrparse.cc
 
-parse_grammar_LDADD=$(top_builddir)/src/libbelr.la
+belr_parse_LDADD=$(top_builddir)/src/libbelr.la
 
 AM_CPPFLAGS=-I$(top_srcdir)/src
