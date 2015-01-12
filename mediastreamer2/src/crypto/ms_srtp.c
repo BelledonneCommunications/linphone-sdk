@@ -188,71 +188,71 @@ static int ms_srtp_transport_modifier_new(srtp_t srtp, RtpTransportModifier **rt
 	return 0;
 }
 
-static int ms_check_srtp_session_created(struct _MediaStream *stream,  MSSrtpStreamType stream_type){
+static int ms_check_srtp_session_created(struct _MSMediaStreamSessions *sessions,  MSSrtpStreamType stream_type){
 	if (stream_type == MSSRTP_ALL_STREAMS) { /* This is the usual case when both RTP and RTCP share the same key */
-		if (stream->sessions.srtp_session==NULL){
+		if (sessions->srtp_session==NULL){
 			err_status_t err;
-			srtp_t session;
+			srtp_t srtp_session;
 			RtpTransport *rtp=NULL,*rtcp=NULL;
 			RtpTransportModifier *rtp_modifier, *rtcp_modifier;
 
-			err = srtp_create(&session, NULL);
+			err = srtp_create(&srtp_session, NULL);
 			if (err != 0) {
 				ms_error("Failed to create srtp session (%d)", err);
 				return -1;
 			}
 
-			stream->sessions.srtp_session=session;
-			ms_srtp_transport_modifier_new(session,&rtp_modifier,&rtcp_modifier);
-			rtp_session_get_transports(stream->sessions.rtp_session,&rtp,&rtcp);
+			sessions->srtp_session=srtp_session;
+			ms_srtp_transport_modifier_new(srtp_session,&rtp_modifier,&rtcp_modifier);
+			rtp_session_get_transports(sessions->rtp_session,&rtp,&rtcp);
 			meta_rtp_transport_append_modifier(rtp, rtp_modifier);
 			meta_rtp_transport_append_modifier(rtcp, rtcp_modifier);
-			stream->sessions.is_secured=TRUE;
+			sessions->is_secured=TRUE;
 		}
 	} else if (stream_type == MSSRTP_RTP_STREAM) { /* Allocate only the RTP stream */
-		if (stream->sessions.srtp_session==NULL){
+		if (sessions->srtp_session==NULL){
 			err_status_t err;
-			srtp_t session;
+			srtp_t srtp_session;
 			RtpTransport *rtp=NULL;
 			RtpTransportModifier *rtp_modifier;
 
-			err = srtp_create(&session, NULL);
+			err = srtp_create(&srtp_session, NULL);
 			if (err != 0) {
 				ms_error("Failed to create srtp session (%d)", err);
 				return -1;
 			}
 
-			stream->sessions.srtp_session=session;
-			ms_srtp_transport_modifier_new(session,&rtp_modifier, NULL);
-			rtp_session_get_transports(stream->sessions.rtp_session,&rtp,NULL);
+			sessions->srtp_session=srtp_session;
+			ms_srtp_transport_modifier_new(srtp_session,&rtp_modifier, NULL);
+			rtp_session_get_transports(sessions->rtp_session,&rtp,NULL);
 			meta_rtp_transport_append_modifier(rtp, rtp_modifier);
-			if (stream->sessions.srtp_rtcp_session!=NULL) {
-				stream->sessions.is_secured=TRUE;
+			if (sessions->srtp_rtcp_session!=NULL) {
+				sessions->is_secured=TRUE;
 			} else {
-				stream->sessions.is_secured=FALSE;
+				sessions->is_secured=FALSE;
 			}
 		}
 	} else if (stream_type == MSSRTP_RTCP_STREAM) { /* Allocate only the RTCP stream */
-		if (stream->sessions.srtp_rtcp_session==NULL){
+		if (sessions->srtp_rtcp_session==NULL){
 			err_status_t err;
-			srtp_t session;
+			srtp_t srtp_session;
 			RtpTransport *rtcp=NULL;
 			RtpTransportModifier *rtcp_modifier;
 
-			err = srtp_create(&session, NULL);
+			err = srtp_create(&srtp_session, NULL);
 			if (err != 0) {
 				ms_error("Failed to create srtp session (%d)", err);
 				return -1;
 			}
 
-			stream->sessions.srtp_rtcp_session=session;
-			ms_srtp_transport_modifier_new(session,NULL,&rtcp_modifier);
-			rtp_session_get_transports(stream->sessions.rtp_session,NULL,&rtcp);
+			sessions->srtp_rtcp_session=srtp_session;
+			ms_srtp_transport_modifier_new(srtp_session,NULL,&rtcp_modifier);
+			rtp_session_get_transports(sessions->rtp_session,NULL,&rtcp);
 			meta_rtp_transport_append_modifier(rtcp, rtcp_modifier);
-			if (stream->sessions.srtp_session!=NULL) {
-				stream->sessions.is_secured=TRUE;
+			if (sessions->srtp_session!=NULL) {
+				sessions->is_secured=TRUE;
 			} else {
-				stream->sessions.is_secured=FALSE;
+				sessions->is_secured=FALSE;
 			}
 		}
 	}
@@ -394,7 +394,7 @@ bool_t ms_srtp_supported(void){
 }
 
 
-int media_stream_set_srtp_recv_key_b64(struct _MediaStream *stream, MSCryptoSuite suite, const char* b64_key){
+int media_stream_set_srtp_recv_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key){
 	int retval;
 
 	/* decode b64 key */
@@ -408,39 +408,39 @@ int media_stream_set_srtp_recv_key_b64(struct _MediaStream *stream, MSCryptoSuit
 	}
 
 	/* pass decoded key to set_recv_key function */
-	retval = media_stream_set_srtp_recv_key(stream, suite, key, key_length, MSSRTP_ALL_STREAMS);
+	retval = media_stream_set_srtp_recv_key(sessions, suite, key, key_length, MSSRTP_ALL_STREAMS);
 
 	ms_free(key);
 
 	return retval;
 }
 
-int media_stream_set_srtp_recv_key(struct _MediaStream *stream, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type){
+int media_stream_set_srtp_recv_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type){
 
 	uint32_t ssrc,send_ssrc;
 	srtp_stream_ctx_t *srtp_stream = NULL;
 	bool_t updated=FALSE;
 	srtp_t srtp_session;
 
-	if (ms_check_srtp_session_created(stream, stream_type)==-1) {
+	if (ms_check_srtp_session_created(sessions, stream_type)==-1) {
 		return -1;
 	}
 
 	switch(stream_type){
 		case MSSRTP_ALL_STREAMS:
 		case MSSRTP_RTP_STREAM:
-			srtp_session = stream->sessions.srtp_session;
+			srtp_session = sessions->srtp_session;
 			break;
 		case MSSRTP_RTCP_STREAM:
-			srtp_session = stream->sessions.srtp_rtcp_session;
+			srtp_session = sessions->srtp_rtcp_session;
 			break;
 		default:
-			ms_error("Invalid stream_type %d in set_srtp_recv_key on stream [%p]", stream_type, stream);
+			ms_error("Invalid stream_type %d in set_srtp_recv_key on sessions [%p]", stream_type, sessions);
 			return -1;
 	}
 
 	/*check if a previous key was configured, in which case remove it*/
-	send_ssrc=rtp_session_get_send_ssrc(stream->sessions.rtp_session);
+	send_ssrc=rtp_session_get_send_ssrc(sessions->rtp_session);
 	srtp_stream = find_other_ssrc(srtp_session,htonl(send_ssrc));
 	if (srtp_stream != NULL) {
 		ssrc = srtp_stream->ssrc;
@@ -452,13 +452,13 @@ int media_stream_set_srtp_recv_key(struct _MediaStream *stream, MSCryptoSuite su
 	if (srtp_remove_stream(srtp_session, htonl(ssrc))==0) {
 		updated=TRUE;
 	}
-	ssrc=rtp_session_get_recv_ssrc(stream->sessions.rtp_session);
+	ssrc=rtp_session_get_recv_ssrc(sessions->rtp_session);
 	ms_message("media_stream_set_srtp_recv_key(): %s key %02x..%02x\nsrtp session is %p ssrc %08x",updated ? "changing to" : "starting with", (uint8_t)key[0], (uint8_t)key[key_length-1], srtp_session, ssrc);
 	
 	return ms_add_srtp_stream(srtp_session,suite, ssrc, key, key_length, TRUE, stream_type);
 }
 
-int media_stream_set_srtp_send_key_b64(struct _MediaStream *stream, MSCryptoSuite suite, const char* b64_key){
+int media_stream_set_srtp_send_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key){
 	int retval;
 
 	/* decode b64 key */
@@ -472,38 +472,38 @@ int media_stream_set_srtp_send_key_b64(struct _MediaStream *stream, MSCryptoSuit
 	}
 
 	/* pass decoded key to set_send_key function */
-	retval = media_stream_set_srtp_send_key(stream, suite, key, key_length, MSSRTP_ALL_STREAMS);
+	retval = media_stream_set_srtp_send_key(sessions, suite, key, key_length, MSSRTP_ALL_STREAMS);
 
 	ms_free(key);
 
 	return retval;
 }
 
-int media_stream_set_srtp_send_key(struct _MediaStream *stream, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type){
+int media_stream_set_srtp_send_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type){
 
 	uint32_t ssrc;
 	bool_t updated=FALSE;
 	srtp_t srtp_session;
 
-	if (ms_check_srtp_session_created(stream, stream_type)==-1) {
+	if (ms_check_srtp_session_created(sessions, stream_type)==-1) {
 		return -1;
 	}
 
 	switch(stream_type){
 		case MSSRTP_ALL_STREAMS:
 		case MSSRTP_RTP_STREAM:
-			srtp_session = stream->sessions.srtp_session;
+			srtp_session = sessions->srtp_session;
 			break;
 		case MSSRTP_RTCP_STREAM:
-			srtp_session = stream->sessions.srtp_rtcp_session;
+			srtp_session = sessions->srtp_rtcp_session;
 			break;
 		default:
-			ms_error("Invalid stream_type %d in set_srtp_send_key on stream [%p]", stream_type, stream);
+			ms_error("Invalid stream_type %d in set_srtp_send_key on sessions [%p]", stream_type, sessions);
 			return -1;
 	}
 
 	/*check if a previous key was configured, in which case remove it*/
-	ssrc=rtp_session_get_send_ssrc(stream->sessions.rtp_session);
+	ssrc=rtp_session_get_send_ssrc(sessions->rtp_session);
 	if (ssrc!=0){
 		/*careful: remove_stream takes the SSRC in network byte order...*/
 		if (srtp_remove_stream(srtp_session,htonl(ssrc))==0)

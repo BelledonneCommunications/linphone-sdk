@@ -1112,6 +1112,9 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 
 	stream->ms.type = MSAudio;
 	stream->ms.sessions=*sessions;
+	if (sessions->dtls_context != NULL) {
+		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &(stream->ms.sessions));
+	}
 	rtp_session_resync(stream->ms.sessions.rtp_session);
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
@@ -1361,7 +1364,8 @@ bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 void audio_stream_enable_dtls(AudioStream *stream, MSDtlsSrtpParams *params){
 #ifdef HAVE_DTLS
 	if (stream->ms.sessions.dtls_context==NULL) {
-		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new((MediaStream *)stream, params);
+		printf("Start DTLS audio stream context\n");
+		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->ms.sessions), params);
 	}
 #endif
 }

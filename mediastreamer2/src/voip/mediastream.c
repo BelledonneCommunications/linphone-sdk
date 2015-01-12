@@ -246,7 +246,7 @@ bool_t media_stream_dtls_supported(void){
 
 /*deprecated*/
 bool_t media_stream_enable_srtp(MediaStream *stream, MSCryptoSuite suite, const char *snd_key, const char *rcv_key) {
-	return media_stream_set_srtp_recv_key_b64(stream,suite,rcv_key)==0 && media_stream_set_srtp_send_key_b64(stream,suite,snd_key)==0;
+	return media_stream_set_srtp_recv_key_b64(&(stream->sessions),suite,rcv_key)==0 && media_stream_set_srtp_send_key_b64(&(stream->sessions),suite,snd_key)==0;
 }
 
 const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream){

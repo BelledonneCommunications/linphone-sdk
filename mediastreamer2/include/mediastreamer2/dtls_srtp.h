@@ -28,7 +28,7 @@ extern "C"{
 #endif
 
 /* defined in mediastream.h */
-struct _MediaStream;
+struct _MSMediaStreamSessions;
 
 typedef enum {
 	MSDtlsSrtpRoleInvalid,
@@ -47,13 +47,12 @@ typedef struct _MSDtlsSrtpContext MSDtlsSrtpContext;
 
 MS2_PUBLIC bool_t ms_dtls_available(void);
 
-MS2_PUBLIC MSDtlsSrtpContext* ms_dtls_srtp_context_new(struct _MediaStream *stream, MSDtlsSrtpParams *params);
+MS2_PUBLIC MSDtlsSrtpContext* ms_dtls_srtp_context_new(struct _MSMediaStreamSessions *sessions, MSDtlsSrtpParams *params);
 MS2_PUBLIC void ms_dtls_srtp_start(MSDtlsSrtpContext* context);
 MS2_PUBLIC void ms_dtls_srtp_context_destroy(MSDtlsSrtpContext *ctx);
 
 MS2_PUBLIC void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role);
 MS2_PUBLIC MSDtlsSrtpRole ms_dtls_srtp_get_role(MSDtlsSrtpContext *context);
-MS2_PUBLIC MSDtlsSrtpContext* ms_dtls_multistream_new(struct _MediaStream *stream, MSDtlsSrtpContext* activeContext, RtpSession *s, MSDtlsSrtpParams *params);
 MS2_PUBLIC void ms_dtls_srtp_set_peer_fingerprint(MSDtlsSrtpContext *context, const char *peer_fingerprint);
 
 MS2_PUBLIC int ms_dtls_srtp_generate_self_signed_certificate(char *certif, char *pkey, char *fingerprint);

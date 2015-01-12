@@ -253,6 +253,9 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 
 	stream->ms.type = MSVideo;
 	stream->ms.sessions=*sessions;
+	if (sessions->dtls_context != NULL) {
+		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &(stream->ms.sessions));
+	}
 	rtp_session_resync(stream->ms.sessions.rtp_session);
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi,"video");
@@ -1263,7 +1266,8 @@ void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtp
 
 void video_stream_enable_dtls(VideoStream *stream, MSDtlsSrtpParams *params){
 	if (stream->ms.sessions.dtls_context==NULL) {
-		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new((MediaStream *)stream, params);
+		printf("Start DTLS video stream context\n");
+		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->ms.sessions), params);
 	}
 }
 
