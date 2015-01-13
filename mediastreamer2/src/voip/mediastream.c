@@ -186,6 +186,10 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 		ms_zrtp_context_destroy(sessions->zrtp_context);
 		sessions->zrtp_context = NULL;
 	}
+	if (sessions->dtls_context != NULL) {
+		ms_dtls_srtp_context_destroy(sessions->dtls_context);
+		sessions->dtls_context = NULL;
+	}
 	if (sessions->ticker){
 		ms_ticker_destroy(sessions->ticker);
 		sessions->ticker=NULL;

@@ -135,6 +135,7 @@ static int ms_dtls_srtp_rtp_sendData (void *ctx, const unsigned char *data, size
 	RtpSession *session = context->stream_sessions->rtp_session;
 	RtpTransport *rtpt=NULL;
 	mblk_t *msg;
+	int ret;
 
 	ms_message("DTLS Send RTP packet len %d sessions: %p rtp session %p", (int)length, context->stream_sessions, context->stream_sessions->rtp_session);
 
@@ -144,7 +145,10 @@ static int ms_dtls_srtp_rtp_sendData (void *ctx, const unsigned char *data, size
 	/* generate message from raw data */
 	msg = rtp_session_create_packet_raw((uint8_t *)data, (int)length);
 
-	return meta_rtp_transport_modifier_inject_packet(rtpt, context->rtp_modifier, msg , 0);
+	ret = meta_rtp_transport_modifier_inject_packet(rtpt, context->rtp_modifier, msg , 0);
+
+	freemsg(msg);
+	return ret;
 }
 
 /**
@@ -166,6 +170,7 @@ static int ms_dtls_srtp_rtcp_sendData (void *ctx, const unsigned char *data, siz
 	RtpSession *session = context->stream_sessions->rtp_session;
 	RtpTransport *rtcpt=NULL;
 	mblk_t *msg;
+	int ret;
 
 	ms_message("DTLS Send RTCP packet len %d sessions: %p rtp session %p", (int)length, context->stream_sessions, context->stream_sessions->rtp_session);
 
@@ -175,7 +180,10 @@ static int ms_dtls_srtp_rtcp_sendData (void *ctx, const unsigned char *data, siz
 	/* generate message from raw data */
 	msg = rtp_session_create_packet_raw((uint8_t *)data, (int)length);
 
-	return meta_rtp_transport_modifier_inject_packet(rtcpt, context->rtcp_modifier, msg , 0);
+	ret = meta_rtp_transport_modifier_inject_packet(rtcpt, context->rtcp_modifier, msg , 0);
+	freemsg(msg);
+
+	return ret;
 }
 
 
@@ -519,6 +527,7 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 				} else {
 					ms_error("DTLS Handshake successful but fingerprints differ received : %s computed %s", ctx->peer_fingerprint, computed_peer_fingerprint);
 				}
+				ms_free(computed_peer_fingerprint);
 			}
 			ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );
 			printf("DTLS : close ssl returns %d", ret);
@@ -606,6 +615,7 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 				} else {
 					ms_error("DTLS RTCP Handshake successful but fingerprint doesn't match");
 				}
+				ms_free(computed_peer_fingerprint);
 			}
 			ret = ssl_close_notify( &(ctx->rtcp_dtls_context->ssl) );
 			printf("DTLS : close ssl returns %d", ret);
@@ -770,7 +780,40 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 }
 
 void ms_dtls_srtp_context_destroy(MSDtlsSrtpContext *ctx) {
-	free(ctx);
+	/* clean polarssl contexts */
+	if (ctx->rtp_dtls_context) {
+		x509_crt_free( &(ctx->rtp_dtls_context->crt) );
+		ssl_free( &(ctx->rtp_dtls_context->ssl) );
+		ctr_drbg_free( &(ctx->rtp_dtls_context->ctr_drbg) );
+		entropy_free( &(ctx->rtp_dtls_context->entropy) );
+		pk_free( &(ctx->rtp_dtls_context->pkey) );
+		ssl_cookie_free( &(ctx->rtp_dtls_context->cookie_ctx) );
+		ms_free(ctx->rtp_dtls_context);
+	}
+	if (ctx->rtcp_dtls_context) {
+		x509_crt_free( &(ctx->rtcp_dtls_context->crt) );
+		ssl_free( &(ctx->rtcp_dtls_context->ssl) );
+		ctr_drbg_free( &(ctx->rtcp_dtls_context->ctr_drbg) );
+		entropy_free( &(ctx->rtcp_dtls_context->entropy) );
+		pk_free( &(ctx->rtcp_dtls_context->pkey) );
+		ssl_cookie_free( &(ctx->rtcp_dtls_context->cookie_ctx) );
+		ms_free(ctx->rtcp_dtls_context);
+	}
+	/* clean incoming buffers */
+	while (ctx->rtp_incoming_buffer!=NULL) {
+		DtlsRawPacket *next_packet = ctx->rtp_incoming_buffer->next;
+		ms_free(ctx->rtp_incoming_buffer->data);
+		ms_free(ctx->rtp_incoming_buffer);
+		ctx->rtp_incoming_buffer = next_packet;
+	}
+	while (ctx->rtcp_incoming_buffer!=NULL) {
+		DtlsRawPacket *next_packet = ctx->rtcp_incoming_buffer->next;
+		ms_free(ctx->rtcp_incoming_buffer->data);
+		ms_free(ctx->rtcp_incoming_buffer);
+		ctx->rtcp_incoming_buffer = next_packet;
+	}
+
+	ms_free(ctx);
 	ms_message("DTLS-SRTP context destroyed");
 }
 
