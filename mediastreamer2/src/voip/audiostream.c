@@ -1362,12 +1362,10 @@ bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 }
 
 void audio_stream_enable_dtls(AudioStream *stream, MSDtlsSrtpParams *params){
-#ifdef HAVE_DTLS
 	if (stream->ms.sessions.dtls_context==NULL) {
-		printf("Start DTLS audio stream context\n");
+		ms_message("Start DTLS audio stream context in stream sessions [%p]", &(stream->ms.sessions));
 		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->ms.sessions), params);
 	}
-#endif
 }
 
 static void configure_av_recorder(AudioStream *stream){

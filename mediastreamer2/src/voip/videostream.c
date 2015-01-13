@@ -1266,7 +1266,7 @@ void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtp
 
 void video_stream_enable_dtls(VideoStream *stream, MSDtlsSrtpParams *params){
 	if (stream->ms.sessions.dtls_context==NULL) {
-		printf("Start DTLS video stream context\n");
+		ms_message("Start DTLS video stream context in stream session [%p]", &(stream->ms.sessions));
 		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->ms.sessions), params);
 	}
 }

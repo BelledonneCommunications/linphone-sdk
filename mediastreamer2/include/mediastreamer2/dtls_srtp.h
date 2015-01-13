@@ -52,12 +52,8 @@ MS2_PUBLIC void ms_dtls_srtp_start(MSDtlsSrtpContext* context);
 MS2_PUBLIC void ms_dtls_srtp_context_destroy(MSDtlsSrtpContext *ctx);
 
 MS2_PUBLIC void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role);
-MS2_PUBLIC MSDtlsSrtpRole ms_dtls_srtp_get_role(MSDtlsSrtpContext *context);
 MS2_PUBLIC void ms_dtls_srtp_set_peer_fingerprint(MSDtlsSrtpContext *context, const char *peer_fingerprint);
 
-MS2_PUBLIC int ms_dtls_srtp_generate_self_signed_certificate(char *certif, char *pkey, char *fingerprint);
-MS2_PUBLIC int ms_dtls_srtp_transport_modifier_new(MSDtlsSrtpContext* ctx, RtpTransportModifier **rtpt, RtpTransportModifier **rtcpt );
-MS2_PUBLIC void ms_dtls_srtp_transport_modifier_destroy(RtpTransportModifier *tp);
 #ifdef __cplusplus
 }
 #endif
