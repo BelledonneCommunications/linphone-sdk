@@ -818,14 +818,24 @@ void ms_dtls_srtp_context_destroy(MSDtlsSrtpContext *ctx) {
 
 bool_t ms_dtls_srtp_available(){return FALSE;}
 
+MSDtlsSrtpContext* ms_dtls_srtp_context_new(MSMediaStreamSessions *sessions, MSDtlsSrtpParams *params) {
+	return NULL;
+}
+
 void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 }
 
 void ms_dtls_srtp_context_destroy(MSDtlsSrtpContext *ctx) {
 }
 
-MSDtlsSrtpContext* ms_dtls_srtp_context_new(MSMediaStreamSessions *sessions, MSDtlsSrtpParams *params) {
-	return NULL;
+void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role) {
+}
+
+void ms_dtls_srtp_set_peer_fingerprint(MSDtlsSrtpContext *context, const char *peer_fingerprint) {
+}
+
+void ms_dtls_srtp_set_stream_sessions(MSDtlsSrtpContext *dtls_context, MSMediaStreamSessions *stream_sessions) {
+	return;
 }
 
 #endif /* HAVE_DTLS */
