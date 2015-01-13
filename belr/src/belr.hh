@@ -1,7 +1,7 @@
 #ifndef belr_hh
 #define belr_hh
 
-
+#include <string>
 #include <list>
 #include <map>
 #include <memory>
