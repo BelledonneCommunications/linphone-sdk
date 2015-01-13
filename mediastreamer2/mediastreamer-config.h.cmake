@@ -76,5 +76,6 @@
 #cmakedefine HAVE_GL 1
 #cmakedefine HAVE_X11_XLIB_H 1
 #cmakedefine HAVE_XV 1
-#cmakedefine HAVE_LINUX_VIDEODEV_H
-#cmakedefine HAVE_LINUX_VIDEODEV2_H
+#cmakedefine HAVE_LINUX_VIDEODEV_H 1
+#cmakedefine HAVE_LINUX_VIDEODEV2_H 1
+#cmakedefine HAVE_POLARSSL_SSL_H 1
