@@ -2,6 +2,8 @@
 #include "parser.hh"
 #include <iostream>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
 
 namespace belr{
 
@@ -79,29 +81,42 @@ ParserContext<_parserElementT>::ParserContext(Parser<_parserElementT> &parser) :
 }
 
 template <typename _parserElementT>
-shared_ptr<HandlerContext<_parserElementT>> ParserContext<_parserElementT>::_beginParse(const shared_ptr<Recognizer> &rec){
-	shared_ptr<HandlerContext<_parserElementT>> ctx;
+ParserLocalContext ParserContext<_parserElementT>::_beginParse(const shared_ptr<Recognizer> &rec){
+	shared_ptr<HandlerContextBase> ctx;
+	bool isBranch=false;
 	auto it=mParser.mHandlers.find(rec->getName());
 	if (it!=mParser.mHandlers.end()){
 		ctx=(*it).second->createContext();
-		mHandlerStack.push_back(ctx);
+		mHandlerStack.push_back(static_pointer_cast<HandlerContext<_parserElementT>>(ctx));
+	}else{
+		isBranch=true;
+		ctx=branch();
 	}
-	return ctx;
+	return ParserLocalContext(ctx,rec,isBranch);
 }
 
 template <typename _parserElementT>
-void ParserContext<_parserElementT>::_endParse(const shared_ptr<Recognizer> &rec, const shared_ptr<HandlerContext<_parserElementT>> &ctx, const string &input, size_t begin, size_t count){
-	if (ctx){
+void ParserContext<_parserElementT>::_endParse(const ParserLocalContext &localctx, const string &input, size_t begin, size_t count){
+	if (!localctx.mIsBranch){
 		mHandlerStack.pop_back();
-	}
-	if (count!=string::npos && count>0){
-		if (!mHandlerStack.empty()){
-			/*assign object to parent */
-			mHandlerStack.back()->setChild(rec->getName(), begin, count, ctx);
-			
+		if (count!=string::npos && count>0){
+			if (!mHandlerStack.empty()){
+				/*assign object to parent */
+				mHandlerStack.back()->setChild(localctx.mRecognizer->getName(), begin, count, 
+					static_pointer_cast<HandlerContext< _parserElementT >> (localctx.mHandlerContext));
+				
+			}else{
+				/*no parent, this is our root object*/
+				mRoot=static_pointer_cast<HandlerContext< _parserElementT >>(localctx.mHandlerContext);
+			}
+		}
+	}else{
+		if (count!=string::npos && count>0){
+			merge(localctx.mHandlerContext);
+			/*assign string to parent */
+			mHandlerStack.back()->setChild(localctx.mRecognizer->getName(), begin, count, NULL);
 		}else{
-			/*no parent, this is our root object*/
-			mRoot=ctx;
+			removeBranch(localctx.mHandlerContext);
 		}
 	}
 }
@@ -144,18 +159,18 @@ void ParserContext<_parserElementT>::_removeBranch(const shared_ptr<HandlerConte
 }
 
 template <typename _parserElementT>
-shared_ptr<HandlerContextBase> ParserContext<_parserElementT>::beginParse(const shared_ptr<Recognizer> &rec){
-	return static_pointer_cast<HandlerContext<_parserElementT>>(_beginParse(rec));
+ParserLocalContext ParserContext<_parserElementT>::beginParse(const shared_ptr<Recognizer> &rec){
+	return _beginParse(rec);
 }
 
 template <typename _parserElementT>
-void ParserContext<_parserElementT>::endParse(const shared_ptr<Recognizer> &rec, const shared_ptr<HandlerContextBase> &ctx, const string &input, size_t begin, size_t count){
-	_endParse(rec,static_pointer_cast<HandlerContext<_parserElementT>>(ctx), input, begin, count);
+void ParserContext<_parserElementT>::endParse(const ParserLocalContext &localctx, const string &input, size_t begin, size_t count){
+	_endParse(localctx, input, begin, count);
 }
 
 template <typename _parserElementT>
 shared_ptr<HandlerContextBase> ParserContext<_parserElementT>::branch(){
-	return static_pointer_cast<HandlerContext<_parserElementT>>(_branch());
+	return _branch();
 }
 
 template <typename _parserElementT>
@@ -187,9 +202,13 @@ _parserElementT Parser<_parserElementT>::parseInput(const string &rulename, cons
 	shared_ptr<Recognizer> rec=mGrammar->getRule(rulename);
 	auto pctx=make_shared<ParserContext<_parserElementT>>(*this);
 	
+	auto t_start = std::chrono::high_resolution_clock::now();
 	parsed=rec->feed(pctx, input, 0);
+	auto t_end = std::chrono::high_resolution_clock::now();
+	cout<<"Recognition done in "<<std::chrono::duration<double, std::milli>(t_end-t_start).count()<<" milliseconds"<<endl;
 	if (parsed_size) *parsed_size=parsed;
-	return pctx->createRootObject(input);
+	auto ret= pctx->createRootObject(input);
+	return ret;
 }
 
 }

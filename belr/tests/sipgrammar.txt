@@ -77,9 +77,10 @@ password         =  *( unreserved / escaped /
 hostport         =  host [ ":" port ]
 host             =  hostname / IPv4address / IPv6reference
 hostname         =  *( domainlabel "." ) toplabel [ "." ]
-domainlabel      =  alphanum
-                    / alphanum *( alphanum / "-" ) alphanum
-toplabel         =  ALPHA / ALPHA *( alphanum / "-" ) alphanum
+;domainlabel is modified to avoid an ambiguity
+domainlabel      =  alphanum / (alphanum *( alphanum / ( *("-") alphanum) ) )
+;toplabel is modified to avoid an ambiguity
+toplabel         =  ALPHA / (ALPHA *( alphanum / (*("-") alphanum ) ) )
 
 IPv4address    =  1*3DIGIT "." 1*3DIGIT "." 1*3DIGIT "." 1*3DIGIT
 IPv6reference  =  "[" IPv6address "]"

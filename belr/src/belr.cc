@@ -21,7 +21,7 @@ const string &Recognizer::getName()const{
 size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
 	size_t match;
 	
-	shared_ptr<HandlerContextBase> hctx=ctx->beginParse(shared_from_this());
+	ParserLocalContext hctx=ctx->beginParse(shared_from_this());
 	match=_feed(ctx, input, pos);
 	if (match!=string::npos && match>0){
 		if (0 && mName.size()>0){
@@ -29,7 +29,7 @@ size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &
 			cout<<"Matched recognizer '"<<mName<<"' with sequence '"<<matched<<"'."<<endl;
 		}
 	}
-	ctx->endParse(shared_from_this(), hctx, input, pos, match);
+	ctx->endParse(hctx, input, pos, match);
 	
 	return match;
 }
@@ -142,6 +142,7 @@ size_t Loop::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input
 		if (matched==string::npos) break;
 		total+=matched;
 		pos+=matched;
+		if (input[pos]=='\0') break;
 	}
 	if (repeat<mMin) return string::npos;
 	return total;

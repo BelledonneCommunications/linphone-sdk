@@ -127,8 +127,21 @@ public:
 		return make_shared<HandlerContext>(mHandler);
 	}
 	void merge(const shared_ptr<HandlerContext<_parserElementT>> &other){
-		mAssignments.splice(mAssignments.begin(), other->mAssignments);
+		mAssignments.splice(mAssignments.end(), other->mAssignments);
 	}
+	typename list<Assignment<_parserElementT>>::iterator getLastIterator(){
+		if (mAssignments.empty())
+			return mAssignments.end();
+		return --mAssignments.end();
+	}
+	void undoAssignments(const typename list<Assignment<_parserElementT>>::iterator &last_valid){
+		if (mAssignments.end()==last_valid){
+			mAssignments.clear();
+		}else{
+			mAssignments.erase(++last_valid,mAssignments.end());
+		}
+	}
+	
 private:
 	shared_ptr<ParserHandlerBase<_parserElementT>> mHandler;
 	list<Assignment<_parserElementT>> mAssignments;
@@ -137,10 +150,19 @@ private:
 template <typename _parserElementT>
 class Parser;
 
+struct ParserLocalContext{
+	ParserLocalContext(const shared_ptr<HandlerContextBase>& hc, const shared_ptr<Recognizer>& rec, bool isBranch)
+		: mHandlerContext(hc), mRecognizer(rec), mIsBranch(isBranch){
+	}
+	shared_ptr<HandlerContextBase> mHandlerContext;
+	shared_ptr<Recognizer> mRecognizer;
+	bool mIsBranch;
+};
+
 class ParserContextBase{
 public:
-	virtual shared_ptr<HandlerContextBase> beginParse(const shared_ptr<Recognizer> &rec)=0;
-	virtual void endParse(const shared_ptr<Recognizer> &rec, const shared_ptr<HandlerContextBase> &ctx, const string &input, size_t begin, size_t count)=0;
+	virtual ParserLocalContext beginParse(const shared_ptr<Recognizer> &rec)=0;
+	virtual void endParse(const ParserLocalContext &ctx, const string &input, size_t begin, size_t count)=0;
 	virtual shared_ptr<HandlerContextBase> branch()=0;
 	virtual void merge(const shared_ptr<HandlerContextBase> &other)=0;
 	virtual void removeBranch(const shared_ptr<HandlerContextBase> &other)=0;
@@ -152,13 +174,13 @@ public:
 	ParserContext(Parser<_parserElementT> &parser);
 	_parserElementT createRootObject(const string &input);
 protected:
-	virtual shared_ptr<HandlerContextBase> beginParse(const shared_ptr<Recognizer> &rec);
-	virtual void endParse(const shared_ptr<Recognizer> &rec, const shared_ptr<HandlerContextBase> &ctx, const string &input, size_t begin, size_t count);
+	virtual ParserLocalContext beginParse(const shared_ptr<Recognizer> &rec);
+	virtual void endParse(const ParserLocalContext &ctx, const string &input, size_t begin, size_t count);
 	virtual shared_ptr<HandlerContextBase> branch();
 	virtual void merge(const shared_ptr<HandlerContextBase> &other);
 	virtual void removeBranch(const shared_ptr<HandlerContextBase> &other);
-	shared_ptr<HandlerContext<_parserElementT>> _beginParse(const shared_ptr<Recognizer> &rec);
-	void _endParse(const shared_ptr<Recognizer> &rec, const shared_ptr<HandlerContext<_parserElementT>> &ctx, const string &input, size_t begin, size_t count);
+	ParserLocalContext _beginParse(const shared_ptr<Recognizer> &rec);
+	void _endParse(const ParserLocalContext &ctx, const string &input, size_t begin, size_t count);
 	shared_ptr<HandlerContext<_parserElementT>> _branch();
 	void _merge(const shared_ptr<HandlerContext<_parserElementT>> &other);
 	void _removeBranch(const shared_ptr<HandlerContext<_parserElementT>> &other);
