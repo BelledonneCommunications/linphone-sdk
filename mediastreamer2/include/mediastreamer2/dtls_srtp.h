@@ -45,7 +45,7 @@ typedef struct MSDtlsSrtpParams {
 
 typedef struct _MSDtlsSrtpContext MSDtlsSrtpContext;
 
-MS2_PUBLIC bool_t ms_dtls_available(void);
+MS2_PUBLIC bool_t ms_dtls_srtp_available(void);
 
 MS2_PUBLIC MSDtlsSrtpContext* ms_dtls_srtp_context_new(struct _MSMediaStreamSessions *sessions, MSDtlsSrtpParams *params);
 MS2_PUBLIC void ms_dtls_srtp_start(MSDtlsSrtpContext* context);

@@ -107,7 +107,7 @@ void ms_dtls_srtp_set_stream_sessions(MSDtlsSrtpContext *dtls_context, MSMediaSt
 		dtls_context->stream_sessions = stream_sessions;
 	}
 }
-bool_t ms_dtls_available(){return TRUE;}
+bool_t ms_dtls_srtp_available(){return TRUE;}
 
 static int ms_dtls_srtp_rtp_process_on_send(struct _RtpTransportModifier *t, mblk_t *msg){
 	return msgdsize(msg);
@@ -823,6 +823,6 @@ void ms_dtls_srtp_transport_modifier_destroy(RtpTransportModifier *tp)  {
 
 #else /* HAVE_DTLS */
 
-bool_t ms_dtls_available(){return FALSE;}
+bool_t ms_dtls_srtp_available(){return FALSE;}
 
 #endif /* HAVE_DTLS */

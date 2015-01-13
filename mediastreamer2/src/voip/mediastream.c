@@ -245,7 +245,7 @@ void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled) 
 }
 
 bool_t media_stream_dtls_supported(void){
-	return ms_dtls_available();
+	return ms_dtls_srtp_available();
 }
 
 /*deprecated*/
