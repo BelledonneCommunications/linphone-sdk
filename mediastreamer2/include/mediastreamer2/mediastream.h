@@ -259,7 +259,7 @@ MS2_PUBLIC void media_stream_iterate(MediaStream * stream);
 MS2_PUBLIC bool_t media_stream_alive(MediaStream *stream, int timeout_seconds);
 
 /**
- * @returns curret streams tate
+ * @return curret streams tate
  * */
 MS2_PUBLIC MSStreamState media_stream_get_state(const MediaStream *stream);
 
@@ -362,7 +362,7 @@ MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile *
  * @param playcard The soundcard to be used for playback (can be NULL)
  * @param captcard The soundcard to be used for catpure. (can be NULL)
  * @param use_ec whether echo cancellation is to be performed.
- * @returns 0 if sucessful, -1 otherwise.
+ * @return 0 if sucessful, -1 otherwise.
 **/
 MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
@@ -383,13 +383,13 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
  * @param loc_rtp_port the local UDP port to listen for RTP packets.
  * @param loc_rtcp_port the local UDP port to listen for RTCP packets
  * @param ipv6 TRUE if ipv6 must be used.
- * @returns a new AudioStream.
+ * @return a new AudioStream.
 **/
 MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
 
 /**Creates an AudioStream object from initialized MSMediaStreamSessions.
  * @param sessions the MSMediaStreamSessions
- * @returns a new AudioStream
+ * @return a new AudioStream
 **/
 MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
 

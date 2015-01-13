@@ -55,7 +55,7 @@ MS2_PUBLIC unsigned int ms_concealer_context_is_concealement_required(MSConceale
  * @param current_time the current time in milliseconds, as pointed by f->ticker->time.
  * @param time_increment the number of milliseconds of audio decoded.
  * @param got_packet set to 1 if a real frame was decoded, 0 if it was a PLC frame.
- * @returns if a PLC period terminates, returns the duration of this PLC period in milliseconds, 0 otherwise.
+ * @return if a PLC period terminates, returns the duration of this PLC period in milliseconds, 0 otherwise.
 **/
 MS2_PUBLIC int ms_concealer_inc_sample_time(MSConcealerContext* obj, uint64_t current_time, int time_increment, int got_packet);
 
@@ -92,7 +92,7 @@ MS2_PUBLIC unsigned int ms_concealer_ts_context_is_concealement_required(MSConce
  * @param current_ts the current time converted in timestamp units, usually (f->ticker->time*clock_rate)/1000
  * @param ts_increment the duration of audio decoded expressed in timestamp units
  * @param got_packet set to 1 if a real frame was decoded, 0 if it was a PLC frame.
- * @returns if a PLC period terminates, returns the duration of this PLC period in timestamp units, 0 otherwise.
+ * @return if a PLC period terminates, returns the duration of this PLC period in timestamp units, 0 otherwise.
 **/
 MS2_PUBLIC int ms_concealer_ts_context_inc_sample_ts(MSConcealerTsContext* obj, uint64_t current_ts, int ts_increment, int got_packet);
 
