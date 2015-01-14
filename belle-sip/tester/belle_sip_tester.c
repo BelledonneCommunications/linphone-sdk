@@ -29,6 +29,8 @@
 #endif
 #include <belle-sip/belle-sip.h>
 
+#include "port.h"
+
 extern const char *test_domain;
 extern const char *auth_domain;
 
@@ -135,6 +137,7 @@ int belle_sip_tester_ipv6_available(void){
 }
 
 void belle_sip_tester_init() {
+	belle_sip_init_sockets();
 	belle_sip_object_enable_marshal_check(TRUE);
 	ipv6_available=_belle_sip_tester_ipv6_available();
 	add_test_suite(&cast_test_suite);
@@ -166,6 +169,7 @@ void belle_sip_tester_set_junit_output(const char *junit_path ) {
 
 
 void belle_sip_tester_uninit(void) {
+	belle_sip_uninit_sockets();
 	if (test_suite != NULL) {
 		free(test_suite);
 		test_suite = NULL;
