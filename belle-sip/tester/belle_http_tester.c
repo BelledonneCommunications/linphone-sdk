@@ -264,7 +264,7 @@ static void process_response_headers(void *data, const belle_http_response_event
 	}
 }
 
-static void https_get_long_user_body(void){
+static void http_get_long_user_body(void){
 	belle_http_request_listener_callbacks_t cbs={0};
 	belle_http_request_listener_t *l;
 	belle_generic_uri_t *uri;
@@ -311,7 +311,7 @@ test_t http_tests[] = {
 	{ "https digest GET", https_digest_get },/*, FIXME, need a server for testing
 	{ "https with client certificate", https_client_cert_connection }*/
 	{ "https POST with long body", https_post_long_body },
-	{ "https GET with long user body", https_get_long_user_body}
+	{ "http GET with long user body", http_get_long_user_body}
 };
 
 test_suite_t http_test_suite = {
