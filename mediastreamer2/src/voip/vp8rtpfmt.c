@@ -688,30 +688,6 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, MSList *packets_list
 	ctx->non_processed_packets_list=frame_packets_list;
 }
 
-static void output_partition(MSQueue *out, Vp8RtpFmtPartition **partition, bool_t last) {
-	if (*partition == NULL) {
-		*partition = create_empty_partition();
-	}
-	concat_packets_of_partition(*partition);
-	if ((*partition)->has_marker || (last == TRUE)) {
-		mblk_set_marker_info((*partition)->m, 1);
-	}
-	ms_queue_put(out, (void *)(*partition)->m);
-	(*partition)->outputted = TRUE;
-}
-
-static void output_partitions_of_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8RtpFmtFrame *frame) {
-	int i;
-#ifdef VP8RTPFMT_DEBUG
-	if (frame->pictureid_present == TRUE) {
-		ms_message("VP8 decoder: Output partitions of frame with pictureID=0x%04x", frame->pictureid);
-	}
-#endif
-	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
-		output_partition(out, &frame->partitions[i], (i == frame->partitions_info.nb_partitions) ? TRUE : FALSE);
-	}
-}
-
 static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 	Vp8RtpFmtPartition *partition;
 	mblk_t *om = NULL;
@@ -733,6 +709,34 @@ static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 		if (om->b_cont) msgpullup(om, -1);
 		mblk_set_marker_info(om, 1);
 		ms_queue_put(out, (void *)om);
+	}
+}
+
+static void output_partition(MSQueue *out, Vp8RtpFmtPartition **partition, bool_t last) {
+	if (*partition == NULL) {
+		*partition = create_empty_partition();
+	}
+	concat_packets_of_partition(*partition);
+	if ((*partition)->has_marker || (last == TRUE)) {
+		mblk_set_marker_info((*partition)->m, 1);
+	}
+	ms_queue_put(out, (void *)(*partition)->m);
+	(*partition)->outputted = TRUE;
+}
+
+static void output_partitions_of_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8RtpFmtFrame *frame) {
+	int i;
+	if (frame->unnumbered_partitions == TRUE) {
+		output_frame(out, frame);
+	} else {
+#ifdef VP8RTPFMT_DEBUG
+		if (frame->pictureid_present == TRUE) {
+			ms_message("VP8 decoder: Output partitions of frame with pictureID=0x%04x", frame->pictureid);
+		}
+#endif
+		for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
+			output_partition(out, &frame->partitions[i], (i == frame->partitions_info.nb_partitions) ? TRUE : FALSE);
+		}
 	}
 }
 
