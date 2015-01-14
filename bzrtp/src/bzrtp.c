@@ -760,3 +760,83 @@ void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	/* free the channel context */
 	free(zrtpChannelContext);
 }
+
+static uint8_t copyCryptoTypes(uint8_t destination[7], uint8_t source[7], uint8_t size)
+{
+	int i;
+
+	for (i=0; i<size; i++) {
+		destination[i] = source[i];
+	}
+	return size;
+}
+
+/**
+ * @brief Get the supported crypto types
+ *
+ * @param[int]		zrtpContext				The ZRTP context we're dealing with
+ * @param[in]		algoType				mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
+ * @param[out]		supportedTypes			mapped to uint8_t value of the 4 char strings giving the supported types as string according to rfc section 5.1.2 to 5.1.6
+ *
+ * @return number of supported types, 0 on error
+ */
+uint8_t bzrtp_getSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType, uint8_t supportedTypes[7])
+{
+	if (zrtpContext==NULL) {
+		return 0;
+	}
+
+	switch(algoType) {
+		case ZRTP_HASH_TYPE:
+			return copyCryptoTypes(supportedTypes, zrtpContext->supportedHash, zrtpContext->hc);
+		case ZRTP_CIPHERBLOCK_TYPE:
+			return copyCryptoTypes(supportedTypes, zrtpContext->supportedCipher, zrtpContext->cc);
+		case ZRTP_AUTHTAG_TYPE:
+			return copyCryptoTypes(supportedTypes, zrtpContext->supportedAuthTag, zrtpContext->ac);
+		case ZRTP_KEYAGREEMENT_TYPE:
+			return copyCryptoTypes(supportedTypes, zrtpContext->supportedKeyAgreement, zrtpContext->kc);
+		case ZRTP_SAS_TYPE:
+			return copyCryptoTypes(supportedTypes, zrtpContext->supportedSas, zrtpContext->sc);
+		default:
+			return 0;
+	}
+}
+
+/**
+ * @brief set the supported crypto types
+ *
+ * @param[int/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in]		algoType				mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
+ * @param[in]		supportedTypes			mapped to uint8_t value of the 4 char strings giving the supported types as string according to rfc section 5.1.2 to 5.1.6
+ * @param[in]		supportedTypesCount		number of supported crypto types
+ */
+void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType, uint8_t supportedTypes[7], uint8_t supportedTypesCount)
+{
+	uint8_t implementedTypes[7];
+	uint8_t implementedTypesCount;
+
+	if (zrtpContext==NULL) {
+		return;
+	}
+
+	supportedTypesCount = supportedTypesCount < 7 ? supportedTypesCount : 7;
+	implementedTypesCount = bzrtpCrypto_getAvailableCryptoTypes(algoType, implementedTypes);
+
+	switch(algoType) {
+		case ZRTP_HASH_TYPE:
+			zrtpContext->hc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedHash);
+			break;
+		case ZRTP_CIPHERBLOCK_TYPE:
+			zrtpContext->cc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedCipher);
+			break;
+		case ZRTP_AUTHTAG_TYPE:
+			zrtpContext->ac = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedAuthTag);
+			break;
+		case ZRTP_KEYAGREEMENT_TYPE:
+			zrtpContext->kc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedKeyAgreement);
+			break;
+		case ZRTP_SAS_TYPE:
+			zrtpContext->sc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedSas);
+			break;
+	}
+}
