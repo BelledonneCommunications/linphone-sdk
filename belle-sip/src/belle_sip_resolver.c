@@ -588,7 +588,7 @@ struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipadd
 	hints.ai_flags=AI_NUMERICSERV|AI_NUMERICHOST;
 	hints.ai_socktype=SOCK_STREAM; //not used but it's needed to specify it because otherwise getaddrinfo returns one struct addrinfo per socktype.
 	
-	if (family==AF_INET6 && strchr(ipaddress,'.')!=NULL) {
+	if (family==AF_INET6 && strchr(ipaddress,':')==NULL) {
 		hints.ai_flags|=AI_V4MAPPED;
 	}
 	err=belle_sip_getaddrinfo(ipaddress,serv,&hints,&res);
@@ -970,7 +970,10 @@ void belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *obj){
 	BELLE_SIP_OBJECT_VPTR(obj,belle_sip_resolver_context_t)->cancel(obj);
 }
 
-
+/*
+This function does the connect() method to get local ip address suitable to reach a given destination.
+It works on all platform except for windows using ipv6 sockets. TODO: find a workaround for win32+ipv6 socket
+*/
 void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen, int local_port){
 	int af_type=dest->sa_family;
 	int sock=socket(af_type,SOCK_DGRAM,IPPROTO_UDP);
@@ -979,6 +982,11 @@ void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, 
 		belle_sip_fatal("Could not create socket: %s",belle_sip_get_socket_error_string());
 		goto fail;
 	}
+	
+	if (af_type==AF_INET6){
+		belle_sip_socket_enable_dual_stack(sock);
+	}
+	
 	if (connect(sock,dest,destlen)==-1){
 		belle_sip_error("belle_sip_get_src_addr_for: connect() failed: %s",belle_sip_get_socket_error_string());
 		goto fail;

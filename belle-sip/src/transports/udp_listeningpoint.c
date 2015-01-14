@@ -90,6 +90,9 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *fa
 	if (err == -1){
 		belle_sip_warning ("Fail to set SIP/UDP address reusable: %s.", belle_sip_get_socket_error_string());
 	}
+	if (res->ai_family==AF_INET6){
+		belle_sip_socket_enable_dual_stack(sock);
+	}
 	
 	err=bind(sock,res->ai_addr,res->ai_addrlen);
 	if (err==-1){

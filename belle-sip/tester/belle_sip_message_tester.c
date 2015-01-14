@@ -584,12 +584,10 @@ static void testMalformedFrom(void){
 
 	listener_cbs.process_response_event = testMalformedFrom_process_response_cb;
 	listener = belle_sip_listener_create_from_callbacks(&listener_cbs, &called_times);
-
 	belle_sip_provider_add_sip_listener(provider, listener);
 
 	belle_sip_object_ref(message);
 	belle_sip_object_ref(message); /* double ref: originally the message is created with 0 refcount, and dispatch_message will unref() it.*/
-
 	belle_sip_provider_dispatch_message(provider, message);
 	// we expect the stack to send a 400 error
 	belle_sip_stack_sleep(stack,1000);

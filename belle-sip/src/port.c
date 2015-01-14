@@ -190,12 +190,27 @@ int belle_sip_socket_set_dscp(belle_sip_socket_t sock, int ai_family, int dscp){
 
 #endif
 
-#ifdef ANDROID
+
+int belle_sip_socket_enable_dual_stack(belle_sip_socket_t sock){
+	int value=0;
+	int err=setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&value, sizeof(value));
+	if (err==-1){
+		belle_sip_warning("belle_sip_socket_enable_dual_stack: setsockopt(IPV6_ONLY) failed: %s",belle_sip_get_socket_error_string());
+	}
+	return err;
+}
+
+#if defined(ANDROID) || defined(WIN32)
 
 /*
  * SHAME !!! bionic's getaddrinfo does not implement the AI_V4MAPPED flag !
  * It is declared in header file but rejected by the implementation.
  * The code below is to emulate a _compliant_ getaddrinfo for android.
+**/
+
+/**
+ * SHAME AGAIN !!! Win32's implementation of getaddrinfo is bogus !
+ * it is not able to return an IPv6 addrinfo from an IPv4 address when AI_V4MAPPED is set !
 **/
 
 struct addrinfo *_belle_sip_alloc_addrinfo(int ai_family, int socktype, int proto){

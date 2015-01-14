@@ -89,9 +89,9 @@ static void belle_sip_source_to_poll(belle_sip_source_t *s, belle_sip_pollfd_t *
 		long events=0;
 		
 		if (s->events & BELLE_SIP_EVENT_READ)
-			events|=FD_READ;
+			events|=FD_READ|FD_ACCEPT;
 		if (s->events & BELLE_SIP_EVENT_WRITE)
-			events|=FD_WRITE;
+			events|=FD_WRITE|FD_CONNECT;
 		if (events!=s->armed_events){
 			s->armed_events=events;
 			err=WSAEventSelect(s->sock,s->fd,events);
@@ -113,10 +113,10 @@ static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip
 				belle_sip_error("WSAEnumNetworkEvents() failed: %s socket=%x",belle_sip_get_socket_error_string(),(unsigned int)s->sock);
 				return 0;
 			}
-			if (revents.lNetworkEvents & FD_READ){
+			if (revents.lNetworkEvents & FD_READ || revents.lNetworkEvents & FD_ACCEPT){
 				ret|=BELLE_SIP_EVENT_READ;
 			}
-			if (revents.lNetworkEvents & FD_WRITE){
+			if (revents.lNetworkEvents & FD_WRITE || revents.lNetworkEvents & FD_CONNECT){
 				ret|=BELLE_SIP_EVENT_WRITE;
 			}
 			s->armed_events=0;

@@ -131,6 +131,9 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 		belle_sip_error("setsockopt TCP_NODELAY failed: [%s]",belle_sip_get_socket_error_string());
 	}
 	belle_sip_socket_set_nonblocking(sock);
+	if (ai->ai_family==AF_INET6){
+		belle_sip_socket_enable_dual_stack(sock);
+	}
 	
 	err = connect(sock,ai->ai_addr,ai->ai_addrlen);
 	if (err != 0 && get_socket_error()!=BELLESIP_EINPROGRESS && get_socket_error()!=BELLESIP_EWOULDBLOCK) {

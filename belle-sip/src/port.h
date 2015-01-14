@@ -61,6 +61,9 @@
 #	ifndef AI_ALL
 #	define AI_ALL 0x00000000
 #	endif
+#	ifndef IPV6_V6ONLY
+#	define IPV6_V6ONLY 27
+#	endif
 #endif
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
@@ -81,6 +84,7 @@ BELLESIP_INTERNAL_EXPORT int belle_sip_init_sockets(void);
 BELLESIP_INTERNAL_EXPORT void belle_sip_uninit_sockets(void);
 int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock);
 int belle_sip_socket_set_dscp(belle_sip_socket_t sock, int ai_family, int dscp);
+int belle_sip_socket_enable_dual_stack(belle_sip_socket_t sock);
  
 #if defined(WIN32)
 

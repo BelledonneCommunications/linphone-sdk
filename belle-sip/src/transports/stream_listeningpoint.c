@@ -85,7 +85,7 @@ static belle_sip_socket_t create_server_socket(const char *addr, int * port, int
 	}
 	*family=res->ai_family;
 	sock=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
-	if (sock==-1){
+	if (sock==(belle_sip_socket_t)-1){
 		belle_sip_error("Cannot create TCP socket: %s",belle_sip_get_socket_error_string());
 		freeaddrinfo(res);
 		return -1;
@@ -94,6 +94,9 @@ static belle_sip_socket_t create_server_socket(const char *addr, int * port, int
 			(char*)&optval, sizeof (optval));
 	if (err == -1){
 		belle_sip_warning ("Fail to set SIP/TCP address reusable: %s.", belle_sip_get_socket_error_string());
+	}
+	if (res->ai_family==AF_INET6){
+		belle_sip_socket_enable_dual_stack(sock);
 	}
 	
 	err=bind(sock,res->ai_addr,res->ai_addrlen);
@@ -129,6 +132,7 @@ static belle_sip_socket_t create_server_socket(const char *addr, int * port, int
 
 void belle_sip_stream_listening_point_setup_server_socket(belle_sip_stream_listening_point_t *obj, belle_sip_source_func_t on_new_connection_cb ){
 	int port=belle_sip_uri_get_port(obj->base.listening_uri);
+	
 	obj->server_sock=create_server_socket(belle_sip_uri_get_host(obj->base.listening_uri),
 		&port, &obj->base.ai_family);
 	if (obj->server_sock==(belle_sip_socket_t)-1) return;
