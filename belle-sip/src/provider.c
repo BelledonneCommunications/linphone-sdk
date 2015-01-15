@@ -1130,7 +1130,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 			if (!auth_event->userid) {
 				/*if no userid, username = userid*/
 
-				belle_sip_auth_event_set_userid(auth_event,(const char*)auth_event->username);
+				belle_sip_auth_event_set_userid(auth_event,auth_event->username);
 			}
 			belle_sip_message("Auth info found for [%s] realm [%s]",auth_event->userid,auth_event->realm);
 			if (auth_context->is_proxy ||

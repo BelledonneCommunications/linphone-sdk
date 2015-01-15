@@ -28,7 +28,7 @@
 #define IPV4_CNAME		"stun.linphone.org"
 #define IPV4_CNAME_IP		"91.121.209.194"
 #define IPV4_SIP_BAD_DOMAIN	"dummy.linphone.org"
-#define IPV4_MULTIRES_DOMAIN	"google.com"
+#define IPV4_MULTIRES_DOMAIN	"yahoo.fr"
 
 /* sip2.linphone.org has an IPv6 and an IPv4 IP*/
 #define IPV6_SIP_DOMAIN		"sip2.linphone.org"
