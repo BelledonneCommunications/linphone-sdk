@@ -35,39 +35,6 @@
 #include <stdint.h>
 #include "bzrtp/bzrtp.h"
 
-/* define different types of crypto functions */
-#define ZRTP_HASH_TYPE				0x01
-#define ZRTP_CIPHERBLOCK_TYPE 		0x02
-#define ZRTP_AUTHTAG_TYPE			0x04
-#define ZRTP_KEYAGREEMENT_TYPE		0x08
-#define ZRTP_SAS_TYPE				0x10
-
-/* map the differents algorithm (some may not be available) to integer */
-
-#define	ZRTP_HASH_S256			0x11
-#define	ZRTP_HASH_S384			0x12
-#define	ZRTP_HASH_N256			0x13
-#define	ZRTP_HASH_N384			0x14
-
-/*
- * Cipher block and Auth Tag algo are used by SRTP, so the client will need their defines
- * which are in bzrtp.h */
-
-/* WARNING : it is very important to keep the key agreement defined in that order
- * as it is used to easily sort them from faster(DH2k) to slower(EC52)
- */
-#define ZRTP_KEYAGREEMENT_DH2k	0x41
-#define ZRTP_KEYAGREEMENT_EC25	0x42
-#define ZRTP_KEYAGREEMENT_DH3k	0x43
-#define ZRTP_KEYAGREEMENT_EC38	0x44
-#define ZRTP_KEYAGREEMENT_EC52	0x45
-
-#define ZRTP_KEYAGREEMENT_Prsh	0x46
-#define ZRTP_KEYAGREEMENT_Mult	0x47
-
-#define ZRTP_SAS_B32			0x51
-#define ZRTP_SAS_B256			0x52
-
 /**
  * @brief Get the available crypto functions
  * - Hash function
