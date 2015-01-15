@@ -978,12 +978,15 @@ void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, 
 	int af_type=dest->sa_family;
 	int sock=socket(af_type,SOCK_DGRAM,IPPROTO_UDP);
 	
+	belle_sip_message("belle_sip_get_src_addr_for(): af_inet6=%i",af_type==AF_INET6);
 	if (sock==(belle_sip_socket_t)-1){
 		belle_sip_fatal("Could not create socket: %s",belle_sip_get_socket_error_string());
 		goto fail;
 	}
 	
-	if (af_type==AF_INET6){
+	if (af_type==AF_INET6 && (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6*)dest)->sin6_addr))){
+		/*this is actually required only for windows, who is enable to provide an ipv4 mapped local address if the remote is ipv4 mapped,
+		and unable to provide a correct local address if the remote address is true ipv6 address when in dual stack mode*/
 		belle_sip_socket_enable_dual_stack(sock);
 	}
 	
