@@ -912,7 +912,7 @@ static size_t find_non_asci(const char *buffer, size_t size){
 static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t size){
 	char *logbuf;
 	char truncate_msg[128]={0};
-	int limit=5000; /*big message when many ice candidates*/
+	int limit=7000; /*big message when many ice candidates*/
 	size_t non_ascii_pos;
 
 	if (!belle_sip_log_level_enabled(level)){
