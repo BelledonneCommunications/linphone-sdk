@@ -123,6 +123,21 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext);
 
 /**
+ * @brief Select common algorithm from the given array where algo are represented by their 4 chars string defined in rfc section 5.1.2 to 5.1.6
+ * Master array is the one given the preference order
+ * All algo are designed by their uint8_t mapped values
+ *
+ * @param[in]	masterArray	 		The ordered available algo, result will follow this ordering
+ * @param[in]	masterArrayLength	Number of valids element in the master array
+ * @param[in]	slaveArray	 		The available algo, order is not taken in account
+ * @param[in]	slaveArrayLength	Number of valids element in the slave array
+ * @param[out]	commonArray	 		The available algo, order is not taken in account
+ *
+ * @return		the number of common algorithm found
+ */
+uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t slaveArray[7], uint8_t slaveArrayLength, uint8_t commonArray[7]);
+
+/**
  * @brief Map the string description of algo type to an int defined in cryptoWrapper.h
  *
  * @param[in] algoType		A 4 chars string containing the algo type as listed in rfc sections 5.1.2 to 5.1.6

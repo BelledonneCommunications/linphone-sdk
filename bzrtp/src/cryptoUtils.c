@@ -32,9 +32,6 @@
 #include "cryptoUtils.h"
 #include "cryptoWrapper.h"
 
-/* local function prototype */
-uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t slaveArray[7], uint8_t slaveArrayLength, uint8_t commonArray[7]);
-
 
 int bzrtp_keyDerivationFunction(uint8_t *key, uint16_t keyLength,
 		uint8_t *label, uint16_t labelLength,
