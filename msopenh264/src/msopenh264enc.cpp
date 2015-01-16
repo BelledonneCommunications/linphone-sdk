@@ -63,31 +63,35 @@ void VideoStarter::deactivate()
 	mActive = false;
 }
 
-
-#define MS_OPENH264_CONF(required_bitrate, bitrate_limit, resolution, fps, cpus) \
-	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, cpus, NULL }
-
+#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
+	#define MS_OPENH264_CONF(required_bitrate, bitrate_limit, resolution, fps_pc, cpus_pc, fps_mobile, cpus_mobile) \
+		{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H },fps_pc, cpus_pc, NULL }
+#else
+	#define MS_OPENH264_CONF(required_bitrate, bitrate_limit, resolution, fps_pc, cpus_pc, fps_mobile, cpus_mobile) \
+		{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H },fps_mobile, cpus_mobile, NULL }
+#endif
 
 static const MSVideoConfiguration openh264_conf_list[] = {
-#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
-	MS_OPENH264_CONF(2048000, 3072000,       UXGA, 15, 4),
-	MS_OPENH264_CONF(1024000, 1536000, SXGA_MINUS, 15, 4),
-	MS_OPENH264_CONF( 750000, 1024000,        XGA, 15, 4),
-	MS_OPENH264_CONF( 500000,  750000,       SVGA, 15, 2),
-	MS_OPENH264_CONF( 300000,  500000,        VGA, 12 ,2),
-	MS_OPENH264_CONF( 128000,  300000,       QVGA, 12, 2),
-	MS_OPENH264_CONF( 170000,  512000,       QVGA, 12 ,1),
-#else
-	MS_OPENH264_CONF(1536000,  2560000, SXGA_MINUS, 15, 4),
-	MS_OPENH264_CONF(1536000,  2560000,       720P, 15, 4),
-	MS_OPENH264_CONF(1024000,  1536000,        XGA, 15, 4),
-	MS_OPENH264_CONF( 512000,  1024000,       SVGA, 15, 2),
-	MS_OPENH264_CONF( 256000,   512000,        VGA, 15, 1),
-	MS_OPENH264_CONF( 170000,   256000,       QVGA, 15, 1),
-#endif
-	MS_OPENH264_CONF( 128000,   170000,       QCIF, 10, 1),
-	MS_OPENH264_CONF(  64000,   128000,       QCIF,  7, 1),
-	MS_OPENH264_CONF(      0,    64000,       QCIF,  5, 1)
+	MS_OPENH264_CONF(2048000, 	1000000,            UXGA, 25,  4, 12, 2), /*1200p*/
+
+	MS_OPENH264_CONF(1024000, 	5000000, 	  SXGA_MINUS, 25,  4, 12, 2),
+
+	MS_OPENH264_CONF(1024000,  	5000000,   			720P, 25,  4, 12, 2),
+
+	MS_OPENH264_CONF( 750000, 	2048000,             XGA, 20,  4, 12, 2),
+
+	MS_OPENH264_CONF( 500000,  	1024000,            SVGA, 20,  2, 12, 2),
+
+	MS_OPENH264_CONF( 256000,  	 800000,             VGA, 15,  2, 12, 2), /*480p*/
+
+	MS_OPENH264_CONF( 128000,  	 512000,             CIF, 15,  1, 12, 2),
+
+	MS_OPENH264_CONF( 100000,  	 380000,            QVGA, 15,  1, 15, 2), /*240p*/
+	MS_OPENH264_CONF( 100000,  	 380000,            QVGA, 15,  1, 12, 1),
+
+	MS_OPENH264_CONF( 128000,    170000,            QCIF, 10,  1, 10, 1),
+	MS_OPENH264_CONF(  64000,    128000,            QCIF, 10,  1, 7, 1),
+	MS_OPENH264_CONF(      0,     64000,            QCIF, 10,  1, 5, 1)
 };
 
 
@@ -328,8 +332,8 @@ void MSOpenH264Encoder::calcBitrates(int &targetBitrate, int &maxBitrate) const
 	if (targetBitrate > RC_MARGIN) targetBitrate = targetBitrate - RC_MARGIN;
 	maxBitrate = targetBitrate + RC_MARGIN / 2;
 	*/
-	targetBitrate = mVConf.required_bitrate * 0.8;
-	maxBitrate = mVConf.required_bitrate*0.95;
+	targetBitrate = mVConf.required_bitrate*0.95;
+	maxBitrate = mVConf.required_bitrate;
 }
 
 void MSOpenH264Encoder::applyBitrate()
