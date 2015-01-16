@@ -462,50 +462,144 @@ void test_CRC32(void) {
 	}
 }
 
+static void setHelloMessageAlgo(bzrtpHelloMessage_t *helloMessage, uint8_t algoType, uint8_t types[7], const uint8_t typesCount) {
+	switch(algoType) {
+		case ZRTP_HASH_TYPE:
+			memcpy(helloMessage->supportedHash, types, typesCount);
+			helloMessage->hc = typesCount;
+			break;
+		case ZRTP_CIPHERBLOCK_TYPE:
+			memcpy(helloMessage->supportedCipher, types, typesCount);
+			helloMessage->cc = typesCount;
+			break;
+		case ZRTP_AUTHTAG_TYPE:
+			memcpy(helloMessage->supportedAuthTag, types, typesCount);
+			helloMessage->ac = typesCount;
+			break;
+		case ZRTP_KEYAGREEMENT_TYPE:
+			memcpy(helloMessage->supportedKeyAgreement, types, typesCount);
+			helloMessage->kc = typesCount;
+			break;
+		case ZRTP_SAS_TYPE:
+			memcpy(helloMessage->supportedSas, types, typesCount);
+			helloMessage->sc = typesCount;
+			break;
+	}
+}
 
-void test_algoAgreement(void) {
+static int compareAllAlgoTypes(bzrtpChannelContext_t *zrtpChannelContext, uint8_t expectedHashAlgo, uint8_t expectedCipherAlgo, uint8_t expectedAuthTagAlgo, uint8_t expectedKeyAgreementAlgo, uint8_t expectedSasAlgo) {
+	return
+			zrtpChannelContext->hashAlgo         == expectedHashAlgo &&
+			zrtpChannelContext->cipherAlgo       == expectedCipherAlgo &&
+			zrtpChannelContext->authTagAlgo      == expectedAuthTagAlgo &&
+			zrtpChannelContext->keyAgreementAlgo == expectedKeyAgreementAlgo &&
+			zrtpChannelContext->sasAlgo          == expectedSasAlgo;
+}
+
+static int compareAllAlgoTypesWithExpectedChangedOnly(bzrtpChannelContext_t *zrtpChannelContext, uint8_t expectedAlgoType, uint8_t expectedType) {
+	switch(expectedAlgoType) {
+		case ZRTP_HASH_TYPE:
+			return compareAllAlgoTypes(zrtpChannelContext, expectedType,   ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, ZRTP_KEYAGREEMENT_DH3k, ZRTP_SAS_B32);
+		case ZRTP_CIPHERBLOCK_TYPE:
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, expectedType,     ZRTP_AUTHTAG_HS32, ZRTP_KEYAGREEMENT_DH3k, ZRTP_SAS_B32);
+		case ZRTP_AUTHTAG_TYPE:
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, expectedType,      ZRTP_KEYAGREEMENT_DH3k, ZRTP_SAS_B32);
+		case ZRTP_KEYAGREEMENT_TYPE:
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, expectedType,           ZRTP_SAS_B32);
+		case ZRTP_SAS_TYPE:
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, ZRTP_KEYAGREEMENT_DH3k, expectedType);
+		default:
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, ZRTP_KEYAGREEMENT_DH3k, ZRTP_SAS_B32);
+	}
+}
+
+static int testAlgoType(uint8_t algoType, uint8_t packetTypes[7], uint8_t packetTypesCount, uint8_t contextTypes[7], uint8_t contextTypesCount, uint8_t expectedType) {
 	int retval;
-	bzrtpHelloMessage_t *helloMessage;
 
-	/* first we have to create a context */
-	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext(0x12345678); /* we don't use the SSRC for this test, set it to 12345678 */
-
-	/* and an hello packet to simulate the one received from peer */
-	bzrtpPacket_t *helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpContext->channelContext[0], MSGTYPE_HELLO, &retval); /* 0x12345678 is the SSRC of sender */
-
-	/* Test 1: Context and packet have been initialised with default values algo : DH3k, DH2k for key agreement type and shall then return DH3k as choosen key agreement algo */
-	retval = crypoAlgoAgreement(zrtpContext, zrtpContext->channelContext[0], helloPacket->messageData);
-
-	if ((retval==0) 
-			&& (zrtpContext->channelContext[0]->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k)
-			&& (zrtpContext->channelContext[0]->hashAlgo == ZRTP_HASH_S256)
-			&& (zrtpContext->channelContext[0]->cipherAlgo == ZRTP_CIPHER_AES1)
-			&& (zrtpContext->channelContext[0]->authTagAlgo == ZRTP_AUTHTAG_HS32)
-			&& (zrtpContext->channelContext[0]->sasAlgo == ZRTP_SAS_B32)) {
-		CU_PASS("Algo agreement test 1");
-	} else {
-		CU_FAIL("Algo agreement test 1");
+	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext(0x12345678);
+	if (contextTypes != NULL) {
+		bzrtp_setSupportedCryptoTypes(zrtpContext, algoType, contextTypes, contextTypesCount);
 	}
 
-	/* Test 2: now modify the Hello packet to have "DH2k, DH3k" preference order in the hello packet but keep the context order "DH3k, DH2k".
-	 * We shall pick the fastest -> DH2k */
-	helloMessage = (bzrtpHelloMessage_t *)helloPacket->messageData;
-	helloMessage->supportedKeyAgreement[0] = ZRTP_KEYAGREEMENT_DH2k;
-	helloMessage->supportedKeyAgreement[1] = ZRTP_KEYAGREEMENT_DH3k;
-
-	retval = crypoAlgoAgreement(zrtpContext, zrtpContext->channelContext[0], helloPacket->messageData);
-	if ((retval==0) 
-	&& (zrtpContext->channelContext[0]->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k)
-	&& (zrtpContext->channelContext[0]->hashAlgo == ZRTP_HASH_S256)
-	&& (zrtpContext->channelContext[0]->cipherAlgo == ZRTP_CIPHER_AES1)
-	&& (zrtpContext->channelContext[0]->authTagAlgo == ZRTP_AUTHTAG_HS32)
-	&& (zrtpContext->channelContext[0]->sasAlgo == ZRTP_SAS_B32)) {
-		CU_PASS("Algo agreement test 2");
-	} else {
-		CU_FAIL("Algo agreement test 2");
+	bzrtpPacket_t *helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpContext->channelContext[0], MSGTYPE_HELLO, &retval);
+	if (packetTypes != NULL) {
+		bzrtpHelloMessage_t *helloMessage = (bzrtpHelloMessage_t *)helloPacket->messageData;
+		setHelloMessageAlgo(helloMessage, algoType, packetTypes, packetTypesCount);
 	}
+
+	CU_ASSERT_FALSE(crypoAlgoAgreement(zrtpContext, zrtpContext->channelContext[0], helloPacket->messageData));
+	retval = compareAllAlgoTypesWithExpectedChangedOnly(zrtpContext->channelContext[0], algoType, expectedType);
 
 	bzrtp_freeZrtpPacket(helloPacket);
-	
 	bzrtp_destroyBzrtpContext(zrtpContext, 0x12345678);
+	return retval;
+}
+
+static int testAlgoTypeWithPacket(uint8_t algoType, uint8_t types[7], uint8_t typesCount, uint8_t expectedType) {
+	return testAlgoType(algoType, types, typesCount, NULL, 0, expectedType);
+}
+
+static int testAlgoTypeWithContext(uint8_t algoType, uint8_t types[7], uint8_t typesCount, uint8_t expectedType) {
+	return testAlgoType(algoType, NULL, 0, types, typesCount, expectedType);
+}
+
+void test_algoAgreement(void) {
+	/* check defaults */
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_UNSET_ALGO, NULL, 0, ZRTP_KEYAGREEMENT_DH3k));
+
+	/* key agreement type */
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k}, 1, ZRTP_KEYAGREEMENT_DH2k));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k}, 1, ZRTP_KEYAGREEMENT_DH3k));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k}, 2, ZRTP_KEYAGREEMENT_DH2k));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_DH3k}, 2, ZRTP_KEYAGREEMENT_DH3k));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_EC52}, 2, ZRTP_KEYAGREEMENT_DH2k));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_EC52, ZRTP_KEYAGREEMENT_DH3k}, 3, ZRTP_KEYAGREEMENT_DH3k));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC52, ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 4, ZRTP_KEYAGREEMENT_DH3k));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_EC52}, 4, ZRTP_KEYAGREEMENT_DH2k));
+
+	CU_TEST(testAlgoTypeWithContext(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k}, 1, ZRTP_KEYAGREEMENT_DH2k));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k}, 1, ZRTP_KEYAGREEMENT_DH3k));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k}, 2, ZRTP_KEYAGREEMENT_DH2k));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_DH3k}, 2, ZRTP_KEYAGREEMENT_DH3k));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_EC52}, 2, ZRTP_KEYAGREEMENT_DH2k));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_EC52, ZRTP_KEYAGREEMENT_DH3k}, 3, ZRTP_KEYAGREEMENT_DH3k));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC52, ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 4, ZRTP_KEYAGREEMENT_DH3k));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_EC52}, 4, ZRTP_KEYAGREEMENT_DH2k));
+
+	CU_TEST(testAlgoType(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 2, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k}, 2, ZRTP_KEYAGREEMENT_DH2k));
+	CU_TEST(testAlgoType(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k}, 2, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 2, ZRTP_KEYAGREEMENT_DH2k));
+	CU_TEST(testAlgoType(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 2, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 2, ZRTP_KEYAGREEMENT_DH3k));
+
+	CU_TEST(testAlgoType(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC52, ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 4, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 2, ZRTP_KEYAGREEMENT_DH3k));
+	CU_TEST(testAlgoType(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 2, (uint8_t []){ZRTP_KEYAGREEMENT_EC52, ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 4, ZRTP_KEYAGREEMENT_DH3k));
+	CU_TEST(testAlgoType(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_EC52}, 4, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_EC52}, 4, ZRTP_KEYAGREEMENT_DH2k));
+
+
+	/* cipher type */
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES1}, 1, ZRTP_CIPHER_AES1));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3}, 1, ZRTP_CIPHER_AES3));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES1}, 2, ZRTP_CIPHER_AES1));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES1, ZRTP_CIPHER_AES3}, 2, ZRTP_CIPHER_AES1));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_AES1}, 2, ZRTP_CIPHER_AES1));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 3, ZRTP_CIPHER_AES1));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 6, ZRTP_CIPHER_AES1));
+	CU_TEST(testAlgoTypeWithPacket(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES1, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES3}, 6, ZRTP_CIPHER_AES1));
+
+	CU_TEST(testAlgoTypeWithContext(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES1}, 1, ZRTP_CIPHER_AES1));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3}, 1, ZRTP_CIPHER_AES3));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES1}, 2, ZRTP_CIPHER_AES3));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES1, ZRTP_CIPHER_AES3}, 2, ZRTP_CIPHER_AES1));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_AES1}, 2, ZRTP_CIPHER_AES1));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 3, ZRTP_CIPHER_AES3));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 6, ZRTP_CIPHER_AES3));
+	CU_TEST(testAlgoTypeWithContext(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES1, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES3}, 6, ZRTP_CIPHER_AES1));
+
+	CU_TEST(testAlgoType(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES1}, 2, (uint8_t []){ZRTP_CIPHER_AES1, ZRTP_CIPHER_AES3}, 2, ZRTP_CIPHER_AES1));
+	CU_TEST(testAlgoType(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES1, ZRTP_CIPHER_AES3}, 2, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES1}, 2, ZRTP_CIPHER_AES3));
+	CU_TEST(testAlgoType(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES1}, 2, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES1}, 2, ZRTP_CIPHER_AES3));
+
+	CU_TEST(testAlgoType(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 6, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES1}, 2, ZRTP_CIPHER_AES3));
+	CU_TEST(testAlgoType(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES1}, 2, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 6, ZRTP_CIPHER_AES3));
+	CU_TEST(testAlgoType(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 6, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 6, ZRTP_CIPHER_AES3));
+	CU_TEST(testAlgoType(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 6, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES1, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES3}, 6, ZRTP_CIPHER_AES1));
 }
