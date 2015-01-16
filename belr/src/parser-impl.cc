@@ -83,21 +83,18 @@ ParserContext<_parserElementT>::ParserContext(Parser<_parserElementT> &parser) :
 template <typename _parserElementT>
 ParserLocalContext ParserContext<_parserElementT>::_beginParse(const shared_ptr<Recognizer> &rec){
 	shared_ptr<HandlerContextBase> ctx;
-	bool isBranch=false;
+
 	auto it=mParser.mHandlers.find(rec->getName());
 	if (it!=mParser.mHandlers.end()){
 		ctx=(*it).second->createContext();
 		mHandlerStack.push_back(static_pointer_cast<HandlerContext<_parserElementT>>(ctx));
-	}else{
-		isBranch=true;
-		ctx=branch();
 	}
-	return ParserLocalContext(ctx,rec,isBranch);
+	return ParserLocalContext(ctx,rec,mHandlerStack.back()->getLastIterator());
 }
 
 template <typename _parserElementT>
 void ParserContext<_parserElementT>::_endParse(const ParserLocalContext &localctx, const string &input, size_t begin, size_t count){
-	if (!localctx.mIsBranch){
+	if (localctx.mHandlerContext){
 		mHandlerStack.pop_back();
 		if (count!=string::npos && count>0){
 			if (!mHandlerStack.empty()){
@@ -112,11 +109,10 @@ void ParserContext<_parserElementT>::_endParse(const ParserLocalContext &localct
 		}
 	}else{
 		if (count!=string::npos && count>0){
-			merge(localctx.mHandlerContext);
 			/*assign string to parent */
 			mHandlerStack.back()->setChild(localctx.mRecognizer->getName(), begin, count, NULL);
 		}else{
-			removeBranch(localctx.mHandlerContext);
+			mHandlerStack.back()->undoAssignments(localctx.mAssignmentPos);
 		}
 	}
 }

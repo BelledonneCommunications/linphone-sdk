@@ -2,8 +2,10 @@
 #define parser_hh
 
 #include <functional>
+#include <vector>
 
 #include "belr.hh"
+
 
 namespace belr{
 
@@ -127,36 +129,36 @@ public:
 		return make_shared<HandlerContext>(mHandler);
 	}
 	void merge(const shared_ptr<HandlerContext<_parserElementT>> &other){
-		mAssignments.splice(mAssignments.end(), other->mAssignments);
-	}
-	typename list<Assignment<_parserElementT>>::iterator getLastIterator(){
-		if (mAssignments.empty())
-			return mAssignments.end();
-		return --mAssignments.end();
-	}
-	void undoAssignments(const typename list<Assignment<_parserElementT>>::iterator &last_valid){
-		if (mAssignments.end()==last_valid){
-			mAssignments.clear();
-		}else{
-			mAssignments.erase(++last_valid,mAssignments.end());
+		for (auto it=other->mAssignments.begin();it!=other->mAssignments.end();++it){
+			mAssignments.emplace_back(*it);
 		}
+		//mAssignments.splice(mAssignments.end(), other->mAssignments);
+	}
+	bool hasCollectors()const{
+		return !mHandler->mCollectors.empty();
+	}
+	size_t getLastIterator(){
+		return mAssignments.size();
+	}
+	void undoAssignments(size_t pos){
+		mAssignments.erase(mAssignments.begin()+pos,mAssignments.end());
 	}
 	
 private:
 	shared_ptr<ParserHandlerBase<_parserElementT>> mHandler;
-	list<Assignment<_parserElementT>> mAssignments;
+	vector<Assignment<_parserElementT>> mAssignments;
 };
 
 template <typename _parserElementT>
 class Parser;
 
 struct ParserLocalContext{
-	ParserLocalContext(const shared_ptr<HandlerContextBase>& hc, const shared_ptr<Recognizer>& rec, bool isBranch)
-		: mHandlerContext(hc), mRecognizer(rec), mIsBranch(isBranch){
+	ParserLocalContext(const shared_ptr<HandlerContextBase>& hc, const shared_ptr<Recognizer>& rec, size_t pos)
+		: mHandlerContext(hc), mRecognizer(rec), mAssignmentPos(pos){
 	}
 	shared_ptr<HandlerContextBase> mHandlerContext;
-	shared_ptr<Recognizer> mRecognizer;
-	bool mIsBranch;
+	const shared_ptr<Recognizer> &mRecognizer;
+	size_t mAssignmentPos;
 };
 
 class ParserContextBase{
