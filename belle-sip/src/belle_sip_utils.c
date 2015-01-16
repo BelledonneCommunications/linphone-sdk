@@ -1119,46 +1119,88 @@ char* belle_sip_display_name_to_backslashed_escaped_string(const char* buff) {
 }
 
 belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_type) {
-#ifdef WIN32
-	/* TODO: implement this function for non POSIX compiler */
-	return NULL;
-#else /* WIN 32 */
-	DIR *dir;
-	struct dirent *ent;
 	belle_sip_list_t* file_list = NULL;
+#ifdef WIN32
+	WIN32_FIND_DATA FileData;
+	HANDLE hSearch;
+	BOOL fFinished = FALSE;
+	char szDirPath[1024];
+#ifdef UNICODE
+	wchar_t wszDirPath[1024];
+#endif
 
-	if ((dir = opendir(path)) != NULL) {
-		/* create a string containing the path, adding a final / */
-		char *name_with_path = (char *)belle_sip_malloc(strlen(path)+256); /* max filename is 256 bytes in dirent structure */
-		int path_length = strlen(path);
-		memcpy(name_with_path, path, strlen(path));
-		name_with_path[path_length] = '/';
-		path_length++;
-		/* loop on all directory files */
-		while ((ent = readdir (dir)) != NULL) { /* loop on all files present in the given dir */
-			/* filter on file type if given */
-			if (file_type==NULL
-					|| (strncmp(ent->d_name+strlen(ent->d_name)-strlen(file_type), file_type, strlen(file_type))==0) ) {
-				memcpy(name_with_path+path_length, ent->d_name, strlen(ent->d_name)+1); /* +1 to get the null termination */
-				/* append the filename to the current list */
-				file_list = belle_sip_list_append(file_list, belle_sip_strdup(name_with_path));
-			}
-		}
-		belle_sip_free(name_with_path);
-		closedir(dir);
-		return file_list;
-	} else { /* unable to open dir */
-		printf("non on l'a pas ouvert avec succes\n");
+	if (file_type == NULL) {
+		file_type = ".*";
+	}
+	snprintf(szDirPath, sizeof(szDirPath), "%s\\*%s", path, file_type);
+#ifdef UNICODE
+	mbstowcs(wszDirPath, szDirPath, sizeof(wszDirPath));
+	hSearch = FindFirstFileExW(wszDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#else
+	hSearch = FindFirstFileExA(szDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#endif
+	if (hSearch == INVALID_HANDLE_VALUE) {
+		belle_sip_message("No file (*%s) found in [%s] [%d].", file_type, szDirPath, (int)GetLastError());
 		return NULL;
 	}
-#endif /* !WIN32 */
+	snprintf(szDirPath, sizeof(szDirPath), "%s", path);
+	while (!fFinished) {
+#ifdef UNICODE
+		char szFilePath[1024];
+		char filename[512];
+		wcstombs(filename, FileData.cFileName, sizeof(filename));
+		snprintf(szFilePath, sizeof(szFilePath), "%s\\%s", szDirPath, filename);
+#else
+		snprintf(szFilePath, sizeof(szFilePath), "%s\\%s", szDirPath, FileData.cFileName);
+#endif
+		file_list = belle_sip_list_append(file_list, belle_sip_strdup(szFilePath));
+		if (!FindNextFile(hSearch, &FileData)) {
+			if (GetLastError() == ERROR_NO_MORE_FILES) {
+				fFinished = TRUE;
+			}
+			else {
+				belle_sip_error("Couldn't find next (*%s) file.", file_type);
+				fFinished = TRUE;
+			}
+		}
+	}
+	/* Close the search handle. */
+	FindClose(hSearch);
+#else
+	DIR *dir;
+	struct dirent *ent;
+
+	if ((dir = opendir(path)) == NULL) {
+		belle_sip_error("Could't open [%s] directory.", path);
+		return NULL;
+	}
+
+	/* create a string containing the path, adding a final / */
+	char *name_with_path = (char *)belle_sip_malloc(strlen(path)+256); /* max filename is 256 bytes in dirent structure */
+	int path_length = strlen(path);
+	memcpy(name_with_path, path, strlen(path));
+	name_with_path[path_length] = '/';
+	path_length++;
+	/* loop on all directory files */
+	while ((ent = readdir (dir)) != NULL) { /* loop on all files present in the given dir */
+		/* filter on file type if given */
+		if (file_type==NULL
+			|| (strncmp(ent->d_name+strlen(ent->d_name)-strlen(file_type), file_type, strlen(file_type))==0) ) {
+			memcpy(name_with_path+path_length, ent->d_name, strlen(ent->d_name)+1); /* +1 to get the null termination */
+			/* append the filename to the current list */
+			file_list = belle_sip_list_append(file_list, belle_sip_strdup(name_with_path));
+		}
+	}
+	belle_sip_free(name_with_path);
+	closedir(dir);
+#endif
+	return file_list;
 }
 
 int belle_sip_mkdir(const char *path) {
 #ifdef WIN32
-	/* TODO: implement this function for non POSIX compiler */
-	return -1;
-#else /* WIN 32 */
+	return mkdir(path);
+#else
 	return mkdir(path, 0700);
 #endif
 }
