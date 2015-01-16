@@ -297,11 +297,19 @@ static void capture_queue_cleanup(void* p) {
 	}
 	input = [AVCaptureDeviceInput deviceInputWithDevice:device
 												  error:&error];
-	[input retain]; // keep reference on an externally allocated object
-	
+
 	AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
-	[session addInput:input];
-	[session addOutput:output];
+	if ( input && [session canAddInput] ){
+		[input retain]; // keep reference on an externally allocated object
+		[session addInput:input];
+	} else {
+		ms_error("Error: input nil or cannot be added: %p", input);
+	}
+	if( output && [session canAddOutput:output] ){
+		[session addOutput:output];
+	} else {
+		ms_error("Error: output nil or cannot be added: %p", output);
+	}
 }
 
 - (void)dealloc {
