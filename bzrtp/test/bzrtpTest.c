@@ -66,10 +66,10 @@ int main(int argc, char *argv[] ) {
 	CU_add_test(parserTestSuite, "State machine", test_stateMachine);
 
 	/* Run all suites */
-/*	printf("\n\n#### Run the Bzrtp Crypto Wrappers tests suite\n");
+	printf("\n\n#### Run the Bzrtp Crypto Wrappers tests suite\n");
 	CU_basic_run_suite(cryptoWrapperTestSuite);
 	printf("\n\n#### Run the Bzrtp Crypto Utils tests suite\n");
-	CU_basic_run_suite(cryptoUtilsTestSuite);*/
+	CU_basic_run_suite(cryptoUtilsTestSuite);
 	printf("\n\n#### Run the Bzrtp ZRTP Packet Parser tests suite\n");
 	CU_basic_run_suite(parserTestSuite);
 
