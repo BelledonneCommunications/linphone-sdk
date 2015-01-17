@@ -48,10 +48,13 @@ template <typename _parserElementT>
 class HandlerContext;
 
 template <typename _parserElementT>
+class Parser;
+
+template <typename _parserElementT>
 class ParserHandlerBase : public enable_shared_from_this<ParserHandlerBase<_parserElementT>>{
 	friend class HandlerContext<_parserElementT>;
 public:
-	ParserHandlerBase(const string &name);
+	ParserHandlerBase(const Parser<_parserElementT> &parser, const string &name);
 	virtual _parserElementT invoke(const string &input, size_t begin, size_t count)=0;
 	shared_ptr<HandlerContext<_parserElementT>> createContext();
 	const string &getRulename()const{
@@ -62,17 +65,18 @@ protected:
 	const shared_ptr<AbstractCollector<_parserElementT>> &getCollector(const string &rulename)const;
 private:
 	map<string, shared_ptr<AbstractCollector<_parserElementT>> > mCollectors;
+	const Parser<_parserElementT> &mParser;
 	string mRulename;
 };
 
 template <typename _derivedParserElementT, typename _parserElementT>
 class ParserHandler :  public ParserHandlerBase<_parserElementT>{
 public:
-	ParserHandler(const string &rulename, const function<_derivedParserElementT ()> &create)
-		: ParserHandlerBase<_parserElementT>(rulename), mHandlerCreateFunc(create){
+	ParserHandler(const Parser<_parserElementT> &parser, const string &rulename, const function<_derivedParserElementT ()> &create)
+		: ParserHandlerBase<_parserElementT>(parser, rulename), mHandlerCreateFunc(create){
 	}
-	ParserHandler(const string &rulename, const function<_derivedParserElementT (const string &, const string &)> &create)
-		: ParserHandlerBase<_parserElementT>(rulename), mHandlerCreateDebugFunc(create){
+	ParserHandler(const Parser<_parserElementT> &parser, const string &rulename, const function<_derivedParserElementT (const string &, const string &)> &create)
+		: ParserHandlerBase<_parserElementT>(parser, rulename), mHandlerCreateDebugFunc(create){
 	}
 	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , const string & )> fn){
 		this->installCollector(child_rule_name, make_shared<ParserCollector<_derivedParserElementT,_parserElementT,const string&>>(fn));
@@ -128,9 +132,6 @@ private:
 	vector<Assignment<_parserElementT>> mAssignments;
 };
 
-template <typename _parserElementT>
-class Parser;
-
 struct ParserLocalContext{
 	ParserLocalContext(const shared_ptr<HandlerContextBase>& hc, const shared_ptr<Recognizer>& rec, size_t pos)
 		: mHandlerContext(hc), mRecognizer(rec), mAssignmentPos(pos){
@@ -174,11 +175,12 @@ private:
 template <typename _parserElementT>
 class Parser{
 friend class ParserContext<_parserElementT>;
+friend class ParserHandlerBase<_parserElementT>;
 public:
 	Parser(const shared_ptr<Grammar> &grammar);
 	template <typename _derivedParserElementT> 
 	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setHandler(const string &rulename,const function<_derivedParserElementT ()> & handler){
-		auto ret=make_shared<ParserHandler<_derivedParserElementT,_parserElementT>>(rulename,handler);
+		auto ret=make_shared<ParserHandler<_derivedParserElementT,_parserElementT>>(*this, rulename,handler);
 		installHandler(ret);
 		return ret;
 		
@@ -186,7 +188,7 @@ public:
 	template <typename _derivedParserElementT> 
 	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setHandler(const string &rulename,
 					const function<_derivedParserElementT (const string &, const string &)> & handler){
-		auto ret=make_shared<ParserHandler<_derivedParserElementT,_parserElementT>>(rulename,handler);
+		auto ret=make_shared<ParserHandler<_derivedParserElementT,_parserElementT>>(*this, rulename,handler);
 		installHandler(ret);
 		return ret;
 		
@@ -197,6 +199,8 @@ private:
 	void installHandler(const shared_ptr<ParserHandlerBase<_parserElementT>> &handler);
 	shared_ptr<Grammar> mGrammar;
 	map<string, shared_ptr<ParserHandlerBase<_parserElementT>>> mHandlers;
+	shared_ptr<ParserHandlerBase<_parserElementT>> mNullHandler;
+	shared_ptr<AbstractCollector<_parserElementT>> mNullCollector;
 };
 
 class DebugElement{

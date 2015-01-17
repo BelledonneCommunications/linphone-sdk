@@ -11,7 +11,10 @@ Recognizer::Recognizer(){
 }
 
 void Recognizer::setName(const string& name){
+	static unsigned int id_base=0;
 	mName=name;
+	/* every recognizer that is given a name is given also a unique id*/
+	mId=++id_base;
 }
 
 const string &Recognizer::getName()const{
@@ -173,6 +176,9 @@ shared_ptr<Loop> Foundation::loop(){
 	return make_shared<Loop>();
 }
 
+/*
+ * TODO: could be optimized() with strcmp with a specialized Recognizer !
+ */
 shared_ptr<Recognizer> Utils::literal(const string & lt){
 	shared_ptr<Sequence> seq=Foundation::sequence();
 	size_t i;

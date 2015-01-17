@@ -19,10 +19,14 @@ public:
 	void setName(const string &name);
 	const string &getName()const;
 	size_t feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
+	unsigned int getId()const{
+		return mId;
+	}
 protected:
 	Recognizer();
 	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos)=0;
 	string mName;
+	unsigned int mId;
 };
 
 class CharRecognizer : public Recognizer{

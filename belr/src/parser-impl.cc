@@ -69,7 +69,7 @@ void Assignment<_parserElementT>::invoke(_parserElementT parent, const string &i
 
 
 //
-// HandlerContext template implementation
+// HandlerContext template class implementation
 //
 
 template <typename _parserElementT>
@@ -79,9 +79,9 @@ HandlerContext<_parserElementT>::HandlerContext(const shared_ptr<ParserHandlerBa
 
 template <typename _parserElementT>
 void HandlerContext<_parserElementT>::setChild(const string &subrule_name, size_t begin, size_t count, const shared_ptr<HandlerContext<_parserElementT>> &child){
-	auto it=mHandler->mCollectors.find(subrule_name);
-	if (it!=mHandler->mCollectors.end()){
-		mAssignments.push_back(Assignment<_parserElementT>((*it).second, begin, count, child));
+	auto collector=mHandler->getCollector(subrule_name);
+	if (collector){
+		mAssignments.push_back(Assignment<_parserElementT>(collector, begin, count, child));
 	}
 }
 
@@ -121,7 +121,7 @@ void HandlerContext<_parserElementT>::undoAssignments(size_t pos){
 //
 
 template <typename _parserElementT>
-ParserHandlerBase<_parserElementT>::ParserHandlerBase(const string &name) : mRulename(tolower(name)){
+ParserHandlerBase<_parserElementT>::ParserHandlerBase(const Parser<_parserElementT> &parser, const string &name) : mParser(parser), mRulename(tolower(name)){
 }
 
 template <typename _parserElementT>
@@ -133,7 +133,7 @@ template <typename _parserElementT>
 const shared_ptr<AbstractCollector<_parserElementT>> & ParserHandlerBase<_parserElementT>::getCollector(const string &rulename)const{
 	auto it=mCollectors.find(rulename);
 	if (it!=mCollectors.end()) return (*it).second;
-	return NULL;
+	return mParser.mNullCollector;
 }
 
 //
@@ -157,9 +157,9 @@ template <typename _parserElementT>
 ParserLocalContext ParserContext<_parserElementT>::_beginParse(const shared_ptr<Recognizer> &rec){
 	shared_ptr<HandlerContextBase> ctx;
 
-	auto it=mParser.mHandlers.find(rec->getName());
-	if (it!=mParser.mHandlers.end()){
-		ctx=(*it).second->createContext();
+	auto h=mParser.getHandler(rec->getName());
+	if (h){
+		ctx=h->createContext();
 		mHandlerStack.push_back(static_pointer_cast<HandlerContext<_parserElementT>>(ctx));
 	}
 	return ParserLocalContext(ctx,rec,mHandlerStack.back()->getLastIterator());
@@ -272,7 +272,7 @@ Parser<_parserElementT>::Parser(const shared_ptr<Grammar> &grammar) : mGrammar(g
 template <typename _parserElementT>
 shared_ptr<ParserHandlerBase<_parserElementT>> &Parser<_parserElementT>::getHandler(const string &rulename){
 	auto it=mHandlers.find(rulename);
-	if (it=mHandlers.end()) return NULL;
+	if (it==mHandlers.end()) return mNullHandler;
 	return (*it).second;
 }
 
