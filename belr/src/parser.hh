@@ -62,9 +62,9 @@ public:
 	}
 protected:
 	void installCollector(const string &rulename, const shared_ptr<AbstractCollector<_parserElementT>> &collector);
-	const shared_ptr<AbstractCollector<_parserElementT>> &getCollector(const string &rulename)const;
+	const shared_ptr<AbstractCollector<_parserElementT>> &getCollector(unsigned int rule_id)const;
 private:
-	map<string, shared_ptr<AbstractCollector<_parserElementT>> > mCollectors;
+	map<unsigned int, shared_ptr<AbstractCollector<_parserElementT>> > mCollectors;
 	const Parser<_parserElementT> &mParser;
 	string mRulename;
 };
@@ -121,7 +121,7 @@ template <typename _parserElementT>
 class HandlerContext : public HandlerContextBase{
 public:
 	HandlerContext(const shared_ptr<ParserHandlerBase<_parserElementT>> &handler);
-	void setChild(const string &subrule_name, size_t begin, size_t count, const shared_ptr<HandlerContext> &child);
+	void setChild(unsigned int subrule_id, size_t begin, size_t count, const shared_ptr<HandlerContext> &child);
 	_parserElementT realize(const string &input, size_t begin, size_t count);
 	shared_ptr<HandlerContext<_parserElementT>> branch();
 	void merge(const shared_ptr<HandlerContext<_parserElementT>> &other);
@@ -195,10 +195,10 @@ public:
 	}
 	_parserElementT parseInput(const string &rulename, const string &input, size_t *parsed_size);
 private:
-	shared_ptr<ParserHandlerBase<_parserElementT>> &getHandler(const string &rulename);
+	shared_ptr<ParserHandlerBase<_parserElementT>> &getHandler(unsigned int);
 	void installHandler(const shared_ptr<ParserHandlerBase<_parserElementT>> &handler);
 	shared_ptr<Grammar> mGrammar;
-	map<string, shared_ptr<ParserHandlerBase<_parserElementT>>> mHandlers;
+	map<unsigned int, shared_ptr<ParserHandlerBase<_parserElementT>>> mHandlers;
 	shared_ptr<ParserHandlerBase<_parserElementT>> mNullHandler;
 	shared_ptr<AbstractCollector<_parserElementT>> mNullCollector;
 };

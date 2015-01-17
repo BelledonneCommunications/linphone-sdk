@@ -38,15 +38,6 @@ private:
 	bool mCaseSensitive;
 };
 
-/*this is an optimization of a selector with multiple individual char recognizer*/
-class CharRange : public Recognizer{
-public:
-	CharRange(int begin, int end);
-private:
-	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
-	int mBegin,mEnd;
-};
-
 class Selector : public Recognizer{
 public:
 	Selector();
@@ -92,6 +83,24 @@ public:
 	static shared_ptr<Loop> loop();
 };
 
+/*this is an optimization of a selector with multiple individual char recognizer*/
+class CharRange : public Recognizer{
+public:
+	CharRange(int begin, int end);
+private:
+	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
+	int mBegin,mEnd;
+};
+
+class Literal : public Recognizer{
+public:
+	Literal(const string &lit);
+private:
+	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
+	string mLiteral;
+	size_t mLiteralSize;
+};
+
 class Utils{
 public:
 	static shared_ptr<Recognizer> literal(const string & lt);
@@ -125,6 +134,10 @@ public:
 		_extendRule(name, rule);
 		return rule;
 	}
+	shared_ptr<Recognizer> findRule(const string &name);
+	/*
+	 * getRule() never returns NULL. If the rule is not (yet) defined, it returns an undefined pointer, that will be set later if the rule gets defined.
+	**/
 	shared_ptr<Recognizer> getRule(const string &name);
 	bool isComplete()const;
 	int getNumRules()const;

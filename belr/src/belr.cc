@@ -176,16 +176,20 @@ shared_ptr<Loop> Foundation::loop(){
 	return make_shared<Loop>();
 }
 
-/*
- * TODO: could be optimized() with strcmp with a specialized Recognizer !
- */
-shared_ptr<Recognizer> Utils::literal(const string & lt){
-	shared_ptr<Sequence> seq=Foundation::sequence();
+Literal::Literal(const string& lit) : mLiteral(tolower(lit)){
+	mLiteralSize=mLiteral.size();
+}
+
+size_t Literal::_feed(const shared_ptr< ParserContextBase >& ctx, const string& input, size_t pos){
 	size_t i;
-	for (i=0;i<lt.size();++i){
-		seq->addRecognizer(Foundation::charRecognizer(lt[i],false));
+	for(i=0;i<mLiteralSize;++i){
+		if (::tolower(input[pos+i])!=mLiteral[i]) return string::npos;
 	}
-	return seq;
+	return mLiteralSize;
+}
+
+shared_ptr<Recognizer> Utils::literal(const string & lt){
+	return make_shared<Literal>(lt);
 }
 
 shared_ptr<Recognizer> Utils::char_range(int begin, int end){
@@ -253,12 +257,20 @@ void Grammar::_extendRule(const string &argname, const shared_ptr<Recognizer> &r
 	}
 }
 
-shared_ptr<Recognizer> Grammar::getRule(const string &argname){
-	shared_ptr<Recognizer> ret;
+shared_ptr<Recognizer> Grammar::findRule(const string &argname){
 	string name=tolower(argname);
 	auto it=mRules.find(name);
 	if (it!=mRules.end()){
-		shared_ptr<RecognizerPointer> pointer=dynamic_pointer_cast<RecognizerPointer>((*it).second);
+		return (*it).second;
+	}
+	return NULL;
+}
+
+shared_ptr<Recognizer> Grammar::getRule(const string &argname){
+	shared_ptr<Recognizer> ret=findRule(argname);
+
+	if (ret){
+		shared_ptr<RecognizerPointer> pointer=dynamic_pointer_cast<RecognizerPointer>(ret);
 		if (pointer){
 			if (pointer->getPointed()){/*if pointer is defined return the pointed value directly*/
 				return pointer->getPointed();
@@ -266,9 +278,10 @@ shared_ptr<Recognizer> Grammar::getRule(const string &argname){
 				return pointer;
 			}
 		}
-		return (*it).second;
+		return ret;
 	}else{/*the rule doesn't exist yet: return a pointer*/
 		ret=make_shared<RecognizerPointer>();
+		string name=tolower(argname);
 		ret->setName(string("@")+name);
 		mRules[name]=ret;
 	}

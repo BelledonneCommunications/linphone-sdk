@@ -78,8 +78,8 @@ HandlerContext<_parserElementT>::HandlerContext(const shared_ptr<ParserHandlerBa
 }
 
 template <typename _parserElementT>
-void HandlerContext<_parserElementT>::setChild(const string &subrule_name, size_t begin, size_t count, const shared_ptr<HandlerContext<_parserElementT>> &child){
-	auto collector=mHandler->getCollector(subrule_name);
+void HandlerContext<_parserElementT>::setChild(unsigned int subrule_id, size_t begin, size_t count, const shared_ptr<HandlerContext<_parserElementT>> &child){
+	auto collector=mHandler->getCollector(subrule_id);
 	if (collector){
 		mAssignments.push_back(Assignment<_parserElementT>(collector, begin, count, child));
 	}
@@ -126,12 +126,17 @@ ParserHandlerBase<_parserElementT>::ParserHandlerBase(const Parser<_parserElemen
 
 template <typename _parserElementT>
 void ParserHandlerBase<_parserElementT>::installCollector(const string &rulename, const shared_ptr<AbstractCollector<_parserElementT>> &collector){
-	mCollectors[tolower(rulename)]=collector;
+	shared_ptr<Recognizer> rec=mParser.mGrammar->findRule(rulename);
+	if (!rec){
+		cerr<<"There is no rule '"<<rulename<<"' in the grammar."<<endl;
+		return;
+	}
+	mCollectors[rec->getId()]=collector;
 }
 
 template <typename _parserElementT>
-const shared_ptr<AbstractCollector<_parserElementT>> & ParserHandlerBase<_parserElementT>::getCollector(const string &rulename)const{
-	auto it=mCollectors.find(rulename);
+const shared_ptr<AbstractCollector<_parserElementT>> & ParserHandlerBase<_parserElementT>::getCollector(unsigned int rule_id)const{
+	auto it=mCollectors.find(rule_id);
 	if (it!=mCollectors.end()) return (*it).second;
 	return mParser.mNullCollector;
 }
@@ -157,7 +162,7 @@ template <typename _parserElementT>
 ParserLocalContext ParserContext<_parserElementT>::_beginParse(const shared_ptr<Recognizer> &rec){
 	shared_ptr<HandlerContextBase> ctx;
 
-	auto h=mParser.getHandler(rec->getName());
+	auto h=mParser.getHandler(rec->getId());
 	if (h){
 		ctx=h->createContext();
 		mHandlerStack.push_back(static_pointer_cast<HandlerContext<_parserElementT>>(ctx));
@@ -172,7 +177,7 @@ void ParserContext<_parserElementT>::_endParse(const ParserLocalContext &localct
 		if (count!=string::npos && count>0){
 			if (!mHandlerStack.empty()){
 				/*assign object to parent */
-				mHandlerStack.back()->setChild(localctx.mRecognizer->getName(), begin, count, 
+				mHandlerStack.back()->setChild(localctx.mRecognizer->getId(), begin, count, 
 					static_pointer_cast<HandlerContext< _parserElementT >> (localctx.mHandlerContext));
 				
 			}else{
@@ -183,7 +188,7 @@ void ParserContext<_parserElementT>::_endParse(const ParserLocalContext &localct
 	}else{
 		if (count!=string::npos && count>0){
 			/*assign string to parent */
-			mHandlerStack.back()->setChild(localctx.mRecognizer->getName(), begin, count, NULL);
+			mHandlerStack.back()->setChild(localctx.mRecognizer->getId(), begin, count, NULL);
 		}else{
 			mHandlerStack.back()->undoAssignments(localctx.mAssignmentPos);
 		}
@@ -270,15 +275,20 @@ Parser<_parserElementT>::Parser(const shared_ptr<Grammar> &grammar) : mGrammar(g
 }
 
 template <typename _parserElementT>
-shared_ptr<ParserHandlerBase<_parserElementT>> &Parser<_parserElementT>::getHandler(const string &rulename){
-	auto it=mHandlers.find(rulename);
+shared_ptr<ParserHandlerBase<_parserElementT>> &Parser<_parserElementT>::getHandler(unsigned int rule_id){
+	auto it=mHandlers.find(rule_id);
 	if (it==mHandlers.end()) return mNullHandler;
 	return (*it).second;
 }
 
 template <typename _parserElementT>
 void Parser<_parserElementT>::installHandler(const shared_ptr<ParserHandlerBase<_parserElementT>> &handler){
-	mHandlers[handler->getRulename()]=handler;
+	shared_ptr<Recognizer> rec=mGrammar->findRule(handler->getRulename());
+	if (rec==NULL){
+		cerr<<"There is no rule '"<<handler->getRulename()<<"' in the grammar."<<endl;
+		return;
+	}
+	mHandlers[rec->getId()]=handler;
 }
 
 template <typename _parserElementT>
