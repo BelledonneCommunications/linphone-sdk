@@ -27,6 +27,8 @@
 #ifndef WIN32
 #include <sys/time.h> /*for gettimeofday*/
 #include <dirent.h> /* available on POSIX system only */
+#else
+#include <direct.h>
 #endif
 
 static FILE *__log_file=0;
@@ -980,20 +982,26 @@ static const char *get_sip_uri_header_noescapes() {
 }
 
 static char* belle_sip_escape(const char* buff, const char *noescapes) {
-	char output_buff[BELLE_SIP_MAX_TO_STRING_SIZE];
-	unsigned int i;
-	unsigned int out_buff_index=0;
-	for(i=0; buff[i] != '\0' && out_buff_index < sizeof(output_buff)-4; i++) {
-		/*-4 to make sure last param can be stored in escaped form*/
-		const char c = buff[i];
-		if (noescapes[(unsigned int) c] == 1) {
+	size_t outbuf_size=strlen(buff);
+	size_t orig_size=outbuf_size;
+	char *output_buff=(char*)belle_sip_malloc(outbuf_size+1);
+	int i;
+	int out_buff_index=0;
+	
+	for(i=0; buff[i] != '\0'; i++) {
+		int c = buff[i];
+		if (outbuf_size<out_buff_index-3){
+			outbuf_size+=MAX(orig_size/2,3);
+			output_buff=belle_sip_realloc(output_buff,outbuf_size+1);
+		}
+		if (noescapes[c] == 1) {
 			output_buff[out_buff_index++]=c;
 		} else {
-			out_buff_index+=sprintf(output_buff+out_buff_index,"%%%02x", c);
+			out_buff_index+=snprintf(output_buff+out_buff_index,outbuf_size-out_buff_index,"%%%02x", c);
 		}
 	}
 	output_buff[out_buff_index]='\0';
-	return belle_sip_strdup(output_buff);
+	return output_buff;
 }
 
 char* belle_sip_uri_to_escaped_username(const char* buff) {
@@ -1145,8 +1153,8 @@ belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_t
 	}
 	snprintf(szDirPath, sizeof(szDirPath), "%s", path);
 	while (!fFinished) {
-#ifdef UNICODE
 		char szFilePath[1024];
+#ifdef UNICODE
 		char filename[512];
 		wcstombs(filename, FileData.cFileName, sizeof(filename));
 		snprintf(szFilePath, sizeof(szFilePath), "%s\\%s", szDirPath, filename);
@@ -1169,29 +1177,22 @@ belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_t
 #else
 	DIR *dir;
 	struct dirent *ent;
+	int path_length;
 
 	if ((dir = opendir(path)) == NULL) {
 		belle_sip_error("Could't open [%s] directory.", path);
 		return NULL;
 	}
 
-	/* create a string containing the path, adding a final / */
-	char *name_with_path = (char *)belle_sip_malloc(strlen(path)+256); /* max filename is 256 bytes in dirent structure */
-	int path_length = strlen(path);
-	memcpy(name_with_path, path, strlen(path));
-	name_with_path[path_length] = '/';
-	path_length++;
 	/* loop on all directory files */
 	while ((ent = readdir (dir)) != NULL) { /* loop on all files present in the given dir */
 		/* filter on file type if given */
 		if (file_type==NULL
 			|| (strncmp(ent->d_name+strlen(ent->d_name)-strlen(file_type), file_type, strlen(file_type))==0) ) {
-			memcpy(name_with_path+path_length, ent->d_name, strlen(ent->d_name)+1); /* +1 to get the null termination */
-			/* append the filename to the current list */
-			file_list = belle_sip_list_append(file_list, belle_sip_strdup(name_with_path));
+			char *name_with_path=belle_sip_strdup_printf("%s/%s",path,ent->d_name);
+			file_list = belle_sip_list_append(file_list, name_with_path);
 		}
 	}
-	belle_sip_free(name_with_path);
 	closedir(dir);
 #endif
 	return file_list;
@@ -1199,8 +1200,9 @@ belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_t
 
 int belle_sip_mkdir(const char *path) {
 #ifdef WIN32
-	return mkdir(path);
+	return _mkdir(path);
 #else
 	return mkdir(path, 0700);
 #endif
 }
+
