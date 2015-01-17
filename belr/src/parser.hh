@@ -51,39 +51,46 @@ template <typename _parserElementT>
 class ParserHandlerBase : public enable_shared_from_this<ParserHandlerBase<_parserElementT>>{
 	friend class HandlerContext<_parserElementT>;
 public:
+	ParserHandlerBase(const string &name);
 	virtual _parserElementT invoke(const string &input, size_t begin, size_t count)=0;
 	shared_ptr<HandlerContext<_parserElementT>> createContext();
+	const string &getRulename()const{
+		return mRulename;
+	}
 protected:
+	void installCollector(const string &rulename, const shared_ptr<AbstractCollector<_parserElementT>> &collector);
+	const shared_ptr<AbstractCollector<_parserElementT>> &getCollector(const string &rulename)const;
+private:
 	map<string, shared_ptr<AbstractCollector<_parserElementT>> > mCollectors;
+	string mRulename;
 };
 
 template <typename _derivedParserElementT, typename _parserElementT>
 class ParserHandler :  public ParserHandlerBase<_parserElementT>{
 public:
-	ParserHandler(const function<_derivedParserElementT ()> &create)
-		: mHandlerCreateFunc(create){
+	ParserHandler(const string &rulename, const function<_derivedParserElementT ()> &create)
+		: ParserHandlerBase<_parserElementT>(rulename), mHandlerCreateFunc(create){
 	}
 	ParserHandler(const string &rulename, const function<_derivedParserElementT (const string &, const string &)> &create)
-		: mHandlerCreateDebugFunc(create), mRulename(rulename){
+		: ParserHandlerBase<_parserElementT>(rulename), mHandlerCreateDebugFunc(create){
 	}
 	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , const string & )> fn){
-		this->mCollectors[tolower(child_rule_name)]=make_shared<ParserCollector<_derivedParserElementT,_parserElementT,const string&>>(fn);
+		this->installCollector(child_rule_name, make_shared<ParserCollector<_derivedParserElementT,_parserElementT,const string&>>(fn));
 		return static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
 	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , int )> fn){
-		this->mCollectors[tolower(child_rule_name)]=make_shared<ParserCollector<_derivedParserElementT,_parserElementT,int>>(fn);
+		this->installCollector(child_rule_name, make_shared<ParserCollector<_derivedParserElementT,_parserElementT,int>>(fn));
 		return static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
 	template <typename _valueT>
 	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , _valueT)> fn){
-		this->mCollectors[tolower(child_rule_name)]=make_shared<ParserChildCollector<_derivedParserElementT,_parserElementT,_valueT>>(fn);
+		this->installCollector(child_rule_name, make_shared<ParserChildCollector<_derivedParserElementT,_parserElementT,_valueT>>(fn));
 		return static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
 	_parserElementT invoke(const string &input, size_t begin, size_t count);
 private:
 	function<_derivedParserElementT ()> mHandlerCreateFunc;
 	function<_derivedParserElementT (const string &, const string &)> mHandlerCreateDebugFunc;
-	string mRulename;
 };
 
 template <typename _parserElementT>
@@ -109,41 +116,13 @@ public:
 template <typename _parserElementT>
 class HandlerContext : public HandlerContextBase{
 public:
-	HandlerContext(const shared_ptr<ParserHandlerBase<_parserElementT>> &handler) : 
-		mHandler(handler){
-	}
-	void setChild(const string &subrule_name, size_t begin, size_t count, const shared_ptr<HandlerContext> &child){
-		auto it=mHandler->mCollectors.find(subrule_name);
-		if (it!=mHandler->mCollectors.end()){
-			mAssignments.push_back(Assignment<_parserElementT>((*it).second, begin, count, child));
-		}
-	}
-	_parserElementT realize(const string &input, size_t begin, size_t count){
-		_parserElementT ret=mHandler->invoke(input, begin, count);
-		for (auto it=mAssignments.begin(); it!=mAssignments.end(); ++it){
-			(*it).invoke(ret,input);
-		}
-		return ret;
-	}
-	shared_ptr<HandlerContext<_parserElementT>> branch(){
-		return make_shared<HandlerContext>(mHandler);
-	}
-	void merge(const shared_ptr<HandlerContext<_parserElementT>> &other){
-		for (auto it=other->mAssignments.begin();it!=other->mAssignments.end();++it){
-			mAssignments.emplace_back(*it);
-		}
-		//mAssignments.splice(mAssignments.end(), other->mAssignments);
-	}
-	bool hasCollectors()const{
-		return !mHandler->mCollectors.empty();
-	}
-	size_t getLastIterator(){
-		return mAssignments.size();
-	}
-	void undoAssignments(size_t pos){
-		mAssignments.erase(mAssignments.begin()+pos,mAssignments.end());
-	}
-	
+	HandlerContext(const shared_ptr<ParserHandlerBase<_parserElementT>> &handler);
+	void setChild(const string &subrule_name, size_t begin, size_t count, const shared_ptr<HandlerContext> &child);
+	_parserElementT realize(const string &input, size_t begin, size_t count);
+	shared_ptr<HandlerContext<_parserElementT>> branch();
+	void merge(const shared_ptr<HandlerContext<_parserElementT>> &other);
+	size_t getLastIterator()const;
+	void undoAssignments(size_t pos);
 private:
 	shared_ptr<ParserHandlerBase<_parserElementT>> mHandler;
 	vector<Assignment<_parserElementT>> mAssignments;
@@ -199,22 +178,23 @@ public:
 	Parser(const shared_ptr<Grammar> &grammar);
 	template <typename _derivedParserElementT> 
 	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setHandler(const string &rulename,const function<_derivedParserElementT ()> & handler){
-		shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> ret;
-		mHandlers[tolower(rulename)]=ret=make_shared<ParserHandler<_derivedParserElementT,_parserElementT>>(handler);
+		auto ret=make_shared<ParserHandler<_derivedParserElementT,_parserElementT>>(rulename,handler);
+		installHandler(ret);
 		return ret;
 		
 	}
 	template <typename _derivedParserElementT> 
 	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setHandler(const string &rulename,
 					const function<_derivedParserElementT (const string &, const string &)> & handler){
-		shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> ret;
-		string rulename_lc=tolower(rulename);
-		mHandlers[rulename_lc]=ret=make_shared<ParserHandler<_derivedParserElementT,_parserElementT>>(rulename_lc,handler);
+		auto ret=make_shared<ParserHandler<_derivedParserElementT,_parserElementT>>(rulename,handler);
+		installHandler(ret);
 		return ret;
 		
 	}
 	_parserElementT parseInput(const string &rulename, const string &input, size_t *parsed_size);
 private:
+	shared_ptr<ParserHandlerBase<_parserElementT>> &getHandler(const string &rulename);
+	void installHandler(const shared_ptr<ParserHandlerBase<_parserElementT>> &handler);
 	shared_ptr<Grammar> mGrammar;
 	map<string, shared_ptr<ParserHandlerBase<_parserElementT>>> mHandlers;
 };

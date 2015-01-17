@@ -8,42 +8,65 @@
 #include <sstream>
 #include <chrono>
 #include <ctime>
+#include <cstring>
 
 using namespace::belr;
 
 int main(int argc, char *argv[]){
-	
+	const char *file=NULL,*message_file=NULL;
+	int rules_first=0;
+	int i;
+	int repeat_count=1;
 	if (argc<2){
-		cerr<<argv[0]<< " <grammarfile-to-load> [<input file>] [rule1] [rule2]..."<<endl;
+		cerr<<argv[0]<< " [--repeat <count>] <grammarfile-to-load> [<input file>] [rule1] [rule2]..."<<endl;
 		return -1;
 	}
-	ABNFGrammarBuilder builder;
-	shared_ptr<Grammar> grammar=make_shared<Grammar>(argv[1]);
-	grammar->include(make_shared<CoreRules>());
-	builder.createFromAbnf(argv[1],grammar);
+	for(i=1;i<argc;++i){
+		if (strcmp(argv[i],"--repeat")==0){
+			++i;
+			if (i<argc){
+				repeat_count=atoi(argv[i]);
+			}
+		}else{
+			file=argv[i];
+			++i;
+			if (i<argc)
+				message_file=argv[i];
+			break;
+		}
+	}
+	rules_first=i+1;
 	
-	if (argc>3){
-		ifstream istr(argv[2]);
+	ABNFGrammarBuilder builder;
+	shared_ptr<Grammar> grammar=make_shared<Grammar>(file);
+	grammar->include(make_shared<CoreRules>());
+	builder.createFromAbnf(file,grammar);
+	
+	if (message_file){
+		ifstream istr(message_file);
 		if (!istr.is_open()){
-			cerr<<"Could not open "<<argv[2]<<endl;
+			cerr<<"Could not open "<<message_file<<endl;
 			return -1;
 		}
 		stringstream str;
 		str<<istr.rdbuf();
 		DebugParser parser(grammar);
 		list<string> rules;
-		for(int i=3; i<argc; ++i){
+		for(int i=rules_first; i<argc; ++i){
 			rules.push_back(argv[i]);
 		}
 		parser.setObservedRules(rules);
 		size_t parsed;
+		shared_ptr<DebugElement> ret;
 		auto t_start = std::chrono::high_resolution_clock::now();
-		auto ret=parser.parseInput(argv[3],str.str(),&parsed);
+		for(int r=0;r<repeat_count;++r){
+			ret=parser.parseInput(argv[rules_first],str.str(),&parsed);
+		}
 		auto t_end = std::chrono::high_resolution_clock::now();
 		if (parsed<str.str().size()){
 			cerr<<"Parsing ended prematuraly at pos "<<parsed<<endl;
 		}else{
-			cout<<"Parsing done in "<<std::chrono::duration<double, std::milli>(t_end-t_start).count()<<" milliseconds"<<endl;
+			cout<<"Parsing done in "<<std::chrono::duration<double, std::milli>(t_end-t_start).count()/repeat_count<<" milliseconds"<<endl;
 		}
 		if (ret){
 			ret->tostream(0,cout);

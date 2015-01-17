@@ -67,12 +67,85 @@ void Assignment<_parserElementT>::invoke(_parserElementT parent, const string &i
 	}
 }
 
+
+//
+// HandlerContext template implementation
+//
+
+template <typename _parserElementT>
+HandlerContext<_parserElementT>::HandlerContext(const shared_ptr<ParserHandlerBase<_parserElementT>> &handler) : 
+	mHandler(handler){
+}
+
+template <typename _parserElementT>
+void HandlerContext<_parserElementT>::setChild(const string &subrule_name, size_t begin, size_t count, const shared_ptr<HandlerContext<_parserElementT>> &child){
+	auto it=mHandler->mCollectors.find(subrule_name);
+	if (it!=mHandler->mCollectors.end()){
+		mAssignments.push_back(Assignment<_parserElementT>((*it).second, begin, count, child));
+	}
+}
+
+template <typename _parserElementT>
+_parserElementT HandlerContext<_parserElementT>::realize(const string &input, size_t begin, size_t count){
+	_parserElementT ret=mHandler->invoke(input, begin, count);
+	for (auto it=mAssignments.begin(); it!=mAssignments.end(); ++it){
+		(*it).invoke(ret,input);
+	}
+	return ret;
+}
+
+template <typename _parserElementT>
+shared_ptr<HandlerContext<_parserElementT>> HandlerContext<_parserElementT>::branch(){
+	return make_shared<HandlerContext>(mHandler);
+}
+
+template <typename _parserElementT>
+void HandlerContext<_parserElementT>::merge(const shared_ptr<HandlerContext<_parserElementT>> &other){
+	for (auto it=other->mAssignments.begin();it!=other->mAssignments.end();++it){
+		mAssignments.emplace_back(*it);
+	}
+}
+
+template <typename _parserElementT>
+size_t HandlerContext<_parserElementT>::getLastIterator()const{
+	return mAssignments.size();
+}
+
+template <typename _parserElementT>
+void HandlerContext<_parserElementT>::undoAssignments(size_t pos){
+	mAssignments.erase(mAssignments.begin()+pos,mAssignments.end());
+}
+
+//
+// ParserHandlerBase template class implementation
+//
+
+template <typename _parserElementT>
+ParserHandlerBase<_parserElementT>::ParserHandlerBase(const string &name) : mRulename(tolower(name)){
+}
+
+template <typename _parserElementT>
+void ParserHandlerBase<_parserElementT>::installCollector(const string &rulename, const shared_ptr<AbstractCollector<_parserElementT>> &collector){
+	mCollectors[tolower(rulename)]=collector;
+}
+
+template <typename _parserElementT>
+const shared_ptr<AbstractCollector<_parserElementT>> & ParserHandlerBase<_parserElementT>::getCollector(const string &rulename)const{
+	auto it=mCollectors.find(rulename);
+	if (it!=mCollectors.end()) return (*it).second;
+	return NULL;
+}
+
+//
+// ParserHandler template implementation
+//
+
 template <typename _derivedParserElementT, typename _parserElementT>
 _parserElementT ParserHandler<_derivedParserElementT,_parserElementT>::invoke(const string &input, size_t begin, size_t count){
 	if (mHandlerCreateFunc)
 		return universal_pointer_cast<_parserElementT>(mHandlerCreateFunc());
 	if (mHandlerCreateDebugFunc)
-		return universal_pointer_cast<_parserElementT>(mHandlerCreateDebugFunc(mRulename, input.substr(begin, count)));
+		return universal_pointer_cast<_parserElementT>(mHandlerCreateDebugFunc(this->getRulename(), input.substr(begin, count)));
 	return NULL;
 }
 
@@ -183,7 +256,11 @@ template <typename _parserElementT>
 shared_ptr<HandlerContext<_parserElementT>> ParserHandlerBase<_parserElementT>::createContext(){
 	return make_shared<HandlerContext<_parserElementT>>(this->shared_from_this());
 }
-	
+
+//
+// Parser template class implementation
+//
+
 template <typename _parserElementT>
 Parser<_parserElementT>::Parser(const shared_ptr<Grammar> &grammar) : mGrammar(grammar){
 	if (!mGrammar->isComplete()){
@@ -193,15 +270,27 @@ Parser<_parserElementT>::Parser(const shared_ptr<Grammar> &grammar) : mGrammar(g
 }
 
 template <typename _parserElementT>
+shared_ptr<ParserHandlerBase<_parserElementT>> &Parser<_parserElementT>::getHandler(const string &rulename){
+	auto it=mHandlers.find(rulename);
+	if (it=mHandlers.end()) return NULL;
+	return (*it).second;
+}
+
+template <typename _parserElementT>
+void Parser<_parserElementT>::installHandler(const shared_ptr<ParserHandlerBase<_parserElementT>> &handler){
+	mHandlers[handler->getRulename()]=handler;
+}
+
+template <typename _parserElementT>
 _parserElementT Parser<_parserElementT>::parseInput(const string &rulename, const string &input, size_t *parsed_size){
 	size_t parsed;
 	shared_ptr<Recognizer> rec=mGrammar->getRule(rulename);
 	auto pctx=make_shared<ParserContext<_parserElementT>>(*this);
 	
-	auto t_start = std::chrono::high_resolution_clock::now();
+	//auto t_start = std::chrono::high_resolution_clock::now();
 	parsed=rec->feed(pctx, input, 0);
-	auto t_end = std::chrono::high_resolution_clock::now();
-	cout<<"Recognition done in "<<std::chrono::duration<double, std::milli>(t_end-t_start).count()<<" milliseconds"<<endl;
+	//auto t_end = std::chrono::high_resolution_clock::now();
+	//cout<<"Recognition done in "<<std::chrono::duration<double, std::milli>(t_end-t_start).count()<<" milliseconds"<<endl;
 	if (parsed_size) *parsed_size=parsed;
 	auto ret= pctx->createRootObject(input);
 	return ret;

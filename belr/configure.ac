@@ -7,8 +7,8 @@ AC_CONFIG_SRCDIR([src/belr.hh])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE
-
-AC_PROG_LIBTOOL
+AM_SILENT_RULES(yes)
+LT_INIT(disable-shared win32-dll)
 
 # Checks for programs.
 AC_PROG_CXX
