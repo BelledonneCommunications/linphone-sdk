@@ -28,3 +28,4 @@ void test_dhm3072(void);
 void test_zrtpKDF(void);
 void test_CRC32(void);
 void test_algoAgreement(void);
+void test_algoSetterGetter(void);

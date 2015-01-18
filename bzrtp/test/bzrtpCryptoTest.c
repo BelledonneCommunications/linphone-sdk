@@ -603,3 +603,72 @@ void test_algoAgreement(void) {
 	CU_TEST(testAlgoType(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 6, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 6, ZRTP_CIPHER_AES3));
 	CU_TEST(testAlgoType(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 6, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES1, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES3}, 6, ZRTP_CIPHER_AES1));
 }
+
+static int compareAlgoTypes(uint8_t actualTypes[7], uint8_t actualTypesCount, uint8_t expectedTypes[7], uint8_t expectedTypesCount) {
+	int i;
+
+	if (actualTypesCount != expectedTypesCount) {
+		return 0;
+	}
+
+	for (i=0; i<actualTypesCount; i++) {
+		if (actualTypes[i] != expectedTypes[i]) {
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+static int testAlgoSetterGetter(uint8_t algoType, uint8_t contextTypes[7], uint8_t contextTypesCount, uint8_t expectedTypes[7], uint8_t expectedTypesCount) {
+	int retval;
+	uint8_t compareTypes[7];
+	uint8_t compareTypesCount;
+
+	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext(0x12345678);
+	bzrtp_setSupportedCryptoTypes(zrtpContext, algoType, contextTypes, contextTypesCount);
+	compareTypesCount = bzrtp_getSupportedCryptoTypes(zrtpContext, algoType, compareTypes);
+	retval = compareAlgoTypes(compareTypes, compareTypesCount, expectedTypes, expectedTypesCount);
+	bzrtp_destroyBzrtpContext(zrtpContext, 0x12345678);
+	return retval;
+}
+
+void test_algoSetterGetter(void) {
+	/* key agreement type */
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k}, 1, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k}, 1));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k}, 1, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k}, 1));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC25}, 1, NULL, 0));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC38}, 1, NULL, 0));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC52}, 1, NULL, 0));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_Prsh}, 1, NULL, 0));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_Mult}, 1, (uint8_t []){ZRTP_KEYAGREEMENT_Mult}, 1));
+
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 2, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 2));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k}, 2, (uint8_t []){ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k}, 2));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k}, 2, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k}, 2));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_EC25}, 2, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k}, 1));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_DH3k}, 2, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k}, 1));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_EC52}, 2, NULL, 0));
+
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_EC52, ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 4, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 2));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_Prsh, ZRTP_KEYAGREEMENT_EC52, ZRTP_KEYAGREEMENT_EC38, ZRTP_KEYAGREEMENT_EC25, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 6, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 2));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 4, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH2k}, 4));
+	CU_TEST(testAlgoSetterGetter(ZRTP_KEYAGREEMENT_TYPE, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k}, 8, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_DH3k}, 7));
+
+	/* cipher type */
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES1}, 1, (uint8_t []){ZRTP_CIPHER_AES1}, 1));
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES2}, 1, NULL, 0));
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3}, 1, (uint8_t []){ZRTP_CIPHER_AES3}, 1));
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS1}, 1, NULL, 0));
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS2}, 1, NULL, 0));
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3}, 1, NULL, 0));
+
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES3}, 2, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES3}, 2));
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES1}, 2, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES1}, 2));
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES1, ZRTP_CIPHER_AES3}, 2, (uint8_t []){ZRTP_CIPHER_AES1, ZRTP_CIPHER_AES3}, 2));
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES1, ZRTP_CIPHER_AES2}, 2, (uint8_t []){ZRTP_CIPHER_AES1}, 1));
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES1, ZRTP_CIPHER_2FS3}, 2, (uint8_t []){ZRTP_CIPHER_AES1}, 1));
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_AES2, ZRTP_CIPHER_2FS3}, 2, NULL, 0));
+
+	CU_TEST(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, (uint8_t []){ZRTP_CIPHER_2FS3, ZRTP_CIPHER_2FS2, ZRTP_CIPHER_2FS1, ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES2, ZRTP_CIPHER_AES1}, 6, (uint8_t []){ZRTP_CIPHER_AES3, ZRTP_CIPHER_AES1}, 2));
+}
