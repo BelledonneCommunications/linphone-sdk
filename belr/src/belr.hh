@@ -14,6 +14,13 @@ string tolower(const string &str);
 
 class ParserContextBase;
 
+struct TransitionMap{
+	TransitionMap();
+	bool intersect(const TransitionMap *other);
+	void merge(const TransitionMap *other);
+	bool mPossibleChars[256];
+};
+
 class Recognizer : public enable_shared_from_this<Recognizer>{
 public:
 	void setName(const string &name);
@@ -22,7 +29,13 @@ public:
 	unsigned int getId()const{
 		return mId;
 	}
+	bool getTransitionMap(TransitionMap *mask);
+	void optimize();
+	void optimize(int recursionLevel);
 protected:
+	/*returns true if the transition map is complete, false otherwise*/
+	virtual bool _getTransitionMap(TransitionMap *mask);
+	virtual void _optimize(int recursionLevel)=0;
 	Recognizer();
 	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos)=0;
 	string mName;
@@ -33,6 +46,7 @@ class CharRecognizer : public Recognizer{
 public:
 	CharRecognizer(int to_recognize, bool caseSensitive=false);
 private:
+	virtual void _optimize(int recursionLevel);
 	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	int mToRecognize;
 	bool mCaseSensitive;
@@ -43,8 +57,12 @@ public:
 	Selector();
 	shared_ptr<Selector> addRecognizer(const shared_ptr<Recognizer> &element);
 protected:
+	virtual void _optimize(int recursionLevel);
 	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
+	size_t _feedExclusive(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
+	virtual bool _getTransitionMap(TransitionMap *mask);
 	list<shared_ptr<Recognizer>> mElements;
+	bool mIsExclusive;
 };
 
 /**This is an optimization of the first one for the case where there can be only a single match*/
@@ -59,6 +77,9 @@ class Sequence : public Recognizer{
 public:
 	Sequence();
 	shared_ptr<Sequence> addRecognizer(const shared_ptr<Recognizer> &element);
+	virtual bool _getTransitionMap(TransitionMap *mask);
+protected:
+	virtual void _optimize(int recursionLevel);
 private:
 	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	list<shared_ptr<Recognizer>> mElements;
@@ -68,6 +89,9 @@ class Loop : public Recognizer{
 public:
 	Loop();
 	shared_ptr<Loop> setRecognizer(const shared_ptr<Recognizer> &element, int min=0, int max=-1);
+	virtual bool _getTransitionMap(TransitionMap *mask);
+protected:
+	virtual void _optimize(int recursionLevel);
 private:
 	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	shared_ptr<Recognizer> mRecognizer;
@@ -88,6 +112,7 @@ class CharRange : public Recognizer{
 public:
 	CharRange(int begin, int end);
 private:
+	virtual void _optimize(int recursionLevel);
 	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	int mBegin,mEnd;
 };
@@ -95,7 +120,9 @@ private:
 class Literal : public Recognizer{
 public:
 	Literal(const string &lit);
+	virtual bool _getTransitionMap(TransitionMap *mask);
 private:
+	virtual void _optimize(int recursionLevel);
 	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	string mLiteral;
 	size_t mLiteralSize;
@@ -113,6 +140,7 @@ public:
 	shared_ptr<Recognizer> getPointed();
 	void setPointed(const shared_ptr<Recognizer> &r);
 private:
+	virtual void _optimize(int recursionLevel);
 	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	shared_ptr<Recognizer> mRecognizer;
 };
@@ -140,6 +168,7 @@ public:
 	**/
 	shared_ptr<Recognizer> getRule(const string &name);
 	bool isComplete()const;
+	void optimize();
 	int getNumRules()const;
 private:
 	void assignRule(const string &name, const shared_ptr<Recognizer> &rule);

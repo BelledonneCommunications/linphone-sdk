@@ -92,8 +92,12 @@ shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar 
 		return mElement->buildRecognizer(grammar);
 	if (!mRulename.empty())
 		return grammar->getRule(mRulename);
-	if (!mCharVal.empty())
-		return Utils::literal(mCharVal);
+	if (!mCharVal.empty()){
+		if (mCharVal.size()==1)
+			return Foundation::charRecognizer(mCharVal[0],false);
+		else 
+			return Utils::literal(mCharVal);
+	}
 	cerr<<"ABNFElement::buildRecognizer is empty, should not happen!"<<endl;
 	abort();
 	return NULL;
@@ -323,6 +327,8 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &path, const
 	cout<<"Succesfully created grammar with "<<retGram->getNumRules()<<" rules."<<endl;
 	if (retGram->isComplete()){
 		cout<<"Grammar is complete."<<endl;
+		retGram->optimize();
+		cout<<"Grammar has been optimized."<<endl;
 	}else{
 		cout<<"WARNING: grammar is not complete."<<endl;
 	}

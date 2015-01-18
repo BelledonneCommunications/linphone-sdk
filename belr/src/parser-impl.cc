@@ -49,17 +49,17 @@ void Assignment<_parserElementT>::invoke(_parserElementT parent, const string &i
 		mCollector->invokeWithChild(parent, mChild->realize(input,mBegin,mCount));
 	}else{
 		string value=input.substr(mBegin, mCount);
-		shared_ptr<CollectorBase<_parserElementT,const string&>> cc1=dynamic_pointer_cast<CollectorBase<_parserElementT,const string&>>(mCollector);
+		CollectorBase<_parserElementT,const string&>* cc1=dynamic_cast<CollectorBase<_parserElementT,const string&>*>(mCollector);
 		if (cc1){
 			cc1->invoke(parent, value);
 			return;
 		}
-		shared_ptr<CollectorBase<_parserElementT,const char*>> cc2=dynamic_pointer_cast<CollectorBase<_parserElementT,const char*>>(mCollector);
+		CollectorBase<_parserElementT,const char*>* cc2=dynamic_cast<CollectorBase<_parserElementT,const char*>*>(mCollector);
 		if (cc2){
 			cc2->invoke(parent, value.c_str());
 			return;
 		}
-		shared_ptr<CollectorBase<_parserElementT,int>> cc3=dynamic_pointer_cast<CollectorBase<_parserElementT,int>>(mCollector);
+		CollectorBase<_parserElementT,int> *cc3=dynamic_cast<CollectorBase<_parserElementT,int>*>(mCollector);
 		if (cc3){
 			cc3->invoke(parent, atoi(value.c_str()));
 			return;
@@ -74,12 +74,12 @@ void Assignment<_parserElementT>::invoke(_parserElementT parent, const string &i
 
 template <typename _parserElementT>
 HandlerContext<_parserElementT>::HandlerContext(const shared_ptr<ParserHandlerBase<_parserElementT>> &handler) : 
-	mHandler(handler){
+	mHandler(*handler.get()){
 }
 
 template <typename _parserElementT>
 void HandlerContext<_parserElementT>::setChild(unsigned int subrule_id, size_t begin, size_t count, const shared_ptr<HandlerContext<_parserElementT>> &child){
-	auto collector=mHandler->getCollector(subrule_id);
+	auto collector=mHandler.getCollector(subrule_id);
 	if (collector){
 		mAssignments.push_back(Assignment<_parserElementT>(collector, begin, count, child));
 	}
@@ -87,7 +87,7 @@ void HandlerContext<_parserElementT>::setChild(unsigned int subrule_id, size_t b
 
 template <typename _parserElementT>
 _parserElementT HandlerContext<_parserElementT>::realize(const string &input, size_t begin, size_t count){
-	_parserElementT ret=mHandler->invoke(input, begin, count);
+	_parserElementT ret=mHandler.invoke(input, begin, count);
 	for (auto it=mAssignments.begin(); it!=mAssignments.end(); ++it){
 		(*it).invoke(ret,input);
 	}
@@ -96,7 +96,7 @@ _parserElementT HandlerContext<_parserElementT>::realize(const string &input, si
 
 template <typename _parserElementT>
 shared_ptr<HandlerContext<_parserElementT>> HandlerContext<_parserElementT>::branch(){
-	return make_shared<HandlerContext>(mHandler);
+	return mHandler.createContext();
 }
 
 template <typename _parserElementT>
@@ -114,6 +114,12 @@ size_t HandlerContext<_parserElementT>::getLastIterator()const{
 template <typename _parserElementT>
 void HandlerContext<_parserElementT>::undoAssignments(size_t pos){
 	mAssignments.erase(mAssignments.begin()+pos,mAssignments.end());
+}
+
+template <typename _parserElementT>
+void HandlerContext< _parserElementT >::recycle(){
+	mAssignments.clear();
+	mHandler.releaseContext(static_pointer_cast<HandlerContext< _parserElementT >>(shared_from_this()));
 }
 
 //
@@ -141,6 +147,21 @@ const shared_ptr<AbstractCollector<_parserElementT>> & ParserHandlerBase<_parser
 	return mParser.mNullCollector;
 }
 
+template <typename _parserElementT>
+void ParserHandlerBase< _parserElementT >::releaseContext(const shared_ptr<HandlerContext<_parserElementT>> &ctx){
+	mCachedContext=ctx;
+}
+
+template <typename _parserElementT>
+shared_ptr<HandlerContext<_parserElementT>> ParserHandlerBase<_parserElementT>::createContext(){
+	if (mCachedContext) {
+		shared_ptr<HandlerContext<_parserElementT>> ret=mCachedContext;
+		mCachedContext.reset();
+		return ret;
+	}
+	return make_shared<HandlerContext<_parserElementT>>(this->shared_from_this());
+}
+
 //
 // ParserHandler template implementation
 //
@@ -154,12 +175,17 @@ _parserElementT ParserHandler<_derivedParserElementT,_parserElementT>::invoke(co
 	return NULL;
 }
 
+
+//
+// ParserContext template class implementation
+//
+
 template <typename _parserElementT>
 ParserContext<_parserElementT>::ParserContext(Parser<_parserElementT> &parser) : mParser(parser){
 }
 
 template <typename _parserElementT>
-ParserLocalContext ParserContext<_parserElementT>::_beginParse(const shared_ptr<Recognizer> &rec){
+void ParserContext<_parserElementT>::_beginParse(ParserLocalContext & lctx, const shared_ptr<Recognizer> &rec){
 	shared_ptr<HandlerContextBase> ctx;
 
 	auto h=mParser.getHandler(rec->getId());
@@ -167,7 +193,7 @@ ParserLocalContext ParserContext<_parserElementT>::_beginParse(const shared_ptr<
 		ctx=h->createContext();
 		mHandlerStack.push_back(static_pointer_cast<HandlerContext<_parserElementT>>(ctx));
 	}
-	return ParserLocalContext(ctx,rec,mHandlerStack.back()->getLastIterator());
+	lctx.set(ctx,rec,mHandlerStack.back()->getLastIterator());
 }
 
 template <typename _parserElementT>
@@ -184,11 +210,15 @@ void ParserContext<_parserElementT>::_endParse(const ParserLocalContext &localct
 				/*no parent, this is our root object*/
 				mRoot=static_pointer_cast<HandlerContext< _parserElementT >>(localctx.mHandlerContext);
 			}
+		}else{
+			//no match
+			static_pointer_cast<HandlerContext< _parserElementT >>(localctx.mHandlerContext)->recycle();
 		}
 	}else{
 		if (count!=string::npos && count>0){
 			/*assign string to parent */
-			mHandlerStack.back()->setChild(localctx.mRecognizer->getId(), begin, count, NULL);
+			if (localctx.mRecognizer->getId()!=0)
+				mHandlerStack.back()->setChild(localctx.mRecognizer->getId(), begin, count, NULL);
 		}else{
 			mHandlerStack.back()->undoAssignments(localctx.mAssignmentPos);
 		}
@@ -217,7 +247,8 @@ void ParserContext<_parserElementT>::_merge(const shared_ptr<HandlerContext<_par
 		abort();
 	}
 	mHandlerStack.pop_back();
-	return mHandlerStack.back()->merge(other);
+	mHandlerStack.back()->merge(other);
+	other->recycle();
 }
 
 template <typename _parserElementT>
@@ -230,11 +261,12 @@ void ParserContext<_parserElementT>::_removeBranch(const shared_ptr<HandlerConte
 		advance(it,1);
 		mHandlerStack.erase(it.base());
 	}
+	other->recycle();
 }
 
 template <typename _parserElementT>
-ParserLocalContext ParserContext<_parserElementT>::beginParse(const shared_ptr<Recognizer> &rec){
-	return _beginParse(rec);
+void ParserContext<_parserElementT>::beginParse(ParserLocalContext &ctx, const shared_ptr<Recognizer> &rec){
+	_beginParse(ctx, rec);
 }
 
 template <typename _parserElementT>
@@ -255,11 +287,6 @@ void ParserContext<_parserElementT>::merge(const shared_ptr<HandlerContextBase> 
 template <typename _parserElementT>
 void ParserContext<_parserElementT>::removeBranch(const shared_ptr<HandlerContextBase> &other){
 	_removeBranch(static_pointer_cast<HandlerContext<_parserElementT>>(other));
-}
-
-template <typename _parserElementT>
-shared_ptr<HandlerContext<_parserElementT>> ParserHandlerBase<_parserElementT>::createContext(){
-	return make_shared<HandlerContext<_parserElementT>>(this->shared_from_this());
 }
 
 //
