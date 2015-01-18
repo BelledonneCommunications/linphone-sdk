@@ -196,7 +196,9 @@ bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, ui
 }
 
 
-
+static inline uint8_t min(const uint8_t a, const uint8_t b) {
+	return a < b ? a : b;
+}
 
 /* Call this function after the packetCheck one, to actually parse the packet : create and fill the messageData structure */
 int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, const uint8_t * input, uint16_t inputLength, bzrtpPacket_t *zrtpPacket) {
@@ -227,13 +229,13 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				messageData->M = ((*messageContent)>>5)&0x01;
 				messageData->P = ((*messageContent)>>4)&0x01;
 				messageContent +=1;
-				messageData->hc = (*messageContent)&0x0F;
+				messageData->hc = min((*messageContent)&0x0F, 7);
 				messageContent +=1;
-				messageData->cc = ((*messageContent)>>4)&0x0F;
-				messageData->ac = (*messageContent)&0x0F;
+				messageData->cc = min(((*messageContent)>>4)&0x0F, 7);
+				messageData->ac = min((*messageContent)&0x0F, 7);
 				messageContent +=1;
-				messageData->kc = ((*messageContent)>>4)&0x0F;
-				messageData->sc = (*messageContent)&0x0F;
+				messageData->kc = min(((*messageContent)>>4)&0x0F, 7);
+				messageData->sc = min((*messageContent)&0x0F, 7);
 				messageContent +=1;
 
 				/* Check message length according to value in hc, cc, ac, kc and sc */
