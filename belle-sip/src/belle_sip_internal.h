@@ -283,10 +283,6 @@ struct belle_sip_dict {
 
 BELLESIP_INTERNAL_EXPORT char * belle_sip_concat (const char *str, ...);
 
-BELLESIP_INTERNAL_EXPORT uint64_t belle_sip_time_ms(void);
-
-BELLESIP_INTERNAL_EXPORT unsigned int belle_sip_random(void);
-
 
 /*parameters accessors*/
 #define GET_SET_STRING(object_type,attribute) \

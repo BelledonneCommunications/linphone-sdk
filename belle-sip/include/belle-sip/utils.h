@@ -176,6 +176,10 @@ BELLESIP_EXPORT const char* belle_sip_version_to_string();
 **/
 BELLESIP_EXPORT char *belle_sip_unquote_strdup(const char *str);
 
+BELLESIP_EXPORT uint64_t belle_sip_time_ms(void);
+
+BELLESIP_EXPORT unsigned int belle_sip_random(void);
+
 #if defined(WIN32)
 
 #include <winsock2.h>

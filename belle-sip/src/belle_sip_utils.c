@@ -1177,7 +1177,6 @@ belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_t
 #else
 	DIR *dir;
 	struct dirent *ent;
-	int path_length;
 
 	if ((dir = opendir(path)) == NULL) {
 		belle_sip_error("Could't open [%s] directory.", path);

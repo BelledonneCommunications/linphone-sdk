@@ -78,9 +78,13 @@ int main(int argc, char *argv[]){
 	for (i=0;i<st.st_size;){
 		size_t read;
 		if (strcasecmp(protocol,"sip")==0 || strcasecmp(protocol,"http")==0){
-			belle_sip_message_t *msg=belle_sip_message_parse_raw(str+i,st.st_size-i,&read);
+			belle_sip_message_t *msg;
+			uint64_t begin,end;
+			begin=belle_sip_time_ms();
+			msg=belle_sip_message_parse_raw(str+i,st.st_size-i,&read);
+			end=belle_sip_time_ms();
 			if (msg){
-				printf("Succesfully parsed %s message of %i bytes.\n",protocol,(int)read);
+				printf("Succesfully parsed %s message of %i bytes in %i ms.\n",protocol,(int)read, (int)(end-begin));
 			}else{
 				fprintf(stderr,"Failed to parse message.\n");
 				break;
