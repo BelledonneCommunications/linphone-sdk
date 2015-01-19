@@ -88,17 +88,13 @@ static void test_proxy_authentication(void) {
 static void test_generate_and_parse_certificates(void) {
 #ifdef HAVE_POLARSSL
 #if POLARSSL_VERSION_NUMBER >= 0x01030000
-/* function not available on windows yet - need to add the create and parse directory */
-#ifndef WIN32
 	belle_sip_certificates_chain_t *certificate, *parsed_certificate;
 	belle_sip_signing_key_t *key, *parsed_key;
 	char *pem_certificate, *pem_parsed_certificate, *pem_key, *pem_parsed_key;
 	int ret = 0;
-	char *belle_sip_certificate_temporary_dir=belle_sip_malloc(strlen(belle_sip_tester_writable_dir_prefix)+strlen(TEMPORARY_CERTIFICATE_DIR)+1);
-	strcpy(belle_sip_certificate_temporary_dir, belle_sip_tester_writable_dir_prefix);
-	memcpy(belle_sip_certificate_temporary_dir+strlen(belle_sip_tester_writable_dir_prefix), TEMPORARY_CERTIFICATE_DIR, strlen(TEMPORARY_CERTIFICATE_DIR)+1);
+	char *belle_sip_certificate_temporary_dir = belle_sip_strdup_printf("%s%s", belle_sip_tester_writable_dir_prefix, TEMPORARY_CERTIFICATE_DIR);
 
-	/* create 2 certificates in ./belle_sip_crt_test directory (TODO : set the directory in a absolute path?? where?)*/
+	/* create 2 certificates in the temporary certificate directory (TODO : set the directory in a absolute path?? where?)*/
 	ret = belle_sip_generate_self_signed_certificate(belle_sip_certificate_temporary_dir, "test_certificate1", &certificate, &key);
 	CU_ASSERT_EQUAL_FATAL(0, ret);
 	ret = belle_sip_generate_self_signed_certificate(belle_sip_certificate_temporary_dir, "test_certificate2", &certificate, &key);
@@ -131,7 +127,6 @@ static void test_generate_and_parse_certificates(void) {
 	belle_sip_object_unref(parsed_certificate);
 	belle_sip_object_unref(key);
 	belle_sip_object_unref(parsed_key);
-#endif /* WIN32 */
 #endif /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
 #endif /* HAVE_POLARSSL */
 }
