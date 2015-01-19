@@ -65,10 +65,7 @@ typedef struct _DtlsRawPacket {
 
 #define DTLS_STATUS_CONTEXT_NOT_READY 0
 #define DTLS_STATUS_CONTEXT_READY 1
-#define DTLS_STATUS_ON_GOING_HANDSHAKE 2
-#define DTLS_STATUS_HANDSHAKE_OVER 3
-#define DTLS_STATUS_RTCP_HANDSHAKE_ONGOING 4
-#define DTLS_STATUS_RTCP_HANDSHAKE_OVER 5
+#define DTLS_STATUS_HANDSHAKE_OVER 2
 
 #define READ_TIMEOUT_MS 1000
 
@@ -83,8 +80,8 @@ struct _MSDtlsSrtpContext{
 	DtlsPolarsslContext *rtp_dtls_context; /**< a structure containing all contexts needed by polarssl for RTP channel */
 	DtlsPolarsslContext *rtcp_dtls_context; /**< a structure containing all contexts needed by polarssl for RTCP channel */
 
-	uint8_t rtp_channel_status; /**< channel status : DTLS_STATUS_CONTEXT_NOT_READY, DTLS_STATUS_CONTEXT_READY, DTLS_STATUS_ON_GOING_HANDSHAKE, DTLS_STATUS_HANDSHAKE_OVER */
-	uint8_t rtcp_channel_status; /**< channel status : DTLS_STATUS_CONTEXT_NOT_READY, DTLS_STATUS_CONTEXT_READY, DTLS_STATUS_ON_GOING_HANDSHAKE, DTLS_STATUS_HANDSHAKE_OVER */
+	uint8_t rtp_channel_status; /**< channel status : DTLS_STATUS_CONTEXT_NOT_READY, DTLS_STATUS_CONTEXT_READY, DTLS_STATUS_HANDSHAKE_OVER */
+	uint8_t rtcp_channel_status; /**< channel status : DTLS_STATUS_CONTEXT_NOT_READY, DTLS_STATUS_CONTEXT_READY, DTLS_STATUS_HANDSHAKE_OVER */
 
 	DtlsRawPacket *rtp_incoming_buffer; /**< buffer of incoming DTLS packet to be read by polarssl callback */
 	DtlsRawPacket *rtcp_incoming_buffer; /**< buffer of incoming DTLS packet to be read by polarssl callback */
@@ -681,7 +678,13 @@ bool_t ms_dtls_srtp_available(){return TRUE;}
 
 void ms_dtls_srtp_set_peer_fingerprint(MSDtlsSrtpContext *context, const char *peer_fingerprint) {
 	if (context) {
-		memcpy(context->peer_fingerprint, peer_fingerprint, strlen(peer_fingerprint));
+		size_t peer_fingerprint_length = strlen(peer_fingerprint)+1; // include the null termination
+		if (peer_fingerprint_length>sizeof(context->peer_fingerprint)) {
+			memcpy(context->peer_fingerprint, peer_fingerprint, sizeof(context->peer_fingerprint));
+			ms_error("DTLS-SRTP received from SDP INVITE a peer fingerprint %d bytes length wich is longer than maximum storage %d bytes", (int)peer_fingerprint_length, (int)sizeof(context->peer_fingerprint));
+		} else {
+			memcpy(context->peer_fingerprint, peer_fingerprint, peer_fingerprint_length);
+		}
 	}
 }
 
