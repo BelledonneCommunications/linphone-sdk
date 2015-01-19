@@ -299,7 +299,7 @@ static void capture_queue_cleanup(void* p) {
 												  error:&error];
 
 	AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
-	if ( input && [session canAddInput] ){
+	if ( input && [session canAddInput:input] ){
 		[input retain]; // keep reference on an externally allocated object
 		[session addInput:input];
 	} else {
