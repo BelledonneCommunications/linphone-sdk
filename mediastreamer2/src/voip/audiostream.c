@@ -1112,6 +1112,9 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 
 	stream->ms.type = MSAudio;
 	stream->ms.sessions=*sessions;
+	if (sessions->zrtp_context != NULL) {
+		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
+	}
 	if (sessions->dtls_context != NULL) {
 		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &(stream->ms.sessions));
 	}
@@ -1352,9 +1355,9 @@ float audio_stream_get_average_lq_quality_rating(AudioStream *stream) {
 
 void audio_stream_enable_zrtp(AudioStream *stream, MSZrtpParams *params){
 	if (stream->ms.sessions.zrtp_context==NULL)
-		stream->ms.sessions.zrtp_context=ms_zrtp_context_new((MediaStream *)stream, stream->ms.sessions.rtp_session, params);
+		stream->ms.sessions.zrtp_context=ms_zrtp_context_new( &(stream->ms.sessions), params);
 	else if (!stream->ms.sessions.is_secured)
-		ms_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context,stream->ms.sessions.rtp_session);
+		ms_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context);
 }
 
 bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {

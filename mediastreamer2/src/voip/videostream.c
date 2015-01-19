@@ -253,6 +253,9 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 
 	stream->ms.type = MSVideo;
 	stream->ms.sessions=*sessions;
+	if (sessions->zrtp_context != NULL) {
+		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
+	}
 	if (sessions->dtls_context != NULL) {
 		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &(stream->ms.sessions));
 	}
@@ -1259,9 +1262,9 @@ void video_stream_send_only_stop(VideoStream *vs){
 /* enable ZRTP on the video stream using information from the audio stream */
 void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtpParams *param){
 	if (astream->ms.sessions.zrtp_context != NULL && vstream->ms.sessions.zrtp_context == NULL) {
-		vstream->ms.sessions.zrtp_context=ms_zrtp_multistream_new((MediaStream *)vstream, astream->ms.sessions.zrtp_context, vstream->ms.sessions.rtp_session, param);
+		vstream->ms.sessions.zrtp_context=ms_zrtp_multistream_new(&(vstream->ms.sessions), astream->ms.sessions.zrtp_context, param);
 	} else if (vstream->ms.sessions.zrtp_context && !vstream->ms.sessions.is_secured)
-		ms_zrtp_reset_transmition_timer(vstream->ms.sessions.zrtp_context,vstream->ms.sessions.rtp_session);
+		ms_zrtp_reset_transmition_timer(vstream->ms.sessions.zrtp_context);
 }
 
 void video_stream_enable_dtls(VideoStream *stream, MSDtlsSrtpParams *params){
