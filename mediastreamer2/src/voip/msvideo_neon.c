@@ -21,11 +21,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msvideo.h"
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__arm64__)
+#define MS_HAS_ARM 1
+#endif
+
+#if MS_HAS_ARM
 
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
 #endif
+
+#ifdef __arm__
+
 #define MATRIX_LOAD_8X8 \
 	/*load 8x8 pixel \
 	[  0,  1,  2,  3,  4,  5,  6,  7] \
@@ -456,72 +463,6 @@ static void deinterlace_down_scale_and_reverse_2x16bytes_neon(unsigned char* src
 #endif
 }
 
-void deinterlace_down_scale_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* u_dst, uint8_t* v_dst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row,bool_t down_scale) {
-#ifdef __ARM_NEON__
-	char y_inc=down_scale?2:1;
-	char x_inc=down_scale?32:16;
-	int src_h=down_scale?2*h:h;
-	int src_w=down_scale?2*w:w;
-	int x,y;
-	// plain copy
-	uint8_t* ysrc_ptr = ysrc;
-	uint8_t* ydest_ptr = ydst;
-	uint8_t* cbcrsrc_ptr = cbcrsrc;
-	uint8_t* udest_ptr = u_dst;	
-	uint8_t* vdest_ptr = v_dst;
-    int crcb_dest_offset=0;
-	
-	for(y=0; y<src_h; y+=y_inc) {
-		if (down_scale) {
-			for(x=0;x<src_w;x+=x_inc) {
-				__asm  volatile ("vld2.8 {q0,q1},[%0]! \n\t"
-								/* store in dest */
-								"vst1.8 {d0,d1},[%1]! \n\t"
-								:"+r"(ysrc_ptr),"+r"(ydest_ptr) /*out*/
-								: "r"(ysrc_ptr),"r"(ydest_ptr)/*in*/
-								: "q0","q1" /*modified*/
-								);
-			}
-			
-		} else {
-			memcpy(ydest_ptr,ysrc_ptr,w);
-			ydest_ptr+=w;
-		}
-		ysrc_ptr= ysrc +  y* y_byte_per_row;
-		
-	}
-	// de-interlace u/v
-	for(y=0; y<src_h>>1; y+=y_inc) {
-		for(x=0;x<src_w;x+=x_inc) {
-			if (down_scale) {
-				__asm  volatile ("vld4.8 {d0,d1,d2,d3},[%0]! \n\t"
-								/* store in dest */
-								"vst1.8 {d0},[%1]! \n\t"
-								"vst1.8 {d1},[%2]! \n\t"
-                                 :"=r"(cbcrsrc_ptr),"=r"(udest_ptr),"=r"(vdest_ptr) /*out*/
-                                 : "0"(cbcrsrc_ptr),"1"(udest_ptr),"2"(vdest_ptr) /*in*/	
-                                 : "q0","q1" /*modified*/
-								);
-			} else {
-				__asm  volatile ("vld2.8 {d0,d1},[%0]! \n\t"
-								/* store in dest */
-								"vst1.8 {d0},[%1]! \n\t"
-								"vst1.8 {d1},[%2]! \n\t"
-                                 :"=r"(cbcrsrc_ptr),"=r"(udest_ptr),"=r"(vdest_ptr) /*out*/
-                                 : "0"(cbcrsrc_ptr),"1"(udest_ptr),"2"(vdest_ptr) /*in*/
-								: "q0" /*modified*/
-								);
-				
-			}
-		}
-		cbcrsrc_ptr= cbcrsrc +  y * cbcr_byte_per_row;
-        crcb_dest_offset+=down_scale?(src_w>>2):(src_w>>1);
-        udest_ptr=u_dst + crcb_dest_offset;
-        vdest_ptr=v_dst + crcb_dest_offset;
-		
-	}
-#endif
-}
 
 void deinterlace_down_scale_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row,bool_t down_scale) {
 #ifdef __ARM_NEON__
@@ -534,12 +475,12 @@ void deinterlace_down_scale_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc,
 	char x_dest_inc=16;
 	char y_inc=down_scale?2:1;
 	// 180° y rotation
-	
+
 	uint8_t* src_ptr=ysrc;
 	uint8_t* dest_ptr=ydst + h*w; /*start at the end of dest*/
 	uint8_t* dest_u_ptr;
 	uint8_t* dest_v_ptr;
-	
+
 	for(y=0; y<src_h; y+=y_inc) {
 		for(x=0; x<src_w; x+=x_src_inc) {
 			dest_ptr-=x_dest_inc;
@@ -560,17 +501,17 @@ void deinterlace_down_scale_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc,
 	for(y=0; y<src_uv_h; y+=y_inc) {
 		for(x=0; x<src_uv_w; x+=x_src_inc) {
 			dest_u_ptr-=x_dest_inc>>1;
-			dest_v_ptr-=x_dest_inc>>1;			
+			dest_v_ptr-=x_dest_inc>>1;
 			if (down_scale) {
 				deinterlace_down_scale_and_reverse_2x16bytes_neon(src_ptr, dest_u_ptr, dest_v_ptr);
 			} else {
 				deinterlace_and_reverse_2x8bytes_neon(src_ptr, dest_u_ptr, dest_v_ptr);
 			}
 			src_ptr+=x_src_inc;
-			
+
 		}
 		src_ptr=cbcrsrc+ y*cbcr_byte_per_row;
-	}	
+	}
 
 #else
 	ms_error("Neon function '%s' used without hw neon support", __FUNCTION__);
@@ -579,6 +520,67 @@ void deinterlace_down_scale_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc,
 void deinterlace_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row) {
 	return deinterlace_down_scale_and_rotate_180_neon(ysrc, cbcrsrc, ydst, udst, vdst, w, h, y_byte_per_row,cbcr_byte_per_row,FALSE);
 }
+
+#endif /* defined(__arm__), the above functions are not used in iOS 64bits, so only the function below is implemented for __arm64__ */
+
+void deinterlace_down_scale_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* u_dst, uint8_t* v_dst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row,bool_t down_scale) {
+#ifdef __ARM_NEON__
+    char y_inc  = down_scale?2:1;
+    char x_inc  = down_scale?32:16;
+    int src_h   = down_scale?2*h:h;
+    int src_w   = down_scale?2*w:w;
+	int x,y;
+	// plain copy
+	uint8_t* ysrc_ptr = ysrc;
+	uint8_t* ydest_ptr = ydst;
+	uint8_t* cbcrsrc_ptr = cbcrsrc;
+	uint8_t* udest_ptr = u_dst;	
+	uint8_t* vdest_ptr = v_dst;
+    int crcb_dest_offset=0;
+
+	for(y=0; y<src_h; y+=y_inc) {
+		if (down_scale) {
+			for(x=0;x<src_w;x+=x_inc) {
+				uint8x16x2_t src = vld2q_u8(ysrc_ptr);
+				vst1q_u8(ydest_ptr, src.val[0]);
+                ysrc_ptr  += 32;
+                ydest_ptr += 16;
+			}
+		} else {
+			memcpy(ydest_ptr,ysrc_ptr,w);
+			ydest_ptr+=w;
+		}
+		ysrc_ptr= ysrc +  y* y_byte_per_row;
+		
+	}
+	// de-interlace u/v
+	for(y=0; y < (src_h>>1); y+=y_inc) {
+		for(x=0;x<src_w;x+=x_inc) {
+			if (down_scale) {
+				uint8x8x4_t cbr = vld4_u8(cbcrsrc_ptr);
+				vst1_u8(udest_ptr, cbr.val[0]);
+				vst1_u8(vdest_ptr, cbr.val[1]);
+				cbcrsrc_ptr+=32;
+				vdest_ptr+=8;
+				udest_ptr+=8;
+			} else {
+				uint8x8x2_t cbr = vld2_u8(cbcrsrc_ptr);
+				vst1_u8(udest_ptr, cbr.val[0]);
+				vst1_u8(vdest_ptr, cbr.val[1]);
+				cbcrsrc_ptr+=16;
+				vdest_ptr+=8;
+				udest_ptr+=8;
+			}
+		}
+		cbcrsrc_ptr= cbcrsrc +  y * cbcr_byte_per_row;
+        crcb_dest_offset+=down_scale?(src_w>>2):(src_w>>1);
+        udest_ptr=u_dst + crcb_dest_offset;
+        vdest_ptr=v_dst + crcb_dest_offset;
+		
+	}
+#endif
+}
+
 
 #endif
 

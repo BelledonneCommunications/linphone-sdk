@@ -27,7 +27,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h>
 #endif
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__arm64__)
+#define MS_HAS_ARM 1
+#endif
+
+
+#if MS_HAS_ARM
 #include "msvideo_neon.h"
 #endif
 
@@ -453,7 +458,7 @@ static MSScalerContext *ff_create_swscale_context(int src_w, int src_h, MSPixFmt
 	int ff_flags=0;
 	MSFFScalerContext *ctx=ms_new0(MSFFScalerContext,1);
 	ctx->src_h=src_h;
-#if __arm__
+#if MS_HAS_ARM
 	ff_flags|=SWS_FAST_BILINEAR;
 #else
 	if (flags & MS_SCALER_METHOD_BILINEAR)
@@ -659,7 +664,7 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 static int hasNeon = -1;
 #elif defined (__ARM_NEON__)
 static int hasNeon = 1;
-#elif defined(__arm__)
+#elif MS_HAS_ARM
 static int hasNeon = 0;
 #endif
 
@@ -677,12 +682,18 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 	uint8_t* dstv;
 
 	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
+
 #ifdef ANDROID
 	if (hasNeon == -1) {
 		hasNeon = (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0);
+	#ifdef __arm64__
+		ms_warning("Warning: ARM64 NEON routines for video rotation are not yes implemented for Android: using SOFT version!");
+	#endif
 	}
 #endif
-#ifdef __arm__
+
+
+#if MS_HAS_ARM
 	if (down_scale && !hasNeon) {
 		ms_error("down scaling by two requires NEON, returning empty block");
 		return yuv_block;
@@ -703,7 +714,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 		uint8_t* u_dest=pict.planes[1], *v_dest=pict.planes[2];
 
 		if (rotation == 0) {
-#ifdef __arm__
+#if MS_HAS_ARM
 			if (hasNeon) {
 				deinterlace_down_scale_neon(y, cbcr, pict.planes[0], u_dest, v_dest, w, h, y_byte_per_row, cbcr_byte_per_row,down_scale);
 			} else
@@ -722,7 +733,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 				}
 			}
 		} else {
-#ifdef __arm__
+#if defined(__arm__)
 			if (hasNeon) {
 				deinterlace_down_scale_and_rotate_180_neon(y, cbcr, pict.planes[0], u_dest, v_dest, w, h, y_byte_per_row, cbcr_byte_per_row,down_scale);
 			} else
@@ -745,7 +756,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 	} else {
 		bool_t clockwise = rotation == 90 ? TRUE : FALSE;
 		// Rotate Y
-#ifdef __arm__
+#if defined(__arm__)
 		if (hasNeon) {
 			if (clockwise) {
 				rotate_down_scale_plane_neon_clockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0],down_scale);
@@ -760,7 +771,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 			rotate_plane(w,h,y_byte_per_row,srcy,dsty,1, clockwise);
 		}
 
-#ifdef __arm__
+#if defined(__arm__)
 		if (hasNeon) {
 			rotate_down_scale_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[2], pict.planes[1],clockwise,down_scale);
 		} else
