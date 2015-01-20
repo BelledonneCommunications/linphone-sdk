@@ -478,3 +478,7 @@ yuv2rgb.fs.h: yuv2rgb.fs
 yuv2rgb.vs.h: yuv2rgb.vs
 	cd $(abs_srcdir) && \
 	xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/ > $(abs_builddir)/yuv2rgb.vs.h
+
+#because make bundle serahc in this dir
+install-data-local:
+	$(MKDIR_P) $(libdir)/mediastreamer/plugins
