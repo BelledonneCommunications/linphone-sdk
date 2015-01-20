@@ -1,6 +1,6 @@
 lib_LTLIBRARIES = libbzrtp.la
 
-libbzrtp_la_LIBADD= $(LIBXML2_LIBS) $(POLARSSL_LIBS)
+libbzrtp_la_LIBADD= $(POLARSSL_LIBS) $(LIBXML2_LIBS)
 libbzrtp_la_SOURCES=	bzrtp.c cryptoPolarssl.c cryptoUtils.c packetParser.c zidCache.c stateMachine.c
 
 libbzrtp_la_LDFLAGS=-fvisibility=hidden -no-undefined
