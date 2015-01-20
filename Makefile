@@ -230,3 +230,8 @@ generate-ios-sdk: build-ios
 veryclean:
 	rm -rf WORK && \
 	rm -rf OUTPUT
+
+check-latest:
+	mkdir -p WORK && \
+	cd WORK && \
+	cmake .. -DLINPHONE_BUILDER_CHECK_LATEST=Yes

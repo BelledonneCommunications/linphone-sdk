@@ -31,40 +31,49 @@ set(LINPHONE_BUILDER_TARGET "linphone" CACHE STRING "Target to build.")
 set_property(CACHE LINPHONE_BUILDER_TARGET PROPERTY STRINGS "belle-sip" "ortp" "ms2" "ms2-plugins" "linphone" "flexisip")
 set(LINPHONE_BUILDER_PREBUILT_URL "" CACHE STRING "URL to download some prebuilt dependencies.")
 option(LINPHONE_BUILDER_LATEST "Build latest versions (from git)." NO)
+option(LINPHONE_BUILDER_CHECK_LASTEST "Check that the git revisions are the latest ones." NO)
 
 
 # Include macros definition to be used by builders
 include(cmake/LinphoneCMakeBuilder.cmake)
 
 
-# Include toolchain definition
-if(CMAKE_TOOLCHAIN_FILE)
-	get_filename_component(CMAKE_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE} ABSOLUTE)
-	message(STATUS "Using toolchain file '${CMAKE_TOOLCHAIN_FILE}'")
-endif()
+if(LINPHONE_BUILDER_CHECK_LATEST)
+
+	include(builders/CMakeLists.txt)
+
+else()
+
+	# Include toolchain definition
+	if(CMAKE_TOOLCHAIN_FILE)
+		get_filename_component(CMAKE_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE} ABSOLUTE)
+		message(STATUS "Using toolchain file '${CMAKE_TOOLCHAIN_FILE}'")
+	endif()
 
 
-# Get build tools and flags for autotools projects
-linphone_builder_get_autotools_configuration()
+	# Get build tools and flags for autotools projects
+	linphone_builder_get_autotools_configuration()
 
 
-# Create targets list from the given LINPHONE_BUILDER_TARGET
-linphone_builder_create_targets_list()
+	# Create targets list from the given LINPHONE_BUILDER_TARGET
+	linphone_builder_create_targets_list()
 
 
-# Include project configuration according to the toolchain
-get_filename_component(LINPHONE_BUILDER_CONFIG_FILE ${LINPHONE_BUILDER_CONFIG_FILE} ABSOLUTE)
-message(STATUS "Using configuration file '${LINPHONE_BUILDER_CONFIG_FILE}'")
-include(${LINPHONE_BUILDER_CONFIG_FILE})
+	# Include project configuration according to the toolchain
+	get_filename_component(LINPHONE_BUILDER_CONFIG_FILE ${LINPHONE_BUILDER_CONFIG_FILE} ABSOLUTE)
+	message(STATUS "Using configuration file '${LINPHONE_BUILDER_CONFIG_FILE}'")
+	include(${LINPHONE_BUILDER_CONFIG_FILE})
 
 
-# Apply build flags and add external projects
-linphone_builder_apply_flags()
-linphone_builder_add_external_projects()
+	# Apply build flags and add external projects
+	linphone_builder_apply_flags()
+	linphone_builder_add_external_projects()
 
 
-# Give a feature summary
-if("${CMAKE_VERSION}" VERSION_GREATER "2.8.2")
-	feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
-	feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
+	# Give a feature summary
+	if("${CMAKE_VERSION}" VERSION_GREATER "2.8.2")
+		feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
+		feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
+	endif()
+
 endif()
