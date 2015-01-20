@@ -20,13 +20,13 @@
 #define _CRT_RAND_S
 #include <stddef.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include "belle_sip_internal.h"
 
 #include "clock_gettime.h" /*for apple*/
 
 #ifndef WIN32
+#include <unistd.h>
 #include <sys/time.h> /*for gettimeofday*/
 #include <dirent.h> /* available on POSIX system only */
 #else
