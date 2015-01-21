@@ -481,4 +481,4 @@ yuv2rgb.vs.h: yuv2rgb.vs
 
 #because make bundle serahc in this dir
 install-data-local:
-	$(MKDIR_P) $(libdir)/mediastreamer/plugins
+	$(MKDIR_P) $(DESTDIR)$(libdir)/mediastreamer/plugins
