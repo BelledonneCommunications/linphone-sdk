@@ -141,6 +141,7 @@ MS2_PUBLIC int ms_list_index(const MSList *list, void *data);
 MS2_PUBLIC MSList *ms_list_insert_sorted(MSList *list, void *data, MSCompareFunc compare_func);
 MS2_PUBLIC MSList *ms_list_insert(MSList *list, MSList *before, void *data);
 MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
+MS2_PUBLIC MSList *ms_list_copy_with_data(const MSList *list, void *(*copyfunc)(void *));
 
 #undef MIN
 #define MIN(a,b)	((a)>(b) ? (b) : (a))
