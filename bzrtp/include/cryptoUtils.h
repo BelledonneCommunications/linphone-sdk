@@ -131,9 +131,9 @@ int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext);
  * @param[in]	masterArrayLength	Number of valids element in the master array
  * @param[in]	slaveArray	 		The available algo, order is not taken in account
  * @param[in]	slaveArrayLength	Number of valids element in the slave array
- * @param[out]	commonArray	 		The available algo, order is not taken in account
+ * @param[out]	commonArray	 		Common algorithms found, max size 7
  *
- * @return		the number of common algorithm found
+ * @return		the number of common algorithms found
  */
 uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t slaveArray[7], uint8_t slaveArrayLength, uint8_t commonArray[7]);
 

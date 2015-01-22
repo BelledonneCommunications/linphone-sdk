@@ -819,7 +819,6 @@ void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType
 		return;
 	}
 
-	supportedTypesCount = supportedTypesCount < 7 ? supportedTypesCount : 7;
 	implementedTypesCount = bzrtpCrypto_getAvailableCryptoTypes(algoType, implementedTypes);
 
 	switch(algoType) {
