@@ -175,6 +175,8 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 
 	if( xml_file != NULL ){
 		CU_set_output_filename(xml_file);
+	}
+	if (xml) {
 		CU_automated_run_tests();
 	} else {
 #if HAVE_CU_GET_SUITE
@@ -240,6 +242,7 @@ void helper(const char *name) {
 #if HAVE_CU_CURSES
 		"\t\t\t--curses\n"
 #endif
+		"\t\t\t--xml\n"
 		"\t\t\t--xml-file <xml file prefix (will be suffixed by '-Results.xml')>\n"
 		, name);
 }
@@ -279,6 +282,8 @@ int main (int argc, char *argv[]) {
 		} else if (strcmp(argv[i], "--xml-file") == 0){
 			CHECK_ARG("--xml-file", ++i, argc);
 			xml_file = argv[i];
+		} else if (strcmp(argv[i], "--xml") == 0){
+			xml = 1;
 		}
 #if HAVE_CU_GET_SUITE
 		else if (strcmp(argv[i], "--test")==0) {
@@ -324,13 +329,13 @@ int main (int argc, char *argv[]) {
 	}
 
 #ifdef HAVE_CU_CURSES
-	if( xml_file && curses ){
+	if( xml && curses ){
 		printf("Cannot use both xml and curses\n");
 		return -1;
 	}
 #endif
 
-	if( xml_file && (suite_name || test_name) ){
+	if( xml && (suite_name || test_name) ){
 		printf("Cannot use both xml and specific test suite\n");
 		return -1;
 	}
