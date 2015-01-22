@@ -424,6 +424,13 @@ int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
 	return 0;
 }
 
+#define BITS_PRO_INT 8*sizeof(int)
+#define BITMASK_256_SIZE 256/BITS_PRO_INT
+#define BITMASK_256_SET_ZERO(bitmask) memset(bitmask, 0, sizeof(int)*BITMASK_256_SIZE)
+#define BITMASK_256_SET(bitmask, value) bitmask[value/BITS_PRO_INT] |= 1 << (value % BITS_PRO_INT)
+#define BITMASK_256_UNSET(bitmask, value) bitmask[value/BITS_PRO_INT] &= ~(1 << (value % BITS_PRO_INT))
+#define BITMASK_256_CHECK(bitmask, value) (bitmask[value/BITS_PRO_INT] & 1 << (value % BITS_PRO_INT))
+
 /**
  * @brief Select common algorithm from the given array where algo are represented by their 4 chars string defined in rfc section 5.1.2 to 5.1.6
  * Master array is the one given the preference order 
@@ -438,17 +445,23 @@ int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
  * @return		the number of common algorithms found
  */
 uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t slaveArray[7], uint8_t slaveArrayLength, uint8_t commonArray[7]) {
-	int i,j;
+	int i;
 	uint8_t commonLength = 0;
-	for (i=0; i<masterArrayLength; i++) {
-		for(j=0; j<slaveArrayLength; j++) {
-			if (masterArray[i] == slaveArray[j]) { /* found one, insert it in the common array */
-				commonArray[commonLength] = masterArray[i];
-				commonLength++;
+	int algosBitmap[BITMASK_256_SIZE];
 
-				if (commonLength == 7) {
-					return commonLength;
-				}
+	BITMASK_256_SET_ZERO(algosBitmap);
+	for (i=0; i<slaveArrayLength; i++) {
+		BITMASK_256_SET(algosBitmap, slaveArray[i]);
+	}
+
+	for (i=0; i<masterArrayLength; i++) {
+		if (BITMASK_256_CHECK(algosBitmap, masterArray[i])) {
+			BITMASK_256_UNSET(algosBitmap, masterArray[i]);
+			commonArray[commonLength] = masterArray[i];
+			commonLength++;
+
+			if (commonLength == 7) {
+				return commonLength;
 			}
 		}
 	}
