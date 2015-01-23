@@ -226,7 +226,7 @@ else
 	if test "$USE_NLS" = "yes" ; then
 		AC_DEFINE(ENABLE_NLS,1,[Tells whether localisation is possible])
 		AC_DEFINE(HAVE_GETTEXT,1,[Tells wheter localisation is possible])
-		LIBS="$LIBS -lintl"
+		LIBS="$LIBS -L/usr/lib -lintl"
 	fi
 fi
 
