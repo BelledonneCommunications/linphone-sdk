@@ -123,9 +123,13 @@ BELLESIP_EXPORT belle_sdp_connection_t* belle_sdp_connection_parse (const char* 
 BELLESIP_EXPORT const char* belle_sdp_connection_get_address(const belle_sdp_connection_t* connection);
 BELLESIP_EXPORT const char* belle_sdp_connection_get_address_type(const belle_sdp_connection_t* connection);
 BELLESIP_EXPORT const char* belle_sdp_connection_get_network_type(const belle_sdp_connection_t* connection);
+BELLESIP_EXPORT int belle_sdp_connection_get_ttl(const belle_sdp_connection_t* connection);
+BELLESIP_EXPORT int belle_sdp_connection_get_range(const belle_sdp_connection_t* connection);
 BELLESIP_EXPORT void belle_sdp_connection_set_address(belle_sdp_connection_t* connection, const char* addr);
 BELLESIP_EXPORT void belle_sdp_connection_set_address_type(belle_sdp_connection_t* connection, const char* type);
 BELLESIP_EXPORT void belle_sdp_connection_set_network_type(belle_sdp_connection_t* connection, const char* type);
+BELLESIP_EXPORT void belle_sdp_connection_set_ttl(belle_sdp_connection_t* connection,int ttl);
+BELLESIP_EXPORT void belle_sdp_connection_set_range(belle_sdp_connection_t* connection,int range);
 #define BELLE_SDP_CONNECTION(t) BELLE_SDP_CAST(t,belle_sdp_connection_t)
 /***************************************************************************************
  * Email

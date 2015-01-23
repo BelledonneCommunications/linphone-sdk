@@ -173,7 +173,7 @@ scope { belle_sdp_connection_t* current; }
 @init {$connection::current = belle_sdp_connection_new(); $ret=$connection::current; }
 :    {IS_TOKEN(c)}?alpha_num EQUAL nettype { belle_sdp_connection_set_network_type($connection::current,(const char*)$nettype.text->chars);} 
                   SPACE addrtype{ belle_sdp_connection_set_address_type($connection::current,(const char*)$addrtype.text->chars);} 
-                  SPACE connection_address {belle_sdp_connection_set_address($connection::current,(const char*)$connection_address.text->chars);}
+                  SPACE connection_address 
                   ;
                          //;a connection field must be present
                          //;in every media description or at the
@@ -458,7 +458,7 @@ sess_version:        DIGIT+;
 connection_address:  
 
                   /*multicast_address  
-                  |*/addr;
+                  |*/addr {belle_sdp_connection_set_address($connection::current,(const char*)$addr.text->chars);} multicast_part?;
 
 multicast_address:   unicast_address '/' ttl;
                           // (decimal_uchar DOT decimal_uchar DOT decimal_uchar DOT) decimal_uchar '/' ttl  ( '/' integer )?;
@@ -511,7 +511,15 @@ addrtype:            alpha_num+ ; //'IP4' | 'IP6';
                          //;list to be extended
 
 addr:                 unicast_address ;
-  
+ 
+ multicast_part: (SLASH num+=integer 	{
+ 			if (strcmp( belle_sdp_connection_get_address_type($connection::current),"IP6")==0)
+ 				belle_sdp_connection_set_range($connection::current,atoi((const char*)$integer.text->chars));
+ 			else if ($num->count ==1) 
+				belle_sdp_connection_set_ttl($connection::current,atoi((const char*)$integer.text->chars));
+			else if ($num->count ==2) 
+				belle_sdp_connection_set_range($connection::current,atoi((const char*)$integer.text->chars));
+			})+;
 
 fqdn        :   ( domainlabel DOT )* toplabel DOT? ;
   

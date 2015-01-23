@@ -370,6 +370,8 @@ struct _belle_sdp_connection {
 	const char* network_type;
 	const char* address_type;
 	const char* address;
+	int ttl;
+	int range;
  };
 
 void belle_sdp_connection_destroy(belle_sdp_connection_t* connection) {
@@ -382,11 +384,19 @@ void belle_sdp_connection_clone(belle_sdp_connection_t *connection, const belle_
 	CLONE_STRING(belle_sdp_connection,network_type,connection,orig)
 	CLONE_STRING(belle_sdp_connection,address_type,connection,orig)
 	CLONE_STRING(belle_sdp_connection,address,connection,orig)
-
+	connection->range=orig->range;
+	connection->ttl=orig->ttl;
 }
 
 belle_sip_error_code belle_sdp_connection_marshal(belle_sdp_connection_t* connection, char* buff, size_t buff_size, size_t *offset) {
-	return belle_sip_snprintf(buff,buff_size,offset,"c=%s %s %s",connection->network_type,connection->address_type,connection->address);
+	belle_sip_error_code error = belle_sip_snprintf(buff,buff_size,offset,"c=%s %s %s",connection->network_type,connection->address_type,connection->address);
+	if (error!=BELLE_SIP_OK) return error;
+	if (connection->ttl>0)
+		error = belle_sip_snprintf(buff,buff_size,offset,"/%i",connection->ttl);
+	if (error!=BELLE_SIP_OK) return error;
+	if (connection->range>0)
+		error = belle_sip_snprintf(buff,buff_size,offset,"/%i",connection->range);
+	return error;
 }
 
 BELLE_SDP_NEW(connection,belle_sip_object)
@@ -401,6 +411,8 @@ belle_sdp_connection_t* belle_sdp_connection_create(const char* net_type, const 
 GET_SET_STRING(belle_sdp_connection,network_type);
 GET_SET_STRING(belle_sdp_connection,address_type);
 GET_SET_STRING(belle_sdp_connection,address);
+GET_SET_INT(belle_sdp_connection,ttl,int);
+GET_SET_INT(belle_sdp_connection,range,int);
 /************************
  * email
  ***********************/

@@ -92,6 +92,13 @@ char *belle_sip_signing_key_get_pem(belle_sip_signing_key_t *key) {
 #endif /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
 
 /*************tls********/
+// SSL verification callback prototype
+// der - raw certificate data, in DER format
+// length - length of certificate DER data
+// depth - position of certificate in cert chain, ending at 0 = root or top
+// flags - verification state for CURRENT certificate only
+typedef int (*verify_cb_error_cb_t)(unsigned char* der, int length, int depth, int* flags);
+static verify_cb_error_cb_t tls_verify_cb_error_cb = NULL;
 
 static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents);
 
@@ -351,6 +358,68 @@ static const char *polarssl_certflags_to_string(char *buf, size_t size, int flag
 	return buf;
 }
 
+// shim the default PolarSSL certificate handling by adding an external callback
+// see "verify_cb_error_cb_t" for the function signature
+int belle_sip_tls_set_verify_error_cb(void * callback)
+{
+	if (callback) {
+        tls_verify_cb_error_cb = (verify_cb_error_cb_t)callback;
+		belle_sip_message("belle_sip_tls_set_verify_error_cb: callback set");
+	} else {
+        tls_verify_cb_error_cb = NULL;
+		belle_sip_message("belle_sip_tls_set_verify_error_cb: callback cleared");
+	}
+	return 0;
+}
+
+//
+// Augment certificate verification with certificates stored outside rootca.pem
+// PolarSSL calls the verify_cb with each cert in the chain; flags apply to the
+// current certificate until depth is 0;
+//
+// NOTES:
+// 1) rootca.pem *must* have at least one valid certificate, or PolarSSL
+// does not attempt to verify any certificates
+// 2) callback must return 0; non-zero indicates that the verification process failed
+// 3) flags should be saved off and cleared for each certificate where depth>0
+// 4) return final verification result in *flags when depth == 0
+// 5) callback must disable calls to linphone_core_iterate while running
+//
+
+#if POLARSSL_VERSION_NUMBER < 0x01030000
+int belle_sip_verify_cb_error_wrapper(x509_cert *cert, int depth, int *flags){
+#else
+int belle_sip_verify_cb_error_wrapper(x509_crt *cert, int depth, int *flags){
+#endif
+	int rc = 0;
+	unsigned char *der = NULL;
+
+	// do nothing if the callback is not set
+	if (!tls_verify_cb_error_cb) {
+		return 0;
+	}
+
+	belle_sip_message("belle_sip_verify_cb_error_wrapper: depth=[%d], flags=[%d]:\n", depth, *flags);
+
+	der = belle_sip_malloc(cert->raw.len + 1);
+	if (der == NULL) {
+		// leave the flags alone and just return to the library
+		belle_sip_error("belle_sip_verify_cb_error_wrapper: memory error\n");
+		return 0;
+	}
+
+	// copy in and NULL terminate again for safety
+	memcpy(der, cert->raw.p, cert->raw.len);
+	der[cert->raw.len] = '\0';
+
+    rc = tls_verify_cb_error_cb(der, cert->raw.len, depth, flags);
+
+	belle_sip_message("belle_sip_verify_cb_error_wrapper: callback return rc: %d, flags: %d", rc, *flags);
+	belle_sip_free(der);
+	return rc;
+}
+
+
 #if POLARSSL_VERSION_NUMBER < 0x01030000
 static int belle_sip_ssl_verify(void *data , x509_cert *cert , int depth, int *flags){
 #else
@@ -372,7 +441,8 @@ static int belle_sip_ssl_verify(void *data , x509_crt *cert , int depth, int *fl
 	}else if (verify_ctx->exception_flags & BELLE_TLS_VERIFY_CN_MISMATCH){
 		*flags&=~BADCERT_CN_MISMATCH;
 	}
-	return 0;
+
+	return belle_sip_verify_cb_error_wrapper(cert, depth, flags);
 }
 
 static int belle_sip_tls_channel_load_root_ca(belle_sip_tls_channel_t *obj, const char *path){

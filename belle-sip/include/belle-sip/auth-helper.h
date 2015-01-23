@@ -103,6 +103,21 @@ BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_qop_auth(	const char*
 
 
 /*TLS client certificate auth*/
+
+/**
+ * Set TLS certificate verification callback
+ *
+ * @param callback function pointer for callback, or NULL to unset
+ *
+ * Callback signature is:
+ * int (*verify_cb_error_cb_t)(unsigned char* der, int length, int depth, int* flags);
+ * der - raw certificate data, in DER format
+ * length - length of certificate DER data
+ * depth - position of certificate in cert chain, ending at 0 = root or top
+ * flags - verification state for CURRENT certificate only
+ */
+BELLESIP_EXPORT int belle_sip_tls_set_verify_error_cb(void *callback);
+
 /**
  * Format of certificate buffer
  **/

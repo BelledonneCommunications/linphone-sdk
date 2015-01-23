@@ -230,6 +230,42 @@ operator<<( std::ostream& __os, const belle_sip_uri_t* uri)
 	belle_sip_free(uri_as_string);
 	return __os;
 }
+
+template <> struct std::hash<const belle_sip_uri_t*> {
+	size_t operator()(const belle_sip_uri_t *x ) const {
+		std::hash<string> H;
+		size_t h=0;
+		if (belle_sip_uri_get_user(x))
+			h = H(belle_sip_uri_get_user(x));
+		if (belle_sip_uri_get_host(x))
+			h ^=H(belle_sip_uri_get_host(x));
+		if (belle_sip_uri_get_port(x)>0) {
+			std::hash<int> H2;
+			h ^=H2(belle_sip_uri_get_port(x));
+		}
+		if (belle_sip_uri_get_transport_param(x)) {
+			h ^=H(belle_sip_uri_get_transport_param(x));
+		}
+		if (belle_sip_uri_is_secure(x))
+			h+=1;
+
+		return h;
+	}
+};
+
+#include <functional>
+
+namespace bellesip {
+
+struct UriComparator : public std::binary_function<belle_sip_uri_t*, belle_sip_uri_t*, bool> {
+	bool operator()(const belle_sip_uri_t* lhs, const belle_sip_uri_t* rhs) const {
+		return belle_sip_uri_equals(lhs,rhs);
+	}
+};
+}
+
+
+
 #endif
 
 #endif  /*BELLE_SIP_URI_H_*/

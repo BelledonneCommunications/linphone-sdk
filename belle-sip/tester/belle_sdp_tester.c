@@ -197,6 +197,8 @@ static void test_connection(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address(lConnection), "192.168.0.18");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address_type(lConnection), "IP4");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_network_type(lConnection), "IN");
+	CU_ASSERT_EQUAL(belle_sdp_connection_get_ttl(lConnection), 0);
+	CU_ASSERT_EQUAL(belle_sdp_connection_get_ttl(lConnection), 0);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
 	belle_sip_free(l_raw_connection);
 }
@@ -215,6 +217,53 @@ static void test_connection_6(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
 	belle_sip_free(l_raw_connection);
 }
+
+static void test_connection_multicast(void) {
+	belle_sdp_connection_t* lTmp;
+	belle_sdp_connection_t* lConnection = belle_sdp_connection_parse("c=IN IP4 224.2.1.1/127/3");
+	char* l_raw_connection = belle_sip_object_to_string(BELLE_SIP_OBJECT(lConnection));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
+	lTmp = belle_sdp_connection_parse(l_raw_connection);
+	lConnection = BELLE_SDP_CONNECTION(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address(lConnection), "224.2.1.1");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address_type(lConnection), "IP4");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_network_type(lConnection), "IN");
+	CU_ASSERT_EQUAL(belle_sdp_connection_get_ttl(lConnection), 127);
+	CU_ASSERT_EQUAL(belle_sdp_connection_get_range(lConnection), 3);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
+	belle_sip_free(l_raw_connection);
+
+	lConnection = belle_sdp_connection_parse("c=IN IP4 224.2.1.1/127");
+	l_raw_connection = belle_sip_object_to_string(BELLE_SIP_OBJECT(lConnection));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
+	lTmp = belle_sdp_connection_parse(l_raw_connection);
+	lConnection = BELLE_SDP_CONNECTION(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address(lConnection), "224.2.1.1");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address_type(lConnection), "IP4");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_network_type(lConnection), "IN");
+	CU_ASSERT_EQUAL(belle_sdp_connection_get_ttl(lConnection), 127);
+	CU_ASSERT_EQUAL(belle_sdp_connection_get_range(lConnection), 0);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
+	belle_sip_free(l_raw_connection);
+
+	lConnection = belle_sdp_connection_parse("c=IN IP6 ::1/3");
+	l_raw_connection = belle_sip_object_to_string(BELLE_SIP_OBJECT(lConnection));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
+	lTmp = belle_sdp_connection_parse(l_raw_connection);
+	lConnection = BELLE_SDP_CONNECTION(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address(lConnection), "::1");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address_type(lConnection), "IP6");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_network_type(lConnection), "IN");
+	CU_ASSERT_EQUAL(belle_sdp_connection_get_ttl(lConnection), 0);
+	CU_ASSERT_EQUAL(belle_sdp_connection_get_range(lConnection), 3);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
+	belle_sip_free(l_raw_connection);
+
+}
+
 
 static void test_email(void) {
 	belle_sdp_email_t* lTmp;
@@ -636,6 +685,7 @@ test_t sdp_tests[] = {
 	{ "o= (malformed origin)", test_malformed_origin },
 	{ "c= (IPv4 connection)", test_connection },
 	{ "c= (IPv6 connection)", test_connection_6 },
+	{ "c= (multicast)", test_connection_multicast},
 	{ "e= (email)", test_email },
 	{ "i= (info)", test_info },
 	{ "m= (media)", test_media },
