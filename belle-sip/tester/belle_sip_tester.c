@@ -409,7 +409,7 @@ int main (int argc, char *argv[]) {
 	}
 
 #ifdef HAVE_CU_CURSES
-	if( xml && curses ){
+	if( xml_file && curses ){
 		printf("Cannot use both xml and curses\n");
 		return -1;
 	}
