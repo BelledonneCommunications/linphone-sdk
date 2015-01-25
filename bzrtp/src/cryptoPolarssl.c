@@ -169,7 +169,7 @@ int bzrtpCrypto_destroyRNG(bzrtpRNGContext_t *context) {
  * @param[in] 	keyLength	HMAC key length
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length
- * @param[in]	hmacLength	Lenght of output required in bytes, HMAC output is truncated to the hmacLenght left bytes. 20 bytes maximum
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 20 bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */
@@ -404,7 +404,7 @@ void bzrtpCrypto_aes256CfbDecrypt(const uint8_t key[32],
  * @brief SHA256 wrapper
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length in bytes
- * @param[in]	hmacLength	Lenght of output required in bytes, HMAC output is truncated to the hmacLenght left bytes. 32 bytes maximum
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 32 bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */
@@ -430,7 +430,7 @@ void bzrtpCrypto_sha256(const uint8_t *input,
  * @param[in] 	keyLength	HMAC key length
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length
- * @param[in]	hmacLength	Lenght of output required in bytes, HMAC output is truncated to the hmacLenght left bytes. 32 bytes maximum
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 32 bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */
@@ -476,7 +476,7 @@ void bzrtpCrypto_DHMComputeSecret(bzrtpDHMContext_t *context, int (*rngFunction)
  * @brief SHA256 wrapper
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length in bytes
- * @param[in]	hmacLength	Lenght of output required in bytes, HMAC output is truncated to the hmacLenght left bytes. 32 bytes maximum
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 32 bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */
@@ -502,7 +502,7 @@ void bzrtpCrypto_sha256(const uint8_t *input,
  * @param[in] 	keyLength	HMAC key length
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length
- * @param[in]	hmacLength	Lenght of output required in bytes, HMAC output is truncated to the hmacLenght left bytes. 32 bytes maximum
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 32 bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */

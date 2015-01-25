@@ -351,7 +351,7 @@ void bzrtp_writeCache(bzrtpContext_t *zrtpContext) {
  *
  * @param[out]	outputBytes			The output bytes buffer, must have a length of half the input string buffer
  * @param[in]	inputString			The input string buffer, must be hexadecimal(it is not checked by function, any non hexa char is converted to 0)
- * @param[in]	inputStringLength	The lenght in chars of the string buffer, output is half this length
+ * @param[in]	inputStringLength	The length in chars of the string buffer, output is half this length
  */
 void bzrtp_strToUint8(uint8_t *outputBytes, uint8_t *inputString, uint16_t inputStringLength) {
 	int i;
@@ -365,7 +365,7 @@ void bzrtp_strToUint8(uint8_t *outputBytes, uint8_t *inputString, uint16_t input
  *
  * @param[out]	outputString		The output string buffer, must have a length of twice the input bytes buffer
  * @param[in]	inputBytes			The input bytes buffer
- * @param[in]	inputBytesLength	The lenght in bytes buffer, output is twice this length
+ * @param[in]	inputBytesLength	The length in bytes buffer, output is twice this length
  */
 void bzrtp_int8ToStr(uint8_t *outputString, uint8_t *inputBytes, uint16_t inputBytesLength) {
 	int i;

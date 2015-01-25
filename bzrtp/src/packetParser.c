@@ -244,7 +244,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 					return BZRTP_PARSER_ERROR_INVALIDMESSAGE;
 				}
 
-				/* parse the variable lenght part: algorithms types */
+				/* parse the variable length part: algorithms types */
 				for (i=0; i<messageData->hc; i++) {
 					messageData->supportedHash[i] = cryptoAlgoTypeStringToInt(messageContent, ZRTP_HASH_TYPE);
 					messageContent +=4;

@@ -507,7 +507,7 @@ void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext) {
  * @param[in]		tagContent			The content of the tag to be written(a string, if KDF is used the result will be turned into an hexa string)
  * @param[in]		tagContentLength	The length in bytes of tagContent
  * @param[in]		derivedDataLength	Used only in KDF mode, length in bytes of the derived data to use (max 32)
- * @param[in]		useKDF				A flag, if set to 0, write data as it is provided, if set to 1, write KDF(s0, "tagContent", KDF_Context, negotiated hash lenght)
+ * @param[in]		useKDF				A flag, if set to 0, write data as it is provided, if set to 1, write KDF(s0, "tagContent", KDF_Context, negotiated hash length)
  * @param[in]		fileFlag			Flag, if LOADFILE bit is set, reload the cache buffer from file before updating.
  * 										if WRITEFILE bit is set, update the cache file
  *

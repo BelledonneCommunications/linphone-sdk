@@ -1757,7 +1757,7 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 
 	/* first compute the total_hash as in rfc section 4.4.1.4 
 	 * total_hash = hash(Hello of responder || Commit || DHPart1 || DHPart2)
-	 * total_hash lenght depends on the agreed hash algo
+	 * total_hash length depends on the agreed hash algo
 	 */
 	if (zrtpChannelContext->role == RESPONDER) {
 		hashDataLength = zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength
@@ -2086,7 +2086,7 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 	}
 
 
-	/* Set the lenght in secrets structure */
+	/* Set the length in secrets structure */
 	zrtpChannelContext->srtpSecrets.selfSrtpKeyLength = zrtpChannelContext->cipherKeyLength;
 	zrtpChannelContext->srtpSecrets.selfSrtpSaltLength = 14; /* salt length is defined to be 112 bits(14 bytes) in rfc section 4.5.3 */
 	zrtpChannelContext->srtpSecrets.peerSrtpKeyLength = zrtpChannelContext->cipherKeyLength;
