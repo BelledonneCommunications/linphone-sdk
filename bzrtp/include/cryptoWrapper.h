@@ -51,6 +51,21 @@
 uint8_t bzrtpCrypto_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[7]);
 
 /**
+ * @brief Get the mandatory crypto functions
+ * - Hash function
+ * - Cipher Block
+ * - Auth Tag
+ * - Key agreement
+ * - SAS
+ *
+ * @param[in]	algoType		mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
+ * @param[out]	mandatoryTypes	mapped to uint8_t value of the 4 char strings giving the available types as string according to rfc section 5.1.2 to 5.1.6
+ *
+ * @return		number of mandatory types, 0 on error
+ */
+uint8_t bzrtpCrypto_getMandatoryCryptoTypes(uint8_t algoType, uint8_t mandatoryTypes[7]);
+
+/**
  *
  * @brief The context structure to the Random Number Generator
  * actually just holds a pointer to the crypto module implementation context

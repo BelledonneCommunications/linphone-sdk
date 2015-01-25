@@ -266,33 +266,11 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 					messageContent +=4;
 				}
 
-				/* supported algos may be empty which means that only mandatory algo are supported.
-				 * In this case we must insert them in the message Data structure */
-				if (messageData->hc == 0) {
-					messageData->hc = 1;
-					messageData->supportedHash[0] = ZRTP_HASH_S256;
-				}
-
-				if (messageData->cc == 0) {
-					messageData->cc = 1;
-					messageData->supportedCipher[0] = ZRTP_CIPHER_AES1;
-				}
-
-				if (messageData->ac == 0) {
-					messageData->ac = 2;
-					messageData->supportedAuthTag[0] = ZRTP_AUTHTAG_HS32;
-					messageData->supportedAuthTag[1] = ZRTP_AUTHTAG_HS80;
-				}
-
-				if (messageData->kc == 0) {
-					messageData->kc = 1;
-					messageData->supportedKeyAgreement[0] = ZRTP_KEYAGREEMENT_DH3k;
-				}
-
-				if (messageData->sc == 0) {
-					messageData->sc = 1;
-					messageData->supportedSas[0] = ZRTP_SAS_B32;
-				}
+				addMandatoryCryptoTypesIfNeeded(ZRTP_HASH_TYPE, messageData->supportedHash, &messageData->hc);
+				addMandatoryCryptoTypesIfNeeded(ZRTP_CIPHERBLOCK_TYPE, messageData->supportedCipher, &messageData->cc);
+				addMandatoryCryptoTypesIfNeeded(ZRTP_AUTHTAG_TYPE, messageData->supportedAuthTag, &messageData->ac);
+				addMandatoryCryptoTypesIfNeeded(ZRTP_KEYAGREEMENT_TYPE, messageData->supportedKeyAgreement, &messageData->kc);
+				addMandatoryCryptoTypesIfNeeded(ZRTP_SAS_TYPE, messageData->supportedSas, &messageData->sc);
 
 				memcpy(messageData->MAC, messageContent, 8);
 				

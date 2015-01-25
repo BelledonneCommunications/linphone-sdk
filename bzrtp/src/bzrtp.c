@@ -824,18 +824,23 @@ void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType
 	switch(algoType) {
 		case ZRTP_HASH_TYPE:
 			zrtpContext->hc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedHash);
+			addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedHash, &zrtpContext->hc);
 			break;
 		case ZRTP_CIPHERBLOCK_TYPE:
 			zrtpContext->cc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedCipher);
+			addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedCipher, &zrtpContext->cc);
 			break;
 		case ZRTP_AUTHTAG_TYPE:
 			zrtpContext->ac = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedAuthTag);
+			addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedAuthTag, &zrtpContext->ac);
 			break;
 		case ZRTP_KEYAGREEMENT_TYPE:
 			zrtpContext->kc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedKeyAgreement);
+			addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedKeyAgreement, &zrtpContext->kc);
 			break;
 		case ZRTP_SAS_TYPE:
 			zrtpContext->sc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedSas);
+			addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedSas, &zrtpContext->sc);
 			break;
 	}
 }

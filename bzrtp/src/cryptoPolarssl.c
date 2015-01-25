@@ -81,6 +81,38 @@ uint8_t bzrtpCrypto_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableT
 	}
 }
 
+/** Return mandatory crypto functions. For now we have
+ *
+ * - Hash: HMAC-SHA256
+ * - CipherBlock: AES128
+ * - Auth Tag: HMAC-SHA132 and HMAC-SHA180
+ * - Key Agreement: DHM3k
+ * - Sas: base32
+ */
+uint8_t bzrtpCrypto_getMandatoryCryptoTypes(uint8_t algoType, uint8_t mandatoryTypes[7]) {
+
+	switch(algoType) {
+		case ZRTP_HASH_TYPE:
+			mandatoryTypes[0] = ZRTP_HASH_S256;
+			return 1;
+		case ZRTP_CIPHERBLOCK_TYPE:
+			mandatoryTypes[0] = ZRTP_CIPHER_AES1;
+			return 1;
+		case ZRTP_AUTHTAG_TYPE:
+			mandatoryTypes[0] = ZRTP_AUTHTAG_HS32;
+			mandatoryTypes[1] = ZRTP_AUTHTAG_HS80;
+			return 2;
+		case ZRTP_KEYAGREEMENT_TYPE:
+			mandatoryTypes[0] = ZRTP_KEYAGREEMENT_DH3k;
+			return 1;
+		case ZRTP_SAS_TYPE:
+			mandatoryTypes[0] = ZRTP_SAS_B32;
+			return 1;
+		default:
+			return 0;
+	}
+}
+
 /**
  *
  * @brief Structure to store all the contexts data needed for Random Number Generation

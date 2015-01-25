@@ -469,6 +469,60 @@ uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint
 	return commonLength;
 }
 
+/**
+ * @brief add mandatory crypto functions if they are not already included
+ * - Hash function
+ * - Cipher Block
+ * - Auth Tag
+ * - Key agreement
+ * - SAS
+ *
+ * @param[in]		algoType		mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
+ * @param[in/out]	algoTypes		mapped to uint8_t value of the 4 char strings giving the algo types as string according to rfc section 5.1.2 to 5.1.6
+ * @param[in/out]	algoTypesCount	number of algo types
+ */
+void addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7], uint8_t *algoTypesCount)
+{
+	int i, j;
+	int algosBitmask[BITMASK_256_SIZE];
+	int missingBitmask[BITMASK_256_SIZE];
+	uint8_t mandatoryTypes[7];
+	const uint8_t mandatoryTypesCount = bzrtpCrypto_getMandatoryCryptoTypes(algoType, mandatoryTypes);
+	uint8_t missingTypesCount = mandatoryTypesCount;
+
+	BITMASK_256_SET_ZERO(missingBitmask);
+	BITMASK_256_SET_ZERO(algosBitmask);
+
+	for(i=0; i<mandatoryTypesCount; i++) {
+		BITMASK_256_SET(missingBitmask, mandatoryTypes[i]);
+	}
+
+	for (i=0,j=0; j<7 && (i<*algoTypesCount); i++) {
+		/*
+		 * If we only have space left for missing crypto algos, only add them.
+		 * Make sure we do not add elements twice.
+		 */
+		if ((j + missingTypesCount < 7 || BITMASK_256_CHECK(missingBitmask, algoTypes[i])) && !BITMASK_256_CHECK(algosBitmask, algoTypes[i])) {
+			BITMASK_256_SET(algosBitmask, algoTypes[i]);
+			algoTypes[j++] = algoTypes[i];
+
+			if (BITMASK_256_CHECK(missingBitmask, algoTypes[i])) {
+				BITMASK_256_UNSET(missingBitmask, algoTypes[i]);
+				missingTypesCount--;
+			}
+		}
+	}
+
+	/* add missing crypto types */
+	for (i=0; i<7 && missingTypesCount>0 && i<mandatoryTypesCount; i++) {
+		if (BITMASK_256_CHECK(missingBitmask, mandatoryTypes[i])) {
+			algoTypes[j++] = mandatoryTypes[i];
+			missingTypesCount--;
+		}
+	}
+	*algoTypesCount = j;
+}
+
 /*
  * @brief Map the string description of algo type to an int defined in cryptoWrapper.h
  *

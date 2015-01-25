@@ -138,6 +138,20 @@ int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext);
 uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t slaveArray[7], uint8_t slaveArrayLength, uint8_t commonArray[7]);
 
 /**
+ * @brief add mandatory crypto functions if they are not already included
+ * - Hash function
+ * - Cipher Block
+ * - Auth Tag
+ * - Key agreement
+ * - SAS
+ *
+ * @param[in]		algoType		mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
+ * @param[in/out]	algoTypes		mapped to uint8_t value of the 4 char strings giving the algo types as string according to rfc section 5.1.2 to 5.1.6
+ * @param[in/out]	algoTypesCount	number of algo types
+ */
+void addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7], uint8_t *algoTypesCount);
+
+/**
  * @brief Map the string description of algo type to an int defined in cryptoWrapper.h
  *
  * @param[in] algoType		A 4 chars string containing the algo type as listed in rfc sections 5.1.2 to 5.1.6
