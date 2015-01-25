@@ -59,6 +59,7 @@ int main(int argc, char *argv[] ) {
 	CU_add_test(cryptoUtilsTestSuite, "CRC32", test_CRC32);
 	CU_add_test(cryptoUtilsTestSuite, "algo agreement", test_algoAgreement);
 	CU_add_test(cryptoUtilsTestSuite, "context algo setter and getter", test_algoSetterGetter);
+	CU_add_test(cryptoUtilsTestSuite, "adding mandatory crypto algorithms if needed", test_addMandatoryCryptoTypesIfNeeded);
 
 	/* Add the parser suite to the registry */
 	parserTestSuite = CU_add_suite("Bzrtp ZRTP Packet Parser", NULL, NULL);
