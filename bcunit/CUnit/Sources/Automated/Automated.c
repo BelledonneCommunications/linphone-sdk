@@ -96,6 +96,12 @@ static void automated_all_tests_complete_message_handler(const CU_pFailureRecord
 static void automated_suite_init_failure_message_handler(const CU_pSuite pSuite);
 static void automated_suite_cleanup_failure_message_handler(const CU_pSuite pSuite);
 
+CU_TestStartMessageHandler           test_start_handler;
+CU_TestCompleteMessageHandler        test_complete_handler;
+CU_AllTestsCompleteMessageHandler    all_test_complete_handler;
+CU_SuiteInitFailureMessageHandler    suite_init_failure_handler;
+CU_SuiteCleanupFailureMessageHandler suite_cleanup_failure_handler;
+
 /*=================================================================
  *  Public Interface functions
  *=================================================================*/
@@ -116,6 +122,12 @@ void CU_automated_run_tests(void)
     fprintf(stderr, "\n%s", _("ERROR - Failed to create/initialize the result file."));
   }
   else {
+    /* get previous handlers in case there was something here */
+    test_start_handler = CU_get_test_start_handler();
+    test_complete_handler = CU_get_test_complete_handler();
+    all_test_complete_handler = CU_get_all_test_complete_handler();
+    suite_init_failure_handler = CU_get_suite_init_failure_handler();
+    suite_cleanup_failure_handler = CU_get_suite_cleanup_failure_handler();
     /* set up the message handlers for writing xml output */
     CU_set_test_start_handler(automated_test_start_message_handler);
     CU_set_test_complete_handler(automated_test_complete_message_handler);
@@ -253,6 +265,10 @@ static void automated_test_start_message_handler(const CU_pTest pTest, const CU_
 	char *szTempName = NULL;
 	size_t szTempName_len = 0;
 
+  if( test_start_handler ){
+    (*test_start_handler)(pTest, pSuite);
+  }
+
   CU_UNREFERENCED_PARAMETER(pTest);   /* not currently used */
 
   assert(NULL != pTest);
@@ -317,6 +333,10 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
   size_t cur_len = 0;
   CU_pFailureRecord pTempFailure = pFailure;
   const char *pPackageName = CU_automated_package_name_get();
+  
+  if( test_complete_handler ){
+    (*test_complete_handler)(pTest, pSuite, pFailure);
+  }
 
   CU_UNREFERENCED_PARAMETER(pSuite);  /* pSuite is not used except in assertion */
 
@@ -434,6 +454,10 @@ static void automated_all_tests_complete_message_handler(const CU_pFailureRecord
   CU_pTestRegistry pRegistry = CU_get_registry();
   CU_pRunSummary pRunSummary = CU_get_run_summary();
 
+  if( all_test_complete_handler ){
+    (*all_test_complete_handler)(pFailure);
+  }
+
   CU_UNREFERENCED_PARAMETER(pFailure);  /* not used */
 
   assert(NULL != pRegistry);
@@ -509,6 +533,11 @@ static void automated_all_tests_complete_message_handler(const CU_pFailureRecord
  */
 static void automated_suite_init_failure_message_handler(const CU_pSuite pSuite)
 {
+
+  if( suite_init_failure_handler ){
+    (*suite_init_failure_handler)(pSuite);
+  }
+
   assert(NULL != pSuite);
   assert(NULL != pSuite->pName);
   assert(NULL != f_pTestResultFile);
@@ -545,6 +574,11 @@ static void automated_suite_init_failure_message_handler(const CU_pSuite pSuite)
  */
 static void automated_suite_cleanup_failure_message_handler(const CU_pSuite pSuite)
 {
+
+  if( suite_cleanup_failure_handler ){
+    (*suite_cleanup_failure_handler)(pSuite);
+  }
+
   assert(NULL != pSuite);
   assert(NULL != pSuite->pName);
   assert(NULL != f_pTestResultFile);
