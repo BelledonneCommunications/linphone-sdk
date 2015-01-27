@@ -170,8 +170,56 @@ void mediastreamer2_tester_uninit(void) {
 	}
 }
 
+
+
+	/*derivated from cunit*/
+static void test_complete_message_handler(const CU_pTest pTest,
+											const CU_pSuite pSuite,
+											const CU_pFailureRecord pFailureList) {
+	int i;
+	CU_pFailureRecord pFailure = pFailureList;
+	
+	if (pFailure) {
+		ms_warning("Suite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
+	} else {
+		ms_warning(" passed");
+	}
+	for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
+		ms_warning("\n    %d. %s:%u  - %s", i,
+			(NULL != pFailure->strFileName) ? pFailure->strFileName : "",
+			pFailure->uiLineNumber,
+			(NULL != pFailure->strCondition) ? pFailure->strCondition : "");
+	}
+}
+
+static void test_all_tests_complete_message_handler(const CU_pFailureRecord pFailure) {
+	ms_warning("\n\n %s",CU_get_run_results_string());
+}
+
+static void test_suite_init_failure_message_handler(const CU_pSuite pSuite) {
+	ms_warning("Suite initialization failed for [%s].", pSuite->pName);
+}
+
+static void test_suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
+	ms_warning("Suite cleanup failed for '%s'.", pSuite->pName);
+}
+
+static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
+	ms_warning("Suite [%s] Test [%s]", pSuite->pName,pTest->pName);
+}
+static void test_suite_start_message_handler(const CU_pSuite pSuite) {
+	ms_warning("Suite [%s]", pSuite->pName);
+}
+
 int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_name) {
 	int ret;
+
+	CU_set_test_start_handler(test_start_message_handler);
+	CU_set_test_complete_handler(test_complete_message_handler);
+	CU_set_all_test_complete_handler(test_all_tests_complete_message_handler);
+	CU_set_suite_init_failure_handler(test_suite_init_failure_message_handler);
+	CU_set_suite_cleanup_failure_handler(test_suite_cleanup_failure_message_handler);
+	CU_set_suite_start_handler(test_suite_start_message_handler);
 
 	if( xml_file != NULL ){
 		CU_set_output_filename(xml_file);
