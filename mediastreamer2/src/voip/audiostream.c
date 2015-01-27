@@ -71,6 +71,7 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->av_recorder.recorder) ms_filter_destroy(stream->av_recorder.recorder);
 	if (stream->av_recorder.resampler) ms_filter_destroy(stream->av_recorder.resampler);
 	if (stream->av_recorder.video_input) ms_filter_destroy(stream->av_recorder.video_input);
+	if (stream->vaddtx) ms_filter_destroy(stream->vaddtx);
 	if (stream->outbound_mixer) ms_filter_destroy(stream->outbound_mixer);
 	if (stream->recorder_file) ms_free(stream->recorder_file);
 
@@ -586,6 +587,22 @@ static void setup_recorder(AudioStream *stream, int sample_rate, int nchannels){
 	setup_av_recorder(stream,sample_rate,nchannels);
 }
 
+static void on_silence_detected(void *data, MSFilter *f, unsigned int event_id, void *event_arg){
+	ms_message("on_silence_detected(): CN packet to be sent !");
+}
+
+static void setup_generic_confort_noise(AudioStream *stream){
+	RtpProfile *prof=rtp_session_get_profile(stream->ms.sessions.rtp_session);
+	PayloadType *pt=rtp_profile_get_payload(prof, rtp_session_get_send_payload_type(stream->ms.sessions.rtp_session));
+	PayloadType *cn=rtp_profile_find_payload(prof, "CN", 8000, 1);
+	
+	if (cn && pt && pt->channels==1 && pt->clock_rate==8000){
+		/* RFC3389 CN can be used*/
+		stream->vaddtx=ms_filter_new(MS_VAD_DTX_ID);
+		ms_filter_add_notify_callback(stream->vaddtx, on_silence_detected, stream, TRUE);
+	}
+}
+
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec){
@@ -855,6 +872,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 			ms_filter_call_method(stream->plc, MS_FILTER_SET_NCHANNELS, &nchannels);
 			ms_filter_call_method(stream->plc, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 		}
+		/*as first rough approximation, a codec without PLC capabilities has no VAD/DTX builtin, thus setup generic confort noise if possible*/
+		setup_generic_confort_noise(stream);
 	} else {
 		stream->plc = NULL;
 	}
@@ -889,6 +908,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_connection_helper_link(&h,stream->dtmfgen_rtp,0,0);
 	if (stream->outbound_mixer)
 		ms_connection_helper_link(&h,stream->outbound_mixer,0,0);
+	if (stream->vaddtx)
+		ms_connection_helper_link(&h,stream->vaddtx,0,0);
 	ms_connection_helper_link(&h,stream->ms.encoder,0,0);
 	ms_connection_helper_link(&h,stream->ms.rtpsend,0,-1);
 
@@ -1275,6 +1296,8 @@ void audio_stream_stop(AudioStream * stream){
 				ms_connection_helper_unlink(&h,stream->dtmfgen_rtp,0,0);
 			if (stream->outbound_mixer)
 				ms_connection_helper_unlink(&h,stream->outbound_mixer,0,0);
+			if (stream->vaddtx)
+				ms_connection_helper_unlink(&h,stream->vaddtx,0,0);
 			ms_connection_helper_unlink(&h,stream->ms.encoder,0,0);
 			ms_connection_helper_unlink(&h,stream->ms.rtpsend,0,-1);
 

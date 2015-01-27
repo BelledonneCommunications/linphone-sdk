@@ -313,6 +313,7 @@ struct _AudioStream
 		int videopin;
 		bool_t plumbed;
 	}av_player;
+	MSFilter *vaddtx;
 	char *recorder_file;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
 	EqualizerLocation eq_loc;

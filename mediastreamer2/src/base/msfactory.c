@@ -655,7 +655,7 @@ struct _MSEventQueue *ms_factory_get_event_queue(MSFactory *obj){
 	return obj->evq;
 }
 
-/*this function is for compatibility, when event queues where created by the application*/
+/*this function is for compatibility, when event queues were created by the application*/
 void ms_factory_set_event_queue(MSFactory *obj, MSEventQueue *evq){
 	obj->evq=evq;
 }

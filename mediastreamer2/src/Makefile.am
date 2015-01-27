@@ -128,6 +128,7 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					utils/kiss_fftr.c \
 					utils/kiss_fftr.h \
 					utils/audiodiff.c \
+					utils/extremum.c \
 					audiofilters/equalizer.c \
 					audiofilters/chanadapt.c \
 					audiofilters/audiomixer.c \
@@ -142,7 +143,8 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					audiofilters/msfileplayer.c \
 					audiofilters/msfilerec.c \
 					audiofilters/waveheader.h \
-					audiofilters/flowcontrol.c 
+					audiofilters/flowcontrol.c \
+					audiofilters/msvaddtx.c
 
 if BUILD_SPEEX
 libmediastreamer_voip_la_SOURCES+=	audiofilters/msspeex.c audiofilters/speexec.c

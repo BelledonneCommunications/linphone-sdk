@@ -46,7 +46,9 @@ mediastreamer2_include_HEADERS= ice.h \
 				zrtp.h \
 				stun.h \
 				stun_udp.h \
-				ms_srtp.h
+				ms_srtp.h \
+				msvaddtx.h \
+				msutils.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 

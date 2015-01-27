@@ -76,6 +76,7 @@ LOCAL_SRC_FILES = \
 	utils/g722_encode.c \
 	utils/audiodiff.c \
 	utils/stream_regulator.c \
+	utils/extremum.c \
 	otherfilters/msrtp.c \
 	otherfilters/tee.c \
 	otherfilters/join.c \
@@ -96,6 +97,7 @@ LOCAL_SRC_FILES = \
 	audiofilters/msresample.c \
 	audiofilters/devices.c \
 	audiofilters/flowcontrol.c \
+	audiofilters/msvaddtx.c \
 	audiofilters/aac-eld-android.cpp \
 	android/hardware_echo_canceller.cpp \
 	android/androidsound_depr.cpp \
