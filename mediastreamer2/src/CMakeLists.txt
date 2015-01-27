@@ -143,7 +143,7 @@ set(VOIP_SOURCE_FILES
 	voip/audiostream.c
 	voip/bitratecontrol.c
 	voip/bitratedriver.c
-	voip/dtls_srtp.c
+	crypto/dtls_srtp.c
 	voip/ice.c
 	voip/mediastream.c
 	voip/msmediaplayer.c
@@ -155,7 +155,7 @@ set(VOIP_SOURCE_FILES
 	voip/ringstream.c
 	voip/stun.c
 	voip/stun_udp.c
-	voip/zrtp.c
+	crypto/zrtp.c
 )
 
 if(ENABLE_ALSA)
