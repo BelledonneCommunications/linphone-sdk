@@ -537,22 +537,22 @@ int ms_srtp_init(void) {
 void ms_srtp_shutdown(void){
 }
 
-int media_stream_set_srtp_recv_key_b64(struct _MediaStream *stream, MSCryptoSuite suite, const char* b64_key){
+int media_stream_set_srtp_recv_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key){
 	ms_error("Unable to set srtp recv key b64: srtp support disabled in mediastreamer2");
 	return -1;
 }
 
-int media_stream_set_srtp_recv_key(struct _MediaStream *stream, MSCryptoSuite suite, const char* key, size_t key_length){
+int media_stream_set_srtp_recv_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type){
 	ms_error("Unable to set srtp recv key: srtp support disabled in mediastreamer2");
 	return -1;
 }
 
-int media_stream_set_srtp_send_key_b64(struct _MediaStream *stream, MSCryptoSuite suite, const char* b64_key){
+int media_stream_set_srtp_send_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key){
 	ms_error("Unable to set srtp send key b64: srtp support disabled in mediastreamer2");
 	return -1;
 }
 
-int media_stream_set_srtp_send_key(struct _MediaStream *stream, MSCryptoSuite suite, const char* key, size_t key_length){
+int media_stream_set_srtp_send_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type){
 	ms_error("Unable to set srtp send key: srtp support disabled in mediastreamer2");
 	return -1;
 }
