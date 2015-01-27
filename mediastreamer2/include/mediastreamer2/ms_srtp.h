@@ -20,38 +20,14 @@
 #ifndef ms_srtp_h
 #define ms_srtp_h
 
-
 #include <ortp/rtpsession.h>
 #include "mediastreamer2/mscommon.h"
-
-#if defined(HAVE_SRTP)
-/*srtp defines all this stuff*/
-#undef PACKAGE_BUGREPORT
-#undef PACKAGE_NAME
-#undef PACKAGE_STRING
-#undef PACKAGE_TARNAME
-#undef PACKAGE_VERSION
-#if defined(ANDROID) || !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-// Android and Windows phone don't use make install
-#	include <srtp.h>
-#else
-#	include <srtp/srtp.h>
-#endif /* ANDROID */
-#else /* HAVE_SRTP */
-
-typedef void* srtp_t;
-typedef int err_status_t;
-typedef struct srtp_policy srtp_policy_t;
-
-#endif /* HAVE_SRTP */
-
-
 
 #ifdef __cplusplus
 extern "C"{
 #endif
 /* defined in mediastream.h */
-struct _MediaStream;
+struct _MSMediaStreamSessions;
 
 /*
  * Crypto suite used configure encrypted stream*/
@@ -74,6 +50,14 @@ MS2_PUBLIC MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSu
 MS2_PUBLIC int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *nameparams);
 
 
+/* defined in srtp.h*/
+typedef struct srtp_ctx_t *MSSrtpCtx;
+
+typedef enum {
+	MSSRTP_RTP_STREAM,
+	MSSRTP_RTCP_STREAM,
+	MSSRTP_ALL_STREAMS
+} MSSrtpStreamType;
 /**
  * Check if SRTP is supported
  * @return true if SRTP is supported
@@ -84,47 +68,49 @@ MS2_PUBLIC bool_t ms_srtp_supported(void);
  * Set srtp receiver key for the given media stream.
  * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the receiver side of the stream.
  *
- * @param[in/out]	stream	The mediastream to operate on
- * @param[in]		suite	The srtp crypto suite to use
- * @param[in]		key	Srtp master key and master salt in a base 64 NULL terminated string
+ * @param[in/out]	sessions	The sessions associated to the current media stream
+ * @param[in]		suite		The srtp crypto suite to use
+ * @param[in]		key		Srtp master key and master salt in a base 64 NULL terminated string
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int media_stream_set_srtp_recv_key_b64(struct _MediaStream *stream, enum _MSCryptoSuite suite, const char* key);
+MS2_PUBLIC int media_stream_set_srtp_recv_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key);
 
 /**
  * Set srtp receiver key for the given media stream.
  * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the receiver side of the stream.
  *
- * @param[in/out]	stream		The mediastream to operate on
+ * @param[in/out]	sessions	The sessions associated to the current media stream
  * @param[in]		suite		The srtp crypto suite to use
  * @param[in]		key		Srtp master key and master salt
  * @param[in]		key_length	key buffer length
+ * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int media_stream_set_srtp_recv_key(struct _MediaStream *stream, enum _MSCryptoSuite suite, const char* key, size_t key_length);
+MS2_PUBLIC int media_stream_set_srtp_recv_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
+
+/**
+ * Set srtp sender key for the given media stream.
+ * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the sender side of the stream.
+ *
+ * @param[in/out]	sessions	The sessions associated to the current media stream
+ * @param[in]		suite	The srtp crypto suite to use
+ * @param[in]		key	Srtp master key and master salt in a base 64 NULL terminated string
+ * @return	0 on success, error code otherwise
+ */
+MS2_PUBLIC int media_stream_set_srtp_send_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key);
 
 /**
  * Set srtp sender key for the given media stream.
  * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the sender side of the stream.
  *
  * @param[in/out]	stream	The mediastream to operate on
- * @param[in]		suite	The srtp crypto suite to use
- * @param[in]		key	Srtp master key and master salt in a base 64 NULL terminated string
- * @return	0 on success, error code otherwise
- */
-MS2_PUBLIC int media_stream_set_srtp_send_key_b64(struct _MediaStream *stream, enum _MSCryptoSuite suite, const char* key);
-
-/**
- * Set srtp sender key for the given media stream.
- * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the sender side of the stream.
- *
- * @param[in/out]	stream		The mediastream to operate on
  * @param[in]		suite		The srtp crypto suite to use
  * @param[in]		key		Srtp master key and master salt
  * @param[in]		key_length	key buffer length
+ * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int media_stream_set_srtp_send_key(struct _MediaStream *stream, enum _MSCryptoSuite suite, const char* key, size_t key_length);
+MS2_PUBLIC int media_stream_set_srtp_send_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
 
 /**
  * Deallocate ressources for a srtp session
@@ -132,7 +118,7 @@ MS2_PUBLIC int media_stream_set_srtp_send_key(struct _MediaStream *stream, enum 
  * @param[in/out] session	SRTP session to be terminated
  * @return 0 on success
  */
-MS2_PUBLIC err_status_t ms_srtp_dealloc(srtp_t session);
+MS2_PUBLIC int ms_srtp_dealloc(MSSrtpCtx session);
 #ifdef __cplusplus
 }
 #endif

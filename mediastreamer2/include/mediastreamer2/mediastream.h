@@ -23,8 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <ortp/ortp.h>
 #include <ortp/event.h>
-/* defined in srtp.h*/
-typedef struct srtp_ctx_t *MSSrtpCtx;
 
 #include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/msticker.h>
@@ -35,6 +33,7 @@ typedef struct srtp_ctx_t *MSSrtpCtx;
 #include <mediastreamer2/qualityindicator.h>
 #include <mediastreamer2/ice.h>
 #include <mediastreamer2/zrtp.h>
+#include <mediastreamer2/dtls_srtp.h>
 #include <mediastreamer2/ms_srtp.h>
 
 
@@ -82,7 +81,9 @@ typedef void (*media_stream_process_rtcp_callback_t)(MediaStream *stream, mblk_t
 struct _MSMediaStreamSessions{
 	RtpSession *rtp_session;
 	MSSrtpCtx srtp_session;
+	MSSrtpCtx srtp_rtcp_session;
 	MSZrtpContext *zrtp_context;
+	MSDtlsSrtpContext *dtls_context;
 	MSTicker *ticker;
 	bool_t is_secured;
 };
@@ -138,6 +139,9 @@ struct _MediaStream {
  * @addtogroup audio_stream_api
  * @{
 **/
+
+MS2_PUBLIC bool_t media_stream_dtls_supported(void);
+
 MS2_PUBLIC void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool);
 
 MS2_PUBLIC void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_t *stats);
@@ -553,6 +557,9 @@ MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, MSZrtpParams *para
  * */
 bool_t  audio_stream_zrtp_enabled(const AudioStream *stream);
 
+/* enable DTLS on the audio stream */
+MS2_PUBLIC void audio_stream_enable_dtls(AudioStream *stream, MSDtlsSrtpParams *params);
+
 /* enable SRTP on the audio stream */
 static MS2_INLINE bool_t audio_stream_enable_srtp(AudioStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {
 	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
@@ -746,6 +753,9 @@ MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 
 /* enable ZRTP on the video stream using information from the audio stream */
 MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtpParams *param);
+
+/* enable DTLS on the video stream */
+MS2_PUBLIC void video_stream_enable_dtls(VideoStream *stream, MSDtlsSrtpParams *params);
 
 /* enable SRTP on the video stream */
 static MS2_INLINE bool_t video_stream_enable_strp(VideoStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {

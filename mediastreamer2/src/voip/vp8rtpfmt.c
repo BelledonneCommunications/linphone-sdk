@@ -354,8 +354,7 @@ static uint32_t get_frame_ts(Vp8RtpFmtFrame *frame) {
 
 static void print_packet(void *data) {
 	Vp8RtpFmtPacket *packet = (Vp8RtpFmtPacket *)data;
-	ms_message("\t\tcseq=%10u\tS=%d\terror=%d",
-		packet->extended_cseq, packet->pd->start_of_partition, packet->error);
+	ms_message("\t\tS=%d\terror=%d", packet->pd->start_of_partition, packet->error);
 }
 
 static void print_partition(Vp8RtpFmtPartition *partition) {
@@ -368,7 +367,7 @@ static void print_frame(void *data) {
 	Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)data;
 	ms_message("frame [%p]:\tts=%u\tpictureid=0x%04x\tN=%d\terror=%d",
 		frame, get_frame_ts(frame), get_frame_pictureid(frame), is_frame_non_reference(frame), frame->error);
-	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {
+	for (i = 0; i < frame->partitions_info.nb_partitions; i++) {
 		print_partition(frame->partitions[i]);
 	}
 }

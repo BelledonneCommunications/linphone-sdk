@@ -126,6 +126,7 @@ set(VOIP_SOURCE_FILES
 	audiofilters/tonedetector.c
 	audiofilters/ulaw.c
 	audiofilters/waveheader.h
+	crypto/ms_srtp.c
 	otherfilters/msrtp.c
 	utils/_kiss_fft_guts.h
 	utils/audiodiff.c
@@ -142,6 +143,7 @@ set(VOIP_SOURCE_FILES
 	voip/audiostream.c
 	voip/bitratecontrol.c
 	voip/bitratedriver.c
+	crypto/dtls_srtp.c
 	voip/ice.c
 	voip/mediastream.c
 	voip/msmediaplayer.c
@@ -151,8 +153,9 @@ set(VOIP_SOURCE_FILES
 	voip/qosanalyzer.h
 	voip/qualityindicator.c
 	voip/ringstream.c
-	voip/zrtp.c
-	crypto/ms_srtp.c
+	voip/stun.c
+	voip/stun_udp.c
+	crypto/zrtp.c
 )
 
 if(ENABLE_ALSA)
@@ -341,6 +344,9 @@ if(BZRTP_FOUND)
 endif()
 if(SRTP_FOUND)
 	list(APPEND VOIP_LIBS ${SRTP_LIBRARIES})
+endif()
+if(POLARSSL_FOUND)
+	list(APPEND VOIP_LIBS ${POLARSSL_LIBRARIES})
 endif()
 if(GSM_FOUND)
 	list(APPEND VOIP_LIBS ${GSM_LIBRARIES})

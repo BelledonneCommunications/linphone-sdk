@@ -52,7 +52,8 @@ libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(SPANDSP_LIBS) \
 					$(PCAP_LIBS) \
 					$(OPUS_LIBS) \
-					$(SRTP_LIBS)
+					$(SRTP_LIBS) \
+					$(POLARSSL_LIBS)
 
 
 if LIBBZRTP
@@ -99,8 +100,11 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/bitratedriver.c \
 					voip/qosanalyzer.c voip/qosanalyzer.h \
 					voip/bitratecontrol.c \
-					voip/zrtp.c \
-					crypto/ms_srtp.c
+					crypto/zrtp.c \
+					voip/stun.c \
+					voip/stun_udp.c \
+					crypto/ms_srtp.c \
+					crypto/dtls_srtp.c
 else
 libmediastreamer_base_la_SOURCES+=	ortp-deps/logging.c \
 					ortp-deps/port.c \
@@ -387,7 +391,8 @@ AM_CFLAGS=\
 	$(MSSILK_CFLAGS) \
 	$(PCAP_CFLAGS) \
 	$(OPUS_CFLAGS) \
-	$(SRTP_CFLAGS)
+	$(SRTP_CFLAGS) \
+	$(POLARSSL_CFLAGS)
 
 AM_CXXFLAGS=\
 	$(STRICT_OPTIONS) \

@@ -174,6 +174,10 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 		ms_srtp_dealloc(sessions->srtp_session);
 		sessions->srtp_session=NULL;
 	}
+	if (sessions->srtp_rtcp_session) {
+		ms_srtp_dealloc(sessions->srtp_rtcp_session);
+		sessions->srtp_rtcp_session=NULL;
+	}
 	if (sessions->rtp_session) {
 		rtp_session_destroy(sessions->rtp_session);
 		sessions->rtp_session=NULL;
@@ -181,6 +185,10 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 	if (sessions->zrtp_context != NULL) {
 		ms_zrtp_context_destroy(sessions->zrtp_context);
 		sessions->zrtp_context = NULL;
+	}
+	if (sessions->dtls_context != NULL) {
+		ms_dtls_srtp_context_destroy(sessions->dtls_context);
+		sessions->dtls_context = NULL;
 	}
 	if (sessions->ticker){
 		ms_ticker_destroy(sessions->ticker);
@@ -236,9 +244,13 @@ void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled) 
 	rtp_session_enable_adaptive_jitter_compensation(stream->sessions.rtp_session, enabled);
 }
 
+bool_t media_stream_dtls_supported(void){
+	return ms_dtls_srtp_available();
+}
+
 /*deprecated*/
 bool_t media_stream_enable_srtp(MediaStream *stream, MSCryptoSuite suite, const char *snd_key, const char *rcv_key) {
-	return media_stream_set_srtp_recv_key_b64(stream,suite,rcv_key)==0 && media_stream_set_srtp_send_key_b64(stream,suite,snd_key)==0;
+	return media_stream_set_srtp_recv_key_b64(&(stream->sessions),suite,rcv_key)==0 && media_stream_set_srtp_send_key_b64(&(stream->sessions),suite,snd_key)==0;
 }
 
 const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream){
@@ -312,6 +324,10 @@ void media_stream_iterate(MediaStream *stream){
 			} else if (evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) {
 				OrtpEventData *evd=ortp_event_get_data(ev);
 				stream->sessions.is_secured=evd->info.zrtp_stream_encrypted;
+				ms_message("%s_stream_iterate[%p]: is %s ",media_stream_type_str(stream) , stream, stream->sessions.is_secured ? "encrypted" : "not encrypted");
+			} else if (evt == ORTP_EVENT_DTLS_ENCRYPTION_CHANGED) {
+				OrtpEventData *evd=ortp_event_get_data(ev);
+				stream->sessions.is_secured=evd->info.dtls_stream_encrypted;
 				ms_message("%s_stream_iterate[%p]: is %s ",media_stream_type_str(stream) , stream, stream->sessions.is_secured ? "encrypted" : "not encrypted");
 			}
 			ortp_event_destroy(ev);

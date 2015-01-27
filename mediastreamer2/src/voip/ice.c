@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <inttypes.h>
 
+#include "mediastreamer2/stun.h"
 #include "mediastreamer2/ice.h"
 #include "ortp/ortp.h"
 
@@ -122,7 +123,7 @@ static MSTimeSpec ice_add_ms(MSTimeSpec orig, uint32_t ms);
 static int32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2);
 static char * ice_inet_ntoa(struct sockaddr *addr, int addrlen, char *dest, int destlen);
 static void transactionID2string(const UInt96 *tr_id, char *tr_id_str);
-static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check);
+static void ice_send_stun_server_binding_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check);
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
 static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair *p2);
@@ -211,6 +212,7 @@ static void ice_session_init(IceSession *session)
 	session->send_event = FALSE;
 	session->gathering_start_ts.tv_sec = session->gathering_start_ts.tv_nsec = -1;
 	session->gathering_end_ts.tv_sec = session->gathering_end_ts.tv_nsec = -1;
+	session->check_message_integrity=TRUE;
 }
 
 IceSession * ice_session_new(void)
@@ -242,6 +244,9 @@ void ice_session_destroy(IceSession *session)
 	}
 }
 
+void ice_session_enable_message_integrity_check(IceSession *session,bool_t enable) {
+	session->check_message_integrity=enable;
+}
 
 /******************************************************************************
  * CHECK LIST INITIALISATION AND DEINITIALISATION                             *
@@ -313,6 +318,7 @@ static IceCandidatePair *ice_pair_new(IceCheckList *cl, IceCandidate* local_cand
 	pair->retransmissions = 0;
 	pair->role = cl->session->role;
 	ice_compute_pair_priority(pair, &cl->session->role);
+	pair->retry_with_dummy_message_integrity=!cl->session->check_message_integrity;
 	return pair;
 }
 
@@ -894,20 +900,20 @@ static bool_t ice_check_list_gathering_needed(const IceCheckList *cl)
 static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si)
 {
 	IceStunServerCheck *check;
-	ortp_socket_t sock = -1;
+	RtpTransport *rtptp=NULL;
 	MSTimeSpec curtime = ice_current_time();
 
 	if ((cl->rtp_session != NULL) && (cl->gathering_candidates == FALSE) && (cl->state != ICL_Completed) && (ice_check_list_candidates_gathered(cl) == FALSE)) {
 		cl->gathering_candidates = TRUE;
 		cl->gathering_start_time = curtime;
-		sock = rtp_session_get_rtp_socket(cl->rtp_session);
-		if (sock > 0) {
+		rtp_session_get_transports(cl->rtp_session,&rtptp,NULL);
+		if (rtptp) {
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
-			check->sock = sock;
+			check->rtptp = rtptp;
 			check->srcport = rtp_session_get_local_port(cl->rtp_session);
 			if (si->index == 0) {
 				check->next_transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
-				ice_send_stun_server_binding_request(sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+				ice_send_stun_server_binding_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
 			} else {
 				check->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION);
 			}
@@ -915,10 +921,11 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 		} else {
 			ms_error("ice: no rtp socket found for session [%p]",cl->rtp_session);
 		}
-		sock = rtp_session_get_rtcp_socket(cl->rtp_session);
-		if (sock > 0) {
+		rtptp=NULL;
+		rtp_session_get_transports(cl->rtp_session,NULL,&rtptp);
+		if (rtptp) {
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
-			check->sock = sock;
+			check->rtptp = rtptp;
 			check->srcport = rtp_session_get_local_rtcp_port(cl->rtp_session);
 			check->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION);
 			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
@@ -1081,20 +1088,38 @@ static IceTransaction * ice_find_transaction(const IceCheckList *cl, const IceCa
  * STUN PACKETS HANDLING                                                      *
  *****************************************************************************/
 
-static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check)
+static int ice_send_message_to_socket(const RtpTransport * rtpt,char* buf,size_t len, const struct sockaddr *to, socklen_t tolen) {
+	/*rtp_session_get_transports(rtp_session,&rtpt,NULL);*/
+	return meta_rtp_transport_modifier_inject_packet_to(rtpt
+														, NULL
+														,rtp_session_create_packet_raw((const uint8_t *)buf, len)
+														, 0
+														,to
+														,tolen);
+}
+
+static int ice_send_message_to_stun_addr(const RtpTransport * rtpt,char* buff,size_t len, StunAddress4 *dest) {
+	struct sockaddr_in dest_addr;
+	memset(&dest_addr, 0, sizeof(dest_addr));
+	dest_addr.sin_addr.s_addr = htonl(dest->addr);
+	dest_addr.sin_port = htons(dest->port);
+	dest_addr.sin_family = AF_INET;
+	return ice_send_message_to_socket(rtpt, buff, len,(struct sockaddr *)&dest_addr, sizeof(dest_addr));
+}
+
+static void ice_send_stun_server_binding_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check)
 {
 	StunMessage msg;
 	StunAtrString username;
 	StunAtrString password;
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
-	const struct sockaddr_in *servaddr = (const struct sockaddr_in *)server;
 	char tr_id_str[25];
 
 	memset(&msg, 0, sizeof(StunMessage));
 	memset(&username,0,sizeof(username));
 	memset(&password,0,sizeof(password));
-	stunBuildReqSimple(&msg, &username, FALSE, FALSE, check->sock);
+	stunBuildReqSimple(&msg, &username, FALSE, FALSE, 0);
 	len = stunEncodeMessage(&msg, buf, len, &password);
 	if (len > 0) {
 		IceStunServerCheckTransaction *transaction = ms_new0(IceStunServerCheckTransaction, 1);
@@ -1103,7 +1128,7 @@ static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struc
 		check->transactions = ms_list_append(check->transactions, transaction);
 		transactionID2string(&msg.msgHdr.tr_id, tr_id_str);
 		ms_message("ice: Send STUN binding request from port %u [%s]", check->srcport, tr_id_str);
-		sendMessage(sock, buf, len, htonl(servaddr->sin_addr.s_addr), htons(servaddr->sin_port));
+		ice_send_message_to_socket(rtptp, buf, len, server, addrlen);
 	} else {
 		ms_error("ice: encoding stun binding request from port %u [%s] failed", check->srcport, tr_id_str);
 	}
@@ -1112,6 +1137,7 @@ static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struc
 static int ice_parse_stun_server_binding_response(const StunMessage *msg, char *addr, int addr_len, int *port)
 {
 	struct sockaddr_in addr_in;
+	memset(&addr_in,0,sizeof(addr_in));
 
 	if (msg->hasXorMappedAddress) {
 		*port = msg->xorMappedAddress.ipv4.port;
@@ -1137,7 +1163,7 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 	IceTransaction *transaction;
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
-	int socket = 0;
+	RtpTransport *rtptp;
 	char tr_id_str[25];
 
 	transaction = ice_find_transaction(cl, pair);
@@ -1169,9 +1195,9 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 	pair->transmission_time = ice_current_time();
 
 	if (pair->local->componentID == 1) {
-		socket = rtp_session_get_rtp_socket(rtp_session);
+		rtp_session_get_transports(rtp_session,&rtptp,NULL);
 	} else if (pair->local->componentID == 2) {
-		socket = rtp_session_get_rtcp_socket(rtp_session);
+		rtp_session_get_transports(rtp_session,NULL,&rtptp);
 	} else return;
 
 	snprintf(username.value, sizeof(username.value) - 1, "%s:%s", ice_check_list_remote_ufrag(cl), ice_check_list_local_ufrag(cl));
@@ -1213,6 +1239,9 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 		transaction = ice_create_transaction(cl, pair, &msg.msgHdr.tr_id);
 	}
 
+	/*for backward compatibility*/
+	msg.hasDummyMessageIntegrity=pair->use_dummy_hmac;
+
 	len = stunEncodeMessage(&msg, buf, len, &password);
 	if (len > 0) {
 		transactionID2string(&transaction->transactionID, tr_id_str);
@@ -1225,7 +1254,8 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 				pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
 				pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type], tr_id_str);
 		}
-		sendMessage(socket, buf, len, dest.addr, dest.port);
+
+		ice_send_message_to_stun_addr(rtptp, buf, len, &dest);
 
 		if (pair->state != ICP_InProgress) {
 			/* First transmission of the request, initialize the retransmission timer. */
@@ -1250,12 +1280,13 @@ static int ice_get_componentID_from_rtp_session(const OrtpEventData *evt_data)
 }
 
 
-static int ice_get_socket_from_rtp_session(const RtpSession *rtp_session, const OrtpEventData *evt_data)
-{
+static int ice_get_transport_from_rtp_session(const RtpSession *rtp_session, const OrtpEventData *evt_data, RtpTransport **rtptp) {
 	if (evt_data->info.socket_type == OrtpRTPSocket) {
-		return rtp_session_get_rtp_socket(rtp_session);
+		rtp_session_get_transports(rtp_session, rtptp, NULL);
+		return 0;
 	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
-		return rtp_session_get_rtcp_socket(rtp_session);
+		rtp_session_get_transports(rtp_session, NULL,rtptp);
+		return 0;
 	}
 	return -1;
 }
@@ -1269,13 +1300,13 @@ static int ice_get_recv_port_from_rtp_session(const RtpSession *rtp_session, con
 	} else return -1;
 }
 
-static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *dest)
+static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *dest)
 {
 	StunMessage response;
 	StunAtrString password;
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
-	int socket = ice_get_socket_from_rtp_session(rtp_session, evt_data);
+	RtpTransport *rtptp;
 	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
 	struct sockaddr_in dest_addr;
 	struct sockaddr_in source_addr;
@@ -1283,9 +1314,13 @@ static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpE
 	char source_addr_str[256];
 	char tr_id_str[25];
 
-	if (socket < 0) return;
+	ice_get_transport_from_rtp_session(rtp_session, evt_data,&rtptp);
+	if (!rtptp) return;
+
 	memset(&response, 0, sizeof(response));
 	memset(&password, 0, sizeof(password));
+	memset(&dest_addr,0,sizeof(dest_addr));
+	memset(&source_addr,0,sizeof(source_addr));
 
 	/* Copy magic cookie and transaction ID from the request. */
 	response.msgHdr.magic_cookie = ntohl(msg->msgHdr.magic_cookie);
@@ -1295,9 +1330,25 @@ static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpE
 	response.msgHdr.msgType = (STUN_METHOD_BINDING | STUN_SUCCESS_RESP);
 	response.hasMessageIntegrity = TRUE;
 	response.hasFingerprint = TRUE;
-	response.hasUsername = TRUE;
-	memcpy(response.username.value, msg->username.value, msg->username.sizeValue);
-	response.username.sizeValue = msg->username.sizeValue;
+	/*for backward compatibility*/
+	response.hasDummyMessageIntegrity=msg->hasDummyMessageIntegrity;
+
+
+	/*add username for message integrity*/
+	if (msg->hasDummyMessageIntegrity && !cl->session->check_message_integrity) {
+		/*legacy case, put username for bacward compatibility*/
+		response.hasUsername = TRUE;
+	} else
+		response.hasUsername = FALSE;
+
+	snprintf(response.username.value, sizeof(response.username.value) - 1, "%s:%s", ice_check_list_local_ufrag(cl), ice_check_list_remote_ufrag(cl));
+	response.username.sizeValue = strlen(response.username.value);
+
+	/*add passwd for message integrity*/
+	response.hasPassword = FALSE;
+	snprintf(password.value, sizeof(password.value) - 1, "%s", ice_check_list_local_pwd(cl));
+	password.sizeValue = strlen(password.value);
+
 
 	/* Add the mapped address to the response. */
 	response.hasXorMappedAddress = TRUE;
@@ -1316,7 +1367,7 @@ static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpE
 		source_addr.sin_family = AF_INET;
 		ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
 		ms_message("ice: Send binding response: %s:%u --> %s:%u [%s]", source_addr_str, recvport, dest_addr_str, dest->port, tr_id_str);
-		sendMessage(socket, buf, len, dest->addr, dest->port);
+		ice_send_message_to_socket(rtptp, buf, len, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
 	}
 }
 
@@ -1326,7 +1377,7 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 	StunAtrString password;
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
-	int socket = ice_get_socket_from_rtp_session(rtp_session, evt_data);
+	RtpTransport* rtptp;
 	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
 	struct sockaddr_in dest_addr;
 	struct sockaddr_in source_addr;
@@ -1336,6 +1387,9 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 
 	if (socket < 0) return;
 	memset(&response, 0, sizeof(response));
+	memset(&dest_addr, 0, sizeof(dest_addr));
+	memset(&source_addr, 0, sizeof(source_addr));
+	ice_get_transport_from_rtp_session(rtp_session, evt_data,&rtptp);
 
 	/* Copy magic cookie and transaction ID from the request. */
 	response.msgHdr.magic_cookie = ntohl(msg->msgHdr.magic_cookie);
@@ -1352,6 +1406,7 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 
 	len = stunEncodeMessage(&response, buf, len, &password);
 	if (len > 0) {
+		RtpTransport *rtpt=NULL;
 		transactionID2string(&response.msgHdr.tr_id, tr_id_str);
 		dest_addr.sin_addr.s_addr = htonl(dest->addr);
 		dest_addr.sin_port = htons(dest->port);
@@ -1362,7 +1417,12 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 		source_addr.sin_family = AF_INET;
 		ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
 		ms_message("ice: Send error response: %s:%u --> %s:%u [%s]", source_addr_str, recvport, dest_addr_str, dest->port, tr_id_str);
-		sendMessage(socket, buf, len, dest->addr, dest->port);
+		rtp_session_get_transports(rtp_session,&rtpt,NULL);
+		ice_send_message_to_socket(	rtpt
+									, buf
+									, len
+									, (struct sockaddr *)&dest_addr
+									, sizeof(dest_addr));
 	}
 }
 
@@ -1372,12 +1432,12 @@ static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *
 	StunAddress4 dest;
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
-	int socket;
+	RtpTransport *rtptp;
 
 	if (pair->local->componentID == 1) {
-		socket = rtp_session_get_rtp_socket(rtp_session);
+		rtp_session_get_transports(rtp_session,&rtptp,NULL);
 	} else if (pair->local->componentID == 2) {
-		socket = rtp_session_get_rtcp_socket(rtp_session);
+		rtp_session_get_transports(rtp_session,NULL,&rtptp);
 	} else return;
 
 	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
@@ -1386,12 +1446,15 @@ static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *
 	indication.msgHdr.msgType = (STUN_METHOD_BINDING|STUN_INDICATION);
 	indication.hasFingerprint = TRUE;
 
+	/*for backward compatibility*/
+	indication.hasDummyMessageIntegrity=pair->use_dummy_hmac;
+
 	len = stunEncodeMessage(&indication, buf, len, NULL);
 	if (len > 0) {
 		ms_message("ice: Send indication for pair %p: %s:%u:%s --> %s:%u:%s", pair,
 			pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
 			pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
-		sendMessage(socket, buf, len, dest.addr, dest.port);
+		ice_send_message_to_stun_addr(rtptp, buf, len, &dest);
 	}
 }
 
@@ -1468,8 +1531,12 @@ static int ice_check_received_binding_request_integrity(const IceCheckList *cl, 
 	memcpy(lenpos, &newlen, sizeof(uint16_t));
 	if (memcmp(msg->messageIntegrity.hash, hmac, sizeof(hmac)) != 0) {
 		ms_error("ice: Wrong MESSAGE-INTEGRITY in received binding request");
-		ice_send_error_response(rtp_session, evt_data, msg, 4, 1, remote_addr, "Wrong MESSAGE-INTEGRITY attribute");
-		return -1;
+		if (!cl->session->check_message_integrity && msg->hasDummyMessageIntegrity) {
+			ms_message("ice: skipping message integrity check for cl [%p]",cl);
+		} else {
+			ice_send_error_response(rtp_session, evt_data, msg, 4, 1, remote_addr, "Wrong MESSAGE-INTEGRITY attribute");
+			return -1;
+		}
 	}
 	return 0;
 }
@@ -1518,7 +1585,6 @@ static int ice_check_received_binding_request_role_conflict(const IceCheckList *
 
 static void ice_fill_transport_address(IceTransportAddress *taddr, const char *ip, int port)
 {
-	memset(taddr, 0, sizeof(IceTransportAddress));
 	strncpy(taddr->ip, ip, sizeof(taddr->ip));
 	taddr->port = port;
 }
@@ -1576,6 +1642,7 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	struct sockaddr_in source_addr;
 	char source_addr_str[256];
 	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
+	memset(&source_addr,0,sizeof(source_addr));
 
 	if (recvport < 0) return NULL;
 
@@ -1674,13 +1741,13 @@ static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rt
 	prflx_candidate = ice_learn_peer_reflexive_candidate(cl, evt_data, msg, &taddr);
 	pair = ice_trigger_connectivity_check_on_binding_request(cl, rtp_session, evt_data, prflx_candidate, &taddr);
 	if (pair != NULL) ice_update_nominated_flag_on_binding_request(cl, msg, pair);
-	ice_send_binding_response(rtp_session, evt_data, msg, remote_addr);
+	ice_send_binding_response(cl,rtp_session, evt_data, msg, remote_addr);
 	ice_conclude_processing(cl, rtp_session);
 }
 
-static int ice_find_stun_server_check(const IceStunServerCheck *check, const ortp_socket_t *sock)
+static int ice_find_stun_server_check(const IceStunServerCheck *check, const RtpTransport *rtptp)
 {
-	return !(check->sock == *sock);
+	return !(check->rtptp == rtptp);
 }
 
 static IceCheckList * ice_find_check_list_gathering_candidates(const IceSession *session)
@@ -1708,7 +1775,10 @@ static int ice_check_received_binding_response_addresses(const RtpSession *rtp_s
 	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
 	stunParseHostName(pair->local->taddr.ip, &local.addr, &local.port, recvport);
 	// TODO: Handle IPv6 for ipi_addr
-	if ((remote_addr->addr != dest.addr) || (remote_addr->port != dest.port) || (ntohl(evt_data->packet->recv_addr.addr.ipi_addr.s_addr) != local.addr) || (local.port != pair->local->taddr.port)) {
+	if (	(remote_addr->addr != dest.addr)
+			|| (remote_addr->port != dest.port)
+			|| (ntohl(evt_data->packet->recv_addr.addr.ipi_addr.s_addr) != local.addr)
+			|| (local.port != pair->local->taddr.port)) {
 		/* Non-symmetric addresses, set the state of the pair to Failed as defined in 7.1.3.1. */
 		ms_warning("ice: Non symmetric addresses, set state of pair %p to Failed", pair);
 		ice_pair_set_state(pair, ICP_Failed);
@@ -1717,11 +1787,12 @@ static int ice_check_received_binding_response_addresses(const RtpSession *rtp_s
 	return 0;
 }
 
-static int ice_check_received_binding_response_attributes(const StunMessage *msg, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_response_attributes(const StunMessage *msg, const StunAddress4 *remote_addr,bool_t check_integrity)
 {
-	if (!msg->hasUsername) {
-		ms_warning("ice: Received binding response missing USERNAME attribute");
-		return -1;
+	if (!msg->hasMessageIntegrity) {
+		ms_warning("ice: Received binding response missing MESSAGE-INTEGRITY attribute");
+		if (check_integrity)
+			return -1;
 	}
 	if (!msg->hasFingerprint) {
 		ms_warning("ice: Received binding response missing FINGERPRINT attribute");
@@ -1742,6 +1813,8 @@ static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, co
 	MSList *elem;
 
 	memset(&taddr, 0, sizeof(taddr));
+	memset(&addr_in,0,sizeof(addr_in));
+
 	addr_in.sin_addr.s_addr = htonl(msg->xorMappedAddress.ipv4.addr);
 	addr_in.sin_port = htons(msg->xorMappedAddress.ipv4.port);
 	addr_in.sin_family = AF_INET;
@@ -1888,15 +1961,15 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	OrtpEvent *ev;
 	char addr[64];
 	int port;
-	ortp_socket_t sock;
+	RtpTransport *rtptp=NULL;
 	int componentID;
 	const struct sockaddr_in *servaddr = (const struct sockaddr_in *)&cl->session->ss;
 	bool_t stun_server_response = FALSE;
 
 	if (cl->gathering_candidates == TRUE) {
 		if ((htonl(remote_addr->addr) == servaddr->sin_addr.s_addr) && (htons(remote_addr->port) == servaddr->sin_port)) {
-			sock = ice_get_socket_from_rtp_session(rtp_session, evt_data);
-			elem = ms_list_find_custom(cl->stun_server_checks, (MSCompareFunc)ice_find_stun_server_check, &sock);
+			 ice_get_transport_from_rtp_session(rtp_session, evt_data,&rtptp);
+			elem = ms_list_find_custom(cl->stun_server_checks, (MSCompareFunc)ice_find_stun_server_check, rtptp);
 			if (elem != NULL) {
 				IceStunServerCheckTransaction *transaction;
 				IceStunServerCheck *check = (IceStunServerCheck *)elem->data;
@@ -1947,7 +2020,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 
 	succeeded_pair = (IceCandidatePair *)((IceTransaction *)elem->data)->pair;
 	if (ice_check_received_binding_response_addresses(rtp_session, evt_data, succeeded_pair, remote_addr) < 0) return;
-	if (ice_check_received_binding_response_attributes(msg, remote_addr) < 0) return;
+	if (ice_check_received_binding_response_attributes(msg, remote_addr,cl->session->check_message_integrity) < 0) return;
 
 	succeeded_pair_previous_state = succeeded_pair->state;
 	candidate = ice_discover_peer_reflexive_candidate(cl, succeeded_pair, msg);
@@ -1967,11 +2040,21 @@ static void ice_handle_received_error_response(IceCheckList *cl, RtpSession *rtp
 	}
 
 	pair = (IceCandidatePair *)((IceTransaction *)elem->data)->pair;
-	ice_pair_set_state(pair, ICP_Failed);
-	ms_message("ice: Error response, set state to Failed for pair %p: %s:%u:%s --> %s:%u:%s", pair,
-		pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
-		pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
+	if (	msg->hasErrorCode
+			&& (msg->errorCode.errorClass == 4)
+			&& (msg->errorCode.number == 1)
+			&& pair->retry_with_dummy_message_integrity) {
+		ms_warning("ice pair [%p], retry skipping message integrity for compatibility with older version",pair);
+		pair->retry_with_dummy_message_integrity=FALSE;
+		pair->use_dummy_hmac=TRUE;
+		return;
 
+	} else {
+		ice_pair_set_state(pair, ICP_Failed);
+		ms_message("ice: Error response, set state to Failed for pair %p: %s:%u:%s --> %s:%u:%s", pair,
+				pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
+				pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
+	}
 	if (msg->hasErrorCode && (msg->errorCode.errorClass == 4) && (msg->errorCode.number == 87)) {
 		/* Handle error 487 (Role Conflict) according to 7.1.3.1. */
 		switch (pair->role) {
@@ -2011,6 +2094,8 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 	if (cl->session == NULL) return;
 
 	memset(&msg, 0, sizeof(msg));
+	memset(&source_addr, 0, sizeof(source_addr));
+
 	res = stunParseMessage((char *) mp->b_rptr, mp->b_wptr - mp->b_rptr, &msg);
 	if (res == FALSE) {
 		ms_warning("ice: Received invalid STUN packet");
@@ -3053,7 +3138,7 @@ static void ice_send_stun_server_checks(IceStunServerCheck *check, IceCheckList 
 	if (ice_compare_time(curtime, check->next_transmission_time) >= 0) {
 		if (ms_list_size(check->transactions) < ICE_MAX_STUN_REQUEST_RETRANSMISSIONS) {
 			check->next_transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
-			ice_send_stun_server_binding_request(check->sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+			ice_send_stun_server_binding_request(check->rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
 		}
 	}
 }

@@ -90,13 +90,25 @@ void video_stream_close_player(VideoStream *stream);
  * Initialise srtp library, shall be called once but multiple call is supported
  * @return 0 on success, error code from srtp/crypto/include/err.h otherwise
  */
-MS2_PUBLIC err_status_t ms_srtp_init(void);
+MS2_PUBLIC int ms_srtp_init(void);
 
 /**
  * Shutdown the srtp library
  */
 MS2_PUBLIC void ms_srtp_shutdown(void);
 
+/**
+ * Set the backlink in dtls_context to stream sessions context. Used when reinvite force creation of a new stream with same session data
+ * @param[in/out]	dtls_context	Dtls context, contains a link to stream session context needed to access srtp context
+ * @param[in]		stream_sessions	Pointer to the new stream session structure
+ */
+MS2_PUBLIC void ms_dtls_srtp_set_stream_sessions(MSDtlsSrtpContext *dtls_context, MSMediaStreamSessions *stream_sessions);
+/**
+ * Set the backlink in zrtp_context to stream sessions context. Used when reinvite force creation of a new stream with same session data
+ * @param[in/out]	zrtp_context	ZRTP context, contains a link to stream session context needed to access srtp context
+ * @param[in]		stream_sessions	Pointer to the new stream session structure
+ */
+MS2_PUBLIC void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions);
 #ifdef __cplusplus
 }
 #endif
