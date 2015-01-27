@@ -135,7 +135,7 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 #endif
 }
 
-RtpSession * create_duplex_rtpsession(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6) {
+RtpSession * create_duplex_rtpsession(const char* local_ip, int loc_rtp_port, int loc_rtcp_port) {
 	RtpSession *rtpr;
 
 	rtpr = rtp_session_new(RTP_SESSION_SENDRECV);
@@ -144,11 +144,12 @@ RtpSession * create_duplex_rtpsession(int loc_rtp_port, int loc_rtcp_port, bool_
 	rtp_session_set_blocking_mode(rtpr, 0);
 	rtp_session_enable_adaptive_jitter_compensation(rtpr, TRUE);
 	rtp_session_set_symmetric_rtp(rtpr, TRUE);
-	rtp_session_set_local_addr(rtpr, ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port);
+	rtp_session_set_local_addr(rtpr, local_ip, loc_rtp_port, loc_rtcp_port);
 	rtp_session_signal_connect(rtpr, "timestamp_jump", (RtpCallback)rtp_session_resync, NULL);
 	rtp_session_signal_connect(rtpr, "ssrc_changed", (RtpCallback)rtp_session_resync, NULL);
 	rtp_session_set_ssrc_changed_threshold(rtpr, 0);
 	rtp_session_set_rtcp_report_interval(rtpr, 2500);	/* At the beginning of the session send more reports. */
+	rtp_session_set_multicast_loopback(rtpr,TRUE); /*very useful, specially for testing purposes*/
 	disable_checksums(rtp_session_get_rtp_socket(rtpr));
 	return rtpr;
 }
@@ -275,6 +276,37 @@ bool_t ms_is_ipv6(const char *remote) {
 	return ret;
 }
 
+bool_t ms_is_multicast_addr(const struct sockaddr *addr) {
+
+	switch (addr->sa_family) {
+		case AF_INET:
+			return IN_MULTICAST(ntohl(((struct sockaddr_in *) addr)->sin_addr.s_addr));
+		case AF_INET6:
+			return IN6_IS_ADDR_MULTICAST(&(((struct sockaddr_in6 *) addr)->sin6_addr));
+		default:
+			return FALSE;
+	}
+
+}
+bool_t ms_is_multicast(const char *address) {
+	bool_t ret = FALSE;
+	struct addrinfo hints, *res0;
+	int err;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = PF_UNSPEC;
+	hints.ai_socktype = SOCK_DGRAM;
+	err = getaddrinfo(address,"8000", &hints, &res0);
+	if (err != 0) {
+		ms_warning("get_local_addr_for: %s", gai_strerror(err));
+		return FALSE;
+	}
+	ret = ms_is_multicast_addr(res0->ai_addr);
+
+	freeaddrinfo(res0);
+	return ret;
+
+}
 bool_t mediastream_payload_type_changed(RtpSession *session, unsigned long data) {
 	MediaStream *stream = (MediaStream *)data;
 	int pt = rtp_session_get_recv_payload_type(stream->sessions.rtp_session);

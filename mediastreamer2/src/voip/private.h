@@ -48,7 +48,7 @@ extern "C"
 
 MSTickerPrio __ms_get_default_prio(bool_t is_video);
 
-MEDIASTREAMER2_INTERNAL_EXPORT RtpSession * create_duplex_rtpsession(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
+MEDIASTREAMER2_INTERNAL_EXPORT RtpSession * create_duplex_rtpsession(const char* local_ip,int loc_rtp_port, int loc_rtcp_port);
 
 void media_stream_start_ticker(MediaStream *stream);
 

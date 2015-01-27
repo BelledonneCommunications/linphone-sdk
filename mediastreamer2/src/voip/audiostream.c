@@ -1144,14 +1144,17 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 }
 
 AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
+	return audio_stream_new2( ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port);
+}
+
+AudioStream *audio_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port) {
 	AudioStream *obj;
 	MSMediaStreamSessions sessions={0};
-	sessions.rtp_session=create_duplex_rtpsession(loc_rtp_port,loc_rtcp_port,ipv6);
+	sessions.rtp_session=create_duplex_rtpsession(ip,loc_rtp_port,loc_rtcp_port);
 	obj=audio_stream_new_with_sessions(&sessions);
 	obj->ms.owns_sessions=TRUE;
 	return obj;
 }
-
 void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno){
 	st->play_dtmfs=yesno;
 }

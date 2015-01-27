@@ -259,7 +259,7 @@ MS2_PUBLIC void media_stream_iterate(MediaStream * stream);
 MS2_PUBLIC bool_t media_stream_alive(MediaStream *stream, int timeout_seconds);
 
 /**
- * @return curret streams tate
+ * @return current streams state
  * */
 MS2_PUBLIC MSStreamState media_stream_get_state(const MediaStream *stream);
 
@@ -274,6 +274,8 @@ typedef enum EqualizerLocation {
 	MSEqualizerHP = 0,
 	MSEqualizerMic
 } EqualizerLocation;
+
+
 
 struct _AudioStream
 {
@@ -386,6 +388,16 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
  * @return a new AudioStream.
 **/
 MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
+
+/**
+ * Creates an AudioStream object listening on a RTP port for a dedicated address.
+ * @param loc_ip the local ip to listen for RTP packets. Can be ::, O.O.O.O or any ip4/6 addresses
+ * @param loc_rtp_port the local UDP port to listen for RTP packets.
+ * @param loc_rtcp_port the local UDP port to listen for RTCP packets
+ * @return a new AudioStream.
+**/
+MS2_PUBLIC AudioStream *audio_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port);
+
 
 /**Creates an AudioStream object from initialized MSMediaStreamSessions.
  * @param sessions the MSMediaStreamSessions
@@ -644,6 +656,15 @@ typedef struct _VideoStream VideoStream;
 
 
 MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
+/**
+ * Creates an VideoStream object listening on a RTP port for a dedicated address.
+ * @param loc_ip the local ip to listen for RTP packets. Can be ::, O.O.O.O or any ip4/6 addresses
+ * @param [in] loc_rtp_port the local UDP port to listen for RTP packets.
+ * @param [in] loc_rtcp_port the local UDP port to listen for RTCP packets
+ * @return a new AudioStream.
+**/
+MS2_PUBLIC VideoStream *video_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port);
+
 MS2_PUBLIC VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
 MS2_PUBLIC void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir);
 static MS2_INLINE void video_stream_enable_adaptive_bitrate_control(VideoStream *stream, bool_t enabled) {
@@ -859,7 +880,7 @@ MS2_PUBLIC MSFilter* video_preview_stop_reuse_source(VideoPreview *stream);
  * @}
 **/
 
-MS2_PUBLIC bool_t ms_is_ipv6(const char *address);
+
 
 
 #ifdef __cplusplus

@@ -52,14 +52,14 @@ static int tester_cleanup(void) {
 }
 
 #ifdef VIDEO_ENABLED
-#define MARIELLE_RTP_PORT 2564
+/*#define MARIELLE_RTP_PORT 2564
 #define MARIELLE_RTCP_PORT 2565
 #define MARIELLE_IP "127.0.0.1"
 
 #define MARGAUX_RTP_PORT 9864
 #define MARGAUX_RTCP_PORT 9865
 #define MARGAUX_IP "127.0.0.1"
-
+*/
 
 typedef struct _video_stream_tester_stats_t {
 	OrtpEvQueue *q;
@@ -82,14 +82,37 @@ typedef struct _video_stream_tester_t {
 	VideoStream *vs;
 	video_stream_tester_stats_t stats;
 	MSVideoConfiguration* vconf;
+	char* local_ip;
+	int local_rtp;
+	int local_rtcp;
 } video_stream_tester_t;
 
+void video_stream_tester_set_local_ip(video_stream_tester_t* obj,const char*ip) {
+	char* new_ip = ip?ms_strdup(ip):NULL;
+	if (obj->local_ip) ms_free(obj->local_ip);
+	obj->local_ip=new_ip;
+}
+
 video_stream_tester_t* video_stream_tester_new() {
-	return  ms_new0(video_stream_tester_t,1);
+	video_stream_tester_t* vst = ms_new0(video_stream_tester_t,1);
+	video_stream_tester_set_local_ip(vst,"127.0.0.1");
+	vst->local_rtp=-1; /*random*/
+	vst->local_rtcp=-1; /*random*/
+	return  vst;
+}
+
+video_stream_tester_t* video_stream_tester_create(const char* local_ip, int local_rtp, int local_rtcp) {
+	video_stream_tester_t *vst = video_stream_tester_new();
+	if (local_ip)
+		video_stream_tester_set_local_ip(vst,local_ip);
+	vst->local_rtp=local_rtp;
+	vst->local_rtcp=local_rtcp;
+	return vst;
 }
 
 void video_stream_tester_destroy(video_stream_tester_t* obj) {
 	if (obj->vconf) ms_free(obj->vconf);
+	if(obj->local_ip) ms_free(obj->local_ip);
 	ms_free(obj);
 }
 
@@ -165,8 +188,12 @@ static void init_video_streams(video_stream_tester_t *marielle, video_stream_tes
 	MSWebCam *no_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
 	MSWebCam *default_webcam = ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
 /*	MSWebCam *default_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "QT Capture: Logitech Camera #2");*/
-	marielle->vs = video_stream_new(MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT, FALSE);
-	margaux->vs = video_stream_new(MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT, FALSE);
+	marielle->vs = video_stream_new2(marielle->local_ip,marielle->local_rtp, marielle->local_rtcp);
+	marielle->local_rtp=rtp_session_get_local_port(marielle->vs->ms.sessions.rtp_session);
+	marielle->local_rtcp=rtp_session_get_local_rtcp_port(marielle->vs->ms.sessions.rtp_session);
+	margaux->vs = video_stream_new2(margaux->local_ip, margaux->local_rtp, margaux->local_rtcp);
+	margaux->local_rtp=rtp_session_get_local_port(margaux->vs->ms.sessions.rtp_session);
+	margaux->local_rtcp=rtp_session_get_local_rtcp_port(margaux->vs->ms.sessions.rtp_session);
 	reset_stats(&marielle->stats);
 	reset_stats(&margaux->stats);
 
@@ -207,7 +234,7 @@ static void init_video_streams(video_stream_tester_t *marielle, video_stream_tes
 
 	}
 	CU_ASSERT_EQUAL(
-		video_stream_start(marielle->vs, &rtp_profile, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_IP, MARGAUX_RTCP_PORT, payload_type, 50, no_webcam),
+		video_stream_start(marielle->vs, &rtp_profile, margaux->local_ip, margaux->local_rtp, margaux->local_ip, margaux->local_rtcp, payload_type, 50, no_webcam),
 		0);
 
 	if (margaux->vconf) {
@@ -218,7 +245,7 @@ static void init_video_streams(video_stream_tester_t *marielle, video_stream_tes
 
 		}
 	CU_ASSERT_EQUAL(
-		video_stream_start(margaux->vs, &rtp_profile, MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_IP, MARIELLE_RTCP_PORT, payload_type, 50, default_webcam),
+		video_stream_start(margaux->vs, &rtp_profile, marielle->local_ip, marielle->local_rtp, marielle->local_ip, marielle->local_rtcp, payload_type, 50, default_webcam),
 		0);
 }
 
@@ -271,6 +298,29 @@ static void basic_one_way_video_stream(void) {
 		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,VP8_PAYLOAD_TYPE);
 
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		video_stream_get_local_rtp_stats(marielle->vs, &marielle->stats.rtp);
+		video_stream_get_local_rtp_stats(margaux->vs, &margaux->stats.rtp);
+		uninit_video_streams(marielle, margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
+	video_stream_tester_destroy(marielle);
+	video_stream_tester_destroy(margaux);
+}
+
+static void multicast_video_stream(void) {
+	video_stream_tester_t* marielle=video_stream_tester_new();
+	video_stream_tester_set_local_ip(marielle,"224.1.2.3");
+	marielle->local_rtcp=0; /*no rtcp*/
+	video_stream_tester_t* margaux=video_stream_tester_new();
+	video_stream_tester_set_local_ip(margaux,"0.0.0.0");
+	bool_t supported = ms_filter_codec_supported("vp8");
+
+	if (supported) {
+
+		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,VP8_PAYLOAD_TYPE);
+
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 		video_stream_get_local_rtp_stats(marielle->vs, &marielle->stats.rtp);
 		video_stream_get_local_rtp_stats(margaux->vs, &margaux->stats.rtp);
 		uninit_video_streams(marielle, margaux);
@@ -437,6 +487,7 @@ static void video_configuration_stream(void) {
 
 static test_t tests[] = {
 	{ "Basic video stream", basic_video_stream },
+	{ "Multicast video stream",multicast_video_stream},
 	{ "Basic one-way video stream", basic_one_way_video_stream },
 	{ "AVPF video stream", avpf_video_stream },
 	{ "AVPF high-loss video stream", avpf_high_loss_video_stream },

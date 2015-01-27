@@ -232,9 +232,13 @@ static float video_stream_get_rtcp_xr_average_lq_quality_rating(unsigned long us
 
 
 VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6){
+	return video_stream_new2( use_ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port);
+}
+
+VideoStream *video_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port) {
 	MSMediaStreamSessions sessions={0};
 	VideoStream *obj;
-	sessions.rtp_session=create_duplex_rtpsession(loc_rtp_port,loc_rtcp_port,use_ipv6);
+	sessions.rtp_session=create_duplex_rtpsession(ip,loc_rtp_port,loc_rtcp_port);
 	obj=video_stream_new_with_sessions(&sessions);
 	obj->ms.owns_sessions=TRUE;
 	return obj;

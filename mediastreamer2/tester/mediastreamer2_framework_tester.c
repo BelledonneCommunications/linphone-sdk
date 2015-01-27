@@ -135,8 +135,18 @@ static void test_video_processing (void) {
 }
 #endif
 
+static void test_is_multicast(void) {
+
+	CU_ASSERT_TRUE(ms_is_multicast("224.1.2.3"));
+	CU_ASSERT_TRUE(ms_is_multicast("239.0.0.0"));
+	CU_ASSERT_TRUE(ms_is_multicast("ff02::3:2"));
+	CU_ASSERT_FALSE(ms_is_multicast("192.68.0.1"));
+	CU_ASSERT_FALSE(ms_is_multicast("::1"));
+
+}
 static test_t tests[] = {
-	{ "Multiple ms_voip_init", filter_register_tester }
+	  { "Multiple ms_voip_init", filter_register_tester }
+	, { "Is multicast", test_is_multicast}
 #ifdef VIDEO_ENABLED
 	, { "Video processing function", test_video_processing}
 #endif

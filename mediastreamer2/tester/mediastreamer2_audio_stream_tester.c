@@ -70,6 +70,7 @@ static int tester_cleanup(void) {
 #define RECORDED_8K_1S_FILE  "sounds/recorded_hello8000-1s.wav"
 #define RECORDED_16K_1S_FILE  "sounds/recorded_hello16000-1s.wav"
 
+#define MULTICAST_IP  "224.1.2.3"
 
 typedef struct _stats_t {
 	rtp_stats_t rtp;
@@ -95,10 +96,15 @@ static void notify_cb(void *user_data, MSFilter *f, unsigned int event, void *ev
 
 }
 
-static void basic_audio_stream() {
-	AudioStream * 	marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
+static void basic_audio_stream_base(	const char* marielle_local_ip
+									, 	int marielle_local_rtp_port
+									, 	int marielle_local_rtcp_port
+									, 	const char*  margaux_local_ip
+									, 	int margaux_local_rtp_port
+									, 	int margaux_local_rtcp_port) {
+	AudioStream * 	marielle = audio_stream_new2 (marielle_local_ip, marielle_local_rtp_port, marielle_local_rtcp_port);
 	stats_t marielle_stats;
-	AudioStream * 	margaux = audio_stream_new (MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE);
+	AudioStream * 	margaux = audio_stream_new2 (margaux_local_ip, margaux_local_rtp_port,margaux_local_rtcp_port);
 	stats_t margaux_stats;
 	RtpProfile* profile = rtp_profile_new("default profile");
 	char* hello_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), HELLO_8K_1S_FILE);
@@ -112,10 +118,10 @@ static void basic_audio_stream() {
 
 	CU_ASSERT_EQUAL(audio_stream_start_full(margaux
 											, profile
-											, MARIELLE_IP
-											, MARIELLE_RTP_PORT
-											, MARIELLE_IP
-											, MARIELLE_RTCP_PORT
+											, ms_is_multicast(margaux_local_ip)?margaux_local_ip:marielle_local_ip
+											, ms_is_multicast(margaux_local_ip)?margaux_local_rtp_port:marielle_local_rtp_port
+											, marielle_local_ip
+											, marielle_local_rtcp_port
 											, 0
 											, 50
 											, NULL
@@ -126,10 +132,10 @@ static void basic_audio_stream() {
 
 	CU_ASSERT_EQUAL(audio_stream_start_full(marielle
 											, profile
-											, MARGAUX_IP
-											, MARGAUX_RTP_PORT
-											, MARGAUX_IP
-											, MARGAUX_RTCP_PORT
+											, margaux_local_ip
+											, margaux_local_rtp_port
+											, margaux_local_ip
+											, margaux_local_rtcp_port
 											, 0
 											, 50
 											, hello_file
@@ -154,6 +160,15 @@ static void basic_audio_stream() {
 	unlink(recorded_file);
 	ms_free(recorded_file);
 	ms_free(hello_file);
+}
+static void basic_audio_stream()  {
+	basic_audio_stream_base(MARIELLE_IP,MARIELLE_RTP_PORT,MARIELLE_RTCP_PORT
+							,MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
+}
+
+static void multicast_audio_stream()  {
+	basic_audio_stream_base("0.0.0.0",MARIELLE_RTP_PORT, 0
+							,MULTICAST_IP, MARGAUX_RTP_PORT, 0);
 }
 
 static void encrypted_audio_stream() {
@@ -267,6 +282,7 @@ static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_
 
 static test_t tests[] = {
 	{ "Basic audio stream", basic_audio_stream },
+	{ "Multicast audio stream", multicast_audio_stream },
 	{ "Encrypted audio stream", encrypted_audio_stream },
 };
 

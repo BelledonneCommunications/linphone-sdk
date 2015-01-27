@@ -287,6 +287,19 @@ MS2_PUBLIC unsigned int ms_get_cpu_count(void);
  */
 MS2_PUBLIC void ms_sound_device_description_add(const char *manufacturer, const char *model, const char *platform, unsigned int flags, int delay, int recommended_rate);
 
+/**
+ * @return TRUE if address is ipv6
+ */
+MS2_PUBLIC bool_t ms_is_ipv6(const char *address);
+
+/**
+ * @return TRUE if address is multicast
+ */
+bool_t ms_is_multicast_addr(const struct sockaddr *address);
+/**
+ * @return TRUE if address is multicast
+ */
+MS2_PUBLIC bool_t ms_is_multicast(const char *address);
 /** @} */
 
 #ifdef __cplusplus

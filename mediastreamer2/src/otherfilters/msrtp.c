@@ -60,7 +60,10 @@ static void send_stun_packet(RtpSession *s)
 	mblk_t *mp;
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
-
+	if (ms_is_multicast_addr((const struct sockaddr *)&s->rtcp.gs.loc_addr)) {
+		ms_debug("Stun packet not sent for session [%p] because of multicast",s);
+		return;
+	}
 	memset(&msg, 0, sizeof(StunMessage));
 	stunBuildReqSimple(&msg, NULL, FALSE, FALSE, 1);
 	len = stunEncodeMessage(&msg, buf, len, NULL);
