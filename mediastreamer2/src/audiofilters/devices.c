@@ -38,7 +38,7 @@ static SoundDeviceDescription devices[]={
 	{	"HTC",		"HTC Desire",	"",			0,	250 },
 	{	"HTC",		"HTC Sensation Z710e",	"",	0,	200 },
 	{	"HTC",		"HTC Wildfire",	"",			0,	270 },
-	
+	{	"HTC",		"HTC One mini 2","",		DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 0},
 	
 	{	"LGE",		"LS670",		"",			0,	170 },
 	{	"LGE",		"Nexus 5",		"msm8974",	0,	0 , 16000 },

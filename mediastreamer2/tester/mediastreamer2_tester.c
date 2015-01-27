@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <stdio.h>
 #include "CUnit/Basic.h"
+#include "CUnit/Automated.h"
 #if HAVE_CU_CURSES
 #include "CUnit/CUCurses.h"
 #endif
@@ -40,7 +41,8 @@ static int nb_test_suites = 0;
 static const char* tester_fileroot = SOUND_FILE_PATH;
 static const char* tester_writable_dir= WRITE_FILE_PATH;
 
-
+static unsigned char xml = 0;
+static const char *xml_file = NULL;
 
 #if HAVE_CU_CURSES
 static unsigned char curses = 0;
@@ -171,44 +173,50 @@ void mediastreamer2_tester_uninit(void) {
 int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_name) {
 	int ret;
 
+	if( xml_file != NULL ){
+		CU_set_output_filename(xml_file);
+	}
+	if (xml) {
+		CU_automated_run_tests();
+	} else {
 #if HAVE_CU_GET_SUITE
-	if (suite_name){
-		CU_pSuite suite;
-		CU_basic_set_mode(CU_BRM_VERBOSE);
-		suite=CU_get_suite(suite_name);
-		if (!suite) {
-			fprintf(stderr, "Could not find suite '%s'. Available suites are:\n", suite_name);
-			list_suites();
-		} else if (test_name) {
-			CU_pTest test=CU_get_test_by_name(test_name, suite);
-			if (!test) {
-				fprintf(stderr, "Could not find test '%s' in suite '%s'. Available tests are:\n", test_name, suite_name);
-				// do not use suite_name here, since this method is case sentisitive
-				list_suite_tests(suite->pName);
+		if (suite_name){
+			CU_pSuite suite;
+			CU_basic_set_mode(CU_BRM_VERBOSE);
+			suite=CU_get_suite(suite_name);
+			if (!suite) {
+				fprintf(stderr, "Could not find suite '%s'. Available suites are:\n", suite_name);
+				list_suites();
+			} else if (test_name) {
+				CU_pTest test=CU_get_test_by_name(test_name, suite);
+				if (!test) {
+					fprintf(stderr, "Could not find test '%s' in suite '%s'. Available tests are:\n", test_name, suite_name);
+					// do not use suite_name here, since this method is case sentisitive
+					list_suite_tests(suite->pName);
+				} else {
+					CU_ErrorCode err= CU_basic_run_test(suite, test);
+					if (err != CUE_SUCCESS) fprintf(stderr, "CU_basic_run_test error=%d\n", err);
+				}
 			} else {
-				CU_ErrorCode err= CU_basic_run_test(suite, test);
-				if (err != CUE_SUCCESS) fprintf(stderr, "CU_basic_run_test error=%d\n", err);
+				CU_basic_run_suite(suite);
 			}
-		} else {
-			CU_basic_run_suite(suite);
-		}
-	} else
-#endif
-	{
-#if HAVE_CU_CURSES
-		if (curses) {
-			/* Run tests using the CUnit curses interface */
-			CU_curses_run_tests();
-		}
-		else
+		} else
 #endif
 		{
-			/* Run all tests using the CUnit Basic interface */
-			CU_basic_set_mode(CU_BRM_VERBOSE);
-			CU_basic_run_tests();
+#if HAVE_CU_CURSES
+			if (curses) {
+				/* Run tests using the CUnit curses interface */
+				CU_curses_run_tests();
+			}
+			else
+#endif
+			{
+				/* Run all tests using the CUnit Basic interface */
+				CU_basic_set_mode(CU_BRM_VERBOSE);
+				CU_basic_run_tests();
+			}
 		}
 	}
-
 	/* Redisplay list of failed tests on end */
 	if (CU_get_number_of_failure_records()){
 		CU_basic_show_failures(CU_get_failure_list());
@@ -234,6 +242,8 @@ void helper(const char *name) {
 #if HAVE_CU_CURSES
 		"\t\t\t--curses\n"
 #endif
+		"\t\t\t--xml\n"
+		"\t\t\t--xml-file <xml file prefix (will be suffixed by '-Results.xml')>\n"
 		, name);
 }
 
@@ -269,6 +279,11 @@ int main (int argc, char *argv[]) {
 			verbose = TRUE;
 		} else if (strcmp(argv[i], "--silent") == 0) {
 			verbose = FALSE;
+		} else if (strcmp(argv[i], "--xml-file") == 0){
+			CHECK_ARG("--xml-file", ++i, argc);
+			xml_file = argv[i];
+		} else if (strcmp(argv[i], "--xml") == 0){
+			xml = 1;
 		}
 #if HAVE_CU_GET_SUITE
 		else if (strcmp(argv[i], "--test")==0) {
@@ -311,6 +326,18 @@ int main (int argc, char *argv[]) {
 		putenv("MEDIASTREAMER_DEBUG=1");
 	} else {
 		putenv("MEDIASTREAMER_DEBUG=0");
+	}
+
+#ifdef HAVE_CU_CURSES
+	if( xml && curses ){
+		printf("Cannot use both xml and curses\n");
+		return -1;
+	}
+#endif
+
+	if( xml && (suite_name || test_name) ){
+		printf("Cannot use both xml and specific test suite\n");
+		return -1;
 	}
 
 	ret = mediastreamer2_tester_run_tests(suite_name, test_name);

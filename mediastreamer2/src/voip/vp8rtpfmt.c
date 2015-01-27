@@ -690,7 +690,7 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, MSList *packets_list
 static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 	Vp8RtpFmtPartition *partition;
 	mblk_t *om = NULL;
-	mblk_t *curm;
+	mblk_t *curm = NULL;
 	int i;
 
 	for (i = 0; i <= frame->partitions_info.nb_partitions; i++) {

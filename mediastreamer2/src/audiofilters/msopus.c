@@ -688,20 +688,23 @@ static void ms_opus_dec_process(MSFilter *f) {
 
 		// try fec : info are stored in the next packet, do we have it?
 		if (d->rtp_picker_context.picker) {
-			im = d->rtp_picker_context.picker(&d->rtp_picker_context,d->sequence_number+1);
-			if (im) {
-				imLength=rtp_get_payload(im,&payload);
-				d->statsfec++;
-			} else {
-				d->statsplc++;
+			/* FEC information is in the next packet, last valid packet was d->sequence_number, the missing one shall then be d->sequence_number+1, so check jitter buffer for d->sequence_number+2 */
+			/* but we may have the n+1 packet in the buffer and adaptative jitter control keeping it for later, in that case, just go for PLC */
+			if (d->rtp_picker_context.picker(&d->rtp_picker_context,d->sequence_number+1) == NULL) { /* missing packet is really missing */
+				im = d->rtp_picker_context.picker(&d->rtp_picker_context,d->sequence_number+2); /* try to get n+2 */
+				if (im) {
+					imLength=rtp_get_payload(im,&payload);
+				}
 			}
 		}
 		om = allocb(5760 * d->channels * SIGNAL_SAMPLE_SIZE, 0); /* 5760 is the maximum number of sample in a packet (120ms at 48KHz) */
 		/* call to the decoder, we'll have either FEC or PLC, do it on the same length that last received packet */
 		if (payload) { // found frame to try FEC
+			d->statsfec++;
 			frames = opus_decode(d->state, payload, imLength, (opus_int16 *)om->b_wptr, d->lastPacketLength, 1);
 		} else { // do PLC: PLC doesn't seem to be able to generate more than 960 samples (20 ms at 48000 Hz), get PLC until we have the correct number of sample
 			//frames = opus_decode(d->state, NULL, 0, (opus_int16 *)om->b_wptr, d->lastPacketLength, 0); // this should have work if opus_decode returns the requested number of samples
+			d->statsplc++;
 			frames = 0;
 			while (frames < d->lastPacketLength) {
 				frames += opus_decode(d->state, NULL, 0, (opus_int16 *)(om->b_wptr + (frames*d->channels*SIGNAL_SAMPLE_SIZE)), d->lastPacketLength-frames, 0);

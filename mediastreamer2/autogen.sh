@@ -18,6 +18,11 @@ fi
 
 INTLTOOLIZE=$(which intltoolize)
 
+#workaround for mingw bug in intltoolize script.
+if test "$INTLTOOLIZE" = "/bin/intltoolize" ; then
+	INTLTOOLIZE=/usr/bin/intltoolize
+fi
+
 libtoolize="libtoolize"
 for lt in glibtoolize libtoolize15 libtoolize14 libtoolize13 ; do
         if test -x /usr/bin/$lt ; then

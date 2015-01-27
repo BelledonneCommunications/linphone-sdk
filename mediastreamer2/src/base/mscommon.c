@@ -275,6 +275,15 @@ MSList *ms_list_copy(const MSList *list){
 	return copy;
 }
 
+MSList *ms_list_copy_with_data(const MSList *list, void *(*copyfunc)(void *)){
+	MSList *copy=NULL;
+	const MSList *iter;
+	for(iter=list;iter!=NULL;iter=ms_list_next(iter)){
+		copy=ms_list_append(copy,copyfunc(iter->data));
+	}
+	return copy;
+}
+
 int ms_load_plugins(const char *dir){
 	return ms_factory_load_plugins(ms_factory_get_fallback(),dir);
 }
