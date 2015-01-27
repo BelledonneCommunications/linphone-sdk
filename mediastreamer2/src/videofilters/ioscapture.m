@@ -236,7 +236,7 @@ static void capture_queue_cleanup(void* p) {
 				case 0:
 				case 180:
 					if (mOutputVideoSize.width*factor>plane_width || mOutputVideoSize.height*factor>plane_height) {
-						ms_warning("[1]IOS capture discarding frame because wrong dimensions (%d > %d || %d > %d)",
+						ms_warning("[1]IOS capture discarding frame because wrong dimensions (%d > %zu || %d > %zu)",
 								   mOutputVideoSize.width*factor, plane_width,
 								   mOutputVideoSize.height*factor, plane_height);
 						return;
@@ -245,7 +245,7 @@ static void capture_queue_cleanup(void* p) {
 				case 90:
 				case 270:
 					if (mOutputVideoSize.width*factor>plane_height || mOutputVideoSize.height*factor>plane_width) {
-						ms_warning("[2]	IOS capture discarding frame because wrong dimensions (%d > %d || %d > %d)",
+						ms_warning("[2]	IOS capture discarding frame because wrong dimensions (%d > %zu || %d > %zu)",
 								   mOutputVideoSize.width*factor, plane_height,
 								   mOutputVideoSize.height*factor, plane_width);
 						return;
@@ -277,22 +277,22 @@ static void capture_queue_cleanup(void* p) {
 	}
 }
 
-- (void)openDevice:(const char*) deviceId {
+- (void)openDevice:(const char*) device_Id {
 	NSError *error = nil;
 	unsigned int i = 0;
 	AVCaptureDevice * device = NULL;
-	self->deviceId = deviceId;
+	self->deviceId = device_Id;
 	
 	NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
 	for (i = 0 ; i < [array count]; i++) {
 		AVCaptureDevice * currentDevice = [array objectAtIndex:i];
-		if(!strcmp([[currentDevice uniqueID] UTF8String], deviceId)) {
+		if(!strcmp([[currentDevice uniqueID] UTF8String], device_Id)) {
 			device = currentDevice;
 			break;
 		}
 	}
 	if (device == NULL) {
-		ms_error("Error: camera %s not found, using default one", deviceId);
+		ms_error("Error: camera %s not found, using default one", device_Id);
 		device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
 	}
 	input = [AVCaptureDeviceInput deviceInputWithDevice:device
