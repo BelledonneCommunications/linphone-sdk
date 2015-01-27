@@ -134,7 +134,7 @@ static void capture_queue_cleanup(void* p) {
 	
 	/* Set the layer */
 	AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)self.layer;
-	[previewLayer setOrientation:AVCaptureVideoOrientationPortrait];
+	[previewLayer.connection setVideoOrientation:AVCaptureVideoOrientationPortrait];
 	[previewLayer setBackgroundColor:[[UIColor clearColor] CGColor]];
 	[previewLayer setOpaque:YES];
 	start_time=0;
@@ -476,16 +476,22 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 	@synchronized(self) {
 		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
 		[session beginConfiguration];
-		if ([[[UIDevice currentDevice] systemVersion] floatValue] < 5) { 
-			[output setMinFrameDuration:CMTimeMake(1, value)];
+
+		if( [[[UIDevice currentDevice] systemVersion] floatValue] >= 7 ){
+			for( AVCaptureDeviceInput* devinput in [session inputs] ) {
+				[devinput.device setActiveVideoMinFrameDuration:CMTimeMake(1, value)];
+				[devinput.device setActiveVideoMaxFrameDuration:CMTimeMake(1, value)];
+				break;
+			}
 		} else {
+			// Pre-iOS7 method
 			NSArray *connections = output.connections;
 			if ([connections count] > 0) {
 				[[connections objectAtIndex:0] setVideoMinFrameDuration:CMTimeMake(1, value)];
 				[[connections objectAtIndex:0] setVideoMaxFrameDuration:CMTimeMake(1, value)];
 			} 
-			
 		}
+
 		fps=value;
 		snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
 		ms_video_init_average_fps(&averageFps, fps_context);
@@ -651,8 +657,8 @@ static int ioscapture_set_device_orientation_display (MSFilter *f, void *arg) {
 	IOSCapture *thiz=(IOSCapture*)f->data;
 	if (thiz != NULL) {
 		AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)thiz.layer;
-		if ([previewLayer isOrientationSupported])
-			previewLayer.orientation = Angle2AVCaptureVideoOrientation(*(int*)(arg));
+		if ([previewLayer.connection isVideoOrientationSupported])
+			previewLayer.connection.videoOrientation = Angle2AVCaptureVideoOrientation(*(int*)(arg));
 	}
 	return 0;
 }
