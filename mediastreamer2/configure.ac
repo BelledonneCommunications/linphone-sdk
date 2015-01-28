@@ -1104,12 +1104,11 @@ if test "$polarssl_prefix" != "NONE" ; then
         CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
         LIBS="$LIBS $POLARSSL_LIBS"
         AC_CHECK_HEADERS(polarssl/ssl.h, [
-					AC_CHECK_LIB(polarssl,sha1_hmac
-                        		,[found_polarssl=yes
-                        		AC_MSG_NOTICE([polarssl usable])]
-                        		,[POLARSSL_CFLAGS=""
-					POLARSSL_LIBS=""
-					AC_MSG_WARN([polarssl not usable])])
+					AC_CHECK_LIB(polarssl,sha1_hmac,
+						[found_polarssl=yes; AC_MSG_NOTICE([polarssl usable])],
+						[POLARSSL_CFLAGS=""
+						POLARSSL_LIBS=""
+						AC_MSG_WARN([polarssl not usable])])
                 			],[POLARSSL_CFLAGS=""
                                            POLARSSL_LIBS=""])
         CPPFLAGS=$CPPFLAGS_save
