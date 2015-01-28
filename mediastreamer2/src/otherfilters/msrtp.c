@@ -45,6 +45,7 @@ struct SenderData {
 	int relay_session_id_size;
 	uint64_t last_rsi_time;
 	char dtmf;
+	MSCngData cng_data;
 	bool_t dtmf_start;
 	bool_t skip;
 	bool_t mute;
@@ -431,6 +432,13 @@ static void sender_process(MSFilter * f){
 	else _sender_process(f);
 }
 
+static int sender_send_generic_cn(MSFilter *f, void *data){
+	SenderData *d = (SenderData *) f->data;
+	ms_filter_lock(f);
+	memcpy(&d->cng_data, data, sizeof(MSCngData));
+	ms_filter_unlock(f);
+	return 0;
+}
 
 static MSFilterMethod sender_methods[] = {
 	{MS_RTP_SEND_MUTE, sender_mute},
@@ -441,6 +449,7 @@ static MSFilterMethod sender_methods[] = {
 	{MS_FILTER_GET_SAMPLE_RATE, sender_get_sr },
 	{MS_FILTER_GET_NCHANNELS, sender_get_ch },
 	{MS_RTP_SEND_SET_DTMF_DURATION, sender_set_dtmf_duration },
+	{MS_RTP_SEND_SEND_GENERIC_CN, sender_send_generic_cn },
 	{0, NULL}
 };
 

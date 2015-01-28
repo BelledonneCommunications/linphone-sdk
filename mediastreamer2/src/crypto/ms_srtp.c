@@ -117,7 +117,6 @@ static void update_recv_stream(RtpSession *session, srtp_t srtp, uint32_t new_ss
 */
 static int _process_on_receive(RtpSession* session,srtp_t srtp,mblk_t *m,bool_t is_rtp, int err){
 	int slen;
-	uint32_t new_ssrc;
 	err_status_t srtp_err;
 
 	/* keep NON-RTP data unencrypted */
@@ -125,12 +124,10 @@ static int _process_on_receive(RtpSession* session,srtp_t srtp,mblk_t *m,bool_t 
 		rtp_header_t *rtp=(rtp_header_t*)m->b_rptr;
 		if (err<RTP_FIXED_HEADER_SIZE || rtp->version!=2 )
 			return err;
-		new_ssrc=rtp->ssrc;
 	}else{
 		rtcp_common_header_t *rtcp=(rtcp_common_header_t*)m->b_rptr;
 		if (err<(sizeof(rtcp_common_header_t)+4) || rtcp->version!=2 )
 			return err;
-		new_ssrc=*(uint32_t*)(m->b_rptr+sizeof(rtcp_common_header_t));
 	}
 
 	slen=err;

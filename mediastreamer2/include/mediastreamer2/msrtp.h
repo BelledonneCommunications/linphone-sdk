@@ -22,13 +22,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define msrtp_hh
 
 #include <mediastreamer2/msfilter.h>
+#include <mediastreamer2/msvaddtx.h>
 #include <ortp/ortp.h>
 
 #define MS_RTP_RECV_SET_SESSION			MS_FILTER_METHOD(MS_RTP_RECV_ID,0,RtpSession*)
 
 #define MS_RTP_RECV_RESET_JITTER_BUFFER		MS_FILTER_METHOD_NO_ARG(MS_RTP_RECV_ID,1)
 
-
+#define MS_RTP_RECV_GENERIC_CN_RECEIVED		MS_FILTER_EVENT(MS_RTP_RECV_ID,0, MSCngData)
 
 
 #define MS_RTP_SEND_SET_SESSION			MS_FILTER_METHOD(MS_RTP_SEND_ID,0,RtpSession*)
@@ -42,6 +43,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_RTP_SEND_UNMUTE			MS_FILTER_METHOD_NO_ARG(MS_RTP_SEND_ID,4)
 
 #define MS_RTP_SEND_SET_RELAY_SESSION_ID	MS_FILTER_METHOD(MS_RTP_SEND_ID,5,const char *)
+
+#define MS_RTP_SEND_SEND_GENERIC_CN		MS_FILTER_METHOD(MS_RTP_SEND_ID,5, const MSCngData)
 
 
 
