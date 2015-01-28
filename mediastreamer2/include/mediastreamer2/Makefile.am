@@ -1,54 +1,55 @@
 
 mediastreamer2_includedir=$(includedir)/mediastreamer2
 
-mediastreamer2_include_HEADERS= ice.h \
-				upnp_igd.h \
-				mscodecutils.h \
-				msfilter.h \
-				msqueue.h \
-				mscommon.h \
-				mseventqueue.h \
-				allfilters.h \
-				msticker.h \
-				msrtp.h \
+mediastreamer2_include_HEADERS=allfilters.h \
+				bitratecontrol.h \
+				bits_rw.h \
+				dsptools.h \
+				dtls_srtp.h \
 				dtmfgen.h \
-				msfilerec.h \
-				msfileplayer.h \
-				mssndcard.h \
+				flowcontrol.h \
+				formats.h \
+				ice.h \
 				mediastream.h \
+				ms_srtp.h \
+				msaudiomixer.h \
+				mschanadapter.h \
+				mscodecutils.h \
+				mscommon.h \
+				msconference.h \
+				msequalizer.h \
+				mseventqueue.h \
+				msextdisplay.h \
+				msfactory.h \
+				msfileplayer.h \
+				msfilerec.h \
+				msfilter.h \
+				msinterfaces.h \
+				msitc.h \
+				msjava.h \
+				msjpegwriter.h \
+				msmediaplayer.h \
+				msqueue.h \
+				msrtp.h \
+				mssndcard.h \
+				mstee.h \
+				msticker.h \
+				mstonedetector.h \
+				msutils.h \
 				msv4l.h \
+				msvaddtx.h \
 				msvideo.h \
 				msvideoout.h \
 				msvolume.h \
-				mstee.h \
-				rfc3984.h \
 				mswebcam.h \
-				dsptools.h \
-				msequalizer.h \
-				msinterfaces.h \
-				mschanadapter.h \
-				msaudiomixer.h \
-				msitc.h \
-				msextdisplay.h \
-				msjpegwriter.h \
-				mstonedetector.h \
-				msjava.h \
-				bitratecontrol.h \
 				qualityindicator.h \
-				msconference.h \
-				videostarter.h \
-				bits_rw.h \
-				x11_helper.h \
-				flowcontrol.h \
-				formats.h \
-				msfactory.h \
-				msmediaplayer.h \
-				zrtp.h \
+				rfc3984.h \
 				stun.h \
 				stun_udp.h \
-				ms_srtp.h \
-				msvaddtx.h \
-				msutils.h
+				upnp_igd.h \
+				videostarter.h \
+				x11_helper.h \
+				zrtp.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 
