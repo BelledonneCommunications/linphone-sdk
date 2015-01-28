@@ -171,7 +171,7 @@ static void multicast_audio_stream()  {
 							,MULTICAST_IP, MARGAUX_RTP_PORT, 0);
 }
 
-static void encrypted_audio_stream_base(bool_t change_ssrc) {
+static void encrypted_audio_stream_base(bool_t change_ssrc, bool_t change_send_key_in_the_middle) {
 	AudioStream * 	marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
 	AudioStream * 	margaux = audio_stream_new (MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE);
 	RtpProfile* profile = rtp_profile_new("default profile");
@@ -213,11 +213,16 @@ static void encrypted_audio_stream_base(bool_t change_ssrc) {
 				, NULL
 				, 0),0);
 
-		CU_ASSERT_FATAL(media_stream_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
-		CU_ASSERT_FATAL(media_stream_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") ==0);
+		CU_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
+		CU_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") ==0);
 
 		ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
-
+		if (change_send_key_in_the_middle) {
+			int dummy=0;
+			wait_for_until(&marielle->ms,&margaux->ms,&dummy,1,2000);
+			CU_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te") == 0);
+			CU_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te") ==0);
+		}
 		CU_ASSERT_TRUE(wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,1,12000));
 
 		audio_stream_get_local_rtp_stats(marielle,&marielle_stats.rtp);
@@ -268,10 +273,15 @@ static void encrypted_audio_stream_base(bool_t change_ssrc) {
 
 }
 static void encrypted_audio_stream() {
-	encrypted_audio_stream_base(FALSE);
+	encrypted_audio_stream_base(FALSE,FALSE);
 }
+
+static void encrypted_audio_stream_with_key_change() {
+	encrypted_audio_stream_base(FALSE,TRUE);
+}
+
 static void encrypted_audio_stream_with_ssrc_change() {
-	encrypted_audio_stream_base(TRUE);
+	encrypted_audio_stream_base(TRUE,FALSE);
 }
 #if 0
 static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_bw, int max_recv_rtcp_packet) {
@@ -319,6 +329,7 @@ static test_t tests[] = {
 	{ "Multicast audio stream", multicast_audio_stream },
 	{ "Encrypted audio stream", encrypted_audio_stream },
 	{ "Encrypted audio stream with ssrc changes", encrypted_audio_stream_with_ssrc_change},
+	{ "Encrypted audio stream with key change",encrypted_audio_stream_with_key_change},
 };
 
 test_suite_t audio_stream_test_suite = {

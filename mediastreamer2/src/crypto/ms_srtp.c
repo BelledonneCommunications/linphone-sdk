@@ -106,6 +106,7 @@ static int ms_srtcp_process_on_send(RtpTransportModifier *t, mblk_t *m){
 * When the first packet arrives, or when the SSRC changes, then we change the ssrc value inside the srtp stream context,
 * so that the stream that was configured with the dummy SSRC value becomes now fully valid.
 */
+/* note added by jehan, no longer needed as policy ssrc_any_inbound can support rekeying if session->stream_template is reset
 static void update_recv_stream(RtpSession *session, srtp_t srtp, uint32_t new_ssrc){
 	uint32_t send_ssrc=rtp_session_get_send_ssrc(session);
 	srtp_stream_ctx_t *recvstream=find_other_ssrc(srtp,htonl(send_ssrc));
@@ -113,7 +114,7 @@ static void update_recv_stream(RtpSession *session, srtp_t srtp, uint32_t new_ss
 		recvstream->ssrc=new_ssrc;
 	}
 }
-
+*/
 static int _process_on_receive(RtpSession* session,srtp_t srtp,mblk_t *m,bool_t is_rtp, int err){
 	int slen;
 	uint32_t new_ssrc;
@@ -134,11 +135,11 @@ static int _process_on_receive(RtpSession* session,srtp_t srtp,mblk_t *m,bool_t 
 
 	slen=err;
 	srtp_err = is_rtp?srtp_unprotect(srtp,m->b_rptr,&slen):srtp_unprotect_rtcp(srtp,m->b_rptr,&slen);
-	if (srtp_err==err_status_no_ctx) {
+/*	if (srtp_err==err_status_no_ctx) {
 		update_recv_stream(session,srtp,new_ssrc);
 		slen=err;
 		srtp_err = is_rtp?srtp_unprotect(srtp,m->b_rptr,&slen):srtp_unprotect_rtcp(srtp,m->b_rptr,&slen);
-	}
+	}*/
 	if (srtp_err==err_status_ok) {
 		return slen;
 	} else {
@@ -339,14 +340,23 @@ static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, c
 	if (!inbound)
 		policy.allow_repeat_tx=1; /*necessary for telephone-events*/
 
-	/*ssrc_conf.type=inbound ? ssrc_any_inbound : ssrc_specific;*/
-	ssrc_conf.type=ssrc_specific;
+	ssrc_conf.type=inbound ? ssrc_any_inbound : ssrc_specific;
+	/*ssrc_conf.type=ssrc_specific;*/
 	ssrc_conf.value=ssrc;
 
 	policy.ssrc = ssrc_conf;
 	policy.key = (uint8_t *)key;
 	policy.next = NULL;
-
+	if (srtp->stream_template) {
+		/* deallocate stream template, if there is one to be still be able to have late ssrc*/
+		/*	auth_dealloc(srtp->stream_template->rtcp_auth);
+		    cipher_dealloc(srtp->stream_template->rtcp_cipher);
+		    crypto_free(srtp->stream_template->limit);
+		    auth_dealloc(srtp->stream_template->rtp_auth);
+		    rdbx_dealloc(&srtp->stream_template->rtp_rdbx);*/
+		    crypto_free(srtp->stream_template);
+		    srtp->stream_template=NULL;
+	}
 	err = srtp_add_stream(srtp, &policy);
 	if (err != err_status_ok) {
 		ms_error("Failed to add stream to srtp session (%d)", err);
@@ -449,7 +459,7 @@ int media_stream_set_srtp_recv_key(struct _MSMediaStreamSessions *sessions, MSCr
 	}
 
 	/*careful: remove_stream takes the SSRC in network byte order...*/
-	if (srtp_remove_stream(srtp_session, htonl(ssrc))==0) {
+	if (srtp_remove_stream(srtp_session, ssrc)==0) {
 		updated=TRUE;
 	}
 	ssrc=rtp_session_get_recv_ssrc(sessions->rtp_session);
