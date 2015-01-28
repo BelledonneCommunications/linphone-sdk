@@ -1,6 +1,6 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2014  Belledonne Communications SARL
+Copyright (C) 2015  Belledonne Communications SARL
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -17,20 +17,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#ifndef msvaddtx_h
-#define msvaddtx_h
 
-#include "mediastreamer2/msfilter.h"
+#ifndef msgenericplc_h
+#define msgenericplc_h
 
-typedef struct _MSCngData{
-	int datasize;
-	uint8_t data[32];
-}MSCngData;
+#include "mediastreamer2/msvaddtx.h"
 
-/** Event generated when silence is detected. Payload contains the data encoding the background noise*/
-#define MS_VAD_DTX_NO_VOICE	MS_FILTER_EVENT(MS_VAD_DTX_ID, 0, MSCngData)
-
-#define MS_VAD_DTX_VOICE	MS_FILTER_EVENT_NO_ARG(MS_VAD_DTX_ID, 1)
+#define MS_GENERIC_PLC_SET_CN	MS_FILTER_METHOD(MS_GENERIC_PLC_ID, 0, MSCngData)
 
 
 #endif

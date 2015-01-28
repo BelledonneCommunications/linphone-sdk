@@ -34,6 +34,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msaudiomixer.h"
 #include "mediastreamer2/mscodecutils.h"
 #include "mediastreamer2/msitc.h"
+#include "mediastreamer2/msvaddtx.h"
+#include "mediastreamer2/msgenericplc.h"
 #include "private.h"
 
 
@@ -588,7 +590,28 @@ static void setup_recorder(AudioStream *stream, int sample_rate, int nchannels){
 }
 
 static void on_silence_detected(void *data, MSFilter *f, unsigned int event_id, void *event_arg){
-	ms_message("on_silence_detected(): CN packet to be sent !");
+	AudioStream *as=(AudioStream*)data;
+	if (as->ms.rtpsend){
+		switch(event_id){
+			case MS_VAD_DTX_NO_VOICE:
+				ms_message("on_silence_detected(): CN packet to be sent !");
+				ms_filter_call_method(as->ms.rtpsend, MS_RTP_SEND_SEND_GENERIC_CN, event_arg);
+				ms_filter_call_method(as->ms.rtpsend, MS_RTP_SEND_MUTE, event_arg);
+			break;
+			case MS_VAD_DTX_VOICE:
+				ms_message("on_silence_detected(): resuming audio");
+				ms_filter_call_method(as->ms.rtpsend, MS_RTP_SEND_UNMUTE, event_arg);
+			break;
+		}
+	}
+}
+
+static void on_cn_received(void *data, MSFilter *f, unsigned int event_id, void *event_arg){
+	AudioStream *as=(AudioStream*)data;
+	if (as->plc){
+		ms_message("CN packet received, given to MSGenericPlc filter.");
+		ms_filter_call_method(as->plc, MS_GENERIC_PLC_SET_CN, event_arg);
+	}
 }
 
 static void setup_generic_confort_noise(AudioStream *stream){
@@ -600,6 +623,7 @@ static void setup_generic_confort_noise(AudioStream *stream){
 		/* RFC3389 CN can be used*/
 		stream->vaddtx=ms_filter_new(MS_VAD_DTX_ID);
 		ms_filter_add_notify_callback(stream->vaddtx, on_silence_detected, stream, TRUE);
+		ms_filter_add_notify_callback(stream->ms.rtprecv, on_cn_received, stream, TRUE);
 	}
 }
 

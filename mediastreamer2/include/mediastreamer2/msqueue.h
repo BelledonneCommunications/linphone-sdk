@@ -97,6 +97,8 @@ MS2_PUBLIC void ms_queue_destroy(MSQueue *q);
 #define mblk_get_precious_flag(m)    (((m)->reserved2)>>1 & 0x1) /*bit 2*/
 #define mblk_set_plc_flag(m,bit)    __mblk_set_flag(m,2,bit)  /*use to mark a plc generated block*/
 #define mblk_get_plc_flag(m)    (((m)->reserved2)>>1 & 0x2) /*bit 2*/
+#define mblk_set_cng_flag(m,bit)    __mblk_set_flag(m,3,bit)  /*use to mark a cng generated block*/
+#define mblk_get_cng_flag(m)    (((m)->reserved2)>>2 & 0x4) /*bit 3*/
 #define mblk_set_cseq(m,value) (m)->reserved2=(m)->reserved2| ((value&0xFFFF)<<16);	
 #define mblk_get_cseq(m) ((m)->reserved2>>16)
 	

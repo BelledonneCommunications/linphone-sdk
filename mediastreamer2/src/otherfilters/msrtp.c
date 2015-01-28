@@ -213,8 +213,7 @@ static int sender_get_ch(MSFilter *f, void *arg) {
 }
 
 /* the goal of that function is to return a absolute timestamp closest to real time, with respect of given packet_ts, which is a relative to an undefined origin*/
-static uint32_t get_cur_timestamp(MSFilter * f, mblk_t *im)
-{
+static uint32_t get_cur_timestamp(MSFilter * f, mblk_t *im){
 	SenderData *d = (SenderData *) f->data;
 	uint32_t curts = (uint32_t)( (f->ticker->time*(uint64_t)d->rate)/(uint64_t)1000) ;
 	int diffts;
@@ -359,6 +358,14 @@ static void check_stun_sending(MSFilter *f) {
 	}
 }
 
+static void process_cn(MSFilter *f, SenderData *d){
+	if (d->cng_data.datasize>0){
+		mblk_t *m=rtp_session_create_packet(d->session, 12, d->cng_data.data, d->cng_data.datasize);
+		rtp_session_sendm_with_ts(d->session,m,d->last_ts);
+		d->cng_data.datasize=0;
+	}
+}
+
 static void _sender_process(MSFilter * f)
 {
 	SenderData *d = (SenderData *) f->data;
@@ -402,6 +409,7 @@ static void _sender_process(MSFilter * f)
 				rtp_session_sendm_with_ts(s, header, timestamp);
 			} else if (d->mute==TRUE && d->skip == FALSE) {
 				freemsg(im);
+				process_cn(f, d);
 
 				//Send STUN packet as RTP keep alive
 				check_stun_sending(f);
@@ -492,6 +500,7 @@ MSFilterDesc ms_rtp_send_desc = {
 
 struct ReceiverData {
 	RtpSession *session;
+	int current_pt;
 	int rate;
 	bool_t starting;
 	bool_t reset_jb;
@@ -520,13 +529,13 @@ static int receiver_set_session(MSFilter * f, void *arg)
 {
 	ReceiverData *d = (ReceiverData *) f->data;
 	RtpSession *s = (RtpSession *) arg;
-	PayloadType *pt = rtp_profile_get_payload(rtp_session_get_profile(s),
-											  rtp_session_get_recv_payload_type
-											  (s));
+	PayloadType *pt;
+	d->current_pt=rtp_session_get_recv_payload_type(s);
+	pt = rtp_profile_get_payload(rtp_session_get_profile(s),d->current_pt);
 	if (pt != NULL) {
 		d->rate = pt->clock_rate;
 	} else {
-		ms_warning("Receiving undefined payload type %i ?",
+		ms_warning("receiver_set_session(): receiving undefined payload type %i ?",
 		    rtp_session_get_recv_payload_type(s));
 	}
 	d->session = s;
@@ -582,6 +591,33 @@ static void receiver_preprocess(MSFilter * f){
 	d->starting=TRUE;
 }
 
+/*returns TRUE if the packet is ok to be sent to output queue*/
+static bool_t receiver_check_payload_type(MSFilter *f, ReceiverData *d, mblk_t *m){
+	int ptn=rtp_get_payload_type(m);
+	PayloadType *pt;
+	if (ptn==d->current_pt) return TRUE;
+	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session), ptn);
+	if (pt==NULL){
+		ms_warning("Discarding packet with unknown payload type %i",ptn);
+		return FALSE;
+	}
+	if (strcasecmp(pt->mime_type,"CN")==0){
+		MSCngData cngdata;
+		uint8_t *data=NULL;
+		int datasize=rtp_get_payload(m, &data);
+		if (data){
+			if (datasize<= sizeof(cngdata.data)){
+				memcpy(cngdata.data, data, datasize);
+				cngdata.datasize=datasize;
+				ms_filter_notify(f, MS_RTP_RECV_GENERIC_CN_RECEIVED, &cngdata);
+			}else{
+				ms_warning("CN packet has unexpected size %i", datasize);
+			}
+		}
+	}
+	return FALSE;
+}
+
 static void receiver_process(MSFilter * f)
 {
 	ReceiverData *d = (ReceiverData *) f->data;
@@ -608,11 +644,15 @@ static void receiver_process(MSFilter * f)
 
 	timestamp = (uint32_t) (f->ticker->time * (d->rate/1000));
 	while ((m = rtp_session_recvm_with_ts(d->session, timestamp)) != NULL) {
-		mblk_set_timestamp_info(m, rtp_get_timestamp(m));
-		mblk_set_marker_info(m, rtp_get_markbit(m));
-		mblk_set_cseq(m, rtp_get_seqnumber(m));
-		rtp_get_payload(m,&m->b_rptr);
-		ms_queue_put(f->outputs[0], m);
+		if (receiver_check_payload_type(f, d, m)){
+			mblk_set_timestamp_info(m, rtp_get_timestamp(m));
+			mblk_set_marker_info(m, rtp_get_markbit(m));
+			mblk_set_cseq(m, rtp_get_seqnumber(m));
+			rtp_get_payload(m,&m->b_rptr);
+			ms_queue_put(f->outputs[0], m);
+		}else{
+			freemsg(m);
+		}
 	}
 	/*every second compute recv bandwidth*/
 	if (f->ticker->time % 1000 == 0) rtp_session_compute_recv_bandwidth(d->session);

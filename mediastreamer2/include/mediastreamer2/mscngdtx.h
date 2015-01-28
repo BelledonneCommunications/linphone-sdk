@@ -17,9 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#ifndef msvaddtx_h
-#define msvaddtx_h
-
 #include "mediastreamer2/msfilter.h"
 
 typedef struct _MSCngData{
@@ -28,9 +25,5 @@ typedef struct _MSCngData{
 }MSCngData;
 
 /** Event generated when silence is detected. Payload contains the data encoding the background noise*/
-#define MS_VAD_DTX_NO_VOICE	MS_FILTER_EVENT(MS_VAD_DTX_ID, 0, MSCngData)
+#define MS_VAD_DTX_NO_VOICE	MS_FILTER_EVENT(MSVadDtxId, 0, MSCngData)
 
-#define MS_VAD_DTX_VOICE	MS_FILTER_EVENT_NO_ARG(MS_VAD_DTX_ID, 1)
-
-
-#endif

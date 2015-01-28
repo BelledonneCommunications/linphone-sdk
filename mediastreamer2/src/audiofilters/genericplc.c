@@ -21,12 +21,16 @@
 #include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/mscodecutils.h>
 #include <mediastreamer2/msticker.h>
+#include "mediastreamer2/msgenericplc.h"
 
 /*filter common method*/
 typedef struct {
 	MSConcealerContext* concealer;
 	int rate;
 	int nchannels;
+	MSCngData cng_data;
+	bool_t cng_set;
+	bool_t cng_running;
 } generic_plc_struct;
 
 const static unsigned int MAX_PLC_COUNT = UINT32_MAX;
@@ -36,7 +40,6 @@ static void generic_plc_init(MSFilter *f) {
 	mgps->concealer = ms_concealer_context_new(MAX_PLC_COUNT);
 	mgps->nchannels = 1;
 	f->data = mgps;
-
 }
 
 static void generic_plc_process(MSFilter *f) {
@@ -47,13 +50,25 @@ static void generic_plc_process(MSFilter *f) {
 		unsigned int time = (1000*(m->b_wptr - m->b_rptr))/(mgps->rate*sizeof(int16_t)*mgps->nchannels);
 		ms_concealer_inc_sample_time(mgps->concealer, f->ticker->time, time, TRUE);
 		ms_queue_put(f->outputs[0], m);
+		if (mgps->cng_running){
+			/*we were doing CNG, now resuming with normal audio*/
+			mgps->cng_running=FALSE;
+			mgps->cng_set=FALSE;
+		}
 	}
 	if (ms_concealer_context_is_concealement_required(mgps->concealer, f->ticker->time)) {
 		m = allocb(buff_size, 0);
+		
+		if (!mgps->cng_running && mgps->cng_set){
+			mgps->cng_running=TRUE;
+			mblk_set_cng_flag(m, 1);
+			/*TODO do something with the buffer*/
+		}else{
+			mblk_set_plc_flag(m, 1);
+		}
 		memset(m->b_wptr, 0, buff_size);
 		m->b_wptr += buff_size;
 		ms_queue_put(f->outputs[0], m);
-		mblk_set_plc_flag(m, 1);
 		ms_concealer_inc_sample_time(mgps->concealer, f->ticker->time, f->ticker->interval, FALSE);
 	}
 }
@@ -82,10 +97,18 @@ static int generic_plc_set_nchannels(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int generic_plc_set_cn(MSFilter *f, void *arg) {
+	generic_plc_struct *s = (generic_plc_struct *)f->data;
+	memcpy(&s->cng_data,arg, sizeof(MSCngData));
+	s->cng_set=TRUE;
+	return 0;
+}
+
 static MSFilterMethod generic_plc_methods[] = {
 	{	MS_FILTER_SET_SAMPLE_RATE	,	generic_plc_set_sr		},
 	{	MS_FILTER_GET_SAMPLE_RATE	,	generic_plc_get_sr		},
 	{	MS_FILTER_SET_NCHANNELS		,	generic_plc_set_nchannels	},
+	{	MS_GENERIC_PLC_SET_CN		,	generic_plc_set_cn		},
 	{ 	0				,	NULL 				}
 };
 

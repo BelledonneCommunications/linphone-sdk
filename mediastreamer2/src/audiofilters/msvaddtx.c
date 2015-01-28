@@ -87,10 +87,11 @@ static void vad_dtx_process(MSFilter *f){
 		}else{
 			if (ctx->silence_mode){
 				ms_message("vad_dtx_process(): silence period finished.");
-				ctx->silence_mode=1;
+				ctx->silence_mode=0;
+				ms_filter_notify(f, MS_VAD_DTX_VOICE, NULL);
 			}
 		}
-		if (!ctx->silence_mode) ms_queue_put(f->outputs[0],m);
+		ms_queue_put(f->outputs[0],m);
 	}
 
 }
