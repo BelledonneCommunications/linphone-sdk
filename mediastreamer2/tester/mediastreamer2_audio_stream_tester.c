@@ -171,7 +171,7 @@ static void multicast_audio_stream()  {
 							,MULTICAST_IP, MARGAUX_RTP_PORT, 0);
 }
 
-static void encrypted_audio_stream() {
+static void encrypted_audio_stream_base(bool_t change_ssrc) {
 	AudioStream * 	marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
 	AudioStream * 	margaux = audio_stream_new (MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE);
 	RtpProfile* profile = rtp_profile_new("default profile");
@@ -226,6 +226,35 @@ static void encrypted_audio_stream() {
 		/* No packet loss is assumed */
 		CU_ASSERT_EQUAL(marielle_stats.rtp.sent,margaux_stats.rtp.recv);
 
+		if (change_ssrc) {
+			audio_stream_stop(marielle);
+			marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
+			CU_ASSERT_EQUAL(audio_stream_start_full(marielle
+							, profile
+							, MARGAUX_IP
+							, MARGAUX_RTP_PORT
+							, MARGAUX_IP
+							, MARGAUX_RTCP_PORT
+							, 0
+							, 50
+							, hello_file
+							, NULL
+							, NULL
+							, NULL
+							, 0),0);
+			CU_ASSERT_FATAL(media_stream_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
+
+			ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
+
+			CU_ASSERT_TRUE(wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,2,12000));
+
+			audio_stream_get_local_rtp_stats(marielle,&marielle_stats.rtp);
+			audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
+
+			/* No packet loss is assumed */
+			CU_ASSERT_EQUAL(marielle_stats.rtp.sent*2,margaux_stats.rtp.recv);
+
+		}
 
 		unlink(recorded_file);
 		ms_free(recorded_file);
@@ -238,7 +267,12 @@ static void encrypted_audio_stream() {
 	audio_stream_stop(margaux);
 
 }
-
+static void encrypted_audio_stream() {
+	encrypted_audio_stream_base(FALSE);
+}
+static void encrypted_audio_stream_with_ssrc_change() {
+	encrypted_audio_stream_base(TRUE);
+}
 #if 0
 static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_bw, int max_recv_rtcp_packet) {
 	stream_manager_t * marielle = stream_manager_new();
@@ -284,6 +318,7 @@ static test_t tests[] = {
 	{ "Basic audio stream", basic_audio_stream },
 	{ "Multicast audio stream", multicast_audio_stream },
 	{ "Encrypted audio stream", encrypted_audio_stream },
+	{ "Encrypted audio stream with ssrc changes", encrypted_audio_stream_with_ssrc_change},
 };
 
 test_suite_t audio_stream_test_suite = {
