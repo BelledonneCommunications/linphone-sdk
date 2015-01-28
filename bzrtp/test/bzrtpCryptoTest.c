@@ -517,11 +517,12 @@ static int testAlgoType(uint8_t algoType, uint8_t packetTypes[7], uint8_t packet
 	int retval;
 
 	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext(0x12345678);
+	bzrtpPacket_t *helloPacket = NULL;
 	if (contextTypes != NULL) {
 		bzrtp_setSupportedCryptoTypes(zrtpContext, algoType, contextTypes, contextTypesCount);
 	}
 
-	bzrtpPacket_t *helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpContext->channelContext[0], MSGTYPE_HELLO, &retval);
+	helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpContext->channelContext[0], MSGTYPE_HELLO, &retval);
 	if (packetTypes != NULL) {
 		bzrtpHelloMessage_t *helloMessage = (bzrtpHelloMessage_t *)helloPacket->messageData;
 		setHelloMessageAlgo(helloMessage, algoType, packetTypes, packetTypesCount);
