@@ -18,6 +18,7 @@
 
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_tester.h"
+#include "belle_sip_internal.h"
 #include <stdio.h>
 #include "CUnit/Basic.h"
 
@@ -428,10 +429,21 @@ void testUriComponentsChecker() {
 	}
 }
 
+void test_escaping_bad_chars(void){
+	char bad_uri[13] = { 'h', 'e', 'l', 'l', 'o', (char)0xa0, (char)0xc8, 'w', 'o', 'r', 'l', 'd', 0x0 };
+	char *escaped = belle_sip_uri_to_escaped_username(bad_uri);
+
+	CU_ASSERT_STRING_EQUAL(escaped, "hello%a0%c8world");
+
+	belle_sip_free(escaped);
+}
+
+
 static test_t uri_tests[] = {
 	{ "Simple URI", testSIMPLEURI },
 	{ "Complex URI", testCOMPLEXURI },
 	{ "Escaped username", test_escaped_username },
+	{ "Escaped username with bad chars", test_escaping_bad_chars },
 	{ "Escaped parameter", test_escaped_parameter },
 	{ "Escaped passwd", test_escaped_passwd},
 	{ "User passwd", test_user_passwd},

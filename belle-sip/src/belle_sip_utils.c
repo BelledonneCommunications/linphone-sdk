@@ -991,7 +991,7 @@ static char* belle_sip_escape(const char* buff, const char *noescapes) {
 	int out_buff_index=0;
 	
 	for(i=0; buff[i] != '\0'; i++) {
-		int c = buff[i];
+		int c = ((unsigned char*)buff)[i];
 		if (outbuf_size<out_buff_index-3){
 			outbuf_size+=MAX(orig_size/2,3);
 			output_buff=belle_sip_realloc(output_buff,outbuf_size+1);
