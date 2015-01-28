@@ -171,7 +171,10 @@ static void multicast_audio_stream()  {
 							,MULTICAST_IP, MARGAUX_RTP_PORT, 0);
 }
 
-static void encrypted_audio_stream_base(bool_t change_ssrc, bool_t change_send_key_in_the_middle) {
+static void encrypted_audio_stream_base( bool_t change_ssrc,
+										 bool_t change_send_key_in_the_middle
+										,bool_t set_both_send_recv_key
+										,bool_t send_key_first) {
 	AudioStream * 	marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
 	AudioStream * 	margaux = audio_stream_new (MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE);
 	RtpProfile* profile = rtp_profile_new("default profile");
@@ -213,8 +216,25 @@ static void encrypted_audio_stream_base(bool_t change_ssrc, bool_t change_send_k
 				, NULL
 				, 0),0);
 
-		CU_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
-		CU_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") ==0);
+		if (send_key_first) {
+			CU_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
+			if (set_both_send_recv_key)
+				CU_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") == 0);
+
+			CU_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") ==0);
+			if (set_both_send_recv_key)
+				CU_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") ==0);
+
+		} else {
+			CU_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") ==0);
+			if (set_both_send_recv_key)
+				CU_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") ==0);
+
+			CU_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
+			if (set_both_send_recv_key)
+				CU_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") == 0);
+
+		}
 
 		ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 		if (change_send_key_in_the_middle) {
@@ -273,15 +293,23 @@ static void encrypted_audio_stream_base(bool_t change_ssrc, bool_t change_send_k
 
 }
 static void encrypted_audio_stream() {
-	encrypted_audio_stream_base(FALSE,FALSE);
+	encrypted_audio_stream_base(FALSE,FALSE,FALSE,TRUE);
+}
+
+static void encrypted_audio_stream_with_2_srtp_stream() {
+	encrypted_audio_stream_base(FALSE,FALSE,TRUE,TRUE);
+}
+
+static void encrypted_audio_stream_with_2_srtp_stream_recv_first() {
+	encrypted_audio_stream_base(FALSE,FALSE,TRUE,FALSE);
 }
 
 static void encrypted_audio_stream_with_key_change() {
-	encrypted_audio_stream_base(FALSE,TRUE);
+	encrypted_audio_stream_base(FALSE,TRUE,FALSE,TRUE);
 }
 
 static void encrypted_audio_stream_with_ssrc_change() {
-	encrypted_audio_stream_base(TRUE,FALSE);
+	encrypted_audio_stream_base(TRUE,FALSE,FALSE,TRUE);
 }
 #if 0
 static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_bw, int max_recv_rtcp_packet) {
@@ -328,6 +356,8 @@ static test_t tests[] = {
 	{ "Basic audio stream", basic_audio_stream },
 	{ "Multicast audio stream", multicast_audio_stream },
 	{ "Encrypted audio stream", encrypted_audio_stream },
+	{ "Encrypted audio stream with 2 srtp context",encrypted_audio_stream_with_2_srtp_stream},
+	{ "Encrypted audio stream with 2 srtp context, recv first",encrypted_audio_stream_with_2_srtp_stream_recv_first},
 	{ "Encrypted audio stream with ssrc changes", encrypted_audio_stream_with_ssrc_change},
 	{ "Encrypted audio stream with key change",encrypted_audio_stream_with_key_change},
 };

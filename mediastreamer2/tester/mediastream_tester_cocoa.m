@@ -28,16 +28,19 @@ extern int apple_main(int argc, char **argv);
 @public
 	int argc;
     char **argv;
+    id activity;
 }
 
-@property (strong) id activity;
 
 -(void)applicationWillFinishLaunching: (NSNotification*) aNotification;
 -(void)applicationDidFinishLaunching: (NSNotification*) aNotification;
 -(BOOL)applicationShouldTerminateAfterLastWindowClosed: (NSApplication *)theApplication;
 @end
 
+
 @implementation MyApplicationDelegate
+
+
 
 -(void) runLoop {
 	exit(apple_main(argc,argv));
@@ -48,7 +51,7 @@ extern int apple_main(int argc, char **argv);
     if( [[NSProcessInfo processInfo] respondsToSelector:@selector(beginActivityWithOptions:reason:)] ){
         //NSActivityOptions options = NSActivityAutomaticTerminationDisabled & NSActivityIdleSystemSleepDisabled;
         NSLog(@"Disabling App nap for tester");
-        self.activity = [[NSProcessInfo processInfo] beginActivityWithOptions:0x00FFFFFF reason:@"No app nap for ms2 tester"];
+        self->activity = [[[NSProcessInfo processInfo] beginActivityWithOptions:0x00FFFFFF reason:@"No app nap for ms2 tester"] retain];
     }
     [self performSelectorInBackground:@selector(runLoop) withObject:nil];
 }
@@ -59,9 +62,10 @@ extern int apple_main(int argc, char **argv);
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {
 	NSLog(@"applicationWillTerminate");
-	if( self.activity ){
-		[[NSProcessInfo processInfo] endActivity:self.activity];
-		self.activity = nil;
+	if( self->activity ){
+		[[NSProcessInfo processInfo] endActivity:self->activity];
+		[self->activity release];
+		self->activity = nil;
 	}
 }
 

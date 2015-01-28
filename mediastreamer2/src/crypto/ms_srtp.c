@@ -347,7 +347,7 @@ static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, c
 	policy.ssrc = ssrc_conf;
 	policy.key = (uint8_t *)key;
 	policy.next = NULL;
-	if (srtp->stream_template) {
+	if (inbound && srtp->stream_template) {
 		/* deallocate stream template, if there is one to be still be able to have late ssrc*/
 		/*	auth_dealloc(srtp->stream_template->rtcp_auth);
 		    cipher_dealloc(srtp->stream_template->rtcp_cipher);
