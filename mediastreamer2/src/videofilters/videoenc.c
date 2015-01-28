@@ -117,9 +117,6 @@ void ms_ffmpeg_log_callback(void* ptr, int level, const char* fmt, va_list vl)
 
 void ms_ffmpeg_check_init(){
 	if(!avcodec_initialized){
-#ifdef FF_API_AVCODEC_INIT
-		avcodec_init();
-#endif
 		avcodec_register_all();
 		avcodec_initialized=TRUE;
 #ifdef ENABLE_LOG_FFMPEG
