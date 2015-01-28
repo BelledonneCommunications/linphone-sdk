@@ -310,11 +310,11 @@ static void basic_one_way_video_stream(void) {
 
 static void multicast_video_stream(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
+	video_stream_tester_t* margaux=video_stream_tester_new();
+	bool_t supported = ms_filter_codec_supported("vp8");
 	video_stream_tester_set_local_ip(marielle,"224.1.2.3");
 	marielle->local_rtcp=0; /*no rtcp*/
-	video_stream_tester_t* margaux=video_stream_tester_new();
 	video_stream_tester_set_local_ip(margaux,"0.0.0.0");
-	bool_t supported = ms_filter_codec_supported("vp8");
 
 	if (supported) {
 
