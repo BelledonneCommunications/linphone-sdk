@@ -128,7 +128,6 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					utils/kiss_fftr.c \
 					utils/kiss_fftr.h \
 					utils/audiodiff.c \
-					utils/extremum.c \
 					audiofilters/equalizer.c \
 					audiofilters/chanadapt.c \
 					audiofilters/audiomixer.c \

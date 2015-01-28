@@ -1,5 +1,5 @@
 /*
-msvaddtx.c - Generic VAD/DTX (voice activity detector, discontinuous transmission) 
+msvaddtx.c - Generic VAD/DTX (voice activity detector, discontinuous transmission)
 	for CN payload type (RFC3389)
 
 mediastreamer2 library - modular sound and video processing and streaming
@@ -36,7 +36,7 @@ typedef struct _VadDtxContext{
 	int silence_mode;/*set to 1 if a silence period is running*/
 #ifndef HAVE_G729B
 	float energy;
-	MSExtremum max;
+	ortp_extremum max;
 #else
 #endif
 }VadDtxContext;
@@ -45,37 +45,37 @@ typedef struct _VadDtxContext{
 static void vad_dtx_init(MSFilter *f){
 	VadDtxContext *ctx=ms_new0(VadDtxContext,1);
 	f->data=ctx;
-	ms_extremum_init(&ctx->max,2000);
+	ortp_extremum_init(&ctx->max,2000);
 }
 
 static void vad_dtx_preprocess(MSFilter *f){
 	VadDtxContext *ctx=(VadDtxContext*)f->data;
-	ms_extremum_reset(&ctx->max);
-	
+	ortp_extremum_reset(&ctx->max);
+
 }
 
 static void update_energy(VadDtxContext *v, int16_t *signal, int numsamples, uint64_t curtime) {
 	int i;
 	float acc = 0;
 	float en;
-		
+
 	for (i=0;i<numsamples;++i){
 		int s=signal[i];
 		acc += s * s;
 	}
 	en = (sqrt(acc / numsamples)+1) / max_e;
 	v->energy = (en * coef) + v->energy * (1.0 - coef);
-	ms_extremum_record_max(&v->max,curtime,v->energy);
+	ortp_extremum_record_max(&v->max,curtime,v->energy);
 }
 
 static void vad_dtx_process(MSFilter *f){
 	VadDtxContext *ctx=(VadDtxContext*)f->data;
 	mblk_t *m;
-	
+
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
 		update_energy(ctx,(int16_t*)m->b_rptr, (m->b_wptr - m->b_rptr) / 2, f->ticker->time);
-		
-		if (ms_extremum_get_current(&ctx->max)<silence_threshold){
+
+		if (ortp_extremum_get_current(&ctx->max)<silence_threshold){
 			if (!ctx->silence_mode){
 				MSCngData cngdata={0};
 				cngdata.datasize=1; /*only noise level*/
@@ -92,12 +92,12 @@ static void vad_dtx_process(MSFilter *f){
 		}
 		if (!ctx->silence_mode) ms_queue_put(f->outputs[0],m);
 	}
-	
+
 }
 
 static void vad_dtx_postprocess(MSFilter *f){
 	//VadDtxContext *ctx=(VadDtxContext*)f->data;
-	
+
 }
 
 static void vad_dtx_uninit(MSFilter *f){

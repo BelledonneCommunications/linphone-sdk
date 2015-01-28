@@ -72,8 +72,8 @@ typedef struct Volume{
 	float ng_floorgain;
 	float ng_gain;
 	MSBufferizer *buffer;
-	MSExtremum min;
-	MSExtremum max;
+	ortp_extremum min;
+	ortp_extremum max;
 	bool_t agc_enabled;
 	bool_t noise_gate_enabled;
 	bool_t remove_dc;
@@ -109,8 +109,8 @@ static void volume_init(MSFilter *f){
 #ifdef HAVE_SPEEXDSP
 	v->speex_pp=NULL;
 #endif
-	ms_extremum_init(&v->max,1000);
-	ms_extremum_init(&v->min,30000);
+	ortp_extremum_init(&v->max,1000);
+	ortp_extremum_init(&v->min,30000);
 	f->data=v;
 }
 
@@ -139,14 +139,14 @@ static int volume_get(MSFilter *f, void *arg){
 static int volume_get_min(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
-	*farg=linear_to_db(ms_extremum_get_current(&v->min));
+	*farg=linear_to_db(ortp_extremum_get_current(&v->min));
 	return 0;
 }
 
 static int volume_get_max(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
-	*farg=linear_to_db(ms_extremum_get_current(&v->max));
+	*farg=linear_to_db(ortp_extremum_get_current(&v->max));
 	return 0;
 }
 
@@ -203,12 +203,12 @@ static float volume_echo_avoider_process(Volume *v, mblk_t *om) {
 	float mic_spk_ratio;
 	peer_e = ((Volume *)(v->peer->data))->energy;
 	peer_pk=((Volume *)(v->peer->data))->energy;
-	
+
 	if (peer_pk>v->lt_speaker_en)
 		v->lt_speaker_en=peer_pk;
 	else v->lt_speaker_en=(0.005*peer_pk)+(0.995*v->lt_speaker_en);
 	mic_spk_ratio=(v->energy/(v->lt_speaker_en+v->ea_thres));
-	
+
 	/* where v->target_gain is not set, it is kept steady - not to modify elsewhere! */
 	if (peer_e > v->ea_thres) {
 		if (mic_spk_ratio>v->ea_transmit_thres){
@@ -389,7 +389,7 @@ static void update_energy(Volume *v, int16_t *signal, int numsamples, uint64_t c
 	float acc = 0;
 	float en;
 	int lp = 0, pk = 0;
-		
+
 	for (i=0;i<numsamples;++i){
 		int s=signal[i];
 		acc += s * s;
@@ -402,8 +402,8 @@ static void update_energy(Volume *v, int16_t *signal, int numsamples, uint64_t c
 	v->energy = (en * coef) + v->energy * (1.0 - coef);
 	v->level_pk = (float)pk / max_e;
 	v->instant_energy = en;// currently non-averaged energy seems better (short artefacts)
-	ms_extremum_record_max(&v->max,curtime,v->energy);
-	ms_extremum_record_min(&v->min,curtime,v->energy);
+	ortp_extremum_record_max(&v->max,curtime,v->energy);
+	ortp_extremum_record_min(&v->min,curtime,v->energy);
 }
 
 static void apply_gain(Volume *v, mblk_t *m, float tgain) {
@@ -413,7 +413,7 @@ static void apply_gain(Volume *v, mblk_t *m, float tgain) {
 	float gain;
 
 	/* ramps with factors means linear ramps in logarithmic domain */
-	
+
 	if (v->gain < tgain) {
 		if (v->gain<v->ng_floorgain)
 			v->gain=v->ng_floorgain;
@@ -431,7 +431,7 @@ static void apply_gain(Volume *v, mblk_t *m, float tgain) {
 	intgain = gain* 4096;
 
 
-	//if (v->peer) ms_message("MSVolume:%p Applying gain %5f, v->gain=%5f, tgain=%5f, ng_gain=%5f",v,gain,v->gain,tgain,v->ng_gain); 
+	//if (v->peer) ms_message("MSVolume:%p Applying gain %5f, v->gain=%5f, tgain=%5f, ng_gain=%5f",v,gain,v->gain,tgain,v->ng_gain);
 
 	if (v->remove_dc){
 		for (	sample=(int16_t*)m->b_rptr;
@@ -471,8 +471,8 @@ static void volume_preprocess(MSFilter *f){
 		}
 #endif
 	}
-	ms_extremum_reset(&v->min);
-	ms_extremum_reset(&v->max);
+	ortp_extremum_reset(&v->min);
+	ortp_extremum_reset(&v->max);
 }
 
 static void volume_process(MSFilter *f){
