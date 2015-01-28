@@ -139,6 +139,7 @@ set(VOIP_SOURCE_FILES
 	utils/kiss_fftr.c
 	utils/kiss_fftr.h
 	utils/stream_regulator.c
+	utils/extremum.c
 	voip/audioconference.c
 	voip/audiostream.c
 	voip/bitratecontrol.c
