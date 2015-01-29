@@ -70,6 +70,7 @@ LOCAL_SRC_FILES = \
 	voip/bitratedriver.c \
 	voip/qosanalyzer.c \
 	voip/msmediaplayer.c \
+	crypto/zrtp.c \
 	voip/stun.c \
 	voip/stun_udp.c \
 	utils/dsptools.c \
@@ -112,6 +113,7 @@ LOCAL_SRC_FILES = \
 	android/AudioSystem.cpp \
 	android/String8.cpp \
 	android/androidsound_opensles.cpp \
+	crypto/dtls_srtp.c \
 	crypto/ms_srtp.c
 
 LOCAL_STATIC_LIBRARIES :=
@@ -130,6 +132,10 @@ ifeq ($(BUILD_SRTP), 1)
 else
 
 endif
+
+LOCAL_STATIC_LIBRARIES += polarssl
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../externals/polarssl/include
+LOCAL_CFLAGS += -DHAVE_POLARSSL=1
 
 ifeq ($(_BUILD_VIDEO),1)
 LOCAL_SRC_FILES += \

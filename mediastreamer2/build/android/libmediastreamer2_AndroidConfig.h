@@ -180,6 +180,8 @@
 
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */
+/* Define to 1 if you have the <polarssl/ssl.h> header file. */
+#define HAVE_POLARSSL_SSL_H 1
 #ifndef __cplusplus
 /* #undef inline */
 #endif
