@@ -56,6 +56,9 @@ LOCAL_SRC_FILES = \
 	base/mswebcam.c \
 	base/eventqueue.c \
 	base/msfactory.c \
+	crypto/dtls_srtp.c \
+	crypto/ms_srtp.c \
+	crypto/zrtp.c \
 	voip/audioconference.c \
 	voip/mediastream.c \
 	voip/msvoip.c \
@@ -67,10 +70,12 @@ LOCAL_SRC_FILES = \
 	voip/bitratedriver.c \
 	voip/qosanalyzer.c \
 	voip/msmediaplayer.c \
-	voip/zrtp.c \
+	voip/stun.c \
+	voip/stun_udp.c \
 	utils/dsptools.c \
 	utils/kiss_fft.c \
 	utils/kiss_fftr.c \
+	utils/audiodiff.c \
 	utils/msjava.c \
 	utils/g722_decode.c \
 	utils/g722_encode.c \
