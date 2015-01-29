@@ -42,7 +42,8 @@ static const char* tester_fileroot = SOUND_FILE_PATH;
 static const char* tester_writable_dir= WRITE_FILE_PATH;
 
 static unsigned char xml = 0;
-static const char *xml_file = NULL;
+static const char *xml_file = "CUnitAutomated-Results.xml";
+static char *xml_tmp_file = NULL;
 
 #if HAVE_CU_CURSES
 static unsigned char curses = 0;
@@ -178,7 +179,7 @@ static void test_complete_message_handler(const CU_pTest pTest,
 											const CU_pFailureRecord pFailureList) {
 	int i;
 	CU_pFailureRecord pFailure = pFailureList;
-	
+
 	if (pFailure) {
 		ms_warning("Suite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
 	} else {
@@ -221,10 +222,9 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 	CU_set_suite_cleanup_failure_handler(test_suite_cleanup_failure_message_handler);
 	CU_set_suite_start_handler(test_suite_start_message_handler);
 
-	if( xml_file != NULL ){
-		CU_set_output_filename(xml_file);
-	}
-	if (xml) {
+	if( xml ){
+		xml_tmp_file = ms_strdup_printf("%s.tmp", xml_file);
+		CU_set_output_filename(xml_tmp_file);
 		CU_automated_run_tests();
 	} else {
 #if HAVE_CU_GET_SUITE
@@ -330,6 +330,7 @@ int main (int argc, char *argv[]) {
 		} else if (strcmp(argv[i], "--xml-file") == 0){
 			CHECK_ARG("--xml-file", ++i, argc);
 			xml_file = argv[i];
+			xml = 1;
 		} else if (strcmp(argv[i], "--xml") == 0){
 			xml = 1;
 		}
@@ -391,6 +392,14 @@ int main (int argc, char *argv[]) {
 	ret = mediastreamer2_tester_run_tests(suite_name, test_name);
 	CU_cleanup_registry();
 	mediastreamer2_tester_uninit();
+
+	if ( xml ) {
+		/*create real xml file only if tester did not crash*/
+		ms_strcat_printf(xml_tmp_file, "-Results.xml");
+		rename(xml_tmp_file, xml_file);
+		ms_free(xml_tmp_file);
+	}
+
 	return ret;
 }
 #endif
