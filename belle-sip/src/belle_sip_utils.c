@@ -185,7 +185,7 @@ static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_li
 	struct tm tmstorage;
 #endif
 	time_t curtime;
-	
+
 	belle_sip_gettimeofday(&tp,NULL);
 	curtime=tp.tv_sec;
 #ifdef WIN32
@@ -193,7 +193,7 @@ static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_li
 #else
 	lt = localtime_r(&curtime,&tmstorage);
 #endif
-	
+
 	if (__log_file==NULL) __log_file=stderr;
 	switch(lev){
 		case BELLE_SIP_LOG_DEBUG:
@@ -641,7 +641,7 @@ char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string) {
 char *belle_sip_unquote_strdup(const char *str){
 	const char *p;
 	if (str==NULL) return NULL;
-	
+
 	for(p=str;*p!='\0';++p){
 		switch(*p){
 			case ' ':
@@ -662,7 +662,7 @@ char *belle_sip_unquote_strdup(const char *str){
 static int belle_sip_wincrypto_random(unsigned int *rand_number){
 	static HCRYPTPROV hProv=(HCRYPTPROV)-1;
 	static int initd=0;
-	
+
 	if (!initd){
 		if (!CryptAcquireContext(&hProv,NULL,NULL,PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)){
 			belle_sip_error("Could not acquire a windows crypto context");
@@ -672,7 +672,7 @@ static int belle_sip_wincrypto_random(unsigned int *rand_number){
 	}
 	if (hProv==(HCRYPTPROV)-1)
 		return -1;
-	
+
 	if (!CryptGenRandom(hProv,4,(BYTE*)rand_number)){
 		belle_sip_error("CryptGenRandom() failed.");
 		return -1;
@@ -696,7 +696,7 @@ unsigned int belle_sip_random(void){
 	unsigned int ret;
 #ifdef _MSC_VER
 	/*rand_s() is pretty nice and simple function but is not wrapped by mingw.*/
-	
+
 	if (rand_s(&ret)==0){
 		return ret;
 	}
@@ -727,7 +727,7 @@ static const char *symbols="aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ
 char * belle_sip_random_token(char *ret, size_t size){
 	unsigned int val=0;
 	unsigned int i;
-	
+
 	for(i=0;i<size-1;++i){
 		if (i%5==0) val=belle_sip_random();
 		ret[i]=symbols[val & 63];
@@ -768,12 +768,12 @@ static int bits_reader_read(bits_reader_t *reader, int count, unsigned int *ret)
 	size_t byte_index=reader->bit_index/8;
 	size_t bit_index=reader->bit_index % 8;
 	int shift=32-bit_index-count;
-	
+
 	if (count>=24){
 		belle_sip_error("This bit reader cannot read more than 24 bits at once.");
 		return -1;
 	}
-	
+
 	if (byte_index<reader->buf_size)
 		tmp=((unsigned int)reader->buffer[byte_index++])<<24;
 	else{
@@ -786,7 +786,7 @@ static int bits_reader_read(bits_reader_t *reader, int count, unsigned int *ret)
 		tmp|=((unsigned int)reader->buffer[byte_index++])<<8;
 	if (byte_index<reader->buf_size)
 		tmp|=((unsigned int)reader->buffer[byte_index++]);
-	
+
 	tmp=tmp>>shift;
 	tmp=tmp & ((1<<count)-1);
 	reader->bit_index+=count;
@@ -797,9 +797,9 @@ static int bits_reader_read(bits_reader_t *reader, int count, unsigned int *ret)
 char * belle_sip_octets_to_text(const uint8_t *hash, size_t hash_len, char *ret, size_t size){
 	int i;
 	bits_reader_t bitctx;
-	
+
 	bits_reader_init(&bitctx,hash,hash_len);
-	
+
 	for(i=0;i<(int)size-1;++i){
 		unsigned int val=0;
 		if (bits_reader_read(&bitctx,6,&val)==0){
@@ -842,7 +842,7 @@ char* belle_sip_to_unescaped_string(const char* buff) {
 	char *output_buff=belle_sip_malloc(strlen(buff)+1);
 	unsigned int i;
 	unsigned int out_buff_index=0;
-	
+
 	for(i=0; buff[i]!='\0'; out_buff_index++) {
 		i+=belle_sip_get_char(buff+i,3,output_buff+out_buff_index);
 	}
@@ -989,7 +989,7 @@ static char* belle_sip_escape(const char* buff, const char *noescapes) {
 	char *output_buff=(char*)belle_sip_malloc(outbuf_size+1);
 	int i;
 	int out_buff_index=0;
-	
+
 	for(i=0; buff[i] != '\0'; i++) {
 		int c = ((unsigned char*)buff)[i];
 		if (outbuf_size<out_buff_index-3){

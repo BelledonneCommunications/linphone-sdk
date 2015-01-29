@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -49,7 +49,8 @@ const char *belle_sip_tester_writable_dir_prefix = ".";
 	static unsigned char curses = 0;
 #endif
 
-static const char *belle_sip_tester_xml_file = NULL;
+static const char *belle_sip_tester_xml_file = "CUnitAutomated-Results.xml";
+static char *belle_sip_tester_xml_tmp_file = NULL;
 static unsigned char belle_sip_tester_xml_enabled = FALSE;
 
 
@@ -163,11 +164,6 @@ void belle_sip_tester_set_root_ca_path(const char *root_ca_path) {
 	belle_sip_tester_root_ca_path = root_ca_path;
 }
 
-void belle_sip_tester_set_xml_output(const char *xml_path ) {
-	belle_sip_tester_xml_file = xml_path;
-}
-
-
 void belle_sip_tester_uninit(void) {
 	belle_sip_uninit_sockets();
 	if (test_suite != NULL) {
@@ -179,10 +175,10 @@ void belle_sip_tester_uninit(void) {
 
 /*derivated from cunit*/
 static void test_complete_message_handler(const CU_pTest pTest,
-                                                const CU_pSuite pSuite,
-                                                const CU_pFailureRecord pFailureList) {
-    int i;
-    CU_pFailureRecord pFailure = pFailureList;
+												const CU_pSuite pSuite,
+												const CU_pFailureRecord pFailureList) {
+	int i;
+	CU_pFailureRecord pFailure = pFailureList;
 	if (pFailure) {
 		if (belle_sip_tester_use_log_file) belle_sip_warning("Suite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
 		printf("\nSuite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
@@ -190,16 +186,16 @@ static void test_complete_message_handler(const CU_pTest pTest,
 		if (belle_sip_tester_use_log_file) belle_sip_warning(" passed");
 		printf(" passed");
 	}
-      for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
-    	  if (belle_sip_tester_use_log_file) belle_sip_warning("\n    %d. %s:%u  - %s", i,
-            (NULL != pFailure->strFileName) ? pFailure->strFileName : "",
-            pFailure->uiLineNumber,
-            (NULL != pFailure->strCondition) ? pFailure->strCondition : "");
-    	  printf("\n    %d. %s:%u  - %s", i,
-            (NULL != pFailure->strFileName) ? pFailure->strFileName : "",
-            pFailure->uiLineNumber,
-            (NULL != pFailure->strCondition) ? pFailure->strCondition : "");
-      }
+	  for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
+		  if (belle_sip_tester_use_log_file) belle_sip_warning("\n    %d. %s:%u  - %s", i,
+			(NULL != pFailure->strFileName) ? pFailure->strFileName : "",
+			pFailure->uiLineNumber,
+			(NULL != pFailure->strCondition) ? pFailure->strCondition : "");
+		  printf("\n    %d. %s:%u  - %s", i,
+			(NULL != pFailure->strFileName) ? pFailure->strFileName : "",
+			pFailure->uiLineNumber,
+			(NULL != pFailure->strCondition) ? pFailure->strCondition : "");
+	  }
  }
 
 
@@ -215,7 +211,7 @@ static void test_all_tests_complete_message_handler(const CU_pFailureRecord pFai
 
 static void test_suite_init_failure_message_handler(const CU_pSuite pSuite) {
 	if (belle_sip_tester_use_log_file) belle_sip_warning("Suite initialization failed for [%s].", pSuite->pName);
-    printf("Suite initialization failed for [%s].", pSuite->pName);
+	printf("Suite initialization failed for [%s].", pSuite->pName);
 }
 
 static void test_suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
@@ -250,10 +246,9 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 	CU_set_suite_cleanup_failure_handler(test_suite_cleanup_failure_message_handler);
 	CU_set_suite_start_handler(test_suite_start_message_handler);
 
-	if(belle_sip_tester_xml_file != NULL){
-		CU_set_output_filename(belle_sip_tester_xml_file);
-	}
-	if(belle_sip_tester_xml_enabled){
+	if(belle_sip_tester_xml_enabled) {
+		belle_sip_tester_xml_tmp_file = belle_sip_strdup_printf("%s.tmp", belle_sip_tester_xml_file);
+		CU_set_output_filename(belle_sip_tester_xml_tmp_file);
 		CU_automated_run_tests();
 	} else {
 #ifdef HAVE_CU_GET_SUITE
@@ -331,7 +326,6 @@ int main (int argc, char *argv[]) {
 	const char *root_ca_path = NULL;
 	const char *suite_name=NULL;
 	const char *test_name=NULL;
-	const char *xml_file=NULL;
 	const char *env_domain=getenv("TEST_DOMAIN");
 	FILE* log_file=NULL;
 
@@ -356,7 +350,6 @@ int main (int argc, char *argv[]) {
 				printf ("Redirecting traces to file [%s]",argv[i]);
 				belle_sip_set_log_file(log_file);
 			}
-
 		}else if (strcmp(argv[i],"--domain")==0){
 			CHECK_ARG("--domain", ++i, argc);
 			test_domain=argv[i];
@@ -368,7 +361,8 @@ int main (int argc, char *argv[]) {
 			root_ca_path = argv[i];
 		} else if (strcmp(argv[i], "--xml-file") == 0){
 			CHECK_ARG("--xml-file", ++i, argc);
-			xml_file = argv[i];
+			belle_sip_tester_xml_file = argv[i];
+			belle_sip_tester_xml_enabled = 1;
 		} else if (strcmp(argv[i], "--xml") == 0){
 			belle_sip_tester_xml_enabled = 1;
 		}
@@ -409,7 +403,7 @@ int main (int argc, char *argv[]) {
 	}
 
 #ifdef HAVE_CU_CURSES
-	if( xml_file && curses ){
+	if( belle_sip_tester_xml_enabled && curses ){
 		printf("Cannot use both xml and curses\n");
 		return -1;
 	}
@@ -420,13 +414,19 @@ int main (int argc, char *argv[]) {
 		return -1;
 	}
 
-	if( xml_file != NULL ){
-		belle_sip_tester_set_xml_output(xml_file);
-	}
 	belle_sip_tester_set_root_ca_path(root_ca_path);
 	ret = belle_sip_tester_run_tests(suite_name, test_name);
 	belle_sip_tester_uninit();
 	if (log_file) fclose(log_file);
+
+	if ( belle_sip_tester_xml_enabled ) {
+		/*create real xml file only if tester did not crash*/
+		char * real_name = belle_sip_strdup_printf("%s%s", belle_sip_tester_xml_tmp_file, "-Results.xml");
+		rename(real_name, belle_sip_tester_xml_file);
+		belle_sip_free(real_name);
+		belle_sip_free(belle_sip_tester_xml_tmp_file);
+	}
+
 	return ret;
 }
 #endif
