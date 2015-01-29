@@ -381,7 +381,7 @@ static void video_stream_first_iframe_lost_vp8_base(bool_t use_avpf) {
 			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_decoder_first_image_decoded,
 				1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_decoder_first_image_decoded,
-				1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+				1, 2000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 		} else {
 			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_decoder_decoding_error,
 				1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
