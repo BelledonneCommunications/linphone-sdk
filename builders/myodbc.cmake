@@ -22,7 +22,7 @@
 
 set(EP_myodbc_GIT_REPOSITORY "git://git.linphone.org/myodbc.git")
 set(EP_myodbc_GIT_TAG_LATEST "master")
-set(EP_myodbc_GIT_TAG "cc75148d6f305a99918715eab1a0bfa22a93f007")
+set(EP_myodbc_GIT_TAG "9f977106af303d8b70ae5c4c2c727618316f78ce")
 
 set(EP_myodbc_CMAKE_OPTIONS "-DWITH_UNIXODBC=1")
 set(EP_myodbc_LINKING_TYPE )
