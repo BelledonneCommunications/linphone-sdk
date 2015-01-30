@@ -24,6 +24,7 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				msfileplayer.h \
 				msfilerec.h \
 				msfilter.h \
+				msgenericplc.h \
 				msinterfaces.h \
 				msitc.h \
 				msjava.h \
