@@ -86,18 +86,23 @@ if(WIN32)
 else()
 	set(PACKAGES_TO_BUILD "zip" "wheel")
 	set(PY_MODULE_EXT ".so")
+	set(LINPHONE_DYNAMIC_LIBRARIES_TO_INSTALL )
 	if(APPLE)
-		set(LINPHONE_DYNAMIC_LIBRARIES_TO_INSTALL
-			"${CMAKE_INSTALL_PREFIX}/lib/libavcodec.53.61.100.dylib"
-			"${CMAKE_INSTALL_PREFIX}/lib/libavutil.51.35.100.dylib"
-			"${CMAKE_INSTALL_PREFIX}/lib/libswscale.2.1.100.dylib"
-		)
+		if(ENABLE_FFMPEG)
+			list(APPEND LINPHONE_DYNAMIC_LIBRARIES_TO_INSTALL
+				"${CMAKE_INSTALL_PREFIX}/lib/libavcodec.53.61.100.dylib"
+				"${CMAKE_INSTALL_PREFIX}/lib/libavutil.51.35.100.dylib"
+				"${CMAKE_INSTALL_PREFIX}/lib/libswscale.2.1.100.dylib"
+			)
+		endif()
 	else()
-		set(LINPHONE_DYNAMIC_LIBRARIES_TO_INSTALL
-			"${CMAKE_INSTALL_PREFIX}/lib/libavcodec.so.53.61.100"
-			"${CMAKE_INSTALL_PREFIX}/lib/libavutil.so.51.35.100"
-			"${CMAKE_INSTALL_PREFIX}/lib/libswscale.so.2.1.100"
-		)
+		if(ENABLE_FFMPEG)
+			list(APPEND LINPHONE_DYNAMIC_LIBRARIES_TO_INSTALL
+				"${CMAKE_INSTALL_PREFIX}/lib/libavcodec.so.53.61.100"
+				"${CMAKE_INSTALL_PREFIX}/lib/libavutil.so.51.35.100"
+				"${CMAKE_INSTALL_PREFIX}/lib/libswscale.so.2.1.100"
+			)
+		endif()
 	endif()
 endif()
 
