@@ -92,13 +92,20 @@ MS2_PUBLIC void ms_queue_destroy(MSQueue *q);
 #define mblk_set_timestamp_info(m,ts) (m)->reserved1=(ts);
 #define mblk_get_timestamp_info(m)    ((m)->reserved1)
 #define mblk_set_marker_info(m,bit)   __mblk_set_flag(m,0,bit)
-#define mblk_get_marker_info(m)	      ((m)->reserved2&0x1) /*bit 1*/
-#define mblk_set_precious_flag(m,bit)    __mblk_set_flag(m,1,bit)  /*use to prevent mirroring*/
-#define mblk_get_precious_flag(m)    (((m)->reserved2)>>1 & 0x1) /*bit 2*/
+#define mblk_get_marker_info(m)	      ((m)->reserved2 & 0x1) /*bit 1*/
+
+#define mblk_set_precious_flag(m,bit)    __mblk_set_flag(m,1,bit)  /*use to prevent mirroring for video*/
+#define mblk_get_precious_flag(m)    (((m)->reserved2)>>1 & 0x1) /*bit 2 */
+
 #define mblk_set_plc_flag(m,bit)    __mblk_set_flag(m,2,bit)  /*use to mark a plc generated block*/
-#define mblk_get_plc_flag(m)    (((m)->reserved2)>>1 & 0x2) /*bit 2*/
+#define mblk_get_plc_flag(m)    (((m)->reserved2)>>2 & 0x1) /*bit 3*/
+
 #define mblk_set_cng_flag(m,bit)    __mblk_set_flag(m,3,bit)  /*use to mark a cng generated block*/
-#define mblk_get_cng_flag(m)    (((m)->reserved2)>>2 & 0x4) /*bit 3*/
+#define mblk_get_cng_flag(m)    (((m)->reserved2)>>3 & 0x1) /*bit 4*/
+
+#define mblk_set_user_flag(m,bit)    __mblk_set_flag(m,7,bit)  /* to be used by extensions to mediastreamer2*/
+#define mblk_get_user_flag(m)    (((m)->reserved2)>>7 & 0x1) /*bit 8*/
+
 #define mblk_set_cseq(m,value) (m)->reserved2=(m)->reserved2| ((value&0xFFFF)<<16);	
 #define mblk_get_cseq(m) ((m)->reserved2>>16)
 	

@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static const float max_e = (32768* 0.7);   /* 0.7 - is RMS factor */
 static const float coef = 0.2; /* floating averaging coeff. for energy */
-static const float silence_threshold=0.001;
+static const float silence_threshold=0.01;
 
 typedef struct _VadDtxContext{
 	int silence_mode;/*set to 1 if a silence period is running*/
@@ -66,6 +66,7 @@ static void update_energy(VadDtxContext *v, int16_t *signal, int numsamples, uin
 	en = (sqrt(acc / numsamples)+1) / max_e;
 	v->energy = (en * coef) + v->energy * (1.0 - coef);
 	ortp_extremum_record_max(&v->max,curtime,v->energy);
+	//ms_message("Energy=%f, current max=%f",v->energy, ortp_extremum_get_current(&v->max));
 }
 
 static void vad_dtx_process(MSFilter *f){

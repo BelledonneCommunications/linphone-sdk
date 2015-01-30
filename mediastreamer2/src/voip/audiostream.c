@@ -594,12 +594,12 @@ static void on_silence_detected(void *data, MSFilter *f, unsigned int event_id, 
 	if (as->ms.rtpsend){
 		switch(event_id){
 			case MS_VAD_DTX_NO_VOICE:
-				ms_message("on_silence_detected(): CN packet to be sent !");
+				/*ms_message("on_silence_detected(): CN packet to be sent !");*/
 				ms_filter_call_method(as->ms.rtpsend, MS_RTP_SEND_SEND_GENERIC_CN, event_arg);
 				ms_filter_call_method(as->ms.rtpsend, MS_RTP_SEND_MUTE, event_arg);
 			break;
 			case MS_VAD_DTX_VOICE:
-				ms_message("on_silence_detected(): resuming audio");
+				/*ms_message("on_silence_detected(): resuming audio");*/
 				ms_filter_call_method(as->ms.rtpsend, MS_RTP_SEND_UNMUTE, event_arg);
 			break;
 		}
