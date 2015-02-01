@@ -249,7 +249,11 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 		audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
 
 		/* No packet loss is assumed */
-		CU_ASSERT_EQUAL(marielle_stats.rtp.sent,margaux_stats.rtp.recv);
+		if (change_send_key_in_the_middle) {
+			/*we can accept one or 2 error in such case*/
+			CU_ASSERT_TRUE((marielle_stats.rtp.sent-margaux_stats.rtp.recv)<3);
+		} else
+			CU_ASSERT_EQUAL(marielle_stats.rtp.sent,margaux_stats.rtp.recv);
 
 		if (change_ssrc) {
 			audio_stream_stop(marielle);
