@@ -288,6 +288,8 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	}
 
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, &rtcp_xr_media_cbs);
+	
+	stream->staticimage_webcam_fps_optimization = TRUE;
 
 	return stream;
 }
@@ -490,7 +492,7 @@ static void configure_video_source(VideoStream *stream){
 			fps=stream->fps;
 		ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
 		/* configure the filters */
-		if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
+		if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID || !stream->staticimage_webcam_fps_optimization) {
 			ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
 		}
 		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_FPS,&fps);

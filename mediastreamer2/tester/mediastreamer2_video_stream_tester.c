@@ -189,9 +189,11 @@ static void init_video_streams(video_stream_tester_t *marielle, video_stream_tes
 	MSWebCam *default_webcam = ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
 /*	MSWebCam *default_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "QT Capture: Logitech Camera #2");*/
 	marielle->vs = video_stream_new2(marielle->local_ip,marielle->local_rtp, marielle->local_rtcp);
+	marielle->vs->staticimage_webcam_fps_optimization = FALSE;
 	marielle->local_rtp=rtp_session_get_local_port(marielle->vs->ms.sessions.rtp_session);
 	marielle->local_rtcp=rtp_session_get_local_rtcp_port(marielle->vs->ms.sessions.rtp_session);
 	margaux->vs = video_stream_new2(margaux->local_ip, margaux->local_rtp, margaux->local_rtcp);
+	margaux->vs->staticimage_webcam_fps_optimization = FALSE;
 	margaux->local_rtp=rtp_session_get_local_port(margaux->vs->ms.sessions.rtp_session);
 	margaux->local_rtcp=rtp_session_get_local_rtcp_port(margaux->vs->ms.sessions.rtp_session);
 	reset_stats(&marielle->stats);
