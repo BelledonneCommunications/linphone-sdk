@@ -128,8 +128,7 @@ static void capture_queue_cleanup(void* p) {
 	/*
 	 Currently, the only supported key is kCVPixelBufferPixelFormatTypeKey. Supported pixel formats are kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange and kCVPixelFormatType_32BGRA, except on iPhone 3G, where the supported pixel formats are kCVPixelFormatType_422YpCbCr8 and kCVPixelFormatType_32BGRA..
 	 */
-	NSDictionary* dic = [NSDictionary dictionaryWithObjectsAndKeys:
-						 [NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange], (id)kCVPixelBufferPixelFormatTypeKey, nil];
+	NSDictionary* dic = @{ (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) };
 	[output setVideoSettings:dic];
 	
 	/* Set the layer */
@@ -260,8 +259,8 @@ static void capture_queue_cleanup(void* p) {
 																								   , rotation
 																								   , mOutputVideoSize.width
 																								   , mOutputVideoSize.height
-																								   , y_bytePer_row
-																								   , cbcr_bytePer_row
+																								   , (unsigned int)y_bytePer_row
+																								   , (unsigned int)cbcr_bytePer_row
 																								   , TRUE
 																								   , mDownScalingRequired); 
 			  
@@ -557,7 +556,7 @@ static void ioscapture_process(MSFilter * obj) {
 			// keep only the latest image
 			ms_queue_flush(obj->outputs[0]);
 			ms_queue_put(obj->outputs[0],thiz->msframe);
-			ms_video_update_average_fps(&thiz->averageFps, obj->ticker->time);
+			ms_video_update_average_fps(&thiz->averageFps, (uint32_t)obj->ticker->time);
 			thiz->msframe=0;
 		}	
 		ms_mutex_unlock(&thiz->mutex);
