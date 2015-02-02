@@ -293,7 +293,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 	}
 	audio_stream_stop(marielle);
 	audio_stream_stop(margaux);
-	ms_free(profile);
+	rtp_profile_destroy(profile);
 
 }
 static void encrypted_audio_stream() {
