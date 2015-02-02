@@ -80,6 +80,8 @@ cmake_dependent_option(ENABLE_X264 "Enable H.264 video encoder support with the 
 linphone_builder_add_feature_info("x264" ENABLE_X264 "H.264 video encoding support with the x264 library.")
 cmake_dependent_option(ENABLE_OPENH264 "Enable H.264 video encoder support with the openh264 library." ${DEFAULT_VALUE_ENABLE_OPENH264} "ENABLE_VIDEO; NOT ENABLE_X264" OFF)
 linphone_builder_add_feature_info("openh264" ENABLE_OPENH264 "H.264 video encoding support with the openh264 library.")
+cmake_dependent_option(ENABLE_V4L "Enable V4L camera driver." ON "ENABLE_VIDEO; UNIX; NOT APPLE" OFF)
+linphone_builder_add_feature_info("v4l" ENABLE_V4L "V4L camera driver.")
 
 option(ENABLE_TUNNEL "Enable tunnel support." ${DEFAULT_VALUE_ENABLE_TUNNEL})
 linphone_builder_add_feature_info("Tunnel" ENABLE_TUNNEL "Secure tunnel for SIP/RTP.")
