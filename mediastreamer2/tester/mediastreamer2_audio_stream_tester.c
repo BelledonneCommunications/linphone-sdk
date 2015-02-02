@@ -291,9 +291,9 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 	} else {
 		ms_warning("srtp not available, skiping...");
 	}
-	ms_free(profile);
 	audio_stream_stop(marielle);
 	audio_stream_stop(margaux);
+	ms_free(profile);
 
 }
 static void encrypted_audio_stream() {
