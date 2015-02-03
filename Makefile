@@ -26,7 +26,7 @@ PWD=$(shell pwd)
 	build-desktop clean-desktop \
 	build-flexisip clean-flexisip \
 	build-flexisip-rpm clean-flexisip-rpm \
-	build-python clean-python \
+	build-python clean-python build-python-raspberry \
 	build-bb10-i486 build-bb10-arm build-bb10 clean-bb10-i486 clean-bb10-arm clean-bb10 help-bb10 generate-bb10-sdk \
 	build-ios-i386 build-ios-armv7 build-ios-armv7s build-ios clean-ios-i386 clean-ios-armv7 clean-ios-armv7s clean-ios help-ios generate-ios-sdk \
 	veryclean
@@ -80,6 +80,15 @@ build-python:
 	mkdir -p WORK/cmake-python && \
 	cd WORK/cmake-python && \
 	cmake ../.. -DLINPHONE_BUILDER_CONFIG_FILE=configs/config-python.cmake -DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT -DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT $(filter -D%,$(MAKEFLAGS)) && \
+	make
+
+build-python-raspberry:
+	mkdir -p WORK/cmake-python-raspberry && \
+	cd WORK/cmake-python-raspberry && \
+	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-raspberry.cmake \
+		-DLINPHONE_BUILDER_CONFIG_FILE=configs/config-python-raspberry.cmake \
+		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT -DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT \
+		$(filter -D%,$(MAKEFLAGS)) && \
 	make
 
 clean-python:
