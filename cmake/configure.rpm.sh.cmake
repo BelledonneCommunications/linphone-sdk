@@ -1,5 +1,9 @@
 #!/bin/sh
 
+if [ -n "@AUTOTOOLS_AS_COMPILER@" ]
+then
+	export AS="@AUTOTOOLS_AS_COMPILER@"
+fi
 export CC="@AUTOTOOLS_C_COMPILER@"
 export CXX="@AUTOTOOLS_CXX_COMPILER@"
 export OBJC="@AUTOTOOLS_OBJC_COMPILER@"

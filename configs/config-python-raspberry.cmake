@@ -38,5 +38,5 @@ set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
 # vpx
 set(EP_vpx_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--target=generic-gnu"
+	"--target=armv6-linux-gcc"
 )

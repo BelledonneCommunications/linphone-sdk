@@ -21,4 +21,4 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 2.8)
-configure_file(${CMAKE_SOURCE_DIR}/Autotools.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/Autotools.cmake)
+configure_file(${CMAKE_SOURCE_DIR}/Autotools.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/Autotools.cmake @ONLY)

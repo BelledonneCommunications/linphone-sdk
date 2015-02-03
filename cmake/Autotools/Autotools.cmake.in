@@ -20,6 +20,10 @@
 #
 ############################################################################
 
+if("@CMAKE_C_COMPILER_ID@" STREQUAL "GNU")
+	string(REGEX REPLACE "gcc$" "as" AS_COMPILER "@CMAKE_C_COMPILER@")
+	set(AUTOTOOLS_AS_COMPILER ${AS_COMPILER} CACHE PATH "Initial cache" FORCE)
+endif()
 set(AUTOTOOLS_C_COMPILER "@CMAKE_C_COMPILER@" CACHE PATH "Initial cache" FORCE)
 set(AUTOTOOLS_CXX_COMPILER "@CMAKE_CXX_COMPILER@" CACHE PATH "Initial cache" FORCE)
 set(AUTOTOOLS_OBJC_COMPILER "@CMAKE_C_COMPILER@" CACHE PATH "Initial cache" FORCE)
