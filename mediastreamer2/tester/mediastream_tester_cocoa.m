@@ -71,7 +71,7 @@ extern int apple_main(int argc, char **argv);
 
 -(BOOL)applicationShouldTerminateAfterLastWindowClosed: (NSApplication *)theApplication
 {
-    return YES;
+    return NO;
 }
 
 -(void)dealloc
