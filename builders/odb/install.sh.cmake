@@ -25,8 +25,8 @@ export RPM_TOPDIR="@LINPHONE_BUILDER_WORK_DIR@/rpmbuild"
 if [ "@PLATFORM@" = "Debian" ]; then
 	DEBS_TOPDIR="$RPM_TOPDIR/DEBS"
 	mkdir -p "$DEBS_TOPDIR" && cd "$DEBS_TOPDIR"
-	find "$RPM_TOPDIR/RPMS" -iname "odb_*.rpm" -exec fakeroot alien -d {} +
-	find "$DEBS_TOPDIR" -iname "odb_*.deb" -exec sudo dpkg -i {} +
+	find "$RPM_TOPDIR/RPMS" -iname "odb-*.rpm" -exec fakeroot alien -d {} +
+	find "$DEBS_TOPDIR" -iname "odb-*.deb" -exec sudo dpkg -i {} +
 else
-	find "$RPM_TOPDIR/RPMS" -iname "odb_*.rpm" -exec sudo rpm -ivh --force {} +
+	find "$RPM_TOPDIR/RPMS" -iname "odb-*.rpm" -exec sudo rpm -ivh --force {} +
 fi
