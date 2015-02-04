@@ -183,8 +183,11 @@ else()
 		add_custom_target(TARGET_flexisip ALL)
 		add_dependencies(TARGET_linphone_builder TARGET_flexisip)
 		add_dependencies(TARGET_flexisip TARGET_ortp )
-		linphone_builder_add_builder_to_target(TARGET_flexisip unixodbc )
-		linphone_builder_add_builder_to_target(TARGET_flexisip myodbc )
+
+		if( USE_BC_ODBC )
+			linphone_builder_add_builder_to_target(TARGET_flexisip unixodbc )
+			linphone_builder_add_builder_to_target(TARGET_flexisip myodbc )
+		endif()
 		linphone_builder_add_builder_to_target(TARGET_flexisip sofiasip )
 
 		linphone_builder_add_builder_to_target(TARGET_flexisip odb )

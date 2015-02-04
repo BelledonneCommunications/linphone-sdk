@@ -22,9 +22,9 @@
 
 set(EP_flexisip_GIT_REPOSITORY "gitosis@git.linphone.org:flexisip")
 set(EP_flexisip_GIT_TAG_LATEST "master")
-set(EP_flexisip_GIT_TAG "a247eba31e51b72502557523768308bbd9863d82")
+set(EP_flexisip_GIT_TAG "308f48fcd1c50a48f4f62ec4e10d3d9fd462fa99")
 
-set(EP_flexisip_DEPENDENCIES EP_ortp EP_unixodbc EP_myodbc EP_sofiasip )
+set(EP_flexisip_DEPENDENCIES EP_ortp EP_sofiasip )
 
 list(APPEND EP_flexisip_DEPENDENCIES EP_libodbmysql)
 
@@ -38,6 +38,14 @@ set(EP_flexisip_CROSS_COMPILATION_OPTIONS
 )
 set(EP_flexisip_CONFIG_H_FILE "flexisip.spec")
 
-list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder" "--enable-redis" "--with-odbc=${CMAKE_INSTALL_PREFIX}" )
+if( USE_BC_ODBC )
+	message(STATUS "Flexisip to be built with BC ODBC")
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-odbc=${CMAKE_INSTALL_PREFIX}")
+	list(APPEND EP_flexisip_DEPENDENCIES EP_unixodbc EP_myodbc)
+else()
+	message(STATUS "Flexisip to be built with system ODBC")
+endif()
+
+list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder" "--enable-redis" )
 
 set(EP_flexisip_SPEC_FILE "flexisip.spec")

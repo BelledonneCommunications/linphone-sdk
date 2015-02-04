@@ -137,7 +137,11 @@ set(EP_ortp_RPMBUILD_OPTIONS      "--with bc --without srtp")
 set(EP_unixodbc_RPMBUILD_OPTIONS  "--with bc")
 set(EP_myodbc_RPMBUILD_OPTIONS    "--with bc")
 set(EP_sofiasip_RPMBUILD_OPTIONS  "--with bc --without glib")
+
 set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --without boostlog --with push")
+if( USE_BC_ODBC )
+	set( EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --with bcodbc")
+endif()
 
 set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "bc-")
 
