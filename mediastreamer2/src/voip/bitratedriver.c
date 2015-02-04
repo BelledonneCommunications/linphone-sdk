@@ -54,6 +54,7 @@ struct _MSAudioBitrateDriver{
 	int nom_bitrate;
 	int cur_ptime;
 	int cur_bitrate;
+	int encoder_caps;
 };
 
 typedef struct _MSAudioBitrateDriver MSAudioBitrateDriver;
@@ -87,8 +88,6 @@ static int apply_ptime(MSAudioBitrateDriver *obj,int target_ptime){
 	} else {
 		ms_message("MSAudioBitrateDriver [%p]: cannot move ptime from [%i ms] to [%i ms]",obj,obj->cur_ptime,target_ptime);
 	}
-
-
 	return result;
 }
 
@@ -121,8 +120,9 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 	}
 
 	if (action->type==MSRateControlActionDecreaseBitrate){
+		
 		/*reducing bitrate of the codec isn't sufficient. Increasing ptime is much more efficient*/
-		if (inc_ptime(obj)){
+		if ((obj->encoder_caps & MS_AUDIO_ENCODER_CAP_AUTO_PTIME) || inc_ptime(obj)){
 			if (obj->nom_bitrate>0){
 				int cur_br=0;
 				int new_br;
@@ -153,8 +153,10 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 		return inc_ptime(obj);
 	}else if (action->type==MSRateControlActionIncreaseQuality){
 		int ret=0;
-		if (obj->cur_ptime>obj->min_ptime){
-			ret=dec_ptime(obj);
+		if (!(obj->encoder_caps & MS_AUDIO_ENCODER_CAP_AUTO_PTIME)){
+			if (obj->cur_ptime>obj->min_ptime){
+				ret=dec_ptime(obj);
+			}
 		}
 		if (obj->nom_bitrate>0){
 			int cur_bitrate=0;
@@ -198,6 +200,8 @@ MSBitrateDriver *ms_audio_bitrate_driver_new(RtpSession *session, MSFilter *enco
 	obj->min_ptime=20;
 	obj->cur_ptime=0;
 	obj->cur_bitrate=obj->nom_bitrate=0;
+	if (ms_filter_has_method(obj->encoder, MS_AUDIO_ENCODER_GET_CAPABILITIES))
+			ms_filter_call_method(obj->encoder, MS_AUDIO_ENCODER_GET_CAPABILITIES, &obj->encoder_caps);
 	return (MSBitrateDriver*)obj;
 }
 

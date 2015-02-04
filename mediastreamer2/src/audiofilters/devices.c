@@ -30,6 +30,13 @@
 
 
 #ifdef ANDROID
+/* 
+ * 1st column: value of ro.product.manufacturer 
+ * 2nd column: value of ro.product.model
+ * 3rd column: value of ro.board.platform (and is optional)
+ * All these values can be obtained from the device using "adb shell getprop"
+*/
+
 static SoundDeviceDescription devices[]={
 	{	"HTC",		"Nexus One",	"qsd8k",	0,	300 },
 	{	"HTC",		"HTC One X",	"tegra",	0,	150 },	/*has a very good acoustic isolation, which result in calibration saying no echo. */

@@ -62,6 +62,7 @@ typedef struct _OpusEncData {
 	int vbr;
 	int useinbandfec;
 	int usedtx;
+	bool_t ptime_set;
 
 } OpusEncData;
 
@@ -89,7 +90,7 @@ static void ms_opus_enc_init(MSFilter *f) {
 	/* set default parameters according to draft RFC RTP Payload Format for Opus codec section 6.1 */
 	d->maxplaybackrate = 48000;
 	d->maxptime = 120;
-	d->ptime = -1; // ptime will be set once by the set ptime function and then managed by set bitrate/apply_max_bitrate
+	d->ptime = 20;
 	d->minptime = 20; // defaut shall be 3, but we never use less than 20.
 	d->maxaveragebitrate = -1;
 	d->stereo = 1;
@@ -138,9 +139,6 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 	}
 
 	ms_filter_lock(f);
-	if (d->ptime==-1) { // set ptime wasn't call, set default:20ms
-		d->ptime = 20;
-	}
 	if (d->bitrate==-1) { // set bitrate wasn't call, compute it with the default network bitrate (36000)
 		compute_max_bitrate(d, 0);
 	}
@@ -250,17 +248,13 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 	float pps;
 	int maxaveragebitrate=510000;
 
-	if (d->ptime==-1) {
-		pps = 50; // if this function is called before ptime being set, use default ptime 20ms
-	} else {
-		pps = 1000.0f / d->ptime;
-	}
+	pps = 1000.0f / d->ptime;
 
 	/* if have a potentiel ptime modification suggested by caller, check ptime and bitrate for adjustment */
 	if (ptimeStep != 0) {
 		normalized_cbr = (int)(((((float)d->max_network_bitrate) / (pps * 8)) - 20 - 12 -8) * pps * 8);
 		if (normalized_cbr<12000) {
-			if (d->ptime<120 || (ptimeStep<0 && d->ptime>40)) {
+			if (d->ptime<d->maxptime || (ptimeStep<0 && d->ptime>40)) {
 				d->ptime += ptimeStep;
 			}
 		} else if (normalized_cbr<20000) {
@@ -296,7 +290,7 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 		d->max_network_bitrate = (normalized_cbr/(pps*8) + 12 + 8 + 20) *8*pps;
 		ms_warning("Opus encoder cannot set codec bitrate to [%i] because of maxaveragebitrate constraint or absolute maximum bitrate value. New network bitrate is [%i]", initial_value, d->max_network_bitrate);
 	}
-
+	ms_message("MSOpusEnc: codec bitrate set to [%i] with ptime [%i]", normalized_cbr, d->ptime);
 	d->bitrate = normalized_cbr;
 }
 
@@ -364,8 +358,9 @@ static int ms_opus_enc_set_bitrate(MSFilter *f, void *arg) {
 	int ptimeTarget = d->ptime;
 	int bitrate = *((int *)arg); // the argument is the network bitrate requested
 
-	/* this function also manage the ptime, check if we are increasing or decreasing the bitrate in order to possibly decrease or increase ptime */
-	if (d->bitrate>0 && d->ptime>0) { /* at first call to set_bitrate(bitrate is initialised at -1), do not modify ptime, neither if it wasn't initialised too */
+	/* If ptime isn't set explicitely,
+	 * this function also manage the ptime, check if we are increasing or decreasing the bitrate in order to possibly decrease or increase ptime */
+	if (d->bitrate>0 && !d->ptime_set) {
 		if (bitrate > d->max_network_bitrate ) {
 			ptimeStepSign = -1;
 		}
@@ -376,8 +371,8 @@ static int ms_opus_enc_set_bitrate(MSFilter *f, void *arg) {
 		if (ptimeTarget<20) {
 			ptimeTarget = 20;
 		}
-		if (ptimeTarget>120) {
-			ptimeTarget = 120;
+		if (ptimeTarget>d->maxptime) {
+			ptimeTarget = d->maxptime;
 		}
 
 		// ABS(difference of current and requested bitrate)   ABS(current network bandwidth overhead - new ptime target overhead)
@@ -388,7 +383,7 @@ static int ms_opus_enc_set_bitrate(MSFilter *f, void *arg) {
 	d->max_network_bitrate = bitrate;
 	ms_message("opus setbitrate to %d",d->max_network_bitrate);
 
-	if (d->bitrate>0 && d->ptime>0) { /*don't apply bitrate before prepocess*/
+	if (d->bitrate>0) { /*don't apply bitrate before prepocess*/
 		ms_filter_lock(f);
 		compute_max_bitrate(d, ptimeStepValue*ptimeStepSign);
 		apply_max_bitrate(d);
@@ -413,27 +408,26 @@ static int ms_opus_enc_set_ptime(MSFilter *f, void *arg) {
 	int ptime = *(int*)arg;
 
 	ms_filter_lock(f);
-	if (d->ptime==-1) {
-		/* ptime value can be 20, 40, 60, 80, 100 or 120 */
-		if ((ptime%20 != 0) || (ptime>120) || (ptime<20)) {
-			d->ptime = ptime-ptime%20;
-			if (d->ptime<20) {
-				d->ptime=20;
-			}
-			if (d->ptime>120) {
-				d->ptime=120;
-			}
-			ms_warning("Opus encoder doesn't support ptime [%i]( 20 multiple in range [20,120] only) set to %d", ptime, d->ptime);
-		} else {
-			d->ptime=ptime;
-			ms_message ( "Opus enc: got ptime=%i",d->ptime );
+	
+	/* ptime value can be 20, 40, 60, 80, 100 or 120 */
+	if ((ptime%20 != 0) || (ptime>d->maxptime) || (ptime<20)) {
+		d->ptime = ptime-ptime%20;
+		if (d->ptime<20) {
+			d->ptime=20;
 		}
-		/* network bitrate is affected by ptime, only if bitrate was already set */
-		if (d->bitrate!=-1) {
-			d->max_network_bitrate = ((d->bitrate*d->ptime/8000) + 12 + 8 + 20) *8000/d->ptime;
+		if (d->ptime>d->maxptime) {
+			d->ptime=d->maxptime;
 		}
-		retval=0;
+		ms_warning("Opus encoder doesn't support ptime [%i]( 20 multiple in range [20,%i] only) set to %d", ptime, d->maxptime, d->ptime);
+	} else {
+		d->ptime=ptime;
+		ms_message ( "Opus enc: got ptime=%i",d->ptime );
 	}
+	if (d->bitrate!=-1) {
+		d->max_network_bitrate = ((d->bitrate*d->ptime/8000) + 12 + 8 + 20) *8000/d->ptime;
+	}
+	d->ptime_set=TRUE;
+	retval=0;
 	ms_filter_unlock(f);
 	return retval;
 }
@@ -534,6 +528,11 @@ static int ms_opus_enc_add_fmtp(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int ms_opus_enc_get_capabilities(MSFilter *f, void *arg){
+	*(int*)arg=MS_AUDIO_ENCODER_CAP_AUTO_PTIME;
+	return 0;
+}
+
 static MSFilterMethod ms_opus_enc_methods[] = {
 	{	MS_FILTER_SET_SAMPLE_RATE,	ms_opus_enc_set_sample_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE,	ms_opus_enc_get_sample_rate	},
@@ -543,6 +542,7 @@ static MSFilterMethod ms_opus_enc_methods[] = {
 	{	MS_AUDIO_ENCODER_SET_PTIME,	ms_opus_enc_set_ptime		},
 	{	MS_AUDIO_ENCODER_GET_PTIME,	ms_opus_enc_get_ptime		},
 	{	MS_FILTER_SET_NCHANNELS	,	ms_opus_enc_set_nchannels	},
+	{	MS_AUDIO_ENCODER_GET_CAPABILITIES,	ms_opus_enc_get_capabilities },
 	{	0,				NULL				}
 };
 

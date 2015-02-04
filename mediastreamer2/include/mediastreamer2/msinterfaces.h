@@ -284,4 +284,10 @@ typedef enum _MSRecorderState MSRecorderState;
 /* Set the packet loss percentage reported, so that encoder may compensate if forward-correction is enabled and implemented.*/
 #define MS_AUDIO_ENCODER_SET_PACKET_LOSS \
 	MS_FILTER_METHOD(MSFilterAudioEncoderInterface,3,int)
+	
+#define MS_AUDIO_ENCODER_CAP_AUTO_PTIME (1)
+
+#define MS_AUDIO_ENCODER_GET_CAPABILITIES \
+	MS_FILTER_METHOD(MSFilterAudioEncoderInterface,4,int)
+	
 #endif
