@@ -58,6 +58,13 @@ typedef struct GLXVideo
 } GLXVideo;
 
 
+static bool_t x11_error = FALSE;
+
+static int x11error_handler(Display *d, XErrorEvent*ev) {
+	ms_error("X11 error reported.");
+	x11_error = TRUE;
+	return 0;
+}
 
 static Display *init_display(){
 	const char *display;
@@ -84,6 +91,8 @@ static void glxvideo_init(MSFilter	*f){
 	obj->show=TRUE;
 	obj->autofit=TRUE;
 	f->data=obj;
+
+	XSetErrorHandler(x11error_handler);
 }
 
 
@@ -117,6 +126,9 @@ static void glxvideo_prepare(MSFilter *f){
 
 	if (s->display==NULL) return;
 	if (s->window_id==(unsigned long)-1) return;
+
+	/* Make sure X11 window is ready to use*/
+	XSync(s->display, False);
 
 	if (createX11GLWindow(s->display, s->wsize, &s->glContext, &window)) {
 		GLenum err;
@@ -175,7 +187,7 @@ static void glxvideo_process(MSFilter *f){
 	
 	ms_filter_lock(f);
 	
-	if (obj->window_id==0 || obj->window_id==(Window)-1) goto end;
+	if (obj->window_id==0 || obj->window_id==(Window)-1 || x11_error==TRUE) goto end;
 	XGetWindowAttributes(obj->display,obj->window_id,&wa);
 	if (wa.width!=obj->wsize.width || wa.height!=obj->wsize.height){
 		ms_warning("Resized to %ix%i", wa.width,wa.height);
@@ -401,7 +413,7 @@ static bool_t createX11GLWindow(Display* display, MSVideoSize size, GLXContext* 
 		ms_message( "Mapping window" );
 		XMapWindow( display, *win );
 	}else{
-		ms_message( "Creating sub window" );
+		ms_message( "Creating sub window in window %p", (void *)*win );
 		*win = XCreateWindow( display, *win,
 						0, 0, size.width, size.height, 0, vi->depth, InputOutput,
 						vi->visual,
