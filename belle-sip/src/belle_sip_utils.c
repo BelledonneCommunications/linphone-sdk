@@ -230,7 +230,7 @@ static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_li
 	}
 	#endif
 #endif
-	fprintf(__log_file,"%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i belle-sip-%s-%s" ENDLINE,1900+lt->tm_year,lt->tm_mon,lt->tm_mday,lt->tm_hour,lt->tm_min,lt->tm_sec,(int)(tp.tv_usec/1000), lname,msg);
+	fprintf(__log_file,"%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i belle-sip-%s-%s" ENDLINE,1900+lt->tm_year,lt->tm_mon+1,lt->tm_mday,lt->tm_hour,lt->tm_min,lt->tm_sec,(int)(tp.tv_usec/1000), lname,msg);
 	fflush(__log_file);
 	free(msg);
 }
