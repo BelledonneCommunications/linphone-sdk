@@ -66,9 +66,7 @@ build-flexisip-rpm:
 		-DLINPHONE_BUILDER_TARGET=flexisip \
 		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT\
 		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT \
-		 $(filter -D%,$(MAKEFLAGS)) && \
-	make
-#	make
+		 $(filter -D%,$(MAKEFLAGS))
 
 clean-flexisip-rpm:
 	rm -rf WORK/tmp-flexisip-rpm
