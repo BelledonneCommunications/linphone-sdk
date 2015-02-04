@@ -811,10 +811,14 @@ static void process_a_from_srv(void *data, const char *name, struct addrinfo *ai
 static void srv_resolve_a(belle_sip_combined_resolver_context_t *obj, belle_sip_dns_srv_t *srv){
 	belle_sip_message("Starting A/AAAA query for srv result [%s]",srv->target);
 	srv->root_resolver=obj;
+	/* take a ref of the srv object because the A resolution may terminate synchronously and destroy the srv
+	 object before to store the returned value of belle_sip_stack_resole_a(). That would lead to an invalid write */
+	belle_sip_object_ref(srv);
 	srv->a_resolver=belle_sip_stack_resolve_a(obj->base.stack,srv->target,srv->port,obj->family,process_a_from_srv,srv);
 	if (srv->a_resolver){
 		belle_sip_object_ref(srv->a_resolver);
 	}
+	belle_sip_object_unref(srv);
 }
 
 static void process_srv_results(void *data, const char *name, belle_sip_list_t *srv_results){
@@ -823,11 +827,15 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
 	belle_sip_object_ref(ctx);
 	if (srv_results){
 		belle_sip_list_t *elem;
-		ctx->srv_results=srv_results;
+		/* take a ref of each srv_results because the last A resolution may terminate synchronously
+		 and destroy the list before the loop terminate */
+		ctx->srv_results = belle_sip_list_copy(srv_results);
+		belle_sip_list_for_each(srv_results, (void(*)(void *))belle_sip_object_ref);
 		for(elem=srv_results;elem!=NULL;elem=elem->next){
 			belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
 			srv_resolve_a(ctx,srv);
 		}
+		srv_results = belle_sip_list_free_with_data(srv_results, belle_sip_object_unref);
 	}else{
 		/*no SRV results, perform A query */
 		belle_sip_message("No SRV result for [%s], trying A/AAAA.",name);
