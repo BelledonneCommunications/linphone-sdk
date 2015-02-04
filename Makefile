@@ -43,7 +43,7 @@ clean-desktop:
 	rm -rf WORK/Build-desktop && \
 	rm -rf WORK/tmp-desktop
 
-build-flexisip:
+prepare-flexisip:
 	export ODBC_PATH=../../OUTPUT
 	mkdir -p WORK/cmake-flexisip && \
 	cd WORK/cmake-flexisip && \
@@ -51,14 +51,13 @@ build-flexisip:
 		-DLINPHONE_BUILDER_TARGET=flexisip \
 		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT\
 		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT \
-		 $(filter -D%,$(MAKEFLAGS)) && \
-	make
+		$(filter -D%,$(MAKEFLAGS))
 
 clean-flexisip:
 	rm -rf WORK/tmp-flexisip && \
 	rm -rf WORK/Build-flexisip
 
-build-flexisip-rpm:
+prepare-flexisip-rpm:
 	export ODBC_PATH=../../OUTPUT
 	mkdir -p WORK/cmake-flexisip-rpm && \
 	cd WORK/cmake-flexisip-rpm && \
@@ -66,7 +65,9 @@ build-flexisip-rpm:
 		-DLINPHONE_BUILDER_TARGET=flexisip \
 		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT\
 		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT \
-		 $(filter -D%,$(MAKEFLAGS))
+		$(filter -D%,$(MAKEFLAGS))
+
+
 
 clean-flexisip-rpm:
 	rm -rf WORK/tmp-flexisip-rpm
