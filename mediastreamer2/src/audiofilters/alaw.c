@@ -130,10 +130,27 @@ static int enc_add_attr(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int get_sample_rate(MSFilter *f, void *arg) {
+	*((int *)arg) = 8000;
+	return 0;
+}
+
+static int dec_have_plc(MSFilter *f, void *arg) {
+	*((int *)arg) = 0;
+	return 0;
+}
+
+static int get_channels(MSFilter *f, void *arg) {
+	*((int *)arg) = 1;
+	return 0;
+}
+
 static MSFilterMethod enc_methods[]={
-	{	MS_FILTER_ADD_ATTR		,	enc_add_attr},
-	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp},
-	{	0				,	NULL		}
+	{	MS_FILTER_ADD_ATTR			,	enc_add_attr},
+	{	MS_FILTER_ADD_FMTP			,	enc_add_fmtp},
+	{	MS_FILTER_GET_NCHANNELS		,	get_channels},
+	{	MS_FILTER_GET_SAMPLE_RATE	,	get_sample_rate},
+	{	0							,	NULL		}
 };
 
 #ifdef _MSC_VER
@@ -187,6 +204,13 @@ static void alaw_dec_process(MSFilter *obj){
 	}
 }
 
+static MSFilterMethod dec_methods[]={
+	{	MS_FILTER_GET_NCHANNELS		,	get_channels},
+	{	MS_FILTER_GET_SAMPLE_RATE	,	get_sample_rate},
+	{	MS_DECODER_HAVE_PLC			,	dec_have_plc},
+	{	0							,	NULL		}
+};
+
 #ifdef _MSC_VER
 
 MSFilterDesc ms_alaw_dec_desc={
@@ -201,7 +225,8 @@ MSFilterDesc ms_alaw_dec_desc={
     NULL,
     alaw_dec_process,
     NULL,
-    NULL
+    NULL,
+    dec_methods
 };
 
 #else
@@ -215,6 +240,7 @@ MSFilterDesc ms_alaw_dec_desc={
 	.ninputs=1,
 	.noutputs=1,
 	.process=alaw_dec_process,
+	.methods=dec_methods
 };
 
 #endif
