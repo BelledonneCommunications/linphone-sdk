@@ -142,7 +142,7 @@ if( USE_BC_ODBC )
 	set(EP_myodbc_SPEC_PREFIX          "${RPM_INSTALL_PREFIX}")
 	set(EP_myodbc_CONFIGURE_OPTIONS    "--with-unixODBC=${RPM_INSTALL_PREFIX}")
 	set(EP_flexisip_RPMBUILD_OPTIONS   "${EP_flexisip_RPMBUILD_OPTIONS} --with bcodbc")
-	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-odbc=${RPM_INSTALL_PREFIX")
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-odbc=${RPM_INSTALL_PREFIX}")
 endif()
 
 set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "bc-")
