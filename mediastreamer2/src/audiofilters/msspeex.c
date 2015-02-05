@@ -418,6 +418,11 @@ static int enc_add_attr(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int get_channels(MSFilter *f, void *arg) {
+	*((int *)arg) = 1;
+	return 0;
+}
+
 static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	,	enc_set_sr	},
 	{	MS_FILTER_GET_SAMPLE_RATE	,	enc_get_sr	},
@@ -427,6 +432,7 @@ static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_ADD_ATTR		,	enc_add_attr	},
 	{	MS_AUDIO_ENCODER_SET_PTIME	,	enc_set_ptime	},
 	{	MS_AUDIO_ENCODER_GET_PTIME	,	enc_get_ptime	},
+	{	MS_FILTER_GET_NCHANNELS		,	get_channels},
 	{	0				,	NULL		}
 };
 
@@ -629,6 +635,7 @@ static MSFilterMethod dec_methods[]={
 	{	MS_FILTER_GET_SAMPLE_RATE	,	dec_get_sr	},
 	{	MS_FILTER_ADD_FMTP		,	dec_add_fmtp	},
 	{ 	MS_DECODER_HAVE_PLC		, 	dec_have_plc	},
+	{	MS_FILTER_GET_NCHANNELS		,	get_channels},
 	{	0				,	NULL		}
 };
 

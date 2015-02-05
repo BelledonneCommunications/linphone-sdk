@@ -444,6 +444,12 @@ static int ms_opus_enc_set_nchannels(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int ms_opus_enc_get_nchannels(MSFilter *f, void *arg) {
+	OpusEncData *d = (OpusEncData *)f->data;
+	*(int*)arg = d->channels;
+	return 0;
+}
+
 static int ms_opus_enc_set_vbr(MSFilter *f) {
 	OpusEncData *d = (OpusEncData *)f->data;
 	int error;
@@ -542,6 +548,7 @@ static MSFilterMethod ms_opus_enc_methods[] = {
 	{	MS_AUDIO_ENCODER_SET_PTIME,	ms_opus_enc_set_ptime		},
 	{	MS_AUDIO_ENCODER_GET_PTIME,	ms_opus_enc_get_ptime		},
 	{	MS_FILTER_SET_NCHANNELS	,	ms_opus_enc_set_nchannels	},
+	{	MS_FILTER_GET_NCHANNELS	,	ms_opus_enc_get_nchannels	},
 	{	MS_AUDIO_ENCODER_GET_CAPABILITIES,	ms_opus_enc_get_capabilities },
 	{	0,				NULL				}
 };
