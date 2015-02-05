@@ -109,7 +109,7 @@ else() # Windows
 	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/")
 endif()
 
-# needed *before* the include 
+# needed *before* the include
 set(EP_ortp_FORCE_AUTOTOOLS "yes")
 
 
@@ -118,20 +118,15 @@ set(EP_ortp_FORCE_AUTOTOOLS "yes")
 include(builders/CMakeLists.txt)
 
 set(EP_ortp_BUILD_METHOD     "rpm")
-set(EP_unixodbc_BUILD_METHOD "rpm")
-set(EP_myodbc_BUILD_METHOD   "rpm")
 set(EP_sofiasip_BUILD_METHOD "rpm")
 set(EP_flexisip_BUILD_METHOD "rpm")
 set(EP_odb_BUILD_METHOD      "custom")
 
 set(EP_ortp_SPEC_PREFIX     "${RPM_INSTALL_PREFIX}")
-set(EP_unixodbc_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_sofiasip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_flexisip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
-set(EP_myodbc_SPEC_PREFIX   "${RPM_INSTALL_PREFIX}")
 
-set(EP_myodbc_CONFIGURE_OPTIONS   "--with-unixODBC=${RPM_INSTALL_PREFIX}")
-set(EP_flexisip_CONFIGURE_OPTIONS "--with-odbc=${RPM_INSTALL_PREFIX}" "--disable-transcoder" "--enable-redis")
+set(EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder" "--enable-redis")
 
 set(EP_ortp_RPMBUILD_OPTIONS      "--with bc --without srtp")
 set(EP_unixodbc_RPMBUILD_OPTIONS  "--with bc")
@@ -139,8 +134,15 @@ set(EP_myodbc_RPMBUILD_OPTIONS    "--with bc")
 set(EP_sofiasip_RPMBUILD_OPTIONS  "--with bc --without glib")
 
 set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --without boostlog --with push")
+
 if( USE_BC_ODBC )
+	set(EP_unixodbc_BUILD_METHOD      "rpm")
+	set(EP_myodbc_BUILD_METHOD        "rpm")
+	set(EP_unixodbc_SPEC_PREFIX       "${RPM_INSTALL_PREFIX}")
+	set(EP_myodbc_SPEC_PREFIX         "${RPM_INSTALL_PREFIX}")
+	set(EP_myodbc_CONFIGURE_OPTIONS   "--with-unixODBC=${RPM_INSTALL_PREFIX}")
 	set( EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --with bcodbc")
+	set( EP_flexisip_CONFIGURE_OPTIONS "${EP_flexisip_CONFIGURE_OPTIONS} --with-odbc=${RPM_INSTALL_PREFIX}")
 endif()
 
 set(LINPHONE_BUILDER_RPMBUILD_PACKAGE_PREFIX "bc-")
@@ -152,13 +154,13 @@ set(RPMBUILD_OPTIONS "--define '_mandir %{_prefix}'")
 if(PLATFORM STREQUAL "Debian")
 	# dependencies cannot be checked by rpmbuild in debian
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --nodeps")
-	
+
 	# dist is not defined in debian for rpmbuild..
-	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define 'dist .deb'") 
-	
+	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define 'dist .deb'")
+
 	# debian has multi-arch lib dir instead of lib and lib64
-	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}'") 
-	
+	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_libdir %{_prefix}/${CMAKE_INSTALL_LIBDIR}'")
+
 	# some debians are using dash as shell, which doesn't support "export -n", so we override and use bash
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_buildshell /bin/bash'")
 
