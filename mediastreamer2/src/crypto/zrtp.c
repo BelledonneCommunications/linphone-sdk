@@ -412,6 +412,97 @@ static MSZrtpContext* ms_zrtp_configure_context(MSZrtpContext *userData, RtpSess
 	return userData;
 }
 
+static void set_hash_suites(bzrtpContext_t *ctx, const MSZrtpHash *hashes, const MsZrtpCryptoTypesCount count) {
+	int i;
+	uint8_t bzrtpCount = 0;
+	uint8_t bzrtpHashes[7];
+
+	for (i=0; i < count; i++) {
+		switch (hashes[i]) {
+			case MS_ZRTP_HASH_INVALID: break;
+			case MS_ZRTP_HASH_S256: bzrtpHashes[bzrtpCount++] = ZRTP_HASH_S256; break;
+			case MS_ZRTP_HASH_S384: bzrtpHashes[bzrtpCount++] = ZRTP_HASH_S384; break;
+			case MS_ZRTP_HASH_N256: bzrtpHashes[bzrtpCount++] = ZRTP_HASH_N256; break;
+			case MS_ZRTP_HASH_N384: bzrtpHashes[bzrtpCount++] = ZRTP_HASH_N384; break;
+		}
+	}
+
+	bzrtp_setSupportedCryptoTypes(ctx, ZRTP_HASH_TYPE, bzrtpHashes, bzrtpCount);
+}
+
+static void set_cipher_suites(bzrtpContext_t *ctx, const MSZrtpCipher *ciphers, const MsZrtpCryptoTypesCount count) {
+	int i;
+	uint8_t bzrtpCount = 0;
+	uint8_t bzrtpCiphers[7];
+
+	for (i=0; i < count; i++) {
+		switch (ciphers[i]) {
+			case MS_ZRTP_CIPHER_INVALID: break;
+			case MS_ZRTP_CIPHER_AES1:    bzrtpCiphers[bzrtpCount++] = ZRTP_CIPHER_AES1; break;
+			case MS_ZRTP_CIPHER_AES2:    bzrtpCiphers[bzrtpCount++] = ZRTP_CIPHER_AES2; break;
+			case MS_ZRTP_CIPHER_AES3:    bzrtpCiphers[bzrtpCount++] = ZRTP_CIPHER_AES3; break;
+			case MS_ZRTP_CIPHER_2FS1:    bzrtpCiphers[bzrtpCount++] = ZRTP_CIPHER_2FS1; break;
+			case MS_ZRTP_CIPHER_2FS2:    bzrtpCiphers[bzrtpCount++] = ZRTP_CIPHER_2FS2; break;
+			case MS_ZRTP_CIPHER_2FS3:    bzrtpCiphers[bzrtpCount++] = ZRTP_CIPHER_2FS3; break;
+		}
+	}
+
+	bzrtp_setSupportedCryptoTypes(ctx, ZRTP_CIPHERBLOCK_TYPE, bzrtpCiphers, bzrtpCount);
+}
+
+static void set_auth_tag_suites(bzrtpContext_t *ctx, const MSZrtpAuthTag *authTags, const MsZrtpCryptoTypesCount count) {
+	int i;
+	uint8_t bzrtpCount = 0;
+	uint8_t bzrtpAuthTags[7];
+
+	for (i=0; i < count; i++) {
+		switch (authTags[i]) {
+			case MS_ZRTP_AUTHTAG_INVALID: break;
+			case MS_ZRTP_AUTHTAG_HS32:    bzrtpAuthTags[bzrtpCount++] = ZRTP_AUTHTAG_HS32; break;
+			case MS_ZRTP_AUTHTAG_HS80:    bzrtpAuthTags[bzrtpCount++] = ZRTP_AUTHTAG_HS80; break;
+			case MS_ZRTP_AUTHTAG_SK32:    bzrtpAuthTags[bzrtpCount++] = ZRTP_AUTHTAG_SK32; break;
+			case MS_ZRTP_AUTHTAG_SK64:    bzrtpAuthTags[bzrtpCount++] = ZRTP_AUTHTAG_SK64; break;
+		}
+	}
+
+	bzrtp_setSupportedCryptoTypes(ctx, ZRTP_AUTHTAG_TYPE, bzrtpAuthTags, bzrtpCount);
+}
+
+static void set_key_agreement_suites(bzrtpContext_t *ctx, const MSZrtpKeyAgreement *keyAgreements, const MsZrtpCryptoTypesCount count) {
+	int i;
+	uint8_t bzrtpCount = 0;
+	uint8_t bzrtpKeyAgreements[7];
+
+	for (i=0; i < count; i++) {
+		switch (keyAgreements[i]) {
+			case MS_ZRTP_KEY_AGREEMENT_INVALID: break;
+			case MS_ZRTP_KEY_AGREEMENT_DH2K:    bzrtpKeyAgreements[bzrtpCount++] = ZRTP_KEYAGREEMENT_DH2k; break;
+			case MS_ZRTP_KEY_AGREEMENT_DH3K:    bzrtpKeyAgreements[bzrtpCount++] = ZRTP_KEYAGREEMENT_DH3k; break;
+			case MS_ZRTP_KEY_AGREEMENT_EC25:    bzrtpKeyAgreements[bzrtpCount++] = ZRTP_KEYAGREEMENT_EC25; break;
+			case MS_ZRTP_KEY_AGREEMENT_EC38:    bzrtpKeyAgreements[bzrtpCount++] = ZRTP_KEYAGREEMENT_EC38; break;
+			case MS_ZRTP_KEY_AGREEMENT_EC52:    bzrtpKeyAgreements[bzrtpCount++] = ZRTP_KEYAGREEMENT_EC52; break;
+		}
+	}
+
+	bzrtp_setSupportedCryptoTypes(ctx, ZRTP_KEYAGREEMENT_TYPE, bzrtpKeyAgreements, bzrtpCount);
+}
+
+static void set_sas_suites(bzrtpContext_t *ctx, const MSZrtpSasType *sasTypes, const MsZrtpCryptoTypesCount count) {
+	int i;
+	uint8_t bzrtpCount = 0;
+	uint8_t bzrtpSasTypes[7];
+
+	for (i=0; i < count; i++) {
+		switch (sasTypes[i]) {
+			case MS_ZRTP_SAS_INVALID: break;
+			case MS_ZRTP_SAS_B32:     bzrtpSasTypes[bzrtpCount++] = ZRTP_SAS_B32; break;
+			case MS_ZRTP_SAS_B256:    bzrtpSasTypes[bzrtpCount++] = ZRTP_SAS_B256; break;
+		}
+	}
+
+	bzrtp_setSupportedCryptoTypes(ctx, ZRTP_SAS_TYPE, bzrtpSasTypes, bzrtpCount);
+}
+
 /***********************************************/
 /***** EXPORTED FUNCTIONS                  *****/
 /***********************************************/
@@ -459,6 +550,13 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 	}
 
 	bzrtp_setClientData(context, sessions->rtp_session->snd.ssrc, (void *)userData);
+
+	/* set crypto params */
+	set_hash_suites(context, params->hashes, params->hashesCount);
+	set_cipher_suites(context, params->ciphers, params->ciphersCount);
+	set_auth_tag_suites(context, params->authTags, params->authTagsCount);
+	set_key_agreement_suites(context, params->keyAgreements, params->keyAgreementsCount);
+	set_sas_suites(context, params->sasTypes, params->sasTypesCount);
 
 	bzrtp_initBzrtpContext(context); /* init is performed only when creating the first channel context */
 	return ms_zrtp_configure_context(userData, sessions->rtp_session);

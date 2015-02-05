@@ -30,9 +30,67 @@ extern "C"{
 /* defined in mediastream.h */
 struct _MSMediaStreamSessions;
 
+
+#define MS_MAX_ZRTP_CRYPTO_TYPES 7
+
+typedef uint8_t MsZrtpCryptoTypesCount;
+
+typedef enum _MSZrtpHash{
+	MS_ZRTP_HASH_INVALID,
+	MS_ZRTP_HASH_S256,
+	MS_ZRTP_HASH_S384,
+	MS_ZRTP_HASH_N256,
+	MS_ZRTP_HASH_N384
+} MSZrtpHash;
+
+typedef enum _MSZrtpCipher{
+	MS_ZRTP_CIPHER_INVALID,
+	MS_ZRTP_CIPHER_AES1,
+	MS_ZRTP_CIPHER_AES2,
+	MS_ZRTP_CIPHER_AES3,
+	MS_ZRTP_CIPHER_2FS1,
+	MS_ZRTP_CIPHER_2FS2,
+	MS_ZRTP_CIPHER_2FS3
+} MSZrtpCipher;
+
+typedef enum _MSZrtpAuthTag{
+	MS_ZRTP_AUTHTAG_INVALID,
+	MS_ZRTP_AUTHTAG_HS32,
+	MS_ZRTP_AUTHTAG_HS80,
+	MS_ZRTP_AUTHTAG_SK32,
+	MS_ZRTP_AUTHTAG_SK64
+} MSZrtpAuthTag;
+
+typedef enum _MSZrtpKeyAgreement{
+	MS_ZRTP_KEY_AGREEMENT_INVALID,
+	MS_ZRTP_KEY_AGREEMENT_DH2K,
+	MS_ZRTP_KEY_AGREEMENT_DH3K,
+	MS_ZRTP_KEY_AGREEMENT_EC25,
+	MS_ZRTP_KEY_AGREEMENT_EC38,
+	MS_ZRTP_KEY_AGREEMENT_EC52
+} MSZrtpKeyAgreement;
+
+typedef enum _MSZrtpSasType{
+	MS_ZRTP_SAS_INVALID,
+	MS_ZRTP_SAS_B32,
+	MS_ZRTP_SAS_B256
+} MSZrtpSasType;
+
 typedef struct MSZrtpParams {
 	const char *zid_file; // File where to store secrets and other information
 	const char *uri; /* the sip URI of correspondant */
+
+	/* activated crypto types */
+	MSZrtpHash             hashes[MS_MAX_ZRTP_CRYPTO_TYPES];
+	MsZrtpCryptoTypesCount hashesCount ;
+	MSZrtpCipher           ciphers[MS_MAX_ZRTP_CRYPTO_TYPES];
+	MsZrtpCryptoTypesCount ciphersCount;
+	MSZrtpAuthTag          authTags[MS_MAX_ZRTP_CRYPTO_TYPES];
+	MsZrtpCryptoTypesCount authTagsCount;
+	MSZrtpKeyAgreement     keyAgreements[MS_MAX_ZRTP_CRYPTO_TYPES];
+	MsZrtpCryptoTypesCount keyAgreementsCount;
+	MSZrtpSasType          sasTypes[MS_MAX_ZRTP_CRYPTO_TYPES];
+	MsZrtpCryptoTypesCount sasTypesCount;
 } MSZrtpParams;
 
 typedef struct _MSZrtpContext MSZrtpContext ;
