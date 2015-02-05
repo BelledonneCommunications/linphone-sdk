@@ -222,10 +222,12 @@ static void test_suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
 static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
 	if (belle_sip_tester_use_log_file) belle_sip_warning("Suite [%s] Test [%s]", pSuite->pName,pTest->pName);
 	printf("\nSuite [%s] Test [%s]", pSuite->pName,pTest->pName);
+	fflush(stdout);
 }
 static void test_suite_start_message_handler(const CU_pSuite pSuite) {
 	if (belle_sip_tester_use_log_file) belle_sip_warning("Suite [%s]", pSuite->pName);
 	printf("\nSuite [%s]", pSuite->pName);
+	fflush(stdout);
 }
 int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 	int i,ret;
