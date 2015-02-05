@@ -266,7 +266,7 @@ if test "$use_tls" = "true" ; then
 			,[found_polarssl=yes
 			POLARSSL_LIBS=" -lpolarssl"
 			AC_MSG_NOTICE([polarssl usable])]
-			,[AC_MSG_WARN([polarssl not usable])])
+			,[AC_MSG_ERROR([polarssl not found or usable but TLS support required.])])
 
 		])
 	CPPFLAGS=$CPPFLAGS_save

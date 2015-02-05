@@ -59,19 +59,24 @@ struct belle_sip_signing_key {
 #endif
 };
 
-#ifdef HAVE_POLARSSL
 
-/**
- * Retrieve key or certificate in a string(PEM format)
- */
 #if POLARSSL_VERSION_NUMBER < 0x01030000
+/*stubs*/
 char *belle_sip_certificates_chain_get_pem(belle_sip_certificates_chain_t *cert) {
 	return NULL;
 }
 char *belle_sip_signing_key_get_pem(belle_sip_signing_key_t *key) {
 	return NULL;
 }
-#else /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
+#endif
+
+#ifdef HAVE_POLARSSL
+
+/**
+ * Retrieve key or certificate in a string(PEM format)
+ */
+#if POLARSSL_VERSION_NUMBER >= 0x01030000
+
 char *belle_sip_certificates_chain_get_pem(belle_sip_certificates_chain_t *cert) {
 	char *pem_certificate = NULL;
 	size_t olen=0;
