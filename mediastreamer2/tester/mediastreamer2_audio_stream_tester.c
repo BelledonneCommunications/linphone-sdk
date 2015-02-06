@@ -251,7 +251,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 		/* No packet loss is assumed */
 		if (change_send_key_in_the_middle) {
 			/*we can accept one or 2 error in such case*/
-			CU_ASSERT_TRUE((marielle_stats.rtp.sent-margaux_stats.rtp.recv)<3);
+			CU_ASSERT_TRUE((marielle_stats.rtp.packet_sent-margaux_stats.rtp.packet_recv)<3);
 		} else
 			CU_ASSERT_EQUAL(marielle_stats.rtp.sent,margaux_stats.rtp.recv);
 

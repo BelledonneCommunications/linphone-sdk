@@ -229,10 +229,14 @@ bool_t wait_for_list_with_parse_events(MSList *mss, int *counter, int value, int
 			ms_tester_iterate_cb cb = NULL;
 			media_stream_iterate(stream);
 			if ((retry % 10) == 0) {
-				ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec",
-					stream,
-					media_stream_get_down_bw(stream) / 1000,
-					media_stream_get_up_bw(stream) / 1000);
+				ms_message("stream [%p] bandwidth usage: rtp [d=%.1f,u=%.1f] kbit/sec",
+													stream,
+													media_stream_get_down_bw(stream) / 1000,
+													media_stream_get_up_bw(stream) / 1000);
+				ms_message("stream [%p] bandwidth usage: rtcp[d=%.1f,u=%.1f] kbit/sec",
+													stream,
+													media_stream_get_rtcp_down_bw(stream) / 1000,
+													media_stream_get_rtcp_up_bw(stream) / 1000);
 			}
 			if (cbi && ptri) {
 				cb = (ms_tester_iterate_cb)cbi->data;
