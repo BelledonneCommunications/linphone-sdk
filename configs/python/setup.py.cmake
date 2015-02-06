@@ -22,10 +22,11 @@ import string
 import sys
 from setuptools import setup, Extension
 
+name = "@PACKAGE_NAME@"
 version = "@BUILD_VERSION@"
 data_files = "@LINPHONE_DATA_FILES@".split(';')
 
-setup(name = 'linphone',
+setup(name = name,
 	version = version,
 	description = 'Linphone package for Python',
 	author = "Belledonne Communications",

@@ -152,6 +152,9 @@ set(EP_xml2_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 
 # Python module
+if(NOT PACKAGE_NAME)
+	set(PACKAGE_NAME "linphone")
+endif()
 linphone_builder_apply_flags()
 linphone_builder_set_ep_directories(pylinphone)
 linphone_builder_expand_external_project_vars()
@@ -162,5 +165,5 @@ ExternalProject_Add(TARGET_pylinphone
 	DOWNLOAD_COMMAND ""
 	PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}/python" "<SOURCE_DIR>"
 	CMAKE_GENERATOR ${CMAKE_GENERATOR}
-	CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DENABLE_FFMPEG:BOOL=${ENABLE_FFMPEG} -DENABLE_OPENH264:BOOL=${ENABLE_OPENH264}
+	CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DPACKAGE_NAME=${PACKAGE_NAME} -DENABLE_FFMPEG:BOOL=${ENABLE_FFMPEG} -DENABLE_OPENH264:BOOL=${ENABLE_OPENH264}
 )

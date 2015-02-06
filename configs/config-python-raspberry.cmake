@@ -24,6 +24,8 @@ get_filename_component(COMPILER_NAME ${CMAKE_C_COMPILER} NAME)
 string(REGEX REPLACE "-gcc$" "" LINPHONE_BUILDER_HOST ${COMPILER_NAME})
 unset(COMPILER_NAME)
 
+set(PACKAGE_NAME "linphone4raspberry")
+
 include("configs/config-python.cmake")
 
 # ffmpeg
