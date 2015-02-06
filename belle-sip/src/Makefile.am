@@ -47,7 +47,7 @@ libbellesip_la_SOURCES=	\
 			bodyhandler.c
 
 
-if BUILD_IOS
+if BUILD_APPLE
 libbellesip_la_SOURCES+=backgroundtask.m
 endif
 

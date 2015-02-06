@@ -47,17 +47,18 @@ LT_INIT(win32-dll)
 case "$target" in
 	#macosx 64 bits
         x86_64-apple-darwin*)
-                LIBS="$LIBS -mmacosx-version-min=10.6"
+                LIBS="$LIBS -mmacosx-version-min=10.6 -framework Foundation"
                 CXXFLAGS="$CXXFLAGS -mmacosx-version-min=10.6"
                 CFLAGS="$CFLAGS -mmacosx-version-min=10.6"
+                build_apple=yes
         ;;
         i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*|arm64-apple*|aarch64-apple*)
 		LIBS="$LIBS -framework Foundation -framework CoreFoundation -framework CFNetwork -framework UIKit"
-		build_ios=yes
+		build_apple=yes
 	;;
 esac
 
-AM_CONDITIONAL([BUILD_IOS], [test "x$build_ios" = "xyes"])
+AM_CONDITIONAL([BUILD_APPLE], [test "x$build_apple" = "xyes"])
 
 dnl Workaround for mingw, whose compiler does not check in /usr/include ...
 case "$target_os" in

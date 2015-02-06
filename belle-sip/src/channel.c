@@ -543,7 +543,8 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 	int ret=BELLE_SIP_CONTINUE;
 
 	/*prevent system to suspend the process until we have finish reading everything from the socket and notified the upper layer*/
-	channel_begin_recv_background_task(obj);
+	if (obj->input_stream.state == WAITING_MESSAGE_START)
+		channel_begin_recv_background_task(obj);
 
 	if (obj->simulated_recv_return>0) {
 		num=belle_sip_channel_recv(obj,obj->input_stream.write_ptr,belle_sip_channel_input_stream_get_buff_length(&obj->input_stream)-1);
@@ -580,7 +581,8 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 		ret=BELLE_SIP_STOP;
 	}
-	channel_end_recv_background_task(obj);
+	if (obj->input_stream.state == WAITING_MESSAGE_START)
+		channel_end_recv_background_task(obj);
 	return ret;
 }
 
@@ -787,13 +789,13 @@ static void channel_on_send_background_task_ended(belle_sip_channel_t *obj){
 static void channel_begin_send_background_task(belle_sip_channel_t *obj){
 	if (obj->bg_task_id==0){
 		obj->bg_task_id=belle_sip_begin_background_task("belle-sip send channel",(void (*)(void*))channel_on_send_background_task_ended, obj);
-		if (obj->bg_task_id) belle_sip_message("channel [%p]: starting send background task with id=[%x].",obj,obj->bg_task_id);
+		if (obj->bg_task_id) belle_sip_message("channel [%p]: starting send background task with id=[%lx].",obj,obj->bg_task_id);
 	}
 }
 
 static void channel_end_send_background_task(belle_sip_channel_t *obj){
 	if (obj->bg_task_id){
-		belle_sip_message("channel [%p]: ending send background task with id=[%x].",obj,obj->bg_task_id);
+		belle_sip_message("channel [%p]: ending send background task with id=[%lx].",obj,obj->bg_task_id);
 		belle_sip_end_background_task(obj->bg_task_id);
 		obj->bg_task_id=0;
 	}
@@ -807,13 +809,13 @@ static void channel_on_recv_background_task_ended(belle_sip_channel_t *obj){
 static void channel_begin_recv_background_task(belle_sip_channel_t *obj){
 	if (obj->recv_bg_task_id==0){
 		obj->recv_bg_task_id=belle_sip_begin_background_task("belle-sip recv channel",(void (*)(void*))channel_on_recv_background_task_ended, obj);
-		if (obj->recv_bg_task_id) belle_sip_message("channel [%p]: starting recv background task with id=[%x].",obj,obj->recv_bg_task_id);
+		if (obj->recv_bg_task_id) belle_sip_message("channel [%p]: starting recv background task with id=[%lx].",obj,obj->recv_bg_task_id);
 	}
 }
 
 static void channel_end_recv_background_task(belle_sip_channel_t *obj){
 	if (obj->recv_bg_task_id){
-		belle_sip_message("channel [%p]: ending recv background task with id=[%x].",obj,obj->recv_bg_task_id);
+		belle_sip_message("channel [%p]: ending recv background task with id=[%lx].",obj,obj->recv_bg_task_id);
 		belle_sip_end_background_task(obj->recv_bg_task_id);
 		obj->recv_bg_task_id=0;
 	}
@@ -1330,22 +1332,22 @@ belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int a
 
 #ifdef ANDROID
 
-unsigned int belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
+unsigned long belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
     return wake_lock_acquire(name);
 }
 
-void belle_sip_end_background_task(unsigned int id){
+void belle_sip_end_background_task(unsigned long id){
     wake_lock_release(id);
 }
 
-#elif !TARGET_OS_IPHONE
+#elif !TARGET_OS_IPHONE && !defined(__APPLE__)
 
 /*defines stubs*/
 unsigned int belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
 	return 0;
 }
 
-void belle_sip_end_background_task(unsigned int id){
+void belle_sip_end_background_task(unsigned long id){
 	return;
 }
 

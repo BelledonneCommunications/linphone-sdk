@@ -18,11 +18,30 @@
 
 #include "belle_sip_internal.h"
 
+#if TARGET_OS_IPHONE==1
+
 #include <UIKit/UIApplication.h>
 
-unsigned int belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
+typedef struct fallback_callback_data{
+	unsigned long task_id;
+}fallback_callback_data_t;
+
+static void fallback_callback(void *data){
+	fallback_callback_data_t *fbd=(fallback_callback_data_t*)data;
+	belle_sip_end_background_task(fbd->task_id);
+	belle_sip_free(fbd);
+}
+
+unsigned long belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
 	UIApplication *app=[UIApplication sharedApplication];
 	UIBackgroundTaskIdentifier bgid = UIBackgroundTaskInvalid;
+	fallback_callback_data_t *fbd=NULL;
+	
+	if (cb==NULL){
+		cb=fallback_callback;
+		data=fbd=(fallback_callback_data_t*)belle_sip_malloc0(sizeof(fallback_callback_data_t));
+	}	
+	
 	void (^handler)() = ^{
 		cb(data);
 	};
@@ -37,11 +56,50 @@ unsigned int belle_sip_begin_background_task(const char *name, belle_sip_backgro
 		belle_sip_error("Could not start background task %s.", name);
 		return 0;
 	}
-	return (unsigned int)bgid;
+	if (fbd) fbd->id=bgid;
+	return (unsigned long)bgid;
 }
 
-void belle_sip_end_background_task(unsigned int id){
+void belle_sip_end_background_task(unsigned long id){
 	UIApplication *app=[UIApplication sharedApplication];
 	[app endBackgroundTask:(UIBackgroundTaskIdentifier)id];
 }
+
+#else
+/*mac*/
+#import <Foundation/NSProcessinfo.h>
+
+static unsigned long dummy_id=0;
+static id activity_id=0;
+static int activity_refcnt=0;
+
+
+
+unsigned long belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
+	activity_refcnt++;
+	if (activity_refcnt==1){
+		NSProcessInfo *pinfo=[NSProcessInfo processInfo];
+		if (pinfo && [pinfo respondsToSelector:@selector(beginActivityWithOptions:reason:)]){
+			activity_id=[pinfo beginActivityWithOptions:NSActivityUserInitiatedAllowingIdleSystemSleep reason:@"Processing SIP signaling"];
+			[activity_id retain];
+			belle_sip_message("Activity started");
+		}
+	}
+	return ++dummy_id;
+}
+
+void belle_sip_end_background_task(unsigned long id){
+	activity_refcnt--;
+	if (activity_refcnt==0){
+		if (activity_id!=0){
+			NSProcessInfo *pinfo=[NSProcessInfo processInfo];
+			[pinfo endActivity:activity_id];
+			[activity_id release];
+			belle_sip_message("Activity ended");
+			activity_id=0;
+		}
+	}
+}
+
+#endif
 
