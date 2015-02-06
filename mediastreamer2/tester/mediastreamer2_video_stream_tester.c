@@ -119,32 +119,40 @@ void video_stream_tester_destroy(video_stream_tester_t* obj) {
 static void reset_stats(video_stream_tester_stats_t *s) {
 	memset(s, 0, sizeof(video_stream_tester_stats_t));
 }
-
 static void video_stream_event_cb(void *user_pointer, const MSFilter *f, const unsigned int event_id, const void *args){
 	video_stream_tester_t* vs_tester = (video_stream_tester_t*) user_pointer;
-	ms_message("Event [%ui] received on video stream [%p]",event_id,vs_tester);
+	const char* event_name;
 	switch (event_id) {
-		case MS_VIDEO_DECODER_DECODING_ERRORS:
-			vs_tester->stats.number_of_decoder_decoding_error++;
-			break;
-		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
-			vs_tester->stats.number_of_decoder_first_image_decoded++;
-			break;
-		case MS_VIDEO_DECODER_SEND_PLI:
-			vs_tester->stats.number_of_decoder_send_pli++;
-			break;
-		case MS_VIDEO_DECODER_SEND_SLI:
-			vs_tester->stats.number_of_decoder_send_sli++;
-			break;
-		case MS_VIDEO_DECODER_SEND_RPSI:
-			vs_tester->stats.number_of_decoder_send_rpsi++;
-			/* Handled internally by mediastreamer2. */
-			break;
-		default:
-			ms_warning("Unhandled event %i", event_id);
-			break;
+	case MS_VIDEO_DECODER_DECODING_ERRORS:
+		event_name="MS_VIDEO_DECODER_DECODING_ERRORS";
+		vs_tester->stats.number_of_decoder_decoding_error++;
+		break;
+	case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
+		event_name="MS_VIDEO_DECODER_FIRST_IMAGE_DECODED";
+		vs_tester->stats.number_of_decoder_first_image_decoded++;
+		break;
+	case MS_VIDEO_DECODER_SEND_PLI:
+		event_name="MS_VIDEO_DECODER_SEND_PLI";
+		vs_tester->stats.number_of_decoder_send_pli++;
+		break;
+	case MS_VIDEO_DECODER_SEND_SLI:
+		event_name="MS_VIDEO_DECODER_SEND_SLI";
+		vs_tester->stats.number_of_decoder_send_sli++;
+		break;
+	case MS_VIDEO_DECODER_SEND_RPSI:
+		vs_tester->stats.number_of_decoder_send_rpsi++;
+		event_name="MS_VIDEO_DECODER_SEND_RPSI";
+		/* Handled internally by mediastreamer2. */
+		break;
+	default:
+		ms_warning("Unhandled event %i", event_id);
+		event_name="UNKNOWN";
+		break;
 	}
+	ms_message("Event [%s:%u] received on video stream [%p]",event_name,event_id,vs_tester);
+
 }
+
 static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 	video_stream_tester_stats_t *st = (video_stream_tester_stats_t *)user_pointer;
 	OrtpEvent *ev = NULL;
@@ -365,15 +373,18 @@ static void video_stream_first_iframe_lost_vp8_base(bool_t use_avpf) {
 
 	if (supported) {
 		int dummy=0;
-		params.enabled = TRUE;
-		params.loss_rate = 100.;
+		params.enabled = use_avpf; /*if no avpf, in case of nowebcam, decoding error can me missed, so starting by loosless network*/
+		params.loss_rate = 50.; /*to have a decoding error, a few packets must be able to cross*/
 		init_video_streams(marielle, margaux, use_avpf, FALSE, &params,VP8_PAYLOAD_TYPE);
 		/*get some error to get a PLI request*/
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms,&dummy,1,2000);
-		params.enabled=FALSE;
+		params.enabled=!use_avpf;
 		/*disable packet losses*/
 		rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
 		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
+
+		video_stream_send_vfu(marielle->vs);
+		video_stream_send_vfu(margaux->vs);
 
 		if (use_avpf) {
 			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_PLI,
