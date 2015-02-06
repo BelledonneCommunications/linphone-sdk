@@ -103,7 +103,7 @@ else()
 endif()
 
 if(UNIX)
-	find_program(LORDER_EXECUTABLE lorder)
+	find_program(LORDER_EXECUTABLE lorder HINTS "${CMAKE_CURRENT_SOURCE_DIR}")
 	if(NOT LORDER_EXECUTABLE)
 		message(FATAL_ERROR "lorder executable is needed.")
 	endif()
