@@ -110,7 +110,10 @@ static void basic_audio_stream_base(	const char* marielle_local_ip
 	char* hello_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), HELLO_8K_1S_FILE);
 	char* recorded_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), RECORDED_8K_1S_FILE);
 
-	reset_stats(&marielle_stats);
+	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session,TRUE);
+    rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session,TRUE);
+
+    reset_stats(&marielle_stats);
 	reset_stats(&margaux_stats);
 
 	rtp_profile_set_payload (profile,0,&payload_type_pcmu8000);

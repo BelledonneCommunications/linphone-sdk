@@ -326,13 +326,18 @@ static void multicast_video_stream(void) {
 	marielle->local_rtcp=0; /*no rtcp*/
 	video_stream_tester_set_local_ip(margaux,"0.0.0.0");
 
+	rtp_session_set_multicast_loopback(marielle->vs->ms.sessions.rtp_session,TRUE);
+	rtp_session_set_multicast_loopback(margaux->vs->ms.sessions.rtp_session,TRUE);
+
 	if (supported) {
 
 		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,VP8_PAYLOAD_TYPE);
 
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 		video_stream_get_local_rtp_stats(marielle->vs, &marielle->stats.rtp);
-		video_stream_get_local_rtp_stats(margaux->vs, &margaux->stats.rtp);
+		video_stream_get_local_rtp_stats(margaux->vs, &marielle->stats.rtp);
+		CU_ASSERT_EQUAL(marielle->stats.rtp.sent,marielle->stats.rtp.recv);
+
 		uninit_video_streams(marielle, margaux);
 	} else {
 		ms_error("VP8 codec is not supported!");
