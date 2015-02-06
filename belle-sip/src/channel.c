@@ -1343,7 +1343,7 @@ void belle_sip_end_background_task(unsigned long id){
 #elif !TARGET_OS_IPHONE && !defined(__APPLE__)
 
 /*defines stubs*/
-unsigned int belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
+unsigned long belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
 	return 0;
 }
 
