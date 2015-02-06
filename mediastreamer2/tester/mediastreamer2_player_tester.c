@@ -64,7 +64,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	bool_t succeed;
 	Eof eof;
 	MSMediaPlayer *file_player = NULL;
-	MSSndCard *snd_card = ms_snd_card_manager_get_default_card(ms_snd_card_manager_get());
+	MSSndCard *snd_card = ms_snd_card_manager_get_default_playback_card(ms_snd_card_manager_get());
 	const char *display_name = video_stream_get_default_video_renderer();
 	int duration, timeout;
 	const int seek_time = 6100;
@@ -72,6 +72,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 
 	eof_init(&eof);
 
+	CU_ASSERT_PTR_NOT_NULL(snd_card);
 	file_player = ms_media_player_new(snd_card, display_name, 0);
 	CU_ASSERT_PTR_NOT_NULL(file_player);
 	if(file_player == NULL) return;
