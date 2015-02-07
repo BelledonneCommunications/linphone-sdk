@@ -135,7 +135,7 @@ endif
 
 LOCAL_STATIC_LIBRARIES += polarssl
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../externals/polarssl/include
-LOCAL_CFLAGS += -DHAVE_POLARSSL=1
+LOCAL_CFLAGS += -DHAVE_POLARSSL_SSL_H=1
 
 ifeq ($(_BUILD_VIDEO),1)
 LOCAL_SRC_FILES += \

@@ -1110,7 +1110,7 @@ AC_CHECK_HEADERS(polarssl/ssl.h, [
 					[found_polarssl=yes; AC_MSG_NOTICE([polarssl usable])],
 					[POLARSSL_CFLAGS=""
 					POLARSSL_LIBS=""
-					AC_MSG_WARN([polarssl not usable])])
+					AC_MSG_ERROR([polarssl headers found but library not found !])])
 				],[POLARSSL_CFLAGS=""
 					POLARSSL_LIBS=""])
 CPPFLAGS=$CPPFLAGS_save
