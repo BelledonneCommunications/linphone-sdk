@@ -115,6 +115,10 @@ AudioSystemImpl::AudioSystemImpl(Library *lib) :
 	if (!mSetPhoneState.isFound()) {
 		mSetPhoneState.load(lib, "_ZN7android11AudioSystem13setPhoneStateE12audio_mode_t");
 	}
+	if (!mNewAudioSessionId.isFound()){
+		//android 5.0 symbol
+		mNewAudioSessionId.load(lib, "_ZN7android11AudioSystem16newAudioUniqueIdEv");
+	}
 }
 
 bool AudioSystemImpl::init(Library *lib){

@@ -38,11 +38,12 @@ namespace fake_android{
                                     int sessionId, 
 									transfer_type transferType,
                                     const audio_offload_info_t *offloadInfo,
-                                    int uid){
+                                    int uid, pid_t pid,
+									const audio_attributes_t* pAttributes){
 		mThis=new uint8_t[AudioTrackImpl::sObjSize];
 		memset(mThis,0,AudioTrackImpl::sObjSize);
 		mImpl=AudioTrackImpl::get();
-		mImpl->mCtor.invoke(mThis,streamType,sampleRate,format,channelMask,frameCount,flags,cbf,user,notificationFrames,sessionId,transferType,(void*)offloadInfo,uid);
+		mImpl->mCtor.invoke(mThis,streamType,sampleRate,format,channelMask,frameCount,flags,cbf,user,notificationFrames,sessionId,transferType,(void*)offloadInfo,uid,pid,pAttributes);
 		//dumpMemory(mThis,AudioTrackImpl::sObjSize);
 	}
 	
@@ -187,6 +188,15 @@ namespace fake_android{
 					mSdkVersion=19;
 				}
 			}
+			//5.0 symbol
+			if (!mCtor.isFound()){
+				mCtor.load(lib,"_ZN7android10AudioTrackC1E19audio_stream_type_tj14audio_format_tjj20"
+				"audio_output_flags_tPFviPvS4_ES4_jiNS0_13transfer_typeEPK20audio_offload_info_tiiPK18audio_attributes_t"
+				);
+				if (mCtor.isFound()){
+					mSdkVersion=21;
+				}
+			}
 		}
 
 		// Then try some Android 4.1 symbols if still not found
@@ -232,7 +242,7 @@ namespace fake_android{
 			ms_error("AudioTrack::getPosition() not found");
 			fail=true;
 		}
-		if (impl->mSdkVersion>=19 && !impl->mCtor.isFound()) {
+		if (impl->mSdkVersion>=19 && !impl->mDefaultCtor.isFound()) {
 			ms_error("AudioTrack::AudioTrack() not found");
 			fail=true;
 		}
@@ -240,6 +250,7 @@ namespace fake_android{
 			sImpl=impl;
 			if (impl->mSdkVersion>=19){
 				impl->mUseRefCount=true;
+				
 				AudioTrack *test=new AudioTrack();
 				//dumpMemory(test->getRealThis(),AudioTrackImpl::sObjSize);
 				ptrdiff_t offset=findRefbaseOffset(test->getRealThis(),AudioTrackImpl::sObjSize);

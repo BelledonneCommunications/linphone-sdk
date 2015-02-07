@@ -160,8 +160,8 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 #endif
 
 #ifdef ANDROID
-	&android_native_snd_opensles_card_desc,
 	&android_native_snd_card_desc,
+	&android_native_snd_opensles_card_desc,
 	&msandroid_sound_card_desc,
 #endif
 #endif /* MS2_FILTERS */

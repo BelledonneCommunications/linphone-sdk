@@ -216,6 +216,11 @@ AudioRecordImpl::AudioRecordImpl(Library *lib) :
 		if (!mCtorBeforeAPI17.isFound()) {
 			mCtor.load(lib,"_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiPFviPvS3_ES3_ii");
 		}
+		// 5.0 constructor
+		if (!mCtor.isFound()){
+			mCtor.load(lib,"_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjjPFviPvS3_ES3_jiNS0_13transfer_typeE19audio_input_flags_t");
+			mApiVersion=21;
+		}
 	}else {
 		mApiVersion=19;
 	}

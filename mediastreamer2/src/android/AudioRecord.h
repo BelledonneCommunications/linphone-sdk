@@ -405,7 +405,7 @@ public:
 	ptrdiff_t mRefBaseOffset;
 	int mApiVersion;
 	bool mUseRefcount;
-	static const size_t sObjSize=512;
+	static const size_t sObjSize=1024;
 private:
 	AudioRecordImpl(Library *lib);
 	static AudioRecordImpl *sImpl;

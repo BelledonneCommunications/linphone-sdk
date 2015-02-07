@@ -235,7 +235,7 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	bool string8_loaded=false;
 	bool refbase_loaded=false;
 
-	if (get_sdk_version()>19){
+	if (get_sdk_version()>21){
 		ms_message("Native android sound support not tested on SDK [%i], disabled.",get_sdk_version());
 		return;
 	}
