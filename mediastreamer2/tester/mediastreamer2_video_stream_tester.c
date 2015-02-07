@@ -207,6 +207,9 @@ static void init_video_streams(video_stream_tester_t *marielle, video_stream_tes
 	reset_stats(&marielle->stats);
 	reset_stats(&margaux->stats);
 
+	rtp_session_set_multicast_loopback(marielle->vs->ms.sessions.rtp_session,TRUE);
+	rtp_session_set_multicast_loopback(margaux->vs->ms.sessions.rtp_session,TRUE);
+
 	/* Enable/disable avpf. */
 	pt = rtp_profile_get_payload(&rtp_profile, payload_type);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(pt);
@@ -326,8 +329,6 @@ static void multicast_video_stream(void) {
 	marielle->local_rtcp=0; /*no rtcp*/
 	video_stream_tester_set_local_ip(margaux,"0.0.0.0");
 
-	rtp_session_set_multicast_loopback(marielle->vs->ms.sessions.rtp_session,TRUE);
-	rtp_session_set_multicast_loopback(margaux->vs->ms.sessions.rtp_session,TRUE);
 
 	if (supported) {
 
