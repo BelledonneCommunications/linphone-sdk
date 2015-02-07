@@ -266,7 +266,7 @@ bool_t ms_is_ipv6(const char *remote) {
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV;
+	hints.ai_flags = AI_NUMERICHOST;
 	err = getaddrinfo(remote,"8000", &hints, &res0);
 	if (err != 0) {
 		ms_warning("ms_is_ipv6(%s): %s", remote, gai_strerror(err));
@@ -297,7 +297,7 @@ bool_t ms_is_multicast(const char *address) {
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV;
+	hints.ai_flags = AI_NUMERICHOST;
 	err = getaddrinfo(address,"8000", &hints, &res0);
 	if (err != 0) {
 		ms_warning("ms_is_multicast(%s): %s", address, gai_strerror(err));
