@@ -1095,9 +1095,12 @@ AC_ARG_WITH( polarssl,
 
 found_polarssl=no
 
-if test "$polarssl_prefix" != "NONE" && test "$polarssl_prefix" != "/usr" ; then
-	POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
-	POLARSSL_LIBS="-L${polarssl_prefix}/lib -lpolarssl"
+if test "$polarssl_prefix" != "NONE" ; then
+	if test "$polarssl_prefix" != "/usr" ; then
+		POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
+		POLARSSL_LIBS="-L${polarssl_prefix}/lib"
+	fi
+	POLARSSL_LIBS="-lpolarssl"
 fi
 
 CPPFLAGS_save=$CPPFLAGS
