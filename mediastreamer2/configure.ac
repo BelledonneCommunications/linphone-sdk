@@ -1100,7 +1100,7 @@ if test "$polarssl_prefix" != "NONE" ; then
 		POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
 		POLARSSL_LIBS="-L${polarssl_prefix}/lib"
 	fi
-	POLARSSL_LIBS="-lpolarssl"
+	POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"
 fi
 
 CPPFLAGS_save=$CPPFLAGS
