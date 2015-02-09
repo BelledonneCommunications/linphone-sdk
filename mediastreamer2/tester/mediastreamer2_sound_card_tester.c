@@ -63,12 +63,14 @@ static void dtmfgen_soundwrite(void) {
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_SOUNDWRITE;
 	int sample_rate = 8000;
 	int nchannels = 1;
+	bool_t send_silence = TRUE;
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_create_filters(filter_mask);
 	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_BITRATE, &sample_rate);
 	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(ms_tester_voidsource, MS_VOID_SOURCE_SEND_SILENCE, &send_silence);
 	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_BITRATE, &sample_rate);
 	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_NCHANNELS, &nchannels);
 	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_BITRATE, &sample_rate) != 0) {

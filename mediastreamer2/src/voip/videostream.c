@@ -44,6 +44,8 @@ void video_stream_free(VideoStream *stream) {
 
 	media_stream_free(&stream->ms);
 
+	if (stream->void_source != NULL)
+		ms_filter_destroy(stream->void_source);
 	if (stream->source != NULL)
 		ms_filter_destroy (stream->source);
 	if (stream->output != NULL)
@@ -661,11 +663,19 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 	rtp_session_set_rtp_socket_recv_buffer_size(stream->ms.sessions.rtp_session,socket_buf_size);
 	rtp_session_set_rtp_socket_send_buffer_size(stream->ms.sessions.rtp_session,socket_buf_size);
 	
-	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamSendOnly){
+	/* Plumb the outgoing stream */
+	if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.sessions.rtp_session);
+	if (stream->dir==VideoStreamRecvOnly){
+		/* Create a dummy sending stream to send the STUN packets to open firewall ports. */
 		MSConnectionHelper ch;
-		/*plumb the outgoing stream */
-
-		if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.sessions.rtp_session);
+		bool_t send_silence = FALSE;
+		stream->void_source = ms_filter_new(MS_VOID_SOURCE_ID);
+		ms_filter_call_method(stream->void_source, MS_VOID_SOURCE_SEND_SILENCE, &send_silence);
+		ms_connection_helper_start(&ch);
+		ms_connection_helper_link(&ch, stream->void_source, -1, 0);
+		ms_connection_helper_link(&ch, stream->ms.rtpsend, 0, -1);
+	} else {
+		MSConnectionHelper ch;
 		if (stream->source_performs_encoding == FALSE) {
 			stream->ms.encoder=ms_filter_create_encoder(pt->mime_type);
 			if (stream->ms.encoder==NULL){
@@ -721,6 +731,8 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 			ms_filter_link(stream->tee,2,stream->local_jpegwriter,0);
 		}
 	}
+
+	/* Plumb the incoming stream */
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamRecvOnly){
 		MSConnectionHelper ch;
 
@@ -1026,6 +1038,12 @@ video_stream_stop (VideoStream * stream)
 			rtp_stats_display(rtp_session_get_stats(stream->ms.sessions.rtp_session),
 				"             VIDEO SESSION'S RTP STATISTICS                ");
 
+			if (stream->void_source) {
+				MSConnectionHelper ch;
+				ms_connection_helper_start(&ch);
+				ms_connection_helper_unlink(&ch, stream->void_source, -1, 0);
+				ms_connection_helper_unlink(&ch, stream->ms.rtpsend, 0, -1);
+			}
 			if (stream->source){
 				MSConnectionHelper ch;
 				ms_connection_helper_start(&ch);

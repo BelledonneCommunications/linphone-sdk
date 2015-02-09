@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct VoidSourceState {
 	int rate;
 	int nchannels;
+	bool_t send_silence;
 };
 
 typedef struct VoidSourceState VoidSourceState;
@@ -33,6 +34,7 @@ static void void_source_init(MSFilter *f) {
 	VoidSourceState *s = ms_new0(VoidSourceState, 1);
 	s->rate = 8000;
 	s->nchannels = 1;
+	s->send_silence = FALSE;
 	f->data = s;
 }
 
@@ -41,15 +43,17 @@ static void void_source_uninit(MSFilter *f) {
 }
 
 static void void_source_process(MSFilter *f) {
-	mblk_t *m;
 	VoidSourceState *s = (VoidSourceState *)f->data;
+	mblk_t *m;
 	int nsamples;
 
-	nsamples = (f->ticker->interval * s->rate) / 1000;
-	m = allocb(nsamples * s->nchannels * 2, 0);
-	memset(m->b_wptr, 0, nsamples * s->nchannels * 2);
-	m->b_wptr += nsamples * s->nchannels * 2;
-	ms_queue_put(f->outputs[0], m);
+	if (s->send_silence == TRUE) {
+		nsamples = (f->ticker->interval * s->rate) / 1000;
+		m = allocb(nsamples * s->nchannels * 2, 0);
+		memset(m->b_wptr, 0, nsamples * s->nchannels * 2);
+		m->b_wptr += nsamples * s->nchannels * 2;
+		ms_queue_put(f->outputs[0], m);
+	}
 }
 
 static int void_source_set_rate(MSFilter *f, void *arg) {
@@ -76,11 +80,18 @@ static int void_source_get_nchannels(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int void_source_send_silence(MSFilter *f, void *arg) {
+	VoidSourceState *s = (VoidSourceState *)f->data;
+	s->send_silence = *((bool_t *)arg);
+	return 0;
+}
+
 MSFilterMethod void_source_methods[] = {
 	{ MS_FILTER_SET_SAMPLE_RATE, void_source_set_rate },
 	{ MS_FILTER_GET_SAMPLE_RATE, void_source_get_rate },
 	{ MS_FILTER_SET_NCHANNELS, void_source_set_nchannels },
 	{ MS_FILTER_GET_NCHANNELS, void_source_get_nchannels },
+	{ MS_VOID_SOURCE_SEND_SILENCE, void_source_send_silence },
 	{ 0, NULL }
 };
 

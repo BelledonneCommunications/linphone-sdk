@@ -416,6 +416,9 @@ static void _sender_process(MSFilter * f)
 			}else{
 				freemsg(im);
 			}
+		} else if (d->skip == FALSE) {
+			// Send STUN packet as RTP keep alive even if there is no input
+			check_stun_sending(f);
 		}
 	}while ((im = ms_queue_get(f->inputs[0])) != NULL);
 

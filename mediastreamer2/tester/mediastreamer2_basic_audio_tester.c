@@ -52,11 +52,13 @@ static void tone_detected_cb(void *data, MSFilter *f, unsigned int event_id, MST
 static void dtmfgen_tonedet(void) {
 	MSConnectionHelper h;
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
+	bool_t send_silence = TRUE;
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_create_filters(filter_mask);
 	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
+	ms_filter_call_method(ms_tester_voidsource, MS_VOID_SOURCE_SEND_SILENCE, &send_silence);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_voidsource, -1, 0);
 	ms_connection_helper_link(&h, ms_tester_dtmfgen, 0, 0);
@@ -85,6 +87,7 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) 
 
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
 		| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
+	bool_t send_silence = TRUE;
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
@@ -94,6 +97,7 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) 
 	/* set sample rate and channel number to all filters (might need to check the return value to insert a resampler if needed?) */
 	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(ms_tester_voidsource, MS_VOID_SOURCE_SEND_SILENCE, &send_silence);
 	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_NCHANNELS, &nchannels);
 	ms_filter_call_method(ms_tester_encoder, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
@@ -153,6 +157,7 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	RtpSession *rtps;
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
 		| FILTER_MASK_RTPSEND | FILTER_MASK_RTPRECV | FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
+	bool_t send_silence = TRUE;
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
@@ -165,6 +170,7 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	rtp_session_enable_rtcp(rtps,FALSE);
 	ms_filter_call_method(ms_tester_rtprecv, MS_RTP_RECV_SET_SESSION, rtps);
 	ms_filter_call_method(ms_tester_rtpsend, MS_RTP_SEND_SET_SESSION, rtps);
+	ms_filter_call_method(ms_tester_voidsource, MS_VOID_SOURCE_SEND_SILENCE, &send_silence);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_voidsource, -1, 0);
 	ms_connection_helper_link(&h, ms_tester_dtmfgen, 0, 0);
@@ -203,9 +209,8 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	MSConnectionHelper h;
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_FILEREC
 		| FILTER_MASK_FILEPLAY | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
-
-    char* recorded_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), DTMFGEN_FILE_NAME);
-
+	bool_t send_silence = TRUE;
+	char* recorded_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), DTMFGEN_FILE_NAME);
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
@@ -216,6 +221,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_CLOSE);
 	ms_filter_call_method(ms_tester_filerec, MS_FILE_REC_OPEN, recorded_file);
 	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_START);
+	ms_filter_call_method(ms_tester_voidsource, MS_VOID_SOURCE_SEND_SILENCE, &send_silence);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_voidsource, -1, 0);
 	ms_connection_helper_link(&h, ms_tester_dtmfgen, 0, 0);

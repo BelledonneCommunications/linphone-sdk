@@ -616,6 +616,7 @@ typedef enum _VideoStreamDir{
 struct _VideoStream
 {
 	MediaStream ms;
+	MSFilter *void_source;
 	MSFilter *source;
 	MSFilter *pixconv;
 	MSFilter *sizeconv;

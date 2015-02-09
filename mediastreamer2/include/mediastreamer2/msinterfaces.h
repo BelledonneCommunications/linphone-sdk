@@ -289,5 +289,9 @@ typedef enum _MSRecorderState MSRecorderState;
 
 #define MS_AUDIO_ENCODER_GET_CAPABILITIES \
 	MS_FILTER_METHOD(MSFilterAudioEncoderInterface,4,int)
-	
+
+/** Interface definitions for void source/sink */
+#define MS_VOID_SOURCE_SEND_SILENCE \
+	MS_FILTER_METHOD(MSFilterVoidInterface, 0, bool_t)
+
 #endif
