@@ -272,9 +272,9 @@ static void uninit_video_streams(video_stream_tester_t *marielle, video_stream_t
 	rtp_session_compute_send_bandwidth(marielle->vs->ms.sessions.rtp_session);
 	rtp_session_compute_send_bandwidth(margaux->vs->ms.sessions.rtp_session);
 	rtcp_send_bandwidth = rtp_session_get_rtcp_send_bandwidth(marielle->vs->ms.sessions.rtp_session);
-	CU_ASSERT_TRUE(rtcp_send_bandwidth <= (0.05 * payload_type_get_bitrate(pt)));
+	CU_ASSERT_TRUE(rtcp_send_bandwidth <= (0.06 * payload_type_get_bitrate(pt)));
 	rtcp_send_bandwidth = rtp_session_get_rtcp_send_bandwidth(margaux->vs->ms.sessions.rtp_session);
-	CU_ASSERT_TRUE(rtcp_send_bandwidth <= (0.05 * payload_type_get_bitrate(pt)));
+	CU_ASSERT_TRUE(rtcp_send_bandwidth <= (0.06 * payload_type_get_bitrate(pt)));
 
 	video_stream_stop(marielle->vs);
 	video_stream_stop(margaux->vs);
