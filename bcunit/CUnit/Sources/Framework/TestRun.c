@@ -148,23 +148,23 @@ static void         cleanup_failure_list(CU_pFailureRecord* ppFailure);
 static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummary);
 static CU_ErrorCode run_single_test(CU_pTest pTest, CU_pRunSummary pRunSummary);
 static void         add_failure(CU_pFailureRecord* ppFailure,
-                                CU_pRunSummary pRunSummary,
-                                CU_FailureType type,
-                                unsigned int uiLineNumber,
-                                const char *szCondition,
-                                const char *szFileName,
-                                CU_pSuite pSuite,
-                                CU_pTest pTest);
+								CU_pRunSummary pRunSummary,
+								CU_FailureType type,
+								unsigned int uiLineNumber,
+								const char *szCondition,
+								const char *szFileName,
+								CU_pSuite pSuite,
+								CU_pTest pTest);
 
 /*=================================================================
  *  Public Interface functions
  *=================================================================*/
 CU_BOOL CU_assertImplementation(CU_BOOL bValue,
-                                unsigned int uiLine,
-                                const char *strCondition,
-                                const char *strFile,
-                                const char *strFunction,
-                                CU_BOOL bFatal)
+								unsigned int uiLine,
+								const char *strCondition,
+								const char *strFile,
+								const char *strFunction,
+								CU_BOOL bFatal)
 {
   /* not used in current implementation - stop compiler warning */
   CU_UNREFERENCED_PARAMETER(strFunction);
@@ -175,13 +175,13 @@ CU_BOOL CU_assertImplementation(CU_BOOL bValue,
 
   ++f_run_summary.nAsserts;
   if (CU_FALSE == bValue) {
-    ++f_run_summary.nAssertsFailed;
-    add_failure(&f_failure_list, &f_run_summary, CUF_AssertFailed,
-                uiLine, strCondition, strFile, f_pCurSuite, f_pCurTest);
+	++f_run_summary.nAssertsFailed;
+	add_failure(&f_failure_list, &f_run_summary, CUF_AssertFailed,
+				uiLine, strCondition, strFile, f_pCurSuite, f_pCurTest);
 
-    if ((CU_TRUE == bFatal) && (NULL != f_pCurTest->pJumpBuf)) {
-      longjmp(*(f_pCurTest->pJumpBuf), 1);
-    }
+	if ((CU_TRUE == bFatal) && (NULL != f_pCurTest->pJumpBuf)) {
+	  longjmp(*(f_pCurTest->pJumpBuf), 1);
+	}
   }
 
   return bValue;
@@ -335,10 +335,10 @@ unsigned int CU_get_number_of_failure_records(void)
 double CU_get_elapsed_time(void)
 {
   if (CU_TRUE == f_bTestIsRunning) {
-    return ((double)clock() - (double)f_start_time)/(double)CLOCKS_PER_SEC;
+	return ((double)time(0) - (double)f_start_time);
   }
   else {
-    return f_run_summary.ElapsedTime;
+	return f_run_summary.ElapsedTime;
   }
 }
 
@@ -366,27 +366,27 @@ CU_ErrorCode CU_run_all_tests(void)
   clear_previous_results(&f_run_summary, &f_failure_list);
 
   if (NULL == pRegistry) {
-    result = CUE_NOREGISTRY;
+	result = CUE_NOREGISTRY;
   }
   else {
-    /* test run is starting - set flag */
-    f_bTestIsRunning = CU_TRUE;
-    f_start_time = clock();
+	/* test run is starting - set flag */
+	f_bTestIsRunning = CU_TRUE;
+	f_start_time = time(0);
 
-    pSuite = pRegistry->pSuite;
-    while ((NULL != pSuite) && ((CUE_SUCCESS == result) || (CU_get_error_action() == CUEA_IGNORE))) {
-      result2 = run_single_suite(pSuite, &f_run_summary);
-      result = (CUE_SUCCESS == result) ? result2 : result;  /* result = 1st error encountered */
-      pSuite = pSuite->pNext;
-    }
+	pSuite = pRegistry->pSuite;
+	while ((NULL != pSuite) && ((CUE_SUCCESS == result) || (CU_get_error_action() == CUEA_IGNORE))) {
+	  result2 = run_single_suite(pSuite, &f_run_summary);
+	  result = (CUE_SUCCESS == result) ? result2 : result;  /* result = 1st error encountered */
+	  pSuite = pSuite->pNext;
+	}
 
-    /* test run is complete - clear flag */
-    f_bTestIsRunning = CU_FALSE;
-    f_run_summary.ElapsedTime = ((double)clock() - (double)f_start_time)/(double)CLOCKS_PER_SEC;
+	/* test run is complete - clear flag */
+	f_bTestIsRunning = CU_FALSE;
+	f_run_summary.ElapsedTime = ((double)time(0) - (double)f_start_time);
 
-    if (NULL != f_pAllTestsCompleteMessageHandler) {
-     (*f_pAllTestsCompleteMessageHandler)(f_failure_list);
-    }
+	if (NULL != f_pAllTestsCompleteMessageHandler) {
+	 (*f_pAllTestsCompleteMessageHandler)(f_failure_list);
+	}
   }
 
   CU_set_error(result);
@@ -402,23 +402,23 @@ CU_ErrorCode CU_run_suite(CU_pSuite pSuite)
   clear_previous_results(&f_run_summary, &f_failure_list);
 
   if (NULL == pSuite) {
-    result = CUE_NOSUITE;
+	result = CUE_NOSUITE;
   }
   else {
-    /* test run is starting - set flag */
-    f_bTestIsRunning = CU_TRUE;
-    f_start_time = clock();
+	/* test run is starting - set flag */
+	f_bTestIsRunning = CU_TRUE;
+	f_start_time = time(0);
 
-    result = run_single_suite(pSuite, &f_run_summary);
+	result = run_single_suite(pSuite, &f_run_summary);
 
-    /* test run is complete - clear flag */
-    f_bTestIsRunning = CU_FALSE;
-    f_run_summary.ElapsedTime = ((double)clock() - (double)f_start_time)/(double)CLOCKS_PER_SEC;
+	/* test run is complete - clear flag */
+	f_bTestIsRunning = CU_FALSE;
+	f_run_summary.ElapsedTime = ((double)time(0) - (double)f_start_time);
 
-    /* run handler for overall completion, if any */
-    if (NULL != f_pAllTestsCompleteMessageHandler) {
-      (*f_pAllTestsCompleteMessageHandler)(f_failure_list);
-    }
+	/* run handler for overall completion, if any */
+	if (NULL != f_pAllTestsCompleteMessageHandler) {
+	  (*f_pAllTestsCompleteMessageHandler)(f_failure_list);
+	}
   }
 
   CU_set_error(result);
@@ -435,83 +435,83 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
   clear_previous_results(&f_run_summary, &f_failure_list);
 
   if (NULL == pSuite) {
-    result = CUE_NOSUITE;
+	result = CUE_NOSUITE;
   }
   else if (NULL == pTest) {
-    result = CUE_NOTEST;
+	result = CUE_NOTEST;
   }
   else if (CU_FALSE == pSuite->fActive) {
-    f_run_summary.nSuitesInactive++;
-    if (CU_FALSE != f_failure_on_inactive) {
-      add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInactive,
-                  0, _("Suite inactive"), _("CUnit System"), pSuite, NULL);
-    }
-    result = CUE_SUITE_INACTIVE;
+	f_run_summary.nSuitesInactive++;
+	if (CU_FALSE != f_failure_on_inactive) {
+	  add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInactive,
+				  0, _("Suite inactive"), _("CUnit System"), pSuite, NULL);
+	}
+	result = CUE_SUITE_INACTIVE;
   }
   else if ((NULL == pTest->pName) || (NULL == CU_get_test_by_name(pTest->pName, pSuite))) {
-    result = CUE_TEST_NOT_IN_SUITE;
+	result = CUE_TEST_NOT_IN_SUITE;
   }
   else {
-    /* test run is starting - set flag */
-    f_bTestIsRunning = CU_TRUE;
-    f_start_time = clock();
+	/* test run is starting - set flag */
+	f_bTestIsRunning = CU_TRUE;
+	f_start_time = time(0);
 
-    f_pCurTest = NULL;
-    f_pCurSuite = pSuite;
+	f_pCurTest = NULL;
+	f_pCurSuite = pSuite;
 
-    pSuite->uiNumberOfTestsFailed = 0;
-    pSuite->uiNumberOfTestsSuccess = 0;
+	pSuite->uiNumberOfTestsFailed = 0;
+	pSuite->uiNumberOfTestsSuccess = 0;
 
-    /* run handler for suite start, if any */
-    if (NULL != f_pSuiteStartMessageHandler) {
-      (*f_pSuiteStartMessageHandler)(pSuite);
-    }
+	/* run handler for suite start, if any */
+	if (NULL != f_pSuiteStartMessageHandler) {
+	  (*f_pSuiteStartMessageHandler)(pSuite);
+	}
 
-    /* run the suite initialization function, if any */
-    if ((NULL != pSuite->pInitializeFunc) && (0 != (*pSuite->pInitializeFunc)())) {
-      /* init function had an error - call handler, if any */
-      if (NULL != f_pSuiteInitFailureMessageHandler) {
-        (*f_pSuiteInitFailureMessageHandler)(pSuite);
-      }
-      f_run_summary.nSuitesFailed++;
-      add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInitFailed, 0,
-                  _("Suite Initialization failed - Suite Skipped"),
-                  _("CUnit System"), pSuite, NULL);
-      result = CUE_SINIT_FAILED;
-    }
-    /* reach here if no suite initialization, or if it succeeded */
-    else {
-      result2 = run_single_test(pTest, &f_run_summary);
-      result = (CUE_SUCCESS == result) ? result2 : result;
+	/* run the suite initialization function, if any */
+	if ((NULL != pSuite->pInitializeFunc) && (0 != (*pSuite->pInitializeFunc)())) {
+	  /* init function had an error - call handler, if any */
+	  if (NULL != f_pSuiteInitFailureMessageHandler) {
+		(*f_pSuiteInitFailureMessageHandler)(pSuite);
+	  }
+	  f_run_summary.nSuitesFailed++;
+	  add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInitFailed, 0,
+				  _("Suite Initialization failed - Suite Skipped"),
+				  _("CUnit System"), pSuite, NULL);
+	  result = CUE_SINIT_FAILED;
+	}
+	/* reach here if no suite initialization, or if it succeeded */
+	else {
+	  result2 = run_single_test(pTest, &f_run_summary);
+	  result = (CUE_SUCCESS == result) ? result2 : result;
 
-      /* run the suite cleanup function, if any */
-      if ((NULL != pSuite->pCleanupFunc) && (0 != (*pSuite->pCleanupFunc)())) {
-        /* cleanup function had an error - call handler, if any */
-        if (NULL != f_pSuiteCleanupFailureMessageHandler) {
-          (*f_pSuiteCleanupFailureMessageHandler)(pSuite);
-        }
-        f_run_summary.nSuitesFailed++;
-        add_failure(&f_failure_list, &f_run_summary, CUF_SuiteCleanupFailed,
-                    0, _("Suite cleanup failed."), _("CUnit System"), pSuite, NULL);
-        result = (CUE_SUCCESS == result) ? CUE_SCLEAN_FAILED : result;
-      }
-    }
+	  /* run the suite cleanup function, if any */
+	  if ((NULL != pSuite->pCleanupFunc) && (0 != (*pSuite->pCleanupFunc)())) {
+		/* cleanup function had an error - call handler, if any */
+		if (NULL != f_pSuiteCleanupFailureMessageHandler) {
+		  (*f_pSuiteCleanupFailureMessageHandler)(pSuite);
+		}
+		f_run_summary.nSuitesFailed++;
+		add_failure(&f_failure_list, &f_run_summary, CUF_SuiteCleanupFailed,
+					0, _("Suite cleanup failed."), _("CUnit System"), pSuite, NULL);
+		result = (CUE_SUCCESS == result) ? CUE_SCLEAN_FAILED : result;
+	  }
+	}
 
-    /* run handler for suite completion, if any */
-    if (NULL != f_pSuiteCompleteMessageHandler) {
-      (*f_pSuiteCompleteMessageHandler)(pSuite, NULL);
-    }
+	/* run handler for suite completion, if any */
+	if (NULL != f_pSuiteCompleteMessageHandler) {
+	  (*f_pSuiteCompleteMessageHandler)(pSuite, NULL);
+	}
 
-    /* test run is complete - clear flag */
-    f_bTestIsRunning = CU_FALSE;
-    f_run_summary.ElapsedTime = ((double)clock() - (double)f_start_time)/(double)CLOCKS_PER_SEC;
+	/* test run is complete - clear flag */
+	f_bTestIsRunning = CU_FALSE;
+	f_run_summary.ElapsedTime = ((double)time(0) - (double)f_start_time);
 
-    /* run handler for overall completion, if any */
-    if (NULL != f_pAllTestsCompleteMessageHandler) {
-      (*f_pAllTestsCompleteMessageHandler)(f_failure_list);
-    }
+	/* run handler for overall completion, if any */
+	if (NULL != f_pAllTestsCompleteMessageHandler) {
+	  (*f_pAllTestsCompleteMessageHandler)(f_failure_list);
+	}
 
-    f_pCurSuite = NULL;
+	f_pCurSuite = NULL;
   }
 
   CU_set_error(result);
@@ -562,11 +562,11 @@ CU_EXPORT void CU_print_run_results(FILE *file)
   assert(NULL != file);
   summary_string = CU_get_run_results_string();
   if (NULL != summary_string) {
-    fprintf(file, "%s", summary_string);
-    CU_FREE(summary_string);
+	fprintf(file, "%s", summary_string);
+	CU_FREE(summary_string);
   }
   else {
-    fprintf(file, _("An error occurred printing the run results."));
+	fprintf(file, _("An error occurred printing the run results."));
   }
 }
 
@@ -585,35 +585,35 @@ CU_EXPORT char * CU_get_run_results_string(void)
 
   width[0] = strlen(_("Run Summary:"));
   width[1] = CU_MAX(6,
-                    CU_MAX(strlen(_("Type")),
-                           CU_MAX(strlen(_("suites")),
-                                  CU_MAX(strlen(_("tests")),
-                                         strlen(_("asserts")))))) + 1;
+					CU_MAX(strlen(_("Type")),
+						   CU_MAX(strlen(_("suites")),
+								  CU_MAX(strlen(_("tests")),
+										 strlen(_("asserts")))))) + 1;
   width[2] = CU_MAX(6,
-                    CU_MAX(strlen(_("Total")),
-                           CU_MAX(CU_number_width(pRegistry->uiNumberOfSuites),
-                                  CU_MAX(CU_number_width(pRegistry->uiNumberOfTests),
-                                         CU_number_width(pRunSummary->nAsserts))))) + 1;
+					CU_MAX(strlen(_("Total")),
+						   CU_MAX(CU_number_width(pRegistry->uiNumberOfSuites),
+								  CU_MAX(CU_number_width(pRegistry->uiNumberOfTests),
+										 CU_number_width(pRunSummary->nAsserts))))) + 1;
   width[3] = CU_MAX(6,
-                    CU_MAX(strlen(_("Ran")),
-                           CU_MAX(CU_number_width(pRunSummary->nSuitesRun),
-                                  CU_MAX(CU_number_width(pRunSummary->nTestsRun),
-                                         CU_number_width(pRunSummary->nAsserts))))) + 1;
+					CU_MAX(strlen(_("Ran")),
+						   CU_MAX(CU_number_width(pRunSummary->nSuitesRun),
+								  CU_MAX(CU_number_width(pRunSummary->nTestsRun),
+										 CU_number_width(pRunSummary->nAsserts))))) + 1;
   width[4] = CU_MAX(6,
-                    CU_MAX(strlen(_("Passed")),
-                           CU_MAX(strlen(_("n/a")),
-                                  CU_MAX(CU_number_width(pRunSummary->nTestsRun - pRunSummary->nTestsFailed),
-                                         CU_number_width(pRunSummary->nAsserts - pRunSummary->nAssertsFailed))))) + 1;
+					CU_MAX(strlen(_("Passed")),
+						   CU_MAX(strlen(_("n/a")),
+								  CU_MAX(CU_number_width(pRunSummary->nTestsRun - pRunSummary->nTestsFailed),
+										 CU_number_width(pRunSummary->nAsserts - pRunSummary->nAssertsFailed))))) + 1;
   width[5] = CU_MAX(6,
-                    CU_MAX(strlen(_("Failed")),
-                           CU_MAX(CU_number_width(pRunSummary->nSuitesFailed),
-                                  CU_MAX(CU_number_width(pRunSummary->nTestsFailed),
-                                         CU_number_width(pRunSummary->nAssertsFailed))))) + 1;
+					CU_MAX(strlen(_("Failed")),
+						   CU_MAX(CU_number_width(pRunSummary->nSuitesFailed),
+								  CU_MAX(CU_number_width(pRunSummary->nTestsFailed),
+										 CU_number_width(pRunSummary->nAssertsFailed))))) + 1;
   width[6] = CU_MAX(6,
-                    CU_MAX(strlen(_("Inactive")),
-                           CU_MAX(CU_number_width(pRunSummary->nSuitesInactive),
-                                  CU_MAX(CU_number_width(pRunSummary->nTestsInactive),
-                                         strlen(_("n/a")))))) + 1;
+					CU_MAX(strlen(_("Inactive")),
+						   CU_MAX(CU_number_width(pRunSummary->nSuitesInactive),
+								  CU_MAX(CU_number_width(pRunSummary->nTestsInactive),
+										 strlen(_("n/a")))))) + 1;
 
   width[7] = strlen(_("Elapsed time = "));
   width[8] = strlen(_(" seconds"));
@@ -622,43 +622,43 @@ CU_EXPORT char * CU_get_run_results_string(void)
   result = (char *)CU_MALLOC(len);
 
   if (NULL != result) {
-    snprintf(result, len, "%*s%*s%*s%*s%*s%*s%*s\n"   /* if you change this, be sure  */
-                          "%*s%*s%*u%*u%*s%*u%*u\n"   /* to change the calculation of */
-                          "%*s%*s%*u%*u%*u%*u%*u\n"   /* len above!                   */
-                          "%*s%*s%*u%*u%*u%*u%*s\n\n"
-                          "%*s%8.3f%*s",
-            width[0], _("Run Summary:"),
-            width[1], _("Type"),
-            width[2], _("Total"),
-            width[3], _("Ran"),
-            width[4], _("Passed"),
-            width[5], _("Failed"),
-            width[6], _("Inactive"),
-            width[0], " ",
-            width[1], _("suites"),
-            width[2], pRegistry->uiNumberOfSuites,
-            width[3], pRunSummary->nSuitesRun,
-            width[4], _("n/a"),
-            width[5], pRunSummary->nSuitesFailed,
-            width[6], pRunSummary->nSuitesInactive,
-            width[0], " ",
-            width[1], _("tests"),
-            width[2], pRegistry->uiNumberOfTests,
-            width[3], pRunSummary->nTestsRun,
-            width[4], pRunSummary->nTestsRun - pRunSummary->nTestsFailed,
-            width[5], pRunSummary->nTestsFailed,
-            width[6], pRunSummary->nTestsInactive,
-            width[0], " ",
-            width[1], _("asserts"),
-            width[2], pRunSummary->nAsserts,
-            width[3], pRunSummary->nAsserts,
-            width[4], pRunSummary->nAsserts - pRunSummary->nAssertsFailed,
-            width[5], pRunSummary->nAssertsFailed,
-            width[6], _("n/a"),
-            width[7], _("Elapsed time = "), CU_get_elapsed_time(),  /* makes sure time is updated */
-            width[8], _(" seconds")
-            );
-     result[len-1] = '\0';
+	snprintf(result, len, "%*s%*s%*s%*s%*s%*s%*s\n"   /* if you change this, be sure  */
+						  "%*s%*s%*u%*u%*s%*u%*u\n"   /* to change the calculation of */
+						  "%*s%*s%*u%*u%*u%*u%*u\n"   /* len above!                   */
+						  "%*s%*s%*u%*u%*u%*u%*s\n\n"
+						  "%*s%d%*s",
+			width[0], _("Run Summary:"),
+			width[1], _("Type"),
+			width[2], _("Total"),
+			width[3], _("Ran"),
+			width[4], _("Passed"),
+			width[5], _("Failed"),
+			width[6], _("Inactive"),
+			width[0], " ",
+			width[1], _("suites"),
+			width[2], pRegistry->uiNumberOfSuites,
+			width[3], pRunSummary->nSuitesRun,
+			width[4], _("n/a"),
+			width[5], pRunSummary->nSuitesFailed,
+			width[6], pRunSummary->nSuitesInactive,
+			width[0], " ",
+			width[1], _("tests"),
+			width[2], pRegistry->uiNumberOfTests,
+			width[3], pRunSummary->nTestsRun,
+			width[4], pRunSummary->nTestsRun - pRunSummary->nTestsFailed,
+			width[5], pRunSummary->nTestsFailed,
+			width[6], pRunSummary->nTestsInactive,
+			width[0], " ",
+			width[1], _("asserts"),
+			width[2], pRunSummary->nAsserts,
+			width[3], pRunSummary->nAsserts,
+			width[4], pRunSummary->nAsserts - pRunSummary->nAssertsFailed,
+			width[5], pRunSummary->nAssertsFailed,
+			width[6], _("n/a"),
+			width[7], _("Elapsed time = "), (int)CU_get_elapsed_time(),  /* makes sure time is updated */
+			width[8], _(" seconds")
+			);
+	 result[len-1] = '\0';
   }
   return result;
 }
@@ -688,13 +688,13 @@ CU_EXPORT char * CU_get_run_results_string(void)
  *  @param pTest        The test being run at time of failure
  */
 static void add_failure(CU_pFailureRecord* ppFailure,
-                        CU_pRunSummary pRunSummary,
-                        CU_FailureType type,
-                        unsigned int uiLineNumber,
-                        const char *szCondition,
-                        const char *szFileName,
-                        CU_pSuite pSuite,
-                        CU_pTest pTest)
+						CU_pRunSummary pRunSummary,
+						CU_FailureType type,
+						unsigned int uiLineNumber,
+						const char *szCondition,
+						const char *szFileName,
+						CU_pSuite pSuite,
+						CU_pTest pTest)
 {
   CU_pFailureRecord pFailureNew = NULL;
   CU_pFailureRecord pTemp = NULL;
@@ -704,30 +704,30 @@ static void add_failure(CU_pFailureRecord* ppFailure,
   pFailureNew = (CU_pFailureRecord)CU_MALLOC(sizeof(CU_FailureRecord));
 
   if (NULL == pFailureNew) {
-    return;
+	return;
   }
 
   pFailureNew->strFileName = NULL;
   pFailureNew->strCondition = NULL;
   if (NULL != szFileName) {
-    pFailureNew->strFileName = (char*)CU_MALLOC(strlen(szFileName) + 1);
-    if(NULL == pFailureNew->strFileName) {
-      CU_FREE(pFailureNew);
-      return;
-    }
-    strcpy(pFailureNew->strFileName, szFileName);
+	pFailureNew->strFileName = (char*)CU_MALLOC(strlen(szFileName) + 1);
+	if(NULL == pFailureNew->strFileName) {
+	  CU_FREE(pFailureNew);
+	  return;
+	}
+	strcpy(pFailureNew->strFileName, szFileName);
   }
 
   if (NULL != szCondition) {
-    pFailureNew->strCondition = (char*)CU_MALLOC(strlen(szCondition) + 1);
-    if (NULL == pFailureNew->strCondition) {
-      if(NULL != pFailureNew->strFileName) {
-        CU_FREE(pFailureNew->strFileName);
-      }
-      CU_FREE(pFailureNew);
-      return;
-    }
-    strcpy(pFailureNew->strCondition, szCondition);
+	pFailureNew->strCondition = (char*)CU_MALLOC(strlen(szCondition) + 1);
+	if (NULL == pFailureNew->strCondition) {
+	  if(NULL != pFailureNew->strFileName) {
+		CU_FREE(pFailureNew->strFileName);
+	  }
+	  CU_FREE(pFailureNew);
+	  return;
+	}
+	strcpy(pFailureNew->strCondition, szCondition);
   }
 
   pFailureNew->type = type;
@@ -739,18 +739,18 @@ static void add_failure(CU_pFailureRecord* ppFailure,
 
   pTemp = *ppFailure;
   if (NULL != pTemp) {
-    while (NULL != pTemp->pNext) {
-      pTemp = pTemp->pNext;
-    }
-    pTemp->pNext = pFailureNew;
-    pFailureNew->pPrev = pTemp;
+	while (NULL != pTemp->pNext) {
+	  pTemp = pTemp->pNext;
+	}
+	pTemp->pNext = pFailureNew;
+	pFailureNew->pPrev = pTemp;
   }
   else {
-    *ppFailure = pFailureNew;
+	*ppFailure = pFailureNew;
   }
 
   if (NULL != pRunSummary) {
-    ++(pRunSummary->nFailureRecords);
+	++(pRunSummary->nFailureRecords);
   }
   f_last_failure = pFailureNew;
 }
@@ -786,7 +786,7 @@ static void clear_previous_results(CU_pRunSummary pRunSummary, CU_pFailureRecord
   pRunSummary->ElapsedTime = 0.0;
 
   if (NULL != *ppFailure) {
-    cleanup_failure_list(ppFailure);
+	cleanup_failure_list(ppFailure);
   }
 
   f_last_failure = NULL;
@@ -810,17 +810,17 @@ static void cleanup_failure_list(CU_pFailureRecord* ppFailure)
 
   while (NULL != pCurFailure) {
 
-    if (NULL != pCurFailure->strCondition) {
-      CU_FREE(pCurFailure->strCondition);
-    }
+	if (NULL != pCurFailure->strCondition) {
+	  CU_FREE(pCurFailure->strCondition);
+	}
 
-    if (NULL != pCurFailure->strFileName) {
-      CU_FREE(pCurFailure->strFileName);
-    }
+	if (NULL != pCurFailure->strFileName) {
+	  CU_FREE(pCurFailure->strFileName);
+	}
 
-    pNextFailure = pCurFailure->pNext;
-    CU_FREE(pCurFailure);
-    pCurFailure = pNextFailure;
+	pNextFailure = pCurFailure->pNext;
+	CU_FREE(pCurFailure);
+	pCurFailure = pNextFailure;
   }
 
   *ppFailure = NULL;
@@ -860,91 +860,91 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
 
   /* run handler for suite start, if any */
   if (NULL != f_pSuiteStartMessageHandler) {
-    (*f_pSuiteStartMessageHandler)(pSuite);
+	(*f_pSuiteStartMessageHandler)(pSuite);
   }
 
   /* run suite if it's active */
   if (CU_FALSE != pSuite->fActive) {
 
-    /* run the suite initialization function, if any */
-    if ((NULL != pSuite->pInitializeFunc) && (0 != (*pSuite->pInitializeFunc)())) {
-      /* init function had an error - call handler, if any */
-      if (NULL != f_pSuiteInitFailureMessageHandler) {
-        (*f_pSuiteInitFailureMessageHandler)(pSuite);
-      }
-      pRunSummary->nSuitesFailed++;
-      add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInitFailed, 0,
-                  _("Suite Initialization failed - Suite Skipped"),
-                  _("CUnit System"), pSuite, NULL);
-      result = CUE_SINIT_FAILED;
-    }
+	/* run the suite initialization function, if any */
+	if ((NULL != pSuite->pInitializeFunc) && (0 != (*pSuite->pInitializeFunc)())) {
+	  /* init function had an error - call handler, if any */
+	  if (NULL != f_pSuiteInitFailureMessageHandler) {
+		(*f_pSuiteInitFailureMessageHandler)(pSuite);
+	  }
+	  pRunSummary->nSuitesFailed++;
+	  add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInitFailed, 0,
+				  _("Suite Initialization failed - Suite Skipped"),
+				  _("CUnit System"), pSuite, NULL);
+	  result = CUE_SINIT_FAILED;
+	}
 
-    /* reach here if no suite initialization, or if it succeeded */
-    else {
-      pTest = pSuite->pTest;
-      while ((NULL != pTest) && ((CUE_SUCCESS == result) || (CU_get_error_action() == CUEA_IGNORE))) {
-        if (CU_FALSE != pTest->fActive) {
-          result2 = run_single_test(pTest, pRunSummary);
-          result = (CUE_SUCCESS == result) ? result2 : result;
-        }
-        else {
-          f_run_summary.nTestsInactive++;
-          if (CU_FALSE != f_failure_on_inactive) {
-            add_failure(&f_failure_list, &f_run_summary, CUF_TestInactive,
-                        0, _("Test inactive"), _("CUnit System"), pSuite, pTest);
-            result = CUE_TEST_INACTIVE;
-          }
-        }
-        pTest = pTest->pNext;
+	/* reach here if no suite initialization, or if it succeeded */
+	else {
+	  pTest = pSuite->pTest;
+	  while ((NULL != pTest) && ((CUE_SUCCESS == result) || (CU_get_error_action() == CUEA_IGNORE))) {
+		if (CU_FALSE != pTest->fActive) {
+		  result2 = run_single_test(pTest, pRunSummary);
+		  result = (CUE_SUCCESS == result) ? result2 : result;
+		}
+		else {
+		  f_run_summary.nTestsInactive++;
+		  if (CU_FALSE != f_failure_on_inactive) {
+			add_failure(&f_failure_list, &f_run_summary, CUF_TestInactive,
+						0, _("Test inactive"), _("CUnit System"), pSuite, pTest);
+			result = CUE_TEST_INACTIVE;
+		  }
+		}
+		pTest = pTest->pNext;
 
-        if (CUE_SUCCESS == result) {
-          pSuite->uiNumberOfTestsFailed++;
-        }
-        else {
-          pSuite->uiNumberOfTestsSuccess++;
-        }
-      }
-      pRunSummary->nSuitesRun++;
+		if (CUE_SUCCESS == result) {
+		  pSuite->uiNumberOfTestsFailed++;
+		}
+		else {
+		  pSuite->uiNumberOfTestsSuccess++;
+		}
+	  }
+	  pRunSummary->nSuitesRun++;
 
-      /* call the suite cleanup function, if any */
-      if ((NULL != pSuite->pCleanupFunc) && (0 != (*pSuite->pCleanupFunc)())) {
-        if (NULL != f_pSuiteCleanupFailureMessageHandler) {
-          (*f_pSuiteCleanupFailureMessageHandler)(pSuite);
-        }
-        pRunSummary->nSuitesFailed++;
-        add_failure(&f_failure_list, &f_run_summary, CUF_SuiteCleanupFailed,
-                    0, _("Suite cleanup failed."), _("CUnit System"), pSuite, NULL);
-        result = (CUE_SUCCESS == result) ? CUE_SCLEAN_FAILED : result;
-      }
-    }
+	  /* call the suite cleanup function, if any */
+	  if ((NULL != pSuite->pCleanupFunc) && (0 != (*pSuite->pCleanupFunc)())) {
+		if (NULL != f_pSuiteCleanupFailureMessageHandler) {
+		  (*f_pSuiteCleanupFailureMessageHandler)(pSuite);
+		}
+		pRunSummary->nSuitesFailed++;
+		add_failure(&f_failure_list, &f_run_summary, CUF_SuiteCleanupFailed,
+					0, _("Suite cleanup failed."), _("CUnit System"), pSuite, NULL);
+		result = (CUE_SUCCESS == result) ? CUE_SCLEAN_FAILED : result;
+	  }
+	}
   }
 
   /* otherwise record inactive suite and failure if appropriate */
   else {
-    f_run_summary.nSuitesInactive++;
-    if (CU_FALSE != f_failure_on_inactive) {
-      add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInactive,
-                  0, _("Suite inactive"), _("CUnit System"), pSuite, NULL);
-      result = CUE_SUITE_INACTIVE;
-    }
+	f_run_summary.nSuitesInactive++;
+	if (CU_FALSE != f_failure_on_inactive) {
+	  add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInactive,
+				  0, _("Suite inactive"), _("CUnit System"), pSuite, NULL);
+	  result = CUE_SUITE_INACTIVE;
+	}
   }
 
   /* if additional failures have occurred... */
   if (pRunSummary->nFailureRecords > nStartFailures) {
-    if (NULL != pLastFailure) {
-      pLastFailure = pLastFailure->pNext;  /* was a previous failure, so go to next one */
-    }
-    else {
-      pLastFailure = f_failure_list;       /* no previous failure - go to 1st one */
-    }
+	if (NULL != pLastFailure) {
+	  pLastFailure = pLastFailure->pNext;  /* was a previous failure, so go to next one */
+	}
+	else {
+	  pLastFailure = f_failure_list;       /* no previous failure - go to 1st one */
+	}
   }
   else {
-    pLastFailure = NULL;                   /* no additional failure - set to NULL */
+	pLastFailure = NULL;                   /* no additional failure - set to NULL */
   }
 
   /* run handler for suite completion, if any */
   if (NULL != f_pSuiteCompleteMessageHandler) {
-    (*f_pSuiteCompleteMessageHandler)(pSuite, pLastFailure);
+	(*f_pSuiteCompleteMessageHandler)(pSuite, pLastFailure);
   }
 
   f_pCurSuite = NULL;
@@ -985,55 +985,55 @@ static CU_ErrorCode run_single_test(CU_pTest pTest, CU_pRunSummary pRunSummary)
   f_pCurTest = pTest;
 
   if (NULL != f_pTestStartMessageHandler) {
-    (*f_pTestStartMessageHandler)(f_pCurTest, f_pCurSuite);
+	(*f_pTestStartMessageHandler)(f_pCurTest, f_pCurSuite);
   }
 
   /* run test if it is active */
   if (CU_FALSE != pTest->fActive) {
 
-    if (NULL != f_pCurSuite->pSetUpFunc) {
-      (*f_pCurSuite->pSetUpFunc)();
-    }
+	if (NULL != f_pCurSuite->pSetUpFunc) {
+	  (*f_pCurSuite->pSetUpFunc)();
+	}
 
-    /* set jmp_buf and run test */
-    pTest->pJumpBuf = &buf;
-    if (0 == setjmp(buf)) {
-      if (NULL != pTest->pTestFunc) {
-        (*pTest->pTestFunc)();
-      }
-    }
+	/* set jmp_buf and run test */
+	pTest->pJumpBuf = &buf;
+	if (0 == setjmp(buf)) {
+	  if (NULL != pTest->pTestFunc) {
+		(*pTest->pTestFunc)();
+	  }
+	}
 
-    if (NULL != f_pCurSuite->pTearDownFunc) {
-       (*f_pCurSuite->pTearDownFunc)();
-    }
+	if (NULL != f_pCurSuite->pTearDownFunc) {
+	   (*f_pCurSuite->pTearDownFunc)();
+	}
 
-    pRunSummary->nTestsRun++;
+	pRunSummary->nTestsRun++;
   }
   else {
-    f_run_summary.nTestsInactive++;
-    if (CU_FALSE != f_failure_on_inactive) {
-      add_failure(&f_failure_list, &f_run_summary, CUF_TestInactive,
-                  0, _("Test inactive"), _("CUnit System"), f_pCurSuite, f_pCurTest);
-    }
-    result = CUE_TEST_INACTIVE;
+	f_run_summary.nTestsInactive++;
+	if (CU_FALSE != f_failure_on_inactive) {
+	  add_failure(&f_failure_list, &f_run_summary, CUF_TestInactive,
+				  0, _("Test inactive"), _("CUnit System"), f_pCurSuite, f_pCurTest);
+	}
+	result = CUE_TEST_INACTIVE;
   }
 
   /* if additional failures have occurred... */
   if (pRunSummary->nFailureRecords > nStartFailures) {
-    pRunSummary->nTestsFailed++;
-    if (NULL != pLastFailure) {
-      pLastFailure = pLastFailure->pNext;  /* was a previous failure, so go to next one */
-    }
-    else {
-      pLastFailure = f_failure_list;       /* no previous failure - go to 1st one */
-    }
+	pRunSummary->nTestsFailed++;
+	if (NULL != pLastFailure) {
+	  pLastFailure = pLastFailure->pNext;  /* was a previous failure, so go to next one */
+	}
+	else {
+	  pLastFailure = f_failure_list;       /* no previous failure - go to 1st one */
+	}
   }
   else {
-    pLastFailure = NULL;                   /* no additional failure - set to NULL */
+	pLastFailure = NULL;                   /* no additional failure - set to NULL */
   }
 
   if (NULL != f_pTestCompleteMessageHandler) {
-    (*f_pTestCompleteMessageHandler)(f_pCurTest, f_pCurSuite, pLastFailure);
+	(*f_pTestCompleteMessageHandler)(f_pCurTest, f_pCurSuite, pLastFailure);
   }
 
   pTest->pJumpBuf = NULL;
@@ -1072,14 +1072,14 @@ static pTestEvent f_pFirstEvent = NULL;
 
 /** Creates & stores a test event record having the specified details. */
 static void add_test_event(TestEventType type, CU_pSuite psuite,
-                           CU_pTest ptest, CU_pFailureRecord pfailure)
+						   CU_pTest ptest, CU_pFailureRecord pfailure)
 {
   pTestEvent pNewEvent = (pTestEvent)malloc(sizeof(TestEvent));
   pTestEvent pNextEvent = f_pFirstEvent;
 
   if (NULL == pNewEvent) {
-    fprintf(stderr, "Memory allocation failed in add_test_event().");
-    exit(1);
+	fprintf(stderr, "Memory allocation failed in add_test_event().");
+	exit(1);
   }
 
   pNewEvent->type = type;
@@ -1089,13 +1089,13 @@ static void add_test_event(TestEventType type, CU_pSuite psuite,
   pNewEvent->pNext = NULL;
 
   if (pNextEvent) {
-    while (pNextEvent->pNext) {
-      pNextEvent = pNextEvent->pNext;
-    }
-    pNextEvent->pNext = pNewEvent;
+	while (pNextEvent->pNext) {
+	  pNextEvent = pNextEvent->pNext;
+	}
+	pNextEvent->pNext = pNewEvent;
   }
   else {
-    f_pFirstEvent = pNewEvent;
+	f_pFirstEvent = pNewEvent;
   }
   ++f_nTestEvents;
 }
@@ -1107,9 +1107,9 @@ static void clear_test_events(void)
   pTestEvent pNextEvent = NULL;
 
   while (pCurrentEvent) {
-    pNextEvent = pCurrentEvent->pNext;
-    free(pCurrentEvent);
-    pCurrentEvent = pNextEvent;
+	pNextEvent = pCurrentEvent->pNext;
+	free(pCurrentEvent);
+	pCurrentEvent = pNextEvent;
   }
 
   f_pFirstEvent = NULL;
@@ -1135,7 +1135,7 @@ static void test_start_handler(const CU_pTest pTest, const CU_pSuite pSuite)
 }
 
 static void test_complete_handler(const CU_pTest pTest, const CU_pSuite pSuite,
-                                  const CU_pFailureRecord pFailure)
+								  const CU_pFailureRecord pFailure)
 {
   TEST(CU_is_test_running());
   TEST(pSuite == CU_get_current_suite());
@@ -1145,7 +1145,7 @@ static void test_complete_handler(const CU_pTest pTest, const CU_pSuite pSuite,
 }
 
 static void suite_complete_handler(const CU_pSuite pSuite,
-                                   const CU_pFailureRecord pFailure)
+								   const CU_pFailureRecord pFailure)
 {
   TEST(CU_is_test_running());
   TEST(pSuite == CU_get_current_suite());
@@ -1193,182 +1193,182 @@ static void suite_cleanup_failure_handler(const CU_pSuite pSuite)
  *      CU_get_run_summary()
  */
 static void do_test_results(unsigned int nSuitesRun,
-                            unsigned int nSuitesFailed,
-                            unsigned int nSuitesInactive,
-                            unsigned int nTestsRun,
-                            unsigned int nTestsFailed,
-                            unsigned int nTestsInactive,
-                            unsigned int nAsserts,
-                            unsigned int nSuccesses,
-                            unsigned int nFailures,
-                            unsigned int nFailureRecords,
-                            const char *file,
-                            unsigned int line)
+							unsigned int nSuitesFailed,
+							unsigned int nSuitesInactive,
+							unsigned int nTestsRun,
+							unsigned int nTestsFailed,
+							unsigned int nTestsInactive,
+							unsigned int nAsserts,
+							unsigned int nSuccesses,
+							unsigned int nFailures,
+							unsigned int nFailureRecords,
+							const char *file,
+							unsigned int line)
 {
   char msg[500];
   CU_pRunSummary pRunSummary = NULL;
 
   if (nSuitesRun == CU_get_number_of_suites_run()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_suites_run() (called from %s:%u)",
-                       nSuitesRun, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_suites_run() (called from %s:%u)",
+					   nSuitesRun, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (nSuitesInactive == CU_get_number_of_suites_inactive()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_suites_inactive() (called from %s:%u)",
-                       nSuitesInactive, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_suites_inactive() (called from %s:%u)",
+					   nSuitesInactive, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (nSuitesFailed == CU_get_number_of_suites_failed()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_suites_failed() (called from %s:%u)",
-                       nSuitesFailed, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_suites_failed() (called from %s:%u)",
+					   nSuitesFailed, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (nTestsRun == CU_get_number_of_tests_run()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_tests_run() (called from %s:%u)",
-                       nTestsRun, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_tests_run() (called from %s:%u)",
+					   nTestsRun, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (nTestsFailed == CU_get_number_of_tests_failed()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_tests_failed() (called from %s:%u)",
-                       nTestsFailed, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_tests_failed() (called from %s:%u)",
+					   nTestsFailed, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (nTestsInactive == CU_get_number_of_tests_inactive()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_tests_inactive() (called from %s:%u)",
-                       nTestsInactive, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_tests_inactive() (called from %s:%u)",
+					   nTestsInactive, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (nAsserts == CU_get_number_of_asserts()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_asserts() (called from %s:%u)",
-                       nAsserts, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_asserts() (called from %s:%u)",
+					   nAsserts, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (nSuccesses == CU_get_number_of_successes()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_successes() (called from %s:%u)",
-                       nSuccesses, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_successes() (called from %s:%u)",
+					   nSuccesses, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (nFailures == CU_get_number_of_failures()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_failures() (called from %s:%u)",
-                       nFailures, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_failures() (called from %s:%u)",
+					   nFailures, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (nFailureRecords == CU_get_number_of_failure_records()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_failure_records() (called from %s:%u)",
-                       nFailureRecords, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_failure_records() (called from %s:%u)",
+					   nFailureRecords, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   pRunSummary = CU_get_run_summary();
 
   if (pRunSummary->nSuitesRun == CU_get_number_of_suites_run()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_suites_run() (called from %s:%u)",
-                       pRunSummary->nSuitesRun, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_suites_run() (called from %s:%u)",
+					   pRunSummary->nSuitesRun, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (pRunSummary->nSuitesFailed == CU_get_number_of_suites_failed()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_suites_failed() (called from %s:%u)",
-                       pRunSummary->nSuitesFailed, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_suites_failed() (called from %s:%u)",
+					   pRunSummary->nSuitesFailed, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (pRunSummary->nTestsRun == CU_get_number_of_tests_run()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_tests_run() (called from %s:%u)",
-                       pRunSummary->nTestsRun, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_tests_run() (called from %s:%u)",
+					   pRunSummary->nTestsRun, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (pRunSummary->nTestsFailed == CU_get_number_of_tests_failed()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_tests_failed() (called from %s:%u)",
-                       pRunSummary->nTestsFailed, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_tests_failed() (called from %s:%u)",
+					   pRunSummary->nTestsFailed, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (pRunSummary->nAsserts == CU_get_number_of_asserts()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_asserts() (called from %s:%u)",
-                       pRunSummary->nAsserts, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_asserts() (called from %s:%u)",
+					   pRunSummary->nAsserts, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (pRunSummary->nAssertsFailed == CU_get_number_of_failures()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_failures() (called from %s:%u)",
-                       pRunSummary->nAssertsFailed, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_failures() (called from %s:%u)",
+					   pRunSummary->nAssertsFailed, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 
   if (pRunSummary->nFailureRecords == CU_get_number_of_failure_records()) {
-    PASS();
+	PASS();
   } else {
-    snprintf(msg, 499, "%u == CU_get_number_of_failure_records() (called from %s:%u)",
-                       pRunSummary->nFailureRecords, file, line);
-    msg[499] = '\0';
-    FAIL(msg);
+	snprintf(msg, 499, "%u == CU_get_number_of_failure_records() (called from %s:%u)",
+					   pRunSummary->nFailureRecords, file, line);
+	msg[499] = '\0';
+	FAIL(msg);
   }
 }
 
 #define test_results(nSuitesRun, nSuitesFailed, nSuitesInactive, nTestsRun, nTestsFailed,    \
-                     nTestsInactive, nAsserts, nSuccesses, nFailures, nFailureRecords)      \
-        do_test_results(nSuitesRun, nSuitesFailed, nSuitesInactive, nTestsRun, nTestsFailed, \
-                        nTestsInactive, nAsserts, nSuccesses, nFailures, nFailureRecords,   \
-                        __FILE__, __LINE__)
+					 nTestsInactive, nAsserts, nSuccesses, nFailures, nFailureRecords)      \
+		do_test_results(nSuitesRun, nSuitesFailed, nSuitesInactive, nTestsRun, nTestsFailed, \
+						nTestsInactive, nAsserts, nSuccesses, nFailures, nFailureRecords,   \
+						__FILE__, __LINE__)
 
 static void test_succeed(void) { CU_TEST(CU_TRUE); }
 static void test_fail(void) { CU_TEST(CU_FALSE); }
@@ -1473,114 +1473,114 @@ static void test_message_handlers(void)
 
   TEST(17 == f_nTestEvents);
   if (17 == f_nTestEvents) {
-    pEvent = f_pFirstEvent;
-    TEST(SUITE_START == pEvent->type);
-    TEST(pSuite1 == pEvent->pSuite);
-    TEST(NULL == pEvent->pTest);
-    TEST(NULL == pEvent->pFailure);
+	pEvent = f_pFirstEvent;
+	TEST(SUITE_START == pEvent->type);
+	TEST(pSuite1 == pEvent->pSuite);
+	TEST(NULL == pEvent->pTest);
+	TEST(NULL == pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(TEST_START == pEvent->type);
-    TEST(pSuite1 == pEvent->pSuite);
-    TEST(pTest1 == pEvent->pTest);
-    TEST(NULL == pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(TEST_START == pEvent->type);
+	TEST(pSuite1 == pEvent->pSuite);
+	TEST(pTest1 == pEvent->pTest);
+	TEST(NULL == pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(TEST_COMPLETE == pEvent->type);
-    TEST(pSuite1 == pEvent->pSuite);
-    TEST(pTest1 == pEvent->pTest);
-    TEST(NULL == pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(TEST_COMPLETE == pEvent->type);
+	TEST(pSuite1 == pEvent->pSuite);
+	TEST(pTest1 == pEvent->pTest);
+	TEST(NULL == pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(TEST_START == pEvent->type);
-    TEST(pSuite1 == pEvent->pSuite);
-    TEST(pTest2 == pEvent->pTest);
-    TEST(NULL == pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(TEST_START == pEvent->type);
+	TEST(pSuite1 == pEvent->pSuite);
+	TEST(pTest2 == pEvent->pTest);
+	TEST(NULL == pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(TEST_COMPLETE == pEvent->type);
-    TEST(pSuite1 == pEvent->pSuite);
-    TEST(pTest2 == pEvent->pTest);
-    TEST(NULL != pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(TEST_COMPLETE == pEvent->type);
+	TEST(pSuite1 == pEvent->pSuite);
+	TEST(pTest2 == pEvent->pTest);
+	TEST(NULL != pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(TEST_START == pEvent->type);
-    TEST(pSuite1 == pEvent->pSuite);
-    TEST(pTest3 == pEvent->pTest);
-    TEST(NULL == pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(TEST_START == pEvent->type);
+	TEST(pSuite1 == pEvent->pSuite);
+	TEST(pTest3 == pEvent->pTest);
+	TEST(NULL == pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(TEST_COMPLETE == pEvent->type);
-    TEST(pSuite1 == pEvent->pSuite);
-    TEST(pTest3 == pEvent->pTest);
-    TEST(NULL == pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(TEST_COMPLETE == pEvent->type);
+	TEST(pSuite1 == pEvent->pSuite);
+	TEST(pTest3 == pEvent->pTest);
+	TEST(NULL == pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(SUITE_COMPLETE == pEvent->type);
-    TEST(pSuite1 == pEvent->pSuite);
-    TEST(NULL == pEvent->pTest);
-    TEST(NULL != pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(SUITE_COMPLETE == pEvent->type);
+	TEST(pSuite1 == pEvent->pSuite);
+	TEST(NULL == pEvent->pTest);
+	TEST(NULL != pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(SUITE_START == pEvent->type);
-    TEST(pSuite2 == pEvent->pSuite);
-    TEST(NULL == pEvent->pTest);
-    TEST(NULL == pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(SUITE_START == pEvent->type);
+	TEST(pSuite2 == pEvent->pSuite);
+	TEST(NULL == pEvent->pTest);
+	TEST(NULL == pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(SUITE_INIT_FAILED == pEvent->type);
-    TEST(pSuite2 == pEvent->pSuite);
-    TEST(NULL == pEvent->pTest);
-    TEST(NULL == pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(SUITE_INIT_FAILED == pEvent->type);
+	TEST(pSuite2 == pEvent->pSuite);
+	TEST(NULL == pEvent->pTest);
+	TEST(NULL == pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(SUITE_COMPLETE == pEvent->type);
-    TEST(pSuite2 == pEvent->pSuite);
-    TEST(NULL == pEvent->pTest);
-    TEST(NULL != pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(SUITE_COMPLETE == pEvent->type);
+	TEST(pSuite2 == pEvent->pSuite);
+	TEST(NULL == pEvent->pTest);
+	TEST(NULL != pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(SUITE_START == pEvent->type);
-    TEST(pSuite3 == pEvent->pSuite);
-    TEST(NULL == pEvent->pTest);
-    TEST(NULL == pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(SUITE_START == pEvent->type);
+	TEST(pSuite3 == pEvent->pSuite);
+	TEST(NULL == pEvent->pTest);
+	TEST(NULL == pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(TEST_START == pEvent->type);
-    TEST(pSuite3 == pEvent->pSuite);
-    TEST(pTest5 == pEvent->pTest);
-    TEST(NULL == pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(TEST_START == pEvent->type);
+	TEST(pSuite3 == pEvent->pSuite);
+	TEST(pTest5 == pEvent->pTest);
+	TEST(NULL == pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(TEST_COMPLETE == pEvent->type);
-    TEST(pSuite3 == pEvent->pSuite);
-    TEST(pTest5 == pEvent->pTest);
-    TEST(NULL != pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(TEST_COMPLETE == pEvent->type);
+	TEST(pSuite3 == pEvent->pSuite);
+	TEST(pTest5 == pEvent->pTest);
+	TEST(NULL != pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(SUITE_CLEANUP_FAILED == pEvent->type);
-    TEST(pSuite3 == pEvent->pSuite);
-    TEST(NULL == pEvent->pTest);
-    TEST(NULL == pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(SUITE_CLEANUP_FAILED == pEvent->type);
+	TEST(pSuite3 == pEvent->pSuite);
+	TEST(NULL == pEvent->pTest);
+	TEST(NULL == pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(SUITE_COMPLETE == pEvent->type);
-    TEST(pSuite3 == pEvent->pSuite);
-    TEST(NULL == pEvent->pTest);
-    TEST(NULL != pEvent->pFailure);
+	pEvent = pEvent->pNext;
+	TEST(SUITE_COMPLETE == pEvent->type);
+	TEST(pSuite3 == pEvent->pSuite);
+	TEST(NULL == pEvent->pTest);
+	TEST(NULL != pEvent->pFailure);
 
-    pEvent = pEvent->pNext;
-    TEST(ALL_TESTS_COMPLETE == pEvent->type);
-    TEST(NULL == pEvent->pSuite);
-    TEST(NULL == pEvent->pTest);
-    TEST(NULL != pEvent->pFailure);
-    if (4 == CU_get_number_of_failure_records()) {
-      TEST(NULL != pEvent->pFailure->pNext);
-      TEST(NULL != pEvent->pFailure->pNext->pNext);
-      TEST(NULL != pEvent->pFailure->pNext->pNext->pNext);
-      TEST(NULL == pEvent->pFailure->pNext->pNext->pNext->pNext);
-    }
-    TEST(pEvent->pFailure == CU_get_failure_list());
+	pEvent = pEvent->pNext;
+	TEST(ALL_TESTS_COMPLETE == pEvent->type);
+	TEST(NULL == pEvent->pSuite);
+	TEST(NULL == pEvent->pTest);
+	TEST(NULL != pEvent->pFailure);
+	if (4 == CU_get_number_of_failure_records()) {
+	  TEST(NULL != pEvent->pFailure->pNext);
+	  TEST(NULL != pEvent->pFailure->pNext->pNext);
+	  TEST(NULL != pEvent->pFailure->pNext->pNext->pNext);
+	  TEST(NULL == pEvent->pFailure->pNext->pNext->pNext->pNext);
+	}
+	TEST(pEvent->pFailure == CU_get_failure_list());
   }
 
   test_results(2,2,0,4,2,0,4,2,2,4);
@@ -2787,35 +2787,35 @@ static void test_CU_assertImplementation(void)
   TEST(3 == CU_get_number_of_failure_records());
 
   if (3 == CU_get_number_of_failure_records()) {
-    pFailure1 = CU_get_failure_list();
-    TEST(102 == pFailure1->uiLineNumber);
-    TEST(!strcmp("dummy2.c", pFailure1->strFileName));
-    TEST(!strcmp("Something happened 2.", pFailure1->strCondition));
-    TEST(&dummy_test == pFailure1->pTest);
-    TEST(&dummy_suite == pFailure1->pSuite);
-    TEST(NULL != pFailure1->pNext);
-    TEST(NULL == pFailure1->pPrev);
+	pFailure1 = CU_get_failure_list();
+	TEST(102 == pFailure1->uiLineNumber);
+	TEST(!strcmp("dummy2.c", pFailure1->strFileName));
+	TEST(!strcmp("Something happened 2.", pFailure1->strCondition));
+	TEST(&dummy_test == pFailure1->pTest);
+	TEST(&dummy_suite == pFailure1->pSuite);
+	TEST(NULL != pFailure1->pNext);
+	TEST(NULL == pFailure1->pPrev);
 
-    pFailure2 = pFailure1->pNext;
-    TEST(103 == pFailure2->uiLineNumber);
-    TEST(!strcmp("dummy3.c", pFailure2->strFileName));
-    TEST(!strcmp("Something happened 3.", pFailure2->strCondition));
-    TEST(&dummy_test == pFailure2->pTest);
-    TEST(&dummy_suite == pFailure2->pSuite);
-    TEST(NULL != pFailure2->pNext);
-    TEST(pFailure1 == pFailure2->pPrev);
+	pFailure2 = pFailure1->pNext;
+	TEST(103 == pFailure2->uiLineNumber);
+	TEST(!strcmp("dummy3.c", pFailure2->strFileName));
+	TEST(!strcmp("Something happened 3.", pFailure2->strCondition));
+	TEST(&dummy_test == pFailure2->pTest);
+	TEST(&dummy_suite == pFailure2->pSuite);
+	TEST(NULL != pFailure2->pNext);
+	TEST(pFailure1 == pFailure2->pPrev);
 
-    pFailure3 = pFailure2->pNext;
-    TEST(104 == pFailure3->uiLineNumber);
-    TEST(!strcmp("dummy4.c", pFailure3->strFileName));
-    TEST(!strcmp("Something happened 4.", pFailure3->strCondition));
-    TEST(&dummy_test == pFailure3->pTest);
-    TEST(&dummy_suite == pFailure3->pSuite);
-    TEST(NULL == pFailure3->pNext);
-    TEST(pFailure2 == pFailure3->pPrev);
+	pFailure3 = pFailure2->pNext;
+	TEST(104 == pFailure3->uiLineNumber);
+	TEST(!strcmp("dummy4.c", pFailure3->strFileName));
+	TEST(!strcmp("Something happened 4.", pFailure3->strCondition));
+	TEST(&dummy_test == pFailure3->pTest);
+	TEST(&dummy_suite == pFailure3->pSuite);
+	TEST(NULL == pFailure3->pNext);
+	TEST(pFailure2 == pFailure3->pPrev);
   }
   else
-    FAIL("Unexpected number of failure records.");
+	FAIL("Unexpected number of failure records.");
 
   /* confirm destruction of failure records */
   pFailure4 = pFailure1;
@@ -2866,44 +2866,44 @@ static void test_add_failure(void)
   add_failure(&pFailure1, &run_summary, CUF_AssertFailed, 101, "condition 1", "file1.c", &suite1, &test1);
   TEST(1 == run_summary.nFailureRecords);
   if (TEST(NULL != pFailure1)) {
-    TEST(101 == pFailure1->uiLineNumber);
-    TEST(!strcmp("condition 1", pFailure1->strCondition));
-    TEST(!strcmp("file1.c", pFailure1->strFileName));
-    TEST(&test1 == pFailure1->pTest);
-    TEST(&suite1 == pFailure1->pSuite);
-    TEST(NULL == pFailure1->pNext);
-    TEST(NULL == pFailure1->pPrev);
-    TEST(pFailure1 == f_last_failure);
-    TEST(0 != test_cunit_get_n_memevents(pFailure1));
-    TEST(test_cunit_get_n_allocations(pFailure1) != test_cunit_get_n_deallocations(pFailure1));
+	TEST(101 == pFailure1->uiLineNumber);
+	TEST(!strcmp("condition 1", pFailure1->strCondition));
+	TEST(!strcmp("file1.c", pFailure1->strFileName));
+	TEST(&test1 == pFailure1->pTest);
+	TEST(&suite1 == pFailure1->pSuite);
+	TEST(NULL == pFailure1->pNext);
+	TEST(NULL == pFailure1->pPrev);
+	TEST(pFailure1 == f_last_failure);
+	TEST(0 != test_cunit_get_n_memevents(pFailure1));
+	TEST(test_cunit_get_n_allocations(pFailure1) != test_cunit_get_n_deallocations(pFailure1));
   }
 
   add_failure(&pFailure1, &run_summary, CUF_AssertFailed, 102, "condition 2", "file2.c", NULL, &test1);
   TEST(2 == run_summary.nFailureRecords);
   if (TEST(NULL != pFailure1)) {
-    TEST(101 == pFailure1->uiLineNumber);
-    TEST(!strcmp("condition 1", pFailure1->strCondition));
-    TEST(!strcmp("file1.c", pFailure1->strFileName));
-    TEST(&test1 == pFailure1->pTest);
-    TEST(&suite1 == pFailure1->pSuite);
-    TEST(NULL != pFailure1->pNext);
-    TEST(NULL == pFailure1->pPrev);
-    TEST(pFailure1 != f_last_failure);
-    TEST(0 != test_cunit_get_n_memevents(pFailure1));
-    TEST(test_cunit_get_n_allocations(pFailure1) != test_cunit_get_n_deallocations(pFailure1));
+	TEST(101 == pFailure1->uiLineNumber);
+	TEST(!strcmp("condition 1", pFailure1->strCondition));
+	TEST(!strcmp("file1.c", pFailure1->strFileName));
+	TEST(&test1 == pFailure1->pTest);
+	TEST(&suite1 == pFailure1->pSuite);
+	TEST(NULL != pFailure1->pNext);
+	TEST(NULL == pFailure1->pPrev);
+	TEST(pFailure1 != f_last_failure);
+	TEST(0 != test_cunit_get_n_memevents(pFailure1));
+	TEST(test_cunit_get_n_allocations(pFailure1) != test_cunit_get_n_deallocations(pFailure1));
 
-    if (TEST(NULL != (pFailure2 = pFailure1->pNext))) {
-      TEST(102 == pFailure2->uiLineNumber);
-      TEST(!strcmp("condition 2", pFailure2->strCondition));
-      TEST(!strcmp("file2.c", pFailure2->strFileName));
-      TEST(&test1 == pFailure2->pTest);
-      TEST(NULL == pFailure2->pSuite);
-      TEST(NULL == pFailure2->pNext);
-      TEST(pFailure1 == pFailure2->pPrev);
-      TEST(pFailure2 == f_last_failure);
-      TEST(0 != test_cunit_get_n_memevents(pFailure2));
-      TEST(test_cunit_get_n_allocations(pFailure2) != test_cunit_get_n_deallocations(pFailure2));
-    }
+	if (TEST(NULL != (pFailure2 = pFailure1->pNext))) {
+	  TEST(102 == pFailure2->uiLineNumber);
+	  TEST(!strcmp("condition 2", pFailure2->strCondition));
+	  TEST(!strcmp("file2.c", pFailure2->strFileName));
+	  TEST(&test1 == pFailure2->pTest);
+	  TEST(NULL == pFailure2->pSuite);
+	  TEST(NULL == pFailure2->pNext);
+	  TEST(pFailure1 == pFailure2->pPrev);
+	  TEST(pFailure2 == f_last_failure);
+	  TEST(0 != test_cunit_get_n_memevents(pFailure2));
+	  TEST(test_cunit_get_n_allocations(pFailure2) != test_cunit_get_n_deallocations(pFailure2));
+	}
   }
 
   pFailure3 = pFailure1;
