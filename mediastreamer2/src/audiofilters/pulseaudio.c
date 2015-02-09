@@ -22,54 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <pulse/pulseaudio.h>
 
-static void init_pulse_context();
-static void pulse_card_detect(MSSndCardManager *m);
-static MSFilter *pulse_card_create_reader(MSSndCard *card);
-static MSFilter *pulse_card_create_writer(MSSndCard *card);
-
-
-static void pulse_card_init(MSSndCard *obj){
-
-}
-
-static void pulse_card_uninit(MSSndCard *obj){
-
-}
-
-
-MSSndCardDesc pulse_card_desc={
-	.driver_type="PulseAudio",
-	.detect=pulse_card_detect,
-	.init=pulse_card_init,
-	.create_reader=pulse_card_create_reader,
-	.create_writer=pulse_card_create_writer,
-	.uninit=pulse_card_uninit
-};
-
-
-static void pulse_card_detect(MSSndCardManager *m){
-	MSSndCard *card=ms_snd_card_new(&pulse_card_desc);
-	if (card!=NULL){
-		card->name=ms_strdup("default");
-		card->capabilities = MS_SND_CARD_CAP_CAPTURE | MS_SND_CARD_CAP_PLAYBACK;
-		ms_snd_card_manager_add_card(m,card);
-		init_pulse_context();
-	}
-}
-
 static pa_context *context=NULL;
 static pa_context_state_t contextState = PA_CONTEXT_UNCONNECTED;
 static pa_threaded_mainloop *pa_loop=NULL;
 static const int fragtime = 20;/*ms*/
-
-static void uninit_pulse_context(){
-	pa_context_disconnect(context);
-	pa_context_unref(context);
-	pa_threaded_mainloop_stop(pa_loop);
-	pa_threaded_mainloop_free(pa_loop);
-	context = NULL;
-	pa_loop = NULL;
-}
 
 static void context_state_notify_cb(pa_context *ctx, void *userdata){
 	const char *sname="";
@@ -101,17 +57,6 @@ static void context_state_notify_cb(pa_context *ctx, void *userdata){
 	pa_threaded_mainloop_signal(pa_loop, FALSE);
 }
 
-static void init_pulse_context(){
-	if (context==NULL){
-		pa_loop=pa_threaded_mainloop_new();
-		context=pa_context_new(pa_threaded_mainloop_get_api(pa_loop),NULL);
-		pa_context_set_state_callback(context,context_state_notify_cb,NULL);
-		pa_context_connect(context, NULL, 0, NULL);
-		pa_threaded_mainloop_start(pa_loop);
-		atexit(uninit_pulse_context);
-	}
-}
-
 static bool_t wait_for_context_state(pa_context_state_t successState, pa_context_state_t failureState){
 	pa_threaded_mainloop_lock(pa_loop);
 	while(contextState != successState && contextState != failureState) {
@@ -119,6 +64,61 @@ static bool_t wait_for_context_state(pa_context_state_t successState, pa_context
 	}
 	pa_threaded_mainloop_unlock(pa_loop);
 	return contextState == successState;
+}
+
+static void init_pulse_context(){
+	if (context==NULL){
+		pa_loop=pa_threaded_mainloop_new();
+		context=pa_context_new(pa_threaded_mainloop_get_api(pa_loop),NULL);
+		pa_context_set_state_callback(context,context_state_notify_cb,NULL);
+		pa_context_connect(context, NULL, 0, NULL);
+		pa_threaded_mainloop_start(pa_loop);
+	}
+}
+
+static void uninit_pulse_context(){
+	pa_context_disconnect(context);
+	pa_context_unref(context);
+	pa_threaded_mainloop_stop(pa_loop);
+	pa_threaded_mainloop_free(pa_loop);
+	context = NULL;
+	pa_loop = NULL;
+}
+
+static void pulse_card_unload(MSSndCardManager *m) {
+	if(context) uninit_pulse_context();
+}
+
+static void pulse_card_detect(MSSndCardManager *m);
+static MSFilter *pulse_card_create_reader(MSSndCard *card);
+static MSFilter *pulse_card_create_writer(MSSndCard *card);
+
+MSSndCardDesc pulse_card_desc={
+	.driver_type="PulseAudio",
+	.detect=pulse_card_detect,
+	.init=NULL,
+	.create_reader=pulse_card_create_reader,
+	.create_writer=pulse_card_create_writer,
+	.uninit=NULL,
+	.unload=pulse_card_unload
+};
+
+static void pulse_card_detect(MSSndCardManager *m){
+	MSSndCard *card;
+	
+	init_pulse_context();
+	if(!wait_for_context_state(PA_CONTEXT_READY, PA_CONTEXT_FAILED)) {
+		ms_error("Connection to the pulseaudio server failed");
+		return;
+	}
+	card=ms_snd_card_new(&pulse_card_desc);
+	if(card==NULL) {
+		ms_error("Creating the pulseaudio soundcard failed");
+		return;
+	}
+	card->name=ms_strdup("default");
+	card->capabilities = MS_SND_CARD_CAP_CAPTURE | MS_SND_CARD_CAP_PLAYBACK;
+	ms_snd_card_manager_add_card(m, card);
 }
 
 typedef enum _StreamType {
