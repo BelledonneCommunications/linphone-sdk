@@ -31,9 +31,7 @@ endif()
 
 set(Python_ADDITIONAL_VERSIONS 2.7)
 find_package(PythonInterp REQUIRED)
-#find_package(PythonLibs 2.7 REQUIRED)
-set(PYTHON_INCLUDE_DIRS "/home/ghislain/debugpython/include/python2.7") #/usr/include/python2.7
-set(PYTHON_LIBRARIES "/home/ghislain/debugpython/lib/libpython2.7.a") #/usr/lib/x86_64-linux-gnu/libpython2.7.so
+find_package(PythonLibs 2.7 REQUIRED)
 find_package(Git)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules)
