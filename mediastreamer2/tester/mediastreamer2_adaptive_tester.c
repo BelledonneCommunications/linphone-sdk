@@ -361,7 +361,7 @@ static void upload_bandwidth_computation() {
 			rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
 			iterate_adaptive_stream(marielle, margaux, 5000, NULL, 0);
 			/*since PCMA uses 80kbit/s, upload bandwidth should just be 80+80*duplication_ratio kbit/s */
-			CU_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 1.f);
+			CU_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 5.f);
 		}
 		stop_adaptive_stream(marielle,margaux);
 	}
