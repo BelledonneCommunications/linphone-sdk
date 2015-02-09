@@ -6,7 +6,6 @@ Uploaders: Samuel Mimram <smimram@debian.org>, Kilian Krause <kilian@debian.org>
 Build-Depends: debhelper (>= 8),
  autoconf, automake, autotools-dev, libtool, pkg-config, intltool,
  libglib2.0-dev, 
- libsrtp-dev [!hurd-any !sparc],
  libasound2-dev [linux-any],
  libv4l-dev [linux-any],
  libspeex-dev, libspeexdsp-dev, libsamplerate0-dev, libxml-parser-perl, libgsm1-dev,
