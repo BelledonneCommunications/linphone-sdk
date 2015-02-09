@@ -67,7 +67,7 @@ void belle_sip_end_background_task(unsigned long id){
 
 #else
 /*mac*/
-#import <Foundation/NSProcessinfo.h>
+@import Foundation;
 
 static unsigned long dummy_id=0;
 static id activity_id=0;

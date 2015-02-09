@@ -50,6 +50,7 @@ case "$target" in
                 LIBS="$LIBS -mmacosx-version-min=10.6 -framework Foundation"
                 CXXFLAGS="$CXXFLAGS -mmacosx-version-min=10.6"
                 CFLAGS="$CFLAGS -mmacosx-version-min=10.6"
+                OBJCFLAGS="$OBJCFLAGS  -fmodules"
                 build_apple=yes
         ;;
         i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*|arm64-apple*|aarch64-apple*)

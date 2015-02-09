@@ -76,7 +76,9 @@ void belle_sip_object_dump_active_objects(void){
 		belle_sip_message("List of leaked objects:");
 		for(elem=all_objects;elem!=NULL;elem=elem->next){
 			belle_sip_object_t *obj=(belle_sip_object_t*)elem->data;
-			belle_sip_message("%s(%p) ref=%i",obj->vptr->type_name,obj,obj->ref);
+			char* content= belle_sip_object_to_string(obj);
+			belle_sip_message("%s(%p) ref=%i, content [%10s...]",obj->vptr->type_name,obj,obj->ref,content);
+			belle_sip_free(content);
 		}
 	}else belle_sip_message("No objects leaked.");
 }
