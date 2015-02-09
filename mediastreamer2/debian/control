@@ -4,14 +4,12 @@ Priority: optional
 Maintainer: Debian VoIP Team <pkg-voip-maintainers@lists.alioth.debian.org>
 Uploaders: Samuel Mimram <smimram@debian.org>, Kilian Krause <kilian@debian.org>, Faidon Liambotis <paravoid@debian.org>, Mark Purcell <msp@debian.org>, Lionel Elie Mamane <lmamane@debian.org>, Tzafrir Cohen <tzafrir@debian.org>
 Build-Depends: debhelper (>= 8),
- autoconf, automake, autotools-dev, libtool, pkg-config, intltool,
- libglib2.0-dev, 
+ autoconf, automake, autotools-dev, libtool, pkg-config, intltool, 
  libasound2-dev [linux-any],
  libv4l-dev [linux-any],
- libspeex-dev, libspeexdsp-dev, libsamplerate0-dev, libxml-parser-perl, libgsm1-dev,
- libtheora-dev,
+ libspeex-dev, libspeexdsp-dev, libgsm1-dev,
  libxv-dev,
- libavcodec-dev, libreadline-dev, libsdl1.2-dev, libswscale-dev, doxygen, libglew-dev
+ libavcodec-dev, libswscale-dev, doxygen, libglew-dev
 Standards-Version: 3.9.1
 Homepage: http://www.linphone.org/
 Vcs-Svn: svn://svn.debian.org/pkg-voip/linphone/trunk/
