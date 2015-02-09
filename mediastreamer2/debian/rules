@@ -4,7 +4,7 @@
 	dh $@ --parallel --with autotools_dev
 
 override_dh_auto_configure:
-	dh_auto_configure -- --disable-video
+	dh_auto_configure -- --disable-video --with-srtp=none
 
 override_dh_makeshlibs:
 	dh_makeshlibs -V
