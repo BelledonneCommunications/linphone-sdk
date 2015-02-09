@@ -331,13 +331,18 @@ static void multicast_video_stream(void) {
 
 
 	if (supported) {
-
+		int dummy=0;
 		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,VP8_PAYLOAD_TYPE);
 
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+
+		ms_ticker_detach(margaux->vs->ms.sessions.ticker,margaux->vs->source); /*to stop sending*/
+		/*make sure packets can cross from sender to receiver*/
+		wait_for_until(&marielle->vs->ms,&margaux->vs->ms,&dummy,1,500);
+
 		video_stream_get_local_rtp_stats(marielle->vs, &marielle->stats.rtp);
 		video_stream_get_local_rtp_stats(margaux->vs, &marielle->stats.rtp);
-		CU_ASSERT_EQUAL(marielle->stats.rtp.sent,marielle->stats.rtp.recv);
+		CU_ASSERT_EQUAL(margaux->stats.rtp.sent,marielle->stats.rtp.recv);
 
 		uninit_video_streams(marielle, margaux);
 	} else {
