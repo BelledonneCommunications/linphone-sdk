@@ -31,7 +31,9 @@ endif()
 
 set(Python_ADDITIONAL_VERSIONS 2.7)
 find_package(PythonInterp REQUIRED)
-find_package(PythonLibs 2.7 REQUIRED)
+#find_package(PythonLibs 2.7 REQUIRED)
+set(PYTHON_INCLUDE_DIRS "/home/ghislain/debugpython/include/python2.7") #/usr/include/python2.7
+set(PYTHON_LIBRARIES "/home/ghislain/debugpython/lib/libpython2.7.a") #/usr/lib/x86_64-linux-gnu/libpython2.7.so
 find_package(Git)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules)
@@ -218,13 +220,21 @@ if(CMAKE_CROSSCOMPILING)
 else()
 	if(APPLE)
 		set(PLATFORM_OS "macosx-${CMAKE_OSX_DEPLOYMENT_TARGET}")
+		set(LAST_OSX_DEPLOYMENT_TARGET "10.9")
+		set(LAST_PLATFORM_OS "macosx-${LAST_OSX_DEPLOYMENT_TARGET}")
 	else()
 		set(PLATFORM_OS "linux")
 	endif()
 	string(REPLACE "-" "_" UNDERSCORE_PLATFORM_OS ${PLATFORM_OS})
 	string(REPLACE "." "_" UNDERSCORE_PLATFORM_OS ${UNDERSCORE_PLATFORM_OS})
 	set(PLATFORM_TAG "${PLATFORM_OS}-${PLATFORM_ARCH_NAME}")
-	set(UNDERSCORE_PLATFORM_TAG "${UNDERSCORE_PLATFORM_OS}_${PLATFORM_ARCH_NAME}")
+	if(APPLE)
+		string(REPLACE "-" "_" UNDERSCORE_LAST_PLATFORM_OS ${LAST_PLATFORM_OS})
+		string(REPLACE "." "_" UNDERSCORE_LAST_PLATFORM_OS ${UNDERSCORE_LAST_PLATFORM_OS})
+		set(UNDERSCORE_PLATFORM_TAG "${UNDERSCORE_PLATFORM_OS}_intel.${UNDERSCORE_LAST_PLATFORM_OS}_intel.${UNDERSCORE_LAST_PLATFORM_OS}_${PLATFORM_ARCH_NAME}")
+	else()
+		set(UNDERSCORE_PLATFORM_TAG "${UNDERSCORE_PLATFORM_OS}_${PLATFORM_ARCH_NAME}")
+	endif()
 endif()
 
 # Generate the zip
