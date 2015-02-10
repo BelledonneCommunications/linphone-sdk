@@ -733,6 +733,10 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 	}
 
 	/* Plumb the incoming stream */
+	/* Define target upload bandwidth for RTCP packets sending. */
+	if (pt->normal_bitrate > 0) {
+		rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, pt->normal_bitrate);
+	}
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamRecvOnly){
 		MSConnectionHelper ch;
 
@@ -781,11 +785,6 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 			if (stream->jpegwriter){
 				stream->tee2=ms_filter_new(MS_TEE_ID);
 			}
-		}
-
-		/* Define target upload bandwidth for RTCP packets sending. */
-		if (pt->normal_bitrate > 0) {
-			rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, pt->normal_bitrate);
 		}
 
 		/* set parameters to the decoder*/
