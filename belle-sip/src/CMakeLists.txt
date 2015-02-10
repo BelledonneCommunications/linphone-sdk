@@ -140,6 +140,7 @@ set(SOURCE_FILES
 )
 if(APPLE)
 	list(APPEND SOURCE_FILES backgroundtask.m)
+	set_source_files_properties(backgroundtask.m PROPERTIES COMPILE_FLAGS "-fmodules")
 endif()
 
 if(${ENABLE_STATIC})
