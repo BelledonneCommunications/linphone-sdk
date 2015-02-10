@@ -196,7 +196,7 @@ bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, ui
 }
 
 
-static inline uint8_t min(const uint8_t a, const uint8_t b) {
+static uint8_t min(const uint8_t a, const uint8_t b) {
 	return a < b ? a : b;
 }
 
