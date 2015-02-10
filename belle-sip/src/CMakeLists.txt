@@ -138,6 +138,9 @@ set(SOURCE_FILES
 	${TLS_SOURCE_FILES}
 	${TUNNEL_SOURCE_FILES}
 )
+if(APPLE)
+	list(APPEND SOURCE_FILES backgroundtask.m)
+endif()
 
 if(${ENABLE_STATIC})
 	add_library(bellesip STATIC ${SOURCE_FILES})
