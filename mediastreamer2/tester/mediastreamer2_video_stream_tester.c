@@ -194,7 +194,7 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 static void init_video_streams(video_stream_tester_t *marielle, video_stream_tester_t *margaux, bool_t avpf, bool_t one_way, OrtpNetworkSimulatorParams *params,int payload_type) {
 	PayloadType *pt;
 	MSWebCam *no_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
-	MSWebCam *default_webcam = ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+	MSWebCam *default_webcam = no_webcam ;//ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
 /*	MSWebCam *default_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "QT Capture: Logitech Camera #2");*/
 	marielle->vs = video_stream_new2(marielle->local_ip,marielle->local_rtp, marielle->local_rtcp);
 	marielle->vs->staticimage_webcam_fps_optimization = FALSE;
@@ -364,9 +364,8 @@ static void avpf_video_stream(void) {
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
 
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_PLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RPSI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
 		uninit_video_streams(marielle, margaux);
 	} else {
@@ -430,7 +429,7 @@ static void video_stream_first_iframe_lost_vp8() {
 static void avpf_video_stream_first_iframe_lost_vp8() {
 	video_stream_first_iframe_lost_vp8_base(TRUE);
 }
-static void avpf_high_loss_video_stream(void) {
+static void avpf_high_loss_video_stream_base(float rate) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
@@ -438,14 +437,13 @@ static void avpf_high_loss_video_stream(void) {
 
 	if (supported) {
 		params.enabled = TRUE;
-		params.loss_rate = 25.;
+		params.loss_rate = rate;
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
-
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 10, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_PLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RPSI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-
+		if (rate <= 10) {
+			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		}
 		uninit_video_streams(marielle, margaux);
 	} else {
 		ms_error("VP8 codec is not supported!");
@@ -453,7 +451,12 @@ static void avpf_high_loss_video_stream(void) {
 	video_stream_tester_destroy(marielle);
 	video_stream_tester_destroy(margaux);
 }
-
+static void avpf_very_high_loss_video_stream(void) {
+	avpf_high_loss_video_stream_base(25.);
+}
+static void avpf_high_loss_video_stream(void) {
+	avpf_high_loss_video_stream_base(10.);
+}
 static void video_configuration_stream_base(MSVideoConfiguration* asked, MSVideoConfiguration* expected_result, int payload_type) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
@@ -519,6 +522,7 @@ static test_t tests[] = {
 	{ "Basic one-way video stream", basic_one_way_video_stream },
 	{ "AVPF video stream", avpf_video_stream },
 	{ "AVPF high-loss video stream", avpf_high_loss_video_stream },
+	{ "AVPF very high-loss video stream", avpf_very_high_loss_video_stream },
 	{ "AVPF PLI on first iframe lost",avpf_video_stream_first_iframe_lost_vp8},
 	{ "AVP PLI on first iframe lost",video_stream_first_iframe_lost_vp8},
 	{ "Video configuration",video_configuration_stream}
