@@ -56,7 +56,7 @@ unsigned long belle_sip_begin_background_task(const char *name, belle_sip_backgr
 		belle_sip_error("Could not start background task %s.", name);
 		return 0;
 	}
-	if (fbd) fbd->id=bgid;
+	if (fbd) fbd->task_id=bgid;
 	return (unsigned long)bgid;
 }
 
