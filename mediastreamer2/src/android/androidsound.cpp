@@ -235,7 +235,12 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	bool string8_loaded=false;
 	bool refbase_loaded=false;
 
-	if (get_sdk_version()>21){
+	if (get_sdk_version()>19){
+		/*it is actually working well on android 5 on Nexus 4 but crashes on Samsung S5, due to, maybe
+		 * calling convention of C++ method being different. Arguments received by AudioTrack constructor do not match the arguments
+		 * sent by the caller (TransferType maps to uid argument!).
+		 * Until we find a rational explanation to this, the native module is disabled on Android 5.
+		**/
 		ms_message("Native android sound support not tested on SDK [%i], disabled.",get_sdk_version());
 		return;
 	}
