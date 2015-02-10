@@ -364,9 +364,9 @@ static void avpf_video_stream(void) {
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
 
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		CU_ASSERT_TRUE(marielle->stats.number_of_PLI >= 0);
-		CU_ASSERT_TRUE(marielle->stats.number_of_SLI > 0);
-		CU_ASSERT_TRUE(marielle->stats.number_of_RPSI > 0);
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_PLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RPSI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
 		uninit_video_streams(marielle, margaux);
 	} else {
@@ -442,9 +442,9 @@ static void avpf_high_loss_video_stream(void) {
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
 
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 10, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		CU_ASSERT_TRUE(marielle->stats.number_of_PLI >= 0);
-		CU_ASSERT_TRUE(marielle->stats.number_of_SLI > 0);
-		CU_ASSERT_TRUE(marielle->stats.number_of_RPSI >= 0);
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_PLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RPSI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
 		uninit_video_streams(marielle, margaux);
 	} else {
