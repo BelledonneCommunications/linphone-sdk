@@ -1009,8 +1009,12 @@ dnl check for libsrtp support (secure rtp)
 AC_ARG_WITH(srtp,
 	AC_HELP_STRING([--with-srtp], [Set prefix where libsrtp can be found or "none" to disable (ex:/usr or /usr/local) [[default=/usr]]]),
 	[srtp_prefix=$withval],
-	[srtp_prefix=/usr]
-)
+	[if "$prefix" != "NONE"; then
+		srtp_prefix=$prefix
+	 else
+		srtp_prefix="/usr"
+	 fi])
+
 if test "${srtp_prefix}" != "none" ; then
 	if test "${srtp_prefix}" != "/usr" || test "$mingw_found" = "yes" ; then
 		SRTP_CFLAGS="-I${srtp_prefix}/include -I${srtp_prefix}/include/srtp"
@@ -1019,7 +1023,6 @@ if test "${srtp_prefix}" != "none" ; then
 	SRTP_LIBS="$SRTP_LIBS -lsrtp"
 
 	dnl check srtp headers
-	have_srtp=no
 	CPPFLAGS_save=$CPPFLAGS
 	CPPFLAGS="$CPPFLAGS $SRTP_CFLAGS"
 	AC_CHECK_HEADER([srtp/srtp.h],have_srtp_headers=yes)
@@ -1034,23 +1037,26 @@ if test "${srtp_prefix}" != "none" ; then
 	LIBS=$LIBS_save
 
 	if test "$have_srtp_headers$have_srtp_lib" = "yesyes" ; then
-		have_srtp=yes
-		if test "$test_for_broken_srtp" = yes; then
-			LDFLAGS_save=$LDFLAGS
-			LDFLAGS="$LDFLAGS $SRTP_LIBS"
-			LIBS_save=$LIBS
-			AC_CHECK_LIB(srtp,sha1_update,[
-			AC_MSG_ERROR([This libsrtp version exports symbols conflicting with polar ssl, resulting in a bad execution path.
-			 Please use the one from git://git.linphone.org/srtp.git
-			 You could also track resolution of defect on https://github.com/cisco/libsrtp/issues/28
-			 If you are not linking against polar ssl, you may prefer to skip this test with --enable-broken-srtp
-			])], have_srtp=yes)
-			LDFLAGS=$LDFLAGS_save
-			LIBS=$LIBS_save
+		srtp_polarssl_conflict=yes
+		LDFLAGS_save=$LDFLAGS
+		LDFLAGS="$LDFLAGS $SRTP_LIBS"
+		LIBS_save=$LIBS
+		AC_CHECK_LIB(srtp,sha1_update,[
+		AC_MSG_WARN([This libsrtp version exports symbols conflicting with polarssl, resulting in a bad execution path.
+		 libsrtp will be statically linked
+		])], srtp_polarssl_conflict=no)
+		LDFLAGS=$LDFLAGS_save
+		LIBS=$LIBS_save
+
+		if test "$srtp_polarssl_conflict" = "yes"; then
+			SRTP_LIBS="${srtp_prefix}/lib/libsrtp.a -Bsymbolic -Wl,--version-script=libsrtp.map" 
 		fi
+
 		AC_DEFINE(HAVE_SRTP, 1, [Defined when srtp support is compiled])
+		have_srtp=yes
 	else
 		AC_MSG_NOTICE([Could not find libsrtp headers or lib, cryto transport disabled.])
+		have_srtp=no
 		SRTP_CFLAGS=
 		SRTP_LIBS=
 	fi
@@ -1090,25 +1096,28 @@ AM_CONDITIONAL(LIBBZRTP,test x$zrtp != xfalse)
 
 dnl Polarssl lib is requested for DTLS
 AC_ARG_WITH( polarssl,
-      [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr, /usr/local)[default=PREFIX] ],
-      [ polarssl_prefix=${withval}],[ polarssl_prefix=$prefix ])
+      [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr, /usr/local)[[default=PREFIX or /usr if NONE]] ],
+      [ polarssl_prefix=${withval}],[ if test "$prefix" != "NONE"; then
+					polarssl_prefix=${prefix}
+				      else
+					polarssl_prefix="/usr"
+				      fi ])
 
 found_polarssl=no
 
-if test "$polarssl_prefix" != "NONE" ; then
+if test "$polarssl_prefix" != "none" ; then
 	if test "$polarssl_prefix" != "/usr" ; then
 		POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
 		POLARSSL_LIBS="-L${polarssl_prefix}/lib"
 	fi
 	POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"
-fi
 
-CPPFLAGS_save=$CPPFLAGS
-LIBS_save=$LIBS
+	CPPFLAGS_save=$CPPFLAGS
+	LIBS_save=$LIBS
 
-CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
-LIBS="$LIBS $POLARSSL_LIBS"
-AC_CHECK_HEADERS(polarssl/ssl.h, [
+	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
+	LIBS="$LIBS $POLARSSL_LIBS"
+	AC_CHECK_HEADERS(polarssl/ssl.h, [
 				AC_CHECK_LIB(polarssl,sha1_hmac,
 					[found_polarssl=yes; AC_MSG_NOTICE([polarssl usable])],
 					[POLARSSL_CFLAGS=""
@@ -1116,9 +1125,9 @@ AC_CHECK_HEADERS(polarssl/ssl.h, [
 					AC_MSG_ERROR([polarssl headers found but library not found !])])
 				],[POLARSSL_CFLAGS=""
 					POLARSSL_LIBS=""])
-CPPFLAGS=$CPPFLAGS_save
-LIBS=$LIBS_save
-
+	CPPFLAGS=$CPPFLAGS_save
+	LIBS=$LIBS_save
+fi
 
 dnl check for DTLS-SRTP support, need polarssl version >= 1.4
 AC_ARG_ENABLE(dtls,

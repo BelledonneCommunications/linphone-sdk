@@ -38,6 +38,7 @@ Compilation and installation
 	- x11 with libxv-dev on linux
 	- libmastroska2 from https://github.com/Matroska-Org/foundation-source
 	- theora
+	- libsrtp
 
   * For Linux, MacOS or mingw
 
