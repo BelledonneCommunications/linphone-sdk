@@ -494,7 +494,7 @@ static test_t tests[] = {
 	{ "Upload bitrate [opus] - edge", upload_bitrate_opus_edge },
 	{ "Upload bitrate [opus] - 3g", upload_bitrate_opus_3g },
 
-// #if VIDEO_ENABLED
+#if VIDEO_ENABLED
 	{ "Network detection [VP8] - ideal", adaptive_vp8_ideal },
 	{ "Network detection [VP8] - lossy", adaptive_vp8_lossy },
 	{ "Network detection [VP8] - congested", adaptive_vp8_congestion },
