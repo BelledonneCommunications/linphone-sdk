@@ -484,9 +484,9 @@ static void adaptive_vp8_lossy_congestion() {
 
 
 static test_t tests[] = {
-	// { "Packet duplication", packet_duplication},
-	// { "Upload bandwidth computation", upload_bandwidth_computation },
-	// { "Loss rate estimation", loss_rate_estimation },
+	{ "Packet duplication", packet_duplication},
+	{ "Upload bandwidth computation", upload_bandwidth_computation },
+	{ "Loss rate estimation", loss_rate_estimation },
 
 	{ "Upload bitrate [pcma] - 3g", upload_bitrate_pcma_3g },
 	{ "Upload bitrate [speex] - low", upload_bitrate_speex_low },
@@ -495,11 +495,11 @@ static test_t tests[] = {
 	{ "Upload bitrate [opus] - 3g", upload_bitrate_opus_3g },
 
 // #if VIDEO_ENABLED
-// 	{ "Network detection [VP8] - ideal", adaptive_vp8_ideal },
-// 	{ "Network detection [VP8] - lossy", adaptive_vp8_lossy },
-// 	{ "Network detection [VP8] - congested", adaptive_vp8_congestion },
-// 	{ "Network detection [VP8] - lossy congested", adaptive_vp8_lossy_congestion },
-// #endif
+	{ "Network detection [VP8] - ideal", adaptive_vp8_ideal },
+	{ "Network detection [VP8] - lossy", adaptive_vp8_lossy },
+	{ "Network detection [VP8] - congested", adaptive_vp8_congestion },
+	{ "Network detection [VP8] - lossy congested", adaptive_vp8_lossy_congestion },
+#endif
 };
 
 test_suite_t adaptive_test_suite = {
