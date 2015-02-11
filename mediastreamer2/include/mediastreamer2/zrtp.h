@@ -143,6 +143,21 @@ MS2_PUBLIC void ms_zrtp_sas_verified(MSZrtpContext* ctx);
  */
 MS2_PUBLIC void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx);
 
+/**
+ * from_string and to_string for enums: MSZrtpHash, MSZrtpCipher, MSZrtpAuthTag, MSZrtpKeyAgreement, MSZrtpSasType
+ */
+MS2_PUBLIC MSZrtpHash ms_zrtp_hash_from_string(const char* str);
+MS2_PUBLIC const char* ms_zrtp_hash_to_string(const MSZrtpHash hash);
+MS2_PUBLIC MSZrtpCipher ms_zrtp_cipher_from_string(const char* str);
+MS2_PUBLIC const char* ms_zrtp_cipher_to_string(const MSZrtpCipher cipher);
+MS2_PUBLIC MSZrtpAuthTag ms_zrtp_auth_tag_from_string(const char* str);
+MS2_PUBLIC const char* ms_zrtp_auth_tag_to_string(const MSZrtpAuthTag authTag);
+MS2_PUBLIC MSZrtpKeyAgreement ms_zrtp_key_agreement_from_string(const char* str);
+MS2_PUBLIC const char* ms_zrtp_key_agreement_to_string(const MSZrtpKeyAgreement keyAgreement);
+MS2_PUBLIC MSZrtpSasType ms_zrtp_sas_type_from_string(const char* str);
+MS2_PUBLIC const char* ms_zrtp_sas_type_to_string(const MSZrtpSasType sasType);
+
+
 #ifdef __cplusplus
 }
 #endif
