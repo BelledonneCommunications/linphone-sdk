@@ -1049,7 +1049,7 @@ if test "${srtp_prefix}" != "none" ; then
 		LIBS=$LIBS_save
 
 		if test "$srtp_polarssl_conflict" = "yes"; then
-			SRTP_LIBS="${srtp_prefix}/lib/libsrtp.a -Bsymbolic -Wl,--version-script=libsrtp.map" 
+			SRTP_LIBS="${srtp_prefix}/lib/libsrtp.a -Bsymbolic -Wl,--version-script=\$(top_srcdir)/libsrtp.map" 
 		fi
 
 		AC_DEFINE(HAVE_SRTP, 1, [Defined when srtp support is compiled])
