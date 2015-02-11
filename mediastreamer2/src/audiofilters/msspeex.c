@@ -75,7 +75,7 @@ static void enc_init(MSFilter *f){
 	cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
 	#endif
 #endif
-	ms_message("speex_lib_ctl init with neon ? %d", (cpuFeatures == SPEEX_LIB_CPU_FEATURE_NEON));
+	ms_message("speex_lib_ctl init %s neon", (cpuFeatures == SPEEX_LIB_CPU_FEATURE_NEON)?"with":"without");
 	speex_lib_ctl(SPEEX_LIB_SET_CPU_FEATURES, &cpuFeatures);
 #else
 	ms_message("speex_lib_ctl does not support SPEEX_LIB_CPU_FEATURE_NEON");

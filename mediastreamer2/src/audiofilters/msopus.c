@@ -139,7 +139,8 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 	}
 
 	ms_filter_lock(f);
-	if (d->bitrate==-1) { // set bitrate wasn't call, compute it with the default network bitrate (36000)
+	// set bitrate wasn't call, compute it with the default network bitrate (36000)
+	if (d->bitrate==-1) {
 		compute_max_bitrate(d, 0);
 	}
 	apply_max_bitrate(d);
@@ -279,11 +280,11 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 		int initial_value = normalized_cbr;
 		normalized_cbr = 6000;
 		d->max_network_bitrate = (normalized_cbr/(pps*8) + 12 + 8 + 20) *8*pps;
-		ms_warning("Opus encoder doesn't support bitrate [%i] set to 6kbps, network bitrate [%d]", initial_value, d->max_network_bitrate);
+		ms_warning("Opus encoder does not support bitrate [%i]. Instead set to 6kbps, network bitrate [%d]", initial_value, d->max_network_bitrate);
 	}
 	if (d->maxaveragebitrate>0)
 		maxaveragebitrate=d->maxaveragebitrate;
-	
+
 	if (normalized_cbr>maxaveragebitrate) {
 		int initial_value = normalized_cbr;
 		normalized_cbr = maxaveragebitrate;
@@ -408,7 +409,7 @@ static int ms_opus_enc_set_ptime(MSFilter *f, void *arg) {
 	int ptime = *(int*)arg;
 
 	ms_filter_lock(f);
-	
+
 	/* ptime value can be 20, 40, 60, 80, 100 or 120 */
 	if ((ptime%20 != 0) || (ptime>d->maxptime) || (ptime<20)) {
 		d->ptime = ptime-ptime%20;
@@ -662,7 +663,7 @@ static void ms_opus_dec_process(MSFilter *f) {
 	mblk_t *im;
 	mblk_t *om;
 	int frames;
-	
+
 	if (!d->state) ms_queue_flush(f->inputs[0]);
 
 	/* decode available packets */
