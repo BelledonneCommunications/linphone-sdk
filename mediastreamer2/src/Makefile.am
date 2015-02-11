@@ -30,7 +30,7 @@ EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c
 	audiofilters/winsndds.cpp \
 	voip/nowebcamCIF.jpg audiofilters/winsnd3.c utils/vfw-missing.h \
 	videofilters/winvideo2.c utils/msjava.c $(ANDROID_SRC_FILES) \
-	$(GITVERSION_FILE) yuv2rgb.fs yuv2rgb.vs
+	$(GITVERSION_FILE) yuv2rgb.fs yuv2rgb.vs libsrtp.map
 
 BUILT_SOURCES=basedescs.h $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
@@ -453,8 +453,6 @@ endif
 if BUILD_MACOSX
 libmediastreamer_voip_la_LDFLAGS+=	-framework Cocoa -framework OpenGL -framework QuartzCore
 endif
-
-
 
 AM_OBJCFLAGS=$(AM_CFLAGS)
 
