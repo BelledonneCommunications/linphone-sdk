@@ -25,7 +25,6 @@
 
 #endif
 
-
 #define belle_sip_network_buffer_size 65535
 #define belle_sip_send_network_buffer_size 16384
 
