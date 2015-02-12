@@ -360,7 +360,16 @@ static void check_stun_sending(MSFilter *f) {
 
 static void process_cn(MSFilter *f, SenderData *d){
 	if (d->cng_data.datasize>0){
+		rtp_header_t *rtp;
+		/* get CN payload type number */
+		int cn_pt=rtp_profile_find_payload_number(d->session->snd.profile, "CN", 8000, 1);
+
+		/* create the packet, payload type number is the one used for current codec */
 		mblk_t *m=rtp_session_create_packet(d->session, 12, d->cng_data.data, d->cng_data.datasize);
+		/* replace payload type in RTP header */
+		rtp=(rtp_header_t*)m->b_rptr;
+		rtp->paytype = cn_pt;
+
 		rtp_session_sendm_with_ts(d->session,m,d->last_ts);
 		d->cng_data.datasize=0;
 	}
