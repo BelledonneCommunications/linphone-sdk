@@ -1032,7 +1032,7 @@ if test "${srtp_prefix}" != "none" ; then
 	LDFLAGS_save=$LDFLAGS
 	LDFLAGS="$LDFLAGS $SRTP_LIBS"
 	LIBS_save=$LIBS
-	AC_CHECK_LIB(srtp,srtp_init,have_srtp_lib=yes)
+	AC_CHECK_LIB(srtp,[srtp_init, crypto_policy_set_aes_cm_256_hmac_sha1_80, crypto_policy_set_aes_cm_256_hmac_sha1_32], have_srtp_lib=yes)
 	LDFLAGS=$LDFLAGS_save
 	LIBS=$LIBS_save
 
