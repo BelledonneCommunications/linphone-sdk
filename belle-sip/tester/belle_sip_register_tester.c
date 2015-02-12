@@ -237,6 +237,7 @@ void unregister_user(belle_sip_stack_t * stack
 	is_register_ok=0;
 	using_transaction=0;
 	req=(belle_sip_request_t*)belle_sip_object_clone((belle_sip_object_t*)initial_request);
+	belle_sip_object_ref(req);
 	cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)req,BELLE_SIP_CSEQ);
 	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+2); /*+2 if initial reg was challenged*/
 	expires_header=(belle_sip_header_expires_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_EXPIRES);
@@ -247,10 +248,17 @@ void unregister_user(belle_sip_stack_t * stack
 		t=belle_sip_provider_create_client_transaction(prov,req);
 		belle_sip_client_transaction_send_request(t);
 	}else belle_sip_provider_send_request(prov,req);
-	for(i=0;!is_register_ok && i<2 ;i++)
-		belle_sip_stack_sleep(stack,5000);
+	for(i=0;!is_register_ok && i<20 ;i++) {
+		belle_sip_stack_sleep(stack,500);
+		if (!use_transaction && !is_register_ok) {
+			belle_sip_object_ref(req);
+			belle_sip_provider_send_request(prov,req); /*manage retransmitions*/
+		}
+	}
+
 	CU_ASSERT_EQUAL(is_register_ok,1);
 	CU_ASSERT_EQUAL(using_transaction,use_transaction);
+	belle_sip_object_unref(req);
 	belle_sip_provider_remove_sip_listener(prov,l);
 }
 
@@ -294,6 +302,7 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 						belle_sip_header_to_create2(identity,NULL),
 						belle_sip_header_via_new(),
 						70);
+	belle_sip_object_ref(req);
 	is_register_ok=0;
 	io_error_count=0;
 	using_transaction=0;
@@ -305,11 +314,17 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
 		belle_sip_client_transaction_send_request_to(t,outbound?belle_sip_uri_parse(outbound):NULL);
 	}else belle_sip_provider_send_request(prov,req);
-	for(i=0;!is_register_ok && i<2 && io_error_count==0;i++)
-		belle_sip_stack_sleep(stack,5000);
+	for(i=0;!is_register_ok && i<20 && io_error_count==0;i++) {
+		belle_sip_stack_sleep(stack,500);
+		if (!use_transaction && !is_register_ok) {
+			belle_sip_object_ref(req);
+			belle_sip_provider_send_request(prov,req); /*manage retransmitions*/
+		}
+	}
 	CU_ASSERT_EQUAL(is_register_ok,success_expected);
 	if (success_expected) CU_ASSERT_EQUAL(using_transaction,use_transaction);
 
+	belle_sip_object_unref(req);
 	belle_sip_provider_remove_sip_listener(prov,l);
 	if (outbound) belle_sip_free(outbound);
 	return copy;
