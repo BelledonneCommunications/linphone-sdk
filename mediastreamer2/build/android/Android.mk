@@ -47,75 +47,71 @@ MEDIASTREAMER2_INCLUDES := \
 LOCAL_MODULE := libmediastreamer2
 
 LOCAL_SRC_FILES = \
+	android/androidsound.cpp \
+	android/androidsound_depr.cpp \
+	android/androidsound_opensles.cpp \
+	android/AudioRecord.cpp \
+	android/AudioSystem.cpp \
+	android/AudioTrack.cpp \
+	android/hardware_echo_canceller.cpp \
+	android/loader.cpp \
+	android/String8.cpp \
+	audiofilters/aac-eld-android.cpp \
+	audiofilters/alaw.c \
+	audiofilters/audiomixer.c \
+	audiofilters/devices.c \
+	audiofilters/dtmfgen.c \
+	audiofilters/equalizer.c \
+	audiofilters/flowcontrol.c \
+	audiofilters/g711.c \
+	audiofilters/genericplc.c \
+	audiofilters/l16.c \
+	audiofilters/msfileplayer.c \
+	audiofilters/msfilerec.c \
+	audiofilters/msg722.c \
+	audiofilters/msresample.c \
+	audiofilters/msvaddtx.c \
+	audiofilters/msvolume.c \
+	audiofilters/tonedetector.c \
+	audiofilters/ulaw.c \
+	base/eventqueue.c \
 	base/mscommon.c \
+	base/msfactory.c \
 	base/msfilter.c \
 	base/msqueue.c \
-	base/msticker.c \
 	base/mssndcard.c \
-	base/mtu.c \
+	base/msticker.c \
 	base/mswebcam.c \
-	base/eventqueue.c \
-	base/msfactory.c \
+	base/mtu.c \
 	crypto/dtls_srtp.c \
 	crypto/ms_srtp.c \
 	crypto/zrtp.c \
-	voip/audioconference.c \
-	voip/mediastream.c \
-	voip/msvoip.c \
-	voip/ice.c \
-	voip/audiostream.c \
-	voip/ringstream.c \
-	voip/qualityindicator.c \
-	voip/bitratecontrol.c \
-	voip/bitratedriver.c \
-	voip/qosanalyzer.c \
-	voip/msmediaplayer.c \
-	crypto/zrtp.c \
-	voip/stun.c \
-	voip/stun_udp.c \
-	utils/dsptools.c \
-	utils/kiss_fft.c \
-	utils/kiss_fftr.c \
-	utils/audiodiff.c \
-	utils/msjava.c \
-	utils/g722_decode.c \
-	utils/g722_encode.c \
-	utils/audiodiff.c \
-	utils/stream_regulator.c \
+	otherfilters/itc.c \
+	otherfilters/join.c \
 	otherfilters/msrtp.c \
 	otherfilters/tee.c \
-	otherfilters/join.c \
 	otherfilters/void.c \
-	otherfilters/itc.c \
-	audiofilters/audiomixer.c \
-	audiofilters/alaw.c \
-	audiofilters/ulaw.c \
-	audiofilters/g711.c \
-	audiofilters/msfileplayer.c \
-	audiofilters/dtmfgen.c \
-	audiofilters/msfilerec.c \
-	audiofilters/msvolume.c \
-	audiofilters/equalizer.c \
-	audiofilters/tonedetector.c \
-	audiofilters/msg722.c \
-	audiofilters/l16.c \
-	audiofilters/msresample.c \
-	audiofilters/devices.c \
-	audiofilters/flowcontrol.c \
-	audiofilters/msvaddtx.c \
-	audiofilters/aac-eld-android.cpp \
-	audiofilters/genericplc.c \
-	android/hardware_echo_canceller.cpp \
-	android/androidsound_depr.cpp \
-	android/loader.cpp \
-	android/androidsound.cpp \
-	android/AudioRecord.cpp \
-	android/AudioTrack.cpp \
-	android/AudioSystem.cpp \
-	android/String8.cpp \
-	android/androidsound_opensles.cpp \
-	crypto/dtls_srtp.c \
-	crypto/ms_srtp.c
+	utils/audiodiff.c \
+	utils/dsptools.c \
+	utils/g722_decode.c \
+	utils/g722_encode.c \
+	utils/kiss_fft.c \
+	utils/kiss_fftr.c \
+	utils/msjava.c \
+	utils/stream_regulator.c \
+	voip/audioconference.c \
+	voip/audiostream.c \
+	voip/bitratecontrol.c \
+	voip/bitratedriver.c \
+	voip/ice.c \
+	voip/mediastream.c \
+	voip/msmediaplayer.c \
+	voip/msvoip.c \
+	voip/qosanalyzer.c \
+	voip/qualityindicator.c \
+	voip/ringstream.c \
+	voip/stun.c \
+	voip/stun_udp.c
 
 LOCAL_STATIC_LIBRARIES :=
 
