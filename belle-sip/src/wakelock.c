@@ -98,7 +98,7 @@ static JNIEnv *get_jni_env(void) {
 unsigned long wake_lock_acquire(const char *tag) {
 	if(ctx.jvm != NULL && ctx.powerManager != NULL) {
 		JNIEnv *env;
-		if(env = get_jni_env()) {
+		if((env = get_jni_env())) {
 			jstring tagString = (*env)->NewStringUTF(env, tag);
 			jobject lock = (*env)->CallObjectMethod(env, ctx.powerManager, ctx.newWakeLockID, ctx.PARTIAL_WAKE_LOCK, tagString);
 			(*env)->DeleteLocalRef(env, tagString);
@@ -125,7 +125,7 @@ void wake_lock_release(unsigned long id) {
 		if(id != 0) {
 			jobject lock = (jobject)id;
 			JNIEnv *env;
-			if(env = get_jni_env()) {
+			if((env = get_jni_env())) {
 				(*env)->CallVoidMethod(env, lock, ctx.releaseID);
 				belle_sip_message("wake_lock_release(): Android wake lock released [ref=%p]", (void *)lock);
 				(*env)->DeleteGlobalRef(env, lock);
