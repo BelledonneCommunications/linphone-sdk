@@ -1009,7 +1009,7 @@ dnl check for libsrtp support (secure rtp)
 AC_ARG_WITH(srtp,
 	AC_HELP_STRING([--with-srtp], [Set prefix where libsrtp can be found or "none" to disable (ex:/usr or /usr/local) [[default=/usr]]]),
 	[srtp_prefix=$withval],
-	[if "$prefix" != "NONE"; then
+	[if test "$prefix" != "NONE"; then
 		srtp_prefix=$prefix
 	 else
 		srtp_prefix="/usr"
