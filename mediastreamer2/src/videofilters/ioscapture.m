@@ -492,8 +492,18 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 
 		if( [[[UIDevice currentDevice] systemVersion] floatValue] >= 7 ){
 			for( AVCaptureDeviceInput* devinput in [session inputs] ) {
-				[devinput.device setActiveVideoMinFrameDuration:CMTimeMake(1, value)];
-				[devinput.device setActiveVideoMaxFrameDuration:CMTimeMake(1, value)];
+
+				NSError* err = nil;
+				if( [devinput.device lockForConfiguration:&err] == YES ){
+
+					[devinput.device setActiveVideoMinFrameDuration:CMTimeMake(1, value)];
+					[devinput.device setActiveVideoMaxFrameDuration:CMTimeMake(1, value)];
+
+					[devinput.device unlockForConfiguration];
+				} else {
+					ms_error("Couldn't obtain lock to set capture FPS: %s", err?[err.description UTF8String] : "");
+				}
+
 				break;
 			}
 		} else {
