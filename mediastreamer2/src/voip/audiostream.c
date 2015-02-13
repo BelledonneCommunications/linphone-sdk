@@ -1250,7 +1250,7 @@ void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val){
 	if (stream->volsend){
 		ms_filter_call_method(stream->volsend,MS_VOLUME_ENABLE_NOISE_GATE,&val);
 	} else {
-		ms_warning("cannot set noise gate mode to [%i] because no volume send",val);
+		ms_message("cannot set noise gate mode to [%i] because no volume send",val);
 	}
 }
 
