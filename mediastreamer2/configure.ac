@@ -185,6 +185,9 @@ dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we
 		mingw32ce_found=yes
 	;;
 	*mingw*)
+		dnl Workaround for mingw, whose compiler does not check in /usr/include ...
+		CPPFLAGS="$CPPFLAGS -I/usr/include"
+		LDFLAGS="$LDFLAGS -L/usr/lib"
 		CFLAGS="$CFLAGS -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
 		CXXFLAGS="$CXXFLAGS -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
 dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we were building statically, or dynamically on linux
@@ -1016,7 +1019,7 @@ AC_ARG_WITH(srtp,
 	 fi])
 
 if test "${srtp_prefix}" != "none" ; then
-	if test "${srtp_prefix}" != "/usr" || test "$mingw_found" = "yes" ; then
+	if test "${srtp_prefix}" != "/usr" ; then
 		SRTP_CFLAGS="-I${srtp_prefix}/include -I${srtp_prefix}/include/srtp"
 		SRTP_LIBS="-L${srtp_prefix}/lib"
 	fi
