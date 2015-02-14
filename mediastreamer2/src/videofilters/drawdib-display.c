@@ -250,7 +250,7 @@ static void dd_display_prepare(MSFilter *f){
 	DDDisplay *dd=(DDDisplay*)f->data;
 	
 	if (dd->window==NULL) {
-		if(dd->auto_window) {
+		if (dd->auto_window) {
 			dd->window=create_window(dd->wsize.width,dd->wsize.height,dd);
 		}
 	}
@@ -285,7 +285,7 @@ static void dd_display_uninit(MSFilter *f){
 }
 
 static void dd_display_preprocess(MSFilter *f){
-	dd_display_prepare(f);
+	
 }
 
 
@@ -376,6 +376,12 @@ static void dd_display_process(MSFilter *f){
 	int corner=obj->sv_corner;
 	float scalefactor=obj->sv_scalefactor;
 
+	/* this creates the window if not given by the application. This must be done within the process() function because
+	 it is not possible on windows to create a windows in one thread and modify it from another one.
+	 Previously, window creation was done from preprocess() (so main thread) but it was deadlocking when process() function
+	 was doing MoveWindow() to resize the window*/
+	dd_display_prepare(f);
+	
 	if (obj->window==NULL){
 		goto end;
 	}
@@ -483,7 +489,13 @@ static void dd_display_process(MSFilter *f){
 	}
 	
 	end:
-		
+	{
+		MSG msg;
+		while (PeekMessage(&msg, NULL, 0, 0,1)){
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
 	if (f->inputs[0]!=NULL)
 		ms_queue_flush(f->inputs[0]);
 	if (f->inputs[1]!=NULL)
