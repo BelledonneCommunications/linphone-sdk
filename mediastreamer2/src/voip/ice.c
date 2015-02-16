@@ -3260,7 +3260,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 				/* Check if there are some retransmissions pending. */
 				ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_retransmissions_pending, &retransmissions_pending);
 				if (retransmissions_pending == FALSE) {
-					/* There is no connectivity check left to be sent and no retransmissions pending. */
+					ms_message("ice: There is no connectivity check left to be sent and no retransmissions pending, concluding checklist [%p]",cl);
 					ice_conclude_processing(cl, rtp_session);
 				}
 			}
