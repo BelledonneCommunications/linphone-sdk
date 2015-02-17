@@ -1040,23 +1040,37 @@ if test "${srtp_prefix}" != "none" ; then
 	LIBS=$LIBS_save
 
 	if test "$have_srtp_headers$have_srtp_lib" = "yesyes" ; then
-		srtp_polarssl_conflict=yes
 		LDFLAGS_save=$LDFLAGS
-		LDFLAGS="$LDFLAGS $SRTP_LIBS"
 		LIBS_save=$LIBS
-		AC_CHECK_LIB(srtp,sha1_update,[
-		AC_MSG_WARN([This libsrtp version exports symbols conflicting with polarssl, resulting in a bad execution path.
-		 libsrtp will be statically linked
-		])], srtp_polarssl_conflict=no)
+		LDFLAGS="$LDFLAGS $SRTP_LIBS"
+		AC_CHECK_LIB(
+			srtp,
+			sha1_update,[
+				AC_MSG_WARN([This libsrtp version exports symbols conflicting with polarssl, resulting in a bad execution path. libsrtp will be statically linked])
+				srtp_polarssl_conflict=yes
+			],
+			srtp_polarssl_conflict=no
+		)
 		LDFLAGS=$LDFLAGS_save
 		LIBS=$LIBS_save
 
 		if test "$srtp_polarssl_conflict" = "yes"; then
-			SRTP_LIBS="${srtp_prefix}/lib/libsrtp.a -Bsymbolic -Wl,--version-script=\$(top_srcdir)/src/libsrtp.map" 
+			srtp_static_lib="${srtp_prefix}/lib/libsrtp.a"
+			if test -f $srtp_static_lib -a -r $srtp_static_lib; then
+				SRTP_LIBS="${srtp_prefix}/lib/libsrtp.a -Bsymbolic -Wl,--version-script=\$(top_srcdir)/src/libsrtp.map" 
+				AC_DEFINE(HAVE_SRTP, 1, [Defined when srtp support is compiled])
+				have_srtp=yes
+			else
+				AC_MSG_WARN([Could not access to $srtp_static_lib. Please use --with-srtp=PREFIX to specify the prefix where libsrtp.a has been installed])
+				SRTP_CFLAGS=
+				SRTP_LIBS=
+				have_srtp=no
+			fi
+		else
+			AC_DEFINE(HAVE_SRTP, 1, [Defined when srtp support is compiled])
+			have_srtp=yes
 		fi
 
-		AC_DEFINE(HAVE_SRTP, 1, [Defined when srtp support is compiled])
-		have_srtp=yes
 	else
 		AC_MSG_NOTICE([Could not find libsrtp headers or lib, cryto transport disabled.])
 		have_srtp=no
