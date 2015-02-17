@@ -132,7 +132,6 @@
     <ClInclude Include="..\..\..\include\mediastreamer2\msvolume.h" />
     <ClInclude Include="..\..\..\include\mediastreamer2\mswebcam.h" />
     <ClInclude Include="..\..\..\include\mediastreamer2\videostarter.h" />
-    <ClInclude Include="..\..\..\include\mediastreamer2\zrtp.h" />
     <ClInclude Include="..\..\..\src\audiofilters\g711.h" />
     <ClInclude Include="..\..\..\src\utils\g722.h" />
     <ClInclude Include="..\..\..\src\utils\kiss_fft.h" />
@@ -176,6 +175,9 @@
     <ClCompile Include="..\..\..\src\base\msticker.c" />
     <ClCompile Include="..\..\..\src\base\mswebcam.c" />
     <ClCompile Include="..\..\..\src\base\mtu.c" />
+    <ClCompile Include="..\..\..\src\crypto\dtls_srtp.c" />
+    <ClCompile Include="..\..\..\src\crypto\ms_srtp.c" />
+    <ClCompile Include="..\..\..\src\crypto\zrtp.c" />
     <ClCompile Include="..\..\..\src\otherfilters\itc.c" />
     <ClCompile Include="..\..\..\src\otherfilters\join.c" />
     <ClCompile Include="..\..\..\src\otherfilters\msrtp.c" />
@@ -206,9 +208,10 @@
     <ClCompile Include="..\..\..\src\voip\qualityindicator.c" />
     <ClCompile Include="..\..\..\src\voip\rfc3984.c" />
     <ClCompile Include="..\..\..\src\voip\ringstream.c" />
+    <ClCompile Include="..\..\..\src\voip\stun.c" />
+    <ClCompile Include="..\..\..\src\voip\stun_udp.c" />
     <ClCompile Include="..\..\..\src\voip\videostarter.c" />
     <ClCompile Include="..\..\..\src\voip\videostream.c" />
-    <ClCompile Include="..\..\..\src\voip\zrtp.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\gsm\build\wp8\gsm\gsm.vcxproj">
