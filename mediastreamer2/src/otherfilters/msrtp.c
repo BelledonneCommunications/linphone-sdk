@@ -72,7 +72,7 @@ static void send_stun_packet(RtpSession *s)
 		mp = allocb(len, BPRI_MED);
 		memcpy(mp->b_wptr, buf, len);
 		mp->b_wptr += len;
-		ms_message("Stun packet  sent for session [%p]",s);
+		ms_message("Stun packet sent for session [%p]",s);
 		rtp_session_sendm_with_ts(s, mp, 0);
 	}
 }
@@ -351,11 +351,9 @@ static void check_stun_sending(MSFilter *f) {
 	SenderData *d = (SenderData *) f->data;
 	RtpSession *s = d->session;
 
-	if ((d->last_stun_sent_time == -1) || ((f->ticker->time- d->last_sent_time>2000) /*no need to send stun packets au media sent ion last 2s*/
+	if ((d->last_stun_sent_time == -1) || ((f->ticker->time- d->last_sent_time>2000) /*no need to send stun packets if media sent during last 2s*/
 											&& (f->ticker->time - d->last_stun_sent_time) >= 500)) {
 		d->last_stun_sent_time = f->ticker->time;
-	}
-	if (d->last_stun_sent_time == f->ticker->time) {
 		send_stun_packet(s);
 	}
 }
