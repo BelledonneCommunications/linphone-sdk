@@ -59,7 +59,7 @@
 #	define AI_V4MAPPED 0x00000800
 #	endif
 #	ifndef AI_ALL
-#	define AI_ALL 0x00000000
+#	define AI_ALL 0x00000100
 #	endif
 #	ifndef IPV6_V6ONLY
 #	define IPV6_V6ONLY 27
