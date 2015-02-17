@@ -372,7 +372,9 @@ if BUILD_WIN32_WCE
 libmediastreamer_base_la_LIBADD+=	-lmmtimer
 endif
 
+#put ORTP_CFLAGS first so that inner oRTP submodules is taken in priority rather than installed one
 AM_CPPFLAGS=\
+	$(ORTP_CFLAGS)   \
 	-I$(top_srcdir)/include/ \
 	-I$(top_srcdir)/src/base \
 	-I$(top_srcdir)/src/utils \
@@ -384,7 +386,6 @@ AM_CPPFLAGS=\
 AM_CFLAGS=\
 	$(STRICT_OPTIONS) \
 	$(STRICT_OPTIONS_CC) \
-	$(ORTP_CFLAGS)   \
 	$(SPEEX_CFLAGS)  \
 	$(GSM_CFLAGS)    \
 	$(LIBPULSE_CFLAGS) \
