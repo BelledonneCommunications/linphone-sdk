@@ -162,7 +162,7 @@ static void capture_queue_cleanup(void* p) {
 	CVImageBufferRef frame = nil;
 	@synchronized(self) { 
 		@try {
-			CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer); 
+			frame = CMSampleBufferGetImageBuffer(sampleBuffer);
 			CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
 			if (kCVReturnSuccess != status) {
 				ms_error("Error locking base address: %i", status);
