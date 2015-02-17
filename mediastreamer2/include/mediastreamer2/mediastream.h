@@ -86,6 +86,7 @@ struct _MSMediaStreamSessions{
 	MSDtlsSrtpContext *dtls_context;
 	MSTicker *ticker;
 	bool_t is_secured;
+	bool_t pad[3];
 };
 
 typedef struct _MSMediaStreamSessions MSMediaStreamSessions;
@@ -122,8 +123,8 @@ struct _MediaStream {
 	time_t last_iterate_time;
 	uint64_t last_packet_count;
 	time_t last_packet_time;
-	bool_t rc_enable;
 	MSQosAnalyzerAlgorithm rc_algorithm;
+	bool_t rc_enable;
 	bool_t is_beginning;
 	bool_t owns_sessions;
 	bool_t pad;
@@ -139,6 +140,8 @@ struct _MediaStream {
  * @addtogroup audio_stream_api
  * @{
 **/
+
+MS2_PUBLIC int media_stream_join_multicast_group(MediaStream *stream, const char *ip);
 
 MS2_PUBLIC bool_t media_stream_dtls_supported(void);
 

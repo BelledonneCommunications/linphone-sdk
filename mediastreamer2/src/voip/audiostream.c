@@ -1200,6 +1200,7 @@ AudioStream *audio_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_po
 	obj->ms.owns_sessions=TRUE;
 	return obj;
 }
+
 void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno){
 	st->play_dtmfs=yesno;
 }

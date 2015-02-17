@@ -154,6 +154,10 @@ RtpSession * create_duplex_rtpsession(const char* local_ip, int loc_rtp_port, in
 	return rtpr;
 }
 
+int media_stream_join_multicast_group(MediaStream *stream, const char *ip){
+	return rtp_session_join_multicast_group(stream->sessions.rtp_session,ip);
+}
+
 void media_stream_start_ticker(MediaStream *stream) {
 	MSTickerParams params = {0};
 	char name[32] = {0};
