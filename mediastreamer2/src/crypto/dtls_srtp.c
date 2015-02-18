@@ -46,6 +46,7 @@ typedef struct _DtlsPolarsslContexts {
 	ctr_drbg_context ctr_drbg;
 	ssl_cookie_ctx cookie_ctx;
 	pk_context pkey;
+	ms_mutex_t ssl_context_mutex;
 //	ssl_session saved_session;
 //	ssl_cache_context cache;
 } DtlsPolarsslContext;
@@ -181,6 +182,39 @@ static MSCryptoSuite ms_polarssl_dtls_srtp_protection_profile_to_ms_crypto_suite
 	}
 }
 
+static void schedule_rtp(struct _RtpTransportModifier *t) {
+	MSDtlsSrtpContext *ctx = (MSDtlsSrtpContext *)t->data;
+	/* it is not a dtls packet, but manage anyway the retransmission timer */
+	if (ctx->role == MSDtlsSrtpRoleIsClient) { /* only if we are client */
+		uint64_t current_time = get_timeval_in_millis();
+		if (ctx->rtp_time_reference>0) { /* only when retransmission timer is armed */
+			if (current_time - ctx->rtp_time_reference > READ_TIMEOUT_MS) {
+				ms_message("DTLS repeating rtp ssl_handshake for context [%p]",ctx);
+				ms_mutex_lock(&ctx->rtp_dtls_context->ssl_context_mutex);
+				ssl_handshake(&(ctx->rtp_dtls_context->ssl));
+				ms_mutex_unlock(&ctx->rtp_dtls_context->ssl_context_mutex);
+				ctx->rtp_time_reference = get_timeval_in_millis();
+			}
+		}
+	}
+
+}
+static void schedule_rtcp(struct _RtpTransportModifier *t) {
+	MSDtlsSrtpContext *ctx = (MSDtlsSrtpContext *)t->data;
+	if (ctx->role == MSDtlsSrtpRoleIsClient) { /* only if we are client */
+		uint64_t current_time = get_timeval_in_millis();
+		if (ctx->rtcp_time_reference>0) { /* only when retransmission timer is armed */
+			if (current_time - ctx->rtcp_time_reference > READ_TIMEOUT_MS) {
+				ms_message("DTLS repeating rtcp ssl_handshake for context [%p]",ctx);
+				ms_mutex_lock(&ctx->rtcp_dtls_context->ssl_context_mutex);
+				ssl_handshake(&(ctx->rtcp_dtls_context->ssl));
+				ms_mutex_unlock(&ctx->rtcp_dtls_context->ssl_context_mutex);
+				ctx->rtcp_time_reference = get_timeval_in_millis();
+			}
+		}
+
+	}
+}
 /**
  * Check if the incoming message is a DTLS packet.
  * If it is, store it in the context incoming buffer and call the polarssl function wich will process it.
@@ -196,7 +230,7 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 	size_t msgLength = msgdsize(msg);
 	uint64_t *time_reference = (is_rtp == TRUE)?&(ctx->rtp_time_reference):&(ctx->rtcp_time_reference);
 	ssl_context *ssl = (is_rtp == TRUE)?&(ctx->rtp_dtls_context->ssl):&(ctx->rtcp_dtls_context->ssl);
-
+	ms_mutex_t *mutex = (is_rtp == TRUE)?&ctx->rtp_dtls_context->ssl_context_mutex:&ctx->rtcp_dtls_context->ssl_context_mutex;
 	// check if incoming message length is compatible with potential DTLS message
 	if (msgLength<RTP_FIXED_HEADER_SIZE) {
 		return FALSE;
@@ -236,7 +270,7 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 		if (ctx->role == MSDtlsSrtpRoleUnset) {
 			ms_dtls_srtp_set_role(ctx, MSDtlsSrtpRoleIsServer); /* this call will update role and complete server setup */
 		}
-
+		ms_mutex_lock(mutex);
 		/* process the packet and store result */
 		*ret = ssl_handshake(ssl);
 
@@ -250,24 +284,8 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 		if (ctx->role == MSDtlsSrtpRoleIsClient) {
 			*time_reference = get_timeval_in_millis();
 		}
-
+		ms_mutex_unlock(mutex);
 		return TRUE;
-	} else { /* it is not a dtls packet, but manage anyway the retransmission timer */
-		if (ctx->role == MSDtlsSrtpRoleIsClient) { /* only if we are client */
-			uint64_t current_time = get_timeval_in_millis();
-			if (ctx->rtp_time_reference>0) { /* only when retransmission timer is armed */
-				if (current_time - ctx->rtp_time_reference > READ_TIMEOUT_MS) {
-					ssl_handshake(&(ctx->rtp_dtls_context->ssl));
-					ctx->rtp_time_reference = get_timeval_in_millis();
-				}
-			}
-			if (ctx->rtcp_time_reference>0) { /* only when retransmission timer is armed */
-				if (current_time - ctx->rtcp_time_reference > READ_TIMEOUT_MS) {
-					ssl_handshake(&(ctx->rtcp_dtls_context->ssl));
-					ctx->rtcp_time_reference = get_timeval_in_millis();
-				}
-			}
-		}
 	}
 
 	return FALSE;
@@ -579,6 +597,7 @@ static int ms_dtls_srtp_transport_modifier_new(MSDtlsSrtpContext* ctx, RtpTransp
 		(*rtpt)->data=ctx; /* back link to get access to the other fields of the OrtoZrtpContext from the RtpTransportModifier structure */
 		(*rtpt)->t_process_on_send=ms_dtls_srtp_rtp_process_on_send;
 		(*rtpt)->t_process_on_receive=ms_dtls_srtp_rtp_process_on_receive;
+		(*rtpt)->t_process_on_schedule=schedule_rtp;
 		(*rtpt)->t_destroy=ms_dtls_srtp_transport_modifier_destroy;
 	}
 	if (rtcpt){
@@ -586,6 +605,7 @@ static int ms_dtls_srtp_transport_modifier_new(MSDtlsSrtpContext* ctx, RtpTransp
 		(*rtcpt)->data=ctx; /* back link to get access to the other fields of the OrtoZrtpContext from the RtpTransportModifier structure */
 		(*rtcpt)->t_process_on_send=ms_dtls_srtp_rtcp_process_on_send;
 		(*rtcpt)->t_process_on_receive=ms_dtls_srtp_rtcp_process_on_receive;
+		(*rtcpt)->t_process_on_schedule=schedule_rtcp;
 		(*rtcpt)->t_destroy=ms_dtls_srtp_transport_modifier_destroy;
 	}
 	return 0;
@@ -657,6 +677,8 @@ static int ms_dtls_srtp_initialise_polarssl_dtls_context(DtlsPolarsslContext *dt
 		ssl_set_client_transport_id(&(dtlsContext->ssl), (const unsigned char *)(&(s->snd.ssrc)), 4);
 	}
 
+	ms_mutex_init(&dtlsContext->ssl_context_mutex, NULL);
+
 	return 0;
 
 }
@@ -690,12 +712,20 @@ void ms_dtls_srtp_set_peer_fingerprint(MSDtlsSrtpContext *context, const char *p
 
 void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role) {
 	if (context) {
+		ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
+		ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
+
+		if (context->role != role) {
+			/*role has changed reseting*/
+			ssl_session_reset( &(context->rtp_dtls_context->ssl) );
+			ssl_session_reset( &(context->rtcp_dtls_context->ssl) );
+		}
+
 		/* if role is isServer and was Unset, we must complete the server setup */
-		if ((context->role == MSDtlsSrtpRoleUnset) && (role == MSDtlsSrtpRoleIsServer)) {
+		if (((context->role == MSDtlsSrtpRoleIsClient) || (context->role == MSDtlsSrtpRoleUnset)) && (role == MSDtlsSrtpRoleIsServer)) {
 			ssl_set_endpoint(&(context->rtp_dtls_context->ssl), SSL_IS_SERVER);
 			ssl_cookie_setup( &(context->rtp_dtls_context->cookie_ctx), ctr_drbg_random, &(context->rtp_dtls_context->ctr_drbg) );
 			ssl_set_dtls_cookies( &(context->rtp_dtls_context->ssl), ssl_cookie_write, ssl_cookie_check, &(context->rtp_dtls_context->cookie_ctx) );
-			ssl_session_reset( &(context->rtp_dtls_context->ssl) );
 			ssl_set_client_transport_id(&(context->rtp_dtls_context->ssl), (const unsigned char *)(&(context->stream_sessions->rtp_session->snd.ssrc)), 4);
 			//ssl_cache_init( &(context->rtp_dtls_context->cache) );
 			//ssl_set_session_cache( &(context->rtp_dtls_context->ssl), ssl_cache_get, &(context->rtp_dtls_context->cache), ssl_cache_set, &(context->rtp_dtls_context->cache) );
@@ -703,12 +733,18 @@ void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role) {
 			ssl_set_endpoint(&(context->rtcp_dtls_context->ssl), SSL_IS_SERVER);
 			ssl_cookie_setup( &(context->rtcp_dtls_context->cookie_ctx), ctr_drbg_random, &(context->rtcp_dtls_context->ctr_drbg) );
 			ssl_set_dtls_cookies( &(context->rtcp_dtls_context->ssl), ssl_cookie_write, ssl_cookie_check, &(context->rtcp_dtls_context->cookie_ctx) );
-			ssl_session_reset( &(context->rtcp_dtls_context->ssl) );
 			ssl_set_client_transport_id(&(context->rtcp_dtls_context->ssl), (const unsigned char *)(&(context->stream_sessions->rtp_session->snd.ssrc)), 4);
 			//ssl_cache_init( &(context->rtcp_dtls_context->cache) );
 			//ssl_set_session_cache( &(context->rtcp_dtls_context->ssl), ssl_cache_get, &(context->rtcp_dtls_context->cache), ssl_cache_set, &(context->rtcp_dtls_context->cache) );
 		}
+		ms_message("DTLS set role from [%s] to [%s] for context [%p]"
+				,context->role==MSDtlsSrtpRoleIsServer?"server":(context->role==MSDtlsSrtpRoleIsClient?"client":"unset role")
+				,role==MSDtlsSrtpRoleIsServer?"server":(role==MSDtlsSrtpRoleIsClient?"client":"unset role")
+				,context);
 		context->role = role;
+		ms_mutex_unlock(&context->rtp_dtls_context->ssl_context_mutex);
+		ms_mutex_unlock(&context->rtcp_dtls_context->ssl_context_mutex);
+
 	}
 }
 
@@ -752,8 +788,8 @@ MSDtlsSrtpContext* ms_dtls_srtp_context_new(MSMediaStreamSessions *sessions, MSD
 	}
 
 	/* set ssl transport functions */
-	ssl_set_bio_timeout( &(rtp_dtls_context->ssl), userData, ms_dtls_srtp_rtp_sendData, ms_dtls_srtp_rtp_DTLSread, ms_dtls_srtp_rtp_DTLSread_timeout, READ_TIMEOUT_MS );
-	ssl_set_bio_timeout( &(rtcp_dtls_context->ssl), userData, ms_dtls_srtp_rtcp_sendData, ms_dtls_srtp_rtcp_DTLSread, ms_dtls_srtp_rtcp_DTLSread_timeout, READ_TIMEOUT_MS );
+	ssl_set_bio_timeout( &(rtp_dtls_context->ssl), userData, ms_dtls_srtp_rtp_sendData, ms_dtls_srtp_rtp_DTLSread, ms_dtls_srtp_rtp_DTLSread_timeout, READ_TIMEOUT_MS);
+	ssl_set_bio_timeout( &(rtcp_dtls_context->ssl), userData, ms_dtls_srtp_rtcp_sendData, ms_dtls_srtp_rtcp_DTLSread, ms_dtls_srtp_rtcp_DTLSread_timeout, READ_TIMEOUT_MS);
 
 	userData->rtp_channel_status = DTLS_STATUS_CONTEXT_READY;
 	userData->rtcp_channel_status = DTLS_STATUS_CONTEXT_READY;
@@ -769,12 +805,16 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 	ms_message("DTLS start stream on stream sessions [%p]", context->stream_sessions);
 	/* if we are client, start the handshake(send a clientHello) */
 	if (context->role == MSDtlsSrtpRoleIsClient) {
+		ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
+		ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
 		ssl_set_endpoint(&(context->rtp_dtls_context->ssl), SSL_IS_CLIENT);
 		ssl_handshake(&(context->rtp_dtls_context->ssl));
 		context->rtp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
 		ssl_set_endpoint(&(context->rtcp_dtls_context->ssl), SSL_IS_CLIENT);
 		ssl_handshake(&(context->rtcp_dtls_context->ssl));
 		context->rtcp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
+		ms_mutex_unlock(&context->rtp_dtls_context->ssl_context_mutex);
+		ms_mutex_unlock(&context->rtcp_dtls_context->ssl_context_mutex);
 	}
 
 }
@@ -788,6 +828,7 @@ void ms_dtls_srtp_context_destroy(MSDtlsSrtpContext *ctx) {
 		entropy_free( &(ctx->rtp_dtls_context->entropy) );
 		pk_free( &(ctx->rtp_dtls_context->pkey) );
 		ssl_cookie_free( &(ctx->rtp_dtls_context->cookie_ctx) );
+		ms_mutex_destroy(&ctx->rtp_dtls_context->ssl_context_mutex);
 		ms_free(ctx->rtp_dtls_context);
 	}
 	if (ctx->rtcp_dtls_context) {
@@ -797,6 +838,7 @@ void ms_dtls_srtp_context_destroy(MSDtlsSrtpContext *ctx) {
 		entropy_free( &(ctx->rtcp_dtls_context->entropy) );
 		pk_free( &(ctx->rtcp_dtls_context->pkey) );
 		ssl_cookie_free( &(ctx->rtcp_dtls_context->cookie_ctx) );
+		ms_mutex_destroy(&ctx->rtcp_dtls_context->ssl_context_mutex);
 		ms_free(ctx->rtcp_dtls_context);
 	}
 	/* clean incoming buffers */
