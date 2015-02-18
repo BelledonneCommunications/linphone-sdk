@@ -77,6 +77,11 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 	*(long*)(q->wptr+8)=(long)ev_id;
 	if (argsize>0) memcpy(q->wptr+16,arg,argsize);
 	q->wptr=nextpos;
+
+	/* buffer actual size(q->endptr) may have grown within the limit q->lim, prevent unwanted reading reset to the begining by setting the actual endptr */
+	if (nextpos>q->endptr) {
+		q->endptr=nextpos;
+	}
 	
 	q->freeroom-=size;
 	ms_mutex_unlock(&q->mutex);
