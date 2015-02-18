@@ -434,52 +434,52 @@ typedef struct
       StunMediaRelay relays[MAX_MEDIA_RELAYS];
 } StunServerInfo;
 
-ORTP_PUBLIC void
+MS2_PUBLIC void
 stunCalculateIntegrity_longterm(char* hmac, const char* input, int length,
                      const char *username, const char *realm, const char *password);
-ORTP_PUBLIC void
+MS2_PUBLIC void
 stunCalculateIntegrity_shortterm(char* hmac, const char* input, int length, const char* key);
-ORTP_PUBLIC uint32_t
+MS2_PUBLIC uint32_t
 stunCalculateFingerprint(const char* input, int length);
 
-ORTP_PUBLIC bool_t
+MS2_PUBLIC bool_t
 stunParseMessage( char* buf, 
                   unsigned int bufLen, 
                   StunMessage *message);
 
-ORTP_PUBLIC void
+MS2_PUBLIC void
 stunBuildReqSimple( StunMessage* msg,
                     const StunAtrString *username,
                     bool_t changePort, bool_t changeIp, unsigned int id );
 
-ORTP_PUBLIC unsigned int
+MS2_PUBLIC unsigned int
 stunEncodeMessage( const StunMessage *message, 
                    char* buf, 
                    unsigned int bufLen, 
                    const StunAtrString *password);
 
-ORTP_PUBLIC void
+MS2_PUBLIC void
 stunCreateUserName(const StunAddress4 *addr, StunAtrString* username);
 
-ORTP_PUBLIC void
+MS2_PUBLIC void
 stunGetUserNameAndPassword(  const StunAddress4 *dest, 
                              StunAtrString* username,
                              StunAtrString* password);
 
-ORTP_PUBLIC void
+MS2_PUBLIC void
 stunCreatePassword(const StunAtrString *username, StunAtrString* password);
 
-ORTP_PUBLIC int 
+MS2_PUBLIC int 
 stunRand(void);
 
-ORTP_PUBLIC uint64_t
+MS2_PUBLIC uint64_t
 stunGetSystemTimeSecs(void);
 
 /* find the IP address of a the specified stun server - return false is fails parse  */
-ORTP_PUBLIC bool_t  
+MS2_PUBLIC bool_t  
 stunParseServerName( const char* serverName, StunAddress4 *stunServerAddr);
 
-ORTP_PUBLIC bool_t 
+MS2_PUBLIC bool_t 
 stunParseHostName( const char* peerName,
                    uint32_t *ip,
                    uint16_t *portVal,
@@ -487,23 +487,23 @@ stunParseHostName( const char* peerName,
 
 /* return true if all is OK 
    Create a media relay and do the STERN thing if startMediaPort is non-zero */
-ORTP_PUBLIC bool_t
+MS2_PUBLIC bool_t
 stunInitServer(StunServerInfo *info, 
                const StunAddress4 *myAddr, 
                const StunAddress4 *altAddr,
                int startMediaPort);
 
-ORTP_PUBLIC void
+MS2_PUBLIC void
 stunStopServer(StunServerInfo *info);
 
 /* returns number of address found - take array or addres */
-ORTP_PUBLIC int
+MS2_PUBLIC int
 stunFindLocalInterfaces(uint32_t* addresses, int maxSize );
 
-ORTP_PUBLIC int 
+MS2_PUBLIC int 
 stunTest( StunAddress4 *dest, int testNum, StunAddress4* srcAddr, StunAddress4 *sMappedAddr, StunAddress4* sChangedAddr);
 
-ORTP_PUBLIC NatType
+MS2_PUBLIC NatType
 stunNatType( StunAddress4 *dest, 
              bool_t* preservePort, /* if set, is return for if NAT preservers ports or not */
              bool_t* hairpin ,  /* if set, is the return for if NAT will hairpin packets */
@@ -511,7 +511,7 @@ stunNatType( StunAddress4 *dest,
              StunAddress4* sAddr /* NIC to use */
    );
 
-ORTP_PUBLIC bool_t
+MS2_PUBLIC bool_t
 stunServerProcessMsg( char* buf,
                       unsigned int bufLen,
                       StunAddress4 *from, 
@@ -523,20 +523,20 @@ stunServerProcessMsg( char* buf,
                       bool_t* changePort,
                       bool_t* changeIp);
 
-ORTP_PUBLIC int
+MS2_PUBLIC int
 stunOpenSocket( StunAddress4 *dest, 
                 StunAddress4* mappedAddr, 
                 int port, 
                 StunAddress4* srcAddr);
 
-ORTP_PUBLIC bool_t
+MS2_PUBLIC bool_t
 stunOpenSocketPair(StunAddress4 *dest,
                    StunAddress4* mapAddr_rtp, 
                    StunAddress4* mapAddr_rtcp, 
                    int* fd1, int* fd2, 
                    int srcPort,  StunAddress4* srcAddr);
 
-ORTP_PUBLIC bool_t
+MS2_PUBLIC bool_t
 turnAllocateSocketPair(StunAddress4 *dest,
                    StunAddress4* mapAddr_rtp, 
                    StunAddress4* mapAddr_rtcp, 
