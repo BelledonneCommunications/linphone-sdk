@@ -41,7 +41,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #else
 #ifndef PACKAGE_PLUGINS_DIR
 #if defined(WIN32) || defined(_WIN32_WCE)
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #define PACKAGE_PLUGINS_DIR "lib\\mediastreamer\\plugins\\"
+#else
+#define PACKAGE_PLUGINS_DIR "."
+#endif
 #else
 #define PACKAGE_PLUGINS_DIR "."
 #endif
