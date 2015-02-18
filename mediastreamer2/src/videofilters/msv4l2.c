@@ -151,10 +151,14 @@ static int query_max_fps_for_format_resolution(int fd, int pixelformat, MSVideoS
 	frmival.height = vsize.height;
 
 	while (v4l2_ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmival) >= 0) {
-		frmival.index++;
 		if (frmival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
 			fps = MAX(fps, (int) (frmival.discrete.denominator / frmival.discrete.numerator));
+		} else if (frmival.type == V4L2_FRMIVAL_TYPE_STEPWISE) {
+			return (int) (frmival.stepwise.max.denominator / frmival.stepwise.max.numerator);
+		} else if (frmival.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
+			return (int) (frmival.stepwise.min.denominator / frmival.stepwise.min.numerator);
 		}
+		frmival.index++;
 	}
 	return fps;
 }
