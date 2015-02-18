@@ -1,3 +1,15 @@
+mediastreamer2-2.11.0: February 18, 2015
+	* add G.711 codec
+	* support of AVPF with VP8 codec only
+	* support of Matroska file format (needs libmatroska2)
+	* audio/video stream recorder. Only H264 is supported for video stream
+	* add functions to the API to send audio/video streams read from a file
+	  (only WAV and MKV file formats are supported)
+	* add functions to the API to play multimedia files and display to a
+	  specified drawing surface
+	* support of multicast IP addresses
+	* support of SBR for AAC codec (iOS only)
+
 mediastreamer2-2.10.0: February 20, 2014
 	* add HD video support
 	* new OpenSLES android sound module
