@@ -75,6 +75,14 @@ belle_http_request_t *belle_http_request_create(const char *method, belle_generi
 	return obj;
 }
 
+int belle_http_request_is_cancelled(const belle_http_request_t *req) {
+	return req->cancelled;
+}
+
+void belle_http_request_cancel(belle_http_request_t *req) {
+	req->cancelled = TRUE;
+}
+
 void belle_http_request_set_listener(belle_http_request_t *req, belle_http_request_listener_t *l){
 	if (req->listener){
 		 belle_sip_object_weak_unref(req->listener,(belle_sip_object_destroy_notify_t)belle_http_request_listener_destroyed,req);
