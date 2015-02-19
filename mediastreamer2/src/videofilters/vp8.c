@@ -78,7 +78,8 @@ typedef struct EncFramesState {
 	EncFrameState golden;
 	EncFrameState altref;
 	EncFrameState reconstruct;
-	uint16_t ref_frames_interval;
+	int ref_frames_interval;
+	vpx_codec_pts_t last_independent_frame;
 } EncFramesState;
 
 typedef struct EncState {
@@ -379,18 +380,25 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 			*flags = VPX_EFLAG_FORCE_KF;
 		} else if (frame_type & VP8_GOLD_FRAME) {
 			*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_GF);
-			//*flags |= VP8_EFLAG_FORCE_GF;
 		} else if (frame_type & VP8_ALTR_FRAME) {
 			*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF | VP8_EFLAG_NO_REF_ARF);
-			//*flags |= VP8_EFLAG_FORCE_ARF;
+			if (s->frame_count > s->frames_state.last_independent_frame + 5*s->frames_state.ref_frames_interval){
+				/*force an independant alt ref frame to force picture to be refreshed completely, otherwise
+				 * pixel color saturation appears due to accumulation of small predictive errors*/
+				*flags |= VP8_EFLAG_NO_REF_LAST | VP8_EFLAG_NO_REF_GF;
+				ms_message("Forcing independant altref frame.");
+			}
 		}
 		if (!(*flags & VPX_EFLAG_FORCE_KF)){
 			last=enc_get_most_recent_reference_frame(s,FALSE);
 			newref=enc_get_reference_frame(s,frame_type);
 			if (last && last->type==VP8_LAST_FRAME){
+				/* if the last reference frame wasn't gold or altref, don't reference it*/
 				*flags |= VP8_EFLAG_NO_REF_LAST;
 			}
-			if (newref) newref->is_independant=!!(*flags & VP8_EFLAG_NO_REF_LAST);
+			if (newref) {
+				newref->is_independant=!!(*flags & VP8_EFLAG_NO_REF_LAST);
+			}
 		}
 	}
 
@@ -403,6 +411,16 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 			*flags |= VP8_EFLAG_NO_REF_ARF;
 		}
 	}
+}
+
+static bool_t is_frame_independent(unsigned int flags){
+	if (flags & VPX_EFLAG_FORCE_KF) return TRUE;
+	
+	if ((flags & VP8_EFLAG_FORCE_GF) || (flags & VP8_EFLAG_FORCE_ARF)){
+		if ((flags & VP8_EFLAG_NO_REF_ARF) && (flags & VP8_EFLAG_NO_REF_LAST) && (flags & VP8_EFLAG_NO_REF_GF))
+			return TRUE;
+	}
+	return FALSE;
 }
 
 static void enc_process(MSFilter *f) {
@@ -467,6 +485,7 @@ static void enc_process(MSFilter *f) {
 				enc_mark_reference_frame_as_sent(s, VP8_ALTR_FRAME);
 				s->frames_state.golden.is_independant=TRUE;
 				s->frames_state.altref.is_independant=TRUE;
+				s->frames_state.last_independent_frame=s->frame_count;
 				s->force_keyframe = FALSE;
 				is_ref_frame=TRUE;
 			}else if (flags & VP8_EFLAG_FORCE_GF) {
@@ -479,6 +498,10 @@ static void enc_process(MSFilter *f) {
 				enc_mark_reference_frame_as_sent(s, VP8_LAST_FRAME);
 				is_ref_frame=is_reconstruction_frame_sane(s,flags);
 			}
+			if (is_frame_independent(flags)){
+				s->frames_state.last_independent_frame=s->frame_count;
+			}
+			
 			/* Pack the encoded frame. */
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
 				if ((pkt->kind == VPX_CODEC_CX_FRAME_PKT) && (pkt->data.frame.sz > 0)) {
