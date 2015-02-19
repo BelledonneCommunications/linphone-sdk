@@ -240,12 +240,27 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 	if ((*(msg->b_rptr)>19) && (*(msg->b_rptr)<64)) {
 
 		DtlsRawPacket *incoming_dtls_packet;
+		RtpSession *rtp_session = ctx->stream_sessions->rtp_session;
+		OrtpStream *ortp_stream = is_rtp?&rtp_session->rtp.gs:&rtp_session->rtcp.gs;
 		incoming_dtls_packet = (DtlsRawPacket *)ms_malloc0(sizeof(DtlsRawPacket));
 		//DtlsRawPacket *incoming_dtls_packet = (DtlsRawPacket *)ms_malloc0(sizeof(DtlsRawPacket));
 		incoming_dtls_packet->next=NULL;
 		incoming_dtls_packet->data=(unsigned char *)ms_malloc(msgLength);
 		incoming_dtls_packet->length=msgLength;
 		memcpy(incoming_dtls_packet->data, msg->b_rptr, msgLength);
+
+		/*required by webrtc in server case when ice is not completed yet*/
+		if (!rtp_session->use_connect){
+			struct sockaddr *addr = NULL;
+			socklen_t addrlen;
+			addr = (struct sockaddr *)&msg->src_addr;
+			addrlen = msg->src_addrlen;
+			if (ortp_stream->socket>0 && rtp_session->symmetric_rtp){
+				/* store the sender rtp address to do symmetric DTLS */
+				memcpy(&ortp_stream->rem_addr,addr,addrlen);
+				ortp_stream->rem_addrlen=addrlen;
+			}
+		}
 
 		/* store the packet in the incoming buffer */
 		if (is_rtp == TRUE) {
