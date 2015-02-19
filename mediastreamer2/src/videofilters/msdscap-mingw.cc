@@ -495,6 +495,7 @@ public:
 	void setDeviceIndex(int index){
 		_devid=index;
 	}
+	MSAverageFPS avgfps;
 protected:
   	long m_refCount;
 private:
@@ -509,7 +510,6 @@ private:
 	float _start_time;
 	int _frame_count;
 	MSPixFmt _pixfmt;
-	MSAverageFPS avgfps;
 	SharedComPtr< IGraphBuilder > _graphBuilder;
 	SharedComPtr< IBaseFilter > _source;
 	SharedComPtr< IBaseFilter > _nullRenderer;
