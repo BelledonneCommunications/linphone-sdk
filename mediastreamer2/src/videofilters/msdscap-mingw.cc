@@ -485,6 +485,9 @@ public:
 	void setFps(float fps){
 		_fps=fps;
 	}
+	float getFps(){
+		return _fps;
+	}
 	MSPixFmt getPixFmt(){
 		if (!_ready) createDshowGraph(); /* so that _pixfmt is updated*/
 		return _pixfmt;
@@ -506,6 +509,7 @@ private:
 	float _start_time;
 	int _frame_count;
 	MSPixFmt _pixfmt;
+	MSAverageFPS avgfps;
 	SharedComPtr< IGraphBuilder > _graphBuilder;
 	SharedComPtr< IBaseFilter > _source;
 	SharedComPtr< IBaseFilter > _nullRenderer;
@@ -870,6 +874,7 @@ SharedComPtr< IPin > DSCapture::findPin( SharedComPtr<IBaseFilter> &filter, PIN_
 
 static void dscap_preprocess(MSFilter * obj){
 	DSCapture *s=(DSCapture*)obj->data;
+	ms_average_fps_init(&s->avgfps,"msdscap: fps=%f");
 	s->startDshowGraph();
 }
 
@@ -894,6 +899,7 @@ static void dscap_process(MSFilter * obj){
 			timestamp=(uint32_t)(obj->ticker->time*90);/* rtp uses a 90000 Hz clockrate for video*/
 			mblk_set_timestamp_info(om,timestamp);
 			ms_queue_put(obj->outputs[0],om);
+			ms_average_fps_update(&s->avgfps,obj->ticker->time);
 		}
 	}
 }
@@ -901,6 +907,16 @@ static void dscap_process(MSFilter * obj){
 static int dscap_set_fps(MSFilter *f, void *arg){
 	DSCapture *s=(DSCapture*)f->data;
 	s->setFps(*(float*)arg);
+	return 0;
+}
+
+static int dscap_get_fps(MSFilter *f, void *arg){
+	DSCapture *s=(DSCapture*)f->data;
+	if (f->ticker){
+		*((float*)arg)=ms_average_fps_get(&s->avgfps);
+	} else {
+		*((float*)arg)=s->getFps();
+	}
 	return 0;
 }
 
