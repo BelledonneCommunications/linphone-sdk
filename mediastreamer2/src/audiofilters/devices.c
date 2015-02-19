@@ -149,42 +149,30 @@ static SoundDeviceDescription undefined={"Generic", "Generic", "Generic", 0, 0, 
 
 static MSList *sound_device_descriptions;
 
-static SoundDeviceDescription *lookup_by_model(const char *manufacturer, const char* model) {
+static SoundDeviceDescription *lookup_sound_device(const char *manufacturer, const char* model, const char *platform) {
 	MSList *list = sound_device_descriptions;
 	SoundDeviceDescription *d;
 	for(; list != NULL; list = list->next) {
 		d = (SoundDeviceDescription*) list->data;
-		if (strcasecmp(d->manufacturer, manufacturer) == 0 && strcmp(d->model, model) == 0) {
+		if (strcasecmp(d->manufacturer, manufacturer) == 0 
+			&& strcmp(d->model, model) == 0
+			&& platform && d->platform && strcmp(d->platform, platform)==0) {
 			return d;
 		}
 	}
 	
 	d = &devices[0];
 	while (d->manufacturer != NULL) {
-		if (strcasecmp(d->manufacturer, manufacturer) == 0 && strcmp(d->model, model) == 0) {
+		if (strcasecmp(d->manufacturer, manufacturer) == 0
+			&& strcmp(d->model, model) == 0
+			&& platform && d->platform && strcmp(d->platform, platform)==0) {
 			return d;
 		}
 		d++;
 	}
-	return NULL;
-}
-
-static SoundDeviceDescription *lookup_by_platform(const char *platform) {
-	MSList *list = sound_device_descriptions;
-	SoundDeviceDescription *d;
-	for(; list != NULL; list = list->next) {
-		d = (SoundDeviceDescription*) list->data;
-		if (strcmp(d->platform, platform) == 0) {
-			return d;
-		}
-	}
-	
-	d = &devices[0];
-	while (d->manufacturer != NULL) {
-		if (strcmp(d->platform, platform) == 0) {
-			return d;
-		}
-		d++;
+	if (platform){
+		/*retry without platform*/
+		return lookup_sound_device(manufacturer, model, NULL);
 	}
 	return NULL;
 }
@@ -250,18 +238,14 @@ SoundDeviceDescription * sound_device_description_get(void){
 	
 #endif
 	
-	d=lookup_by_model(manufacturer,model);
+	d=lookup_sound_device(manufacturer, model, platform);
 	if (!d){
-		ms_message("No AEC information available for model [%s/%s], trying with platform name [%s].",manufacturer,model,platform);
-		d=lookup_by_platform(platform);
-		if (!d){
-			ms_message("No AEC information available for platform [%s].",platform);
-		}
-	}else exact_match=TRUE;
-	
-	if (d) {
+		ms_message("No AEC information available for  [%s/%s/%s],",manufacturer,model,platform);
+		d=&undefined;
+	}else{
 		ms_message("Found AEC information for [%s/%s/%s] from internal table",manufacturer,model,platform);
-	}else d=&undefined;
+		exact_match=TRUE;
+	}
 	
 	if (declares_builtin_aec){
 		if (exact_match && (d->flags & DEVICE_HAS_BUILTIN_AEC_CRAPPY)){
