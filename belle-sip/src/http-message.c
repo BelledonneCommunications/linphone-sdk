@@ -32,6 +32,7 @@ static void belle_http_request_destroy(belle_http_request_t *req){
 	if (req->req_uri) belle_sip_object_unref(req->req_uri);
 	DESTROY_STRING(req,method)
 	belle_http_request_set_listener(req,NULL);
+	belle_http_request_set_channel(req,NULL);
 	SET_OBJECT_PROPERTY(req,orig_uri,NULL);
 	SET_OBJECT_PROPERTY(req,response,NULL);
 }
@@ -91,6 +92,21 @@ void belle_http_request_set_listener(belle_http_request_t *req, belle_http_reque
 	if (l){
 		belle_sip_object_weak_ref(l,(belle_sip_object_destroy_notify_t)belle_http_request_listener_destroyed,req);
 		req->listener=l;
+	}
+}
+
+static void notify_http_request_of_channel_destruction(belle_http_request_t *obj, belle_sip_channel_t *chan_being_destroyed){
+	obj->channel=NULL;
+}
+
+void belle_http_request_set_channel(belle_http_request_t *req, belle_sip_channel_t* chan){
+	if (req->channel){
+		belle_sip_object_weak_unref(req->channel, (belle_sip_object_destroy_notify_t)notify_http_request_of_channel_destruction, req);
+		req->channel=NULL;
+	}
+	if (chan){
+		belle_sip_object_weak_ref(chan, (belle_sip_object_destroy_notify_t)notify_http_request_of_channel_destruction, req);
+		req->channel=chan;
 	}
 }
 

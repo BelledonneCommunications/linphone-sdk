@@ -623,6 +623,7 @@ struct belle_http_request{
 };
 
 void belle_http_request_set_listener(belle_http_request_t *req, belle_http_request_listener_t *l);
+void belle_http_request_set_channel(belle_http_request_t *req, belle_sip_channel_t *chan);
 void belle_http_request_set_response(belle_http_request_t *req, belle_http_response_t *resp);
 /*
  belle_sip_transaction_t

@@ -382,10 +382,6 @@ static void belle_http_end_background_task(void* data) {
 	}
 }
 
-static void notify_http_request_of_channel_destruction(belle_http_request_t *obj, belle_sip_channel_t *chan_being_destroyed){
-	obj->channel=NULL;
-}
-
 int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener){
 	belle_sip_channel_t *chan;
 	belle_sip_hop_t *hop=belle_sip_hop_new_from_generic_uri(req->orig_uri ? req->orig_uri : req->req_uri);
@@ -416,8 +412,7 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 	split_request_url(req);
 	fix_request(req);
 
-	belle_sip_object_weak_ref(chan, (belle_sip_object_destroy_notify_t)notify_http_request_of_channel_destruction, req);
-	req->channel=chan;
+	belle_http_request_set_channel(req,chan);
 	if( req->background_task_id != 0){
 		req->background_task_id = belle_sip_begin_background_task("belle-sip http", belle_http_end_background_task, req);
 	}
