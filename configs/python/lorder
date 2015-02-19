@@ -60,7 +60,9 @@ for file in "$@"; do echo "$file $file" ; done
 #
 # if the line has " U " it's a globally undefined symbol, put it into
 # the reference file.
-${NM:-nm} -go "$@" | sed "
+static=`${NM:-nm} -go "$@"`
+dynamic=`${NM:-nm} -Dgo "$@"`
+echo "$static\n$dynamic" | sed "
 	/ [TDGR] / {
 		s/:.* [TDGR] / /
 		w $S
