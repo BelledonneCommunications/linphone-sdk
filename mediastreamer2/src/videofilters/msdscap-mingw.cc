@@ -941,6 +941,7 @@ static int dscap_get_vsize(MSFilter *f, void *arg){
 
 static MSFilterMethod methods[]={
 	{	MS_FILTER_SET_FPS	,	dscap_set_fps	},
+	{	MS_FILTER_GET_FPS	,	dscap_get_fps	},
 	{	MS_FILTER_GET_PIX_FMT	,	dscap_get_pix_fmt	},
 	{	MS_FILTER_SET_VIDEO_SIZE, dscap_set_vsize	},
 	{	MS_FILTER_GET_VIDEO_SIZE, dscap_get_vsize	},
