@@ -910,16 +910,6 @@ static int dscap_set_fps(MSFilter *f, void *arg){
 	return 0;
 }
 
-static int dscap_get_fps(MSFilter *f, void *arg){
-	DSCapture *s=(DSCapture*)f->data;
-	if (f->ticker){
-		*((float*)arg)=ms_average_fps_get(&s->avgfps);
-	} else {
-		*((float*)arg)=s->getFps();
-	}
-	return 0;
-}
-
 static int dscap_get_pix_fmt(MSFilter *f,void *arg){
 	DSCapture *s=(DSCapture*)f->data;
 	*((MSPixFmt*)arg)=s->getPixFmt();
