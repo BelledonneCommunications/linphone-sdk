@@ -34,6 +34,7 @@ static void channel_end_recv_background_task(belle_sip_channel_t *obj);
 static void channel_process_queue(belle_sip_channel_t *obj);
 static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t size);
 static void channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l);
+static void free_ewouldblock_buffer(belle_sip_channel_t *obj);
 
 const char *belle_sip_channel_state_to_string(belle_sip_channel_state_t state){
 	switch(state){
@@ -80,6 +81,11 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	}
 	if (obj->public_ip) belle_sip_free(obj->public_ip);
 	if (obj->outgoing_messages) belle_sip_list_free_with_data(obj->outgoing_messages,belle_sip_object_unref);
+	free_ewouldblock_buffer(obj);
+	if (obj->cur_out_message){
+		belle_sip_object_unref(obj->cur_out_message);
+		obj->cur_out_message=NULL;
+	}
 	channel_end_send_background_task(obj);
 	channel_end_recv_background_task(obj);
 	/*normally this should do nothing because it sould have been terminated already,
