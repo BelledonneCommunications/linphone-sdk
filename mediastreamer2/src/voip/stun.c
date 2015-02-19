@@ -1172,7 +1172,7 @@ stunEncodeMessage( const StunMessage *msg,
 	  encode16(lengthp, &remaining, (uint16_t)(ptr - buf - sizeof(StunMsgHdr)+24));
 	  if (msg->hasDummyMessageIntegrity) {
 		  strncpy(integrity.hash,"hmac-not-implemented",20);
-		  ms_message("hmac-not-implemented for stun message [%p]",msg);
+		  ms_warning("hmac not implemented by remote, using dummy integrity hash for stun message [%p]",msg);
 	  } else
 		  stunCalculateIntegrity_shortterm(		integrity.hash
 				  	  	  	  	  	  	  	  , buf
@@ -1331,13 +1331,13 @@ stunCalculateIntegrity_longterm(char* hmac, const char* input, int length,
 					 const char *username, const char *realm, const char *password)
 {
    strncpy(hmac,"hmac-not-implemented",20);
-   ms_message("hmac-not-implemented for stun");
+   ms_error("hmac-not-implemented for stun, mediastreamer2 needs polarssl dependency");
 }
 void
 stunCalculateIntegrity_shortterm(char* hmac, const char* input, int length, const char* key)
 {
    strncpy(hmac,"hmac-not-implemented",20);
-   ms_message("hmac-not-implemented for stun");
+   ms_error("hmac-not-implemented for stun, mediastreamer2 needs polarssl dependency");
 }
 
 #else
