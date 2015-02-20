@@ -193,6 +193,7 @@ else()
 		linphone_builder_add_builder_to_target(TARGET_flexisip odb )
 		linphone_builder_add_builder_to_target(TARGET_flexisip libodb )
 		linphone_builder_add_builder_to_target(TARGET_flexisip libodbmysql )
+		linphone_builder_add_builder_to_target(TARGET_flexisip hiredis )
 		
 		linphone_builder_add_builder_to_target(TARGET_flexisip flexisip )
 	endif()

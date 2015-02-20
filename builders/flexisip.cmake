@@ -28,6 +28,10 @@ set(EP_flexisip_DEPENDENCIES EP_ortp EP_sofiasip )
 
 list(APPEND EP_flexisip_DEPENDENCIES EP_libodbmysql)
 
+#if(PLATFORM STREQUAL "Debian")
+list(APPEND EP_flexisip_DEPENDENCIES EP_hiredis)  
+#endif()
+
 set(EP_flexisip_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_flexisip_BUILD_METHOD "autotools")
 set(EP_flexisip_USE_AUTOGEN "yes")
