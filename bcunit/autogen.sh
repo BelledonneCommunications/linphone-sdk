@@ -27,7 +27,7 @@ fi
 set -x
 $LIBTOOLIZE --copy --force
 
-$ACLOCAL -I m4 $ACLOCAL_ARGS
+$ACLOCAL $ACLOCAL_ARGS
 autoheader
 $AUTOMAKE --force-missing --add-missing --copy
 autoconf

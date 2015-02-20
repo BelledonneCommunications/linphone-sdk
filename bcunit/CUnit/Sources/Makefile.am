@@ -67,7 +67,7 @@ SUBDIRS = $(COMPILE_DIRS)
 lib_LTLIBRARIES = libcunit.la
 libcunit_la_SOURCES = 
 libcunit_la_LIBADD = $(OBJECT_FILES_SHARED)
-libcunit_la_LDFLAGS = -version-info @LIBTOOL_CURRENT@:@LIBTOOL_REVISION@:@LIBTOOL_AGE@
+libcunit_la_LDFLAGS = -version-info @LIBTOOL_CURRENT@:@LIBTOOL_REVISION@:@LIBTOOL_AGE@ -no-undefined
 
 
 if ENABLE_TEST

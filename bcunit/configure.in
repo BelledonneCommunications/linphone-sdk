@@ -158,7 +158,7 @@ dnl Check for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-AC_PROG_LIBTOOL
+LT_INIT(disable-static win32-dll)
 
 dnl Check for libraries
 AC_CHECK_LIB(c, main)
@@ -239,28 +239,28 @@ dnl Configure Jamrules for user environment
 AC_CONFIG_FILES([Jamrules:Jamrules.in])
 
 dnl Configure Makefile set.
-AC_CONFIG_FILES( Makefile \
-		CUnit.spec \
-		cunit.pc \
-		CUnit/Makefile \
-		CUnit/Headers/Makefile \
-		CUnit/Headers/CUnit.h \
-		CUnit/Sources/Makefile \
-		CUnit/Sources/Framework/Makefile \
-		CUnit/Sources/Automated/Makefile \
-		CUnit/Sources/Basic/Makefile \
-		CUnit/Sources/Console/Makefile \
-		CUnit/Sources/Curses/Makefile \
-		CUnit/Sources/Test/Makefile \
-		doc/Makefile \
-		doc/headers/Makefile \
-		Examples/Makefile \
-		Examples/AutomatedTest/Makefile \
-		Examples/BasicTest/Makefile \
-		Examples/ConsoleTest/Makefile \
-		Examples/CursesTest/Makefile \
-		Man/Makefile \
-		Man/man3/Makefile \
+AC_CONFIG_FILES( Makefile 
+		CUnit.spec 
+		cunit.pc 
+		CUnit/Makefile 
+		CUnit/Headers/Makefile 
+		CUnit/Headers/CUnit.h 
+		CUnit/Sources/Makefile 
+		CUnit/Sources/Framework/Makefile 
+		CUnit/Sources/Automated/Makefile 
+		CUnit/Sources/Basic/Makefile 
+		CUnit/Sources/Console/Makefile 
+		CUnit/Sources/Curses/Makefile 
+		CUnit/Sources/Test/Makefile 
+		doc/Makefile 
+		doc/headers/Makefile 
+		Examples/Makefile 
+		Examples/AutomatedTest/Makefile 
+		Examples/BasicTest/Makefile 
+		Examples/ConsoleTest/Makefile 
+		Examples/CursesTest/Makefile 
+		Man/Makefile 
+		Man/man3/Makefile 
 		Share/Makefile )
 
 AC_OUTPUT
