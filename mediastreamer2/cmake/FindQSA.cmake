@@ -27,6 +27,7 @@
 #  QSA_LIBRARIES - The libraries needed to use QSA
 
 include(CheckSymbolExists)
+include(CMakePushCheckState)
 
 set(_QSA_ROOT_PATHS
 	${WITH_QSA}
@@ -49,7 +50,11 @@ find_library(QSA_LIBRARIES
 )
 
 if(QSA_LIBRARIES)
-	check_symbol_exists(snd_pcm_open sys/asound.h HAVE_SND_PCM_OPEN)
+	cmake_push_check_state(RESET)
+	list(APPEND CMAKE_REQUIRED_INCLUDES ${QSA_INCLUDE_DIRS})
+	list(APPEND CMAKE_REQUIRED_LIBRARIES ${QSA_LIBRARIES})
+	check_symbol_exists(snd_pcm_open "sys/asound.h" HAVE_SND_PCM_OPEN)
+	cmake_pop_check_state()
 endif()
 
 include(FindPackageHandleStandardArgs)
