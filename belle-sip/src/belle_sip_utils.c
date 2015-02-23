@@ -596,10 +596,10 @@ uint64_t belle_sip_time_ms(void){
 }
 #else
 uint64_t belle_sip_time_ms(void){
-#ifdef WINAPI_FAMILY_PHONE_APP
-	return GetTickCount64();
-#else
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 	return GetTickCount();
+#else
+	return GetTickCount64();
 #endif
 }
 #endif

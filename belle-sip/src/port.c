@@ -133,7 +133,7 @@ int belle_sip_thread_key_delete(belle_sip_thread_key_t key){
 #endif
 }
 
-#ifdef WINAPI_FAMILY_PHONE_APP
+#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 void belle_sip_sleep(unsigned int ms) {
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
 	if (!sleepEvent)

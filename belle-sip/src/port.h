@@ -111,7 +111,7 @@ static BELLESIP_INLINE int get_socket_error(void){
 const char *belle_sip_get_socket_error_string();
 const char *belle_sip_get_socket_error_string_from_code(int code);
 
-#ifdef WINAPI_FAMILY_PHONE_APP
+#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 BELLESIP_INTERNAL_EXPORT void belle_sip_sleep(unsigned int ms);
 #else
 #define belle_sip_sleep Sleep
