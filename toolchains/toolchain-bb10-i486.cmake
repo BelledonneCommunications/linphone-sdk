@@ -22,4 +22,5 @@
 
 set(SYSTEM_PROCESSOR i486)
 set(COMPILER_PREFIX "i486-pc-nto-qnx")
+set(ROOT_PATH_SUFFIX "x86")
 include("${CMAKE_CURRENT_LIST_DIR}/bb10/toolchain-bb10.cmake")

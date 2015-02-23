@@ -22,4 +22,5 @@
 
 set(SYSTEM_PROCESSOR arm)
 set(COMPILER_PREFIX "arm-unknown-nto-qnx")
+set(ROOT_PATH_SUFFIX "armle-v7")
 include("${CMAKE_CURRENT_LIST_DIR}/bb10/toolchain-bb10.cmake")
