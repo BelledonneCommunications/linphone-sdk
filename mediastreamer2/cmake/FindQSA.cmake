@@ -53,7 +53,7 @@ if(QSA_LIBRARIES)
 	cmake_push_check_state(RESET)
 	list(APPEND CMAKE_REQUIRED_INCLUDES ${QSA_INCLUDE_DIRS})
 	list(APPEND CMAKE_REQUIRED_LIBRARIES ${QSA_LIBRARIES})
-	check_symbol_exists(snd_pcm_open "sys/asound.h" HAVE_SND_PCM_OPEN)
+	check_symbol_exists(snd_pcm_open "sys/asoundlib.h" HAVE_SND_PCM_OPEN)
 	cmake_pop_check_state()
 endif()
 
