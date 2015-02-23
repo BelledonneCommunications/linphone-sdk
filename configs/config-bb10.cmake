@@ -104,7 +104,7 @@ set(EP_srtp_LINKING_TYPE "-DENABLE_STATIC=YES")
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")
 
 # xml2
-set(EP_xml2_LINKING_TYPE "_DENABLE_STATIC=YES")
+set(EP_xml2_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # sqlite3
 set(EP_sqlite3_LINKING_TYPE "-DENABLE_STATIC=YES")
