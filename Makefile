@@ -143,7 +143,7 @@ help-bb10:
 
 generate-bb10-sdk: build-bb10
 	cd OUTPUT && \
-	zip -r liblinphone-bb10-sdk.zip liblinphone-bb10-sdk
+	zip -r liblinphone-bb10-sdk-`cd ../WORK/Source/EP_linphone && git describe --always`.zip liblinphone-bb10-sdk
 
 build-ios-i386:
 	mkdir -p OUTPUT/liblinphone-ios-sdk && \
