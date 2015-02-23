@@ -307,6 +307,7 @@ static void sleepMs(int ms){
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
 	if (!sleepEvent) return;
 	WaitForSingleObjectEx(sleepEvent, ms, FALSE);
+	CloseHandle(sleepEvent);
 #endif
 #else
 	struct timespec ts;
