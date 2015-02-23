@@ -22,7 +22,7 @@
 
 set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git")
 set(EP_bellesip_GIT_TAG_LATEST "master")
-set(EP_bellesip_GIT_TAG "e5e0590db8917ccbf5631ec42022bb9f8e03b064")
+set(EP_bellesip_GIT_TAG "b63e7002e0c7b0a9a6a0d30161bf2481a36d4d6a")
 
 set(EP_bellesip_CMAKE_OPTIONS )
 set(EP_bellesip_LINKING_TYPE "-DENABLE_STATIC=0")
