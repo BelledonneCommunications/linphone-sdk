@@ -28,9 +28,11 @@ set(EP_flexisip_DEPENDENCIES EP_ortp EP_sofiasip )
 
 list(APPEND EP_flexisip_DEPENDENCIES EP_libodbmysql)
 
-#if(PLATFORM STREQUAL "Debian")
-list(APPEND EP_flexisip_DEPENDENCIES EP_hiredis)  
-#endif()
+if(PLATFORM STREQUAL "Debian")
+	# debian 7 ships with an old hiredis version, we use the 0.11 API so we need
+	# to compile from source
+	list(APPEND EP_flexisip_DEPENDENCIES EP_hiredis)  
+endif()
 
 set(EP_flexisip_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_flexisip_BUILD_METHOD "autotools")
