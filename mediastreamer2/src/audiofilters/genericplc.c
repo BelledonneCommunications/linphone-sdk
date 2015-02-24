@@ -22,6 +22,9 @@
 #include <mediastreamer2/mscodecutils.h>
 #include <mediastreamer2/msticker.h>
 #include "mediastreamer2/msgenericplc.h"
+#ifdef HAVE_G729B
+#include "bcg729/decoder.h"
+#endif
 
 /*filter common method*/
 typedef struct {
@@ -31,12 +34,18 @@ typedef struct {
 	MSCngData cng_data;
 	bool_t cng_set;
 	bool_t cng_running;
+#ifdef HAVE_G729B
+	bcg729DecoderChannelContextStruct *decoderChannelContext;
+#endif
 } generic_plc_struct;
 
 const static unsigned int MAX_PLC_COUNT = UINT32_MAX;
 
 static void generic_plc_init(MSFilter *f) {
 	generic_plc_struct *mgps = (generic_plc_struct*) ms_new0(generic_plc_struct, 1);
+#ifdef HAVE_G729B
+	mgps->decoderChannelContext = initBcg729DecoderChannel(); /* initialize bcg729 decoder for CNG */
+#endif
 	mgps->concealer = ms_concealer_context_new(MAX_PLC_COUNT);
 	mgps->nchannels = 1;
 	f->data = mgps;
@@ -57,8 +66,25 @@ static void generic_plc_process(MSFilter *f) {
 		}
 	}
 	if (ms_concealer_context_is_concealement_required(mgps->concealer, f->ticker->time)) {
+#ifdef HAVE_G729B
 		m = allocb(buff_size, 0);
 		
+		/* Transmitted CNG data is in mgps->cng_data : give it to bcg729 decoder -> output in m->b_wptr */
+		if (mgps->cng_set) { /* received some CNG data */
+			mgps->cng_set=FALSE; /* reset flag */
+			mgps->cng_running=TRUE;
+			bcg729Decoder(mgps->decoderChannelContext, mgps->cng_data.data, mgps->cng_data.datasize, 0, 1, 1, (int16_t *)(m->b_wptr));
+			mblk_set_cng_flag(m, 1);
+			/* TODO: if ticker->interval is not 10 ms which is also G729 frame length, we must generate untransmitted frame CNG until we reach the requested data amount */
+		} else if (mgps->cng_running) { /* missing frame but CNG is ongoing: shall be an untransmitted frame */
+			bcg729Decoder(mgps->decoderChannelContext, NULL, 0, 1, 1, 1, (int16_t *)(m->b_wptr));
+			mblk_set_cng_flag(m, 1);
+		} else {
+			mblk_set_plc_flag(m, 1);
+			memset(m->b_wptr, 0, buff_size);
+		}
+#else
+		m = allocb(buff_size, 0);
 		if (!mgps->cng_running && mgps->cng_set){
 			mgps->cng_running=TRUE;
 			mblk_set_cng_flag(m, 1);
@@ -67,6 +93,8 @@ static void generic_plc_process(MSFilter *f) {
 			mblk_set_plc_flag(m, 1);
 		}
 		memset(m->b_wptr, 0, buff_size);
+
+#endif
 		m->b_wptr += buff_size;
 		ms_queue_put(f->outputs[0], m);
 		ms_concealer_inc_sample_time(mgps->concealer, f->ticker->time, f->ticker->interval, FALSE);
@@ -76,6 +104,9 @@ static void generic_plc_process(MSFilter *f) {
 static void generic_plc_unit(MSFilter *f) {
 	generic_plc_struct *mgps = (generic_plc_struct*) f->data;
 	ms_concealer_context_destroy(mgps->concealer);
+#ifdef HAVE_G729B
+	closeBcg729DecoderChannel(mgps->decoderChannelContext);
+#endif
 	ms_free(mgps);
 }
 

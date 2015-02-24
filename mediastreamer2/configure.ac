@@ -1186,6 +1186,30 @@ fi
 
 AC_SUBST(POLARSSL_CFLAGS)
 AC_SUBST(POLARSSL_LIBS)
+
+dnl check for bcg729 annexB presence to use for VAD/DTX (RFC3389 : Real-time Transport Protocol (RTP) Payload for Comfort Noise (CN))
+AC_ARG_ENABLE(g729bCN,
+	[AS_HELP_STRING([--enable-g729bCN], [Turn on or off usage of G729AnnexB in RFC3389 implementation of Comfort Noise Payload (default=no)])],
+	[case "${enableval}" in
+		yes)	g729bCN=true ;;
+		no)	g729bCN=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-g729bCN) ;;
+	esac],
+	[g729bCN=false]
+)
+
+if test "$g729bCN" = "true" ; then
+	PKG_CHECK_MODULES(LIBBCG729, libbcg729 >= 1.0)
+
+	AC_DEFINE(HAVE_G729B, 1, [Defined when use of g729AnnexB Comfort Noise and RFC3389 support is compiled])
+
+	LIBS="$LIBS $LIBBCG729_LIBS"
+	CFLAGS="$CFLAGS $LIBBCG729_CFLAGS"
+else
+	echo "G729 AnnexB in RFC3389 is disabled."
+fi
+AM_CONDITIONAL(LIBBCG729,test x$g729bCN != xfalse)
+
 dnl ##################################################
 dnl # Check for doxygen
 dnl ##################################################

@@ -316,6 +316,14 @@ bool_t ms_is_multicast(const char *address) {
 bool_t mediastream_payload_type_changed(RtpSession *session, unsigned long data) {
 	MediaStream *stream = (MediaStream *)data;
 	int pt = rtp_session_get_recv_payload_type(stream->sessions.rtp_session);
+	int cn_pt = rtp_profile_find_payload_number(stream->sessions.rtp_session->snd.profile, "CN", 8000, 1);
+
+	/* if new payload type is Comfort Noise(CN), just do nothing */
+	if (pt == cn_pt) {
+		ms_message("Ignore paylaod type change to CN");
+		return FALSE;
+	}
+
 	return media_stream_change_decoder(stream, pt);
 }
 
