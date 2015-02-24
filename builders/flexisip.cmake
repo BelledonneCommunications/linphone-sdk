@@ -22,7 +22,7 @@
 
 set(EP_flexisip_GIT_REPOSITORY "gitosis@git.linphone.org:flexisip")
 set(EP_flexisip_GIT_TAG_LATEST "master")
-set(EP_flexisip_GIT_TAG "722907bff011184ca30e84960e12faaf10057556")
+set(EP_flexisip_GIT_TAG "c7f7df826af44abdd525681bdb3f72cd6224408c")
 
 set(EP_flexisip_DEPENDENCIES EP_ortp EP_sofiasip )
 
