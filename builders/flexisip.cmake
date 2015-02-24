@@ -22,17 +22,11 @@
 
 set(EP_flexisip_GIT_REPOSITORY "gitosis@git.linphone.org:flexisip")
 set(EP_flexisip_GIT_TAG_LATEST "master")
-set(EP_flexisip_GIT_TAG "69cbfa193f92ea42a7df93fa0217b7cf62ee78c3")
+set(EP_flexisip_GIT_TAG "722907bff011184ca30e84960e12faaf10057556")
 
 set(EP_flexisip_DEPENDENCIES EP_ortp EP_sofiasip )
 
 list(APPEND EP_flexisip_DEPENDENCIES EP_libodbmysql)
-
-if(PLATFORM STREQUAL "Debian")
-	# debian 7 ships with an old hiredis version, we use the 0.11 API so we need
-	# to compile from source
-	list(APPEND EP_flexisip_DEPENDENCIES EP_hiredis)  
-endif()
 
 set(EP_flexisip_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_flexisip_BUILD_METHOD "autotools")
@@ -51,6 +45,7 @@ if( USE_BC_ODBC )
 else()
 	message(STATUS "Flexisip to be built with system ODBC")
 endif()
+
 
 list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder" "--enable-redis" )
 

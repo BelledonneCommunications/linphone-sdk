@@ -57,7 +57,12 @@ FOREACH(PROGNAME rpmbuild bison)
 ENDFOREACH()
 
 
-FOREACH(LIBNAME hiredis ssl mysqlclient mysqlclient_r)
+set(FLEXISIP_LIBDEPS ssl mysqlclient_r mysqlclient)
+if(PLATFORM STREQUAL "Debian")
+	list(APPEND FLEXISIP_LIBDEPS hiredis)
+endif()
+
+FOREACH(LIBNAME ${FLEXISIP_LIBDEPS})
 	CHECK_LIBRARY(${LIBNAME})
 ENDFOREACH()
 
@@ -168,6 +173,12 @@ if(PLATFORM STREQUAL "Debian")
 	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-boost-libdir=/usr/${CMAKE_INSTALL_LIBDIR}")
 	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'boostlibdir /usr/${CMAKE_INSTALL_LIBDIR}'")
 
+	# redis for debian 7 will be installed in the prefix, but we have to pass it through a special flag to the RPM build, since there
+	# is no pkgconfig
+	list(APPEND EP_flexisip_DEPENDENCIES EP_hiredis)
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-redis=${CMAKE_INSTALL_PREFIX}")
+	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'hiredisdir ${RPM_INSTALL_PREFIX}'")	
+endif()
 	CHECK_PROGRAM(alien)
 	CHECK_PROGRAM(fakeroot)
 endif()
