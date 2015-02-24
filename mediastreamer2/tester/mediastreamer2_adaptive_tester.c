@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mstonedetector.h"
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
+#include "../src/voip/qosanalyzer.h"
 
 #include <stdio.h>
 #include "CUnit/Basic.h"
