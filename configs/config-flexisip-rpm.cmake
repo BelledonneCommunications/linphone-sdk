@@ -178,7 +178,7 @@ if(PLATFORM STREQUAL "Debian")
 	list(APPEND EP_flexisip_DEPENDENCIES EP_hiredis)
 	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-redis=${CMAKE_INSTALL_PREFIX}")
 	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'hiredisdir ${RPM_INSTALL_PREFIX}'")	
-endif()
+
 	CHECK_PROGRAM(alien)
 	CHECK_PROGRAM(fakeroot)
 endif()
