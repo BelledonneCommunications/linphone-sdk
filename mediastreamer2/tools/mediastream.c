@@ -77,7 +77,7 @@ extern void libmswebrtc_init();
 
 #define MEDIASTREAM_MAX_ICE_CANDIDATES 3
 
-
+extern MSWebCamDesc mire_desc;
 
 static int cond=1;
 
@@ -658,7 +658,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
-    ms_init();
+	ms_init();
 
 #if TARGET_OS_IPHONE || defined(ANDROID)
 #if defined (HAVE_X264) && defined (VIDEO_ENABLED)
@@ -683,6 +683,10 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,114,args->custom_pt);
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
 #ifdef VIDEO_ENABLED
+	cam=ms_web_cam_new(&mire_desc);
+	if (cam) ms_web_cam_manager_add_cam(ms_web_cam_manager_get(), cam);
+	cam=NULL;
+	
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
 	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
 	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);

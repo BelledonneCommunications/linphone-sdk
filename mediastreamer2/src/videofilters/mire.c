@@ -59,20 +59,20 @@ static void mire_preprocess(MSFilter *f){
 	d->starttime=f->ticker->time;
 }
 
-static void plane_draw(uint8_t *p, int w, int h, int lsz, int index){
+static void plane_draw(uint8_t *p, int w, int h, int lsz, int index, int color1, int color2){
 	int i,j;
 	for(i=0;i<h;++i){
 		for(j=0;j<w;++j){
-			p[j]= (( (i/50)*50 + (j/50)*50 + index ) & 0x1)*200;
+			p[j]= (( ((i+index)/80) + ((j+index)/80)  ) & 0x1) ? color1 : color2;
 		}
 		p+=lsz;
 	}
 }
 
 static void mire_draw(MireData *d){
-	plane_draw(d->pict.planes[0],d->pict.w,d->pict.h,d->pict.strides[0],d->index*2);
-	plane_draw(d->pict.planes[1],d->pict.w/2,d->pict.h/2,d->pict.strides[1],d->index);
-	plane_draw(d->pict.planes[2],d->pict.w/2,d->pict.h/2,d->pict.strides[2],d->index);
+	plane_draw(d->pict.planes[0],d->pict.w,d->pict.h,d->pict.strides[0],d->index*2,150,12);
+	plane_draw(d->pict.planes[1],d->pict.w/2,d->pict.h/2,d->pict.strides[1],d->index,100,60);
+	plane_draw(d->pict.planes[2],d->pict.w/2,d->pict.h/2,d->pict.strides[2],d->index,200,100);
 }
 
 static void mire_process(MSFilter *f){
