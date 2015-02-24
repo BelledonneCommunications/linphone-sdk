@@ -95,6 +95,56 @@ static void on_dtmf_received(RtpSession *s, unsigned long dtmf, void * user_data
 	}
 }
 
+/**
+ * This function must be called from the MSTicker thread:
+ * it replaces one filter by another one.
+ * This is a dirty hack that works anyway.
+ * It would be interesting to have something that does the job
+ * more easily within the MSTicker API.
+ * return TRUE if the decoder was changed, FALSE otherwise.
+ */
+static bool_t audio_stream_payload_type_changed(AudioStream *stream, int payload) {
+	RtpSession *session = stream->ms.sessions.rtp_session;
+	RtpProfile *prof = rtp_session_get_profile(session);
+	PayloadType *pt = rtp_profile_get_payload(prof, payload);
+	int payload_type = rtp_session_get_recv_payload_type(stream->ms.sessions.rtp_session);
+	int cn_pt = rtp_profile_find_payload_number(stream->ms.sessions.rtp_session->snd.profile, "CN", 8000, 1);
+
+	/* if new payload type is Comfort Noise(CN), just do nothing */
+	if (payload_type == cn_pt) {
+		ms_message("Ignore paylaod type change to CN");
+		return FALSE;
+	}
+
+	if (stream->ms.decoder == NULL){
+		ms_message("audio_stream_payload_type_changed(): no decoder!");
+		return FALSE;
+	}
+
+	if (pt != NULL){
+		MSFilter *dec = ms_filter_create_decoder(pt->mime_type);
+		if (dec != NULL) {
+			MSFilter *nextFilter = stream->ms.decoder->outputs[0]->next.filter;
+			ms_filter_unlink(stream->ms.rtprecv, 0, stream->ms.decoder, 0);
+			ms_filter_unlink(stream->ms.decoder, 0, nextFilter, 0);
+			ms_filter_postprocess(stream->ms.decoder);
+			ms_filter_destroy(stream->ms.decoder);
+			stream->ms.decoder = dec;
+			if (pt->recv_fmtp != NULL)
+				ms_filter_call_method(stream->ms.decoder, MS_FILTER_ADD_FMTP, (void *)pt->recv_fmtp);
+			ms_filter_link(stream->ms.rtprecv, 0, stream->ms.decoder, 0);
+			ms_filter_link(stream->ms.decoder, 0, nextFilter, 0);
+			ms_filter_preprocess(stream->ms.decoder, stream->ms.sessions.ticker);
+			return TRUE;
+		} else {
+			ms_warning("No decoder found for %s", pt->mime_type);
+		}
+	} else {
+		ms_warning("No payload defined with number %i", payload);
+	}
+	return FALSE;
+}
+
 /*
  * note: since not all filters implement MS_FILTER_GET_SAMPLE_RATE, fallback_from_rate and fallback_to_rate are expected to provide sample rates
  * obtained by another context, such as the RTP clock rate for example.
@@ -660,7 +710,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	else
 		stream->dtmfgen=NULL;
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,stream);
-	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)mediastream_payload_type_changed,&stream->ms);
+	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed,&stream->ms);
 	
 	if (stream->ms.state==MSStreamPreparing){
 		/*we were using the dummy preload graph, destroy it but keep sound filters unless no soundcard is given*/
@@ -1364,7 +1414,7 @@ void audio_stream_stop(AudioStream * stream){
 	}
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"telephone-event",(RtpCallback)on_dtmf_received);
-	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)mediastream_payload_type_changed);
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed);
 	audio_stream_free(stream);
 	ms_filter_log_statistics();
 }

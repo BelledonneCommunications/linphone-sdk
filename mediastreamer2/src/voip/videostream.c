@@ -585,9 +585,48 @@ static void configure_decoder(VideoStream *stream, PayloadType *pt){
 static void video_stream_payload_type_changed(RtpSession *session, unsigned long data){
 	VideoStream *stream = (VideoStream *)data;
 	RtpProfile *prof = rtp_session_get_profile(session);
-	PayloadType *pt = rtp_profile_get_payload(prof, rtp_session_get_recv_payload_type(session));
-	if (mediastream_payload_type_changed(session,data) && pt)
-		configure_decoder(stream,pt);
+	int payload = rtp_session_get_recv_payload_type(session);
+	PayloadType *pt = rtp_profile_get_payload(prof, payload);
+
+	if (stream->ms.decoder == NULL){
+		ms_message("video_stream_payload_type_changed(): no decoder!");
+		return;
+	}
+
+	if (pt != NULL){
+		MSFilter *dec;
+
+		/* Q: why only video ? A: because an audio format can be used at different rates: ex: speex/16000 speex/8000*/
+		if ((stream->ms.decoder != NULL) && (stream->ms.decoder->desc->enc_fmt != NULL)
+			&& (strcasecmp(pt->mime_type, stream->ms.decoder->desc->enc_fmt) == 0)) {
+			/* Same formats behind different numbers, nothing to do. */
+			return;
+		}
+
+		dec = ms_filter_create_decoder(pt->mime_type);
+		if (dec != NULL) {
+			MSFilter *prevFilter = stream->ms.decoder->inputs[0]->prev.filter;
+			MSFilter *nextFilter = stream->ms.decoder->outputs[0]->next.filter;
+
+			ms_filter_unlink(prevFilter, 0, stream->ms.decoder, 0);
+			ms_filter_unlink(stream->ms.decoder, 0, nextFilter, 0);
+			ms_filter_postprocess(stream->ms.decoder);
+			ms_filter_destroy(stream->ms.decoder);
+			stream->ms.decoder = dec;
+			if (pt->recv_fmtp != NULL)
+				ms_filter_call_method(stream->ms.decoder, MS_FILTER_ADD_FMTP, (void *)pt->recv_fmtp);
+			ms_filter_link(prevFilter, 0, stream->ms.decoder, 0);
+			ms_filter_link(stream->ms.decoder, 0, nextFilter, 0);
+			ms_filter_preprocess(stream->ms.decoder, stream->ms.sessions.ticker);
+
+			configure_decoder(stream, pt);
+		} else {
+			ms_warning("No decoder found for %s", pt->mime_type);
+		}
+	} else {
+		ms_warning("No payload defined with number %i", payload);
+	}
+
 	configure_itc(stream);
 }
 
