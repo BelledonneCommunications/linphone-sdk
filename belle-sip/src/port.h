@@ -85,8 +85,13 @@ BELLESIP_INTERNAL_EXPORT void belle_sip_uninit_sockets(void);
 int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock);
 int belle_sip_socket_set_dscp(belle_sip_socket_t sock, int ai_family, int dscp);
 int belle_sip_socket_enable_dual_stack(belle_sip_socket_t sock);
- 
+
 #if defined(WIN32)
+
+#if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION)
+// Only use with x being WINAPI_PARTITION_DESKTOP to test if building on desktop
+#define WINAPI_FAMILY_PARTITION(x) 1
+#endif
 
 typedef HANDLE belle_sip_thread_t;
 
