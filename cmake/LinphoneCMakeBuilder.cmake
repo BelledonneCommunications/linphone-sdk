@@ -468,6 +468,18 @@ macro(linphone_builder_create_configure_command PROJNAME)
 endmacro(linphone_builder_create_configure_command)
 
 
+# this function invokes configure_file() for the project, using the default file if 
+# the specific file is not defined
+function(linphone_builder_configure_file_for_project PROJNAME CMD DEFAULT_CONF_FILE OUTPUT)
+	if("${EP_${PROJNAME}_${CMD}_COMMAND_SOURCE}" STREQUAL "")
+		MESSAGE(STATUS "Using default file ${DEFAULT_CONF_FILE} for ${CMD} step of ${PROJNAME}")
+		configure_file(${DEFAULT_CONF_FILE} ${OUTPUT})
+	else()
+		MESSAGE(STATUS "Using specific file ${EP_${PROJNAME}_${CMD}_COMMAND_SOURCE} for ${CMD} step of ${PROJNAME}")
+		configure_file(${EP_${PROJNAME}_${CMD}_COMMAND_SOURCE} ${OUTPUT})	  
+	endif()
+endfunction()
+
 function(linphone_builder_add_project PROJNAME)
 	linphone_builder_set_ep_directories(${PROJNAME})
 	linphone_builder_apply_cmake_flags_to_autotools_project(${PROJNAME})
@@ -603,9 +615,11 @@ function(linphone_builder_add_project PROJNAME)
 			set(LINPHONE_BUILDER_CONFIGURE_EXTRA_CMD "${EP_${PROJNAME}_CONFIGURE_EXTRA_CMD}")
 		endif()
 
-		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure_rpm.sh)
-		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build_rpm.sh)
-		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/install.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install_rpm.sh)
+		# allow to have special command steps
+
+		linphone_builder_configure_file_for_project(${PROJNAME} CONFIGURE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure_rpm.sh)
+		linphone_builder_configure_file_for_project(${PROJNAME} BUILD ${CMAKE_CURRENT_SOURCE_DIR}/cmake/build.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build_rpm.sh)
+		linphone_builder_configure_file_for_project(${PROJNAME} INSTALL ${CMAKE_CURRENT_SOURCE_DIR}/cmake/install.rpm.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install_rpm.sh)
 
 		set(BUILD_COMMANDS
 			CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure_rpm.sh
