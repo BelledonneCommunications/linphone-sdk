@@ -299,24 +299,6 @@ static uint64_t get_cur_time_ms(void *unused){
 	return ms_get_cur_time_ms();
 }
 
-static void sleepMs(int ms){
-#ifdef WIN32
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-	Sleep(ms);
-#else
-	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
-	if (!sleepEvent) return;
-	WaitForSingleObjectEx(sleepEvent, ms, FALSE);
-	CloseHandle(sleepEvent);
-#endif
-#else
-	struct timespec ts;
-	ts.tv_sec=0;
-	ts.tv_nsec=ms*1000000LL;
-	nanosleep(&ts,NULL);
-#endif
-}
-
 static int set_high_prio(MSTicker *obj){
 	int precision=2;
 	int prio=obj->prio;
@@ -411,7 +393,7 @@ static int wait_next_tick(void *data, uint64_t virt_ticker_time){
 		diff=s->time-realtime;
 		if (diff>0){
 			/* sleep until next tick */
-			sleepMs((int)diff);
+			ortp_sleep_ms((int)diff);
 		}else{
 			late=(int)-diff;
 			break; /*exit the while loop */

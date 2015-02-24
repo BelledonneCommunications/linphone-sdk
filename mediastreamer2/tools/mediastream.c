@@ -211,7 +211,8 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --netsim-consecutive-loss-probability <0-1> (to simulate bursts of lost packets)]\n"
 								"[ --netsim-latency <latency in ms> (simulates a network latency)]\n"
 								"[ --netsim-jitter-strength <0-100> (strength of the jitter simulation)]\n"
-								"[ --netsim-jitter-burst-density <0-10> (density of gap/burst events, 1.0=one gap/burst per second in average)]\n" 
+								"[ --netsim-jitter-burst-density <0-10> (density of gap/burst events, 1.0=one gap/burst per second in average)]\n"
+								"[ --netsim-mode inbound|outboud (whether network simulation is applied to incoming (default) or outgoing stream)]\n"
 								"[ --zoom zoomfactor]\n"
 								"[ --ice-local-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
 								"[ --ice-remote-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
@@ -566,6 +567,22 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 				out->netsim.enabled=TRUE;
 			}else{
 				ms_error("Missing argument for --netsim-jitter-strength");
+				return FALSE;
+			}
+		}else if (strcmp(argv[i], "--netsim-mode") == 0) {
+			i++;
+			if (i<argc){
+				if (strcmp(argv[i],"inbound")==0)
+					out->netsim.mode=OrtpNetworkSimulatorInbound;
+				else if (strcmp(argv[i],"outbound")==0){
+					out->netsim.mode=OrtpNetworkSimulatorOutbound;
+				}else{
+					ms_error("Invalid value for --netsim-mode");
+					return FALSE;
+				}
+				out->netsim.enabled=TRUE;
+			}else{
+				ms_error("Missing argument for --netsim-dir");
 				return FALSE;
 			}
 		}else if (strcmp(argv[i],"--zoom")==0){
