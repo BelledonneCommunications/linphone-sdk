@@ -103,54 +103,64 @@ static ORTP_INLINE uint64_t get_timeval_in_millis() {
 	return (1000LL*t.tv_sec)+(t.tv_usec/1000LL);
 }
 
-/* note : this code is duplicated in belle_sip/src/transport/tls_channel_polarssl.c */
-static unsigned char *ms_dtls_srtp_generate_certificate_fingerprint(const x509_crt *certificate) {
-	unsigned char *fingerprint = NULL;
+/**
+ * @Brief Compute the certificate fingerprint(hash of DER formated certificate)
+ * hash function to use shall be the same used by certificate signature(this is a way to ensure that the hash function is available at both ends as they already agreed on certificate)
+ * However, peer may provide a fingerprint generated with another hash function(indicated at the fingerprint header).
+ * In case certificate and fingerprint hash function differs, issue a warning and use the fingerprint one
+ *
+ * @param[in]	certificate		Certificate we shall compute the fingerprint
+ * @param[in]	peer_fingerprint	Fingerprint received from peer, check its header to get the hash function used to generate it
+ *
+ * @return 0 if the fingerprint doesn't match, 1 is they do.
+ */
+static uint8_t ms_dtls_srtp_check_certificate_fingerprint(const x509_crt *certificate, const char *peer_fingerprint) {
+	unsigned char fingerprint[256]; /* maximum length of the fingerprint for sha-512: 8+3*64+1 so we're good with 256 bytes buffer */
 	unsigned char buffer[64]; /* buffer is max length of returned hash, which is 64 in case we use sha-512 */
 	size_t hash_length = 0;
 	char hash_alg_string[8]; /* buffer to store the string description of the algo, longest is SHA-512(7 chars + null termination) */
-	/* fingerprint is a hash of the DER formated certificate (found in crt->raw.p) using the same hash function used by certificate signature */
-	switch (certificate->sig_md) {
-		case POLARSSL_MD_SHA1:
-			sha1(certificate->raw.p, certificate->raw.len, buffer);
-			hash_length = 20;
-			memcpy(hash_alg_string, "sha-1", 6);
-		break;
+	md_type_t hash_function = POLARSSL_MD_NONE;
 
-		case POLARSSL_MD_SHA224:
-			sha256(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-224 and not sha-256 */
-			hash_length = 28;
-			memcpy(hash_alg_string, "sha-224", 8);
-		break;
+	/* get Hash algorithm used from peer fingerprint */
+	if (strncasecmp(peer_fingerprint, "sha-1 ", 6) ==0 ) {
+		sha1(certificate->raw.p, certificate->raw.len, buffer);
+		hash_length = 20;
+		memcpy(hash_alg_string, "sha-1", 6);
+		hash_function = POLARSSL_MD_SHA1;
+	} else if (strncasecmp(peer_fingerprint, "sha-224 ", 8) ==0 ){
+		sha256(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-224 and not sha-256 */
+		hash_length = 28;
+		memcpy(hash_alg_string, "sha-224", 8);
+		hash_function = POLARSSL_MD_SHA224;
+	} else if (strncasecmp(peer_fingerprint, "sha-256 ", 8) ==0 ){
+		sha256(certificate->raw.p, certificate->raw.len, buffer, 0);
+		hash_length = 32;
+		memcpy(hash_alg_string, "sha-256", 8);
+		hash_function = POLARSSL_MD_SHA256;
+	} else if (strncasecmp(peer_fingerprint, "sha-384 ", 8) ==0 ){
+		sha512(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
+		hash_length = 48;
+		memcpy(hash_alg_string, "sha-384", 8);
+		hash_function = POLARSSL_MD_SHA384;
+	} else if (strncasecmp(peer_fingerprint, "sha-512 ", 8) ==0 ){
+		sha512(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
+		hash_length = 64;
+		memcpy(hash_alg_string, "sha-512", 8);
+		hash_function = POLARSSL_MD_SHA512;
+	} else { /* we have an unknown hash function: return null */
+		ms_error("DTLS-SRTP received invalid peer fingerprint, hash function unknown");
+		return 0;
+	}
 
-		case POLARSSL_MD_SHA256:
-			sha256(certificate->raw.p, certificate->raw.len, buffer, 0);
-			hash_length = 32;
-			memcpy(hash_alg_string, "sha-256", 8);
-		break;
-
-		case POLARSSL_MD_SHA384:
-			sha512(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
-			hash_length = 48;
-			memcpy(hash_alg_string, "sha-384", 8);
-		break;
-
-		case POLARSSL_MD_SHA512:
-			sha512(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
-			hash_length = 64;
-			memcpy(hash_alg_string, "sha-512", 8);
-		break;
-
-		default:
-		break;
+	/* check that hash function used match the one used for certificate signature */
+	if (hash_function != certificate->sig_md) {
+		ms_warning("DTLS-SRTP peer fingerprint generated using a different hash function that the one used for certificate signature, peer is nasty but lucky we have the hash function required anyway");
 	}
 
 	if (hash_length>0) {
 		int i;
 		int fingerprint_index = strlen(hash_alg_string);
 		char prefix=' ';
-		/* fingerprint will be : hash_alg_string+' '+HEX : separated values: length is strlen(hash_alg_string)+3*hash_lenght + 1 for null termination */
-		fingerprint = (unsigned char *)malloc(fingerprint_index+3*hash_length+1);
 		sprintf((char *)fingerprint, "%s", hash_alg_string);
 		for (i=0; i<hash_length; i++, fingerprint_index+=3) {
 			sprintf((char *)(fingerprint+fingerprint_index),"%c%02X", prefix,buffer[i]);
@@ -159,7 +169,13 @@ static unsigned char *ms_dtls_srtp_generate_certificate_fingerprint(const x509_c
 		*(fingerprint+fingerprint_index) = '\0';
 	}
 
-	return fingerprint;
+	/* compare fingerprints */
+	if (strncasecmp((const char *)fingerprint, peer_fingerprint, strlen((const char *)fingerprint)) == 0) {
+		return 1;
+	} else {
+		ms_error("DTLS Handshake successful but fingerprints differ received : %s computed %s", peer_fingerprint, fingerprint);
+		return 0;
+	}
 }
 
 /**
@@ -253,8 +269,8 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 		if (!rtp_session->use_connect){
 			struct sockaddr *addr = NULL;
 			socklen_t addrlen;
-			addr = (struct sockaddr *)&msg->src_addr;
-			addrlen = msg->src_addrlen;
+			addr = (struct sockaddr *)&msg->net_addr;
+			addrlen = msg->net_addrlen;
 			if (ortp_stream->socket>0 && rtp_session->symmetric_rtp){
 				/* store the sender rtp address to do symmetric DTLS */
 				memcpy(&ortp_stream->rem_addr,addr,addrlen);
@@ -473,10 +489,7 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 			if ( agreed_srtp_protection_profile == MS_CRYPTO_SUITE_INVALID) {
 				ms_message("DTLS Handshake successful but unable to agree on srtp_profile to use");
 			} else {
-				unsigned char *computed_peer_fingerprint = NULL;
-
-				computed_peer_fingerprint = ms_dtls_srtp_generate_certificate_fingerprint(ssl_get_peer_cert(&(ctx->rtp_dtls_context->ssl)));
-				if (strncasecmp((const char *)computed_peer_fingerprint, ctx->peer_fingerprint, strlen((const char *)computed_peer_fingerprint)) == 0) {
+				if (ms_dtls_srtp_check_certificate_fingerprint(ssl_get_peer_cert(&(ctx->rtp_dtls_context->ssl)), (const char *)(ctx->peer_fingerprint)) == 1) {
 					uint8_t *key = (uint8_t *)ms_malloc0(256);
 					ms_message("DTLS Handshake on RTP channel successful and fingerprints match, srtp protection profile %d", ctx->rtp_dtls_context->ssl.chosen_dtls_srtp_profile);
 
@@ -505,10 +518,7 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 					ms_free(key);
 
 					ms_dtls_srtp_check_channels_status(ctx);
-				} else {
-					ms_error("DTLS Handshake successful but fingerprints differ received : %s computed %s", ctx->peer_fingerprint, computed_peer_fingerprint);
 				}
-				ms_free(computed_peer_fingerprint);
 			}
 			ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );
 		}
@@ -548,10 +558,7 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 			if ( agreed_srtp_protection_profile == MS_CRYPTO_SUITE_INVALID) {
 				ms_error("DTLS RTCP Handshake successful but unable to agree on srtp_profile to use");
 			} else {
-				unsigned char *computed_peer_fingerprint = NULL;
-
-				computed_peer_fingerprint = ms_dtls_srtp_generate_certificate_fingerprint(ssl_get_peer_cert(&(ctx->rtcp_dtls_context->ssl)));
-				if (strncasecmp((const char *)computed_peer_fingerprint, ctx->peer_fingerprint, strlen((const char *)computed_peer_fingerprint)) == 0) {
+				if (ms_dtls_srtp_check_certificate_fingerprint(ssl_get_peer_cert(&(ctx->rtcp_dtls_context->ssl)), (const char *)(ctx->peer_fingerprint)) == 1) {
 
 					ms_message("DTLS RTCP Handshake successful and fingerprints match, srtp protection profile %d", ctx->rtcp_dtls_context->ssl.chosen_dtls_srtp_profile);
 
@@ -580,10 +587,7 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 					ms_free(key);
 
 					ms_dtls_srtp_check_channels_status(ctx);
-				} else {
-					ms_error("DTLS RTCP Handshake successful but fingerprint doesn't match");
 				}
-				ms_free(computed_peer_fingerprint);
 			}
 			ret = ssl_close_notify( &(ctx->rtcp_dtls_context->ssl) );
 		}
