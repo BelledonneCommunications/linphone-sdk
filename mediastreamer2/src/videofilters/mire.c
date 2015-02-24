@@ -52,14 +52,14 @@ void mire_uninit(MSFilter *f){
 	ms_free(f->data);
 }
 
-void mire_preprocess(MSFilter *f){
+static void mire_preprocess(MSFilter *f){
 	MireData *d=(MireData*)f->data;
 	d->pic=ms_yuv_buf_alloc(&d->pict,d->vsize.width,d->vsize.height);
 	memset(d->pic->b_rptr,0,d->pic->b_wptr-d->pic->b_rptr);
 	d->starttime=f->ticker->time;
 }
 
-void plane_draw(uint8_t *p, int w, int h, int lsz, int index){
+static void plane_draw(uint8_t *p, int w, int h, int lsz, int index){
 	int i,j;
 	for(i=0;i<h;++i){
 		for(j=0;j<w;++j){
@@ -69,13 +69,13 @@ void plane_draw(uint8_t *p, int w, int h, int lsz, int index){
 	}
 }
 
-void mire_draw(MireData *d){
+static void mire_draw(MireData *d){
 	plane_draw(d->pict.planes[0],d->pict.w,d->pict.h,d->pict.strides[0],d->index*2);
 	plane_draw(d->pict.planes[1],d->pict.w/2,d->pict.h/2,d->pict.strides[1],d->index);
 	plane_draw(d->pict.planes[2],d->pict.w/2,d->pict.h/2,d->pict.strides[2],d->index);
 }
 
-void mire_process(MSFilter *f){
+static void mire_process(MSFilter *f){
 	MireData *d=(MireData*)f->data;
 	float elapsed=(float)(f->ticker->time-d->starttime);
 	if ((elapsed*d->fps/1000.0)>d->index){
@@ -93,27 +93,34 @@ void mire_postprocess(MSFilter *f){
 	}
 }
 
-int mire_set_vsize(MSFilter *f, void* data){
+static int mire_set_vsize(MSFilter *f, void* data){
 	MireData *d=(MireData*)f->data;
 	d->vsize=*(MSVideoSize*)data;
 	return 0;
 }
 
-int mire_set_fps(MSFilter *f, void* data){
+static int mire_set_fps(MSFilter *f, void* data){
 	MireData *d=(MireData*)f->data;
 	d->fps=*(float*)data;
 	return 0;
 }
 
-int mire_get_fmt(MSFilter *f, void* data){
+static int mire_get_fmt(MSFilter *f, void* data){
 	*(MSPixFmt*)data=MS_YUV420P;
+	return 0;
+}
+
+static int mire_get_vsize(MSFilter *f, void* data){
+	MireData *d=(MireData*)f->data;
+	*(MSVideoSize*)data=d->vsize;
 	return 0;
 }
 
 MSFilterMethod mire_methods[]={
 	{	MS_FILTER_SET_VIDEO_SIZE, mire_set_vsize },
-	{	MS_FILTER_SET_FPS	, mire_set_fps	},
+	{	MS_FILTER_SET_FPS		, mire_set_fps	},
 	{	MS_FILTER_GET_PIX_FMT	, mire_get_fmt	},
+	{	MS_FILTER_GET_VIDEO_SIZE, mire_get_vsize },
 	{	0,0 }
 };
 

@@ -33,15 +33,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static RtpProfile rtp_profile;
 
+extern MSWebCamDesc mire_desc;
+
+
+
 #define VP8_PAYLOAD_TYPE    103
 #define H264_PAYLOAD_TYPE    104
 
 static int tester_init(void) {
+	MSWebCam *cam;
 	ms_init();
 	ms_filter_enable_statistics(TRUE);
 	ortp_init();
 	rtp_profile_set_payload(&rtp_profile, VP8_PAYLOAD_TYPE, &payload_type_vp8);
 	rtp_profile_set_payload(&rtp_profile, H264_PAYLOAD_TYPE, &payload_type_h264);
+	cam=ms_web_cam_new(&mire_desc);
+	ms_web_cam_manager_add_cam(ms_web_cam_manager_get(),cam);
 	return 0;
 }
 
@@ -85,6 +92,7 @@ typedef struct _video_stream_tester_t {
 	char* local_ip;
 	int local_rtp;
 	int local_rtcp;
+	MSWebCam * cam;
 } video_stream_tester_t;
 
 void video_stream_tester_set_local_ip(video_stream_tester_t* obj,const char*ip) {
@@ -96,6 +104,7 @@ void video_stream_tester_set_local_ip(video_stream_tester_t* obj,const char*ip) 
 video_stream_tester_t* video_stream_tester_new() {
 	video_stream_tester_t* vst = ms_new0(video_stream_tester_t,1);
 	video_stream_tester_set_local_ip(vst,"127.0.0.1");
+	vst->cam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
 	vst->local_rtp=-1; /*random*/
 	vst->local_rtcp=-1; /*random*/
 	return  vst;
@@ -193,9 +202,6 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 
 static void init_video_streams(video_stream_tester_t *marielle, video_stream_tester_t *margaux, bool_t avpf, bool_t one_way, OrtpNetworkSimulatorParams *params,int payload_type) {
 	PayloadType *pt;
-	MSWebCam *no_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
-	MSWebCam *default_webcam = no_webcam ;//ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
-/*	MSWebCam *default_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "QT Capture: Logitech Camera #2");*/
 	marielle->vs = video_stream_new2(marielle->local_ip,marielle->local_rtp, marielle->local_rtcp);
 	marielle->vs->staticimage_webcam_fps_optimization = FALSE;
 	marielle->local_rtp=rtp_session_get_local_port(marielle->vs->ms.sessions.rtp_session);
@@ -247,7 +253,7 @@ static void init_video_streams(video_stream_tester_t *marielle, video_stream_tes
 
 	}
 	CU_ASSERT_EQUAL(
-		video_stream_start(marielle->vs, &rtp_profile, margaux->local_ip, margaux->local_rtp, margaux->local_ip, margaux->local_rtcp, payload_type, 50, no_webcam),
+		video_stream_start(marielle->vs, &rtp_profile, margaux->local_ip, margaux->local_rtp, margaux->local_ip, margaux->local_rtcp, payload_type, 50, marielle->cam),
 		0);
 
 	if (margaux->vconf) {
@@ -258,7 +264,7 @@ static void init_video_streams(video_stream_tester_t *marielle, video_stream_tes
 
 		}
 	CU_ASSERT_EQUAL(
-		video_stream_start(margaux->vs, &rtp_profile, marielle->local_ip, marielle->local_rtp, marielle->local_ip, marielle->local_rtcp, payload_type, 50, default_webcam),
+		video_stream_start(margaux->vs, &rtp_profile, marielle->local_ip, marielle->local_rtp, marielle->local_ip, marielle->local_rtcp, payload_type, 50, margaux->cam),
 		0);
 }
 
@@ -367,6 +373,47 @@ static void avpf_video_stream(void) {
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
+		uninit_video_streams(marielle, margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
+	video_stream_tester_destroy(marielle);
+	video_stream_tester_destroy(margaux);
+}
+
+static void avpf_rpsi_count(void) {
+	video_stream_tester_t* marielle=video_stream_tester_new();
+	video_stream_tester_t* margaux=video_stream_tester_new();
+	OrtpNetworkSimulatorParams params = { 0 };
+	bool_t supported = ms_filter_codec_supported("vp8");
+	int dummy=0;
+	int delay = 11000;
+	marielle->vconf=ms_new0(MSVideoConfiguration,1);
+	marielle->vconf->bitrate_limit=256000;
+	marielle->vconf->fps=15;
+	marielle->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
+	marielle->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
+	marielle->cam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "Mire: Mire (synthetic moving picture)");
+
+
+	margaux->vconf=ms_new0(MSVideoConfiguration,1);
+	margaux->vconf->bitrate_limit=256000;
+	margaux->vconf->fps=5; /*to save cpu resource*/
+	margaux->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
+	margaux->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
+	margaux->cam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "Mire: Mire (synthetic moving picture)");
+
+	if (supported) {
+		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,  &marielle->stats.number_of_decoder_first_image_decoded, 1, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,  &margaux->stats.number_of_decoder_first_image_decoded, 1, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+
+		/*wait for 4 rpsi*/
+		wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,  &dummy, 1, delay, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats);
+		CU_ASSERT_EQUAL(marielle->stats.number_of_RPSI,4);
+		CU_ASSERT_EQUAL(margaux->stats.number_of_RPSI,4);
+		CU_ASSERT_TRUE(fabs(video_stream_get_received_framerate(marielle->vs)-margaux->vconf->fps) <2);
+		CU_ASSERT_TRUE(fabs(video_stream_get_received_framerate(margaux->vs)-marielle->vconf->fps) <2);
 		uninit_video_streams(marielle, margaux);
 	} else {
 		ms_error("VP8 codec is not supported!");
@@ -525,7 +572,8 @@ static test_t tests[] = {
 	{ "AVPF very high-loss video stream", avpf_very_high_loss_video_stream },
 	{ "AVPF PLI on first iframe lost",avpf_video_stream_first_iframe_lost_vp8},
 	{ "AVP PLI on first iframe lost",video_stream_first_iframe_lost_vp8},
-	{ "Video configuration",video_configuration_stream}
+	{ "Video configuration",video_configuration_stream},
+	{ "AVPF RPSI count", avpf_rpsi_count}
 };
 #else
 static test_t tests[] = {};

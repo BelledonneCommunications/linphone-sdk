@@ -78,7 +78,6 @@ typedef struct EncFramesState {
 	EncFrameState golden;
 	EncFrameState altref;
 	EncFrameState reconstruct;
-	int ref_frames_interval;
 	vpx_codec_pts_t last_independent_frame;
 } EncFramesState;
 
@@ -134,12 +133,14 @@ static void enc_uninit(MSFilter *f) {
 	ms_free(s);
 }
 
+static int enc_get_ref_frames_interval(EncState *s) {
+	return (uint16_t)(s->vconf.fps * 3); /*s->vconf.fps is dynamic*/
+}
 static void enc_reset_frames_state(EncState *s){
 	memset(&s->frames_state, 0, sizeof(s->frames_state));
 	s->frames_state.altref.type=VP8_ALTR_FRAME;
 	s->frames_state.golden.type=VP8_GOLD_FRAME;
 	s->frames_state.reconstruct.type=VP8_LAST_FRAME;
-	s->frames_state.ref_frames_interval = (uint16_t)(s->vconf.fps * 3); /* 1 reference frame each 3s. */
 }
 
 static void enc_preprocess(MSFilter *f) {
@@ -224,7 +225,7 @@ static vpx_codec_pts_t enc_last_reference_frame_count(EncState *s) {
 }
 
 static bool_t enc_should_generate_reference_frame(EncState *s) {
-	return ((s->frame_count - enc_last_reference_frame_count(s)) == s->frames_state.ref_frames_interval) ? TRUE : FALSE;
+	return ((s->frame_count - enc_last_reference_frame_count(s)) ==enc_get_ref_frames_interval(s)) ? TRUE : FALSE;
 }
 
 static uint8_t enc_get_type_of_reference_frame_to_generate(EncState *s) {
@@ -304,7 +305,7 @@ static bool_t is_reference_sane(EncState *s, EncFrameState *fs){
 	int diff=fs->picture_id-s->last_sli_id;
 	bool_t ret;
 	
-	if (!fs->is_independant && diff<s->frames_state.ref_frames_interval){
+	if (!fs->is_independant && diff<enc_get_ref_frames_interval(s)){
 		ret=FALSE;
 	}else ret=TRUE;
 	return ret;
@@ -382,7 +383,7 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 			*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_GF);
 		} else if (frame_type & VP8_ALTR_FRAME) {
 			*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF | VP8_EFLAG_NO_REF_ARF);
-			if (s->frame_count > s->frames_state.last_independent_frame + 5*s->frames_state.ref_frames_interval){
+			if (s->frame_count > s->frames_state.last_independent_frame + 5*enc_get_ref_frames_interval(s)){
 				/*force an independant alt ref frame to force picture to be refreshed completely, otherwise
 				 * pixel color saturation appears due to accumulation of small predictive errors*/
 				*flags |= VP8_EFLAG_NO_REF_LAST | VP8_EFLAG_NO_REF_GF;
