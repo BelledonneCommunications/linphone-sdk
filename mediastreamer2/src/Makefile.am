@@ -380,7 +380,7 @@ AM_CPPFLAGS=\
 	-I$(top_srcdir)/src/voip \
 	-I$(top_srcdir)/src/audiofilters \
 	-I$(top_srcdir)/src/otherfilters \
-	-I$(top_srcdir)/src/videofilters
+	-I$(top_srcdir)/src/videofilters \
 	$(ORTP_CFLAGS)   
 
 AM_CFLAGS=\
