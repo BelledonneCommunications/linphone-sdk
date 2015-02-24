@@ -338,6 +338,7 @@ static void codec_change_for_audio_stream(void) {
 	RtpProfile *profile = rtp_profile_new("default profile");
 	char* hello_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), HELLO_8K_1S_FILE);
 	char* recorded_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), RECORDED_8K_1S_FILE);
+	uint64_t marielle_rtp_sent = 0;
 	int dummy=0;
 
 	reset_stats(&marielle_stats);
@@ -364,10 +365,12 @@ static void codec_change_for_audio_stream(void) {
 
 	/* No packet loss is assumed */
 	CU_ASSERT_EQUAL(marielle_stats.rtp.sent, margaux_stats.rtp.recv);
+	marielle_rtp_sent = marielle_stats.rtp.sent;
 
 	audio_stream_stop(marielle);
 	reset_stats(&marielle_stats);
 	reset_stats(&margaux_stats);
+	marielle = audio_stream_new2(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT);
 	CU_ASSERT_EQUAL(audio_stream_start_full(marielle, profile, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_IP, MARGAUX_RTCP_PORT,
 		8, 50, hello_file, NULL, NULL, NULL, 0), 0);
 
@@ -382,7 +385,7 @@ static void codec_change_for_audio_stream(void) {
 	audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
 
 	/* No packet loss is assumed */
-	CU_ASSERT_EQUAL(marielle_stats.rtp.sent, margaux_stats.rtp.recv);
+	CU_ASSERT_EQUAL(marielle_stats.rtp.sent + marielle_rtp_sent, margaux_stats.rtp.recv);
 	audio_stream_stop(marielle);
 	audio_stream_stop(margaux);
 

@@ -103,15 +103,15 @@ static void on_dtmf_received(RtpSession *s, unsigned long dtmf, void * user_data
  * more easily within the MSTicker API.
  * return TRUE if the decoder was changed, FALSE otherwise.
  */
-static bool_t audio_stream_payload_type_changed(AudioStream *stream, int payload) {
-	RtpSession *session = stream->ms.sessions.rtp_session;
+static bool_t audio_stream_payload_type_changed(RtpSession *session, unsigned long data) {
+	AudioStream *stream = (AudioStream *)data;
 	RtpProfile *prof = rtp_session_get_profile(session);
+	int payload = rtp_session_get_recv_payload_type(stream->ms.sessions.rtp_session);
 	PayloadType *pt = rtp_profile_get_payload(prof, payload);
-	int payload_type = rtp_session_get_recv_payload_type(stream->ms.sessions.rtp_session);
 	int cn_pt = rtp_profile_find_payload_number(stream->ms.sessions.rtp_session->snd.profile, "CN", 8000, 1);
 
 	/* if new payload type is Comfort Noise(CN), just do nothing */
-	if (payload_type == cn_pt) {
+	if (payload == cn_pt) {
 		ms_message("Ignore paylaod type change to CN");
 		return FALSE;
 	}
@@ -710,7 +710,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	else
 		stream->dtmfgen=NULL;
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,stream);
-	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed,&stream->ms);
+	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed,stream);
 	
 	if (stream->ms.state==MSStreamPreparing){
 		/*we were using the dummy preload graph, destroy it but keep sound filters unless no soundcard is given*/
