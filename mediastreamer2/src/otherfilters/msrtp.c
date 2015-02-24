@@ -626,8 +626,10 @@ static bool_t receiver_check_payload_type(MSFilter *f, ReceiverData *d, mblk_t *
 				ms_warning("CN packet has unexpected size %i", datasize);
 			}
 		}
+		return FALSE;
 	}
-	return FALSE;
+	d->current_pt = ptn;
+	return TRUE;
 }
 
 static void receiver_process(MSFilter * f)
