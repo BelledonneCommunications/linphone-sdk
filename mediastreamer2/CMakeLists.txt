@@ -269,17 +269,15 @@ endif()
 
 
 include_directories(
-	include/
-	src/audiofilters/
-	src/utils/
+	include
+	src/audiofilters
+	src/utils
+	src/voip
 	${CMAKE_CURRENT_BINARY_DIR}
-	${CMAKE_CURRENT_BINARY_DIR}/src/
+	${CMAKE_CURRENT_BINARY_DIR}/src
 	${ORTP_INCLUDE_DIRS}
 )
 
-if(ENABLE_VIDEO)
-	include_directories(src/voip)
-endif()
 if(SRTP_FOUND)
 	include_directories(${SRTP_INCLUDE_DIRS})
 endif()

@@ -46,6 +46,17 @@ find_library(OPUS_LIBRARIES
 	PATH_SUFFIXES bin lib
 )
 
+if(OPUS_LIBRARIES)
+	find_library(LIBM
+		NAMES m
+		HINTS _OPUS_ROOT_PATHS
+		PATH_SUFFIXES bin lib
+	)
+	if(LIBM)
+		list(APPEND OPUS_LIBRARIES ${LIBM})
+	endif()
+endif()
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Opus
 	DEFAULT_MSG
