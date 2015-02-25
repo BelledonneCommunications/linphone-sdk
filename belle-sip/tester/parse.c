@@ -22,7 +22,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#if WIN32
+#define strcasecmp _stricmp
+#else
 #include <unistd.h>
+#endif
 #include <string.h>
 
 #include "belle-sip/belle-sip.h"

@@ -320,7 +320,7 @@ void helper(const char *name) {
 		return -1; \
 	}
 
-#ifndef WINAPI_FAMILY_PHONE_APP
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 
 int main (int argc, char *argv[]) {
 	int i;

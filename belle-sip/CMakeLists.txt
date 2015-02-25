@@ -158,7 +158,10 @@ if(APPLE)
 	set(LINK_FLAGS "${LINK_FLAGS} -framework CoreFoundation -framework CFNetwork")
 endif()
 if(WIN32)
-	add_definitions(-DBELLESIP_EXPORTS)
+	add_definitions(
+		-DBELLESIP_EXPORTS
+		-DBELLESIP_INTERNAL_EXPORTS
+	)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/FindBelleSIP.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/FindBelleSIP.cmake @ONLY)

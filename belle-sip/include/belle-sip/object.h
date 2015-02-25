@@ -324,7 +324,7 @@ char *belle_sip_object_describe(void *obj);
 /**
  * Returns a string describing the inheritance diagram and implemented interfaces of an object given its type name.
 **/
-char *belle_sip_object_describe_type_from_name(const char *name);
+BELLESIP_EXPORT char *belle_sip_object_describe_type_from_name(const char *name);
 
 BELLESIP_EXPORT void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
 
