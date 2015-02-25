@@ -301,7 +301,15 @@ void helper(const char *name) {
 		return -1; \
 	}
 
-#ifndef WINAPI_FAMILY_PHONE_APP
+#if defined(WIN32) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#define BUILD_ENTRY_POINT 1
+#elif TARGET_OS_MAC || TARGET_OS_IPHONE
+#define BUILD_ENTRY_POINT 1
+#else
+#define BUILD_ENTRY_POINT 0
+#endif
+
+#if BUILD_ENTRY_POINT
 #if TARGET_OS_MAC || TARGET_OS_IPHONE
 int apple_main (int argc, char *argv[]) {
 #else

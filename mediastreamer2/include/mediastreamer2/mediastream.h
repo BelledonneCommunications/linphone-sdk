@@ -749,7 +749,7 @@ MS2_PUBLIC float video_stream_get_received_framerate(const VideoStream *stream);
 /**
  * Returns the name of the video display filter on the current platform.
 **/
-const char *video_stream_get_default_video_renderer(void);
+MS2_PUBLIC const char *video_stream_get_default_video_renderer(void);
 
 MS2_PUBLIC void video_stream_enable_self_view(VideoStream *stream, bool_t val);
 MS2_PUBLIC unsigned long video_stream_get_native_window_id(VideoStream *stream);
