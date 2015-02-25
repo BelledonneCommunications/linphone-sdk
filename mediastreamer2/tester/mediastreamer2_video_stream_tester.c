@@ -36,8 +36,9 @@ extern MSWebCamDesc mire_desc;
 
 
 
-#define VP8_PAYLOAD_TYPE    103
-#define H264_PAYLOAD_TYPE    104
+#define VP8_PAYLOAD_TYPE   103
+#define H264_PAYLOAD_TYPE  104
+#define MP4V_PAYLOAD_TYPE  105
 
 static int tester_init(void) {
 	MSWebCam *cam;
@@ -46,6 +47,7 @@ static int tester_init(void) {
 	ortp_init();
 	rtp_profile_set_payload(&rtp_profile, VP8_PAYLOAD_TYPE, &payload_type_vp8);
 	rtp_profile_set_payload(&rtp_profile, H264_PAYLOAD_TYPE, &payload_type_h264);
+	rtp_profile_set_payload(&rtp_profile, MP4V_PAYLOAD_TYPE, &payload_type_mp4v);
 	cam=ms_web_cam_new(&mire_desc);
 	ms_web_cam_manager_add_cam(ms_web_cam_manager_get(),cam);
 	return 0;
@@ -328,16 +330,23 @@ static void codec_change_for_video_stream(void) {
 	video_stream_tester_t *margaux = video_stream_tester_new();
 	bool_t vp8_supported = ms_filter_codec_supported("vp8");
 	bool_t h264_supported = ms_filter_codec_supported("h264");
+	bool_t mp4v_supported = ms_filter_codec_supported("mp4v-es");
 
 	if (vp8_supported) {
 		init_video_streams(marielle, margaux, FALSE, FALSE, NULL, VP8_PAYLOAD_TYPE);
 		CU_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_decoder_first_image_decoded, 1, 2000));
 		CU_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_decoder_first_image_decoded, 1, 2000));
 		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		if (h264_supported) {
-			change_codec(marielle, margaux, H264_PAYLOAD_TYPE);
+		if (h264_supported || mp4v_supported) {
+			if (h264_supported) change_codec(marielle, margaux, H264_PAYLOAD_TYPE);
+			else change_codec(marielle, margaux, MP4V_PAYLOAD_TYPE);
 			CU_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_decoder_first_image_decoded, 2, 2000));
 			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+			if (h264_supported) {
+				CU_ASSERT_EQUAL(strcasecmp(margaux->vs->ms.decoder->desc->enc_fmt, "h264"), 0);
+			} else {
+				CU_ASSERT_EQUAL(strcasecmp(margaux->vs->ms.decoder->desc->enc_fmt, "mp4v-es"), 0);
+			}
 		} else {
 			ms_error("H264 codec is not supported!");
 		}

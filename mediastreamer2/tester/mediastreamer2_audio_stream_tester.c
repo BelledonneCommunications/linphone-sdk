@@ -385,6 +385,7 @@ static void codec_change_for_audio_stream(void) {
 
 	/* No packet loss is assumed */
 	CU_ASSERT_EQUAL(marielle_stats.rtp.sent + marielle_rtp_sent, margaux_stats.rtp.recv);
+	CU_ASSERT_EQUAL(strcasecmp(margaux->ms.decoder->desc->enc_fmt, "pcma"), 0);
 	audio_stream_stop(marielle);
 	audio_stream_stop(margaux);
 
