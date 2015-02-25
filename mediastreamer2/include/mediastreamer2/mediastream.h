@@ -124,6 +124,7 @@ struct _MediaStream {
 	uint64_t last_packet_count;
 	time_t last_packet_time;
 	MSQosAnalyzerAlgorithm rc_algorithm;
+	PayloadType *current_pt;/*doesn't need to be freed*/
 	bool_t rc_enable;
 	bool_t is_beginning;
 	bool_t owns_sessions;
@@ -321,6 +322,8 @@ struct _AudioStream
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
 	EqualizerLocation eq_loc;
 	uint32_t features;
+	int sample_rate;
+	int nchannels;
 	struct _VideoStream *videostream;/*the stream with which this audiostream is paired*/
 	bool_t play_dtmfs;
 	bool_t use_gc;

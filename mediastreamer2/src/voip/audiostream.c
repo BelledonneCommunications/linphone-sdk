@@ -48,6 +48,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static void configure_av_recorder(AudioStream *stream);
+static void configure_decoder(AudioStream *stream, PayloadType *pt, int sample_rate, int nchannels);
+static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from, MSFilter *to, int fallback_from_rate, int fallback_to_rate);
 
 static void audio_stream_free(AudioStream *stream) {
 	media_stream_free(&stream->ms);
@@ -108,13 +110,6 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, unsigned lo
 	RtpProfile *prof = rtp_session_get_profile(session);
 	int payload = rtp_session_get_recv_payload_type(stream->ms.sessions.rtp_session);
 	PayloadType *pt = rtp_profile_get_payload(prof, payload);
-	int cn_pt = rtp_profile_find_payload_number(stream->ms.sessions.rtp_session->snd.profile, "CN", 8000, 1);
-
-	/* if new payload type is Comfort Noise(CN), just do nothing */
-	if (payload == cn_pt) {
-		ms_message("Ignore paylaod type change to CN");
-		return FALSE;
-	}
 
 	if (stream->ms.decoder == NULL){
 		ms_message("audio_stream_payload_type_changed(): no decoder!");
@@ -122,25 +117,42 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, unsigned lo
 	}
 
 	if (pt != NULL){
-		MSFilter *dec = ms_filter_create_decoder(pt->mime_type);
+		MSFilter *dec;
+		/* if new payload type is Comfort Noise (CN), just do nothing */
+		if (strcasecmp(pt->mime_type, "CN")==0) {
+			ms_message("Ignore payload type change to CN");
+			return FALSE;
+		}
+		
+		if (stream->ms.current_pt && strcasecmp(pt->mime_type, stream->ms.current_pt->mime_type)==0 && pt->clock_rate==stream->ms.current_pt->clock_rate){
+			ms_message("Ignoring payload type number change because it points to the same payload type as the current one");
+			return FALSE;
+		}
+		
+		dec = ms_filter_create_decoder(pt->mime_type);
 		if (dec != NULL) {
 			MSFilter *nextFilter = stream->ms.decoder->outputs[0]->next.filter;
+			
+			ms_message("Replacing decoder on the fly");
 			ms_filter_unlink(stream->ms.rtprecv, 0, stream->ms.decoder, 0);
 			ms_filter_unlink(stream->ms.decoder, 0, nextFilter, 0);
 			ms_filter_postprocess(stream->ms.decoder);
 			ms_filter_destroy(stream->ms.decoder);
 			stream->ms.decoder = dec;
-			if (pt->recv_fmtp != NULL)
-				ms_filter_call_method(stream->ms.decoder, MS_FILTER_ADD_FMTP, (void *)pt->recv_fmtp);
+			configure_decoder(stream, pt, stream->sample_rate, stream->nchannels);
+			if (stream->write_resampler){
+				audio_stream_configure_resampler(stream->write_resampler,stream->ms.decoder,stream->soundwrite,pt->clock_rate,8000);
+			}
 			ms_filter_link(stream->ms.rtprecv, 0, stream->ms.decoder, 0);
 			ms_filter_link(stream->ms.decoder, 0, nextFilter, 0);
 			ms_filter_preprocess(stream->ms.decoder, stream->ms.sessions.ticker);
+			stream->ms.current_pt=pt;
 			return TRUE;
 		} else {
-			ms_warning("No decoder found for %s", pt->mime_type);
+			ms_error("No decoder found for %s", pt->mime_type);
 		}
 	} else {
-		ms_warning("No payload defined with number %i", payload);
+		ms_warning("No payload type defined with number %i", payload);
 	}
 	return FALSE;
 }
@@ -677,6 +689,19 @@ static void setup_generic_confort_noise(AudioStream *stream){
 	}
 }
 
+static void configure_decoder(AudioStream *stream, PayloadType *pt, int sample_rate, int nchannels){
+	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_NCHANNELS,&nchannels);
+	if (pt->recv_fmtp!=NULL) ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
+	if (ms_filter_has_method(stream->ms.decoder, MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER) || ms_filter_has_method(stream->ms.decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
+		MSRtpPayloadPickerContext picker_context;
+		ms_message("Decoder has FEC capabilities");
+		picker_context.filter_graph_manager=stream;
+		picker_context.picker=&audio_stream_payload_picker;
+		ms_filter_call_method(stream->ms.decoder,MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER, &picker_context);
+	}
+}
+
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec){
@@ -685,7 +710,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	int tmp;
 	MSConnectionHelper h;
 	int sample_rate;
-	MSRtpPayloadPickerContext picker_context;
 	int nchannels;
 	bool_t has_builtin_ec=FALSE;
 
@@ -740,6 +764,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		return -1;
 	}
 	nchannels=pt->channels;
+	stream->ms.current_pt=pt;
 	tel_ev=rtp_profile_get_payload_from_mime (profile,"telephone-event");
 
 	if ((stream->features & AUDIO_STREAM_FEATURE_DTMF_ECHO) != 0 && (tel_ev==NULL || ( (tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_RECV) && !(tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_SEND)))
@@ -794,16 +819,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 			}
 		}
 	}
+	stream->sample_rate=sample_rate;
+	stream->nchannels=nchannels;
 	/*hack for opus, that claims stereo all the time, but we can't support stereo yet*/
 	if (strcasecmp(pt->mime_type,"opus")==0)
 		nchannels=1;
 
-	if (ms_filter_has_method(stream->ms.decoder, MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER) || ms_filter_has_method(stream->ms.decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
-		ms_message("Decoder has FEC capabilities");
-		picker_context.filter_graph_manager=stream;
-		picker_context.picker=&audio_stream_payload_picker;
-		ms_filter_call_method(stream->ms.decoder,MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER, &picker_context);
-	}
 	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
 		stream->volsend=ms_filter_new(MS_VOLUME_ID);
 	else
@@ -880,10 +901,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&stream->ms.target_bitrate);
 	}
 	rtp_session_set_target_upload_bandwidth(rtps, stream->ms.target_bitrate);
-	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&nchannels);
-	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_NCHANNELS,&nchannels);
-
+	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&nchannels);	
 	if (pt->send_fmtp!=NULL) {
 		char value[16]={0};
 		int ptime;
@@ -895,7 +913,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		}
 		ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP, (void*)pt->send_fmtp);
 	}
-	if (pt->recv_fmtp!=NULL) ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
+	
+	configure_decoder(stream, pt, sample_rate, nchannels);
 
 	/*create the equalizer*/
 	if ((stream->features & AUDIO_STREAM_FEATURE_EQUALIZER) != 0){
@@ -912,7 +931,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (stream->read_resampler){
 		audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.encoder,8000,pt->clock_rate);
 	}
-
 	if (stream->write_resampler){
 		audio_stream_configure_resampler(stream->write_resampler,stream->ms.decoder,stream->soundwrite,pt->clock_rate,8000);
 	}
