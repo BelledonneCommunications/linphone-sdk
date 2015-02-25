@@ -251,8 +251,12 @@ static void inner_product_test(void) {
 
 }
 
+#endif // ARM NEON
+
 static test_t tests[] = {
+#ifdef __ARM_NEON__
     { "Inner product", inner_product_test }
+#endif
 };
 
 test_suite_t neon_test_suite = {
@@ -263,5 +267,4 @@ test_suite_t neon_test_suite = {
     tests
 };
 
-#endif // ARM NEON
 
