@@ -81,8 +81,8 @@ endif ORTP_ENABLED
 LDADD=$(TEST_DEPLIBS)
 
 AM_CPPFLAGS=\
-	$(ORTP_CFLAGS) \
-	-I$(top_srcdir)/include/
+	-I$(top_srcdir)/include/ \
+	$(ORTP_CFLAGS) 
 
 if !ORTP_ENABLED
 AM_CPPFLAGS+=-I$(top_srcdir)/src/ortp-deps/
