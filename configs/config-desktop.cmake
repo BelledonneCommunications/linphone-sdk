@@ -79,3 +79,8 @@ endif()
 
 # Include builders
 include(builders/CMakeLists.txt)
+
+# sqlite3
+if(WIN32)
+	set(EP_sqlite3_LINKING_TYPE "-DENABLE_STATIC=YES")
+endif()
