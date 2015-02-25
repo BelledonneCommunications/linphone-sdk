@@ -81,6 +81,7 @@ endif ORTP_ENABLED
 LDADD=$(TEST_DEPLIBS)
 
 AM_CPPFLAGS=\
+	$(ORTP_CFLAGS) \
 	-I$(top_srcdir)/include/
 
 if !ORTP_ENABLED
@@ -88,7 +89,6 @@ AM_CPPFLAGS+=-I$(top_srcdir)/src/ortp-deps/
 endif
 
 AM_CFLAGS=\
-	$(ORTP_CFLAGS) \
 	$(STRICT_OPTIONS) \
 	$(STRICT_OPTIONS_CC) \
 	$(VIDEO_CFLAGS) \
