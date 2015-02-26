@@ -322,7 +322,7 @@ void helper(const char *name) {
 
 	
 #define NEED_MAIN 1
-#ifdef WIN32
+#if 0
 	#ifdef WINAPI_FAMILY_PARTITION
 		#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
 			#undef NEED_MAIN
