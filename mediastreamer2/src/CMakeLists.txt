@@ -122,6 +122,7 @@ set(VOIP_SOURCE_FILES
 	audiofilters/msfileplayer.c
 	audiofilters/msfilerec.c
 	audiofilters/msg722.c
+	audiofilters/msvaddtx.c
 	audiofilters/msvolume.c
 	audiofilters/tonedetector.c
 	audiofilters/ulaw.c
