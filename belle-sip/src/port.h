@@ -133,6 +133,8 @@ static BELLESIP_INLINE int inet_aton(const char *ip, struct in_addr *p){
 
 #else
 
+#define WINAPI_FAMILY_PARTITION(x) 1
+
 typedef pthread_t belle_sip_thread_t;
 #define belle_sip_thread_self_id()			(unsigned long)pthread_self()
 #define belle_sip_thread_get_id(thread)			(unsigned long)thread

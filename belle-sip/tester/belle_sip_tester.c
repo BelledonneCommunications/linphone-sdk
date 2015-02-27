@@ -321,17 +321,7 @@ void helper(const char *name) {
 	}
 
 	
-#define NEED_MAIN 1
-#if 0
-	#ifdef WINAPI_FAMILY_PARTITION
-		#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
-			#undef NEED_MAIN
-		#endif
-	#endif
-#endif
-
-#ifdef NEED_MAIN
-
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 int main (int argc, char *argv[]) {
 	int i;
 	int ret;
