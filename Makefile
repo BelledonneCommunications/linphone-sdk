@@ -36,7 +36,10 @@ all: build-desktop
 build-desktop:
 	mkdir -p WORK/cmake-desktop && \
 	cd WORK/cmake-desktop && \
-	cmake ../.. $(filter -D%,$(MAKEFLAGS)) && \
+	cmake ../.. \
+		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT\
+		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT \
+		$(filter -D%,$(MAKEFLAGS)) && \
 	make
 
 clean-desktop:
