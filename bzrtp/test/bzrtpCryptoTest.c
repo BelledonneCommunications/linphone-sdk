@@ -691,11 +691,11 @@ static int testAddMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTyp
 
 void test_addMandatoryCryptoTypesIfNeeded(void) {
 	/* mandatory types */
-	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_HASH_TYPE,         (uint8_t [7]){}, 0, (uint8_t []){ZRTP_HASH_S256},                       1));
-	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_CIPHERBLOCK_TYPE,  (uint8_t [7]){}, 0, (uint8_t []){ZRTP_CIPHER_AES1},                     1));
-	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_AUTHTAG_TYPE,      (uint8_t [7]){}, 0, (uint8_t []){ZRTP_AUTHTAG_HS32, ZRTP_AUTHTAG_HS80}, 2));
-	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_KEYAGREEMENT_TYPE, (uint8_t [7]){}, 0, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k},               1));
-	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_SAS_TYPE,          (uint8_t [7]){}, 0, (uint8_t []){ZRTP_SAS_B32},                         1));
+	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_HASH_TYPE,         (uint8_t [7]){ZRTP_UNSET_ALGO}, 0, (uint8_t []){ZRTP_HASH_S256},                       1));
+	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_CIPHERBLOCK_TYPE,  (uint8_t [7]){ZRTP_UNSET_ALGO}, 0, (uint8_t []){ZRTP_CIPHER_AES1},                     1));
+	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_AUTHTAG_TYPE,      (uint8_t [7]){ZRTP_UNSET_ALGO}, 0, (uint8_t []){ZRTP_AUTHTAG_HS32, ZRTP_AUTHTAG_HS80}, 2));
+	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_KEYAGREEMENT_TYPE, (uint8_t [7]){ZRTP_UNSET_ALGO}, 0, (uint8_t []){ZRTP_KEYAGREEMENT_DH3k},               1));
+	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_SAS_TYPE,          (uint8_t [7]){ZRTP_UNSET_ALGO}, 0, (uint8_t []){ZRTP_SAS_B32},                         1));
 
 	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_AUTHTAG_TYPE,      (uint8_t [7]){ZRTP_AUTHTAG_HS32, ZRTP_AUTHTAG_HS80}, 2, (uint8_t []){ZRTP_AUTHTAG_HS32, ZRTP_AUTHTAG_HS80}, 2));
 	CU_TEST(testAddMandatoryCryptoTypesIfNeeded(ZRTP_AUTHTAG_TYPE,      (uint8_t [7]){ZRTP_AUTHTAG_HS80, ZRTP_AUTHTAG_HS32}, 2, (uint8_t []){ZRTP_AUTHTAG_HS80, ZRTP_AUTHTAG_HS32}, 2));
