@@ -304,7 +304,7 @@ MS2_PUBLIC MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name);
  * @param id a filter interface id
  * @return a newly allocated MSList of #MSFilterDesc.
 **/
-MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id);
+MS2_PUBLIC MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id);
 
 /**
  * Create encoder filter according to codec name.

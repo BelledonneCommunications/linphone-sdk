@@ -58,8 +58,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #if defined(_MSC_VER)
 #define MS2_PUBLIC	__declspec(dllexport)
+#define MS2_VAR_PUBLIC extern __declspec(dllexport)
 #else
 #define MS2_PUBLIC
+#define MS2_VAR_PUBLIC extern
 #endif
 
 #if defined(_WIN32_WCE)
