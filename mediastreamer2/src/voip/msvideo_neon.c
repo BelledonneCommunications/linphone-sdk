@@ -252,11 +252,10 @@ void rotate_down_scale_plane_neon_clockwise(int wDest, int hDest, int full_width
 	int hSrc = down_scale?wDest*2:wDest;
 	int wSrc = down_scale?hDest*2:hDest;
 	int src_incr = full_width*src_block_width;
-
+	int x,y;
 	dst += wDest - dest_block_width;
 	
 
-	int y,x;
 	for (y=0; y<hSrc; y+=src_block_width) {
 		uint8_t* dst2 = dst;
 		for (x=0; x<wSrc; x+=src_block_width) {
@@ -282,10 +281,10 @@ void rotate_down_scale_plane_neon_anticlockwise(int wDest, int hDest, int full_w
 	int hSrc = down_scale?wDest*2:wDest;
 	int wSrc = down_scale?hDest*2:hDest;
 	int src_incr = full_width*src_block_width;
+	int x,y;
 
 	dst += wDest * (hDest - dest_block_width);
 
-	int y,x;
 	for (y=0; y<hSrc; y+=src_block_width) {
 		uint8_t* dst2 = dst;
 		for (x=0; x<wSrc; x+=src_block_width) {
@@ -313,7 +312,7 @@ void rotate_down_scale_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8
 	int signed_dst_stride;
 	int incr;
 	int y_step=down_scale?2:1;
-
+	int x,y;
 
 	if (clockWise) {
 		/* ms_warning("start writing destination buffer from top right");*/
@@ -329,7 +328,6 @@ void rotate_down_scale_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8
 		signed_dst_stride = -wDest;
 	}
 
-	int x,y;
 	for (y=0; y<hSrc; y+=y_step) {
 		uint8_t* cb_dst2 = cb_dst;
 		uint8_t* cr_dst2 = cr_dst;

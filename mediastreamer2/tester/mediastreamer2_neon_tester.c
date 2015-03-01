@@ -194,15 +194,21 @@ spx_int32_t ms_inner_product_neon_intrinsics(const spx_int16_t *a, const spx_int
 
 
 static void inner_product_test(void) {
+#ifdef SPEEX_LIB_CPU_FEATURE_NEON
 #define SAMPLE_SIZE 64 /* has to be %8 and < 64 ! */
 #define ITERATIONS 1000000
     static spx_int16_t test_sample[SAMPLE_SIZE];
     static spx_int16_t test_sample2[SAMPLE_SIZE];
     int length = SAMPLE_SIZE;
     uint64_t soft_ms, neon_ms;
-
+    int i;
+    volatile spx_int32_t non_neon_result;
+    volatile spx_int32_t neon_result;
+    float percent_off;
+    bool_t fast_enough;
+    
     // put some values to process
-    for( int i = 0; i<SAMPLE_SIZE; i++){
+    for( i = 0; i<SAMPLE_SIZE; i++){
         test_sample[i] = ortp_random() % 16384;
         test_sample2[i] = ortp_random() % 16384;
     }
@@ -212,8 +218,7 @@ static void inner_product_test(void) {
 
     // disable neon & perform inner product
     libspeex_cpu_features &= ~SPEEX_LIB_CPU_FEATURE_NEON;
-    volatile spx_int32_t non_neon_result;
-    int i = ITERATIONS;
+    i = ITERATIONS;
     {
         uint64_t start = ms_get_cur_time_ms();
         while (i--) {
@@ -225,7 +230,6 @@ static void inner_product_test(void) {
     // enable neon and perform the same operation
     libspeex_cpu_features |= SPEEX_LIB_CPU_FEATURE_NEON;
     i = ITERATIONS;
-    volatile spx_int32_t neon_result;
     {
         uint64_t start = ms_get_cur_time_ms();
         while (i--) {
@@ -234,11 +238,11 @@ static void inner_product_test(void) {
         neon_ms = ms_get_cur_time_ms() - start;
     }
 
-    float percent_off = ((float)abs(non_neon_result-neon_result))/MAX(non_neon_result, neon_result)*100;
-    ms_debug("XCode: %10d, NON Neon: %10d - diff: %d - percent off: %f",
+    percent_off = ((float)abs(non_neon_result-neon_result))/MAX(non_neon_result, neon_result)*100;
+    ms_debug("%10d, NON Neon: %10d - diff: %d - percent off: %f",
                non_neon_result, neon_result, abs(non_neon_result-neon_result), percent_off);
 
-    bool_t fast_enough = (float)neon_ms < (float)soft_ms/5;
+    fast_enough = (float)neon_ms < (float)soft_ms/5;
 
     // we expect the result to be very similar and at least 5 times faster with NEON
     CU_ASSERT(percent_off < 1.0);
@@ -247,7 +251,9 @@ static void inner_product_test(void) {
     if( !fast_enough ){
         ms_error("NEON not fast enough it seems");
     }
-
+#else
+    ms_warning("Test skipped, not using the speex from git://git.linphone.org/speex.git with NEON support");
+#endif
 
 }
 

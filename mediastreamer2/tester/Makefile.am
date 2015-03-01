@@ -16,8 +16,8 @@ mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_adaptive_tester.c \
 	mediastreamer2_audio_stream_tester.c \
 	mediastreamer2_framework_tester.c \
-	mediastreamer2_player_tester.c
-
+	mediastreamer2_player_tester.c \
+	mediastreamer2_neon_tester.c
 
 AM_CPPFLAGS=\
 	-I$(top_srcdir)/ \

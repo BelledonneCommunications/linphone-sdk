@@ -194,7 +194,9 @@ static void test_complete_message_handler(const CU_pTest pTest,
 }
 
 static void test_all_tests_complete_message_handler(const CU_pFailureRecord pFailure) {
+#ifdef HAVE_CU_GET_SUITE
 	ms_warning("\n\n %s",CU_get_run_results_string());
+#endif
 }
 
 static void test_suite_init_failure_message_handler(const CU_pSuite pSuite) {
@@ -208,9 +210,13 @@ static void test_suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
 static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
 	ms_warning("Suite [%s] Test [%s]", pSuite->pName,pTest->pName);
 }
+
+
+#ifdef HAVE_CU_GET_SUITE
 static void test_suite_start_message_handler(const CU_pSuite pSuite) {
 	ms_warning("Suite [%s]", pSuite->pName);
 }
+#endif
 
 int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_name) {
 	int ret;
@@ -220,8 +226,9 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 	CU_set_all_test_complete_handler(test_all_tests_complete_message_handler);
 	CU_set_suite_init_failure_handler(test_suite_init_failure_message_handler);
 	CU_set_suite_cleanup_failure_handler(test_suite_cleanup_failure_message_handler);
+#ifdef HAVE_CU_GET_SUITE
 	CU_set_suite_start_handler(test_suite_start_message_handler);
-
+#endif
 	if( xml ){
 		xml_tmp_file = ms_strdup_printf("%s.tmp", xml_file);
 		CU_set_output_filename(xml_tmp_file);
