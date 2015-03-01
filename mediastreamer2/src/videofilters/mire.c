@@ -153,7 +153,11 @@ static MSFilter *mire_create_reader(MSWebCam *obj){
 	return ms_filter_new_from_desc(&ms_mire_desc);
 }
 
-MS2_VAR_PUBLIC MSWebCamDesc mire_desc={
+/*This declaration sets export attributes for windows. Test program want to use the mire webcam directly as it is not included by default in the 
+webcam manager*/
+MS2_VAR_PUBLIC MSWebCamDesc mire_desc;
+
+MSWebCamDesc mire_desc={
 	"Mire",
 	&mire_detect,
 	&mire_cam_init,
