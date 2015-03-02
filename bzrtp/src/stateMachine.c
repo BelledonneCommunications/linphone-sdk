@@ -1540,6 +1540,7 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
 			zrtpChannelContext->authTagAlgo = commitMessage->authTagAlgo;
 			zrtpChannelContext->keyAgreementAlgo = commitMessage->keyAgreementAlgo;
 			zrtpChannelContext->sasAlgo = commitMessage->sasAlgo;
+			updateCryptoFunctionPointers(zrtpChannelContext);
 
 			/* if we have a self DHPart packet (means we are in DHM mode) we must rebuild the self DHPart packet to be responder and not initiator */
 			/* as responder we must swap the aux shared secret between responder and initiator as they are computed using the H3 and not a constant string */
