@@ -89,7 +89,7 @@ list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_QSA=YES" "-DENABLE_ALSA=NO" "-DENABLE
 set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared")
 
 # ortp
-set(EP_ortp_LINKING_TYPE "--enable-static" "--disable-shared")
+set(EP_ortp_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # polarssl
 set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=0")
