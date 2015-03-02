@@ -77,7 +77,11 @@ extern void libmswebrtc_init();
 
 #define MEDIASTREAM_MAX_ICE_CANDIDATES 3
 
+#ifdef _MSC_VER
+extern __declspec(dllimport) MSWebCamDesc mire_desc;
+#else
 extern MSWebCamDesc mire_desc;
+#endif
 
 static int cond=1;
 
