@@ -121,6 +121,7 @@ static SoundDeviceDescription devices[]={
 	{	"Enspert",		"IGGY",		""		,	0,	320 ,0}, /*Wiko iggy*/
 	{ "Yota Devices Limited", "YD201", "msm8974", DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 48000 }, /* Yotaphone 2 */
 	{ "Sony", "D6503", "msm8974",DEVICE_HAS_BUILTIN_AEC_CRAPPY,280},
+	{ "Sony", "D6603", "msm8974",DEVICE_HAS_BUILTIN_AEC_CRAPPY,280},
 	{	NULL, NULL, NULL, 0, 0,0}
 };
 

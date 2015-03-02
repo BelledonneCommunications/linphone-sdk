@@ -753,13 +753,13 @@ struct _AlsaReadData{
 	int nchannels;
 	uint64_t read_samples;
 	MSTickerSynchronizer *ticker_synchronizer;
-
+	bool_t read_started;
+	bool_t write_started;
+	
 #ifdef THREADED_VERSION
 	ms_thread_t thread;
 	ms_mutex_t mutex;
 	MSBufferizer * bufferizer;
-	bool_t read_started;
-	bool_t write_started;
 #endif
 };
 
@@ -895,6 +895,7 @@ void alsa_read_postprocess(MSFilter *obj){
 #endif
 	ms_ticker_set_time_func(obj->ticker,NULL,NULL);
 	if (ad->handle!=NULL) snd_pcm_close(ad->handle);
+	ad->read_started=FALSE;
 	ad->handle=NULL;
 }
 
@@ -919,7 +920,8 @@ void alsa_read_process(MSFilter *obj){
 	int samples=(128*ad->rate)/8000;
 	int err;
 	mblk_t *om=NULL;
-	if (ad->handle==NULL && ad->pcmdev!=NULL){
+	if (ad->handle==NULL && ad->pcmdev!=NULL && !ad->read_started){
+		ad->read_started=TRUE;
 		ad->handle=alsa_open_r(ad->pcmdev,16,ad->nchannels==2,ad->rate);
 		if (ad->handle){
 			ad->read_samples=0;
@@ -1036,6 +1038,7 @@ void alsa_write_init(MSFilter *obj){
 void alsa_write_postprocess(MSFilter *obj){
 	AlsaReadData *ad=(AlsaReadData*)obj->data;
 	if (ad->handle!=NULL) snd_pcm_close(ad->handle);
+	ad->write_started=FALSE;
 	ad->handle=NULL;
 }
 
@@ -1079,7 +1082,8 @@ void alsa_write_process(MSFilter *obj){
 	int size;
 	int samples;
 	int err;
-	if (ad->handle==NULL && ad->pcmdev!=NULL){
+	if (ad->handle==NULL && ad->pcmdev!=NULL && !ad->write_started){
+		ad->write_started=TRUE;
 		ad->handle=alsa_open_w(ad->pcmdev,16,ad->nchannels==2,ad->rate);
 #ifdef EPIPE_BUGFIX
 		alsa_fill_w (ad->pcmdev);
