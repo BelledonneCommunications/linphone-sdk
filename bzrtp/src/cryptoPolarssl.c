@@ -104,7 +104,8 @@ uint8_t bzrtpCrypto_getMandatoryCryptoTypes(uint8_t algoType, uint8_t mandatoryT
 			return 2;
 		case ZRTP_KEYAGREEMENT_TYPE:
 			mandatoryTypes[0] = ZRTP_KEYAGREEMENT_DH3k;
-			return 1;
+			mandatoryTypes[1] = ZRTP_KEYAGREEMENT_Mult; /* we must add this one if we want to be able to make multistream */
+			return 2;
 		case ZRTP_SAS_TYPE:
 			mandatoryTypes[0] = ZRTP_SAS_B32;
 			return 1;
