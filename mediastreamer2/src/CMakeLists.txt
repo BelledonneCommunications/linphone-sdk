@@ -211,6 +211,7 @@ if(ENABLE_VIDEO)
 		utils/bits_rw.c
 		videofilters/extdisplay.c
 		videofilters/mire.c
+		videofilters/nowebcam.c
 		videofilters/pixconv.c
 		videofilters/sizeconv.c
 		voip/layouts.c
@@ -218,6 +219,7 @@ if(ENABLE_VIDEO)
 		voip/msvideo.c
 		voip/msvideo_neon.c
 		voip/msvideo_neon.h
+		voip/nowebcam.h
 		voip/rfc2429.h
 		voip/rfc3984.c
 		voip/videostarter.c
@@ -248,10 +250,8 @@ if(ENABLE_VIDEO)
 			utils/swscale.h
 			videofilters/h264dec.c
 			videofilters/jpegwriter.c
-			videofilters/nowebcam.c
 			videofilters/videodec.c
 			videofilters/videoenc.c
-			voip/nowebcam.h
 		)
 	endif()
 	if(GLX_FOUND)
