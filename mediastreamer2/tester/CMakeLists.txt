@@ -35,6 +35,9 @@ set(SOURCE_FILES
 if(ENABLE_VIDEO)
 	list(APPEND SOURCE_FILES mediastreamer2_video_stream_tester.c)
 endif()
+if(APPLE)
+	list(APPEND SOURCE_FILES mediastream_tester_cocoa.m)
+endif()
 
 add_executable(mediastreamer2_tester ${SOURCE_FILES})
 target_include_directories(mediastreamer2_tester PUBLIC ${CUNIT_INCLUDE_DIRS})
