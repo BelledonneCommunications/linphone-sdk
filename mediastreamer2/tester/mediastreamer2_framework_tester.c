@@ -66,8 +66,8 @@ static void filter_register_tester(void) {
 }
 #ifdef VIDEO_ENABLED
 static void test_video_processing (void) {
-	MSVideoSize src_size = MS_VIDEO_SIZE_VGA;
-	MSVideoSize src_dest = MS_VIDEO_SIZE_VGA;
+	MSVideoSize src_size = { MS_VIDEO_SIZE_VGA_W, MS_VIDEO_SIZE_VGA_H };
+	MSVideoSize src_dest = { MS_VIDEO_SIZE_VGA_W, MS_VIDEO_SIZE_VGA_H };
 	mblk_t * yuv_block2;
 	YuvBuf yuv;
 	int y_bytes_per_row = src_size.width + src_size.width%32 ;

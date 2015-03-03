@@ -506,10 +506,10 @@ static void video_stream_first_iframe_lost_vp8_base(bool_t use_avpf) {
 	video_stream_tester_destroy(margaux);
 }
 
-static void video_stream_first_iframe_lost_vp8() {
+static void video_stream_first_iframe_lost_vp8(void) {
 	video_stream_first_iframe_lost_vp8_base(FALSE);
 }
-static void avpf_video_stream_first_iframe_lost_vp8() {
+static void avpf_video_stream_first_iframe_lost_vp8(void) {
 	video_stream_first_iframe_lost_vp8_base(TRUE);
 }
 static void avpf_high_loss_video_stream_base(float rate) {
@@ -584,7 +584,8 @@ static void video_configuration_stream(void) {
 	asked.bitrate_limit=expected.bitrate_limit=1024000;
 	asked.required_bitrate=expected.required_bitrate=1024000;
 	asked.fps=expected.fps=12;
-	asked.vsize=expected.vsize=MS_VIDEO_SIZE_VGA;
+	asked.vsize.width=expected.vsize.width=MS_VIDEO_SIZE_VGA_W;
+	asked.vsize.height=expected.vsize.height=MS_VIDEO_SIZE_VGA_H;
 	video_configuration_stream_base(&asked,&expected,VP8_PAYLOAD_TYPE);
 
 	/*Test video rotation (inverted height <-> width). Not supported on desktop
