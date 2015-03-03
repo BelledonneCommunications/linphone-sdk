@@ -69,7 +69,6 @@ libmediastreamer2_tester_ios_la_SOURCES      = mediastreamer2_tester_ios.m
 libmediastreamer2_tester_ios_la_LIBTOOLFLAGS = --tag=CC
 LDADD+=libmediastreamer2_tester_ios.la
 
-mediastreamer2_tester_SOURCES +=  mediastreamer2_neon_tester.c
 AM_CFLAGS    += $(SPEEX_CFLAGS)
 AM_OBJCFLAGS  = $(AM_CFLAGS)
 endif
