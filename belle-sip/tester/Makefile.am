@@ -3,21 +3,23 @@ if ENABLE_TESTS
 
 noinst_PROGRAMS=belle_sip_tester belle_sip_object_describe belle_sip_parse belle_http_get belle_sip_resolve
 
-belle_sip_tester_SOURCES=	belle_sip_tester.c belle_sip_tester.h\
+belle_sip_tester_SOURCES= \
+				auth_helper_tester.c \
+				belle_generic_uri_tester.c \
+				belle_http_tester.c \
 				belle_sdp_tester.c \
-				belle_sip_uri_tester.c \
+				belle_sip_core_tester.c \
+				belle_sip_dialog_tester.c \
 				belle_sip_headers_tester.c \
 				belle_sip_message_tester.c \
-				auth_helper_tester.c \
-				cast_test.c \
-				belle_sip_register_tester.c \
-				belle_sip_dialog_tester.c \
 				belle_sip_refresher_tester.c \
+				belle_sip_register_tester.c \
 				belle_sip_resolver_tester.c \
-				belle_sip_core_tester.c \
-				belle_generic_uri_tester.c \
+				belle_sip_tester.c belle_sip_tester.h\
+				belle_sip_uri_tester.c \
+				cast_test.c \
 				register_tester.h \
-				belle_http_tester.c
+				tester_utils.c tester_utils.h
 
 
 belle_sip_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS) $(STRICT_OPTIONS_CC) $(TLS_CFLAGS)

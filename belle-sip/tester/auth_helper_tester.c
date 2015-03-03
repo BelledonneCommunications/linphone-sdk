@@ -92,7 +92,7 @@ static void test_generate_and_parse_certificates(void) {
 	belle_sip_signing_key_t *key, *parsed_key;
 	char *pem_certificate, *pem_parsed_certificate, *pem_key, *pem_parsed_key;
 	int ret = 0;
-	char *belle_sip_certificate_temporary_dir = belle_sip_strdup_printf("%s%s", belle_sip_tester_writable_dir_prefix, TEMPORARY_CERTIFICATE_DIR);
+	char *belle_sip_certificate_temporary_dir = belle_sip_strdup_printf("%s%s", tester_writable_dir_prefix, TEMPORARY_CERTIFICATE_DIR);
 
 	/* create 2 certificates in the temporary certificate directory (TODO : set the directory in a absolute path?? where?)*/
 	ret = belle_sip_generate_self_signed_certificate(belle_sip_certificate_temporary_dir, "test_certificate1", &certificate, &key);
