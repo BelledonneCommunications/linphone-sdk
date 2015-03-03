@@ -22,7 +22,7 @@
 
 set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git")
 set(EP_cunit_GIT_TAG_LATEST "linphone")
-set(EP_cunit_GIT_TAG "b49e452898f6cafb9de9adc7ecbe7f2e5a4c92b1")
+set(EP_cunit_GIT_TAG "a57904b4b28f312e70a45fbb3128b75a915c3a85")
 
 set(EP_cunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=1" "-DENABLE_CONSOLE=0")
 set(EP_cunit_LINKING_TYPE "-DENABLE_STATIC=0")
