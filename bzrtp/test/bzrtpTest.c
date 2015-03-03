@@ -29,10 +29,16 @@
 #ifdef HAVE_LIBXML2
 #include <libxml/parser.h>
 #endif
-
 	
 int main(int argc, char *argv[] ) {
+	int i, res=0;
 	CU_pSuite cryptoWrapperTestSuite, cryptoUtilsTestSuite, parserTestSuite;
+	CU_pSuite *suites[] = {
+		&cryptoWrapperTestSuite,
+		&cryptoUtilsTestSuite,
+		&parserTestSuite,
+		NULL
+	};
 	
 #ifdef HAVE_LIBXML2
 	xmlInitParser();
@@ -68,13 +74,9 @@ int main(int argc, char *argv[] ) {
 	CU_add_test(parserTestSuite, "State machine", test_stateMachine);
 
 	/* Run all suites */
-	printf("\n\n#### Run the Bzrtp Crypto Wrappers tests suite\n");
-	CU_basic_run_suite(cryptoWrapperTestSuite);
-	printf("\n\n#### Run the Bzrtp Crypto Utils tests suite\n");
-	CU_basic_run_suite(cryptoUtilsTestSuite);
-	printf("\n\n#### Run the Bzrtp ZRTP Packet Parser tests suite\n");
-	CU_basic_run_suite(parserTestSuite);
-
+	for(i=0; suites[i]; i++){
+		res = res || CU_basic_run_suite(*suites[i]);
+	}
 
 	/* cleanup the CUnit registry */
 	CU_cleanup_registry();
@@ -84,6 +86,6 @@ int main(int argc, char *argv[] ) {
 	xmlCleanupParser();
 #endif
 
-	return 0;
+	return res;
 }
 
