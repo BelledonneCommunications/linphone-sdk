@@ -66,7 +66,7 @@ int belle_sip_tester_ipv6_available(void){
 	return ipv6_available;
 }
 
-static void log_handler(belle_sip_log_level lev, const char *fmt, va_list args) {
+static void log_handler(int lev, const char *fmt, va_list args) {
 	belle_sip_set_log_file(stderr);
 	belle_sip_log_handler(lev, fmt, args);
 	if (log_file){
@@ -77,9 +77,9 @@ static void log_handler(belle_sip_log_level lev, const char *fmt, va_list args) 
 
 void belle_sip_tester_init() {
 	belle_sip_log_handler = belle_sip_get_log_handler();
-	belle_sip_set_log_handler(log_handler);
+	belle_sip_set_log_handler((belle_sip_log_function_t)log_handler);
 
-	tester_init();
+	tester_init(log_handler);
 	belle_sip_init_sockets();
 	belle_sip_object_enable_marshal_check(TRUE);
 	ipv6_available=_belle_sip_tester_ipv6_available();
@@ -142,10 +142,10 @@ int main (int argc, char *argv[]) {
 			CHECK_ARG("--log-file", ++i, argc);
 			log_file=fopen(argv[i],"w");
 			if (!log_file) {
-				tester_fprintf(stderr, "Cannot open file [%s] for writing logs because [%s]",argv[i],strerror(errno));
+				belle_sip_error("Cannot open file [%s] for writing logs because [%s]",argv[i],strerror(errno));
 				return -2;
 			} else {
-				tester_fprintf(stdout,"Redirecting traces to file [%s]",argv[i]);
+				belle_sip_message("Redirecting traces to file [%s]",argv[i]);
 			}
 		} else if (strcmp(argv[i],"--domain")==0){
 			CHECK_ARG("--domain", ++i, argc);
