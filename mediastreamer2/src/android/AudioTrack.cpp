@@ -210,64 +210,68 @@ namespace fake_android{
 	
 	bool AudioTrackImpl::init(Library *lib){
 		bool fail=false;
-		AudioTrackImpl *impl=new AudioTrackImpl(lib);
 		
-		if (!impl->mCtor.isFound()) {
-			ms_error("AudioTrack::AudioTrack(...) not found");
-			fail=true;
-		}
-		if (!impl->mDtor.isFound()) {
-			ms_error("AudioTrack::~AudioTrack() not found");
-			fail=true;
-		}
-		if (!impl->mStart.isFound()) {
-			ms_error("AudioTrack::start() not found");
-			fail=true;
-		}
-		if (!impl->mStop.isFound()) {
-			ms_error("AudioTrack::stop() not found");
-			fail=true;
-		}
-		if (!impl->mInitCheck.isFound()) {
-			ms_warning("AudioTrack::initCheck() not found (normal in android 4.3)");
-		}
-		if (!impl->mFlush.isFound()) {
-			ms_error("AudioTrack::flush() not found");
-			fail=true;
-		}
-		if (!impl->mLatency.isFound()) {
-			ms_warning("AudioTrack::latency() not found (normal in android 4.3)");
-		}
-		if (!impl->mGetPosition.isFound()) {
-			ms_error("AudioTrack::getPosition() not found");
-			fail=true;
-		}
-		if (impl->mSdkVersion>=19 && !impl->mDefaultCtor.isFound()) {
-			ms_error("AudioTrack::AudioTrack() not found");
-			fail=true;
-		}
-		if (!fail){
-			sImpl=impl;
-			if (impl->mSdkVersion>=19){
-				impl->mUseRefCount=true;
-				
-				AudioTrack *test=new AudioTrack();
-				//dumpMemory(test->getRealThis(),AudioTrackImpl::sObjSize);
-				ptrdiff_t offset=findRefbaseOffset(test->getRealThis(),AudioTrackImpl::sObjSize);
-				
-				if (offset>(ptrdiff_t)sizeof(void*)){
-					ms_message("AudioTrack uses virtual RefBase despite it is 4.4");
-					impl->mRefBaseOffset=offset;
-				}else{
-					ms_message("AudioTrack needs refcounting.");
-				}
-				sp<AudioTrack> st(test);
+		if (sImpl==NULL){
+			AudioTrackImpl *impl=new AudioTrackImpl(lib);
+			
+			if (!impl->mCtor.isFound()) {
+				ms_error("AudioTrack::AudioTrack(...) not found");
+				fail=true;
 			}
-			return true;
-		}else{
-			delete impl;
-			return false;
+			if (!impl->mDtor.isFound()) {
+				ms_error("AudioTrack::~AudioTrack() not found");
+				fail=true;
+			}
+			if (!impl->mStart.isFound()) {
+				ms_error("AudioTrack::start() not found");
+				fail=true;
+			}
+			if (!impl->mStop.isFound()) {
+				ms_error("AudioTrack::stop() not found");
+				fail=true;
+			}
+			if (!impl->mInitCheck.isFound()) {
+				ms_warning("AudioTrack::initCheck() not found (normal in android 4.3)");
+			}
+			if (!impl->mFlush.isFound()) {
+				ms_error("AudioTrack::flush() not found");
+				fail=true;
+			}
+			if (!impl->mLatency.isFound()) {
+				ms_warning("AudioTrack::latency() not found (normal in android 4.3)");
+			}
+			if (!impl->mGetPosition.isFound()) {
+				ms_error("AudioTrack::getPosition() not found");
+				fail=true;
+			}
+			if (impl->mSdkVersion>=19 && !impl->mDefaultCtor.isFound()) {
+				ms_error("AudioTrack::AudioTrack() not found");
+				fail=true;
+			}
+			if (!fail){
+				if (impl->mSdkVersion>=19){
+					impl->mUseRefCount=true;
+					
+					AudioTrack *test=new AudioTrack();
+					//dumpMemory(test->getRealThis(),AudioTrackImpl::sObjSize);
+					ptrdiff_t offset=findRefbaseOffset(test->getRealThis(),AudioTrackImpl::sObjSize);
+					
+					if (offset>(ptrdiff_t)sizeof(void*)){
+						ms_message("AudioTrack uses virtual RefBase despite it is 4.4");
+						impl->mRefBaseOffset=offset;
+					}else{
+						ms_message("AudioTrack needs refcounting.");
+					}
+					sp<AudioTrack> st(test);
+				}
+				sImpl=impl;
+				return true;
+			}else{
+				delete impl;
+				return false;
+			}
 		}
+		return true;
 	}
 	
 	AudioTrackImpl * AudioTrackImpl::sImpl=NULL;

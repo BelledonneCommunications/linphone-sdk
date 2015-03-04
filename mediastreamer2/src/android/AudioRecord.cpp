@@ -142,46 +142,49 @@ void *AudioRecord::getRealThis()const{
 
 bool AudioRecordImpl::init(Library *lib){
 	bool fail=false;
-	AudioRecordImpl *impl=new AudioRecordImpl(lib);
-	if (!impl->mCtorBeforeAPI17.isFound() && !impl->mCtor.isFound()) {
-		fail=true;
-		ms_error("AudioRecord::AudioRecord(...) not found.");
-	}
-	if (!impl->mDtor.isFound()) {
-		fail=true;
-		ms_error("AudioRecord::~AudioRecord() dtor not found.");
-	}
-	if (!impl->mInitCheck.isFound()) {
-		ms_warning("AudioRecord::initCheck() not found (normal on Android 4.4)");
-	}
-	if (!impl->mStop.isFound()) {
-		fail=true;
-		ms_error("AudioRecord::stop() not found.");
-	}
-	if (!impl->mStart.isFound()) {
-		fail=true;
-		ms_error("AudioRecord::start() not found.");
-	}
-	if (impl->mApiVersion>=19 && !impl->mDefaultCtor.isFound()){
-		fail=true;
-		ms_error("AudioRecord::AudioRecord() not found.");
-	}
-	if (fail){
-		delete impl;
-		return false;
-	}
-	sImpl=impl;
-	if (impl->mApiVersion>=19){
-		AudioRecord *test=new AudioRecord();
-		//dumpMemory(test->getRealThis(),AudioRecordImpl::sObjSize);
-		if (findRefbaseOffset(test->getRealThis(),AudioRecordImpl::sObjSize)>(ptrdiff_t)sizeof(void*)){
-			ms_message("AudioRecord does not need refcounting despite it is 4.4");
-			impl->mUseRefcount=false;
-		}else{
-			ms_message("AudioRecord needs refcounting.");
-			impl->mUseRefcount=true;
+	
+	if (!sImpl){
+		AudioRecordImpl *impl=new AudioRecordImpl(lib);
+		if (!impl->mCtorBeforeAPI17.isFound() && !impl->mCtor.isFound()) {
+			fail=true;
+			ms_error("AudioRecord::AudioRecord(...) not found.");
 		}
-		sp<AudioRecord> st(test);
+		if (!impl->mDtor.isFound()) {
+			fail=true;
+			ms_error("AudioRecord::~AudioRecord() dtor not found.");
+		}
+		if (!impl->mInitCheck.isFound()) {
+			ms_warning("AudioRecord::initCheck() not found (normal on Android 4.4)");
+		}
+		if (!impl->mStop.isFound()) {
+			fail=true;
+			ms_error("AudioRecord::stop() not found.");
+		}
+		if (!impl->mStart.isFound()) {
+			fail=true;
+			ms_error("AudioRecord::start() not found.");
+		}
+		if (impl->mApiVersion>=19 && !impl->mDefaultCtor.isFound()){
+			fail=true;
+			ms_error("AudioRecord::AudioRecord() not found.");
+		}
+		if (fail){
+			delete impl;
+			return false;
+		}
+		if (impl->mApiVersion>=19){
+			AudioRecord *test=new AudioRecord();
+			//dumpMemory(test->getRealThis(),AudioRecordImpl::sObjSize);
+			if (findRefbaseOffset(test->getRealThis(),AudioRecordImpl::sObjSize)>(ptrdiff_t)sizeof(void*)){
+				ms_message("AudioRecord does not need refcounting despite it is 4.4");
+				impl->mUseRefcount=false;
+			}else{
+				ms_message("AudioRecord needs refcounting.");
+				impl->mUseRefcount=true;
+			}
+			sp<AudioRecord> st(test);
+		}
+		sImpl=impl;
 	}
 	return true;
 }
