@@ -41,9 +41,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static FILE * log_file = NULL;
 static OrtpLogFunc ortp_log_handler;
 
-// static const char* tester_fileroot = SOUND_FILE_PATH;
-// static const char* tester_writable_dir= WRITE_FILE_PATH;
-
 static void log_handler(int lev, const char *fmt, va_list args) {
 	ortp_set_log_file(stderr);
 	ortp_log_handler(lev, fmt, args);
