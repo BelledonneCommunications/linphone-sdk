@@ -77,7 +77,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 
 void belle_sip_tester_init() {
 	belle_sip_log_handler = belle_sip_get_log_handler();
-	belle_sip_set_log_handler((belle_sip_log_function_t)log_handler);
+	belle_sip_set_log_handler(belle_sip_logv_out);
 
 	tester_init(log_handler);
 	belle_sip_init_sockets();

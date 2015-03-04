@@ -16,6 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "tester_utils.h"
 
 #include <stdlib.h>
@@ -49,7 +53,14 @@ char* tester_xml_file = NULL;
 int   tester_xml_enabled = 0;
 char * suite_name;
 char * test_name;
-void (*tester_printf)(int level, const char *fmt, va_list args);
+void (*tester_printf_va)(int level, const char *fmt, va_list args);
+
+static void tester_printf(int level, const char *fmt, ...) {
+	va_list args;
+	va_start (args, fmt);
+	tester_printf_va(level, fmt, args);
+	va_end (args);
+}
 
 void tester_helper(const char *name, const char* additionnal_helper) {
 	fprintf(stderr,"%s --help\n"
@@ -63,14 +74,14 @@ void tester_helper(const char *name, const char* additionnal_helper) {
 #endif
 		"\t\t\t--xml\n"
 		"\t\t\t--xml-file <xml file prefix (will be suffixed by '-Results.xml')>\n"
-		"And additionnaly:\n"
+		"And additionally:\n"
 		"%s"
 		, name
 		, additionnal_helper);
 }
 
 void tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args)) {
-	tester_printf = ftester_printf;
+	tester_printf_va = ftester_printf;
 }
 
 int tester_parse_args(int argc, char **argv, int argid)
@@ -159,7 +170,7 @@ int tester_test_suite_index(const char *suite_name) {
 void tester_list_suites() {
 	int j;
 	for(j=0;j<tester_nb_test_suites();j++) {
-		tester_printf(BELLE_SIP_LOG_MESSAGE, "%s\n", tester_test_suite_name(j));
+		tester_printf(BELLE_SIP_LOG_MESSAGE, "%s", tester_test_suite_name(j));
 	}
 }
 
@@ -167,7 +178,7 @@ void tester_list_suite_tests(const char *suite_name) {
 	int j;
 	for( j = 0; j < tester_nb_tests(suite_name); j++) {
 		const char *test_name = tester_test_name(suite_name, j);
-		tester_printf(BELLE_SIP_LOG_MESSAGE, "%s\n", test_name);
+		tester_printf(BELLE_SIP_LOG_MESSAGE, "%s", test_name);
 	}
 }
 
@@ -211,26 +222,26 @@ const char * tester_test_name(const char *suite_name, int test_index) {
 static void test_all_tests_complete_message_handler(const CU_pFailureRecord pFailure) {
 #ifdef HAVE_CU_GET_SUITE
 	char * results = CU_get_run_results_string();
-	tester_printf(BELLE_SIP_LOG_MESSAGE,"\n\n %s",results);
+	tester_printf(BELLE_SIP_LOG_MESSAGE,"\n%s",results);
 	belle_sip_free(results);
 #endif
 }
 
 static void test_suite_init_failure_message_handler(const CU_pSuite pSuite) {
-	tester_printf(BELLE_SIP_LOG_MESSAGE,"Suite initialization failed for [%s].", pSuite->pName);
+	tester_printf(BELLE_SIP_LOG_ERROR,"Suite initialization failed for [%s].", pSuite->pName);
 }
 
 static void test_suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
-	tester_printf(BELLE_SIP_LOG_MESSAGE,"Suite cleanup failed for [%s].", pSuite->pName);
+	tester_printf(BELLE_SIP_LOG_ERROR,"Suite cleanup failed for [%s].", pSuite->pName);
 }
 
 #ifdef HAVE_CU_GET_SUITE
-static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
-	tester_printf(BELLE_SIP_LOG_MESSAGE,"\nSuite [%s] Test [%s]\n", pSuite->pName,pTest->pName);
+static void test_suite_start_message_handler(const CU_pSuite pSuite) {
+	tester_printf(BELLE_SIP_LOG_MESSAGE,"\nSuite [%s] started\n", pSuite->pName);
 }
 
-static void test_suite_start_message_handler(const CU_pSuite pSuite) {
-	tester_printf(BELLE_SIP_LOG_MESSAGE,"\nSuite [%s]", pSuite->pName);
+static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
+	tester_printf(BELLE_SIP_LOG_MESSAGE,"Suite [%s] Test [%s] started", pSuite->pName,pTest->pName);
 }
 #endif
 
@@ -239,18 +250,21 @@ static void test_complete_message_handler(const CU_pTest pTest,
 	const CU_pSuite pSuite,
 	const CU_pFailureRecord pFailureList) {
 	int i;
+	char * result = belle_sip_strdup_printf("Suite [%s] Test [%s]", pSuite->pName, pTest->pName);
 	CU_pFailureRecord pFailure = pFailureList;
 	if (pFailure) {
-		tester_printf(BELLE_SIP_LOG_MESSAGE,"\nSuite [%s], Test [%s] had failures:", pSuite->pName, pTest->pName);
+		result = belle_sip_strcat_printf(result, " failed:");
+		for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
+			result = belle_sip_strcat_printf(result, "\n    %d. %s:%u  - %s", i,
+				(NULL != pFailure->strFileName) ? pFailure->strFileName : "",
+				pFailure->uiLineNumber,
+				(NULL != pFailure->strCondition) ? pFailure->strCondition : "");
+		}
 	} else {
-		tester_printf(BELLE_SIP_LOG_MESSAGE," passed");
+		result = belle_sip_strcat_printf(result, " passed");
 	}
-	for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
-		tester_printf(BELLE_SIP_LOG_MESSAGE,"\n    %d. %s:%u  - %s", i,
-			(NULL != pFailure->strFileName) ? pFailure->strFileName : "",
-			pFailure->uiLineNumber,
-			(NULL != pFailure->strCondition) ? pFailure->strCondition : "");
-	}
+	tester_printf(BELLE_SIP_LOG_MESSAGE,"%s\n", result);
+	belle_sip_free(result);
 }
 
 int tester_run_tests(const char *suite_name, const char *test_name) {
@@ -282,30 +296,26 @@ int tester_run_tests(const char *suite_name, const char *test_name) {
 
 #if !HAVE_CU_GET_SUITE
 		if( suite_name ){
-			tester_printf(BELLE_SIP_LOG_MESSAGE, "Tester compiled without CU_get_suite() function, running all tests instead of suite '%s'\n", suite_name);
+			tester_printf(BELLE_SIP_LOG_MESSAGE, "Tester compiled without CU_get_suite() function, running all tests instead of suite '%s'", suite_name);
 		}
 #else
-		if (!test_name && suite_name && strcmp("Call",suite_name) == 0) {
-	/*special case for suite Call which is now splitted into simple and multi*/
-			CU_run_suite(CU_get_suite("Single call"));
-			CU_run_suite(CU_get_suite("Multi call"));
-		} else if (suite_name){
+		if (suite_name){
 			CU_pSuite suite;
 			suite=CU_get_suite(suite_name);
 			if (!suite) {
-				fprintf(BELLE_SIP_LOG_ERROR, "Could not find suite '%s'. Available suites are:", suite_name);
-				liblinphone_tester_list_suites();
+				tester_printf(BELLE_SIP_LOG_ERROR, "Could not find suite '%s'. Available suites are:", suite_name);
+				tester_list_suites();
 				return -1;
 			} else if (test_name) {
 				CU_pTest test=CU_get_test_by_name(test_name, suite);
 				if (!test) {
-					fprintf(BELLE_SIP_LOG_ERROR, "Could not find test '%s' in suite '%s'. Available tests are:", test_name, suite_name);
-				// do not use suite_name here, since this method is case sensitive
-					liblinphone_tester_list_suite_tests(suite->pName);
+					tester_printf(BELLE_SIP_LOG_ERROR, "Could not find test '%s' in suite '%s'. Available tests are:", test_name, suite_name);
+					// do not use suite_name here, since this method is case sensitive
+					tester_list_suite_tests(suite->pName);
 					return -2;
 				} else {
 					CU_ErrorCode err= CU_run_test(suite, test);
-					if (err != CUE_SUCCESS) fprintf(BELLE_SIP_LOG_ERROR, "CU_basic_run_test error %d", err);
+					if (err != CUE_SUCCESS) tester_printf(BELLE_SIP_LOG_ERROR, "CU_basic_run_test error %d", err);
 				}
 			} else {
 				CU_run_suite(suite);
@@ -333,7 +343,7 @@ int tester_run_tests(const char *suite_name, const char *test_name) {
 /* Redisplay list of failed tests on end */
 	if (CU_get_number_of_failure_records()){
 		CU_basic_show_failures(CU_get_failure_list());
-		tester_printf(BELLE_SIP_LOG_MESSAGE,"\n");
+		tester_printf(BELLE_SIP_LOG_MESSAGE,"");
 	}
 
 	CU_cleanup_registry();
