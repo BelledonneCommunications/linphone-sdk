@@ -210,7 +210,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_FILEREC
 		| FILTER_MASK_FILEPLAY | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
 	bool_t send_silence = TRUE;
-	char* recorded_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), DTMFGEN_FILE_NAME);
+	char* recorded_file = ms_strdup_printf("%s/%s", bc_tester_writable_dir_prefix, DTMFGEN_FILE_NAME);
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();

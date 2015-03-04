@@ -189,7 +189,7 @@ static void fileplay_soundwrite(const char *filename) {
 }
 
 static void fileplay_soundwrite_from_file(const char *filepath){
-    char* file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), filepath);
+    char* file = ms_strdup_printf("%s/%s", bc_tester_read_dir_prefix, filepath);
     fileplay_soundwrite(file);
     ms_free(file);
 }
@@ -366,7 +366,7 @@ static void soundread_filerec_fileplay_soundwrite(void) {
 	int playback_sample_rate = 8000;
 	int capture_nchannels = 1;
 	int playback_nchannels = 1;
-    char *writable_filename = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), SOUNDREAD_FILE_NAME);
+    char *writable_filename = ms_strdup_printf("%s/%s", bc_tester_writable_dir_prefix, SOUNDREAD_FILE_NAME);
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();

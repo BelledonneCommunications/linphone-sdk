@@ -202,8 +202,8 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);
 	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);
 
-	char* file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), HELLO_16K_1S_FILE);
-	char* recorded_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), RECORDED_16K_1S_FILE);
+	char* file = ms_strdup_printf("%s/%s", bc_tester_read_dir_prefix, HELLO_16K_1S_FILE);
+	char* recorded_file = ms_strdup_printf("%s/%s", bc_tester_writable_dir_prefix, RECORDED_16K_1S_FILE);
 
 	marielle->user_data = recorded_file;
 	params.enabled=TRUE;
@@ -310,7 +310,8 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 
 					if (rb&&ortp_loss_rate_estimator_process_report_block(ctx->estimator,&ms->sessions.rtp_session->rtp,rb)){
 						float diff = fabs(ortp_loss_rate_estimator_get_value(ctx->estimator) - ctx->loss_rate);
-						CU_ASSERT_IN_RANGE(diff, 0, 10);
+						CU_ASSERT_TRUE(diff >= 0);
+						CU_ASSERT_TRUE(diff <= 10);
 					}
 				} while (rtcp_next_packet(evd->packet));
 			}
@@ -404,7 +405,8 @@ void upload_bitrate(const char* codec, int payload, int target_bw, int expect_bw
 		media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 		iterate_adaptive_stream(marielle, margaux, 15000, NULL, 0);
 		upload_bw=media_stream_get_up_bw(&marielle->audio_stream->ms) / 1000;
-		CU_ASSERT_IN_RANGE(upload_bw, expect_bw-2, expect_bw+2);
+		CU_ASSERT_TRUE(upload_bw >= expect_bw-2);
+		CU_ASSERT_TRUE(upload_bw <= expect_bw+2);
 		stop_adaptive_stream(marielle,margaux);
 	}
 }
@@ -452,8 +454,10 @@ void adaptive_video(int max_bw, int exp_min_bw, int exp_max_bw, int loss_rate, i
 			stream_manager_t * marielle, * margaux;
 			start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300*1000, max_bw*1000, loss_rate, 50,0);
 			iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 7);
-			CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, exp_min_loss, exp_max_loss);
-			CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, exp_min_bw, exp_max_bw);
+			CU_ASSERT_TRUE(marielle->adaptive_stats.loss_estim >= exp_min_loss);
+			CU_ASSERT_TRUE(marielle->adaptive_stats.loss_estim <= exp_max_loss);
+			CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim >= exp_min_bw);
+			CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim <= exp_max_bw);
 			stop_adaptive_stream(marielle,margaux);
 		} else {
 			/*ortp_loss_estimator rely on the fact that we receive some packets: however when
