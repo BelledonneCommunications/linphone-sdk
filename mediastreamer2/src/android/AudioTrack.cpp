@@ -249,6 +249,7 @@ namespace fake_android{
 				fail=true;
 			}
 			if (!fail){
+				sImpl=impl;
 				if (impl->mSdkVersion>=19){
 					impl->mUseRefCount=true;
 					
@@ -264,7 +265,6 @@ namespace fake_android{
 					}
 					sp<AudioTrack> st(test);
 				}
-				sImpl=impl;
 				return true;
 			}else{
 				delete impl;

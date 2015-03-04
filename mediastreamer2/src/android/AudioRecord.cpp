@@ -172,6 +172,7 @@ bool AudioRecordImpl::init(Library *lib){
 			delete impl;
 			return false;
 		}
+		sImpl=impl;
 		if (impl->mApiVersion>=19){
 			AudioRecord *test=new AudioRecord();
 			//dumpMemory(test->getRealThis(),AudioRecordImpl::sObjSize);
@@ -184,7 +185,6 @@ bool AudioRecordImpl::init(Library *lib){
 			}
 			sp<AudioRecord> st(test);
 		}
-		sImpl=impl;
 	}
 	return true;
 }
