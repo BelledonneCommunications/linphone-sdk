@@ -121,6 +121,34 @@ char *belle_sip_strdup_printf(const char *fmt,...){
         return ret;
 }
 
+char * belle_sip_strcat_vprintf(char* dst, const char *fmt, va_list ap){
+	char *ret;
+	unsigned long dstlen, retlen;
+
+	ret=belle_sip_strdup_vprintf(fmt, ap);
+	dstlen = strlen(dst);
+	retlen = strlen(ret);
+
+	if ((dst = belle_sip_realloc(dst, dstlen+retlen+1)) != NULL){
+		strncat(dst,ret,retlen);
+		dst[dstlen+retlen] = '\0';
+		belle_sip_free(ret);
+		return dst;
+	} else {
+		belle_sip_free(ret);
+		return NULL;
+	}
+}
+
+char *belle_sip_strcat_printf(char* dst, const char *fmt,...){
+	char *ret;
+	va_list args;
+	va_start (args, fmt);
+	ret=belle_sip_strcat_vprintf(dst, fmt, args);
+	va_end (args);
+	return ret;
+}
+
 belle_sip_error_code belle_sip_snprintf(char *buff, size_t buff_size, size_t *offset, const char *fmt, ...) {
 	belle_sip_error_code ret;
 	va_list args;
