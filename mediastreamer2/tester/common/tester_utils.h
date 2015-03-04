@@ -56,21 +56,7 @@ void bc_tester_init(void (*bc_tester_printf)(int level, const char *fmt, va_list
 void bc_tester_helper(const char *name, const char* additionnal_helper);
 int bc_tester_parse_args(int argc, char** argv, int argid);
 int bc_tester_start();
-
-
-int bc_tester_test_suite_index(const char *suite_name);
-void bc_tester_list_suites();
-void bc_tester_list_suite_tests(const char *suite_name);
-int bc_tester_test_index(const char *suite_name, const char *test_name);
-int bc_tester_nb_test_suites(void);
-int bc_tester_nb_tests(const char *suite_name);
-const char * bc_tester_test_suite_name(int suite_index);
-const char * bc_tester_test_name(const char *suite_name, int test_index);
-int bc_tester_run_tests(const char *suite_name, const char *test_name);
-
 void bc_tester_add_suite(test_suite_t *suite);
-int bc_tester_run_suite(test_suite_t *suite);
-
 void bc_tester_uninit();
 
 
