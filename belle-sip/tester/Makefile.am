@@ -19,7 +19,7 @@ belle_sip_tester_SOURCES= \
 				belle_sip_uri_tester.c \
 				cast_test.c \
 				register_tester.h \
-				tester_utils.c tester_utils.h
+				common/tester_utils.c common/tester_utils.h
 
 
 belle_sip_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS) $(STRICT_OPTIONS_CC) $(TLS_CFLAGS)

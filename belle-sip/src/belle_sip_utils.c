@@ -56,6 +56,9 @@ void belle_sip_set_log_handler(belle_sip_log_function_t func){
         belle_sip_logv_out=func;
 }
 
+belle_sip_log_function_t belle_sip_get_log_handler(){
+        return belle_sip_logv_out;
+}
 
 unsigned int __belle_sip_log_mask=BELLE_SIP_LOG_WARNING|BELLE_SIP_LOG_ERROR|BELLE_SIP_LOG_FATAL;
 

@@ -20,6 +20,8 @@
 #endif
 #include "belle_sip_tester.h"
 
+#include <belle-sip/utils.h>
+
 #include <stdio.h>
 #include "CUnit/Basic.h"
 #include "CUnit/MyMem.h"
@@ -35,6 +37,8 @@ extern const char *test_domain;
 extern const char *auth_domain;
 
 static const char *belle_sip_tester_root_ca_path = NULL;
+static FILE * log_file = NULL;
+static belle_sip_log_function_t belle_sip_log_handler;
 
 static belle_sip_object_pool_t *pool;
 
@@ -62,7 +66,20 @@ int belle_sip_tester_ipv6_available(void){
 	return ipv6_available;
 }
 
+static void log_handler(belle_sip_log_level lev, const char *fmt, va_list args) {
+	belle_sip_set_log_file(stderr);
+	belle_sip_log_handler(lev, fmt, args);
+	if (log_file){
+		belle_sip_set_log_file(log_file);
+		belle_sip_log_handler(lev, fmt, args);
+	}
+}
+
 void belle_sip_tester_init() {
+	belle_sip_log_handler = belle_sip_get_log_handler();
+	belle_sip_set_log_handler(log_handler);
+
+	tester_init();
 	belle_sip_init_sockets();
 	belle_sip_object_enable_marshal_check(TRUE);
 	ipv6_available=_belle_sip_tester_ipv6_available();
@@ -98,6 +115,7 @@ void belle_sip_tester_uninit(void) {
 static const char* belle_sip_helper =
 		"\t\t\t--verbose\n"
 		"\t\t\t--silent\n"
+		"\t\t\t--log-file <output log file path>\n"
 		"\t\t\t--domain <test sip domain>\n"
 		"\t\t\t--auth-domain <test auth domain>\n"
 		"\t\t\t--root-ca <root ca file path>\n";
@@ -111,14 +129,24 @@ int main (int argc, char *argv[]) {
 
 	belle_sip_tester_init();
 
-	if (env_domain)
+	if (env_domain) {
 		test_domain=env_domain;
+	}
 
 	for(i=1;i<argc;++i){
 		if (strcmp(argv[i],"--verbose")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
 		} else if (strcmp(argv[i],"--silent")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_FATAL);
+		} else if (strcmp(argv[i],"--log-file")==0){
+			CHECK_ARG("--log-file", ++i, argc);
+			log_file=fopen(argv[i],"w");
+			if (!log_file) {
+				tester_fprintf(stderr, "Cannot open file [%s] for writing logs because [%s]",argv[i],strerror(errno));
+				return -2;
+			} else {
+				tester_fprintf(stdout,"Redirecting traces to file [%s]",argv[i]);
+			}
 		} else if (strcmp(argv[i],"--domain")==0){
 			CHECK_ARG("--domain", ++i, argc);
 			test_domain=argv[i];
@@ -129,9 +157,13 @@ int main (int argc, char *argv[]) {
 			CHECK_ARG("--root-ca", ++i, argc);
 			root_ca_path = argv[i];
 		}else {
-			int ret = tester_parse_args(argc, argv, i, belle_sip_helper);
-			if (ret>0) i += ret;
-			else return ret;
+			int ret = tester_parse_args(argc, argv, i);
+			if (ret>0) {
+				i += ret;
+			} else {
+				tester_helper(argv[0], belle_sip_helper);
+				return ret;
+			}
 		}
 	}
 	belle_sip_tester_set_root_ca_path(root_ca_path);

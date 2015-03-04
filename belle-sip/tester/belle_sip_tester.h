@@ -20,7 +20,7 @@
 #define _BELLE_SIP_TESTER_H
 
 
-#include "tester_utils.h"
+#include "common/tester_utils.h"
 
 
 #ifdef __cplusplus

@@ -153,6 +153,7 @@ static BELLESIP_INLINE void BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_fatal(con
 
 BELLESIP_EXPORT void belle_sip_set_log_file(FILE *file);
 BELLESIP_EXPORT void belle_sip_set_log_handler(belle_sip_log_function_t func);
+BELLESIP_EXPORT belle_sip_log_function_t belle_sip_get_log_handler();
 
 BELLESIP_EXPORT char * BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_strdup_printf(const char *fmt,...);
 
