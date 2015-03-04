@@ -31,7 +31,7 @@
 #endif
 	
 int main(int argc, char *argv[] ) {
-	int i, res=0;
+	int i, fails_count=0;
 	CU_pSuite cryptoWrapperTestSuite, cryptoUtilsTestSuite, parserTestSuite;
 	CU_pSuite *suites[] = {
 		&cryptoWrapperTestSuite,
@@ -75,9 +75,10 @@ int main(int argc, char *argv[] ) {
 
 	/* Run all suites */
 	for(i=0; suites[i]; i++){
-		res = res || CU_basic_run_suite(*suites[i]);
+		CU_basic_run_suite(*suites[i]);
+		fails_count += CU_get_number_of_tests_failed();
 	}
-
+	
 	/* cleanup the CUnit registry */
 	CU_cleanup_registry();
 
@@ -86,6 +87,6 @@ int main(int argc, char *argv[] ) {
 	xmlCleanupParser();
 #endif
 
-	return res;
+	return (fails_count == 0 ? 0 : 1);
 }
 
