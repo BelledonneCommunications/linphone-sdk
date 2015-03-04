@@ -164,12 +164,6 @@ if(WIN32)
 	)
 endif()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/FindBelleSIP.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/FindBelleSIP.cmake @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/FindBelleSIP.cmake
-	DESTINATION share/cmake/Modules
-	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-)
-
 
 add_subdirectory(include)
 add_subdirectory(src)
@@ -179,3 +173,31 @@ if(ENABLE_TESTS)
 	enable_testing()
 	add_subdirectory(tester)
 endif()
+
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfigVersion.cmake"
+	VERSION ${PACKAGE_VERSION}
+	COMPATIBILITY AnyNewerVersion
+)
+export(EXPORT BelleSIPTargets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/BelleSIPTargets.cmake"
+	NAMESPACE BelledonneCommunications::
+)
+configure_file(BelleSIPConfig.cmake
+	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfig.cmake"
+	COPYONLY
+)
+
+set(ConfigPackageLocation lib/cmake/BelleSIP)
+install(EXPORT BelleSIPTargets
+	FILE BelleSIPTargets.cmake
+	NAMESPACE BelledonneCommunications::
+	DESTINATION ${ConfigPackageLocation}
+)
+install(FILES
+	BelleSIPConfig.cmake
+	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfigVersion.cmake"
+	DESTINATION ${ConfigPackageLocation}
+)

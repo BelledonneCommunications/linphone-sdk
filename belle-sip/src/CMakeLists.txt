@@ -165,7 +165,7 @@ else()
 endif()
 target_link_libraries(bellesip ${LIBS})
 
-install(TARGETS bellesip
+install(TARGETS bellesip EXPORT BelleSIPTargets
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
