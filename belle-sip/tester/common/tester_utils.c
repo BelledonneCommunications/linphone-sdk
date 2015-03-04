@@ -219,7 +219,7 @@ const char * tester_test_name(const char *suite_name, int test_index) {
 	return test_suite[suite_index]->tests[test_index].name;
 }
 
-static void test_all_tests_complete_message_handler(const CU_pFailureRecord pFailure) {
+static void all_complete_message_handler(const CU_pFailureRecord pFailure) {
 #ifdef HAVE_CU_GET_SUITE
 	char * results = CU_get_run_results_string();
 	tester_printf(BELLE_SIP_LOG_MESSAGE,"\n%s",results);
@@ -227,17 +227,20 @@ static void test_all_tests_complete_message_handler(const CU_pFailureRecord pFai
 #endif
 }
 
-static void test_suite_init_failure_message_handler(const CU_pSuite pSuite) {
+static void suite_init_failure_message_handler(const CU_pSuite pSuite) {
 	tester_printf(BELLE_SIP_LOG_ERROR,"Suite initialization failed for [%s].", pSuite->pName);
 }
 
-static void test_suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
+static void suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
 	tester_printf(BELLE_SIP_LOG_ERROR,"Suite cleanup failed for [%s].", pSuite->pName);
 }
 
 #ifdef HAVE_CU_GET_SUITE
-static void test_suite_start_message_handler(const CU_pSuite pSuite) {
-	tester_printf(BELLE_SIP_LOG_MESSAGE,"\nSuite [%s] started\n", pSuite->pName);
+static void suite_start_message_handler(const CU_pSuite pSuite) {
+	tester_printf(BELLE_SIP_LOG_MESSAGE,"Suite [%s] started\n", pSuite->pName);
+}
+static void suite_complete_message_handler(const CU_pSuite pSuite, const CU_pFailureRecord pFailure) {
+	tester_printf(BELLE_SIP_LOG_MESSAGE,"Suite [%s] ended\n", pSuite->pName);
 }
 
 static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
@@ -281,11 +284,12 @@ int tester_run_tests(const char *suite_name, const char *test_name) {
 	CU_set_test_start_handler(test_start_message_handler);
 #endif
 	CU_set_test_complete_handler(test_complete_message_handler);
-	CU_set_all_test_complete_handler(test_all_tests_complete_message_handler);
-	CU_set_suite_init_failure_handler(test_suite_init_failure_message_handler);
-	CU_set_suite_cleanup_failure_handler(test_suite_cleanup_failure_message_handler);
+	CU_set_suite_complete_handler(suite_complete_message_handler);
+	CU_set_all_test_complete_handler(all_complete_message_handler);
+	CU_set_suite_init_failure_handler(suite_init_failure_message_handler);
+	CU_set_suite_cleanup_failure_handler(suite_cleanup_failure_message_handler);
 #ifdef HAVE_CU_GET_SUITE
-	CU_set_suite_start_handler(test_suite_start_message_handler);
+	CU_set_suite_start_handler(suite_start_message_handler);
 #endif
 	if( tester_xml_file != NULL ){
 		CU_set_output_filename(tester_xml_file);
