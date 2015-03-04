@@ -110,16 +110,6 @@ endif()
 # msopenh264
 set(EP_msopenh264_LINKING_TYPE "-DENABLE_STATIC=YES")
 
-# openh264
-set(EP_openh264_LINKING_TYPE "-static")
-if (APPLE)
-	if("${CMAKE_OSX_ARCHITECTURES}" STREQUAL "x86_64")
-		set(EP_openh264_ADDITIONAL_OPTIONS "ARCH=\"x86_64\"")
-	else()
-		set(EP_openh264_ADDITIONAL_OPTIONS "ARCH=\"x86\"")
-	endif()
-endif()
-
 # opus
 if(NOT MSVC)
 	# TODO: Also build statically on windows
