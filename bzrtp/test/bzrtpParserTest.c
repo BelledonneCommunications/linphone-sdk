@@ -220,7 +220,11 @@ typedef struct my_Context_struct {
 	char zidFilename[80]; /* nom du fichier de cache */
 } my_Context_t;
 
-int floadAlice(void *clientData, uint8_t **output, uint32_t *size) {
+static void freeBuf(void* p){
+	free(p);
+}
+
+int floadAlice(void *clientData, uint8_t **output, uint32_t *size, zrtpFreeBuffer_callback *cb) {
 	/* get filename from ClientData */
 	my_Context_t *clientContext = (my_Context_t *)clientData;
 	char *filename = clientContext->zidFilename; 
@@ -235,10 +239,11 @@ int floadAlice(void *clientData, uint8_t **output, uint32_t *size) {
 	*(*output+*size) = '\0';
 	*size += 1;
 	fclose(ALICECACHE);
+	*cb=freeBuf;
 	return *size;
 }
 
-int fwriteAlice(void *clientData, uint8_t *input, uint32_t size) {
+int fwriteAlice(void *clientData, const uint8_t *input, uint32_t size) {
 	/* get filename from ClientData */
 	my_Context_t *clientContext = (my_Context_t *)clientData;
 	char *filename = clientContext->zidFilename; 
@@ -249,7 +254,7 @@ int fwriteAlice(void *clientData, uint8_t *input, uint32_t size) {
 	return retval;
 }
 
-int floadBob(void *clientData, uint8_t **output, uint32_t *size) {
+int floadBob(void *clientData, uint8_t **output, uint32_t *size, zrtpFreeBuffer_callback *cb) {
 	/* get filename from ClientData */
 	my_Context_t *clientContext = (my_Context_t *)clientData;
 	char *filename = clientContext->zidFilename; 
@@ -266,11 +271,12 @@ int floadBob(void *clientData, uint8_t **output, uint32_t *size) {
 	*(*output+*size) = '\0';
 	*size += 1;
 	fclose(BOBCACHE);
+	*cb=freeBuf;
 	return *size;
 }
 
 
-int fwriteBob(void *clientData, uint8_t *input, uint32_t size) {
+int fwriteBob(void *clientData, const uint8_t *input, uint32_t size) {
 	/* get filename from ClientData */
 	my_Context_t *clientContext = (my_Context_t *)clientData;
 	char *filename = clientContext->zidFilename; 
@@ -338,6 +344,7 @@ void test_parserComplete() {
 	bzrtpConfirmMessage_t *alice_Confirm2FromBob_message=NULL;
 	bzrtpPacket_t *alice_Conf2ACK;
 	bzrtpPacket_t *bob_Conf2ACKFromAlice;
+	bzrtpCallbacks_t cbs={0};
 
 	/* Create the client context, used for zidFilename only */
 	my_Context_t clientContextAlice;
@@ -350,11 +357,14 @@ void test_parserComplete() {
 	retval += bzrtp_setClientData(contextBob, 0x87654321, (void *)&clientContextBob);
 
 	/* set the cache related callback functions */
-	bzrtp_setCallback(contextAlice, (int (*)())floadAlice, ZRTP_CALLBACK_LOADCACHE);
-	bzrtp_setCallback(contextAlice, (int (*)())fwriteAlice, ZRTP_CALLBACK_WRITECACHE);
+	cbs.bzrtp_loadCache=floadAlice;
+	cbs.bzrtp_writeCache=fwriteAlice;
+	
+	bzrtp_setCallbacks(contextAlice, &cbs);
 
-	bzrtp_setCallback(contextBob, (int (*)())floadBob, ZRTP_CALLBACK_LOADCACHE);
-	bzrtp_setCallback(contextBob, (int (*)())fwriteBob, ZRTP_CALLBACK_WRITECACHE);
+	cbs.bzrtp_loadCache=floadBob;
+	cbs.bzrtp_writeCache=fwriteBob;
+	bzrtp_setCallbacks(contextBob, &cbs);
 
 	printf ("Init the contexts\n");
 	/* end the context init */
@@ -1539,7 +1549,7 @@ uint8_t block_Hello = 0;
 
 /* this is a callback function for send data, just dump the packet */
 /* client Data is a my_Context_t structure */
-int bzrtp_sendData(void *clientData, uint8_t *packetString, uint16_t packetLength) {
+int bzrtp_sendData(void *clientData, const uint8_t *packetString, uint16_t packetLength) {
 	/* get the client Data */
 	my_Context_t *contexts = (my_Context_t *)clientData;
 
@@ -1605,23 +1615,23 @@ void test_stateMachine() {
 	uint32_t CRC;
 	uint8_t *CRCbuffer;
 	my_Context_t aliceSecondChannelClientData, bobSecondChannelClientData;
+	bzrtpCallbacks_t cbs={0} ;
 
 	/* Create zrtp Context */
 	bzrtpContext_t *contextAlice = bzrtp_createBzrtpContext(0x12345678); /* Alice's SSRC of main channel is 12345678 */
 	bzrtpContext_t *contextBob = bzrtp_createBzrtpContext(0x87654321); /* Bob's SSRC of main channel is 87654321 */
 
 	/* set the cache related callback functions */
-	bzrtp_setCallback(contextAlice, (int (*)())floadAlice, ZRTP_CALLBACK_LOADCACHE);
-	bzrtp_setCallback(contextAlice, (int (*)())fwriteAlice, ZRTP_CALLBACK_WRITECACHE);
-
-	bzrtp_setCallback(contextBob, (int (*)())floadBob, ZRTP_CALLBACK_LOADCACHE);
-	bzrtp_setCallback(contextBob, (int (*)())fwriteBob, ZRTP_CALLBACK_WRITECACHE);
-
-	/* define the sendData function */
-	retval = bzrtp_setCallback(contextAlice, (int (*)())bzrtp_sendData, ZRTP_CALLBACK_SENDDATA);
-	retval += bzrtp_setCallback(contextBob, (int (*)())bzrtp_sendData, ZRTP_CALLBACK_SENDDATA);
-	printf("Set callbacks return %x\n", retval);
-
+	cbs.bzrtp_loadCache=floadAlice;
+	cbs.bzrtp_writeCache=fwriteAlice;
+	cbs.bzrtp_sendData=bzrtp_sendData;
+	bzrtp_setCallbacks(contextAlice, &cbs);
+	
+	cbs.bzrtp_loadCache=floadBob;
+	cbs.bzrtp_writeCache=fwriteBob;
+	cbs.bzrtp_sendData=bzrtp_sendData;
+	bzrtp_setCallbacks(contextBob, &cbs);
+	
 	/* create the client Data and associate them to the channel contexts */
 	memcpy(aliceClientData.nom, "Alice", 6);
 	memcpy(bobClientData.nom, "Bob", 4);

@@ -55,9 +55,10 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 	if (context->zrtpCallbacks.bzrtp_loadCache != NULL) {
 		uint8_t *cacheStringBuffer;
 		uint32_t cacheStringLength;
-		context->zrtpCallbacks.bzrtp_loadCache(context->channelContext[0]->clientData, &cacheStringBuffer, &cacheStringLength);
+		zrtpFreeBuffer_callback cb=NULL;
+		context->zrtpCallbacks.bzrtp_loadCache(context->channelContext[0]->clientData, &cacheStringBuffer, &cacheStringLength, &cb);
 		context->cacheBuffer = xmlParseDoc(cacheStringBuffer);
-		free(cacheStringBuffer);
+		if (cb!=NULL) cb(cacheStringBuffer);
 	} else {
 		/* we are running cacheless, return a random number */
 		bzrtpCrypto_getRandom(context->RNGContext, selfZID, 12);
@@ -245,13 +246,14 @@ int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *t
 	if ((fileFlag&BZRTP_CACHE_LOADFILEBIT) == BZRTP_CACHE_LOADFILE) { /* we must reload the cache from file */
 		uint8_t *cacheStringBuffer;
 		uint32_t cacheStringLength;
+		zrtpFreeBuffer_callback cb=NULL;
 
 		/* reload cache from file locking it (TODO: lock) */
 		xmlFreeDoc(context->cacheBuffer);
 		context->cacheBuffer = NULL;
-		context->zrtpCallbacks.bzrtp_loadCache(context->channelContext[0]->clientData, &cacheStringBuffer, &cacheStringLength);
+		context->zrtpCallbacks.bzrtp_loadCache(context->channelContext[0]->clientData, &cacheStringBuffer, &cacheStringLength,&cb);
 		context->cacheBuffer = xmlParseDoc(cacheStringBuffer);
-		free(cacheStringBuffer);
+		if (cb) cb(cacheStringBuffer);
 	}
 
 	/* parse the cache to find the peer element matching the given ZID */

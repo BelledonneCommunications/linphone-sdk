@@ -186,37 +186,9 @@ void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	return;
 }
 
-/**
- * @brief Allocate a function pointer to the callback function identified by his id 
- * @param[in] functionPointer 	The pointer to the function to bind as callback.
- * @param[in] functionID		The ID as defined above to identify which callback to be set.
- *                                                                           
- * @return 0 on success
- *                                                                           
-*/
-int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_t functionID) {
-	switch (functionID) {
-		case ZRTP_CALLBACK_LOADCACHE:
-			context->zrtpCallbacks.bzrtp_loadCache = (int (*)(void *, uint8_t **, uint32_t *))functionPointer;
-			break;
-		case ZRTP_CALLBACK_WRITECACHE: 
-			context->zrtpCallbacks.bzrtp_writeCache = (int (*)(void *, uint8_t *, uint32_t))functionPointer;
-			break;
-		case ZRTP_CALLBACK_SENDDATA: 
-			context->zrtpCallbacks.bzrtp_sendData = (int (*)(void *, uint8_t *, uint16_t))functionPointer;
-			break;
-		case ZRTP_CALLBACK_SRTPSECRETSAVAILABLE:
-			context->zrtpCallbacks.bzrtp_srtpSecretsAvailable = (int (*)(void *, bzrtpSrtpSecrets_t *, uint8_t))functionPointer;
-			break;
-		case ZRTP_CALLBACK_STARTSRTPSESSION:
-			context->zrtpCallbacks.bzrtp_startSrtpSession = (int (*)(void *, char*, int32_t))functionPointer;
-			break;
-		case ZRTP_CALLBACK_CONTEXTREADYFOREXPORTEDKEYS:
-			context->zrtpCallbacks.bzrtp_contextReadyForExportedKeys = (int (*)(void *, uint8_t *, uint8_t))functionPointer;
-		default:
-			return BZRTP_ERROR_INVALIDCALLBACKID; 
-			break;
-	}
+
+int bzrtp_setCallbacks(bzrtpContext_t *context, const bzrtpCallbacks_t *cbs) {
+	context->zrtpCallbacks=*cbs;
 	return 0;
 }
 

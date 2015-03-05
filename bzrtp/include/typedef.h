@@ -103,24 +103,6 @@ typedef struct cachedSecretsHash_struct {
 	uint8_t pbxsecretID[8]; /**< pbx secret Hash */
 } cachedSecretsHash_t;
 
-/**
- * @brief All the callback functions provided by the client needed by the ZRTP engine
- */
-typedef struct zrtpCallbacks_struct {
-	/* cache related functions */
-	int (* bzrtp_loadCache)(void *clientData, uint8_t **cacheBuffer, uint32_t *cacheBufferSize); /**< Cache related function : load the whole cache file in a buffer allocated by the function, return the buffer and its size in bytes */
-	int (* bzrtp_writeCache)(void *clientData, uint8_t *input, uint32_t size); /**< Cache related function : write size bytes to cache */
-
-	/* sending packets */
-	int (* bzrtp_sendData)(void *clientData, uint8_t *packetString, uint16_t packetLength); /**< Send a ZRTP packet to peer. Shall return 0 on success */
-
-	/* dealing with SRTP session */
-	int (* bzrtp_srtpSecretsAvailable)(void *clientData, bzrtpSrtpSecrets_t *srtpSecrets, uint8_t part); /**< Send the srtp secrets to the client, for either sender, receiver or both according to the part parameter value. Client may wait for the end of ZRTP process before using it */
-	int (* bzrtp_startSrtpSession)(void *clientData, char* sas, int32_t verified); /**< ZRTP process ended well, client is given the SAS and may start his SRTP session if not done when calling srtpSecretsAvailable */
-
-	/* ready for exported keys */
-	int (* bzrtp_contextReadyForExportedKeys)(void *clientData, uint8_t peerZID[12], uint8_t role); /**< Tell the client that this is the time to create and store in cache any exported keys, client is given the peerZID to adress the correct node in cache and current role which is needed to set a pair of keys for IM encryption */
-} zrtpCallbacks_t;
 
 /**
  * @brief The zrtp context of a channel
@@ -204,7 +186,7 @@ struct bzrtpContext_struct {
 	uint64_t timeReference; /**< in ms. This field will set at each channel State Machine start and updated at each tick after creation of the context, it is used to set the firing time of a channel timer */
 
 	/* callbacks */
-	zrtpCallbacks_t zrtpCallbacks; /**< structure holding all the pointers to callbacks functions needed by the ZRTP engine. Functions are set by client using the bzrtp_setCallback function */
+	bzrtpCallbacks_t zrtpCallbacks; /**< structure holding all the pointers to callbacks functions needed by the ZRTP engine. Functions are set by client using the bzrtp_setCallback function */
 
 	/* channel contexts */
 	bzrtpChannelContext_t *channelContext[ZRTP_MAX_CHANNEL_NUMBER]; /**< All the context data needed for a channel are stored in a dedicated structure */

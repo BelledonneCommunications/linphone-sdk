@@ -103,6 +103,29 @@ typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t sasLength; /**< The length of sas, including the termination character */
 } bzrtpSrtpSecrets_t;
 
+/**
+ * Function pointer used by bzrtp to free memory allocated by callbacks.
+**/
+typedef void (*zrtpFreeBuffer_callback)(void *);
+/**
+ * @brief All the callback functions provided by the client needed by the ZRTP engine
+ */
+typedef struct bzrtpCallbacks_struct {
+	/* cache related functions */
+	int (* bzrtp_loadCache)(void *clientData, uint8_t **cacheBuffer, uint32_t *cacheBufferSize, zrtpFreeBuffer_callback *callback); /**< Cache related function : load the whole cache file in a buffer allocated by the function, return the buffer and its size in bytes */
+	int (* bzrtp_writeCache)(void *clientData, const uint8_t *input, uint32_t size); /**< Cache related function : write size bytes to cache */
+
+	/* sending packets */
+	int (* bzrtp_sendData)(void *clientData, const uint8_t *packetString, uint16_t packetLength); /**< Send a ZRTP packet to peer. Shall return 0 on success */
+
+	/* dealing with SRTP session */
+	int (* bzrtp_srtpSecretsAvailable)(void *clientData, bzrtpSrtpSecrets_t *srtpSecrets, uint8_t part); /**< Send the srtp secrets to the client, for either sender, receiver or both according to the part parameter value. Client may wait for the end of ZRTP process before using it */
+	int (* bzrtp_startSrtpSession)(void *clientData, const char* sas, int32_t verified); /**< ZRTP process ended well, client is given the SAS and may start his SRTP session if not done when calling srtpSecretsAvailable */
+
+	/* ready for exported keys */
+	int (* bzrtp_contextReadyForExportedKeys)(void *clientData, uint8_t peerZID[12], uint8_t role); /**< Tell the client that this is the time to create and store in cache any exported keys, client is given the peerZID to adress the correct node in cache and current role which is needed to set a pair of keys for IM encryption */
+} bzrtpCallbacks_t;
+
 #define ZRTP_MAGIC_COOKIE 0x5a525450
 #define ZRTP_VERSION	"1.10"
 /*#define ZRTP_CLIENT_IDENTIFIER "LINPHONEZRTP0.01"*/
@@ -148,22 +171,15 @@ BZRTP_EXPORT void bzrtp_initBzrtpContext(bzrtpContext_t *context);
 */
 BZRTP_EXPORT void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
 
-#define ZRTP_CALLBACK_LOADCACHE						0x0101
-#define ZRTP_CALLBACK_WRITECACHE					0x0102
-#define ZRTP_CALLBACK_SENDDATA						0x0110
-#define ZRTP_CALLBACK_SRTPSECRETSAVAILABLE			0x0120
-#define ZRTP_CALLBACK_STARTSRTPSESSION				0x0140
-#define ZRTP_CALLBACK_CONTEXTREADYFOREXPORTEDKEYS	0x0180
 /**
  * @brief Allocate a function pointer to the callback function identified by his id 
  * @param[in/out]	context				The zrtp context to set the callback function
- * @param[in] 		functionPointer 	The pointer to the function to bind as callback.
- * @param[in] 		functionID			The ID as defined above to identify which callback to be set.
+ * @param[in] 		cbs 				A structure containing all the callbacks to supply.
  *
  * @return 0 on success
  *                                                                           
 */
-BZRTP_EXPORT int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_t functionID);
+BZRTP_EXPORT int bzrtp_setCallbacks(bzrtpContext_t *context, const bzrtpCallbacks_t *cbs);
 
 /**
  * @brief Set the client data pointer in a channel context
