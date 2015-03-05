@@ -25,25 +25,8 @@
 #define MEDIASTREAMER_MICRO_VERSION ${MEDIASTREAMER_MICRO_VERSION}
 #define MEDIASTREAMER_VERSION "${MEDIASTREAMER_VERSION}"
 
-#cmakedefine HAVE_INTTYPES_H 1
-#cmakedefine HAVE_MEMORY_H 1
-#cmakedefine HAVE_STDINT_H 1
-#cmakedefine HAVE_STDLIB_H 1
-#cmakedefine HAVE_STRINGS_H 1
-#cmakedefine HAVE_STRING_H 1
-#cmakedefine HAVE_SYS_STAT_H 1
-#cmakedefine HAVE_SYS_TYPES_H 1
-#cmakedefine HAVE_POLL_H 1
-#cmakedefine HAVE_SYS_POLL_H 1
-#cmakedefine HAVE_SYS_UIO_H 1
-#cmakedefine HAVE_FCNTL_H 1
-#cmakedefine HAVE_SYS_TIME_H 1
-#cmakedefine HAVE_UNISTD_H 1
 #cmakedefine HAVE_SYS_SHM_H 1
-#cmakedefine HAVE_WINDOWS_H 1
-#cmakedefine HAVE_DLFCN_H 1
 #cmakedefine HAVE_ALLOCA_H 1
-
 #cmakedefine HAVE_DLOPEN 1
 
 #cmakedefine WORDS_BIGENDIAN
