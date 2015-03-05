@@ -1,6 +1,6 @@
 ############################################################################
-# FindBZRTP.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindCUnit.txt
+# Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,47 +20,39 @@
 #
 ############################################################################
 #
-# - Find the bzrtp include file and library
+# - Find the CUnit include file and library
 #
-#  BZRTP_FOUND - system has bzrtp
-#  BZRTP_INCLUDE_DIRS - the bzrtp include directory
-#  BZRTP_LIBRARIES - The libraries needed to use bzrtp
+#  CUNIT_FOUND - system has CUnit
+#  CUNIT_INCLUDE_DIRS - the CUnit include directory
+#  CUNIT_LIBRARIES - The libraries needed to use CUnit
 
-find_package(PolarSSL REQUIRED)
-find_package(XML2)
+include(CheckIncludeFile)
+include(CheckLibraryExists)
 
-set(_BZRTP_ROOT_PATHS
-	${WITH_BZRTP}
+set(_CUNIT_ROOT_PATHS
 	${CMAKE_INSTALL_PREFIX}
 )
 
-find_path(BZRTP_INCLUDE_DIRS
-	NAMES bzrtp/bzrtp.h
-	HINTS _BZRTP_ROOT_PATHS
+find_path(CUNIT_INCLUDE_DIRS
+	NAMES CUnit/CUnit.h
+	HINTS _CUNIT_ROOT_PATHS
 	PATH_SUFFIXES include
 )
 
-if(BZRTP_INCLUDE_DIRS)
-	set(HAVE_BZRTP_BZRTP_H 1)
+if(CUNIT_INCLUDE_DIRS)
+	set(HAVE_CUNIT_CUNIT_H 1)
 endif()
 
-find_library(BZRTP_LIBRARIES
-	NAMES bzrtp
-	HINTS ${_BZRTP_ROOT_PATHS}
+find_library(CUNIT_LIBRARIES
+	NAMES cunit
+	HINTS ${_CUNIT_ROOT_PATHS}
 	PATH_SUFFIXES bin lib
 )
 
-list(APPEND BZRTP_INCLUDE_DIRS ${POLARSSL_INCLUDE_DIRS})
-list(APPEND BZRTP_LIBRARIES ${POLARSSL_LIBRARIES})
-if(XML2_FOUND)
-	list(APPEND BZRTP_INCLUDE_DIRS ${XML2_INCLUDE_DIRS})
-	list(APPEND BZRTP_LIBRARIES ${XML2_LIBRARIES})
-endif()
-
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(BZRTP
+find_package_handle_standard_args(CUnit
 	DEFAULT_MSG
-	BZRTP_INCLUDE_DIRS BZRTP_LIBRARIES
+	CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES
 )
 
-mark_as_advanced(BZRTP_INCLUDE_DIRS BZRTP_LIBRARIES)
+mark_as_advanced(CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES)

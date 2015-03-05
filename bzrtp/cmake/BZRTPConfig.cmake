@@ -1,6 +1,6 @@
 ############################################################################
-# CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# BZRTPConfig.cmake
+# Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -19,36 +19,17 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# Config file for the bzrtp package.
+# It defines the following variables:
+#
+#  BZRTP_FOUND - system has bzrtp
+#  BZRTP_INCLUDE_DIRS - the bzrtp include directory
+#  BZRTP_LIBRARIES - The libraries needed to use bzrtp
 
-set(SOURCE_FILES
-	bzrtp.c
-	cryptoPolarssl.c
-	cryptoUtils.c
-	packetParser.c
-	stateMachine.c
-	zidCache.c
-)
+include("${CMAKE_CURRENT_LIST_DIR}/BZRTPTargets.cmake")
 
-if(ENABLE_STATIC)
-	add_library(bzrtp STATIC ${SOURCE_FILES})
-	target_link_libraries(bzrtp ${LIBS})
-else()
-	add_library(bzrtp SHARED ${SOURCE_FILES})
-	set_target_properties(bzrtp PROPERTIES VERSION 0)
-	target_link_libraries(bzrtp ${LIBS})
-	if(MSVC)
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/bzrtp.pdb
-				DESTINATION bin
-				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
-		endif()
-	endif()
-endif()
-
-install(TARGETS bzrtp EXPORT BZRTPTargets
-	RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-)
+get_filename_component(BZRTP_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(BZRTP_INCLUDE_DIRS "${BZRTP_CMAKE_DIR}/../../../include")
+set(BZRTP_LIBRARIES BelledonneCommunications::bzrtp)
+set(BZRTP_FOUND 1)

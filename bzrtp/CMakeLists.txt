@@ -22,13 +22,14 @@
 
 cmake_minimum_required(VERSION 2.8)
 project(BZRTP C)
+set(BZRTP_VERSION 0.1)
 
 
 option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." NO)
 
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(MSVC)
 	list(APPEND CMAKE_REQUIRED_INCLUDES ${CMAKE_PREFIX_PATH}/include/MSVC)
@@ -86,7 +87,30 @@ if(ENABLE_TESTS)
 	add_subdirectory(test)
 endif()
 
-install(FILES FindBZRTP.cmake
-	DESTINATION share/cmake/Modules
-	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfigVersion.cmake"
+	VERSION ${BZRTP_VERSION}
+	COMPATIBILITY AnyNewerVersion
+)
+export(EXPORT BZRTPTargets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/BZRTPTargets.cmake"
+	NAMESPACE BelledonneCommunications::
+)
+configure_file(cmake/BZRTPConfig.cmake
+	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfig.cmake"
+	COPYONLY
+)
+
+set(ConfigPackageLocation lib/cmake/BZRTP)
+install(EXPORT BZRTPTargets
+	FILE BZRTPTargets.cmake
+	NAMESPACE BelledonneCommunications::
+	DESTINATION ${ConfigPackageLocation}
+)
+install(FILES
+	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfig.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfigVersion.cmake"
+	DESTINATION ${ConfigPackageLocation}
 )

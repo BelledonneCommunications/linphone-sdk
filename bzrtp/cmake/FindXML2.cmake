@@ -1,6 +1,6 @@
 ############################################################################
-# CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindXML2.txt
+# Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -19,36 +19,37 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the libxml2 include file and library
+#
+#  XML2_FOUND - system has libxml2
+#  XML2_INCLUDE_DIRS - the libxml2 include directory
+#  XML2_LIBRARIES - The libraries needed to use libxml2
 
-set(SOURCE_FILES
-	bzrtp.c
-	cryptoPolarssl.c
-	cryptoUtils.c
-	packetParser.c
-	stateMachine.c
-	zidCache.c
+set(_XML2_ROOT_PATHS
+	${CMAKE_INSTALL_PREFIX}
 )
 
-if(ENABLE_STATIC)
-	add_library(bzrtp STATIC ${SOURCE_FILES})
-	target_link_libraries(bzrtp ${LIBS})
-else()
-	add_library(bzrtp SHARED ${SOURCE_FILES})
-	set_target_properties(bzrtp PROPERTIES VERSION 0)
-	target_link_libraries(bzrtp ${LIBS})
-	if(MSVC)
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/bzrtp.pdb
-				DESTINATION bin
-				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
-		endif()
-	endif()
+find_path(XML2_INCLUDE_DIRS
+	NAMES libxml/xmlreader.h
+	HINTS _XML2_ROOT_PATHS
+	PATH_SUFFIXES include/libxml2
+)
+
+if(XML2_INCLUDE_DIRS)
+	set(HAVE_LIBXML_XMLREADER_H 1)
 endif()
 
-install(TARGETS bzrtp EXPORT BZRTPTargets
-	RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+find_library(XML2_LIBRARIES
+	NAMES xml2
+	HINTS ${_XML2_ROOT_PATHS}
+	PATH_SUFFIXES bin lib
 )
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(XML2
+	DEFAULT_MSG
+	XML2_INCLUDE_DIRS XML2_LIBRARIES
+)
+
+mark_as_advanced(XML2_INCLUDE_DIRS XML2_LIBRARIES)
