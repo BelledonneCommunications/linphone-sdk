@@ -72,7 +72,7 @@ static ORTP_INLINE uint64_t get_timeval_in_millis() {
 * @param[in]	length		The length in bytes of the data
 * @return	0 on success
 */
-static int32_t ms_zrtp_sendDataZRTP (void *clientData, uint8_t* data, int32_t length ){
+static int32_t ms_zrtp_sendDataZRTP (void *clientData, const uint8_t* data, uint16_t length ){
 	MSZrtpContext *userData = (MSZrtpContext *)clientData;
 	RtpSession *session = userData->stream_sessions->rtp_session;
 	RtpTransport *rtpt=NULL;
@@ -185,7 +185,7 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, bzrtpSrtpSecrets_t
  * @param[in]	sas		The SAS string(4 characters, not null terminated, fixed length)
  * @param[in]	verified	if <code>verified</code> is true then SAS was verified by both parties during a previous call.
  */
-static int ms_zrtp_startSrtpSession(void *clientData, char* sas, int32_t verified ){
+static int ms_zrtp_startSrtpSession(void *clientData, const char* sas, int32_t verified ){
 	MSZrtpContext *userData = (MSZrtpContext *)clientData;
 
 	// srtp processing is enabled in SecretsReady fuction when receiver secrets are ready
@@ -223,13 +223,14 @@ static int ms_zrtp_startSrtpSession(void *clientData, char* sas, int32_t verifie
  * @param[out]	outputSize	Buffer length in bytes
  * @return	outputSize
  */
-static int ms_zrtp_loadCache(void *clientData, uint8_t** output, uint32_t *outputSize) {
+static int ms_zrtp_loadCache(void *clientData, uint8_t** output, uint32_t *outputSize, zrtpFreeBuffer_callback *cb) {
 	/* get filename from ClientData */
 	MSZrtpContext *userData = (MSZrtpContext *)clientData;
 	char *filename = userData->zidFilename;
-	FILE *CACHEFD = fopen(filename, "r+");
+	size_t nbytes=0;
+	FILE *CACHEFD = fopen(filename, "rb+");
 	if (CACHEFD == NULL) { /* file doesn't seem to exist, try to create it */
-		CACHEFD = fopen(filename, "w");
+		CACHEFD = fopen(filename, "wb");
 		if (CACHEFD != NULL) { /* file created with success */
 			*output = NULL;
 			*outputSize = 0;
@@ -238,13 +239,9 @@ static int ms_zrtp_loadCache(void *clientData, uint8_t** output, uint32_t *outpu
 		}
 		return -1;
 	}
-	fseek(CACHEFD, 0L, SEEK_END);  /* Position to end of file */
-  	*outputSize = ftell(CACHEFD);     /* Get file length */
-  	rewind(CACHEFD);               /* Back to start of file */
-	*output = (uint8_t *)malloc(*outputSize*sizeof(uint8_t)+1); /* string must be null terminated */
-	fread(*output, 1, *outputSize, CACHEFD);
-	*(*output+*outputSize) = '\0';
-	*outputSize += 1;
+	*output=(uint8_t*)ms_load_file_content(CACHEFD, &nbytes);
+	*outputSize = nbytes+1;
+	*cb=ms_free;
 	fclose(CACHEFD);
 	return *outputSize;
 }
@@ -256,7 +253,7 @@ static int ms_zrtp_loadCache(void *clientData, uint8_t** output, uint32_t *outpu
  * @param[in]	inputSize	input string length in bytes
  * @return	number of bytes written to file
  */
-static int ms_zrtp_writeCache(void *clientData, uint8_t* input, uint32_t inputSize) {
+static int ms_zrtp_writeCache(void *clientData, const uint8_t* input, uint32_t inputSize) {
 	/* get filename from ClientData */
 	MSZrtpContext *userData = (MSZrtpContext *)clientData;
 	char *filename = userData->zidFilename;
@@ -521,22 +518,27 @@ bool_t ms_zrtp_available(){return TRUE;}
 MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams *params) {
 	MSZrtpContext *userData;
 	bzrtpContext_t *context;
+	bzrtpCallbacks_t cbs={0};
 
 	ms_message("Creating ZRTP engine on rtp session [%p]",sessions->rtp_session);
 	context = bzrtp_createBzrtpContext(sessions->rtp_session->snd.ssrc); /* create the zrtp context, provide the SSRC of first channel */
+	
 	/* set callback functions */
-	bzrtp_setCallback(context, (int (*)())ms_zrtp_sendDataZRTP, ZRTP_CALLBACK_SENDDATA);
-	bzrtp_setCallback(context, (int (*)())ms_zrtp_srtpSecretsAvailable, ZRTP_CALLBACK_SRTPSECRETSAVAILABLE);
-	bzrtp_setCallback(context, (int (*)())ms_zrtp_startSrtpSession, ZRTP_CALLBACK_STARTSRTPSESSION);
+	cbs.bzrtp_sendData=ms_zrtp_sendDataZRTP;
+	cbs.bzrtp_srtpSecretsAvailable=ms_zrtp_srtpSecretsAvailable;
+	cbs.bzrtp_startSrtpSession=ms_zrtp_startSrtpSession;
+	
 	if (params->zid_file) {
 		/*enabling cache*/
-		bzrtp_setCallback(context, (int (*)())ms_zrtp_loadCache, ZRTP_CALLBACK_LOADCACHE);
-		bzrtp_setCallback(context, (int (*)())ms_zrtp_writeCache, ZRTP_CALLBACK_WRITECACHE);
+		cbs.bzrtp_loadCache=ms_zrtp_loadCache;
+		cbs.bzrtp_writeCache=ms_zrtp_writeCache;
+		
 		/* enable exportedKeys computation only if we have an uri to associate them */
 		if (params->uri && strlen(params->uri)>0) {
-			bzrtp_setCallback(context, (int (*)())ms_zrtp_addExportedKeysInZidCache, ZRTP_CALLBACK_CONTEXTREADYFOREXPORTEDKEYS);
+			cbs.bzrtp_contextReadyForExportedKeys=ms_zrtp_addExportedKeysInZidCache;
 		}
 	}
+	bzrtp_setCallbacks(context, &cbs);
 	/* create and link user data */
 	userData=createUserData(context, params);
 	userData->stream_sessions=sessions;

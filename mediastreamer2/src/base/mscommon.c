@@ -505,4 +505,35 @@ unsigned int ms_concealer_ts_context_is_concealement_required(MSConcealerTsConte
 	return 0;
 }
 
+char *ms_load_file_content(FILE *f, size_t *nbytes){
+	size_t bufsize=2048;
+	size_t step=bufsize;
+	size_t pos=0;
+	size_t count;
+	char *buffer=ms_malloc(bufsize+1);
+	
+	while((count=fread(buffer+pos, 1, step, f))>0){
+		pos+=count;
+		if (pos+step>=bufsize){
+			bufsize*=2;
+			buffer=ms_realloc(buffer, bufsize+1);
+		}
+	}
+	if (nbytes) *nbytes=pos;
+	buffer[pos]='\0';
+	return buffer;
+}
+
+char *ms_load_path_content(const char *path, size_t *nbytes){
+	FILE *f=fopen(path,"rb");
+	char *buffer;
+	if (!f) {
+		ms_error("ms_load_file_content(): could not open [%s]",path);
+		return NULL;
+	}
+	buffer=ms_load_file_content(f, nbytes);
+	fclose(f);
+	return buffer;
+}
+
 /*** plc context end***/

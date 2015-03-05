@@ -302,6 +302,20 @@ bool_t ms_is_multicast_addr(const struct sockaddr *address);
  * @return TRUE if address is multicast
  */
 MS2_PUBLIC bool_t ms_is_multicast(const char *address);
+
+/**
+ * Utility function to load a file into memory.
+ * @param file a FILE handle
+ * @param nbytes (optional) number of bytes read
+**/
+MS2_PUBLIC char *ms_load_file_content(FILE *file, size_t *nbytes);
+
+/**
+ * Utility function to load a file into memory.
+ * @param path a FILE handle
+ * @param nbytes (optional) number of bytes read
+**/
+MS2_PUBLIC char *ms_load_path_content(const char *path, size_t *nbytes);
 /** @} */
 
 #ifdef __cplusplus

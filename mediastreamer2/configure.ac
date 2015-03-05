@@ -147,6 +147,18 @@ AS_CASE([$enable_debug],
 		],
 		[AC_MSG_ERROR([Bad value ($enable_debug) for --enable-debug. Valid values are yes or no.])])
 
+AC_ARG_ENABLE(non-free-codecs,
+	AC_HELP_STRING([--enable-non-free-codecs], [Include non-free codecs in build @<:@yes@:>@]),
+	[non_free_codecs="${enableval}"],
+	[non_free_codecs=yes]
+)
+
+if test "$non_free_codecs" = "yes" ; then
+	AC_DEFINE(HAVE_NON_FREE_CODECS, 1, [whether non free codecs are allowed in the build])
+else
+	AC_DEFINE(HAVE_NON_FREE_CODECS, 0, [whether non free codecs are allowed in the build])
+fi
+
 dnl Checks for header files.
 AC_HEADER_STDC
 
@@ -1089,23 +1101,31 @@ fi
 
 dnl check for libzrtp support (RFC 6189: Media Path Key Agreement for Unicast Secure RTP)
 AC_ARG_ENABLE(zrtp,
-	[AS_HELP_STRING([--enable-zrtp], [Turn on or off compilation of zrtp (default=no)])],
+	[AS_HELP_STRING([--enable-zrtp], [Turn on or off compilation of zrtp (default=detect)])],
 	[case "${enableval}" in
 		yes)	zrtp=true ;;
 		no)	zrtp=false ;;
 		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-zrtp) ;;
 	esac],
-	[zrtp=false]
+	[zrtp=detect]
 )
 
-if test "$zrtp" = "true" ; then
-	PKG_CHECK_MODULES(LIBBZRTP, libbzrtp >= 0.0.0)
-	if test "$have_srtp" = "no" ; then
-		AC_MSG_ERROR("ZRTP requires SRTP")
+if test "$zrtp" != "false" ; then
+	PKG_CHECK_MODULES(LIBBZRTP, libbzrtp >= 1.0.0, found_zrtp=true, found_zrtp=false)
+	if test "$zrtp$found_zrtp" = "truefalse" ; then
+		AC_MSG_ERROR("Cound not find bZRTP library.")
 	fi
-	AC_DEFINE(HAVE_ZRTP, 1, [Defined when zrtp support is compiled])
-    LIBS="$LIBS $LIBBZRTP_LIBS"
-	CFLAGS="$CFLAGS $LIBBZRTP_CFLAGS"
+	if test "$found_zrtp" = "true" ; then
+		if test "$have_srtp" = "no" ; then
+			AC_MSG_ERROR("ZRTP requires SRTP")
+		fi
+		AC_DEFINE(HAVE_ZRTP, 1, [Defined when zrtp support is compiled])
+		LIBS="$LIBS $LIBBZRTP_LIBS"
+		CFLAGS="$CFLAGS $LIBBZRTP_CFLAGS"
+		zrtp=true
+	else
+		zrtp=false
+	fi
 else
 	echo "ZRTP compilation is disabled."
 fi
@@ -1317,3 +1337,11 @@ AC_CONFIG_FILES(
 )
 
 AC_OUTPUT
+
+echo "Mediastreamer2 build configuration ended."
+echo "Summary of build options:"
+printf "* %-30s %s\n" "Video support"		$video
+printf "* %-30s %s\n" "zRTP encryption"		$zrtp
+printf "* %-30s %s\n" "DTLS encryption"		$dtls
+printf "* %-30s %s\n" "Non-free codecs" 	$non_free_codecs
+

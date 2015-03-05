@@ -1141,9 +1141,9 @@ MSFilterDesc ms_mjpeg_enc_desc={
 
 void __register_ffmpeg_encoders_if_possible(MSFactory *obj){
 	ms_ffmpeg_check_init();
-	if (avcodec_find_encoder(CODEC_ID_MPEG4))
+	if (avcodec_find_encoder(CODEC_ID_MPEG4) && HAVE_NON_FREE_CODECS)
 		ms_factory_register_filter(obj,&ms_mpeg4_enc_desc);
-	if (avcodec_find_encoder(CODEC_ID_H263)){
+	if (avcodec_find_encoder(CODEC_ID_H263) && HAVE_NON_FREE_CODECS){
 		ms_factory_register_filter(obj,&ms_h263_enc_desc);
 		ms_factory_register_filter(obj,&ms_h263_old_enc_desc);
 	}
