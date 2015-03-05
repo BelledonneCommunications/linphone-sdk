@@ -6,11 +6,11 @@ bzrtpTest_SOURCES=bzrtpTest.c \
 				  bzrtpCryptoTest.c \
 				  bzrtpParserTest.c
 
-AM_LDFLAGS= -lm
+
 bzrtpTest_CFLAGS=$(CUNIT_CFLAGS)  $(LIBXML2_CFLAGS)
-bzrtpTest_LDFLAGS=$(CUNIT_LIBS)  $(LIBXML2_LIBS) $(AM_LDFLAGS)
+bzrtpTest_LDADD=$(top_builddir)/src/libbzrtp.la $(CUNIT_LIBS) $(LIBXML2_LIBS) -lm
+
 AM_CPPFLAGS=-I$(top_srcdir)/include
-LDADD=	$(top_builddir)/src/libbzrtp.la
 
 test: bzrtpTest 
 	./bzrtpTest
