@@ -1,5 +1,5 @@
 ############################################################################
-# BelleSIPConfig.cmake
+# FindCUnit.txt
 # Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,16 +20,39 @@
 #
 ############################################################################
 #
-# Config file for the belle-sip package.
-# It defines the following variables:
+# - Find the CUnit include file and library
 #
-#  BELLESIP_FOUND - system has belle-sip
-#  BELLESIP_INCLUDE_DIRS - the belle-sip include directory
-#  BELLESIP_LIBRARIES - The libraries needed to use belle-sip
+#  CUNIT_FOUND - system has CUnit
+#  CUNIT_INCLUDE_DIRS - the CUnit include directory
+#  CUNIT_LIBRARIES - The libraries needed to use CUnit
 
-include("${CMAKE_CURRENT_LIST_DIR}/BelleSIPTargets.cmake")
+include(CheckIncludeFile)
+include(CheckLibraryExists)
 
-get_filename_component(BELLESIP_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-set(BELLESIP_INCLUDE_DIRS "${BELLESIP_CMAKE_DIR}/../../../include")
-set(BELLESIP_LIBRARIES BelledonneCommunications::bellesip)
-set(BELLESIP_FOUND 1)
+set(_CUNIT_ROOT_PATHS
+	${CMAKE_INSTALL_PREFIX}
+)
+
+find_path(CUNIT_INCLUDE_DIRS
+	NAMES CUnit/CUnit.h
+	HINTS _CUNIT_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+
+if(CUNIT_INCLUDE_DIRS)
+	set(HAVE_CUNIT_CUNIT_H 1)
+endif()
+
+find_library(CUNIT_LIBRARIES
+	NAMES cunit
+	HINTS ${_CUNIT_ROOT_PATHS}
+	PATH_SUFFIXES bin lib
+)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(CUnit
+	DEFAULT_MSG
+	CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES
+)
+
+mark_as_advanced(CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES)

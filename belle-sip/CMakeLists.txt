@@ -48,8 +48,7 @@ include(CheckCSourceCompiles)
 if(MSVC)
 	list(APPEND CMAKE_REQUIRED_INCLUDES ${CMAKE_PREFIX_PATH}/include/MSVC)
 endif()
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake) # TODO: remove when FindTunnel has been put in tunnel repository
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 check_include_file("dlfcn.h" HAVE_DLFCN_H)
 check_include_file("inttypes.h" HAVE_INTTYPES_H)
@@ -80,6 +79,13 @@ endif()
 find_package(Threads)
 
 find_package(Antlr3 REQUIRED)
+if(ANTLR3C_FOUND)
+	cmake_push_check_state(RESET)
+	set(CMAKE_REQUIRED_INCLUDES ${ANTLR3C_INCLUDE_DIR})
+	set(CMAKE_REQUIRED_LIBRARIES ${ANTLR3C_LIBRARIES})
+	check_symbol_exists("antlr3StringStreamNew" "antlr3.h" HAVE_ANTLR_STRING_STREAM_NEW)
+	cmake_pop_check_state()
+endif()
 
 if(ENABLE_TLS)
 	find_package(PolarSSL REQUIRED)
@@ -185,9 +191,9 @@ export(EXPORT BelleSIPTargets
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/BelleSIPTargets.cmake"
 	NAMESPACE BelledonneCommunications::
 )
-configure_file(BelleSIPConfig.cmake
+configure_file(cmake/BelleSIPConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfig.cmake"
-	COPYONLY
+	@ONLY
 )
 
 set(ConfigPackageLocation lib/cmake/BelleSIP)
@@ -197,7 +203,7 @@ install(EXPORT BelleSIPTargets
 	DESTINATION ${ConfigPackageLocation}
 )
 install(FILES
-	BelleSIPConfig.cmake
+	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfig.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfigVersion.cmake"
 	DESTINATION ${ConfigPackageLocation}
 )
