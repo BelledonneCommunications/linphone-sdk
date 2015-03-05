@@ -45,8 +45,10 @@ include(CheckIncludeFile)
 include(CheckLibraryExists)
 include(CheckSymbolExists)
 include(CheckCSourceCompiles)
+
+set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
 if(MSVC)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${CMAKE_PREFIX_PATH}/include/MSVC)
+	list(APPEND CMAKE_REQUIRED_INCLUDES ${MSVC_INCLUDE_DIR})
 endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -148,7 +150,7 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}/src
 )
 if(MSVC)
-	include_directories(${CMAKE_PREFIX_PATH}/include/MSVC)
+	include_directories(${MSVC_INCLUDE_DIR})
 endif()
 
 add_definitions(-DHAVE_CONFIG_H)
