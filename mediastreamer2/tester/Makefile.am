@@ -30,12 +30,14 @@ AM_CPPFLAGS=\
 	-I$(top_srcdir)/src/videofilters \
 	-I$(top_srcdir)/src \
 	-I$(top_builddir)/src \
-	-I$(top_srcdir)/tester
+	-I$(top_srcdir)/tester \
+	$(SPEEX_CFLAGS)
 
 LDADD=$(top_builddir)/src/libmediastreamer_base.la \
 	$(top_builddir)/src/libmediastreamer_voip.la \
 	$(ORTP_LIBS) \
-	$(CUNIT_LIBS)
+	$(CUNIT_LIBS) \
+	$(SPEEX_LIBS)
 
 if BUILD_MACOSX
 noinst_LTLIBRARIES=libmediastreamer2_tester_cocoa.la
