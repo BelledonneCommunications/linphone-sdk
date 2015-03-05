@@ -22,7 +22,7 @@
 #
 # - Find the antlr3c include file and library and antlr.jar
 #
-#  ANTLR3C_FOUND - system has antlr3c
+#  ANTLR3_FOUND - system has antlr3c
 #  ANTLR3C_INCLUDE_DIR - the antlr3c include directory
 #  ANTLR3C_LIBRARIES - The libraries needed to use antlr3c
 #  ANTLR3_COMMAND - The command to run the antlr jar
