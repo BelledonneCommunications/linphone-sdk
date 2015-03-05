@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "defs.h"
+#include "belle-sip/defs.h"
 
 
 BELLE_SIP_BEGIN_DECLS
