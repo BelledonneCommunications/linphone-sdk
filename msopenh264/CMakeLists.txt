@@ -42,12 +42,7 @@ set(WITH_OPENH264 "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libop
 set(WITH_ORTP "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where the oRTP library can be found (ex:/usr or /usr/local)")
 
 
-if(MSVC)
-	include_directories(${CMAKE_INSTALL_PREFIX}/include/MSVC)
-endif()
-
-
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CheckIncludeFile)
 check_include_file("dlfcn.h" HAVE_DLFCN_H)
@@ -62,19 +57,8 @@ check_include_file("sys/types.h" HAVE_SYS_TYPES_H)
 check_include_file("unistd.h" HAVE_UNISTD_H)
 check_include_file("stdbool.h" HAVE_STDBOOL_H)
 
-find_package(ORTP)
-find_package(MS2)
-find_package(OpenH264)
-
-if(NOT ORTP_FOUND)
-	message(FATAL "Could not find oRTP headers/library!")
-endif()
-if(NOT MS2_FOUND)
-	message(FATAL "Could not find mediastreamer2 headers/library!")
-endif()
-if(NOT OPENH264_FOUND)
-	message(FATAL "Could not find openh264 headers/library!")
-endif()
+find_package(Mediastreamer2 REQUIRED)
+find_package(OpenH264 REQUIRED)
 
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
@@ -83,7 +67,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY
 include_directories(
 	${MS2_INCLUDE_DIRS}
 	${OPENH264_INCLUDE_DIRS}
- 	src
+	src
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
 )
