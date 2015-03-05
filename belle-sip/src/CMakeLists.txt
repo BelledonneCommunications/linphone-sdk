@@ -23,18 +23,18 @@
 set(INCLUDES ${ANTLR3C_INCLUDE_DIRS})
 set(LIBS ${ANTLR3C_LIBRARIES})
 
-if(${Threads_FOUND})
+if(Threads_FOUND)
 	if(CMAKE_USE_PTHREADS_INIT AND NOT CMAKE_SYSTEM_NAME MATCHES "QNX")
 		list(APPEND LIBS pthread)
 	endif()
 endif()
-if(${HAVE_LIBDL})
+if(HAVE_LIBDL)
 	list(APPEND LIBS dl)
 endif()
-if(${HAVE_LIBRT})
+if(HAVE_LIBRT)
 	list(APPEND LIBS rt)
 endif()
-if(${HAVE_RESINIT})
+if(HAVE_RESINIT)
 	list(APPEND LIBS resolv)
 endif()
 if(WIN32)
@@ -67,7 +67,7 @@ add_custom_command(
 
 set_source_files_properties(${GRAMMARS_SOURCE_FILES} ${SIP_MESSAGE_GENERATED_SOURCE_FILES} PROPERTIES GENERATED TRUE)
 
-if(${ENABLE_TLS})
+if(ENABLE_TLS)
 	set(TLS_SOURCE_FILES
 		transports/tls_listeningpoint_polarssl.c
 		transports/tls_channel_polarssl.c
@@ -76,7 +76,7 @@ if(${ENABLE_TLS})
 	list(APPEND LIBS ${POLARSSL_LIBRARIES})
 endif()
 
-if(${ENABLE_TUNNEL})
+if(ENABLE_TUNNEL)
 	set(TUNNEL_SOURCE_FILES
 		transports/tunnel_listeningpoint.c
 		transports/tunnel_channel.c
@@ -143,7 +143,7 @@ if(APPLE)
 	set_source_files_properties(backgroundtask.m PROPERTIES COMPILE_FLAGS "-fmodules")
 endif()
 
-if(${ENABLE_STATIC})
+if(ENABLE_STATIC)
 	add_library(bellesip STATIC ${SOURCE_FILES})
 else()
 	add_library(bellesip SHARED ${SOURCE_FILES})
@@ -158,11 +158,7 @@ else()
 	endif()
 endif()
 set_target_properties(bellesip PROPERTIES LINKER_LANGUAGE CXX LINK_FLAGS "${LINK_FLAGS}")
-if("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
-	target_include_directories(bellesip PUBLIC ${INCLUDES})
-else()
-	include_directories(${INCLUDES})
-endif()
+target_include_directories(bellesip PUBLIC ${INCLUDES})
 target_link_libraries(bellesip ${LIBS})
 
 install(TARGETS bellesip EXPORT BelleSIPTargets

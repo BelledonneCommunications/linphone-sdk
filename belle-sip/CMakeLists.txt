@@ -41,7 +41,6 @@ option(ENABLE_TUNNEL "Enable tunnel support" OFF)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
 
 
-include(CheckIncludeFile)
 include(CheckLibraryExists)
 include(CheckSymbolExists)
 include(CheckCSourceCompiles)
@@ -53,20 +52,10 @@ if(MSVC)
 endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-check_include_file("dlfcn.h" HAVE_DLFCN_H)
-check_include_file("inttypes.h" HAVE_INTTYPES_H)
-check_include_file("memory.h" HAVE_MEMORY_H)
-check_include_file("stdint.h" HAVE_STDINT_H)
-check_include_file("stdlib.h" HAVE_STDLIB_H)
-check_include_file("strings.h" HAVE_STRINGS_H)
-check_include_file("string.h" HAVE_STRING_H)
-check_include_file("sys/stat.h" HAVE_SYS_STAT_H)
-check_include_file("sys/types.h" HAVE_SYS_TYPES_H)
-check_include_file("unistd.h" HAVE_UNISTD_H)
-
 check_library_exists("dl" "dlopen" "" HAVE_LIBDL)
 check_library_exists("rt" "clock_gettime" "" HAVE_LIBRT)
 
+cmake_push_check_state(RESET)
 check_symbol_exists("res_ndestroy" "resolv.h" HAVE_RES_NDESTROY)
 set(CMAKE_REQUIRED_LIBRARIES resolv)
 check_c_source_compiles("#include <resolv.h>
@@ -75,9 +64,10 @@ res_getservers(NULL,NULL,0);
 return 0;
 }"
 	HAVE_RES_GETSERVERS)
-if(NOT "${HAVE_RES_NDESTROY}" STREQUAL "" AND NOT "${HAVE_RES_GETSERVERS}" STREQUAL "")
+if(HAVE_RES_NDESTROY AND HAVE_RES_GETSERVERS)
 	set(HAVE_RESINIT 1)
 endif()
+cmake_pop_check_state()
 
 find_package(Threads)
 
