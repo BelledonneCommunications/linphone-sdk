@@ -31,8 +31,9 @@ option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." NO)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
 if(MSVC)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${CMAKE_PREFIX_PATH}/include/MSVC)
+	list(APPEND CMAKE_REQUIRED_INCLUDES ${MSVC_INCLUDE_DIR})
 endif()
 
 include(CheckLibraryExists)
@@ -76,7 +77,7 @@ if(XML2_FOUND)
 	list(APPEND LIBS ${XML2_LIBRARIES})
 endif()
 if(MSVC)
-	include_directories(${CMAKE_PREFIX_PATH}/include/MSVC)
+	include_directories(${MSVC_INCLUDE_DIR})
 endif()
 
 
