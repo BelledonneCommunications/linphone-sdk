@@ -29,36 +29,6 @@
 #cmakedefine PACKAGE_URL "@PACKAGE_URL@"
 #cmakedefine VERSION "@VERSION@"
 
-#ifndef HAVE_DLFCN_H
-#cmakedefine HAVE_DLFCN_H
-#endif
-#ifndef HAVE_INTTYPES_H
-#cmakedefine HAVE_INTTYPES_H
-#endif
-#ifndef HAVE_MEMORY_H
-#cmakedefine HAVE_MEMORY_H
-#endif
-#ifndef HAVE_STDINT_H
-#cmakedefine HAVE_STDINT_H
-#endif
-#ifndef HAVE_STDLIB_H
-#cmakedefine HAVE_STDLIB_H
-#endif
-#ifndef HAVE_STRINGS_H
-#cmakedefine HAVE_STRINGS_H
-#endif
-#ifndef HAVE_STRING_H
-#cmakedefine HAVE_STRING_H
-#endif
-#ifndef HAVE_SYS_STAT_H
-#cmakedefine HAVE_SYS_STAT_H
-#endif
-#ifndef HAVE_SYS_TYPES_H
-#cmakedefine HAVE_SYS_TYPES_H
-#endif
-#ifndef HAVE_UNISTD_H
-#cmakedefine HAVE_UNISTD_H
-#endif
 #ifndef HAVE_STDBOOL_H
 #cmakedefine HAVE_STDBOOL_H
 #endif
