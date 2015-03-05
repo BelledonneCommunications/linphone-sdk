@@ -20,9 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef MS_MEDIA_PLAYER_H
 #define MS_MEDIA_PLAYER_H
 
-#include "mssndcard.h"
-#include "msinterfaces.h"
-#include "msvideo.h"
+#include <mediastreamer2/mssndcard.h>
+#include <mediastreamer2/msinterfaces.h>
+#include <mediastreamer2/msvideo.h>
 
 /**
  * @brief Media file player
