@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-set(INCLUDES ${ANTLR3C_INCLUDE_DIR})
+set(INCLUDES ${ANTLR3C_INCLUDE_DIRS})
 set(LIBS ${ANTLR3C_LIBRARIES})
 
 if(${Threads_FOUND})
