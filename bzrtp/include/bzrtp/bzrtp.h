@@ -128,8 +128,8 @@ typedef struct bzrtpCallbacks_struct {
 
 #define ZRTP_MAGIC_COOKIE 0x5a525450
 #define ZRTP_VERSION	"1.10"
-/*#define ZRTP_CLIENT_IDENTIFIER "LINPHONEZRTP0.01"*/
-#define ZRTP_CLIENT_IDENTIFIER "LINPHONE-ZRTPCPP"
+
+#define ZRTP_CLIENT_IDENTIFIER "BZRTP"
 
 /* error code definition */
 #define BZRTP_ERROR_INVALIDCALLBACKID				0x0001
