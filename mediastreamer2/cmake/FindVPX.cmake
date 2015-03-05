@@ -27,7 +27,6 @@
 #  VPX_LIBRARIES - The libraries needed to use VPX
 
 set(_VPX_ROOT_PATHS
-	${WITH_VPX}
 	${CMAKE_INSTALL_PREFIX}
 )
 
@@ -49,7 +48,7 @@ find_library(VPX_LIBRARIES
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(VPX
 	DEFAULT_MSG
-	VPX_INCLUDE_DIRS VPX_LIBRARIES
+	VPX_INCLUDE_DIRS VPX_LIBRARIES HAVE_VPX_VPX_ENCODER_H
 )
 
-mark_as_advanced(VPX_INCLUDE_DIRS VPX_LIBRARIES)
+mark_as_advanced(VPX_INCLUDE_DIRS VPX_LIBRARIES HAVE_VPX_VPX_ENCODER_H)

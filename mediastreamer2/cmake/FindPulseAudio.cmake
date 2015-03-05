@@ -27,9 +27,9 @@
 #  PULSEAUDIO_LIBRARIES - The libraries needed to use pulseaudio
 
 include(CheckSymbolExists)
+include(CMakePushCheckState)
 
 set(_PULSEAUDIO_ROOT_PATHS
-	${WITH_PULSEAUDIO}
 	${CMAKE_INSTALL_PREFIX}
 )
 
@@ -49,13 +49,17 @@ find_library(PULSEAUDIO_LIBRARIES
 )
 
 if(PULSEAUDIO_LIBRARIES)
-	check_symbol_exists(pa_mainloop_new pulse/pulseaudio.h HAVE_PA_MAINLOOP_NEW)
+	cmake_push_check_state(RESET)
+	list(APPEND CMAKE_REQUIRED_INCLUDES ${PULSEAUDIO_INCLUDE_DIRS})
+	list(APPEND CMAKE_REQUIRED_LIBRARIES ${PULSEAUDIO_LIBRARIES})
+	check_symbol_exists(pa_mainloop_new "pulse/pulseaudio.h" HAVE_PA_MAINLOOP_NEW)
+	cmake_pop_check_state()
 endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(PulseAudio
 	DEFAULT_MSG
-	PULSEAUDIO_INCLUDE_DIRS PULSEAUDIO_LIBRARIES HAVE_PA_MAINLOOP_NEW
+	PULSEAUDIO_INCLUDE_DIRS PULSEAUDIO_LIBRARIES HAVE_PULSE_PULSEAUDIO_H HAVE_PA_MAINLOOP_NEW
 )
 
-mark_as_advanced(PULSEAUDIO_INCLUDE_DIRS PULSEAUDIO_LIBRARIES HAVE_PA_MAINLOOP_NEW)
+mark_as_advanced(PULSEAUDIO_INCLUDE_DIRS PULSEAUDIO_LIBRARIES HAVE_PULSE_PULSEAUDIO_H HAVE_PA_MAINLOOP_NEW)

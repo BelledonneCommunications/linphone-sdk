@@ -1,6 +1,6 @@
 ############################################################################
-# FindArts.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindPolarSSL.txt
+# Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,46 +20,56 @@
 #
 ############################################################################
 #
-# - Find the arts include file and library
+# - Find the polarssl include file and library
 #
-#  ARTS_FOUND - system has arts
-#  ARTS_INCLUDE_DIRS - the arts include directory
-#  ARTS_LIBRARIES - The libraries needed to use arts
+#  POLARSSL_FOUND - system has polarssl
+#  POLARSSL_INCLUDE_DIRS - the polarssl include directory
+#  POLARSSL_LIBRARIES - The libraries needed to use polarssl
 
-include(CheckSymbolExists)
 include(CMakePushCheckState)
+include(CheckIncludeFile)
+include(CheckCSourceCompiles)
 
-set(_ARTS_ROOT_PATHS
+set(_POLARSSL_ROOT_PATHS
 	${CMAKE_INSTALL_PREFIX}
 )
 
-find_path(ARTS_INCLUDE_DIRS
-	NAMES kde/artsc/artsc.h
-	HINTS _ARTS_ROOT_PATHS
+find_path(POLARSSL_INCLUDE_DIRS
+	NAMES polarssl/ssl.h
+	HINTS _POLARSSL_ROOT_PATHS
 	PATH_SUFFIXES include
 )
-if(ARTS_INCLUDE_DIRS)
-	set(HAVE_KDE_ARTSC_ARTSC_H 1)
+if(POLARSSL_INCLUDE_DIRS)
+	set(HAVE_POLARSSL_SSL_H 1)
 endif()
 
-find_library(ARTS_LIBRARIES
-	NAMES artsc
-	HINTS _ARTS_ROOT_PATHS
+find_library(POLARSSL_LIBRARIES
+	NAMES polarssl
+	HINTS _POLARSSL_ROOT_PATHS
 	PATH_SUFFIXES bin lib
 )
 
-if(ARTS_LIBRARIES)
+if(POLARSSL_LIBRARIES)
 	cmake_push_check_state(RESET)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${ARTS_INCLUDE_DIRS})
-	list(APPEND CMAKE_REQUIRED_LIBRARIES ${ARTS_LIBRARIES})
-	check_symbol_exists(arts_init "kde/artsc/artsc.h" HAVE_ARTS_INIT)
+	set(CMAKE_REQUIRED_INCLUDES ${POLARSSL_INCLUDE_DIRS})
+	set(CMAKE_REQUIRED_LIBRARIES ${POLARSSL_LIBRARIES})
+	check_c_source_compiles("#include <polarssl/version.h>
+#include <polarssl/x509.h>
+#if POLARSSL_VERSION_NUMBER >= 0x01030000
+#include <polarssl/compat-1.2.h>
+#endif
+int main(int argc, char *argv[]) {
+x509parse_crtpath(0,0);
+return 0;
+}"
+		X509PARSE_CRTPATH_OK)
 	cmake_pop_check_state()
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Arts
+find_package_handle_standard_args(PolarSSL
 	DEFAULT_MSG
-	ARTS_INCLUDE_DIRS ARTS_LIBRARIES HAVE_KDE_ARTSC_ARTSC_H HAVE_ARTS_INIT
+	POLARSSL_INCLUDE_DIRS POLARSSL_LIBRARIES
 )
 
-mark_as_advanced(ARTS_INCLUDE_DIRS ARTS_LIBRARIES HAVE_KDE_ARTSC_ARTSC_H HAVE_ARTS_INIT)
+mark_as_advanced(POLARSSL_INCLUDE_DIRS POLARSSL_LIBRARIES)

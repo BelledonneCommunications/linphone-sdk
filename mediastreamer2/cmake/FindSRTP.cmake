@@ -1,5 +1,5 @@
 ############################################################################
-# FindSpeex.txt
+# FindSRTP.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,41 +20,36 @@
 #
 ############################################################################
 #
-# - Find the speex include file and library
+# - Find the SRTP include file and library
 #
-#  SPEEX_FOUND - system has speex
-#  SPEEX_INCLUDE_DIRS - the speex include directory
-#  SPEEX_LIBRARIES - The libraries needed to use speex
+#  SRTP_FOUND - system has SRTP
+#  SRTP_INCLUDE_DIRS - the SRTP include directory
+#  SRTP_LIBRARIES - The libraries needed to use SRTP
 
-set(_SPEEX_ROOT_PATHS
+set(_SRTP_ROOT_PATHS
 	${CMAKE_INSTALL_PREFIX}
 )
 
-find_path(SPEEX_INCLUDE_DIRS
-	NAMES speex/speex.h
-	HINTS _SPEEX_ROOT_PATHS
+find_path(SRTP_INCLUDE_DIRS
+	NAMES srtp/srtp.h
+	HINTS _SRTP_ROOT_PATHS
 	PATH_SUFFIXES include
 )
-if(SPEEX_INCLUDE_DIRS)
-	set(HAVE_SPEEX_SPEEX_H 1)
+
+if(SRTP_INCLUDE_DIRS)
+	set(HAVE_SRTP_SRTP_H 1)
 endif()
 
-find_library(SPEEX_LIBRARIES
-	NAMES speex
-	HINTS _SPEEX_ROOT_PATHS
+find_library(SRTP_LIBRARIES
+	NAMES srtp
+	HINTS ${_SRTP_ROOT_PATHS}
 	PATH_SUFFIXES bin lib
 )
-find_library(SPEEXDSP_LIBRARIES
-	NAMES speexdsp
-	HINTS _SPEEX_ROOT_PATHS
-	PATH_SUFFIXES bin lib
-)
-list(APPEND SPEEX_LIBRARIES ${SPEEXDSP_LIBRARIES})
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Speex
+find_package_handle_standard_args(SRTP
 	DEFAULT_MSG
-	SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES SPEEXDSP_LIBRARIES HAVE_SPEEX_SPEEX_H
+	SRTP_INCLUDE_DIRS SRTP_LIBRARIES HAVE_SRTP_SRTP_H
 )
 
-mark_as_advanced(SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H)
+mark_as_advanced(SRTP_INCLUDE_DIRS SRTP_LIBRARIES HAVE_SRTP_SRTP_H)

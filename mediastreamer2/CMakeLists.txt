@@ -92,8 +92,7 @@ cmake_dependent_option(ENABLE_THEORA "Enable theora video codec support." YES "E
 cmake_dependent_option(ENABLE_VPX "Build mediastreamer2 with VPX codec." YES "ENABLE_VIDEO" NO)
 
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CheckIncludeFile)
 include(CheckLibraryExists)
@@ -402,14 +401,6 @@ add_definitions(-DHAVE_CONFIG_H)
 add_definitions(${ORTP_CPPFLAGS})
 
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/FindMS2.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/FindMS2.cmake @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/FindMS2.cmake
-	DESTINATION share/cmake/Modules
-	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-)
-
-
-add_subdirectory(cmake)
 add_subdirectory(help)
 add_subdirectory(include)
 add_subdirectory(src)
@@ -419,3 +410,31 @@ endif()
 if(ENABLE_TOOLS)
 	add_subdirectory(tools)
 endif()
+
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+	"${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2ConfigVersion.cmake"
+	VERSION ${MEDIASTREAMER_VERSION}
+	COMPATIBILITY AnyNewerVersion
+)
+export(EXPORT Mediastreamer2Targets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2Targets.cmake"
+	NAMESPACE BelledonneCommunications::
+)
+configure_file(cmake/Mediastreamer2Config.cmake.in
+	"${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2Config.cmake"
+	@ONLY
+)
+
+set(ConfigPackageLocation lib/cmake/Mediastreamer2)
+install(EXPORT Mediastreamer2Targets
+	FILE Mediastreamer2Targets.cmake
+	NAMESPACE BelledonneCommunications::
+	DESTINATION ${ConfigPackageLocation}
+)
+install(FILES
+	"${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2Config.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2ConfigVersion.cmake"
+	DESTINATION ${ConfigPackageLocation}
+)

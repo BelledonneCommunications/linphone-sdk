@@ -30,7 +30,6 @@ include(CheckSymbolExists)
 include(CMakePushCheckState)
 
 set(_QSA_ROOT_PATHS
-	${WITH_QSA}
 	${CMAKE_INSTALL_PREFIX}
 )
 
@@ -60,7 +59,7 @@ endif()
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(QSA
 	DEFAULT_MSG
-	QSA_INCLUDE_DIRS QSA_LIBRARIES HAVE_SND_PCM_OPEN
+	QSA_INCLUDE_DIRS QSA_LIBRARIES HAVE_SYS_ASOUNDLIB_H HAVE_SND_PCM_OPEN
 )
 
-mark_as_advanced(QSA_INCLUDE_DIRS QSA_LIBRARIES HAVE_SND_PCM_OPEN)
+mark_as_advanced(QSA_INCLUDE_DIRS QSA_LIBRARIES HAVE_SYS_ASOUNDLIB_H HAVE_SND_PCM_OPEN)

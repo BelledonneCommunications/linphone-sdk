@@ -30,7 +30,6 @@ include(CheckSymbolExists)
 include(CMakePushCheckState)
 
 set(_ALSA_ROOT_PATHS
-	${WITH_ALSA}
 	${CMAKE_INSTALL_PREFIX}
 )
 

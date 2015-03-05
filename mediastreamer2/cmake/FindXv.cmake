@@ -32,7 +32,6 @@ include(CheckSymbolExists)
 find_package(X11 REQUIRED)
 
 set(_XV_ROOT_PATHS
-	${WITH_XV}
 	${CMAKE_INSTALL_PREFIX}
 )
 

@@ -27,7 +27,6 @@
 #  V4L_LIBRARIES - The libraries needed to use V4L
 
 set(_V4L_ROOT_PATHS
-	${WITH_V4L}
 	${CMAKE_INSTALL_PREFIX}
 )
 

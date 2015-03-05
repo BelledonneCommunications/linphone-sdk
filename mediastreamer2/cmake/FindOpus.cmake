@@ -27,7 +27,6 @@
 #  OPUS_LIBRARIES - The libraries needed to use opus
 
 set(_OPUS_ROOT_PATHS
-	${WITH_OPUS}
 	${CMAKE_INSTALL_PREFIX}
 )
 
@@ -60,7 +59,7 @@ endif()
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Opus
 	DEFAULT_MSG
-	OPUS_INCLUDE_DIRS OPUS_LIBRARIES
+	OPUS_INCLUDE_DIRS OPUS_LIBRARIES HAVE_OPUS_OPUS_H
 )
 
-mark_as_advanced(OPUS_INCLUDE_DIRS OPUS_LIBRARIES)
+mark_as_advanced(OPUS_INCLUDE_DIRS OPUS_LIBRARIES HAVE_OPUS_OPUS_H)

@@ -27,7 +27,6 @@
 #  X11_LIBRARIES - The libraries needed to use X11
 
 set(_X11_ROOT_PATHS
-	${WITH_X11}
 	${CMAKE_INSTALL_PREFIX}
 )
 
@@ -49,7 +48,7 @@ find_library(X11_LIBRARIES
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(X11
 	DEFAULT_MSG
-	X11_INCLUDE_DIRS X11_LIBRARIES
+	X11_INCLUDE_DIRS X11_LIBRARIES HAVE_X11_XLIB_H
 )
 
-mark_as_advanced(X11_INCLUDE_DIRS X11_LIBRARIES)
+mark_as_advanced(X11_INCLUDE_DIRS X11_LIBRARIES HAVE_X11_XLIB_H)

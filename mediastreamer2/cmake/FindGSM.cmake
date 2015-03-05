@@ -27,7 +27,6 @@
 #  GSM_LIBRARIES - The libraries needed to use gsm
 
 set(_GSM_ROOT_PATHS
-	${WITH_GSM}
 	${CMAKE_INSTALL_PREFIX}
 )
 
@@ -49,7 +48,7 @@ find_library(GSM_LIBRARIES
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GSM
 	DEFAULT_MSG
-	GSM_INCLUDE_DIRS GSM_LIBRARIES
+	GSM_INCLUDE_DIRS GSM_LIBRARIES HAVE_GSM_GSM_H
 )
 
-mark_as_advanced(GSM_INCLUDE_DIRS GSM_LIBRARIES)
+mark_as_advanced(GSM_INCLUDE_DIRS GSM_LIBRARIES HAVE_GSM_GSM_H)

@@ -30,7 +30,6 @@ include(CheckIncludeFile)
 include(CheckSymbolExists)
 
 set(_GLX_ROOT_PATHS
-	${WITH_GLX}
 	${CMAKE_INSTALL_PREFIX}
 )
 

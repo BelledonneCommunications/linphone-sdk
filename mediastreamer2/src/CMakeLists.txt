@@ -97,7 +97,7 @@ else()
 	endif()
 endif()
 
-install(TARGETS mediastreamer_base
+install(TARGETS mediastreamer_base EXPORT Mediastreamer2Targets
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
@@ -416,7 +416,7 @@ if(NOT "${APPLE_SPECIFIC_LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS ${APPLE_SPECIFIC_LINK_FLAGS_STR})
 endif()
 
-install(TARGETS mediastreamer_voip
+install(TARGETS mediastreamer_voip EXPORT Mediastreamer2Targets
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib

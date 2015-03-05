@@ -30,7 +30,6 @@ include(CMakePushCheckState)
 include(CheckSymbolExists)
 
 set(_FFMPEG_ROOT_PATHS
-	${WITH_FFMPEG}
 	${CMAKE_INSTALL_PREFIX}
 )
 
