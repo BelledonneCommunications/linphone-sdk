@@ -1117,18 +1117,23 @@ if test "$zrtp" != "false" ; then
 	fi
 	if test "$found_zrtp" = "true" ; then
 		if test "$have_srtp" = "no" ; then
-			AC_MSG_ERROR("ZRTP requires SRTP")
+			if test "$zrtp" = "true" ; then
+				AC_MSG_ERROR("ZRTP requires SRTP")
+			else
+				AC_MSG_WARN("ZRTP requires SRTP")
+				zrtp=false
+			fi
+		else
+			AC_DEFINE(HAVE_ZRTP, 1, [Defined when zrtp support is compiled])
+			LIBS="$LIBS $LIBBZRTP_LIBS"
+			CFLAGS="$CFLAGS $LIBBZRTP_CFLAGS"
+			zrtp=true
 		fi
-		AC_DEFINE(HAVE_ZRTP, 1, [Defined when zrtp support is compiled])
-		LIBS="$LIBS $LIBBZRTP_LIBS"
-		CFLAGS="$CFLAGS $LIBBZRTP_CFLAGS"
-		zrtp=true
 	else
 		zrtp=false
 	fi
-else
-	echo "ZRTP compilation is disabled."
 fi
+
 AM_CONDITIONAL(LIBBZRTP,test x$zrtp != xfalse)
 
 dnl Polarssl lib is requested for DTLS
