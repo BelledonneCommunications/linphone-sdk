@@ -411,8 +411,9 @@ else()
 		endif()
 	endif()
 endif()
-if(NOT "${LINK_FLAGS}" STREQUAL "")
-	set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
+string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
+if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+	set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
 
 install(TARGETS mediastreamer_voip EXPORT Mediastreamer2Targets
