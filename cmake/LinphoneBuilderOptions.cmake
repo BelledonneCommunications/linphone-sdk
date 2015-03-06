@@ -38,7 +38,7 @@ linphone_builder_add_feature_info("GPL third parties" ENABLE_GPL_THIRD_PARTIES "
 
 option(ENABLE_SRTP "Enable SRTP support." ${DEFAULT_VALUE_ENABLE_SRTP})
 linphone_builder_add_feature_info("SRTP" ENABLE_SRTP "SRTP media encryption support.")
-cmake_dependent_option(ENABLE_ZRTP "Enable ZRTP support." ${DEFAULT_VALUE_ENABLE_ZRTP} "ENABLE_GPL_THIRD_PARTIES" OFF)
+cmake_dependent_option(ENABLE_ZRTP "Enable ZRTP support." ${DEFAULT_VALUE_ENABLE_ZRTP} "ENABLE_SRTP" OFF)
 linphone_builder_add_feature_info("ZRTP" ENABLE_ZRTP "ZRTP media encryption support.")
 
 option(ENABLE_AMRNB "Enable AMR narrow-band audio codec support." ${DEFAULT_VALUE_ENABLE_AMRNB})
