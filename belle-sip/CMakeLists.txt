@@ -134,10 +134,17 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/belle-sip.pc DESTINATION lib/pkgconfig
 
 include_directories(
 	include
- 	src
+	src
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
+	${POLARSSL_INCLUDE_DIRS}
 )
+if(TUNNEL_FOUND)
+	include_directories(${TUNNEL_INCLUDE_DIRS})
+endif()
+if(CUNIT_FOUND)
+	include_directories(${CUNIT_INCLUDE_DIRS})
+endif()
 if(MSVC)
 	include_directories(${MSVC_INCLUDE_DIR})
 endif()
