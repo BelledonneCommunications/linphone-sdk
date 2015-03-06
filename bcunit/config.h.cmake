@@ -28,19 +28,3 @@
 #cmakedefine PACKAGE_BUGREPORT "@PACKAGE_BUGREPORT@"
 #cmakedefine PACKAGE_URL "@PACKAGE_URL@"
 #cmakedefine VERSION "@VERSION@"
-
-#cmakedefine HAVE_ASSERT_H
-#cmakedefine HAVE_CTYPE_H
-#cmakedefine HAVE_DLFCN_H
-#cmakedefine HAVE_FILE_H
-#cmakedefine HAVE_INTTYPES_H
-#cmakedefine HAVE_MATH_H
-#cmakedefine HAVE_MEMORY_H
-#cmakedefine HAVE_STDINT_H
-#cmakedefine HAVE_STDIO_H
-#cmakedefine HAVE_STDLIB_H
-#cmakedefine HAVE_STRINGS_H
-#cmakedefine HAVE_STRING_H
-#cmakedefine HAVE_SYS_STAT_H
-#cmakedefine HAVE_SYS_TYPES_H
-#cmakedefine HAVE_UNISTD_H
