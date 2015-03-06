@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12)
 project(CUNIT C)
 
 
@@ -102,13 +102,13 @@ else()
 	add_definitions("-Wall -W -pedantic -Wshadow -ansi -std=c99")
 endif()
 	
-if(${ENABLE_MEMTRACE})
+if(ENABLE_MEMTRACE)
 	add_definitions(-DMEMTRACE)
 endif()
-if(${ENABLE_DEPRECATED})
+if(ENABLE_DEPRECATED)
 	add_definitions(-DUSE_DEPRECATED_CUNIT_NAMES)
 endif()
-if(${ENABLE_CURSES})
+if(ENABLE_CURSES)
 	set(CURSES_NEED_NCURSES 1)
 	find_package(Curses)
 	if(NOT CURSES_FOUND)
@@ -127,6 +127,6 @@ add_subdirectory(CUnit)
 add_subdirectory(doc)
 add_subdirectory(Man)
 add_subdirectory(Share)
-if(${ENABLE_EXAMPLES})
+if(ENABLE_EXAMPLES)
 	add_subdirectory(Examples)
 endif()

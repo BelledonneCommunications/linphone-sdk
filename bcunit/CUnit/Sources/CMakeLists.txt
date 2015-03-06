@@ -112,7 +112,7 @@ set(FRAMEWORK_SYMBOLS "
 
 set(SOURCE_FILES ${FRAMEWORK_SOURCE_FILES})
 source_group(framework FILES ${FRAMEWORK_SOURCE_FILES})
-if(${ENABLE_BASIC})
+if(ENABLE_BASIC)
 	list(APPEND SOURCE_FILES ${BASIC_SOURCE_FILES})
 	source_group(basic FILES ${BASIC_SOURCE_FILES})
 	set(BASIC_SYMBOLS "
@@ -124,7 +124,7 @@ if(${ENABLE_BASIC})
 	CU_basic_show_failures
 	")
 endif()
-if(${ENABLE_AUTOMATED})
+if(ENABLE_AUTOMATED)
 	list(APPEND SOURCE_FILES ${AUTOMATED_SOURCE_FILES})
 	source_group(automated FILES ${AUTOMATED_SOURCE_FILES})
 	set(AUTOMATED_SYMBOLS "
@@ -133,14 +133,14 @@ if(${ENABLE_AUTOMATED})
 	CU_set_output_filename
 	")
 endif()
-if(${ENABLE_CONSOLE})
+if(ENABLE_CONSOLE)
 	list(APPEND SOURCE_FILES ${CONSOLE_SOURCE_FILES})
 	source_group(console FILES ${CONSOLE_SOURCE_FILES})
 	set(CONSOLE_SYMBOLS "
 	CU_console_run_tests
 	")
 endif()
-if(${ENABLE_CURSES})
+if(ENABLE_CURSES)
 	list(APPEND SOURCE_FILES ${CURSES_SOURCE_FILES})
 	source_group(curses FILES ${CURSES_SOURCE_FILES})
 endif()
@@ -150,7 +150,7 @@ if(WIN32)
 endif()
 
 
-if(${ENABLE_STATIC})
+if(ENABLE_STATIC)
 	add_library(cunit STATIC ${SOURCE_FILES})
 	target_link_libraries(cunit ${CURSES_LIBRARIES})
 else()
@@ -174,7 +174,7 @@ install(TARGETS cunit
 )
 
 
-if(${ENABLE_TEST})
+if(ENABLE_TEST)
 	add_library(cunit_test STATIC ${FRAMEWORK_SOURCE_FILES})
 	target_compile_definitions(cunit_test PUBLIC MEMTRACE CUNIT_BUILD_TESTS CUNIT_DO_NOT_DEFINE_UNLESS_BUILDING_TESTS)
 	target_include_directories(cunit_test PUBLIC Test)
