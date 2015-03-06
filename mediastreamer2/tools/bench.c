@@ -81,7 +81,7 @@ struct bench_config cfg[] = {
 	{	0,0,0,"",0,0,0,0,NULL,NULL,NULL	},
 };
 
-RtpSession *create_duplex_rtpsession(int locport){
+static RtpSession *create_duplex_rtpsession(int locport){
 	RtpSession *rtpr;
 	rtpr=rtp_session_new(RTP_SESSION_SENDRECV);
 	rtp_session_set_recv_buf_size(rtpr,MAX_RTP_SIZE);
@@ -95,7 +95,7 @@ RtpSession *create_duplex_rtpsession(int locport){
 	return rtpr;
 }
 
-int init_bench(struct bench_config *bench)
+static int init_bench(struct bench_config *bench)
 {
 	PayloadType *pt;
 	int pos;
