@@ -197,11 +197,11 @@ static int ms_zrtp_startSrtpSession(void *clientData, const char* sas, int32_t v
 	if (sas != NULL) {
 		ev=ortp_event_new(ORTP_EVENT_ZRTP_SAS_READY);
 		eventData=ortp_event_get_data(ev);
-		memcpy(eventData->info.zrtp_sas.sas,sas,4);
-		eventData->info.zrtp_sas.sas[4]=0;
+		// support both b32 and b256 format SAS strings
+		snprintf(eventData->info.zrtp_sas.sas, sizeof(eventData->info.zrtp_sas.sas), "%s", sas);
 		eventData->info.zrtp_sas.verified=(verified != 0) ? TRUE : FALSE;
 		rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
-		ms_message("ZRTP secrets on: SAS is %.4s previously verified %s", sas, verified == 0 ? "no" : "yes");
+		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s", sas, verified == 0 ? "no" : "yes");
 	}
 
 	ev=ortp_event_new(ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED);
