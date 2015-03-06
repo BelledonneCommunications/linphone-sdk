@@ -39,8 +39,12 @@ set(TESTER_SOURCES
 	register_tester.h
 )
 
+string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
+
 add_executable(belle_sip_tester ${TESTER_SOURCES})
-set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
+if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+	set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+endif()
 if("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
 	target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIR})
 else()
@@ -53,12 +57,16 @@ add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
 set(OBJECT_DESCRIBE_SOURCES describe.c)
 
 add_executable(belle_sip_object_describe ${OBJECT_DESCRIBE_SOURCES})
-set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
+if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+	set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+endif()
 target_link_libraries(belle_sip_object_describe bellesip)
 
 
 set(PARSE_SOURCES parse.c)
 
 add_executable(belle_sip_parse ${PARSE_SOURCES})
-set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
+if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+	set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+endif()
 target_link_libraries(belle_sip_parse bellesip)
