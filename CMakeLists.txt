@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12)
 
 include(FeatureSummary)
 
@@ -71,9 +71,7 @@ else()
 
 
 	# Give a feature summary
-	if("${CMAKE_VERSION}" VERSION_GREATER "2.8.2")
-		feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
-		feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
-	endif()
+	feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
+	feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
 
 endif()
