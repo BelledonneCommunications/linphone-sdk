@@ -27,7 +27,6 @@
 #  VOAMRWBENC_LIBRARIES - The libraries needed to use vo-amrwbenc
 
 set(_VOAMRWBENC_ROOT_PATHS
-	${WITH_VOAMRWBENC}
 	${CMAKE_INSTALL_PREFIX}
 )
 

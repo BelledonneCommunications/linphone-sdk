@@ -27,7 +27,6 @@
 #  OPENCOREAMRNB_LIBRARIES - The libraries needed to use opencoreamrnb
 
 set(_OPENCOREAMRNB_ROOT_PATHS
-	${WITH_OPENCOREAMRNB}
 	${CMAKE_INSTALL_PREFIX}
 )
 

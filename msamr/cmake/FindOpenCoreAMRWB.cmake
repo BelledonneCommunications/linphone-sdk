@@ -27,7 +27,6 @@
 #  OPENCOREAMRWB_LIBRARIES - The libraries needed to use opencoreamrwb
 
 set(_OPENCOREAMRWB_ROOT_PATHS
-	${WITH_OPENCOREAMRWB}
 	${CMAKE_INSTALL_PREFIX}
 )
 

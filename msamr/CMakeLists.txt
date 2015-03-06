@@ -36,10 +36,6 @@ set(VERSION "${PACKAGE_VERSION}")
 
 option(ENABLE_NARROWBAND "Enable AMR narrowband." Yes)
 option(ENABLE_WIDEBAND "Enable AMR wideband." No)
-set(WITH_MS2 "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where the mediastreamer libraries can be found (ex:/usr or /usr/local)")
-set(WITH_OPENCOREAMR "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libopencoreamr can be found (ex:/usr or /usr/local)")
-set(WITH_ORTP "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where the oRTP library can be found (ex:/usr or /usr/local)")
-set(WITH_VOAMRWBENC "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libvo-amrwbenc can be found (ex:/usr or /usr/local)")
 
 
 if(MSVC)
@@ -47,7 +43,7 @@ if(MSVC)
 endif()
 
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_PREFIX_PATH}/share/cmake/Modules ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CheckIncludeFile)
 check_include_file("dlfcn.h" HAVE_DLFCN_H)
@@ -61,30 +57,14 @@ check_include_file("sys/stat.h" HAVE_SYS_STAT_H)
 check_include_file("sys/types.h" HAVE_SYS_TYPES_H)
 check_include_file("unistd.h" HAVE_UNISTD_H)
 
-find_package(ORTP)
-find_package(MS2)
-if(NOT ORTP_FOUND)
-	message(FATAL "Could not find oRTP headers/library!")
-endif()
-if(NOT MS2_FOUND)
-	message(FATAL "Could not find mediastreamer2 headers/library!")
-endif()
+find_package(Mediastreamer2 REQUIRED)
 
 if(ENABLE_NARROWBAND)
-	find_package(OpenCoreAMRNB)
-	if(NOT OPENCOREAMRNB_FOUND)
-		message(FATAL "Could not find opencoreamrnb headers/library!")
-	endif()
+	find_package(OpenCoreAMRNB REQUIRED)
 endif()
 if(ENABLE_WIDEBAND)
-	find_package(OpenCoreAMRWB)
-	if(NOT OPENCOREAMRWB_FOUND)
-		message(FATAL "Could not find opencoreamrwb headers/library!")
-	endif()
-	find_package(VoAMRWBEnc)
-	if(NOT VOAMRWBENC_FOUND)
-		message(FATAL "Could not find vo-amrwbenc headers/library!")
-	endif()
+	find_package(OpenCoreAMRWB REQUIRED)
+	find_package(VoAMRWBEnc REQUIRED)
 endif()
 
 
@@ -92,7 +72,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY
 
 
 include_directories(
-	${MS2_INCLUDE_DIRS}
+	${MEDIASTREAMER2_INCLUDE_DIRS}
 	src
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
@@ -117,6 +97,6 @@ if(NOT MSVC)
 	elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wno-error=pragmas")
 	endif()
-endif(NOT MSVC)
+endif()
 
 add_subdirectory(src)
