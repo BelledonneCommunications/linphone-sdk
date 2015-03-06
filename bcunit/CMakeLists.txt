@@ -123,12 +123,6 @@ include_directories(
 )
 
 
-install(FILES FindCUnit.cmake
-	DESTINATION share/cmake/Modules
-	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-)
-
-
 add_subdirectory(CUnit)
 add_subdirectory(doc)
 add_subdirectory(Man)
