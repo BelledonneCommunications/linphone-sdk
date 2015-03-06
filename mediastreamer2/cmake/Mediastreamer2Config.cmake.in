@@ -26,6 +26,7 @@
 #  MEDIASTREAMER2_FOUND - system has mediastreamer2
 #  MEDIASTREAMER2_INCLUDE_DIRS - the mediastreamer2 include directory
 #  MEDIASTREAMER2_LIBRARIES - The libraries needed to use mediastreamer2
+#  MEDIASTREAMER2_CPPFLAGS - The compilation flags needed to use mediastreamer2
 #  MEDIASTREAMER2_LDFLAGS - The linking flags needed to use mediastreamer2
 
 include("${CMAKE_CURRENT_LIST_DIR}/Mediastreamer2Targets.cmake")
@@ -43,4 +44,6 @@ if(BZRTP_FOUND)
 	list(APPEND MEDIASTREAMER2_INCLUDE_DIRS ${BZRTP_INCLUDE_DIRS})
 	list(APPEND MEDIASTREAMER2_LIBRARIES ${BZRTP_LIBRARIES})
 endif()
+set(MEDIASTREAMER2_CPPFLAGS "${ORTP_CPPFLAGS}")
+set(MEDIASTREAMER2_LDFLAGS @LINK_FLAGS@)
 set(MEDIASTREAMER2_FOUND 1)

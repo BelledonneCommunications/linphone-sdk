@@ -411,9 +411,8 @@ else()
 		endif()
 	endif()
 endif()
-string(REPLACE ";" " " APPLE_SPECIFIC_LINK_FLAGS_STR "${APPLE_SPECIFIC_LINK_FLAGS}")
-if(NOT "${APPLE_SPECIFIC_LINK_FLAGS_STR}" STREQUAL "")
-	set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS ${APPLE_SPECIFIC_LINK_FLAGS_STR})
+if(NOT "${LINK_FLAGS}" STREQUAL "")
+	set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
 endif()
 
 install(TARGETS mediastreamer_voip EXPORT Mediastreamer2Targets
