@@ -38,11 +38,6 @@ option(ENABLE_NARROWBAND "Enable AMR narrowband." Yes)
 option(ENABLE_WIDEBAND "Enable AMR wideband." No)
 
 
-if(MSVC)
-	include_directories(${CMAKE_INSTALL_PREFIX}/include/MSVC)
-endif()
-
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CheckIncludeFile)
@@ -87,6 +82,10 @@ if(ENABLE_WIDEBAND)
 		${VOAMRWBENC_INCLUDE_DIRS}
 	)
 	add_definitions("-DHAVE_AMRWB=1")
+endif()
+set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
+if(MSVC)
+	include_directories(${MSVC_INCLUDE_DIR})
 endif()
 
 add_definitions("-DHAVE_CONFIG_H")
