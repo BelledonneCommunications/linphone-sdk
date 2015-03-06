@@ -285,10 +285,6 @@ static void belle_sip_file_body_handler_recv_chunk(belle_sip_body_handler_t *bas
 	int ret;
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
 	if (obj->filepath == NULL) return;
-#ifndef WIN32
-	/* allow anyone to read and edit the file received */
-	(void) umask(S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-#endif
 	f = fopen(obj->filepath, "ab");
 	if (f == NULL) return;
 	ret = fwrite(buf, 1, size, f);
