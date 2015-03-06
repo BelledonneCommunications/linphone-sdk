@@ -26,4 +26,7 @@ set(EP_tunnel_GIT_TAG "1182be7fdefcf9717451fc2a8f67f645c5e4d2c9")
 
 set(EP_tunnel_LINKING_TYPE "-DENABLE_STATIC=0")
 set(EP_tunnel_CMAKE_OPTIONS "-DENABLE_SERVERS=0")
-set(EP_tunnel_DEPENDENCIES EP_polarssl)
+set(EP_tunnel_DEPENDENCIES )
+if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
+	list(APPEND EP_tunnel_DEPENDENCIES EP_polarssl)
+endif()
