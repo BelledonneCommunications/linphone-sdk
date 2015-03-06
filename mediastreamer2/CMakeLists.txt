@@ -65,7 +65,7 @@ option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 
 cmake_dependent_option(ENABLE_DTLS "Build with DTLS support." YES "ENABLE_SRTP" NO)
 option(ENABLE_SRTP "Build with the SRTP transport support." YES)
-option(ENABLE_ZRTP "Build with ZRTP support." YES)
+cmake_dependent_option(ENABLE_ZRTP "Build with ZRTP support." YES "ENABLE_SRTP" NO)
 
 option(ENABLE_SOUND "Can be used to turn off all possible sound backends." YES)
 cmake_dependent_option(ENABLE_ALSA "Enable ALSA support." YES "ENABLE_SOUND;LINUX_OR_BSD" NO)
