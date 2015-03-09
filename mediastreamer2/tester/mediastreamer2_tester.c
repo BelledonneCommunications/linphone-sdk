@@ -54,7 +54,7 @@ void mediastreamer2_tester_init(void) {
 	ortp_log_handler = ortp_get_log_handler();
 	ortp_set_log_handler(ortp_logv_out);
 
-	bc_tester_init(log_handler);
+	bc_tester_init(log_handler, ORTP_MESSAGE, ORTP_ERROR);
 
 	bc_tester_add_suite(&basic_audio_test_suite);
 	bc_tester_add_suite(&sound_card_test_suite);

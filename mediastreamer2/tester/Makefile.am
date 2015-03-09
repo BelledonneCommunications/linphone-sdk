@@ -21,6 +21,7 @@ mediastreamer2_tester_SOURCES=	\
 	common/tester_utils.c common/tester_utils.h
 
 AM_CPPFLAGS=\
+	-DBC_CONFIG_FILE=\"mediastreamer-config.h\" \
 	-I$(top_srcdir)/ \
 	-I$(top_srcdir)/include/ \
 	-I$(top_srcdir)/src/base \

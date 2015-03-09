@@ -52,7 +52,8 @@ fprintf(stderr, "Missing argument for \"%s\"\n", argument);   \
 return -1;                                                    \
 }                                                             \
 
-void bc_tester_init(void (*bc_tester_printf)(int level, const char *fmt, va_list args));
+void bc_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args)
+					, int verbosity_info, int verbosity_error);
 void bc_tester_helper(const char *name, const char* additionnal_helper);
 int bc_tester_parse_args(int argc, char** argv, int argid);
 int bc_tester_start();

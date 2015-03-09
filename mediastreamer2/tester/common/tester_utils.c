@@ -16,20 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define CONFIG_FILE "mediastreamer-config.h"
-#define LOG_ERROR BELLE_SIP_LOG_ERROR
-#define LOG_MESSAGE BELLE_SIP_LOG_MESSAGE
 
-#ifdef HAVE_CONFIG_H
-#include CONFIG_FILE
-#endif
+/* this must be provided at compile time*/
+#include BC_CONFIG_FILE
 
 #include "tester_utils.h"
 
 #include <stdlib.h>
 #include "CUnit/Automated.h"
-#include <belle-sip/utils.h>
-#include <ortp/str_utils.h>
 
 #if WINAPI_FAMILY_PHONE_APP
 const char *bc_tester_read_dir_prefix="Assets";
@@ -59,6 +53,8 @@ int   xml_enabled = 0;
 char * suite_name;
 char * test_name;
 void (*tester_printf_va)(int level, const char *fmt, va_list args);
+int verbosity_info;
+int verbosity_error;
 
 static void tester_printf(int level, const char *fmt, ...) {
 	va_list args;
@@ -113,7 +109,7 @@ static int tester_nb_tests(const char *suite_name) {
 static void tester_list_suites() {
 	int j;
 	for(j=0;j<nb_test_suites;j++) {
-		tester_printf(BELLE_SIP_LOG_MESSAGE, "%s", tester_test_suite_name(j));
+		tester_printf(verbosity_info, "%s", tester_test_suite_name(j));
 	}
 }
 
@@ -121,36 +117,36 @@ static void tester_list_suite_tests(const char *suite_name) {
 	int j;
 	for( j = 0; j < tester_nb_tests(suite_name); j++) {
 		const char *test_name = tester_test_name(suite_name, j);
-		tester_printf(BELLE_SIP_LOG_MESSAGE, "%s", test_name);
+		tester_printf(verbosity_info, "%s", test_name);
 	}
 }
 
 static void all_complete_message_handler(const CU_pFailureRecord pFailure) {
 #ifdef HAVE_CU_GET_SUITE
 	char * results = CU_get_run_results_string();
-	tester_printf(BELLE_SIP_LOG_MESSAGE,"\n%s",results);
+	tester_printf(verbosity_info,"\n%s",results);
 	free(results);
 #endif
 }
 
 static void suite_init_failure_message_handler(const CU_pSuite pSuite) {
-	tester_printf(LOG_ERROR,"Suite initialization failed for [%s].", pSuite->pName);
+	tester_printf(verbosity_error,"Suite initialization failed for [%s].", pSuite->pName);
 }
 
 static void suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
-	tester_printf(LOG_ERROR,"Suite cleanup failed for [%s].", pSuite->pName);
+	tester_printf(verbosity_error,"Suite cleanup failed for [%s].", pSuite->pName);
 }
 
 #ifdef HAVE_CU_GET_SUITE
 static void suite_start_message_handler(const CU_pSuite pSuite) {
-	tester_printf(BELLE_SIP_LOG_MESSAGE,"Suite [%s] started\n", pSuite->pName);
+	tester_printf(verbosity_info,"Suite [%s] started\n", pSuite->pName);
 }
 static void suite_complete_message_handler(const CU_pSuite pSuite, const CU_pFailureRecord pFailure) {
-	tester_printf(BELLE_SIP_LOG_MESSAGE,"Suite [%s] ended\n", pSuite->pName);
+	tester_printf(verbosity_info,"Suite [%s] ended\n", pSuite->pName);
 }
 
 static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
-	tester_printf(BELLE_SIP_LOG_MESSAGE,"Suite [%s] Test [%s] started", pSuite->pName,pTest->pName);
+	tester_printf(verbosity_info,"Suite [%s] Test [%s] started", pSuite->pName,pTest->pName);
 }
 
 /*derivated from cunit*/
@@ -172,7 +168,7 @@ static void test_complete_message_handler(const CU_pTest pTest,
 	} else {
 		strncat(result, " passed", strlen(" passed"));
 	}
-	tester_printf(BELLE_SIP_LOG_MESSAGE,"%s\n", result);
+	tester_printf(verbosity_info,"%s\n", result);
 	free(result);
 }
 #endif
@@ -203,26 +199,26 @@ static int tester_run_tests(const char *suite_name, const char *test_name) {
 
 #if !HAVE_CU_GET_SUITE
 		if( suite_name ){
-			tester_printf(BELLE_SIP_LOG_MESSAGE, "Tester compiled without CU_get_suite() function, running all tests instead of suite '%s'", suite_name);
+			tester_printf(verbosity_info, "Tester compiled without CU_get_suite() function, running all tests instead of suite '%s'", suite_name);
 		}
 #else
 		if (suite_name){
 			CU_pSuite suite;
 			suite=CU_get_suite(suite_name);
 			if (!suite) {
-				tester_printf(LOG_ERROR, "Could not find suite '%s'. Available suites are:", suite_name);
+				tester_printf(verbosity_error, "Could not find suite '%s'. Available suites are:", suite_name);
 				tester_list_suites();
 				return -1;
 			} else if (test_name) {
 				CU_pTest test=CU_get_test_by_name(test_name, suite);
 				if (!test) {
-					tester_printf(LOG_ERROR, "Could not find test '%s' in suite '%s'. Available tests are:", test_name, suite_name);
+					tester_printf(verbosity_error, "Could not find test '%s' in suite '%s'. Available tests are:", test_name, suite_name);
 					// do not use suite_name here, since this method is case sensitive
 					tester_list_suite_tests(suite->pName);
 					return -2;
 				} else {
 					CU_ErrorCode err= CU_run_test(suite, test);
-					if (err != CUE_SUCCESS) tester_printf(LOG_ERROR, "CU_basic_run_test error %d", err);
+					if (err != CUE_SUCCESS) tester_printf(verbosity_error, "CU_basic_run_test error %d", err);
 				}
 			} else {
 				CU_run_suite(suite);
@@ -250,7 +246,7 @@ static int tester_run_tests(const char *suite_name, const char *test_name) {
 /* Redisplay list of failed tests on end */
 	if (CU_get_number_of_failure_records()){
 		CU_basic_show_failures(CU_get_failure_list());
-		tester_printf(BELLE_SIP_LOG_MESSAGE,"");
+		tester_printf(verbosity_info,"");
 	}
 
 	CU_cleanup_registry();
@@ -277,8 +273,10 @@ void bc_tester_helper(const char *name, const char* additionnal_helper) {
 		, additionnal_helper);
 }
 
-void bc_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args)) {
+void bc_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args), int iverbosity_info, int iverbosity_error) {
 	tester_printf_va = ftester_printf;
+	verbosity_error = iverbosity_error;
+	verbosity_info = iverbosity_info;
 }
 
 int bc_tester_parse_args(int argc, char **argv, int argid)
@@ -315,7 +313,7 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 			return -2;
 		} else {
 			use_log_file=1;
-			tester_printf(BELLE_SIP_LOG_MESSAGE,"Redirecting traces to file [%s]",argv[i]);
+			tester_printf(verbosity_info,"Redirecting traces to file [%s]",argv[i]);
 			// linphone_core_set_log_file(log_file);
 		}
 	}else {
