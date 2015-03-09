@@ -79,23 +79,23 @@ void belle_sip_tester_init() {
 	belle_sip_log_handler = belle_sip_get_log_handler();
 	belle_sip_set_log_handler(belle_sip_logv_out);
 
-	tester_init(log_handler);
+	bc_tester_init(log_handler, BELLE_SIP_LOG_MESSAGE, BELLE_SIP_LOG_ERROR);
 	belle_sip_init_sockets();
 	belle_sip_object_enable_marshal_check(TRUE);
 	ipv6_available=_belle_sip_tester_ipv6_available();
-	tester_add_suite(&cast_test_suite);
-	tester_add_suite(&sip_uri_test_suite);
-	tester_add_suite(&generic_uri_test_suite);
-	tester_add_suite(&headers_test_suite);
-	tester_add_suite(&core_test_suite);
-	tester_add_suite(&sdp_test_suite);
-	tester_add_suite(&resolver_test_suite);
-	tester_add_suite(&message_test_suite);
-	tester_add_suite(&authentication_helper_test_suite);
-	tester_add_suite(&register_test_suite);
-	tester_add_suite(&dialog_test_suite);
-	tester_add_suite(&refresher_test_suite);
-	tester_add_suite(&http_test_suite);
+	bc_tester_add_suite(&cast_test_suite);
+	bc_tester_add_suite(&sip_uri_test_suite);
+	bc_tester_add_suite(&generic_uri_test_suite);
+	bc_tester_add_suite(&headers_test_suite);
+	bc_tester_add_suite(&core_test_suite);
+	bc_tester_add_suite(&sdp_test_suite);
+	bc_tester_add_suite(&resolver_test_suite);
+	bc_tester_add_suite(&message_test_suite);
+	bc_tester_add_suite(&authentication_helper_test_suite);
+	bc_tester_add_suite(&register_test_suite);
+	bc_tester_add_suite(&dialog_test_suite);
+	bc_tester_add_suite(&refresher_test_suite);
+	bc_tester_add_suite(&http_test_suite);
 }
 
 const char * belle_sip_tester_get_root_ca_path(void) {
@@ -109,7 +109,7 @@ void belle_sip_tester_set_root_ca_path(const char *root_ca_path) {
 void belle_sip_tester_uninit(void) {
 	belle_sip_object_unref(pool);
 	belle_sip_uninit_sockets();
-	tester_uninit();
+	bc_tester_uninit();
 }
 
 static const char* belle_sip_helper =
@@ -124,6 +124,7 @@ static const char* belle_sip_helper =
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 int main (int argc, char *argv[]) {
 	int i;
+	int ret;
 	const char *root_ca_path = NULL;
 	const char *env_domain=getenv("TEST_DOMAIN");
 
@@ -157,11 +158,11 @@ int main (int argc, char *argv[]) {
 			CHECK_ARG("--root-ca", ++i, argc);
 			root_ca_path = argv[i];
 		}else {
-			int ret = tester_parse_args(argc, argv, i);
+			int ret = bc_tester_parse_args(argc, argv, i);
 			if (ret>0) {
 				i += ret;
 			} else {
-				tester_helper(argv[0], belle_sip_helper);
+				bc_tester_helper(argv[0], belle_sip_helper);
 				return ret;
 			}
 		}
@@ -169,6 +170,8 @@ int main (int argc, char *argv[]) {
 	belle_sip_tester_set_root_ca_path(root_ca_path);
 	pool=belle_sip_object_pool_push();
 
-	return tester_start();
+	ret = bc_tester_start();
+	belle_sip_tester_uninit();
+	return ret;
 }
 #endif

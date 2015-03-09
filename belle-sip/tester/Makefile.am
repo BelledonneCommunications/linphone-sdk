@@ -22,7 +22,12 @@ belle_sip_tester_SOURCES= \
 				common/tester_utils.c common/tester_utils.h
 
 
-belle_sip_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS) $(STRICT_OPTIONS_CC) $(TLS_CFLAGS)
+belle_sip_tester_CFLAGS=\
+	-DBC_CONFIG_FILE=\"config.h\" \
+	$(CUNIT_CFLAGS) \
+	$(STRICT_OPTIONS) \
+	$(STRICT_OPTIONS_CC) \
+	$(TLS_CFLAGS)
 
 belle_sip_tester_LDFLAGS=$(CUNIT_LIBS) $(AM_LDFLAGS)
 
