@@ -296,7 +296,8 @@ void media_stream_iterate(MediaStream *stream){
 				mblk_t *m=ortp_event_get_data(ev)->packet;
 				media_stream_process_rtcp(stream,m,curtime);
 			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
-				ms_message("%s_stream_iterate[%p]: local statistics available\n\tLocal's current jitter buffer size:%f ms",
+				ms_message("%s_stream_iterate[%p], local statistics available:"
+							"\n\tLocal current jitter buffer size: %3.1fms",
 					media_stream_type_str(stream), stream, rtp_session_get_jitter_stats(stream->sessions.rtp_session)->jitter_buffer_size_ms);
 			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ice_check_list)){
 				ice_handle_stun_packet(stream->ice_check_list,stream->sessions.rtp_session,ortp_event_get_data(ev));
@@ -316,7 +317,7 @@ void media_stream_iterate(MediaStream *stream){
 
 bool_t media_stream_alive(MediaStream *ms, int timeout){
 	const rtp_stats_t *stats;
-	
+
 	if (ms->state!=MSStreamStarted){
 		return TRUE;
 	}

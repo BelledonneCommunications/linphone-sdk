@@ -145,10 +145,14 @@ void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *r
 		qi->remote_lq_rating=compute_lq_rating(loss_rate/100.0,inter_jitter,0);
 		update_global_rating(qi);
 		if (new_value){
-			ms_message("MSQualityIndicator[%p][%s], remote statistics available:",qi,qi->label ? qi->label : "no label");
-			ms_message("Loss-rate:\t\t%f",loss_rate);
-			ms_message("Interarrival-Jitter:\t%f s",inter_jitter);
-			ms_message("RT-propagation:\t%f s",rt_prop);
+			ms_message("MSQualityIndicator[%p][%s], remote statistics available:"
+						"\n\t%-20s: %3.1f%%"
+						"\n\t%-20s: %3.1f"
+						"\n\t%-20s: %3.1f"
+						,qi,qi->label ? qi->label : "no label"
+						,"Loss rate", 100.f*loss_rate
+						,"Inter-arrival jitter",inter_jitter
+						,"RT propagation",rt_prop);
 		}
 	}
 }
