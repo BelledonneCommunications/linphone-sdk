@@ -21,9 +21,8 @@
 ############################################################################
 
 set(LIBS
-	${MS2_LIBRARIES}
+	${MEDIASTREAMER2_LIBRARIES}
 	${OPENH264_LIBRARIES}
-	${ORTP_LIBRARIES}
 )
 
 set(SOURCE_FILES
