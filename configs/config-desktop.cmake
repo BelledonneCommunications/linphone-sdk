@@ -95,17 +95,11 @@ if(MSVC)
 		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
 	)
 	message(STATUS "Installing libsoup")
-	file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/libsoup/2.24/libsoup_2.24.0-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/libsoup.zip" SHOW_PROGRESS)
+	file(DOWNLOAD http://www.linphone.org/files/libsoup_2.24.0-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/libsoup.zip" SHOW_PROGRESS)
 	execute_process(
 		COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/libsoup.zip"
 		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
 	)
-	file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/libsoup/2.24/libsoup-dev_2.24.0-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/libsoup-dev.zip" SHOW_PROGRESS)
-	execute_process(
-		COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/libsoup-dev.zip"
-		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
-	)
-	file(RENAME "${CMAKE_INSTALL_PREFIX}/lib/libsoup-2.4.dll.a" "${CMAKE_INSTALL_PREFIX}/lib/soup-2.4.lib")
 endif()
 
 
