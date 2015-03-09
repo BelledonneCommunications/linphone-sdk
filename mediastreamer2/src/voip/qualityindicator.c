@@ -150,7 +150,7 @@ void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *r
 						"\n\t%-20s: %3.1f"
 						"\n\t%-20s: %3.1f"
 						,qi,qi->label ? qi->label : "no label"
-						,"Loss rate", 100.f*loss_rate
+						,"Loss rate", loss_rate
 						,"Inter-arrival jitter",inter_jitter
 						,"RT propagation",rt_prop);
 		}
