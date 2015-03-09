@@ -54,18 +54,18 @@ static void equalizer_state_flatten(EqualizerState *s){
 }
 
 static void equalizer_rate_update( EqualizerState* s, int rate ){
-    int nFFT;
+	int nFFT;
 
-    if( rate < 16000 ){
-        nFFT = 128;
-    } else if( rate < 32000){
-        nFFT = 256;
-    } else {
-        nFFT = 512;
-    }
-    ms_message("Equalizer rate: %d, selecting %d steps for FFT", rate, nFFT);
+	if( rate < 16000 ){
+		nFFT = 128;
+	} else if( rate < 32000){
+		nFFT = 256;
+	} else {
+		nFFT = 512;
+	}
+	ms_message("Equalizer rate: %d, selecting %d steps for FFT", rate, nFFT);
 
-    s->rate=rate;
+	s->rate=rate;
 	s->nfft=nFFT;
 	if (s->fft_cpx != NULL) ms_free(s->fft_cpx);
 	s->fft_cpx=(ms_word16_t*)ms_new0(ms_word16_t,s->nfft);
@@ -137,8 +137,13 @@ static float equalizer_compute_gainpoint(int f, int freq_0, float sqrt_gain, int
 }
 
 static void equalizer_point_set(EqualizerState *s, int i, int f, float gain){
-	ms_message("Setting gain %f for freq_index %i (%i Hz)\n",gain,i,f);
-	s->fft_cpx[1+((i-1)*2)] = (s->fft_cpx[1+((i-1)*2)]*(int)(gain*32768))/32768;
+	int index=1+((i-1)*2);
+	if (index>=0 && index <s->nfft){
+		ms_message("Setting gain %f for freq_index %i (%i Hz)\n",gain,i,f);
+		s->fft_cpx[index] = (s->fft_cpx[index]*(int)(gain*32768))/32768;
+	}else{
+		ms_error("equalizer: invalid index %i for fft table of size %i",index,s->nfft);
+	}
 }
 
 static void equalizer_state_set(EqualizerState *s, int freq_0, float gain, int freq_bw){
