@@ -47,9 +47,7 @@ LT_INIT(win32-dll)
 case "$target" in
 	#macosx 64 bits
         x86_64-apple-darwin*)
-                LIBS="$LIBS -mmacosx-version-min=10.6 -framework Foundation"
-                CXXFLAGS="$CXXFLAGS -mmacosx-version-min=10.6"
-                CFLAGS="$CFLAGS -mmacosx-version-min=10.6"
+                LIBS="$LIBS -framework Foundation"
                 OBJCFLAGS="$OBJCFLAGS  -fmodules"
                 build_apple=yes
         ;;
