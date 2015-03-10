@@ -182,6 +182,7 @@ case $host in
 	;;
 	x86_64-apple*|i686-apple*)
 		macosx_found=yes
+		OBJCFLAGS="$OBJCFLAGS -Wno-error=deprecated-declarations"
 	;;
   	*mingw32ce)
 		CFLAGS="$CFLAGS -D_WIN32_WINNT=0x0501  -D_WIN32_WCE  -DORTP_STATIC"
@@ -1064,7 +1065,7 @@ if test "${srtp_prefix}" != "none" ; then
 		if test "$srtp_polarssl_conflict" = "yes"; then
 			srtp_static_lib="${srtp_prefix}/lib/libsrtp.a"
 			if test -f $srtp_static_lib -a -r $srtp_static_lib; then
-				SRTP_LIBS="${srtp_prefix}/lib/libsrtp.a -Bsymbolic -Wl,--version-script=\$(top_srcdir)/src/libsrtp.map" 
+				SRTP_LIBS="${srtp_prefix}/lib/libsrtp.a -Bsymbolic -Wl,--version-script=\$(top_srcdir)/src/libsrtp.map"
 				AC_DEFINE(HAVE_SRTP, 1, [Defined when srtp support is compiled])
 				have_srtp=yes
 			else
