@@ -29,6 +29,13 @@
 #define DEVICE_USE_ANDROID_MIC			(1<<2) /*set when the device needs to capture using MIC instead of Voice communication (I.E kindle fire) */
 #define DEVICE_HAS_BUILTIN_OPENSLES_AEC		(1<<3) /*set when the device automatically enables it's AEC when using OpenSLES */
 
+struct SoundDeviceAudioHacks {
+	const char *equalizer;
+	float mic_gain;
+};
+
+typedef struct SoundDeviceAudioHacks SoundDeviceAudioHacks;
+
 struct SoundDeviceDescription{
 	const char *manufacturer;
 	const char *model;
@@ -36,6 +43,7 @@ struct SoundDeviceDescription{
 	unsigned int flags;
 	int delay;
 	int recommended_rate;
+	SoundDeviceAudioHacks *hacks;
 };
 
 typedef struct SoundDeviceDescription SoundDeviceDescription;

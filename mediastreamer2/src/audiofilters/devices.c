@@ -31,12 +31,17 @@
 
 #ifdef ANDROID
 /* 
+ * 1st column: list of triplet frequency, gain, width
+ * 2nd column: mic gain in db
+*/
+static SoundDeviceAudioHacks SonySGP511Hacks = { "50:0.01:100 600:0.2:100 1350:0.2:100 2000:0.2:100", -4 };
+
+/* 
  * 1st column: value of ro.product.manufacturer 
  * 2nd column: value of ro.product.model
  * 3rd column: value of ro.board.platform (and is optional)
  * All these values can be obtained from the device using "adb shell getprop"
 */
-
 static SoundDeviceDescription devices[]={
 	{	"HTC",		"Nexus One",	"qsd8k",	0,	300 },
 	{	"HTC",		"HTC One X",	"tegra",	0,	150 },	/*has a very good acoustic isolation, which result in calibration saying no echo. */
@@ -93,7 +98,7 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",	"GT-P7510",		"",			DEVICE_HAS_BUILTIN_AEC, 0 }, /* Galaxy Tab*/
 	{	"samsung",	"GT-I915",		"",			DEVICE_HAS_BUILTIN_AEC, 0 }, /* Verizon Tab*/
 	{	"samsung",	"GT-I8190N",	"montblanc",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 16000 }, /* Galaxy S3 Mini*/
-	{	"samsung",	"GT-I8190",	"montblanc",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0, 16000 },  /*Galaxy S3 mini*/
+	{	"samsung",	"GT-I8190",		"montblanc",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0, 16000 },  /*Galaxy S3 mini*/
 	
 	
 	{	"Sony Ericsson","ST15a",	"",			0, 	150 },
@@ -111,6 +116,9 @@ static SoundDeviceDescription devices[]={
 	{	"Sony Ericsson","MT11i",	"",			0,	150 },
 	{	"Sony Ericsson","MT15i",	"",			0,	150 },
 	{	"Sony Ericsson","ST15i",	"msm7x30",		0,	150 },
+	{	"Sony",			"SGP511",	"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	130, 0, &SonySGP511Hacks},
+	{ 	"Sony", 		"D6503", 	"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	280},
+	{ 	"Sony", 		"D6603", 	"msm8974",		DEVICE_HAS_BUILTIN_AEC_CRAPPY,	280},
 	
 	{	"asus",		"Nexus 7",	"", 			0, 170},
 	{	"asus",		"K00E",		"clovertrail", 	0, 200},
@@ -120,13 +128,10 @@ static SoundDeviceDescription devices[]={
 	
 	{	"Enspert",		"IGGY",		""		,	0,	320 ,0}, /*Wiko iggy*/
 	{ "Yota Devices Limited", "YD201", "msm8974", DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 48000 }, /* Yotaphone 2 */
-	{ "Sony", "D6503", "msm8974",DEVICE_HAS_BUILTIN_AEC_CRAPPY,280},
-	{ "Sony", "D6603", "msm8974",DEVICE_HAS_BUILTIN_AEC_CRAPPY,280},
-	
 	{	NULL, NULL, NULL, 0, 0,0}
 };
 
-static SoundDeviceDescription undefined={"Generic", "Generic", "Generic", 0, 250, 0};
+static SoundDeviceDescription undefined={"Generic", "Generic", "Generic", 0, 250, 0, 0};
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_addSoundDeviceDescription(JNIEnv* env, jobject thiz, jstring jmanufacturer, jstring jmodel, jstring jplatform, jint flags, jint delay, jint rate) {
 	const char *manufacturer = jmanufacturer ? (*env)->GetStringUTFChars(env, jmanufacturer, NULL) : NULL;

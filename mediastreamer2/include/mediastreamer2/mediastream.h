@@ -505,6 +505,11 @@ static MS2_INLINE void audio_stream_enable_adaptive_jittcomp(AudioStream *stream
 	media_stream_enable_adaptive_jittcomp(&stream->ms, enabled);
 }
 
+MS2_PUBLIC void audio_stream_set_mic_gain_db(AudioStream *stream, float gain_db);
+
+/**
+ * 	deprecated
+ *  */
 MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
 /**

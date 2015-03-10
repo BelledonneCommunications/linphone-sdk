@@ -38,7 +38,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msgenericplc.h"
 #include "private.h"
 
-
+#ifdef ANDROID
+#include "audiofilters/devices.h"
+#endif
 
 #include <sys/types.h>
 
@@ -872,13 +874,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS,&nchannels);
 
 	if (stream->ec){
-		if (!stream->is_ec_delay_set){
+		if (!stream->is_ec_delay_set) {
 			int delay_ms=ms_snd_card_get_minimal_latency(captcard);
-			if (delay_ms!=0){
-				ms_message("Setting echo canceller delay with value provided by soundcard: %i ms",delay_ms);
-			}
+			ms_message("Setting echo canceller delay with value provided by soundcard: %i ms",delay_ms);
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
-		}else {
+		} else {
 			ms_message("Setting echo canceller delay with value configured by application.");
 		}
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
@@ -926,6 +926,30 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		}
 	}else
 		stream->equalizer=NULL;
+	
+#ifdef ANDROID
+	/*configure equalizer if needed*/
+	audio_stream_set_mic_gain_db(stream, 0);
+	if (stream->equalizer) {
+		SoundDeviceDescription *device = sound_device_description_get();
+		if (device && device->hacks) {
+			const char *gains = device->hacks->equalizer;
+			if (gains) {
+				stream->eq_loc = MSEqualizerMic;
+				ms_message("Found equalizer configuration in the devices table");
+				do {
+					int bytes;
+					MSEqualizerGain g;
+					if (sscanf(gains, "%f:%f:%f %n", &g.frequency, &g.gain, &g.width, &bytes) == 3) {
+						ms_message("Read equalizer gains: %f(~%f) --> %f", g.frequency, g.width, g.gain);
+						ms_filter_call_method(stream->equalizer, MS_EQUALIZER_SET_GAIN, &g);
+						gains += bytes;
+					} else break;
+				} while(1);
+			}
+		}
+	}
+#endif
 
 	/*configure resamplers if needed*/
 	if (stream->read_resampler){
@@ -1321,6 +1345,22 @@ void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val){
 	} else {
 		ms_message("cannot set noise gate mode to [%i] because no volume send",val);
 	}
+}
+
+void audio_stream_set_mic_gain_db(AudioStream *stream, float gain_db) {
+	float gain = gain_db;
+#ifdef ANDROID
+	SoundDeviceDescription *device = sound_device_description_get();
+	if (device && device->hacks) {
+		gain += device->hacks->mic_gain;
+		ms_message("Applying %f db to mic gain based on parameter and audio hack value in device table", gain);
+	}
+#endif
+
+	if (stream->volsend){
+		ms_filter_call_method(stream->volsend, MS_VOLUME_SET_DB_GAIN, &gain);
+	} else ms_warning("Could not apply gain: gain control wasn't activated. "
+			"Use audio_stream_enable_gain_control() before starting the stream.");
 }
 
 void audio_stream_set_mic_gain(AudioStream *stream, float gain){
