@@ -354,7 +354,8 @@ static void codec_change_for_video_stream(void) {
 		} else {
 			ms_error("H264 codec is not supported!");
 		}
-		uninit_video_streams(marielle, margaux);
+		destroy_video_stream(marielle);
+		destroy_video_stream(margaux);
 	} else {
 		ms_error("VP8 codec is not supported!");
 	}
