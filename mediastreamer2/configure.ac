@@ -180,6 +180,9 @@ case $host in
 	i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*|aarch64-apple*|arm64-apple*)
 		ios_found=yes
 	;;
+	x86_64-apple*|i686-apple*)
+		macosx_found=yes
+	;;
   	*mingw32ce)
 		CFLAGS="$CFLAGS -D_WIN32_WINNT=0x0501  -D_WIN32_WCE  -DORTP_STATIC"
 		CXXFLAGS="$CXXFLAGS -D_WIN32_WINNT=0x0501 -DORTP_STATIC  -D_WIN32_WCE"
