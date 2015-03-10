@@ -79,15 +79,25 @@ int bzrtp_keyDerivationFunction(uint8_t *key, uint16_t keyLength,
 	return 0;
 }
 
-
 /* Base32 function. Code from rfc section 5.1.6 */
-void bzrtp_base32(uint32_t sas, char output[4]) {
+void bzrtp_base32(uint32_t sas, char *output, int outputSize) {
 	int i, n, shift;
 
 	for (i=0,shift=27; i!=4; ++i,shift-=5) {
 		n = (sas>>shift) & 31;
 		output[i] = "ybndrfg8ejkmcpqxot1uwisza345h769"[n];
 	}
+
+	output[4] = '\0';
+}
+
+/* Base256 function. Code from rfc section 5.1.6 */
+void bzrtp_base256(uint32_t sas, char *output, int outputSize) {
+
+	// generate indexes and copy the appropriate words
+	int evenIndex = (sas >> 24) & 0xFF;
+	int oddIndex =  (sas >> 16) & 0xFF;
+	snprintf(output, outputSize, "%s:%s", pgpWordsEven[evenIndex], pgpWordsOdd[oddIndex]);
 }
 
 uint32_t CRC32LookupTable[256] = {
@@ -411,7 +421,12 @@ int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
 	switch(zrtpChannelContext->sasAlgo) {
 		case ZRTP_SAS_B32:
 			zrtpChannelContext->sasFunction = bzrtp_base32;
-			zrtpChannelContext->sasLength = 4;
+			// extend 4 byte b32 length to include null terminator
+			zrtpChannelContext->sasLength = 5;
+			break;
+		case ZRTP_SAS_B256:
+			zrtpChannelContext->sasFunction = bzrtp_base256;
+			zrtpChannelContext->sasLength = 32;
 			break;
 		case ZRTP_UNSET_ALGO :
 			zrtpChannelContext->sasFunction = NULL;

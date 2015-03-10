@@ -74,7 +74,8 @@ uint8_t bzrtpCrypto_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableT
 			break;
 		case ZRTP_SAS_TYPE: /* the SAS function is implemented in cryptoUtils.c and then is not directly linked to the polarSSL crypto wrapper */
 			availableTypes[0] = ZRTP_SAS_B32;
-			return 1;
+			availableTypes[1] = ZRTP_SAS_B256;
+			return 2;
 			break;
 		default:
 			return 0;

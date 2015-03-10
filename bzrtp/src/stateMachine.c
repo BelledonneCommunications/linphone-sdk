@@ -2117,7 +2117,8 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 		sasValue = ((uint32_t)sasHash[0]<<24) | ((uint32_t)sasHash[1]<<16) | ((uint32_t)sasHash[2]<<8) | ((uint32_t)(sasHash[3]));
 		zrtpChannelContext->srtpSecrets.sasLength = zrtpChannelContext->sasLength;
 		zrtpChannelContext->srtpSecrets.sas = (char *)malloc((zrtpChannelContext->sasLength)*sizeof(char)); /*this shall take in account the selected representation algo for SAS */
-		zrtpChannelContext->sasFunction(sasValue, zrtpChannelContext->srtpSecrets.sas);
+
+		zrtpChannelContext->sasFunction(sasValue, zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->sasLength);
 	}
 
 	return 0;

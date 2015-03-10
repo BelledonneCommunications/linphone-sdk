@@ -327,7 +327,7 @@ void test_parserComplete() {
 	uint8_t alice_sasHash[32];
 	uint8_t bob_sasHash[32];
 	uint32_t sasValue;
-	char sas[4];
+	char sas[32];
 	bzrtpPacket_t *bob_Confirm1;
 	bzrtpPacket_t *alice_Confirm1FromBob;
 	bzrtpConfirmMessage_t *alice_Confirm1FromBob_message=NULL;
@@ -1091,12 +1091,12 @@ void test_parserComplete() {
 
 	/* display SAS (we shall not do this now but after the confirm message exchanges) */
 	sasValue = ((uint32_t)alice_sasHash[0]<<24) | ((uint32_t)alice_sasHash[1]<<16) | ((uint32_t)alice_sasHash[2]<<8) | ((uint32_t)(alice_sasHash[3]));
-	contextAlice->channelContext[0]->sasFunction(sasValue, sas);
+	contextAlice->channelContext[0]->sasFunction(sasValue, sas, 5);
 
 	printf("Alice SAS is %.4s\n", sas);
 
 	sasValue = ((uint32_t)bob_sasHash[0]<<24) | ((uint32_t)bob_sasHash[1]<<16) | ((uint32_t)bob_sasHash[2]<<8) | ((uint32_t)(bob_sasHash[3]));
-	contextBob->channelContext[0]->sasFunction(sasValue, sas);
+	contextBob->channelContext[0]->sasFunction(sasValue, sas, 5);
 	
 	printf("Bob SAS is %.4s\n", sas);
 

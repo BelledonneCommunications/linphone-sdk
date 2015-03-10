@@ -71,7 +71,17 @@ int bzrtp_keyDerivationFunction(uint8_t *key, uint16_t keyLength,
  * @param[out]	output	The 4 chars string to be displayed to user for vocal confirmation
  *
  */
-void bzrtp_base32(uint32_t sas, char output[4]);
+void bzrtp_base32(uint32_t sas, char *output, int outputSize);
+
+/**
+ * @brief SAS rendering from 32 bits to pgp word list
+ * Function defined in rfc section 5.1.6
+ *
+ * @param[in]	sas	The 32 bits SAS
+ * @param[out]	output	The output list. Passed in array must be at least 32 bytes
+ *
+ */
+void bzrtp_base256(uint32_t sas, char *output, int outputSize);
 
 /**
  * @brief CRC32 as defined in RFC4960 Appendix B - Polynomial is 0x1EDC6F41

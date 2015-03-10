@@ -65,6 +65,10 @@ typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 #define NON_HELLO_CAP_RETRANSMISSION_STEP 	1200
 #define NON_HELLO_MAX_RETRANSMISSION_NUMBER	10
 
+/* pgp word list for use with SAS */
+extern const char * pgpWordsEven[];
+extern const char * pgpWordsOdd[];
+
 /**
  * @brief Timer structure : The timer mechanism receives a tick giving a current time in ms
  * a timer object will check on tick reception if it must fire or not
@@ -149,7 +153,7 @@ struct bzrtpChannelContext_struct {
 	void (*hashFunction)(const uint8_t *input, size_t inputLength, uint8_t hashLength, uint8_t *output); /**< function pointer to the agreed hash function */
 	void (*cipherEncryptionFunction)(const uint8_t *key, const uint8_t *IV, const uint8_t *input, size_t inputLength, uint8_t *output); /**< function pointer to the agreed cipher block function, encryption mode */
 	void (*cipherDecryptionFunction)(const uint8_t *key, const uint8_t *IV, const uint8_t *input, size_t inputLength, uint8_t *output); /**< function pointer to the agreed cipher block function, decryption mode */
-	void (*sasFunction)(uint32_t sas, char output[4]); /**< function pointer to the agreed sas rendering function */
+	void (*sasFunction)(uint32_t sas, char * output, int outputSize); /**< function pointer to the agreed sas rendering function */
 
 	/* keys */
 	uint8_t *s0; /**< the s0 as describred rfc section 4.4 - have a length of hashLength */
