@@ -465,10 +465,10 @@ void adaptive_video(int max_bw, int exp_min_bw, int exp_max_bw, int loss_rate, i
 }
 
 static void adaptive_vp8_ideal() {
-	adaptive_video(0, 200, 1000, 0, 0, 1);
+	adaptive_video(0, 200, 10000, 0, 0, 1);
 }
 static void adaptive_vp8_lossy() {
-	adaptive_video(0, 200, 1000, 25, 20, 30);
+	adaptive_video(0, 200, 10000, 25, 20, 30);
 }
 static void adaptive_vp8_congestion() {
 	adaptive_video(70, 50, 95, 0, 0, 2);
