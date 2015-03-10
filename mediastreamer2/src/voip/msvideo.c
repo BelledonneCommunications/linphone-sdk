@@ -873,7 +873,7 @@ MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoC
 	int max_pixels=0;
 
 	/* search for configuration that has compatible cpu count, compatible bitrate, biggest video size, and greater fps*/
-	do{
+	while(TRUE) {
 		int pixels=vconf_it->vsize.width*vconf_it->vsize.height;
 		if ((cpu_count>=vconf_it->mincpu && bitrate>=vconf_it->required_bitrate) || vconf_it->required_bitrate==0){
 			if (pixels>max_pixels){
@@ -885,8 +885,11 @@ MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoC
 				}
 			}
 		}
+		if (vconf_it->required_bitrate==0) {
+			break;
+		}
 		vconf_it++;
-	}while(vconf_it->required_bitrate!=0);
+	}
 	best_vconf.required_bitrate=bitrate>best_vconf.bitrate_limit ? best_vconf.bitrate_limit : bitrate;
 	return best_vconf;
 }
@@ -899,7 +902,7 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConf
 
 	/* search for configuration that is first nearest to target video size, then second has the greater fps,
 	 * but any case making sure the the cpu count is sufficient*/
-	for(;vconf_it->required_bitrate!=0;vconf_it++){
+	while(TRUE) {
 		int pixels=vconf_it->vsize.width*vconf_it->vsize.height;
 		int score=abs(pixels-ref_pixels);
 		if (cpu_count>=vconf_it->mincpu){
@@ -912,6 +915,11 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConf
 				}
 			}
 		}
+		if (vconf_it->required_bitrate==0) {
+			break;
+		}
+		vconf_it++;
+
 	}
 	best_vconf.vsize=vsize;
 	return best_vconf;
