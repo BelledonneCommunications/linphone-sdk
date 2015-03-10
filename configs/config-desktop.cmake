@@ -97,3 +97,16 @@ endif()
 if(WIN32)
 	set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 endif()
+
+
+# Create a shortcut to linphone.exe in install prefix
+if(WIN32)
+	set(SHORTCUT_PATH "${CMAKE_INSTALL_PREFIX}/linphone.lnk")
+	set(SHORTCUT_TARGET_PATH "${CMAKE_INSTALL_PREFIX}/bin/linphone.exe")
+	set(SHORTCUT_WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/configs/desktop/winshortcut.vbs.in" "${CMAKE_CURRENT_BINARY_DIR}/winshortcut.vbs" @ONLY)
+	add_custom_command(OUTPUT "${SHORTCUT_PATH}"
+		COMMAND "cscript" "${CMAKE_CURRENT_BINARY_DIR}/winshortcut.vbs"
+	)
+	add_custom_target(linphone_winshortcut ALL DEPENDS "${SHORTCUT_PATH}" TARGET_linphone)
+endif()
