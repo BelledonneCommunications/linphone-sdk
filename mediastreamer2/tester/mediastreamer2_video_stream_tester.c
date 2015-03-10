@@ -459,7 +459,7 @@ static void avpf_rpsi_count(void) {
 	video_stream_tester_destroy(margaux);
 }
 
-static void video_stream_first_iframe_lost_vp8_base(bool_t use_avpf) {
+static void video_stream_first_iframe_lost_vp8(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
@@ -467,37 +467,36 @@ static void video_stream_first_iframe_lost_vp8_base(bool_t use_avpf) {
 
 	if (supported) {
 		int dummy=0;
+		/* Make sure first Iframe is lost. */
 		params.enabled = TRUE;
-		params.loss_rate = 100.; /*to have a decoding error, a few packets must be able to cross*/
-		init_video_streams(marielle, margaux, use_avpf, FALSE, &params,VP8_PAYLOAD_TYPE);
-		/*make sure first Iframe is lost*/
+		params.loss_rate = 100.;
+		init_video_streams(marielle, margaux, FALSE, FALSE, &params, VP8_PAYLOAD_TYPE);
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms,&dummy,1,1000);
 
+		/* Use 10% packet lost to be sure to have decoding errors. */
 		params.enabled=TRUE;
-		params.loss_rate = 10.; /*to have a decoding error, a few packets must be able to cross*/
+		params.loss_rate = 10.;
 		rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
 		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
-
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms,&dummy,1,2000);
 
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_decoder_decoding_error,
+			1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_decoder_decoding_error,
+			1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
-		if (use_avpf) {
-			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_PLI,
-				1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_PLI,
-				1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_decoder_first_image_decoded,
-				1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_decoder_first_image_decoded,
-				1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		} else {
-			video_stream_send_vfu(marielle->vs);
-			video_stream_send_vfu(margaux->vs);
-			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_decoder_decoding_error,
-				1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-			CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_decoder_decoding_error,
-				1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		}
+		/* Remove the lost to be sure the forced iframe is going through. */
+		params.enabled=TRUE;
+		params.loss_rate = 0.;
+		rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
+		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
+		wait_for_until(&marielle->vs->ms, &margaux->vs->ms,&dummy,1,2000);
+		video_stream_send_vfu(marielle->vs);
+		video_stream_send_vfu(margaux->vs);
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_decoder_first_image_decoded,
+			1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_decoder_first_image_decoded,
+			1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
 		uninit_video_streams(marielle, margaux);
 	} else {
@@ -507,12 +506,44 @@ static void video_stream_first_iframe_lost_vp8_base(bool_t use_avpf) {
 	video_stream_tester_destroy(margaux);
 }
 
-static void video_stream_first_iframe_lost_vp8(void) {
-	video_stream_first_iframe_lost_vp8_base(FALSE);
-}
 static void avpf_video_stream_first_iframe_lost_vp8(void) {
-	video_stream_first_iframe_lost_vp8_base(TRUE);
+	video_stream_tester_t* marielle=video_stream_tester_new();
+	video_stream_tester_t* margaux=video_stream_tester_new();
+	OrtpNetworkSimulatorParams params = { 0 };
+	bool_t supported = ms_filter_codec_supported("vp8");
+
+	if (supported) {
+		int dummy=0;
+		/* Make sure first Iframe is lost. */
+		params.enabled = TRUE;
+		params.loss_rate = 100.;
+		init_video_streams(marielle, margaux, TRUE, FALSE, &params, VP8_PAYLOAD_TYPE);
+		wait_for_until(&marielle->vs->ms, &margaux->vs->ms,&dummy,1,1000);
+
+		/* Remove the lost to be sure that a PLI will be sent and not a SLI. */
+		params.enabled=TRUE;
+		params.loss_rate = 0.;
+		rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
+		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
+		wait_for_until(&marielle->vs->ms, &margaux->vs->ms,&dummy,1,2000);
+
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_PLI,
+			1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_PLI,
+			1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_decoder_first_image_decoded,
+			1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_decoder_first_image_decoded,
+			1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+
+		uninit_video_streams(marielle, margaux);
+	} else {
+		ms_error("VP8 codec is not supported!");
+	}
+	video_stream_tester_destroy(marielle);
+	video_stream_tester_destroy(margaux);
 }
+
 static void avpf_high_loss_video_stream_base(float rate) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
@@ -609,8 +640,8 @@ static test_t tests[] = {
 	{ "AVPF video stream", avpf_video_stream },
 	{ "AVPF high-loss video stream", avpf_high_loss_video_stream },
 	{ "AVPF very high-loss video stream", avpf_very_high_loss_video_stream },
-	{ "AVPF PLI on first iframe lost", avpf_video_stream_first_iframe_lost_vp8 },
-	{ "AVP PLI on first iframe lost", video_stream_first_iframe_lost_vp8 },
+	{ "AVPF video stream first iframe lost", avpf_video_stream_first_iframe_lost_vp8 },
+	{ "AVP video stream first iframe lost", video_stream_first_iframe_lost_vp8 },
 	{ "Video configuration", video_configuration_stream },
 	{ "AVPF RPSI count", avpf_rpsi_count}
 };
