@@ -122,13 +122,9 @@ const char * media_stream_type_str(MediaStream *stream) {
 }
 
 void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
-	if (sessions->srtp_session) {
-		ms_srtp_dealloc(sessions->srtp_session);
-		sessions->srtp_session=NULL;
-	}
-	if (sessions->srtp_rtcp_session) {
-		ms_srtp_dealloc(sessions->srtp_rtcp_session);
-		sessions->srtp_rtcp_session=NULL;
+	if (sessions->srtp_context) {
+		ms_srtp_context_delete(sessions->srtp_context);
+		sessions->srtp_context=NULL;
 	}
 	if (sessions->rtp_session) {
 		rtp_session_destroy(sessions->rtp_session);
@@ -301,14 +297,8 @@ void media_stream_iterate(MediaStream *stream){
 					media_stream_type_str(stream), stream, rtp_session_get_jitter_stats(stream->sessions.rtp_session)->jitter_buffer_size_ms);
 			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ice_check_list)){
 				ice_handle_stun_packet(stream->ice_check_list,stream->sessions.rtp_session,ortp_event_get_data(ev));
-			} else if (evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) {
-				OrtpEventData *evd=ortp_event_get_data(ev);
-				stream->sessions.is_secured=evd->info.zrtp_stream_encrypted;
-				ms_message("%s_stream_iterate[%p]: is %s ",media_stream_type_str(stream) , stream, stream->sessions.is_secured ? "encrypted" : "not encrypted");
-			} else if (evt == ORTP_EVENT_DTLS_ENCRYPTION_CHANGED) {
-				OrtpEventData *evd=ortp_event_get_data(ev);
-				stream->sessions.is_secured=evd->info.dtls_stream_encrypted;
-				ms_message("%s_stream_iterate[%p]: is %s ",media_stream_type_str(stream) , stream, stream->sessions.is_secured ? "encrypted" : "not encrypted");
+			} else if ((evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) || (evt == ORTP_EVENT_DTLS_ENCRYPTION_CHANGED)) {
+				ms_message("%s_stream_iterate[%p]: is %s ",media_stream_type_str(stream) , stream, media_stream_secured(stream) ? "encrypted" : "not encrypted");
 			}
 			ortp_event_destroy(ev);
 		}
@@ -394,7 +384,22 @@ void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *s
 }
 
 bool_t media_stream_secured (const MediaStream *stream) {
-	return stream->sessions.is_secured;
+	if (stream->state != MSStreamStarted)
+		return FALSE;
+
+	switch (stream->type) {
+	case MSAudio:
+		/*fixme need also audio stream direction to be more precise*/
+		return media_stream_session_secured(&stream->sessions,MediaStreamSendRecv);
+	case MSVideo:{
+		VideoStream *vs = (VideoStream*)stream;
+		switch (vs->dir) {
+		case VideoStreamSendOnly: return media_stream_session_secured(&stream->sessions,MediaStreamSendOnly);
+		case VideoStreamRecvOnly: return media_stream_session_secured(&stream->sessions,MediaStreamRecvOnly);
+		case VideoStreamSendRecv: return media_stream_session_secured(&stream->sessions,MediaStreamSendRecv);
+		}
+	}
+	}
 }
 
 bool_t media_stream_avpf_enabled(const MediaStream *stream) {

@@ -107,6 +107,13 @@ MS2_PUBLIC void ms_dtls_srtp_set_stream_sessions(MSDtlsSrtpContext *dtls_context
  * @param[in]		stream_sessions	Pointer to the new stream session structure
  */
 MS2_PUBLIC void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions);
+
+bool_t media_stream_session_secured(const struct _MSMediaStreamSessions *sessions,MediaStreamDir dir);
+
+MSSrtpCtx* ms_srtp_context_new();
+void ms_srtp_context_delete(MSSrtpCtx *session);
+
+
 #ifdef __cplusplus
 }
 #endif

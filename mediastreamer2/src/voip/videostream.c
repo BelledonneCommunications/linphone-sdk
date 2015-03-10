@@ -1325,7 +1325,7 @@ void video_stream_send_only_stop(VideoStream *vs){
 void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtpParams *param){
 	if (astream->ms.sessions.zrtp_context != NULL && vstream->ms.sessions.zrtp_context == NULL) {
 		vstream->ms.sessions.zrtp_context=ms_zrtp_multistream_new(&(vstream->ms.sessions), astream->ms.sessions.zrtp_context, param);
-	} else if (vstream->ms.sessions.zrtp_context && !vstream->ms.sessions.is_secured)
+	} else if (vstream->ms.sessions.zrtp_context && !media_stream_secured(&vstream->ms))
 		ms_zrtp_reset_transmition_timer(vstream->ms.sessions.zrtp_context);
 }
 

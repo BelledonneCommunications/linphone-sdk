@@ -51,7 +51,7 @@ MS2_PUBLIC int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNam
 
 
 /* defined in srtp.h*/
-typedef struct srtp_ctx_t *MSSrtpCtx;
+typedef struct _MSSrtpCtx MSSrtpCtx;
 
 typedef enum {
 	MSSRTP_RTP_STREAM,
@@ -59,10 +59,36 @@ typedef enum {
 	MSSRTP_ALL_STREAMS
 } MSSrtpStreamType;
 /**
+ * return humanly readable string
+ * @param[in]	type
+ * @return
+ *
+ * */
+MS2_PUBLIC const char * ms_srtp_stream_type_to_string(const MSSrtpStreamType type);
+/**
  * Check if SRTP is supported
  * @return true if SRTP is supported
  */
 MS2_PUBLIC bool_t ms_srtp_supported(void);
+
+/**
+ * Set encryption requirements.
+ * srtp session might be created/deleted depending on requirement parameter and already set keys
+ * @param[in/out]	sessions	The sessions associated to the current media stream
+ * @param[in]		yesno		If yes, any incoming/outgoing rtp packets are silently discarded.
+ * until key are provided using functions #media_stream_set_srtp_recv_key_b64 or #media_stream_set_srtp_recv_key
+ * @return	0 on success, error code otherwise
+ */
+
+MS2_PUBLIC int media_stream_session_encryption_mandatory_enable(struct _MSMediaStreamSessions *sessions, bool_t yesno);
+
+/**
+ * Get encryption requirements.
+ * @param[in/out]	sessions	The sessions associated to the current media stream
+ * @return	TRUE if only encrypted rtp packet shall be sent/received
+ */
+
+MS2_PUBLIC bool_t media_stream_session_encryption_mandatory_enabled(const struct _MSMediaStreamSessions *sessions);
 
 /**
  * Set srtp receiver key for the given media stream.
@@ -112,13 +138,7 @@ MS2_PUBLIC int media_stream_set_srtp_send_key_b64(struct _MSMediaStreamSessions 
  */
 MS2_PUBLIC int media_stream_set_srtp_send_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
 
-/**
- * Deallocate ressources for a srtp session
- *
- * @param[in/out] session	SRTP session to be terminated
- * @return 0 on success
- */
-MS2_PUBLIC int ms_srtp_dealloc(MSSrtpCtx session);
+
 #ifdef __cplusplus
 }
 #endif

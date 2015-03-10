@@ -80,12 +80,10 @@ typedef void (*media_stream_process_rtcp_callback_t)(MediaStream *stream, mblk_t
 
 struct _MSMediaStreamSessions{
 	RtpSession *rtp_session;
-	MSSrtpCtx srtp_session;
-	MSSrtpCtx srtp_rtcp_session;
+	MSSrtpCtx* srtp_context;
 	MSZrtpContext *zrtp_context;
 	MSDtlsSrtpContext *dtls_context;
 	MSTicker *ticker;
-	bool_t is_secured;
 	bool_t pad[3];
 };
 
@@ -102,6 +100,12 @@ typedef enum _MSStreamState{
 
 #define AudioStreamType MSAudio
 #define VideoStreamType MSVideo
+
+typedef enum MediaStreamDir{
+	MediaStreamSendRecv,
+	MediaStreamSendOnly,
+	MediaStreamRecvOnly
+}MediaStreamDir;
 
 /**
  * Base struct for both AudioStream and VideoStream structure.

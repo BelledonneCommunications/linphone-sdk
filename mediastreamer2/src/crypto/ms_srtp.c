@@ -37,10 +37,10 @@
 #if defined(ANDROID) || !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 // Android and Windows phone don't use make install
 #include <srtp.h>
-#include <srtp_priv.h>
+//#include <srtp_priv.h>
 #else
 #include <srtp/srtp.h>
-#include <srtp/srtp_priv.h>
+//#include <srtp/srtp_priv.h>
 #endif
 
 
@@ -48,36 +48,91 @@
 
 #define SRTP_PAD_BYTES (SRTP_MAX_TRAILER_LEN + 4)
 
+typedef struct _MSSrtpStreamContext {
+	srtp_t srtp;
+	RtpTransportModifier *modifier;
+	bool_t secured;
+	bool_t mandatory_enabled;
+	bool_t is_rtp;
+	ms_mutex_t mutex;
+
+} MSSrtpStreamContext;
+struct _MSSrtpCtx {
+	MSSrtpStreamContext send_rtp_context;
+	MSSrtpStreamContext send_rtcp_context;
+	MSSrtpStreamContext recv_rtp_context;
+	MSSrtpStreamContext recv_rtcp_context;
+};
+
+MSSrtpCtx* ms_srtp_context_new() {
+	MSSrtpCtx* ctx = ms_new0(struct _MSSrtpCtx,1);
+	ctx->send_rtp_context.is_rtp=TRUE;
+	ms_mutex_init(&ctx->send_rtp_context.mutex, NULL);
+	ms_mutex_init(&ctx->send_rtcp_context.mutex, NULL);
+
+	ctx->recv_rtp_context.is_rtp=TRUE;
+	ms_mutex_init(&ctx->recv_rtp_context.mutex, NULL);
+	ms_mutex_init(&ctx->recv_rtcp_context.mutex, NULL);
+	return ctx;
+}
+void ms_srtp_context_delete(MSSrtpCtx* session) {
+	ms_mutex_destroy(&session->send_rtp_context.mutex);
+	ms_mutex_destroy(&session->send_rtcp_context.mutex);
+	ms_mutex_destroy(&session->recv_rtp_context.mutex);
+	ms_mutex_destroy(&session->recv_rtcp_context.mutex);
+	if (session->send_rtp_context.srtp)
+		srtp_dealloc(session->send_rtp_context.srtp);
+	if (session->send_rtcp_context.srtp)
+		srtp_dealloc(session->send_rtcp_context.srtp);
+	if (session->recv_rtp_context.srtp)
+		srtp_dealloc(session->recv_rtp_context.srtp);
+	if (session->recv_rtcp_context.srtp)
+		srtp_dealloc(session->recv_rtcp_context.srtp);
+
+	ms_free(session);
+}
+
 /***********************************************/
 /***** LOCAL FUNCTIONS                     *****/
 /***********************************************/
 
-static srtp_stream_ctx_t * find_other_ssrc(srtp_t srtp, uint32_t ssrc){
-	srtp_stream_ctx_t *stream;
-	for (stream=srtp->stream_list;stream!=NULL;stream=stream->next){
-		if (stream->ssrc!=ssrc) return stream;
-	}
-	return stream;
+static void check_and_create_srtp_context(MSMediaStreamSessions *sessions) {
+	if (!sessions->srtp_context)
+		sessions->srtp_context=ms_srtp_context_new();
 }
-
 /**** Sender functions ****/
-static int _process_on_send(RtpSession* session,srtp_t srtp,mblk_t *m,bool_t is_rtp){
+static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t *m){
 	int slen;
 	err_status_t err;
+	bool_t is_rtp=ctx->is_rtp;
 	rtp_header_t *rtp_header=is_rtp?(rtp_header_t*)m->b_rptr:NULL;
 	rtcp_common_header_t *rtcp_header=!is_rtp?(rtcp_common_header_t*)m->b_rptr:NULL;
-
 	slen=msgdsize(m);
 
 	if (rtp_header && (slen>RTP_FIXED_HEADER_SIZE && rtp_header->version==2)) {
-		/* defragment incoming message and enlarge the buffer for srtp to write its data */
-		msgpullup(m,slen+SRTP_PAD_BYTES);
-		err=srtp_protect(srtp,m->b_rptr,&slen);
+		ms_mutex_lock(&ctx->mutex);
+		if (!ctx->secured) {
+			/*does not make sens to protec, because we don't have any key*/
+			err=err_status_ok;
+			slen = 0; /*droping packets*/
+		} else {
+			/* defragment incoming message and enlarge the buffer for srtp to write its data */
+			msgpullup(m,slen+SRTP_PAD_BYTES);
+			err=srtp_protect(ctx->srtp,m->b_rptr,&slen);
+		}
+		ms_mutex_unlock(&ctx->mutex);
 	} else if (rtcp_header && (slen>RTP_FIXED_HEADER_SIZE && rtcp_header->version==2)) {
+		ms_mutex_lock(&ctx->mutex);
+		if (!ctx->secured) {
+			err=err_status_ok;
+			/*does not make sens to protec, because we don't have any key*/
+			slen = 0; /*droping packets*/
+		} else {
 		/* defragment incoming message and enlarge the buffer for srtp to write its data */
-		msgpullup(m,slen+SRTP_PAD_BYTES);
-		err=srtp_protect_rtcp(srtp,m->b_rptr,&slen);
-
+			msgpullup(m,slen+SRTP_PAD_BYTES);
+			err=srtp_protect_rtcp(ctx->srtp,m->b_rptr,&slen);
+		}
+		ms_mutex_unlock(&ctx->mutex);
 	} else {
 		/*ignoring non rtp/rtcp packets*/
  		return slen;
@@ -87,37 +142,21 @@ static int _process_on_send(RtpSession* session,srtp_t srtp,mblk_t *m,bool_t is_
 	if (err==err_status_ok){
 		return slen;
 	}
-	ortp_error("srtp_protect%s() failed (%d)", is_rtp?"":"_rtcp", err);
+	ortp_error("srtp_protect%s() failed (%d) for stream ctx [%p]", is_rtp?"":"_rtcp", err,ctx);
 	return -1;
 }
 
 static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_send(t->session,(srtp_t)t->data, m,TRUE);
-}
-static int ms_srtcp_process_on_send(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_send(t->session,(srtp_t)t->data, m,FALSE);
+	return _process_on_send(t->session,(MSSrtpStreamContext*)t->data, m);
 }
 
-/**** Receiver functions ****/
-/*
-* The ssrc_any_inbound feature of the libsrtp is not working good.
-* It cannot be changed dynamically nor removed.
-* As a result we prefer not to use it, but instead the recv stream is configured with a dummy SSRC value.
-* When the first packet arrives, or when the SSRC changes, then we change the ssrc value inside the srtp stream context,
-* so that the stream that was configured with the dummy SSRC value becomes now fully valid.
-*/
-/* note added by jehan, no longer needed as policy ssrc_any_inbound can support rekeying if session->stream_template is reset
-static void update_recv_stream(RtpSession *session, srtp_t srtp, uint32_t new_ssrc){
-	uint32_t send_ssrc=rtp_session_get_send_ssrc(session);
-	srtp_stream_ctx_t *recvstream=find_other_ssrc(srtp,htonl(send_ssrc));
-	if (recvstream){
-		recvstream->ssrc=new_ssrc;
-	}
+static int ms_srtp_process_dummy(RtpTransportModifier *t, mblk_t *m) {
+	return msgdsize(m);
 }
-*/
-static int _process_on_receive(RtpSession* session,srtp_t srtp,mblk_t *m,bool_t is_rtp, int err){
+static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t *m, int err){
 	int slen;
 	err_status_t srtp_err;
+	bool_t is_rtp=ctx->is_rtp;
 
 	/* keep NON-RTP data unencrypted */
 	if (is_rtp){
@@ -131,28 +170,17 @@ static int _process_on_receive(RtpSession* session,srtp_t srtp,mblk_t *m,bool_t 
 	}
 
 	slen=err;
-	srtp_err = is_rtp?srtp_unprotect(srtp,m->b_rptr,&slen):srtp_unprotect_rtcp(srtp,m->b_rptr,&slen);
-/*	if (srtp_err==err_status_no_ctx) {
-		update_recv_stream(session,srtp,new_ssrc);
-		slen=err;
-		srtp_err = is_rtp?srtp_unprotect(srtp,m->b_rptr,&slen):srtp_unprotect_rtcp(srtp,m->b_rptr,&slen);
-	}*/
+	srtp_err = is_rtp?srtp_unprotect(ctx->srtp,m->b_rptr,&slen):srtp_unprotect_rtcp(ctx->srtp,m->b_rptr,&slen);
 	if (srtp_err==err_status_ok) {
 		return slen;
 	} else {
-		ms_error("srtp_unprotect%s() failed (%d)", is_rtp?"":"_rtcp", srtp_err);
+		ms_error("srtp_unprotect%s() failed (%d) on stream ctx [%p]", is_rtp?"":"_rtcp", srtp_err,ctx);
 		return -1;
 	}
 }
 static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_receive(t->session,(srtp_t)t->data, m,TRUE,msgdsize(m));
+	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m,msgdsize(m));
 }
-static int ms_srtcp_process_on_receive(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_receive(t->session,(srtp_t)t->data, m,FALSE,msgdsize(m));
-}
-
-
-
 
 /**** Session management functions ****/
 
@@ -164,98 +192,75 @@ static void ms_srtp_transport_modifier_destroy(RtpTransportModifier *tp){
 	ms_free(tp);
 }
 
-/**
- * create a new transport modifier for srtp
- * @param[in] srtp	the srtp session to be used by the modifier
- */
-static int ms_srtp_transport_modifier_new(srtp_t srtp, RtpTransportModifier **rtpt, RtpTransportModifier **rtcpt ){
-	if (rtpt) {
-		(*rtpt)=ms_new0(RtpTransportModifier,1);
-		(*rtpt)->data=srtp;
-		(*rtpt)->t_process_on_send=ms_srtp_process_on_send;
-		(*rtpt)->t_process_on_receive=ms_srtp_process_on_receive;
-		(*rtpt)->t_destroy=ms_srtp_transport_modifier_destroy;
-	}
-	if (rtcpt) {
-		(*rtcpt)=ms_new0(RtpTransportModifier,1);
-		(*rtcpt)->data=srtp;
-		(*rtcpt)->t_process_on_send=ms_srtcp_process_on_send;
-		(*rtcpt)->t_process_on_receive=ms_srtcp_process_on_receive;
-		(*rtcpt)->t_destroy=ms_srtp_transport_modifier_destroy;
-	}
-	return 0;
+static MSSrtpStreamContext* get_stream_context(struct _MSMediaStreamSessions *sessions, bool_t is_send, bool_t is_rtp) {
+	if (is_send && is_rtp)
+		return &sessions->srtp_context->send_rtp_context;
+	else if (is_send && !is_rtp)
+		return &sessions->srtp_context->send_rtcp_context;
+	else if (!is_send && is_rtp)
+		return &sessions->srtp_context->recv_rtp_context;
+	else
+		return &sessions->srtp_context->recv_rtcp_context;
 }
 
-static int ms_check_srtp_session_created(struct _MSMediaStreamSessions *sessions,  MSSrtpStreamType stream_type){
-	if (stream_type == MSSRTP_ALL_STREAMS) { /* This is the usual case when both RTP and RTCP share the same key */
-		if (sessions->srtp_session==NULL){
-			err_status_t err;
-			srtp_t srtp_session;
-			RtpTransport *rtp=NULL,*rtcp=NULL;
-			RtpTransportModifier *rtp_modifier, *rtcp_modifier;
 
-			err = srtp_create(&srtp_session, NULL);
-			if (err != 0) {
-				ms_error("Failed to create srtp session (%d)", err);
-				return -1;
-			}
+static int ms_media_stream_session_fill_srtp_context(struct _MSMediaStreamSessions *sessions, bool_t is_send, bool_t is_rtp) {
+	err_status_t err=0;
+	RtpTransport *transport=NULL;
+	MSSrtpStreamContext* stream_ctx = get_stream_context(sessions,is_send,is_rtp);
 
-			sessions->srtp_session=srtp_session;
-			ms_srtp_transport_modifier_new(srtp_session,&rtp_modifier,&rtcp_modifier);
-			rtp_session_get_transports(sessions->rtp_session,&rtp,&rtcp);
-			meta_rtp_transport_append_modifier(rtp, rtp_modifier);
-			meta_rtp_transport_append_modifier(rtcp, rtcp_modifier);
-			sessions->is_secured=TRUE;
-		}
-	} else if (stream_type == MSSRTP_RTP_STREAM) { /* Allocate only the RTP stream */
-		if (sessions->srtp_session==NULL){
-			err_status_t err;
-			srtp_t srtp_session;
-			RtpTransport *rtp=NULL;
-			RtpTransportModifier *rtp_modifier;
+	if (is_rtp) {
+		rtp_session_get_transports(sessions->rtp_session,&transport,NULL);
+	} else {
+		rtp_session_get_transports(sessions->rtp_session,NULL,&transport);
+	}
 
-			err = srtp_create(&srtp_session, NULL);
-			if (err != 0) {
-				ms_error("Failed to create srtp session (%d)", err);
-				return -1;
-			}
+	ms_mutex_lock(&stream_ctx->mutex);
 
-			sessions->srtp_session=srtp_session;
-			ms_srtp_transport_modifier_new(srtp_session,&rtp_modifier, NULL);
-			rtp_session_get_transports(sessions->rtp_session,&rtp,NULL);
-			meta_rtp_transport_append_modifier(rtp, rtp_modifier);
-			if (sessions->srtp_rtcp_session!=NULL) {
-				sessions->is_secured=TRUE;
-			} else {
-				sessions->is_secured=FALSE;
-			}
-		}
-	} else if (stream_type == MSSRTP_RTCP_STREAM) { /* Allocate only the RTCP stream */
-		if (sessions->srtp_rtcp_session==NULL){
-			err_status_t err;
-			srtp_t srtp_session;
-			RtpTransport *rtcp=NULL;
-			RtpTransportModifier *rtcp_modifier;
+	if (stream_ctx->srtp && stream_ctx->secured) {
+		/*we cannot reuse srtp context, so freeing first*/
+		srtp_dealloc(stream_ctx->srtp);
+		stream_ctx->srtp=NULL;
+	}
 
-			err = srtp_create(&srtp_session, NULL);
-			if (err != 0) {
-				ms_error("Failed to create srtp session (%d)", err);
-				return -1;
-			}
-
-			sessions->srtp_rtcp_session=srtp_session;
-			ms_srtp_transport_modifier_new(srtp_session,NULL,&rtcp_modifier);
-			rtp_session_get_transports(sessions->rtp_session,NULL,&rtcp);
-			meta_rtp_transport_append_modifier(rtcp, rtcp_modifier);
-			if (sessions->srtp_session!=NULL) {
-				sessions->is_secured=TRUE;
-			} else {
-				sessions->is_secured=FALSE;
-			}
+	if (!stream_ctx->srtp) {
+		err = srtp_create(&stream_ctx->srtp, NULL);
+		if (err != 0) {
+			ms_error("Failed to create srtp session (%d) for stream sessions [%p]", err,sessions);
+			goto end;
 		}
 	}
-	return 0;
+
+	if (!stream_ctx->modifier) {
+		stream_ctx->modifier=ms_new0(RtpTransportModifier,1);
+		stream_ctx->modifier->data=stream_ctx;
+		stream_ctx->modifier->t_process_on_send=is_send?ms_srtp_process_on_send:ms_srtp_process_dummy;
+		stream_ctx->modifier->t_process_on_receive=is_send?ms_srtp_process_dummy:ms_srtp_process_on_receive;
+		stream_ctx->modifier->t_destroy=ms_srtp_transport_modifier_destroy;
+		meta_rtp_transport_append_modifier(transport, stream_ctx->modifier);
+	}
+end:
+	ms_mutex_unlock(&stream_ctx->mutex);
+	return err;
+
 }
+int ms_media_stream_session_fill_srtp_context_all_stream(struct _MSMediaStreamSessions *sessions) {
+	int  err = -1;
+	/*check if exist before filling*/
+
+	if (!(get_stream_context(sessions, TRUE,TRUE)->srtp) && (err = ms_media_stream_session_fill_srtp_context(sessions, TRUE, TRUE)))
+		 return err;
+	if (!(get_stream_context(sessions, TRUE,FALSE)->srtp) && (err = ms_media_stream_session_fill_srtp_context(sessions, TRUE, FALSE)))
+		 return err;
+	if (!(get_stream_context(sessions, FALSE,TRUE)->srtp) && (err = ms_media_stream_session_fill_srtp_context(sessions, FALSE, TRUE)))
+		 return err;
+
+	if (!get_stream_context(sessions, FALSE,FALSE)->srtp)
+		err = ms_media_stream_session_fill_srtp_context(sessions,FALSE,FALSE);
+
+	return err;
+}
+
 
 static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *policy) {
 	switch(suite){
@@ -286,7 +291,7 @@ static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *polic
 	return 0;
 }
 
-static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char* key, size_t key_length, bool_t inbound, MSSrtpStreamType stream_type)
+static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char* key, size_t key_length, bool_t is_send, bool_t is_rtp)
 {
 	srtp_policy_t policy;
 	err_status_t err;
@@ -294,66 +299,36 @@ static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, c
 
 	memset(&policy,0,sizeof(policy));
 
-	switch (stream_type) {
-		case MSSRTP_ALL_STREAMS:
-			if (ms_set_srtp_crypto_policy(suite, &policy.rtp) != 0) {
-				return -1;
-			}
-			if (ms_set_srtp_crypto_policy(suite, &policy.rtcp) != 0) {
-				return -1;
-			}
-			break;
-
-		case MSSRTP_RTP_STREAM:
-			if (ms_set_srtp_crypto_policy(suite, &policy.rtp) != 0) {
-				return -1;
-			}
-			break;
-
-		case MSSRTP_RTCP_STREAM:
-			if (ms_set_srtp_crypto_policy(suite, &policy.rtcp) != 0) {
-				return -1;
-			}
-			break;
-
-		default:
-			ms_error("Invalid stream_type(%d) given when trying to add a srtp stream", stream_type);
+	if (is_rtp) {
+		if (ms_set_srtp_crypto_policy(suite, &policy.rtp) != 0) {
 			return -1;
-
-	}
-	/* check if key length match given policy */
-	if (stream_type==MSSRTP_ALL_STREAMS || stream_type==MSSRTP_RTP_STREAM) {
+		}
+		/* check if key length match given policy */
 		if (key_length != policy.rtp.cipher_key_len) {
 			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length, policy.rtp.cipher_key_len);	
 			return -1;
 		}
-	} else {
+	}else {
 		if (key_length != policy.rtcp.cipher_key_len) {
 			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length, policy.rtcp.cipher_key_len);	
 			return -1;
 		}
+
+		if (ms_set_srtp_crypto_policy(suite, &policy.rtcp) != 0) {
+			return -1;
+		}
 	}
 
-	if (!inbound)
+	if (is_send)
 		policy.allow_repeat_tx=1; /*necessary for telephone-events*/
 
-	ssrc_conf.type=inbound ? ssrc_any_inbound : ssrc_specific;
-	/*ssrc_conf.type=ssrc_specific;*/
+	ssrc_conf.type=is_send ? ssrc_specific:ssrc_any_inbound;
 	ssrc_conf.value=ssrc;
 
 	policy.ssrc = ssrc_conf;
 	policy.key = (uint8_t *)key;
 	policy.next = NULL;
-	if (inbound && srtp->stream_template) {
-		/* deallocate stream template, if there is one to be still be able to have late ssrc*/
-		/*	auth_dealloc(srtp->stream_template->rtcp_auth);
-		    cipher_dealloc(srtp->stream_template->rtcp_cipher);
-		    crypto_free(srtp->stream_template->limit);
-		    auth_dealloc(srtp->stream_template->rtp_auth);
-		    rdbx_dealloc(&srtp->stream_template->rtp_rdbx);*/
-		    crypto_free(srtp->stream_template);
-		    srtp->stream_template=NULL;
-	}
+
 	err = srtp_add_stream(srtp, &policy);
 	if (err != err_status_ok) {
 		ms_error("Failed to add stream to srtp session (%d)", err);
@@ -394,6 +369,42 @@ void ms_srtp_shutdown(void){
 	}
 }
 
+static int media_stream_set_srtp_key_base(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, bool_t is_send, bool_t is_rtp){
+	check_and_create_srtp_context(sessions);
+	ms_message("media_stream_set_%s_%s_key(): key %02x..%02x stream sessions is [%p]",(is_rtp?"srtp":"srtcp"),(is_send?"send":"recv"), (uint8_t)key[0], (uint8_t)key[key_length-1], sessions);
+	MSSrtpStreamContext* stream_ctx = get_stream_context(sessions,is_send,is_rtp);
+	uint32_t ssrc = is_send? rtp_session_get_send_ssrc(sessions->rtp_session):0/*only relevant for send*/;
+	int error = -1;
+
+
+	if ((error = ms_media_stream_session_fill_srtp_context(sessions,is_send,is_rtp))) {
+		stream_ctx->secured=FALSE;
+		return error;
+	}
+
+	if ((error = ms_add_srtp_stream(stream_ctx->srtp,suite, ssrc, key, key_length, is_send, TRUE))) {
+		stream_ctx->secured=FALSE;
+		return error;
+	}
+
+	stream_ctx->secured=TRUE;
+	return 0;
+}
+
+static int media_stream_set_srtp_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, bool_t is_send, MSSrtpStreamType stream_type){
+	int error = 0;
+
+	if (stream_type == MSSRTP_ALL_STREAMS || stream_type == MSSRTP_RTP_STREAM) {
+		error=media_stream_set_srtp_key_base(sessions,suite,key,key_length,is_send,TRUE);
+	}
+
+	if (error == 0 && (stream_type == MSSRTP_ALL_STREAMS || stream_type == MSSRTP_RTCP_STREAM)) {
+		error=media_stream_set_srtp_key_base(sessions,suite,key,key_length,is_send,FALSE);
+	}
+	return error;
+}
+
+
 /**** Public Functions ****/
 /* header declared in include/mediastreamer2/ms_srtp.h */
 bool_t ms_srtp_supported(void){
@@ -422,49 +433,24 @@ int media_stream_set_srtp_recv_key_b64(struct _MSMediaStreamSessions *sessions, 
 	return retval;
 }
 
-int media_stream_set_srtp_recv_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type){
+bool_t media_stream_session_secured(const struct _MSMediaStreamSessions *sessions,MediaStreamDir dir) {
+	if(!sessions->srtp_context)
+		return FALSE;
 
-	uint32_t ssrc,send_ssrc;
-	srtp_stream_ctx_t *srtp_stream = NULL;
-	bool_t updated=FALSE;
-	srtp_t srtp_session;
-
-	if (ms_check_srtp_session_created(sessions, stream_type)==-1) {
-		return -1;
+	switch (dir) {
+	case MediaStreamSendRecv: return (sessions->srtp_context->send_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->send_rtcp_context.secured))
+									 && (sessions->srtp_context->recv_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->recv_rtcp_context.secured)) ;
+	case MediaStreamSendOnly: return sessions->srtp_context->send_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->send_rtcp_context.secured);
+	case MediaStreamRecvOnly: return sessions->srtp_context->recv_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->recv_rtcp_context.secured);
 	}
 
-	switch(stream_type){
-		case MSSRTP_ALL_STREAMS:
-		case MSSRTP_RTP_STREAM:
-			srtp_session = sessions->srtp_session;
-			break;
-		case MSSRTP_RTCP_STREAM:
-			srtp_session = sessions->srtp_rtcp_session;
-			break;
-		default:
-			ms_error("Invalid stream_type %d in set_srtp_recv_key on sessions [%p]", stream_type, sessions);
-			return -1;
-	}
-
-	/*check if a previous key was configured, in which case remove it*/
-	send_ssrc=rtp_session_get_send_ssrc(sessions->rtp_session);
-	srtp_stream = find_other_ssrc(srtp_session,htonl(send_ssrc));
-	if (srtp_stream != NULL) {
-		ssrc = srtp_stream->ssrc;
-	} else {
-		ssrc = 0;
-	}
-
-	/*careful: remove_stream takes the SSRC in network byte order...*/
-	if (srtp_remove_stream(srtp_session, ssrc)==0) {
-		updated=TRUE;
-	}
-	ssrc=rtp_session_get_recv_ssrc(sessions->rtp_session);
-	ms_message("media_stream_set_srtp_recv_key(): %s key %02x..%02x\nsrtp session is %p ssrc %08x",updated ? "changing to" : "starting with", (uint8_t)key[0], (uint8_t)key[key_length-1], srtp_session, ssrc);
-	
-	return ms_add_srtp_stream(srtp_session,suite, ssrc, key, key_length, TRUE, stream_type);
+	return FALSE;
 }
 
+
+int media_stream_set_srtp_recv_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type) {
+	return media_stream_set_srtp_key(sessions,suite,key,key_length,FALSE,stream_type);
+}
 int media_stream_set_srtp_send_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key){
 	int retval;
 
@@ -487,45 +473,35 @@ int media_stream_set_srtp_send_key_b64(struct _MSMediaStreamSessions *sessions, 
 }
 
 int media_stream_set_srtp_send_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type){
-
-	uint32_t ssrc;
-	bool_t updated=FALSE;
-	srtp_t srtp_session;
-
-	if (ms_check_srtp_session_created(sessions, stream_type)==-1) {
-		return -1;
-	}
-
-	switch(stream_type){
-		case MSSRTP_ALL_STREAMS:
-		case MSSRTP_RTP_STREAM:
-			srtp_session = sessions->srtp_session;
-			break;
-		case MSSRTP_RTCP_STREAM:
-			srtp_session = sessions->srtp_rtcp_session;
-			break;
-		default:
-			ms_error("Invalid stream_type %d in set_srtp_send_key on sessions [%p]", stream_type, sessions);
-			return -1;
-	}
-
-	/*check if a previous key was configured, in which case remove it*/
-	ssrc=rtp_session_get_send_ssrc(sessions->rtp_session);
-	if (ssrc!=0){
-		/*careful: remove_stream takes the SSRC in network byte order...*/
-		if (srtp_remove_stream(srtp_session,htonl(ssrc))==0)
-			updated=TRUE;
-	}
-	ms_message("media_stream_set_srtp_send_key(): %s key %02x..%02x\nsrtp session is %p ssrc %08x",updated ? "changing to" : "starting with", (uint8_t)key[0], (uint8_t)key[key_length-1], srtp_session, ssrc);
-
-	return ms_add_srtp_stream(srtp_session, suite, ssrc, key, key_length, FALSE, stream_type);
+	return media_stream_set_srtp_key(sessions,suite,key,key_length,TRUE,stream_type);
 }
 
 
+int media_stream_session_encryption_mandatory_enable(struct _MSMediaStreamSessions *sessions, bool_t yesno) {
+	/*for now, managing all stream in one time*/
+	int err;
+	check_and_create_srtp_context(sessions);
+	if (yesno) {
+		if ((err = ms_media_stream_session_fill_srtp_context_all_stream(sessions))) {
+			return err;;
+		}
+	}
+	sessions->srtp_context->send_rtp_context.mandatory_enabled=yesno;
+	sessions->srtp_context->send_rtcp_context.mandatory_enabled=yesno;
+	sessions->srtp_context->recv_rtp_context.mandatory_enabled=yesno;
+	sessions->srtp_context->recv_rtcp_context.mandatory_enabled=yesno;
+	return 0;
+}
 
-int ms_srtp_dealloc(MSSrtpCtx session)
-{
-	return (int)srtp_dealloc((srtp_t)session);
+bool_t media_stream_session_encryption_mandatory_enabled(const struct _MSMediaStreamSessions *sessions) {
+
+	if(!sessions->srtp_context)
+		return FALSE;
+
+	return 	   sessions->srtp_context->send_rtp_context.mandatory_enabled
+			&& sessions->srtp_context->send_rtcp_context.mandatory_enabled
+			&& sessions->srtp_context->recv_rtp_context.mandatory_enabled
+			&& sessions->srtp_context->recv_rtcp_context.mandatory_enabled;
 }
 
 #else /* HAVE_SRTP */
@@ -568,4 +544,24 @@ int ms_srtp_dealloc(MSSrtpCtx session)
 {
 	return -1;
 }
+int media_stream_session_set_encryption_mandatory(struct _MSMediaStreamSessions *sessions, bool_t yesno) {
+	ms_error("Unable to set srtp encryption mandatory mode: srtp support disabled in mediastreamer2");
+	return -1;
+}
+
+bool_t media_stream_session_get_encryption_mandatory(const struct _MSMediaStreamSessions *sessions) {
+	ms_error("Unable to get srtp encryption mandatory mode: srtp support disabled in mediastreamer2");
+	return -1;
+}
+
 #endif
+
+const char * ms_srtp_stream_type_to_string(const MSSrtpStreamType type) {
+	switch(type) {
+	case MSSRTP_RTP_STREAM: return "MSSRTP_RTP_STREAM";
+	case MSSRTP_RTCP_STREAM: return "MSSRTP_RTCP_STREAM";
+	case MSSRTP_ALL_STREAMS: return "MSSRTP_ALL_STREAMS";
+	}
+	return "Unkown srtp tream type";
+}
+
