@@ -157,23 +157,31 @@ static SoundDeviceDescription undefined={"Generic", "Generic", "Generic", 0, 0, 
 
 static MSList *sound_device_descriptions;
 
+static bool_t sound_device_match(SoundDeviceDescription *d, const char *manufacturer, const char* model, const char *platform){
+	if (strcasecmp(d->manufacturer, manufacturer) == 0 
+		&& strcmp(d->model, model) == 0){
+		if (platform){
+			if (d->platform && strcmp(d->platform, platform)==0) {
+				return TRUE;
+			}
+		}else return TRUE; /*accept a match with only manufacturer and model if platform is not provided*/
+	}
+	return FALSE;
+}
+
 static SoundDeviceDescription *lookup_sound_device(const char *manufacturer, const char* model, const char *platform) {
 	MSList *list = sound_device_descriptions;
 	SoundDeviceDescription *d;
 	for(; list != NULL; list = list->next) {
 		d = (SoundDeviceDescription*) list->data;
-		if (strcasecmp(d->manufacturer, manufacturer) == 0 
-			&& strcmp(d->model, model) == 0
-			&& platform && d->platform && strcmp(d->platform, platform)==0) {
+		if (sound_device_match(d, manufacturer, model, platform)){
 			return d;
 		}
 	}
 	
 	d = &devices[0];
 	while (d->manufacturer != NULL) {
-		if (strcasecmp(d->manufacturer, manufacturer) == 0
-			&& strcmp(d->model, model) == 0
-			&& platform && d->platform && strcmp(d->platform, platform)==0) {
+		if (sound_device_match(d, manufacturer, model, platform)){
 			return d;
 		}
 		d++;
