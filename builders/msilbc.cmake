@@ -22,13 +22,7 @@
 
 set(EP_msilbc_GIT_REPOSITORY "git://git.linphone.org/msilbc.git")
 set(EP_msilbc_GIT_TAG_LATEST "master")
-set(EP_msilbc_GIT_TAG "00bd16fc869414dc9a68a56251ed3f895f106f2f")
+set(EP_msilbc_GIT_TAG "0922507165f92556cb6f127683da88bbcef23c83")
 
-set(EP_msilbc_BUILD_METHOD "autotools")
-set(EP_msilbc_USE_AUTOGEN "yes")
-set(EP_msilbc_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_HOST}"
-)
-set(EP_msilbc_LINKING_TYPE "--disable-static" "--enable-shared")
+set(EP_msilbc_CMAKE_OPTIONS )
 set(EP_msilbc_DEPENDENCIES EP_ms2 EP_libilbcrfc3951)
