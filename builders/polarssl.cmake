@@ -22,7 +22,7 @@
 
 set(EP_polarssl_GIT_REPOSITORY "git://git.linphone.org/polarssl.git")
 set(EP_polarssl_GIT_TAG_LATEST "linphone-1.3.4")
-set(EP_polarssl_GIT_TAG "6846d14740472fb8e203a1b9b925fbc456ed7904")
+set(EP_polarssl_GIT_TAG "e2fef8bb3b7bbbc59f829f2f32f18824b3df1822")
 
 set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=1")
 if(MSVC)
