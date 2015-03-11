@@ -49,6 +49,12 @@ endif()
 find_package(Mediastreamer2 REQUIRED)
 
 
+if(ENABLE_AECM)
+	set(BUILD_AEC 1)
+endif()
+if(ENABLE_ISAC)
+	set(BUILD_ISAC 1)
+endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 
@@ -59,12 +65,6 @@ include_directories(
 	webrtc/common_audio/signal_processing/include
 )
 
-if(ENABLE_AECM)
-	set(BUILD_AEC 1)
-endif()
-if(ENABLE_ISAC)
-	set(BUILD_ISAC 1)
-endif()
 add_definitions(-DHAVE_CONFIG_H)
 if(WIN32)
 	add_definitions(-DWEBRTC_WIN)
