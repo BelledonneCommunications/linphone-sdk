@@ -1,4 +1,4 @@
-mediastreamer2-2.11.0: February 18, 2015
+mediastreamer2-2.11.0: March 11, 2015
 	* support of AVPF with VP8 codec only
 	* support of Matroska file format (needs libmatroska2)
 	* audio/video stream recorder. Only H264 is supported for video stream
