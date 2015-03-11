@@ -99,7 +99,8 @@ static void enc_process(MSFilter *f)
 		scale_down((int16_t *)buf,chunksize/2);
 		k = g722_encode(s->state, om->b_wptr, (int16_t *)buf, chunksize/2);		
 		om->b_wptr += k;
-		mblk_set_timestamp_info(om,s->ts);		
+		ms_bufferizer_fill_current_metas(s->bufferizer, om);
+		mblk_set_timestamp_info(om,s->ts);
 		ms_queue_put(f->outputs[0],om);
 		s->ts += chunksize/4;  // Nr of samples is really chunksize/2 but for G722 we must 
 		                       // pretend we have a 8KHZ sampling rate

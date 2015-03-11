@@ -203,6 +203,7 @@ static void ms_opus_enc_process(MSFilter *f) {
 
 			om->b_wptr += ret;
 			mblk_set_timestamp_info(om, d->ts);
+			ms_bufferizer_fill_current_metas(d->bufferizer, om);
 			ms_queue_put(f->outputs[0], om);
 			d->ts += packet_size*48000/d->samplerate; /* RFC payload RTP opus 03 - section 4: RTP timestamp multiplier : WARNING works only with sr at 48000 */
 			ret = 0;

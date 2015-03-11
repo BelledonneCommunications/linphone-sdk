@@ -54,11 +54,9 @@ static void ulaw_enc_process(MSFilter *obj){
 	uint8_t buffer[2240];
 	int frame_per_packet=2;
 	int size_of_pcm=320;
-
 	mblk_t *m;
 	
-	if (dt->ptime>=10)
-	{
+	if (dt->ptime>=10){
 		frame_per_packet = dt->ptime/10;
 	}
 
@@ -81,6 +79,7 @@ static void ulaw_enc_process(MSFilter *obj){
 			o->b_wptr++;
 		}
 		mblk_set_timestamp_info(o,dt->ts);
+		ms_bufferizer_fill_current_metas(bz, o);
 		dt->ts+=size_of_pcm/2;
 		ms_queue_put(obj->outputs[0],o);
 	}

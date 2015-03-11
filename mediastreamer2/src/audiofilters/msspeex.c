@@ -273,6 +273,7 @@ static void enc_process(MSFilter *f){
 		om->b_wptr+=k;
 
 		mblk_set_timestamp_info(om,s->ts-s->frame_size);
+		ms_bufferizer_fill_current_metas(s->bufferizer, om);
 		ms_queue_put(f->outputs[0],om);
 		speex_bits_destroy(&bits);
 	}

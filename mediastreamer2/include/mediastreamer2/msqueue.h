@@ -108,6 +108,8 @@ MS2_PUBLIC void ms_queue_destroy(MSQueue *q);
 
 #define mblk_set_cseq(m,value) (m)->reserved2=(m)->reserved2| ((value&0xFFFF)<<16);	
 #define mblk_get_cseq(m) ((m)->reserved2>>16)
+
+#define HAVE_ms_bufferizer_fill_current_metas
 	
 struct _MSBufferizer{
 	queue_t q;

@@ -107,6 +107,7 @@ static void enc_process(MSFilter *f){
 			gsm_encode(s->state,(gsm_signal*)&buff[offset/sizeof(int16_t)],(gsm_byte*)om->b_wptr);
 			om->b_wptr+=33;
 		}
+		ms_bufferizer_fill_current_metas(s->bufferizer, om);
 		mblk_set_timestamp_info(om,s->ts);
 		ms_queue_put(f->outputs[0],om);
 		s->ts+=buff_size/sizeof(int16_t)/*sizeof(buf)/2*/;

@@ -81,6 +81,7 @@ static void enc_process(MSFilter *f){
 		mblk_t *om=allocb(s->nbytes,0);
 		om->b_wptr+=ms_bufferizer_read(s->bufferizer,om->b_wptr,s->nbytes);
 		host_to_network((int16_t*)om->b_rptr,s->nbytes/2);
+		ms_bufferizer_fill_current_metas(s->bufferizer, om);
 		mblk_set_timestamp_info(om,s->ts);
 		ms_queue_put(f->outputs[0],om);
 		s->ts += s->nbytes/(2*s->nchannels);

@@ -78,6 +78,7 @@ static void alaw_enc_process(MSFilter *obj){
 			*o->b_wptr=Snack_Lin2Alaw(((int16_t*)buffer)[i]);
 			o->b_wptr++;
 		}
+		ms_bufferizer_fill_current_metas(bz, o);
 		mblk_set_timestamp_info(o,dt->ts);
 		dt->ts+=size_of_pcm/2;
 		ms_queue_put(obj->outputs[0],o);

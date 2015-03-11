@@ -112,8 +112,12 @@ int ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, int datalen){
 	return 0;
 }
 
-void ms_bufferizer_fill_current_metas(MSBufferizer *obj, mblk_t *m){
-	mblk_meta_copy(&obj->q._q_stopper, m);
+void ms_bufferizer_fill_current_metas(MSBufferizer *obj, mblk_t *dest){
+	mblk_t *source=&obj->q._q_stopper;
+#if defined(ORTP_TIMESTAMP)
+	dest->timestamp = source->timestamp;
+#endif
+	dest->ttl_or_hl = source->ttl_or_hl;
 }
 
 void ms_bufferizer_skip_bytes(MSBufferizer *obj, int bytes){
