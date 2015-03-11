@@ -45,22 +45,22 @@ extern MSFilterDesc amrwb_enc_desc;
 int opencore_amr_wrapper_init(const char **missing);
 #endif
 
-MS_PLUGIN_DECLARE(void) libmsamr_init(){
+MS_PLUGIN_DECLARE(void) libmsamr_init() {
 #ifdef HAVE_AMRNB
 #ifdef USE_ANDROID_AMR
 	const char *missing=NULL;
-	if (opencore_amr_wrapper_init(&missing)==-1){
+	if (opencore_amr_wrapper_init(&missing)==-1) {
 		ms_error("Could not find AMR codec of android, no AMR support possible (missing symbol=%s)",missing);
 		return;
 	}
 #endif
-        ms_filter_register(&amrnb_dec_desc);
+	ms_filter_register(&amrnb_dec_desc);
 	ms_filter_register(&amrnb_enc_desc);
 #endif
 #ifdef HAVE_AMRWB
-        ms_filter_register(&amrwb_dec_desc);
-        ms_filter_register(&amrwb_enc_desc);
+	ms_filter_register(&amrwb_dec_desc);
+	ms_filter_register(&amrwb_enc_desc);
 #endif
-        
+
 	ms_message("libmsamr " VERSION " plugin loaded");
 }
