@@ -400,6 +400,7 @@ bool_t media_stream_secured (const MediaStream *stream) {
 		}
 	}
 	}
+	return FALSE;
 }
 
 bool_t media_stream_avpf_enabled(const MediaStream *stream) {
