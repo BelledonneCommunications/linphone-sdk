@@ -63,13 +63,14 @@ x509parse_crtpath(0,0);
 return 0;
 }"
 		X509PARSE_CRTPATH_OK)
+	check_symbol_exists(ssl_get_dtls_srtp_protection_profile "polarssl/ssl.h" HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
 	cmake_pop_check_state()
 endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(PolarSSL
 	DEFAULT_MSG
-	POLARSSL_INCLUDE_DIRS POLARSSL_LIBRARIES
+	POLARSSL_INCLUDE_DIRS POLARSSL_LIBRARIES HAVE_POLARSSL_SSL_H
 )
 
-mark_as_advanced(POLARSSL_INCLUDE_DIRS POLARSSL_LIBRARIES)
+mark_as_advanced(POLARSSL_INCLUDE_DIRS POLARSSL_LIBRARIES HAVE_POLARSSL_SSL_H X509PARSE_CRTPATH_OK HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
