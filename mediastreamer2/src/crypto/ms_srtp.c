@@ -370,12 +370,14 @@ void ms_srtp_shutdown(void){
 }
 
 static int media_stream_set_srtp_key_base(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, bool_t is_send, bool_t is_rtp){
-	check_and_create_srtp_context(sessions);
-	ms_message("media_stream_set_%s_%s_key(): key %02x..%02x stream sessions is [%p]",(is_rtp?"srtp":"srtcp"),(is_send?"send":"recv"), (uint8_t)key[0], (uint8_t)key[key_length-1], sessions);
-	MSSrtpStreamContext* stream_ctx = get_stream_context(sessions,is_send,is_rtp);
-	uint32_t ssrc = is_send? rtp_session_get_send_ssrc(sessions->rtp_session):0/*only relevant for send*/;
+	MSSrtpStreamContext* stream_ctx;
+	uint32_t ssrc;
 	int error = -1;
 
+	check_and_create_srtp_context(sessions);
+	ms_message("media_stream_set_%s_%s_key(): key %02x..%02x stream sessions is [%p]",(is_rtp?"srtp":"srtcp"),(is_send?"send":"recv"), (uint8_t)key[0], (uint8_t)key[key_length-1], sessions);
+	stream_ctx = get_stream_context(sessions,is_send,is_rtp);
+	ssrc = is_send? rtp_session_get_send_ssrc(sessions->rtp_session):0/*only relevant for send*/;
 
 	if ((error = ms_media_stream_session_fill_srtp_context(sessions,is_send,is_rtp))) {
 		stream_ctx->secured=FALSE;
