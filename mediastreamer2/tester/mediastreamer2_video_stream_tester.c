@@ -273,8 +273,12 @@ static void uninit_video_streams(video_stream_tester_t *vst1, video_stream_teste
 	rtp_session_compute_send_bandwidth(vst1->vs->ms.sessions.rtp_session);
 	rtp_session_compute_send_bandwidth(vst2->vs->ms.sessions.rtp_session);
 	rtcp_send_bandwidth = rtp_session_get_rtcp_send_bandwidth(vst1->vs->ms.sessions.rtp_session);
+	ms_message("vst1: rtcp_send_bandwidth=%f, payload_type_bitrate=%d, rtcp_target_bandwidth=%f",
+		rtcp_send_bandwidth, payload_type_get_bitrate(vst1_pt), 0.06 * payload_type_get_bitrate(vst1_pt));
 	CU_ASSERT_TRUE(rtcp_send_bandwidth <= (0.06 * payload_type_get_bitrate(vst1_pt)));
 	rtcp_send_bandwidth = rtp_session_get_rtcp_send_bandwidth(vst2->vs->ms.sessions.rtp_session);
+	ms_message("vst2: rtcp_send_bandwidth=%f, payload_type_bitrate=%d, rtcp_target_bandwidth=%f",
+		rtcp_send_bandwidth, payload_type_get_bitrate(vst2_pt), 0.06 * payload_type_get_bitrate(vst2_pt));
 	CU_ASSERT_TRUE(rtcp_send_bandwidth <= (0.06 * payload_type_get_bitrate(vst2_pt)));
 
 	destroy_video_stream(vst1);
