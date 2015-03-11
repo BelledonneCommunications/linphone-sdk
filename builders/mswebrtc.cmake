@@ -22,21 +22,18 @@
 
 set(EP_mswebrtc_GIT_REPOSITORY "git://git.linphone.org/mswebrtc.git")
 set(EP_mswebrtc_GIT_TAG_LATEST "master")
-set(EP_mswebrtc_GIT_TAG "0032453985975530356fb702c6ea46e45ecd3eb2")
+set(EP_mswebrtc_GIT_TAG "21f860dfa7fd048aef0d02e86e2ba3d5c80671c7")
 
-set(EP_mswebrtc_BUILD_METHOD "autotools")
-set(EP_mswebrtc_USE_AUTOGEN "yes")
-set(EP_mswebrtc_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_HOST}"
-)
-set(EP_mswebrtc_LINKING_TYPE "--disable-static" "--enable-shared")
+set(EP_mswebrtc_CMAKE_OPTIONS )
 set(EP_mswebrtc_DEPENDENCIES EP_ms2)
 
-set(EP_mswebrtc_CONFIGURE_OPTIONS )
-if(NOT ENABLE_ISAC)
-	list(APPEND EP_mswebrtc_CONFIGURE_OPTIONS "--disable-isac")
+if(ENABLE_ISAC)
+	list(APPEND EP_mswebrtc_CMAKE_OPTIONS "-DENABLE_ISAC=YES")
+else()
+	list(APPEND EP_mswebrtc_CMAKE_OPTIONS "-DENABLE_ISAC=NO")
 endif()
-if(NOT ENABLE_WEBRTC_AEC)
-	list(APPEND EP_mswebrtc_CONFIGURE_OPTIONS "--disable-aec")
+if(ENABLE_WEBRTC_AEC)
+	list(APPEND EP_mswebrtc_CMAKE_OPTIONS "-DENABLE_AECM=YES")
+else()
+	list(APPEND EP_mswebrtc_CMAKE_OPTIONS "-DENABLE_AECM=NO")
 endif()
