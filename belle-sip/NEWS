@@ -1,3 +1,13 @@
+belle-sip-1.4.0 -- March 11th, 2015
+	* support of display names of type (token LWS)* instead of just token
+	* support for absolute URIs
+
+belle-sip-1.3.3 -- September 18th, 2014
+	* DNS SRV weight selection
+	* support of multipart messages
+	* support of Wake Locks on Android
+	* support of backslash escaped display name
+
 belle-sip-1.3.0 -- February 20th, 2014 -- initial release of belle-sip
 	* RFC3261 compliant implementation of SIP parser, writer, transactions and dialog layers.
 	* http client api
