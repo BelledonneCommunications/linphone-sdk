@@ -56,8 +56,15 @@ include_directories(
 	${MEDIASTREAMER2_INCLUDE_DIRS}
 	${CMAKE_CURRENT_BINARY_DIR}
 	webrtc
+	webrtc/common_audio/signal_processing/include
 )
 
+if(ENABLE_AECM)
+	set(BUILD_AEC 1)
+endif()
+if(ENABLE_ISAC)
+	set(BUILD_ISAC 1)
+endif()
 add_definitions(-DHAVE_CONFIG_H)
 if(WIN32)
 	add_definitions(-DWEBRTC_WIN)
@@ -68,7 +75,7 @@ if(UNIX)
 	else()
 		add_definitions(-DWEBRTC_LINUX -DWEBRTC_THREAD_RR)
 	endif()
-endif(()
+endif()
 
 
 set(WEBRTC_COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/webrtc/common_audio/signal_processing")
@@ -124,7 +131,6 @@ if(ENABLE_AECM)
 	)
 	include_directories(
 		${AEC_SRC_DIR}/include
-		webrtc/common_audio/signal_processing/include
 		webrtc/modules/audio_processing/utility
 		webrtc/system_wrappers/interface
 	)
