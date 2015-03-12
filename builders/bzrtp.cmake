@@ -22,7 +22,7 @@
 
 set(EP_bzrtp_GIT_REPOSITORY "git://git.linphone.org/bzrtp.git")
 set(EP_bzrtp_GIT_TAG_LATEST "master")
-set(EP_bzrtp_GIT_TAG "ebe07ed33ef00f8ec133374977a5cadf42044fee")
+set(EP_bzrtp_GIT_TAG "43aee10160192e518eae8e7310fcb866fbff9256")
 
 set(EP_bzrtp_CMAKE_OPTIONS )
 set(EP_bzrtp_LINKING_TYPE "-DENABLE_STATIC=0")
