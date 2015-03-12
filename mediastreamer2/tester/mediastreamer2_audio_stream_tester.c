@@ -72,8 +72,10 @@ static int tester_cleanup(void) {
 #define MULTICAST_IP  "224.1.2.3"
 
 typedef struct _stats_t {
+	OrtpEvQueue *q;
 	rtp_stats_t rtp;
 	int number_of_EndOfFile;
+	int number_of_TMMBR;
 } stats_t;
 
 static void reset_stats(stats_t* s) {
@@ -90,6 +92,32 @@ static void notify_cb(void *user_data, MSFilter *f, unsigned int event, void *ev
 			break;
 		}
 		break;
+	}
+}
+
+static void event_queue_cb(MediaStream *ms, void *user_pointer) {
+	stats_t *st = (stats_t *)user_pointer;
+	OrtpEvent *ev = NULL;
+
+	if (st->q != NULL) {
+		while ((ev = ortp_ev_queue_get(st->q)) != NULL) {
+			OrtpEventType evt = ortp_event_get_type(ev);
+			OrtpEventData *d = ortp_event_get_data(ev);
+			if (evt == ORTP_EVENT_TMMBR_RECEIVED) {
+				do {
+					if (rtcp_is_RTPFB(d->packet)) {
+						switch (rtcp_RTPFB_get_type(d->packet)) {
+							case RTCP_RTPFB_TMMBR:
+								st->number_of_TMMBR++;
+								break;
+							default:
+								break;
+						}
+					}
+				} while (rtcp_next_packet(d->packet));
+			}
+			ortp_event_destroy(ev);
+		}
 	}
 }
 
@@ -423,6 +451,68 @@ static void codec_change_for_audio_stream(void) {
 	rtp_profile_destroy(profile);
 }
 
+static void tmmbr_feedback_for_audio_stream(void) {
+	AudioStream *marielle = audio_stream_new2(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT);
+	stats_t marielle_stats;
+	AudioStream *margaux = audio_stream_new2(MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
+	stats_t margaux_stats;
+	RtpProfile *profile = rtp_profile_new("default profile");
+	RtpSession *marielle_session;
+	RtpSession *margaux_session;
+	char* hello_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), HELLO_8K_1S_FILE);
+	int dummy=0;
+
+	reset_stats(&marielle_stats);
+	reset_stats(&margaux_stats);
+
+	rtp_profile_set_payload(profile, 0, &payload_type_pcmu8000);
+
+	/* Activate AVPF and TMBRR. */
+	payload_type_set_flag(&payload_type_pcmu8000, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
+	marielle_session = audio_stream_get_rtp_session(marielle);
+	rtp_session_enable_avpf_feature(marielle_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
+	marielle_stats.q = ortp_ev_queue_new();
+	rtp_session_register_event_queue(marielle->ms.sessions.rtp_session, marielle_stats.q);
+	margaux_session = audio_stream_get_rtp_session(margaux);
+	rtp_session_enable_avpf_feature(margaux_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
+	margaux_stats.q = ortp_ev_queue_new();
+	rtp_session_register_event_queue(margaux->ms.sessions.rtp_session, margaux_stats.q);
+
+	CU_ASSERT_EQUAL(audio_stream_start_full(margaux, profile, MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_IP, MARIELLE_RTCP_PORT,
+		0, 50, hello_file, NULL, NULL, NULL, 0), 0);
+
+	CU_ASSERT_EQUAL(audio_stream_start_full(marielle, profile, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_IP, MARGAUX_RTCP_PORT,
+		0, 50, hello_file, NULL, NULL, NULL, 0), 0);
+
+	ms_filter_add_notify_callback(margaux->soundread, notify_cb, &margaux_stats, TRUE);
+	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
+
+	/* Wait for 1s so that some RTP packets are exchanged before sending the TMMBR. */
+	wait_for_until(&margaux->ms, &marielle->ms, &dummy, 1, 500);
+
+	rtp_session_send_rtcp_fb_tmmbr(margaux_session, 100000);
+	rtp_session_send_rtcp_fb_tmmbr(marielle_session, 200000);
+
+	CU_ASSERT_TRUE(wait_for_until(&margaux->ms, &marielle->ms, &margaux_stats.number_of_EndOfFile, 1, 12000));
+	CU_ASSERT_TRUE(wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, 12000));
+
+	CU_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->ms, &margaux->ms, &marielle_stats.number_of_TMMBR, 1, 100, event_queue_cb, &marielle_stats, event_queue_cb, &margaux_stats));
+	CU_ASSERT_TRUE(wait_for_until_with_parse_events(&margaux->ms, &marielle->ms, &margaux_stats.number_of_TMMBR, 1, 100, event_queue_cb, &margaux_stats, event_queue_cb, &marielle_stats));
+	CU_ASSERT_EQUAL(marielle_stats.number_of_TMMBR, 1);
+	CU_ASSERT_EQUAL(margaux_stats.number_of_TMMBR, 1);
+
+	/*make sure packets can cross from sender to receiver*/
+	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 500);
+
+	audio_stream_stop(marielle);
+	audio_stream_stop(margaux);
+
+	ms_free(hello_file);
+	ortp_ev_queue_destroy(marielle_stats.q);
+	ortp_ev_queue_destroy(margaux_stats.q);
+	rtp_profile_destroy(profile);
+}
+
 #if 0
 static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_bw, int max_recv_rtcp_packet) {
 	stream_manager_t * marielle = stream_manager_new();
@@ -473,7 +563,8 @@ static test_t tests[] = {
 	{ "Encrypted audio stream with key change", encrypted_audio_stream_with_key_change },
 	{ "Encrypted audio stream, encryption mandatory", encrypted_audio_stream_encryption_mandatory },
 	{ "Encrypted audio stream with key change + encryption mandatory", encrypted_audio_stream_with_key_change_encryption_mandatory},
-	{ "Codec change for audio stream", codec_change_for_audio_stream }
+	{ "Codec change for audio stream", codec_change_for_audio_stream },
+	{ "TMMBR feedback for audio stream", tmmbr_feedback_for_audio_stream }
 };
 
 test_suite_t audio_stream_test_suite = {
