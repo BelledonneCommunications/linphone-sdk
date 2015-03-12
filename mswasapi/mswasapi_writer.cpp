@@ -50,10 +50,24 @@ bool MSWASAPIWriter::smInstantiated = false;
 MSWASAPIWriter::MSWASAPIWriter()
 	: mAudioClient(NULL), mAudioRenderClient(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
 {
+}
+
+MSWASAPIWriter::~MSWASAPIWriter()
+{
+	RELEASE_CLIENT(mAudioClient);
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+	FREE_PTR(mRenderId);
+#endif
+	smInstantiated = false;
+}
+
+
+void MSWASAPIWriter::init(LPCWSTR id) {
 	HRESULT result;
 	WAVEFORMATEX *pWfx = NULL;
 	AudioClientProperties properties;
 
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
 	mRenderId = GetDefaultAudioRenderId(Communications);
 	if (mRenderId == NULL) {
 		ms_error("Could not get the RenderId of the MSWASAPI audio output interface");
@@ -67,6 +81,16 @@ MSWASAPIWriter::MSWASAPIWriter()
 
 	result = ActivateAudioInterface(mRenderId, IID_IAudioClient2, (void **)&mAudioClient);
 	REPORT_ERROR("Could not activate the MSWASAPI audio output interface [%i]", result);
+#else
+	IMMDeviceEnumerator *pEnumerator = NULL;
+	IMMDevice *pDevice = NULL;
+	result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
+	REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator", result);
+	mRenderId = id;
+	result = pEnumerator->GetDevice(mRenderId, &pDevice);
+	REPORT_ERROR("mswasapi: Could not get the rendering device", result);
+	pDevice->Activate(IID_IAudioClient2, CLSCTX_ALL, NULL, (void **)&mAudioClient);
+#endif
 	properties.cbSize = sizeof AudioClientProperties;
 	properties.bIsOffload = false;
 	properties.eCategory = AudioCategory_Communications;
@@ -87,14 +111,6 @@ error:
 	mNChannels = 1;
 	return;
 }
-
-MSWASAPIWriter::~MSWASAPIWriter()
-{
-	RELEASE_CLIENT(mAudioClient);
-	FREE_PTR(mRenderId);
-	smInstantiated = false;
-}
-
 
 int MSWASAPIWriter::activate()
 {

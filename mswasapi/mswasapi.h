@@ -1,5 +1,5 @@
 /*
-mswasapi_reader.h
+mswasapi.cpp
 
 mediastreamer2 library - modular sound and video processing and streaming
 Windows Audio Session API sound card plugin for mediastreamer2
@@ -24,38 +24,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 
-#include "mediastreamer2/msfilter.h"
+#include <vector>
+#include <objbase.h>
+#include <audioclient.h>
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+#include <phoneaudioclient.h>
+#else
+#include <mmdeviceapi.h>
+#include <functiondiscoverykeys_devpkey.h>
+#endif
 
-#include "mswasapi.h"
+#define REPORT_ERROR(msg, result) \
+	if (result != S_OK) { \
+		ms_error(msg, result); \
+		goto error; \
+		}
+#define SAFE_RELEASE(obj) \
+	if ((obj) != NULL) { \
+		(obj)->Release(); \
+		(obj) = NULL; \
+		}
 
 
-class MSWASAPIReader {
-public:
-	MSWASAPIReader();
-	virtual ~MSWASAPIReader();
-
-	void init(LPCWSTR id);
-	int activate();
-	int deactivate();
-	bool isStarted() { return mIsStarted; }
-	void start();
-	void stop();
-	int feed(MSFilter *f);
-
-	int getRate() { return mRate; }
-	int getNChannels() { return mNChannels; }
-
-private:
-	void silence(MSFilter *f);
-
-	static bool smInstantiated;
-	LPCWSTR mCaptureId;
-	IAudioClient2 *mAudioClient;
-	IAudioCaptureClient *mAudioCaptureClient;
-	UINT32 mBufferFrameCount;
-	bool mIsInitialized;
-	bool mIsActivated;
-	bool mIsStarted;
-	int mRate;
-	int mNChannels;
-};
+typedef struct WasapiSndCard {
+	std::vector<wchar_t> *id_vector;
+	LPWSTR id;
+} WasapiSndCard;

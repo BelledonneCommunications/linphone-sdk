@@ -26,9 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilter.h"
 
-#include <objbase.h>
-#include <audioclient.h>
-#include <phoneaudioclient.h>
+#include "mswasapi.h"
 
 
 class MSWASAPIWriter {
@@ -36,6 +34,7 @@ public:
 	MSWASAPIWriter();
 	virtual ~MSWASAPIWriter();
 
+	void init(LPCWSTR id);
 	int activate();
 	int deactivate();
 	bool isStarted() { return mIsStarted; }

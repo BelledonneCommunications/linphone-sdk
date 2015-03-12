@@ -1,5 +1,5 @@
 /*
-mswasapi.c
+mswasapi.cpp
 
 mediastreamer2 library - modular sound and video processing and streaming
 Windows Audio Session API sound card plugin for mediastreamer2
@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mssndcard.h"
 
+#include "mswasapi.h"
 #include "mswasapi_reader.h"
 #include "mswasapi_writer.h"
 
@@ -32,6 +33,8 @@ const IID IID_IAudioClient2 = __uuidof(IAudioClient2);
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
 
+const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
+const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
 
 /******************************************************************************
  * Methods to (de)initialize and run the WASAPI sound capture filter          *
@@ -296,10 +299,21 @@ static void ms_wasapi_snd_card_detect(MSSndCardManager *m);
 static MSFilter *ms_wasapi_snd_card_create_reader(MSSndCard *card);
 static MSFilter *ms_wasapi_snd_card_create_writer(MSSndCard *card);
 
+static void ms_wasapi_snd_card_init(MSSndCard *card) {
+	WasapiSndCard *c = static_cast<WasapiSndCard *>(ms_new0(WasapiSndCard, 1));
+	card->data = c;
+}
+
+static void ms_wasapi_snd_card_uninit(MSSndCard *card) {
+	WasapiSndCard *c = static_cast<WasapiSndCard *>(card->data);
+	if (c->id_vector) delete c->id_vector;
+	ms_free(c);
+}
+
 static MSSndCardDesc ms_wasapi_snd_card_desc = {
-	"MSWASAPISndCard",
+	"WASAPI",
 	ms_wasapi_snd_card_detect,
-	NULL,
+	ms_wasapi_snd_card_init,
 	NULL,
 	NULL,
 	NULL,
@@ -307,31 +321,143 @@ static MSSndCardDesc ms_wasapi_snd_card_desc = {
 	NULL,
 	ms_wasapi_snd_card_create_reader,
 	ms_wasapi_snd_card_create_writer,
-	NULL,
+	ms_wasapi_snd_card_uninit,
 	NULL,
 	NULL
 };
 
-static MSSndCard *ms_wasapi_snd_card_new(void) {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+static MSSndCard *ms_wasapi_phone_snd_card_new(void) {
 	MSSndCard *card = ms_snd_card_new(&ms_wasapi_snd_card_desc);
 	card->name = ms_strdup("WASAPI sound card");
 	card->latency = 250;
 	return card;
 }
+#endif
+
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+static MSSndCard *ms_wasapi_snd_card_new(LPWSTR id, const char *name, uint8_t capabilities) {
+	MSSndCard *card = ms_snd_card_new(&ms_wasapi_snd_card_desc);
+	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
+	card->name = ms_strdup(name);
+	card->capabilities = capabilities;
+	wasapicard->id_vector = new std::vector<wchar_t>(wcslen(id) + 1);
+	wcscpy_s(wasapicard->id_vector->data(), wasapicard->id_vector->size(), id);
+	wasapicard->id = wasapicard->id_vector->data();
+	return card;
+}
+
+static void add_or_update_card(MSSndCardManager *m, LPWSTR id, LPWSTR wname, EDataFlow data_flow) {
+	MSSndCard *card;
+	const MSList *elem = ms_snd_card_manager_get_list(m);
+	uint8_t capabilities = 0;
+	char *name;
+	size_t inputlen;
+	size_t returnlen;
+
+	inputlen = wcslen(wname) + 1;
+	name = (char *)ms_malloc(inputlen);
+	if (wcstombs_s(&returnlen, name, inputlen, wname, inputlen) != 0) {
+		ms_error("mswasapi: Cannot convert card name to multi-byte string.");
+		return;
+	}
+	switch (data_flow) {
+	case eRender:
+		capabilities = MS_SND_CARD_CAP_PLAYBACK;
+		break;
+	case eCapture:
+		capabilities = MS_SND_CARD_CAP_CAPTURE;
+		break;
+	case eAll:
+	default:
+		capabilities = MS_SND_CARD_CAP_PLAYBACK | MS_SND_CARD_CAP_CAPTURE;
+		break;
+	}
+
+	for (; elem != NULL; elem = elem->next){
+		card = static_cast<MSSndCard *>(elem->data);
+		if (strcmp(card->name, name) == 0){
+			/* Update an existing card. */
+			WasapiSndCard *d = static_cast<WasapiSndCard *>(card->data);
+			card->capabilities |= capabilities;
+			ms_free(name);
+			return;
+		}
+	}
+
+	/* Add a new card. */
+	ms_snd_card_manager_add_card(m, ms_wasapi_snd_card_new(id, name, capabilities));
+	ms_free(name);
+}
+
+static void ms_wasapi_snd_card_detect_with_data_flow(MSSndCardManager *m, EDataFlow data_flow) {
+	IMMDeviceEnumerator *pEnumerator = NULL;
+	IMMDeviceCollection *pCollection = NULL;
+	IMMDevice *pEndpoint = NULL;
+	IPropertyStore *pProps = NULL;
+	LPWSTR pwszID = NULL;
+	HRESULT result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
+	REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator", result);
+	result = pEnumerator->EnumAudioEndpoints(data_flow, DEVICE_STATE_ACTIVE, &pCollection);
+	REPORT_ERROR("mswasapi: Could not enumerate audio endpoints", result);
+	UINT count;
+	result = pCollection->GetCount(&count);
+	REPORT_ERROR("mswasapi: Could not get the number of audio endpoints", result);
+	if (count == 0) {
+		ms_warning("mswasapi: No audio endpoint found");
+		return;
+	}
+	for (ULONG i = 0; i < count; i++) {
+		result = pCollection->Item(i, &pEndpoint);
+		REPORT_ERROR("mswasapi: Could not get pointer to audio endpoint", result);
+		result = pEndpoint->GetId(&pwszID);
+		REPORT_ERROR("mswasapi: Could not get ID of audio endpoint", result);
+		result = pEndpoint->OpenPropertyStore(STGM_READ, &pProps);
+		REPORT_ERROR("mswasapi: Could not open property store", result);
+		PROPVARIANT varName;
+		PropVariantInit(&varName);
+		result = pProps->GetValue(PKEY_Device_FriendlyName, &varName);
+		REPORT_ERROR("mswasapi: Could not get friendly-name of audio endpoint", result);
+		add_or_update_card(m, pwszID, varName.pwszVal, data_flow);
+		CoTaskMemFree(pwszID);
+		pwszID = NULL;
+		PropVariantClear(&varName);
+		SAFE_RELEASE(pProps);
+		SAFE_RELEASE(pEndpoint);
+	}
+error:
+	CoTaskMemFree(pwszID);
+	SAFE_RELEASE(pEnumerator);
+	SAFE_RELEASE(pCollection);
+	SAFE_RELEASE(pEndpoint);
+	SAFE_RELEASE(pProps);
+}
+#endif
 
 static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
-	MSSndCard *card = ms_wasapi_snd_card_new();
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+	MSSndCard *card = ms_wasapi_phone_snd_card_new();
 	ms_snd_card_manager_add_card(m, card);
+#else
+	ms_wasapi_snd_card_detect_with_data_flow(m, eCapture);
+	ms_wasapi_snd_card_detect_with_data_flow(m, eRender);
+#endif
 }
 
 static MSFilter *ms_wasapi_snd_card_create_reader(MSSndCard *card) {
-	MS_UNUSED(card);
-	return ms_filter_new_from_desc(&ms_wasapi_read_desc);
+	MSFilter *f = ms_filter_new_from_desc(&ms_wasapi_read_desc);
+	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
+	MSWASAPIReader *reader = static_cast<MSWASAPIReader *>(f->data);
+	reader->init(wasapicard->id);
+	return f;
 }
 
 static MSFilter *ms_wasapi_snd_card_create_writer(MSSndCard *card) {
-	MS_UNUSED(card);
-	return ms_filter_new_from_desc(&ms_wasapi_write_desc);
+	MSFilter *f = ms_filter_new_from_desc(&ms_wasapi_write_desc);
+	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
+	MSWASAPIWriter *writer = static_cast<MSWASAPIWriter *>(f->data);
+	writer->init(wasapicard->id);
+	return f;
 }
 
 
