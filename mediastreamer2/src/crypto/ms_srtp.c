@@ -542,10 +542,6 @@ int media_stream_set_srtp_send_key(struct _MSMediaStreamSessions *sessions, MSCr
 	return -1;
 }
 
-int ms_srtp_dealloc(MSSrtpCtx session)
-{
-	return -1;
-}
 int media_stream_session_set_encryption_mandatory(struct _MSMediaStreamSessions *sessions, bool_t yesno) {
 	ms_error("Unable to set srtp encryption mandatory mode: srtp support disabled in mediastreamer2");
 	return -1;
@@ -556,6 +552,16 @@ bool_t media_stream_session_get_encryption_mandatory(const struct _MSMediaStream
 	return -1;
 }
 
+bool_t media_stream_session_secured(const struct _MSMediaStreamSessions *sessions,MediaStreamDir dir) {
+	return FALSE;
+}
+void ms_srtp_context_delete(MSSrtpCtx* session) {
+	ms_error("Unable to delete srtp context [%p]: srtp support disabled in mediastreamer2",session);
+}
+int media_stream_session_encryption_mandatory_enable(struct _MSMediaStreamSessions *sessions, bool_t yesno) {
+	ms_error("Unable to set encryption_mandatory [%p]: srtp support disabled in mediastreamer2",sessions);
+	return -1;
+}
 #endif
 
 const char * ms_srtp_stream_type_to_string(const MSSrtpStreamType type) {
