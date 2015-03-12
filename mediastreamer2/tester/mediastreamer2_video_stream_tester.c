@@ -428,7 +428,7 @@ static void avpf_rpsi_count(void) {
 	int dummy=0;
 	int delay = 11000;
 	marielle->vconf=ms_new0(MSVideoConfiguration,1);
-	marielle->vconf->bitrate_limit=256000;
+	marielle->vconf->bitrate_limit=marielle->vconf->required_bitrate=256000;
 	marielle->vconf->fps=15;
 	marielle->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	marielle->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
@@ -436,7 +436,7 @@ static void avpf_rpsi_count(void) {
 
 
 	margaux->vconf=ms_new0(MSVideoConfiguration,1);
-	margaux->vconf->bitrate_limit=256000;
+	margaux->vconf->bitrate_limit=margaux->vconf->required_bitrate=256000;
 	margaux->vconf->fps=5; /*to save cpu resource*/
 	margaux->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	margaux->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
