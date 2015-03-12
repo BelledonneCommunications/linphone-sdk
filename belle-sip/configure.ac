@@ -46,12 +46,12 @@ LT_INIT(win32-dll)
 
 case "$target" in
 	#macosx 64 bits
-        x86_64-apple-darwin*)
+        x86_64-apple-darwin)
                 LIBS="$LIBS -framework Foundation"
                 OBJCFLAGS="$OBJCFLAGS  -fmodules"
                 build_apple=yes
         ;;
-        i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*|arm64-apple*|aarch64-apple*)
+        x86_64-apple-darwin.ios|i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*|arm64-apple*|aarch64-apple*)
 		LIBS="$LIBS -framework Foundation -framework CoreFoundation -framework CFNetwork -framework UIKit"
 		build_apple=yes
 	;;
