@@ -2,9 +2,9 @@ if ENABLE_TESTS
 noinst_PROGRAMS=bzrtpTest
 
 bzrtpTest_SOURCES=bzrtpTest.c \
-				  testUtils.c \
-				  bzrtpCryptoTest.c \
-				  bzrtpParserTest.c
+				  testUtils.c testUtils.h \
+				  bzrtpCryptoTest.c bzrtpCryptoTest.h \
+				  bzrtpParserTest.c bzrtpParserTest.h
 
 
 bzrtpTest_CFLAGS=$(CUNIT_CFLAGS)  $(LIBXML2_CFLAGS)
