@@ -29,6 +29,7 @@
 include(CMakePushCheckState)
 include(CheckIncludeFile)
 include(CheckCSourceCompiles)
+include(CheckSymbolExists)
 
 set(_POLARSSL_ROOT_PATHS
 	${CMAKE_INSTALL_PREFIX}
