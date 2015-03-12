@@ -180,7 +180,7 @@ case $host in
 	i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*|aarch64-apple*|arm64-apple*|*-darwin.ios)
 		ios_found=yes
 	;;
-	x86_64-apple-darwin|i686-apple*)
+	x86_64-apple*|i686-apple*)
 		macosx_found=yes
 		OBJCFLAGS="$OBJCFLAGS -Wno-error=deprecated-declarations"
 	;;
