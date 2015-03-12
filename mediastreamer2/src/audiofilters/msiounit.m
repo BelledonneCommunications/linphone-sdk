@@ -255,6 +255,7 @@ static void au_init(MSSndCard *card){
 
 static void au_uninit(MSSndCard *card){
 	au_card_t *d=(au_card_t*)card->data;
+	cancel_audio_unit_timer(d);
 	stop_audio_unit(d);
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
