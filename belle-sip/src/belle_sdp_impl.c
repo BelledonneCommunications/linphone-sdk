@@ -167,6 +167,7 @@ struct _belle_sdp_rtcp_fb_attribute {
 	belle_sdp_attribute_t base;
 	belle_sdp_rtcp_fb_val_type_t type;
 	belle_sdp_rtcp_fb_val_param_t param;
+	uint32_t smaxpr;
 	uint16_t trr_int;
 	int8_t id;
 };
@@ -185,6 +186,7 @@ void belle_sdp_rtcp_fb_attribute_clone(belle_sdp_rtcp_fb_attribute_t* attribute,
 	attribute->param = orig->param;
 	attribute->trr_int = orig->trr_int;
 	attribute->id = orig->id;
+	attribute->smaxpr = orig->smaxpr;
 }
 belle_sip_error_code belle_sdp_rtcp_fb_attribute_marshal(belle_sdp_rtcp_fb_attribute_t* attribute, char * buff, size_t buff_size, size_t *offset) {
 	int8_t id = belle_sdp_rtcp_fb_attribute_get_id(attribute);
@@ -245,6 +247,12 @@ belle_sip_error_code belle_sdp_rtcp_fb_attribute_marshal(belle_sdp_rtcp_fb_attri
 				case BELLE_SDP_RTCP_FB_FIR:
 					error = belle_sip_snprintf(buff, buff_size, offset, " fir");
 					break;
+				case BELLE_SDP_RTCP_FB_TMMBR:
+					error = belle_sip_snprintf(buff, buff_size, offset, " tmmbr");
+					if (belle_sdp_rtcp_fb_attribute_get_smaxpr(attribute) > 0) {
+						error = belle_sip_snprintf(buff, buff_size, offset, " smaxpr=%u", belle_sdp_rtcp_fb_attribute_get_smaxpr(attribute));
+					}
+					break;
 				default:
 					break;
 			}
@@ -258,6 +266,7 @@ static void belle_sdp_rtcp_fb_attribute_init(belle_sdp_rtcp_fb_attribute_t* attr
 	attribute->type = BELLE_SDP_RTCP_FB_TRR_INT;
 	attribute->param = BELLE_SDP_RTCP_FB_NONE;
 	attribute->trr_int = 0;
+	attribute->smaxpr = 0;
 }
 BELLE_SDP_NEW_WITH_CTR(rtcp_fb_attribute,belle_sdp_attribute)
 BELLE_SDP_PARSE(rtcp_fb_attribute)
@@ -265,6 +274,7 @@ GET_SET_INT(belle_sdp_rtcp_fb_attribute,id,int8_t)
 GET_SET_INT(belle_sdp_rtcp_fb_attribute,type,belle_sdp_rtcp_fb_val_type_t)
 GET_SET_INT(belle_sdp_rtcp_fb_attribute,param,belle_sdp_rtcp_fb_val_param_t)
 GET_SET_INT(belle_sdp_rtcp_fb_attribute,trr_int,uint16_t)
+GET_SET_INT(belle_sdp_rtcp_fb_attribute,smaxpr,uint32_t)
 /***************************************************************************************
  * RTCP-XR Attribute
  *

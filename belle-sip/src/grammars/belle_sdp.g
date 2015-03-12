@@ -377,12 +377,25 @@ rtcp_fb_app_param:
 
 rtcp_fb_ccm_param:
 	(rtcp_fb_fir_param)=>rtcp_fb_fir_param
+|	(rtcp_fb_tmmbr_param)=>rtcp_fb_tmmbr_param
 |	(rtcp_fb_token_param)=>rtcp_fb_token_param;
 
 rtcp_fb_fir_param:
 	{IS_TOKEN(fir)}? rtcp_fb_attribute_name /*'fir'*/ {
 		belle_sdp_rtcp_fb_attribute_set_param($rtcp_fb_attribute::current,BELLE_SDP_RTCP_FB_FIR);
 	};
+
+rtcp_fb_tmmbr_param:
+	{IS_TOKEN(tmmbr)}? rtcp_fb_attribute_name /*'tmmbr'*/ (SPACE rtcp_fb_tmmbr_smaxpr_param)? {
+		belle_sdp_rtcp_fb_attribute_set_param($rtcp_fb_attribute::current,BELLE_SDP_RTCP_FB_TMMBR);
+	};
+
+rtcp_fb_tmmbr_smaxpr_param:
+	{IS_TOKEN(smaxpr)}? rtcp_fb_attribute_name /*'smaxpr'*/ EQUAL val=rtcp_fb_tmmbr_smaxpr {
+		if (val.tree) belle_sdp_rtcp_fb_attribute_set_smaxpr($rtcp_fb_attribute::current,atoi((const char*)$rtcp_fb_tmmbr_smaxpr.text->chars));
+	};
+
+rtcp_fb_tmmbr_smaxpr : DIGIT+;
 
 rtcp_fb_token_param:
 	rtcp_fb_attribute_name (SPACE byte_string)?;
