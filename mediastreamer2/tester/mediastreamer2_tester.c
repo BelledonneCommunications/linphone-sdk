@@ -20,11 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 
-#include <mediastreamer2/mediastream.h>
-#if HAVE_CONFIG_H
-#include <mediastreamer-config.h>
-#endif
-
 #include <stdio.h>
 #include "CUnit/Basic.h"
 #include "CUnit/Automated.h"
@@ -97,7 +92,7 @@ int main (int argc, char *argv[]) {
 
 	for(i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--verbose") == 0) {
-			ortp_set_log_level_mask(ORTP_DEBUG);
+			ortp_set_log_level_mask(ORTP_MESSAGE);
 		} else if (strcmp(argv[i], "--silent") == 0) {
 			ortp_set_log_level_mask(ORTP_FATAL);
 		} else if (strcmp(argv[i],"--log-file")==0){
