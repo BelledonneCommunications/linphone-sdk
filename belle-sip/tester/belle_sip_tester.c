@@ -66,6 +66,15 @@ int belle_sip_tester_ipv6_available(void){
 	return ipv6_available;
 }
 
+const char * belle_sip_tester_get_root_ca_path(void) {
+	return belle_sip_tester_root_ca_path;
+}
+
+void belle_sip_tester_set_root_ca_path(const char *root_ca_path) {
+	belle_sip_tester_root_ca_path = root_ca_path;
+}
+
+
 static void log_handler(int lev, const char *fmt, va_list args) {
 	belle_sip_set_log_file(stderr);
 	belle_sip_log_handler(lev, fmt, args);
@@ -96,14 +105,6 @@ void belle_sip_tester_init() {
 	bc_tester_add_suite(&dialog_test_suite);
 	bc_tester_add_suite(&refresher_test_suite);
 	bc_tester_add_suite(&http_test_suite);
-}
-
-const char * belle_sip_tester_get_root_ca_path(void) {
-	return belle_sip_tester_root_ca_path;
-}
-
-void belle_sip_tester_set_root_ca_path(const char *root_ca_path) {
-	belle_sip_tester_root_ca_path = root_ca_path;
 }
 
 void belle_sip_tester_uninit(void) {
