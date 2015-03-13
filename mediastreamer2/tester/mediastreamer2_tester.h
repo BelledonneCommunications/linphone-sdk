@@ -43,6 +43,12 @@ typedef struct {
 } test_suite_t;
 
 
+#include <mediastreamer2/mediastream.h>
+
+#ifdef HAVE_CONFIG_H
+#include "mediastreamer-config.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -80,6 +86,7 @@ extern void mediastreamer2_tester_set_writable_dir(const char* writable_dir);
     int apple_main(int argc, char *argv[]);
 #endif
 
+MSWebCam* mediastreamer2_tester_get_mir_webcam();
 
 #ifdef __cplusplus
 };

@@ -236,9 +236,9 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 		audio_manager_start(margaux,payload,marielle->local_rtp,0,NULL,recorded_file);
 	}else{
 #if VIDEO_ENABLED
+		marielle->video_stream->staticimage_webcam_fps_optimization = FALSE;
 		video_manager_start(marielle,payload,margaux->local_rtp,0,marielle_webcam);
 		video_stream_set_direction(margaux->video_stream,VideoStreamRecvOnly);
-
 		video_manager_start(margaux,payload,marielle->local_rtp,0,NULL);
 #else
 		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(marielle->type));
@@ -446,21 +446,14 @@ static void upload_bitrate_opus_3g() {
 void adaptive_video(int max_bw, int exp_min_bw, int exp_max_bw, int loss_rate, int exp_min_loss, int exp_max_loss) {
 	bool_t supported = ms_filter_codec_supported("VP8");
 	if( supported ) {
-		bool_t has_cam  = ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get())
-							!= ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
-		if (has_cam) {
-			stream_manager_t * marielle, * margaux;
-			start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300*1000, max_bw*1000, loss_rate, 50,0);
-			iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 7);
-			CU_ASSERT_IN_RANGE(marielle->adaptive_stats.loss_estim, exp_min_loss, exp_max_loss);
-			CU_ASSERT_IN_RANGE(marielle->adaptive_stats.congestion_bw_estim, exp_min_bw, exp_max_bw);
-			stop_adaptive_stream(marielle,margaux);
-		} else {
-			/*ortp_loss_estimator rely on the fact that we receive some packets: however when
-			using static picture camera, there is a traffic of around 1 packet per second which
-			is totally unlikely leading in no QoS possibility*/
-			ms_warning("%s test disabled because no real camera is available", __FUNCTION__);
-		}
+		stream_manager_t * marielle, * margaux;
+		start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300*1000, max_bw*1000, loss_rate, 50,0);
+		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 7);
+		CU_ASSERT_TRUE(marielle->adaptive_stats.loss_estim >= exp_min_loss);
+		CU_ASSERT_TRUE(marielle->adaptive_stats.loss_estim <= exp_max_loss);
+		CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim >= exp_min_bw);
+		CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim <= exp_max_bw);
+		stop_adaptive_stream(marielle,margaux);
 	}
 }
 

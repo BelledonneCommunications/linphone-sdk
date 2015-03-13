@@ -32,11 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static RtpProfile rtp_profile;
 
-#ifdef _MSC_VER
-extern __declspec(dllimport) MSWebCamDesc mire_desc;
-#else
-extern MSWebCamDesc mire_desc;
-#endif
 
 
 
@@ -44,16 +39,30 @@ extern MSWebCamDesc mire_desc;
 #define H264_PAYLOAD_TYPE  104
 #define MP4V_PAYLOAD_TYPE  105
 
-static int tester_init(void) {
+MSWebCam* mediastreamer2_tester_get_mir_webcam() {
 	MSWebCam *cam;
+#ifdef _MSC_VER
+extern __declspec(dllimport) MSWebCamDesc mire_desc;
+#else
+extern MSWebCamDesc mire_desc;
+#endif
+	cam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "Mire: Mire (synthetic moving picture)");
+
+	if (cam == NULL) {
+		cam=ms_web_cam_new(&mire_desc);
+		ms_web_cam_manager_add_cam(ms_web_cam_manager_get(),cam);
+	}
+
+	return cam;
+}
+
+static int tester_init(void) {
 	ms_init();
 	ms_filter_enable_statistics(TRUE);
 	ortp_init();
 	rtp_profile_set_payload(&rtp_profile, VP8_PAYLOAD_TYPE, &payload_type_vp8);
 	rtp_profile_set_payload(&rtp_profile, H264_PAYLOAD_TYPE, &payload_type_h264);
 	rtp_profile_set_payload(&rtp_profile, MP4V_PAYLOAD_TYPE, &payload_type_mp4v);
-	cam=ms_web_cam_new(&mire_desc);
-	ms_web_cam_manager_add_cam(ms_web_cam_manager_get(),cam);
 	return 0;
 }
 
@@ -64,14 +73,6 @@ static int tester_cleanup(void) {
 }
 
 #ifdef VIDEO_ENABLED
-/*#define MARIELLE_RTP_PORT 2564
-#define MARIELLE_RTCP_PORT 2565
-#define MARIELLE_IP "127.0.0.1"
-
-#define MARGAUX_RTP_PORT 9864
-#define MARGAUX_RTCP_PORT 9865
-#define MARGAUX_IP "127.0.0.1"
-*/
 
 typedef struct _video_stream_tester_stats_t {
 	OrtpEvQueue *q;
@@ -432,7 +433,7 @@ static void avpf_rpsi_count(void) {
 	marielle->vconf->fps=15;
 	marielle->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	marielle->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
-	marielle->cam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "Mire: Mire (synthetic moving picture)");
+	marielle->cam = mediastreamer2_tester_get_mir_webcam();
 
 
 	margaux->vconf=ms_new0(MSVideoConfiguration,1);
@@ -440,7 +441,7 @@ static void avpf_rpsi_count(void) {
 	margaux->vconf->fps=5; /*to save cpu resource*/
 	margaux->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	margaux->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
-	margaux->cam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "Mire: Mire (synthetic moving picture)");
+	margaux->cam = mediastreamer2_tester_get_mir_webcam();
 
 	if (supported) {
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
