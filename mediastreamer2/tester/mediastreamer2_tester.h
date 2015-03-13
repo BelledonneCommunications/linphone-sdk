@@ -22,6 +22,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common/bc_tester_utils.h"
 
+#include <mediastreamer2/mediastream.h>
+
+#ifdef HAVE_CONFIG_H
+#include "mediastreamer-config.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,6 +46,8 @@ extern test_suite_t neon_test_suite;
 #if TARGET_OS_MAC || TARGET_OS_IPHONE
     int apple_main(int argc, char *argv[]);
 #endif
+
+MSWebCam* mediastreamer2_tester_get_mir_webcam();
 
 #ifdef __cplusplus
 };
