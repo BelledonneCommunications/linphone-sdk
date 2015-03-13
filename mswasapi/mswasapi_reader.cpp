@@ -86,12 +86,16 @@ void MSWASAPIReader::init(LPCWSTR id)
 #else
 	IMMDeviceEnumerator *pEnumerator = NULL;
 	IMMDevice *pDevice = NULL;
+	CoInitialize(NULL);
 	result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
 	REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator", result);
 	mCaptureId = id;
 	result = pEnumerator->GetDevice(mCaptureId, &pDevice);
-	REPORT_ERROR("mswasapi: Could not get the rendering device", result);
-	pDevice->Activate(IID_IAudioClient2, CLSCTX_ALL, NULL, (void **)&mAudioClient);
+	SAFE_RELEASE(pEnumerator);
+	REPORT_ERROR("mswasapi: Could not get the capture device", result);
+	result = pDevice->Activate(IID_IAudioClient2, CLSCTX_ALL, NULL, (void **)&mAudioClient);
+	SAFE_RELEASE(pDevice);
+	REPORT_ERROR("mswasapi: Could not activate the capture device", result);
 #endif
 	properties.cbSize = sizeof AudioClientProperties;
 	properties.bIsOffload = false;

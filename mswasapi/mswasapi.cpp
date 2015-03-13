@@ -33,8 +33,10 @@ const IID IID_IAudioClient2 = __uuidof(IAudioClient2);
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
 
+#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
 const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
 const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
+#endif
 
 /******************************************************************************
  * Methods to (de)initialize and run the WASAPI sound capture filter          *
@@ -396,7 +398,8 @@ static void ms_wasapi_snd_card_detect_with_data_flow(MSSndCardManager *m, EDataF
 	IMMDevice *pEndpoint = NULL;
 	IPropertyStore *pProps = NULL;
 	LPWSTR pwszID = NULL;
-	HRESULT result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
+	HRESULT result = CoInitialize(NULL);
+	result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
 	REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator", result);
 	result = pEnumerator->EnumAudioEndpoints(data_flow, DEVICE_STATE_ACTIVE, &pCollection);
 	REPORT_ERROR("mswasapi: Could not enumerate audio endpoints", result);

@@ -50,3 +50,13 @@ typedef struct WasapiSndCard {
 	std::vector<wchar_t> *id_vector;
 	LPWSTR id;
 } WasapiSndCard;
+
+
+extern const IID IID_IAudioClient2;
+extern const IID IID_IAudioCaptureClient;
+extern const IID IID_IAudioRenderClient;
+
+#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+extern const CLSID CLSID_MMDeviceEnumerator;
+extern const IID IID_IMMDeviceEnumerator;
+#endif
