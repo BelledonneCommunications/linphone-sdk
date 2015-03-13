@@ -155,8 +155,8 @@ static void test_complete_message_handler(const CU_pTest pTest,
 	const CU_pFailureRecord pFailureList) {
 	int i;
 	char * result = malloc(sizeof(char)*2048);//not very pretty but...
-	sprintf(result, "Suite [%s] Test [%s]", pSuite->pName, pTest->pName);
 	CU_pFailureRecord pFailure = pFailureList;
+	sprintf(result, "Suite [%s] Test [%s]", pSuite->pName, pTest->pName);
 	if (pFailure) {
 		strncat(result, " failed:", strlen(" failed:"));
 		for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
@@ -312,7 +312,7 @@ int bc_tester_start() {
 	int ret;
 	if( xml_enabled ){
 		char * xml_tmp_file = malloc(sizeof(char) * (strlen(xml_file) + strlen(".tmp") + 1));
-		snprintf(xml_tmp_file, sizeof(xml_tmp_file), "%s.tmp", xml_file);
+		sprintf(xml_tmp_file, "%s.tmp", xml_file);
 		CU_set_output_filename(xml_tmp_file);
 		free(xml_tmp_file);
 	}
@@ -343,7 +343,7 @@ void bc_tester_uninit() {
 	if( xml_enabled ){
 		/*create real xml file only if tester did not crash*/
 		char * xml_tmp_file = malloc(sizeof(char) * (strlen(xml_file) + strlen(".tmp") + 1));
-		snprintf(xml_tmp_file, sizeof(xml_tmp_file), "%s.tmp", xml_file);
+		snprintf(xml_tmp_file, strlen(xml_tmp_file), "%s.tmp", xml_file);
 		rename(xml_tmp_file, xml_file);
 		free(xml_tmp_file);
 	}
