@@ -20,8 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /* this must be provided at compile time*/
 #include BC_CONFIG_FILE
 
-#include "tester_utils.h"
+#include "bc_tester_utils.h"
 
+#include <stdarg.h>
 #include <stdlib.h>
 #include "CUnit/Automated.h"
 
