@@ -43,3 +43,4 @@ tester/belle_sip_resolve
 tester/CUnitAutomated-Results.xml
 tester/download.tar.gz
 tester/tmp_resolv.conf
+tester/belle_sip_tester_crt
