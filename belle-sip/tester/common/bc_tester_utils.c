@@ -110,7 +110,7 @@ static int tester_nb_tests(const char *suite_name) {
 static void tester_list_suites() {
 	int j;
 	for(j=0;j<nb_test_suites;j++) {
-		tester_printf(verbosity_info, "%s", tester_test_suite_name(j));
+		fprintf(stdout, "%s\n", tester_test_suite_name(j));
 	}
 }
 
@@ -118,7 +118,7 @@ static void tester_list_suite_tests(const char *suite_name) {
 	int j;
 	for( j = 0; j < tester_nb_tests(suite_name); j++) {
 		const char *test_name = tester_test_name(suite_name, j);
-		tester_printf(verbosity_info, "%s", test_name);
+		fprintf(stdout, "%s\n", test_name);
 	}
 }
 
@@ -176,7 +176,7 @@ static void test_complete_message_handler(const CU_pTest pTest,
 
 static int tester_run_tests(const char *suite_name, const char *test_name) {
 	int i;
-	int ret;
+
 	/* initialize the CUnit test registry */
 	if (CUE_SUCCESS != CU_initialize_registry())
 		return CU_get_error();
@@ -236,28 +236,18 @@ static int tester_run_tests(const char *suite_name, const char *test_name) {
 			else
 #endif
 			{
-			/* Run all tests using the CUnit Basic interface */
+				/* Run all tests using the CUnit Basic interface */
 				CU_run_all_tests();
 			}
 		}
-
 	}
-	ret=CU_get_number_of_tests_failed()!=0;
+	return CU_get_number_of_tests_failed()!=0;
 
-/* Redisplay list of failed tests on end */
-	if (CU_get_number_of_failure_records()){
-		CU_basic_show_failures(CU_get_failure_list());
-		tester_printf(verbosity_info,"");
-	}
-
-	CU_cleanup_registry();
-
-	return ret;
 }
 
 
 void bc_tester_helper(const char *name, const char* additionnal_helper) {
-	fprintf(stderr,"%s --help\n"
+	fprintf(stdout,"%s --help\n"
 		"\t\t\t--list-suites\n"
 		"\t\t\t--list-tests <suite>\n"
 		"\t\t\t--suite <suite name>\n"
@@ -294,12 +284,12 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		suite_name=argv[i];
 	} else if (strcmp(argv[i],"--list-suites")==0){
 		tester_list_suites();
-		return -1;
+		return 0;
 	} else if (strcmp(argv[i],"--list-tests")==0){
 		CHECK_ARG("--list-tests", ++i, argc);
 		suite_name = argv[i];
 		tester_list_suite_tests(suite_name);
-		return -1;
+		return 0;
 	} else if (strcmp(argv[i], "--xml-file") == 0){
 		CHECK_ARG("--xml-file", ++i, argc);
 		xml_file = argv[i];
@@ -311,7 +301,7 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		FILE *log_file=fopen(argv[i],"w");
 		if (!log_file) {
 			fprintf(stderr, "Cannot open file [%s] for writing logs because [%s]",argv[i],strerror(errno));
-			return -2;
+			return -1;
 		} else {
 			use_log_file=1;
 			tester_printf(verbosity_info,"Redirecting traces to file [%s]",argv[i]);
@@ -319,16 +309,16 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		}
 	}else {
 		fprintf(stderr, "Unknown option \"%s\"\n", argv[i]);
-		return -2;
+		return -1;
 	}
 
 	if( xml_enabled && (suite_name || test_name) ){
 		fprintf(stderr, "Cannot use both XML and specific test suite\n");
-		return -2;
+		return -1;
 	}
 
-	/* returns number of arguments read */
-	return i - argid;
+	/* returns number of arguments read + 1 */
+	return i - argid + 1;
 }
 
 int bc_tester_start() {
@@ -356,6 +346,13 @@ void bc_tester_add_suite(test_suite_t *suite) {
 }
 
 void bc_tester_uninit() {
+	/* Redisplay list of failed tests on end */
+	if (CU_get_number_of_failure_records()){
+		CU_basic_show_failures(CU_get_failure_list());
+		tester_printf(verbosity_info,""); /*add missing final newline*/
+	}
+	CU_cleanup_registry();
+
 	if( xml_enabled ){
 		/*create real xml file only if tester did not crash*/
 		char * xml_tmp_file = malloc(sizeof(char) * (strlen(xml_file) + strlen(".tmp") + 1));
