@@ -20,8 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef _MEDIASTREAMER2_TESTER_H
 #define _MEDIASTREAMER2_TESTER_H
 
-
-#include "common/tester_utils.h"
+#include "common/bc_tester_utils.h"
 
 #ifdef __cplusplus
 extern "C" {

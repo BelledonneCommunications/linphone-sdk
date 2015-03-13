@@ -459,7 +459,7 @@ static void tmmbr_feedback_for_audio_stream(void) {
 	RtpProfile *profile = rtp_profile_new("default profile");
 	RtpSession *marielle_session;
 	RtpSession *margaux_session;
-	char* hello_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), HELLO_8K_1S_FILE);
+	char* hello_file = ms_strdup_printf("%s/%s", bc_tester_read_dir_prefix, HELLO_8K_1S_FILE);
 	int dummy=0;
 
 	reset_stats(&marielle_stats);

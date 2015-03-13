@@ -18,7 +18,7 @@ mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_framework_tester.c \
 	mediastreamer2_player_tester.c \
 	mediastreamer2_neon_tester.c \
-	common/tester_utils.c common/tester_utils.h
+	common/bc_tester_utils.c common/bc_tester_utils.h
 
 AM_CPPFLAGS=\
 	-DBC_CONFIG_FILE=\"mediastreamer-config.h\" \

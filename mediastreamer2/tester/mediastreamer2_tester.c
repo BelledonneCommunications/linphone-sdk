@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 
-#include "common/tester_utils.h"
-
 #include <mediastreamer2/mediastream.h>
 #if HAVE_CONFIG_H
 #include <mediastreamer-config.h>
@@ -75,9 +73,7 @@ void mediastreamer2_tester_uninit(void) {
 }
 
 static const char* mediastreamer2_helper =
-#ifndef _WIN32
 		"\t\t\t--verbose\n"
-#endif
 		"\t\t\t--silent\n"
 		"\t\t\t--log-file <output log file path>\n";
 
@@ -115,12 +111,13 @@ int main (int argc, char *argv[]) {
 			}
 		} else {
 			int ret = bc_tester_parse_args(argc, argv, i);
-			if (ret>0) {
-				i += ret;
-			} else {
+			if (ret>1) {
+				i += ret - 1;
+				continue;
+			} else if (ret<0) {
 				bc_tester_helper(argv[0], mediastreamer2_helper);
-				return ret;
 			}
+			return ret;
 		}
 	}
 
