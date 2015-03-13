@@ -48,7 +48,6 @@ static int nb_test_suites = 0;
 static unsigned char curses = 0;
 #endif
 
-int use_log_file = 0;
 char* xml_file = NULL;
 int   xml_enabled = 0;
 char * suite_name;
@@ -252,7 +251,6 @@ void bc_tester_helper(const char *name, const char* additionnal_helper) {
 		"\t\t\t--list-tests <suite>\n"
 		"\t\t\t--suite <suite name>\n"
 		"\t\t\t--test <test name>\n"
-		"\t\t\t--log-file <output log file path>\n"
 #if HAVE_CU_CURSES
 		"\t\t\t--curses\n"
 #endif
@@ -296,17 +294,6 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		xml_enabled = 1;
 	} else if (strcmp(argv[i], "--xml") == 0){
 		xml_enabled = 1;
-	} else if (strcmp(argv[i],"--log-file")==0){
-		CHECK_ARG("--log-file", ++i, argc);
-		FILE *log_file=fopen(argv[i],"w");
-		if (!log_file) {
-			fprintf(stderr, "Cannot open file [%s] for writing logs because [%s]",argv[i],strerror(errno));
-			return -1;
-		} else {
-			use_log_file=1;
-			tester_printf(verbosity_info,"Redirecting traces to file [%s]",argv[i]);
-			// linphone_core_set_log_file(log_file);
-		}
 	}else {
 		fprintf(stderr, "Unknown option \"%s\"\n", argv[i]);
 		return -1;
