@@ -48,7 +48,7 @@ static int nb_test_suites = 0;
 static unsigned char curses = 0;
 #endif
 
-char* xml_file = NULL;
+char* xml_file = "CUnitAutomated-Results.xml";
 int   xml_enabled = 0;
 char * suite_name;
 char * test_name;
@@ -342,8 +342,8 @@ void bc_tester_uninit() {
 
 	if( xml_enabled ){
 		/*create real xml file only if tester did not crash*/
-		char * xml_tmp_file = malloc(sizeof(char) * (strlen(xml_file) + strlen(".tmp") + 1));
-		snprintf(xml_tmp_file, strlen(xml_tmp_file), "%s.tmp", xml_file);
+		char * xml_tmp_file = malloc(sizeof(char) * (strlen(xml_file) + strlen(".tmp-Results.xml") + 1));
+		sprintf(xml_tmp_file, "%s.tmp-Results.xml", xml_file);
 		rename(xml_tmp_file, xml_file);
 		free(xml_tmp_file);
 	}
