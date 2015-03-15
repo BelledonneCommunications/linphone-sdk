@@ -45,6 +45,7 @@ static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
 
 #if HAVE_CU_CURSES
+#include "CUnit/CUCurses.h"
 static unsigned char curses = 0;
 #endif
 
