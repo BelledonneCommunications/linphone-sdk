@@ -68,9 +68,9 @@ typedef enum {
 
 BELLE_SIP_BEGIN_DECLS
 
-extern belle_sip_log_function_t belle_sip_logv_out;
+BELLESIP_VAR_EXPORT belle_sip_log_function_t belle_sip_logv_out;
 
-extern unsigned int __belle_sip_log_mask;
+BELLESIP_VAR_EXPORT unsigned int __belle_sip_log_mask;
 
 #define belle_sip_log_level_enabled(level)   (__belle_sip_log_mask & (level))
 
