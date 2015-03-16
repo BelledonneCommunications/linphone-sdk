@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/mswebcam.h"
 
+#include <math.h>
+
 
 typedef struct _MireData{
 	MSVideoSize vsize;
@@ -61,9 +63,11 @@ static void mire_preprocess(MSFilter *f){
 
 static void plane_draw(uint8_t *p, int w, int h, int lsz, int index, int color1, int color2){
 	int i,j;
+	
 	for(i=0;i<h;++i){
+		int tmp = index + (cos(4*(double)(i)/(double)h) * (w/8));
 		for(j=0;j<w;++j){
-			p[j]= (( ((i+index)/80) + ((j+index)/80)  ) & 0x1) ? color1 : color2;
+			p[j]= (( ((i+tmp)/85) + ((j+tmp)/85)  ) & 0x1) ? color1 : color2;
 		}
 		p+=lsz;
 	}
