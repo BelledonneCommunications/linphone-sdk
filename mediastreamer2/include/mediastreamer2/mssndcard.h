@@ -223,6 +223,13 @@ MS2_PUBLIC const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m);
 MS2_PUBLIC void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c);
 
 /**
+ * Prepend a list of sound card object to the sound card manager's list.
+ * @param[in] m A sound card manager containing sound cards.
+ * @param[in] l A list of sound card objects to be prepended to the sound card manager's list.
+ */
+MS2_PUBLIC void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, MSList *l);
+
+/**
  * Register a sound card description in a sound card manager.
  *
  * @param m      A sound card manager containing sound cards.

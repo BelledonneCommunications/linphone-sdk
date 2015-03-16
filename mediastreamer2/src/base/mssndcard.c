@@ -105,6 +105,16 @@ void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
 	m->cards=ms_list_append(m->cards,c);
 }
 
+void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, MSList *l) {
+	MSList *elem;
+	MSList *lcopy = ms_list_copy(l);
+	m->cards = ms_list_concat(lcopy, m->cards);
+	for (elem = l; elem != NULL; elem = elem->next) {
+		MSSndCard *card = (MSSndCard *)elem->data;
+		ms_message("Card '%s' added", ms_snd_card_get_string_id(card));
+	}
+}
+
 static void card_detect(MSSndCardManager *m, MSSndCardDesc *desc){
 	if (desc->detect!=NULL)
 		desc->detect(m);
