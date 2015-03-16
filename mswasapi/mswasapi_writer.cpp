@@ -55,7 +55,7 @@ MSWASAPIWriter::MSWASAPIWriter()
 MSWASAPIWriter::~MSWASAPIWriter()
 {
 	RELEASE_CLIENT(mAudioClient);
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+#if BUILD_FOR_WINDOWS_PHONE
 	FREE_PTR(mRenderId);
 #endif
 	smInstantiated = false;
@@ -67,7 +67,7 @@ void MSWASAPIWriter::init(LPCWSTR id) {
 	WAVEFORMATEX *pWfx = NULL;
 	AudioClientProperties properties;
 
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+#if BUILD_FOR_WINDOWS_PHONE
 	mRenderId = GetDefaultAudioRenderId(Communications);
 	if (mRenderId == NULL) {
 		ms_error("Could not get the RenderId of the MSWASAPI audio output interface");

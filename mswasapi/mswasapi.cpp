@@ -33,7 +33,7 @@ const IID IID_IAudioClient2 = __uuidof(IAudioClient2);
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
 
-#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+#if !BUILD_FOR_WINDOWS_PHONE
 const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
 const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
 #endif
@@ -328,16 +328,16 @@ static MSSndCardDesc ms_wasapi_snd_card_desc = {
 	NULL
 };
 
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+#if BUILD_FOR_WINDOWS_PHONE
 static MSSndCard *ms_wasapi_phone_snd_card_new(void) {
 	MSSndCard *card = ms_snd_card_new(&ms_wasapi_snd_card_desc);
 	card->name = ms_strdup("WASAPI sound card");
 	card->latency = 250;
 	return card;
 }
-#endif
 
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#else
+
 static MSSndCard *ms_wasapi_snd_card_new(LPWSTR id, const char *name, uint8_t capabilities) {
 	MSSndCard *card = ms_snd_card_new(&ms_wasapi_snd_card_desc);
 	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
@@ -438,7 +438,7 @@ error:
 #endif
 
 static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+#if BUILD_FOR_WINDOWS_PHONE
 	MSSndCard *card = ms_wasapi_phone_snd_card_new();
 	ms_snd_card_manager_add_card(m, card);
 #else

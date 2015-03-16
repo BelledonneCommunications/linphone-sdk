@@ -23,11 +23,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
+#ifndef WINAPI_FAMILY_PARTITION
+/* Old version of Visual Studio, no support of Windows Phone. */
+#define BUILD_FOR_WINDOWS_PHONE 0
+#else
+#define BUILD_FOR_WINDOWS_PHONE WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+#endif
 
 #include <vector>
 #include <objbase.h>
 #include <audioclient.h>
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+#if BUILD_FOR_WINDOWS_PHONE
 #include <phoneaudioclient.h>
 #else
 #include <mmdeviceapi.h>
@@ -56,7 +62,7 @@ extern const IID IID_IAudioClient2;
 extern const IID IID_IAudioCaptureClient;
 extern const IID IID_IAudioRenderClient;
 
-#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+#if !BUILD_FOR_WINDOWS_PHONE
 extern const CLSID CLSID_MMDeviceEnumerator;
 extern const IID IID_IMMDeviceEnumerator;
 #endif

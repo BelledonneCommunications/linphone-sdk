@@ -56,7 +56,7 @@ MSWASAPIReader::MSWASAPIReader()
 MSWASAPIReader::~MSWASAPIReader()
 {
 	RELEASE_CLIENT(mAudioClient);
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+#if BUILD_FOR_WINDOWS_PHONE
 	FREE_PTR(mCaptureId);
 #endif
 	smInstantiated = false;
@@ -69,7 +69,7 @@ void MSWASAPIReader::init(LPCWSTR id)
 	WAVEFORMATEX *pWfx = NULL;
 	AudioClientProperties properties;
 
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
+#if BUILD_FOR_WINDOWS_PHONE
 	mCaptureId = GetDefaultAudioCaptureId(Communications);
 	if (mCaptureId == NULL) {
 		ms_error("Could not get the CaptureId of the MSWASAPI audio input interface");
