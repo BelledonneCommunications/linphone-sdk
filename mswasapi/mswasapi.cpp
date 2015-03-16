@@ -349,9 +349,9 @@ static MSSndCard *ms_wasapi_snd_card_new(LPWSTR id, const char *name, uint8_t ca
 	return card;
 }
 
-static void add_or_update_card(MSSndCardManager *m, LPWSTR id, LPWSTR wname, EDataFlow data_flow) {
+static void add_or_update_card(MSSndCardManager *m, MSList **l, LPWSTR id, LPWSTR wname, EDataFlow data_flow) {
 	MSSndCard *card;
-	const MSList *elem = ms_snd_card_manager_get_list(m);
+	const MSList *elem = *l;
 	uint8_t capabilities = 0;
 	char *name;
 	size_t inputlen;
@@ -388,19 +388,43 @@ static void add_or_update_card(MSSndCardManager *m, LPWSTR id, LPWSTR wname, EDa
 	}
 
 	/* Add a new card. */
-	ms_snd_card_manager_add_card(m, ms_wasapi_snd_card_new(id, name, capabilities));
+	*l = ms_list_append(*l, ms_wasapi_snd_card_new(id, name, capabilities));
 	ms_free(name);
 }
 
-static void ms_wasapi_snd_card_detect_with_data_flow(MSSndCardManager *m, EDataFlow data_flow) {
+static void add_endpoint(MSSndCardManager *m, EDataFlow data_flow, MSList **l, IMMDevice *pEndpoint) {
+	IPropertyStore *pProps = NULL;
+	LPWSTR pwszID = NULL;
+	HRESULT result = pEndpoint->GetId(&pwszID);
+	REPORT_ERROR("mswasapi: Could not get ID of audio endpoint", result);
+	result = pEndpoint->OpenPropertyStore(STGM_READ, &pProps);
+	REPORT_ERROR("mswasapi: Could not open property store", result);
+	PROPVARIANT varName;
+	PropVariantInit(&varName);
+	result = pProps->GetValue(PKEY_Device_FriendlyName, &varName);
+	REPORT_ERROR("mswasapi: Could not get friendly-name of audio endpoint", result);
+	add_or_update_card(m, l, pwszID, varName.pwszVal, data_flow);
+	CoTaskMemFree(pwszID);
+	pwszID = NULL;
+	PropVariantClear(&varName);
+	SAFE_RELEASE(pProps);
+error:
+	CoTaskMemFree(pwszID);
+	SAFE_RELEASE(pProps);
+}
+
+static void ms_wasapi_snd_card_detect_with_data_flow(MSSndCardManager *m, EDataFlow data_flow, MSList **l) {
 	IMMDeviceEnumerator *pEnumerator = NULL;
 	IMMDeviceCollection *pCollection = NULL;
 	IMMDevice *pEndpoint = NULL;
-	IPropertyStore *pProps = NULL;
-	LPWSTR pwszID = NULL;
 	HRESULT result = CoInitialize(NULL);
 	result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
 	REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator", result);
+	result = pEnumerator->GetDefaultAudioEndpoint(data_flow, eCommunications, &pEndpoint);
+	if (result == S_OK) {
+		add_endpoint(m, data_flow, l, pEndpoint);
+		SAFE_RELEASE(pEndpoint);
+	}
 	result = pEnumerator->EnumAudioEndpoints(data_flow, DEVICE_STATE_ACTIVE, &pCollection);
 	REPORT_ERROR("mswasapi: Could not enumerate audio endpoints", result);
 	UINT count;
@@ -413,27 +437,13 @@ static void ms_wasapi_snd_card_detect_with_data_flow(MSSndCardManager *m, EDataF
 	for (ULONG i = 0; i < count; i++) {
 		result = pCollection->Item(i, &pEndpoint);
 		REPORT_ERROR("mswasapi: Could not get pointer to audio endpoint", result);
-		result = pEndpoint->GetId(&pwszID);
-		REPORT_ERROR("mswasapi: Could not get ID of audio endpoint", result);
-		result = pEndpoint->OpenPropertyStore(STGM_READ, &pProps);
-		REPORT_ERROR("mswasapi: Could not open property store", result);
-		PROPVARIANT varName;
-		PropVariantInit(&varName);
-		result = pProps->GetValue(PKEY_Device_FriendlyName, &varName);
-		REPORT_ERROR("mswasapi: Could not get friendly-name of audio endpoint", result);
-		add_or_update_card(m, pwszID, varName.pwszVal, data_flow);
-		CoTaskMemFree(pwszID);
-		pwszID = NULL;
-		PropVariantClear(&varName);
-		SAFE_RELEASE(pProps);
+		add_endpoint(m, data_flow, l, pEndpoint);
 		SAFE_RELEASE(pEndpoint);
 	}
 error:
-	CoTaskMemFree(pwszID);
 	SAFE_RELEASE(pEnumerator);
 	SAFE_RELEASE(pCollection);
 	SAFE_RELEASE(pEndpoint);
-	SAFE_RELEASE(pProps);
 }
 #endif
 
@@ -442,8 +452,11 @@ static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
 	MSSndCard *card = ms_wasapi_phone_snd_card_new();
 	ms_snd_card_manager_add_card(m, card);
 #else
-	ms_wasapi_snd_card_detect_with_data_flow(m, eCapture);
-	ms_wasapi_snd_card_detect_with_data_flow(m, eRender);
+	MSList *l = NULL;
+	ms_wasapi_snd_card_detect_with_data_flow(m, eCapture, &l);
+	ms_wasapi_snd_card_detect_with_data_flow(m, eRender, &l);
+	ms_snd_card_manager_prepend_cards(m, l);
+	ms_free(l);
 #endif
 }
 
