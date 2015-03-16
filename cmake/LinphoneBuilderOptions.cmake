@@ -63,6 +63,8 @@ linphone_builder_add_feature_info("Silk" ENABLE_SILK "Silk audio encoding/decodi
 option(ENABLE_SPEEX "Enable speex audio codec support." ${DEFAULT_VALUE_ENABLE_SPEEX})
 linphone_builder_add_feature_info("Speex" ENABLE_SPEEX "Speex audio encoding/decoding support.")
 
+cmake_dependent_option(ENABLE_WASAPI "Enable Windows Audio Session API (WASAPI) sound card support." ${DEFAULT_VALUE_ENABLE_WASAPI} "MSVC" OFF)
+linphone_builder_add_feature_info("WASAPI" ENABLE_WASAPI "Windows Audio Session API (WASAPI) sound card support.")
 option(ENABLE_WEBRTC_AEC "Enable WebRTC echo canceller support." ${DEFAULT_VALUE_ENABLE_WEBRTC_AEC})
 linphone_builder_add_feature_info("WebRTC AEC" ENABLE_WEBRTC_AEC "WebRTC echo canceller support.")
 

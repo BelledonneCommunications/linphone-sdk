@@ -1,6 +1,6 @@
 ############################################################################
-# config-python-raspberry.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# mswasapi.cmake
+# Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,27 +20,10 @@
 #
 ############################################################################
 
-get_filename_component(COMPILER_NAME ${CMAKE_C_COMPILER} NAME)
-string(REGEX REPLACE "-gcc$" "" LINPHONE_BUILDER_HOST ${COMPILER_NAME})
-unset(COMPILER_NAME)
+set(EP_mswasapi_GIT_REPOSITORY "git://git.linphone.org/mswasapi.git")
+set(EP_mswasapi_GIT_TAG_LATEST "master")
+set(EP_mswasapi_GIT_TAG "21a6cf45f5d0acaf3f6ba021af5710ccaaec37a2")
 
-set(PACKAGE_NAME "linphone4raspberry")
-
-include("configs/config-python.cmake")
-
-set(DEFAULT_VALUE_ENABLE_WASAPI OFF)
-
-# ffmpeg
-set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--enable-cross-compile"
-	"--cross-prefix=arm-linux-gnueabihf-"
-	"--arch=arm"
-	"--target-os=linux"
-)
-
-# vpx
-set(EP_vpx_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--target=armv6-linux-gcc"
-)
+set(EP_mswasapi_CMAKE_OPTIONS )
+set(EP_mswasapi_EXTRA_LDFLAGS "/SAFESEH:NO")
+set(EP_mswasapi_DEPENDENCIES EP_ms2)
