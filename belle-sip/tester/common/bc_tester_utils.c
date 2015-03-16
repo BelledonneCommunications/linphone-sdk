@@ -44,7 +44,7 @@ const char *bc_tester_writable_dir_prefix = ".";
 static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
 
-#if HAVE_CU_CURSES
+#ifdef HAVE_CU_CURSES
 #include "CUnit/CUCurses.h"
 static unsigned char curses = 0;
 #endif
@@ -198,7 +198,7 @@ static int tester_run_tests(const char *suite_name, const char *test_name) {
 		CU_automated_run_tests();
 	} else {
 
-#if !HAVE_CU_GET_SUITE
+#ifndef HAVE_CU_GET_SUITE
 		if( suite_name ){
 			tester_printf(verbosity_info, "Tester compiled without CU_get_suite() function, running all tests instead of suite '%s'", suite_name);
 		}
@@ -228,7 +228,7 @@ static int tester_run_tests(const char *suite_name, const char *test_name) {
 		else
 #endif
 		{
-#if HAVE_CU_CURSES
+#ifdef HAVE_CU_CURSES
 			if (curses) {
 			/* Run tests using the CUnit curses interface */
 				CU_curses_run_tests();
@@ -252,7 +252,7 @@ void bc_tester_helper(const char *name, const char* additionnal_helper) {
 		"\t\t\t--list-tests <suite>\n"
 		"\t\t\t--suite <suite name>\n"
 		"\t\t\t--test <test name>\n"
-#if HAVE_CU_CURSES
+#ifdef HAVE_CU_CURSES
 		"\t\t\t--curses\n"
 #endif
 		"\t\t\t--xml\n"

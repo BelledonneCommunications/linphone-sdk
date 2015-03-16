@@ -21,6 +21,8 @@
 ############################################################################
 
 set(TESTER_SOURCES
+	common/bc_tester_utils.c
+	common/bc_tester_utils.h
 	auth_helper_tester.c
 	belle_generic_uri_tester.c
 	belle_http_tester.c
@@ -38,6 +40,8 @@ set(TESTER_SOURCES
 	cast_test.c
 	register_tester.h
 )
+
+add_definitions(-DBC_CONFIG_FILE="config.h")
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 
