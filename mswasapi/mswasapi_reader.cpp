@@ -67,9 +67,9 @@ void MSWASAPIReader::init(LPCWSTR id)
 {
 	HRESULT result;
 	WAVEFORMATEX *pWfx = NULL;
-	AudioClientProperties properties;
 
 #if BUILD_FOR_WINDOWS_PHONE
+	AudioClientProperties properties;
 	mCaptureId = GetDefaultAudioCaptureId(Communications);
 	if (mCaptureId == NULL) {
 		ms_error("Could not get the CaptureId of the MSWASAPI audio input interface");
@@ -83,6 +83,11 @@ void MSWASAPIReader::init(LPCWSTR id)
 
 	result = ActivateAudioInterface(mCaptureId, IID_IAudioClient2, (void **)&mAudioClient);
 	REPORT_ERROR("Could not activate the MSWASAPI audio input interface [%x]", result);
+	properties.cbSize = sizeof AudioClientProperties;
+	properties.bIsOffload = false;
+	properties.eCategory = AudioCategory_Communications;
+	result = mAudioClient->SetClientProperties(&properties);
+	REPORT_ERROR("Could not set properties of the MSWASAPI audio output interface [%x]", result);
 #else
 	IMMDeviceEnumerator *pEnumerator = NULL;
 	IMMDevice *pDevice = NULL;
@@ -93,15 +98,10 @@ void MSWASAPIReader::init(LPCWSTR id)
 	result = pEnumerator->GetDevice(mCaptureId, &pDevice);
 	SAFE_RELEASE(pEnumerator);
 	REPORT_ERROR("mswasapi: Could not get the capture device", result);
-	result = pDevice->Activate(IID_IAudioClient2, CLSCTX_ALL, NULL, (void **)&mAudioClient);
+	result = pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void **)&mAudioClient);
 	SAFE_RELEASE(pDevice);
 	REPORT_ERROR("mswasapi: Could not activate the capture device", result);
 #endif
-	properties.cbSize = sizeof AudioClientProperties;
-	properties.bIsOffload = false;
-	properties.eCategory = AudioCategory_Communications;
-	result = mAudioClient->SetClientProperties(&properties);
-	REPORT_ERROR("Could not set properties of the MSWASAPI audio output interface [%x]", result);
 	result = mAudioClient->GetMixFormat(&pWfx);
 	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio input interface [%x]", result);
 	mRate = pWfx->nSamplesPerSec;

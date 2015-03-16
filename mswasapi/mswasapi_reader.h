@@ -50,7 +50,11 @@ private:
 
 	static bool smInstantiated;
 	LPCWSTR mCaptureId;
+#if BUILD_FOR_WINDOWS_PHONE
 	IAudioClient2 *mAudioClient;
+#else
+	IAudioClient *mAudioClient;
+#endif
 	IAudioCaptureClient *mAudioCaptureClient;
 	UINT32 mBufferFrameCount;
 	bool mIsInitialized;
