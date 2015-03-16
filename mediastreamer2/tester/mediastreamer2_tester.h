@@ -86,7 +86,7 @@ extern void mediastreamer2_tester_set_writable_dir(const char* writable_dir);
     int apple_main(int argc, char *argv[]);
 #endif
 
-MSWebCam* mediastreamer2_tester_get_mir_webcam();
+MSWebCam* mediastreamer2_tester_get_mir_webcam(MSWebCamManager *mgr);
 
 #ifdef __cplusplus
 };

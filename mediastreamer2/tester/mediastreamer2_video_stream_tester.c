@@ -39,18 +39,18 @@ static RtpProfile rtp_profile;
 #define H264_PAYLOAD_TYPE  104
 #define MP4V_PAYLOAD_TYPE  105
 
-MSWebCam* mediastreamer2_tester_get_mir_webcam() {
+MSWebCam* mediastreamer2_tester_get_mir_webcam(MSWebCamManager *mgr) {
 	MSWebCam *cam;
 #ifdef _MSC_VER
 extern __declspec(dllimport) MSWebCamDesc mire_desc;
 #else
 extern MSWebCamDesc mire_desc;
 #endif
-	cam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "Mire: Mire (synthetic moving picture)");
+	cam = ms_web_cam_manager_get_cam(mgr, "Mire: Mire (synthetic moving picture)");
 
 	if (cam == NULL) {
 		cam=ms_web_cam_new(&mire_desc);
-		ms_web_cam_manager_add_cam(ms_web_cam_manager_get(),cam);
+		ms_web_cam_manager_add_cam(mgr,cam);
 	}
 
 	return cam;
@@ -433,7 +433,7 @@ static void avpf_rpsi_count(void) {
 	marielle->vconf->fps=15;
 	marielle->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	marielle->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
-	marielle->cam = mediastreamer2_tester_get_mir_webcam();
+	marielle->cam = mediastreamer2_tester_get_mir_webcam(ms_web_cam_manager_get());
 
 
 	margaux->vconf=ms_new0(MSVideoConfiguration,1);
@@ -441,7 +441,7 @@ static void avpf_rpsi_count(void) {
 	margaux->vconf->fps=5; /*to save cpu resource*/
 	margaux->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	margaux->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
-	margaux->cam = mediastreamer2_tester_get_mir_webcam();
+	margaux->cam = mediastreamer2_tester_get_mir_webcam(ms_web_cam_manager_get());
 
 	if (supported) {
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);

@@ -713,18 +713,27 @@ MS2_PUBLIC void video_stream_update_video_params(VideoStream *stream);
 MS2_PUBLIC void video_stream_iterate(VideoStream *stream);
 
 /**
- * Ask the video stream to send a Full-Intra Request.
+ * Asks the video stream to send a Full-Intra Request.
  * @param[in] stream The videostream object.
  */
 MS2_PUBLIC void video_stream_send_fir(VideoStream *stream);
 
 /**
- * Ask the video stream to generate a Video Fast Update (generally after receiving a Full-Intra Request.
+ * Asks the video stream to generate a Video Fast Update (generally after receiving a Full-Intra Request.
  * @param[in] stream The videostream object.
  */
 MS2_PUBLIC void video_stream_send_vfu(VideoStream *stream);
 
 MS2_PUBLIC void video_stream_stop(VideoStream * stream);
+
+/**
+ * Try to set the size of the video that is sent. Since this relies also on the
+ * bitrate specified, make sure to set the payload bitrate accordingly with
+ * rtp_profile_get_payload and normal_bitrate value otherwise the best
+ * possible resolution will be taken instead of the requested one.
+ * @param[in] stream The videostream for which to get the sent video size.
+ * @param[in] vsize The sent video size wished.
+ */
 MS2_PUBLIC void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize);
 
 /**
