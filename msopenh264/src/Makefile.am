@@ -2,7 +2,10 @@ pluginsdir=$(PACKAGE_PLUGINS_DIR)
 
 plugins_LTLIBRARIES=libmsopenh264.la
 
-libmsopenh264_la_SOURCES=msopenh264.cpp msopenh264dec.cpp msopenh264enc.cpp
+libmsopenh264_la_SOURCES= \
+	msopenh264.cpp msopenh264.h \
+	msopenh264dec.cpp msopenh264dec.h \
+	msopenh264enc.cpp msopenh264enc.h
 
 libmsopenh264_la_CPPFLAGS=-DOPENH264_DECODER_ENABLED $(MEDIASTREAMER_CFLAGS)
 

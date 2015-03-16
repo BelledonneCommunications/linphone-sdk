@@ -1,4 +1,16 @@
 msopenh264 - H.264 encoder/decoder plugin for mediastreamer2 based on the openh264 library.
 
-By default, the upstream package installs into /usr/local.  Please use
-'./configure --prefix' to change it
+Installation guide:
+-------------------
+1) Install OpenH254:
+	$ git clone https://github.com/cisco/openh264.git -b c13bfe6
+	$ cd openh264
+	$ make
+	$ make install PREFIX=<your installation prefix>
+
+2) Install the msopenh264 plugins:
+	$ export PKG_CONFIG_PATH=<your install prefix>/lib/pkgconfig
+	$ ./autogen.sh
+	$ ./configure --prefix=<your installation prefix>
+	$ make
+	$ make install
