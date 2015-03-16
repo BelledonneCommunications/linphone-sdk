@@ -111,3 +111,18 @@ if(WIN32)
 	)
 	add_custom_target(linphone_winshortcut ALL DEPENDS "${SHORTCUT_PATH}" TARGET_linphone)
 endif()
+
+
+# Packaging
+linphone_builder_apply_flags()
+linphone_builder_set_ep_directories(linphone_package)
+linphone_builder_expand_external_project_vars()
+ExternalProject_Add(TARGET_linphone_package
+	DEPENDS TARGET_linphone_builder
+	TMP_DIR ${ep_tmp}
+	BINARY_DIR ${ep_build}
+	DOWNLOAD_COMMAND ""
+	PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}/desktop" "<SOURCE_DIR>"
+	CMAKE_GENERATOR ${CMAKE_GENERATOR}
+	CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}/../PACKAGE -DLINPHONE_OUTPUT_DIR=${CMAKE_INSTALL_PREFIX} -DENABLE_ZRTP:BOOL=${ENABLE_ZRTP}
+)
