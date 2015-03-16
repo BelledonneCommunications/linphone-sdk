@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#ifndef WINAPI_FAMILY_PARTITION
+#if !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_PHONE)
 /* Old version of Visual Studio, no support of Windows Phone. */
 #define BUILD_FOR_WINDOWS_PHONE 0
 #else
