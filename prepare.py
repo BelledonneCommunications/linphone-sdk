@@ -47,7 +47,7 @@ class Target:
 			output_dir = output_dir.replace('\\', '/')
 		return output_dir
 
-	def cmake_command(self, build_type, latest, additional_args):
+	def cmake_command(self, build_type, latest, list_cmake_variables, additional_args):
 		cmd = ['cmake', '../..']
 		if self.generator is not None:
 			cmd += ['-G', self.generator]
@@ -59,6 +59,8 @@ class Target:
 			cmd += ['-DLINPHONE_BUILDER_CONFIG_FILE=' + self.config_file]
 		if latest:
 			cmd += ['-DLINPHONE_BUILDER_LATEST=YES']
+		if list_cmake_variables:
+			cmd += ['-L']
 		for arg in additional_args:
 			cmd += [arg]
 		cmd_str = ''
@@ -162,7 +164,7 @@ targets['python-raspberry'] = PythonRaspberryTarget()
 target_names = sorted(targets.keys())
 
 
-def run(target, debug, latest, additional_args):
+def run(target, debug, latest, list_cmake_variables, additional_args):
 	build_type = 'Release'
 	if debug:
 		build_type = 'Debug'
@@ -170,7 +172,7 @@ def run(target, debug, latest, additional_args):
 	work_dir = 'WORK/cmake-' + target.name
 	if not os.path.isdir(work_dir):
 		os.makedirs(work_dir)
-	proc = subprocess.Popen(target.cmake_command(build_type, latest, additional_args), cwd=work_dir, shell=False)
+	proc = subprocess.Popen(target.cmake_command(build_type, latest, list_cmake_variables, additional_args), cwd=work_dir, shell=False)
 	proc.communicate()
 	return proc.returncode
 
@@ -184,6 +186,7 @@ def main(argv = None):
 	argparser.add_argument('-l', '--latest', help="Build latest versions of all dependencies.", action='store_true')
 	argparser.add_argument('-o', '--output', help="Specify output directory.")
 	argparser.add_argument('-G', '--generator', metavar='generator', help="CMake generator to use.")
+	argparser.add_argument('-L', '--list-cmake-variables', help="List non-advanced CMake cache variables.", action='store_true', dest='list_cmake_variables')
 	argparser.add_argument('target', choices=target_names, help="The target to build.")
 	args, additional_args = argparser.parse_known_args()
 
@@ -200,7 +203,7 @@ def main(argv = None):
 		target.clean()
 		return 0
 
-	retcode = run(target, args.debug, args.latest, additional_args)
+	retcode = run(target, args.debug, args.latest, args.list_cmake_variables, additional_args)
 	if retcode == 0:
 		print("\n" + target.build_instructions(args.debug))
 	return retcode
