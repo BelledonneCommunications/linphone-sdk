@@ -21,6 +21,8 @@
 ############################################################################
 
 set(SOURCE_FILES
+	common/bc_tester_utils.c
+	common/bc_tester_utils.h
 	mediastreamer2_adaptive_tester.c
 	mediastreamer2_audio_stream_tester.c
 	mediastreamer2_basic_audio_tester.c
@@ -31,6 +33,8 @@ set(SOURCE_FILES
 	mediastreamer2_tester.c
 	mediastreamer2_tester_private.c
 )
+
+add_definitions(-DBC_CONFIG_FILE="mediastreamer-config.h")
 
 if(ENABLE_VIDEO)
 	list(APPEND SOURCE_FILES mediastreamer2_video_stream_tester.c)
