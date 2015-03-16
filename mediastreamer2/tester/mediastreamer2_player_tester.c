@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2/msmediaplayer.h"
+#include "mediastreamer2/mediastream.h"
 
 static int tester_init() {
 	ms_init();
@@ -134,9 +135,9 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 }
 
 static void play_root_file(const char *filepath, bool_t unsupported_format, bool_t seeking_test, bool_t play_twice){
-    char* file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), filepath);
+	char* file = ms_strdup_printf("%s/%s", bc_tester_read_dir_prefix, filepath);
 	play_file(file, unsupported_format, seeking_test, play_twice);
-    ms_free(file);
+	ms_free(file);
 }
 
 static void play_hello_8000_wav(void) {

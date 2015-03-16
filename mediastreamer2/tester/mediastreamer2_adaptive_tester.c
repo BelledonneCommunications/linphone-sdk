@@ -202,8 +202,8 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);
 	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);
 
-	char* file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_file_root(), HELLO_16K_1S_FILE);
-	char* recorded_file = ms_strdup_printf("%s/%s", mediastreamer2_tester_get_writable_dir(), RECORDED_16K_1S_FILE);
+	char* file = ms_strdup_printf("%s/%s", bc_tester_read_dir_prefix, HELLO_16K_1S_FILE);
+	char* recorded_file = ms_strdup_printf("%s/%s", bc_tester_writable_dir_prefix, RECORDED_16K_1S_FILE);
 
 	marielle->user_data = recorded_file;
 	params.enabled=TRUE;
@@ -310,7 +310,8 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 
 					if (rb&&ortp_loss_rate_estimator_process_report_block(ctx->estimator,&ms->sessions.rtp_session->rtp,rb)){
 						float diff = fabs(ortp_loss_rate_estimator_get_value(ctx->estimator) - ctx->loss_rate);
-						CU_ASSERT_IN_RANGE(diff, 0, 10);
+						CU_ASSERT_TRUE(diff >= 0);
+						CU_ASSERT_TRUE(diff <= 10);
 					}
 				} while (rtcp_next_packet(evd->packet));
 			}
@@ -404,7 +405,8 @@ void upload_bitrate(const char* codec, int payload, int target_bw, int expect_bw
 		media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 		iterate_adaptive_stream(marielle, margaux, 15000, NULL, 0);
 		upload_bw=media_stream_get_up_bw(&marielle->audio_stream->ms) / 1000;
-		CU_ASSERT_IN_RANGE(upload_bw, expect_bw-2, expect_bw+2);
+		CU_ASSERT_TRUE(upload_bw >= expect_bw-2);
+		CU_ASSERT_TRUE(upload_bw <= expect_bw+2);
 		stop_adaptive_stream(marielle,margaux);
 	}
 }
