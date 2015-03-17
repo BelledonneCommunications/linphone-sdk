@@ -59,7 +59,7 @@ extern void libmssilk_init();
 #endif
 #ifdef HAVE_WEBRTC
 extern void libmswebrtc_init();
-#endif  
+#endif
 #endif
 
 #ifdef ANDROID
@@ -115,12 +115,12 @@ typedef struct _MediastreamDatas {
 	bool_t two_windows;
 	bool_t el;
 	bool_t use_rc;
-	
+
 	bool_t enable_srtp;
 	bool_t interactive;
 	bool_t enable_avpf;
 	bool_t enable_rtcp;
-	
+
 	bool_t freeze_on_error;
 	bool_t pad[3];
 	float el_speed;
@@ -178,54 +178,56 @@ static void parse_rtcp(mblk_t *m);
 static void parse_events(RtpSession *session, OrtpEvQueue *q);
 static bool_t parse_window_ids(const char *ids, int* video_id, int* preview_id);
 
-const char *usage="mediastream --local <port> --remote <ip:port> \n"
-								"--payload <payload type number or payload name like 'audio/pmcu/8000'>\n"
-								"[ --fmtp <fmtpline> ]\n"
-								"[ --jitter <miliseconds> ]\n"
-								"[ --width <pixels> ]\n"
-								"[ --height <pixels> ]\n"
+const char *usage="mediastream --local <port>\n"
+								"--remote <ip:port> \n"
+								"[--help (display this help) ]\n"
+								"[--payload <payload type number or payload name like 'audio/pmcu/8000'> ]\n"
+								"[ --agc (enable automatic gain control) ]\n"
 								"[ --bitrate <bits per seconds> ]\n"
+								"[ --camera <camera id as listed at startup> ]\n"
+								"[ --capture-card <name> ]\n"
 								"[ --ec (enable echo canceller) ]\n"
-								"[ --ec-tail <echo canceller tail length in ms> ]\n"
 								"[ --ec-delay <echo canceller delay in ms> ]\n"
 								"[ --ec-framesize <echo canceller framesize in samples> ]\n"
-								"[ --agc (enable automatic gain control) ]\n"
-								"[ --ng (enable noise gate)] \n"
-								"[ --ng-threshold <(float) [0-1]> (noise gate threshold) ]\n"
-								"[ --ng-floorgain <(float) [0-1]> (gain applied to the signal when its energy is below the threshold.) ]\n"
-								"[ --capture-card <name> ]\n"
-								"[ --playback-card <name> ]\n"
-								"[ --infile	<input wav file> specify a wav file to be used for input, instead of soundcard ]\n"
-								"[ --outfile <output wav file> specify a wav file to write audio into, instead of soundcard ]\n"
-								"[ --camera <camera id as listed at startup> ]\n"
+								"[ --ec-tail <echo canceller tail length in ms> ]\n"
 								"[ --el (enable echo limiter) ]\n"
-								"[ --el-speed <(float) [0-1]> (gain changes are smoothed with a coefficent) ]\n"
-								"[ --el-thres <(float) [0-1]> (Threshold above which the system becomes active) ]\n"
 								"[ --el-force <(float) [0-1]> (The proportional coefficient controlling the mic attenuation) ]\n"
+								"[ --el-speed <(float) [0-1]> (gain changes are smoothed with a coefficent) ]\n"
 								"[ --el-sustain <(int)> (Time in milliseconds for which the attenuation is kept unchanged after) ]\n"
+								"[ --el-thres <(float) [0-1]> (Threshold above which the system becomes active) ]\n"
 								"[ --el-transmit-thres <(float) [0-1]> (TO BE DOCUMENTED) ]\n"
-								"[ --rc (enable adaptive rate control) ]\n"
-								"[ --zrtp <secrets file> (enable zrtp) ]\n"
-								"[ --verbose (most verbose messages) ]\n"
-								"[ --video-windows-id <video surface:preview surface>]\n"
-								"[ --video-display-filter <name> ]\n"
-								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)]\n"
-								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)]\n"
-								"[ --netsim-lossrate <0-100> (simulates a network lost rate)]\n"
-								"[ --netsim-consecutive-loss-probability <0-1> (to simulate bursts of lost packets)]\n"
-								"[ --netsim-latency <latency in ms> (simulates a network latency)]\n"
-								"[ --netsim-jitter-strength <0-100> (strength of the jitter simulation)]\n"
-								"[ --netsim-jitter-burst-density <0-10> (density of gap/burst events, 1.0=one gap/burst per second in average)]\n"
-								"[ --netsim-mode inbound|outboud (whether network simulation is applied to incoming (default) or outgoing stream)]\n"
-								"[ --zoom zoomfactor]\n"
+								"[ --fmtp <fmtpline> ]\n"
+								"[ --freeze-on-error (for video, stop upon decoding error until next valid frame) ]\n"
+								"[ --height <pixels> ]\n"
 								"[ --ice-local-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
 								"[ --ice-remote-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
+								"[ --infile <input wav file> specify a wav file to be used for input, instead of soundcard ]\n"
+								"[ --interactive (run in interactive mode) ]\n"
+								"[ --jitter <miliseconds> ]\n"
+								"[ --log <file> ]\n"
 								"[ --mtu <mtu> (specify MTU)]\n"
-								"[ --interactive (run in interactive mode)]\n"
-								"[ --no-avpf]\n"
-								"[ --freeze-on-error (for video, stop upon decoding error until next valid frame)]\n"
-								"[ --no-rtcp]\n"
-								"[ --log <file>]\n"
+								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit) ]\n"
+								"[ --netsim-consecutive-loss-probability <0-1> (to simulate bursts of lost packets) ]\n"
+								"[ --netsim-jitter-burst-density <0-10> (density of gap/burst events, 1.0=one gap/burst per second in average) ]\n"
+								"[ --netsim-jitter-strength <0-100> (strength of the jitter simulation) ]\n"
+								"[ --netsim-latency <latency in ms> (simulates a network latency) ]\n"
+								"[ --netsim-lossrate <0-100> (simulates a network lost rate) ]\n"
+								"[ --netsim-mode inbound|outboud (whether network simulation is applied to incoming (default) or outgoing stream) ]\n"
+								"[ --ng (enable noise gate)] \n"
+								"[ --ng-floorgain <(float) [0-1]> (gain applied to the signal when its energy is below the threshold.) ]\n"
+								"[ --ng-threshold <(float) [0-1]> (noise gate threshold) ]\n"
+								"[ --no-avpf ]\n"
+								"[ --no-rtcp ]\n"
+								"[ --outfile <output wav file> specify a wav file to write audio into, instead of soundcard ]\n"
+								"[ --playback-card <name> ]\n"
+								"[ --rc (enable adaptive rate control) ]\n"
+								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line) ]\n"
+								"[ --verbose (most verbose messages) ]\n"
+								"[ --video-display-filter <name> ]\n"
+								"[ --video-windows-id <video surface:preview surface >]\n"
+								"[ --width <pixels> ]\n"
+								"[ --zoom zoom factor ]\n"
+								"[ --zrtp <secrets file> (enable zrtp) ]\n"
 								;
 
 #if TARGET_OS_IPHONE
@@ -264,8 +266,10 @@ int main(int argc, char * argv[])
 
 	args = init_default_args();
 
-	if (!parse_args(argc, argv, args))
+	if (!parse_args(argc, argv, args)){
+		printf("%s",usage);
 		return 0;
+	}
 
 	setup_media_streams(args);
 
@@ -348,7 +352,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 	int i;
 
 	if (argc<4) {
-		printf("%s",usage);
+		ms_error("Expected at least 3 arguments.\n");
 		return FALSE;
 	}
 
@@ -357,44 +361,51 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 	out->vs.height=MS_VIDEO_SIZE_CIF_H;
 
 	for (i=1;i<argc;i++){
-		if (strcmp(argv[i],"--local")==0){
+		if (strcmp(argv[i],"--help")==0 || strcmp(argv[i],"-h")==0) {
+			return FALSE;
+		}else if (strcmp(argv[i],"--local")==0){
+			char *is_invalid;
 			i++;
-			out->localport=atoi(argv[i]);
+			out->localport = strtol(argv[i],&is_invalid,10);
+			if (*is_invalid!='\0'){
+				ms_error("Failed to parse local port '%s'\n",argv[i]);
+				return 0;
+			}
 		}else if (strcmp(argv[i],"--remote")==0){
 			i++;
 			if (!parse_addr(argv[i],out->ip,sizeof(out->ip),&out->remoteport)) {
-				printf("%s",usage);
+				ms_error("Failed to parse remote address '%s'\n",argv[i]);
 				return FALSE;
 			}
-			printf("Remote addr: ip=%s port=%i\n",out->ip,out->remoteport);
+			ms_message("Remote addr: ip=%s port=%i\n",out->ip,out->remoteport);
 		}else if (strcmp(argv[i],"--ice-local-candidate")==0) {
 			MediastreamIceCandidate *candidate;
 			i++;
 			if (out->ice_local_candidates_nb>=MEDIASTREAM_MAX_ICE_CANDIDATES) {
-				printf("Ignore ICE local candidate \"%s\" (maximum %d candidates allowed)\n",argv[i],MEDIASTREAM_MAX_ICE_CANDIDATES);
+				ms_warning("Ignore ICE local candidate \"%s\" (maximum %d candidates allowed)\n",argv[i],MEDIASTREAM_MAX_ICE_CANDIDATES);
 				continue;
 			}
 			candidate=&out->ice_local_candidates[out->ice_local_candidates_nb];
 			if (!parse_ice_addr(argv[i],candidate->type,sizeof(candidate->type),candidate->ip,sizeof(candidate->ip),&candidate->port)) {
-				printf("%s",usage);
+				ms_error("Failed to parse ICE local candidates '%s'\n", argv[i]);
 				return FALSE;
 			}
 			out->ice_local_candidates_nb++;
-			printf("ICE local candidate: type=%s ip=%s port=%i\n",candidate->type,candidate->ip,candidate->port);
+			ms_message("ICE local candidate: type=%s ip=%s port=%i\n",candidate->type,candidate->ip,candidate->port);
 		}else if (strcmp(argv[i],"--ice-remote-candidate")==0) {
 			MediastreamIceCandidate *candidate;
 			i++;
 			if (out->ice_remote_candidates_nb>=MEDIASTREAM_MAX_ICE_CANDIDATES) {
-				printf("Ignore ICE remote candidate \"%s\" (maximum %d candidates allowed)\n",argv[i],MEDIASTREAM_MAX_ICE_CANDIDATES);
+				ms_warning("Ignore ICE remote candidate \"%s\" (maximum %d candidates allowed)\n",argv[i],MEDIASTREAM_MAX_ICE_CANDIDATES);
 				continue;
 			}
 			candidate=&out->ice_remote_candidates[out->ice_remote_candidates_nb];
 			if (!parse_ice_addr(argv[i],candidate->type,sizeof(candidate->type),candidate->ip,sizeof(candidate->ip),&candidate->port)) {
-				printf("%s",usage);
+				ms_error("Failed to parse ICE remote candidates '%s'\n", argv[i]);
 				return FALSE;
 			}
 			out->ice_remote_candidates_nb++;
-			printf("ICE remote candidate: type=%s ip=%s port=%i\n",candidate->type,candidate->ip,candidate->port);
+			ms_message("ICE remote candidate: type=%s ip=%s port=%i\n",candidate->type,candidate->ip,candidate->port);
 		}else if (strcmp(argv[i],"--payload")==0){
 			i++;
 			if (isdigit(argv[i][0])){
@@ -484,7 +495,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i], "--video-windows-id")==0) {
 			i++;
 			if (!parse_window_ids(argv[i],&out->video_window_id, &out->preview_window_id)) {
-				printf("%s",usage);
+				ms_error("Failed to parse window ids '%s'\n",argv[i]);
 				return FALSE;
 			}
 		} else if (strcmp(argv[i], "--device-rotation")==0) {
@@ -532,7 +543,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 					ms_error("The consecutive loss probability must be between 0 and 1.");
 					return FALSE;
 				}
-				
+
 				out->netsim.enabled=TRUE;
 			}else{
 				ms_error("Missing argument for --netsim-consecutive-loss-probability");
@@ -608,7 +619,6 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i], "--no-rtcp") == 0) {
 			out->enable_rtcp = FALSE;
 		} else if (strcmp(argv[i],"--help")==0) {
-			printf("%s",usage);
 			return FALSE;
 		} else if (strcmp(argv[i],"--video-display-filter")==0) {
 			i++;
@@ -619,8 +629,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i], "--freeze-on-error") == 0) {
 			out->freeze_on_error=TRUE;
 		} else {
-			printf("%s",usage);
-			printf("Unknown option '%s'\n", argv[i]);
+			ms_error("Unknown option '%s'\n", argv[i]);
 			return FALSE;
 		}
 	}
@@ -646,6 +655,21 @@ static void video_stream_event_cb(void *user_pointer, const MSFilter *f, const u
 }
 #endif
 
+static MSSndCard *get_sound_card(MSSndCardManager *manager, const char* card_name) {
+	MSSndCard *play = ms_snd_card_manager_get_card(manager,card_name);
+	if (play == NULL) {
+		const MSList *list = ms_snd_card_manager_get_list(manager);
+		char * cards = ms_strdup("");
+		while (list) {
+			MSSndCard *card = (MSSndCard*)list->data;
+			cards = ms_strcat_printf(cards, "- %s\n", ms_snd_card_get_string_id(card));
+			list = list->next;
+		}
+		ms_fatal("Specified card '%s' but could not find it. Available cards are:\n%s", card_name, cards);
+		ms_free(cards);
+	}
+	return play;
+}
 
 void setup_media_streams(MediastreamDatas* args) {
 	/*create the rtp session */
@@ -655,7 +679,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	ortp_init();
 	if (args->logfile)
 		ortp_set_log_file(args->logfile);
-	
+
 	if (args->is_verbose) {
 		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	} else {
@@ -676,7 +700,7 @@ void setup_media_streams(MediastreamDatas* args) {
 #endif
 #if defined (HAVE_WEBRTC)
 	libmswebrtc_init();
-#endif	
+#endif
 
 #endif /* IPHONE | ANDROID */
 
@@ -690,7 +714,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	cam=ms_web_cam_new(&mire_desc);
 	if (cam) ms_web_cam_manager_add_cam(ms_web_cam_manager_get(), cam);
 	cam=NULL;
-	
+
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
 	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
 	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);
@@ -716,7 +740,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	signal(SIGINT,stop_handler);
 	args->pt=rtp_profile_get_payload(args->profile,args->payload);
 	if (args->pt==NULL){
-		printf("Error: no payload defined with number %i.\n",args->payload);
+		ms_error("No payload defined with number %i.\n",args->payload);
 		exit(-1);
 	}
 	if (args->enable_avpf == TRUE) {
@@ -732,7 +756,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	if (args->bitrate>0) args->pt->normal_bitrate=args->bitrate;
 
 	if (args->pt->normal_bitrate==0){
-		fprintf(stderr,"Error: no default bitrate specified for codec %s/%i. "
+		ms_error("Default bitrate specified for codec %s/%i. "
 			"Please specify a network bitrate with --bitrate option.\n",args->pt->mime_type,args->pt->clock_rate);
 		exit(-1);
 	}
@@ -762,19 +786,19 @@ void setup_media_streams(MediastreamDatas* args) {
 	if (args->pt->type!=PAYLOAD_VIDEO){
 		MSSndCardManager *manager=ms_snd_card_manager_get();
 		MSSndCard *capt= args->capture_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
-				ms_snd_card_manager_get_card(manager,args->capture_card);
-		MSSndCard *play= args->playback_card==NULL ? ms_snd_card_manager_get_default_playback_card(manager) :
-				ms_snd_card_manager_get_card(manager,args->playback_card);
+				get_sound_card(manager,args->capture_card);
+		MSSndCard *play= args->playback_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
+				get_sound_card(manager,args->playback_card);
 		args->audio=audio_stream_new(args->localport,args->localport+1,ms_is_ipv6(args->ip));
 		audio_stream_enable_automatic_gain_control(args->audio,args->agc);
 		audio_stream_enable_noise_gate(args->audio,args->use_ng);
 		audio_stream_set_echo_canceller_params(args->audio,args->ec_len_ms,args->ec_delay_ms,args->ec_framesize);
 		audio_stream_enable_echo_limiter(args->audio,args->el);
 		audio_stream_enable_adaptive_bitrate_control(args->audio,args->use_rc);
-		printf("Starting audio stream.\n");
+		ms_message("Starting audio stream.\n");
 
 		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->ip,args->enable_rtcp?args->remoteport+1:-1, args->payload, args->jitter,args->infile,args->outfile,
-		                        args->outfile==NULL ? play : NULL ,args->infile==NULL ? capt : NULL,args->infile!=NULL ? FALSE: args->ec);
+								args->outfile==NULL ? play : NULL ,args->infile==NULL ? capt : NULL,args->infile!=NULL ? FALSE: args->ec);
 
 		if (args->ice_local_candidates_nb || args->ice_remote_candidates_nb) {
 			args->audio->ms.ice_check_list = ice_check_list_new();
@@ -828,13 +852,13 @@ void setup_media_streams(MediastreamDatas* args) {
 				}
 			}
 
-            #ifndef TARGET_OS_IPHONE
+			#ifndef TARGET_OS_IPHONE
 			if (args->zrtp_secrets != NULL) {
 				MSZrtpParams params;
 				params.zid_file=args->zrtp_secrets;
 				audio_stream_enable_zrtp(args->audio,&params);
 			}
-            #endif
+			#endif
 
 			args->session=args->audio->ms.sessions.rtp_session;
 		}
@@ -861,7 +885,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		args->video=video_stream_new(args->localport, args->localport+1, ms_is_ipv6(args->ip));
 		if (args->video_display_filter)
 			video_stream_set_display_filter_name(args->video, args->video_display_filter);
-		
+
 #ifdef ANDROID
 		if (args->device_rotation >= 0)
 			video_stream_set_device_rotation(args->video, args->device_rotation);
@@ -900,7 +924,7 @@ void setup_media_streams(MediastreamDatas* args) {
 					args->srtp_remote_master_key));
 		}
 #else
-		printf("Error: video support not compiled.\n");
+		ms_error("Error: video support not compiled.\n");
 #endif
 	}
 	ice_session_set_base_for_srflx_candidates(args->ice_session);
@@ -932,7 +956,7 @@ static void mediastream_tool_iterate(MediastreamDatas* args) {
 			commands[127]='\0';
 			ms_sleep(1);  /* ensure following text be printed after ortp messages */
 			if (args->eq)
-			printf("\nPlease enter equalizer requests, such as 'eq active 1', 'eq active 0', 'eq 1200 0.1 200'\n");
+			ms_message("\nPlease enter equalizer requests, such as 'eq active 1', 'eq active 0', 'eq 1200 0.1 200'\n");
 
 			if (fgets(commands,sizeof(commands)-1,stdin)!=NULL){
 				int active,freq,freq_width;
@@ -940,13 +964,13 @@ static void mediastream_tool_iterate(MediastreamDatas* args) {
 				float gain;
 				if (sscanf(commands,"eq active %i",&active)==1){
 					audio_stream_enable_equalizer(args->audio,active);
-					printf("OK\n");
+					ms_message("OK\n");
 				}else if (sscanf(commands,"eq %i %f %i",&freq,&gain,&freq_width)==3){
 					audio_stream_equalizer_set_gain(args->audio,freq,gain,freq_width);
-					printf("OK\n");
+					ms_message("OK\n");
 				}else if (sscanf(commands,"eq %i %f",&freq,&gain)==2){
 					audio_stream_equalizer_set_gain(args->audio,freq,gain,0);
-					printf("OK\n");
+					ms_message("OK\n");
 				}else if (strstr(commands,"dump")){
 					int n=0,i;
 					float *t;
@@ -955,10 +979,10 @@ static void mediastream_tool_iterate(MediastreamDatas* args) {
 					ms_filter_call_method(args->audio->equalizer,MS_EQUALIZER_DUMP_STATE,t);
 					for(i=0;i<n;++i){
 						if (fabs(t[i]-1)>0.01){
-						printf("%i:%f:0 ",(i*args->pt->clock_rate)/(2*n),t[i]);
+						ms_message("%i:%f:0 ",(i*args->pt->clock_rate)/(2*n),t[i]);
 						}
 					}
-					printf("\nOK\n");
+					ms_message("\nOK\n");
 				}else if (sscanf(commands,"lossrate %i",&intarg)==1){
 					args->netsim.enabled=TRUE;
 					args->netsim.loss_rate=intarg;
@@ -969,7 +993,7 @@ static void mediastream_tool_iterate(MediastreamDatas* args) {
 					rtp_session_enable_network_simulation(args->session,&args->netsim);
 				}else if (strstr(commands,"quit")){
 					cond=0;
-				}else printf("Cannot understand this.\n");
+				}else ms_warning("Cannot understand this.\n");
 			}
 		}else if (err==-1 && errno!=EINTR){
 			ms_fatal("mediastream's poll() returned %s",strerror(errno));
@@ -998,7 +1022,7 @@ void mediastream_run_loop(MediastreamDatas* args) {
 	while(cond)
 	{
 		int n;
-		for(n=0;n<100 && cond;++n){
+		for(n=0;n<500 && cond;++n){
 			mediastream_tool_iterate(args);
 #if defined(VIDEO_ENABLED)
 			if (args->video) video_stream_iterate(args->video);
@@ -1009,11 +1033,11 @@ void mediastream_run_loop(MediastreamDatas* args) {
 		if (args->session){
 			float audio_load = 0;
 			float video_load = 0;
-			
+
 			ms_message("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
 				rtp_session_get_recv_bandwidth(args->session)*1e-3,
 				rtp_session_get_send_bandwidth(args->session)*1e-3);
-			
+
 			if (args->audio) {
 				audio_load = ms_ticker_get_average_load(args->audio->ms.sessions.ticker);
 			}
@@ -1049,7 +1073,7 @@ void clear_mediastreams(MediastreamDatas* args) {
 
 	if (args->logfile)
 		fclose(args->logfile);
-	
+
 	ms_exit();
 }
 
@@ -1179,14 +1203,24 @@ static bool_t parse_addr(const char *addr, char *ip, int len, int *port)
 	const char *p;
 
 	*port=0;
-	semicolon=strchr(addr,':');
+
 	for (p=addr+strlen(addr)-1;p>addr;p--){
 		if (*p==':') {
 			semicolon=p;
 			break;
 		}
 	}
-	if (semicolon==NULL) return FALSE;
+	/*if no semicolon is present, we can assume that user provided only port*/
+	if (semicolon==NULL) {
+		*port = atoi(addr);
+		if (*port != ERANGE) {
+			const char *localhost = "127.0.0.1";
+			strncpy(ip,localhost, MIN(len, strlen(localhost)));
+			return TRUE;
+		} else {
+			return FALSE;
+		}
+	}
 	iplen=semicolon-addr;
 	slen=MIN(iplen,len-1);
 	strncpy(ip,addr,slen);
