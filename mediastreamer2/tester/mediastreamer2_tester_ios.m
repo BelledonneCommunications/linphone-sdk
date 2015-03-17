@@ -39,8 +39,8 @@ static void* _apple_main(void* data) {
     NSLog(@"Bundle path: %@", bundlePath);
     NSLog(@"Document path: %@", documentPath);
 
-    mediastreamer2_tester_set_file_root( [bundlePath UTF8String] );
-    bc_tester_read_dir_prefix = [documentPath UTF8String] ;
+    bc_tester_read_dir_prefix = [bundlePath UTF8String] ;
+    bc_tester_writable_dir_prefix = [documentPath UTF8String] ;
     apple_main(g_argc,g_argv);
 
     [bundlePath release];
