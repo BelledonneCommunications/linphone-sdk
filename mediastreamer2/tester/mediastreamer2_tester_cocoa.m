@@ -53,7 +53,9 @@ extern int apple_main(int argc, char **argv);
         NSLog(@"Disabling App nap for tester");
         self->activity = [[[NSProcessInfo processInfo] beginActivityWithOptions:0x00FFFFFF reason:@"No app nap for ms2 tester"] retain];
     }
-    [self performSelectorInBackground:@selector(runLoop) withObject:nil];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self runLoop];
+    });
 }
 
 -(void)applicationDidFinishLaunching: (NSNotification*) aNotification
@@ -91,7 +93,7 @@ int main(int argc, char **argv)
     MyApplicationDelegate *aMyApplicationDelegate = [[MyApplicationDelegate alloc] init];
     aMyApplicationDelegate->argc = argc;
     aMyApplicationDelegate->argv = argv;
-    [NSApp setDelegate: aMyApplicationDelegate]; 
+    [NSApp setDelegate: aMyApplicationDelegate];
     [aPool release];
     [NSApp run];
     return 0;
