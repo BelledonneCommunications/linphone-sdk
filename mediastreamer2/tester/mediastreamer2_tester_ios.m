@@ -40,7 +40,7 @@ static void* _apple_main(void* data) {
     NSLog(@"Document path: %@", documentPath);
 
     mediastreamer2_tester_set_file_root( [bundlePath UTF8String] );
-    mediastreamer2_tester_set_writable_dir( [documentPath UTF8String] );
+    bc_tester_read_dir_prefix = [documentPath UTF8String] ;
     apple_main(g_argc,g_argv);
 
     [bundlePath release];
