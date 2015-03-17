@@ -22,7 +22,7 @@
 
 set(EP_msilbc_GIT_REPOSITORY "git://git.linphone.org/msilbc.git")
 set(EP_msilbc_GIT_TAG_LATEST "master")
-set(EP_msilbc_GIT_TAG "0922507165f92556cb6f127683da88bbcef23c83")
+set(EP_msilbc_GIT_TAG "0e01c5db2dc297b288744966b0d868174a29e391")
 
 set(EP_msilbc_CMAKE_OPTIONS )
 set(EP_msilbc_DEPENDENCIES EP_ms2 EP_libilbcrfc3951)

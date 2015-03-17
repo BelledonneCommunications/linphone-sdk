@@ -22,7 +22,7 @@
 
 set(EP_mswasapi_GIT_REPOSITORY "git://git.linphone.org/mswasapi.git")
 set(EP_mswasapi_GIT_TAG_LATEST "master")
-set(EP_mswasapi_GIT_TAG "21a6cf45f5d0acaf3f6ba021af5710ccaaec37a2")
+set(EP_mswasapi_GIT_TAG "cac93fb0424eb7ecbc53891c8e1420872c4b1907")
 
 set(EP_mswasapi_CMAKE_OPTIONS )
 set(EP_mswasapi_EXTRA_LDFLAGS "/SAFESEH:NO")
