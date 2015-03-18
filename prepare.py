@@ -89,13 +89,19 @@ class Target:
 			raise
 
 	def build_instructions(self, debug = False):
-		if self.generator is None:
-			return "Run the following command to build:\n\tmake -C WORK/cmake-{target}".format(target=self.name)
-		elif self.generator.startswith('Visual Studio'):
+		if self.generator.startswith('Visual Studio'):
 			config = "Release"
 			if debug:
 				config = "Debug"
 			return "Open the \"WORK\\cmake-{target}\\Project.sln\" Visual Studio solution and build with the \"{config}\" configuration".format(target=self.name, config=config)
+		else:
+			if self.generator in [None, "Unix Makefiles"]:
+				builder = "make"
+			elif self.generator == "Ninja":
+				builder = "ninja"
+			else:
+				return "Unknown generator. Files have been generated in WORK/cmake-{target}".format(target=self.name)
+			return "Run the following command to build:\n\t{builder} -C WORK/cmake-{target}".format(builder=builder, target=self.name)
 
 class BB10Target(Target):
 	def __init__(self, arch):
