@@ -68,7 +68,7 @@ void video_stream_free(VideoStream *stream) {
 		ms_filter_destroy(stream->itcsink);
 	if (stream->local_jpegwriter)
 		ms_filter_destroy(stream->local_jpegwriter);
-	
+
 	if (stream->display_name!=NULL)
 		ms_free(stream->display_name);
 
@@ -174,13 +174,13 @@ static void video_stream_track_fps_changes(VideoStream *stream){
 		MSTickerLateEvent late_ev={0};
 		/*we must check that no late tick occured during the last 2 seconds, otherwise the fps measurement is severely biased.*/
 		ms_ticker_get_last_late_tick(stream->ms.sessions.ticker,&late_ev);
-		
+
 		if (curtime > late_ev.time + 2000){
 			if (stream->source && stream->ms.encoder &&
 				ms_filter_has_method(stream->source,MS_FILTER_GET_FPS) &&
 				ms_filter_has_method(stream->ms.encoder,MS_FILTER_SET_FPS)){
 				float fps=0;
-				
+
 				if (ms_filter_call_method(stream->source,MS_FILTER_GET_FPS,&fps)==0 && fps!=0){
 					if (fabsf(fps-stream->configured_fps)/stream->configured_fps>0.2){
 						ms_warning("Measured and target fps significantly different (%f<->%f), updating encoder.",
@@ -290,7 +290,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	}
 
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, &rtcp_xr_media_cbs);
-	
+
 	stream->staticimage_webcam_fps_optimization = TRUE;
 
 	return stream;
@@ -425,7 +425,7 @@ static void configure_video_source(VideoStream *stream){
 	MSVideoSize preview_vsize;
 	MSPinFormat pf={0};
 	bool_t is_player=ms_filter_get_id(stream->source)==MS_ITC_SOURCE_ID;
-	
+
 
 	/* transmit orientation to source filter */
 	if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
@@ -438,7 +438,7 @@ static void configure_video_source(VideoStream *stream){
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
-	
+
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	if (stream->preview_vsize.width!=0){
@@ -446,7 +446,7 @@ static void configure_video_source(VideoStream *stream){
 	}else{
 		preview_vsize=vsize;
 	}
-	
+
 	if (is_player){
 		ms_filter_call_method(stream->source,MS_FILTER_GET_OUTPUT_FMT,&pf);
 		if (pf.fmt==NULL || pf.fmt->vsize.width==0){
@@ -464,8 +464,8 @@ static void configure_video_source(VideoStream *stream){
 
 	if (cam_vsize.width*cam_vsize.height<=vsize.width*vsize.height){
 		vsize=cam_vsize;
-		ms_message("Output video size adjusted to match camera resolution (%ix%i)\n",vsize.width,vsize.height);
-	} else {	
+		ms_message("Output video size adjusted to match camera resolution (%ix%i)",vsize.width,vsize.height);
+	} else {
 #if TARGET_IPHONE_SIMULATOR || defined(__arm__)
 		ms_error("Camera is proposing a size bigger than encoder's suggested size (%ix%i > %ix%i) "
 				   "Using the camera size as fallback because cropping or resizing is not implemented for arm.",
@@ -478,13 +478,13 @@ static void configure_video_source(VideoStream *stream){
 			vsize=cam_vsize;
 		}else{
 			vsize=resized;
-			ms_warning("Camera video size greater than encoder one. A scaling filter will be used!\n");
+			ms_warning("Camera video size greater than encoder one. A scaling filter will be used!");
 		}
 #endif
 	}
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_FPS,&fps);
-	
+
 	if (is_player){
 		fps=pf.fmt->fps;
 		if (fps==0) fps=15;
@@ -701,7 +701,7 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 	rtp_session_set_jitter_buffer_params(stream->ms.sessions.rtp_session,&jbp);
 	rtp_session_set_rtp_socket_recv_buffer_size(stream->ms.sessions.rtp_session,socket_buf_size);
 	rtp_session_set_rtp_socket_send_buffer_size(stream->ms.sessions.rtp_session,socket_buf_size);
-	
+
 	/* Plumb the outgoing stream */
 	if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.sessions.rtp_session);
 	if (stream->dir==VideoStreamRecvOnly){
