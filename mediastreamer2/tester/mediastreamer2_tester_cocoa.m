@@ -53,7 +53,7 @@ extern int apple_main(int argc, char **argv);
         NSLog(@"Disabling App nap for tester");
         self->activity = [[[NSProcessInfo processInfo] beginActivityWithOptions:0x00FFFFFF reason:@"No app nap for ms2 tester"] retain];
     }
-    dispatch_async(dispatch_get_main_queue(), ^{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^{
         [self runLoop];
     });
 }
