@@ -89,7 +89,7 @@ class Target:
 			raise
 
 	def build_instructions(self, debug = False):
-		if self.generator.startswith('Visual Studio'):
+		if self.generator is not None and self.generator.startswith('Visual Studio'):
 			config = "Release"
 			if debug:
 				config = "Debug"
