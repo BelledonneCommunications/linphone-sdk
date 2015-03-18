@@ -44,7 +44,7 @@ if(APPLE)
 endif()
 
 add_executable(mediastreamer2_tester ${SOURCE_FILES})
-target_include_directories(mediastreamer2_tester PUBLIC ${CUNIT_INCLUDE_DIRS})
+target_include_directories(mediastreamer2_tester PUBLIC ${CUNIT_INCLUDE_DIRS} PRIVATE common)
 target_link_libraries(mediastreamer2_tester mediastreamer_voip mediastreamer_base ${CUNIT_LIBRARIES})
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
