@@ -88,7 +88,7 @@ static void enc_process(MSFilter *f){
 		while(ms_bufferizer_read(s->input,(uint8_t*)pcmbuf,s->nsamples*2)!=0){
 			mblk_t *om=allocb(encoded_bytes,0);
 			om->b_wptr+=g726_encode(s->impl,om->b_wptr,pcmbuf,s->nsamples);
-			ms_bufferizer_fill_current_metas(d->bufferizer, om);
+			ms_bufferizer_fill_current_metas(s->input, om);
 			mblk_set_timestamp_info(om,s->ts);
 			s->ts+=s->nsamples;
 			ms_queue_put(f->outputs[0],om);
