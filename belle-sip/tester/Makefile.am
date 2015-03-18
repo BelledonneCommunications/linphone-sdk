@@ -39,7 +39,7 @@ belle_http_get_SOURCES=get.c
 
 belle_sip_resolve_SOURCES=resolve.c
 
-AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
+AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src -Icommon
 
 LDADD=$(top_builddir)/src/libbellesip.la
 
