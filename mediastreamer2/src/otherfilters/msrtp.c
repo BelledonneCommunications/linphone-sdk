@@ -358,7 +358,7 @@ static void check_stun_sending(MSFilter *f) {
 	}
 }
 
-static void process_cn(MSFilter *f, SenderData *d, uint32_t timestamp){
+static void process_cn(MSFilter *f, SenderData *d, uint32_t timestamp, mblk_t *im ){
 	if (d->cng_data.datasize>0){
 		rtp_header_t *rtp;
 		/* get CN payload type number */
@@ -366,6 +366,7 @@ static void process_cn(MSFilter *f, SenderData *d, uint32_t timestamp){
 
 		/* create the packet, payload type number is the one used for current codec */
 		mblk_t *m=rtp_session_create_packet(d->session, 12, d->cng_data.data, d->cng_data.datasize);
+		mblk_meta_copy(im, m);
 		/* replace payload type in RTP header */
 		rtp=(rtp_header_t*)m->b_rptr;
 		rtp->paytype = cn_pt;
@@ -415,11 +416,11 @@ static void _sender_process(MSFilter * f)
 				header = rtp_session_create_packet(s, 12, NULL, 0);
 				rtp_set_markbit(header, mblk_get_marker_info(im));
 				header->b_cont = im;
+				mblk_meta_copy(im, header);
 				rtp_session_sendm_with_ts(s, header, timestamp);
 			} else if (d->mute==TRUE && d->skip == FALSE) {
+				process_cn(f, d, timestamp, im);
 				freemsg(im);
-				process_cn(f, d, timestamp);
-
 				//Send STUN packet as RTP keep alive
 				check_stun_sending(f);
 			}else{

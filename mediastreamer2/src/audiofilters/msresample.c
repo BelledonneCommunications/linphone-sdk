@@ -179,6 +179,7 @@ static void resample_process_ms2(MSFilter *obj){
 				inlen,inlen_orig,outlen);
 		}
 		om->b_wptr+=outlen*2*dt->in_nchannels;
+		mblk_meta_copy(im, om);
 		mblk_set_timestamp_info(om,dt->ts);
 		dt->ts+=outlen;
 		if (resample_channel_adapt(dt->in_nchannels, dt->out_nchannels, om, &om_chan) == 0) {
