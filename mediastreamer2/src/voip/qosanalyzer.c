@@ -156,7 +156,7 @@ static bool_t simple_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp)
 	rtpstats_t *cur;
 	const report_block_t *rb=NULL;
 	bool_t got_stats=FALSE;
-	
+
 	if (rtcp_is_SR(rtcp)){
 		rb=rtcp_SR_get_report_block(rtcp,0);
 	}else if (rtcp_is_RR(rtcp)){
@@ -499,6 +499,7 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 		while (current!=NULL && ((rtcpstatspoint_t*)current->data)->loss_percent<3+constant_network_loss){
 			ms_message("MSStatefulQosAnalyzer[%p]:\t%d is stable", obj, ms_list_position(obj->rtcpstatspoint, current));
 
+			/*find the last stable measure point, starting from highest bandwidth*/
 			for (it=last;it!=current;it=it->prev){
 				if (((rtcpstatspoint_t *)it->data)->loss_percent <= 3 + ((rtcpstatspoint_t*)current->data)->loss_percent){
 					ms_message("MSStatefulQosAnalyzer[%p]:\t%d is less than %d",
@@ -507,20 +508,23 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 					break;
 				}
 			}
-
+			/*current is the first unstable point, so taking the next one*/
 			current = current->next;
 		}
 
+		/*all points are below the constant loss rate threshold:
+		there might be bad network conditions but no congestion*/
 		if (current == NULL){
-			/*constant loss rate - bad network conditions but no congestion*/
 			mean_bw = 2 * ((rtcpstatspoint_t*)last->data)->bandwidth;
+		/*only first packet is stable*/
 		}else if (current->prev == obj->rtcpstatspoint){
-			/*only first packet is stable - might still be above real bandwidth*/
 			rtcpstatspoint_t *p = (rtcpstatspoint_t *)current->prev->data;
 			mean_bw = p->bandwidth * (100 - p->loss_percent) / 100.f;
+		/*otherwise, there is a congestion detected starting at "current"*/
 		}else{
-			/*there is some congestion*/
-			mean_bw = .5*(((rtcpstatspoint_t*)current->prev->data)->bandwidth+((rtcpstatspoint_t*)current->data)->bandwidth);
+			rtcpstatspoint_t *laststable = (rtcpstatspoint_t*)current->prev->data;
+			rtcpstatspoint_t *firstunstable = (rtcpstatspoint_t*)current->data;
+			mean_bw = .5*(laststable->bandwidth+firstunstable->bandwidth);
 		}
 
 		ms_message("MSStatefulQosAnalyzer[%p]: [0->%d] last stable is %d(%f;%f)"
