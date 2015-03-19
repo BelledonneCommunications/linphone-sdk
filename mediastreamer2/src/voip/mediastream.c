@@ -159,7 +159,10 @@ void media_stream_free(MediaStream *stream) {
 	if (stream->decoder != NULL) ms_filter_destroy(stream->decoder);
 	if (stream->voidsink != NULL) ms_filter_destroy(stream->voidsink);
 	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
+}
 
+bool_t media_stream_started(MediaStream *stream) {
+	return stream->start_time != 0;
 }
 
 void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool) {

@@ -146,6 +146,8 @@ struct _MediaStream {
  * @{
 **/
 
+MS2_PUBLIC bool_t media_stream_started(MediaStream *stream);
+
 MS2_PUBLIC int media_stream_join_multicast_group(MediaStream *stream, const char *ip);
 
 MS2_PUBLIC bool_t media_stream_dtls_supported(void);
@@ -725,6 +727,8 @@ MS2_PUBLIC void video_stream_send_fir(VideoStream *stream);
 MS2_PUBLIC void video_stream_send_vfu(VideoStream *stream);
 
 MS2_PUBLIC void video_stream_stop(VideoStream * stream);
+
+MS2_PUBLIC bool_t video_stream_started(VideoStream *stream);
 
 /**
  * Try to set the size of the video that is sent. Since this relies also on the

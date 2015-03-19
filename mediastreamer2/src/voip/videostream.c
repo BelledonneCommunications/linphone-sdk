@@ -638,6 +638,10 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	return video_stream_start_with_source(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, ms_web_cam_create_reader(cam));
 }
 
+bool_t video_stream_started(VideoStream *stream) {
+	return media_stream_started(&stream->ms);
+}
+
 static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 	MSVideoConfiguration *vconf_list = NULL;
 	ms_message("Limiting bitrate of video encoder to %i bits/s for stream [%p]",pt->normal_bitrate,stream);

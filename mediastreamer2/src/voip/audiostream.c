@@ -225,7 +225,7 @@ static void stop_preload_graph(AudioStream *stream){
 }
 
 bool_t audio_stream_started(AudioStream *stream){
-	return stream->ms.start_time!=0;
+	return media_stream_started(&stream->ms);
 }
 
 /* This function is used either on IOS to workaround the long time to initialize the Audio Unit or for ICE candidates gathering. */
