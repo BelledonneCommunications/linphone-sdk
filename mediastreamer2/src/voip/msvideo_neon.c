@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msvideo.h"
 
-#if defined(__arm__) || defined(__arm64__)
+#if defined(__arm__) || defined(__arm64__) || defined(_M_ARM)
 #define MS_HAS_ARM 1
 #endif
 
@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <arm_neon.h>
 #endif
 
-#ifdef __arm__
+#if defined(__arm__)
 
 #define MATRIX_LOAD_8X8 \
 	/*load 8x8 pixel \
@@ -190,7 +190,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 			"vld2.8 {d7,d8},[r4] \n\t"
 
 
-static inline void rotate_block_8x8_clockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+static MS2_INLINE void rotate_block_8x8_clockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
 #ifdef __ARM_NEON__
 	__asm  (MATRIX_LOAD_8X8
 			MATRIX_TRANSPOSE_8X8
@@ -203,7 +203,7 @@ static inline void rotate_block_8x8_clockwise(unsigned char* src, int src_width,
 #endif
 }
 /*rotate and scale down blocks of 16x16 into 8x8*/
-static inline void rotate_and_scale_down_block_16x16_clockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+static MS2_INLINE void rotate_and_scale_down_block_16x16_clockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
 	
 #ifdef __ARM_NEON__
 	__asm  (
@@ -219,7 +219,7 @@ static inline void rotate_and_scale_down_block_16x16_clockwise(unsigned char* sr
 }
 
 /*rotate and scale down blocks of 16x16 into 8x8*/
-static inline void rotate_and_scale_down_block_8x8_anticlockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+static MS2_INLINE void rotate_and_scale_down_block_8x8_anticlockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
 	
 #ifdef __ARM_NEON__
 	__asm  (
@@ -233,7 +233,7 @@ static inline void rotate_and_scale_down_block_8x8_anticlockwise(unsigned char* 
 #endif
 }
 
-static inline void rotate_block_8x8_anticlockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+static MS2_INLINE void rotate_block_8x8_anticlockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
 #ifdef __ARM_NEON__
 	__asm  (MATRIX_LOAD_8X8
 			MATRIX_TRANSPOSE_8X8

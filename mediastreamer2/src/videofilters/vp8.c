@@ -39,7 +39,7 @@
 	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, cpus, NULL }
 
 static const MSVideoConfiguration vp8_conf_list[] = {
-#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
+#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	MS_VP8_CONF(2048000, 2560000,       UXGA, 12, 2),
 	MS_VP8_CONF(1024000, 1536000, SXGA_MINUS, 12, 2),
 	MS_VP8_CONF( 750000, 1024000,        XGA, 12, 2),
