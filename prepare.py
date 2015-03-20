@@ -176,8 +176,12 @@ def run(target, debug, latest, list_cmake_variables, additional_args):
 		build_type = 'Debug'
 
 	work_dir = 'WORK/cmake-' + target.name
-	if not os.path.isdir(work_dir):
-		os.makedirs(work_dir)
+	if os.path.isdir(work_dir):
+		print("Working directory {} already exists. Please remove it (option -C or -c) before re-executing CMake "
+			"to avoid conflicts between executions.".format(work_dir))
+		return 1
+
+	os.makedirs(work_dir)
 	proc = subprocess.Popen(target.cmake_command(build_type, latest, list_cmake_variables, additional_args), cwd=work_dir, shell=False)
 	proc.communicate()
 	return proc.returncode
