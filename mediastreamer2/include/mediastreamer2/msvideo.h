@@ -210,6 +210,7 @@ typedef enum MSVideoOrientation{
 }MSVideoOrientation;
 
 typedef enum{
+	MS_PIX_FMT_UNKNOWN, /* First, so that it's value does not change. */
 	MS_YUV420P,
 	MS_YUYV,
 	MS_RGB24,
@@ -219,8 +220,7 @@ typedef enum{
 	MS_YUY2,   /* -> same as MS_YUYV */
 	MS_RGBA32,
 	MS_RGB565,
-	MS_H264,
-	MS_PIX_FMT_UNKNOWN
+	MS_H264
 }MSPixFmt;
 
 typedef struct _MSPicture{
