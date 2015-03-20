@@ -92,7 +92,7 @@ int main (int argc, char *argv[]) {
 
 	for(i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--verbose") == 0) {
-			ortp_set_log_level_mask(ORTP_MESSAGE);
+			ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 		} else if (strcmp(argv[i], "--silent") == 0) {
 			ortp_set_log_level_mask(ORTP_FATAL);
 		} else if (strcmp(argv[i],"--log-file")==0){
