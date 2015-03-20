@@ -35,8 +35,10 @@ class Target:
 		self.name = name
 		self.output = 'OUTPUT'
 		self.generator = None
+		self.platform_name = None
 		self.config_file = None
 		self.toolchain_file = None
+		self.additional_args = []
 
 	def output_dir(self):
 		output_dir = self.output
@@ -51,6 +53,8 @@ class Target:
 		cmd = ['cmake', '../..']
 		if self.generator is not None:
 			cmd += ['-G', self.generator]
+		if self.platform_name is not None:
+			cmd += ['-A', self.platform_name]
 		cmd += ['-DCMAKE_BUILD_TYPE=' + build_type]
 		cmd += ['-DCMAKE_PREFIX_PATH=' + self.output_dir(), '-DCMAKE_INSTALL_PREFIX=' + self.output_dir()]
 		if self.toolchain_file is not None:
@@ -61,6 +65,8 @@ class Target:
 			cmd += ['-DLINPHONE_BUILDER_LATEST=YES']
 		if list_cmake_variables:
 			cmd += ['-L']
+		for arg in self.additional_args:
+			cmd += [arg]
 		for arg in additional_args:
 			cmd += [arg]
 		cmd_str = ''
@@ -157,6 +163,23 @@ class PythonRaspberryTarget(Target):
 		self.config_file = 'configs/config-python-raspberry.cmake'
 		self.toolchain_file = 'toolchains/toolchain-raspberry.cmake'
 
+class WindowsPhoneTarget(Target):
+	def __init__(self, arch, platform):
+		Target.__init__(self, 'windowsphone-' + arch)
+		self.config_file = 'configs/config-windowsphone.cmake'
+		self.generator = 'Visual Studio 12 2013'
+		self.platform_name = platform
+		self.output = 'OUTPUT/liblinphone-windowsphone-sdk/' + arch
+		self.additional_args = ['-DCMAKE_SYSTEM_NAME=WindowsPhone', '-DCMAKE_SYSTEM_VERSION=8.0']
+
+class WindowsPhoneARMTarget(WindowsPhoneTarget):
+	def __init__(self):
+		WindowsPhoneTarget.__init__(self, 'arm', 'ARM')
+
+class WindowsPhoneX86Target(WindowsPhoneTarget):
+	def __init__(self):
+		WindowsPhoneTarget.__init__(self, 'x86', None)
+
 
 targets = {}
 targets['bb10-arm'] = BB10armTarget()
@@ -167,6 +190,8 @@ targets['ios-armv7'] = IOSarmv7Target()
 targets['ios-armv7s'] = IOSarmv7sTarget()
 targets['python'] = PythonTarget()
 targets['python-raspberry'] = PythonRaspberryTarget()
+targets['windowsphone-arm'] = WindowsPhoneARMTarget()
+targets['windowsphone-x86'] = WindowsPhoneX86Target()
 target_names = sorted(targets.keys())
 
 
