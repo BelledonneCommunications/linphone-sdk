@@ -1212,14 +1212,14 @@ static bool_t parse_addr(const char *addr, char *ip, int len, int *port)
 	}
 	/*if no semicolon is present, we can assume that user provided only port*/
 	if (semicolon==NULL) {
-		*port = atoi(addr);
-		if (*port != ERANGE) {
-			const char *localhost = "127.0.0.1";
-			strncpy(ip,localhost, MIN(len, strlen(localhost)));
-			return TRUE;
-		} else {
+		const char *localhost = "127.0.0.1";
+		char * end;
+		*port = strtol(addr, &end, 10);
+		if (*end != '\0' || end == addr) {
 			return FALSE;
 		}
+		strncpy(ip,localhost, MIN(len, strlen(localhost)));
+		return TRUE;
 	}
 	iplen=semicolon-addr;
 	slen=MIN(iplen,len-1);
