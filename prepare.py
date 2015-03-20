@@ -170,18 +170,20 @@ targets['python-raspberry'] = PythonRaspberryTarget()
 target_names = sorted(targets.keys())
 
 
-def run(target, debug, latest, list_cmake_variables, additional_args):
+def run(target, debug, latest, list_cmake_variables, force_build, additional_args):
 	build_type = 'Release'
 	if debug:
 		build_type = 'Debug'
 
 	work_dir = 'WORK/cmake-' + target.name
 	if os.path.isdir(work_dir):
-		print("Working directory {} already exists. Please remove it (option -C or -c) before re-executing CMake "
-			"to avoid conflicts between executions.".format(work_dir))
-		return 1
+		if force_build is False:
+			print("Working directory {} already exists. Please remove it (option -C or -c) before re-executing CMake "
+				"to avoid conflicts between executions.".format(work_dir))
+			return 1
+	else:
+		os.makedirs(work_dir)
 
-	os.makedirs(work_dir)
 	proc = subprocess.Popen(target.cmake_command(build_type, latest, list_cmake_variables, additional_args), cwd=work_dir, shell=False)
 	proc.communicate()
 	return proc.returncode
@@ -193,6 +195,7 @@ def main(argv = None):
 	argparser.add_argument('-c', '--clean', help="Clean a previous build instead of preparing a build.", action='store_true')
 	argparser.add_argument('-C', '--veryclean', help="Clean a previous build and its installation directory.", action='store_true')
 	argparser.add_argument('-d', '--debug', help="Prepare a debug build.", action='store_true')
+	argparser.add_argument('-f', '--force', help="Force preparation, even if working directory already exist.", action='store_true')
 	argparser.add_argument('-l', '--latest', help="Build latest versions of all dependencies.", action='store_true')
 	argparser.add_argument('-o', '--output', help="Specify output directory.")
 	argparser.add_argument('-G', '--generator', metavar='generator', help="CMake generator to use.")
@@ -213,7 +216,7 @@ def main(argv = None):
 		target.clean()
 		return 0
 
-	retcode = run(target, args.debug, args.latest, args.list_cmake_variables, additional_args)
+	retcode = run(target, args.debug, args.latest, args.list_cmake_variables, args.force, additional_args)
 	if retcode == 0:
 		print("\n" + target.build_instructions(args.debug))
 	return retcode
