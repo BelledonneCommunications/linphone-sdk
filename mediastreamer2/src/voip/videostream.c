@@ -659,6 +659,10 @@ static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 	rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, pt->normal_bitrate);
 }
 
+static MSPixFmt mime_type_to_pix_format(const char *mime_type) {
+	if (strcasecmp(mime_type, "H264") == 0) return MS_H264;
+	return MS_PIX_FMT_UNKNOWN;
+}
 
 int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam* cam, MSFilter* source){
@@ -719,7 +723,10 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 		ms_connection_helper_link(&ch, stream->ms.rtpsend, 0, -1);
 	} else {
 		MSConnectionHelper ch;
-		if (stream->source_performs_encoding == FALSE) {
+		if (stream->source_performs_encoding == TRUE) {
+			format = mime_type_to_pix_format(pt->mime_type);
+			ms_filter_call_method(source, MS_FILTER_SET_PIX_FMT, &format);
+		} else {
 			stream->ms.encoder=ms_filter_create_encoder(pt->mime_type);
 			if (stream->ms.encoder==NULL){
 				/* big problem: we don't have a registered codec for this payload...*/
