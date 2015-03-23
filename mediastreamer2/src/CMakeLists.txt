@@ -73,7 +73,7 @@ set(BASE_LIBS
 	${LIBMINGWEX}
 	${ORTP_LIBRARIES}
 )
-if(WIN32)
+if(WIN32 AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 	list(APPEND BASE_LIBS ole32 oleaut32 uuid)
 endif()
 if(HAVE_DLOPEN)
@@ -186,7 +186,7 @@ endif()
 if(IOS)
 	list(APPEND VOIP_SOURCE_FILES audiofilters/msiounit.m audiofilters/aac-eld.c)
 endif()
-if(WIN32)
+if(WIN32 AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 	list(APPEND VOIP_SOURCE_FILES audiofilters/winsnd3.c)
 endif()
 
@@ -225,14 +225,14 @@ if(ENABLE_VIDEO)
 		voip/videostarter.c
 		voip/videostream.c
 	)
-	if(WIN32)
+	if(WIN32 AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 		add_definitions(-DHAVE_DIRECTSHOW)
 		list(APPEND VOIP_SOURCE_FILES
 			videofilters/msdscap-mingw.cc
 			videofilters/drawdib-display.c
 		)
 		set_source_files_properties(videofilters/msdscap-mingw.cc PROPERTIES LANGUAGE CXX)
-	endif(WIN32)
+	endif()
 	if(APPLE)
 		list(APPEND VOIP_SOURCE_FILES
 			utils/opengles_display.c
@@ -332,9 +332,11 @@ set(VOIP_LIBS
 	mediastreamer_base
 )
 if(WIN32)
-	list(APPEND VOIP_LIBS ole32 oleaut32 uuid)
-	if(ENABLE_VIDEO)
-		list(APPEND VOIP_LIBS gdi32 user32 vfw32)
+	if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+		list(APPEND VOIP_LIBS ole32 oleaut32 uuid)
+		if(ENABLE_VIDEO)
+			list(APPEND VOIP_LIBS gdi32 user32 vfw32)
+		endif()
 	endif()
 endif()
 if(HAVE_DLOPEN)
