@@ -168,6 +168,12 @@ if(WIN32)
 		-DBELLESIP_INTERNAL_EXPORTS
 	)
 endif()
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+	add_definitions(
+		-DHAVE_COMPILER_TLS
+		-DUSE_FIXED_NAMESERVERS
+	)
+endif()
 
 
 add_subdirectory(include)
