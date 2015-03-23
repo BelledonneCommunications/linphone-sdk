@@ -309,12 +309,11 @@ static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, c
 			return -1;
 		}
 	}else {
-		if (key_length != policy.rtcp.cipher_key_len) {
-			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length, policy.rtcp.cipher_key_len);	
+		if (ms_set_srtp_crypto_policy(suite, &policy.rtcp) != 0) {
 			return -1;
 		}
-
-		if (ms_set_srtp_crypto_policy(suite, &policy.rtcp) != 0) {
+		if (key_length != policy.rtcp.cipher_key_len) {
+			ms_error("Key size (%i) doesn't match the selected srtp profile (required %d)", (int)key_length, policy.rtcp.cipher_key_len);	
 			return -1;
 		}
 	}
@@ -384,7 +383,7 @@ static int media_stream_set_srtp_key_base(struct _MSMediaStreamSessions *session
 		return error;
 	}
 
-	if ((error = ms_add_srtp_stream(stream_ctx->srtp,suite, ssrc, key, key_length, is_send, TRUE))) {
+	if ((error = ms_add_srtp_stream(stream_ctx->srtp,suite, ssrc, key, key_length, is_send, is_rtp))) {
 		stream_ctx->secured=FALSE;
 		return error;
 	}
