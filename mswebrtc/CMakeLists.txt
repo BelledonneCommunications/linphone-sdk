@@ -69,6 +69,12 @@ add_definitions(-DHAVE_CONFIG_H)
 if(WIN32)
 	add_definitions(-DWEBRTC_WIN)
 endif()
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone" AND "${CMAKE_GENERATOR_PLATFORM}" STREQUAL "ARM")
+	add_definitions(
+		-D__ARMEL__
+		-DWEBRTC_ARCH_ARM
+	)
+endif()
 if(UNIX)
 	if(APPLE)
 		add_definitions(-DWEBRTC_MAC -DWEBRTC_THREAD_RR -DWEBRTC_CLOCK_TYPE_REALTIME)
@@ -130,7 +136,7 @@ if(ENABLE_AECM)
 		${AECM_SRC_DIR}/../utility/delay_estimator_wrapper.c
 	)
 	include_directories(
-		${AEC_SRC_DIR}/include
+		${AECM_SRC_DIR}/include
 		webrtc/modules/audio_processing/utility
 		webrtc/system_wrappers/interface
 	)
