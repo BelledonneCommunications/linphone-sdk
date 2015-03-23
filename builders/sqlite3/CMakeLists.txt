@@ -32,6 +32,14 @@ if(WIN32)
 	list(APPEND SOURCE_FILES sqlite3.def)
 endif()
 
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+	add_definitions(
+		-DSQLITE_OS_WINRT=1
+		-DSQLITE_WIN32_FILEMAPPING_API=1
+		-DSQLITE_OMIT_LOAD_EXTENSION
+	)
+endif()
+
 if(ENABLE_STATIC)
 	add_library(sqlite3 STATIC ${SOURCE_FILES})
 else()
