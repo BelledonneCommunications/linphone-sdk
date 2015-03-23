@@ -170,7 +170,7 @@ class WindowsPhoneTarget(Target):
 		self.generator = 'Visual Studio 12 2013'
 		self.platform_name = platform
 		self.output = 'OUTPUT/liblinphone-windowsphone-sdk/' + arch
-		self.additional_args = ['-DCMAKE_SYSTEM_NAME=WindowsPhone', '-DCMAKE_SYSTEM_VERSION=8.0']
+		self.additional_args = ['-DCMAKE_SYSTEM_NAME=WindowsPhone', '-DCMAKE_SYSTEM_VERSION=8.0', '-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=../submodules']
 
 class WindowsPhoneARMTarget(WindowsPhoneTarget):
 	def __init__(self):
