@@ -33,7 +33,9 @@ include_directories(
 
 file(GLOB SOURCE_FILES "*.h" "*.cpp")
 set(LIBS ${MEDIASTREAMER2_LIBRARIES} ws2_32)
-# TODO: For Windows Phone, link with phoneaudioses
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+	list(APPEND LIBS phoneaudioses)
+endif()
 
 if(ENABLE_STATIC)
 	add_library(mswasapi STATIC ${SOURCE_FILES})
