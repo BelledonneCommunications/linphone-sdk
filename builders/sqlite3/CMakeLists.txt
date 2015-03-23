@@ -28,6 +28,9 @@ option(ENABLE_STATIC "Build static library (default is shared library)." OFF)
 
 
 set(SOURCE_FILES sqlite3.c)
+if(WIN32)
+	list(APPEND SOURCE_FILES sqlite3.def)
+endif()
 
 if(ENABLE_STATIC)
 	add_library(sqlite3 STATIC ${SOURCE_FILES})

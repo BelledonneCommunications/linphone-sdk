@@ -23,4 +23,7 @@
 set(EP_sqlite3_URL "http://www.sqlite.org/2014/sqlite-amalgamation-3080702.zip")
 set(EP_sqlite3_URL_HASH "MD5=10587262e4381358b707df75392c895f")
 set(EP_sqlite3_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/sqlite3/CMakeLists.txt" "<SOURCE_DIR>")
-set(EP_sqlite3_LINKING_TYPE "-DENABLE_STATIC=0")
+if(WIN32)
+	list(APPEND EP_sqlite3_PATCH_COMMAND "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/sqlite3/sqlite3.def" "<SOURCE_DIR>")
+endif()
+set(EP_sqlite3_LINKING_TYPE "-DENABLE_STATIC=NO")

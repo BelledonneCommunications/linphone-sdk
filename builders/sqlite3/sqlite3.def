@@ -1,0 +1,17 @@
+LIBRARY sqlite3
+EXPORTS
+
+sqlite3_close
+sqlite3_column_int
+sqlite3_errmsg
+sqlite3_exec
+sqlite3_finalize
+sqlite3_free
+sqlite3_last_insert_rowid
+sqlite3_mprintf
+sqlite3_open
+sqlite3_open16
+sqlite3_prepare_v2
+sqlite3_profile
+sqlite3_snprintf
+sqlite3_step

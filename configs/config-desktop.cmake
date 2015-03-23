@@ -94,11 +94,6 @@ if(WIN32)
 	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
 endif()
 
-# sqlite3
-if(WIN32)
-	set(EP_sqlite3_LINKING_TYPE "-DENABLE_STATIC=YES")
-endif()
-
 # vpx
 if(WIN32)
 	set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
