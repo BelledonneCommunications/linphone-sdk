@@ -38,7 +38,6 @@ extern const char *auth_domain;
 
 static const char *belle_sip_tester_root_ca_path = NULL;
 static FILE * log_file = NULL;
-static belle_sip_log_function_t belle_sip_log_handler;
 
 static belle_sip_object_pool_t *pool;
 
@@ -76,19 +75,23 @@ void belle_sip_tester_set_root_ca_path(const char *root_ca_path) {
 
 
 static void log_handler(int lev, const char *fmt, va_list args) {
+#ifdef WIN32
 	/* We must use stdio to avoid log formatting (for autocompletion etc.) */
 	vfprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, fmt, args);
-
+	fprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, "\n");
+#else
+	va_list cap;
+	va_copy(cap,args);
+	vfprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, fmt, args);
+	fprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, "\n");
+	va_end(cap);
+#endif
 	if (log_file){
-		belle_sip_set_log_file(log_file);
-		belle_sip_log_handler(lev, fmt, args);
+		belle_sip_logv(lev, fmt, args);
 	}
 }
 
 void belle_sip_tester_init() {
-	belle_sip_log_handler = belle_sip_get_log_handler();
-	belle_sip_set_log_handler(belle_sip_logv_out);
-
 	bc_tester_init(log_handler, BELLE_SIP_LOG_MESSAGE, BELLE_SIP_LOG_ERROR);
 	belle_sip_init_sockets();
 	belle_sip_object_enable_marshal_check(TRUE);
@@ -149,6 +152,7 @@ int main (int argc, char *argv[]) {
 				return -2;
 			} else {
 				belle_sip_message("Redirecting traces to file [%s]",argv[i]);
+				belle_sip_set_log_file(log_file);
 			}
 		} else if (strcmp(argv[i],"--domain")==0){
 			CHECK_ARG("--domain", ++i, argc);
