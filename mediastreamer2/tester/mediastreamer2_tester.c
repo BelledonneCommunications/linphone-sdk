@@ -35,8 +35,9 @@ static FILE * log_file = NULL;
 static OrtpLogFunc ortp_log_handler;
 
 static void log_handler(int lev, const char *fmt, va_list args) {
-	ortp_set_log_file(stderr);
-	ortp_log_handler(lev, fmt, args);
+	/* We must use stdio to avoid log formatting (for autocompletion etc.) */
+	vfprintf(lev == ORTP_ERROR ? stderr : stdout, fmt, args);
+
 	if (log_file){
 		ortp_set_log_file(log_file);
 		ortp_log_handler(lev, fmt, args);
