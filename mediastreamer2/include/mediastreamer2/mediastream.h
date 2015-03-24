@@ -707,6 +707,10 @@ MS2_PUBLIC void video_stream_set_relay_session_id(VideoStream *stream, const cha
 static MS2_INLINE void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool) {
 	media_stream_set_rtcp_information(&st->ms, cname, tool);
 }
+/*
+ * returns current MSWebCam for a given stream
+ * */
+MS2_PUBLIC const MSWebCam * video_stream_get_camera(const VideoStream *stream);
 MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
 /* Calling video_stream_set_sent_video_size() or changing the bitrate value in the used PayloadType during a stream is running does nothing.
 The following function allows to take into account new parameters by redrawing the sending graph*/

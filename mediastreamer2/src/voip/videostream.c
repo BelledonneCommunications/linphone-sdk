@@ -1365,3 +1365,6 @@ void video_stream_decoding_error_reported(VideoStream *stream) {
 void video_stream_decoding_error_recovered(VideoStream *stream) {
 	stream->last_reported_decoding_error_time = 0;
 }
+const MSWebCam * video_stream_get_camera(const VideoStream *stream) {
+	return stream->cam;
+}
