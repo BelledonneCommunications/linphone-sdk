@@ -946,9 +946,10 @@ static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t s
 		size+=sizeof(truncate_msg);
 	}
 	logbuf=belle_sip_malloc(size+1);
-	strncpy(logbuf,buffer,limit-1);
+	if (limit>0) limit--; /*do not output the first 'bad' character*/
+	if (limit>0) strncpy(logbuf,buffer,limit);
 	if (truncate_msg[0]!=0){
-		strncpy(logbuf+limit-1,truncate_msg,sizeof(truncate_msg));
+		strncpy(logbuf+limit,truncate_msg,sizeof(truncate_msg));
 	}
 	logbuf[size]='\0';
 	return logbuf;
