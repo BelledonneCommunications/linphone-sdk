@@ -53,8 +53,10 @@ else()
 	endif()
 
 
-	# Get build tools and flags for autotools projects
-	linphone_builder_get_autotools_configuration()
+	# Get build tools and flags for autotools projects (except for Windows Phone where we cannot build with MinGW)
+	if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+		linphone_builder_get_autotools_configuration()
+	endif()
 
 
 	# Create targets list from the given LINPHONE_BUILDER_TARGET
