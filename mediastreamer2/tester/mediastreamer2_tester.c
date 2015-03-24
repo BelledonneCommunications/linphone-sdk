@@ -32,22 +32,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 static FILE * log_file = NULL;
-static OrtpLogFunc ortp_log_handler;
 
 static void log_handler(int lev, const char *fmt, va_list args) {
-	/* We must use stdio to avoid log formatting (for autocompletion etc.) */
+#ifdef WIN32
 	vfprintf(lev == ORTP_ERROR ? stderr : stdout, fmt, args);
-
+	fprintf(lev == ORTP_ERROR ? stderr : stdout, "\n");
+#else
+	va_list cap;
+	va_copy(cap,args);
+	/* Otherwise, we must use stdio to avoid log formatting (for autocompletion etc.) */
+	vfprintf(lev == ORTP_ERROR ? stderr : stdout, fmt, cap);
+	fprintf(lev == ORTP_ERROR ? stderr : stdout, "\n");
+	va_end(cap);
+#endif
 	if (log_file){
-		ortp_set_log_file(log_file);
-		ortp_log_handler(lev, fmt, args);
+		ortp_logv_out(lev, fmt, args);
 	}
 }
 
 void mediastreamer2_tester_init(void) {
-	ortp_log_handler = ortp_get_log_handler();
-	ortp_set_log_handler(ortp_logv_out);
-
 	bc_tester_init(log_handler, ORTP_MESSAGE, ORTP_ERROR);
 
 	bc_tester_add_suite(&basic_audio_test_suite);
@@ -104,6 +107,7 @@ int main (int argc, char *argv[]) {
 				return -2;
 			} else {
 				ms_message("Redirecting traces to file [%s]",argv[i]);
+				ortp_set_log_file(log_file);
 			}
 		} else {
 			int ret = bc_tester_parse_args(argc, argv, i);
