@@ -380,7 +380,6 @@ static void x11video_process(MSFilter *f){
 	if (!obj->show) {
 		goto end;
 	}
-	if (!obj->ready) x11video_prepare(f);
 	if (!obj->ready){
 		goto end;
 	}
