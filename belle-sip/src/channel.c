@@ -600,7 +600,10 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 	}
 	if (revents & BELLE_SIP_EVENT_WRITE){
 		/*if we are here, this is because we had an EWOULDBLOCK while sending a message*/
-		channel_process_queue(obj);
+		/*continue to send pending messages but before check the channel is still alive because it may have been closed by belle_sip_channel_process_read_data() above.*/
+		if (obj->state == BELLE_SIP_CHANNEL_READY){
+			channel_process_queue(obj);
+		}
 	}
 	return ret;
 }
