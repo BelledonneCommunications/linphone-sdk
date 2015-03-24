@@ -76,8 +76,9 @@ void belle_sip_tester_set_root_ca_path(const char *root_ca_path) {
 
 
 static void log_handler(int lev, const char *fmt, va_list args) {
-	belle_sip_set_log_file(stderr);
-	belle_sip_log_handler(lev, fmt, args);
+	/* We must use stdio to avoid log formatting (for autocompletion etc.) */
+	vfprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, fmt, args);
+
 	if (log_file){
 		belle_sip_set_log_file(log_file);
 		belle_sip_log_handler(lev, fmt, args);
