@@ -82,7 +82,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 #else
 	va_list cap;
 	va_copy(cap,args);
-	vfprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, fmt, args);
+	vfprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, fmt, cap);
 	fprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, "\n");
 	va_end(cap);
 #endif
