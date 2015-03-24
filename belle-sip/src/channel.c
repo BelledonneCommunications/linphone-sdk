@@ -933,9 +933,11 @@ static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t s
 	if (non_ascii_pos<2){
 		limit=0;
 		snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (binary data)");
-	}else limit=non_ascii_pos;
+	}else{
+		limit=non_ascii_pos;
+	}
 	if (limit!=0 && size>limit){
-		snprintf(truncate_msg,sizeof(truncate_msg)-1," ... (first %i bytes shown)",limit);
+		snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (first %i bytes shown)",limit);
 		size=limit;
 	}
 	if (size<limit)
@@ -944,9 +946,9 @@ static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t s
 		size+=sizeof(truncate_msg);
 	}
 	logbuf=belle_sip_malloc(size+1);
-	strncpy(logbuf,buffer,limit);
+	strncpy(logbuf,buffer,limit-1);
 	if (truncate_msg[0]!=0){
-		strncpy(logbuf+limit,truncate_msg,sizeof(truncate_msg));
+		strncpy(logbuf+limit-1,truncate_msg,sizeof(truncate_msg));
 	}
 	logbuf[size]='\0';
 	return logbuf;
