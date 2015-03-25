@@ -300,11 +300,15 @@ static void setup_local_player(AudioStream *stream, int samplerate, int channels
 
 	ms_connection_helper_start(&cnx);
 	ms_connection_helper_link(&cnx,stream->local_player,-1,0);
-	ms_connection_helper_link(&cnx,stream->local_player_resampler,0,0);
+	if (stream->local_player_resampler){
+		ms_connection_helper_link(&cnx,stream->local_player_resampler,0,0);
+	}
 	ms_connection_helper_link(&cnx,stream->local_mixer,1,-1);
 
-	ms_filter_call_method(stream->local_player_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&samplerate);
-	ms_filter_call_method(stream->local_player_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&channels);
+	if (stream->local_player_resampler){
+		ms_filter_call_method(stream->local_player_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&samplerate);
+		ms_filter_call_method(stream->local_player_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&channels);
+	}
 	ms_filter_call_method(stream->local_mixer,MS_FILTER_SET_SAMPLE_RATE,&samplerate);
 	ms_filter_call_method(stream->local_mixer,MS_FILTER_SET_NCHANNELS,&channels);
 	ms_filter_call_method(stream->local_mixer,MS_AUDIO_MIXER_SET_MASTER_CHANNEL,&master);
@@ -1392,7 +1396,9 @@ static void dismantle_local_player(AudioStream *stream){
 	MSConnectionHelper cnx;
 	ms_connection_helper_start(&cnx);
 	ms_connection_helper_unlink(&cnx,stream->local_player,-1,0);
-	ms_connection_helper_unlink(&cnx,stream->local_player_resampler,0,0);
+	if (stream->local_player_resampler){
+		ms_connection_helper_unlink(&cnx,stream->local_player_resampler,0,0);
+	}
 	ms_connection_helper_unlink(&cnx,stream->local_mixer,1,-1);
 }
 

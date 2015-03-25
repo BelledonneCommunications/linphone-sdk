@@ -30,9 +30,11 @@ static void ring_player_event_handler(void *ud, MSFilter *f, unsigned int evid, 
 	if (evid==MS_FILTER_OUTPUT_FMT_CHANGED){
 		ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&channels);
 		ms_filter_call_method(stream->source,MS_FILTER_GET_SAMPLE_RATE,&rate);
-		ms_message("Configuring resampler input with rate=[%i], nchannels=[%i]",rate,channels);
-		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_NCHANNELS,&channels);
-		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_SAMPLE_RATE,&rate);
+		if (stream->write_resampler){
+			ms_message("Configuring resampler input with rate=[%i], nchannels=[%i]",rate,channels);
+			ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_NCHANNELS,&channels);
+			ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_SAMPLE_RATE,&rate);
+		}
 		ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_SAMPLE_RATE,&rate);
 		ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_NCHANNELS,&channels);
 	}
@@ -74,13 +76,15 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_NCHANNELS,&dstchannels);
 	
 	/*configure output of resampler*/
-	ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&dstrate);
-	ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&dstchannels);
+	if (stream->write_resampler){
+		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&dstrate);
+		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&dstchannels);
 	
-	/*the input of the resampler, as well as dtmf generator are configured within the ring_player_event_handler()
-	 * callback triggered during the open of the file player*/
+		/*the input of the resampler, as well as dtmf generator are configured within the ring_player_event_handler()
+		 * callback triggered during the open of the file player*/
 	
-	ms_message("configuring resampler output to rate=[%i], nchannels=[%i]",dstrate,dstchannels);
+		ms_message("configuring resampler output to rate=[%i], nchannels=[%i]",dstrate,dstchannels);
+	}
 	
 	params.name="Ring MSTicker";
 	params.prio=MS_TICKER_PRIO_HIGH;
