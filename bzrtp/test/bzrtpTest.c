@@ -25,21 +25,37 @@
 #include "bzrtpCryptoTest.h"
 #include "bzrtpParserTest.h"
 #include "typedef.h"
+#include "testUtils.h"
 
 #ifdef HAVE_LIBXML2
 #include <libxml/parser.h>
 #endif
 	
+
 int main(int argc, char *argv[] ) {
 	int i, fails_count=0;
 	CU_pSuite cryptoWrapperTestSuite, cryptoUtilsTestSuite, parserTestSuite;
+
 	CU_pSuite *suites[] = {
 		&cryptoWrapperTestSuite,
 		&cryptoUtilsTestSuite,
 		&parserTestSuite,
 		NULL
 	};
-	
+
+	if (argc>1) {
+		if (argv[1][0] == '-') {
+			if (strcmp(argv[1], "-verbose") == 0) {
+				verbose = 1;
+			} else {
+				printf ("Usage:\n %s [-verbose] to enable extensive logging\n", argv[0]);
+				return 1;
+			}
+		} else {
+			printf ("Usage:\n %s [-verbose] to enable extensive logging\n", argv[0]);
+			return 1;
+		}
+	}
 #ifdef HAVE_LIBXML2
 	xmlInitParser();
 #endif
@@ -69,8 +85,8 @@ int main(int argc, char *argv[] ) {
 
 	/* Add the parser suite to the registry */
 	parserTestSuite = CU_add_suite("Bzrtp ZRTP Packet Parser", NULL, NULL);
-/*	CU_add_test(parserTestSuite, "Parse", test_parser);*/
-/*	CU_add_test(parserTestSuite, "Parse Exchange", test_parserComplete);*/
+	CU_add_test(parserTestSuite, "Parse", test_parser);
+	CU_add_test(parserTestSuite, "Parse Exchange", test_parserComplete);
 	CU_add_test(parserTestSuite, "State machine", test_stateMachine);
 
 	/* Run all suites */

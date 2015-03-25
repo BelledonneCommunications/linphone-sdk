@@ -192,7 +192,7 @@ void test_parser(void) {
 		/* if (retval ==0) {
 			packetDump(zrtpPacket, 1);
 		} else {
-			printf("Ret val is %x index is %d\n", retval, i);
+			bzrtp_message("Ret val is %x index is %d\n", retval, i);
 		}*/
 
 		/* check they are the same */
@@ -366,7 +366,7 @@ void test_parserComplete() {
 	cbs.bzrtp_writeCache=fwriteBob;
 	bzrtp_setCallbacks(contextBob, &cbs);
 
-	printf ("Init the contexts\n");
+	bzrtp_message ("Init the contexts\n");
 	/* end the context init */
 	bzrtp_initBzrtpContext(contextAlice);
 	bzrtp_initBzrtpContext(contextBob);
@@ -386,7 +386,7 @@ void test_parserComplete() {
 	/* now send Alice Hello's to Bob and vice-versa, so they parse them */
 	alice_HelloFromBob = bzrtp_packetCheck(bob_Hello->packetString, bob_Hello->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
 	retval +=  bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_Hello->packetString, bob_Hello->messageLength+16, alice_HelloFromBob);
-	printf ("Alice parsing returns %x\n", retval);
+	bzrtp_message ("Alice parsing returns %x\n", retval);
 	if (retval==0) {
 		bzrtpHelloMessage_t *alice_HelloFromBob_message;
 		int i;
@@ -399,7 +399,7 @@ void test_parserComplete() {
 		alice_HelloFromBob_message = (bzrtpHelloMessage_t *)alice_HelloFromBob->messageData;
 		retval = crypoAlgoAgreement(contextAlice, contextAlice->channelContext[0], contextAlice->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData);
 		if (retval == 0) {
-			printf ("Alice selected algo %x\n", contextAlice->channelContext[0]->keyAgreementAlgo);
+			bzrtp_message ("Alice selected algo %x\n", contextAlice->channelContext[0]->keyAgreementAlgo);
 			memcpy(contextAlice->peerZID, alice_HelloFromBob_message->ZID, 12);
 		}
 
@@ -413,7 +413,7 @@ void test_parserComplete() {
 
 	bob_HelloFromAlice = bzrtp_packetCheck(alice_Hello->packetString, alice_Hello->messageLength+16, contextBob->channelContext[0]->peerSequenceNumber, &retval);
 	retval +=  bzrtp_packetParser(contextBob, contextBob->channelContext[0], alice_Hello->packetString, alice_Hello->messageLength+16, bob_HelloFromAlice);
-	printf ("Bob parsing returns %x\n", retval);
+	bzrtp_message ("Bob parsing returns %x\n", retval);
 	if (retval==0) {
 		bzrtpHelloMessage_t *bob_HelloFromAlice_message;
 		int i;
@@ -426,7 +426,7 @@ void test_parserComplete() {
 		bob_HelloFromAlice_message = (bzrtpHelloMessage_t *)bob_HelloFromAlice->messageData;
 		retval = crypoAlgoAgreement(contextBob, contextBob->channelContext[0], contextBob->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData);
 		if (retval == 0) {
-			printf ("Bob selected algo %x\n", contextBob->channelContext[0]->keyAgreementAlgo);
+			bzrtp_message ("Bob selected algo %x\n", contextBob->channelContext[0]->keyAgreementAlgo);
 			memcpy(contextBob->peerZID, bob_HelloFromAlice_message->ZID, 12);
 		}
 
@@ -548,9 +548,9 @@ void test_parserComplete() {
 	}
 
 	/* dump alice's packet on both sides */
-	printf ("\nAlice original Packet is \n");
+	bzrtp_message ("\nAlice original Packet is \n");
 	packetDump(alice_Hello, 1);
-	printf ("\nBob's parsed Alice Packet is \n");
+	bzrtp_message ("\nBob's parsed Alice Packet is \n");
 	packetDump(bob_HelloFromAlice, 0);
 
 	/* Create the DHPart2 packet (that we then may change to DHPart1 if we ended to be the responder) */
@@ -559,18 +559,18 @@ void test_parserComplete() {
 	if (retval == 0) { /* ok, insert it in context as we need it to build the commit packet */
 		contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID] = alice_selfDHPart;
 	} else {
-		printf ("Alice building DHPart packet returns %x\n", retval);
+		bzrtp_message ("Alice building DHPart packet returns %x\n", retval);
 	}
 	bob_selfDHPart = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_DHPART2, &retval); 
 	retval +=bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_selfDHPart, 0); /* we don't care now about sequence number as we just need to build the message to be able to insert a hash of it into the commit packet */
 	if (retval == 0) { /* ok, insert it in context as we need it to build the commit packet */
 		contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID] = bob_selfDHPart;
 	} else {
-		printf ("Bob building DHPart packet returns %x\n", retval);
+		bzrtp_message ("Bob building DHPart packet returns %x\n", retval);
 	}
-	printf("Alice DHPart packet:\n");
+	bzrtp_message("Alice DHPart packet:\n");
 	packetDump(alice_selfDHPart,0);
-	printf("Bob DHPart packet:\n");
+	bzrtp_message("Bob DHPart packet:\n");
 	packetDump(bob_selfDHPart,0);
 
 	/* respond to HELLO packet with an HelloACK - 1 create packets */
@@ -579,7 +579,7 @@ void test_parserComplete() {
 	if (retval == 0) {
 		contextAlice->channelContext[0]->selfSequenceNumber++;
 	} else {
-		printf("Alice building HelloACK return %x\n", retval);
+		bzrtp_message("Alice building HelloACK return %x\n", retval);
 	}
 
 	bob_HelloACK = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_HELLOACK, &retval);
@@ -587,20 +587,20 @@ void test_parserComplete() {
 	if (retval == 0) {
 		contextBob->channelContext[0]->selfSequenceNumber++;
 	} else {
-		printf("Bob building HelloACK return %x\n", retval);
+		bzrtp_message("Bob building HelloACK return %x\n", retval);
 	}
 
 	/* exchange the HelloACK */
 	alice_HelloACKFromBob = bzrtp_packetCheck(bob_HelloACK->packetString, bob_HelloACK->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
 	retval +=  bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_HelloACK->packetString, bob_HelloACK->messageLength+16, alice_HelloACKFromBob);
-	printf ("Alice parsing Hello ACK returns %x\n", retval);
+	bzrtp_message ("Alice parsing Hello ACK returns %x\n", retval);
 	if (retval==0) {
 		contextAlice->channelContext[0]->peerSequenceNumber = alice_HelloACKFromBob->sequenceNumber;
 	}
 
 	bob_HelloACKFromAlice = bzrtp_packetCheck(alice_HelloACK->packetString, alice_HelloACK->messageLength+16, contextBob->channelContext[0]->peerSequenceNumber, &retval);
 	retval +=  bzrtp_packetParser(contextBob, contextBob->channelContext[0], alice_HelloACK->packetString, alice_HelloACK->messageLength+16, bob_HelloACKFromAlice);
-	printf ("Bob parsing Hello ACK returns %x\n", retval);
+	bzrtp_message ("Bob parsing Hello ACK returns %x\n", retval);
 	if (retval==0) {
 		contextBob->channelContext[0]->peerSequenceNumber = bob_HelloACKFromAlice->sequenceNumber;
 	}
@@ -617,7 +617,7 @@ void test_parserComplete() {
 		contextAlice->channelContext[0]->selfSequenceNumber++;
 		contextAlice->channelContext[0]->selfPackets[COMMIT_MESSAGE_STORE_ID] = alice_Commit;
 	}
-	printf("Alice building Commit return %x\n", retval);
+	bzrtp_message("Alice building Commit return %x\n", retval);
 	
 	bob_Commit = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_COMMIT, &retval);
 	retval += bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_Commit, contextBob->channelContext[0]->selfSequenceNumber);
@@ -625,13 +625,13 @@ void test_parserComplete() {
 		contextBob->channelContext[0]->selfSequenceNumber++;
 		contextBob->channelContext[0]->selfPackets[COMMIT_MESSAGE_STORE_ID] = bob_Commit;
 	}
-	printf("Bob building Commit return %x\n", retval);
+	bzrtp_message("Bob building Commit return %x\n", retval);
 
 
 	/* and exchange the commits */
 	bob_CommitFromAlice = bzrtp_packetCheck(alice_Commit->packetString, alice_Commit->messageLength+16, contextBob->channelContext[0]->peerSequenceNumber, &retval);
 	retval += bzrtp_packetParser(contextBob, contextBob->channelContext[0], alice_Commit->packetString, alice_Commit->messageLength+16, bob_CommitFromAlice);
-	printf ("Bob parsing Commit returns %x\n", retval);
+	bzrtp_message ("Bob parsing Commit returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
 		bzrtpCommitMessage_t *bob_CommitFromAlice_message = (bzrtpCommitMessage_t *)bob_CommitFromAlice->messageData;
@@ -643,7 +643,7 @@ void test_parserComplete() {
 
 	alice_CommitFromBob = bzrtp_packetCheck(bob_Commit->packetString, bob_Commit->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
 	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_Commit->packetString, bob_Commit->messageLength+16, alice_CommitFromBob);
-	printf ("Alice parsing Commit returns %x\n", retval);
+	bzrtp_message ("Alice parsing Commit returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
 		contextAlice->channelContext[0]->peerSequenceNumber = alice_CommitFromBob->sequenceNumber;
@@ -681,13 +681,13 @@ void test_parserComplete() {
 	if (retval == 0) {
 		contextBob->channelContext[0]->selfSequenceNumber++;
 	}
-	printf("Bob building DHPart1 return %x\n", retval);
+	bzrtp_message("Bob building DHPart1 return %x\n", retval);
 
 
 	/* Alice parse bob's DHPart1 message */
 	alice_DHPart1FromBob = bzrtp_packetCheck(contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
 	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+16, alice_DHPart1FromBob);
-	printf ("Alice parsing DHPart1 returns %x\n", retval);
+	bzrtp_message ("Alice parsing DHPart1 returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
 		contextAlice->channelContext[0]->peerSequenceNumber = alice_DHPart1FromBob->sequenceNumber;
@@ -700,30 +700,30 @@ void test_parserComplete() {
 	/* Now Alice may check which shared secret she expected and if they are valid in bob's DHPart1 */
 	if (contextAlice->cachedSecret.rs1!=NULL) {
 		if (memcmp(contextAlice->responderCachedSecretHash.rs1ID, alice_DHPart1FromBob_message->rs1ID,8) != 0) {
-			printf ("Alice found that requested shared secret rs1 ID differs!\n");
+			bzrtp_message ("Alice found that requested shared secret rs1 ID differs!\n");
 		} else {
-			printf("Alice validate rs1ID from bob DHPart1\n");
+			bzrtp_message("Alice validate rs1ID from bob DHPart1\n");
 		}
 	}
 	if (contextAlice->cachedSecret.rs2!=NULL) {
 		if (memcmp(contextAlice->responderCachedSecretHash.rs2ID, alice_DHPart1FromBob_message->rs2ID,8) != 0) {
-			printf ("Alice found that requested shared secret rs2 ID differs!\n");
+			bzrtp_message ("Alice found that requested shared secret rs2 ID differs!\n");
 		} else {
-			printf("Alice validate rs2ID from bob DHPart1\n");
+			bzrtp_message("Alice validate rs2ID from bob DHPart1\n");
 		}
 	}
 	if (contextAlice->cachedSecret.auxsecret!=NULL) {
 		if (memcmp(contextAlice->channelContext[0]->responderAuxsecretID, alice_DHPart1FromBob_message->auxsecretID,8) != 0) {
-			printf ("Alice found that requested shared secret aux secret ID differs!\n");
+			bzrtp_message ("Alice found that requested shared secret aux secret ID differs!\n");
 		} else {
-			printf("Alice validate aux secret ID from bob DHPart1\n");
+			bzrtp_message("Alice validate aux secret ID from bob DHPart1\n");
 		}
 	}
 	if (contextAlice->cachedSecret.pbxsecret!=NULL) {
 		if (memcmp(contextAlice->responderCachedSecretHash.pbxsecretID, alice_DHPart1FromBob_message->pbxsecretID,8) != 0) {
-			printf ("Alice found that requested shared secret pbx secret ID differs!\n");
+			bzrtp_message ("Alice found that requested shared secret pbx secret ID differs!\n");
 		} else {
-			printf("Alice validate pbxsecretID from bob DHPart1\n");
+			bzrtp_message("Alice validate pbxsecretID from bob DHPart1\n");
 		}
 	}
 
@@ -739,9 +739,9 @@ void test_parserComplete() {
 
 	/* Bob parse Alice's DHPart2 message */
 	bob_DHPart2FromAlice = bzrtp_packetCheck(contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+16, contextBob->channelContext[0]->peerSequenceNumber, &retval);
-	printf ("Bob checking DHPart2 returns %x\n", retval);
+	bzrtp_message ("Bob checking DHPart2 returns %x\n", retval);
 	retval += bzrtp_packetParser(contextBob, contextBob->channelContext[0], contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+16, bob_DHPart2FromAlice);
-	printf ("Bob parsing DHPart2 returns %x\n", retval);
+	bzrtp_message ("Bob parsing DHPart2 returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
 		contextBob->channelContext[0]->peerSequenceNumber = bob_DHPart2FromAlice->sequenceNumber;
@@ -754,30 +754,30 @@ void test_parserComplete() {
 	/* Now Bob may check which shared secret she expected and if they are valid in bob's DHPart1 */
 	if (contextBob->cachedSecret.rs1!=NULL) {
 		if (memcmp(contextBob->initiatorCachedSecretHash.rs1ID, bob_DHPart2FromAlice_message->rs1ID,8) != 0) {
-			printf ("Bob found that requested shared secret rs1 ID differs!\n");
+			bzrtp_message ("Bob found that requested shared secret rs1 ID differs!\n");
 		} else {
-			printf("Bob validate rs1ID from Alice DHPart2\n");
+			bzrtp_message("Bob validate rs1ID from Alice DHPart2\n");
 		}
 	}
 	if (contextBob->cachedSecret.rs2!=NULL) {
 		if (memcmp(contextBob->initiatorCachedSecretHash.rs2ID, bob_DHPart2FromAlice_message->rs2ID,8) != 0) {
-			printf ("Bob found that requested shared secret rs2 ID differs!\n");
+			bzrtp_message ("Bob found that requested shared secret rs2 ID differs!\n");
 		} else {
-			printf("Bob validate rs2ID from Alice DHPart2\n");
+			bzrtp_message("Bob validate rs2ID from Alice DHPart2\n");
 		}
 	}
 	if (contextBob->cachedSecret.auxsecret!=NULL) {
 		if (memcmp(contextBob->channelContext[0]->initiatorAuxsecretID, bob_DHPart2FromAlice_message->auxsecretID,8) != 0) {
-			printf ("Bob found that requested shared secret aux secret ID differs!\n");
+			bzrtp_message ("Bob found that requested shared secret aux secret ID differs!\n");
 		} else {
-			printf("Bob validate aux secret ID from Alice DHPart2\n");
+			bzrtp_message("Bob validate aux secret ID from Alice DHPart2\n");
 		}
 	}
 	if (contextBob->cachedSecret.pbxsecret!=NULL) {
 		if (memcmp(contextBob->initiatorCachedSecretHash.pbxsecretID, bob_DHPart2FromAlice_message->pbxsecretID,8) != 0) {
-			printf ("Bob found that requested shared secret pbx secret ID differs!\n");
+			bzrtp_message ("Bob found that requested shared secret pbx secret ID differs!\n");
 		} else {
-			printf("Bob validate pbxsecretID from Alice DHPart2\n");
+			bzrtp_message("Bob validate pbxsecretID from Alice DHPart2\n");
 		}
 	}
 
@@ -791,11 +791,11 @@ void test_parserComplete() {
 	/* JUST FOR TEST: check that the generated secrets are the same */
 	secretLength = bob_DHPart2FromAlice->messageLength-84; /* length of generated secret is the same than public value */
 	if (memcmp(contextBob->DHMContext->key, contextAlice->DHMContext->key, secretLength)==0) {
-		printf("Secret Key correctly exchanged \n");
+		bzrtp_message("Secret Key correctly exchanged \n");
 		CU_PASS("Secret Key exchange OK");
 	} else {
 		CU_FAIL("Secret Key exchange failed");
-		printf("ERROR : secretKey exchange failed!!\n");
+		bzrtp_message("ERROR : secretKey exchange failed!!\n");
 	}
 
 	/* now compute the total_hash as in rfc section 4.4.1.4 
@@ -826,10 +826,10 @@ void test_parserComplete() {
 
 	contextBob->channelContext[0]->hashFunction(dataToHash, totalHashDataLength, 32, bob_totalHash);
 	if (memcmp(bob_totalHash, alice_totalHash, 32) == 0) {
-		printf("Got the same total hash\n");
+		bzrtp_message("Got the same total hash\n");
 		CU_PASS("Total Hash match");
 	} else {
-		printf("AARGG!! total hash mismatch");
+		bzrtp_message("AARGG!! total hash mismatch");
 		CU_FAIL("Total Hash mismatch");
 	}
 
@@ -1028,10 +1028,10 @@ void test_parserComplete() {
 
 	/* DEBUG compare s0 */
 	if (memcmp(contextBob->channelContext[0]->s0, contextAlice->channelContext[0]->s0, 32)==0) {
-		printf("Got the same s0\n");
+		bzrtp_message("Got the same s0\n");
 		CU_PASS("s0 match");
 	} else {
-		printf("ERROR s0 differs\n");
+		bzrtp_message("ERROR s0 differs\n");
 		CU_PASS("s0 mismatch");
 	}
 
@@ -1057,10 +1057,10 @@ void test_parserComplete() {
 
 	/* DEBUG compare ZRTPSess Key */
 	if (memcmp(contextBob->ZRTPSess, contextAlice->ZRTPSess, 32)==0) {
-		printf("Got the same ZRTPSess\n");
+		bzrtp_message("Got the same ZRTPSess\n");
 		CU_PASS("ZRTPSess match");
 	} else {
-		printf("ERROR ZRTPSess differs\n");
+		bzrtp_message("ERROR ZRTPSess differs\n");
 		CU_PASS("ZRTPSess mismatch");
 	}
 
@@ -1082,10 +1082,10 @@ void test_parserComplete() {
 
 	/* DEBUG compare sasHash */
 	if (memcmp(alice_sasHash, bob_sasHash, 32)==0) {
-		printf("Got the same SAS Hash\n");
+		bzrtp_message("Got the same SAS Hash\n");
 		CU_PASS("SAS Hash match");
 	} else {
-		printf("ERROR SAS Hash differs\n");
+		bzrtp_message("ERROR SAS Hash differs\n");
 		CU_PASS("SAS Hash mismatch");
 	}
 
@@ -1093,12 +1093,12 @@ void test_parserComplete() {
 	sasValue = ((uint32_t)alice_sasHash[0]<<24) | ((uint32_t)alice_sasHash[1]<<16) | ((uint32_t)alice_sasHash[2]<<8) | ((uint32_t)(alice_sasHash[3]));
 	contextAlice->channelContext[0]->sasFunction(sasValue, sas, 5);
 
-	printf("Alice SAS is %.4s\n", sas);
+	bzrtp_message("Alice SAS is %.4s\n", sas);
 
 	sasValue = ((uint32_t)bob_sasHash[0]<<24) | ((uint32_t)bob_sasHash[1]<<16) | ((uint32_t)bob_sasHash[2]<<8) | ((uint32_t)(bob_sasHash[3]));
 	contextBob->channelContext[0]->sasFunction(sasValue, sas, 5);
 	
-	printf("Bob SAS is %.4s\n", sas);
+	bzrtp_message("Bob SAS is %.4s\n", sas);
 
 
 	/* now derive the other keys (mackeyi, mackeyr, zrtpkeyi and zrtpkeyr, srtpkeys and salt) */
@@ -1126,10 +1126,10 @@ void test_parserComplete() {
 
 	/* DEBUG compare keys */
 	if ((memcmp(contextAlice->channelContext[0]->mackeyi, contextBob->channelContext[0]->mackeyi, contextAlice->channelContext[0]->hashLength)==0) && (memcmp(contextAlice->channelContext[0]->mackeyr, contextBob->channelContext[0]->mackeyr, contextAlice->channelContext[0]->hashLength)==0) && (memcmp(contextAlice->channelContext[0]->zrtpkeyi, contextBob->channelContext[0]->zrtpkeyi, contextAlice->channelContext[0]->cipherKeyLength)==0) && (memcmp(contextAlice->channelContext[0]->zrtpkeyr, contextBob->channelContext[0]->zrtpkeyr, contextAlice->channelContext[0]->cipherKeyLength)==0)) {
-		printf("Got the same keys\n");
+		bzrtp_message("Got the same keys\n");
 		CU_PASS("keys match");
 	} else {
-		printf("ERROR keys differ\n");
+		bzrtp_message("ERROR keys differ\n");
 		CU_PASS("Keys mismatch");
 	}
 
@@ -1139,11 +1139,11 @@ void test_parserComplete() {
 	if (retval == 0) {
 		contextBob->channelContext[0]->selfSequenceNumber++;
 	}
-	printf("Bob building Confirm1 return %x\n", retval);
+	bzrtp_message("Bob building Confirm1 return %x\n", retval);
 
 	alice_Confirm1FromBob = bzrtp_packetCheck(bob_Confirm1->packetString, bob_Confirm1->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
 	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_Confirm1->packetString, bob_Confirm1->messageLength+16, alice_Confirm1FromBob);
-	printf ("Alice parsing confirm1 returns %x\n", retval);
+	bzrtp_message ("Alice parsing confirm1 returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
 		contextAlice->channelContext[0]->peerSequenceNumber = alice_Confirm1FromBob->sequenceNumber;
@@ -1163,11 +1163,11 @@ void test_parserComplete() {
 	if (retval == 0) {
 		contextAlice->channelContext[0]->selfSequenceNumber++;
 	}
-	printf("Alice building Confirm2 return %x\n", retval);
+	bzrtp_message("Alice building Confirm2 return %x\n", retval);
 
 	bob_Confirm2FromAlice = bzrtp_packetCheck(alice_Confirm2->packetString, alice_Confirm2->messageLength+16, contextBob->channelContext[0]->peerSequenceNumber, &retval);
 	retval += bzrtp_packetParser(contextBob, contextBob->channelContext[0], alice_Confirm2->packetString, alice_Confirm2->messageLength+16, bob_Confirm2FromAlice);
-	printf ("Bob parsing confirm2 returns %x\n", retval);
+	bzrtp_message ("Bob parsing confirm2 returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
 		contextBob->channelContext[0]->peerSequenceNumber = bob_Confirm2FromAlice->sequenceNumber;
@@ -1189,11 +1189,11 @@ void test_parserComplete() {
 	if (retval == 0) {
 		contextBob->channelContext[0]->selfSequenceNumber++;
 	}
-	printf("Bob building Conf2ACK return %x\n", retval);
+	bzrtp_message("Bob building Conf2ACK return %x\n", retval);
 
 	alice_Conf2ACKFromBob = bzrtp_packetCheck(bob_Conf2ACK->packetString, bob_Conf2ACK->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
 	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_Conf2ACK->packetString, bob_Conf2ACK->messageLength+16, alice_Conf2ACKFromBob);
-	printf ("Alice parsing conf2ACK returns %x\n", retval);
+	bzrtp_message ("Alice parsing conf2ACK returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
 		contextAlice->channelContext[0]->peerSequenceNumber = alice_Conf2ACKFromBob->sequenceNumber;
@@ -1207,12 +1207,12 @@ void test_parserComplete() {
 	dumpContext("Alice", contextAlice);	
 	dumpContext("Bob", contextBob);	
 
-	printf("\n\n\n\n\n*************************************************************\n        SECOND CHANNEL\n**********************************************\n\n");
+	bzrtp_message("\n\n\n\n\n*************************************************************\n        SECOND CHANNEL\n**********************************************\n\n");
 	/* Now create a second channel for Bob and Alice */
 	retval = bzrtp_addChannel(contextAlice, 0x45678901);
-	printf("Add channel to Alice's context returns %d\n", retval);
+	bzrtp_message("Add channel to Alice's context returns %d\n", retval);
 	retval = bzrtp_addChannel(contextBob, 0x54321098);
-	printf("Add channel to Bob's context returns %d\n", retval);
+	bzrtp_message("Add channel to Bob's context returns %d\n", retval);
 
 	/* create hello packets for this channel */
 	alice_Hello = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[1], MSGTYPE_HELLO, &retval);
@@ -1229,7 +1229,7 @@ void test_parserComplete() {
 	/* now send Alice Hello's to Bob and vice-versa, so they parse them */
 	alice_HelloFromBob = bzrtp_packetCheck(bob_Hello->packetString, bob_Hello->messageLength+16, contextAlice->channelContext[1]->peerSequenceNumber, &retval);
 	retval +=  bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_Hello->packetString, bob_Hello->messageLength+16, alice_HelloFromBob);
-	printf ("Alice parsing returns %x\n", retval);
+	bzrtp_message ("Alice parsing returns %x\n", retval);
 	if (retval==0) {
 		bzrtpHelloMessage_t *alice_HelloFromBob_message;
 		int i;
@@ -1249,7 +1249,7 @@ void test_parserComplete() {
 
 		/* ok multi channel is supported*/
 		if (checkPeerSupportMultiChannel == 1) {
-			printf("Alice found that Bob supports multi channel\n");
+			bzrtp_message("Alice found that Bob supports multi channel\n");
 			/* now set the choosen algos, they MUST be the same than main channel (channel 0) except for keyAgreement which is set to mult */
 			contextAlice->channelContext[1]->hashAlgo = contextAlice->channelContext[0]->hashAlgo;
 			contextAlice->channelContext[1]->hashLength = contextAlice->channelContext[0]->hashLength;
@@ -1262,14 +1262,14 @@ void test_parserComplete() {
 
 			updateCryptoFunctionPointers(contextAlice->channelContext[1]);
 		} else {
-			printf("ERROR : Alice found that Bob doesn't support multi channel\n");
+			bzrtp_message("ERROR : Alice found that Bob doesn't support multi channel\n");
 		}
 
 	}
 
 	bob_HelloFromAlice = bzrtp_packetCheck(alice_Hello->packetString, alice_Hello->messageLength+16, contextBob->channelContext[1]->peerSequenceNumber, &retval);
 	retval +=  bzrtp_packetParser(contextBob, contextBob->channelContext[1], alice_Hello->packetString, alice_Hello->messageLength+16, bob_HelloFromAlice);
-	printf ("Bob parsing returns %x\n", retval);
+	bzrtp_message ("Bob parsing returns %x\n", retval);
 	if (retval==0) {
 		bzrtpHelloMessage_t *bob_HelloFromAlice_message;
 		int i;
@@ -1289,7 +1289,7 @@ void test_parserComplete() {
 
 		/* ok multi channel is supported*/
 		if (checkPeerSupportMultiChannel == 1) {
-			printf("Bob found that Alice supports multi channel\n");
+			bzrtp_message("Bob found that Alice supports multi channel\n");
 			/* now set the choosen algos, they MUST be the same than main channel (channel 0) except for keyAgreement which is set to mult */
 			contextBob->channelContext[1]->hashAlgo = contextBob->channelContext[0]->hashAlgo;
 			contextBob->channelContext[1]->hashLength = contextBob->channelContext[0]->hashLength;
@@ -1302,7 +1302,7 @@ void test_parserComplete() {
 
 			updateCryptoFunctionPointers(contextBob->channelContext[1]);
 		} else {
-			printf("ERROR : Bob found that Alice doesn't support multi channel\n");
+			bzrtp_message("ERROR : Bob found that Alice doesn't support multi channel\n");
 		}
 	}
 
@@ -1322,13 +1322,13 @@ void test_parserComplete() {
 		contextBob->channelContext[1]->selfSequenceNumber++;
 		contextBob->channelContext[1]->selfPackets[COMMIT_MESSAGE_STORE_ID] = bob_Commit;
 	}
-	printf("Bob building Commit return %x\n", retval);
+	bzrtp_message("Bob building Commit return %x\n", retval);
 
 
 	/* and send it to Alice */
 	alice_CommitFromBob = bzrtp_packetCheck(bob_Commit->packetString, bob_Commit->messageLength+16, contextAlice->channelContext[1]->peerSequenceNumber, &retval);
 	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[1], bob_Commit->packetString, bob_Commit->messageLength+16, alice_CommitFromBob);
-	printf ("Alice parsing Commit returns %x\n", retval);
+	bzrtp_message ("Alice parsing Commit returns %x\n", retval);
 	if (retval==0) {
 		bzrtpCommitMessage_t *alice_CommitFromBob_message;
 
@@ -1363,10 +1363,10 @@ void test_parserComplete() {
 
 	contextBob->channelContext[1]->hashFunction(dataToHash, totalHashDataLength, 32, bob_totalHash);
 	if (memcmp(bob_totalHash, alice_totalHash, 32) == 0) {
-		printf("Got the same total hash\n");
+		bzrtp_message("Got the same total hash\n");
 		CU_PASS("Total Hash match");
 	} else {
-		printf("AARGG!! total hash mismatch");
+		bzrtp_message("AARGG!! total hash mismatch");
 		CU_FAIL("Total Hash mismatch");
 	}
 
@@ -1387,10 +1387,10 @@ void test_parserComplete() {
 	memcpy(contextBob->channelContext[1]->KDFContext+24, bob_totalHash, contextBob->channelContext[1]->hashLength);
 
 	if (memcmp(contextBob->channelContext[1]->KDFContext, contextAlice->channelContext[1]->KDFContext, 56) == 0) {
-		printf("Got the same total KDF Context\n");
+		bzrtp_message("Got the same total KDF Context\n");
 		CU_PASS("KDFContext match");
 	} else {
-		printf("AARGG!! KDF Context mismatch");
+		bzrtp_message("AARGG!! KDF Context mismatch");
 		CU_FAIL("KDF Context mismatch");
 	}
 
@@ -1412,10 +1412,10 @@ void test_parserComplete() {
 		contextAlice->channelContext[1]->s0);
 
 	if (memcmp(contextBob->channelContext[1]->s0, contextAlice->channelContext[1]->s0, contextAlice->channelContext[1]->hashLength) == 0) {
-		printf("Got the same s0\n");
+		bzrtp_message("Got the same s0\n");
 		CU_PASS("s0 match");
 	} else {
-		printf("AARGG!! s0 mismatch");
+		bzrtp_message("AARGG!! s0 mismatch");
 		CU_FAIL("s0 mismatch");
 	}
 
@@ -1445,10 +1445,10 @@ void test_parserComplete() {
 
 	/* DEBUG compare keys */
 	if ((memcmp(contextAlice->channelContext[1]->mackeyi, contextBob->channelContext[1]->mackeyi, contextAlice->channelContext[1]->hashLength)==0) && (memcmp(contextAlice->channelContext[1]->mackeyr, contextBob->channelContext[1]->mackeyr, contextAlice->channelContext[1]->hashLength)==0) && (memcmp(contextAlice->channelContext[1]->zrtpkeyi, contextBob->channelContext[1]->zrtpkeyi, contextAlice->channelContext[1]->cipherKeyLength)==0) && (memcmp(contextAlice->channelContext[1]->zrtpkeyr, contextBob->channelContext[1]->zrtpkeyr, contextAlice->channelContext[1]->cipherKeyLength)==0)) {
-		printf("Got the same keys\n");
+		bzrtp_message("Got the same keys\n");
 		CU_PASS("keys match");
 	} else {
-		printf("ERROR keys differ\n");
+		bzrtp_message("ERROR keys differ\n");
 		CU_PASS("Keys mismatch");
 	}
 
@@ -1458,11 +1458,11 @@ void test_parserComplete() {
 	if (retval == 0) {
 		contextAlice->channelContext[1]->selfSequenceNumber++;
 	}
-	printf("Alice building Confirm1 return %x\n", retval);
+	bzrtp_message("Alice building Confirm1 return %x\n", retval);
 
 	bob_Confirm1FromAlice = bzrtp_packetCheck(alice_Confirm1->packetString, alice_Confirm1->messageLength+16, contextBob->channelContext[1]->peerSequenceNumber, &retval);
 	retval += bzrtp_packetParser(contextBob, contextBob->channelContext[1], alice_Confirm1->packetString, alice_Confirm1->messageLength+16, bob_Confirm1FromAlice);
-	printf ("Bob parsing confirm1 returns %x\n", retval);
+	bzrtp_message ("Bob parsing confirm1 returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
 		contextBob->channelContext[1]->peerSequenceNumber = bob_Confirm1FromAlice->sequenceNumber;
@@ -1480,10 +1480,10 @@ void test_parserComplete() {
 	if (retval == 0) {
 		contextBob->channelContext[1]->selfSequenceNumber++;
 	}
-	printf("Bob building Confirm2 return %x\n", retval);
+	bzrtp_message("Bob building Confirm2 return %x\n", retval);
 	alice_Confirm2FromBob = bzrtp_packetCheck(bob_Confirm2->packetString, bob_Confirm2->messageLength+16, contextAlice->channelContext[1]->peerSequenceNumber, &retval);
 	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[1], bob_Confirm2->packetString, bob_Confirm2->messageLength+16, alice_Confirm2FromBob);
-	printf ("Alice parsing confirm2 returns %x\n", retval);
+	bzrtp_message ("Alice parsing confirm2 returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
 		contextAlice->channelContext[1]->peerSequenceNumber = alice_Confirm2FromBob->sequenceNumber;
@@ -1501,11 +1501,11 @@ void test_parserComplete() {
 	if (retval == 0) {
 		contextAlice->channelContext[1]->selfSequenceNumber++;
 	}
-	printf("Alice building Conf2ACK return %x\n", retval);
+	bzrtp_message("Alice building Conf2ACK return %x\n", retval);
 
 	bob_Conf2ACKFromAlice = bzrtp_packetCheck(alice_Conf2ACK->packetString, alice_Conf2ACK->messageLength+16, contextBob->channelContext[1]->peerSequenceNumber, &retval);
 	retval += bzrtp_packetParser(contextBob, contextBob->channelContext[1], alice_Conf2ACK->packetString, alice_Conf2ACK->messageLength+16, bob_Conf2ACKFromAlice);
-	printf ("Bob parsing conf2ACK returns %x\n", retval);
+	bzrtp_message ("Bob parsing conf2ACK returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
 		contextBob->channelContext[1]->peerSequenceNumber = bob_Conf2ACKFromAlice->sequenceNumber;
@@ -1523,11 +1523,11 @@ void test_parserComplete() {
 	dumpContext("\nAlice", contextAlice);
 	dumpContext("\nBob", contextBob);
 */
-	printf("Destroy the contexts\n");
+	bzrtp_message("Destroy the contexts\n");
 	/* destroy the context */
 	bzrtp_destroyBzrtpContext(contextAlice, 0x45678901);
 	bzrtp_destroyBzrtpContext(contextBob, 0x54321098);
-	printf("Destroy the contexts last channel\n");
+	bzrtp_message("Destroy the contexts last channel\n");
 	bzrtp_destroyBzrtpContext(contextBob, 0x87654321);
 	bzrtp_destroyBzrtpContext(contextAlice, 0x12345678);
 
@@ -1553,7 +1553,7 @@ int bzrtp_sendData(void *clientData, const uint8_t *packetString, uint16_t packe
 	/* get the client Data */
 	my_Context_t *contexts = (my_Context_t *)clientData;
 
-/*	printf ("%s sends a message!\n", contexts->nom);
+/*	bzrtp_message ("%s sends a message!\n", contexts->nom);
 	int retval;
 	bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(packetString, packetLength, contexts->peerChannelContext->peerSequenceNumber, &retval);
 	if (retval==0) {
@@ -1562,10 +1562,10 @@ int bzrtp_sendData(void *clientData, const uint8_t *packetString, uint16_t packe
 */		/*	packetDump(zrtpPacket,0); */
 		/*	printHex("Data", packetString, packetLength);*/
 /*		} else {
-			printf("Parse says %04x\n", retval);
+			bzrtp_message("Parse says %04x\n", retval);
 		}
 	} else {
-		printf("Check says %04x\n", retval);
+		bzrtp_message("Check says %04x\n", retval);
 	}
 */
 	/* put the message in the message queue */
@@ -1645,7 +1645,7 @@ void test_stateMachine() {
 
 	retval = bzrtp_setClientData(contextAlice, 0x12345678, (void *)&aliceClientData);
 	retval += bzrtp_setClientData(contextBob, 0x87654321, (void *)&bobClientData);
-	printf("Set client data return %x\n", retval);
+	bzrtp_message("Set client data return %x\n", retval);
 
 	/* run the init */
 	bzrtp_initBzrtpContext(contextAlice);
@@ -1654,26 +1654,26 @@ void test_stateMachine() {
 	/* now start the engine */
 	initialTime = getCurrentTimeInMs();
 	retval = bzrtp_startChannelEngine(contextAlice, 0x12345678);
-	printf ("Alice starts return %x\n", retval);
+	bzrtp_message ("Alice starts return %x\n", retval);
 	retval = bzrtp_startChannelEngine(contextBob, 0x87654321);
-	printf ("Bob starts return %x\n", retval);
+	bzrtp_message ("Bob starts return %x\n", retval);
 
 	/* now start infinite loop until we reach secure state */
 	while ((contextAlice->isSecure == 0 || contextBob->isSecure == 0) && (getCurrentTimeInMs()-initialTime<5000)){
 		int i;
 		/* first check the message queue */
 		for (i=0; i<aliceQueueIndex; i++) {
-			printf("Process a message for Alice\n");
+			bzrtp_message("Process a message for Alice\n");
 			retval = bzrtp_processMessage(contextAlice, 0x12345678, aliceQueue[i].packetString, aliceQueue[i].packetLength);
-			printf("Alice processed message %.8s of %d bytes and return %04x\n\n", aliceQueue[i].packetString+16, aliceQueue[i].packetLength, retval);
+			bzrtp_message("Alice processed message %.8s of %d bytes and return %04x\n\n", aliceQueue[i].packetString+16, aliceQueue[i].packetLength, retval);
 			memset(aliceQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
 		}
 		aliceQueueIndex = 0;
 
 		for (i=0; i<bobQueueIndex; i++) {
-			printf("Process a message for Bob\n");
+			bzrtp_message("Process a message for Bob\n");
 			retval = bzrtp_processMessage(contextBob, 0x87654321, bobQueue[i].packetString, bobQueue[i].packetLength);
-			printf("Bob processed message %.8s of %d bytes and return %04x\n\n", bobQueue[i].packetString+16, bobQueue[i].packetLength, retval);
+			bzrtp_message("Bob processed message %.8s of %d bytes and return %04x\n\n", bobQueue[i].packetString+16, bobQueue[i].packetLength, retval);
 			memset(bobQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
 		}
 		bobQueueIndex = 0;
@@ -1744,16 +1744,16 @@ void test_stateMachine() {
 	CRCbuffer++;
 	*CRCbuffer = (uint8_t)(CRC&0xFF);
 
-	printf("Process a PING message for Alice\n");
+	bzrtp_message("Process a PING message for Alice\n");
 	retval = bzrtp_processMessage(contextAlice, 0x12345678, pingPacketString, ZRTP_PACKET_OVERHEAD+ZRTP_PINGMESSAGE_FIXED_LENGTH);
-	printf("Alice processed PING message and return %04x\n\n", retval);
+	bzrtp_message("Alice processed PING message and return %04x\n\n", retval);
 
 
 	/*** now add a second channel ***/
 	retval = bzrtp_addChannel(contextAlice, 0x34567890);
-	printf("Add a channel to Alice context, return %x\n", retval);
+	bzrtp_message("Add a channel to Alice context, return %x\n", retval);
 	retval = bzrtp_addChannel(contextBob, 0x09876543);
-	printf("Add a channel to Bob context, return %x\n", retval);
+	bzrtp_message("Add a channel to Bob context, return %x\n", retval);
 
 	/* create the client Data and associate them to the channel contexts */
 	memcpy(aliceSecondChannelClientData.nom, "Alice", 6);
@@ -1765,30 +1765,30 @@ void test_stateMachine() {
 
 	retval = bzrtp_setClientData(contextAlice, 0x34567890, (void *)&aliceSecondChannelClientData);
 	retval += bzrtp_setClientData(contextBob, 0x09876543, (void *)&bobSecondChannelClientData);
-	printf("Set client data return %x\n", retval);
+	bzrtp_message("Set client data return %x\n", retval);
 
 	/* start the channels */
 	retval = bzrtp_startChannelEngine(contextAlice, 0x34567890);
-	printf ("Alice starts return %x\n", retval);
+	bzrtp_message ("Alice starts return %x\n", retval);
 	retval = bzrtp_startChannelEngine(contextBob, 0x09876543);
-	printf ("Bob starts return %x\n", retval);
+	bzrtp_message ("Bob starts return %x\n", retval);
 
 	/* now start infinite loop until we reach secure state */
 	while ((getCurrentTimeInMs()-initialTime<2000)){
 		int i;
 		/* first check the message queue */
 		for (i=0; i<aliceQueueIndex; i++) {
-			printf("Process a message for Alice\n");
+			bzrtp_message("Process a message for Alice\n");
 			retval = bzrtp_processMessage(contextAlice, 0x34567890, aliceQueue[i].packetString, aliceQueue[i].packetLength);
-			printf("Alice processed message %.8s of %d bytes and return %04x\n\n", aliceQueue[i].packetString+16, aliceQueue[i].packetLength, retval);
+			bzrtp_message("Alice processed message %.8s of %d bytes and return %04x\n\n", aliceQueue[i].packetString+16, aliceQueue[i].packetLength, retval);
 			memset(aliceQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
 		}
 		aliceQueueIndex = 0;
 
 		for (i=0; i<bobQueueIndex; i++) {
-			printf("Process a message for Bob\n");
+			bzrtp_message("Process a message for Bob\n");
 			retval = bzrtp_processMessage(contextBob, 0x09876543, bobQueue[i].packetString, bobQueue[i].packetLength);
-			printf("Bob processed message %.8s  of %d bytes and return %04x\n\n", bobQueue[i].packetString+16, bobQueue[i].packetLength, retval);
+			bzrtp_message("Bob processed message %.8s  of %d bytes and return %04x\n\n", bobQueue[i].packetString+16, bobQueue[i].packetLength, retval);
 			memset(bobQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
 		}
 		bobQueueIndex = 0;
@@ -1811,11 +1811,11 @@ void test_stateMachine() {
 
 
 
-	printf("Destroy the contexts\n");
+	bzrtp_message("Destroy the contexts\n");
 	/* destroy the context */
 	bzrtp_destroyBzrtpContext(contextAlice, 0x34567890);
 	bzrtp_destroyBzrtpContext(contextBob, 0x09876543);
-	printf("Destroy the contexts last channel\n");
+	bzrtp_message("Destroy the contexts last channel\n");
 	bzrtp_destroyBzrtpContext(contextBob, 0x87654321);
 	bzrtp_destroyBzrtpContext(contextAlice, 0x12345678);
 

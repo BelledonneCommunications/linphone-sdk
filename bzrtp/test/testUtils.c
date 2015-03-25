@@ -27,17 +27,30 @@
 
 #include "testUtils.h"
 #include "cryptoUtils.h"
+int verbose = 0;
+
+void bzrtp_message(const char *fmt, ...) {
+	if (verbose) {
+		va_list args;
+		va_start(args, fmt);
+		vprintf(fmt, args);
+		va_end(args);
+	}
+}
 
 void printHex(char *title, uint8_t *data, uint32_t length) {
-	int i;
-	printf ("%s : ", title);
-	for (i=0; i<length; i++) {
-		printf ("0x%02x, ", data[i]);
+	if (verbose) {
+		int i;
+		printf ("%s : ", title);
+		for (i=0; i<length; i++) {
+			printf ("0x%02x, ", data[i]);
+		}
+		printf ("\n");
 	}
-	printf ("\n");
 }
 
 void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
+	if (verbose) {
 		int j;
 		printf ("SSRC %x - Message Length: %d - ", zrtpPacket->sourceIdentifier, zrtpPacket->messageLength);
 		if (zrtpPacket->packetString!=NULL) { /* paquet has been built and we need to get his sequence number in the packetString */
@@ -176,75 +189,77 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 		if (addRawMessage) {
 			printHex("Data", zrtpPacket->packetString, zrtpPacket->messageLength+16);
 		}
+	}
 }
 
 void dumpContext(char *title, bzrtpContext_t *zrtpContext) {
-	uint8_t buffer[4];
-	int i,j;
-	printf("%s context is :\n", title);
-	printHex("selfZID", zrtpContext->selfZID, 12);
-	printHex("peerZID", zrtpContext->peerZID, 12);
+	if (verbose) {
+		uint8_t buffer[4];
+		int i,j;
+		printf("%s context is :\n", title);
+		printHex("selfZID", zrtpContext->selfZID, 12);
+		printHex("peerZID", zrtpContext->peerZID, 12);
 
-	for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
-		if (zrtpContext->channelContext[i] != NULL) {
-			bzrtpChannelContext_t *channelContext = zrtpContext->channelContext[i];
-			printf("Channel %i\n  self: %08x\n", i, channelContext->selfSSRC);
-			printf ("    selfH: ");
-			for (j=0; j<4; j++) {
-				printHex("      ", channelContext->selfH[j], 32);
-			}
-			printf ("    peerH: ");
-			for (j=0; j<4; j++) {
-				printHex("      ", channelContext->peerH[j], 32);
-			}		
+		for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+			if (zrtpContext->channelContext[i] != NULL) {
+				bzrtpChannelContext_t *channelContext = zrtpContext->channelContext[i];
+				printf("Channel %i\n  self: %08x\n", i, channelContext->selfSSRC);
+				printf ("    selfH: ");
+				for (j=0; j<4; j++) {
+					printHex("      ", channelContext->selfH[j], 32);
+				}
+				printf ("    peerH: ");
+				for (j=0; j<4; j++) {
+					printHex("      ", channelContext->peerH[j], 32);
+				}		
 
-			cryptoAlgoTypeIntToString(channelContext->hashAlgo, buffer);
-			printf("    Selected algos\n     - Hash: %.4s\n", buffer);
-			cryptoAlgoTypeIntToString(channelContext->cipherAlgo, buffer);
-			printf("     - cipher: %.4s\n", buffer);
-			cryptoAlgoTypeIntToString(channelContext->authTagAlgo, buffer);
-			printf("     - auth tag: %.4s\n", buffer);
-			cryptoAlgoTypeIntToString(channelContext->keyAgreementAlgo, buffer);
-			printf("     - key agreement: %.4s\n", buffer);
-			cryptoAlgoTypeIntToString(channelContext->sasAlgo, buffer);
-			printf("     - sas: %.4s\n", buffer);
-			printHex("    initiator auxID", channelContext->initiatorAuxsecretID, 8);
-			printHex("    responder auxID", channelContext->responderAuxsecretID, 8);
-			if (channelContext->s0 != NULL) {
-				printHex("    s0", channelContext->s0, channelContext->hashLength);
-			}
-			if(channelContext->srtpSecrets.sas != NULL) {
-				printf("    sas : %.4s\n", channelContext->srtpSecrets.sas);
-			}
-			if (channelContext->srtpSecrets.selfSrtpKey != NULL) {
-				printHex("    selfsrtp key", channelContext->srtpSecrets.selfSrtpKey, channelContext->srtpSecrets.selfSrtpKeyLength);
-				printHex("    selfsrtp salt", channelContext->srtpSecrets.selfSrtpSalt, channelContext->srtpSecrets.selfSrtpSaltLength);
-				printHex("    peersrtp key", channelContext->srtpSecrets.peerSrtpKey, channelContext->srtpSecrets.peerSrtpKeyLength);
-				printHex("    peersrtp salt", channelContext->srtpSecrets.peerSrtpSalt, channelContext->srtpSecrets.peerSrtpSaltLength);
-			}
-			if (channelContext->mackeyi!=NULL) {
-				printHex("    mackeyi", channelContext->mackeyi, channelContext->hashLength);
-			}
-			if (channelContext->mackeyr!=NULL) {
-				printHex("    mackeyr", channelContext->mackeyr, channelContext->hashLength);
-			}
-			if (channelContext->zrtpkeyi!=NULL) {
-				printHex("    zrtpkeyi", channelContext->zrtpkeyi, channelContext->cipherKeyLength);
-			}
-			if (channelContext->zrtpkeyr!=NULL) {
-				printHex("    zrtpkeyr", channelContext->zrtpkeyr, channelContext->cipherKeyLength);
+				cryptoAlgoTypeIntToString(channelContext->hashAlgo, buffer);
+				printf("    Selected algos\n     - Hash: %.4s\n", buffer);
+				cryptoAlgoTypeIntToString(channelContext->cipherAlgo, buffer);
+				printf("     - cipher: %.4s\n", buffer);
+				cryptoAlgoTypeIntToString(channelContext->authTagAlgo, buffer);
+				printf("     - auth tag: %.4s\n", buffer);
+				cryptoAlgoTypeIntToString(channelContext->keyAgreementAlgo, buffer);
+				printf("     - key agreement: %.4s\n", buffer);
+				cryptoAlgoTypeIntToString(channelContext->sasAlgo, buffer);
+				printf("     - sas: %.4s\n", buffer);
+				printHex("    initiator auxID", channelContext->initiatorAuxsecretID, 8);
+				printHex("    responder auxID", channelContext->responderAuxsecretID, 8);
+				if (channelContext->s0 != NULL) {
+					printHex("    s0", channelContext->s0, channelContext->hashLength);
+				}
+				if(channelContext->srtpSecrets.sas != NULL) {
+					printf("    sas : %.4s\n", channelContext->srtpSecrets.sas);
+				}
+				if (channelContext->srtpSecrets.selfSrtpKey != NULL) {
+					printHex("    selfsrtp key", channelContext->srtpSecrets.selfSrtpKey, channelContext->srtpSecrets.selfSrtpKeyLength);
+					printHex("    selfsrtp salt", channelContext->srtpSecrets.selfSrtpSalt, channelContext->srtpSecrets.selfSrtpSaltLength);
+					printHex("    peersrtp key", channelContext->srtpSecrets.peerSrtpKey, channelContext->srtpSecrets.peerSrtpKeyLength);
+					printHex("    peersrtp salt", channelContext->srtpSecrets.peerSrtpSalt, channelContext->srtpSecrets.peerSrtpSaltLength);
+				}
+				if (channelContext->mackeyi!=NULL) {
+					printHex("    mackeyi", channelContext->mackeyi, channelContext->hashLength);
+				}
+				if (channelContext->mackeyr!=NULL) {
+					printHex("    mackeyr", channelContext->mackeyr, channelContext->hashLength);
+				}
+				if (channelContext->zrtpkeyi!=NULL) {
+					printHex("    zrtpkeyi", channelContext->zrtpkeyi, channelContext->cipherKeyLength);
+				}
+				if (channelContext->zrtpkeyr!=NULL) {
+					printHex("    zrtpkeyr", channelContext->zrtpkeyr, channelContext->cipherKeyLength);
+				}
 			}
 		}
+
+		printf("Initiator Shared Secrets :\n");
+		printHex("rs1ID", zrtpContext->initiatorCachedSecretHash.rs1ID, 8);
+		printHex("rs2ID", zrtpContext->initiatorCachedSecretHash.rs2ID, 8);
+		printHex("pbxID", zrtpContext->initiatorCachedSecretHash.pbxsecretID, 8);
+
+		printf("Responder Shared Secrets :\n");
+		printHex("rs1ID", zrtpContext->responderCachedSecretHash.rs1ID, 8);
+		printHex("rs2ID", zrtpContext->responderCachedSecretHash.rs2ID, 8);
+		printHex("pbxID", zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
 	}
-
-	printf("Initiator Shared Secrets :\n");
-	printHex("rs1ID", zrtpContext->initiatorCachedSecretHash.rs1ID, 8);
-	printHex("rs2ID", zrtpContext->initiatorCachedSecretHash.rs2ID, 8);
-	printHex("pbxID", zrtpContext->initiatorCachedSecretHash.pbxsecretID, 8);
-
-	printf("Responder Shared Secrets :\n");
-	printHex("rs1ID", zrtpContext->responderCachedSecretHash.rs1ID, 8);
-	printHex("rs2ID", zrtpContext->responderCachedSecretHash.rs2ID, 8);
-	printHex("pbxID", zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
-
 }

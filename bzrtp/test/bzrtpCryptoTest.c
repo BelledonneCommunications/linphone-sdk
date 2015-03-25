@@ -102,7 +102,7 @@ void test_RNG(void) {
 		CU_FAIL("RNG sigma value incorrect");
 	}
 
-	printf ("%d 32 bits integers generated Mean %Lf Sigma/Mean %Lf\n", NB_INT32_TESTED, m0, s0);
+	bzrtp_message ("%d 32 bits integers generated Mean %Lf Sigma/Mean %Lf\n", NB_INT32_TESTED, m0, s0);
 
 	/* destroy the RNG context */
 	bzrtpCrypto_destroyRNG(context);
@@ -304,7 +304,7 @@ void test_dhm2048(void) {
 	/* Create the public value for Bob G^Xb mod P */
 	bzrtpCrypto_DHMCreatePublic(DHMbContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
 
-	printf("Context created %p and %p\n", DHMaContext, DHMbContext);
+	bzrtp_message("Context created %p and %p\n", DHMaContext, DHMbContext);
 
 	/* exchange public values */
 	DHMaContext->peer = (uint8_t *)malloc(DHMaContext->primeLength*sizeof(uint8_t));
@@ -312,7 +312,7 @@ void test_dhm2048(void) {
 	memcpy (DHMaContext->peer, DHMbContext->self, DHMaContext->primeLength*sizeof(uint8_t));
 	memcpy (DHMbContext->peer, DHMaContext->self, DHMbContext->primeLength*sizeof(uint8_t));
 
-	printf("Call compute secret\n");
+	bzrtp_message("Call compute secret\n");
 	/* compute secret key */
 	bzrtpCrypto_DHMComputeSecret(DHMaContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);
 	bzrtpCrypto_DHMComputeSecret(DHMbContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)RNGcontext);

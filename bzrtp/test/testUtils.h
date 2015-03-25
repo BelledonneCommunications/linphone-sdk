@@ -23,6 +23,9 @@
 #include "typedef.h"
 #include "packetParser.h"
 
+extern int verbose;
+
+void bzrtp_message(const char *fmt, ...);
 void printHex(char *title, uint8_t *data, uint32_t length); 
 void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage);
 void dumpContext(char *title, bzrtpContext_t *zrtpContext);
