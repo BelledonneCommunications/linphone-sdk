@@ -12,7 +12,8 @@ LOCAL_SRC_FILES =       src/bzrtp.c \
 						src/cryptoUtils.c \
 						src/packetParser.c \
 						src/stateMachine.c \
-						src/zidCache.c
+						src/zidCache.c \
+						src/pgpwords.c
 
 LOCAL_STATIC_LIBRARIES += polarssl \
 			  liblpxml2
