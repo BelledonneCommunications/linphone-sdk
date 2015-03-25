@@ -27,6 +27,7 @@ set(SOURCE_FILES
 	packetParser.c
 	stateMachine.c
 	zidCache.c
+	pgpwords.c
 )
 
 if(ENABLE_STATIC)

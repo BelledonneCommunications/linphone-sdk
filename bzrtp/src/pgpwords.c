@@ -522,4 +522,3 @@ const char * pgpWordsOdd[] =
     "yesteryear",
     "Yucatan"
 };
-
