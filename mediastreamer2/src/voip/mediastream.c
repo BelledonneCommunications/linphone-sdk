@@ -298,8 +298,17 @@ void media_stream_iterate(MediaStream *stream){
 				ms_message("%s_stream_iterate[%p], local statistics available:"
 							"\n\tLocal current jitter buffer size: %5.1fms",
 					media_stream_type_str(stream), stream, rtp_session_get_jitter_stats(stream->sessions.rtp_session)->jitter_buffer_size_ms);
-			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ice_check_list)){
-				ice_handle_stun_packet(stream->ice_check_list,stream->sessions.rtp_session,ortp_event_get_data(ev));
+			} else if (evt==ORTP_EVENT_STUN_PACKET_RECEIVED){
+				if (stream->ice_check_list) {
+						ice_handle_stun_packet(stream->ice_check_list,stream->sessions.rtp_session,ortp_event_get_data(ev));
+				} else if (rtp_session_get_symmetric_rtp(stream->sessions.rtp_session)){
+					/*try to know if we can trust stun packets for symetric rtp*/
+					rtp_stats_t stats;
+					media_stream_get_local_rtp_stats(stream, &stats);
+					if (stats.packet_recv == 0 ) {
+						ms_message("stun packet received but no rtp yet for stream [%p]",stream);
+					}
+				}
 			} else if ((evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) || (evt == ORTP_EVENT_DTLS_ENCRYPTION_CHANGED)) {
 				ms_message("%s_stream_iterate[%p]: is %s ",media_stream_type_str(stream) , stream, media_stream_secured(stream) ? "encrypted" : "not encrypted");
 			}

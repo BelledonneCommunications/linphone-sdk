@@ -53,7 +53,7 @@ MSWebCam * ms_web_cam_manager_get_cam(MSWebCamManager *m, const char *id){
 		if (id==NULL) return cam;
 		if (strcmp(ms_web_cam_get_string_id(cam),id)==0)	return cam;
 	}
-	if (id!=NULL) ms_warning("no camera with id %s",id);
+	if (id!=NULL) ms_message("no camera with id %s",id);
 	return NULL;
 }
 
