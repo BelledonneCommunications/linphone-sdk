@@ -88,7 +88,7 @@ int belle_sip_socket_enable_dual_stack(belle_sip_socket_t sock);
 
 #if defined(WIN32)
 
-#if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION)
+#if !defined(WINAPI_FAMILY_PARTITION)
 // Only use with x being WINAPI_PARTITION_DESKTOP to test if building on desktop
 #define WINAPI_FAMILY_PARTITION(x) 1
 #endif
