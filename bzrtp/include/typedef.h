@@ -52,6 +52,10 @@ typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 #include "packetParser.h"
 #include "stateMachine.h"
 
+#ifdef WIN32
+#define snprintf _snprintf
+#endif
+
 /* timer related definitions */
 #define BZRTP_TIMER_ON 1
 #define BZRTP_TIMER_OFF 2

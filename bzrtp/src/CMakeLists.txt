@@ -25,9 +25,9 @@ set(SOURCE_FILES
 	cryptoPolarssl.c
 	cryptoUtils.c
 	packetParser.c
+	pgpwords.c
 	stateMachine.c
 	zidCache.c
-	pgpwords.c
 )
 
 if(ENABLE_STATIC)

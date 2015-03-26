@@ -30,6 +30,7 @@ set(TEST_SOURCES
 	${CMAKE_SOURCE_DIR}/src/cryptoPolarssl.c
 	${CMAKE_SOURCE_DIR}/src/cryptoUtils.c
 	${CMAKE_SOURCE_DIR}/src/packetParser.c
+	${CMAKE_SOURCE_DIR}/src/pgpwords.c
 	${CMAKE_SOURCE_DIR}/src/stateMachine.c
 	${CMAKE_SOURCE_DIR}/src/zidCache.c
 )
