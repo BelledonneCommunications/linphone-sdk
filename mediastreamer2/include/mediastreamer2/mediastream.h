@@ -910,6 +910,11 @@ MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
  */
 MS2_PUBLIC MSFilter* video_preview_stop_reuse_source(VideoPreview *stream);
 
+/*
+ * Returns the web cam descriptor for the mire kind of camera.
+**/
+MS2_PUBLIC MSWebCamDesc *ms_mire_webcam_desc_get(void);
+
 /**
  * @}
 **/

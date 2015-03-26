@@ -197,7 +197,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 	MediaStream *marielle_ms,*margaux_ms;
 	OrtpNetworkSimulatorParams params={0};
 #if VIDEO_ENABLED
-	MSWebCam * marielle_webcam=mediastreamer2_tester_get_mir_webcam(ms_web_cam_manager_get());
+	MSWebCam * marielle_webcam=mediastreamer2_tester_get_mire_webcam(ms_web_cam_manager_get());
 #endif
 	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);
 	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);

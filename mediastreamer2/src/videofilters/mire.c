@@ -152,16 +152,11 @@ static void mire_cam_init(MSWebCam *cam){
 	cam->name=ms_strdup("Mire (synthetic moving picture)");
 }
 
-
 static MSFilter *mire_create_reader(MSWebCam *obj){
 	return ms_filter_new_from_desc(&ms_mire_desc);
 }
 
-/*This declaration sets export attributes for windows. Test program want to use the mire webcam directly as it is not included by default in the 
-webcam manager*/
-MS2_VAR_PUBLIC MSWebCamDesc mire_desc;
-
-MSWebCamDesc mire_desc={
+MSWebCamDesc ms_mire_webcam_desc={
 	"Mire",
 	&mire_detect,
 	&mire_cam_init,
@@ -169,10 +164,14 @@ MSWebCamDesc mire_desc={
 	NULL
 };
 
+MSWebCamDesc *ms_mire_webcam_desc_get(void){
+	return &ms_mire_webcam_desc;
+}
+
 static void mire_detect(MSWebCamManager *obj){
 	char *debug=getenv("DEBUG");
 	if (debug && atoi(debug)==1){
-		MSWebCam *cam=ms_web_cam_new(&mire_desc);
+		MSWebCam *cam=ms_web_cam_new(&ms_mire_webcam_desc);
 		ms_web_cam_manager_add_cam(obj,cam);
 	}
 }

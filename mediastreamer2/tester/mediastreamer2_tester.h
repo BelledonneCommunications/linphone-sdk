@@ -53,7 +53,7 @@ extern test_suite_t neon_test_suite;
     int apple_main(int argc, char *argv[]);
 #endif
 
-MSWebCam* mediastreamer2_tester_get_mir_webcam(MSWebCamManager *mgr);
+MSWebCam* mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr);
 
 #ifdef __cplusplus
 };

@@ -77,12 +77,6 @@ extern void libmswebrtc_init();
 
 #define MEDIASTREAM_MAX_ICE_CANDIDATES 3
 
-#ifdef _MSC_VER
-extern __declspec(dllimport) MSWebCamDesc mire_desc;
-#else
-extern MSWebCamDesc mire_desc;
-#endif
-
 static int cond=1;
 
 
@@ -711,7 +705,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,114,args->custom_pt);
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
 #ifdef VIDEO_ENABLED
-	cam=ms_web_cam_new(&mire_desc);
+	cam=ms_web_cam_new(ms_mire_webcam_desc_get());
 	if (cam) ms_web_cam_manager_add_cam(ms_web_cam_manager_get(), cam);
 	cam=NULL;
 

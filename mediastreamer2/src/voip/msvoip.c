@@ -199,7 +199,7 @@ extern MSWebCamDesc ms_v4m_cam_desc;
 extern MSWebCamDesc static_image_desc;
 #endif
 
-extern MSWebCamDesc mire_desc;
+extern MSWebCamDesc ms_mire_webcam_desc;
 #ifdef ANDROID
 extern MSWebCamDesc ms_android_video_capture_desc;
 #endif
@@ -233,7 +233,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #if TARGET_OS_IPHONE &&  !TARGET_IPHONE_SIMULATOR
 	&ms_v4ios_cam_desc,
 #endif
-	&mire_desc,
+	&ms_mire_webcam_desc,
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H) || TARGET_OS_IPHONE
 	&static_image_desc,
 #endif
