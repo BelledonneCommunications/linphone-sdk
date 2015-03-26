@@ -670,7 +670,8 @@ static void receiver_process(MSFilter * f)
 		}
 	}
 	/*every second compute recv bandwidth*/
-	if (f->ticker->time % 1000 == 0) rtp_session_compute_recv_bandwidth(d->session);
+	if (f->ticker->time % 1000 == 0)
+		rtp_session_compute_recv_bandwidth(d->session);
 }
 
 static MSFilterMethod receiver_methods[] = {

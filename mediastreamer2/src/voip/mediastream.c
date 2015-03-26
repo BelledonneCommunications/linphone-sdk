@@ -306,7 +306,8 @@ void media_stream_iterate(MediaStream *stream){
 					rtp_stats_t stats;
 					media_stream_get_local_rtp_stats(stream, &stats);
 					if (stats.packet_recv == 0 ) {
-						ms_message("stun packet received but no rtp yet for stream [%p]",stream);
+						memcpy(&stream->sessions.rtp_session->rtp.gs.rem_addr,&ortp_event_get_data(ev)->source_addr,ortp_event_get_data(ev)->source_addrlen);
+						ms_message("stun packet received but no rtp yet for stream [%p], switching rtp destination address",stream);
 					}
 				}
 			} else if ((evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) || (evt == ORTP_EVENT_DTLS_ENCRYPTION_CHANGED)) {
