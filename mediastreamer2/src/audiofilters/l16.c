@@ -133,11 +133,25 @@ static int enc_set_nchannels(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int enc_get_sr(MSFilter *f, void *arg){
+	struct EncState *s=(struct EncState*)f->data;
+	*(int*)arg = s->rate;
+	return 0;
+}
+
+static int enc_get_nchannels(MSFilter *f, void *arg) {
+	struct EncState *s = (struct EncState *)f->data;
+	*(int *)arg = s->nchannels;
+	return 0;
+}
+
 static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_ADD_ATTR		,	enc_add_attr},
 	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp},
 	{	MS_FILTER_SET_SAMPLE_RATE	,	enc_set_sr	},
 	{	MS_FILTER_SET_NCHANNELS		,	enc_set_nchannels},
+	{	MS_FILTER_GET_SAMPLE_RATE	,	enc_get_sr	},
+	{	MS_FILTER_GET_NCHANNELS		,	enc_get_nchannels},
 	{	0				,	NULL		}
 };
 

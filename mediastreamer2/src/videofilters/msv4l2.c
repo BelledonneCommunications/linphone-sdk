@@ -578,7 +578,7 @@ static void msv4l2_uninit(MSFilter *f){
 
 static void *msv4l2_thread(void *ptr){
 	V4l2State *s=(V4l2State*)ptr;
-	int try=0;
+	uint64_t start;
 
 	ms_message("msv4l2_thread starting");
 	if (s->fd==-1){
@@ -614,12 +614,15 @@ static void *msv4l2_thread(void *ptr){
 			}
 		}
 	}
-	/*dequeue pending buffers so that we can properly unref them (avoids memleak )*/
-	while(s->queued && try<10){
+	/*dequeue pending buffers so that we can properly unref them (avoids memleak ), and even worse crashes (vmware)*/
+	start=ortp_get_cur_time_ms();
+	while(s->queued){
 		v4l2_dequeue_ready_buffer(s,50);
-		try++;
+		if (ortp_get_cur_time_ms()-start > 5000){
+			ms_warning("msv4l2: still [%i] buffers not dequeued at exit !", s->queued);
+			break;
+		}
 	}
-	if (try==10) ms_warning("msv4l2: buffers not dequeued at exit !");
 	msv4l2_do_munmap(s);
 close:
 	msv4l2_close(s);
