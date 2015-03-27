@@ -51,7 +51,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static void configure_av_recorder(AudioStream *stream);
 static void configure_decoder(AudioStream *stream, PayloadType *pt, int sample_rate, int nchannels);
-static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from, MSFilter *to, PayloadType *pt);
+static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resampler,MSFilter *from, MSFilter *to);
 
 static void audio_stream_free(AudioStream *stream) {
 	media_stream_free(&stream->ms);
@@ -143,7 +143,7 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, unsigned lo
 			stream->ms.decoder = dec;
 			configure_decoder(stream, pt, stream->sample_rate, stream->nchannels);
 			if (stream->write_resampler){
-				audio_stream_configure_resampler(stream->write_resampler,stream->ms.decoder,stream->soundwrite,pt);
+				audio_stream_configure_resampler(stream, stream->write_resampler,stream->ms.decoder,stream->soundwrite);
 			}
 			ms_filter_link(stream->ms.rtprecv, 0, stream->ms.decoder, 0);
 			ms_filter_link(stream->ms.decoder, 0, nextFilter, 0);
@@ -162,7 +162,7 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, unsigned lo
 /*
  * note: since not all filters implement MS_FILTER_GET_SAMPLE_RATE and MS_FILTER_GET_NCHANNELS, the PayloadType passed here is used to guess this information.
  */
-static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from, MSFilter *to, PayloadType *pt) {
+static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resampler,MSFilter *from, MSFilter *to) {
 	int from_rate=0, to_rate=0;
 	int from_channels = 0, to_channels = 0;
 	ms_filter_call_method(from,MS_FILTER_GET_SAMPLE_RATE,&from_rate);
@@ -170,20 +170,20 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 	ms_filter_call_method(from, MS_FILTER_GET_NCHANNELS, &from_channels);
 	ms_filter_call_method(to, MS_FILTER_GET_NCHANNELS, &to_channels);
 	if (from_channels == 0) {
-		from_channels = pt->channels;
+		from_channels = st->nchannels;
 		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", from->desc->name);
 	}
 	if (to_channels == 0) {
-		to_channels = pt->channels;
+		to_channels = st->nchannels;
 		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", to->desc->name);
 	}
 	if (from_rate == 0){
 		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method", from->desc->name);
-		from_rate=pt->clock_rate;
+		from_rate = st->sample_rate;
 	}
 	if (to_rate == 0){
 		ms_error("Filter %s does not implement the MS_FILTER_GET_SAMPLE_RATE method", to->desc->name);
-		to_rate=pt->clock_rate;
+		to_rate = st->sample_rate;
 	}
 	ms_filter_call_method(resampler,MS_FILTER_SET_SAMPLE_RATE,&from_rate);
 	ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&to_rate);
@@ -823,12 +823,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 				stream->ec = NULL;
 			}
 		}
+		/*in any case, our software AEC filters do not support stereo operation, so force channels to be 1*/
+		nchannels=1;
 	}
-	stream->sample_rate=sample_rate;
-	stream->nchannels=nchannels;
 	/*hack for opus, that claims stereo all the time, but we can't support stereo yet*/
 	if (strcasecmp(pt->mime_type,"opus")==0)
 		nchannels=1;
+	stream->sample_rate=sample_rate;
+	stream->nchannels=nchannels;
 
 	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
 		stream->volsend=ms_filter_new(MS_VOLUME_ID);
@@ -956,10 +958,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	/*configure resamplers if needed*/
 	if (stream->read_resampler){
-		audio_stream_configure_resampler(stream->read_resampler, stream->soundread, stream->ms.encoder, pt);
+		audio_stream_configure_resampler(stream, stream->read_resampler, stream->soundread, stream->ms.encoder);
 	}
 	if (stream->write_resampler){
-		audio_stream_configure_resampler(stream->write_resampler, stream->ms.decoder, stream->soundwrite, pt);
+		audio_stream_configure_resampler(stream, stream->write_resampler, stream->ms.decoder, stream->soundwrite);
 	}
 
 	if (stream->ms.rc_enable){
@@ -1127,7 +1129,7 @@ void audio_stream_play(AudioStream *st, const char *name){
 		if (name != NULL) {
 			ms_filter_call_method(st->soundread,MS_FILE_PLAYER_OPEN,(void*)name);
 			if (st->read_resampler){
-				audio_stream_configure_resampler(st->read_resampler,st->soundread,st->ms.encoder, st->ms.current_pt);
+				audio_stream_configure_resampler(st, st->read_resampler,st->soundread,st->ms.encoder);
 			}
 			ms_filter_call_method_noarg(st->soundread,MS_FILE_PLAYER_START);
 		}

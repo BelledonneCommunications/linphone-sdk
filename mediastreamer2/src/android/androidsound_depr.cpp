@@ -201,6 +201,13 @@ static int set_nchannels(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int get_nchannels(MSFilter *f, void *arg){
+	ms_debug("get_nchannels %d", *((int*)arg));
+	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
+	*(int*)arg = d->nchannels;
+	return 0;
+}
+
 
 static unsigned int get_supported_rate(unsigned int prefered_rate) {
 	JNIEnv *jni_env = ms_get_jni_env();
@@ -268,6 +275,7 @@ MSFilterMethod msandroid_sound_read_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	, set_read_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
+	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
 	{	MS_FILTER_GET_LATENCY	, get_latency},
 	{	MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE,	msandroid_hack_speaker_state	},
 	{	0				, NULL		}
@@ -602,6 +610,7 @@ MSFilterMethod msandroid_sound_write_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	, set_write_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
+	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
 	{	0				, NULL		}
 };
 
