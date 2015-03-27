@@ -87,7 +87,7 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",	"SAMSUNG-SGH-I337","",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 ? */
 	{	"samsung",	"GT-I9195",		"",			DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S4 mini*/
 	{	"samsung",	"GT-N7000",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note*/
-	{	"samsung",	"GT-N7100",		"exynos4",	DEVICE_HAS_BUILTIN_AEC_CRAPPY,370 }, /*Galaxy Note 2 - built-in echo canceller is not reliable */
+	{	"samsung",	"GT-N7100",		"exynos4",	DEVICE_HAS_BUILTIN_AEC, 0 }, /*Galaxy Note 2  */
 	{	"samsung",	"GT-N7105",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
 	{	"samsung",	"SGH-T889",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
 	{	"samsung",	"Nexus S",		"s5pc110",	DEVICE_HAS_BUILTIN_AEC_CRAPPY,	180 }, /*Nexus S gives calibration around 240ms, but in practice the internal buffer size shrinks after a couple of seconds.*/
