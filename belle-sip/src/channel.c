@@ -910,7 +910,7 @@ static void handle_ewouldblock(belle_sip_channel_t *obj, const char *buffer, siz
 	memcpy(obj->ewouldblock_buffer,buffer,size);
 }
 
-static size_t find_non_asci(const char *buffer, size_t size){
+static size_t find_non_ascii(const char *buffer, size_t size){
 	size_t i;
 	for(i=0;i<size;++i){
 		if (!isascii(buffer[i])) return i;
@@ -924,30 +924,24 @@ static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t s
 	char *logbuf;
 	char truncate_msg[128]={0};
 	int limit=7000; /*big message when many ice candidates*/
-	size_t non_ascii_pos;
 
 	if (!belle_sip_log_level_enabled(level)){
 		return belle_sip_malloc0(1);
 	}
-	non_ascii_pos=find_non_asci(buffer,MIN(size,limit));
-	if (non_ascii_pos<2){
-		limit=0;
+	limit=find_non_ascii(buffer,MIN(size,limit));
+	if (limit==0){
 		snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (binary data)");
-	}else{
-		limit=non_ascii_pos;
-	}
-	if (limit!=0 && size>limit){
+	} else if (size>limit){
 		snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (first %i bytes shown)",limit);
 		size=limit;
 	}
-	if (size<limit)
-		limit=size;
+
 	if (truncate_msg[0]!=0){
 		size+=sizeof(truncate_msg);
 	}
+
 	logbuf=belle_sip_malloc(size+1);
-	if (limit>0) limit--; /*do not output the first 'bad' character*/
-	if (limit>0) strncpy(logbuf,buffer,limit);
+	strncpy(logbuf,buffer,limit);
 	if (truncate_msg[0]!=0){
 		strncpy(logbuf+limit,truncate_msg,sizeof(truncate_msg));
 	}
@@ -970,7 +964,7 @@ static int send_buffer(belle_sip_channel_t *obj, const char *buffer, size_t size
 
 	if (ret<0){
 		if (!belle_sip_error_code_is_would_block(-ret)){
-			belle_sip_error("channel [%p]: could not send [%i] bytes from [%s://%s:%i]  to [%s:%i]"	,obj
+			belle_sip_error("channel [%p]: could not send [%i] bytes from [%s://%s:%i] to [%s:%i]"	,obj
 				,(int)size
 				,belle_sip_channel_get_transport_name(obj)
 				,obj->local_ip
