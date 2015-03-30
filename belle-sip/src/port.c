@@ -47,7 +47,69 @@ void belle_sip_uninit_sockets(void){
 	if (sockets_initd==0) WSACleanup();
 }
 
-int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock)
+typedef struct thread_param {
+	void * (*func)(void *);
+	void * arg;
+} thread_param_t;
+
+static unsigned WINAPI thread_starter(void *data) {
+	thread_param_t *params = (thread_param_t*)data;
+	void *ret = params->func(params->arg);
+	belle_sip_free(data);
+	return (DWORD)ret;
+}
+
+int belle_sip_thread_create(belle_sip_thread_t *thread, void *attr, void * (*func)(void *), void *data) {
+	thread_param_t *params = belle_sip_new(thread_param_t);
+	params->func = func;
+	params->arg = data;
+	*thread = (HANDLE)_beginthreadex(NULL, 0, thread_starter, params, 0, NULL);
+	return 0;
+}
+
+int belle_sip_thread_join(belle_sip_thread_t thread, void **unused) {
+	if (thread != NULL) {
+		WaitForSingleObject(thread, INFINITE);
+		CloseHandle(thread);
+	}
+	return 0;
+}
+
+int belle_sip_mutex_init(belle_sip_mutex_t *mutex, void *attr) {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+	*mutex = CreateMutex(NULL, FALSE, NULL);
+#else
+	InitializeSRWLock(mutex);
+#endif
+	return 0;
+}
+
+int belle_sip_mutex_lock(belle_sip_mutex_t * hMutex) {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+	WaitForSingleObject(*hMutex, INFINITE);
+#else
+	AcquireSRWLockExclusive(hMutex);
+#endif
+	return 0;
+}
+
+int belle_sip_mutex_unlock(belle_sip_mutex_t * hMutex) {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+	ReleaseMutex(*hMutex);
+#else
+	ReleaseSRWLockExclusive(hMutex);
+#endif
+	return 0;
+}
+
+int belle_sip_mutex_destroy(belle_sip_mutex_t * hMutex) {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+	CloseHandle(*hMutex);
+#endif
+	return 0;
+}
+
+int belle_sip_socket_set_nonblocking(belle_sip_socket_t sock)
 {
 	unsigned long nonBlock = 1;
 	return ioctlsocket(sock, FIONBIO , &nonBlock);

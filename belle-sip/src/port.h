@@ -116,6 +116,42 @@ static BELLESIP_INLINE int get_socket_error(void){
 const char *belle_sip_get_socket_error_string();
 const char *belle_sip_get_socket_error_string_from_code(int code);
 
+/*
+ * Thread abstraction layer
+ */
+
+#ifdef WIN32
+
+typedef HANDLE belle_sip_thread_t;
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+typedef HANDLE belle_sip_mutex_t;
+#else
+typedef SRWLOCK belle_sip_mutex_t;
+#endif
+
+int belle_sip_thread_join(belle_sip_thread_t thread, void **retptr);
+int belle_sip_thread_create(belle_sip_thread_t *thread, void *attr, void * (*routine)(void*), void *arg);
+int belle_sip_mutex_init(belle_sip_mutex_t *m, void *attr_unused);
+int belle_sip_mutex_lock(belle_sip_mutex_t *mutex);
+int belle_sip_mutex_unlock(belle_sip_mutex_t *mutex);
+int belle_sip_mutex_destroy(belle_sip_mutex_t *mutex);
+
+#else
+
+#include <pthread.h>
+
+typedef pthread_t belle_sip_thread_t;
+typedef pthread_mutex_t belle_sip_mutex_t;
+#define belle_sip_thread_join(thread, retptr) pthread_join(thread, retptr)
+#define belle_sip_thread_create(thread, attr, routine, arg) pthread_create(thread, attr, routine, arg)
+#define belle_sip_mutex_init pthread_mutex_init
+#define belle_sip_mutex_lock pthread_mutex_lock
+#define belle_sip_mutex_unlock pthread_mutex_unlock
+#define belle_sip_mutex_destroy pthread_mutex_destroy
+
+
+#endif
+
 #if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 BELLESIP_INTERNAL_EXPORT void belle_sip_sleep(unsigned int ms);
 #else
