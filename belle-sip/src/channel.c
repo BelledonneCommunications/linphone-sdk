@@ -910,10 +910,14 @@ static void handle_ewouldblock(belle_sip_channel_t *obj, const char *buffer, siz
 	memcpy(obj->ewouldblock_buffer,buffer,size);
 }
 
-static size_t find_non_ascii(const char *buffer, size_t size){
+static size_t find_non_printable(const char *buffer, size_t size){
 	size_t i;
 	for(i=0;i<size;++i){
-		if (!isascii(buffer[i])) return i;
+		/*we must check that character is printable, not just ascii
+		(31 'US' char is not printable for instance)*/
+		if (!isprint(buffer[i])&&!isspace(buffer[i])){
+			return i;
+		}
 	}
 	return size;
 }
@@ -928,7 +932,7 @@ static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t s
 	if (!belle_sip_log_level_enabled(level)){
 		return belle_sip_malloc0(1);
 	}
-	limit=find_non_ascii(buffer,MIN(size,limit));
+	limit=find_non_printable(buffer,MIN(size,limit));
 	if (limit==0){
 		snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (binary data)");
 	} else if (size>limit){
