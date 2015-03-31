@@ -22,7 +22,7 @@
 
 set(EP_mswp8vid_GIT_REPOSITORY "git://git.linphone.org/mswp8vid.git")
 set(EP_mswp8vid_GIT_TAG_LATEST "master")
-set(EP_mswp8vid_GIT_TAG "348f10c42f71e4ccbb2bf6b78bed708fd98998b7")
+set(EP_mswp8vid_GIT_TAG "498b494573b7817ce0e61bb550603631924d9827")
 set(EP_mswp8vid_EXTERNAL_SOURCE_PATHS "mswp8vid")
 
 set(EP_mswp8vid_CMAKE_OPTIONS )

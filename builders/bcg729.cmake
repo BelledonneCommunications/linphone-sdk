@@ -22,7 +22,7 @@
 
 set(EP_bcg729_GIT_REPOSITORY "git://git.linphone.org/bcg729.git")
 set(EP_bcg729_GIT_TAG_LATEST "master")
-set(EP_bcg729_GIT_TAG "b2c07fe46ab131fe9a8db40397865c70d6f4cb7d")
+set(EP_bcg729_GIT_TAG "656563e27484af358cf107cacd0cf32aeac4b73c")
 
 set(EP_linphone_CMAKE_OPTIONS )
 set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=NO")
