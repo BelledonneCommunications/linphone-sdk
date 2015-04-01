@@ -1,3 +1,7 @@
+mediastreamer2-2.11.1: March 31, 2015
+	* Bug fixes
+	* Minor improvments
+
 mediastreamer2-2.11.0: March 11, 2015
 	* support of AVPF with VP8 codec only
 	* support of Matroska file format (needs libmatroska2)
