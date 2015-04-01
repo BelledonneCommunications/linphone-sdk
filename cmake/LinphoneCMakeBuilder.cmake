@@ -29,6 +29,10 @@ set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
 # Define the architecture. It will be used to generate the URL to get prebuilt dependencies.
 if(WIN32)
 	set(LINPHONE_BUILDER_ARCHITECTURE "Win32")
+elseif(UNIX)
+	if(APPLE)
+		set(LINPHONE_BUILDER_ARCHITECTURE "OsX64")
+	endif()
 endif()
 
 
