@@ -202,7 +202,7 @@ static void alsa_fill_w (snd_pcm_t *pcm_handle)
 {
 	snd_pcm_hw_params_t *hwparams=NULL;
 	int channels;
-        snd_pcm_uframes_t buffer_size;
+		snd_pcm_uframes_t buffer_size;
 	int buffer_size_bytes;
 	void *buffer;
 
@@ -616,9 +616,18 @@ static MSFilter *alsa_card_create_writer(MSSndCard *card)
 }
 
 
+void alsa_error_log_handler(const char *file, int line, const char *function, int err, const char *fmt, ...) {
+	va_list args;
+	va_start (args, fmt);
+	ortp_logv(ORTP_ERROR, fmt, args);
+	va_end (args);
+}
+
 static void alsa_card_init(MSSndCard *obj){
 	AlsaData *ad=ms_new0(AlsaData,1);
 	obj->data=ad;
+	snd_lib_error_set_handler(alsa_error_log_handler);
+
 }
 
 static void alsa_card_uninit(MSSndCard *obj){
@@ -755,7 +764,7 @@ struct _AlsaReadData{
 	MSTickerSynchronizer *ticker_synchronizer;
 	bool_t read_started;
 	bool_t write_started;
-	
+
 #ifdef THREADED_VERSION
 	ms_thread_t thread;
 	ms_mutex_t mutex;
@@ -799,51 +808,51 @@ static void * alsa_write_thread(void *p){
 
 	while (ad->read_started)
 	  {
-	    count = alsa_can_read(ad->handle,samples);
-	    if (count==24)
-	      { /* keep this value for this driver */ }
-	    else if (count<=0)
-	      {
+		count = alsa_can_read(ad->handle,samples);
+		if (count==24)
+		  { /* keep this value for this driver */ }
+		else if (count<=0)
+		  {
 		count = samples;
-	      }
-	    else if (count>0)
-	      {
+		  }
+		else if (count>0)
+		  {
 		//ms_warning("%i count", count);
 		//count = samples;
-	      }
+		  }
 
-	    int size=count*2;
-	    om=allocb(size,0);
+		int size=count*2;
+		om=allocb(size,0);
 
-	    if ((err=alsa_read(ad->handle,om->b_wptr,count))<=0)
-	      {
+		if ((err=alsa_read(ad->handle,om->b_wptr,count))<=0)
+		  {
 		ms_warning("nothing to read");
 		//ms_warning("Fail to read samples %i", count);
 		freemsg(om); /* leak fixed */
 		continue;
-	      }
-	    //ms_warning(" read %i", err);
+		  }
+		//ms_warning(" read %i", err);
 
-	    size=err*2;
-	    om->b_wptr+=size;
+		size=err*2;
+		om->b_wptr+=size;
 
-	    ms_mutex_lock(&ad->mutex);
-	    ms_bufferizer_put(ad->bufferizer,om);
-	    ms_mutex_unlock(&ad->mutex);
+		ms_mutex_lock(&ad->mutex);
+		ms_bufferizer_put(ad->bufferizer,om);
+		ms_mutex_unlock(&ad->mutex);
 
-	    if (count==24)
-	      {
+		if (count==24)
+		  {
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 2000;
 		select(0, 0, NULL, NULL, &timeout );
-	      }
-	    else
-	      {
+		  }
+		else
+		  {
 		/* select will be less active than locking on "read" */
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 5000;
 		select(0, 0, NULL, NULL, &timeout );
-	      }
+		  }
 	  }
 
 	if (ad->handle!=NULL) snd_pcm_close(ad->handle);
@@ -862,8 +871,8 @@ static void alsa_stop_r(AlsaReadData *d){
 	d->read_started=FALSE;
 	if (d->thread!=0)
 	  {
-	    ms_thread_join(d->thread,NULL);
-	    d->thread=0;
+		ms_thread_join(d->thread,NULL);
+		d->thread=0;
 	  }
 }
 #endif
