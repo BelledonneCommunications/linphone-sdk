@@ -167,6 +167,7 @@ endforeach()
 
 if(WIN32)
 	set(PLATFORM_TAG "win32")
+	set(HOST_PLATFORM_TAG "${PLATFORM_TAG}")
 else()
 	if(CMAKE_CROSSCOMPILING)
 		string(TOLOWER "${CMAKE_SYSTEM_NAME}" PLATFORM_OS)
