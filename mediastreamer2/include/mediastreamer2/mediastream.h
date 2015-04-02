@@ -906,7 +906,9 @@ MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
  * Stops the video preview graph but keep the source filter for reuse.
  * This is useful when transitioning from a preview-only to a duplex video.
  * The filter needs to be passed to the #video_stream_start_with_source function,
- * otherwise you should detroy it.
+ * otherwise you should destroy it.
+ * @param[in] stream VideoPreview object
+ * @return The source filter to be passed to the #video_stream_start_with_source function.
  */
 MS2_PUBLIC MSFilter* video_preview_stop_reuse_source(VideoPreview *stream);
 
