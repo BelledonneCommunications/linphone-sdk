@@ -33,12 +33,11 @@ if(NOT NASM_PROGRAM)
 endif()
 
 set(EP_openh264_GIT_REPOSITORY "https://github.com/cisco/openh264")
-set(EP_openh264_GIT_TAG "c13bfe6407252f64610b0c2c9aa0737054dcd71e")
+set(EP_openh264_GIT_TAG "3a75956fb2584cca84a95ba1fcbc72fa2c91f98d")
 set(EP_openh264_BUILD_METHOD "custom")
 set(EP_openh264_BUILD_IN_SOURCE "yes")
 set(EP_openh264_LINKING_TYPE "-static")
 set(EP_openh264_BUILD_TYPE "Release")	# Always use Release build type, otherwise the codec is too slow...
-set(EP_openh264_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/permissive.patch")
 set(EP_openh264_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/configure.sh.cmake)
 set(EP_openh264_BUILD_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/build.sh.cmake)
 set(EP_openh264_INSTALL_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/install.sh.cmake)
