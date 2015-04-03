@@ -256,6 +256,21 @@ AC_CONFIG_COMMANDS([libtool-hacking],
 	[mingw_found=$mingw_found]
 )
 
+dnl conditionnal build of tools.
+AC_ARG_ENABLE(tools,
+	[AS_HELP_STRING([--enable-tools=[yes/no]], [Turn on or off compilation of console interface (default=yes)])],
+	[case "${enableval}" in
+		yes)	build_tools=true ;;
+		no)	build_tools=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-tools) ;;
+	esac],
+	[build_tools=check]
+)
+AM_CONDITIONAL(BUILD_TOOLS, test x$build_tools != xfalse)
+if test "$build_tools" != "false" ; then
+	build_tools=true
+	AC_DEFINE(BUILD_TOOLS, 1, [Define if tools enabled] )
+fi
 
 dnl prefer fixed point computations
 AC_ARG_ENABLE(fixed_point,
