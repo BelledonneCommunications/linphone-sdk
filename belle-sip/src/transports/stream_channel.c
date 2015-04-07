@@ -269,7 +269,7 @@ belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stac
 	}
 	
 	obj=belle_sip_object_new(belle_sip_stream_channel_t);
-	belle_sip_channel_init_with_addr((belle_sip_channel_t*)obj,stack,remote_addr,slen);
+	belle_sip_channel_init_with_addr((belle_sip_channel_t*)obj,stack,NULL,0,remote_addr,slen);
 	belle_sip_socket_set_nonblocking(sock);
 	belle_sip_channel_set_socket((belle_sip_channel_t*)obj,sock,(belle_sip_source_func_t)stream_channel_process_data);
 	belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);

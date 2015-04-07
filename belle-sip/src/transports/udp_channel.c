@@ -101,7 +101,7 @@ belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int so
 belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const struct addrinfo *peer){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
 
-	belle_sip_channel_init_with_addr((belle_sip_channel_t*)obj,stack,peer->ai_addr, peer->ai_addrlen);
+	belle_sip_channel_init_with_addr((belle_sip_channel_t*)obj, stack, bindip, localport, peer->ai_addr, peer->ai_addrlen);
 	obj->base.local_port=localport;
 	belle_sip_channel_set_socket((belle_sip_channel_t*)obj,sock,NULL);
 	/*this lookups the local address*/

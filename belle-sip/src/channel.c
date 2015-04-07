@@ -671,7 +671,7 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,c
 }
 
 /*constructor for channels created by incoming connections*/
-void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const struct sockaddr *peer_addr, socklen_t addrlen){
+void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const char *bindip, int localport, const struct sockaddr *peer_addr, socklen_t addrlen){
 	char remoteip[64];
 	struct addrinfo ai;
 	int peer_port;
@@ -681,7 +681,7 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 	ai.ai_addr=(struct sockaddr*)peer_addr;
 	ai.ai_addrlen=addrlen;
 	belle_sip_addrinfo_to_ip(&ai,remoteip,sizeof(remoteip),&peer_port);
-	belle_sip_channel_init(obj,stack,NULL,0,NULL,remoteip,peer_port);
+	belle_sip_channel_init(obj,stack,bindip,localport,NULL,remoteip,peer_port);
 	obj->peer_list=obj->current_peer=belle_sip_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
 	obj->ai_family=ai.ai_family;
 }
