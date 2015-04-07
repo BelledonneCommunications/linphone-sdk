@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-if(MSVC)
+if(MSVC AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 	find_library(LIBGCC NAMES gcc)
 	find_library(LIBMINGWEX NAMES mingwex)
 endif()
@@ -69,12 +69,10 @@ add_definitions(
 )
 
 set(BASE_LIBS
-	${LIBGCC}
-	${LIBMINGWEX}
 	${ORTP_LIBRARIES}
 )
 if(WIN32 AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
-	list(APPEND BASE_LIBS ole32 oleaut32 uuid)
+	list(APPEND BASE_LIBS ${LIBGCC} ${LIBMINGWEX} ole32 oleaut32 uuid)
 endif()
 if(HAVE_DLOPEN)
 	list(APPEND BASE_LIBS dl)
@@ -326,14 +324,12 @@ set_source_files_properties(${VOIP_GENERATED_SOURCE_FILES} PROPERTIES GENERATED 
 
 
 set(VOIP_LIBS
-	${LIBGCC}
-	${LIBMINGWEX}
 	${ORTP_LIBRARIES}
 	mediastreamer_base
 )
 if(WIN32)
 	if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
-		list(APPEND VOIP_LIBS ole32 oleaut32 uuid)
+		list(APPEND VOIP_LIBS ${LIBGCC} ${LIBMINGWEX} ole32 oleaut32 uuid)
 		if(ENABLE_VIDEO)
 			list(APPEND VOIP_LIBS gdi32 user32 vfw32)
 		endif()
