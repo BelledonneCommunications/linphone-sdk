@@ -431,7 +431,7 @@ static void enc_process(MSFilter *f) {
 	EncState *s = (EncState *)f->data;
 	unsigned int flags = 0;
 	vpx_codec_err_t err;
-	YuvBuf yuv;
+	MSPicture yuv;
 	bool_t is_ref_frame=FALSE;
 
 	ms_filter_lock(f);

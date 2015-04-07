@@ -473,7 +473,7 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 									  , &quality
 									  , &qualitySize));
 
-		ms_error("I/O unit latency [%f], quality [%li]",delay,quality);
+		ms_message("I/O unit latency [%f], quality [%li]",delay,quality);
 		Float32 hwoutputlatency;
 		UInt32 hwoutputlatencySize=sizeof(hwoutputlatency);
 
