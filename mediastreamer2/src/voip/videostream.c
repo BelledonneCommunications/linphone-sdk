@@ -1000,6 +1000,10 @@ static void _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFi
 		profile = rtp_session_get_profile(stream->ms.sessions.rtp_session);
 		payload = rtp_session_get_send_payload_type(stream->ms.sessions.rtp_session);
 		pt = rtp_profile_get_payload(profile, payload);
+		if (stream->source_performs_encoding == TRUE) {
+			MSPixFmt format = mime_type_to_pix_format(pt->mime_type);
+			ms_filter_call_method(stream->source, MS_FILTER_SET_PIX_FMT, &format);
+		}
 		if (pt->normal_bitrate > 0){
 			apply_bitrate_limit(stream ,pt);
 		}
