@@ -471,6 +471,7 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 			switch (errno) {
 			case EAGAIN:
 				ms_warning("VIDIOC_DQBUF failed with EAGAIN, this is a driver bug !");
+				usleep(20000);
 			case EIO:
 				/* Could ignore EIO, see spec. */
 				break;
