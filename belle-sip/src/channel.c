@@ -915,9 +915,10 @@ static size_t find_non_printable(const char *buffer, size_t size){
 	for(i=0;i<size;++i){
 		/*we must check that character is printable, not just ascii
 		(31 'US' char is not printable for instance)*/
-		if (!isprint(buffer[i])&&!isspace(buffer[i])){
-			return i;
-		}
+#ifdef _MSC_VER
+		if ((buffer[i] < 0) || (buffer[i] > 255)) return i;
+#endif
+		if (!isprint(buffer[i]) && !isspace(buffer[i])) return i;
 	}
 	return size;
 }
