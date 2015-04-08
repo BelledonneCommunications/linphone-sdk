@@ -619,7 +619,7 @@ static MSFilter *alsa_card_create_writer(MSSndCard *card)
 void alsa_error_log_handler(const char *file, int line, const char *function, int err, const char *fmt, ...) {
 	va_list args;
 	va_start (args, fmt);
-	ortp_logv(ORTP_ERROR, fmt, args);
+	ortp_logv(ORTP_MESSAGE, fmt, args);
 	va_end (args);
 }
 
