@@ -804,6 +804,7 @@ static void msv4l2_detect(MSWebCamManager *obj){
 			if (v4l2_ioctl (fd, VIDIOC_QUERYCAP, &cap)==0) {
 				/* is a V4LV2 */
 				uint32_t camera_caps = cap.capabilities;
+				ms_message("v4l2 driver is %s, version is %i", cap.driver, cap.version);
 #ifdef V4L2_CAP_DEVICE_CAPS
 				if (cap.capabilities & V4L2_CAP_DEVICE_CAPS) {
 					camera_caps = cap.device_caps;
