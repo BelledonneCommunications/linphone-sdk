@@ -1,6 +1,6 @@
 ############################################################################
 # config-windowsphone.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
