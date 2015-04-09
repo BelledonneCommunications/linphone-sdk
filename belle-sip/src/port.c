@@ -69,7 +69,7 @@ int belle_sip_thread_create(belle_sip_thread_t *thread, void *attr, void * (*fun
 
 int belle_sip_thread_join(belle_sip_thread_t thread, void **unused) {
 	if (thread != NULL) {
-		WaitForSingleObject(thread, INFINITE);
+		WaitForSingleObjectEx(thread, INFINITE, FALSE);
 		CloseHandle(thread);
 	}
 	return 0;
