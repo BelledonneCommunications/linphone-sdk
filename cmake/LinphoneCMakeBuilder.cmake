@@ -126,26 +126,26 @@ find_program(PKG_CONFIG_PROGRAM
 if(NOT PKG_CONFIG_PROGRAM)
 	if(WIN32)
 		message(STATUS "Installing pkg-config to C:/MinGW/bin")
-		set(_pkg_config_dir ${CMAKE_CURRENT_BINARY_DIR}/pkg-config)
+		set(_pkg_config_dir ${CMAKE_BINARY_DIR}/pkg-config)
 		file(MAKE_DIRECTORY ${_pkg_config_dir})
-		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/dependencies/pkg-config_0.26-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/pkg-config.zip")
+		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/dependencies/pkg-config_0.26-1_win32.zip "${CMAKE_BINARY_DIR}/pkg-config.zip")
 		execute_process(
-			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/pkg-config.zip"
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_BINARY_DIR}/pkg-config.zip"
 			WORKING_DIRECTORY ${_pkg_config_dir}
 		)
-		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/dependencies/pkg-config-dev_0.26-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/pkg-config-dev.zip")
+		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/dependencies/pkg-config-dev_0.26-1_win32.zip "${CMAKE_BINARY_DIR}/pkg-config-dev.zip")
 		execute_process(
-			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/pkg-config-dev.zip"
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_BINARY_DIR}/pkg-config-dev.zip"
 			WORKING_DIRECTORY ${_pkg_config_dir}
 		)
-		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/dependencies/gettext-runtime_0.18.1.1-2_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/gettext-runtime.zip")
+		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/dependencies/gettext-runtime_0.18.1.1-2_win32.zip "${CMAKE_BINARY_DIR}/gettext-runtime.zip")
 		execute_process(
-			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/gettext-runtime.zip"
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_BINARY_DIR}/gettext-runtime.zip"
 			WORKING_DIRECTORY ${_pkg_config_dir}
 		)
-		file(DOWNLOAD http://ftp.acc.umu.se/pub/gnome/binaries/win32/glib/2.28/glib_2.28.8-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/glib.zip")
+		file(DOWNLOAD http://ftp.acc.umu.se/pub/gnome/binaries/win32/glib/2.28/glib_2.28.8-1_win32.zip "${CMAKE_BINARY_DIR}/glib.zip")
 		execute_process(
-			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/glib.zip"
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_BINARY_DIR}/glib.zip"
 			WORKING_DIRECTORY ${_pkg_config_dir}
 		)
 		file(RENAME "${_pkg_config_dir}/bin/pkg-config.exe" "C:/MinGW/bin/pkg-config.exe")
@@ -173,11 +173,11 @@ find_program(INTLTOOLIZE_PROGRAM
 if(NOT INTLTOOLIZE_PROGRAM)
 	if(WIN32)
 		message(STATUS "Installing intltoolize to C:/MinGW/bin")
-		set(_intltoolize_dir ${CMAKE_CURRENT_BINARY_DIR}/intltoolize)
+		set(_intltoolize_dir ${CMAKE_BINARY_DIR}/intltoolize)
 		file(MAKE_DIRECTORY ${_intltoolize_dir})
-		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/intltool/0.40/intltool_0.40.4-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/intltoolize.zip")
+		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/intltool/0.40/intltool_0.40.4-1_win32.zip "${CMAKE_BINARY_DIR}/intltoolize.zip")
 		execute_process(
-			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/intltoolize.zip"
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_BINARY_DIR}/intltoolize.zip"
 			WORKING_DIRECTORY ${_intltoolize_dir}
 		)
 		execute_process(
@@ -312,12 +312,12 @@ function(linphone_builder_get_autotools_configuration)
 		list(APPEND _autotools_command "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 	endif()
 	list(APPEND _autotools_command "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Autotools/")
-	execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/Autotools)
-	execute_process(COMMAND ${_autotools_command} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Autotools)
+	execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/Autotools)
+	execute_process(COMMAND ${_autotools_command} WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/Autotools)
 	unset(_autotools_command)
 	unset(_extra_generator)
 	unset(_generator)
-	include(${CMAKE_CURRENT_BINARY_DIR}/Autotools/Autotools.cmake)
+	include(${CMAKE_BINARY_DIR}/Autotools/Autotools.cmake)
 endfunction()
 
 
