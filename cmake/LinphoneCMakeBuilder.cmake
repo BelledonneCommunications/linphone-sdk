@@ -57,16 +57,18 @@ if(MSVC)
 		message(FATAL_ERROR "Could not find MinGW!")
 	endif(NOT SH_PROGRAM)
 
-	find_file(GCC_LIBRARY
-		NAMES libgcc.a
-		HINTS "C:/MinGW/lib/gcc/mingw32/*"
-	)
-	execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${GCC_LIBRARY}" "${CMAKE_INSTALL_PREFIX}/lib/gcc.lib")
-	find_file(MINGWEX_LIBRARY
-		NAMES libmingwex.a
-		HINTS "C:/MinGW/lib"
-	)
-	execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${MINGWEX_LIBRARY}" "${CMAKE_INSTALL_PREFIX}/lib/mingwex.lib")
+	if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+		find_file(GCC_LIBRARY
+			NAMES libgcc.a
+			HINTS "C:/MinGW/lib/gcc/mingw32/*"
+		)
+		execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${GCC_LIBRARY}" "${CMAKE_INSTALL_PREFIX}/lib/gcc.lib")
+		find_file(MINGWEX_LIBRARY
+			NAMES libmingwex.a
+			HINTS "C:/MinGW/lib"
+		)
+		execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${MINGWEX_LIBRARY}" "${CMAKE_INSTALL_PREFIX}/lib/mingwex.lib")
+	endif()
 endif()
 
 if(WIN32)
