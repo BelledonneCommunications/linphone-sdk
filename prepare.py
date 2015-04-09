@@ -163,23 +163,6 @@ class PythonRaspberryTarget(Target):
 		self.config_file = 'configs/config-python-raspberry.cmake'
 		self.toolchain_file = 'toolchains/toolchain-raspberry.cmake'
 
-class WindowsPhoneTarget(Target):
-	def __init__(self, arch, platform):
-		Target.__init__(self, 'windowsphone-' + arch)
-		self.config_file = 'configs/config-windowsphone.cmake'
-		self.generator = 'Visual Studio 12 2013'
-		self.platform_name = platform
-		self.output = 'OUTPUT/liblinphone-windowsphone-sdk/' + arch
-		self.additional_args = ['-DCMAKE_SYSTEM_NAME=WindowsPhone', '-DCMAKE_SYSTEM_VERSION=8.0', '-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=../submodules']
-
-class WindowsPhoneARMTarget(WindowsPhoneTarget):
-	def __init__(self):
-		WindowsPhoneTarget.__init__(self, 'arm', 'ARM')
-
-class WindowsPhoneX86Target(WindowsPhoneTarget):
-	def __init__(self):
-		WindowsPhoneTarget.__init__(self, 'x86', None)
-
 
 targets = {}
 targets['bb10-arm'] = BB10armTarget()
@@ -190,8 +173,6 @@ targets['ios-armv7'] = IOSarmv7Target()
 targets['ios-armv7s'] = IOSarmv7sTarget()
 targets['python'] = PythonTarget()
 targets['python-raspberry'] = PythonRaspberryTarget()
-targets['windowsphone-arm'] = WindowsPhoneARMTarget()
-targets['windowsphone-x86'] = WindowsPhoneX86Target()
 target_names = sorted(targets.keys())
 
 
