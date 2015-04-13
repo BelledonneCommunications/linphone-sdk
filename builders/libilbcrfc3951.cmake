@@ -22,12 +22,6 @@
 
 set(EP_libilbcrfc3951_GIT_REPOSITORY "git://git.linphone.org/libilbc-rfc3951.git")
 set(EP_libilbcrfc3951_GIT_TAG_LATEST "master")
-set(EP_libilbcrfc3951_GIT_TAG "9ab4928dcacaa1ef35a7bdc328d706a4569f29a3")
+set(EP_libilbcrfc3951_GIT_TAG "1fe27c5468536c0876b14ddb90682bbd3e95f6f0")
 
-set(EP_libilbcrfc3951_BUILD_METHOD "autotools")
-set(EP_libilbcrfc3951_USE_AUTOGEN "yes")
-set(EP_libilbcrfc3951_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_HOST}"
-)
-set(EP_libilbcrfc3951_LINKING_TYPE "--disable-static" "--enable-shared")
+set(EP_libilbcrfc3951_CMAKE_OPTIONS )
