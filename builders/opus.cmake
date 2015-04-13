@@ -33,15 +33,11 @@ if(EP_opus_PREBUILT)
 	set(EP_opus_URL "${CMAKE_CURRENT_BINARY_DIR}/${EP_opus_FILENAME}")
 	set(EP_opus_BUILD_METHOD "prebuilt")
 else()
-	set(EP_opus_URL "http://downloads.xiph.org/releases/opus/opus-1.0.3.tar.gz")
-	set(EP_opus_URL_HASH "MD5=86eedbd3c5a0171d2437850435e6edff")
-	set(EP_opus_BUILD_METHOD "autotools")
-	set(EP_opus_CROSS_COMPILATION_OPTIONS
-		"--prefix=${CMAKE_INSTALL_PREFIX}"
-		"--host=${LINPHONE_BUILDER_HOST}"
-	)
-	set(EP_opus_CONFIGURE_OPTIONS
-		"--disable-doc"
-	)
-	set(EP_opus_LINKING_TYPE "--disable-static" "--enable-shared")
+	set(EP_opus_URL "http://downloads.xiph.org/releases/opus/opus-1.1.tar.gz")
+	set(EP_opus_URL_HASH "MD5=c5a8cf7c0b066759542bc4ca46817ac6")
+	set(EP_opus_EXTERNAL_SOURCE_PATHS "opus")
+	set(EP_opus_CMAKE_OPTIONS )
+	set(EP_opus_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opus/CMakeLists.txt" "<SOURCE_DIR>")
+	list(APPEND EP_opus_PATCH_COMMAND "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opus/config.h.cmake" "<SOURCE_DIR>")
+	set(EP_opus_LINKING_TYPE "-DENABLE_STATIC=NO")
 endif()
