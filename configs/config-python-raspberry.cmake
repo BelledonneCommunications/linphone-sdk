@@ -39,6 +39,9 @@ set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
 	"--target-os=linux"
 )
 
+# opus
+list(APPEND EP_opus_CMAKE_OPTIONS "-DENABLE_FIXED_POINT=YES")
+
 # vpx
 set(EP_vpx_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"

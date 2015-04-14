@@ -58,8 +58,62 @@ else()
 endif()
 
 if(ENABLE_ASM)
-	if(CMAKE_SYSTEM_PROCESSOR MATCHES "^ARM.*")
-		set(OPUS_ARM_ASM 1)
+	string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
+	if(SYSTEM_PROCESSOR MATCHES "^arm.*")
+		if(ENABLE_FIXED_POINT)
+			set(OPUS_ARM_ASM 1)
+			include(CheckCSourceCompiles)
+			check_c_source_compiles("
+#ifdef __GNUC_MINOR__
+#if (__GNUC__ * 1000 + __GNUC_MINOR__) < 3004
+#error GCC before 3.4 has critical bugs compiling inline assembly
+#endif
+#endif
+int main(int argc, char *argv[]) { __asm__ (\"\"); }
+" OPUS_ARM_INLINE_ASM)
+			check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\"qadd r3,r3,r3\"); }" OPUS_ARM_INLINE_EDSP)
+			check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\"shadd8 r3,r3,r3\"); }" OPUS_ARM_INLINE_MEDIA)
+			check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\"vorr d0,d0,d0\"); }" OPUS_ARM_INLINE_NEON)
+			find_package(Perl)
+			if(PERL_FOUND)
+				set(OPUS_ARM_EXTERNAL_ASM 1)
+				if(OPUS_ARM_INLINE_EDSP)
+					set(OPUS_ARM_MAY_HAVE_EDSP 1)
+				endif()
+				if(OPUS_ARM_INLINE_MEDIA)
+					set(OPUS_ARM_MAY_HAVE_MEDIA 1)
+				endif()
+				if(OPUS_ARM_INLINE_NEON)
+					set(OPUS_ARM_MAY_HAVE_NEON 1)
+				endif()
+				if(ENABLE_RTCD)
+					if(NOT OPUS_ARM_MAY_HAVE_EDSP)
+						check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\".arch armv5te\\n.object_arch armv4t\\nqadd r3,r3,r3\"); }" OPUS_ARM_MAY_HAVE_EDSP)
+					endif()
+					if(NOT OPUS_ARM_MAY_HAVE_MEDIA)
+						check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\".arch armv6\\n.object_arch armv4t\\nshadd8 r3,r3,r3\"); }" OPUS_ARM_MAY_HAVE_MEDIA)
+					endif()
+					if(NOT OPUS_ARM_MAY_HAVE_NEON)
+						check_c_source_compiles("int main(int argc, char *argv[]) { __asm__(\".arch armv7-a\\n.fpu neon\\n.object_arch armv4t\\nvorr d0,d0,d0\"); }" OPUS_ARM_MAY_HAVE_NEON)
+					endif()
+				endif()
+				if(OPUS_ARM_MAY_HAVE_EDSP)
+					set(OPUS_ARM_PRESUME_EDSP 1)
+				else()
+					set(OPUS_ARM_MAY_HAVE_EDSP 0)
+				endif()
+				if(OPUS_ARM_MAY_HAVE_MEDIA)
+					set(OPUS_ARM_PRESUME_MEDIA 1)
+				else()
+					set(OPUS_ARM_MAY_HAVE_MEDIA 0)
+				endif()
+				if(OPUS_ARM_MAY_HAVE_NEON)
+					set(OPUS_ARM_PRESUME_NEON 1)
+				else()
+					set(OPUS_ARM_MAY_HAVE_NEON 0)
+				endif()
+			endif()
+		endif()
 	endif()
 endif()
 if(ENABLE_FIXED_POINT)
@@ -124,12 +178,29 @@ set(CELT_SOURCES_ARM
 )
 
 set(CELT_SOURCES_ARM_ASM
-	celt/arm/celt_pitch_xcorr_arm.s
+	${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/celt_pitch_xcorr_arm.s
 )
+if(OPUS_ARM_EXTERNAL_ASM)
+	set(CELT_SOURCES_EXTERNAL_ARM_ASM
+		${CMAKE_CURRENT_BINARY_DIR}/celt/arm/celt_pitch_xcorr_arm-gnu.S
+	)
+	set_source_files_properties(${CELT_SOURCES_EXTERNAL_ARM_ASM} PROPERTIES GENERATED TRUE)
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/celt/arm/celt_pitch_xcorr_arm-gnu.S
+		COMMAND "${PERL_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/arm2gnu.pl" "<" "${CELT_SOURCES_ARM_ASM}" ">" "${CELT_SOURCES_EXTERNAL_ARM_ASM}")
+endif()
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/armopts.s.in ${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts.s @ONLY)
 set(CELT_AM_SOURCES_ARM_ASM
-	celt/arm/armopts.s.in
+	${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts.s
 )
+if(OPUS_ARM_EXTERNAL_ASM)
+	set(CELT_AM_SOURCES_EXTERNAL_ARM_ASM
+		${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts-gnu.S
+	)
+	set_source_files_properties(${CELT_AM_SOURCES_EXTERNAL_ARM_ASM} PROPERTIES GENERATED TRUE)
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts-gnu.S
+		COMMAND "${PERL_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/arm2gnu.pl" "<" "${CELT_AM_SOURCES_ARM_ASM}" ">" "${CELT_AM_SOURCES_EXTERNAL_ARM_ASM}")
+endif()
 
 set(SILK_SOURCES
 	silk/CNG.c
@@ -298,6 +369,9 @@ if(ENABLE_FLOAT_API)
 endif()
 if(OPUS_ARM_ASM)
 	list(APPEND CELT_SOURCES ${CELT_SOURCES_ARM})
+	if(OPUS_ARM_EXTERNAL_ASM)
+		list(APPEND CELT_SOURCES ${CELT_SOURCES_EXTERNAL_ARM_ASM} ${CELT_AM_SOURCES_EXTERNAL_ARM_ASM})
+	endif()
 endif()
 
 
