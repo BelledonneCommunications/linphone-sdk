@@ -81,11 +81,11 @@ if(WIN32)
 			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_BINARY_DIR}/linphone_builder_windows_tools.zip"
 			WORKING_DIRECTORY ${_windows_tools_dir}
 		)
-		file(MAKE_DIRECTORY "${LINPHONE_BUILDER_WORK_DIR}/windows_tools")
-		file(RENAME "${_windows_tools_dir}/awk.exe" "${LINPHONE_BUILDER_WORK_DIR}/windows_tools/awk.exe")
-		file(RENAME "${_windows_tools_dir}/nasm.exe" "${LINPHONE_BUILDER_WORK_DIR}/windows_tools/nasm.exe")
-		file(RENAME "${_windows_tools_dir}/patch.exe" "${LINPHONE_BUILDER_WORK_DIR}/windows_tools/patch.exe")
-		file(RENAME "${_windows_tools_dir}/sed.exe" "${LINPHONE_BUILDER_WORK_DIR}/windows_tools/sed.exe")
+		file(MAKE_DIRECTORY "${CMAKE_INSTALL_PREFIX}/bin")
+		file(RENAME "${_windows_tools_dir}/awk.exe" "${CMAKE_INSTALL_PREFIX}/bin/awk.exe")
+		file(RENAME "${_windows_tools_dir}/nasm.exe" "${CMAKE_INSTALL_PREFIX}/bin/nasm.exe")
+		file(RENAME "${_windows_tools_dir}/patch.exe" "${CMAKE_INSTALL_PREFIX}/bin/patch.exe")
+		file(RENAME "${_windows_tools_dir}/sed.exe" "${CMAKE_INSTALL_PREFIX}/bin/sed.exe")
 		if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 			file(RENAME "${_windows_tools_dir}/yasm-1.3.0-win64.exe" "C:/MinGW/bin/yasm.exe")
 		else()
@@ -96,7 +96,6 @@ endif()
 
 find_program(PATCH_PROGRAM
 	NAMES patch patch.exe
-	HINTS "${LINPHONE_BUILDER_WORK_DIR}/windows_tools"
 )
 if(NOT PATCH_PROGRAM)
 	if(WIN32)
@@ -108,7 +107,6 @@ endif()
 
 find_program(SED_PROGRAM
 	NAMES sed sed.exe
-	HINTS "${LINPHONE_BUILDER_WORK_DIR}/windows_tools"
 )
 if(NOT SED_PROGRAM)
 	if(WIN32)
