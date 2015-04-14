@@ -1,17 +1,17 @@
 /*
  msosxdisplay.m
  Copyright (C) 2011 Belledonne Communications, Grenoble, France
- 
+
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
  as published by the Free Software Foundation; either version 2
  of the License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -55,12 +55,12 @@
 		self->prevBounds = CGRectMake(0, 0, 0, 0);
 		self->lock = [[NSRecursiveLock alloc] init];
 		self->display_helper = ogl_display_new();
-		
+
 		[self setOpaque:YES];
 		[self setAsynchronous:NO];
 		[self setAutoresizingMask: kCALayerWidthSizable | kCALayerHeightSizable];
 		[self setNeedsDisplayOnBoundsChange:YES];
-		
+
 		// FBO Support
 		GLint numPixelFormats = 0;
 		CGLPixelFormatAttribute attributes[] =
@@ -70,19 +70,19 @@
 			kCGLPFADoubleBuffer,
 			0
 		};
-		
+
 		CGLChoosePixelFormat(attributes, &cglPixelFormat, &numPixelFormats);
 		assert(cglPixelFormat);
-		
+
 		cglContext = [super copyCGLContextForPixelFormat:cglPixelFormat];
 		assert(cglContext);
-		
+
 		CGLContextObj savedContext = CGLGetCurrentContext();
 		CGLSetCurrentContext(cglContext);
 		CGLLockContext(cglContext);
-		
+
 		ogl_display_init(display_helper, prevBounds.size.width, prevBounds.size.height);
-		
+
 		CGLUnlockContext(cglContext);
 		CGLSetCurrentContext(savedContext);
 	}
@@ -93,17 +93,17 @@
 	CGLContextObj savedContext = CGLGetCurrentContext();
 	CGLSetCurrentContext(cglContext);
 	CGLLockContext(cglContext);
-	
+
 	ogl_display_uninit(display_helper, TRUE);
 	ogl_display_free(display_helper);
-	
+
 	CGLUnlockContext(cglContext);
 	CGLSetCurrentContext(savedContext);
-	
+
 	[self releaseCGLContext:cglContext];
 	[self releaseCGLPixelFormat:cglPixelFormat];
 	[lock release];
-	
+
 	[super dealloc];
 }
 
@@ -125,31 +125,31 @@
 	CGLReleaseContext(cglContext);
 }
 
-- (void)drawInCGLContext:(CGLContextObj)glContext 
-			 pixelFormat:(CGLPixelFormatObj)pixelFormat 
-			forLayerTime:(CFTimeInterval)timeInterval 
-			 displayTime:(const CVTimeStamp *)timeStamp { 
+- (void)drawInCGLContext:(CGLContextObj)glContext
+			 pixelFormat:(CGLPixelFormatObj)pixelFormat
+			forLayerTime:(CFTimeInterval)timeInterval
+			 displayTime:(const CVTimeStamp *)timeStamp {
 	if([lock tryLock]) {
 		CGLContextObj savedContext = CGLGetCurrentContext();
 		CGLSetCurrentContext(cglContext);
 		CGLLockContext(cglContext);
-	
+
 		if (!CGRectEqualToRect(prevBounds, [self bounds])) {
 			prevBounds = [self bounds];
 			ogl_display_set_size(display_helper, prevBounds.size.width, prevBounds.size.height);
 		}
-		
+
 		glClearColor(0, 0, 0, 0);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ogl_display_render(display_helper, 0);
-		
+
 		CGLUnlockContext(cglContext);
 		CGLSetCurrentContext(savedContext);
 		CGLFlushDrawable(cglContext);
-		
-		[super drawInCGLContext:glContext 
-					pixelFormat:pixelFormat 
-				   forLayerTime:timeInterval 
+
+		[super drawInCGLContext:glContext
+					pixelFormat:pixelFormat
+				   forLayerTime:timeInterval
 					displayTime:timeStamp];
 		[lock unlock];
 	}
@@ -219,7 +219,7 @@
 
 - (void)resetContainers {
 	[glLayer removeFromSuperlayer];
-	
+
 	if(window != nil) {
 		if(closeWindow) {
 			[window close];
@@ -241,14 +241,14 @@
 	if(window == awindow) {
 		return;
 	}
-	
+
 	[self resetContainers];
-	
+
 	if(awindow != nil) {
 		window = [awindow retain];
 		[glLayer setFrame:[[window.contentView layer] bounds]];
 		[[window.contentView layer] addSublayer: glLayer];
-		
+
 		glLayer.sourceSize = CGSizeMake(0, 0); // Force window resize
 	}
 }
@@ -257,9 +257,9 @@
 	if(view == aview) {
 		return;
 	}
-	
+
 	[self resetContainers];
-	
+
 	if(aview != nil) {
 		view = [aview retain];
 		[view setWantsLayer:YES];
@@ -272,9 +272,9 @@
 	if(layer == alayer) {
 		return;
 	}
-	
+
 	[self resetContainers];
-	
+
 	if(alayer != nil) {
 		layer = [alayer retain];
 		[glLayer setFrame:[layer bounds]];
@@ -294,7 +294,7 @@
 		CGFloat xPos = NSWidth([[awindow screen] frame])/2 - NSWidth([awindow frame])/2;
 		CGFloat yPos = NSHeight([[awindow screen] frame])/2 - NSHeight([awindow frame])/2;
 		[awindow setFrame:NSMakeRect(xPos, yPos, NSWidth([awindow frame]), NSHeight([awindow frame])) display:YES];
-		
+
 		// Init view
 		NSView *innerView = [[NSView alloc] initWithFrame:[window frame]];
 		[innerView setWantsLayer:YES];
@@ -302,7 +302,7 @@
 		[innerView.layer setNeedsDisplayOnBoundsChange: YES];
 		[awindow setContentView: innerView];
 		[innerView release];
-		
+
 		self.window = awindow;
 		self.closeWindow = TRUE;
 	}
@@ -310,8 +310,9 @@
 
 - (void)dealloc {
 	[self resetContainers];
+	[self.glLayer release];
 	self.glLayer = nil;
-	
+
 	[super dealloc];
 }
 
@@ -336,7 +337,7 @@ static void osx_gl_process(MSFilter* f) {
 	OSXDisplay* thiz = (OSXDisplay*) f->data;
 	mblk_t* m = 0;
 	MSPicture pic;
-	
+
 	NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
 
 	if ((m=ms_queue_peek_last(f->inputs[0])) != NULL) {
@@ -345,14 +346,14 @@ static void osx_gl_process(MSFilter* f) {
 				// Source size change?
 				if (pic.w != thiz.glLayer.sourceSize.width || pic.h != thiz.glLayer.sourceSize.height) {
 					thiz.glLayer.sourceSize = CGSizeMake(pic.w, pic.h);
-				
+
 					// Force window resize
 					if(thiz.window != nil) {
 						[thiz.glLayer performSelectorOnMainThread:@selector(resizeToWindow:) withObject:thiz.window waitUntilDone:FALSE];
 					}
 				}
 				ogl_display_set_yuv_to_display(thiz.glLayer->display_helper, m);
-			
+
 				// Force redraw
 				[thiz.glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
 			}
@@ -367,7 +368,7 @@ static void osx_gl_process(MSFilter* f) {
 					if (thiz != nil) {
 						if (!mblk_get_precious_flag(m)) ms_yuv_buf_mirror(&pic);
 						ogl_display_set_preview_yuv_to_display(thiz.glLayer->display_helper, m);
-					
+
 						// Force redraw
 						[thiz.glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
 					}
@@ -396,7 +397,7 @@ static int osx_gl_set_vsize(MSFilter* f, void* arg) {
 static int osx_gl_get_native_window_id(MSFilter* f, void* arg) {
 	OSXDisplay* thiz = (OSXDisplay*) f->data;
 	unsigned long *winId = (unsigned long*)arg;
-	int ret = -1;	
+	int ret = -1;
 	if(thiz != nil) {
 		if(thiz.window != nil) {
 			*winId = (unsigned long)thiz.window;
@@ -407,7 +408,7 @@ static int osx_gl_get_native_window_id(MSFilter* f, void* arg) {
 		} else if(thiz.layer != nil) {
 			*winId = (unsigned long)thiz.layer;
 			ret = 0;
-		} else if(thiz.autoWindow) {	
+		} else if(thiz.autoWindow) {
 			*winId = MS_FILTER_VIDEO_AUTO;
 			ret = 0;
 		} else {
@@ -422,7 +423,7 @@ static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
 	OSXDisplay* thiz = (OSXDisplay*) f->data;
 	unsigned long winId = *((unsigned long*)arg);
 	NSObject *obj = *((NSObject **)arg);
-	int ret = -1;	
+	int ret = -1;
 	if(thiz != nil) {
 		NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
 		if(winId != MS_FILTER_VIDEO_AUTO && winId != MS_FILTER_VIDEO_NONE) {
@@ -441,7 +442,7 @@ static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
 				thiz.autoWindow = FALSE;
 			} else {
 				thiz.autoWindow = TRUE;
-			} 
+			}
 			[thiz performSelectorOnMainThread:@selector(resetContainers) withObject:nil waitUntilDone:NO];
 			ret = 0;
 		}

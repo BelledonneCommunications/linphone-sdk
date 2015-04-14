@@ -444,7 +444,7 @@ static void upload_bitrate_opus_3g() {
 	upload_bitrate("opus", OPUS_PAYLOAD_TYPE, THIRDGENERATION_BW, 200);
 }
 
-#if VIDEO_ENABLED
+#if VIDEO_ENABLED && 0
 void adaptive_video(int max_bw, int exp_min_bw, int exp_max_bw, int loss_rate, int exp_min_loss, int exp_max_loss) {
 	bool_t supported = ms_filter_codec_supported("VP8");
 	if( supported ) {
@@ -486,7 +486,7 @@ static test_t tests[] = {
 	{ "Upload bitrate [opus] - edge", upload_bitrate_opus_edge },
 	{ "Upload bitrate [opus] - 3g", upload_bitrate_opus_3g },
 
-#if VIDEO_ENABLED
+#if VIDEO_ENABLED && 0
 	{ "Network detection [VP8] - ideal", adaptive_vp8_ideal },
 	{ "Network detection [VP8] - lossy", adaptive_vp8_lossy },
 	{ "Network detection [VP8] - congested", adaptive_vp8_congestion },
