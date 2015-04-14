@@ -21,8 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(MSOPENH264 C)
-enable_language(CXX)
+project(MSOPENH264)
 
 
 set(PACKAGE "msopenh264")
