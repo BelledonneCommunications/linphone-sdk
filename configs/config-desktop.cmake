@@ -95,8 +95,6 @@ if(WIN32)
 endif()
 
 # openh264
-# Use version 1.3.1 to use the binary release from Cisco
-set(EP_openh264_GIT_TAG "v1.3.1")
 set(EP_openh264_LINKING_TYPE "-shared")
 
 # vpx

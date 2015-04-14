@@ -33,7 +33,7 @@ if(NOT NASM_PROGRAM)
 endif()
 
 set(EP_openh264_GIT_REPOSITORY "https://github.com/cisco/openh264")
-set(EP_openh264_GIT_TAG "3a75956fb2584cca84a95ba1fcbc72fa2c91f98d")
+set(EP_openh264_GIT_TAG "v1.3.1")
 set(EP_openh264_BUILD_METHOD "custom")
 set(EP_openh264_BUILD_IN_SOURCE "yes")
 set(EP_openh264_LINKING_TYPE "-static")
