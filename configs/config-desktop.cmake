@@ -94,6 +94,10 @@ if(WIN32)
 	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
 endif()
 
+# openh264
+# Use version 1.3.1 to use the binary release from Cisco
+set(EP_openh264_GIT_TAG "v1.3.1")
+
 # vpx
 if(WIN32)
 	set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
