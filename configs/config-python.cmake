@@ -115,10 +115,7 @@ set(EP_msopenh264_LINKING_TYPE "-DENABLE_STATIC=YES")
 set(EP_mswasapi_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # opus
-if(NOT MSVC)
-	# TODO: Also build statically on windows
-	set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
-endif()
+set(EP_opus_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # ortp
 set(EP_ortp_LINKING_TYPE "-DENABLE_STATIC=YES")

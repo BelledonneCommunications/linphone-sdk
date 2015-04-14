@@ -99,10 +99,7 @@ endif()
 set(EP_opencoreamr_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
 
 # opus
-if(NOT MSVC)
-	# TODO: Also build statically on windows
-	set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
-endif()
+set(EP_opus_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # sqlite3
 set(EP_sqlite3_LINKING_TYPE "-DENABLE_STATIC=YES")
