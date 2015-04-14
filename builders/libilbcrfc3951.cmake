@@ -22,6 +22,7 @@
 
 set(EP_libilbcrfc3951_GIT_REPOSITORY "git://git.linphone.org/libilbc-rfc3951.git")
 set(EP_libilbcrfc3951_GIT_TAG_LATEST "master")
-set(EP_libilbcrfc3951_GIT_TAG "1fe27c5468536c0876b14ddb90682bbd3e95f6f0")
+set(EP_libilbcrfc3951_GIT_TAG "b3b9fab5243c248e7bb18069a57472869d63c893")
 
 set(EP_libilbcrfc3951_CMAKE_OPTIONS )
+set(EP_libilbcrfc3951_LINKING_TYPE "-DENABLE_STATIC=NO")
