@@ -239,7 +239,7 @@ ptrdiff_t findRefbaseOffset(void *obj, size_t size){
 		ms_warning("findRefbaseOffset(): no base vptr");
 	}
 	ms_message("base_vptr is %p for obj %p",base_vptr, obj);
-	for (i=(size/sizeof(void*))*sizeof(void*);i>0;i-=sizeof(void*)){
+	for (i=((size/sizeof(void*))-1)*sizeof(void*);i>0;i-=sizeof(void*)){
 		uint8_t *ptr= ((uint8_t*)obj) + i;
 		uint8_t *candidate=(uint8_t*)*(void**)ptr;
 		if (i!=0 && labs((ptrdiff_t)(candidate-base_vptr))<vptrMemRange){
