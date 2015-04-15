@@ -57,6 +57,7 @@ include(CMakeDependentOption)
 
 option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 option(ENABLE_DEBUG_LOGS "Enable the display of traces showing the execution of the library." NO)
+option(ENABLE_DOC "Enable documentation generation with Doxygen." YES)
 option(ENABLE_FIXED_POINT "Turn on fixed point computations." ${ENABLE_FIXED_POINT_DEFAULT_VALUE})
 option(ENABLE_NON_FREE_CODECS "Allow inclusion of non-free codecs in the build." YES)
 option(ENABLE_RELATIVE_PREFIX "Find resources relatively to the installation directory." NO)
@@ -386,7 +387,9 @@ add_definitions(-DHAVE_CONFIG_H)
 add_definitions(${ORTP_CPPFLAGS})
 
 
-add_subdirectory(help)
+if(ENABLE_DOC)
+	add_subdirectory(help)
+endif()
 add_subdirectory(include)
 add_subdirectory(src)
 if(ENABLE_UNIT_TESTS)
