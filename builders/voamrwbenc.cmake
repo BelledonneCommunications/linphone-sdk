@@ -35,13 +35,8 @@ if(EP_voamrwbenc_PREBUILT)
 else()
 	set(EP_voamrwbenc_URL "http://downloads.sourceforge.net/project/opencore-amr/vo-amrwbenc/vo-amrwbenc-0.1.3.tar.gz")
 	set(EP_voamrwbenc_URL_HASH "MD5=f63bb92bde0b1583cb3cb344c12922e0")
-	set(EP_voamrwbenc_BUILD_METHOD "autotools")
-	set(EP_voamrwbenc_USE_AUTOGEN "yes")
-	set(EP_voamrwbenc_CROSS_COMPILATION_OPTIONS
-		"--prefix=${CMAKE_INSTALL_PREFIX}"
-		"--host=${LINPHONE_BUILDER_HOST}"
-	)
-	set(EP_voamrwbenc_LINKING_TYPE "--disable-static" "--enable-shared")
-	set(EP_voamrwbenc_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/voamrwbenc/autogen.sh" "<SOURCE_DIR>")
+	set(EP_voamrwbenc_CMAKE_OPTIONS )
+	set(EP_voamrwbenc_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/voamrwbenc/CMakeLists.txt" "<SOURCE_DIR>")
+	set(EP_voamrwbenc_LINKING_TYPE "-DENABLE_STATIC=NO")
 	set(EP_voamrwbenc_DEPENDENCIES EP_opencoreamr)
 endif()
