@@ -25,4 +25,4 @@ set(EP_libilbcrfc3951_GIT_TAG_LATEST "master")
 set(EP_libilbcrfc3951_GIT_TAG "1fdc625530eba541c7e38685f38c6a76131c1aae")
 
 set(EP_libilbcrfc3951_CMAKE_OPTIONS )
-set(EP_libilbcrfc3951_LINKING_TYPE "-DENABLE_STATIC=NO")
+set(EP_libilbcrfc3951_LINKING_TYPE "-DENABLE_STATIC=YES")

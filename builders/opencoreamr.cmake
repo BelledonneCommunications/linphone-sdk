@@ -37,7 +37,7 @@ else()
 	set(EP_opencoreamr_URL_HASH "MD5=09d2c5dfb43a9f6e9fec8b1ae678e725")
 	set(EP_opencoreamr_CMAKE_OPTIONS )
 	set(EP_opencoreamr_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opencoreamr/CMakeLists.txt" "<SOURCE_DIR>")
-	set(EP_opencoreamr_LINKING_TYPE "-DENABLE_STATIC=NO")
+	set(EP_opencoreamr_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 	if(ENABLE_AMRNB)
 		list(APPEND EP_opencoreamr_CMAKE_OPTIONS "-DENABLE_AMRNB_DECODER=YES" "-DENABLE_AMRNB_ENCODER=YES")
