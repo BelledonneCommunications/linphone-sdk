@@ -86,10 +86,15 @@ install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/"
 	PATTERN "bin/xmlwf.exe" EXCLUDE
 )
 
+install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
+	DESTINATION "lib/mediastreamer/plugins"
+	FILES_MATCHING PATTERN "libmssilk.*" PATTERN "libmsilbc.*"
+)
+
 if(MSVC)
 	install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
 		DESTINATION "lib/mediastreamer/plugins"
-		FILES_MATCHING PATTERN "*mswasapi*.dll"
+		FILES_MATCHING PATTERN "libmswasapi.dll"
 	)
 	string(REGEX REPLACE "Visual Studio ([0-9]+).*" "\\1" MSVC_VERSION "${CMAKE_GENERATOR}")
 	if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
