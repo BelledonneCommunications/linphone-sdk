@@ -124,6 +124,7 @@ include(TestBigEndian)
 test_big_endian(WORDS_BIGENDIAN)
 
 find_package(ORTP REQUIRED)
+find_package(PolarSSL)
 
 if(ENABLE_UNIT_TESTS)
 	find_package(CUnit)
@@ -156,7 +157,6 @@ if(ENABLE_ZRTP)
 	endif()
 endif()
 if(ENABLE_DTLS AND ENABLE_SRTP) # DTLS requires SRTP
-	find_package(PolarSSL)
 	if(NOT POLARSSL_FOUND OR NOT HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
 		message(WARNING "Could not find polarssl library with DTLS support, mediastreamer2 will be compiled without DTLS support.")
 		set(ENABLE_DTLS OFF CACHE BOOL "Build mediastreamer2 with DTLS support." FORCE)
