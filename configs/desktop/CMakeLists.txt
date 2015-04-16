@@ -84,6 +84,12 @@ install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/"
 	PATTERN "bin/pango*.exe" EXCLUDE
 	PATTERN "bin/pkg-config.exe" EXCLUDE
 	PATTERN "bin/xmlwf.exe" EXCLUDE
+	PATTERN "bin/openh264.dll" EXCLUDE
+)
+
+install(FILES "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/libmsopenh264.dll"
+	DESTINATION "./lib/mediastreamer/plugins"
+	COMPONENT "msopenh264"
 )
 
 install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
@@ -113,6 +119,10 @@ set(CPACK_PACKAGE_VERSION_PATCH ${LINPHONE_MICRO_VERSION})
 set(CPACK_PACKAGE_EXECUTABLES "linphone;Linphone")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "Linphone")
 set(CPACK_RESOURCE_FILE_LICENSE "${LINPHONE_SOURCE_DIR}/COPYING")
+set(CPACK_COMPONENT_MSOPENH264_DISPLAY_NAME "OpenH264 codec")
+set(CPACK_COMPONENT_MSOPENH264_DESCRIPTION "Download the H264 codec implementation provided by Cisco Inc.")
+set(CPACK_COMPONENT_MSOPENH264_DISABLED True)
+
 if(WIN32)
 	set(CPACK_GENERATOR "NSIS")
 	set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}\\\\linphone-banner.bmp")
@@ -123,6 +133,13 @@ if(WIN32)
 	set(CPACK_NSIS_PACKAGE_NAME "Linphone ${LINPHONE_MAJOR_VERSION}.${LINPHONE_MINOR_VERSION}.${LINPHONE_MICRO_VERSION}")
 	set(CPACK_NSIS_URL_INFO_ABOUT "http://www.linphone.org/")
 	set(CPACK_NSIS_MUI_FINISHPAGE_RUN "linphone")
+	set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL "ON")
+	
+	# Add NSI instructions to download the openh264 codec from Cisco's servers whether msopenh264 has been installed
+	file(READ "${CMAKE_CURRENT_SOURCE_DIR}/openh264-install.nsi" CPACK_NSIS_EXTRA_INSTALL_COMMANDS)
+	
+	# Add NSI instructions to delete the openh264 codecs while uninstalling Linphone
+	file(READ "${CMAKE_CURRENT_SOURCE_DIR}/openh264-uninstall.nsi" CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS)
 
 	# Sign the installer
 	set(TIMESTAMP_URL "http://timestamp.verisign.com/scripts/timestamp.dll")
