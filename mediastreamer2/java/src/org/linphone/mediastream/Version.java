@@ -47,6 +47,8 @@ public class Version {
 	public static final int API17_JELLY_BEAN_42 = 17;
 	public static final int API18_JELLY_BEAN_43 = 18;
 	public static final int API19_KITKAT_44 = 19;
+	public static final int API21_LOLLIPOP_50 = 21;
+	public static final int API22_LOLLIPOP_51 = 22;
 
 	private static native boolean nativeHasZrtp();
 	private static native boolean nativeHasNeon();
