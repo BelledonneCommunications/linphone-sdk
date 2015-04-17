@@ -135,11 +135,14 @@ if(WIN32)
 	set(CPACK_NSIS_MUI_FINISHPAGE_RUN "linphone")
 	set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL "ON")
 	
+	file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" DOS_STYLE_SOURCE_DIR)
+	string(REPLACE "\\" "\\\\" ESCAPED_DOS_STYLE_SOURCE_DIR "${DOS_STYLE_SOURCE_DIR}")
+	
 	# Add NSI instructions to download the openh264 codec from Cisco's servers whether msopenh264 has been installed
-	file(READ "${CMAKE_CURRENT_SOURCE_DIR}/openh264-install.nsi" CPACK_NSIS_EXTRA_INSTALL_COMMANDS)
+	set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "!include \\\"${ESCAPED_DOS_STYLE_SOURCE_DIR}\\\\openh264-install.nsi\\\"")
 	
 	# Add NSI instructions to delete the openh264 codecs while uninstalling Linphone
-	file(READ "${CMAKE_CURRENT_SOURCE_DIR}/openh264-uninstall.nsi" CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS)
+	set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "!include \\\"${ESCAPED_DOS_STYLE_SOURCE_DIR}\\\\openh264-uninstall.nsi\\\"")
 
 	# Sign the installer
 	set(TIMESTAMP_URL "http://timestamp.verisign.com/scripts/timestamp.dll")
