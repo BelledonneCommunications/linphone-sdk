@@ -109,7 +109,7 @@ static MSFilterMethod msopenh264_dec_methods[] = {
  *****************************************************************************/
 
 #define MSOPENH264_DEC_NAME        "MSOpenH264Dec"
-#define MSOPENH264_DEC_DESCRIPTION "A H.264 decoder based on the openh264 library"
+#define MSOPENH264_DEC_DESCRIPTION "OpenH264 Video Codec provided by Cisco Systems, Inc."
 #define MSOPENH264_DEC_CATEGORY    MS_FILTER_DECODER
 #define MSOPENH264_DEC_ENC_FMT     "H264"
 #define MSOPENH264_DEC_NINPUTS     1
@@ -282,7 +282,7 @@ static MSFilterMethod msopenh264_enc_methods[] = {
  *****************************************************************************/
 
 #define MSOPENH264_ENC_NAME        "MSOpenH264Enc"
-#define MSOPENH264_ENC_DESCRIPTION "A H.264 encoder based on the openh264 library"
+#define MSOPENH264_ENC_DESCRIPTION "OpenH264 Video Codec provided by Cisco Systems, Inc."
 #define MSOPENH264_ENC_CATEGORY    MS_FILTER_ENCODER
 #define MSOPENH264_ENC_ENC_FMT     "H264"
 #define MSOPENH264_ENC_NINPUTS     1
