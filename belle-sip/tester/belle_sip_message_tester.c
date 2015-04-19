@@ -945,6 +945,63 @@ void channel_parser_http_response () {
 	belle_sip_object_unref(stack);
 }
 
+void testGetBody(void) {
+	const char* raw_message = "INVITE sip:us2@172.1.1.1 SIP/2.0\r\n"
+				"Via: SIP/2.0/TCP " LISTENING_POINT_HOSTPORT ";branch=z9hG4bK-edx-U_1zoIkaq72GJPqpSmDpJQ-ouBelFuLODzf9oS5J9MeFUA;rport\r\n"
+				"From: test <sip:00_12_34_56_78_90@us2>;tag=klsk+kwDc\r\n"
+				"To: <sip:us2@172.1.1.1;transport=tcp>\r\n"
+				"Contact: <sip:00_12_34_56_78_90@172.2.2.2>\r\n"
+				"Call-ID: 2b6fb0320-1384-179494-426025-23b6b0-2e3303331@172.16.42.1\r\n"
+				"Content-Type: application/sdp\r\n"
+				"Content-Length: 389\r\n"
+				"CSeq: 1 INVITE\r\n"
+				"Allow: INVITE, ACK, BYE, CANCEL, OPTIONS, INFO, UPDATE, REGISTER, MESSAGE, REFER, SUBSCRIBE, PRACK\r\n"
+				"Accept: application/sdp, application/dtmf-relay\r\n"
+				"Max-Forwards: 69\r\n"
+				"\r\n"
+				"v=0\r\n"
+				"o=- 1826 1826 IN IP4 172.16.42.1\r\n"
+				"s=VeriCall Edge\r\n"
+				"c=IN IP4 172.16.42.1\r\n"
+				"t=0 0\r\n"
+				"m=audio 20506 RTP/AVP 0 8 13 101\r\n"
+				"a=rtpmap:0 PCMU/8000\r\n"
+				"a=rtpmap:8 PCMA/8000\r\n"
+				"a=rtpmap:13 CN/8000\r\n"
+				"a=rtpmap:101 telephone-event/8000\r\n"
+				"a=fmtp:101 0-15\r\n"
+				"m=video 24194 RTP/AVP 105 104\r\n"
+				"a=sendonly\r\n"
+				"a=rtpmap:105 H264/90000\r\n"
+				"a=fmtp:105 packetization-mode=0\r\n"
+				"a=rtpmap:104 H263-1998/90000\r\n"
+				"a=fmtp:104 CIF=1;J=1\r\n"
+				"nimportequoi a la fin";
+	belle_sip_stack_t* stack = belle_sip_stack_new(NULL);
+	belle_sip_channel_t* channel = belle_sip_stream_channel_new_client(stack
+																	, NULL
+																	, LISTENING_POINT_PORT
+																	, NULL
+																	, "127.0.0.1"
+																	, LISTENING_POINT_PORT);
+
+
+	belle_sip_message_t* message;
+	channel->input_stream.write_ptr = strcpy(channel->input_stream.write_ptr,raw_message);
+	channel->input_stream.write_ptr+=strlen(raw_message);
+
+	belle_sip_channel_parse_stream(channel,FALSE);
+
+	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
+	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
+	message=BELLE_SIP_MESSAGE(channel->incoming_messages->data);
+
+	belle_sip_header_content_length_t *ctlt = belle_sip_message_get_header_by_type(message,belle_sip_header_content_length_t);
+	CU_ASSERT_PTR_NOT_NULL(ctlt);
+	CU_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),strlen(belle_sip_message_get_body(message)));
+	CU_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),belle_sip_message_get_body_size(message));
+	belle_sip_object_unref(message);
+}
 
 /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
 test_t message_tests[] = {
@@ -973,7 +1030,8 @@ test_t message_tests[] = {
 	{ "Generic message test",testGenericMessage},	
 	{ "HTTP get",testHttpGet},
 	{ "HTTP 200 Ok",testHttp200Ok},
-	{ "Channel parser for HTTP reponse",channel_parser_http_response}
+	{ "Channel parser for HTTP reponse",channel_parser_http_response},
+	{ "Get body size",testGetBody}
 };
 
 test_suite_t message_test_suite = {
