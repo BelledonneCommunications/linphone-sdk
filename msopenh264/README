@@ -3,7 +3,7 @@ msopenh264 - H.264 encoder/decoder plugin for mediastreamer2 based on the openh2
 Installation guide:
 -------------------
 1) Install OpenH264:
-	$ git clone https://github.com/cisco/openh264.git -b c13bfe6
+	$ git clone https://github.com/cisco/openh264.git -b v1.4.0
 	$ cd openh264
 	$ make
 	$ make install PREFIX=<your installation prefix>
