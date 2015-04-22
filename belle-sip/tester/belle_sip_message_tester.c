@@ -987,6 +987,8 @@ void testGetBody(void) {
 
 
 	belle_sip_message_t* message;
+	belle_sip_header_content_length_t *ctlt;
+
 	channel->input_stream.write_ptr = strcpy(channel->input_stream.write_ptr,raw_message);
 	channel->input_stream.write_ptr+=strlen(raw_message);
 
@@ -996,7 +998,7 @@ void testGetBody(void) {
 	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
 	message=BELLE_SIP_MESSAGE(channel->incoming_messages->data);
 
-	belle_sip_header_content_length_t *ctlt = belle_sip_message_get_header_by_type(message,belle_sip_header_content_length_t);
+	ctlt = belle_sip_message_get_header_by_type(message,belle_sip_header_content_length_t);
 	CU_ASSERT_PTR_NOT_NULL(ctlt);
 	CU_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),strlen(belle_sip_message_get_body(message)));
 	CU_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),belle_sip_message_get_body_size(message));
