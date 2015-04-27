@@ -199,10 +199,9 @@ static int ms_zrtp_startSrtpSession(void *clientData, const char* sas, int32_t v
 		eventData=ortp_event_get_data(ev);
 		// support both b32 and b256 format SAS strings
 		snprintf(eventData->info.zrtp_sas.sas, sizeof(eventData->info.zrtp_sas.sas), "%s", sas);
-		eventData->info.zrtp_sas.sas[4] = '\0';
 		eventData->info.zrtp_sas.verified=(verified != 0) ? TRUE : FALSE;
 		rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
-		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s", eventData->info.zrtp_sas.sas, verified == 0 ? "no" : "yes");
+		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s", sas, verified == 0 ? "no" : "yes");
 	}
 
 	ev=ortp_event_new(ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED);
@@ -523,17 +522,17 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 
 	ms_message("Creating ZRTP engine on rtp session [%p]",sessions->rtp_session);
 	context = bzrtp_createBzrtpContext(sessions->rtp_session->snd.ssrc); /* create the zrtp context, provide the SSRC of first channel */
-
+	
 	/* set callback functions */
 	cbs.bzrtp_sendData=ms_zrtp_sendDataZRTP;
 	cbs.bzrtp_srtpSecretsAvailable=ms_zrtp_srtpSecretsAvailable;
 	cbs.bzrtp_startSrtpSession=ms_zrtp_startSrtpSession;
-
+	
 	if (params->zid_file) {
 		/*enabling cache*/
 		cbs.bzrtp_loadCache=ms_zrtp_loadCache;
 		cbs.bzrtp_writeCache=ms_zrtp_writeCache;
-
+		
 		/* enable exportedKeys computation only if we have an uri to associate them */
 		if (params->uri && strlen(params->uri)>0) {
 			cbs.bzrtp_contextReadyForExportedKeys=ms_zrtp_addExportedKeysInZidCache;
