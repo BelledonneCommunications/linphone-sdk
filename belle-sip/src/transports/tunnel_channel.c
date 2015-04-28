@@ -64,8 +64,10 @@ static int tunnel_channel_connect(belle_sip_channel_t *obj, const struct addrinf
 
 static void tunnel_channel_close(belle_sip_channel_t *obj) {
 	belle_sip_tunnel_channel_t *chan = (belle_sip_tunnel_channel_t *)obj;
-	tunnel_client_close_socket(chan->tunnelclient, chan->tunnelsocket);
-	chan->tunnelsocket = NULL;
+	if( chan->tunnelsocket != NULL ){
+		tunnel_client_close_socket(chan->tunnelclient, chan->tunnelsocket);
+		chan->tunnelsocket = NULL;
+	}
 }
 
 static void tunnel_channel_uninit(belle_sip_channel_t *obj) {
