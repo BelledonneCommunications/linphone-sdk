@@ -1134,7 +1134,13 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 			}
 			belle_sip_message("Auth info found for [%s] realm [%s]",auth_event->userid,auth_event->realm);
 			if (auth_context->is_proxy ||
-				(!belle_sip_header_call_id_equals(call_id,auth_context->callid)&&realm&&strcmp(realm,auth_context->realm)==0&&from_uri&&strcmp(auth_event->username,belle_sip_uri_get_user(from_uri))==0)) {
+				(!belle_sip_header_call_id_equals(call_id,auth_context->callid)
+						&&realm
+						&&strcmp(realm,auth_context->realm)==0
+						&&from_uri
+						&&strcmp(auth_event->username,belle_sip_uri_get_user(from_uri))==0
+						&&strcmp("REGISTER",request_method)!=0)) /* Relying on method name for choosing between authorization and proxy-authorization
+						is not very strong but I don't see any better solution as we don't know all the time what type of challange we will have*/{
 				authorization=BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_header_proxy_authorization_new());
 			} else {
 				authorization=belle_sip_header_authorization_new();
