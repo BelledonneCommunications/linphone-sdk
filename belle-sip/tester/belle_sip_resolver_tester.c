@@ -26,7 +26,7 @@
 #define IPV4_SIP_DOMAIN		"sip.linphone.org"
 #define IPV4_SIP_IP		"91.121.209.194"
 #define IPV4_CNAME		"stun.linphone.org"
-#define IPV4_CNAME_IP		"91.121.209.194"
+#define IPV4_CNAME_IP		"37.59.51.72"
 #define IPV4_SIP_BAD_DOMAIN	"dummy.linphone.org"
 #define IPV4_MULTIRES_DOMAIN	"yahoo.fr"
 
@@ -372,14 +372,14 @@ static void srv_a_query_no_srv_result(void) {
 
 	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
-	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", IPV4_CNAME, SIP_PORT, AF_INET, a_resolve_done, client);
 	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
 	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
 		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
-		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
+		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
 		if (ai) {
 			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
 			belle_sip_freeaddrinfo(ai);
