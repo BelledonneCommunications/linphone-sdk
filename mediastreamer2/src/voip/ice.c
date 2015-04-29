@@ -822,12 +822,24 @@ void ice_session_add_check_list(IceSession *session, IceCheckList *cl, unsigned 
 void ice_session_remove_check_list(IceSession *session, IceCheckList *cl)
 {
 	int i;
+	bool_t keep_session_state = FALSE;
+
 	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
 		if ((session->streams[i] != NULL) && (session->streams[i] == cl)) {
 			ice_check_list_destroy(cl);
 			session->streams[i] = NULL;
 			break;
 		}
+	}
+
+	// If all remaining check lists have completed set the session state to completed
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if ((session->streams[i] != NULL) && (ice_check_list_state(session->streams[i]) != ICL_Completed)) {
+			keep_session_state = TRUE;
+		}
+	}
+	if (!keep_session_state) {
+		session->state = IS_Completed;
 	}
 }
 
