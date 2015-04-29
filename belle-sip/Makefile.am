@@ -14,3 +14,5 @@ rpm:
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = belle-sip.pc
+
+EXTRA_DIST=autogen.sh
