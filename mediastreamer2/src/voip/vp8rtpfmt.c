@@ -685,7 +685,7 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, MSList *packets_list
 	ctx->non_processed_packets_list=frame_packets_list;
 }
 
-static int output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
+static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 	Vp8RtpFmtPartition *partition;
 	mblk_t *om = NULL;
 	mblk_t *curm = NULL;
@@ -707,8 +707,6 @@ static int output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 		mblk_set_marker_info(om, 1);
 		ms_queue_put(out, (void *)om);
 	}
-
-	return 0;
 }
 
 static void output_partition(MSQueue *out, Vp8RtpFmtPartition **partition, bool_t last) {
@@ -723,7 +721,7 @@ static void output_partition(MSQueue *out, Vp8RtpFmtPartition **partition, bool_
 	(*partition)->outputted = TRUE;
 }
 
-static int output_partitions_of_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8RtpFmtFrame *frame) {
+static void output_partitions_of_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8RtpFmtFrame *frame) {
 	int i;
 	if (frame->unnumbered_partitions == TRUE) {
 		output_frame(out, frame);
@@ -737,15 +735,13 @@ static int output_partitions_of_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, V
 			output_partition(out, &frame->partitions[i], (i == frame->partitions_info.nb_partitions) ? TRUE : FALSE);
 		}
 	}
-	return 0;
 }
 
 static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 	Vp8RtpFmtFrame *frame;
 	int nb_frames = ms_list_size(ctx->frames_list);
-	int ret = -1;
 
-	if (nb_frames == 0) return ret;
+	if (nb_frames == 0) return -1;
 	frame = (Vp8RtpFmtFrame *)ms_list_nth_data(ctx->frames_list, 0);
 	switch (frame->error) {
 		case Vp8RtpFmtOk:
@@ -764,10 +760,10 @@ static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			if ((ctx->valid_keyframe_received == TRUE) && (ctx->waiting_for_reference_frame == FALSE)) {
 				/* Output the complete valid frame if a reference frame has been received. */
 				if (ctx->output_partitions == TRUE) {
-					ret = output_partitions_of_frame(ctx, out, frame);
+					output_partitions_of_frame(ctx, out, frame);
 				} else {
 					/* Output the full frame in one mblk_t. */
-					ret = output_frame(out, frame);
+					output_frame(out, frame);
 				}
 				frame->outputted = TRUE;
 			} else {
@@ -791,7 +787,7 @@ static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 				frame->discarded = TRUE;
 			} else {
 				if ((ctx->output_partitions == TRUE) && (ctx->valid_keyframe_received == TRUE) && (ctx->waiting_for_reference_frame == FALSE)) {
-					ret = output_partitions_of_frame(ctx, out, frame);
+					output_partitions_of_frame(ctx, out, frame);
 					frame->outputted = TRUE;
 				} else {
 					/* Drop the frame for which some partitions are missing/invalid. */
@@ -814,7 +810,8 @@ static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			break;
 	}
 
-	return ret;
+	if (frame->outputted == TRUE) return 0;
+	return -1;
 }
 
 static void free_partitions_of_frame(void *data) {
@@ -829,8 +826,10 @@ static void free_partitions_of_frame(void *data) {
 }
 
 static void clean_frame(Vp8RtpFmtUnpackerCtx *ctx) {
-	free_partitions_of_frame(ms_list_nth_data(ctx->frames_list, 0));
-	ctx->frames_list = ms_list_remove(ctx->frames_list, ms_list_nth_data(ctx->frames_list, 0));
+	if (ms_list_size(ctx->frames_list) > 0) {
+		free_partitions_of_frame(ms_list_nth_data(ctx->frames_list, 0));
+		ctx->frames_list = ms_list_remove(ctx->frames_list, ms_list_nth_data(ctx->frames_list, 0));
+	}
 }
 
 static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
@@ -962,10 +961,10 @@ int vp8rtpfmt_unpacker_get_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8Rtp
 		Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)ms_list_nth_data(ctx->frames_list, 0);
 		frame_info->pictureid_present = frame->pictureid_present;
 		frame_info->pictureid = frame->pictureid;
-		clean_frame(ctx);
 	} else if (ms_list_size(ctx->non_processed_packets_list) >= 0) {
 		ms_debug("VP8 packets are remaining for next iteration of the filter.");
 	}
+	clean_frame(ctx);
 	return ret;
 }
 
