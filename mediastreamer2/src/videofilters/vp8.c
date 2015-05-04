@@ -922,62 +922,74 @@ static void dec_process(MSFilter *f) {
 	vpx_codec_err_t err;
 	vpx_image_t *img;
 	vpx_codec_iter_t iter = NULL;
+	MSQueue frame;
 	MSQueue mtofree_queue;
+	Vp8RtpFmtFrameInfo frame_info;
 
+	ms_queue_init(&frame);
 	ms_queue_init(&mtofree_queue);
 
 	/* Unpack RTP payload format for VP8. */
-	vp8rtpfmt_unpacker_process(&s->unpacker, f->inputs[0]);
+	vp8rtpfmt_unpacker_feed(&s->unpacker, f->inputs[0]);
 
-	/* Decode unpacked VP8 partitions. */
-	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
-		err = vpx_codec_decode(&s->codec, im->b_rptr, im->b_wptr - im->b_rptr, NULL, 0);
-		if ((s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) && (!err && mblk_get_marker_info(im))) {
-			err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
-		}
-		if (err) {
-			ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
-		}
-		ms_queue_put(&mtofree_queue, im);
-	}
-
-	/* browse decoded frames */
-	while ((img = vpx_codec_get_frame(&s->codec, &iter))) {
-		int i, j;
-
-		if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
-			if (s->yuv_msg) freemsg(s->yuv_msg);
-			s->yuv_msg = ms_yuv_buf_alloc(&s->outbuf, img->d_w, img->d_h);
-			s->yuv_width = img->d_w;
-			s->yuv_height = img->d_h;
-			ms_filter_notify_no_arg(f,MS_FILTER_OUTPUT_FMT_CHANGED);
+	/* Decode unpacked VP8 frames. */
+	while (vp8rtpfmt_unpacker_get_frame(&s->unpacker, &frame, &frame_info) == 0) {
+		while ((im = ms_queue_get(&frame)) != NULL) {
+			err = vpx_codec_decode(&s->codec, im->b_rptr, im->b_wptr - im->b_rptr, NULL, 0);
+			if ((s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) && (!err && mblk_get_marker_info(im))) {
+				err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
+			}
+			if (err) {
+				ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
+			}
+			ms_queue_put(&mtofree_queue, im);
 		}
 
-		/* scale/copy frame to destination mblk_t */
-		for (i = 0; i < 3; i++) {
-			uint8_t *dest = s->outbuf.planes[i];
-			uint8_t *src = img->planes[i];
-			int h = img->d_h >> ((i > 0) ? 1 : 0);
+		/* Get decoded frame */
+		if ((img = vpx_codec_get_frame(&s->codec, &iter))) {
+			int i, j;
+			int reference_updates = 0;
 
-			for (j = 0; j < h; j++) {
-				memcpy(dest, src, s->outbuf.strides[i]);
-				dest += s->outbuf.strides[i];
-				src += img->stride[i];
+			if (vpx_codec_control(&s->codec, VP8D_GET_LAST_REF_UPDATES, &reference_updates) == 0) {
+				if (frame_info.pictureid_present && ((reference_updates & VP8_GOLD_FRAME) || (reference_updates & VP8_ALTR_FRAME))) {
+					vp8rtpfmt_send_rpsi(&s->unpacker, frame_info.pictureid);
+				}
+			}
+
+			if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
+				if (s->yuv_msg) freemsg(s->yuv_msg);
+				s->yuv_msg = ms_yuv_buf_alloc(&s->outbuf, img->d_w, img->d_h);
+				s->yuv_width = img->d_w;
+				s->yuv_height = img->d_h;
+				ms_filter_notify_no_arg(f, MS_FILTER_OUTPUT_FMT_CHANGED);
+			}
+
+			/* scale/copy frame to destination mblk_t */
+			for (i = 0; i < 3; i++) {
+				uint8_t *dest = s->outbuf.planes[i];
+				uint8_t *src = img->planes[i];
+				int h = img->d_h >> ((i > 0) ? 1 : 0);
+
+				for (j = 0; j < h; j++) {
+					memcpy(dest, src, s->outbuf.strides[i]);
+					dest += s->outbuf.strides[i];
+					src += img->stride[i];
+				}
+			}
+			ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
+
+			if (ms_average_fps_update(&s->fps, f->ticker->time)) {
+				ms_message("VP8 decoder: Frame size: %dx%d", s->yuv_width, s->yuv_height);
+			}
+			if (!s->first_image_decoded) {
+				s->first_image_decoded = TRUE;
+				ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 			}
 		}
-		ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
 
-		if (ms_average_fps_update(&s->fps, f->ticker->time)) {
-			ms_message("VP8 decoder: Frame size: %dx%d", s->yuv_width, s->yuv_height);
+		while ((im = ms_queue_get(&mtofree_queue)) != NULL) {
+			freemsg(im);
 		}
-		if (!s->first_image_decoded) {
-			s->first_image_decoded = TRUE;
-			ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
-		}
-	}
-
-	while ((im = ms_queue_get(&mtofree_queue)) != NULL) {
-		freemsg(im);
 	}
 }
 

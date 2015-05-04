@@ -93,6 +93,11 @@ extern "C"{
 		bool_t discarded;
 	} Vp8RtpFmtFrame;
 
+	typedef struct Vp8RtpFmtFrameInfo {
+		uint16_t pictureid;
+		bool_t pictureid_present;
+	} Vp8RtpFmtFrameInfo;
+
 
 	typedef struct Vp8RtpFmtUnpackerCtx {
 		MSFilter *filter;
@@ -122,8 +127,10 @@ extern "C"{
 
 	void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf_enabled, bool_t freeze_on_error, bool_t output_partitions);
 	void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx);
-	void vp8rtpfmt_unpacker_process(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *inout);
+	void vp8rtpfmt_unpacker_feed(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *in);
+	int vp8rtpfmt_unpacker_get_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8RtpFmtFrameInfo *frame_info);
 	uint32_t vp8rtpfmt_unpacker_calc_extended_cseq(Vp8RtpFmtUnpackerCtx *ctx, uint16_t cseq);
+	void vp8rtpfmt_send_rpsi(Vp8RtpFmtUnpackerCtx *ctx, uint16_t pictureid);
 
 #ifdef __cplusplus
 }
