@@ -173,7 +173,7 @@ public class AndroidVideoApi5JniWrapper {
 				/* MS2 has a NEON downscaler, so we test this too */
 				int downScaleDist = /*Math.abs*/-1*(req - s.width * s.height / 4);
 				if (((s.width/2 >= rW && s.height/2 >= rH) || (s.width/2 >= rH && s.height/2 >= rW)) && downScaleDist < minDist) {
-					if (Version.isArmv7() && Version.hasNeon()) {
+					if (Version.hasFastCpuWithAsmOptim()) {
 						minDist = downScaleDist;
 						result = s;
 						useDownscale = 1;

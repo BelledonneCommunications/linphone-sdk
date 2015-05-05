@@ -18,6 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 package org.linphone.mediastream;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.linphone.mediastream.video.capture.hwconf.Hacks;
 
 import android.content.Context;
@@ -76,17 +79,34 @@ public class Version {
 		return buildVersion;
 	}
 
-	public static boolean isArmv7() {
+	public static List<String> getCpuAbis(){
+		List<String> cpuabis=new ArrayList<String>();
+		if (sdkAboveOrEqual(21)){
+			try {
+				String abis[]=(String[])Build.class.getField("SUPPORTED_ABIS").get(null);
+				for (String abi: abis){
+					cpuabis.add(abi);
+				}
+			} catch (Throwable e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}else{
+			cpuabis.add(Build.CPU_ABI);
+			cpuabis.add(Build.CPU_ABI2);
+		}
+		return cpuabis;
+	}
+	private static boolean isArmv7() {
+		
 		try {
-			return sdkAboveOrEqual(4)
-			&& Build.class.getField("CPU_ABI").get(null).toString().startsWith("armeabi-v7");
+			getCpuAbis().get(0).startsWith("armeabi-v7");
 		} catch (Throwable e) {}
 		return false;
 	}
-	public static boolean isX86() {
+	private static boolean isX86() {
 		try {
-			return sdkAboveOrEqual(4)
-			&& Build.class.getField("CPU_ABI").get(null).toString().startsWith("x86");
+			return getCpuAbis().get(0).startsWith("x86");
 		} catch (Throwable e) {}
 		return false;
 	}
@@ -118,7 +138,7 @@ public class Version {
 
 	public static void dumpCapabilities(){
 		StringBuilder sb = new StringBuilder(" ==== Capabilities dump ====\n");
-		sb.append("Has neon: ").append(Boolean.toString(hasNeon())).append("\n");
+		if (isArmv7()) sb.append("Has neon: ").append(Boolean.toString(hasNeon())).append("\n");
 		sb.append("Has ZRTP: ").append(Boolean.toString(hasZrtp())).append("\n");
 		Log.i(sb.toString());
 	}
