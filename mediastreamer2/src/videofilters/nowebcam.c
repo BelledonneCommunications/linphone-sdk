@@ -169,7 +169,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 
 
 
-mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
+static mblk_t *_ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 #if defined(WIN32)
 	mblk_t *m=NULL;
 	DWORD st_sizel;
@@ -276,6 +276,23 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 #endif
 }
 
+static mblk_t * generate_black_yuv_frame(MSVideoSize *reqsize) {
+	MSPicture dest;
+	mblk_t *m = ms_yuv_buf_alloc(&dest, reqsize->width, reqsize->height);
+	int ysize = dest.w * dest.h;
+	int usize = ysize / 4;
+	memset(dest.planes[0], 16, ysize);
+	memset(dest.planes[1], 128, usize);
+	memset(dest.planes[2], 128, usize);
+	return m;
+}
+
+mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize) {
+	mblk_t *m = NULL;
+	if (jpgpath != NULL) _ms_load_jpeg_as_yuv(jpgpath, reqsize);
+	if (m == NULL) m = generate_black_yuv_frame(reqsize);
+	return m;
+}
 
 
 #ifndef PACKAGE_DATA_DIR
@@ -337,8 +354,8 @@ void static_image_uninit(MSFilter *f){
 
 void static_image_preprocess(MSFilter *f){
 	SIData *d=(SIData*)f->data;
-	if (d->pic==NULL && d->nowebcamimage){
-		d->pic=ms_load_jpeg_as_yuv(d->nowebcamimage,&d->vsize);
+	if (d->pic==NULL) {
+		d->pic = ms_load_jpeg_as_yuv(d->nowebcamimage, &d->vsize);
 	}
 }
 
