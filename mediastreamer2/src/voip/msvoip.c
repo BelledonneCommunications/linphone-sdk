@@ -195,9 +195,8 @@ extern MSWebCamDesc ms_dshow_cam_desc;
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
 extern MSWebCamDesc ms_v4m_cam_desc;
 #endif
-#if defined(HAVE_LIBAVCODEC_AVCODEC_H) || TARGET_OS_IPHONE
+
 extern MSWebCamDesc static_image_desc;
-#endif
 
 extern MSWebCamDesc ms_mire_webcam_desc;
 #ifdef ANDROID
@@ -234,9 +233,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 	&ms_v4ios_cam_desc,
 #endif
 	&ms_mire_webcam_desc,
-#if defined(HAVE_LIBAVCODEC_AVCODEC_H) || TARGET_OS_IPHONE
 	&static_image_desc,
-#endif
 #endif /*MS2_FILTERS */
 	NULL
 };
