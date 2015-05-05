@@ -121,7 +121,7 @@ char * bc_tester_res(const char *name);
 #define BC_ASSERT_DOUBLE_NOT_EQUAL(actual, expected, granularity) CU_assertImplementation(((fabs((double)(actual) - (expected)) > fabs((double)(granularity)))), __LINE__, ("CU_ASSERT_DOUBLE_NOT_EQUAL(" #actual ","  #expected "," #granularity ")"), __FILE__, "", CU_FALSE)
 #define BC_ASSERT_DOUBLE_NOT_EQUAL_FATAL(actual, expected, granularity) CU_assertImplementation(((fabs((double)(actual) - (expected)) > fabs((double)(granularity)))), __LINE__, ("CU_ASSERT_DOUBLE_NOT_EQUAL_FATAL(" #actual ","  #expected "," #granularity ")"), __FILE__, "", CU_TRUE)
 #define BC_ASSERT_GREATER(actual, expected) CU_assertImplementation(((actual) >= (expected)), __LINE__, ("CU_ASSERT_GREATER(" #actual "," #expected ")"), __FILE__, "", CU_FALSE)
-#define BC_ASSERT_LOWER(actual, expected) CU_assertImplementation((actual) <= (expected)), __LINE__, ("CU_ASSERT_LOWER(" #actual "," #expected ")"), __FILE__, "", CU_FALSE)
+#define BC_ASSERT_LOWER(actual, expected) CU_assertImplementation(((actual) <= (expected)), __LINE__, ("CU_ASSERT_LOWER(" #actual "," #expected ")"), __FILE__, "", CU_FALSE)
 
 /*Add some custom defines with logs in case of fail*/
 #define BC_ASSERT_EQUAL_INT(actual, expected) { \
@@ -132,7 +132,7 @@ char * bc_tester_res(const char *name);
 }
 #define BC_ASSERT_GREATER_INT(actual, expected) { \
 	int cactual = (actual), cexpected = (expected); \
-	if (! BC_ASSERT_LOWER(cactual, cexpected)) { \
+	if (! BC_ASSERT_GREATER(cactual, cexpected)) { \
 		bc_tester_printf(bc_printf_verbosity_error, "%s:%d - Expected " #actual " >= " #expected " but was %d < %d\n", __FILE__, __LINE__, cactual, cexpected); \
 	} \
 }
@@ -150,7 +150,7 @@ char * bc_tester_res(const char *name);
 }
 #define BC_ASSERT_LOWER_UINT64_T(actual, expected) { \
 	uint64_t cactual = (actual), cexpected = (expected); \
-	if (! BC_ASSERT_GREATER(cactual, cexpected)) { \
+	if (! BC_ASSERT_LOWER(cactual, cexpected)) { \
 		bc_tester_printf(bc_printf_verbosity_error, "%s:%d - Expected " #actual " <= " #expected " but was %lu > %lu\n", __FILE__, __LINE__, (long unsigned)cactual, (long unsigned)cexpected); \
 	} \
 }
