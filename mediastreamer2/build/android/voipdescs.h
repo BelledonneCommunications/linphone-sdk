@@ -78,9 +78,7 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_aac_eld_enc_desc,
 &ms_aac_eld_dec_desc,
 #ifdef VIDEO_ENABLED
-&ms_mpeg4_enc_desc,
 &ms_mpeg4_dec_desc,
-&ms_h263_enc_desc,
 &ms_h263_dec_desc,
 &ms_h263_old_dec_desc,
 &ms_h264_dec_desc,
