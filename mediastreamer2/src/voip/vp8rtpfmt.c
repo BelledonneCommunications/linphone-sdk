@@ -394,22 +394,6 @@ static void free_partition(void *data) {
 	ms_free(partition);
 }
 
-static int free_outputted_frame(const void *data, const void *b) {
-	Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)data;
-	bool_t *outputted = (bool_t *)b;
-	bool_t foutputted = frame->outputted;
-	if (foutputted == *outputted) ms_free(frame);
-	return (foutputted != *outputted);
-}
-
-static int free_discarded_frame(const void *data, const void *d) {
-	Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)data;
-	bool_t *discarded = (bool_t *)d;
-	bool_t fdiscarded = frame->discarded;
-	if (fdiscarded == *discarded) ms_free(frame);
-	return (fdiscarded != *discarded);
-}
-
 static MSVideoSize get_size_from_key_frame(Vp8RtpFmtFrame *frame) {
 	MSVideoSize vs;
 	Vp8RtpFmtPartition *partition = frame->partitions[0];
@@ -827,8 +811,10 @@ static void free_partitions_of_frame(void *data) {
 
 static void clean_frame(Vp8RtpFmtUnpackerCtx *ctx) {
 	if (ms_list_size(ctx->frames_list) > 0) {
-		free_partitions_of_frame(ms_list_nth_data(ctx->frames_list, 0));
-		ctx->frames_list = ms_list_remove(ctx->frames_list, ms_list_nth_data(ctx->frames_list, 0));
+		Vp8RtpFmtFrame *frame = ms_list_nth_data(ctx->frames_list, 0);
+		free_partitions_of_frame(frame);
+		ctx->frames_list = ms_list_remove(ctx->frames_list, frame);
+		ms_free(frame);
 	}
 }
 
