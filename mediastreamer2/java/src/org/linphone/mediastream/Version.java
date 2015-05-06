@@ -81,15 +81,14 @@ public class Version {
 
 	public static List<String> getCpuAbis(){
 		List<String> cpuabis=new ArrayList<String>();
-		if (sdkAboveOrEqual(21)){
+		if (sdkAboveOrEqual(API21_LOLLIPOP_50)){
 			try {
 				String abis[]=(String[])Build.class.getField("SUPPORTED_ABIS").get(null);
 				for (String abi: abis){
 					cpuabis.add(abi);
 				}
 			} catch (Throwable e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				Log.e(e);
 			}
 		}else{
 			cpuabis.add(Build.CPU_ABI);
@@ -100,14 +99,18 @@ public class Version {
 	private static boolean isArmv7() {
 		
 		try {
-			getCpuAbis().get(0).startsWith("armeabi-v7");
-		} catch (Throwable e) {}
+			return getCpuAbis().get(0).startsWith("armeabi-v7");
+		} catch (Throwable e) {
+			Log.e(e);
+		}
 		return false;
 	}
 	private static boolean isX86() {
 		try {
 			return getCpuAbis().get(0).startsWith("x86");
-		} catch (Throwable e) {}
+		} catch (Throwable e) {
+			Log.e(e);
+		}
 		return false;
 	}
 	public static boolean hasNeon(){
