@@ -43,31 +43,6 @@ option(ENABLE_TEST "Compile CUnit internal test program" OFF)
 option(ENABLE_MEMTRACE "Enable CUnit internal memory tracking" OFF)
 option(ENABLE_DEPRECATED "Enable use of deprecated v1.1 names" OFF)
 
-
-include(CheckFunctionExists)
-
-macro(check_function_exists_fail FUNCTION)
-	string(TOUPPER ${FUNCTION} UPPER_FUNCTION)
-	check_function_exists("${FUNCTION}" HAVE_${UPPER_FUNCTION})
-	if(NOT ${HAVE_${UPPER_FUNCTION}})
-		message(FATAL_ERROR "${FUNCTION} not found")
-	endif()
-endmacro()
-check_function_exists_fail("malloc")
-check_function_exists_fail("free")
-check_function_exists_fail("calloc")
-check_function_exists_fail("realloc")
-check_function_exists_fail("strcpy")
-check_function_exists_fail("strerror")
-check_function_exists_fail("fopen")
-check_function_exists_fail("fclose")
-check_function_exists_fail("fprintf")
-check_function_exists_fail("snprintf")
-check_function_exists_fail("setvbuf")
-check_function_exists_fail("time")
-check_function_exists_fail("ctime")
-
-
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 
@@ -84,7 +59,7 @@ if(MSVC)
 else()
 	add_definitions("-Wall -W -pedantic -Wshadow -ansi -std=c99")
 endif()
-	
+
 if(ENABLE_MEMTRACE)
 	add_definitions(-DMEMTRACE)
 endif()
