@@ -22,7 +22,7 @@
 
 set(EP_mssilk_GIT_REPOSITORY "git://git.linphone.org/mssilk.git")
 set(EP_mssilk_GIT_TAG_LATEST "master")
-set(EP_mssilk_GIT_TAG "848ca8fdd1e8e07bf41410816123270640f877dc")
+set(EP_mssilk_GIT_TAG "194543671ed479e756ae449a8a13d7294a46006d")
 
 set(EP_mssilk_CMAKE_OPTIONS )
 set(EP_mssilk_DEPENDENCIES EP_ms2)
