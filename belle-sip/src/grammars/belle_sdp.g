@@ -16,13 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 grammar belle_sdp;
- 
- 
-options {	
+
+
+options {
 	language = C;
 	output=AST;
-	
-} 
+
+}
 @lexer::header {
 /*
     belle-sip - SIP (RFC3261) library.
@@ -45,7 +45,7 @@ options {
 #pragma GCC diagnostic ignored "-Wparentheses"
 #pragma GCC diagnostic ignored "-Wunused"
 #ifdef __clang__
-#pragma GCC diagnostic ignored "-Wtautological-compare" 
+#pragma GCC diagnostic ignored "-Wtautological-compare"
 #endif
 #ifndef __clang__
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -79,7 +79,7 @@ options {
 #endif
 }
 
-@rulecatch 
+@rulecatch
 {
     if (HASEXCEPTION())
     {
@@ -92,14 +92,14 @@ options {
 }
 
 
-@includes { 
+@includes {
 #include "belle-sip/defs.h"
 #include "belle-sip/types.h"
 #include "belle-sip/belle-sdp.h"
 #include "parserutils.h"
 }
 
-session_description returns [belle_sdp_session_description_t* ret]     
+session_description returns [belle_sdp_session_description_t* ret]
 scope { belle_sdp_session_description_t* current; }
 @init {$session_description::current = belle_sdp_session_description_new(); $ret=$session_description::current; }
                     :    version CR LF
@@ -120,39 +120,39 @@ scope { belle_sdp_session_description_t* current; }
 
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
-   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	ANTLR3_LOG_EXCEPTION();
    belle_sip_object_unref($session_description::current);
    $ret=NULL;
-} 
+}
 
 version:       {IS_TOKEN(v)}?alpha_num EQUAL v=DIGIT+  {belle_sdp_version_t* version =belle_sdp_version_new();
                                                         belle_sdp_version_set_version(version,atoi((const char*)$v.text->chars));
                                                         belle_sdp_session_description_set_version($session_description::current,version);};
                        //  ;this memo describes version 0
-                        
 
-origin returns [belle_sdp_origin_t* ret]     
+
+origin returns [belle_sdp_origin_t* ret]
 scope { belle_sdp_origin_t* current; }
 @init {$origin::current = belle_sdp_origin_new(); $ret=$origin::current; }
-:        {IS_TOKEN(o)}?alpha_num EQUAL username {belle_sdp_origin_set_username($origin::current,(const char*)$username.text->chars);} 
+:        {IS_TOKEN(o)}?alpha_num EQUAL username {belle_sdp_origin_set_username($origin::current,(const char*)$username.text->chars);}
                          SPACE sess_id {if ($sess_id.text->chars) belle_sdp_origin_set_session_id($origin::current,atoi((const char*)$sess_id.text->chars));}
                          SPACE sess_version {if ($sess_version.text->chars) belle_sdp_origin_set_session_version($origin::current,atoi((const char*)$sess_version.text->chars));}
-                         SPACE nettype {belle_sdp_origin_set_network_type($origin::current,(const char*)$nettype.text->chars);} 
-                         SPACE addrtype  {belle_sdp_origin_set_address_type($origin::current,(const char*)$addrtype.text->chars);} 
+                         SPACE nettype {belle_sdp_origin_set_network_type($origin::current,(const char*)$nettype.text->chars);}
+                         SPACE addrtype  {belle_sdp_origin_set_address_type($origin::current,(const char*)$addrtype.text->chars);}
                          SPACE addr {belle_sdp_origin_set_address($origin::current,(const char*)$addr.text->chars);} ;
 
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
-   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	ANTLR3_LOG_EXCEPTION();
    belle_sip_object_unref($origin::current);
    $ret=NULL;
-}                         
+}
 
 session_name:  {IS_TOKEN(s)}? alpha_num EQUAL text {belle_sdp_session_name_t* session_name =belle_sdp_session_name_new();
                                                         belle_sdp_session_name_set_value(session_name,(const char*)$text.text->chars);
                                                         belle_sdp_session_description_set_session_name($session_description::current,session_name);};
 
-info returns [belle_sdp_info_t* ret]     
+info returns [belle_sdp_info_t* ret]
 scope { belle_sdp_info_t* current; }
 @init {$info::current = belle_sdp_info_new(); $ret=$info::current; }
 :   {IS_TOKEN(i)}? alpha_num EQUAL info_value {belle_sdp_info_set_value($info::current,(const char*) $info_value.text->chars);} ;
@@ -161,44 +161,44 @@ info_value            options { greedy = false; }:        ~(CR|LF)*;
 
 uri_field:           {IS_TOKEN(u)}?alpha_num EQUAL uri ;
 
-email returns [belle_sdp_email_t* ret]     
+email returns [belle_sdp_email_t* ret]
 scope { belle_sdp_email_t* current; }
 @init {$email::current = belle_sdp_email_new(); $ret=$email::current; }
   :        {IS_TOKEN(e)}?alpha_num EQUAL email_address {belle_sdp_email_set_value($email::current,(const char*)$email_address.text->chars);};
 
 phone_field:        {IS_TOKEN(p)}?alpha_num EQUAL phone_number CR LF;
 
-connection returns [belle_sdp_connection_t* ret]     
+connection returns [belle_sdp_connection_t* ret]
 scope { belle_sdp_connection_t* current; }
 @init {$connection::current = belle_sdp_connection_new(); $ret=$connection::current; }
-:    {IS_TOKEN(c)}?alpha_num EQUAL nettype { belle_sdp_connection_set_network_type($connection::current,(const char*)$nettype.text->chars);} 
-                  SPACE addrtype{ belle_sdp_connection_set_address_type($connection::current,(const char*)$addrtype.text->chars);} 
-                  SPACE connection_address 
+:    {IS_TOKEN(c)}?alpha_num EQUAL nettype { belle_sdp_connection_set_network_type($connection::current,(const char*)$nettype.text->chars);}
+                  SPACE addrtype{ belle_sdp_connection_set_address_type($connection::current,(const char*)$addrtype.text->chars);}
+                  SPACE connection_address
                   ;
                          //;a connection field must be present
                          //;in every media description or at the
                          //;session-level
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
-  belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	ANTLR3_LOG_EXCEPTION();
   belle_sip_object_unref($ret);
   $ret=NULL;
-} 
-                         
-bandwidth returns [belle_sdp_bandwidth_t* ret]     
+}
+
+bandwidth returns [belle_sdp_bandwidth_t* ret]
 scope { belle_sdp_bandwidth_t* current; }
 @init {$bandwidth::current = belle_sdp_bandwidth_new(); $ret=$bandwidth::current; }
-  :    {IS_TOKEN(b)}?alpha_num EQUAL bwtype {belle_sdp_bandwidth_set_type($bandwidth::current,(const char*)$bwtype.text->chars); } 
+  :    {IS_TOKEN(b)}?alpha_num EQUAL bwtype {belle_sdp_bandwidth_set_type($bandwidth::current,(const char*)$bwtype.text->chars); }
       COLON bandwidth_value {belle_sdp_bandwidth_set_value($bandwidth::current,atoi((const char*)$bandwidth_value.text->chars));};
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
-  belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	ANTLR3_LOG_EXCEPTION();
   belle_sip_object_unref($ret);
   $ret=NULL;
-} 
-time_field:   {IS_TOKEN(t)}?alpha_num EQUAL 
-              start_time 
-              SPACE 
+}
+time_field:   {IS_TOKEN(t)}?alpha_num EQUAL
+              start_time
+              SPACE
               stop_time {belle_sdp_time_description_t* time_description =belle_sdp_time_description_new();
                          belle_sdp_time_t* time_value =belle_sdp_time_new();
 						 belle_sip_list_t* time_description_list;
@@ -229,14 +229,14 @@ scope {int has_value;}
 : {IS_TOKEN(a)}?alpha_num EQUAL attribute_content{$ret=$attribute_content.ret;};
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
-   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	ANTLR3_LOG_EXCEPTION();
    if ($ret) belle_sip_object_unref($ret);
    $ret=NULL;
 }
 
 attribute_content returns [belle_sdp_attribute_t* ret]
 @init {$ret=NULL; }
-: attribute_name (COLON val=attribute_value {$ret=belle_sdp_attribute_create((const char*)$attribute_name.text->chars,(const char*)$attribute_value.text->chars);})? 
+: attribute_name (COLON val=attribute_value {$ret=belle_sdp_attribute_create((const char*)$attribute_name.text->chars,(const char*)$attribute_value.text->chars);})?
 	{
 	if (!val.tree) $ret=belle_sdp_attribute_create((const char*)$attribute_name.text->chars,NULL);
 };
@@ -247,7 +247,7 @@ scope { belle_sdp_rtcp_xr_attribute_t* current; }
 : {IS_TOKEN(a)}?alpha_num EQUAL {IS_TOKEN(rtcp-xr)}? attribute_name /*'rtcp-xr'*/ (COLON rtcp_xr_attribute_value (SPACE rtcp_xr_attribute_value)*)?;
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
-   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	ANTLR3_LOG_EXCEPTION();
    belle_sip_object_unref($ret);
    $ret=NULL;
 }
@@ -297,7 +297,7 @@ scope { belle_sdp_rtcp_fb_attribute_t* current; }
 : {IS_TOKEN(a)}?alpha_num EQUAL {IS_TOKEN(rtcp-fb)}? attribute_name /*'rtcp-fb'*/ COLON rtcp_fb_pt SPACE rtcp_fb_val;
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
-	belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	ANTLR3_LOG_EXCEPTION();
 	belle_sip_object_unref($ret);
 	$ret=NULL;
 }
@@ -412,32 +412,32 @@ scope { belle_sdp_media_description_t* current; }
 
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
-  belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	ANTLR3_LOG_EXCEPTION();
   belle_sip_object_unref($ret);
   $ret=NULL;
 }
-media returns [belle_sdp_media_t* ret]     
+media returns [belle_sdp_media_t* ret]
 scope { belle_sdp_media_t* current; }
 @init {$media::current = belle_sdp_media_new(); $ret=$media::current; }
-:         {IS_TOKEN(m)}?alpha_num EQUAL 
-          media_value {belle_sdp_media_set_media_type($media::current,(const char*)$media_value.text->chars);} 
-          SPACE port {belle_sdp_media_set_media_port($media::current,atoi((const char*)$port.text->chars));} 
-          (SLASH integer{belle_sdp_media_set_port_count($media::current,atoi((const char*)$integer.text->chars));})? 
+:         {IS_TOKEN(m)}?alpha_num EQUAL
+          media_value {belle_sdp_media_set_media_type($media::current,(const char*)$media_value.text->chars);}
+          SPACE port {belle_sdp_media_set_media_port($media::current,atoi((const char*)$port.text->chars));}
+          (SLASH integer{belle_sdp_media_set_port_count($media::current,atoi((const char*)$integer.text->chars));})?
           SPACE proto {belle_sdp_media_set_protocol($media::current,(const char*)$proto.text->chars);}
           (SPACE fmt)+;
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
-  belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	ANTLR3_LOG_EXCEPTION();
   belle_sip_object_unref($ret);
   $ret=NULL;
-} 
+}
 media_value:               alpha_num+;
                      //    ;typically "audio", "video", "application"
                      //    ;or "data"
 
 fmt
 scope { int is_number; }
-@init { $fmt::is_number=0;}:                 ((DIGIT+)=>(DIGIT+){$fmt::is_number=1;} | token ) 
+@init { $fmt::is_number=0;}:                 ((DIGIT+)=>(DIGIT+){$fmt::is_number=1;} | token )
                                                                           {belle_sdp_media_set_media_formats($media::current
                                                                           ,belle_sip_list_append(belle_sdp_media_get_media_formats($media::current)
                                                                           ,(void*)($fmt::is_number?(void*)(long)atoi((const char*)$fmt.text->chars):$fmt.text->chars)));};
@@ -466,11 +466,11 @@ sess_id:             DIGIT+;
                         // ;should be unique for this originating username/host
 
 sess_version:        DIGIT+;
-                         //;0 is a new session 
+                         //;0 is a new session
 
-connection_address:  
+connection_address:
 
-                  /*multicast_address  
+                  /*multicast_address
                   |*/addr {belle_sdp_connection_set_address($connection::current,(const char*)$addr.text->chars);} multicast_part?;
 
 multicast_address:   unicast_address '/' ttl;
@@ -510,7 +510,7 @@ email_address       options { greedy = false; }:        ~(CR|LF)* ;  //| email '
 uri:          text        ;//defined in RFC1630
 
 phone_number:         phone;/*(phone '(') => (phone '(') email_safe ')'
-                      | (phone) => phone 
+                      | (phone) => phone
                       | email_safe LQUOTE phone RQUOTE;*/
 
 phone:               text;//'+' DIGIT*POS_DIGIT (SPACE | '-' | DIGIT)*;
@@ -524,25 +524,25 @@ addrtype:            alpha_num+ ; //'IP4' | 'IP6';
                          //;list to be extended
 
 addr:                 unicast_address ;
- 
+
  multicast_part: (SLASH num+=integer 	{
  			if (strcmp( belle_sdp_connection_get_address_type($connection::current),"IP6")==0)
  				belle_sdp_connection_set_range($connection::current,atoi((const char*)$integer.text->chars));
- 			else if ($num->count ==1) 
+ 			else if ($num->count ==1)
 				belle_sdp_connection_set_ttl($connection::current,atoi((const char*)$integer.text->chars));
-			else if ($num->count ==2) 
+			else if ($num->count ==2)
 				belle_sdp_connection_set_range($connection::current,atoi((const char*)$integer.text->chars));
 			})+;
 
 fqdn        :   ( domainlabel DOT )* toplabel DOT? ;
-  
+
 domainlabel     :   alpha_num | (alpha_num ( alpha_num | DASH )* alpha_num) ;
 toplabel        :   alpha | (alpha ( alpha_num | DASH )* alpha_num) ;
 
 unicast_address :   (alpha_num | DOT | COLON| DASH)*;   /*might be better defined*/
-                   /* ipv4_address 
+                   /* ipv4_address
                     |ipv6_address
-                    |fqdn*/ 
+                    |fqdn*/
 
 ipv4_address :         decimal_uchar DOT decimal_uchar DOT decimal_uchar DOT decimal_uchar ;
 
@@ -558,12 +558,12 @@ text :                ~(CR|LF)* ;
                       //ISO 8859-1 requires a "a=charset:ISO-8859-1"
                       //session-level attribute to be used
 
-byte_string options { greedy = false; }:        (OCTET)* ; 
+byte_string options { greedy = false; }:        (OCTET)* ;
                          //any byte except NUL, CR or LF
 
-decimal_uchar:       integer;// (d+=DIGIT+ {$d !=NULL && $d->count<=3}?) 
+decimal_uchar:       integer;// (d+=DIGIT+ {$d !=NULL && $d->count<=3}?)
 
-integer:             DIGIT+;   
+integer:             DIGIT+;
 
 email_safe : ~(SPACE)*;
 
@@ -580,7 +580,7 @@ fragment ZERO: '0';
 fragment POS_DIGIT :           '1'..'9';
 //ALPHA:               'a'..'z'|'A'..'Z';
 COMMON_CHAR
-  : 'g'..'z' | 'G'..'Z' ; 
+  : 'g'..'z' | 'G'..'Z' ;
 HEX_CHAR: 'a'..'f' |'A'..'F';
 
 SPACE: ' ';
