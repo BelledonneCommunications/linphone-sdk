@@ -84,7 +84,6 @@ struct _MSMediaStreamSessions{
 	MSZrtpContext *zrtp_context;
 	MSDtlsSrtpContext *dtls_context;
 	MSTicker *ticker;
-	bool_t pad[3];
 };
 
 typedef struct _MSMediaStreamSessions MSMediaStreamSessions;

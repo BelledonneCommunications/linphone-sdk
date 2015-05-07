@@ -29,7 +29,7 @@ extern "C"{
 
 typedef void (*MSAudioDiffProgressNotify)(void* user_data, int percentage);
 /*utility function to check similarity between two audio wav files*/
-MS2_PUBLIC int ms_audio_diff(const char *file1, const char *file2, double *ret, MSAudioDiffProgressNotify func, void *user_data);
+MS2_PUBLIC int ms_audio_diff(const char *file1, const char *file2, double *ret, double min_overlap_p, MSAudioDiffProgressNotify func, void *user_data);
 
 #ifdef __cplusplus
 }
