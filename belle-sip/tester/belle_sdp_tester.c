@@ -419,8 +419,8 @@ static void test_simple_session_description(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(l_origin),"192.168.0.18")
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address_type(l_origin),"IP4")
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_network_type(l_origin),"IN")
-	CU_ASSERT_EQUAL(belle_sdp_origin_get_session_id(l_origin),2463217870UL)
-	CU_ASSERT_EQUAL(belle_sdp_origin_get_session_version(l_origin),2463217870UL)
+	CU_ASSERT_TRUE( (unsigned long)belle_sdp_origin_get_session_id(l_origin) == 2463217870UL);
+	CU_ASSERT_TRUE( (unsigned long)belle_sdp_origin_get_session_version(l_origin) == 2463217870UL);
 
 	CU_ASSERT_PTR_NOT_NULL(belle_sdp_session_description_get_session_name(l_session_description));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_session_name_get_value(belle_sdp_session_description_get_session_name(l_session_description)),"Talk");
