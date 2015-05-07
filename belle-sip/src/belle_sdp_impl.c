@@ -1152,7 +1152,7 @@ belle_sip_error_code belle_sdp_origin_marshal(belle_sdp_origin_t* origin, char* 
 	return belle_sip_snprintf(	buff
 								,buff_size
 								,offset
-								,"o=%s %i %i %s %s %s"
+								,"o=%s %u %u %s %s %s"
 								,origin->username
 								,origin->session_id
 								,origin->session_version
