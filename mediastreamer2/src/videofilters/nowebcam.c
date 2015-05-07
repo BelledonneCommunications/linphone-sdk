@@ -289,7 +289,7 @@ static mblk_t * generate_black_yuv_frame(MSVideoSize *reqsize) {
 
 mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize) {
 	mblk_t *m = NULL;
-	if (jpgpath != NULL) _ms_load_jpeg_as_yuv(jpgpath, reqsize);
+	if (jpgpath != NULL) m = _ms_load_jpeg_as_yuv(jpgpath, reqsize);
 	if (m == NULL) m = generate_black_yuv_frame(reqsize);
 	return m;
 }
