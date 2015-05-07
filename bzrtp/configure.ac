@@ -3,7 +3,7 @@
 
 
 
-AC_INIT([bzrtp],[1.0.1])
+AC_INIT([bzrtp],[1.0.2])
 AC_PREREQ(2.63)
 AC_CONFIG_SRCDIR([src/bzrtp.c])
 AC_CONFIG_AUX_DIR([build-aux])
