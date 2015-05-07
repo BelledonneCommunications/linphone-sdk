@@ -381,7 +381,7 @@ static void test_media_description(void) {
 
 static void test_simple_session_description(void) {
 	const char* l_src = "v=0\r\n"\
-						"o=jehan-mac 1239 1239 IN IP4 192.168.0.18\r\n"\
+						"o=jehan-mac 2463217870 2463217870 IN IP4 192.168.0.18\r\n"\
 						"s=Talk\r\n"\
 						"c=IN IP4 192.168.0.18\r\n"\
 						"t=0 0\r\n"\
@@ -419,8 +419,8 @@ static void test_simple_session_description(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(l_origin),"192.168.0.18")
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address_type(l_origin),"IP4")
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_network_type(l_origin),"IN")
-	CU_ASSERT_EQUAL(belle_sdp_origin_get_session_id(l_origin),1239)
-	CU_ASSERT_EQUAL(belle_sdp_origin_get_session_version(l_origin),1239)
+	CU_ASSERT_EQUAL(belle_sdp_origin_get_session_id(l_origin),2463217870)
+	CU_ASSERT_EQUAL(belle_sdp_origin_get_session_version(l_origin),2463217870)
 
 	CU_ASSERT_PTR_NOT_NULL(belle_sdp_session_description_get_session_name(l_session_description));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_session_name_get_value(belle_sdp_session_description_get_session_name(l_session_description)),"Talk");
@@ -534,7 +534,7 @@ static void test_overflow(void){
 	size_t buffsize=orig_buffsize;
 	char *buffer=belle_sip_malloc0(buffsize);
 	size_t offset=0;
-	
+
 	sdp=belle_sdp_session_description_parse(big_sdp);
 	CU_ASSERT_PTR_NOT_NULL(sdp);
 	mds=belle_sdp_session_description_get_media_descriptions(sdp);

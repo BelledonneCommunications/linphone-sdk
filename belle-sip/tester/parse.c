@@ -39,7 +39,7 @@ int main(int argc, char *argv[]){
 	int i;
 	const char *filename=NULL;
 	const char *protocol="sip";
-	
+
 	if (argc<2){
 		fprintf(stderr,"Usage:\n%s [--protocol sip|http|sdp] <text file containing messages>\n",argv[0]);
 		return -1;
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]){
 		fprintf(stderr,"Could not stat %s: %s\n",filename,strerror(errno));
 		return -1;
 	}
-	
+
 	fd=open(filename,O_RDONLY);
 	if (fd==-1){
 		fprintf(stderr,"Could not open %s: %s\n",filename,strerror(errno));
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]){
 	}
 	close(fd);
 	belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
-	
+
 	for (i=0;i<st.st_size;){
 		size_t read;
 		if (strcasecmp(protocol,"sip")==0 || strcasecmp(protocol,"http")==0){
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]){
 			msg=belle_sip_message_parse_raw(str+i,st.st_size-i,&read);
 			end=belle_sip_time_ms();
 			if (msg){
-				printf("Succesfully parsed %s message of %i bytes in %i ms.\n",protocol,(int)read, (int)(end-begin));
+				printf("Successfully parsed %s message of %i bytes in %i ms.\n",protocol,(int)read, (int)(end-begin));
 			}else{
 				fprintf(stderr,"Failed to parse message.\n");
 				break;
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]){
 		}else if (strcasecmp(protocol,"sdp")==0){
 			belle_sdp_session_description_t *sdp=belle_sdp_session_description_parse(str);
 			if (sdp){
-				printf("Succesfully parsed %s message of %i bytes.\n",protocol,(int)strlen(str));
+				printf("Successfully parsed %s message of %i bytes.\n",protocol,(int)strlen(str));
 			}else{
 				fprintf(stderr,"Failed to parse SDP message.\n");
 			}
