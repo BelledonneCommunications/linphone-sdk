@@ -97,7 +97,6 @@ public class Version {
 		return cpuabis;
 	}
 	private static boolean isArmv7() {
-		
 		try {
 			return getCpuAbis().get(0).startsWith("armeabi-v7");
 		} catch (Throwable e) {
@@ -113,15 +112,23 @@ public class Version {
 		}
 		return false;
 	}
+	private static boolean isArmv5() {
+		try {
+			return getCpuAbis().get(0).equals("armeabi");
+		} catch (Throwable e) {
+			Log.e(e);
+		}
+		return false;
+	}
 	public static boolean hasNeon(){
 		if (hasNeon == null) hasNeon = nativeHasNeon();
 		return hasNeon;
 	}
 	public static boolean hasFastCpu() {
-		return isArmv7() || isX86();
+		return !isArmv5();
 	}
 	public static boolean hasFastCpuWithAsmOptim() {
-		return (isArmv7() && hasNeon()) || isX86();
+		return (!isX86() && !isArmv5() && hasNeon()) || isX86();
 	}
 	public static boolean isVideoCapable() {
 		return !Version.sdkStrictlyBelow(5) && Version.hasFastCpu() && Hacks.hasCamera();
