@@ -941,16 +941,42 @@ void video_stream_unprepare_video(VideoStream *stream){
 	}
 }
 
+MSFilter* video_stream_get_source_filter(const VideoStream* stream) {
+	if( stream ){
+		return stream->source;
+	} else {
+		return NULL;
+	}
+}
+
 void video_stream_update_video_params(VideoStream *stream){
 	/*calling video_stream_change_camera() does the job of unplumbing/replumbing and configuring the new graph*/
 	video_stream_change_camera(stream,stream->cam);
 }
 
-static void _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter *sink){
+/** 
+ * Will update the source camera for the videostream passed as argument.
+ * The parameters:
+ * - stream : the stream for which to update the source
+ * - cam : the camera which should now be considered as the new source.
+ * - new_source (optional): if passed as non-NULL, it is expected that this filter comes from the specified camera. 
+ *							In this case we don't create the source and use this one instead.
+ *                          This allows you to reuse the camera and keep it alive when not needed, for fast on/off operations
+ * - sink : when this filter is not NULL, it represents the AVPlayer video ITC source, which allows inter-graph communication.
+ * - keep_old_source: when TRUE, will not destroy the previous stream source and return it for later usage.
+ *
+ * @return NULL if keep_old_source is FALSE, or the previous source filter if keep_old_source is TRUE
+ */
+static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter* new_source, MSFilter *sink, bool_t keep_old_source){
 	PayloadType *pt;
 	RtpProfile *profile;
 	int payload;
-	bool_t keep_source=!(cam!=stream->cam || (sink && !stream->player_active) || (!sink && stream->player_active));
+	MSFilter* old_source = NULL;
+
+    bool_t new_src_different = (new_source && new_source != stream->source);
+    bool_t use_player        = (sink && !stream->player_active) || (!sink && stream->player_active);
+    bool_t change_source       = ( cam!=stream->cam || new_src_different || use_player);
+
 	bool_t encoder_has_builtin_converter = (!stream->pixconv && !stream->sizeconv);
 
 	if (stream->ms.sessions.ticker && stream->source){
@@ -969,22 +995,29 @@ static void _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFi
 			}
 		}
 		/*destroy the filters */
-		if (!keep_source) ms_filter_destroy(stream->source);
+		if (change_source) {
+			if(!keep_old_source){
+				ms_filter_destroy(stream->source);
+			} else {
+				old_source = stream->source;
+			}
+		}
+
 		if (!encoder_has_builtin_converter && (stream->source_performs_encoding == FALSE)) {
 			ms_filter_destroy(stream->pixconv);
 			ms_filter_destroy(stream->sizeconv);
 		}
 
 		/*re create new ones and configure them*/
-		if (!keep_source) {
+		if (change_source) {
 			if (sink){
-				stream->source = ms_filter_new(MS_ITC_SOURCE_ID);
+                stream->source        = ms_filter_new(MS_ITC_SOURCE_ID);
 				ms_filter_call_method(sink,MS_ITC_SINK_CONNECT,stream->source);
-				stream->player_active=TRUE;
-			}else{
-				stream->source = ms_web_cam_create_reader(cam);
-				stream->cam=cam;
-				stream->player_active=FALSE;
+                stream->player_active = TRUE;
+			} else {
+                stream->source        = new_source ? new_source : ms_web_cam_create_reader(cam);
+                stream->cam           = cam;
+                stream->player_active = FALSE;
 			}
 		}
 		if (stream->source_performs_encoding == TRUE) {
@@ -1026,19 +1059,28 @@ static void _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFi
 
 		ms_ticker_attach(stream->ms.sessions.ticker,stream->source);
 	}
+	return old_source;
 }
 
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
-	_video_stream_change_camera(stream, cam, NULL);
+	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE);
+}
+
+MSFilter* video_stream_change_camera_keep_previous_source(VideoStream *stream, MSWebCam *cam){
+	return _video_stream_change_camera(stream, cam, NULL, NULL, TRUE);
+}
+
+MSFilter* video_stream_change_source_filter(VideoStream *stream, MSWebCam* cam, MSFilter* filter, bool_t keep_previous ){
+	return _video_stream_change_camera(stream, cam, filter, NULL, keep_previous);
 }
 
 void video_stream_open_player(VideoStream *stream, MSFilter *sink){
 	ms_message("video_stream_open_player(): sink=%p",sink);
-	_video_stream_change_camera(stream,stream->cam,sink);
+	_video_stream_change_camera(stream, stream->cam, NULL, sink, FALSE);
 }
 
 void video_stream_close_player(VideoStream *stream){
-	_video_stream_change_camera(stream,stream->cam,NULL);
+	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE);
 }
 
 void video_stream_send_fir(VideoStream *stream) {
@@ -1070,9 +1112,9 @@ void video_stream_send_vfu(VideoStream *stream){
 		ms_filter_call_method_noarg(stream->ms.encoder, MS_VIDEO_ENCODER_REQ_VFU);
 }
 
-void
-video_stream_stop (VideoStream * stream)
+static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 {
+	MSFilter* source = NULL;
 	stream->eventcb = NULL;
 	stream->event_pointer = NULL;
 	if (stream->ms.sessions.ticker){
@@ -1145,7 +1187,23 @@ video_stream_stop (VideoStream * stream)
 	}
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)video_stream_payload_type_changed);
+
+	if( keep_source ){
+		source = stream->source;
+		stream->source = NULL; // will prevent video_stream_free() from destroying the source
+	}
 	video_stream_free(stream);
+
+	return source;
+}
+
+void video_stream_stop( VideoStream* stream ){
+	// don't keep the source
+	_video_stream_stop(stream, FALSE);
+}
+
+MSFilter* video_stream_stop_keep_source( VideoStream* stream) {
+	return _video_stream_stop(stream, TRUE);
 }
 
 
@@ -1295,23 +1353,27 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	stream->ms.state=MSStreamStarted;
 }
 
-void video_preview_stop(VideoPreview *stream){
+static MSFilter* _video_preview_stop( VideoPreview* stream, bool_t keep_source ){
+	MSFilter* source = NULL;
 	ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
 	ms_filter_unlink(stream->source,0,stream->pixconv,0);
 	ms_filter_unlink(stream->pixconv,0,stream->output2,0);
+
+	if( keep_source ){
+		source = stream->source;
+		ms_message("video_preview_stop: keeping source %p", source);
+		stream->source = NULL; // prevent destroy of the source
+	}
 	video_stream_free(stream);
+	return source;
+}
+
+void video_preview_stop(VideoPreview *stream){
+	_video_preview_stop(stream, FALSE);
 }
 
 MSFilter* video_preview_stop_reuse_source(VideoPreview *stream){
-	MSFilter* source = stream->source;
-	ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
-	ms_filter_unlink(stream->source,0,stream->pixconv,0);
-	ms_filter_unlink(stream->pixconv,0,stream->output2,0);
-
-	ms_message("video_preview_stop_reuse_source: keep %p", source);
-	stream->source = NULL; // prevent destroy
-	video_stream_free(stream);
-	return source;
+	return _video_preview_stop(stream, TRUE);
 }
 
 

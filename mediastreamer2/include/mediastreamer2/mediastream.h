@@ -710,7 +710,58 @@ static MS2_INLINE void video_stream_set_rtcp_information(VideoStream *st, const 
  * returns current MSWebCam for a given stream
  * */
 MS2_PUBLIC const MSWebCam * video_stream_get_camera(const VideoStream *stream);
+
+/**
+ * Returns the current video stream source filter. Be careful, this source will be
+ * destroyed if the stream is stopped.
+ * @return current stream source
+ */
+MS2_PUBLIC MSFilter* video_stream_get_source_filter(const VideoStream* stream);
+
 MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
+
+/**
+ * @brief This functions changes the source filter for the passed video stream.
+ * @details This is quite the same function as \ref video_stream_change_camera, but this one
+ * allows you to pass the source filter that is created for the camera and reuse it. This gives you the
+ * ability to switch rapidly between two streams, whereas re-creating them each time would be 
+ * costly (especially with webcams).
+ *
+ * @note Since the \ref video_stream_stop() will automatically destroy the source, it is 
+ *		advised that you use \ref video_stream_stop_keep_source() instead, so that you 
+ *		can manually destroy the source filters after the stream is stopped.
+ *
+ * Example usage:
+ *
+ *		video_stream_start(stream, profile, [...], noWebcamDevice);
+ *		// We manage the sources for the stream ourselves:
+ *		MSFilter* noWebCamFilter = video_stream_get_source_filter(stream);
+ *		MSFilter* frontCamFilter = ms_web_cam_create_reader(frontCamDevice);
+ *
+ * 		sleep(1);
+ * 		video_stream_change_source_filter(stream, frontCamDevice, frontCamFilter, TRUE); // will keep the previous filter
+ * 		sleep(1);
+ * 		video_stream_change_source_filter(stream, noWebcamDevice, noWebCamFilter, TRUE); // keep the previous filter
+ *
+ *		sleep(1)
+ *		video_stream_stop_keep_source(stream);
+ *		ms_filter_destroy(noWebCamFilter);
+ *		ms_filter_destroy(frontCamFilter);
+ *
+ *
+ * @param stream the video stream to modify
+ * @param cam the camera that you want to set as the new source
+ * @param cam_filter the filter for this camera. It can be obtained with ms_web_cam_create_reader(cam)
+ * @return the previous source if keep_previous_source is TRUE, otherwise NULL
+ */
+MS2_PUBLIC MSFilter* video_stream_change_source_filter(VideoStream *stream, MSWebCam* cam, MSFilter* filter, bool_t keep_previous_source );
+
+/**
+ * @brief This is the same function as \ref
+ */
+MS2_PUBLIC MSFilter* video_stream_change_camera_keep_previous_source(VideoStream *stream, MSWebCam *cam);
+
+
 /* Calling video_stream_set_sent_video_size() or changing the bitrate value in the used PayloadType during a stream is running does nothing.
 The following function allows to take into account new parameters by redrawing the sending graph*/
 MS2_PUBLIC void video_stream_update_video_params(VideoStream *stream);
@@ -730,6 +781,15 @@ MS2_PUBLIC void video_stream_send_fir(VideoStream *stream);
 MS2_PUBLIC void video_stream_send_vfu(VideoStream *stream);
 
 MS2_PUBLIC void video_stream_stop(VideoStream * stream);
+
+/**
+ * Stop the video stream, but does not destroy the source of the video. This function
+ * can be use in conjunction with \ref video_stream_change_source_filter() to allow
+ * manual management of the source filters for a video stream.
+ * @param stream the stream to stop
+ * @return returns the source of the video stream, which you should manually destroy when appropriate.
+ */
+MS2_PUBLIC MSFilter* video_stream_stop_keep_source(VideoStream * stream);
 
 MS2_PUBLIC bool_t video_stream_started(VideoStream *stream);
 
