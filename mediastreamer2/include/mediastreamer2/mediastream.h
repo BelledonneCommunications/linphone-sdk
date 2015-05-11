@@ -757,7 +757,12 @@ MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
 MS2_PUBLIC MSFilter* video_stream_change_source_filter(VideoStream *stream, MSWebCam* cam, MSFilter* filter, bool_t keep_previous_source );
 
 /**
- * @brief This is the same function as \ref
+ * @brief This is the same function as \ref video_stream_change_source_filter() called with keep_source=1, but
+ *  the new filter will be created from the MSWebcam that is passed as argument.
+ *  
+ *  @param stream the video stream
+ *  @param cam the MSWebcam from which the new source filter should be created.
+ *  @return the previous source filter
  */
 MS2_PUBLIC MSFilter* video_stream_change_camera_keep_previous_source(VideoStream *stream, MSWebCam *cam);
 
