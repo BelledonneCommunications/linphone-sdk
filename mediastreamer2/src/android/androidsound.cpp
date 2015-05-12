@@ -53,9 +53,10 @@ static int std_sample_rates[]={
 };
 
 struct AndroidNativeSndCardData{
-	AndroidNativeSndCardData(int forced_rate, audio_source_t capture_source): mVoipMode(0) ,mIoHandle(0),mCaptureSource(capture_source){
+	AndroidNativeSndCardData(int forced_rate, int flags): mVoipMode(0) ,mIoHandle(0),mFlags(flags){
 		/* try to use the same sampling rate as the playback.*/
 		int hwrate;
+		mCaptureSource = flags & DEVICE_USE_ANDROID_MIC ? AUDIO_SOURCE_MIC:AUDIO_SOURCE_VOICE_COMMUNICATION;
 		enableVoipMode();
 		if (AudioSystem::getOutputSamplingRate(&hwrate,AUDIO_STREAM_VOICE_CALL)==0){
 			ms_message("Hardware output sampling rate is %i",hwrate);
@@ -123,6 +124,7 @@ struct AndroidNativeSndCardData{
 	int mRecFrames;
 	audio_io_handle_t mIoHandle;
 	audio_source_t mCaptureSource;
+	int mFlags;
 };
 
 struct AndroidSndReadData{
@@ -307,7 +309,7 @@ static MSSndCard * android_snd_card_new(void)
 	if (d->flags & DEVICE_HAS_BUILTIN_AEC) obj->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	obj->latency=d->delay;
 	obj->data = new AndroidNativeSndCardData(	d->recommended_rate
-												,(d->flags & DEVICE_USE_ANDROID_MIC) ?AUDIO_SOURCE_MIC:AUDIO_SOURCE_VOICE_COMMUNICATION);
+												, d->flags);
 	return obj;
 }
 
@@ -401,7 +403,8 @@ static void android_snd_read_preprocess(MSFilter *obj){
 						AUDIO_FORMAT_PCM_16_BIT,
 						audio_channel_in_mask_from_count(ad->nchannels),
 						ad->rec_buf_size,
-						android_snd_read_cb,ad,notify_frames,0,AudioRecord::TRANSFER_DEFAULT,AUDIO_INPUT_FLAG_FAST);
+						android_snd_read_cb,ad,notify_frames,0,AudioRecord::TRANSFER_DEFAULT, 
+						(ad->mCard->mFlags & DEVICE_HAS_CRAPPY_ANDROID_FASTRECORD) ? AUDIO_INPUT_FLAG_NONE : AUDIO_INPUT_FLAG_FAST);
 		ss=ad->rec->initCheck();
 		ms_message("Setting up AudioRecord  source=%i,rate=%i,framecount=%i",ad->audio_source,ad->rate,ad->rec_buf_size);
 
@@ -714,7 +717,7 @@ static void android_snd_write_preprocess(MSFilter *obj){
                      AUDIO_FORMAT_PCM_16_BIT,
                      channel_mask_for_audio_track(ad->nchannels),
                      play_buf_size,
-                     AUDIO_OUTPUT_FLAG_FAST, // or  AUDIO_OUTPUT_FLAG_NONE ?
+                     (ad->mCard->mFlags & DEVICE_HAS_CRAPPY_ANDROID_FASTTRACK) ? AUDIO_OUTPUT_FLAG_NONE : AUDIO_OUTPUT_FLAG_FAST,
                      android_snd_write_cb, ad,notify_frames,0, AudioTrack::TRANSFER_CALLBACK);
 	s=ad->tr->initCheck();
 	if (s!=0) {

@@ -51,6 +51,7 @@ static SoundDeviceDescription devices[]={
 	{	"HTC",		"HTC Sensation Z710e",	"",	0,	200 },
 	{	"HTC",		"HTC Wildfire",	"",			0,	270 },
 	{	"HTC",		"HTC One mini 2","",		DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 0},
+	{	"HTC",		"0PCV1",	"msm8226",		DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_BUILTIN_OPENSLES_AEC|DEVICE_HAS_CRAPPY_ANDROID_FASTTRACK, 0, 0},
 	
 	{	"LGE",		"LS670",		"",			0,	170 },
 	{	"LGE",		"Nexus 5",		"msm8974",	0,	0 , 16000 },
@@ -271,6 +272,8 @@ SoundDeviceDescription * sound_device_description_get(void){
 			d->delay=0;
 		}
 	}
+	if (d->flags & DEVICE_HAS_CRAPPY_ANDROID_FASTTRACK) ms_warning("Fasttrack playback mode is crappy on this device, not using it.");
+	if (d->flags & DEVICE_HAS_CRAPPY_ANDROID_FASTRECORD) ms_warning("Fasttrack record mode is crappy on this device, not using it.");
 	ms_message("Sound device information for [%s/%s/%s] is: builtin=[%s], delay=[%i] ms",
 				manufacturer,model,platform, (d->flags & DEVICE_HAS_BUILTIN_AEC) ? "yes" : "no", d->delay);
 	return d;
