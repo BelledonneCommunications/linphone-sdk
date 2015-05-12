@@ -27,7 +27,6 @@
 #  PCAP_LIBRARIES - The libraries needed to use pcap
 
 set(_PCAP_ROOT_PATHS
-	${WITH_PCAP}
 	${CMAKE_INSTALL_PREFIX}
 )
 

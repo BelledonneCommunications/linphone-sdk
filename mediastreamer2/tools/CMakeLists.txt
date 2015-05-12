@@ -29,7 +29,6 @@ foreach (simple_executable ${simple_executables})
 	target_link_libraries(${simple_executable} mediastreamer_voip mediastreamer_base)
 endforeach()
 
-find_package(PCAP QUIET)
 if (PCAP_FOUND)
 	add_executable(pcap_playback pcap_playback.c common.c)
 	target_link_libraries(pcap_playback mediastreamer_voip mediastreamer_base)

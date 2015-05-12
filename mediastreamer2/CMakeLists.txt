@@ -125,6 +125,7 @@ test_big_endian(WORDS_BIGENDIAN)
 
 find_package(ORTP REQUIRED)
 find_package(PolarSSL)
+find_package(PCAP)
 
 if(ENABLE_UNIT_TESTS)
 	find_package(CUnit)
@@ -265,6 +266,9 @@ include_directories(
 	${ORTP_INCLUDE_DIRS}
 )
 
+if(PCAP_FOUND)
+	include_directories(${PCAP_INCLUDE_DIRS})
+endif()
 if(SRTP_FOUND)
 	include_directories(${SRTP_INCLUDE_DIRS})
 endif()
@@ -329,6 +333,9 @@ if(ENABLE_FIXED_POINT)
 endif()
 if(ENABLE_NON_FREE_CODECS)
 	set(HAVE_NON_FREE_CODECS 1)
+endif()
+if(PCAP_FOUND)
+	set(HAVE_PCAP 1)
 endif()
 if(SRTP_FOUND)
 	set(HAVE_SRTP 1)
