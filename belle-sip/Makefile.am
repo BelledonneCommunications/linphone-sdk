@@ -2,7 +2,9 @@
 
 SUBDIRS=include src tester
 
-EXTRA_DIST = belle-sip.spec
+all-local: belle-sip.spec
+
+belle-sip.spec: belle-sip.spec.in
 
 test:
 	cd tester 
@@ -15,4 +17,4 @@ rpm:
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = belle-sip.pc
 
-EXTRA_DIST=autogen.sh
+EXTRA_DIST=belle-sip.spec belle-sip.spec.in autogen.sh
