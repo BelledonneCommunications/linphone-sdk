@@ -19,8 +19,6 @@
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_tester.h"
 #include "port.h"
-#include <stdio.h>
-#include "CUnit/Basic.h"
 
 
 //v=0
@@ -419,8 +417,8 @@ static void test_simple_session_description(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(l_origin),"192.168.0.18")
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address_type(l_origin),"IP4")
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_network_type(l_origin),"IN")
-	CU_ASSERT_TRUE( (unsigned long)belle_sdp_origin_get_session_id(l_origin) == 2463217870UL);
-	CU_ASSERT_TRUE( (unsigned long)belle_sdp_origin_get_session_version(l_origin) == 2463217870UL);
+	BC_ASSERT_EQUAL_WITH_TYPE((unsigned long)belle_sdp_origin_get_session_id(l_origin), 2463217870UL, unsigned long, "%lu");
+	BC_ASSERT_EQUAL_WITH_TYPE((unsigned long)belle_sdp_origin_get_session_version(l_origin), 2463217870UL, unsigned long, "%lu");
 
 	CU_ASSERT_PTR_NOT_NULL(belle_sdp_session_description_get_session_name(l_session_description));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_session_name_get_value(belle_sdp_session_description_get_session_name(l_session_description)),"Talk");
