@@ -135,8 +135,8 @@ origin returns [belle_sdp_origin_t* ret]
 scope { belle_sdp_origin_t* current; }
 @init {$origin::current = belle_sdp_origin_new(); $ret=$origin::current; }
 :        {IS_TOKEN(o)}?alpha_num EQUAL username {belle_sdp_origin_set_username($origin::current,(const char*)$username.text->chars);}
-                         SPACE sess_id {if ($sess_id.text->chars) belle_sdp_origin_set_session_id($origin::current,atol((const char*)$sess_id.text->chars));}
-                         SPACE sess_version {if ($sess_version.text->chars) belle_sdp_origin_set_session_version($origin::current,atol((const char*)$sess_version.text->chars));}
+                         SPACE sess_id {if ($sess_id.text->chars) belle_sdp_origin_set_session_id($origin::current,strtoul((const char*)$sess_id.text->chars,NULL,10));}
+                         SPACE sess_version {if ($sess_version.text->chars) belle_sdp_origin_set_session_version($origin::current,strtoul((const char*)$sess_version.text->chars,NULL,10));}
                          SPACE nettype {belle_sdp_origin_set_network_type($origin::current,(const char*)$nettype.text->chars);}
                          SPACE addrtype  {belle_sdp_origin_set_address_type($origin::current,(const char*)$addrtype.text->chars);}
                          SPACE addr {belle_sdp_origin_set_address($origin::current,(const char*)$addr.text->chars);} ;
