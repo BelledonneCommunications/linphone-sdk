@@ -312,8 +312,8 @@ static void ipv6_aaaa_query(void) {
 		next=client->ai_list->ai_next;
 		BC_ASSERT_PTR_NOT_NULL(next);
 		if (next){
-			sock_in6 = (struct sockaddr_in6 *)next->ai_addr;
 			int ntohsi = ntohs(sock_in6->sin6_port);
+			sock_in6 = (struct sockaddr_in6 *)next->ai_addr;
 			BC_ASSERT_TRUE(next->ai_family==AF_INET6);
 			BC_ASSERT_TRUE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
 			BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
