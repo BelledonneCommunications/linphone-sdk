@@ -127,8 +127,8 @@ static void ipv4_a_query(void) {
 	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		int ntohs = (int)ntohs(sock_in->sin_port);
-		BC_ASSERT_EQUAL(ntohs, SIP_PORT, int, "%d");
+		int ntohsi = (int)ntohs(sock_in->sin_port);
+		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
@@ -154,8 +154,8 @@ static void ipv4_cname_a_query(void) {
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		int ntohs = (int)ntohs(sock_in->sin_port);
-		BC_ASSERT_EQUAL(ntohs, SIP_PORT, int, "%d");
+		int ntohsi = (int)ntohs(sock_in->sin_port);
+		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
@@ -183,8 +183,8 @@ static void local_query(void) {
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		int ntohs = (int)ntohs(sock_in->sin_port);
-		BC_ASSERT_EQUAL(ntohs, SIP_PORT, int, "%d");
+		int ntohsi = (int)ntohs(sock_in->sin_port);
+		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
 	}
 	destroy_endpoint(client);
 }
@@ -294,7 +294,8 @@ static void ipv6_aaaa_query(void) {
 	if (client->ai_list) {
 		struct addrinfo *next;
 		struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)client->ai_list->ai_addr;
-		BC_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT, int, "%d");
+		int ntohsi = ntohs(sock_in6->sin6_port);
+		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
 		/*the IPv6 address shall return first, and must be a real ipv6 address*/
 		BC_ASSERT_TRUE(client->ai_list->ai_family==AF_INET6);
 		BC_ASSERT_FALSE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
@@ -312,9 +313,10 @@ static void ipv6_aaaa_query(void) {
 		BC_ASSERT_PTR_NOT_NULL(next);
 		if (next){
 			sock_in6 = (struct sockaddr_in6 *)next->ai_addr;
+			int ntohsi = ntohs(sock_in6->sin6_port);
 			BC_ASSERT_TRUE(next->ai_family==AF_INET6);
 			BC_ASSERT_TRUE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
-			BC_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT, int, "%d");
+			BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
 			ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IPV4, SIP_PORT);
 			BC_ASSERT_PTR_NOT_NULL(ai);
 			if (ai) {
@@ -379,8 +381,8 @@ static void srv_a_query_no_srv_result(void) {
 	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		int ntohs = (int)ntohs(sock_in->sin_port);
-		BC_ASSERT_EQUAL(ntohs, SIP_PORT, int, "%d");
+		int ntohsi = (int)ntohs(sock_in->sin_port);
+		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
@@ -403,8 +405,8 @@ static void local_full_query(void) {
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		int ntohs = (int)ntohs(sock_in->sin_port);
-		BC_ASSERT_EQUAL(ntohs, SIP_PORT, int, "%d");
+		int ntohsi = (int)ntohs(sock_in->sin_port);
+		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
 	}
 	destroy_endpoint(client);
 }
@@ -421,8 +423,8 @@ static void no_query_needed(void) {
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		int ntohs = (int)ntohs(sock_in->sin_port);
-		BC_ASSERT_EQUAL(ntohs, SIP_PORT, int, "%d");
+		int ntohsi = (int)ntohs(sock_in->sin_port);
+		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
@@ -467,8 +469,8 @@ static void dns_fallback(void) {
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		int ntohs = (int)ntohs(sock_in->sin_port);
-		BC_ASSERT_EQUAL(ntohs, SIP_PORT, int, "%d");
+		int ntohsi = (int)ntohs(sock_in->sin_port);
+		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
@@ -503,8 +505,8 @@ static void ipv6_dns_server(void) {
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		int ntohs = (int)ntohs(sock_in->sin_port);
-		BC_ASSERT_EQUAL(ntohs, SIP_PORT, int, "%d");
+		int ntohsi = (int)ntohs(sock_in->sin_port);
+		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
@@ -539,8 +541,8 @@ static void ipv4_and_ipv6_dns_server(void) {
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		int ntohs = (int)ntohs(sock_in->sin_port);
-		BC_ASSERT_EQUAL(ntohs, SIP_PORT, int, "%d");
+		int ntohsi = (int)ntohs(sock_in->sin_port);
+		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
