@@ -182,10 +182,6 @@ void MSOpenH264Encoder::feed()
 	ms_queue_init(&nalus);
 	long long int ts = mFilter->ticker->time * 90LL;
 
-	// Send I frame 2 seconds and 4 seconds after the beginning
-	if (mVideoStarter.needIFrame(mFilter->ticker->time)) {
-		generateKeyframe();
-	}
 
 	while ((im = ms_queue_get(mFilter->inputs[0])) != NULL) {
 		MSPicture pic;
@@ -200,6 +196,11 @@ void MSOpenH264Encoder::feed()
 				srcPic.pData[i] = pic.planes[i];
 			}
 			srcPic.uiTimeStamp = ts;
+			// Send I frame 2 seconds and 4 seconds after the beginning
+		        if (mVideoStarter.needIFrame(mFilter->ticker->time)) {
+                		generateKeyframe();
+        		}
+
 			int ret = mEncoder->EncodeFrame(&srcPic, &sFbi);
 			if (ret == cmResultSuccess) {
 				if ((sFbi.eFrameType != videoFrameTypeSkip) && (sFbi.eFrameType != videoFrameTypeInvalid)) {
