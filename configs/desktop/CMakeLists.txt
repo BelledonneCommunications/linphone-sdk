@@ -88,8 +88,8 @@ install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/"
 	PATTERN "bin/openh264.dll" EXCLUDE
 )
 
-install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins"
-	DESTINATION "./lib/mediastreamer/plugins"
+install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
+	DESTINATION "lib/mediastreamer/plugins"
 	COMPONENT "msopenh264"
 	FILES_MATCHING PATTERN "libmsopenh264.*"
 )
