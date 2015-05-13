@@ -19,9 +19,7 @@
 #ifndef _BELLE_SIP_TESTER_H
 #define _BELLE_SIP_TESTER_H
 
-
 #include "bc_tester_utils.h"
-
 
 #ifdef __cplusplus
 extern "C" {

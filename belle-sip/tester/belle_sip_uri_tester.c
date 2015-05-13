@@ -19,8 +19,6 @@
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_tester.h"
 #include "belle_sip_internal.h"
-#include <stdio.h>
-#include "CUnit/Basic.h"
 
 
 static void testSIMPLEURI(void) {
@@ -33,9 +31,9 @@ static void testSIMPLEURI(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_uri);
 
-	CU_ASSERT_PTR_NULL(belle_sip_uri_get_user(L_uri));
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "sip.titi.com");
-	CU_ASSERT_PTR_NULL(belle_sip_uri_get_transport_param(L_uri));
+	BC_ASSERT_PTR_NULL(belle_sip_uri_get_user(L_uri));
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "sip.titi.com");
+	BC_ASSERT_PTR_NULL(belle_sip_uri_get_transport_param(L_uri));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
 
@@ -48,10 +46,10 @@ static void testCOMPLEXURI(void) {
 	L_uri = BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "toto");
-	CU_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(L_uri), "tcp");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "toto");
+	BC_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060, int, "%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(L_uri), "tcp");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
 
@@ -68,10 +66,10 @@ static void testIPV6URI_base(const char* ip6) {
 	L_uri = BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "toto");
-	CU_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri),ip6);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(L_uri), "tcp");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "toto");
+	BC_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060, int, "%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri),ip6);
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(L_uri), "tcp");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
 
@@ -89,10 +87,10 @@ static void testSIPSURI(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse(l_raw_uri);
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_EQUAL(belle_sip_uri_is_secure(L_uri), 1);
+	BC_ASSERT_EQUAL(belle_sip_uri_is_secure(L_uri), 1, int, "%d");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse("sip:linphone.org");
-	CU_ASSERT_EQUAL(belle_sip_uri_is_secure(L_uri), 0);
+	BC_ASSERT_EQUAL(belle_sip_uri_is_secure(L_uri), 0, int, "%d");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
 
@@ -102,7 +100,7 @@ static void test_ip_host(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse(l_raw_uri);
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "192.168.0.1");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "192.168.0.1");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
 
@@ -112,8 +110,8 @@ static void test_lr(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse(l_raw_uri);
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "192.168.0.1");
-	CU_ASSERT_EQUAL(belle_sip_uri_has_lr_param(L_uri), 1);
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "192.168.0.1");
+	BC_ASSERT_EQUAL(belle_sip_uri_has_lr_param(L_uri), 1, int, "%d");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 
 }
@@ -124,7 +122,7 @@ static void test_maddr(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse(l_raw_uri);
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_maddr_param(L_uri), "linphone.org");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_maddr_param(L_uri), "linphone.org");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 
 }
@@ -135,7 +133,7 @@ static void test_user_passwd(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse(l_raw_uri);
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user_password(L_uri), "tata");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user_password(L_uri), "tata");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 
 }
@@ -156,11 +154,11 @@ static void test_uri_parameters (void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_maddr_param(L_uri), "192.168.0.1");
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user_param(L_uri), "ip");
-	CU_ASSERT_EQUAL(belle_sip_uri_get_ttl_param(L_uri),140);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(L_uri), "sctp");
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_method_param(L_uri), "INVITE");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_maddr_param(L_uri), "192.168.0.1");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user_param(L_uri), "ip");
+	BC_ASSERT_EQUAL(belle_sip_uri_get_ttl_param(L_uri),140, int, "%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(L_uri), "sctp");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_method_param(L_uri), "INVITE");
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
@@ -171,10 +169,10 @@ static void test_headers(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse(l_raw_uri);
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"toto"), "titi");
+	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"toto"), "titi");
 
-	CU_ASSERT_PTR_NULL(belle_sip_uri_get_header(L_uri,"bla"));
+	BC_ASSERT_PTR_NULL(belle_sip_uri_get_header(L_uri,"bla"));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse("sip:192.168.0.1?toto=titi&header2=popo&header3=");
 	l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
@@ -182,8 +180,8 @@ static void test_headers(void) {
 	L_uri = belle_sip_uri_parse(l_raw_uri);
 	belle_sip_free(l_raw_uri);
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"header2"), "popo");
+	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"header2"), "popo");
 	belle_sip_object_unref(L_uri);
 }
 static void test_escaped_headers(void) {
@@ -198,15 +196,15 @@ static void test_escaped_headers(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse(l_raw_uri);
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"User-to-User"));
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"User-to-User"), "323a313030363a3230385a48363039313941364b4342463845495936;encoding=hex");
+	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"User-to-User"));
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"User-to-User"), "323a313030363a3230385a48363039313941364b4342463845495936;encoding=hex");
 	belle_sip_object_unref(L_uri);
 
 	L_uri = belle_sip_uri_parse(raw_uri_2);
 	l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"P-Embed-Url"));
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"P-Embed-Url"), "https://toto.com/caller/?1.4.0-dev-42-91bdf0c&id=Fu0hHIQ23H4hveVT&CAMPAIGN_ID=none");
+	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"P-Embed-Url"));
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"P-Embed-Url"), "https://toto.com/caller/?1.4.0-dev-42-91bdf0c&id=Fu0hHIQ23H4hveVT&CAMPAIGN_ID=none");
 	belle_sip_object_unref(L_uri);
 
 
@@ -214,7 +212,7 @@ static void test_escaped_headers(void) {
 
 static void testSIMPLEURI_error(void) {
 	belle_sip_uri_t* L_uri = belle_sip_uri_parse("siptcom");
-	CU_ASSERT_PTR_NULL(L_uri);
+	BC_ASSERT_PTR_NULL(L_uri);
 
 }
 
@@ -227,8 +225,8 @@ static void test_escaped_username(void) {
 	L_uri = BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "toto@linphone.org");
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "toto@linphone.org");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
 
@@ -241,9 +239,9 @@ static void test_escaped_passwd(void) {
 	L_uri = BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "\"jehan\" <jehan@sip2.linphone.org");
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "sip.linphone.org");
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user_password(L_uri), "544>");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "\"jehan\" <jehan@sip2.linphone.org");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "sip.linphone.org");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user_password(L_uri), "544>");
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 
@@ -259,9 +257,9 @@ static void test_escaped_parameter(void) {
 	L_uri = BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_uri);
-	CU_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_uri), "pa=ram"), "aa@bb:5060[]");
-	CU_ASSERT_TRUE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri), "o@"));
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
+	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_uri), "pa=ram"), "aa@bb:5060[]");
+	BC_ASSERT_TRUE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri), "o@"));
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
 
@@ -275,10 +273,10 @@ static void test_uri_equals(void) {
 	   sip:alice@AtLanTa.CoM;Transport=tcp
 */
 	a = belle_sip_uri_parse("sip:%61lice@atlanta.com;transport=TCP");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
 	b = belle_sip_uri_parse("sip:alice@AtLanTa.CoM;Transport=tcp");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
-	CU_ASSERT_TRUE(belle_sip_uri_equals(a,b));
+	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	BC_ASSERT_TRUE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
 	/*
@@ -287,10 +285,10 @@ static void test_uri_equals(void) {
 	   sip:carol@chicago.com;security=on
 */
 	a = belle_sip_uri_parse("sip:carol@chicago.com");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
 	b = belle_sip_uri_parse("sip:carol@chicago.com;newparam=5");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
-	CU_ASSERT_TRUE(belle_sip_uri_equals(a,b));
+	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	BC_ASSERT_TRUE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
 /*
@@ -299,10 +297,10 @@ static void test_uri_equals(void) {
 	   sip:biloxi.com;method=REGISTER;transport=tcp?to=sip:bob%40biloxi.com
 */
 	a = belle_sip_uri_parse("sip:biloxi.com;transport=tcp;method=REGISTER?to=sip:bob%40biloxi.com");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
 	b = belle_sip_uri_parse("sip:biloxi.com;method=REGISTER;transport=tcp?to=sip:bob%40biloxi.com");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
-	CU_ASSERT_TRUE(belle_sip_uri_equals(a,b));
+	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	BC_ASSERT_TRUE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
 	/*
@@ -315,10 +313,10 @@ static void test_uri_equals(void) {
 	   sip:alice@AtLanTa.CoM;Transport=UDP
 */
 	a = belle_sip_uri_parse("sip:ALICE@AtLanTa.CoM;Transport=udp");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
 	b = belle_sip_uri_parse("sip:alice@AtLanTa.CoM;Transport=UDP");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
-	CU_ASSERT_FALSE(belle_sip_uri_equals(a,b));
+	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	BC_ASSERT_FALSE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
 	/*
@@ -326,10 +324,10 @@ static void test_uri_equals(void) {
 	   sip:bob@biloxi.com:5060
 */
 	a = belle_sip_uri_parse("sip:ALICE@AtLanTa.CoM;Transport=udp");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
 	b = belle_sip_uri_parse("sip:alice@AtLanTa.CoM;Transport=UDP");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
-	CU_ASSERT_FALSE(belle_sip_uri_equals(a,b));
+	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	BC_ASSERT_FALSE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
 	/*
@@ -337,20 +335,20 @@ static void test_uri_equals(void) {
 	   sip:bob@biloxi.com;transport=udp
 */
 	a = belle_sip_uri_parse("sip:bob@biloxi.com");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
 	b = belle_sip_uri_parse("sip:bob@biloxi.com;transport=udp");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
-	CU_ASSERT_FALSE(belle_sip_uri_equals(a,b));
+	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	BC_ASSERT_FALSE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
 /*	   sip:bob@biloxi.com     (can resolve to different port and transports)
 	   sip:bob@biloxi.com:6000;transport=tcp
 */
 	a = belle_sip_uri_parse("sip:bob@biloxi.com");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
 	b = belle_sip_uri_parse("sip:bob@biloxi.com:6000;transport=tcp");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
-	CU_ASSERT_FALSE(belle_sip_uri_equals(a,b));
+	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	BC_ASSERT_FALSE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
 
@@ -398,33 +396,33 @@ other-param   --          o      o    o       o          o         o
 headers       --          -      -    -       o          -         o*/
 void testUriComponentsChecker() {
 	belle_sip_uri_t* uri = belle_sip_uri_parse("sip:hostonly");
-	CU_ASSERT_TRUE(belle_sip_uri_check_components_from_request_uri(uri));
+	BC_ASSERT_TRUE(belle_sip_uri_check_components_from_request_uri(uri));
 	belle_sip_object_unref(uri);
 
 	{
 	belle_sip_header_from_t*	header = belle_sip_header_from_parse("From: sip:linphone.org:5061");
-	CU_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"From"));
+	BC_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"From"));
 	belle_sip_object_unref(header);
 	}
 	{
 	belle_sip_header_to_t*	header = belle_sip_header_to_parse("To: sip:linphone.org?header=interdit");
-	CU_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"To"));
+	BC_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"To"));
 	belle_sip_object_unref(header);
 	}
 	{
 	belle_sip_header_contact_t*	header = belle_sip_header_contact_parse("Contact: <sip:linphone.org;lr>");
-	CU_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),"REGISTER","Contact"));
-	CU_ASSERT_TRUE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"Contact"));
+	BC_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),"REGISTER","Contact"));
+	BC_ASSERT_TRUE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"Contact"));
 	belle_sip_object_unref(header);
 	}
 	{
 	belle_sip_header_record_route_t*	header = belle_sip_header_record_route_parse("Record-Route: <sip:linphone.org;ttl=interdit>");
-	CU_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"Record-Route"));
+	BC_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"Record-Route"));
 	belle_sip_object_unref(header);
 	}
 	{
 	belle_sip_uri_t* uri = belle_sip_uri_parse("sip:linphone.org:5061?header=toto");
-	CU_ASSERT_TRUE(belle_sip_uri_check_components_from_context(uri,NULL,"Any"));
+	BC_ASSERT_TRUE(belle_sip_uri_check_components_from_context(uri,NULL,"Any"));
 	belle_sip_object_unref(uri);
 	}
 }
@@ -433,7 +431,7 @@ void test_escaping_bad_chars(void){
 	char bad_uri[13] = { 'h', 'e', 'l', 'l', 'o', (char)0xa0, (char)0xc8, 'w', 'o', 'r', 'l', 'd', 0x0 };
 	char *escaped = belle_sip_uri_to_escaped_username(bad_uri);
 
-	CU_ASSERT_STRING_EQUAL(escaped, "hello%a0%c8world");
+	BC_ASSERT_STRING_EQUAL(escaped, "hello%%a0%%c8world");
 
 	belle_sip_free(escaped);
 }

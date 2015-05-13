@@ -18,38 +18,36 @@
 
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_tester.h"
-#include <stdio.h>
-#include "CUnit/Basic.h"
 
 
 static void check_uri_and_headers(belle_sip_message_t* message) {
 	if (belle_sip_message_is_request(message)) {
-		CU_ASSERT_TRUE(belle_sip_request_get_uri(BELLE_SIP_REQUEST(message))|| belle_sip_request_get_absolute_uri(BELLE_SIP_REQUEST(message)) );
+		BC_ASSERT_TRUE(belle_sip_request_get_uri(BELLE_SIP_REQUEST(message))|| belle_sip_request_get_absolute_uri(BELLE_SIP_REQUEST(message)) );
 
-		CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Max-Forwards"));
-		CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_MAX_FORWARDS(belle_sip_message_get_header(message,"Max-Forwards")));
+		BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Max-Forwards"));
+		BC_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_MAX_FORWARDS(belle_sip_message_get_header(message,"Max-Forwards")));
 
-		CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"User-Agent"));
-		CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_USER_AGENT(belle_sip_message_get_header(message,"User-Agent")));
+		BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"User-Agent"));
+		BC_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_USER_AGENT(belle_sip_message_get_header(message,"User-Agent")));
 	}
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"From"));
-	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_FROM(belle_sip_message_get_header(message,"From")));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"From"));
+	BC_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_FROM(belle_sip_message_get_header(message,"From")));
 
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"To"));
-	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_TO(belle_sip_message_get_header(message,"To")));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"To"));
+	BC_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_TO(belle_sip_message_get_header(message,"To")));
 
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"CSeq"));
-	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_CSEQ(belle_sip_message_get_header(message,"CSeq")));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"CSeq"));
+	BC_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_CSEQ(belle_sip_message_get_header(message,"CSeq")));
 
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Via"));
-	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(message,"Via")));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Via"));
+	BC_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(message,"Via")));
 
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Call-ID"));
-	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_CALL_ID(belle_sip_message_get_header(message,"Call-ID")));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Call-ID"));
+	BC_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_CALL_ID(belle_sip_message_get_header(message,"Call-ID")));
 
 
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Length"));
-	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_CONTENT_LENGTH(belle_sip_message_get_header(message,"Content-Length")));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Length"));
+	BC_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_CONTENT_LENGTH(belle_sip_message_get_header(message,"Content-Length")));
 
 
 
@@ -78,11 +76,11 @@ static void testRegisterMessage(void) {
 	message = belle_sip_message_parse(encoded_message);
 
 	request = BELLE_SIP_REQUEST(message);
-	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
-	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_EXPIRES(belle_sip_message_get_header(message,"Expires")));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Proxy-Authorization"));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
+	BC_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
+	BC_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_EXPIRES(belle_sip_message_get_header(message,"Expires")));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Proxy-Authorization"));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
 
 	check_uri_and_headers(message);
 	belle_sip_free(encoded_message);
@@ -111,10 +109,10 @@ static void testInviteMessage(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
 	message = belle_sip_message_parse(encoded_message);
 	request = BELLE_SIP_REQUEST(message);
-	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"INVITE");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Authorization"));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Type"));
+	BC_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"INVITE");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Authorization"));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Type"));
 	check_uri_and_headers(message);
 	belle_sip_object_unref(message);
 	belle_sip_free(encoded_message);
@@ -141,14 +139,14 @@ static void testInviteMessageWithTelUri(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
 	message = belle_sip_message_parse(encoded_message);
 	request = BELLE_SIP_REQUEST(message);
-	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"INVITE");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Authorization"));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Type"));
+	BC_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"INVITE");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Authorization"));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Type"));
 	check_uri_and_headers(message);
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(belle_sip_message_get_header_by_type(message,belle_sip_header_from_t))));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(belle_sip_message_get_header_by_type(message,belle_sip_header_to_t))));
-	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(belle_sip_request_get_absolute_uri(request)),"11234567888;phone-context=vzims.fr");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(belle_sip_message_get_header_by_type(message,belle_sip_header_from_t))));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(belle_sip_message_get_header_by_type(message,belle_sip_header_to_t))));
+	BC_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(belle_sip_request_get_absolute_uri(request)),"11234567888;phone-context=vzims.fr");
 	belle_sip_object_unref(message);
 	belle_sip_free(encoded_message);
 }
@@ -169,9 +167,9 @@ static void test401Response(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
 	message = belle_sip_message_parse(encoded_message);
 	response = BELLE_SIP_RESPONSE(message);
-	CU_ASSERT_EQUAL(belle_sip_response_get_status_code(response),401);
-	CU_ASSERT_STRING_EQUAL(belle_sip_response_get_reason_phrase(response),"Unauthorized");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"WWW-Authenticate"));
+	BC_ASSERT_EQUAL(belle_sip_response_get_status_code(response),401,int,"%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_response_get_reason_phrase(response),"Unauthorized");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"WWW-Authenticate"));
 	check_uri_and_headers(message);
 	belle_sip_object_unref(message);
 	belle_sip_free(encoded_message);
@@ -193,9 +191,9 @@ static void test401ResponseWithoutResponsePhrase(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
 	message = belle_sip_message_parse(encoded_message);
 	response = BELLE_SIP_RESPONSE(message);
-	CU_ASSERT_EQUAL(belle_sip_response_get_status_code(response),401);
-	CU_ASSERT_PTR_NULL(belle_sip_response_get_reason_phrase(response));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"WWW-Authenticate"));
+	BC_ASSERT_EQUAL(belle_sip_response_get_status_code(response),401,int,"%d");
+	BC_ASSERT_PTR_NULL(belle_sip_response_get_reason_phrase(response));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"WWW-Authenticate"));
 	check_uri_and_headers(message);
 	belle_sip_object_unref(message);
 	belle_sip_free(encoded_message);
@@ -217,11 +215,11 @@ static void testRegisterRaw(void) {
 	size_t size=0;
 	size_t raw_message_size= strlen(raw_message);
 	belle_sip_message_t* message = belle_sip_message_parse_raw(raw_message,raw_message_size,&size);
-	CU_ASSERT_EQUAL(raw_message_size,size+9);
+	BC_ASSERT_EQUAL(raw_message_size,size+9,int,"%d");
 	request = BELLE_SIP_REQUEST(message);
-	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(request));
-	CU_ASSERT_STRING_EQUAL(&raw_message[size],"123456789");
+	BC_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(request));
+	BC_ASSERT_STRING_EQUAL(&raw_message[size],"123456789");
 	belle_sip_object_unref(message);
 }
 
@@ -239,8 +237,8 @@ static void testOptionMessage(void) {
 							"Content-Length: 0\r\n\r\n";
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
 	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
-	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(request));
+	BC_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(request));
 	belle_sip_object_unref(message);
 }
 
@@ -281,20 +279,20 @@ static void test_extract_source(void) {
 	belle_sip_message_t* message = belle_sip_message_parse(invite_1);
 	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
 	belle_sip_uri_t* source =belle_sip_request_extract_origin(request);
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-type"));
-	CU_ASSERT_PTR_NOT_NULL(source);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(source),"37.59.129.73");
-	CU_ASSERT_EQUAL(belle_sip_uri_get_port(source),0);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"tcp");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-type"));
+	BC_ASSERT_PTR_NOT_NULL(source);
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(source),"37.59.129.73");
+	BC_ASSERT_EQUAL(belle_sip_uri_get_port(source),0,int,"%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"tcp");
 	belle_sip_object_unref(message);
 
 	message = belle_sip_message_parse(invite_2);
 	request = BELLE_SIP_REQUEST(message);
 	source =belle_sip_request_extract_origin(request);
-	CU_ASSERT_PTR_NOT_NULL(source);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(source),"81.56.113.2");
-	CU_ASSERT_EQUAL(belle_sip_uri_get_port(source),15060);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"udp");
+	BC_ASSERT_PTR_NOT_NULL(source);
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(source),"81.56.113.2");
+	BC_ASSERT_EQUAL(belle_sip_uri_get_port(source),15060,int,"%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"udp");
 	belle_sip_object_unref(message);
 
 }
@@ -304,8 +302,8 @@ static void test_sipfrag(void) {
 	belle_sip_response_t* response;
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
 	response = BELLE_SIP_RESPONSE(message);
-	CU_ASSERT_EQUAL(belle_sip_response_get_status_code(response),100);
-	CU_ASSERT_STRING_EQUAL(belle_sip_response_get_reason_phrase(response),"Trying");
+	BC_ASSERT_EQUAL(belle_sip_response_get_status_code(response),100,int,"%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_response_get_reason_phrase(response),"Trying");
 	belle_sip_object_unref(message);
 }
 
@@ -331,7 +329,7 @@ const char * raw_message=	"INVITE sip:jehan@81.56.113.2:50343;transport=tcp;line
 							"Content-Length: 0\r\n\r\n";
 
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
-	CU_ASSERT_FALSE(belle_sip_message_check_headers(message));
+	BC_ASSERT_FALSE(belle_sip_message_check_headers(message));
 }
 
 static void testMalformedOptionnalHeaderInMessage(void) {
@@ -356,11 +354,11 @@ const char* raw_message = 	"REGISTER sip:192.168.0.20 SIP/2.0\r\n"\
 	message = belle_sip_message_parse(encoded_message);
 
 	request = BELLE_SIP_REQUEST(message);
-	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
-	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_EXPIRES(belle_sip_message_get_header(message,"Expires")));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Proxy-Authorization"));
-	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(message,"Contact")); /*contact is optionnal in register*/
+	BC_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
+	BC_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_EXPIRES(belle_sip_message_get_header(message,"Expires")));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Proxy-Authorization"));
+	BC_ASSERT_PTR_NULL(belle_sip_message_get_header(message,"Contact")); /*contact is optionnal in register*/
 
 	check_uri_and_headers(message);
 	belle_sip_free(encoded_message);
@@ -386,7 +384,7 @@ static void testMalformedMessageWithWrongStart(void) {
 			"Content-Length: 0\r\n\r\n";
 
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
-	CU_ASSERT_PTR_NULL(message);
+	BC_ASSERT_PTR_NULL(message);
 }
 #include "belle_sip_internal.h"
 
@@ -415,15 +413,15 @@ void channel_parser_tester_recovery_from_error_base (const char* prelude,const c
 
 	belle_sip_channel_parse_stream(channel,FALSE);
 
-	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
-	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
+	BC_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
+	BC_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
 	message=BELLE_SIP_MESSAGE(channel->incoming_messages->data);
-	CU_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_sip_request_t));
+	BC_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_sip_request_t));
 	request = BELLE_SIP_REQUEST(message);
-	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
-	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_EXPIRES(belle_sip_message_get_header(message,"Expires")));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Proxy-Authorization"));
+	BC_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
+	BC_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_EXPIRES(belle_sip_message_get_header(message,"Expires")));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Proxy-Authorization"));
 
 	check_uri_and_headers(message);
 
@@ -531,7 +529,7 @@ static void testMalformedFrom_process_response_cb(void *user_ctx, const belle_si
 
 	(*(int*)user_ctx) += 1; // increment the call counter
 
-	CU_ASSERT( status == 400 );
+	BC_ASSERT( status == 400 );
 }
 
 #define LISTENING_POINT_PORT 45421
@@ -592,7 +590,7 @@ static void testMalformedFrom(void){
 	// we expect the stack to send a 400 error
 	belle_sip_stack_sleep(stack,1000);
 
-	CU_ASSERT_EQUAL(called_times,1);
+	BC_ASSERT_EQUAL(called_times,1,int,"%d");
 	belle_sip_provider_remove_sip_listener(provider,listener);
 
 	belle_sip_object_unref(listener);
@@ -650,7 +648,7 @@ static void testMalformedMandatoryField(void){
 	// we expect the stack to send a 400 error
 	belle_sip_stack_sleep(stack,1000);
 
-	CU_ASSERT_EQUAL(called_times,1);
+	BC_ASSERT_EQUAL(called_times,1,int,"%d");
 	belle_sip_provider_remove_sip_listener(provider,listener);
 
 	belle_sip_object_unref(listener);
@@ -696,10 +694,10 @@ static void testRFC2543_base(char* branch) {
 	belle_sip_provider_dispatch_message(prov,message);
 	request = BELLE_SIP_REQUEST(message);
 
-	CU_ASSERT_PTR_NOT_NULL(request);
+	BC_ASSERT_PTR_NOT_NULL(request);
 	tr=belle_sip_provider_create_server_transaction(prov,request);
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_provider_find_matching_server_transaction(prov,request)); /*make sure branch id is properly set*/
-	CU_ASSERT_PTR_NOT_NULL(tr);
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_provider_find_matching_server_transaction(prov,request)); /*make sure branch id is properly set*/
+	BC_ASSERT_PTR_NOT_NULL(tr);
 	belle_sip_object_unref(prov);
 	belle_sip_object_unref(stack);
 	belle_sip_object_unref(message);
@@ -741,29 +739,29 @@ static void testUriHeadersInInvite(void)  {
 										,NULL
 										,belle_sip_header_via_new()
 										,70);
-	CU_ASSERT_PTR_NOT_NULL(request);
-	CU_ASSERT_PTR_NOT_NULL(raw_header=belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"header1"));
+	BC_ASSERT_PTR_NOT_NULL(request);
+	BC_ASSERT_PTR_NOT_NULL(raw_header=belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"header1"));
 	if (raw_header) {
-		CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(raw_header)),"blabla");
+		BC_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(raw_header)),"blabla");
 	}
-	CU_ASSERT_PTR_NOT_NULL(raw_header=belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"header2"));
+	BC_ASSERT_PTR_NOT_NULL(raw_header=belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"header2"));
 	if (raw_header) {
-		CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(raw_header)),"blue;weftutu=bla");
+		BC_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(raw_header)),"blue;weftutu=bla");
 	}
-	CU_ASSERT_PTR_NOT_NULL(raw_header=belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"To"));
+	BC_ASSERT_PTR_NOT_NULL(raw_header=belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"To"));
 	if (raw_header) {
-		CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(raw_header)),"sip:toto@titi.com");
+		BC_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(raw_header)),"sip:toto@titi.com");
 	}
-	CU_ASSERT_STRING_NOT_EQUAL(belle_sip_header_get_unparsed_value(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"From")),"toto");
-	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Record-Route"));
-	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Accept"));
-	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Accept-Encoding"));
-	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Accept-Language"));
-	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Allow"));
-	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Contact"));
-	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Organization"));
-	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Supported"));
-	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"User-Agent"));
+	BC_ASSERT_STRING_NOT_EQUAL(belle_sip_header_get_unparsed_value(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"From")),"toto");
+	BC_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Record-Route"));
+	BC_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Accept"));
+	BC_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Accept-Encoding"));
+	BC_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Accept-Language"));
+	BC_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Allow"));
+	BC_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Contact"));
+	BC_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Organization"));
+	BC_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Supported"));
+	BC_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"User-Agent"));
 
 
 	belle_sip_object_unref(request);
@@ -784,9 +782,9 @@ static void testUrisComponentsForRequest(void)  {
 										,belle_sip_header_to_parse("To: sip:titi@titi.com:5061")
 										,belle_sip_header_via_new()
 										,70);
-	CU_ASSERT_PTR_NOT_NULL(request);
+	BC_ASSERT_PTR_NOT_NULL(request);
 	t=belle_sip_provider_create_client_transaction(prov,request);
-	CU_ASSERT_NOT_EQUAL(belle_sip_client_transaction_send_request(t),0);
+	BC_ASSERT_NOT_EQUAL(belle_sip_client_transaction_send_request(t),0,int,"%d");
 }
 
 static void testGenericMessage(void) {
@@ -810,9 +808,9 @@ static void testGenericMessage(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
 	message = belle_sip_message_parse(encoded_message);
 	response = BELLE_SIP_RESPONSE(message);
-	CU_ASSERT_EQUAL(belle_sip_response_get_status_code(response),180);
-/*	CU_ASSERT_STRING_EQUAL(belle_sip_response_get_reason_phrase(response),"Unauthorized");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"WWW-Authenticate"));
+	BC_ASSERT_EQUAL(belle_sip_response_get_status_code(response),180,int,"%d");
+/*	BC_ASSERT_STRING_EQUAL(belle_sip_response_get_reason_phrase(response),"Unauthorized");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"WWW-Authenticate"));
 	check_uri_and_headers(message);*/
 	belle_sip_object_unref(message);
 	belle_sip_free(encoded_message);
@@ -834,7 +832,7 @@ static void testHttpGet(void)  {
 	belle_sip_header_extension_t* host_header;
 	belle_sip_object_t* tmp;
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(msg);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(msg);
 
 	marshaled_msg=belle_sip_object_to_string(BELLE_SIP_OBJECT(msg));
 	belle_sip_object_unref(msg);
@@ -844,16 +842,16 @@ static void testHttpGet(void)  {
 	belle_sip_object_unref(msg);
 	msg=BELLE_SIP_MESSAGE(tmp);
 
-	CU_ASSERT_TRUE(BELLE_SIP_IS_INSTANCE_OF(msg,belle_http_request_t));
+	BC_ASSERT_TRUE(BELLE_SIP_IS_INSTANCE_OF(msg,belle_http_request_t));
 	http_request=BELLE_HTTP_REQUEST(msg);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(uri=belle_http_request_get_uri(http_request));
+	BC_ASSERT_PTR_NOT_NULL_FATAL(uri=belle_http_request_get_uri(http_request));
 
-	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"/index.php");
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"User-Agent"));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Accept"));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Connection"));
-	CU_ASSERT_PTR_NOT_NULL(host_header=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header(msg,"Host")));
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(host_header),"www.linphone.org");
+	BC_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"/index.php");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"User-Agent"));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Accept"));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Connection"));
+	BC_ASSERT_PTR_NOT_NULL(host_header=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header(msg,"Host")));
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(host_header),"www.linphone.org");
 	belle_sip_object_unref(msg);
 }
 
@@ -879,7 +877,7 @@ static void testHttp200Ok(void)  {
 	belle_sip_header_extension_t* host_header;
 	belle_sip_object_t* tmp;
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(msg);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(msg);
 
 	marshaled_msg=belle_sip_object_to_string(BELLE_SIP_OBJECT(msg));
 	belle_sip_object_unref(msg);
@@ -889,17 +887,17 @@ static void testHttp200Ok(void)  {
 	belle_sip_object_unref(msg);
 	msg=BELLE_SIP_MESSAGE(tmp);
 
-	CU_ASSERT_TRUE(BELLE_SIP_IS_INSTANCE_OF(msg,belle_http_response_t));
+	BC_ASSERT_TRUE(BELLE_SIP_IS_INSTANCE_OF(msg,belle_http_response_t));
 	http_response=BELLE_HTTP_RESPONSE(msg);
 
-	CU_ASSERT_EQUAL(belle_http_response_get_status_code(http_response),200);
-	CU_ASSERT_STRING_EQUAL(belle_http_response_get_reason_phrase(http_response),"OK");
+	BC_ASSERT_EQUAL(belle_http_response_get_status_code(http_response),200,int,"%d");
+	BC_ASSERT_STRING_EQUAL(belle_http_response_get_reason_phrase(http_response),"OK");
 
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Date"));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"ETag"));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Connection"));
-	CU_ASSERT_PTR_NOT_NULL(host_header=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header(msg,"Server")));
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(host_header),"Apache");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Date"));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"ETag"));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Connection"));
+	BC_ASSERT_PTR_NOT_NULL(host_header=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header(msg,"Server")));
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(host_header),"Apache");
 	belle_sip_object_unref(msg);
 }
 
@@ -931,15 +929,15 @@ void channel_parser_http_response () {
 
 	belle_sip_channel_parse_stream(channel,TRUE);
 
-	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
-	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
+	BC_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
+	BC_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
 	message=BELLE_SIP_MESSAGE(channel->incoming_messages->data);
-	CU_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_http_response_t));
+	BC_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_http_response_t));
 	response = BELLE_HTTP_RESPONSE(message);
-	CU_ASSERT_STRING_EQUAL(belle_http_response_get_reason_phrase(response),"OK");
-	CU_ASSERT_EQUAL(belle_http_response_get_status_code(response),200);
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Cache-Control"));
-	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Vary"));
+	BC_ASSERT_STRING_EQUAL(belle_http_response_get_reason_phrase(response),"OK");
+	BC_ASSERT_EQUAL(belle_http_response_get_status_code(response),200,int,"%d");
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Cache-Control"));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Vary"));
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
 	belle_sip_object_unref(stack);
@@ -994,14 +992,14 @@ void testGetBody(void) {
 
 	belle_sip_channel_parse_stream(channel,FALSE);
 
-	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
-	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
+	BC_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
+	BC_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
 	message=BELLE_SIP_MESSAGE(channel->incoming_messages->data);
 
 	ctlt = belle_sip_message_get_header_by_type(message,belle_sip_header_content_length_t);
-	CU_ASSERT_PTR_NOT_NULL(ctlt);
-	CU_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),strlen(belle_sip_message_get_body(message)));
-	CU_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),belle_sip_message_get_body_size(message));
+	BC_ASSERT_PTR_NOT_NULL(ctlt);
+	BC_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),strlen(belle_sip_message_get_body(message)),int,"%d");
+	BC_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),belle_sip_message_get_body_size(message),int,"%d");
 	belle_sip_object_unref(message);
 }
 
@@ -1029,7 +1027,7 @@ test_t message_tests[] = {
 	{ "RFC2543 compatibility with branch id",testRFC2543CompatWithBranch},
 	{ "Uri headers in sip INVITE",testUriHeadersInInvite},
 	{ "Uris components in request",testUrisComponentsForRequest},
-	{ "Generic message test",testGenericMessage},	
+	{ "Generic message test",testGenericMessage},
 	{ "HTTP get",testHttpGet},
 	{ "HTTP 200 Ok",testHttp200Ok},
 	{ "Channel parser for HTTP reponse",channel_parser_http_response},

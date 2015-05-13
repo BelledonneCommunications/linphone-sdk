@@ -16,8 +16,6 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
@@ -58,7 +56,7 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 	belle_sip_message("process_io_error, exiting main loop");
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 	io_error_count++;
-	/*CU_ASSERT(CU_FALSE);*/
+	/*BC_ASSERT(CU_FALSE);*/
 }
 
 static void process_request_event(void *user_ctx, const belle_sip_request_event_t *event){
@@ -71,7 +69,7 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 	int status;
 	belle_sip_request_t* request;
 	BELLESIP_UNUSED(user_ctx);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_response(event));
+	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_response(event));
 	belle_sip_message("process_response_event [%i] [%s]"
 					,status=belle_sip_response_get_status_code(belle_sip_response_event_get_response(event))
 					,belle_sip_response_get_reason_phrase(belle_sip_response_event_get_response(event)));
@@ -81,15 +79,15 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		belle_sip_header_cseq_t* cseq;
 		belle_sip_client_transaction_t *t;
 		belle_sip_uri_t *dest;
-		// CU_ASSERT_NOT_EQUAL_FATAL(number_of_challenge,2);
-		CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_client_transaction(event)); /*require transaction mode*/
+		// BC_ASSERT_NOT_EQUAL_FATAL(number_of_challenge,2);
+		BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_client_transaction(event)); /*require transaction mode*/
 		dest=belle_sip_client_transaction_get_route(belle_sip_response_event_get_client_transaction(event));
 		request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(belle_sip_response_event_get_client_transaction(event)));
 		cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CSEQ);
 		belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
 		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_AUTHORIZATION);
 		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_PROXY_AUTHORIZATION);
-		CU_ASSERT_TRUE_FATAL(belle_sip_provider_add_authorization(prov,request,belle_sip_response_event_get_response(event),NULL,NULL,auth_domain));
+		BC_ASSERT_TRUE_FATAL(belle_sip_provider_add_authorization(prov,request,belle_sip_response_event_get_response(event),NULL,NULL,auth_domain));
 
 		t=belle_sip_provider_create_client_transaction(prov,request);
 		belle_sip_client_transaction_send_request_to(t,dest);
@@ -97,7 +95,7 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		authorized_request=request;
 		belle_sip_object_ref(authorized_request);
 	}  else {
-		CU_ASSERT_EQUAL(status,200);
+		BC_ASSERT_EQUAL(status,200,int,"%d");
 		is_register_ok=1;
 		using_transaction=belle_sip_response_event_get_client_transaction(event)!=NULL;
 		belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
@@ -256,8 +254,8 @@ void unregister_user(belle_sip_stack_t * stack
 		}
 	}
 
-	CU_ASSERT_EQUAL(is_register_ok,1);
-	CU_ASSERT_EQUAL(using_transaction,use_transaction);
+	BC_ASSERT_EQUAL(is_register_ok,1,int,"%d");
+	BC_ASSERT_EQUAL(using_transaction,use_transaction,int,"%d");
 	belle_sip_object_unref(req);
 	belle_sip_provider_remove_sip_listener(prov,l);
 }
@@ -321,8 +319,8 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 			belle_sip_provider_send_request(prov,req); /*manage retransmitions*/
 		}
 	}
-	CU_ASSERT_EQUAL(is_register_ok,success_expected);
-	if (success_expected) CU_ASSERT_EQUAL(using_transaction,use_transaction);
+	BC_ASSERT_EQUAL(is_register_ok,success_expected,int,"%d");
+	if (success_expected) BC_ASSERT_EQUAL(using_transaction,use_transaction,int,"%d");
 
 	belle_sip_object_unref(req);
 	belle_sip_provider_remove_sip_listener(prov,l);
@@ -422,7 +420,7 @@ static void bad_req_process_io_error(void *user_ctx, const belle_sip_io_error_ev
 static void bad_req_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
 	int *bad_request_response_received=(int*)user_ctx;
 	belle_sip_response_t *resp=belle_sip_response_event_get_response(event);
-	CU_ASSERT_TRUE(resp && belle_sip_response_get_status_code(resp)==400);
+	BC_ASSERT_TRUE(resp && belle_sip_response_get_status_code(resp)==400);
 	*bad_request_response_received=1;
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 }
@@ -465,7 +463,7 @@ static void test_bad_request(void) {
 	t=belle_sip_provider_create_client_transaction(prov,req);
 	belle_sip_client_transaction_send_request(t);
 	belle_sip_stack_sleep(stack,3000);
-	CU_ASSERT_TRUE(bad_request_response_received==1);
+	BC_ASSERT_TRUE(bad_request_response_received==1);
 	belle_sip_provider_remove_sip_listener(prov,bad_req_listener);
 	belle_sip_object_unref(bad_req_listener);
 
@@ -486,14 +484,14 @@ static void test_register_authenticate(void) {
 
 static void test_register_channel_inactive(void){
 	belle_sip_listening_point_t *lp=belle_sip_provider_get_listening_point(prov,"TCP");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(lp);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(lp);
 	belle_sip_stack_set_inactive_transport_timeout(stack,5);
 	belle_sip_listening_point_clean_channels(lp);
-	CU_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),0);
+	BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),0,int,"%d");
 	register_test("tcp",1);
-	CU_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),1);
+	BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),1,int,"%d");
 	belle_sip_stack_sleep(stack,5000);
-	CU_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),0);
+	BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),0,int,"%d");
 	belle_sip_stack_set_inactive_transport_timeout(stack,3600);
 }
 
@@ -517,7 +515,7 @@ static void test_connection_failure(void){
 	belle_sip_request_t *req;
 	io_error_count=0;
 	req=try_register_user_at_domain(stack, prov, "TCP",1,"tester","sip.linphone.org",no_server_running_here,0);
-	CU_ASSERT_TRUE(io_error_count>=1);
+	BC_ASSERT_TRUE(io_error_count>=1);
 	if (req) belle_sip_object_unref(req);
 }
 
@@ -528,7 +526,7 @@ static void test_connection_too_long(const char *transport){
 	io_error_count=0;
 	belle_sip_stack_set_transport_timeout(stack,2000);
 	req=try_register_user_at_domain(stack, prov, transport,1,"tester","sip.linphone.org",no_response_here_with_transport,0);
-	CU_ASSERT_TRUE(io_error_count>=1);
+	BC_ASSERT_TRUE(io_error_count>=1);
 	belle_sip_stack_set_transport_timeout(stack,orig);
 	belle_sip_free(no_response_here_with_transport);
 	if (req) belle_sip_object_unref(req);
@@ -549,7 +547,7 @@ static void test_tls_to_tcp(void){
 	belle_sip_stack_set_transport_timeout(stack,2000);
 	req=try_register_user_at_domain(stack, prov, "TLS",1,"tester",test_domain,test_domain_tls_to_tcp,0);
 	if (req){
-		CU_ASSERT_TRUE(io_error_count>=1);
+		BC_ASSERT_TRUE(io_error_count>=1);
 		belle_sip_object_unref(req);
 	}
 	belle_sip_stack_set_transport_timeout(stack,orig);
@@ -559,7 +557,7 @@ static void register_dns_srv_tcp(void){
 	belle_sip_request_t *req;
 	io_error_count=0;
 	req=try_register_user_at_domain(stack, prov, "TCP",1,"tester",client_auth_domain,"sip:linphone.net;transport=tcp",1);
-	CU_ASSERT_TRUE(io_error_count==0);
+	BC_ASSERT_TRUE(io_error_count==0);
 	if (req) belle_sip_object_unref(req);
 }
 
@@ -567,7 +565,7 @@ static void register_dns_srv_tls(void){
 	belle_sip_request_t *req;
 	io_error_count=0;
 	req=try_register_user_at_domain(stack, prov, "TLS",1,"tester",client_auth_domain,"sip:linphone.net;transport=tls",1);
-	CU_ASSERT_TRUE(io_error_count==0);
+	BC_ASSERT_EQUAL(io_error_count, 0, int, "%d");
 	if (req) belle_sip_object_unref(req);
 }
 
@@ -575,14 +573,14 @@ static void register_dns_load_balancing(void) {
 	belle_sip_request_t *req;
 	io_error_count = 0;
 	req = try_register_user_at_domain(stack, prov, "TCP", 1, "tester", client_auth_domain, "sip:belle-sip.net;transport=tcp", 1);
-	CU_ASSERT_TRUE(io_error_count == 0);
+	BC_ASSERT_EQUAL(io_error_count, 0, int, "%d");
 	if (req) belle_sip_object_unref(req);
 }
 
 static void process_message_response_event(void *user_ctx, const belle_sip_response_event_t *event){
 	int status;
 	BELLESIP_UNUSED(user_ctx);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_response(event));
+	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_response(event));
 	belle_sip_message("process_response_event [%i] [%s]"
 					,status=belle_sip_response_get_status_code(belle_sip_response_event_get_response(event))
 					,belle_sip_response_get_reason_phrase(belle_sip_response_event_get_response(event)));
@@ -647,16 +645,16 @@ static void reuse_nonce(void) {
 		belle_sip_provider_add_sip_listener(prov,BELLE_SIP_LISTENER(listener));
 
 		/*currently only one nonce should have been used (the one for the REGISTER)*/
-		CU_ASSERT_EQUAL(belle_sip_list_size(prov->auth_contexts), initial_auth_context_count+1);
+		BC_ASSERT_EQUAL(belle_sip_list_size(prov->auth_contexts), initial_auth_context_count+1,int,"%d");
 
 		/*this should reuse previous nonce*/
 		message_request=send_message(register_request, auth_domain);
-		CU_ASSERT_EQUAL(is_register_ok, 404);
+		BC_ASSERT_EQUAL(is_register_ok, 404,int,"%d");
 		 h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
 					BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
 				));
-		CU_ASSERT_PTR_NOT_NULL_FATAL(h);
-		CU_ASSERT_EQUAL(2, belle_sip_header_authorization_get_nonce_count(h));
+		BC_ASSERT_PTR_NOT_NULL_FATAL(h);
+		BC_ASSERT_EQUAL(2, belle_sip_header_authorization_get_nonce_count(h),int,"%d");
 		first_nonce_used = belle_sip_strdup(belle_sip_header_authorization_get_nonce(h));
 
 		belle_sip_object_unref(message_request);
@@ -664,32 +662,32 @@ static void reuse_nonce(void) {
 
 		/*new nonce should be created when not using outbound proxy realm*/
 		message_request=send_message(register_request, NULL);
-		CU_ASSERT_EQUAL(is_register_ok, 407);
+		BC_ASSERT_EQUAL(is_register_ok, 407,int,"%d");
 		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
 				BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
 			));
-		CU_ASSERT_PTR_NULL_FATAL(h);
+		BC_ASSERT_PTR_NULL_FATAL(h);
 		belle_sip_object_unref(message_request);
 
 
 		/*new nonce should be created here too*/
 		message_request=send_message(register_request, "wrongrealm");
-		CU_ASSERT_EQUAL(is_register_ok, 407);
+		BC_ASSERT_EQUAL(is_register_ok, 407,int,"%d");
 		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
 				BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
 			));
-		CU_ASSERT_PTR_NULL_FATAL(h);
+		BC_ASSERT_PTR_NULL_FATAL(h);
 		belle_sip_object_unref(message_request);
 
 
 		/*first nonce created should be reused*/
 		message_request=send_message(register_request, auth_domain);
-		CU_ASSERT_EQUAL(is_register_ok, 404);
+		BC_ASSERT_EQUAL(is_register_ok, 404,int,"%d");
 		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
 				BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t
 			));
-		CU_ASSERT_PTR_NOT_NULL_FATAL(h);
-		CU_ASSERT_EQUAL(3, belle_sip_header_authorization_get_nonce_count(h));
+		BC_ASSERT_PTR_NOT_NULL_FATAL(h);
+		BC_ASSERT_EQUAL(3, belle_sip_header_authorization_get_nonce_count(h),int,"%d");
 		belle_sip_object_unref(message_request);
 
 		belle_sip_provider_remove_sip_listener(prov,BELLE_SIP_LISTENER(listener));

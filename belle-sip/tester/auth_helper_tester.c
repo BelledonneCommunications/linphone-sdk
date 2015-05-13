@@ -23,8 +23,6 @@
 
 #include "belle-sip/auth-helper.h"
 #include "belle_sip_tester.h"
-#include <stdio.h>
-#include "CUnit/Basic.h"
 
 #ifdef HAVE_POLARSSL
 #include <polarssl/version.h>
@@ -39,9 +37,9 @@ static void test_authentication(void) {
 	belle_sip_header_www_authenticate_t* www_authenticate=belle_sip_header_www_authenticate_parse(l_raw_header);
 	belle_sip_header_authorization_t* authorization = belle_sip_auth_helper_create_authorization(www_authenticate);
 	belle_sip_header_authorization_set_uri(authorization,belle_sip_uri_parse("sip:sip.linphone.org"));
-	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_compute_ha1("jehan-mac","sip.linphone.org","toto",ha1));
-	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_fill_authorization(authorization,"REGISTER",ha1));
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(authorization),"77ebf3de72e41934d806175586086508");
+	BC_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_compute_ha1("jehan-mac","sip.linphone.org","toto",ha1), int, "%d");
+	BC_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_fill_authorization(authorization,"REGISTER",ha1), int, "%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(authorization),"77ebf3de72e41934d806175586086508");
 	belle_sip_object_unref(www_authenticate);
 	belle_sip_object_unref(authorization);
 }
@@ -57,11 +55,11 @@ static void test_authentication_qop_auth(void) {
 	belle_sip_header_authorization_set_nonce_count(authorization,1);
 	belle_sip_header_authorization_set_qop(authorization,"auth");
 	belle_sip_header_authorization_set_cnonce(authorization,"8302210f"); /*for testing purpose*/
-	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_compute_ha1("jehan-mac","sip.linphone.org","toto",ha1));
-	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_fill_authorization(authorization,"REGISTER",ha1));
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_qop(authorization),"auth");
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(authorization),"694dab8dfe7d50d28ba61e8c43e30666");
-	CU_ASSERT_EQUAL(belle_sip_header_authorization_get_nonce_count(authorization),1);
+	BC_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_compute_ha1("jehan-mac","sip.linphone.org","toto",ha1), int, "%d");
+	BC_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_fill_authorization(authorization,"REGISTER",ha1), int, "%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_qop(authorization),"auth");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(authorization),"694dab8dfe7d50d28ba61e8c43e30666");
+	BC_ASSERT_EQUAL(belle_sip_header_authorization_get_nonce_count(authorization),1, int, "%d");
 	belle_sip_object_unref(www_authenticate);
 	belle_sip_object_unref(authorization);
 }
@@ -74,9 +72,9 @@ static void test_proxy_authentication(void) {
 	belle_sip_header_proxy_authenticate_t* proxy_authenticate=belle_sip_header_proxy_authenticate_parse(l_raw_header);
 	belle_sip_header_proxy_authorization_t* proxy_authorization = belle_sip_auth_helper_create_proxy_authorization(proxy_authenticate);
 	belle_sip_header_authorization_set_uri(BELLE_SIP_HEADER_AUTHORIZATION(proxy_authorization),belle_sip_uri_parse("sip:sip.linphone.org"));
-	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_compute_ha1("jehan-mac","sip.linphone.org","toto",ha1));
-	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_fill_proxy_authorization(proxy_authorization,"REGISTER",ha1));
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(BELLE_SIP_HEADER_AUTHORIZATION(proxy_authorization))
+	BC_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_compute_ha1("jehan-mac","sip.linphone.org","toto",ha1), int, "%d");
+	BC_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_fill_proxy_authorization(proxy_authorization,"REGISTER",ha1), int, "%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(BELLE_SIP_HEADER_AUTHORIZATION(proxy_authorization))
 							,"77ebf3de72e41934d806175586086508");
 	belle_sip_object_unref(proxy_authenticate);
 	belle_sip_object_unref(proxy_authorization);
@@ -96,28 +94,28 @@ static void test_generate_and_parse_certificates(void) {
 
 	/* create 2 certificates in the temporary certificate directory (TODO : set the directory in a absolute path?? where?)*/
 	ret = belle_sip_generate_self_signed_certificate(belle_sip_certificate_temporary_dir, "test_certificate1", &certificate, &key);
-	CU_ASSERT_EQUAL_FATAL(0, ret);
+	BC_ASSERT_EQUAL_FATAL(0, ret, int, "%d");
 	ret = belle_sip_generate_self_signed_certificate(belle_sip_certificate_temporary_dir, "test_certificate2", &certificate, &key);
-	CU_ASSERT_EQUAL_FATAL(0, ret);
+	BC_ASSERT_EQUAL_FATAL(0, ret, int, "%d");
 
 	/* parse directory to get the certificate2 */
 	ret = belle_sip_get_certificate_and_pkey_in_dir(belle_sip_certificate_temporary_dir, "test_certificate2", &parsed_certificate, &parsed_key, BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
 	belle_sip_free(belle_sip_certificate_temporary_dir);
-	CU_ASSERT_EQUAL_FATAL(0, ret);
+	BC_ASSERT_EQUAL_FATAL(0, ret, int, "%d");
 
 	/* get pem version of generated and parsed certificate and compare them */
 	pem_certificate = belle_sip_certificates_chain_get_pem(certificate);
-	CU_ASSERT_TRUE_FATAL(pem_certificate!=NULL);
+	BC_ASSERT_TRUE_FATAL(pem_certificate!=NULL);
 	pem_parsed_certificate = belle_sip_certificates_chain_get_pem(parsed_certificate);
-	CU_ASSERT_TRUE_FATAL(pem_parsed_certificate!=NULL);
-	CU_ASSERT_STRING_EQUAL(pem_certificate, pem_parsed_certificate);
+	BC_ASSERT_TRUE_FATAL(pem_parsed_certificate!=NULL);
+	BC_ASSERT_STRING_EQUAL(pem_certificate, pem_parsed_certificate);
 
 	/* get pem version of generated and parsed key and compare them */
 	pem_key = belle_sip_signing_key_get_pem(key);
-	CU_ASSERT_TRUE_FATAL(pem_key!=NULL);
+	BC_ASSERT_TRUE_FATAL(pem_key!=NULL);
 	pem_parsed_key = belle_sip_signing_key_get_pem(parsed_key);
-	CU_ASSERT_TRUE_FATAL(pem_parsed_key!=NULL);
-	CU_ASSERT_STRING_EQUAL(pem_key, pem_parsed_key);
+	BC_ASSERT_TRUE_FATAL(pem_parsed_key!=NULL);
+	BC_ASSERT_STRING_EQUAL(pem_key, pem_parsed_key);
 
 	belle_sip_free(pem_certificate);
 	belle_sip_free(pem_parsed_certificate);
@@ -169,8 +167,8 @@ static void test_certificate_fingerprint(void) {
 	/* generate fingerprint */
 	fingerprint = belle_sip_certificates_chain_get_fingerprint(cert);
 
-	CU_ASSERT_TRUE_FATAL(fingerprint!=NULL);
-	CU_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_client_cert_fingerprint);
+	BC_ASSERT_TRUE_FATAL(fingerprint!=NULL);
+	BC_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_client_cert_fingerprint);
 
 	belle_sip_free(fingerprint);
 	belle_sip_object_unref(cert);
@@ -180,8 +178,8 @@ static void test_certificate_fingerprint(void) {
 	/* generate fingerprint */
 	fingerprint = belle_sip_certificates_chain_get_fingerprint(cert);
 
-	CU_ASSERT_TRUE_FATAL(fingerprint!=NULL);
-	CU_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_fingerprint256_cert_fingerprint);
+	BC_ASSERT_TRUE_FATAL(fingerprint!=NULL);
+	BC_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_fingerprint256_cert_fingerprint);
 
 	belle_sip_free(fingerprint);
 	belle_sip_object_unref(cert);

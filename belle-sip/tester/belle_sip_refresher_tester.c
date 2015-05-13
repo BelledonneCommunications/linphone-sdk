@@ -16,8 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
@@ -95,7 +93,7 @@ static unsigned int  wait_for(belle_sip_stack_t*s1, belle_sip_stack_t*s2,int* co
 //static void process_io_error(void *obj, const belle_sip_io_error_event_t *event){
 //	belle_sip_warning("process_io_error");
 //	/*belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));*/
-//	/*CU_ASSERT(CU_FALSE);*/
+//	/*BC_ASSERT(CU_FALSE);*/
 //}
 
 static void compute_response(const char* username
@@ -227,15 +225,15 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 
 			belle_sip_header_t* sip_if_match=belle_sip_message_get_header(BELLE_SIP_MESSAGE(resp),"SIP-If-Match");
 			if (sip_if_match) {
-				CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(sip_if_match)),"blablietag");
+				BC_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(sip_if_match)),"blablietag");
 			}
 			/*check for body*/
-			CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_body(BELLE_SIP_MESSAGE(req)));
+			BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_body(BELLE_SIP_MESSAGE(req)));
 			if (belle_sip_message_get_body(BELLE_SIP_MESSAGE(req))) {
-				CU_ASSERT_STRING_EQUAL(belle_sip_message_get_body(BELLE_SIP_MESSAGE(req)),publish_body);
+				BC_ASSERT_STRING_EQUAL(belle_sip_message_get_body(BELLE_SIP_MESSAGE(req)),publish_body);
 			}
-			CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header_by_type(req,belle_sip_header_content_type_t));
-			CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header_by_type(req,belle_sip_header_content_length_t));
+			BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header_by_type(req,belle_sip_header_content_type_t));
+			BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header_by_type(req,belle_sip_header_content_length_t));
 			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),belle_sip_header_create("SIP-ETag","blablietag"));
 		}
 	} else {
@@ -263,11 +261,11 @@ static void client_process_response_event(void *obj, const belle_sip_response_ev
 			int family_found;
 			belle_sip_header_contact_t *ct=belle_sip_message_get_header_by_type(
 				(belle_sip_message_t*)belle_sip_response_event_get_response(event),belle_sip_header_contact_t);
-			CU_ASSERT_PTR_NOT_NULL_FATAL(ct);
+			BC_ASSERT_PTR_NOT_NULL_FATAL(ct);
 			host=belle_sip_uri_get_host(belle_sip_header_address_get_uri((belle_sip_header_address_t*)ct));
 			if (strchr(host,':')) family_found=AF_INET6;
 			else family_found=AF_INET;
-			CU_ASSERT_TRUE(family_found==endpoint->connection_family);
+			BC_ASSERT_TRUE(family_found==endpoint->connection_family);
 		}
 		break;
 	case 401:endpoint->stat.fourHundredOne++; break;
@@ -341,7 +339,7 @@ static void destroy_endpoint(endpoint_t* endpoint) {
 
 static endpoint_t* create_udp_endpoint(int port,belle_sip_listener_callbacks_t* listener_callbacks) {
 	endpoint_t *endpoint=create_endpoint("0.0.0.0",port,"udp",listener_callbacks);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(endpoint->lp);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(endpoint->lp);
 	return endpoint;
 }
 
@@ -399,33 +397,33 @@ static void refresher_base_with_body(endpoint_t* client
 		client->refresher= refresher = belle_sip_client_transaction_create_refresher(trans);
 	} else {
 		if (server->auth == none) {
-			CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
+			BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
 		} else {
-			CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
+			BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
 			/*update cseq*/
 			req=belle_sip_client_transaction_create_authenticated_request(trans,NULL,NULL);
 			belle_sip_object_unref(trans);
 			trans=belle_sip_provider_create_client_transaction(client->provider,req);
 			belle_sip_object_ref(trans);
 			belle_sip_client_transaction_send_request(trans);
-			CU_ASSERT_TRUE_FATAL(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
+			BC_ASSERT_TRUE_FATAL(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
 		}
 		client->refresher= refresher = belle_sip_client_transaction_create_refresher(trans);
 	}
-	CU_ASSERT_TRUE_FATAL(refresher!=NULL);
+	BC_ASSERT_TRUE_FATAL(refresher!=NULL);
 	belle_sip_object_unref(trans);
 	belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
 
 	begin = belle_sip_time_ms();
-	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0),client->register_count*1000 + 1000));
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0),client->register_count*1000 + 1000));
 	end = belle_sip_time_ms();
-	CU_ASSERT_TRUE(end-begin>=client->register_count*1000*.9); /*because refresh is at 90% of expire*/
-	CU_ASSERT_TRUE(end-begin<(client->register_count*1000 + 2000));
+	BC_ASSERT_TRUE(end-begin>=client->register_count*1000*.9); /*because refresh is at 90% of expire*/
+	BC_ASSERT_TRUE(end-begin<(client->register_count*1000 + 2000));
 	/*unregister twice to make sure refresh operation can be safely cascaded*/
 	belle_sip_refresher_refresh(refresher,0);
 	belle_sip_refresher_refresh(refresher,0);
-	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+1,1000));
-	CU_ASSERT_EQUAL(client->stat.refreshOk,client->register_count+1);
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+1,1000));
+	BC_ASSERT_EQUAL(client->stat.refreshOk,client->register_count+1,int,"%d");
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 }
@@ -514,26 +512,26 @@ static void subscribe_test(void) {
 	belle_sip_object_ref(trans);/*to avoid trans from being deleted before refresher can use it*/
 	belle_sip_client_transaction_send_request(trans);
 
-	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
 
 	req=belle_sip_client_transaction_create_authenticated_request(trans,NULL,NULL);
 	belle_sip_object_unref(trans);
 	trans=belle_sip_provider_create_client_transaction(client->provider,req);
 	belle_sip_object_ref(trans);
 	belle_sip_client_transaction_send_request(trans);
-	CU_ASSERT_TRUE_FATAL(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
+	BC_ASSERT_TRUE_FATAL(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
 	 /*maybe dialog should be automatically created*/
-	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(trans)))
+	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(trans)));
 
 	refresher = belle_sip_client_transaction_create_refresher(trans);
 	belle_sip_object_unref(trans);
 	belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
 
 	begin = belle_sip_time_ms();
-	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,3,4000));
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,3,4000));
 	end = belle_sip_time_ms();
-	CU_ASSERT_TRUE(end-begin>=3000);
-	CU_ASSERT_TRUE(end-begin<5000);
+	BC_ASSERT_TRUE(end-begin>=3000);
+	BC_ASSERT_TRUE(end-begin<5000);
 	/*unsubscribe twice to make sure refresh operation can be safely cascaded*/
 	belle_sip_refresher_refresh(refresher,0);
 	belle_sip_refresher_refresh(refresher,0);
@@ -575,7 +573,7 @@ static void register_with_failure(void) {
 	server->auth=digest;
 	client->transiant_network_failure=1;
 	register_base(client,server);
-	CU_ASSERT_EQUAL(client->stat.refreshKo,1);
+	BC_ASSERT_EQUAL(client->stat.refreshKo,1,int,"%d");
 	destroy_endpoint(client);
 	destroy_endpoint(server);
 }

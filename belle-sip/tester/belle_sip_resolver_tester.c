@@ -16,8 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
@@ -121,18 +119,18 @@ static void ipv4_a_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		BC_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
-			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			belle_sip_freeaddrinfo(ai);
 		}
 	}
@@ -147,18 +145,18 @@ static void ipv4_cname_a_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_CNAME, SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		BC_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
 		if (ai) {
-			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			belle_sip_freeaddrinfo(ai);
 		}
 	}
@@ -170,20 +168,20 @@ static void local_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, "localhost", SIP_PORT, AF_INET, a_resolve_done, client);
 	// A DNS query is needed on Windows platform
 #ifdef WIN32
-	CU_ASSERT_PTR_NOT_EQUAL(client->resolver_ctx, NULL);
+	BC_ASSERT_PTR_NOT_EQUAL(client->resolver_ctx, NULL);
 #else
-	CU_ASSERT_PTR_EQUAL(client->resolver_ctx, NULL);
+	BC_ASSERT_PTR_EQUAL(client->resolver_ctx, NULL);
 #endif
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		BC_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT, int, "%d");
 	}
 	destroy_endpoint(client);
 }
@@ -194,12 +192,12 @@ static void ipv4_a_query_no_result(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_BAD_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_EQUAL(client->ai_list, NULL);
 
 	destroy_endpoint(client);
 }
@@ -208,10 +206,10 @@ static void ipv4_a_query_no_result(void) {
 static void ipv4_a_query_send_failure(void) {
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	belle_sip_stack_set_resolver_send_error(client->stack, -1);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_EQUAL(client->resolver_ctx, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 	belle_sip_stack_set_resolver_send_error(client->stack, 0);
 
 	destroy_endpoint(client);
@@ -222,13 +220,13 @@ static void ipv4_a_query_timeout(void) {
 
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	belle_sip_stack_set_dns_timeout(client->stack, 0);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, "toto.com", SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 2000));
-	CU_ASSERT_PTR_EQUAL(client->ai_list, NULL);
-	CU_ASSERT_EQUAL(client->resolve_ko,1);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 2000));
+	BC_ASSERT_PTR_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_EQUAL(client->resolve_ko,1, int, "%d");
 	destroy_endpoint(client);
 }
 
@@ -237,14 +235,14 @@ static void ipv4_a_query_multiple_results(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_MULTIRES_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
-		CU_ASSERT_PTR_NOT_NULL(client->ai_list->ai_next);
+		BC_ASSERT_PTR_NOT_NULL(client->ai_list->ai_next);
 	}
 
 	destroy_endpoint(client);
@@ -261,12 +259,12 @@ static void ipv4_a_query_with_v4mapped_results(void) {
 
 	client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_NULL(client->ai_list);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
 
 	destroy_endpoint(client);
 }
@@ -284,43 +282,43 @@ static void ipv6_aaaa_query(void) {
 	}
 
 	client = create_endpoint();
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV6_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct addrinfo *next;
 		struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)client->ai_list->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT);
+		BC_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT, int, "%d");
 		/*the IPv6 address shall return first, and must be a real ipv6 address*/
-		CU_ASSERT_TRUE(client->ai_list->ai_family==AF_INET6);
-		CU_ASSERT_FALSE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
+		BC_ASSERT_TRUE(client->ai_list->ai_family==AF_INET6);
+		BC_ASSERT_FALSE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IP, SIP_PORT);
-		CU_ASSERT_PTR_NOT_NULL(ai);
+		BC_ASSERT_PTR_NOT_NULL(ai);
 		if (ai) {
 			struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
 			int i;
 			for (i = 0; i < 8; i++) {
-				CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[i], ipv6_address->s6_addr[i]);
+				BC_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[i], ipv6_address->s6_addr[i], int, "%d");
 			}
 			belle_sip_freeaddrinfo(ai);
 		}
 		next=client->ai_list->ai_next;
-		CU_ASSERT_PTR_NOT_NULL(next);
+		BC_ASSERT_PTR_NOT_NULL(next);
 		if (next){
 			sock_in6 = (struct sockaddr_in6 *)next->ai_addr;
-			CU_ASSERT_TRUE(next->ai_family==AF_INET6);
-			CU_ASSERT_TRUE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
-			CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT);
+			BC_ASSERT_TRUE(next->ai_family==AF_INET6);
+			BC_ASSERT_TRUE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
+			BC_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT, int, "%d");
 			ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IPV4, SIP_PORT);
-			CU_ASSERT_PTR_NOT_NULL(ai);
+			BC_ASSERT_PTR_NOT_NULL(ai);
 			if (ai) {
 				struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
 				int i;
 				for (i = 0; i < 8; i++) {
-					CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[i], ipv6_address->s6_addr[i]);
+					BC_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[i], ipv6_address->s6_addr[i], int, "%d");
 				}
 				belle_sip_freeaddrinfo(ai);
 			}
@@ -334,16 +332,16 @@ static void srv_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_srv(client->stack, "udp", SRV_DOMAIN, srv_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->srv_list, NULL);
-	CU_ASSERT_NOT_EQUAL(belle_sip_list_size(client->srv_list), 0);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_NULL(client->srv_list);
+	BC_ASSERT_NOT_EQUAL(belle_sip_list_size(client->srv_list), 0,int,"%d");
 	if (client->srv_list && (belle_sip_list_size(client->srv_list) > 0)) {
 		belle_sip_dns_srv_t *result_srv = belle_sip_list_nth_data(client->srv_list, 0);
-		CU_ASSERT_EQUAL(belle_sip_dns_srv_get_port(result_srv), SIP_PORT);
+		BC_ASSERT_EQUAL(belle_sip_dns_srv_get_port(result_srv), SIP_PORT, int, "%d");
 	}
 
 	destroy_endpoint(client);
@@ -354,12 +352,12 @@ static void srv_a_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", SRV_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 
 	destroy_endpoint(client);
 }
@@ -370,18 +368,18 @@ static void srv_a_query_no_srv_result(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", IPV4_CNAME, SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		BC_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
 		if (ai) {
-			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			belle_sip_freeaddrinfo(ai);
 		}
 	}
@@ -393,15 +391,15 @@ static void local_full_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "tcp", "localhost", SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		BC_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT, int, "%d");
 	}
 	destroy_endpoint(client);
 }
@@ -411,17 +409,17 @@ static void no_query_needed(void) {
 	struct addrinfo *ai;
 	endpoint_t *client = create_endpoint();
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", IPV4_SIP_IP, SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(client->resolve_done);
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(client->resolve_done);
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		BC_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
-			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			belle_sip_freeaddrinfo(ai);
 		}
 	}
@@ -431,7 +429,7 @@ static void no_query_needed(void) {
 
 static void set_custom_resolv_conf(belle_sip_stack_t *stack, const char *ns[3]){
 	FILE *f=fopen(WRITE_FILE_PATH "tmp_resolv.conf","w");
-	CU_ASSERT_PTR_NOT_NULL(f);
+	BC_ASSERT_PTR_NOT_NULL(f);
 	if (f){
 		int i;
 		for (i=0; i<3; ++i){
@@ -454,19 +452,19 @@ static void dns_fallback(void) {
 		NULL
 	};
 
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	set_custom_resolv_conf(client->stack,nameservers);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		BC_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
-			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			belle_sip_freeaddrinfo(ai);
 		}
 	}
@@ -482,26 +480,26 @@ static void ipv6_dns_server(void) {
 		"2001:4860:4860::8888",
 		NULL
 	};
-	
+
 	if (!belle_sip_tester_ipv6_available()){
 		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
 		return;
 	}
-	
+
 	client = create_endpoint();
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	set_custom_resolv_conf(client->stack,nameservers);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		BC_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
-			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			belle_sip_freeaddrinfo(ai);
 		}
 	}
@@ -518,25 +516,25 @@ static void ipv4_and_ipv6_dns_server(void) {
 		"2a01:e00::2",
 		NULL
 	};
-	
+
 	if (!belle_sip_tester_ipv6_available()){
 		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
 		return;
 	}
 	client = create_endpoint();
-	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	set_custom_resolv_conf(client->stack,nameservers);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
-	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		BC_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT, int, "%d");
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
-			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			belle_sip_freeaddrinfo(ai);
 		}
 	}

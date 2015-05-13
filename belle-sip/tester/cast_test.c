@@ -30,25 +30,25 @@ static void cast_test(void){
 	belle_sip_response_t *resp=belle_sip_response_new();
 	belle_sip_message_t *msg;
 	int tmp;
-	
-	CU_ASSERT_PTR_NOT_NULL_FATAL(stack);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(lp);
+
+	BC_ASSERT_PTR_NOT_NULL_FATAL(stack);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(lp);
 	provider=belle_sip_stack_create_provider(stack,lp);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(provider);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(req);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(resp);
-	
+	BC_ASSERT_PTR_NOT_NULL_FATAL(provider);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(req);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(resp);
+
 	belle_sip_message("Casting belle_sip_request_t to belle_sip_message_t");
 	msg=BELLE_SIP_MESSAGE(req);
-	CU_ASSERT_PTR_NOT_NULL(msg);
+	BC_ASSERT_PTR_NOT_NULL(msg);
 	belle_sip_message("Ok.");
 	belle_sip_message("Casting belle_sip_response_t to belle_sip_message_t");
 	msg=BELLE_SIP_MESSAGE(resp);
-	CU_ASSERT_PTR_NOT_NULL(msg);
+	BC_ASSERT_PTR_NOT_NULL(msg);
 	belle_sip_message("Ok.");
 	tmp=BELLE_SIP_IS_INSTANCE_OF(req,belle_sip_response_t);
 	belle_sip_message("Casting belle_sip_request_t to belle_sip_response_t: %s",tmp ? "yes" : "no");
-	CU_ASSERT_EQUAL(tmp,0);
+	BC_ASSERT_EQUAL(tmp,0,int,"%d");
 	belle_sip_object_unref(req);
 	belle_sip_object_unref(resp);
 	belle_sip_object_unref(provider);

@@ -16,8 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_tester.h"
 #include <belle_sip_internal.h>
@@ -45,7 +43,7 @@ static int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout) {
 static void process_response(void *data, const belle_http_response_event_t *event){
 	http_counters_t *counters=(http_counters_t*)data;
 	counters->response_count++;
-	CU_ASSERT_PTR_NOT_NULL(event->response);
+	BC_ASSERT_PTR_NOT_NULL(event->response);
 	if (event->response){
 		int code=belle_http_response_get_status_code(event->response);
 		belle_sip_body_handler_t *body=belle_sip_message_get_body_handler(BELLE_SIP_MESSAGE(event->response));
@@ -55,7 +53,7 @@ static void process_response(void *data, const belle_http_response_event_t *even
 			counters->three_hundred++;
 		else if (code>=300 && code <400)
 			counters->four_hundred++;
-		CU_ASSERT_PTR_NOT_NULL(body);
+		BC_ASSERT_PTR_NOT_NULL(body);
 	}
 }
 
@@ -100,9 +98,9 @@ static void one_get(const char *url,http_counters_t* counters, int *counter){
 	belle_http_request_listener_t *l;
 	belle_generic_uri_t *uri;
 	belle_http_request_t *req;
-	
+
 	uri=belle_generic_uri_parse(url);
-	
+
 	req=belle_http_request_create("GET",
 							    uri,
 							    belle_sip_header_create("User-Agent","belle-sip/"PACKAGE_VERSION),
@@ -113,55 +111,55 @@ static void one_get(const char *url,http_counters_t* counters, int *counter){
 	l=belle_http_request_listener_create_from_callbacks(&cbs,counters);
 	belle_http_provider_send_request(prov,req,l);
 	wait_for(stack,counter,1,10000);
-	
+
 	belle_sip_object_unref(l);
 }
 
 static void one_http_get(void){
 	http_counters_t counters={0};
 	one_get("http://smtp.linphone.org",&counters,&counters.response_count);
-	CU_ASSERT_TRUE(counters.response_count==1);
-	CU_ASSERT_TRUE(counters.io_error_count==0);
-	CU_ASSERT_EQUAL(counters.two_hundred,1);
+	BC_ASSERT_TRUE(counters.response_count==1);
+	BC_ASSERT_TRUE(counters.io_error_count==0);
+	BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
 }
 
 static void http_get_empty_body(void){
 	http_counters_t counters={0};
 	one_get("http://smtp.linphone.org/marie_invalid",&counters,&counters.response_count);
-	CU_ASSERT_TRUE(counters.response_count==1);
-	CU_ASSERT_TRUE(counters.io_error_count==0);
-	CU_ASSERT_EQUAL(counters.two_hundred,1);
+	BC_ASSERT_TRUE(counters.response_count==1);
+	BC_ASSERT_TRUE(counters.io_error_count==0);
+	BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
 }
 
 static void http_get_io_error(void){
 	http_counters_t counters={0};
 	one_get("http://blablabla.cul",&counters,&counters.io_error_count);
-	CU_ASSERT_TRUE(counters.response_count==0);
-	CU_ASSERT_EQUAL(counters.io_error_count,1);
+	BC_ASSERT_TRUE(counters.response_count==0);
+	BC_ASSERT_EQUAL(counters.io_error_count,1,int,"%d");
 }
 
 static void one_https_get(void){
 	http_counters_t counters={0};
 	one_get("https://smtp.linphone.org",&counters,&counters.response_count);
-	CU_ASSERT_TRUE(counters.response_count==1);
-	CU_ASSERT_TRUE(counters.io_error_count==0);
-	CU_ASSERT_EQUAL(counters.two_hundred,1);
+	BC_ASSERT_TRUE(counters.response_count==1);
+	BC_ASSERT_TRUE(counters.io_error_count==0);
+	BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
 }
 
 static void https_get_long_body(void){
 	http_counters_t counters={0};
 	one_get("https://smtp.linphone.org/linphone.html",&counters, &counters.response_count);
-	CU_ASSERT_TRUE(counters.response_count==1);
-	CU_ASSERT_TRUE(counters.io_error_count==0);
-	CU_ASSERT_EQUAL(counters.two_hundred,1);
+	BC_ASSERT_TRUE(counters.response_count==1);
+	BC_ASSERT_TRUE(counters.io_error_count==0);
+	BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
 }
 
 static void https_digest_get(void){
 	http_counters_t counters={0};
 	one_get("https://pauline:pouet@smtp.linphone.org/restricted",&counters,&counters.response_count);
-	CU_ASSERT_TRUE(counters.response_count==1);
-	CU_ASSERT_TRUE(counters.io_error_count==0);
-	CU_ASSERT_EQUAL(counters.three_hundred,1);
+	BC_ASSERT_TRUE(counters.response_count==1);
+	BC_ASSERT_TRUE(counters.io_error_count==0);
+	BC_ASSERT_EQUAL(counters.three_hundred,1,int,"%d");
 }
 #if 0
 static void https_client_cert_connection(void){
@@ -170,7 +168,7 @@ static void https_client_cert_connection(void){
 	belle_tls_verify_policy_set_exceptions(policy,BELLE_TLS_VERIFY_ANY_REASON);/*ignore the server verification because we don't have a true certificate*/
 	belle_http_provider_set_tls_verify_policy(prov,policy);
 	one_get("https://sip2.linphone.org:5063",&counters);
-	CU_ASSERT_EQUAL(counters.two_hundred,1);
+	BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
 	belle_tls_verify_policy_set_exceptions(policy,0);
 	belle_sip_object_unref(policy);
 }
@@ -197,7 +195,7 @@ static int on_send_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *
 	size_t end_of_img=sizeof(MULTIPART_BEGIN)+image_size;
 	if (offset==0){
 		int partlen=sizeof(MULTIPART_BEGIN);
-		CU_ASSERT_TRUE_FATAL(partlen<*size);
+		BC_ASSERT_TRUE_FATAL(partlen<*size);
 		memcpy(buffer,MULTIPART_BEGIN,partlen);
 		*size=partlen;
 	}else if (offset<end_of_img){
@@ -223,9 +221,9 @@ static void https_post_long_body(void){
 	const char *url="https://www.linphone.org:444/upload.php";
 	belle_sip_user_body_handler_t *bh=belle_sip_user_body_handler_new(image_size+sizeof(MULTIPART_BEGIN)+sizeof(MULTIPART_END), on_progress, NULL, on_send_body, NULL);
 	char *content_type=belle_sip_strdup_printf("multipart/form-data; boundary=%s",multipart_boudary);
-	
+
 	uri=belle_generic_uri_parse(url);
-	
+
 	req=belle_http_request_create("POST",
 				uri,
 				belle_sip_header_create("User-Agent","belle-sip/" PACKAGE_VERSION),
@@ -238,8 +236,8 @@ static void https_post_long_body(void){
 	cbs.process_auth_requested=process_auth_requested;
 	l=belle_http_request_listener_create_from_callbacks(&cbs,&counters);
 	belle_http_provider_send_request(prov,req,l);
-	CU_ASSERT_TRUE(wait_for(stack,&counters.two_hundred,1,20000));
-	
+	BC_ASSERT_TRUE(wait_for(stack,&counters.two_hundred,1,20000));
+
 	belle_sip_object_unref(l);
 }
 
@@ -252,7 +250,7 @@ static void on_recv_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t 
 static void process_response_headers(void *data, const belle_http_response_event_t *event){
 	http_counters_t *counters=(http_counters_t*)data;
 	counters->response_headers_count++;
-	CU_ASSERT_PTR_NOT_NULL(event->response);
+	BC_ASSERT_PTR_NOT_NULL(event->response);
 	if (event->response){
 		/*we are receiving a response, set a specific body handler to acquire the response.
 		 * if not done, belle-sip will create a memory body handler, the default*/
@@ -274,9 +272,9 @@ static void http_get_long_user_body(void){
 	belle_sip_body_handler_t *bh;
 	belle_http_response_t *resp;
 	FILE *outfile=fopen("download.tar.gz","w");
-	
+
 	uri=belle_generic_uri_parse(url);
-	
+
 	req=belle_http_request_create("GET",
 				uri,
 				belle_sip_header_create("User-Agent","belle-sip/" PACKAGE_VERSION),
@@ -289,13 +287,13 @@ static void http_get_long_user_body(void){
 	belle_sip_object_ref(req);
 	belle_sip_object_data_set(BELLE_SIP_OBJECT(req),"file",outfile,NULL);
 	belle_http_provider_send_request(prov,req,l);
-	CU_ASSERT_TRUE(wait_for(stack,&counters.two_hundred,1,20000));
-	CU_ASSERT_TRUE(counters.response_headers_count==1);
+	BC_ASSERT_TRUE(wait_for(stack,&counters.two_hundred,1,20000));
+	BC_ASSERT_TRUE(counters.response_headers_count==1);
 	resp=belle_http_request_get_response(req);
-	CU_ASSERT_PTR_NOT_NULL(resp);
+	BC_ASSERT_PTR_NOT_NULL(resp);
 	if (resp){
 		bh=belle_sip_message_get_body_handler((belle_sip_message_t*)resp);
-		CU_ASSERT_TRUE(belle_sip_body_handler_get_size(bh)>0);
+		BC_ASSERT_TRUE(belle_sip_body_handler_get_size(bh)>0);
 	}
 	belle_sip_object_unref(req);
 	belle_sip_object_unref(l);

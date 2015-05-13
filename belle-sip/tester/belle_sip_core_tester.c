@@ -16,8 +16,6 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
 #include "belle-sip/object.h"
 #include "belle-sip/dict.h"
@@ -69,9 +67,9 @@ static void test_object_data(void)
 	/* normal insertion with no destroy callback */
 
 	// should return 0
-	CU_ASSERT_EQUAL(belle_sip_object_data_set(obj, "test_i", INT_TO_VOIDPTR(i), NULL), 0);
+	BC_ASSERT_EQUAL(belle_sip_object_data_set(obj, "test_i", INT_TO_VOIDPTR(i), NULL), 0, int, "%d");
 	// should return the value we put in it
-	CU_ASSERT_EQUAL( VOIDPTR_TO_INT(belle_sip_object_data_get(obj, "test_i")), i);
+	BC_ASSERT_EQUAL( VOIDPTR_TO_INT(belle_sip_object_data_get(obj, "test_i")), i, int, "%d");
 
 
 	/*
@@ -81,27 +79,27 @@ static void test_object_data(void)
 
 	// overwrite data: should return 1 when set()
 	i = 124;
-	CU_ASSERT_EQUAL(belle_sip_object_data_set(obj, "test_i", INT_TO_VOIDPTR(i), NULL), 1 );
+	BC_ASSERT_EQUAL(belle_sip_object_data_set(obj, "test_i", INT_TO_VOIDPTR(i), NULL), 1 , int, "%d");
 	// should return the new value we put in it
-	CU_ASSERT_EQUAL( VOIDPTR_TO_INT(belle_sip_object_data_get(obj, "test_i")), i);
+	BC_ASSERT_EQUAL( VOIDPTR_TO_INT(belle_sip_object_data_get(obj, "test_i")), i, int, "%d");
 
 
 	/*
 	 * normal insertion with destroy callback
 	 */
 
-	CU_ASSERT_EQUAL(belle_sip_object_data_set(obj, "test_str",
+	BC_ASSERT_EQUAL(belle_sip_object_data_set(obj, "test_str",
 											  (void*)belle_sip_strdup(str),
 											  test_object_data_string_destroy),
-					0);
+					0, int, "%d");
 
 	// we should get back the same string
-	CU_ASSERT_STRING_EQUAL( (const char*)belle_sip_object_data_get(obj, "test_str"),
+	BC_ASSERT_STRING_EQUAL( (const char*)belle_sip_object_data_get(obj, "test_str"),
 							str );
 
-	CU_ASSERT_EQUAL(belle_sip_object_data_remove(obj, "test_str"),0);
+	BC_ASSERT_EQUAL(belle_sip_object_data_remove(obj, "test_str"),0, int, "%d");
 	// we expect the destroy() function to be called on removal
-	CU_ASSERT_EQUAL(destroy_called, 1);
+	BC_ASSERT_EQUAL(destroy_called, 1, int, "%d");
 	destroy_called = 0;
 
 	/*
@@ -113,36 +111,37 @@ static void test_object_data(void)
 	belle_sip_object_data_set(obj, "test_str",
 							  (void*)belle_sip_strdup(str2),
 							  test_object_data_string_destroy);
-	CU_ASSERT_EQUAL(destroy_called, 1); // we expect the dtor to have been called to free the first string
+	BC_ASSERT_EQUAL(destroy_called, 1, int, "%d"); // we expect the dtor to have been called to free the first string
 
 
 	/*
 	 * Get non-existent key
 	 */
-	CU_ASSERT_EQUAL(belle_sip_object_data_get(obj, "non-exist"),NULL);
+	BC_ASSERT_PTR_NULL(belle_sip_object_data_get(obj, "non-exist"));
 
 	/*
 	 * test cloning the dictionary
 	 */
 	belle_sip_object_data_clone(obj, cloned, test_object_data_string_clone);
-	CU_ASSERT_EQUAL(clone_called,2); // we expect the clone function to be called for "test_i" and "test_str"
+	BC_ASSERT_EQUAL(clone_called,2,int,"%d"); // we expect the clone function to be called for "test_i" and "test_st, int, "%d"r"
 
 	// the values should be equal
-	CU_ASSERT_EQUAL( VOIDPTR_TO_INT(belle_sip_object_data_get(obj, "test_i")),
-					 VOIDPTR_TO_INT(belle_sip_object_data_get(cloned, "test_i")) );
+	BC_ASSERT_EQUAL( VOIDPTR_TO_INT(belle_sip_object_data_get(obj, "test_i")),
+					 VOIDPTR_TO_INT(belle_sip_object_data_get(cloned, "test_i"))
+					 , int, "%d");
 
-	CU_ASSERT_STRING_EQUAL( (const char*)belle_sip_object_data_get(obj, "test_str"),
+	BC_ASSERT_STRING_EQUAL( (const char*)belle_sip_object_data_get(obj, "test_str"),
 							(const char*)belle_sip_object_data_get(cloned, "test_str"));
 	// but the pointers should be different
-	CU_ASSERT_NOT_EQUAL( (const char*)belle_sip_object_data_get(obj, "test_str"),
-							(const char*)belle_sip_object_data_get(cloned, "test_str"));
+	BC_ASSERT_PTR_NOT_EQUAL( belle_sip_object_data_get(obj, "test_str"),
+							belle_sip_object_data_get(cloned, "test_str"));
 
 
 	/*
 	 * Foreach test
 	 */
 	belle_sip_object_data_foreach(obj, test_object_data_foreach_cb, NULL);
-	CU_ASSERT_EQUAL( foreach_called, 2 );
+	BC_ASSERT_EQUAL( foreach_called, 2 , int, "%d");
 
 	belle_sip_object_unref(obj);
 	belle_sip_object_unref(cloned);
@@ -157,32 +156,32 @@ static void test_dictionary(void)
 	int64_t i64 = 0xF2345678 << 1; // gcc doesn't like 0x1234567890 as a 64 bit literal..
 
 	belle_sip_dict_set_int(obj, "test_i", i);
-	CU_ASSERT_EQUAL(belle_sip_dict_get_int(obj,"test_i",-1),i);
+	BC_ASSERT_EQUAL(belle_sip_dict_get_int(obj,"test_i",-1),i, int, "%d");
 
 	// return default int value
-	CU_ASSERT_EQUAL(belle_sip_dict_get_int(obj,"unexistent",-1),-1);
+	BC_ASSERT_EQUAL(belle_sip_dict_get_int(obj,"unexistent",-1),-1, int, "%d");
 
 	// remove existing entry
-	CU_ASSERT_EQUAL(belle_sip_dict_remove(obj, "test_i"),0);
+	BC_ASSERT_EQUAL(belle_sip_dict_remove(obj, "test_i"),0, int, "%d");
 
 	// test_i should't be present anymore
-	CU_ASSERT_EQUAL(belle_sip_dict_get_int(obj,"test_i",-1),-1);
+	BC_ASSERT_EQUAL(belle_sip_dict_get_int(obj,"test_i",-1),-1, int, "%d");
 
 	// remove unknown entry
-	CU_ASSERT_NOT_EQUAL(belle_sip_dict_remove(obj, "unexistent"),0);
+	BC_ASSERT_NOT_EQUAL(belle_sip_dict_remove(obj, "unexistent"),0,int,"%d");
 
 	belle_sip_dict_set_string(obj, "test_str", str);
-	CU_ASSERT_STRING_EQUAL( (const char*)belle_sip_dict_get_string(obj, "test_str", ""),str);
+	BC_ASSERT_STRING_EQUAL( (const char*)belle_sip_dict_get_string(obj, "test_str", ""),str);
 
 	// unknown string value
-	CU_ASSERT_STRING_EQUAL( (const char*)belle_sip_dict_get_string(obj, "unexistent", "toto"),"toto");
+	BC_ASSERT_STRING_EQUAL( (const char*)belle_sip_dict_get_string(obj, "unexistent", "toto"),"toto");
 
 	belle_sip_dict_set_int64(obj, "test_i64", i64);
-	CU_ASSERT_EQUAL(belle_sip_dict_get_int64(obj,"test_i64",-1),i64);
+	BC_ASSERT_EQUAL(belle_sip_dict_get_int64(obj,"test_i64",-1),i64, int, "%d");
 
 	belle_sip_dict_clear(obj);
 	// test_str shouldn't exist anymore
-	CU_ASSERT_STRING_EQUAL(belle_sip_dict_get_string(obj,"test_str","toto"),"toto");
+	BC_ASSERT_STRING_EQUAL(belle_sip_dict_get_string(obj,"test_str","toto"),"toto");
 
 	belle_sip_object_unref(obj);
 }

@@ -21,14 +21,6 @@
 #include "belle_sip_tester.h"
 
 #include <belle-sip/utils.h>
-
-#include <stdio.h>
-#include "CUnit/Basic.h"
-#include "CUnit/MyMem.h"
-#include "CUnit/Automated.h"
-#ifdef HAVE_CU_CURSES
-#include "CUnit/CUCurses.h"
-#endif
 #include <belle-sip/belle-sip.h>
 
 #include "port.h"
