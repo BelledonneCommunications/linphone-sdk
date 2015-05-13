@@ -115,14 +115,6 @@ if(WIN32)
 	add_custom_target(linphone_winshortcut ALL DEPENDS "${SHORTCUT_PATH}" TARGET_linphone)
 endif()
 
-# Temporary fix for the xml2 library needed by libsoup on Windows
-if(WIN32)
-	add_custom_command(OUTPUT "${CMAKE_INSTALL_PREFIX}/bin/xml2.dll"
-		COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_INSTALL_PREFIX}/bin/xml2.dll" "${CMAKE_INSTALL_PREFIX}/bin/libxml2.dll"
-	)
-	add_custom_target(libxml2_copy ALL DEPENDS "${CMAKE_INSTALL_PREFIX}/bin/xml2.dll" TARGET_linphone)
-endif()
-
 
 # Packaging
 linphone_builder_apply_flags()
