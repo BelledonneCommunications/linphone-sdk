@@ -41,6 +41,7 @@ linphone_builder_add_feature_info("SRTP" ENABLE_SRTP "SRTP media encryption supp
 cmake_dependent_option(ENABLE_ZRTP "Enable ZRTP support." ${DEFAULT_VALUE_ENABLE_ZRTP} "ENABLE_SRTP" OFF)
 linphone_builder_add_feature_info("ZRTP" ENABLE_ZRTP "ZRTP media encryption support.")
 
+option(ENABLE_NON_FREE_CODECS "Allow inclusion of non-free codecs in the build." YES)
 option(ENABLE_AMRNB "Enable AMR narrow-band audio codec support." ${DEFAULT_VALUE_ENABLE_AMRNB})
 linphone_builder_add_feature_info("AMR-NB" ENABLE_AMRNB "AMR narrow-band audio encoding/decoding support.")
 option(ENABLE_AMRWB "Enable AMR wide-band audio codec support." ${DEFAULT_VALUE_ENABLE_AMRWB})
