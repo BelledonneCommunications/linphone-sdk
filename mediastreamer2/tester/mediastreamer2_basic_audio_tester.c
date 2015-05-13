@@ -28,10 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2_tester_private.h"
 #include "private.h"
 
-#include <stdio.h>
-#include "CUnit/Basic.h"
-
-
 static int basic_audio_tester_init(void) {
 	ms_init();
 	ms_filter_enable_statistics(TRUE);
@@ -68,8 +64,8 @@ static void dtmfgen_tonedet(void) {
 
 	ms_tester_tone_generation_and_detection_loop();
 
-	/*try unreconized DTMF*/
-	CU_ASSERT_NOT_EQUAL(ms_filter_call_method(ms_tester_dtmfgen, MS_DTMF_GEN_PLAY, "F"),0);
+	/*try unrecognized DTMF*/
+	BC_ASSERT_NOT_EQUAL(ms_filter_call_method(ms_tester_dtmfgen, MS_DTMF_GEN_PLAY, "F"),0,int,"%d");
 
 	ms_ticker_detach(ms_tester_ticker, ms_tester_voidsource);
 	ms_connection_helper_start(&h);

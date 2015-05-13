@@ -17,8 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "CUnit/Basic.h"
 #include "mediastreamer2_tester_private.h"
+#include "bc_tester_utils.h"
 
 #include "mediastreamer2/dtmfgen.h"
 #include "mediastreamer2/msfileplayer.h"
@@ -70,9 +70,9 @@ static MSTicker * create_ticker(void) {
 
 
 void ms_tester_create_ticker(void) {
-	CU_ASSERT_PTR_NULL(ms_tester_ticker);
+	BC_ASSERT_PTR_NULL(ms_tester_ticker);
 	ms_tester_ticker = create_ticker();
-	CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_ticker);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_ticker);
 }
 
 void ms_tester_destroy_ticker(void) {
@@ -84,16 +84,16 @@ void ms_tester_destroy_ticker(void) {
 
 #define CREATE_FILTER(mask, filter, id) \
 	if (filter_mask & mask) { \
-		CU_ASSERT_PTR_NULL(filter); \
+		BC_ASSERT_PTR_NULL(filter); \
 		filter = ms_filter_new(id); \
-		CU_ASSERT_PTR_NOT_NULL_FATAL(filter); \
+		BC_ASSERT_PTR_NOT_NULL_FATAL(filter); \
 	}
 
 void ms_tester_create_filter(MSFilter **filter, MSFilterId id) {
-	CU_ASSERT_PTR_NOT_NULL(filter);
-	CU_ASSERT_PTR_NULL(*filter);
+	BC_ASSERT_PTR_NOT_NULL(filter);
+	BC_ASSERT_PTR_NULL(*filter);
 	*filter = ms_filter_new(id);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(*filter);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(*filter);
 }
 
 void ms_tester_create_filters(unsigned int filter_mask) {
@@ -110,41 +110,41 @@ void ms_tester_create_filters(unsigned int filter_mask) {
 	CREATE_FILTER(FILTER_MASK_VOIDSOURCE, ms_tester_voidsource, MS_VOID_SOURCE_ID);
 	CREATE_FILTER(FILTER_MASK_VOIDSINK, ms_tester_voidsink, MS_VOID_SINK_ID);
 	if (filter_mask & FILTER_MASK_ENCODER) {
-		CU_ASSERT_PTR_NULL(ms_tester_encoder);
+		BC_ASSERT_PTR_NULL(ms_tester_encoder);
 		ms_tester_encoder = ms_filter_create_encoder(ms_tester_codec_mime);
-		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_encoder);
+		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_encoder);
 	}
 	if (filter_mask & FILTER_MASK_DECODER) {
-		CU_ASSERT_PTR_NULL(ms_tester_decoder);
+		BC_ASSERT_PTR_NULL(ms_tester_decoder);
 		ms_tester_decoder = ms_filter_create_decoder(ms_tester_codec_mime);
-		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_decoder);
+		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_decoder);
 	}
 	CREATE_FILTER(FILTER_MASK_RTPRECV, ms_tester_rtprecv, MS_RTP_RECV_ID);
 	CREATE_FILTER(FILTER_MASK_RTPSEND, ms_tester_rtpsend, MS_RTP_SEND_ID);
 	CREATE_FILTER(FILTER_MASK_RESAMPLER, ms_tester_resampler, MS_RESAMPLE_ID);
 	if (filter_mask & FILTER_MASK_SOUNDWRITE) {
-		CU_ASSERT_PTR_NULL(ms_tester_soundwrite);
+		BC_ASSERT_PTR_NULL(ms_tester_soundwrite);
 		snd_manager = ms_snd_card_manager_get();
 		playcard = ms_snd_card_manager_get_default_playback_card(snd_manager);
-		CU_ASSERT_PTR_NOT_NULL_FATAL(playcard);
+		BC_ASSERT_PTR_NOT_NULL_FATAL(playcard);
 		ms_tester_soundwrite = ms_snd_card_create_writer(playcard);
-		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_soundwrite);
+		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_soundwrite);
 	}
 	if (filter_mask & FILTER_MASK_SOUNDREAD) {
-		CU_ASSERT_PTR_NULL(ms_tester_soundread);
+		BC_ASSERT_PTR_NULL(ms_tester_soundread);
 		snd_manager = ms_snd_card_manager_get();
 		captcard = ms_snd_card_manager_get_default_capture_card(snd_manager);
-		CU_ASSERT_PTR_NOT_NULL_FATAL(captcard);
+		BC_ASSERT_PTR_NOT_NULL_FATAL(captcard);
 		ms_tester_soundread = ms_snd_card_create_reader(captcard);
-		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_soundread);
+		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_soundread);
 	}
 	if (filter_mask & FILTER_MASK_VIDEOCAPTURE) {
-		CU_ASSERT_PTR_NULL(ms_tester_videocapture);
+		BC_ASSERT_PTR_NULL(ms_tester_videocapture);
 		cam_manager = ms_web_cam_manager_get();
 		camera = ms_web_cam_manager_get_default_cam(cam_manager);
-		CU_ASSERT_PTR_NOT_NULL_FATAL(camera);
+		BC_ASSERT_PTR_NOT_NULL_FATAL(camera);
 		ms_tester_videocapture = ms_web_cam_create_reader(camera);
-		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_videocapture);
+		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_videocapture);
 	}
 }
 
@@ -155,7 +155,7 @@ void ms_tester_create_filters(unsigned int filter_mask) {
 	filter = NULL
 
 void ms_tester_destroy_filter(MSFilter **filter) {
-	CU_ASSERT_PTR_NOT_NULL(filter);
+	BC_ASSERT_PTR_NOT_NULL(filter);
 	if (*filter != NULL) {
 		ms_filter_destroy(*filter);
 		*filter = NULL;
@@ -196,7 +196,7 @@ void ms_tester_tone_detection_loop(void) {
 		ms_filter_call_method(ms_tester_tonedet, MS_TONE_DETECTOR_CLEAR_SCANS, NULL);
 		ms_filter_call_method(ms_tester_tonedet, MS_TONE_DETECTOR_ADD_SCAN, &tone_definition[i].expected_tone);
 		ms_sleep(1);
-		CU_ASSERT_EQUAL(ms_tester_tone_detected, TRUE);
+		BC_ASSERT_EQUAL(ms_tester_tone_detected, TRUE, int, "%d");
 	}
 }
 
@@ -205,11 +205,11 @@ void ms_tester_tone_generation_and_detection_loop(void) {
 
 	for (i = 0; i < (sizeof(tone_definition) / sizeof(tone_definition[0])); i++) {
 		ms_tester_tone_detected = FALSE;
-		CU_ASSERT_EQUAL(0,ms_filter_call_method(ms_tester_tonedet, MS_TONE_DETECTOR_CLEAR_SCANS, NULL));
-		CU_ASSERT_EQUAL(0,ms_filter_call_method(ms_tester_tonedet, MS_TONE_DETECTOR_ADD_SCAN, &tone_definition[i].expected_tone));
-		CU_ASSERT_EQUAL(0,ms_filter_call_method(ms_tester_dtmfgen, MS_DTMF_GEN_PLAY_CUSTOM, &tone_definition[i].generated_tone));
+		BC_ASSERT_EQUAL(0,ms_filter_call_method(ms_tester_tonedet, MS_TONE_DETECTOR_CLEAR_SCANS, NULL), int, "%d");
+		BC_ASSERT_EQUAL(0,ms_filter_call_method(ms_tester_tonedet, MS_TONE_DETECTOR_ADD_SCAN, &tone_definition[i].expected_tone), int, "%d");
+		BC_ASSERT_EQUAL(0,ms_filter_call_method(ms_tester_dtmfgen, MS_DTMF_GEN_PLAY_CUSTOM, &tone_definition[i].generated_tone), int, "%d");
 		ms_sleep(1);
-		CU_ASSERT_EQUAL(ms_tester_tone_detected, TRUE);
+		BC_ASSERT_EQUAL(ms_tester_tone_detected, TRUE, int, "%d");
 	}
 }
 

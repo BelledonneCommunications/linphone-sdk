@@ -26,10 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 #include "qosanalyzer.h"
-
-#include <stdio.h>
-#include "CUnit/Basic.h"
-
+#include <math.h>
 
 static RtpProfile rtp_profile;
 
@@ -139,19 +136,20 @@ static void audio_manager_start(stream_manager_t * mgr
 
 	media_stream_set_target_network_bitrate(&mgr->audio_stream->ms,target_bitrate);
 
-	CU_ASSERT_EQUAL(audio_stream_start_full(mgr->audio_stream
-												, &rtp_profile
-												, "127.0.0.1"
-												, remote_port
-												, "127.0.0.1"
-												, remote_port+1
-												, payload_type
-												, 50
-												, player_file
-												, recorder_file
-												, NULL
-												, NULL
-												, 0),0);
+	BC_ASSERT_EQUAL(audio_stream_start_full(mgr->audio_stream
+											, &rtp_profile
+											, "127.0.0.1"
+											, remote_port
+											, "127.0.0.1"
+											, remote_port+1
+											, payload_type
+											, 50
+											, player_file
+											, recorder_file
+											, NULL
+											, NULL
+											, 0)
+					,0, int, "%d");
 }
 
 #if VIDEO_ENABLED
@@ -172,7 +170,7 @@ static void video_manager_start(	stream_manager_t * mgr
 												, payload_type
 												, 60
 												, cam);
-	CU_ASSERT_EQUAL(result,0);
+	BC_ASSERT_EQUAL(result,0, int, "%d");
 }
 #endif
 
@@ -221,7 +219,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 
 	/* Disable avpf. */
 	pt = rtp_profile_get_payload(&rtp_profile, VP8_PAYLOAD_TYPE);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(pt);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(pt);
 	payload_type_unset_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
 
 
@@ -310,8 +308,8 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 
 					if (rb&&ortp_loss_rate_estimator_process_report_block(ctx->estimator,&ms->sessions.rtp_session->rtp,rb)){
 						float diff = fabs(ortp_loss_rate_estimator_get_value(ctx->estimator) - ctx->loss_rate);
-						CU_ASSERT_TRUE(diff >= 0);
-						CU_ASSERT_TRUE(diff <= 10);
+						BC_ASSERT_TRUE(diff >= 0);
+						BC_ASSERT_TRUE(diff <= 10);
 					}
 				} while (rtcp_next_packet(evd->packet));
 			}
@@ -331,11 +329,11 @@ static void packet_duplication() {
 	media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 	iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
-	CU_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
+	BC_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0, int, "%d");
 	/*in theory, cumulative loss should be the invert of duplicated count, but
 	since cumulative loss is computed only on received RTCP report and duplicated
 	count is updated on each RTP packet received, we cannot accurately compare these values*/
-	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->packet_dup_recv);
+	BC_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->packet_dup_recv);
 	stop_adaptive_stream(marielle,margaux);
 
 	dup_ratio = 1;
@@ -343,8 +341,8 @@ static void packet_duplication() {
 	media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 	iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
-	CU_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0);
-	CU_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->packet_dup_recv);
+	BC_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0, int, "%d");
+	BC_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->packet_dup_recv);
 	stop_adaptive_stream(marielle,margaux);
 }
 
@@ -361,7 +359,7 @@ static void upload_bandwidth_computation() {
 			rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
 			iterate_adaptive_stream(marielle, margaux, 5000, NULL, 0);
 			/*since PCMA uses 80kbit/s, upload bandwidth should just be 80+80*duplication_ratio kbit/s */
-			CU_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 5.f);
+			BC_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 5.f);
 		}
 		stop_adaptive_stream(marielle,margaux);
 	}
@@ -405,8 +403,8 @@ void upload_bitrate(const char* codec, int payload, int target_bw, int expect_bw
 		media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 		iterate_adaptive_stream(marielle, margaux, 15000, NULL, 0);
 		upload_bw=media_stream_get_up_bw(&marielle->audio_stream->ms) / 1000;
-		CU_ASSERT_TRUE(upload_bw >= expect_bw-2);
-		CU_ASSERT_TRUE(upload_bw <= expect_bw+2);
+		BC_ASSERT_TRUE(upload_bw >= expect_bw-2);
+		BC_ASSERT_TRUE(upload_bw <= expect_bw+2);
 		stop_adaptive_stream(marielle,margaux);
 	}
 }
@@ -451,10 +449,10 @@ void adaptive_video(int max_bw, int exp_min_bw, int exp_max_bw, int loss_rate, i
 		stream_manager_t * marielle, * margaux;
 		start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300*1000, max_bw*1000, loss_rate, 50,0);
 		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 7);
-		CU_ASSERT_TRUE(marielle->adaptive_stats.loss_estim >= exp_min_loss);
-		CU_ASSERT_TRUE(marielle->adaptive_stats.loss_estim <= exp_max_loss);
-		CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim >= exp_min_bw);
-		CU_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim <= exp_max_bw);
+		BC_ASSERT_TRUE(marielle->adaptive_stats.loss_estim >= exp_min_loss);
+		BC_ASSERT_TRUE(marielle->adaptive_stats.loss_estim <= exp_max_loss);
+		BC_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim >= exp_min_bw);
+		BC_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim <= exp_max_bw);
 		stop_adaptive_stream(marielle,margaux);
 	}
 }

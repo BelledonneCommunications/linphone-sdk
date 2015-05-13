@@ -73,21 +73,21 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 
 	eof_init(&eof);
 
-	CU_ASSERT_PTR_NOT_NULL(snd_card);
+	BC_ASSERT_PTR_NOT_NULL(snd_card);
 	file_player = ms_media_player_new(snd_card, display_name, 0);
-	CU_ASSERT_PTR_NOT_NULL(file_player);
+	BC_ASSERT_PTR_NOT_NULL(file_player);
 	if(file_player == NULL) return;
 
-	CU_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed);
+	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
 	ms_media_player_set_eof_callback(file_player, eof_callback, &eof);
 
 	succeed = ms_media_player_open(file_player, filepath);
 	if(unsupported_format) {
-		CU_ASSERT_FALSE(succeed);
-		CU_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed);
+		BC_ASSERT_FALSE(succeed);
+		BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
 	} else {
-		CU_ASSERT_TRUE(succeed);
-		CU_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerPaused);
+		BC_ASSERT_TRUE(succeed);
+		BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerPaused, int, "%d");
 	}
 	if(!succeed) {
 		ms_media_player_free(file_player);
@@ -96,10 +96,10 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 
 	duration = ms_media_player_get_duration(file_player);
 	if(ms_media_player_get_file_format(file_player) == MS_FILE_FORMAT_WAVE) {
-		CU_ASSERT_TRUE(duration == -1);
+		BC_ASSERT_TRUE(duration == -1);
 		duration = 20000;
 	} else {
-		CU_ASSERT_TRUE(duration >= 0);
+		BC_ASSERT_TRUE(duration >= 0);
 	}
 
 	if(seeking_test) {
@@ -109,27 +109,27 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	}
 
 	succeed = ms_media_player_start(file_player);
-	CU_ASSERT_TRUE(succeed);
-	CU_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerPlaying);
+	BC_ASSERT_TRUE(succeed);
+	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerPlaying, int, "%d");
 
 	if(seeking_test) {
-		CU_ASSERT_TRUE(ms_media_player_seek(file_player, seek_time));
+		BC_ASSERT_TRUE(ms_media_player_seek(file_player, seek_time));
 	}
 
 	if(succeed) {
 		wait_for_eof(&eof, 100, timeout);
-		CU_ASSERT_TRUE(eof.eof);
+		BC_ASSERT_TRUE(eof.eof);
 	}
 	ms_media_player_close(file_player);
-	CU_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed);
+	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
 
 	if(play_twice) {
 		eof_init(&eof);
-		CU_ASSERT_TRUE(ms_media_player_open(file_player, filepath));
-		CU_ASSERT_TRUE(ms_media_player_start(file_player));
+		BC_ASSERT_TRUE(ms_media_player_open(file_player, filepath));
+		BC_ASSERT_TRUE(ms_media_player_start(file_player));
 		wait_for_eof(&eof, 100, timeout);
 		ms_media_player_close(file_player);
-		CU_ASSERT_TRUE(eof.eof);
+		BC_ASSERT_TRUE(eof.eof);
 	}
 	ms_media_player_free(file_player);
 }
