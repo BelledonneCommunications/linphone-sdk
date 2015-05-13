@@ -22,6 +22,8 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
+#include <math.h>
 
 extern const char *bc_tester_read_dir_prefix;
 extern const char *bc_tester_writable_dir_prefix;
@@ -98,10 +100,10 @@ extern int CU_assertImplementation(int bValue,
 #define _BC_ASSERT(pred, format, fatal) CU_assertImplementation(pred, __LINE__, format, __FILE__, "", fatal)
 #define _BC_ASSERT_PRED(name, pred, actual, expected, type, fatal, ...) \
 	do { \
-		char format[512]; \
+		char format[4096] = {0}; \
 		type cactual = (actual); \
 		type cexpected = (expected); \
-		sprintf(format, name "(" #actual ", " #expected ") - " __VA_ARGS__); \
+		snprintf(format, 4096, name "(" #actual ", " #expected ") - " __VA_ARGS__); \
 		_BC_ASSERT(pred, format, fatal); \
 	} while (0)
 #define BC_PASS(msg) _BC_ASSERT(TRUE, "BC_PASS(" #msg ").", FALSE)
@@ -114,34 +116,34 @@ extern int CU_assertImplementation(int bValue,
 #define BC_ASSERT_TRUE_FATAL(value) _BC_ASSERT((value), ("BC_ASSERT_TRUE_FATAL(" #value ")"), TRUE)
 #define BC_ASSERT_FALSE(value) _BC_ASSERT(!(value), ("BC_ASSERT_FALSE(" #value ")"), FALSE)
 #define BC_ASSERT_FALSE_FATAL(value) _BC_ASSERT(!(value), ("BC_ASSERT_FALSE_FATAL(" #value ")"), TRUE)
-#define BC_ASSERT_EQUAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_EQUAL", ((cactual) == (cexpected)), actual, expected, type, FALSE, "Expected " type_format " but was " type_format ".\n", cexpected, cactual)
-#define BC_ASSERT_EQUAL_FATAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_EQUAL_FATAL", ((cactual) == (cexpected)), actual, expected, type, TRUE, "Expected " type_format " but was " type_format ".\n", cexpected, cactual)
-#define BC_ASSERT_NOT_EQUAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_NOT_EQUAL", ((cactual) != (cexpected)), actual, expected, type, FALSE, "Expected NOT " type_format " but it was.\n", cexpected)
-#define BC_ASSERT_NOT_EQUAL_FATAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_NOT_EQUAL_FATAL", ((cactual) != (cexpected)), actual, expected, type, TRUE, "Expected NOT " type_format " but it was.\n", cexpected)
-#define BC_ASSERT_PTR_EQUAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_PTR_EQUAL", ((cactual) == (cexpected)), (const void*)(actual), (const void*)(expected), const void*, FALSE, "Expected %p but was %p.\n", cexpected, cactual)
-#define BC_ASSERT_PTR_EQUAL_FATAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_PTR_EQUAL_FATAL", ((cactual) == (cexpected)), (const void*)(actual), (const void*)(expected), const void*, TRUE, "Expected %p but was %p.\n", cexpected, cactual)
-#define BC_ASSERT_PTR_NOT_EQUAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_PTR_NOT_EQUAL", ((cactual) != (cexpected)), (const void*)(actual), (const void*)(expected), const void*, FALSE, "Expected NOT %p but it was.\n", cexpected)
-#define BC_ASSERT_PTR_NOT_EQUAL_FATAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_PTR_NOT_EQUAL_FATAL", ((cactual) != (cexpected)), (const void*)(actual), (const void*)(expected), const void*, TRUE, "Expected NOT %p but it was.\n", cexpected)
-#define BC_ASSERT_PTR_NULL(value) _BC_ASSERT_PRED("BC_ASSERT_PTR_NULL", ((cactual) == (cexpected)), (const void*)(value), (const void*)NULL, const void*, FALSE, "Expected NULL but was %p.\n", cactual)
-#define BC_ASSERT_PTR_NULL_FATAL(value) _BC_ASSERT_PRED("BC_ASSERT_PTR_NULL_FATAL", ((cactual) == (cexpected)), (const void*)(value), (const void*)NULL, const void*, TRUE, "Expected NULL but was %p.\n", cactual)
-#define BC_ASSERT_PTR_NOT_NULL(value) _BC_ASSERT_PRED("BC_ASSERT_PTR_NOT_NULL", ((cactual) != (cexpected)), (const void*)(value), (const void*)NULL, const void*, FALSE, "Expected NOT NULL but it was.\n")
-#define BC_ASSERT_PTR_NOT_NULL_FATAL(value) _BC_ASSERT_PRED("BC_ASSERT_PTR_NOT_NULL_FATAL", ((cactual) != (cexpected)), (const void*)(value), (const void*)NULL, const void*, TRUE, "Expected NOT NULL but it was.\n")
-#define BC_ASSERT_STRING_EQUAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_STRING_EQUAL", !(strcmp((const char*)(cactual), (const char*)(cexpected))), actual, expected, const char*, FALSE, "Expected %s but was %s.\n", cexpected, cactual)
-#define BC_ASSERT_STRING_EQUAL_FATAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_STRING_EQUAL_FATAL", !(strcmp((const char*)(cactual), (const char*)(cexpected))), actual, expected, const char*, TRUE, "Expected %s but was %s.\n", cexpected, cactual)
-#define BC_ASSERT_STRING_NOT_EQUAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_STRING_NOT_EQUAL", (strcmp((const char*)(cactual), (const char*)(cexpected))), actual, expected, const char*, FALSE, "Expected NOT %s but it was.\n", cexpected)
-#define BC_ASSERT_STRING_NOT_EQUAL_FATAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_STRING_NOT_EQUAL_FATAL", (strcmp((const char*)(cactual), (const char*)(cexpected))), actual, expected, const char*, TRUE, "Expected NOT %s but it was.\n", cexpected)
-#define BC_ASSERT_NSTRING_EQUAL(actual, expected, count) _BC_ASSERT_PRED("BC_ASSERT_NSTRING_EQUAL", !(strncmp((const char*)(cactual), (const char*)(cexpected), (size_t)(count))), actual, expected, const char*, FALSE, "Expected %*s but was %*s.\n", count, cexpected, count, cactual)
-#define BC_ASSERT_NSTRING_EQUAL_FATAL(actual, expected, count) _BC_ASSERT_PRED("BC_ASSERT_NSTRING_EQUAL_FATAL", !(strncmp((const char*)(cactual), (const char*)(cexpected), (size_t)(count))), actual, expected, const char*, TRUE, "Expected %*s but was %*s.\n", count, cexpected, count, cactual)
-#define BC_ASSERT_NSTRING_NOT_EQUAL(actual, expected, count) _BC_ASSERT_PRED("BC_ASSERT_NSTRING_NOT_EQUAL", (strncmp((const char*)(cactual), (const char*)(cexpected), (size_t)(count))), actual, expected, const char*, FALSE, "Expected %*s but it was.\n", count, cexpected)
-#define BC_ASSERT_NSTRING_NOT_EQUAL_FATAL(actual, expected, count) _BC_ASSERT_PRED("BC_ASSERT_NSTRING_NOT_EQUAL_FATAL", (strncmp((const char*)(cactual), (const char*)(cexpected), (size_t)(count))), actual, expected, const char*, TRUE, "Expected %*s but it was.\n", count, cexpected)
-#define BC_ASSERT_DOUBLE_EQUAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_EQUAL", ((fabs((double)(cactual) - (cexpected)) <= fabs((double)(granularity)))), actual, expected, double, FALSE, "Expected %f but was %f.\n", cexpected, cactual)
-#define BC_ASSERT_DOUBLE_EQUAL_FATAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_EQUAL_FATAL", ((fabs((double)(cactual) - (cexpected)) <= fabs((double)(granularity)))), actual, expected, double, TRUE, "Expected %f but was %f.\n", cexpected, cactual)
-#define BC_ASSERT_DOUBLE_NOT_EQUAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_NOT_EQUAL", ((fabs((double)(cactual) - (cexpected)) > fabs((double)(granularity)))), actual, expected, double, FALSE, "Expected %f but was %f.\n", cexpected, cactual)
-#define BC_ASSERT_DOUBLE_NOT_EQUAL_FATAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_NOT_EQUAL_FATAL", ((fabs((double)(cactual) - (cexpected)) > fabs((double)(granularity)))), actual, expected, double, TRUE, "Expected %f but was %f.\n", cexpected, cactual)
+#define BC_ASSERT_EQUAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_EQUAL", ((cactual) == (cexpected)), actual, expected, type, FALSE, "Expected " type_format " but was " type_format ".", cexpected, cactual)
+#define BC_ASSERT_EQUAL_FATAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_EQUAL_FATAL", ((cactual) == (cexpected)), actual, expected, type, TRUE, "Expected " type_format " but was " type_format ".", cexpected, cactual)
+#define BC_ASSERT_NOT_EQUAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_NOT_EQUAL", ((cactual) != (cexpected)), actual, expected, type, FALSE, "Expected NOT " type_format " but it was.", cexpected)
+#define BC_ASSERT_NOT_EQUAL_FATAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_NOT_EQUAL_FATAL", ((cactual) != (cexpected)), actual, expected, type, TRUE, "Expected NOT " type_format " but it was.", cexpected)
+#define BC_ASSERT_PTR_EQUAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_PTR_EQUAL", ((cactual) == (cexpected)), (const void*)(actual), (const void*)(expected), const void*, FALSE, "Expected %p but was %p.", cexpected, cactual)
+#define BC_ASSERT_PTR_EQUAL_FATAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_PTR_EQUAL_FATAL", ((cactual) == (cexpected)), (const void*)(actual), (const void*)(expected), const void*, TRUE, "Expected %p but was %p.", cexpected, cactual)
+#define BC_ASSERT_PTR_NOT_EQUAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_PTR_NOT_EQUAL", ((cactual) != (cexpected)), (const void*)(actual), (const void*)(expected), const void*, FALSE, "Expected NOT %p but it was.", cexpected)
+#define BC_ASSERT_PTR_NOT_EQUAL_FATAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_PTR_NOT_EQUAL_FATAL", ((cactual) != (cexpected)), (const void*)(actual), (const void*)(expected), const void*, TRUE, "Expected NOT %p but it was.", cexpected)
+#define BC_ASSERT_PTR_NULL(value) _BC_ASSERT_PRED("BC_ASSERT_PTR_NULL", ((cactual) == (cexpected)), (const void*)(value), (const void*)NULL, const void*, FALSE, "Expected NULL but was %p.", cactual)
+#define BC_ASSERT_PTR_NULL_FATAL(value) _BC_ASSERT_PRED("BC_ASSERT_PTR_NULL_FATAL", ((cactual) == (cexpected)), (const void*)(value), (const void*)NULL, const void*, TRUE, "Expected NULL but was %p.", cactual)
+#define BC_ASSERT_PTR_NOT_NULL(value) _BC_ASSERT_PRED("BC_ASSERT_PTR_NOT_NULL", ((cactual) != (cexpected)), (const void*)(value), (const void*)NULL, const void*, FALSE, "Expected NOT NULL but it was.")
+#define BC_ASSERT_PTR_NOT_NULL_FATAL(value) _BC_ASSERT_PRED("BC_ASSERT_PTR_NOT_NULL_FATAL", ((cactual) != (cexpected)), (const void*)(value), (const void*)NULL, const void*, TRUE, "Expected NOT NULL but it was.")
+#define BC_ASSERT_STRING_EQUAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_STRING_EQUAL", !(strcmp((const char*)(cactual), (const char*)(cexpected))), actual, expected, const char*, FALSE, "Expected %s but was %s.", cexpected, cactual)
+#define BC_ASSERT_STRING_EQUAL_FATAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_STRING_EQUAL_FATAL", !(strcmp((const char*)(cactual), (const char*)(cexpected))), actual, expected, const char*, TRUE, "Expected %s but was %s.", cexpected, cactual)
+#define BC_ASSERT_STRING_NOT_EQUAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_STRING_NOT_EQUAL", (strcmp((const char*)(cactual), (const char*)(cexpected))), actual, expected, const char*, FALSE, "Expected NOT %s but it was.", cexpected)
+#define BC_ASSERT_STRING_NOT_EQUAL_FATAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_STRING_NOT_EQUAL_FATAL", (strcmp((const char*)(cactual), (const char*)(cexpected))), actual, expected, const char*, TRUE, "Expected NOT %s but it was.", cexpected)
+#define BC_ASSERT_NSTRING_EQUAL(actual, expected, count) _BC_ASSERT_PRED("BC_ASSERT_NSTRING_EQUAL", !(strncmp((const char*)(cactual), (const char*)(cexpected), (size_t)(count))), actual, expected, const char*, FALSE, "Expected %*s but was %*s.", (int)(count), cexpected, (int)(count), cactual)
+#define BC_ASSERT_NSTRING_EQUAL_FATAL(actual, expected, count) _BC_ASSERT_PRED("BC_ASSERT_NSTRING_EQUAL_FATAL", !(strncmp((const char*)(cactual), (const char*)(cexpected), (size_t)(count))), actual, expected, const char*, TRUE, "Expected %*s but was %*s.", (int)count, cexpected, (int)count, cactual)
+#define BC_ASSERT_NSTRING_NOT_EQUAL(actual, expected, count) _BC_ASSERT_PRED("BC_ASSERT_NSTRING_NOT_EQUAL", (strncmp((const char*)(cactual), (const char*)(cexpected), (size_t)(count))), actual, expected, const char*, FALSE, "Expected %*s but it was.", (int)count, cexpected)
+#define BC_ASSERT_NSTRING_NOT_EQUAL_FATAL(actual, expected, count) _BC_ASSERT_PRED("BC_ASSERT_NSTRING_NOT_EQUAL_FATAL", (strncmp((const char*)(cactual), (const char*)(cexpected), (size_t)(count))), actual, expected, const char*, TRUE, "Expected %*s but it was.", (int)count, cexpected)
+#define BC_ASSERT_DOUBLE_EQUAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_EQUAL", ((fabs((double)(cactual) - (cexpected)) <= fabs((double)(granularity)))), actual, expected, double, FALSE, "Expected %f but was %f.", cexpected, cactual)
+#define BC_ASSERT_DOUBLE_EQUAL_FATAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_EQUAL_FATAL", ((fabs((double)(cactual) - (cexpected)) <= fabs((double)(granularity)))), actual, expected, double, TRUE, "Expected %f but was %f.", cexpected, cactual)
+#define BC_ASSERT_DOUBLE_NOT_EQUAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_NOT_EQUAL", ((fabs((double)(cactual) - (cexpected)) > fabs((double)(granularity)))), actual, expected, double, FALSE, "Expected %f but was %f.", cexpected, cactual)
+#define BC_ASSERT_DOUBLE_NOT_EQUAL_FATAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_NOT_EQUAL_FATAL", ((fabs((double)(cactual) - (cexpected)) > fabs((double)(granularity)))), actual, expected, double, TRUE, "Expected %f but was %f.", cexpected, cactual)
 
 /*Custom defines*/
-#define BC_ASSERT_GREATER(actual, lower, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_GREATER", ((cactual) >= (cexpected)), actual, lower, type, FALSE, "Expected " type_format " but was " type_format ".\n", cexpected, cactual)
-#define BC_ASSERT_LOWER(actual, lower, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_LOWER", ((cactual) <= (cexpected)), actual, lower, type, FALSE, "Expected " type_format " but was " type_format ".\n", cexpected, cactual)
+#define BC_ASSERT_GREATER(actual, lower, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_GREATER", ((cactual) >= (cexpected)), actual, lower, type, FALSE, "Expected " type_format " but was " type_format ".", cexpected, cactual)
+#define BC_ASSERT_LOWER(actual, lower, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_LOWER", ((cactual) <= (cexpected)), actual, lower, type, FALSE, "Expected " type_format " but was " type_format ".", cexpected, cactual)
 
 #ifdef __cplusplus
 }
