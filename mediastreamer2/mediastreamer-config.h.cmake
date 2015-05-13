@@ -32,7 +32,7 @@
 #cmakedefine WORDS_BIGENDIAN
 
 #cmakedefine MS_FIXED_POINT
-#cmakedefine HAVE_NON_FREE_CODECS 1
+#define HAVE_NON_FREE_CODECS ${HAVE_NON_FREE_CODECS}
 #cmakedefine HAVE_CU_GET_SUITE 1
 #cmakedefine HAVE_CU_CURSES 1
 
