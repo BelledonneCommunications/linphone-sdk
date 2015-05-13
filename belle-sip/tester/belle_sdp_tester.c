@@ -501,8 +501,8 @@ static void test_session_description(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(l_origin),"2a01:e35:1387:1020:6233:4bff:fe0b:5663");
 	BC_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address_type(l_origin),"IP6");
 	BC_ASSERT_STRING_EQUAL(belle_sdp_origin_get_network_type(l_origin),"IN");
-	BC_ASSERT_EQUAL(belle_sdp_origin_get_session_id(l_origin),123, unsigned, "%u");
-	BC_ASSERT_EQUAL(belle_sdp_origin_get_session_version(l_origin),123, unsigned, "%u");
+	BC_ASSERT_EQUAL(belle_sdp_origin_get_session_id(l_origin),1239, unsigned, "%u");
+	BC_ASSERT_EQUAL(belle_sdp_origin_get_session_version(l_origin),1239, unsigned, "%u");
 
 	BC_ASSERT_PTR_NOT_NULL(belle_sdp_session_description_get_session_name(l_session_description));
 	BC_ASSERT_STRING_EQUAL(belle_sdp_session_name_get_value(belle_sdp_session_description_get_session_name(l_session_description)),"SIP Talk");

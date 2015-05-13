@@ -212,7 +212,7 @@ static void ipv4_a_query_send_failure(void) {
 	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	belle_sip_stack_set_resolver_send_error(client->stack, -1);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
-	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_PTR_NULL(client->resolver_ctx);
 	belle_sip_stack_set_resolver_send_error(client->stack, 0);
 
 	destroy_endpoint(client);
@@ -418,7 +418,7 @@ static void no_query_needed(void) {
 
 	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", IPV4_SIP_IP, SIP_PORT, AF_INET, a_resolve_done, client);
-	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_PTR_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(client->resolve_done);
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
