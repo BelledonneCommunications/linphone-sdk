@@ -827,8 +827,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		nchannels=1;
 	}
 	/*hack for opus, that claims stereo all the time, but we can't support stereo yet*/
-	if (strcasecmp(pt->mime_type,"opus")==0)
-		nchannels=1;
+	if (strcasecmp(pt->mime_type,"opus")==0){
+		if (stream->features != 0){
+			/*except in the case where all features are disabled, we can't activate real stereo*/
+			nchannels=1;
+		}else{
+			ms_message("Full stereo enabled in this audiostream.");
+		}
+	}
 	stream->sample_rate=sample_rate;
 	stream->nchannels=nchannels;
 

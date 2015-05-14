@@ -254,9 +254,12 @@ void rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
 		/* unless this is a FU-A (workarond some other apps bugs)*/
 		ctx->last_ts=ts;
 		if (ctx->m==NULL){
+			bool_t out_without_marker = FALSE;
 			while(!ms_queue_empty(&ctx->q)){
 				ms_queue_put(out,ms_queue_get(&ctx->q));
+				out_without_marker = TRUE;
 			}
+			if (out_without_marker) ms_warning("Incomplete H264 frame (missing marker bit)");
 		}
 	}
 

@@ -972,16 +972,14 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 	RtpProfile *profile;
 	int payload;
 	MSFilter* old_source = NULL;
-
-    bool_t new_src_different = (new_source && new_source != stream->source);
-    bool_t use_player        = (sink && !stream->player_active) || (!sink && stream->player_active);
-    bool_t change_source       = ( cam!=stream->cam || new_src_different || use_player);
-
+	bool_t new_src_different = (new_source && new_source != stream->source);
+	bool_t use_player        = (sink && !stream->player_active) || (!sink && stream->player_active);
+	bool_t change_source       = ( cam!=stream->cam || new_src_different || use_player);
 	bool_t encoder_has_builtin_converter = (!stream->pixconv && !stream->sizeconv);
 
 	if (stream->ms.sessions.ticker && stream->source){
 		ms_ticker_detach(stream->ms.sessions.ticker,stream->source);
-		/*unlink source filters and subsequent post processin filters */
+		/*unlink source filters and subsequent post processing filters */
 		if (encoder_has_builtin_converter || (stream->source_performs_encoding == TRUE)) {
 			ms_filter_unlink(stream->source, 0, stream->tee, 0);
 		} else {
@@ -996,7 +994,7 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 		}
 		/*destroy the filters */
 		if (change_source) {
-			if(!keep_old_source){
+			if (!keep_old_source){
 				ms_filter_destroy(stream->source);
 			} else {
 				old_source = stream->source;
@@ -1011,13 +1009,13 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 		/*re create new ones and configure them*/
 		if (change_source) {
 			if (sink){
-                stream->source        = ms_filter_new(MS_ITC_SOURCE_ID);
+				stream->source = ms_filter_new(MS_ITC_SOURCE_ID);
 				ms_filter_call_method(sink,MS_ITC_SINK_CONNECT,stream->source);
-                stream->player_active = TRUE;
+				stream->player_active = TRUE;
 			} else {
-                stream->source        = new_source ? new_source : ms_web_cam_create_reader(cam);
-                stream->cam           = cam;
-                stream->player_active = FALSE;
+				stream->source = new_source ? new_source : ms_web_cam_create_reader(cam);
+				stream->cam = cam;
+				stream->player_active = FALSE;
 			}
 		}
 		if (stream->source_performs_encoding == TRUE) {

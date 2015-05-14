@@ -111,6 +111,7 @@ static int rec_open(MSFilter *f, void *arg){
 			}
 		}else ms_error("fstat() failed: %s",strerror(errno));
 	}
+	ms_message("MSFileRec: recording into %s",filename);
 	ms_mutex_lock(&f->lock);
 	s->state=MSRecorderPaused;
 	ms_mutex_unlock(&f->lock);
