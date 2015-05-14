@@ -428,10 +428,11 @@ void testUriComponentsChecker() {
 }
 
 void test_escaping_bad_chars(void){
-	char bad_uri[15] = { 'h', 'e', 'l', 'l', 'o', (char)0xa0, (char)0xa0, (char)0xc8, (char)0xc8, 'w', 'o', 'r', 'l', 'd', 0x0 };
+	char bad_uri[15] = { 'h', 'e', 'l', 'l', 'o', (char)0xa0, (char)0xc8, 'w', 'o', 'r', 'l', 'd', 0x0 };
 	char *escaped = belle_sip_uri_to_escaped_username(bad_uri);
+	const char *expected="hello%a0%c8world";
 
-	BC_ASSERT_STRING_EQUAL(escaped, "hello%%a0%%c8world");
+	BC_ASSERT_STRING_EQUAL(escaped, expected);
 
 	belle_sip_free(escaped);
 }
