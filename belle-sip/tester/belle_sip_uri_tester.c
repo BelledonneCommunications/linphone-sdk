@@ -437,23 +437,36 @@ void test_escaping_bad_chars(void){
 	belle_sip_free(escaped);
 }
 
-static void test_strange_addresses(void){
-	/* 
-	 * These addresses are malformed and used to make the parser crash.
-	 * They are here to test that everything fails gracefully now.
-	 */
-	static const char *addresses[] = {
-		"sip:France:@+330667441601",
-		"hello\xa0\xc8world",
-	};
-	unsigned int addr_count = sizeof(addresses)/sizeof(const char*);
-	unsigned int i;
-	for( i=0; i<addr_count; i++){
-		belle_sip_header_address_t* L_uri = belle_sip_header_address_parse(addresses[i]);
-		if(L_uri){
-			belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
-		}
+
+static belle_sip_header_address_t* test_header_address_parsing(const char* address, int expect_fail){
+	belle_sip_header_address_t* header_address = belle_sip_header_address_parse(address);
+	if( expect_fail == TRUE ){
+		BC_ASSERT_PTR_NULL(header_address);
+	} else {
+		BC_ASSERT_PTR_NOT_NULL(header_address);
 	}
+	return header_address;
+}
+
+static void test_empty_password(void){
+
+	static const char *address_fail = "sip:France:@+123456789";
+	static const char *address_valid = "sip:France:@toto";
+
+	belle_sip_header_address_t* headerAddr;
+	belle_sip_uri_t* uri;
+
+	(void)test_header_address_parsing(address_fail, TRUE);
+
+	headerAddr = test_header_address_parsing(address_valid, FALSE);
+
+	BC_ASSERT_PTR_NOT_NULL(headerAddr);
+
+	uri = belle_sip_header_address_get_uri(headerAddr);
+	BC_ASSERT_PTR_NOT_NULL(uri);
+
+	const char* passwd = belle_sip_uri_get_user_password(uri);
+	BC_ASSERT_PTR_EQUAL(passwd, NULL);
 }
 
 
@@ -476,7 +489,7 @@ static test_t uri_tests[] = {
 	{ "Simple URI error", testSIMPLEURI_error },
 	{ "IPv6 URI", testIPV6URI },
 	{ "URI components", testUriComponentsChecker },
-	{ "Strange URIs", test_strange_addresses },
+	{ "Empty password", test_empty_password },
 };
 
 test_suite_t sip_uri_test_suite = {
