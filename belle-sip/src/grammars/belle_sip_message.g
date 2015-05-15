@@ -387,14 +387,9 @@ scope { belle_generic_uri_t* current; }
        :  authority_user ( COLON authority_password )?  AT ;
 authority_user            :   ( unreserved  | escaped | user_unreserved )+ {
                                                                   char* unescaped_username;
-                                                                  const char* source = (const char*)$text->chars;
-                                                                  if( source == NULL ){
-                                                                    belle_generic_uri_set_user($authority_userinfo::current,"");
-                                                                  } else {
-                                                                    unescaped_username=belle_sip_to_unescaped_string(source);
+                                                                  unescaped_username=belle_sip_to_unescaped_string((const char *)$text->chars);
                                                                   belle_generic_uri_set_user($authority_userinfo::current,unescaped_username);
                                                                   belle_sip_free(unescaped_username);
-                                                                  }
                                                                   };
 
 authority_password        :   ( unreserved | escaped | AND | EQUAL | PLUS | DOLLARD | COMMA )* {
