@@ -395,12 +395,10 @@ authority_user            :   ( unreserved  | escaped | user_unreserved )+ {
 authority_password        :   ( unreserved | escaped | AND | EQUAL | PLUS | DOLLARD | COMMA )* {
                                                                               char* unescaped_userpasswd;
                                                                               const char* source = (const char*)$text->chars;
-                                                                              if( source == NULL ){
-                                                                                belle_generic_uri_set_user_password($authority_userinfo::current,"");
-                                                                              } else {
+                                                                              if( source != NULL ){
                                                                                 unescaped_userpasswd=belle_sip_to_unescaped_string((const char *)source);
-                                                                              belle_generic_uri_set_user_password($authority_userinfo::current,unescaped_userpasswd);
-                                                                              belle_sip_free(unescaped_userpasswd);
+                                                                                belle_generic_uri_set_user_password($authority_userinfo::current,unescaped_userpasswd);
+                                                                                belle_sip_free(unescaped_userpasswd);
                                                                               }
                                                                               };
 authority_hostport[belle_generic_uri_t* uri] 
@@ -1485,12 +1483,10 @@ user            :   ( unreserved  | escaped | user_unreserved )+ {
 password        :   ( unreserved | escaped |AND | EQUAL | PLUS | DOLLARD | COMMA )* {
                                                                               char* unescaped_userpasswd;
                                                                               const char* source = (const char*)$text->chars;
-                                                                              if( source == NULL ){
-                                                                                belle_sip_uri_set_user_password($userinfo::current,"");
-                                                                              } else {
+                                                                              if( source != NULL ){
                                                                                 unescaped_userpasswd=belle_sip_to_unescaped_string((const char *)source);
-                                                                              belle_sip_uri_set_user_password($userinfo::current,unescaped_userpasswd);
-                                                                              belle_sip_free(unescaped_userpasswd);
+                                                                                belle_sip_uri_set_user_password($userinfo::current,unescaped_userpasswd);
+                                                                                belle_sip_free(unescaped_userpasswd);
                                                                               }
                                                                               };
 hostport[belle_sip_uri_t* uri] 
