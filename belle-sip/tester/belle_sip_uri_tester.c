@@ -437,6 +437,25 @@ void test_escaping_bad_chars(void){
 	belle_sip_free(escaped);
 }
 
+static void test_strange_addresses(void){
+	/* 
+	 * These addresses are malformed and used to make the parser crash.
+	 * They are here to test that everything fails gracefully now.
+	 */
+	static const char *addresses[] = {
+		"sip:France:@+330667441601",
+		"hello\xa0\xc8world",
+	};
+	unsigned int addr_count = sizeof(addresses)/sizeof(const char*);
+	unsigned int i;
+	for( i=0; i<addr_count; i++){
+		belle_sip_header_address_t* L_uri = belle_sip_header_address_parse(addresses[i]);
+		if(L_uri){
+			belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
+		}
+	}
+}
+
 
 static test_t uri_tests[] = {
 	{ "Simple URI", testSIMPLEURI },
@@ -456,7 +475,8 @@ static test_t uri_tests[] = {
 	{ "URI equals", test_uri_equals },
 	{ "Simple URI error", testSIMPLEURI_error },
 	{ "IPv6 URI", testIPV6URI },
-	{ "URI components", testUriComponentsChecker }
+	{ "URI components", testUriComponentsChecker },
+	{ "Strange URIs", test_strange_addresses },
 };
 
 test_suite_t sip_uri_test_suite = {

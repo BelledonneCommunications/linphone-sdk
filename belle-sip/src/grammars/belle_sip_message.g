@@ -387,16 +387,26 @@ scope { belle_generic_uri_t* current; }
        :  authority_user ( COLON authority_password )?  AT ;
 authority_user            :   ( unreserved  | escaped | user_unreserved )+ {
                                                                   char* unescaped_username;
-                                                                  unescaped_username=belle_sip_to_unescaped_string((const char *)$text->chars);
+                                                                  const char* source = (const char*)$text->chars;
+                                                                  if( source == NULL ){
+                                                                    belle_generic_uri_set_user($authority_userinfo::current,"");
+                                                                  } else {
+                                                                    unescaped_username=belle_sip_to_unescaped_string(source);
                                                                   belle_generic_uri_set_user($authority_userinfo::current,unescaped_username);
                                                                   belle_sip_free(unescaped_username);
+                                                                  }
                                                                   };
 
 authority_password        :   ( unreserved | escaped | AND | EQUAL | PLUS | DOLLARD | COMMA )* {
                                                                               char* unescaped_userpasswd;
-                                                                              unescaped_userpasswd=belle_sip_to_unescaped_string((const char *)$text->chars);
+                                                                              const char* source = (const char*)$text->chars;
+                                                                              if( source == NULL ){
+                                                                                belle_generic_uri_set_user_password($authority_userinfo::current,"");
+                                                                              } else {
+                                                                                unescaped_userpasswd=belle_sip_to_unescaped_string((const char *)source);
                                                                               belle_generic_uri_set_user_password($authority_userinfo::current,unescaped_userpasswd);
                                                                               belle_sip_free(unescaped_userpasswd);
+                                                                              }
                                                                               };
 authority_hostport[belle_generic_uri_t* uri] 
 scope { belle_generic_uri_t* current; }
@@ -1479,9 +1489,14 @@ user            :   ( unreserved  | escaped | user_unreserved )+ {
                                                                   };
 password        :   ( unreserved | escaped |AND | EQUAL | PLUS | DOLLARD | COMMA )* {
                                                                               char* unescaped_userpasswd;
-                                                                              unescaped_userpasswd=belle_sip_to_unescaped_string((const char *)$text->chars);
+                                                                              const char* source = (const char*)$text->chars;
+                                                                              if( source == NULL ){
+                                                                                belle_sip_uri_set_user_password($userinfo::current,"");
+                                                                              } else {
+                                                                                unescaped_userpasswd=belle_sip_to_unescaped_string((const char *)source);
                                                                               belle_sip_uri_set_user_password($userinfo::current,unescaped_userpasswd);
                                                                               belle_sip_free(unescaped_userpasswd);
+                                                                              }
                                                                               };
 hostport[belle_sip_uri_t* uri] 
 scope { belle_sip_uri_t* current; }
