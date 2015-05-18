@@ -524,9 +524,13 @@ static void test_connection_too_long(const char *transport){
 	int orig=belle_sip_stack_get_transport_timeout(stack);
 	char *no_response_here_with_transport = belle_sip_strdup_printf(no_response_here, transport);
 	io_error_count=0;
+	if (transport && strcasecmp("tls",transport)==0 && belle_sip_provider_get_listening_point(prov,"tls")==NULL){
+		belle_sip_error("No TLS support, test skipped.");
+		return;
+	}
 	belle_sip_stack_set_transport_timeout(stack,2000);
 	req=try_register_user_at_domain(stack, prov, transport,1,"tester","sip.linphone.org",no_response_here_with_transport,0);
-	BC_ASSERT_TRUE(io_error_count>=1);
+	BC_ASSERT_GREATER(io_error_count, 1, int, "%d");
 	belle_sip_stack_set_transport_timeout(stack,orig);
 	belle_sip_free(no_response_here_with_transport);
 	if (req) belle_sip_object_unref(req);

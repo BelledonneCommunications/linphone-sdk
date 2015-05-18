@@ -93,73 +93,91 @@ static int http_cleanup(void){
 	return 0;
 }
 
-static void one_get(const char *url,http_counters_t* counters, int *counter){
-	belle_http_request_listener_callbacks_t cbs={0};
-	belle_http_request_listener_t *l;
-	belle_generic_uri_t *uri;
-	belle_http_request_t *req;
+static int url_supported(const char *url) {
+	if (url && strstr(url,"https://")==url && (belle_sip_list_size(*belle_http_provider_get_channels(prov,"tls"))==0)){
+		belle_sip_error("No TLS support, test skipped.");
+		return -1;
+	}
+	return 0;
+}
+static int one_get(const char *url,http_counters_t* counters, int *counter){
+	if (url_supported(url)==-1) {
+		return -1;
+	} else {
+		belle_http_request_listener_callbacks_t cbs={0};
+		belle_http_request_listener_t *l;
+		belle_generic_uri_t *uri;
+		belle_http_request_t *req;
 
-	uri=belle_generic_uri_parse(url);
+		uri=belle_generic_uri_parse(url);
 
-	req=belle_http_request_create("GET",
-							    uri,
-							    belle_sip_header_create("User-Agent","belle-sip/"PACKAGE_VERSION),
-							    NULL);
-	cbs.process_response=process_response;
-	cbs.process_io_error=process_io_error;
-	cbs.process_auth_requested=process_auth_requested;
-	l=belle_http_request_listener_create_from_callbacks(&cbs,counters);
-	belle_http_provider_send_request(prov,req,l);
-	wait_for(stack,counter,1,10000);
+		req=belle_http_request_create("GET",
+										uri,
+										belle_sip_header_create("User-Agent","belle-sip/"PACKAGE_VERSION),
+										NULL);
+		cbs.process_response=process_response;
+		cbs.process_io_error=process_io_error;
+		cbs.process_auth_requested=process_auth_requested;
+		l=belle_http_request_listener_create_from_callbacks(&cbs,counters);
+		belle_http_provider_send_request(prov,req,l);
+		wait_for(stack,counter,1,10000);
 
-	belle_sip_object_unref(l);
+		belle_sip_object_unref(l);
+		return 0;
+	}
 }
 
 static void one_http_get(void){
 	http_counters_t counters={0};
-	one_get("http://smtp.linphone.org",&counters,&counters.response_count);
-	BC_ASSERT_TRUE(counters.response_count==1);
-	BC_ASSERT_TRUE(counters.io_error_count==0);
-	BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	if (one_get("http://smtp.linphone.org",&counters,&counters.response_count) == 0) {
+		BC_ASSERT_TRUE(counters.response_count==1);
+		BC_ASSERT_TRUE(counters.io_error_count==0);
+		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	}
 }
 
 static void http_get_empty_body(void){
 	http_counters_t counters={0};
-	one_get("http://smtp.linphone.org/marie_invalid",&counters,&counters.response_count);
-	BC_ASSERT_TRUE(counters.response_count==1);
-	BC_ASSERT_TRUE(counters.io_error_count==0);
-	BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	if (one_get("http://smtp.linphone.org/marie_invalid",&counters,&counters.response_count) == 0) {
+		BC_ASSERT_TRUE(counters.response_count==1);
+		BC_ASSERT_TRUE(counters.io_error_count==0);
+		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	}
 }
 
 static void http_get_io_error(void){
 	http_counters_t counters={0};
-	one_get("http://blablabla.cul",&counters,&counters.io_error_count);
-	BC_ASSERT_TRUE(counters.response_count==0);
-	BC_ASSERT_EQUAL(counters.io_error_count,1,int,"%d");
-}
+	if (one_get("http://blablabla.fail",&counters,&counters.io_error_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count,0,int,"%d");
+		BC_ASSERT_EQUAL(counters.io_error_count,1,int,"%d");
+	}
+	}
 
 static void one_https_get(void){
 	http_counters_t counters={0};
-	one_get("https://smtp.linphone.org",&counters,&counters.response_count);
-	BC_ASSERT_TRUE(counters.response_count==1);
-	BC_ASSERT_TRUE(counters.io_error_count==0);
-	BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	if (one_get("https://smtp.linphone.org",&counters,&counters.response_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	}
 }
 
 static void https_get_long_body(void){
 	http_counters_t counters={0};
-	one_get("https://smtp.linphone.org/linphone.html",&counters, &counters.response_count);
-	BC_ASSERT_TRUE(counters.response_count==1);
-	BC_ASSERT_TRUE(counters.io_error_count==0);
-	BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	if (one_get("https://smtp.linphone.org/linphone.html",&counters, &counters.response_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	}
 }
 
 static void https_digest_get(void){
 	http_counters_t counters={0};
-	one_get("https://pauline:pouet@smtp.linphone.org/restricted",&counters,&counters.response_count);
-	BC_ASSERT_TRUE(counters.response_count==1);
-	BC_ASSERT_TRUE(counters.io_error_count==0);
-	BC_ASSERT_EQUAL(counters.three_hundred,1,int,"%d");
+	if (one_get("https://pauline:pouet@smtp.linphone.org/restricted",&counters,&counters.response_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.three_hundred,1,int,"%d");
+	}
 }
 #if 0
 static void https_client_cert_connection(void){
@@ -167,8 +185,9 @@ static void https_client_cert_connection(void){
 	http_counters_t counters={0};
 	belle_tls_verify_policy_set_exceptions(policy,BELLE_TLS_VERIFY_ANY_REASON);/*ignore the server verification because we don't have a true certificate*/
 	belle_http_provider_set_tls_verify_policy(prov,policy);
-	one_get("https://sip2.linphone.org:5063",&counters);
-	BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	if (one_get("https://sip2.linphone.org:5063",&counters) == 0) {
+		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	}
 	belle_tls_verify_policy_set_exceptions(policy,0);
 	belle_sip_object_unref(policy);
 }
@@ -218,9 +237,14 @@ static void https_post_long_body(void){
 	belle_generic_uri_t *uri;
 	belle_http_request_t *req;
 	http_counters_t counters={0};
+	belle_sip_user_body_handler_t *bh;
+	char *content_type;
 	const char *url="https://www.linphone.org:444/upload.php";
-	belle_sip_user_body_handler_t *bh=belle_sip_user_body_handler_new(image_size+sizeof(MULTIPART_BEGIN)+sizeof(MULTIPART_END), on_progress, NULL, on_send_body, NULL);
-	char *content_type=belle_sip_strdup_printf("multipart/form-data; boundary=%s",multipart_boudary);
+	if (url_supported(url)==-1) {
+		return;
+	}
+	bh=belle_sip_user_body_handler_new(image_size+sizeof(MULTIPART_BEGIN)+sizeof(MULTIPART_END), on_progress, NULL, on_send_body, NULL);
+	content_type=belle_sip_strdup_printf("multipart/form-data; boundary=%s",multipart_boudary);
 
 	uri=belle_generic_uri_parse(url);
 

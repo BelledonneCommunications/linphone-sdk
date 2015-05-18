@@ -357,7 +357,7 @@ static void fix_request(belle_http_request_t *req){
 	}
 }
 
-static belle_sip_list_t **provider_get_channels(belle_http_provider_t *obj, const char *transport_name){
+belle_sip_list_t **belle_http_provider_get_channels(belle_http_provider_t *obj, const char *transport_name){
 	if (strcasecmp(transport_name,"tcp")==0) return &obj->tcp_channels;
 	else if (strcasecmp(transport_name,"tls")==0) return &obj->tls_channels;
 	else{
@@ -367,7 +367,7 @@ static belle_sip_list_t **provider_get_channels(belle_http_provider_t *obj, cons
 }
 
 static void provider_remove_channel(belle_http_provider_t *obj, belle_sip_channel_t *chan){
-	belle_sip_list_t **channels=provider_get_channels(obj,belle_sip_channel_get_transport_name(chan));
+	belle_sip_list_t **channels=belle_http_provider_get_channels(obj,belle_sip_channel_get_transport_name(chan));
 	*channels=belle_sip_list_remove(*channels,chan);
 	belle_sip_message("channel [%p] removed from http provider.",obj);
 	belle_sip_object_unref(chan);
@@ -385,7 +385,7 @@ static void belle_http_end_background_task(void* data) {
 int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener){
 	belle_sip_channel_t *chan;
 	belle_sip_hop_t *hop=belle_sip_hop_new_from_generic_uri(req->orig_uri ? req->orig_uri : req->req_uri);
-	belle_sip_list_t **channels=provider_get_channels(obj,hop->transport);
+	belle_sip_list_t **channels=belle_http_provider_get_channels(obj,hop->transport);
 
 	if (listener) belle_http_request_set_listener(req,listener);
 
