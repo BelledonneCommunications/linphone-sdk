@@ -25,6 +25,10 @@
 #include <string.h>
 #include <math.h>
 
+#ifdef WIN32
+#define snprintf _snprintf
+#endif
+
 extern const char *bc_tester_read_dir_prefix;
 extern const char *bc_tester_writable_dir_prefix;
 
