@@ -452,7 +452,7 @@ static void test_empty_password(void){
 
 	static const char *address_fail = "sip:France:@+123456789";
 	static const char *address_valid = "sip:France:@toto";
-
+	const char* passwd;
 	belle_sip_header_address_t* headerAddr;
 	belle_sip_uri_t* uri;
 
@@ -465,7 +465,7 @@ static void test_empty_password(void){
 	uri = belle_sip_header_address_get_uri(headerAddr);
 	BC_ASSERT_PTR_NOT_NULL(uri);
 
-	const char* passwd = belle_sip_uri_get_user_password(uri);
+	passwd = belle_sip_uri_get_user_password(uri);
 	BC_ASSERT_PTR_EQUAL(passwd, NULL);
 }
 
