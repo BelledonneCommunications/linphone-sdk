@@ -16,11 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "CUnit/Basic.h"
-
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_tester.h"
-
 
 static void cast_test(void){
 	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
