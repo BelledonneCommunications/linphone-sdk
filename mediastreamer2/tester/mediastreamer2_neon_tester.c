@@ -250,8 +250,8 @@ static void inner_product_test(void) {
 	fast_enough = (float)neon_ms < (float)soft_ms/5;
 
 	// we expect the result to be very similar and at least 5 times faster with NEON
-	CU_ASSERT(percent_off < 1.0);
-	CU_ASSERT(fast_enough);
+	BC_ASSERT(percent_off < 1.0);
+	BC_ASSERT(fast_enough);
 	ms_message("NEON = %llu ms, SOFT: %llu ms", neon_ms, soft_ms);
 	if( !fast_enough ) {
 		ms_error("NEON not fast enough it seems");
