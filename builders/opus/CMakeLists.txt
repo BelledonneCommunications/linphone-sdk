@@ -58,6 +58,7 @@ else()
 endif()
 
 if(ENABLE_ASM)
+	enable_language(ASM)
 	string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
 	if(SYSTEM_PROCESSOR MATCHES "^arm.*")
 		if(ENABLE_FIXED_POINT)
