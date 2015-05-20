@@ -46,7 +46,7 @@ message(STATUS "Using sysroot path: ${SYSROOT_PATH}")
 set(IOS_TOOLCHAIN_HOST ${COMPILER_PREFIX})
 
 foreach(TOOLNAME clang clang++ ld ar ranlib strip nm)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/toolchains/ios/tool_wrapper.cmake ${CMAKE_CURRENT_BINARY_DIR}/${IOS_TOOLCHAIN_HOST}-${TOOLNAME})
+	configure_file(${CMAKE_CURRENT_LIST_DIR}/tool_wrapper.cmake ${CMAKE_CURRENT_BINARY_DIR}/${IOS_TOOLCHAIN_HOST}-${TOOLNAME})
 endforeach(TOOLNAME)
 
 set(IOS_TOOLCHAIN_CC "${CMAKE_CURRENT_BINARY_DIR}/${IOS_TOOLCHAIN_HOST}-clang")

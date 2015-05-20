@@ -146,9 +146,9 @@ class IOSarmv7Target(IOSTarget):
 	def __init__(self):
 		IOSTarget.__init__(self, 'armv7')
 
-class IOSarmv7sTarget(IOSTarget):
+class IOSarm64Target(IOSTarget):
 	def __init__(self):
-		IOSTarget.__init__(self, 'armv7s')
+		IOSTarget.__init__(self, 'arm64')
 
 class PythonTarget(Target):
 	def __init__(self):
@@ -170,7 +170,7 @@ targets['bb10-i486'] = BB10i486Target()
 targets['desktop'] = DesktopTarget()
 targets['ios-i386'] = IOSi386Target()
 targets['ios-armv7'] = IOSarmv7Target()
-targets['ios-armv7s'] = IOSarmv7sTarget()
+targets['ios-arm64'] = IOSarm64Target()
 targets['python'] = PythonTarget()
 targets['python-raspberry'] = PythonRaspberryTarget()
 target_names = sorted(targets.keys())
