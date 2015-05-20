@@ -502,7 +502,7 @@ static void ipv6_dns_server(void) {
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
 	if (client->ai_list) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
 		int ntohsi = (int)ntohs(sock_in->sin_port);
