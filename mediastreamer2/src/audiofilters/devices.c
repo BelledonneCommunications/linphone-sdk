@@ -129,6 +129,8 @@ static SoundDeviceDescription devices[]={
 	
 	{	"Enspert",		"IGGY",		""		,	0,	320 ,0}, /*Wiko iggy*/
 	{ "Yota Devices Limited", "YD201", "msm8974", DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 48000 }, /* Yotaphone 2 */
+	
+	{	"Hewlett-Packard",	"Slate 21 Pro", "tegra4", DEVICE_HAS_UNSTANDARD_LIBMEDIA, 250  },
 	{	NULL, NULL, NULL, 0, 0,0}
 };
 
@@ -274,6 +276,7 @@ SoundDeviceDescription * sound_device_description_get(void){
 	}
 	if (d->flags & DEVICE_HAS_CRAPPY_ANDROID_FASTTRACK) ms_warning("Fasttrack playback mode is crappy on this device, not using it.");
 	if (d->flags & DEVICE_HAS_CRAPPY_ANDROID_FASTRECORD) ms_warning("Fasttrack record mode is crappy on this device, not using it.");
+	if (d->flags & DEVICE_HAS_UNSTANDARD_LIBMEDIA) ms_warning("This device has unstandart libmedia.");
 	ms_message("Sound device information for [%s/%s/%s] is: builtin=[%s], delay=[%i] ms",
 				manufacturer,model,platform, (d->flags & DEVICE_HAS_BUILTIN_AEC) ? "yes" : "no", d->delay);
 	return d;

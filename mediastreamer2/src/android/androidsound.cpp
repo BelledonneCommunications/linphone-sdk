@@ -39,7 +39,7 @@ using namespace::fake_android;
 /*notification duration for audio callbacks, in ms*/
 static const float audio_buf_ms=0.01;
 
-static MSSndCard * android_snd_card_new(void);
+static MSSndCard * android_snd_card_new(SoundDeviceDescription *d);
 static MSFilter * ms_android_snd_read_new(void);
 static MSFilter * ms_android_snd_write_new(void);
 static Library *libmedia=0;
@@ -236,6 +236,7 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	bool audio_system_loaded=false;
 	bool string8_loaded=false;
 	bool refbase_loaded=false;
+	SoundDeviceDescription *d;
 
 	if (get_sdk_version()>19){
 		/*it is actually working well on android 5 on Nexus 4 but crashes on Samsung S5, due to, maybe
@@ -262,9 +263,10 @@ static void android_snd_card_detect(MSSndCardManager *m){
 		audio_track_loaded=AudioTrackImpl::init(libmedia);
 		audio_system_loaded=AudioSystemImpl::init(libmedia);
 	}
-	if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded && refbase_loaded){
+	d=sound_device_description_get();
+	if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded && refbase_loaded && !(d->flags & DEVICE_HAS_UNSTANDARD_LIBMEDIA)){
 		ms_message("Native android sound support available.");
-		MSSndCard *card=android_snd_card_new();
+		MSSndCard *card=android_snd_card_new(d);
 		ms_snd_card_manager_add_card(m,card);
 		return;
 	}
@@ -297,15 +299,14 @@ MSSndCardDesc android_native_snd_card_desc={
 
 
 
-static MSSndCard * android_snd_card_new(void)
+static MSSndCard * android_snd_card_new(SoundDeviceDescription *d)
 {
 	MSSndCard * obj;
-	SoundDeviceDescription *d;
+	
 	
 	obj=ms_snd_card_new(&android_native_snd_card_desc);
 	obj->name=ms_strdup("android sound card");
 	
-	d=sound_device_description_get();
 	if (d->flags & DEVICE_HAS_BUILTIN_AEC) obj->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	obj->latency=d->delay;
 	obj->data = new AndroidNativeSndCardData(	d->recommended_rate
