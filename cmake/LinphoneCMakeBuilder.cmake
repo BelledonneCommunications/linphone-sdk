@@ -444,6 +444,7 @@ macro(linphone_builder_set_ep_directories PROJNAME)
 	string(REGEX REPLACE "config-" "" CONFIG_NAME ${CONFIG_NAME})
 	set(ep_source "${ep_base}/Source/EP_${PROJNAME}")
 	set(ep_tmp "${ep_base}/tmp-${CONFIG_NAME}/${PROJNAME}")
+	set(ep_stamp "${ep_base}/Stamp-${CONFIG_NAME}/${PROJNAME}")
 	if("${EP_${PROJNAME}_BUILD_IN_SOURCE}" STREQUAL "yes")
 		set(ep_build "${ep_source}")
 	else()
@@ -671,6 +672,7 @@ function(linphone_builder_add_project PROJNAME)
 	ExternalProject_Add(EP_${PROJNAME}
 		DEPENDS ${EP_${PROJNAME}_DEPENDENCIES}
 		TMP_DIR ${ep_tmp}
+		STAMP_DIR ${ep_stamp}
 		BINARY_DIR ${ep_build}
 		${DOWNLOAD_SOURCE}
 		PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}

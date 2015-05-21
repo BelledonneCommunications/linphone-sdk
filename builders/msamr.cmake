@@ -23,6 +23,7 @@
 set(EP_msamr_GIT_REPOSITORY "git://git.linphone.org/msamr.git")
 set(EP_msamr_GIT_TAG_LATEST "master")
 set(EP_msamr_GIT_TAG "43468db707a73e7404972eb496221a35db84415e")
+set(EP_msamr_EXTERNAL_SOURCE_PATHS "msamr")
 
 set(EP_msamr_CMAKE_OPTIONS )
 set(EP_msamr_DEPENDENCIES EP_ms2 EP_opencoreamr)

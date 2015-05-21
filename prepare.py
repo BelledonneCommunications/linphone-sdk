@@ -39,6 +39,8 @@ class Target:
 		self.config_file = None
 		self.toolchain_file = None
 		self.additional_args = []
+		self.work_dir = os.getcwd() + '/WORK'
+		self.cmake_dir = self.work_dir + '/cmake-' + self.name
 
 	def output_dir(self):
 		output_dir = self.output
@@ -50,13 +52,15 @@ class Target:
 		return output_dir
 
 	def cmake_command(self, build_type, latest, list_cmake_variables, additional_args):
-		cmd = ['cmake', '../..']
+		current_path = os.path.dirname(os.path.realpath(__file__))
+		cmd = ['cmake', current_path]
 		if self.generator is not None:
 			cmd += ['-G', self.generator]
 		if self.platform_name is not None:
 			cmd += ['-A', self.platform_name]
 		cmd += ['-DCMAKE_BUILD_TYPE=' + build_type]
 		cmd += ['-DCMAKE_PREFIX_PATH=' + self.output_dir(), '-DCMAKE_INSTALL_PREFIX=' + self.output_dir()]
+		cmd += ['-DLINPHONE_BUILDER_WORK_DIR=' + self.work_dir + '/..']
 		if self.toolchain_file is not None:
 			cmd += ['-DCMAKE_TOOLCHAIN_FILE=' + self.toolchain_file]
 		if self.config_file is not None:
@@ -134,9 +138,13 @@ class DesktopTarget(Target):
 class IOSTarget(Target):
 	def __init__(self, arch):
 		Target.__init__(self, 'ios-' + arch)
+		current_path = os.path.dirname(os.path.realpath(__file__))
 		self.config_file = 'configs/config-ios-' + arch + '.cmake'
 		self.toolchain_file = 'toolchains/toolchain-ios-' + arch + '.cmake'
 		self.output = 'OUTPUT/liblinphone-ios-sdk/' + arch
+		self.additional_args = [
+			'-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=' + current_path + '/..'
+		]
 
 class IOSi386Target(IOSTarget):
 	def __init__(self):
@@ -181,16 +189,15 @@ def run(target, debug, latest, list_cmake_variables, force_build, additional_arg
 	if debug:
 		build_type = 'Debug'
 
-	work_dir = 'WORK/cmake-' + target.name
-	if os.path.isdir(work_dir):
+	if os.path.isdir(target.cmake_dir):
 		if force_build is False:
 			print("Working directory {} already exists. Please remove it (option -C or -c) before re-executing CMake "
-				"to avoid conflicts between executions.".format(work_dir))
+				"to avoid conflicts between executions.".format(target.cmake_dir))
 			return 1
 	else:
-		os.makedirs(work_dir)
+		os.makedirs(target.cmake_dir)
 
-	proc = subprocess.Popen(target.cmake_command(build_type, latest, list_cmake_variables, additional_args), cwd=work_dir, shell=False)
+	proc = subprocess.Popen(target.cmake_command(build_type, latest, list_cmake_variables, additional_args), cwd=target.cmake_dir, shell=False)
 	proc.communicate()
 	return proc.returncode
 
@@ -215,16 +222,15 @@ def main(argv = None):
 	if args.output:
 		target.output = args.output
 
+	retcode = 0
 	if args.veryclean:
 		target.veryclean()
-		return 0
-	if args.clean:
+	elif args.clean:
 		target.clean()
-		return 0
-
-	retcode = run(target, args.debug, args.latest, args.list_cmake_variables, args.force, additional_args)
-	if retcode == 0:
-		print("\n" + target.build_instructions(args.debug))
+	else:
+		retcode = run(target, args.debug, args.latest, args.list_cmake_variables, args.force, additional_args)
+		if retcode == 0:
+			print("\n" + target.build_instructions(args.debug))
 	return retcode
 
 if __name__ == "__main__":

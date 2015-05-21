@@ -23,7 +23,7 @@
 set(EP_gsm_GIT_REPOSITORY "git://git.linphone.org/gsm.git")
 set(EP_gsm_GIT_TAG_LATEST "linphone")
 set(EP_gsm_GIT_TAG "8722e2c643ab6cc727c62fc960cbefd43e024329")
-set(EP_gsm_EXTERNAL_SOURCE_PATHS "gsm")
+set(EP_gsm_EXTERNAL_SOURCE_PATHS "gsm" "externals/gsm")
 
 set(EP_gsm_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/gsm/CMakeLists.txt" "<SOURCE_DIR>")
 set(EP_gsm_LINKING_TYPE "-DENABLE_STATIC=NO")

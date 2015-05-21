@@ -66,6 +66,7 @@ set(CMAKE_CROSSCOMPILING TRUE)
 # Define name of the target system
 set(CMAKE_SYSTEM_NAME "Darwin")
 set(CMAKE_SYSTEM_PROCESSOR ${SYSTEM_PROCESSOR})
+set(IOS True)
 
 # Define the compiler
 CMAKE_FORCE_C_COMPILER(${IOS_TOOLCHAIN_CC} Clang)

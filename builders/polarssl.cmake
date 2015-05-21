@@ -23,7 +23,7 @@
 set(EP_polarssl_GIT_REPOSITORY "git://git.linphone.org/polarssl.git")
 set(EP_polarssl_GIT_TAG_LATEST "linphone-1.4")
 set(EP_polarssl_GIT_TAG "68ed1474bf3919248f0b9f52fc582d60d4c2991d")
-set(EP_polarssl_EXTERNAL_SOURCE_PATHS "polarssl")
+set(EP_polarssl_EXTERNAL_SOURCE_PATHS "polarssl" "externals/polarssl")
 
 set(EP_polarssl_CMAKE_OPTIONS "-DENABLE_PROGRAMS=0" "-DENABLE_TESTING=0")
 set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=1")

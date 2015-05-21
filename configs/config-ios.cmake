@@ -27,7 +27,7 @@ set(DEFAULT_VALUE_ENABLE_FFMPEG OFF)
 set(DEFAULT_VALUE_ENABLE_ZRTP OFF)
 set(DEFAULT_VALUE_ENABLE_SRTP ON)
 set(DEFAULT_VALUE_ENABLE_AMRNB ON)
-set(DEFAULT_VALUE_ENABLE_AMRWB ON)
+set(DEFAULT_VALUE_ENABLE_AMRWB OFF)
 set(DEFAULT_VALUE_ENABLE_G729 OFF)
 set(DEFAULT_VALUE_ENABLE_GSM ON)
 set(DEFAULT_VALUE_ENABLE_ILBC OFF)
@@ -48,7 +48,7 @@ set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
 
 
 # Global configuration
-set(SDK_VERSION 4.0)
+set(SDK_VERSION 6.0)
 get_filename_component(COMPILER_NAME ${CMAKE_C_COMPILER} NAME)
 string(REGEX REPLACE "-clang$" "" LINPHONE_BUILDER_HOST ${COMPILER_NAME})
 unset(COMPILER_NAME)
@@ -61,7 +61,6 @@ list(GET CMAKE_FIND_ROOT_PATH 0 SYSROOT_PATH)
 set(COMMON_FLAGS "-arch ${CMAKE_SYSTEM_PROCESSOR} -isysroot ${SYSROOT_PATH} -m${CLANG_TARGET_SPECIFIER}=${SDK_VERSION} -DTARGET_OS_IPHONE=1 -D__IOS -fms-extensions")
 set(LINPHONE_BUILDER_CPPFLAGS "${COMMON_FLAGS} -Dasm=__asm")
 set(LINPHONE_BUILDER_CFLAGS "-std=c99")
-#set(LINPHONE_BUILDER_OBJCFLAGS "-std=c99 ${COMMON_FLAGS} -x objective-c -fexceptions -gdwarf-2 -fobjc-abi-version=2 -fobjc-legacy-dispatch")
 set(LINPHONE_BUILDER_LDFLAGS "${COMMON_FLAGS}")
 set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# Restrict pkg-config to search in the install directory
 unset(COMMON_FLAGS)
@@ -79,6 +78,7 @@ set(EP_antlr3c_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # belle-sip
 set(EP_bellesip_LINKING_TYPE "-DENABLE_STATIC=YES")
+list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
 
 # cunit
 set(EP_cunit_LINKING_TYPE "-DENABLE_STATIC=YES")
@@ -90,39 +90,20 @@ set(EP_ffmpeg_LINKING_TYPE "--enable-static" "--disable-shared")
 set(EP_gsm_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # linphone
-list(APPEND EP_linphone_CONFIGURE_OPTIONS
-	"--disable-nls"
-	"--with-readline=none"
-	"--enable-gtk_ui=no"
-	"--enable-console_ui=no"
-	"--disable-x11"
-	"--disable-tutorials"
-	"--disable-tools"
-	"--disable-msg-storage"
-	"--disable-video"
-	"--disable-alsa"
-	"--enable-relativeprefix=yes"
-	"--disable-tests"
-)
-set(EP_linphone_LINKING_TYPE "--enable-static" "--disable-shared")
+set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=YES")
+list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES" "-DENABLE_CONSOLE_UI=NO" "-DENABLE_GTK_UI=NO" "-DENABLE_NOTIFY=NO" "-DENABLE_TOOLS=NO" "-DENABLE_TUTORIALS=NO" "-DENABLE_UPNP=NO" "-DENABLE_MSG_STORAGE=YES" "-DENABLE_DOC=NO" "-DENABLE_UNIT_TESTS=NO")
 
 # mediastreamer2
-list(APPEND EP_ms2_CONFIGURE_OPTIONS
-	"--disable-nls"
-	"--disable-theora"
-	"--disable-sdl"
-	"--disable-x11"
-	"--disable-video"
-	"--disable-alsa"
-	"--enable-relativeprefix=yes"
-)
-set(EP_ms2_LINKING_TYPE "--enable-static" "--disable-shared")
+set(EP_ms2_LINKING_TYPE "-DENABLE_STATIC=YES")
+list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
+list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_ALSA=NO" "-DENABLE_PULSEAUDIO=NO" "-DENABLE_OSS=NO" "-DENABLE_GLX=NO" "-DENABLE_X11=NO" "-DENABLE_XV=NO" "-DENABLE_TOOLS=NO" "-DENABLE_DOC=NO" "-DENABLE_UNIT_TESTS=NO")
 
 # opus
-set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared")
+set(EP_opus_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # ortp
-set(EP_ortp_LINKING_TYPE "--enable-static" "--disable-shared")
+set(EP_ortp_LINKING_TYPE "-DENABLE_STATIC=YES")
+list(APPEND EP_ortp_CMAKE_OPTIONS "-DENABLE_DOC=NO")
 
 # polarssl
 set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=0")
@@ -138,3 +119,4 @@ set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")
 
 # xml2
 set(EP_xml2_LINKING_TYPE "-DENABLE_STATIC=YES")
+

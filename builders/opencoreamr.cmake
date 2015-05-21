@@ -38,6 +38,7 @@ else()
 	set(EP_opencoreamr_CMAKE_OPTIONS )
 	set(EP_opencoreamr_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opencoreamr/CMakeLists.txt" "<SOURCE_DIR>")
 	set(EP_opencoreamr_LINKING_TYPE "-DENABLE_STATIC=YES")
+	set(EP_opencoreamr_EXTERNAL_SOURCE_PATHS  "externals/opencore-amr")
 
 	if(ENABLE_AMRNB)
 		list(APPEND EP_opencoreamr_CMAKE_OPTIONS "-DENABLE_AMRNB_DECODER=YES" "-DENABLE_AMRNB_ENCODER=YES")
