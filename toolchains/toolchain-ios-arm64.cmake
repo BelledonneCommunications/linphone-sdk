@@ -1,6 +1,6 @@
 ############################################################################
-# toolchan-ios-i386.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# toolchain-ios-arm64.cmake
+# Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(CMAKE_SYSTEM_PROCESSOR i386)
-set(SYSTEM_ARCH i386)
-set(COMPILER_PREFIX "i386-apple-darwin")
-set(PLATFORM "Simulator")
+set(CMAKE_SYSTEM_PROCESSOR aarch64)
+set(SYSTEM_ARCH arm64)
+set(COMPILER_PREFIX "arm64-apple-darwin")
+set(PLATFORM "OS")
 include("${CMAKE_CURRENT_LIST_DIR}/ios/toolchain-ios.cmake")
 

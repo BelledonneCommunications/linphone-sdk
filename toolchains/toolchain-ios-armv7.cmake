@@ -20,7 +20,8 @@
 #
 ############################################################################
 
-set(SYSTEM_PROCESSOR armv7)
+set(CMAKE_SYSTEM_PROCESSOR armv7)
+set(SYSTEM_ARCH armv7)
 set(COMPILER_PREFIX "armv7-apple-darwin")
 set(PLATFORM "OS")
 include("${CMAKE_CURRENT_LIST_DIR}/ios/toolchain-ios.cmake")

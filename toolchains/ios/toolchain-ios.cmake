@@ -1,5 +1,5 @@
 ############################################################################
-# toolchan-ios.cmake
+# toolchain-ios.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -23,21 +23,21 @@
 # Building for iOS is only available under APPLE systems
 if(NOT APPLE)
 	message(FATAL_ERROR "You need to build using a Mac OS X system")
-endif(NOT APPLE)
+endif()
 
 execute_process(COMMAND xcode-select -print-path OUTPUT_VARIABLE XCODE_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
 if(NOT ${XCODE_SELECT_RESULT} EQUAL 0)
 	message(FATAL_ERROR "xcode-select failed: ${XCODE_SELECT_RESULT}. You may need to install Xcode.")
-endif(NOT ${XCODE_SELECT_RESULT} EQUAL 0)
+endif()
 
 if(EXISTS "${XCODE_PATH}/Platforms/iPhone${PLATFORM}.platform/Developer/SDKs/")
 	# New path with Xcode 4.3
 	file(GLOB SDK_PATH_LIST "${XCODE_PATH}/Platforms/iPhone${PLATFORM}.platform/Developer/SDKs/iPhone${PLATFORM}*.sdk")
 	set(SDK_BIN_PATH "${XCODE_PATH}/Platforms/iPhone${PLATFORM}.platform/Developer/usr/bin")
-else(EXISTS "${XCODE_PATH}/Platforms/iPhone${PLATFORM}.platform/Developer/SDKs/")
+else()
 	file(GLOB SDK_PATH_LIST "/Developer/Platforms/iPhone${PLATFORM}.platform/Developer/SDKs/iPhone${PLATFORM}*.sdk")
 	set(SDK_BIN_PATH "/Developer/Platforms/iPhone${PLATFORM}.platform/Developer/usr/bin")
-endif(EXISTS "${XCODE_PATH}/Platforms/iPhone${PLATFORM}.platform/Developer/SDKs/")
+endif()
 list(SORT SDK_PATH_LIST)
 list(REVERSE SDK_PATH_LIST)
 list(GET SDK_PATH_LIST 0 SYSROOT_PATH)
@@ -65,7 +65,6 @@ set(CMAKE_CROSSCOMPILING TRUE)
 
 # Define name of the target system
 set(CMAKE_SYSTEM_NAME "Darwin")
-set(CMAKE_SYSTEM_PROCESSOR ${SYSTEM_PROCESSOR})
 set(IOS True)
 
 # Define the compiler
@@ -79,3 +78,4 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 # for libraries and headers in the target directories
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+

@@ -1,6 +1,6 @@
 ############################################################################
-# toolchain-ios-armv7s.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# config-ios-x86_64.cmake
+# Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,6 @@
 #
 ############################################################################
 
-set(SYSTEM_PROCESSOR armv7s)
-set(COMPILER_PREFIX "armv7s-apple-darwin")
-set(PLATFORM "OS")
-include("${CMAKE_CURRENT_LIST_DIR}/ios/toolchain-ios.cmake")
+set(PLATFORM "Simulator")
+include(configs/config-ios.cmake)
+

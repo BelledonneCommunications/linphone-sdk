@@ -1,6 +1,6 @@
 ############################################################################
-# toolchan-ios-i386.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# config-ios-arm64.cmake
+# Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,9 +20,17 @@
 #
 ############################################################################
 
-set(CMAKE_SYSTEM_PROCESSOR i386)
-set(SYSTEM_ARCH i386)
-set(COMPILER_PREFIX "i386-apple-darwin")
-set(PLATFORM "Simulator")
-include("${CMAKE_CURRENT_LIST_DIR}/ios/toolchain-ios.cmake")
+set(PLATFORM "OS")
+include(configs/config-ios.cmake)
+
+
+# speex
+list(APPEND EP_speex_CMAKE_OPTIONS
+	"-DENABLE_FLOAT_API=NO"
+	"-DENABLE_FIXED_POINT=YES"
+	"-DENABLE_ARMV7_NEON_ASM=NO"
+)
+
+# opus
+list(APPEND EP_opus_CMAKE_OPTIONS "-DENABLE_FIXED_POINT=YES")
 

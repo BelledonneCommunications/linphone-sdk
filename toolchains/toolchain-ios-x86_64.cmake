@@ -1,6 +1,6 @@
 ############################################################################
-# config-ios-armv7s.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# toolchan-ios-x86_64.cmake
+# Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,17 +20,9 @@
 #
 ############################################################################
 
-set(PLATFORM "OS")
-include(configs/config-ios.cmake)
-
-
-# speex
-list(APPEND EP_speex_CMAKE_OPTIONS
-	"-DENABLE_FLOAT_API=0"
-	"-DENABLE_FIXED_POINT=1"
-	"-DENABLE_ARMV7_NEON_ASM=1"
-)
-
-# opus
-list(APPEND EP_opus_CONFIGURE_OPTIONS "--enable-fixed-point")
+set(CMAKE_SYSTEM_PROCESSOR x86_64)
+set(SYSTEM_ARCH x86_64)
+set(COMPILER_PREFIX "x86_64-apple-darwin")
+set(PLATFORM "Simulator")
+include("${CMAKE_CURRENT_LIST_DIR}/ios/toolchain-ios.cmake")
 

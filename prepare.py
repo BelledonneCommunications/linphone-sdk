@@ -150,6 +150,10 @@ class IOSi386Target(IOSTarget):
 	def __init__(self):
 		IOSTarget.__init__(self, 'i386')
 
+class IOSx8664Target(IOSTarget):
+	def __init__(self):
+		IOSTarget.__init__(self, 'x86_64')
+
 class IOSarmv7Target(IOSTarget):
 	def __init__(self):
 		IOSTarget.__init__(self, 'armv7')
@@ -177,6 +181,7 @@ targets['bb10-arm'] = BB10armTarget()
 targets['bb10-i486'] = BB10i486Target()
 targets['desktop'] = DesktopTarget()
 targets['ios-i386'] = IOSi386Target()
+targets['ios-x86_64'] = IOSx8664Target()
 targets['ios-armv7'] = IOSarmv7Target()
 targets['ios-arm64'] = IOSarm64Target()
 targets['python'] = PythonTarget()
