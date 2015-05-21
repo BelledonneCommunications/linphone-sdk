@@ -148,57 +148,32 @@ generate-bb10-sdk: build-bb10
 	cd OUTPUT && \
 	zip -r liblinphone-bb10-sdk-`cd ../WORK/Source/EP_linphone && git describe --always`.zip liblinphone-bb10-sdk
 
-build-ios-i386:
+prepare-ios-%:
 	mkdir -p OUTPUT/liblinphone-ios-sdk && \
-	mkdir -p WORK/cmake-ios-i386 && \
-	cd WORK/cmake-ios-i386 && \
-	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-ios-i386.cmake \
-		-DLINPHONE_BUILDER_CONFIG_FILE=configs/config-ios-i386.cmake \
-		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT/liblinphone-ios-sdk/i386 \
-		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT/liblinphone-ios-sdk/i386 \
-		$(filter -D%,$(MAKEFLAGS)) && \
-	make
+	mkdir -p WORK/cmake-ios-$* && \
+	cd WORK/cmake-ios-$* && \
+	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-ios-$*.cmake \
+		-DLINPHONE_BUILDER_CONFIG_FILE=configs/config-ios-$*.cmake \
+		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT/liblinphone-ios-sdk/$* \
+		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT/liblinphone-ios-sdk/$* \
+		$(filter -D%,$(MAKEFLAGS))
 
-build-ios-armv7:
-	mkdir -p OUTPUT/liblinphone-ios-sdk && \
-	mkdir -p WORK/cmake-ios-armv7 && \
-	cd WORK/cmake-ios-armv7 && \
-	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-ios-armv7.cmake \
-		-DLINPHONE_BUILDER_CONFIG_FILE=configs/config-ios-armv7.cmake \
-		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT/liblinphone-ios-sdk/armv7 \
-		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT/liblinphone-ios-sdk/armv7 \
-		$(filter -D%,$(MAKEFLAGS)) && \
-	make
 
-build-ios-armv7s:
-	mkdir -p OUTPUT/liblinphone-ios-sdk && \
-	mkdir -p WORK/cmake-ios-armv7s && \
-	cd WORK/cmake-ios-armv7s && \
-	cmake ../.. -DCMAKE_TOOLCHAIN_FILE=toolchains/toolchain-ios-armv7s.cmake \
-		-DLINPHONE_BUILDER_CONFIG_FILE=configs/config-ios-armv7s.cmake \
-		-DCMAKE_PREFIX_PATH=$(PWD)/OUTPUT/liblinphone-ios-sdk/armv7s \
-		-DCMAKE_INSTALL_PREFIX=$(PWD)/OUTPUT/liblinphone-ios-sdk/armv7s \
-		$(filter -D%,$(MAKEFLAGS)) && \
-	make
+ios_archs=i386 x86_64 armv7 arm64
 
-build-ios: build-ios-i386 build-ios-armv7 build-ios-armv7s
+prepare-ios: $(addprefix prepare-ios-,$(ios_archs))
+	@echo "Now issue make build-ios"
 
-clean-ios-i386:
-	rm -rf WORK/Build-ios-i386 && \
-	rm -rf WORK/tmp-ios-i386 && \
-	rm -rf OUTPUT/liblinphone-ios-sdk/i386
+build-ios:
+	make -C WORK/cmake-ios-armv7
+	make -C WORK/cmake-ios-i386
 
-clean-ios-armv7:
-	rm -rf WORK/Build-ios-armv7 && \
-	rm -rf WORK/tmp-ios-armv7 && \
-	rm -rf OUTPUT/liblinphone-ios-sdk/armv7
+clean-ios-%:
+	rm -rf WORK/Build-ios-$* && \
+	rm -rf WORK/tmp-ios-$* && \
+	rm -rf OUTPUT/liblinphone-ios-sdk/$*
 
-clean-ios-armv7s:
-	rm -rf WORK/Build-ios-armv7s && \
-	rm -rf WORK/tmp-ios-armv7s && \
-	rm -rf OUTPUT/liblinphone-ios-sdk/armv7s
-
-clean-ios: clean-ios-i386 clean-ios-armv7 clean-ios-armv7s
+clean-ios: $(addprefix clean-ios-,$(ios_archs))
 
 help-ios:
 	mkdir -p OUTPUT/liblinphone-ios-sdk && \
