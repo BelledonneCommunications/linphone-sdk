@@ -42,16 +42,20 @@ if(ENABLE_WIDEBAND)
 	list(APPEND LIBS ${OPENCOREAMRWB_LIBRARIES} ${VOAMRWBENC_LIBRARIES})
 endif()
 
-add_library(msamr SHARED ${SOURCE_FILES})
-set_target_properties(msamr PROPERTIES VERSION 0)
-if(MSVC)
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmsamr.pdb
-			DESTINATION bin
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		)
+if(ENABLE_STATIC)
+	add_library(msamr STATIC ${SOURCE_FILES})
+else()
+	add_library(msamr SHARED ${SOURCE_FILES})
+	set_target_properties(msamr PROPERTIES VERSION 0)
+	if(MSVC)
+		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmsamr.pdb
+				DESTINATION bin
+				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+			)
+		endif()
+		set_target_properties(msamr PROPERTIES PREFIX "lib")
 	endif()
-	set_target_properties(msamr PROPERTIES PREFIX "lib")
 endif()
 target_link_libraries(msamr ${LIBS})
 

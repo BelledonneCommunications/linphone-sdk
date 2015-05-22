@@ -36,6 +36,7 @@ set(VERSION "${PACKAGE_VERSION}")
 
 option(ENABLE_NARROWBAND "Enable AMR narrowband." Yes)
 option(ENABLE_WIDEBAND "Enable AMR wideband." No)
+option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -86,3 +87,4 @@ if(NOT MSVC)
 endif()
 
 add_subdirectory(src)
+
