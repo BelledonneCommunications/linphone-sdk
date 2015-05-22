@@ -39,6 +39,7 @@ else()
 	set(EP_vpx_CONFIG_H_FILE vpx_config.h)
 	set(EP_vpx_CONFIGURE_OPTIONS
 		"--enable-error-concealment"
+		"--enable-multithread"
 		"--enable-realtime-only"
 		"--enable-spatial-resampling"
 		"--enable-vp8"
@@ -56,10 +57,21 @@ else()
 		set(EP_vpx_TARGET "x86-win32-gcc")
 		set(EP_vpx_LINKING_TYPE "--disable-static" "--enable-shared")
 	elseif(APPLE)
-		if(CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
-			set(EP_vpx_TARGET "x86_64-darwin10-gcc")
+		if(IOS)
+			if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+				set(EP_vpx_TARGET "arm64-darwin-gcc")
+			elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7")
+				set(EP_vpx_TARGET "armv7-darwin-gcc")
+			elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+				set(EP_vpx_TARGET "x86_64-iphonesimulator-gcc")
+			else()
+			endif()
 		else()
-			set(EP_vpx_TARGET "x86-darwin10-gcc")
+			if(CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
+				set(EP_vpx_TARGET "x86_64-darwin10-gcc")
+			else()
+				set(EP_vpx_TARGET "x86-darwin10-gcc")
+			endif()
 		endif()
 		set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 		set(EP_vpx_BUILD_IN_SOURCE "yes")

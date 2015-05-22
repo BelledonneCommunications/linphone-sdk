@@ -86,7 +86,27 @@ else()
 	else()
 		if(APPLE)
 			set(EP_ffmpeg_TARGET_OS "darwin")
-			set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch" ${EP_ffmpeg_PATCH_OPTIONS})
+			if(IOS)
+				list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
+					"--enable-cross-compile"
+					"--cross-prefix=${SDK_BIN_PATH}/"
+					"--sysroot=${SYSROOT_PATH}"
+					"--ar=\$AR"
+					"--cc=\$CC"
+					"--nm=\$NM"
+				)
+				set(EP_ffmpeg_MAKE_OPTIONS "RANLIB=\"\$RANLIB\"")
+				if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+					set(EP_ffmpeg_ARCH "arm64")
+				else()
+					set(EP_ffmpeg_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+				endif()
+				if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7")
+					list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-neon" "--cpu=cortex-a8" "--disable-armv5te" "--enable-armv6" "--enable-armv6t2")
+				endif()
+			else()
+				set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch" ${EP_ffmpeg_PATCH_OPTIONS})
+			endif()
 		else()
 			set(EP_ffmpeg_TARGET_OS "linux")
 		endif()

@@ -23,14 +23,3 @@
 set(PLATFORM "OS")
 include(configs/config-ios.cmake)
 
-
-# speex
-list(APPEND EP_speex_CMAKE_OPTIONS
-	"-DENABLE_FLOAT_API=NO"
-	"-DENABLE_FIXED_POINT=YES"
-	"-DENABLE_ARMV7_NEON_ASM=NO"
-)
-
-# opus
-list(APPEND EP_opus_CMAKE_OPTIONS "-DENABLE_FIXED_POINT=YES")
-

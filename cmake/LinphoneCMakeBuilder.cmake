@@ -483,6 +483,11 @@ macro(linphone_builder_create_configure_command PROJNAME)
 endmacro()
 
 
+macro(linphone_builder_create_build_command PROJNAME)
+	set(ep_make_options "${EP_${PROJNAME}_MAKE_OPTIONS}")
+endmacro()
+
+
 # this function invokes configure_file() for the project, using the default file if 
 # the specific file is not defined
 function(linphone_builder_configure_file_for_project PROJNAME CMD DEFAULT_CONF_FILE OUTPUT)
@@ -530,6 +535,7 @@ function(linphone_builder_add_project PROJNAME)
 	elseif("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "autotools")
 		linphone_builder_create_autogen_command(${PROJNAME})
 		linphone_builder_create_configure_command(${PROJNAME})
+		linphone_builder_create_build_command(${PROJNAME})
 		if("${EP_${PROJNAME}_CONFIG_H_FILE}" STREQUAL "")
 			set(ep_config_h_file config.h)
 		else()

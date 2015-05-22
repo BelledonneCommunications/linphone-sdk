@@ -22,3 +22,4 @@
 
 set(PLATFORM "Simulator")
 include(configs/config-ios.cmake)
+
