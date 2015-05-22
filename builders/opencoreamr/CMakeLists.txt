@@ -27,6 +27,7 @@ project(OPENCOREAMR)
 option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 option(ENABLE_AMRNB_ENCODER "Enable AMR-NB encoder (default is yes)." YES)
 option(ENABLE_AMRNB_DECODER "Enable AMR-NB decoder (default is yes)." YES)
+option(ENABLE_AMRWB_DECODER "Enable AMR-WB decoder (default is yes)." YES)
 
 
 set(AMRNB_COMMON_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/opencore/codecs_v2/audio/gsm_amr/amr_nb/common/src)
@@ -247,91 +248,94 @@ install(FILES ${AMRNB_HEADER_FILES}
 
 
 
-set(AMRWB_DEC_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/opencore/codecs_v2/audio/gsm_amr/amr_wb/dec/src)
-set(AMRWB_INCLUDE_DIRS
-	oscl
-	${AMRWB_DEC_SRC_DIR}
-	opencore/codecs_v2/audio/gsm_amr/amr_wb/dec/include
-	opencore/codecs_v2/audio/gsm_amr/common/dec/include
-)
+if(ENABLE_AMRWB_DECODER)
+	set(AMRWB_DEC_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/opencore/codecs_v2/audio/gsm_amr/amr_wb/dec/src)
+	set(AMRWB_INCLUDE_DIRS
+		oscl
+		${AMRWB_DEC_SRC_DIR}
+		opencore/codecs_v2/audio/gsm_amr/amr_wb/dec/include
+		opencore/codecs_v2/audio/gsm_amr/common/dec/include
+	)
 
-set(AMRWB_SOURCES
-	amrwb/wrapper.cpp
-	${AMRWB_DEC_SRC_DIR}/agc2_amr_wb.cpp
-	${AMRWB_DEC_SRC_DIR}/band_pass_6k_7k.cpp
-	${AMRWB_DEC_SRC_DIR}/dec_acelp_2p_in_64.cpp
-	${AMRWB_DEC_SRC_DIR}/dec_acelp_4p_in_64.cpp
-	${AMRWB_DEC_SRC_DIR}/dec_alg_codebook.cpp
-	${AMRWB_DEC_SRC_DIR}/dec_gain2_amr_wb.cpp
-	${AMRWB_DEC_SRC_DIR}/deemphasis_32.cpp
-	${AMRWB_DEC_SRC_DIR}/dtx_decoder_amr_wb.cpp
-	${AMRWB_DEC_SRC_DIR}/get_amr_wb_bits.cpp
-	${AMRWB_DEC_SRC_DIR}/highpass_400hz_at_12k8.cpp
-	${AMRWB_DEC_SRC_DIR}/highpass_50hz_at_12k8.cpp
-	${AMRWB_DEC_SRC_DIR}/homing_amr_wb_dec.cpp
-	${AMRWB_DEC_SRC_DIR}/interpolate_isp.cpp
-	${AMRWB_DEC_SRC_DIR}/isf_extrapolation.cpp
-	${AMRWB_DEC_SRC_DIR}/isp_az.cpp
-	${AMRWB_DEC_SRC_DIR}/isp_isf.cpp
-	${AMRWB_DEC_SRC_DIR}/lagconceal.cpp
-	${AMRWB_DEC_SRC_DIR}/low_pass_filt_7k.cpp
-	${AMRWB_DEC_SRC_DIR}/median5.cpp
-	${AMRWB_DEC_SRC_DIR}/mime_io.cpp
-	${AMRWB_DEC_SRC_DIR}/noise_gen_amrwb.cpp
-	${AMRWB_DEC_SRC_DIR}/normalize_amr_wb.cpp
-	${AMRWB_DEC_SRC_DIR}/oversamp_12k8_to_16k.cpp
-	${AMRWB_DEC_SRC_DIR}/phase_dispersion.cpp
-	${AMRWB_DEC_SRC_DIR}/pit_shrp.cpp
-	${AMRWB_DEC_SRC_DIR}/pred_lt4.cpp
-	${AMRWB_DEC_SRC_DIR}/preemph_amrwb_dec.cpp
-	${AMRWB_DEC_SRC_DIR}/pvamrwbdecoder.cpp
-	${AMRWB_DEC_SRC_DIR}/pvamrwb_math_op.cpp
-	${AMRWB_DEC_SRC_DIR}/q_gain2_tab.cpp
-	${AMRWB_DEC_SRC_DIR}/qisf_ns.cpp
-	${AMRWB_DEC_SRC_DIR}/qisf_ns_tab.cpp
-	${AMRWB_DEC_SRC_DIR}/qpisf_2s.cpp
-	${AMRWB_DEC_SRC_DIR}/qpisf_2s_tab.cpp
-	${AMRWB_DEC_SRC_DIR}/scale_signal.cpp
-	${AMRWB_DEC_SRC_DIR}/synthesis_amr_wb.cpp
-	${AMRWB_DEC_SRC_DIR}/voice_factor.cpp
-	${AMRWB_DEC_SRC_DIR}/wb_syn_filt.cpp
-	${AMRWB_DEC_SRC_DIR}/weight_amrwb_lpc.cpp
-)
-if(WIN32)
-	file(READ ${CMAKE_CURRENT_SOURCE_DIR}/amrwb/opencore-amrwb.sym AMRWB_SYM)
-	file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/opencore-amrwb.def "LIBRARY opencore-amrwb\nEXPORTS\n${AMRWB_SYM}")
-	list(APPEND AMRWB_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/opencore-amrwb.def)
-endif()
+	set(AMRWB_SOURCES
+		amrwb/wrapper.cpp
+		${AMRWB_DEC_SRC_DIR}/agc2_amr_wb.cpp
+		${AMRWB_DEC_SRC_DIR}/band_pass_6k_7k.cpp
+		${AMRWB_DEC_SRC_DIR}/dec_acelp_2p_in_64.cpp
+		${AMRWB_DEC_SRC_DIR}/dec_acelp_4p_in_64.cpp
+		${AMRWB_DEC_SRC_DIR}/dec_alg_codebook.cpp
+		${AMRWB_DEC_SRC_DIR}/dec_gain2_amr_wb.cpp
+		${AMRWB_DEC_SRC_DIR}/deemphasis_32.cpp
+		${AMRWB_DEC_SRC_DIR}/dtx_decoder_amr_wb.cpp
+		${AMRWB_DEC_SRC_DIR}/get_amr_wb_bits.cpp
+		${AMRWB_DEC_SRC_DIR}/highpass_400hz_at_12k8.cpp
+		${AMRWB_DEC_SRC_DIR}/highpass_50hz_at_12k8.cpp
+		${AMRWB_DEC_SRC_DIR}/homing_amr_wb_dec.cpp
+		${AMRWB_DEC_SRC_DIR}/interpolate_isp.cpp
+		${AMRWB_DEC_SRC_DIR}/isf_extrapolation.cpp
+		${AMRWB_DEC_SRC_DIR}/isp_az.cpp
+		${AMRWB_DEC_SRC_DIR}/isp_isf.cpp
+		${AMRWB_DEC_SRC_DIR}/lagconceal.cpp
+		${AMRWB_DEC_SRC_DIR}/low_pass_filt_7k.cpp
+		${AMRWB_DEC_SRC_DIR}/median5.cpp
+		${AMRWB_DEC_SRC_DIR}/mime_io.cpp
+		${AMRWB_DEC_SRC_DIR}/noise_gen_amrwb.cpp
+		${AMRWB_DEC_SRC_DIR}/normalize_amr_wb.cpp
+		${AMRWB_DEC_SRC_DIR}/oversamp_12k8_to_16k.cpp
+		${AMRWB_DEC_SRC_DIR}/phase_dispersion.cpp
+		${AMRWB_DEC_SRC_DIR}/pit_shrp.cpp
+		${AMRWB_DEC_SRC_DIR}/pred_lt4.cpp
+		${AMRWB_DEC_SRC_DIR}/preemph_amrwb_dec.cpp
+		${AMRWB_DEC_SRC_DIR}/pvamrwbdecoder.cpp
+		${AMRWB_DEC_SRC_DIR}/pvamrwb_math_op.cpp
+		${AMRWB_DEC_SRC_DIR}/q_gain2_tab.cpp
+		${AMRWB_DEC_SRC_DIR}/qisf_ns.cpp
+		${AMRWB_DEC_SRC_DIR}/qisf_ns_tab.cpp
+		${AMRWB_DEC_SRC_DIR}/qpisf_2s.cpp
+		${AMRWB_DEC_SRC_DIR}/qpisf_2s_tab.cpp
+		${AMRWB_DEC_SRC_DIR}/scale_signal.cpp
+		${AMRWB_DEC_SRC_DIR}/synthesis_amr_wb.cpp
+		${AMRWB_DEC_SRC_DIR}/voice_factor.cpp
+		${AMRWB_DEC_SRC_DIR}/wb_syn_filt.cpp
+		${AMRWB_DEC_SRC_DIR}/weight_amrwb_lpc.cpp
+	)
+	if(WIN32)
+		file(READ ${CMAKE_CURRENT_SOURCE_DIR}/amrwb/opencore-amrwb.sym AMRWB_SYM)
+		file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/opencore-amrwb.def "LIBRARY opencore-amrwb\nEXPORTS\n${AMRWB_SYM}")
+		list(APPEND AMRWB_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/opencore-amrwb.def)
+	endif()
 
-if(ENABLE_STATIC)
-	add_library(opencore-amrwb STATIC ${AMRWB_SOURCES})
-else()
-	add_library(opencore-amrwb SHARED ${AMRWB_SOURCES})
-	set_target_properties(opencore-amrwb PROPERTIES VERSION 0.0.3)
-	if(MSVC)
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/opencore-amrwb.pdb
-				DESTINATION bin
-				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
+	if(ENABLE_STATIC)
+		add_library(opencore-amrwb STATIC ${AMRWB_SOURCES})
+	else()
+		add_library(opencore-amrwb SHARED ${AMRWB_SOURCES})
+		set_target_properties(opencore-amrwb PROPERTIES VERSION 0.0.3)
+		if(MSVC)
+			if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+				install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/opencore-amrwb.pdb
+					DESTINATION bin
+					PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+				)
+			endif()
 		endif()
 	endif()
+	target_include_directories(opencore-amrwb PRIVATE ${AMRWB_INCLUDE_DIRS})
+
+	install(TARGETS opencore-amrwb
+		RUNTIME DESTINATION bin
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+
+	set(AMRWB_HEADER_FILES
+		amrwb/dec_if.h
+		amrwb/if_rom.h
+	)
+
+	install(FILES ${AMRWB_HEADER_FILES}
+		DESTINATION include/opencore-amrwb
+		PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+	)
 endif()
-target_include_directories(opencore-amrwb PRIVATE ${AMRWB_INCLUDE_DIRS})
 
-install(TARGETS opencore-amrwb
-	RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-)
-
-set(AMRWB_HEADER_FILES
-	amrwb/dec_if.h
-	amrwb/if_rom.h
-)
-
-install(FILES ${AMRWB_HEADER_FILES}
-	DESTINATION include/opencore-amrwb
-	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-)
