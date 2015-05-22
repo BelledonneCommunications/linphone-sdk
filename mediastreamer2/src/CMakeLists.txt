@@ -232,14 +232,27 @@ if(ENABLE_VIDEO)
 		set_source_files_properties(videofilters/msdscap-mingw.cc PROPERTIES LANGUAGE CXX)
 	endif()
 	if(APPLE)
-		list(APPEND VOIP_SOURCE_FILES
-			utils/opengles_display.c
-			utils/opengles_display.h
-			utils/shaders.c
-			utils/shaders.h
-			videofilters/msosxdisplay.m
-			videofilters/qtcapture.m
-		)
+		if(IOS)
+			list(APPEND VOIP_SOURCE_FILES
+				utils/opengles_display.c
+				utils/opengles_display.h
+				utils/shaders.c
+				utils/shaders.h
+				videofilters/iosdisplay.m
+				videofilters/ioscapture.m
+				voip/scaler.c
+				voip/ioshardware.m
+			)
+		else()
+			list(APPEND VOIP_SOURCE_FILES
+				utils/opengles_display.c
+				utils/opengles_display.h
+				utils/shaders.c
+				utils/shaders.h
+				videofilters/msosxdisplay.m
+				videofilters/qtcapture.m
+			)
+		endif()
 	endif()
 	if(FFMPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES
