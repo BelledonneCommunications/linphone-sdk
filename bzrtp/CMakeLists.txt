@@ -26,7 +26,7 @@ set(BZRTP_VERSION 1.0.2)
 
 
 option(ENABLE_STATIC "Build static library (default is shared library)." NO)
-option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." NO)
+option(ENABLE_TESTS "Enable compilation of unit tests." NO)
 
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -115,3 +115,4 @@ install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfigVersion.cmake"
 	DESTINATION ${ConfigPackageLocation}
 )
+
