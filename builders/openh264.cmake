@@ -37,12 +37,12 @@ set(EP_openh264_GIT_TAG "v1.4.0")
 set(EP_openh264_EXTERNAL_SOURCE_PATHS "externals/openh264")
 
 set(EP_openh264_BUILD_METHOD "custom")
-set(EP_openh264_BUILD_IN_SOURCE "yes")
 set(EP_openh264_LINKING_TYPE "-static")
 set(EP_openh264_BUILD_TYPE "Release")	# Always use Release build type, otherwise the codec is too slow...
 set(EP_openh264_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/configure.sh.cmake)
 set(EP_openh264_BUILD_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/build.sh.cmake)
 set(EP_openh264_INSTALL_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/install.sh.cmake)
+set(EP_openh264_OUT_OF_TREE_BUILD_PATCH "${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/out-of-tree-build.patch")
 if (MSVC)
 	set(EP_openh264_ADDITIONAL_OPTIONS "OS=\"msvc\"")
 endif()
