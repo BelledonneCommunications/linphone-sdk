@@ -516,7 +516,9 @@ function(linphone_builder_add_project PROJNAME)
 	endif()
 
 	linphone_builder_set_ep_directories(${PROJNAME})
-	linphone_builder_apply_cmake_flags_to_autotools_project(${PROJNAME})
+	if(NOT EP_${PROJNAME}_DO_NOT_USE_CMAKE_FLAGS)
+		linphone_builder_apply_cmake_flags_to_autotools_project(${PROJNAME})
+	endif()
 	linphone_builder_apply_extra_flags(${PROJNAME})
 	linphone_builder_expand_external_project_vars()
 
