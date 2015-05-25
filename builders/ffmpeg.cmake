@@ -55,6 +55,7 @@ else()
 		"--disable-everything"
 		"--enable-decoder=mjpeg"
 		"--enable-encoder=mjpeg"
+		"--disable-iconv"
 		# Disable video acceleration support for compatibility with older Mac OS X versions (vda, vaapi, vdpau).
 		"--disable-vda"
 		"--disable-vaapi"
@@ -76,7 +77,6 @@ else()
 		)
 	endif()
 	set(EP_ffmpeg_LINKING_TYPE "--disable-static" "--enable-shared")
-	set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch" ${EP_ffmpeg_PATCH_OPTIONS})
 	set(EP_ffmpeg_ARCH "i386")
 
 	if(WIN32)
@@ -110,6 +110,7 @@ else()
 			endif()
 		else()
 			set(EP_ffmpeg_TARGET_OS "linux")
+			set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch" ${EP_ffmpeg_PATCH_OPTIONS})
 		endif()
 	endif()
 
