@@ -141,7 +141,7 @@ class IOSTarget(Target):
 		current_path = os.path.dirname(os.path.realpath(__file__))
 		self.config_file = 'configs/config-ios-' + arch + '.cmake'
 		self.toolchain_file = 'toolchains/toolchain-ios-' + arch + '.cmake'
-		self.output = 'OUTPUT/liblinphone-ios-sdk/' + arch
+		self.output = 'liblinphone-sdk/' + arch + '-apple-darwin.ios'
 		self.additional_args = [
 			'-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=' + current_path + '/..'
 		]
