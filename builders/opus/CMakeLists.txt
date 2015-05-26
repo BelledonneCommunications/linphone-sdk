@@ -58,6 +58,8 @@ else()
 endif()
 
 if(ENABLE_ASM)
+	set(CMAKE_ASM_FLAGS ${CMAKE_C_FLAGS}) 
+	set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> ${CMAKE_ASM_FLAGS} -o <OBJECT> -c <SOURCE>")
 	enable_language(ASM)
 	string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
 	if(SYSTEM_PROCESSOR MATCHES "^arm.*")
@@ -150,6 +152,9 @@ include_directories(
 if(WIN32)
 	include_directories(win32)
 endif()
+if (APPLE)
+	set(ARM2GNU_PARAMS "--apple")
+endif()
 
 
 set(CELT_SOURCES
@@ -187,7 +192,7 @@ if(OPUS_ARM_EXTERNAL_ASM)
 	)
 	set_source_files_properties(${CELT_SOURCES_EXTERNAL_ARM_ASM} PROPERTIES GENERATED TRUE)
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/celt/arm/celt_pitch_xcorr_arm-gnu.S
-		COMMAND "${PERL_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/arm2gnu.pl" "<" "${CELT_SOURCES_ARM_ASM}" ">" "${CELT_SOURCES_EXTERNAL_ARM_ASM}")
+		COMMAND "${PERL_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/arm2gnu.pl" ${ARM2GNU_PARAMS} "<" "${CELT_SOURCES_ARM_ASM}" ">" "${CELT_SOURCES_EXTERNAL_ARM_ASM}")
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/armopts.s.in ${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts.s @ONLY)
@@ -200,7 +205,7 @@ if(OPUS_ARM_EXTERNAL_ASM)
 	)
 	set_source_files_properties(${CELT_AM_SOURCES_EXTERNAL_ARM_ASM} PROPERTIES GENERATED TRUE)
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts-gnu.S
-		COMMAND "${PERL_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/arm2gnu.pl" "<" "${CELT_AM_SOURCES_ARM_ASM}" ">" "${CELT_AM_SOURCES_EXTERNAL_ARM_ASM}")
+		COMMAND "${PERL_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/arm2gnu.pl" ${ARM2GNU_PARAMS} "<" "${CELT_AM_SOURCES_ARM_ASM}" ">" "${CELT_AM_SOURCES_EXTERNAL_ARM_ASM}")
 endif()
 
 set(SILK_SOURCES

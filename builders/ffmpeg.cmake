@@ -95,6 +95,8 @@ else()
 					"--ar=\$AR"
 					"--cc=\$CC"
 					"--nm=\$NM"
+					"--extra-cflags=\$CFLAGS"
+					"--extra-ldflags=\$LDFLAGS"
 				)
 				set(EP_ffmpeg_MAKE_OPTIONS "RANLIB=\"\$RANLIB\"")
 				if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
