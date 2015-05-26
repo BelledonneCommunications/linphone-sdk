@@ -55,7 +55,6 @@ else()
 		"--disable-everything"
 		"--enable-decoder=mjpeg"
 		"--enable-encoder=mjpeg"
-		"--disable-iconv"
 		# Disable video acceleration support for compatibility with older Mac OS X versions (vda, vaapi, vdpau).
 		"--disable-vda"
 		"--disable-vaapi"
@@ -89,6 +88,7 @@ else()
 			set(EP_ffmpeg_TARGET_OS "darwin")
 			if(IOS)
 				list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
+					"--disable-iconv"
 					"--enable-cross-compile"
 					"--cross-prefix=${SDK_BIN_PATH}/"
 					"--sysroot=${SYSROOT_PATH}"
