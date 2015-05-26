@@ -31,7 +31,7 @@ import subprocess
 import sys
 
 class Target:
-	def __init__(self, name):
+	def __init__(self, name, work_dir = 'WORK'):
 		self.name = name
 		self.output = 'OUTPUT'
 		self.generator = None
@@ -39,8 +39,10 @@ class Target:
 		self.config_file = None
 		self.toolchain_file = None
 		self.additional_args = []
-		self.work_dir = os.getcwd() + '/WORK'
-		self.cmake_dir = self.work_dir + '/cmake-' + self.name
+		self.work_dir = work_dir + '/' + self.name
+		self.abs_work_dir = os.getcwd() + '/' + self.work_dir
+		self.cmake_dir = self.work_dir + '/cmake'
+		self.abs_cmake_dir = os.getcwd() + '/' + self.cmake_dir
 
 	def output_dir(self):
 		output_dir = self.output
@@ -60,7 +62,7 @@ class Target:
 			cmd += ['-A', self.platform_name]
 		cmd += ['-DCMAKE_BUILD_TYPE=' + build_type]
 		cmd += ['-DCMAKE_PREFIX_PATH=' + self.output_dir(), '-DCMAKE_INSTALL_PREFIX=' + self.output_dir()]
-		cmd += ['-DLINPHONE_BUILDER_WORK_DIR=' + self.work_dir]
+		cmd += ['-DLINPHONE_BUILDER_WORK_DIR=' + self.abs_work_dir]
 		if self.toolchain_file is not None:
 			cmd += ['-DCMAKE_TOOLCHAIN_FILE=' + self.toolchain_file]
 		if self.config_file is not None:
@@ -83,8 +85,8 @@ class Target:
 		return cmd
 
 	def clean(self):
-		if os.path.isdir('WORK'):
-			shutil.rmtree('WORK', ignore_errors=False, onerror=self.handle_remove_read_only)
+		if os.path.isdir(self.abs_work_dir):
+			shutil.rmtree(self.abs_work_dir, ignore_errors=False, onerror=self.handle_remove_read_only)
 
 	def veryclean(self):
 		self.clean()
@@ -103,15 +105,15 @@ class Target:
 			config = "Release"
 			if debug:
 				config = "Debug"
-			return "Open the \"WORK\\cmake-{target}\\Project.sln\" Visual Studio solution and build with the \"{config}\" configuration".format(target=self.name, config=config)
+			return "Open the \"{cmake_dir}/Project.sln\" Visual Studio solution and build with the \"{config}\" configuration".format(cmake_dir=self.cmake_dir, config=config)
 		else:
 			if self.generator in [None, "Unix Makefiles"]:
 				builder = "make"
 			elif self.generator == "Ninja":
 				builder = "ninja"
 			else:
-				return "Unknown generator. Files have been generated in WORK/cmake-{target}".format(target=self.name)
-			return "Run the following command to build:\n\t{builder} -C WORK/cmake-{target}".format(builder=builder, target=self.name)
+				return "Unknown generator. Files have been generated in {cmake_dir}".format(cmake_dir=self.cmake_dir)
+			return "Run the following command to build:\n\t{builder} -C {cmake_dir}".format(builder=builder, cmake_dir=self.cmake_dir)
 
 class BB10Target(Target):
 	def __init__(self, arch):
@@ -135,33 +137,6 @@ class DesktopTarget(Target):
 		if platform.system() == 'Windows':
 			self.generator = 'Visual Studio 12 2013'
 
-class IOSTarget(Target):
-	def __init__(self, arch):
-		Target.__init__(self, 'ios-' + arch)
-		current_path = os.path.dirname(os.path.realpath(__file__))
-		self.config_file = 'configs/config-ios-' + arch + '.cmake'
-		self.toolchain_file = 'toolchains/toolchain-ios-' + arch + '.cmake'
-		self.output = 'liblinphone-sdk/' + arch + '-apple-darwin.ios'
-		self.additional_args = [
-			'-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=' + current_path + '/..'
-		]
-
-class IOSi386Target(IOSTarget):
-	def __init__(self):
-		IOSTarget.__init__(self, 'i386')
-
-class IOSx8664Target(IOSTarget):
-	def __init__(self):
-		IOSTarget.__init__(self, 'x86_64')
-
-class IOSarmv7Target(IOSTarget):
-	def __init__(self):
-		IOSTarget.__init__(self, 'armv7')
-
-class IOSarm64Target(IOSTarget):
-	def __init__(self):
-		IOSTarget.__init__(self, 'arm64')
-
 class PythonTarget(Target):
 	def __init__(self):
 		Target.__init__(self, 'python')
@@ -180,10 +155,6 @@ targets = {}
 targets['bb10-arm'] = BB10armTarget()
 targets['bb10-i486'] = BB10i486Target()
 targets['desktop'] = DesktopTarget()
-targets['ios-i386'] = IOSi386Target()
-targets['ios-x86_64'] = IOSx8664Target()
-targets['ios-armv7'] = IOSarmv7Target()
-targets['ios-arm64'] = IOSarm64Target()
 targets['python'] = PythonTarget()
 targets['python-raspberry'] = PythonRaspberryTarget()
 target_names = sorted(targets.keys())
@@ -194,15 +165,15 @@ def run(target, debug, latest, list_cmake_variables, force_build, additional_arg
 	if debug:
 		build_type = 'Debug'
 
-	if os.path.isdir(target.cmake_dir):
+	if os.path.isdir(target.abs_cmake_dir):
 		if force_build is False:
 			print("Working directory {} already exists. Please remove it (option -C or -c) before re-executing CMake "
 				"to avoid conflicts between executions.".format(target.cmake_dir))
 			return 1
 	else:
-		os.makedirs(target.cmake_dir)
+		os.makedirs(target.abs_cmake_dir)
 
-	proc = subprocess.Popen(target.cmake_command(build_type, latest, list_cmake_variables, additional_args), cwd=target.cmake_dir, shell=False)
+	proc = subprocess.Popen(target.cmake_command(build_type, latest, list_cmake_variables, additional_args), cwd=target.abs_cmake_dir, shell=False)
 	proc.communicate()
 	return proc.returncode
 
