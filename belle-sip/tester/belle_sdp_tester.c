@@ -67,6 +67,13 @@ static void test_attribute_2(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value(lAttribute), "31ec21eb38b2ec6d36e8dc7b");
 	BC_ASSERT_TRUE(belle_sdp_attribute_has_value(lAttribute));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
+	lAttribute = attribute_parse_marshall_parse_clone("a=alt:1 1 : e2br+9PL Eu1qGlQ9 10.211.55.3 8988");
+	BC_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(lAttribute), "alt");
+	BC_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value(lAttribute), "1 1 : e2br+9PL Eu1qGlQ9 10.211.55.3 8988");
+	BC_ASSERT_TRUE(belle_sdp_attribute_has_value(lAttribute));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
 }
 
 static void test_rtcp_fb_attribute(void) {
@@ -384,6 +391,7 @@ static void test_simple_session_description(void) {
 						"c=IN IP4 192.168.0.18\r\n"\
 						"t=0 0\r\n"\
 						"m=audio 7078 RTP/AVP 111 110 3 0 8 101\r\n"\
+						"a=alt:1 1 : e2br+9PL Eu1qGlQ9 10.211.55.3 8988\r\n"\
 						"a=rtpmap:111 speex/16000\r\n"\
 						"a=fmtp:111 vbr=on\r\n"\
 						"a=rtpmap:110 speex/8000\r\n"\

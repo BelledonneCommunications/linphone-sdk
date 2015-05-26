@@ -560,11 +560,11 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 	}
 	if (num>0){
 		char *begin=obj->input_stream.write_ptr;
-		char *logbuf=make_logbuf(BELLE_SIP_LOG_MESSAGE,begin,num);
 		obj->input_stream.write_ptr+=num;
 		/*first null terminate the read buff*/
 		*obj->input_stream.write_ptr='\0';
-		if (num>20) /*to avoid tracing server based keep alives*/
+		if (num>20 || obj->input_stream.state != WAITING_MESSAGE_START ) /*to avoid tracing server based keep alives*/ {
+			char *logbuf = make_logbuf(BELLE_SIP_LOG_MESSAGE,begin,num);
 			belle_sip_message("channel [%p]: received [%i] new bytes from [%s://%s:%i]:\n%s",
 					obj,
 					num,
@@ -572,7 +572,8 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 					obj->peer_name,
 					obj->peer_port,
 					logbuf);
-		belle_sip_free(logbuf);
+			belle_sip_free(logbuf);
+		}
 		belle_sip_channel_process_stream(obj,FALSE);
 	} else if (num == 0) {
 		/*before closing the channel, check if there was a pending message to receive, whose body acquisition is to be finished.*/
