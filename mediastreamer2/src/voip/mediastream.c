@@ -305,7 +305,7 @@ void media_stream_iterate(MediaStream *stream){
 					/*try to know if we can trust stun packets for symetric rtp*/
 					rtp_stats_t stats;
 					media_stream_get_local_rtp_stats(stream, &stats);
-					if (stats.packet_recv == 0 ) {
+					if (stats.packet_recv == 0 && !ms_is_multicast_addr((const struct sockaddr *)&stream->sessions.rtp_session->rtp.gs.rem_addr)) {
 						memcpy(&stream->sessions.rtp_session->rtp.gs.rem_addr,&ortp_event_get_data(ev)->source_addr,ortp_event_get_data(ev)->source_addrlen);
 						ms_message("stun packet received but no rtp yet for stream [%p], switching rtp destination address",stream);
 					}
