@@ -60,16 +60,16 @@ else()
 		"--disable-vaapi"
 		"--disable-vdpau"
 	)
-	if(ENABLE_H263)
+	if(ENABLE_H263 OR IOS)
 		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
 			"--enable-decoder=h263"
 			"--enable-encoder=h263"
 		)
 	endif()
-	if(ENABLE_H263P)
+	if(ENABLE_H263P OR IOS)
 		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-encoder=h263p")
 	endif()
-	if(ENABLE_MPEG4)
+	if(ENABLE_MPEG4 OR IOS)
 		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
 			"--enable-decoder=mpeg4"
 			"--enable-encoder=mpeg4"
@@ -88,6 +88,7 @@ else()
 			set(EP_ffmpeg_TARGET_OS "darwin")
 			if(IOS)
 				list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
+					"--enable-decoder=h264"
 					"--disable-iconv"
 					"--enable-cross-compile"
 					"--cross-prefix=${SDK_BIN_PATH}/"
