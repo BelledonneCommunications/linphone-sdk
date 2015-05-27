@@ -93,7 +93,7 @@ static void ms_opus_enc_init(MSFilter *f) {
 	d->ptime = 20;
 	d->minptime = 20; // defaut shall be 3, but we never use less than 20.
 	d->maxaveragebitrate = -1;
-	d->stereo = 1;
+	d->stereo = 0; /*stereo=0 is the default mode in opus rtp draft*/
 	d->channels = 1;
 	d->vbr = 1;
 	d->useinbandfec = 0;
