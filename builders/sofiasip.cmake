@@ -30,8 +30,8 @@ set(EP_sofiasip_GIT_TAG "0987c2ac14512ba5aedc9b135e40c3bef007938b")
 set(EP_sofiasip_DEPENDENCIES )
 set(EP_sofiasip_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_sofiasip_BUILD_METHOD "autotools")
-set(EP_sofiasip_USE_AUTOGEN "yes")
-set(EP_sofiasio_BUILD_IN_SOURCE "yes")
+set(EP_sofiasip_USE_AUTOGEN True)
+set(EP_sofiasio_BUILD_IN_SOURCE True)
 set(EP_sofiasip_CONFIGURE_OPTIONS )
 set(EP_sofiasip_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"

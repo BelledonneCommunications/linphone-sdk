@@ -25,7 +25,7 @@ set(EP_msx264_GIT_TAG_LATEST "master")
 set(EP_msx264_GIT_TAG "fefdfbe8d098ca4e3b5f6901d761a1bb66f5dd83")
 
 set(EP_msx264_BUILD_METHOD "autotools")
-set(EP_msx264_USE_AUTOGEN "yes")
+set(EP_msx264_USE_AUTOGEN True)
 set(EP_msx264_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
 	"--host=${LINPHONE_BUILDER_HOST}"

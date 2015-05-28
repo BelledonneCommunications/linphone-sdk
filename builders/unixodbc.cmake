@@ -27,7 +27,7 @@ set(EP_unixodbc_GIT_TAG "9558dcfdfa89c75699d4d47c0cf4ae14962a3374")
 set(EP_unixodbc_DEPENDENCIES )
 set(EP_unixodbc_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_unixodbc_BUILD_METHOD "autotools")
-set(EP_unixodbc_USE_AUTOGEN "yes")
+set(EP_unixodbc_USE_AUTOGEN True)
 set(EP_unixodbc_CONFIGURE_OPTIONS )
 set(EP_unixodbc_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"

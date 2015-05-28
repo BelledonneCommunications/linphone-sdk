@@ -116,7 +116,7 @@ else() # Windows
 endif()
 
 # needed *before* the include
-set(EP_ortp_FORCE_AUTOTOOLS "yes")
+set(EP_ortp_FORCE_AUTOTOOLS True)
 
 
 

@@ -30,7 +30,7 @@ list(APPEND EP_flexisip_DEPENDENCIES EP_libodbmysql)
 
 set(EP_flexisip_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_flexisip_BUILD_METHOD "autotools")
-set(EP_flexisip_USE_AUTOGEN "yes")
+set(EP_flexisip_USE_AUTOGEN True)
 set(EP_flexisip_CONFIGURE_OPTIONS )
 set(EP_flexisip_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
