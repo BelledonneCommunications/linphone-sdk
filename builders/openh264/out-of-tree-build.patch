@@ -21,3 +21,136 @@
  
  install-static-lib: $(LIBPREFIX)$(PROJECT_NAME).$(LIBSUFFIX) install-headers
  	mkdir -p $(DESTDIR)/$(PREFIX)/lib
+diff -urN openh264-bc.orig/build/gtest-targets.mk openh264-bc/build/gtest-targets.mk
+--- openh264-bc.orig/build/gtest-targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/build/gtest-targets.mk	2015-05-28 10:40:30.403202046 +0200
+@@ -1,4 +1,4 @@
+-GTEST_SRCDIR=gtest
++GTEST_SRCDIR=$(SRC_PATH)/gtest
+ GTEST_CPP_SRCS=\
+ 	$(GTEST_SRCDIR)/src/gtest-all.cc\
+ 
+diff -urN openh264-bc.orig/codec/common/targets.mk openh264-bc/codec/common/targets.mk
+--- openh264-bc.orig/codec/common/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/codec/common/targets.mk	2015-05-28 10:40:43.916535132 +0200
+@@ -1,4 +1,4 @@
+-COMMON_SRCDIR=codec/common
++COMMON_SRCDIR=$(SRC_PATH)/codec/common
+ COMMON_CPP_SRCS=\
+ 	$(COMMON_SRCDIR)/src/common_tables.cpp\
+ 	$(COMMON_SRCDIR)/src/copy_mb.cpp\
+diff -urN openh264-bc.orig/codec/console/common/targets.mk openh264-bc/codec/console/common/targets.mk
+--- openh264-bc.orig/codec/console/common/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/codec/console/common/targets.mk	2015-05-28 10:41:03.289868113 +0200
+@@ -1,4 +1,4 @@
+-CONSOLE_COMMON_SRCDIR=codec/console/common
++CONSOLE_COMMON_SRCDIR=$(SRC_PATH)/codec/console/common
+ CONSOLE_COMMON_CPP_SRCS=\
+ 	$(CONSOLE_COMMON_SRCDIR)/src/read_config.cpp\
+ 
+diff -urN openh264-bc.orig/codec/console/dec/targets.mk openh264-bc/codec/console/dec/targets.mk
+--- openh264-bc.orig/codec/console/dec/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/codec/console/dec/targets.mk	2015-05-28 10:41:12.979867937 +0200
+@@ -1,4 +1,4 @@
+-H264DEC_SRCDIR=codec/console/dec
++H264DEC_SRCDIR=$(SRC_PATH)/codec/console/dec
+ H264DEC_CPP_SRCS=\
+ 	$(H264DEC_SRCDIR)/src/d3d9_utils.cpp\
+ 	$(H264DEC_SRCDIR)/src/h264dec.cpp\
+diff -urN openh264-bc.orig/codec/console/enc/targets.mk openh264-bc/codec/console/enc/targets.mk
+--- openh264-bc.orig/codec/console/enc/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/codec/console/enc/targets.mk	2015-05-28 10:41:25.923201033 +0200
+@@ -1,4 +1,4 @@
+-H264ENC_SRCDIR=codec/console/enc
++H264ENC_SRCDIR=$(SRC_PATH)/codec/console/enc
+ H264ENC_CPP_SRCS=\
+ 	$(H264ENC_SRCDIR)/src/welsenc.cpp\
+ 
+diff -urN openh264-bc.orig/codec/decoder/targets.mk openh264-bc/codec/decoder/targets.mk
+--- openh264-bc.orig/codec/decoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/codec/decoder/targets.mk	2015-05-28 10:41:36.746534170 +0200
+@@ -1,4 +1,4 @@
+-DECODER_SRCDIR=codec/decoder
++DECODER_SRCDIR=$(SRC_PATH)/codec/decoder
+ DECODER_CPP_SRCS=\
+ 	$(DECODER_SRCDIR)/core/src/au_parser.cpp\
+ 	$(DECODER_SRCDIR)/core/src/bit_stream.cpp\
+diff -urN openh264-bc.orig/codec/encoder/targets.mk openh264-bc/codec/encoder/targets.mk
+--- openh264-bc.orig/codec/encoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/codec/encoder/targets.mk	2015-05-28 10:41:50.889867247 +0200
+@@ -1,4 +1,4 @@
+-ENCODER_SRCDIR=codec/encoder
++ENCODER_SRCDIR=$(SRC_PATH)/codec/encoder
+ ENCODER_CPP_SRCS=\
+ 	$(ENCODER_SRCDIR)/core/src/au_set.cpp\
+ 	$(ENCODER_SRCDIR)/core/src/deblocking.cpp\
+diff -urN openh264-bc.orig/codec/processing/targets.mk openh264-bc/codec/processing/targets.mk
+--- openh264-bc.orig/codec/processing/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/codec/processing/targets.mk	2015-05-28 10:42:01.523200386 +0200
+@@ -1,4 +1,4 @@
+-PROCESSING_SRCDIR=codec/processing
++PROCESSING_SRCDIR=$(SRC_PATH)/codec/processing
+ PROCESSING_CPP_SRCS=\
+ 	$(PROCESSING_SRCDIR)/src/adaptivequantization/AdaptiveQuantization.cpp\
+ 	$(PROCESSING_SRCDIR)/src/backgrounddetection/BackgroundDetection.cpp\
+Binary files openh264-bc.orig/.git/index and openh264-bc/.git/index differ
+diff -urN openh264-bc.orig/.git/ORIG_HEAD openh264-bc/.git/ORIG_HEAD
+--- openh264-bc.orig/.git/ORIG_HEAD	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/.git/ORIG_HEAD	2015-05-28 10:34:37.599875141 +0200
+@@ -1 +1 @@
+-3a42ae54cfc5bb28b57f68292fe695a9adb1fecd
++1b97daab204642fc939b31dccca3948dea2c946a
+diff -urN openh264-bc.orig/module/targets.mk openh264-bc/module/targets.mk
+--- openh264-bc.orig/module/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/module/targets.mk	2015-05-28 10:42:12.779866848 +0200
+@@ -1,4 +1,4 @@
+-MODULE_SRCDIR=module
++MODULE_SRCDIR=$(SRC_PATH)/module
+ MODULE_CPP_SRCS=\
+ 	$(MODULE_SRCDIR)/gmp-openh264.cpp\
+ 
+diff -urN openh264-bc.orig/test/api/targets.mk openh264-bc/test/api/targets.mk
+--- openh264-bc.orig/test/api/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/test/api/targets.mk	2015-05-28 10:42:23.019866660 +0200
+@@ -1,4 +1,4 @@
+-API_TEST_SRCDIR=test/api
++API_TEST_SRCDIR=$(SRC_PATH)/test/api
+ API_TEST_CPP_SRCS=\
+ 	$(API_TEST_SRCDIR)/BaseDecoderTest.cpp\
+ 	$(API_TEST_SRCDIR)/BaseEncoderTest.cpp\
+diff -urN openh264-bc.orig/test/common/targets.mk openh264-bc/test/common/targets.mk
+--- openh264-bc.orig/test/common/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/test/common/targets.mk	2015-05-28 10:42:39.196533033 +0200
+@@ -1,4 +1,4 @@
+-COMMON_UNITTEST_SRCDIR=test/common
++COMMON_UNITTEST_SRCDIR=$(SRC_PATH)/test/common
+ COMMON_UNITTEST_CPP_SRCS=\
+ 	$(COMMON_UNITTEST_SRCDIR)/ExpandPicture.cpp\
+ 
+diff -urN openh264-bc.orig/test/decoder/targets.mk openh264-bc/test/decoder/targets.mk
+--- openh264-bc.orig/test/decoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/test/decoder/targets.mk	2015-05-28 10:42:48.653199528 +0200
+@@ -1,4 +1,4 @@
+-DECODER_UNITTEST_SRCDIR=test/decoder
++DECODER_UNITTEST_SRCDIR=$(SRC_PATH)/test/decoder
+ DECODER_UNITTEST_CPP_SRCS=\
+ 	$(DECODER_UNITTEST_SRCDIR)/DecUT_Deblock.cpp\
+ 	$(DECODER_UNITTEST_SRCDIR)/DecUT_DeblockCommon.cpp\
+diff -urN openh264-bc.orig/test/encoder/targets.mk openh264-bc/test/encoder/targets.mk
+--- openh264-bc.orig/test/encoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/test/encoder/targets.mk	2015-05-28 10:43:04.499865906 +0200
+@@ -1,4 +1,4 @@
+-ENCODER_UNITTEST_SRCDIR=test/encoder
++ENCODER_UNITTEST_SRCDIR=$(SRC_PATH)/test/encoder
+ ENCODER_UNITTEST_CPP_SRCS=\
+ 	$(ENCODER_UNITTEST_SRCDIR)/EncUT_DecodeMbAux.cpp\
+ 	$(ENCODER_UNITTEST_SRCDIR)/EncUT_EncoderExt.cpp\
+diff -urN openh264-bc.orig/test/processing/targets.mk openh264-bc/test/processing/targets.mk
+--- openh264-bc.orig/test/processing/targets.mk	2015-05-28 10:44:25.139864435 +0200
++++ openh264-bc/test/processing/targets.mk	2015-05-28 10:43:13.146532413 +0200
+@@ -1,4 +1,4 @@
+-PROCESSING_UNITTEST_SRCDIR=test/processing
++PROCESSING_UNITTEST_SRCDIR=$(SRC_PATH)/test/processing
+ PROCESSING_UNITTEST_CPP_SRCS=\
+ 	$(PROCESSING_UNITTEST_SRCDIR)/ProcessUT_AdaptiveQuantization.cpp\
+ 	$(PROCESSING_UNITTEST_SRCDIR)/ProcessUT_DownSample.cpp\
