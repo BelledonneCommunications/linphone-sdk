@@ -23,127 +23,239 @@
  	mkdir -p $(DESTDIR)/$(PREFIX)/lib
 diff -urN openh264-bc.orig/build/gtest-targets.mk openh264-bc/build/gtest-targets.mk
 --- openh264-bc.orig/build/gtest-targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/build/gtest-targets.mk	2015-05-28 10:40:30.403202046 +0200
-@@ -1,4 +1,4 @@
--GTEST_SRCDIR=gtest
-+GTEST_SRCDIR=$(SRC_PATH)/gtest
- GTEST_CPP_SRCS=\
- 	$(GTEST_SRCDIR)/src/gtest-all.cc\
++++ openh264-bc/build/gtest-targets.mk	2015-05-28 13:33:15.906346513 +0200
+@@ -6,7 +6,7 @@
  
+ OBJS += $(GTEST_OBJS)
+ 
+-$(GTEST_SRCDIR)/%.$(OBJ): $(GTEST_SRCDIR)/%.cc
++$(GTEST_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(GTEST_SRCDIR)/%.cc
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(GTEST_CFLAGS) $(GTEST_INCLUDES) -c $(CXX_O) $<
+ 
+ $(LIBPREFIX)gtest.$(LIBSUFFIX): $(GTEST_OBJS)
+diff -urN openh264-bc.orig/codec/common/generate_version.sh openh264-bc/codec/common/generate_version.sh
+--- openh264-bc.orig/codec/common/generate_version.sh	2015-05-28 10:43:37.193198643 +0200
++++ openh264-bc/codec/common/generate_version.sh	2015-05-28 13:33:15.899679847 +0200
+@@ -1,4 +1,5 @@
+ #!/bin/bash
++SRC_PATH=$1
+ git rev-list HEAD | sort > config.git-hash
+ LOCALVER=`wc -l config.git-hash | awk '{print $1}'`
+ if [ $LOCALVER \> 1 ] ; then
+@@ -14,7 +15,8 @@
+ GIT_VERSION='"'$GIT_VERSION'"'
+ rm -f config.git-hash
+ 
+-cat codec/common/inc/version_gen.h.template | sed "s/\$FULL_VERSION/$GIT_VERSION/g" > codec/common/inc/version_gen.h.new
++mkdir -p codec/common/inc
++cat $SRC_PATH/codec/common/inc/version_gen.h.template | sed "s/\$FULL_VERSION/$GIT_VERSION/g" > codec/common/inc/version_gen.h.new
+ if cmp codec/common/inc/version_gen.h.new codec/common/inc/version_gen.h > /dev/null 2>&1; then
+     # Identical to old version, don't touch it (to avoid unnecessary rebuilds)
+     rm codec/common/inc/version_gen.h.new
 diff -urN openh264-bc.orig/codec/common/targets.mk openh264-bc/codec/common/targets.mk
 --- openh264-bc.orig/codec/common/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/common/targets.mk	2015-05-28 10:40:43.916535132 +0200
-@@ -1,4 +1,4 @@
--COMMON_SRCDIR=codec/common
-+COMMON_SRCDIR=$(SRC_PATH)/codec/common
- COMMON_CPP_SRCS=\
- 	$(COMMON_SRCDIR)/src/common_tables.cpp\
- 	$(COMMON_SRCDIR)/src/copy_mb.cpp\
++++ openh264-bc/codec/common/targets.mk	2015-05-28 13:33:15.906346513 +0200
+@@ -61,13 +61,13 @@
+ 
+ OBJS += $(COMMON_OBJS)
+ 
+-$(COMMON_SRCDIR)/%.$(OBJ): $(COMMON_SRCDIR)/%.cpp
++$(COMMON_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(COMMON_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(COMMON_CFLAGS) $(COMMON_INCLUDES) -c $(CXX_O) $<
+ 
+-$(COMMON_SRCDIR)/%.$(OBJ): $(COMMON_SRCDIR)/%.asm
++$(COMMON_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(COMMON_SRCDIR)/%.asm
+ 	$(QUIET_ASM)$(ASM) $(ASMFLAGS) $(ASM_INCLUDES) $(COMMON_ASMFLAGS) $(COMMON_ASM_INCLUDES) -o $@ $<
+ 
+-$(COMMON_SRCDIR)/%.$(OBJ): $(COMMON_SRCDIR)/%.S
++$(COMMON_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(COMMON_SRCDIR)/%.S
+ 	$(QUIET_CCAS)$(CCAS) $(CCASFLAGS) $(ASMFLAGS) $(INCLUDES) $(COMMON_CFLAGS) $(COMMON_INCLUDES) -c -o $@ $<
+ 
+ $(LIBPREFIX)common.$(LIBSUFFIX): $(COMMON_OBJS)
 diff -urN openh264-bc.orig/codec/console/common/targets.mk openh264-bc/codec/console/common/targets.mk
 --- openh264-bc.orig/codec/console/common/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/console/common/targets.mk	2015-05-28 10:41:03.289868113 +0200
-@@ -1,4 +1,4 @@
--CONSOLE_COMMON_SRCDIR=codec/console/common
-+CONSOLE_COMMON_SRCDIR=$(SRC_PATH)/codec/console/common
- CONSOLE_COMMON_CPP_SRCS=\
- 	$(CONSOLE_COMMON_SRCDIR)/src/read_config.cpp\
++++ openh264-bc/codec/console/common/targets.mk	2015-05-28 13:33:15.906346513 +0200
+@@ -6,7 +6,7 @@
  
+ OBJS += $(CONSOLE_COMMON_OBJS)
+ 
+-$(CONSOLE_COMMON_SRCDIR)/%.$(OBJ): $(CONSOLE_COMMON_SRCDIR)/%.cpp
++$(CONSOLE_COMMON_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(CONSOLE_COMMON_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(CONSOLE_COMMON_CFLAGS) $(CONSOLE_COMMON_INCLUDES) -c $(CXX_O) $<
+ 
+ $(LIBPREFIX)console_common.$(LIBSUFFIX): $(CONSOLE_COMMON_OBJS)
 diff -urN openh264-bc.orig/codec/console/dec/targets.mk openh264-bc/codec/console/dec/targets.mk
 --- openh264-bc.orig/codec/console/dec/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/console/dec/targets.mk	2015-05-28 10:41:12.979867937 +0200
-@@ -1,4 +1,4 @@
--H264DEC_SRCDIR=codec/console/dec
-+H264DEC_SRCDIR=$(SRC_PATH)/codec/console/dec
- H264DEC_CPP_SRCS=\
- 	$(H264DEC_SRCDIR)/src/d3d9_utils.cpp\
- 	$(H264DEC_SRCDIR)/src/h264dec.cpp\
++++ openh264-bc/codec/console/dec/targets.mk	2015-05-28 13:33:15.906346513 +0200
+@@ -7,7 +7,7 @@
+ 
+ OBJS += $(H264DEC_OBJS)
+ 
+-$(H264DEC_SRCDIR)/%.$(OBJ): $(H264DEC_SRCDIR)/%.cpp
++$(H264DEC_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(H264DEC_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(H264DEC_CFLAGS) $(H264DEC_INCLUDES) -c $(CXX_O) $<
+ 
+ h264dec$(EXEEXT): $(H264DEC_OBJS) $(H264DEC_DEPS)
 diff -urN openh264-bc.orig/codec/console/enc/targets.mk openh264-bc/codec/console/enc/targets.mk
 --- openh264-bc.orig/codec/console/enc/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/console/enc/targets.mk	2015-05-28 10:41:25.923201033 +0200
-@@ -1,4 +1,4 @@
--H264ENC_SRCDIR=codec/console/enc
-+H264ENC_SRCDIR=$(SRC_PATH)/codec/console/enc
- H264ENC_CPP_SRCS=\
- 	$(H264ENC_SRCDIR)/src/welsenc.cpp\
++++ openh264-bc/codec/console/enc/targets.mk	2015-05-28 13:33:15.906346513 +0200
+@@ -6,7 +6,7 @@
  
+ OBJS += $(H264ENC_OBJS)
+ 
+-$(H264ENC_SRCDIR)/%.$(OBJ): $(H264ENC_SRCDIR)/%.cpp
++$(H264ENC_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(H264ENC_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(H264ENC_CFLAGS) $(H264ENC_INCLUDES) -c $(CXX_O) $<
+ 
+ h264enc$(EXEEXT): $(H264ENC_OBJS) $(H264ENC_DEPS)
 diff -urN openh264-bc.orig/codec/decoder/targets.mk openh264-bc/codec/decoder/targets.mk
 --- openh264-bc.orig/codec/decoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/decoder/targets.mk	2015-05-28 10:41:36.746534170 +0200
-@@ -1,4 +1,4 @@
--DECODER_SRCDIR=codec/decoder
-+DECODER_SRCDIR=$(SRC_PATH)/codec/decoder
- DECODER_CPP_SRCS=\
- 	$(DECODER_SRCDIR)/core/src/au_parser.cpp\
- 	$(DECODER_SRCDIR)/core/src/bit_stream.cpp\
++++ openh264-bc/codec/decoder/targets.mk	2015-05-28 13:33:15.906346513 +0200
+@@ -55,13 +55,13 @@
+ 
+ OBJS += $(DECODER_OBJS)
+ 
+-$(DECODER_SRCDIR)/%.$(OBJ): $(DECODER_SRCDIR)/%.cpp
++$(DECODER_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(DECODER_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(DECODER_CFLAGS) $(DECODER_INCLUDES) -c $(CXX_O) $<
+ 
+-$(DECODER_SRCDIR)/%.$(OBJ): $(DECODER_SRCDIR)/%.asm
++$(DECODER_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(DECODER_SRCDIR)/%.asm
+ 	$(QUIET_ASM)$(ASM) $(ASMFLAGS) $(ASM_INCLUDES) $(DECODER_ASMFLAGS) $(DECODER_ASM_INCLUDES) -o $@ $<
+ 
+-$(DECODER_SRCDIR)/%.$(OBJ): $(DECODER_SRCDIR)/%.S
++$(DECODER_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(DECODER_SRCDIR)/%.S
+ 	$(QUIET_CCAS)$(CCAS) $(CCASFLAGS) $(ASMFLAGS) $(INCLUDES) $(DECODER_CFLAGS) $(DECODER_INCLUDES) -c -o $@ $<
+ 
+ $(LIBPREFIX)decoder.$(LIBSUFFIX): $(DECODER_OBJS)
 diff -urN openh264-bc.orig/codec/encoder/targets.mk openh264-bc/codec/encoder/targets.mk
 --- openh264-bc.orig/codec/encoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/encoder/targets.mk	2015-05-28 10:41:50.889867247 +0200
-@@ -1,4 +1,4 @@
--ENCODER_SRCDIR=codec/encoder
-+ENCODER_SRCDIR=$(SRC_PATH)/codec/encoder
- ENCODER_CPP_SRCS=\
- 	$(ENCODER_SRCDIR)/core/src/au_set.cpp\
- 	$(ENCODER_SRCDIR)/core/src/deblocking.cpp\
++++ openh264-bc/codec/encoder/targets.mk	2015-05-28 13:33:15.906346513 +0200
+@@ -78,13 +78,13 @@
+ 
+ OBJS += $(ENCODER_OBJS)
+ 
+-$(ENCODER_SRCDIR)/%.$(OBJ): $(ENCODER_SRCDIR)/%.cpp
++$(ENCODER_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(ENCODER_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(ENCODER_CFLAGS) $(ENCODER_INCLUDES) -c $(CXX_O) $<
+ 
+-$(ENCODER_SRCDIR)/%.$(OBJ): $(ENCODER_SRCDIR)/%.asm
++$(ENCODER_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(ENCODER_SRCDIR)/%.asm
+ 	$(QUIET_ASM)$(ASM) $(ASMFLAGS) $(ASM_INCLUDES) $(ENCODER_ASMFLAGS) $(ENCODER_ASM_INCLUDES) -o $@ $<
+ 
+-$(ENCODER_SRCDIR)/%.$(OBJ): $(ENCODER_SRCDIR)/%.S
++$(ENCODER_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(ENCODER_SRCDIR)/%.S
+ 	$(QUIET_CCAS)$(CCAS) $(CCASFLAGS) $(ASMFLAGS) $(INCLUDES) $(ENCODER_CFLAGS) $(ENCODER_INCLUDES) -c -o $@ $<
+ 
+ $(LIBPREFIX)encoder.$(LIBSUFFIX): $(ENCODER_OBJS)
 diff -urN openh264-bc.orig/codec/processing/targets.mk openh264-bc/codec/processing/targets.mk
 --- openh264-bc.orig/codec/processing/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/processing/targets.mk	2015-05-28 10:42:01.523200386 +0200
-@@ -1,4 +1,4 @@
--PROCESSING_SRCDIR=codec/processing
-+PROCESSING_SRCDIR=$(SRC_PATH)/codec/processing
- PROCESSING_CPP_SRCS=\
- 	$(PROCESSING_SRCDIR)/src/adaptivequantization/AdaptiveQuantization.cpp\
- 	$(PROCESSING_SRCDIR)/src/backgrounddetection/BackgroundDetection.cpp\
++++ openh264-bc/codec/processing/targets.mk	2015-05-28 13:33:15.906346513 +0200
+@@ -57,13 +57,13 @@
+ 
+ OBJS += $(PROCESSING_OBJS)
+ 
+-$(PROCESSING_SRCDIR)/%.$(OBJ): $(PROCESSING_SRCDIR)/%.cpp
++$(PROCESSING_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(PROCESSING_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(PROCESSING_CFLAGS) $(PROCESSING_INCLUDES) -c $(CXX_O) $<
+ 
+-$(PROCESSING_SRCDIR)/%.$(OBJ): $(PROCESSING_SRCDIR)/%.asm
++$(PROCESSING_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(PROCESSING_SRCDIR)/%.asm
+ 	$(QUIET_ASM)$(ASM) $(ASMFLAGS) $(ASM_INCLUDES) $(PROCESSING_ASMFLAGS) $(PROCESSING_ASM_INCLUDES) -o $@ $<
+ 
+-$(PROCESSING_SRCDIR)/%.$(OBJ): $(PROCESSING_SRCDIR)/%.S
++$(PROCESSING_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(PROCESSING_SRCDIR)/%.S
+ 	$(QUIET_CCAS)$(CCAS) $(CCASFLAGS) $(ASMFLAGS) $(INCLUDES) $(PROCESSING_CFLAGS) $(PROCESSING_INCLUDES) -c -o $@ $<
+ 
+ $(LIBPREFIX)processing.$(LIBSUFFIX): $(PROCESSING_OBJS)
+diff -urN openh264-bc.orig/Makefile openh264-bc/Makefile
+--- openh264-bc.orig/Makefile	2015-05-28 10:43:37.429865305 +0200
++++ openh264-bc/Makefile	2015-05-28 13:33:15.899679847 +0200
+@@ -86,7 +86,7 @@
+ endif
+ 
+ 
+-INCLUDES += -I$(SRC_PATH)codec/api/svc -I$(SRC_PATH)codec/common/inc
++INCLUDES += -I$(SRC_PATH)codec/api/svc -I$(SRC_PATH)codec/common/inc -Icodec/common/inc
+ 
+ DECODER_INCLUDES += \
+     -I$(SRC_PATH)codec/decoder/core/inc \
+@@ -143,7 +143,7 @@
+ .PHONY: test gtest-bootstrap clean $(PROJECT_NAME).pc $(PROJECT_NAME)-static.pc
+ 
+ generate-version:
+-	$(QUIET)cd $(SRC_PATH) && sh ./codec/common/generate_version.sh
++	$(QUIET)sh $(SRC_PATH)/codec/common/generate_version.sh $(SRC_PATH)
+ 
+ codec/decoder/plus/src/welsDecoderExt.$(OBJ): | generate-version
+ codec/encoder/plus/src/welsEncoderExt.$(OBJ): | generate-version
 diff -urN openh264-bc.orig/module/targets.mk openh264-bc/module/targets.mk
 --- openh264-bc.orig/module/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/module/targets.mk	2015-05-28 10:42:12.779866848 +0200
-@@ -1,4 +1,4 @@
--MODULE_SRCDIR=module
-+MODULE_SRCDIR=$(SRC_PATH)/module
- MODULE_CPP_SRCS=\
- 	$(MODULE_SRCDIR)/gmp-openh264.cpp\
++++ openh264-bc/module/targets.mk	2015-05-28 13:33:15.906346513 +0200
+@@ -6,6 +6,6 @@
+ 
+ OBJS += $(MODULE_OBJS)
+ 
+-$(MODULE_SRCDIR)/%.$(OBJ): $(MODULE_SRCDIR)/%.cpp
++$(MODULE_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(MODULE_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(MODULE_CFLAGS) $(MODULE_INCLUDES) -c $(CXX_O) $<
  
 diff -urN openh264-bc.orig/test/api/targets.mk openh264-bc/test/api/targets.mk
 --- openh264-bc.orig/test/api/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/test/api/targets.mk	2015-05-28 10:42:23.019866660 +0200
-@@ -1,4 +1,4 @@
--API_TEST_SRCDIR=test/api
-+API_TEST_SRCDIR=$(SRC_PATH)/test/api
- API_TEST_CPP_SRCS=\
- 	$(API_TEST_SRCDIR)/BaseDecoderTest.cpp\
- 	$(API_TEST_SRCDIR)/BaseEncoderTest.cpp\
++++ openh264-bc/test/api/targets.mk	2015-05-28 13:33:15.903013181 +0200
+@@ -19,9 +19,9 @@
+ API_TEST_OBJS += $(API_TEST_C_SRCS:.c=.$(OBJ))
+ OBJS += $(API_TEST_OBJS)
+ 
+-$(API_TEST_SRCDIR)/%.$(OBJ): $(API_TEST_SRCDIR)/%.cpp
++$(API_TEST_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(API_TEST_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(API_TEST_CFLAGS) $(API_TEST_INCLUDES) -c $(CXX_O) $<
+ 
+-$(API_TEST_SRCDIR)/%.$(OBJ): $(API_TEST_SRCDIR)/%.c
++$(API_TEST_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(API_TEST_SRCDIR)/%.c
+ 	$(QUIET_CC)$(CC) $(CFLAGS) $(INCLUDES) $(API_TEST_CFLAGS) $(API_TEST_INCLUDES) -c $(CXX_O) $<
+ 
 diff -urN openh264-bc.orig/test/common/targets.mk openh264-bc/test/common/targets.mk
 --- openh264-bc.orig/test/common/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/test/common/targets.mk	2015-05-28 10:42:39.196533033 +0200
-@@ -1,4 +1,4 @@
--COMMON_UNITTEST_SRCDIR=test/common
-+COMMON_UNITTEST_SRCDIR=$(SRC_PATH)/test/common
- COMMON_UNITTEST_CPP_SRCS=\
- 	$(COMMON_UNITTEST_SRCDIR)/ExpandPicture.cpp\
++++ openh264-bc/test/common/targets.mk	2015-05-28 13:33:15.903013181 +0200
+@@ -6,6 +6,6 @@
+ 
+ OBJS += $(COMMON_UNITTEST_OBJS)
+ 
+-$(COMMON_UNITTEST_SRCDIR)/%.$(OBJ): $(COMMON_UNITTEST_SRCDIR)/%.cpp
++$(COMMON_UNITTEST_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(COMMON_UNITTEST_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(COMMON_UNITTEST_CFLAGS) $(COMMON_UNITTEST_INCLUDES) -c $(CXX_O) $<
  
 diff -urN openh264-bc.orig/test/decoder/targets.mk openh264-bc/test/decoder/targets.mk
 --- openh264-bc.orig/test/decoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/test/decoder/targets.mk	2015-05-28 10:42:48.653199528 +0200
-@@ -1,4 +1,4 @@
--DECODER_UNITTEST_SRCDIR=test/decoder
-+DECODER_UNITTEST_SRCDIR=$(SRC_PATH)/test/decoder
- DECODER_UNITTEST_CPP_SRCS=\
- 	$(DECODER_UNITTEST_SRCDIR)/DecUT_Deblock.cpp\
- 	$(DECODER_UNITTEST_SRCDIR)/DecUT_DeblockCommon.cpp\
++++ openh264-bc/test/decoder/targets.mk	2015-05-28 13:33:15.903013181 +0200
+@@ -13,6 +13,6 @@
+ 
+ OBJS += $(DECODER_UNITTEST_OBJS)
+ 
+-$(DECODER_UNITTEST_SRCDIR)/%.$(OBJ): $(DECODER_UNITTEST_SRCDIR)/%.cpp
++$(DECODER_UNITTEST_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(DECODER_UNITTEST_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(DECODER_UNITTEST_CFLAGS) $(DECODER_UNITTEST_INCLUDES) -c $(CXX_O) $<
+ 
 diff -urN openh264-bc.orig/test/encoder/targets.mk openh264-bc/test/encoder/targets.mk
 --- openh264-bc.orig/test/encoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/test/encoder/targets.mk	2015-05-28 10:43:04.499865906 +0200
-@@ -1,4 +1,4 @@
--ENCODER_UNITTEST_SRCDIR=test/encoder
-+ENCODER_UNITTEST_SRCDIR=$(SRC_PATH)/test/encoder
- ENCODER_UNITTEST_CPP_SRCS=\
- 	$(ENCODER_UNITTEST_SRCDIR)/EncUT_DecodeMbAux.cpp\
- 	$(ENCODER_UNITTEST_SRCDIR)/EncUT_EncoderExt.cpp\
++++ openh264-bc/test/encoder/targets.mk	2015-05-28 13:33:15.903013181 +0200
+@@ -21,6 +21,6 @@
+ 
+ OBJS += $(ENCODER_UNITTEST_OBJS)
+ 
+-$(ENCODER_UNITTEST_SRCDIR)/%.$(OBJ): $(ENCODER_UNITTEST_SRCDIR)/%.cpp
++$(ENCODER_UNITTEST_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(ENCODER_UNITTEST_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(ENCODER_UNITTEST_CFLAGS) $(ENCODER_UNITTEST_INCLUDES) -c $(CXX_O) $<
+ 
 diff -urN openh264-bc.orig/test/processing/targets.mk openh264-bc/test/processing/targets.mk
 --- openh264-bc.orig/test/processing/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/test/processing/targets.mk	2015-05-28 10:43:13.146532413 +0200
-@@ -1,4 +1,4 @@
--PROCESSING_UNITTEST_SRCDIR=test/processing
-+PROCESSING_UNITTEST_SRCDIR=$(SRC_PATH)/test/processing
- PROCESSING_UNITTEST_CPP_SRCS=\
- 	$(PROCESSING_UNITTEST_SRCDIR)/ProcessUT_AdaptiveQuantization.cpp\
- 	$(PROCESSING_UNITTEST_SRCDIR)/ProcessUT_DownSample.cpp\
++++ openh264-bc/test/processing/targets.mk	2015-05-28 13:33:15.903013181 +0200
+@@ -9,6 +9,6 @@
+ 
+ OBJS += $(PROCESSING_UNITTEST_OBJS)
+ 
+-$(PROCESSING_UNITTEST_SRCDIR)/%.$(OBJ): $(PROCESSING_UNITTEST_SRCDIR)/%.cpp
++$(PROCESSING_UNITTEST_SRCDIR)/%.$(OBJ): $(SRC_PATH)/$(PROCESSING_UNITTEST_SRCDIR)/%.cpp
+ 	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(PROCESSING_UNITTEST_CFLAGS) $(PROCESSING_UNITTEST_INCLUDES) -c $(CXX_O) $<
+ 
