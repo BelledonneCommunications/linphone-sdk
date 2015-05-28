@@ -1073,6 +1073,8 @@ static void _send_message(belle_sip_channel_t *obj){
 				do{
 					max_body_len=sizeof(buffer)-1-len;
 					ret=belle_sip_body_handler_send_chunk(bh,msg,(uint8_t*)buffer+len,&max_body_len);
+					if (max_body_len==0)
+						belle_sip_warning("belle_sip_body_handler_send_chunk on channel [%p], 0 bytes read",obj);
 					len+=max_body_len;
 				}while(ret==BELLE_SIP_CONTINUE);
 				belle_sip_body_handler_end_transfer(bh);
