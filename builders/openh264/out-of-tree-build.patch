@@ -93,13 +93,6 @@ diff -urN openh264-bc.orig/codec/processing/targets.mk openh264-bc/codec/process
  PROCESSING_CPP_SRCS=\
  	$(PROCESSING_SRCDIR)/src/adaptivequantization/AdaptiveQuantization.cpp\
  	$(PROCESSING_SRCDIR)/src/backgrounddetection/BackgroundDetection.cpp\
-Binary files openh264-bc.orig/.git/index and openh264-bc/.git/index differ
-diff -urN openh264-bc.orig/.git/ORIG_HEAD openh264-bc/.git/ORIG_HEAD
---- openh264-bc.orig/.git/ORIG_HEAD	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/.git/ORIG_HEAD	2015-05-28 10:34:37.599875141 +0200
-@@ -1 +1 @@
--3a42ae54cfc5bb28b57f68292fe695a9adb1fecd
-+1b97daab204642fc939b31dccca3948dea2c946a
 diff -urN openh264-bc.orig/module/targets.mk openh264-bc/module/targets.mk
 --- openh264-bc.orig/module/targets.mk	2015-05-28 10:44:25.139864435 +0200
 +++ openh264-bc/module/targets.mk	2015-05-28 10:42:12.779866848 +0200
