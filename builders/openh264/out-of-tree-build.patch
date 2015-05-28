@@ -33,6 +33,28 @@ diff -urN openh264-bc.orig/build/gtest-targets.mk openh264-bc/build/gtest-target
  	$(QUIET_CXX)$(CXX) $(CFLAGS) $(CXXFLAGS) $(INCLUDES) $(GTEST_CFLAGS) $(GTEST_INCLUDES) -c $(CXX_O) $<
  
  $(LIBPREFIX)gtest.$(LIBSUFFIX): $(GTEST_OBJS)
+diff -urN openh264-bc.orig/build/msvc-common.mk openh264-bc/build/msvc-common.mk
+--- openh264-bc.orig/build/msvc-common.mk	2015-05-28 10:43:37.159865311 +0200
++++ openh264-bc/build/msvc-common.mk	2015-05-28 14:07:33.106309031 +0200
+@@ -41,7 +41,7 @@
+ SHARED=-LD
+ EXTRA_LIBRARY=$(PROJECT_NAME)_dll.lib
+ LDFLAGS += -link
+-SHLDFLAGS=-pdb:$(PROJECT_NAME).pdb -def:openh264.def -implib:$(EXTRA_LIBRARY)
++SHLDFLAGS=-pdb:$(PROJECT_NAME).pdb -def:$(SRC_PATH)/openh264.def -implib:$(EXTRA_LIBRARY)
+ STATIC_LDFLAGS=
+ CODEC_UNITTEST_CFLAGS=-D_CRT_SECURE_NO_WARNINGS
+ 
+diff -urN openh264-bc.orig/build/platform-msvc-wp.mk openh264-bc/build/platform-msvc-wp.mk
+--- openh264-bc.orig/build/platform-msvc-wp.mk	2015-05-28 10:43:37.163198643 +0200
++++ openh264-bc/build/platform-msvc-wp.mk	2015-05-28 14:08:59.309640793 +0200
+@@ -2,5 +2,5 @@
+ include $(SRC_PATH)build/msvc-app.mk
+ CFLAGS += -DWINAPI_FAMILY=WINAPI_FAMILY_PHONE_APP -DWINDOWS_PHONE
+ LDFLAGS += -nodefaultlib:kernel32.lib -nodefaultlib:ole32.lib WindowsPhoneCore.lib
+-UTSHLDFLAGS = -def:ut.def
++UTSHLDFLAGS = -def:$(SRC_PATH)/ut.def
+ 
 diff -urN openh264-bc.orig/codec/common/generate_version.sh openh264-bc/codec/common/generate_version.sh
 --- openh264-bc.orig/codec/common/generate_version.sh	2015-05-28 10:43:37.193198643 +0200
 +++ openh264-bc/codec/common/generate_version.sh	2015-05-28 13:33:15.899679847 +0200
