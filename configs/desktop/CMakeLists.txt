@@ -46,10 +46,12 @@ list(GET SPLITTED_LINPHONE_VERSION 1 LINPHONE_MINOR_VERSION)
 list(GET SPLITTED_LINPHONE_VERSION 2 LINPHONE_MICRO_VERSION)
 
 # Generate a zip archive containing the development files of liblinphone
-execute_process(
-	COMMAND 7z a -tzip ${CMAKE_BINARY_DIR}/liblinphone-win32-sdk-${LINPHONE_GIT_REVISION}.zip @${CMAKE_SOURCE_DIR}/linphone-sdk.list
-	WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
-)
+if(WIN32)
+	execute_process(
+		COMMAND 7z a -tzip ${CMAKE_BINARY_DIR}/liblinphone-win32-sdk-${LINPHONE_GIT_REVISION}.zip @${CMAKE_SOURCE_DIR}/linphone-sdk.list
+		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
+	)
+endif()
 
 install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/"
 	DESTINATION "."
