@@ -23,7 +23,7 @@
  	mkdir -p $(DESTDIR)/$(PREFIX)/lib
 diff -urN openh264-bc.orig/build/gtest-targets.mk openh264-bc/build/gtest-targets.mk
 --- openh264-bc.orig/build/gtest-targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/build/gtest-targets.mk	2015-05-28 13:33:15.906346513 +0200
++++ openh264-bc/build/gtest-targets.mk	2015-05-28 14:48:40.782930735 +0200
 @@ -6,7 +6,7 @@
  
  OBJS += $(GTEST_OBJS)
@@ -34,30 +34,19 @@ diff -urN openh264-bc.orig/build/gtest-targets.mk openh264-bc/build/gtest-target
  
  $(LIBPREFIX)gtest.$(LIBSUFFIX): $(GTEST_OBJS)
 diff -urN openh264-bc.orig/build/msvc-common.mk openh264-bc/build/msvc-common.mk
---- openh264-bc.orig/build/msvc-common.mk	2015-05-28 10:43:37.159865311 +0200
-+++ openh264-bc/build/msvc-common.mk	2015-05-28 14:07:33.106309031 +0200
-@@ -41,7 +41,7 @@
+--- openh264-bc.orig/build/msvc-common.mk	2015-05-28 14:51:28.332927681 +0200
++++ openh264-bc/build/msvc-common.mk	2015-05-28 14:49:47.276262858 +0200
+@@ -40,6 +40,6 @@
+ SHAREDLIBSUFFIXVER=$(SHAREDLIBSUFFIX)
  SHARED=-LD
  EXTRA_LIBRARY=$(PROJECT_NAME)_dll.lib
- LDFLAGS += -link
--SHLDFLAGS=-pdb:$(PROJECT_NAME).pdb -def:openh264.def -implib:$(EXTRA_LIBRARY)
-+SHLDFLAGS=-pdb:$(PROJECT_NAME).pdb -def:$(SRC_PATH)/openh264.def -implib:$(EXTRA_LIBRARY)
+-SHLDFLAGS=-Fd$(PROJECT_NAME).pdb -link -def:openh264.def -implib:$(EXTRA_LIBRARY)
++SHLDFLAGS=-Fd$(PROJECT_NAME).pdb -link -def:$(SRC_PATH)/openh264.def -implib:$(EXTRA_LIBRARY)
  STATIC_LDFLAGS=
  CODEC_UNITTEST_CFLAGS=-D_CRT_SECURE_NO_WARNINGS
- 
-diff -urN openh264-bc.orig/build/platform-msvc-wp.mk openh264-bc/build/platform-msvc-wp.mk
---- openh264-bc.orig/build/platform-msvc-wp.mk	2015-05-28 10:43:37.163198643 +0200
-+++ openh264-bc/build/platform-msvc-wp.mk	2015-05-28 14:08:59.309640793 +0200
-@@ -2,5 +2,5 @@
- include $(SRC_PATH)build/msvc-app.mk
- CFLAGS += -DWINAPI_FAMILY=WINAPI_FAMILY_PHONE_APP -DWINDOWS_PHONE
- LDFLAGS += -nodefaultlib:kernel32.lib -nodefaultlib:ole32.lib WindowsPhoneCore.lib
--UTSHLDFLAGS = -def:ut.def
-+UTSHLDFLAGS = -def:$(SRC_PATH)/ut.def
- 
 diff -urN openh264-bc.orig/codec/common/generate_version.sh openh264-bc/codec/common/generate_version.sh
 --- openh264-bc.orig/codec/common/generate_version.sh	2015-05-28 10:43:37.193198643 +0200
-+++ openh264-bc/codec/common/generate_version.sh	2015-05-28 13:33:15.899679847 +0200
++++ openh264-bc/codec/common/generate_version.sh	2015-05-28 14:48:40.782930735 +0200
 @@ -1,4 +1,5 @@
  #!/bin/bash
 +SRC_PATH=$1
@@ -76,7 +65,7 @@ diff -urN openh264-bc.orig/codec/common/generate_version.sh openh264-bc/codec/co
      rm codec/common/inc/version_gen.h.new
 diff -urN openh264-bc.orig/codec/common/targets.mk openh264-bc/codec/common/targets.mk
 --- openh264-bc.orig/codec/common/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/common/targets.mk	2015-05-28 13:33:15.906346513 +0200
++++ openh264-bc/codec/common/targets.mk	2015-05-28 14:48:40.782930735 +0200
 @@ -61,13 +61,13 @@
  
  OBJS += $(COMMON_OBJS)
@@ -96,7 +85,7 @@ diff -urN openh264-bc.orig/codec/common/targets.mk openh264-bc/codec/common/targ
  $(LIBPREFIX)common.$(LIBSUFFIX): $(COMMON_OBJS)
 diff -urN openh264-bc.orig/codec/console/common/targets.mk openh264-bc/codec/console/common/targets.mk
 --- openh264-bc.orig/codec/console/common/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/console/common/targets.mk	2015-05-28 13:33:15.906346513 +0200
++++ openh264-bc/codec/console/common/targets.mk	2015-05-28 14:48:40.782930735 +0200
 @@ -6,7 +6,7 @@
  
  OBJS += $(CONSOLE_COMMON_OBJS)
@@ -108,7 +97,7 @@ diff -urN openh264-bc.orig/codec/console/common/targets.mk openh264-bc/codec/con
  $(LIBPREFIX)console_common.$(LIBSUFFIX): $(CONSOLE_COMMON_OBJS)
 diff -urN openh264-bc.orig/codec/console/dec/targets.mk openh264-bc/codec/console/dec/targets.mk
 --- openh264-bc.orig/codec/console/dec/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/console/dec/targets.mk	2015-05-28 13:33:15.906346513 +0200
++++ openh264-bc/codec/console/dec/targets.mk	2015-05-28 14:48:40.782930735 +0200
 @@ -7,7 +7,7 @@
  
  OBJS += $(H264DEC_OBJS)
@@ -120,7 +109,7 @@ diff -urN openh264-bc.orig/codec/console/dec/targets.mk openh264-bc/codec/consol
  h264dec$(EXEEXT): $(H264DEC_OBJS) $(H264DEC_DEPS)
 diff -urN openh264-bc.orig/codec/console/enc/targets.mk openh264-bc/codec/console/enc/targets.mk
 --- openh264-bc.orig/codec/console/enc/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/console/enc/targets.mk	2015-05-28 13:33:15.906346513 +0200
++++ openh264-bc/codec/console/enc/targets.mk	2015-05-28 14:48:40.782930735 +0200
 @@ -6,7 +6,7 @@
  
  OBJS += $(H264ENC_OBJS)
@@ -132,7 +121,7 @@ diff -urN openh264-bc.orig/codec/console/enc/targets.mk openh264-bc/codec/consol
  h264enc$(EXEEXT): $(H264ENC_OBJS) $(H264ENC_DEPS)
 diff -urN openh264-bc.orig/codec/decoder/targets.mk openh264-bc/codec/decoder/targets.mk
 --- openh264-bc.orig/codec/decoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/decoder/targets.mk	2015-05-28 13:33:15.906346513 +0200
++++ openh264-bc/codec/decoder/targets.mk	2015-05-28 14:48:40.782930735 +0200
 @@ -55,13 +55,13 @@
  
  OBJS += $(DECODER_OBJS)
@@ -152,7 +141,7 @@ diff -urN openh264-bc.orig/codec/decoder/targets.mk openh264-bc/codec/decoder/ta
  $(LIBPREFIX)decoder.$(LIBSUFFIX): $(DECODER_OBJS)
 diff -urN openh264-bc.orig/codec/encoder/targets.mk openh264-bc/codec/encoder/targets.mk
 --- openh264-bc.orig/codec/encoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/encoder/targets.mk	2015-05-28 13:33:15.906346513 +0200
++++ openh264-bc/codec/encoder/targets.mk	2015-05-28 14:48:40.782930735 +0200
 @@ -78,13 +78,13 @@
  
  OBJS += $(ENCODER_OBJS)
@@ -172,7 +161,7 @@ diff -urN openh264-bc.orig/codec/encoder/targets.mk openh264-bc/codec/encoder/ta
  $(LIBPREFIX)encoder.$(LIBSUFFIX): $(ENCODER_OBJS)
 diff -urN openh264-bc.orig/codec/processing/targets.mk openh264-bc/codec/processing/targets.mk
 --- openh264-bc.orig/codec/processing/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/codec/processing/targets.mk	2015-05-28 13:33:15.906346513 +0200
++++ openh264-bc/codec/processing/targets.mk	2015-05-28 14:48:40.786264067 +0200
 @@ -57,13 +57,13 @@
  
  OBJS += $(PROCESSING_OBJS)
@@ -191,9 +180,9 @@ diff -urN openh264-bc.orig/codec/processing/targets.mk openh264-bc/codec/process
  
  $(LIBPREFIX)processing.$(LIBSUFFIX): $(PROCESSING_OBJS)
 diff -urN openh264-bc.orig/Makefile openh264-bc/Makefile
---- openh264-bc.orig/Makefile	2015-05-28 10:43:37.429865305 +0200
-+++ openh264-bc/Makefile	2015-05-28 13:33:15.899679847 +0200
-@@ -86,7 +86,7 @@
+--- openh264-bc.orig/Makefile	2015-05-28 14:51:28.332927681 +0200
++++ openh264-bc/Makefile	2015-05-28 14:48:40.792930735 +0200
+@@ -80,7 +80,7 @@
  endif
  
  
@@ -202,8 +191,8 @@ diff -urN openh264-bc.orig/Makefile openh264-bc/Makefile
  
  DECODER_INCLUDES += \
      -I$(SRC_PATH)codec/decoder/core/inc \
-@@ -143,7 +143,7 @@
- .PHONY: test gtest-bootstrap clean $(PROJECT_NAME).pc $(PROJECT_NAME)-static.pc
+@@ -139,7 +139,7 @@
+ all: libraries binaries
  
  generate-version:
 -	$(QUIET)cd $(SRC_PATH) && sh ./codec/common/generate_version.sh
@@ -213,7 +202,7 @@ diff -urN openh264-bc.orig/Makefile openh264-bc/Makefile
  codec/encoder/plus/src/welsEncoderExt.$(OBJ): | generate-version
 diff -urN openh264-bc.orig/module/targets.mk openh264-bc/module/targets.mk
 --- openh264-bc.orig/module/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/module/targets.mk	2015-05-28 13:33:15.906346513 +0200
++++ openh264-bc/module/targets.mk	2015-05-28 14:48:40.786264067 +0200
 @@ -6,6 +6,6 @@
  
  OBJS += $(MODULE_OBJS)
@@ -224,7 +213,7 @@ diff -urN openh264-bc.orig/module/targets.mk openh264-bc/module/targets.mk
  
 diff -urN openh264-bc.orig/test/api/targets.mk openh264-bc/test/api/targets.mk
 --- openh264-bc.orig/test/api/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/test/api/targets.mk	2015-05-28 13:33:15.903013181 +0200
++++ openh264-bc/test/api/targets.mk	2015-05-28 14:48:40.786264067 +0200
 @@ -19,9 +19,9 @@
  API_TEST_OBJS += $(API_TEST_C_SRCS:.c=.$(OBJ))
  OBJS += $(API_TEST_OBJS)
@@ -239,7 +228,7 @@ diff -urN openh264-bc.orig/test/api/targets.mk openh264-bc/test/api/targets.mk
  
 diff -urN openh264-bc.orig/test/common/targets.mk openh264-bc/test/common/targets.mk
 --- openh264-bc.orig/test/common/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/test/common/targets.mk	2015-05-28 13:33:15.903013181 +0200
++++ openh264-bc/test/common/targets.mk	2015-05-28 14:48:40.786264067 +0200
 @@ -6,6 +6,6 @@
  
  OBJS += $(COMMON_UNITTEST_OBJS)
@@ -250,7 +239,7 @@ diff -urN openh264-bc.orig/test/common/targets.mk openh264-bc/test/common/target
  
 diff -urN openh264-bc.orig/test/decoder/targets.mk openh264-bc/test/decoder/targets.mk
 --- openh264-bc.orig/test/decoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/test/decoder/targets.mk	2015-05-28 13:33:15.903013181 +0200
++++ openh264-bc/test/decoder/targets.mk	2015-05-28 14:48:40.786264067 +0200
 @@ -13,6 +13,6 @@
  
  OBJS += $(DECODER_UNITTEST_OBJS)
@@ -261,7 +250,7 @@ diff -urN openh264-bc.orig/test/decoder/targets.mk openh264-bc/test/decoder/targ
  
 diff -urN openh264-bc.orig/test/encoder/targets.mk openh264-bc/test/encoder/targets.mk
 --- openh264-bc.orig/test/encoder/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/test/encoder/targets.mk	2015-05-28 13:33:15.903013181 +0200
++++ openh264-bc/test/encoder/targets.mk	2015-05-28 14:48:40.786264067 +0200
 @@ -21,6 +21,6 @@
  
  OBJS += $(ENCODER_UNITTEST_OBJS)
@@ -272,7 +261,7 @@ diff -urN openh264-bc.orig/test/encoder/targets.mk openh264-bc/test/encoder/targ
  
 diff -urN openh264-bc.orig/test/processing/targets.mk openh264-bc/test/processing/targets.mk
 --- openh264-bc.orig/test/processing/targets.mk	2015-05-28 10:44:25.139864435 +0200
-+++ openh264-bc/test/processing/targets.mk	2015-05-28 13:33:15.903013181 +0200
++++ openh264-bc/test/processing/targets.mk	2015-05-28 14:48:40.786264067 +0200
 @@ -9,6 +9,6 @@
  
  OBJS += $(PROCESSING_UNITTEST_OBJS)
