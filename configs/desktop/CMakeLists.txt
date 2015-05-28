@@ -47,9 +47,9 @@ list(GET SPLITTED_LINPHONE_VERSION 2 LINPHONE_MICRO_VERSION)
 
 # Generate a zip archive containing the development files of liblinphone
 if(WIN32)
+	find_program(7Z_PROGRAM 7z.exe)
 	execute_process(
-		COMMAND 7z a -tzip ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-win32.zip @${CMAKE_SOURCE_DIR}/linphone-sdk.list
-		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
+		COMMAND ${7Z_PROGRAM} a -tzip ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-win32.zip @${CMAKE_SOURCE_DIR}/linphone-sdk.list
 	)
 endif()
 
