@@ -59,6 +59,7 @@ else()
 		"--disable-vda"
 		"--disable-vaapi"
 		"--disable-vdpau"
+		"--extra-cflags=-w"
 	)
 	if(ENABLE_H263 OR IOS)
 		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
