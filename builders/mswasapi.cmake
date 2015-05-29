@@ -25,6 +25,7 @@ set(EP_mswasapi_GIT_TAG_LATEST "master")
 set(EP_mswasapi_GIT_TAG "d69288a1ca0a4c9daebd7d37bc9301c9590116ba")
 set(EP_mswasapi_EXTERNAL_SOURCE_PATHS "mswasapi")
 
+set(EP_mswasapi_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 set(EP_mswasapi_CMAKE_OPTIONS )
 set(EP_mswasapi_EXTRA_LDFLAGS "/SAFESEH:NO")
 set(EP_mswasapi_DEPENDENCIES EP_ms2)

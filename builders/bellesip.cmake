@@ -26,7 +26,7 @@ set(EP_bellesip_GIT_TAG "1.4.1")
 set(EP_bellesip_EXTERNAL_SOURCE_PATHS "belle-sip")
 
 set(EP_bellesip_CMAKE_OPTIONS )
-set(EP_bellesip_LINKING_TYPE "-DENABLE_STATIC=NO")
+set(EP_bellesip_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 set(EP_bellesip_DEPENDENCIES )
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	list(APPEND EP_bellesip_DEPENDENCIES EP_antlr3c EP_polarssl)

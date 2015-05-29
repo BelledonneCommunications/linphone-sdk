@@ -25,8 +25,8 @@ set(EP_linphone_GIT_TAG_LATEST "master")
 set(EP_linphone_GIT_TAG "3.8.2")
 set(EP_linphone_EXTERNAL_SOURCE_PATHS "linphone")
 
+set(EP_linphone_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 set(EP_linphone_CMAKE_OPTIONS )
-set(EP_linphone_LINKING_TYPE "-DENABLE_STATIC=NO")
 set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2)
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT IOS)
 	# Do not build sqlite3 and xml2 on IOS, they are provided by the system

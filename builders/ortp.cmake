@@ -29,7 +29,7 @@ if(EP_ortp_FORCE_AUTOTOOLS)
 	set(EP_ortp_LINKING_TYPE "--enable-static")
 	set(EP_ortp_USE_AUTOGEN True)
 else()
-	set(EP_ortp_LINKING_TYPE "-DENABLE_STATIC=NO")
+	set(EP_ortp_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 endif()
 
 set(EP_ortp_CMAKE_OPTIONS )

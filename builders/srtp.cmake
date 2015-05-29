@@ -25,7 +25,7 @@ set(EP_srtp_GIT_TAG_LATEST "master")
 set(EP_srtp_GIT_TAG "6271df37613cce36dfa61c97fcf751228755727c")
 set(EP_srtp_EXTERNAL_SOURCE_PATHS "srtp" "externals/srtp")
 
-set(EP_srtp_LINKING_TYPE "-DENABLE_STATIC=NO")
+set(EP_srtp_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 if(MSVC)
 	set(EP_srtp_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()

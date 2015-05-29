@@ -24,8 +24,8 @@ set(EP_tunnel_GIT_REPOSITORY "gitosis@git.linphone.org:tunnel.git") # Private re
 set(EP_tunnel_GIT_TAG_LATEST "master")
 set(EP_tunnel_GIT_TAG "93399274bcfcd92a2dce3a9ff57ab87561c3c63e")
 
-set(EP_tunnel_LINKING_TYPE "-DENABLE_STATIC=0")
-set(EP_tunnel_CMAKE_OPTIONS "-DENABLE_SERVERS=0")
+set(EP_tunnel_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_tunnel_CMAKE_OPTIONS "-DENABLE_SERVERS=NO")
 set(EP_tunnel_DEPENDENCIES )
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	list(APPEND EP_tunnel_DEPENDENCIES EP_polarssl)

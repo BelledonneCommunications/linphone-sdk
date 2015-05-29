@@ -26,6 +26,7 @@ set(EP_msilbc_GIT_TAG "ad872a66fad6f047b7ea10625127fb865f5b359a")
 set(EP_msilbc_EXTERNAL_SOURCE_PATHS "msilbc")
 
 set(EP_msilbc_CMAKE_OPTIONS )
+set(EP_msilbc_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 set(EP_msilbc_DEPENDENCIES EP_ms2 EP_libilbcrfc3951)
 if(MSVC)
 	set(EP_msilbc_EXTRA_LDFLAGS "/SAFESEH:NO")

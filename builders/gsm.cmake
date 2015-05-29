@@ -25,7 +25,7 @@ set(EP_gsm_GIT_TAG_LATEST "linphone")
 set(EP_gsm_GIT_TAG "57d904f7fdc97e611b4a09ff7753d5d648ff82cd")
 set(EP_gsm_EXTERNAL_SOURCE_PATHS "gsm" "externals/gsm")
 
-set(EP_gsm_LINKING_TYPE "-DENABLE_STATIC=NO")
+set(EP_gsm_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 if(MSVC)
 	set(EP_gsm_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()

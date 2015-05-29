@@ -25,7 +25,7 @@ set(EP_speex_GIT_TAG_LATEST "linphone")
 set(EP_speex_GIT_TAG "f3df5a5451088921fe539bbb21dc4cf20704e08f")
 set(EP_speex_EXTERNAL_SOURCE_PATHS "speex" "externals/speex")
 
-set(EP_speex_LINKING_TYPE "-DENABLE_STATIC=NO")
+set(EP_speex_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 if(MSVC)
 	set(EP_speex_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()

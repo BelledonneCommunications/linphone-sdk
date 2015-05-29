@@ -25,6 +25,7 @@ set(EP_mswebrtc_GIT_TAG_LATEST "master")
 set(EP_mswebrtc_GIT_TAG "639429175eab2fbb3aede18a2b4b04ed304a47fe")
 set(EP_mswebrtc_EXTERNAL_SOURCE_PATHS "mswebrtc")
 
+set(EP_mswebrtc_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 set(EP_mswebrtc_CMAKE_OPTIONS )
 set(EP_mswebrtc_DEPENDENCIES EP_ms2)
 
