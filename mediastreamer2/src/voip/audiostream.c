@@ -707,12 +707,24 @@ static void configure_decoder(AudioStream *stream, PayloadType *pt, int sample_r
 	}
 }
 
+static int get_usable_telephone_event(RtpProfile *profile, int clock_rate){
+	int i;
+	for(i=0; i<128; ++i){
+		PayloadType *pt = profile->payload[i];
+		if (pt && strcasecmp(pt->mime_type, "telephone-event")==0 && pt->clock_rate == clock_rate
+			&& (pt->flags & PAYLOAD_TYPE_FLAG_CAN_SEND)){
+			return i;
+		}
+	}
+	return -1;
+}
+
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec){
 	RtpSession *rtps=stream->ms.sessions.rtp_session;
-	PayloadType *pt,*tel_ev;
-	int tmp;
+	PayloadType *pt;
+	int tmp, tev_pt;
 	MSConnectionHelper h;
 	int sample_rate;
 	int nchannels;
@@ -734,7 +746,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,rtps);
 	stream->ms.sessions.rtp_session=rtps;
 
-	if((stream->features & AUDIO_STREAM_FEATURE_DTMF) != 0)
+	if((stream->features & AUDIO_STREAM_FEATURE_DTMF_ECHO) != 0)
 		stream->dtmfgen=ms_filter_new(MS_DTMF_GEN_ID);
 	else
 		stream->dtmfgen=NULL;
@@ -770,9 +782,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	nchannels=pt->channels;
 	stream->ms.current_pt=pt;
-	tel_ev=rtp_profile_get_payload_from_mime (profile,"telephone-event");
+	tev_pt = get_usable_telephone_event(profile, pt->clock_rate);
 
-	if ((stream->features & AUDIO_STREAM_FEATURE_DTMF_ECHO) != 0 && (tel_ev==NULL || ( (tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_RECV) && !(tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_SEND)))
+	if ((stream->features & AUDIO_STREAM_FEATURE_DTMF) != 0 && (tev_pt == -1)
 		&& ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
 		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
 		  inband dtmf*/
@@ -780,6 +792,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	} else {
 		stream->dtmfgen_rtp=NULL;
 	}
+	if (tev_pt != -1)
+		rtp_session_set_send_telephone_event_payload_type(rtps, tev_pt);
 
 	if (ms_filter_call_method(stream->ms.rtpsend,MS_FILTER_GET_SAMPLE_RATE,&sample_rate)!=0){
 		ms_error("Sample rate is unknown for RTP side !");
