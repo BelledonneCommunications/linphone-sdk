@@ -77,4 +77,5 @@ private:
 	VideoStarter mVideoStarter;
 	uint64_t mFrameCount;
 	bool mInitialized;
+	bool mPacketisationModeSet;
 };

@@ -96,9 +96,9 @@ static const MSVideoConfiguration openh264_conf_list[] = {
 
 
 MSOpenH264Encoder::MSOpenH264Encoder(MSFilter *f)
-	: mFilter(f), mPacker(0), mPacketisationMode(0), mVConfList(openh264_conf_list), mFrameCount(0), mInitialized(false)
+	: mFilter(f), mPacker(0), mPacketisationMode(0), mVConfList(openh264_conf_list), mFrameCount(0), mInitialized(false), mPacketisationModeSet(false)
 {
-	mVConf = ms_video_find_best_configuration_for_bitrate(mVConfList, 384000,ms_get_cpu_count());
+	mVConf = ms_video_find_best_configuration_for_bitrate(mVConfList, 384000, ms_factory_get_cpu_count(mFilter->factory));
 
 	long ret = WelsCreateSVCEncoder(&mEncoder);
 	if (ret != 0) {
@@ -117,7 +117,9 @@ void MSOpenH264Encoder::initialize()
 {
 	mFrameCount = 0;
 	mPacker = rfc3984_new();
-	rfc3984_set_mode(mPacker, mPacketisationMode);
+	if (mPacketisationModeSet)
+		rfc3984_set_mode(mPacker, mPacketisationMode);
+	else rfc3984_set_mode(mPacker, 1); // in absence of explicit directive from the other end, allow mode 1 because it allows to send big slices which is necessary for large images
 	rfc3984_enable_stap_a(mPacker, FALSE);
 	if (mEncoder != 0) {
 		SEncParamExt params;
@@ -139,7 +141,7 @@ void MSOpenH264Encoder::initialize()
 			//params.bEnableRc = true;
 			params.bEnableFrameSkip = true;
 			params.bPrefixNalAddingCtrl = false;
-			params.uiMaxNalSize = ms_get_payload_max_size();
+			params.uiMaxNalSize = ms_factory_get_payload_max_size(mFilter->factory);
 			params.iMultipleThreadIdc = ms_get_cpu_count();
 			params.bEnableDenoise = false;
 			params.bEnableBackgroundDetection = true;
@@ -154,7 +156,7 @@ void MSOpenH264Encoder::initialize()
 			params.sSpatialLayers[0].iSpatialBitrate = targetBitrate;
 			params.sSpatialLayers[0].iMaxSpatialBitrate = maxBitrate;
 			params.sSpatialLayers[0].sSliceCfg.uiSliceMode = SM_DYN_SLICE;
-			params.sSpatialLayers[0].sSliceCfg.sSliceArgument.uiSliceSizeConstraint = ms_get_payload_max_size();
+			params.sSpatialLayers[0].sSliceCfg.sSliceArgument.uiSliceSizeConstraint = ms_factory_get_payload_max_size(mFilter->factory);
 
 			ret = mEncoder->InitializeExt(&params);
 			if (ret != 0) {
@@ -197,9 +199,9 @@ void MSOpenH264Encoder::feed()
 			}
 			srcPic.uiTimeStamp = ts;
 			// Send I frame 2 seconds and 4 seconds after the beginning
-		        if (mVideoStarter.needIFrame(mFilter->ticker->time)) {
-                		generateKeyframe();
-        		}
+			if (mVideoStarter.needIFrame(mFilter->ticker->time)) {
+					generateKeyframe();
+			}
 
 			int ret = mEncoder->EncodeFrame(&srcPic, &sFbi);
 			if (ret == cmResultSuccess) {
@@ -263,6 +265,7 @@ void MSOpenH264Encoder::addFmtp(const char *fmtp)
 	char value[12];
 	if (fmtp_get_value(fmtp, "packetization-mode", value, sizeof(value))) {
 		mPacketisationMode = atoi(value);
+		mPacketisationModeSet = true;
 		ms_message("packetization-mode set to %i", mPacketisationMode);
 	}
 }
