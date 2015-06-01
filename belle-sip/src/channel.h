@@ -120,6 +120,7 @@ struct belle_sip_channel{
 	unsigned char has_name; /*set when the name of the peer is known, which is not the case of inboud connections*/
 	unsigned char about_to_be_closed;
 	unsigned char srv_overrides_port; /*set when this channel was connected to destination port provided by SRV resolution*/
+	unsigned char soft_error; /*set when this channel enters ERROR state because of error detected in upper layer */
 };
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
@@ -192,6 +193,9 @@ void belle_sip_channel_force_close(belle_sip_channel_t *obj);
  get a better chance of receiving an answer.
  Returns TRUE if the channel enters error state, 0 otherwise (channel is given a second chance) */
 int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj);
+
+/*Used by transaction layer to report a server having internal errors, so that we can retry with another IP (in case of DNS SRV)*/
+void belle_sip_channel_notify_server_error(belle_sip_channel_t *obj);
 
 BELLE_SIP_END_DECLS
 

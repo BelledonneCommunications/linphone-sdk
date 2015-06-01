@@ -849,8 +849,9 @@ static void channel_connect_next(belle_sip_channel_t *obj){
 }
 
 static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
-	if (obj->state!=BELLE_SIP_CHANNEL_READY){
-		/* Previous connection attempts were failed (channel could not get ready).*/
+	if (obj->state!=BELLE_SIP_CHANNEL_READY || obj->soft_error){
+		/* Previous connection attempts were failed (channel could not get ready) OR soft error reported*/
+		obj->soft_error = FALSE;
 		/* See if you can retry on an alternate ip address.*/
 		if (obj->current_peer && obj->current_peer->ai_next){ /*obj->current_peer may be null in case of dns error*/
 			obj->current_peer=obj->current_peer->ai_next;
@@ -878,6 +879,12 @@ int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj){
 		return TRUE;
 	}
 	return FALSE;
+}
+
+void belle_sip_channel_notify_server_error(belle_sip_channel_t *obj){
+	belle_sip_message("channel[%p]: this server is encountering internal errors, moving to error state to eventually connect to another IP.", obj);
+	obj->soft_error = TRUE;
+	channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 }
 
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state) {
