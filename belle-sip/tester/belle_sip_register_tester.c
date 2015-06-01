@@ -311,7 +311,9 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 	if (use_transaction){
 		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
 		belle_sip_client_transaction_send_request_to(t,outbound?belle_sip_uri_parse(outbound):NULL);
-	}else belle_sip_provider_send_request(prov,req);
+	}else{
+		belle_sip_provider_send_request(prov,req);
+	}
 	for(i=0;!is_register_ok && i<20 && io_error_count==0;i++) {
 		belle_sip_stack_sleep(stack,500);
 		if (!use_transaction && !is_register_ok) {
@@ -632,7 +634,6 @@ static void reuse_nonce(void) {
 	int initial_auth_context_count=belle_sip_list_size(prov->auth_contexts);
 	register_request=register_user_at_domain(stack, prov, "tcp",1,"marie","sip.linphone.org",NULL);
 	if (register_request) {
-
 		char * first_nonce_used;
 		belle_sip_header_authorization_t * h = NULL;
 		belle_sip_request_t *message_request;
