@@ -243,11 +243,13 @@ static mblk_t * aggregate_fua(Rfc3984Context *ctx, mblk_t *im){
 }
 
 /*process incoming rtp data and output NALUs, whenever possible*/
-void rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
+int rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
 	uint8_t type=nal_header_get_type(im->b_rptr);
 	uint8_t *p;
 	int marker = mblk_get_marker_info(im);
 	uint32_t ts=mblk_get_timestamp_info(im);
+	uint16_t cseq=mblk_get_cseq(im);
+	int res = 0;
 
 	if (ctx->last_ts!=ts){
 		/*a new frame is arriving, in case the marker bit was not set in previous frame, output it now*/
@@ -258,12 +260,25 @@ void rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
 			while(!ms_queue_empty(&ctx->q)){
 				ms_queue_put(out,ms_queue_get(&ctx->q));
 				out_without_marker = TRUE;
+				res = -1;
 			}
 			if (out_without_marker) ms_warning("Incomplete H264 frame (missing marker bit)");
 		}
 	}
 
 	if (im->b_cont) msgpullup(im,-1);
+
+	if (!ctx->initialized_ref_cseq) {
+		ctx->initialized_ref_cseq = TRUE;
+		ctx->ref_cseq = cseq;
+	} else {
+		ctx->ref_cseq++;
+		if (ctx->ref_cseq != cseq) {
+			ms_message("sequence inconsistency detected (diff=%i)",(int)(cseq - ctx->ref_cseq));
+			ctx->ref_cseq = cseq;
+			res = -1;
+		}
+	}
 
 	if (type==TYPE_STAP_A){
 		/*split into nalus*/
@@ -312,6 +327,8 @@ void rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
 			ms_queue_put(out,ms_queue_get(&ctx->q));
 		}
 	}
+
+	return res;
 }
 
 

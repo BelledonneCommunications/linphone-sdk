@@ -37,9 +37,10 @@ typedef struct Rfc3984Context{
 	mblk_t *m;
 	int maxsz;
 	uint32_t last_ts;
+	uint16_t ref_cseq;
 	uint8_t mode;
 	bool_t stap_a_allowed;
-	uint8_t reserved;
+	bool_t initialized_ref_cseq;
 } Rfc3984Context;
 
 MS2_PUBLIC Rfc3984Context *rfc3984_new(void);
@@ -55,8 +56,11 @@ MS2_PUBLIC void rfc3984_enable_stap_a(Rfc3984Context *ctx, bool_t yesno);
 /*process NALUs and pack them into rtp payloads */
 MS2_PUBLIC void rfc3984_pack(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 
-/*process incoming rtp data and output NALUs, whenever possible*/
-MS2_PUBLIC void rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq);
+/**
+ * Process incoming rtp data and output NALUs, whenever possible.
+ * @return 0 if everything was ok, -1 on error.
+**/
+MS2_PUBLIC int rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq);
 
 void rfc3984_uninit(Rfc3984Context *ctx);
 
