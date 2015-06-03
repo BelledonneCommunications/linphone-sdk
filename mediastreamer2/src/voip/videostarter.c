@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void ms_video_starter_init(MSVideoStarter *vs) {
 	vs->next_time = 0;
 	vs->i_frame_count = 0;
+	vs->active = TRUE;
 }
 
 void ms_video_starter_first_frame(MSVideoStarter *vs, uint64_t curtime) {
@@ -33,7 +34,7 @@ void ms_video_starter_first_frame(MSVideoStarter *vs, uint64_t curtime) {
 }
 
 bool_t ms_video_starter_need_i_frame(MSVideoStarter *vs, uint64_t curtime) {
-	if (vs->next_time == 0) return FALSE;
+	if ((vs->active == FALSE) || (vs->next_time == 0)) return FALSE;
 	if (curtime >= vs->next_time) {
 		vs->i_frame_count++;
 		if (vs->i_frame_count == 1) {
@@ -44,4 +45,8 @@ bool_t ms_video_starter_need_i_frame(MSVideoStarter *vs, uint64_t curtime) {
 		return TRUE;
 	}
 	return FALSE;
+}
+
+void ms_video_starter_deactivate(MSVideoStarter *vs) {
+	vs->active = FALSE;
 }

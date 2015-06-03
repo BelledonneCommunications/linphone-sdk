@@ -37,11 +37,13 @@ extern "C"{
 	typedef struct MSVideoStarter {
 		uint64_t next_time;
 		int i_frame_count;
+		bool_t active;
 	} MSVideoStarter;
 
 	MS2_PUBLIC void ms_video_starter_init(MSVideoStarter *vs);
 	MS2_PUBLIC void ms_video_starter_first_frame(MSVideoStarter *vs, uint64_t curtime);
 	MS2_PUBLIC bool_t ms_video_starter_need_i_frame(MSVideoStarter *vs, uint64_t curtime);
+	MS2_PUBLIC void ms_video_starter_deactivate(MSVideoStarter *vs);
 
 #ifdef __cplusplus
 }
