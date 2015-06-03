@@ -21,26 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/rfc3984.h"
+#include "mediastreamer2/videostarter.h"
 #include "wels/codec_api.h"
 #include "msopenh264.h"
-
-
-/**
- * The goal of this small object is to tell when to send I frames at startup: at 2 and 4 seconds
- */
-class VideoStarter {
-public:
-	VideoStarter();
-	virtual ~VideoStarter();
-	void firstFrame(uint64_t curtime);
-	bool needIFrame(uint64_t curtime);
-	void deactivate();
-
-private:
-	bool mActive;
-	uint64_t mNextTime;
-	int mFrameCount;
-};
 
 
 class MSOpenH264Encoder {
@@ -61,9 +44,13 @@ public:
 	const MSVideoConfiguration *getConfigurationList() const { return mVConfList; }
 	void setConfiguration(MSVideoConfiguration conf);
 	void requestVFU();
+	void enableAVPF(bool enable) { mAVPFEnabled = enable; }
+	void notifyPLI();
+	void notifyFIR(uint8_t seqnr);
 
 private:
 	void generateKeyframe();
+	bool shouldGenerateKeyframe(int frameDist);
 	void fillNalusQueue(SFrameBSInfo& sFbi, MSQueue* nalus);
 	void calcBitrates(int &targetBitrate, int &maxBitrate) const;
 	void applyBitrate();
@@ -74,8 +61,11 @@ private:
 	ISVCEncoder *mEncoder;
 	const MSVideoConfiguration *mVConfList;
 	MSVideoConfiguration mVConf;
-	VideoStarter mVideoStarter;
+	MSVideoStarter mVideoStarter;
 	uint64_t mFrameCount;
+	uint64_t mLastIDRFrameCount;
 	bool mInitialized;
 	bool mPacketisationModeSet;
+	bool mAVPFEnabled;
+	int mLastFIRSeqNr;
 };

@@ -75,6 +75,12 @@ static int msopenh264_dec_reset_first_image(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int msopenh264_dec_enable_avpf(MSFilter *f, void *arg) {
+	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
+	d->enableAVPF(*((bool_t *)arg) ? true : false);
+	return 0;
+}
+
 static int msopenh264_dec_get_size(MSFilter *f, void *arg) {
 	MSOpenH264Decoder *d = static_cast<MSOpenH264Decoder *>(f->data);
 	MSVideoSize *size = static_cast<MSVideoSize *>(arg);
@@ -98,6 +104,7 @@ static int msopenh264_dec_get_out_fmt(MSFilter *f, void *arg){
 static MSFilterMethod msopenh264_dec_methods[] = {
 	{ MS_FILTER_ADD_FMTP,                              msopenh264_dec_add_fmtp          },
 	{ MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, msopenh264_dec_reset_first_image },
+	{ MS_VIDEO_DECODER_ENABLE_AVPF,                    msopenh264_dec_enable_avpf       },
 	{ MS_FILTER_GET_VIDEO_SIZE,                        msopenh264_dec_get_size          },
 	{ MS_FILTER_GET_FPS,                               msopenh264_dec_get_fps           },
 	{ MS_FILTER_GET_OUTPUT_FMT,                        msopenh264_dec_get_out_fmt       },
@@ -116,7 +123,7 @@ static MSFilterMethod msopenh264_dec_methods[] = {
 #define MSOPENH264_DEC_NOUTPUTS    1
 #define MSOPENH264_DEC_FLAGS       0
 
-#if 0
+#ifndef _MSC_VER
 
 MSFilterDesc msopenh264_dec_desc = {
 	.id = MS_FILTER_PLUGIN_ID,
@@ -246,6 +253,25 @@ static int msopenh264_enc_req_vfu(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int msopenh264_enc_notify_pli(MSFilter *f, void *arg) {
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	e->notifyPLI();
+	return 0;
+}
+
+static int msopenh264_enc_notify_fir(MSFilter *f, void *arg) {
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	uint8_t seqnr = *((uint8_t *)arg);
+	e->notifyFIR(seqnr);
+	return 0;
+}
+
+static int msopenh264_enc_enable_avpf(MSFilter *f, void *arg) {
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	e->enableAVPF(*((bool_t *)arg) ? true : false);
+	return 0;
+}
+
 static int msopenh264_enc_get_configuration_list(MSFilter *f, void *arg) {
 	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
 	const MSVideoConfiguration **vconf_list = static_cast<const MSVideoConfiguration **>(arg);
@@ -269,9 +295,10 @@ static MSFilterMethod msopenh264_enc_methods[] = {
 	{ MS_FILTER_GET_VIDEO_SIZE,                msopenh264_enc_get_vsize              },
 	{ MS_FILTER_ADD_FMTP,                      msopenh264_enc_add_fmtp               },
 	{ MS_FILTER_REQ_VFU,                       msopenh264_enc_req_vfu                },
-#ifdef MS_VIDEO_ENCODER_REQ_VFU
 	{ MS_VIDEO_ENCODER_REQ_VFU,                msopenh264_enc_req_vfu                },
-#endif
+	{ MS_VIDEO_ENCODER_NOTIFY_PLI,             msopenh264_enc_notify_pli             },
+	{ MS_VIDEO_ENCODER_NOTIFY_FIR,             msopenh264_enc_notify_fir             },
+	{ MS_VIDEO_ENCODER_ENABLE_AVPF,            msopenh264_enc_enable_avpf            },
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, msopenh264_enc_get_configuration_list },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      msopenh264_enc_set_configuration      },
 	{ 0,                                       NULL                                  }
@@ -289,7 +316,7 @@ static MSFilterMethod msopenh264_enc_methods[] = {
 #define MSOPENH264_ENC_NOUTPUTS    1
 #define MSOPENH264_ENC_FLAGS       0
 
-#if 0
+#ifndef _MSC_VER
 
 MSFilterDesc msopenh264_enc_desc = {
 	.id = MS_FILTER_PLUGIN_ID,

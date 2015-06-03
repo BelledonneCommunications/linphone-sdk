@@ -35,6 +35,7 @@ public:
 	void uninitialize();
 	void provideSpropParameterSets(char *value, int valueSize);
 	void resetFirstImageDecoded();
+	void enableAVPF(bool enable) { mAVPFEnabled = enable; }
 	MSVideoSize getSize() const;
 	float getFps()const;
 	const MSFmtDescriptor *getOutFmt()const;
@@ -61,4 +62,5 @@ private:
 	int mHeight;
 	bool mInitialized;
 	bool mFirstImageDecoded;
+	bool mAVPFEnabled;
 };

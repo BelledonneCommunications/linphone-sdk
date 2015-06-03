@@ -81,17 +81,18 @@ void MSOpenH264Decoder::feed()
 	ms_queue_init(&nalus);
 
 	mblk_t *im;
+	bool requestPLI = false;
 	while ((im = ms_queue_get(mFilter->inputs[0])) != NULL) {
 		if ((getIDRPicId() == 0) && (mSPS != 0) && (mPPS != 0)) {
 			// Push the sps/pps given in sprop-parameter-sets if any
 			mblk_set_timestamp_info(mSPS, mblk_get_timestamp_info(im));
 			mblk_set_timestamp_info(mPPS, mblk_get_timestamp_info(im));
-			rfc3984_unpack(mUnpacker, mSPS, &nalus);
-			rfc3984_unpack(mUnpacker, mPPS, &nalus);
+			requestPLI |= (rfc3984_unpack(mUnpacker, mSPS, &nalus) < 0);
+			requestPLI |= (rfc3984_unpack(mUnpacker, mPPS, &nalus) < 0);
 			mSPS = 0;
 			mPPS = 0;
 		}
-		rfc3984_unpack(mUnpacker, im, &nalus);
+		requestPLI |= (rfc3984_unpack(mUnpacker, im, &nalus) < 0);
 		if (!ms_queue_empty(&nalus)) {
 			void * pData[3] = { 0 };
 			SBufferInfo sDstBufInfo = { 0 };
@@ -100,7 +101,7 @@ void MSOpenH264Decoder::feed()
 			DECODING_STATE state = mDecoder->DecodeFrame2(mBitstream, len, (uint8_t**)pData, &sDstBufInfo);
 			if (state != dsErrorFree) {
 				ms_error("OpenH264 decoder: DecodeFrame2 failed: 0x%x", state);
-				if (((mFilter->ticker->time - mLastErrorReportTime) > 5000) || (mLastErrorReportTime == 0)) {
+				if (!mAVPFEnabled && (((mFilter->ticker->time - mLastErrorReportTime) > 5000) || (mLastErrorReportTime == 0))) {
 					mLastErrorReportTime = mFilter->ticker->time;
 					ms_filter_notify_no_arg(mFilter, MS_VIDEO_DECODER_DECODING_ERRORS);
 				}
@@ -153,6 +154,10 @@ void MSOpenH264Decoder::feed()
 #endif
 			}
 		}
+	}
+
+	if (mAVPFEnabled && requestPLI) {
+		ms_filter_notify_no_arg(mFilter, MS_VIDEO_DECODER_SEND_PLI);
 	}
 }
 

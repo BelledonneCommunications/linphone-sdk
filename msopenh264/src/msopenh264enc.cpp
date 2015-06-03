@@ -31,37 +31,8 @@ static int debugLevel = 1;
 #endif
 
 
-VideoStarter::VideoStarter()
-	: mActive(true), mNextTime(0), mFrameCount(0)
-{}
+static const int MIN_KEY_FRAME_DIST = 4;
 
-VideoStarter::~VideoStarter()
-{}
-
-void VideoStarter::firstFrame(uint64_t curtime)
-{
-	mNextTime = curtime + 2000;
-}
-
-bool VideoStarter::needIFrame(uint64_t curtime)
-{
-	if (!mActive || (mNextTime == 0)) return false;
-	if (curtime >= mNextTime) {
-		mFrameCount++;
-		if (mFrameCount == 1) {
-			mNextTime += 2000;
-		} else {
-			mNextTime = 0;
-		}
-		return true;
-	}
-	return false;
-}
-
-void VideoStarter::deactivate()
-{
-	mActive = false;
-}
 
 #if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
 	#define MS_OPENH264_CONF(required_bitrate, bitrate_limit, resolution, fps_pc, cpus_pc, fps_mobile, cpus_mobile) \
@@ -96,7 +67,8 @@ static const MSVideoConfiguration openh264_conf_list[] = {
 
 
 MSOpenH264Encoder::MSOpenH264Encoder(MSFilter *f)
-	: mFilter(f), mPacker(0), mPacketisationMode(0), mVConfList(openh264_conf_list), mFrameCount(0), mInitialized(false), mPacketisationModeSet(false)
+	: mFilter(f), mPacker(0), mPacketisationMode(0), mVConfList(openh264_conf_list), mFrameCount(0), mLastIDRFrameCount(0),
+		mInitialized(false), mPacketisationModeSet(false), mAVPFEnabled(false), mLastFIRSeqNr(-1)
 {
 	mVConf = ms_video_find_best_configuration_for_bitrate(mVConfList, 384000, ms_factory_get_cpu_count(mFilter->factory));
 
@@ -170,6 +142,9 @@ void MSOpenH264Encoder::initialize()
 			}
 		}
 	}
+	if (!mAVPFEnabled && (mFrameCount == 0)) {
+		ms_video_starter_init(&mVideoStarter);
+	}
 }
 
 void MSOpenH264Encoder::feed()
@@ -198,18 +173,20 @@ void MSOpenH264Encoder::feed()
 				srcPic.pData[i] = pic.planes[i];
 			}
 			srcPic.uiTimeStamp = ts;
-			// Send I frame 2 seconds and 4 seconds after the beginning
-			if (mVideoStarter.needIFrame(mFilter->ticker->time)) {
-					generateKeyframe();
+			if (!mAVPFEnabled && ms_video_starter_need_i_frame(&mVideoStarter, mFilter->ticker->time)) {
+				generateKeyframe();
 			}
 
 			int ret = mEncoder->EncodeFrame(&srcPic, &sFbi);
 			if (ret == cmResultSuccess) {
 				if ((sFbi.eFrameType != videoFrameTypeSkip) && (sFbi.eFrameType != videoFrameTypeInvalid)) {
-					if (mFrameCount == 0) {
-						mVideoStarter.firstFrame(mFilter->ticker->time);
+					if (sFbi.eFrameType == videoFrameTypeIDR) {
+						mLastIDRFrameCount = mFrameCount;
 					}
 					mFrameCount++;
+					if (!mAVPFEnabled && (mFrameCount == 1)) {
+						ms_video_starter_first_frame(&mVideoStarter, mFilter->ticker->time);
+					}
 					fillNalusQueue(sFbi, &nalus);
 					rfc3984_pack(mPacker, &nalus, mFilter->outputs[0], sFbi.uiTimeStamp);
 				}
@@ -289,8 +266,25 @@ void MSOpenH264Encoder::setConfiguration(MSVideoConfiguration conf)
 void MSOpenH264Encoder::requestVFU()
 {
 	// If we receive a VFU request, stop the video starter
-	mVideoStarter.deactivate();
+	ms_video_starter_deactivate(&mVideoStarter);
 	generateKeyframe();
+}
+
+void MSOpenH264Encoder::notifyPLI()
+{
+	ms_message("OpenH264: PLI requested");
+	if (shouldGenerateKeyframe(MIN_KEY_FRAME_DIST)) {
+		ms_message("OpenH264: PLI accepted");
+		generateKeyframe();
+	}
+}
+
+void MSOpenH264Encoder::notifyFIR(uint8_t seqnr)
+{
+	if (seqnr != mLastFIRSeqNr) {
+		mLastFIRSeqNr = seqnr;
+		generateKeyframe();
+	}
 }
 
 void MSOpenH264Encoder::generateKeyframe()
@@ -306,6 +300,12 @@ void MSOpenH264Encoder::generateKeyframe()
 			ms_error("OpenH264 encoder: Failed forcing intra-frame: %d", ret);
 		}
 	}
+}
+
+bool MSOpenH264Encoder::shouldGenerateKeyframe(int frameDist)
+{
+	if (mFrameCount > mLastIDRFrameCount + frameDist) return true;
+	return false;
 }
 
 void MSOpenH264Encoder::fillNalusQueue(SFrameBSInfo &sFbi, MSQueue *nalus)
