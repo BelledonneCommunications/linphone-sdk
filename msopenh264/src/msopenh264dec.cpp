@@ -101,7 +101,9 @@ void MSOpenH264Decoder::feed()
 			DECODING_STATE state = mDecoder->DecodeFrame2(mBitstream, len, (uint8_t**)pData, &sDstBufInfo);
 			if (state != dsErrorFree) {
 				ms_error("OpenH264 decoder: DecodeFrame2 failed: 0x%x", state);
-				if (!mAVPFEnabled && (((mFilter->ticker->time - mLastErrorReportTime) > 5000) || (mLastErrorReportTime == 0))) {
+				if (mAVPFEnabled) {
+					requestPLI = true;
+				} else if (((mFilter->ticker->time - mLastErrorReportTime) > 5000) || (mLastErrorReportTime == 0)) {
 					mLastErrorReportTime = mFilter->ticker->time;
 					ms_filter_notify_no_arg(mFilter, MS_VIDEO_DECODER_DECODING_ERRORS);
 				}
