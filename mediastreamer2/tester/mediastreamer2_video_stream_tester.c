@@ -502,18 +502,29 @@ static void video_stream_first_iframe_lost_vp8(void) {
 	video_stream_tester_destroy(margaux);
 }
 
-static void avpf_video_stream_first_iframe_lost_vp8(void) {
+static void avpf_video_stream_first_iframe_lost_base(int payload_type) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = FALSE;
+
+	switch (payload_type) {
+		case VP8_PAYLOAD_TYPE:
+			supported = ms_filter_codec_supported("vp8");
+			break;
+		case H264_PAYLOAD_TYPE:
+			supported = ms_filter_codec_supported("h264");
+			break;
+		default:
+			break;
+	}
 
 	if (supported) {
 		int dummy=0;
 		/* Make sure first Iframe is lost. */
 		params.enabled = TRUE;
 		params.loss_rate = 100.;
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params, VP8_PAYLOAD_TYPE);
+		init_video_streams(marielle, margaux, TRUE, FALSE, &params, payload_type);
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms,&dummy,1,1000);
 
 		/* Remove the lost to be sure that a PLI will be sent and not a SLI. */
@@ -534,40 +545,79 @@ static void avpf_video_stream_first_iframe_lost_vp8(void) {
 
 		uninit_video_streams(marielle, margaux);
 	} else {
-		ms_error("VP8 codec is not supported!");
+		ms_error("Codec is not supported!");
 	}
 	video_stream_tester_destroy(marielle);
 	video_stream_tester_destroy(margaux);
 }
 
-static void avpf_high_loss_video_stream_base(float rate) {
+static void avpf_video_stream_first_iframe_lost_vp8(void) {
+	avpf_video_stream_first_iframe_lost_base(VP8_PAYLOAD_TYPE);
+}
+
+static void avpf_video_stream_first_iframe_lost_h264(void) {
+	avpf_video_stream_first_iframe_lost_base(H264_PAYLOAD_TYPE);
+}
+
+static void avpf_high_loss_video_stream_base(float rate, int payload_type) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = FALSE;
+
+	switch (payload_type) {
+		case VP8_PAYLOAD_TYPE:
+			supported = ms_filter_codec_supported("vp8");
+			break;
+		case H264_PAYLOAD_TYPE:
+			supported = ms_filter_codec_supported("h264");
+			break;
+		default:
+			break;
+	}
 
 	if (supported) {
 		params.enabled = TRUE;
 		params.loss_rate = rate;
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
-		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 10, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		if (rate <= 10) {
-			BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		init_video_streams(marielle, margaux, TRUE, FALSE, &params, payload_type);
+		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
+			&marielle->stats.number_of_SR, 10, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		switch (payload_type) {
+			case VP8_PAYLOAD_TYPE:
+				BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
+					&marielle->stats.number_of_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+				if (rate <= 10) {
+					BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
+						&marielle->stats.number_of_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+				}
+				break;
+			case H264_PAYLOAD_TYPE:
+				BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
+					&marielle->stats.number_of_PLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+				break;
+			default:
+				break;
 		}
 		uninit_video_streams(marielle, margaux);
 	} else {
-		ms_error("VP8 codec is not supported!");
+		ms_error("Codec is not supported!");
 	}
 	video_stream_tester_destroy(marielle);
 	video_stream_tester_destroy(margaux);
 }
-static void avpf_very_high_loss_video_stream(void) {
-	avpf_high_loss_video_stream_base(25.);
+
+static void avpf_very_high_loss_video_stream_vp8(void) {
+	avpf_high_loss_video_stream_base(25., VP8_PAYLOAD_TYPE);
 }
-static void avpf_high_loss_video_stream(void) {
-	avpf_high_loss_video_stream_base(10.);
+
+static void avpf_high_loss_video_stream_vp8(void) {
+	avpf_high_loss_video_stream_base(10., VP8_PAYLOAD_TYPE);
 }
+
+static void avpf_high_loss_video_stream_h264(void) {
+	avpf_high_loss_video_stream_base(10., H264_PAYLOAD_TYPE);
+}
+
 static void video_configuration_stream_base(MSVideoConfiguration* asked, MSVideoConfiguration* expected_result, int payload_type) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
@@ -634,9 +684,11 @@ static test_t tests[] = {
 	{ "Basic one-way video stream", basic_one_way_video_stream },
 	{ "Codec change for video stream", codec_change_for_video_stream },
 	{ "AVPF video stream", avpf_video_stream },
-	{ "AVPF high-loss video stream", avpf_high_loss_video_stream },
-	{ "AVPF very high-loss video stream", avpf_very_high_loss_video_stream },
-	{ "AVPF video stream first iframe lost", avpf_video_stream_first_iframe_lost_vp8 },
+	{ "AVPF high-loss video stream VP8", avpf_high_loss_video_stream_vp8 },
+	{ "AVPF very high-loss video stream VP8", avpf_very_high_loss_video_stream_vp8 },
+	{ "AVPF high-loss video stream H264", avpf_high_loss_video_stream_h264 },
+	{ "AVPF video stream first iframe lost VP8", avpf_video_stream_first_iframe_lost_vp8 },
+	{ "AVPF video stream first iframe lost H264", avpf_video_stream_first_iframe_lost_h264 },
 	{ "AVP video stream first iframe lost", video_stream_first_iframe_lost_vp8 },
 	{ "Video configuration", video_configuration_stream },
 	{ "AVPF RPSI count", avpf_rpsi_count}
