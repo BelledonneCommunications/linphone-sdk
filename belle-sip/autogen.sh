@@ -31,3 +31,8 @@ autoheader
 $AUTOMAKE --force-missing --add-missing --copy
 autoconf
 
+#install git pre-commit hooks if possible
+if [ -d .git/hooks ] && [ ! -f .git/hooks/pre-commit ]; then
+        cp .git-pre-commit .git/hooks/pre-commit
+        chmod +x .git/hooks/pre-commit
+fi
