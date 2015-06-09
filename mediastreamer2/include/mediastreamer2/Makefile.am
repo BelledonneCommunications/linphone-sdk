@@ -41,6 +41,7 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				msvaddtx.h \
 				msvideo.h \
 				msvideoout.h \
+				msvideopresets.h \
 				msvolume.h \
 				mswebcam.h \
 				qualityindicator.h \

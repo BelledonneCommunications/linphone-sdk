@@ -81,6 +81,7 @@ LOCAL_SRC_FILES = \
 	base/msqueue.c \
 	base/mssndcard.c \
 	base/msticker.c \
+	base/msvideopresets.c \
 	base/mswebcam.c \
 	base/mtu.c \
 	crypto/dtls_srtp.c \

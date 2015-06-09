@@ -47,6 +47,7 @@ extern void libmsandroidopengldisplay_init(MSFactory *factory);
 
 #include "voipdescs.h"
 #include "mediastreamer2/mssndcard.h"
+#include "mediastreamer2/msvideopresets.h"
 #include "mediastreamer2/mswebcam.h"
 
 #ifdef __APPLE__
@@ -272,6 +273,7 @@ void ms_factory_init_voip(MSFactory *obj){
 
 #ifdef VIDEO_ENABLED
 		{
+			MSVideoPresetsManager *vpm;
 			MSWebCamManager *wm;
 			wm=ms_web_cam_manager_get();
 			if (wm->descs==NULL){
@@ -280,6 +282,7 @@ void ms_factory_init_voip(MSFactory *obj){
 					ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
 				}
 			}
+			vpm = ms_video_presets_manager_get();
 		}
 #endif
 	}
@@ -309,6 +312,7 @@ void ms_factory_uninit_voip(MSFactory *obj){
 			ms_snd_card_manager_destroy();
 #ifdef VIDEO_ENABLED
 			ms_web_cam_manager_destroy();
+			ms_video_presets_manager_destroy();
 #endif
 		}
 	}

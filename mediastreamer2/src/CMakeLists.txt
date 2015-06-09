@@ -38,6 +38,7 @@ set(BASE_SOURCE_FILES
 	base/msqueue.c
 	base/mssndcard.c
 	base/msticker.c
+	base/msvideopresets.c
 	base/mswebcam.c
 	base/mtu.c
 	otherfilters/itc.c

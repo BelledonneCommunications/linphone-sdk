@@ -75,6 +75,7 @@ libmediastreamer_base_la_SOURCES=	base/mscommon.c \
 					base/msfactory.c \
 					otherfilters/tee.c \
 					otherfilters/join.c \
+					base/msvideopresets.c \
 					base/mswebcam.c \
 					base/mtu.c \
 					otherfilters/void.c \
