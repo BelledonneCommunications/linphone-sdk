@@ -145,6 +145,9 @@ struct _MSVideoConfiguration {
 	void *extra;	/**< A pointer to some extra parameters that may be used by the encoder when using this video configuration. */
 };
 
+#define MS_VIDEO_CONF(required_bitrate, bitrate_limit, resolution, fps, mincpu) \
+	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, mincpu, NULL }
+
 /**
  * Definition of the MSVideoConfiguration type.
  * @see struct _MSVideoConfiguration
