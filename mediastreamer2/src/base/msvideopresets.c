@@ -64,6 +64,7 @@ static MSVideoPreset * find_video_preset(MSVideoPresetsManager *manager, const c
 		if (strcmp(name, vp->name) == 0) {
 			return vp;
 		}
+		elem = elem->next;
 	}
 	return NULL;
 }

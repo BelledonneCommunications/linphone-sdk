@@ -130,6 +130,7 @@ char * ms_factory_get_platform_tags_as_string(MSFactory *obj) {
 			tags_str = ms_strdup_printf("%s,%s", old, elem_str);
 			ms_free(old);
 		}
+		elem = elem->next;
 	}
 	return tags_str;
 }
