@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msextdisplay.h"
 #include "mediastreamer2/msitc.h"
 #include "mediastreamer2/zrtp.h"
+#include "mediastreamer2/msvideopresets.h"
 #include "private.h"
 
 
@@ -71,6 +72,7 @@ void video_stream_free(VideoStream *stream) {
 
 	if (stream->display_name!=NULL)
 		ms_free(stream->display_name);
+	if (stream->preset != NULL) ms_free(stream->preset);
 
 	ms_free(stream);
 }
@@ -642,6 +644,41 @@ bool_t video_stream_started(VideoStream *stream) {
 	return media_stream_started(&stream->ms);
 }
 
+static void apply_video_preset(VideoStream *stream, PayloadType *pt) {
+	MSVideoPresetsManager *vpm = ms_factory_get_video_presets_manager(ms_factory_get_fallback());
+	MSVideoPresetConfiguration *vpc = NULL;
+	MSVideoConfiguration *conf = NULL;
+	MSList *codec_tags = NULL;
+	bool_t hardware_accelerated = FALSE;
+	if (stream->preset != NULL) {
+		codec_tags = ms_list_append(codec_tags, ms_strdup(payload_type_get_mime(pt)));
+		codec_tags = ms_list_append(codec_tags, ms_strdup(stream->ms.encoder->desc->name));
+		if (ms_filter_has_method(stream->ms.encoder, MS_VIDEO_ENCODER_IS_HARDWARE_ACCELERATED) == TRUE) {
+			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_IS_HARDWARE_ACCELERATED, &hardware_accelerated);
+		}
+		if (hardware_accelerated == TRUE) {
+			codec_tags = ms_list_append(codec_tags, ms_strdup("hardware"));
+		}
+		vpc = ms_video_presets_manager_find_preset_configuration(vpm, stream->preset, codec_tags);
+		ms_list_for_each(codec_tags, ms_free);
+		ms_list_free(codec_tags);
+		if (vpc != NULL) {
+			char *conf_tags = ms_video_preset_configuration_get_tags_as_string(vpc);
+			conf = ms_video_preset_configuration_get_video_configuration(vpc);
+			ms_message("Using the '%s' video preset tagged '%s'", stream->preset, conf_tags);
+			ms_free(conf_tags);
+		} else {
+			ms_warning("No '%s' video preset has been found", stream->preset);
+		}
+	}
+	if (conf == NULL) {
+		ms_message("Using the default video configuration list");
+	}
+	if (ms_filter_has_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST) == TRUE) {
+		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST, &conf);
+	}
+}
+
 static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 	MSVideoConfiguration *vconf_list = NULL;
 	ms_message("Limiting bitrate of video encoder to %i bits/s for stream [%p]",pt->normal_bitrate,stream);
@@ -743,6 +780,7 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 			stream->ms.encoder = stream->source;	/* Consider the encoder is the source */
 		}
 
+		apply_video_preset(stream, pt);
 		if (pt->normal_bitrate>0){
 			apply_bitrate_limit(stream, pt);
 		}
@@ -1035,6 +1073,7 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 			MSPixFmt format = mime_type_to_pix_format(pt->mime_type);
 			ms_filter_call_method(stream->source, MS_FILTER_SET_PIX_FMT, &format);
 		}
+		apply_video_preset(stream, pt);
 		if (pt->normal_bitrate > 0){
 			apply_bitrate_limit(stream ,pt);
 		}
@@ -1431,4 +1470,9 @@ void video_stream_decoding_error_recovered(VideoStream *stream) {
 }
 const MSWebCam * video_stream_get_camera(const VideoStream *stream) {
 	return stream->cam;
+}
+
+void video_stream_use_video_preset(VideoStream *stream, const char *preset) {
+	if (stream->preset != NULL) ms_free(stream->preset);
+	stream->preset = ms_strdup(preset);
 }

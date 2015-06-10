@@ -147,6 +147,8 @@ MS2_PUBLIC MSList *ms_list_insert(MSList *list, MSList *before, void *data);
 MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
 MS2_PUBLIC MSList *ms_list_copy_with_data(const MSList *list, void *(*copyfunc)(void *));
 
+MS2_PUBLIC char * ms_tags_list_as_string(const MSList *list);
+
 #undef MIN
 #define MIN(a,b)	((a)>(b) ? (b) : (a))
 #undef MAX

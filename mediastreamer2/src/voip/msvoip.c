@@ -282,10 +282,13 @@ void ms_factory_init_voip(MSFactory *obj){
 					ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
 				}
 			}
-			vpm = ms_video_presets_manager_get();
 		}
 #endif
 	}
+
+#ifdef VIDEO_ENABLED
+	ms_video_presets_manager_new(obj);
+#endif
 
 #if defined(VIDEO_ENABLED) && defined(MS2_FILTERS) && !defined(NO_FFMPEG) && defined(HAVE_LIBAVCODEC_AVCODEC_H)
 	ms_ffmpeg_check_init();
@@ -307,12 +310,14 @@ void ms_factory_init_voip(MSFactory *obj){
 
 void ms_factory_uninit_voip(MSFactory *obj){
 	if (obj->voip_initd){
+#ifdef VIDEO_ENABLED
+		ms_video_presets_manager_destroy(obj->video_presets_manager);
+#endif
 		managers_ref--;
 		if (managers_ref==0){
 			ms_snd_card_manager_destroy();
 #ifdef VIDEO_ENABLED
 			ms_web_cam_manager_destroy();
-			ms_video_presets_manager_destroy();
 #endif
 		}
 	}

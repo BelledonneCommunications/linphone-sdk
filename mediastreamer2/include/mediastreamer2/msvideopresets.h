@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MSVIDEOPRESETS_H
 
 #include <mediastreamer2/mscommon.h>
+#include <mediastreamer2/msfilter.h>
+#include <mediastreamer2/msfactory.h>
 #include <mediastreamer2/msvideo.h>
 
 /**
@@ -41,21 +43,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 typedef struct _MSVideoPresetsManager MSVideoPresetsManager;
 
+/**
+ * Structure for video preset configuration object.
+ */
+typedef struct _MSVideoPresetConfiguration MSVideoPresetConfiguration;
+
 
 #ifdef __cplusplus
 extern "C"{
 #endif
 
 /**
- * Retreive a video presets manager object.
- * @return A MSVideoPresetsManager object if successfull, NULL otherwise.
+ * Create a video presets manager object.
+ * @param[in] The MSFactory to add the new video presets manager to.
+ * @return The new MSVideoPresetsManager object.
  */
-MS2_PUBLIC MSVideoPresetsManager * ms_video_presets_manager_get(void);
+MS2_PUBLIC MSVideoPresetsManager * ms_video_presets_manager_new(MSFactory *factory);
 
 /**
  * Destroy the video presets manager object.
+ * @param[in] manager The MSVideoPresetsManager to destroy.
  */
-MS2_PUBLIC void ms_video_presets_manager_destroy(void);
+MS2_PUBLIC void ms_video_presets_manager_destroy(MSVideoPresetsManager *manager);
 
 /**
  * Register a video preset configuration.
@@ -66,6 +75,31 @@ MS2_PUBLIC void ms_video_presets_manager_destroy(void);
  */
 MS2_PUBLIC void ms_video_presets_manager_register_preset_configuration(MSVideoPresetsManager *manager,
 	const char *name, const char *tags, MSVideoConfiguration *config);
+
+/**
+ * Search for a video preset configuration.
+ * @param[in] manager The MSVideoPresetsManager object.
+ * @param[in] name The name of the video preset to search for.
+ * @param[in] codecs_tags A list of tags describing the codec that will be used to select the video configuration to return.
+ * @return The MSVideoConfiguration corresponding to the video preset being searched for and matching the codec_tags and
+ * the platform tags.
+ */
+MS2_PUBLIC MSVideoPresetConfiguration * ms_video_presets_manager_find_preset_configuration(MSVideoPresetsManager *manager,
+	const char *name, MSList *codec_tags);
+
+/**
+ * Get the video configuration corresponding to a video preset configuration.
+ * @param[in] vpc MSVideoPresetConfiguration object obtained with ms_video_presets_manager_find_preset_configuration()
+ * @return The MSVideoConfiguration corresponding to the video preset configuration.
+ */
+MS2_PUBLIC MSVideoConfiguration * ms_video_preset_configuration_get_video_configuration(MSVideoPresetConfiguration *vpc);
+
+/**
+ * Get the tags corresponding to a video preset configuration.
+ * @param[in] vpc MSVideoPresetConfiguration object obtained with ms_video_presets_manager_find_preset_configuration()
+ * @return A comma-separated list of tags describing the video preset configuration.
+ */
+MS2_PUBLIC char * ms_video_preset_configuration_get_tags_as_string(MSVideoPresetConfiguration *vpc);
 
 #ifdef __cplusplus
 }

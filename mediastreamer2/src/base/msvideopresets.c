@@ -24,10 +24,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideopresets.h"
 
 
-typedef struct _MSVideoPresetConfiguration {
+struct _MSVideoPresetConfiguration {
 	MSList *tags;
 	MSVideoConfiguration *config;
-} MSVideoPresetConfiguration;
+};
 
 typedef struct _MSVideoPreset {
 	char *name;
@@ -35,11 +35,10 @@ typedef struct _MSVideoPreset {
 } MSVideoPreset;
 
 struct _MSVideoPresetsManager {
+	MSFactory *factory;
 	MSList *presets; /**< List of MSVideoPreset objects */
 };
 
-
-static MSVideoPresetsManager *vpm = NULL;
 
 static void free_preset_config(MSVideoPresetConfiguration *vpc) {
 	ms_list_for_each(vpc->tags, ms_free);
@@ -92,18 +91,46 @@ static void add_video_preset_configuration(MSVideoPreset *preset, const char *ta
 	preset->configs = ms_list_append(preset->configs, vpc);
 }
 
-void ms_video_presets_manager_destroy(void) {
-	if (vpm != NULL) {
-		ms_list_for_each(vpm->presets, (MSIterateFunc)free_preset);
-		ms_list_free(vpm->presets);
-		ms_free(vpm);
+static bool_t tag_in_list(const char *tag, MSList *tags_list) {
+	MSList *elem = tags_list;
+	while (elem != NULL) {
+		char *tag_from_list = (char *)elem->data;
+		if (strcasecmp(tag, tag_from_list) == 0)
+			return TRUE;
+		elem = elem->next;
 	}
-	vpm = NULL;
+	return FALSE;
 }
 
-MSVideoPresetsManager * ms_video_presets_manager_get(void) {
-	if (vpm == NULL) vpm = (MSVideoPresetsManager *)ms_new0(MSVideoPresetsManager, 1);
-	return vpm;
+static int video_preset_configuration_match(MSVideoPresetConfiguration *vpc, MSList *platform_tags, MSList *codec_tags) {
+	MSList *elem = vpc->tags;
+	int nb = 0;
+	while (elem != NULL) {
+		char *tag = (char *)elem->data;
+		if (!tag_in_list(tag, platform_tags) && !tag_in_list(tag, codec_tags))
+			return 0;
+		nb++;
+		elem = elem->next;
+	}
+	return nb;
+}
+
+void ms_video_presets_manager_destroy(MSVideoPresetsManager *manager) {
+	if (manager != NULL) {
+		ms_list_for_each(manager->presets, (MSIterateFunc)free_preset);
+		ms_list_free(manager->presets);
+		ms_free(manager);
+	}
+}
+
+MSVideoPresetsManager * ms_video_presets_manager_new(MSFactory *factory) {
+	MSVideoPresetsManager *manager = (MSVideoPresetsManager *)ms_new0(MSVideoPresetsManager, 1);
+	manager->factory = factory;
+	if (factory->video_presets_manager != NULL) {
+		ms_video_presets_manager_destroy(factory->video_presets_manager);
+	}
+	factory->video_presets_manager = manager;
+	return manager;
 }
 
 void ms_video_presets_manager_register_preset_configuration(MSVideoPresetsManager *manager,
@@ -113,4 +140,32 @@ void ms_video_presets_manager_register_preset_configuration(MSVideoPresetsManage
 		preset = add_video_preset(manager, name);
 	}
 	add_video_preset_configuration(preset, tags, config);
+}
+
+MSVideoPresetConfiguration * ms_video_presets_manager_find_preset_configuration(MSVideoPresetsManager *manager,
+	const char *name, MSList *codec_tags) {
+	MSList *elem = NULL;
+	MSVideoPreset *preset = find_video_preset(manager, name);
+	MSVideoPresetConfiguration *best_vpc = NULL;
+	int best_nb = 0;
+
+	if (preset == NULL) return NULL;
+	elem = preset->configs;
+	while (elem != NULL) {
+		MSVideoPresetConfiguration *vpc = (MSVideoPresetConfiguration *)elem->data;
+		int nb = video_preset_configuration_match(vpc, ms_factory_get_platform_tags(manager->factory), codec_tags);
+		if (nb > best_nb) {
+			best_vpc = vpc;
+		}
+		elem = elem->next;
+	}
+	return best_vpc;
+}
+
+MSVideoConfiguration * ms_video_preset_configuration_get_video_configuration(MSVideoPresetConfiguration *vpc) {
+	return vpc->config;
+}
+
+char * ms_video_preset_configuration_get_tags_as_string(MSVideoPresetConfiguration *vpc) {
+	return ms_tags_list_as_string(vpc->tags);
 }

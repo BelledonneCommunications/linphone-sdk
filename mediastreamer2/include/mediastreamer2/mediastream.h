@@ -658,6 +658,7 @@ struct _VideoStream
 	unsigned long preview_window_id;
 	VideoStreamDir dir;
 	MSWebCam *cam;
+	char *preset;
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	uint64_t last_reported_decoding_error_time;
 	uint64_t last_fps_check;
@@ -948,6 +949,13 @@ MS2_PUBLIC void audio_stream_link_video(AudioStream *stream, VideoStream *video)
  * This must be done if the video stream is about to be stopped.
 **/
 MS2_PUBLIC void audio_stream_unlink_video(AudioStream *stream, VideoStream *video);
+
+/**
+ * Set a video preset to be used for the video stream.
+ * @param[in] stream VideoStream object
+ * @param[in] preset The name of the video preset to be used.
+ */
+MS2_PUBLIC void video_stream_use_video_preset(VideoStream *stream, const char *preset);
 
 /**
  * Small API to display a local preview window.

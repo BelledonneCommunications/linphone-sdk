@@ -30,6 +30,7 @@ struct _MSFactory{
 	MSList *formats;
 	MSList *platform_tags;
 	char *plugins_dir;
+	struct _MSVideoPresetsManager *video_presets_manager;
 	int cpu_count;
 	struct _MSEventQueue *evq;
 	int max_payload_size;
@@ -225,6 +226,14 @@ MS2_PUBLIC void ms_factory_log_statistics(MSFactory *obj);
 MS2_PUBLIC unsigned int ms_factory_get_cpu_count(MSFactory *obj);
 
 MS2_PUBLIC void ms_factory_set_cpu_count(MSFactory *obj, unsigned int c);
+
+MS2_PUBLIC void ms_factory_add_platform_tag(MSFactory *obj, const char *tag);
+
+MS2_PUBLIC MSList * ms_factory_get_platform_tags(MSFactory *obj);
+
+MS2_PUBLIC char * ms_factory_get_platform_tags_as_string(MSFactory *obj);
+
+MS2_PUBLIC struct _MSVideoPresetsManager * ms_factory_get_video_presets_manager(MSFactory *factory);
 
 MS2_PUBLIC void ms_factory_init_plugins(MSFactory *obj);
 

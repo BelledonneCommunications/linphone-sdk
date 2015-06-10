@@ -272,6 +272,23 @@ MSList *ms_list_copy_with_data(const MSList *list, void *(*copyfunc)(void *)){
 	return copy;
 }
 
+char * ms_tags_list_as_string(const MSList *list) {
+	char *tags_str = NULL;
+	const MSList *elem = list;
+	while (elem != NULL) {
+		char *elem_str = (char *)elem->data;
+		if (tags_str == NULL) {
+			tags_str = ms_strdup(elem_str);
+		} else {
+			char *old = tags_str;
+			tags_str = ms_strdup_printf("%s,%s", old, elem_str);
+			ms_free(old);
+		}
+		elem = elem->next;
+	}
+	return tags_str;
+}
+
 int ms_load_plugins(const char *dir){
 	return ms_factory_load_plugins(ms_factory_get_fallback(),dir);
 }

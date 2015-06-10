@@ -264,6 +264,10 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 7, MSVideoCodecRPSI)
 #define MS_VIDEO_ENCODER_ENABLE_AVPF \
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 8, bool_t)
+#define MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST \
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 9, const MSVideoConfiguration *)
+#define MS_VIDEO_ENCODER_IS_HARDWARE_ACCELERATED \
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 10, bool_t)
 
 /** Interface definitions for audio capture */
 /* Start numbering from the end for hacks */
