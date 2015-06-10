@@ -218,6 +218,7 @@
     <ClCompile Include="..\..\..\src\voip\stun_udp.c" />
     <ClCompile Include="..\..\..\src\voip\videostarter.c" />
     <ClCompile Include="..\..\..\src\voip\videostream.c" />
+    <ClCompile Include="..\..\..\src\voip\video_preset_high_fps.c" />
     <ClCompile Include="..\..\..\src\voip\vp8rtpfmt.c" />
   </ItemGroup>
   <ItemGroup>

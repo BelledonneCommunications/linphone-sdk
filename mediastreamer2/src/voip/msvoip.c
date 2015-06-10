@@ -254,6 +254,7 @@ static int managers_ref=0;
 
 void ms_factory_init_voip(MSFactory *obj){
 	MSSndCardManager *cm;
+	MSVideoPresetsManager *vpm;
 	int i;
 
 	/* register builtin VoIP MSFilter's */
@@ -287,7 +288,8 @@ void ms_factory_init_voip(MSFactory *obj){
 	}
 
 #ifdef VIDEO_ENABLED
-	ms_video_presets_manager_new(obj);
+	vpm = ms_video_presets_manager_new(obj);
+	register_video_preset_high_fps(vpm);
 #endif
 
 #if defined(VIDEO_ENABLED) && defined(MS2_FILTERS) && !defined(NO_FFMPEG) && defined(HAVE_LIBAVCODEC_AVCODEC_H)

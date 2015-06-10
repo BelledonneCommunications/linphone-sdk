@@ -297,7 +297,8 @@ libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
 					utils/bits_rw.c \
 					utils/x11_helper.c \
 					utils/stream_regulator.c utils/stream_regulator.h \
-					voip/layouts.c voip/layouts.h
+					voip/layouts.c voip/layouts.h \
+					voip/video_preset_high_fps.c
 
 if ORTP_ENABLED
 libmediastreamer_voip_la_SOURCES+=	voip/videostream.c

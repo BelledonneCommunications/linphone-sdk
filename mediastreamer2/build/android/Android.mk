@@ -137,6 +137,7 @@ LOCAL_CFLAGS += -DHAVE_POLARSSL_SSL_H=1 -DHAVE_DTLS=1
 
 ifeq ($(_BUILD_VIDEO),1)
 LOCAL_SRC_FILES += \
+	voip/video_preset_high_fps.c \
 	voip/videostarter.c \
 	voip/videostream.c \
 	voip/rfc3984.c \

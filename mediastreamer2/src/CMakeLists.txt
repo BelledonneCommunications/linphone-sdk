@@ -223,6 +223,7 @@ if(ENABLE_VIDEO)
 		voip/rfc3984.c
 		voip/videostarter.c
 		voip/videostream.c
+		voip/video_preset_high_fps.c
 	)
 	if(WIN32 AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 		add_definitions(-DHAVE_DIRECTSHOW)

@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PRIVATE_H
 
 #include "mediastreamer2/mediastream.h"
+#include "mediastreamer2/msvideopresets.h"
 
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
@@ -112,6 +113,9 @@ bool_t media_stream_session_secured(const struct _MSMediaStreamSessions *session
 
 MSSrtpCtx* ms_srtp_context_new();
 void ms_srtp_context_delete(MSSrtpCtx *session);
+
+
+void register_video_preset_high_fps(MSVideoPresetsManager *manager);
 
 
 #ifdef __cplusplus
