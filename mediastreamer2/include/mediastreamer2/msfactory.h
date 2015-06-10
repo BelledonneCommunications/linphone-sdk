@@ -28,6 +28,7 @@ struct _MSFactory{
 	MSList *ms_plugins_loaded_list;
 #endif
 	MSList *formats;
+	MSList *platform_tags;
 	char *plugins_dir;
 	int cpu_count;
 	struct _MSEventQueue *evq;

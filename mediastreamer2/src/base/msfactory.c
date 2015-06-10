@@ -108,6 +108,32 @@ void ms_factory_set_cpu_count(MSFactory *obj, unsigned int c) {
 	obj->cpu_count = c;
 }
 
+void ms_factory_add_platform_tag(MSFactory *obj, const char *tag) {
+	if (ms_list_find_custom(obj->platform_tags, (MSCompareFunc)strcasecmp, tag) == NULL) {
+		obj->platform_tags = ms_list_append(obj->platform_tags, ms_strdup(tag));
+	}
+}
+
+MSList * ms_factory_get_platform_tags(MSFactory *obj) {
+	return obj->platform_tags;
+}
+
+char * ms_factory_get_platform_tags_as_string(MSFactory *obj) {
+	char *tags_str = NULL;
+	MSList *elem = obj->platform_tags;
+	while (elem != NULL) {
+		char *elem_str = (char *)elem->data;
+		if (tags_str == NULL) {
+			tags_str = ms_strdup(elem_str);
+		} else {
+			char *old = tags_str;
+			tags_str = ms_strdup_printf("%s,%s", old, elem_str);
+			ms_free(old);
+		}
+	}
+	return tags_str;
+}
+
 static int compare_stats_with_name(const MSFilterStats *stat, const char *name){
 	return strcmp(stat->name,name);
 }
@@ -135,6 +161,7 @@ void ms_factory_init(MSFactory *obj){
 	int i;
 	long num_cpu=1;
 	char *debug_log_enabled;
+	char *tags;
 #ifdef WIN32
 	SYSTEM_INFO sysinfo;
 #endif
@@ -166,7 +193,40 @@ void ms_factory_init(MSFactory *obj){
 #endif
 	ms_factory_set_cpu_count(obj,num_cpu);
 	ms_factory_set_mtu(obj,MS_MTU_DEFAULT);
-	ms_message("ms_factory_init() done");
+#ifdef WIN32
+	ms_factory_add_platform_tag(obj, "win32");
+#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+	ms_factory_add_platform_tag(obj, "windowsphone");
+#endif
+#endif
+#ifdef __APPLE__
+	ms_factory_add_platform_tag(obj, "apple");
+#endif
+#ifdef __linux
+	ms_factory_add_platform_tag(obj, "linux");
+#endif
+#ifdef __QNX__
+	ms_factory_add_platform_tag(obj, "qnx");
+#endif
+#ifdef ANDROID
+	ms_factory_add_platform_tag(obj, "android");
+#endif
+#ifdef TARGET_OS_IPHONE
+	ms_factory_add_platform_tag(obj, "ios");
+#endif
+#if defined(__arm__) || defined(_M_ARM)
+	ms_factory_add_platform_tag(obj, "arm");
+#else
+	ms_factory_add_platform_tag(obj, "x86");
+#endif
+#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
+	ms_factory_add_platform_tag(obj, "embedded");
+#else
+	ms_factory_add_platform_tag(obj, "desktop");
+#endif
+	tags = ms_factory_get_platform_tags_as_string(obj);
+	ms_message("ms_factory_init() done: platform_tags=%s", tags);
+	ms_free(tags);
 }
 
 MSFactory *ms_factory_create_fallback(void){
@@ -193,6 +253,8 @@ void ms_factory_destroy(MSFactory *factory){
 	factory->desc_list=ms_list_free(factory->desc_list);
 	ms_list_for_each(factory->stats_list,ms_free);
 	factory->stats_list=ms_list_free(factory->stats_list);
+	ms_list_for_each(factory->platform_tags, ms_free);
+	factory->platform_tags = ms_list_free(factory->platform_tags);
 	if (factory->plugins_dir) ms_free(factory->plugins_dir);
 	ms_free(factory);
 	if (factory==fallback_factory) fallback_factory=NULL;
