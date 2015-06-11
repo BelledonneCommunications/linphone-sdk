@@ -709,14 +709,22 @@ static void configure_decoder(AudioStream *stream, PayloadType *pt, int sample_r
 
 static int get_usable_telephone_event(RtpProfile *profile, int clock_rate){
 	int i;
+	int fallback_pt=-1;
 	for(i=0; i<128; ++i){
 		PayloadType *pt = profile->payload[i];
-		if (pt && strcasecmp(pt->mime_type, "telephone-event")==0 && pt->clock_rate == clock_rate
-			&& (pt->flags & PAYLOAD_TYPE_FLAG_CAN_SEND)){
-			return i;
+		if (pt && strcasecmp(pt->mime_type, "telephone-event")==0 && (pt->flags & PAYLOAD_TYPE_FLAG_CAN_SEND)){
+			if (pt->clock_rate == clock_rate)
+				return i;
+			if (pt->clock_rate == 8000)
+				fallback_pt = i;
 		}
 	}
-	return -1;
+	/*
+	 * the fallback payload type is used if the remote equipment doesn't conform to RFC4733 2.1,
+	 * that requires to use a clock rate which is the same as the audio codec.
+	 */
+	if (fallback_pt !=-1) ms_warning("The remote equipment doesn't conform to RFC4733 2.1 - it wants to use telephone-event/8000 despite the clock rate of the audio codec is %i", clock_rate);
+	return fallback_pt;
 }
 
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
