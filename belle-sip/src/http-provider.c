@@ -293,6 +293,20 @@ belle_http_channel_context_t * belle_http_channel_context_new(belle_sip_channel_
 	return obj;
 }
 
+int belle_http_channel_is_busy(belle_sip_channel_t *obj) {
+	belle_sip_list_t *it;
+	if (obj->incoming_messages != NULL || obj->outgoing_messages != NULL) {
+		return 1;
+	}
+	for (it = obj->listeners; it != NULL; it = it->next) {
+		if (BELLE_SIP_IS_INSTANCE_OF(it->data, belle_http_channel_context_t)) {
+			belle_http_channel_context_t *obj = it->data;
+			return obj->pending_requests != NULL;
+		}
+	}
+	return 0;
+}
+
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_http_channel_context_t,belle_sip_channel_listener_t)
 	channel_state_changed,
 	channel_on_message_headers,
@@ -391,6 +405,15 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 
 	chan=belle_sip_channel_find_from_list(*channels,obj->ai_family, hop);
 
+	if (chan) {
+		// we cannot use the same channel for multiple requests yet since only the first
+		// one will be processed. Instead of queuing/serializing requests on a single channel,
+		// we currently create one channel per request if needed.
+		if (belle_http_channel_is_busy(chan)) {
+			belle_sip_message("%s: found an available channel but was busy, creating a new one", __FUNCTION__);
+			chan = NULL;
+		}
+	}
 	if (!chan){
 		if (strcasecmp(hop->transport,"tcp")==0){
 			chan=belle_sip_stream_channel_new_client(obj->stack,obj->bind_ip,0,hop->cname,hop->host,hop->port);
@@ -401,7 +424,8 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 		}
 #endif
 		if (!chan){
-			belle_sip_error("belle_http_provider_send_request(): cannot create channel for [%s:%s:%i]",hop->transport,hop->cname,hop->port);
+			belle_sip_error("%s: cannot create channel for [%s:%s:%i]", __FUNCTION__, hop->transport, hop->cname,
+							hop->port);
 			belle_sip_object_unref(hop);
 			return -1;
 		}
