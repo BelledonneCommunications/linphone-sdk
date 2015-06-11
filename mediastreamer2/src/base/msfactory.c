@@ -109,6 +109,7 @@ void ms_factory_set_cpu_count(MSFactory *obj, unsigned int c) {
 }
 
 void ms_factory_add_platform_tag(MSFactory *obj, const char *tag) {
+	if ((tag == NULL) || (tag[0] == '\0')) return;
 	if (ms_list_find_custom(obj->platform_tags, (MSCompareFunc)strcasecmp, tag) == NULL) {
 		obj->platform_tags = ms_list_append(obj->platform_tags, ms_strdup(tag));
 	}
