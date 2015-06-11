@@ -274,7 +274,6 @@ void ms_factory_init_voip(MSFactory *obj){
 
 #ifdef VIDEO_ENABLED
 		{
-			MSVideoPresetsManager *vpm;
 			MSWebCamManager *wm;
 			wm=ms_web_cam_manager_get();
 			if (wm->descs==NULL){
