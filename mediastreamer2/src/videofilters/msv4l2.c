@@ -351,11 +351,22 @@ static int msv4l2_configure(V4l2State *s){
 	if (s->vsize.width==0){
 		ms_message("Could not find any combination of resolution/pixel-format that works !");
 		s->vsize=vsize;
-		return -1;
+		ms_message("Fallback. Trying to force YUV420 format");
+		memset(&fmt, 0, sizeof(fmt));
+		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
+		fmt.fmt.pix.width = s->vsize.width;
+		fmt.fmt.pix.height = s->vsize.height;
+		fmt.fmt.pix.field = V4L2_FIELD_ANY;
+		if(v4l2_ioctl(s->fd, VIDIOC_S_FMT, &fmt) != 0) {
+			ms_error("VIDIOC_S_FMT failed: %s", strerror(errno));
+			return -1;
+		}
+		s->pix_fmt = v4l2_format_to_ms(fmt.fmt.pix.pixelformat);
 	}
-	memset(&fmt,0,sizeof(fmt));
 
-	fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	memset(&fmt,0,sizeof(fmt));
+	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 	if (v4l2_ioctl (s->fd, VIDIOC_G_FMT, &fmt)<0){
 		ms_error("VIDIOC_G_FMT failed: %s",strerror(errno));
