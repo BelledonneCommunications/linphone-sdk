@@ -42,6 +42,7 @@ public:
 	MSVideoSize getSize() const { return mVConf.vsize; }
 	void addFmtp(const char *fmtp);
 	const MSVideoConfiguration *getConfigurationList() const { return mVConfList; }
+	void setConfigurationList(const MSVideoConfiguration *confList);
 	void setConfiguration(MSVideoConfiguration conf);
 	void requestVFU();
 	void enableAVPF(bool enable) { mAVPFEnabled = enable; }

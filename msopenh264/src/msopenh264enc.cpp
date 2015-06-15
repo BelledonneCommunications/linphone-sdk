@@ -70,8 +70,6 @@ MSOpenH264Encoder::MSOpenH264Encoder(MSFilter *f)
 	: mFilter(f), mPacker(0), mPacketisationMode(0), mVConfList(openh264_conf_list), mFrameCount(0), mLastIDRFrameCount(0),
 		mInitialized(false), mPacketisationModeSet(false), mAVPFEnabled(false), mLastFIRSeqNr(-1)
 {
-	mVConf = ms_video_find_best_configuration_for_bitrate(mVConfList, 384000, ms_factory_get_cpu_count(mFilter->factory));
-
 	long ret = WelsCreateSVCEncoder(&mEncoder);
 	if (ret != 0) {
 		ms_error("OpenH264 encoder: Failed to create encoder: %li", ret);
@@ -93,6 +91,8 @@ void MSOpenH264Encoder::initialize()
 		rfc3984_set_mode(mPacker, mPacketisationMode);
 	else rfc3984_set_mode(mPacker, 1); // in absence of explicit directive from the other end, allow mode 1 because it allows to send big slices which is necessary for large images
 	rfc3984_enable_stap_a(mPacker, FALSE);
+	mVConf = ms_video_find_best_configuration_for_bitrate(mVConfList, 384000, ms_factory_get_cpu_count(mFilter->factory));
+
 	if (mEncoder != 0) {
 		SEncParamExt params;
 		int ret = mEncoder->GetDefaultParams(&params);
@@ -244,6 +244,14 @@ void MSOpenH264Encoder::addFmtp(const char *fmtp)
 		mPacketisationMode = atoi(value);
 		mPacketisationModeSet = true;
 		ms_message("packetization-mode set to %i", mPacketisationMode);
+	}
+}
+
+void MSOpenH264Encoder::setConfigurationList(const MSVideoConfiguration *confList) {
+	if (confList == NULL) {
+		mVConfList = openh264_conf_list;
+	} else {
+		mVConfList = confList;
 	}
 }
 

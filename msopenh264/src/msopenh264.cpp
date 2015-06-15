@@ -279,6 +279,13 @@ static int msopenh264_enc_get_configuration_list(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int msopenh264_enc_set_configuration_list(MSFilter *f, void *arg) {
+	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	const MSVideoConfiguration **vconf_list = static_cast<const MSVideoConfiguration **>(arg);
+	e->setConfigurationList(*vconf_list);
+	return 0;
+}
+
 static int msopenh264_enc_set_configuration(MSFilter *f, void *arg) {
 	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
 	MSVideoConfiguration *vconf = static_cast<MSVideoConfiguration *>(arg);
@@ -300,6 +307,7 @@ static MSFilterMethod msopenh264_enc_methods[] = {
 	{ MS_VIDEO_ENCODER_NOTIFY_FIR,             msopenh264_enc_notify_fir             },
 	{ MS_VIDEO_ENCODER_ENABLE_AVPF,            msopenh264_enc_enable_avpf            },
 	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, msopenh264_enc_get_configuration_list },
+	{ MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST, msopenh264_enc_set_configuration_list },
 	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      msopenh264_enc_set_configuration      },
 	{ 0,                                       NULL                                  }
 };
