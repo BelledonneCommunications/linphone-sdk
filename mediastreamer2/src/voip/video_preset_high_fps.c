@@ -30,31 +30,45 @@ static MSVideoConfiguration custom_conf_list[] = {
 
 
 static MSVideoConfiguration high_fps_desktop_vp8_conf_list[] = {
-	MS_VIDEO_CONF(1536000,  2560000,  720P, 30, 4),
-	MS_VIDEO_CONF( 800000,  2000000,   XGA, 30, 4),
-	MS_VIDEO_CONF( 800000,  1536000,  SVGA, 30, 4),
-	MS_VIDEO_CONF( 600000,  1024000,   VGA, 30, 2),
+	MS_VIDEO_CONF(2000000,  3000000,  720P, 30, 4),
+	MS_VIDEO_CONF(1500000,  2000000,   XGA, 30, 4),
+	MS_VIDEO_CONF(1000000,  1500000,  SVGA, 30, 4),
+	MS_VIDEO_CONF( 600000,  1000000,   VGA, 30, 2),
 	MS_VIDEO_CONF( 350000,   600000,   CIF, 30, 2),
-	MS_VIDEO_CONF( 350000,   600000,   CIF, 30, 1),
-	MS_VIDEO_CONF( 200000,   350000,  QVGA, 30, 1),
-	MS_VIDEO_CONF( 150000,   200000,  QCIF, 30, 1),
-	MS_VIDEO_CONF( 100000,   150000,  QCIF, 20, 1),
-	MS_VIDEO_CONF(  64000,   100000,  QCIF, 12, 1),
-	MS_VIDEO_CONF(      0,    64000,  QCIF,  5 ,1)
+	MS_VIDEO_CONF( 280000,   350000,  QVGA, 30, 1),
+	MS_VIDEO_CONF( 150000,   280000,  QCIF, 30, 1),
+	MS_VIDEO_CONF( 120000,   150000,  QCIF, 20, 1),
+	MS_VIDEO_CONF(      0,   120000,  QCIF, 10 ,1)
 };
 
 static MSVideoConfiguration high_fps_embedded_vp8_conf_list[] = {
-	MS_VIDEO_CONF(2048000, 2560000,       720P, 30, 2),
-	MS_VIDEO_CONF( 750000, 1536000,       SVGA, 30, 2),
-	MS_VIDEO_CONF( 500000,  750000,        VGA, 30, 2),
-	MS_VIDEO_CONF( 300000,  500000,       QVGA, 30, 2),
-	MS_VIDEO_CONF( 150000,  300000,       QVGA, 18, 2),
-	MS_VIDEO_CONF(  64000,  100000,       QCIF, 15, 2),
-	MS_VIDEO_CONF( 300000,  600000,       QVGA, 30, 1),
-	MS_VIDEO_CONF( 150000,  200000,       QCIF, 30, 1),
-	MS_VIDEO_CONF( 100000,  150000,       QCIF, 20, 1),
-	MS_VIDEO_CONF(  64000,  100000,       QCIF, 10, 1),
-	MS_VIDEO_CONF(      0,   64000,       QCIF,  5, 1)
+	MS_VIDEO_CONF(600000, 3000000,  VGA, 30, 4),
+	MS_VIDEO_CONF(350000,  600000,  CIF, 30, 2),
+	MS_VIDEO_CONF(280000,  350000, QVGA, 30, 2),
+	MS_VIDEO_CONF(150000,  280000, QCIF, 30, 1),
+	MS_VIDEO_CONF(120000,  150000, QCIF, 20, 1),
+	MS_VIDEO_CONF(     0,  120000, QCIF, 10, 1)
+};
+
+static MSVideoConfiguration high_fps_desktop_h264_conf_list[] = {
+	MS_VIDEO_CONF(2000000, 3000000, 720P, 30, 4),
+	MS_VIDEO_CONF(1500000, 2000000,  XGA, 30, 4),
+	MS_VIDEO_CONF(1000000, 1500000, SVGA, 30, 4),
+	MS_VIDEO_CONF( 600000, 1000000,  VGA, 30, 4),
+	MS_VIDEO_CONF( 400000,  600000,  CIF, 30, 2),
+	MS_VIDEO_CONF( 350000,  400000, QVGA, 30, 2),
+	MS_VIDEO_CONF( 200000,  350000, QCIF, 30, 1),
+	MS_VIDEO_CONF( 150000,  200000, QCIF, 15, 1),
+	MS_VIDEO_CONF(      0,  150000, QCIF, 10, 1)
+};
+
+static MSVideoConfiguration high_fps_embedded_h264_conf_list[] = {
+	MS_VIDEO_CONF(600000, 3000000,  VGA, 30, 4),
+	MS_VIDEO_CONF(400000,  600000,  CIF, 30, 2),
+	MS_VIDEO_CONF(350000,  400000, QVGA, 30, 2),
+	MS_VIDEO_CONF(200000,  350000, QCIF, 30, 1),
+	MS_VIDEO_CONF(150000,  200000, QCIF, 15, 1),
+	MS_VIDEO_CONF(     0,  150000, QCIF, 10, 1)
 };
 
 
@@ -62,4 +76,6 @@ void register_video_preset_high_fps(MSVideoPresetsManager *manager) {
 	ms_video_presets_manager_register_preset_configuration(manager, "custom", NULL, custom_conf_list);
 	ms_video_presets_manager_register_preset_configuration(manager, "high-fps", "desktop,vp8", high_fps_desktop_vp8_conf_list);
 	ms_video_presets_manager_register_preset_configuration(manager, "high-fps", "embedded,vp8", high_fps_embedded_vp8_conf_list);
+	ms_video_presets_manager_register_preset_configuration(manager, "high-fps", "desktop,h264", high_fps_desktop_h264_conf_list);
+	ms_video_presets_manager_register_preset_configuration(manager, "high-fps", "embedded,h264", high_fps_embedded_h264_conf_list);
 }
