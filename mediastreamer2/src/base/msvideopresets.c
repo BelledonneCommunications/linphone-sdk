@@ -72,7 +72,7 @@ static MSList * parse_tags(const char *tags) {
 	MSList *tags_list = NULL;
 	char *t;
 	char *p;
-	if ((tags == NULL) || (tags[0] != '\0')) return NULL;
+	if ((tags == NULL) || (tags[0] == '\0')) return NULL;
 	p = t = ms_strdup(tags);
 	while (p != NULL) {
 		char *next = strstr(p, ",");
