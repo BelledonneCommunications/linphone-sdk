@@ -182,7 +182,7 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.g_lag_in_frames = 0;
 
 	
-#if defined(ANDROID) || TARGET_OS_IPHONE==1
+#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	cpuused = 10 - s->cfg.g_threads; /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 	if (cpuused < 7) cpuused = 7; /*values beneath 7 consume too much CPU*/
 	if( s->cfg.g_threads == 1 ){
