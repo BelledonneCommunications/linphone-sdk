@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static pa_context *context=NULL;
 static pa_context_state_t contextState = PA_CONTEXT_UNCONNECTED;
 static pa_threaded_mainloop *pa_loop=NULL;
-static const int fragtime = 20;/*ms*/
+static const int targeted_latency = 20;/*ms*/
 
 static void context_state_notify_cb(pa_context *ctx, void *userdata){
 	const char *sname="";
@@ -166,8 +166,16 @@ static void stream_free(Stream *s) {
 	ms_free(s);
 }
 
-static bool_t stream_connect(Stream *s, StreamType type, pa_buffer_attr *attr) {
+static bool_t stream_connect(Stream *s, StreamType type) {
 	int err;
+	
+	pa_buffer_attr attr;
+	attr.maxlength = -1;
+	attr.fragsize = pa_usec_to_bytes(targeted_latency * 1000, &s->sampleSpec);
+	attr.tlength = attr.fragsize;
+	attr.minreq = -1;
+	attr.prebuf = -1;
+	
 	if (context==NULL) {
 		ms_error("No PulseAudio context");
 		return FALSE;
@@ -180,9 +188,9 @@ static bool_t stream_connect(Stream *s, StreamType type, pa_buffer_attr *attr) {
 	pa_stream_set_state_callback(s->stream, stream_state_notify_cb, s);
 	pa_threaded_mainloop_lock(pa_loop);
 	if(type == STREAM_TYPE_PLAYBACK) {
-		err=pa_stream_connect_playback(s->stream,NULL,attr, PA_STREAM_ADJUST_LATENCY, NULL, NULL);
+		err=pa_stream_connect_playback(s->stream,NULL,&attr, PA_STREAM_ADJUST_LATENCY, NULL, NULL);
 	} else {
-		err=pa_stream_connect_record(s->stream,NULL,attr, PA_STREAM_ADJUST_LATENCY);
+		err=pa_stream_connect_record(s->stream,NULL,&attr, PA_STREAM_ADJUST_LATENCY);
 	}
 	pa_threaded_mainloop_unlock(pa_loop);
 	if(err < 0 || !stream_wait_for_state(s, PA_STREAM_READY, PA_STREAM_FAILED)) {
@@ -220,13 +228,7 @@ static void pulse_read_init(MSFilter *f){
 
 static void pulse_read_preprocess(MSFilter *f) {
 	RecordStream *s=(RecordStream *)f->data;
-	pa_buffer_attr attr;
-	attr.maxlength = -1;
-	attr.fragsize = pa_usec_to_bytes(fragtime * 1000, &s->sampleSpec);
-	attr.tlength = -1;
-	attr.minreq = -1;
-	attr.prebuf = -1;
-	if(!stream_connect(s, STREAM_TYPE_RECORD, &attr)) {
+	if(!stream_connect(s, STREAM_TYPE_RECORD)) {
 		ms_error("Pulseaudio: fail to connect record stream");
 	}
 }
@@ -271,6 +273,12 @@ static void pulse_read_uninit(MSFilter *f) {
 
 static int pulse_read_set_sr(MSFilter *f, void *arg){
 	RecordStream *s = (RecordStream *)f->data;
+	
+	if(s->state == PA_STREAM_READY) {
+		ms_error("pulseaudio: cannot set sample rate: stream is connected");
+		return -1;
+	}
+	
 	s->sampleSpec.rate = *(int *)arg;
 	return 0;
 }
@@ -283,6 +291,12 @@ static int pulse_read_get_sr(MSFilter *f, void *arg) {
 
 static int pulse_read_set_nchannels(MSFilter *f, void *arg){
 	RecordStream *s = (RecordStream *)f->data;
+	
+	if(s->state == PA_STREAM_READY) {
+		ms_error("pulseaudio: cannot set channels number: stream is connected");
+		return -1;
+	}
+	
 	s->sampleSpec.channels = *(int *)arg;
 	return 0;
 }
@@ -329,7 +343,7 @@ static void pulse_write_init(MSFilter *f){
 
 static void pulse_write_preprocess(MSFilter *f) {
 	PlaybackStream *s=(PlaybackStream*)f->data;
-	if(!stream_connect(s, STREAM_TYPE_PLAYBACK, NULL)) {
+	if(!stream_connect(s, STREAM_TYPE_PLAYBACK)) {
 		ms_error("Pulseaudio: fail to connect playback stream");
 	}
 }
