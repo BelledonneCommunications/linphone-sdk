@@ -665,8 +665,12 @@ static void apply_video_preset(VideoStream *stream, PayloadType *pt) {
 		if (vpc != NULL) {
 			char *conf_tags = ms_video_preset_configuration_get_tags_as_string(vpc);
 			conf = ms_video_preset_configuration_get_video_configuration(vpc);
-			ms_message("Using the '%s' video preset tagged '%s'", stream->preset, conf_tags);
-			ms_free(conf_tags);
+			if (conf_tags) {
+				ms_message("Using the '%s' video preset tagged '%s'", stream->preset, conf_tags);
+				ms_free(conf_tags);
+			} else {
+				ms_message("Using the '%s' video preset non-tagged", stream->preset);
+			}
 		} else {
 			ms_warning("No '%s' video preset has been found", stream->preset);
 		}
@@ -992,12 +996,12 @@ void video_stream_update_video_params(VideoStream *stream){
 	video_stream_change_camera(stream,stream->cam);
 }
 
-/** 
+/**
  * Will update the source camera for the videostream passed as argument.
  * The parameters:
  * - stream : the stream for which to update the source
  * - cam : the camera which should now be considered as the new source.
- * - new_source (optional): if passed as non-NULL, it is expected that this filter comes from the specified camera. 
+ * - new_source (optional): if passed as non-NULL, it is expected that this filter comes from the specified camera.
  *							In this case we don't create the source and use this one instead.
  *                          This allows you to reuse the camera and keep it alive when not needed, for fast on/off operations
  * - sink : when this filter is not NULL, it represents the AVPlayer video ITC source, which allows inter-graph communication.

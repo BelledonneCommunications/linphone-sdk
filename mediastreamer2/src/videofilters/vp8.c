@@ -181,7 +181,7 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.g_error_resilient = VPX_ERROR_RESILIENT_DEFAULT|VPX_ERROR_RESILIENT_PARTITIONS;
 	s->cfg.g_lag_in_frames = 0;
 
-	
+
 #if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
 	cpuused = 10 - s->cfg.g_threads; /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 	if (cpuused < 7) cpuused = 7; /*values beneath 7 consume too much CPU*/
@@ -248,7 +248,7 @@ static uint8_t enc_get_type_of_reference_frame_to_generate(EncState *s) {
 	}
 }
 
-static void check_most_recent(EncFrameState **found, vpx_codec_pts_t *most_recent, vpx_ref_frame_type_t type, 
+static void check_most_recent(EncFrameState **found, vpx_codec_pts_t *most_recent, vpx_ref_frame_type_t type,
 			      EncFrameState *state, bool_t is_acknoledged){
 	if (is_acknoledged && !state->acknowledged) return;
 	if (*most_recent<state->count){
@@ -304,7 +304,7 @@ static void enc_mark_reference_frame_as_sent(EncState *s, vpx_ref_frame_type_t f
 static bool_t is_reference_sane(EncState *s, EncFrameState *fs){
 	int diff=fs->picture_id-s->last_sli_id;
 	bool_t ret;
-	
+
 	if (!fs->is_independant && diff<enc_get_ref_frames_interval(s)){
 		ret=FALSE;
 	}else ret=TRUE;
@@ -416,7 +416,7 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 
 static bool_t is_frame_independent(unsigned int flags){
 	if (flags & VPX_EFLAG_FORCE_KF) return TRUE;
-	
+
 	if ((flags & VP8_EFLAG_FORCE_GF) || (flags & VP8_EFLAG_FORCE_ARF)){
 		if ((flags & VP8_EFLAG_NO_REF_ARF) && (flags & VP8_EFLAG_NO_REF_LAST) && (flags & VP8_EFLAG_NO_REF_GF))
 			return TRUE;
@@ -448,7 +448,7 @@ static void enc_process(MSFilter *f) {
 
 	if ((im = ms_queue_peek_last(f->inputs[0])) != NULL) {
 		vpx_image_t img;
-		
+
 		flags = 0;
 		ms_yuv_buf_init_from_mblk(&yuv, im);
 		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->vconf.vsize.width, s->vconf.vsize.height, 1, yuv.planes[0]);
@@ -502,12 +502,12 @@ static void enc_process(MSFilter *f) {
 			if (is_frame_independent(flags)){
 				s->frames_state.last_independent_frame=s->frame_count;
 			}
-			
+
 			/* Pack the encoded frame. */
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
 				if ((pkt->kind == VPX_CODEC_CX_FRAME_PKT) && (pkt->data.frame.sz > 0)) {
 					Vp8RtpFmtPacket *packet = ms_new0(Vp8RtpFmtPacket, 1);
-					
+
 					packet->m = allocb(pkt->data.frame.sz, 0);
 					memcpy(packet->m->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
 					packet->m->b_wptr += pkt->data.frame.sz;
@@ -535,10 +535,10 @@ static void enc_process(MSFilter *f) {
 					list = ms_list_append(list, packet);
 				}
 			}
-			
+
 #ifdef AVPF_DEBUG
 			ms_message("VP8 encoder picture_id=%i ***| %s | %s | %s | %s", (int)s->picture_id,
-				(flags & VPX_EFLAG_FORCE_KF) ? "KF " : (flags & VP8_EFLAG_FORCE_GF) ? "GF " :  (flags & VP8_EFLAG_FORCE_ARF) ? "ARF" : "   ",  
+				(flags & VPX_EFLAG_FORCE_KF) ? "KF " : (flags & VP8_EFLAG_FORCE_GF) ? "GF " :  (flags & VP8_EFLAG_FORCE_ARF) ? "ARF" : "   ",
 				(flags & VP8_EFLAG_NO_REF_GF) ? "NOREFGF" : "       ",
 				(flags & VP8_EFLAG_NO_REF_ARF) ? "NOREFARF" : "        ",
 				(flags & VP8_EFLAG_NO_REF_LAST) ? "NOREFLAST" : "         ");
@@ -699,11 +699,11 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 	EncFrameState *fs;
 	int diff;
 	int most_recent;
-	
+
 	ms_filter_lock(f);
 	/* extend the SLI received picture-id (6 bits) to a normal picture id*/
 	most_recent=s->picture_id;
-	
+
 	diff=(64 + (int)(most_recent & 0x3F) - (int)(sli->picture_id & 0x3F)) % 64;
 	s->last_sli_id=most_recent-diff;
 	fs=enc_get_most_recent_reference_frame(s,FALSE);
@@ -915,7 +915,7 @@ static void dec_preprocess(MSFilter* f) {
 		s->first_image_decoded = FALSE;
 		s->ready=TRUE;
 	}
-	
+
 }
 
 static void dec_uninit(MSFilter *f) {
@@ -952,7 +952,7 @@ static void dec_process(MSFilter *f) {
 				err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
 			}
 			if (err) {
-				ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
+				ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec)?vpx_codec_error_detail(&s->codec):"no details");
 			}
 			ms_queue_put(&mtofree_queue, im);
 		}

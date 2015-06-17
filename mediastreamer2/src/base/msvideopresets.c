@@ -149,7 +149,7 @@ MSVideoPresetConfiguration * ms_video_presets_manager_find_preset_configuration(
 	MSList *elem = NULL;
 	MSVideoPreset *preset = find_video_preset(manager, name);
 	MSVideoPresetConfiguration *best_vpc = NULL;
-	int best_nb = 0;
+	int best_nb = -1;
 
 	if (preset == NULL) return NULL;
 	elem = preset->configs;
