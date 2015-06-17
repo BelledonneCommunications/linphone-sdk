@@ -181,6 +181,7 @@ struct OpenSLESInputContext {
 		ms_mutex_init(&mutex,NULL);
 		mTickerSynchronizer = NULL;
 		aec = NULL;
+		mAvSkew = 0;
 		
 		currentBuffer = 0;
 		recBuffer[0] = (uint8_t *) calloc(inBufSize, sizeof(uint8_t));
@@ -216,6 +217,7 @@ struct OpenSLESInputContext {
 	uint8_t *recBuffer[2];
 	int inBufSize;
 	int currentBuffer;
+	double mAvSkew;
 };
 
 static SLuint32 convertSamplerate(int samplerate)
@@ -392,11 +394,16 @@ static void compute_timespec(OpenSLESInputContext *ictx) {
 	MSTimeSpec ts;
 	ts.tv_nsec = ns % 1000000000;
 	ts.tv_sec = ns / 1000000000;
-	double av_skew = ms_ticker_synchronizer_set_external_time(ictx->mTickerSynchronizer, &ts);
-	if ((++count) % 100 == 0)
-		ms_message("sound/wall clock skew is average=%f ms", av_skew);
+	ictx->mAvSkew = ms_ticker_synchronizer_set_external_time(ictx->mTickerSynchronizer, &ts);
 }
 
+
+/*
+ * This is a callback function called by AudioRecord's thread. This thread is not created by ortp/ms2 and is not able to attach to a JVM without crashing
+ * at the end, despite it is detached (since android 4.4).
+ * We must not output a single log within this callback in the event that the application is using LinphoneCoreFactory.setLogHandler(), in which case
+ * the log would be upcalled to java, which will attach the thread to the jvm.
+**/
 static void opensles_recorder_callback(SLAndroidSimpleBufferQueueItf bq, void *context) {
 	SLresult result;
 	OpenSLESInputContext *ictx = (OpenSLESInputContext *)context;
@@ -419,7 +426,7 @@ static void opensles_recorder_callback(SLAndroidSimpleBufferQueueItf bq, void *c
 
  	result = (*ictx->recorderBufferQueue)->Enqueue(ictx->recorderBufferQueue, ictx->recBuffer[ictx->currentBuffer], ictx->inBufSize);
 	if (result != SL_RESULT_SUCCESS) {
-		ms_error("OpenSLES Error %u while enqueueing record buffer", result);
+		/*ms_error("OpenSLES Error %u while enqueueing record buffer", result);*/
 	}
 	ictx->currentBuffer = ictx->currentBuffer == 1 ? 0 : 1;
 }
@@ -495,6 +502,9 @@ static void android_snd_read_process(MSFilter *obj) {
 		ms_queue_put(obj->outputs[0], m);
 	}
 	ms_mutex_unlock(&ictx->mutex);
+	if (obj->ticker->time % 5000 == 0)
+			ms_message("sound/wall clock skew is average=%g ms", ictx->mAvSkew);
+	
 }
 
 static void android_snd_read_postprocess(MSFilter *obj) {
@@ -730,6 +740,13 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 	return result;
 }
 
+/*
+ * This is a callback function called by AudioTrack's thread. This thread is not created by ortp/ms2 and is not able to attach to a JVM without crashing
+ * at the end, despite it is detached (since android 4.4).
+ * We must not output a single log within this callback in the event that the application is using LinphoneCoreFactory.setLogHandler(), in which case
+ * the log would be upcalled to java, which will attach the thread to the jvm.
+**/
+
 static void opensles_player_callback(SLAndroidSimpleBufferQueueItf bq, void* context) {
 	SLresult result;
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)context;
@@ -740,7 +757,7 @@ static void opensles_player_callback(SLAndroidSimpleBufferQueueItf bq, void* con
 	int bytes = MIN(ask, avail);
 
 	if ((octx->nbufs == 0) && (avail > (ask * 2))) {
-		ms_warning("OpenSLES skipping %i bytes", avail - (ask * 2) );
+		/*ms_warning("OpenSLES skipping %i bytes", avail - (ask * 2) );*/
 		ms_bufferizer_skip_bytes(&octx->buffer, avail - (ask * 2));
 	}
 
@@ -764,7 +781,7 @@ static void opensles_player_callback(SLAndroidSimpleBufferQueueItf bq, void* con
 	if (bytes == 0) bytes = ask;
  	result = (*octx->playerBufferQueue)->Enqueue(octx->playerBufferQueue, octx->playBuffer[octx->currentBuffer], bytes);
 	if (result != SL_RESULT_SUCCESS) {
-		ms_error("OpenSLES Error %u while adding buffer to output queue", result);
+		/*ms_error("OpenSLES Error %u while adding buffer to output queue", result);*/
 	}
 	octx->currentBuffer = octx->currentBuffer == 1 ? 0 : 1;
 }
