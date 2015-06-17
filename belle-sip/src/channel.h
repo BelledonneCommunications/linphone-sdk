@@ -121,6 +121,7 @@ struct belle_sip_channel{
 	unsigned char about_to_be_closed;
 	unsigned char srv_overrides_port; /*set when this channel was connected to destination port provided by SRV resolution*/
 	unsigned char soft_error; /*set when this channel enters ERROR state because of error detected in upper layer */
+	int stop_logging_buffer; /*log buffer content only if this is non binary data, and stop it at the first occurence*/
 };
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)

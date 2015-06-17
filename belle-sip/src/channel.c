@@ -32,7 +32,7 @@ static void channel_end_send_background_task(belle_sip_channel_t *obj);
 static void channel_begin_recv_background_task(belle_sip_channel_t *obj);
 static void channel_end_recv_background_task(belle_sip_channel_t *obj);
 static void channel_process_queue(belle_sip_channel_t *obj);
-static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t size);
+static char *make_logbuf(belle_sip_channel_t *obj, belle_sip_log_level level, const char *buffer, size_t size);
 static void channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l);
 static void free_ewouldblock_buffer(belle_sip_channel_t *obj);
 
@@ -295,6 +295,7 @@ static void belle_sip_channel_message_ready(belle_sip_channel_t *obj){
 	if (bh) belle_sip_body_handler_end_transfer(bh);
 	if (belle_sip_message_is_response(msg)) belle_sip_channel_learn_public_ip_port(obj,BELLE_SIP_RESPONSE(msg));
 	obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,msg);
+	obj->stop_logging_buffer=0;
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
 }
 
@@ -549,8 +550,9 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 	int ret=BELLE_SIP_CONTINUE;
 
 	/*prevent system to suspend the process until we have finish reading everything from the socket and notified the upper layer*/
-	if (obj->input_stream.state == WAITING_MESSAGE_START)
+	if (obj->input_stream.state == WAITING_MESSAGE_START) {
 		channel_begin_recv_background_task(obj);
+	}
 
 	if (obj->simulated_recv_return>0) {
 		num=belle_sip_channel_recv(obj,obj->input_stream.write_ptr,belle_sip_channel_input_stream_get_buff_length(&obj->input_stream)-1);
@@ -564,15 +566,17 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 		/*first null terminate the read buff*/
 		*obj->input_stream.write_ptr='\0';
 		if (num>20 || obj->input_stream.state != WAITING_MESSAGE_START ) /*to avoid tracing server based keep alives*/ {
-			char *logbuf = make_logbuf(BELLE_SIP_LOG_MESSAGE,begin,num);
-			belle_sip_message("channel [%p]: received [%i] new bytes from [%s://%s:%i]:\n%s",
-					obj,
-					num,
-					belle_sip_channel_get_transport_name(obj),
-					obj->peer_name,
-					obj->peer_port,
-					logbuf);
-			belle_sip_free(logbuf);
+			char *logbuf = make_logbuf(obj, BELLE_SIP_LOG_MESSAGE,begin,num);
+			if (logbuf) {
+				belle_sip_message("channel [%p]: received [%i] new bytes from [%s://%s:%i]:\n%s",
+						obj,
+						num,
+						belle_sip_channel_get_transport_name(obj),
+						obj->peer_name,
+						obj->peer_port,
+						logbuf);
+				belle_sip_free(logbuf);
+			}
 		}
 		belle_sip_channel_process_stream(obj,FALSE);
 	} else if (num == 0) {
@@ -933,20 +937,27 @@ static size_t find_non_printable(const char *buffer, size_t size){
 /*
  * this function is to avoid logging too much or non-ascii data received.
  */
-static char *make_logbuf(belle_sip_log_level level, const char *buffer, size_t size){
+static char *make_logbuf(belle_sip_channel_t *obj, belle_sip_log_level level, const char *buffer, size_t size){
 	char *logbuf;
 	char truncate_msg[128]={0};
 	int limit=7000; /*big message when many ice candidates*/
 
 	if (!belle_sip_log_level_enabled(level)){
-		return belle_sip_malloc0(1);
+		return NULL;
+	}
+	if (obj->stop_logging_buffer == 1) {
+		return NULL;
 	}
 	limit=find_non_printable(buffer,MIN(size,limit));
-	if (limit==0){
-		snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (binary data)");
-	} else if (size>limit){
-		snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (first %i bytes shown)",limit);
-		size=limit;
+	if (limit != size) {
+		belle_sip_warning("channel [%p]: found binary data in buffer, will stop logging it now.", obj);
+		obj->stop_logging_buffer = 1;
+		if (limit==0){
+			snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (binary data)");
+		} else {
+			size=limit;
+			snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (first %i bytes shown)",limit);
+		}
 	}
 
 	if (truncate_msg[0]!=0){
@@ -987,25 +998,29 @@ static int send_buffer(belle_sip_channel_t *obj, const char *buffer, size_t size
 			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 		}/*ewouldblock error has to be handled by caller*/
 	}else if (size==(size_t)ret){
-		logbuf=make_logbuf(BELLE_SIP_LOG_MESSAGE, buffer,size);
-		belle_sip_message("channel [%p]: message %s to [%s://%s:%i], size: [%i] bytes\n%s"
-							,obj
-							,obj->stack->send_error==0?"sent":"silently discarded"
-							,belle_sip_channel_get_transport_name(obj)
-							,obj->peer_name
-							,obj->peer_port
-							,ret
-							,logbuf);
+		logbuf=make_logbuf(obj, BELLE_SIP_LOG_MESSAGE, buffer,size);
+		if (logbuf) {
+			belle_sip_message("channel [%p]: message %s to [%s://%s:%i], size: [%i] bytes\n%s"
+								,obj
+								,obj->stack->send_error==0?"sent":"silently discarded"
+								,belle_sip_channel_get_transport_name(obj)
+								,obj->peer_name
+								,obj->peer_port
+								,ret
+								,logbuf);
+		}
 	}else{
-		logbuf=make_logbuf(BELLE_SIP_LOG_MESSAGE,buffer,ret);
-		belle_sip_message("channel [%p]: message partly sent to [%s://%s:%i], sent: [%i/%i] bytes:\n%s"
-							,obj
-							,belle_sip_channel_get_transport_name(obj)
-							,obj->peer_name
-							,obj->peer_port
-							,ret
-							,(int)size
-							,logbuf);
+		logbuf=make_logbuf(obj, BELLE_SIP_LOG_MESSAGE,buffer,ret);
+		if (logbuf) {
+			belle_sip_message("channel [%p]: message partly sent to [%s://%s:%i], sent: [%i/%i] bytes:\n%s"
+								,obj
+								,belle_sip_channel_get_transport_name(obj)
+								,obj->peer_name
+								,obj->peer_port
+								,ret
+								,(int)size
+								,logbuf);
+		}
 	}
 	if (logbuf) belle_sip_free(logbuf);
 	return ret;
@@ -1138,6 +1153,7 @@ static void _send_message(belle_sip_channel_t *obj){
 		belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
 		free_ewouldblock_buffer(obj);
 		obj->out_state=OUTPUT_STREAM_IDLE;
+		obj->stop_logging_buffer=0;
 		belle_sip_object_unref(obj->cur_out_message);
 		obj->cur_out_message=NULL;
 }
