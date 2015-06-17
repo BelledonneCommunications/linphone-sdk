@@ -33,8 +33,8 @@ endmacro()
 
 option(ENABLE_VIDEO "Enable video support." ${DEFAULT_VALUE_ENABLE_VIDEO})
 linphone_builder_add_feature_info("Video" ENABLE_VIDEO "Ability to capture and display video.")
-option(ENABLE_GPL_THIRD_PARTIES "Enable GPL third-parties (FFmpeg and ZRTP)." ${DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES})
-linphone_builder_add_feature_info("GPL third parties" ENABLE_GPL_THIRD_PARTIES "Usage of GPL third-party code (FFmpeg and ZRTP).")
+option(ENABLE_GPL_THIRD_PARTIES "Enable GPL third-parties (FFmpeg)." ${DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES})
+linphone_builder_add_feature_info("GPL third parties" ENABLE_GPL_THIRD_PARTIES "Usage of GPL third-party code (FFmpeg).")
 
 option(ENABLE_SRTP "Enable SRTP support." ${DEFAULT_VALUE_ENABLE_SRTP})
 linphone_builder_add_feature_info("SRTP" ENABLE_SRTP "SRTP media encryption support.")
