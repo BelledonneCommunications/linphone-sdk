@@ -42,7 +42,7 @@ static MSVideoConfiguration high_fps_desktop_vp8_conf_list[] = {
 };
 
 static MSVideoConfiguration high_fps_embedded_vp8_conf_list[] = {
-	MS_VIDEO_CONF(600000, 3000000,  VGA, 30, 4),
+	MS_VIDEO_CONF(600000, 3000000,  VGA, 30, 2),
 	MS_VIDEO_CONF(350000,  600000,  CIF, 30, 2),
 	MS_VIDEO_CONF(280000,  350000, QVGA, 30, 2),
 	MS_VIDEO_CONF(150000,  280000, QCIF, 30, 1),
@@ -54,7 +54,7 @@ static MSVideoConfiguration high_fps_desktop_h264_conf_list[] = {
 	MS_VIDEO_CONF(2000000, 3000000, 720P, 30, 4),
 	MS_VIDEO_CONF(1500000, 2000000,  XGA, 30, 4),
 	MS_VIDEO_CONF(1000000, 1500000, SVGA, 30, 4),
-	MS_VIDEO_CONF( 600000, 1000000,  VGA, 30, 4),
+	MS_VIDEO_CONF( 600000, 1000000,  VGA, 30, 2),
 	MS_VIDEO_CONF( 400000,  600000,  CIF, 30, 2),
 	MS_VIDEO_CONF( 350000,  400000, QVGA, 30, 2),
 	MS_VIDEO_CONF( 200000,  350000, QCIF, 30, 1),
@@ -63,7 +63,7 @@ static MSVideoConfiguration high_fps_desktop_h264_conf_list[] = {
 };
 
 static MSVideoConfiguration high_fps_embedded_h264_conf_list[] = {
-	MS_VIDEO_CONF(600000, 3000000,  VGA, 30, 4),
+	MS_VIDEO_CONF(600000, 3000000,  VGA, 30, 2),
 	MS_VIDEO_CONF(400000,  600000,  CIF, 30, 2),
 	MS_VIDEO_CONF(350000,  400000, QVGA, 30, 2),
 	MS_VIDEO_CONF(200000,  350000, QCIF, 30, 1),
