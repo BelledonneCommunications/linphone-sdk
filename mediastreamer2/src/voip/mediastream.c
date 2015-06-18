@@ -57,29 +57,46 @@ static void disable_checksums(ortp_socket_t sock) {
 #endif
 }
 
+static int _ms_ticker_prio_from_env(const char *penv, MSTickerPrio *prio) {
+	if (strcasecmp(penv, "NORMAL") == 0) {
+		*prio = MS_TICKER_PRIO_NORMAL;
+		return 0;
+	}
+	if (strcasecmp(penv, "HIGH") == 0) {
+		*prio = MS_TICKER_PRIO_HIGH;
+		return 0;
+	}
+	if (strcasecmp(penv, "REALTIME") == 0) {
+		*prio = MS_TICKER_PRIO_REALTIME;
+		return 0;
+	}
+	ms_error("Undefined priority %s", penv);
+	return -1;
+}
+
 MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 	const char *penv;
+	MSTickerPrio prio;
 
 	if (is_video) {
+		penv = getenv("MS_VIDEO_PRIO");
+		if(penv && _ms_ticker_prio_from_env(penv, &prio) == 0) return prio;
+		
 #ifdef __ios
 		return MS_TICKER_PRIO_HIGH;
 #else
 		return MS_TICKER_PRIO_NORMAL;
 #endif
-	}
-
-	penv = getenv("MS_AUDIO_PRIO");
-	if (penv) {
-		if (strcasecmp(penv, "NORMAL") == 0) return MS_TICKER_PRIO_NORMAL;
-		if (strcasecmp(penv, "HIGH") == 0) return MS_TICKER_PRIO_HIGH;
-		if (strcasecmp(penv, "REALTIME") == 0) return MS_TICKER_PRIO_REALTIME;
-		ms_error("Undefined priority %s", penv);
-	}
+	} else {
+		penv = getenv("MS_AUDIO_PRIO");
+		if (penv && _ms_ticker_prio_from_env(penv, &prio) == 0) return prio;
+	
 #ifdef __linux
-	return MS_TICKER_PRIO_REALTIME;
+		return MS_TICKER_PRIO_REALTIME;
 #else
-	return MS_TICKER_PRIO_HIGH;
+		return MS_TICKER_PRIO_HIGH;
 #endif
+	}
 }
 
 RtpSession * create_duplex_rtpsession(const char* local_ip, int loc_rtp_port, int loc_rtcp_port) {
