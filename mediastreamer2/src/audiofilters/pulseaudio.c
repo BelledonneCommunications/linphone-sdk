@@ -199,6 +199,11 @@ static bool_t stream_connect(Stream *s, StreamType type) {
 		s->stream = NULL;
 		return FALSE;
 	}
+	ms_message("pulseaudio %s stream connected (%dHz, %dch)",
+	           type == STREAM_TYPE_PLAYBACK ? "playback" : "record",
+	           s->sampleSpec.rate,
+	           s->sampleSpec.channels);
+			
 	return TRUE;
 }
 
