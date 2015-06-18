@@ -651,6 +651,9 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	return video_stream_start_with_source(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, ms_web_cam_create_reader(cam));
 }
 
+int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+        const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam, MSFilter *source, MSFilter *output);
+
 int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, VideoStreamIO *io) {
 	MSWebCam *cam = NULL;
@@ -668,7 +671,7 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 		cam = io->cam;
 		source = ms_web_cam_create_reader(cam);
 	}
-	video_stream_start_with_source_and_output(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, source, output);
+	return video_stream_start_with_source_and_output(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, source, output);
 }
 
 bool_t video_stream_started(VideoStream *stream) {

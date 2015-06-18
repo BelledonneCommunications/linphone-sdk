@@ -1136,7 +1136,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	io.capture_card = captcard;
 	io.input_file = infile;
 	io.output_file = outfile;
-	audio_stream_start_from_io(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, use_ec, &io);
+	return audio_stream_start_from_io(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, use_ec, &io);
 }
 
 int audio_stream_start_with_files(AudioStream *stream, RtpProfile *prof,const char *remip, int remport,
