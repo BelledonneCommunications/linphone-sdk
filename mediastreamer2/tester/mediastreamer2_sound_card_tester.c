@@ -63,12 +63,12 @@ static void dtmfgen_soundwrite(void) {
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_create_filters(filter_mask);
-	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_BITRATE, &sample_rate);
+	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_NCHANNELS, &nchannels);
 	ms_filter_call_method(ms_tester_voidsource, MS_VOID_SOURCE_SEND_SILENCE, &send_silence);
-	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_BITRATE, &sample_rate);
+	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_NCHANNELS, &nchannels);
-	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_BITRATE, &sample_rate) != 0) {
+	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_SAMPLE_RATE, &sample_rate) != 0) {
 		need_resampler = TRUE;
 	}
 	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_NCHANNELS, &nchannels) != 0) {
