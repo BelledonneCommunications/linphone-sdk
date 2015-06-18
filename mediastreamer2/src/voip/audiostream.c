@@ -63,6 +63,8 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->volrecv!=NULL) ms_filter_destroy(stream->volrecv);
 	if (stream->volsend!=NULL) ms_filter_destroy(stream->volsend);
 	if (stream->equalizer!=NULL) ms_filter_destroy(stream->equalizer);
+	if (stream->read_decoder != NULL) ms_filter_destroy(stream->read_decoder);
+	if (stream->write_encoder != NULL) ms_filter_destroy(stream->write_encoder);
 	if (stream->read_resampler!=NULL) ms_filter_destroy(stream->read_resampler);
 	if (stream->write_resampler!=NULL) ms_filter_destroy(stream->write_resampler);
 	if (stream->dtmfgen_rtp!=NULL) ms_filter_destroy(stream->dtmfgen_rtp);
@@ -80,6 +82,7 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->vaddtx) ms_filter_destroy(stream->vaddtx);
 	if (stream->outbound_mixer) ms_filter_destroy(stream->outbound_mixer);
 	if (stream->recorder_file) ms_free(stream->recorder_file);
+	if (stream->rtp_io_session) rtp_session_destroy(stream->rtp_io_session);
 
 	ms_free(stream);
 }
@@ -727,9 +730,8 @@ static int get_usable_telephone_event(RtpProfile *profile, int clock_rate){
 	return fallback_pt;
 }
 
-int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
-	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
-	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec){
+int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, bool_t use_ec, AudioStreamIO *io) {
 	RtpSession *rtps=stream->ms.sessions.rtp_session;
 	PayloadType *pt;
 	int tmp, tev_pt;
@@ -763,22 +765,36 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	
 	if (stream->ms.state==MSStreamPreparing){
 		/*we were using the dummy preload graph, destroy it but keep sound filters unless no soundcard is given*/
-		_audio_stream_unprepare_sound(stream,captcard!=NULL);
+		_audio_stream_unprepare_sound(stream,io->capture_card!=NULL);
 	}
 	
 	/* creates the local part */
-	if (captcard!=NULL){
+	if (io->capture_card!=NULL){
 		if (stream->soundread==NULL)
-			stream->soundread=ms_snd_card_create_reader(captcard);
-		has_builtin_ec=!!(ms_snd_card_get_capabilities(captcard) & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER);
-	}else {
+			stream->soundread=ms_snd_card_create_reader(io->capture_card);
+		has_builtin_ec=!!(ms_snd_card_get_capabilities(io->capture_card) & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER);
+	} else if (io->rtp_session != NULL) {
+		stream->rtp_io_session = io->rtp_session;
+		pt = rtp_profile_get_payload(rtp_session_get_profile(stream->rtp_io_session),
+			rtp_session_get_recv_payload_type(stream->rtp_io_session));
+		stream->soundread = ms_filter_new(MS_RTP_RECV_ID);
+		ms_filter_call_method(stream->soundread, MS_RTP_RECV_SET_SESSION, stream->rtp_io_session);
+		stream->read_decoder = ms_filter_create_decoder(pt->mime_type);
+	} else {
 		stream->soundread=ms_filter_new(MS_FILE_PLAYER_ID);
 		stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
-	if (playcard!=NULL) {
+	if (io->playback_card!=NULL) {
 		if (stream->soundwrite==NULL)
-			stream->soundwrite=ms_snd_card_create_writer(playcard);
-	}else {
+			stream->soundwrite=ms_snd_card_create_writer(io->playback_card);
+	} else if (io->rtp_session != NULL) {
+		stream->rtp_io_session = io->rtp_session;
+		pt = rtp_profile_get_payload(rtp_session_get_profile(stream->rtp_io_session),
+			rtp_session_get_send_payload_type(stream->rtp_io_session));
+		stream->soundwrite = ms_filter_new(MS_RTP_SEND_ID);
+		ms_filter_call_method(stream->soundwrite, MS_RTP_SEND_SET_SESSION, stream->rtp_io_session);
+		stream->write_encoder = ms_filter_create_encoder(pt->mime_type);
+	} else {
 		stream->soundwrite=ms_filter_new(MS_FILE_REC_ID);
 	}
 
@@ -826,7 +842,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	if ((stream->ms.encoder==NULL) || (stream->ms.decoder==NULL)){
 		/* big problem: we have not a registered codec for this payload...*/
-		ms_error("audio_stream_start_full: No decoder or encoder available for payload %s.",pt->mime_type);
+		ms_error("audio_stream_start_from_io: No decoder or encoder available for payload %s.",pt->mime_type);
 		return -1;
 	}
 
@@ -871,11 +887,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	audio_stream_enable_echo_limiter(stream,stream->el_type);
 	audio_stream_enable_noise_gate(stream,stream->use_ng);
 
-	if (ms_filter_implements_interface(stream->soundread,MSFilterPlayerInterface) && infile){
-		audio_stream_play(stream,infile);
+	if (ms_filter_implements_interface(stream->soundread,MSFilterPlayerInterface) && io->input_file){
+		audio_stream_play(stream,io->input_file);
 	}
-	if (ms_filter_implements_interface(stream->soundwrite,MSFilterRecorderInterface) && outfile){
-		audio_stream_record(stream,outfile);
+	if (ms_filter_implements_interface(stream->soundwrite,MSFilterRecorderInterface) && io->output_file){
+		audio_stream_record(stream,io->output_file);
 	}
 
 	if (stream->use_agc){
@@ -908,7 +924,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	if (stream->ec){
 		if (!stream->is_ec_delay_set) {
-			int delay_ms=ms_snd_card_get_minimal_latency(captcard);
+			int delay_ms=ms_snd_card_get_minimal_latency(io->capture_card);
 			ms_message("Setting echo canceller delay with value provided by soundcard: %i ms",delay_ms);
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
 		} else {
@@ -934,7 +950,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&stream->ms.target_bitrate);
 	}
 	rtp_session_set_target_upload_bandwidth(rtps, stream->ms.target_bitrate);
-	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&nchannels);	
+	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&nchannels);
 	if (pt->send_fmtp!=NULL) {
 		char value[16]={0};
 		int ptime;
@@ -985,10 +1001,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 #endif
 
 	/*configure resamplers if needed*/
-	if (stream->read_resampler){
+	if (stream->read_resampler) {
 		audio_stream_configure_resampler(stream, stream->read_resampler, stream->soundread, stream->ms.encoder);
 	}
-	if (stream->write_resampler){
+	if (stream->write_resampler) {
 		audio_stream_configure_resampler(stream, stream->write_resampler, stream->ms.decoder, stream->soundwrite);
 	}
 
@@ -1045,6 +1061,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	/*sending graph*/
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h,stream->soundread,-1,0);
+	if (stream->read_decoder)
+		ms_connection_helper_link(&h, stream->read_decoder, 0, 0);
 	if (stream->read_resampler)
 		ms_connection_helper_link(&h,stream->read_resampler,0,0);
 	if( stream->equalizer && stream->eq_loc == MSEqualizerMic )
@@ -1084,6 +1102,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_connection_helper_link(&h,stream->ec,0,0);
 	if (stream->write_resampler)
 		ms_connection_helper_link(&h,stream->write_resampler,0,0);
+	if (stream->write_encoder)
+		ms_connection_helper_link(&h, stream->write_encoder, 0, 0);
 	ms_connection_helper_link(&h,stream->soundwrite,0,-1);
 
 	/*call recording part, attached to both outgoing and incoming graphs*/
@@ -1106,6 +1126,17 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	stream->ms.state=MSStreamStarted;
 
 	return 0;
+}
+
+int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
+	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec){
+	AudioStreamIO io = { 0 };
+	io.playback_card = playcard;
+	io.capture_card = captcard;
+	io.input_file = infile;
+	io.output_file = outfile;
+	audio_stream_start_from_io(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, use_ec, &io);
 }
 
 int audio_stream_start_with_files(AudioStream *stream, RtpProfile *prof,const char *remip, int remport,
@@ -1318,7 +1349,7 @@ AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
 AudioStream *audio_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port) {
 	AudioStream *obj;
 	MSMediaStreamSessions sessions={0};
-	sessions.rtp_session=create_duplex_rtpsession(ip,loc_rtp_port,loc_rtcp_port);
+	sessions.rtp_session=ms_create_duplex_rtp_session(ip,loc_rtp_port,loc_rtcp_port);
 	obj=audio_stream_new_with_sessions(&sessions);
 	obj->ms.owns_sessions=TRUE;
 	return obj;
@@ -1450,6 +1481,8 @@ void audio_stream_stop(AudioStream * stream){
 			/*dismantle the outgoing graph*/
 			ms_connection_helper_start(&h);
 			ms_connection_helper_unlink(&h,stream->soundread,-1,0);
+			if (stream->read_decoder != NULL)
+				ms_connection_helper_unlink(&h, stream->read_decoder, 0, 0);
 			if (stream->read_resampler!=NULL)
 				ms_connection_helper_unlink(&h,stream->read_resampler,0,0);
 			if( stream->equalizer && stream->eq_loc == MSEqualizerMic)
@@ -1489,6 +1522,8 @@ void audio_stream_stop(AudioStream * stream){
 				ms_connection_helper_unlink(&h,stream->ec,0,0);
 			if (stream->write_resampler!=NULL)
 				ms_connection_helper_unlink(&h,stream->write_resampler,0,0);
+			if (stream->write_encoder != NULL)
+				ms_connection_helper_unlink(&h, stream->write_encoder, 0, 0);
 			ms_connection_helper_unlink(&h,stream->soundwrite,0,-1);
 
 			/*dismantle the call recording */

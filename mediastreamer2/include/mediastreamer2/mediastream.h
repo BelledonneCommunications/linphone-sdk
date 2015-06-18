@@ -285,6 +285,20 @@ typedef enum EqualizerLocation {
 } EqualizerLocation;
 
 
+/**
+ * Structure describing the input/output of an AudioStream.
+ * Either fill playback_card and capture_card to use actual soundcards, or
+ * fill input_file and output_file to use read and record from/to wav files,
+ * or fill rtp_session to read/write to an RTP stream.
+ */
+typedef struct _AudioStreamIO {
+	MSSndCard *playback_card;
+	MSSndCard *capture_card;
+	const char *input_file;
+	const char *output_file;
+	RtpSession *rtp_session;
+} AudioStreamIO;
+
 
 struct _AudioStream
 {
@@ -299,6 +313,8 @@ struct _AudioStream
 	MSFilter *local_mixer;
 	MSFilter *local_player;
 	MSFilter *local_player_resampler;
+	MSFilter *read_decoder; /* Used when the input is done via RTP */
+	MSFilter *write_encoder; /* Used when the output is done via RTP */
 	MSFilter *read_resampler;
 	MSFilter *write_resampler;
 	MSFilter *equalizer;
@@ -322,6 +338,7 @@ struct _AudioStream
 		int videopin;
 		bool_t plumbed;
 	}av_player;
+	RtpSession *rtp_io_session; /**< The RTP session used for RTP input/output. */
 	MSFilter *vaddtx;
 	char *recorder_file;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
@@ -350,11 +367,27 @@ MS2_PUBLIC AudioStream *audio_stream_start (RtpProfile * prof, int locport, cons
 
 MS2_PUBLIC AudioStream *audio_stream_start_with_sndcards(RtpProfile * prof, int locport, const char *remip4, int remport, int payload_type, int jitt_comp, MSSndCard *playcard, MSSndCard *captcard, bool_t echocancel);
 
-
 MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile * prof,
 						const char *remip, int remport, int rem_rtcp_port,
 						int pt, int jitt_comp,
 						const char * infile,  const char * outfile);
+
+/**
+ * Start an audio stream according to the specified AudioStreamIO.
+ *
+ * @param[in] stream AudioStream object previously created with audio_stream_new().
+ * @param[in] profile RtpProfile object holding the PayloadType that can be used during the audio session.
+ * @param[in] rem_rtp_ip The remote IP address where to send the encoded audio to.
+ * @param[in] rem_rtp_port The remote port where to send the encoded audio to.
+ * @param[in] rem_rtcp_ip The remote IP address for RTCP.
+ * @param[in] rem_rtcp_port The remote port for RTCP.
+ * @param[in] payload The payload type number used to send the audio stream. A valid PayloadType must be available at this index in the profile.
+ * @param[in] jitt_comp The nominal jitter buffer size in milliseconds.
+ * @param[in] use_ec A boolean telling whether to activate echo cancellation or not.
+ * @param[in] io An AudioStreamIO describing the input/output of the audio stream.
+ */
+MS2_PUBLIC int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, bool_t use_ec, AudioStreamIO *io);
 
 /**
  * Starts an audio stream from/to local wav files or soundcards.
@@ -629,6 +662,16 @@ typedef enum _VideoStreamDir{
 	VideoStreamRecvOnly
 }VideoStreamDir;
 
+/**
+ * Structure describing the input/output of a VideoStream.
+ * Either fill cam to specify the camera to use as input and use the
+ * standard display, or fill rtp_session to read/write to an RTP stream.
+ */
+typedef struct _VideoStreamIO {
+	MSWebCam *cam;
+	RtpSession *rtp_session;
+} VideoStreamIO;
+
 struct _VideoStream
 {
 	MediaStream ms;
@@ -658,6 +701,7 @@ struct _VideoStream
 	unsigned long preview_window_id;
 	VideoStreamDir dir;
 	MSWebCam *cam;
+	RtpSession *rtp_io_session; /**< The RTP session used for RTP input/output. */
 	char *preset;
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	uint64_t last_reported_decoding_error_time;
@@ -699,6 +743,23 @@ MS2_PUBLIC int video_stream_start_with_source(VideoStream *stream, RtpProfile *p
 		const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam* cam, MSFilter* source);
 MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port, const char *rem_rtcp_ip, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
+
+/**
+ * Start a video stream according to the specified VideoStreamIO.
+ *
+ * @param[in] stream VideoStream object previously created with video_stream_new().
+ * @param[in] profile RtpProfile object holding the PayloadType that can be used during the video session.
+ * @param[in] rem_rtp_ip The remote IP address where to send the encoded video to.
+ * @param[in] rem_rtp_port The remote port where to send the encoded video to.
+ * @param[in] rem_rtcp_ip The remote IP address for RTCP.
+ * @param[in] rem_rtcp_port The remote port for RTCP.
+ * @param[in] payload The payload type number used to send the video stream. A valid PayloadType must be available at this index in the profile.
+ * @param[in] jitt_comp The nominal jitter buffer size in milliseconds.
+ * @param[in] io A VideoStreamIO describing the input/output of the video stream.
+ */
+MS2_PUBLIC int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, VideoStreamIO *io);
+
 MS2_PUBLIC void video_stream_prepare_video(VideoStream *stream);
 MS2_PUBLIC void video_stream_unprepare_video(VideoStream *stream);
 
@@ -988,6 +1049,15 @@ MS2_PUBLIC MSFilter* video_preview_stop_reuse_source(VideoPreview *stream);
  * Returns the web cam descriptor for the mire kind of camera.
 **/
 MS2_PUBLIC MSWebCamDesc *ms_mire_webcam_desc_get(void);
+
+
+/**
+ * Create an RTP session for duplex communication.
+ * @param[in] local_ip The local IP to bind the RTP and RTCP sockets to.
+ * @param[in] local_rtp_port The local port to bind the RTP socket to.
+ * @param[in] local_rtcp_port The local port to bind the RTCP socket to.
+ */
+MS2_PUBLIC RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port);
 
 /**
  * @}

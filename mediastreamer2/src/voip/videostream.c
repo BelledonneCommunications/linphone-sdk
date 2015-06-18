@@ -35,11 +35,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static void configure_itc(VideoStream *stream);
 
 void video_stream_free(VideoStream *stream) {
+	bool_t rtp_source = FALSE;
+	bool_t rtp_output = FALSE;
+
+	if ((stream->source != NULL) && (ms_filter_get_id(stream->source) == MS_RTP_RECV_ID))
+		rtp_source = TRUE;
+	if ((stream->output != NULL) && (ms_filter_get_id(stream->output) == MS_RTP_SEND_ID))
+		rtp_output = TRUE;
+
 	/* Prevent filters from being destroyed two times */
-	if (stream->source_performs_encoding == TRUE) {
+	if ((stream->source_performs_encoding == TRUE) || (rtp_source == TRUE)) {
 		stream->ms.encoder = NULL;
 	}
-	if (stream->output_performs_decoding == TRUE) {
+	if ((stream->output_performs_decoding == TRUE) || (rtp_output == TRUE)) {
 		stream->ms.decoder = NULL;
 	}
 
@@ -69,6 +77,8 @@ void video_stream_free(VideoStream *stream) {
 		ms_filter_destroy(stream->itcsink);
 	if (stream->local_jpegwriter)
 		ms_filter_destroy(stream->local_jpegwriter);
+	if (stream->rtp_io_session)
+		rtp_session_destroy(stream->rtp_io_session);
 
 	if (stream->display_name!=NULL)
 		ms_free(stream->display_name);
@@ -242,7 +252,7 @@ VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ip
 VideoStream *video_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port) {
 	MSMediaStreamSessions sessions={0};
 	VideoStream *obj;
-	sessions.rtp_session=create_duplex_rtpsession(ip,loc_rtp_port,loc_rtcp_port);
+	sessions.rtp_session=ms_create_duplex_rtp_session(ip,loc_rtp_port,loc_rtcp_port);
 	obj=video_stream_new_with_sessions(&sessions);
 	obj->ms.owns_sessions=TRUE;
 	return obj;
@@ -640,6 +650,26 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	return video_stream_start_with_source(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, ms_web_cam_create_reader(cam));
 }
 
+int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, VideoStreamIO *io) {
+	MSWebCam *cam = NULL;
+	MSFilter *source = NULL;
+	MSFilter *output = NULL;
+
+	if (io->rtp_session != NULL) {
+		cam = NULL;
+		stream->rtp_io_session = io->rtp_session;
+		source = ms_filter_new(MS_RTP_RECV_ID);
+		ms_filter_call_method(source, MS_RTP_RECV_SET_SESSION, stream->rtp_io_session);
+		output = ms_filter_new(MS_RTP_SEND_ID);
+		ms_filter_call_method(output, MS_RTP_SEND_SET_SESSION, stream->rtp_io_session);
+	} else {
+		cam = io->cam;
+		source = ms_web_cam_create_reader(cam);
+	}
+	video_stream_start_with_source_and_output(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, source, output);
+}
+
 bool_t video_stream_started(VideoStream *stream) {
 	return media_stream_started(&stream->ms);
 }
@@ -705,8 +735,8 @@ static MSPixFmt mime_type_to_pix_format(const char *mime_type) {
 	return MS_PIX_FMT_UNKNOWN;
 }
 
-int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
-	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam* cam, MSFilter* source){
+int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam, MSFilter *source, MSFilter *output) {
 	PayloadType *pt;
 	RtpSession *rtps=stream->ms.sessions.rtp_session;
 	MSPixFmt format;
@@ -714,11 +744,14 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 	JBParameters jbp;
 	const int socket_buf_size=2000000;
 	bool_t avpf_enabled = FALSE;
+	bool_t rtp_source = FALSE;
+	bool_t rtp_output = FALSE;
 
-	if( source == NULL ){
+	if (source == NULL) {
 		ms_error("videostream.c: no defined source");
 		return -1;
 	}
+	rtp_source = (ms_filter_get_id(source) == MS_RTP_RECV_ID) ? TRUE : FALSE;
 
 	pt=rtp_profile_get_payload(profile,payload);
 	if (pt==NULL){
@@ -767,7 +800,7 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 		if (stream->source_performs_encoding == TRUE) {
 			format = mime_type_to_pix_format(pt->mime_type);
 			ms_filter_call_method(source, MS_FILTER_SET_PIX_FMT, &format);
-		} else {
+		} else if (!rtp_source) {
 			stream->ms.encoder=ms_filter_create_encoder(pt->mime_type);
 			if (stream->ms.encoder==NULL){
 				/* big problem: we don't have a registered codec for this payload...*/
@@ -778,38 +811,45 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 		/* creates the filters */
 		stream->cam=cam;
 		stream->source = source;
-		stream->tee = ms_filter_new(MS_TEE_ID);
-		stream->local_jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
-		if (stream->source_performs_encoding == TRUE) {
-			stream->ms.encoder = stream->source;	/* Consider the encoder is the source */
-		}
-
-		apply_video_preset(stream, pt);
-		if (pt->normal_bitrate>0){
-			apply_bitrate_limit(stream, pt);
-		}
-		if (pt->send_fmtp){
-			ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
-		}
-		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_ENABLE_AVPF, &avpf_enabled);
-		if (stream->use_preview_window){
-			if (stream->rendercb==NULL){
-				stream->output2=ms_filter_new_from_name (stream->display_name);
+		if (rtp_source) {
+			stream->ms.encoder = stream->source; /* Consider that the source is also the encoder */
+		} else {
+			stream->tee = ms_filter_new(MS_TEE_ID);
+			stream->local_jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
+			if (stream->source_performs_encoding == TRUE) {
+				stream->ms.encoder = stream->source;	/* Consider the encoder is the source */
 			}
+
+			apply_video_preset(stream, pt);
+			if (pt->normal_bitrate>0){
+				apply_bitrate_limit(stream, pt);
+			}
+			if (pt->send_fmtp){
+				ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
+			}
+			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_ENABLE_AVPF, &avpf_enabled);
+			if (stream->use_preview_window){
+				if (stream->rendercb==NULL){
+					stream->output2=ms_filter_new_from_name (stream->display_name);
+				}
+			}
+
+			configure_video_source(stream);
 		}
 
-		configure_video_source (stream);
 		/* and then connect all */
 		ms_connection_helper_start(&ch);
 		ms_connection_helper_link(&ch, stream->source, -1, 0);
 		if (stream->pixconv) {
 			ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
 		}
-		ms_connection_helper_link(&ch, stream->tee, 0, 0);
+		if (stream->tee) {
+			ms_connection_helper_link(&ch, stream->tee, 0, 0);
+		}
 		if (stream->sizeconv) {
 			ms_connection_helper_link(&ch, stream->sizeconv, 0, 0);
 		}
-		if (stream->source_performs_encoding == FALSE) {
+		if ((stream->source_performs_encoding == FALSE) && !rtp_source) {
 			ms_connection_helper_link(&ch, stream->ms.encoder, 0, 0);
 		}
 		ms_connection_helper_link(&ch, stream->ms.rtpsend, 0, -1);
@@ -825,6 +865,9 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 	}
 
 	/* Plumb the incoming stream */
+	if (output != NULL) {
+		rtp_output = (ms_filter_get_id(output) == MS_RTP_SEND_ID) ? TRUE : FALSE;
+	}
 	/* Define target upload bandwidth for RTCP packets sending. */
 	if (pt->normal_bitrate > 0) {
 		rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, pt->normal_bitrate);
@@ -832,12 +875,14 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamRecvOnly){
 		MSConnectionHelper ch;
 
-		/* create decoder first */
-		stream->ms.decoder=ms_filter_create_decoder(pt->mime_type);
-		if (stream->ms.decoder==NULL){
-			/* big problem: we don't have a registered decoderfor this payload...*/
-			ms_error("videostream.c: No decoder available for payload %i:%s.",payload,pt->mime_type);
-			return -1;
+		if (!rtp_output) {
+			/* create decoder first */
+			stream->ms.decoder=ms_filter_create_decoder(pt->mime_type);
+			if (stream->ms.decoder==NULL){
+				/* big problem: we don't have a registered decoderfor this payload...*/
+				ms_error("videostream.c: No decoder available for payload %i:%s.",payload,pt->mime_type);
+				return -1;
+			}
 		}
 
 		/* display logic */
@@ -849,17 +894,24 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 			/* no user supplied callback -> create filter */
 			MSVideoDisplayDecodingSupport decoding_support;
 
-			/* Check if the decoding filter can perform the rendering */
-			decoding_support.mime_type = pt->mime_type;
-			decoding_support.supported = FALSE;
-			ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_SUPPORT_RENDERING, &decoding_support);
-			stream->output_performs_decoding = decoding_support.supported;
+			if ((output == NULL) || (ms_filter_get_id(output) != MS_RTP_SEND_ID)) {
+				/* Check if the decoding filter can perform the rendering */
+				decoding_support.mime_type = pt->mime_type;
+				decoding_support.supported = FALSE;
+				ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_SUPPORT_RENDERING, &decoding_support);
+				stream->output_performs_decoding = decoding_support.supported;
+			}
 
 			if (stream->output_performs_decoding) {
 				stream->output = stream->ms.decoder;
+			} else if (output != NULL) {
+				stream->output = output;
+				if (rtp_output) {
+					stream->ms.decoder = stream->output;
+				}
 			} else {
 				/* Create default display filter */
-				stream->output = ms_filter_new_from_name (stream->display_name);
+				stream->output = ms_filter_new_from_name(stream->display_name);
 			}
 		}
 
@@ -872,56 +924,59 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 		stream->ms.rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
 
-		if (stream->output_performs_decoding == FALSE) {
-			stream->jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
-			if (stream->jpegwriter){
-				stream->tee2=ms_filter_new(MS_TEE_ID);
+		if (!rtp_output) {
+			if (stream->output_performs_decoding == FALSE) {
+				stream->jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
+				if (stream->jpegwriter){
+					stream->tee2=ms_filter_new(MS_TEE_ID);
+				}
+			}
+
+			/* set parameters to the decoder*/
+			if (pt->send_fmtp){
+				ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
+			}
+			if (pt->recv_fmtp!=NULL)
+				ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
+			configure_decoder(stream,pt);
+
+			/*force the decoder to output YUV420P */
+			format=MS_YUV420P;
+			ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_PIX_FMT,&format);
+
+			/*configure the display window */
+			if(stream->output != NULL) {
+				int autofit = 1;
+				disp_size.width=MS_VIDEO_SIZE_CIF_W;
+				disp_size.height=MS_VIDEO_SIZE_CIF_H;
+				ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
+
+				/* if pixconv is used, force yuv420 */
+				if (stream->pixconv || !stream->source)
+					ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
+				/* else, use format from input */
+				else {
+					MSPixFmt source_format;
+					ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&source_format);
+					ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&source_format);
+				}
+
+				ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
+				if (stream->window_id!=0){
+					autofit = 0;
+					ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->window_id);
+				}
+				ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_AUTOFIT,&autofit);
+				if (stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->output, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
+					ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+				}
 			}
 		}
 
-		/* set parameters to the decoder*/
-		if (pt->send_fmtp){
-			ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
-		}
-		if (pt->recv_fmtp!=NULL)
-			ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
-		configure_decoder(stream,pt);
-
-		/*force the decoder to output YUV420P */
-		format=MS_YUV420P;
-		ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_PIX_FMT,&format);
-
-		/*configure the display window */
-		if(stream->output != NULL) {
-			int autofit = 1;
-			disp_size.width=MS_VIDEO_SIZE_CIF_W;
-			disp_size.height=MS_VIDEO_SIZE_CIF_H;
-			ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-
-			/* if pixconv is used, force yuv420 */
-			if (stream->pixconv || !stream->source)
-				ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
-			/* else, use format from input */
-			else {
-				MSPixFmt source_format;
-				ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&source_format);
-				ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&source_format);
-			}
-
-			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
-			if (stream->window_id!=0){
-				autofit = 0;
-				ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->window_id);
-			}
-			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_AUTOFIT,&autofit);
-			if (stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->output, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
-				ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
-			}
-		}
 		/* and connect the filters */
 		ms_connection_helper_start (&ch);
 		ms_connection_helper_link (&ch,stream->ms.rtprecv,-1,0);
-		if (stream->output_performs_decoding == FALSE) {
+		if ((stream->output_performs_decoding == FALSE) && !rtp_output) {
 			if (stream->itcsink){
 				ms_connection_helper_link(&ch,stream->tee3,0,0);
 				ms_filter_link(stream->tee3,1,stream->itcsink,0);
@@ -961,6 +1016,12 @@ int video_stream_start_with_source (VideoStream *stream, RtpProfile *profile, co
 
 	stream->ms.state=MSStreamStarted;
 	return 0;
+}
+
+int video_stream_start_with_source(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam* cam, MSFilter* source) {
+	return video_stream_start_with_source_and_output(stream, profile, rem_rtp_ip, rem_rtp_port,
+		rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, source, NULL);
 }
 
 void video_stream_prepare_video(VideoStream *stream){
@@ -1182,16 +1243,19 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 			}
 			if (stream->source){
 				MSConnectionHelper ch;
+				bool_t rtp_source = (ms_filter_get_id(stream->source) == MS_RTP_RECV_ID) ? TRUE : FALSE;
 				ms_connection_helper_start(&ch);
 				ms_connection_helper_unlink(&ch, stream->source, -1, 0);
 				if (stream->pixconv) {
 					ms_connection_helper_unlink(&ch, stream->pixconv, 0, 0);
 				}
-				ms_connection_helper_unlink(&ch, stream->tee, 0, 0);
+				if (stream->tee) {
+					ms_connection_helper_unlink(&ch, stream->tee, 0, 0);
+				}
 				if (stream->sizeconv) {
 					ms_connection_helper_unlink(&ch, stream->sizeconv, 0, 0);
 				}
-				if (stream->source_performs_encoding == FALSE) {
+				if ((stream->source_performs_encoding == FALSE) && !rtp_source) {
 					ms_connection_helper_unlink(&ch, stream->ms.encoder, 0, 0);
 				}
 				ms_connection_helper_unlink(&ch, stream->ms.rtpsend, 0, -1);
@@ -1206,9 +1270,10 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 				ms_filter_unlink(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
 			} else if (stream->ms.rtprecv){
 				MSConnectionHelper h;
+				bool_t rtp_output = (ms_filter_get_id(stream->output) == MS_RTP_SEND_ID) ? TRUE : FALSE;
 				ms_connection_helper_start (&h);
 				ms_connection_helper_unlink (&h,stream->ms.rtprecv,-1,0);
-				if (stream->output_performs_decoding == FALSE) {
+				if ((stream->output_performs_decoding == FALSE) && !rtp_output) {
 					if (stream->itcsink){
 						ms_connection_helper_unlink(&h,stream->tee3,0,0);
 						ms_filter_unlink(stream->tee3,1,stream->itcsink,0);

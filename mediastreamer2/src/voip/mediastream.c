@@ -99,7 +99,7 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 	}
 }
 
-RtpSession * create_duplex_rtpsession(const char* local_ip, int loc_rtp_port, int loc_rtcp_port) {
+RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port) {
 	RtpSession *rtpr;
 
 	rtpr = rtp_session_new(RTP_SESSION_SENDRECV);
