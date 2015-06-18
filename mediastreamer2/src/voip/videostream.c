@@ -124,7 +124,8 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	VideoStream *stream = (VideoStream *)media_stream;
 	int i;
 
-	if (rtcp_is_PSFB(m)) {
+	if (rtcp_is_PSFB(m) && (stream->ms.encoder != NULL)) {
+		/* The PSFB messages are to be notified to the encoder, so if we have no encoder simply ignore them. */
 		if (rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
 			switch (rtcp_PSFB_get_type(m)) {
 				case  RTCP_PSFB_FIR:
