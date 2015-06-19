@@ -312,6 +312,7 @@ static void x11video_prepare(MSFilter *f){
 static void x11video_unprepare(MSFilter *f){
 	X11Video *s=(X11Video*)f->data;
 	if (s->port!=-1){
+		XvStopVideo(s->display,s->port, s->window_id);
 		XvUngrabPort(s->display,s->port,CurrentTime);
 		s->port=-1;
 	}
