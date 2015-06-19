@@ -118,6 +118,10 @@ static bool_t v4lv2_try_format( int fd, struct v4l2_format *fmt, int fmtid){
 		ms_message("VIDIOC_TRY_FMT: %s",strerror(errno));
 		return FALSE;
 	}
+	if(fmt->fmt.pix.pixelformat != fmtid) {
+		ms_message("VIDIOC_TRY_FMT: got different format");
+		return FALSE;
+	}
 	if (v4l2_ioctl (fd, VIDIOC_S_FMT, fmt)<0){
 		ms_message("VIDIOC_S_FMT: %s",strerror(errno));
 		return FALSE;
