@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
+#include "mediastreamer2/msticker.h"
 #include "layouts.h"
 
 #include <X11/Xlib.h>
@@ -360,6 +361,7 @@ static void x11video_process(MSFilter *f){
 	bool_t precious=FALSE;
 	bool_t local_precious=FALSE;
 	XWindowAttributes wa;
+	MSTickerLateEvent late_info;
 
 	ms_filter_lock(f);
 
@@ -377,6 +379,11 @@ static void x11video_process(MSFilter *f){
 		XClearWindow(obj->display,obj->window_id);
 	}
 
+	ms_ticker_get_last_late_tick(f->ticker, &late_info);
+	if(late_info.current_late_ms > 100) {
+		ms_warning("Dropping frames because we're late");
+		goto end;
+	}
 
 	if (!obj->show) {
 		goto end;

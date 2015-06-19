@@ -63,8 +63,9 @@ enum _MSTickerPrio{
 typedef enum _MSTickerPrio MSTickerPrio;
 
 struct _MSTickerLateEvent{
-	int lateMs; /**<number of milliseconds late*/
-	uint64_t time; /**<time of late event, in milliseconds*/
+	int lateMs; /**< late at the time of the last event, in milliseconds */
+	uint64_t time; /**< time of late event, in milliseconds */
+	int current_late_ms; /**< late at the time of the last tick, in milliseconds */
 };
 
 typedef struct _MSTickerLateEvent MSTickerLateEvent;

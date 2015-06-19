@@ -69,6 +69,9 @@ static void ms_ticker_init(MSTicker *ticker, const MSTickerParams *params)
 	ticker->prio=params->prio;
 	ticker->wait_next_tick=wait_next_tick;
 	ticker->wait_next_tick_data=ticker;
+	ticker->late_event.lateMs = 0;
+	ticker->late_event.time = 0;
+	ticker->late_event.current_late_ms = 0;
 	ms_ticker_start(ticker);
 }
 
@@ -451,6 +454,7 @@ void * ms_ticker_run(void *arg)
 			s->late_event.lateMs=late;
 			s->late_event.time=late_tick_time;
 		}
+		s->late_event.current_late_ms = late;
 	}
 	ms_mutex_unlock(&s->lock);
 	unset_high_prio(precision);
