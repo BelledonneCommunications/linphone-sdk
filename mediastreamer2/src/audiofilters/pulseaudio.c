@@ -19,13 +19,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mssndcard.h"
+#include "mediastreamer2/msticker.h"
 
 #include <pulse/pulseaudio.h>
 
 static pa_context *context=NULL;
 static pa_context_state_t contextState = PA_CONTEXT_UNCONNECTED;
 static pa_threaded_mainloop *pa_loop=NULL;
-static const int targeted_latency = 20;/*ms*/
+static const int targeted_latency = 10;/*ms*/
 
 static void context_state_notify_cb(pa_context *ctx, void *userdata){
 	const char *sname="";
@@ -130,6 +131,7 @@ typedef struct _Stream{
 	pa_sample_spec sampleSpec;
 	pa_stream *stream;
 	pa_stream_state_t state;
+	MSQueue queue;
 }Stream;
 
 static void stream_disconnect(Stream *s);
@@ -156,6 +158,7 @@ static Stream *stream_new(void) {
 	s->sampleSpec.rate=8000;
 	s->stream = NULL;
 	s->state = PA_STREAM_UNCONNECTED;
+	ms_queue_init(&s->queue);
 	return s;
 }
 
@@ -163,7 +166,34 @@ static void stream_free(Stream *s) {
 	if(s->stream) {
 		stream_disconnect(s);
 	}
+	ms_queue_flush(&s->queue);
 	ms_free(s);
+}
+
+static void stream_write_request_cb(pa_stream *p, size_t nbytes, void *user_data) {
+	Stream *s = (Stream *)user_data;
+	uint8_t *data = ms_new(uint8_t, nbytes);
+	uint8_t *wptr = data;
+	size_t nread_glob = 0;
+	
+	while(!ms_queue_empty(&s->queue) && nread_glob < nbytes) {
+		mblk_t *m = ms_queue_peek_first(&s->queue);
+		size_t ntoread = nbytes - nread_glob;
+		size_t nread = readmsg(m, ntoread, wptr);
+		nread_glob += nread;
+		wptr += nread;
+		if(msgdsize(m) == 0) {
+			ms_queue_remove(&s->queue, m);
+		}
+	}
+	
+	if(nread_glob == 0) {
+		ms_warning("pulseaudio: no data to play. Playing %zd bytes of silence", nbytes);
+		memset(data, 0, nbytes);
+		nread_glob = nbytes;
+	}
+	
+	pa_stream_write(p, data, nread_glob, ms_free, 0, PA_SEEK_RELATIVE);
 }
 
 static bool_t stream_connect(Stream *s, StreamType type) {
@@ -188,7 +218,12 @@ static bool_t stream_connect(Stream *s, StreamType type) {
 	pa_stream_set_state_callback(s->stream, stream_state_notify_cb, s);
 	pa_threaded_mainloop_lock(pa_loop);
 	if(type == STREAM_TYPE_PLAYBACK) {
-		err=pa_stream_connect_playback(s->stream,NULL,&attr, PA_STREAM_ADJUST_LATENCY, NULL, NULL);
+		pa_stream_set_write_callback(s->stream, stream_write_request_cb, s);
+		err=pa_stream_connect_playback(
+			s->stream,NULL,&attr,
+			PA_STREAM_ADJUST_LATENCY | PA_STREAM_AUTO_TIMING_UPDATE | PA_STREAM_INTERPOLATE_TIMING,
+			NULL, 
+			NULL);
 	} else {
 		err=pa_stream_connect_record(s->stream,NULL,&attr, PA_STREAM_ADJUST_LATENCY);
 	}
@@ -358,18 +393,20 @@ static void pulse_write_process(MSFilter *f){
 	if(s->stream) {
 		mblk_t *im;
 		while((im=ms_queue_get(f->inputs[0]))) {
-			int err, writable;
-			int bsize=msgdsize(im);
 			pa_threaded_mainloop_lock(pa_loop);
-			writable=pa_stream_writable_size(s->stream);
-			if (writable>=0 && writable<bsize){
-				pa_stream_flush(s->stream,NULL,NULL);
-				ms_warning("pa_stream_writable_size(): not enough space, flushing");
-			}else if ((err=pa_stream_write(s->stream,im->b_rptr,bsize,NULL,0,PA_SEEK_RELATIVE))!=0){
-				ms_error("pa_stream_write(): %s",pa_strerror(err));
-			}
+			ms_queue_put(&s->queue, im);
 			pa_threaded_mainloop_unlock(pa_loop);
-			freemsg(im);
+		}
+		if(f->ticker->time % 5000 == 0) {
+			pa_usec_t latency;
+			int is_negative;
+			int err;
+			pa_threaded_mainloop_lock(pa_loop);
+			err = pa_stream_get_latency(s->stream, &latency, &is_negative);
+			pa_threaded_mainloop_unlock(pa_loop);
+			if(err == 0 && !is_negative) {
+				ms_message("pulseaudio: latency is equal to %d ms", (int)(latency/1000));
+			}
 		}
 	} else {
 		ms_queue_flush(f->inputs[0]);
