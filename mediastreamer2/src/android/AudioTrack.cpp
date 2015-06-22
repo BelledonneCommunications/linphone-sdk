@@ -86,7 +86,7 @@ namespace fake_android{
 		*frameCount = 54321;
 		if (AudioTrackImpl::get()->mGetMinFrameCount.isFound()){
 			status_t ret = AudioTrackImpl::get()->mGetMinFrameCount.invoke(frameCount,streamType,sampleRate);
-			if ((ret == 0) && (*frameCount = 54321)) {
+			if ((ret == 0) && (*frameCount == 54321)) {
 				// If no error and the magic value has not been erased then the getMinFrameCount implementation
 				// is a dummy one. So perform the calculation manually as it is supposed to be implemented...
 				int afSampleRate;
