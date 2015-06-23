@@ -410,8 +410,18 @@ static void opensles_recorder_callback(SLAndroidSimpleBufferQueueItf bq, void *c
 
 	if (ictx->mTickerSynchronizer == NULL) {
 		MSFilter *obj = ictx->mFilter;
+		/*
+		 * ABSOLUTE HORRIBLE HACK. We temporarily disable logs to prevent ms_ticker_set_time_func() to output a debug log.
+		 * This is horrible because this also suspends logs for all concurrent threads during these two lines of code.
+		 * Possible way to do better:
+		 *  1) understand why AudioRecord thread doesn't detach.
+		 *  2) disable logs just for this thread (using a TLS)
+		 */
+		int loglevel=ortp_get_log_level_mask();
+		ortp_set_log_level_mask(ORTP_ERROR|ORTP_FATAL);
 		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
-		ms_ticker_set_time_func(obj->ticker, (uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ictx->mTickerSynchronizer);
+		ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ictx->mTickerSynchronizer);
+		ortp_set_log_level_mask(loglevel);
 	}
 	ictx->read_samples += ictx->inBufSize / sizeof(int16_t);
 
