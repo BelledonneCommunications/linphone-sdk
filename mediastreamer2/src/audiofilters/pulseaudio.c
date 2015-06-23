@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static pa_context *context=NULL;
 static pa_context_state_t contextState = PA_CONTEXT_UNCONNECTED;
 static pa_threaded_mainloop *pa_loop=NULL;
-static const int targeted_latency = 10;/*ms*/
+static const int targeted_latency = 20;/*ms*/
 
 static void context_state_notify_cb(pa_context *ctx, void *userdata){
 	const char *sname="";
@@ -156,7 +156,6 @@ static Stream *stream_new(void) {
 	s->sampleSpec.format = PA_SAMPLE_S16LE;
 	s->sampleSpec.channels=1;
 	s->sampleSpec.rate=8000;
-	s->stream = NULL;
 	s->state = PA_STREAM_UNCONNECTED;
 	ms_queue_init(&s->queue);
 	return s;
@@ -170,12 +169,15 @@ static void stream_free(Stream *s) {
 	ms_free(s);
 }
 
-static void stream_write_request_cb(pa_stream *p, size_t nbytes, void *user_data) {
-	Stream *s = (Stream *)user_data;
-	uint8_t *data = ms_new(uint8_t, nbytes);
-	uint8_t *wptr = data;
+static size_t stream_play(Stream *s, size_t nbytes) {
+	uint8_t *data;
+	uint8_t *wptr;
 	size_t nread_glob = 0;
 	
+	if(nbytes == 0) return 0;
+	
+	data = ms_new(uint8_t, nbytes);
+	wptr = data;
 	while(!ms_queue_empty(&s->queue) && nread_glob < nbytes) {
 		mblk_t *m = ms_queue_peek_first(&s->queue);
 		size_t ntoread = nbytes - nread_glob;
@@ -187,13 +189,26 @@ static void stream_write_request_cb(pa_stream *p, size_t nbytes, void *user_data
 		}
 	}
 	
-	if(nread_glob == 0) {
-		ms_warning("pulseaudio: no data to play. Playing %zd bytes of silence", nbytes);
-		memset(data, 0, nbytes);
-		nread_glob = nbytes;
+	if(nread_glob > 0) {
+		pa_stream_write(s->stream, data, nread_glob, ms_free, 0, PA_SEEK_RELATIVE);
+	} else {
+		ms_free(data);
 	}
 	
-	pa_stream_write(p, data, nread_glob, ms_free, 0, PA_SEEK_RELATIVE);
+	return nread_glob;
+}
+
+static void stream_write_request_cb(pa_stream *p, size_t nbytes, void *user_data) {
+	Stream *s = (Stream *)user_data;
+	stream_play(s, nbytes);
+}
+
+static void stream_buffer_overflow_notification(pa_stream *p, void *user_data) {
+	ms_warning("pulseaudio: playback buffer overflowed");
+}
+
+static void stream_buffer_underflow_notification(pa_stream *p, void *user_data) {
+	ms_warning("pulseaudio: playback buffer underflow");
 }
 
 static bool_t stream_connect(Stream *s, StreamType type) {
@@ -219,6 +234,8 @@ static bool_t stream_connect(Stream *s, StreamType type) {
 	pa_threaded_mainloop_lock(pa_loop);
 	if(type == STREAM_TYPE_PLAYBACK) {
 		pa_stream_set_write_callback(s->stream, stream_write_request_cb, s);
+		pa_stream_set_overflow_callback(s->stream, stream_buffer_overflow_notification, NULL);
+		pa_stream_set_underflow_callback(s->stream, stream_buffer_underflow_notification, NULL);
 		err=pa_stream_connect_playback(
 			s->stream,NULL,&attr,
 			PA_STREAM_ADJUST_LATENCY | PA_STREAM_AUTO_TIMING_UPDATE | PA_STREAM_INTERPOLATE_TIMING,
@@ -390,6 +407,8 @@ static void pulse_write_preprocess(MSFilter *f) {
 
 static void pulse_write_process(MSFilter *f){
 	PlaybackStream *s=(PlaybackStream*)f->data;
+	size_t nwritable;
+
 	if(s->stream) {
 		mblk_t *im;
 		while((im=ms_queue_get(f->inputs[0]))) {
@@ -397,6 +416,12 @@ static void pulse_write_process(MSFilter *f){
 			ms_queue_put(&s->queue, im);
 			pa_threaded_mainloop_unlock(pa_loop);
 		}
+		
+		pa_threaded_mainloop_lock(pa_loop);
+		nwritable = pa_stream_writable_size(s->stream);
+		stream_play(s, nwritable);
+		pa_threaded_mainloop_unlock(pa_loop);
+
 		if(f->ticker->time % 5000 == 0) {
 			pa_usec_t latency;
 			int is_negative;
@@ -405,7 +430,7 @@ static void pulse_write_process(MSFilter *f){
 			err = pa_stream_get_latency(s->stream, &latency, &is_negative);
 			pa_threaded_mainloop_unlock(pa_loop);
 			if(err == 0 && !is_negative) {
-				ms_message("pulseaudio: latency is equal to %d ms", (int)(latency/1000));
+				ms_message("pulseaudio: latency is equal to %d ms", (int)(latency/1000L));
 			}
 		}
 	} else {
