@@ -136,6 +136,9 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 		if (error != OPUS_OK) {
 			ms_error("could not force mono channel to opus encoder: %s", opus_strerror(error));
 		}
+		if (d->channels == 2) ms_message("Opus encoder configured to encode mono despite it is feed with stereo.");
+	}else if (d->channels == 2){
+		ms_message("Opus encoder configured to encode stereo.");
 	}
 
 	ms_filter_lock(f);

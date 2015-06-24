@@ -234,11 +234,13 @@ void ms_filter_clear_notify_callback(MSFilter *f){
 
 static void ms_filter_invoke_callbacks(MSFilter **f, unsigned int id, void *arg, InvocationMode synchronous_mode){
 	MSList *elem;
-	for (elem=(*f)->notify_callbacks;elem!=NULL && *f!=NULL;elem=elem->next){
+	for (elem=(*f)->notify_callbacks;elem!=NULL;elem=elem->next){
 		MSNotifyContext *ctx=(MSNotifyContext*)elem->data;
 		if (synchronous_mode==Both || (synchronous_mode==OnlyAsynchronous && !ctx->synchronous)
-			|| (synchronous_mode==OnlySynchronous && ctx->synchronous))
+			|| (synchronous_mode==OnlySynchronous && ctx->synchronous)){
 			ctx->fn(ctx->ud,*f,id,arg);
+		}
+		if (*f==NULL) break; /*the filter was destroyed by a callback invocation*/
 	}
 }
 
