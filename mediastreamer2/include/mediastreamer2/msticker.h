@@ -90,6 +90,7 @@ struct _MSTicker
 	MSTickerTickFunc wait_next_tick;
 	void *wait_next_tick_data;
 	MSTickerLateEvent late_event;
+	unsigned long thread_id;
 	bool_t run;       /* flag to indicate whether the ticker must be run or not */
 };
 

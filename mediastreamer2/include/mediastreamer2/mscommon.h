@@ -96,6 +96,7 @@ static MS2_INLINE void ms_debug(const char *fmt,...)
 #define ms_thread_t		ortp_thread_t
 #define ms_thread_create 	ortp_thread_create
 #define ms_thread_join		ortp_thread_join
+#define ms_thread_self		ortp_thread_self
 
 typedef ortpTimeSpec MSTimeSpec;
 

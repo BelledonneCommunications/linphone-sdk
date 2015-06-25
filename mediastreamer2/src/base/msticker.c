@@ -414,7 +414,7 @@ void * ms_ticker_run(void *arg)
 	int late;
 
 	precision = set_high_prio(s);
-
+	s->thread_id = ms_thread_self();
 	s->ticks=1;
 	s->orig=s->get_cur_time_ptr(s->get_cur_time_data);
 
@@ -461,6 +461,7 @@ void * ms_ticker_run(void *arg)
 	ms_message("%s thread exiting",s->name);
 
 	ms_thread_exit(NULL);
+	s->thread_id = 0;
 	return NULL;
 }
 
@@ -542,10 +543,13 @@ float ms_ticker_get_average_load(MSTicker *ticker){
 	return ticker->av_load;
 }
 
+
+
 void ms_ticker_get_last_late_tick(MSTicker *ticker, MSTickerLateEvent *ev){
-	ms_mutex_lock(&ticker->lock);
+	bool_t need_lock = ms_thread_self() != ticker->thread_id;
+	if (need_lock) ms_mutex_lock(&ticker->lock);
 	memcpy(ev,&ticker->late_event,sizeof(MSTickerLateEvent));
-	ms_mutex_unlock(&ticker->lock);
+	if (need_lock) ms_mutex_unlock(&ticker->lock);
 }
 
 static uint64_t get_ms(const MSTimeSpec *ts){
