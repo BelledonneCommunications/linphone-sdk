@@ -332,17 +332,22 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 
 	belle_sip_message("Dialog [%p]: now updated by transaction [%p].",obj, transaction);
 	
-	belle_sip_object_ref(transaction);
-	if (obj->last_transaction) belle_sip_object_unref(obj->last_transaction);
-	obj->last_transaction=transaction;
+	if (resp)
+			code=belle_sip_response_get_status_code(resp);
 	
+	if (as_uas && code == 491) { /**/
+		belle_sip_message("Dialog [%p]: don't update last transaction by transaction [%p].",obj, transaction);
+	} else {
+		belle_sip_object_ref(transaction);
+		if (obj->last_transaction) belle_sip_object_unref(obj->last_transaction);
+		obj->last_transaction=transaction;
+	}
 	if (!as_uas){
 		belle_sip_header_privacy_t *privacy_header=belle_sip_message_get_header_by_type(req,belle_sip_header_privacy_t);
 		SET_OBJECT_PROPERTY(obj,privacy,privacy_header);
 	}
 	
-	if (resp)
-		code=belle_sip_response_get_status_code(resp);
+
 
 
 	/*first update local/remote cseq*/
