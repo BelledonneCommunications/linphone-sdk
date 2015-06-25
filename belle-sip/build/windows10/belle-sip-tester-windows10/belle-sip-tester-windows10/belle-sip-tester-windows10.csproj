@@ -112,9 +112,9 @@
       <SubType>Designer</SubType>
     </AppxManifest>
     <None Include="ApplicationInsights.config" />
-    <None Include="Assets\rootca.pem">
+    <Content Include="Assets\rootca.pem">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </Content>
     <None Include="belle-sip-tester-windows10_TemporaryKey.pfx" />
     <None Include="packages.config" />
   </ItemGroup>
