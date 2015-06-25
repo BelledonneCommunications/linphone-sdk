@@ -52,7 +52,7 @@ namespace belle_sip_tester_windows10
         {
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
-                Results.Text += msg;
+                Results.Text += msg + "\n";
             });
         }
     }

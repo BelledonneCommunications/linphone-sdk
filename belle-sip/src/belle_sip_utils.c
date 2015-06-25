@@ -253,7 +253,7 @@ static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_li
 	#else
 	{
 		int len=strlen(msg);
-		wchar_t *tmp=(wchar_t*)belle_sip_malloc((len+1)*sizeof(wchar_t));
+		wchar_t *tmp=(wchar_t*)belle_sip_malloc0((len+1)*sizeof(wchar_t));
 		mbstowcs(tmp,msg,len);
 		OutputDebugStringW(tmp);
 		OutputDebugStringW(L"\r\n");

@@ -24,10 +24,16 @@ static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 	}
 }
 
+static void belleSipNativeOutputTraceHandler(belle_sip_log_level lev, const char *fmt, va_list args)
+{
+	nativeOutputTraceHandler((int)lev, fmt, args);
+}
+
 
 BelleSipTester::BelleSipTester()
 {
 	belle_sip_tester_init(nativeOutputTraceHandler);
+	belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
 }
 
 BelleSipTester::~BelleSipTester()
