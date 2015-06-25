@@ -83,8 +83,9 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	}
 }
 
-void belle_sip_tester_init() {
-	bc_tester_init(log_handler, BELLE_SIP_LOG_MESSAGE, BELLE_SIP_LOG_ERROR);
+void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
+	if (ftester_printf == NULL) ftester_printf = log_handler;
+	bc_tester_init(ftester_printf, BELLE_SIP_LOG_MESSAGE, BELLE_SIP_LOG_ERROR);
 	belle_sip_init_sockets();
 	belle_sip_object_enable_marshal_check(TRUE);
 	ipv6_available=_belle_sip_tester_ipv6_available();
@@ -118,14 +119,14 @@ static const char* belle_sip_helper =
 		"\t\t\t--root-ca <root ca file path>\n";
 
 
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#if !defined(ANDROID) && !defined(TARGET_OS_IPHONE) && !(defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL))
 int main (int argc, char *argv[]) {
 	int i;
 	int ret;
 	const char *root_ca_path = NULL;
 	const char *env_domain=getenv("TEST_DOMAIN");
 
-	belle_sip_tester_init();
+	belle_sip_tester_init(NULL);
 
 	if (env_domain) {
 		test_domain=env_domain;

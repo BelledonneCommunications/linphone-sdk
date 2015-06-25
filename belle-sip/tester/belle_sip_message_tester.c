@@ -429,7 +429,7 @@ void channel_parser_tester_recovery_from_error_base (const char* prelude,const c
 	belle_sip_object_unref(stack);
 
 }
-void channel_parser_tester_recovery_from_error () {
+void channel_parser_tester_recovery_from_error(void) {
 	const char * raw_message=	"debut de stream tout pourri\r\n"
 			"INVITE je_suis_une_fausse _request_uri_hihihi SIP/2.0\r\n"
 			"Via: SIP/2.0/UDP 192.168.1.12:15060;rport=15060;branch=z9hG4bK1596944937;received=81.56.113.2\r\n"
@@ -463,7 +463,7 @@ void channel_parser_tester_recovery_from_error () {
 			"\r\n";
 	channel_parser_tester_recovery_from_error_base (NULL, raw_message);
 }
-void channel_parser_malformed_start () {
+void channel_parser_malformed_start(void) {
 	const char * raw_message=	"debut de stream tout pourri\r\n"
 			"REGISTER sip:192.168.0.20 SIP/2.0\r\n"
 			"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"
@@ -482,7 +482,7 @@ void channel_parser_malformed_start () {
 	channel_parser_tester_recovery_from_error_base (NULL, raw_message);
 }
 
-void channel_parser_truncated_start () {
+void channel_parser_truncated_start(void) {
 	const char * prelude= "R";
 	const char * raw_message=	"EGISTER sip:192.168.0.20 SIP/2.0\r\n"
 			"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"
@@ -502,7 +502,7 @@ void channel_parser_truncated_start () {
 	channel_parser_tester_recovery_from_error_base (prelude, raw_message);
 }
 
-void channel_parser_truncated_start_with_garbage() {
+void channel_parser_truncated_start_with_garbage(void) {
 	const char * prelude= "truc tout pourit R";
 	const char * raw_message=	"EGISTER sip:192.168.0.20 SIP/2.0\r\n"
 			"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"
@@ -705,7 +705,7 @@ static void testRFC2543_base(char* branch) {
 static void testRFC2543Compat(void) {
 	testRFC2543_base("");
 }
-static void testRFC2543CompatWithBranch() {
+static void testRFC2543CompatWithBranch(void) {
 	testRFC2543_base("branch=blablabla;");
 }
 static void testUriHeadersInInvite(void)  {
@@ -902,7 +902,7 @@ static void testHttp200Ok(void)  {
 }
 
 
-void channel_parser_http_response () {
+void channel_parser_http_response(void) {
 	belle_sip_stack_t* stack = belle_sip_stack_new(NULL);
 	belle_sip_channel_t* channel = belle_sip_stream_channel_new_client(stack
 																	, NULL

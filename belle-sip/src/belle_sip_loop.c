@@ -20,7 +20,7 @@
 #include "belle_sip_internal.h"
 
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <unistd.h>
 #include <poll.h>
 typedef struct pollfd belle_sip_pollfd_t;
@@ -169,7 +169,7 @@ static void belle_sip_source_init(belle_sip_source_t *s, belle_sip_source_func_t
 }
 
 void belle_sip_source_uninit(belle_sip_source_t *obj){
-#ifdef WIN32
+#ifdef _WIN32
 	if (obj->sock!=(belle_sip_socket_t)-1){
 		WSACloseEvent(obj->fd);
 		obj->fd=(WSAEVENT)-1;
@@ -184,7 +184,7 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 }
 
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t sock, unsigned int events, unsigned int timeout_value_ms){
-#ifdef WIN32
+#ifdef _WIN32
 	/*on windows, the fd to poll is not the socket */
 	belle_sip_fd_t fd=(belle_sip_fd_t)-1;
 	if (sock!=(belle_sip_socket_t)-1)

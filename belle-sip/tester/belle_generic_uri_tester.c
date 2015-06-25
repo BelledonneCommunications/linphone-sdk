@@ -20,7 +20,7 @@
 #include "belle_sip_tester.h"
 
 
-static void test_basic_uri() {
+static void test_basic_uri(void) {
 	belle_generic_uri_t* source_uri = belle_generic_uri_parse("http://www.linphone.org/index.html");
 	char* source_uri_raw = belle_sip_object_to_string(source_uri);
 	belle_generic_uri_t* first_uri = belle_generic_uri_parse(source_uri_raw);
@@ -46,7 +46,7 @@ static void test_basic_uri() {
 	belle_sip_object_unref(source_uri);
 }
 
-static void test_complex_uri() {
+static void test_complex_uri(void) {
 
 	belle_generic_uri_t* source_uri = belle_generic_uri_parse("ftp://toto:secret@ftp.linphone.fr:1234/url?sa=t&rct=j&url=http%3A%2F%2Ftranslate.google.fr");
 	char* source_uri_raw = belle_generic_uri_to_string(source_uri);
@@ -68,7 +68,7 @@ static void test_complex_uri() {
 	belle_sip_object_unref(uri);
 }
 
-static void test_file_path() {
+static void test_file_path(void) {
 	belle_generic_uri_t* source_uri = belle_generic_uri_parse("/index.html");
 	char* source_uri_raw = belle_sip_object_to_string(source_uri);
 	belle_generic_uri_t* first_uri = belle_generic_uri_parse(source_uri_raw);
@@ -103,7 +103,7 @@ static void test_file_path() {
 		belle_sip_object_unref(source_uri);
 	}
 }
-static void test_absolute_uri() {
+static void test_absolute_uri(void) {
 
 	belle_generic_uri_t* source_uri = belle_generic_uri_parse("tel:+33123457");
 	char* source_uri_raw = belle_generic_uri_to_string(source_uri);

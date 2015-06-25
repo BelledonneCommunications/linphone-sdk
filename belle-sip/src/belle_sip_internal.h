@@ -227,8 +227,8 @@ struct belle_sip_source{
 	unsigned long id;
 	belle_sip_fd_t fd;
 	unsigned short events,revents;
-#ifdef WIN32
-	unsigned short armed_events;
+#ifdef _WIN32
+	long armed_events;
 	unsigned short pad;
 #endif
 	int timeout;
@@ -246,6 +246,7 @@ struct belle_sip_source{
 
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
 void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms);
+belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms);
 void belle_sip_source_uninit(belle_sip_source_t *s);
 void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t func);
 

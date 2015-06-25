@@ -341,7 +341,7 @@ static int random_generator(void *ctx, unsigned char *ptr, size_t size){
 }
 
 static const char *polarssl_certflags_to_string(char *buf, size_t size, int flags){
-	int i=0;
+	size_t i=0;
 	
 	memset(buf,0,size);
 	size--;
@@ -868,7 +868,7 @@ char *belle_sip_certificates_chain_get_fingerprint(belle_sip_certificates_chain_
 	}
 
 	if (hash_length>0) {
-		int i;
+		size_t i;
 		int fingerprint_index = strlen(hash_alg_string);
 		size_t size=fingerprint_index+3*hash_length+1;
 		char prefix=' ';

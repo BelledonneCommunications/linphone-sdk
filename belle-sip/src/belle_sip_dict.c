@@ -92,7 +92,7 @@ int64_t belle_sip_dict_get_int64(belle_sip_dict_t* obj, const char* key, int64_t
 {
 	const char *str= belle_sip_object_data_get( BELLE_SIP_OBJECT(obj), key );
 	if (str!=NULL) {
-#ifdef WIN32
+#ifdef _WIN32
 		return (int64_t)_atoi64(str);
 #else
 		return atoll(str);
@@ -132,7 +132,7 @@ void belle_sip_dict_foreach(const belle_sip_dict_t* obj, void (*apply_func)(cons
 
 void belle_sip_dict_clear(belle_sip_dict_t* obj)
 {
-	return belle_sip_object_data_clear(BELLE_SIP_OBJECT(obj));
+	belle_sip_object_data_clear(BELLE_SIP_OBJECT(obj));
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_dict_t);

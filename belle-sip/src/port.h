@@ -21,7 +21,7 @@
 
 #include <sys/stat.h>
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -33,6 +33,16 @@
 #include <strings.h>
 
 #else
+
+#if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_DESKTOP) || WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#define BELLE_SIP_WINDOWS_DESKTOP 1
+#endif
+#if defined(WINAPI_FAMILY_PARTITION) && defined(WINAPI_PARTITION_PHONE_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE_APP)
+#define BELLE_SIP_WINDOWS_PHONE 1
+#endif
+#if defined(WINAPI_FAMILY_PARTITION) && defined(WINAPI_PARTITION_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
+#define BELLE_SIP_WINDOWS_UNIVERSAL 1
+#endif
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -53,7 +63,7 @@
 
 #endif
 
-#if defined(WIN32) || defined(__QNX__)
+#if defined(_WIN32) || defined(__QNX__)
 /* Mingw32 does not define AI_V4MAPPED, however it is supported starting from Windows Vista. QNX also does not define AI_V4MAPPED. */
 #	ifndef AI_V4MAPPED
 #	define AI_V4MAPPED 0x00000800
@@ -86,12 +96,7 @@ int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock);
 int belle_sip_socket_set_dscp(belle_sip_socket_t sock, int ai_family, int dscp);
 int belle_sip_socket_enable_dual_stack(belle_sip_socket_t sock);
 
-#if defined(WIN32)
-
-#if !defined(WINAPI_FAMILY_PARTITION)
-// Only use with x being WINAPI_PARTITION_DESKTOP to test if building on desktop
-#define WINAPI_FAMILY_PARTITION(x) 1
-#endif
+#if defined(_WIN32)
 
 typedef HANDLE belle_sip_thread_t;
 
@@ -120,10 +125,10 @@ const char *belle_sip_get_socket_error_string_from_code(int code);
  * Thread abstraction layer
  */
 
-#ifdef WIN32
+#ifdef _WIN32
 
 typedef HANDLE belle_sip_thread_t;
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef BELLE_SIP_WINDOWS_DESKTOP
 typedef HANDLE belle_sip_mutex_t;
 #else
 typedef SRWLOCK belle_sip_mutex_t;
@@ -152,7 +157,7 @@ typedef pthread_mutex_t belle_sip_mutex_t;
 
 #endif
 
-#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifndef BELLE_SIP_WINDOWS_DESKTOP
 BELLESIP_INTERNAL_EXPORT void belle_sip_sleep(unsigned int ms);
 #else
 #define belle_sip_sleep Sleep
@@ -168,8 +173,6 @@ static BELLESIP_INLINE int inet_aton(const char *ip, struct in_addr *p){
 #define BELLESIP_EINPROGRESS WSAEINPROGRESS
 
 #else
-
-#define WINAPI_FAMILY_PARTITION(x) 1
 
 typedef pthread_t belle_sip_thread_t;
 #define belle_sip_thread_self_id()			(unsigned long)pthread_self()

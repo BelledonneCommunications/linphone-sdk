@@ -213,7 +213,7 @@ const int image_size=250000;
 static int on_send_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *msg, void *data, size_t offset, uint8_t *buffer, size_t *size){
 	size_t end_of_img=sizeof(MULTIPART_BEGIN)+image_size;
 	if (offset==0){
-		int partlen=sizeof(MULTIPART_BEGIN);
+		size_t partlen=sizeof(MULTIPART_BEGIN);
 		BC_ASSERT_TRUE_FATAL(partlen<*size);
 		memcpy(buffer,MULTIPART_BEGIN,partlen);
 		*size=partlen;

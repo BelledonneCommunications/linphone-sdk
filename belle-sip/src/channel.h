@@ -18,7 +18,7 @@
 #ifndef BELLE_SIP_CHANNEL_H
 #define BELLE_SIP_CHANNEL_H
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <sys/types.h>
 #include <sys/socket.h>
 #else

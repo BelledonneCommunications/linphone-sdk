@@ -25,7 +25,7 @@
 
 #include "clock_gettime.h" /*for apple*/
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/time.h> /*for gettimeofday*/
 #include <dirent.h> /* available on POSIX system only */
@@ -75,7 +75,7 @@ char * belle_sip_strdup_vprintf(const char *fmt, va_list ap)
         /* Guess we need no more than 100 bytes. */
         int n, size = 200;
         char *p,*np;
-#ifndef WIN32
+#ifndef _WIN32
         va_list cap;/*copy of our argument list: a va_list cannot be re-used (SIGSEGV on linux 64 bits)*/
 #endif
         if ((p = (char *) malloc (size)) == NULL)
@@ -83,7 +83,7 @@ char * belle_sip_strdup_vprintf(const char *fmt, va_list ap)
         while (1)
         {
                 /* Try to print in the allocated space. */
-#ifndef WIN32
+#ifndef _WIN32
                 va_copy(cap,ap);
                 n = vsnprintf (p, size, fmt, cap);
                 va_end(cap);
@@ -164,7 +164,7 @@ belle_sip_error_code belle_sip_snprintf_valist(char *buff, size_t buff_size, siz
 	belle_sip_error_code error = BELLE_SIP_OK;
 	ret = vsnprintf(buff + *offset, buff_size - *offset, fmt, args);
 	if ((ret < 0)
-		|| (ret >= (buff_size - *offset))) {
+		|| (ret >= (int)(buff_size - *offset))) {
 			error = BELLE_SIP_BUFFER_OVERFLOW;
 		*offset = buff_size;
 	} else {
@@ -173,13 +173,13 @@ belle_sip_error_code belle_sip_snprintf_valist(char *buff, size_t buff_size, siz
 	return error;
 }
 
-#if     defined(WIN32) || defined(_WIN32_WCE)
+#if defined(_WIN32) || defined(_WIN32_WCE)
 #define ENDLINE "\r\n"
 #else
 #define ENDLINE "\n"
 #endif
 
-#if     defined(WIN32) || defined(_WIN32_WCE)
+#if defined(_WIN32) || defined(_WIN32_WCE)
 void belle_sip_logv(int level, const char *fmt, va_list args)
 {
 	if (belle_sip_logv_out!=NULL && belle_sip_log_level_enabled(level))
@@ -189,7 +189,7 @@ void belle_sip_logv(int level, const char *fmt, va_list args)
 #endif
 
 
-#ifdef WIN32
+#ifdef _WIN32
 static int belle_sip_gettimeofday (struct timeval *tv, void* tz)
 {
 	union
@@ -212,14 +212,14 @@ static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_li
 	char *msg;
 	struct timeval tp;
 	struct tm *lt;
-#ifndef WIN32
+#ifndef _WIN32
 	struct tm tmstorage;
 #endif
 	time_t curtime;
 
 	belle_sip_gettimeofday(&tp,NULL);
 	curtime=tp.tv_sec;
-#ifdef WIN32
+#ifdef _WIN32
 	lt = localtime(&curtime);
 #else
 	lt = localtime_r(&curtime,&tmstorage);
@@ -596,7 +596,7 @@ char * belle_sip_strdup(const char *s){
 	return strdup(s);
 }
 
-#ifndef WIN32
+#ifndef _WIN32
 
 static int find_best_clock_id () {
 	struct timespec ts;
@@ -627,7 +627,7 @@ uint64_t belle_sip_time_ms(void){
 }
 #else
 uint64_t belle_sip_time_ms(void){
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef BELLE_SIP_WINDOWS_DESKTOP
 	return GetTickCount();
 #else
 	return GetTickCount64();
@@ -688,7 +688,7 @@ char *belle_sip_unquote_strdup(const char *str){
 	return belle_sip_strdup(str);
 }
 
-#if defined(WIN32) && !defined(_MSC_VER)
+#if defined(_WIN32) && !defined(_MSC_VER)
 #include <wincrypt.h>
 static int belle_sip_wincrypto_random(unsigned int *rand_number){
 	static HCRYPTPROV hProv=(HCRYPTPROV)-1;
@@ -722,7 +722,7 @@ unsigned int belle_sip_random(void){
 			belle_sip_error("Reading /dev/urandom failed.");
 		}else return tmp;
 	}else belle_sip_error("Could not open /dev/urandom");
-#elif defined(WIN32)
+#elif defined(_WIN32)
 	static int initd=0;
 	unsigned int ret;
 #ifdef _MSC_VER
@@ -745,7 +745,7 @@ unsigned int belle_sip_random(void){
 	return rand()<<16 | rand();
 #endif
 	/*fallback to UNIX random()*/
-#ifndef WIN32
+#ifndef _WIN32
 	return (unsigned int) random();
 #endif
 }
@@ -1019,7 +1019,7 @@ static char* belle_sip_escape(const char* buff, const char *noescapes) {
 	size_t orig_size=outbuf_size;
 	char *output_buff=(char*)belle_sip_malloc(outbuf_size+1);
 	int i;
-	int out_buff_index=0;
+	size_t out_buff_index=0;
 
 	for(i=0; buff[i] != '\0'; i++) {
 		int c = ((unsigned char*)buff)[i];
@@ -1161,7 +1161,7 @@ char* belle_sip_display_name_to_backslashed_escaped_string(const char* buff) {
 
 belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_type) {
 	belle_sip_list_t* file_list = NULL;
-#ifdef WIN32
+#ifdef _WIN32
 	WIN32_FIND_DATA FileData;
 	HANDLE hSearch;
 	BOOL fFinished = FALSE;
@@ -1245,7 +1245,7 @@ belle_sip_list_t *belle_sip_parse_directory(const char *path, const char *file_t
 }
 
 int belle_sip_mkdir(const char *path) {
-#ifdef WIN32
+#ifdef _WIN32
 	return _mkdir(path);
 #else
 	return mkdir(path, 0700);

@@ -18,7 +18,7 @@
 
 #include "belle_sip_internal.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #include <process.h>
 #include <time.h>
@@ -76,7 +76,7 @@ int belle_sip_thread_join(belle_sip_thread_t thread, void **unused) {
 }
 
 int belle_sip_mutex_init(belle_sip_mutex_t *mutex, void *attr) {
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef BELLE_SIP_WINDOWS_DESKTOP
 	*mutex = CreateMutex(NULL, FALSE, NULL);
 #else
 	InitializeSRWLock(mutex);
@@ -85,7 +85,7 @@ int belle_sip_mutex_init(belle_sip_mutex_t *mutex, void *attr) {
 }
 
 int belle_sip_mutex_lock(belle_sip_mutex_t * hMutex) {
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef BELLE_SIP_WINDOWS_DESKTOP
 	WaitForSingleObject(*hMutex, INFINITE);
 #else
 	AcquireSRWLockExclusive(hMutex);
@@ -94,7 +94,7 @@ int belle_sip_mutex_lock(belle_sip_mutex_t * hMutex) {
 }
 
 int belle_sip_mutex_unlock(belle_sip_mutex_t * hMutex) {
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef BELLE_SIP_WINDOWS_DESKTOP
 	ReleaseMutex(*hMutex);
 #else
 	ReleaseSRWLockExclusive(hMutex);
@@ -103,7 +103,7 @@ int belle_sip_mutex_unlock(belle_sip_mutex_t * hMutex) {
 }
 
 int belle_sip_mutex_destroy(belle_sip_mutex_t * hMutex) {
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef BELLE_SIP_WINDOWS_DESKTOP
 	CloseHandle(*hMutex);
 #endif
 	return 0;
@@ -125,7 +125,7 @@ const char *belle_sip_get_socket_error_string(){
 }
 
 const char *belle_sip_get_socket_error_string_from_code(int code){
-	static TCHAR msgBuf[256];
+	static CHAR msgBuf[256];
 #ifdef _UNICODE
 	static WCHAR wMsgBuf[256];
 	int ret;
@@ -195,7 +195,7 @@ int belle_sip_thread_key_delete(belle_sip_thread_key_t key){
 #endif
 }
 
-#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifndef BELLE_SIP_WINDOWS_DESKTOP
 void belle_sip_sleep(unsigned int ms) {
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
 	if (!sleepEvent)
@@ -262,7 +262,7 @@ int belle_sip_socket_enable_dual_stack(belle_sip_socket_t sock){
 	return err;
 }
 
-#if defined(ANDROID) || defined(WIN32)
+#if defined(ANDROID) || defined(_WIN32)
 
 /*
  * SHAME !!! bionic's getaddrinfo does not implement the AI_V4MAPPED flag !

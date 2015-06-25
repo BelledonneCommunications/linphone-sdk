@@ -43,7 +43,23 @@
 
 #include <stddef.h>		/* offsetof() */
 #ifdef _WIN32
+#include <windows.h>
+
+#if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_DESKTOP) || WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#define BELLE_SIP_WINDOWS_DESKTOP 1
+#endif
+#if defined(WINAPI_FAMILY_PARTITION) && defined(WINAPI_PARTITION_PHONE_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE_APP)
+#define BELLE_SIP_WINDOWS_PHONE 1
+#endif
+#if defined(WINAPI_FAMILY_PARTITION) && defined(WINAPI_PARTITION_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
+#define BELLE_SIP_WINDOWS_UNIVERSAL 1
+#endif
+
+#ifdef BELLE_SIP_WINDOWS_UNIVERSAL
+#include <stdint.h>
+#else
 #define uint32_t unsigned int
+#endif
 #else
 #include <stdint.h>		/* uint32_t */
 #endif
@@ -115,6 +131,7 @@
 #if defined(HAVE_RESINIT) || defined(USE_STRUCT_RES_STATE_NAMESERVERS)
 #include <resolv.h>
 #endif
+
 
 //#define DNS_DEBUG 1
 
@@ -3516,7 +3533,7 @@ struct dns_hosts *dns_hosts_mortal(struct dns_hosts *hosts) {
 	return hosts;
 } /* dns_hosts_mortal() */
 
-#ifdef WINAPI_FAMILY_PHONE_APP
+#if defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL)
 static int dns_hosts_add_localhost(struct dns_hosts *hosts) {
 	struct dns_hosts_entry ent;
 	memset(&ent, '\0', sizeof(ent));
@@ -3541,7 +3558,7 @@ struct dns_hosts *dns_hosts_local(int *error_) {
 		goto error;
 		
 #ifdef _WIN32
-#ifdef WINAPI_FAMILY_PHONE_APP
+#if defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL)
 	if ((error = dns_hosts_add_localhost(hosts)))
 #else
 	if ((error = dns_hosts_loadpath(hosts, "C:/Windows/System32/drivers/etc/hosts")))

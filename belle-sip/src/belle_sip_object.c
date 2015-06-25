@@ -590,7 +590,7 @@ char *belle_sip_object_describe(void *obj){
 	return _belle_sip_object_describe_type(o->vptr);
 }
 
-#if !defined(WIN32)
+#if !defined(_WIN32)
 
 #include <dlfcn.h>
 

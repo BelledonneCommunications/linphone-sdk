@@ -74,7 +74,7 @@ BELLESIP_VAR_EXPORT unsigned int __belle_sip_log_mask;
 
 #define belle_sip_log_level_enabled(level)   (__belle_sip_log_mask & (level))
 
-#if !defined(WIN32) && !defined(_WIN32_WCE)
+#if !defined(_WIN32) && !defined(_WIN32_WCE)
 #define belle_sip_logv(level,fmt,args) \
 {\
         if (belle_sip_logv_out!=NULL && belle_sip_log_level_enabled(level)) \
@@ -183,7 +183,7 @@ BELLESIP_EXPORT uint64_t belle_sip_time_ms(void);
 
 BELLESIP_EXPORT unsigned int belle_sip_random(void);
 
-#if defined(WIN32)
+#if defined(_WIN32)
 
 #include <winsock2.h>
 #include <ws2tcpip.h>

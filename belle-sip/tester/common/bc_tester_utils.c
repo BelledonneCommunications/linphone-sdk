@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "CUnit/Basic.h"
 #include "CUnit/Automated.h"
 
-#if WINAPI_FAMILY_PHONE_APP
+#if defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL)
 const char *bc_tester_read_dir_prefix="Assets";
 #elif defined(__QNX__)
 const char *bc_tester_read_dir_prefix="./app/native/assets/";
@@ -97,7 +97,7 @@ int bc_tester_suite_index(const char *suite_name) {
 	return -1;
 }
 
-int bc_tester_nb_suites() {
+int bc_tester_nb_suites(void) {
 	return nb_test_suites;
 }
 
@@ -114,7 +114,7 @@ int bc_tester_nb_tests(const char *suite_name) {
 	return test_suite[i]->nb_tests;
 }
 
-void bc_tester_list_suites() {
+void bc_tester_list_suites(void) {
 	int j;
 	for(j=0;j<nb_test_suites;j++) {
 		bc_tester_printf(bc_printf_verbosity_info, "%s", bc_tester_suite_name(j));

@@ -129,7 +129,7 @@ struct belle_sip_simple_resolver_context{
 	unsigned char getaddrinfo_done;
 	unsigned char getaddrinfo_cancelled;
 	unsigned char getaddrinfo_notified;
-#ifdef WIN32
+#ifdef _WIN32
 	HANDLE ctlevent;
 #else
 	int ctlpipe[2];
@@ -544,7 +544,7 @@ static void * _resolver_getaddrinfo_thread(void *ptr) {
 	}
 	if (res) freeaddrinfo(res);
 	ctx->getaddrinfo_done = TRUE;
-#ifdef WIN32
+#ifdef _WIN32
 	SetEvent(ctx->ctlevent);
 #else
 	if (write(ctx->ctlpipe[1], "q", 1) == -1) {
@@ -567,7 +567,7 @@ static void _resolver_getaddrinfo_start(belle_sip_simple_resolver_context_t *ctx
 	belle_sip_fd_t fd = (belle_sip_fd_t)-1;
 
 	belle_sip_object_ref(ctx);
-#ifdef WIN32
+#ifdef _WIN32
 	ctx->ctlevent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
 	fd = (HANDLE)ctx->ctlevent;
 #else
@@ -731,7 +731,7 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 		belle_sip_thread_join(ctx->getaddrinfo_thread, NULL);
 	}
 	belle_sip_mutex_destroy(&ctx->getaddrinfo_mutex);
-#ifdef WIN32
+#ifdef _WIN32
 	if (ctx->ctlevent != (belle_sip_fd_t)-1)
 		CloseHandle(ctx->ctlevent);
 #else
@@ -1014,7 +1014,7 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_single(belle_sip_s
 	ctx->type = (ctx->family == AF_INET6) ? DNS_T_AAAA : DNS_T_A;
 #ifdef USE_GETADDRINFO_FALLBACK
 	belle_sip_mutex_init(&ctx->getaddrinfo_mutex, NULL);
-#ifdef WIN32
+#ifdef _WIN32
 	ctx->ctlevent = (belle_sip_fd_t)-1;
 #endif
 #endif

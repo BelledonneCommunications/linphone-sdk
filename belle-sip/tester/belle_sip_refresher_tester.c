@@ -756,12 +756,12 @@ static void register_tcp_test_ipv6_random_port(void){
 	register_test_with_random_port("tcp","::0","0.0.0.0",AF_INET);
 }
 
-static void simple_publish() {
+static void simple_publish(void) {
 	belle_sip_header_content_type_t* content_type=belle_sip_header_content_type_create("application","pidf+xml");
 	refresher_base_with_param_and_body("PUBLISH",FALSE,TRUE,FALSE, content_type,publish_body);
 
 }
-static void simple_publish_with_early_refresher() {
+static void simple_publish_with_early_refresher(void) {
 	belle_sip_header_content_type_t* content_type=belle_sip_header_content_type_create("application","pidf+xml");
 	refresher_base_with_param_and_body("PUBLISH",FALSE,TRUE,TRUE, content_type,publish_body);
 

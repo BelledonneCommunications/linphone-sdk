@@ -75,7 +75,7 @@ belle_sip_error_code belle_sdp_attribute_marshal(belle_sdp_attribute_t* attribut
 }
 belle_sdp_attribute_t* belle_sdp_attribute_create(const char* name, const char* value) {
 	belle_sdp_attribute_t* ret;
-	int i;
+	size_t i;
 	size_t elements = sizeof(attribute_table) / sizeof(attribute_table[0]);
 
 	if (!name || name[0] == '\0') {
@@ -874,7 +874,7 @@ static const size_t payload_list_elements=sizeof(static_payload_list)/sizeof(str
 
 static int mime_parameter_is_static(const belle_sdp_mime_parameter_t *param){
 	const struct static_payload* iterator;
-	int i;
+	size_t i;
 
 	for (iterator = static_payload_list,i=0;i<payload_list_elements;i++,iterator++) {
 		if (iterator->number == param->media_format &&
@@ -889,7 +889,7 @@ static int mime_parameter_is_static(const belle_sdp_mime_parameter_t *param){
 
 static int mime_parameter_fill_from_static(belle_sdp_mime_parameter_t *mime_parameter,int format) {
 	const struct static_payload* iterator;
-	int i;
+	size_t i;
 
 	for (iterator = static_payload_list,i=0;i<payload_list_elements;i++,iterator++) {
 		if (iterator->number == format) {

@@ -42,6 +42,8 @@ extern test_suite_t http_test_suite;
 extern int belle_sip_tester_ipv6_available(void);
 extern const char * belle_sip_tester_get_root_ca_path(void);
 extern void belle_sip_tester_set_root_ca_path(const char *root_ca_path);
+extern void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args));
+extern void belle_sip_tester_uninit(void);
 
 extern const char* belle_sip_tester_client_cert;
 extern const char* belle_sip_tester_client_cert_fingerprint;

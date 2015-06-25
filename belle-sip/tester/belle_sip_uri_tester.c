@@ -394,7 +394,7 @@ transp.-param (2)         o      -    -       o          o         o
 lr-param      --          o      -    -       -          o         o
 other-param   --          o      o    o       o          o         o
 headers       --          -      -    -       o          -         o*/
-void testUriComponentsChecker() {
+void testUriComponentsChecker(void) {
 	belle_sip_uri_t* uri = belle_sip_uri_parse("sip:hostonly");
 	BC_ASSERT_TRUE(belle_sip_uri_check_components_from_request_uri(uri));
 	belle_sip_object_unref(uri);

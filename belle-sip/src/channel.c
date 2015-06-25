@@ -143,7 +143,7 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
  *
  * */
 static int is_token(const char* buff,size_t bufflen ) {
-	int i;
+	size_t i;
 	for (i=0; i<bufflen && buff[i]!='\0';i++) {
 		switch(buff[i]) {
 			case '-' :
@@ -948,7 +948,7 @@ static char *make_logbuf(belle_sip_channel_t *obj, belle_sip_log_level level, co
 	if (obj->stop_logging_buffer == 1) {
 		return NULL;
 	}
-	limit=find_non_printable(buffer,MIN(size,limit));
+	limit=find_non_printable(buffer,MIN((int)size,limit));
 	if (limit != size) {
 		belle_sip_warning("channel [%p]: found binary data in buffer, will stop logging it now.", obj);
 		obj->stop_logging_buffer = 1;

@@ -471,10 +471,10 @@ static belle_sip_header_t* test_header_extension(const char* name,const char* va
 	BC_ASSERT_PTR_NULL(belle_sip_header_extension_parse("nimportequoi"));*/
 	return L_extension;
 }
-static void test_header_extension_1() {
+static void test_header_extension_1(void) {
 	belle_sip_object_unref(test_header_extension("toto","titi"));
 }
-static void test_header_extension_2() {
+static void test_header_extension_2(void) {
 	belle_sip_header_t* header = test_header_extension("From","sip:localhost");
 	BC_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(header,belle_sip_header_from_t));
 	belle_sip_object_unref(header);
@@ -939,7 +939,7 @@ static void test_privacy(const char* raw_header,const char* values[],size_t numb
 	belle_sip_header_privacy_t* L_tmp;
 	belle_sip_header_privacy_t* L_privacy = belle_sip_header_privacy_parse(raw_header);
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_privacy));
-	int i=0;
+	size_t i=0;
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_privacy));
 	L_tmp = belle_sip_header_privacy_parse(l_raw_header);
 	L_privacy = BELLE_SIP_HEADER_PRIVACY(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
@@ -958,7 +958,7 @@ static void test_privacy(const char* raw_header,const char* values[],size_t numb
 	BC_ASSERT_PTR_NULL(belle_sip_header_privacy_parse("nimportequoi"));
 
 }
-static void test_privacy_header() {
+static void test_privacy_header(void) {
 
 	const char* value1[] ={"user","critical"};
 	const char* value2[] ={"id"};

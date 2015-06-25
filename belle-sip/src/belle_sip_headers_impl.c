@@ -80,7 +80,7 @@ static struct header_name_func_pair  header_table[] = {
 };
 
 static belle_sip_header_t* belle_header_create(const char* name,const char* value,int protocol) {
-	int i;
+	size_t i;
 	belle_sip_header_t* ret;
 	size_t elements =sizeof(header_table)/sizeof(struct header_name_func_pair);
 
@@ -1663,7 +1663,11 @@ BELLESIP_EXPORT time_t belle_sip_header_date_get_time(belle_sip_header_date_t *o
 	char tmp2[16] ={0};
 	int i,j;
 	time_t seconds;
+#ifdef BELLE_SIP_WINDOWS_UNIVERSAL
+	long adjust_timezone;
+#else
 	time_t adjust_timezone;
+#endif
 
 
 	/* time headers are in GMT as spec says */
@@ -1693,20 +1697,24 @@ success:
 	adjust_timezone = 0;
 #else
 	seconds = mktime(&ret);
+#ifdef BELLE_SIP_WINDOWS_UNIVERSAL
+	_get_timezone(&adjust_timezone);
+#else
 	adjust_timezone = timezone;
+#endif
 #endif
 
 	if (seconds==(time_t)-1){
 		belle_sip_error("mktime() failed: %s",strerror(errno));
 		return (time_t)-1;
 	}
-	return seconds-adjust_timezone;
+	return seconds-(time_t)adjust_timezone;
 }
 
 BELLESIP_EXPORT void belle_sip_header_date_set_time(belle_sip_header_date_t *obj, const time_t *utc_time){
 
 	struct tm *ret;
-#ifndef WIN32
+#ifndef _WIN32
 	struct tm gmt;
 	ret=gmtime_r(utc_time,&gmt);
 #else

@@ -127,7 +127,7 @@ typedef struct _belle_sip_object belle_sip_object_t;
 
 typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
 typedef void (*belle_sip_object_clone_t)(belle_sip_object_t* obj, const belle_sip_object_t *orig);
-typedef int (*belle_sip_object_marshal_t)(belle_sip_object_t* obj, char* buff, size_t buff_size, size_t *offset);
+typedef belle_sip_error_code (*belle_sip_object_marshal_t)(belle_sip_object_t* obj, char* buff, size_t buff_size, size_t *offset);
 typedef struct _belle_sip_object_vptr *(*belle_sip_object_get_vptr_t)(void);
 
 struct _belle_sip_object_vptr{

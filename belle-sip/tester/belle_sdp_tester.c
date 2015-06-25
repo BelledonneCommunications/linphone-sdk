@@ -447,7 +447,7 @@ static void test_simple_session_description(void) {
 	return;
 }
 
-static void test_image_mline() {
+static void test_image_mline(void) {
 	const char * sdp =	"v=0\r\n"
 						"o=cp10 138884701697 138884701699 IN IP4 10.7.1.133\r\n"
 						"s=SIP Call\r\n"
