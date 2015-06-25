@@ -201,7 +201,9 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	if (auth_mode) {
 		CHECK_IS_PRESENT(authorization,authorization,nonce_count)
 		if (!belle_sip_header_authorization_get_cnonce(authorization)) {
-			snprintf(cnonce,sizeof(cnonce),"%08x",(short)(long)authorization^0x5555555); /*spseudo randomly genrated cnonce*/
+			int cnonce_value=0;
+			belle_sip_random_bytes((unsigned char*)&cnonce_value, sizeof(cnonce_value));
+			snprintf(cnonce, sizeof(cnonce), "%08x", cnonce_value);
 			belle_sip_header_authorization_set_cnonce(authorization,cnonce);
 		}
 	}
