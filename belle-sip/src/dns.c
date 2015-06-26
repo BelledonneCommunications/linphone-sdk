@@ -42,29 +42,7 @@
 #endif
 
 #include <stddef.h>		/* offsetof() */
-#ifdef _WIN32
-#include <windows.h>
-
-#if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_DESKTOP)
-#define BELLE_SIP_WINDOWS_DESKTOP 1
-#elif defined(WINAPI_FAMILY_PARTITION)
-#if defined(WINAPI_PARTITION_DESKTOP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-#define BELLE_SIP_WINDOWS_DESKTOP 1
-#endif
-#if defined(WINAPI_PARTITION_PHONE_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE_APP)
-#define BELLE_SIP_WINDOWS_PHONE 1
-#endif
-#if defined(WINAPI_PARTITION_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
-#define BELLE_SIP_WINDOWS_UNIVERSAL 1
-#endif
-#endif
-
-#ifdef BELLE_SIP_WINDOWS_UNIVERSAL
-#include <stdint.h>
-#else
-#define uint32_t unsigned int
-#endif
-#else
+#ifndef _WIN32
 #include <stdint.h>		/* uint32_t */
 #endif
 #include <stdlib.h>		/* malloc(3) realloc(3) free(3) rand(3) random(3) arc4random(3) */
@@ -102,6 +80,26 @@
 
 #ifndef IPV6_V6ONLY
 #define IPV6_V6ONLY 27
+#endif
+
+#if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_DESKTOP)
+#define BELLE_SIP_WINDOWS_DESKTOP 1
+#elif defined(WINAPI_FAMILY_PARTITION)
+#if defined(WINAPI_PARTITION_DESKTOP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#define BELLE_SIP_WINDOWS_DESKTOP 1
+#endif
+#if defined(WINAPI_PARTITION_PHONE_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE_APP)
+#define BELLE_SIP_WINDOWS_PHONE 1
+#endif
+#if defined(WINAPI_PARTITION_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
+#define BELLE_SIP_WINDOWS_UNIVERSAL 1
+#endif
+#endif
+
+#ifdef BELLE_SIP_WINDOWS_UNIVERSAL
+#include <stdint.h>
+#else
+#define uint32_t unsigned int
 #endif
 
 #else
