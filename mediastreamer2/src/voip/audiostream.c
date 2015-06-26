@@ -128,16 +128,16 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, unsigned lo
 			ms_message("Ignore payload type change to CN");
 			return FALSE;
 		}
-		
+
 		if (stream->ms.current_pt && strcasecmp(pt->mime_type, stream->ms.current_pt->mime_type)==0 && pt->clock_rate==stream->ms.current_pt->clock_rate){
 			ms_message("Ignoring payload type number change because it points to the same payload type as the current one");
 			return FALSE;
 		}
-		
+
 		dec = ms_filter_create_decoder(pt->mime_type);
 		if (dec != NULL) {
 			MSFilter *nextFilter = stream->ms.decoder->outputs[0]->next.filter;
-			
+
 			ms_message("Replacing decoder on the fly");
 			ms_filter_unlink(stream->ms.rtprecv, 0, stream->ms.decoder, 0);
 			ms_filter_unlink(stream->ms.decoder, 0, nextFilter, 0);
@@ -432,9 +432,9 @@ static void configure_av_player(AudioStream *stream, const MSFmtDescriptor *audi
 	struct _AVPlayer *player=&stream->av_player;
 	int stream_rate=0;
 	int stream_channels=0;
-	
+
 	ms_message("AudioStream [%p] Configure av_player, audiofmt=%s videofmt=%s",stream,ms_fmt_descriptor_to_string(audiofmt),ms_fmt_descriptor_to_string(videofmt));
-	
+
 	if (audiofmt){
 		if (player->decoder){
 			if (audiofmt->nchannels>0){
@@ -688,7 +688,7 @@ static void setup_generic_confort_noise(AudioStream *stream){
 	RtpProfile *prof=rtp_session_get_profile(stream->ms.sessions.rtp_session);
 	PayloadType *pt=rtp_profile_get_payload(prof, rtp_session_get_send_payload_type(stream->ms.sessions.rtp_session));
 	PayloadType *cn=rtp_profile_find_payload(prof, "CN", 8000, 1);
-	
+
 	if (cn && pt && pt->channels==1 && pt->clock_rate==8000){
 		/* RFC3389 CN can be used*/
 		stream->vaddtx=ms_filter_new(MS_VAD_DTX_ID);
@@ -762,12 +762,12 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->dtmfgen=NULL;
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,stream);
 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed,stream);
-	
+
 	if (stream->ms.state==MSStreamPreparing){
 		/*we were using the dummy preload graph, destroy it but keep sound filters unless no soundcard is given*/
 		_audio_stream_unprepare_sound(stream,io->capture_card!=NULL);
 	}
-	
+
 	/* creates the local part */
 	if (io->capture_card!=NULL){
 		if (stream->soundread==NULL)
@@ -962,7 +962,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		}
 		ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP, (void*)pt->send_fmtp);
 	}
-	
+
 	configure_decoder(stream, pt, sample_rate, nchannels);
 
 	/*create the equalizer*/
@@ -975,7 +975,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		}
 	}else
 		stream->equalizer=NULL;
-	
+
 #ifdef ANDROID
 	/*configure equalizer if needed*/
 	audio_stream_set_mic_gain_db(stream, 0);
@@ -1589,13 +1589,6 @@ void audio_stream_enable_zrtp(AudioStream *stream, MSZrtpParams *params){
 
 bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 	return stream->ms.sessions.zrtp_context!=NULL;
-}
-
-void audio_stream_enable_dtls(AudioStream *stream, MSDtlsSrtpParams *params){
-	if (stream->ms.sessions.dtls_context==NULL) {
-		ms_message("Start DTLS audio stream context in stream sessions [%p]", &(stream->ms.sessions));
-		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->ms.sessions), params);
-	}
 }
 
 static void configure_av_recorder(AudioStream *stream){

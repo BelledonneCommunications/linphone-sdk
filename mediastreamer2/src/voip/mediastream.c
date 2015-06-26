@@ -81,7 +81,7 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 	if (is_video) {
 		penv = getenv("MS_VIDEO_PRIO");
 		if(penv && _ms_ticker_prio_from_env(penv, &prio) == 0) return prio;
-		
+
 #ifdef __ios
 		return MS_TICKER_PRIO_HIGH;
 #else
@@ -90,7 +90,7 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 	} else {
 		penv = getenv("MS_AUDIO_PRIO");
 		if (penv && _ms_ticker_prio_from_env(penv, &prio) == 0) return prio;
-	
+
 #ifdef __linux
 		return MS_TICKER_PRIO_REALTIME;
 #else
@@ -210,6 +210,13 @@ void media_stream_set_adaptive_bitrate_algorithm(MediaStream *stream, MSQosAnaly
 
 void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled) {
 	rtp_session_enable_adaptive_jitter_compensation(stream->sessions.rtp_session, enabled);
+}
+
+void media_stream_enable_dtls(MediaStream *stream, MSDtlsSrtpParams *params){
+	if (stream->sessions.dtls_context==NULL) {
+		ms_message("Start DTLS media stream context in stream session [%p]", &(stream->sessions));
+		stream->sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->sessions), params);
+	}
 }
 
 bool_t media_stream_dtls_supported(void){

@@ -151,6 +151,9 @@ MS2_PUBLIC int media_stream_join_multicast_group(MediaStream *stream, const char
 
 MS2_PUBLIC bool_t media_stream_dtls_supported(void);
 
+/* enable DTLS on the media stream */
+MS2_PUBLIC void media_stream_enable_dtls(MediaStream *stream, MSDtlsSrtpParams *params);
+
 MS2_PUBLIC void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool);
 
 MS2_PUBLIC void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_t *stats);
@@ -619,9 +622,6 @@ MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, MSZrtpParams *para
  * */
 bool_t  audio_stream_zrtp_enabled(const AudioStream *stream);
 
-/* enable DTLS on the audio stream */
-MS2_PUBLIC void audio_stream_enable_dtls(AudioStream *stream, MSDtlsSrtpParams *params);
-
 /* enable SRTP on the audio stream */
 static MS2_INLINE bool_t audio_stream_enable_srtp(AudioStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {
 	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
@@ -786,11 +786,11 @@ MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
  * @brief This functions changes the source filter for the passed video stream.
  * @details This is quite the same function as \ref video_stream_change_camera, but this one
  * allows you to pass the source filter that is created for the camera and reuse it. This gives you the
- * ability to switch rapidly between two streams, whereas re-creating them each time would be 
+ * ability to switch rapidly between two streams, whereas re-creating them each time would be
  * costly (especially with webcams).
  *
- * @note Since the \ref video_stream_stop() will automatically destroy the source, it is 
- *		advised that you use \ref video_stream_stop_keep_source() instead, so that you 
+ * @note Since the \ref video_stream_stop() will automatically destroy the source, it is
+ *		advised that you use \ref video_stream_stop_keep_source() instead, so that you
  *		can manually destroy the source filters after the stream is stopped.
  *
  * Example usage:
@@ -821,7 +821,7 @@ MS2_PUBLIC MSFilter* video_stream_change_source_filter(VideoStream *stream, MSWe
 /**
  * @brief This is the same function as \ref video_stream_change_source_filter() called with keep_source=1, but
  *  the new filter will be created from the MSWebcam that is passed as argument.
- *  
+ *
  *  @param stream the video stream
  *  @param cam the MSWebcam from which the new source filter should be created.
  *  @return the previous source filter
@@ -934,9 +934,6 @@ MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 
 /* enable ZRTP on the video stream using information from the audio stream */
 MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtpParams *param);
-
-/* enable DTLS on the video stream */
-MS2_PUBLIC void video_stream_enable_dtls(VideoStream *stream, MSDtlsSrtpParams *params);
 
 /* enable SRTP on the video stream */
 static MS2_INLINE bool_t video_stream_enable_strp(VideoStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {

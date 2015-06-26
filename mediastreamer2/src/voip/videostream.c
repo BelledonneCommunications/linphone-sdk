@@ -1516,13 +1516,6 @@ void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtp
 		ms_zrtp_reset_transmition_timer(vstream->ms.sessions.zrtp_context);
 }
 
-void video_stream_enable_dtls(VideoStream *stream, MSDtlsSrtpParams *params){
-	if (stream->ms.sessions.dtls_context==NULL) {
-		ms_message("Start DTLS video stream context in stream session [%p]", &(stream->ms.sessions));
-		stream->ms.sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->ms.sessions), params);
-	}
-}
-
 void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable) {
 	stream->display_filter_auto_rotate_enabled = enable;
 }
