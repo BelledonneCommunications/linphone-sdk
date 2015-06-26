@@ -65,7 +65,7 @@ if(NOT ANTLR3_COMMAND)
 	# antlr3 command not found, search for the jar file
 	find_file(ANTLR3_JAR_PATH
 		NAMES antlr3.jar antlr.jar
-		HINTS _ANTLR3_JAR_ROOT_PATHS
+		HINTS ${_ANTLR3_JAR_ROOT_PATHS}
 		PATH_SUFFIXES share/java
 	)
 
