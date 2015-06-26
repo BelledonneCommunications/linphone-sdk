@@ -27,20 +27,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "CUnit/Basic.h"
 #include "CUnit/Automated.h"
 
-#if defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL)
-const char *bc_tester_read_dir_prefix="Assets";
-#elif defined(__QNX__)
-const char *bc_tester_read_dir_prefix="./app/native/assets/";
-#else
-const char *bc_tester_read_dir_prefix=".";
+#ifdef _WIN32
+#if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_DESKTOP)
+#define BC_TESTER_WINDOWS_DESKTOP 1
+#elif defined(WINAPI_FAMILY_PARTITION)
+#if defined(WINAPI_PARTITION_DESKTOP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#define BC_TESTER_WINDOWS_DESKTOP 1
+#endif
+#if defined(WINAPI_PARTITION_PHONE_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE_APP)
+#define BC_TESTER_WINDOWS_PHONE 1
+#endif
+#if defined(WINAPI_PARTITION_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
+#define BC_TESTER_WINDOWS_UNIVERSAL 1
+#endif
+#endif
 #endif
 
-/* TODO: have the same "static" for QNX and windows as above? */
-#ifdef ANDROID
-const char *bc_tester_writable_dir_prefix = "/data/data/org.linphone.tester/cache";
-#else
-const char *bc_tester_writable_dir_prefix = ".";
-#endif
+
+static char *bc_tester_resource_dir_prefix = NULL;
+static char *bc_tester_writable_dir_prefix = NULL;
 
 int bc_printf_verbosity_info;
 int bc_printf_verbosity_error;
@@ -272,6 +277,22 @@ void bc_tester_helper(const char *name, const char* additionnal_helper) {
 }
 
 void bc_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args), int iverbosity_info, int iverbosity_error) {
+#if defined(BC_TESTER_WINDOWS_PHONE) || defined(BC_TESTER_WINDOWS_UNIVERSAL)
+	bc_tester_set_resource_dir_prefix("Assets");
+#elif defined(__QNX__)
+	bc_tester_set_resource_dir_prefix("./app/native/assets/");
+#else
+	bc_tester_set_resource_dir_prefix(".");
+#endif
+
+#ifdef ANDROID
+	bc_tester_set_writable_dir_prefix("/data/data/org.linphone.tester/cache");
+#elif defined(__QNX__)
+	bc_tester_set_writable_dir_prefix("./tmp");
+#else
+	bc_tester_set_writable_dir_prefix(".");
+#endif
+
 	tester_printf_va = ftester_printf;
 	bc_printf_verbosity_error = iverbosity_error;
 	bc_printf_verbosity_info = iverbosity_info;
@@ -364,14 +385,56 @@ void bc_tester_uninit() {
 		test_suite = NULL;
 		nb_test_suites = 0;
 	}
+
+	if (bc_tester_resource_dir_prefix != NULL) {
+		free(bc_tester_resource_dir_prefix);
+		bc_tester_resource_dir_prefix = NULL;
+	}
+	if (bc_tester_writable_dir_prefix != NULL) {
+		free(bc_tester_writable_dir_prefix);
+		bc_tester_writable_dir_prefix = NULL;
+	}
+}
+
+static bc_tester_set_dir_prefix(char **prefix, const char *name) {
+	size_t len = strlen(name);
+	if (*prefix != NULL) free(*prefix);
+	*prefix = malloc(len + 1);
+	strncpy(*prefix, name, len);
+	(*prefix)[len] = '\0';
+}
+
+const char * bc_tester_get_resource_dir_prefix(void) {
+	return bc_tester_resource_dir_prefix;
+}
+
+void bc_tester_set_resource_dir_prefix(const char *name) {
+	bc_tester_set_dir_prefix(&bc_tester_resource_dir_prefix, name);
+}
+
+const char * bc_tester_get_writable_dir_prefix(void) {
+	return bc_tester_writable_dir_prefix;
+}
+
+void bc_tester_set_writable_dir_prefix(const char *name) {
+	bc_tester_set_dir_prefix(&bc_tester_writable_dir_prefix, name);
+}
+
+static char * bc_tester_path(const char *prefix, const char *name) {
+	char* file = NULL;
+	if (name) {
+		size_t len = strlen(prefix) + 1 + strlen(name) + 1;
+		file = malloc(len);
+		snprintf(file, len, "%s/%s", prefix, name);
+		file[strlen(file)] = '\0';
+	}
+	return file;
 }
 
 char * bc_tester_res(const char *name) {
-	char* file = NULL;
-	if (name) {
-		size_t len = strlen(bc_tester_read_dir_prefix) + 1 + strlen(name) + 1;
-		file = malloc(len);
-		snprintf(file, len, "%s/%s", bc_tester_read_dir_prefix, name);
-	}
-	return file;
+	return bc_tester_path(bc_tester_resource_dir_prefix, name);
+}
+
+char * bc_tester_file(const char *name) {
+	return bc_tester_path(bc_tester_writable_dir_prefix, name);
 }

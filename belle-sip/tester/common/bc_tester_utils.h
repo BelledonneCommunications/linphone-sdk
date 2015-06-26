@@ -29,9 +29,6 @@
 #define snprintf _snprintf
 #endif
 
-extern const char *bc_tester_read_dir_prefix;
-extern const char *bc_tester_writable_dir_prefix;
-
 extern int bc_printf_verbosity_info;
 extern int bc_printf_verbosity_error;
 
@@ -72,6 +69,10 @@ int bc_tester_start();
 void bc_tester_add_suite(test_suite_t *suite);
 void bc_tester_uninit();
 void bc_tester_printf(int level, const char *fmt, ...);
+const char * bc_tester_get_resource_dir_prefix(void);
+void bc_tester_set_resource_dir_prefix(const char *name);
+const char * bc_tester_get_writable_dir_prefix(void);
+void bc_tester_set_writable_dir_prefix(const char *name);
 
 int bc_tester_nb_suites();
 int bc_tester_nb_tests(const char* name);
@@ -87,10 +88,18 @@ int bc_tester_suite_index(const char *suite_name);
 /**
  * Get full path to the given resource
  *
- * @param name relative resource path (relative to bc_tester_writable_dir_prefix)
+ * @param name relative resource path
  * @return path to the resource. Must be freed by caller.
 */
 char * bc_tester_res(const char *name);
+
+/**
+* Get full path to the given writable_file
+*
+* @param name relative writable file path
+* @return path to the writable file. Must be freed by caller.
+*/
+char * bc_tester_file(const char *name);
 
 
 /*Redefine the CU_... macros WITHOUT final ';' semicolon, to allow IF conditions and with smarter error message */

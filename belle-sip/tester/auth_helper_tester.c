@@ -90,7 +90,7 @@ static void test_generate_and_parse_certificates(void) {
 	belle_sip_signing_key_t *key, *parsed_key;
 	char *pem_certificate, *pem_parsed_certificate, *pem_key, *pem_parsed_key;
 	int ret = 0;
-	char *belle_sip_certificate_temporary_dir = belle_sip_strdup_printf("%s%s", bc_tester_writable_dir_prefix, TEMPORARY_CERTIFICATE_DIR);
+	char *belle_sip_certificate_temporary_dir = bc_tester_file(TEMPORARY_CERTIFICATE_DIR);
 
 	/* create 2 certificates in the temporary certificate directory (TODO : set the directory in a absolute path?? where?)*/
 	ret = belle_sip_generate_self_signed_certificate(belle_sip_certificate_temporary_dir, "test_certificate1", &certificate, &key);
@@ -100,7 +100,7 @@ static void test_generate_and_parse_certificates(void) {
 
 	/* parse directory to get the certificate2 */
 	ret = belle_sip_get_certificate_and_pkey_in_dir(belle_sip_certificate_temporary_dir, "test_certificate2", &parsed_certificate, &parsed_key, BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
-	belle_sip_free(belle_sip_certificate_temporary_dir);
+	free(belle_sip_certificate_temporary_dir);
 	BC_ASSERT_EQUAL_FATAL(0, ret, int, "%d");
 
 	/* get pem version of generated and parsed certificate and compare them */

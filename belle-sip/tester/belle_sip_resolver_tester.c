@@ -36,12 +36,6 @@
 #define SRV_DOMAIN		"linphone.org"
 #define SIP_PORT		5060
 
-#if __QNX__
-	#define WRITE_FILE_PATH	"./tmp/"
-#else
-	#define WRITE_FILE_PATH
-#endif
-
 typedef struct endpoint {
 	belle_sip_stack_t* stack;
 	belle_sip_resolver_context_t *resolver_ctx;
@@ -436,7 +430,8 @@ static void no_query_needed(void) {
 }
 
 static void set_custom_resolv_conf(belle_sip_stack_t *stack, const char *ns[3]){
-	FILE *f=fopen(WRITE_FILE_PATH "tmp_resolv.conf","w");
+	char *resolv_file = bc_tester_file("tmp_resolv.conf");
+	FILE *f=fopen(resolv_file,"w");
 	BC_ASSERT_PTR_NOT_NULL(f);
 	if (f){
 		int i;
@@ -447,7 +442,8 @@ static void set_custom_resolv_conf(belle_sip_stack_t *stack, const char *ns[3]){
 		}
 		fclose(f);
 	}
-	belle_sip_stack_set_dns_resolv_conf_file(stack,WRITE_FILE_PATH "tmp_resolv.conf");
+	belle_sip_stack_set_dns_resolv_conf_file(stack, resolv_file);
+	free(resolv_file);
 }
 
 static void dns_fallback(void) {

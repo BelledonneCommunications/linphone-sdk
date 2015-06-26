@@ -4,9 +4,11 @@
 
 using namespace belle_sip_tester_runtime_component;
 using namespace Platform;
+using namespace Windows::Storage;
 
 #define MAX_TRACE_SIZE		512
 #define MAX_SUITE_NAME_SIZE	128
+#define MAX_WRITABLE_DIR_SIZE 1024
 
 static OutputTraceListener^ sTraceListener;
 static belle_sip_object_pool_t *pool;
@@ -32,7 +34,13 @@ static void belleSipNativeOutputTraceHandler(belle_sip_log_level lev, const char
 
 BelleSipTester::BelleSipTester()
 {
+	char writable_dir[MAX_WRITABLE_DIR_SIZE];
+	StorageFolder ^folder = ApplicationData::Current->LocalFolder;
+	const wchar_t *wwritable_dir = folder->Path->Data();
+	wcstombs(writable_dir, wwritable_dir, sizeof(writable_dir));
 	belle_sip_tester_init(nativeOutputTraceHandler);
+	bc_tester_set_resource_dir_prefix("Assets");
+	bc_tester_set_writable_dir_prefix(writable_dir);
 	belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
 }
 
