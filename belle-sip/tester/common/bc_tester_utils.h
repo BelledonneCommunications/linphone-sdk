@@ -25,7 +25,7 @@
 #include <string.h>
 #include <math.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #define snprintf _snprintf
 #endif
 

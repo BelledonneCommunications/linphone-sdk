@@ -67,7 +67,7 @@ void belle_sip_tester_set_root_ca_path(const char *root_ca_path) {
 
 
 static void log_handler(int lev, const char *fmt, va_list args) {
-#ifdef WIN32
+#ifdef _WIN32
 	/* We must use stdio to avoid log formatting (for autocompletion etc.) */
 	vfprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, fmt, args);
 	fprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, "\n");
