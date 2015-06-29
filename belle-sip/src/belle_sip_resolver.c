@@ -123,13 +123,13 @@ struct belle_sip_simple_resolver_context{
 	int flags;
 	uint64_t start_time;
 #ifdef USE_GETADDRINFO_FALLBACK
+	struct addrinfo *getaddrinfo_ai_list;
 	belle_sip_source_t *getaddrinfo_source;
 	belle_sip_thread_t getaddrinfo_thread;
-	belle_sip_mutex_t getaddrinfo_mutex;
 	unsigned char getaddrinfo_done;
 	unsigned char getaddrinfo_cancelled;
-	unsigned char getaddrinfo_notified;
 #ifdef _WIN32
+	unsigned char results_notified;
 	HANDLE ctlevent;
 #else
 	int ctlpipe[2];
@@ -391,15 +391,23 @@ static belle_sip_list_t *srv_select_by_weight(belle_sip_list_t *srv_list){
 
 static void notify_results(belle_sip_simple_resolver_context_t *ctx){
 	ctx->base.done=TRUE;
-	if ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA)) {
-		ctx->cb(ctx->cb_data, ctx->name, ctx->ai_list);
-	} else if (ctx->type == DNS_T_SRV) {
-		ctx->srv_list=srv_select_by_weight(ctx->srv_list);
-		ctx->srv_cb(ctx->srv_cb_data, ctx->name, ctx->srv_list);
+	if (!ctx->results_notified) {
+		if ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA)) {
+			struct addrinfo **ai_list = &ctx->ai_list;
+#if USE_GETADDRINFO_FALLBACK
+			if (ctx->getaddrinfo_ai_list != NULL) ai_list = &ctx->getaddrinfo_ai_list;
+#endif
+			ctx->cb(ctx->cb_data, ctx->name, *ai_list);
+			*ai_list = NULL;
+			ctx->results_notified = TRUE;
+		} else if (ctx->type == DNS_T_SRV) {
+			ctx->srv_list = srv_select_by_weight(ctx->srv_list);
+			ctx->srv_cb(ctx->srv_cb_data, ctx->name, ctx->srv_list);
+		}
 	}
 }
 
-static void append_dns_result(belle_sip_simple_resolver_context_t *ctx, struct sockaddr *addr, socklen_t addrlen){
+static void append_dns_result(belle_sip_simple_resolver_context_t *ctx, struct addrinfo **ai_list, struct sockaddr *addr, socklen_t addrlen){
 	char host[NI_MAXHOST + 1];
 	int gai_err;
 	int family=ctx->family;
@@ -409,13 +417,7 @@ static void append_dns_result(belle_sip_simple_resolver_context_t *ctx, struct s
 		return;
 	}
 	if (ctx->flags & AI_V4MAPPED) family=AF_INET6;
-#ifdef USE_GETADDRINFO_FALLBACK
-	belle_sip_mutex_lock(&ctx->getaddrinfo_mutex);
-#endif
-	ctx->ai_list = ai_list_append(ctx->ai_list, belle_sip_ip_address_to_addrinfo(family, host, ctx->port));
-#ifdef USE_GETADDRINFO_FALLBACK
-	belle_sip_mutex_unlock(&ctx->getaddrinfo_mutex);
-#endif
+	*ai_list = ai_list_append(*ai_list, belle_sip_ip_address_to_addrinfo(family, host, ctx->port));
 	belle_sip_message("%s resolved to %s", ctx->name, host);
 }
 
@@ -435,13 +437,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 	
 	if (simulated_timeout || ((revents & BELLE_SIP_EVENT_TIMEOUT) && (belle_sip_time_ms()-ctx->start_time>=timeout))) {
 		belle_sip_error("%s timed-out", __FUNCTION__);
-#ifdef USE_GETADDRINFO_FALLBACK
-		if (!ctx->getaddrinfo_notified) {
-			notify_results(ctx);
-		}
-#else
 		notify_results(ctx);
-#endif
 		return BELLE_SIP_STOP;
 	}
 	/*belle_sip_message("resolver_process_data(): revents=%i",revents);*/
@@ -468,7 +464,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 					memcpy(&sin6.sin6_addr, &aaaa->addr, sizeof(sin6.sin6_addr));
 					sin6.sin6_family = AF_INET6;
 					sin6.sin6_port = ctx->port;
-					append_dns_result(ctx,(struct sockaddr*)&sin6,sizeof(sin6));
+					append_dns_result(ctx,&ctx->ai_list,(struct sockaddr*)&sin6,sizeof(sin6));
 				} else if ((ctx->type == DNS_T_A) && (rr.class == DNS_C_IN) && (rr.type == DNS_T_A)) {
 					struct dns_a *a = &any.a;
 					struct sockaddr_in sin;
@@ -476,7 +472,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 					memcpy(&sin.sin_addr, &a->addr, sizeof(sin.sin_addr));
 					sin.sin_family = AF_INET;
 					sin.sin_port = ctx->port;
-					append_dns_result(ctx,(struct sockaddr*)&sin,sizeof(sin));
+					append_dns_result(ctx,&ctx->ai_list,(struct sockaddr*)&sin,sizeof(sin));
 				} else if ((ctx->type == DNS_T_SRV) && (rr.class == DNS_C_IN) && (rr.type == DNS_T_SRV)) {
 					char host[NI_MAXHOST + 1];
 					struct dns_srv *srv = &any.srv;
@@ -489,13 +485,9 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 		}
 		free(ans);
 #ifdef USE_GETADDRINFO_FALLBACK
-		if (!ctx->getaddrinfo_notified) {
-			notify_results(ctx);
-		}
 		ctx->getaddrinfo_cancelled = TRUE;
-#else
-		notify_results(ctx);
 #endif
+		notify_results(ctx);
 		return BELLE_SIP_STOP;
 	}
 	if (error != DNS_EAGAIN) {
@@ -540,7 +532,10 @@ static void * _resolver_getaddrinfo_thread(void *ptr) {
 	if (err != 0) {
 		belle_sip_error("getaddrinfo DNS resolution of %s failed: %s", ctx->name, gai_strerror(err));
 	} else if (!ctx->getaddrinfo_cancelled) {
-		append_dns_result(ctx, res->ai_addr, res->ai_addrlen);
+		do {
+			append_dns_result(ctx, &ctx->getaddrinfo_ai_list, res->ai_addr, res->ai_addrlen);
+			res = res->ai_next;
+		} while (res != NULL);
 	}
 	if (res) freeaddrinfo(res);
 	ctx->getaddrinfo_done = TRUE;
@@ -555,9 +550,8 @@ static void * _resolver_getaddrinfo_thread(void *ptr) {
 }
 
 static int _resolver_getaddrinfo_callback(belle_sip_simple_resolver_context_t *ctx, unsigned int revents) {
-	if (!ctx->getaddrinfo_cancelled && !ctx->getaddrinfo_notified) {
+	if (!ctx->getaddrinfo_cancelled) {
 		notify_results(ctx);
-		ctx->getaddrinfo_notified = TRUE;
 	}
 	belle_sip_object_unref(ctx);
 	return BELLE_SIP_STOP;
@@ -605,8 +599,11 @@ static int _resolver_send_query(belle_sip_simple_resolver_context_t *ctx) {
 		/*the timeout set to the source is 1 s, this is to allow dns.c to send request retransmissions*/
 		belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)resolver_process_data, ctx, dns_res_pollfd(ctx->R), BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT, 1000);
 #ifdef USE_GETADDRINFO_FALLBACK
-		if ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA)) {
-			_resolver_getaddrinfo_start(ctx);
+		{
+			int timeout = belle_sip_stack_get_dns_timeout(ctx->base.stack);
+			if ((timeout != 0) && ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA))) {
+				_resolver_getaddrinfo_start(ctx);
+			}
 		}
 #endif
 	}
@@ -730,7 +727,6 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 	if (ctx->getaddrinfo_thread != 0) {
 		belle_sip_thread_join(ctx->getaddrinfo_thread, NULL);
 	}
-	belle_sip_mutex_destroy(&ctx->getaddrinfo_mutex);
 #ifdef _WIN32
 	if (ctx->ctlevent != (belle_sip_fd_t)-1)
 		CloseHandle(ctx->ctlevent);
@@ -740,6 +736,14 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 #endif
 
 #endif
+	if (ctx->ai_list != NULL) {
+		belle_sip_freeaddrinfo(ctx->ai_list);
+		ctx->ai_list = NULL;
+	}
+	if (ctx->getaddrinfo_ai_list != NULL) {
+		belle_sip_freeaddrinfo(ctx->getaddrinfo_ai_list);
+		ctx->getaddrinfo_ai_list = NULL;
+	}
 	if (ctx->name != NULL) {
 		belle_sip_free(ctx->name);
 		ctx->name = NULL;
@@ -1012,11 +1016,8 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_single(belle_sip_s
 	if (family == 0) family = AF_UNSPEC;
 	ctx->family = family;
 	ctx->type = (ctx->family == AF_INET6) ? DNS_T_AAAA : DNS_T_A;
-#ifdef USE_GETADDRINFO_FALLBACK
-	belle_sip_mutex_init(&ctx->getaddrinfo_mutex, NULL);
-#ifdef _WIN32
+#if defined(USE_GETADDRINFO_FALLBACK) && defined(_WIN32)
 	ctx->ctlevent = (belle_sip_fd_t)-1;
-#endif
 #endif
 	return (belle_sip_resolver_context_t*)resolver_start_query(ctx);
 }

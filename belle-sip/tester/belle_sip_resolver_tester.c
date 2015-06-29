@@ -167,12 +167,6 @@ static void local_query(void) {
 	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, "localhost", SIP_PORT, AF_INET, a_resolve_done, client);
-	// A DNS query is needed on Windows platform
-#ifdef WIN32
-	BC_ASSERT_PTR_NOT_EQUAL(client->resolver_ctx, NULL);
-#else
-	BC_ASSERT_PTR_EQUAL(client->resolver_ctx, NULL);
-#endif
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
