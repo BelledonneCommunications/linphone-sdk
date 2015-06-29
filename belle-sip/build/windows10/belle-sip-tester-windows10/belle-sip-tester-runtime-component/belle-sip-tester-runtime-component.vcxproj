@@ -89,10 +89,11 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PreprocessorDefinitions>_WINRT_DLL;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINRT_DLL;NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalUsingDirectories>$(WindowsSDK_WindowsMetadata);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>28204</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\tester\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
