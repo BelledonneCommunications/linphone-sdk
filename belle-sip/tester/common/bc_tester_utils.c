@@ -396,7 +396,7 @@ void bc_tester_uninit() {
 	}
 }
 
-static bc_tester_set_dir_prefix(char **prefix, const char *name) {
+static void bc_tester_set_dir_prefix(char **prefix, const char *name) {
 	size_t len = strlen(name);
 	if (*prefix != NULL) free(*prefix);
 	*prefix = malloc(len + 1);
