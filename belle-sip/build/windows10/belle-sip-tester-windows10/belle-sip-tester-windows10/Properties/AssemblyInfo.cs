@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("belle-sip-tester-windows10")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Belle-Sip tester for Windows 10")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Belledonne Communications")]
 [assembly: AssemblyProduct("belle-sip-tester-windows10")]
-[assembly: AssemblyCopyright("Copyright ©  2015")]
+[assembly: AssemblyCopyright("Copyright © 2015 Belledonne Communications")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
