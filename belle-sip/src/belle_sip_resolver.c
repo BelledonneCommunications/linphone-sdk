@@ -122,6 +122,7 @@ struct belle_sip_simple_resolver_context{
 	int family;
 	int flags;
 	uint64_t start_time;
+	unsigned char results_notified;
 #ifdef USE_GETADDRINFO_FALLBACK
 	struct addrinfo *getaddrinfo_ai_list;
 	belle_sip_source_t *getaddrinfo_source;
@@ -129,7 +130,6 @@ struct belle_sip_simple_resolver_context{
 	unsigned char getaddrinfo_done;
 	unsigned char getaddrinfo_cancelled;
 #ifdef _WIN32
-	unsigned char results_notified;
 	HANDLE ctlevent;
 #else
 	int ctlpipe[2];
@@ -740,10 +740,12 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 		belle_sip_freeaddrinfo(ctx->ai_list);
 		ctx->ai_list = NULL;
 	}
+#ifdef USE_GETADDRINFO_FALLBACK
 	if (ctx->getaddrinfo_ai_list != NULL) {
 		belle_sip_freeaddrinfo(ctx->getaddrinfo_ai_list);
 		ctx->getaddrinfo_ai_list = NULL;
 	}
+#endif
 	if (ctx->name != NULL) {
 		belle_sip_free(ctx->name);
 		ctx->name = NULL;
