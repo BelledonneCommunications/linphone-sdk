@@ -18,7 +18,7 @@ using Windows.UI.Xaml.Navigation;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
 
-namespace belle_sip_tester_windows10
+namespace belle_sip_tester
 {
     public delegate void OutputDisplayDelegate(String msg);
 

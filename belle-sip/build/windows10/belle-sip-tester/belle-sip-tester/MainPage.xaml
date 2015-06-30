@@ -1,8 +1,8 @@
 ﻿<Page
-    x:Class="belle_sip_tester_windows10.TestPage"
+    x:Class="belle_sip_tester.MainPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:belle_sip_tester_windows10"
+    xmlns:local="using:belle_sip_tester"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -13,17 +13,17 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <StackPanel Grid.Row="0" Margin="12,17,0,28">
-            <TextBlock Text="BELLE-SIP TESTER"/>
-            <TextBlock x:Name="SuiteName" Text="Test suite name"/>
-        </StackPanel>
-        <CheckBox Grid.Row="1" x:Name="Verbose" Content="Verbose" HorizontalAlignment="Right" IsChecked="True"></CheckBox>
-        <ListView Grid.Row="2" x:Name="Tests" ItemsSource="{Binding}" Tapped="Test_Tapped">
+            <StackPanel Grid.Row="0" Margin="12,17,0,28">
+                <TextBlock Text="BELLE-SIP TESTER"/>
+                <TextBlock Text="Test Suite"/>
+            </StackPanel>
+            <CheckBox Grid.Row="1" x:Name="Verbose" Content="Verbose" HorizontalAlignment="Right" IsChecked="True"></CheckBox>
+            <ListView Grid.Row="2" x:Name="Suites" ItemsSource="{Binding}" Tapped="Suite_Tapped">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <TextBlock Text="{Binding Name}"/>
                 </DataTemplate>
             </ListView.ItemTemplate>
-        </ListView>
+            </ListView>
     </Grid>
 </Page>

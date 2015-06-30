@@ -3,7 +3,7 @@
   <Identity Name="c6108770-1859-484a-b353-cd502001986d" Publisher="CN=Ghislain" Version="1.0.1.0" />
   <mp:PhoneIdentity PhoneProductId="c6108770-1859-484a-b353-cd502001986d" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
-    <DisplayName>belle-sip-tester-windows10</DisplayName>
+    <DisplayName>belle-sip-tester</DisplayName>
     <PublisherDisplayName>Ghislain</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -14,8 +14,8 @@
     <Resource Language="x-generate" />
   </Resources>
   <Applications>
-    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="belle_sip_tester_windows10.App">
-      <uap:VisualElements DisplayName="belle-sip-tester-windows10" Square150x150Logo="Assets\Logo.png" Square44x44Logo="Assets\SmallLogo.png" Description="belle-sip-tester-windows10" BackgroundColor="#464646">
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="belle_sip_tester.App">
+      <uap:VisualElements DisplayName="belle-sip-tester" Square150x150Logo="Assets\Logo.png" Square44x44Logo="Assets\SmallLogo.png" Description="belle-sip-tester" BackgroundColor="#464646">
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
     </Application>

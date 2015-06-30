@@ -18,7 +18,7 @@ using Windows.UI.Xaml.Navigation;
 
 // The Blank Application template is documented at http://go.microsoft.com/fwlink/?LinkId=402347&clcid=0x409
 
-namespace belle_sip_tester_windows10
+namespace belle_sip_tester
 {
     /// <summary>
     /// Provides application-specific behavior to supplement the default Application class.

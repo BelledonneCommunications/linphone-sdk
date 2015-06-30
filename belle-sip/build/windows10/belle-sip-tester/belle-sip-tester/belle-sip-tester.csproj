@@ -7,8 +7,8 @@
     <ProjectGuid>{C3200133-4E37-424F-A049-DACCAB4DECF2}</ProjectGuid>
     <OutputType>AppContainerExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>belle_sip_tester_windows10</RootNamespace>
-    <AssemblyName>belle-sip-tester-windows10</AssemblyName>
+    <RootNamespace>belle_sip_tester</RootNamespace>
+    <AssemblyName>belle-sip-tester</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <TargetPlatformVersion>10.0.10069.0</TargetPlatformVersion>
@@ -17,7 +17,7 @@
     <EnableDotNetNativeCompatibleProfile>true</EnableDotNetNativeCompatibleProfile>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <PackageCertificateKeyFile>belle-sip-tester-windows10_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateKeyFile>belle-sip-tester_TemporaryKey.pfx</PackageCertificateKeyFile>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
     <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
@@ -115,7 +115,7 @@
     <Content Include="Assets\rootca.pem">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <None Include="belle-sip-tester-windows10_TemporaryKey.pfx" />
+    <None Include="belle-sip-tester_TemporaryKey.pfx" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

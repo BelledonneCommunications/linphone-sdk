@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.22823.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "belle-sip-tester-windows10", "belle-sip-tester-windows10\belle-sip-tester-windows10.csproj", "{C3200133-4E37-424F-A049-DACCAB4DECF2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "belle-sip-tester", "belle-sip-tester\belle-sip-tester.csproj", "{C3200133-4E37-424F-A049-DACCAB4DECF2}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "antlr3c", "..\..\..\..\antlr3\runtime\C\build\windows10\antlr3c\antlr3c.vcxproj", "{01CCCCC9-CA0C-4528-92BC-5B8BE1D02D6D}"
 EndProject
