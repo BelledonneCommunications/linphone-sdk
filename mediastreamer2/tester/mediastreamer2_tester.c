@@ -44,8 +44,9 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	}
 }
 
-void mediastreamer2_tester_init(void) {
-	bc_tester_init(log_handler, ORTP_MESSAGE, ORTP_ERROR);
+void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
+	if (ftester_printf == NULL) ftester_printf = log_handler;
+	bc_tester_init(ftester_printf, ORTP_MESSAGE, ORTP_ERROR);
 
 	bc_tester_add_suite(&basic_audio_test_suite);
 	bc_tester_add_suite(&sound_card_test_suite);
@@ -86,7 +87,7 @@ int main (int argc, char *argv[]) {
 	int i;
 	int ret;
 
-	mediastreamer2_tester_init();
+	mediastreamer2_tester_init(NULL);
 
 	for(i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--verbose") == 0) {
