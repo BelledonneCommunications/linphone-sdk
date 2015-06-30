@@ -206,7 +206,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_FILEREC
 		| FILTER_MASK_FILEPLAY | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
 	bool_t send_silence = TRUE;
-	char* recorded_file = ms_strdup_printf("%s/%s", bc_tester_writable_dir_prefix, DTMFGEN_FILE_NAME);
+	char* recorded_file = bc_tester_file(DTMFGEN_FILE_NAME);
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
@@ -251,7 +251,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	ms_tester_destroy_filters(filter_mask);
 	ms_tester_destroy_ticker();
 	unlink(recorded_file);
-    ms_free(recorded_file);
+    free(recorded_file);
 }
 
 

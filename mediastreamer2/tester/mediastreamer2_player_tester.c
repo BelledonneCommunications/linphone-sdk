@@ -135,9 +135,9 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 }
 
 static void play_root_file(const char *filepath, bool_t unsupported_format, bool_t seeking_test, bool_t play_twice){
-	char* file = ms_strdup_printf("%s/%s", bc_tester_read_dir_prefix, filepath);
+	char* file = bc_tester_res(filepath);
 	play_file(file, unsupported_format, seeking_test, play_twice);
-	ms_free(file);
+	free(file);
 }
 
 static void play_hello_8000_wav(void) {

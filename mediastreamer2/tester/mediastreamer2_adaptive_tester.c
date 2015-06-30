@@ -200,8 +200,8 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);
 	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);
 
-	char* file = ms_strdup_printf("%s/%s", bc_tester_read_dir_prefix, HELLO_16K_1S_FILE);
-	char* recorded_file = ms_strdup_printf("%s/%s", bc_tester_writable_dir_prefix, RECORDED_16K_1S_FILE);
+	char* file = bc_tester_res(HELLO_16K_1S_FILE);
+	char* recorded_file = bc_tester_file(RECORDED_16K_1S_FILE);
 
 	marielle->user_data = recorded_file;
 	params.enabled=TRUE;
@@ -248,9 +248,8 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 						*pmarielle);
 	rtp_session_enable_network_simulation(margaux_ms->sessions.rtp_session,&params);
 
-	ms_free(recorded_file);
-	ms_free(file);
-
+	free(recorded_file);
+	free(file);
 }
 
 static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_t * margaux,

@@ -128,8 +128,8 @@ static void basic_audio_stream_base(	const char* marielle_local_ip
 	AudioStream * 	margaux = audio_stream_new2 (margaux_local_ip, margaux_local_rtp_port,margaux_local_rtcp_port);
 	stats_t margaux_stats;
 	RtpProfile* profile = rtp_profile_new("default profile");
-	char* hello_file = ms_strdup_printf("%s/%s", bc_tester_read_dir_prefix, HELLO_8K_1S_FILE);
-	char* recorded_file = ms_strdup_printf("%s/%s", bc_tester_writable_dir_prefix, RECORDED_8K_1S_FILE);
+	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
+	char* recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
 	int dummy=0;
 	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session,TRUE);
 	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session,TRUE);
@@ -187,8 +187,8 @@ static void basic_audio_stream_base(	const char* marielle_local_ip
 	audio_stream_stop(margaux);
 
 	unlink(recorded_file);
-	ms_free(recorded_file);
-	ms_free(hello_file);
+	free(recorded_file);
+	free(hello_file);
 	rtp_profile_destroy(profile);
 }
 
@@ -210,8 +210,8 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 	AudioStream * 	marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
 	AudioStream * 	margaux = audio_stream_new (MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE);
 	RtpProfile* profile = rtp_profile_new("default profile");
-	char* hello_file = ms_strdup_printf("%s/%s", bc_tester_read_dir_prefix, HELLO_8K_1S_FILE);
-	char* recorded_file = ms_strdup_printf("%s/%s", bc_tester_writable_dir_prefix, RECORDED_8K_1S_FILE);
+	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
+	char* recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
 	stats_t marielle_stats;
 	stats_t margaux_stats;
 	int dummy=0;
@@ -349,8 +349,8 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 		}
 
 		unlink(recorded_file);
-		ms_free(recorded_file);
-		ms_free(hello_file);
+		free(recorded_file);
+		free(hello_file);
 	} else {
 		ms_warning("srtp not available, skiping...");
 	}
@@ -392,8 +392,8 @@ static void codec_change_for_audio_stream(void) {
 	AudioStream *margaux = audio_stream_new2(MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
 	stats_t margaux_stats;
 	RtpProfile *profile = rtp_profile_new("default profile");
-	char* hello_file = ms_strdup_printf("%s/%s", bc_tester_read_dir_prefix, HELLO_8K_1S_FILE);
-	char* recorded_file = ms_strdup_printf("%s/%s", bc_tester_writable_dir_prefix, RECORDED_8K_1S_FILE);
+	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
+	char* recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
 	uint64_t marielle_rtp_sent = 0;
 	int dummy=0;
 
@@ -447,8 +447,8 @@ static void codec_change_for_audio_stream(void) {
 	audio_stream_stop(margaux);
 
 	unlink(recorded_file);
-	ms_free(recorded_file);
-	ms_free(hello_file);
+	free(recorded_file);
+	free(hello_file);
 	rtp_profile_destroy(profile);
 }
 
@@ -460,7 +460,7 @@ static void tmmbr_feedback_for_audio_stream(void) {
 	RtpProfile *profile = rtp_profile_new("default profile");
 	RtpSession *marielle_session;
 	RtpSession *margaux_session;
-	char* hello_file = ms_strdup_printf("%s/%s", bc_tester_read_dir_prefix, HELLO_8K_1S_FILE);
+	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
 	int dummy=0;
 
 	reset_stats(&marielle_stats);
@@ -508,7 +508,7 @@ static void tmmbr_feedback_for_audio_stream(void) {
 	audio_stream_stop(marielle);
 	audio_stream_stop(margaux);
 
-	ms_free(hello_file);
+	free(hello_file);
 	ortp_ev_queue_destroy(marielle_stats.q);
 	ortp_ev_queue_destroy(margaux_stats.q);
 	rtp_profile_destroy(profile);

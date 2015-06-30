@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static FILE * log_file = NULL;
 
 static void log_handler(int lev, const char *fmt, va_list args) {
-#ifdef WIN32
+#ifdef _WIN32
 	vfprintf(lev == ORTP_ERROR ? stderr : stdout, fmt, args);
 	fprintf(lev == ORTP_ERROR ? stderr : stdout, "\n");
 #else
@@ -71,7 +71,7 @@ static const char* mediastreamer2_helper =
 		"\t\t\t--log-file <output log file path>\n";
 
 
-#if defined(WIN32) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#if defined(_WIN32) && !defined(MS2_WINDOWS_DESKTOP)
 #define BUILD_ENTRY_POINT 0
 #else
 #define BUILD_ENTRY_POINT 1

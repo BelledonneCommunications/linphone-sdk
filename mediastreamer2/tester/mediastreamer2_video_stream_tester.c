@@ -693,9 +693,7 @@ static test_t tests[] = {
 	{ "Video configuration", video_configuration_stream },
 	{ "AVPF RPSI count", avpf_rpsi_count}
 };
-#else
-static test_t tests[] = {};
-#endif
+
 test_suite_t video_stream_test_suite = {
 	"VideoStream",
 	tester_init,
@@ -703,3 +701,12 @@ test_suite_t video_stream_test_suite = {
 	sizeof(tests) / sizeof(tests[0]),
 	tests
 };
+#else
+test_suite_t video_stream_test_suite = {
+	"VideoStream",
+	NULL,
+	NULL,
+	0,
+	NULL
+};
+#endif
