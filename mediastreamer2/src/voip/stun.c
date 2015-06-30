@@ -1223,7 +1223,7 @@ stunRand(void)
 
 #if defined(_WIN32_WCE)
 	  tick = GetTickCount ();
-#elif !defined(MS2_WINDOWS_DESKTOP)
+#elif defined(_WIN32) && !defined(MS2_WINDOWS_DESKTOP)
 	  tick = GetTickCount64();
 #elif defined(_MSC_VER)
 	  {
