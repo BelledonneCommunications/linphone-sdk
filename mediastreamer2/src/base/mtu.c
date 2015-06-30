@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define IPV4_HEADER_SIZE 20
 #define IPV6_HEADER_SIZE 40
 
-#if defined(WIN32) && !defined(_WIN32_WCE) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#if defined(_WIN32) && !defined(_WIN32_WCE) && defined(MS2_WINDOWS_DESKTOP)
 
 HINSTANCE m_IcmpInst = NULL;
 

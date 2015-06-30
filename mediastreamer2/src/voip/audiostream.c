@@ -44,7 +44,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <sys/types.h>
 
-#ifndef WIN32
+#ifndef _WIN32
 	#include <sys/socket.h>
 	#include <netdb.h>
 #endif

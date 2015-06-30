@@ -77,7 +77,7 @@ extern MSSndCardDesc oss_card_desc;
 extern MSSndCardDesc arts_card_desc;
 #endif
 
-#if defined(WIN32) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef MS2_WINDOWS_DESKTOP
 extern MSSndCardDesc winsnd_card_desc;
 #endif
 
@@ -136,7 +136,7 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 	&arts_card_desc,
 #endif
 
-#if defined(WIN32) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef MS2_WINDOWS_DESKTOP
 	&winsnd_card_desc,
 #endif
 
@@ -181,11 +181,11 @@ extern MSWebCamDesc v4l_desc;
 extern MSWebCamDesc v4l2_card_desc;
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 extern MSWebCamDesc ms_vfw_cam_desc;
 #endif
 
-#if defined(WIN32) && defined(HAVE_DIRECTSHOW)
+#if defined(_WIN32) && defined(HAVE_DIRECTSHOW)
 extern MSWebCamDesc ms_directx_cam_desc;
 #endif
 
@@ -218,7 +218,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef HAVE_LINUX_VIDEODEV_H
 	&v4l_desc,
 #endif
-#if defined(WIN32) && defined(HAVE_VFW)
+#if defined(_WIN32) && defined(HAVE_VFW)
 	&ms_vfw_cam_desc,
 #endif
 #if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW)

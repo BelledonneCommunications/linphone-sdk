@@ -41,7 +41,7 @@ typedef int socklen_t;
 #include <mediastreamer2/mscommon.h>
 #include <ortp/port.h>
 
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(_WIN32) || defined(_WIN32_WCE)
 
 #if !defined(_WIN32_WCE)
 #include <errno.h>

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #if !defined(_WIN32_WCE)
 #include <sys/types.h>
 #endif
-#ifndef WIN32
+#ifndef _WIN32
 #include <dirent.h>
 #endif
 #ifdef HAVE_DLOPEN
@@ -338,8 +338,8 @@ void ms_set_plugins_dir(const char *path) {
 }
 
 void ms_sleep(int seconds){
-#ifdef WIN32
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef _WIN32
+#ifdef MS2_WINDOWS_DESKTOP
 	Sleep(seconds*1000);
 #else
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
@@ -359,8 +359,8 @@ void ms_sleep(int seconds){
 }
 
 void ms_usleep(uint64_t usec){
-#ifdef WIN32
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef _WIN32
+#ifdef MS2_WINDOWS_DESKTOP
 	Sleep((DWORD)(usec/1000));
 #else
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);

@@ -77,12 +77,15 @@
 
 #include <assert.h>
 
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(_WIN32) || defined(_WIN32_WCE)
 #include <winsock2.h>
 #include <stdlib.h>
 
+#include <mediastreamer2/mscommon.h>
+#ifndef MS2_WINDOWS_UNIVERSAL
 #ifndef snprintf
 #define snprintf _snprintf
+#endif
 #endif
 
 /* #include <io.h> */
@@ -1220,7 +1223,7 @@ stunRand(void)
 
 #if defined(_WIN32_WCE)
 	  tick = GetTickCount ();
-#elif !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#elif !defined(MS2_WINDOWS_DESKTOP)
 	  tick = GetTickCount64();
 #elif defined(_MSC_VER)
 	  {
@@ -1325,7 +1328,7 @@ randomPort()
 }
 
 
-#if !HAVE_POLARSSL_SSL_H
+#ifndef HAVE_POLARSSL_SSL_H
 void
 stunCalculateIntegrity_longterm(char* hmac, const char* input, int length,
 					 const char *username, const char *realm, const char *password)
@@ -1903,7 +1906,7 @@ stunStopServer(StunServerInfo *info)
 int
 stunFindLocalInterfaces(uint32_t* addresses,int maxRet)
 {
-#if defined(WIN32) || defined(_WIN32_WCE) || defined(__sparc__)
+#if defined(_WIN32) || defined(_WIN32_WCE) || defined(__sparc__)
    return 0;
 #else
    struct ifconf ifc;
@@ -2064,7 +2067,7 @@ stunSendTest( Socket myFd, StunAddress4 *dest,
    /* add some delay so the packets don't get sent too quickly */
 #if defined(_WIN32_WCE)
    Sleep (10);
-#elif defined(WIN32)/* !cj! TODO - should fix this up in windows */
+#elif defined(_WIN32)/* !cj! TODO - should fix this up in windows */
    {
 	   clock_t now = clock();
 	   /* assert( CLOCKS_PER_SEC == 1000 ); */
@@ -2255,7 +2258,7 @@ stunNatType( StunAddress4 *dest,
 	  int err;
 	  int e;
 
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(_WIN32) || defined(_WIN32_WCE)
 	  unsigned int fdSetSize;
 #else
 	  int fdSetSize;
@@ -2761,7 +2764,7 @@ turnSendAllocate( Socket myFd, StunAddress4 *dest,
   /* add some delay so the packets don't get sent too quickly */
 #if defined(_WIN32_WCE)
   Sleep (10);
-#elif defined(WIN32)/* !cj! TODO - should fix this up in windows */
+#elif defined(_WIN32)/* !cj! TODO - should fix this up in windows */
   {
 	clock_t now = clock();
 	/* assert( CLOCKS_PER_SEC == 1000 ); */

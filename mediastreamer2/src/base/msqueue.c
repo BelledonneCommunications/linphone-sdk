@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include <string.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <malloc.h> /* for alloca */
 #endif
 

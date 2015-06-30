@@ -70,7 +70,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#if !defined(WIN32) && !defined(_WIN32_WCE)
+#if !defined(_WIN32) && !defined(_WIN32_WCE)
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -87,7 +87,7 @@
 
 #include <time.h>
 
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(_WIN32) || defined(_WIN32_WCE)
 
 #include <winsock2.h>
 #include <stdlib.h>
@@ -113,7 +113,7 @@
 #include "mediastreamer2/stun_udp.h"
 #include "ortp/ortp.h"
 
-#if !defined(WIN32) && !defined(_WIN32_WCE)
+#if !defined(_WIN32) && !defined(_WIN32_WCE)
 int getErrno() { return errno; }
 #else
 int getErrno() { return WSAGetLastError(); }
@@ -204,7 +204,7 @@ getMessage( Socket fd, char* buf, int* len,
    int err;
    struct timeval tv;
    fd_set fdSet; 
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(_WIN32) || defined(_WIN32_WCE)
    unsigned int fdSetSize;
 #else
    int fdSetSize;
@@ -384,7 +384,7 @@ sendMessage( Socket fd, char* buf, int l,
 void
 initNetwork()
 {
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(_WIN32) || defined(_WIN32_WCE)
    WORD wVersionRequested = MAKEWORD( 2, 2 );
    WSADATA wsaData;
    int err;

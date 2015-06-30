@@ -44,7 +44,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <sys/stat.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <fcntl.h>
 #include <sys/types.h>
 #include <io.h>
@@ -170,7 +170,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 
 
 static mblk_t *_ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
-#if defined(WIN32)
+#if defined(_WIN32)
 	mblk_t *m=NULL;
 	DWORD st_sizel;
 	DWORD st_sizeh;
@@ -183,7 +183,7 @@ static mblk_t *_ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 #else
 	const char *wUnicode = jpgpath;
 #endif
-#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifndef MS2_WINDOWS_DESKTOP
 	fd = CreateFile2(wUnicode, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, NULL);
 #else
 	fd = CreateFile(wUnicode, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -194,7 +194,7 @@ static mblk_t *_ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	}
 	st_sizel=0;
 	st_sizeh=0;
-#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifndef MS2_WINDOWS_DESKTOP
 	{
 		WIN32_FILE_ATTRIBUTE_DATA attr_data;
 		GetFileAttributesEx(wUnicode, GetFileExInfoStandard, &attr_data);

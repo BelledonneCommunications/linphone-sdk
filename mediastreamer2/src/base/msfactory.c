@@ -36,12 +36,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #if !defined(_WIN32_WCE)
 #include <sys/types.h>
 #endif
-#ifndef WIN32
+#ifndef _WIN32
 #include <dirent.h>
 #else
 #ifndef PACKAGE_PLUGINS_DIR
-#if defined(WIN32) || defined(_WIN32_WCE)
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#if defined(_WIN32) || defined(_WIN32_WCE)
+#ifdef MS2_WINDOWS_DESKTOP
 #define PACKAGE_PLUGINS_DIR "lib\\mediastreamer\\plugins\\"
 #else
 #define PACKAGE_PLUGINS_DIR "."
@@ -155,7 +155,7 @@ void ms_factory_init(MSFactory *obj){
 	long num_cpu=1;
 	char *debug_log_enabled;
 	char *tags;
-#ifdef WIN32
+#ifdef _WIN32
 	SYSTEM_INFO sysinfo;
 #endif
 
@@ -173,7 +173,7 @@ void ms_factory_init(MSFactory *obj){
 		ms_factory_register_filter(obj,ms_base_filter_descs[i]);
 	}
 
-#ifdef WIN32 /*fixme to be tested*/
+#ifdef _WIN32 /*fixme to be tested*/
 	GetNativeSystemInfo( &sysinfo );
 
 	num_cpu = sysinfo.dwNumberOfProcessors;
@@ -186,10 +186,13 @@ void ms_factory_init(MSFactory *obj){
 #endif
 	ms_factory_set_cpu_count(obj,num_cpu);
 	ms_factory_set_mtu(obj,MS_MTU_DEFAULT);
-#ifdef WIN32
+#ifdef _WIN32
 	ms_factory_add_platform_tag(obj, "win32");
-#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef MS2_WINDOWS_PHONE
 	ms_factory_add_platform_tag(obj, "windowsphone");
+#endif
+#ifdef MS2_WINDOWS_UNIVERSAL
+	ms_factory_add_platform_tag(obj, "windowsuniversal");
 #endif
 #endif
 #ifdef __APPLE__
@@ -481,7 +484,7 @@ typedef void (*init_func_t)(MSFactory *);
 
 int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	int num=0;
-#if defined(WIN32) && !defined(_WIN32_WCE)
+#if defined(_WIN32) && !defined(_WIN32_WCE)
 	WIN32_FIND_DATA FileData;
 	HANDLE hSearch;
 	char szDirPath[1024];
@@ -496,7 +499,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
 
 	// Start searching for .dll files in the current directory.
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef MS2_WINDOWS_DESKTOP
 	snprintf(szDirPath, sizeof(szDirPath), "%s\\*.dll", dir);
 #else
 	snprintf(szDirPath, sizeof(szDirPath), "%s\\libms*.dll", dir);
@@ -517,7 +520,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	while (!fFinished)
 	{
 		/* load library */
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef MS2_WINDOWS_DESKTOP
 		UINT em=0;
 #endif
 		HINSTANCE os_handle;
@@ -530,7 +533,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 #else
 		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
 #endif
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef MS2_WINDOWS_DESKTOP
 		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
 
 #ifdef UNICODE
@@ -669,11 +672,11 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 }
 
 void ms_factory_uninit_plugins(MSFactory *factory){
-#if defined(WIN32)
+#if defined(_WIN32)
 	MSList *elem;
 #endif
 
-#if defined(WIN32)
+#if defined(_WIN32)
 	for(elem=factory->ms_plugins_loaded_list;elem!=NULL;elem=elem->next)
 	{
 		HINSTANCE handle=(HINSTANCE )elem->data;

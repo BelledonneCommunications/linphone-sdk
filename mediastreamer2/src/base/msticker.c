@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msticker.h"
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <sys/time.h>
 #include <sys/resource.h>
 #endif
@@ -307,8 +307,8 @@ static int set_high_prio(MSTicker *obj){
 	int prio=obj->prio;
 
 	if (prio>MS_TICKER_PRIO_NORMAL){
-#ifdef WIN32
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef _WIN32
+#ifdef MS2_WINDOWS_DESKTOP
 		MMRESULT mm;
 		TIMECAPS ptc;
 		mm=timeGetDevCaps(&ptc,sizeof(ptc));
@@ -375,8 +375,8 @@ static int set_high_prio(MSTicker *obj){
 }
 
 static void unset_high_prio(int precision){
-#ifdef WIN32
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#ifdef _WIN32
+#ifdef MS2_WINDOWS_DESKTOP
 	if(!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL)){
 		ms_warning("SetThreadPriority() failed (%d)\n", (int)GetLastError());
 	}

@@ -215,7 +215,7 @@ static MSFilterMethod rec_methods[]={
 	{	0			,	NULL		}
 };
 
-#ifdef WIN32
+#ifdef _WIN32
 
 MSFilterDesc ms_file_rec_desc={
 	MS_FILE_REC_ID,

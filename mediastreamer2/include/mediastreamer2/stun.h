@@ -101,7 +101,7 @@ typedef unsigned char  uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int   uint32_t;
 
-#if	defined(WIN32) || defined(_WIN32_WCE)
+#if	defined(_WIN32) || defined(_WIN32_WCE)
 typedef unsigned __int64 uint64_t;
 #else
 typedef unsigned long long uint64_t;

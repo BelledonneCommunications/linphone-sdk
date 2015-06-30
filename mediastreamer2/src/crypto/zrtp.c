@@ -20,7 +20,7 @@
 #include "mediastreamer2/zrtp.h"
 #include "mediastreamer2/mediastream.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <malloc.h>
 #endif
 

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cpu-features.h"
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <malloc.h> /* for alloca */
 #endif
 

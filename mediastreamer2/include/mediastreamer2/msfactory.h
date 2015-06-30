@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct _MSFactory{
 	MSList *desc_list;
 	MSList *stats_list;
-#ifdef WIN32
+#ifdef _WIN32
 	MSList *ms_plugins_loaded_list;
 #endif
 	MSList *formats;
