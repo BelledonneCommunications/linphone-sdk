@@ -128,7 +128,7 @@ namespace belle_sip_tester
                     };
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 tester = new BelleSipTester(false);
             }
