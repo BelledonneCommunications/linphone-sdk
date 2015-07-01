@@ -4,7 +4,9 @@
 
 using namespace belle_sip_tester_runtime_component;
 using namespace Platform;
+using namespace Windows::Foundation;
 using namespace Windows::Storage;
+using namespace Windows::System::Threading;
 
 #define MAX_TRACE_SIZE		512
 #define MAX_SUITE_NAME_SIZE	128
@@ -32,7 +34,7 @@ static void belleSipNativeOutputTraceHandler(belle_sip_log_level lev, const char
 }
 
 
-BelleSipTester::BelleSipTester()
+BelleSipTester::BelleSipTester(bool autoLaunch)
 {
 	char writable_dir[MAX_WRITABLE_DIR_SIZE];
 	StorageFolder ^folder = ApplicationData::Current->LocalFolder;
@@ -41,7 +43,25 @@ BelleSipTester::BelleSipTester()
 	belle_sip_tester_init(nativeOutputTraceHandler);
 	bc_tester_set_resource_dir_prefix("Assets");
 	bc_tester_set_writable_dir_prefix(writable_dir);
-	belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
+	if (autoLaunch) {
+		auto workItem = ref new WorkItemHandler([this](IAsyncAction ^workItem) {
+			char *xmlFile = bc_tester_file("BelleSipWindows10.xml");
+			char *logFile = bc_tester_file("BelleSipWindows10.log");
+			char *args[] = { "--xml-file", xmlFile };
+			bc_tester_parse_args(2, args, 0);
+			init(true);
+			FILE *f = fopen(logFile, "w");
+			belle_sip_set_log_file(f);
+			bc_tester_start();
+			bc_tester_uninit();
+			fclose(f);
+			free(xmlFile);
+			free(logFile);
+		});
+		asyncAction = ThreadPool::RunAsync(workItem);
+	} else {
+		belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
+	}
 }
 
 BelleSipTester::~BelleSipTester()
@@ -64,14 +84,7 @@ void BelleSipTester::run(Platform::String^ suiteName, Platform::String^ caseName
 	wcstombs(csuitename, wssuitename.c_str(), sizeof(csuitename));
 	wcstombs(ccasename, wscasename.c_str(), sizeof(ccasename));
 
-	if (verbose) {
-		belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
-	} else {
-		belle_sip_set_log_level(BELLE_SIP_LOG_ERROR);
-	}
-
-	belle_sip_tester_set_root_ca_path("Assets/rootca.pem");
-	pool = belle_sip_object_pool_push();
+	init(verbose);
 	bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename);
 }
 
@@ -105,4 +118,22 @@ Platform::String^ BelleSipTester::testName(Platform::String^ suiteName, int test
 	wchar_t wcname[MAX_SUITE_NAME_SIZE];
 	mbstowcs(wcname, cname, sizeof(wcname));
 	return ref new String(wcname);
+}
+
+IAsyncAction^ BelleSipTester::AsyncAction::get()
+{
+	return asyncAction;
+}
+
+void BelleSipTester::init(bool verbose)
+{
+	if (verbose) {
+		belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+	}
+	else {
+		belle_sip_set_log_level(BELLE_SIP_LOG_ERROR);
+	}
+
+	belle_sip_tester_set_root_ca_path("Assets/rootca.pem");
+	pool = belle_sip_object_pool_push();
 }

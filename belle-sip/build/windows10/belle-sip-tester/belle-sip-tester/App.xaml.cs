@@ -8,6 +8,7 @@ using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Storage;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -41,7 +42,7 @@ namespace belle_sip_tester
             this.InitializeComponent();
             this.Suspending += OnSuspending;
 
-            tester = new BelleSipTester();
+            run();
         }
 
         /// <summary>
@@ -112,6 +113,25 @@ namespace belle_sip_tester
             var deferral = e.SuspendingOperation.GetDeferral();
             //TODO: Save application state and stop any background activity
             deferral.Complete();
+        }
+
+        private async void run()
+        {
+            try
+            {
+                await ApplicationData.Current.LocalFolder.GetFileAsync("autolaunch");
+                tester = new BelleSipTester(true);
+                if (tester.AsyncAction != null)
+                {
+                    tester.AsyncAction.Completed += (asyncInfo, asyncStatus) => {
+                        Current.Exit();
+                    };
+                }
+            }
+            catch (Exception e)
+            {
+                tester = new BelleSipTester(false);
+            }
         }
 
         public bool suiteRunning()
