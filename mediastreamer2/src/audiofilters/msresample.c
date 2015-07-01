@@ -100,6 +100,7 @@ static int resample_channel_adapt(int in_nchannels, int out_nchannels, mblk_t *i
 			((int16_t *)(*om)->b_wptr)[0] = *(int16_t *)im->b_rptr;
 			((int16_t *)(*om)->b_wptr)[1] = *(int16_t *)im->b_rptr;
 		}
+		mblk_meta_copy(im, *om);
 		return 1;
 	}
 	return 0;
@@ -179,7 +180,6 @@ static void resample_process_ms2(MSFilter *obj){
 				inlen,inlen_orig,outlen);
 		}
 		om->b_wptr+=outlen*2*dt->in_nchannels;
-		mblk_meta_copy(im, om);
 		mblk_set_timestamp_info(om,dt->ts);
 		dt->ts+=outlen;
 		if (resample_channel_adapt(dt->in_nchannels, dt->out_nchannels, om, &om_chan) == 0) {
