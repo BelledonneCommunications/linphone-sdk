@@ -1,17 +1,17 @@
 /*
  ioscapture.m
  Copyright (C) 2011 Belledonne Communications, Grenoble, France
- 
+
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
  as published by the Free Software Foundation; either version 2
  of the License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -67,6 +67,7 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 	MSAverageFPS averageFps;
 	char fps_context[64];
 	const char *deviceId;
+	MSYuvBufAllocator* bufAllocator;
 };
 
 - (void)initIOSCapture;
@@ -121,16 +122,18 @@ static void capture_queue_cleanup(void* p) {
 	msframe = NULL;
 	ms_mutex_init(&mutex, NULL);
 	output = [[AVCaptureVideoDataOutput  alloc] init];
-	
+
+	bufAllocator = ms_yuv_buf_allocator_new();
+
 	[self setOpaque:YES];
 	[self setAutoresizingMask: UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
-	
+
 	/*
 	 Currently, the only supported key is kCVPixelBufferPixelFormatTypeKey. Supported pixel formats are kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange and kCVPixelFormatType_32BGRA, except on iPhone 3G, where the supported pixel formats are kCVPixelFormatType_422YpCbCr8 and kCVPixelFormatType_32BGRA..
 	 */
 	NSDictionary* dic = @{ (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) };
 	[output setVideoSettings:dic];
-	
+
 	/* Set the layer */
 	AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)self.layer;
 	[previewLayer.connection setVideoOrientation:AVCaptureVideoOrientationPortrait];
@@ -158,9 +161,9 @@ static void capture_queue_cleanup(void* p) {
 }
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
-	   fromConnection:(AVCaptureConnection *)connection {	
+	   fromConnection:(AVCaptureConnection *)connection {
 	CVImageBufferRef frame = nil;
-	@synchronized(self) { 
+	@synchronized(self) {
 		@try {
 			frame = CMSampleBufferGetImageBuffer(sampleBuffer);
 			CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
@@ -169,7 +172,7 @@ static void capture_queue_cleanup(void* p) {
 				frame=nil;
 				return;
 			}
-			
+
 			/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange*/
 			size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
 			size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, 0);
@@ -253,8 +256,9 @@ static void capture_queue_cleanup(void* p) {
 
 					default: ms_error("Unsupported device orientation [%i]",mDeviceOrientation);
 			}
-			
-			mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(y_src
+
+			mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(bufAllocator
+																								   , y_src
 																								   , cbcr_src
 																								   , rotation
 																								   , mOutputVideoSize.width
@@ -262,8 +266,8 @@ static void capture_queue_cleanup(void* p) {
 																								   , (unsigned int)y_bytePer_row
 																								   , (unsigned int)cbcr_bytePer_row
 																								   , TRUE
-																								   , mDownScalingRequired); 
-			  
+																								   , mDownScalingRequired);
+
 			ms_mutex_lock(&mutex);
 			if (msframe!=NULL) {
 				freemsg(msframe);
@@ -281,7 +285,7 @@ static void capture_queue_cleanup(void* p) {
 	unsigned int i = 0;
 	AVCaptureDevice * device = NULL;
 	self->deviceId = device_Id;
-	
+
 	NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
 	for (i = 0 ; i < [array count]; i++) {
 		AVCaptureDevice * currentDevice = [array objectAtIndex:i];
@@ -317,7 +321,11 @@ static void capture_queue_cleanup(void* p) {
 	[session removeOutput:output];
 	[output release];
 	[parentView release];
-	
+
+	if (bufAllocator) {
+		ms_yuv_buf_allocator_free(bufAllocator);
+	}
+
 	if (msframe) {
 		freemsg(msframe);
 	}
@@ -337,14 +345,14 @@ static void capture_queue_cleanup(void* p) {
 			// Init queue
 			dispatch_queue_t queue = dispatch_queue_create("CaptureQueue", NULL);
 			dispatch_set_context(queue, [self retain]);
-			dispatch_set_finalizer_f(queue, capture_queue_cleanup);	
+			dispatch_set_finalizer_f(queue, capture_queue_cleanup);
 			[output setSampleBufferDelegate:self queue:queue];
 			dispatch_release(queue);
-			
+
 			[session startRunning]; //warning can take around 1s before returning
 			snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
 			ms_video_init_average_fps(&averageFps, fps_context);
-			
+
 			ms_message("ioscapture video device started.");
 		}
 	}
@@ -358,7 +366,7 @@ static void capture_queue_cleanup(void* p) {
 		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
 		if (session.running) {
 			[session stopRunning];
-			
+
 			// Will free the queue
 			[output setSampleBufferDelegate:nil queue:nil];
 		}
@@ -370,7 +378,7 @@ static void capture_queue_cleanup(void* p) {
 static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrientation) {
 	switch (deviceOrientation) {
 		case 0: return AVCaptureVideoOrientationPortrait;
-		case 90: return AVCaptureVideoOrientationLandscapeLeft;	
+		case 90: return AVCaptureVideoOrientationLandscapeLeft;
 		case -180:
 		case 180: return AVCaptureVideoOrientationPortraitUpsideDown;
 		case -90:
@@ -445,7 +453,7 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 			vsize = MS_VIDEO_SIZE_QCIF;
 		}
 		[self configureSize:vsize withSession:session];
-		
+
 		NSArray *connections = output.connections;
 		if ([connections count] > 0 && [[connections objectAtIndex:0] isVideoOrientationSupported]) {
 			switch (mDeviceOrientation) {
@@ -457,11 +465,11 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortraitUpsideDown];
 					ms_message("Configuring camera in AVCaptureVideoOrientationPortraitUpsideDown mode ");
 					break;
-				case 90:	
+				case 90:
 					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
 					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeLeft mode ");
 					break;
-				case 270:	
+				case 270:
 					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
 					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeRight mode ");
 				default:
@@ -470,12 +478,12 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 		}
 
 
-		if (mDeviceOrientation == 0 || mDeviceOrientation == 180) { 
+		if (mDeviceOrientation == 0 || mDeviceOrientation == 180) {
 			MSVideoSize tmpSize = mOutputVideoSize;
 			mOutputVideoSize.width=tmpSize.height;
 			mOutputVideoSize.height=tmpSize.width;
-		}  
-		
+		}
+
 		[session commitConfiguration];
 		return;
 	}
@@ -512,7 +520,7 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 			if ([connections count] > 0) {
 				[[connections objectAtIndex:0] setVideoMinFrameDuration:CMTimeMake(1, value)];
 				[[connections objectAtIndex:0] setVideoMaxFrameDuration:CMTimeMake(1, value)];
-			} 
+			}
 		}
 
 		fps=value;
@@ -526,15 +534,15 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 	if (parentView == aparentView) {
 		return;
 	}
-	
+
 	if(parentView != nil) {
 		[self removeFromSuperview];
 		[parentView release];
 		parentView = nil;
 	}
-	
+
 	parentView = aparentView;
-	
+
 	if(parentView != nil) {
 		[parentView retain];
 		AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)self.layer;
@@ -560,11 +568,11 @@ static void ioscapture_init(MSFilter *f) {
 
 static void ioscapture_uninit(MSFilter *f) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
-	
+
 	if(thiz != nil) {
 		NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 		[thiz performSelectorInBackground:@selector(stop) withObject:nil];
-		
+
 		[thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
 		[thiz release];
 		[myPool drain];
@@ -573,7 +581,7 @@ static void ioscapture_uninit(MSFilter *f) {
 
 static void ioscapture_process(MSFilter * obj) {
 	IOSCapture *thiz = (IOSCapture*)obj->data;
-	
+
 	if(thiz != NULL) {
 		ms_mutex_lock(&thiz->mutex);
 		if (thiz->msframe) {
@@ -582,7 +590,7 @@ static void ioscapture_process(MSFilter * obj) {
 			ms_queue_put(obj->outputs[0],thiz->msframe);
 			ms_video_update_average_fps(&thiz->averageFps, (uint32_t)obj->ticker->time);
 			thiz->msframe=0;
-		}	
+		}
 		ms_mutex_unlock(&thiz->mutex);
 	}
 }
@@ -662,7 +670,7 @@ static int ioscapture_set_device_orientation (MSFilter *f, void *arg) {
 		if (thiz->mDeviceOrientation != *(int*)(arg)) {
 			thiz->mDeviceOrientation = *(int*)(arg);
 			[thiz setSize:thiz->mOutputVideoSize]; //to update size from orientation
-			
+
 			// delete frame if any
 			ms_mutex_lock(&thiz->mutex);
 			if (thiz->msframe) {
@@ -717,9 +725,9 @@ MSFilterDesc ms_ioscapture_desc = {
 MS_FILTER_DESC_EXPORT(ms_ioscapture_desc)
 
 /*
- 
+
  MSWebCamDesc for iOS
- 
+
  */
 
 static void ms_v4ios_detect(MSWebCamManager *obj);
@@ -735,17 +743,17 @@ MSWebCamDesc ms_v4ios_cam_desc = {
 };
 
 static void ms_v4ios_detect(MSWebCamManager *obj) {
-	
+
 	if (kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_4_0) {
 		ms_error("No capture support for IOS version below 4");
 		return;
 	}
-	
+
 	unsigned int i = 0;
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
-	
+
 	NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-	
+
 	for(i = 0 ; i < [array count]; i++)
 	{
 		AVCaptureDevice * device = [array objectAtIndex:i];
@@ -761,7 +769,7 @@ static void ms_v4ios_cam_init(MSWebCam *cam) {
 }
 
 static MSFilter *ms_v4ios_create_reader(MSWebCam *obj) {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];	
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	MSFilter *f= ms_filter_new_from_desc(&ms_ioscapture_desc);
 	[((IOSCapture*)f->data) openDevice:obj->data];
 	[pool drain];
