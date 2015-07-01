@@ -71,6 +71,7 @@ static void test_video_processing (void) {
 	int crcb_bytes_per_row = src_size.width/2 + (src_size.width/2)%32 ;
 	uint8_t* cbcr = (uint8_t*)ms_malloc(crcb_bytes_per_row*src_size.height);
 	int i,j;
+	MSYuvBufAllocator *yba = ms_yuv_buf_allocator_new();
 
 	for (i=0;i<src_size.height*src_size.width;i++) {
 		y[i]=i%256;
@@ -79,7 +80,7 @@ static void test_video_processing (void) {
 		cbcr[i]=i%256;
 	}
 
-	yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(	y
+	yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(yba,	y
 																					,cbcr
 																					,0
 																					, src_size.width
@@ -123,9 +124,10 @@ static void test_video_processing (void) {
 			break;
 		}
 	}
-
+	freemsg(yuv_block2);
 	ms_free(y);
 	ms_free(cbcr);
+	ms_yuv_buf_allocator_free(yba);
 
 }
 #endif

@@ -621,7 +621,7 @@ void ms_video_set_scaler_impl(MSScalerDesc *desc){
 }
 
 /* Can rotate Y, U or V plane; use step=2 for interleaved UV planes otherwise step=1*/
-static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst, int step, bool_t clockWise) {
+static void rotate_plane(int wDest, int hDest, int full_width, const uint8_t* src, uint8_t* dst, int step, bool_t clockWise) {
 	int hSrc = wDest;
 	int wSrc = hDest;
 	int src_stride = full_width * step;
@@ -669,19 +669,19 @@ static int hasNeon = 0;
 #endif
 
 /* Destination and source images may have their dimensions inverted.*/
-mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t* y, uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond, bool_t down_scale) {
+mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond, bool_t down_scale) {
 	MSPicture pict;
 	int uv_w;
 	int uv_h;
-	uint8_t* ysrc;
+	const uint8_t* ysrc;
 	uint8_t* ydst;
-	uint8_t* uvsrc;
-	uint8_t* srcu;
+	const uint8_t* uvsrc;
+	const uint8_t* srcu;
 	uint8_t* dstu;
-	uint8_t* srcv;
+	const uint8_t* srcv;
 	uint8_t* dstv;
 
-	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
+	mblk_t *yuv_block = ms_yuv_buf_allocator_get(allocator, &pict, w, h);
 
 #ifdef ANDROID
 	if (hasNeon == -1) {
@@ -791,8 +791,8 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 	return yuv_block;
 }
 
-mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(uint8_t* y, uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond) {
-	return copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(y, cbcr, rotation, w, h, y_byte_per_row, cbcr_byte_per_row, uFirstvSecond, FALSE);
+mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(MSYuvBufAllocator *allocator, const uint8_t* y, const uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond) {
+	return copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(allocator, y, cbcr, rotation, w, h, y_byte_per_row, cbcr_byte_per_row, uFirstvSecond, FALSE);
 }
 
 void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps) {
