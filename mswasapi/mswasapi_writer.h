@@ -29,10 +29,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mswasapi.h"
 
 
-class MSWASAPIWriter {
+class MSWASAPIWriter
+#ifdef MS2_WINDOWS_UNIVERSAL
+	: public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler >
+#endif
+{
 public:
 	MSWASAPIWriter();
-	virtual ~MSWASAPIWriter();
 
 	void init(LPCWSTR id);
 	int activate();
@@ -45,12 +48,24 @@ public:
 	int getRate() { return mRate; }
 	int getNChannels() { return mNChannels; }
 
+#ifdef MS2_WINDOWS_UNIVERSAL
+	// IActivateAudioInterfaceCompletionHandler
+	STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation *operation);
+#endif
+
 private:
+	~MSWASAPIWriter();
 	void drop(MSFilter *f);
+	HRESULT configureAudioClient();
 
 	static bool smInstantiated;
+#ifdef MS2_WINDOWS_UNIVERSAL
+	Platform::String^ mRenderId;
+	HANDLE mActivationEvent;
+#else
 	LPCWSTR mRenderId;
-#if BUILD_FOR_WINDOWS_PHONE
+#endif
+#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
 	IAudioClient2 *mAudioClient;
 #else
 	IAudioClient *mAudioClient;
@@ -63,3 +78,22 @@ private:
 	int mRate;
 	int mNChannels;
 };
+
+
+#ifdef MS2_WINDOWS_UNIVERSAL
+#define MSWASAPI_WRITER(w) ((MSWASAPIWriterType)((MSWASAPIWriterPtr)(w))->writer)
+typedef ComPtr<MSWASAPIWriter> MSWASAPIWriterType;
+
+struct MSWASAPIWriterWrapper
+{
+	MSWASAPIWriterType writer;
+};
+
+typedef struct MSWASAPIWriterWrapper* MSWASAPIWriterPtr;
+#else
+#define MSWASAPI_WRITER(w) ((MSWASAPIWriterType)(w))
+typedef MSWASAPIWriter* MSWASAPIWriterPtr;
+typedef MSWASAPIWriter* MSWASAPIWriterType;
+#endif
+
+MSWASAPIWriterPtr MSWASAPIWriterNew();

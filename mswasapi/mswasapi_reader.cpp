@@ -51,13 +51,26 @@ bool MSWASAPIReader::smInstantiated = false;
 MSWASAPIReader::MSWASAPIReader()
 	: mAudioClient(NULL), mAudioCaptureClient(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
 {
+#ifdef MS2_WINDOWS_UNIVERSAL
+	mActivationEvent = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
+	if (!mActivationEvent) {
+		ms_error("Could not create activation event of the MSWASAPI audio input interface [%i]", GetLastError());
+		return;
+	}
+#endif
 }
 
 MSWASAPIReader::~MSWASAPIReader()
 {
 	RELEASE_CLIENT(mAudioClient);
-#if BUILD_FOR_WINDOWS_PHONE
+#ifdef MS2_WINDOWS_PHONE
 	FREE_PTR(mCaptureId);
+#endif
+#ifdef MS2_WINDOWS_UNIVERSAL
+	if (mActivationEvent != INVALID_HANDLE_VALUE) {
+		CloseHandle(mActivationEvent);
+		mActivationEvent = INVALID_HANDLE_VALUE;
+	}
 #endif
 	smInstantiated = false;
 }
@@ -67,9 +80,29 @@ void MSWASAPIReader::init(LPCWSTR id)
 {
 	HRESULT result;
 	WAVEFORMATEX *pWfx = NULL;
+#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
+	AudioClientProperties properties = { 0 };
+#endif
 
-#if BUILD_FOR_WINDOWS_PHONE
-	AudioClientProperties properties;
+#if defined(MS2_WINDOWS_UNIVERSAL)
+	ComPtr<IActivateAudioInterfaceAsyncOperation> asyncOp;
+	mCaptureId = MediaDevice::GetDefaultAudioCaptureId(AudioDeviceRole::Communications);
+	if (mCaptureId == nullptr) {
+		ms_error("Could not get the CaptureID of the MSWASAPI audio input interface");
+		goto error;
+	}
+	if (smInstantiated) {
+		ms_error("An MSWASAPIReader is already instantiated. A second one can not be created.");
+		goto error;
+	}
+	result = ActivateAudioInterfaceAsync(mCaptureId->Data(), IID_IAudioClient2, nullptr, this, &asyncOp);
+	REPORT_ERROR("Could not activate the MSWASAPI audio input interface [%i]", result);
+	WaitForSingleObjectEx(mActivationEvent, INFINITE, FALSE);
+	if (mAudioClient == nullptr) {
+		ms_error("Could not create the MSWASAPI audio input interface client");
+		goto error;
+	}
+#elif defined(MS2_WINDOWS_PHONE)
 	mCaptureId = GetDefaultAudioCaptureId(Communications);
 	if (mCaptureId == NULL) {
 		ms_error("Could not get the CaptureId of the MSWASAPI audio input interface");
@@ -83,11 +116,6 @@ void MSWASAPIReader::init(LPCWSTR id)
 
 	result = ActivateAudioInterface(mCaptureId, IID_IAudioClient2, (void **)&mAudioClient);
 	REPORT_ERROR("Could not activate the MSWASAPI audio input interface [%x]", result);
-	properties.cbSize = sizeof AudioClientProperties;
-	properties.bIsOffload = false;
-	properties.eCategory = AudioCategory_Communications;
-	result = mAudioClient->SetClientProperties(&properties);
-	REPORT_ERROR("Could not set properties of the MSWASAPI audio output interface [%x]", result);
 #else
 	IMMDeviceEnumerator *pEnumerator = NULL;
 	IMMDevice *pDevice = NULL;
@@ -101,6 +129,13 @@ void MSWASAPIReader::init(LPCWSTR id)
 	result = pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void **)&mAudioClient);
 	SAFE_RELEASE(pDevice);
 	REPORT_ERROR("mswasapi: Could not activate the capture device", result);
+#endif
+#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
+	properties.cbSize = sizeof(AudioClientProperties);
+	properties.bIsOffload = false;
+	properties.eCategory = AudioCategory_Communications;
+	result = mAudioClient->SetClientProperties(&properties);
+	REPORT_ERROR("Could not set properties of the MSWASAPI audio input interface [%x]", result);
 #endif
 	result = mAudioClient->GetMixFormat(&pWfx);
 	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio input interface [%x]", result);
@@ -129,7 +164,7 @@ int MSWASAPIReader::activate()
 
 	if (!mIsInitialized) goto error;
 
-#if BUILD_FOR_WINDOWS_PHONE
+#ifdef MS2_WINDOWS_PHONE
 	flags = AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDE | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED;
 #endif
 
@@ -255,3 +290,52 @@ void MSWASAPIReader::silence(MSFilter *f)
 	om->b_wptr += bufsize;
 	ms_queue_put(f->outputs[0], om);
 }
+
+
+#ifdef MS2_WINDOWS_UNIVERSAL
+//
+//  ActivateCompleted()
+//
+//  Callback implementation of ActivateAudioInterfaceAsync function.  This will be called on MTA thread
+//  when results of the activation are available.
+//
+HRESULT MSWASAPIReader::ActivateCompleted(IActivateAudioInterfaceAsyncOperation *operation)
+{
+	HRESULT hr = S_OK;
+	HRESULT hrActivateResult = S_OK;
+	ComPtr<IUnknown> audioInterface;
+
+	hr = operation->GetActivateResult(&hrActivateResult, &audioInterface);
+	if (FAILED(hr))	goto exit;
+	hr = hrActivateResult;
+	if (FAILED(hr)) goto exit;
+
+	audioInterface.CopyTo(&mAudioClient);
+	if (mAudioClient == nullptr) {
+		hr = E_NOINTERFACE;
+		goto exit;
+	}
+
+exit:
+	if (FAILED(hr))	{
+		SAFE_RELEASE(mAudioClient);
+		SAFE_RELEASE(mAudioCaptureClient);
+	}
+
+	SetEvent(mActivationEvent);
+	return S_OK;
+}
+
+
+MSWASAPIReaderPtr MSWASAPIReaderNew()
+{
+	MSWASAPIReaderPtr r = new MSWASAPIReaderWrapper();
+	r->reader = Make<MSWASAPIReader>();
+	return r;
+}
+#else
+MSWASAPIReaderPtr MSWASAPIReaderNew()
+{
+	return (MSWASAPIReaderPtr) new MSWASAPIReader();
+}
+#endif

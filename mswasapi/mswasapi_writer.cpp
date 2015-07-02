@@ -50,13 +50,26 @@ bool MSWASAPIWriter::smInstantiated = false;
 MSWASAPIWriter::MSWASAPIWriter()
 	: mAudioClient(NULL), mAudioRenderClient(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
 {
+#ifdef MS2_WINDOWS_UNIVERSAL
+	mActivationEvent = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
+	if (!mActivationEvent) {
+		ms_error("Could not create activation event of the MSWASAPI audio output interface [%i]", GetLastError());
+		return;
+	}
+#endif
 }
 
 MSWASAPIWriter::~MSWASAPIWriter()
 {
 	RELEASE_CLIENT(mAudioClient);
-#if BUILD_FOR_WINDOWS_PHONE
+#ifdef MS2_WINDOWS_PHONE
 	FREE_PTR(mRenderId);
+#endif
+#ifdef MS2_WINDOWS_UNIVERSAL
+	if (mActivationEvent != INVALID_HANDLE_VALUE) {
+		CloseHandle(mActivationEvent);
+		mActivationEvent = INVALID_HANDLE_VALUE;
+	}
 #endif
 	smInstantiated = false;
 }
@@ -65,9 +78,29 @@ MSWASAPIWriter::~MSWASAPIWriter()
 void MSWASAPIWriter::init(LPCWSTR id) {
 	HRESULT result;
 	WAVEFORMATEX *pWfx = NULL;
+#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
+	AudioClientProperties properties = { 0 };
+#endif
 
-#if BUILD_FOR_WINDOWS_PHONE
-	AudioClientProperties properties;
+#if defined(MS2_WINDOWS_UNIVERSAL)
+	IActivateAudioInterfaceAsyncOperation *asyncOp;
+	mRenderId = MediaDevice::GetDefaultAudioRenderId(AudioDeviceRole::Communications);
+	if (mRenderId == nullptr) {
+		ms_error("Could not get the RenderID of the MSWASAPI audio output interface");
+		goto error;
+	}
+	if (smInstantiated) {
+		ms_error("An MSWASAPIWriter is already instantiated. A second one can not be created.");
+		goto error;
+	}
+	result = ActivateAudioInterfaceAsync(mRenderId->Data(), IID_IAudioClient2, nullptr, this, &asyncOp);
+	REPORT_ERROR("Could not activate the MSWASAPI audio output interface [%i]", result);
+	WaitForSingleObjectEx(mActivationEvent, INFINITE, FALSE);
+	if (mAudioClient == nullptr) {
+		ms_error("Could not create the MSWASAPI audio output interface client");
+		goto error;
+	}
+#elif defined(MS2_WINDOWS_PHONE)
 	mRenderId = GetDefaultAudioRenderId(Communications);
 	if (mRenderId == NULL) {
 		ms_error("Could not get the RenderId of the MSWASAPI audio output interface");
@@ -81,11 +114,6 @@ void MSWASAPIWriter::init(LPCWSTR id) {
 
 	result = ActivateAudioInterface(mRenderId, IID_IAudioClient2, (void **)&mAudioClient);
 	REPORT_ERROR("Could not activate the MSWASAPI audio output interface [%i]", result);
-	properties.cbSize = sizeof AudioClientProperties;
-	properties.bIsOffload = false;
-	properties.eCategory = AudioCategory_Communications;
-	result = mAudioClient->SetClientProperties(&properties);
-	REPORT_ERROR("Could not set properties of the MSWASAPI audio output interface [%x]", result);
 #else
 	IMMDeviceEnumerator *pEnumerator = NULL;
 	IMMDevice *pDevice = NULL;
@@ -99,6 +127,13 @@ void MSWASAPIWriter::init(LPCWSTR id) {
 	result = pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void **)&mAudioClient);
 	SAFE_RELEASE(pDevice);
 	REPORT_ERROR("mswasapi: Could not activate the rendering device", result);
+#endif
+#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
+	properties.cbSize = sizeof(AudioClientProperties);
+	properties.bIsOffload = false;
+	properties.eCategory = AudioCategory_Communications;
+	result = mAudioClient->SetClientProperties(&properties);
+	REPORT_ERROR("Could not set properties of the MSWASAPI audio output interface [%x]", result);
 #endif
 	result = mAudioClient->GetMixFormat(&pWfx);
 	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio output interface [%x]", result);
@@ -148,7 +183,7 @@ int MSWASAPIWriter::activate()
 	} else {
 		REPORT_ERROR("Audio format not supported by the MSWASAPI audio output interface [%x]", result);
 	}
-	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, requestedDuration, 0, pUsedWfx, NULL);
+	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST, requestedDuration, 0, pUsedWfx, nullptr);
 	REPORT_ERROR("Could not initialize the MSWASAPI audio output interface [%x]", result);
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio output interface [%x]", result);
@@ -253,3 +288,59 @@ void MSWASAPIWriter::drop(MSFilter *f) {
 		freemsg(im);
 	}
 }
+
+
+#ifdef MS2_WINDOWS_UNIVERSAL
+//
+//  ActivateCompleted()
+//
+//  Callback implementation of ActivateAudioInterfaceAsync function.  This will be called on MTA thread
+//  when results of the activation are available.
+//
+HRESULT MSWASAPIWriter::ActivateCompleted(IActivateAudioInterfaceAsyncOperation *operation)
+{
+	HRESULT hr = S_OK;
+	HRESULT hrActivateResult = S_OK;
+	IUnknown *audioInterface = nullptr;
+
+	if (mIsInitialized) {
+		hr = E_NOT_VALID_STATE;
+		goto exit;
+	}
+
+	hr = operation->GetActivateResult(&hrActivateResult, &audioInterface);
+	if (SUCCEEDED(hr) && SUCCEEDED(hrActivateResult))
+	{
+		audioInterface->QueryInterface(IID_PPV_ARGS(&mAudioClient));
+		if (mAudioClient == nullptr) {
+			hr = E_FAIL;
+			goto exit;
+		}
+	}
+
+exit:
+	SAFE_RELEASE(audioInterface);
+
+	if (FAILED(hr))
+	{
+		SAFE_RELEASE(mAudioClient);
+		SAFE_RELEASE(mAudioRenderClient);
+	}
+
+	SetEvent(mActivationEvent);
+	return S_OK;
+}
+
+
+MSWASAPIWriterPtr MSWASAPIWriterNew()
+{
+	MSWASAPIWriterPtr w = new MSWASAPIWriterWrapper();
+	w->writer = Make<MSWASAPIWriter>();
+	return w;
+}
+#else
+MSWASAPIWriterPtr MSWASAPIWriterNew()
+{
+	return (MSWASAPIWriterPtr) new MSWASAPIWriter();
+}
+#endif

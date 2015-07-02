@@ -23,22 +23,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#if !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_PHONE)
-/* Old version of Visual Studio, no support of Windows Phone. */
-#define BUILD_FOR_WINDOWS_PHONE 0
-#else
-#define BUILD_FOR_WINDOWS_PHONE WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE)
-#endif
+#include <mediastreamer2/mscommon.h>
 
 #include <vector>
 #include <objbase.h>
 #include <audioclient.h>
-#if BUILD_FOR_WINDOWS_PHONE
+#ifdef MS2_WINDOWS_UNIVERSAL
+#include <wrl\implements.h>
+#endif
+#ifdef MS2_WINDOWS_PHONE
 #include <phoneaudioclient.h>
 #else
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
 #endif
+
+#ifdef MS2_WINDOWS_UNIVERSAL
+using namespace Microsoft::WRL;
+using namespace Windows::Media::Devices;
+#endif
+
 
 #define REPORT_ERROR(msg, result) \
 	if (result != S_OK) { \
@@ -62,7 +66,7 @@ extern const IID IID_IAudioClient2;
 extern const IID IID_IAudioCaptureClient;
 extern const IID IID_IAudioRenderClient;
 
-#if !BUILD_FOR_WINDOWS_PHONE
+#ifdef MS2_WINDOWS_DESKTOP
 extern const CLSID CLSID_MMDeviceEnumerator;
 extern const IID IID_IMMDeviceEnumerator;
 #endif

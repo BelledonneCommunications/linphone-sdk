@@ -29,7 +29,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mswasapi.h"
 
 
-class MSWASAPIReader {
+class MSWASAPIReader
+#ifdef MS2_WINDOWS_UNIVERSAL
+	: public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler >
+#endif
+{
 public:
 	MSWASAPIReader();
 	virtual ~MSWASAPIReader();
@@ -45,12 +49,21 @@ public:
 	int getRate() { return mRate; }
 	int getNChannels() { return mNChannels; }
 
+#ifdef MS2_WINDOWS_UNIVERSAL
+	// IActivateAudioInterfaceCompletionHandler
+	STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation *operation);
+#endif
 private:
 	void silence(MSFilter *f);
 
 	static bool smInstantiated;
+#ifdef MS2_WINDOWS_UNIVERSAL
+	Platform::String^ mCaptureId;
+	HANDLE mActivationEvent;
+#else
 	LPCWSTR mCaptureId;
-#if BUILD_FOR_WINDOWS_PHONE
+#endif
+#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
 	IAudioClient2 *mAudioClient;
 #else
 	IAudioClient *mAudioClient;
@@ -63,3 +76,22 @@ private:
 	int mRate;
 	int mNChannels;
 };
+
+
+#ifdef MS2_WINDOWS_UNIVERSAL
+#define MSWASAPI_READER(w) ((MSWASAPIReaderType)((MSWASAPIReaderPtr)(w))->reader)
+typedef ComPtr<MSWASAPIReader> MSWASAPIReaderType;
+
+struct MSWASAPIReaderWrapper
+{
+	MSWASAPIReaderType reader;
+};
+
+typedef struct MSWASAPIReaderWrapper* MSWASAPIReaderPtr;
+#else
+#define MSWASAPI_READER(w) ((MSWASAPIReaderType)(w))
+typedef MSWASAPIReader* MSWASAPIReaderPtr;
+typedef MSWASAPIReader* MSWASAPIReaderType;
+#endif
+
+MSWASAPIReaderPtr MSWASAPIReaderNew();

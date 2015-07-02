@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
-#if BUILD_FOR_WINDOWS_PHONE
+#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
 const IID IID_IAudioClient2 = __uuidof(IAudioClient2);
 #else
 const IID IID_IAudioClient = __uuidof(IAudioClient);
@@ -44,18 +44,17 @@ const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
  *****************************************************************************/
 
 static void ms_wasapi_read_init(MSFilter *f) {
-	MSWASAPIReader *r = new MSWASAPIReader();
+	MSWASAPIReaderPtr r = MSWASAPIReaderNew();
 	f->data = r;
 }
 
 static void ms_wasapi_read_preprocess(MSFilter *f) {
-	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
+	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
 	r->activate();
 }
 
 static void ms_wasapi_read_process(MSFilter *f) {
-	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
-
+	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
 	if (!r->isStarted()) {
 		r->start();
 	}
@@ -63,14 +62,14 @@ static void ms_wasapi_read_process(MSFilter *f) {
 }
 
 static void ms_wasapi_read_postprocess(MSFilter *f) {
-	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
+	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
 	r->stop();
 	r->deactivate();
 }
 
 static void ms_wasapi_read_uninit(MSFilter *f) {
-	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
-	delete r;
+	MSWASAPIReaderPtr ptr = static_cast<MSWASAPIReaderPtr>(f->data);
+	delete ptr;
 }
 
 
@@ -85,7 +84,7 @@ static int ms_wasapi_read_set_sample_rate(MSFilter *f, void *arg) {
 }
 
 static int ms_wasapi_read_get_sample_rate(MSFilter *f, void *arg) {
-	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
+	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
 	*((int *)arg) = r->getRate();
 	return 0;
 }
@@ -97,7 +96,7 @@ static int ms_wasapi_read_set_nchannels(MSFilter *f, void *arg) {
 }
 
 static int ms_wasapi_read_get_nchannels(MSFilter *f, void *arg) {
-	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
+	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
 	*((int *)arg) = r->getNChannels();
 	return 0;
 }
@@ -174,18 +173,17 @@ MS_FILTER_DESC_EXPORT(ms_wasapi_read_desc)
  *****************************************************************************/
 
 static void ms_wasapi_write_init(MSFilter *f) {
-	MSWASAPIWriter *w = new MSWASAPIWriter();
+	MSWASAPIWriterPtr w = MSWASAPIWriterNew();
 	f->data = w;
 }
 
 static void ms_wasapi_write_preprocess(MSFilter *f) {
-	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
+	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
 	w->activate();
 }
 
 static void ms_wasapi_write_process(MSFilter *f) {
-	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
-
+	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
 	if (!w->isStarted()) {
 		w->start();
 	}
@@ -193,14 +191,14 @@ static void ms_wasapi_write_process(MSFilter *f) {
 }
 
 static void ms_wasapi_write_postprocess(MSFilter *f) {
-	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
+	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
 	w->stop();
 	w->deactivate();
 }
 
 static void ms_wasapi_write_uninit(MSFilter *f) {
-	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
-	delete w;
+	MSWASAPIWriterPtr ptr = static_cast<MSWASAPIWriterPtr>(f->data);
+	delete ptr;
 }
 
 
@@ -215,7 +213,7 @@ static int ms_wasapi_write_set_sample_rate(MSFilter *f, void *arg) {
 }
 
 static int ms_wasapi_write_get_sample_rate(MSFilter *f, void *arg) {
-	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
+	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
 	*((int *)arg) = w->getRate();
 	return 0;
 }
@@ -227,7 +225,7 @@ static int ms_wasapi_write_set_nchannels(MSFilter *f, void *arg) {
 }
 
 static int ms_wasapi_write_get_nchannels(MSFilter *f, void *arg) {
-	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
+	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
 	*((int *)arg) = w->getNChannels();
 	return 0;
 }
@@ -329,7 +327,7 @@ static MSSndCardDesc ms_wasapi_snd_card_desc = {
 	NULL
 };
 
-#if BUILD_FOR_WINDOWS_PHONE
+#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
 static MSSndCard *ms_wasapi_phone_snd_card_new(void) {
 	MSSndCard *card = ms_snd_card_new(&ms_wasapi_snd_card_desc);
 	card->name = ms_strdup("WASAPI sound card");
@@ -449,7 +447,7 @@ error:
 #endif
 
 static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
-#if BUILD_FOR_WINDOWS_PHONE
+#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
 	MSSndCard *card = ms_wasapi_phone_snd_card_new();
 	ms_snd_card_manager_add_card(m, card);
 #else
@@ -464,7 +462,7 @@ static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
 static MSFilter *ms_wasapi_snd_card_create_reader(MSSndCard *card) {
 	MSFilter *f = ms_filter_new_from_desc(&ms_wasapi_read_desc);
 	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
-	MSWASAPIReader *reader = static_cast<MSWASAPIReader *>(f->data);
+	MSWASAPIReaderType reader = MSWASAPI_READER(f->data);
 	reader->init(wasapicard->id);
 	return f;
 }
@@ -472,7 +470,7 @@ static MSFilter *ms_wasapi_snd_card_create_reader(MSSndCard *card) {
 static MSFilter *ms_wasapi_snd_card_create_writer(MSSndCard *card) {
 	MSFilter *f = ms_filter_new_from_desc(&ms_wasapi_write_desc);
 	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
-	MSWASAPIWriter *writer = static_cast<MSWASAPIWriter *>(f->data);
+	MSWASAPIWriterType writer = MSWASAPI_WRITER(f->data);
 	writer->init(wasapicard->id);
 	return f;
 }
