@@ -178,6 +178,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\mswasapi\windows10\libmswasapi\libmswasapi.vcxproj">
+      <Project>{266b769a-c04e-424c-9033-7209f0425bc0}</Project>
+      <Name>libmswasapi</Name>
+    </ProjectReference>
     <ProjectReference Include="ms2-tester-runtime-component\ms2-tester-runtime-component.vcxproj">
       <Project>{1d1b61e3-695e-4535-8f3f-b26e2cb0f342}</Project>
       <Name>ms2-tester-runtime-component</Name>

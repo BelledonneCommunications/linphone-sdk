@@ -95,8 +95,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)..\..\mediastreamer2;$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\tester;$(ProjectDir)..\..\..\..\tester\common;$(ProjectDir)..\..\..\..\..\ortp\include;$(ProjectDir)..\..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\..\cunit\build\windows10\cunit\$(Platform)\$(Configuration);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">BC_CONFIG_FILE="mediastreamer-config.h";_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\mediastreamer2;$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\tester;$(ProjectDir)..\..\..\..\tester\common;$(ProjectDir)..\..\..\..\..\ortp\include;$(ProjectDir)..\..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\..\cunit\build\windows10\cunit\$(Platform)\$(Configuration);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>BC_CONFIG_FILE="mediastreamer-config.h";HAVE_CU_GET_SUITE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
