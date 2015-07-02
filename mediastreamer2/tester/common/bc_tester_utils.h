@@ -65,18 +65,18 @@ void bc_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list a
 					, int verbosity_info, int verbosity_error);
 void bc_tester_helper(const char *name, const char* additionnal_helper);
 int bc_tester_parse_args(int argc, char** argv, int argid);
-int bc_tester_start();
+int bc_tester_start(void);
 void bc_tester_add_suite(test_suite_t *suite);
-void bc_tester_uninit();
+void bc_tester_uninit(void);
 void bc_tester_printf(int level, const char *fmt, ...);
 const char * bc_tester_get_resource_dir_prefix(void);
 void bc_tester_set_resource_dir_prefix(const char *name);
 const char * bc_tester_get_writable_dir_prefix(void);
 void bc_tester_set_writable_dir_prefix(const char *name);
 
-int bc_tester_nb_suites();
+int bc_tester_nb_suites(void);
 int bc_tester_nb_tests(const char* name);
-void bc_tester_list_suites();
+void bc_tester_list_suites(void);
 void bc_tester_list_tests(const char *suite_name);
 const char * bc_tester_suite_name(int suite_index);
 const char * bc_tester_test_name(const char *suite_name, int test_index);

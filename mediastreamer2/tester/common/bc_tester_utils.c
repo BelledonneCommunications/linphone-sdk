@@ -269,7 +269,7 @@ void bc_tester_helper(const char *name, const char* additionnal_helper) {
 		"\t\t\t--curses\n"
 #endif
 		"\t\t\t--xml\n"
-		"\t\t\t--xml-file <xml file prefix (will be suffixed by '-Results.xml')>\n"
+		"\t\t\t--xml-file <xml file name>\n"
 		"And additionally:\n"
 		"%s"
 		, name
@@ -337,7 +337,7 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 	return i - argid + 1;
 }
 
-int bc_tester_start() {
+int bc_tester_start(void) {
 	int ret;
 	if( xml_enabled ){
 		size_t size = strlen(xml_file) + strlen(".tmp") + 1;
@@ -362,7 +362,7 @@ void bc_tester_add_suite(test_suite_t *suite) {
 	}
 }
 
-void bc_tester_uninit() {
+void bc_tester_uninit(void) {
 	/* Redisplay list of failed tests on end */
 	if (CU_get_number_of_failure_records()){
 		CU_basic_show_failures(CU_get_failure_list());
