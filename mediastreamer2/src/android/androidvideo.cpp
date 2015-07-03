@@ -59,12 +59,14 @@ struct AndroidReaderContext {
 		androidCamera = 0;
 		previewWindow = 0;
 		rotation = rotationSavedDuringVSize = UNDEFINED_ROTATION;
+		allocator = ms_yuv_buf_allocator_new();
 	};
 
 	~AndroidReaderContext(){
 		if (frame != 0) {
 			freeb(frame);
 		}
+		ms_yuv_buf_allocator_free(allocator);
 		ms_mutex_destroy(&mutex);
 	};
 
@@ -81,6 +83,7 @@ struct AndroidReaderContext {
 	int rotation, rotationSavedDuringVSize;
 	int useDownscaling;
 	char fps_context[64];
+	MSYuvBufAllocator *allocator;
 
 	jobject androidCamera;
 	jobject previewWindow;
@@ -511,7 +514,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 	   It only implies one thing: image needs to rotated by that amount to be correctly
 	   displayed.
 	*/
- 	mblk_t* yuv_block = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(y_src
+ 	mblk_t* yuv_block = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(d->allocator, y_src
 														, cbcr_src
 														, image_rotation_correction
 														, d->usedSize.width

@@ -403,7 +403,7 @@ static void reverse_and_down_scale_32bytes_neon(const unsigned char* src, unsign
 #endif
 }
 
-static void reverse_16bytes_neon(unsigned char* src, unsigned char* dest) {
+static void reverse_16bytes_neon(const unsigned char* src, unsigned char* dest) {
 #ifdef __ARM_NEON__
 	__asm  (/*load 16x1 pixel
 			[  0,  1,  2,  3,  4,  5,  6,  7, 8, 9, 10, 11, 12, 13, 14, 15]*/
@@ -441,7 +441,7 @@ static void deinterlace_and_reverse_2x8bytes_neon(const unsigned char* src, unsi
 		   );
 #endif
 }
-static void deinterlace_down_scale_and_reverse_2x16bytes_neon(unsigned char* src, unsigned char* udest, unsigned char* vdest) {
+static void deinterlace_down_scale_and_reverse_2x16bytes_neon(const unsigned char* src, unsigned char* udest, unsigned char* vdest) {
 #ifdef __ARM_NEON__
 	__asm  (/*load 32x1 values*/
 			
@@ -474,7 +474,7 @@ void deinterlace_down_scale_and_rotate_180_neon(const uint8_t* ysrc, const uint8
 	char y_inc=down_scale?2:1;
 	// 180° y rotation
 
-	uint8_t* src_ptr=ysrc;
+	const uint8_t* src_ptr=ysrc;
 	uint8_t* dest_ptr=ydst + h*w; /*start at the end of dest*/
 	uint8_t* dest_u_ptr;
 	uint8_t* dest_v_ptr;
@@ -529,9 +529,9 @@ void deinterlace_down_scale_neon(const uint8_t* ysrc, const uint8_t* cbcrsrc, ui
     int src_w   = down_scale?2*w:w;
 	int x,y;
 	// plain copy
-	uint8_t* ysrc_ptr = ysrc;
+	const uint8_t* ysrc_ptr = ysrc;
 	uint8_t* ydest_ptr = ydst;
-	uint8_t* cbcrsrc_ptr = cbcrsrc;
+	const uint8_t* cbcrsrc_ptr = cbcrsrc;
 	uint8_t* udest_ptr = u_dst;	
 	uint8_t* vdest_ptr = v_dst;
     int crcb_dest_offset=0;
