@@ -333,9 +333,19 @@ MSWASAPIReaderPtr MSWASAPIReaderNew()
 	r->reader = Make<MSWASAPIReader>();
 	return r;
 }
+void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr)
+{
+	ptr->reader->setAsNotInstantiated();
+	ptr->reader = nullptr;
+	delete ptr;
+}
 #else
 MSWASAPIReaderPtr MSWASAPIReaderNew()
 {
 	return (MSWASAPIReaderPtr) new MSWASAPIReader();
+}
+void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr)
+{
+	delete ptr;
 }
 #endif

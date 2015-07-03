@@ -50,6 +50,8 @@ public:
 	int getNChannels() { return mNChannels; }
 
 #ifdef MS2_WINDOWS_UNIVERSAL
+	void setAsNotInstantiated() { smInstantiated = false; }
+
 	// IActivateAudioInterfaceCompletionHandler
 	STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation *operation);
 #endif
@@ -97,3 +99,4 @@ typedef MSWASAPIWriter* MSWASAPIWriterType;
 #endif
 
 MSWASAPIWriterPtr MSWASAPIWriterNew();
+void MSWASAPIWriterDelete(MSWASAPIWriterPtr ptr);

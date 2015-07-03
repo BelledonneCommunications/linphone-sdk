@@ -338,9 +338,19 @@ MSWASAPIWriterPtr MSWASAPIWriterNew()
 	w->writer = Make<MSWASAPIWriter>();
 	return w;
 }
+void MSWASAPIWriterDelete(MSWASAPIWriterPtr ptr)
+{
+	ptr->writer->setAsNotInstantiated();
+	ptr->writer = nullptr;
+	delete ptr;
+}
 #else
 MSWASAPIWriterPtr MSWASAPIWriterNew()
 {
 	return (MSWASAPIWriterPtr) new MSWASAPIWriter();
+}
+void MSWASAPIWriterDelete(MSWASAPIWriterPtr ptr)
+{
+	delete ptr;
 }
 #endif

@@ -68,8 +68,7 @@ static void ms_wasapi_read_postprocess(MSFilter *f) {
 }
 
 static void ms_wasapi_read_uninit(MSFilter *f) {
-	MSWASAPIReaderPtr ptr = static_cast<MSWASAPIReaderPtr>(f->data);
-	delete ptr;
+	MSWASAPIReaderDelete(static_cast<MSWASAPIReaderPtr>(f->data));
 }
 
 
@@ -197,8 +196,7 @@ static void ms_wasapi_write_postprocess(MSFilter *f) {
 }
 
 static void ms_wasapi_write_uninit(MSFilter *f) {
-	MSWASAPIWriterPtr ptr = static_cast<MSWASAPIWriterPtr>(f->data);
-	delete ptr;
+	MSWASAPIWriterDelete(static_cast<MSWASAPIWriterPtr>(f->data));
 }
 
 
