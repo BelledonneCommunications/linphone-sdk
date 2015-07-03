@@ -394,6 +394,7 @@ else()
 		endif()
 	endif()
 endif()
+target_compile_options(opus PRIVATE "-w")
 target_compile_definitions(opus PRIVATE "-DHAVE_CONFIG_H")
 
 install(TARGETS opus
