@@ -51,7 +51,7 @@ MSWASAPIWriter::MSWASAPIWriter()
 	: mAudioClient(NULL), mAudioRenderClient(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
 {
 #ifdef MS2_WINDOWS_UNIVERSAL
-	mActivationEvent = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
+	mActivationEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
 	if (!mActivationEvent) {
 		ms_error("Could not create activation event of the MSWASAPI audio output interface [%i]", GetLastError());
 		return;
@@ -93,10 +93,10 @@ void MSWASAPIWriter::init(LPCWSTR id) {
 		ms_error("An MSWASAPIWriter is already instantiated. A second one can not be created.");
 		goto error;
 	}
-	result = ActivateAudioInterfaceAsync(mRenderId->Data(), IID_IAudioClient2, nullptr, this, &asyncOp);
+	result = ActivateAudioInterfaceAsync(mRenderId->Data(), IID_IAudioClient2, NULL, this, &asyncOp);
 	REPORT_ERROR("Could not activate the MSWASAPI audio output interface [%i]", result);
 	WaitForSingleObjectEx(mActivationEvent, INFINITE, FALSE);
-	if (mAudioClient == nullptr) {
+	if (mAudioClient == NULL) {
 		ms_error("Could not create the MSWASAPI audio output interface client");
 		goto error;
 	}
@@ -183,7 +183,7 @@ int MSWASAPIWriter::activate()
 	} else {
 		REPORT_ERROR("Audio format not supported by the MSWASAPI audio output interface [%x]", result);
 	}
-	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST, requestedDuration, 0, pUsedWfx, nullptr);
+	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST, requestedDuration, 0, pUsedWfx, NULL);
 	REPORT_ERROR("Could not initialize the MSWASAPI audio output interface [%x]", result);
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio output interface [%x]", result);
@@ -301,7 +301,7 @@ HRESULT MSWASAPIWriter::ActivateCompleted(IActivateAudioInterfaceAsyncOperation 
 {
 	HRESULT hr = S_OK;
 	HRESULT hrActivateResult = S_OK;
-	IUnknown *audioInterface = nullptr;
+	IUnknown *audioInterface = NULL;
 
 	if (mIsInitialized) {
 		hr = E_NOT_VALID_STATE;
@@ -312,7 +312,7 @@ HRESULT MSWASAPIWriter::ActivateCompleted(IActivateAudioInterfaceAsyncOperation 
 	if (SUCCEEDED(hr) && SUCCEEDED(hrActivateResult))
 	{
 		audioInterface->QueryInterface(IID_PPV_ARGS(&mAudioClient));
-		if (mAudioClient == nullptr) {
+		if (mAudioClient == NULL) {
 			hr = E_FAIL;
 			goto exit;
 		}

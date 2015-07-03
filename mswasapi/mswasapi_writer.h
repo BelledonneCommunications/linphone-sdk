@@ -36,6 +36,7 @@ class MSWASAPIWriter
 {
 public:
 	MSWASAPIWriter();
+	virtual ~MSWASAPIWriter();
 
 	void init(LPCWSTR id);
 	int activate();
@@ -54,7 +55,6 @@ public:
 #endif
 
 private:
-	~MSWASAPIWriter();
 	void drop(MSFilter *f);
 	HRESULT configureAudioClient();
 

@@ -52,7 +52,7 @@ MSWASAPIReader::MSWASAPIReader()
 	: mAudioClient(NULL), mAudioCaptureClient(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
 {
 #ifdef MS2_WINDOWS_UNIVERSAL
-	mActivationEvent = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
+	mActivationEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
 	if (!mActivationEvent) {
 		ms_error("Could not create activation event of the MSWASAPI audio input interface [%i]", GetLastError());
 		return;
@@ -95,10 +95,10 @@ void MSWASAPIReader::init(LPCWSTR id)
 		ms_error("An MSWASAPIReader is already instantiated. A second one can not be created.");
 		goto error;
 	}
-	result = ActivateAudioInterfaceAsync(mCaptureId->Data(), IID_IAudioClient2, nullptr, this, &asyncOp);
+	result = ActivateAudioInterfaceAsync(mCaptureId->Data(), IID_IAudioClient2, NULL, this, &asyncOp);
 	REPORT_ERROR("Could not activate the MSWASAPI audio input interface [%i]", result);
 	WaitForSingleObjectEx(mActivationEvent, INFINITE, FALSE);
-	if (mAudioClient == nullptr) {
+	if (mAudioClient == NULL) {
 		ms_error("Could not create the MSWASAPI audio input interface client");
 		goto error;
 	}
@@ -311,7 +311,7 @@ HRESULT MSWASAPIReader::ActivateCompleted(IActivateAudioInterfaceAsyncOperation 
 	if (FAILED(hr)) goto exit;
 
 	audioInterface.CopyTo(&mAudioClient);
-	if (mAudioClient == nullptr) {
+	if (mAudioClient == NULL) {
 		hr = E_NOINTERFACE;
 		goto exit;
 	}
