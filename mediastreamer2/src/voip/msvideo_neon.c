@@ -190,7 +190,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 			"vld2.8 {d7,d8},[r4] \n\t"
 
 
-static MS2_INLINE void rotate_block_8x8_clockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+static MS2_INLINE void rotate_block_8x8_clockwise(const unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
 #ifdef __ARM_NEON__
 	__asm  (MATRIX_LOAD_8X8
 			MATRIX_TRANSPOSE_8X8
@@ -203,7 +203,7 @@ static MS2_INLINE void rotate_block_8x8_clockwise(unsigned char* src, int src_wi
 #endif
 }
 /*rotate and scale down blocks of 16x16 into 8x8*/
-static MS2_INLINE void rotate_and_scale_down_block_16x16_clockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+static MS2_INLINE void rotate_and_scale_down_block_16x16_clockwise(const unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
 	
 #ifdef __ARM_NEON__
 	__asm  (
@@ -219,7 +219,7 @@ static MS2_INLINE void rotate_and_scale_down_block_16x16_clockwise(unsigned char
 }
 
 /*rotate and scale down blocks of 16x16 into 8x8*/
-static MS2_INLINE void rotate_and_scale_down_block_8x8_anticlockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+static MS2_INLINE void rotate_and_scale_down_block_8x8_anticlockwise(const unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
 	
 #ifdef __ARM_NEON__
 	__asm  (
@@ -233,7 +233,7 @@ static MS2_INLINE void rotate_and_scale_down_block_8x8_anticlockwise(unsigned ch
 #endif
 }
 
-static MS2_INLINE void rotate_block_8x8_anticlockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+static MS2_INLINE void rotate_block_8x8_anticlockwise(const unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
 #ifdef __ARM_NEON__
 	__asm  (MATRIX_LOAD_8X8
 			MATRIX_TRANSPOSE_8X8
@@ -245,7 +245,7 @@ static MS2_INLINE void rotate_block_8x8_anticlockwise(unsigned char* src, int sr
 #endif
 }
 
-void rotate_down_scale_plane_neon_clockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst,bool_t down_scale) {
+void rotate_down_scale_plane_neon_clockwise(int wDest, int hDest, int full_width, const uint8_t* src, uint8_t* dst, bool_t down_scale) {
 #ifdef __ARM_NEON__
 	char src_block_width=down_scale?16:8;
 	char dest_block_width=down_scale?src_block_width/2:src_block_width;
@@ -274,7 +274,7 @@ void rotate_down_scale_plane_neon_clockwise(int wDest, int hDest, int full_width
 #endif
 }
 
-void rotate_down_scale_plane_neon_anticlockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst,bool_t down_scale) {
+void rotate_down_scale_plane_neon_anticlockwise(int wDest, int hDest, int full_width, const uint8_t* src, uint8_t* dst,bool_t down_scale) {
 #ifdef __ARM_NEON__
 	char src_block_width=down_scale?16:8;
 	char dest_block_width=down_scale?src_block_width/2:src_block_width;
@@ -303,7 +303,7 @@ void rotate_down_scale_plane_neon_anticlockwise(int wDest, int hDest, int full_w
 #endif
 }
 
-void rotate_down_scale_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8_t* cbcr_src, uint8_t* cr_dst, uint8_t* cb_dst,bool_t clockWise,bool_t down_scale) {
+void rotate_down_scale_cbcr_to_cr_cb(int wDest, int hDest, int full_width, const uint8_t* cbcr_src, uint8_t* cr_dst, uint8_t* cb_dst,bool_t clockWise,bool_t down_scale) {
 #ifdef __ARM_NEON__
 	int hSrc = down_scale?wDest*2:wDest;
 	int wSrc = down_scale?hDest*2:hDest;
@@ -384,7 +384,7 @@ void rotate_down_scale_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8
 #endif
 }
 
-static void reverse_and_down_scale_32bytes_neon(unsigned char* src, unsigned char* dest) {
+static void reverse_and_down_scale_32bytes_neon(const unsigned char* src, unsigned char* dest) {
 #ifdef __ARM_NEON__
 	__asm  (/*load 16x1 pixel
 			 [  0,  1,  2,  3,  4,  5,  6,  7, 8, 9, 10, 11, 12, 13, 14, 15]*/
@@ -422,7 +422,7 @@ static void reverse_16bytes_neon(unsigned char* src, unsigned char* dest) {
 #endif
 }
 
-static void deinterlace_and_reverse_2x8bytes_neon(unsigned char* src, unsigned char* udest, unsigned char* vdest) {
+static void deinterlace_and_reverse_2x8bytes_neon(const unsigned char* src, unsigned char* udest, unsigned char* vdest) {
 #ifdef __ARM_NEON__
 	__asm  (/*load 16x1 values
 			[  U0, V0, U1, V1, U2, V2, U3, V3, U4, V4, U5, V5, U6, V6, U7, V7]
@@ -462,7 +462,7 @@ static void deinterlace_down_scale_and_reverse_2x16bytes_neon(unsigned char* src
 }
 
 
-void deinterlace_down_scale_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row,bool_t down_scale) {
+void deinterlace_down_scale_and_rotate_180_neon(const uint8_t* ysrc, const uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row,bool_t down_scale) {
 #ifdef __ARM_NEON__
 	int y,x;
 	int src_h=down_scale?2*h:h;
@@ -515,13 +515,13 @@ void deinterlace_down_scale_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc,
 	ms_error("Neon function '%s' used without hw neon support", __FUNCTION__);
 #endif
 }
-void deinterlace_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row) {
+void deinterlace_and_rotate_180_neon(const uint8_t* ysrc, const uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row) {
 	return deinterlace_down_scale_and_rotate_180_neon(ysrc, cbcrsrc, ydst, udst, vdst, w, h, y_byte_per_row,cbcr_byte_per_row,FALSE);
 }
 
 #endif /* defined(__arm__), the above functions are not used in iOS 64bits, so only the function below is implemented for __arm64__ */
 
-void deinterlace_down_scale_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* u_dst, uint8_t* v_dst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row,bool_t down_scale) {
+void deinterlace_down_scale_neon(const uint8_t* ysrc, const uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* u_dst, uint8_t* v_dst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row,bool_t down_scale) {
 #ifdef __ARM_NEON__
     char y_inc  = down_scale?2:1;
     char x_inc  = down_scale?32:16;
