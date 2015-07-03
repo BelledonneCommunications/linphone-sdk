@@ -45,7 +45,7 @@
     <ClCompile Include="..\..\..\src\zidCache.c" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\build\xml2\windows10\xml2\xml2.vcxproj">
+    <ProjectReference Include="..\..\..\..\build\xml2\xml2.vcxproj">
       <Project>{2b04de79-4d33-4405-ac01-c89e0593a71d}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\polarssl\build\windows10\polarssl\polarssl.vcxproj">

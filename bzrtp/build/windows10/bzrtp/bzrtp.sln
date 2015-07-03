@@ -7,7 +7,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bzrtp", "bzrtp.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "polarssl", "..\..\..\..\polarssl\build\windows10\polarssl\polarssl.vcxproj", "{88768DD9-5110-4AC8-8B0E-41CD7713E1A2}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xml2", "..\..\..\..\build\xml2\windows10\xml2\xml2.vcxproj", "{2B04DE79-4D33-4405-AC01-C89E0593A71D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xml2", "..\..\..\..\build\xml2\xml2.vcxproj", "{2B04DE79-4D33-4405-AC01-C89E0593A71D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
