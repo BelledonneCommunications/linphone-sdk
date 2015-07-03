@@ -149,10 +149,10 @@ void ms_tester_create_filters(unsigned int filter_mask) {
 }
 
 #define DESTROY_FILTER(mask, filter) \
-	if ((filter_mask & mask) & (filter != NULL)) { \
+	if ((filter_mask & mask) && (filter != NULL)) { \
 		ms_filter_destroy(filter); \
+		filter = NULL; \
 	} \
-	filter = NULL
 
 void ms_tester_destroy_filter(MSFilter **filter) {
 	BC_ASSERT_PTR_NOT_NULL(filter);
@@ -163,20 +163,20 @@ void ms_tester_destroy_filter(MSFilter **filter) {
 }
 
 void ms_tester_destroy_filters(unsigned int filter_mask) {
-	DESTROY_FILTER(FILTER_MASK_FILEPLAY, ms_tester_fileplay);
-	DESTROY_FILTER(FILTER_MASK_FILEREC, ms_tester_filerec);
-	DESTROY_FILTER(FILTER_MASK_DTMFGEN, ms_tester_dtmfgen);
-	DESTROY_FILTER(FILTER_MASK_TONEDET, ms_tester_tonedet);
-	DESTROY_FILTER(FILTER_MASK_VOIDSOURCE, ms_tester_voidsource);
-	DESTROY_FILTER(FILTER_MASK_VOIDSINK, ms_tester_voidsink);
-	DESTROY_FILTER(FILTER_MASK_ENCODER, ms_tester_encoder);
-	DESTROY_FILTER(FILTER_MASK_DECODER, ms_tester_decoder);
-	DESTROY_FILTER(FILTER_MASK_RTPRECV, ms_tester_rtprecv);
-	DESTROY_FILTER(FILTER_MASK_RTPSEND, ms_tester_rtpsend);
-	DESTROY_FILTER(FILTER_MASK_RESAMPLER, ms_tester_resampler);
-	DESTROY_FILTER(FILTER_MASK_SOUNDWRITE, ms_tester_soundwrite);
-	DESTROY_FILTER(FILTER_MASK_SOUNDREAD, ms_tester_soundread);
-	DESTROY_FILTER(FILTER_MASK_VIDEOCAPTURE, ms_tester_videocapture);
+	DESTROY_FILTER(FILTER_MASK_FILEPLAY, ms_tester_fileplay)
+	DESTROY_FILTER(FILTER_MASK_FILEREC, ms_tester_filerec)
+	DESTROY_FILTER(FILTER_MASK_DTMFGEN, ms_tester_dtmfgen)
+	DESTROY_FILTER(FILTER_MASK_TONEDET, ms_tester_tonedet)
+	DESTROY_FILTER(FILTER_MASK_VOIDSOURCE, ms_tester_voidsource)
+	DESTROY_FILTER(FILTER_MASK_VOIDSINK, ms_tester_voidsink)
+	DESTROY_FILTER(FILTER_MASK_ENCODER, ms_tester_encoder)
+	DESTROY_FILTER(FILTER_MASK_DECODER, ms_tester_decoder)
+	DESTROY_FILTER(FILTER_MASK_RTPRECV, ms_tester_rtprecv)
+	DESTROY_FILTER(FILTER_MASK_RTPSEND, ms_tester_rtpsend)
+	DESTROY_FILTER(FILTER_MASK_RESAMPLER, ms_tester_resampler)
+	DESTROY_FILTER(FILTER_MASK_SOUNDWRITE, ms_tester_soundwrite)
+	DESTROY_FILTER(FILTER_MASK_SOUNDREAD, ms_tester_soundread)
+	DESTROY_FILTER(FILTER_MASK_VIDEOCAPTURE, ms_tester_videocapture)
 }
 
 void ms_tester_tone_generation_loop(void) {
