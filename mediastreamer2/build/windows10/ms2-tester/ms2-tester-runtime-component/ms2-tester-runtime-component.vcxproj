@@ -33,6 +33,24 @@
     <ClInclude Include="..\..\..\..\tester\mediastreamer2_tester_windows.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\..\bcg729\build\windows10\libmsbcg729\libmsbcg729.vcxproj">
+      <Project>{acf5ea95-d647-4d0c-8f97-2cd9aae8a2e0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\..\msamr\build\windows10\libmsamr\libmsamr.vcxproj">
+      <Project>{8c1bc968-c5c8-4d4b-9ef3-d6a065fc7c97}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\..\msilbc\build\windows10\libmsilbc\libmsilbc.vcxproj">
+      <Project>{6a18bbb9-08d1-41a8-be57-17fc992cc36f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\..\mssilk\build\windows10\libmssilk\libmssilk.vcxproj">
+      <Project>{b84d5c3b-6de5-49c8-b3dd-5eb67b01a527}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\..\mswasapi\windows10\libmswasapi\libmswasapi.vcxproj">
+      <Project>{266b769a-c04e-424c-9033-7209f0425bc0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\..\mswebrtc\build\windows10\libmswebrtc\libmswebrtc.vcxproj">
+      <Project>{878cf9d3-9761-479e-a715-a1de9f99cb78}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\ms2-tester-static\ms2-tester-static.vcxproj">
       <Project>{6f92d56c-620f-4d56-8dba-c02c0e06a0d1}</Project>
     </ProjectReference>
