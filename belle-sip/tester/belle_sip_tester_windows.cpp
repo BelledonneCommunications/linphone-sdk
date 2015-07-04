@@ -15,6 +15,8 @@ using namespace Windows::System::Threading;
 static OutputTraceListener^ sTraceListener;
 static belle_sip_object_pool_t *pool;
 
+BelleSipTester^ BelleSipTester::_instance = ref new BelleSipTester();
+
 static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 {
 	if (sTraceListener) {
@@ -34,7 +36,7 @@ static void belleSipNativeOutputTraceHandler(belle_sip_log_level lev, const char
 }
 
 
-BelleSipTester::BelleSipTester(bool autoLaunch)
+BelleSipTester::BelleSipTester()
 {
 	char writable_dir[MAX_WRITABLE_DIR_SIZE];
 	StorageFolder ^folder = ApplicationData::Current->LocalFolder;
@@ -43,25 +45,7 @@ BelleSipTester::BelleSipTester(bool autoLaunch)
 	belle_sip_tester_init(nativeOutputTraceHandler);
 	bc_tester_set_resource_dir_prefix("Assets");
 	bc_tester_set_writable_dir_prefix(writable_dir);
-	if (autoLaunch) {
-		auto workItem = ref new WorkItemHandler([this](IAsyncAction ^workItem) {
-			char *xmlFile = bc_tester_file("BelleSipWindows10.xml");
-			char *logFile = bc_tester_file("BelleSipWindows10.log");
-			char *args[] = { "--xml-file", xmlFile };
-			bc_tester_parse_args(2, args, 0);
-			init(true);
-			FILE *f = fopen(logFile, "w");
-			belle_sip_set_log_file(f);
-			bc_tester_start();
-			bc_tester_uninit();
-			fclose(f);
-			free(xmlFile);
-			free(logFile);
-		});
-		asyncAction = ThreadPool::RunAsync(workItem);
-	} else {
-		belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
-	}
+	belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
 }
 
 BelleSipTester::~BelleSipTester()
@@ -72,6 +56,19 @@ BelleSipTester::~BelleSipTester()
 void BelleSipTester::setOutputTraceListener(OutputTraceListener^ traceListener)
 {
 	sTraceListener = traceListener;
+}
+
+void BelleSipTester::init(bool verbose)
+{
+	if (verbose) {
+		belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+	}
+	else {
+		belle_sip_set_log_level(BELLE_SIP_LOG_ERROR);
+	}
+
+	belle_sip_tester_set_root_ca_path("Assets/rootca.pem");
+	pool = belle_sip_object_pool_push();
 }
 
 void BelleSipTester::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
@@ -86,6 +83,26 @@ void BelleSipTester::run(Platform::String^ suiteName, Platform::String^ caseName
 
 	init(verbose);
 	bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename);
+}
+
+void BelleSipTester::runAllToXml()
+{
+	init(true);
+	auto workItem = ref new WorkItemHandler([this](IAsyncAction ^workItem) {
+		char *xmlFile = bc_tester_file("BelleSipWindows10.xml");
+		char *logFile = bc_tester_file("BelleSipWindows10.log");
+		char *args[] = { "--xml-file", xmlFile };
+		bc_tester_parse_args(2, args, 0);
+		init(true);
+		FILE *f = fopen(logFile, "w");
+		belle_sip_set_log_file(f);
+		bc_tester_start();
+		bc_tester_uninit();
+		fclose(f);
+		free(xmlFile);
+		free(logFile);
+	});
+	_asyncAction = ThreadPool::RunAsync(workItem);
 }
 
 unsigned int BelleSipTester::nbTestSuites()
@@ -118,22 +135,4 @@ Platform::String^ BelleSipTester::testName(Platform::String^ suiteName, int test
 	wchar_t wcname[MAX_SUITE_NAME_SIZE];
 	mbstowcs(wcname, cname, sizeof(wcname));
 	return ref new String(wcname);
-}
-
-IAsyncAction^ BelleSipTester::AsyncAction::get()
-{
-	return asyncAction;
-}
-
-void BelleSipTester::init(bool verbose)
-{
-	if (verbose) {
-		belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
-	}
-	else {
-		belle_sip_set_log_level(BELLE_SIP_LOG_ERROR);
-	}
-
-	belle_sip_tester_set_root_ca_path("Assets/rootca.pem");
-	pool = belle_sip_object_pool_push();
 }

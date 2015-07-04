@@ -14,22 +14,28 @@ namespace belle_sip_tester_runtime_component
     public ref class BelleSipTester sealed
     {
     public:
-        BelleSipTester(bool autoLaunch);
-		virtual ~BelleSipTester();
 		void setOutputTraceListener(OutputTraceListener^ traceListener);
 		unsigned int nbTestSuites();
 		unsigned int nbTests(Platform::String^ suiteName);
 		Platform::String^ testSuiteName(int index);
 		Platform::String^ testName(Platform::String^ suiteName, int testIndex);
 		void run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose);
+		void runAllToXml();
 
+		static property BelleSipTester^ Instance
+		{
+			BelleSipTester^ get() { return _instance; }
+		}
 		property Windows::Foundation::IAsyncAction^ AsyncAction
 		{
-			Windows::Foundation::IAsyncAction^ get();
+			Windows::Foundation::IAsyncAction^ get() { return _asyncAction; }
 		}
 	private:
+		BelleSipTester();
+		~BelleSipTester();
 		void init(bool verbose);
-	
-		Windows::Foundation::IAsyncAction ^asyncAction;
+
+		static BelleSipTester^ _instance;
+		Windows::Foundation::IAsyncAction^ _asyncAction;
 	};
 }
