@@ -41,8 +41,6 @@ namespace belle_sip_tester
 
             this.InitializeComponent();
             this.Suspending += OnSuspending;
-
-            run();
         }
 
         /// <summary>
@@ -114,32 +112,5 @@ namespace belle_sip_tester
             //TODO: Save application state and stop any background activity
             deferral.Complete();
         }
-
-        private async void run()
-        {
-            try
-            {
-                await ApplicationData.Current.LocalFolder.GetFileAsync("autolaunch");
-                tester = new BelleSipTester(true);
-                if (tester.AsyncAction != null)
-                {
-                    tester.AsyncAction.Completed += (asyncInfo, asyncStatus) => {
-                        Current.Exit();
-                    };
-                }
-            }
-            catch (Exception)
-            {
-                tester = new BelleSipTester(false);
-            }
-        }
-
-        public bool suiteRunning()
-        {
-            return (suiteRunner != null) && (suiteRunner.running);
-        }
-
-        public BelleSipTester tester { get; set; }
-        public UnitTestSuiteRunner suiteRunner { get; set; }
     }
 }

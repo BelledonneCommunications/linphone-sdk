@@ -8,7 +8,7 @@ namespace belle_sip_tester_runtime_component
 	public interface class OutputTraceListener
 	{
 	public:
-		void outputTrace(Platform::String^ msg);
+		void outputTrace(Platform::String^ lev, Platform::String^ msg);
 	};
 
     public ref class BelleSipTester sealed
@@ -19,7 +19,7 @@ namespace belle_sip_tester_runtime_component
 		unsigned int nbTests(Platform::String^ suiteName);
 		Platform::String^ testSuiteName(int index);
 		Platform::String^ testName(Platform::String^ suiteName, int testIndex);
-		void run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose);
+		bool run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose);
 		void runAllToXml();
 
 		static property BelleSipTester^ Instance

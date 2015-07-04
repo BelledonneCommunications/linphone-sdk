@@ -5,7 +5,7 @@
   <Properties>
     <DisplayName>belle-sip-tester</DisplayName>
     <PublisherDisplayName>Ghislain</PublisherDisplayName>
-    <Logo>Assets\StoreLogo.png</Logo>
+    <Logo>Assets\Logo.png</Logo>
   </Properties>
   <Dependencies>
     <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.10069.0" MaxVersionTested="10.0.10069.0" />
@@ -15,7 +15,7 @@
   </Resources>
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="belle_sip_tester.App">
-      <uap:VisualElements DisplayName="belle-sip-tester" Square150x150Logo="Assets\Logo.png" Square44x44Logo="Assets\SmallLogo.png" Description="belle-sip-tester" BackgroundColor="#464646">
+      <uap:VisualElements DisplayName="belle-sip-tester" Square150x150Logo="Assets\Logo.png" Square44x44Logo="Assets\SmallLogo.png" Description="belle-sip-tester" BackgroundColor="#ffffff">
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
     </Application>

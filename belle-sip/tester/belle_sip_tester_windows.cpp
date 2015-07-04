@@ -26,7 +26,23 @@ static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 		vsnprintf((char *)str.c_str(), MAX_TRACE_SIZE, fmt, args);
 		mbstowcs(wstr, str.c_str(), sizeof(wstr));
 		String^ msg = ref new String(wstr);
-		sTraceListener->outputTrace(msg);
+		String^ l;
+		switch (lev) {
+		case BELLE_SIP_LOG_FATAL:
+		case BELLE_SIP_LOG_ERROR:
+			l = ref new String(L"Error");
+			break;
+		case BELLE_SIP_LOG_WARNING:
+			l = ref new String(L"Warning");
+			break;
+		case BELLE_SIP_LOG_MESSAGE:
+			l = ref new String(L"Message");
+			break;
+		default:
+			l = ref new String(L"Debug");
+			break;
+		}
+		sTraceListener->outputTrace(l, msg);
 	}
 }
 
@@ -45,7 +61,6 @@ BelleSipTester::BelleSipTester()
 	belle_sip_tester_init(nativeOutputTraceHandler);
 	bc_tester_set_resource_dir_prefix("Assets");
 	bc_tester_set_writable_dir_prefix(writable_dir);
-	belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
 }
 
 BelleSipTester::~BelleSipTester()
@@ -71,7 +86,7 @@ void BelleSipTester::init(bool verbose)
 	pool = belle_sip_object_pool_push();
 }
 
-void BelleSipTester::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
+bool BelleSipTester::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
 {
 	std::wstring all(L"ALL");
 	std::wstring wssuitename = suiteName->Data();
@@ -82,12 +97,12 @@ void BelleSipTester::run(Platform::String^ suiteName, Platform::String^ caseName
 	wcstombs(ccasename, wscasename.c_str(), sizeof(ccasename));
 
 	init(verbose);
-	bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename);
+	belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
+	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename) != 0;
 }
 
 void BelleSipTester::runAllToXml()
 {
-	init(true);
 	auto workItem = ref new WorkItemHandler([this](IAsyncAction ^workItem) {
 		char *xmlFile = bc_tester_file("BelleSipWindows10.xml");
 		char *logFile = bc_tester_file("BelleSipWindows10.log");
