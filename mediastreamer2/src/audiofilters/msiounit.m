@@ -450,6 +450,10 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 
 static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 	au_card_t* card=d->card;
+	if (card->io_unit == NULL) {
+		create_io_unit(&card->io_unit, card->ms_snd_card);
+		if (card->io_unit == NULL) ms_fatal("io_unit is NULL");
+	}
 	if (!card->io_unit_started && (card->last_failed_iounit_start_time == 0 || (time - card->last_failed_iounit_start_time)>100)) {
 
 		check_audiounit_call(AudioUnitInitialize(card->io_unit));
@@ -534,9 +538,6 @@ static void stop_audio_unit (au_card_t* d) {
 	}
 	if (d->io_unit) {
 		check_audiounit_call( AudioUnitUninitialize(d->io_unit) );
-	}
-
-	if (d->io_unit) {
 		destroy_audio_unit(d);
 	}
 	d->rate=0; /*uninit*/
