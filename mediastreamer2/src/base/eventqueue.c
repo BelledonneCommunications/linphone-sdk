@@ -73,8 +73,8 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 		q->wptr=q->buffer;
 		nextpos=q->wptr+size;
 	}
-	*(long*)q->wptr=(long)f;
-	*(long*)(q->wptr+8)=(long)ev_id;
+	*(long long*)q->wptr=(long long)f;
+	*(long long*)(q->wptr+8)=(long long)ev_id;
 	if (argsize>0) memcpy(q->wptr+16,arg,argsize);
 	q->wptr=nextpos;
 
@@ -89,8 +89,8 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 
 static int parse_event(uint8_t *rptr,MSFilter **f, unsigned int *id, void **data, int *argsize){
 	int evsize;
-	*f=(MSFilter *)*(long*)(rptr);
-	*id=(unsigned int)*(long*)(rptr+8);
+	*f=(MSFilter *)*(long long*)(rptr);
+	*id=(unsigned int)*(long long*)(rptr+8);
 	*argsize=(*id) & 0xff;
 	evsize=(*argsize)+16;
 	*data=rptr+16;

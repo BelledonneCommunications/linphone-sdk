@@ -267,7 +267,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 		NULL,
 		video_stream_get_rtcp_xr_average_quality_rating,
 		video_stream_get_rtcp_xr_average_lq_quality_rating,
-		(unsigned long)stream
+		stream
 	};
 
 	stream->ms.type = MSVideo;

@@ -317,7 +317,7 @@ static void setup_local_player(AudioStream *stream, int samplerate, int channels
 	ms_filter_add_notify_callback(stream->local_player,player_callback,stream,TRUE);
 }
 
-static OrtpRtcpXrPlcStatus audio_stream_get_rtcp_xr_plc_status(unsigned long userdata) {
+static OrtpRtcpXrPlcStatus audio_stream_get_rtcp_xr_plc_status(void *userdata) {
 	AudioStream *stream = (AudioStream *)userdata;
 	if ((stream->features & AUDIO_STREAM_FEATURE_PLC) != 0) {
 		int decoder_have_plc = 0;
@@ -333,7 +333,7 @@ static OrtpRtcpXrPlcStatus audio_stream_get_rtcp_xr_plc_status(unsigned long use
 	return OrtpRtcpXrNoPlc;
 }
 
-static int audio_stream_get_rtcp_xr_signal_level(unsigned long userdata) {
+static int audio_stream_get_rtcp_xr_signal_level(void *userdata) {
 	AudioStream *stream = (AudioStream *)userdata;
 	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0) {
 		float volume = 0.f;
@@ -344,7 +344,7 @@ static int audio_stream_get_rtcp_xr_signal_level(unsigned long userdata) {
 	return ORTP_RTCP_XR_UNAVAILABLE_PARAMETER;
 }
 
-static int audio_stream_get_rtcp_xr_noise_level(unsigned long userdata) {
+static int audio_stream_get_rtcp_xr_noise_level(void *userdata) {
 	AudioStream *stream = (AudioStream *)userdata;
 	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0) {
 		float volume = 0.f;
@@ -355,12 +355,12 @@ static int audio_stream_get_rtcp_xr_noise_level(unsigned long userdata) {
 	return ORTP_RTCP_XR_UNAVAILABLE_PARAMETER;
 }
 
-static float audio_stream_get_rtcp_xr_average_quality_rating(unsigned long userdata) {
+static float audio_stream_get_rtcp_xr_average_quality_rating(void *userdata) {
 	AudioStream *stream = (AudioStream *)userdata;
 	return audio_stream_get_average_quality_rating(stream);
 }
 
-static float audio_stream_get_rtcp_xr_average_lq_quality_rating(unsigned long userdata) {
+static float audio_stream_get_rtcp_xr_average_lq_quality_rating(void *userdata) {
 	AudioStream *stream = (AudioStream *)userdata;
 	return audio_stream_get_average_lq_quality_rating(stream);
 }
@@ -1302,7 +1302,7 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 		audio_stream_get_rtcp_xr_noise_level,
 		audio_stream_get_rtcp_xr_average_quality_rating,
 		audio_stream_get_rtcp_xr_average_lq_quality_rating,
-		(unsigned long)stream
+		stream
 	};
 
 	ms_filter_enable_statistics(TRUE);
