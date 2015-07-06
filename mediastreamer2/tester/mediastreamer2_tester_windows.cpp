@@ -6,7 +6,7 @@ using namespace ms2_tester_runtime_component;
 using namespace Platform;
 using namespace Windows::Storage;
 
-#define MAX_TRACE_SIZE		512
+#define MAX_TRACE_SIZE		2048
 #define MAX_SUITE_NAME_SIZE	128
 #define MAX_WRITABLE_DIR_SIZE 1024
 
@@ -19,7 +19,7 @@ static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 		std::string str;
 		str.resize(MAX_TRACE_SIZE);
 		vsnprintf((char *)str.c_str(), MAX_TRACE_SIZE, fmt, args);
-		mbstowcs(wstr, str.c_str(), sizeof(wstr));
+		mbstowcs(wstr, str.c_str(), MAX_TRACE_SIZE - 1);
 		String^ msg = ref new String(wstr);
 		sTraceListener->outputTrace(msg);
 	}
