@@ -110,6 +110,9 @@ void belle_sip_tester_uninit(void) {
 	bc_tester_uninit();
 }
 
+
+#if !defined(ANDROID) && !defined(TARGET_OS_IPHONE) && !(defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL))
+
 static const char* belle_sip_helper =
 		"\t\t\t--verbose\n"
 		"\t\t\t--silent\n"
@@ -118,8 +121,6 @@ static const char* belle_sip_helper =
 		"\t\t\t--auth-domain <test auth domain>\n"
 		"\t\t\t--root-ca <root ca file path>\n";
 
-
-#if !defined(ANDROID) && !defined(TARGET_OS_IPHONE) && !(defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL))
 int main (int argc, char *argv[]) {
 	int i;
 	int ret;

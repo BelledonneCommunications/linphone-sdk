@@ -4,7 +4,7 @@
   <mp:PhoneIdentity PhoneProductId="c6108770-1859-484a-b353-cd502001986d" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
     <DisplayName>belle-sip-tester</DisplayName>
-    <PublisherDisplayName>Ghislain</PublisherDisplayName>
+    <PublisherDisplayName>Belledonne Communications</PublisherDisplayName>
     <Logo>Assets\Logo.png</Logo>
   </Properties>
   <Dependencies>
