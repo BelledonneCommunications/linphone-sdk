@@ -23,10 +23,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "bc_tester_utils.h"
 
 #include <stdlib.h>
+#include <time.h>
 
 #include "CUnit/Basic.h"
 #include "CUnit/Automated.h"
-
 #ifdef _WIN32
 #if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_DESKTOP)
 #define BC_TESTER_WINDOWS_DESKTOP 1
@@ -151,15 +151,19 @@ static void suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
 }
 
 #ifdef HAVE_CU_GET_SUITE
+static time_t suite_start_time = 0;
 static void suite_start_message_handler(const CU_pSuite pSuite) {
 	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] started\n", pSuite->pName);
+	suite_start_time = time(NULL);
 }
 static void suite_complete_message_handler(const CU_pSuite pSuite, const CU_pFailureRecord pFailure) {
-	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] ended\n", pSuite->pName);
+	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] ended in %lu sec\n", pSuite->pName, time(NULL) - suite_start_time);
 }
 
+static time_t test_start_time = 0;
 static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
 	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] Test [%s] started", pSuite->pName,pTest->pName);
+	test_start_time = time(NULL);
 }
 
 /*derivated from cunit*/
@@ -170,9 +174,9 @@ static void test_complete_message_handler(const CU_pTest pTest,
 	char result[2048];
 	char buffer[2048];
 	CU_pFailureRecord pFailure = pFailureList;
-	snprintf(result, sizeof(result), "Suite [%s] Test [%s]", pSuite->pName, pTest->pName);
+	snprintf(result, sizeof(result), "Suite [%s] Test [%s] %s in %lu secs"
+			, pSuite->pName, pTest->pName, pFailure?"failed":"passed",(unsigned long)(time(NULL) - test_start_time));
 	if (pFailure) {
-		strncat(result, " failed:", strlen(" failed:"));
 		for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
 			snprintf(buffer, sizeof(buffer), "\n    %d. %s:%u  - %s", i,
 				(NULL != pFailure->strFileName) ? pFailure->strFileName : "",
@@ -180,8 +184,6 @@ static void test_complete_message_handler(const CU_pTest pTest,
 				(NULL != pFailure->strCondition) ? pFailure->strCondition : "");
 			strncat(result, buffer, strlen(buffer));
 		}
-	} else {
-		strncat(result, " passed", strlen(" passed"));
 	}
 	bc_tester_printf(bc_printf_verbosity_info,"%s\n", result);
 }

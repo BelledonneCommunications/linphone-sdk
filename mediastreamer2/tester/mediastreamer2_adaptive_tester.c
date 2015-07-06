@@ -265,17 +265,17 @@ static void iterate_adaptive_stream(stream_manager_t * marielle, stream_manager_
 		margaux_ms=&margaux->video_stream->ms;
 	}
 
-	while ((!current||*current<expected) && retry++ <timeout_ms/100) {
+	while ((!current||*current<expected) && retry++/5 <timeout_ms/100) {
 		media_stream_iterate(marielle_ms);
 		media_stream_iterate(margaux_ms);
 		// handle_queue_events(marielle);
-		if (retry%10==0) {
+		if (retry%50==0) {
 			 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	,
 				marielle_ms, media_stream_get_down_bw(marielle_ms)/1000, media_stream_get_up_bw(marielle_ms)/1000);
 			 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	,
 				margaux_ms, media_stream_get_down_bw(margaux_ms)/1000, media_stream_get_up_bw(margaux_ms)/1000);
 		 }
-		ms_usleep(100000);
+		ms_usleep(20000);
 	}
 }
 
