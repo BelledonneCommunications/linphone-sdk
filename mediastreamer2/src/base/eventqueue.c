@@ -55,8 +55,11 @@ struct _MSEventQueue{
 
 static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *arg){
 	int argsize=ev_id & 0xff;
-	int size=argsize+16;
+	int size=argsize;
 	uint8_t *nextpos;
+	int ptr_size = sizeof(void *);
+	int header_size = ptr_size + sizeof(ev_id);
+	size += header_size;
 	
 	ms_mutex_lock(&q->mutex);
 	nextpos=q->wptr+size;
@@ -73,9 +76,9 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 		q->wptr=q->buffer;
 		nextpos=q->wptr+size;
 	}
-	*(long long*)q->wptr=(long long)f;
-	*(long long*)(q->wptr+8)=(long long)ev_id;
-	if (argsize>0) memcpy(q->wptr+16,arg,argsize);
+	memcpy(q->wptr, &f, ptr_size);
+	memcpy(q->wptr + ptr_size, &ev_id, sizeof(ev_id));
+	if (argsize > 0) memcpy(q->wptr + header_size, arg, argsize);
 	q->wptr=nextpos;
 
 	/* buffer actual size(q->endptr) may have grown within the limit q->lim, prevent unwanted reading reset to the begining by setting the actual endptr */
@@ -87,13 +90,16 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 	ms_mutex_unlock(&q->mutex);
 }
 
-static int parse_event(uint8_t *rptr,MSFilter **f, unsigned int *id, void **data, int *argsize){
+static int parse_event(uint8_t *rptr, MSFilter **f, unsigned int *id, void **data, int *argsize){
 	int evsize;
-	*f=(MSFilter *)*(long long*)(rptr);
-	*id=(unsigned int)*(long long*)(rptr+8);
-	*argsize=(*id) & 0xff;
-	evsize=(*argsize)+16;
-	*data=rptr+16;
+	int ptr_size = sizeof(void *);
+	int header_size = ptr_size + sizeof(*id);
+
+	memcpy(f, rptr, ptr_size);
+	memcpy(id, rptr + ptr_size, sizeof(*id));
+	*argsize = (*id) & 0xff;
+	evsize = (*argsize) + header_size;
+	*data = rptr + header_size;
 	return evsize;
 }
 
