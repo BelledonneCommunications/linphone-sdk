@@ -235,12 +235,12 @@ static void choose_display_name(VideoStream *stream){
 	stream->display_name=ms_strdup(video_stream_get_default_video_renderer());
 }
 
-static float video_stream_get_rtcp_xr_average_quality_rating(unsigned long userdata) {
+static float video_stream_get_rtcp_xr_average_quality_rating(void *userdata) {
 	VideoStream *stream = (VideoStream *)userdata;
 	return stream ? media_stream_get_average_quality_rating(&stream->ms) : -1;
 }
 
-static float video_stream_get_rtcp_xr_average_lq_quality_rating(unsigned long userdata) {
+static float video_stream_get_rtcp_xr_average_lq_quality_rating(void *userdata) {
 	VideoStream *stream = (VideoStream *)userdata;
 	return stream ? media_stream_get_average_lq_quality_rating(&stream->ms) : -1;
 }
@@ -595,7 +595,7 @@ static void configure_decoder(VideoStream *stream, PayloadType *pt){
 	ms_filter_add_notify_callback(stream->ms.decoder, internal_event_cb, stream, TRUE);
 }
 
-static void video_stream_payload_type_changed(RtpSession *session, unsigned long data){
+static void video_stream_payload_type_changed(RtpSession *session, void *data){
 	VideoStream *stream = (VideoStream *)data;
 	RtpProfile *prof = rtp_session_get_profile(session);
 	int payload = rtp_session_get_recv_payload_type(session);
