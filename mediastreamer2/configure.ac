@@ -653,7 +653,7 @@ else
 fi
 
 if test x"$matroskadir" != xno ; then
-	MS_CHECK_DEP([matroska library],[MATROSKA],[${matroskadir}/include}],
+	MS_CHECK_DEP([matroska library],[MATROSKA],[${matroskadir}/include],
 		[${matroskadir}/lib],[matroska/matroska.h],[matroska2],[MATROSKA_BlockReleaseData],[-lebml2])
 	if test "$MATROSKA_found" = "trueno" ; then
 		build_matroska=no
