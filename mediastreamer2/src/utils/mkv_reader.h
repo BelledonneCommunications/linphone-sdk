@@ -88,21 +88,21 @@ typedef struct _MKVTrackReader MKVTrackReader;
  * @param filename Name of the file to open
  * @return A pointer on a MKVReader. NULL if opening fails
  */
-extern MKVReader *mkv_reader_open(const char *filename);
+MKVReader *mkv_reader_open(const char *filename);
 
 /**
  * @brief Close a MKV file.
  * All associated track readers will be automatically destroyed
  * @param obj MKVReader
  */
-extern void mkv_reader_close(MKVReader *obj);
+void mkv_reader_close(MKVReader *obj);
 
 /**
  * @brief Get information about the Matroska segment
  * @param reader MKVReader
  * @return Matroska segment information
  */
-extern inline const MKVSegmentInfo *mkv_reader_get_segment_info(const MKVReader *reader);
+const MKVSegmentInfo *mkv_reader_get_segment_info(const MKVReader *reader);
 
 /**
  * @brief Get the default track for a specified track type
@@ -110,7 +110,7 @@ extern inline const MKVSegmentInfo *mkv_reader_get_segment_info(const MKVReader 
  * @param track_type Type of the track
  * @return A pointer on a track descriptor
  */
-extern const MKVTrack *mkv_reader_get_default_track(MKVReader *r, int track_type);
+const MKVTrack *mkv_reader_get_default_track(MKVReader *r, int track_type);
 
 /**
  * @brief Get the first track of the specified type
@@ -118,7 +118,7 @@ extern const MKVTrack *mkv_reader_get_default_track(MKVReader *r, int track_type
  * @param track_type Type of the track
  * @return A track descriptor
  */
-extern const MKVTrack *mkv_reader_get_first_track(MKVReader *r, int track_type);
+const MKVTrack *mkv_reader_get_first_track(MKVReader *r, int track_type);
 
 /**
  * @brief Create a track reader from its track number
@@ -126,7 +126,7 @@ extern const MKVTrack *mkv_reader_get_first_track(MKVReader *r, int track_type);
  * @param track_num Track number
  * @return A pointer on a track reader
  */
-extern MKVTrackReader *mkv_reader_get_track_reader(MKVReader *reader, int track_num);
+MKVTrackReader *mkv_reader_get_track_reader(MKVReader *reader, int track_num);
 
 /**
  * @brief Set the reading head of each assocated track reader at a specific position
@@ -134,7 +134,7 @@ extern MKVTrackReader *mkv_reader_get_track_reader(MKVReader *reader, int track_
  * @param pos_ms Position of the head in miliseconds
  * @return The effective position of the head after the operation
  */
-extern int mkv_reader_seek(MKVReader *reader, int pos_ms);
+int mkv_reader_seek(MKVReader *reader, int pos_ms);
 
 /**
  * @brief Get the next block
@@ -142,25 +142,25 @@ extern int mkv_reader_seek(MKVReader *reader, int pos_ms);
  * @param block Block data
  * @param end_of_track Return TRUE when the end of the track has been reached
  */
-extern void mkv_track_reader_next_block(MKVTrackReader *reader, MKVBlock **block, bool_t *end_of_track);
+void mkv_track_reader_next_block(MKVTrackReader *reader, MKVBlock **block, bool_t *end_of_track);
 
 /**
  * @brief Reset the track reader.
  * The reading head is set at the start of the track
  * @param reader MKVReader
  */
-extern void mkv_track_reader_reset(MKVTrackReader *reader);
+void mkv_track_reader_reset(MKVTrackReader *reader);
 
 /**
  * @brief Destroy a track reader
  * @param reader Track reader to destroy
  */
-extern void mkv_track_reader_destroy(MKVTrackReader *reader);
+void mkv_track_reader_destroy(MKVTrackReader *reader);
 
 /**
  * @brief Free block data
  * @param block MKV block to free
  */
-extern void mkv_block_free(MKVBlock *block);
+void mkv_block_free(MKVBlock *block);
 
 #endif

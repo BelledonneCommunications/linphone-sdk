@@ -124,7 +124,7 @@ void mkv_reader_close(MKVReader *obj) {
 	}
 }
 
-inline const MKVSegmentInfo *mkv_reader_get_segment_info(const MKVReader *reader) {
+const MKVSegmentInfo *mkv_reader_get_segment_info(const MKVReader *reader) {
 	return &reader->info;
 }
 
