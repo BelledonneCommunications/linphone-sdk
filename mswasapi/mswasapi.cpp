@@ -325,13 +325,129 @@ static MSSndCardDesc ms_wasapi_snd_card_desc = {
 	NULL
 };
 
-#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
+#if defined(MS2_WINDOWS_PHONE)
 static MSSndCard *ms_wasapi_phone_snd_card_new(void) {
 	MSSndCard *card = ms_snd_card_new(&ms_wasapi_snd_card_desc);
 	card->name = ms_strdup("WASAPI sound card");
 	card->latency = 250;
 	return card;
 }
+
+#elif defined(MS2_WINDOWS_UNIVERSAL)
+
+class MSWASAPIDeviceEnumerator
+{
+public:
+	MSWASAPIDeviceEnumerator() : _l(NULL) {
+		_DetectEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
+		if (!_DetectEvent) {
+			ms_error("mswasapi: Could not create detect event [%i]", GetLastError());
+			return;
+		}
+	}
+	~MSWASAPIDeviceEnumerator() {
+		ms_list_free(_l);
+		if (_DetectEvent != INVALID_HANDLE_VALUE) {
+			CloseHandle(_DetectEvent);
+			_DetectEvent = INVALID_HANDLE_VALUE;
+		}
+	}
+
+	MSSndCard *NewCard(String^ DeviceId, const char *name, uint8_t capabilities) {
+		const wchar_t *id = DeviceId->Data();
+		MSSndCard *card = ms_snd_card_new(&ms_wasapi_snd_card_desc);
+		WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
+		card->name = ms_strdup(name);
+		card->capabilities = capabilities;
+		wasapicard->id_vector = new std::vector<wchar_t>(wcslen(id) + 1);
+		wcscpy_s(&wasapicard->id_vector->front(), wasapicard->id_vector->size(), id);
+		wasapicard->id = &wasapicard->id_vector->front();
+		return card;
+	}
+
+	void AddOrUpdateCard(String^ DeviceId, String^ DeviceName, DeviceClass dc) {
+		char *name;
+		const MSList *elem = _l;
+		size_t inputlen;
+		size_t returnlen;
+		uint8_t capabilities = 0;
+
+		inputlen = wcslen(DeviceName->Data()) + 1;
+		name = (char *)ms_malloc(inputlen);
+		if (wcstombs_s(&returnlen, name, inputlen, DeviceName->Data(), inputlen) != 0) {
+			ms_error("mswasapi: Cannot convert card name to multi-byte string.");
+			return;
+		}
+		switch (dc) {
+		case DeviceClass::AudioRender:
+			capabilities = MS_SND_CARD_CAP_PLAYBACK;
+			break;
+		case DeviceClass::AudioCapture:
+			capabilities = MS_SND_CARD_CAP_CAPTURE;
+			break;
+		}
+
+		for (; elem != NULL; elem = elem->next) {
+			MSSndCard *card = static_cast<MSSndCard *>(elem->data);
+			WasapiSndCard *d = static_cast<WasapiSndCard *>(card->data);
+			if (wcscmp(d->id, DeviceId->Data()) == 0) {
+				/* Update an existing card. */
+				if (card->name != NULL) {
+					ms_free(card->name);
+					card->name = ms_strdup(name);
+				}
+				card->capabilities |= capabilities;
+				ms_free(name);
+				return;
+			}
+		}
+
+		/* Add a new card. */
+		_l = ms_list_append(_l, NewCard(DeviceId, name, capabilities));
+		ms_free(name);
+	}
+
+	void Detect(DeviceClass dc) {
+		_dc = dc;
+		String ^DefaultId;
+		String ^DefaultName = "Default audio card";
+		if (_dc == DeviceClass::AudioCapture) {
+			DefaultId = MediaDevice::GetDefaultAudioCaptureId(AudioDeviceRole::Communications);
+		} else {
+			DefaultId = MediaDevice::GetDefaultAudioRenderId(AudioDeviceRole::Communications);
+		}
+		AddOrUpdateCard(DefaultId, DefaultName, _dc);
+		Concurrency::task<DeviceInformationCollection^> enumOperation(DeviceInformation::FindAllAsync(_dc));
+		enumOperation.then([this](DeviceInformationCollection^ DeviceInfoCollection) {
+			if ((DeviceInfoCollection == nullptr) || (DeviceInfoCollection->Size == 0)) {
+				ms_error("mswasapi: No audio device found");
+			} else {
+				try {
+					for (unsigned int i = 0; i < DeviceInfoCollection->Size; i++) {
+						DeviceInformation^ deviceInfo = DeviceInfoCollection->GetAt(i);
+						AddOrUpdateCard(deviceInfo->Id, deviceInfo->Name, _dc);
+					}
+				} catch (Platform::Exception^ e) {
+					ms_error("mswaspi: Error of audio device detection");
+				}
+			}
+			SetEvent(_DetectEvent);
+		});
+		WaitForSingleObjectEx(_DetectEvent, INFINITE, FALSE);
+	}
+
+	void Detect() {
+		Detect(DeviceClass::AudioCapture);
+		Detect(DeviceClass::AudioRender);
+	}
+
+	MSList *GetList() { return _l; }
+
+private:
+	MSList *_l;
+	DeviceClass _dc;
+	HANDLE _DetectEvent;
+};
 
 #else
 
@@ -445,9 +561,14 @@ error:
 #endif
 
 static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
-#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
+#if defined(MS2_WINDOWS_PHONE)
 	MSSndCard *card = ms_wasapi_phone_snd_card_new();
 	ms_snd_card_manager_add_card(m, card);
+#elif defined(MS2_WINDOWS_UNIVERSAL)
+	MSWASAPIDeviceEnumerator *enumerator = new MSWASAPIDeviceEnumerator();
+	enumerator->Detect();
+	ms_snd_card_manager_prepend_cards(m, enumerator->GetList());
+	delete enumerator;
 #else
 	MSList *l = NULL;
 	ms_wasapi_snd_card_detect_with_data_flow(m, eCapture, &l);

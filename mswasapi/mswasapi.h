@@ -39,7 +39,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #ifdef MS2_WINDOWS_UNIVERSAL
+#include <ppltasks.h>
+
 using namespace Microsoft::WRL;
+using namespace Platform;
+using namespace Windows::Devices::Enumeration;
 using namespace Windows::Media::Devices;
 #endif
 
