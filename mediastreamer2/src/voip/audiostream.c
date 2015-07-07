@@ -89,7 +89,7 @@ static void audio_stream_free(AudioStream *stream) {
 
 static int dtmf_tab[16]={'0','1','2','3','4','5','6','7','8','9','*','#','A','B','C','D'};
 
-static void on_dtmf_received(RtpSession *s, unsigned long dtmf, void * user_data)
+static void on_dtmf_received(RtpSession *s, uint32_t dtmf, void *user_data)
 {
 	AudioStream *stream=(AudioStream*)user_data;
 	if (dtmf>15){
@@ -110,7 +110,7 @@ static void on_dtmf_received(RtpSession *s, unsigned long dtmf, void * user_data
  * more easily within the MSTicker API.
  * return TRUE if the decoder was changed, FALSE otherwise.
  */
-static bool_t audio_stream_payload_type_changed(RtpSession *session, unsigned long data) {
+static bool_t audio_stream_payload_type_changed(RtpSession *session, void *data) {
 	AudioStream *stream = (AudioStream *)data;
 	RtpProfile *prof = rtp_session_get_profile(session);
 	int payload = rtp_session_get_recv_payload_type(stream->ms.sessions.rtp_session);
