@@ -34,8 +34,7 @@ Commercial licensing can be purchased for that purpose from [Belledonne Communic
 
 #### Under MacOS X using HomeBrew
 
-        brew tap Gui13/linphone
-        brew install intltool libtool pkg-config automake libantlr3.4c antlr3.2
+        brew install intltool libtool pkg-config automake libantlr3.4c antlr
         ln -s /usr/local/bin/glibtoolize /usr/local/bin/libtoolize
 
 #### Under Windows using mingw and Visual Studio
