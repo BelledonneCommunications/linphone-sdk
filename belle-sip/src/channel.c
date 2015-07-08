@@ -950,7 +950,7 @@ static char *make_logbuf(belle_sip_channel_t *obj, belle_sip_log_level level, co
 	}
 	limit=find_non_printable(buffer,MIN((int)size,limit));
 	if (limit != size) {
-		belle_sip_warning("channel [%p]: found binary data in buffer, will stop logging it now.", obj);
+		belle_sip_message("channel [%p]: found binary data in buffer, will stop logging it now.", obj);
 		obj->stop_logging_buffer = 1;
 		if (limit==0){
 			snprintf(truncate_msg,sizeof(truncate_msg)-1,"... (binary data)");
@@ -1249,7 +1249,7 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *ai_l
 		channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
 		channel_prepare_continue(obj);
 	}else{
-		belle_sip_error("%s: DNS resolution failed", __FUNCTION__);
+		belle_sip_error("%s: DNS resolution failed for %s", __FUNCTION__, name);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 	}
 }
