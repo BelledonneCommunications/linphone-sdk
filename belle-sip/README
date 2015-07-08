@@ -21,7 +21,7 @@ Commercial licensing can be purchased for that purpose from [Belledonne Communic
 * intltool
 * pkg-config
 * libantlr3c-3.2 or 3.4
-* antlr3-3.2 or 3.4
+* antlr3-3.4
 * C++ compiler (for instance g++ or clang++)
 * (optional) CUnit
 * (optional) polarssl >= 1.2 (see below)
@@ -34,7 +34,7 @@ Commercial licensing can be purchased for that purpose from [Belledonne Communic
 
 #### Under MacOS X using HomeBrew
 
-        brew install intltool libtool pkg-config automake libantlr3.4c antlr
+        brew install intltool libtool pkg-config automake libantlr3.4c homebrew/versions/antlr3
         ln -s /usr/local/bin/glibtoolize /usr/local/bin/libtoolize
 
 #### Under Windows using mingw and Visual Studio
