@@ -256,6 +256,14 @@ if(ENABLE_VIDEO)
 			)
 		endif()
 	endif()
+	if (ENABLE_QNX)
+                list (APPEND VOIP_SOURCE_FILES
+                        videofilters/bb10_display.cpp
+                        videofilters/bb10_capture.cpp
+                )
+                set_source_files_properties(videofilters/bb10_display.cpp PROPERTIES LANGUAGE CXX)
+                set_source_files_properties(videofilters/bb10_capture.cpp PROPERTIES LANGUAGE CXX)
+        endif()
 	if(FFMPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES
 			utils/ffmpeg-priv.c
