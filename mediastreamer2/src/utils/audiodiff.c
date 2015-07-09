@@ -46,7 +46,7 @@ static FileInfo *file_info_new(const char *file){
 	struct stat stbuf;
 	int size;
 	int err;
-	
+
 	if ((fd=open(file,O_RDONLY|O_BINARY))==-1){
 		ms_error("Failed to open %s : %s",file,strerror(errno));
 		return NULL;
@@ -62,7 +62,7 @@ static FileInfo *file_info_new(const char *file){
 	}
 	fi=ms_new0(FileInfo,1);
 	size=stbuf.st_size-hsize;
-	
+
 	fi->buffer=ms_new0(int16_t,size/sizeof(int16_t));
 	fi->rate=wave_header_get_rate(&header);
 	fi->nchannels=wave_header_get_channel(&header);
@@ -91,13 +91,13 @@ static int compute_cross_correlation(int16_t *s1, int n1, int16_t *s2, int n2, i
 	int i,k;
 	int completion=0;
 	int prev_completion=0;
-	
+
 #define STEP 4
 #define ACC(k1,k2,s) acc+=(int64_t)( (int)s1[k1+s]*(int)s2[k2+s]);
 	for(i=0;i<delta;++i){
 		completion=100*i/(delta*2);
 		acc=0;
-		
+
 		for(k=0; k<MIN(n1,n2-delta+i); k+=STEP){
 			int k2=k+delta-i;
 			ACC(k,k2,0);
@@ -118,7 +118,7 @@ static int compute_cross_correlation(int16_t *s1, int n1, int16_t *s2, int n2, i
 	for(i=delta;i<2*delta;++i){
 		completion=100*i/(delta*2);
 		acc=0;
-		
+
 		for(k=0; k<MIN(n1+delta-i,n2); k+=STEP){
 			int k1;
 			k1=k+i-delta;
@@ -154,7 +154,7 @@ static int compute_cross_correlation_interleaved(int16_t *s1, int n1, int16_t *s
 	for (i=0;i<delta;++i){
 		completion=100*(i+(2*delta*channel_num))/(delta*4);
 		acc=0;
-		
+
 		for(k=0; k<MIN(n1,n2-delta+i); k++){
 			int k2=k+delta-i;
 			ACC((2*k)+channel_num,(2*k2)+channel_num,0);
@@ -172,7 +172,7 @@ static int compute_cross_correlation_interleaved(int16_t *s1, int n1, int16_t *s
 	for (i=delta;i<2*delta;++i){
 		completion=100*(i+(2*delta*channel_num))/(delta*4);
 		acc=0;
-		
+
 		for(k=0; k<MIN(n1+delta-i,n2); k++){
 			int k1;
 			k1=k+i-delta;
@@ -239,9 +239,9 @@ int ms_audio_diff(const char *file1, const char *file2, double *ret, int max_shi
 	int max_index_r;
 	int max_index_l;
 	double max_r, max_l;
-	
+
 	*ret=0;
-	
+
 	fi1=file_info_new(file1);
 	if (fi1==NULL) return 0;
 	fi2=file_info_new(file2);
@@ -249,26 +249,26 @@ int ms_audio_diff(const char *file1, const char *file2, double *ret, int max_shi
 		file_info_destroy(fi1);
 		return -1;
 	}
-	
+
 	if (fi1->rate!=fi2->rate){
-		ms_error("Comparing files of different sampling rates is not supported");
+		ms_error("Comparing files of different sampling rates is not supported (%d vs %d)", fi1->rate, fi2->rate);
 		return -1;
 	}
-	
+
 	if (fi1->nchannels!=fi2->nchannels){
-		ms_error("Comparing files with different number of channels is not supported");
+		ms_error("Comparing files with different number of channels is not supported (%d vs %d)", fi1->nchannels, fi2->nchannels);
 		return -1;
 	}
-	
+
 	file_info_compute_energy(fi1);
 	file_info_compute_energy(fi2);
-	
+
 	if (fi1->energy_r==0 || fi2->energy_r==0){
 		/*avoid division by zero*/
 		ms_error("One of the two files is pure silence.");
 		return -1;
 	}
-	
+
 	max_shift_samples = MIN(fi1->nsamples, fi2->nsamples) * max_shift_percent / 100;
 	xcorr_size=max_shift_samples*2;
 	xcorr=ms_new0(int64_t,xcorr_size);
@@ -277,7 +277,7 @@ int ms_audio_diff(const char *file1, const char *file2, double *ret, int max_shi
 		max_r=xcorr[max_index_r];
 		ms_message("max_r=%g", (double)max_r);
 		max_r/=sqrt((double)fi1->energy_r*(double)fi2->energy_r);
-		
+
 		max_index_l=compute_cross_correlation_interleaved(fi1->buffer,fi1->nsamples,fi2->buffer,fi2->nsamples,xcorr,xcorr_size, func, user_data, 1, max_shift_samples);
 		max_l=xcorr[max_index_l];
 		ms_message("max_l=%g", (double)max_l);
