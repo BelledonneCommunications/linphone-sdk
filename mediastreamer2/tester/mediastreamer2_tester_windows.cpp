@@ -4,13 +4,17 @@
 
 using namespace ms2_tester_runtime_component;
 using namespace Platform;
+using namespace Windows::Foundation;
 using namespace Windows::Storage;
+using namespace Windows::System::Threading;
 
 #define MAX_TRACE_SIZE		2048
 #define MAX_SUITE_NAME_SIZE	128
 #define MAX_WRITABLE_DIR_SIZE 1024
 
 static OutputTraceListener^ sTraceListener;
+
+MS2Tester^ MS2Tester::_instance = ref new MS2Tester();
 
 static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 {
@@ -21,11 +25,27 @@ static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 		vsnprintf((char *)str.c_str(), MAX_TRACE_SIZE, fmt, args);
 		mbstowcs(wstr, str.c_str(), MAX_TRACE_SIZE - 1);
 		String^ msg = ref new String(wstr);
-		sTraceListener->outputTrace(msg);
+		String^ l;
+		switch (lev) {
+		case ORTP_FATAL:
+		case ORTP_ERROR:
+			l = ref new String(L"Error");
+			break;
+		case ORTP_WARNING:
+			l = ref new String(L"Warning");
+			break;
+		case ORTP_MESSAGE:
+			l = ref new String(L"Message");
+			break;
+		default:
+			l = ref new String(L"Debug");
+			break;
+		}
+		sTraceListener->outputTrace(l, msg);
 	}
 }
 
-static void MS2NativeOutputTraceHandler(OrtpLogLevel lev, const char *fmt, va_list args)
+static void ms2NativeOutputTraceHandler(OrtpLogLevel lev, const char *fmt, va_list args)
 {
 	nativeOutputTraceHandler((int)lev, fmt, args);
 }
@@ -40,7 +60,6 @@ MS2Tester::MS2Tester()
 	mediastreamer2_tester_init(nativeOutputTraceHandler);
 	bc_tester_set_resource_dir_prefix("Assets");
 	bc_tester_set_writable_dir_prefix(writable_dir);
-	ortp_set_log_handler(MS2NativeOutputTraceHandler);
 }
 
 MS2Tester::~MS2Tester()
@@ -53,7 +72,17 @@ void MS2Tester::setOutputTraceListener(OutputTraceListener^ traceListener)
 	sTraceListener = traceListener;
 }
 
-void MS2Tester::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
+void MS2Tester::init(bool verbose)
+{
+	if (verbose) {
+		ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+	}
+	else {
+		ortp_set_log_level_mask(ORTP_ERROR | ORTP_FATAL);
+	}
+}
+
+bool MS2Tester::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
 {
 	std::wstring all(L"ALL");
 	std::wstring wssuitename = suiteName->Data();
@@ -63,13 +92,28 @@ void MS2Tester::run(Platform::String^ suiteName, Platform::String^ caseName, Pla
 	wcstombs(csuitename, wssuitename.c_str(), sizeof(csuitename));
 	wcstombs(ccasename, wscasename.c_str(), sizeof(ccasename));
 
-	if (verbose) {
-		ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
-	} else {
-		ortp_set_log_level_mask(ORTP_FATAL);
-	}
+	init(verbose);
+	ortp_set_log_handler(ms2NativeOutputTraceHandler);
+	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename) != 0;
+}
 
-	bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename);
+void MS2Tester::runAllToXml()
+{
+	auto workItem = ref new WorkItemHandler([this](IAsyncAction ^workItem) {
+		char *xmlFile = bc_tester_file("MS2Windows10.xml");
+		char *logFile = bc_tester_file("MS2Windows10.log");
+		char *args[] = { "--xml-file", xmlFile };
+		bc_tester_parse_args(2, args, 0);
+		init(true);
+		FILE *f = fopen(logFile, "w");
+		ortp_set_log_file(f);
+		bc_tester_start();
+		bc_tester_uninit();
+		fclose(f);
+		free(xmlFile);
+		free(logFile);
+	});
+	_asyncAction = ThreadPool::RunAsync(workItem);
 }
 
 unsigned int MS2Tester::nbTestSuites()
