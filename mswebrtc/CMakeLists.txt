@@ -83,6 +83,10 @@ if(UNIX)
 	endif()
 endif()
 
+string(REGEX MATCH "^(arm|aarch64)*" FIXED_POINT_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
+if(FIXED_POINT_PROCESSOR)
+	add_definitions(-D__ARMEL__)
+endif()
 
 set(WEBRTC_COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/webrtc/common_audio/signal_processing")
 set(WEBRTC_COMMON_SRCS
