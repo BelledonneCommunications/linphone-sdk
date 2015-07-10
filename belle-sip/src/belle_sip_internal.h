@@ -803,6 +803,7 @@ struct belle_sip_dialog{
 	unsigned char is_secure;
 	unsigned char terminate_on_bye;
 	unsigned char needs_ack;
+	unsigned char pending_trans_checking_enabled; /*use to disabled pending transaction check at request creation (testing)*/
 };
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);

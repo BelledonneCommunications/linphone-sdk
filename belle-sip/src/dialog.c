@@ -205,6 +205,7 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 int belle_sip_dialog_establish_full(belle_sip_dialog_t *obj, belle_sip_request_t *req, belle_sip_response_t *resp){
 	belle_sip_header_contact_t *ct=belle_sip_message_get_header_by_type(resp,belle_sip_header_contact_t);
 	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(resp,belle_sip_header_to_t);
+	const belle_sip_list_t *elem;
 
 	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
 		obj->needs_ack=TRUE;
@@ -216,6 +217,20 @@ int belle_sip_dialog_establish_full(belle_sip_dialog_t *obj, belle_sip_request_t
 			belle_sip_error("Missing contact header in resp [%p] cannot set remote target for dialog [%p]",resp,obj);
 			return -1;
 		}
+		/* 13.2.2.4 2xx Responses
+		   ...
+		   If the dialog identifier in the 2xx response matches the dialog
+		   identifier of an existing dialog, the dialog MUST be transitioned to
+		   the "confirmed" state, and the route set for the dialog MUST be
+		   recomputed based on the 2xx response using the procedures of Section
+		   12.2.1.2.
+		 */
+		obj->route_set=belle_sip_list_free_with_data(obj->route_set,belle_sip_object_unref);
+		for(elem=belle_sip_message_get_headers((belle_sip_message_t*)resp,BELLE_SIP_RECORD_ROUTE);elem!=NULL;elem=elem->next){
+			obj->route_set=belle_sip_list_prepend(obj->route_set,belle_sip_object_ref(belle_sip_header_route_create(
+			                                     (belle_sip_header_address_t*)elem->data)));
+		}
+
 		if (ct) {
 			/*remote Contact header may have changed between early dialog to confirmed*/
 			if (obj->remote_target) belle_sip_object_unref(obj->remote_target);
@@ -469,6 +484,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	obj=belle_sip_object_new(belle_sip_dialog_t);
 	obj->terminate_on_bye=1;
 	obj->provider=t->provider;
+	obj->pending_trans_checking_enabled=1;
 	
 	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t)){
 		obj->remote_tag=belle_sip_strdup(from_tag);
@@ -588,7 +604,10 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 		return NULL;
 	}
 	/*don't prevent to send a BYE in any case */
-	if (strcmp(method,"BYE")!=0 && obj->last_transaction && belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(obj->last_transaction))){
+	if (	obj->pending_trans_checking_enabled
+			&& strcmp(method,"BYE")!=0
+			&& obj->last_transaction
+			&& belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(obj->last_transaction))){
 
 		if (obj->state != BELLE_SIP_DIALOG_EARLY && strcmp(method,"UPDATE")!=0) {
 			belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] while pending [%s] transaction in state [%s]",method,obj,belle_sip_transaction_get_method(obj->last_transaction), belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(obj->last_transaction)));
