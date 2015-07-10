@@ -61,6 +61,7 @@ if(ENABLE_ASM)
 	set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> ${CMAKE_C_FLAGS} -o <OBJECT> -c <SOURCE>")
 	enable_language(ASM)
 	string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
+	#No optimization available yet for arm64
 	if(SYSTEM_PROCESSOR MATCHES "^arm.*")
 		if(ENABLE_FIXED_POINT)
 			set(OPUS_ARM_ASM 1)
