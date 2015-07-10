@@ -95,6 +95,7 @@ typedef struct BB10Capture {
 	MSQueue rq;
 	ms_mutex_t mutex;
 	
+	camera_unit_t camera;
 	camera_handle_t cam_handle;
 	char *window_group;
 	char *window_id;
@@ -129,15 +130,20 @@ static void bb10capture_video_callback(camera_handle_t cam_handle, camera_buffer
 }
 
 static void bb10capture_open_camera(BB10Capture *d) {
-	bool_t viewfinderVideoModeSupported = FALSE;
+	camera_error_t error;
 	
 	if (d->camera_openned) {
 		ms_warning("[bb10_capture] camera already openned, skipping...");
 		return;
 	}
 	
-	camera_open(CAMERA_UNIT_FRONT, CAMERA_MODE_RW, &(d->cam_handle));
-	d->camera_openned = TRUE;
+	ms_message("[bb10_capture] openning %s camera", d->camera == CAMERA_UNIT_FRONT ? "front" : (d->camera == CAMERA_UNIT_REAR ? "rear" : "unknown"));
+	error = camera_open(d->camera, CAMERA_MODE_RW, &(d->cam_handle));
+	if (error == CAMERA_EOK) {
+		d->camera_openned = TRUE;
+	} else {
+		ms_error("[bb10_capture] openning %i camera failed: %s", d->camera, error_to_string(error));
+	}
 }
 
 static void bb10capture_start_capture(BB10Capture *d) {
@@ -195,29 +201,32 @@ static void bb10capture_init(MSFilter *f) {
 	def_size.height = MS_VIDEO_SIZE_QVGA_H;
 	d->framerate = 15.0;
 	d->vsize = def_size;
+	d->camera = CAMERA_UNIT_NONE;
 	ms_queue_init(&d->rq);
-	
-	bb10capture_open_camera(d);
 	
 	f->data = d;
 }
 
 static void bb10capture_uninit(MSFilter *f) {
 	BB10Capture *d = (BB10Capture*) f->data;
-	bb10capture_close_camera(d);
+	
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
 }
 
 static void bb10capture_preprocess(MSFilter *f) {
 	BB10Capture *d = (BB10Capture*) f->data;
+	
+	bb10capture_open_camera(d);
 	ms_average_fps_init(&d->avgfps, "[bb10_capture] fps=%f");
 	bb10capture_start_capture(d);
 }
 
 static void bb10capture_postprocess(MSFilter *f) {
 	BB10Capture *d = (BB10Capture*) f->data;
+	
 	bb10capture_stop_capture(d);
+	bb10capture_close_camera(d);
 }
 
 static void bb10capture_process(MSFilter *f) {
@@ -325,8 +334,14 @@ MSFilterDesc ms_bb10_capture_desc = {
 MS_FILTER_DESC_EXPORT(ms_bb10_capture_desc)
 
 static MSFilter *bb10camera_create_reader(MSWebCam *obj) {
-	MSFilter *f = ms_filter_new(MS_BB10_CAPTURE_ID);
-	ms_message("[bb10_capture] create reader with id:%i", MS_BB10_CAPTURE_ID);
+	MSFilter *f = ms_filter_new_from_desc(&ms_bb10_capture_desc);
+	BB10Capture *d = (BB10Capture*) f->data;
+	if (strcmp(obj->name, "BB10 Rear Camera") == 0) {
+		d->camera = CAMERA_UNIT_REAR;
+	} else {
+		d->camera = CAMERA_UNIT_FRONT;
+	}
+	ms_message("[bb10_capture] create reader with id:%i and camera %s (%i)", ms_bb10_capture_desc.id, obj->name, d->camera);
 	return f;
 }
 
@@ -347,41 +362,42 @@ MSWebCamDesc ms_bb10_camera_desc = {
 static void bb10camera_detect(MSWebCamManager *obj) {
 	camera_error_t error;
 	camera_handle_t handle;
-	bool_t camera_detected = FALSE;
-	bool_t is_front_camera = FALSE;
 	
 	error = camera_open(CAMERA_UNIT_FRONT, CAMERA_MODE_RW, &handle);
-	if (error != CAMERA_EOK) {
-		ms_warning("[bb10_capture] Can't open front camera: %s", error_to_string(error));
-		error = camera_open(CAMERA_UNIT_REAR, CAMERA_MODE_RW, &handle);
-		if (error != CAMERA_EOK) {
-			ms_warning("[bb10_capture] Can't open the rear one either; %s", error_to_string(error));
-		} else {
-			if (camera_has_feature(handle, CAMERA_FEATURE_VIDEO)) {
-				if (camera_can_feature(handle, CAMERA_FEATURE_VIDEO)) {
-					camera_detected = TRUE;
-				}
-			}
-		}
-	} else {
+	if (error == CAMERA_EOK) {
 		if (camera_has_feature(handle, CAMERA_FEATURE_VIDEO)) {
 			if (camera_can_feature(handle, CAMERA_FEATURE_VIDEO)) {
-				is_front_camera = TRUE;
-				camera_detected = TRUE;
+				MSWebCam *cam = ms_web_cam_new(&ms_bb10_camera_desc);
+				cam->name = ms_strdup("BB10 Front Camera");
+				ms_message("[bb10_capture] camera added: %s", cam->name);
+				ms_web_cam_manager_add_cam(obj, cam);
+				camera_close(handle);
+			} else {
+				ms_warning("[bb10_capture] front camera has video feature but can't do it...");
 			}
+		} else {
+			ms_warning("[bb10_capture] front camera doesn't have video feature");
 		}
+	} else {
+		ms_warning("[bb10_capture] Can't open front camera: %s", error_to_string(error));
 	}
 	
-	if (camera_detected) {
-		camera_close(handle);
-		
-		MSWebCam *cam = ms_web_cam_new(&ms_bb10_camera_desc);
-		if (is_front_camera) {
-			cam->name = ms_strdup("BB10 Front Camera");
+	error = camera_open(CAMERA_UNIT_REAR, CAMERA_MODE_RW, &handle);
+	if (error == CAMERA_EOK) {
+		if (camera_has_feature(handle, CAMERA_FEATURE_VIDEO)) {
+			if (camera_can_feature(handle, CAMERA_FEATURE_VIDEO)) {
+				MSWebCam *cam = ms_web_cam_new(&ms_bb10_camera_desc);
+				cam->name = ms_strdup("BB10 Rear Camera");
+				ms_message("[bb10_capture] camera added: %s", cam->name);
+				ms_web_cam_manager_add_cam(obj, cam);
+				camera_close(handle);
+			} else {
+				ms_warning("[bb10_capture] rear camera has video feature but can't do it...");
+			}
 		} else {
-			cam->name = ms_strdup("BB10 Rear Camera");
+			ms_warning("[bb10_capture] rear camera doesn't have video feature");
 		}
-		ms_debug("[bb10_capture] camera added: %s", cam->name);
-		ms_web_cam_manager_add_cam(obj, cam);
+	} else {
+		ms_warning("[bb10_capture] Can't open rear camera: %s", error_to_string(error));
 	}
 }
