@@ -22,7 +22,7 @@
 
 set(EP_antlr3c_GIT_REPOSITORY "git://git.linphone.org/antlr3.git")
 set(EP_antlr3c_GIT_TAG_LATEST "linphone")
-set(EP_antlr3c_GIT_TAG "099946426e30916ff97e4e52c3bd7d920359a933")
+set(EP_antlr3c_GIT_TAG "311b6764e3f440db43617296ff856f7ec07bfdef")
 set(EP_antlr3c_EXTERNAL_SOURCE_PATHS "antlr3c" "antlr3" "externals/antlr3")
 
 set(EP_antlr3c_CMAKE_OPTIONS "-DENABLE_DEBUGGER=NO")

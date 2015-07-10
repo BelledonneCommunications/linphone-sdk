@@ -22,7 +22,7 @@
 
 set(EP_msx264_GIT_REPOSITORY "git://git.linphone.org/msx264.git")
 set(EP_msx264_GIT_TAG_LATEST "master")
-set(EP_msx264_GIT_TAG "fefdfbe8d098ca4e3b5f6901d761a1bb66f5dd83")
+set(EP_msx264_GIT_TAG "3a9b5a9ff79ea45b9f8f03d03d4a4a9213dc2c5d")
 
 set(EP_msx264_BUILD_METHOD "autotools")
 set(EP_msx264_USE_AUTOGEN True)

@@ -22,7 +22,7 @@
 
 set(EP_tunnel_GIT_REPOSITORY "gitosis@git.linphone.org:tunnel.git") # Private repository
 set(EP_tunnel_GIT_TAG_LATEST "master")
-set(EP_tunnel_GIT_TAG "93399274bcfcd92a2dce3a9ff57ab87561c3c63e")
+set(EP_tunnel_GIT_TAG "8f56e77729e6aed5d0daf9ddec94ad67a936e0d0")
 
 set(EP_tunnel_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 set(EP_tunnel_CMAKE_OPTIONS "-DENABLE_SERVERS=NO")

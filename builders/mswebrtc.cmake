@@ -22,7 +22,7 @@
 
 set(EP_mswebrtc_GIT_REPOSITORY "git://git.linphone.org/mswebrtc.git")
 set(EP_mswebrtc_GIT_TAG_LATEST "master")
-set(EP_mswebrtc_GIT_TAG "639429175eab2fbb3aede18a2b4b04ed304a47fe")
+set(EP_mswebrtc_GIT_TAG "88c0fa6ae7ea35fa25eac5ce4b50898e85443ff0")
 set(EP_mswebrtc_EXTERNAL_SOURCE_PATHS "mswebrtc")
 
 set(EP_mswebrtc_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")

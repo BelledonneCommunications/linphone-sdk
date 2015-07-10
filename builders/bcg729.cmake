@@ -22,7 +22,7 @@
 
 set(EP_bcg729_GIT_REPOSITORY "git://git.linphone.org/bcg729.git")
 set(EP_bcg729_GIT_TAG_LATEST "master")
-set(EP_bcg729_GIT_TAG "1.0.0")
+set(EP_bcg729_GIT_TAG "7f76ef482b26400995474d37fc330565a9fe0e9e")
 set(EP_bcg729_EXTERNAL_SOURCE_PATHS "bcg729")
 
 set(EP_bcg729_CMAKE_OPTIONS )

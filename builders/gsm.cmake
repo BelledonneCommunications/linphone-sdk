@@ -22,7 +22,7 @@
 
 set(EP_gsm_GIT_REPOSITORY "git://git.linphone.org/gsm.git")
 set(EP_gsm_GIT_TAG_LATEST "linphone")
-set(EP_gsm_GIT_TAG "57d904f7fdc97e611b4a09ff7753d5d648ff82cd")
+set(EP_gsm_GIT_TAG "b6b37996357ae9d9596b8ee227f33744889d895c")
 set(EP_gsm_EXTERNAL_SOURCE_PATHS "gsm" "externals/gsm")
 
 set(EP_gsm_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")

@@ -22,7 +22,7 @@
 
 set(EP_mswasapi_GIT_REPOSITORY "git://git.linphone.org/mswasapi.git")
 set(EP_mswasapi_GIT_TAG_LATEST "master")
-set(EP_mswasapi_GIT_TAG "d69288a1ca0a4c9daebd7d37bc9301c9590116ba")
+set(EP_mswasapi_GIT_TAG "b4be757dbfc573f91a56c37e68f971974cde1a82")
 set(EP_mswasapi_EXTERNAL_SOURCE_PATHS "mswasapi")
 
 set(EP_mswasapi_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
