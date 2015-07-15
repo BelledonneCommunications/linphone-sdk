@@ -25,9 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include <string.h>
 
-#ifdef _WIN32
-#include <malloc.h> /* for alloca */
-#endif
 
 MSQueue * ms_queue_new(struct _MSFilter *f1, int pin1, struct _MSFilter *f2, int pin2 ){
 	MSQueue *q=(MSQueue*)ms_new0(MSQueue,1);
@@ -91,7 +88,7 @@ int ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, int datalen){
 		mblk_meta_copy(m, &obj->q._q_stopper);
 		while(sz<datalen){
 			cplen=MIN(m->b_wptr-m->b_rptr,datalen-sz);
-			memcpy(data+sz,m->b_rptr,cplen);
+			if (data) memcpy(data+sz,m->b_rptr,cplen);
 			sz+=cplen;
 			m->b_rptr+=cplen;
 			if (m->b_rptr==m->b_wptr){
@@ -121,8 +118,7 @@ void ms_bufferizer_fill_current_metas(MSBufferizer *obj, mblk_t *dest){
 }
 
 void ms_bufferizer_skip_bytes(MSBufferizer *obj, int bytes){
-	uint8_t *tmp=(uint8_t*)alloca(bytes);
-	ms_bufferizer_read(obj,tmp,bytes);
+	ms_bufferizer_read(obj, NULL, bytes);
 }
 
 void ms_bufferizer_flush(MSBufferizer *obj){
