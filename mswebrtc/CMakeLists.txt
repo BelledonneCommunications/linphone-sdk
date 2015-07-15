@@ -83,7 +83,7 @@ if(UNIX)
 	endif()
 endif()
 
-string(REGEX MATCH "^(arm|aarch64)*" FIXED_POINT_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
+string(REGEX MATCH "^(arm*|aarch64)" FIXED_POINT_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
 if(FIXED_POINT_PROCESSOR)
 	add_definitions(-D__ARMEL__)
 endif()
