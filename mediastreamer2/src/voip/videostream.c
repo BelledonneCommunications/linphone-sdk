@@ -1542,3 +1542,27 @@ void video_stream_use_video_preset(VideoStream *stream, const char *preset) {
 	if (stream->preset != NULL) ms_free(stream->preset);
 	stream->preset = ms_strdup(preset);
 }
+
+MSFilter * video_stream_open_remote_play(VideoStream *stream, const char *filename){
+	/*stub, to be implemented.*/
+	return NULL;
+}
+
+void video_stream_close_remote_play(VideoStream *stream){
+	/*stub, to be implemented.*/
+}
+
+int video_stream_remote_record_open(VideoStream *stream, const char *filename){
+	/*stub, to be implemented.*/
+	return -1;
+}
+
+int video_stream_remote_record_start(VideoStream *stream){
+	/*stub, to be implemented.*/
+	return -1;
+}
+
+int video_stream_remote_record_stop(VideoStream *stream){
+	/*stub, to be implemented.*/
+	return -1;
+}

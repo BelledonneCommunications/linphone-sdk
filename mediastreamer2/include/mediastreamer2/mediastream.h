@@ -1015,6 +1015,25 @@ MS2_PUBLIC void audio_stream_unlink_video(AudioStream *stream, VideoStream *vide
  */
 MS2_PUBLIC void video_stream_use_video_preset(VideoStream *stream, const char *preset);
 
+
+/**
+ * Open a player to play a video file (mkv) to remote end.
+ * The player is returned as a MSFilter so that application can make usual player controls on it using the MSPlayerInterface.
+**/
+MS2_PUBLIC MSFilter * video_stream_open_remote_play(VideoStream *stream, const char *filename);
+
+MS2_PUBLIC void video_stream_close_remote_play(VideoStream *stream);
+
+/**
+ * Open a recorder to record the video coming from remote end into a mkv file.
+ * This must be done before the stream is started.
+**/
+MS2_PUBLIC int video_stream_remote_record_open(VideoStream *stream, const char *filename);
+
+MS2_PUBLIC int video_stream_remote_record_start(VideoStream *stream);
+
+MS2_PUBLIC int video_stream_remote_record_stop(VideoStream *stream);
+
 /**
  * Small API to display a local preview window.
 **/
