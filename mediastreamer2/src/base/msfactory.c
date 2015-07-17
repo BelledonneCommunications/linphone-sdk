@@ -262,6 +262,8 @@ void ms_factory_register_filter(MSFactory* factory, MSFilterDesc* desc ) {
 	if (desc->id==MS_FILTER_NOT_SET_ID){
 		ms_fatal("MSFilterId for %s not set !",desc->name);
 	}
+	desc->enabled=TRUE; /*by default a registered filter is enabled*/
+
 	/*lastly registered encoder/decoders may replace older ones*/
 	factory->desc_list=ms_list_prepend(factory->desc_list,desc);
 }
@@ -328,8 +330,9 @@ MSFilterDesc * ms_factory_get_encoder(MSFactory* factory, const char *mime){
 	MSList *elem;
 	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if ((desc->category==MS_FILTER_ENCODER || desc->category==MS_FILTER_ENCODING_CAPTURER) &&
-			strcasecmp(desc->enc_fmt,mime)==0){
+		if (desc->enabled
+			&& (desc->category==MS_FILTER_ENCODER || desc->category==MS_FILTER_ENCODING_CAPTURER)
+			&& strcasecmp(desc->enc_fmt,mime)==0){
 			return desc;
 		}
 	}
@@ -340,8 +343,9 @@ MSFilterDesc * ms_factory_get_decoder(MSFactory* factory, const char *mime){
 	MSList *elem;
 	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if ((desc->category==MS_FILTER_DECODER || desc->category==MS_FILTER_DECODER_RENDERER) &&
-			strcasecmp(desc->enc_fmt,mime)==0){
+		if (desc->enabled
+			&& (desc->category==MS_FILTER_DECODER || desc->category==MS_FILTER_DECODER_RENDERER)
+			&& strcasecmp(desc->enc_fmt,mime)==0){
 			return desc;
 		}
 	}
@@ -389,7 +393,7 @@ MSFilter *ms_factory_create_filter(MSFactory* factory, MSFilterId id){
 	return NULL;
 }
 
-MSFilterDesc *ms_factory_lookup_filter_by_name(MSFactory* factory, const char *filter_name){
+MSFilterDesc *ms_factory_lookup_filter_by_name(const MSFactory* factory, const char *filter_name){
 	MSList *elem;
 	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
@@ -803,3 +807,39 @@ const MSFmtDescriptor * ms_factory_get_video_format(MSFactory *obj, const char *
 	return ms_factory_get_format(obj,&tmp);
 }
 
+int ms_factory_enable_filter_from_name(MSFactory *factory, const char *name,bool_t enable) {
+	MSFilterDesc *desc=ms_factory_lookup_filter_by_name(factory,name);
+	if (!desc) {
+		ms_error("Cannot enable/disable unknown filter [%s] on factory [%p]",name,factory);
+		return -1;
+	}
+	desc->enabled=enable;
+	ms_message("Filter [%s]  %s on factory [%p]",name,(enable?"enabled":"disabled"),factory);
+	return 0;
+}
+bool_t ms_factory_filter_from_name_enabled(const MSFactory *factory, const char *name) {
+	MSFilterDesc *desc=ms_factory_lookup_filter_by_name(factory,name);
+	if (!desc) {
+		ms_error("Cannot get enable/disable state for unknown filter [%s] on factory [%p]",name,factory);
+		return FALSE;
+	}
+	return desc->enabled;
+}
+
+#ifdef ANDROID
+#include "sys/system_properties.h"
+#include <jni.h>
+
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_enableFilterFromNameImpl(JNIEnv* env,  jobject obj, jstring jname, jboolean enable) {
+	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
+	int result = ms_factory_enable_filter_from_name(ms_factory_get_fallback(),mime,enable);
+	(*env)->ReleaseStringUTFChars(env, jname, mime);
+	return result;
+}
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_filterFromNameEnabledImpl(JNIEnv* env, jobject obj, jstring jname) {
+	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
+	jboolean result = ms_factory_filter_from_name_enabled(ms_factory_get_fallback(),mime);
+	(*env)->ReleaseStringUTFChars(env, jname, mime);
+	return result;
+}
+#endif

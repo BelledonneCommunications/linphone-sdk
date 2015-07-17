@@ -165,6 +165,7 @@ struct _MSFilterDesc{
 	MSFilterFunc uninit; /**< Filter's uninit function, used to deallocate internal structures*/
 	MSFilterMethod *methods; /**<Filter's method table*/
 	unsigned int flags; /**<Filter's special flags, from the MSFilterFlags enum.*/
+	bool_t enabled; /*Flag to specify if a filter is enabled or not. Only enabled filter are return by function ms_filter_get_encoder */
 };
 
 /**

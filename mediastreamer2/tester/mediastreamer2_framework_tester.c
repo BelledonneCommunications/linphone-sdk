@@ -141,11 +141,48 @@ static void test_is_multicast(void) {
 	BC_ASSERT_FALSE(ms_is_multicast("::1"));
 
 }
+
+static void test_filterdesc_enable_disable_base(const char* mime, const char* filtername,bool_t is_enc) {
+	ms_init();
+	MSFilter *filter;
+
+	if (is_enc)
+			filter = ms_filter_create_encoder(mime);
+		else
+			filter = ms_filter_create_decoder(mime);
+
+	BC_ASSERT_PTR_NOT_NULL(filter);
+	ms_filter_destroy(filter);
+
+	BC_ASSERT_FALSE(ms_factory_enable_filter_from_name(ms_factory_get_fallback(),filtername,FALSE));
+	BC_ASSERT_FALSE(ms_factory_filter_from_name_enabled(ms_factory_get_fallback(),filtername));
+	if (is_enc)
+			filter = ms_filter_create_encoder(mime);
+		else
+			filter = ms_filter_create_decoder(mime);
+	BC_ASSERT_PTR_NULL(filter);
+
+	BC_ASSERT_FALSE(ms_factory_enable_filter_from_name(ms_factory_get_fallback(),filtername,TRUE));
+	BC_ASSERT_TRUE(ms_factory_filter_from_name_enabled(ms_factory_get_fallback(),filtername));
+	if (is_enc)
+		filter = ms_filter_create_encoder(mime);
+	else
+		filter = ms_filter_create_decoder(mime);
+	BC_ASSERT_PTR_NOT_NULL(filter);
+
+	ms_filter_destroy(filter);
+	ms_exit();
+}
+static void test_filterdesc_enable_disable() {
+	test_filterdesc_enable_disable_base("pcmu", "MSUlawDec", FALSE);
+	test_filterdesc_enable_disable_base("pcma", "MSAlawEnc", TRUE);
+}
 static test_t tests[] = {
-	  { "Multiple ms_voip_init", filter_register_tester }
-	, { "Is multicast", test_is_multicast}
+	 { "Multiple ms_voip_init", filter_register_tester },
+	 { "Is multicast", test_is_multicast},
+	 { "FilterDesc enabling/disabling", test_filterdesc_enable_disable},
 #ifdef VIDEO_ENABLED
-	, { "Video processing function", test_video_processing}
+	 { "Video processing function", test_video_processing}
 #endif
 };
 
