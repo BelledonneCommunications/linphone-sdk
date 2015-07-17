@@ -47,6 +47,7 @@ set(DEFAULT_VALUE_ENABLE_X264 OFF)
 set(DEFAULT_VALUE_ENABLE_TUNNEL OFF)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
 set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
+set(DEFAULT_VALUE_ENABLE_PACKAGING ON)
 
 
 # Global configuration
@@ -119,15 +120,17 @@ endif()
 
 
 # Packaging
-linphone_builder_apply_flags()
-linphone_builder_set_ep_directories(linphone_package)
-linphone_builder_expand_external_project_vars()
-ExternalProject_Add(TARGET_linphone_package
-	DEPENDS TARGET_linphone_builder
-	TMP_DIR ${ep_tmp}
-	BINARY_DIR ${ep_build}
-	DOWNLOAD_COMMAND ""
-	PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}/desktop" "<SOURCE_DIR>"
-	CMAKE_GENERATOR ${CMAKE_GENERATOR}
-	CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DCMAKE_INSTALL_PREFIX=${LINPHONE_BUILDER_WORK_DIR}/PACKAGE -DLINPHONE_OUTPUT_DIR=${CMAKE_INSTALL_PREFIX} -DENABLE_ZRTP:BOOL=${ENABLE_ZRTP}
-)
+if (ENABLE_PACKAGING)
+	linphone_builder_apply_flags()
+	linphone_builder_set_ep_directories(linphone_package)
+	linphone_builder_expand_external_project_vars()
+	ExternalProject_Add(TARGET_linphone_package
+		DEPENDS TARGET_linphone_builder
+		TMP_DIR ${ep_tmp}
+		BINARY_DIR ${ep_build}
+		DOWNLOAD_COMMAND ""
+		PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}/desktop" "<SOURCE_DIR>"
+		CMAKE_GENERATOR ${CMAKE_GENERATOR}
+		CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DCMAKE_INSTALL_PREFIX=${LINPHONE_BUILDER_WORK_DIR}/PACKAGE -DLINPHONE_OUTPUT_DIR=${CMAKE_INSTALL_PREFIX} -DENABLE_ZRTP:BOOL=${ENABLE_ZRTP}
+	)
+endif()
