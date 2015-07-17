@@ -19,7 +19,6 @@
 #include "grammars/belle_sip_messageParser.h"
 
 #include "belle-sip/generic-uri.h"
-#include "belle-sip/parameters.h"
 #include "belle_sip_internal.h"
 
 

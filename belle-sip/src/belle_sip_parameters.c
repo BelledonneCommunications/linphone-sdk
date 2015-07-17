@@ -29,7 +29,7 @@ void belle_sip_parameters_clean(belle_sip_parameters_t* params) {
 	params->paramnames_list=NULL;
 	params->param_list=NULL;
 }
-static void belle_sip_parameters_destroy(belle_sip_parameters_t* params) {
+void belle_sip_parameters_destroy(belle_sip_parameters_t* params) {
 	belle_sip_parameters_clean(params);
 }
 
@@ -113,7 +113,7 @@ void belle_sip_parameters_set(belle_sip_parameters_t *parameters, const char* pa
 		char *current=tmp;
 		char *equal;
 		char *next;
-		
+
 		do{
 			end_of_param=strchr(current,';');
 			equal=strchr(current,'=');
