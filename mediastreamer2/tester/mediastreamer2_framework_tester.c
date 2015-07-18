@@ -143,8 +143,9 @@ static void test_is_multicast(void) {
 }
 
 static void test_filterdesc_enable_disable_base(const char* mime, const char* filtername,bool_t is_enc) {
-	ms_init();
 	MSFilter *filter;
+
+	ms_init();
 
 	if (is_enc)
 			filter = ms_filter_create_encoder(mime);
