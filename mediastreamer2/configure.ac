@@ -1082,21 +1082,21 @@ if test "${srtp_prefix}" != "none" ; then
 			if test -f $srtp_static_lib -a -r $srtp_static_lib; then
 				SRTP_LIBS="${srtp_prefix}/lib/libsrtp.a -Bsymbolic -Wl,--version-script=\$(top_srcdir)/src/libsrtp.map"
 				AC_DEFINE(HAVE_SRTP, 1, [Defined when srtp support is compiled])
-				have_srtp=yes
+				have_srtp=true
 			else
 				AC_MSG_WARN([Could not access to $srtp_static_lib. Please use --with-srtp=PREFIX to specify the prefix where libsrtp.a has been installed])
 				SRTP_CFLAGS=
 				SRTP_LIBS=
-				have_srtp=no
+				have_srtp=true
 			fi
 		else
 			AC_DEFINE(HAVE_SRTP, 1, [Defined when srtp support is compiled])
-			have_srtp=yes
+			have_srtp=false
 		fi
 
 	else
 		AC_MSG_NOTICE([Could not find libsrtp headers or lib, cryto transport disabled.])
-		have_srtp=no
+		have_srtp=false
 		SRTP_CFLAGS=
 		SRTP_LIBS=
 	fi
@@ -1104,7 +1104,7 @@ if test "${srtp_prefix}" != "none" ; then
 	AC_SUBST(SRTP_CFLAGS)
 	AC_SUBST(SRTP_LIBS)
 else
-	have_srtp=no
+	have_srtp=false
 	SRTP_CFLAGS=
 	SRTP_LIBS=
 fi
@@ -1127,7 +1127,7 @@ if test "$zrtp" != "false" ; then
 		AC_MSG_ERROR("Cound not find bZRTP library.")
 	fi
 	if test "$found_zrtp" = "true" ; then
-		if test "$have_srtp" = "no" ; then
+		if test "$have_srtp" = "false" ; then
 			if test "$zrtp" = "true" ; then
 				AC_MSG_ERROR("ZRTP requires SRTP")
 			else
@@ -1194,7 +1194,7 @@ AC_ARG_ENABLE(dtls,
 )
 
 if test "$dtls" = "true" ; then
-	if test "$have_srtp" = "no" ; then
+	if test "$have_srtp" = "false" ; then
 		AC_MSG_ERROR("DTLS-SRTP requires SRTP")
 	fi
 
@@ -1371,7 +1371,8 @@ AC_OUTPUT
 echo "Mediastreamer2 build configuration ended."
 echo "Summary of build options:"
 printf "* %-30s %s\n" "Video support"		$video
+printf "* %-30s %s\n" "sRTP encryption"		$have_srtp
 printf "* %-30s %s\n" "zRTP encryption"		$zrtp
-printf "* %-30s %s\n" "DTLS encryption"		$dtls
+printf "* %-30s %s\n" "SRTP-DTLS encryption"	$dtls
 printf "* %-30s %s\n" "Non-free codecs" 	$non_free_codecs
 
