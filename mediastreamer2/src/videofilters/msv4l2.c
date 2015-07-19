@@ -200,15 +200,34 @@ static MSPixFmt v4l2_format_to_ms(int v4l2format) {
 static const V4L2FormatDescription* query_format_description_for_size(int fd, MSVideoSize vsize) {
 	/* hardcode supported format in preferred order*/
 	static V4L2FormatDescription formats[4];
+	int i=0;
+	
 	memset(formats,0,sizeof(formats));
-	formats[0].pixel_format = V4L2_PIX_FMT_YUV420;
-	formats[0].max_fps = -1;
-	formats[1].pixel_format = V4L2_PIX_FMT_YUYV;
-	formats[1].max_fps = -1;
-	formats[2].pixel_format = V4L2_PIX_FMT_MJPEG;
-	formats[2].max_fps = -1;
-	formats[3].pixel_format = V4L2_PIX_FMT_RGB24;
-	formats[3].max_fps = -1;
+	
+	formats[i].pixel_format = V4L2_PIX_FMT_YUV420;
+	formats[i].max_fps = -1;
+	i++;
+	/* we must avoid YUYV (and actually any YUV format different than YUV420P) because the pixel converter/scaler implementation
+	 * of ffmpeg is not optimized for arm. So we need to prefer YUV420P if directly available or MJPEG*/
+#ifndef __arm__
+	formats[i].pixel_format = V4L2_PIX_FMT_YUYV;
+	formats[i].max_fps = -1;
+	i++;
+#endif
+	
+	formats[i].pixel_format = V4L2_PIX_FMT_MJPEG;
+	formats[i].max_fps = -1;
+	i++;
+	
+#ifdef __arm__
+	formats[i].pixel_format = V4L2_PIX_FMT_YUYV;
+	formats[i].max_fps = -1;
+	i++;
+#endif
+	
+	formats[i].pixel_format = V4L2_PIX_FMT_RGB24;
+	formats[i].max_fps = -1;
+	i++;
 
 	{
 		struct v4l2_fmtdesc fmt;
@@ -216,7 +235,6 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 		while (v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmt) >= 0) {
-			int i;
 			for (i=0; i<4; i++) {
 				if (fmt.pixelformat == formats[i].pixel_format) {
 					formats[i].max_fps = query_max_fps_for_format_resolution(fd, fmt.pixelformat, vsize);
