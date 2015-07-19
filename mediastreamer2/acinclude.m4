@@ -200,8 +200,8 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			if test "$enable_x11" = "true"; then
 				AC_CHECK_HEADERS(X11/Xlib.h)
 			else
-				enable_xv=false
-				enable_glx=false
+				enable_xv=no
+				enable_glx=no
 			fi
 
 			AC_ARG_ENABLE(xv,
