@@ -944,9 +944,13 @@ int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *p
 				ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
 			configure_decoder(stream,pt);
 
-			/*force the decoder to output YUV420P */
-			format=MS_YUV420P;
-			ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_PIX_FMT,&format);
+			if (stream->output_performs_decoding) {
+				format = mime_type_to_pix_format(pt->mime_type);
+			} else {
+				/*force the decoder to output YUV420P */
+				format = MS_YUV420P;
+			}
+			ms_filter_call_method(stream->ms.decoder, MS_FILTER_SET_PIX_FMT, &format);
 
 			/*configure the display window */
 			if(stream->output != NULL) {
