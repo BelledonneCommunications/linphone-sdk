@@ -51,6 +51,9 @@
     <ProjectReference Include="..\..\..\..\..\..\mswebrtc\build\windows10\libmswebrtc\libmswebrtc.vcxproj">
       <Project>{878cf9d3-9761-479e-a715-a1de9f99cb78}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\..\mswinrtvid\windows10\libmswinrtvid\libmswinrtvid.vcxproj">
+      <Project>{2d0e44c4-e51d-4911-b876-345d1e5e5209}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\ms2-tester-static\ms2-tester-static.vcxproj">
       <Project>{6f92d56c-620f-4d56-8dba-c02c0e06a0d1}</Project>
     </ProjectReference>
@@ -97,7 +100,7 @@
       <AdditionalUsingDirectories>$(WindowsSDK_WindowsMetadata);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>28204</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\tester;$(ProjectDir)..\..\..\..\tester\common;$(ProjectDir)..\..\..\..\..\oRTP\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\tester;$(ProjectDir)..\..\..\..\tester\common;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\..\mswinrtvid\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

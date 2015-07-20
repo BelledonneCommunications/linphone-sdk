@@ -21,6 +21,8 @@ namespace ms2_tester_runtime_component
 		Platform::String^ testName(Platform::String^ suiteName, int testIndex);
 		bool run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose);
 		void runAllToXml();
+		void startVideoStream(Platform::Object^ CaptureElement, Platform::Object^ MediaElement);
+		void stopVideoStream();
 
 		static property MS2Tester^ Instance
 		{
@@ -37,5 +39,6 @@ namespace ms2_tester_runtime_component
 
 		static MS2Tester^ _instance;
 		Windows::Foundation::IAsyncAction^ _asyncAction;
+		VideoStream *_videoStream;
 	};
 }

@@ -1,6 +1,7 @@
 ﻿#include <string>
 
 #include "mediastreamer2_tester_windows.h"
+#include "mswinrtvid.h"
 
 using namespace ms2_tester_runtime_component;
 using namespace Platform;
@@ -18,12 +19,12 @@ MS2Tester^ MS2Tester::_instance = ref new MS2Tester();
 
 static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 {
+	wchar_t wstr[MAX_TRACE_SIZE];
+	std::string str;
+	str.resize(MAX_TRACE_SIZE);
+	vsnprintf((char *)str.c_str(), MAX_TRACE_SIZE, fmt, args);
+	mbstowcs(wstr, str.c_str(), MAX_TRACE_SIZE - 1);
 	if (sTraceListener) {
-		wchar_t wstr[MAX_TRACE_SIZE];
-		std::string str;
-		str.resize(MAX_TRACE_SIZE);
-		vsnprintf((char *)str.c_str(), MAX_TRACE_SIZE, fmt, args);
-		mbstowcs(wstr, str.c_str(), MAX_TRACE_SIZE - 1);
 		String^ msg = ref new String(wstr);
 		String^ l;
 		switch (lev) {
@@ -43,6 +44,8 @@ static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 		}
 		sTraceListener->outputTrace(l, msg);
 	}
+	OutputDebugStringW(wstr);
+	OutputDebugStringW(L"\n");
 }
 
 static void ms2NativeOutputTraceHandler(OrtpLogLevel lev, const char *fmt, va_list args)
@@ -146,4 +149,36 @@ Platform::String^ MS2Tester::testName(Platform::String^ suiteName, int testIndex
 	wchar_t wcname[MAX_SUITE_NAME_SIZE];
 	mbstowcs(wcname, cname, sizeof(wcname));
 	return ref new String(wcname);
+}
+
+void MS2Tester::startVideoStream(Platform::Object^ CaptureElement, Platform::Object^ MediaElement)
+{
+	ortp_init();
+	ms_base_init();
+	ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+	ortp_set_log_handler(ms2NativeOutputTraceHandler);
+	ms_voip_init();
+	ms_plugins_init();
+	rtp_profile_set_payload(&av_profile, 102, &payload_type_h264);
+	ms_filter_enable_statistics(TRUE);
+	ms_filter_reset_statistics();
+
+	MSWebCamManager *manager = ms_web_cam_manager_get();
+	MSWebCam *camera = ms_web_cam_manager_get_default_cam(manager);
+	_videoStream = video_stream_new(20000, 0, FALSE);
+	RefToPtrProxy<Platform::Object^> *previewWindowId = new RefToPtrProxy<Platform::Object^>(CaptureElement);
+	video_stream_set_native_preview_window_id(_videoStream, previewWindowId);
+	RefToPtrProxy<Platform::Object^> *nativeWindowId = new RefToPtrProxy<Platform::Object^>(MediaElement);
+	video_stream_set_native_window_id(_videoStream, nativeWindowId);
+	video_stream_set_display_filter_name(_videoStream, "MSWinRTDis");
+	video_stream_set_direction(_videoStream, VideoStreamRecvOnly);
+	video_stream_start(_videoStream, &av_profile, "127.0.0.1", 21000, NULL, 0, 102, 0, camera);
+}
+
+void MS2Tester::stopVideoStream()
+{
+	ms_filter_log_statistics();
+	video_stream_stop(_videoStream);
+	_videoStream = NULL;
+	ms_exit();
 }

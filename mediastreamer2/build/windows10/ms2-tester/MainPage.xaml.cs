@@ -193,5 +193,56 @@ namespace ms2_tester
 
         private UnitTestCase RunningTestCase;
         private UnitTestCase DisplayedTestCase;
+
+        private void VideoToggleButton_Checked(object sender, RoutedEventArgs e)
+        {
+            AppBarToggleButton b = sender as AppBarToggleButton;
+            if (b.IsChecked == true)
+            {
+                MS2Tester.Instance.startVideoStream(LocalVideo, RemoteVideo);
+                Run.IsEnabled = false;
+            }
+            else
+            {
+                MS2Tester.Instance.stopVideoStream();
+                Run.IsEnabled = true;
+            }
+        }
+
+        private void RemoteVideo_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("RemoteVideo_MediaFailed");
+        }
+
+        private void RemoteVideo_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("RemoteVideo_MediaEnded");
+        }
+
+        private void RemoteVideo_MediaOpened(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("RemoteVideo_MediaOpened");
+        }
+
+        private void RemoteVideo_PartialMediaFailureDetected(MediaElement sender, PartialMediaFailureDetectedEventArgs args)
+        {
+            System.Diagnostics.Debug.WriteLine("RemoteVideo_PartialMediaFailureDetected");
+        }
+
+        private void RemoteVideo_RateChanged(object sender, RateChangedRoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("RemoteVideo_RateChanged");
+        }
+
+        private void RemoteVideo_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine(String.Format("RemoteVideo_SizeChanged from {0}x{1} to {2}x{3}", e.PreviousSize.Width, e.PreviousSize.Height, e.NewSize.Width, e.NewSize.Height));
+        }
+
+        private void RemoteVideo_CurrentStateChanged(object sender, RoutedEventArgs e)
+        {
+            MediaElement mediaElement = sender as MediaElement;
+            System.Diagnostics.Debug.WriteLine(String.Format("RemoteVideo_CurrentStateChanged: {0}", mediaElement.CurrentState));
+        }
     }
 }

@@ -49,6 +49,7 @@
 
     <Page.BottomAppBar>
         <CommandBar x:Name="CommandBar">
+            <AppBarToggleButton x:Name="VideoToggleButton" Icon="Video" Label="Video tester" Checked="VideoToggleButton_Checked" Unchecked="VideoToggleButton_Checked"/>
             <AppBarButton x:Name="Run" Icon="Play" Label="Run" Click="RunSelected_Click"/>
             <AppBarButton x:Name="SelectAll" Icon="SelectAll" Label="Select all" Click="SelectAll_Click"/>
             <AppBarToggleButton x:Name="Verbose" Icon="Comment" IsChecked="True" Label="Verbose"/>
@@ -98,6 +99,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Text="Test result" Style="{StaticResource HeaderTextBlockStyle}" Margin="12,0,0,0"/>
@@ -120,6 +122,10 @@
                 <ScrollViewer Grid.Row="2">
                     <ItemsControl ItemsSource="{Binding Traces}" ItemTemplate="{StaticResource TraceTemplate}" Margin="20,12,0,0"/>
                 </ScrollViewer>
+                <StackPanel Orientation="Horizontal" Grid.Row="3" MaxHeight="320">
+                    <CaptureElement x:Name="LocalVideo" Stretch="Uniform"/>
+                    <MediaElement x:Name="RemoteVideo" Stretch="Uniform" MediaFailed="RemoteVideo_MediaFailed" MediaEnded="RemoteVideo_MediaEnded" MediaOpened="RemoteVideo_MediaOpened" PartialMediaFailureDetected="RemoteVideo_PartialMediaFailureDetected" RateChanged="RemoteVideo_RateChanged" SizeChanged="RemoteVideo_SizeChanged" CurrentStateChanged="RemoteVideo_CurrentStateChanged"/>
+                </StackPanel>
             </Grid>
         </SplitView>
         <ProgressBar x:Name="ProgressIndicator" Grid.Row="1"
