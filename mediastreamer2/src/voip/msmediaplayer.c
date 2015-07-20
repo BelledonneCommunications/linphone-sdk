@@ -55,7 +55,7 @@ struct _MSMediaPlayer {
 	ms_mutex_t cb_access;
 	MSSndCard *snd_card;
 	char *video_display;
-	unsigned long window_id;
+	void *window_id;
 };
 
 static bool_t _get_format(const char *filepath, MSFileFormat *format);
@@ -83,7 +83,7 @@ static MSFileFormat four_cc_to_file_format(const FourCC four_cc) {
 	return MS_FILE_FORMAT_UNKNOWN;
 }
 
-MSMediaPlayer *ms_media_player_new(MSSndCard *snd_card, const char *video_display_name, unsigned long window_id) {
+MSMediaPlayer *ms_media_player_new(MSSndCard *snd_card, const char *video_display_name, void *window_id) {
 	MSMediaPlayer *obj = (MSMediaPlayer *)ms_new0(MSMediaPlayer, 1);
 	obj->ticker = ms_ticker_new();
 	ms_mutex_init(&obj->cb_access, NULL);
@@ -102,7 +102,7 @@ void ms_media_player_free(MSMediaPlayer *obj) {
 	ms_free(obj);
 }
 
-unsigned long ms_media_player_get_window_id(const MSMediaPlayer *obj) {
+void * ms_media_player_get_window_id(const MSMediaPlayer *obj) {
 	return obj->window_id;
 }
 
