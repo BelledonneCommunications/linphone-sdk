@@ -697,8 +697,8 @@ struct _VideoStream
 	VideoStreamEventCallback eventcb;
 	void *event_pointer;
 	char *display_name;
-	unsigned long window_id;
-	unsigned long preview_window_id;
+	void *window_id;
+	void *preview_window_id;
 	VideoStreamDir dir;
 	MSWebCam *cam;
 	RtpSession *rtp_io_session; /**< The RTP session used for RTP input/output. */
@@ -904,10 +904,10 @@ MS2_PUBLIC float video_stream_get_received_framerate(const VideoStream *stream);
 MS2_PUBLIC const char *video_stream_get_default_video_renderer(void);
 
 MS2_PUBLIC void video_stream_enable_self_view(VideoStream *stream, bool_t val);
-MS2_PUBLIC unsigned long video_stream_get_native_window_id(VideoStream *stream);
-MS2_PUBLIC void video_stream_set_native_window_id(VideoStream *stream, unsigned long id);
-MS2_PUBLIC void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id);
-MS2_PUBLIC unsigned long video_stream_get_native_preview_window_id(VideoStream *stream);
+MS2_PUBLIC void * video_stream_get_native_window_id(VideoStream *stream);
+MS2_PUBLIC void video_stream_set_native_window_id(VideoStream *stream, void *id);
+MS2_PUBLIC void video_stream_set_native_preview_window_id(VideoStream *stream, void *id);
+MS2_PUBLIC void * video_stream_get_native_preview_window_id(VideoStream *stream);
 MS2_PUBLIC void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
 MS2_PUBLIC void video_stream_set_device_rotation(VideoStream *stream, int orientation);
 MS2_PUBLIC void video_stream_show_video(VideoStream *stream, bool_t show);
