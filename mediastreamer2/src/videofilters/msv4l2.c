@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifdef HAVE_LINUX_VIDEODEV2_H
 
+#define POSSIBLE_FORMATS_COUNT 4
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -77,7 +78,6 @@ typedef struct V4l2State{
 	MSVideoSize vsize;
 	MSVideoSize got_vsize;
 	int pix_fmt;
-	int int_pix_fmt; /*internal pixel format */
 	int picture_size;
 	mblk_t *frames[VIDEO_MAX_FRAME];
 	int frame_ind;
@@ -199,7 +199,7 @@ static MSPixFmt v4l2_format_to_ms(int v4l2format) {
 
 static const V4L2FormatDescription* query_format_description_for_size(int fd, MSVideoSize vsize) {
 	/* hardcode supported format in preferred order*/
-	static V4L2FormatDescription formats[4];
+	static V4L2FormatDescription formats[POSSIBLE_FORMATS_COUNT];
 	int i=0;
 	
 	memset(formats,0,sizeof(formats));
@@ -235,7 +235,7 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 		while (v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmt) >= 0) {
-			for (i=0; i<4; i++) {
+			for (i=0; i<POSSIBLE_FORMATS_COUNT; i++) {
 				if (fmt.pixelformat == formats[i].pixel_format) {
 					formats[i].max_fps = query_max_fps_for_format_resolution(fd, fmt.pixelformat, vsize);
 					formats[i].native = !(fmt.flags & V4L2_FMT_FLAG_EMULATED);
@@ -255,20 +255,20 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 	return formats;
 }
 
-static MSPixFmt pick_best_format(int fd, const V4L2FormatDescription* format_desc, MSVideoSize vsize) {
+MSPixFmt msv4l2_pick_best_format_x86(int fd, const V4L2FormatDescription* format_desc, MSVideoSize vsize, float target_fps) {
 	/* rules for picking a format are:
-	    - only max_fps >= 15 images/sec are considered
+	    - only max_fps >= target_fps images/sec are considered
 	    - native > compressed > emulated
 	*/
 	enum { PREFER_NATIVE = 0, PREFER_COMPRESSED, NO_PREFERENCE} i;
 	int j;
 	for (i=PREFER_NATIVE; i<=NO_PREFERENCE; i++) {
-		for (j=0; j<4; j++) {
+		for (j=0; j<POSSIBLE_FORMATS_COUNT; j++) {
 			int candidate = -1;
 			if (!format_desc[j].supported) continue;
 			switch (i) {
 				case PREFER_NATIVE:
-					if (format_desc[j].max_fps >= 15 && format_desc[j].native)
+					if (format_desc[j].max_fps >= target_fps && format_desc[j].native)
 						candidate = j;
 					break;
 				case PREFER_COMPRESSED:
@@ -300,6 +300,38 @@ static MSPixFmt pick_best_format(int fd, const V4L2FormatDescription* format_des
 	ms_error("No compatible format found");
 	return MS_PIX_FMT_UNKNOWN;
 }
+
+MSPixFmt msv4l2_pick_best_format_basic(int fd, const V4L2FormatDescription* format_desc, MSVideoSize vsize, float target_fps) {
+	int j;
+	/* rules for picking a format are:
+	   available fps > requested fps
+	   no matter whether it is compressed or non-native, since swscale pixel converter is supposed to be much less efficient than libv4l's one
+	   in this case.
+	*/
+	for (j=0; j<POSSIBLE_FORMATS_COUNT; j++) {
+		if (!format_desc[j].supported) continue;
+		if (format_desc[j].max_fps >= target_fps || format_desc[j].max_fps==-1 /*max fps unknown*/){
+			struct v4l2_format fmt;
+			fmt.fmt.pix.width       = vsize.width;
+			fmt.fmt.pix.height      = vsize.height;
+
+			if (v4lv2_try_format(fd, &fmt, format_desc[j].pixel_format)) {
+				MSPixFmt selected=v4l2_format_to_ms(format_desc[j].pixel_format);
+				ms_message("V4L2: selected format is %s", ms_pix_fmt_to_string(selected));
+				return selected;
+			}
+		}
+	}
+
+	ms_error("No compatible format found");
+	return MS_PIX_FMT_UNKNOWN;
+}
+
+#if defined(__i386) || defined(__x86_64__)
+#define pick_best_format msv4l2_pick_best_format_x86
+#else
+#define pick_best_format msv4l2_pick_best_format_basic
+#endif
 
 static int set_camera_feature(V4l2State *s, unsigned int ctl_id, int value, const char *feature_name){
 	struct v4l2_ext_control ctl={0};
@@ -364,7 +396,7 @@ static int msv4l2_configure(V4l2State *s){
 
 	do{
 		const V4L2FormatDescription* formats_desc = query_format_description_for_size(s->fd, s->vsize);
-		s->pix_fmt = pick_best_format(s->fd, formats_desc, s->vsize);
+		s->pix_fmt = pick_best_format(s->fd, formats_desc, s->vsize, s->fps);
 
 		if (s->pix_fmt == MS_PIX_FMT_UNKNOWN)
 			s->vsize=ms_video_size_get_just_lower_than(s->vsize);
