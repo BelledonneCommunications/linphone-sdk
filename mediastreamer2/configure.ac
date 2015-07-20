@@ -1091,7 +1091,7 @@ if test "${srtp_prefix}" != "none" ; then
 			fi
 		else
 			AC_DEFINE(HAVE_SRTP, 1, [Defined when srtp support is compiled])
-			have_srtp=false
+			have_srtp=true
 		fi
 
 	else
