@@ -30,7 +30,7 @@ import android.graphics.PixelFormat;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
  
-class GL2JNIView extends GLSurfaceView {
+public class GL2JNIView extends GLSurfaceView {
     private static final boolean DEBUG = false;
 
     public GL2JNIView(Context context) {
