@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-set(EP_flexisip_GIT_REPOSITORY "gitosis@git.linphone.org:flexisip")
+set(EP_flexisip_GIT_REPOSITORY "git://git.linphone.org/flexisip")
 set(EP_flexisip_GIT_TAG_LATEST "master")
 set(EP_flexisip_GIT_TAG "698eb5d3f66ad9b70e07b3138e487f5f487f88bc")
 
