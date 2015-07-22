@@ -27,53 +27,28 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\tester\mediastreamer2_tester_windows.cpp" />
+    <ClCompile Include="..\..\..\src\videofilters\winrtjpeg2yuv.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\tester\mediastreamer2_tester_windows.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\..\bcg729\build\windows10\libmsbcg729\libmsbcg729.vcxproj">
-      <Project>{acf5ea95-d647-4d0c-8f97-2cd9aae8a2e0}</Project>
+    <ProjectReference Include="..\..\..\..\oRTP\build\windows10\ortp\ortp.vcxproj">
+      <Project>{2e56b851-9d8d-40e5-84bb-e4ee63b71d25}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\..\msamr\build\windows10\libmsamr\libmsamr.vcxproj">
-      <Project>{8c1bc968-c5c8-4d4b-9ef3-d6a065fc7c97}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\..\msilbc\build\windows10\libmsilbc\libmsilbc.vcxproj">
-      <Project>{6a18bbb9-08d1-41a8-be57-17fc992cc36f}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\..\msopenh264\build\windows10\libmsopenh264\libmsopenh264.vcxproj">
-      <Project>{bb8ebb21-f22c-4a68-99cb-67fa36c495e3}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\..\mssilk\build\windows10\libmssilk\libmssilk.vcxproj">
-      <Project>{b84d5c3b-6de5-49c8-b3dd-5eb67b01a527}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\..\mswasapi\windows10\libmswasapi\libmswasapi.vcxproj">
-      <Project>{266b769a-c04e-424c-9033-7209f0425bc0}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\..\mswebrtc\build\windows10\libmswebrtc\libmswebrtc.vcxproj">
-      <Project>{878cf9d3-9761-479e-a715-a1de9f99cb78}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\..\mswinrtvid\windows10\libmswinrtvid\libmswinrtvid.vcxproj">
-      <Project>{2d0e44c4-e51d-4911-b876-345d1e5e5209}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\mswinrtjpeg2yuv\mswinrtjpeg2yuv.vcxproj">
-      <Project>{545f846d-7f19-4d6d-a50b-172a7c9b61e7}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\ms2-tester-static\ms2-tester-static.vcxproj">
-      <Project>{6f92d56c-620f-4d56-8dba-c02c0e06a0d1}</Project>
+    <ProjectReference Include="..\mediastreamer2\mediastreamer2.vcxproj">
+      <Project>{88e3c241-eb6f-4c84-80dc-89b8961daf80}</Project>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{1d1b61e3-695e-4535-8f3f-b26e2cb0f342}</ProjectGuid>
+    <ProjectGuid>{545f846d-7f19-4d6d-a50b-172a7c9b61e7}</ProjectGuid>
     <Keyword>WindowsRuntimeComponent</Keyword>
-    <ProjectName>ms2-tester-runtime-component</ProjectName>
-    <RootNamespace>ms2_tester_runtime_component</RootNamespace>
+    <ProjectName>mswinrtjpeg2yuv</ProjectName>
+    <RootNamespace>mswinrtjpeg2yuv</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
     <AppContainerApplication>true</AppContainerApplication>
     <ApplicationType>Windows Store</ApplicationType>
     <ApplicationTypeRevision>8.2</ApplicationTypeRevision>
+    <TargetPlatformVersion>10.0.10069.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.10069.0</TargetPlatformMinVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
@@ -102,11 +77,11 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PreprocessorDefinitions>_WINRT_DLL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINRT_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalUsingDirectories>$(WindowsSDK_WindowsMetadata);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>28204</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\tester;$(ProjectDir)..\..\..\..\tester\common;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\..\mswinrtvid\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\oRTP\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -116,11 +91,11 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PreprocessorDefinitions>_WINRT_DLL;NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINRT_DLL;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalUsingDirectories>$(WindowsSDK_WindowsMetadata);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>28204</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\tester;$(ProjectDir)..\..\..\..\tester\common;$(ProjectDir)..\..\..\..\..\oRTP\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\oRTP\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
