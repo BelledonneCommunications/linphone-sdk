@@ -925,3 +925,12 @@ void belle_sip_dialog_update_request(belle_sip_dialog_t *dialog, belle_sip_reque
 	belle_sip_request_set_uri(req,belle_sip_header_address_get_uri(dialog->remote_target));
 	belle_sip_header_cseq_set_seq_number(cseq,dialog->local_cseq);
 }
+
+int belle_sip_dialog_pending_trans_checking_enabled( const belle_sip_dialog_t *dialog) {
+	return dialog->pending_trans_checking_enabled;
+}
+
+int belle_sip_dialog_enable_pending_trans_checking(belle_sip_dialog_t *dialog, int value) {
+	dialog->pending_trans_checking_enabled = value;
+	return 0;
+}

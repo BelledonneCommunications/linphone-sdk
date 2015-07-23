@@ -116,6 +116,10 @@ BELLESIP_EXPORT belle_sip_transaction_t* belle_sip_dialog_get_last_transaction(c
 
 BELLESIP_EXPORT int belle_sip_dialog_request_pending(const belle_sip_dialog_t *dialog);
 
+/*for debugging purpose only, allow to disable checking for pending transaction*/
+BELLESIP_EXPORT int belle_sip_dialog_pending_trans_checking_enabled( const belle_sip_dialog_t *dialog) ;
+BELLESIP_EXPORT int belle_sip_dialog_enable_pending_trans_checking(belle_sip_dialog_t *dialog, int value) ;
+
 BELLE_SIP_END_DECLS
 
 #endif
