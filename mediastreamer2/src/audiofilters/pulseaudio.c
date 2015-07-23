@@ -217,7 +217,6 @@ static void pulse_card_merge_lists(pa_device_t *pa_device, MSList **pa_source_li
 		pa_device_t *sourceCard_data = (pa_device_t *)sourceCard->data;
 		pa_device->bidirectionnal = 1;
 		strncpy(pa_device->source_name,sourceCard_data->name, 511);
-		printf("PULSE card %s is bidir\n", pa_device->description);
 		*pa_source_list = ms_list_remove(*pa_source_list, sourceCard->data);
 		ms_free(sourceCard_data);	
 	}
