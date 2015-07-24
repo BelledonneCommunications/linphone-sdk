@@ -133,7 +133,10 @@ typedef enum _MSFilterCategory MSFilterCategory;
  * Filter's flags controlling special behaviours.
 **/
 enum _MSFilterFlags{
-	MS_FILTER_IS_PUMP = 1 /**< The filter must be called in process function every tick.*/
+	MS_FILTER_IS_PUMP = 1, /**< The filter must be called in process function every tick.*/
+	/*...*/
+	/*private flags: don't use it in filters.*/
+	MS_FILTER_IS_ENABLED = 1<<31 /*<Flag to specify if a filter is enabled or not. Only enabled filters are returned by function ms_filter_get_encoder */
 };
 
 /**
@@ -165,7 +168,6 @@ struct _MSFilterDesc{
 	MSFilterFunc uninit; /**< Filter's uninit function, used to deallocate internal structures*/
 	MSFilterMethod *methods; /**<Filter's method table*/
 	unsigned int flags; /**<Filter's special flags, from the MSFilterFlags enum.*/
-	bool_t enabled; /*Flag to specify if a filter is enabled or not. Only enabled filter are return by function ms_filter_get_encoder */
 };
 
 /**

@@ -264,7 +264,7 @@ void ms_factory_register_filter(MSFactory* factory, MSFilterDesc* desc ) {
 	if (desc->id==MS_FILTER_NOT_SET_ID){
 		ms_fatal("MSFilterId for %s not set !",desc->name);
 	}
-	desc->enabled=TRUE; /*by default a registered filter is enabled*/
+	desc->flags|=MS_FILTER_IS_ENABLED; /*by default a registered filter is enabled*/
 
 	/*lastly registered encoder/decoders may replace older ones*/
 	factory->desc_list=ms_list_prepend(factory->desc_list,desc);
@@ -332,7 +332,7 @@ MSFilterDesc * ms_factory_get_encoder(MSFactory* factory, const char *mime){
 	MSList *elem;
 	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (desc->enabled
+		if ((desc->flags & MS_FILTER_IS_ENABLED)
 			&& (desc->category==MS_FILTER_ENCODER || desc->category==MS_FILTER_ENCODING_CAPTURER)
 			&& strcasecmp(desc->enc_fmt,mime)==0){
 			return desc;
@@ -345,7 +345,7 @@ MSFilterDesc * ms_factory_get_decoder(MSFactory* factory, const char *mime){
 	MSList *elem;
 	for (elem=factory->desc_list;elem!=NULL;elem=ms_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (desc->enabled
+		if ((desc->flags & MS_FILTER_IS_ENABLED)
 			&& (desc->category==MS_FILTER_DECODER || desc->category==MS_FILTER_DECODER_RENDERER)
 			&& strcasecmp(desc->enc_fmt,mime)==0){
 			return desc;
@@ -813,23 +813,25 @@ const MSFmtDescriptor * ms_factory_get_video_format(MSFactory *obj, const char *
 	return ms_factory_get_format(obj,&tmp);
 }
 
-int ms_factory_enable_filter_from_name(MSFactory *factory, const char *name,bool_t enable) {
+int ms_factory_enable_filter_from_name(MSFactory *factory, const char *name, bool_t enable) {
 	MSFilterDesc *desc=ms_factory_lookup_filter_by_name(factory,name);
 	if (!desc) {
 		ms_error("Cannot enable/disable unknown filter [%s] on factory [%p]",name,factory);
 		return -1;
 	}
-	desc->enabled=enable;
-	ms_message("Filter [%s]  %s on factory [%p]",name,(enable?"enabled":"disabled"),factory);
+	if (enable) desc->flags |= MS_FILTER_IS_ENABLED;
+	else desc->flags &= ~MS_FILTER_IS_ENABLED;
+	ms_message("Filter [%s]  %s on factory [%p]",name,(enable ? "enabled" : "disabled"),factory);
 	return 0;
 }
+
 bool_t ms_factory_filter_from_name_enabled(const MSFactory *factory, const char *name) {
 	MSFilterDesc *desc=ms_factory_lookup_filter_by_name(factory,name);
 	if (!desc) {
 		ms_error("Cannot get enable/disable state for unknown filter [%s] on factory [%p]",name,factory);
 		return FALSE;
 	}
-	return desc->enabled;
+	return desc->flags & MS_FILTER_IS_ENABLED;
 }
 
 #ifdef ANDROID
