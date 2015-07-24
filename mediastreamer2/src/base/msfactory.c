@@ -153,7 +153,7 @@ MSFactory *ms_factory_get_fallback(void){
 void ms_factory_init(MSFactory *obj){
 	int i;
 	long num_cpu=1;
-	char *debug_log_enabled;
+	char *debug_log_enabled = NULL;
 	char *tags;
 #ifdef _WIN32
 	SYSTEM_INFO sysinfo;
@@ -162,7 +162,9 @@ void ms_factory_init(MSFactory *obj){
 #if defined(ENABLE_NLS)
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 #endif
+#ifndef MS2_WINDOWS_UNIVERSAL
 	debug_log_enabled=getenv("MEDIASTREAMER_DEBUG");
+#endif
 	if (debug_log_enabled!=NULL && (strcmp("1",debug_log_enabled)==0) ){
 		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
@@ -497,8 +499,12 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 #endif
 	char szPluginFile[1024];
 	BOOL fFinished = FALSE;
-	const char *tmp=getenv("DEBUG");
-	BOOL debug=(tmp!=NULL && atoi(tmp)==1);
+	const char *tmp = NULL;
+	BOOL debug = FALSE;
+#ifndef MS2_WINDOWS_UNIVERSAL
+	tmp = getenv("DEBUG");
+#endif
+	debug = (tmp != NULL && atoi(tmp) == 1);
 
 	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
 
