@@ -185,7 +185,7 @@
   <Import Project="packages\Microsoft.ApplicationInsights.0.14.3-build00177\build\portable-win81+wpa81\Microsoft.ApplicationInsights.targets" Condition="Exists('packages\Microsoft.ApplicationInsights.0.14.3-build00177\build\portable-win81+wpa81\Microsoft.ApplicationInsights.targets')" />
   <PropertyGroup>
     <PreBuildEvent>XCopy /I /Y $(ProjectDir)..\..\..\tester\sounds $(ProjectDir)Assets\Sounds
-XCopy /I /Y $(ProjectDir)..\..\..\src\voip\nowebcamCIF.jpg $(ProjectDir)Assets\Images</PreBuildEvent>
+XCopy /I /Y $(ProjectDir)..\..\..\src\voip\*.jpg $(ProjectDir)Assets\Images</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
