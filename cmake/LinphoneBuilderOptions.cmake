@@ -94,3 +94,5 @@ option(ENABLE_UNIT_TESTS "Enable unit tests support with CUnit library." ${DEFAU
 linphone_builder_add_feature_info("Unit tests" ENABLE_UNIT_TESTS "Build unit tests programs for belle-sip, mediastreamer2 and linphone.")
 option(ENABLE_DEBUG_LOGS "Enable debug level logs in libinphone and mediastreamer2." NO)
 
+option(ENABLE_PACKAGING "Enable packaging" ${DEFAULT_VALUE_ENABLE_PACKAGING})
+
