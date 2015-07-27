@@ -105,6 +105,10 @@ BELLESIP_EXPORT void belle_sip_refresher_enable_manual_mode(belle_sip_refresher_
  * Retrieve last know public ip:port contact used.
 **/
 BELLESIP_EXPORT char* belle_sip_refresher_get_public_uri(belle_sip_refresher_t* refresher);
+/**
+ * Retrieve last know contact header if known. Only available after a successful registration.
+**/
+BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_refresher_get_contact(const belle_sip_refresher_t* refresher);
 
 BELLE_SIP_END_DECLS
 

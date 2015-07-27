@@ -120,6 +120,9 @@ BELLESIP_EXPORT void belle_sip_message_remove_last(belle_sip_message_t *msg, con
 
 BELLESIP_EXPORT void belle_sip_message_remove_header(belle_sip_message_t *msg, const char *header_name);
 
+BELLESIP_EXPORT void belle_sip_message_remove_header_from_ptr(belle_sip_message_t *msg, belle_sip_header_t* header);
+
+
 BELLESIP_EXPORT char *belle_sip_message_to_string(belle_sip_message_t *msg);
 
 BELLESIP_EXPORT belle_sip_body_handler_t *belle_sip_message_get_body_handler(const belle_sip_message_t *msg);

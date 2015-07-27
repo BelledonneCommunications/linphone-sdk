@@ -191,6 +191,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
 	belle_sip_header_contact_t *contact;
 
+
 	if (refresher && (client_transaction !=refresher->transaction))
 		return; /*not for me*/
 
@@ -213,9 +214,24 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		}
 		/*update expire if needed*/
 		set_expires_from_trans(refresher);
+
 		if (refresher->target_expires<=0) {
 			belle_sip_refresher_stop(refresher); /*doesn't not make sense to refresh if expire =0;*/
+		} else {
+			/*remove all contact with expire = 0 from request if any, because no need to refresh them*/
+			const belle_sip_list_t * contact_list= belle_sip_message_get_headers(BELLE_SIP_MESSAGE(request),BELLE_SIP_CONTACT);
+			belle_sip_list_t *iterator, *head;
+			if (contact_list) {
+				for (iterator=head=belle_sip_list_copy(contact_list);iterator!=NULL;iterator=iterator->next) {
+					belle_sip_header_contact_t *contact_for_expire = (belle_sip_header_contact_t *)(iterator->data);
+					if (belle_sip_header_contact_get_expires(contact_for_expire) == 0) {
+						belle_sip_message_remove_header_from_ptr(BELLE_SIP_MESSAGE(request),BELLE_SIP_HEADER(contact_for_expire));
+					}
+				}
+				belle_sip_list_free(head);
+			}
 		}
+
 		if (refresher->state==started) {
 			if (is_contact_address_acurate(refresher,request)) {
 				schedule_timer(refresher); /*re-arm timer*/
@@ -483,7 +499,8 @@ static int timer_cb(void *user_data, unsigned int events) {
 	return BELLE_SIP_STOP;
 }
 
-static belle_sip_header_contact_t* get_matching_contact(const belle_sip_transaction_t* transaction) {
+belle_sip_header_contact_t* belle_sip_refresher_get_contact(const belle_sip_refresher_t* refresher) {
+	belle_sip_transaction_t* transaction = BELLE_SIP_TRANSACTION(refresher->transaction);
 	belle_sip_request_t*request=belle_sip_transaction_get_request(transaction);
 	belle_sip_response_t*response=transaction->last_response;
 	const belle_sip_list_t* contact_header_list;
@@ -552,7 +569,7 @@ static int set_expires_from_trans(belle_sip_refresher_t* refresher) {
 				if (ct_expires!=-1) refresher->target_expires=ct_expires;
 			}
 			/*check in response also to get the obtained expires*/
-			if ((contact_header=get_matching_contact(transaction))!=NULL){
+			if ((contact_header=belle_sip_refresher_get_contact(refresher))!=NULL){
 				/*matching contact, check for its possible expires param*/
 				refresher->obtained_expires=belle_sip_header_contact_get_expires(BELLE_SIP_HEADER_CONTACT(contact_header));
 			}
