@@ -1,53 +1,52 @@
-diff -urN libvpx.orig/build/make/Makefile libvpx/build/make/Makefile
---- libvpx.orig/build/make/Makefile	2014-01-16 14:00:37.000000000 +0100
-+++ libvpx/build/make/Makefile	2014-01-16 14:14:39.000000000 +0100
-@@ -351,7 +351,7 @@
+diff -urN libvpx-1.4.0.orig/build/make/Makefile libvpx-1.4.0/build/make/Makefile
+--- libvpx-1.4.0.orig/build/make/Makefile	Fri Apr  3 18:49:19 2015
++++ libvpx-1.4.0/build/make/Makefile	Mon Jul 27 10:01:23 2015
+@@ -383,7 +383,7 @@
  .libs: $(LIBS)
  	@touch $@
  $(foreach lib,$(filter %_g.a,$(LIBS)),$(eval $(call archive_template,$(lib))))
--$(foreach lib,$(filter %so.$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH),$(LIBS)),$(eval $(call so_template,$(lib))))
+-$(foreach lib,$(filter %so.$(SO_VERSION_MAJOR).$(SO_VERSION_MINOR).$(SO_VERSION_PATCH),$(LIBS)),$(eval $(call so_template,$(lib))))
 +$(foreach lib,$(filter %-$(VERSION_MAJOR).dll,$(LIBS)),$(eval $(call so_template,$(lib))))
- $(foreach lib,$(filter %$(VERSION_MAJOR).dylib,$(LIBS)),$(eval $(call dl_template,$(lib))))
+ $(foreach lib,$(filter %$(SO_VERSION_MAJOR).dylib,$(LIBS)),$(eval $(call dl_template,$(lib))))
  
  INSTALL-LIBS=$(call cond_enabled,CONFIG_INSTALL_LIBS,INSTALL-LIBS)
-diff -urN libvpx.orig/build/make/configure.sh libvpx/build/make/configure.sh
---- libvpx.orig/build/make/configure.sh	2014-01-16 14:00:37.000000000 +0100
-+++ libvpx/build/make/configure.sh	2014-01-16 14:01:11.000000000 +0100
-@@ -542,11 +542,14 @@
-         --libdir=*)
+diff -urN libvpx-1.4.0.orig/build/make/configure.sh libvpx-1.4.0/build/make/configure.sh
+--- libvpx-1.4.0.orig/build/make/configure.sh	Fri Apr  3 18:49:19 2015
++++ libvpx-1.4.0/build/make/configure.sh	Mon Jul 27 10:03:24 2015
+@@ -556,11 +556,14 @@
+       --libdir=*)
          libdir="${optval}"
          ;;
-+        --bindir=*)
++      --bindir=*)
 +        bindir="${optval}"
 +        ;;
-         --sdk-path=*)
+       --sdk-path=*)
          [ -d "${optval}" ] || die "Not a directory: ${optval}"
          sdk_path="${optval}"
          ;;
--        --libc|--as|--prefix|--libdir|--sdk-path)
-+        --libc|--as|--prefix|--libdir|--bindir|--sdk-path)
+-      --libc|--as|--prefix|--libdir|--sdk-path)
++      --libc|--as|--prefix|--libdir|--bindir|--sdk-path)
          die "Option ${opt} requires argument"
          ;;
-         --help|-h) show_help
-@@ -573,9 +576,14 @@
-     prefix="${prefix%/}"
-     libdir="${libdir:-${prefix}/lib}"
-     libdir="${libdir%/}"
-+    bindir="${bindir:-${prefix}/bin}"
-+    bindir="${bindir%/}"
-     if [ "${libdir#${prefix}}" = "${libdir}" ]; then
-         die "Libdir ${libdir} must be a subdirectory of ${prefix}"
-     fi
-+    if [ "${bindir#${prefix}}" = "${bindir}" ]; then
-+        die "Bindir ${bindir} must be a subdirectory of ${prefix}"
-+    fi
+       --help|-h)
+@@ -589,8 +592,13 @@
+   prefix="${prefix%/}"
+   libdir="${libdir:-${prefix}/lib}"
+   libdir="${libdir%/}"
++  bindir="${bindir:-${prefix}/bin}"
++  bindir="${bindir%/}"
+   if [ "${libdir#${prefix}}" = "${libdir}" ]; then
+     die "Libdir ${libdir} must be a subdirectory of ${prefix}"
++  fi
++  if [ "${bindir#${prefix}}" = "${bindir}" ]; then
++    die "Bindir ${bindir} must be a subdirectory of ${prefix}"
+   fi
  }
  
- 
-diff -urN libvpx.orig/configure libvpx/configure
---- libvpx.orig/configure	2014-01-16 14:00:37.000000000 +0100
-+++ libvpx/configure	2014-01-16 14:01:11.000000000 +0100
-@@ -474,6 +474,7 @@
+diff -urN libvpx-1.4.0.orig/configure libvpx-1.4.0/configure
+--- libvpx-1.4.0.orig/configure	Fri Apr  3 18:49:19 2015
++++ libvpx-1.4.0/configure	Mon Jul 27 10:04:05 2015
+@@ -516,6 +516,7 @@
  DIST_DIR?=\$(DESTDIR)${prefix}
  endif
  LIBSUBDIR=${libdir##${prefix}/}
@@ -55,10 +54,10 @@ diff -urN libvpx.orig/configure libvpx/configure
  
  VERSION_STRING=${VERSION_STRING}
  
-diff -urN libvpx.orig/examples.mk libvpx/examples.mk
---- libvpx.orig/examples.mk	2014-01-16 14:00:37.000000000 +0100
-+++ libvpx/examples.mk	2014-01-16 14:04:30.000000000 +0100
-@@ -191,7 +191,7 @@
+diff -urN libvpx-1.4.0.orig/examples.mk libvpx-1.4.0/examples.mk
+--- libvpx-1.4.0.orig/examples.mk	Fri Apr  3 18:49:19 2015
++++ libvpx-1.4.0/examples.mk	Mon Jul 27 10:04:50 2015
+@@ -275,7 +275,7 @@
  
  # Instantiate linker template for all examples.
  CODEC_LIB=$(if $(CONFIG_DEBUG_LIBS),vpx_g,vpx)
@@ -67,10 +66,10 @@ diff -urN libvpx.orig/examples.mk libvpx/examples.mk
  CODEC_LIB_SUF=$(if $(CONFIG_SHARED),$(SHARED_LIB_SUF),.a)
  $(foreach bin,$(BINS-yes),\
      $(if $(BUILD_OBJS),$(eval $(bin):\
-diff -urN libvpx.orig/libs.mk libvpx/libs.mk
---- libvpx.orig/libs.mk	2014-01-16 14:00:37.000000000 +0100
-+++ libvpx/libs.mk	2014-01-16 14:12:51.000000000 +0100
-@@ -162,6 +162,7 @@
+diff -urN libvpx-1.4.0.orig/libs.mk libvpx-1.4.0/libs.mk
+--- libvpx-1.4.0.orig/libs.mk	Fri Apr  3 18:49:19 2015
++++ libvpx-1.4.0/libs.mk	Mon Jul 27 10:09:34 2015
+@@ -131,6 +131,7 @@
  INSTALL_MAPS += include/vpx/% $(SRC_PATH_BARE)/vpx/%
  INSTALL_MAPS += include/vpx/% $(SRC_PATH_BARE)/vpx_ports/%
  INSTALL_MAPS += $(LIBSUBDIR)/%     %
@@ -78,45 +77,44 @@ diff -urN libvpx.orig/libs.mk libvpx/libs.mk
  INSTALL_MAPS += src/%     $(SRC_PATH_BARE)/%
  ifeq ($(CONFIG_MSVS),yes)
  INSTALL_MAPS += $(foreach p,$(VS_PLATFORMS),$(LIBSUBDIR)/$(p)/%  $(p)/Release/%)
-@@ -271,19 +272,19 @@
+@@ -239,18 +240,18 @@
  LIBVPX_SO_SYMLINKS      := $(addprefix $(LIBSUBDIR)/, \
                               libvpx.dylib  )
  else
--LIBVPX_SO               := libvpx.so.$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
-+LIBVPX_SO               := libvpx-$(VERSION_MAJOR).dll
+-LIBVPX_SO               := libvpx.so.$(SO_VERSION_MAJOR).$(SO_VERSION_MINOR).$(SO_VERSION_PATCH)
++LIBVPX_SO               := libvpx-$(SO_VERSION_MAJOR).dll
  EXPORT_FILE             := libvpx.ver
- SYM_LINK                := libvpx.so
 -LIBVPX_SO_SYMLINKS      := $(addprefix $(LIBSUBDIR)/, \
--                             libvpx.so libvpx.so.$(VERSION_MAJOR) \
--                             libvpx.so.$(VERSION_MAJOR).$(VERSION_MINOR))
+-                             libvpx.so libvpx.so.$(SO_VERSION_MAJOR) \
+-                             libvpx.so.$(SO_VERSION_MAJOR).$(SO_VERSION_MINOR))
 +LIBVPX_SO_SYMLINKS      := $(addprefix $(BINSUBDIR)/, \
-+                             libvpx-$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH).dll \
-+                             libvpx-$(VERSION_MAJOR).$(VERSION_MINOR).dll)
++                             libvpx-$(SO_VERSION_MAJOR).$(SO_VERSION_MINOR).$(SO_VERSION_PATCH).dll \
++                             libvpx-$(SO_VERSION_MAJOR).$(SO_VERSION_MINOR).dll)
  endif
  
  LIBS-$(BUILD_LIBVPX_SO) += $(BUILD_PFX)$(LIBVPX_SO)\
                             $(notdir $(LIBVPX_SO_SYMLINKS))
  $(BUILD_PFX)$(LIBVPX_SO): $(LIBVPX_OBJS) $(EXPORT_FILE)
  $(BUILD_PFX)$(LIBVPX_SO): extralibs += -lm
--$(BUILD_PFX)$(LIBVPX_SO): SONAME = libvpx.so.$(VERSION_MAJOR)
-+$(BUILD_PFX)$(LIBVPX_SO): SONAME = libvpx-$(VERSION_MAJOR).dll
+-$(BUILD_PFX)$(LIBVPX_SO): SONAME = libvpx.so.$(SO_VERSION_MAJOR)
++$(BUILD_PFX)$(LIBVPX_SO): SONAME = libvpx-$(SO_VERSION_MAJOR).dll
  $(BUILD_PFX)$(LIBVPX_SO): EXPORTS_FILE = $(EXPORT_FILE)
  
  libvpx.ver: $(call enabled,CODEC_EXPORTS)
-@@ -313,7 +314,7 @@
-    $(LIBVPX_SO)))
-
-
+@@ -280,8 +281,8 @@
+     $(LIBVPX_SO)))
+ 
+ 
 -INSTALL-LIBS-$(BUILD_LIBVPX_SO) += $(LIBVPX_SO_SYMLINKS)
-+#INSTALL-LIBS-$(BUILD_LIBVPX_SO) += $(LIBVPX_SO_SYMLINKS)
 -INSTALL-LIBS-$(BUILD_LIBVPX_SO) += $(LIBSUBDIR)/$(LIBVPX_SO)
++#INSTALL-LIBS-$(BUILD_LIBVPX_SO) += $(LIBVPX_SO_SYMLINKS)
 +INSTALL-LIBS-$(BUILD_LIBVPX_SO) += $(BINSUBDIR)/$(LIBVPX_SO)
  
  
  LIBS-$(BUILD_LIBVPX) += vpx.pc
-diff -urN libvpx.orig/vp8/common/generic/systemdependent.c libvpx/vp8/common/generic/systemdependent.c
---- libvpx.orig/vp8/common/generic/systemdependent.c	2014-01-16 14:00:38.000000000 +0100
-+++ libvpx/vp8/common/generic/systemdependent.c	2014-01-16 14:01:11.000000000 +0100
+diff -urN libvpx-1.4.0.orig/vp8/common/generic/systemdependent.c libvpx-1.4.0/vp8/common/generic/systemdependent.c
+--- libvpx-1.4.0.orig/vp8/common/generic/systemdependent.c	Fri Apr  3 18:49:19 2015
++++ libvpx-1.4.0/vp8/common/generic/systemdependent.c	Mon Jul 27 10:05:59 2015
 @@ -18,6 +18,10 @@
  #endif
  #include "vp8/common/onyxc_int.h"
