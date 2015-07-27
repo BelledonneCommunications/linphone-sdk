@@ -417,19 +417,27 @@ public:
 			DefaultId = MediaDevice::GetDefaultAudioRenderId(AudioDeviceRole::Communications);
 		}
 		AddOrUpdateCard(DefaultId, DefaultName, _dc);
-		Concurrency::task<DeviceInformationCollection^> enumOperation(DeviceInformation::FindAllAsync(_dc));
-		enumOperation.then([this](DeviceInformationCollection^ DeviceInfoCollection) {
-			if ((DeviceInfoCollection == nullptr) || (DeviceInfoCollection->Size == 0)) {
-				ms_error("mswasapi: No audio device found");
-			} else {
-				try {
-					for (unsigned int i = 0; i < DeviceInfoCollection->Size; i++) {
-						DeviceInformation^ deviceInfo = DeviceInfoCollection->GetAt(i);
-						AddOrUpdateCard(deviceInfo->Id, deviceInfo->Name, _dc);
-					}
-				} catch (Platform::Exception^ e) {
-					ms_error("mswaspi: Error of audio device detection");
+		Windows::Foundation::IAsyncOperation<DeviceInformationCollection^>^ op = DeviceInformation::FindAllAsync(_dc);
+		op->Completed = ref new Windows::Foundation::AsyncOperationCompletedHandler<DeviceInformationCollection^>(
+				[this](Windows::Foundation::IAsyncOperation<DeviceInformationCollection^>^ asyncOp, Windows::Foundation::AsyncStatus asyncStatus) {
+			if (asyncStatus == Windows::Foundation::AsyncStatus::Completed) {
+				DeviceInformationCollection^ deviceInfoCollection = asyncOp->GetResults();
+				if ((deviceInfoCollection == nullptr) || (deviceInfoCollection->Size == 0)) {
+					ms_error("mswasapi: No audio device found");
 				}
+				else {
+					try {
+						for (unsigned int i = 0; i < deviceInfoCollection->Size; i++) {
+							DeviceInformation^ deviceInfo = deviceInfoCollection->GetAt(i);
+							AddOrUpdateCard(deviceInfo->Id, deviceInfo->Name, _dc);
+						}
+					}
+					catch (Platform::Exception^ e) {
+						ms_error("mswaspi: Error of audio device detection");
+					}
+				}
+			} else {
+				ms_error("mswasapi: DeviceInformation::FindAllAsync failed");
 			}
 			SetEvent(_DetectEvent);
 		});

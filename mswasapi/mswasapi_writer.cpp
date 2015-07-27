@@ -84,7 +84,7 @@ void MSWASAPIWriter::init(LPCWSTR id) {
 
 #if defined(MS2_WINDOWS_UNIVERSAL)
 	IActivateAudioInterfaceAsyncOperation *asyncOp;
-	mRenderId = MediaDevice::GetDefaultAudioRenderId(AudioDeviceRole::Communications);
+	mRenderId = ref new Platform::String(id);
 	if (mRenderId == nullptr) {
 		ms_error("Could not get the RenderID of the MSWASAPI audio output interface");
 		goto error;

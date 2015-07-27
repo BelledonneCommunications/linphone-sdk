@@ -86,7 +86,7 @@ void MSWASAPIReader::init(LPCWSTR id)
 
 #if defined(MS2_WINDOWS_UNIVERSAL)
 	ComPtr<IActivateAudioInterfaceAsyncOperation> asyncOp;
-	mCaptureId = MediaDevice::GetDefaultAudioCaptureId(AudioDeviceRole::Communications);
+	mCaptureId = ref new Platform::String(id);
 	if (mCaptureId == nullptr) {
 		ms_error("Could not get the CaptureID of the MSWASAPI audio input interface");
 		goto error;
