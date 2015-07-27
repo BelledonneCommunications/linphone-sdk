@@ -75,6 +75,7 @@ else()
 			else()
 				set(EP_vpx_TARGET "x86-darwin10-gcc")
 			endif()
+			set(EP_vpx_BUILD_IN_SOURCE 1) # Build in source otherwise there are some compilation errors
 		endif()
 		set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 	else()

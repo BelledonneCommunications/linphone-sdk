@@ -36,11 +36,11 @@ elseif(UNIX)
 endif()
 
 
-if(${CMAKE_VERBOSE_MAKEFILE})
+if(CMAKE_VERBOSE_MAKEFILE)
 	set(AUTOTOOLS_VERBOSE_MAKEFILE 1)
-else(${CMAKE_VERBOSE_MAKEFILE})
+else()
 	set(AUTOTOOLS_VERBOSE_MAKEFILE 0)
-endif(${CMAKE_VERBOSE_MAKEFILE})
+endif()
 
 
 find_package(PythonInterp)
