@@ -479,9 +479,9 @@ static void configure_video_source(VideoStream *stream){
 		vsize=cam_vsize;
 		ms_message("Output video size adjusted to match camera resolution (%ix%i)",vsize.width,vsize.height);
 	} else {
-#if TARGET_IPHONE_SIMULATOR || defined(__arm__) || defined(_M_ARM)
+#if TARGET_IPHONE_SIMULATOR || defined(__arm__) || defined(_M_ARM) || defined(MS2_WINDOWS_UNIVERSAL)
 		ms_error("Camera is proposing a size bigger than encoder's suggested size (%ix%i > %ix%i) "
-				   "Using the camera size as fallback because cropping or resizing is not implemented for arm.",
+				   "Using the camera size as fallback because cropping or resizing is not implemented for this device.",
 				   cam_vsize.width,cam_vsize.height,vsize.width,vsize.height);
 		vsize=cam_vsize;
 #else
