@@ -80,6 +80,7 @@
     <ClInclude Include="..\..\..\src\voip\private.h" />
     <ClInclude Include="..\..\..\src\voip\qosanalyzer.h" />
     <ClInclude Include="..\..\..\src\voip\rfc2429.h" />
+    <ClInclude Include="..\..\..\src\voip\vp8rtpfmt.h" />
     <ClInclude Include="basedescs.h" />
     <ClInclude Include="gitversion.h" />
     <ClInclude Include="voipdescs.h" />
@@ -134,6 +135,7 @@
     <ClCompile Include="..\..\..\src\videofilters\nowebcam.c" />
     <ClCompile Include="..\..\..\src\videofilters\pixconv.c" />
     <ClCompile Include="..\..\..\src\videofilters\sizeconv.c" />
+    <ClCompile Include="..\..\..\src\videofilters\vp8.c" />
     <ClCompile Include="..\..\..\src\voip\audioconference.c" />
     <ClCompile Include="..\..\..\src\voip\audiostream.c" />
     <ClCompile Include="..\..\..\src\voip\bitratecontrol.c" />
@@ -154,6 +156,7 @@
     <ClCompile Include="..\..\..\src\voip\videostarter.c" />
     <ClCompile Include="..\..\..\src\voip\videostream.c" />
     <ClCompile Include="..\..\..\src\voip\video_preset_high_fps.c" />
+    <ClCompile Include="..\..\..\src\voip\vp8rtpfmt.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\bzrtp\build\windows10\bzrtp\bzrtp.vcxproj">
@@ -221,13 +224,14 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\src\base;$(ProjectDir)..\..\..\src\voip;$(ProjectDir)..\..\..\src\audiofilters;$(ProjectDir)..\..\..\src\videofilters;$(ProjectDir)..\..\..\src\utils;$(ProjectDir)..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\gsm\build\windows10\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\srtp\include;$(ProjectDir)..\..\..\..\..\srtp\crypto\include;$(ProjectDir)..\..\..\..\..\srtp\build\windows10\srtp;$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\opus\include;$(ProjectDir)..\..\..\..\..\polarssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\src\base;$(ProjectDir)..\..\..\src\voip;$(ProjectDir)..\..\..\src\audiofilters;$(ProjectDir)..\..\..\src\videofilters;$(ProjectDir)..\..\..\src\utils;$(ProjectDir)..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\gsm\build\windows10\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\srtp\include;$(ProjectDir)..\..\..\..\..\srtp\crypto\include;$(ProjectDir)..\..\..\..\..\srtp\build\windows10\srtp;$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\opus\include;$(ProjectDir)..\..\..\..\..\polarssl\include;$(ProjectDir)..\..\..\..\..\libvpx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MEDIASTREAMER2_INTERNAL_EXPORTS;MS2_INTERNAL;MS2_FILTERS;VIDEO_ENABLED;NO_FFMPEG;HAVE_CONFIG_H;HAVE_POLARSSL_SSL_H;HAVE_SPEEXDSP;HAVE_SRTP;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+      <AdditionalDependencies>$(ProjectDir)..\..\..\..\..\build\libvpx\$(Platform)\vpxmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>version.bat</Command>

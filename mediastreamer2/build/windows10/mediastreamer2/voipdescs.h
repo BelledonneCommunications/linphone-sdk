@@ -91,8 +91,8 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_static_image_desc,
 &ms_mire_desc,
 &ms_ext_display_desc,
-//&ms_vp8_enc_desc,
-//&ms_vp8_dec_desc,
+&ms_vp8_enc_desc,
+&ms_vp8_dec_desc,
 #endif
 NULL
 };
