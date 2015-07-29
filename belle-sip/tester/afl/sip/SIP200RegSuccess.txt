@@ -1,0 +1,12 @@
+SIP/2.0 200 Registration successful
+Via: SIP/2.0/TLS 192.168.0.109:49949;alias;branch=z9hG4bK.gdQJOpBN5;rport=49949;received=82.216.250.246
+From: <sip:gbi@sip.linphone.org>;tag=5exJTQayL
+To: <sip:gbi@sip.linphone.org>;tag=K5SF1UXm5Q8va
+Call-ID: PkUb7A2nxg
+CSeq: 21 REGISTER
+Contact: <sip:gbi@82.216.250.246:49949;transport=tls>;expires=3600;q=0.00
+Contact: <sip:gbi@82.216.250.246:62954;app-id=org.linphone.phone.dev;pn-type=apple;pn-tok=1FDA61D1A73B5C6307699D89DFDB83BD8DC970C481FE4D9D356E80FD19D3240E;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-call-snd=ring.caf;pn-msg-snd=msg.caf;transport=tls>;expires=604442;q=0.00
+Server: Flexisip/1.0.2 (sofia-sip-nta/2.0)
+Content-Length: 0
+
+

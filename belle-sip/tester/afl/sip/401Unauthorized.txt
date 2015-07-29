@@ -1,0 +1,11 @@
+SIP/2.0 401 Unauthorized
+Via: SIP/2.0/TLS 192.168.0.109:49949;alias;branch=z9hG4bK.gWH~ix41h;rport=49949;received=82.216.250.246
+From: <sip:gbi@sip.linphone.org>;tag=5exJTQayL
+To: <sip:gbi@sip.linphone.org>;tag=jv0pZ0cH8ejaF
+Call-ID: PkUb7A2nxg
+CSeq: 20 REGISTER
+Server: Flexisip/1.0.2 (sofia-sip-nta/2.0)
+WWW-Authenticate: Digest realm="sip.linphone.org", nonce="WR5i2QAAAAA9uY8IAADQ03f3p94AAAAA", opaque="+GNywA==", algorithm=MD5, qop="auth"
+Content-Length: 0
+
+
