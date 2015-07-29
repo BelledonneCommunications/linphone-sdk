@@ -353,6 +353,18 @@ MS2_PUBLIC char *ms_load_path_content(const char *path, size_t *nbytes);
 #endif
 
 #  if defined(ENABLE_NLS)
+
+#ifdef _MSC_VER
+// prevent libintl.h from re-defining fprintf and vfprintf
+#ifndef fprintf
+#define fprintf fprintf
+#endif
+#ifndef vfprintf
+#define vfprintf vfprintf
+#endif
+#define _GL_STDIO_H
+#endif
+
 #    include <libintl.h>
 #    define _(String) dgettext (GETTEXT_PACKAGE, String)
 #  else
