@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msticker.h"
+#include "mediastreamer2/msinterfaces.h"
 
 #include <pulse/pulseaudio.h>
 
@@ -275,11 +276,13 @@ typedef enum _StreamType {
 } StreamType;
 
 typedef struct _Stream{
+	StreamType type;
 	pa_sample_spec sampleSpec;
 	pa_stream *stream;
 	pa_stream_state_t state;
 	MSQueue queue;
 	char *dev;
+	double init_volume;
 }Stream;
 
 static void stream_disconnect(Stream *s);
@@ -299,14 +302,16 @@ static bool_t stream_wait_for_state(Stream *ctx, pa_stream_state_t successState,
 	return ctx->state == successState;
 }
 
-static Stream *stream_new(void) {
+static Stream *stream_new(StreamType type) {
 	Stream *s = ms_new0(Stream, 1);
+	s->type = type;
 	s->sampleSpec.format = PA_SAMPLE_S16LE;
 	s->sampleSpec.channels=1;
 	s->sampleSpec.rate=8000;
 	s->state = PA_STREAM_UNCONNECTED;
 	ms_queue_init(&s->queue);
 	s->dev = NULL;
+	s->init_volume = -1.0;
 	return s;
 }
 
@@ -363,15 +368,23 @@ static void stream_buffer_underflow_notification(pa_stream *p, void *user_data) 
 	ms_warning("pulseaudio: playback buffer underflow");
 }
 
-static bool_t stream_connect(Stream *s, StreamType type) {
+static bool_t stream_connect(Stream *s) {
 	int err;
-	
 	pa_buffer_attr attr;
+	pa_cvolume volume, *volume_ptr = NULL;
+	
 	attr.maxlength = -1;
 	attr.fragsize = pa_usec_to_bytes(targeted_latency * 1000, &s->sampleSpec);
 	attr.tlength = attr.fragsize;
 	attr.minreq = -1;
 	attr.prebuf = -1;
+	
+	if(s->init_volume >= 0.0) {
+		pa_volume_t value = pa_sw_volume_from_linear(s->init_volume);
+		volume_ptr = pa_cvolume_init(&volume);
+		pa_cvolume_set(&volume, s->sampleSpec.channels, value);
+	}
+	
 	
 	if (context==NULL) {
 		ms_error("No PulseAudio context");
@@ -384,14 +397,14 @@ static bool_t stream_connect(Stream *s, StreamType type) {
 	}
 	pa_stream_set_state_callback(s->stream, stream_state_notify_cb, s);
 	pa_threaded_mainloop_lock(pa_loop);
-	if(type == STREAM_TYPE_PLAYBACK) {
+	if(s->type == STREAM_TYPE_PLAYBACK) {
 		pa_stream_set_write_callback(s->stream, stream_write_request_cb, s);
 		pa_stream_set_overflow_callback(s->stream, stream_buffer_overflow_notification, NULL);
 		pa_stream_set_underflow_callback(s->stream, stream_buffer_underflow_notification, NULL);
 		err=pa_stream_connect_playback(
 			s->stream,s->dev,&attr,
 			PA_STREAM_ADJUST_LATENCY | PA_STREAM_AUTO_TIMING_UPDATE | PA_STREAM_INTERPOLATE_TIMING,
-			NULL, 
+			volume_ptr, 
 			NULL);
 	} else {
 		err=pa_stream_connect_record(s->stream,s->dev,&attr, PA_STREAM_ADJUST_LATENCY);
@@ -404,7 +417,7 @@ static bool_t stream_connect(Stream *s, StreamType type) {
 		return FALSE;
 	}
 	ms_message("pulseaudio %s stream connected (%dHz, %dch)",
-	           type == STREAM_TYPE_PLAYBACK ? "playback" : "record",
+	           s->type == STREAM_TYPE_PLAYBACK ? "playback" : "record",
 	           s->sampleSpec.rate,
 	           s->sampleSpec.channels);
 			
@@ -422,7 +435,90 @@ static void stream_disconnect(Stream *s) {
 		}
 		pa_stream_unref(s->stream);
 		s->stream = NULL;
+		ms_queue_flush(&s->queue);
+		s->state = PA_STREAM_UNCONNECTED;
+		s->init_volume = -1.0;
 	}
+}
+
+static void stream_set_volume_cb(pa_context *c, int success, void *user_data) {
+	*(int *)user_data = success;
+	pa_threaded_mainloop_signal(pa_loop, FALSE);
+}
+
+static bool_t stream_set_volume(Stream *s, double volume) {
+	pa_cvolume cvolume;
+	uint32_t idx;
+	pa_operation *op;
+	int success;
+	
+	if(s->stream == NULL) {
+		if(s->type == STREAM_TYPE_PLAYBACK) {
+			ms_error("stream_set_volume(): no stream");
+			return FALSE;
+		} else {
+			s->init_volume = volume;
+			return TRUE;
+		}
+	}
+	idx = pa_stream_get_index(s->stream);
+	pa_cvolume_init(&cvolume);
+	pa_cvolume_set(&cvolume, s->sampleSpec.channels, pa_sw_volume_from_linear(volume));
+	pa_threaded_mainloop_lock(pa_loop);
+	if(s->type == STREAM_TYPE_PLAYBACK) {
+		op = pa_context_set_sink_input_volume(context, idx, &cvolume, stream_set_volume_cb, &success);
+	} else {
+		op = pa_context_set_source_output_volume(context, idx, &cvolume, stream_set_volume_cb, &success);
+	}
+	while(pa_operation_get_state(op) == PA_OPERATION_RUNNING) {
+		pa_threaded_mainloop_wait(pa_loop);
+	}
+	pa_threaded_mainloop_unlock(pa_loop);
+	pa_operation_unref(op);
+	return success;
+}
+
+static void stream_get_source_volume_cb(pa_context *c, const pa_source_output_info *i, int eol, void *user_data) {
+	if(i) {
+		*(double *)user_data = pa_sw_volume_to_linear(*i->volume.values);
+	} else {
+		ms_error("stream_get_source_volume_cb(): no source info");
+		*(double *)user_data = -1.0;
+	}
+	pa_threaded_mainloop_signal(pa_loop, FALSE);
+}
+
+static void stream_get_sink_volume_cb(pa_context *c, const pa_sink_input_info *i, int eol, void *user_data) {
+	if(i) {
+		*(double *)user_data = pa_sw_volume_to_linear(*i->volume.values);
+	} else {
+		ms_error("stream_get_sink_volume_cb(): no source info");
+		*(double *)user_data = -1.0;
+	}
+	pa_threaded_mainloop_signal(pa_loop, FALSE);
+}
+
+static bool_t stream_get_volume(Stream *s, double *volume) {
+	uint32_t idx;
+	pa_operation *op;
+	
+	if(s->stream == NULL) {
+		ms_error("stream_get_volume(): no stream");
+		return FALSE;
+	}
+	idx = pa_stream_get_index(s->stream);
+	pa_threaded_mainloop_lock(pa_loop);
+	if(s->type == STREAM_TYPE_PLAYBACK) {
+		op = pa_context_get_sink_input_info(context, idx, stream_get_sink_volume_cb, volume);
+	} else {
+		op = pa_context_get_source_output_info(context, idx, stream_get_source_volume_cb, volume);
+	}
+	while(pa_operation_get_state(op) == PA_OPERATION_RUNNING) {
+		pa_threaded_mainloop_wait(pa_loop);
+	}
+	pa_threaded_mainloop_unlock(pa_loop);
+	pa_operation_unref(op);
+	return TRUE;
 }
 
 typedef Stream RecordStream;
@@ -432,12 +528,12 @@ static void pulse_read_init(MSFilter *f){
 		ms_error("Could not connect to a pulseaudio server");
 		return;
 	}
-	f->data = stream_new();
+	f->data = stream_new(STREAM_TYPE_RECORD);
 }
 
 static void pulse_read_preprocess(MSFilter *f) {
 	RecordStream *s=(RecordStream *)f->data;
-	if(!stream_connect(s, STREAM_TYPE_RECORD)) {
+	if(!stream_connect(s)) {
 		ms_error("Pulseaudio: fail to connect record stream");
 	}
 }
@@ -516,12 +612,33 @@ static int pulse_read_get_nchannels(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int pulse_read_set_volume(MSFilter *f, void *arg) {
+	Stream *s = (Stream *)f->data;
+	const double *volume = (const double *)arg;
+	bool_t success;
+	ms_filter_lock(f);
+	success = stream_set_volume(s, *volume);
+	ms_filter_unlock(f);
+	return success ? 0 : -1;
+}
+
+static int pulse_read_get_volume(MSFilter *f, void *arg) {
+	Stream *s = (Stream *)f->data;
+	bool_t success;
+	ms_filter_lock(f);
+	success = stream_get_volume(s, (double *)arg);
+	ms_filter_unlock(f);
+	return  success ? 0 : -1;
+}
+
 static MSFilterMethod pulse_read_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE , pulse_read_set_sr },
 	{	MS_FILTER_GET_SAMPLE_RATE , pulse_read_get_sr },
 	{	MS_FILTER_SET_NCHANNELS	, pulse_read_set_nchannels },
 	{	MS_FILTER_GET_NCHANNELS	, pulse_read_get_nchannels },
-	{	0	, 0 }
+	{	MS_AUDIO_CAPTURE_SET_VOLUME_GAIN	, pulse_read_set_volume },
+	{	MS_AUDIO_CAPTURE_GET_VOLUME_GAIN	, pulse_read_get_volume },
+	{	0	, NULL }
 };
 
 static MSFilterDesc pulse_read_desc={
@@ -547,12 +664,12 @@ static void pulse_write_init(MSFilter *f){
 		ms_error("Could not connect to a pulseaudio server");
 		return;
 	}
-	f->data = stream_new();
+	f->data = stream_new(STREAM_TYPE_PLAYBACK);
 }
 
 static void pulse_write_preprocess(MSFilter *f) {
 	PlaybackStream *s=(PlaybackStream*)f->data;
-	if(!stream_connect(s, STREAM_TYPE_PLAYBACK)) {
+	if(!stream_connect(s)) {
 		ms_error("Pulseaudio: fail to connect playback stream");
 	}
 }
@@ -599,6 +716,16 @@ static void pulse_write_uninit(MSFilter *f) {
 	stream_free((Stream *)f->data);
 }
 
+static MSFilterMethod pulse_write_methods[]={
+	{	MS_FILTER_SET_SAMPLE_RATE , pulse_read_set_sr },
+	{	MS_FILTER_GET_SAMPLE_RATE , pulse_read_get_sr },
+	{	MS_FILTER_SET_NCHANNELS	, pulse_read_set_nchannels },
+	{	MS_FILTER_GET_NCHANNELS	, pulse_read_get_nchannels },
+	{	MS_AUDIO_PLAYBACK_SET_VOLUME_GAIN	, pulse_read_set_volume },
+	{	MS_AUDIO_PLAYBACK_GET_VOLUME_GAIN	, pulse_read_get_volume },
+	{	0	, NULL }
+};
+
 static MSFilterDesc pulse_write_desc={
 	.id=MS_PULSE_WRITE_ID,
 	.name="MSPulseWrite",
@@ -611,7 +738,7 @@ static MSFilterDesc pulse_write_desc={
 	.process=pulse_write_process,
 	.postprocess=pulse_write_postprocess,
 	.uninit=pulse_write_uninit,
-	.methods=pulse_read_methods
+	.methods=pulse_write_methods
 };
 
 static MSFilter *pulse_card_create_reader(MSSndCard *card) {
