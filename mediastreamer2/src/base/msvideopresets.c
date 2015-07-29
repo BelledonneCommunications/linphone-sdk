@@ -93,23 +93,12 @@ static void add_video_preset_configuration(MSVideoPreset *preset, const char *ta
 	preset->configs = ms_list_append(preset->configs, vpc);
 }
 
-static bool_t tag_in_list(const char *tag, MSList *tags_list) {
-	MSList *elem = tags_list;
-	while (elem != NULL) {
-		char *tag_from_list = (char *)elem->data;
-		if (strcasecmp(tag, tag_from_list) == 0)
-			return TRUE;
-		elem = elem->next;
-	}
-	return FALSE;
-}
-
 static int video_preset_configuration_match(MSVideoPresetConfiguration *vpc, MSList *platform_tags, MSList *codec_tags) {
 	MSList *elem = vpc->tags;
 	int nb = 0;
 	while (elem != NULL) {
 		char *tag = (char *)elem->data;
-		if (!tag_in_list(tag, platform_tags) && !tag_in_list(tag, codec_tags))
+		if (!ms_tags_list_contains_tag(platform_tags, tag) && !ms_tags_list_contains_tag(codec_tags, tag))
 			return 0;
 		nb++;
 		elem = elem->next;

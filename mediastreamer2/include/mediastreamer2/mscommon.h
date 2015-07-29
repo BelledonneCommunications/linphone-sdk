@@ -163,6 +163,7 @@ MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
 MS2_PUBLIC MSList *ms_list_copy_with_data(const MSList *list, void *(*copyfunc)(void *));
 
 MS2_PUBLIC char * ms_tags_list_as_string(const MSList *list);
+MS2_PUBLIC bool_t ms_tags_list_contains_tag(const MSList *list, const char *tag);
 
 #undef MIN
 #define MIN(a,b)	((a)>(b) ? (b) : (a))
