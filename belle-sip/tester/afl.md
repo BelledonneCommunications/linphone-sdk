@@ -19,7 +19,7 @@ Then follow these steps:
 
 3. You can now run the afl fuzzy tester in the tester/ directory to test the parser for SDP, HTTP or SIP.
 
-        afl-fuzz -i afl/sip -o afl_sip_results -- ./belle_sip_parser --protocol sip @@
+        afl-fuzz -i afl/sip -o afl_sip_results -- ./belle_sip_parse --protocol sip @@
 
 With this command:
 
@@ -33,7 +33,8 @@ With this command:
 
 The afl directory contains test messages that will be the base for mutation with the afl fuzzer. They are saved using the CRLF line endings. This is important since the parser expects two "\r\n\r\n" at the end of a message.
 
+The hangs usually occur when the message passed to belle_sip_parse is not correctly formed, and the underlying implementation fails at some point. These are not false positives, they are actual problems!
+
 ## TODO:
 
 1. add HTTP and SDP fuzzy tests
-2. add a dictionary of keywords to help the fuzzer generate some valid messages (instead of bitflipping randomly) (see `afl-fuzz -x` option)
