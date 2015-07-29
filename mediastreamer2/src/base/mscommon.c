@@ -290,7 +290,7 @@ char * ms_tags_list_as_string(const MSList *list) {
 }
 
 bool_t ms_tags_list_contains_tag(const MSList *list, const char *tag) {
-	MSList *elem = list;
+	const MSList *elem = list;
 	while (elem != NULL) {
 		char *tag_from_list = (char *)elem->data;
 		if (strcasecmp(tag, tag_from_list) == 0)
