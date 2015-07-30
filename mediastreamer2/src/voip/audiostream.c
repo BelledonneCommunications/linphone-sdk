@@ -1420,7 +1420,7 @@ void audio_stream_set_mic_gain(AudioStream *stream, float gain){
 			"Use audio_stream_enable_gain_control() before starting the stream.");
 }
 
-void audio_stream_set_sound_card_input_gain(AudioStream *stream, double volume) {
+void audio_stream_set_sound_card_input_gain(AudioStream *stream, float volume) {
 	if (stream->soundread) {
 		if(ms_filter_implements_interface(stream->soundread, MSFilterAudioCaptureInterface)) {
 			ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_SET_VOLUME_GAIN, &volume);
@@ -1430,23 +1430,23 @@ void audio_stream_set_sound_card_input_gain(AudioStream *stream, double volume) 
 	}
 }
 
-double audio_stream_get_sound_card_input_gain(const AudioStream *stream) {
-	double volume;
+float audio_stream_get_sound_card_input_gain(const AudioStream *stream) {
+	float volume;
 	
 	if(stream->soundread == NULL) {
 		ms_error("Cannot get input volume: no input filter");
-		return -1.0;
+		return -1.0f;
 	}
 	if(!ms_filter_implements_interface(stream->soundread, MSFilterAudioCaptureInterface)) {
-		return -1.0;
+		return -1.0f;
 	}
 	if(ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_GET_VOLUME_GAIN, &volume) < 0) {
-		volume = -1.0;
+		volume = -1.0f;
 	}
 	return volume;
 }
 
-void audio_stream_set_sound_card_output_gain(AudioStream *stream, double volume) {
+void audio_stream_set_sound_card_output_gain(AudioStream *stream, float volume) {
 	if (stream->soundwrite) {
 		if(ms_filter_implements_interface(stream->soundwrite, MSFilterAudioPlaybackInterface)) {
 			ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_VOLUME_GAIN, &volume);
@@ -1456,18 +1456,18 @@ void audio_stream_set_sound_card_output_gain(AudioStream *stream, double volume)
 	}
 }
 
-double audio_stream_get_sound_card_output_gain(const AudioStream *stream) {
-	double volume;
+float audio_stream_get_sound_card_output_gain(const AudioStream *stream) {
+	float volume;
 	
 	if(stream->soundwrite == NULL) {
 		ms_error("Cannot get output volume: no output filter");
-		return -1.0;
+		return -1.0f;
 	}
 	if(!ms_filter_implements_interface(stream->soundwrite, MSFilterAudioCaptureInterface)) {
-		return -1.0;
+		return -1.0f;
 	}
 	if(ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_GET_VOLUME_GAIN, &volume) < 0) {
-		volume = -1.0;
+		volume = -1.0f;
 	}
 	return volume;
 }

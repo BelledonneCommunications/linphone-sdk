@@ -272,17 +272,17 @@ typedef enum _MSRecorderState MSRecorderState;
 /** Interface definitions for audio capture */
 /* Start numbering from the end for hacks */
 #define MS_AUDIO_CAPTURE_SET_VOLUME_GAIN \
-	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 0, double)
+	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 0, float)
 #define MS_AUDIO_CAPTURE_GET_VOLUME_GAIN \
-	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 1, double)
+	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 1, float)
 #define MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE \
 	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 255, bool_t)
 	
 /** Interface definitions for audio playback */
 #define MS_AUDIO_PLAYBACK_SET_VOLUME_GAIN \
-	MS_FILTER_METHOD(MSFilterAudioPlaybackInterface, 0, double)
+	MS_FILTER_METHOD(MSFilterAudioPlaybackInterface, 0, float)
 #define MS_AUDIO_PLAYBACK_GET_VOLUME_GAIN \
-	MS_FILTER_METHOD(MSFilterAudioPlaybackInterface, 1, double)
+	MS_FILTER_METHOD(MSFilterAudioPlaybackInterface, 1, float)
 
 /** Interface definitions for audio encoder */
 #define MS_AUDIO_ENCODER_SET_PTIME \

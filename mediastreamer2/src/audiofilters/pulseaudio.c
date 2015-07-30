@@ -614,7 +614,7 @@ static int pulse_read_get_nchannels(MSFilter *f, void *arg){
 
 static int pulse_read_set_volume(MSFilter *f, void *arg) {
 	Stream *s = (Stream *)f->data;
-	const double *volume = (const double *)arg;
+	const float *volume = (const float *)arg;
 	bool_t success;
 	ms_filter_lock(f);
 	success = stream_set_volume(s, *volume);
@@ -625,9 +625,12 @@ static int pulse_read_set_volume(MSFilter *f, void *arg) {
 static int pulse_read_get_volume(MSFilter *f, void *arg) {
 	Stream *s = (Stream *)f->data;
 	bool_t success;
+	double volume;
+	
 	ms_filter_lock(f);
-	success = stream_get_volume(s, (double *)arg);
+	success = stream_get_volume(s, &volume);
 	ms_filter_unlock(f);
+	if(success) *(float *)arg = (float)volume;
 	return  success ? 0 : -1;
 }
 

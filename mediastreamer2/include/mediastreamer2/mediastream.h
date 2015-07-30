@@ -578,7 +578,7 @@ MS2_PUBLIC void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
  * @param stream The audio stream.
  * @param gain Percentage of the max supported volume gain. Valid values are in [0.0 : 1.0].
  */
-MS2_PUBLIC void audio_stream_set_sound_card_input_gain(AudioStream *stream, double gain);
+MS2_PUBLIC void audio_stream_set_sound_card_input_gain(AudioStream *stream, float gain);
 
 /**
  * @brief Get microphone volume gain.
@@ -587,7 +587,7 @@ MS2_PUBLIC void audio_stream_set_sound_card_input_gain(AudioStream *stream, doub
  * @return double Volume gain in percentage of the max suppored gain.
  * Valid returned values are in [0.0 : 1.0]. A negative value is returned in case of failure.
  */
-MS2_PUBLIC double audio_stream_get_sound_card_input_gain(const AudioStream *stream);
+MS2_PUBLIC float audio_stream_get_sound_card_input_gain(const AudioStream *stream);
 
 /**
  * @brief Set speaker volume gain.
@@ -597,7 +597,7 @@ MS2_PUBLIC double audio_stream_get_sound_card_input_gain(const AudioStream *stre
  * @param stream The audio stream.
  * @param gain Percentage of the max supported volume gain. Valid values are in [0.0 : 1.0].
  */
-MS2_PUBLIC void audio_stream_set_sound_card_output_gain(AudioStream *stream, double volume);
+MS2_PUBLIC void audio_stream_set_sound_card_output_gain(AudioStream *stream, float volume);
 
 /**
  * @brief Get speaker volume gain.
@@ -606,7 +606,7 @@ MS2_PUBLIC void audio_stream_set_sound_card_output_gain(AudioStream *stream, dou
  * @return Volume gain in percentage of the max suppored gain.
  * Valid returned values are in [0.0 : 1.0]. A negative value is returned in case of failure.
  */
-MS2_PUBLIC double audio_stream_get_sound_card_output_gain(const AudioStream *stream);
+MS2_PUBLIC float audio_stream_get_sound_card_output_gain(const AudioStream *stream);
 
 /**
  * enable noise gate, must be done before start()
