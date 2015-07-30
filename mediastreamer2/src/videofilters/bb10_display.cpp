@@ -51,8 +51,8 @@ static void bb10display_createWindow(BB10Display *d) {
 	int zorder = -5;
 	screen_set_window_property_iv(window, SCREEN_PROPERTY_ZORDER, &zorder);
 	
-	int wdims[2] = { d->wsize.width, d->wsize.height };
-	screen_set_window_property_iv(window, SCREEN_PROPERTY_SIZE, wdims);
+	//int wdims[2] = { d->wsize.width, d->wsize.height };
+	screen_set_window_property_iv(window, SCREEN_PROPERTY_SIZE, dims);
 	
 	screen_create_window_buffers(window, 1);
 	
@@ -139,12 +139,10 @@ static void bb10display_init(MSFilter *f) {
 	d->pixmap = NULL;
 	d->pixmap_buffer = NULL;
 	d->window_created = FALSE;
-	def_size.width = MS_VIDEO_SIZE_VGA_W;
-	def_size.height = MS_VIDEO_SIZE_VGA_H;
-	window_size.width = MS_VIDEO_SIZE_VGA_W;
-	window_size.height = MS_VIDEO_SIZE_VGA_H;
+	def_size.width = MS_VIDEO_SIZE_CIF_W;
+	def_size.height = MS_VIDEO_SIZE_CIF_H;
 	d->vsize = def_size;
-	d->wsize = window_size;
+	d->wsize = def_size;
 	d->window_id = NULL;
 	d->window_group = NULL;
 	d->stride = 0;
