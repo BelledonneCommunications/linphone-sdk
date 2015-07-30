@@ -368,6 +368,14 @@ static void stream_buffer_underflow_notification(pa_stream *p, void *user_data) 
 	ms_warning("pulseaudio: playback buffer underflow");
 }
 
+static double volume_to_scale(pa_volume_t volume) {
+	return ((double)volume)/((double)PA_VOLUME_NORM);
+}
+
+static pa_volume_t scale_to_volume(double scale) {
+	return scale * PA_VOLUME_NORM;
+}
+
 static bool_t stream_connect(Stream *s) {
 	int err;
 	pa_buffer_attr attr;
@@ -380,7 +388,7 @@ static bool_t stream_connect(Stream *s) {
 	attr.prebuf = -1;
 	
 	if(s->init_volume >= 0.0) {
-		pa_volume_t value = pa_sw_volume_from_linear(s->init_volume);
+		pa_volume_t value = scale_to_volume(s->init_volume);
 		volume_ptr = pa_cvolume_init(&volume);
 		pa_cvolume_set(&volume, s->sampleSpec.channels, value);
 	}
@@ -441,6 +449,7 @@ static void stream_disconnect(Stream *s) {
 	}
 }
 
+
 static void stream_set_volume_cb(pa_context *c, int success, void *user_data) {
 	*(int *)user_data = success;
 	pa_threaded_mainloop_signal(pa_loop, FALSE);
@@ -463,7 +472,7 @@ static bool_t stream_set_volume(Stream *s, double volume) {
 	}
 	idx = pa_stream_get_index(s->stream);
 	pa_cvolume_init(&cvolume);
-	pa_cvolume_set(&cvolume, s->sampleSpec.channels, pa_sw_volume_from_linear(volume));
+	pa_cvolume_set(&cvolume, s->sampleSpec.channels, scale_to_volume(volume));
 	pa_threaded_mainloop_lock(pa_loop);
 	if(s->type == STREAM_TYPE_PLAYBACK) {
 		op = pa_context_set_sink_input_volume(context, idx, &cvolume, stream_set_volume_cb, &success);
@@ -480,7 +489,7 @@ static bool_t stream_set_volume(Stream *s, double volume) {
 
 static void stream_get_source_volume_cb(pa_context *c, const pa_source_output_info *i, int eol, void *user_data) {
 	if(i) {
-		*(double *)user_data = pa_sw_volume_to_linear(*i->volume.values);
+		*(double *)user_data = volume_to_scale(*i->volume.values);
 	} else {
 		ms_error("stream_get_source_volume_cb(): no source info");
 		*(double *)user_data = -1.0;
@@ -490,7 +499,7 @@ static void stream_get_source_volume_cb(pa_context *c, const pa_source_output_in
 
 static void stream_get_sink_volume_cb(pa_context *c, const pa_sink_input_info *i, int eol, void *user_data) {
 	if(i) {
-		*(double *)user_data = pa_sw_volume_to_linear(*i->volume.values);
+		*(double *)user_data = volume_to_scale(*i->volume.values);
 	} else {
 		ms_error("stream_get_sink_volume_cb(): no source info");
 		*(double *)user_data = -1.0;
