@@ -1463,7 +1463,7 @@ float audio_stream_get_sound_card_output_gain(const AudioStream *stream) {
 		ms_error("Cannot get output volume: no output filter");
 		return -1.0f;
 	}
-	if(!ms_filter_implements_interface(stream->soundwrite, MSFilterAudioCaptureInterface)) {
+	if(!ms_filter_implements_interface(stream->soundwrite, MSFilterAudioPlaybackInterface)) {
 		return -1.0f;
 	}
 	if(ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_GET_VOLUME_GAIN, &volume) < 0) {
