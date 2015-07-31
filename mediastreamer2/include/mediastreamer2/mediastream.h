@@ -558,7 +558,7 @@ MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
 
 /**
- * @brief Set value of applied gain before sending on network.
+ * Set value of applied gain before sending on network.
  * 
  * @param stream The audio stream.
  * @param gain_db Gain in dB
@@ -571,18 +571,16 @@ MS2_PUBLIC void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float g
 MS2_PUBLIC void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
 
 /**
- * @brief Set microphone volume gain.
+ * Set microphone volume gain.
  * If the sound backend supports it, the set volume gain will be synchronized
  * with the host system mixer.
- *
  * @param stream The audio stream.
  * @param gain Percentage of the max supported volume gain. Valid values are in [0.0 : 1.0].
  */
 MS2_PUBLIC void audio_stream_set_sound_card_input_gain(AudioStream *stream, float gain);
 
 /**
- * @brief Get microphone volume gain.
- * 
+ * Get microphone volume gain.
  * @param stream The audio stream.
  * @return double Volume gain in percentage of the max suppored gain.
  * Valid returned values are in [0.0 : 1.0]. A negative value is returned in case of failure.
@@ -590,18 +588,16 @@ MS2_PUBLIC void audio_stream_set_sound_card_input_gain(AudioStream *stream, floa
 MS2_PUBLIC float audio_stream_get_sound_card_input_gain(const AudioStream *stream);
 
 /**
- * @brief Set speaker volume gain.
+ * Set speaker volume gain.
  * If the sound backend supports it, the set volume gain will be synchronized
  * with the host system mixer.
- * 
  * @param stream The audio stream.
  * @param gain Percentage of the max supported volume gain. Valid values are in [0.0 : 1.0].
  */
 MS2_PUBLIC void audio_stream_set_sound_card_output_gain(AudioStream *stream, float volume);
 
 /**
- * @brief Get speaker volume gain.
- * 
+ * Get speaker volume gain.
  * @param stream The audio stream.
  * @return Volume gain in percentage of the max suppored gain.
  * Valid returned values are in [0.0 : 1.0]. A negative value is returned in case of failure.
