@@ -98,12 +98,7 @@
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ResultPage.xaml.cs">
-      <DependentUpon>ResultPage.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="TestPage.xaml.cs">
-      <DependentUpon>TestPage.xaml</DependentUpon>
-    </Compile>
+    <Compile Include="DataModel\UnitTestDataSource.cs" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
@@ -114,6 +109,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\Images\nowebcamCIF.jpg" />
+    <Content Include="Assets\Logo.png" />
+    <Content Include="Assets\SmallLogo.png" />
     <Content Include="Assets\Sounds\arpeggio_8000_mono.wav" />
     <Content Include="Assets\Sounds\bird_44100_stereo.wav" />
     <Content Include="Assets\Sounds\chimes_48000_stereo.wav" />
@@ -130,11 +128,8 @@
     <Content Include="Assets\Sounds\punch_16000_stereo.wav" />
     <Content Include="Assets\Sounds\sintel_trailer_opus_h264.mkv" />
     <Content Include="Assets\Sounds\sintel_trailer_pcmu_h264.mkv" />
+    <Content Include="Assets\SplashScreen.png" />
     <Content Include="Properties\Default.rd.xml" />
-    <Content Include="Assets\Logo.scale-100.png" />
-    <Content Include="Assets\SmallLogo.scale-100.png" />
-    <Content Include="Assets\SplashScreen.scale-100.png" />
-    <Content Include="Assets\StoreLogo.scale-100.png" />
     <Content Include="Assets\WideLogo.scale-100.png" />
   </ItemGroup>
   <ItemGroup>
@@ -143,14 +138,6 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Page Include="MainPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="ResultPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="TestPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -197,7 +184,8 @@
   </Target>
   <Import Project="packages\Microsoft.ApplicationInsights.0.14.3-build00177\build\portable-win81+wpa81\Microsoft.ApplicationInsights.targets" Condition="Exists('packages\Microsoft.ApplicationInsights.0.14.3-build00177\build\portable-win81+wpa81\Microsoft.ApplicationInsights.targets')" />
   <PropertyGroup>
-    <PreBuildEvent>XCopy /I /Y $(ProjectDir)..\..\..\tester\sounds $(ProjectDir)Assets\Sounds</PreBuildEvent>
+    <PreBuildEvent>XCopy /I /Y $(ProjectDir)..\..\..\tester\sounds $(ProjectDir)Assets\Sounds
+XCopy /I /Y $(ProjectDir)..\..\..\src\voip\*.jpg $(ProjectDir)Assets\Images</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -123,7 +123,7 @@ MS2_PUBLIC MSFilterDesc * ms_factory_get_decoder(MSFactory *factory, const char 
  *
  * @param filter_name The filter name.
 **/
-MS2_PUBLIC MSFilterDesc *ms_factory_lookup_filter_by_name(MSFactory *factory, const char *filter_name);
+MS2_PUBLIC MSFilterDesc *ms_factory_lookup_filter_by_name(const MSFactory *factory, const char *filter_name);
 
 /**
  * Lookup a mediastreamer2 filter using its id.
@@ -260,6 +260,26 @@ MS2_PUBLIC const struct _MSFmtDescriptor * ms_factory_get_audio_format(MSFactory
 MS2_PUBLIC const struct _MSFmtDescriptor * ms_factory_get_video_format(MSFactory *obj, const char *mime, MSVideoSize size, float fps, const char *fmtp);
 
 MS2_PUBLIC const MSFmtDescriptor *ms_factory_get_format(MSFactory *obj, const MSFmtDescriptor *ref);
+
+/**
+ * Specifies if a filter is enabled or not. Only enabled filter are return by functions like ms_filter_get_encoder
+ * @param factory
+ * @param name   A name for the filter.
+ * @param enable, true/false
+ * @return 0 in case of success
+ *
+ */
+MS2_PUBLIC int ms_factory_enable_filter_from_name(MSFactory *factory, const char *name, bool_t enable);
+
+/**
+ * Specifies if a filter is enabled or not. Only enabled filter are return by functions like ms_filter_get_encoder
+ *
+ * @param factory
+ * @param name   A name for the filter.
+ * @return true/false if enabled
+ *
+ */
+MS2_PUBLIC bool_t ms_factory_filter_from_name_enabled(const MSFactory *factory, const char *name);
 
 #ifdef __cplusplus
 }

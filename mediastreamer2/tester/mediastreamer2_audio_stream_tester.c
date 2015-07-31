@@ -130,7 +130,7 @@ static void basic_audio_stream_base(	const char* marielle_local_ip
 	RtpProfile* profile = rtp_profile_new("default profile");
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
 	char* recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
-	int dummy=0;
+	int marielle_rtp_sent=0;
 	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session,TRUE);
 	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session,TRUE);
 
@@ -172,18 +172,16 @@ static void basic_audio_stream_base(	const char* marielle_local_ip
 
 	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 
-	BC_ASSERT_TRUE(wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,1,12000));
-
-	/*make sure packets can cross from sender to receiver*/
-	wait_for_until(&marielle->ms,&margaux->ms,&dummy,1,500);
+	wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,1,12000);
 
 	audio_stream_get_local_rtp_stats(marielle,&marielle_stats.rtp);
 	audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
-
-	/* No packet loss is assumed */
-	BC_ASSERT_EQUAL(marielle_stats.rtp.sent,margaux_stats.rtp.recv, int, "%d");
+	marielle_rtp_sent = marielle_stats.rtp.sent;
 
 	audio_stream_stop(marielle);
+	/* No packet loss is assumed */
+	wait_for_until(&margaux->ms,NULL,(int*)&margaux_stats.rtp.hw_recv,marielle_rtp_sent,2500);
+
 	audio_stream_stop(margaux);
 
 	unlink(recorded_file);

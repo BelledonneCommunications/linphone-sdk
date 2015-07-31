@@ -546,17 +546,63 @@ static MS2_INLINE void audio_stream_enable_adaptive_jittcomp(AudioStream *stream
 	media_stream_enable_adaptive_jittcomp(&stream->ms, enabled);
 }
 
+/**
+ * @deprecated Use audio_stream_set_rtp_output_gain_db() intead.
+ */
 MS2_PUBLIC void audio_stream_set_mic_gain_db(AudioStream *stream, float gain_db);
 
 /**
- * 	deprecated
- *  */
+ * @deprecated Use audio_stream_set_rtp_output_gain_db() intead.
+ */
 MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
+
+
+/**
+ * Set value of applied gain before sending on network.
+ * 
+ * @param stream The audio stream.
+ * @param gain_db Gain in dB
+ */
+MS2_PUBLIC void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float gain_db);
 
 /**
  *  enable/disable rtp stream
  *  */
 MS2_PUBLIC void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
+
+/**
+ * Set microphone volume gain.
+ * If the sound backend supports it, the set volume gain will be synchronized
+ * with the host system mixer.
+ * @param stream The audio stream.
+ * @param gain Percentage of the max supported volume gain. Valid values are in [0.0 : 1.0].
+ */
+MS2_PUBLIC void audio_stream_set_sound_card_input_gain(AudioStream *stream, float gain);
+
+/**
+ * Get microphone volume gain.
+ * @param stream The audio stream.
+ * @return double Volume gain in percentage of the max suppored gain.
+ * Valid returned values are in [0.0 : 1.0]. A negative value is returned in case of failure.
+ */
+MS2_PUBLIC float audio_stream_get_sound_card_input_gain(const AudioStream *stream);
+
+/**
+ * Set speaker volume gain.
+ * If the sound backend supports it, the set volume gain will be synchronized
+ * with the host system mixer.
+ * @param stream The audio stream.
+ * @param gain Percentage of the max supported volume gain. Valid values are in [0.0 : 1.0].
+ */
+MS2_PUBLIC void audio_stream_set_sound_card_output_gain(AudioStream *stream, float volume);
+
+/**
+ * Get speaker volume gain.
+ * @param stream The audio stream.
+ * @return Volume gain in percentage of the max suppored gain.
+ * Valid returned values are in [0.0 : 1.0]. A negative value is returned in case of failure.
+ */
+MS2_PUBLIC float audio_stream_get_sound_card_output_gain(const AudioStream *stream);
 
 /**
  * enable noise gate, must be done before start()
@@ -697,8 +743,8 @@ struct _VideoStream
 	VideoStreamEventCallback eventcb;
 	void *event_pointer;
 	char *display_name;
-	unsigned long window_id;
-	unsigned long preview_window_id;
+	void *window_id;
+	void *preview_window_id;
 	VideoStreamDir dir;
 	MSWebCam *cam;
 	RtpSession *rtp_io_session; /**< The RTP session used for RTP input/output. */
@@ -904,10 +950,10 @@ MS2_PUBLIC float video_stream_get_received_framerate(const VideoStream *stream);
 MS2_PUBLIC const char *video_stream_get_default_video_renderer(void);
 
 MS2_PUBLIC void video_stream_enable_self_view(VideoStream *stream, bool_t val);
-MS2_PUBLIC unsigned long video_stream_get_native_window_id(VideoStream *stream);
-MS2_PUBLIC void video_stream_set_native_window_id(VideoStream *stream, unsigned long id);
-MS2_PUBLIC void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id);
-MS2_PUBLIC unsigned long video_stream_get_native_preview_window_id(VideoStream *stream);
+MS2_PUBLIC void * video_stream_get_native_window_id(VideoStream *stream);
+MS2_PUBLIC void video_stream_set_native_window_id(VideoStream *stream, void *id);
+MS2_PUBLIC void video_stream_set_native_preview_window_id(VideoStream *stream, void *id);
+MS2_PUBLIC void * video_stream_get_native_preview_window_id(VideoStream *stream);
 MS2_PUBLIC void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
 MS2_PUBLIC void video_stream_set_device_rotation(VideoStream *stream, int orientation);
 MS2_PUBLIC void video_stream_show_video(VideoStream *stream, bool_t show);
@@ -1014,6 +1060,25 @@ MS2_PUBLIC void audio_stream_unlink_video(AudioStream *stream, VideoStream *vide
  * @param[in] preset The name of the video preset to be used.
  */
 MS2_PUBLIC void video_stream_use_video_preset(VideoStream *stream, const char *preset);
+
+
+/**
+ * Open a player to play a video file (mkv) to remote end.
+ * The player is returned as a MSFilter so that application can make usual player controls on it using the MSPlayerInterface.
+**/
+MS2_PUBLIC MSFilter * video_stream_open_remote_play(VideoStream *stream, const char *filename);
+
+MS2_PUBLIC void video_stream_close_remote_play(VideoStream *stream);
+
+/**
+ * Open a recorder to record the video coming from remote end into a mkv file.
+ * This must be done before the stream is started.
+**/
+MS2_PUBLIC int video_stream_remote_record_open(VideoStream *stream, const char *filename);
+
+MS2_PUBLIC int video_stream_remote_record_start(VideoStream *stream);
+
+MS2_PUBLIC int video_stream_remote_record_stop(VideoStream *stream);
 
 /**
  * Small API to display a local preview window.

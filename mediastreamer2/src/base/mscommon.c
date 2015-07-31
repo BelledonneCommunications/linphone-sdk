@@ -289,6 +289,17 @@ char * ms_tags_list_as_string(const MSList *list) {
 	return tags_str;
 }
 
+bool_t ms_tags_list_contains_tag(const MSList *list, const char *tag) {
+	const MSList *elem = list;
+	while (elem != NULL) {
+		char *tag_from_list = (char *)elem->data;
+		if (strcasecmp(tag, tag_from_list) == 0)
+			return TRUE;
+		elem = elem->next;
+	}
+	return FALSE;
+}
+
 int ms_load_plugins(const char *dir){
 	return ms_factory_load_plugins(ms_factory_get_fallback(),dir);
 }

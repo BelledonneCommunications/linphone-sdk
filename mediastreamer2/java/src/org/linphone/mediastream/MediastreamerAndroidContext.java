@@ -84,4 +84,24 @@ public class MediastreamerAndroidContext {
 		}
 		return returnedValue;
 	}
+	native private int enableFilterFromNameImpl(String name,boolean enable);
+	native private boolean filterFromNameEnabledImpl(String name);
+	/**
+	 * Specifies if a filter is enabled or not.
+	 * @param name   A name for the filter. refer to ms2 internals to get list of filters
+	 * @param enable, true/false
+	 * @throw MediastreamException if filter name is unknown
+	 * */
+	public static void enableFilterFromName(String name,boolean enable) throws MediastreamException {
+		if (getInstance().enableFilterFromNameImpl(name,enable) != 0)
+			throw new MediastreamException("Cannot "+(enable?"enable":"disable") + " filter  name ["+name+"]");
+	}
+	/**
+	 * Specifies if a filter is enabled or not.
+	 * @param name   A name for the filter. refer to ms2 internals to get list of filters
+	 * @return enable, true/false
+	 ** */
+	public static boolean filterFromNameEnabled(String name) {
+		return getInstance().filterFromNameEnabledImpl(name);
+	}
 }

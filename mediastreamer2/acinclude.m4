@@ -195,10 +195,13 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			  yes) enable_x11=true ;;
 			  no)  enable_x11=false ;;
 			  *) AC_MSG_ERROR(bad value ${enableval} for --disable-x11) ;;
-		  	  esac],[enable_x11=$enable_x11_default])
+			  esac],[enable_x11=$enable_x11_default])
 
 			if test "$enable_x11" = "true"; then
-			   AC_CHECK_HEADERS(X11/Xlib.h)
+				AC_CHECK_HEADERS(X11/Xlib.h)
+			else
+				enable_xv=no
+				enable_glx=no
 			fi
 
 			AC_ARG_ENABLE(xv,
@@ -207,7 +210,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			  yes) enable_xv=true ;;
 			  no)  enable_xv=false ;;
 			  *) AC_MSG_ERROR(bad value ${enableval} for --enable-xv) ;;
-		  	  esac],[enable_xv=$enable_x11_default])
+			  esac],[enable_xv=$enable_x11_default])
 
 			if test "$enable_xv" = "true"; then
 				AC_CHECK_HEADERS(X11/extensions/Xv.h,[] ,[enable_xv=false])

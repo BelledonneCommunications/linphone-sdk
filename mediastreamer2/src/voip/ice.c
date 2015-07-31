@@ -1318,7 +1318,7 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 	StunAtrString password;
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
-	RtpTransport *rtptp;
+	RtpTransport *rtptp = NULL;
 	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
 	struct sockaddr_in dest_addr;
 	struct sockaddr_in source_addr;

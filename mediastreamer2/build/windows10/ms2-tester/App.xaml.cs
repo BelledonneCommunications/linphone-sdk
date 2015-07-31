@@ -8,6 +8,7 @@ using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Storage;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -40,8 +41,6 @@ namespace ms2_tester
 
             this.InitializeComponent();
             this.Suspending += OnSuspending;
-
-            tester = new MS2Tester();
         }
 
         /// <summary>
@@ -113,13 +112,5 @@ namespace ms2_tester
             //TODO: Save application state and stop any background activity
             deferral.Complete();
         }
-
-        public bool suiteRunning()
-        {
-            return (suiteRunner != null) && (suiteRunner.running);
-        }
-
-        public MS2Tester tester { get; set; }
-        public UnitTestSuiteRunner suiteRunner { get; set; }
     }
 }

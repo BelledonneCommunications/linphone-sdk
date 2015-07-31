@@ -163,6 +163,7 @@ MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
 MS2_PUBLIC MSList *ms_list_copy_with_data(const MSList *list, void *(*copyfunc)(void *));
 
 MS2_PUBLIC char * ms_tags_list_as_string(const MSList *list);
+MS2_PUBLIC bool_t ms_tags_list_contains_tag(const MSList *list, const char *tag);
 
 #undef MIN
 #define MIN(a,b)	((a)>(b) ? (b) : (a))
@@ -352,6 +353,18 @@ MS2_PUBLIC char *ms_load_path_content(const char *path, size_t *nbytes);
 #endif
 
 #  if defined(ENABLE_NLS)
+
+#ifdef _MSC_VER
+// prevent libintl.h from re-defining fprintf and vfprintf
+#ifndef fprintf
+#define fprintf fprintf
+#endif
+#ifndef vfprintf
+#define vfprintf vfprintf
+#endif
+#define _GL_STDIO_H
+#endif
+
 #    include <libintl.h>
 #    define _(String) dgettext (GETTEXT_PACKAGE, String)
 #  else

@@ -1410,19 +1410,7 @@ void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val){
 }
 
 void audio_stream_set_mic_gain_db(AudioStream *stream, float gain_db) {
-	float gain = gain_db;
-#ifdef ANDROID
-	SoundDeviceDescription *device = sound_device_description_get();
-	if (device && device->hacks) {
-		gain += device->hacks->mic_gain;
-		ms_message("Applying %f db to mic gain based on parameter and audio hack value in device table", gain);
-	}
-#endif
-
-	if (stream->volsend){
-		ms_filter_call_method(stream->volsend, MS_VOLUME_SET_DB_GAIN, &gain);
-	} else ms_warning("Could not apply gain: gain control wasn't activated. "
-			"Use audio_stream_enable_gain_control() before starting the stream.");
+	audio_stream_set_rtp_output_gain_db(stream, gain_db);
 }
 
 void audio_stream_set_mic_gain(AudioStream *stream, float gain){
@@ -1430,6 +1418,58 @@ void audio_stream_set_mic_gain(AudioStream *stream, float gain){
 		ms_filter_call_method(stream->volsend,MS_VOLUME_SET_GAIN,&gain);
 	}else ms_warning("Could not apply gain: gain control wasn't activated. "
 			"Use audio_stream_enable_gain_control() before starting the stream.");
+}
+
+void audio_stream_set_sound_card_input_gain(AudioStream *stream, float volume) {
+	if (stream->soundread) {
+		if(ms_filter_implements_interface(stream->soundread, MSFilterAudioCaptureInterface)) {
+			ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_SET_VOLUME_GAIN, &volume);
+		}
+	} else {
+		ms_error("Cannot set input volume: no input filter");
+	}
+}
+
+float audio_stream_get_sound_card_input_gain(const AudioStream *stream) {
+	float volume;
+	
+	if(stream->soundread == NULL) {
+		ms_error("Cannot get input volume: no input filter");
+		return -1.0f;
+	}
+	if(!ms_filter_implements_interface(stream->soundread, MSFilterAudioCaptureInterface)) {
+		return -1.0f;
+	}
+	if(ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_GET_VOLUME_GAIN, &volume) < 0) {
+		volume = -1.0f;
+	}
+	return volume;
+}
+
+void audio_stream_set_sound_card_output_gain(AudioStream *stream, float volume) {
+	if (stream->soundwrite) {
+		if(ms_filter_implements_interface(stream->soundwrite, MSFilterAudioPlaybackInterface)) {
+			ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_VOLUME_GAIN, &volume);
+		}
+	} else {
+		ms_error("Cannot set output volume: no output filter");
+	}
+}
+
+float audio_stream_get_sound_card_output_gain(const AudioStream *stream) {
+	float volume;
+	
+	if(stream->soundwrite == NULL) {
+		ms_error("Cannot get output volume: no output filter");
+		return -1.0f;
+	}
+	if(!ms_filter_implements_interface(stream->soundwrite, MSFilterAudioPlaybackInterface)) {
+		return -1.0f;
+	}
+	if(ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_GET_VOLUME_GAIN, &volume) < 0) {
+		volume = -1.0f;
+	}
+	return volume;
 }
 
 void audio_stream_enable_equalizer(AudioStream *stream, bool_t enabled){
@@ -1552,6 +1592,22 @@ int audio_stream_send_dtmf(AudioStream *stream, char dtmf)
 	else if (stream->ms.rtpsend)
 		ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SEND_DTMF,&dtmf);
 	return 0;
+}
+
+void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float gain_db) {
+	float gain = gain_db;
+#ifdef ANDROID
+	SoundDeviceDescription *device = sound_device_description_get();
+	if (device && device->hacks) {
+		gain += device->hacks->mic_gain;
+		ms_message("Applying %f db to mic gain based on parameter and audio hack value in device table", gain);
+	}
+#endif
+
+	if (stream->volsend){
+		ms_filter_call_method(stream->volsend, MS_VOLUME_SET_DB_GAIN, &gain);
+	} else ms_warning("Could not apply gain: gain control wasn't activated. "
+			"Use audio_stream_enable_gain_control() before starting the stream.");
 }
 
 void audio_stream_mute_rtp(AudioStream *stream, bool_t val)

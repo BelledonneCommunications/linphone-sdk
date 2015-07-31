@@ -75,11 +75,13 @@ static int _ms_ticker_prio_from_env(const char *penv, MSTickerPrio *prio) {
 }
 
 MSTickerPrio __ms_get_default_prio(bool_t is_video) {
-	const char *penv;
+	const char *penv = NULL;
 	MSTickerPrio prio;
 
 	if (is_video) {
+#ifndef MS2_WINDOWS_UNIVERSAL
 		penv = getenv("MS_VIDEO_PRIO");
+#endif
 		if(penv && _ms_ticker_prio_from_env(penv, &prio) == 0) return prio;
 
 #ifdef __ios
@@ -88,7 +90,9 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 		return MS_TICKER_PRIO_NORMAL;
 #endif
 	} else {
+#ifndef MS2_WINDOWS_UNIVERSAL
 		penv = getenv("MS_AUDIO_PRIO");
+#endif
 		if (penv && _ms_ticker_prio_from_env(penv, &prio) == 0) return prio;
 
 #ifdef __linux

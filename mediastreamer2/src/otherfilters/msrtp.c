@@ -80,7 +80,10 @@ static void send_stun_packet(RtpSession *s)
 static void sender_init(MSFilter * f)
 {
 	SenderData *d = (SenderData *)ms_new0(SenderData, 1);
-	const char *tmp=getenv("MS2_RTP_FIXED_DELAY");
+	const char *tmp = NULL;
+#ifndef MS2_WINDOWS_UNIVERSAL
+	tmp = getenv("MS2_RTP_FIXED_DELAY");
+#endif
 	
 	d->session = NULL;
 	d->tsoff = 0;

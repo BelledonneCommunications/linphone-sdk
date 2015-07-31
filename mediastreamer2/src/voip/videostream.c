@@ -479,9 +479,9 @@ static void configure_video_source(VideoStream *stream){
 		vsize=cam_vsize;
 		ms_message("Output video size adjusted to match camera resolution (%ix%i)",vsize.width,vsize.height);
 	} else {
-#if TARGET_IPHONE_SIMULATOR || defined(__arm__) || defined(_M_ARM)
+#if TARGET_IPHONE_SIMULATOR || defined(__arm__) || defined(_M_ARM) || defined(MS2_WINDOWS_UNIVERSAL)
 		ms_error("Camera is proposing a size bigger than encoder's suggested size (%ix%i > %ix%i) "
-				   "Using the camera size as fallback because cropping or resizing is not implemented for arm.",
+				   "Using the camera size as fallback because cropping or resizing is not implemented for this device.",
 				   cam_vsize.width,cam_vsize.height,vsize.width,vsize.height);
 		vsize=cam_vsize;
 #else
@@ -944,9 +944,13 @@ int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *p
 				ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
 			configure_decoder(stream,pt);
 
-			/*force the decoder to output YUV420P */
-			format=MS_YUV420P;
-			ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_PIX_FMT,&format);
+			if (stream->output_performs_decoding) {
+				format = mime_type_to_pix_format(pt->mime_type);
+			} else {
+				/*force the decoder to output YUV420P */
+				format = MS_YUV420P;
+			}
+			ms_filter_call_method(stream->ms.decoder, MS_FILTER_SET_PIX_FMT, &format);
 
 			/*configure the display window */
 			if(stream->output != NULL) {
@@ -1324,8 +1328,8 @@ void video_stream_show_video(VideoStream *stream, bool_t show){
 }
 
 
-unsigned long video_stream_get_native_window_id(VideoStream *stream){
-	unsigned long id;
+void * video_stream_get_native_window_id(VideoStream *stream){
+	void *id;
 	if (stream->output){
 		if (ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
@@ -1333,14 +1337,14 @@ unsigned long video_stream_get_native_window_id(VideoStream *stream){
 	return stream->window_id;
 }
 
-void video_stream_set_native_window_id(VideoStream *stream, unsigned long id){
+void video_stream_set_native_window_id(VideoStream *stream, void *id){
 	stream->window_id=id;
 	if (stream->output){
 		ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
 	}
 }
 
-void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id){
+void video_stream_set_native_preview_window_id(VideoStream *stream, void *id){
 	stream->preview_window_id=id;
 #ifndef __ios
 	if (stream->output2){
@@ -1352,8 +1356,8 @@ void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned lon
 	}
 }
 
-unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
-	unsigned long id=0;
+void * video_stream_get_native_preview_window_id(VideoStream *stream){
+	void *id=0;
 	if (stream->output2){
 		if (ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
@@ -1541,4 +1545,28 @@ const MSWebCam * video_stream_get_camera(const VideoStream *stream) {
 void video_stream_use_video_preset(VideoStream *stream, const char *preset) {
 	if (stream->preset != NULL) ms_free(stream->preset);
 	stream->preset = ms_strdup(preset);
+}
+
+MSFilter * video_stream_open_remote_play(VideoStream *stream, const char *filename){
+	/*stub, to be implemented.*/
+	return NULL;
+}
+
+void video_stream_close_remote_play(VideoStream *stream){
+	/*stub, to be implemented.*/
+}
+
+int video_stream_remote_record_open(VideoStream *stream, const char *filename){
+	/*stub, to be implemented.*/
+	return -1;
+}
+
+int video_stream_remote_record_start(VideoStream *stream){
+	/*stub, to be implemented.*/
+	return -1;
+}
+
+int video_stream_remote_record_stop(VideoStream *stream){
+	/*stub, to be implemented.*/
+	return -1;
 }

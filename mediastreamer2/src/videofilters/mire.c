@@ -170,7 +170,10 @@ MSWebCamDesc *ms_mire_webcam_desc_get(void){
 }
 
 static void mire_detect(MSWebCamManager *obj){
-	char *debug=getenv("DEBUG");
+	char *debug = NULL;
+#ifndef MS2_WINDOWS_UNIVERSAL
+	debug = getenv("DEBUG");
+#endif
 	if (debug && atoi(debug)==1){
 		MSWebCam *cam=ms_web_cam_new(&ms_mire_webcam_desc);
 		ms_web_cam_manager_add_cam(obj,cam);
