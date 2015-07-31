@@ -489,20 +489,14 @@ static bool_t stream_set_volume(Stream *s, double volume) {
 
 static void stream_get_source_volume_cb(pa_context *c, const pa_source_output_info *i, int eol, void *user_data) {
 	if(i) {
-		*(double *)user_data = volume_to_scale(*i->volume.values);
-	} else {
-		ms_error("stream_get_source_volume_cb(): no source info");
-		*(double *)user_data = -1.0;
+		*(double *)user_data = volume_to_scale(pa_cvolume_avg(&i->volume));
 	}
 	pa_threaded_mainloop_signal(pa_loop, FALSE);
 }
 
 static void stream_get_sink_volume_cb(pa_context *c, const pa_sink_input_info *i, int eol, void *user_data) {
 	if(i) {
-		*(double *)user_data = volume_to_scale(*i->volume.values);
-	} else {
-		ms_error("stream_get_sink_volume_cb(): no source info");
-		*(double *)user_data = -1.0;
+		*(double *)user_data = volume_to_scale(pa_cvolume_avg(&i->volume));
 	}
 	pa_threaded_mainloop_signal(pa_loop, FALSE);
 }
@@ -516,6 +510,7 @@ static bool_t stream_get_volume(Stream *s, double *volume) {
 		return FALSE;
 	}
 	idx = pa_stream_get_index(s->stream);
+	*volume = -1.0;
 	pa_threaded_mainloop_lock(pa_loop);
 	if(s->type == STREAM_TYPE_PLAYBACK) {
 		op = pa_context_get_sink_input_info(context, idx, stream_get_sink_volume_cb, volume);
