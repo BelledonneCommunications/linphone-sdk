@@ -29,7 +29,8 @@ void belle_sip_parameters_clean(belle_sip_parameters_t* params) {
 	params->paramnames_list=NULL;
 	params->param_list=NULL;
 }
-void belle_sip_parameters_destroy(belle_sip_parameters_t* params) {
+
+static void belle_sip_parameters_destroy(belle_sip_parameters_t* params) {
 	belle_sip_parameters_clean(params);
 }
 

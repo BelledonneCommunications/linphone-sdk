@@ -132,7 +132,7 @@ belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buf
 		belle_sip_parameters_t *encparams = belle_sip_parameters_new();
 		belle_sip_list_for_each2(uri->params.param_list, (void (*)(void *, void *))encode_params, &encparams->param_list);
 		error=belle_sip_parameters_marshal(encparams,buff,buff_size,offset);
-		belle_sip_parameters_destroy(encparams);
+		belle_sip_object_unref(encparams);
 		if (error!=BELLE_SIP_OK) return error;
 	}
 
