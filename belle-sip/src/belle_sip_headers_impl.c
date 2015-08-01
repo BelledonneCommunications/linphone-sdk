@@ -1724,7 +1724,19 @@ BELLESIP_EXPORT void belle_sip_header_date_set_time(belle_sip_header_date_t *obj
 	if (obj->date){
 		belle_sip_free(obj->date);
 	}
-	obj->date=belle_sip_strdup_printf("%s, %i %s %i %02i:%02i:%02i GMT",
+/*SIP-date      =  rfc1123-date
+rfc1123-date  =  wkday "," SP date1 SP time SP "GMT"
+date1         =  2DIGIT SP month SP 4DIGIT
+                 ; day month year (e.g., 02 Jun 1982)
+time          =  2DIGIT ":" 2DIGIT ":" 2DIGIT
+                 ; 00:00:00 - 23:59:59
+wkday         =  "Mon" / "Tue" / "Wed"
+                 / "Thu" / "Fri" / "Sat" / "Sun"
+month         =  "Jan" / "Feb" / "Mar" / "Apr"
+                 / "May" / "Jun" / "Jul" / "Aug"
+                 / "Sep" / "Oct" / "Nov" / "Dec"
+*/
+	obj->date=belle_sip_strdup_printf("%s, %02i %s %04i %02i:%02i:%02i GMT",
 			days[ret->tm_wday],ret->tm_mday,months[ret->tm_mon],1900+ret->tm_year,ret->tm_hour,ret->tm_min,ret->tm_sec);
 }
 
