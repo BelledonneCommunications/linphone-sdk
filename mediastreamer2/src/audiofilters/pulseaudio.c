@@ -39,14 +39,13 @@ struct _PAData{
 typedef struct _PAData PAData;
 
 static pa_context *context=NULL;
-static pa_context_state_t contextState = PA_CONTEXT_UNCONNECTED;
 static pa_threaded_mainloop *pa_loop=NULL;
 static const int targeted_latency = 20;/*ms*/
 
 static void context_state_notify_cb(pa_context *ctx, void *userdata){
 	const char *sname="";
-	contextState=pa_context_get_state(ctx);
-	switch (contextState){
+	pa_context_state_t state=pa_context_get_state(ctx);
+	switch (state){
 	case PA_CONTEXT_UNCONNECTED:
 		sname="PA_CONTEXT_UNCONNECTED";
 		break;
@@ -73,13 +72,16 @@ static void context_state_notify_cb(pa_context *ctx, void *userdata){
 	pa_threaded_mainloop_signal(pa_loop, FALSE);
 }
 
-static bool_t wait_for_context_state(pa_context_state_t successState, pa_context_state_t failureState){
+static bool_t wait_for_context_state(pa_context_state_t success_state, pa_context_state_t failure_state){
+	pa_context_state_t state;
 	pa_threaded_mainloop_lock(pa_loop);
-	while(contextState != successState && contextState != failureState) {
+	state = pa_context_get_state(context);
+	while(state != success_state && state != failure_state) {
 		pa_threaded_mainloop_wait(pa_loop);
+		state = pa_context_get_state(context);
 	}
 	pa_threaded_mainloop_unlock(pa_loop);
-	return contextState == successState;
+	return state == success_state;
 }
 
 static void init_pulse_context(){
@@ -144,6 +146,8 @@ void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol, void *userdat
 	strncpy(pa_device->description, l->description, 255);
 
 	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
+	
+	pa_threaded_mainloop_signal(pa_loop, FALSE);
 }
 
 void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *userdata) {
@@ -163,6 +167,8 @@ void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *use
 	strncpy(pa_device->description, l->description, 255);
 
 	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
+	
+	pa_threaded_mainloop_signal(pa_loop, FALSE);
 }
 
 /* Add cards to card manager, list contains sink only and bidirectionnal cards */
@@ -241,6 +247,8 @@ static void pulse_card_detect(MSSndCardManager *m){
 		return;
 	}
 
+	pa_threaded_mainloop_lock(pa_loop);
+	
 	/* retrieve all available sinks */
 	pa_op = pa_context_get_sink_info_list(context, pa_sinklist_cb, &pa_sink_list);
 
@@ -259,12 +267,14 @@ static void pulse_card_detect(MSSndCardManager *m){
 	}
 	pa_operation_unref(pa_op);
 
+	pa_threaded_mainloop_unlock(pa_loop);
+	
 	/* merge source list into sink list for dual capabilities cards */
-	ms_list_for_each2(pa_sink_list, (void (*)(void*,void*))pulse_card_merge_lists, pa_source_list);
+	ms_list_for_each2(pa_sink_list, (MSIterate2Func)pulse_card_merge_lists, &pa_source_list);
 
 	/* create sink and souce cards */
-	ms_list_for_each2(pa_sink_list, (void (*)(void*,void*))pulse_card_sink_create, m);
-	ms_list_for_each2(pa_source_list, (void (*)(void*,void*))pulse_card_source_create, m);
+	ms_list_for_each2(pa_sink_list, (MSIterate2Func)pulse_card_sink_create, m);
+	ms_list_for_each2(pa_source_list, (MSIterate2Func)pulse_card_source_create, m);
 
 	ms_list_free_with_data(pa_sink_list, ms_free);
 	ms_list_free_with_data(pa_source_list, ms_free);
@@ -763,4 +773,5 @@ static MSFilter *pulse_card_create_writer(MSSndCard *card) {
 	s->dev = ms_strdup(card_data->pa_id_sink); /* add pulse audio card id to connect the stream to the correct card */
 	return f;
 }
+
 
