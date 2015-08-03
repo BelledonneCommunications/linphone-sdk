@@ -103,6 +103,12 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 	}
 }
 
+void media_stream_init(MediaStream *stream) {
+	stream->evd = ortp_ev_dispatcher_new(stream->sessions.rtp_session);
+	stream->evq = ortp_ev_queue_new();
+	rtp_session_register_event_queue(stream->sessions.rtp_session, stream->evq);
+}
+
 RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port) {
 	RtpSession *rtpr;
 
@@ -166,13 +172,10 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 }
 
 void media_stream_free(MediaStream *stream) {
-	if (stream->sessions.rtp_session != NULL){
-		rtp_session_unregister_event_queue(stream->sessions.rtp_session, stream->evq);
-	}
-	if (stream->owns_sessions){
-		ms_media_stream_sessions_uninit(&stream->sessions);
-	}
-	if (stream->evq) ortp_ev_queue_destroy(stream->evq);
+	if (stream->sessions.rtp_session != NULL) rtp_session_unregister_event_queue(stream->sessions.rtp_session, stream->evq);
+	if (stream->evq != NULL) ortp_ev_queue_destroy(stream->evq);
+	if (stream->evd != NULL) ortp_ev_dispatcher_destroy(stream->evd);
+	if (stream->owns_sessions) ms_media_stream_sessions_uninit(&stream->sessions);
 	if (stream->rc != NULL) ms_bitrate_controller_destroy(stream->rc);
 	if (stream->rtpsend != NULL) ms_filter_destroy(stream->rtpsend);
 	if (stream->rtprecv != NULL) ms_filter_destroy(stream->rtprecv);
@@ -313,6 +316,10 @@ void media_stream_iterate(MediaStream *stream){
 	stream->last_iterate_time=curtime;
 
 	if (stream->rc) ms_bitrate_controller_update(stream->rc);
+
+	if (stream->evd) {
+		ortp_ev_dispatcher_iterate(stream->evd);
+	}
 
 	if (stream->evq){
 		OrtpEvent *ev=NULL;
@@ -519,6 +526,10 @@ int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *pa
 	}
 	if (params->name==NULL) return -1;
 	return 0;
+}
+
+OrtpEvDispatcher* media_stream_get_event_dispatcher(const MediaStream *stream) {
+	return stream->evd;
 }
 
 /*stubs*/

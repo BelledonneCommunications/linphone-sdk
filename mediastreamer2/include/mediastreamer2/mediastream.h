@@ -137,7 +137,10 @@ struct _MediaStream {
 	 * */
 	int target_bitrate;
 	media_stream_process_rtcp_callback_t process_rtcp;
+	OrtpEvDispatcher *evd;
 };
+
+MS2_PUBLIC void media_stream_init(MediaStream *stream);
 
 
 /**
@@ -274,6 +277,8 @@ MS2_PUBLIC bool_t media_stream_alive(MediaStream *stream, int timeout_seconds);
  * @return current streams state
  * */
 MS2_PUBLIC MSStreamState media_stream_get_state(const MediaStream *stream);
+
+MS2_PUBLIC OrtpEvDispatcher* media_stream_get_event_dispatcher(const MediaStream *stream);
 
 typedef enum EchoLimiterType{
 	ELInactive,

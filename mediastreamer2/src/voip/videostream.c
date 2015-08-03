@@ -272,6 +272,8 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 
 	stream->ms.type = MSVideo;
 	stream->ms.sessions=*sessions;
+	media_stream_init(&stream->ms);
+
 	if (sessions->zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
 	}
@@ -281,10 +283,8 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	rtp_session_resync(stream->ms.sessions.rtp_session);
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi,"video");
-	stream->ms.evq=ortp_ev_queue_new();
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
-	rtp_session_register_event_queue(stream->ms.sessions.rtp_session,stream->ms.evq);
 	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, CIF);
 	stream->fps=0;
 	stream->dir=VideoStreamSendRecv;

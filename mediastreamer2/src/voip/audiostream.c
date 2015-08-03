@@ -1305,12 +1305,13 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 		stream
 	};
 
+	stream->ms.type = MSAudio;
+	stream->ms.sessions = *sessions;
+	media_stream_init(&stream->ms);
+
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
 
-
-	stream->ms.type = MSAudio;
-	stream->ms.sessions=*sessions;
 	if (sessions->zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
 	}
@@ -1329,8 +1330,6 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 	}else{
 		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
 	}
-	stream->ms.evq=ortp_ev_queue_new();
-	rtp_session_register_event_queue(stream->ms.sessions.rtp_session,stream->ms.evq);
 	stream->play_dtmfs=TRUE;
 	stream->use_gc=FALSE;
 	stream->use_agc=FALSE;
