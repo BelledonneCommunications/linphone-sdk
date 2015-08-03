@@ -28,8 +28,18 @@ extern "C"{
 #endif
 
 typedef void (*MSAudioDiffProgressNotify)(void* user_data, int percentage);
-/*utility function to check similarity between two audio wav files*/
-MS2_PUBLIC int ms_audio_diff(const char *file1, const char *file2, double *ret, int overlap_per, MSAudioDiffProgressNotify func, void *user_data);
+
+/**
+ * Utility that compares two PCM 16 bits audio files and returns a similarity factor between 0 and 1.
+ * @param file1 a wav file path
+ * @param file2 a wav file path
+ * @param ret the similarity factor, set in return
+ * @param max_shift_percent percentage of overlap between the two signals, used to restrict the cross correlation around t=0 in range [1 ; 100].
+ * @param func a callback called to show progress of the operation
+ * @param user_data a user data passed to the callback when invoked.
+ * @return -1 on error, 0 if succesful.
+**/
+MS2_PUBLIC int ms_audio_diff(const char *file1, const char *file2, double *ret, int max_shift_percent, MSAudioDiffProgressNotify func, void *user_data);
 
 #ifdef __cplusplus
 }

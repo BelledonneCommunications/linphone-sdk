@@ -221,16 +221,6 @@ void file_info_compute_energy(FileInfo *fi){
 }
 
 
-/**
- * Utility that compares two PCM 16 bits audio files and returns a similarity factor between 0 and 1.
- * @param file1 a wav file path
- * @param file2 a wav file path
- * @param ret the similarity factor, set in return
- * @param overlap_p percentage of overlap between the two signals, used to restrict the cross correlation around t=0.
- * @param func a callback called to show progress of the operation
- * @param user_data a user data passed to the callback when invoked.
- * @return -1 on error, 0 if succesful.
-**/
 int ms_audio_diff(const char *file1, const char *file2, double *ret, int max_shift_percent, MSAudioDiffProgressNotify func, void *user_data){
 	FileInfo *fi1,*fi2;
 	int64_t *xcorr;
@@ -269,7 +259,7 @@ int ms_audio_diff(const char *file1, const char *file2, double *ret, int max_shi
 		return -1;
 	}
 
-	max_shift_samples = MIN(fi1->nsamples, fi2->nsamples) * max_shift_percent / 100;
+	max_shift_samples = MIN(fi1->nsamples, fi2->nsamples) * MIN(MAX(1, max_shift_percent), 100) / 100;
 	xcorr_size=max_shift_samples*2;
 	xcorr=ms_new0(int64_t,xcorr_size);
 	if (fi1->nchannels == 2){
@@ -294,6 +284,6 @@ int ms_audio_diff(const char *file1, const char *file2, double *ret, int max_shi
 	}
 	ms_free(xcorr);
 	file_info_destroy(fi1);
-        file_info_destroy(fi2);
+	file_info_destroy(fi2);
 	return 0;
 }
