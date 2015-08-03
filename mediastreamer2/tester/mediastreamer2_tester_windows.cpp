@@ -1,10 +1,12 @@
 ﻿#include <string>
+#include <collection.h>
 
 #include "mediastreamer2_tester_windows.h"
 #include "mswinrtvid.h"
 
 using namespace ms2_tester_runtime_component;
 using namespace Platform;
+using namespace Platform::Collections;
 using namespace Windows::Foundation;
 using namespace Windows::Storage;
 using namespace Windows::System::Threading;
@@ -12,6 +14,8 @@ using namespace Windows::System::Threading;
 #define MAX_TRACE_SIZE		2048
 #define MAX_SUITE_NAME_SIZE	128
 #define MAX_WRITABLE_DIR_SIZE 1024
+#define MAX_FILEPATH_SIZE	2048
+#define MAX_DEVICE_NAME_SIZE 256
 
 static OutputTraceListener^ sTraceListener;
 
@@ -56,18 +60,21 @@ static void ms2NativeOutputTraceHandler(OrtpLogLevel lev, const char *fmt, va_li
 
 MS2Tester::MS2Tester()
 {
-	char writable_dir[MAX_WRITABLE_DIR_SIZE];
-	StorageFolder ^folder = ApplicationData::Current->LocalFolder;
-	const wchar_t *wwritable_dir = folder->Path->Data();
-	wcstombs(writable_dir, wwritable_dir, sizeof(writable_dir));
 	mediastreamer2_tester_init(nativeOutputTraceHandler);
 	bc_tester_set_resource_dir_prefix("Assets");
-	bc_tester_set_writable_dir_prefix(writable_dir);
 }
 
 MS2Tester::~MS2Tester()
 {
 	mediastreamer2_tester_uninit();
+}
+
+void MS2Tester::setWritableDirectory(StorageFolder^ folder)
+{
+	char writable_dir[MAX_WRITABLE_DIR_SIZE] = { 0 };
+	const wchar_t *wwritable_dir = folder->Path->Data();
+	wcstombs(writable_dir, wwritable_dir, sizeof(writable_dir));
+	bc_tester_set_writable_dir_prefix(writable_dir);
 }
 
 void MS2Tester::setOutputTraceListener(OutputTraceListener^ traceListener)
@@ -151,7 +158,21 @@ Platform::String^ MS2Tester::testName(Platform::String^ suiteName, int testIndex
 	return ref new String(wcname);
 }
 
-void MS2Tester::startVideoStream(Platform::Object^ CaptureElement, Platform::Object^ MediaElement)
+Windows::Foundation::Collections::IVector<Platform::String^>^ MS2Tester::VideoDevices::get()
+{
+	wchar_t wcname[MAX_DEVICE_NAME_SIZE];
+	Vector<Platform::String^>^ devices = ref new Vector<Platform::String^>();
+	const MSList *elem = ms_web_cam_manager_get_list(ms_web_cam_manager_get());
+	for (int i = 0; elem != NULL; elem = elem->next, i++) {
+		const char *id = ms_web_cam_get_string_id((MSWebCam *)elem->data);
+		memset(wcname, 0, sizeof(wcname));
+		mbstowcs(wcname, id, sizeof(wcname));
+		devices->Append(ref new String(wcname));
+	}
+	return devices;
+}
+
+void MS2Tester::initVideo()
 {
 	ortp_init();
 	ms_base_init();
@@ -160,19 +181,70 @@ void MS2Tester::startVideoStream(Platform::Object^ CaptureElement, Platform::Obj
 	ms_voip_init();
 	ms_plugins_init();
 	rtp_profile_set_payload(&av_profile, 102, &payload_type_h264);
+	rtp_profile_set_payload(&av_profile, 103, &payload_type_vp8);
+	Platform::String^ appFolder = Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
+	Platform::String^ psPath = Platform::String::Concat(appFolder, ref new Platform::String(L"\\Assets\\Images\\nowebcamCIF.jpg"));
+	std::wstring wsPath = psPath->Data();
+	char cPath[MAX_FILEPATH_SIZE] = { 0 };
+	wcstombs(cPath, wsPath.c_str(), sizeof(cPath));
+	ms_static_image_set_default_image(cPath);
+}
+
+void MS2Tester::uninitVideo()
+{
+	ms_exit();
+}
+
+#define PLATFORM_STRING_TO_C_STRING(x) \
+	memset(cst, 0, sizeof(cst)); \
+	wst = x->Data(); \
+	wcstombs(cst, wst.c_str(), sizeof(cst))
+
+
+void MS2Tester::startVideoStream(Platform::Object^ CaptureElement, Platform::Object^ MediaElement, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate)
+{
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
 
+	MSVideoSize vsize = { MS_VIDEO_SIZE_CIF_W, MS_VIDEO_SIZE_CIF_H };
+	int payload = 102;
+	char cst[1024];
+	std::wstring wst;
 	MSWebCamManager *manager = ms_web_cam_manager_get();
-	MSWebCam *camera = ms_web_cam_manager_get_default_cam(manager);
+	PLATFORM_STRING_TO_C_STRING(camera);
+	MSWebCam *cam = ms_web_cam_manager_get_cam(manager, cst);
+	PLATFORM_STRING_TO_C_STRING(codec);
+	if (strcmp(cst, "VP8") == 0) payload = 103;
+	PLATFORM_STRING_TO_C_STRING(videoSize);
+	if (strcmp(cst, "720P") == 0) {
+		vsize.width = MS_VIDEO_SIZE_720P_W;
+		vsize.height = MS_VIDEO_SIZE_720P_H;
+	} else if (strcmp(cst, "VGA") == 0) {
+		vsize.width = MS_VIDEO_SIZE_VGA_W;
+		vsize.height = MS_VIDEO_SIZE_VGA_H;
+	} else if (strcmp(cst, "CIF") == 0) {
+		vsize.width = MS_VIDEO_SIZE_CIF_W;
+		vsize.height = MS_VIDEO_SIZE_CIF_H;
+	} else if (strcmp(cst, "QVGA") == 0) {
+		vsize.width = MS_VIDEO_SIZE_QVGA_W;
+		vsize.height = MS_VIDEO_SIZE_QVGA_H;
+	} else if (strcmp(cst, "QCIF") == 0) {
+		vsize.width = MS_VIDEO_SIZE_QCIF_W;
+		vsize.height = MS_VIDEO_SIZE_QCIF_H;
+	}
+	PayloadType *pt = rtp_profile_get_payload(&av_profile, payload);
+	pt->normal_bitrate = bitRate * 1000;
 	_videoStream = video_stream_new(20000, 0, FALSE);
 	RefToPtrProxy<Platform::Object^> *previewWindowId = new RefToPtrProxy<Platform::Object^>(CaptureElement);
 	video_stream_set_native_preview_window_id(_videoStream, previewWindowId);
 	RefToPtrProxy<Platform::Object^> *nativeWindowId = new RefToPtrProxy<Platform::Object^>(MediaElement);
 	video_stream_set_native_window_id(_videoStream, nativeWindowId);
 	video_stream_set_display_filter_name(_videoStream, "MSWinRTDis");
-	video_stream_set_direction(_videoStream, VideoStreamRecvOnly);
-	video_stream_start(_videoStream, &av_profile, "127.0.0.1", 21000, NULL, 0, 102, 0, camera);
+	video_stream_use_video_preset(_videoStream, "custom");
+	video_stream_set_sent_video_size(_videoStream, vsize);
+	video_stream_set_fps(_videoStream, frameRate);
+	//video_stream_set_device_rotation(_videoStream, 90);
+	video_stream_start(_videoStream, &av_profile, "127.0.0.1", 20000, NULL, 0, payload, 0, cam);
 }
 
 void MS2Tester::stopVideoStream()
@@ -180,5 +252,4 @@ void MS2Tester::stopVideoStream()
 	ms_filter_log_statistics();
 	video_stream_stop(_videoStream);
 	_videoStream = NULL;
-	ms_exit();
 }

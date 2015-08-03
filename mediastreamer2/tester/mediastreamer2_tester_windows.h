@@ -14,6 +14,7 @@ namespace ms2_tester_runtime_component
     public ref class MS2Tester sealed
     {
     public:
+		void setWritableDirectory(Windows::Storage::StorageFolder^ folder);
 		void setOutputTraceListener(OutputTraceListener^ traceListener);
 		unsigned int nbTestSuites();
 		unsigned int nbTests(Platform::String^ suiteName);
@@ -21,7 +22,9 @@ namespace ms2_tester_runtime_component
 		Platform::String^ testName(Platform::String^ suiteName, int testIndex);
 		bool run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose);
 		void runAllToXml();
-		void startVideoStream(Platform::Object^ CaptureElement, Platform::Object^ MediaElement);
+		void initVideo();
+		void uninitVideo();
+		void startVideoStream(Platform::Object^ CaptureElement, Platform::Object^ MediaElement, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate);
 		void stopVideoStream();
 
 		static property MS2Tester^ Instance
@@ -31,6 +34,10 @@ namespace ms2_tester_runtime_component
 		property Windows::Foundation::IAsyncAction^ AsyncAction
 		{
 			Windows::Foundation::IAsyncAction^ get() { return _asyncAction; }
+		}
+		property Windows::Foundation::Collections::IVector<Platform::String^>^ VideoDevices
+		{
+			Windows::Foundation::Collections::IVector<Platform::String^>^ get();
 		}
 	private:
 		MS2Tester();
