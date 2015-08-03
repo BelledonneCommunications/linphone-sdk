@@ -37,6 +37,7 @@ namespace belle_sip_tester
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            BelleSipTester.Instance.setWritableDirectory(ApplicationData.Current.LocalFolder);
             _suites = UnitTestDataSource.GetSuites(BelleSipTester.Instance);
             TryAutoLaunch();
         }
