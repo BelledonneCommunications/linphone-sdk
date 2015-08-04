@@ -95,11 +95,8 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 #endif
 		if (penv && _ms_ticker_prio_from_env(penv, &prio) == 0) return prio;
 
-#ifdef __linux
-		return MS_TICKER_PRIO_REALTIME;
-#else
 		return MS_TICKER_PRIO_HIGH;
-#endif
+
 	}
 }
 
