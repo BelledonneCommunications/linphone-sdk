@@ -69,6 +69,7 @@ typedef struct WasapiSndCard {
 extern const IID IID_IAudioClient2;
 extern const IID IID_IAudioCaptureClient;
 extern const IID IID_IAudioRenderClient;
+extern const IID IID_ISimpleAudioVolume;
 
 #ifdef MS2_WINDOWS_DESKTOP
 extern const CLSID CLSID_MMDeviceEnumerator;

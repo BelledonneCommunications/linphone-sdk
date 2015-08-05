@@ -49,7 +49,7 @@ bool MSWASAPIReader::smInstantiated = false;
 
 
 MSWASAPIReader::MSWASAPIReader()
-	: mAudioClient(NULL), mAudioCaptureClient(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
+	: mAudioClient(NULL), mAudioCaptureClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
 {
 #ifdef MS2_WINDOWS_UNIVERSAL
 	mActivationEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
@@ -197,6 +197,8 @@ int MSWASAPIReader::activate()
 	ms_message("MSWASAPI audio input interface buffer size: %i", mBufferFrameCount);
 	result = mAudioClient->GetService(IID_IAudioCaptureClient, (void **)&mAudioCaptureClient);
 	REPORT_ERROR("Could not get render service from the MSWASAPI audio input interface [%x]", result);
+	result = mAudioClient->GetService(IID_ISimpleAudioVolume, (void **)&mVolumeControler);
+	REPORT_ERROR("Could not get volume control service from the MSWASAPI audio input interface [%x]", result);
 	mIsActivated = true;
 	return 0;
 
@@ -208,6 +210,7 @@ error:
 int MSWASAPIReader::deactivate()
 {
 	RELEASE_CLIENT(mAudioCaptureClient);
+	RELEASE_CLIENT(mVolumeControler);
 	mIsActivated = false;
 	return 0;
 }
@@ -275,6 +278,36 @@ int MSWASAPIReader::feed(MSFilter *f)
 
 error:
 	return -1;
+}
+
+float MSWASAPIReader::getVolumeLevel() {
+	HRESULT result;
+	float volume;
+
+	if (!mIsActivated) {
+		ms_error("MSWASAPIReader::getVolumeLevel(): the MSWASAPIReader instance is not started");
+		goto error;
+	}
+	result = mVolumeControler->GetMasterVolume(&volume);
+	REPORT_ERROR("MSWASAPIReader::getVolumeLevel(): could not get the master volume [%x]", result);
+	return volume;
+
+error:
+	return -1.0f;
+}
+
+void MSWASAPIReader::setVolumeLevel(float volume) {
+	HRESULT result;
+
+	if (!mIsActivated) {
+		ms_error("MSWASAPIReader::setVolumeLevel(): the MSWASAPIReader instance is not started");
+		goto error;
+	}
+	result = mVolumeControler->SetMasterVolume(volume, NULL);
+	REPORT_ERROR("MSWASAPIReader::setVolumeLevel(): could not set the master volume [%x]", result);
+
+error:
+	return;
 }
 
 void MSWASAPIReader::silence(MSFilter *f)

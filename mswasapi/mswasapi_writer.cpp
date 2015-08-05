@@ -48,7 +48,7 @@ bool MSWASAPIWriter::smInstantiated = false;
 
 
 MSWASAPIWriter::MSWASAPIWriter()
-	: mAudioClient(NULL), mAudioRenderClient(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
+	: mAudioClient(NULL), mAudioRenderClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
 {
 #ifdef MS2_WINDOWS_UNIVERSAL
 	mActivationEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
@@ -190,6 +190,8 @@ int MSWASAPIWriter::activate()
 	ms_message("MSWASAPI audio output interface buffer size: %i", mBufferFrameCount);
 	result = mAudioClient->GetService(IID_IAudioRenderClient, (void **)&mAudioRenderClient);
 	REPORT_ERROR("Could not get render service from the MSWASAPI audio output interface [%x]", result);
+	result = mAudioClient->GetService(IID_ISimpleAudioVolume, (void **)&mVolumeControler);
+	REPORT_ERROR("Could not get volume control service from the MSWASAPI audio output interface [%x]", result);
 	mIsActivated = true;
 	return 0;
 
@@ -279,6 +281,36 @@ int MSWASAPIWriter::feed(MSFilter *f)
 
 error:
 	return -1;
+}
+
+float MSWASAPIWriter::getVolumeLevel() {
+	HRESULT result;
+	float volume;
+
+	if (!mIsActivated) {
+		ms_error("MSWASAPIWriter::getVolumeLevel(): the MSWASAPIWriter instance is not started");
+		goto error;
+	}
+	result = mVolumeControler->GetMasterVolume(&volume);
+	REPORT_ERROR("MSWASAPIWriter::getVolumeLevel(): could not get the master volume [%x]", result);
+	return volume;
+
+error:
+	return -1.0f;
+}
+
+void MSWASAPIWriter::setVolumeLevel(float volume) {
+	HRESULT result;
+
+	if (!mIsActivated) {
+		ms_error("MSWASAPIWriter::setVolumeLevel(): the MSWASAPIWriter instance is not started");
+		goto error;
+	}
+	result = mVolumeControler->SetMasterVolume(volume, NULL);
+	REPORT_ERROR("MSWASAPIWriter::setVolumeLevel(): could not set the master volume [%x]", result);
+
+error:
+	return;
 }
 
 void MSWASAPIWriter::drop(MSFilter *f) {

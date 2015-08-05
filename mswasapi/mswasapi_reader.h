@@ -48,6 +48,8 @@ public:
 
 	int getRate() { return mRate; }
 	int getNChannels() { return mNChannels; }
+	float getVolumeLevel();
+	void setVolumeLevel(float volume);
 
 #ifdef MS2_WINDOWS_UNIVERSAL
 	void setAsNotInstantiated() { smInstantiated = false; }
@@ -71,6 +73,7 @@ private:
 	IAudioClient *mAudioClient;
 #endif
 	IAudioCaptureClient *mAudioCaptureClient;
+	ISimpleAudioVolume *mVolumeControler;
 	UINT32 mBufferFrameCount;
 	bool mIsInitialized;
 	bool mIsActivated;

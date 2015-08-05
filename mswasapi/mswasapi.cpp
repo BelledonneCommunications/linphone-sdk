@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
+const IID IID_ISimpleAudioVolume = __uuidof(ISimpleAudioVolume);
 #if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
 const IID IID_IAudioClient2 = __uuidof(IAudioClient2);
 #else
@@ -100,11 +101,26 @@ static int ms_wasapi_read_get_nchannels(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int ms_wasapi_read_set_volume_gain(MSFilter *f, void *arg) {
+	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
+	r->setVolumeLevel(*(float *)arg);
+	return 0;
+}
+
+static int ms_wasapi_read_get_volume_gain(MSFilter *f, void *arg) {
+	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
+	float *volume = (float *)arg;
+	*volume = r->getVolumeLevel();
+	return *volume >= 0.0f ? 0 : -1;
+}
+
 static MSFilterMethod ms_wasapi_read_methods[] = {
 	{	MS_FILTER_SET_SAMPLE_RATE,	ms_wasapi_read_set_sample_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE,	ms_wasapi_read_get_sample_rate	},
 	{	MS_FILTER_SET_NCHANNELS,	ms_wasapi_read_set_nchannels	},
 	{	MS_FILTER_GET_NCHANNELS,	ms_wasapi_read_get_nchannels	},
+	{	MS_AUDIO_CAPTURE_SET_VOLUME_GAIN, ms_wasapi_read_set_volume_gain	},
+	{	MS_AUDIO_CAPTURE_GET_VOLUME_GAIN, ms_wasapi_read_get_volume_gain	},
 	{	0,				NULL				}
 };
 
@@ -228,11 +244,26 @@ static int ms_wasapi_write_get_nchannels(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int ms_wasapi_write_set_volume_gain(MSFilter *f, void *arg) {
+	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
+	w->setVolumeLevel(*(float *)arg);
+	return 0;
+}
+
+static int ms_wasapi_write_get_volume_gain(MSFilter *f, void *arg) {
+	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
+	float *volume = (float *)arg;
+	*volume = w->getVolumeLevel();
+	return *volume >= 0.0f ? 0 : -1;
+}
+
 static MSFilterMethod ms_wasapi_write_methods[] = {
 	{	MS_FILTER_SET_SAMPLE_RATE,	ms_wasapi_write_set_sample_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE,	ms_wasapi_write_get_sample_rate	},
 	{	MS_FILTER_SET_NCHANNELS,	ms_wasapi_write_set_nchannels	},
 	{	MS_FILTER_GET_NCHANNELS,	ms_wasapi_write_get_nchannels	},
+	{	MS_AUDIO_PLAYBACK_SET_VOLUME_GAIN, ms_wasapi_write_set_volume_gain	},
+	{	MS_AUDIO_PLAYBACK_GET_VOLUME_GAIN, ms_wasapi_write_get_volume_gain	},
 	{	0,							NULL							}
 };
 
