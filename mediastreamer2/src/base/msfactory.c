@@ -831,7 +831,7 @@ bool_t ms_factory_filter_from_name_enabled(const MSFactory *factory, const char 
 		ms_error("Cannot get enable/disable state for unknown filter [%s] on factory [%p]",name,factory);
 		return FALSE;
 	}
-	return desc->flags & MS_FILTER_IS_ENABLED;
+	return !!(desc->flags & MS_FILTER_IS_ENABLED);
 }
 
 #ifdef ANDROID
