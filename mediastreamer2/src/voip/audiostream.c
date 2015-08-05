@@ -52,6 +52,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static void configure_av_recorder(AudioStream *stream);
 static void configure_decoder(AudioStream *stream, PayloadType *pt, int sample_rate, int nchannels);
 static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resampler,MSFilter *from, MSFilter *to);
+static void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float gain_db);
 
 static void audio_stream_free(AudioStream *stream) {
 	media_stream_free(&stream->ms);
