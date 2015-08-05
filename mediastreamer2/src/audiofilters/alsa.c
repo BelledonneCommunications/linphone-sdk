@@ -50,7 +50,7 @@ then try incrementing the number of periods*/
 having sound quality trouble:*/
 /*#define EPIPE_BUGFIX 1*/
 
-static MSSndCard * alsa_card_new(int id);
+static MSSndCard * alsa_card_new(int id, const char *pcmbasename);
 static MSSndCard *alsa_card_duplicate(MSSndCard *obj);
 static MSFilter * ms_alsa_read_new(const char *dev);
 static MSFilter * ms_alsa_write_new(const char *dev);
@@ -641,21 +641,26 @@ static void alsa_card_detect(MSSndCardManager *m){
 	int i;
 	void **hints=NULL;
 	int device_count=0;
-	
+	int old_device_count=0; /*previous alsa pcm naming convention*/
+	const char *pcmname = "sysdefault";
+
 	/*get the number of PCM device availables*/
 	if (snd_device_name_hint(-1, "pcm", &hints)==0){
 		int i;
 		for(i=0; hints[i]!=NULL; ++i){
 			char *name = snd_device_name_get_hint(hints[i],"NAME");
 			if (name && strstr(name,"sysdefault") == name) device_count++;
+			if (name && strstr(name,"default") == name) old_device_count++;
 			if (name) free(name);
 		}
 		snd_device_name_free_hint(hints);
 	}
-	if (device_count == 0) ms_error("No ALSA PCM device detected ! this sounds like a bug.");
-	
+	if (device_count == 0) {
+		device_count = old_device_count;
+		pcmname = "default";
+	}	
 	for (i=-1;i<device_count;i++){
-		MSSndCard *card=alsa_card_new(i);
+		MSSndCard *card=alsa_card_new(i, pcmname);
 		if (card!=NULL)
 			ms_snd_card_manager_add_card(m,card);
 		else break;
@@ -745,7 +750,7 @@ static unsigned int get_card_capabilities(const char *devname, char **card_name,
 	return ret;
 }
 
-static MSSndCard * alsa_card_new(int id){
+static MSSndCard * alsa_card_new(int id, const char *pcmbasename){
 	MSSndCard * obj;
 	AlsaData *ad;
 	unsigned int hw_index=0;
@@ -759,8 +764,8 @@ static MSSndCard * alsa_card_new(int id){
 		ad->mixdev=ms_strdup("default");
 	}else{
 		snd_mixer_t *mixer;
-		if (id == 0) ad->pcmdev = ms_strdup("sysdefault");
-		else ad->pcmdev=ms_strdup_printf("sysdefault:%i",id);
+		if (id == 0) ad->pcmdev = ms_strdup(pcmbasename);
+		else ad->pcmdev=ms_strdup_printf("%s:%i",pcmbasename, id);
 		obj->capabilities = get_card_capabilities(ad->pcmdev, &obj->name, &hw_index);
 		if (obj->capabilities == 0){
 			ms_snd_card_destroy(obj);
