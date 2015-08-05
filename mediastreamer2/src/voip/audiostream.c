@@ -1593,7 +1593,7 @@ int audio_stream_send_dtmf(AudioStream *stream, char dtmf)
 	return 0;
 }
 
-void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float gain_db) {
+static void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float gain_db) {
 	float gain = gain_db;
 #ifdef ANDROID
 	SoundDeviceDescription *device = sound_device_description_get();

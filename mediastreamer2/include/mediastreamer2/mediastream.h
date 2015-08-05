@@ -552,23 +552,26 @@ static MS2_INLINE void audio_stream_enable_adaptive_jittcomp(AudioStream *stream
 }
 
 /**
- * @deprecated Use audio_stream_set_rtp_output_gain_db() intead.
+ * Apply a software gain on the microphone.
+ * Be note that this method neither changes the volume gain
+ * of the sound card nor the system mixer one. If you intends
+ * to control the volume gain at sound card level, you should
+ * use audio_stream_set_sound_card_input_gain() instead.
+ * 
+ * @param stream The stream.
+ * @param gain Gain to apply in dB.
  */
 MS2_PUBLIC void audio_stream_set_mic_gain_db(AudioStream *stream, float gain_db);
 
+
 /**
- * @deprecated Use audio_stream_set_rtp_output_gain_db() intead.
+ * Like audio_stream_set_mic_gain_db() excepted that the gain is specified
+ * in percentage.
+ * 
+ * @param stream The stream.
+ * @param gain Gain to apply in percetage of the max supported gain.
  */
 MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
-
-
-/**
- * Set value of applied gain before sending on network.
- * 
- * @param stream The audio stream.
- * @param gain_db Gain in dB
- */
-MS2_PUBLIC void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float gain_db);
 
 /**
  *  enable/disable rtp stream
@@ -578,7 +581,9 @@ MS2_PUBLIC void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
 /**
  * Set microphone volume gain.
  * If the sound backend supports it, the set volume gain will be synchronized
- * with the host system mixer.
+ * with the host system mixer. If you intended to apply a static software gain,
+ * you should use audio_stream_set_mic_gain_db() or audio_stream_set_mic_gain().
+ * 
  * @param stream The audio stream.
  * @param gain Percentage of the max supported volume gain. Valid values are in [0.0 : 1.0].
  */
