@@ -104,6 +104,8 @@ static void ms_opus_enc_init(MSFilter *f) {
 
 static void ms_opus_enc_preprocess(MSFilter *f) {
 	int error;
+	int opusComplexity = -1;
+	const char *env;
 
 	OpusEncData *d = (OpusEncData *)f->data;
 	/* create the encoder */
@@ -114,13 +116,26 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 	}
 
 	/* set complexity to 0 for single processor arm devices */
+	env = getenv("MS2_OPUS_COMPLEXITY");
+	if (env != NULL) {
+		opusComplexity = atoi(env);
+		if (opusComplexity < -1)
+			opusComplexity = -1; /*our default value*/
+		if (opusComplexity > 10)
+			opusComplexity = 10;
+		ms_error("Set Opus Complexity to %d", opusComplexity);
+	}
 #if defined(__arm__) || defined(_M_ARM)
 	if (ms_factory_get_cpu_count(f->factory)==1){
-		opus_encoder_ctl(d->state, OPUS_SET_COMPLEXITY(0));
+		if (opusComplexity == -1)
+			opusComplexity = 0;
 	}else{
-		opus_encoder_ctl(d->state, OPUS_SET_COMPLEXITY(5));
+		if (opusComplexity == -1)
+			opusComplexity = 5;
+		
 	}
 #endif
+	opus_encoder_ctl(d->state, OPUS_SET_COMPLEXITY(opusComplexity));
 	error = opus_encoder_ctl(d->state, OPUS_SET_PACKET_LOSS_PERC(10));
 	if (error != OPUS_OK) {
 		ms_error("Could not set default loss percentage to opus encoder: %s", opus_strerror(error));

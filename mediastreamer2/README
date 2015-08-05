@@ -56,14 +56,31 @@ Compilation and installation
 	2) Download latest linphone-deps-win32 zip from http://download-mirror.savannah.gnu.org/releases/linphone/misc/ and unpack it in the linphone-deps directory.
 	3) open build/win32native/mediastreamer2.sln
 
+Environment variables used by mediastreamer2
+---------------------------------------------
 
-Contact information:
--------------------------------------
+MS2_RTP_FIXED_DELAY : default value is 0. When set to 1, RTP packets belonging from one tick execution are actually sent at the beginning of the next tick.
+This allows a zero jitter in the RTP timing at sender side. This is to be used for measurements, this mode has no interest for doing a real conversation and does not improve 
+quality.
 
-Use the *linphone* mailing list for question about mediastreamer2.
-  <linphone-developers@nongnu.org>.
-Subscribe here:
-  https://savannah.nongnu.org/mail/?group=linphone
+MS_AUDIO_PRIO, MS_VIDEO_PRIO : define the scheduling policy of the audio and video threads (MSTicker objects). Possible values are 'NORMAL', 'HIGH', 'REALTIME'.
+The corresponding behavior is as follows:
+	Priority type     |    Linux              |       MacOS           |         Windows 
+	NORMAL            |SCHED_OTHER, def. prio |SCHED_OTHER, def. prio | Default priority.
+	HIGH              |SCHED_RR, max prio     |SCHED_RR, max prio     | THREAD_PRIORITY_HIGHEST
+	REALTIME          |SCHED_FIFO, max prio   |SCHED_FIFO, max prio   | THREAD_PRIORITY_HIGHEST
+	Note that SCHED_FIFO leaves entire control of the cpu to the mediastreamer2 thread. In case of CPU overload due to heavy encoder processing for example,
+	a mono-core machine will stop responding.
+
+MS_TICKER_SCHEDPRIO : UNIX only. It is an integer defining the thread priority to be used by MSTicker. Values are OS specific and depend on the scheduling policy
+SCHED_FIFO, SCHED_RR or SCHED_OTHER.
+
+MS2_OPUS_COMPLEXITY : opus codec complexity parameter. A value of -1 stands for mediastreamer2's own default value. Otherwise it must be between 0 and 10.
+
+MEDIASTREAMER_DEBUG : when set to 1, verbose logging is activated by default.
+
+DISPLAY : used by video display filters relying on X11 (linux only).
+
 
 Notes about third parties compilation
 -------------------------------------
@@ -76,6 +93,12 @@ Notes about third parties compilation
 	$ make -f Makefile install
 
 
+Contact information:
+-------------------------------------
 
+Use the *linphone* mailing list for question about mediastreamer2.
+  <linphone-developers@nongnu.org>.
+Subscribe here:
+  https://savannah.nongnu.org/mail/?group=linphone
 
 
