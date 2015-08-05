@@ -477,10 +477,12 @@ static void add_or_update_card(MSSndCardManager *m, MSList **l, LPWSTR id, LPWST
 	char *name;
 	size_t inputlen;
 	size_t returnlen;
+	int err;
 
-	inputlen = wcslen(wname) + 1;
-	name = (char *)ms_malloc(inputlen);
-	if (wcstombs_s(&returnlen, name, inputlen, wname, inputlen) != 0) {
+	inputlen = wcslen(wname);
+	returnlen = inputlen * 2;
+	name = (char *)ms_malloc(returnlen);
+	if ((err = WideCharToMultiByte(CP_UTF8, 0, wname, -1, name, returnlen, NULL, NULL)) == 0) {
 		ms_error("mswasapi: Cannot convert card name to multi-byte string.");
 		return;
 	}
