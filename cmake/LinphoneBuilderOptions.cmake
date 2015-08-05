@@ -96,3 +96,5 @@ option(ENABLE_DEBUG_LOGS "Enable debug level logs in libinphone and mediastreame
 
 option(ENABLE_PACKAGING "Enable packaging" ${DEFAULT_VALUE_ENABLE_PACKAGING})
 
+option(ENABLE_DOC "Enable documentation generation with Doxygen." YES)
+linphone_builder_add_feature_info("Documentation" ENABLE_DOC "Enable documentation generation with Doxygen.")
