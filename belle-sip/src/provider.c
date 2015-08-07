@@ -602,6 +602,10 @@ belle_sip_dialog_t * belle_sip_provider_create_dialog_internal(belle_sip_provide
 belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id, const char* from_tag, const char* to_tag) {
 	belle_sip_list_t* iterator;
 
+	if (call_id == NULL || from_tag == NULL || to_tag == NULL) {
+		return NULL;
+	}
+	
 	for(iterator=prov->dialogs;iterator!=NULL;iterator=iterator->next) {
 		belle_sip_dialog_t* dialog=(belle_sip_dialog_t*)iterator->data;
 		if (belle_sip_dialog_get_state(dialog) != BELLE_SIP_DIALOG_NULL && strcmp(belle_sip_header_call_id_get_call_id(belle_sip_dialog_get_call_id(dialog)),call_id)==0) {
