@@ -53,13 +53,12 @@
 #include "TestDB.h"
 #include "Util.h"
 
-
+extern cunit_trace_handler_t CU_trace_handler;
 #ifdef _WIN32
-#ifdef WINAPI_FAMILY_PHONE_APP
+
 #include <stdarg.h>
 #include <winsock2.h>
 
-extern cunit_trace_handler_t CU_trace_handler;
 
 void OutputDebugStringPrintf(const char *fmt, ...) {
 	char msg[512];
@@ -70,6 +69,7 @@ void OutputDebugStringPrintf(const char *fmt, ...) {
 	if (CU_trace_handler) {
 		CU_trace_handler(1, fmt, args);
 	} else {
+#ifdef _MSC_VER
 		len = vsnprintf(msg, sizeof(msg), fmt, args);
 		if (len > 0) {
 #ifndef _UNICODE
@@ -79,17 +79,16 @@ void OutputDebugStringPrintf(const char *fmt, ...) {
 			mbstowcs(tmp, msg, len);
 			OutputDebugString(tmp);
 			free(tmp);
-	#endif
+#endif
+#endif
 		}
 	}
 	va_end(args);
 }
-#endif
-#endif
+#elif defined(ANDROID)
 
-#ifdef ANDROID
 #include <android/log.h>
-extern cunit_trace_handler_t CU_trace_handler;
+
 
 void AndroidPrintf(FILE *file, const char *fmt, ...) {
 	char msg[512];
@@ -105,6 +104,21 @@ void AndroidPrintf(FILE *file, const char *fmt, ...) {
 	}
 	va_end(args);
 }
+#else
+
+void otherPrintf(FILE *file, const char *fmt, ...){
+	va_list args;
+	int error = (file == stderr);
+
+	va_start(args, fmt);
+	if (CU_trace_handler) {
+		CU_trace_handler((error)?1:0, fmt, args);
+	} else {
+		vfprintf(file, fmt, args);
+	}
+	va_end(args);
+}
+
 #endif
 
 

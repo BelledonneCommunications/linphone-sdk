@@ -86,15 +86,16 @@
 #include "CUnit_intl.h"
 
 #ifdef _WIN32
-#ifdef WINAPI_FAMILY_PHONE_APP
 extern void OutputDebugStringPrintf(const char *fmt, ...);
 #define fprintf(file, fmt, ...) OutputDebugStringPrintf(fmt, ##__VA_ARGS__)
-#endif
-#endif
-#ifdef ANDROID
+#elif defined(ANDROID)
 extern void AndroidPrintf(FILE *file, const char *fmt, ...);
 #define fprintf(file, fmt, ...) AndroidPrintf(file, fmt, ##__VA_ARGS__)
+#else
+extern void otherPrintf(FILE *file, const char *fmt, ...);
+#define fprintf(file, fmt, ...) otherPrintf(file, fmt, ##__VA_ARGS__)
 #endif
+
 
 /*=================================================================
  *  Global/Static Definitions
