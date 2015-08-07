@@ -115,53 +115,22 @@ static MSFilterMethod msopenh264_dec_methods[] = {
  * Definition of the decoder                                                  *
  *****************************************************************************/
 
-#define MSOPENH264_DEC_NAME        "MSOpenH264Dec"
-#define MSOPENH264_DEC_DESCRIPTION "OpenH264 Video Codec provided by Cisco Systems, Inc."
-#define MSOPENH264_DEC_CATEGORY    MS_FILTER_DECODER
-#define MSOPENH264_DEC_ENC_FMT     "H264"
-#define MSOPENH264_DEC_NINPUTS     1
-#define MSOPENH264_DEC_NOUTPUTS    1
-#define MSOPENH264_DEC_FLAGS       0
-
-#ifndef _MSC_VER
-
 MSFilterDesc msopenh264_dec_desc = {
-	.id = MS_FILTER_PLUGIN_ID,
-	.name = MSOPENH264_DEC_NAME,
-	.text = MSOPENH264_DEC_DESCRIPTION,
-	.category = MSOPENH264_DEC_CATEGORY,
-	.enc_fmt = MSOPENH264_DEC_ENC_FMT,
-	.ninputs = MSOPENH264_DEC_NINPUTS,
-	.noutputs = MSOPENH264_DEC_NOUTPUTS,
-	.init = msopenh264_dec_init,
-	.preprocess = msopenh264_dec_preprocess,
-	.process = msopenh264_dec_process,
-	.postprocess = NULL,
-	.uninit = msopenh264_dec_uninit,
-	.methods = msopenh264_dec_methods,
-	.flags = MSOPENH264_DEC_FLAGS
+	MS_FILTER_PLUGIN_ID, /* id */
+	"MSOpenH264Dec", /* name */
+	"OpenH264 Video Codec provided by Cisco Systems, Inc.", /* text */
+	MS_FILTER_DECODER, /* category */
+	"H264", /* enc_fmt */
+	1, /* ninputs */
+	1, /* noutputs */
+	msopenh264_dec_init, /* init */
+	msopenh264_dec_preprocess, /* preprocess */
+	msopenh264_dec_process, /* process */
+	NULL, /* postprocess */
+	msopenh264_dec_uninit, /* uninit */
+	msopenh264_dec_methods, /* methods */
+	0 /* flags */
 };
-
-#else
-
-MSFilterDesc msopenh264_dec_desc = {
-	MS_FILTER_PLUGIN_ID,
-	MSOPENH264_DEC_NAME,
-	MSOPENH264_DEC_DESCRIPTION,
-	MSOPENH264_DEC_CATEGORY,
-	MSOPENH264_DEC_ENC_FMT,
-	MSOPENH264_DEC_NINPUTS,
-	MSOPENH264_DEC_NOUTPUTS,
-	msopenh264_dec_init,
-	msopenh264_dec_preprocess,
-	msopenh264_dec_process,
-	NULL,
-	msopenh264_dec_uninit,
-	msopenh264_dec_methods,
-	MSOPENH264_DEC_FLAGS
-};
-
-#endif
 
 
 /******************************************************************************
@@ -316,53 +285,22 @@ static MSFilterMethod msopenh264_enc_methods[] = {
  * Definition of the encoder                                                  *
  *****************************************************************************/
 
-#define MSOPENH264_ENC_NAME        "MSOpenH264Enc"
-#define MSOPENH264_ENC_DESCRIPTION "OpenH264 Video Codec provided by Cisco Systems, Inc."
-#define MSOPENH264_ENC_CATEGORY    MS_FILTER_ENCODER
-#define MSOPENH264_ENC_ENC_FMT     "H264"
-#define MSOPENH264_ENC_NINPUTS     1
-#define MSOPENH264_ENC_NOUTPUTS    1
-#define MSOPENH264_ENC_FLAGS       0
-
-#ifndef _MSC_VER
-
 MSFilterDesc msopenh264_enc_desc = {
-	.id = MS_FILTER_PLUGIN_ID,
-	.name = MSOPENH264_ENC_NAME,
-	.text = MSOPENH264_ENC_DESCRIPTION,
-	.category = MSOPENH264_ENC_CATEGORY,
-	.enc_fmt = MSOPENH264_ENC_ENC_FMT,
-	.ninputs = MSOPENH264_ENC_NINPUTS,
-	.noutputs = MSOPENH264_ENC_NOUTPUTS,
-	.init = msopenh264_enc_init,
-	.preprocess = msopenh264_enc_preprocess,
-	.process = msopenh264_enc_process,
-	.postprocess = msopenh264_enc_postprocess,
-	.uninit = msopenh264_enc_uninit,
-	.methods = msopenh264_enc_methods,
-	.flags = MSOPENH264_ENC_FLAGS
+	MS_FILTER_PLUGIN_ID, /* id */
+	"MSOpenH264Enc", /* name */
+	"OpenH264 Video Codec provided by Cisco Systems, Inc.", /* text */
+	MS_FILTER_ENCODER, /* category */
+	"H264", /* enc_fmt */
+	1, /* ninputs */
+	1, /* noutputs */
+	msopenh264_enc_init, /* init */
+	msopenh264_enc_preprocess, /* preprocess */
+	msopenh264_enc_process, /* process */
+	msopenh264_enc_postprocess, /* postprocess */
+	msopenh264_enc_uninit, /* uninit */
+	msopenh264_enc_methods, /* methods */
+	0 /* flags */
 };
-
-#else
-
-MSFilterDesc msopenh264_enc_desc = {
-	MS_FILTER_PLUGIN_ID,
-	MSOPENH264_ENC_NAME,
-	MSOPENH264_ENC_DESCRIPTION,
-	MSOPENH264_ENC_CATEGORY,
-	MSOPENH264_ENC_ENC_FMT,
-	MSOPENH264_ENC_NINPUTS,
-	MSOPENH264_ENC_NOUTPUTS,
-	msopenh264_enc_init,
-	msopenh264_enc_preprocess,
-	msopenh264_enc_process,
-	msopenh264_enc_postprocess,
-	msopenh264_enc_uninit,
-	msopenh264_enc_methods,
-	MSOPENH264_ENC_FLAGS
-};
-
-#endif
 
 
 #ifdef _MSC_VER
