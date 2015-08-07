@@ -51,8 +51,8 @@
 
 
 #ifdef _WIN32
-extern void OutputDebugStringPrintf(const char *fmt, ...);
-#define fprintf(file, fmt, ...) OutputDebugStringPrintf(fmt, ##__VA_ARGS__)
+extern void OutputDebugStringPrintf(FILE *file, const char *fmt, ...);
+#define fprintf(file, fmt, ...) OutputDebugStringPrintf(file, fmt, ##__VA_ARGS__)
 #elif defined(ANDROID)
 extern void AndroidPrintf(FILE *file, const char *fmt, ...);
 #define fprintf(file, fmt, ...) AndroidPrintf(file, fmt, ##__VA_ARGS__)

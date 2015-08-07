@@ -60,16 +60,16 @@ extern cunit_trace_handler_t CU_trace_handler;
 #include <winsock2.h>
 
 
-void OutputDebugStringPrintf(const char *fmt, ...) {
-	char msg[512];
+void OutputDebugStringPrintf(FILE *file, const char *fmt, ...) {
 	va_list args;
-	int len;
 
 	va_start(args, fmt);
 	if (CU_trace_handler) {
 		CU_trace_handler(1, fmt, args);
 	} else {
 #ifdef _MSC_VER
+		char msg[512];
+		int len;
 		len = vsnprintf(msg, sizeof(msg), fmt, args);
 		if (len > 0) {
 #ifndef _UNICODE
@@ -80,8 +80,10 @@ void OutputDebugStringPrintf(const char *fmt, ...) {
 			OutputDebugString(tmp);
 			free(tmp);
 #endif
-#endif
 		}
+#else
+		fprintf(file, fmt, args);
+#endif
 	}
 	va_end(args);
 }
