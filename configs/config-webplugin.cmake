@@ -46,8 +46,8 @@ set(DEFAULT_VALUE_ENABLE_VPX ON)
 set(DEFAULT_VALUE_ENABLE_X264 OFF)
 set(DEFAULT_VALUE_ENABLE_TUNNEL OFF)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
-set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
 set(DEFAULT_VALUE_ENABLE_PACKAGING OFF)
+set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
 
 
 # Global configuration
@@ -120,7 +120,11 @@ if(UNIX AND NOT APPLE)
 endif()
 
 # opencoreamr
-set(EP_opencoreamr_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
+if(NOT WIN32)
+	set(EP_opencoreamr_EXTRA_CFLAGS "${EP_opencoreamr_EXTRA_CFLAGS} -fPIC")
+	set(EP_opencoreamr_EXTRA_CXXFLAGS "${EP_opencoreamr_EXTRA_CXXFLAGS} -fPIC")
+	set(EP_opencoreamr_EXTRA_LDFLAGS "${EP_opencoreamr_EXTRA_LDFLAGS} -fPIC")
+endif()
 
 # opus
 set(EP_opus_LINKING_TYPE "-DENABLE_STATIC=YES")
@@ -132,7 +136,11 @@ set(EP_sqlite3_LINKING_TYPE "-DENABLE_STATIC=YES")
 set(EP_v4l_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
 
 # voamrwbenc
-set(EP_voamrwbenc_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
+if(NOT WIN32)
+	set(EP_voamrwbenc_EXTRA_CFLAGS "${EP_voamrwbenc_EXTRA_CFLAGS} -fPIC")
+	set(EP_voamrwbenc_EXTRA_CXXFLAGS "${EP_voamrwbenc_EXTRA_CXXFLAGS} -fPIC")
+	set(EP_voamrwbenc_EXTRA_LDFLAGS "${EP_voamrwbenc_EXTRA_LDFLAGS} -fPIC")
+endif()
 
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
