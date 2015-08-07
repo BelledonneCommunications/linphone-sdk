@@ -25,15 +25,15 @@ fi
 
 libtoolize="libtoolize"
 for lt in glibtoolize libtoolize15 libtoolize14 libtoolize13 ; do
-        if test -x /usr/bin/$lt ; then
-                libtoolize=$lt ; break
-        fi
-        if test -x /usr/local/bin/$lt ; then
-                libtoolize=$lt ; break
-        fi
-        if test -x /opt/local/bin/$lt ; then
-                libtoolize=$lt ; break
-        fi
+	if test -x /usr/bin/$lt ; then
+		libtoolize=$lt ; break
+	fi
+	if test -x /usr/local/bin/$lt ; then
+		libtoolize=$lt ; break
+	fi
+	if test -x /opt/local/bin/$lt ; then
+		libtoolize=$lt ; break
+	fi
 done
 
 if test -d /usr/local/share/aclocal ; then
@@ -41,7 +41,7 @@ if test -d /usr/local/share/aclocal ; then
 fi
 
 if test -d /share/aclocal ; then
-        ACLOCAL_ARGS="$ACLOCAL_ARGS -I /share/aclocal"
+	ACLOCAL_ARGS="$ACLOCAL_ARGS -I /share/aclocal"
 fi
 
 echo "Generating build scripts in mediastreamer..."
@@ -52,5 +52,11 @@ $ACLOCAL -I m4 $ACLOCAL_ARGS
 autoheader
 $AUTOMAKE --force-missing --add-missing --copy
 autoconf
+
+#install git pre-commit hooks if possible
+if [ -d .git/hooks ] && [ ! -f .git/hooks/pre-commit ]; then
+	cp .git-pre-commit .git/hooks/pre-commit
+	chmod +x .git/hooks/pre-commit
+fi
 
 cd $THEDIR
