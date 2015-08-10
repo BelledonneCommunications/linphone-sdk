@@ -33,6 +33,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 static void configure_itc(VideoStream *stream);
+static int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam, MSFilter *source, MSFilter *output);
 
 void video_stream_free(VideoStream *stream) {
 	bool_t rtp_source = FALSE;
@@ -287,7 +289,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	stream->ms.ice_check_list=NULL;
 	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, CIF);
 	stream->fps=0;
-	stream->dir=VideoStreamSendRecv;
+	stream->dir=MediaStreamSendRecv;
 	stream->display_filter_auto_rotate_enabled=0;
 	stream->freeze_on_error = FALSE;
 	stream->source_performs_encoding = FALSE;
@@ -403,7 +405,7 @@ static void ext_display_cb(void *ud, MSFilter* f, unsigned int event, void *even
 	}
 }
 
-void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir){
+void video_stream_set_direction(VideoStream *vs, MediaStreamDir dir){
 	vs->dir=dir;
 }
 
@@ -651,27 +653,50 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	return video_stream_start_with_source(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, ms_web_cam_create_reader(cam));
 }
 
-int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
-        const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam, MSFilter *source, MSFilter *output);
-
 int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
-	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, VideoStreamIO *io) {
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, const MSMediaStreamIO *io) {
 	MSWebCam *cam = NULL;
 	MSFilter *source = NULL;
 	MSFilter *output = NULL;
+	
+	if (!ms_media_stream_io_is_consistent(io)) return -1;
 
-	if (io->rtp_session != NULL) {
-		cam = NULL;
-		stream->rtp_io_session = io->rtp_session;
-		source = ms_filter_new(MS_RTP_RECV_ID);
-		ms_filter_call_method(source, MS_RTP_RECV_SET_SESSION, stream->rtp_io_session);
-		output = ms_filter_new(MS_RTP_SEND_ID);
-		ms_filter_call_method(output, MS_RTP_SEND_SET_SESSION, stream->rtp_io_session);
-	} else {
-		cam = io->cam;
-		source = ms_web_cam_create_reader(cam);
+	switch(io->input.type){
+		case MSResourceRtp:
+			stream->rtp_io_session = io->input.session;
+			source = ms_filter_new(MS_RTP_RECV_ID);
+			ms_filter_call_method(source, MS_RTP_RECV_SET_SESSION, stream->rtp_io_session);
+		break;
+		case MSResourceCamera:
+			cam = io->input.camera;
+			source = ms_web_cam_create_reader(cam);
+		break;
+		case MSResourceFile:
+			source = ms_filter_new(MS_MKV_PLAYER_ID);
+			if (!source){
+				ms_error("Mediastreamer2 library compiled without libmastroska2");
+				return -1;
+			}
+		break;
+		default:
+			ms_error("Unhandled input resource type %s", ms_resource_type_to_string(io->input.type));
+		break;
 	}
-	return video_stream_start_with_source_and_output(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, source, output);
+	switch (io->output.type){
+		case MSResourceRtp:
+			output = ms_filter_new(MS_RTP_SEND_ID);
+			stream->rtp_io_session = io->input.session;
+			ms_filter_call_method(output, MS_RTP_SEND_SET_SESSION, stream->rtp_io_session);
+		break;
+		case MSResourceFile:
+		break;
+		default:
+			/*will just display in all other cases*/
+			/*ms_error("Unhandled output resource type %s", ms_resource_type_to_string(io->output.type));*/
+		break;
+	}
+	
+	return video_stream_start_with_source_and_output(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, -1, cam, source, output);
 }
 
 bool_t video_stream_started(VideoStream *stream) {
@@ -739,7 +764,7 @@ static MSPixFmt mime_type_to_pix_format(const char *mime_type) {
 	return MS_PIX_FMT_UNKNOWN;
 }
 
-int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+static int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam, MSFilter *source, MSFilter *output) {
 	PayloadType *pt;
 	RtpSession *rtps=stream->ms.sessions.rtp_session;
@@ -777,7 +802,10 @@ int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *p
 		rtp_session_enable_rtcp(rtps, FALSE);
 	}
 	rtp_session_set_payload_type(rtps,payload);
-	rtp_session_set_jitter_compensation(rtps,jitt_comp);
+	if (jitt_comp != -1) {
+		/*jitt_comp = -1 don't change value. The application can use rtp_session_set_jitter_buffer_params() directly.*/
+		rtp_session_set_jitter_compensation(rtps, jitt_comp);
+	}
 
 	rtp_session_signal_connect(stream->ms.sessions.rtp_session,"payload_type_changed",
 			(RtpCallback)video_stream_payload_type_changed,&stream->ms);
@@ -790,7 +818,7 @@ int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *p
 
 	/* Plumb the outgoing stream */
 	if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.sessions.rtp_session);
-	if (stream->dir==VideoStreamRecvOnly){
+	if (stream->dir==MediaStreamRecvOnly){
 		/* Create a dummy sending stream to send the STUN packets to open firewall ports. */
 		MSConnectionHelper ch;
 		bool_t send_silence = FALSE;
@@ -876,7 +904,7 @@ int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *p
 	if (pt->normal_bitrate > 0) {
 		rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, pt->normal_bitrate);
 	}
-	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamRecvOnly){
+	if (stream->dir==MediaStreamSendRecv || stream->dir==MediaStreamRecvOnly){
 		MSConnectionHelper ch;
 
 		if (!rtp_output) {
@@ -1002,7 +1030,7 @@ int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *p
 		if (stream->tee!=NULL && stream->output!=NULL && stream->output2==NULL)
 			ms_filter_link(stream->tee,1,stream->output,1);
 	}
-	if (stream->dir == VideoStreamSendOnly) {
+	if (stream->dir == MediaStreamSendOnly) {
 		stream->ms.rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions.rtp_session);
 		stream->ms.voidsink = ms_filter_new(MS_VOID_SINK_ID);
@@ -1492,14 +1520,14 @@ MSFilter* video_preview_stop_reuse_source(VideoPreview *stream){
 
 
 int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp){
-	video_stream_set_direction(videostream,VideoStreamRecvOnly);
+	video_stream_set_direction(videostream, MediaStreamRecvOnly);
 	return video_stream_start(videostream,profile,addr,port,addr,port+1,used_pt,jitt_comp,NULL);
 }
 
 int video_stream_send_only_start(VideoStream *videostream,
 				RtpProfile *profile, const char *addr, int port, int rtcp_port,
 				int used_pt, int  jitt_comp, MSWebCam *device){
-	video_stream_set_direction (videostream,VideoStreamSendOnly);
+	video_stream_set_direction (videostream, MediaStreamSendOnly);
 	return video_stream_start(videostream,profile,addr,port,addr,rtcp_port,used_pt,jitt_comp,device);
 }
 

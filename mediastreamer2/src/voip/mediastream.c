@@ -229,7 +229,7 @@ bool_t media_stream_dtls_supported(void){
 
 /*deprecated*/
 bool_t media_stream_enable_srtp(MediaStream *stream, MSCryptoSuite suite, const char *snd_key, const char *rcv_key) {
-	return media_stream_set_srtp_recv_key_b64(&(stream->sessions),suite,rcv_key)==0 && media_stream_set_srtp_send_key_b64(&(stream->sessions),suite,snd_key)==0;
+	return ms_media_stream_sessions_set_srtp_recv_key_b64(&stream->sessions,suite,rcv_key)==0 && ms_media_stream_sessions_set_srtp_send_key_b64(&stream->sessions,suite,snd_key)==0;
 }
 
 const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream){
@@ -435,14 +435,10 @@ bool_t media_stream_secured (const MediaStream *stream) {
 	switch (stream->type) {
 	case MSAudio:
 		/*fixme need also audio stream direction to be more precise*/
-		return media_stream_session_secured(&stream->sessions,MediaStreamSendRecv);
+		return ms_media_stream_sessions_secured(&stream->sessions, MediaStreamSendRecv);
 	case MSVideo:{
 		VideoStream *vs = (VideoStream*)stream;
-		switch (vs->dir) {
-		case VideoStreamSendOnly: return media_stream_session_secured(&stream->sessions,MediaStreamSendOnly);
-		case VideoStreamRecvOnly: return media_stream_session_secured(&stream->sessions,MediaStreamRecvOnly);
-		case VideoStreamSendRecv: return media_stream_session_secured(&stream->sessions,MediaStreamSendRecv);
-		}
+		return ms_media_stream_sessions_secured(&stream->sessions, vs->dir);
 	}
 	}
 	return FALSE;
@@ -527,6 +523,51 @@ int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *pa
 
 OrtpEvDispatcher* media_stream_get_event_dispatcher(const MediaStream *stream) {
 	return stream->evd;
+}
+
+const char *ms_resource_type_to_string(MSResourceType type){
+	switch(type){
+		case MSResourceDefault:
+			return "MSResourceDefault";
+		case MSResourceInvalid:
+			return "MSResourceInvalid";
+		case MSResourceCamera:
+			return "MSResourceCamera";
+		case MSResourceFile:
+			return "MSResourceFile";
+		case MSResourceRtp:
+			return "MSResourceRtp";
+		case MSResourceSoundcard:
+			return "MSResourceSoundcard";
+	}
+	return "INVALID";
+}
+
+bool_t ms_media_resource_is_consistent(const MSMediaResource *r){
+	switch(r->type){
+		case MSResourceCamera:
+		case MSResourceRtp:
+		case MSResourceSoundcard:
+			if (r->resource_arg == NULL){
+				ms_error("No resource argument specified for resource type %s", ms_resource_type_to_string(r->type));
+				return FALSE;
+			}
+			return TRUE;
+		break;
+		case MSResourceFile:
+			/*setting up file player/recorder without specifying the file to play immediately is allowed*/
+		case MSResourceDefault:
+			return TRUE;
+		case MSResourceInvalid:
+			ms_error("Invalid resource type specified");
+			return FALSE;
+	}
+	ms_error("Unsupported media resource type [%i]", (int)r->type);  
+	return FALSE;
+}
+
+bool_t ms_media_stream_io_is_consistent(const MSMediaStreamIO *io){
+	return ms_media_resource_is_consistent(&io->input) && ms_media_resource_is_consistent(&io->output);
 }
 
 /*stubs*/

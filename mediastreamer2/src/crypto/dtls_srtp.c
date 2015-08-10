@@ -499,20 +499,20 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 						/* reception(client write) key and salt +16bits padding */
 						memcpy(key, ctx->rtp_dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
 						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
-						media_stream_set_srtp_recv_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
+						ms_media_stream_sessions_set_srtp_recv_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 						/* emission(server write) key and salt +16bits padding */
 						memcpy(key, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
 						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
-						media_stream_set_srtp_send_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
+						ms_media_stream_sessions_set_srtp_send_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 					} else if (ctx->role == MSDtlsSrtpRoleIsClient){ /* this enpoint act as DTLS client */
 						/* emission(client write) key and salt +16bits padding */
 						memcpy(key, ctx->rtp_dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
 						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
-						media_stream_set_srtp_send_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
+						ms_media_stream_sessions_set_srtp_send_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 						/* reception(server write) key and salt +16bits padding */
 						memcpy(key, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
 						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
-						media_stream_set_srtp_recv_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
+						ms_media_stream_sessions_set_srtp_recv_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 					}
 
 					ms_free(key);
@@ -568,20 +568,20 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 						/* reception(client write) key and salt +16bits padding */
 						memcpy(key, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
 						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
-						media_stream_set_srtp_recv_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
+						ms_media_stream_sessions_set_srtp_recv_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 						/* emission(server write) key and salt +16bits padding */
 						memcpy(key, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
 						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
-						media_stream_set_srtp_send_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
+						ms_media_stream_sessions_set_srtp_send_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 					} else if (ctx->role == MSDtlsSrtpRoleIsClient){ /* this enpoint act as DTLS client */
 						/* emission(client write) key and salt +16bits padding */
 						memcpy(key, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
 						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
-						media_stream_set_srtp_send_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
+						ms_media_stream_sessions_set_srtp_send_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 						/* reception(server write) key and salt +16bits padding */
 						memcpy(key, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
 						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
-						media_stream_set_srtp_recv_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
+						ms_media_stream_sessions_set_srtp_recv_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 					}
 
 					ms_free(key);

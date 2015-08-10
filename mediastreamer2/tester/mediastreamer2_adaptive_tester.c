@@ -236,7 +236,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 #if VIDEO_ENABLED
 		marielle->video_stream->staticimage_webcam_fps_optimization = FALSE;
 		video_manager_start(marielle,payload,margaux->local_rtp,0,marielle_webcam);
-		video_stream_set_direction(margaux->video_stream,VideoStreamRecvOnly);
+		video_stream_set_direction(margaux->video_stream, MediaStreamRecvOnly);
 		video_manager_start(margaux,payload,marielle->local_rtp,0,NULL);
 #else
 		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(marielle->type));

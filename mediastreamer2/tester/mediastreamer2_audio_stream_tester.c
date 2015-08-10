@@ -214,7 +214,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 	stats_t margaux_stats;
 	int dummy=0;
 	int number_of_dropped_packets=0;
-	media_stream_session_encryption_mandatory_enable(&marielle->ms.sessions,encryption_mandatory);
+	ms_media_stream_sessions_set_encryption_mandatory(&marielle->ms.sessions,encryption_mandatory);
 
 	if (ms_srtp_supported()) {
 		reset_stats(&marielle_stats);
@@ -262,22 +262,22 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 		}
 
 		if (send_key_first) {
-			BC_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
 			if (set_both_send_recv_key)
-				BC_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") == 0);
+				BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") == 0);
 
-			BC_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") ==0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") ==0);
 			if (set_both_send_recv_key)
-				BC_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") ==0);
+				BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") ==0);
 
 		} else {
-			BC_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") ==0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") ==0);
 			if (set_both_send_recv_key)
-				BC_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") ==0);
+				BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") ==0);
 
-			BC_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
 			if (set_both_send_recv_key)
-				BC_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") == 0);
+				BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") == 0);
 
 		}
 
@@ -294,8 +294,8 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 		ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 		if (change_send_key_in_the_middle) {
 			wait_for_until(&marielle->ms,&margaux->ms,&dummy,1,2000);
-			BC_ASSERT_TRUE(media_stream_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te") == 0);
-			BC_ASSERT_TRUE(media_stream_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te") ==0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te") == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ms.sessions), MS_AES_128_SHA1_32, "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te") ==0);
 		}
 		BC_ASSERT_TRUE(wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,1,12000));
 
@@ -329,7 +329,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 													, NULL
 													, 0)
 			,0, int, "%d");
-			BC_ASSERT_FATAL(media_stream_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
+			BC_ASSERT_FATAL(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
 
 			ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 

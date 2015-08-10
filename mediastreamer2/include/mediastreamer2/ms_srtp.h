@@ -27,7 +27,7 @@
 extern "C"{
 #endif
 /* defined in mediastream.h */
-struct _MSMediaStreamSessions;
+typedef struct _MSMediaStreamSessions MSMediaStreamSessions;
 
 /*
  * Crypto suite used configure encrypted stream*/
@@ -76,11 +76,11 @@ MS2_PUBLIC bool_t ms_srtp_supported(void);
  * srtp session might be created/deleted depending on requirement parameter and already set keys
  * @param[in/out]	sessions	The sessions associated to the current media stream
  * @param[in]		yesno		If yes, any incoming/outgoing rtp packets are silently discarded.
- * until key are provided using functions #media_stream_set_srtp_recv_key_b64 or #media_stream_set_srtp_recv_key
+ * until keys are provided using functions #media_stream_set_srtp_recv_key_b64 or #media_stream_set_srtp_recv_key
  * @return	0 on success, error code otherwise
  */
 
-MS2_PUBLIC int media_stream_session_encryption_mandatory_enable(struct _MSMediaStreamSessions *sessions, bool_t yesno);
+MS2_PUBLIC int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno);
 
 /**
  * Get encryption requirements.
@@ -88,7 +88,7 @@ MS2_PUBLIC int media_stream_session_encryption_mandatory_enable(struct _MSMediaS
  * @return	TRUE if only encrypted rtp packet shall be sent/received
  */
 
-MS2_PUBLIC bool_t media_stream_session_encryption_mandatory_enabled(const struct _MSMediaStreamSessions *sessions);
+MS2_PUBLIC bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMediaStreamSessions *sessions);
 
 /**
  * Set srtp receiver key for the given media stream.
@@ -99,7 +99,7 @@ MS2_PUBLIC bool_t media_stream_session_encryption_mandatory_enabled(const struct
  * @param[in]		key		Srtp master key and master salt in a base 64 NULL terminated string
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int media_stream_set_srtp_recv_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key);
 
 /**
  * Set srtp receiver key for the given media stream.
@@ -112,7 +112,7 @@ MS2_PUBLIC int media_stream_set_srtp_recv_key_b64(struct _MSMediaStreamSessions 
  * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int media_stream_set_srtp_recv_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
 
 /**
  * Set srtp sender key for the given media stream.
@@ -123,7 +123,7 @@ MS2_PUBLIC int media_stream_set_srtp_recv_key(struct _MSMediaStreamSessions *ses
  * @param[in]		key	Srtp master key and master salt in a base 64 NULL terminated string
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int media_stream_set_srtp_send_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key);
 
 /**
  * Set srtp sender key for the given media stream.
@@ -136,7 +136,7 @@ MS2_PUBLIC int media_stream_set_srtp_send_key_b64(struct _MSMediaStreamSessions 
  * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int media_stream_set_srtp_send_key(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
 
 
 #ifdef __cplusplus

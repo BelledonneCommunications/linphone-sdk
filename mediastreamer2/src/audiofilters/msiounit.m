@@ -830,20 +830,20 @@ static void shutdown_timer(CFRunLoopTimerRef timer, void *info){
 static void check_unused(au_card_t *card){
 	if (card->read_data==NULL && card->write_data==NULL ){
 
-		if( !card->is_tester && card->shutdown_timer==NULL){
-		/*program the shutdown of the audio unit in a few seconds*/
-		CFRunLoopTimerContext ctx={0};
-		ctx.info=card;
-		card->shutdown_timer=CFRunLoopTimerCreate (
-											kCFAllocatorDefault,
-											CFAbsoluteTimeGetCurrent() + 2.5,
-											0,
-											0,
-											0,
-											shutdown_timer,
-											&ctx
-											);
-		CFRunLoopAddTimer(CFRunLoopGetMain(), card->shutdown_timer,kCFRunLoopCommonModes);
+		if (!card->is_tester && card->shutdown_timer==NULL){
+			/*program the shutdown of the audio unit in a few seconds*/
+			CFRunLoopTimerContext ctx={0};
+			ctx.info=card;
+			card->shutdown_timer=CFRunLoopTimerCreate (
+												kCFAllocatorDefault,
+												CFAbsoluteTimeGetCurrent() + 2.5,
+												0,
+												0,
+												0,
+												shutdown_timer,
+												&ctx
+												);
+			CFRunLoopAddTimer(CFRunLoopGetMain(), card->shutdown_timer,kCFRunLoopCommonModes);
 		} else if( card->is_tester ){
 			stop_audio_unit(card);
 		}

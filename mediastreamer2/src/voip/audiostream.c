@@ -732,7 +732,7 @@ static int get_usable_telephone_event(RtpProfile *profile, int clock_rate){
 }
 
 int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
-	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, bool_t use_ec, AudioStreamIO *io) {
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, const MSMediaStreamIO *io) {
 	RtpSession *rtps=stream->ms.sessions.rtp_session;
 	PayloadType *pt;
 	int tmp, tev_pt;
@@ -740,6 +740,8 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	int sample_rate;
 	int nchannels;
 	bool_t has_builtin_ec=FALSE;
+	
+	if (!ms_media_stream_io_is_consistent(io)) return -1;
 
 	rtp_session_set_profile(rtps,profile);
 	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
@@ -749,7 +751,6 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		rtp_session_enable_rtcp(rtps, FALSE);
 	}
 	rtp_session_set_payload_type(rtps,payload);
-	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
 	if (rem_rtp_port>0)
 		ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,rtps);
@@ -766,16 +767,16 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 	if (stream->ms.state==MSStreamPreparing){
 		/*we were using the dummy preload graph, destroy it but keep sound filters unless no soundcard is given*/
-		_audio_stream_unprepare_sound(stream,io->capture_card!=NULL);
+		_audio_stream_unprepare_sound(stream, io->input.type == MSResourceSoundcard);
 	}
 
 	/* creates the local part */
-	if (io->capture_card!=NULL){
+	if (io->input.type == MSResourceSoundcard){
 		if (stream->soundread==NULL)
-			stream->soundread=ms_snd_card_create_reader(io->capture_card);
-		has_builtin_ec=!!(ms_snd_card_get_capabilities(io->capture_card) & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER);
-	} else if (io->rtp_session != NULL) {
-		stream->rtp_io_session = io->rtp_session;
+			stream->soundread = ms_snd_card_create_reader(io->input.soundcard);
+		has_builtin_ec=!!(ms_snd_card_get_capabilities(io->input.soundcard) & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER);
+	} else if (io->input.type == MSResourceRtp) {
+		stream->rtp_io_session = io->input.session;
 		pt = rtp_profile_get_payload(rtp_session_get_profile(stream->rtp_io_session),
 			rtp_session_get_recv_payload_type(stream->rtp_io_session));
 		stream->soundread = ms_filter_new(MS_RTP_RECV_ID);
@@ -785,11 +786,11 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->soundread=ms_filter_new(MS_FILE_PLAYER_ID);
 		stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
-	if (io->playback_card!=NULL) {
+	if (io->output.type == MSResourceSoundcard) {
 		if (stream->soundwrite==NULL)
-			stream->soundwrite=ms_snd_card_create_writer(io->playback_card);
-	} else if (io->rtp_session != NULL) {
-		stream->rtp_io_session = io->rtp_session;
+			stream->soundwrite=ms_snd_card_create_writer(io->output.soundcard);
+	} else if (io->output.type == MSResourceRtp) {
+		stream->rtp_io_session = io->output.session;
 		pt = rtp_profile_get_payload(rtp_session_get_profile(stream->rtp_io_session),
 			rtp_session_get_send_payload_type(stream->rtp_io_session));
 		stream->soundwrite = ms_filter_new(MS_RTP_SEND_ID);
@@ -832,7 +833,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	/* be able to use the echo canceller wich may be limited (webrtc aecm max frequency is 16000 Hz) */
 	// First check if we need to use the echo canceller
 	// Overide feature if not requested or done at sound card level
-	if ( ((stream->features & AUDIO_STREAM_FEATURE_EC) && !use_ec) || has_builtin_ec )
+	if ( ((stream->features & AUDIO_STREAM_FEATURE_EC) && !stream->use_ec) || has_builtin_ec )
 		stream->features &=~AUDIO_STREAM_FEATURE_EC;
 
 	/*configure the echo canceller if required */
@@ -885,14 +886,15 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->volrecv=ms_filter_new(MS_VOLUME_ID);
 	else
 		stream->volrecv=NULL;
+	
 	audio_stream_enable_echo_limiter(stream,stream->el_type);
 	audio_stream_enable_noise_gate(stream,stream->use_ng);
 
-	if (ms_filter_implements_interface(stream->soundread,MSFilterPlayerInterface) && io->input_file){
-		audio_stream_play(stream,io->input_file);
+	if (ms_filter_implements_interface(stream->soundread,MSFilterPlayerInterface) && io->input.file){
+		audio_stream_play(stream,io->input.file);
 	}
-	if (ms_filter_implements_interface(stream->soundwrite,MSFilterRecorderInterface) && io->output_file){
-		audio_stream_record(stream,io->output_file);
+	if (ms_filter_implements_interface(stream->soundwrite,MSFilterRecorderInterface) && io->output.file){
+		audio_stream_record(stream,io->output.file);
 	}
 
 	if (stream->use_agc){
@@ -925,7 +927,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 	if (stream->ec){
 		if (!stream->is_ec_delay_set) {
-			int delay_ms=ms_snd_card_get_minimal_latency(io->capture_card);
+			int delay_ms=ms_snd_card_get_minimal_latency(io->input.soundcard);
 			ms_message("Setting echo canceller delay with value provided by soundcard: %i ms",delay_ms);
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
 		} else {
@@ -1132,12 +1134,26 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec){
-	AudioStreamIO io = { 0 };
-	io.playback_card = playcard;
-	io.capture_card = captcard;
-	io.input_file = infile;
-	io.output_file = outfile;
-	return audio_stream_start_from_io(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, use_ec, &io);
+	MSMediaStreamIO io = MS_MEDIA_STREAM_IO_INITIALIZER;
+	
+	if (playcard){
+		io.output.type = MSResourceSoundcard;
+		io.output.soundcard = playcard;
+	}else{
+		io.output.type = MSResourceFile;
+		io.output.file = outfile;
+	}
+	if (captcard){
+		io.input.type = MSResourceSoundcard;
+		io.input.soundcard = captcard;
+	}else{
+		io.input.type = MSResourceFile;
+		io.input.file = infile;
+	}
+	if (jitt_comp != -1)
+		rtp_session_set_jitter_compensation(stream->ms.sessions.rtp_session, jitt_comp);
+	audio_stream_enable_echo_canceller(stream, use_ec);
+	return audio_stream_start_from_io(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, &io);
 }
 
 int audio_stream_start_with_files(AudioStream *stream, RtpProfile *prof,const char *remip, int remport,
@@ -1366,6 +1382,10 @@ int audio_stream_start_now(AudioStream *stream, RtpProfile * prof,  const char *
 
 void audio_stream_set_relay_session_id(AudioStream *stream, const char *id){
 	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_SET_RELAY_SESSION_ID,(void*)id);
+}
+
+void audio_stream_enable_echo_canceller(AudioStream *st, bool_t enabled){
+	st->use_ec = enabled;
 }
 
 void audio_stream_set_echo_canceller_params(AudioStream *stream, int tail_len_ms, int delay_ms, int framesize){

@@ -247,7 +247,7 @@ static void init_video_streams(video_stream_tester_t *vst1, video_stream_tester_
 	}
 
 	if (one_way == TRUE) {
-		video_stream_set_direction(vst1->vs, VideoStreamRecvOnly);
+		video_stream_set_direction(vst1->vs, MediaStreamRecvOnly);
 	}
 
 	BC_ASSERT_EQUAL(video_stream_start(vst1->vs, &rtp_profile, vst2->local_ip, vst2->local_rtp, vst2->local_ip, vst2->local_rtcp, payload_type, 50, vst1->cam), 0,int,"%d");
