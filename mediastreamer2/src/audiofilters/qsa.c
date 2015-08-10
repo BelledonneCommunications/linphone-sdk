@@ -460,7 +460,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 		params.start_mode = SND_PCM_START_DATA;
 		params.stop_mode = SND_PCM_STOP_STOP;
 		params.buf.block.frag_size = pi.max_fragment_size;
-		params.buf.block.frags_min = 3;
+		params.buf.block.frags_min = 1;
 		params.buf.block.frags_max = -1;
 		params.format.interleave = 1;
 		params.format.rate = d->rate;
@@ -503,7 +503,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 		ms_message("Voices %d", setup.format.voices);
 		ms_message("%s: Mixer Pcm Group [%s]", __FUNCTION__, group.gid.name);
 
-		d->buffer_size = setup.buf.block.frag_size;
+		d->buffer_size = setup.buf.block.frag_size * 3;
 		d->buffer = ms_malloc(d->buffer_size);
 	}
 
