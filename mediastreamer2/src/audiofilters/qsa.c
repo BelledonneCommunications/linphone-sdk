@@ -457,7 +457,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 		memset(&params, 0, sizeof(params));
 		params.channel = SND_PCM_CHANNEL_PLAYBACK;
 		params.mode = SND_PCM_MODE_BLOCK;
-		params.start_mode = SND_PCM_START_FULL;
+		params.start_mode = SND_PCM_START_DATA;
 		params.stop_mode = SND_PCM_STOP_STOP;
 		params.buf.block.frag_size = pi.min_fragment_size;
 		params.buf.block.frags_min = 1;
