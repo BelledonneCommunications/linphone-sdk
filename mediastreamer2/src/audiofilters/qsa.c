@@ -503,7 +503,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 		ms_message("Voices %d", setup.format.voices);
 		ms_message("%s: Mixer Pcm Group [%s]", __FUNCTION__, group.gid.name);
 
-		d->buffer_size = setup.buf.block.frag_size * 3;
+		d->buffer_size = setup.buf.block.frag_size;
 		d->buffer = ms_malloc(d->buffer_size);
 	}
 
