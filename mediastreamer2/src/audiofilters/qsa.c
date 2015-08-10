@@ -459,7 +459,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 		params.mode = SND_PCM_MODE_BLOCK;
 		params.start_mode = SND_PCM_START_DATA;
 		params.stop_mode = SND_PCM_STOP_STOP;
-		params.buf.block.frag_size = pi.min_fragment_size;
+		params.buf.block.frag_size = pi.max_fragment_size;
 		params.buf.block.frags_min = 1;
 		params.buf.block.frags_max = -1;
 		params.format.interleave = 1;
