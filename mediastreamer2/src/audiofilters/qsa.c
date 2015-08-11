@@ -543,7 +543,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 				}
 			} else if ((status.status == SND_PCM_STATUS_READY) || (status.status == SND_PCM_STATUS_UNDERRUN)) {
 				err = snd_pcm_plugin_prepare(d->handle, SND_PCM_CHANNEL_PLAYBACK);
-				if (err != 0) {
+				if (err != 0) {min_voices
 					ms_error("%s: snd_pcm_plugin_prepare() failed: %s", __FUNCTION__, snd_strerror(err));
 					goto setup_failure;
 				}
@@ -555,7 +555,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 		ms_warning("%s: Removing extra data for sound card (%i bytes)", __FUNCTION__, ms_bufferizer_get_avail(d->bufferizer));
 		ms_bufferizer_flush(d->bufferizer);
 	}
-	return;
+	return;min_voices
 
 setup_failure:
 	if (d->mixer_handle != NULL) {
@@ -605,9 +605,11 @@ static void ms_qsa_write_uninit(MSFilter *f) {
 static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg) {
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
 	int hz = *((int *)arg);
+	ms_warning("[DEBUG] trying to set sample rate: %i", hz);
 	uint32_t pcm_rate = get_pcm_rate_from_hz(hz);
 	if ((pcm_rate != 0) && (d->info.rates & pcm_rate)) {
 		d->rate = hz;
+		ms_warning("[DEBUG] set sample rate: %i", hz);
 		return 0;
 	}
 	return -1;
@@ -616,14 +618,17 @@ static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg) {
 static int ms_qsa_write_get_sample_rate(MSFilter *f, void *arg) {
 	MSQSAWriteData * d = (MSQSAWriteData *)f->data;
 	*((int*)arg) = d->rate;
+	ms_warning("[DEBUG] get sample rate: %i", d->rate);
 	return 0;
 }
 
 static int ms_qsa_write_set_nchannels(MSFilter *f, void *arg) {
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
 	int nchannels = *((int *)arg);
+	ms_warning("[DEBUG] nchannels: %i, min voices = %i, max voices = %i", nchannels, d->info.min_voices, d->info.max_voices);
 	if ((nchannels >= d->info.min_voices) && (nchannels <= d->info.max_voices)) {
 		d->nchannels = nchannels;
+		ms_warning("[DEBUG] nchannels set %i", nchannels);
 		return 0;
 	}
 	return -1;
@@ -632,6 +637,7 @@ static int ms_qsa_write_set_nchannels(MSFilter *f, void *arg) {
 static int ms_qsa_write_get_nchannels(MSFilter *f, void *arg) {
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
 	*((int *)arg) = d->nchannels;
+	ms_warning("[DEBUG] get nchannels", d->nchannels);
 	return 0;
 }
 

@@ -107,18 +107,30 @@ static void bb10display_destroyWindow(BB10Display *d) {
 	ms_warning("[bb10_display] bb10display_destroyWindow window destroyed");
 }
 
-static void bb10display_fillWindowBuffer(BB10Display *d, MSPicture yuvbuf) {
-	unsigned char *ptr = NULL;
+static void bb10display_fillWindowBuffer(BB10Display *d, MSPicture *yuvbuf) {
+	uint8_t *ptr = NULL;
 	screen_get_buffer_property_pv(d->pixmap_buffer, SCREEN_PROPERTY_POINTER, (void **)&ptr);
 	
 	if (ptr) {
-		unsigned char *y = ptr;
-		unsigned char *u = y + (d->vsize.height * d->stride);
-		unsigned char *v = u + (d->vsize.height * d->stride) / 4;
+		uint8_t *dest_planes[3];
+		int dest_strides[3];
+		MSVideoSize roi = {0};
 		
-		memcpy(y, yuvbuf.planes[0], yuvbuf.w * yuvbuf.h);
-		memcpy(u, yuvbuf.planes[1], yuvbuf.w * yuvbuf.h / 4);
-		memcpy(v, yuvbuf.planes[2], yuvbuf.w * yuvbuf.h / 4);
+		uint8_t *y = ptr;
+		uint8_t *u = y + (d->vsize.height * d->stride);
+		uint8_t *v = u + (d->vsize.height * d->stride) / 4;
+		
+		dest_planes[0] = y;
+		dest_planes[1] = u;
+		dest_planes[2] = v;
+		dest_strides[0] = d->stride;
+		dest_strides[1] = d->stride / 2;
+		dest_strides[2] = d->stride / 2;
+		
+		roi.width = yuvbuf->w;
+		roi.height = yuvbuf->h;
+		
+		ms_yuv_buf_copy(yuvbuf->planes, yuvbuf->strides, dest_planes, dest_strides, roi);
 		
 		screen_buffer_t buffer;
 		screen_get_window_property_pv(d->window, SCREEN_PROPERTY_RENDER_BUFFERS, (void**) &buffer);
@@ -189,7 +201,7 @@ static void bb10display_process(MSFilter *f) {
 			}
 			
 			if (d->window_created) {
-				bb10display_fillWindowBuffer(d, src);
+				bb10display_fillWindowBuffer(d, &src);
 			}
 		}
 	}
