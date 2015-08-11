@@ -526,7 +526,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 		}
 		ms_bufferizer_read(d->bufferizer, d->buffer, size);
 
-		written = snd_pcm_plugin_write(d->handle, d->buffer, d->buffer_size);
+		written = snd_pcm_plugin_write(d->handle, d->buffer, size);
 		if (written < d->buffer_size) {
 			ms_warning("%s: snd_pcm_plugin_write(%d) failed: %s", __FUNCTION__, d->buffer_size, strerror(errno));
 			memset(&status, 0, sizeof(status));
