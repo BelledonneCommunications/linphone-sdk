@@ -532,7 +532,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 			ms_bufferizer_read(d->bufferizer, d->buffer, d->buffer_size);
 			written = snd_pcm_plugin_write(d->handle, d->buffer, d->buffer_size);
 			if (written < d->buffer_size) {
-				ms_warning("%s: snd_pcm_plugin_write(%d) failed: %s", __FUNCTION__, size, strerror(errno));
+				ms_warning("%s: snd_pcm_plugin_write(%d) failed: %s", __FUNCTION__, d->buffer_size, strerror(errno));
 				memset(&status, 0, sizeof(status));
 				status.channel = SND_PCM_CHANNEL_PLAYBACK;
 				err = snd_pcm_plugin_status(d->handle, &status);
