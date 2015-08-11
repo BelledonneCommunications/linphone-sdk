@@ -27,7 +27,10 @@
 extern "C"{
 #endif
 /* defined in mediastream.h */
+#ifndef MS_MEDIA_STREAM_SESSIONS_DEFINED
 typedef struct _MSMediaStreamSessions MSMediaStreamSessions;
+#define MS_MEDIA_STREAM_SESSIONS_DEFINED 1
+#endif
 
 /*
  * Crypto suite used configure encrypted stream*/

@@ -86,7 +86,10 @@ struct _MSMediaStreamSessions{
 	MSTicker *ticker;
 };
 
+#ifndef MS_MEDIA_STREAM_SESSIONS_DEFINED
 typedef struct _MSMediaStreamSessions MSMediaStreamSessions;
+#define MS_MEDIA_STREAM_SESSIONS_DEFINED 1
+#endif
 
 MS2_PUBLIC void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions);
 
