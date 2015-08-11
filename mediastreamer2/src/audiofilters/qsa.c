@@ -457,7 +457,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 		memset(&params, 0, sizeof(params));
 		params.channel = SND_PCM_CHANNEL_PLAYBACK;
 		params.mode = SND_PCM_MODE_BLOCK;
-		if (strcasecmp(d->pcmdev, "voice") == 0) {
+		if (strcmp(d->pcmdev, "voice") == 0) {
 			params.start_mode = SND_PCM_START_FULL;
 		} else {
 			params.start_mode = SND_PCM_START_DATA;
@@ -500,6 +500,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 			goto setup_failure;
 		}
 
+		ms_message("PCM device %s", d->pcmdev);
 		ms_message("Format %s", snd_pcm_get_format_name(setup.format.format));
 		ms_message("Frag Size %d", setup.buf.block.frag_size);
 		ms_message("Total Frags %d", setup.buf.block.frags);
@@ -528,7 +529,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 			ms_bufferizer_read(d->bufferizer, d->buffer, d->buffer_size);
 			written = snd_pcm_plugin_write(d->handle, d->buffer, d->buffer_size);
 			if (written < d->buffer_size) {
-				ms_warning("%s: snd_pcm_plugin_write(%d) failed: %d", __FUNCTION__, d->buffer_size, strerror(errno));
+				ms_warning("%s: snd_pcm_plugin_write(%d) failed: %s", __FUNCTION__, d->buffer_size, strerror(errno));
 				memset(&status, 0, sizeof(status));
 				status.channel = SND_PCM_CHANNEL_PLAYBACK;
 				err = snd_pcm_plugin_status(d->handle, &status);
