@@ -543,7 +543,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 				}
 			} else if ((status.status == SND_PCM_STATUS_READY) || (status.status == SND_PCM_STATUS_UNDERRUN)) {
 				err = snd_pcm_plugin_prepare(d->handle, SND_PCM_CHANNEL_PLAYBACK);
-				if (err != 0) {min_voices
+				if (err != 0) {
 					ms_error("%s: snd_pcm_plugin_prepare() failed: %s", __FUNCTION__, snd_strerror(err));
 					goto setup_failure;
 				}
@@ -555,7 +555,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 		ms_warning("%s: Removing extra data for sound card (%i bytes)", __FUNCTION__, ms_bufferizer_get_avail(d->bufferizer));
 		ms_bufferizer_flush(d->bufferizer);
 	}
-	return;min_voices
+	return;
 
 setup_failure:
 	if (d->mixer_handle != NULL) {
@@ -628,7 +628,7 @@ static int ms_qsa_write_set_nchannels(MSFilter *f, void *arg) {
 	ms_warning("[DEBUG] nchannels: %i, min voices = %i, max voices = %i", nchannels, d->info.min_voices, d->info.max_voices);
 	if ((nchannels >= d->info.min_voices) && (nchannels <= d->info.max_voices)) {
 		d->nchannels = nchannels;
-		ms_warning("[DEBUG] nchannels set %i", nchannels);
+		ms_warning("[DEBUG] nchannels set %i", nchannels, d->info.min_voices, d->info.max_voices);
 		return 0;
 	}
 	return -1;
