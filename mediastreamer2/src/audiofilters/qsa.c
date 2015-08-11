@@ -448,11 +448,11 @@ static void ms_qsa_write_process(MSFilter *f) {
 			ms_error("%s: snd_pcm_plugin_set_disable() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
 		}
-		err = snd_pcm_plugin_set_disable(d->handle, PLUGIN_DISABLE_BUFFER_PARTIAL_BLOCKS);
+		/*err = snd_pcm_plugin_set_disable(d->handle, PLUGIN_DISABLE_BUFFER_PARTIAL_BLOCKS);
 		if (err < 0) {
 			ms_error("%s: snd_pcm_plugin_set_disable() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
-		}
+		}*/
 		
 		memset(&pi, 0, sizeof(pi));
 		pi.channel = SND_PCM_CHANNEL_PLAYBACK;
