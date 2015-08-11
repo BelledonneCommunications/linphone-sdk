@@ -459,10 +459,11 @@ static void ms_qsa_write_process(MSFilter *f) {
 		params.mode = SND_PCM_MODE_BLOCK;
 		if (strcmp(d->pcmdev, "voice") == 0) {
 			params.start_mode = SND_PCM_START_FULL;
+			params.stop_mode = SND_PCM_STOP_STOP; 
 		} else {
 			params.start_mode = SND_PCM_START_DATA;
+			params.stop_mode = SND_PCM_STOP_ROLLOVER; 
 		}
-		params.stop_mode = SND_PCM_STOP_STOP;
 		params.buf.block.frag_size = pi.max_fragment_size;
 		params.buf.block.frags_min = 1;
 		params.buf.block.frags_max = -1;
@@ -526,25 +527,20 @@ static void ms_qsa_write_process(MSFilter *f) {
 	}
 	if (FD_ISSET(d->fd, &fdset) > 0) {
 		if (ms_bufferizer_get_avail(d->bufferizer) >= d->buffer_size) {
-			ms_bufferizer_read(d->bufferizer, d->buffer, d->buffer_size);
-			written = snd_pcm_plugin_write(d->handle, d->buffer, d->buffer_size);
-			if (written < d->buffer_size) {
-				ms_warning("%s: snd_pcm_plugin_write(%d) failed: %s", __FUNCTION__, d->buffer_size, strerror(errno));
-				memset(&status, 0, sizeof(status));
-				status.channel = SND_PCM_CHANNEL_PLAYBACK;
-				err = snd_pcm_plugin_status(d->handle, &status);
-				if (err != 0) {
-					ms_error("%s: snd_pcm_plugin_status() failed: %s", __FUNCTION__, snd_strerror(err));
-					goto setup_failure;
+			memset(&status, 0, sizeof(status));
+			status.channel = SND_PCM_CHANNEL_PLAYBACK;
+			err = snd_pcm_plugin_status(d->handle, &status);
+			if (err != 0) {
+				ms_error("%s: snd_pcm_plugin_status() failed: %s", __FUNCTION__, snd_strerror(err));
+				goto setup_failure;
+			}
+			if ((status.status == SND_PCM_STATUS_PREPARED) || (status.status == SND_PCM_STATUS_RUNNING)) {
+				ms_bufferizer_read(d->bufferizer, d->buffer, d->buffer_size);
+				written = snd_pcm_plugin_write(d->handle, d->buffer, d->buffer_size);
+				if (written < d->buffer_size) {
+					ms_warning("%s: snd_pcm_plugin_write(%d) failed: %s", __FUNCTION__, d->buffer_size, strerror(errno));
+					if (written < 0) written = 0;
 				}
-				if ((status.status == SND_PCM_STATUS_READY) || (status.status == SND_PCM_STATUS_UNDERRUN)) {
-					err = snd_pcm_plugin_prepare(d->handle, SND_PCM_CHANNEL_PLAYBACK);
-					if (err != 0) {
-						ms_error("%s: snd_pcm_plugin_prepare() failed: %s", __FUNCTION__, snd_strerror(err));
-						goto setup_failure;
-					}
-				}
-				if (written < 0) written = 0;
 			}
 		}
 	}
