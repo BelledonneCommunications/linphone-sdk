@@ -367,7 +367,6 @@ typedef struct _MSQSAWriteData {
 	int rate;
 	int nchannels;
 	bool_t initialized;
-	int frags_written;
 } MSQSAWriteData;
 
 static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg);
@@ -448,12 +447,6 @@ static void ms_qsa_write_process(MSFilter *f) {
 			ms_error("%s: snd_pcm_plugin_set_disable() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
 		}
-		/*err = snd_pcm_plugin_set_disable(d->handle, PLUGIN_DISABLE_BUFFER_PARTIAL_BLOCKS);
-		if (err < 0) {
-			ms_error("%s: snd_pcm_plugin_set_disable() failed: %s", __FUNCTION__, snd_strerror(err));
-			goto setup_failure;
-		}*/
-		
 		memset(&pi, 0, sizeof(pi));
 		pi.channel = SND_PCM_CHANNEL_PLAYBACK;
 		err = snd_pcm_plugin_info(d->handle, &pi);
@@ -464,7 +457,11 @@ static void ms_qsa_write_process(MSFilter *f) {
 		memset(&params, 0, sizeof(params));
 		params.channel = SND_PCM_CHANNEL_PLAYBACK;
 		params.mode = SND_PCM_MODE_BLOCK;
-		params.start_mode = SND_PCM_START_GO;
+		if (strcasecmp(d->pcmdev, "voice") == 0) {
+			params.start_mode = SND_PCM_START_FULL;
+		} else {
+			params.start_mode = SND_PCM_START_DATA;
+		}
 		params.stop_mode = SND_PCM_STOP_STOP;
 		params.buf.block.frag_size = pi.max_fragment_size;
 		params.buf.block.frags_min = 1;
@@ -512,7 +509,6 @@ static void ms_qsa_write_process(MSFilter *f) {
 
 		d->buffer_size = setup.buf.block.frag_size;
 		d->buffer = ms_malloc(d->buffer_size);
-		d->frags_written = 0;
 	}
 
 	if (d->handle == NULL) goto setup_failure;
@@ -532,7 +528,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 			ms_bufferizer_read(d->bufferizer, d->buffer, d->buffer_size);
 			written = snd_pcm_plugin_write(d->handle, d->buffer, d->buffer_size);
 			if (written < d->buffer_size) {
-				ms_warning("%s: snd_pcm_plugin_write(%d) failed: %s", __FUNCTION__, d->buffer_size, strerror(errno));
+				ms_warning("%s: snd_pcm_plugin_write(%d) failed: %d", __FUNCTION__, d->buffer_size, strerror(errno));
 				memset(&status, 0, sizeof(status));
 				status.channel = SND_PCM_CHANNEL_PLAYBACK;
 				err = snd_pcm_plugin_status(d->handle, &status);
@@ -541,7 +537,6 @@ static void ms_qsa_write_process(MSFilter *f) {
 					goto setup_failure;
 				}
 				if ((status.status == SND_PCM_STATUS_READY) || (status.status == SND_PCM_STATUS_UNDERRUN)) {
-					d->frags_written = 0;
 					err = snd_pcm_plugin_prepare(d->handle, SND_PCM_CHANNEL_PLAYBACK);
 					if (err != 0) {
 						ms_error("%s: snd_pcm_plugin_prepare() failed: %s", __FUNCTION__, snd_strerror(err));
@@ -549,24 +544,6 @@ static void ms_qsa_write_process(MSFilter *f) {
 					}
 				}
 				if (written < 0) written = 0;
-			} else {
-				d->frags_written += 1;
-				
-				memset(&status, 0, sizeof(status));
-				status.channel = SND_PCM_CHANNEL_PLAYBACK;
-				err = snd_pcm_plugin_status(d->handle, &status);
-				if (err != 0) {
-					ms_error("%s: snd_pcm_plugin_status() failed: %s", __FUNCTION__, snd_strerror(err));
-					goto setup_failure;
-				}
-				
-				if (status.status == SND_PCM_STATUS_READY && d->frags_written >= 3) {
-					err = snd_pcm_playback_go(d->handle);
-					if (err != 0) {
-						ms_error("%s: snd_pcm_playback_go() failed: %s", __FUNCTION__, snd_strerror(err));
-						goto setup_failure;
-					}
-				}
 			}
 		}
 	}
