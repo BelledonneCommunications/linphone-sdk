@@ -596,7 +596,6 @@ static void ms_qsa_write_uninit(MSFilter *f) {
 	ms_free(d);
 }
 
-rate
 /******************************************************************************
  * Methods to configure the QSA playback filter                               *
  *****************************************************************************/
