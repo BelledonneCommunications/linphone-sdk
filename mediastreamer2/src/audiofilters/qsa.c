@@ -459,11 +459,10 @@ static void ms_qsa_write_process(MSFilter *f) {
 		params.mode = SND_PCM_MODE_BLOCK;
 		if (strcmp(d->pcmdev, "voice") == 0) {
 			params.start_mode = SND_PCM_START_FULL;
-			params.stop_mode = SND_PCM_STOP_STOP; 
 		} else {
 			params.start_mode = SND_PCM_START_DATA;
-			params.stop_mode = SND_PCM_STOP_STOP; 
 		}
+		params.stop_mode = SND_PCM_STOP_STOP; 
 		params.buf.block.frag_size = pi.max_fragment_size;
 		params.buf.block.frags_min = 1;
 		params.buf.block.frags_max = -1;
@@ -501,7 +500,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 			goto setup_failure;
 		}
 
-		ms_message("PCM device %s", d->pcmdev);
+		ms_message("PCM playback device %s", d->pcmdev);
 		ms_message("Format %s", snd_pcm_get_format_name(setup.format.format));
 		ms_message("Frag Size %d", setup.buf.block.frag_size);
 		ms_message("Total Frags %d", setup.buf.block.frags);
@@ -597,7 +596,7 @@ static void ms_qsa_write_uninit(MSFilter *f) {
 	ms_free(d);
 }
 
-
+rate
 /******************************************************************************
  * Methods to configure the QSA playback filter                               *
  *****************************************************************************/
@@ -605,11 +604,9 @@ static void ms_qsa_write_uninit(MSFilter *f) {
 static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg) {
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
 	int hz = *((int *)arg);
-	ms_warning("[DEBUG] trying to set sample rate: %i", hz);
 	uint32_t pcm_rate = get_pcm_rate_from_hz(hz);
 	if ((pcm_rate != 0) && (d->info.rates & pcm_rate)) {
 		d->rate = hz;
-		ms_warning("[DEBUG] set sample rate: %i", hz);
 		return 0;
 	}
 	return -1;
@@ -618,26 +615,21 @@ static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg) {
 static int ms_qsa_write_get_sample_rate(MSFilter *f, void *arg) {
 	MSQSAWriteData * d = (MSQSAWriteData *)f->data;
 	*((int*)arg) = d->rate;
-	ms_warning("[DEBUG] get sample rate: %i", d->rate);
 	return 0;
 }
 
 static int ms_qsa_write_set_nchannels(MSFilter *f, void *arg) {
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
 	int nchannels = *((int *)arg);
-	ms_warning("[DEBUG] nchannels: %i, min voices = %i, max voices = %i", nchannels, d->info.min_voices, d->info.max_voices);
 	if ((nchannels >= d->info.min_voices) && (nchannels <= d->info.max_voices)) {
 		d->nchannels = nchannels;
-		ms_warning("[DEBUG] nchannels set %i", nchannels, d->info.min_voices, d->info.max_voices);
-		return 0;
 	}
-	return -1;
+	return 0; // Return 0 even if set didn't work to force the app to call the getter to have the correct value
 }
 
 static int ms_qsa_write_get_nchannels(MSFilter *f, void *arg) {
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
 	*((int *)arg) = d->nchannels;
-	ms_warning("[DEBUG] get nchannels", d->nchannels);
 	return 0;
 }
 
