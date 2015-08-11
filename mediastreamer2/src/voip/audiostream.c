@@ -739,6 +739,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	MSConnectionHelper h;
 	int sample_rate;
 	int nchannels;
+	int err1,err2;
 	bool_t has_builtin_ec=FALSE;
 	
 	if (!ms_media_stream_io_is_consistent(io)) return -1;
@@ -912,18 +913,23 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_NCHANNELS,&nchannels);
 	}
+	
+	/*don't put these two statements in a single if, because the second one will not be executed if the first one evaluates as true*/
+	err1 = ms_filter_call_method(stream->soundread, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	err2 = ms_filter_call_method(stream->soundread, MS_FILTER_SET_NCHANNELS, &nchannels);
 	/* give the sound filters some properties */
-	if (ms_filter_call_method(stream->soundread,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
+	if (err1 != 0 || err2 != 0){
 		/* need to add resampler*/
-		if (stream->read_resampler == NULL) stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
+		if (stream->read_resampler == NULL) stream->read_resampler = ms_filter_new(MS_RESAMPLE_ID);
 	}
-	ms_filter_call_method(stream->soundread,MS_FILTER_SET_NCHANNELS,&nchannels);
 
-	if (ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
+	err1 = ms_filter_call_method(stream->soundwrite, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	err2 = ms_filter_call_method(stream->soundwrite, MS_FILTER_SET_NCHANNELS, &nchannels);
+	if (err1 !=0 || err2 != 0){
 		/* need to add resampler*/
-		if (stream->write_resampler == NULL) stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
+		if (stream->write_resampler == NULL) stream->write_resampler = ms_filter_new(MS_RESAMPLE_ID);
 	}
-	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS,&nchannels);
+	
 
 	if (stream->ec){
 		if (!stream->is_ec_delay_set) {
