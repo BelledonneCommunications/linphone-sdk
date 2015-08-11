@@ -18,8 +18,6 @@
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <PackageCertificateKeyFile>ms2-tester_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
     <DebugSymbols>true</DebugSymbols>
@@ -115,9 +113,9 @@
       <SubType>Designer</SubType>
     </AppxManifest>
     <None Include="ms2-tester_TemporaryKey.pfx" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Properties\Default.rd.xml" />
     <Content Include="Assets\Images\nowebcamCIF.jpg" />
     <Content Include="Assets\Logo.png" />
     <Content Include="Assets\SmallLogo.png" />
@@ -138,7 +136,6 @@
     <Content Include="Assets\Sounds\sintel_trailer_opus_h264.mkv" />
     <Content Include="Assets\Sounds\sintel_trailer_pcmu_h264.mkv" />
     <Content Include="Assets\SplashScreen.png" />
-    <Content Include="Properties\Default.rd.xml" />
     <Content Include="Assets\WideLogo.scale-100.png" />
   </ItemGroup>
   <ItemGroup>
