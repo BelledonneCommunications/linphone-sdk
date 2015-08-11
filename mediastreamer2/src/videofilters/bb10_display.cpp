@@ -78,7 +78,7 @@ static void bb10display_createWindow(BB10Display *d) {
 	d->pixmap_buffer = buffer;
 	d->stride = stride;
 	d->window_created = TRUE;
-	ms_debug("[bb10_display] bb10display_createWindow window created");
+	ms_warning("[bb10_display] bb10display_createWindow window created with size %i,%i and stride %i", dims[0], dims[1], stride);
 	
 	if (d->window_id != NULL && d->window_group != NULL) {
 		bb10display_set_window_id_and_group(d);
@@ -104,7 +104,7 @@ static void bb10display_destroyWindow(BB10Display *d) {
 	d->context = NULL;
 	
 	d->window_created = FALSE;
-	ms_debug("[bb10_display] bb10display_destroyWindow window destroyed");
+	ms_warning("[bb10_display] bb10display_destroyWindow window destroyed");
 }
 
 static void bb10display_fillWindowBuffer(BB10Display *d, MSPicture yuvbuf) {
@@ -147,9 +147,10 @@ static void bb10display_init(MSFilter *f) {
 	d->window_group = NULL;
 	d->stride = 0;
 	
-	bb10display_createWindow(d);
+	//bb10display_createWindow(d);
 	
 	f->data = d;
+	ms_warning("[bb10_display] init done");
 }
 
 static void bb10display_uninit(MSFilter *f) {
@@ -157,6 +158,7 @@ static void bb10display_uninit(MSFilter *f) {
 	
 	bb10display_destroyWindow(d);
 	ms_free(d);
+	ms_warning("[bb10_display] uninit done");
 }
 
 static void bb10display_preprocess(MSFilter *f) {
@@ -174,12 +176,12 @@ static void bb10display_process(MSFilter *f) {
 			MSVideoSize newsize;
 			newsize.width = src.w;
 			newsize.height = src.h;
-			ms_message("[bb10_display] received size is %ix%i, current size is %ix%i", newsize.width, newsize.height, d->vsize.width, d->vsize.height);
 			if (!ms_video_size_equal(newsize, d->vsize)) {
+				ms_warning("[bb10_display] size changed from %i,%i to %i,%i",  newsize.width, newsize.height, d->vsize.width, d->vsize.height);
 				d->vsize = newsize;
-				ms_message("[bb10_display] size changed to %i,%i", d->vsize.width, d->vsize.height);
 				
 				if (d->window_created) {
+					ms_warning("[bb10_display] window created, flush and destroy");
 					screen_flush_context(d->context, 0);
 					bb10display_destroyWindow(d);
 				}
@@ -208,7 +210,7 @@ static int bb10display_set_wsize(MSFilter *f, void *arg) {
 	
 	ms_filter_lock(f);
 	d->wsize = *(MSVideoSize*)arg;
-	ms_message("[bb10_display] set wsize: %ix%i", d->wsize.width, d->wsize.height);
+	ms_warning("[bb10_display] set wsize: %ix%i", d->wsize.width, d->wsize.height);
 	
 	if (d->window_created) {
 		screen_flush_context(d->context, 0);
@@ -227,7 +229,7 @@ static int bb10_display_set_window_ids(MSFilter *f, void *arg) {
 	const char *group = *(const char **)arg;
 	d->window_id = "LinphoneVideoWindowId";
 	d->window_group = group;
-	ms_message("[bb10_display] set window_id: %s and window_group: %s", d->window_id, d->window_group);
+	ms_warning("[bb10_display] set window_id: %s and window_group: %s", d->window_id, d->window_group);
 	
 	if (!d->window_created) {
 		bb10display_createWindow(d);

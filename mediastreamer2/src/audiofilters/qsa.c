@@ -462,7 +462,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 			params.stop_mode = SND_PCM_STOP_STOP; 
 		} else {
 			params.start_mode = SND_PCM_START_DATA;
-			params.stop_mode = SND_PCM_STOP_ROLLOVER; 
+			params.stop_mode = SND_PCM_STOP_STOP; 
 		}
 		params.buf.block.frag_size = pi.max_fragment_size;
 		params.buf.block.frags_min = 1;
@@ -540,6 +540,12 @@ static void ms_qsa_write_process(MSFilter *f) {
 				if (written < d->buffer_size) {
 					ms_warning("%s: snd_pcm_plugin_write(%d) failed: %s", __FUNCTION__, d->buffer_size, strerror(errno));
 					if (written < 0) written = 0;
+				}
+			} else if ((status.status == SND_PCM_STATUS_READY) || (status.status == SND_PCM_STATUS_UNDERRUN)) {
+				err = snd_pcm_plugin_prepare(d->handle, SND_PCM_CHANNEL_PLAYBACK);
+				if (err != 0) {
+					ms_error("%s: snd_pcm_plugin_prepare() failed: %s", __FUNCTION__, snd_strerror(err));
+					goto setup_failure;
 				}
 			}
 		}
