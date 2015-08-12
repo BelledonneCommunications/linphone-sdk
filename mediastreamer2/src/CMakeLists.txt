@@ -295,6 +295,12 @@ if(ENABLE_VIDEO)
 			voip/vp8rtpfmt.h
 		)
 	endif()
+	if(MATROSKA2_FOUND)
+		list(APPEND VOIP_SOURCE_FILES
+			videofilters/mkv.c
+			utils/mkv_reader.c
+		)
+	endif()
 	if(X11_FOUND)
 		list(APPEND VOIP_SOURCE_FILES utils/x11_helper.c)
 	endif()
@@ -409,6 +415,9 @@ if(GLX_FOUND)
 endif()
 if(VPX_FOUND)
 	list(APPEND VOIP_LIBS ${VPX_LIBRARIES})
+endif()
+if(MATROSKA2_FOUND)
+	list(APPEND VOIP_LIBS ${MATROSKA2_LIBRARIES})
 endif()
 
 if(ENABLE_STATIC)

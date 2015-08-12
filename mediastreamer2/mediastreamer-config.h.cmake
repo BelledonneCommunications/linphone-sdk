@@ -67,3 +67,4 @@
 #cmakedefine HAVE_LINUX_VIDEODEV2_H 1
 #cmakedefine HAVE_POLARSSL_SSL_H 1
 #cmakedefine HAVE_PCAP 1
+#cmakedefine HAVE_MATROSKA 1
