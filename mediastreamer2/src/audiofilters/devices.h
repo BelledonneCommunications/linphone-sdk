@@ -51,12 +51,15 @@ struct SoundDeviceDescription{
 
 typedef struct SoundDeviceDescription SoundDeviceDescription;
 
+
 #ifdef __cplusplus
 extern "C"{
 #endif
 
 /*obtain information regarding sound system of current device*/
 SoundDeviceDescription * sound_device_description_get(void);
+
+extern SoundDeviceDescription genericSoundDeviceDescriptor;
 
 #ifdef __cplusplus
 }

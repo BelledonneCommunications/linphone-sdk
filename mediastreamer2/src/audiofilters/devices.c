@@ -134,7 +134,7 @@ static SoundDeviceDescription devices[]={
 	{	NULL, NULL, NULL, 0, 0,0}
 };
 
-static SoundDeviceDescription undefined={"Generic", "Generic", "Generic", 0, 250, 0, 0};
+SoundDeviceDescription genericSoundDeviceDescriptor={"Generic", "Generic", "Generic", 0, 250, 0, 0};
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_addSoundDeviceDescription(JNIEnv* env, jobject thiz, jstring jmanufacturer, jstring jmodel, jstring jplatform, jint flags, jint delay, jint rate) {
 	const char *manufacturer = jmanufacturer ? (*env)->GetStringUTFChars(env, jmanufacturer, NULL) : NULL;
@@ -154,7 +154,7 @@ static SoundDeviceDescription devices[]={
 	{	NULL, NULL, NULL, 0, 0, 0}
 };
 
-static SoundDeviceDescription undefined={"Generic", "Generic", "Generic", 0, 0, 0};
+SoundDeviceDescription genericSoundDeviceDescriptor={"Generic", "Generic", "Generic", 0, 0, 0};
 
 #endif
 
@@ -260,7 +260,7 @@ SoundDeviceDescription * sound_device_description_get(void){
 	d=lookup_sound_device(manufacturer, model, platform);
 	if (!d){
 		ms_message("No AEC information available for  [%s/%s/%s],",manufacturer,model,platform);
-		d=&undefined;
+		d=&genericSoundDeviceDescriptor;
 	}else{
 		ms_message("Found AEC information for [%s/%s/%s] from internal table",manufacturer,model,platform);
 		exact_match=TRUE;
