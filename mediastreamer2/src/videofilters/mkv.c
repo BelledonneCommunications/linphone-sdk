@@ -1969,6 +1969,7 @@ MSFilterDesc ms_mkv_recorder_desc= {
 	"MSMKVRecorder",
 	"MKV file recorder",
 	MS_FILTER_OTHER,
+	NULL,
 	2,
 	0,
 	recorder_init,
@@ -1976,7 +1977,8 @@ MSFilterDesc ms_mkv_recorder_desc= {
 	recorder_process,
 	recorder_postprocess,
 	recorder_uninit,
-	recorder_methods
+	recorder_methods,
+	0
 };
 #else
 MSFilterDesc ms_mkv_recorder_desc={
@@ -1984,6 +1986,7 @@ MSFilterDesc ms_mkv_recorder_desc={
 	.name="MSMKVRecorder",
 	.text="MKV file recorder",
 	.category=MS_FILTER_OTHER,
+	.enc_fmt=NULL,
 	.ninputs=2,
 	.noutputs=0,
 	.init=recorder_init,
@@ -1991,7 +1994,8 @@ MSFilterDesc ms_mkv_recorder_desc={
 	.process=recorder_process,
 	.postprocess=recorder_postprocess,
 	.uninit=recorder_uninit,
-	.methods=recorder_methods
+	.methods=recorder_methods,
+	.flags=0
 };
 #endif
 
@@ -2445,6 +2449,7 @@ MSFilterDesc ms_mkv_player_desc= {
 	"MSMKVPlayer",
 	"MKV file player",
 	MS_FILTER_OTHER,
+	NULL,
 	0,
 	2,
 	player_init,
@@ -2452,7 +2457,8 @@ MSFilterDesc ms_mkv_player_desc= {
 	player_process,
 	NULL,
 	player_uninit,
-	player_methods
+	player_methods,
+	0
 };
 #else
 MSFilterDesc ms_mkv_player_desc={
@@ -2460,6 +2466,7 @@ MSFilterDesc ms_mkv_player_desc={
 	.name="MSMKVPlayer",
 	.text="MKV file player",
 	.category=MS_FILTER_OTHER,
+	.enc_fmt=NULL,
 	.ninputs=0,
 	.noutputs=2,
 	.init=player_init,
@@ -2467,7 +2474,8 @@ MSFilterDesc ms_mkv_player_desc={
 	.process=player_process,
 	.postprocess=NULL,
 	.uninit=player_uninit,
-	.methods=player_methods
+	.methods=player_methods,
+	.flags=0
 };
 #endif
 
