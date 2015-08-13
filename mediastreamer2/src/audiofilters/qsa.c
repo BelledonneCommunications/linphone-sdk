@@ -23,6 +23,7 @@
 #endif
 
 #include <errno.h>
+#include <audio/audio_manager_routing.h>
 #include <sys/asoundlib.h>
 #include <sys/select.h>
 #include <sys/time.h>
@@ -367,6 +368,7 @@ typedef struct _MSQSAWriteData {
 	int rate;
 	int nchannels;
 	bool_t initialized;
+	unsigned int *audioman_handle;
 } MSQSAWriteData;
 
 static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg);
@@ -384,7 +386,7 @@ static MSFilter * ms_qsa_write_new(MSSndCard *card) {
 	d->pcmdev = ms_strdup(card->name);
 	err = snd_pcm_open_name(&handle, d->pcmdev, SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
 	if (err != 0) {
-		ms_error("%s: snd_pcm_open_preferred() failed: %s", __FUNCTION__, snd_strerror(err));
+		ms_error("%s: audio_manager_snd_pcm_open_name() failed: %s", __FUNCTION__, snd_strerror(err));
 	} else {
 		memset(&d->info, 0, sizeof(d->info));
 		d->info.channel = SND_PCM_CHANNEL_PLAYBACK;
@@ -425,9 +427,9 @@ static void ms_qsa_write_process(MSFilter *f) {
 	if (d->initialized != TRUE) goto setup_failure;
 
 	if ((d->handle == NULL) && (d->pcmdev != NULL)) {
-		err = snd_pcm_open_name(&d->handle, d->pcmdev, SND_PCM_OPEN_PLAYBACK);
+		err = audio_manager_snd_pcm_open_name(AUDIO_TYPE_VOICE, &d->handle, &d->audioman_handle, d->pcmdev, SND_PCM_OPEN_PLAYBACK);
 		if (err != 0) {
-			ms_error("%s: snd_pcm_open_name(%s) failed: %s", __FUNCTION__, d->pcmdev, snd_strerror(err));
+			ms_error("%s: audio_manager_snd_pcm_open_name(%s) failed: %s", __FUNCTION__, d->pcmdev, snd_strerror(err));
 			goto setup_failure;
 		}
 		err = snd_pcm_info(d->handle, &info);
@@ -580,6 +582,9 @@ static void ms_qsa_write_postprocess(MSFilter *f) {
 		snd_pcm_close(d->handle);
 		d->handle = NULL;
 	}
+	if (d->audioman_handle != NULL) {
+		d->audioman_handle = NULL;
+	}
 }
 
 static void ms_qsa_write_uninit(MSFilter *f) {
@@ -632,12 +637,35 @@ static int ms_qsa_write_get_nchannels(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int ms_qsa_write_set_route(MSFilter *f, void *arg) {
+	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
+	MSAudioRoute audio_route = *((MSAudioRoute *)arg);
+	int err;
+	
+	if (d->audioman_handle) {
+		audio_manager_device_t output_device = AUDIO_DEVICE_DEFAULT;
+		if (audio_route == MSAudioRouteSpeaker) {
+			output_device = AUDIO_DEVICE_SPEAKER;
+		}
+		
+		err = audio_manager_set_handle_type(d->audioman_handle, AUDIO_TYPE_VOICE, output_device, AUDIO_DEVICE_UNCHANGED);
+		if (err != 0) {
+			ms_error("%s: audio_manager_set_handle_type(%i) failed: %s", __FUNCTION__, output_device, snd_strerror(err));
+			return -1;
+		}
+		return 0;
+	}
+	
+	return -1;
+}
+
 static MSFilterMethod ms_qsa_write_methods[] = {
-	{ MS_FILTER_SET_SAMPLE_RATE, ms_qsa_write_set_sample_rate },
-	{ MS_FILTER_GET_SAMPLE_RATE, ms_qsa_write_get_sample_rate },
-	{ MS_FILTER_GET_NCHANNELS,   ms_qsa_write_get_nchannels   },
-	{ MS_FILTER_SET_NCHANNELS,   ms_qsa_write_set_nchannels   },
-	{ 0,                         NULL                         }
+	{ MS_FILTER_SET_SAMPLE_RATE,		ms_qsa_write_set_sample_rate },
+	{ MS_FILTER_GET_SAMPLE_RATE,		ms_qsa_write_get_sample_rate },
+	{ MS_FILTER_GET_NCHANNELS,			ms_qsa_write_get_nchannels   },
+	{ MS_FILTER_SET_NCHANNELS,			ms_qsa_write_set_nchannels   },
+	{ MS_AUDIO_PLAYBACK_SET_ROUTE,		ms_qsa_write_set_route       };
+	{ 0,								NULL						 }
 };
 
 

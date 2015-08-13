@@ -1701,5 +1701,11 @@ void audio_stream_unlink_video(AudioStream *stream, VideoStream *video){
 	}
 }
 
-
+void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute route) {
+	if (stream->soundwrite) {
+		if (ms_filter_implements_interface(stream->soundwrite, MSFilterAudioPlaybackInterface)) {
+			ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_ROUTE, &route);
+		}
+	}
+}
 

@@ -1157,6 +1157,13 @@ MS2_PUBLIC MSWebCamDesc *ms_mire_webcam_desc_get(void);
 MS2_PUBLIC RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port);
 
 /**
+ * Asks the audio playback filter to route to the selected device
+ * @param[in] stream The AudioStream object
+ * @param[in] route The wanted audio output device (earpiece, speaker)
+ */
+MS2_PUBLIC void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute route);
+
+/**
  * @}
 **/
 

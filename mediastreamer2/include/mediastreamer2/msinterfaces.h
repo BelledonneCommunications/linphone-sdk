@@ -279,10 +279,18 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 255, bool_t)
 	
 /** Interface definitions for audio playback */
+enum _MSAudioRoute{
+	MSAudioRouteEarpiece,
+	MSAudioRouteSpeaker
+};
+typedef enum _MSAudioRoute MSAudioRoute;
+
 #define MS_AUDIO_PLAYBACK_SET_VOLUME_GAIN \
 	MS_FILTER_METHOD(MSFilterAudioPlaybackInterface, 0, float)
 #define MS_AUDIO_PLAYBACK_GET_VOLUME_GAIN \
 	MS_FILTER_METHOD(MSFilterAudioPlaybackInterface, 1, float)
+#define MS_AUDIO_PLAYBACK_SET_ROUTE \
+	MS_FILTER_METHOD(MSFilterAudioPlaybackInterface, 2, MSAudioRoute)
 
 /** Interface definitions for audio encoder */
 #define MS_AUDIO_ENCODER_SET_PTIME \
