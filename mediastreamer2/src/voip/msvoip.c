@@ -208,6 +208,10 @@ extern MSWebCamDesc ms_android_video_capture_desc;
 extern MSWebCamDesc ms_v4ios_cam_desc;
 #endif
 
+#ifdef __QNX__
+extern MSWebCamDesc ms_bb10_camera_desc;
+#endif
+
 #endif /* MS2_FILTERS */
 
 static MSWebCamDesc * ms_web_cam_descs[]={
@@ -235,6 +239,9 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #endif
 	&ms_mire_webcam_desc,
 	&static_image_desc,
+#ifdef __QNX__
+	&ms_bb10_camera_desc,
+#endif
 #endif /*MS2_FILTERS */
 	NULL
 };

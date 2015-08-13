@@ -256,6 +256,14 @@ if(ENABLE_VIDEO)
 			)
 		endif()
 	endif()
+	if (ENABLE_QNX)
+                list (APPEND VOIP_SOURCE_FILES
+                        videofilters/bb10_display.cpp
+                        videofilters/bb10_capture.cpp
+                )
+                set_source_files_properties(videofilters/bb10_display.cpp PROPERTIES LANGUAGE CXX)
+                set_source_files_properties(videofilters/bb10_capture.cpp PROPERTIES LANGUAGE CXX)
+        endif()
 	if(FFMPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES
 			utils/ffmpeg-priv.c
@@ -418,6 +426,11 @@ if(VPX_FOUND)
 endif()
 if(MATROSKA2_FOUND)
 	list(APPEND VOIP_LIBS ${MATROSKA2_LIBRARIES})
+if (SCREEN_FOUND)
+	list(APPEND VOIP_LIBS ${SCREEN_LIBRARIES})
+endif()
+if (CAMAPI_FOUND)
+	list(APPEND VOIP_LIBS ${CAMAPI_LIBRARIES})
 endif()
 
 if(ENABLE_STATIC)
