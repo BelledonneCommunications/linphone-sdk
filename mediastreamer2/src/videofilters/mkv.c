@@ -902,8 +902,22 @@ static ms_bool_t matroska_load_file(Matroska *obj) {
 	return TRUE;
 }
 
-static int matroska_open_file(Matroska *obj, const char path[], MatroskaOpenMode mode) {
+static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode mode) {
 	int err = 0;
+
+#ifdef _MSC_VER
+	wchar_t wpath[MAX_PATH + 1];
+	char mbpath[MAX_PATH + 1];
+	if (MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, MAX_PATH + 1) == 0) {
+		ms_error("Could not convert %s into UTF-16", path);
+		return -1;
+	}
+	if (WideCharToMultiByte(CP_ACP, 0, wpath, -1, mbpath, MAX_PATH + 1, NULL, NULL) == 0) {
+		ms_error("Could not convert %s from UTF-16 to ACP", path);
+		return -1;
+	}
+	path = mbpath;
+#endif
 
 	switch(mode) {
 	case MKV_OPEN_CREATE:
