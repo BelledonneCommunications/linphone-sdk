@@ -368,7 +368,7 @@ typedef struct _MSQSAWriteData {
 	int rate;
 	int nchannels;
 	bool_t initialized;
-	unsigned int *audioman_handle;
+	unsigned int audioman_handle;
 } MSQSAWriteData;
 
 static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg);
@@ -664,7 +664,7 @@ static MSFilterMethod ms_qsa_write_methods[] = {
 	{ MS_FILTER_GET_SAMPLE_RATE,		ms_qsa_write_get_sample_rate },
 	{ MS_FILTER_GET_NCHANNELS,			ms_qsa_write_get_nchannels   },
 	{ MS_FILTER_SET_NCHANNELS,			ms_qsa_write_set_nchannels   },
-	{ MS_AUDIO_PLAYBACK_SET_ROUTE,		ms_qsa_write_set_route       };
+	{ MS_AUDIO_PLAYBACK_SET_ROUTE,		ms_qsa_write_set_route       },
 	{ 0,								NULL						 }
 };
 
