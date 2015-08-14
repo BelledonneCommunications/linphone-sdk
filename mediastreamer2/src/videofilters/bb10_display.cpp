@@ -207,7 +207,7 @@ static void bb10display_process(MSFilter *f) {
 	BB10Display *d = (BB10Display*) f->data;
 	mblk_t *inm = NULL;
 	MSPicture src = {0};
-wdims
+
 	ms_filter_lock(f);
 	if (f->inputs[0] != NULL && (inm = ms_queue_peek_last(f->inputs[0])) != 0) {
 		if (ms_yuv_buf_init_from_mblk(&src, inm) == 0) {
