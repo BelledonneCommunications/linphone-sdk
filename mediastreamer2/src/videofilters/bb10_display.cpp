@@ -20,6 +20,7 @@
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
+#include "mediastreamer2/msticker.h"
 #include "layouts.h"
 
 #include <screen/screen.h>
@@ -35,6 +36,8 @@ typedef struct BB10Display {
 	bool_t window_created;
 	const char *window_id;
 	const char *window_group;
+	bool_t destroy_and_recreate_window;
+	uint64_t last_time_wsize_changed;
 } BB10Display;
 
 static void bb10display_set_window_id_and_group(BB10Display *d) {
@@ -70,6 +73,8 @@ static void bb10display_createWindow(BB10Display *d) {
 	
 	int zorder = -5;
 	screen_set_window_property_iv(window, SCREEN_PROPERTY_ZORDER, &zorder);
+	
+	screen_set_window_property_iv(window, SCREEN_PROPERTY_SIZE, wdims);
 	
 	screen_create_window_buffers(window, 1);
 	
@@ -186,6 +191,8 @@ static void bb10display_init(MSFilter *f) {
 	d->window_id = NULL;
 	d->window_group = NULL;
 	d->stride = 0;
+	d->destroy_and_recreate_window = FALSE;
+	d->last_time_wsize_changed = 0;
 	
 	f->data = d;
 	ms_warning("[bb10_display] init done");
@@ -211,15 +218,13 @@ static void bb10display_process(MSFilter *f) {
 	ms_filter_lock(f);
 	if (f->inputs[0] != NULL && (inm = ms_queue_peek_last(f->inputs[0])) != 0) {
 		if (ms_yuv_buf_init_from_mblk(&src, inm) == 0) {
-			bool_t destroy_and_recreate_window = FALSE;
-			
 			MSVideoSize newsize;
 			newsize.width = src.w;
 			newsize.height = src.h;
 			if (!ms_video_size_equal(newsize, d->vsize)) {
 				ms_warning("[bb10_display] video size changed from %i,%i to %i,%i",  newsize.width, newsize.height, d->vsize.width, d->vsize.height);
 				d->vsize = newsize;
-				destroy_and_recreate_window = TRUE;
+				d->destroy_and_recreate_window = TRUE;
 			}
 			
 			if (d->window_created) {
@@ -229,20 +234,20 @@ static void bb10display_process(MSFilter *f) {
 					ms_warning("[bb10_display] screen size changed from %i,%i to %i,%i",  d->wsize.width, d->wsize.height, wdims[0], wdims[1]);
 					d->wsize.width = wdims[0];
 					d->wsize.height = wdims[1];
-					destroy_and_recreate_window = TRUE;
+					d->destroy_and_recreate_window = TRUE;
+					d->last_time_wsize_changed = f->ticker->time;
 				}
 			}
 			
-			if (destroy_and_recreate_window) {
+			if (d->destroy_and_recreate_window && f->ticker->time - d->last_time_wsize_changed >= 500) {
 				if (d->window_created) {
-					ms_warning("[bb10_display] window created, flush and destroy");
-					screen_flush_context(d->context, 0);
 					bb10display_destroyWindow(d);
 				}
 				bb10display_createWindow(d);
+				d->destroy_and_recreate_window = FALSE;
 			}
 			
-			if (d->window_created) {
+			if (d->window_created && !d->destroy_and_recreate_window) {
 				bb10display_fillWindowBuffer(d, &src);
 			}
 		}
