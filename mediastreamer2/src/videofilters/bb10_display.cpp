@@ -163,8 +163,8 @@ static void bb10display_fillWindowBuffer(BB10Display *d, MSPicture *yuvbuf) {
 		};
 		screen_blit(d->context, buffer, d->pixmap_buffer, attributes);
 	
-		int rect[4] = { 0, 0, d->wsize.width, d->wsize.height };
-		screen_post_window(d->window, buffer, 1, rect, 0);
+		int dirty_rect[4] = { 0, 0, d->wsize.width, d->wsize.height };
+		screen_post_window(d->window, buffer, 1, dirty_rect, 0);
 	}
 }
 
@@ -207,7 +207,7 @@ static void bb10display_process(MSFilter *f) {
 	BB10Display *d = (BB10Display*) f->data;
 	mblk_t *inm = NULL;
 	MSPicture src = {0};
-
+wdims
 	ms_filter_lock(f);
 	if (f->inputs[0] != NULL && (inm = ms_queue_peek_last(f->inputs[0])) != 0) {
 		if (ms_yuv_buf_init_from_mblk(&src, inm) == 0) {
@@ -224,7 +224,7 @@ static void bb10display_process(MSFilter *f) {
 			
 			if (d->window_created) {
 				int wdims[2] = { 0, 0 };
-				screen_get_window_property_iv(d->window, SCREEN_PROPERTY_SIZE, &wdims);
+				screen_get_window_property_iv(d->window, SCREEN_PROPERTY_SIZE, wdims);
 				if (d->wsize.width != wdims[0] || d->wsize.height != wdims[1]) {
 					ms_warning("[bb10_display] screen size changed from %i,%i to %i,%i",  d->wsize.width, d->wsize.height, wdims[0], wdims[1]);
 					d->wsize.width = wdims[0];
