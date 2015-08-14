@@ -157,8 +157,8 @@ static void bb10display_fillWindowBuffer(BB10Display *d, MSPicture *yuvbuf) {
 		ms_layout_center_rectangle(d->wsize, d->vsize, &rect);
 		int attributes[] = { 
 			SCREEN_BLIT_SOURCE_WIDTH, d->vsize.width, SCREEN_BLIT_SOURCE_HEIGHT, d->vsize.height, 
-			SCREEN_BLIT_SOURCE_X, rect.x, SCREEN_BLIT_SOURCE_Y, rect.y, 
-			SCREEN_BLIT_SOURCE_WIDTH, rect.w, SCREEN_BLIT_SOURCE_HEIGHT, rect.h,
+			SCREEN_BLIT_DESTINATION_X, rect.x, SCREEN_BLIT_DESTINATION_Y, rect.y, 
+			SCREEN_BLIT_DESTINATION_WIDTH, rect.w, SCREEN_BLIT_DESTINATION_HEIGHT, rect.h,
 			SCREEN_BLIT_END 
 		};
 		screen_blit(d->context, buffer, d->pixmap_buffer, attributes);
