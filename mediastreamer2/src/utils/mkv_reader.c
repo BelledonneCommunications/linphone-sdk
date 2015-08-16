@@ -527,6 +527,7 @@ static void _parse_audio_track_info(MKVAudioTrack *audio_info_out, ebml_element 
 }
 
 static void _mkv_track_free(MKVTrack *obj) {
+	if (!obj) return;
 	if(obj->codec_private) ms_free(obj->codec_private);
 	ms_free(obj);
 }

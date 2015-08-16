@@ -870,6 +870,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		float zoom[] = {
 			args->zoom,
 			args->zoom_cx, args->zoom_cy };
+		MSMediaStreamIO iodef = MS_MEDIA_STREAM_IO_INITIALIZER;
 
 		if (args->eq){
 			ms_fatal("Cannot put an audio equalizer in a video stream !");
@@ -900,11 +901,27 @@ void setup_media_streams(MediastreamDatas* args) {
 			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),args->camera);
 		if (cam==NULL)
 			cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
-		video_stream_start(args->video,args->profile,
+		
+		if (args->infile){
+			iodef.input.type = MSResourceFile;
+			iodef.input.file = args->infile;
+		}else{
+			iodef.input.type = MSResourceCamera;
+			iodef.input.camera = cam;
+		}
+		if (args->outfile){
+			iodef.output.type = MSResourceFile;
+			iodef.output.file = args->outfile;
+		}else{
+			iodef.output.type = MSResourceDefault;
+			iodef.output.resource_arg = NULL;
+		}
+		rtp_session_set_jitter_compensation(args->video->ms.sessions.rtp_session, args->jitter);
+		video_stream_start_from_io(args->video, args->profile,
 					args->ip,args->remoteport,
 					args->ip,args->enable_rtcp?args->remoteport+1:-1,
 					args->payload,
-					args->jitter,cam
+					&iodef
 					);
 		args->session=args->video->ms.sessions.rtp_session;
 

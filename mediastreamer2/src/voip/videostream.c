@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "private.h"
 
 
-static void configure_itc(VideoStream *stream);
+static void configure_recorder_output(VideoStream *stream);
 static int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam, MSFilter *source, MSFilter *output);
 
@@ -75,8 +75,8 @@ void video_stream_free(VideoStream *stream) {
 		ms_filter_destroy(stream->output2);
 	if (stream->tee3)
 		ms_filter_destroy(stream->tee3);
-	if (stream->itcsink)
-		ms_filter_destroy(stream->itcsink);
+	if (stream->recorder_output)
+		ms_filter_destroy(stream->recorder_output);
 	if (stream->local_jpegwriter)
 		ms_filter_destroy(stream->local_jpegwriter);
 	if (stream->rtp_io_session)
@@ -117,7 +117,7 @@ static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *e
 			video_stream_send_rpsi(stream, rpsi->bit_string, rpsi->bit_string_len);
 			break;
 		case MS_FILTER_OUTPUT_FMT_CHANGED:
-			if (stream->itcsink) configure_itc(stream);
+			if (stream->recorder_output) configure_recorder_output(stream);
 			break;
 	}
 }
@@ -300,8 +300,8 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	 * In practice, these filters are needed only for audio+video recording.
 	 */
 	if (ms_factory_lookup_filter_by_id(ms_factory_get_fallback(), MS_MKV_RECORDER_ID)){
-		stream->itcsink=ms_filter_new(MS_ITC_SINK_ID);
 		stream->tee3=ms_filter_new(MS_TEE_ID);
+		stream->recorder_output=ms_filter_new(MS_ITC_SINK_ID);
 	}
 
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, &rtcp_xr_media_cbs);
@@ -439,7 +439,7 @@ static void configure_video_source(VideoStream *stream){
 	int ret;
 	MSVideoSize preview_vsize;
 	MSPinFormat pf={0};
-	bool_t is_player=ms_filter_get_id(stream->source)==MS_ITC_SOURCE_ID;
+	bool_t is_player=ms_filter_get_id(stream->source)==MS_ITC_SOURCE_ID || ms_filter_get_id(stream->source)==MS_MKV_PLAYER_ID;
 
 
 	/* transmit orientation to source filter */
@@ -566,8 +566,8 @@ static void configure_video_source(VideoStream *stream){
 
 
 
-static void configure_itc(VideoStream *stream){
-	if (stream->itcsink){
+static void configure_recorder_output(VideoStream *stream){
+	if (stream->recorder_output){
 		MSPinFormat pf={0};
 		ms_filter_call_method(stream->ms.decoder,MS_FILTER_GET_OUTPUT_FMT,&pf);
 		if (pf.fmt){
@@ -581,7 +581,7 @@ static void configure_itc(VideoStream *stream){
 				tmp.rate=pt->clock_rate;
 				pinfmt.pin=0;
 				pinfmt.fmt=ms_factory_get_format(ms_factory_get_fallback(),&tmp);
-				ms_filter_call_method(stream->itcsink,MS_FILTER_SET_INPUT_FMT,&pinfmt);
+				ms_filter_call_method(stream->recorder_output,MS_FILTER_SET_INPUT_FMT,&pinfmt);
 				ms_message("configure_itc(): format set to %s",ms_fmt_descriptor_to_string(pinfmt.fmt));
 			}
 		}else ms_warning("configure_itc(): video decoder doesn't give output format.");
@@ -642,15 +642,21 @@ static void video_stream_payload_type_changed(RtpSession *session, void *data){
 		ms_warning("No payload defined with number %i", payload);
 	}
 
-	configure_itc(stream);
+	configure_recorder_output(stream);
 }
 
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
+	MSMediaStreamIO io = MS_MEDIA_STREAM_IO_INITIALIZER;
 	if (cam==NULL){
 		cam = ms_web_cam_manager_get_default_cam( ms_web_cam_manager_get() );
 	}
-	return video_stream_start_with_source(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, jitt_comp, cam, ms_web_cam_create_reader(cam));
+	io.input.type = MSResourceCamera;
+	io.input.camera = cam;
+	io.output.type = MSResourceDefault;
+	io.output.resource_arg = NULL;
+	rtp_session_set_jitter_compensation(stream->ms.sessions.rtp_session, jitt_comp);
+	return video_stream_start_from_io(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, &io);
 }
 
 int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
@@ -658,6 +664,12 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 	MSWebCam *cam = NULL;
 	MSFilter *source = NULL;
 	MSFilter *output = NULL;
+	MSFilter *recorder = NULL;
+	
+	if (stream->ms.state != MSStreamInitialized){
+		ms_error("VideoStream in bad state");
+		return -1;
+	}
 	
 	if (!ms_media_stream_io_is_consistent(io)) return -1;
 
@@ -677,6 +689,11 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 				ms_error("Mediastreamer2 library compiled without libmastroska2");
 				return -1;
 			}
+			stream->source = source;
+			if (io->input.file) {
+				if (video_stream_open_remote_play(stream, io->input.file)!=NULL)
+					ms_filter_call_method_noarg(source, MS_PLAYER_START);
+			}
 		break;
 		default:
 			ms_error("Unhandled input resource type %s", ms_resource_type_to_string(io->input.type));
@@ -689,6 +706,15 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 			ms_filter_call_method(output, MS_RTP_SEND_SET_SESSION, stream->rtp_io_session);
 		break;
 		case MSResourceFile:
+			recorder = ms_filter_new(MS_MKV_RECORDER_ID);
+			if (!recorder){
+				ms_error("Mediastreamer2 library compiled without libmastroska2");
+				return -1;
+			}
+			if (stream->recorder_output){
+				ms_filter_destroy(stream->recorder_output);
+			}
+			stream->recorder_output = recorder;
 		break;
 		default:
 			/*will just display in all other cases*/
@@ -777,8 +803,10 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	bool_t rtp_output = FALSE;
 
 	if (source == NULL) {
-		ms_error("videostream.c: no defined source");
-		return -1;
+		if (stream->source == NULL){
+			ms_error("videostream.c: no defined source");
+			return -1;
+		}else source = stream->source;
 	}
 	rtp_source = (ms_filter_get_id(source) == MS_RTP_RECV_ID) ? TRUE : FALSE;
 
@@ -865,7 +893,6 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 					stream->output2=ms_filter_new_from_name (stream->display_name);
 				}
 			}
-
 			configure_video_source(stream);
 		}
 
@@ -1013,10 +1040,10 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 		ms_connection_helper_start (&ch);
 		ms_connection_helper_link (&ch,stream->ms.rtprecv,-1,0);
 		if ((stream->output_performs_decoding == FALSE) && !rtp_output) {
-			if (stream->itcsink){
+			if (stream->recorder_output){
 				ms_connection_helper_link(&ch,stream->tee3,0,0);
-				ms_filter_link(stream->tee3,1,stream->itcsink,0);
-				configure_itc(stream);
+				ms_filter_link(stream->tee3,1,stream->recorder_output,0);
+				configure_recorder_output(stream);
 			}
 			ms_connection_helper_link(&ch,stream->ms.decoder,0,0);
 		}
@@ -1310,9 +1337,9 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 				ms_connection_helper_start (&h);
 				ms_connection_helper_unlink (&h,stream->ms.rtprecv,-1,0);
 				if ((stream->output_performs_decoding == FALSE) && !rtp_output) {
-					if (stream->itcsink){
+					if (stream->recorder_output){
 						ms_connection_helper_unlink(&h,stream->tee3,0,0);
-						ms_filter_unlink(stream->tee3,1,stream->itcsink,0);
+						ms_filter_unlink(stream->tee3,1,stream->recorder_output,0);
 					}
 					ms_connection_helper_unlink (&h,stream->ms.decoder,0,0);
 				}
@@ -1576,12 +1603,29 @@ void video_stream_use_video_preset(VideoStream *stream, const char *preset) {
 }
 
 MSFilter * video_stream_open_remote_play(VideoStream *stream, const char *filename){
-	/*stub, to be implemented.*/
-	return NULL;
+	MSFilter *source = stream->source;
+
+	if (!source || !ms_filter_implements_interface(source, MSFilterPlayerInterface)){
+		ms_error("video_stream_open_remote_play(): the stream is not using a player.");
+		return NULL;
+	}
+	video_stream_close_remote_play(stream);
+	if (ms_filter_call_method(source, MS_PLAYER_OPEN, (void*)filename)!=0){
+		return NULL;
+	}
+	return source;
 }
 
 void video_stream_close_remote_play(VideoStream *stream){
-	/*stub, to be implemented.*/
+	MSPlayerState state = MSPlayerClosed;
+	MSFilter *source = stream->source;
+	
+	if (!source) return;
+	
+	ms_filter_call_method(source, MS_PLAYER_GET_STATE, &state);
+	if (state != MSPlayerClosed){
+		ms_filter_call_method_noarg(source, MS_PLAYER_CLOSE);
+	}
 }
 
 int video_stream_remote_record_open(VideoStream *stream, const char *filename){

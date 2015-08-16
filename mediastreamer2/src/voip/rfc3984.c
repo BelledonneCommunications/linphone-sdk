@@ -61,9 +61,10 @@ void rfc3984_set_max_payload_size(Rfc3984Context *ctx, int size){
 	ctx->maxsz=size;
 }
 
-static void send_packet(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker){
+static void send_packet(Rfc3984Context *ctx, MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker){
 	mblk_set_timestamp_info(m,ts);
 	mblk_set_marker_info(m,marker);
+	mblk_set_cseq(m, ctx->ref_cseq++);
 	ms_queue_put(rtpq,m);
 }
 
@@ -105,7 +106,7 @@ static mblk_t *prepend_fu_indicator_and_header(mblk_t *m, uint8_t indicator,
 	return h;
 }
 
-static void frag_nalu_and_send(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize){
+static void frag_nalu_and_send(Rfc3984Context *ctx, MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t marker, int maxsize){
 	mblk_t *m;
 	int payload_max_size=maxsize-2;/*minus FUA header*/
 	uint8_t fu_indicator;
@@ -119,12 +120,12 @@ static void frag_nalu_and_send(MSQueue *rtpq, uint32_t ts, mblk_t *nalu, bool_t 
 		nalu->b_rptr+=payload_max_size;
 		m->b_wptr=nalu->b_rptr;
 		m=prepend_fu_indicator_and_header(m,fu_indicator,start,FALSE,type);
-		send_packet(rtpq,ts,m,FALSE);
+		send_packet(ctx, rtpq,ts,m,FALSE);
 		start=FALSE;
 	}
 	/*send last packet */
 	m=prepend_fu_indicator_and_header(nalu,fu_indicator,FALSE,TRUE,type);
-	send_packet(rtpq,ts,m,marker);
+	send_packet(ctx, rtpq,ts,m,marker);
 }
 
 static void rfc3984_pack_mode_0(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rtpq, uint32_t ts){
@@ -137,7 +138,7 @@ static void rfc3984_pack_mode_0(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rt
 		if (size>ctx->maxsz){
 			ms_warning("This H264 packet does not fit into mtu: size=%i",size);
 		}
-		send_packet(rtpq,ts,m,end);
+		send_packet(ctx, rtpq,ts,m,end);
 	}
 }
 
@@ -162,7 +163,7 @@ static void rfc3984_pack_mode_1(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rt
 						ms_debug("Sending STAP-A");
 					}else
 						ms_debug("Sending previous msg as single NAL");
-					send_packet(rtpq,ts,prevm,FALSE);
+					send_packet(ctx, rtpq,ts,prevm,FALSE);
 					prevm=NULL;
 					prevsz=0;
 				}
@@ -177,25 +178,25 @@ static void rfc3984_pack_mode_1(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rt
 				/*send as single nal or FU-A*/
 				if (sz>ctx->maxsz){
 					ms_debug("Sending FU-A packets");
-					frag_nalu_and_send(rtpq,ts,m,end, ctx->maxsz);
+					frag_nalu_and_send(ctx, rtpq,ts,m,end, ctx->maxsz);
 				}else{
 					ms_debug("Sending Single NAL");
-					send_packet(rtpq,ts,m,end);
+					send_packet(ctx, rtpq,ts,m,end);
 				}
 			}
 		}else{
 			if (sz>ctx->maxsz){
 				ms_debug("Sending FU-A packets");
-				frag_nalu_and_send(rtpq,ts,m,end, ctx->maxsz);
+				frag_nalu_and_send(ctx, rtpq,ts,m,end, ctx->maxsz);
 			}else{
 				ms_debug("Sending Single NAL");
-				send_packet(rtpq,ts,m,end);
+				send_packet(ctx, rtpq,ts,m,end);
 			}
 		}
 	}
 	if (prevm){
 		ms_debug("Sending Single NAL (2)");
-		send_packet(rtpq,ts,prevm,TRUE);
+		send_packet(ctx, rtpq,ts,prevm,TRUE);
 	}
 }
 

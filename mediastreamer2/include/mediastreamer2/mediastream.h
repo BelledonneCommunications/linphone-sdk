@@ -765,7 +765,7 @@ struct _VideoStream
 	MSFilter *jpegwriter;
 	MSFilter *output2;
 	MSFilter *tee3;
-	MSFilter *itcsink;
+	MSFilter *recorder_output; /*can be an ItcSink to send video to the audiostream's multimedia recorder, or directly a MkvRecorder */
 	MSFilter *local_jpegwriter;
 	MSVideoSize sent_vsize;
 	MSVideoSize preview_vsize;

@@ -1801,7 +1801,7 @@ static void recorder_process(MSFilter *f) {
 
 				module_preprocess(obj->modulesList[i], f->inputs[i], &frames);
 				while((buffer = ms_queue_get(&frames)) != NULL) {
-                    mblk_set_timestamp_info(buffer, time_loop_canceler_apply(obj->timeLoopCancelers[i], mblk_get_timestamp_info(buffer)));
+					mblk_set_timestamp_info(buffer, time_loop_canceler_apply(obj->timeLoopCancelers[i], mblk_get_timestamp_info(buffer)));
 					changeClockRate(buffer, obj->inputDescsList[i]->rate, 1000);
 					ms_queue_put(&frames_ms, buffer);
 				}
@@ -2238,6 +2238,7 @@ static int player_open_file(MSFilter *f, void *arg) {
 		ms_error("MKVPlayer: fail to open %s. A file is already opened", filename);
 		goto fail;
 	}
+	ms_message("MKVPlayer: opening %s", filename);
 	obj->reader = mkv_reader_open(filename);
 	if(obj->reader == NULL) {
 		ms_error("MKVPlayer: %s could not be opened in read-only mode", filename);

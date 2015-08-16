@@ -1687,17 +1687,17 @@ static void configure_av_recorder(AudioStream *stream){
 
 void audio_stream_link_video(AudioStream *stream, VideoStream *video){
 	stream->videostream=video;
-	if (stream->av_recorder.video_input && video->itcsink){
+	if (stream->av_recorder.video_input && video->recorder_output){
 		ms_message("audio_stream_link_video() connecting itc filters");
-		ms_filter_call_method(video->itcsink,MS_ITC_SINK_CONNECT,stream->av_recorder.video_input);
+		ms_filter_call_method(video->recorder_output,MS_ITC_SINK_CONNECT,stream->av_recorder.video_input);
 		configure_av_recorder(stream);
 	}
 }
 
 void audio_stream_unlink_video(AudioStream *stream, VideoStream *video){
 	stream->videostream=NULL;
-	if (stream->av_recorder.video_input && video->itcsink){
-		ms_filter_call_method(video->itcsink,MS_ITC_SINK_CONNECT,NULL);
+	if (stream->av_recorder.video_input && video->recorder_output){
+		ms_filter_call_method(video->recorder_output,MS_ITC_SINK_CONNECT,NULL);
 	}
 }
 
