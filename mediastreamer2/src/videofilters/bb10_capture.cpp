@@ -117,8 +117,8 @@ typedef struct BB10Capture {
 	
 	camera_unit_t camera;
 	camera_handle_t cam_handle;
-	char *window_group;
-	char *window_id;
+	const char *window_group;
+	const char *window_id;
 	bool_t camera_openned;
 	bool_t capture_started;
 	MSAverageFPS avgfps;
@@ -179,6 +179,8 @@ static void bb10capture_start_capture(BB10Capture *d) {
 	camera_set_vf_mode(d->cam_handle, CAMERA_VFMODE_VIDEO);
 	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, d->vsize.width, CAMERA_IMGPROP_HEIGHT, d->vsize.height);
 	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_FORMAT, CAMERA_FRAMETYPE_NV12);
+	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIN_ID, d->window_id, CAMERA_IMGPROP_WIN_GROUPID, d->window_group);
+	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_CREATEWINDOW, 1);
 	
 	if (d->framerate > 0) {
 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_VARIABLEFRAMERATE, 1);
@@ -222,6 +224,8 @@ static void bb10capture_init(MSFilter *f) {
 	d->framerate = 15.0;
 	d->vsize = def_size;
 	d->camera = CAMERA_UNIT_NONE;
+	d->window_id = NULL;
+	d->window_group = NULL;
 	ms_queue_init(&d->rq);
 	
 	f->data = d;
@@ -326,7 +330,23 @@ static int bb10capture_get_pixfmt(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int bb10capture_set_window_ids(MSFilter *f, void *arg) {
+	BB10Capture *d = (BB10Capture*) f->data;
+	
+	const char *group = *(const char **)arg;
+	d->window_id = "LinphoneLocalVideoWindowId";
+	d->window_group = group;
+	ms_warning("[bb10_capture] set window_id: %s and window_group: %s", d->window_id, d->window_group);
+	
+	if (d->capture_started) {
+		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIN_ID, d->window_id, CAMERA_IMGPROP_WIN_GROUPID, d->window_group);
+	}
+	
+	return 0;
+}
+
 static MSFilterMethod ms_bb10capture_methods[] = {
+	{ MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, 	bb10capture_set_window_ids },
 	{ MS_FILTER_SET_VIDEO_SIZE,					bb10capture_set_vsize },
 	{ MS_FILTER_SET_FPS,						bb10capture_set_fps },
 	{ MS_FILTER_GET_VIDEO_SIZE,					bb10capture_get_vsize },
