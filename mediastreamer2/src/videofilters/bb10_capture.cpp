@@ -160,6 +160,15 @@ static void bb10capture_open_camera(BB10Capture *d) {
 	ms_message("[bb10_capture] openning %s camera", d->camera == CAMERA_UNIT_FRONT ? "front" : (d->camera == CAMERA_UNIT_REAR ? "rear" : "unknown"));
 	error = camera_open(d->camera, CAMERA_MODE_RW, &(d->cam_handle));
 	if (error == CAMERA_EOK) {
+		camera_set_vf_mode(d->cam_handle, CAMERA_VFMODE_VIDEO);
+		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, d->vsize.width, CAMERA_IMGPROP_HEIGHT, d->vsize.height);
+		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_FORMAT, CAMERA_FRAMETYPE_NV12);
+		
+		if (d->framerate > 0) {
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_VARIABLEFRAMERATE, 1);
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate, CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
+		}
+	
 		d->camera_openned = TRUE;
 	} else {
 		ms_error("[bb10_capture] openning %i camera failed: %s", d->camera, error_to_string(error));
@@ -176,16 +185,8 @@ static void bb10capture_start_capture(BB10Capture *d) {
 		return;
 	}
 	
-	camera_set_vf_mode(d->cam_handle, CAMERA_VFMODE_VIDEO);
-	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, d->vsize.width, CAMERA_IMGPROP_HEIGHT, d->vsize.height);
-	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_FORMAT, CAMERA_FRAMETYPE_NV12);
 	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIN_ID, d->window_id, CAMERA_IMGPROP_WIN_GROUPID, d->window_group);
 	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_CREATEWINDOW, 1);
-	
-	if (d->framerate > 0) {
-		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_VARIABLEFRAMERATE, 1);
-		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate, CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
-	}
 	
 	camera_start_viewfinder(d->cam_handle, bb10capture_video_callback, NULL, d);
 	d->capture_started = TRUE;
@@ -199,7 +200,6 @@ static void bb10capture_stop_capture(BB10Capture *d) {
 	
 	camera_stop_viewfinder(d->cam_handle);
 	d->capture_started = FALSE;
-	
 }
 
 static void bb10capture_close_camera(BB10Capture *d) {
@@ -241,7 +241,9 @@ static void bb10capture_uninit(MSFilter *f) {
 static void bb10capture_preprocess(MSFilter *f) {
 	BB10Capture *d = (BB10Capture*) f->data;
 	
-	bb10capture_open_camera(d);
+	if (!d->camera_openned) {
+		bb10capture_open_camera(d);
+	}
 	ms_average_fps_init(&d->avgfps, "[bb10_capture] fps=%f");
 	bb10capture_start_capture(d);
 }
@@ -280,17 +282,20 @@ static void bb10capture_process(MSFilter *f) {
 
 static int bb10capture_set_vsize(MSFilter *f, void *arg) {
 	BB10Capture *d = (BB10Capture*) f->data;
+	MSVideoSize newSize = *(MSVideoSize*)arg;
 	
 	ms_filter_lock(f);
-	d->vsize = *(MSVideoSize*)arg;
-	
-	if (d->capture_started) {
-		bb10capture_stop_capture(d);
+	if (d->camera_openned) {
+		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, newSize.width, CAMERA_IMGPROP_HEIGHT, newSize.height);
+		camera_get_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, &(d->vsize.width), CAMERA_IMGPROP_HEIGHT, &(d->vsize.height));
+		if (ms_video_size_equal(d->vsize, newSize)) {
+			ms_filter_unlock(f);
+			return 0;
+		}
+		ms_error("[bb10_capture] vsize not correctly updated: %i,%i", d->vsize.width, d->vsize.height);
 	}
-	bb10capture_start_capture(d);
 	ms_filter_unlock(f);
-	
-	return 0;
+	return -1;
 }
 
 static int bb10capture_set_fps(MSFilter *f, void *arg){
@@ -299,10 +304,12 @@ static int bb10capture_set_fps(MSFilter *f, void *arg){
 	ms_filter_lock(f);
 	d->framerate = *(float*)arg;
 	
-	if (d->capture_started) {
-		bb10capture_stop_capture(d);
+	if (d->camera_openned) {
+		if (d->framerate > 0) {
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_VARIABLEFRAMERATE, 1);
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate, CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
+		}
 	}
-	bb10capture_start_capture(d);
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -333,15 +340,14 @@ static int bb10capture_get_pixfmt(MSFilter *f, void *arg) {
 static int bb10capture_set_window_ids(MSFilter *f, void *arg) {
 	BB10Capture *d = (BB10Capture*) f->data;
 	
+	ms_filter_lock(f);
 	const char *group = *(const char **)arg;
+	
 	d->window_id = "LinphoneLocalVideoWindowId";
 	d->window_group = group;
 	ms_warning("[bb10_capture] set window_id: %s and window_group: %s", d->window_id, d->window_group);
 	
-	if (d->capture_started) {
-		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIN_ID, d->window_id, CAMERA_IMGPROP_WIN_GROUPID, d->window_group);
-	}
-	
+	ms_filter_unlock(f);
 	return 0;
 }
 
@@ -381,7 +387,10 @@ static MSFilter *bb10camera_create_reader(MSWebCam *obj) {
 	} else {
 		d->camera = CAMERA_UNIT_FRONT;
 	}
+	
 	ms_message("[bb10_capture] create reader with id:%i and camera %s (%i)", ms_bb10_capture_desc.id, obj->name, d->camera);
+	bb10capture_open_camera(d);
+	
 	return f;
 }
 
