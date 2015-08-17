@@ -614,7 +614,7 @@ typedef enum {
 	NONE_ID
 } ModuleId;
 
-static const ModuleDesc const *moduleDescs[] = {
+static const ModuleDesc *moduleDescs[] = {
 	&h264_module_desc,
 	&mu_law_module_desc,
 	&opus_module_desc,
