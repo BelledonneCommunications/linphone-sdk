@@ -7,7 +7,7 @@ libmsopenh264_la_SOURCES= \
 	msopenh264dec.cpp msopenh264dec.h \
 	msopenh264enc.cpp msopenh264enc.h
 
-libmsopenh264_la_CPPFLAGS=-DOPENH264_DECODER_ENABLED $(MEDIASTREAMER_CFLAGS)
+libmsopenh264_la_CPPFLAGS= $(MEDIASTREAMER_CFLAGS)
 
 libmsopenh264_la_LIBADD=$(MEDIASTREAMER_LIBS) $(OPENH264_LIBS)
 
