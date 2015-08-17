@@ -4,14 +4,25 @@ AC_INIT([msopenh264],[1.1.0])
 AC_CANONICAL_SYSTEM
 
 AM_INIT_AUTOMAKE([tar-ustar])
+AC_CONFIG_HEADERS(config.h)
 
 AC_MSG_CHECKING([warning make an error on compilation])
 AC_ARG_ENABLE(strict,
-[  --enable-strict       Enable error on compilation warning [default=yes]],
+[  --enable-strict         Enable error on compilation warning [default=yes]],
 [wall_werror=$enableval],
 [wall_werror=yes]
 )
 
+
+AC_ARG_ENABLE(decoder,
+[  --disable-decoder       Disable decoder - encoder only configuration [default=no]],
+[decoder_enabled=$enableval],
+[decoder_enabled=yes]
+)
+
+if test "$decoder_enabled" = "yes" ; then
+	AC_DEFINE(OPENH264_DECODER_ENABLED, 1, [whether decoder is compiled])
+fi
 
 dnl Checks for programs.
 AC_PROG_CXX

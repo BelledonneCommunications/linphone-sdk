@@ -35,7 +35,7 @@ echo "Generating build scripts in msx264..."
 set -x
 $LIBTOOLIZE --copy --force
 $ACLOCAL  $ACLOCAL_ARGS
-#autoheader
+autoheader
 $AUTOMAKE --force-missing --add-missing --copy
 autoconf
 
