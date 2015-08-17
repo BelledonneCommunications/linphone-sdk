@@ -2146,7 +2146,8 @@ static MKVTrackPlayer *mkv_track_player_new(MKVReader *reader, const MKVTrack *t
 	obj->track = track;
 	if(track->type == MKV_TRACK_TYPE_VIDEO) {
 		MKVVideoTrack *v_track = (MKVVideoTrack *)track;
-		obj->output_pin_desc = ms_factory_get_video_format(ms_factory_get_fallback(), codec_name, (MSVideoSize){v_track->width, v_track->height}, v_track->frame_rate,NULL);
+		MSVideoSize vsize = {v_track->width, v_track->height};
+		obj->output_pin_desc = ms_factory_get_video_format(ms_factory_get_fallback(), codec_name, vsize, v_track->frame_rate,NULL);
 	} else if(track->type == MKV_TRACK_TYPE_AUDIO) {
 		MKVAudioTrack *a_track = (MKVAudioTrack *)track;
 		obj->output_pin_desc = ms_factory_get_audio_format(ms_factory_get_fallback(), codec_name, a_track->sampling_freq, a_track->channels, NULL);
