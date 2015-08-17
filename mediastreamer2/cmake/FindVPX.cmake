@@ -40,9 +40,9 @@ if(VPX_INCLUDE_DIRS)
 endif()
 
 find_library(VPX_LIBRARIES
-	NAMES vpx
+	NAMES vpx vpxmd
 	HINTS _VPX_ROOT_PATHS
-	PATH_SUFFIXES bin lib
+	PATH_SUFFIXES bin lib lib/Win32
 )
 
 include(FindPackageHandleStandardArgs)
