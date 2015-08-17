@@ -1109,11 +1109,9 @@ MS2_PUBLIC void video_stream_close_remote_play(VideoStream *stream);
  * Open a recorder to record the video coming from remote end into a mkv file.
  * This must be done before the stream is started.
 **/
-MS2_PUBLIC int video_stream_remote_record_open(VideoStream *stream, const char *filename);
+MS2_PUBLIC MSFilter * video_stream_open_remote_record(VideoStream *stream, const char *filename);
 
-MS2_PUBLIC int video_stream_remote_record_start(VideoStream *stream);
-
-MS2_PUBLIC int video_stream_remote_record_stop(VideoStream *stream);
+MS2_PUBLIC void video_stream_close_remote_record(VideoStream *stream);
 
 /**
  * Small API to display a local preview window.

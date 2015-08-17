@@ -203,7 +203,7 @@ typedef enum _MSRecorderState MSRecorderState;
 
 
 
-/** Interface definitions for video decoders */
+/** Event definitions for video decoders */
 #define MS_VIDEO_DECODER_DECODING_ERRORS \
 	MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface,0)
 #define MS_VIDEO_DECODER_FIRST_IMAGE_DECODED \
@@ -214,6 +214,8 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_EVENT(MSFilterVideoDecoderInterface, 3, MSVideoCodecSLI)
 #define MS_VIDEO_DECODER_SEND_RPSI \
 	MS_FILTER_EVENT(MSFilterVideoDecoderInterface, 4, MSVideoCodecRPSI)
+
+/** Method definitions for video decoders */
 #define MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION \
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 5)
 #define MS_VIDEO_DECODER_ENABLE_AVPF \
@@ -224,6 +226,8 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 8, bool_t)
 #define MS_VIDEO_DECODER_RECOVERED_FROM_ERRORS \
 	MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface, 9)
+	
+
 
 /** Interface definitions for video capture */
 #define MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION \

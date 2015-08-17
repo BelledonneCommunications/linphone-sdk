@@ -648,7 +648,7 @@ static void video_stream_payload_type_changed(RtpSession *session, void *data){
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	MSMediaStreamIO io = MS_MEDIA_STREAM_IO_INITIALIZER;
-	if (cam==NULL){
+	if (cam == NULL){
 		cam = ms_web_cam_manager_get_default_cam( ms_web_cam_manager_get() );
 	}
 	io.input.type = MSResourceCamera;
@@ -657,6 +657,16 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	io.output.resource_arg = NULL;
 	rtp_session_set_jitter_compensation(stream->ms.sessions.rtp_session, jitt_comp);
 	return video_stream_start_from_io(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, &io);
+}
+
+static void recorder_handle_event(void *userdata, MSFilter *recorder, unsigned int event, void *event_arg){
+	VideoStream *stream = (VideoStream*) userdata;
+	switch (event){
+		case MS_RECORDER_NEEDS_FIR:
+			ms_message("Request sending of FIR on videostream [%p]", stream);
+			video_stream_send_fir(stream);
+		break;
+	}
 }
 
 int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
@@ -715,6 +725,8 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 				ms_filter_destroy(stream->recorder_output);
 			}
 			stream->recorder_output = recorder;
+			ms_filter_add_notify_callback(recorder, recorder_handle_event, stream, TRUE);
+			if (io->output.file) video_stream_open_remote_record(stream, io->output.file);
 		break;
 		default:
 			/*will just display in all other cases*/
@@ -1063,6 +1075,15 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 		stream->ms.voidsink = ms_filter_new(MS_VOID_SINK_ID);
 		ms_filter_link(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
 	}
+	
+	/*start the video recorder if it was opened previously*/
+	if (stream->recorder_output && ms_filter_implements_interface(stream->recorder_output, MSFilterRecorderInterface)){
+		MSRecorderState state = MSRecorderClosed;
+		ms_filter_call_method(stream->recorder_output, MS_RECORDER_GET_STATE, &state);
+		if (state == MSRecorderPaused){
+			ms_filter_call_method_noarg(stream->recorder_output, MS_RECORDER_START);
+		}
+	}
 
 	/* create the ticker */
 	if (stream->ms.sessions.ticker==NULL) media_stream_start_ticker(&stream->ms);
@@ -1357,6 +1378,15 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)video_stream_payload_type_changed);
 
+	/*Automatically the video recorder if it was opened previously*/
+	if (stream->recorder_output && ms_filter_implements_interface(stream->recorder_output, MSFilterRecorderInterface)){
+		MSRecorderState state = MSRecorderClosed;
+		ms_filter_call_method(stream->recorder_output, MS_RECORDER_GET_STATE, &state);
+		if (state != MSRecorderClosed){
+			ms_filter_call_method_noarg(stream->recorder_output, MS_RECORDER_CLOSE);
+		}
+	}
+	
 	if( keep_source ){
 		source = stream->source;
 		stream->source = NULL; // will prevent video_stream_free() from destroying the source
@@ -1628,17 +1658,29 @@ void video_stream_close_remote_play(VideoStream *stream){
 	}
 }
 
-int video_stream_remote_record_open(VideoStream *stream, const char *filename){
-	/*stub, to be implemented.*/
-	return -1;
+MSFilter *video_stream_open_remote_record(VideoStream *stream, const char *filename){
+	MSFilter *recorder = stream->recorder_output;
+	if (!recorder || !ms_filter_implements_interface(recorder, MSFilterRecorderInterface)){
+		ms_error("video_stream_open_remote_play(): the stream is not using a recorder.");
+		return NULL;
+	}
+	if (ms_filter_call_method(recorder, MS_RECORDER_OPEN, (void*)filename)!=0){
+		return NULL;
+	}
+	return recorder;
 }
 
-int video_stream_remote_record_start(VideoStream *stream){
-	/*stub, to be implemented.*/
-	return -1;
-}
-
-int video_stream_remote_record_stop(VideoStream *stream){
-	/*stub, to be implemented.*/
-	return -1;
+void video_stream_close_remote_record(VideoStream *stream){
+	MSFilter *recorder = stream->recorder_output;
+	MSRecorderState state = MSRecorderClosed;
+	
+	if (!recorder || !ms_filter_implements_interface(recorder, MSFilterRecorderInterface)){
+		ms_error("video_stream_close_remote_record(): the stream is not using a recorder.");
+		return ;
+	}
+	
+	ms_filter_call_method(recorder, MS_RECORDER_GET_STATE, &state);
+	if (state != MSRecorderClosed){
+		ms_filter_call_method_noarg(recorder, MS_RECORDER_CLOSE);
+	}
 }
