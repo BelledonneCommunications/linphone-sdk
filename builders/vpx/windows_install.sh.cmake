@@ -6,4 +6,4 @@ export LIB="@EP_vpx_ENV_LIB@"
 export LIBPATH="@EP_vpx_ENV_LIBPATH@"
 
 cd @ep_build@
-make install V=1
+make install V=1 @ep_redirect_to_file@
