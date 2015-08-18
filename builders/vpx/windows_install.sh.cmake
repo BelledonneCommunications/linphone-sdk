@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export PATH="@EP_vpx_ENV_PATH@:$PATH"
+export PATH="$PATH:@EP_vpx_ENV_PATH@"
 export INCLUDE="@EP_vpx_ENV_INCLUDE@"
 export LIB="@EP_vpx_ENV_LIB@"
 export LIBPATH="@EP_vpx_ENV_LIBPATH@"
