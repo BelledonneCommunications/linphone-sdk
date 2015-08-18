@@ -416,6 +416,11 @@ static int bb10capture_set_device_rotation(MSFilter *f, void *arg) {
 	ms_filter_lock(f);
 	
 	d->rotation = *((int*)arg);
+	int rotation = d->rotation;
+	if (!d->is_front_cam) {
+		rotation = 360 - d->rotation;
+	}
+	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, rotation);
 	ms_debug("[bb10_capture] device rotation changed: %i", d->rotation);
 	
 	ms_filter_unlock(f);
