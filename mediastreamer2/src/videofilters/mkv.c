@@ -625,13 +625,13 @@ static const ModuleDesc *moduleDescs[] = {
 
 static int find_module_id_from_rfc_name(const char *rfcName) {
 	int id;
-	for(id=0; moduleDescs[id] != NULL && strcmp(moduleDescs[id]->rfcName, rfcName) != 0; id++);
+	for(id=0; moduleDescs[id] && strcasecmp(moduleDescs[id]->rfcName, rfcName) != 0; id++);
 	return id;
 }
 
 static int find_module_id_from_codec_id(const char *codecId) {
 	int id;
-	for(id=0; moduleDescs[id] != NULL && strcmp(moduleDescs[id]->codecId, codecId) != 0; id++);
+	for(id=0; moduleDescs[id] && strcmp(moduleDescs[id]->codecId, codecId) != 0; id++);
 	return id;
 }
 
