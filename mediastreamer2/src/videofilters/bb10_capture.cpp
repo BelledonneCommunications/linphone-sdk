@@ -118,6 +118,7 @@ typedef struct BB10Capture {
 
 	camera_unit_t camera;
 	camera_handle_t cam_handle;
+	bool_t is_front_cam;
 	const char *window_group;
 	const char *window_id;
 	bool_t camera_openned;
@@ -131,13 +132,13 @@ static void list_supported_capture_resolutions(BB10Capture *d) {
 		uint32_t number;
 		camera_error_t error = camera_get_supported_vf_resolutions(d->cam_handle, 0, &number, NULL);
 		if (error != CAMERA_EOK || number < 0) {
-			ms_error("[bb10_capture] get supported resolutions: %i, error %i", number, error);
+			ms_error("[bb10_capture] get supported resolutions: %i, error %s", number, error_to_string(error));
 		} else {
 			uint32_t number2;
 			camera_res_t *resolutions_array = (camera_res_t *)ms_new0(camera_res_t, number);
 			error = camera_get_supported_vf_resolutions(d->cam_handle, number, &number2, resolutions_array);
 			if (error != CAMERA_EOK) {
-				ms_error("[bb10_capture] get supported resolutions error %i", error);
+				ms_error("[bb10_capture] get supported resolutions error %s", error_to_string(error));
 			}
 			for (int i = 0; i < number; i++) {
 				camera_res_t res = resolutions_array[i];
@@ -191,10 +192,16 @@ static void bb10capture_open_camera(BB10Capture *d) {
 		ms_debug("[bb10_capture] camera capture vsize: %i,%i", d->vsize.width, d->vsize.height);
 		
 		if (d->framerate > 0) {
-			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate);
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_VARIABLEFRAMERATE, 1);
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate, CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
 		}
-		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, d->rotation);
-		ms_debug("[bb10_capture] camera capture rotation: %i", d->rotation);
+		
+		int rotation = d->rotation;
+		if (!d->is_front_cam) {
+			rotation = 360 - d->rotation;
+		}
+		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, rotation);
+		ms_debug("[bb10_capture] camera capture rotation: %i", rotation);
 	
 		d->camera_openned = TRUE;
 	} else {
@@ -250,6 +257,7 @@ static void bb10capture_init(MSFilter *f) {
 	d->rotation = 0;
 	d->camera_openned = FALSE;
 	d->capture_started = FALSE;
+	d->is_front_cam = TRUE;
 	def_size.width = MS_VIDEO_SIZE_QVGA_W;
 	def_size.height = MS_VIDEO_SIZE_QVGA_H;
 	d->framerate = 15.0;
@@ -319,13 +327,6 @@ static int bb10capture_set_vsize(MSFilter *f, void *arg) {
 	BB10Capture *d = (BB10Capture*) f->data;
 	MSVideoSize newSize = *(MSVideoSize*)arg;
 	
-	// Always ask for resolution as if the device is in portrait
-	if (newSize.width > newSize.height) {
-		int tmp = newSize.width;
-		newSize.width = newSize.height;
-		newSize.height = tmp;
-	}
-	
 	ms_filter_lock(f);
 	if (d->camera_openned) {
 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, newSize.width, CAMERA_IMGPROP_HEIGHT, newSize.height);
@@ -334,7 +335,19 @@ static int bb10capture_set_vsize(MSFilter *f, void *arg) {
 			ms_filter_unlock(f);
 			return 0;
 		}
-		ms_warning("[bb10_capture] vsize %i,%i couldn't be set, instead using: %i,%i", newSize.width, newSize.height, d->vsize.width, d->vsize.height);
+		
+		ms_warning("[bb10_capture] vsize %i,%i couldn't be set, instead try using: %i,%i", newSize.width, newSize.height, newSize.height, newSize.width);
+		int tmp = newSize.width;
+		newSize.width = newSize.height;
+		newSize.height = tmp;
+		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, newSize.width, CAMERA_IMGPROP_HEIGHT, newSize.height);
+		camera_get_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, &(d->vsize.width), CAMERA_IMGPROP_HEIGHT, &(d->vsize.height));
+		if (ms_video_size_equal(d->vsize, newSize)) {
+			ms_filter_unlock(f);
+			return 0;
+		}
+		
+		ms_warning("[bb10_capture] vsize %i,%i couldn't be set either, instead using: %i,%i", newSize.width, newSize.height, d->vsize.width, d->vsize.height);
 	}
 	ms_filter_unlock(f);
 	return -1;
@@ -348,7 +361,8 @@ static int bb10capture_set_fps(MSFilter *f, void *arg){
 	
 	if (d->camera_openned) {
 		if (d->framerate > 0) {
-			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate);
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_VARIABLEFRAMERATE, 1);
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate, CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
 		}
 	}
 	ms_filter_unlock(f);
@@ -403,7 +417,6 @@ static int bb10capture_set_device_rotation(MSFilter *f, void *arg) {
 	
 	d->rotation = *((int*)arg);
 	ms_debug("[bb10_capture] device rotation changed: %i", d->rotation);
-	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, d->rotation);
 	
 	ms_filter_unlock(f);
 	return 0;
@@ -443,8 +456,10 @@ static MSFilter *bb10camera_create_reader(MSWebCam *obj) {
 	BB10Capture *d = (BB10Capture*) f->data;
 	if (strcmp(obj->name, "BB10 Rear Camera") == 0) {
 		d->camera = CAMERA_UNIT_REAR;
+		d->is_front_cam = FALSE;
 	} else {
 		d->camera = CAMERA_UNIT_FRONT;
+		d->is_front_cam = TRUE;
 	}
 	
 	ms_message("[bb10_capture] create reader with id:%i and camera %s (%i)", ms_bb10_capture_desc.id, obj->name, d->camera);
