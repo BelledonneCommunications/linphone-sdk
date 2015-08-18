@@ -114,7 +114,8 @@ typedef struct BB10Capture {
 	float framerate;
 	MSQueue rq;
 	ms_mutex_t mutex;
-	
+	int rotation;
+
 	camera_unit_t camera;
 	camera_handle_t cam_handle;
 	const char *window_group;
@@ -122,15 +123,40 @@ typedef struct BB10Capture {
 	bool_t camera_openned;
 	bool_t capture_started;
 	MSAverageFPS avgfps;
+	MSYuvBufAllocator *yba;
 } BB10Capture;
+
+static void list_supported_capture_resolutions(BB10Capture *d) {
+	if (d->cam_handle) {
+		uint32_t number;
+		camera_error_t error = camera_get_supported_vf_resolutions(d->cam_handle, 0, &number, NULL);
+		if (error != CAMERA_EOK || number < 0) {
+			ms_error("[bb10_capture] get supported resolutions: %i, error %i", number, error);
+		} else {
+			uint32_t number2;
+			camera_res_t *resolutions_array = (camera_res_t *)ms_new0(camera_res_t, number);
+			error = camera_get_supported_vf_resolutions(d->cam_handle, number, &number2, resolutions_array);
+			if (error != CAMERA_EOK) {
+				ms_error("[bb10_capture] get supported resolutions error %i", error);
+			}
+			for (int i = 0; i < number; i++) {
+				camera_res_t res = resolutions_array[i];
+				MSVideoSize supportedRes;
+				supportedRes.width = res.width;
+				supportedRes.height = res.height;
+				ms_message("[bb10_capture] device supports resolution %i,%i", supportedRes.width, supportedRes.height);
+			}
+			ms_free(resolutions_array);
+		}
+	}
+}
 
 static void bb10capture_video_callback(camera_handle_t cam_handle, camera_buffer_t *buffer, void *arg) {
 	BB10Capture *d = (BB10Capture *)arg;
 	mblk_t *om = NULL;
-	MSYuvBufAllocator *yba = ms_yuv_buf_allocator_new();
 	
 	if (buffer->frametype == CAMERA_FRAMETYPE_NV12) {
-		om = copy_ycbcrbiplanar_to_true_yuv_with_rotation(yba, 
+		om = copy_ycbcrbiplanar_to_true_yuv_with_rotation(d->yba, 
 														buffer->framebuf,
 														buffer->framebuf + buffer->framedesc.nv12.uv_offset, 
 														0,
@@ -141,12 +167,11 @@ static void bb10capture_video_callback(camera_handle_t cam_handle, camera_buffer
 														TRUE);
 	}
 	
-	if (om != NULL) {
+	if (om != NULL && d->capture_started) {
 		ms_mutex_lock(&d->mutex);
 		ms_queue_put(&d->rq, om);
 		ms_mutex_unlock(&d->mutex);
 	}
-	ms_yuv_buf_allocator_free(yba);
 }
 
 static void bb10capture_open_camera(BB10Capture *d) {
@@ -163,11 +188,13 @@ static void bb10capture_open_camera(BB10Capture *d) {
 		camera_set_vf_mode(d->cam_handle, CAMERA_VFMODE_VIDEO);
 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, d->vsize.width, CAMERA_IMGPROP_HEIGHT, d->vsize.height);
 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_FORMAT, CAMERA_FRAMETYPE_NV12);
+		ms_debug("[bb10_capture] camera capture vsize: %i,%i", d->vsize.width, d->vsize.height);
 		
 		if (d->framerate > 0) {
-			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_VARIABLEFRAMERATE, 1);
-			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate, CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate);
 		}
+		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, d->rotation);
+		ms_debug("[bb10_capture] camera capture rotation: %i", d->rotation);
 	
 		d->camera_openned = TRUE;
 	} else {
@@ -190,6 +217,7 @@ static void bb10capture_start_capture(BB10Capture *d) {
 	
 	camera_start_viewfinder(d->cam_handle, bb10capture_video_callback, NULL, d);
 	d->capture_started = TRUE;
+	ms_debug("[bb10_capture] capture started");
 }
 
 static void bb10capture_stop_capture(BB10Capture *d) {
@@ -200,6 +228,7 @@ static void bb10capture_stop_capture(BB10Capture *d) {
 	
 	camera_stop_viewfinder(d->cam_handle);
 	d->capture_started = FALSE;
+	ms_debug("[bb10_capture] capture stopped");
 }
 
 static void bb10capture_close_camera(BB10Capture *d) {
@@ -210,6 +239,7 @@ static void bb10capture_close_camera(BB10Capture *d) {
 	
 	camera_close(d->cam_handle);
 	d->camera_openned = FALSE;
+	ms_debug("[bb10_capture] camera closed");
 }
 
 static void bb10capture_init(MSFilter *f) {
@@ -217,6 +247,7 @@ static void bb10capture_init(MSFilter *f) {
 	MSVideoSize def_size;
 	camera_error_t error;
 	
+	d->rotation = 0;
 	d->camera_openned = FALSE;
 	d->capture_started = FALSE;
 	def_size.width = MS_VIDEO_SIZE_QVGA_W;
@@ -227,6 +258,7 @@ static void bb10capture_init(MSFilter *f) {
 	d->window_id = NULL;
 	d->window_group = NULL;
 	ms_queue_init(&d->rq);
+	d->yba = ms_yuv_buf_allocator_new();
 	
 	f->data = d;
 }
@@ -234,6 +266,7 @@ static void bb10capture_init(MSFilter *f) {
 static void bb10capture_uninit(MSFilter *f) {
 	BB10Capture *d = (BB10Capture*) f->data;
 	
+	ms_yuv_buf_allocator_free(d->yba);
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
 }
@@ -245,6 +278,7 @@ static void bb10capture_preprocess(MSFilter *f) {
 		bb10capture_open_camera(d);
 	}
 	ms_average_fps_init(&d->avgfps, "[bb10_capture] fps=%f");
+	ms_queue_flush(&d->rq);
 	bb10capture_start_capture(d);
 }
 
@@ -253,6 +287,7 @@ static void bb10capture_postprocess(MSFilter *f) {
 	
 	bb10capture_stop_capture(d);
 	bb10capture_close_camera(d);
+	ms_queue_flush(&d->rq);
 }
 
 static void bb10capture_process(MSFilter *f) {
@@ -284,6 +319,13 @@ static int bb10capture_set_vsize(MSFilter *f, void *arg) {
 	BB10Capture *d = (BB10Capture*) f->data;
 	MSVideoSize newSize = *(MSVideoSize*)arg;
 	
+	// Always ask for resolution as if the device is in portrait
+	if (newSize.width > newSize.height) {
+		int tmp = newSize.width;
+		newSize.width = newSize.height;
+		newSize.height = tmp;
+	}
+	
 	ms_filter_lock(f);
 	if (d->camera_openned) {
 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, newSize.width, CAMERA_IMGPROP_HEIGHT, newSize.height);
@@ -292,7 +334,7 @@ static int bb10capture_set_vsize(MSFilter *f, void *arg) {
 			ms_filter_unlock(f);
 			return 0;
 		}
-		ms_error("[bb10_capture] vsize not correctly updated: %i,%i", d->vsize.width, d->vsize.height);
+		ms_warning("[bb10_capture] vsize %i,%i couldn't be set, instead using: %i,%i", newSize.width, newSize.height, d->vsize.width, d->vsize.height);
 	}
 	ms_filter_unlock(f);
 	return -1;
@@ -306,8 +348,7 @@ static int bb10capture_set_fps(MSFilter *f, void *arg){
 	
 	if (d->camera_openned) {
 		if (d->framerate > 0) {
-			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_VARIABLEFRAMERATE, 1);
-			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate, CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate);
 		}
 	}
 	ms_filter_unlock(f);
@@ -316,7 +357,11 @@ static int bb10capture_set_fps(MSFilter *f, void *arg){
 
 static int bb10capture_get_vsize(MSFilter *f, void *arg) {
 	BB10Capture *d = (BB10Capture*) f->data;
-	*(MSVideoSize*)arg = d->vsize;
+	MSVideoSize videoSize;
+	// Return the VSize depending on the device orientation (because d->vsize is always the resolution as if the device is in portrait)
+	videoSize.width = d->rotation == 0 ? d->vsize.width : d->vsize.height;
+	videoSize.height = d->rotation == 0 ? d->vsize.height : d->vsize.width;
+	*(MSVideoSize*)arg = videoSize;
 	return 0;
 }
 
@@ -345,19 +390,33 @@ static int bb10capture_set_window_ids(MSFilter *f, void *arg) {
 	
 	d->window_id = "LinphoneLocalVideoWindowId";
 	d->window_group = group;
-	ms_warning("[bb10_capture] set window_id: %s and window_group: %s", d->window_id, d->window_group);
+	ms_debug("[bb10_capture] set window_id: %s and window_group: %s", d->window_id, d->window_group);
+	
+	ms_filter_unlock(f);
+	return 0;
+}
+
+static int bb10capture_set_device_rotation(MSFilter *f, void *arg) {
+	BB10Capture *d = (BB10Capture*) f->data;
+	
+	ms_filter_lock(f);
+	
+	d->rotation = *((int*)arg);
+	ms_debug("[bb10_capture] device rotation changed: %i", d->rotation);
+	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, d->rotation);
 	
 	ms_filter_unlock(f);
 	return 0;
 }
 
 static MSFilterMethod ms_bb10capture_methods[] = {
-	{ MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, 	bb10capture_set_window_ids },
-	{ MS_FILTER_SET_VIDEO_SIZE,					bb10capture_set_vsize },
-	{ MS_FILTER_SET_FPS,						bb10capture_set_fps },
-	{ MS_FILTER_GET_VIDEO_SIZE,					bb10capture_get_vsize },
-	{ MS_FILTER_GET_FPS,						bb10capture_get_fps },
-	{ MS_FILTER_GET_PIX_FMT,					bb10capture_get_pixfmt },
+	{ MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, 		bb10capture_set_window_ids },
+	{ MS_FILTER_SET_VIDEO_SIZE,						bb10capture_set_vsize },
+	{ MS_FILTER_SET_FPS,							bb10capture_set_fps },
+	{ MS_FILTER_GET_VIDEO_SIZE,						bb10capture_get_vsize },
+	{ MS_FILTER_GET_FPS,							bb10capture_get_fps },
+	{ MS_FILTER_GET_PIX_FMT,						bb10capture_get_pixfmt },
+	{ MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, 		bb10capture_set_device_rotation },
 	{ 0,										NULL }
 };
 
