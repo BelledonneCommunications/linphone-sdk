@@ -1717,22 +1717,25 @@ static int recorder_start(MSFilter *f, void *arg) {
 	}
 	if (!obj->tracksInitialized){
 		if(obj->openMode == MKV_OPEN_CREATE) {
-			matroska_set_doctype_version(&obj->file, MKV_DOCTYPE_VERSION, MKV_DOCTYPE_READ_VERSION);
-			matroska_write_ebml_header(&obj->file);
-			matroska_start_segment(&obj->file);
-			matroska_write_zeros(&obj->file, 1024);
-			matroska_mark_segment_info_position(&obj->file);
-			matroska_write_zeros(&obj->file, 1024);
-
 			for(i=0; i < f->desc->ninputs; i++) {
 				if(obj->inputDescsList[i] != NULL) {
 					obj->modulesList[i] = module_new(obj->inputDescsList[i]->encoding);
+					if(obj->modulesList[i] == NULL) {
+						ms_error("Could not start the MKV recorder: %s is not supported", obj->inputDescsList[i]->encoding);
+						goto fail;
+					}
 					module_set(obj->modulesList[i], obj->inputDescsList[i]);
 					matroska_add_track(&obj->file, i+1, module_get_codec_id(obj->modulesList[i]));
 					obj->timeLoopCancelers[i] = time_loop_canceler_new();
 				}
 			}
 			obj->duration = 0;
+			matroska_set_doctype_version(&obj->file, MKV_DOCTYPE_VERSION, MKV_DOCTYPE_READ_VERSION);
+			matroska_write_ebml_header(&obj->file);
+			matroska_start_segment(&obj->file);
+			matroska_write_zeros(&obj->file, 1024);
+			matroska_mark_segment_info_position(&obj->file);
+			matroska_write_zeros(&obj->file, 1024);
 		} else {
 			for(i=0; i < f->desc->ninputs; i++) {
 				if(obj->inputDescsList[i] != NULL) {
@@ -1757,7 +1760,13 @@ static int recorder_start(MSFilter *f, void *arg) {
 	ms_filter_unlock(f);
 	return 0;
 
-	fail:
+fail:
+	for(i=0; i < f->desc->ninputs; i++) {
+		if(obj->modulesList[i]) {
+			module_free(obj->modulesList[i]);
+			obj->modulesList[i] = NULL;
+		}
+	}
 	ms_filter_unlock(f);
 	return -1;
 }
@@ -1871,11 +1880,13 @@ static int recorder_close(MSFilter *f, void *arg) {
 
 	ms_filter_lock(f);
 	ms_message("MKVRecorder: closing file");
-	if(obj->state != MSRecorderClosed) {
+	if(obj->state == MSRecorderClosed) {
+		ms_warning("MKVRecorder: no file has been opened");
+		goto end;
+	}
+	
+	if(obj->state == MSRecorderRunning) {
 		for(i=0; i < f->desc->ninputs; i++) {
-			if(f->inputs[i] != NULL) {
-				ms_queue_flush(f->inputs[i]);
-			}
 			if(obj->inputDescsList[i] != NULL) {
 				if(matroska_track_check_block_presence(&obj->file, i+1)) {
 					uint8_t *codecPrivateData = NULL;
@@ -1889,10 +1900,6 @@ static int recorder_close(MSFilter *f, void *arg) {
 				} else {
 					matroska_del_track(&obj->file, i+1);
 				}
-				module_free(obj->modulesList[i]);
-                ms_free(obj->timeLoopCancelers[i]);
-				obj->modulesList[i] = NULL;
-                obj->timeLoopCancelers[i]= NULL;
 			}
 		}
 		matroska_close_cluster(&obj->file);
@@ -1913,16 +1920,25 @@ static int recorder_close(MSFilter *f, void *arg) {
 		matroska_write_metaSeek(&obj->file);
 		matroska_go_to_file_end(&obj->file);
 		matroska_close_segment(&obj->file);
-		matroska_close_file(&obj->file);
-		time_corrector_reset(&obj->timeCorrector);
-		obj->state = MSRecorderClosed;
-		ms_message("MKVRecorder: the file has been successfully closed");
-	} else {
-		ms_warning("MKVRecorder: no file has been opened");
 	}
+	
+	matroska_close_file(&obj->file);
+	for(i=0; i < f->desc->ninputs; i++) {
+		if(f->inputs[i] != NULL) ms_queue_flush(f->inputs[i]);
+		if(obj->modulesList[i]) {
+			module_free(obj->modulesList[i]);
+			obj->modulesList[i] = NULL;
+		}
+		ms_free(obj->timeLoopCancelers[i]);
+		obj->timeLoopCancelers[i]= NULL;
+	}
+	time_corrector_reset(&obj->timeCorrector);
 	obj->tracksInitialized = FALSE;
+	obj->state = MSRecorderClosed;
+	ms_message("MKVRecorder: the file has been successfully closed");
+	
+end:
 	ms_filter_unlock(f);
-
 	return 0;
 }
 
