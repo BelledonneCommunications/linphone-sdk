@@ -795,14 +795,13 @@ static void matroska_uninit(Matroska *obj) {
 	ms_free(obj->p);
 }
 
-static int ebml_reading_profile(const ebml_master *head) {
-	size_t length = EBML_ElementDataSize((ebml_element *)head, FALSE);
-	char *docType = ms_new0(char, length);
+static int ebml_reading_profile(ebml_master *head) {
+	char docType[9];
 	int profile;
 	int docTypeReadVersion;
 	
-	EBML_StringGet((ebml_string *)EBML_MasterFindChild(head, &EBML_ContextDocType), docType, length);
-	docTypeReadVersion = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(head, &EBML_ContextDocTypeReadVersion));
+	EBML_StringGet((ebml_string *)EBML_MasterGetChild(head, &EBML_ContextDocType), docType, sizeof(docType));
+	docTypeReadVersion = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(head, &EBML_ContextDocTypeReadVersion));
 	
 
 	if (strcmp(docType, "matroska")==0) {
@@ -827,8 +826,7 @@ static int ebml_reading_profile(const ebml_master *head) {
 	} else {
 		profile = -1;
 	}
-
-	ms_free(docType);
+	
 	return profile;
 }
 
@@ -884,7 +882,7 @@ static ms_bool_t matroska_load_file(Matroska *obj) {
 			}
 		} else if(EBML_ElementIsType(elt, &MATROSKA_ContextInfo)) {
 			obj->info = (ebml_master*)elt;
-			obj->timecodeScale = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(obj->info, &MATROSKA_ContextTimecodeScale));
+			obj->timecodeScale = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextTimecodeScale));
 			MATROSKA_LinkMetaSeekElement(obj->infoMeta, (ebml_element *)obj->info);
 		} else if(EBML_ElementIsType(elt, &MATROSKA_ContextTracks)) {
 			obj->tracks = (ebml_master*)elt;
@@ -1000,8 +998,8 @@ static void matroska_close_file(Matroska *obj) {
 }
 
 static void matroska_set_doctype_version(Matroska *obj, int doctypeVersion, int doctypeReadVersion) {
-	EBML_IntegerSetValue((ebml_integer*)EBML_MasterFindChild(obj->header, &EBML_ContextDocTypeVersion), doctypeVersion);
-	EBML_IntegerSetValue((ebml_integer*)EBML_MasterFindChild(obj->header, &EBML_ContextDocTypeReadVersion), doctypeReadVersion);
+	EBML_IntegerSetValue((ebml_integer*)EBML_MasterGetChild(obj->header, &EBML_ContextDocTypeVersion), doctypeVersion);
+	EBML_IntegerSetValue((ebml_integer*)EBML_MasterGetChild(obj->header, &EBML_ContextDocTypeReadVersion), doctypeReadVersion);
 }
 
 static inline void matroska_write_ebml_header(Matroska *obj) {
@@ -1021,7 +1019,7 @@ static int matroska_set_segment_info(Matroska *obj, const char writingApp[], con
 }
 
 static inline timecode_t matroska_get_duration(const Matroska *obj) {
-	return (timecode_t)EBML_FloatValue((ebml_float *)EBML_MasterFindChild(obj->info, &MATROSKA_ContextDuration));
+	return (timecode_t)EBML_FloatValue((ebml_float *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextDuration));
 }
 
 static inline timecode_t matroska_get_timecode_scale(const Matroska *obj) {
@@ -1166,7 +1164,7 @@ static int matroska_close_segment(Matroska *obj) {
 static ebml_master *matroska_find_track_entry(const Matroska *obj, int trackNum) {
 	ebml_element *trackEntry = NULL;
 	for(trackEntry = EBML_MasterChildren(obj->tracks);
-		trackEntry != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)trackEntry, &MATROSKA_ContextTrackNumber)) != trackNum;
+		trackEntry != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)trackEntry, &MATROSKA_ContextTrackNumber)) != trackNum;
 		trackEntry = EBML_MasterNext(trackEntry));
 	return (ebml_master *)trackEntry;
 }
@@ -1176,7 +1174,7 @@ static int matroska_get_codec_private(const Matroska *obj, int trackNum, const u
 	ebml_binary *codecPrivate;
 	if(trackEntry == NULL)
 		return -1;
-	codecPrivate = (ebml_binary *)EBML_MasterFindChild(trackEntry, &MATROSKA_ContextCodecPrivate);
+	codecPrivate = (ebml_binary *)EBML_MasterGetChild(trackEntry, &MATROSKA_ContextCodecPrivate);
 	if(codecPrivate == NULL)
 		return -2;
 
@@ -1225,7 +1223,7 @@ static inline int matroska_clusters_count(const Matroska *obj) {
 }
 
 static inline timecode_t matroska_current_cluster_timecode(const Matroska *obj) {
-	return EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(obj->cluster, &MATROSKA_ContextTimecode));
+	return EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->cluster, &MATROSKA_ContextTimecode));
 }
 
 static ebml_master *matroska_find_track(const Matroska *obj, int trackNum) {
