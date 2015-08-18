@@ -937,6 +937,8 @@ static void dec_process(MSFilter *f) {
 	MSQueue frame;
 	MSQueue mtofree_queue;
 	Vp8RtpFmtFrameInfo frame_info;
+	
+	ms_filter_lock(f);
 
 	ms_queue_init(&frame);
 	ms_queue_init(&mtofree_queue);
@@ -1003,6 +1005,8 @@ static void dec_process(MSFilter *f) {
 			freemsg(im);
 		}
 	}
+	
+	ms_filter_unlock(f);
 }
 
 static void dec_postprocess(MSFilter *f) {
@@ -1023,6 +1027,19 @@ static int dec_enable_avpf(MSFilter *f, void *data) {
 static int dec_freeze_on_error(MSFilter *f, void *data) {
 	DecState *s = (DecState *)f->data;
 	s->freeze_on_error = *((bool_t *)data) ? TRUE : FALSE;
+	return 0;
+}
+
+static int dec_reset(MSFilter *f, void *data) {
+	DecState *s = (DecState *)f->data;
+	ms_message("Reseting VP8 decoder");
+	ms_filter_lock(f);
+	vpx_codec_destroy(&s->codec);
+	if(vpx_codec_dec_init(&s->codec, s->iface, NULL, s->flags)){
+		ms_error("Failed to reinitialize VP8 decoder");
+	}
+	s->first_image_decoded = FALSE;
+	ms_filter_unlock(f);
 	return 0;
 }
 
@@ -1056,6 +1073,7 @@ static MSFilterMethod dec_methods[] = {
 	{ MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, dec_reset_first_image },
 	{ MS_VIDEO_DECODER_ENABLE_AVPF,                    dec_enable_avpf       },
 	{ MS_VIDEO_DECODER_FREEZE_ON_ERROR,                dec_freeze_on_error   },
+	{ MS_VIDEO_DECODER_RESET,                          dec_reset             },
 	{ MS_FILTER_GET_VIDEO_SIZE,                        dec_get_vsize         },
 	{ MS_FILTER_GET_FPS,                               dec_get_fps           },
 	{ MS_FILTER_GET_OUTPUT_FMT,                        dec_get_out_fmt       },

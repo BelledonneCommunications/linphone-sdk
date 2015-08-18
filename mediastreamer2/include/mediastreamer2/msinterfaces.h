@@ -226,6 +226,8 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 8, bool_t)
 #define MS_VIDEO_DECODER_RECOVERED_FROM_ERRORS \
 	MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface, 9)
+#define MS_VIDEO_DECODER_RESET \
+	MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 10)
 	
 
 
