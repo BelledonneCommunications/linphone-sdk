@@ -328,7 +328,7 @@ static void _load_modules(nodemodule *modules) {
 static int _parse_headers(MKVReader *obj) {
 	ebml_element *level0 = NULL, *level1 = NULL;
 	ebml_parser_context pctx, seg_pctx;
-	char  doc_type[MAX_MKV_STRING_LENGTH];
+	char  doc_type[9];
 	int doc_type_version;
 	int err;
 	int upper_level = 0;
@@ -359,13 +359,13 @@ static int _parse_headers(MKVReader *obj) {
 		ms_error("MKVParser: missing elements in the EBML header");
 		goto fail;
 	}
-	EBML_StringGet((ebml_string *)EBML_MasterFindChild((ebml_master *)level0, &EBML_ContextDocType), doc_type, MAX_MKV_STRING_LENGTH);
+	EBML_StringGet((ebml_string *)EBML_MasterGetChild((ebml_master *)level0, &EBML_ContextDocType), doc_type, sizeof(doc_type));
 	err = strcmp(doc_type, "matroska");
 	if(err != 0) {
 		ms_error("MKVParser: not a matroska file");
 		goto fail;
 	}
-	doc_type_version = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)level0, &EBML_ContextDocTypeVersion));
+	doc_type_version = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)level0, &EBML_ContextDocTypeVersion));
 	NodeDelete((node *)level0);
 
 	level0 = EBML_FindNextElement(obj->file, &pctx, &upper_level, FALSE);
