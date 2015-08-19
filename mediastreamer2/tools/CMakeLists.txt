@@ -46,3 +46,7 @@ string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(mediastream PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
+
+add_executable(mkvstream mkvstream.c)
+target_link_libraries(mkvstream mediastreamer_voip mediastreamer_base)
+
