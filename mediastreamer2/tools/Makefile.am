@@ -9,7 +9,7 @@ if MS2_FILTERS
 noinst_PROGRAMS+=echo ring bench
 
 if BUILD_VIDEO
-noinst_PROGRAMS+=videodisplay test_x11window
+noinst_PROGRAMS+=videodisplay test_x11window mkvstream
 endif
 
 endif MS2_FILTERS
@@ -20,6 +20,7 @@ echo_SOURCES=echo.c
 ring_SOURCES=ring.c
 videodisplay_SOURCES=videodisplay.c
 mtudiscover_SOURCES=mtudiscover.c
+mkvstream_SOURCES=mkvstream.c
 bench_SOURCES=bench.c
 test_x11window_SOURCES=test_x11window.c
 tones_SOURCES=tones.c
