@@ -121,6 +121,7 @@ void MSOpenH264Encoder::initialize()
 			params.bEnableSceneChangeDetect = false;
 			params.bEnableLongTermReference  = false;
 			params.iSpatialLayerNum=1;
+			params.eSpsPpsIdStrategy = CONSTANT_ID;
 			
 			params.sSpatialLayers[0].iVideoWidth = mVConf.vsize.width;
 			params.sSpatialLayers[0].iVideoHeight = mVConf.vsize.height;
