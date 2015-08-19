@@ -126,6 +126,10 @@ int main(int argc, char *argv[]){
 	
 	media_stream_set_target_network_bitrate(&stream->ms, 500000); /*set a target IP bitrate in bits/second */
 	
+	/*By default, the VideoStream will show up a display window where the received video is played, with a local preview as well.
+	 * If you don't need this, assign (void*)-1 as window id, which explicitely disable the display feature.*/
+	
+	/*video_stream_set_native_window_id(stream, (void*)-1);*/
 	
 	/*start the video stream, given the RtpProfile and "io" definition */
 	err = video_stream_start_from_io(stream, profile, ip, port, ip, port+1, payload_type_number, &io);
