@@ -176,7 +176,7 @@ static void ms_qsa_read_process(MSFilter *f) {
 		params.channel = SND_PCM_CHANNEL_CAPTURE;
 		params.mode = SND_PCM_MODE_BLOCK;
 		params.start_mode = SND_PCM_START_DATA;
-		params.stop_mode = SND_PCM_STOP_STOP;
+		params.stop_mode = SND_PCM_STOP_ROLLOVER;
 		params.buf.block.frag_size = pi.max_fragment_size;
 		params.buf.block.frags_min = 1;
 		params.buf.block.frags_max = -1;
@@ -214,9 +214,13 @@ static void ms_qsa_read_process(MSFilter *f) {
 			}
 		}
 
+		ms_message("PCM capture device %s", d->pcmdev);
 		ms_message("Format %s", snd_pcm_get_format_name(setup.format.format));
 		ms_message("Frag Size %d", setup.buf.block.frag_size);
+		ms_message("Total Frags %d", setup.buf.block.frags);
 		ms_message("Rate %d", setup.format.rate);
+		ms_message("Voices %d", setup.format.voices);
+		ms_message("Mixer Pcm Group [%s]", group.gid.name);
 	}
 
 	if (d->handle == NULL) goto setup_failure;
@@ -234,19 +238,10 @@ static void ms_qsa_read_process(MSFilter *f) {
 		om = allocb(size, 0);
 		readbytes = snd_pcm_plugin_read(d->handle, om->b_wptr, size);
 		if (readbytes < size) {
-			memset(&status, 0, sizeof(status));
-			status.channel = SND_PCM_CHANNEL_CAPTURE;
-			err = snd_pcm_plugin_status(d->handle, &status);
-			if (err != 0) {
-				ms_error("%s: snd_pcm_plugin_status() failed: %s", __FUNCTION__, snd_strerror(err));
+			ms_warning("%s: snd_pcm_plugin_read(%i) failed: %s", __FUNCTION__, readbytes, snd_strerror(errno));
+			if (readbytes == -5) { // IOError
+				ms_queue_put(f->outputs[0], om);
 				goto setup_failure;
-			}
-			if ((status.status == SND_PCM_STATUS_READY) || (status.status == SND_PCM_STATUS_UNDERRUN)) {
-				err = snd_pcm_plugin_prepare(d->handle, SND_PCM_CHANNEL_CAPTURE);
-				if (err != 0) {
-					ms_error("%s: snd_pcm_plugin_prepare() failed: %s", __FUNCTION__, snd_strerror(err));
-					goto setup_failure;
-				}
 			}
 			if (readbytes < 0) readbytes = 0;
 		}
@@ -308,9 +303,8 @@ static int ms_qsa_read_set_nchannels(MSFilter *f, void *arg) {
 	int nchannels = *((int *)arg);
 	if ((nchannels >= d->info.min_voices) && (nchannels <= d->info.max_voices)) {
 		d->nchannels = nchannels;
-		return 0;
 	}
-	return -1;
+	return 0; // Return 0 even if set didn't work to force the app to call the getter to have the correct value
 }
 
 static int ms_qsa_read_get_nchannels(MSFilter *f, void *arg) {
@@ -508,7 +502,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 		ms_message("Total Frags %d", setup.buf.block.frags);
 		ms_message("Rate %d", setup.format.rate);
 		ms_message("Voices %d", setup.format.voices);
-		ms_message("%s: Mixer Pcm Group [%s]", __FUNCTION__, group.gid.name);
+		ms_message("Mixer Pcm Group [%s]", group.gid.name);
 
 		d->buffer_size = setup.buf.block.frag_size;
 		d->buffer = ms_malloc(d->buffer_size);
