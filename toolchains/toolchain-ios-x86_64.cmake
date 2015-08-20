@@ -20,8 +20,8 @@
 #
 ############################################################################
 
-set(CMAKE_SYSTEM_PROCESSOR x86_64)
-set(SYSTEM_ARCH x86_64)
+set(CMAKE_SYSTEM_PROCESSOR "x86_64")
+set(LINPHONE_BUILDER_OSX_ARCHITECTURES "x86_64")
 set(COMPILER_PREFIX "x86_64-apple-darwin")
 set(PLATFORM "Simulator")
 include("${CMAKE_CURRENT_LIST_DIR}/ios/toolchain-ios.cmake")
