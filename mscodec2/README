@@ -1,0 +1,11 @@
+This package supplies the mediastreamer plugin for the codec2 audio
+codec, which is necessary to use codec2 with Linphone.  The package
+does not contain the codec, which must be obtained separately.
+
+More information on codec2 at http://rowetel.com/codec2.html
+
+Codec2 is distributed by David Rowe under GNU Lesser General Public License (LGPL)
+
+This package use the 3200 bits/s mode of codec2 by default but it may
+also be tuned to use the 2400 bits/s mode. It was tested on stable branch 0.3
+of the codec2 library.
