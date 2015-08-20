@@ -683,55 +683,59 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 	
 	if (!ms_media_stream_io_is_consistent(io)) return -1;
 
-	switch(io->input.type){
-		case MSResourceRtp:
-			stream->rtp_io_session = io->input.session;
-			source = ms_filter_new(MS_RTP_RECV_ID);
-			ms_filter_call_method(source, MS_RTP_RECV_SET_SESSION, stream->rtp_io_session);
-		break;
-		case MSResourceCamera:
-			cam = io->input.camera;
-			source = ms_web_cam_create_reader(cam);
-		break;
-		case MSResourceFile:
-			source = ms_filter_new(MS_MKV_PLAYER_ID);
-			if (!source){
-				ms_error("Mediastreamer2 library compiled without libmastroska2");
-				return -1;
-			}
-			stream->source = source;
-			if (io->input.file) {
-				if (video_stream_open_remote_play(stream, io->input.file)!=NULL)
-					ms_filter_call_method_noarg(source, MS_PLAYER_START);
-			}
-		break;
-		default:
-			ms_error("Unhandled input resource type %s", ms_resource_type_to_string(io->input.type));
-		break;
+	if (stream->dir != MediaStreamRecvOnly){
+		switch(io->input.type){
+			case MSResourceRtp:
+				stream->rtp_io_session = io->input.session;
+				source = ms_filter_new(MS_RTP_RECV_ID);
+				ms_filter_call_method(source, MS_RTP_RECV_SET_SESSION, stream->rtp_io_session);
+			break;
+			case MSResourceCamera:
+				cam = io->input.camera;
+				source = ms_web_cam_create_reader(cam);
+			break;
+			case MSResourceFile:
+				source = ms_filter_new(MS_MKV_PLAYER_ID);
+				if (!source){
+					ms_error("Mediastreamer2 library compiled without libmastroska2");
+					return -1;
+				}
+				stream->source = source;
+				if (io->input.file) {
+					if (video_stream_open_remote_play(stream, io->input.file)!=NULL)
+						ms_filter_call_method_noarg(source, MS_PLAYER_START);
+				}
+			break;
+			default:
+				ms_error("Unhandled input resource type %s", ms_resource_type_to_string(io->input.type));
+			break;
+		}
 	}
-	switch (io->output.type){
-		case MSResourceRtp:
-			output = ms_filter_new(MS_RTP_SEND_ID);
-			stream->rtp_io_session = io->input.session;
-			ms_filter_call_method(output, MS_RTP_SEND_SET_SESSION, stream->rtp_io_session);
-		break;
-		case MSResourceFile:
-			recorder = ms_filter_new(MS_MKV_RECORDER_ID);
-			if (!recorder){
-				ms_error("Mediastreamer2 library compiled without libmastroska2");
-				return -1;
-			}
-			if (stream->recorder_output){
-				ms_filter_destroy(stream->recorder_output);
-			}
-			stream->recorder_output = recorder;
-			ms_filter_add_notify_callback(recorder, recorder_handle_event, stream, TRUE);
-			if (io->output.file) video_stream_open_remote_record(stream, io->output.file);
-		break;
-		default:
-			/*will just display in all other cases*/
-			/*ms_error("Unhandled output resource type %s", ms_resource_type_to_string(io->output.type));*/
-		break;
+	if (stream->dir != MediaStreamSendOnly){
+		switch (io->output.type){
+			case MSResourceRtp:
+				output = ms_filter_new(MS_RTP_SEND_ID);
+				stream->rtp_io_session = io->input.session;
+				ms_filter_call_method(output, MS_RTP_SEND_SET_SESSION, stream->rtp_io_session);
+			break;
+			case MSResourceFile:
+				recorder = ms_filter_new(MS_MKV_RECORDER_ID);
+				if (!recorder){
+					ms_error("Mediastreamer2 library compiled without libmastroska2");
+					return -1;
+				}
+				if (stream->recorder_output){
+					ms_filter_destroy(stream->recorder_output);
+				}
+				stream->recorder_output = recorder;
+				ms_filter_add_notify_callback(recorder, recorder_handle_event, stream, TRUE);
+				if (io->output.file) video_stream_open_remote_record(stream, io->output.file);
+			break;
+			default:
+				/*will just display in all other cases*/
+				/*ms_error("Unhandled output resource type %s", ms_resource_type_to_string(io->output.type));*/
+			break;
+		}
 	}
 	
 	return video_stream_start_with_source_and_output(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, -1, cam, source, output);
@@ -821,12 +825,9 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	bool_t rtp_output = FALSE;
 
 	if (source == NULL) {
-		if (stream->source == NULL){
-			ms_error("videostream.c: no defined source");
-			return -1;
-		}else source = stream->source;
+		source = stream->source;
 	}
-	rtp_source = (ms_filter_get_id(source) == MS_RTP_RECV_ID) ? TRUE : FALSE;
+	rtp_source = (source && ms_filter_get_id(source) == MS_RTP_RECV_ID) ? TRUE : FALSE;
 
 	pt=rtp_profile_get_payload(profile,payload);
 	if (pt==NULL){
@@ -964,7 +965,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 
 		/* display logic */
 		if (stream->rendercb!=NULL){
-			/* rendering logic delegated to user supplied callback */
+			/* rendering logic delegated to user suppsourcelied callback */
 			stream->output=ms_filter_new(MS_EXT_DISPLAY_ID);
 			ms_filter_add_notify_callback(stream->output,ext_display_cb,stream,TRUE);
 		}else{
@@ -1101,6 +1102,8 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	/* attach the graphs */
 	if (stream->source)
 		ms_ticker_attach (stream->ms.sessions.ticker, stream->source);
+	if (stream->void_source)
+		ms_ticker_attach (stream->ms.sessions.ticker, stream->void_source);
 	if (stream->ms.rtprecv)
 		ms_ticker_attach (stream->ms.sessions.ticker, stream->ms.rtprecv);
 
@@ -1315,6 +1318,8 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 		} else {
 			if (stream->source)
 				ms_ticker_detach(stream->ms.sessions.ticker,stream->source);
+			if (stream->void_source)
+				ms_ticker_detach(stream->ms.sessions.ticker,stream->void_source);
 			if (stream->ms.rtprecv)
 				ms_ticker_detach(stream->ms.sessions.ticker,stream->ms.rtprecv);
 
