@@ -246,6 +246,7 @@ static void bb10capture_close_camera(BB10Capture *d) {
 	
 	camera_close(d->cam_handle);
 	d->camera_openned = FALSE;
+	d->cam_handle = NULL;
 	ms_debug("[bb10_capture] camera closed");
 }
 
@@ -274,6 +275,11 @@ static void bb10capture_init(MSFilter *f) {
 static void bb10capture_uninit(MSFilter *f) {
 	BB10Capture *d = (BB10Capture*) f->data;
 	
+	if (d->capture_started) {
+		bb10capture_stop_capture(d);
+	}
+	bb10capture_close_camera(d);
+	
 	ms_yuv_buf_allocator_free(d->yba);
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
@@ -285,8 +291,10 @@ static void bb10capture_preprocess(MSFilter *f) {
 	if (!d->camera_openned) {
 		bb10capture_open_camera(d);
 	}
+	
 	ms_average_fps_init(&d->avgfps, "[bb10_capture] fps=%f");
 	ms_queue_flush(&d->rq);
+	
 	bb10capture_start_capture(d);
 }
 
@@ -294,7 +302,6 @@ static void bb10capture_postprocess(MSFilter *f) {
 	BB10Capture *d = (BB10Capture*) f->data;
 	
 	bb10capture_stop_capture(d);
-	bb10capture_close_camera(d);
 	ms_queue_flush(&d->rq);
 }
 
@@ -328,6 +335,11 @@ static int bb10capture_set_vsize(MSFilter *f, void *arg) {
 	MSVideoSize newSize = *(MSVideoSize*)arg;
 	
 	ms_filter_lock(f);
+	
+	if (!d->camera_openned) {
+		bb10capture_open_camera(d);
+	}
+	
 	if (d->camera_openned) {
 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, newSize.width, CAMERA_IMGPROP_HEIGHT, newSize.height);
 		camera_get_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, &(d->vsize.width), CAMERA_IMGPROP_HEIGHT, &(d->vsize.height));
@@ -349,6 +361,7 @@ static int bb10capture_set_vsize(MSFilter *f, void *arg) {
 		
 		ms_warning("[bb10_capture] vsize %i,%i couldn't be set either, instead using: %i,%i", newSize.width, newSize.height, d->vsize.width, d->vsize.height);
 	}
+	
 	ms_filter_unlock(f);
 	return -1;
 }
@@ -420,7 +433,10 @@ static int bb10capture_set_device_rotation(MSFilter *f, void *arg) {
 	if (!d->is_front_cam) {
 		rotation = 360 - d->rotation;
 	}
-	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, rotation);
+	
+	if (d->camera_openned) {
+		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, rotation);
+	}
 	ms_debug("[bb10_capture] device rotation changed: %i", d->rotation);
 	
 	ms_filter_unlock(f);
@@ -468,7 +484,6 @@ static MSFilter *bb10camera_create_reader(MSWebCam *obj) {
 	}
 	
 	ms_message("[bb10_capture] create reader with id:%i and camera %s (%i)", ms_bb10_capture_desc.id, obj->name, d->camera);
-	bb10capture_open_camera(d);
 	
 	return f;
 }
