@@ -39,8 +39,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_BYTES_PER_FRAME     500 // Equals peak bitrate of 200 kbps
 #define MAX_INPUT_FRAMES        6
 
-#define MAX_OPUS_SAMPLES 5760 /* 5760 is the maximum number of samples in a packet (120ms at 48KHz) */
-
 
 /**
  * Definition of the private data structure of the opus encoder.
@@ -49,8 +47,6 @@ typedef struct _OpusEncData {
 	OpusEncoder *state;
 	MSBufferizer *bufferizer;
 	uint32_t ts;
-	uint8_t *pcmbuffer;
-	int pcmbufsize;
 	int samplerate;
 	int channels;
 	int application;
@@ -67,6 +63,7 @@ typedef struct _OpusEncData {
 	int useinbandfec;
 	int usedtx;
 	bool_t ptime_set;
+
 } OpusEncData;
 
 /* Local functions headers */
@@ -173,41 +170,75 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 
 static void ms_opus_enc_process(MSFilter *f) {
 	OpusEncData *d = (OpusEncData *)f->data;
+	mblk_t *im;
 	mblk_t *om = NULL;
-	int packet_size;
-	int pcmbufsize;
-	int max_bitstream_size;
+	int i;
+	int frameNumber, packet_size;
+	uint8_t *signalFrameBuffer = NULL;
+	uint8_t *codedFrameBuffer[MAX_INPUT_FRAMES];
+	OpusRepacketizer *rp = opus_repacketizer_create();
 	opus_int32 ret = 0;
+	opus_int32 totalLength = 0;
+	int frame_size = d->samplerate * FRAME_LENGTH / 1000; /* in samples */
 
 	// lock the access while getting ptime
 	ms_filter_lock(f);
+	frameNumber = d->ptime/FRAME_LENGTH; /* encode 20ms frames, ptime is a multiple of 20ms */
 	packet_size = d->samplerate * d->ptime / 1000; /* in samples */
-	max_bitstream_size = MAX_BYTES_PER_FRAME * d->ptime / 20;
 	ms_filter_unlock(f);
 
-	pcmbufsize = d->channels * packet_size * SIGNAL_SAMPLE_SIZE;
-	if (pcmbufsize > d->pcmbufsize){
-		if (d->pcmbuffer) ms_free(d->pcmbuffer);
-		d->pcmbuffer = ms_malloc(pcmbufsize);
-		d->pcmbufsize = pcmbufsize;
-	}
-	
-	ms_bufferizer_put_from_queue(d->bufferizer, f->inputs[0]);
 
-	while (ms_bufferizer_get_avail(d->bufferizer) >= pcmbufsize) {
-		ms_bufferizer_read(d->bufferizer, d->pcmbuffer, pcmbufsize);
-		om = allocb(max_bitstream_size, 0);
-		ret = opus_encode(d->state, (opus_int16 *)d->pcmbuffer, packet_size, om->b_wptr, max_bitstream_size);
+	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
+		ms_bufferizer_put(d->bufferizer, im);
+	}
+
+	for (i=0; i<MAX_INPUT_FRAMES; i++) {
+		codedFrameBuffer[i]=NULL;
+	}
+	while (ms_bufferizer_get_avail(d->bufferizer) >= (d->channels * packet_size * SIGNAL_SAMPLE_SIZE)) {
+		totalLength = 0;
+		opus_repacketizer_init(rp);
+		for (i=0; i<frameNumber; i++) { /* encode 20ms by 20ms and repacketize all of them together */
+			if (!codedFrameBuffer[i]) codedFrameBuffer[i] = ms_malloc(MAX_BYTES_PER_FRAME); /* the repacketizer need the pointer to packet to remain valid, so we shall have a buffer for each coded frame */
+			if (!signalFrameBuffer) signalFrameBuffer = ms_malloc(frame_size * SIGNAL_SAMPLE_SIZE * d->channels);
+
+			ms_bufferizer_read(d->bufferizer, signalFrameBuffer, frame_size * SIGNAL_SAMPLE_SIZE * d->channels);
+			ret = opus_encode(d->state, (opus_int16 *)signalFrameBuffer, frame_size, codedFrameBuffer[i], MAX_BYTES_PER_FRAME);
+			if (ret < 0) {
+				ms_error("Opus encoder error: %s", opus_strerror(ret));
+				break;
+			}
+			if (ret > 0) {
+				int err = opus_repacketizer_cat(rp, codedFrameBuffer[i], ret); /* add the encoded frame into the current packet */
+				if (err != OPUS_OK) {
+					ms_error("Opus repacketizer error: %s", opus_strerror(err));
+					break;
+				}
+				totalLength += ret;
+			}
+		}
 
 		if (ret > 0) {
+			om = allocb(totalLength+frameNumber + 1, 0); /* opus repacktizer API: allocate at leat number of frame + size of all data added before */
+			ret = opus_repacketizer_out(rp, om->b_wptr, totalLength+frameNumber);
+
 			om->b_wptr += ret;
 			mblk_set_timestamp_info(om, d->ts);
 			ms_bufferizer_fill_current_metas(d->bufferizer, om);
 			ms_queue_put(f->outputs[0], om);
 			d->ts += packet_size*48000/d->samplerate; /* RFC payload RTP opus 03 - section 4: RTP timestamp multiplier : WARNING works only with sr at 48000 */
-		}else{
-			ms_warning("opus encoder error %d",ret);
-			freemsg(om);
+			ret = 0;
+		}
+	}
+
+	opus_repacketizer_destroy(rp);
+
+	if (signalFrameBuffer != NULL) {
+		ms_free(signalFrameBuffer);
+	}
+	for (i=0; i<frameNumber; i++) {
+		if (codedFrameBuffer[i] != NULL) {
+			ms_free(codedFrameBuffer[i]);
 		}
 	}
 }
@@ -220,13 +251,10 @@ static void ms_opus_enc_postprocess(MSFilter *f) {
 
 static void ms_opus_enc_uninit(MSFilter *f) {
 	OpusEncData *d = (OpusEncData *)f->data;
-	
+	if (d == NULL) return;
 	if (d->state) {
 		opus_encoder_destroy(d->state);
 		d->state = NULL;
-	}
-	if (d->pcmbuffer){
-		ms_free(d->pcmbuffer);
 	}
 	ms_bufferizer_destroy(d->bufferizer);
 	d->bufferizer = NULL;
