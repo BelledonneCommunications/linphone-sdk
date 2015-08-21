@@ -34,7 +34,7 @@ set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 
-option(ENABLE_DECODER "Enable the openh264 decoder" NO)
+option(ENABLE_DECODER "Enable the openh264 decoder" Yes)
 option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 
 
