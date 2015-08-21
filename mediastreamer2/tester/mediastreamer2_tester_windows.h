@@ -26,6 +26,7 @@ namespace ms2_tester_runtime_component
 		void uninitVideo();
 		void startVideoStream(Platform::Object^ CaptureElement, Platform::Object^ MediaElement, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate);
 		void stopVideoStream();
+		void setOrientation(int degrees);
 
 		static property MS2Tester^ Instance
 		{
@@ -47,5 +48,6 @@ namespace ms2_tester_runtime_component
 		static MS2Tester^ _instance;
 		Windows::Foundation::IAsyncAction^ _asyncAction;
 		VideoStream *_videoStream;
+		int _deviceRotation;
 	};
 }

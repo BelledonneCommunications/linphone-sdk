@@ -10,6 +10,7 @@ using namespace Platform::Collections;
 using namespace Windows::Foundation;
 using namespace Windows::Storage;
 using namespace Windows::System::Threading;
+using namespace Windows::UI::ViewManagement;
 
 #define MAX_TRACE_SIZE		2048
 #define MAX_SUITE_NAME_SIZE	128
@@ -59,6 +60,7 @@ static void ms2NativeOutputTraceHandler(OrtpLogLevel lev, const char *fmt, va_li
 
 
 MS2Tester::MS2Tester()
+	: _deviceRotation(0)
 {
 	mediastreamer2_tester_init(nativeOutputTraceHandler);
 	bc_tester_set_resource_dir_prefix("Assets");
@@ -243,8 +245,8 @@ void MS2Tester::startVideoStream(Platform::Object^ CaptureElement, Platform::Obj
 	video_stream_use_video_preset(_videoStream, "custom");
 	video_stream_set_sent_video_size(_videoStream, vsize);
 	video_stream_set_fps(_videoStream, frameRate);
-	//video_stream_set_device_rotation(_videoStream, 90);
-	video_stream_start(_videoStream, &av_profile, "127.0.0.1", 20000, NULL, 0, payload, 0, cam);
+	video_stream_set_device_rotation(_videoStream, _deviceRotation);
+	video_stream_start(_videoStream, &av_profile, "192.168.0.217", 20000, NULL, 0, payload, 0, cam);
 }
 
 void MS2Tester::stopVideoStream()
@@ -252,4 +254,13 @@ void MS2Tester::stopVideoStream()
 	ms_filter_log_statistics();
 	video_stream_stop(_videoStream);
 	_videoStream = NULL;
+}
+
+void MS2Tester::setOrientation(int degrees)
+{
+	_deviceRotation = degrees;
+	if (_videoStream != NULL) {
+		video_stream_set_device_rotation(_videoStream, _deviceRotation);
+		video_stream_update_video_params(_videoStream);
+	}
 }

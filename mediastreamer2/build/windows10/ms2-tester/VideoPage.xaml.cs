@@ -4,8 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Windows.Devices.Sensors;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Graphics.Display;
+using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -36,6 +39,47 @@ namespace ms2_tester
                 isSelected = false;
                 CameraComboBox.Items.Add(item);
             }
+        }
+
+        override protected void OnNavigatedTo(Windows.UI.Xaml.Navigation.NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+            displayOrientation = ApplicationView.GetForCurrentView().Orientation;
+            displayInformation = DisplayInformation.GetForCurrentView();
+            deviceOrientation = SimpleOrientation.NotRotated;
+            orientationSensor = SimpleOrientationSensor.GetDefault();
+            if (orientationSensor != null)
+            {
+                deviceOrientation = orientationSensor.GetCurrentOrientation();
+                orientationSensor.OrientationChanged += OrientationSensor_OrientationChanged;
+            }
+            Window.Current.SizeChanged += Current_SizeChanged;
+        }
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            base.OnNavigatedFrom(e);
+            if (orientationSensor != null)
+            {
+                orientationSensor.OrientationChanged -= OrientationSensor_OrientationChanged;
+            }
+            Window.Current.SizeChanged -= Current_SizeChanged;
+        }
+
+        private async void OrientationSensor_OrientationChanged(SimpleOrientationSensor sender, SimpleOrientationSensorOrientationChangedEventArgs args)
+        {
+            // Keep previous orientation when the user puts its device faceup or facedown
+            if ((args.Orientation != SimpleOrientation.Faceup) && (args.Orientation != SimpleOrientation.Facedown))
+            {
+                deviceOrientation = args.Orientation;
+                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => SetVideoOrientation());
+            }
+        }
+
+        private async void Current_SizeChanged(object sender, Windows.UI.Core.WindowSizeChangedEventArgs e)
+        {
+            displayOrientation = ApplicationView.GetForCurrentView().Orientation;
+            await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => SetVideoOrientation());
         }
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
@@ -99,5 +143,54 @@ namespace ms2_tester
                 MS2Tester.Instance.stopVideoStream();
             }
         }
+
+        private void SetVideoOrientation()
+        {
+            SimpleOrientation orientation = deviceOrientation;
+            if (displayInformation.NativeOrientation == DisplayOrientations.Portrait)
+            {
+                switch (orientation)
+                {
+                    case SimpleOrientation.Rotated90DegreesCounterclockwise:
+                        orientation = SimpleOrientation.NotRotated;
+                        break;
+                    case SimpleOrientation.Rotated180DegreesCounterclockwise:
+                        orientation = SimpleOrientation.Rotated90DegreesCounterclockwise;
+                        break;
+                    case SimpleOrientation.Rotated270DegreesCounterclockwise:
+                        orientation = SimpleOrientation.Rotated180DegreesCounterclockwise;
+                        break;
+                    case SimpleOrientation.NotRotated:
+                    default:
+                        orientation = SimpleOrientation.Rotated270DegreesCounterclockwise;
+                        break;
+                }
+            }
+            int degrees = 0;
+            switch (orientation)
+            {
+                case SimpleOrientation.Rotated90DegreesCounterclockwise:
+                    degrees = 90;
+                    break;
+                case SimpleOrientation.Rotated180DegreesCounterclockwise:
+                    degrees = 180;
+                    break;
+                case SimpleOrientation.Rotated270DegreesCounterclockwise:
+                    degrees = 270;
+                    break;
+                case SimpleOrientation.NotRotated:
+                default:
+                    degrees = 0;
+                    break;
+            }
+
+            MS2Tester.Instance.setOrientation(degrees);
+        }
+
+
+        private ApplicationViewOrientation displayOrientation;
+        private DisplayInformation displayInformation;
+        private SimpleOrientationSensor orientationSensor;
+        private SimpleOrientation deviceOrientation;
     }
 }
