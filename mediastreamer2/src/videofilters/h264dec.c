@@ -40,9 +40,10 @@ typedef struct _DecData{
 	unsigned int packet_num;
 	uint8_t *bitstream;
 	int bitstream_size;
-	bool_t first_image_decoded;
 	MSStreamRegulator *regulator;
 	MSYuvBufAllocator *buf_allocator;
+	bool_t first_image_decoded;
+	bool_t avpf_enabled;
 }DecData;
 
 static void ffmpeg_init(){
@@ -262,6 +263,7 @@ static void dec_process(MSFilter *f){
 	DecData *d=(DecData*)f->data;
 	mblk_t *im, *om;
 	MSQueue nalus;
+	bool_t requestPLI = FALSE;
 
 	ms_queue_init(&nalus);
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
@@ -283,7 +285,7 @@ static void dec_process(MSFilter *f){
 			d->sps=NULL;
 			d->pps=NULL;
 		}
-		rfc3984_unpack(&d->unpacker,im,&nalus);
+		requestPLI |= (rfc3984_unpack(&d->unpacker,im,&nalus) != -0);
 		if (!ms_queue_empty(&nalus)){
 			int size;
 			uint8_t *p,*end;
@@ -312,6 +314,7 @@ static void dec_process(MSFilter *f){
 				if (len<=0) {
 					ms_warning("ms_AVdecoder_process: error %i.",len);
 					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
+					requestPLI = TRUE;
 					break;
 				}
 				if (got_picture) {
@@ -331,6 +334,9 @@ static void dec_process(MSFilter *f){
 		if (ms_average_fps_update(&d->fps, f->ticker->time)) {
 			ms_message("ffmpeg H264 decoder: Frame size: %dx%d", d->vsize.width,  d->vsize.height);
 		}
+	}
+	if (d->avpf_enabled && requestPLI) {
+		ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
 	}
 }
 
@@ -385,12 +391,19 @@ static int dec_get_outfmt(MSFilter *f, void *data){
 	return 0;
 }
 
+static int dec_enable_avpf(MSFilter *f, void *data){
+	DecData *s = (DecData *)f->data;
+	s->avpf_enabled = *(bool_t*)data;
+	return 0;
+}
+
 static MSFilterMethod  h264_dec_methods[]={
 	{	MS_FILTER_ADD_FMTP                                 ,	dec_add_fmtp      },
 	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    ,	reset_first_image },
 	{	MS_FILTER_GET_VIDEO_SIZE                           ,	dec_get_vsize     },
 	{	MS_FILTER_GET_FPS                                  ,	dec_get_fps       },
 	{	MS_FILTER_GET_OUTPUT_FMT                           ,	dec_get_outfmt    },
+	{	MS_VIDEO_DECODER_ENABLE_AVPF                       ,	dec_enable_avpf   },
 	{	0                                                  ,	NULL              }
 };
 
