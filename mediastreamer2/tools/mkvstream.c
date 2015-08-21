@@ -42,7 +42,8 @@ static void usage(const char *prog){
 
 typedef enum {
 	PLAY_MODE,
-	RECORD_MODE
+	RECORD_MODE,
+	INVALID_MODE
 }Mode;
 
 /*the payload type number we're using here in the RTP packets sent and received*/
@@ -72,7 +73,7 @@ int main(int argc, char *argv[]){
 	VideoStream *stream;
 	RtpProfile *profile;
 	PayloadType *pt;
-	Mode mode;
+	Mode mode = INVALID_MODE;
 	int local_port = 7778;
 	MSMediaStreamIO io = MS_MEDIA_STREAM_IO_INITIALIZER;
 	int err;
