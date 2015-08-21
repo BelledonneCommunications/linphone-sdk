@@ -34,6 +34,7 @@ set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 
+option(ENABLE_RTP_MAP_ALWAYS_IN_SDP "Always include rtpmap in SDP." OFF)
 option(ENABLE_SERVER_SOCKETS "Enable server sockets" ON)
 option(ENABLE_STATIC "Build static library (default is shared library)." OFF)
 option(ENABLE_TLS "Enable TLS support" ON)
@@ -78,6 +79,9 @@ set(CMAKE_REQUIRED_LIBRARIES ${ANTLR3C_LIBRARIES})
 check_symbol_exists("antlr3StringStreamNew" "antlr3.h" HAVE_ANTLR_STRING_STREAM_NEW)
 cmake_pop_check_state()
 
+if(ENABLE_RTP_MAP_ALWAYS_IN_SDP)
+	set(BELLE_SDP_FORCE_RTP_MAP 1)
+endif()
 if(ENABLE_TLS)
 	find_package(PolarSSL REQUIRED)
 	if(POLARSSL_FOUND)
