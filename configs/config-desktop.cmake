@@ -124,13 +124,12 @@ if(WIN32)
 	set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 endif()
 
-
 # Create a shortcut to linphone.exe in install prefix
-if(WIN32)
+if(LINPHONE_BUILDER_TARGET STREQUAL linphone AND WIN32)
 	set(SHORTCUT_PATH "${CMAKE_INSTALL_PREFIX}/linphone.lnk")
 	set(SHORTCUT_TARGET_PATH "${CMAKE_INSTALL_PREFIX}/bin/linphone.exe")
 	set(SHORTCUT_WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/configs/desktop/winshortcut.vbs.in" "${CMAKE_CURRENT_BINARY_DIR}/winshortcut.vbs" @ONLY)
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/configs/desktop/linphone_package/winshortcut.vbs.in" "${CMAKE_CURRENT_BINARY_DIR}/winshortcut.vbs" @ONLY)
 	add_custom_command(OUTPUT "${SHORTCUT_PATH}"
 		COMMAND "cscript" "${CMAKE_CURRENT_BINARY_DIR}/winshortcut.vbs"
 	)
@@ -140,16 +139,42 @@ endif()
 
 # Packaging
 if (ENABLE_PACKAGING)
-	linphone_builder_apply_flags()
-	linphone_builder_set_ep_directories(linphone_package)
-	linphone_builder_expand_external_project_vars()
-	ExternalProject_Add(TARGET_linphone_package
-		DEPENDS TARGET_linphone_builder
-		TMP_DIR ${ep_tmp}
-		BINARY_DIR ${ep_build}
-		DOWNLOAD_COMMAND ""
-		PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}/desktop" "<SOURCE_DIR>"
-		CMAKE_GENERATOR ${CMAKE_GENERATOR}
-		CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DCMAKE_INSTALL_PREFIX=${LINPHONE_BUILDER_WORK_DIR}/PACKAGE -DLINPHONE_OUTPUT_DIR=${CMAKE_INSTALL_PREFIX} -DENABLE_ZRTP:BOOL=${ENABLE_ZRTP}
-	)
+	# Linphone and linphone SDK packages
+	if(LINPHONE_BUILDER_TARGET STREQUAL linphone)
+		linphone_builder_apply_flags()
+		linphone_builder_set_ep_directories(linphone_package)
+		linphone_builder_expand_external_project_vars()
+		ExternalProject_Add(TARGET_linphone_package
+			DEPENDS TARGET_linphone_builder
+			TMP_DIR ${ep_tmp}
+			BINARY_DIR ${ep_build}
+			DOWNLOAD_COMMAND ""
+			PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}/desktop/linphone_package" "<SOURCE_DIR>"
+			CMAKE_GENERATOR ${CMAKE_GENERATOR}
+			CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DCMAKE_INSTALL_PREFIX=${LINPHONE_BUILDER_WORK_DIR}/PACKAGE -DLINPHONE_OUTPUT_DIR=${CMAKE_INSTALL_PREFIX} -DENABLE_ZRTP:BOOL=${ENABLE_ZRTP}
+		)
+	endif()
+	
+	# Mediastreamer SDK packages
+	if(LINPHONE_BUILDER_TARGET STREQUAL ms2
+			OR LINPHONE_BUILDER_TARGET STREQUAL ms2-plugins)
+			
+		if(LINPHONE_BUILDER_TARGET STREQUAL ms2)
+			set(MS2_PACKAGE_DEPEND_TARGET TARGET_ms2)
+		else()
+			set(MS2_PACKAGE_DEPEND_TARGET TARGET_ms2plugins)
+		endif()
+		linphone_builder_apply_flags()
+		linphone_builder_set_ep_directories(ms2_package)
+		linphone_builder_expand_external_project_vars()
+		ExternalProject_Add(TARGET_ms2_package
+			DEPENDS ${MS2_PACKAGE_DEPEND_TARGET}
+			TMP_DIR ${ep_tmp}
+			BINARY_DIR ${ep_build}
+			DOWNLOAD_COMMAND ""
+			PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}/desktop/ms2_package" "<SOURCE_DIR>"
+			CMAKE_GENERATOR ${CMAKE_GENERATOR}
+			CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DCMAKE_INSTALL_PREFIX=${LINPHONE_BUILDER_WORK_DIR}/PACKAGE -DLINPHONE_OUTPUT_DIR=${CMAKE_INSTALL_PREFIX} -DENABLE_ZRTP:BOOL=${ENABLE_ZRTP}
+		)
+	endif()
 endif()

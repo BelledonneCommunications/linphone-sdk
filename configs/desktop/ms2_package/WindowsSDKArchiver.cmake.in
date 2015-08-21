@@ -1,0 +1,6 @@
+find_program(7Z_PROGRAM 7z.exe)
+set(ARCHIVE_NAME mediastreamer-sdk-@MS2_GIT_REVISION@-win32.zip)
+execute_process(
+		COMMAND ${7Z_PROGRAM} a -tzip @CMAKE_BINARY_DIR@/${ARCHIVE_NAME} .
+		WORKING_DIRECTORY @CMAKE_INSTALL_PREFIX@
+	)
