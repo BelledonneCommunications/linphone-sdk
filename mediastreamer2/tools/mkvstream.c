@@ -72,7 +72,7 @@ int main(int argc, char *argv[]){
 	VideoStream *stream;
 	RtpProfile *profile;
 	PayloadType *pt;
-	Mode mode;
+	Mode mode = PLAY_MODE;
 	int local_port = 7778;
 	MSMediaStreamIO io = MS_MEDIA_STREAM_IO_INITIALIZER;
 	int err;
