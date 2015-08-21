@@ -127,7 +127,7 @@ if(LINPHONE_BUILDER_TARGET STREQUAL linphone AND WIN32)
 	set(SHORTCUT_PATH "${CMAKE_INSTALL_PREFIX}/linphone.lnk")
 	set(SHORTCUT_TARGET_PATH "${CMAKE_INSTALL_PREFIX}/bin/linphone.exe")
 	set(SHORTCUT_WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/configs/desktop/winshortcut.vbs.in" "${CMAKE_CURRENT_BINARY_DIR}/winshortcut.vbs" @ONLY)
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/configs/desktop/linphone_package/winshortcut.vbs.in" "${CMAKE_CURRENT_BINARY_DIR}/winshortcut.vbs" @ONLY)
 	add_custom_command(OUTPUT "${SHORTCUT_PATH}"
 		COMMAND "cscript" "${CMAKE_CURRENT_BINARY_DIR}/winshortcut.vbs"
 	)
@@ -155,8 +155,7 @@ if (ENABLE_PACKAGING)
 	
 	# Mediastreamer SDK packages
 	if(LINPHONE_BUILDER_TARGET STREQUAL ms2
-			OR LINPHONE_BUILDER_TARGET STREQUAL ms2-plugins
-			OR LINPHONE_BUILDER_TARGET STREQUAL linphone)
+			OR LINPHONE_BUILDER_TARGET STREQUAL ms2-plugins)
 			
 		if(LINPHONE_BUILDER_TARGET STREQUAL ms2)
 			set(MS2_PACKAGE_DEPEND_TARGET TARGET_ms2)
