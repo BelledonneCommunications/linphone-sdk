@@ -40,10 +40,12 @@ else()
 	set(MS2_GIT_REVISION "0.0.0")
 endif()
 
+install(DIRECTORY ${LINPHONE_OUTPUT_DIR}/
+	DESTINATION .
+	PATTERN bin/openh264.* EXCLUDE
+)
+
 if(WIN32)
-	set(ARCHIVE_NAME mediastreamer-sdk-${MS2_GIT_REVISION}-win32.zip)
-	execute_process(
-		COMMAND cmake -E tar cv ${CMAKE_BINARY_DIR}/${ARCHIVE_NAME} --format=zip --files-from=${CMAKE_SOURCE_DIR}/mediastreamer-sdk.list .
-		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
-	)
+	configure_file(WindowsSDKArchiver.cmake.in WindowsSDKArchiver.cmake @ONLY)
+	install(SCRIPT ${CMAKE_BINARY_DIR}/WindowsSDKArchiver.cmake)
 endif()
