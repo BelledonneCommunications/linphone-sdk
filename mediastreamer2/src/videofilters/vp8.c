@@ -855,7 +855,6 @@ typedef struct DecState {
 	vpx_codec_iface_t *iface;
 	vpx_codec_flags_t flags;
 	Vp8RtpFmtUnpackerCtx unpacker;
-	mblk_t *curframe;
 	long last_cseq; /*last receive sequence number, used to locate missing partition fragment*/
 	int current_partition_id; /*current partition id*/
 	uint64_t last_error_reported_time;
@@ -877,7 +876,6 @@ static void dec_init(MSFilter *f) {
 	s->iface = vpx_codec_vp8_dx();
 	ms_message("Using %s", vpx_codec_iface_name(s->iface));
 
-	s->curframe = NULL;
 	s->last_error_reported_time = 0;
 	s->yuv_width = 0;
 	s->yuv_height = 0;
@@ -922,7 +920,6 @@ static void dec_uninit(MSFilter *f) {
 	DecState *s = (DecState *)f->data;
 	vp8rtpfmt_unpacker_uninit(&s->unpacker);
 	vpx_codec_destroy(&s->codec);
-	if (s->curframe != NULL) freemsg(s->curframe);
 	if (s->yuv_msg) freemsg(s->yuv_msg);
 	ms_queue_flush(&s->q);
 	ms_free(s);
