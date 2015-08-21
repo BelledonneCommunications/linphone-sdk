@@ -330,6 +330,10 @@ ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 		LOCAL_CFLAGS += -DHAVE_G729
 		LOCAL_STATIC_LIBRARIES += libbcg729 libmsbcg729
 	endif
+	ifeq ($(BUILD_CODEC2),1)
+		LOCAL_CFLAGS += -DHAVE_CODEC2
+		LOCAL_STATIC_LIBRARIES += libcodec2 libmscodec2
+	endif
 	ifeq ($(_BUILD_VIDEO),1)
 		LOCAL_STATIC_LIBRARIES += libvpx
 		ifeq ($(BUILD_X264),1)
