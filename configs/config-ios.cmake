@@ -54,6 +54,7 @@ set(DEFAULT_VALUE_ENABLE_PACKAGING OFF)
 set(SDK_VERSION 6.0)
 get_filename_component(COMPILER_NAME ${CMAKE_C_COMPILER} NAME)
 string(REGEX REPLACE "-clang$" "" LINPHONE_BUILDER_HOST ${COMPILER_NAME})
+string(REGEX REPLACE "^arm64" "aarch64" LINPHONE_BUILDER_HOST ${LINPHONE_BUILDER_HOST})
 unset(COMPILER_NAME)
 if("${PLATFORM}" MATCHES "Simulator")
 	set(CLANG_TARGET_SPECIFIER "ios-simulator-version-min")
@@ -125,3 +126,8 @@ list(APPEND EP_speex_CMAKE_OPTIONS "-DENABLE_FLOAT_API=NO" "-DENABLE_FIXED_POINT
 
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")
+
+# x264
+set(EP_x264_LINKING_TYPE "--enable-static" "--enable-pic")
+set(EP_x264_INSTALL_TARGET "install-lib-static")
+

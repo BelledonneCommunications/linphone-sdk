@@ -23,12 +23,9 @@
 set(EP_msx264_GIT_REPOSITORY "git://git.linphone.org/msx264.git")
 set(EP_msx264_GIT_TAG_LATEST "master")
 set(EP_msx264_GIT_TAG "3a9b5a9ff79ea45b9f8f03d03d4a4a9213dc2c5d")
+set(EP_msx264_EXTERNAL_SOURCE_PATHS "msx264")
 
-set(EP_msx264_BUILD_METHOD "autotools")
-set(EP_msx264_USE_AUTOGEN True)
-set(EP_msx264_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_HOST}"
-)
-set(EP_msx264_LINKING_TYPE "--disable-static" "--enable-shared")
+set(EP_msx264_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_msx264_CMAKE_OPTIONS )
 set(EP_msx264_DEPENDENCIES EP_ms2 EP_x264)
+

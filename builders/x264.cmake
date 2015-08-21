@@ -22,6 +22,8 @@
 
 set(EP_x264_GIT_REPOSITORY "git://git.videolan.org/x264.git")
 set(EP_x264_GIT_TAG "adc99d17d8c1fbc164fae8319b40d7c45f30314e")
+set(EP_x264_EXTERNAL_SOURCE_PATHS "externals/x264")
+
 set(EP_x264_BUILD_METHOD "autotools")
 set(EP_x264_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
@@ -33,6 +35,6 @@ set(EP_x264_CONFIGURE_OPTIONS
 )
 set(EP_x264_LINKING_TYPE "--enable-shared")
 set(EP_x264_CONFIGURE_ENV "CC=$CC")
-set(EP_x264_BUILD_IN_SOURCE True)
 set(EP_x264_INSTALL_TARGET "install-lib-shared")
 set(EP_x264_DEPENDENCIES EP_ffmpeg)
+
