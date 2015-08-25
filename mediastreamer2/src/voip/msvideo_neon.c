@@ -21,10 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msvideo.h"
 
-#if defined(__arm__) || defined(__arm64__) || defined(_M_ARM)
-#define MS_HAS_ARM 1
-#endif
-
 #if MS_HAS_ARM
 
 #ifdef __ARM_NEON__

@@ -22,6 +22,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <mediastreamer2/msfilter.h>
 
+
+#if defined(__arm__) || defined(__arm64__) || defined(_M_ARM)
+#define MS_HAS_ARM 1
+#endif
+
+
 /* some global constants for video MSFilter(s) */
 #define MS_VIDEO_SIZE_UNKNOWN_W 0
 #define MS_VIDEO_SIZE_UNKNOWN_H 0
