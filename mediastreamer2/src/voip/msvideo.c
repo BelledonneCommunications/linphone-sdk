@@ -742,7 +742,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBu
 				}
 				// 180° rotation + de-interlace u/v
 				uvsrc=&cbcr[uv_h*uv_w*2-2];
-				for (i=0; i<uv_h*uv_w*2; i++) {
+				for (i=0; i<uv_h*uv_w; i++) {
 					*u_dest++ = *uvsrc--;
 					*v_dest++ = *uvsrc--;
 				}
