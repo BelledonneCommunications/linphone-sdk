@@ -105,7 +105,7 @@ static void ms_opus_enc_init(MSFilter *f) {
 static void ms_opus_enc_preprocess(MSFilter *f) {
 	int error;
 	int opusComplexity = -1;
-	const char *env;
+	const char *env = NULL;
 
 	OpusEncData *d = (OpusEncData *)f->data;
 	/* create the encoder */
@@ -116,7 +116,9 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 	}
 
 	
+#ifndef MS2_WINDOWS_UNIVERSAL
 	env = getenv("MS2_OPUS_COMPLEXITY");
+#endif
 	if (env != NULL) {
 		opusComplexity = atoi(env);
 		if (opusComplexity < -1)
