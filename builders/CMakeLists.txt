@@ -48,8 +48,15 @@ if(LINPHONE_BUILDER_CHECK_LATEST)
 
 else()
 
-	# Include linphone builder options definitions
-	include(cmake/LinphoneBuilderOptions.cmake)
+	# Include builder options definitions according to the targets to be built
+	include(CMakeDependentOption)
+	include(FeatureSummary)
+	include(${CMAKE_SOURCE_DIR}/options/common.cmake)
+	foreach(_target ${LINPHONE_BUILDER_TARGETS})
+		if(EXISTS ${CMAKE_SOURCE_DIR}/options/${_target}.cmake)
+			include(${CMAKE_SOURCE_DIR}/options/${_target}.cmake)
+		endif()
+	endforeach()
 
 	add_custom_target(TARGET_linphone_builder ALL)
 
