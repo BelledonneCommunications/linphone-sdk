@@ -137,6 +137,18 @@ class DesktopTarget(Target):
 		if platform.system() == 'Windows':
 			self.generator = 'Visual Studio 12 2013'
 
+class FlexisipTarget(Target):
+	def __init__(self):
+		Target.__init__(self, 'flexisip')
+		self.config_file = 'configs/config-flexisip.cmake'
+		self.additional_args = ['-DLINPHONE_BUILDER_TARGET=flexisip']
+
+class FlexisipRpmTarget(Target):
+	def __init__(self):
+		Target.__init__(self, 'flexisip-rpm')
+		self.config_file = 'configs/config-flexisip-rpm.cmake'
+		self.additional_args = ['-DLINPHONE_BUILDER_TARGET=flexisip']
+
 class PythonTarget(Target):
 	def __init__(self):
 		Target.__init__(self, 'python')
@@ -155,6 +167,8 @@ targets = {}
 targets['bb10-arm'] = BB10armTarget()
 targets['bb10-i486'] = BB10i486Target()
 targets['desktop'] = DesktopTarget()
+targets['flexisip'] = FlexisipTarget()
+targets['flexisip-rpm'] = FlexisipRpmTarget()
 targets['python'] = PythonTarget()
 targets['python-raspberry'] = PythonRaspberryTarget()
 target_names = sorted(targets.keys())
