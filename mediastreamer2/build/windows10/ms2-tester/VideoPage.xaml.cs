@@ -184,7 +184,10 @@ namespace ms2_tester
                     break;
             }
 
-            MS2Tester.Instance.setOrientation(degrees);
+            if (MS2Tester.Instance.getOrientation() != degrees)
+            {
+                MS2Tester.Instance.setOrientation(degrees);
+            }
         }
 
 
