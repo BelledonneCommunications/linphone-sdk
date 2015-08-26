@@ -963,8 +963,8 @@ challenge [belle_sip_header_www_authenticate_t* www_authenticate]
                        | other_challenge [www_authenticate];
 other_challenge [belle_sip_header_www_authenticate_t* www_authenticate]    
   :   auth_scheme {belle_sip_header_www_authenticate_set_scheme(www_authenticate,(char*)$auth_scheme.text->chars);} 
-     lws auth_param[NULL]
-                       (comma auth_param[NULL])*;
+     lws auth_param[(belle_sip_header_authorization_t*)www_authenticate]
+                       (comma auth_param[(belle_sip_header_authorization_t*)www_authenticate])*;
 digest_cln [belle_sip_header_www_authenticate_t* www_authenticate]         
   : 
    realm {belle_sip_header_www_authenticate_set_realm(www_authenticate,(char*)$realm.ret);

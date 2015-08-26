@@ -558,6 +558,9 @@ static void test_www_authenticate_header(void) {
 			",\r\n   opaque=\"ALU:QbkRBthOEgEQAkgVEwwHRAIBHgkdHwQCQ1lFRkRWEAkic203MSEzJCgoZS8iI3VlYWRj\",\r\n   algorithm=MD5"
 			",\r\n   qop=\"auth\"";
 
+	const char* l_header_2 = "WWW-Authenticate: Basic realm=\"WallyWorld\"";
+
+
 	belle_sip_header_www_authenticate_t* L_tmp;
 	belle_sip_header_www_authenticate_t *l_authenticate = belle_sip_header_www_authenticate_parse(l_header);
 
@@ -575,8 +578,22 @@ static void test_www_authenticate_header(void) {
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_authenticate));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_authenticate));
 	L_tmp = belle_sip_header_www_authenticate_parse(l_raw_header);
+	belle_sip_free(l_raw_header);
 	l_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_authenticate));
+
+	l_authenticate = belle_sip_header_www_authenticate_parse(l_header_2);
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_authenticate));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_authenticate));
+	L_tmp = belle_sip_header_www_authenticate_parse(l_raw_header);
+	belle_sip_free(l_raw_header);
+	l_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(l_authenticate),"realm"),"\"WallyWorld\"");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_scheme(l_authenticate),"Basic");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_authenticate));
+
 
 	BC_ASSERT_PTR_NULL(belle_sip_header_www_authenticate_parse("nimportequoi"));
 
