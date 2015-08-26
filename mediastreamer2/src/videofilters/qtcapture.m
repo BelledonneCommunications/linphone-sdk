@@ -337,7 +337,7 @@ static int v4m_start(MSFilter *f, void *arg) {
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
 	[s->webcam performSelectorOnMainThread:@selector(start) withObject:nil waitUntilDone:NO];
-	ms_message("v4m video device opened.");
+	ms_message("qtcapture video device opened.");
 	[myPool drain];
 	return 0;
 }
@@ -346,7 +346,7 @@ static int v4m_stop(MSFilter *f, void *arg) {
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
 	[s->webcam performSelectorOnMainThread:@selector(stop) withObject:nil waitUntilDone:NO];
-	ms_message("v4m video device closed.");
+	ms_message("qtcapture video device closed.");
 	[myPool drain];
 	return 0;
 }
@@ -461,7 +461,7 @@ static MSFilterMethod methods[] = {
 
 MSFilterDesc ms_v4m_desc={
 	.id=MS_V4L_ID,
-	.name="MSV4m",
+	.name="MSQtCapture",
 	.text="A video for macosx compatible source filter to stream pictures.",
 	.ninputs=0,
 	.noutputs=1,
