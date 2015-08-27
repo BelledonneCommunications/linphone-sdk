@@ -22,11 +22,15 @@
 
 set(EP_flexisip_GIT_REPOSITORY "git://git.linphone.org/flexisip")
 set(EP_flexisip_GIT_TAG_LATEST "master")
-set(EP_flexisip_GIT_TAG "698eb5d3f66ad9b70e07b3138e487f5f487f88bc")
+set(EP_flexisip_GIT_TAG "d9a1718948629a3f03dd754bc779bab41d4c9753")
 
 set(EP_flexisip_DEPENDENCIES EP_ortp EP_sofiasip )
 
-list(APPEND EP_flexisip_DEPENDENCIES EP_libodbmysql)
+list(APPEND EP_flexisip_CMAKE_OPTIONS "-DENABLE_ODB=${ENABLE_ODB}")
+if( ENABLE_ODB )
+	message(STATUS "Flexisip to be built with ODB")
+	list(APPEND EP_flexisip_DEPENDENCIES EP_libodbmysql)
+endif()
 
 set(EP_flexisip_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_flexisip_BUILD_METHOD "autotools")
@@ -38,15 +42,33 @@ set(EP_flexisip_CROSS_COMPILATION_OPTIONS
 )
 set(EP_flexisip_CONFIG_H_FILE "flexisip.spec")
 
-if( USE_BC_ODBC )
-	message(STATUS "Flexisip to be built with BC ODBC")
-	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-odbc=${CMAKE_INSTALL_PREFIX}")
-	list(APPEND EP_flexisip_DEPENDENCIES EP_unixodbc EP_myodbc)
+list(APPEND EP_flexisip_CMAKE_OPTIONS "-DENABLE_ODBC=${ENABLE_ODBC}")
+if ( ENABLE_ODBC ) 
+	if( USE_BC_ODBC )
+		message(STATUS "Flexisip to be built with BC ODBC")
+		list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-odbc=${CMAKE_INSTALL_PREFIX}")
+		list(APPEND EP_flexisip_DEPENDENCIES EP_unixodbc EP_myodbc)
+	else()
+		message(STATUS "Flexisip to be built with system ODBC")
+	endif()
 else()
-	message(STATUS "Flexisip to be built with system ODBC")
+		message(STATUS "Flexisip to be built without ODBC")
+		list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-odbc")
 endif()
 
+list(APPEND EP_flexisip_CMAKE_OPTIONS "-DENABLE_REDIS=${ENABLE_REDIS}")
+if ( ENABLE_REDIS ) 
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-redis")
+endif()
 
-list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder" "--enable-redis" )
+list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder")
+list(APPEND EP_flexisip_CMAKE_OPTIONS "-DENABLE_TRANSCODER=0")
+
+list(APPEND EP_flexisip_CMAKE_OPTIONS "-DENABLE_PUSHNOTIFICATION=${ENABLE_PUSHNOTIFICATION}")
+if ( ENABLE_PUSHNOTIFICATION )
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-pushnotification")
+else()
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-pushnotification")
+endif()
 
 set(EP_flexisip_SPEC_FILE "flexisip.spec")
