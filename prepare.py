@@ -38,6 +38,7 @@ class Target:
 		self.platform_name = None
 		self.config_file = None
 		self.toolchain_file = None
+		self.required_build_platforms = None
 		self.additional_args = []
 		self.work_dir = work_dir + '/' + self.name
 		self.abs_work_dir = os.getcwd() + '/' + self.work_dir
@@ -140,12 +141,14 @@ class DesktopTarget(Target):
 class FlexisipTarget(Target):
 	def __init__(self):
 		Target.__init__(self, 'flexisip')
+		self.required_build_platforms = ['Linux', 'Darwin']
 		self.config_file = 'configs/config-flexisip.cmake'
 		self.additional_args = ['-DLINPHONE_BUILDER_TARGET=flexisip']
 
 class FlexisipRpmTarget(Target):
 	def __init__(self):
 		Target.__init__(self, 'flexisip-rpm')
+		self.required_build_platforms = ['Linux', 'Darwin']
 		self.config_file = 'configs/config-flexisip-rpm.cmake'
 		self.additional_args = ['-DLINPHONE_BUILDER_TARGET=flexisip']
 
@@ -159,6 +162,7 @@ class PythonTarget(Target):
 class PythonRaspberryTarget(Target):
 	def __init__(self):
 		Target.__init__(self, 'python-raspberry')
+		self.required_build_platforms = ['Linux']
 		self.config_file = 'configs/config-python-raspberry.cmake'
 		self.toolchain_file = 'toolchains/toolchain-raspberry.cmake'
 
@@ -178,6 +182,12 @@ def run(target, debug, latest, list_cmake_variables, force_build, additional_arg
 	build_type = 'Release'
 	if debug:
 		build_type = 'Debug'
+
+	if target.required_build_platforms is not None:
+		if not platform.system() in target.required_build_platforms:
+			print("Cannot build target '{target}' on '{bad_build_platform}' build platform. Build it on one of {good_build_platforms}.".format(
+				target=target.name, bad_build_platform=platform.system(), good_build_platforms=', '.join(target.required_build_platforms)))
+			return 52
 
 	if os.path.isdir(target.abs_cmake_dir):
 		if force_build is False:
