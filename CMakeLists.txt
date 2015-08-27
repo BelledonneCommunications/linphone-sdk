@@ -37,7 +37,7 @@ set(LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH "" CACHE STRING "External path to sour
 
 
 # Include macros definition to be used by builders
-include(cmake/LinphoneCMakeBuilder.cmake)
+include(cmake/CMakeLists.txt)
 
 
 if(LINPHONE_BUILDER_CHECK_LATEST)
