@@ -47,7 +47,7 @@ endif()
 list(APPEND EP_flexisip_CMAKE_OPTIONS "-DENABLE_ODBC=${ENABLE_ODBC}")
 
 if(ENABLE_ODBC)
-	if(USE_BC_ODBC)
+	if(ENABLE_BC_ODBC)
 		message(STATUS "Flexisip to be built with BC ODBC")
 		list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-odbc=${CMAKE_INSTALL_PREFIX}")
 		list(APPEND EP_flexisip_DEPENDENCIES EP_unixodbc EP_myodbc)

@@ -27,10 +27,10 @@ add_feature_info("ODB" ENABLE_ODB "Enable odb support.")
 
 option(ENABLE_ODBC "Enable odbc support." ${DEFAULT_VALUE_ENABLE_ODBC})
 add_feature_info("ODBC" ENABLE_ODBC "Enable odbc support.")
+cmake_dependent_option(ENABLE_BC_ODBC "Enable odbc support from Belledonne Communications." ${DEFAULT_VALUE_ENABLE_BC_ODBC} "ENABLE_ODBC" OFF)
 
 option(ENABLE_REDIS "Enable hiredis support." ${DEFAULT_VALUE_ENABLE_REDIS})
 add_feature_info("REDIS" ENABLE_REDIS "Enable hiredis support.")
-
 
 option(ENABLE_PUSHNOTIFICATION "Enable push notification support." ${DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION})
 add_feature_info("PUSHNOTIFICATION" ENABLE_PUSHNOTIFICATION "Enable push notification support.")
