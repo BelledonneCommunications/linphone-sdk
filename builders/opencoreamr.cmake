@@ -35,19 +35,14 @@ if(EP_opencoreamr_PREBUILT)
 else()
 	set(EP_opencoreamr_URL "http://downloads.sourceforge.net/project/opencore-amr/opencore-amr/opencore-amr-0.1.3.tar.gz")
 	set(EP_opencoreamr_URL_HASH "MD5=09d2c5dfb43a9f6e9fec8b1ae678e725")
-	set(EP_opencoreamr_CMAKE_OPTIONS )
-	set(EP_opencoreamr_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opencoreamr/CMakeLists.txt" "<SOURCE_DIR>")
-	set(EP_opencoreamr_LINKING_TYPE "-DENABLE_STATIC=YES")
 	set(EP_opencoreamr_EXTERNAL_SOURCE_PATHS  "externals/opencore-amr")
 
-	if(ENABLE_AMRNB)
-		list(APPEND EP_opencoreamr_CMAKE_OPTIONS "-DENABLE_AMRNB_DECODER=YES" "-DENABLE_AMRNB_ENCODER=YES")
-	else()
-		list(APPEND EP_opencoreamr_CMAKE_OPTIONS "-DENABLE_AMRNB_DECODER=NO" "-DENABLE_AMRNB_ENCODER=NO")
-	endif()
-	if(ENABLE_AMRWB)
-		list(APPEND EP_opencoreamr_CMAKE_OPTIONS "-DENABLE_AMRWB_DECODER=YES")
-	else()
-		list(APPEND EP_opencoreamr_CMAKE_OPTIONS "-DENABLE_AMRWB_DECODER=NO")
-	endif()
+	set(EP_opencoreamr_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opencoreamr/CMakeLists.txt" "<SOURCE_DIR>")
+	set(EP_opencoreamr_LINKING_TYPE "-DENABLE_STATIC=YES")
+
+	set(EP_opencoreamr_CMAKE_OPTIONS
+		"-DENABLE_AMRNB_DECODER=${ENABLE_AMRNB}"
+		"-DENABLE_AMRNB_ENCODER=${ENABLE_AMRNB}"
+		"-DENABLE_AMRWB_DECODER=${ENABLE_AMRWB}"
+	)
 endif()

@@ -27,7 +27,6 @@ set(EP_odb_BUILD_METHOD "rpm")
 
 set(EP_odb_SPEC_FILE "odb.spec" )
 set(EP_odb_CONFIG_H_FILE "${CMAKE_CURRENT_SOURCE_DIR}/builders/odb/${EP_odb_SPEC_FILE}" )
-
 set(EP_odb_RPMBUILD_NAME "odb_")
 
 #create source dir and copy the tar.gz inside

@@ -36,7 +36,7 @@ else()
 	set(EP_opus_URL "http://downloads.xiph.org/releases/opus/opus-1.1.tar.gz")
 	set(EP_opus_URL_HASH "MD5=c5a8cf7c0b066759542bc4ca46817ac6")
 	set(EP_opus_EXTERNAL_SOURCE_PATHS "opus" "externals/opus")
-	set(EP_opus_CMAKE_OPTIONS )
+
 	set(EP_opus_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opus/CMakeLists.txt" "<SOURCE_DIR>")
 	list(APPEND EP_opus_PATCH_COMMAND "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opus/config.h.cmake" "<SOURCE_DIR>")
 	set(EP_opus_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")

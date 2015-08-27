@@ -26,5 +26,4 @@ set(EP_mswp8vid_GIT_TAG "0c28ede7baa26081ed13f93f5ede4ec61b5a263b")
 set(EP_mswp8vid_EXTERNAL_SOURCE_PATHS "mswp8vid")
 
 set(EP_mswp8vid_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
-set(EP_mswp8vid_CMAKE_OPTIONS )
 set(EP_mswp8vid_DEPENDENCIES EP_ms2)

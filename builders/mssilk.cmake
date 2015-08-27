@@ -26,6 +26,4 @@ set(EP_mssilk_GIT_TAG "60c53a1542f3c5cb93342c7fb16e00ce075dd8f7")
 set(EP_mssilk_EXTERNAL_SOURCE_PATHS "mssilk")
 
 set(EP_mssilk_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
-set(EP_mssilk_CMAKE_OPTIONS )
 set(EP_mssilk_DEPENDENCIES EP_ms2)
-

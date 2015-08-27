@@ -26,16 +26,9 @@ set(EP_mswebrtc_GIT_TAG "88c0fa6ae7ea35fa25eac5ce4b50898e85443ff0")
 set(EP_mswebrtc_EXTERNAL_SOURCE_PATHS "mswebrtc")
 
 set(EP_mswebrtc_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
-set(EP_mswebrtc_CMAKE_OPTIONS )
 set(EP_mswebrtc_DEPENDENCIES EP_ms2)
 
-if(ENABLE_ISAC)
-	list(APPEND EP_mswebrtc_CMAKE_OPTIONS "-DENABLE_ISAC=YES")
-else()
-	list(APPEND EP_mswebrtc_CMAKE_OPTIONS "-DENABLE_ISAC=NO")
-endif()
-if(ENABLE_WEBRTC_AEC)
-	list(APPEND EP_mswebrtc_CMAKE_OPTIONS "-DENABLE_AECM=YES")
-else()
-	list(APPEND EP_mswebrtc_CMAKE_OPTIONS "-DENABLE_AECM=NO")
-endif()
+set(EP_mswebrtc_CMAKE_OPTIONS
+	"-DENABLE_ISAC=${ENABLE_ISAC}"
+	"-DENABLE_AECM=${ENABLE_WEBRTC_AEC}"
+)

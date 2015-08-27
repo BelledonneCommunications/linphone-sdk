@@ -65,4 +65,3 @@ if (APPLE)
 		endif()
 	endif()
 endif()
-

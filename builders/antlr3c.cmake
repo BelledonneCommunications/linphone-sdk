@@ -25,8 +25,9 @@ set(EP_antlr3c_GIT_TAG_LATEST "linphone")
 set(EP_antlr3c_GIT_TAG "311b6764e3f440db43617296ff856f7ec07bfdef")
 set(EP_antlr3c_EXTERNAL_SOURCE_PATHS "antlr3c" "antlr3" "externals/antlr3")
 
-set(EP_antlr3c_CMAKE_OPTIONS "-DENABLE_DEBUGGER=NO")
 set(EP_antlr3c_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 if(MSVC)
 	set(EP_antlr3c_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()
+
+set(EP_antlr3c_CMAKE_OPTIONS "-DENABLE_DEBUGGER=NO")

@@ -25,11 +25,9 @@ set(EP_libodbmysql_URL "http://www.codesynthesis.com/download/odb/2.3/${libodbmy
 set(EP_libodbmysql_URL_HASH "SHA1=18adaa5535015e3471a5d205e44df42f0e3a3d37")
 
 set(EP_libodbmysql_BUILD_METHOD "rpm")
-
 set(EP_libodbmysql_SPEC_FILE "libodbmysql.spec" )
 set(EP_libodbmysql_CONFIG_H_FILE "${CMAKE_CURRENT_SOURCE_DIR}/builders/libodbmysql/${EP_libodbmysql_SPEC_FILE}" )
 set(EP_libodbmysql_DEPENDENCIES EP_libodb)
-
 set(EP_libodbmysql_RPMBUILD_NAME "libodb-mysql")
 
 #create source dir and copy the tar.gz inside

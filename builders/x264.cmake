@@ -37,4 +37,3 @@ set(EP_x264_LINKING_TYPE "--enable-shared")
 set(EP_x264_CONFIGURE_ENV "CC=$CC")
 set(EP_x264_INSTALL_TARGET "install-lib-shared")
 set(EP_x264_DEPENDENCIES EP_ffmpeg)
-

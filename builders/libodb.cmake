@@ -23,8 +23,8 @@
 set(libodb_filename "libodb-2.3.0.tar.bz2")
 set(EP_libodb_URL "http://www.codesynthesis.com/download/odb/2.3/${libodb_filename}")
 set(EP_libodb_URL_HASH "SHA1=eebc7fa706bc598a80439d1d6a798430fcfde23b")
-set(EP_libodb_BUILD_METHOD "rpm")
 
+set(EP_libodb_BUILD_METHOD "rpm")
 set(EP_libodb_SPEC_FILE "libodb.spec" )
 set(EP_libodb_CONFIG_H_FILE "${CMAKE_CURRENT_SOURCE_DIR}/builders/libodb/${EP_libodb_SPEC_FILE}" )
 set(EP_libodb_DEPENDENCIES EP_odb)

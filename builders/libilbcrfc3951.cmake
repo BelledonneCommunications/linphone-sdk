@@ -25,6 +25,4 @@ set(EP_libilbcrfc3951_GIT_TAG_LATEST "master")
 set(EP_libilbcrfc3951_GIT_TAG "6585f5926f693c58fcb6e8a71a2065bd33949b1a")
 set(EP_libilbcrfc3951_EXTERNAL_SOURCE_PATHS "libilbc-rfc3951")
 
-set(EP_libilbcrfc3951_CMAKE_OPTIONS )
 set(EP_libilbcrfc3951_LINKING_TYPE "-DENABLE_STATIC=YES")
-

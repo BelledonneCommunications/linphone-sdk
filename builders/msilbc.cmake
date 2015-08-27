@@ -25,10 +25,8 @@ set(EP_msilbc_GIT_TAG_LATEST "master")
 set(EP_msilbc_GIT_TAG "c5924ec00cfb4620bae6e980afdff89206211f64")
 set(EP_msilbc_EXTERNAL_SOURCE_PATHS "msilbc")
 
-set(EP_msilbc_CMAKE_OPTIONS )
 set(EP_msilbc_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 set(EP_msilbc_DEPENDENCIES EP_ms2 EP_libilbcrfc3951)
 if(MSVC)
 	set(EP_msilbc_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()
-

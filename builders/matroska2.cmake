@@ -23,5 +23,3 @@
 set(EP_matroska2_GIT_REPOSITORY "git://git.linphone.org/libmatroska-c.git")
 set(EP_matroska2_GIT_TAG_LATEST "bc")
 set(EP_matroska2_GIT_TAG "bc")
-set(EP_matroska2_CMAKE_OPTIONS )
-set(EP_matroska2_DEPENDENCIES )
