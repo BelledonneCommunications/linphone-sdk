@@ -297,6 +297,10 @@ static MS2_INLINE bool_t ms_video_size_area_greater_than(MSVideoSize vs1, MSVide
 	return (vs1.width*vs1.height >= vs2.width*vs2.height);
 }
 
+static MS2_INLINE bool_t ms_video_size_area_strictly_greater_than(MSVideoSize vs1, MSVideoSize vs2){
+	return (vs1.width*vs1.height > vs2.width*vs2.height);
+}
+
 static MS2_INLINE MSVideoSize ms_video_size_max(MSVideoSize vs1, MSVideoSize vs2){
 	return ms_video_size_greater_than(vs1,vs2) ? vs1 : vs2;
 }
