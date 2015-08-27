@@ -23,6 +23,6 @@
 # belle-sip build options
 
 option(ENABLE_TUNNEL "Enable tunnel support." ${DEFAULT_VALUE_ENABLE_TUNNEL})
-add_feature_info("Tunnel" ENABLE_TUNNEL "Secure tunnel for SIP/RTP.")
+add_feature_info("Tunnel" ENABLE_TUNNEL "Secure tunnel for SIP/RTP (require license).")
 option(ENABLE_RTP_MAP_ALWAYS_IN_SDP "Always include rtpmap in SDP." OFF)
 add_feature_info("RTP MAP" ENABLE_RTP_MAP_ALWAYS_IN_SDP "Always include rtpmap in SDP.")
