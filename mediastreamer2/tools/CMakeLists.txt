@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-set(simple_executables bench echo ring mtudiscover tones)
+set(simple_executables bench ring mtudiscover tones)
 if (ENABLE_VIDEO)
 	list(APPEND simple_executables videodisplay test_x11window)
 endif()
@@ -28,6 +28,9 @@ foreach (simple_executable ${simple_executables})
 	add_executable(${simple_executable} ${simple_executable}.c)
 	target_link_libraries(${simple_executable} mediastreamer_voip mediastreamer_base)
 endforeach()
+
+add_executable(ms-echo echo.c) #to avoid conflict with bash command
+target_link_libraries(ms-echo mediastreamer_voip mediastreamer_base)
 
 if (PCAP_FOUND)
 	add_executable(pcap_playback pcap_playback.c common.c)
