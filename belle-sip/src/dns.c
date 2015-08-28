@@ -4309,6 +4309,7 @@ int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 		} while (!error && pIPAddr && (sa_count < lengthof(resconf->nameserver)));
 	}
 
+	free(pFixedInfo);
 	return error;
 } /* dns_resconf_loadwin() */
 #endif
