@@ -42,11 +42,15 @@ struct _MSVideoPresetsManager {
 
 static void free_preset_config(MSVideoPresetConfiguration *vpc) {
 	ms_list_for_each(vpc->tags, ms_free);
+	ms_list_free(vpc->tags);
+	ms_free(vpc);
 }
 
 static void free_preset(MSVideoPreset *vp) {
 	ms_free(vp->name);
 	ms_list_for_each(vp->configs, (MSIterateFunc)free_preset_config);
+	ms_list_free(vp->configs);
+	ms_free(vp);
 }
 
 static MSVideoPreset * add_video_preset(MSVideoPresetsManager *manager, const char *name) {
