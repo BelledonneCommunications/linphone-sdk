@@ -83,7 +83,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 - (QTCaptureSession *)session;
 - (queue_t*)rq;
 - (ms_mutex_t *)mutex;
-- (BOOL) isStretchingCamera;
 
 @end
 
@@ -245,7 +244,6 @@ static bool is_stretching_camera(const char *modelID){
 }
 
 - (QTCaptureDevice*)initDevice:(NSString*)deviceId {
-	NSError *error = nil;
 	unsigned int i = 0;
 	QTCaptureDevice * device = NULL;
 
@@ -267,7 +265,6 @@ static bool is_stretching_camera(const char *modelID){
 
 - (void)openDevice:(NSString*)deviceId {
 	NSError *error = nil;
-	unsigned int i = 0;
 	QTCaptureDevice * device = [self initDevice:deviceId];
 	
 	bool success = [device open:&error];
