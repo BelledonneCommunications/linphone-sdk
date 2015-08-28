@@ -286,11 +286,12 @@ typedef enum _StreamType {
 } StreamType;
 
 typedef struct _Stream{
+	ms_mutex_t mutex;
 	StreamType type;
 	pa_sample_spec sampleSpec;
 	pa_stream *stream;
 	pa_stream_state_t state;
-	MSQueue queue;
+	MSBufferizer bufferizer;
 	char *dev;
 	double init_volume;
 }Stream;
@@ -314,12 +315,13 @@ static bool_t stream_wait_for_state(Stream *ctx, pa_stream_state_t successState,
 
 static Stream *stream_new(StreamType type) {
 	Stream *s = ms_new0(Stream, 1);
+	ms_mutex_init(&s->mutex, NULL);
 	s->type = type;
 	s->sampleSpec.format = PA_SAMPLE_S16LE;
 	s->sampleSpec.channels=1;
 	s->sampleSpec.rate=8000;
 	s->state = PA_STREAM_UNCONNECTED;
-	ms_queue_init(&s->queue);
+	ms_bufferizer_init(&s->bufferizer);
 	s->dev = NULL;
 	s->init_volume = -1.0;
 	return s;
@@ -332,37 +334,25 @@ static void stream_free(Stream *s) {
 			ms_free(s->dev);
 		}
 	}
-	ms_queue_flush(&s->queue);
+	ms_bufferizer_uninit(&s->bufferizer);
+	ms_mutex_destroy(&s->mutex);
 	ms_free(s);
 }
 
 static size_t stream_play(Stream *s, size_t nbytes) {
-	uint8_t *data;
-	uint8_t *wptr;
-	size_t nread_glob = 0;
-	
 	if(nbytes == 0) return 0;
-	
-	data = ms_new(uint8_t, nbytes);
-	wptr = data;
-	while(!ms_queue_empty(&s->queue) && nread_glob < nbytes) {
-		mblk_t *m = ms_queue_peek_first(&s->queue);
-		size_t ntoread = nbytes - nread_glob;
-		size_t nread = readmsg(m, ntoread, wptr);
-		nread_glob += nread;
-		wptr += nread;
-		if(msgdsize(m) == 0) {
-			ms_queue_remove(&s->queue, m);
-		}
+
+	if (ms_bufferizer_get_avail(&s->bufferizer) >= nbytes){
+		uint8_t *data;
+		data = ms_new(uint8_t, nbytes);
+		ms_mutex_lock(&s->mutex);
+		ms_bufferizer_read(&s->bufferizer, data, nbytes);
+		ms_mutex_unlock(&s->mutex);
+		pa_stream_write(s->stream, data, nbytes, ms_free, 0, PA_SEEK_RELATIVE);
 	}
+		
 	
-	if(nread_glob > 0) {
-		pa_stream_write(s->stream, data, nread_glob, ms_free, 0, PA_SEEK_RELATIVE);
-	} else {
-		ms_free(data);
-	}
-	
-	return nread_glob;
+	return nbytes;
 }
 
 static void stream_write_request_cb(pa_stream *p, size_t nbytes, void *user_data) {
@@ -453,7 +443,6 @@ static void stream_disconnect(Stream *s) {
 		}
 		pa_stream_unref(s->stream);
 		s->stream = NULL;
-		ms_queue_flush(&s->queue);
 		s->state = PA_STREAM_UNCONNECTED;
 		s->init_volume = -1.0;
 	}
@@ -696,12 +685,9 @@ static void pulse_write_process(MSFilter *f){
 	size_t nwritable;
 
 	if(s->stream) {
-		mblk_t *im;
-		while((im=ms_queue_get(f->inputs[0]))) {
-			pa_threaded_mainloop_lock(pa_loop);
-			ms_queue_put(&s->queue, im);
-			pa_threaded_mainloop_unlock(pa_loop);
-		}
+		ms_mutex_lock(&s->mutex);
+		ms_bufferizer_put_from_queue(&s->bufferizer,f->inputs[0]);
+		ms_mutex_unlock(&s->mutex);
 		
 		pa_threaded_mainloop_lock(pa_loop);
 		nwritable = pa_stream_writable_size(s->stream);

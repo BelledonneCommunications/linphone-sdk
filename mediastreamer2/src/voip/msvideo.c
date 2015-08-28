@@ -201,8 +201,16 @@ mblk_t *ms_yuv_buf_allocator_get(MSYuvBufAllocator *obj, MSPicture *buf, int w, 
 }
 
 void ms_yuv_buf_allocator_free(MSYuvBufAllocator *obj) {
+	mblk_t *m;
+	int possibly_leaked = 0;
+	for(m = qbegin(&obj->q); !qend(&obj->q,m); m = qnext(&obj->q, m)){
+		if (m->b_datap->db_ref > 1) possibly_leaked++;
+	}
 	msgb_allocator_uninit(obj);
 	ms_free(obj);
+	if (possibly_leaked > 0){
+		ms_warning("ms_yuv_buf_allocator_free(): leaving %i mblk_t still ref'd, possible leak.", possibly_leaked);
+	}
 }
 
 static void plane_horizontal_mirror(uint8_t *p, int linesize, int w, int h){

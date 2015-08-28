@@ -789,6 +789,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		audio_stream_set_echo_canceller_params(args->audio,args->ec_len_ms,args->ec_delay_ms,args->ec_framesize);
 		audio_stream_enable_echo_limiter(args->audio,args->el);
 		audio_stream_enable_adaptive_bitrate_control(args->audio,args->use_rc);
+		
 		ms_message("Starting audio stream.\n");
 
 		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->ip,args->enable_rtcp?args->remoteport+1:-1, args->payload, args->jitter,args->infile,args->outfile,
