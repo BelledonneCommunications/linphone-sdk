@@ -615,7 +615,7 @@ static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
 	ms_wasapi_snd_card_detect_with_data_flow(m, eCapture, &l);
 	ms_wasapi_snd_card_detect_with_data_flow(m, eRender, &l);
 	ms_snd_card_manager_prepend_cards(m, l);
-	ms_free(l);
+	ms_list_free(l);
 #endif
 }
 
