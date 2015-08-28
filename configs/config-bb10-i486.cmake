@@ -20,4 +20,6 @@
 #
 ############################################################################
 
+set(DEFAULT_VALUE_ENABLE_VPX OFF)
+
 include(configs/config-bb10.cmake)

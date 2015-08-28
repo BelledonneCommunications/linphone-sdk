@@ -20,8 +20,9 @@
 #
 ############################################################################
 
-include(configs/config-bb10.cmake)
+set(DEFAULT_VALUE_ENABLE_VPX ON)
 
+include(configs/config-bb10.cmake)
 
 # Global configuration
 set(LINPHONE_BUILDER_CFLAGS "${LINPHONE_BUILDER_CFLAGS} -march=armv7-a -mfpu=neon")
@@ -39,3 +40,6 @@ list(APPEND EP_opus_CONFIGURE_OPTIONS "--enable-fixed-point")
 
 #polar ssl
 list(APPEND EP_polarssl_EXTRA_CFLAGS "-fomit-frame-pointer")
+
+# vpx
+set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")

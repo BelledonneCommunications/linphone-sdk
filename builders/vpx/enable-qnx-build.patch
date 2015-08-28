@@ -1,0 +1,24 @@
+--- libvpx/build/make/configure.sh.orig	2015-08-28 15:32:01.186543252 +0200
++++ libvpx/build/make/configure.sh	2015-08-28 15:32:10.346523909 +0200
+@@ -697,6 +697,9 @@
+       *os2*)
+         tgt_os=os2
+         ;;
++      *qnx*)
++        tgt_os=qnx
++        ;;
+     esac
+ 
+     if [ -n "$tgt_isa" ] && [ -n "$tgt_os" ]; then
+@@ -918,6 +921,11 @@
+           disable_feature multithread
+           disable_feature os_support
+           ;;
++          
++        qnx*)
++          disable_feature multithread
++          add_cflags --sysroot ${alt_libc}
++          ;;
+ 
+         android*)
+           SDK_PATH=${sdk_path}
