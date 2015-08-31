@@ -34,3 +34,9 @@ add_feature_info("REDIS" ENABLE_REDIS "Enable hiredis support.")
 
 option(ENABLE_PUSHNOTIFICATION "Enable push notification support." ${DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION})
 add_feature_info("PUSHNOTIFICATION" ENABLE_PUSHNOTIFICATION "Enable push notification support.")
+
+option(ENABLE_PRESENCE "Enable presence server support." ${DEFAULT_VALUE_ENABLE_PRESENCE})
+add_feature_info("PRESENCE" ENABLE_PRESENCE "Enable presence server.")
+
+option(XSDCXX_ROOT_PATH "Path of where the bin/xsdcxx executable will be found. Comes from http://www.codesynthesis.com/products/xsd/download.xhtml" "/usr" )
+add_feature_info("XSDCXX_ROOT_PATH" XSDCXX_ROOT_PATH "Path of where the bin/xsdcxx executable will be found. Comes from http://www.codesynthesis.com/products/xsd/download.xhtml")
