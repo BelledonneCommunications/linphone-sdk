@@ -24,7 +24,7 @@
 
 option(ENABLE_GPL_THIRD_PARTIES "Enable GPL third-parties (FFmpeg)." ${DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES})
 add_feature_info("GPL third parties" ENABLE_GPL_THIRD_PARTIES "Usage of GPL third-party code (FFmpeg and x264).")
-option(ENABLE_NON_FREE_CODECS "Allow inclusion of non-free codecs in the build." YES)
+option(ENABLE_NON_FREE_CODECS "Allow inclusion of non-free codecs in the build." OFF)
 
 # by default, non free codecs must be disabled BUT they can be enabled one by one
 # using command line -DENABLE_CODEC=YES for instance
