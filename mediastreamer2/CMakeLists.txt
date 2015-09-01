@@ -128,7 +128,7 @@ test_big_endian(WORDS_BIGENDIAN)
 
 find_package(ORTP REQUIRED)
 find_package(PolarSSL)
-find_package(PCAP)
+find_package(PCAP QUIET)
 
 if(ENABLE_UNIT_TESTS)
 	find_package(CUnit)
