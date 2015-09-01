@@ -617,10 +617,12 @@ static MSFilter *alsa_card_create_writer(MSSndCard *card)
 
 
 void alsa_error_log_handler(const char *file, int line, const char *function, int err, const char *fmt, ...) {
+	char * format = ms_strdup_printf("also error in %s:%d - %s", file, line, fmt);
 	va_list args;
 	va_start (args, fmt);
-	ortp_logv(ORTP_MESSAGE, fmt, args);
+	ortp_logv(ORTP_MESSAGE, format, args);
 	va_end (args);
+	ms_free(format);
 }
 
 static void alsa_card_init(MSSndCard *obj){
@@ -658,7 +660,7 @@ static void alsa_card_detect(MSSndCardManager *m){
 	if (device_count == 0) {
 		device_count = old_device_count;
 		pcmname = "default";
-	}	
+	}
 	for (i=-1;i<device_count;i++){
 		MSSndCard *card=alsa_card_new(i, pcmname);
 		if (card!=NULL)
@@ -709,7 +711,7 @@ static char *get_card_name(snd_pcm_t *handle, unsigned int *card_index_ret){
 	snd_pcm_info_t *info=NULL;
 	unsigned int card_index=-1;
 	char *ret = NULL;
-	
+
 	snd_pcm_info_malloc(&info);
 	if (snd_pcm_info(handle, info)==0){
 		card_index = snd_pcm_info_get_card(info);
@@ -735,7 +737,7 @@ static char *get_card_name(snd_pcm_t *handle, unsigned int *card_index_ret){
 static unsigned int get_card_capabilities(const char *devname, char **card_name, unsigned int *card_index){
 	snd_pcm_t *pcm_handle;
 	unsigned int ret = 0;
-	
+
 	*card_name = NULL;
 	if (snd_pcm_open(&pcm_handle,devname,SND_PCM_STREAM_CAPTURE,SND_PCM_NONBLOCK)==0) {
 		*card_name = get_card_name(pcm_handle, card_index);
