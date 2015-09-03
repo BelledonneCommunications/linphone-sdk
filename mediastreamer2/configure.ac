@@ -1163,25 +1163,18 @@ if test "$polarssl_prefix" != "none" ; then
 		POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
 		POLARSSL_LIBS="-L${polarssl_prefix}/lib"
 	fi
-	POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"
 
 	CPPFLAGS_save=$CPPFLAGS
 	LIBS_save=$LIBS
 
 	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
 	LIBS="$LIBS $POLARSSL_LIBS"
-	AC_CHECK_LIB(mbedtls, ssl_init , [POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"],
-					 [AC_CHECK_LIB(polarssl, ssl_init, [POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"])])
-	LIBS="$LIBS $POLARSSL_LIBS" #to add right -l
+	AC_CHECK_LIB(mbedtls, sha1_update , [found_polarssl=yes POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"],
+					 [AC_CHECK_LIB(polarssl, sha1_update, [found_polarssl=yes POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"],[AC_MSG_NOTICE([polarssl library not found !])])])
  
-	AC_CHECK_HEADERS(polarssl/ssl.h, [
-				AC_CHECK_LIB(polarssl,sha1_hmac,
-					[found_polarssl=yes; AC_MSG_NOTICE([polarssl usable])],
-					[POLARSSL_CFLAGS=""
-					POLARSSL_LIBS=""
-					AC_MSG_ERROR([polarssl headers found but library not found !])])
-				],[POLARSSL_CFLAGS=""
-					POLARSSL_LIBS=""])
+	if test "x$found_polarssl" == "xyes" ; then
+		AC_CHECK_HEADERS(polarssl/ssl.h, [found_polarssl=yes],[found_polarssl=no POLARSSL_CFLAGS="" POLARSSL_LIBS=""])
+	fi
 	CPPFLAGS=$CPPFLAGS_save
 	LIBS=$LIBS_save
 fi
