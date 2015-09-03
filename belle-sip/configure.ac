@@ -244,7 +244,6 @@ if test "$polarssl_prefix" != "NONE" && test "$polarssl_prefix" != "/usr"; then
 	POLARSSL_LIBS="-L${polarssl_prefix}/lib"
 fi
 
-POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"
 found_polarssl=no
 
 if test "$use_tls" = "true" ; then
@@ -253,6 +252,9 @@ if test "$use_tls" = "true" ; then
 
 	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
 	LIBS="$LIBS $POLARSSL_LIBS"
+      	AC_CHECK_LIB(mbedtls, ssl_init , [POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"],
+      			 		[AC_CHECK_LIB(polarssl, ssl_init, [POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"])])
+	LIBS="$LIBS $POLARSSL_LIBS" #to add right -l
 	AC_CHECK_HEADERS(polarssl/ssl.h,
 		[
 		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
@@ -264,7 +266,6 @@ if test "$use_tls" = "true" ; then
 			]],
                       	[[x509parse_crtpath(0,0)]])]
 			,[found_polarssl=yes
-			POLARSSL_LIBS=" -lpolarssl"
 			AC_MSG_NOTICE([polarssl usable])]
 			,[AC_MSG_ERROR([polarssl not found or usable but TLS support required.])])
 
