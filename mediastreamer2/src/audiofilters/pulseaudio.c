@@ -294,6 +294,9 @@ typedef struct _Stream{
 	MSBufferizer bufferizer;
 	char *dev;
 	double init_volume;
+	uint64_t last_stats;
+	int underflow_notifs;
+	int overflow_notifs;
 }Stream;
 
 static void stream_disconnect(Stream *s);
@@ -340,7 +343,7 @@ static void stream_free(Stream *s) {
 }
 
 static size_t stream_play(Stream *s, size_t nbytes) {
-	if(nbytes == 0) return 0;
+	if (nbytes == 0) return 0;
 
 	if (ms_bufferizer_get_avail(&s->bufferizer) >= nbytes){
 		uint8_t *data;
@@ -361,11 +364,13 @@ static void stream_write_request_cb(pa_stream *p, size_t nbytes, void *user_data
 }
 
 static void stream_buffer_overflow_notification(pa_stream *p, void *user_data) {
-	ms_warning("pulseaudio: playback buffer overflowed");
+	Stream *st = (Stream*)user_data;
+	st->overflow_notifs++;
 }
 
 static void stream_buffer_underflow_notification(pa_stream *p, void *user_data) {
-	ms_warning("pulseaudio: playback buffer underflow");
+	Stream *st = (Stream*)user_data;
+	st->underflow_notifs++;
 }
 
 static double volume_to_scale(pa_volume_t volume) {
@@ -407,8 +412,8 @@ static bool_t stream_connect(Stream *s) {
 	pa_threaded_mainloop_lock(pa_loop);
 	if(s->type == STREAM_TYPE_PLAYBACK) {
 		pa_stream_set_write_callback(s->stream, stream_write_request_cb, s);
-		pa_stream_set_overflow_callback(s->stream, stream_buffer_overflow_notification, NULL);
-		pa_stream_set_underflow_callback(s->stream, stream_buffer_underflow_notification, NULL);
+		pa_stream_set_overflow_callback(s->stream, stream_buffer_overflow_notification, s);
+		pa_stream_set_underflow_callback(s->stream, stream_buffer_underflow_notification, s);
 		err=pa_stream_connect_playback(
 			s->stream,s->dev,&attr,
 			PA_STREAM_ADJUST_LATENCY | PA_STREAM_AUTO_TIMING_UPDATE | PA_STREAM_INTERPOLATE_TIMING,
@@ -678,6 +683,7 @@ static void pulse_write_preprocess(MSFilter *f) {
 	if(!stream_connect(s)) {
 		ms_error("Pulseaudio: fail to connect playback stream");
 	}
+	s->last_stats = (uint64_t)-1;
 }
 
 static void pulse_write_process(MSFilter *f){
@@ -693,16 +699,23 @@ static void pulse_write_process(MSFilter *f){
 		nwritable = pa_stream_writable_size(s->stream);
 		stream_play(s, nwritable);
 		pa_threaded_mainloop_unlock(pa_loop);
-
-		if(f->ticker->time % 5000 == 0) {
+		if (s->last_stats == (uint64_t)-1){
+			s->last_stats = f->ticker->time;
+		}else if (f->ticker->time - s->last_stats >= 5000) {
 			pa_usec_t latency;
 			int is_negative;
 			int err;
+			s->last_stats = f->ticker->time;
 			pa_threaded_mainloop_lock(pa_loop);
 			err = pa_stream_get_latency(s->stream, &latency, &is_negative);
 			pa_threaded_mainloop_unlock(pa_loop);
-			if(err == 0 && !is_negative) {
+			if (err == 0 && !is_negative) {
 				ms_message("pulseaudio: latency is equal to %d ms", (int)(latency/1000L));
+			}
+			if (s->underflow_notifs || s->overflow_notifs){
+				ms_warning("pulseaudio: there were %i underflows and %i overflows over last 5 seconds", s->underflow_notifs, s->overflow_notifs);
+				s->underflow_notifs = 0;
+				s->overflow_notifs = 0;
 			}
 		}
 	} else {

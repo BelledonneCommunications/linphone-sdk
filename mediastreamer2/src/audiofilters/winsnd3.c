@@ -620,6 +620,7 @@ static void winsnd_write_process(MSFilter *f){
 			d->outcurbuf=0;
 			waveOutReset(d->outdev);
 			ms_queue_flush(f->inputs[0]);
+			freemsg(m);
 			break;
 		}
 		d->outcurbuf++;
