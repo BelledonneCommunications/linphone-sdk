@@ -22,7 +22,7 @@
 
 set(EP_flexisip_GIT_REPOSITORY "git://git.linphone.org/flexisip")
 set(EP_flexisip_GIT_TAG_LATEST "master")
-set(EP_flexisip_GIT_TAG "d9a1718948629a3f03dd754bc779bab41d4c9753")
+set(EP_flexisip_GIT_TAG "0b733d671bbb72e2aa2708f37ba49e8801203154")
 
 set(EP_flexisip_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_flexisip_BUILD_METHOD "autotools")
