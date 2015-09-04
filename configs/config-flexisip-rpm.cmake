@@ -122,7 +122,7 @@ set(EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder" "--enable-redis")
 
 if (ENABLE_PRESENCE)
 	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-presence")
-endif
+endif()
 
 set(EP_ortp_RPMBUILD_OPTIONS      "--with bc --without srtp")
 set(EP_unixodbc_RPMBUILD_OPTIONS  "--with bc")
