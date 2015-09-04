@@ -1101,13 +1101,15 @@ static IceTransaction * ice_find_transaction(const IceCheckList *cl, const IceCa
  *****************************************************************************/
 
 static int ice_send_message_to_socket(const RtpTransport * rtpt,char* buf,size_t len, const struct sockaddr *to, socklen_t tolen) {
-	/*rtp_session_get_transports(rtp_session,&rtpt,NULL);*/
-	return meta_rtp_transport_modifier_inject_packet_to(rtpt
+	mblk_t *m = rtp_session_create_packet_raw((const uint8_t *)buf, len);
+	int err = meta_rtp_transport_modifier_inject_packet_to(rtpt
 														, NULL
-														,rtp_session_create_packet_raw((const uint8_t *)buf, len)
+														, m
 														, 0
 														,to
 														,tolen);
+	freemsg(m);
+	return err;
 }
 
 static int ice_send_message_to_stun_addr(const RtpTransport * rtpt,char* buff,size_t len, StunAddress4 *dest) {
