@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git")
-set(EP_cunit_GIT_TAG_LATEST "linphone")
-set(EP_cunit_GIT_TAG "c4ba94426b409285222c60616918b35cce658943")
+set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git" CACHE STRING "cunit repository URL")
+set(EP_cunit_GIT_TAG_LATEST "linphone" CACHE STRING "cunit tag to use when compiling latest version")
+set(EP_cunit_GIT_TAG "c4ba94426b409285222c60616918b35cce658943" CACHE STRING "cunit tag to use")
 set(EP_cunit_EXTERNAL_SOURCE_PATHS "cunit" "externals/cunit")
 
 set(EP_cunit_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")

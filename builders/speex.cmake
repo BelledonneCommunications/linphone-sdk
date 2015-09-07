@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(EP_speex_GIT_REPOSITORY "git://git.linphone.org/speex.git")
-set(EP_speex_GIT_TAG_LATEST "linphone")
-set(EP_speex_GIT_TAG "a13e71aad005041a7a4b861541c58bf4a4a51039")
+set(EP_speex_GIT_REPOSITORY "git://git.linphone.org/speex.git" CACHE STRING "speex repository URL")
+set(EP_speex_GIT_TAG_LATEST "linphone" CACHE STRING "speex tag to use when compiling latest version")
+set(EP_speex_GIT_TAG "a13e71aad005041a7a4b861541c58bf4a4a51039" CACHE STRING "speex tag to use")
 set(EP_speex_EXTERNAL_SOURCE_PATHS "speex" "externals/speex")
 
 set(EP_speex_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")

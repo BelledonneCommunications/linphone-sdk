@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(EP_msx264_GIT_REPOSITORY "git://git.linphone.org/msx264.git")
-set(EP_msx264_GIT_TAG_LATEST "master")
-set(EP_msx264_GIT_TAG "3a9b5a9ff79ea45b9f8f03d03d4a4a9213dc2c5d")
+set(EP_msx264_GIT_REPOSITORY "git://git.linphone.org/msx264.git" CACHE STRING "msx264 repository URL")
+set(EP_msx264_GIT_TAG_LATEST "master" CACHE STRING "msx264 tag to use when compiling latest version")
+set(EP_msx264_GIT_TAG "3a9b5a9ff79ea45b9f8f03d03d4a4a9213dc2c5d" CACHE STRING "msx264 tag to use")
 set(EP_msx264_EXTERNAL_SOURCE_PATHS "msx264")
 
 set(EP_msx264_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")

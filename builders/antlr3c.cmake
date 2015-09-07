@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(EP_antlr3c_GIT_REPOSITORY "git://git.linphone.org/antlr3.git")
-set(EP_antlr3c_GIT_TAG_LATEST "linphone")
-set(EP_antlr3c_GIT_TAG "311b6764e3f440db43617296ff856f7ec07bfdef")
+set(EP_antlr3c_GIT_REPOSITORY "git://git.linphone.org/antlr3.git" CACHE STRING "antlr3c repository URL")
+set(EP_antlr3c_GIT_TAG_LATEST "linphone" CACHE STRING "antlr3c tag to use when compiling latest version")
+set(EP_antlr3c_GIT_TAG "311b6764e3f440db43617296ff856f7ec07bfdef" CACHE STRING "antlr3c tag to use")
 set(EP_antlr3c_EXTERNAL_SOURCE_PATHS "antlr3c" "antlr3" "externals/antlr3")
 
 set(EP_antlr3c_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")

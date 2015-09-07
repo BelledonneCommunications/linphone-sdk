@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(EP_polarssl_GIT_REPOSITORY "git://git.linphone.org/polarssl.git")
-set(EP_polarssl_GIT_TAG_LATEST "linphone-1.4")
-set(EP_polarssl_GIT_TAG "5e723467b44d2d2128eba54bbad3e80d8dbdac05")
+set(EP_polarssl_GIT_REPOSITORY "git://git.linphone.org/polarssl.git" CACHE STRING "polarssl repository URL")
+set(EP_polarssl_GIT_TAG_LATEST "linphone-1.4" CACHE STRING "polarssl tag to use when compiling latest version")
+set(EP_polarssl_GIT_TAG "5e723467b44d2d2128eba54bbad3e80d8dbdac05" CACHE STRING "polarssl tag to use")
 set(EP_polarssl_EXTERNAL_SOURCE_PATHS "polarssl" "externals/polarssl")
 
 set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=1")

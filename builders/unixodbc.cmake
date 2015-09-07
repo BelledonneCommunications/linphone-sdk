@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(EP_unixodbc_GIT_REPOSITORY "git://git.linphone.org/unixODBC.git")
-set(EP_unixodbc_GIT_TAG_LATEST "master")
-set(EP_unixodbc_GIT_TAG "9558dcfdfa89c75699d4d47c0cf4ae14962a3374")
+set(EP_unixodbc_GIT_REPOSITORY "git://git.linphone.org/unixODBC.git" CACHE STRING "unixodbc repository URL")
+set(EP_unixodbc_GIT_TAG_LATEST "master" CACHE STRING "unixodbc tag to use when compiling latest version")
+set(EP_unixodbc_GIT_TAG "9558dcfdfa89c75699d4d47c0cf4ae14962a3374" CACHE STRING "unixodbc tag to use")
 
 set(EP_unixodbc_DEPENDENCIES )
 set(EP_unixodbc_LINKING_TYPE "--disable-static" "--enable-shared")

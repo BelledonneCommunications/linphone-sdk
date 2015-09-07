@@ -20,6 +20,6 @@
 #
 ############################################################################
 
-set(EP_matroska2_GIT_REPOSITORY "git://git.linphone.org/libmatroska-c.git")
-set(EP_matroska2_GIT_TAG_LATEST "bc")
-set(EP_matroska2_GIT_TAG "bc")
+set(EP_matroska2_GIT_REPOSITORY "git://git.linphone.org/libmatroska-c.git" CACHE STRING "matroska2 repository URL")
+set(EP_matroska2_GIT_TAG_LATEST "bc" CACHE STRING "matroska2 tag to use when compiling latest version")
+set(EP_matroska2_GIT_TAG "bc" CACHE STRING "matroska2 tag to use")

@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(EP_msilbc_GIT_REPOSITORY "git://git.linphone.org/msilbc.git")
-set(EP_msilbc_GIT_TAG_LATEST "master")
-set(EP_msilbc_GIT_TAG "c5924ec00cfb4620bae6e980afdff89206211f64")
+set(EP_msilbc_GIT_REPOSITORY "git://git.linphone.org/msilbc.git" CACHE STRING "msilbc repository URL")
+set(EP_msilbc_GIT_TAG_LATEST "master" CACHE STRING "msilbc tag to use when compiling latest version")
+set(EP_msilbc_GIT_TAG "c5924ec00cfb4620bae6e980afdff89206211f64" CACHE STRING "msilbc tag to use")
 set(EP_msilbc_EXTERNAL_SOURCE_PATHS "msilbc")
 
 set(EP_msilbc_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")

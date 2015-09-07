@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(EP_zlib_GIT_REPOSITORY "git://git.linphone.org/zlib.git")
-set(EP_zlib_GIT_TAG_LATEST "master")
-set(EP_zlib_GIT_TAG "91eb77a7c5bfe7b4cc6b722aa96548d7143a9936")
+set(EP_zlib_GIT_REPOSITORY "git://git.linphone.org/zlib.git" CACHE STRING "zlib repository URL")
+set(EP_zlib_GIT_TAG_LATEST "master" CACHE STRING "zlib tag to use when compiling latest version")
+set(EP_zlib_GIT_TAG "91eb77a7c5bfe7b4cc6b722aa96548d7143a9936" CACHE STRING "zlib tag to use")
 set(EP_zlib_EXTERNAL_SOURCE_PATHS "zlib")
 
 if(MSVC)

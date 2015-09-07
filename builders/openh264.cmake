@@ -32,8 +32,8 @@ if(NOT NASM_PROGRAM)
 	endif()
 endif()
 
-set(EP_openh264_GIT_REPOSITORY "https://github.com/cisco/openh264")
-set(EP_openh264_GIT_TAG "v1.4.0")
+set(EP_openh264_GIT_REPOSITORY "https://github.com/cisco/openh264" CACHE STRING "openh264 repository URL")
+set(EP_openh264_GIT_TAG "v1.4.0" CACHE STRING "openh264 tag to use")
 set(EP_openh264_EXTERNAL_SOURCE_PATHS "externals/openh264")
 
 set(EP_openh264_BUILD_METHOD "custom")

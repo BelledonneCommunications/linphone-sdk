@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(EP_sofiasip_GIT_REPOSITORY "git://git.linphone.org/sofia-sip.git")
-set(EP_sofiasip_GIT_TAG_LATEST "bc")
-set(EP_sofiasip_GIT_TAG "ec5145ddde0a0452999b08df4e3c61f3ff5f6730")
+set(EP_sofiasip_GIT_REPOSITORY "git://git.linphone.org/sofia-sip.git" CACHE STRING "sofiasip repository URL")
+set(EP_sofiasip_GIT_TAG_LATEST "bc" CACHE STRING "sofiasip tag to use when compiling latest version")
+set(EP_sofiasip_GIT_TAG "ec5145ddde0a0452999b08df4e3c61f3ff5f6730" CACHE STRING "sofiasip tag to use")
 
 #set(EP_sofiasip_CMAKE_OPTIONS )
 #set(EP_sofiasip_LINKING_TYPE "-DENABLE_STATIC=0")
