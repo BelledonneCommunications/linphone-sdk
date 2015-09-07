@@ -129,7 +129,7 @@ void ogl_display_free(struct opengles_display* gldisp) {
 
 	for(i=0; i<MAX_IMAGE; i++) {
 		if (gldisp->yuv[i]) {
-			ms_free(gldisp->yuv[i]);
+			freemsg(gldisp->yuv[i]);
 			gldisp->yuv[i] = NULL;
 		}
 	}
@@ -202,7 +202,7 @@ void ogl_display_uninit(struct opengles_display* gldisp, bool_t freeGLresources)
 	ms_message("uninit opengles_display (gl initialized:%d)\n", gldisp->glResourcesInitialized);
 	for(i=0; i<MAX_IMAGE; i++) {
 		if (gldisp->yuv[i]) {
-			ms_free(gldisp->yuv[i]);
+			freemsg(gldisp->yuv[i]);
 			gldisp->yuv[i] = NULL;
 		}
 	}
