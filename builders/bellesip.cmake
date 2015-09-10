@@ -43,3 +43,6 @@ list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=${ENABLE_UNIT_TESTS}")
 if(ENABLE_UNIT_TESTS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	list(APPEND EP_bellesip_DEPENDENCIES EP_cunit)
 endif()
+
+set(EP_bellesip_SPEC_FILE "belle-sip.spec")
+set(EP_bellesip_RPMBUILD_NAME "belle-sip")

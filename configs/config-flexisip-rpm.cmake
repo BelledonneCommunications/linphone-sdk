@@ -81,14 +81,6 @@ set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
 
 # Global configuration
 set(LINPHONE_BUILDER_HOST "")
-if(APPLE)
-	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.6")
-	set(CMAKE_OSX_ARCHITECTURES "i386")
-	set(LINPHONE_BUILDER_HOST "i686-apple-darwin")
-	set(LINPHONE_BUILDER_CPPFLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -arch ${CMAKE_OSX_ARCHITECTURES}")
-	set(LINPHONE_BUILDER_OBJCFLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -arch ${CMAKE_OSX_ARCHITECTURES}")
-	set(LINPHONE_BUILDER_LDFLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET} -arch ${CMAKE_OSX_ARCHITECTURES}")
-endif(APPLE)
 
 set(RPM_INSTALL_PREFIX "/opt/belledonne-communications")
 
@@ -103,26 +95,28 @@ endif()
 
 # needed *before* the include
 set(EP_ortp_FORCE_AUTOTOOLS True)
-
+#required to use autotools
+set(EP_bellesip_USE_AUTOGEN True)
 
 
 # Include builders
 include(builders/CMakeLists.txt)
 
+set(EP_bellesip_LINKING_TYPE "--enable-static")
+
 set(EP_ortp_BUILD_METHOD     "rpm")
+set(EP_bellesip_BUILD_METHOD     "rpm")
 set(EP_sofiasip_BUILD_METHOD "rpm")
 set(EP_flexisip_BUILD_METHOD "rpm")
 set(EP_odb_BUILD_METHOD      "custom")
 
 set(EP_ortp_SPEC_PREFIX     "${RPM_INSTALL_PREFIX}")
+set(EP_bellesip_SPEC_PREFIX     "${RPM_INSTALL_PREFIX}")
 set(EP_sofiasip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_flexisip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 
 set(EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder" "--enable-redis")
 
-if (ENABLE_PRESENCE)
-	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-presence")
-endif()
 
 set(EP_ortp_RPMBUILD_OPTIONS      "--with bc --without srtp")
 set(EP_unixodbc_RPMBUILD_OPTIONS  "--with bc")
@@ -130,6 +124,12 @@ set(EP_myodbc_RPMBUILD_OPTIONS    "--with bc")
 set(EP_sofiasip_RPMBUILD_OPTIONS  "--with bc --without glib")
 set(EP_hiredis_RPMBUILD_OPTIONS   "--with bc" )
 set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --without boostlog --with push")
+set(EP_bellesip_RPMBUILD_OPTIONS  "--with bc ")
+
+if (ENABLE_PRESENCE)
+	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --with presence")
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-presence")
+endif()
 
 if(ENABLE_BC_ODBC)
 	set(EP_unixodbc_BUILD_METHOD       "rpm")
