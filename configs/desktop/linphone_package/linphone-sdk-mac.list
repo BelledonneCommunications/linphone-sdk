@@ -1,0 +1,7 @@
+./include/*
+./lib/lib*.dylib
+./lib/cmake/*
+./lib/pkgconfig/*
+./lib/mediastreamer/plugins
+./share/images/nowebcamCIF.jpg
+./share/sounds/*

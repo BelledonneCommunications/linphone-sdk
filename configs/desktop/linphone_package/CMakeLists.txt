@@ -45,11 +45,18 @@ list(GET SPLITTED_LINPHONE_VERSION 0 LINPHONE_MAJOR_VERSION)
 list(GET SPLITTED_LINPHONE_VERSION 1 LINPHONE_MINOR_VERSION)
 list(GET SPLITTED_LINPHONE_VERSION 2 LINPHONE_MICRO_VERSION)
 
-# Generate a zip archive containing the development files of liblinphone
+# Generates a zip archive containing the development files of liblinphone
 if(WIN32)
 	find_program(7Z_PROGRAM 7z.exe)
 	execute_process(
 		COMMAND ${7Z_PROGRAM} a -tzip ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-win32.zip @${CMAKE_SOURCE_DIR}/linphone-sdk.list
+		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
+	)
+elseif(APPLE)
+	find_program(ZIP_PROGRAM zip)
+	execute_process(
+		COMMAND rm -rf ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip
+		COMMAND ${ZIP_PROGRAM} -ry ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip . -i @${CMAKE_SOURCE_DIR}/linphone-sdk-mac.list
 		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
 	)
 endif()
