@@ -1,8 +1,22 @@
 # -*- rpm-spec -*-
 
 ## rpmbuild options
+# These 2 lines are here because we can build the RPM for flexisip, in which
+# case we prefix the entire installation so that we don't break compatibility
+# with the user's libs.
+# To compile with bc prefix, use rpmbuild -ba --with bc [SPEC]
+%define                 pkg_name        %{?_with_bc:bc-belle-sip}%{!?_with_bc:belle-sip}
+%{?_with_bc: %define    _prefix         /opt/belledonne-communications}
+%define                 srtp            %{?_without_srtp:0}%{?!_without_srtp:1}
 
-Name:           belle-sip
+# re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
+# taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
+%define _datarootdir       %{_prefix}/share
+%define _datadir           %{_datarootdir}
+%define _docdir            %{_datadir}/doc
+
+
+Name:           %{pkg_name}
 Version:        @VERSION@
 Release:        %(version=`git describe --tags --abbrev=40 | sed -rn 's/^.*-([0-9]+)-g[a-z0-9]{40}$/\1/p'` && if test -z "$version" ; then echo 0 ; else echo $version ; fi)%{?dist}
 Summary:        Linphone sip stack
