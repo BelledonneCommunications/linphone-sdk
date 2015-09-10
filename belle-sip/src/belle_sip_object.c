@@ -71,7 +71,7 @@ int belle_sip_object_get_object_count(void){
 
 void belle_sip_object_dump_active_objects(void){
 	belle_sip_list_t *elem;
-	
+
 	if (all_objects){
 		belle_sip_message("List of leaked objects:");
 		for(elem=all_objects;elem!=NULL;elem=elem->next){
@@ -125,7 +125,7 @@ void belle_sip_object_unref(void *ptr){
 		return;
 	}
 	obj->ref--;
-	if (obj->ref==0){
+	if (obj->ref<=0){ // Can be null OR negative when no pool is available and object is unowned
 		obj->ref=-1;
 		belle_sip_object_delete(obj);
 	}
