@@ -28,16 +28,19 @@ static void completion_cb(void *user_data, int percentage){
 
 int main(int argc, char *argv[]){
 	double ret=0;
-	double overlap=0;
+	MSAudioDiffParams params={0};
 	if (argc<3){
-		fprintf(stderr,"%s: file1 file2 [overlap-percentage]\nCompare two wav audio files and display a similarity factor between 0 and 1.\n",argv[0]);
+		fprintf(stderr,"%s: file1 file2 [overlap-percentage] [chunk size in milliseconds]\nCompare two wav audio files and display a similarity factor between 0 and 1.\n",argv[0]);
 		return -1;
 	}
 	if (argc>3){
-		overlap=atoi(argv[3]);
+		params.max_shift_percent=atoi(argv[3]);
+	}
+	if (argc>4){
+		params.chunk_size_ms = atoi(argv[4]);
 	}
 	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-	if (ms_audio_diff(argv[1],argv[2],&ret,overlap,completion_cb,NULL)==0){
+	if (ms_audio_diff(argv[1],argv[2],&ret,&params,completion_cb,NULL)==0){
 		fprintf(stdout,"%s and %s are similar with a degree of %g.\n",argv[1],argv[2],ret);
 		return 0;
 	}else{

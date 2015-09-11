@@ -29,11 +29,11 @@ typedef struct {
 	int nchannels;
 	int16_t *buffer;
 	int nsamples;
-	int64_t energy_r;
-	int64_t energy_l;
+	int fd;
 }FileInfo;
 
 static void file_info_destroy(FileInfo *fi){
+	close(fi->fd);
 	ms_free(fi->buffer);
 	ms_free(fi);
 }
@@ -45,7 +45,6 @@ static FileInfo *file_info_new(const char *file){
 	int hsize;
 	struct stat stbuf;
 	int size;
-	int err;
 
 	if ((fd=open(file,O_RDONLY|O_BINARY))==-1){
 		ms_error("Failed to open %s : %s",file,strerror(errno));
@@ -62,179 +61,227 @@ static FileInfo *file_info_new(const char *file){
 	}
 	fi=ms_new0(FileInfo,1);
 	size=stbuf.st_size-hsize;
-
-	fi->buffer=ms_new0(int16_t,size/sizeof(int16_t));
 	fi->rate=wave_header_get_rate(&header);
 	fi->nchannels=wave_header_get_channel(&header);
 	fi->nsamples=size/(sizeof(int16_t)*fi->nchannels);
-	err=read(fd,fi->buffer,size);
-	if (err==-1){
+	fi->fd = fd;
+	return fi;
+}
+
+static int file_info_read(FileInfo *fi, int zero_pad_samples, int zero_pad_end_samples){
+	int err;
+	int size = fi->nsamples * fi->nchannels *2;
+	fi->buffer=ms_new0(int16_t,(fi->nsamples + 2*zero_pad_samples +  2*zero_pad_end_samples) * fi->nchannels);
+	
+	err = read(fi->fd,fi->buffer + (zero_pad_samples * fi->nchannels), size);
+	if (err == -1){
 		ms_error("Could not read file: %s",strerror(errno));
-		goto error;
 	}else if (err<size){
 		ms_error("Partial read of %i bytes",err);
-		goto error;
-	}
-	return fi;
-	error:
-		file_info_destroy(fi);
-		return NULL;
+		err = -1;
+	}else err = 0;
+	fi->nsamples += zero_pad_end_samples; /*consider that the end-padding zero samples are part of the audio*/
+	return err;
 }
 
-/*
- * compute cross correlation between two signals. The results should n1+n2 samples.
+static int64_t scalar_product(int16_t *s1, int16_t *s2, int n, int step){
+	int64_t acc = 0;
+	int i;
+	
+	for (i=0; i< n-4; i += 4){
+		acc += s1[i*step] * s2[i*step];
+		acc += s1[(i+1)*step] * s2[(i+1)*step];
+		acc += s1[(i+2)*step] * s2[(i+2)*step];
+		acc += s1[(i+3)*step] * s2[(i+3)*step];
+	}
+	for (; i< n; i++){
+		acc += s1[i*step] * s2[i*step];
+	}
+	return acc;
+}
+
+typedef struct _ProgressContext{
+	MSAudioDiffProgressNotify func;
+	void *user_data;
+	int progress;
+	int prev_progress;
+	int cur_op_progress;
+	float cur_op_weight;
+}ProgressContext;
+
+static void progress_context_init(ProgressContext *ctx, MSAudioDiffProgressNotify func, void *user_data){
+	ctx->func = func;
+	ctx->user_data = user_data;
+	ctx->progress = 0;
+	ctx->prev_progress = 0;
+	ctx->cur_op_progress = 0;
+	ctx->cur_op_weight = 1;
+}
+
+/*start a new operation with supplied weight*/
+static void progress_context_push(const ProgressContext *ctx, ProgressContext* new_ctx, float weight){
+	new_ctx->func = ctx->func;
+	new_ctx->user_data = ctx->user_data;
+	new_ctx->progress = ctx->progress;
+	new_ctx->cur_op_progress = 0;
+	new_ctx->prev_progress = 0;
+	new_ctx->cur_op_weight = weight * ctx->cur_op_weight;
+}
+
+static void progress_context_pop(ProgressContext *ctx, const ProgressContext* new_ctx){
+	ctx->progress += new_ctx->cur_op_progress;
+	ctx->cur_op_progress += new_ctx->cur_op_progress;
+}
+
+static void progress_context_update(ProgressContext *ctx, int cur_progress){
+	if (!ctx->func) return;
+	ctx->cur_op_progress = (int)(cur_progress * (float)ctx->cur_op_weight);
+	if (ctx->cur_op_progress != ctx->prev_progress){
+		ctx->prev_progress = ctx->cur_op_progress;
+		ctx->func(ctx->user_data, ctx->progress +  ctx->cur_op_progress);
+	}
+}
+
+/* This function assumes the following:
+ * - s1's length is inferior to s2's length
+ * - s2 has been padded with 'len' initial and trailing zeroes 
+ * The output is a normalized cross correlation.
 **/
-static int compute_cross_correlation(int16_t *s1, int n1, int16_t *s2, int n2, int64_t *xcorr, int xcorr_nsamples, MSAudioDiffProgressNotify func, void *user_data, int delta){
-	int64_t acc;
-	int64_t max=0;
-	int max_index=0;
-	int i,k;
-	int completion=0;
-	int prev_completion=0;
-
-#define STEP 4
-#define ACC(k1,k2,s) acc+=(int64_t)( (int)s1[k1+s]*(int)s2[k2+s]);
-	for(i=0;i<delta;++i){
-		completion=100*i/(delta*2);
-		acc=0;
-
-		for(k=0; k<MIN(n1,n2-delta+i); k+=STEP){
-			int k2=k+delta-i;
-			ACC(k,k2,0);
-			ACC(k,k2,1);
-			ACC(k,k2,2);
-			ACC(k,k2,3);
+static int compute_cross_correlation(int16_t *s1, int n1, int16_t *s2_padded, float *xcorr, int xcorr_nsamples, ProgressContext *pctx, int step, int64_t *s1_energy){
+	int max_index = 0;
+	int i;
+	int64_t tmp,max=0;
+	int64_t norm1 = scalar_product(s1, s1, n1, step);
+	int64_t norm2 = scalar_product(s2_padded, s2_padded, n1, step) - s2_padded[step*(n1-1)]*s2_padded[step*(n1-1)];
+	
+	for (i=0; i<xcorr_nsamples; i++){
+		norm2 += s2_padded[step*(i+n1-1)]*s2_padded[step*(i+n1-1)];
+		tmp = scalar_product(s1, s2_padded + i*step, n1, step);
+		xcorr[i] = (double)tmp / sqrt((double)(norm1)*(double)norm2);
+		tmp = tmp < 0 ? -tmp : tmp;
+		if (tmp > max){
+			max = tmp;
+			max_index = i;
 		}
-		xcorr[i]=acc;
-		acc = acc > 0 ? acc : -acc;
-		if (acc>max) {
-			max=acc;
-			max_index=i;
-		}
-		if (func && completion>prev_completion)
-			func(user_data,completion);
-		prev_completion=completion;
+		norm2 -= s2_padded[step*i]*s2_padded[step*i];
+		progress_context_update(pctx, 100 * i/xcorr_nsamples);
 	}
-	for(i=delta;i<2*delta;++i){
-		completion=100*i/(delta*2);
-		acc=0;
-
-		for(k=0; k<MIN(n1+delta-i,n2); k+=STEP){
-			int k1;
-			k1=k+i-delta;
-			ACC(k1,k,0);
-			ACC(k1,k,1);
-			ACC(k1,k,2);
-			ACC(k1,k,3);
-		}
-		xcorr[i] = acc;
-		acc = acc > 0 ? acc : -acc;
-		if (acc>max) {
-			max=acc;
-			max_index=i;
-		}
-		if (func && completion>prev_completion)
-			func(user_data,completion);
-		prev_completion=completion;
-	}
+	if (s1_energy) *s1_energy = norm1;
 	return max_index;
 }
 
-/*
- * compute cross correlation between two stereo signals, but for one channel only. The results should be at most n1+n2 samples.
-**/
-static int compute_cross_correlation_interleaved(int16_t *s1, int n1, int16_t *s2, int n2, int64_t *xcorr, int xcorr_nsamples, MSAudioDiffProgressNotify func, void *user_data, int channel_num, int delta){
-	int64_t acc;
-	int64_t max=0;
-	int max_index=0;
-	int i,k;
-	int completion=0;
-	int prev_completion=0;
-
-	for (i=0;i<delta;++i){
-		completion=100*(i+(2*delta*channel_num))/(delta*4);
-		acc=0;
-
-		for(k=0; k<MIN(n1,n2-delta+i); k++){
-			int k2=k+delta-i;
-			ACC((2*k)+channel_num,(2*k2)+channel_num,0);
-		}
-		xcorr[i]=acc;
-		acc = acc > 0 ? acc : -acc;
-		if (acc>max) {
-			max=acc;
-			max_index=i;
-		}
-		if (func && completion>prev_completion)
-			func(user_data,completion);
-		prev_completion=completion;
-	}
-	for (i=delta;i<2*delta;++i){
-		completion=100*(i+(2*delta*channel_num))/(delta*4);
-		acc=0;
-
-		for(k=0; k<MIN(n1+delta-i,n2); k++){
-			int k1;
-			k1=k+i-delta;
-			ACC((2*k1)+channel_num,(2*k)+channel_num,0);
-		}
-		xcorr[i] = acc;
-		acc = acc > 0 ? acc : -acc;
-		if (acc>max) {
-			max=acc;
-			max_index=i;
-		}
-		if (func && completion>prev_completion)
-			func(user_data,completion);
-		prev_completion=completion;
-	}
-	return max_index;
-}
-
-static int64_t energy(int16_t *s1, int n1){
-	int i;
-	int64_t ret=0;
-	for(i=0;i<n1;++i){
-		ret+=(int)s1[i]*(int)s1[i];
-	}
-	return ret;
-}
-
-static int64_t energy_interleaved(int16_t *s1, int n1, int channel_index){
-	int i;
-	int64_t ret=0;
-	for(i=0;i<n1;i++){
-		ret+=(int)s1[2*i+channel_index]*(int)s1[2*i+channel_index];
-	}
-	return ret;
-}
-
-void file_info_compute_energy(FileInfo *fi){
-	if (fi->nchannels==2){
-		fi->energy_r=energy_interleaved(fi->buffer,fi->nsamples,0);
-		fi->energy_l=energy_interleaved(fi->buffer,fi->nsamples,1);
-		ms_message("energy_r=%li energy_l=%li",(long int)fi->energy_r, (long int)fi->energy_l);
-	}else{
-		fi->energy_r=energy(fi->buffer,fi->nsamples);
-		ms_message("energy=%li",(long int)fi->energy_r);
-	}
-}
-
-
-int ms_audio_diff(const char *file1, const char *file2, double *ret, int max_shift_percent, MSAudioDiffProgressNotify func, void *user_data){
-	FileInfo *fi1,*fi2;
-	int64_t *xcorr;
+static int _ms_audio_diff_one_chunk(int16_t *s1, int16_t *s2, int nsamples, int max_shift_samples, int nchannels, double *ret, int64_t *s1_energy, ProgressContext *pctx){
+	float *xcorr;
 	int xcorr_size;
-	int max_shift_samples;
 	int max_index_r;
 	int max_index_l;
 	double max_r, max_l;
+	int max_pos;
+	ProgressContext local_pctx;
+	int64_t er, el;
+	
+	xcorr_size=max_shift_samples*2;
+	xcorr = ms_new0(float, xcorr_size);
+	if (nchannels == 2){
+		progress_context_push(pctx, &local_pctx, 0.5);
+		max_index_r = compute_cross_correlation(s1, nsamples, s2, xcorr, xcorr_size, &local_pctx, 2, &er);
+		max_r = xcorr[max_index_r];
+		progress_context_pop(pctx, &local_pctx);
+		//ms_message("max_r=%g", (double)max_r);
 
+		progress_context_push(pctx, &local_pctx, 0.5);
+		max_index_l = compute_cross_correlation(s1 + 1, nsamples, s2 + 1, xcorr, xcorr_size, &local_pctx, 2, &el);
+		progress_context_pop(pctx, &local_pctx);
+		max_l = xcorr[max_index_l];
+		//ms_message("max_l=%g", (double)max_l);
+		ms_message("chunk - max stereo cross-correlation obtained at position [%i,%i], similarity factor=%g,%g",
+			   max_index_r-max_shift_samples,max_index_l-max_shift_samples,max_r, max_l);
+		*ret = 0.5 * (fabs(max_r) + fabs(max_l)) * (1 - (double)abs(max_index_r-max_index_l)/(double)xcorr_size);
+		max_pos = (max_index_r + max_index_l - 2*max_shift_samples) / 2;
+		if (s1_energy) *s1_energy = (er + el)/2;
+	}else{
+		progress_context_push(pctx, &local_pctx, 1.0);
+		max_index_r = compute_cross_correlation(s1, nsamples , s2, xcorr, xcorr_size, &local_pctx, 1, s1_energy);
+		progress_context_pop(pctx, &local_pctx);
+		max_r = xcorr[max_index_r];
+		*ret = max_r;
+		max_pos = max_index_r-max_shift_samples;
+		ms_message("chunk - max cross-correlation obtained at position [%i], similarity factor=%g", max_pos, *ret);
+	}
+	ms_free(xcorr);
+	return max_pos;
+}
+
+static int _ms_audio_diff_chunked(FileInfo *fi1, FileInfo *fi2, double *ret, int max_shift_samples, int chunk_size_samples, ProgressContext *pctx){
+	int cur_chunk_samples;
+	int samples = 0;
+	int step = fi1->nchannels;
+	double cum_res = 0;
+	int64_t cum_maxpos = 0;
+	int maxpos;
+	int num_chunks = (fi1->nsamples + chunk_size_samples) / chunk_size_samples;
+	int *max_pos_table = ms_new0(int, num_chunks);
+	int64_t *chunk_energies = ms_new0(int64_t, num_chunks);
+	double variance = 0;
+	int i=0;
+	ProgressContext local_pctx;
+	int64_t tot_energy = 0;
+	
+	do{
+		double chunk_ret = 0;
+		int64_t chunk_energy;
+		cur_chunk_samples = MIN(chunk_size_samples, fi1->nsamples - samples);
+		progress_context_push(pctx, &local_pctx, (float)cur_chunk_samples/(float)fi1->nsamples);
+		maxpos = _ms_audio_diff_one_chunk(fi1->buffer + samples*step, fi2->buffer + samples*step, cur_chunk_samples, max_shift_samples,
+					 fi1->nchannels, &chunk_ret, &chunk_energy, &local_pctx);
+		progress_context_pop(pctx, &local_pctx);
+		samples += chunk_size_samples;
+		cum_res += chunk_ret * chunk_energy;
+		ms_message("chunk_energy is %li", (long int) chunk_energy);
+		chunk_energies[i] = chunk_energy;
+		max_pos_table[i] = maxpos; 
+		cum_maxpos += maxpos * chunk_energy;
+		tot_energy += chunk_energy;
+		i++;
+	}while(samples < fi1->nsamples);
+	num_chunks = i;
+	
+	ms_message("tot_energy is %li", (long int) tot_energy);
+	maxpos = cum_maxpos / tot_energy;
+	ms_message("Maxpos is %i", maxpos);
+	
+	/*compute variance of max_pos among all chunks*/
+	for(i=0; i<num_chunks; ++i){
+		double tmp = (max_pos_table[i]-maxpos)*((double)chunk_energies[i]/(double)tot_energy);
+		variance += tmp*tmp;
+	}
+	variance = sqrt(variance);
+	ms_message("Max position variance is [%g], that is [%g] ms", variance, variance / fi1->rate);
+	variance = variance / (double) max_shift_samples;
+	*ret = cum_res / (double)tot_energy;
+	ms_message("Similarity factor weighted with most significant chunks is [%g]", *ret);
+	*ret = *ret * (1-variance);
+	ms_message("After integrating max position variance accross chunks, it is [%g]", *ret);
+	ms_free(chunk_energies);
+	ms_free(max_pos_table);
+	return maxpos;
+}
+
+int ms_audio_diff(const char *ref_file, const char *matched_file, double *ret, const MSAudioDiffParams *params, MSAudioDiffProgressNotify func, void *user_data){
+	FileInfo *fi1,*fi2;
+	int max_shift_samples;
+	int err = 0;
+	ProgressContext pctx;
+	int maxpos;
+	int end_zero_pad_samples = 0;
+	
+	progress_context_init(&pctx, func, user_data);
+	
 	*ret=0;
 
-	fi1=file_info_new(file1);
+	fi1=file_info_new(ref_file);
 	if (fi1==NULL) return 0;
-	fi2=file_info_new(file2);
+	fi2=file_info_new(matched_file);
 	if (fi2==NULL){
 		file_info_destroy(fi1);
 		return -1;
@@ -242,48 +289,39 @@ int ms_audio_diff(const char *file1, const char *file2, double *ret, int max_shi
 
 	if (fi1->rate!=fi2->rate){
 		ms_error("Comparing files of different sampling rates is not supported (%d vs %d)", fi1->rate, fi2->rate);
-		return -1;
+		err = -1;
+		goto end;
 	}
 
 	if (fi1->nchannels!=fi2->nchannels){
 		ms_error("Comparing files with different number of channels is not supported (%d vs %d)", fi1->nchannels, fi2->nchannels);
-		return -1;
+		err = -1;
+		goto end;
 	}
-
-	file_info_compute_energy(fi1);
-	file_info_compute_energy(fi2);
-
-	if (fi1->energy_r==0 || fi2->energy_r==0){
-		/*avoid division by zero*/
-		ms_error("One of the two files is pure silence.");
-		return -1;
+	max_shift_samples = MIN(fi1->nsamples, fi2->nsamples) * MIN(MAX(1, params->max_shift_percent), 100) / 100;
+	
+	if (fi1->nsamples > fi2->nsamples){
+		end_zero_pad_samples = fi1->nsamples - fi2->nsamples;
 	}
-
-	max_shift_samples = MIN(fi1->nsamples, fi2->nsamples) * MIN(MAX(1, max_shift_percent), 100) / 100;
-	xcorr_size=max_shift_samples*2;
-	xcorr=ms_new0(int64_t,xcorr_size);
-	if (fi1->nchannels == 2){
-		max_index_r=compute_cross_correlation_interleaved(fi1->buffer,fi1->nsamples,fi2->buffer,fi2->nsamples,xcorr,xcorr_size, func, user_data, 0, max_shift_samples);
-		max_r=xcorr[max_index_r];
-		ms_message("max_r=%g", (double)max_r);
-		max_r/=sqrt((double)fi1->energy_r*(double)fi2->energy_r);
-
-		max_index_l=compute_cross_correlation_interleaved(fi1->buffer,fi1->nsamples,fi2->buffer,fi2->nsamples,xcorr,xcorr_size, func, user_data, 1, max_shift_samples);
-		max_l=xcorr[max_index_l];
-		ms_message("max_l=%g", (double)max_l);
-		max_l/=sqrt((double)fi1->energy_l*(double)fi2->energy_l);
-		ms_message("Max stereo cross-correlation obtained at position [%i,%i], similarity factor=%g,%g",
-			   max_index_r-max_shift_samples,max_index_l-max_shift_samples,max_r, max_l);
-		*ret = 0.5 * (fabs(max_r) + fabs(max_l)) * (1 - (double)abs(max_index_r-max_index_l)/(double)xcorr_size);
+	/*load the datas*/
+	if (file_info_read(fi1, 0, 0)==-1){
+		err = -1;
+		goto end;
+	}
+	if (file_info_read(fi2, max_shift_samples, end_zero_pad_samples)==-1){
+		err = -1;
+		goto end;
+	}
+	
+	if (params->chunk_size_ms == 0){
+		maxpos = _ms_audio_diff_one_chunk(fi1->buffer, fi2->buffer, fi1->nsamples, max_shift_samples, fi1->nchannels, ret, NULL, &pctx);
 	}else{
-		max_index_r=compute_cross_correlation(fi1->buffer,fi1->nsamples,fi2->buffer,fi2->nsamples,xcorr,xcorr_size, func, user_data, max_shift_samples);
-		max_r=xcorr[max_index_r];
-		max_r/=(sqrt(fi1->energy_r)*sqrt(fi2->energy_r));
-		*ret=max_r;
-		ms_message("Max cross-correlation obtained at position [%i], similarity factor=%g",max_index_r-max_shift_samples,*ret);
+		int chunk_size_samples = params->chunk_size_ms * fi1->rate / 1000;
+		maxpos = _ms_audio_diff_chunked(fi1, fi2, ret, max_shift_samples, chunk_size_samples, &pctx);
 	}
-	ms_free(xcorr);
+	ms_message("Max cross-correlation obtained at position [%i], similarity factor=[%g]", maxpos, *ret);
+end:
 	file_info_destroy(fi1);
 	file_info_destroy(fi2);
-	return 0;
+	return err;
 }
