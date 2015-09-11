@@ -256,7 +256,7 @@ static int _ms_audio_diff_chunked(FileInfo *fi1, FileInfo *fi2, double *ret, int
 		variance += tmp*tmp;
 	}
 	variance = sqrt(variance);
-	ms_message("Max position variance is [%g], that is [%g] ms", variance, variance / fi1->rate);
+	ms_message("Max position variance is [%g], that is [%g] ms", variance, 1000.0 * variance / fi1->rate);
 	variance = variance / (double) max_shift_samples;
 	*ret = cum_res / (double)tot_energy;
 	ms_message("Similarity factor weighted with most significant chunks is [%g]", *ret);
