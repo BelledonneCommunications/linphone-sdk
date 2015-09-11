@@ -111,22 +111,23 @@ belle_sip_object_t * belle_sip_object_ref(void *obj){
 
 void belle_sip_object_unref(void *ptr){
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
-	if (obj->ref==-1) {
-		belle_sip_error("Object [%p] freed twice !",obj);
+	if (obj->ref <= -1) {
+		belle_sip_error("Object [%p] freed twice or corrupted !",obj);
 		if (obj->vptr && obj->vptr->type_name) belle_sip_error("Object type might be [%s]",obj->vptr->type_name);
 		if (obj->name) belle_sip_error("Object name might be [%s]",obj->name);
 		belle_sip_fatal("Fatal object error encountered, aborting.");
 		return;
 	}
-	if (obj->ref==0 && obj->pool){
-		belle_sip_object_pool_remove(obj->pool,obj);
+	if (obj->vptr->initially_unowned && obj->ref==0){
+		if (obj->pool)
+			belle_sip_object_pool_remove(obj->pool,obj);
 		obj->ref=-1;
 		belle_sip_object_delete(obj);
 		return;
 	}
 	obj->ref--;
-	if (obj->ref<=0){ // Can be null OR negative when no pool is available and object is unowned
-		obj->ref=-1;
+	if (obj->ref == 0){
+		obj->ref = -1;
 		belle_sip_object_delete(obj);
 	}
 }

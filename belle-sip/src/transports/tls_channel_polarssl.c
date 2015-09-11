@@ -417,7 +417,7 @@ int belle_sip_verify_cb_error_wrapper(x509_crt *cert, int depth, int *flags){
 	memcpy(der, cert->raw.p, cert->raw.len);
 	der[cert->raw.len] = '\0';
 
-    rc = tls_verify_cb_error_cb(der, cert->raw.len, depth, flags);
+	rc = tls_verify_cb_error_cb(der, cert->raw.len, depth, flags);
 
 	belle_sip_message("belle_sip_verify_cb_error_wrapper: callback return rc: %d, flags: %d", rc, *flags);
 	belle_sip_free(der);
