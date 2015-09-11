@@ -60,6 +60,7 @@ void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt
 #ifdef __ARM_NEON__
 	bc_tester_add_suite(&neon_test_suite);
 #endif
+	bc_tester_add_suite(&text_stream_test_suite);
 }
 
 void mediastreamer2_tester_uninit(void) {
