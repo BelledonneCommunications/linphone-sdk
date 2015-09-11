@@ -1003,7 +1003,7 @@ static void matroska_set_doctype_version(Matroska *obj, int doctypeVersion, int 
 }
 
 static inline void matroska_write_ebml_header(Matroska *obj) {
-	EBML_ElementRender((ebml_element *)obj->header, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
+	EBML_ElementRender((ebml_element *)obj->header, obj->output, TRUE, FALSE, FALSE, NULL);
 }
 
 static int matroska_set_segment_info(Matroska *obj, const char writingApp[], const char muxingApp[], double duration) {
@@ -1883,42 +1883,41 @@ static int recorder_close(MSFilter *f, void *arg) {
 		goto end;
 	}
 	
-	if(obj->state == MSRecorderRunning) {
-		for(i=0; i < f->desc->ninputs; i++) {
-			if(obj->inputDescsList[i] != NULL) {
-				if(matroska_track_check_block_presence(&obj->file, i+1)) {
-					uint8_t *codecPrivateData = NULL;
-					size_t codecPrivateDataSize;
-					module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
-					matroska_track_set_info(&obj->file, i+1, obj->inputDescsList[i]);
-					if(codecPrivateDataSize > 0) {
-						matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
-					}
-					ms_free(codecPrivateData);
-				} else {
-					matroska_del_track(&obj->file, i+1);
+	for(i=0; i < f->desc->ninputs; i++) {
+		if(obj->inputDescsList[i] != NULL) {
+			if(matroska_track_check_block_presence(&obj->file, i+1)) {
+				uint8_t *codecPrivateData = NULL;
+				size_t codecPrivateDataSize;
+				module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
+				matroska_track_set_info(&obj->file, i+1, obj->inputDescsList[i]);
+				if(codecPrivateDataSize > 0) {
+					matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
 				}
+				ms_free(codecPrivateData);
+			} else {
+				matroska_del_track(&obj->file, i+1);
 			}
 		}
-		matroska_close_cluster(&obj->file);
-		if(matroska_write_cues(&obj->file) != 0) {
-			ms_warning("MKVRecorder: no cues written");
-		}
-
-		if(obj->openMode == MKV_OPEN_CREATE) {
-			matroska_go_to_segment_info_mark(&obj->file);
-		} else {
-			matroska_go_to_segment_info_begin(&obj->file);
-		}
-		obj->duration++;
-		matroska_set_segment_info(&obj->file, "libmediastreamer2", "libmediastreamer2", obj->duration);
-		matroska_write_segment_info(&obj->file);
-		matroska_write_tracks(&obj->file);
-		matroska_go_to_segment_begin(&obj->file);
-		matroska_write_metaSeek(&obj->file);
-		matroska_go_to_file_end(&obj->file);
-		matroska_close_segment(&obj->file);
 	}
+
+	matroska_close_cluster(&obj->file);
+	if(matroska_write_cues(&obj->file) != 0) {
+		ms_warning("MKVRecorder: no cues written");
+	}
+
+	if(obj->openMode == MKV_OPEN_CREATE) {
+		matroska_go_to_segment_info_mark(&obj->file);
+	} else {
+		matroska_go_to_segment_info_begin(&obj->file);
+	}
+	obj->duration++;
+	matroska_set_segment_info(&obj->file, "libmediastreamer2", "libmediastreamer2", obj->duration);
+	matroska_write_segment_info(&obj->file);
+	matroska_write_tracks(&obj->file);
+	matroska_go_to_segment_begin(&obj->file);
+	matroska_write_metaSeek(&obj->file);
+	matroska_go_to_file_end(&obj->file);
+	matroska_close_segment(&obj->file);
 	
 	matroska_close_file(&obj->file);
 	for(i=0; i < f->desc->ninputs; i++) {
