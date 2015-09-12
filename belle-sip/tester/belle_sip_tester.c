@@ -129,6 +129,7 @@ int main (int argc, char *argv[]) {
 
 	belle_sip_tester_init(NULL);
 
+#ifndef WIN32   /*this hack doesn't work for argv[0]="c:\blablab\"*/
 	// this allows to launch liblinphone_tester from outside of tester directory
 	if (strstr(argv[0], ".libs")) {
 		int prefix_length = strstr(argv[0], ".libs") - argv[0] + 1;
@@ -138,6 +139,7 @@ int main (int argc, char *argv[]) {
 		bc_tester_set_writable_dir_prefix(prefix);
 		belle_sip_free(prefix);
 	}
+#endif
 
 	if (env_domain) {
 		test_domain=env_domain;
