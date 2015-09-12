@@ -167,8 +167,8 @@ static void test_complete_message_handler(const CU_pTest pTest,
 	const CU_pSuite pSuite,
 	const CU_pFailureRecord pFailureList) {
 	int i;
-	char result[2048];
-	char buffer[2048];
+	char result[2048]={0};
+	char buffer[2048]={0};
 	CU_pFailureRecord pFailure = pFailureList;
 	snprintf(result, sizeof(result), "Suite [%s] Test [%s]", pSuite->pName, pTest->pName);
 	if (pFailure) {
@@ -426,7 +426,6 @@ static char * bc_tester_path(const char *prefix, const char *name) {
 		size_t len = strlen(prefix) + 1 + strlen(name) + 1;
 		file = malloc(len);
 		snprintf(file, len, "%s/%s", prefix, name);
-		file[strlen(file)] = '\0';
 	}
 	return file;
 }
