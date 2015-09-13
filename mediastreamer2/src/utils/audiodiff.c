@@ -171,44 +171,61 @@ static int compute_cross_correlation(int16_t *s1, int n1, int16_t *s2_padded, fl
 }
 
 static int _ms_audio_diff_one_chunk(int16_t *s1, int16_t *s2, int nsamples, int max_shift_samples, int nchannels, double *ret, int64_t *s1_energy, ProgressContext *pctx){
-	float *xcorr;
 	int xcorr_size;
 	int max_index_r;
 	int max_index_l;
-	double max_r, max_l;
 	int max_pos;
 	ProgressContext local_pctx;
 	int64_t er, el;
 	
 	xcorr_size=max_shift_samples*2;
-	xcorr = ms_new0(float, xcorr_size);
+	
 	if (nchannels == 2){
+		float *xcorr_r = ms_new0(float, xcorr_size);
+		float *xcorr_l = ms_new0(float, xcorr_size);
+		double max = 0;
+		double max_r, max_l;
+		int i;
+		
 		progress_context_push(pctx, &local_pctx, 0.5);
-		max_index_r = compute_cross_correlation(s1, nsamples, s2, xcorr, xcorr_size, &local_pctx, 2, &er);
-		max_r = xcorr[max_index_r];
+		max_index_r = compute_cross_correlation(s1, nsamples, s2, xcorr_r, xcorr_size, &local_pctx, 2, &er);
+		max_r = xcorr_r[max_index_r];
 		progress_context_pop(pctx, &local_pctx);
-		//ms_message("max_r=%g", (double)max_r);
 
 		progress_context_push(pctx, &local_pctx, 0.5);
-		max_index_l = compute_cross_correlation(s1 + 1, nsamples, s2 + 1, xcorr, xcorr_size, &local_pctx, 2, &el);
+		max_index_l = compute_cross_correlation(s1 + 1, nsamples, s2 + 1, xcorr_l, xcorr_size, &local_pctx, 2, &el);
+		max_l = xcorr_l[max_index_l];
 		progress_context_pop(pctx, &local_pctx);
-		max_l = xcorr[max_index_l];
-		//ms_message("max_l=%g", (double)max_l);
+		
+		max_pos = 0;
+		/*sum the square of r and l xcorr signals to determine the global maximum*/
+		for (i = 0; i < max_shift_samples; ++i){
+			xcorr_r[i] = xcorr_r[i]*xcorr_r[i] + xcorr_l[i]*xcorr_l[i];
+			if (xcorr_r[i] > max){
+				max = xcorr_r[i];
+				max_pos = i;
+			}
+		}
+		
+		max = sqrt(max/2);
 		ms_message("chunk - max stereo cross-correlation obtained at position [%i,%i], similarity factor=%g,%g",
 			   max_index_r-max_shift_samples,max_index_l-max_shift_samples,max_r, max_l);
-		*ret = 0.5 * (fabs(max_r) + fabs(max_l)) * (1 - (double)abs(max_index_r-max_index_l)/(double)xcorr_size);
-		max_pos = (max_index_r + max_index_l - 2*max_shift_samples) / 2;
+		max_pos = max_pos - max_shift_samples;
+		ms_message("chunk - max stereo overall cross-correlation obtained at position [%i], similarity factor=[%g]", max_pos, max);  
+		*ret = max;
 		if (s1_energy) *s1_energy = (er + el)/2;
+		ms_free(xcorr_r);
+		ms_free(xcorr_l);
 	}else{
+		float *xcorr = ms_new0(float, xcorr_size);
 		progress_context_push(pctx, &local_pctx, 1.0);
 		max_index_r = compute_cross_correlation(s1, nsamples , s2, xcorr, xcorr_size, &local_pctx, 1, s1_energy);
 		progress_context_pop(pctx, &local_pctx);
-		max_r = xcorr[max_index_r];
-		*ret = max_r;
+		*ret = xcorr[max_index_r];
 		max_pos = max_index_r-max_shift_samples;
+		ms_free(xcorr);
 		ms_message("chunk - max cross-correlation obtained at position [%i], similarity factor=%g", max_pos, *ret);
 	}
-	ms_free(xcorr);
 	return max_pos;
 }
 
