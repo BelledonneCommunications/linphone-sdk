@@ -249,7 +249,6 @@ TextStream *text_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port
 }
 
 TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const char *rem_rtp_addr, int rem_rtp_port, const char *rem_rtcp_addr, int rem_rtcp_port, int payload_type /* ignored */) {
-	ms_debug("before crash?");
 	rtp_session_set_profile(stream->ms.sessions.rtp_session, profile);
 
 	if (rem_rtp_port > 0) {
@@ -321,7 +320,7 @@ static void process_t140_packet(TextStream *stream, mblk_t *packet) {
 			ms_warning("packet arrived out of order");
 			return;
 		} else if (t > 0) {
-			stream->inbufsize=3;
+			stream->inbufsize = 3;
 			insert_lost_char(stream->inbuf);
 		}
 	}
@@ -408,7 +407,7 @@ static bool_t read_text_packet(TextStream *stream) {
 	if (!(stream->flags & TS_FLAG_NOTFIRST)) {
 		stream->flags |= TS_FLAG_NOTFIRST;
 	}
-	ortp_free(packet);
+	freemsg(packet);
 	return TRUE;
 }
 
@@ -422,20 +421,17 @@ static bool_t text_stream_ischar(TextStream *stream) {
 void text_stream_iterate(TextStream *stream) {
 	send_data(stream);
 
-	if (stream->flags & TS_FLAG_NOCALLBACK) {
-		return;
-	}
-
-	if (text_stream_ischar(stream)) {
+	while (text_stream_ischar(stream)) {
 		OrtpEvent *ev;
 		OrtpEventData *eventData;
+		uint32_t character = text_stream_getchar32(stream);
 		
-		ev = ortp_event_new(ORTP_EVENT_RTT_CHARACTER_RECEIVED);
-		eventData = ortp_event_get_data(ev);
-		eventData->info.received_rtt_character = text_stream_getchar32(stream);
-		rtp_session_dispatch_event(stream->ms.sessions.rtp_session, ev);
-		
-		stream->flags |= TS_FLAG_NOCALLBACK;
+		if (character != 0) {
+			ev = ortp_event_new(ORTP_EVENT_RTT_CHARACTER_RECEIVED);
+			eventData = ortp_event_get_data(ev);
+			eventData->info.received_rtt_character = character;
+			rtp_session_dispatch_event(stream->ms.sessions.rtp_session, ev);
+		}
 	}
 }
 
@@ -444,8 +440,7 @@ void text_stream_putchar(TextStream *stream, const char c) {
 
 	if (stream->bufsize[i] < TS_OUTBUF_SIZE) {
 		stream->buf[i][stream->bufsize[i]++] = c;
-	}
-	else {
+	} else {
 		ms_warning("Text stream out buf is full, can not add more characters to buffer!");
 	}
 }
@@ -501,7 +496,6 @@ char text_stream_getchar(TextStream *stream) {
 	if (read_text_packet(stream)) {
 		return text_stream_getchar(stream);
 	}
-	stream->flags &= ~TS_FLAG_NOCALLBACK;
 	return '\0';
 }
 

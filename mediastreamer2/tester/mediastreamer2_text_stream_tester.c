@@ -150,7 +150,7 @@ static void basic_text_stream(void) {
 	const char* helloworld = "Hello World !";
 	int i = 0, strcmpresult = -2;
 	
-	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE);
+	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
 	
 	for (; i < strlen(helloworld); i++) {
 		char c = helloworld[i];
@@ -163,10 +163,38 @@ static void basic_text_stream(void) {
 	BC_ASSERT_EQUAL(strcmpresult, 0, int, "%d");
 
 	uninit_text_streams(marielle, margaux);
+	text_stream_tester_destroy(marielle);
+	text_stream_tester_destroy(margaux);
+}
+
+static void basic_text_stream2(void) {
+	text_stream_tester_t* marielle = text_stream_tester_new();
+	text_stream_tester_t* margaux = text_stream_tester_new();
+	const char* helloworld = "Hello World !";
+	int i = 0, strcmpresult = -2;
+	int dummy = 0;
+	
+	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
+	
+	for (; i < strlen(helloworld); i++) {
+		char c = helloworld[i];
+		text_stream_putchar32(margaux->ts, (uint32_t)c);
+		wait_for_until_with_parse_events(&marielle->ts->ms, &margaux->ts->ms, &dummy, 1, 500, event_queue_cb, marielle, NULL, NULL);
+	}
+	
+	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 1000));
+	ms_message("Received message is: %s", marielle->stats.received_chars);
+	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
+	BC_ASSERT_EQUAL(strcmpresult, 0, int, "%d");
+
+	uninit_text_streams(marielle, margaux);
+	text_stream_tester_destroy(marielle);
+	text_stream_tester_destroy(margaux);
 }
 
 static test_t tests[] = {
-	{ "Basic text stream", basic_text_stream }
+	{ "Basic text stream: copy paste short text", basic_text_stream },
+	{ "Basic text stream: slow typing", basic_text_stream2 }
 };
 
 test_suite_t text_stream_test_suite = {
