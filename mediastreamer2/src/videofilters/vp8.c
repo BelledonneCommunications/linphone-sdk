@@ -908,6 +908,9 @@ static void dec_preprocess(MSFilter* f) {
 	#endif
 		if(vpx_codec_dec_init(&s->codec, s->iface, NULL, s->flags))
 			ms_error("Failed to initialize decoder");
+		/*because of a crash in libvpx-1.4 decoder (assert fragment_idx <= num_token_partitions ), providing the decoder with incomplete frames must be avoided
+		 * for the moment. freeze_on_error is forced to TRUE regardless of application's preference.*/
+		s->freeze_on_error = TRUE;
 		ms_message("VP8: initializing decoder context: avpf=[%i] freeze_on_error=[%i]",s->avpf_enabled,s->freeze_on_error);
 		vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error, (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
 		s->first_image_decoded = FALSE;
