@@ -270,10 +270,12 @@ TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const cha
 		ms_warning("unkown type of textstream");
 	}
 	
+	stream->ms.state = MSStreamStarted;
 	return stream;
 }
 
 void text_stream_stop(TextStream *stream) {
+	stream->ms.state = MSStreamStopped;
 	text_stream_free(stream);
 }
 

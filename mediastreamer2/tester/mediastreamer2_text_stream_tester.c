@@ -192,9 +192,70 @@ static void basic_text_stream2(void) {
 	text_stream_tester_destroy(margaux);
 }
 
+static void copy_paste_text_longer_than_rtt_buffer(void) {
+	text_stream_tester_t* marielle = text_stream_tester_new();
+	text_stream_tester_t* margaux = text_stream_tester_new();
+	const char* helloworld = "Lorem ipsum belledonnum communicatum mediastrimum";
+	int i = 0, strcmpresult = -2;
+	
+	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
+	
+	for (; i < strlen(helloworld); i++) {
+		char c = helloworld[i];
+		text_stream_putchar32(margaux->ts, (uint32_t)c);
+	}
+	
+	BC_ASSERT_FALSE(wait_for_until_with_parse_events(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000, event_queue_cb, marielle, NULL, NULL));
+	ms_message("Received message is: %s", marielle->stats.received_chars);
+	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
+	BC_ASSERT_EQUAL(strcmpresult, -1, int, "%d");
+
+	uninit_text_streams(marielle, margaux);
+	text_stream_tester_destroy(marielle);
+	text_stream_tester_destroy(margaux);
+}
+
+static void srtp_protected_text_stream(void) {
+	text_stream_tester_t* marielle = text_stream_tester_new();
+	text_stream_tester_t* margaux = text_stream_tester_new();
+	const char* helloworld = "Hello World !";
+	int i = 0, strcmpresult = -2;
+	int dummy = 0;
+	
+	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_encryption_mandatory(&marielle->ts->ms.sessions, TRUE), 0, int, "%d");
+	
+	BC_ASSERT_TRUE(ms_srtp_supported());
+	
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") == 0);
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") == 0);
+	
+	BC_ASSERT_TRUE(media_stream_secured(&marielle->ts->ms));
+	BC_ASSERT_TRUE(media_stream_secured(&margaux->ts->ms));
+	
+	for (; i < strlen(helloworld); i++) {
+		char c = helloworld[i];
+		text_stream_putchar32(margaux->ts, (uint32_t)c);
+		wait_for_until_with_parse_events(&marielle->ts->ms, &margaux->ts->ms, &dummy, 1, 500, event_queue_cb, marielle, NULL, NULL);
+	}
+	
+	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 1000));
+	ms_message("Received message is: %s", marielle->stats.received_chars);
+	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
+	BC_ASSERT_EQUAL(strcmpresult, 0, int, "%d");
+
+	uninit_text_streams(marielle, margaux);
+	text_stream_tester_destroy(marielle);
+	text_stream_tester_destroy(margaux);
+}
+
 static test_t tests[] = {
 	{ "Basic text stream: copy paste short text", basic_text_stream },
-	{ "Basic text stream: slow typing", basic_text_stream2 }
+	{ "Basic text stream: slow typing", basic_text_stream2 },
+	{ "copy paste text longer than buffer size", copy_paste_text_longer_than_rtt_buffer },
+	{ "slow typing with SRTP", srtp_protected_text_stream }
 };
 
 test_suite_t text_stream_test_suite = {
