@@ -52,68 +52,79 @@ if(WIN32)
 		COMMAND ${7Z_PROGRAM} a -tzip ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-win32.zip @${CMAKE_SOURCE_DIR}/linphone-sdk.list
 		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
 	)
-elseif(APPLE)
-	find_program(ZIP_PROGRAM zip)
-	execute_process(
-		COMMAND rm -rf ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip
-		COMMAND ${ZIP_PROGRAM} -ry ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip . -i @${CMAKE_SOURCE_DIR}/linphone-sdk-mac.list
-		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
-	)
+#elseif(APPLE)
+#	find_program(ZIP_PROGRAM zip)
+#	execute_process(
+#		COMMAND rm -rf ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip
+#		COMMAND ${ZIP_PROGRAM} -ry ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip . -i @${CMAKE_SOURCE_DIR}/linphone-sdk-mac.list
+#		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
+#	)
 endif()
 
-install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/"
-	DESTINATION "."
-	COMPONENT "linphone_base"
-	PATTERN "doc" EXCLUDE
-	PATTERN "etc" EXCLUDE
-	PATTERN "include" EXCLUDE
-	PATTERN "lib/cmake" EXCLUDE
-	PATTERN "lib/gdk-pixbuf-2.0" EXCLUDE
-	PATTERN "lib/glib-2.0" EXCLUDE
-	PATTERN "lib/mediastreamer" EXCLUDE
-	PATTERN "lib/pkgconfig" EXCLUDE
-	PATTERN "lib/*.a" EXCLUDE
-	PATTERN "lib/*.def" EXCLUDE
-	PATTERN "lib/*.exp" EXCLUDE
-	PATTERN "lib/*.la" EXCLUDE
-	PATTERN "lib/*.lib" EXCLUDE
-	PATTERN "man" EXCLUDE
-	PATTERN "manifest" EXCLUDE
-	PATTERN "share/aclocal" EXCLUDE
-	PATTERN "share/CUnit" EXCLUDE
-	PATTERN "share/glib-2.0" EXCLUDE
-	PATTERN "share/gtk-2.0" EXCLUDE
-	PATTERN "share/gtk-doc" EXCLUDE
-	PATTERN "share/intltool" EXCLUDE
-	PATTERN "share/java" EXCLUDE
-	PATTERN "src" EXCLUDE
-	PATTERN "gtk+-bundle_*" EXCLUDE
-	PATTERN "linphone.lnk" EXCLUDE
-	PATTERN "bin/envsubst.exe" EXCLUDE
-	PATTERN "bin/fc-*" EXCLUDE
-	PATTERN "bin/freetype-config" EXCLUDE
-	PATTERN "bin/g*.exe" EXCLUDE
-	PATTERN "bin/gettext.sh" EXCLUDE
-	PATTERN "bin/glib*" EXCLUDE
-	PATTERN "bin/gtk-*" EXCLUDE
-	PATTERN "bin/intltool*" EXCLUDE
-	PATTERN "bin/ngettext.exe" EXCLUDE
-	PATTERN "bin/pango*.exe" EXCLUDE
-	PATTERN "bin/pkg-config.exe" EXCLUDE
-	PATTERN "bin/xmlwf.exe" EXCLUDE
-	PATTERN "bin/openh264.dll" EXCLUDE
-)
+if(WIN32)
+	install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/"
+		DESTINATION "."
+		COMPONENT "linphone_base"
+		PATTERN "doc" EXCLUDE
+		PATTERN "etc" EXCLUDE
+		PATTERN "include" EXCLUDE
+		PATTERN "lib/cmake" EXCLUDE
+		PATTERN "lib/gdk-pixbuf-2.0" EXCLUDE
+		PATTERN "lib/glib-2.0" EXCLUDE
+		PATTERN "lib/mediastreamer" EXCLUDE
+		PATTERN "lib/pkgconfig" EXCLUDE
+		PATTERN "lib/*.a" EXCLUDE
+		PATTERN "lib/*.def" EXCLUDE
+		PATTERN "lib/*.exp" EXCLUDE
+		PATTERN "lib/*.la" EXCLUDE
+		PATTERN "lib/*.lib" EXCLUDE
+		PATTERN "man" EXCLUDE
+		PATTERN "manifest" EXCLUDE
+		PATTERN "share/aclocal" EXCLUDE
+		PATTERN "share/CUnit" EXCLUDE
+		PATTERN "share/glib-2.0" EXCLUDE
+		PATTERN "share/gtk-2.0" EXCLUDE
+		PATTERN "share/gtk-doc" EXCLUDE
+		PATTERN "share/intltool" EXCLUDE
+		PATTERN "share/java" EXCLUDE
+		PATTERN "src" EXCLUDE
+		PATTERN "gtk+-bundle_*" EXCLUDE
+		PATTERN "linphone.lnk" EXCLUDE
+		PATTERN "bin/envsubst.exe" EXCLUDE
+		PATTERN "bin/fc-*" EXCLUDE
+		PATTERN "bin/freetype-config" EXCLUDE
+		PATTERN "bin/g*.exe" EXCLUDE
+		PATTERN "bin/gettext.sh" EXCLUDE
+		PATTERN "bin/glib*" EXCLUDE
+		PATTERN "bin/gtk-*" EXCLUDE
+		PATTERN "bin/intltool*" EXCLUDE
+		PATTERN "bin/ngettext.exe" EXCLUDE
+		PATTERN "bin/pango*.exe" EXCLUDE
+		PATTERN "bin/pkg-config.exe" EXCLUDE
+		PATTERN "bin/xmlwf.exe" EXCLUDE
+		PATTERN "bin/openh264.dll" EXCLUDE
+	)
 
-install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
-	DESTINATION "lib/mediastreamer/plugins"
-	COMPONENT "msopenh264"
-	FILES_MATCHING PATTERN "libmsopenh264.*"
-)
-
-install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
-	DESTINATION "lib/mediastreamer/plugins"
-	FILES_MATCHING PATTERN "libmssilk.*" PATTERN "libmsilbc.*"
-)
+	install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
+		DESTINATION "lib/mediastreamer/plugins"
+		COMPONENT "msopenh264"
+		FILES_MATCHING PATTERN "libmsopenh264.*"
+	)
+	
+	install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
+		DESTINATION "lib/mediastreamer/plugins"
+		FILES_MATCHING PATTERN "libmssilk.*" PATTERN "libmsilbc.*"
+	)
+elseif(APPLE)
+	find_program(MAC_BUNDLER gtk-mac-bundler)
+	configure_file(mac-bundler/Info-linphone.plist.in mac-bundler/Info-linphone.plist @ONLY)
+	configure_file(mac-bundler/call-bundler.cmake.in mac-bundler/call-bundler.cmake @ONLY)
+	configure_file(mac-bundler/environment.sh mac-bundler/environment.sh COPYONLY)
+	configure_file(mac-bundler/gtkrc mac-bundler/gtkrc COPYONLY)
+	configure_file(mac-bundler/linphone.bundle mac-bundler/linphone.bundle COPYONLY)
+	configure_file(mac-bundler/linphone.icns mac-bundler/linphone.icns COPYONLY)
+	install(SCRIPT ${CMAKE_BINARY_DIR}/mac-bundler/call-bundler.cmake)
+endif()
 
 if(MSVC)
 	install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
@@ -138,12 +149,14 @@ set(CPACK_PACKAGE_EXECUTABLES "linphone;Linphone")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "Linphone")
 set(CPACK_RESOURCE_FILE_LICENSE "${LINPHONE_SOURCE_DIR}/COPYING")
 
-set(CPACK_COMPONENT_LINPHONE_BASE_DISPLAY_NAME "Linphone")
-set(CPACK_COMPONENT_LINPHONE_BASE_DESCRIPTION "Minimal installation of Linphone")
-set(CPACK_COMPONENT_LINPHONE_BASE_REQUIRED True)
-set(CPACK_COMPONENT_MSOPENH264_DISPLAY_NAME "Cisco's OpenH264 codec")
-set(CPACK_COMPONENT_MSOPENH264_DESCRIPTION "Download OpenH264 Video Codec provided by Cisco Systems, Inc.")
-set(CPACK_COMPONENT_MSOPENH264_DISABLED True)
+if(WIN32)
+	set(CPACK_COMPONENT_LINPHONE_BASE_DISPLAY_NAME "Linphone")
+	set(CPACK_COMPONENT_LINPHONE_BASE_DESCRIPTION "Minimal installation of Linphone")
+	set(CPACK_COMPONENT_LINPHONE_BASE_REQUIRED True)
+	set(CPACK_COMPONENT_MSOPENH264_DISPLAY_NAME "Cisco's OpenH264 codec")
+	set(CPACK_COMPONENT_MSOPENH264_DESCRIPTION "Download OpenH264 Video Codec provided by Cisco Systems, Inc.")
+	set(CPACK_COMPONENT_MSOPENH264_DISABLED True)
+endif()
 
 if(WIN32)
 	set(CPACK_GENERATOR "NSIS")
