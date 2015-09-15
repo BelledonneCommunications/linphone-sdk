@@ -29,8 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static void text_stream_free(TextStream *stream) {
 	media_stream_free(&stream->ms);
-	if (stream->rtp_io_session) rtp_session_destroy(stream->rtp_io_session);
-
 	ms_free(stream);
 }
 

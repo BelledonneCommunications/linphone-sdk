@@ -1184,7 +1184,6 @@ struct _TextStream
 {
 	MediaStream ms;
 	int flags;
-	RtpSession *rtp_io_session; /**< The RTP session used for RTP input/output. */
 	int pt_t140;
 	int pt_red;	
 	int prevseqno;
