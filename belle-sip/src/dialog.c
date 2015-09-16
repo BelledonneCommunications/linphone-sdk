@@ -136,6 +136,9 @@ static int belle_sip_dialog_init_as_uas(belle_sip_dialog_t *obj, belle_sip_reque
 	check_route_set(obj->route_set);
 	obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
 	obj->remote_cseq=belle_sip_header_cseq_get_seq_number(cseq);
+	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0){
+		obj->remote_invite_cseq = belle_sip_header_cseq_get_seq_number(cseq);
+	}
 	/*call id already set */
 	/*remote party already set */
 	obj->local_party=(belle_sip_header_address_t*)belle_sip_object_ref(to);
@@ -369,6 +372,8 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	if (as_uas) {
 		belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_cseq_t);
 		obj->remote_cseq=belle_sip_header_cseq_get_seq_number(cseq);
+		if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
+			obj->remote_invite_cseq = belle_sip_header_cseq_get_seq_number(cseq);
 	}
 
 	
@@ -830,7 +835,7 @@ static int belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_resp
 
 int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ack){
 	belle_sip_header_cseq_t *cseq=belle_sip_message_get_header_by_type(ack,belle_sip_header_cseq_t);
-	if (obj->needs_ack && belle_sip_header_cseq_get_seq_number(cseq)==obj->remote_cseq){
+	if (obj->needs_ack && belle_sip_header_cseq_get_seq_number(cseq)==obj->remote_invite_cseq){
 		belle_sip_message("Incoming INVITE has ACK, dialog is happy");
 		obj->needs_ack=FALSE;
 		belle_sip_dialog_stop_200Ok_retrans(obj);
