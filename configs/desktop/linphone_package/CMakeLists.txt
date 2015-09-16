@@ -45,6 +45,30 @@ list(GET SPLITTED_LINPHONE_VERSION 0 LINPHONE_MAJOR_VERSION)
 list(GET SPLITTED_LINPHONE_VERSION 1 LINPHONE_MINOR_VERSION)
 list(GET SPLITTED_LINPHONE_VERSION 2 LINPHONE_MICRO_VERSION)
 
+# Translates absolute internal dependency path of FFMepeg libraries into relative path on MacOSX
+if(APPLE)
+	set(RPATH_CHANGE_CMDS
+                -change ${LINPHONE_OUTPUT_DIR}/lib/libavcodec.53.61.100.dylib @rpath/libavcodec.53.61.100.dylib
+                -change ${LINPHONE_OUTPUT_DIR}/lib/libavutil.51.35.100.dylib @rpath/libavutil.51.35.100.dylib
+                -change ${LINPHONE_OUTPUT_DIR}/lib/libswscale.2.1.100.dylib @rpath/libswscale.2.1.100.dylib
+                -change ${LINPHONE_OUTPUT_DIR}/lib/libswresample.0.6.100.dylib @rpath/libswresample.0.6.100.dylib
+        )
+        set(RPATH_LIBS_TO_MODIFY
+                libavcodec.53.61.100.dylib
+                libavutil.51.35.100.dylib
+                liblinphone.7.dylib
+                libmediastreamer_voip.5.dylib
+                libswresample.0.6.100.dylib
+                libswscale.2.1.100.dylib
+        )
+        foreach(LIB_TO_CHANGE ${RPATH_LIBS_TO_MODIFY})
+                execute_process(COMMAND install_name_tool
+                        ${RPATH_CHANGE_CMDS}
+                        ${LINPHONE_OUTPUT_DIR}/lib/${LIB_TO_CHANGE}
+                )
+        endforeach()
+endif()
+
 # Generates a zip archive containing the development files of liblinphone
 if(WIN32)
 	find_program(7Z_PROGRAM 7z.exe)
@@ -52,13 +76,12 @@ if(WIN32)
 		COMMAND ${7Z_PROGRAM} a -tzip ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-win32.zip @${CMAKE_SOURCE_DIR}/linphone-sdk.list
 		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
 	)
-#elseif(APPLE)
-#	find_program(ZIP_PROGRAM zip)
-#	execute_process(
-#		COMMAND rm -rf ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip
-#		COMMAND ${ZIP_PROGRAM} -ry ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip . -i @${CMAKE_SOURCE_DIR}/linphone-sdk-mac.list
-#		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
-#	)
+elseif(APPLE)
+	execute_process(
+		COMMAND rm -rf ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip
+		COMMAND zip -ry ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip . -i @${CMAKE_SOURCE_DIR}/linphone-sdk-mac.list
+		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
+	)
 endif()
 
 if(WIN32)
