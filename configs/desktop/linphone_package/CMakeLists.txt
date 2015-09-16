@@ -62,9 +62,9 @@ if(APPLE)
                 libswscale.2.1.100.dylib
         )
         foreach(LIB_TO_CHANGE ${RPATH_LIBS_TO_MODIFY})
-                execute_process(COMMAND install_name_tool
-                        ${RPATH_CHANGE_CMDS}
-                        ${LINPHONE_OUTPUT_DIR}/lib/${LIB_TO_CHANGE}
+                execute_process(
+			COMMAND install_name_tool ${RPATH_CHANGE_CMDS} ${LINPHONE_OUTPUT_DIR}/lib/${LIB_TO_CHANGE}
+			COMMAND install_name_tool -id @rpath/${LIB_TO_CHANGE} ${LINPHONE_OUTPUT_DIR}/lib/${LIB_TO_CHANGE}
                 )
         endforeach()
 endif()
