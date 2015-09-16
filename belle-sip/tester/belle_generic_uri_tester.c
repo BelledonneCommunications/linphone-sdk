@@ -138,10 +138,5 @@ static test_t tests[] = {
 	{ "Absolute uri", test_absolute_uri }
 };
 
-test_suite_t generic_uri_test_suite = {
-	"Generic uri",
-	NULL,
-	NULL,
-	sizeof(tests) / sizeof(tests[0]),
-	tests
-};
+test_suite_t generic_uri_test_suite = {"Generic uri", NULL, NULL, belle_sip_tester_before_each,
+									   belle_sip_tester_after_each, sizeof(tests) / sizeof(tests[0]), tests};

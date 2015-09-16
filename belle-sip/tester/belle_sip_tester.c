@@ -33,6 +33,8 @@ static FILE * log_file = NULL;
 
 static belle_sip_object_pool_t *pool;
 
+static int leaked_objects_count;
+
 static int _belle_sip_tester_ipv6_available(void){
 	struct addrinfo *ai=belle_sip_ip_address_to_addrinfo(AF_INET6,"2a01:e00::2",53);
 	if (ai){
@@ -134,7 +136,7 @@ int main (int argc, char *argv[]) {
 	if (strstr(argv[0], ".libs")) {
 		int prefix_length = strstr(argv[0], ".libs") - argv[0] + 1;
 		char *prefix = belle_sip_strdup_printf("%s%.*s", argv[0][0] == '/' ? "" : "./", prefix_length, argv[0]);
-		belle_sip_warning("Resource prefix set to %s", prefix);
+		// printf("Resource prefix set to %s\n", prefix);
 		bc_tester_set_resource_dir_prefix(prefix);
 		bc_tester_set_writable_dir_prefix(prefix);
 		belle_sip_free(prefix);
@@ -187,4 +189,19 @@ int main (int argc, char *argv[]) {
 	belle_sip_tester_uninit();
 	return ret;
 }
+
+void belle_sip_tester_before_each() {
+	belle_sip_object_enable_leak_detector(TRUE);
+	leaked_objects_count = belle_sip_object_get_object_count();
+}
+
+void belle_sip_tester_after_each() {
+	int leaked_objects = belle_sip_object_get_object_count() - leaked_objects_count;
+	BC_ASSERT_EQUAL(leaked_objects, 0, int, "%d");
+	if (leaked_objects > 0) {
+		belle_sip_object_dump_active_objects();
+		belle_sip_error("%d objects were leaked, aborting!\n", leaked_objects);
+	}
+}
+
 #endif

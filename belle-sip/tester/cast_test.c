@@ -57,11 +57,5 @@ test_t cast_tests[] = {
 	{ "Casting requests and responses", cast_test }
 };
 
-test_suite_t cast_test_suite = {
-	"Object inheritence",
-	NULL,
-	NULL,
-	sizeof(cast_tests) / sizeof(cast_tests[0]),
-	cast_tests
-};
-
+test_suite_t cast_test_suite = {"Object inheritance", NULL, NULL, NULL, NULL,
+								sizeof(cast_tests) / sizeof(cast_tests[0]), cast_tests};

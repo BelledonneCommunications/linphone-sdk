@@ -197,10 +197,5 @@ test_t authentication_helper_tests[] = {
 };
 
 test_suite_t authentication_helper_test_suite = {
-	"Authentication helper",
-	NULL,
-	NULL,
-	sizeof(authentication_helper_tests) / sizeof(authentication_helper_tests[0]),
-	authentication_helper_tests
-};
-
+	"Authentication helper", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,
+	sizeof(authentication_helper_tests) / sizeof(authentication_helper_tests[0]), authentication_helper_tests};

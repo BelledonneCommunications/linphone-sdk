@@ -76,7 +76,7 @@ static void process_auth_requested(void *data, belle_sip_auth_event_t *event){
 static belle_sip_stack_t *stack=NULL;
 static belle_http_provider_t *prov=NULL;
 
-static int http_init(void){
+static int http_before_all(void) {
 	stack=belle_sip_stack_new(NULL);
 	prov=belle_sip_stack_create_http_provider(stack,"0.0.0.0");
 	if (belle_sip_tester_get_root_ca_path() != NULL) {
@@ -87,7 +87,7 @@ static int http_init(void){
 	return 0;
 }
 
-static int http_cleanup(void){
+static int http_after_all(void) {
 	belle_sip_object_unref(prov);
 	belle_sip_object_unref(stack);
 	return 0;
@@ -336,11 +336,5 @@ test_t http_tests[] = {
 	{ "http GET with long user body", http_get_long_user_body}
 };
 
-test_suite_t http_test_suite = {
-	"http",
-	http_init,
-	http_cleanup,
-	sizeof(http_tests) / sizeof(http_tests[0]),
-	http_tests
-};
-
+test_suite_t http_test_suite = {"http", http_before_all, http_after_all, belle_sip_tester_before_each,
+								belle_sip_tester_after_each, sizeof(http_tests) / sizeof(http_tests[0]), http_tests};

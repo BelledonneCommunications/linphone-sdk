@@ -50,6 +50,9 @@ extern const char* belle_sip_tester_client_cert_fingerprint;
 extern const char* belle_sip_tester_private_key;
 extern const char* belle_sip_tester_private_key_passwd;
 
+void belle_sip_tester_before_each();
+void belle_sip_tester_after_each();
+
 #ifdef __cplusplus
 };
 #endif

@@ -1034,11 +1034,5 @@ test_t message_tests[] = {
 	{ "Get body size",testGetBody}
 };
 
-test_suite_t message_test_suite = {
-	"Message",
-	NULL,
-	NULL,
-	sizeof(message_tests) / sizeof(message_tests[0]),
-	message_tests
-};
-
+test_suite_t message_test_suite = {"Message", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,
+								   sizeof(message_tests) / sizeof(message_tests[0]), message_tests};

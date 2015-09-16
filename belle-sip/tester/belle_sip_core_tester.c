@@ -192,11 +192,5 @@ test_t core_tests[] = {
 	{ "Dictionary", test_dictionary }
 };
 
-test_suite_t core_test_suite = {
-	"Core",
-	NULL,
-	NULL,
-	sizeof(core_tests) / sizeof(core_tests[0]),
-	core_tests
-};
-
+test_suite_t core_test_suite = {"Core", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,
+								sizeof(core_tests) / sizeof(core_tests[0]), core_tests};

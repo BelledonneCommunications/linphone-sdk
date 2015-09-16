@@ -74,7 +74,7 @@ void bc_tester_printf(int level, const char *fmt, ...) {
 int bc_tester_run_suite(test_suite_t *suite) {
 	int i;
 
-	CU_pSuite pSuite = CU_add_suite(suite->name, suite->init_func, suite->cleanup_func);
+	CU_pSuite pSuite = CU_add_suite(suite->name, suite->before_all, suite->after_all);
 
 	for (i = 0; i < suite->nb_tests; i++) {
 		if (NULL == CU_add_test(pSuite, suite->tests[i].name, suite->tests[i].func)) {
@@ -94,7 +94,7 @@ int bc_tester_suite_index(const char *suite_name) {
 	int i;
 
 	for (i = 0; i < nb_test_suites; i++) {
-		if ((strcmp(suite_name, test_suite[i]->name) == 0) && (strlen(suite_name) == strlen(test_suite[i]->name))) {
+		if (strcmp(suite_name, test_suite[i]->name) == 0) {
 			return i;
 		}
 	}
@@ -159,17 +159,24 @@ static void suite_complete_message_handler(const CU_pSuite pSuite, const CU_pFai
 }
 
 static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
+	int suite_index = bc_tester_suite_index(pSuite->pName);
 	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] Test [%s] started", pSuite->pName,pTest->pName);
+	if (test_suite[suite_index]->before_each) {
+		test_suite[suite_index]->before_each();
+	}
 }
 
 /*derivated from cunit*/
-static void test_complete_message_handler(const CU_pTest pTest,
-	const CU_pSuite pSuite,
-	const CU_pFailureRecord pFailureList) {
+static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite pSuite,
+										  const CU_pFailureRecord pFailureList) {
+	int suite_index = bc_tester_suite_index(pSuite->pName);
 	int i;
 	char result[2048]={0};
 	char buffer[2048]={0};
 	CU_pFailureRecord pFailure = pFailureList;
+	if (test_suite[suite_index]->after_each) {
+		test_suite[suite_index]->after_each();
+	}
 	snprintf(result, sizeof(result), "Suite [%s] Test [%s]", pSuite->pName, pTest->pName);
 	if (pFailure) {
 		strncat(result, " failed:", strlen(" failed:"));

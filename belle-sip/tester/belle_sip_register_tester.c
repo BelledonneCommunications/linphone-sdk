@@ -186,7 +186,7 @@ static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event
 	}
 }
 
-int register_init(void) {
+int register_before_all(void) {
 	belle_sip_listening_point_t *lp;
 	stack=belle_sip_stack_new(NULL);
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"UDP");
@@ -216,7 +216,7 @@ int register_init(void) {
 	return 0;
 }
 
-int register_uninit(void) {
+int register_after_all(void) {
 	belle_sip_object_unref(prov);
 	belle_sip_object_unref(stack);
 	belle_sip_object_unref(listener);
@@ -728,12 +728,6 @@ test_t register_tests[] = {
 	{ "Nonce reutilization", reuse_nonce }
 };
 
-test_suite_t register_test_suite = {
-	"REGISTER",
-	register_init,
-	register_uninit,
-	sizeof(register_tests) / sizeof(register_tests[0]),
-	register_tests
-};
-
-
+test_suite_t register_test_suite = {"REGISTER", register_before_all, register_after_all, belle_sip_tester_before_each,
+									belle_sip_tester_after_each, sizeof(register_tests) / sizeof(register_tests[0]),
+									register_tests};
