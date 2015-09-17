@@ -71,6 +71,13 @@ unset(COMMON_FLAGS)
 unset(CLANG_TARGET_SPECIFIER)
 unset(SDK_VERSION)
 
+#XCode7 requires Cmake 3.3.20150815 at least
+if (NOT ${XCODE_VERSION} VERSION_LESS 7)
+	set (CMAKE_MIN_VERSION "3.3.20150815")
+	if (${CMAKE_VERSION} VERSION_LESS ${CMAKE_MIN_VERSION})
+		message(FATAL_ERROR "You need at least CMake version ${CMAKE_MIN_VERSION} but you are currently using ${CMAKE_VERSION}")
+	endif()
+endif()
 
 # Include builders
 include(builders/CMakeLists.txt)
