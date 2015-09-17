@@ -919,7 +919,9 @@ void belle_sip_dialog_process_queue(belle_sip_dialog_t* dialog){
 	 * This is to let the application handle responses and eventually submit new requests without being blocked.
 	 * Typically when a reINVITE is challenged, we want a chance to re-submit an authenticated request before processing
 	 * queued requests*/
-	belle_sip_main_loop_do_later(dialog->provider->stack->ml,(belle_sip_callback_t)_belle_sip_dialog_process_queue,belle_sip_object_ref(dialog));
+	if (dialog->queued_ct){
+		belle_sip_main_loop_do_later(dialog->provider->stack->ml,(belle_sip_callback_t)_belle_sip_dialog_process_queue,belle_sip_object_ref(dialog));
+	}
 }
 
 void belle_sip_dialog_update_request(belle_sip_dialog_t *dialog, belle_sip_request_t *req){
