@@ -218,7 +218,7 @@ static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite 
 		if (minfo.uordblks > max_vm_kb * 1024) {
 			bc_tester_printf(
 				bc_printf_verbosity_error,
-				"The program exceeded the maximum ammount of memory allocatable (%i bytes), aborting now.\n",
+				"The program exceeded the maximum amount of memory allocatable (%i bytes), aborting now.\n",
 				minfo.uordblks);
 			abort();
 		}
