@@ -5,3 +5,4 @@
 ./lib/mediastreamer/plugins
 ./share/images/nowebcamCIF.jpg
 ./share/sounds/*
+./share/locale/*
