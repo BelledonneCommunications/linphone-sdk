@@ -96,6 +96,11 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	ms_mutex_lock(&mutex);	
 
     	//OSType pixelFormat = CVPixelBufferGetPixelFormatType(frame);
+    if (rq.q_mcount >= 5){
+    	/*don't let too much buffers to be queued here, it makes no sense for a real time processing and would consume too much memory*/
+    	ms_warning("QTCapture: dropping %i frames", rq.q_mcount);
+    	flushq(&rq, 0);
+    }
 
 	if (CVPixelBufferIsPlanar(frame)) {
 		size_t numberOfPlanes = CVPixelBufferGetPlaneCount(frame);
@@ -116,8 +121,8 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 			size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, p);
 			uint8_t *dst_plane = pict.planes[p];
 			uint8_t *src_plane = CVPixelBufferGetBaseAddressOfPlane(frame, p);
-//			ms_message("CVPixelBuffer %ix%i; Plane %i %ix%i (%i)", w, h, p, plane_width, plane_height, fullrow_width);
 			int l;
+			
 			for (l=0; l<plane_height; l++) {
 				memcpy(dst_plane, src_plane, plane_width);
 				src_plane += fullrow_width;
@@ -419,9 +424,13 @@ static void v4m_process(MSFilter * obj){
 	cur_frame = ((obj->ticker->time-s->start_time)*s->fps/1000.0);
 	if (cur_frame >= s->frame_count) {
 		mblk_t *om=NULL;
+		mblk_t *m;
 		/*keep the most recent frame if several frames have been captured */
 		if ([[s->webcam session] isRunning]) {
-			om=getq([s->webcam rq]);
+			while ((m=getq([s->webcam rq])) != NULL){
+				if (om) freemsg(om);
+				om = m;
+			}
 		}
 
 		if (om != NULL) {
