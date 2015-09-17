@@ -41,7 +41,7 @@ static RtpProfile rtp_profile;
 #define EDGE_BW 10
 #define THIRDGENERATION_BW 200
 
-static int tester_init(void) {
+static int tester_before_all(void) {
 	ms_init();
 	ms_filter_enable_statistics(TRUE);
 	ortp_init();
@@ -57,7 +57,7 @@ static int tester_init(void) {
 	return 0;
 }
 
-static int tester_cleanup(void) {
+static int tester_after_all(void) {
 	ortp_exit();
 	ms_exit();
 	rtp_profile_clear_all(&rtp_profile);
@@ -493,8 +493,10 @@ static test_t tests[] = {
 
 test_suite_t adaptive_test_suite = {
 	"AdaptiveAlgorithm",
-	tester_init,
-	tester_cleanup,
+	tester_before_all,
+	tester_after_all,
+	NULL,
+	NULL,
 	sizeof(tests) / sizeof(tests[0]),
 	tests
 };

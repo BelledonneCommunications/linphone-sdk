@@ -27,14 +27,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 
-static int tester_init(void) {
+static int tester_before_all(void) {
 /*	ms_init();
 	ms_filter_enable_statistics(TRUE);
 	ortp_init();*/
 	return 0;
 }
 
-static int tester_cleanup(void) {
+static int tester_after_all(void) {
 /*	ms_exit();*/
 	return 0;
 }
@@ -189,8 +189,10 @@ static test_t tests[] = {
 
 test_suite_t framework_test_suite = {
 	"Framework",
-	tester_init,
-	tester_cleanup,
+	tester_before_all,
+	tester_after_all,
+	NULL,
+	NULL,
 	sizeof(tests) / sizeof(tests[0]),
 	tests
 };

@@ -44,7 +44,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	}
 }
 
-void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
+void mediastreamer2_tester_before_all(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
 	if (ftester_printf == NULL) ftester_printf = log_handler;
 	bc_tester_init(ftester_printf, ORTP_MESSAGE, ORTP_ERROR);
 
@@ -87,7 +87,7 @@ int main (int argc, char *argv[]) {
 	int i;
 	int ret;
 
-	mediastreamer2_tester_init(NULL);
+	mediastreamer2_tester_before_all(NULL);
 
 	// this allows to launch tester from outside of tester directory
 	if (strstr(argv[0], ".libs")) {

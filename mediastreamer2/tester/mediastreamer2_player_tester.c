@@ -21,12 +21,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msmediaplayer.h"
 #include "mediastreamer2/mediastream.h"
 
-static int tester_init() {
+static int tester_before_all() {
 	ms_init();
 	return 0;
 }
 
-static int tester_cleanup() {
+static int tester_after_all() {
 	ms_exit();
 	return 0;
 }
@@ -185,8 +185,10 @@ static test_t tests[] = {
 
 test_suite_t player_test_suite = {
 	"Player",
-	tester_init,
-	tester_cleanup,
+	tester_before_all,
+	tester_after_all,
+	NULL,
+	NULL,
 	sizeof(tests)/sizeof(test_t),
 	tests
 };

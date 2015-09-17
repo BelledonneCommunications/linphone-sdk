@@ -49,7 +49,7 @@ MSWebCam* mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr) {
 	return cam;
 }
 
-static int tester_init(void) {
+static int tester_before_all(void) {
 	ms_init();
 	ms_filter_enable_statistics(TRUE);
 	ortp_init();
@@ -59,7 +59,7 @@ static int tester_init(void) {
 	return 0;
 }
 
-static int tester_cleanup(void) {
+static int tester_after_all(void) {
 	ms_exit();
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
@@ -696,8 +696,10 @@ static test_t tests[] = {
 
 test_suite_t video_stream_test_suite = {
 	"VideoStream",
-	tester_init,
-	tester_cleanup,
+	tester_before_all,
+	tester_after_all,
+	NULL,
+	NULL,
 	sizeof(tests) / sizeof(tests[0]),
 	tests
 };

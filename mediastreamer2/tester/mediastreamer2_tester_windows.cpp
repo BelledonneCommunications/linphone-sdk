@@ -62,7 +62,7 @@ static void ms2NativeOutputTraceHandler(OrtpLogLevel lev, const char *fmt, va_li
 MS2Tester::MS2Tester()
 	: _deviceRotation(0)
 {
-	mediastreamer2_tester_init(nativeOutputTraceHandler);
+	mediastreamer2_tester_before_all(nativeOutputTraceHandler);
 	bc_tester_set_resource_dir_prefix("Assets");
 }
 

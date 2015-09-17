@@ -26,13 +26,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 
-static int sound_card_tester_init(void) {
+static int sound_card_tester_before_all(void) {
 	ms_init();
 	ms_filter_enable_statistics(TRUE);
 	return 0;
 }
 
-static int sound_card_tester_cleanup(void) {
+static int sound_card_tester_after_all(void) {
 	ms_exit();
 	return 0;
 }
@@ -446,8 +446,10 @@ test_t sound_card_tests[] = {
 
 test_suite_t sound_card_test_suite = {
 	"Sound Card",
-	sound_card_tester_init,
-	sound_card_tester_cleanup,
+	sound_card_tester_before_all,
+	sound_card_tester_after_all,
+	NULL,
+	NULL,
 	sizeof(sound_card_tests) / sizeof(sound_card_tests[0]),
 	sound_card_tests
 };

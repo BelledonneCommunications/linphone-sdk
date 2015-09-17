@@ -27,14 +27,14 @@
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
 
-static int tester_init() {
+static int tester_before_all() {
 	ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
 	ms_init();
 	srand(time(0));
 	return 0;
 }
 
-static int tester_cleanup() {
+static int tester_after_all() {
 	ms_exit();
 	return 0;
 }
@@ -268,8 +268,10 @@ static test_t tests[] = {
 
 test_suite_t neon_test_suite = {
 	"NEON",
-	tester_init,
-	tester_cleanup,
+	tester_before_all,
+	tester_after_all,
+	NULL,
+	NULL,
 	sizeof(tests)/sizeof(test_t),
 	tests
 };
