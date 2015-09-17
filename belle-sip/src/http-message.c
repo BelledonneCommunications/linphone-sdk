@@ -51,7 +51,7 @@ static belle_sip_error_code belle_http_request_marshal(const belle_http_request_
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(request),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
-	
+
 	return error;
 }
 GET_SET_STRING(belle_http_request,method);
@@ -62,12 +62,18 @@ BELLE_PARSE(belle_sip_messageParser,belle_,http_request)
 
 belle_http_request_t *belle_http_request_create(const char *method, belle_generic_uri_t *url, ...){
 	va_list vl;
-	belle_http_request_t *obj=belle_http_request_new();
+	belle_http_request_t *obj;
 	belle_sip_header_t *header;
-	
+
+	if (belle_generic_uri_get_host(url) == NULL) {
+		belle_sip_error("%s: NULL host in url", __FUNCTION__);
+		return NULL;
+	}
+
+	obj=belle_http_request_new();
 	obj->method=belle_sip_strdup(method);
 	obj->req_uri=(belle_generic_uri_t*)belle_sip_object_ref(url);
-	
+
 	va_start(vl,url);
 	while((header=va_arg(vl,belle_sip_header_t*))!=NULL){
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(obj),header);
@@ -165,7 +171,7 @@ belle_sip_error_code belle_http_response_marshal(belle_http_response_t *resp, ch
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(resp),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
-	
+
 	return error;
 }
 
