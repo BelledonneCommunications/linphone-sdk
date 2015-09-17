@@ -21,10 +21,17 @@
 ############################################################################
 
 set(ENV{DEFAULT_PREFIX} /opt/local)
-set(ENV{LINPHONE_PREFIX} @LINPHONE_OUTPUT_DIR@)
-set(ENV{BUNDLE_DESTINATION} @CMAKE_INSTALL_PREFIX@)
+set(ENV{LINPHONE_PREFIX} ${LINPHONE_OUTPUT_DIR})
+set(ENV{BUNDLE_DESTINATION} ${CMAKE_INSTALL_PREFIX})
 execute_process(
-	COMMAND @MAC_BUNDLER@ linphone.bundle
-	WORKING_DIRECTORY @CMAKE_BINARY_DIR@/mac-bundler
+	COMMAND ${MAC_BUNDLER} linphone.bundle
+	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mac-bundler
 )
-
+execute_process(
+	COMMAND pkgbuild 
+		--install-location /Applications
+		--scripts ${CMAKE_SOURCE_DIR}/mac-bundler/pkg-scripts
+		--component ${CMAKE_INSTALL_PREFIX}/Linphone.app
+		./linphone-${LINPHONE_GIT_REVISION}-unsigned.pkg
+	WORKING_DIRECTORY  ${CMAKE_BINARY_DIR}
+)
