@@ -1104,7 +1104,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVi
 	MediastreamDatas* args =  (MediastreamDatas*)_args;
 	if (!args->video)
 		return;
-	video_stream_set_native_window_id(args->video,(unsigned long)id);
+	video_stream_set_native_window_id(args->video,id);
 #endif
 }
 
@@ -1114,7 +1114,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVi
 	MediastreamDatas* args =  (MediastreamDatas*)_args;
 	if (!args->video)
 		return;
-	video_stream_set_native_preview_window_id(args->video,(unsigned long)id);
+	video_stream_set_native_preview_window_id(args->video,id);
 #endif
 }
 
