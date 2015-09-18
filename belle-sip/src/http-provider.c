@@ -398,8 +398,16 @@ static void belle_http_end_background_task(void* data) {
 
 int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener){
 	belle_sip_channel_t *chan;
+	belle_sip_list_t **channels;
 	belle_sip_hop_t *hop=belle_sip_hop_new_from_generic_uri(req->orig_uri ? req->orig_uri : req->req_uri);
-	belle_sip_list_t **channels=belle_http_provider_get_channels(obj,hop->transport);
+	
+	if (hop->host == NULL){
+		belle_sip_error("belle_http_provider_send_request(): no host defined in request uri.");
+		belle_sip_object_unref(hop);
+		return -1;
+	}
+	
+	channels = belle_http_provider_get_channels(obj,hop->transport);
 
 	if (listener) belle_http_request_set_listener(req,listener);
 
