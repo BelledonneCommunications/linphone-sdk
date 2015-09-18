@@ -95,6 +95,7 @@ static void test_file_path(void) {
 	/*this is INVALID*/
 	source_uri = belle_generic_uri_parse("file://./relative-file");
 	BC_ASSERT_PTR_NOT_NULL(source_uri);
+	if (source_uri) belle_sip_object_unref(source_uri);
 
 	/* PATH segment always start by / */
 	source_uri = belle_generic_uri_parse("./relative-file");

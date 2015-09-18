@@ -70,18 +70,19 @@ static void test_complex_contact_header(void) {
 	l_next = belle_sip_header_get_next(BELLE_SIP_HEADER(L_contact));
 	L_next_contact = BELLE_SIP_HEADER_CONTACT(l_next);
 	BC_ASSERT_PTR_NOT_NULL(L_next_contact);
-	BC_ASSERT_PTR_NOT_NULL( belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_contact)));
+	BC_ASSERT_PTR_NOT_NULL( belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_next_contact)));
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_contact));
 
 	L_contact = belle_sip_header_contact_parse("Contact: super toto <sip:titi.com>;expires=3600; q=0.7");
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_contact));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_contact));
+	
 	L_contact = belle_sip_header_contact_parse(l_raw_header);
 	belle_sip_free(l_raw_header);
-
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname((belle_sip_header_address_t*)L_contact), "super toto");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_contact));
+	
 	BC_ASSERT_PTR_NULL(belle_sip_header_contact_parse("m:sip:titi.com, nimportequoi"));
 }
 
@@ -390,6 +391,7 @@ static void test_route_header(void) {
 	char* l_raw_header;
 	BC_ASSERT_PTR_NOT_NULL_FATAL(address);
 	L_route = belle_sip_header_route_create(address);
+	belle_sip_object_unref(address);
 	BC_ASSERT_PTR_NOT_NULL_FATAL(L_route);
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_route));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_route));
@@ -814,6 +816,7 @@ static void test_subscription_state_header(void) {
 
 static void test_refer_to_header(void) {
 	belle_sip_uri_t* L_uri;
+	belle_sip_header_address_t *ha;
 	belle_sip_header_refer_to_t* L_refer_to = belle_sip_header_refer_to_parse("Refer-To: <sip:dave@denver.example.org?Replaces=12345%40192.168.118.3%3Bto-tag%3D12345%3Bfrom-tag%3D5FFE-3994>");
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_refer_to));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_refer_to));
@@ -826,7 +829,8 @@ static void test_refer_to_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "denver.example.org");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_refer_to));
 	/*test factory*/
-	L_refer_to = belle_sip_header_refer_to_create(belle_sip_header_address_parse("\"super man\" <sip:titi.com>"));
+	L_refer_to = belle_sip_header_refer_to_create((ha=belle_sip_header_address_parse("\"super man\" <sip:titi.com>")));
+	belle_sip_object_unref(ha);
 	BC_ASSERT_PTR_NOT_NULL_FATAL(L_refer_to);
 	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_refer_to));
 	BC_ASSERT_PTR_NOT_NULL_FATAL(L_uri);
@@ -878,6 +882,7 @@ static void test_replaces_escaped_header(void) {
 	L_replaces=belle_sip_header_replaces_create2(escaped_to_string);
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_replaces));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_replaces));
+	belle_sip_object_unref(L_tmp);
 	L_tmp= belle_sip_header_replaces_parse(l_raw_header);
 	L_replaces = BELLE_SIP_HEADER_REPLACES(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
@@ -899,13 +904,19 @@ static void _test_date_header(void){
 #define DATE_UTC_EXAMPLE 1014296523L /* the above date in UTC */
 	date=belle_sip_header_date_parse("Date: " DATE_EXAMPLE);
 	BC_ASSERT_PTR_NOT_NULL(date);
-	utc=belle_sip_header_date_get_time(date);
-	BC_ASSERT_EQUAL(utc,DATE_UTC_EXAMPLE,int,"%d");
+	if (date){
+		utc=belle_sip_header_date_get_time(date);
+		BC_ASSERT_EQUAL(utc,DATE_UTC_EXAMPLE,int,"%d");
+		belle_sip_object_unref(date);
+	}
 
 	date2=belle_sip_header_date_create_from_time(&utc);
 	BC_ASSERT_PTR_NOT_NULL(date2);
-	BC_ASSERT_TRUE(strcmp(belle_sip_header_date_get_date(date2),DATE_EXAMPLE)==0);
-	BC_ASSERT_PTR_NULL(belle_sip_header_date_parse("nimportequoi"));
+	if (date2){
+		BC_ASSERT_TRUE(strcmp(belle_sip_header_date_get_date(date2),DATE_EXAMPLE)==0);
+		BC_ASSERT_PTR_NULL(belle_sip_header_date_parse("nimportequoi"));
+		belle_sip_object_unref(date2);
+	}
 }
 
 #endif

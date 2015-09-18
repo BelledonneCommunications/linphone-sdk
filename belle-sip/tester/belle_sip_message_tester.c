@@ -285,6 +285,7 @@ static void test_extract_source(void) {
 	BC_ASSERT_EQUAL(belle_sip_uri_get_port(source),0,int,"%d");
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"tcp");
 	belle_sip_object_unref(message);
+	belle_sip_object_unref(source);
 
 	message = belle_sip_message_parse(invite_2);
 	request = BELLE_SIP_REQUEST(message);
@@ -294,7 +295,7 @@ static void test_extract_source(void) {
 	BC_ASSERT_EQUAL(belle_sip_uri_get_port(source),15060,int,"%d");
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"udp");
 	belle_sip_object_unref(message);
-
+	belle_sip_object_unref(source);
 }
 
 static void test_sipfrag(void) {
@@ -330,6 +331,7 @@ const char * raw_message=	"INVITE sip:jehan@81.56.113.2:50343;transport=tcp;line
 
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
 	BC_ASSERT_FALSE(belle_sip_message_check_headers(message));
+	belle_sip_object_unref(message);
 }
 
 static void testMalformedOptionnalHeaderInMessage(void) {
@@ -424,8 +426,8 @@ void channel_parser_tester_recovery_from_error_base (const char* prelude,const c
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Proxy-Authorization"));
 
 	check_uri_and_headers(message);
-
-	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
+	belle_sip_object_unref(channel);
+	belle_sip_object_unref(message);
 	belle_sip_object_unref(stack);
 
 }
@@ -765,6 +767,8 @@ static void testUriHeadersInInvite(void)  {
 
 
 	belle_sip_object_unref(request);
+	belle_sip_object_unref(prov);
+	belle_sip_object_unref(stack);
 
 }
 static void testUrisComponentsForRequest(void)  {
@@ -785,6 +789,8 @@ static void testUrisComponentsForRequest(void)  {
 	BC_ASSERT_PTR_NOT_NULL(request);
 	t=belle_sip_provider_create_client_transaction(prov,request);
 	BC_ASSERT_NOT_EQUAL(belle_sip_client_transaction_send_request(t),0,int,"%d");
+	belle_sip_object_unref(prov);
+	belle_sip_object_unref(stack);
 }
 
 static void testGenericMessage(void) {
@@ -940,6 +946,7 @@ void channel_parser_http_response(void) {
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Vary"));
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
+	belle_sip_object_unref(channel);
 	belle_sip_object_unref(stack);
 }
 
@@ -1001,6 +1008,8 @@ void testGetBody(void) {
 	BC_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),strlen(belle_sip_message_get_body(message)),int,"%d");
 	BC_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),belle_sip_message_get_body_size(message),int,"%d");
 	belle_sip_object_unref(message);
+	belle_sip_object_unref(channel);
+	belle_sip_object_unref(stack);
 }
 
 /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */

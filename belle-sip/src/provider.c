@@ -129,6 +129,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 				return;
 			}
 		}
+	
 		if (prov->unconditional_answer_enabled && strcmp("ACK",method)!=0) { /*always answer 480 in this case*/
 			belle_sip_server_transaction_t *tr=belle_sip_provider_create_server_transaction(prov,req);
 			belle_sip_server_transaction_send_response(tr,belle_sip_response_create_from_request(req,480));

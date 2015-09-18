@@ -128,7 +128,7 @@ static void belle_sip_header_destroy(belle_sip_header_t *header){
 
 void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next) {
 	if (next) belle_sip_object_ref(next);
-	if(header->next) belle_sip_object_unref(header->next);
+	if (header->next) belle_sip_object_unref(header->next);
 	header->next = next;
 }
 
@@ -188,6 +188,7 @@ static void belle_sip_header_address_init(belle_sip_header_address_t* object){
 static void belle_sip_header_address_destroy(belle_sip_header_address_t* address) {
 	if (address->displayname) belle_sip_free(address->displayname);
 	if (address->uri) belle_sip_object_unref(address->uri);
+	if (address->absolute_uri) belle_sip_object_unref(address->absolute_uri);
 }
 
 static void belle_sip_header_address_clone(belle_sip_header_address_t *addr, const belle_sip_header_address_t *orig){

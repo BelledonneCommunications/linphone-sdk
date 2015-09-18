@@ -728,6 +728,6 @@ test_t register_tests[] = {
 	{ "Nonce reutilization", reuse_nonce }
 };
 
-test_suite_t register_test_suite = {"REGISTER", register_before_all, register_after_all, belle_sip_tester_before_each,
-									belle_sip_tester_after_each, sizeof(register_tests) / sizeof(register_tests[0]),
+test_suite_t register_test_suite = {"REGISTER", register_before_all, register_after_all, NULL,
+									NULL, sizeof(register_tests) / sizeof(register_tests[0]),
 									register_tests};

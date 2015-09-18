@@ -199,7 +199,7 @@ void belle_sip_tester_after_each() {
 	int leaked_objects = belle_sip_object_get_object_count() - leaked_objects_count;
 	if (leaked_objects > 0) {
 		belle_sip_object_dump_active_objects();
-		belle_sip_fatal("%d objects were leaked in latest test, please fix that!\n", leaked_objects);
+		belle_sip_error("%d objects were leaked in latest test, please fix that!\n", leaked_objects);
 	}
 }
 

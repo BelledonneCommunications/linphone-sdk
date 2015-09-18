@@ -336,5 +336,5 @@ test_t http_tests[] = {
 	{ "http GET with long user body", http_get_long_user_body}
 };
 
-test_suite_t http_test_suite = {"http", http_before_all, http_after_all, belle_sip_tester_before_each,
-								belle_sip_tester_after_each, sizeof(http_tests) / sizeof(http_tests[0]), http_tests};
+test_suite_t http_test_suite = {"http", http_before_all, http_after_all, NULL,
+								NULL, sizeof(http_tests) / sizeof(http_tests[0]), http_tests};
