@@ -133,6 +133,9 @@ static void glxvideo_prepare(MSFilter *f){
 	if (createX11GLWindow(s->display, s->wsize, &s->glContext, &window)) {
 		GLenum err;
 		s->subwindow=window;
+		if (s->own_window){
+			s->window_id = window;
+		}
 		s->glhelper = ogl_display_new();
 		glXMakeCurrent( s->display, s->subwindow, s->glContext );
 		err = glewInit();
