@@ -140,27 +140,162 @@ extern "C"{
 typedef struct { unsigned char octet[12]; }  UInt96;
 
 MS2_PUBLIC void ms_thread_exit(void* ret_val);
-MS2_PUBLIC MSList * ms_list_append(MSList *elem, void * data);
-MS2_PUBLIC MSList *ms_list_append_link(MSList *elem, MSList *new_elem);
-MS2_PUBLIC MSList * ms_list_prepend(MSList *elem, void * data);
-MS2_PUBLIC MSList * ms_list_free(MSList *elem);
-MS2_PUBLIC MSList * ms_list_free_with_data(MSList *elem, void (*freefunc)(void*));
+
+/**
+ * @addtogroup ms_list
+ * @{
+**/
+
+/** Inserts a new element containing data to the end of a given list
+ * @param list list where data should be added. If NULL, a new list will be created.
+ * @param data data to insert into the list
+ * @return first element of the list
+**/
+MS2_PUBLIC MSList * ms_list_append(MSList *list, void * data);
+
+/** Inserts given element to the end of a given list
+ * @param list list where data should be added. If NULL, a new list will be created.
+ * @param new_elem element to append
+ * @return first element of the list
+**/
+MS2_PUBLIC MSList *ms_list_append_link(MSList *list, MSList *new_elem);
+
+/** Inserts a new element containing data to the start of a given list
+ * @param list list where data should be added. If NULL, a new list will be created.
+ * @param data data to insert into the list
+ * @return first element of the list - the one which was just created.
+**/
+MS2_PUBLIC MSList * ms_list_prepend(MSList *list, void * data);
+
+/** Frees all elements of a given list
+ * Note that data contained in each element will not be freed. If you need to clean
+ * them, consider using @ms_list_free_with_data
+ * @param list object to free.
+ * @return NULL
+**/
+MS2_PUBLIC MSList * ms_list_free(MSList *list);
+
+/** Frees all elements of a given list after having called freefunc on each element
+ * @param list object to free.
+ * @param freefunc function to invoke on each element data before destroying the element
+ * @return NULL
+**/
+MS2_PUBLIC MSList * ms_list_free_with_data(MSList *list, void (*freefunc)(void*));
+
+/** Concatenates second list to the end of first list
+ * @param first First list
+ * @param second Second list to append at the end of first list.
+ * @return first element of the merged list
+**/
 MS2_PUBLIC MSList * ms_list_concat(MSList *first, MSList *second);
-MS2_PUBLIC MSList * ms_list_remove(MSList *first, void *data);
-MS2_PUBLIC MSList * ms_list_remove_custom(MSList *first, MSCompareFunc compare_func, const void *user_data);
-MS2_PUBLIC int ms_list_size(const MSList *first);
+
+/** Finds and remove the first element containing the given data. Nothing is done if element is not found.
+ * @param list List in which data must be removed
+ * @param data Data to remove
+ * @return first element of the modified list
+**/
+MS2_PUBLIC MSList * ms_list_remove(MSList *list, void *data);
+
+/** Finds and remove any elements according to the given predicate function
+ * @param list List in which data must be removed
+ * @param compare_func Function to invoke on each element. If it returns TRUE, the given element will be deleted.
+ * @param user_data User data to pass to compare_func function
+ * @return first element of the modified list
+**/
+MS2_PUBLIC MSList * ms_list_remove_custom(MSList *list, MSCompareFunc compare_func, const void *user_data);
+
+/** Returns size of a given list
+ * @param list List to measure
+ * @return Size of list
+**/
+MS2_PUBLIC int ms_list_size(const MSList *list);
+
+/** Invoke function on each element of the list
+ * @param list List object
+ * @param iterate_func Function to invoke on each element.
+**/
 MS2_PUBLIC void ms_list_for_each(const MSList *list, MSIterateFunc iterate_func);
+
+/** Invoke function on each element of the list
+ * @param list List object
+ * @param iterate_func Function to invoke on each element.
+ * @param user_data User data to pass to iterate_func function.
+**/
 MS2_PUBLIC void ms_list_for_each2(const MSList *list, MSIterate2Func iterate_func, void *user_data);
+
+/** Finds and remove given element in list.
+ * @param list List in which element must be removed
+ * @param element element to remove
+ * @return first element of the modified list
+**/
 MS2_PUBLIC MSList *ms_list_remove_link(MSList *list, MSList *elem);
+
+/** Finds first element containing data in the given list.
+ * @param list List in which element must be found
+ * @param data data to find
+ * @return element containing data, or NULL if not found
+**/
 MS2_PUBLIC MSList *ms_list_find(MSList *list, void *data);
+
+/** Finds first element according to the given predicate function
+ * @param list List in which element must be found
+ * @param compare_func Function to invoke on each element. If it returns TRUE, the given element will be returned.
+ * @param user_data User data to pass to compare_func function
+ * @return Element matching the predicate, or NULL if none is found.
+**/
 MS2_PUBLIC MSList *ms_list_find_custom(MSList *list, MSCompareFunc compare_func, const void *user_data);
+
+/** Returns the nth element data of the list
+ * @param list List object
+ * @param index data index which must be returned.
+ * @return Element at the given index. NULL if index is invalid (negative or greater or equal to ms_list_size).
+**/
 MS2_PUBLIC void * ms_list_nth_data(const MSList *list, int index);
+
+/** Returns the index of the given element
+ * @param list List object
+ * @param elem Element to search for.
+ * @return Index of the given element. -1 if not found.
+**/
 MS2_PUBLIC int ms_list_position(const MSList *list, MSList *elem);
+
+/** Returns the index of the first element containing data
+ * @param list List object
+ * @param data Data to search for.
+ * @return Index of the element containing data. -1 if not found.
+**/
 MS2_PUBLIC int ms_list_index(const MSList *list, void *data);
+
+/** Inserts a new element containing data at the place given by compare_func
+ * @param list list where data should be added. If NULL, a new list will be created.
+ * @param data data to insert into the list
+ * @param compare_func function determining where should the new element be placed
+ * @return first element of the list.
+**/
 MS2_PUBLIC MSList *ms_list_insert_sorted(MSList *list, void *data, MSCompareFunc compare_func);
+
+/** Inserts a new element containing data before the given element
+ * @param list list where data should be added. If NULL, a new list will be created.
+ * @param before element parent to the one we will insert.
+ * @param data data to insert into the list
+ * @return first element of the modified list.
+**/
 MS2_PUBLIC MSList *ms_list_insert(MSList *list, MSList *before, void *data);
+
+/** Copies a list in another one, duplicating elements but not data
+ * @param list list to copy
+ * @return Newly created list
+**/
 MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
+
+/** Copies a list in another one, duplicating elements according to the given function
+ * @param list list to copy
+ * @param copyfunc function to invoke on each element which will return the new list data value
+ * @return Newly created list
+**/
 MS2_PUBLIC MSList *ms_list_copy_with_data(const MSList *list, void *(*copyfunc)(void *));
+
+/** @} */
 
 MS2_PUBLIC char * ms_tags_list_as_string(const MSList *list);
 MS2_PUBLIC bool_t ms_tags_list_contains_tag(const MSList *list, const char *tag);
