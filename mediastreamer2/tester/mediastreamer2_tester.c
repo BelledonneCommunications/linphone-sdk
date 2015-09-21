@@ -125,7 +125,7 @@ int main (int argc, char *argv[]) {
 		}
 	}
 
-	ret = bc_tester_start();
+	ret = bc_tester_start(argv[0]);
 	mediastreamer2_tester_uninit();
 	return ret;
 
