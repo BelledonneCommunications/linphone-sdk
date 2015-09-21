@@ -50,11 +50,11 @@ typedef struct {
 	const char *name; /*suite name*/
 	pre_post_function_t
 		before_all; /*function invoked before running the suite. If not returning 0, suite is not launched. */
-	pre_post_function_t after_all;   /*function invoked at the end of the suite, even if some tests failed. */
-	test_function_t before_each;	 /*function invoked before each test within this suite. */
-	test_function_t after_each;		 /*function invoked after each test within this suite, even if it failed. */
-	int nb_tests;					 /* number of tests */
-	test_t *tests;					 /* tests within this suite */
+	pre_post_function_t after_all; /*function invoked at the end of the suite, even if some tests failed. */
+	test_function_t before_each;   /*function invoked before each test within this suite. */
+	test_function_t after_each;	/*function invoked after each test within this suite, even if it failed. */
+	int nb_tests;				   /* number of tests */
+	test_t *tests;				   /* tests within this suite */
 } test_suite_t;
 
 #ifdef __cplusplus
@@ -72,7 +72,7 @@ void bc_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list a
 					, int verbosity_info, int verbosity_error);
 void bc_tester_helper(const char *name, const char* additionnal_helper);
 int bc_tester_parse_args(int argc, char** argv, int argid);
-int bc_tester_start(void);
+int bc_tester_start(const char* prog_name);
 void bc_tester_add_suite(test_suite_t *suite);
 void bc_tester_uninit(void);
 void bc_tester_printf(int level, const char *fmt, ...);

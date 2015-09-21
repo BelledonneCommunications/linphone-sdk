@@ -185,7 +185,7 @@ int main (int argc, char *argv[]) {
 	belle_sip_tester_set_root_ca_path(root_ca_path);
 	pool=belle_sip_object_pool_push();
 
-	ret = bc_tester_start();
+	ret = bc_tester_start(argv[0]);
 	belle_sip_tester_uninit();
 	return ret;
 }
