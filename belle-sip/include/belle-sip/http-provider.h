@@ -27,6 +27,13 @@ BELLE_SIP_BEGIN_DECLS
 
 BELLESIP_EXPORT int belle_http_provider_set_tls_verify_policy(belle_http_provider_t *obj, belle_tls_verify_policy_t *verify_ctx);
 
+/**
+ * Can be used to simulate network recv error, for tests.
+ * @param obj
+ * @param recv_error if <=0, will cause channel error to be reported
+**/
+BELLESIP_EXPORT void belle_http_provider_set_recv_error(belle_http_provider_t *obj, int recv_error);
+
 BELLESIP_EXPORT int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener);
 
 BELLESIP_EXPORT void belle_http_provider_cancel_request(belle_http_provider_t *obj, belle_http_request_t *req);

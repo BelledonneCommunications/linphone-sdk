@@ -400,13 +400,13 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 	belle_sip_channel_t *chan;
 	belle_sip_list_t **channels;
 	belle_sip_hop_t *hop=belle_sip_hop_new_from_generic_uri(req->orig_uri ? req->orig_uri : req->req_uri);
-	
+
 	if (hop->host == NULL){
 		belle_sip_error("belle_http_provider_send_request(): no host defined in request uri.");
 		belle_sip_object_unref(hop);
 		return -1;
 	}
-	
+
 	channels = belle_http_provider_get_channels(obj,hop->transport);
 
 	if (listener) belle_http_request_set_listener(req,listener);
@@ -481,4 +481,20 @@ int belle_http_provider_set_tls_verify_policy(belle_http_provider_t *obj, belle_
 	return 0;
 }
 
+void belle_http_provider_set_recv_error(belle_http_provider_t *obj, int recv_error) {
+	belle_sip_list_t *lps;
+	belle_sip_list_t *channels;
+	for(lps=obj->tcp_channels;lps!=NULL;lps=lps->next){
+		for(channels=((belle_sip_listening_point_t*)lps->data)->channels;channels!=NULL;channels=channels->next){
+			((belle_sip_channel_t*)channels->data)->simulated_recv_return=recv_error;
+			((belle_sip_source_t*)channels->data)->notify_required=(recv_error<=0);
+		}
+	}
+	for(lps=obj->tls_channels;lps!=NULL;lps=lps->next){
+		for(channels=((belle_sip_listening_point_t*)lps->data)->channels;channels!=NULL;channels=channels->next){
+			((belle_sip_channel_t*)channels->data)->simulated_recv_return=recv_error;
+			((belle_sip_source_t*)channels->data)->notify_required=(recv_error<=0);
+		}
+	}
+}
 
