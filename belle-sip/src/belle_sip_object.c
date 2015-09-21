@@ -73,14 +73,14 @@ void belle_sip_object_dump_active_objects(void){
 	belle_sip_list_t *elem;
 
 	if (all_objects){
-		belle_sip_message("List of leaked objects:");
+		belle_sip_warning("List of leaked objects:");
 		for(elem=all_objects;elem!=NULL;elem=elem->next){
 			belle_sip_object_t *obj=(belle_sip_object_t*)elem->data;
 			char* content= belle_sip_object_to_string(obj);
-			belle_sip_message("%s(%p) ref=%i, content [%10s...]",obj->vptr->type_name,obj,obj->ref,content);
+			belle_sip_warning("%s(%p) ref=%i, content [%10s...]",obj->vptr->type_name,obj,obj->ref,content);
 			belle_sip_free(content);
 		}
-	}else belle_sip_message("No objects leaked.");
+	}else belle_sip_warning("No objects leaked.");
 }
 
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr){

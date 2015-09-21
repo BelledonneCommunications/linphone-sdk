@@ -171,11 +171,11 @@ static void suite_complete_message_handler(const CU_pSuite pSuite, const CU_pFai
 static time_t test_start_time = 0;
 static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
 	int suite_index = bc_tester_suite_index(pSuite->pName);
-	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] Test [%s] started", pSuite->pName,pTest->pName);
-	test_start_time = time(NULL);
 	if (test_suite[suite_index]->before_each) {
 		test_suite[suite_index]->before_each();
 	}
+	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] Test [%s] started", pSuite->pName,pTest->pName);
+	test_start_time = time(NULL);
 }
 
 /*derivated from cunit*/
@@ -186,10 +186,6 @@ static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite 
 	char result[2048]={0};
 	char buffer[2048]={0};
 	CU_pFailureRecord pFailure = pFailureList;
-
-	if (test_suite[suite_index]->after_each) {
-		test_suite[suite_index]->after_each();
-	}
 
 	snprintf(result, sizeof(result), "Suite [%s] Test [%s] %s in %lu secs", pSuite->pName, pTest->pName,
 			 pFailure ? "failed" : "passed", (unsigned long)(time(NULL) - test_start_time));
@@ -202,7 +198,13 @@ static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite 
 			strncat(result, buffer, strlen(buffer));
 		}
 	}
-	bc_tester_printf(bc_printf_verbosity_info,"%s\n", result);
+	bc_tester_printf(bc_printf_verbosity_info,"%s", result);
+	if (test_suite[suite_index]->after_each) {
+		test_suite[suite_index]->after_each();
+	}
+	//insert empty line
+	bc_tester_printf(bc_printf_verbosity_info,"");
+
 #ifdef __linux
 	/* use mallinfo() to monitor allocated space. It is linux specific but other methods don't work:
 	 * setrlimit() RLIMIT_DATA doesn't count memory allocated via mmap() (which is used internally by malloc)
@@ -326,17 +328,20 @@ void bc_tester_helper(const char *name, const char* additionnal_helper) {
 }
 
 static int file_exists(const char* root_path) {
+	int found;
 	FILE* file;
-	char * sounds_path = malloc(sizeof(char)*strlen(root_path)+strlen("sounds"));
+
+	char * sounds_path = malloc(sizeof(char)*(strlen(root_path)+strlen("sounds")+1));
 	sprintf(sounds_path, "%ssounds", root_path);
 	file = fopen(sounds_path, "r");
-	int found = (file != NULL);
+	found = (file != NULL);
 	if (file) fclose(file);
+	free(sounds_path);
 	return found;
 }
 
 static void detect_res_prefix(const char* prog) {
-	char* progpath = NULL;
+	char* progpath = strdup(prog);
 	char* prefix = NULL;
 
 #if defined(BC_TESTER_WINDOWS_PHONE) || defined(BC_TESTER_WINDOWS_UNIVERSAL)
@@ -352,10 +357,8 @@ static void detect_res_prefix(const char* prog) {
 #endif
 
 	if (strchr(prog, '/') != NULL) {
-		progpath = strdup(prog);
 		progpath[strrchr(prog, '/') - prog + 1] = '\0';
 	} else if (strchr(prog, '\\') != NULL) {
-		progpath = strdup(prog);
 		progpath[strrchr(prog, '\\') - prog + 1] = '\0';
 	}
 
@@ -367,9 +370,6 @@ static void detect_res_prefix(const char* prog) {
 		prefix = strdup(progpath);
 	}
 
-	if (progpath != NULL) {
-		free(progpath);
-	}
 	if (prefix != NULL) {
 		if (bc_tester_resource_dir_prefix == NULL) {
 			printf("Resource directory set to %s\n", prefix);
@@ -383,6 +383,10 @@ static void detect_res_prefix(const char* prog) {
 	} else if (bc_tester_resource_dir_prefix == NULL || bc_tester_writable_dir_prefix == NULL) {
 		printf("Could not find resource directory in %s! Please try again using option --resource-dir and/or --writable-dir.\n", progpath);
 		abort();
+	}
+
+	if (progpath != NULL) {
+		free(progpath);
 	}
 }
 
