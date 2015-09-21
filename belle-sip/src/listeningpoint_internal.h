@@ -92,6 +92,10 @@ belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_sta
 struct belle_sip_tls_listening_point{
 	belle_sip_stream_listening_point_t base;
 	belle_tls_verify_policy_t *verify_ctx;
+	char *http_proxy_addr;
+	int http_proxy_port;
+	char *http_proxy_username; /*for futur use*/
+	char *http_proxy_passwd; /*for futur use*/
 };
 
 int belle_sip_tls_listening_point_available(void);
@@ -101,6 +105,7 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 #define BELLE_SIP_TLS_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_tls_listening_point_t)
 belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
 belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *s, belle_tls_verify_policy_t* verify_ctx, const char *bindip, int localport,const char *cname, const char *name, int port);
+
 
 /*tunnel*/
 #ifdef HAVE_TUNNEL

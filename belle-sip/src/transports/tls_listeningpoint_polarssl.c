@@ -24,6 +24,9 @@
 
 static void belle_sip_tls_listening_point_uninit(belle_sip_tls_listening_point_t *lp){
 	belle_sip_object_unref(lp->verify_ctx);
+	if (lp->http_proxy_addr) belle_sip_object_unref(lp->http_proxy_addr);
+	if (lp->http_proxy_passwd) belle_sip_object_unref(lp->http_proxy_passwd);
+	if (lp->http_proxy_username) belle_sip_object_unref(lp->http_proxy_username);
 }
 
 static belle_sip_channel_t *tls_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop){

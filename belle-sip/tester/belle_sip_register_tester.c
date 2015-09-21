@@ -30,6 +30,8 @@ const char *client_auth_outbound_proxy="sips:sip2.linphone.org:5063";
 const char *no_server_running_here="sip:test.linphone.org:3;transport=tcp";
 const char *no_response_here="sip:78.220.48.77:3;transport=%s";
 const char *test_domain_tls_to_tcp="sip:sip2.linphone.org:5060;transport=tls";
+const char *test_http_proxy_addr="sip.linphone.org";
+int test_http_proxy_port = 3128 ;
 
 static int is_register_ok;
 static int number_of_challenge;
@@ -413,6 +415,36 @@ static void stateful_register_tls(void){
 	register_test("tls",1);
 }
 
+static void stateful_register_tls_with_http_proxy(void) {
+	belle_sip_tls_listening_point_t * lp = (belle_sip_tls_listening_point_t*)belle_sip_provider_get_listening_point(prov, "tls");
+	if (!lp) {
+		belle_sip_error("No TLS support, test skipped.");
+		return;
+	}
+	belle_sip_tls_listening_point_set_http_proxy_addr(lp, test_http_proxy_addr);
+	belle_sip_tls_listening_point_set_http_proxy_port(lp, test_http_proxy_port);
+	register_test("tls",1);
+	belle_sip_tls_listening_point_set_http_proxy_addr(lp, NULL);
+	belle_sip_tls_listening_point_set_http_proxy_port(lp, 0);
+
+}
+
+static void stateful_register_tls_with_wrong_http_proxy(void){
+	
+	belle_sip_tls_listening_point_t * lp = (belle_sip_tls_listening_point_t*)belle_sip_provider_get_listening_point(prov, "tls");
+	if (!lp) {
+		belle_sip_error("No TLS support, test skipped.");
+		return;
+	}
+	belle_sip_tls_listening_point_set_http_proxy_addr(lp, "mauvaisproxy.linphone.org");
+	belle_sip_tls_listening_point_set_http_proxy_port(lp, test_http_proxy_port);
+	try_register_user_at_domain(stack,prov,"tls",1,"tester",test_domain,NULL,0);
+	belle_sip_tls_listening_point_set_http_proxy_addr(lp, NULL);
+	belle_sip_tls_listening_point_set_http_proxy_port(lp, 0);
+	
+}
+
+
 static void bad_req_process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
@@ -575,6 +607,23 @@ static void register_dns_srv_tls(void){
 	if (req) belle_sip_object_unref(req);
 }
 
+static void register_dns_srv_tls_with_http_proxy(void){
+	belle_sip_request_t *req;
+	belle_sip_tls_listening_point_t * lp = (belle_sip_tls_listening_point_t*)belle_sip_provider_get_listening_point(prov, "tls");
+	if (!lp) {
+		belle_sip_error("No TLS support, test skipped.");
+		return;
+	}
+	io_error_count=0;
+	belle_sip_tls_listening_point_set_http_proxy_addr(lp, test_http_proxy_addr);
+	belle_sip_tls_listening_point_set_http_proxy_port(lp, test_http_proxy_port);
+	req=try_register_user_at_domain(stack, prov, "TLS",1,"tester",client_auth_domain,"sip:linphone.net;transport=tls",1);
+	belle_sip_tls_listening_point_set_http_proxy_addr(lp, NULL);
+	belle_sip_tls_listening_point_set_http_proxy_port(lp, 0);
+	BC_ASSERT_EQUAL(io_error_count, 0, int, "%d");
+	if (req) belle_sip_object_unref(req);
+}
+
 static void register_dns_load_balancing(void) {
 	belle_sip_request_t *req;
 	io_error_count = 0;
@@ -711,6 +760,8 @@ test_t register_tests[] = {
 	{ "Stateful UDP with outbound proxy", stateful_register_udp_with_outbound_proxy },
 	{ "Stateful TCP", stateful_register_tcp },
 	{ "Stateful TLS", stateful_register_tls },
+	{ "Stateful TLS with http proxy", stateful_register_tls_with_http_proxy },
+	{ "Stateful TLS with wong http proxy", stateful_register_tls_with_wrong_http_proxy },
 	{ "Stateless UDP", stateless_register_udp },
 	{ "Stateless TCP", stateless_register_tcp },
 	{ "Stateless TLS", stateless_register_tls },
@@ -724,6 +775,7 @@ test_t register_tests[] = {
 	{ "TLS connection to TCP server", test_tls_to_tcp },
 	{ "Register with DNS SRV failover TCP", register_dns_srv_tcp },
 	{ "Register with DNS SRV failover TLS", register_dns_srv_tls },
+	{ "Register with DNS SRV failover TLS with http proxy", register_dns_srv_tls_with_http_proxy },
 	{ "Register with DNS load-balancing", register_dns_load_balancing },
 	{ "Nonce reutilization", reuse_nonce }
 };
