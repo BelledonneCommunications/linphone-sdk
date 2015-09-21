@@ -273,20 +273,32 @@ MSFileFormat ms_media_player_get_file_format(const MSMediaPlayer *obj) {
 static bool_t _get_format(const char *filepath, MSFileFormat *format) {
 	FourCC four_cc;
 	size_t data_read;
-	FILE *file = fopen(filepath, "r");
+	FILE *file = fopen(filepath, "rb");
 	if(file == NULL) {
-		ms_error("Cannot open %s", filepath);
-		*format = MS_FILE_FORMAT_UNKNOWN;
-		return FALSE;
+		ms_error("Could not open %s: %s", filepath, strerror(errno));
+		goto err;
 	}
 	data_read = fread(four_cc, 4, 1, file);
-	fclose(file);
-	if(data_read < 1) {
-		*format = MS_FILE_FORMAT_UNKNOWN;
-		return FALSE;
+	if (data_read == 0) {
+		const char *error_msg;
+		if (ferror(file)) {
+			error_msg = strerror(errno);
+		} else if (feof(file)) {
+			error_msg = "end of file reached";
+		} else {
+			error_msg = "unknown error";
+		}
+		ms_error("Could not read the FourCC of %s: %s", filepath, error_msg);
+		goto err;
 	}
 	*format = four_cc_to_file_format(four_cc);
+	fclose(file);
 	return TRUE;
+
+err:
+	if (file) fclose(file);
+	*format = MS_FILE_FORMAT_UNKNOWN;
+	return FALSE;
 }
 
 static void _create_decoders(MSMediaPlayer *obj) {
