@@ -331,12 +331,12 @@ static int file_exists(const char* root_path) {
 	int found;
 	FILE* file;
 
-	char * sounds_path = malloc(sizeof(char)*(strlen(root_path)+strlen("sounds")+1));
-	sprintf(sounds_path, "%ssounds", root_path);
-	file = fopen(sounds_path, "r");
+	char * res_path = malloc(sizeof(char)*(strlen(root_path)+strlen("/common/bc_completion")+1));
+	sprintf(res_path, "%s/common/bc_completion", root_path);
+	file = fopen(res_path, "r");
 	found = (file != NULL);
 	if (file) fclose(file);
-	free(sounds_path);
+	free(res_path);
 	return found;
 }
 
@@ -356,17 +356,20 @@ static void detect_res_prefix(const char* prog) {
 	bc_tester_set_writable_dir_prefix("./tmp");
 #endif
 
-	if (strchr(prog, '/') != NULL) {
-		progpath[strrchr(prog, '/') - prog + 1] = '\0';
-	} else if (strchr(prog, '\\') != NULL) {
-		progpath[strrchr(prog, '\\') - prog + 1] = '\0';
+	if (prog != NULL) {
+		progpath = strdup(prog);
+		if (strchr(prog, '/') != NULL) {
+			progpath[strrchr(prog, '/') - prog + 1] = '\0';
+		} else if (strchr(prog, '\\') != NULL) {
+			progpath[strrchr(prog, '\\') - prog + 1] = '\0';
+		}
 	}
 
 	if (file_exists(".")) {
 		prefix = strdup(".");
 	} else if (file_exists("..")) {
 		prefix = strdup("..");
-	} else if (file_exists(progpath)) {
+	} else if (progpath && file_exists(progpath)) {
 		prefix = strdup(progpath);
 	}
 
@@ -381,6 +384,7 @@ static void detect_res_prefix(const char* prog) {
 		}
 		free(prefix);
 	} else if (bc_tester_resource_dir_prefix == NULL || bc_tester_writable_dir_prefix == NULL) {
+		printf("Failed to detect resources for %s.\n", prog);
 		printf("Could not find resource directory in %s! Please try again using option --resource-dir and/or --writable-dir.\n", progpath);
 		abort();
 	}

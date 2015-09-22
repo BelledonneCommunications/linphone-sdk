@@ -185,7 +185,7 @@ static void _belle_sip_object_uninit(belle_sip_object_t *obj){
 }
 
 static void _belle_sip_object_clone(belle_sip_object_t *obj, const belle_sip_object_t *orig){
-	if (orig->name!=NULL) obj->name=belle_sip_strdup(obj->name);
+	if (orig->name!=NULL) obj->name=belle_sip_strdup(orig->name);
 }
 
 static belle_sip_error_code _belle_object_marshal(belle_sip_object_t* obj, char* buff, size_t buff_size, size_t *offset) {

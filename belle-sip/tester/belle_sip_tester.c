@@ -112,6 +112,19 @@ void belle_sip_tester_uninit(void) {
 	bc_tester_uninit();
 }
 
+void belle_sip_tester_before_each() {
+	belle_sip_object_enable_leak_detector(TRUE);
+	leaked_objects_count = belle_sip_object_get_object_count();
+}
+
+void belle_sip_tester_after_each() {
+	int leaked_objects = belle_sip_object_get_object_count() - leaked_objects_count;
+	BC_ASSERT_EQUAL(leaked_objects, 0, int, "%d");
+	if (leaked_objects > 0) {
+		belle_sip_object_dump_active_objects();
+		belle_sip_error("%d objects were leaked in latest test, please fix that!\n", leaked_objects);
+	}
+}
 
 #if !defined(ANDROID) && !defined(TARGET_OS_IPHONE) && !(defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL))
 
@@ -188,20 +201,6 @@ int main (int argc, char *argv[]) {
 	ret = bc_tester_start(argv[0]);
 	belle_sip_tester_uninit();
 	return ret;
-}
-
-void belle_sip_tester_before_each() {
-	belle_sip_object_enable_leak_detector(TRUE);
-	leaked_objects_count = belle_sip_object_get_object_count();
-}
-
-void belle_sip_tester_after_each() {
-	int leaked_objects = belle_sip_object_get_object_count() - leaked_objects_count;
-	BC_ASSERT_EQUAL(leaked_objects, 0, int, "%d");
-	if (leaked_objects > 0) {
-		belle_sip_object_dump_active_objects();
-		belle_sip_error("%d objects were leaked in latest test, please fix that!\n", leaked_objects);
-	}
 }
 
 #endif
