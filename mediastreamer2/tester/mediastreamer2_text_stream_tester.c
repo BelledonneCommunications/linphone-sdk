@@ -262,6 +262,8 @@ test_suite_t text_stream_test_suite = {
 	"TextStream",
 	tester_init,
 	tester_cleanup,
+	NULL,
+	NULL,
 	sizeof(tests) / sizeof(tests[0]),
 	tests
 };
