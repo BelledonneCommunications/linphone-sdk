@@ -114,7 +114,7 @@ void BelleSipTester::runAllToXml()
 		init(true);
 		FILE *f = fopen(logFile, "w");
 		belle_sip_set_log_file(f);
-		bc_tester_start();
+		bc_tester_start("belle-sip-tester");
 		bc_tester_uninit();
 		fclose(f);
 		free(xmlFile);
