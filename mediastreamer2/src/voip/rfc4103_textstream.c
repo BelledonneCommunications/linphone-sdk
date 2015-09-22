@@ -52,7 +52,7 @@ static void text_stream_hexdump(const uint8_t* data, const size_t s) {
 static uint32_t text_stream_gettime() 
 {
 	struct timeval t;
-	gettimeofday(&t, NULL);
+	ortp_gettimeofday(&t, NULL);
 	return (t.tv_sec * 1000 + t.tv_usec / 1000);
 }
 

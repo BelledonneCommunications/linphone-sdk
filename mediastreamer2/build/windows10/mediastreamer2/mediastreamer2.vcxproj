@@ -150,6 +150,7 @@
     <ClCompile Include="..\..\..\src\voip\qosanalyzer.c" />
     <ClCompile Include="..\..\..\src\voip\qualityindicator.c" />
     <ClCompile Include="..\..\..\src\voip\rfc3984.c" />
+    <ClCompile Include="..\..\..\src\voip\rfc4103_textstream.c" />
     <ClCompile Include="..\..\..\src\voip\ringstream.c" />
     <ClCompile Include="..\..\..\src\voip\stun.c" />
     <ClCompile Include="..\..\..\src\voip\stun_udp.c" />
