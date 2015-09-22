@@ -22,8 +22,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/msticker.h"
-#include "../audiofilters/waveheader.h"
+#include "waveheader.h"
 #include "mediastreamer2/formats.h"
+#include "vp8rtpfmt.h"
 #include "mkv_reader.h"
 #undef bool_t
 
@@ -43,7 +44,7 @@ typedef void *(*ModuleNewFunc)();
 typedef void (*ModuleFreeFunc)(void *obj);
 typedef void (*ModuleSetFunc)(void *obj, const MSFmtDescriptor *fmt);
 typedef void (*ModulePreProFunc)(void *obj, MSQueue *input, MSQueue *output);
-typedef mblk_t *(*ModuleProFunc)(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame, uint8_t **codecPrivateData, size_t *codecPrivateSize);
+typedef mblk_t *(*ModuleProFunc)(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize);
 typedef void (*ModuleReverseFunc)(void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize);
 typedef void (*ModulePrivateDataFunc)(const void *obj, uint8_t **data, size_t *data_size);
 typedef void (*ModulePrivateDataLoadFunc)(void *obj, const uint8_t *data, size_t size);
@@ -107,11 +108,11 @@ static void H264Private_free(H264Private *obj) {
 	ms_free(obj);
 }
 
-static inline const MSList *H264Private_getSPS(const H264Private *obj) {
+static const MSList *H264Private_getSPS(const H264Private *obj) {
 	return obj->sps_list;
 }
 
-static inline const MSList *H264Private_getPPS(const H264Private *obj) {
+static const MSList *H264Private_getPPS(const H264Private *obj) {
 	return obj->pps_list;
 }
 
@@ -245,7 +246,7 @@ static void h264_module_preprocessing(void *data, MSQueue *input, MSQueue *outpu
 	}
 }
 
-static inline int h264_nalu_type(const mblk_t *nalu) {
+static int h264_nalu_type(const mblk_t *nalu) {
 	return (nalu->b_rptr[0]) & ((1<<5)-1);
 }
 
@@ -305,7 +306,7 @@ static void nalus_to_frame(mblk_t *buffer, mblk_t **frame, MSList **spsList, MSL
 	}
 }
 
-static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKeyFrame, uint8_t **codecPrivateData, size_t *codecPrivateSize) {
+static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize) {
 	H264Module *obj = (H264Module *)data;
 	mblk_t *frame = NULL;
 	MSList *spsList = NULL, *ppsList = NULL;
@@ -321,6 +322,7 @@ static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKe
 		if(spsList != NULL) ms_list_free_with_data(spsList, (void (*)(void *))freemsg);
 		if(ppsList != NULL) ms_list_free_with_data(ppsList, (void (*)(void *))freemsg);
 	}
+	*isVisible = TRUE;
 	return frame;
 }
 
@@ -420,6 +422,85 @@ static const ModuleDesc h264_module_desc = {
 #endif
 
 /*********************************************************************************************
+ * VP8 module                                                                               *
+ *********************************************************************************************/
+typedef struct _Vp8Module {
+	Vp8RtpFmtUnpackerCtx unpacker;
+	Vp8RtpFmtPackerCtx packer;
+} Vp8Module;
+
+void *vp8_module_new() {
+	Vp8Module *obj = (Vp8Module *)ms_new0(Vp8Module, 1);
+	vp8rtpfmt_unpacker_init(&obj->unpacker, NULL, FALSE, TRUE, FALSE);
+	vp8rtpfmt_packer_init(&obj->packer);
+	return obj;
+}
+
+void vp8_module_free(void *obj) {
+	Vp8Module *mod = (Vp8Module *)obj;
+	vp8rtpfmt_unpacker_uninit(&mod->unpacker);
+	vp8rtpfmt_packer_uninit(&mod->packer);
+	ms_free(mod);
+}
+
+void vp8_module_preprocess(void *obj, MSQueue *input, MSQueue *output) {
+	Vp8RtpFmtUnpackerCtx *unpacker = (Vp8RtpFmtUnpackerCtx *)obj;
+	Vp8RtpFmtFrameInfo infos;
+	vp8rtpfmt_unpacker_feed(unpacker, input);
+	vp8rtpfmt_unpacker_get_frame(unpacker, output, &infos);
+}
+
+mblk_t *vp8_module_process(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize) {
+	uint8_t first_byte = *buffer->b_rptr;
+	*isKeyFrame = !(first_byte & 0x01);
+	*isVisible = first_byte & 0x10;
+}
+
+void vp8_module_reverse(void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
+	Vp8Module *mod = (Vp8Module *)obj;
+	MSList *packer_input = NULL;
+	packer_input = ms_list_append(packer_input, input);
+	vp8rtpfmt_packer_process(&mod->packer, packer_input, output);
+	ms_list_free(packer_input);
+}
+
+ms_bool_t vp8_module_is_keyframe(const mblk_t *frame) {
+	uint8_t first_byte = *frame->b_rptr;
+	return !(first_byte & 0x01);
+}
+
+/* VP8 module description */
+#ifdef _MSC_VER
+static const ModuleDesc vp8_module_desc = {
+	"VP8",
+	"V_VP8",
+	vp8_module_new,
+	vp8_module_free,
+	NULL,
+	vp8_module_preprocess,
+	vp8_module_process,
+	vp8_module_reverse,
+	NULL,
+	NULL,
+	vp8_module_is_keyframe
+};
+#else
+static const ModuleDesc vp8_module_desc = {
+	.rfcName = "VP8",
+	.codecId = "V_VP8",
+	.new_module = vp8_module_new,
+	.free_module = vp8_module_free,
+	.set = NULL,
+	.preprocess = vp8_module_preprocess,
+	.process = vp8_module_process,
+	.reverse = vp8_module_reverse,
+	.get_private_data = NULL,
+	.load_private_data = NULL,
+	.is_key_frame = vp8_module_is_keyframe
+};
+#endif
+
+/*********************************************************************************************
  * µLaw module                                                                               *
  *********************************************************************************************/
 /* WavPrivate */
@@ -453,7 +534,7 @@ static void wav_private_serialize(const WavPrivate *obj, uint8_t **data, size_t 
 	memcpy(*data, obj, *size);
 }
 
-static inline void wav_private_load(WavPrivate *obj, const uint8_t *data) {
+static void wav_private_load(WavPrivate *obj, const uint8_t *data) {
 	memcpy(obj, data, sizeof(WavPrivate));
 }
 
@@ -545,7 +626,7 @@ static void opus_codec_private_serialize(const OpusCodecPrivate *obj, uint8_t **
 	memcpy((*data)+8, obj, 11);
 }
 
-static inline void opus_codec_private_load(OpusCodecPrivate *obj, const uint8_t *data, size_t size) {
+static void opus_codec_private_load(OpusCodecPrivate *obj, const uint8_t *data, size_t size) {
 	memcpy(obj, data+8, 11);
 }
 
@@ -611,6 +692,7 @@ static const ModuleDesc opus_module_desc = {
  *********************************************************************************************/
 typedef enum {
 	H264_MOD_ID,
+	VP8_MOD_ID,
 	MU_LAW_MOD_ID,
 	OPUS_MOD_ID,
 	NONE_ID
@@ -618,6 +700,7 @@ typedef enum {
 
 static const ModuleDesc *moduleDescs[] = {
 	&h264_module_desc,
+	&vp8_module_desc,
 	&mu_law_module_desc,
 	&opus_module_desc,
 	NULL
@@ -659,13 +742,13 @@ static Module *module_new(const char *rfcName) {
 	} else {
 		Module *module = (Module *)ms_new0(Module, 1);
 		module->id = id;
-		module->data = moduleDescs[module->id]->new_module();
+		if(moduleDescs[module->id]->new_module) module->data = moduleDescs[module->id]->new_module();
 		return module;
 	}
 }
 
 static void module_free(Module *module) {
-	moduleDescs[module->id]->free_module(module->data);
+	if(moduleDescs[module->id]->free_module) moduleDescs[module->id]->free_module(module->data);
 	ms_free(module);
 }
 
@@ -686,13 +769,14 @@ static void module_preprocess(Module *module, MSQueue *input, MSQueue *output) {
 	}
 }
 
-static mblk_t *module_process(Module *module, mblk_t *buffer, ms_bool_t *isKeyFrame, uint8_t **codecPrivateData, size_t *codecPrivateSize) {
+static mblk_t *module_process(Module *module, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize) {
 	mblk_t *frame;
 	if(moduleDescs[module->id]->process != NULL) {
-		frame = moduleDescs[module->id]->process(module->data, buffer, isKeyFrame, codecPrivateData, codecPrivateSize);
+		frame = moduleDescs[module->id]->process(module->data, buffer, isKeyFrame, isVisible, codecPrivateData, codecPrivateSize);
 	} else {
 		frame = buffer;
 		*isKeyFrame = TRUE;
+		*isVisible = TRUE;
 		*codecPrivateData = NULL;
 	}
 	return frame;
@@ -706,19 +790,19 @@ static void module_reverse(Module *module, mblk_t *input, MSQueue *output, ms_bo
 	}
 }
 
-static inline void module_get_private_data(const Module *module, uint8_t **data, size_t *dataSize) {
+static void module_get_private_data(const Module *module, uint8_t **data, size_t *dataSize) {
 	moduleDescs[module->id]->get_private_data(module->data, data, dataSize);
 }
 
-static inline void module_load_private_data(Module *module, const uint8_t *data, size_t size) {
+static void module_load_private_data(Module *module, const uint8_t *data, size_t size) {
 	moduleDescs[module->id]->load_private_data(module->data, data, size);
 }
 
-static inline ms_bool_t module_is_key_frame(const Module *module, const mblk_t *frame) {
+static ms_bool_t module_is_key_frame(const Module *module, const mblk_t *frame) {
 	return moduleDescs[module->id]->is_key_frame(frame);
 }
 
-static inline const char *module_get_codec_id(const Module *module) {
+static const char *module_get_codec_id(const Module *module) {
 	return moduleDescs[module->id]->codecId;
 }
 
@@ -1002,7 +1086,7 @@ static void matroska_set_doctype_version(Matroska *obj, int doctypeVersion, int 
 	EBML_IntegerSetValue((ebml_integer*)EBML_MasterGetChild(obj->header, &EBML_ContextDocTypeReadVersion), doctypeReadVersion);
 }
 
-static inline void matroska_write_ebml_header(Matroska *obj) {
+static void matroska_write_ebml_header(Matroska *obj) {
 	EBML_ElementRender((ebml_element *)obj->header, obj->output, TRUE, FALSE, FALSE, NULL);
 }
 
@@ -1018,11 +1102,11 @@ static int matroska_set_segment_info(Matroska *obj, const char writingApp[], con
 	}
 }
 
-static inline timecode_t matroska_get_duration(const Matroska *obj) {
+static timecode_t matroska_get_duration(const Matroska *obj) {
 	return (timecode_t)EBML_FloatValue((ebml_float *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextDuration));
 }
 
-static inline timecode_t matroska_get_timecode_scale(const Matroska *obj) {
+static timecode_t matroska_get_timecode_scale(const Matroska *obj) {
 	return obj->timecodeScale;
 }
 
@@ -1034,7 +1118,7 @@ static void updateElementHeader(ebml_element *element, stream *file) {
 	Stream_Seek(file, initial_pos, SEEK_SET);
 }
 
-static inline void matroska_start_segment(Matroska *obj) {
+static void matroska_start_segment(Matroska *obj) {
 	EBML_ElementSetSizeLength((ebml_element *)obj->segment, 8);
 	EBML_ElementRenderHead((ebml_element *)obj->segment, obj->output, FALSE, NULL);
 }
@@ -1051,7 +1135,7 @@ static size_t matroska_write_zeros(Matroska *obj, size_t nbZeros) {
 	return written;
 }
 
-static inline void matroska_mark_segment_info_position(Matroska *obj) {
+static void matroska_mark_segment_info_position(Matroska *obj) {
 	obj->segmentInfoPosition = Stream_Seek(obj->output, 0, SEEK_CUR);
 }
 
@@ -1063,27 +1147,27 @@ static int matroska_go_to_segment_info_mark(Matroska *obj) {
 	return 0;
 }
 
-static inline void matroska_go_to_file_end(Matroska *obj) {
+static void matroska_go_to_file_end(Matroska *obj) {
 	Stream_Seek(obj->output, 0, SEEK_END);
 }
 
-static inline void matroska_go_to_segment_begin(Matroska *obj) {
+static void matroska_go_to_segment_begin(Matroska *obj) {
 	Stream_Seek(obj->output, EBML_ElementPositionData((ebml_element *)obj->segment), SEEK_SET);
 }
 
-static inline void matroska_go_to_last_cluster_end(Matroska *obj) {
+static void matroska_go_to_last_cluster_end(Matroska *obj) {
 	Stream_Seek(obj->output, EBML_ElementPositionEnd((ebml_element *)obj->cluster), SEEK_SET);
 }
 
-static inline void matroska_go_to_segment_info_begin(Matroska *obj) {
+static void matroska_go_to_segment_info_begin(Matroska *obj) {
 	Stream_Seek(obj->output, EBML_ElementPosition((ebml_element *)obj->info), SEEK_SET);
 }
 
-static inline timecode_t matroska_block_get_timestamp(const Matroska *obj) {
+static timecode_t matroska_block_get_timestamp(const Matroska *obj) {
 	return MATROSKA_BlockTimecode((matroska_block *)obj->currentBlock)/obj->timecodeScale;
 }
 
-static inline int matroska_block_get_track_num(const Matroska *obj) {
+static int matroska_block_get_track_num(const Matroska *obj) {
 	return MATROSKA_BlockTrackNum((matroska_block *)obj->currentBlock);
 }
 
@@ -1218,11 +1302,11 @@ static void matroska_close_cluster(Matroska *obj) {
 	}
 }
 
-static inline int matroska_clusters_count(const Matroska *obj) {
+static int matroska_clusters_count(const Matroska *obj) {
 	return obj->nbClusters;
 }
 
-static inline timecode_t matroska_current_cluster_timecode(const Matroska *obj) {
+static timecode_t matroska_current_cluster_timecode(const Matroska *obj) {
 	return EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->cluster, &MATROSKA_ContextTimecode));
 }
 
@@ -1349,12 +1433,12 @@ static int matroska_add_cue(Matroska *obj, matroska_block *block) {
 	}
 }
 
-static inline void matroska_write_segment_info(Matroska *obj) {
+static void matroska_write_segment_info(Matroska *obj) {
 	EBML_ElementRender((ebml_element *)obj->info, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 	MATROSKA_MetaSeekUpdate(obj->infoMeta);
 }
 
-static inline void matroska_write_tracks(Matroska *obj) {
+static void matroska_write_tracks(Matroska *obj) {
 	EBML_ElementRender((ebml_element *)obj->tracks, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 	MATROSKA_MetaSeekUpdate(obj->tracksMeta);
 }
@@ -1373,15 +1457,15 @@ static int matroska_write_cues(Matroska *obj) {
 	}
 }
 
-static inline void matroska_write_metaSeek(Matroska *obj) {
+static void matroska_write_metaSeek(Matroska *obj) {
 	EBML_ElementRender((ebml_element *)obj->metaSeek, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 }
 
-static inline timecode_t matroska_get_current_cluster_timestamp(const Matroska *obj) {
+static timecode_t matroska_get_current_cluster_timestamp(const Matroska *obj) {
 	return (timecode_t)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->cluster, &MATROSKA_ContextTimecode));
 }
 
-static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame *m_frame, int trackNum, ms_bool_t isKeyFrame, const uint8_t *codecPrivateData, size_t codecPrivateDataSize) {
+static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame *m_frame, int trackNum, ms_bool_t isKeyFrame, ms_bool_t isVisible, const uint8_t *codecPrivateData, size_t codecPrivateDataSize) {
 	matroska_block *block = NULL;
 	ebml_master *blockGroup = NULL;
 	timecode_t clusterTimecode;
@@ -1444,7 +1528,7 @@ static void muxer_uninit(Muxer *obj) {
 	ms_free(obj->queues);
 }
 
-static inline void muxer_put_buffer(Muxer *obj, mblk_t *buffer, int pin) {
+static void muxer_put_buffer(Muxer *obj, mblk_t *buffer, int pin) {
 	ms_queue_put(&obj->queues[pin], buffer);
 }
 
@@ -1500,11 +1584,11 @@ static void time_corrector_uninit(TimeCorrector *obj) {
 	ms_free(obj->offsetIsSet);
 }
 
-static inline void time_corrector_set_origin(TimeCorrector *obj, timecode_t origin) {
+static void time_corrector_set_origin(TimeCorrector *obj, timecode_t origin) {
 	obj->globalOrigin = origin;
 }
 
-static inline void time_corrector_set_ticker(TimeCorrector *obj, const MSTicker *ticker) {
+static void time_corrector_set_ticker(TimeCorrector *obj, const MSTicker *ticker) {
 	obj->ticker = ticker;
 }
 
@@ -1642,13 +1726,14 @@ static void recorder_postprocess(MSFilter *f) {
 
 static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int pin) {
 	ms_bool_t isKeyFrame;
+	ms_bool_t isVisible;
 	uint8_t *codecPrivateData = NULL;
 	size_t codecPrivateSize;
 	matroska_block *block;
 	mblk_t *frame = NULL;
 	matroska_frame m_frame;
 
-	frame = module_process(obj->modulesList[pin], buffer, &isKeyFrame, &codecPrivateData, &codecPrivateSize);
+	frame = module_process(obj->modulesList[pin], buffer, &isKeyFrame, &isVisible, &codecPrivateData, &codecPrivateSize);
 
 	m_frame.Timecode = ((int64_t)mblk_get_timestamp_info(frame))*1000000LL;
 	m_frame.Size = msgdsize(frame);
@@ -1663,13 +1748,13 @@ static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, int pin) {
 		}
 	}
 
-	block = matroska_write_block(&obj->file, &m_frame, pin + 1, isKeyFrame, codecPrivateData, codecPrivateSize);
+	block = matroska_write_block(&obj->file, &m_frame, pin + 1, isKeyFrame, isVisible, codecPrivateData, codecPrivateSize);
 	freemsg(frame);
 	ms_free(codecPrivateData);
 	return block;
 }
 
-static inline void changeClockRate(mblk_t *buffer, unsigned int oldClockRate, unsigned int newClockRate) {
+static void changeClockRate(mblk_t *buffer, unsigned int oldClockRate, unsigned int newClockRate) {
 	mblk_set_timestamp_info(buffer, (uint64_t)mblk_get_timestamp_info(buffer) * (uint64_t)newClockRate / (uint64_t)oldClockRate);
 }
 
@@ -1832,8 +1917,10 @@ static void recorder_process(MSFilter *f) {
 				if(obj->inputDescsList[i]->type == MSVideo && obj->needKeyFrame) {
 					while((buffer = ms_queue_get(&frames_ms)) != NULL) {
 						if (module_is_key_frame(obj->modulesList[i], buffer)) {
+							ms_message("MKVRecorder: first I-frame received");
 							break;
 						} else {
+							ms_warning("MKVRecorder: waiting for an I-frame");
 							recorder_request_fir(f, obj);
 							freemsg(buffer);
 						}
@@ -2095,7 +2182,7 @@ static MKVBlock *mkv_block_queue_pull(MKVBlockQueue *obj) {
 	}
 }
 
-static inline ms_bool_t mkv_block_queue_is_empty(const MKVBlockQueue *obj) {
+static ms_bool_t mkv_block_queue_is_empty(const MKVBlockQueue *obj) {
 	return (obj->queue == NULL);
 }
 
