@@ -37,6 +37,7 @@
     <ClCompile Include="..\..\..\..\tester\mediastreamer2_sound_card_tester.c" />
     <ClCompile Include="..\..\..\..\tester\mediastreamer2_tester.c" />
     <ClCompile Include="..\..\..\..\tester\mediastreamer2_tester_private.c" />
+    <ClCompile Include="..\..\..\..\tester\mediastreamer2_text_stream_tester.c" />
     <ClCompile Include="..\..\..\..\tester\mediastreamer2_video_stream_tester.c" />
   </ItemGroup>
   <ItemGroup>
@@ -91,6 +92,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <GenerateManifest>false</GenerateManifest>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>

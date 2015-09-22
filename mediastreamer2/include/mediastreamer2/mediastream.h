@@ -1255,7 +1255,7 @@ MS2_PUBLIC void text_stream_iterate(TextStream *stream);
  * @param[in] stream TextStream object previously created with text_stream_new().
  * @return the character read or '\0' if there are no more character to read in the steam.
  **/
-char text_stream_getchar(TextStream *stream);
+MS2_PUBLIC char text_stream_getchar(TextStream *stream);
 
 /**
  * Writes a character to the stream.
@@ -1264,7 +1264,7 @@ char text_stream_getchar(TextStream *stream);
  * @param[in] stream TextStream object previously created with text_stream_new().
  * @param[in] c the Char to send.
  **/
-void text_stream_putchar(TextStream *stream, const char c);
+MS2_PUBLIC void text_stream_putchar(TextStream *stream, const char c);
 
 /**
  * Reads a character from the stream in UTF-32 format.
@@ -1272,7 +1272,7 @@ void text_stream_putchar(TextStream *stream, const char c);
  * @param[in] stream TextStream object previously created with text_stream_new().
  * @return the character in UTF-32 format.
  **/
-uint32_t text_stream_getchar32(TextStream *stream);
+MS2_PUBLIC uint32_t text_stream_getchar32(TextStream *stream);
 
 /**
  * Writes a character to stream in UTF-32 format.
@@ -1280,7 +1280,7 @@ uint32_t text_stream_getchar32(TextStream *stream);
  * @param[in] stream TextStream object previously created with text_stream_new().
  * @param[in] i the Char in UTF-32 format.
  **/
-void text_stream_putchar32(TextStream *stream, uint32_t i);
+MS2_PUBLIC void text_stream_putchar32(TextStream *stream, uint32_t i);
 
 /**
  * @}
