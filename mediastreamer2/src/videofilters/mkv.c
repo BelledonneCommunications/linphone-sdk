@@ -1307,6 +1307,9 @@ static int matroska_track_set_info(Matroska *obj, int trackNum, const MSFmtDescr
 			EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextSamplingFrequency), fmt->rate);
 			EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextChannels), fmt->nchannels);
 			break;
+		default:
+			ms_error("matroska_track_set_info: format type '%s' not handled.",ms_format_type_to_string(fmt->type));
+			break;
 		}
 		return 0;
 	}
