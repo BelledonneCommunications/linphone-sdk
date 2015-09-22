@@ -15,6 +15,7 @@ mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_sound_card_tester.c \
 	mediastreamer2_adaptive_tester.c \
 	mediastreamer2_audio_stream_tester.c \
+	mediastreamer2_text_stream_tester.c \
 	mediastreamer2_framework_tester.c \
 	mediastreamer2_player_tester.c \
 	mediastreamer2_neon_tester.c \

@@ -45,6 +45,7 @@ extern test_suite_t audio_stream_test_suite;
 extern test_suite_t video_stream_test_suite;
 extern test_suite_t framework_test_suite;
 extern test_suite_t player_test_suite;
+extern test_suite_t text_stream_test_suite;
 #ifdef __ARM_NEON__
 extern test_suite_t neon_test_suite;
 #endif

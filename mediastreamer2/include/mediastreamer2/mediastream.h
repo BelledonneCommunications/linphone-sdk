@@ -800,11 +800,11 @@ typedef struct _VideoStream VideoStream;
 
 MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
 /**
- * Creates an VideoStream object listening on a RTP port for a dedicated address.
+ * Creates a VideoStream object listening on a RTP port for a dedicated address.
  * @param loc_ip the local ip to listen for RTP packets. Can be ::, O.O.O.O or any ip4/6 addresses
  * @param [in] loc_rtp_port the local UDP port to listen for RTP packets.
  * @param [in] loc_rtcp_port the local UDP port to listen for RTCP packets
- * @return a new AudioStream.
+ * @return a new VideoStream.
 **/
 MS2_PUBLIC VideoStream *video_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port);
 
@@ -1165,8 +1165,126 @@ MS2_PUBLIC void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute r
  * @}
 **/
 
+/**
+ * @addtogroup text_stream_api
+ * @{
+**/
 
+#define TS_OUTBUF_SIZE 32
+#define TS_REDGEN 2
+#define TS_NUMBER_OF_OUTBUF TS_REDGEN + 1
+#define TS_INBUF_SIZE TS_OUTBUF_SIZE * TS_NUMBER_OF_OUTBUF
+#define TS_KEEP_ALIVE_INTERVAL 25000 //10000
+#define TS_SEND_INTERVAL 299
 
+#define TS_FLAG_NOTFIRST 0x01
+#define TS_FLAG_NOCALLBACK 0x02
+
+struct _TextStream
+{
+	MediaStream ms;
+	int flags;
+	int pt_t140;
+	int pt_red;	
+	int prevseqno;
+	uint8_t inbuf[TS_INBUF_SIZE];
+	size_t inbufsize;
+	uint8_t* inbufpos;
+	uint8_t buf[TS_NUMBER_OF_OUTBUF][TS_OUTBUF_SIZE];
+	int pribuf;
+	size_t bufsize[TS_NUMBER_OF_OUTBUF];
+	uint32_t timestamp[TS_NUMBER_OF_OUTBUF];
+};
+
+typedef struct _TextStream TextStream;
+
+/**
+ * Creates a TextStream object listening on a RTP port.
+ * @param loc_rtp_port the local UDP port to listen for RTP packets.
+ * @param loc_rtcp_port the local UDP port to listen for RTCP packets
+ * @param ipv6 TRUE if ipv6 must be used.
+ * @return a new TextStream.
+**/
+MS2_PUBLIC TextStream *text_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
+
+/**
+ * Creates a TextStream object from initialized MSMediaStreamSessions.
+ * @param sessions the MSMediaStreamSessions
+ * @return a new TextStream
+**/
+TextStream *text_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
+
+/**
+ * Creates a TextStream object listening on a RTP port for a dedicated address.
+ * @param loc_ip the local ip to listen for RTP packets. Can be ::, O.O.O.O or any ip4/6 addresses
+ * @param [in] loc_rtp_port the local UDP port to listen for RTP packets.
+ * @param [in] loc_rtcp_port the local UDP port to listen for RTCP packets
+ * @return a new TextStream.
+**/
+MS2_PUBLIC TextStream *text_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port);
+
+/**
+ * Starts a text stream.
+ *
+ * @param[in] stream TextStream object previously created with text_stream_new().
+ * @param[in] profile RtpProfile object holding the PayloadType that can be used during the text session.
+ * @param[in] rem_rtp_addr The remote IP address where to send the text to.
+ * @param[in] rem_rtp_port The remote port where to send the text to.
+ * @param[in] rem_rtcp_addr The remote IP address for RTCP.
+ * @param[in] rem_rtcp_port The remote port for RTCP.
+ * @param[in] payload_type The payload type number used to send the text stream. A valid PayloadType must be available at this index in the profile.
+ */
+MS2_PUBLIC TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const char *rem_rtp_addr, int rem_rtp_port, const char *rem_rtcp_addr, int rem_rtcp_port, int payload_type);
+
+/**
+ *  Stops the text streaming thread and free everything
+**/
+MS2_PUBLIC void text_stream_stop (TextStream * stream);
+
+/**
+ * Executes background low priority tasks related to text processing (RTP statistics analysis).
+ * It should be called periodically, for example with an interval of 100 ms or so.
+ * 
+ * @param[in] stream TextStream object previously created with text_stream_new().
+ */
+MS2_PUBLIC void text_stream_iterate(TextStream *stream);
+
+/**
+ * Reads a character from the stream.
+ * 
+ * @param[in] stream TextStream object previously created with text_stream_new().
+ * @return the character read or '\0' if there are no more character to read in the steam.
+ **/
+char text_stream_getchar(TextStream *stream);
+
+/**
+ * Writes a character to the stream.
+ * To write an utf8 character, just call it multiple times.
+ * 
+ * @param[in] stream TextStream object previously created with text_stream_new().
+ * @param[in] c the Char to send.
+ **/
+void text_stream_putchar(TextStream *stream, const char c);
+
+/**
+ * Reads a character from the stream in UTF-32 format.
+ * 
+ * @param[in] stream TextStream object previously created with text_stream_new().
+ * @return the character in UTF-32 format.
+ **/
+uint32_t text_stream_getchar32(TextStream *stream);
+
+/**
+ * Writes a character to stream in UTF-32 format.
+ * 
+ * @param[in] stream TextStream object previously created with text_stream_new().
+ * @param[in] i the Char in UTF-32 format.
+ **/
+void text_stream_putchar32(TextStream *stream, uint32_t i);
+
+/**
+ * @}
+**/
 
 #ifdef __cplusplus
 }

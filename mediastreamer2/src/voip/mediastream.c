@@ -317,6 +317,10 @@ void media_stream_iterate(MediaStream *stream){
 	if (stream->evd) {
 		ortp_ev_dispatcher_iterate(stream->evd);
 	}
+	
+	if (stream->type == MSText) { // TODO: find a better way
+		text_stream_iterate((TextStream *)stream);
+	}
 
 	if (stream->evq){
 		OrtpEvent *ev=NULL;
@@ -434,6 +438,7 @@ bool_t media_stream_secured (const MediaStream *stream) {
 
 	switch (stream->type) {
 	case MSAudio:
+	case MSText:
 		/*fixme need also audio stream direction to be more precise*/
 		return ms_media_stream_sessions_secured(&stream->sessions, MediaStreamSendRecv);
 	case MSVideo:{
