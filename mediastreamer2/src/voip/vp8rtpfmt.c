@@ -404,9 +404,9 @@ static MSVideoSize get_size_from_key_frame(Vp8RtpFmtFrame *frame) {
 
 static void send_pli(Vp8RtpFmtUnpackerCtx *ctx) {
 	if (ctx->avpf_enabled == TRUE) {
-		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
+		if(ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 	} else {
-		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
+		if(ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
 		ctx->error_notified = TRUE;
 	}
 }
@@ -418,12 +418,12 @@ static void send_sli(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
 			sli.first = 0;
 			sli.number = (ctx->video_size.width * ctx->video_size.height) / (16 * 16);
 			sli.picture_id = frame->pictureid & 0x3F;
-			ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_SLI, &sli);
+			if(ctx->filter) ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_SLI, &sli);
 		} else {
 			send_pli(ctx);
 		}
 	} else {
-		ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
+		if(ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
 		ctx->error_notified = TRUE;
 	}
 }
@@ -442,7 +442,7 @@ void vp8rtpfmt_send_rpsi(Vp8RtpFmtUnpackerCtx *ctx, uint16_t pictureid) {
 			rpsi.bit_string = (uint8_t *)&picture_id8;
 			rpsi.bit_string_len = 8;
 		}
-		ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_RPSI, &rpsi);
+		if(ctx->filter) ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_RPSI, &rpsi);
 	}
 }
 
@@ -734,7 +734,7 @@ static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 				ctx->video_size = get_size_from_key_frame(frame);
 				ctx->waiting_for_reference_frame = FALSE;
 				if (ctx->error_notified == TRUE) {
-					ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_RECOVERED_FROM_ERRORS);
+					if(ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_RECOVERED_FROM_ERRORS);
 					ctx->error_notified = FALSE;
 				}
 			}
@@ -947,6 +947,7 @@ int vp8rtpfmt_unpacker_get_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8Rtp
 		Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)ms_list_nth_data(ctx->frames_list, 0);
 		frame_info->pictureid_present = frame->pictureid_present;
 		frame_info->pictureid = frame->pictureid;
+		frame_info->keyframe = frame->keyframe;
 	} else if (ms_list_size(ctx->non_processed_packets_list) >= 0) {
 		ms_debug("VP8 packets are remaining for next iteration of the filter.");
 	}

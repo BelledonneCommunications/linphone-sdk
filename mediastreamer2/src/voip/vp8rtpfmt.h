@@ -96,6 +96,7 @@ extern "C"{
 	typedef struct Vp8RtpFmtFrameInfo {
 		uint16_t pictureid;
 		bool_t pictureid_present;
+		bool_t keyframe;
 	} Vp8RtpFmtFrameInfo;
 
 
