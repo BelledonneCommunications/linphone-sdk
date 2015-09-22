@@ -539,3 +539,20 @@ function(linphone_builder_add_external_projects)
 		linphone_builder_add_project(${BUILDER})
 	endforeach()
 endfunction()
+
+macro(linphone_builder_add_dummy_libraries_generation)
+	if(LINPHONE_BUILDER_DUMMY_LIBRARIES)
+		linphone_builder_apply_flags()
+		linphone_builder_set_ep_directories(dummy_libraries)
+		linphone_builder_expand_external_project_vars()
+		ExternalProject_Add(TARGET_dummy_libraries
+			DEPENDS TARGET_linphone_builder
+			TMP_DIR ${ep_tmp}
+			BINARY_DIR ${ep_build}
+			DOWNLOAD_COMMAND ""
+			PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}/cmake/dummy_libraries" "<SOURCE_DIR>"
+			CMAKE_GENERATOR ${CMAKE_GENERATOR}
+			CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DLINPHONE_BUILDER_DUMMY_LIBRARIES=${LINPHONE_BUILDER_DUMMY_LIBRARIES}
+		)
+	endif()
+endmacro()
