@@ -22,7 +22,6 @@
 
 set(SOURCE_FILES
 	common/bc_tester_utils.c
-	common/bc_tester_utils.h
 	mediastreamer2_adaptive_tester.c
 	mediastreamer2_audio_stream_tester.c
 	mediastreamer2_basic_audio_tester.c
@@ -32,6 +31,7 @@ set(SOURCE_FILES
 	mediastreamer2_sound_card_tester.c
 	mediastreamer2_tester.c
 	mediastreamer2_tester_private.c
+	mediastreamer2_text_stream_tester.c
 )
 
 add_definitions(-DBC_CONFIG_FILE="mediastreamer-config.h")
