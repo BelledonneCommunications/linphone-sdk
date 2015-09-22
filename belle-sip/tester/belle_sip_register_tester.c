@@ -761,7 +761,7 @@ test_t register_tests[] = {
 	{ "Stateful TCP", stateful_register_tcp },
 	{ "Stateful TLS", stateful_register_tls },
 	{ "Stateful TLS with http proxy", stateful_register_tls_with_http_proxy },
-	{ "Stateful TLS with wong http proxy", stateful_register_tls_with_wrong_http_proxy },
+	{ "Stateful TLS with wrong http proxy", stateful_register_tls_with_wrong_http_proxy },
 	{ "Stateless UDP", stateless_register_udp },
 	{ "Stateless TCP", stateless_register_tcp },
 	{ "Stateless TLS", stateless_register_tls },

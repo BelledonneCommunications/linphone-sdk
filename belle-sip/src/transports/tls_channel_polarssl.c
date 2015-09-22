@@ -317,10 +317,11 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 									  ,ip);
 	
 	if (lp->http_proxy_username && lp->http_proxy_passwd) {
-		char username_passwd = belle_sip_strdup_printf("%s:%s",lp->http_proxy_username,lp->http_proxy_passwd);
+		char *username_passwd = belle_sip_strdup_printf("%s:%s",lp->http_proxy_username,lp->http_proxy_passwd);
 		size_t username_passwd_length = strlen(username_passwd);
+		size_t encoded_username_paswd_length = username_passwd_length*2;
 		unsigned char *encoded_username_paswd = belle_sip_malloc(2*username_passwd_length);
-		base64_encode(encoded_username_paswd,2*username_passwd_length,username_passwd,username_passwd_length);
+		base64_encode(encoded_username_paswd,&encoded_username_paswd_length,(const unsigned char *)username_passwd,username_passwd_length);
 		belle_sip_strcat_printf(request, "Proxy-Authorization: Basic %s\r\n",encoded_username_paswd);
 		belle_sip_free(username_passwd);
 		belle_sip_free(encoded_username_paswd);
