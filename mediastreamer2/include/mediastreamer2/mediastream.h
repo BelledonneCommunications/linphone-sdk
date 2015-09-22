@@ -1212,7 +1212,7 @@ MS2_PUBLIC TextStream *text_stream_new(int loc_rtp_port, int loc_rtcp_port, bool
  * @param sessions the MSMediaStreamSessions
  * @return a new TextStream
 **/
-TextStream *text_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
+MS2_PUBLIC TextStream *text_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
 
 /**
  * Creates a TextStream object listening on a RTP port for a dedicated address.
