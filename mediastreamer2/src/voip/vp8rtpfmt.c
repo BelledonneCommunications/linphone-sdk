@@ -818,6 +818,12 @@ static void clean_frame(Vp8RtpFmtUnpackerCtx *ctx) {
 	}
 }
 
+static void free_frame(void *data) {
+	Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame *)data;
+	free_partitions_of_frame(frame);
+	ms_free(frame);
+}
+
 static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 	uint8_t *h = packet->m->b_rptr;
 	Vp8RtpFmtPayloadDescriptor *pd = packet->pd;
@@ -901,7 +907,9 @@ void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf
 }
 
 void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx) {
+	ms_list_for_each(ctx->frames_list, free_frame);
 	ms_list_free(ctx->frames_list);
+	ms_list_for_each(ctx->non_processed_packets_list, free_packet);
 	ms_list_free(ctx->non_processed_packets_list);
 }
 
