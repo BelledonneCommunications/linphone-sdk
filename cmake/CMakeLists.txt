@@ -317,7 +317,7 @@ macro(linphone_builder_create_build_command PROJNAME)
 endmacro()
 
 
-# this function invokes configure_file() for the project, using the default file if 
+# this function invokes configure_file() for the project, using the default file if
 # the specific file is not defined
 function(linphone_builder_configure_file_for_project PROJNAME CMD DEFAULT_CONF_FILE OUTPUT)
 	if("${EP_${PROJNAME}_${CMD}_COMMAND_SOURCE}" STREQUAL "")
@@ -325,7 +325,7 @@ function(linphone_builder_configure_file_for_project PROJNAME CMD DEFAULT_CONF_F
 		configure_file(${DEFAULT_CONF_FILE} ${OUTPUT})
 	else()
 		MESSAGE(STATUS "Using specific file ${EP_${PROJNAME}_${CMD}_COMMAND_SOURCE} for ${CMD} step of ${PROJNAME}")
-		configure_file(${EP_${PROJNAME}_${CMD}_COMMAND_SOURCE} ${OUTPUT})	  
+		configure_file(${EP_${PROJNAME}_${CMD}_COMMAND_SOURCE} ${OUTPUT})
 	endif()
 endfunction()
 
@@ -423,20 +423,20 @@ function(linphone_builder_add_project PROJNAME)
 			INSTALL_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.${SCRIPT_EXTENSION}
 		)
 	elseif("${EP_${PROJNAME}_BUILD_METHOD}" STREQUAL "rpm")
-		
+
 		if(WIN32)
 			message(SEND_ERROR "rpm build not supported on WIN32")
 		endif()
 
 		linphone_builder_create_autogen_command(${PROJNAME})
 		linphone_builder_create_configure_command(${PROJNAME})
-		
+
 		if("${EP_${PROJNAME}_CONFIG_H_FILE}" STREQUAL "")
 			set(ep_config_h_file config.h)
 		else()
 			set(ep_config_h_file ${EP_${PROJNAME}_CONFIG_H_FILE})
 		endif()
-		
+
 		if("${EP_${PROJNAME}_INSTALL_TARGET}" STREQUAL "")
 			set(ep_install_target "install")
 		else()
@@ -456,7 +456,7 @@ function(linphone_builder_add_project PROJNAME)
 		else()
 			set(LINPHONE_BUILDER_RPMBUILD_NAME "${EP_${PROJNAME}_RPMBUILD_NAME}")
 		endif()
-		
+
 		# a distinctive name of the generated RPM. It is used to find the rpms to install
 		# in the install step. Defaults to $PROJNAME but could be something else
 		if(NOT "${EP_${PROJNAME}_RPMBUILD_OPTIONS}" STREQUAL "")
@@ -545,7 +545,7 @@ macro(linphone_builder_add_dummy_libraries_generation)
 		linphone_builder_apply_flags()
 		linphone_builder_set_ep_directories(dummy_libraries)
 		linphone_builder_expand_external_project_vars()
-		ExternalProject_Add(TARGET_dummy_libraries
+		ExternalProject_Add(EP_dummy_libraries
 			DEPENDS TARGET_linphone_builder
 			TMP_DIR ${ep_tmp}
 			BINARY_DIR ${ep_build}
