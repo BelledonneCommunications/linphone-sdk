@@ -137,9 +137,6 @@ int belle_sip_channel_matches(const belle_sip_channel_t *obj, const belle_sip_ho
 
 void belle_sip_channel_resolve(belle_sip_channel_t *obj);
 
-belle_sip_resolver_context_t * belle_sip_channel_resolve_base(belle_sip_channel_t *obj,belle_sip_resolver_callback_t res_done, const char * peer_name,int peer_port, int ai_family);
-
-
 void belle_sip_channel_connect(belle_sip_channel_t *obj);
 
 void belle_sip_channel_prepare(belle_sip_channel_t *obj);
