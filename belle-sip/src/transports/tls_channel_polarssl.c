@@ -307,7 +307,7 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 #ifdef HAVE_POLARSSL
 	char* request;
 	belle_sip_channel_t *channel = (belle_sip_channel_t *)obj;
-	belle_sip_tls_listening_point_t* lp = (belle_sip_tls_listening_point_t*)(channel->lp);
+	belle_sip_tls_listening_point_t* lp = (belle_sip_tls_listening_point_t*)channel->lp;
 	int err;
 	char ip[64];
 	int port;

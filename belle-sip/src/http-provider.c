@@ -383,7 +383,7 @@ belle_sip_list_t **belle_http_provider_get_channels(belle_http_provider_t *obj, 
 static void provider_remove_channel(belle_http_provider_t *obj, belle_sip_channel_t *chan){
 	belle_sip_list_t **channels=belle_http_provider_get_channels(obj,belle_sip_channel_get_transport_name(chan));
 	*channels=belle_sip_list_remove(*channels,chan);
-	belle_sip_message("channel [%p] removed from http provider.",obj);
+	belle_sip_message("channel [%p] removed from http provider.", chan);
 	belle_sip_object_unref(chan);
 }
 

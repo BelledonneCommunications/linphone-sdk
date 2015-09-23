@@ -1335,6 +1335,10 @@ int belle_sip_channel_queue_message(belle_sip_channel_t *obj, belle_sip_message_
 }
 
 void belle_sip_channel_force_close(belle_sip_channel_t *obj){
+	if (obj->resolver_ctx){
+		belle_sip_resolver_context_cancel(obj->resolver_ctx);
+		obj->resolver_ctx = NULL;
+	}
 	obj->force_close=1;
 	channel_set_state(obj,BELLE_SIP_CHANNEL_DISCONNECTED);
 }
