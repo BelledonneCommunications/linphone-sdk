@@ -225,11 +225,12 @@ BELLESIP_EXPORT void belle_sip_object_weak_unref(void *obj, belle_sip_object_des
 /**
  * Set object name.
 **/
-void belle_sip_object_set_name(belle_sip_object_t *obj,const char* name);
+BELLESIP_EXPORT void belle_sip_object_set_name(belle_sip_object_t *obj,const char* name);
+
 /**
  * Get object name.
 **/
-const char* belle_sip_object_get_name(belle_sip_object_t *obj);
+BELLESIP_EXPORT const char* belle_sip_object_get_name(belle_sip_object_t *obj);
 
 /*copy the content of ref object to new object, for the part they have in common in their inheritence diagram*/
 void _belle_sip_object_copy(belle_sip_object_t *newobj, const belle_sip_object_t *ref);
