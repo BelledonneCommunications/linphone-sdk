@@ -30,6 +30,15 @@ if(NOT ${XCODE_SELECT_RESULT} EQUAL 0)
 	message(FATAL_ERROR "xcode-select failed: ${XCODE_SELECT_RESULT}. You may need to install Xcode.")
 endif()
 
+string(TOLOWER ${PLATFORM}  PLATFORM_LOWER)
+
+execute_process(COMMAND xcrun --sdk iphone${PLATFORM_LOWER}  --show-sdk-version RESULT_VARIABLE  IOS_SDK_VERSION OUTPUT_VARIABLE XCODE_SDK_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT ${XCRUN_RESULT} EQUAL 0)
+	message(FATAL_ERROR "xcrun failed: ${XCRUN_RESULT}. You may need to install Xcode.")
+else ()
+	set(IOS_SDK_VERSION "${XCODE_SDK_VERSION}")
+endif()
+
 if(EXISTS "${XCODE_PATH}/Platforms/iPhone${PLATFORM}.platform/Developer/SDKs/")
 	# New path with Xcode 4.3
 	file(GLOB SDK_PATH_LIST "${XCODE_PATH}/Platforms/iPhone${PLATFORM}.platform/Developer/SDKs/iPhone${PLATFORM}*.sdk")
@@ -42,6 +51,7 @@ list(SORT SDK_PATH_LIST)
 list(REVERSE SDK_PATH_LIST)
 list(GET SDK_PATH_LIST 0 CMAKE_OSX_SYSROOT)
 message(STATUS "Using sysroot path: ${CMAKE_OSX_SYSROOT}")
+message(STATUS "Using sdk version: ${IOS_SDK_VERSION}")
 
 set(IOS_TOOLCHAIN_HOST ${COMPILER_PREFIX})
 
