@@ -207,7 +207,7 @@ static void http_proxy_res_done(void *data, const char *name, struct addrinfo *a
 static int tls_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	belle_sip_tls_listening_point_t * lp = (belle_sip_tls_listening_point_t * )obj->lp;
 	belle_sip_tls_channel_t *channel=(belle_sip_tls_channel_t*)obj;
-	if (lp->http_proxy_host) {
+	if (lp && lp->http_proxy_host) {
 		belle_sip_message("Resolving http proxy addr [%s] for channel [%p]",lp->http_proxy_host,obj);
 		/*assume ai family is the same*/
 		channel->http_proxy_resolver_ctx = belle_sip_stack_resolve_a(obj->stack, lp->http_proxy_host, lp->http_proxy_port, obj->ai_family, http_proxy_res_done, obj);
@@ -356,14 +356,14 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 			belle_sip_source_set_events((belle_sip_source_t*)channel,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
 			belle_sip_source_set_timeout((belle_sip_source_t*)obj,belle_sip_stack_get_transport_timeout(obj->stack));
 			
-			if (lp->http_proxy_host) {
+			if (lp && lp->http_proxy_host) {
 				belle_sip_message("Channel [%p]: Connected at TCP level, now doing http proxy connect",obj);
 				if (tls_process_http_connect(channel)) goto process_error;
 			} else {
 				belle_sip_message("Channel [%p]: Connected at TCP level, now doing TLS handshake",obj);
 				if (tls_process_handshake(obj)==-1) goto process_error;
 			}
-		} else if (lp->http_proxy_host && !channel->http_proxy_connected) {
+		} else if (lp && lp->http_proxy_host && !channel->http_proxy_connected) {
 			char response[256];
 			err = stream_channel_recv((belle_sip_stream_channel_t*)obj,response,sizeof(response));
 			if (err<0 ){
