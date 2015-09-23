@@ -164,6 +164,10 @@ static void play_sintel_trailer_opus_h264_mkv(void) {
 	play_root_file("sounds/sintel_trailer_opus_h264.mkv", !ms_media_player_matroska_supported(), FALSE, FALSE);
 }
 
+static void play_sintel_trailer_opus_vp8_mkv(void) {
+	play_root_file("sounds/sintel_trailer_opus_vp8.mkv", !ms_media_player_matroska_supported(), FALSE, FALSE);
+}
+
 static void seeking_test(void) {
 	play_root_file("sounds/sintel_trailer_opus_h264.mkv", !ms_media_player_matroska_supported(), TRUE, FALSE);
 }
@@ -179,6 +183,7 @@ static test_t tests[] = {
 	{	"Play hello_opus.mka"                ,	play_hello_opus_mka                },
 	{	"Play sintel_trailer_pcmu_h264.mkv"  ,	play_sintel_trailer_pcmu_h264_mkv  },
 	{	"Play sintel_trailer_opus_h264.mkv"  ,	play_sintel_trailer_opus_h264_mkv  },
+	{	"Play sintel_trailer_opus_vp8.mkv"   ,	play_sintel_trailer_opus_vp8_mkv   },
 	{	"Seeking"                            ,	seeking_test                       },
 	{	"Playing twice"                      ,	playing_twice_test                 }
 };
