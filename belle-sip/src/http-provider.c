@@ -464,6 +464,11 @@ void belle_http_provider_cancel_request(belle_http_provider_t *obj, belle_http_r
 	if (req->channel){
 		// Keep the list of the outgoing messages of the channel...
 		outgoing_messages = belle_sip_list_copy_with_data(req->channel->outgoing_messages,(void* (*)(void*))belle_sip_object_ref);
+		if (outgoing_messages->data == req){
+			/*our request didn't go out; so drop it.*/
+			outgoing_messages = belle_sip_list_remove(outgoing_messages ,req);
+			belle_sip_object_unref(req);
+		}
 		/*protect the channel from being destroyed before removing it (removing it will unref it)*/
 		belle_sip_object_ref(req->channel);
 		provider_remove_channel(obj, req->channel);

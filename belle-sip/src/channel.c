@@ -1255,6 +1255,7 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *ai_l
 }
 
 void belle_sip_channel_resolve(belle_sip_channel_t *obj){
+	belle_sip_message("channel [%p]: starting resolution of %s", obj, obj->peer_name);
 	channel_set_state(obj,BELLE_SIP_CHANNEL_RES_IN_PROGRESS);
 	if (belle_sip_stack_dns_srv_enabled(obj->stack) && obj->lp!=NULL)
 		obj->resolver_ctx=belle_sip_stack_resolve(obj->stack, belle_sip_channel_get_transport_name_lower_case(obj), obj->peer_name, obj->peer_port, obj->ai_family, channel_res_done, obj);
