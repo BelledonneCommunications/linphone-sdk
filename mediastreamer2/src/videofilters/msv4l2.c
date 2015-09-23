@@ -148,7 +148,7 @@ static int get_picture_buffer_size(MSPixFmt pix_fmt, int w, int h){
 
 static int query_max_fps_for_format_resolution(int fd, int pixelformat, MSVideoSize vsize) {
 	int fps = -1;
-	struct v4l2_frmivalenum frmival;
+	struct v4l2_frmivalenum frmival = { 0 };
 	frmival.index = 0;
 	frmival.pixel_format = pixelformat;
 	frmival.width = vsize.width;
@@ -283,7 +283,7 @@ MSPixFmt msv4l2_pick_best_format_x86(int fd, const V4L2FormatDescription* format
 			}
 
 			if (candidate != -1) {
-				struct v4l2_format fmt;
+				struct v4l2_format fmt = { 0 };
 				fmt.fmt.pix.width       = vsize.width;
 				fmt.fmt.pix.height      = vsize.height;
 				ms_message("Candidate: %i",candidate);
