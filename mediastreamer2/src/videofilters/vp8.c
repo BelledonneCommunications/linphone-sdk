@@ -895,22 +895,23 @@ static void dec_preprocess(MSFilter* f) {
 	/* Initialize codec */
 	if (!s->ready){
 		s->flags = 0;
+#if 0
+		/* Deactivate fragments input for the vpx decoder because it has been broken in libvpx 1.4.
+		 * This will have the effect to output complete frames. */
 		if ((s->avpf_enabled == TRUE) && (caps & VPX_CODEC_CAP_INPUT_FRAGMENTS)) {
 			s->flags |= VPX_CODEC_USE_INPUT_FRAGMENTS;
 		}
+#endif
 		if (caps & VPX_CODEC_CAP_ERROR_CONCEALMENT) {
 			s->flags |= VPX_CODEC_USE_ERROR_CONCEALMENT;
 		}
-	#ifdef VPX_CODEC_CAP_FRAME_THREADING
+#ifdef VPX_CODEC_CAP_FRAME_THREADING
 		if ((caps & VPX_CODEC_CAP_FRAME_THREADING) && (ms_factory_get_cpu_count(f->factory) > 1)) {
 			s->flags |= VPX_CODEC_USE_FRAME_THREADING;
 		}
-	#endif
+#endif
 		if(vpx_codec_dec_init(&s->codec, s->iface, NULL, s->flags))
 			ms_error("Failed to initialize decoder");
-		/*because of a crash in libvpx-1.4 decoder (assert fragment_idx <= num_token_partitions ), providing the decoder with incomplete frames must be avoided
-		 * for the moment. freeze_on_error is forced to TRUE regardless of application's preference.*/
-		s->freeze_on_error = TRUE;
 		ms_message("VP8: initializing decoder context: avpf=[%i] freeze_on_error=[%i]",s->avpf_enabled,s->freeze_on_error);
 		vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error, (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
 		s->first_image_decoded = FALSE;
