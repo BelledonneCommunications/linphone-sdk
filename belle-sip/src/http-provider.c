@@ -487,19 +487,17 @@ int belle_http_provider_set_tls_verify_policy(belle_http_provider_t *obj, belle_
 }
 
 void belle_http_provider_set_recv_error(belle_http_provider_t *obj, int recv_error) {
-	belle_sip_list_t *lps;
-	belle_sip_list_t *channels;
-	for(lps=obj->tcp_channels;lps!=NULL;lps=lps->next){
-		for(channels=((belle_sip_listening_point_t*)lps->data)->channels;channels!=NULL;channels=channels->next){
-			((belle_sip_channel_t*)channels->data)->simulated_recv_return=recv_error;
-			((belle_sip_source_t*)channels->data)->notify_required=(recv_error<=0);
-		}
+	belle_sip_list_t *it;
+	
+	for(it=obj->tcp_channels;it!=NULL;it=it->next){
+		belle_sip_channel_t *chan = (belle_sip_channel_t*)it->data;
+		chan->simulated_recv_return=recv_error;
+		chan->base.notify_required=(recv_error<=0);
 	}
-	for(lps=obj->tls_channels;lps!=NULL;lps=lps->next){
-		for(channels=((belle_sip_listening_point_t*)lps->data)->channels;channels!=NULL;channels=channels->next){
-			((belle_sip_channel_t*)channels->data)->simulated_recv_return=recv_error;
-			((belle_sip_source_t*)channels->data)->notify_required=(recv_error<=0);
-		}
+	for(it=obj->tls_channels;it!=NULL;it=it->next){
+		belle_sip_channel_t *chan = (belle_sip_channel_t*)it->data;
+		chan->simulated_recv_return=recv_error;
+		chan->base.notify_required=(recv_error<=0);
 	}
 }
 
