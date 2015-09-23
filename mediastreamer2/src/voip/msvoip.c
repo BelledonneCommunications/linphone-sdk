@@ -40,6 +40,7 @@ extern "C"{
 #endif
 
 extern void __register_ffmpeg_encoders_if_possible(MSFactory *factory);
+extern void __register_ffmpeg_h264_decoder_if_possible(MSFactory *factory);
 extern void ms_ffmpeg_check_init();
 extern bool_t libmsandroiddisplay_init(MSFactory *factory);
 extern void libmsandroiddisplaybad_init(MSFactory *factory);
@@ -302,6 +303,7 @@ void ms_factory_init_voip(MSFactory *obj){
 #if defined(VIDEO_ENABLED) && defined(MS2_FILTERS) && !defined(NO_FFMPEG) && defined(HAVE_LIBAVCODEC_AVCODEC_H)
 	ms_ffmpeg_check_init();
 	__register_ffmpeg_encoders_if_possible(obj);
+	__register_ffmpeg_h264_decoder_if_possible(obj);
 #endif
 
 #if defined(ANDROID) && defined (VIDEO_ENABLED)

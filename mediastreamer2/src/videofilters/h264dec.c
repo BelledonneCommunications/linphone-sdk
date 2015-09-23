@@ -448,5 +448,9 @@ MSFilterDesc ms_h264_dec_desc={
 
 #endif
 
-MS_FILTER_DESC_EXPORT(ms_h264_dec_desc)
-
+void __register_ffmpeg_h264_decoder_if_possible(MSFactory *obj) {
+	ms_ffmpeg_check_init();
+	if (avcodec_find_decoder(CODEC_ID_H264) && HAVE_NON_FREE_CODECS) {
+		ms_factory_register_filter(obj, &ms_h264_dec_desc);
+	}
+}
