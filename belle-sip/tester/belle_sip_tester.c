@@ -122,6 +122,7 @@ void belle_sip_tester_after_each() {
 	BC_ASSERT_EQUAL(leaked_objects, 0, int, "%d");
 	if (leaked_objects > 0) {
 		belle_sip_object_dump_active_objects();
+		belle_sip_object_flush_active_objects();
 		belle_sip_error("%d objects were leaked in latest test, please fix that!\n", leaked_objects);
 	}
 }

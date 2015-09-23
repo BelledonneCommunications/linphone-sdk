@@ -69,6 +69,11 @@ int belle_sip_object_get_object_count(void){
 	return belle_sip_list_size(all_objects);
 }
 
+void belle_sip_object_flush_active_objects(void){
+	//do not free objects so that they are still detected as leaked by valgrind and such
+	all_objects = belle_sip_list_free(all_objects);
+}
+
 void belle_sip_object_dump_active_objects(void){
 	belle_sip_list_t *elem;
 
