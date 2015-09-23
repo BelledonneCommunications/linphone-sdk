@@ -427,6 +427,7 @@ static const ModuleDesc h264_module_desc = {
 typedef struct _Vp8Module {
 	Vp8RtpFmtUnpackerCtx unpacker;
 	Vp8RtpFmtPackerCtx packer;
+	uint16_t cseq;
 } Vp8Module;
 
 void *vp8_module_new() {
@@ -460,9 +461,26 @@ mblk_t *vp8_module_process(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_
 void vp8_module_reverse(void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
 	Vp8Module *mod = (Vp8Module *)obj;
 	MSList *packer_input = NULL;
-	packer_input = ms_list_append(packer_input, input);
-	vp8rtpfmt_packer_process(&mod->packer, packer_input, output);
-	ms_list_free(packer_input);
+	Vp8RtpFmtPacket *packet = ms_new0(Vp8RtpFmtPacket, 1);
+	MSQueue q;
+	mblk_t *m;
+	
+	ms_queue_init(&q);
+	packet->m = input;
+	packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
+	packet->pd->start_of_partition = TRUE;
+	packet->pd->non_reference_frame = TRUE;
+	packet->pd->extended_control_bits_present = FALSE;
+	packet->pd->pictureid_present = FALSE;
+	packet->pd->pid = 0;
+	mblk_set_marker_info(packet->m, TRUE);
+	packer_input = ms_list_append(packer_input, packet);
+	vp8rtpfmt_packer_process(&mod->packer, packer_input, &q);
+	
+	while(m = ms_queue_get(&q)) {
+		mblk_set_cseq(m, mod->cseq++);
+		ms_queue_put(output, m);
+	}
 }
 
 ms_bool_t vp8_module_is_keyframe(const mblk_t *frame) {
