@@ -421,10 +421,10 @@ static void stateful_register_tls_with_http_proxy(void) {
 		belle_sip_error("No TLS support, test skipped.");
 		return;
 	}
-	belle_sip_tls_listening_point_set_http_proxy_addr(lp, test_http_proxy_addr);
+	belle_sip_tls_listening_point_set_http_proxy_host(lp, test_http_proxy_addr);
 	belle_sip_tls_listening_point_set_http_proxy_port(lp, test_http_proxy_port);
 	register_test("tls",1);
-	belle_sip_tls_listening_point_set_http_proxy_addr(lp, NULL);
+	belle_sip_tls_listening_point_set_http_proxy_host(lp, NULL);
 	belle_sip_tls_listening_point_set_http_proxy_port(lp, 0);
 
 }
@@ -436,10 +436,10 @@ static void stateful_register_tls_with_wrong_http_proxy(void){
 		belle_sip_error("No TLS support, test skipped.");
 		return;
 	}
-	belle_sip_tls_listening_point_set_http_proxy_addr(lp, "mauvaisproxy.linphone.org");
+	belle_sip_tls_listening_point_set_http_proxy_host(lp, "mauvaisproxy.linphone.org");
 	belle_sip_tls_listening_point_set_http_proxy_port(lp, test_http_proxy_port);
 	try_register_user_at_domain(stack,prov,"tls",1,"tester",test_domain,NULL,0);
-	belle_sip_tls_listening_point_set_http_proxy_addr(lp, NULL);
+	belle_sip_tls_listening_point_set_http_proxy_host(lp, NULL);
 	belle_sip_tls_listening_point_set_http_proxy_port(lp, 0);
 	
 }
@@ -615,10 +615,10 @@ static void register_dns_srv_tls_with_http_proxy(void){
 		return;
 	}
 	io_error_count=0;
-	belle_sip_tls_listening_point_set_http_proxy_addr(lp, test_http_proxy_addr);
+	belle_sip_tls_listening_point_set_http_proxy_host(lp, test_http_proxy_addr);
 	belle_sip_tls_listening_point_set_http_proxy_port(lp, test_http_proxy_port);
 	req=try_register_user_at_domain(stack, prov, "TLS",1,"tester",client_auth_domain,"sip:linphone.net;transport=tls",1);
-	belle_sip_tls_listening_point_set_http_proxy_addr(lp, NULL);
+	belle_sip_tls_listening_point_set_http_proxy_host(lp, NULL);
 	belle_sip_tls_listening_point_set_http_proxy_port(lp, 0);
 	BC_ASSERT_EQUAL(io_error_count, 0, int, "%d");
 	if (req) belle_sip_object_unref(req);
