@@ -2324,7 +2324,10 @@ static void player_process(MSFilter *f) {
 			for(i=0; i<2; i++) {
 				if(obj->players[i]) mkv_track_player_reset(obj->players[i]);
 			}
-			ms_queue_put(f->outputs[0], allocb(0, 0));
+			if(f->outputs[0]) {
+				// Send an empty buffer to notify the video decoder that it should reset itself
+				ms_queue_put(f->outputs[0], allocb(0, 0));
+			}
 			obj->position_changed = FALSE;
 		}
 
