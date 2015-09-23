@@ -38,36 +38,27 @@ function (ms2_add_option NAME DESCRIPTION DEFAULT_VALUE)
 	add_feature_info(${NAME} ENABLE_${UPPERCASE_NAME} ${DESCRIPTION})
 endfunction()
 
+#licence/patent fees options
+if (NOT ENABLE_GPL_THIRD_PARTIES)
+	set(DEFAULT_VALUE_ENABLE_X264 OFF)
+endif()
 ms2_add_option("GPL third parties" "Usage of GPL third-party code (FFmpeg and x264)." ${DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES})
 ms2_add_option("Non free codecs" "Allow inclusion of non-free codecs in the build." OFF)
-
-# by default, non free codecs must be disabled BUT they can be enabled one by one
-# using command line -DENABLE_CODEC=YES for instance
-if (NOT ENABLE_NON_FREE_CODECS)
-	set(DEFAULT_VALUE_ENABLE_AMRNB OFF)
-	set(DEFAULT_VALUE_ENABLE_AMRWB OFF)
-	set(DEFAULT_VALUE_ENABLE_G729 OFF)
-	set(DEFAULT_VALUE_ENABLE_MPEG4 OFF)
-	set(DEFAULT_VALUE_ENABLE_H263 OFF)
-	set(DEFAULT_VALUE_ENABLE_H263P OFF)
-	set(DEFAULT_VALUE_ENABLE_OPENH264 OFF)
-	if (NOT ENABLE_GPL_THIRD_PARTIES)
-		set(DEFAULT_VALUE_ENABLE_X264 OFF)
-	endif()
-endif()
 
 #security options
 ms2_add_option("SRTP" "SRTP media encryption support." ${DEFAULT_VALUE_ENABLE_SRTP})
 ms2_add_option("ZRTP" "ZRTP media encryption support." ${DEFAULT_VALUE_ENABLE_ZRTP} "ENABLE_SRTP" OFF)
 ms2_add_option("DTLS" "DTLS media encryption support." ${DEFAULT_VALUE_ENABLE_DTLS} "ENABLE_SRTP" OFF)
 
-#audio codecs
-ms2_add_option("AMR-NB" "AMR narrow-band audio encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_AMRNB})
-ms2_add_option("AMR-WB" "AMR wide-band audio encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_AMRWB})
+#audio options and codecs
+ms2_add_option("WebRTC AEC" "WebRTC echo canceller support." ${DEFAULT_VALUE_ENABLE_WEBRTC_AEC})
+ms2_add_option("WASAPI" "Windows Audio Session API (WASAPI) sound card support." ${DEFAULT_VALUE_ENABLE_WASAPI} "MSVC" OFF)
+ms2_add_option("AMR-NB" "AMR narrow-band audio encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_AMRNB} "ENABLE_NON_FREE_CODECS" OFF)
+ms2_add_option("AMR-WB" "AMR wide-band audio encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_AMRWB} "ENABLE_NON_FREE_CODECS" OFF)
 if(ENABLE_AMRNB OR ENABLE_AMRWB)
 	set(ENABLE_AMR ON CACHE BOOL "" FORCE)
 endif()
-ms2_add_option("G.729" "G.729 audio encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_G729})
+ms2_add_option("G.729" "G.729 audio encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_G729} "ENABLE_NON_FREE_CODECS" OFF)
 ms2_add_option("GSM"  "GSM audio encoding/decoding support." ${DEFAULT_VALUE_ENABLE_GSM})
 ms2_add_option("iLBC"  "iLBC audio encoding/decoding support." ${DEFAULT_VALUE_ENABLE_ILBC})
 ms2_add_option("ISAC"  "ISAC audio encoding/decoding support." ${DEFAULT_VALUE_ENABLE_ISAC})
@@ -75,22 +66,19 @@ ms2_add_option("OPUS"  "OPUS audio encoding/decoding support." ${DEFAULT_VALUE_E
 ms2_add_option("Silk"  "Silk audio encoding/decoding support." ${DEFAULT_VALUE_ENABLE_SILK})
 ms2_add_option("Speex"  "Speex audio encoding/decoding support." ${DEFAULT_VALUE_ENABLE_SPEEX})
 
-ms2_add_option("WASAPI" "Windows Audio Session API (WASAPI) sound card support." ${DEFAULT_VALUE_ENABLE_WASAPI} "MSVC" OFF)
-ms2_add_option("WebRTC AEC" "WebRTC echo canceller support." ${DEFAULT_VALUE_ENABLE_WEBRTC_AEC})
-
-#video option and codecs
+#video options and codecs
 ms2_add_option("Video" "Ability to capture and display video." ${DEFAULT_VALUE_ENABLE_VIDEO})
 # FFMpeg is LGPL which is an issue only for iOS applications; otherwise it can be used in proprietary software as well
 set(FFMPEG_DEPENDENT_PRED "ENABLE_VIDEO")
 if (IOS)
-	set(FFMPEG_DEPENDENT_PRED "${FFMPEG_DEPENDENT_PRED}; ENABLE_GPL_THIRD_PARTIES")
+	set(FFMPEG_DEPENDENT_PRED "${FFMPEG_DEPENDENT_PRED};ENABLE_GPL_THIRD_PARTIES")
 endif()
 ms2_add_option("FFmpeg" "Some video processing features via FFmpeg: JPEG encoding/decoding, video scaling, H264 decoding..." ${DEFAULT_VALUE_ENABLE_FFMPEG} "${FFMPEG_DEPENDENT_PRED}" OFF)
-ms2_add_option("H263" "H263 video encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_H263} "ENABLE_FFMPEG" OFF)
-ms2_add_option("H263+" "H263+ video encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_H263P} "ENABLE_FFMPEG" OFF)
-ms2_add_option("VPX" "VPX (VP8) video encoding/decoding support." ${DEFAULT_VALUE_ENABLE_VPX} "ENABLE_VIDEO" OFF)
-ms2_add_option("MPEG4" "MPEG4 video encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_MPEG4} "ENABLE_FFMPEG" OFF)
-ms2_add_option("OpenH264" "H.264 video encoding/decoding support with the openh264 library (require license)." ${DEFAULT_VALUE_ENABLE_OPENH264} "ENABLE_VIDEO" OFF)
-ms2_add_option("X264" "H.264 video encoding support with the x264 library (require license)." ${DEFAULT_VALUE_ENABLE_X264} "ENABLE_VIDEO" OFF)
-ms2_add_option("V4L" "V4L camera driver." ON "ENABLE_VIDEO; UNIX; NOT APPLE" OFF)
+ms2_add_option("H263" "H263 video encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_H263} "ENABLE_FFMPEG;ENABLE_NON_FREE_CODECS" OFF)
+ms2_add_option("H263+" "H263+ video encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_H263P} "ENABLE_FFMPEG;ENABLE_NON_FREE_CODECS" OFF)
 ms2_add_option("MKV" "MKV playing and recording support." ${DEFAULT_VALUE_ENABLE_MKV})
+ms2_add_option("MPEG4" "MPEG4 video encoding/decoding support (require license)." ${DEFAULT_VALUE_ENABLE_MPEG4} "ENABLE_FFMPEG;ENABLE_NON_FREE_CODECS" OFF)
+ms2_add_option("OpenH264" "H.264 video encoding/decoding support with the openh264 library (require license)." ${DEFAULT_VALUE_ENABLE_OPENH264} "ENABLE_VIDEO;ENABLE_NON_FREE_CODECS" OFF)
+ms2_add_option("V4L" "V4L camera driver." ON "ENABLE_VIDEO; UNIX; NOT APPLE" OFF)
+ms2_add_option("VPX" "VPX (VP8) video encoding/decoding support." ${DEFAULT_VALUE_ENABLE_VPX} "ENABLE_VIDEO" OFF)
+ms2_add_option("X264" "H.264 video encoding support with the x264 library (require license)." ${DEFAULT_VALUE_ENABLE_X264} "ENABLE_VIDEO;ENABLE_NON_FREE_CODECS" OFF)
