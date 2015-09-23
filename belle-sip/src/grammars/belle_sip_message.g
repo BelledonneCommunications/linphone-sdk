@@ -631,7 +631,7 @@ contact_token: {IS_HEADER_NAMED(Contact,m)}? token;
 
 header_contact      returns [belle_sip_header_contact_t* ret]   
 scope { belle_sip_header_contact_t* current; belle_sip_header_contact_t* first; }
-@init { $header_contact::current =NULL; $ret=NULL; }
+@init { $header_contact::current =NULL; $header_contact::first =NULL; $ret=NULL; }
   :   (contact_token /*'Contact'*/ /*| 'm'*/ ) sp_tab_colon
                   (  (lws? STAR) { $header_contact::current = belle_sip_header_contact_new();
                             belle_sip_header_contact_set_wildcard($header_contact::current,1);}
@@ -639,6 +639,7 @@ scope { belle_sip_header_contact_t* current; belle_sip_header_contact_t* first; 
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   $ret = $header_contact::first;
    if ($ret) belle_sip_object_unref($ret);
    $ret=NULL;
 } 
@@ -1053,11 +1054,12 @@ option_tag
 service_route_token:  {IS_TOKEN(Service-Route)}? token;
 header_service_route  returns [belle_sip_header_service_route_t* ret=NULL]   
 scope { belle_sip_header_service_route_t* current; belle_sip_header_service_route_t* first;}
-@init { $header_service_route::current = NULL;}
+@init { $header_service_route::current = NULL;$header_service_route::first =NULL;}
   :   service_route_token /*'Service-Route'*/ sp_tab_colon srv_route (COMMA srv_route)* {$ret = $header_service_route::first;};
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   $ret = $header_service_route::first;
    if ($ret) belle_sip_object_unref($ret);
    $ret=NULL;
 }
@@ -1081,11 +1083,12 @@ sr_param
 record_route_token:  {IS_TOKEN(Record-Route)}? token;
 header_record_route  returns [belle_sip_header_record_route_t* ret=NULL]   
 scope { belle_sip_header_record_route_t* current; belle_sip_header_record_route_t* first;}
-@init { $header_record_route::current = NULL;}
+@init { $header_record_route::current = NULL;$header_record_route::first =NULL;}
   :   record_route_token /*'Record-Route'*/ sp_tab_colon rec_route ( COMMA rec_route)* {$ret = $header_record_route::first;};
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   $ret = $header_record_route::first;
    if ($ret) belle_sip_object_unref($ret);
    $ret=NULL;
 }
@@ -1129,11 +1132,12 @@ retry_param
 route_token:  {IS_TOKEN(Route)}? token;
 header_route  returns [belle_sip_header_route_t* ret=NULL]   
 scope { belle_sip_header_route_t* current;belle_sip_header_route_t* first; }
-@init { $header_route::current = NULL; }
+@init { $header_route::current = NULL; $header_route::first =NULL;}
   :   route_token /*'Route'*/ sp_tab_colon route_param ( COMMA route_param)*{$ret = $header_route::first;};
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   $ret = $header_route::first;
    if ($ret) belle_sip_object_unref($ret);
    $ret=NULL;
 }
@@ -1242,12 +1246,13 @@ product_version
 via_token:  {IS_HEADER_NAMED(Via,v)}? token;
 header_via  returns [belle_sip_header_via_t* ret]   
 scope { belle_sip_header_via_t* current; belle_sip_header_via_t* first; }
-@init { $header_via::current = NULL;$ret = NULL;}
+@init { $header_via::current = NULL;$header_via::first =NULL;$ret = NULL;}
         
   :   via_token/* ( 'via' | 'v' )*/ hcolon via_parm (comma via_parm)* {$ret = $header_via::first;} ;
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   $ret = $header_via::first;
    if ($ret) belle_sip_object_unref($ret);
    $ret=NULL;
 }
