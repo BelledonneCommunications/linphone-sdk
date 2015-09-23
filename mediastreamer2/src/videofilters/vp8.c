@@ -950,7 +950,7 @@ static void dec_process(MSFilter *f) {
 	while (vp8rtpfmt_unpacker_get_frame(&s->unpacker, &frame, &frame_info) == 0) {
 		while ((im = ms_queue_get(&frame)) != NULL) {
 			err = vpx_codec_decode(&s->codec, im->b_rptr, im->b_wptr - im->b_rptr, NULL, 0);
-			if ((s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) && (!err && mblk_get_marker_info(im))) {
+			if ((s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) && mblk_get_marker_info(im)) {
 				err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
 			}
 			if (err) {
