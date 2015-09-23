@@ -454,6 +454,7 @@ mblk_t *vp8_module_process(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_
 	uint8_t first_byte = *buffer->b_rptr;
 	*isKeyFrame = !(first_byte & 0x01);
 	*isVisible = first_byte & 0x10;
+	return buffer;
 }
 
 void vp8_module_reverse(void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
@@ -791,15 +792,26 @@ static void module_reverse(Module *module, mblk_t *input, MSQueue *output, ms_bo
 }
 
 static void module_get_private_data(const Module *module, uint8_t **data, size_t *dataSize) {
-	moduleDescs[module->id]->get_private_data(module->data, data, dataSize);
+	if(moduleDescs[module->id]->get_private_data) {
+		moduleDescs[module->id]->get_private_data(module->data, data, dataSize);
+	} else {
+		*data = NULL;
+		*dataSize = 0;
+	}
 }
 
 static void module_load_private_data(Module *module, const uint8_t *data, size_t size) {
-	moduleDescs[module->id]->load_private_data(module->data, data, size);
+	if(moduleDescs[module->id]->load_private_data) {
+		moduleDescs[module->id]->load_private_data(module->data, data, size);
+	}
 }
 
 static ms_bool_t module_is_key_frame(const Module *module, const mblk_t *frame) {
-	return moduleDescs[module->id]->is_key_frame(frame);
+	if(moduleDescs[module->id]->is_key_frame) {
+		return moduleDescs[module->id]->is_key_frame(frame);
+	} else {
+		return TRUE;
+	}
 }
 
 static const char *module_get_codec_id(const Module *module) {
