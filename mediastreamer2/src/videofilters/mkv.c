@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static int recorder_close(MSFilter *f, void *arg);
 
+
 /*********************************************************************************************
  * Module interface                                                                          *
  *********************************************************************************************/
@@ -477,7 +478,7 @@ void vp8_module_reverse(void *obj, mblk_t *input, MSQueue *output, ms_bool_t isF
 	packer_input = ms_list_append(packer_input, packet);
 	vp8rtpfmt_packer_process(&mod->packer, packer_input, &q);
 	
-	while(m = ms_queue_get(&q)) {
+	while((m = ms_queue_get(&q))) {
 		mblk_set_cseq(m, mod->cseq++);
 		ms_queue_put(output, m);
 	}
@@ -893,6 +894,7 @@ typedef struct {
 	int nbClusters;
 } Matroska;
 
+
 static void matroska_init(Matroska *obj) {
 	memset(obj, 0, sizeof(Matroska));
 	obj->p = (parsercontext *)ms_new0(parsercontext, 1);
@@ -1136,7 +1138,7 @@ static timecode_t matroska_get_duration(const Matroska *obj) {
 	return (timecode_t)EBML_FloatValue((ebml_float *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextDuration));
 }
 
-static timecode_t matroska_get_timecode_scale(const Matroska *obj) {
+timecode_t matroska_get_timecode_scale(const Matroska *obj) {
 	return obj->timecodeScale;
 }
 
@@ -1185,7 +1187,7 @@ static void matroska_go_to_segment_begin(Matroska *obj) {
 	Stream_Seek(obj->output, EBML_ElementPositionData((ebml_element *)obj->segment), SEEK_SET);
 }
 
-static void matroska_go_to_last_cluster_end(Matroska *obj) {
+void matroska_go_to_last_cluster_end(Matroska *obj) {
 	Stream_Seek(obj->output, EBML_ElementPositionEnd((ebml_element *)obj->cluster), SEEK_SET);
 }
 
@@ -1193,11 +1195,11 @@ static void matroska_go_to_segment_info_begin(Matroska *obj) {
 	Stream_Seek(obj->output, EBML_ElementPosition((ebml_element *)obj->info), SEEK_SET);
 }
 
-static timecode_t matroska_block_get_timestamp(const Matroska *obj) {
+timecode_t matroska_block_get_timestamp(const Matroska *obj) {
 	return MATROSKA_BlockTimecode((matroska_block *)obj->currentBlock)/obj->timecodeScale;
 }
 
-static int matroska_block_get_track_num(const Matroska *obj) {
+int matroska_block_get_track_num(const Matroska *obj) {
 	return MATROSKA_BlockTrackNum((matroska_block *)obj->currentBlock);
 }
 
@@ -1494,7 +1496,7 @@ static void matroska_write_metaSeek(Matroska *obj) {
 	EBML_ElementRender((ebml_element *)obj->metaSeek, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 }
 
-static timecode_t matroska_get_current_cluster_timestamp(const Matroska *obj) {
+timecode_t matroska_get_current_cluster_timestamp(const Matroska *obj) {
 	return (timecode_t)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->cluster, &MATROSKA_ContextTimecode));
 }
 
