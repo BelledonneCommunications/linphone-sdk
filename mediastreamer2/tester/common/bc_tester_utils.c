@@ -385,11 +385,18 @@ static void detect_res_prefix(const char* prog) {
 		free(progpath2);
 	}
 
+	if (bc_tester_resource_dir_prefix != NULL && !file_exists(bc_tester_resource_dir_prefix)) {
+		printf("Invalid provided resource directory: could not find expected resources in %s.\n", bc_tester_resource_dir_prefix);
+		free(bc_tester_resource_dir_prefix);
+		bc_tester_resource_dir_prefix = NULL;
+	}
+
 	if (prefix != NULL) {
-		if (bc_tester_resource_dir_prefix == NULL) {
+		if (bc_tester_resource_dir_prefix != NULL) {
 			printf("Resource directory set to %s\n", prefix);
 			bc_tester_set_resource_dir_prefix(prefix);
 		}
+
 		if (bc_tester_writable_dir_prefix == NULL) {
 			printf("Writable directory set to %s\n", prefix);
 			bc_tester_set_writable_dir_prefix(prefix);
