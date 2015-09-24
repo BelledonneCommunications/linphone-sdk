@@ -24,11 +24,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <pulse/pulseaudio.h>
 
+#define PA_STRING_SIZE 256
+
 typedef struct pa_device {
-	char name[512];
-	char description[256];
+	char name[PA_STRING_SIZE];
+	char description[PA_STRING_SIZE];
+	char source_name[PA_STRING_SIZE];
 	uint8_t bidirectionnal;
-	char source_name[512];
 } pa_device_t;
 
 struct _PAData{
@@ -135,15 +137,16 @@ MSSndCardDesc pulse_card_desc={
 
 void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol, void *userdata) {
 	MSList **pa_devicelist = userdata;
-	pa_device_t *pa_device = ms_malloc0(sizeof(pa_device_t));
+	pa_device_t *pa_device;
 
 	/* when eol is set to a positive number : end of the list */
 	if (eol > 0) {
 		return;
 	}
 
-	strncpy(pa_device->name, l->name, 511);
-	strncpy(pa_device->description, l->description, 255);
+	pa_device = ms_malloc0(sizeof(pa_device_t));
+	strncpy(pa_device->name, l->name, PA_STRING_SIZE-1);
+	strncpy(pa_device->description, l->description, PA_STRING_SIZE-1);
 
 	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
 	
@@ -163,8 +166,8 @@ void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *use
 	}
 	
 	pa_device = ms_malloc0(sizeof(pa_device_t));
-	strncpy(pa_device->name, l->name, 511);
-	strncpy(pa_device->description, l->description, 255);
+	strncpy(pa_device->name, l->name, PA_STRING_SIZE -1);
+	strncpy(pa_device->description, l->description, PA_STRING_SIZE -1);
 
 	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
 	
@@ -223,7 +226,7 @@ static void pulse_card_merge_lists(pa_device_t *pa_device, MSList **pa_source_li
 	if (sourceCard!= NULL) {
 		pa_device_t *sourceCard_data = (pa_device_t *)sourceCard->data;
 		pa_device->bidirectionnal = 1;
-		strncpy(pa_device->source_name,sourceCard_data->name, 511);
+		strncpy(pa_device->source_name,sourceCard_data->name, PA_STRING_SIZE -1);
 		*pa_source_list = ms_list_remove(*pa_source_list, sourceCard->data);
 		ms_free(sourceCard_data);	
 	}
