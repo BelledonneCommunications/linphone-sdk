@@ -56,7 +56,9 @@ if(APPLE)
                 -change ${LINPHONE_OUTPUT_DIR}/lib/libavutil.51.35.100.dylib @rpath/libavutil.51.35.100.dylib
                 -change ${LINPHONE_OUTPUT_DIR}/lib/libswscale.2.1.100.dylib @rpath/libswscale.2.1.100.dylib
                 -change ${LINPHONE_OUTPUT_DIR}/lib/libswresample.0.6.100.dylib @rpath/libswresample.0.6.100.dylib
+		-change ${LINPHONE_OUTPUT_DIR}/lib/libopenh264.0.dylib @rpath/libopenh264.0.dylib
 		-change /opt/local/lib/libintl.8.dylib @rpath/libintl.8.dylib
+		-change /opt/local/lib/libiconv.2.dylib @rpath/libiconv.2.dylib
         )
         set(RPATH_LIBS_TO_MODIFY
                 libavcodec.53.61.100.dylib
@@ -65,6 +67,7 @@ if(APPLE)
                 libmediastreamer_voip.5.dylib
                 libswresample.0.6.100.dylib
                 libswscale.2.1.100.dylib
+		mediastreamer/plugins/libmsopenh264.0.dylib
         )
         foreach(LIB_TO_CHANGE ${RPATH_LIBS_TO_MODIFY})
                 execute_process(
