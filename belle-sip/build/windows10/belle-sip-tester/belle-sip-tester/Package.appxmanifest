@@ -16,7 +16,7 @@
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="belle_sip_tester.App">
       <uap:VisualElements DisplayName="belle-sip-tester" Square150x150Logo="Assets\Logo.png" Square44x44Logo="Assets\SmallLogo.png" Description="belle-sip-tester" BackgroundColor="#ffffff">
-        <uap:DefaultTile Wide310x150Logo="WideLogo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\WideLogo.png">
           <uap:ShowNameOnTiles>
             <uap:ShowOn Tile="square150x150Logo" />
             <uap:ShowOn Tile="wide310x150Logo" />
