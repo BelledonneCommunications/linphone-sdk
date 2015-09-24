@@ -50,3 +50,4 @@ tester/sounds/recorded_hello16000-1s.wav
 tools/pcap_playback
 git-clang-format.diff
 tools/mkvstream
+.bc_tester_utils.tmp
