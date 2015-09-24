@@ -337,6 +337,7 @@ static void stream_free(Stream *s) {
 			ms_free(s->dev);
 		}
 	}
+	if (s->dev) ms_free(s->dev);
 	ms_bufferizer_uninit(&s->bufferizer);
 	ms_mutex_destroy(&s->mutex);
 	ms_free(s);
