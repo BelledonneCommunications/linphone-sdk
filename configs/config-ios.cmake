@@ -75,7 +75,7 @@ unset(SDK_VERSION)
 if (NOT ${XCODE_VERSION} VERSION_LESS 7)
 	set (CMAKE_MIN_VERSION "3.3.20150815")
 	if (${CMAKE_VERSION} VERSION_LESS ${CMAKE_MIN_VERSION})
-		message(FATAL_ERROR "You need at least CMake version ${CMAKE_MIN_VERSION} but you are currently using ${CMAKE_VERSION}")
+		message(FATAL_ERROR "You need at least CMake version ${CMAKE_MIN_VERSION} but you are currently using ${CMAKE_VERSION}. There is no Cmake release available for it yet, so you must either compile it manually or revert to XCode6 temporary.")
 	endif()
 endif()
 
