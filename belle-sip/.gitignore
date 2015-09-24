@@ -47,3 +47,4 @@ tester/belle_sip_tester_crt
 tester/CUnitAutomated-Results.xml.tmp-Results.xml
 belle-sip-tests.log
 git-clang-format.diff
+.bc_tester_utils.tmp
