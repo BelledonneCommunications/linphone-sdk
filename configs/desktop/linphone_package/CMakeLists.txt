@@ -81,7 +81,7 @@ if(APPLE)
 		COMMAND install_name_tool -id @rpath/libintl.8.dylib -change /opt/local/lib/libiconv.2.dylib @rpath/libiconv.2.dylib ${LINPHONE_SDK_TMP}/lib/libintl.8.dylib
 		COMMAND install_name_tool -id @rpath/libiconv.2.dylib ${LINPHONE_SDK_TMP}/lib/libiconv.2.dylib
 	)
-	file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/README.openh264.macos DESTINATION ${LINPHONE_SDK_TMP})
+	file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/README.openh264.txt DESTINATION ${LINPHONE_SDK_TMP})
 endif()
 
 # Generates a zip archive containing the development files of liblinphone
