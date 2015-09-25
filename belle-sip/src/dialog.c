@@ -351,7 +351,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	belle_sip_message("Dialog [%p]: now updated by transaction [%p].",obj, transaction);
 	
 	if (resp)
-			code=belle_sip_response_get_status_code(resp);
+		code=belle_sip_response_get_status_code(resp);
 	
 	if (as_uas && code == 491) { /**/
 		belle_sip_message("Dialog [%p]: don't update last transaction by transaction [%p].",obj, transaction);
@@ -504,7 +504,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 		obj->is_server=FALSE;
 		for(predefined_routes=belle_sip_message_get_headers((belle_sip_message_t*)t->request,BELLE_SIP_ROUTE);
 			predefined_routes!=NULL;predefined_routes=predefined_routes->next){
-			obj->route_set=belle_sip_list_append(obj->route_set,belle_sip_object_ref(predefined_routes->data));	
+			obj->route_set=belle_sip_list_append(obj->route_set,belle_sip_object_ref(predefined_routes->data));
 		}
 	}
 	belle_sip_message("New %s dialog [%p] , local tag [%s], remote tag [%s]"

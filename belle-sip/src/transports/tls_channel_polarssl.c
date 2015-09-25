@@ -546,23 +546,30 @@ static int belle_sip_ssl_verify(void *data , x509_cert *cert , int depth, int *f
 static int belle_sip_ssl_verify(void *data , x509_crt *cert , int depth, int *flags){
 #endif
 	belle_tls_verify_policy_t *verify_ctx=(belle_tls_verify_policy_t*)data;
-	char tmp[512];
-	char flags_str[128];
+	const int tmp_size = 2048, flags_str_size = 256;
+	char *tmp = belle_sip_malloc0(tmp_size);
+	char *flags_str = belle_sip_malloc0(flags_str_size);
+	int ret;
 	
 #if POLARSSL_VERSION_NUMBER < 0x01030000
-	x509parse_cert_info(tmp,sizeof(tmp),"",cert);
+	x509parse_cert_info(tmp,tmp_size-1,"",cert);
 #else
-	x509_crt_info(tmp,sizeof(tmp),"",cert);
+	x509_crt_info(tmp,tmp_size-1,"",cert);
 #endif
 	belle_sip_message("Found certificate depth=[%i], flags=[%s]:\n%s",
-		depth,polarssl_certflags_to_string(flags_str,sizeof(flags_str),*flags),tmp);
+		depth,polarssl_certflags_to_string(flags_str,flags_str_size-1,*flags),tmp);
 	if (verify_ctx->exception_flags==BELLE_TLS_VERIFY_ANY_REASON){
 		*flags=0;
 	}else if (verify_ctx->exception_flags & BELLE_TLS_VERIFY_CN_MISMATCH){
 		*flags&=~BADCERT_CN_MISMATCH;
 	}
 
-	return belle_sip_verify_cb_error_wrapper(cert, depth, flags);
+	ret = belle_sip_verify_cb_error_wrapper(cert, depth, flags);
+
+	belle_sip_free(flags_str);
+	belle_sip_free(tmp);
+
+	return ret;
 }
 
 static int belle_sip_tls_channel_load_root_ca(belle_sip_tls_channel_t *obj, const char *path){
