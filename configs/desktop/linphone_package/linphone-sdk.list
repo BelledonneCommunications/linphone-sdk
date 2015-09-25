@@ -42,6 +42,8 @@ include/ortp/
 lib/cmake/Linphone/
 lib/cmake/Mediastreamer2/
 lib/cmake/oRTP/
+lib/mediastreamer/plugins/libmsopenh264.dll
+lib/mediastreamer/plugins/libmswasapi.dll
 lib/linphone.lib
 lib/mediastreamer_base.lib
 lib/mediastreamer_voip.lib
