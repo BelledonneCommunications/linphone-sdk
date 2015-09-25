@@ -92,10 +92,6 @@ belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_sta
 struct belle_sip_tls_listening_point{
 	belle_sip_stream_listening_point_t base;
 	belle_tls_verify_policy_t *verify_ctx;
-	char *http_proxy_host;
-	int http_proxy_port;
-	char *http_proxy_username; /*for futur use*/
-	char *http_proxy_passwd; /*for futur use*/
 };
 
 int belle_sip_tls_listening_point_available(void);

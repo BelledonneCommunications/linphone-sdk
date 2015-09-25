@@ -150,6 +150,12 @@ BELLESIP_EXPORT const belle_sip_timer_config_t *belle_sip_stack_get_timer_config
  * */
 BELLESIP_EXPORT void belle_sip_stack_set_timer_config(belle_sip_stack_t *stack, const belle_sip_timer_config_t *timer_config);
 
+BELLESIP_EXPORT void belle_sip_stack_set_http_proxy_host(belle_sip_stack_t *stack, const char* proxy_addr);
+BELLESIP_EXPORT void belle_sip_stack_set_http_proxy_port(belle_sip_stack_t *stack, int port);
+BELLESIP_EXPORT const char *belle_sip_stack_get_http_proxy_host(const belle_sip_stack_t *stack);
+BELLESIP_EXPORT int belle_sip_stack_get_http_proxy_port(const belle_sip_stack_t *stack);
+
+
 BELLE_SIP_END_DECLS
 
 #endif

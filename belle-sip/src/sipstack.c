@@ -101,6 +101,10 @@ static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	if (stack->dns_user_hosts_file) belle_sip_free(stack->dns_user_hosts_file);
 	if (stack->dns_resolv_conf) belle_sip_free(stack->dns_resolv_conf);
 	belle_sip_object_unref(stack->ml);
+	if (stack->http_proxy_host) belle_sip_free(stack->http_proxy_host);
+	if (stack->http_proxy_passwd) belle_sip_free(stack->http_proxy_passwd);
+	if (stack->http_proxy_username) belle_sip_free(stack->http_proxy_username);
+
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_stack_t);
@@ -274,4 +278,7 @@ int belle_sip_stack_get_default_dscp(belle_sip_stack_t *stack){
 int belle_sip_stack_tls_available(belle_sip_stack_t *stack){
 	return belle_sip_tls_listening_point_available();
 }
+
+GET_SET_STRING(belle_sip_stack,http_proxy_host)
+GET_SET_INT(belle_sip_stack,http_proxy_port, int)
 

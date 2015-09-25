@@ -324,10 +324,30 @@ static void http_get_long_user_body(void){
 	if (outfile) fclose(outfile);
 }
 
+extern const char *test_http_proxy_addr;
+extern int test_http_proxy_port;
+
+static void one_https_get_with_proxy(void){
+	http_counters_t counters={0};
+	belle_sip_stack_set_http_proxy_host(stack, test_http_proxy_addr);
+	belle_sip_stack_set_http_proxy_port(stack, test_http_proxy_port);
+	
+	if (one_get("https://smtp.linphone.org",&counters,&counters.response_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	}
+	belle_sip_stack_set_http_proxy_host(stack, NULL);
+	belle_sip_stack_set_http_proxy_port(stack, 0);
+
+}
+
+
 test_t http_tests[] = {
 	{ "One http GET", one_http_get },
 	{ "http GET of empty body", http_get_empty_body },
 	{ "One https GET", one_https_get },
+	{ "One https GET with http proxy", one_https_get_with_proxy },
 	{ "http request with io error", http_get_io_error },
 	{ "https GET with long body", https_get_long_body },
 	{ "https digest GET", https_digest_get },/*, FIXME, need a server for testing

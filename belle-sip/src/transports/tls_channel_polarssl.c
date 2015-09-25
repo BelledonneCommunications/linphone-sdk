@@ -205,12 +205,11 @@ static void http_proxy_res_done(void *data, const char *name, struct addrinfo *a
 }
 
 static int tls_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
-	belle_sip_tls_listening_point_t * lp = (belle_sip_tls_listening_point_t * )obj->lp;
 	belle_sip_tls_channel_t *channel=(belle_sip_tls_channel_t*)obj;
-	if (lp && lp->http_proxy_host) {
-		belle_sip_message("Resolving http proxy addr [%s] for channel [%p]",lp->http_proxy_host,obj);
+	if (obj->stack->http_proxy_host) {
+		belle_sip_message("Resolving http proxy addr [%s] for channel [%p]",obj->stack->http_proxy_host,obj);
 		/*assume ai family is the same*/
-		channel->http_proxy_resolver_ctx = belle_sip_stack_resolve_a(obj->stack, lp->http_proxy_host, lp->http_proxy_port, obj->ai_family, http_proxy_res_done, obj);
+		channel->http_proxy_resolver_ctx = belle_sip_stack_resolve_a(obj->stack, obj->stack->http_proxy_host, obj->stack->http_proxy_port, obj->ai_family, http_proxy_res_done, obj);
 		if (channel->http_proxy_resolver_ctx) belle_sip_object_ref(channel->http_proxy_resolver_ctx);
 		return 0;
 	} else {
@@ -307,7 +306,6 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 #ifdef HAVE_POLARSSL
 	char* request;
 	belle_sip_channel_t *channel = (belle_sip_channel_t *)obj;
-	belle_sip_tls_listening_point_t* lp = (belle_sip_tls_listening_point_t*)channel->lp;
 	int err;
 	char ip[64];
 	int port;
@@ -318,8 +316,8 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 									  ,port
 									  ,ip);
 	
-	if (lp->http_proxy_username && lp->http_proxy_passwd) {
-		char *username_passwd = belle_sip_strdup_printf("%s:%s",lp->http_proxy_username,lp->http_proxy_passwd);
+	if (channel->stack->http_proxy_username && channel->stack->http_proxy_passwd) {
+		char *username_passwd = belle_sip_strdup_printf("%s:%s",channel->stack->http_proxy_username,channel->stack->http_proxy_passwd);
 		size_t username_passwd_length = strlen(username_passwd);
 		size_t encoded_username_paswd_length = username_passwd_length*2;
 		unsigned char *encoded_username_paswd = belle_sip_malloc(2*username_passwd_length);
@@ -334,8 +332,8 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 	belle_sip_free(request);
 	if (err <= 0) {
 		belle_sip_error("tls_process_http_connect: fail to send connect request to http proxy [%s:%i] status [%s]"
-						,lp->http_proxy_host
-						,lp->http_proxy_port
+						,channel->stack->http_proxy_host
+						,channel->stack->http_proxy_port
 						,strerror(errno));
 		return -1;
 	}
@@ -346,7 +344,6 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 }
 static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
-	belle_sip_tls_listening_point_t* lp = (belle_sip_tls_listening_point_t*)(obj->lp);
 	int err;
 	
 	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING ) {
@@ -359,42 +356,41 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 			channel->socket_connected=1;
 			belle_sip_source_set_events((belle_sip_source_t*)channel,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
 			belle_sip_source_set_timeout((belle_sip_source_t*)obj,belle_sip_stack_get_transport_timeout(obj->stack));
-			
-			if (lp && lp->http_proxy_host) {
+			if (obj->stack->http_proxy_host) {
 				belle_sip_message("Channel [%p]: Connected at TCP level, now doing http proxy connect",obj);
 				if (tls_process_http_connect(channel)) goto process_error;
 			} else {
 				belle_sip_message("Channel [%p]: Connected at TCP level, now doing TLS handshake",obj);
 				if (tls_process_handshake(obj)==-1) goto process_error;
 			}
-		} else if (lp && lp->http_proxy_host && !channel->http_proxy_connected) {
+		} else if (obj->stack->http_proxy_host && !channel->http_proxy_connected) {
 			char response[256];
 			err = stream_channel_recv((belle_sip_stream_channel_t*)obj,response,sizeof(response));
 			if (err<0 ){
 				belle_sip_error("Channel [%p]: connection refused by http proxy [%s:%i] status [%s]"
 								,channel
-								,lp->http_proxy_host
-								,lp->http_proxy_port
+								,obj->stack->http_proxy_host
+								,obj->stack->http_proxy_port
 								,strerror(errno));
 				goto process_error;
 			} else if (strstr(response,"407")) {
 				belle_sip_error("Channel [%p]: auth requested, provide user/passwd by http proxy [%s:%i]"
 								,channel
-								,lp->http_proxy_host
-								,lp->http_proxy_port);
+								,obj->stack->http_proxy_host
+								,obj->stack->http_proxy_port);
 				goto process_error;
 			} else if (strstr(response,"200")) {
 				belle_sip_message("Channel [%p]: connected to http proxy, doing TLS handshake [%s:%i] "
 								  ,channel
-								  ,lp->http_proxy_host
-								  ,lp->http_proxy_port);
+								  ,obj->stack->http_proxy_host
+								  ,obj->stack->http_proxy_port);
 				channel->http_proxy_connected = 1;
 				if (tls_process_handshake(obj)==-1) goto process_error;
 			} else {
 				belle_sip_error("Channel [%p]: connection refused by http proxy [%s:%i]"
 								,channel
-								,lp->http_proxy_host
-								,lp->http_proxy_port);
+								,obj->stack->http_proxy_host
+								,obj->stack->http_proxy_port);
 				goto process_error;
 			}
 			
@@ -1111,8 +1107,6 @@ BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_signing_key_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_signing_key_t,belle_sip_object_t,belle_sip_signing_key_destroy,belle_sip_signing_key_clone,NULL,TRUE);
 
 	
-GET_SET_STRING(belle_sip_tls_listening_point,http_proxy_host)
-GET_SET_INT(belle_sip_tls_listening_point,http_proxy_port, int)
 
 	
 

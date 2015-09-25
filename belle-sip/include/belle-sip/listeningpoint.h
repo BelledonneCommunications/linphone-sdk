@@ -69,13 +69,6 @@ BELLESIP_EXPORT int belle_sip_tls_listening_point_set_verify_exceptions(belle_si
 
 BELLESIP_EXPORT int belle_sip_tls_listening_point_set_verify_policy(belle_sip_tls_listening_point_t *s, belle_tls_verify_policy_t *pol);
 
-BELLESIP_EXPORT void belle_sip_tls_listening_point_set_http_proxy_host(belle_sip_tls_listening_point_t *s, const char* proxy_addr);
-BELLESIP_EXPORT void belle_sip_tls_listening_point_set_http_proxy_port(belle_sip_tls_listening_point_t *s, int port);
-BELLESIP_EXPORT const char *belle_sip_tls_listening_point_get_http_proxy_addr(const belle_sip_tls_listening_point_t *s);
-BELLESIP_EXPORT int belle_sip_tls_listening_point_get_http_proxy_port(const belle_sip_tls_listening_point_t *s);
-
-
-
 BELLESIP_EXPORT belle_sip_listening_point_t * belle_sip_tunnel_listening_point_new(belle_sip_stack_t *s, void *tunnelclient);
 
 

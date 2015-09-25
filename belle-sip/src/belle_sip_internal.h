@@ -521,6 +521,12 @@ struct belle_sip_stack{
 	char *dns_user_hosts_file; /* used to load additional hosts file for tests */
 	char *dns_resolv_conf; /*used to load custom resolv.conf, for tests*/
 	unsigned char dns_srv_enabled;
+	/*http proxy stuff to be used by both http and sip provider*/
+	char *http_proxy_host;
+	int http_proxy_port;
+	char *http_proxy_username; /*for futur use*/
+	char *http_proxy_passwd; /*for futur use*/
+
 };
 
 belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);
