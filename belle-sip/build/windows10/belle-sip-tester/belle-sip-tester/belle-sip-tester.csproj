@@ -148,6 +148,7 @@
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>
+      mkdir $(ProjectDir)Assets\common
       XCopy /I /Y $(ProjectDir)..\..\..\..\tester\common\bc_completion $(ProjectDir)Assets\common
     </PreBuildEvent>
   </PropertyGroup>
