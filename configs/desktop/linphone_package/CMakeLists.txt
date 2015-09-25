@@ -91,6 +91,9 @@ if(WIN32)
 		COMMAND ${7Z_PROGRAM} a -tzip ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-win32.zip @${CMAKE_SOURCE_DIR}/linphone-sdk.list
 		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
 	)
+	execute_process(
+		COMMAND ${7Z_PROGRAM} a -tzip ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-win32.zip ${CMAKE_SOURCE_DIR}/README.openh264.txt
+	)
 elseif(APPLE)
 	execute_process(
 		COMMAND rm -rf ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip
