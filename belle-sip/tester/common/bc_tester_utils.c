@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "CUnit/Basic.h"
 #include "CUnit/Automated.h"
+#include "CUnit/MyMem.h"
 
 #ifdef _WIN32
 #if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_DESKTOP)
@@ -147,7 +148,7 @@ static void all_complete_message_handler(const CU_pFailureRecord pFailure) {
 #ifdef HAVE_CU_GET_SUITE
 	char * results = CU_get_run_results_string();
 	bc_tester_printf(bc_printf_verbosity_info,"\n%s",results);
-	free(results);
+	CU_FREE(results);
 #endif
 }
 
@@ -523,9 +524,13 @@ void bc_tester_add_suite(test_suite_t *suite) {
 
 void bc_tester_uninit(void) {
 	/* Redisplay list of failed tests on end */
+	/*BUG: do not display list of failures on mingw, it crashes mysteriously*/
+#if !defined(WIN32) && !defined(_MSC_VER)
+	/* Redisplay list of failed tests on end */
 	if (CU_get_number_of_failure_records()){
 		CU_basic_show_failures(CU_get_failure_list());
 	}
+#endif
 	CU_cleanup_registry();
 	/*add missing final newline*/
 	bc_tester_printf(bc_printf_verbosity_info,"");
