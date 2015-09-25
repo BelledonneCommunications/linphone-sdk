@@ -112,7 +112,8 @@ LOCAL_SRC_FILES = \
 	voip/qualityindicator.c \
 	voip/ringstream.c \
 	voip/stun.c \
-	voip/stun_udp.c
+	voip/stun_udp.c \
+	voip/rfc4103_textstream.c
 
 LOCAL_STATIC_LIBRARIES :=
 
