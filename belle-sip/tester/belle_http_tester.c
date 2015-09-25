@@ -94,7 +94,7 @@ static int http_after_all(void) {
 }
 
 static int url_supported(const char *url) {
-	if (url && strstr(url,"https://")==url && (belle_sip_list_size(*belle_http_provider_get_channels(prov,"tls"))==0)){
+	if (url && strstr(url,"https://")==url && !belle_sip_stack_tls_available(stack)) {
 		belle_sip_error("No TLS support, test skipped.");
 		return -1;
 	}
