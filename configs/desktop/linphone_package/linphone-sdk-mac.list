@@ -1,3 +1,4 @@
+README.openh264.macos
 ./include/*
 ./lib/libantlr3c*.dylib
 ./lib/libavcodec*.dylib
