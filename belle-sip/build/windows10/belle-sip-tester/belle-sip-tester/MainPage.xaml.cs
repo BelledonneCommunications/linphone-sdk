@@ -39,7 +39,10 @@ namespace belle_sip_tester
             base.OnNavigatedTo(e);
             BelleSipTester.Instance.setWritableDirectory(ApplicationData.Current.LocalFolder);
             _suites = UnitTestDataSource.GetSuites(BelleSipTester.Instance);
-            TryAutoLaunch();
+            if ((e.Parameter is Uri) && (e.Parameter.ToString().Equals("belle-sip-tester:autolaunch")))
+            {
+                AutoLaunch();
+            }
         }
 
         public IEnumerable<UnitTestSuite> Suites
@@ -173,23 +176,18 @@ namespace belle_sip_tester
             });
         }
 
-        private async void TryAutoLaunch()
+        private void AutoLaunch()
         {
-            try
+            CommandBar.IsEnabled = false;
+            ProgressIndicator.IsIndeterminate = true;
+            ProgressIndicator.IsEnabled = true;
+            BelleSipTester.Instance.runAllToXml();
+            if (BelleSipTester.Instance.AsyncAction != null)
             {
-                await ApplicationData.Current.LocalFolder.GetFileAsync("autolaunch");
-                CommandBar.IsEnabled = false;
-                ProgressIndicator.IsIndeterminate = true;
-                ProgressIndicator.IsEnabled = true;
-                BelleSipTester.Instance.runAllToXml();
-                if (BelleSipTester.Instance.AsyncAction != null)
-                {
-                    BelleSipTester.Instance.AsyncAction.Completed += (asyncInfo, asyncStatus) => {
-                        App.Current.Exit();
-                    };
-                }
+                BelleSipTester.Instance.AsyncAction.Completed += (asyncInfo, asyncStatus) => {
+                    App.Current.Exit();
+                };
             }
-            catch (Exception) { }
         }
 
         private UnitTestCase RunningTestCase;
