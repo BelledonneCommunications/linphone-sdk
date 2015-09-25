@@ -119,7 +119,7 @@ void MS2Tester::runAllToXml()
 		init(true);
 		FILE *f = fopen(logFile, "w");
 		ortp_set_log_file(f);
-		bc_tester_start("ms2-tester");
+		bc_tester_start(NULL);
 		bc_tester_uninit();
 		fclose(f);
 		free(xmlFile);
