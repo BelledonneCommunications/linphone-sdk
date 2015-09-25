@@ -346,7 +346,7 @@ static int file_exists(const char* root_path) {
 }
 
 static void detect_res_prefix(const char* prog) {
-	char* progpath = strdup(prog);
+	char* progpath = NULL;
 	char* prefix = NULL;
 	FILE* writable_file = NULL;
 
@@ -407,10 +407,12 @@ static void detect_res_prefix(const char* prog) {
 
 	// check that we can write in writable directory
 	if (bc_tester_writable_dir_prefix != NULL) {
-		writable_file = fopen(".bc_tester_utils.tmp", "w");
+		char * writable_file_path = bc_sprintf("%s/%s", bc_tester_writable_dir_prefix, ".bc_tester_utils.tmp");
+		writable_file = fopen(writable_file_path, "w");
 		if (writable_file) {
 			fclose(writable_file);
 		}
+		free(writable_file_path);
 	}
 	if (bc_tester_resource_dir_prefix == NULL || writable_file == NULL) {
 		if (bc_tester_resource_dir_prefix == NULL) {
