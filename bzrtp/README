@@ -3,10 +3,12 @@ The library written in C 89 is fully portable and can be executed  on many platf
 
 Licensing: The source code is licensed under GPLv2.
 
+Dependencies:
+	- polarssl 1.3 OR mbedTLS 1.3
+
 By default, the upstream package installs into /usr/local.  Please use
 './configure --prefix' to change it
 
-Linphone plugin is compiled if both mediastremer2 and ortp are installed
 
 ----------------------------------------------------------------------------------
 Compatibility with RFC6189 - ZRTP: Media Path Key Agreement for Unicast Secure RTP

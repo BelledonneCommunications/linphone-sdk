@@ -34,7 +34,7 @@ fi
 dnl check polarssl
 
 AC_ARG_WITH( polarssl,
-      [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr, /usr/local)[default=PREFIX] ],
+      [  --with-polarssl      Set prefix where polarssl or mbedTLS can be found (ex:/usr, /usr/local)[default=PREFIX] ],
       [ polarssl_prefix=${withval}],[ polarssl_prefix=${prefix} ])
 
 if test "$polarssl_prefix" != "NONE" ; then
@@ -42,7 +42,13 @@ if test "$polarssl_prefix" != "NONE" ; then
 	POLARSSL_LIBS="-L${polarssl_prefix}/lib"
 fi
 
-POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"
+AC_CHECK_LIB(mbedtls, ssl_init , [POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"],
+				[
+					AC_CHECK_LIB(polarssl, ssl_init, [POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"],
+					[ AC_MSG_ERROR([Polarssl or mbedTLS library not found]) ]
+					)
+				])
+
 
 AC_SUBST(POLARSSL_LIBS)
 AC_SUBST(POLARSSL_CFLAGS)
