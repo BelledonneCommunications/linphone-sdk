@@ -73,7 +73,7 @@ else()
 
 	# Apply build flags and add external projects
 	linphone_builder_apply_flags()
-	linphone_builder_add_external_projects()
+	linphone_builder_add_projects()
 	linphone_builder_add_dummy_libraries_generation()
 
 
