@@ -252,8 +252,8 @@ if test "$use_tls" = "true" ; then
 
 	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
 	LIBS="$LIBS $POLARSSL_LIBS"
-      	AC_CHECK_LIB(mbedtls, ssl_init , [POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"],
-      			 		[AC_CHECK_LIB(polarssl, ssl_init, [POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"])])
+	AC_CHECK_LIB(mbedtls, ssl_init , [POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"],
+					[AC_CHECK_LIB(polarssl, ssl_init, [POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"])])
 	LIBS="$LIBS $POLARSSL_LIBS" #to add right -l
 	AC_CHECK_HEADERS(polarssl/ssl.h,
 		[

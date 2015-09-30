@@ -401,7 +401,7 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 				belle_sip_error("channel [%p]: SSL handshake took too much time.",obj);
 				goto process_error;
 			}else{
-				belle_sip_warning("channeEHHCXCCCl [%p]: unexpected event [%i] during TLS handshake.",obj,revents);
+				belle_sip_warning("channel [%p]: unexpected event [%i] during TLS handshake.",obj,revents);
 			}
 		}
 	} else if ( obj->state == BELLE_SIP_CHANNEL_READY) {
