@@ -332,14 +332,14 @@ unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s){
 
 
 static int match_source_id(const void *s, const void *pid){
-	if ( ((belle_sip_source_t*)s)->id==(unsigned long)pid){
+	if ( ((belle_sip_source_t*)s)->id==(unsigned long)(intptr_t)pid){
 		return 0;
 	}
 	return -1;
 }
 
 belle_sip_source_t *belle_sip_main_loop_find_source(belle_sip_main_loop_t *ml, unsigned long id){
-	belle_sip_list_t *elem=belle_sip_list_find_custom(ml->sources,match_source_id,(const void*)id);
+	belle_sip_list_t *elem=belle_sip_list_find_custom(ml->sources,match_source_id,(const void*)(intptr_t)id);
 	if (elem!=NULL){
 		return (belle_sip_source_t*)elem->data;
 	}

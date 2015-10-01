@@ -54,9 +54,9 @@ typedef struct thread_param {
 
 static unsigned WINAPI thread_starter(void *data) {
 	thread_param_t *params = (thread_param_t*)data;
-	void *ret = params->func(params->arg);
+	params->func(params->arg);
 	belle_sip_free(data);
-	return (DWORD)ret;
+	return 0;
 }
 
 int belle_sip_thread_create(belle_sip_thread_t *thread, void *attr, void * (*func)(void *), void *data) {

@@ -440,7 +440,7 @@ scope { int is_number; }
 @init { $fmt::is_number=0;}:                 ((DIGIT+)=>(DIGIT+){$fmt::is_number=1;} | token )
                                                                           {belle_sdp_media_set_media_formats($media::current
                                                                           ,belle_sip_list_append(belle_sdp_media_get_media_formats($media::current)
-                                                                          ,(void*)($fmt::is_number?(void*)(long)atoi((const char*)$fmt.text->chars):$fmt.text->chars)));};
+                                                                          ,(void*)($fmt::is_number?(void*)(intptr_t)atoi((const char*)$fmt.text->chars):$fmt.text->chars)));};
                      //;typically an RTP payload type for audio
                      //;and video media
 proto              options { greedy = false; }:        ~(SPACE|CR|LF)*;

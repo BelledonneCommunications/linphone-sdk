@@ -516,7 +516,7 @@ belle_sip_error_code belle_sdp_media_marshal(belle_sdp_media_t* media, char* buf
 	error=belle_sip_snprintf(buff,buff_size,offset," %s",media->protocol);
 	if (error!=BELLE_SIP_OK) return error;
 	for(;list!=NULL;list=list->next){
-		error=belle_sip_snprintf(buff,buff_size,offset," %li",(long)list->data);
+		error=belle_sip_snprintf(buff,buff_size,offset," %li",(long)(intptr_t)list->data);
 		if (error!=BELLE_SIP_OK) return error;
 	}
 	return error;
@@ -977,7 +977,7 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 		mime_parameter = belle_sdp_mime_parameter_new();
 		belle_sdp_mime_parameter_set_ptime(mime_parameter,ptime_as_int);
 		belle_sdp_mime_parameter_set_max_ptime(mime_parameter,max_ptime_as_int);
-		belle_sdp_mime_parameter_set_media_format(mime_parameter,(int)(long)media_formats->data);
+		belle_sdp_mime_parameter_set_media_format(mime_parameter,(int)(intptr_t)media_formats->data);
 
 		/*get rtpmap*/
 		rtpmap = belle_sdp_media_description_a_attr_value_get_with_pt(media_description
@@ -1008,7 +1008,7 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 	int current_max_ptime=0;
 
 	belle_sdp_media_set_media_formats(media,belle_sip_list_append(belle_sdp_media_get_media_formats(media)
-																,(void*)(long)(belle_sdp_mime_parameter_get_media_format(mime_parameter))));
+																,(void*)(intptr_t)(belle_sdp_mime_parameter_get_media_format(mime_parameter))));
 
 	if (belle_sdp_media_description_get_attribute_value(media_description,"ptime")) {
 		current_ptime=atoi(belle_sdp_media_description_get_attribute_value(media_description,"ptime"));
