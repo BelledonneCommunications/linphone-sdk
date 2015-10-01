@@ -102,6 +102,7 @@
     <ClCompile Include="..\..\..\src\audiofilters\msopus.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msresample.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msspeex.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\msvaddtx.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msvolume.c" />
     <ClCompile Include="..\..\..\src\audiofilters\speexec.c" />
     <ClCompile Include="..\..\..\src\audiofilters\tonedetector.c" />

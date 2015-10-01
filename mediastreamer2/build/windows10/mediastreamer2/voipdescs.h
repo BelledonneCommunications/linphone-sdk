@@ -22,12 +22,14 @@ extern MSFilterDesc ms_resample_desc;
 extern MSFilterDesc ms_channel_adapter_desc;
 extern MSFilterDesc ms_volume_desc;
 extern MSFilterDesc ms_equalizer_desc;
+extern MSFilterDesc ms_genericplc_desc;
 extern MSFilterDesc ms_audio_mixer_desc;
 extern MSFilterDesc ms_tone_detector_desc;
 extern MSFilterDesc ms_l16_enc_desc;
 extern MSFilterDesc ms_l16_dec_desc;
 extern MSFilterDesc ms_g722_enc_desc;
 extern MSFilterDesc ms_g722_dec_desc;
+extern MSFilterDesc ms_vad_dtx_desc;
 #ifdef VIDEO_ENABLED
 extern MSFilterDesc ms_v4w_desc;
 extern MSFilterDesc ms_video_out_desc;
@@ -56,7 +58,7 @@ extern MSFilterDesc ms_vp8_enc_desc;
 extern MSFilterDesc ms_vp8_dec_desc;
 #endif
 
-MSFilterDesc * ms_voip_filter_descs[]={
+MSFilterDesc * ms_voip_filter_descs[] = {
 &ms_alaw_dec_desc,
 &ms_alaw_enc_desc,
 &ms_ulaw_dec_desc,
@@ -79,12 +81,14 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_channel_adapter_desc,
 &ms_volume_desc,
 &ms_equalizer_desc,
+&ms_genericplc_desc,
 &ms_audio_mixer_desc,
 &ms_tone_detector_desc,
 &ms_l16_enc_desc,
 &ms_l16_dec_desc,
 &ms_g722_enc_desc,
 &ms_g722_dec_desc,
+&ms_vad_dtx_desc,
 #ifdef VIDEO_ENABLED
 &ms_size_conv_desc,
 &ms_pix_conv_desc,
