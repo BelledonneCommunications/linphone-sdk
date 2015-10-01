@@ -303,7 +303,7 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 	if (normalized_cbr<6000) {
 		int initial_value = normalized_cbr;
 		normalized_cbr = 6000;
-		d->max_network_bitrate = (normalized_cbr/(pps*8) + 12 + 8 + 20) *8*pps;
+		d->max_network_bitrate = (int)((normalized_cbr/(pps*8) + 12 + 8 + 20) *8*pps);
 		ms_warning("Opus encoder does not support bitrate [%i]. Instead set to 6kbps, network bitrate [%d]", initial_value, d->max_network_bitrate);
 	}
 	if (d->maxaveragebitrate>0)
@@ -312,7 +312,7 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 	if (normalized_cbr>maxaveragebitrate) {
 		int initial_value = normalized_cbr;
 		normalized_cbr = maxaveragebitrate;
-		d->max_network_bitrate = (normalized_cbr/(pps*8) + 12 + 8 + 20) *8*pps;
+		d->max_network_bitrate = (int)((normalized_cbr/(pps*8) + 12 + 8 + 20) *8*pps);
 		ms_warning("Opus encoder cannot set codec bitrate to [%i] because of maxaveragebitrate constraint or absolute maximum bitrate value. New network bitrate is [%i]", initial_value, d->max_network_bitrate);
 	}
 	ms_message("MSOpusEnc: codec bitrate set to [%i] with ptime [%i]", normalized_cbr, d->ptime);
@@ -694,7 +694,7 @@ static void ms_opus_dec_process(MSFilter *f) {
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
 		om = allocb(5760 * d->channels * SIGNAL_SAMPLE_SIZE, 0); /* 5760 is the maximum number of sample in a packet (120ms at 48KHz) */
 
-		frames = opus_decode(d->state, (const unsigned char *)im->b_rptr, im->b_wptr - im->b_rptr, (opus_int16 *)om->b_wptr, 5760, 0);
+		frames = opus_decode(d->state, (const unsigned char *)im->b_rptr, (opus_int32)(im->b_wptr - im->b_rptr), (opus_int16 *)om->b_wptr, 5760, 0);
 
 		if (frames < 0) {
 			ms_warning("Opus decoder error: %s", opus_strerror(frames));

@@ -75,7 +75,7 @@ static void generic_plc_process(MSFilter *f) {
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
 		int transitionBufferSize = mgps->rate*sizeof(int16_t)*TRANSITION_DELAY/1000;
 		unsigned char buf[128];
-		unsigned int time = (1000*(m->b_wptr - m->b_rptr))/(mgps->rate*sizeof(int16_t)*mgps->nchannels);
+		unsigned int time = (unsigned int)((1000*(m->b_wptr - m->b_rptr))/(mgps->rate*sizeof(int16_t)*mgps->nchannels));
 		ms_concealer_inc_sample_time(mgps->concealer, f->ticker->time, time, TRUE);
 
 		/* introduce 16 sample delay (2ms) */

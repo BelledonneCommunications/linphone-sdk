@@ -814,8 +814,8 @@ bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32_t current_
 		ctrl->th_frame_count = 0;
 	}
 
-	elapsed = ((float)(current_time - ctrl->start_time))/1000.0;
-	cur_frame = elapsed * ctrl->fps;
+	elapsed = ((float)(current_time - ctrl->start_time))/1000.0f;
+	cur_frame = (int)(elapsed * ctrl->fps);
 
 	if (cur_frame>=ctrl->th_frame_count){
 		ctrl->th_frame_count++;
@@ -842,11 +842,11 @@ void ms_video_init_average_fps(MSAverageFPS* afps, const char* ctx){
 
 bool_t ms_average_fps_update(MSAverageFPS* afps, uint32_t current_time) {
 	if (afps->last_frame_time!=-1){
-		float frame_interval=(float)(current_time - afps->last_frame_time)/1000.0;
+		float frame_interval=(float)(current_time - afps->last_frame_time)/1000.0f;
 		if (afps->mean_inter_frame==0){
 			afps->mean_inter_frame=frame_interval;
 		}else{
-			afps->mean_inter_frame=(0.8*afps->mean_inter_frame)+(0.2*frame_interval);
+			afps->mean_inter_frame=(0.8f*afps->mean_inter_frame)+(0.2f*frame_interval);
 		}
 	} else {
 		afps->last_print_time = current_time;
@@ -867,7 +867,7 @@ bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time){
 }
 
 float ms_average_fps_get(const MSAverageFPS* afps){
-	return afps->mean_inter_frame!=0 ? 1.0/afps->mean_inter_frame : 0.0;
+	return afps->mean_inter_frame!=0 ? 1.0f/afps->mean_inter_frame : 0.0f;
 }
 
 MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoConfiguration *vconf_list, int bitrate , int cpu_count) {

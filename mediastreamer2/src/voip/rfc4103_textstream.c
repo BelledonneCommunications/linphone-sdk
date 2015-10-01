@@ -130,8 +130,8 @@ static inline uint32_t get_prev_time(const TextStream *stream) {
 	return stream->timestamp[stream->pribuf ? stream->pribuf-1 : TS_REDGEN];
 }
 
-static inline uint32_t get_red_subheader(const int pt, const int offset, const int length) {
-	return (1 << 31) | ((0x7F & pt) << 24) | ((0x3FFF & offset) << 10) | (0x3FF & length);
+static inline uint32_t get_red_subheader(int pt, int offset, size_t length) {
+	return (1 << 31) | ((0x7F & pt) << 24) | ((0x3FFF & offset) << 10) | (0x3FF & (int)length);
 }
 
 static mblk_t *realtime_text_stream_generate_red_packet(TextStream *stream) {
@@ -140,14 +140,14 @@ static mblk_t *realtime_text_stream_generate_red_packet(TextStream *stream) {
 	int pri = stream->pribuf;
 	mblk_t *packet;
 	uint8_t payload[TS_OUTBUF_SIZE * TS_NUMBER_OF_OUTBUF + 4 * TS_REDGEN + 1];
-	int32_t payloadsize = 0;
+	size_t payloadsize = 0;
 	int mark = 1;
 
 	/* this makes it possible to generate t140 with same function... */
 	if (stream->pt_red > 0) {
 		while (cur != pri) {
 			uint32_t diff = stream->timestamp[pri] - stream->timestamp[cur];
-			int size = stream->bufsize[cur];
+			size_t size = stream->bufsize[cur];
 			uint32_t sub = htonl(get_red_subheader(t140, diff, size));
 			
 			memcpy(&payload[payloadsize], &sub, 4);
@@ -288,7 +288,7 @@ static int read_t140_data(TextStream *stream, uint8_t *data, int readsize){
 		ms_warning("corrupt packet (readsize<0)");
 		return -1;
 	} else if (readsize > TS_INBUF_SIZE - stream->inbufsize) {
-		readsize = TS_INBUF_SIZE - stream->inbufsize;
+		readsize = (int)(TS_INBUF_SIZE - stream->inbufsize);
 		ms_warning("reading less characters than in buffer");
 		
 		/*POTENTIAL BUG... if last char is a multi char but just parts of it get 

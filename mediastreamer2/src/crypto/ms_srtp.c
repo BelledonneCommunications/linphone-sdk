@@ -107,7 +107,7 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 	bool_t is_rtp=ctx->is_rtp;
 	rtp_header_t *rtp_header=is_rtp?(rtp_header_t*)m->b_rptr:NULL;
 	rtcp_common_header_t *rtcp_header=!is_rtp?(rtcp_common_header_t*)m->b_rptr:NULL;
-	slen=msgdsize(m);
+	slen=(int)msgdsize(m);
 
 	if (rtp_header && (slen>RTP_FIXED_HEADER_SIZE && rtp_header->version==2)) {
 		ms_mutex_lock(&ctx->mutex);
@@ -151,7 +151,7 @@ static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m){
 }
 
 static int ms_srtp_process_dummy(RtpTransportModifier *t, mblk_t *m) {
-	return msgdsize(m);
+	return (int)msgdsize(m);
 }
 static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t *m, int err){
 	int slen;
@@ -179,7 +179,7 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 	}
 }
 static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m,msgdsize(m));
+	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m,(int)msgdsize(m));
 }
 
 /**** Session management functions ****/

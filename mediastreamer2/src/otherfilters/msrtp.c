@@ -175,7 +175,7 @@ static int sender_unmute(MSFilter * f, void *arg)
 static int sender_set_relay_session_id(MSFilter *f, void*arg){
 	SenderData *d = (SenderData *) f->data;
 	const char *tmp=(const char *)arg;
-	d->relay_session_id_size=b64_decode(tmp, strlen(tmp), (void*)d->relay_session_id, (unsigned int)sizeof(d->relay_session_id));
+	d->relay_session_id_size=(int)b64_decode(tmp, strlen(tmp), (void*)d->relay_session_id, (unsigned int)sizeof(d->relay_session_id));
 	return 0;
 }
 
@@ -230,7 +230,7 @@ static uint32_t get_cur_timestamp(MSFilter * f, mblk_t *im){
 			d->tsoff = curts - packet_ts;
 		}else{
 			diffts=packet_ts-d->last_ts;
-			difftime_ts=((f->ticker->time-d->last_sent_time)*d->rate)/1000;
+			difftime_ts=(int)(((f->ticker->time-d->last_sent_time)*d->rate)/1000);
 			/* detect timestamp jump in the stream and adjust so that they become continuous on the network*/
 			if (abs(diffts-difftime_ts)>(d->rate/5)){
 				uint32_t tsoff=curts - packet_ts;

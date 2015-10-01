@@ -996,8 +996,8 @@ void ice_session_gather_candidates(IceSession *session, const struct sockaddr* s
 int ice_session_gathering_duration(IceSession *session)
 {
 	if ((session->gathering_start_ts.tv_sec == -1) || (session->gathering_end_ts.tv_sec == -1)) return -1;
-	return ((session->gathering_end_ts.tv_sec - session->gathering_start_ts.tv_sec) * 1000.0)
-		+ ((session->gathering_end_ts.tv_nsec - session->gathering_start_ts.tv_nsec) / 1000000.0);
+	return (int)(((session->gathering_end_ts.tv_sec - session->gathering_start_ts.tv_sec) * 1000.0)
+		+ ((session->gathering_end_ts.tv_nsec - session->gathering_start_ts.tv_nsec) / 1000000.0));
 }
 
 static void ice_transaction_sum_gathering_round_trip_time(const IceStunServerCheckTransaction *transaction, StunRequestRoundTripTime *rtt)
@@ -1215,9 +1215,9 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 	} else return;
 
 	snprintf(username.value, sizeof(username.value) - 1, "%s:%s", ice_check_list_remote_ufrag(cl), ice_check_list_local_ufrag(cl));
-	username.sizeValue = strlen(username.value);
+	username.sizeValue = (uint16_t)strlen(username.value);
 	snprintf(password.value, sizeof(password.value) - 1, "%s", ice_check_list_remote_pwd(cl));
-	password.sizeValue = strlen(password.value);
+	password.sizeValue = (uint16_t)strlen(password.value);
 
 	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
 	memset(&msg, 0, sizeof(msg));
@@ -1356,12 +1356,12 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 		response.hasUsername = FALSE;
 
 	snprintf(response.username.value, sizeof(response.username.value) - 1, "%s:%s", ice_check_list_local_ufrag(cl), ice_check_list_remote_ufrag(cl));
-	response.username.sizeValue = strlen(response.username.value);
+	response.username.sizeValue = (uint16_t)strlen(response.username.value);
 
 	/*add passwd for message integrity*/
 	response.hasPassword = FALSE;
 	snprintf(password.value, sizeof(password.value) - 1, "%s", ice_check_list_local_pwd(cl));
-	password.sizeValue = strlen(password.value);
+	password.sizeValue = (uint16_t)strlen(password.value);
 
 
 	/* Add the mapped address to the response. */
@@ -1415,7 +1415,7 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 	response.errorCode.errorClass = err_class;
 	response.errorCode.number = err_num;
 	strcpy(response.errorCode.reason, error);
-	response.errorCode.sizeReason = strlen(error);
+	response.errorCode.sizeReason = (uint16_t)strlen(error);
 	response.hasFingerprint = TRUE;
 
 	len = stunEncodeMessage(&response, buf, len, &password);
@@ -1539,7 +1539,7 @@ static int ice_check_received_binding_request_integrity(const IceCheckList *cl, 
 	char *lenpos = (char *)mp->b_rptr + sizeof(uint16_t);
 	uint16_t newlen = htons(msg->msgHdr.msgLength - 8);
 	memcpy(lenpos, &newlen, sizeof(uint16_t));
-	stunCalculateIntegrity_shortterm(hmac, (char *)mp->b_rptr, mp->b_wptr - mp->b_rptr - 24 - 8, ice_check_list_local_pwd(cl));
+	stunCalculateIntegrity_shortterm(hmac, (char *)mp->b_rptr, (int)(mp->b_wptr - mp->b_rptr - 24 - 8), ice_check_list_local_pwd(cl));
 	/* ... and then restore the length with fingerprint. */
 	newlen = htons(msg->msgHdr.msgLength);
 	memcpy(lenpos, &newlen, sizeof(uint16_t));
@@ -2110,7 +2110,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 	memset(&msg, 0, sizeof(msg));
 	memset(&source_addr, 0, sizeof(source_addr));
 
-	res = stunParseMessage((char *) mp->b_rptr, mp->b_wptr - mp->b_rptr, &msg);
+	res = stunParseMessage((char *) mp->b_rptr, (int)(mp->b_wptr - mp->b_rptr), &msg);
 	if (res == FALSE) {
 		ms_warning("ice: Received invalid STUN packet");
 		return;
@@ -2187,7 +2187,7 @@ static IceCandidate * ice_candidate_new(const char *type, const char *ip, int po
 	}
 
 	candidate = ms_new0(IceCandidate, 1);
-	iplen = MIN(strlen(ip), sizeof(candidate->taddr.ip));
+	iplen = (int)MIN(strlen(ip), sizeof(candidate->taddr.ip));
 	strncpy(candidate->taddr.ip, ip, iplen);
 	candidate->taddr.port = port;
 	candidate->type = candidate_type;
@@ -3306,8 +3306,8 @@ static MSTimeSpec ice_add_ms(MSTimeSpec orig, uint32_t ms)
 
 static int32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2)
 {
-	int32_t ms = (ts1.tv_sec - ts2.tv_sec) * 1000;
-	ms += (ts1.tv_nsec - ts2.tv_nsec) / 1000000;
+	int32_t ms = (int32_t)((ts1.tv_sec - ts2.tv_sec) * 1000);
+	ms += (int32_t)((ts1.tv_nsec - ts2.tv_nsec) / 1000000);
 	return ms;
 }
 

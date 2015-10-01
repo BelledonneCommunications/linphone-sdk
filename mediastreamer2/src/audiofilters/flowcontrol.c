@@ -75,7 +75,7 @@ static void discard_well_choosed_samples(mblk_t *m, int nsamples, int todrop)
 
 mblk_t *ms_audio_flow_controller_process(MSAudioFlowController *ctl, mblk_t *m){
 	if (ctl->total_samples > 0 && ctl->target_samples > 0) {
-		int nsamples = (m->b_wptr - m->b_rptr) / 2;
+		int nsamples = (int)((m->b_wptr - m->b_rptr) / 2);
 		int th_dropped;
 		int todrop;
 

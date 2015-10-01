@@ -572,14 +572,14 @@ static void dec_process(MSFilter *f){
 	bool_t bits_initd=FALSE;
 
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
-		int rem_bits=(im->b_wptr-im->b_rptr)*8;
+		int rem_bits=(int)((im->b_wptr-im->b_rptr)*8);
 
 		if (!bits_initd) {
 			speex_bits_init(&bits);
 			bits_initd=TRUE;
 		}else speex_bits_reset(&bits);
 
-		speex_bits_read_from(&bits,(char*)im->b_rptr,im->b_wptr-im->b_rptr);
+		speex_bits_read_from(&bits,(char*)im->b_rptr,(int)(im->b_wptr-im->b_rptr));
 
 		/* support for multiple frame  in one RTP packet */
  		do{

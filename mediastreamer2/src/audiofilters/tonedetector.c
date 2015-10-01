@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_SCANS 10
 
-static const float energy_min_threshold=0.01;
+static const float energy_min_threshold=0.01f;
 
 typedef struct _GoertzelState{
 	uint64_t starttime;
@@ -64,7 +64,7 @@ static float goertzel_state_run(GoertzelState *gs,int16_t  *samples, int nsample
 	
 	freq_en= (q1*q1) + (q2*q2) - (q1*q2*gs->coef);
 	/*return a relative frequency energy compared over the total signal energy */
-	return freq_en/(total_energy*(float)nsamples*0.5);
+	return freq_en/(total_energy*(float)nsamples*0.5f);
 }
 
 static float compute_energy(int16_t *samples, int nsamples){

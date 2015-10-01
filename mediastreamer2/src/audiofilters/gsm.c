@@ -93,7 +93,7 @@ static void enc_process(MSFilter *f){
 	unsigned int unitary_buff_size = sizeof(int16_t)*160;
 	unsigned int buff_size = unitary_buff_size*s->ptime/20;
 	int16_t* buff;
-	int offset;
+	unsigned int offset;
 	
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		ms_bufferizer_put(s->bufferizer,im);

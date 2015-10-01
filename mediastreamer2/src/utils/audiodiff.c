@@ -157,7 +157,7 @@ static int compute_cross_correlation(int16_t *s1, int n1, int16_t *s2_padded, fl
 	for (i=0; i<xcorr_nsamples; i++){
 		norm2 += s2_padded[step*(i+n1-1)]*s2_padded[step*(i+n1-1)];
 		tmp = scalar_product(s1, s2_padded + i*step, n1, step);
-		xcorr[i] = (double)tmp / sqrt((double)(norm1)*(double)norm2);
+		xcorr[i] = (float)((double)tmp / sqrt((double)(norm1)*(double)norm2));
 		tmp = tmp < 0 ? -tmp : tmp;
 		if (tmp > max){
 			max = tmp;
@@ -264,7 +264,7 @@ static int _ms_audio_diff_chunked(FileInfo *fi1, FileInfo *fi2, double *ret, int
 	num_chunks = i;
 	
 	ms_message("tot_energy is %li", (long int) tot_energy);
-	maxpos = cum_maxpos / tot_energy;
+	maxpos = (int)(cum_maxpos / tot_energy);
 	ms_message("Maxpos is %i", maxpos);
 	
 	/*compute variance of max_pos among all chunks*/

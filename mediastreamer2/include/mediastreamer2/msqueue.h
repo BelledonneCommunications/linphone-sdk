@@ -113,7 +113,7 @@ MS2_PUBLIC void ms_queue_destroy(MSQueue *q);
 	
 struct _MSBufferizer{
 	queue_t q;
-	int size;
+	size_t size;
 };
 
 typedef struct _MSBufferizer MSBufferizer;
@@ -136,7 +136,7 @@ MS2_PUBLIC int ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, int datalen)
 MS2_PUBLIC void ms_bufferizer_fill_current_metas(MSBufferizer *obj, mblk_t *m);
 
 /* returns the number of bytes available in the bufferizer*/
-static MS2_INLINE int ms_bufferizer_get_avail(MSBufferizer *obj){
+static MS2_INLINE size_t ms_bufferizer_get_avail(MSBufferizer *obj){
 	return obj->size;
 }
 

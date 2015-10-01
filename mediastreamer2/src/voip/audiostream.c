@@ -367,8 +367,8 @@ static float audio_stream_get_rtcp_xr_average_lq_quality_rating(void *userdata) 
 }
 
 static bool_t ci_ends_with(const char *filename, const char*suffix){
-	int filename_len=strlen(filename);
-	int suffix_len=strlen(suffix);
+	size_t filename_len=strlen(filename);
+	size_t suffix_len=strlen(suffix);
 	if (filename_len<suffix_len) return FALSE;
 	return strcasecmp(filename+filename_len-suffix_len,suffix)==0;
 }
@@ -693,8 +693,12 @@ static void setup_generic_confort_noise(AudioStream *stream){
 	if (cn && pt && pt->channels==1 && pt->clock_rate==8000){
 		/* RFC3389 CN can be used*/
 		stream->vaddtx=ms_filter_new(MS_VAD_DTX_ID);
-		ms_filter_add_notify_callback(stream->vaddtx, on_silence_detected, stream, TRUE);
-		ms_filter_add_notify_callback(stream->ms.rtprecv, on_cn_received, stream, TRUE);
+		if (stream->vaddtx) {
+			ms_filter_add_notify_callback(stream->vaddtx, on_silence_detected, stream, TRUE);
+			ms_filter_add_notify_callback(stream->ms.rtprecv, on_cn_received, stream, TRUE);
+		} else {
+			ms_warning("Cannot instantiate vaddtx filter!");
+		}
 	}
 }
 
@@ -1255,7 +1259,7 @@ int audio_stream_mixed_record_open(AudioStream *st, const char* filename){
 
 static MSFilter *get_recorder(AudioStream *stream){
 	const char *fname=stream->recorder_file;
-	int len=strlen(fname);
+	size_t len=strlen(fname);
 
 	if (strstr(fname,".mkv")==fname+len-4){
 		if (stream->av_recorder.recorder){
@@ -1509,9 +1513,9 @@ void audio_stream_enable_equalizer(AudioStream *stream, bool_t enabled){
 void audio_stream_equalizer_set_gain(AudioStream *stream, int frequency, float gain, int freq_width){
 	if (stream->equalizer){
 		MSEqualizerGain d;
-		d.frequency=frequency;
+		d.frequency=(float)frequency;
 		d.gain=gain;
-		d.width=freq_width;
+		d.width=(float)freq_width;
 		ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_GAIN,&d);
 	}
 }

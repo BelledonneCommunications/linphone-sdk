@@ -540,7 +540,7 @@ float ms_ticker_get_average_load(MSTicker *ticker){
 		once=TRUE;
 	}
 #endif
-	return ticker->av_load;
+	return (float)ticker->av_load;
 }
 
 

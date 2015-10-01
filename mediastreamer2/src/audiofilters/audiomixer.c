@@ -97,7 +97,7 @@ static int channel_flow_control(Channel *chan, int threshold, uint64_t time){
 		chan->min_fullness=-1;
 		return skip;
 	}
-	size=ms_bufferizer_get_avail(&chan->bufferizer);
+	size=(int)ms_bufferizer_get_avail(&chan->bufferizer);
 	if (chan->min_fullness==-1 || chan->min_fullness<size) chan->min_fullness=size;
 	if (time-chan->last_flow_control>=5000){
 		if (chan->min_fullness>=threshold){

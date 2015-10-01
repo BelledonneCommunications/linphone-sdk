@@ -87,14 +87,14 @@ static void resample_uninit(MSFilter *obj){
 
 static int resample_channel_adapt(int in_nchannels, int out_nchannels, mblk_t *im, mblk_t **om) {
 	if ((in_nchannels == 2) && (out_nchannels == 1)) {
-		int msgsize = msgdsize(im) / 2;
+		size_t msgsize = msgdsize(im) / 2;
 		*om = allocb(msgsize, 0);
 		for (; im->b_rptr < im->b_wptr; im->b_rptr += 4, (*om)->b_wptr += 2) {
 			*(int16_t *)(*om)->b_wptr = *(int16_t *)im->b_rptr;
 		}
 		return 1;
 	} else if ((in_nchannels == 1) && (out_nchannels == 2)) {
-		int msgsize = msgdsize(im) * 2;
+		size_t msgsize = msgdsize(im) * 2;
 		*om = allocb(msgsize, 0);
 		for (; im->b_rptr < im->b_wptr; im->b_rptr += 2, (*om)->b_wptr += 4) {
 			((int16_t *)(*om)->b_wptr)[0] = *(int16_t *)im->b_rptr;
@@ -156,7 +156,7 @@ static void resample_process_ms2(MSFilter *obj){
 
 	
 	while((im=ms_queue_get(obj->inputs[0]))!=NULL){
-		unsigned int inlen=(im->b_wptr-im->b_rptr)/(2*dt->in_nchannels);
+		unsigned int inlen=(int)((im->b_wptr-im->b_rptr)/(2*dt->in_nchannels));
 		unsigned int outlen=((inlen*dt->output_rate)/dt->input_rate)+1;
 		unsigned int inlen_orig=inlen;
 		om=allocb(outlen*2*dt->in_nchannels,0);

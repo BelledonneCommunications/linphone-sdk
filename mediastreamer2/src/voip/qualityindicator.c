@@ -22,9 +22,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <math.h>
 
-#define RATING_SCALE 5.0
-#define WORSE_JITTER 0.2
-#define WORSE_RT_PROP 5.0
+#define RATING_SCALE 5.0f
+#define WORSE_JITTER 0.2f
+#define WORSE_RT_PROP 5.0f
 #define SEQ_INTERVAL 60
 #define TIME_INTERVAL 3000
 
@@ -82,13 +82,13 @@ float ms_quality_indicator_get_lq_rating(const MSQualityIndicator *qi) {
 static float inter_jitter_rating(float inter_jitter){
 	float tmp=inter_jitter/WORSE_JITTER;
 	if (tmp>1) tmp=1;
-	return 1.0-(0.3*tmp);
+	return 1.0f-(0.3f*tmp);
 }
 
 static float rt_prop_rating(float rt_prop){
 	float tmp=rt_prop/WORSE_RT_PROP;
 	if (tmp>1) tmp=1;
-	return 1.0-(0.7*tmp);
+	return 1.0f-(0.7f*tmp);
 }
 
 static float loss_rating(float loss){
@@ -99,7 +99,7 @@ static float loss_rating(float loss){
 	 20% losses gives a rating of 2.2/5
 	 80% losses gives a rating of 0.2
 	*/
-	return expf(-loss*4.0);
+	return expf(-loss*4.0f);
 }
 
 static float compute_rating(float loss_rate, float inter_jitter, float late_rate, float rt_prop){
@@ -141,8 +141,8 @@ void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *r
 
 		new_value=ortp_loss_rate_estimator_process_report_block(qi->lr_estimator,&qi->session->rtp,rb);
 		loss_rate=ortp_loss_rate_estimator_get_value(qi->lr_estimator);
-		qi->remote_rating=compute_rating(loss_rate/100.0,inter_jitter,0,rt_prop);
-		qi->remote_lq_rating=compute_lq_rating(loss_rate/100.0,inter_jitter,0);
+		qi->remote_rating=compute_rating(loss_rate/100.0f,inter_jitter,0,rt_prop);
+		qi->remote_lq_rating=compute_lq_rating(loss_rate/100.0f,inter_jitter,0);
 		update_global_rating(qi);
 		if (new_value){
 			ms_message("MSQualityIndicator[%p][%s], remote statistics available:"
@@ -163,7 +163,7 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	float loss_rate=0,late_rate=0;
 	uint32_t ext_seq=rtp_session_get_rcv_ext_seq_number(qi->session);
 
-	recvcnt=stats->packet_recv-qi->last_packet_count;
+	recvcnt=(int)(stats->packet_recv-qi->last_packet_count);
 	if (recvcnt==0){
 		// ms_message("ms_quality_indicator_update_local(): no packet received since last call");
 		return;/* no information usable*/
@@ -180,18 +180,18 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	qi->last_ext_seq=ext_seq;
 	qi->last_packet_count=stats->packet_recv;
 
-	late=stats->outoftime-qi->last_late;
-	qi->last_late=stats->outoftime;
+	late=(int)(stats->outoftime-qi->last_late);
+	qi->last_late=(uint32_t)stats->outoftime;
 
 
 	if (lost<0) lost=0; /* will be the case at least the first time, because we don't know the initial sequence number*/
 	if (late<0) late=0;
 
 	loss_rate=(float)lost/(float)recvcnt;
-	qi->cur_loss_rate=loss_rate*100.0;
+	qi->cur_loss_rate=loss_rate*100.0f;
 
 	late_rate=(float)late/(float)recvcnt;
-	qi->cur_late_rate=late_rate*100.0;
+	qi->cur_late_rate=late_rate*100.0f;
 
 	qi->local_rating=compute_rating(loss_rate,0,late_rate,rtp_session_get_round_trip_propagation(qi->session));
 	qi->local_lq_rating=compute_lq_rating(loss_rate,0,late_rate);

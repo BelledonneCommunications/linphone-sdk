@@ -206,7 +206,7 @@ static void dec_process(MSFilter *f)
 	mblk_t *om;
 
 	while((im=ms_queue_get(f->inputs[0]))) {
-		int payloadlen = im->b_wptr - im->b_rptr;
+		int payloadlen = (int)(im->b_wptr - im->b_rptr);
 		int declen;
 
 		om=allocb(payloadlen*4,0);

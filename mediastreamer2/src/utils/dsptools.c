@@ -376,7 +376,7 @@ void ms_fft(void *table, ms_word16_t *in, ms_word16_t *out)
 	int i;
 	float scale;
 	struct kiss_config *t = (struct kiss_config *)table;
-	scale = 1./t->N;
+	scale = 1.f/t->N;
 	kiss_fftr2(t->forward, in, out);
 	for (i=0;i<t->N;i++)
 		out[i] *= scale;

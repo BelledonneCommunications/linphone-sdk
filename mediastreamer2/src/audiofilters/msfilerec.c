@@ -54,7 +54,7 @@ static void rec_process(MSFilter *f){
 		ms_mutex_lock(&f->lock);
 		if (s->state==MSRecorderRunning){
 			while(it!=NULL){
-				int len=it->b_wptr-it->b_rptr;
+				int len=(int)(it->b_wptr-it->b_rptr);
 				if ((err=write(s->fd,it->b_rptr,len))!=len){
 					if (err<0)
 						ms_warning("MSFileRec: fail to write %i bytes: %s",len,strerror(errno));

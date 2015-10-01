@@ -160,7 +160,7 @@ static void enc_preprocess(MSFilter *f) {
 		ms_error("Failed to get config: %s", vpx_codec_err_to_string(res));
 		return;
 	}
-	s->cfg.rc_target_bitrate = ((float)s->vconf.required_bitrate) * 0.92 / 1024.0; //0.9=take into account IP/UDP/RTP overhead, in average.
+	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f / 1024.0f); //0.92=take into account IP/UDP/RTP overhead, in average.
 	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = (int)s->vconf.fps;
@@ -427,7 +427,7 @@ static bool_t is_frame_independent(unsigned int flags){
 static void enc_process(MSFilter *f) {
 	mblk_t *im;
 	uint64_t timems = f->ticker->time;
-	uint32_t timestamp = timems*90;
+	uint32_t timestamp = (uint32_t)(timems*90);
 	EncState *s = (EncState *)f->data;
 	unsigned int flags = 0;
 	vpx_codec_err_t err;
@@ -581,7 +581,7 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 
 	if (s->vconf.required_bitrate > s->vconf.bitrate_limit)
 		s->vconf.required_bitrate = s->vconf.bitrate_limit;
-	s->cfg.rc_target_bitrate = ((float)s->vconf.required_bitrate) * 0.92 / 1024.0; //0.9=take into account IP/UDP/RTP overhead, in average.
+	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f / 1024.0f); //0.92=take into account IP/UDP/RTP overhead, in average.
 	if (s->ready) {
 		ms_filter_lock(f);
 		enc_postprocess(f);
@@ -950,7 +950,7 @@ static void dec_process(MSFilter *f) {
 	/* Decode unpacked VP8 frames. */
 	while (vp8rtpfmt_unpacker_get_frame(&s->unpacker, &frame, &frame_info) == 0) {
 		while ((im = ms_queue_get(&frame)) != NULL) {
-			err = vpx_codec_decode(&s->codec, im->b_rptr, im->b_wptr - im->b_rptr, NULL, 0);
+			err = vpx_codec_decode(&s->codec, im->b_rptr, (unsigned int)(im->b_wptr - im->b_rptr), NULL, 0);
 			if ((s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) && mblk_get_marker_info(im)) {
 				err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
 			}
@@ -993,7 +993,7 @@ static void dec_process(MSFilter *f) {
 			}
 			ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
 
-			if (ms_average_fps_update(&s->fps, f->ticker->time)) {
+			if (ms_average_fps_update(&s->fps, (uint32_t)f->ticker->time)) {
 				ms_message("VP8 decoder: Frame size: %dx%d", s->yuv_width, s->yuv_height);
 			}
 			if (!s->first_image_decoded) {

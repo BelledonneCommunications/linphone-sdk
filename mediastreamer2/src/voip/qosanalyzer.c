@@ -174,7 +174,7 @@ static bool_t simple_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp)
 		}
 		if (ortp_loss_rate_estimator_process_report_block(objbase->lre,&obj->session->rtp,rb)){
 			cur->lost_percentage=ortp_loss_rate_estimator_get_value(objbase->lre);
-			cur->int_jitter=1000.0*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
+			cur->int_jitter=1000.0f*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
 			cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
 
 			ms_message("MSSimpleQosAnalyzer: lost_percentage=%f, int_jitter=%f ms, rt_prop=%f sec",
@@ -192,7 +192,7 @@ static void simple_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateControl
 	/*big losses and big jitter */
 	if (cur->lost_percentage>=unacceptable_loss_rate && cur->int_jitter>=big_jitter){
 		action->type=MSRateControlActionDecreaseBitrate;
-		action->value=MIN(cur->lost_percentage,50);
+		action->value=(int)MIN(cur->lost_percentage,50);
 		ms_message("MSSimpleQosAnalyzer: loss rate unacceptable and big jitter");
 	}else if (simple_rt_prop_increased(obj)){
 		action->type=MSRateControlActionDecreaseBitrate;
@@ -201,7 +201,7 @@ static void simple_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateControl
 	}else if (cur->lost_percentage>=unacceptable_loss_rate){
 		/*big loss rate but no jitter, and no big rtp_prop: pure lossy network*/
 		action->type=MSRateControlActionDecreaseBitrate;
-		action->value=MIN(cur->lost_percentage,50);
+		action->value=(int)MIN(cur->lost_percentage,50);
 		ms_message("MSSimpleQosAnalyzer: loss rate unacceptable.");
 	}else{
 		action->type=MSRateControlActionDoNothing;
@@ -294,7 +294,7 @@ static float stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj, 
 
 	/*First method to compute bandwidth*/
 	if (obj->upload_bandwidth_count){
-		bw_per_avg=obj->upload_bandwidth_sum/obj->upload_bandwidth_count;
+		bw_per_avg=(float)(obj->upload_bandwidth_sum/obj->upload_bandwidth_count);
 	}
 	obj->upload_bandwidth_count=0;
 	obj->upload_bandwidth_sum=0;
@@ -322,7 +322,7 @@ static float stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj, 
 		// invalid, no measures available
 		if (count==0){
 			ms_error("MSStatefulQosAnalyzer[%p]: no measures available to compute bandwidth for ext_seq=%u", obj, seq_num);
-			bw_per_seqnum = rtp_session_get_send_bandwidth(obj->session)/1000.0;
+			bw_per_seqnum = rtp_session_get_send_bandwidth(obj->session)/1000.0f;
 		}else{
 			bw_per_seqnum /= count;//((BW_HISTORY + obj->upload_bandwidth_cur - latest_bw) % BW_HISTORY);
 			ms_debug("MSStatefulQosAnalyzer[%p]: found average bandwidth for seq_num=%u", obj, seq_num);
@@ -336,7 +336,7 @@ static float stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj, 
 				, bw_per_seqnum);
 
 	obj->upload_bandwidth_latest = bw_per_seqnum;
-	return obj->upload_bandwidth_latest;
+	return (float)obj->upload_bandwidth_latest;
 }
 
 static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp){
@@ -410,7 +410,7 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 	return FALSE;
 }
 
-static float lerp(float inf, float sup, float v){
+static double lerp(double inf, double sup, double v){
 	return inf + (sup - inf) * v;
 }
 
@@ -427,7 +427,7 @@ static void smooth_values(MSStatefulQosAnalyzer *obj){
 	MSList *first_loss = find_first_with_loss(obj->rtcpstatspoint);
 	MSList *it = obj->rtcpstatspoint;
 	rtcpstatspoint_t *curr = (rtcpstatspoint_t *)it->data;
-	float prev_loss = 0.;
+	double prev_loss = 0.;
 
 	if (first_loss == obj->rtcpstatspoint){
 		prev_loss = curr->loss_percent;
@@ -449,8 +449,8 @@ static void smooth_values(MSStatefulQosAnalyzer *obj){
 		rtcpstatspoint_t *prev = ((rtcpstatspoint_t *)it->prev->data);
 		rtcpstatspoint_t *next = ((rtcpstatspoint_t *)it->next->data);
 
-		float v = (curr->bandwidth - prev->bandwidth) / (next->bandwidth - prev->bandwidth);
-		float new_loss = lerp(prev_loss, next->loss_percent, v);
+		double v = ((curr->bandwidth - prev->bandwidth) / (next->bandwidth - prev->bandwidth));
+		double new_loss = lerp(prev_loss, next->loss_percent, v);
 		prev_loss = curr->loss_percent;
 		curr->loss_percent = (curr->loss_percent + new_loss) / 2.;
 		it = it->next;
@@ -459,10 +459,10 @@ static void smooth_values(MSStatefulQosAnalyzer *obj){
 	curr->loss_percent = lerp(prev_loss, curr->loss_percent, .75);
 }
 
-static float compute_available_bw(MSStatefulQosAnalyzer *obj){
+static double compute_available_bw(MSStatefulQosAnalyzer *obj){
 	MSList *it;
-	float constant_network_loss = 0.;
-	float mean_bw = 0.;
+	double constant_network_loss = 0.;
+	double mean_bw = 0.;
 	MSList *current = obj->rtcpstatspoint;
 	MSList *last = current;
 	int size = ms_list_size(obj->rtcpstatspoint);
@@ -519,7 +519,7 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 		/*only first packet is stable*/
 		}else if (current->prev == obj->rtcpstatspoint){
 			rtcpstatspoint_t *p = (rtcpstatspoint_t *)current->prev->data;
-			mean_bw = p->bandwidth * (100 - p->loss_percent) / 100.f;
+			mean_bw = p->bandwidth * (100 - p->loss_percent) / 100.;
 		/*otherwise, there is a congestion detected starting at "current"*/
 		}else{
 			rtcpstatspoint_t *laststable = (rtcpstatspoint_t*)current->prev->data;
@@ -552,8 +552,8 @@ static float compute_available_bw(MSStatefulQosAnalyzer *obj){
 static void stateful_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateControlAction *action){
 	MSStatefulQosAnalyzer *obj=(MSStatefulQosAnalyzer*)objbase;
 
-	float curbw = 0;
-	float bw = 0;
+	double curbw = 0;
+	double bw = 0;
 	rtcpstatspoint_t* greatest_pt = NULL;
 	/*if this is the first measure, there is not enough reliable data to use; we
 	assume loss rate is due to non congestionned network. This is mainly useful
@@ -563,10 +563,10 @@ static void stateful_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateContr
 	if (obj->curindex==1){
 		if (obj->network_loss_rate!=0.f){
 			action->type=MSRateControlActionDecreaseBitrate;
-			action->value=obj->network_loss_rate;
+			action->value=(int)obj->network_loss_rate;
 		}
 	}else {
-		curbw = obj->latest ? obj->latest->bandwidth : 0.f;
+		curbw = obj->latest ? obj->latest->bandwidth : 0.;
 		bw = compute_available_bw(obj);
 		greatest_pt = ms_list_size(obj->rtcpstatspoint) ?
 			(rtcpstatspoint_t*)ms_list_nth_data(obj->rtcpstatspoint, ms_list_size(obj->rtcpstatspoint)-1)
@@ -591,10 +591,10 @@ static void stateful_analyzer_suggest_action(MSQosAnalyzer *objbase, MSRateContr
 			action->value=0;
 		}else if (bw > curbw){
 			action->type=MSRateControlActionIncreaseQuality;
-			action->value=MAX(0, 100. * (bw / curbw - 1));
+			action->value=MAX(0, (int)(100 * (bw / curbw - 1)));
 		}else{
 			action->type=MSRateControlActionDecreaseBitrate;
-			action->value=MAX(10, -100. * (bw / curbw - 1));
+			action->value=MAX(10, (int)(-100 * (bw / curbw - 1)));
 		}
 	}
 
@@ -647,7 +647,7 @@ static void stateful_analyzer_update(MSQosAnalyzer *objbase){
 
 		/* Save bandwidth used at this time */
 		obj->upload_bandwidth[obj->upload_bandwidth_cur].seq_number = rtp_session_get_seq_number(obj->session);
-		obj->upload_bandwidth[obj->upload_bandwidth_cur].up_bandwidth = rtp_session_get_send_bandwidth(obj->session)/1000.0;
+		obj->upload_bandwidth[obj->upload_bandwidth_cur].up_bandwidth = rtp_session_get_send_bandwidth(obj->session)/1000.0f;
 		obj->upload_bandwidth_cur = (obj->upload_bandwidth_cur+1)%BW_HISTORY;
 	}
 	last_measure = ms_time(0);
@@ -657,13 +657,13 @@ static void stateful_analyzer_update(MSQosAnalyzer *objbase){
 		case MSStatefulQosAnalyzerBurstEnable:{
 			obj->burst_state=MSStatefulQosAnalyzerBurstInProgress;
 			ortp_gettimeofday(&obj->start_time, NULL);
-			rtp_session_set_duplication_ratio(obj->session, obj->burst_ratio);
+			rtp_session_set_duplication_ratio(obj->session, (float)obj->burst_ratio);
 		} case MSStatefulQosAnalyzerBurstInProgress: {
 			struct timeval now;
 			float elapsed;
 
 			ortp_gettimeofday(&now,NULL);
-			elapsed=((now.tv_sec-obj->start_time.tv_sec)*1000.0) +  ((now.tv_usec-obj->start_time.tv_usec)/1000.0);
+			elapsed=((now.tv_sec-obj->start_time.tv_sec)*1000.0f) +  ((now.tv_usec-obj->start_time.tv_usec)/1000.0f);
 
 			if (elapsed > obj->burst_duration_ms){
 				obj->burst_state=MSStatefulQosAnalyzerBurstDisable;
