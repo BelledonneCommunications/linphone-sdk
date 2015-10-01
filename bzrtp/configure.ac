@@ -42,13 +42,15 @@ if test "$polarssl_prefix" != "NONE" ; then
 	POLARSSL_LIBS="-L${polarssl_prefix}/lib"
 fi
 
+LIBS_save=$LIBS
+LIBS="$LIBS $POLARSSL_LIBS"
 AC_CHECK_LIB(mbedtls, ssl_init , [POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"],
 				[
 					AC_CHECK_LIB(polarssl, ssl_init, [POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"],
 					[ AC_MSG_ERROR([Polarssl or mbedTLS library not found]) ]
 					)
 				])
-
+LIBS=$LIBS_save
 
 AC_SUBST(POLARSSL_LIBS)
 AC_SUBST(POLARSSL_CFLAGS)
