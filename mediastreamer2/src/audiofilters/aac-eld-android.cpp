@@ -264,7 +264,7 @@ static void enc_process ( MSFilter *f ) {
 	{
 		ms_bufferizer_put_from_queue ( s->bufferizer,f->inputs[0] );
 		/* Wait until s->nbytes bytes are available... */
-		while ( ms_bufferizer_get_avail ( s->bufferizer ) >=s->nbytes ) {
+		while ( (int)ms_bufferizer_get_avail ( s->bufferizer ) >=s->nbytes ) {
 			/* ... then feed the encoder with chunks of SIGNAL_FRAME_SIZE bytes */
 			ms_bufferizer_read ( s->bufferizer, s->inputBuffer, SIGNAL_FRAME_SIZE );
 			/* ms_message("Push to encoder %d bytes", SIGNAL_FRAME_SIZE); */
