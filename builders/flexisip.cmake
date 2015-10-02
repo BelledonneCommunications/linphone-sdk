@@ -27,7 +27,7 @@ set(EP_flexisip_GIT_TAG "0b733d671bbb72e2aa2708f37ba49e8801203154" CACHE STRING 
 set(EP_flexisip_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_flexisip_BUILD_METHOD "autotools")
 set(EP_flexisip_USE_AUTOGEN True)
-set(EP_flexisip_CONFIGURE_OPTIONS )
+set(EP_flexisip_CONFIGURE_OPTIONS  "" CACHE STRING "flexisip configure options")
 set(EP_flexisip_CMAKE_OPTIONS )
 set(EP_flexisip_CROSS_COMPILATION_OPTIONS
 	"--prefix=${CMAKE_INSTALL_PREFIX}"
