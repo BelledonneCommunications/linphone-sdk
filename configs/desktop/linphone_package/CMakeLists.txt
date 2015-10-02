@@ -59,6 +59,7 @@ if(APPLE)
 		-change ${LINPHONE_OUTPUT_DIR}/lib/libopenh264.0.dylib @rpath/libopenh264.0.dylib
 		-change /opt/local/lib/libintl.8.dylib @rpath/libintl.8.dylib
 		-change /opt/local/lib/libiconv.2.dylib @rpath/libiconv.2.dylib
+		-change /lib/libopenh264.0.dylib @rpath/libopenh264.0.dylib
         )
         set(RPATH_LIBS_TO_MODIFY
                 libavcodec.53.61.100.dylib
