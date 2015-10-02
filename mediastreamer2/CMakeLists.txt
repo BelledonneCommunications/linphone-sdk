@@ -96,6 +96,8 @@ cmake_dependent_option(ENABLE_VPX "Build mediastreamer2 with VPX codec." YES "EN
 option(ENABLE_MKV "Enable support of MKV files reading and writing." YES)
 cmake_dependent_option(ENABLE_QNX "Build medistreamer2 with BB10 filters." NO "ENABLE_VIDEO" NO)
 
+set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CheckIncludeFile)
