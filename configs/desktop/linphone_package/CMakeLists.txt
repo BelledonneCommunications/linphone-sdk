@@ -67,7 +67,12 @@ if(APPLE)
                 libmediastreamer_voip.5.dylib
                 libswresample.0.6.100.dylib
                 libswscale.2.1.100.dylib
-		mediastreamer/plugins/libmsopenh264.0.dylib
+		mediastreamer/plugins/libmsamr.dylib
+		mediastreamer/plugins/libmsbcg729.dylib
+		mediastreamer/plugins/libmsilbc.dylib
+		mediastreamer/plugins/libmsopenh264.dylib
+		mediastreamer/plugins/libmssilk.dylib
+		mediastreamer/plugins/libmswebrtc.dylib
         )
         foreach(LIB_TO_CHANGE ${RPATH_LIBS_TO_MODIFY})
                 execute_process(
