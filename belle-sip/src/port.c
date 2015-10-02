@@ -160,7 +160,7 @@ int belle_sip_thread_key_create(belle_sip_thread_key_t *key, void (*destructor)(
 #ifdef HAVE_COMPILER_TLS
 	*key = (belle_sip_thread_key_t)&current_thread_data;
 #else
-	*key=TlsAlloc();
+	*key = (belle_sip_thread_key_t)TlsAlloc();
 	if (*key==TLS_OUT_OF_INDEXES){
 		belle_sip_error("TlsAlloc(): TLS_OUT_OF_INDEXES.");
 		return -1;
@@ -174,7 +174,7 @@ int belle_sip_thread_setspecific(belle_sip_thread_key_t key,const void *value){
 	current_thread_data = value;
 	return 0;
 #else
-	return TlsSetValue(key,(void*)value) ? 0 : -1;
+	return TlsSetValue((DWORD)key,(void*)value) ? 0 : -1;
 #endif
 }
 
@@ -182,7 +182,7 @@ const void* belle_sip_thread_getspecific(belle_sip_thread_key_t key){
 #ifdef HAVE_COMPILER_TLS
 	return current_thread_data;
 #else
-	return TlsGetValue(key);
+	return TlsGetValue((DWORD)key);
 #endif
 }
 

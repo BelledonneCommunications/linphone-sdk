@@ -105,7 +105,7 @@ typedef HANDLE belle_sip_thread_t;
 #define belle_sip_thread_self_id()		(unsigned long)GetCurrentThreadId()
 #define belle_sip_thread_get_id(thread)			(unsigned long)GetThreadId(thread)
 
-typedef const void* belle_sip_thread_key_t;
+typedef intptr_t belle_sip_thread_key_t;
 int belle_sip_thread_key_create(belle_sip_thread_key_t *key, void (*destructor)(void*) );
 int belle_sip_thread_setspecific(belle_sip_thread_key_t key,const void *value);
 const void* belle_sip_thread_getspecific(belle_sip_thread_key_t key);
