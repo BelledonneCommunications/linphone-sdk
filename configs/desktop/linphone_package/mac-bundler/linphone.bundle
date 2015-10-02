@@ -84,9 +84,9 @@
     ${prefix}/lib/gdk-pixbuf-2.0/${pkg:${gtk}:gtk_binary_version}/loaders/*.so
   </binary>
 
-   <binary>
+   <!-- binary>
     ${prefix}/lib/pango/${pkg:pango:pango_module_version}/modules/
-  </binary>
+  </binary -->
 
   <data>
     ${prefix}/etc/pango/
