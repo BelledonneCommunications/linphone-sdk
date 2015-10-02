@@ -88,9 +88,9 @@
     ${prefix}/lib/pango/${pkg:pango:pango_module_version}/modules/
   </binary -->
 
-  <data>
+  <!-- data>
     ${prefix}/etc/pango/
-  </data>
+  </data -->
 
  <!-- Translation filenames, one for each program or library that you
        want to copy in to the bundle. The "dest" attribute is
