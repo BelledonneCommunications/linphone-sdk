@@ -974,6 +974,7 @@ static void dec_process(MSFilter *f) {
 			if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
 				if (s->yuv_msg) freemsg(s->yuv_msg);
 				s->yuv_msg = ms_yuv_buf_alloc(&s->outbuf, img->d_w, img->d_h);
+				ms_message("MSVp8Dec: video is %ix%i", img->d_w, img->d_h);
 				s->yuv_width = img->d_w;
 				s->yuv_height = img->d_h;
 				ms_filter_notify_no_arg(f, MS_FILTER_OUTPUT_FMT_CHANGED);
@@ -993,9 +994,7 @@ static void dec_process(MSFilter *f) {
 			}
 			ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
 
-			if (ms_average_fps_update(&s->fps, (uint32_t)f->ticker->time)) {
-				ms_message("VP8 decoder: Frame size: %dx%d", s->yuv_width, s->yuv_height);
-			}
+			ms_average_fps_update(&s->fps, (uint32_t)f->ticker->time);
 			if (!s->first_image_decoded) {
 				s->first_image_decoded = TRUE;
 				ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);

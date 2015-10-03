@@ -51,12 +51,12 @@
 typedef struct _MSSrtpStreamContext {
 	srtp_t srtp;
 	RtpTransportModifier *modifier;
+	ms_mutex_t mutex;
 	bool_t secured;
 	bool_t mandatory_enabled;
 	bool_t is_rtp;
-	ms_mutex_t mutex;
-
 } MSSrtpStreamContext;
+
 struct _MSSrtpCtx {
 	MSSrtpStreamContext send_rtp_context;
 	MSSrtpStreamContext send_rtcp_context;
@@ -112,7 +112,7 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 	if (rtp_header && (slen>RTP_FIXED_HEADER_SIZE && rtp_header->version==2)) {
 		ms_mutex_lock(&ctx->mutex);
 		if (!ctx->secured) {
-			/*does not make sens to protec, because we don't have any key*/
+			/*does not make sense to protect, because we don't have any key*/
 			err=err_status_ok;
 			slen = 0; /*droping packets*/
 		} else {
@@ -125,7 +125,7 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 		ms_mutex_lock(&ctx->mutex);
 		if (!ctx->secured) {
 			err=err_status_ok;
-			/*does not make sens to protec, because we don't have any key*/
+			/*does not make sense to protect, because we don't have any key*/
 			slen = 0; /*droping packets*/
 		} else {
 		/* defragment incoming message and enlarge the buffer for srtp to write its data */
