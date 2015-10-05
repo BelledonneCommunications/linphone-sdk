@@ -127,6 +127,21 @@ void belle_sip_tester_after_each() {
 	}
 }
 
+int belle_sip_tester_set_log_file(const char *filename) {
+	if (log_file) {
+		fclose(log_file);
+	}
+	log_file = fopen(filename, "w");
+	if (!log_file) {
+		belle_sip_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
+		return -1;
+	}
+	belle_sip_message("Redirecting traces to file [%s]", filename);
+	belle_sip_set_log_file(log_file);
+	return 0;
+}
+
+
 #if !defined(ANDROID) && !defined(TARGET_OS_IPHONE) && !(defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL))
 
 static const char* belle_sip_helper =
@@ -168,14 +183,7 @@ int main (int argc, char *argv[]) {
 			belle_sip_set_log_level(BELLE_SIP_LOG_FATAL);
 		} else if (strcmp(argv[i],"--log-file")==0){
 			CHECK_ARG("--log-file", ++i, argc);
-			log_file=fopen(argv[i],"w");
-			if (!log_file) {
-				belle_sip_error("Cannot open file [%s] for writing logs because [%s]",argv[i],strerror(errno));
-				return -2;
-			} else {
-				belle_sip_message("Redirecting traces to file [%s]",argv[i]);
-				belle_sip_set_log_file(log_file);
-			}
+			if (belle_sip_tester_set_log_file(argv[i]) < 0) return -2;
 		} else if (strcmp(argv[i],"--domain")==0){
 			CHECK_ARG("--domain", ++i, argc);
 			test_domain=argv[i];

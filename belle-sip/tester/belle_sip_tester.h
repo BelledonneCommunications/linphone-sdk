@@ -51,6 +51,7 @@ void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_
 void belle_sip_tester_uninit(void);
 void belle_sip_tester_before_each();
 void belle_sip_tester_after_each();
+int belle_sip_tester_set_log_file(const char *filename);
 
 #ifdef __cplusplus
 };
