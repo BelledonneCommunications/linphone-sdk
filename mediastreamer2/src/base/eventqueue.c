@@ -57,8 +57,7 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 	int argsize=ev_id & 0xff;
 	int size=argsize;
 	uint8_t *nextpos;
-	int ptr_size = sizeof(void *);
-	int header_size = ptr_size + sizeof(ev_id);
+	int header_size = sizeof(intptr_t) + sizeof(ev_id);
 	size += header_size;
 	
 	ms_mutex_lock(&q->mutex);
@@ -76,8 +75,8 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 		q->wptr=q->buffer;
 		nextpos=q->wptr+size;
 	}
-	memcpy(q->wptr, &f, ptr_size);
-	memcpy(q->wptr + ptr_size, &ev_id, sizeof(ev_id));
+	*((intptr_t *)q->wptr) = (intptr_t)f;
+	*((unsigned int *)(q->wptr + sizeof(intptr_t))) = ev_id;
 	if (argsize > 0) memcpy(q->wptr + header_size, arg, argsize);
 	q->wptr=nextpos;
 
@@ -92,11 +91,10 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 
 static int parse_event(uint8_t *rptr, MSFilter **f, unsigned int *id, void **data, int *argsize){
 	int evsize;
-	int ptr_size = sizeof(void *);
-	int header_size = ptr_size + sizeof(*id);
+	int header_size = sizeof(intptr_t) + sizeof(*id);
 
-	memcpy(f, rptr, ptr_size);
-	memcpy(id, rptr + ptr_size, sizeof(*id));
+	*f = (MSFilter *)*((intptr_t *)rptr);
+	*id = *((unsigned int *)(rptr + sizeof(intptr_t)));
 	*argsize = (*id) & 0xff;
 	evsize = (*argsize) + header_size;
 	*data = rptr + header_size;
@@ -149,7 +147,7 @@ void ms_event_queue_clean(MSEventQueue *q, MSFilter *destroyed){
 		evsize=parse_event(rptr,&f,&id,&data,&argsize);
 		if (f==destroyed){
 			ms_message("Cleaning pending event of MSFilter [%s:%p]",destroyed->desc->name,destroyed);
-			*(long*)rptr=0;
+			*(intptr_t*)rptr=0;
 		}
 		rptr+=evsize;
 		
