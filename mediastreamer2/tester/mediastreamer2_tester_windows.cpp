@@ -62,8 +62,6 @@ static void ms2NativeOutputTraceHandler(OrtpLogLevel lev, const char *fmt, va_li
 MS2Tester::MS2Tester()
 	: _deviceRotation(0)
 {
-	mediastreamer2_tester_before_all(nativeOutputTraceHandler);
-	bc_tester_set_resource_dir_prefix("Assets");
 }
 
 MS2Tester::~MS2Tester()
@@ -71,26 +69,35 @@ MS2Tester::~MS2Tester()
 	mediastreamer2_tester_uninit();
 }
 
-void MS2Tester::setWritableDirectory(StorageFolder^ folder)
-{
-	char writable_dir[MAX_WRITABLE_DIR_SIZE] = { 0 };
-	const wchar_t *wwritable_dir = folder->Path->Data();
-	wcstombs(writable_dir, wwritable_dir, sizeof(writable_dir));
-	bc_tester_set_writable_dir_prefix(writable_dir);
-}
-
 void MS2Tester::setOutputTraceListener(OutputTraceListener^ traceListener)
 {
 	sTraceListener = traceListener;
 }
 
-void MS2Tester::init(bool verbose)
+void MS2Tester::initialize(StorageFolder^ writableDirectory, Platform::Boolean ui)
 {
-	if (verbose) {
-		ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+	if (ui) {
+		mediastreamer2_tester_init(nativeOutputTraceHandler);
 	}
 	else {
-		ortp_set_log_level_mask(ORTP_ERROR | ORTP_FATAL);
+		mediastreamer2_tester_init(NULL);
+		ortp_set_log_level_mask((OrtpLogLevel)(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL));
+	}
+
+	char writable_dir[MAX_WRITABLE_DIR_SIZE] = { 0 };
+	const wchar_t *wwritable_dir = writableDirectory->Path->Data();
+	wcstombs(writable_dir, wwritable_dir, sizeof(writable_dir));
+	bc_tester_set_writable_dir_prefix(writable_dir);
+	bc_tester_set_resource_dir_prefix("Assets");
+
+	if (!ui) {
+		char *xmlFile = bc_tester_file("MS2Windows10.xml");
+		char *args[] = { "--xml-file", xmlFile };
+		bc_tester_parse_args(2, args, 0);
+
+		char *logFile = bc_tester_file("MS2Windows10.log");
+		mediastreamer2_tester_set_log_file(logFile);
+		free(logFile);
 	}
 }
 
@@ -104,7 +111,12 @@ bool MS2Tester::run(Platform::String^ suiteName, Platform::String^ caseName, Pla
 	wcstombs(csuitename, wssuitename.c_str(), sizeof(csuitename));
 	wcstombs(ccasename, wscasename.c_str(), sizeof(ccasename));
 
-	init(verbose);
+	if (verbose) {
+		ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+	}
+	else {
+		ortp_set_log_level_mask(ORTP_ERROR | ORTP_FATAL);
+	}
 	ortp_set_log_handler(ms2NativeOutputTraceHandler);
 	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename) != 0;
 }
@@ -112,18 +124,8 @@ bool MS2Tester::run(Platform::String^ suiteName, Platform::String^ caseName, Pla
 void MS2Tester::runAllToXml()
 {
 	auto workItem = ref new WorkItemHandler([this](IAsyncAction ^workItem) {
-		char *xmlFile = bc_tester_file("MS2Windows10.xml");
-		char *logFile = bc_tester_file("MS2Windows10.log");
-		char *args[] = { "--xml-file", xmlFile };
-		bc_tester_parse_args(2, args, 0);
-		init(true);
-		FILE *f = fopen(logFile, "w");
-		ortp_set_log_file(f);
 		bc_tester_start(NULL);
 		bc_tester_uninit();
-		fclose(f);
-		free(xmlFile);
-		free(logFile);
 	});
 	_asyncAction = ThreadPool::RunAsync(workItem);
 }

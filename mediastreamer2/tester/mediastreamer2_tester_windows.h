@@ -14,12 +14,12 @@ namespace ms2_tester_runtime_component
     public ref class MS2Tester sealed
     {
     public:
-		void setWritableDirectory(Windows::Storage::StorageFolder^ folder);
 		void setOutputTraceListener(OutputTraceListener^ traceListener);
 		unsigned int nbTestSuites();
 		unsigned int nbTests(Platform::String^ suiteName);
 		Platform::String^ testSuiteName(int index);
 		Platform::String^ testName(Platform::String^ suiteName, int testIndex);
+		void initialize(Windows::Storage::StorageFolder^ writableDirectory, Platform::Boolean ui);
 		bool run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose);
 		void runAllToXml();
 		void initVideo();
@@ -44,7 +44,6 @@ namespace ms2_tester_runtime_component
 	private:
 		MS2Tester();
 		~MS2Tester();
-		void init(bool verbose);
 
 		static MS2Tester^ _instance;
 		Windows::Foundation::IAsyncAction^ _asyncAction;
