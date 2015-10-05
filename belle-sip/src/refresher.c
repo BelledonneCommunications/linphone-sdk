@@ -513,7 +513,6 @@ belle_sip_header_contact_t* belle_sip_refresher_get_contact(const belle_sip_refr
 	/*we assume, there is only one contact in request*/
 	unfixed_local_contact= belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(request),belle_sip_header_contact_t);
 	fixed_local_contact= BELLE_SIP_HEADER_CONTACT(belle_sip_object_clone(BELLE_SIP_OBJECT(unfixed_local_contact)));
-
 	/*first fix contact using received/rport*/
 	belle_sip_response_fix_contact(response,fixed_local_contact);
 	contact_header_list = belle_sip_message_get_headers(BELLE_SIP_MESSAGE(response),BELLE_SIP_CONTACT);
@@ -533,10 +532,12 @@ belle_sip_header_contact_t* belle_sip_refresher_get_contact(const belle_sip_refr
 			tmp_string=belle_sip_object_to_string(BELLE_SIP_OBJECT(fixed_local_contact));
 			tmp_string2=belle_sip_object_to_string(BELLE_SIP_OBJECT(unfixed_local_contact));
 			belle_sip_message("No matching contact neither for [%s] nor [%s]", tmp_string, tmp_string2);
+			belle_sip_object_unref(fixed_local_contact);
 			belle_sip_free(tmp_string);
 			belle_sip_free(tmp_string2);
 			return NULL;
 		} else {
+			belle_sip_object_unref(fixed_local_contact);
 			return BELLE_SIP_HEADER_CONTACT(contact_header_list->data);
 		}
 	} else {
