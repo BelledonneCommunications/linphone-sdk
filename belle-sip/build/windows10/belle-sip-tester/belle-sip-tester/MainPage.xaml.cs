@@ -37,11 +37,14 @@ namespace belle_sip_tester
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            BelleSipTester.Instance.setWritableDirectory(ApplicationData.Current.LocalFolder);
-            _suites = UnitTestDataSource.GetSuites(BelleSipTester.Instance);
             if ((e.Parameter is Uri) && (e.Parameter.ToString().Equals("belle-sip-tester:autolaunch")))
             {
                 AutoLaunch();
+            }
+            else
+            {
+                BelleSipTester.Instance.initialize(ApplicationData.Current.LocalFolder, true);
+                _suites = UnitTestDataSource.GetSuites(BelleSipTester.Instance);
             }
         }
 
@@ -181,6 +184,7 @@ namespace belle_sip_tester
             CommandBar.IsEnabled = false;
             ProgressIndicator.IsIndeterminate = true;
             ProgressIndicator.IsEnabled = true;
+            BelleSipTester.Instance.initialize(ApplicationData.Current.LocalFolder, false);
             BelleSipTester.Instance.runAllToXml();
             if (BelleSipTester.Instance.AsyncAction != null)
             {
