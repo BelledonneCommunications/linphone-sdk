@@ -56,4 +56,3 @@ target_link_libraries(mkvstream mediastreamer_voip mediastreamer_base)
 install(TARGETS mediastream mkvstream
 	RUNTIME DESTINATION bin
 )
-

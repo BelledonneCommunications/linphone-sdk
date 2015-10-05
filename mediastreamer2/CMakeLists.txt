@@ -128,7 +128,11 @@ check_library_exists("dl" "dlopen" "" HAVE_DLOPEN)
 include(TestBigEndian)
 test_big_endian(WORDS_BIGENDIAN)
 
-find_package(ORTP REQUIRED)
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${EP_ortp_CONFIG_DIR}/ORTPConfig.cmake")
+else()
+	find_package(ORTP REQUIRED)
+endif()
 find_package(PolarSSL)
 find_package(PCAP QUIET)
 
