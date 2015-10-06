@@ -53,13 +53,22 @@ struct _MSEventQueue{
 	uint8_t buffer[MS_EVENT_BUF_SIZE];
 };
 
+typedef struct {
+	MSFilter* filter;
+	unsigned int ev_id;
+	int pad;
+} MSEventHeader;
+
+static int round_size(int sz) {
+	return (sz + (sizeof(void*) - 1)) & ~(sizeof(void*) - 1);
+}
+
 static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *arg){
 	int argsize=ev_id & 0xff;
-	int size=argsize;
+	int size=round_size(argsize);
 	uint8_t *nextpos;
-	int header_size = sizeof(intptr_t) + sizeof(ev_id);
+	int header_size = sizeof(MSEventHeader);
 	size += header_size;
-	
 	ms_mutex_lock(&q->mutex);
 	nextpos=q->wptr+size;
 
@@ -68,15 +77,18 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 		ms_error("Dropped event, no more free space in event buffer !");
 		return;
 	}
-	
+
 	if (nextpos>q->lim){
 		/* need to wrap around */
 		q->endptr=q->wptr;
 		q->wptr=q->buffer;
 		nextpos=q->wptr+size;
 	}
-	*((intptr_t *)q->wptr) = (intptr_t)f;
-	*((unsigned int *)(q->wptr + sizeof(intptr_t))) = ev_id;
+
+	if (((intptr_t)q->wptr % 4) != 0) ms_fatal("Unaligned access");
+	((MSEventHeader *)q->wptr)->filter = f;
+	((MSEventHeader *)q->wptr)->ev_id = ev_id;
+
 	if (argsize > 0) memcpy(q->wptr + header_size, arg, argsize);
 	q->wptr=nextpos;
 
@@ -84,19 +96,21 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 	if (nextpos>q->endptr) {
 		q->endptr=nextpos;
 	}
-	
+
 	q->freeroom-=size;
 	ms_mutex_unlock(&q->mutex);
 }
 
 static int parse_event(uint8_t *rptr, MSFilter **f, unsigned int *id, void **data, int *argsize){
 	int evsize;
-	int header_size = sizeof(intptr_t) + sizeof(*id);
+	int header_size = sizeof(MSEventHeader);
 
-	*f = (MSFilter *)*((intptr_t *)rptr);
-	*id = *((unsigned int *)(rptr + sizeof(intptr_t)));
+	if (((intptr_t)rptr % 4) != 0) ms_fatal("Unaligned access");
+	*f = ((MSEventHeader *)rptr)->filter;
+	*id = ((MSEventHeader *)rptr)->ev_id;
+
 	*argsize = (*id) & 0xff;
-	evsize = (*argsize) + header_size;
+	evsize = round_size((*argsize)) + header_size;
 	*data = rptr + header_size;
 	return evsize;
 }
@@ -115,7 +129,7 @@ static bool_t read_event(MSEventQueue *q){
 			q->rptr=q->buffer;
 		}
 		ms_mutex_unlock(&q->mutex);
-		
+
 		evsize=parse_event(q->rptr,&f,&id,&data,&argsize);
 		if (f) {
 			q->current_notifier=f;
@@ -123,7 +137,7 @@ static bool_t read_event(MSEventQueue *q){
 			q->current_notifier=NULL;
 		}
 		q->rptr+=evsize;
-		
+
 		ms_mutex_lock(&q->mutex);
 		q->freeroom+=evsize;
 		ms_mutex_unlock(&q->mutex);
@@ -136,21 +150,21 @@ static bool_t read_event(MSEventQueue *q){
 void ms_event_queue_clean(MSEventQueue *q, MSFilter *destroyed){
 	int freeroom=q->freeroom;
 	uint8_t *rptr=q->rptr;
-	
+
 	while(q->size>freeroom){
 		MSFilter *f;
 		unsigned int id;
 		void *data;
 		int argsize;
 		int evsize;
-		
+
 		evsize=parse_event(rptr,&f,&id,&data,&argsize);
 		if (f==destroyed){
 			ms_message("Cleaning pending event of MSFilter [%s:%p]",destroyed->desc->name,destroyed);
-			*(intptr_t*)rptr=0;
+			((MSEventHeader*)rptr)->filter = NULL;
 		}
 		rptr+=evsize;
-		
+
 		if (rptr>=q->endptr){
 			rptr=q->buffer;
 		}
