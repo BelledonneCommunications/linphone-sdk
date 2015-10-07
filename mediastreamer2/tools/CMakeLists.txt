@@ -21,10 +21,10 @@
 ############################################################################
 
 set(simple_executables bench ring mtudiscover tones)
-if (ENABLE_VIDEO)
+if(ENABLE_VIDEO)
 	list(APPEND simple_executables videodisplay test_x11window)
 endif()
-foreach (simple_executable ${simple_executables})
+foreach(simple_executable ${simple_executables})
 	add_executable(${simple_executable} ${simple_executable}.c)
 	target_link_libraries(${simple_executable} mediastreamer_voip mediastreamer_base)
 endforeach()
@@ -32,7 +32,7 @@ endforeach()
 add_executable(ms-echo echo.c) #to avoid conflict with bash command
 target_link_libraries(ms-echo mediastreamer_voip mediastreamer_base)
 
-if (PCAP_FOUND)
+if(PCAP_FOUND)
 	add_executable(pcap_playback pcap_playback.c common.c)
 	target_link_libraries(pcap_playback mediastreamer_voip mediastreamer_base)
 	target_include_directories(pcap_playback PUBLIC ${PCAP_INCLUDE_DIRS})
@@ -50,9 +50,11 @@ if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(mediastream PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
 
-add_executable(mkvstream mkvstream.c)
-target_link_libraries(mkvstream mediastreamer_voip mediastreamer_base)
+if(ENABLE_VIDEO)
+	add_executable(mkvstream mkvstream.c)
+	target_link_libraries(mkvstream mediastreamer_voip mediastreamer_base)
 
-install(TARGETS mediastream mkvstream
-	RUNTIME DESTINATION bin
-)
+	install(TARGETS mediastream mkvstream
+		RUNTIME DESTINATION bin
+	)
+endif()
