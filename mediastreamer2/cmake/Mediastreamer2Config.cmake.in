@@ -29,7 +29,10 @@
 #  MEDIASTREAMER2_CPPFLAGS - The compilation flags needed to use mediastreamer2
 #  MEDIASTREAMER2_LDFLAGS - The linking flags needed to use mediastreamer2
 
-include("${CMAKE_CURRENT_LIST_DIR}/Mediastreamer2Targets.cmake" OPTIONAL)
+if(NOT LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${CMAKE_CURRENT_LIST_DIR}/Mediastreamer2Targets.cmake")
+endif()
+
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_ortp_CONFIG_DIR}/ORTPConfig.cmake")
 else()
