@@ -98,7 +98,7 @@ static int red_needed(int cur, int prev) {
 	return -1;
 }
 
-static inline bool_t is_data_to_send(const TextStream *stream) {
+static bool_t is_data_to_send(const TextStream *stream) {
 	int i;
 
 	for (i = 0; i <= TS_REDGEN; i++) {
@@ -109,11 +109,11 @@ static inline bool_t is_data_to_send(const TextStream *stream) {
 	return FALSE;
 }
 
-static inline int get_last_buf(const TextStream *stream) {
+static int get_last_buf(const TextStream *stream) {
 	return stream->pribuf == TS_REDGEN ? 0 : stream->pribuf + 1;
 }
 
-static inline int get_next_buf(const TextStream *stream, const int cur) {
+static int get_next_buf(const TextStream *stream, const int cur) {
 	if (cur == stream->pribuf){
 		return -1;
 	}
@@ -126,11 +126,11 @@ static void use_next_buf(TextStream *stream) {
 	stream->timestamp[stream->pribuf] = 0;
 }
 
-static inline uint32_t get_prev_time(const TextStream *stream) {
+static uint32_t get_prev_time(const TextStream *stream) {
 	return stream->timestamp[stream->pribuf ? stream->pribuf-1 : TS_REDGEN];
 }
 
-static inline uint32_t get_red_subheader(int pt, int offset, size_t length) {
+static uint32_t get_red_subheader(int pt, int offset, size_t length) {
 	return (1 << 31) | ((0x7F & pt) << 24) | ((0x3FFF & offset) << 10) | (0x3FF & (int)length);
 }
 
