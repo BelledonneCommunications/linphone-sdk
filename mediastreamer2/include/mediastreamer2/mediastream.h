@@ -139,9 +139,10 @@ struct _MediaStream {
 	int target_bitrate;
 	media_stream_process_rtcp_callback_t process_rtcp;
 	OrtpEvDispatcher *evd;
+	MSFactory *factory;
 };
 
-MS2_PUBLIC void media_stream_init(MediaStream *stream);
+MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory);
 
 
 /**

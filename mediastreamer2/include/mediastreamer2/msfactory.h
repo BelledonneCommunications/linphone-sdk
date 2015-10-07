@@ -51,7 +51,7 @@ extern "C" {
 MS2_PUBLIC MSFactory *ms_factory_new(void);
 
 /**
- * Create the factory default callback.
+ * Create the fallback factory (for compatibility with applications not using MSFactory to create ms2 object)
 **/
 MS2_PUBLIC MSFactory *ms_factory_create_fallback(void);
 

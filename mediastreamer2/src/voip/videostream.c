@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msitc.h"
 #include "mediastreamer2/zrtp.h"
 #include "mediastreamer2/msvideopresets.h"
+#include "mediastreamer2/mseventqueue.h"
 #include "private.h"
 
 
@@ -278,7 +279,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 
 	stream->ms.type = MSVideo;
 	stream->ms.sessions=*sessions;
-	media_stream_init(&stream->ms);
+	media_stream_init(&stream->ms, ms_factory_get_fallback());
 
 	if (sessions->zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
@@ -303,7 +304,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	/*
 	 * In practice, these filters are needed only for audio+video recording.
 	 */
-	if (ms_factory_lookup_filter_by_id(ms_factory_get_fallback(), MS_MKV_RECORDER_ID)){
+	if (ms_factory_lookup_filter_by_id(stream->ms.factory, MS_MKV_RECORDER_ID)){
 		stream->tee3=ms_filter_new(MS_TEE_ID);
 		stream->recorder_output=ms_filter_new(MS_ITC_SINK_ID);
 	}
@@ -472,7 +473,7 @@ static void configure_video_source(VideoStream *stream){
 			MSVideoSize vsize={640,480};
 			ms_error("Player does not give its format correctly [%s]",ms_fmt_descriptor_to_string(pf.fmt));
 			/*put a default format as the error handling is complicated here*/
-			pf.fmt=ms_factory_get_video_format(ms_factory_get_fallback(),"VP8",vsize,0,NULL);
+			pf.fmt=ms_factory_get_video_format(stream->ms.factory,"VP8",vsize,0,NULL);
 		}
 		cam_vsize=pf.fmt->vsize;
 	}else{
@@ -584,7 +585,7 @@ static void configure_recorder_output(VideoStream *stream){
 				tmp.encoding=pt->mime_type;
 				tmp.rate=pt->clock_rate;
 				pinfmt.pin=0;
-				pinfmt.fmt=ms_factory_get_format(ms_factory_get_fallback(),&tmp);
+				pinfmt.fmt=ms_factory_get_format(stream->ms.factory,&tmp);
 				ms_filter_call_method(stream->recorder_output,MS_FILTER_SET_INPUT_FMT,&pinfmt);
 				ms_message("configure_itc(): format set to %s",ms_fmt_descriptor_to_string(pinfmt.fmt));
 			}
@@ -750,7 +751,7 @@ bool_t video_stream_started(VideoStream *stream) {
 }
 
 static void apply_video_preset(VideoStream *stream, PayloadType *pt) {
-	MSVideoPresetsManager *vpm = ms_factory_get_video_presets_manager(ms_factory_get_fallback());
+	MSVideoPresetsManager *vpm = ms_factory_get_video_presets_manager(stream->ms.factory);
 	MSVideoPresetConfiguration *vpc = NULL;
 	MSVideoConfiguration *conf = NULL;
 	MSList *codec_tags = NULL;
@@ -1406,6 +1407,10 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 		source = stream->source;
 		stream->source = NULL; // will prevent video_stream_free() from destroying the source
 	}
+	/*before destroying the filters, pump the event queue so that pending events have a chance to reach their listeners.
+	 * When the filter are destroyed, all their pending events in the event queue will be cancelled*/
+	ms_event_queue_pump(ms_factory_get_event_queue(stream->ms.factory));
+	
 	video_stream_free(stream);
 
 	return source;

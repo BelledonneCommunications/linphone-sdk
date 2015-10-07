@@ -211,7 +211,7 @@ TextStream *text_stream_new_with_sessions(const MSMediaStreamSessions *sessions)
 
 	stream->ms.type = MSText;
 	stream->ms.sessions = *sessions;
-	media_stream_init(&stream->ms);
+	media_stream_init(&stream->ms, ms_factory_get_fallback());
 
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();

@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msitc.h"
 #include "mediastreamer2/msvaddtx.h"
 #include "mediastreamer2/msgenericplc.h"
+#include "mediastreamer2/mseventqueue.h"
 #include "private.h"
 
 #ifdef ANDROID
@@ -510,7 +511,7 @@ static int open_av_player(AudioStream *stream, const char *filename){
 		int channels=1;
 		ms_filter_call_method(player->player,MS_FILTER_GET_SAMPLE_RATE,&sr);
 		ms_filter_call_method(player->player,MS_FILTER_GET_NCHANNELS,&channels);
-		fmt1.fmt=ms_factory_get_audio_format(ms_factory_get_fallback(),"pcm", sr, channels, NULL);
+		fmt1.fmt=ms_factory_get_audio_format(stream->ms.factory, "pcm", sr, channels, NULL);
 		audiofmt=&fmt1;
 	}else{
 		if (fmt1.fmt && fmt1.fmt->type==MSAudio) {
@@ -590,7 +591,7 @@ static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannel
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&g711_rate);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_NCHANNELS,&nchannels);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&g711_nchannels);
-			pinfmt.fmt=ms_factory_get_audio_format(ms_factory_get_fallback(),"pcmu",g711_rate,g711_nchannels,NULL);
+			pinfmt.fmt=ms_factory_get_audio_format(stream->ms.factory, "pcmu",g711_rate,g711_nchannels,NULL);
 
 		}else{
 			int got_sr=0;
@@ -601,7 +602,7 @@ static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannel
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&got_sr);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_NCHANNELS,&nchannels);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&nchannels);
-			pinfmt.fmt=ms_factory_get_audio_format(ms_factory_get_fallback(),"opus",48000,nchannels,NULL);
+			pinfmt.fmt=ms_factory_get_audio_format(stream->ms.factory,"opus",48000,nchannels,NULL);
 		}
 		pinfmt.pin=1;
 		ms_message("Configuring av recorder with audio format %s",ms_fmt_descriptor_to_string(pinfmt.fmt));
@@ -1334,7 +1335,7 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 
 	stream->ms.type = MSAudio;
 	stream->ms.sessions = *sessions;
-	media_stream_init(&stream->ms);
+	media_stream_init(&stream->ms, ms_factory_get_fallback());
 
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
@@ -1611,6 +1612,9 @@ void audio_stream_stop(AudioStream * stream){
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"telephone-event",(RtpCallback)on_dtmf_received);
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed);
+	/*before destroying the filters, pump the event queue so that pending events have a chance to reach their listeners.
+	 * When the filter are destroyed, all their pending events in the event queue will be cancelled*/
+	ms_event_queue_pump(ms_factory_get_event_queue(stream->ms.factory));
 	audio_stream_free(stream);
 	ms_filter_log_statistics();
 }
