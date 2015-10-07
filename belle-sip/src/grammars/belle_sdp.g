@@ -567,7 +567,7 @@ integer:             DIGIT+;
 
 email_safe : ~(SPACE)*;
 
-token : (alpha_num | '!' | '#' | '$' |'&'| '%'| '\'' | '*' |'+' | DASH | DOT)+;
+token : (alpha_num | '!' | '#' | '$' |'&'| '%'| '\'' | '*' |'+' | DASH | DOT | '^' | '_' | '`' | '{' | '|' | '}' | '~')+;
 
 alpha_num:    (alpha | DIGIT) ;
 hexdigit: (HEX_CHAR | DIGIT) ;
