@@ -27,6 +27,14 @@ execute_process(
 	COMMAND ${MAC_BUNDLER} linphone.bundle
 	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mac-bundler
 )
+
+execute_process(
+	COMMAND install_name_tool 
+		-delete_rpath ${LINPHONE_OUTPUT_DIR}/lib
+		-add_rpath @executable/../Resources/lib
+		${CMAKE_INSTALL_PREFIX}/Linphone.app/Contents/MacOS/Linphone-bin
+)
+
 execute_process(
 	COMMAND pkgbuild 
 		--install-location /Applications
@@ -35,3 +43,4 @@ execute_process(
 		./linphone-${LINPHONE_GIT_REVISION}.pkg
 	WORKING_DIRECTORY  ${CMAKE_BINARY_DIR}
 )
+

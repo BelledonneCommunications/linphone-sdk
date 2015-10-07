@@ -100,6 +100,17 @@
     ${prefix}/share/locale
   </translations>
 
+  <data name="linphone">
+    ${prefix:linphone}/share/locale
+  </data>
+
+  <translations name="gdk-pixbuf">
+    ${prefix}/share/locale
+  </translations>
+
+  <translations name="glib20">
+    ${prefix}/share/locale
+  </translations>
 
   <!-- Data to copy in, usually Glade/UI files, images, sounds files
        etc. The destination inside the bundle can be specified if the
