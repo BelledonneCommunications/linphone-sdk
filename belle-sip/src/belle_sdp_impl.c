@@ -1276,20 +1276,26 @@ belle_sip_error_code belle_sdp_session_description_marshal(belle_sdp_session_des
 	belle_sip_list_t* times;
 	belle_sip_list_t* attributes;
 
-	error=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->version),buff,buff_size,offset);
-	if (error!=BELLE_SIP_OK) return error;
-	error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
-	if (error!=BELLE_SIP_OK) return error;
+	if (session_description->version) {
+		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->version),buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+		if (error!=BELLE_SIP_OK) return error;
+	}
 
-	error=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->origin),buff,buff_size,offset);
-	if (error!=BELLE_SIP_OK) return error;
-	error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
-	if (error!=BELLE_SIP_OK) return error;
+	if (session_description->origin) {
+		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->origin),buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+		if (error!=BELLE_SIP_OK) return error;
+	}
 
-	error=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->session_name),buff,buff_size,offset);
-	if (error!=BELLE_SIP_OK) return error;
-	error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
-	if (error!=BELLE_SIP_OK) return error;
+	if (session_description->session_name) {
+		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->session_name),buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+		if (error!=BELLE_SIP_OK) return error;
+	}
 
 	error=belle_sdp_base_description_marshal((belle_sdp_base_description_t*)(&session_description->base_description),buff,buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
