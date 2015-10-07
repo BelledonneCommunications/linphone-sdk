@@ -1,3 +1,9 @@
+mediastreamer2 (2.11.2) unstable; urgency=low
+
+  * Initiale package for mediastreamer 2.11.2
+
+ -- Belledonne Communications <info@belledonne-communications.com>  Tue, 07 Oct 2015 15:10:00 +0200
+
 mediastreamer2 (2.10.0) unstable; urgency=low
 
   * add HD video support
