@@ -36,12 +36,12 @@ unsigned long belle_sip_begin_background_task(const char *name, belle_sip_backgr
 	UIApplication *app=[UIApplication sharedApplication];
 	UIBackgroundTaskIdentifier bgid = UIBackgroundTaskInvalid;
 	fallback_callback_data_t *fbd=NULL;
-	
+
 	if (cb==NULL){
 		cb=fallback_callback;
 		data=fbd=(fallback_callback_data_t*)belle_sip_malloc0(sizeof(fallback_callback_data_t));
-	}	
-	
+	}
+
 	void (^handler)() = ^{
 		cb(data);
 	};
@@ -55,6 +55,12 @@ unsigned long belle_sip_begin_background_task(const char *name, belle_sip_backgr
 	if (bgid==UIBackgroundTaskInvalid){
 		belle_sip_error("Could not start background task %s.", name);
 		return 0;
+	}
+
+	if (app.applicationState != UIApplicationStateBackground) {
+		belle_sip_message("Background task %s started. Unknown remaining time since application is not in background.", name);
+	} else {
+		belle_sip_message("Background task %s started. Remaining time %.1f secs", name, app.backgroundTimeRemaining);
 	}
 	if (fbd) fbd->task_id=bgid;
 	return (unsigned long)bgid;
