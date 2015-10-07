@@ -81,7 +81,7 @@ cmake_dependent_option(ENABLE_PORTAUDIO "Enable portaudio native support." NO "E
 cmake_dependent_option(ENABLE_PULSEAUDIO "Enable pulseaudio support." YES "ENABLE_SOUND" NO)
 option(ENABLE_GSM "Build mediastreamer2 with the GSM codec." YES)
 option(ENABLE_OPUS "Build mediastreamer2 with the OPUS codec." YES)
-option(ENABLE_RESAMPLE "Build mediastreamer2 with the resampling capability." YES)
+cmake_dependent_option(ENABLE_RESAMPLE "Build mediastreamer2 with the resampling capability." YES "ENABLE_SPEEX" NO)
 option(ENABLE_SPEEX "Build mediastreamer2 with the SPEEX codec." YES)
 
 option(ENABLE_VIDEO "Build mediastreamer2 with video support." YES)
