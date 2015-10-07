@@ -605,7 +605,8 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 	}
 	if (revents & BELLE_SIP_EVENT_WRITE){
 		/*if we are here, this is because we had an EWOULDBLOCK while sending a message*/
-		/*continue to send pending messages but before check the channel is still alive because it may have been closed by belle_sip_channel_process_read_data() above.*/
+		/*continue to send pending messages but before check the channel is still alive because
+		it may have been closed by belle_sip_channel_process_read_data() above.*/
 		if (obj->state == BELLE_SIP_CHANNEL_READY){
 			channel_process_queue(obj);
 		}
@@ -1209,6 +1210,9 @@ static void channel_process_queue(belle_sip_channel_t *obj){
 		send_message(obj, msg);
 		belle_sip_object_unref(msg);
 	}
+	if (obj->state == BELLE_SIP_CHANNEL_READY && obj->out_state == OUTPUT_STREAM_IDLE) {
+		channel_end_send_background_task(obj);
+	}
 
 	belle_sip_object_unref(obj);
 }
@@ -1235,7 +1239,6 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 	}
 	channel_set_state(obj,BELLE_SIP_CHANNEL_READY);
 	channel_process_queue(obj);
-	channel_end_send_background_task(obj);
 }
 
 static void channel_res_done(void *data, const char *name, struct addrinfo *ai_list){
