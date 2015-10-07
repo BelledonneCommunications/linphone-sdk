@@ -1321,6 +1321,10 @@ BELLE_SDP_NEW(session_description,belle_sdp_base_description)
 BELLE_SDP_PARSE(session_description)
 
 
+belle_sip_list_t * belle_sdp_session_description_get_attributes(const belle_sdp_session_description_t *session_description) {
+	return belle_sdp_base_description_get_attributes(BELLE_SIP_CAST(session_description, belle_sdp_base_description_t));
+}
+
 const char*	belle_sdp_session_description_get_attribute_value(const belle_sdp_session_description_t* session_description, const char* name) {
 	return belle_sdp_base_description_get_attribute_value(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),name);
 }
