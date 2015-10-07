@@ -20,12 +20,11 @@
 #include <stdio.h>
 #include <time.h>
 #include "mediastreamer2_tester.h"
-#include <speex/speex.h>
-//#include "libspeex/resample_neon.h"
 #include <ortp/port.h>
 
-#ifdef __ARM_NEON__
+#if defined(__ARM_NEON__) && defined(HAVE_SPEEXDSP)
 #include <arm_neon.h>
+#include <speex/speex.h>
 
 static int tester_before_all() {
 	ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
