@@ -338,7 +338,7 @@ static int ms_zrtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_
 	}
 
 	// display received message
-	ms_message("ZRTP Receive packet type %.8s", rtp+16);
+	ms_message("ZRTP Receive packet type %.8s on rtp session [%p]", rtp+16, t->session);
 
 	// send ZRTP packet to engine
 	bzrtp_processMessage(zrtpContext, userData->self_ssrc, rtp, msgLength);
