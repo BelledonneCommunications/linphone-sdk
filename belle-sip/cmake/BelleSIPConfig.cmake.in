@@ -33,7 +33,11 @@ if(NOT LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 endif()
 
 if(@ENABLE_TUNNEL@)
-	find_package(Tunnel)
+	if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+		include("${EP_tunnel_CONFIG_DIR}/TunnelConfig.cmake")
+	else()
+		find_package(Tunnel)
+	endif()
 endif()
 
 get_filename_component(BELLESIP_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
