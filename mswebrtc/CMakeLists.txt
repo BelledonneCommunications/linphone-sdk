@@ -46,7 +46,11 @@ if(NOT ENABLE_AECM AND NOT ENABLE_ISAC)
 endif()
 
 
-find_package(Mediastreamer2 REQUIRED)
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
+else()
+	find_package(Mediastreamer2 REQUIRED)
+endif()
 
 
 if(ENABLE_AECM)
