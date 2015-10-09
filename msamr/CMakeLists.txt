@@ -41,7 +41,11 @@ option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-find_package(Mediastreamer2 REQUIRED)
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
+else()
+	find_package(Mediastreamer2 REQUIRED)
+endif()
 if(ENABLE_NARROWBAND)
 	find_package(OpenCoreAMRNB REQUIRED)
 endif()
