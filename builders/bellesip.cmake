@@ -24,6 +24,7 @@ set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git" CACHE STRI
 set(EP_bellesip_GIT_TAG_LATEST "master" CACHE STRING "bellesip tag to use when compiling latest version")
 set(EP_bellesip_GIT_TAG "ef77560739397b042da62189236b2c1889f84cd3" CACHE STRING "bellesip tag to use")
 set(EP_bellesip_EXTERNAL_SOURCE_PATHS "belle-sip")
+set(EP_bellesip_GROUPABLE YES)
 
 set(EP_bellesip_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 set(EP_bellesip_DEPENDENCIES )

@@ -24,6 +24,7 @@ set(EP_bcg729_GIT_REPOSITORY "git://git.linphone.org/bcg729.git" CACHE STRING "b
 set(EP_bcg729_GIT_TAG_LATEST "master" CACHE STRING "bcg729 tag to use when compiling latest version")
 set(EP_bcg729_GIT_TAG "7f76ef482b26400995474d37fc330565a9fe0e9e" CACHE STRING "bcg729 tag to use")
 set(EP_bcg729_EXTERNAL_SOURCE_PATHS "bcg729")
+set(EP_bcg729_GROUPABLE YES)
 
 set(EP_bcg729_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 set(EP_bcg729_DEPENDENCIES EP_ms2)

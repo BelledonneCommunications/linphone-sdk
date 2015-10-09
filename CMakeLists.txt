@@ -35,6 +35,8 @@ option(LINPHONE_BUILDER_CHECK_LASTEST "Check that the git revisions are the late
 option(LINPHONE_BUILDER_BUILD_DEPENDENCIES "Build the dependencies instead of using the system libraries." YES)
 set(LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH "" CACHE STRING "External path to source code that is available.")
 set(LINPHONE_BUILDER_DUMMY_LIBRARIES "" CACHE STRING "Dummy libraries to be generated.")
+option(LINPHONE_BUILDER_BUILD_ONLY_EXTERNAL_SOURCE_PATH "Build only the code put in external source path." NO)
+option(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS "Group external source path builders in a single external project." NO)
 
 
 # Include macros definition to be used by builders
@@ -72,7 +74,7 @@ else()
 
 	# Apply build flags and add external projects
 	linphone_builder_apply_flags()
-	linphone_builder_add_external_projects()
+	linphone_builder_add_projects()
 	linphone_builder_add_dummy_libraries_generation()
 
 

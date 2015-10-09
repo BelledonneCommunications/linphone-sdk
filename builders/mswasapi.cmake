@@ -24,6 +24,7 @@ set(EP_mswasapi_GIT_REPOSITORY "git://git.linphone.org/mswasapi.git" CACHE STRIN
 set(EP_mswasapi_GIT_TAG_LATEST "master" CACHE STRING "mswasapi tag to use when compiling latest version")
 set(EP_mswasapi_GIT_TAG "81fe8504f70854bf7e1beb870248d31c5ffd4f5b" CACHE STRING "mswasapi tag to use")
 set(EP_mswasapi_EXTERNAL_SOURCE_PATHS "mswasapi")
+set(EP_mswasapi_GROUPABLE YES)
 
 set(EP_mswasapi_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 set(EP_mswasapi_EXTRA_LDFLAGS "/SAFESEH:NO")
