@@ -43,7 +43,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CheckIncludeFile)
 check_include_file("stdbool.h" HAVE_STDBOOL_H)
 
-find_package(Mediastreamer2 REQUIRED)
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
+else()
+	find_package(Mediastreamer2 REQUIRED)
+endif()
 find_package(OpenH264 REQUIRED)
 
 
