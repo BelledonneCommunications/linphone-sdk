@@ -40,3 +40,6 @@ add_feature_info("PRESENCE" ENABLE_PRESENCE "Enable presence server.")
 
 option(XSDCXX_ROOT_PATH "Path of where the bin/xsdcxx executable will be found. Comes from http://www.codesynthesis.com/products/xsd/download.xhtml" "/usr" )
 add_feature_info("XSDCXX_ROOT_PATH" XSDCXX_ROOT_PATH "Path of where the bin/xsdcxx executable will be found. Comes from http://www.codesynthesis.com/products/xsd/download.xhtml")
+
+option(ENABLE_SNMP "Enable SNMP support" ${DEFAULT_ENABLE_SNMP} )
+add_feature_info("ENABLE_SNMP" ENABLE_SNMP "Enable SNMP support")

@@ -29,6 +29,7 @@ set(DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION ON)
 set(DEFAULT_VALUE_ENABLE_REDIS ON)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS OFF)
 set(DEFAULT_VALUE_ENABLE_PRESENCE OFF)
+set(DEFAULT_VALUE_ENABLE_SNMP ON)
 
 set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
 
@@ -63,8 +64,19 @@ if(UNIX)
 else() # Windows
 	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/")
 endif()
+if(APPLE)
+	if (NOT CMAKE_OSX_DEPLOYMENT_TARGET) #is it still usefull ?
+		#without instruction chose to target current machine
+		execute_process(COMMAND sw_vers -productVersion  COMMAND awk -F \\. "{printf \"%i.%i\",$1,$2}"  RESULT_VARIABLE xcrun_sdk_version OUTPUT_VARIABLE CMAKE_OSX_DEPLOYMENT_TARGET OUTPUT_STRIP_TRAILING_WHITESPACE)
+	endif()
+	set(CMAKE_MACOSX_RPATH 1)
+endif()
 
-
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" _IS_SYSTEM_DIR)
+if("${_IS_SYSTEM_DIR}" STREQUAL "-1")
+   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+endif()
+message("cmake install rpath: ${CMAKE_INSTALL_RPATH}")
 # Include builders
 include(builders/CMakeLists.txt)
 
