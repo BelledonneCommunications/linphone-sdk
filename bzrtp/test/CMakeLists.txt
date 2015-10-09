@@ -26,13 +26,13 @@ set(TEST_SOURCES
 	bzrtpTest.c
 	testUtils.c
 
-	${CMAKE_SOURCE_DIR}/src/bzrtp.c
-	${CMAKE_SOURCE_DIR}/src/cryptoPolarssl.c
-	${CMAKE_SOURCE_DIR}/src/cryptoUtils.c
-	${CMAKE_SOURCE_DIR}/src/packetParser.c
-	${CMAKE_SOURCE_DIR}/src/pgpwords.c
-	${CMAKE_SOURCE_DIR}/src/stateMachine.c
-	${CMAKE_SOURCE_DIR}/src/zidCache.c
+	../src/bzrtp.c
+	../src/cryptoPolarssl.c
+	../src/cryptoUtils.c
+	../src/packetParser.c
+	../src/pgpwords.c
+	../src/stateMachine.c
+	../src/zidCache.c
 )
 
 add_executable(bzrtpTest ${TEST_SOURCES})

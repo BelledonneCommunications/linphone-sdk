@@ -27,9 +27,16 @@
 #  BZRTP_INCLUDE_DIRS - the bzrtp include directory
 #  BZRTP_LIBRARIES - The libraries needed to use bzrtp
 
-include("${CMAKE_CURRENT_LIST_DIR}/BZRTPTargets.cmake")
+if(NOT LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${CMAKE_CURRENT_LIST_DIR}/BZRTPTargets.cmake")
+endif()
 
 get_filename_component(BZRTP_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-set(BZRTP_INCLUDE_DIRS "${BZRTP_CMAKE_DIR}/../../../include")
-set(BZRTP_LIBRARIES BelledonneCommunications::bzrtp)
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(BZRTP_INCLUDE_DIRS "${EP_bzrtp_INCLUDE_DIR}")
+	set(BZRTP_LIBRARIES bzrtp)
+else()
+	set(BZRTP_INCLUDE_DIRS "${BZRTP_CMAKE_DIR}/../../../include")
+	set(BZRTP_LIBRARIES BelledonneCommunications::bzrtp)
+endif()
 set(BZRTP_FOUND 1)
