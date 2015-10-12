@@ -77,6 +77,6 @@ ms2_add_dependent_option("H263p" "H263+ video encoding/decoding support (require
 ms2_add_option("MKV" "MKV playing and recording support." ${DEFAULT_VALUE_ENABLE_MKV})
 ms2_add_dependent_option("MPEG4" "MPEG4 video encoding/decoding support (require license)." OFF "ENABLE_FFMPEG;ENABLE_NON_FREE_CODECS" OFF)
 ms2_add_dependent_option("OpenH264" "H.264 video encoding/decoding support with the openh264 library (require license)." OFF "ENABLE_VIDEO;ENABLE_NON_FREE_CODECS" OFF)
-ms2_add_dependent_option("V4L" "V4L camera driver." ON "ENABLE_VIDEO; UNIX; NOT APPLE" OFF)
+ms2_add_dependent_option("V4L" "V4L camera driver." ON "ENABLE_VIDEO; UNIX; NOT APPLE; NOT QNX" OFF)
 ms2_add_dependent_option("VPX" "VPX (VP8) video encoding/decoding support." ${DEFAULT_VALUE_ENABLE_VPX} "ENABLE_VIDEO" OFF)
 ms2_add_dependent_option("X264" "H.264 video encoding support with the x264 library (require license)." OFF "ENABLE_VIDEO;ENABLE_NON_FREE_CODECS" OFF)
