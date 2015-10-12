@@ -77,8 +77,8 @@ static struct header_name_func_pair  header_table[] = {
 	,{PROTO_SIP, 			BELLE_SIP_P_PREFERRED_IDENTITY,	(header_parse_func)belle_sip_header_p_preferred_identity_parse}
 	,{PROTO_SIP, 			BELLE_SIP_PRIVACY,				(header_parse_func)belle_sip_header_privacy_parse}
 	,{PROTO_SIP, 			BELLE_SIP_EVENT,				(header_parse_func)belle_sip_header_event_parse}
-	,{PROTO_SIP, 			BELLE_SIP_SUPPORTED,			(header_parse_func)belle_sip_header_privacy_parse}
-	,{PROTO_SIP, 			"k",							(header_parse_func)belle_sip_header_privacy_parse}
+	,{PROTO_SIP, 			BELLE_SIP_SUPPORTED,			(header_parse_func)belle_sip_header_supported_parse}
+	,{PROTO_SIP, 			"k",							(header_parse_func)belle_sip_header_supported_parse}
 };
 
 static belle_sip_header_t* belle_header_create(const char* name,const char* value,int protocol) {
