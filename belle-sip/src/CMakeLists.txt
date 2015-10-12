@@ -133,6 +133,8 @@ set(SOURCE_FILES
 	transports/stream_listeningpoint.c
 	transports/udp_channel.c
 	transports/udp_listeningpoint.c
+	grammars/belle_sip_message.g
+	grammars/belle_sdp.g
 	${SDP_GENERATED_SOURCE_FILES}
 	${SIP_MESSAGE_GENERATED_SOURCE_FILES}
 	${TLS_SOURCE_FILES}

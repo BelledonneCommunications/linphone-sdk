@@ -77,6 +77,8 @@ static struct header_name_func_pair  header_table[] = {
 	,{PROTO_SIP, 			BELLE_SIP_P_PREFERRED_IDENTITY,	(header_parse_func)belle_sip_header_p_preferred_identity_parse}
 	,{PROTO_SIP, 			BELLE_SIP_PRIVACY,				(header_parse_func)belle_sip_header_privacy_parse}
 	,{PROTO_SIP, 			BELLE_SIP_EVENT,				(header_parse_func)belle_sip_header_event_parse}
+	,{PROTO_SIP, 			BELLE_SIP_SUPPORTED,			(header_parse_func)belle_sip_header_privacy_parse}
+	,{PROTO_SIP, 			"k",							(header_parse_func)belle_sip_header_privacy_parse}
 };
 
 static belle_sip_header_t* belle_header_create(const char* name,const char* value,int protocol) {
@@ -1854,5 +1856,51 @@ belle_sip_header_event_t* belle_sip_header_event_create (const char* package_nam
 	belle_sip_header_event_set_package_name(event,package_name);
 	return event;
 }
+
+/******************************
+ * Supported header inherits from header
+ *
+ ******************************/
+struct _belle_sip_header_supported  {
+	belle_sip_header_t header;
+	belle_sip_list_t* supported;
+};
+
+static void belle_sip_header_supported_destroy(belle_sip_header_supported_t* p) {
+	belle_sip_header_supported_set_supported(p,NULL);
+}
+
+static void belle_sip_header_supported_clone(belle_sip_header_supported_t* p, const belle_sip_header_supported_t* orig){
+	belle_sip_list_t* list=orig->supported;
+	for(;list!=NULL;list=list->next){
+		belle_sip_header_supported_add_supported(p,(const char *)list->data);
+	}
+}
+
+belle_sip_error_code belle_sip_header_supported_marshal(belle_sip_header_supported_t* p, char* buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error=BELLE_SIP_OK;
+	belle_sip_list_t* list = p->supported;
+	error=belle_sip_header_marshal(BELLE_SIP_HEADER(p), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+	for(;list!=NULL;list=list->next){
+		error=belle_sip_snprintf(buff,buff_size,offset,list==p->supported ? "%s" : ", %s",(const char *)list->data);
+		if (error!=BELLE_SIP_OK) return error;
+	}
+	return error;
+}
+
+BELLE_SIP_NEW_HEADER(header_supported,header,BELLE_SIP_SUPPORTED)
+BELLE_SIP_PARSE(header_supported)
+belle_sip_list_t* belle_sip_header_supported_get_supported(const belle_sip_header_supported_t* p) {
+	return p->supported;
+}
+SET_ADD_STRING_LIST(belle_sip_header_supported,supported)
+
+belle_sip_header_supported_t* belle_sip_header_supported_create(const char* supported) {
+	belle_sip_header_supported_t* supported_header=belle_sip_header_supported_new();
+	belle_sip_header_supported_add_supported(supported_header,supported);
+	return supported_header;
+}
+
 
 

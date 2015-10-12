@@ -1010,6 +1010,39 @@ static void test_event_header(void) {
 	BC_ASSERT_PTR_NULL(belle_sip_header_event_parse("nimportequoi"));
 }
 
+static void test_supported(const char* raw_header,const char* values[],size_t number_values) {
+	belle_sip_list_t* list;
+	belle_sip_header_supported_t* L_tmp;
+	belle_sip_header_supported_t* L_supported = belle_sip_header_supported_parse(raw_header);
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_supported));
+	size_t i=0;
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_supported));
+	L_tmp = belle_sip_header_supported_parse(l_raw_header);
+	L_supported = BELLE_SIP_HEADER_SUPPORTED(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	
+	belle_sip_free(l_raw_header);
+	
+	list = belle_sip_header_supported_get_supported(L_supported);
+	
+	for(i=0;i<number_values;i++){
+		BC_ASSERT_PTR_NOT_NULL(list);
+		if (list) {
+			BC_ASSERT_STRING_EQUAL((const char *)(list->data),values[i]);
+			list=list->next;
+		}
+	}
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_supported));
+	BC_ASSERT_PTR_NULL(belle_sip_header_supported_parse("nimportequoi"));
+}
+static void test_supported_header(void) {
+	const char* value1[] ={"user","critical"};
+	const char* value2[] ={"id"};
+	test_supported("Supported: user, critical",value1,2);
+	test_supported("Supported: id",value2,1);
+}
+
+
 test_t headers_tests[] = {
 	{ "Address", test_address_header },
 	{ "Address tel uri", test_address_header_with_tel_uri },
@@ -1048,7 +1081,8 @@ test_t headers_tests[] = {
 	{ "WWW-Authenticate", test_www_authenticate_header },
 	{ "Header extension", test_header_extension_1 },
 	{ "Header extension 2", test_header_extension_2 },
-	{ "Header event", test_event_header }
+	{ "Header event", test_event_header },
+	{ "Header Supported", test_supported_header }
 
 };
 

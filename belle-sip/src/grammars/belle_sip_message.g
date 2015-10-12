@@ -1405,6 +1405,22 @@ catch [ANTLR3_RECOGNITION_EXCEPTION]
 } 
 privacy_val: token {belle_sip_header_privacy_add_privacy($header_privacy::current,(const char*)$token.text->chars);};
 
+//**********************************Supported*******************************//
+header_supported  returns [belle_sip_header_supported_t* ret]
+scope { belle_sip_header_supported_t* current; }
+@init { $header_supported::current = belle_sip_header_supported_new();$ret = $header_supported::current;}
+:   {IS_TOKEN(Supported)}? token /*'Supported'*/ hcolon supported_val (comma supported_val)*;
+catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+	belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	belle_sip_object_unref($ret);
+	$ret=NULL;
+}
+supported_val: token {belle_sip_header_supported_add_supported($header_supported::current,(const char*)$token.text->chars);};
+
+
+
+
 header  returns [belle_sip_header_t* ret=NULL]
 	 : header_extension_base[FALSE] {$ret=$header_extension_base.ret;};
 	

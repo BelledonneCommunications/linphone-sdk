@@ -686,6 +686,21 @@ BELLESIP_EXPORT void belle_sip_header_event_set_id(belle_sip_header_event_t* eve
 #define BELLE_SIP_HEADER_EVENT(t) BELLE_SIP_CAST(t,belle_sip_header_event_t)
 #define BELLE_SIP_EVENT "Event"
 
+
+/******************************
+ * Supported header object inherent from header
+ *
+ ******************************/
+typedef struct _belle_sip_header_supported belle_sip_header_supported_t;
+BELLESIP_EXPORT belle_sip_header_supported_t* belle_sip_header_supported_new();
+BELLESIP_EXPORT belle_sip_header_supported_t* belle_sip_header_supported_parse(const char* supported) ;
+BELLESIP_EXPORT belle_sip_header_supported_t* belle_sip_header_supported_create(const char* supported);
+BELLESIP_EXPORT void belle_sip_header_supported_add_supported(belle_sip_header_supported_t* supported, const char* value);
+BELLESIP_EXPORT void belle_sip_header_supported_set_supported(belle_sip_header_supported_t* supported, belle_sip_list_t* supported_values);
+BELLESIP_EXPORT belle_sip_list_t* belle_sip_header_supported_get_supported(const belle_sip_header_supported_t* supported);
+#define BELLE_SIP_HEADER_SUPPORTED(t) BELLE_SIP_CAST(t,belle_sip_header_supported_t)
+#define BELLE_SIP_SUPPORTED "Supported"
+
 BELLE_SIP_END_DECLS
 
 
