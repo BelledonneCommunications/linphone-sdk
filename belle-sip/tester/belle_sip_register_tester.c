@@ -455,9 +455,12 @@ static void bad_req_process_io_error(void *user_ctx, const belle_sip_io_error_ev
 
 static void bad_req_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
 	belle_sip_response_t *resp=belle_sip_response_event_get_response(event);
-	if (belle_sip_response_event_get_client_transaction(event) == NULL)
-	BC_ASSERT_TRUE(resp && belle_sip_response_get_status_code(resp)==400);
-	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
+	int *bad_request_response_received=(int*)user_ctx;
+	if (belle_sip_response_event_get_client_transaction(event) != NULL) {
+		BC_ASSERT_TRUE(resp && belle_sip_response_get_status_code(resp)==400);
+		*bad_request_response_received=1;
+		belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
+	}
 }
 
 static void test_bad_request(void) {
