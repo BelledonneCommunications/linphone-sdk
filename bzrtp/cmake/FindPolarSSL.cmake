@@ -45,7 +45,7 @@ if(POLARSSL_INCLUDE_DIRS)
 endif()
 
 find_library(POLARSSL_LIBRARIES
-	NAMES polarssl
+	NAMES polarssl mbedtls
 	HINTS _POLARSSL_ROOT_PATHS
 	PATH_SUFFIXES bin lib
 )
