@@ -924,6 +924,7 @@ static void handle_ewouldblock(belle_sip_channel_t *obj, const char *buffer, siz
 }
 
 static size_t find_non_printable(const char *buffer, size_t size){
+#if 0
 	size_t i;
 	for(i=0;i<size;++i){
 		/*we must check that character is printable, not just ascii
@@ -934,6 +935,16 @@ static size_t find_non_printable(const char *buffer, size_t size){
 		if (!isprint(buffer[i]) && !isspace(buffer[i])) return i;
 	}
 	return size;
+#else
+	size_t i=0;
+	 
+	do {
+		int valid_multibyte_len = mblen(buffer+i, size-i);
+		if (valid_multibyte_len <= 0) break;
+		i += valid_multibyte_len;
+	}while(1);
+	return i;
+#endif
 }
 /*
  * this function is to avoid logging too much or non-ascii data received.
