@@ -217,6 +217,9 @@ extern MSWebCamDesc ms_bb10_camera_desc;
 
 static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef MS2_FILTERS
+#if defined (ANDROID)
+	&ms_android_video_capture_desc,
+#endif
 #ifdef HAVE_LINUX_VIDEODEV2_H
 	&v4l2_card_desc,
 #endif
@@ -232,9 +235,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
 	&ms_v4m_cam_desc,
 #endif
-#if defined (ANDROID)
-	&ms_android_video_capture_desc,
-#endif
+
 #if TARGET_OS_IPHONE &&  !TARGET_IPHONE_SIMULATOR
 	&ms_v4ios_cam_desc,
 #endif
