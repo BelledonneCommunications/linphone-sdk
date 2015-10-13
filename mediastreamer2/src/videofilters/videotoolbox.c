@@ -218,7 +218,7 @@ int h264_enc_get_video_size(MSFilter *f, MSVideoSize *vsize) {
 int h264_enc_set_video_size(MSFilter *f, const MSVideoSize *vsize) {
     VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
     if(ctx->is_configured) {
-        ms_error("VideoToolbox: could not set video size: filter is running");
+        ms_error("VideoToolbox: could not set video size: encoder is running");
         return -1;
     }
     ctx->vsize = *vsize;
