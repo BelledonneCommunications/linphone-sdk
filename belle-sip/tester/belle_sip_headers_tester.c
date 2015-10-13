@@ -1010,10 +1010,10 @@ static void test_event_header(void) {
 	BC_ASSERT_PTR_NULL(belle_sip_header_event_parse("nimportequoi"));
 }
 
-static void test_supported(const char* raw_header,const char* values[],size_t number_values) {
+static void test_supported(const char* header_name, const char * header_value, const char* values[],size_t number_values) {
 	belle_sip_list_t* list;
 	belle_sip_header_supported_t* L_tmp;
-	belle_sip_header_supported_t* L_supported = belle_sip_header_supported_parse(raw_header);
+	belle_sip_header_supported_t* L_supported = BELLE_SIP_HEADER_SUPPORTED(belle_sip_header_create(header_name,header_value));
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_supported));
 	size_t i=0;
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_supported));
@@ -1038,8 +1038,8 @@ static void test_supported(const char* raw_header,const char* values[],size_t nu
 static void test_supported_header(void) {
 	const char* value1[] ={"user","critical"};
 	const char* value2[] ={"id"};
-	test_supported("Supported: user, critical",value1,2);
-	test_supported("Supported: id",value2,1);
+	test_supported("Supported","user, critical",value1,2);
+	test_supported("Supported", "id",value2,1);
 }
 
 
