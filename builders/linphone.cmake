@@ -22,7 +22,7 @@
 
 set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git" CACHE STRING "linphone repository URL")
 set(EP_linphone_GIT_TAG_LATEST "master" CACHE STRING "linphone tag to use when compiling latest version")
-set(EP_linphone_GIT_TAG "e3bf7b0387a9e8f782ff745575dd412e193246de" CACHE STRING "linphone tag to use")
+set(EP_linphone_GIT_TAG "8b90c32dc84617899e8c5eb7f539712232d97ee2" CACHE STRING "linphone tag to use")
 set(EP_linphone_EXTERNAL_SOURCE_PATHS "linphone")
 set(EP_linphone_GROUPABLE YES)
 
