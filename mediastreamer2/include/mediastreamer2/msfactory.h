@@ -247,6 +247,20 @@ MS2_PUBLIC void ms_factory_init_voip(MSFactory *obj);
 
 MS2_PUBLIC void ms_factory_uninit_voip(MSFactory *obj);
 
+/**
+ * Creates an event queue.
+ * Only one can exist so if it has already been created the same one will be returned.
+ * @param[in] obj MSFactory object.
+ * @return The created event queue.
+ */
+MS2_PUBLIC struct _MSEventQueue * ms_factory_create_event_queue(MSFactory *obj);
+
+/**
+ * Gets the event queue associated with the factory.
+ * Can be NULL if no event queue has been created.
+ * @param[in] obj MSFactory object.
+ * @return The event queue associated with the factory.
+ */
 MS2_PUBLIC struct _MSEventQueue * ms_factory_get_event_queue(MSFactory *obj);
 
 MS2_PUBLIC void ms_factory_set_event_queue(MSFactory *obj,struct _MSEventQueue *q);

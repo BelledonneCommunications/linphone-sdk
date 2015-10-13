@@ -1314,7 +1314,9 @@ void video_stream_send_vfu(VideoStream *stream){
 
 static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 {
+	MSEventQueue *evq;
 	MSFilter* source = NULL;
+
 	stream->eventcb = NULL;
 	stream->event_pointer = NULL;
 	if (stream->ms.sessions.ticker){
@@ -1409,7 +1411,8 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 	}
 	/*before destroying the filters, pump the event queue so that pending events have a chance to reach their listeners.
 	 * When the filter are destroyed, all their pending events in the event queue will be cancelled*/
-	ms_event_queue_pump(ms_factory_get_event_queue(stream->ms.factory));
+	evq = ms_factory_get_event_queue(stream->ms.factory);
+	if (evq) ms_event_queue_pump(evq);
 	
 	video_stream_free(stream);
 

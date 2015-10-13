@@ -720,10 +720,14 @@ void ms_factory_set_plugins_dir(MSFactory *obj, const char *path) {
 		obj->plugins_dir = ms_strdup(path);
 }
 
-struct _MSEventQueue *ms_factory_get_event_queue(MSFactory *obj){
+struct _MSEventQueue *ms_factory_create_event_queue(MSFactory *obj) {
 	if (obj->evq==NULL){
 		obj->evq=ms_event_queue_new();
 	}
+	return obj->evq;
+}
+
+struct _MSEventQueue *ms_factory_get_event_queue(MSFactory *obj){
 	return obj->evq;
 }
 

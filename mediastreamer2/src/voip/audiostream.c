@@ -1532,6 +1532,8 @@ static void dismantle_local_player(AudioStream *stream){
 }
 
 void audio_stream_stop(AudioStream * stream){
+	MSEventQueue *evq;
+
 	if (stream->ms.sessions.ticker){
 		MSConnectionHelper h;
 
@@ -1614,7 +1616,8 @@ void audio_stream_stop(AudioStream * stream){
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,"payload_type_changed",(RtpCallback)audio_stream_payload_type_changed);
 	/*before destroying the filters, pump the event queue so that pending events have a chance to reach their listeners.
 	 * When the filter are destroyed, all their pending events in the event queue will be cancelled*/
-	ms_event_queue_pump(ms_factory_get_event_queue(stream->ms.factory));
+	evq = ms_factory_get_event_queue(stream->ms.factory);
+	if (evq) ms_event_queue_pump(evq);
 	audio_stream_free(stream);
 	ms_filter_log_statistics();
 }
