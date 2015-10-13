@@ -1070,9 +1070,50 @@ static void test_content_disposition(const char* header_name, const char * heade
 static void test_content_disposition_header(void) {
 	const char* value1[] ={"user","critical"};
 	const char* value2[] ={"recipient-list"};
-	test_content_disposition("Content-Disposition", "recipient-list",value2,1);
+	test_content_disposition(BELLE_SIP_CONTENT_DISPOSITION, "recipient-list",value2,1);
 	test_content_disposition("Content-Disposition","user; critical",value1,2);
 }
+
+
+static void test_accept(const char* header_name, const char * header_value, const char* values[],size_t number_values) {
+	belle_sip_header_accept_t* L_tmp;
+	belle_sip_header_accept_t* L_accept = BELLE_SIP_HEADER_ACCEPT(belle_sip_header_create("Accept", "text/html; charset=ISO-8859-4"));
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_accept));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
+	L_tmp = belle_sip_header_accept_parse(l_raw_header);
+	L_accept = BELLE_SIP_HEADER_ACCEPT(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+	
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_type(L_accept),"text");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_subtype(L_accept),"html");
+	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_accept),"charset"),"ISO-8859-4");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
+	
+	L_accept = belle_sip_header_accept_parse("Accept: application/sdp");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_accept));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
+	L_accept = belle_sip_header_accept_parse(l_raw_header);
+	belle_sip_free(l_raw_header);
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_type(L_accept),"application");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_subtype(L_accept),"sdp");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
+	
+	L_accept = belle_sip_header_accept_parse("Accept: application/pkcs7-mime; smime-type=enveloped-data; \r\n name=smime.p7m");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_accept));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
+	L_accept = belle_sip_header_accept_parse(l_raw_header);
+	belle_sip_free(l_raw_header);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
+	BC_ASSERT_PTR_NULL(belle_sip_header_accept_parse("nimportequoi"));
+}
+static void test_accept_header(void) {
+	const char* value1[] ={"user","critical"};
+	const char* value2[] ={"recipient-list"};
+	test_accept(BELLE_SIP_ACCEPT, "recipient-list",value2,1);
+	test_accept("Accept","user; critical",value1,2);
+}
+
 
 
 
@@ -1116,7 +1157,8 @@ test_t headers_tests[] = {
 	{ "Header extension 2", test_header_extension_2 },
 	{ "Header event", test_event_header },
 	{ "Header Supported", test_supported_header },
-	{ "Header Content-Disposition", test_content_disposition_header }
+	{ "Header Content-Disposition", test_content_disposition_header },
+	{ "Header Accept", test_accept_header }
 
 };
 
