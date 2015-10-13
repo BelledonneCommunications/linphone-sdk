@@ -24,6 +24,19 @@
 #include <mediastreamer2/rfc3984.h>
 #include <mediastreamer2/msticker.h>
 
+const MSVideoConfiguration h264_video_confs[] = {
+    MS_VIDEO_CONF( 1024000,  5000000,  SXGA_MINUS, 25,  4),
+    MS_VIDEO_CONF( 1024000,  5000000,        720P, 25,  4),
+    MS_VIDEO_CONF(  750000,  2048000,         XGA, 20,  4),
+    MS_VIDEO_CONF(  500000,  1024000,        SVGA, 20,  2),
+    MS_VIDEO_CONF(  256000,   800000,         VGA, 15,  2), /*480p*/
+    MS_VIDEO_CONF(  128000,   512000,         CIF, 15,  1),
+    MS_VIDEO_CONF(  100000,   380000,        QVGA, 15,  1), /*240p*/
+    MS_VIDEO_CONF(  128000,   170000,        QCIF, 10,  1),
+    MS_VIDEO_CONF(   64000,   128000,        QCIF, 10,  1),
+    MS_VIDEO_CONF(       0,    64000,        QCIF, 10,  1)
+};
+
 typedef struct _VTH264EncCtx {
     VTCompressionSessionRef session;
     MSVideoSize vsize;
@@ -33,6 +46,7 @@ typedef struct _VTH264EncCtx {
     Rfc3984Context packer_ctx;
     bool_t is_configured;
     const MSFilter *f;
+    const MSVideoConfiguration *video_confs;
 } VTH264EncCtx;
 
 static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer) {
@@ -135,6 +149,7 @@ static void h264_enc_init(MSFilter *f) {
     ms_mutex_init(&ctx->mutex, NULL);
     ms_queue_init(&ctx->queue);
     ctx->f = f;
+    ctx->video_confs = h264_video_confs;
     f->data = ctx;
 }
 
@@ -210,33 +225,39 @@ static void h264_enc_uninit(MSFilter *f) {
     ms_free(f->data);
 }
 
-int h264_enc_get_video_size(MSFilter *f, MSVideoSize *vsize) {
+static int h264_enc_get_video_size(MSFilter *f, MSVideoSize *vsize) {
     *vsize = ((VTH264EncCtx *)f->data)->vsize;
     return 0;
 }
 
-int h264_enc_set_video_size(MSFilter *f, const MSVideoSize *vsize) {
+static int h264_enc_set_video_size(MSFilter *f, const MSVideoSize *vsize) {
     VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
+    MSVideoConfiguration conf;
     if(ctx->is_configured) {
         ms_error("VideoToolbox: could not set video size: encoder is running");
         return -1;
     }
-    ctx->vsize = *vsize;
+    conf = ms_video_find_best_configuration_for_size(ctx->video_confs, *vsize, f->factory->cpu_count);
+    ctx->vsize = conf.vsize;
+    ctx->bitrate = conf.required_bitrate;
     return 0;
 }
 
-int h264_enc_get_bitrate(MSFilter *f, int *bitrate) {
+static int h264_enc_get_bitrate(MSFilter *f, int *bitrate) {
     *bitrate = ((VTH264EncCtx *)f->data)->bitrate;
     return 0;
 }
 
-int h264_enc_set_bitrate(MSFilter *f, const int *bitrate) {
+static int h264_enc_set_bitrate(MSFilter *f, const int *bitrate) {
     VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
+    MSVideoConfiguration conf;
     if(ctx->is_configured) {
         ms_error("VideoToolbox: could not set the bitrate: encoder is running");
         return -1;
     }
-    ctx->bitrate = *bitrate;
+    conf = ms_video_find_best_configuration_for_bitrate(ctx->video_confs, *bitrate, f->factory->cpu_count);
+    ctx->vsize = conf.vsize;
+    ctx->bitrate = conf.required_bitrate;
     return 0;
 }
 
