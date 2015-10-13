@@ -70,6 +70,21 @@ static inline int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
 #include <libavcodec/old_codec_ids.h>
 #endif
 
+
+#if LIBAVUTIL_VERSION_MAJOR <= 51
+#define AVPixFmt PixFmt
+#define AV_PIX_FMT_YUVJ420P PIX_FMT_YUVJ420P
+#define AV_PIX_FMT_RGBA PIX_FMT_RGBA
+#define AV_PIX_FMT_RGB24 PIX_FMT_RGB24
+#define AV_PIX_FMT_BGR24 PIX_FMT_BGR24
+#define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
+#define AV_PIX_FMT_YUYV422 PIX_FMT_YUYV422
+#define AV_PIX_FMT_UYVY422 PIX_FMT_UYVY422
+#define AV_PIX_FMT_YUYV422 PIX_FMT_YUYV422
+#define AV_PIX_FMT_RGB565 PIX_FMT_RGB565
+
+#endif
+
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0) 
 /*CODEC_ID_* and CodecID have been deprecated for a long time and this release removes it altogether. Please use AV_CODEC_ID_* and AVCodecID instead.*/
 #define CodecID AVCodecID
