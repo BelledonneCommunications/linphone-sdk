@@ -47,6 +47,7 @@ extern MSFilterDesc ms_aac_eld_enc_desc;
 extern MSFilterDesc ms_aac_eld_dec_desc;
 extern MSFilterDesc ms_opus_dec_desc;
 extern MSFilterDesc ms_opus_enc_desc;
+extern MSFilterDesc ms_vt_h264_enc;
 
 MSFilterDesc * ms_voip_filter_descs[]={
 &ms_alaw_dec_desc,
@@ -97,5 +98,6 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_aac_eld_dec_desc,
 &ms_opus_dec_desc,
 &ms_opus_enc_desc,
+&ms_vt_h264_enc,
 NULL
 };
