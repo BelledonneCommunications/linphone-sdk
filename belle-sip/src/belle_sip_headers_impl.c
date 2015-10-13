@@ -79,8 +79,6 @@ static struct header_name_func_pair  header_table[] = {
 	,{PROTO_SIP, 			BELLE_SIP_EVENT,				(header_parse_func)belle_sip_header_event_parse}
 	,{PROTO_SIP, 			BELLE_SIP_SUPPORTED,			(header_parse_func)belle_sip_header_supported_parse}
 	,{PROTO_SIP, 			"k",							(header_parse_func)belle_sip_header_supported_parse}
-	,{PROTO_SIP, 			BELLE_SIP_CONTENT_DISPOSITION,	(header_parse_func)belle_sip_header_content_disposition_parse}
-	,{PROTO_SIP, 			BELLE_SIP_ACCEPT,				(header_parse_func)belle_sip_header_accept_parse}
 };
 
 static belle_sip_header_t* belle_header_create(const char* name,const char* value,int protocol) {
@@ -1776,54 +1774,51 @@ belle_sip_header_p_preferred_identity_t* belle_sip_header_p_preferred_identity_c
 	return header;
 }
 
-#define PRIVACY_LIKE_HEADER(header_name, string_name,separator) \
-struct _belle_sip_header_##header_name  { \
-belle_sip_header_t header;\
-belle_sip_list_t* header_name;\
-}; \
-\
-static void belle_sip_header_##header_name##_destroy(belle_sip_header_##header_name##_t* p) {\
-	belle_sip_header_##header_name##_set_##header_name(p,NULL);\
-}\
-\
-static void belle_sip_header_##header_name##_clone(belle_sip_header_##header_name##_t* p, const belle_sip_header_##header_name##_t* orig){\
-	belle_sip_list_t* list=orig->header_name;\
-	for(;list!=NULL;list=list->next){\
-		belle_sip_header_##header_name##_add_##header_name(p,(const char *)list->data);\
-	}\
-}\
-\
-belle_sip_error_code belle_sip_header_##header_name##_marshal(belle_sip_header_##header_name##_t* p, char* buff, size_t buff_size, size_t *offset) {\
-	belle_sip_error_code error=BELLE_SIP_OK;\
-	belle_sip_list_t* list = p->header_name;\
-	error=belle_sip_header_marshal(BELLE_SIP_HEADER(p), buff, buff_size, offset);\
-	if (error!=BELLE_SIP_OK) return error;\
-	for(;list!=NULL;list=list->next){\
-		error=belle_sip_snprintf(buff,buff_size,offset,list==p->header_name ? "%s" : separator" %s",(const char *)list->data);\
-		if (error!=BELLE_SIP_OK) return error;\
-	}\
-	return error;\
-}\
-\
-BELLE_SIP_NEW_HEADER(header_##header_name,header,string_name)\
-BELLE_SIP_PARSE(header_##header_name)\
-belle_sip_list_t* belle_sip_header_##header_name##_get_##header_name(const belle_sip_header_##header_name##_t* p) {\
-	return p->header_name;\
-}\
-SET_ADD_STRING_LIST(belle_sip_header_##header_name,header_name)\
-\
-belle_sip_header_##header_name##_t* belle_sip_header_##header_name##_create(const char* header_name) {\
-	belle_sip_header_##header_name##_t* header=belle_sip_header_##header_name##_new();\
-	belle_sip_header_##header_name##_add_##header_name(header,header_name);\
-	return header;\
-}
-
-
 /******************************
  * Privacy header inherits from header
  *
  ******************************/
-PRIVACY_LIKE_HEADER(privacy,BELLE_SIP_PRIVACY,";")
+struct _belle_sip_header_privacy  {
+	belle_sip_header_t header;
+	belle_sip_list_t* privacy;
+};
+
+static void belle_sip_header_privacy_destroy(belle_sip_header_privacy_t* p) {
+	belle_sip_header_privacy_set_privacy(p,NULL);
+}
+
+static void belle_sip_header_privacy_clone(belle_sip_header_privacy_t* p, const belle_sip_header_privacy_t* orig){
+	belle_sip_list_t* list=orig->privacy;
+	for(;list!=NULL;list=list->next){
+		belle_sip_header_privacy_add_privacy(p,(const char *)list->data);
+	}
+}
+
+belle_sip_error_code belle_sip_header_privacy_marshal(belle_sip_header_privacy_t* p, char* buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error=BELLE_SIP_OK;
+	belle_sip_list_t* list = p->privacy;
+	error=belle_sip_header_marshal(BELLE_SIP_HEADER(p), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+	for(;list!=NULL;list=list->next){
+		error=belle_sip_snprintf(buff,buff_size,offset,list==p->privacy ? "%s" : ";%s",(const char *)list->data);
+		if (error!=BELLE_SIP_OK) return error;
+	}
+	return error;
+}
+
+BELLE_SIP_NEW_HEADER(header_privacy,header,BELLE_SIP_PRIVACY)
+BELLE_SIP_PARSE(header_privacy)
+belle_sip_list_t* belle_sip_header_privacy_get_privacy(const belle_sip_header_privacy_t* p) {
+	return p->privacy;
+}
+SET_ADD_STRING_LIST(belle_sip_header_privacy,privacy)
+
+belle_sip_header_privacy_t* belle_sip_header_privacy_create(const char* privacy) {
+	belle_sip_header_privacy_t* privacy_header=belle_sip_header_privacy_new();
+	belle_sip_header_privacy_add_privacy(privacy_header,privacy);
+	return privacy_header;
+}
+
 /**************************
 * Event header object inherent from parameters
 ****************************
@@ -1866,54 +1861,46 @@ belle_sip_header_event_t* belle_sip_header_event_create (const char* package_nam
  * Supported header inherits from header
  *
  ******************************/
-PRIVACY_LIKE_HEADER(supported,BELLE_SIP_SUPPORTED,",")
-
-/******************************
- * Content-Disposition header inherits from header
- *
- ******************************/
-PRIVACY_LIKE_HEADER(content_disposition,BELLE_SIP_CONTENT_DISPOSITION,";")
-
-/******************************
- * Accept header inherits from parameters
- *
- ******************************/
-
-struct _belle_sip_header_accept  {
-	belle_sip_parameters_t params_list;
-	const char* type;
-	const char* subtype;
+struct _belle_sip_header_supported  {
+	belle_sip_header_t header;
+	belle_sip_list_t* supported;
 };
 
-static void belle_sip_header_accept_destroy(belle_sip_header_accept_t* accept) {
-	if (accept->type) belle_sip_free((void*)accept->type);
-	if (accept->subtype) belle_sip_free((void*)accept->subtype);
+static void belle_sip_header_supported_destroy(belle_sip_header_supported_t* p) {
+	belle_sip_header_supported_set_supported(p,NULL);
 }
 
-static void belle_sip_header_accept_clone(belle_sip_header_accept_t* accept, const belle_sip_header_accept_t* orig){
-	CLONE_STRING(belle_sip_header_accept,type,accept,orig);
-	CLONE_STRING(belle_sip_header_accept,subtype,accept,orig);
+static void belle_sip_header_supported_clone(belle_sip_header_supported_t* p, const belle_sip_header_supported_t* orig){
+	belle_sip_list_t* list=orig->supported;
+	for(;list!=NULL;list=list->next){
+		belle_sip_header_supported_add_supported(p,(const char *)list->data);
+	}
 }
 
-belle_sip_error_code belle_sip_header_accept_marshal(belle_sip_header_accept_t* accept, char* buff, size_t buff_size, size_t *offset) {
-	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(accept), buff, buff_size, offset);
+belle_sip_error_code belle_sip_header_supported_marshal(belle_sip_header_supported_t* p, char* buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error=BELLE_SIP_OK;
+	belle_sip_list_t* list = p->supported;
+	error=belle_sip_header_marshal(BELLE_SIP_HEADER(p), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
-	error=belle_sip_snprintf(buff,buff_size,offset,"%s/%s",accept->type, accept->subtype);
-	if (error!=BELLE_SIP_OK) return error;
-	error=belle_sip_parameters_marshal(&accept->params_list, buff, buff_size, offset);
-	if (error!=BELLE_SIP_OK) return error;
+	for(;list!=NULL;list=list->next){
+		error=belle_sip_snprintf(buff,buff_size,offset,list==p->supported ? "%s" : ", %s",(const char *)list->data);
+		if (error!=BELLE_SIP_OK) return error;
+	}
 	return error;
 }
 
-BELLE_SIP_NEW_HEADER(header_accept,parameters,BELLE_SIP_ACCEPT)
-BELLE_SIP_PARSE(header_accept)
-belle_sip_header_accept_t* belle_sip_header_accept_create (const char* type,const char* sub_type) {
-	belle_sip_header_accept_t* header = belle_sip_header_accept_new();
-	belle_sip_header_accept_set_type(header,type);
-	belle_sip_header_accept_set_subtype(header,sub_type);
-	return header;
+BELLE_SIP_NEW_HEADER(header_supported,header,BELLE_SIP_SUPPORTED)
+BELLE_SIP_PARSE(header_supported)
+belle_sip_list_t* belle_sip_header_supported_get_supported(const belle_sip_header_supported_t* p) {
+	return p->supported;
 }
-GET_SET_STRING(belle_sip_header_accept,type);
-GET_SET_STRING(belle_sip_header_accept,subtype);
+SET_ADD_STRING_LIST(belle_sip_header_supported,supported)
+
+belle_sip_header_supported_t* belle_sip_header_supported_create(const char* supported) {
+	belle_sip_header_supported_t* supported_header=belle_sip_header_supported_new();
+	belle_sip_header_supported_add_supported(supported_header,supported);
+	return supported_header;
+}
+
 
 

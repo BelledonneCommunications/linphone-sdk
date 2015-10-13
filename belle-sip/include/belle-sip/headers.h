@@ -701,37 +701,6 @@ BELLESIP_EXPORT belle_sip_list_t* belle_sip_header_supported_get_supported(const
 #define BELLE_SIP_HEADER_SUPPORTED(t) BELLE_SIP_CAST(t,belle_sip_header_supported_t)
 #define BELLE_SIP_SUPPORTED "Supported"
 
-/******************************
- * Content Disposition header object inherent from header
- *
- ******************************/
-typedef struct _belle_sip_header_content_disposition belle_sip_header_content_disposition_t;
-BELLESIP_EXPORT belle_sip_header_content_disposition_t* belle_sip_header_content_disposition_new();
-BELLESIP_EXPORT belle_sip_header_content_disposition_t* belle_sip_header_content_disposition_parse(const char* content_disposition) ;
-BELLESIP_EXPORT belle_sip_header_content_disposition_t* belle_sip_header_content_disposition_create(const char* content_disposition);
-BELLESIP_EXPORT void belle_sip_header_content_disposition_add_content_disposition(belle_sip_header_content_disposition_t* content_disposition, const char* value);
-BELLESIP_EXPORT void belle_sip_header_content_disposition_set_content_disposition(belle_sip_header_content_disposition_t* content_disposition, belle_sip_list_t* content_disposition_values);
-BELLESIP_EXPORT belle_sip_list_t* belle_sip_header_content_disposition_get_content_disposition(const belle_sip_header_content_disposition_t* content_disposition);
-#define BELLE_SIP_HEADER_CONTENT_DISPOSITION(t) BELLE_SIP_CAST(t,belle_sip_header_content_disposition_t)
-#define BELLE_SIP_CONTENT_DISPOSITION "Content-Disposition"
-
-/******************************
- * Accept header object inherent from parameters
- *
- ******************************/
-typedef struct _belle_sip_header_accept belle_sip_header_accept_t;
-BELLESIP_EXPORT belle_sip_header_accept_t* belle_sip_header_accept_new();
-BELLESIP_EXPORT belle_sip_header_accept_t* belle_sip_header_accept_parse (const char* accept) ;
-BELLESIP_EXPORT belle_sip_header_accept_t* belle_sip_header_accept_create (const char* type,const char* sub_type) ;
-BELLESIP_EXPORT belle_sip_header_accept_t* belle_sip_header_accept_parse (const char* accept) ;
-BELLESIP_EXPORT const char*	belle_sip_header_accept_get_type(const belle_sip_header_accept_t* accept);
-BELLESIP_EXPORT void belle_sip_header_accept_set_type(belle_sip_header_accept_t* accept,const char* type);
-BELLESIP_EXPORT const char*	belle_sip_header_accept_get_subtype(const belle_sip_header_accept_t* accept);
-BELLESIP_EXPORT void belle_sip_header_accept_set_subtype(belle_sip_header_accept_t* accept,const char* sub_type);
-#define BELLE_SIP_HEADER_ACCEPT(t) BELLE_SIP_CAST(t,belle_sip_header_accept_t)
-#define BELLE_SIP_ACCEPT "Accept"
-
-
 BELLE_SIP_END_DECLS
 
 
