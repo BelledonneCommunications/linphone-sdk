@@ -22,7 +22,7 @@
 
 set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git" CACHE STRING "ms2 repository URL")
 set(EP_ms2_GIT_TAG_LATEST "master" CACHE STRING "ms2 tag to use when compiling latest version")
-set(EP_ms2_GIT_TAG "38f215b3bee986c654343c6420c5225fe136de45" CACHE STRING "ms2 tag to use")
+set(EP_ms2_GIT_TAG "1be89b1183a9085b63a0ca50e153766ab0b4e891" CACHE STRING "ms2 tag to use")
 set(EP_ms2_EXTERNAL_SOURCE_PATHS "mediastreamer2" "linphone/mediastreamer2")
 set(EP_ms2_GROUPABLE YES)
 
