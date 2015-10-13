@@ -26,9 +26,6 @@ project(MS2_PACKAGE) # Dummy project
 find_package(Mediastreamer2 REQUIRED)
 find_package(Git)
 
-set(MS2_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../EP_ms2")
-set(MS2_BUILD_DIR "${CMAKE_BINARY_DIR}/../ms2")
-
 if(GIT_EXECUTABLE)
 	execute_process(
 		COMMAND ${GIT_EXECUTABLE} describe --always

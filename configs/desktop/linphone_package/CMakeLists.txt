@@ -26,9 +26,6 @@ project(LINPHONE_PACKAGE) # Dummy project
 find_package(Linphone REQUIRED)
 find_package(Git)
 
-set(LINPHONE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../EP_linphone")
-set(LINPHONE_BUILD_DIR "${CMAKE_BINARY_DIR}/../linphone")
-
 if(GIT_EXECUTABLE)
 	execute_process(
 		COMMAND ${GIT_EXECUTABLE} describe --always
