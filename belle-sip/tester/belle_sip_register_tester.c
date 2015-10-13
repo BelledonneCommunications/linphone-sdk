@@ -275,6 +275,7 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 	char uri[256];
 	int i;
 	char *outbound=NULL;
+	int do_manual_retransmissions = FALSE;
 
 	number_of_challenge=0;
 	if (transport)
@@ -315,10 +316,11 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 		belle_sip_client_transaction_send_request_to(t,outbound?belle_sip_uri_parse(outbound):NULL);
 	}else{
 		belle_sip_provider_send_request(prov,req);
+		do_manual_retransmissions = (transport == NULL) || (strcasecmp(transport,"udp") == 0);
 	}
 	for(i=0;!is_register_ok && i<20 && io_error_count==0;i++) {
 		belle_sip_stack_sleep(stack,500);
-		if (!use_transaction && !is_register_ok) {
+		if (do_manual_retransmissions && !is_register_ok) {
 			belle_sip_object_ref(req);
 			belle_sip_provider_send_request(prov,req); /*manage retransmitions*/
 		}
