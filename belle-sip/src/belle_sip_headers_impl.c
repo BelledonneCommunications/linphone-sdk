@@ -79,6 +79,7 @@ static struct header_name_func_pair  header_table[] = {
 	,{PROTO_SIP, 			BELLE_SIP_EVENT,				(header_parse_func)belle_sip_header_event_parse}
 	,{PROTO_SIP, 			BELLE_SIP_SUPPORTED,			(header_parse_func)belle_sip_header_supported_parse}
 	,{PROTO_SIP, 			"k",							(header_parse_func)belle_sip_header_supported_parse}
+	,{PROTO_SIP, 			BELLE_SIP_CONTENT_DISPOSITION,	(header_parse_func)belle_sip_header_content_disposition_parse}
 };
 
 static belle_sip_header_t* belle_header_create(const char* name,const char* value,int protocol) {
@@ -1902,5 +1903,49 @@ belle_sip_header_supported_t* belle_sip_header_supported_create(const char* supp
 	return supported_header;
 }
 
+/******************************
+ * Content-Disposition header inherits from header
+ *
+ ******************************/
+struct _belle_sip_header_content_disposition  {
+	belle_sip_header_t header;
+	belle_sip_list_t* content_disposition;
+};
+
+static void belle_sip_header_content_disposition_destroy(belle_sip_header_content_disposition_t* p) {
+	belle_sip_header_content_disposition_set_content_disposition(p,NULL);
+}
+
+static void belle_sip_header_content_disposition_clone(belle_sip_header_content_disposition_t* p, const belle_sip_header_content_disposition_t* orig){
+	belle_sip_list_t* list=orig->content_disposition;
+	for(;list!=NULL;list=list->next){
+		belle_sip_header_content_disposition_add_content_disposition(p,(const char *)list->data);
+	}
+}
+
+belle_sip_error_code belle_sip_header_content_disposition_marshal(belle_sip_header_content_disposition_t* p, char* buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error=BELLE_SIP_OK;
+	belle_sip_list_t* list = p->content_disposition;
+	error=belle_sip_header_marshal(BELLE_SIP_HEADER(p), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+	for(;list!=NULL;list=list->next){
+		error=belle_sip_snprintf(buff,buff_size,offset,list==p->content_disposition ? "%s" : "; %s",(const char *)list->data);
+		if (error!=BELLE_SIP_OK) return error;
+	}
+	return error;
+}
+
+BELLE_SIP_NEW_HEADER(header_content_disposition,header,BELLE_SIP_CONTENT_DISPOSITION)
+BELLE_SIP_PARSE(header_content_disposition)
+belle_sip_list_t* belle_sip_header_content_disposition_get_content_disposition(const belle_sip_header_content_disposition_t* p) {
+	return p->content_disposition;
+}
+SET_ADD_STRING_LIST(belle_sip_header_content_disposition,content_disposition)
+
+belle_sip_header_content_disposition_t* belle_sip_header_content_disposition_create(const char* content_disposition) {
+	belle_sip_header_content_disposition_t* content_disposition_header=belle_sip_header_content_disposition_new();
+	belle_sip_header_content_disposition_add_content_disposition(content_disposition_header,content_disposition);
+	return content_disposition_header;
+}
 
 

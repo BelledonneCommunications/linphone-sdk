@@ -132,7 +132,8 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_file_body_handler_t),
 	BELLE_SIP_TYPE_ID(belle_sip_multipart_body_handler_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_event_t),
-	BELLE_SIP_TYPE_ID(belle_sip_header_supported_t)
+	BELLE_SIP_TYPE_ID(belle_sip_header_supported_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_content_disposition_t)
 BELLE_SIP_DECLARE_TYPES_END
 
 

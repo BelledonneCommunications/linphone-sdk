@@ -1042,6 +1042,39 @@ static void test_supported_header(void) {
 	test_supported("Supported", "id",value2,1);
 }
 
+static void test_content_disposition(const char* header_name, const char * header_value, const char* values[],size_t number_values) {
+	belle_sip_list_t* list;
+	belle_sip_header_content_disposition_t* L_tmp;
+	belle_sip_header_content_disposition_t* L_content_disposition = BELLE_SIP_HEADER_CONTENT_DISPOSITION(belle_sip_header_create(header_name,header_value));
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_content_disposition));
+	size_t i=0;
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_disposition));
+	L_tmp = belle_sip_header_content_disposition_parse(l_raw_header);
+	L_content_disposition = BELLE_SIP_HEADER_CONTENT_DISPOSITION(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	
+	belle_sip_free(l_raw_header);
+	
+	list = belle_sip_header_content_disposition_get_content_disposition(L_content_disposition);
+	
+	for(i=0;i<number_values;i++){
+		BC_ASSERT_PTR_NOT_NULL(list);
+		if (list) {
+			BC_ASSERT_STRING_EQUAL((const char *)(list->data),values[i]);
+			list=list->next;
+		}
+	}
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_disposition));
+	BC_ASSERT_PTR_NULL(belle_sip_header_content_disposition_parse("nimportequoi"));
+}
+static void test_content_disposition_header(void) {
+	const char* value1[] ={"user","critical"};
+	const char* value2[] ={"recipient-list"};
+	test_content_disposition("Content-Disposition", "recipient-list",value2,1);
+	test_content_disposition("Content-Disposition","user; critical",value1,2);
+}
+
+
 
 test_t headers_tests[] = {
 	{ "Address", test_address_header },
@@ -1082,7 +1115,8 @@ test_t headers_tests[] = {
 	{ "Header extension", test_header_extension_1 },
 	{ "Header extension 2", test_header_extension_2 },
 	{ "Header event", test_event_header },
-	{ "Header Supported", test_supported_header }
+	{ "Header Supported", test_supported_header },
+	{ "Header Content-Disposition", test_content_disposition_header }
 
 };
 

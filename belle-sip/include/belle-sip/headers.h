@@ -701,6 +701,21 @@ BELLESIP_EXPORT belle_sip_list_t* belle_sip_header_supported_get_supported(const
 #define BELLE_SIP_HEADER_SUPPORTED(t) BELLE_SIP_CAST(t,belle_sip_header_supported_t)
 #define BELLE_SIP_SUPPORTED "Supported"
 
+/******************************
+ * Content Disposition header object inherent from header
+ *
+ ******************************/
+typedef struct _belle_sip_header_content_disposition belle_sip_header_content_disposition_t;
+BELLESIP_EXPORT belle_sip_header_content_disposition_t* belle_sip_header_content_disposition_new();
+BELLESIP_EXPORT belle_sip_header_content_disposition_t* belle_sip_header_content_disposition_parse(const char* content_disposition) ;
+BELLESIP_EXPORT belle_sip_header_content_disposition_t* belle_sip_header_content_disposition_create(const char* content_disposition);
+BELLESIP_EXPORT void belle_sip_header_content_disposition_add_content_disposition(belle_sip_header_content_disposition_t* content_disposition, const char* value);
+BELLESIP_EXPORT void belle_sip_header_content_disposition_set_content_disposition(belle_sip_header_content_disposition_t* content_disposition, belle_sip_list_t* content_disposition_values);
+BELLESIP_EXPORT belle_sip_list_t* belle_sip_header_content_disposition_get_content_disposition(const belle_sip_header_content_disposition_t* content_disposition);
+#define BELLE_SIP_HEADER_CONTENT_DISPOSITION(t) BELLE_SIP_CAST(t,belle_sip_header_content_disposition_t)
+#define BELLE_SIP_CONTENT_DISPOSITION "Content-Disposition"
+
+
 BELLE_SIP_END_DECLS
 
 

@@ -1418,6 +1418,20 @@ catch [ANTLR3_RECOGNITION_EXCEPTION]
 }
 supported_val: token {belle_sip_header_supported_add_supported($header_supported::current,(const char*)$token.text->chars);};
 
+//**********************************Content-Disposition*******************************//
+
+header_content_disposition  returns [belle_sip_header_content_disposition_t* ret]
+scope { belle_sip_header_content_disposition_t* current; }
+@init { $header_content_disposition::current = belle_sip_header_content_disposition_new();$ret = $header_content_disposition::current;}
+:   {IS_TOKEN(Content-Disposition)}? token /*'Content-Disposition'*/ hcolon content_disposition_val (semi content_disposition_val)*;
+catch [ANTLR3_RECOGNITION_EXCEPTION]
+{
+	belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+	belle_sip_object_unref($ret);
+	$ret=NULL;
+}
+content_disposition_val: token {belle_sip_header_content_disposition_add_content_disposition($header_content_disposition::current,(const char*)$token.text->chars);};
+
 
 
 
