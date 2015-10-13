@@ -72,7 +72,7 @@ static inline int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
 
 
 #if LIBAVUTIL_VERSION_MAJOR <= 51
-#define AVPixFmt PixFmt
+#define AVPixelFormat PixelFormat
 #define AV_PIX_FMT_YUVJ420P PIX_FMT_YUVJ420P
 #define AV_PIX_FMT_RGBA PIX_FMT_RGBA
 #define AV_PIX_FMT_RGB24 PIX_FMT_RGB24
