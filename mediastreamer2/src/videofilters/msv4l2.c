@@ -146,6 +146,8 @@ static int get_picture_buffer_size(MSPixFmt pix_fmt, int w, int h){
 	return 0;
 }
 
+#ifdef VIDIOC_ENUM_FRAMEINTERVALS
+
 static int query_max_fps_for_format_resolution(int fd, int pixelformat, MSVideoSize vsize) {
 	int fps = -1;
 	struct v4l2_frmivalenum frmival = { 0 };
@@ -166,6 +168,8 @@ static int query_max_fps_for_format_resolution(int fd, int pixelformat, MSVideoS
 	}
 	return fps;
 }
+
+#endif
 
 typedef struct _V4L2FormatDescription {
 	/* format */
@@ -237,8 +241,12 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 		while (v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmt) >= 0) {
 			for (i=0; i<POSSIBLE_FORMATS_COUNT; i++) {
 				if (fmt.pixelformat == formats[i].pixel_format) {
+#ifdef VIDIOC_ENUM_FRAMEINTERVALS
 					formats[i].max_fps = query_max_fps_for_format_resolution(fd, fmt.pixelformat, vsize);
+#endif
+#ifdef V4L2_FMT_FLAG_EMULATED
 					formats[i].native = !(fmt.flags & V4L2_FMT_FLAG_EMULATED);
+#endif
 					formats[i].compressed = fmt.flags & V4L2_FMT_FLAG_COMPRESSED;
 					formats[i].supported = TRUE;
 					ms_message("format %s : max_fps=%i, native=%i, compressed=%i",
@@ -346,6 +354,7 @@ static int set_camera_feature(V4l2State *s, unsigned int ctl_id, int value, cons
 		ms_warning("%s setting disabled.",feature_name);
 		return -1;
 	}else {
+#ifdef V4L2_CTRL_CLASS_CAMERA
 		ctl.id=ctl_id;
 		ctl.value=value;
 		ctl.size=sizeof(int);
@@ -357,6 +366,7 @@ static int set_camera_feature(V4l2State *s, unsigned int ctl_id, int value, cons
 			ms_warning("Could not enable %s: %s", feature_name, strerror(errno));
 			return -1;
 		}
+#endif
 	}
 	return 0;
 }
@@ -437,12 +447,16 @@ static int msv4l2_configure(V4l2State *s){
 #ifdef V4L2_CID_AUTO_FOCUS_RANGE
 			set_camera_feature(s,V4L2_CID_AUTO_FOCUS_RANGE,V4L2_AUTO_FOCUS_RANGE_AUTO ,"auto range");
 #endif
+#ifdef V4L2_CID_FOCUS_AUTO
 			set_camera_feature(s,V4L2_CID_FOCUS_AUTO,1,"auto-focus");
+#endif
 		}else if (strcasecmp(focus,"infinity")==0){
 #ifdef V4L2_CID_AUTO_FOCUS_RANGE
 			set_camera_feature(s,V4L2_CID_AUTO_FOCUS_RANGE,V4L2_AUTO_FOCUS_RANGE_INFINITY ,"infinity range");
 #endif
+#ifdef V4L2_CID_FOCUS_AUTO
 			set_camera_feature(s,V4L2_CID_FOCUS_AUTO,1,"auto-focus");
+#endif
 		}
 	}
 	
@@ -863,7 +877,9 @@ static void msv4l2_detect(MSWebCamManager *obj){
 
 	for(i=0;i<10;++i){
 		int fd;
+		
 		snprintf(devname,sizeof(devname),"/dev/video%i",i);
+
 		fd=open(devname,O_RDWR);
 		if (fd!=-1){
 			if (v4l2_ioctl (fd, VIDIOC_QUERYCAP, &cap)==0) {
@@ -873,6 +889,8 @@ static void msv4l2_detect(MSWebCamManager *obj){
 				if (cap.capabilities & V4L2_CAP_DEVICE_CAPS) {
 					camera_caps = cap.device_caps;
 				}
+#else
+				camera_caps = V4L2_CAP_VIDEO_CAPTURE;
 #endif
 				if (((camera_caps & V4L2_CAP_VIDEO_CAPTURE)
 #ifdef V4L2_CAP_VIDEO_CAPTURE_MPLANE
@@ -889,6 +907,8 @@ static void msv4l2_detect(MSWebCamManager *obj){
 				}
 			}
 			close(fd);
+		}else if (errno != ENOENT){
+			ms_message("Could not open %s: %s", devname, strerror(errno));
 		}
 	}
 }

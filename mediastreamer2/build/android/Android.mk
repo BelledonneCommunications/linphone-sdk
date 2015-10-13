@@ -156,10 +156,13 @@ LOCAL_SRC_FILES += \
 	videofilters/mire.c \
 	videofilters/vp8.c \
 	videofilters/jpegwriter.c \
+	videofilters/msv4l2.c \
 	android/android-display.c \
 	android/android-display-bad.cpp \
 	android/androidvideo.cpp \
 	android/android-opengl-display.c
+
+LOCAL_CFLAGS += -DHAVE_LINUX_VIDEODEV2_H=1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_CFLAGS += -DVIDEO_ENABLED
