@@ -208,7 +208,7 @@ static void copy_paste_text_longer_than_rtt_buffer(void) {
 	BC_ASSERT_FALSE(wait_for_until_with_parse_events(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000, event_queue_cb, marielle, NULL, NULL));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
-	BC_ASSERT_EQUAL(strcmpresult, -1, int, "%d");
+	BC_ASSERT_TRUE(strcmpresult < 0);
 
 	uninit_text_streams(marielle, margaux);
 	text_stream_tester_destroy(marielle);
