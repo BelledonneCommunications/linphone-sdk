@@ -259,13 +259,13 @@ static void prepare(EncState *s){
 	avcodec_get_context_defaults3(c, NULL);
 	if (s->codec==CODEC_ID_MJPEG)
 	{
-		ms_message("Codec bitrate set to %i",c->bit_rate);
+		ms_message("Codec bitrate set to %i",(int)c->bit_rate);
 		c->width = s->vconf.vsize.width;
 		c->height = s->vconf.vsize.height;
 		c->time_base.num = 1;
 		c->time_base.den = (int)s->vconf.fps;
 		c->gop_size=(int)s->vconf.fps*5; /*emit I frame every 5 seconds*/
-		c->pix_fmt=PIX_FMT_YUVJ420P;
+		c->pix_fmt=AV_PIX_FMT_YUVJ420P;
 		s->comp_buf=allocb(c->bit_rate*2,0);
 		return;
 	}
@@ -297,20 +297,19 @@ static void prepare(EncState *s){
 		c->qmin=s->qmin;
 	}
 
-	ms_message("Codec bitrate set to %i",c->bit_rate);
 	c->width = s->vconf.vsize.width;
 	c->height = s->vconf.vsize.height;
 	c->time_base.num = 1;
 	c->time_base.den = (int)s->vconf.fps;
 	c->gop_size=(int)s->vconf.fps*10; /*emit I frame every 10 seconds*/
-	c->pix_fmt=PIX_FMT_YUV420P;
+	c->pix_fmt=AV_PIX_FMT_YUV420P;
 	s->comp_buf=allocb(c->bit_rate*2,0);
 #if HAVE_AVCODEC_SNOW
 	if (s->codec==CODEC_ID_SNOW){
 		c->strict_std_compliance=-2;
 	}
 #endif
-	ms_message("Codec size set to w=%i/h=%i",c->width, c->height);
+	ms_message("Codec size set to w=%i/h=%i, bitrate=%i",c->width, c->height, (int)c->bit_rate);
 
 }
 

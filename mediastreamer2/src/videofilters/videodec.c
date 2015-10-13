@@ -40,7 +40,7 @@ typedef struct DecState{
 	YuvBuf outbuf;
 	mblk_t *yuv_msg;
 	struct SwsContext *sws_ctx;
-	enum PixelFormat output_pix_fmt;
+	enum AVPixelFormat output_pix_fmt;
 	uint8_t dci[512];
 	int dci_size;
 	MSAverageFPS fps;
@@ -59,7 +59,7 @@ static void dec_init(MSFilter *f, enum CodecID cid){
 	s->codec=cid;
 	s->input=NULL;
 	s->yuv_msg=NULL;
-	s->output_pix_fmt=PIX_FMT_YUV420P;
+	s->output_pix_fmt=AV_PIX_FMT_YUV420P;
 	s->snow_initialized=FALSE;
 	s->outbuf.w=0;
 	s->outbuf.h=0;

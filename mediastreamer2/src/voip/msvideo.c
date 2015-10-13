@@ -404,21 +404,21 @@ void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]){
 int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt){
 	switch(fmt){
 		case MS_RGBA32:
-			return PIX_FMT_RGBA;
+			return AV_PIX_FMT_RGBA;
 		case MS_RGB24:
-			return PIX_FMT_RGB24;
+			return AV_PIX_FMT_RGB24;
 		case MS_RGB24_REV:
-			return PIX_FMT_BGR24;
+			return AV_PIX_FMT_BGR24;
 		case MS_YUV420P:
-			return PIX_FMT_YUV420P;
+			return AV_PIX_FMT_YUV420P;
 		case MS_YUYV:
-			return PIX_FMT_YUYV422;
+			return AV_PIX_FMT_YUYV422;
 		case MS_UYVY:
-			return PIX_FMT_UYVY422;
+			return AV_PIX_FMT_UYVY422;
 		case MS_YUY2:
-			return PIX_FMT_YUYV422;   /* <- same as MS_YUYV */
+			return AV_PIX_FMT_YUYV422;   /* <- same as MS_YUYV */
 		case MS_RGB565:
-			return PIX_FMT_RGB565;
+			return AV_PIX_FMT_RGB565;
 		default:
 			ms_fatal("format not supported.");
 			return -1;
@@ -428,19 +428,19 @@ int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt){
 
 MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt){
 	switch(fmt){
-		case PIX_FMT_RGB24:
+		case AV_PIX_FMT_RGB24:
 			return MS_RGB24;
-		case PIX_FMT_BGR24:
+		case AV_PIX_FMT_BGR24:
 			return MS_RGB24_REV;
-		case PIX_FMT_YUV420P:
+		case AV_PIX_FMT_YUV420P:
 			return MS_YUV420P;
-		case PIX_FMT_YUYV422:
+		case AV_PIX_FMT_YUYV422:
 			return MS_YUYV;     /* same as MS_YUY2 */
-		case PIX_FMT_UYVY422:
+		case AV_PIX_FMT_UYVY422:
 			return MS_UYVY;
-		case PIX_FMT_RGBA:
+		case AV_PIX_FMT_RGBA:
 			return MS_RGBA32;
-		case PIX_FMT_RGB565:
+		case AV_PIX_FMT_RGB565:
 			return MS_RGB565;
 		default:
 			ms_fatal("format not supported.");

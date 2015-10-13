@@ -127,7 +127,7 @@ static void jpg_process(MSFilter *f){
 			avctx->height=yuvbuf.h;
 			avctx->time_base.num = 1;
 			avctx->time_base.den =1;
-			avctx->pix_fmt=PIX_FMT_YUVJ420P;
+			avctx->pix_fmt=AV_PIX_FMT_YUVJ420P;
 
 			error=avcodec_open2(avctx,s->codec,NULL);
 			if (error!=0) {
@@ -136,7 +136,7 @@ static void jpg_process(MSFilter *f){
 				av_free(avctx);
 				goto end;
 			}
-			sws_ctx=sws_getContext(avctx->width,avctx->height,PIX_FMT_YUV420P,
+			sws_ctx=sws_getContext(avctx->width,avctx->height,AV_PIX_FMT_YUV420P,
 				avctx->width,avctx->height,avctx->pix_fmt,SWS_FAST_BILINEAR,NULL, NULL, NULL);
 			if (sws_ctx==NULL) {
 				ms_error(" sws_getContext() failed.");
