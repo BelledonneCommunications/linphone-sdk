@@ -234,8 +234,8 @@ typedef enum{
 
 typedef struct _MSPicture{
 	int w,h;
-	uint8_t *planes[4]; /*we usually use 3 planes, 4th is for compatibility */
-	int strides[4];	/*with ffmpeg's swscale.h */
+	uint8_t *planes[4]; /* we usually use 3 planes, 4th is for compatibility with ffmpeg's swscale.h */
+	int strides[4];	/* Bytes per row */
 }MSPicture;
 
 typedef struct _MSPicture YuvBuf; /*for backward compatibility*/
