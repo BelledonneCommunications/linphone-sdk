@@ -47,6 +47,11 @@ static MS2_INLINE void ms_queue_put(MSQueue *q, mblk_t *m){
 	return;
 }
 
+static MS2_INLINE void ms_queue_insert(MSQueue *q, mblk_t *em, mblk_t *m) {
+    insq(&q->q, em, m);
+    return;
+}
+
 static MS2_INLINE mblk_t * ms_queue_peek_last(MSQueue *q){
 	return qlast(&q->q);
 }
