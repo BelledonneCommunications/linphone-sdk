@@ -167,7 +167,7 @@ endif()
 target_include_directories(bellesip PUBLIC ${INCLUDES})
 target_link_libraries(bellesip ${LIBS})
 
-install(TARGETS bellesip EXPORT BelleSIPTargets
+install(TARGETS bellesip EXPORT ${EXPORT_TARGETS_NAME}Targets
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib

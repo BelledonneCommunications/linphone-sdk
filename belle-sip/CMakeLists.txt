@@ -187,6 +187,13 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 endif()
 
 
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
+else()
+	set(EXPORT_TARGETS_NAME "BelleSIP")
+endif()
+
+
 add_subdirectory(include)
 add_subdirectory(src)
 
@@ -203,9 +210,8 @@ write_basic_package_version_file(
 	VERSION ${PACKAGE_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
-export(EXPORT BelleSIPTargets
+export(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/BelleSIPTargets.cmake"
-	NAMESPACE BelledonneCommunications::
 )
 configure_file(cmake/BelleSIPConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfig.cmake"
@@ -213,9 +219,8 @@ configure_file(cmake/BelleSIPConfig.cmake.in
 )
 
 set(ConfigPackageLocation lib/cmake/BelleSIP)
-install(EXPORT BelleSIPTargets
+install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BelleSIPTargets.cmake
-	NAMESPACE BelledonneCommunications::
 	DESTINATION ${ConfigPackageLocation}
 )
 install(FILES
