@@ -450,6 +450,13 @@ add_definitions(-DHAVE_CONFIG_H)
 add_definitions(${ORTP_CPPFLAGS})
 
 
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
+else()
+	set(EXPORT_TARGETS_NAME "Mediastreamer2")
+endif()
+
+
 if(ENABLE_DOC)
 	add_subdirectory(help)
 endif()
@@ -469,9 +476,8 @@ write_basic_package_version_file(
 	VERSION ${MEDIASTREAMER_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
-export(EXPORT Mediastreamer2Targets
+export(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2Targets.cmake"
-	NAMESPACE BelledonneCommunications::
 )
 configure_file(cmake/Mediastreamer2Config.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2Config.cmake"
@@ -479,9 +485,8 @@ configure_file(cmake/Mediastreamer2Config.cmake.in
 )
 
 set(ConfigPackageLocation lib/cmake/Mediastreamer2)
-install(EXPORT Mediastreamer2Targets
+install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE Mediastreamer2Targets.cmake
-	NAMESPACE BelledonneCommunications::
 	DESTINATION ${ConfigPackageLocation}
 )
 install(FILES
