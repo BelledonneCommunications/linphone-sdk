@@ -233,6 +233,8 @@ const char *video_stream_get_default_video_renderer(void){
 	return "MSGLXVideo";
 #elif defined(__ios)
 	return "IOSDisplay";
+#elif defined(__QNX__)
+	return "MSBB10Display";
 #else
 	return "MSVideoOut";
 #endif
