@@ -81,6 +81,13 @@ if(MSVC)
 endif()
 
 
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
+else()
+	set(EXPORT_TARGETS_NAME "BZRTP")
+endif()
+
+
 add_subdirectory(include)
 add_subdirectory(src)
 if(ENABLE_TESTS)
@@ -95,9 +102,8 @@ write_basic_package_version_file(
 	VERSION ${BZRTP_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
-export(EXPORT BZRTPTargets
+export(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/BZRTPTargets.cmake"
-	NAMESPACE BelledonneCommunications::
 )
 configure_file(cmake/BZRTPConfig.cmake
 	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfig.cmake"
@@ -105,9 +111,8 @@ configure_file(cmake/BZRTPConfig.cmake
 )
 
 set(ConfigPackageLocation lib/cmake/BZRTP)
-install(EXPORT BZRTPTargets
+install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BZRTPTargets.cmake
-	NAMESPACE BelledonneCommunications::
 	DESTINATION ${ConfigPackageLocation}
 )
 install(FILES

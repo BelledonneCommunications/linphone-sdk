@@ -47,7 +47,7 @@ else()
 	endif()
 endif()
 
-install(TARGETS bzrtp EXPORT BZRTPTargets
+install(TARGETS bzrtp EXPORT ${EXPORT_TARGETS_NAME}Targets
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
