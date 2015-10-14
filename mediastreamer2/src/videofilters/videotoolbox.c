@@ -23,6 +23,7 @@
 #include "h264utils.h"
 #include <mediastreamer2/rfc3984.h>
 #include <mediastreamer2/msticker.h>
+#include <mediastreamer2/videostarter.h>
 
 const MSVideoConfiguration h264_video_confs[] = {
     MS_VIDEO_CONF( 1024000,  5000000,  SXGA_MINUS, 25,  4),
@@ -46,8 +47,12 @@ typedef struct _VTH264EncCtx {
     bool_t is_configured;
     bool_t bitrate_changed;
     bool_t fps_changed;
+    bool_t vfu_requested;
     const MSFilter *f;
     const MSVideoConfiguration *video_confs;
+    MSVideoStarter starter;
+    bool_t enable_avpf;
+    bool_t first_frame;
 } VTH264EncCtx;
 
 static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer) {
@@ -160,6 +165,8 @@ static void h264_enc_init(MSFilter *f) {
 static void h264_enc_preprocess(MSFilter *f) {
     VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
     h264_enc_configure(ctx);
+    ms_video_starter_init(&ctx->starter);
+    ctx->first_frame = TRUE;
 }
 
 static void h264_enc_process(MSFilter *f) {
@@ -204,7 +211,7 @@ static void h264_enc_process(MSFilter *f) {
         }
         
         ms_filter_lock(f);
-        if(ctx->fps_changed || ctx->bitrate_changed) {
+        if(ctx->fps_changed || ctx->bitrate_changed || ctx->vfu_requested) {
             CFNumberRef value;
             enc_param = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
             if(ctx->fps_changed) {
@@ -214,18 +221,42 @@ static void h264_enc_process(MSFilter *f) {
                 ctx->fps_changed = FALSE;
             }
             if(ctx->bitrate_changed) {
-                value = CFNumberCreate(NULL, kCFNumberIntType, value);
+                value = CFNumberCreate(NULL, kCFNumberIntType, &ctx->conf.required_bitrate);
                 CFDictionaryAddValue(enc_param, kVTCompressionPropertyKey_AverageBitRate, value);
                 CFRelease(value);
                 ctx->bitrate_changed = FALSE;
             }
+            if(ctx->vfu_requested) {
+                int force_keyframe = 1;
+                value = CFNumberCreate(NULL, kCFNumberIntType, &force_keyframe);
+                CFDictionaryAddValue(enc_param, kVTEncodeFrameOptionKey_ForceKeyFrame, value);
+                CFRelease(value);
+                ctx->vfu_requested = FALSE;
+            }
         }
         ms_filter_unlock(f);
+        
+        if(!ctx->enable_avpf) {
+            if(ctx->first_frame) {
+                ms_video_starter_first_frame(&ctx->starter, f->ticker->time);
+            }
+            if(ms_video_starter_need_i_frame(&ctx->starter, f->ticker->time)) {
+                if(enc_param == NULL) enc_param = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
+                if(CFDictionaryGetValue(enc_param, kVTEncodeFrameOptionKey_ForceKeyFrame) == NULL) {
+                    int force_keyframe = 1;
+                    CFNumberRef value = CFNumberCreate(NULL, kCFNumberIntType, &force_keyframe);
+                    CFDictionaryAddValue(enc_param, kVTEncodeFrameOptionKey_ForceKeyFrame, value);
+                    CFRelease(value);
+                }
+            }
+        }
         
         if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, kCMTimeInvalid, enc_param, NULL, NULL)) != noErr) {
             ms_error("VideoToolbox: could not pass a pixbuf to the encoder: error code %d", err);
             CFRelease(pixbuf);
         }
+        
+        ctx->first_frame = FALSE;
         
         if(enc_param) CFRelease(enc_param);
     }
@@ -298,14 +329,34 @@ static int h264_enc_set_fps(MSFilter *f, const float *fps) {
     return 0;
 }
 
+static int h264_enc_req_vfu(MSFilter *f, void *ptr) {
+    ms_filter_lock(f);
+    ((VTH264EncCtx *)f->data)->vfu_requested = TRUE;
+    ms_filter_unlock(f);
+    return 0;
+}
+
+static int h264_enc_enable_avpf(MSFilter *f, const bool_t *enable_avpf) {
+    VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
+    if(ctx->is_configured) {
+        ms_error("VideoToolbox: could not %s AVPF: encoder is running", *enable_avpf ? "enable" : "disable");
+        return -1;
+    }
+    ctx->enable_avpf = *enable_avpf;
+    return 0;
+}
+
 MSFilterMethod h264_enc_methods[] = {
-    {   MS_FILTER_GET_VIDEO_SIZE  , h264_enc_get_video_size  },
-    {   MS_FILTER_SET_VIDEO_SIZE  , h264_enc_set_video_size  },
-    {   MS_FILTER_GET_BITRATE     , h264_enc_get_bitrate     },
-    {   MS_FILTER_SET_BITRATE     , h264_enc_set_bitrate     },
-    {   MS_FILTER_GET_FPS         , h264_enc_get_fps         },
-    {   MS_FILTER_SET_FPS         , h264_enc_set_fps         },
-    {   0                         , NULL                     }
+    {   MS_FILTER_GET_VIDEO_SIZE     , h264_enc_get_video_size  },
+    {   MS_FILTER_SET_VIDEO_SIZE     , h264_enc_set_video_size  },
+    {   MS_FILTER_GET_BITRATE        , h264_enc_get_bitrate     },
+    {   MS_FILTER_SET_BITRATE        , h264_enc_set_bitrate     },
+    {   MS_FILTER_GET_FPS            , h264_enc_get_fps         },
+    {   MS_FILTER_SET_FPS            , h264_enc_set_fps         },
+    {   MS_FILTER_REQ_VFU            , h264_enc_req_vfu         },
+    {   MS_VIDEO_ENCODER_REQ_VFU     , h264_enc_req_vfu         },
+    {   MS_VIDEO_ENCODER_ENABLE_AVPF , h264_enc_enable_avpf     },
+    {   0                            , NULL                     }
 };
 
 MSFilterDesc ms_vt_h264_enc = {
