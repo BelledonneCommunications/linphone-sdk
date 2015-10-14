@@ -1042,43 +1042,29 @@ static void test_supported_header(void) {
 	test_supported("Supported", "id",value2,1);
 }
 
-static void test_content_disposition(const char* header_name, const char * header_value, const char* values[],size_t number_values) {
-	belle_sip_list_t* list;
+static void test_content_disposition_header(void) {
 	belle_sip_header_content_disposition_t* L_tmp;
-	belle_sip_header_content_disposition_t* L_content_disposition = BELLE_SIP_HEADER_CONTENT_DISPOSITION(belle_sip_header_create(header_name,header_value));
+	belle_sip_header_content_disposition_t* L_content_disposition = BELLE_SIP_HEADER_CONTENT_DISPOSITION(belle_sip_header_create("Content-Disposition","form-data; name=\"File\"; filename=\"toto.jpeg\""));
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_content_disposition));
-	size_t i=0;
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_disposition));
 	L_tmp = belle_sip_header_content_disposition_parse(l_raw_header);
 	L_content_disposition = BELLE_SIP_HEADER_CONTENT_DISPOSITION(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
-	
 	belle_sip_free(l_raw_header);
 	
-	list = belle_sip_header_content_disposition_get_content_disposition(L_content_disposition);
-	
-	for(i=0;i<number_values;i++){
-		BC_ASSERT_PTR_NOT_NULL(list);
-		if (list) {
-			BC_ASSERT_STRING_EQUAL((const char *)(list->data),values[i]);
-			list=list->next;
-		}
-	}
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_content_disposition_get_content_disposition(L_content_disposition), "form-data");
+	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_content_disposition), "name"), "\"File\"");
+	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_content_disposition), "filename"), "\"toto.jpeg\"");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_disposition));
 	BC_ASSERT_PTR_NULL(belle_sip_header_content_disposition_parse("nimportequoi"));
 }
-static void test_content_disposition_header(void) {
-	const char* value1[] ={"user","critical"};
-	const char* value2[] ={"recipient-list"};
-	test_content_disposition(BELLE_SIP_CONTENT_DISPOSITION, "recipient-list",value2,1);
-	test_content_disposition("Content-Disposition","user; critical",value1,2);
-}
 
 
-static void test_accept(const char* header_name, const char * header_value, const char* values[],size_t number_values) {
+static void test_accept_header(void) {
 	belle_sip_header_accept_t* L_tmp;
 	belle_sip_header_accept_t* L_accept = BELLE_SIP_HEADER_ACCEPT(belle_sip_header_create("Accept", "text/html; charset=ISO-8859-4"));
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_accept));
+	
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
 	L_tmp = belle_sip_header_accept_parse(l_raw_header);
 	L_accept = BELLE_SIP_HEADER_ACCEPT(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
@@ -1105,17 +1091,20 @@ static void test_accept(const char* header_name, const char * header_value, cons
 	L_accept = belle_sip_header_accept_parse(l_raw_header);
 	belle_sip_free(l_raw_header);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
+	
+	L_accept = belle_sip_header_accept_parse("Accept: application/sdp, text/plain, application/vnd.gsma.rcs-ft-http+xml");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_type(L_accept),"application");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_subtype(L_accept),"sdp");
+	L_tmp = BELLE_SIP_HEADER_ACCEPT(belle_sip_header_get_next(BELLE_SIP_HEADER(L_accept)));
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_type(L_tmp),"text");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_subtype(L_tmp),"plain");
+	L_tmp = BELLE_SIP_HEADER_ACCEPT(belle_sip_header_get_next(BELLE_SIP_HEADER(L_tmp)));
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_type(L_tmp),"application");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_subtype(L_tmp),"vnd.gsma.rcs-ft-http+xml");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
+	
 	BC_ASSERT_PTR_NULL(belle_sip_header_accept_parse("nimportequoi"));
 }
-static void test_accept_header(void) {
-	const char* value1[] ={"user","critical"};
-	const char* value2[] ={"recipient-list"};
-	test_accept(BELLE_SIP_ACCEPT, "recipient-list",value2,1);
-	test_accept("Accept","user; critical",value1,2);
-}
-
-
-
 
 test_t headers_tests[] = {
 	{ "Address", test_address_header },
@@ -1159,7 +1148,6 @@ test_t headers_tests[] = {
 	{ "Header Supported", test_supported_header },
 	{ "Header Content-Disposition", test_content_disposition_header },
 	{ "Header Accept", test_accept_header }
-
 };
 
 test_suite_t headers_test_suite = {"Headers", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,

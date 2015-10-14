@@ -331,10 +331,13 @@ belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, cha
 			}else
 #endif
 			{
-				error=belle_sip_object_marshal(BELLE_SIP_OBJECT(h),buff,buff_size,offset);
-				if (error!=BELLE_SIP_OK) return error;
-				error=belle_sip_snprintf(buff,buff_size,offset,"%s","\r\n");
-				if (error!=BELLE_SIP_OK) return error;
+				while (h!=NULL) { /*header can be chained*/
+					error=belle_sip_object_marshal(BELLE_SIP_OBJECT(h),buff,buff_size,offset);
+					if (error!=BELLE_SIP_OK) return error;
+					error=belle_sip_snprintf(buff,buff_size,offset,"%s","\r\n");
+					if (error!=BELLE_SIP_OK) return error;
+					h= belle_sip_header_get_next(h);
+				}
 			}
 		}
 	}

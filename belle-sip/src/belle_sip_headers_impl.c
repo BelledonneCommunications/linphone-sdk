@@ -1872,7 +1872,40 @@ PRIVACY_LIKE_HEADER(supported,BELLE_SIP_SUPPORTED,",")
  * Content-Disposition header inherits from header
  *
  ******************************/
-PRIVACY_LIKE_HEADER(content_disposition,BELLE_SIP_CONTENT_DISPOSITION,";")
+struct _belle_sip_header_content_disposition  {
+	belle_sip_parameters_t parameters;
+	const char* content_disposition;
+};
+
+static void belle_sip_header_content_disposition_destroy(belle_sip_header_content_disposition_t* content_disposition) {
+	DESTROY_STRING(content_disposition,content_disposition);
+}
+
+static void belle_sip_header_content_disposition_clone(belle_sip_header_content_disposition_t* content_disposition,
+													  const belle_sip_header_content_disposition_t *orig ) {
+	CLONE_STRING(belle_sip_header_content_disposition,content_disposition,content_disposition,orig)
+}
+
+belle_sip_error_code belle_sip_header_content_disposition_marshal(belle_sip_header_content_disposition_t* content_disposition, char* buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(content_disposition), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sip_snprintf(buff,buff_size,offset,"%s",content_disposition->content_disposition);
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sip_parameters_marshal(BELLE_SIP_PARAMETERS(content_disposition), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+	return error;
+}
+
+BELLE_SIP_NEW_HEADER(header_content_disposition,parameters,BELLE_SIP_CONTENT_DISPOSITION)
+BELLE_SIP_PARSE(header_content_disposition)
+GET_SET_STRING(belle_sip_header_content_disposition,content_disposition);
+
+belle_sip_header_content_disposition_t* belle_sip_header_content_disposition_create (const char* value)  {
+	belle_sip_header_content_disposition_t* header=belle_sip_header_content_disposition_new();
+	belle_sip_header_content_disposition_set_content_disposition(header,value);
+	return header;
+}
+
 
 /******************************
  * Accept header inherits from parameters

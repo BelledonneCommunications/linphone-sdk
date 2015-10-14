@@ -1420,33 +1420,48 @@ supported_val: token {belle_sip_header_supported_add_supported($header_supported
 
 //**********************************Content-Disposition*******************************//
 
+content_disposition_value: token ;
+
 header_content_disposition  returns [belle_sip_header_content_disposition_t* ret]
 scope { belle_sip_header_content_disposition_t* current; }
-@init { $header_content_disposition::current = belle_sip_header_content_disposition_new();$ret = $header_content_disposition::current;}
-:   {IS_TOKEN(Content-Disposition)}? token /*'Content-Disposition'*/ hcolon content_disposition_val (semi content_disposition_val)*;
+@init { $header_content_disposition::current = belle_sip_header_content_disposition_new();$ret = $header_content_disposition::current; }
+: {IS_TOKEN(Content-Disposition)}? token /*"Content-Disposition"*/
+hcolon content_disposition_value {belle_sip_header_content_disposition_set_content_disposition($header_content_disposition::current,(const char*)$content_disposition_value.text->chars);}
+(semi  generic_param [BELLE_SIP_PARAMETERS($header_content_disposition::current)])* ;
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
 	belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-	belle_sip_object_unref($ret);
+	belle_sip_object_unref($header_content_disposition::current);
 	$ret=NULL;
 }
-content_disposition_val: token {belle_sip_header_content_disposition_add_content_disposition($header_content_disposition::current,(const char*)$token.text->chars);};
-
 //**********************************Accept*******************************//
 
 
 accept_token :  {IS_TOKEN(Accept)}? token;
 header_accept  returns [belle_sip_header_accept_t* ret=NULL]
-scope { belle_sip_header_accept_t* current;}
-@init { $header_accept::current = belle_sip_header_accept_new();$ret=$header_accept::current; }
-:  accept_token/* ( 'Accept')*/ hcolon accept_media_type;
+scope { belle_sip_header_accept_t* current; belle_sip_header_accept_t* first; }
+@init { $header_accept::current = NULL;$header_accept::first =NULL;$ret = NULL;}
+:  accept_token/* ( 'Accept')*/ hcolon accept_param (comma accept_param)* {$ret = $header_accept::first;} ;
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
 	belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-	belle_sip_object_unref($header_accept::current);
+	$ret = $header_accept::first;
+	if ($ret) belle_sip_object_unref($ret);
 	$ret=NULL;
 }
-accept_media_type
+
+accept_param
+scope { belle_sip_header_accept_t* prev;}
+@init { if ($header_accept::current == NULL) {
+	$header_accept::first = $header_accept::current = belle_sip_header_accept_new();
+	$accept_param::prev=NULL;
+} else {
+	belle_sip_header_t* header;
+	$accept_param::prev=$header_accept::current;
+	header = BELLE_SIP_HEADER($header_accept::current);
+	belle_sip_header_set_next(header,(belle_sip_header_t*)($header_accept::current = belle_sip_header_accept_new()));
+}
+}
 :  accept_main_media_type {belle_sip_header_accept_set_type($header_accept::current,(const char*)$accept_main_media_type.text->chars);}
 slash
 accept_sub_media_type {belle_sip_header_accept_set_subtype($header_accept::current,(const char*)$accept_sub_media_type.text->chars);}
@@ -1456,6 +1471,7 @@ accept_main_media_type: token;
 accept_sub_media_type: token;
 
 
+//*********************************************//
 header  returns [belle_sip_header_t* ret=NULL]
 	 : header_extension_base[FALSE] {$ret=$header_extension_base.ret;};
 	
