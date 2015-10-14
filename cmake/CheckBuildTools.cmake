@@ -34,7 +34,7 @@ if(MSVC)
 		message(FATAL_ERROR "Could not find MinGW!")
 	endif()
 
-	if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+	if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 		find_file(GCC_LIBRARY
 			NAMES libgcc.a
 			HINTS "C:/MinGW/lib/gcc/mingw32/*"

@@ -176,7 +176,7 @@ if(MSVC)
 		FILES_MATCHING PATTERN "libmswasapi.dll"
 	)
 	string(REGEX REPLACE "Visual Studio ([0-9]+).*" "\\1" MSVC_VERSION "${CMAKE_GENERATOR}")
-	if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		set(MSVC_DEBUG_SYSTEM_LIBRARIES "d")
 	endif()
 	find_file(MSVCP_LIB "msvcp${MSVC_VERSION}0${MSVC_DEBUG_SYSTEM_LIBRARIES}.dll" PATHS "C:/Windows/System32")

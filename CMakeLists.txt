@@ -57,7 +57,7 @@ else()
 
 
 	# Get build tools and flags for autotools projects (except for Windows Phone where we cannot build with MinGW)
-	if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+	if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 		linphone_builder_get_autotools_configuration()
 	endif()
 

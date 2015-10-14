@@ -31,7 +31,7 @@ else(APPLE)
 	set(BBNDK_SEARCH_PATH $ENV{HOME}/bbndk)
 endif(APPLE)
 file(GLOB BBNDK_ENV_SCRIPT ${BBNDK_SEARCH_PATH}/bbndk-env*.sh)
-if("${BBNDK_ENV_SCRIPT}" STREQUAL "")
+if(BBNDK_ENV_SCRIPT STREQUAL "")
 	message(FATAL_ERROR "Could not find the bbndk environment setup script. Please make sure you installed the BlackBerry 10 native SDK.")
 endif()
 
@@ -47,7 +47,7 @@ execute_process(COMMAND ${CMAKE_CURRENT_BINARY_DIR}/get_qnx_target.sh
 )
 
 file(GLOB COMPILER_PATH "${QNX_HOST}/usr/bin/${COMPILER_PREFIX}*-gcc")
-if("${COMPILER_PATH}" STREQUAL "")
+if(COMPILER_PATH STREQUAL "")
 	message(FATAL_ERROR "Could not find compiler")
 endif()
 
