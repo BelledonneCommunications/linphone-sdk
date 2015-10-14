@@ -105,36 +105,22 @@ else()
 			set(EP_vpx_BUILD_IN_SOURCE 1) # Build in source otherwise there are some compilation errors
 		endif()
 		set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
+	elseif(QNX)
+		set(EP_vpx_TARGET "armv7-qnx-gcc")
+		list(REMOVE_ITEM EP_vpx_CONFIGURE_OPTIONS "--enable-multithread")
+		list(APPEND EP_vpx_CONFIGURE_OPTIONS
+			"--libc=${QNX_TARGET}/${ROOT_PATH_SUFFIX}"
+			"--force-target=armv7-qnx-gcc"
+			"--disable-runtime-cpu-detect"
+		)
+		#set(EP_vpx_BUILD_IN_SOURCE 1)
 	else()
-		if("${CMAKE_SYSTEM_NAME}" STREQUAL "QNX")
-			set(EP_vpx_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/vpx/enable-qnx-build.patch" "--binary")
-			set(EP_vpx_TARGET "armv7-qnx-gcc")
-			set(EP_vpx_CONFIGURE_OPTIONS
-				"--enable-error-concealment"
-				"--enable-realtime-only"
-				"--enable-spatial-resampling"
-				"--enable-vp8"
-				"--disable-vp9"
-				"--enable-libs"
-				"--disable-install-docs"
-				"--disable-debug-libs"
-				"--disable-examples"
-				"--disable-unit-tests"
-				"--disable-multithread"
-				"--as=yasm"
-				"--libc=${QNX_TARGET}/${ROOT_PATH_SUFFIX}"
-				"--force-target=armv7-qnx-gcc"
-				"--disable-runtime-cpu-detect"
-			)
-			set(EP_vpx_BUILD_IN_SOURCE "yes")
+		if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+			set(EP_vpx_TARGET "x86_64-linux-gcc")
 		else()
-			if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-				set(EP_vpx_TARGET "x86_64-linux-gcc")
-			else()
-				set(EP_vpx_TARGET "x86-linux-gcc")
-			endif()
-			set(EP_vpx_LINKING_TYPE "--disable-static" "--enable-shared")
+			set(EP_vpx_TARGET "x86-linux-gcc")
 		endif()
+		set(EP_vpx_LINKING_TYPE "--disable-static" "--enable-shared")
 	endif()
 
 	set(EP_vpx_CROSS_COMPILATION_OPTIONS
