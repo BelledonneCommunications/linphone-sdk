@@ -39,8 +39,7 @@ const MSVideoConfiguration h264_video_confs[] = {
 
 typedef struct _VTH264EncCtx {
     VTCompressionSessionRef session;
-    MSVideoSize vsize;
-    int32_t bitrate;
+    MSVideoConfiguration conf;
     MSQueue queue;
     ms_mutex_t mutex;
     Rfc3984Context packer_ctx;
@@ -103,20 +102,23 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
     OSStatus err;
     const char *error_msg = "Could not initialize the VideoToolbox compresson session";
     int max_payload_size = ms_factory_get_payload_max_size(ctx->f->factory);
-    CFNumberRef bitrate = NULL;
+    CFNumberRef value = NULL;
     
-    err =VTCompressionSessionCreate(NULL, ctx->vsize.width, ctx->vsize.height, kCMVideoCodecType_H264,
+    err =VTCompressionSessionCreate(NULL, ctx->conf.vsize.width, ctx->conf.vsize.height, kCMVideoCodecType_H264,
                                     NULL, NULL, NULL, h264_enc_output_cb, ctx, &ctx->session);
     if(err) {
         ms_error("%s: error code %d", error_msg, err);
         goto fail;
     }
     
-    bitrate = CFNumberCreate(NULL, kCFNumberSInt32Type, &ctx->bitrate);
     VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
     VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse);
-    VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_AverageBitRate, bitrate);
-    CFRelease(bitrate);
+    value = CFNumberCreate(NULL, kCFNumberIntType, &ctx->conf.required_bitrate);
+    VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_AverageBitRate, value);
+    CFRelease(value);
+    value = CFNumberCreate(NULL, kCFNumberFloatType, &ctx->conf.fps);
+    VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ExpectedFrameRate, value);
+    CFRelease(value);
     
     if((err = VTCompressionSessionPrepareToEncodeFrames(ctx->session)) != 0) {
         ms_error("Could not prepare the VideoToolbox compression session: error code %d", err);
@@ -145,7 +147,7 @@ static void h264_enc_unconfigure(VTH264EncCtx *ctx) {
 
 static void h264_enc_init(MSFilter *f) {
     VTH264EncCtx *ctx = (VTH264EncCtx *)ms_new0(VTH264EncCtx, 1);
-    ctx->vsize = MS_VIDEO_SIZE_CIF;
+    ctx->conf.vsize = MS_VIDEO_SIZE_CIF;
     ms_mutex_init(&ctx->mutex, NULL);
     ms_queue_init(&ctx->queue);
     ctx->f = f;
@@ -226,38 +228,47 @@ static void h264_enc_uninit(MSFilter *f) {
 }
 
 static int h264_enc_get_video_size(MSFilter *f, MSVideoSize *vsize) {
-    *vsize = ((VTH264EncCtx *)f->data)->vsize;
+    *vsize = ((VTH264EncCtx *)f->data)->conf.vsize;
     return 0;
 }
 
 static int h264_enc_set_video_size(MSFilter *f, const MSVideoSize *vsize) {
     VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-    MSVideoConfiguration conf;
     if(ctx->is_configured) {
         ms_error("VideoToolbox: could not set video size: encoder is running");
         return -1;
     }
-    conf = ms_video_find_best_configuration_for_size(ctx->video_confs, *vsize, f->factory->cpu_count);
-    ctx->vsize = conf.vsize;
-    ctx->bitrate = conf.required_bitrate;
+    ctx->conf = ms_video_find_best_configuration_for_size(ctx->video_confs, *vsize, f->factory->cpu_count);
     return 0;
 }
 
 static int h264_enc_get_bitrate(MSFilter *f, int *bitrate) {
-    *bitrate = ((VTH264EncCtx *)f->data)->bitrate;
+    *bitrate = ((VTH264EncCtx *)f->data)->conf.required_bitrate;
     return 0;
 }
 
 static int h264_enc_set_bitrate(MSFilter *f, const int *bitrate) {
     VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-    MSVideoConfiguration conf;
     if(ctx->is_configured) {
         ms_error("VideoToolbox: could not set the bitrate: encoder is running");
         return -1;
     }
-    conf = ms_video_find_best_configuration_for_bitrate(ctx->video_confs, *bitrate, f->factory->cpu_count);
-    ctx->vsize = conf.vsize;
-    ctx->bitrate = conf.required_bitrate;
+    ctx->conf = ms_video_find_best_configuration_for_bitrate(ctx->video_confs, *bitrate, f->factory->cpu_count);
+    return 0;
+}
+
+static int h264_enc_get_fps(MSFilter *f, float *fps) {
+    *fps = ((VTH264EncCtx *)f->data)->conf.fps;
+    return 0;
+}
+
+static int h264_enc_set_fps(MSFilter *f, const float *fps) {
+    VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
+    if(ctx->is_configured) {
+        ms_error("VideoToolbox: could not set the frame rate: encoder is running");
+        return -1;
+    }
+    ctx->conf.fps = *fps;
     return 0;
 }
 
@@ -266,6 +277,8 @@ MSFilterMethod h264_enc_methods[] = {
     {   MS_FILTER_SET_VIDEO_SIZE  , h264_enc_set_video_size  },
     {   MS_FILTER_GET_BITRATE     , h264_enc_get_bitrate     },
     {   MS_FILTER_SET_BITRATE     , h264_enc_set_bitrate     },
+    {   MS_FILTER_GET_FPS         , h264_enc_get_fps         },
+    {   MS_FILTER_SET_FPS         , h264_enc_set_fps         },
     {   0                         , NULL                     }
 };
 
