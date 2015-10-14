@@ -54,7 +54,7 @@
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 #define strdup _strdup
-#define mblen _mblen
+
 #else
 #include <stdint.h>
 #endif

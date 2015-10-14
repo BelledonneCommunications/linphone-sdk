@@ -20,6 +20,7 @@
 #include "belle_sip_internal.h"
 #include <limits.h>
 #include <ctype.h>
+#include <wchar.h>
 
 #ifdef ANDROID
 #include "wakelock_internal.h"
@@ -937,10 +938,11 @@ static size_t find_non_printable(const char *buffer, size_t size){
 	return size;
 #else
 	size_t i=0;
-	 
+	mbstate_t mbs;
+	memset(&mbs, 0, sizeof(mbs));
 	do {
-		int valid_multibyte_len = mblen(buffer+i, size-i);
-		if (valid_multibyte_len <= 0) break;
+		size_t valid_multibyte_len = mbrlen(buffer+i, size-i, &mbs);
+		if (valid_multibyte_len == (size_t)-1 || valid_multibyte_len == (size_t)-2 || valid_multibyte_len == 0) break;
 		i += valid_multibyte_len;
 	}while(1);
 	return i;
