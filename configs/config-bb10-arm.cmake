@@ -38,8 +38,5 @@ list(APPEND EP_speex_CMAKE_OPTIONS
 # opus
 list(APPEND EP_opus_CONFIGURE_OPTIONS "--enable-fixed-point")
 
-#polar ssl
-list(APPEND EP_polarssl_EXTRA_CFLAGS "-fomit-frame-pointer")
-
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
