@@ -160,9 +160,9 @@ endif()
 add_definitions(-DHAVE_CONFIG_H)
 if(NOT MSVC)
 	add_definitions(-Wall -Wno-error=unknown-pragmas)
-	if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		add_definitions(-Werror -Wno-error=unknown-warning-option -Qunused-arguments -Wno-tautological-compare)
-	elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+	elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 		add_definitions(-Werror -Wno-error=pragmas)
 	endif()
 endif()
@@ -179,7 +179,7 @@ if(WIN32)
 		-DBELLESIP_INTERNAL_EXPORTS
 	)
 endif()
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 	add_definitions(
 		-DHAVE_COMPILER_TLS
 		-DUSE_FIXED_NAMESERVERS
