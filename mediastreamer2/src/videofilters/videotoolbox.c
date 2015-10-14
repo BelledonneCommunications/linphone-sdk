@@ -44,6 +44,8 @@ typedef struct _VTH264EncCtx {
     ms_mutex_t mutex;
     Rfc3984Context packer_ctx;
     bool_t is_configured;
+    bool_t bitrate_changed;
+    bool_t fps_changed;
     const MSFilter *f;
     const MSVideoConfiguration *video_confs;
 } VTH264EncCtx;
@@ -177,6 +179,7 @@ static void h264_enc_process(MSFilter *f) {
         CVPixelBufferRef pixbuf;
         size_t plane_width[3], plane_height[3], plane_byte_per_line[3];
         size_t pix_data_size;
+        CFMutableDictionaryRef enc_param = NULL;
 
         ms_yuv_buf_init_from_mblk(&yuv_frame, frame);
         plane_width[0] = yuv_frame.w;
@@ -200,10 +203,31 @@ static void h264_enc_process(MSFilter *f) {
             continue;
         }
         
-        if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, kCMTimeInvalid, NULL, NULL, NULL)) != noErr) {
+        ms_filter_lock(f);
+        if(ctx->fps_changed || ctx->bitrate_changed) {
+            CFNumberRef value;
+            enc_param = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
+            if(ctx->fps_changed) {
+                value = CFNumberCreate(NULL, kCFNumberFloatType, &ctx->conf.fps);
+                CFDictionaryAddValue(enc_param, kVTCompressionPropertyKey_ExpectedFrameRate, value);
+                CFRelease(value);
+                ctx->fps_changed = FALSE;
+            }
+            if(ctx->bitrate_changed) {
+                value = CFNumberCreate(NULL, kCFNumberIntType, value);
+                CFDictionaryAddValue(enc_param, kVTCompressionPropertyKey_AverageBitRate, value);
+                CFRelease(value);
+                ctx->bitrate_changed = FALSE;
+            }
+        }
+        ms_filter_unlock(f);
+        
+        if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, kCMTimeInvalid, enc_param, NULL, NULL)) != noErr) {
             ms_error("VideoToolbox: could not pass a pixbuf to the encoder: error code %d", err);
             CFRelease(pixbuf);
         }
+        
+        if(enc_param) CFRelease(enc_param);
     }
     
     ms_mutex_lock(&ctx->mutex);
@@ -249,11 +273,14 @@ static int h264_enc_get_bitrate(MSFilter *f, int *bitrate) {
 
 static int h264_enc_set_bitrate(MSFilter *f, const int *bitrate) {
     VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-    if(ctx->is_configured) {
-        ms_error("VideoToolbox: could not set the bitrate: encoder is running");
-        return -1;
+    if(!ctx->is_configured) {
+        ctx->conf = ms_video_find_best_configuration_for_bitrate(ctx->video_confs, *bitrate, f->factory->cpu_count);
+    } else {
+        ms_filter_lock(f);
+        ctx->conf.required_bitrate = *bitrate;
+        ctx->bitrate_changed = TRUE;
+        ms_filter_unlock(f);
     }
-    ctx->conf = ms_video_find_best_configuration_for_bitrate(ctx->video_confs, *bitrate, f->factory->cpu_count);
     return 0;
 }
 
@@ -264,11 +291,10 @@ static int h264_enc_get_fps(MSFilter *f, float *fps) {
 
 static int h264_enc_set_fps(MSFilter *f, const float *fps) {
     VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-    if(ctx->is_configured) {
-        ms_error("VideoToolbox: could not set the frame rate: encoder is running");
-        return -1;
-    }
+    ms_filter_lock(f);
     ctx->conf.fps = *fps;
+    if(ctx->is_configured) ctx->fps_changed = TRUE;
+    ms_filter_unlock(f);
     return 0;
 }
 
