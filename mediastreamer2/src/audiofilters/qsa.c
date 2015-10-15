@@ -271,6 +271,10 @@ io_error:
 	ms_queue_put(f->outputs[0], om);
 
 setup_failure:
+	if (d->mixer_handle != NULL) {
+		snd_mixer_close(d->mixer_handle);
+		d->mixer_handle = NULL;
+	}
 	if (d->handle != NULL) {
 		snd_pcm_close(d->handle);
 		d->handle = NULL;
@@ -284,6 +288,10 @@ setup_failure:
 static void ms_qsa_read_postprocess(MSFilter *f) {
 	MSQSAReadData *d = (MSQSAReadData *)f->data;
 
+	if (d->mixer_handle != NULL) {
+		snd_mixer_close(d->mixer_handle);
+		d->mixer_handle = NULL;
+	}
 	if (d->handle != NULL) {
 		snd_pcm_plugin_flush(d->handle, SND_PCM_CHANNEL_CAPTURE);
 		snd_pcm_close(d->handle);
