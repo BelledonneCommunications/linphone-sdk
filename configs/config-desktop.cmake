@@ -121,6 +121,28 @@ if(WIN32)
 	set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 endif()
 
+
+# Install GTK and intltool for build with Visual Studio
+if(MSVC AND ENABLE_GTK)
+	if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/intltool_win32.zip")
+		message(STATUS "Installing intltool")
+		file(DOWNLOAD http://ftp.acc.umu.se/pub/GNOME/binaries/win32/intltool/0.40/intltool_0.40.4-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/intltool_win32.zip" SHOW_PROGRESS)
+		execute_process(
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/intltool_win32.zip"
+			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
+		)
+	endif()
+	if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/gtk+-bundle_win32.zip")
+		message(STATUS "Installing GTK")
+		file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/gtk+-bundle_2.24.10-20120208_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/gtk+-bundle_win32.zip" SHOW_PROGRESS)
+		execute_process(
+			COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_CURRENT_BINARY_DIR}/gtk+-bundle_win32.zip"
+			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
+		)
+	endif()
+endif()
+
+
 # Create a shortcut to linphone.exe in install prefix
 if(LINPHONE_BUILDER_TARGET STREQUAL linphone AND WIN32)
 	set(SHORTCUT_PATH "${CMAKE_INSTALL_PREFIX}/linphone.lnk")
@@ -130,12 +152,12 @@ if(LINPHONE_BUILDER_TARGET STREQUAL linphone AND WIN32)
 	add_custom_command(OUTPUT "${SHORTCUT_PATH}"
 		COMMAND "cscript" "${CMAKE_CURRENT_BINARY_DIR}/winshortcut.vbs"
 	)
-	add_custom_target(linphone_winshortcut ALL DEPENDS "${SHORTCUT_PATH}" TARGET_linphone)
+	add_custom_target(linphone_winshortcut ALL DEPENDS "${SHORTCUT_PATH}" TARGET_linphone_builder)
 endif()
 
 
 # Packaging
-if (ENABLE_PACKAGING)
+if(ENABLE_PACKAGING)
 	# Linphone and linphone SDK packages
 	if(LINPHONE_BUILDER_TARGET STREQUAL linphone)
 		linphone_builder_apply_flags()
