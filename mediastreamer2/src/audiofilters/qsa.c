@@ -275,6 +275,10 @@ setup_failure:
 		snd_pcm_close(d->handle);
 		d->handle = NULL;
 	}
+	if (d->audioman_handle != NULL) {
+		audio_manager_free_handle(d->audioman_handle);
+		d->audioman_handle = NULL;
+	}
 }
 
 static void ms_qsa_read_postprocess(MSFilter *f) {
@@ -611,6 +615,10 @@ setup_failure:
 	if (d->handle != NULL) {
 		snd_pcm_close(d->handle);
 		d->handle = NULL;
+	}
+	if (d->audioman_handle != NULL) {
+		audio_manager_free_handle(d->audioman_handle);
+		d->audioman_handle = NULL;
 	}
 	ms_queue_flush(f->inputs[0]);
 }
