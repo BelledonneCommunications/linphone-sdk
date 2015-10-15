@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-set(DEFAULT_VALUE_ENABLE_VPX ON)
-
 include(configs/config-bb10.cmake)
+
+set(DEFAULT_VALUE_ENABLE_VPX ON)
 
 # Global configuration
 set(LINPHONE_BUILDER_CFLAGS "${LINPHONE_BUILDER_CFLAGS} -march=armv7-a -mfpu=neon")

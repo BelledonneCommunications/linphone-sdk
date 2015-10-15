@@ -22,11 +22,11 @@
 
 # Common build options
 
-option(ENABLE_UNIT_TESTS "Enable unit tests support with CUnit library." ${DEFAULT_VALUE_ENABLE_UNIT_TESTS})
+option(ENABLE_UNIT_TESTS "Enable unit tests support with CUnit library." "${DEFAULT_VALUE_ENABLE_UNIT_TESTS}")
 add_feature_info("Unit tests" ENABLE_UNIT_TESTS "Build unit tests programs for belle-sip, mediastreamer2 and linphone.")
 option(ENABLE_DEBUG_LOGS "Enable debug level logs in libinphone and mediastreamer2." NO)
 
-option(ENABLE_PACKAGING "Enable packaging" ${DEFAULT_VALUE_ENABLE_PACKAGING})
+option(ENABLE_PACKAGING "Enable packaging" "${DEFAULT_VALUE_ENABLE_PACKAGING}")
 
 option(ENABLE_DOC "Enable documentation generation with Doxygen." YES)
 add_feature_info("Documentation" ENABLE_DOC "Enable documentation generation with Doxygen.")

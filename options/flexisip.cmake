@@ -22,24 +22,24 @@
 
 # Flexisip build options
 
-option(ENABLE_ODB "Enable odb support." ${DEFAULT_VALUE_ENABLE_ODB})
+option(ENABLE_ODB "Enable odb support." "${DEFAULT_VALUE_ENABLE_ODB}")
 add_feature_info("ODB" ENABLE_ODB "Enable odb support.")
 
-option(ENABLE_ODBC "Enable odbc support." ${DEFAULT_VALUE_ENABLE_ODBC})
+option(ENABLE_ODBC "Enable odbc support." "${DEFAULT_VALUE_ENABLE_ODBC}")
 add_feature_info("ODBC" ENABLE_ODBC "Enable odbc support.")
-cmake_dependent_option(ENABLE_BC_ODBC "Enable odbc support from Belledonne Communications." ${DEFAULT_VALUE_ENABLE_BC_ODBC} "ENABLE_ODBC" OFF)
+cmake_dependent_option(ENABLE_BC_ODBC "Enable odbc support from Belledonne Communications." "${DEFAULT_VALUE_ENABLE_BC_ODBC}" "ENABLE_ODBC" OFF)
 
-option(ENABLE_REDIS "Enable hiredis support." ${DEFAULT_VALUE_ENABLE_REDIS})
+option(ENABLE_REDIS "Enable hiredis support." "${DEFAULT_VALUE_ENABLE_REDIS}")
 add_feature_info("REDIS" ENABLE_REDIS "Enable hiredis support.")
 
-option(ENABLE_PUSHNOTIFICATION "Enable push notification support." ${DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION})
+option(ENABLE_PUSHNOTIFICATION "Enable push notification support." "${DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION}")
 add_feature_info("PUSHNOTIFICATION" ENABLE_PUSHNOTIFICATION "Enable push notification support.")
 
-option(ENABLE_PRESENCE "Enable presence server support." ${DEFAULT_VALUE_ENABLE_PRESENCE})
+option(ENABLE_PRESENCE "Enable presence server support." "${DEFAULT_VALUE_ENABLE_PRESENCE}")
 add_feature_info("PRESENCE" ENABLE_PRESENCE "Enable presence server.")
 
 option(XSDCXX_ROOT_PATH "Path of where the bin/xsdcxx executable will be found. Comes from http://www.codesynthesis.com/products/xsd/download.xhtml" "/usr" )
 add_feature_info("XSDCXX_ROOT_PATH" XSDCXX_ROOT_PATH "Path of where the bin/xsdcxx executable will be found. Comes from http://www.codesynthesis.com/products/xsd/download.xhtml")
 
-option(ENABLE_SNMP "Enable SNMP support" ${DEFAULT_ENABLE_SNMP} )
+option(ENABLE_SNMP "Enable SNMP support" "${DEFAULT_ENABLE_SNMP}")
 add_feature_info("ENABLE_SNMP" ENABLE_SNMP "Enable SNMP support")
