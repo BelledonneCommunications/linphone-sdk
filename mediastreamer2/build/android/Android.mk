@@ -162,7 +162,8 @@ LOCAL_SRC_FILES += \
 	android/androidvideo.cpp \
 	android/android-opengl-display.c
 
-LOCAL_CFLAGS += -DHAVE_LINUX_VIDEODEV2_H=1
+#uncomment this if you want to try loading v4l2 cameras on android (not really supported by google).
+#LOCAL_CFLAGS += -DHAVE_LINUX_VIDEODEV2_H=1
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_CFLAGS += -DVIDEO_ENABLED
