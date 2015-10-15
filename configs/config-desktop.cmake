@@ -123,7 +123,7 @@ endif()
 
 
 # Install GTK and intltool for build with Visual Studio
-if(MSVC AND ENABLE_GTK)
+if(MSVC)
 	if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/intltool_win32.zip")
 		message(STATUS "Installing intltool")
 		file(DOWNLOAD http://ftp.acc.umu.se/pub/GNOME/binaries/win32/intltool/0.40/intltool_0.40.4-1_win32.zip "${CMAKE_CURRENT_BINARY_DIR}/intltool_win32.zip" SHOW_PROGRESS)
