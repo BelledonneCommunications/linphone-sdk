@@ -373,7 +373,7 @@ static void belle_sip_request_clone(belle_sip_request_t *request, const belle_si
 }
 
 belle_sip_error_code belle_sip_request_marshal(belle_sip_request_t* request, char* buff, size_t buff_size, size_t *offset) {
-	belle_sip_error_code error=belle_sip_snprintf(buff,buff_size,offset,"%s ",belle_sip_request_get_method(request));
+	belle_sip_error_code error=belle_sip_snprintf(buff,buff_size,offset,"%s ",belle_sip_request_get_method(request) ? belle_sip_request_get_method(request) : "");
 
 	if (error!=BELLE_SIP_OK) return error;
 	if (request->uri)
