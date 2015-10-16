@@ -22,7 +22,7 @@
 
 set(EP_srtp_GIT_REPOSITORY "git://git.linphone.org/srtp.git" CACHE STRING "srtp repository URL")
 set(EP_srtp_GIT_TAG_LATEST "master" CACHE STRING "srtp tag to use when compiling latest version")
-set(EP_srtp_GIT_TAG "4caa4843b4bfc54be596d309b5d00a81a35e3276" CACHE STRING "srtp tag to use")
+set(EP_srtp_GIT_TAG "befc23777e07efba36ffd7bda73f22c92d4e2475" CACHE STRING "srtp tag to use")
 set(EP_srtp_EXTERNAL_SOURCE_PATHS "srtp" "externals/srtp")
 
 set(EP_srtp_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")

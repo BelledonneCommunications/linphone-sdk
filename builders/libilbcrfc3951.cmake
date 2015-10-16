@@ -22,7 +22,7 @@
 
 set(EP_libilbcrfc3951_GIT_REPOSITORY "git://git.linphone.org/libilbc-rfc3951.git" CACHE STRING "libilbcrfc3951 repository URL")
 set(EP_libilbcrfc3951_GIT_TAG_LATEST "master" CACHE STRING "libilbcrfc3951 tag to use when compiling latest version")
-set(EP_libilbcrfc3951_GIT_TAG "6585f5926f693c58fcb6e8a71a2065bd33949b1a" CACHE STRING "libilbcrfc3951 tag to use")
+set(EP_libilbcrfc3951_GIT_TAG "91b61e39fb9c5d3dc78691f3d6e4f1d65c8b0d2a" CACHE STRING "libilbcrfc3951 tag to use")
 set(EP_libilbcrfc3951_EXTERNAL_SOURCE_PATHS "libilbc-rfc3951")
 
 set(EP_libilbcrfc3951_LINKING_TYPE "-DENABLE_STATIC=YES")
