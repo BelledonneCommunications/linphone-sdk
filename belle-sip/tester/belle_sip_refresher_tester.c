@@ -52,6 +52,7 @@ typedef struct _status {
 	int fourHundredOne;
 	int refreshOk;
 	int refreshKo;
+	int dialogTerminated;
 }status_t;
 
 typedef struct endpoint {
@@ -125,7 +126,7 @@ static void compute_response_auth_qop(const char* username
 	belle_sip_auth_helper_compute_response_qop_auth(ha1, nonce,nonce_count, cnonce,qop,ha2,response);
 }
 
-#define MAX_NC_COUNT 3
+#define MAX_NC_COUNT 5
 
 static void server_process_request_event(void *obj, const belle_sip_request_event_t *event){
 	endpoint_t* endpoint = (endpoint_t*)obj;
@@ -236,6 +237,12 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 			BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header_by_type(req,belle_sip_header_content_length_t));
 			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),belle_sip_header_create("SIP-ETag","blablietag"));
 		}
+		if (strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0){
+			if (belle_sip_request_event_get_dialog(event) == NULL){
+				belle_sip_message("creating dialog for incoming SUBSCRIBE");
+				belle_sip_provider_create_dialog(endpoint->provider, BELLE_SIP_TRANSACTION(server_transaction));
+			}
+		}
 	} else {
 		resp=belle_sip_response_create_from_request(belle_sip_request_event_get_request(event),401);
 		if (www_authenticate)
@@ -246,6 +253,16 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 		belle_sip_header_via_set_received(via,endpoint->received);
 	}
 	belle_sip_server_transaction_send_response(server_transaction,resp);
+}
+
+static void client_process_dialog_terminated(void *obj, const belle_sip_dialog_terminated_event_t *event){
+	endpoint_t* endpoint = (endpoint_t*)obj;
+	endpoint->stat.dialogTerminated++;
+}
+
+static void server_process_dialog_terminated(void *obj, const belle_sip_dialog_terminated_event_t *event){
+	endpoint_t* endpoint = (endpoint_t*)obj;
+	endpoint->stat.dialogTerminated++;
 }
 
 static void client_process_response_event(void *obj, const belle_sip_response_event_t *event){
@@ -463,6 +480,7 @@ static void refresher_base_with_param(const char* method, unsigned char expire_i
 static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t auth_mode) {
 	refresher_base_with_param("REGISTER",expire_in_contact,auth_mode);
 }
+
 static void subscribe_test(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
@@ -480,10 +498,12 @@ static void subscribe_test(void) {
 	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 
+	client_callbacks.process_dialog_terminated=client_process_dialog_terminated;
 	client_callbacks.process_response_event=client_process_response_event;
 	client_callbacks.process_auth_requested=client_process_auth_requested;
 	server_callbacks.process_request_event=server_process_request_event;
-
+	server_callbacks.process_dialog_terminated=server_process_dialog_terminated;
+	
 	client = create_udp_endpoint(3452,&client_callbacks);
 	server = create_udp_endpoint(6788,&server_callbacks);
 	server->expire_in_contact=0;
@@ -537,6 +557,8 @@ static void subscribe_test(void) {
 	belle_sip_refresher_refresh(refresher,0);
 
 	belle_sip_refresher_stop(refresher);
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.dialogTerminated,1,4000));
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&server->stat.dialogTerminated,1,4000));
 	belle_sip_object_unref(refresher);
 	destroy_endpoint(client);
 	destroy_endpoint(server);

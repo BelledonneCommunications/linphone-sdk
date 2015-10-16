@@ -801,6 +801,7 @@ struct belle_sip_dialog{
 	belle_sip_header_address_t *remote_party;
 	belle_sip_list_t *route_set;
 	belle_sip_header_address_t *remote_target;
+	belle_sip_source_t *expiration_timer;
 	char *local_tag;
 	char *remote_tag;
 	unsigned int local_cseq;

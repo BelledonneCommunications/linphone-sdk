@@ -47,8 +47,6 @@ static void belle_sip_dialog_uninit(belle_sip_dialog_t *obj){
 		belle_sip_object_unref(obj->last_transaction);
 	if(obj->privacy)
 		belle_sip_object_unref(obj->privacy);
-/*	if(obj->preferred_identity)
-			belle_sip_object_unref(obj->preferred_identity);*/
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_dialog_t);
@@ -205,6 +203,35 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 	return 0;
 }
 
+static int belle_sip_dialog_expired(belle_sip_dialog_t *dialog){
+	belle_sip_message("Dialog [%p] expired", dialog);
+	belle_sip_dialog_delete(dialog);
+	return BELLE_SIP_STOP;
+}
+
+/*returns BELLE_SIP_STOP if the dialog is to be terminated, BELLE_SIP_CONTINUE otherwise*/
+static int belle_sip_dialog_schedule_expiration(belle_sip_dialog_t *dialog, belle_sip_message_t *request){
+	belle_sip_header_expires_t *expires = belle_sip_message_get_header_by_type(request, belle_sip_header_expires_t);
+	int expires_value;
+	
+	belle_sip_message("belle_sip_dialog_schedule_expiration() dialog=%p", dialog);
+	if (!expires) return BELLE_SIP_CONTINUE;
+	expires_value = belle_sip_header_expires_get_expires(expires);
+	if (dialog->expiration_timer){
+		belle_sip_main_loop_remove_source(dialog->provider->stack->ml, dialog->expiration_timer);
+		belle_sip_object_unref(dialog->expiration_timer);
+		dialog->expiration_timer = NULL;
+	}
+	belle_sip_message("belle_sip_dialog_schedule_expiration() dialog=%p expires_value=%i", dialog, expires_value);
+	if (expires_value == 0) return BELLE_SIP_STOP;
+	dialog->expiration_timer = belle_sip_main_loop_create_timeout(dialog->provider->stack->ml, 
+					(belle_sip_source_func_t) belle_sip_dialog_expired,
+					dialog,
+					expires_value * 1000,
+					"Dialog expiration");
+	return BELLE_SIP_CONTINUE;
+}
+
 int belle_sip_dialog_establish_full(belle_sip_dialog_t *obj, belle_sip_request_t *req, belle_sip_response_t *resp){
 	belle_sip_header_contact_t *ct=belle_sip_message_get_header_by_type(resp,belle_sip_header_contact_t);
 	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(resp,belle_sip_header_to_t);
@@ -213,9 +240,11 @@ int belle_sip_dialog_establish_full(belle_sip_dialog_t *obj, belle_sip_request_t
 	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
 		obj->needs_ack=TRUE;
 
-	if (obj->is_server && strcmp(belle_sip_request_get_method(req),"INVITE")==0){
-		belle_sip_dialog_init_200Ok_retrans(obj,resp);
-	} else if (!obj->is_server ) {
+	if (obj->is_server){
+		if (strcmp(belle_sip_request_get_method(req),"INVITE")==0){
+			belle_sip_dialog_init_200Ok_retrans(obj,resp);
+		}
+	} else {
 		if (!ct && !obj->remote_target) {
 			belle_sip_error("Missing contact header in resp [%p] cannot set remote target for dialog [%p]",resp,obj);
 			return -1;
@@ -338,6 +367,7 @@ static void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj){
 		obj->last_200Ok=NULL;
 	}
 }
+
 /*
  * return 0 if message should be delivered to the next listener, otherwise, its a retransmision, just keep it
  * */
@@ -365,9 +395,6 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 		SET_OBJECT_PROPERTY(obj,privacy,privacy_header);
 	}
 	
-
-
-
 	/*first update local/remote cseq*/
 	if (as_uas) {
 		belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_cseq_t);
@@ -379,7 +406,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	
 	switch (obj->state){
 		case BELLE_SIP_DIALOG_NULL:
-			/*alway establish a dialog*/
+			/*always establish a dialog*/
 			if (code>100 && code<300 && (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0)) {
 				belle_sip_dialog_establish(obj,req,resp);
 				if (code<200){
@@ -398,8 +425,15 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 					delete_dialog=TRUE;
 					break;
 			}
-			if (code>=200 && code<300 && (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0))
+			if (code>=200 && code<300 && (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0)){
 				belle_sip_dialog_establish_full(obj,req,resp);
+				if (strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0){
+					if (belle_sip_dialog_schedule_expiration(obj, (belle_sip_message_t*)req) == BELLE_SIP_STOP
+						&& (code>=200 || (code==0 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED))){
+						delete_dialog = TRUE;
+					}
+				}
+			}
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
 			if (strcmp(belle_sip_request_get_method(req),"INVITE")==0){
@@ -446,6 +480,11 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				if (code>=200 || (code==0 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED)){
 					obj->needs_ack=FALSE; /*no longuer need ACK*/
 					if (obj->terminate_on_bye) delete_dialog=TRUE;
+				}
+			}else if (strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0){
+				if (belle_sip_dialog_schedule_expiration(obj, (belle_sip_message_t*)req) == BELLE_SIP_STOP
+					&& (code>=200 || (code==0 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED))){
+					delete_dialog = TRUE;
 				}
 			}
 		break;
@@ -685,6 +724,12 @@ belle_sip_request_t *belle_sip_dialog_create_queued_request_from(belle_sip_dialo
 
 void belle_sip_dialog_delete(belle_sip_dialog_t *obj){
 	int dropped_transactions;
+	
+	if (obj->expiration_timer){
+		belle_sip_main_loop_remove_source(obj->provider->stack->ml, obj->expiration_timer);
+		belle_sip_object_unref(obj->expiration_timer);
+		obj->expiration_timer = NULL;
+	}
 	belle_sip_message("dialog [%p] deleted.",obj);
 	belle_sip_dialog_stop_200Ok_retrans(obj); /*if any*/
 	set_state(obj,BELLE_SIP_DIALOG_TERMINATED);
