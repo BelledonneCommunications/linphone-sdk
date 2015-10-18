@@ -214,7 +214,6 @@ static int belle_sip_dialog_schedule_expiration(belle_sip_dialog_t *dialog, bell
 	belle_sip_header_expires_t *expires = belle_sip_message_get_header_by_type(request, belle_sip_header_expires_t);
 	int expires_value;
 	
-	belle_sip_message("belle_sip_dialog_schedule_expiration() dialog=%p", dialog);
 	if (!expires) return BELLE_SIP_CONTINUE;
 	expires_value = belle_sip_header_expires_get_expires(expires);
 	if (dialog->expiration_timer){
@@ -377,6 +376,8 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	belle_sip_request_t *req=belle_sip_transaction_get_request(transaction);
 	belle_sip_response_t *resp=belle_sip_transaction_get_response(transaction);
 	int code=0;
+	int is_invite = strcmp(belle_sip_request_get_method(req),"INVITE")==0;
+	int is_subscribe = strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0;
 
 	belle_sip_message("Dialog [%p]: now updated by transaction [%p].",obj, transaction);
 	
@@ -399,7 +400,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	if (as_uas) {
 		belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_cseq_t);
 		obj->remote_cseq=belle_sip_header_cseq_get_seq_number(cseq);
-		if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
+		if (is_invite)
 			obj->remote_invite_cseq = belle_sip_header_cseq_get_seq_number(cseq);
 	}
 
@@ -407,7 +408,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	switch (obj->state){
 		case BELLE_SIP_DIALOG_NULL:
 			/*always establish a dialog*/
-			if (code>100 && code<300 && (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0)) {
+			if (code>100 && code<300 && (is_invite || is_subscribe)) {
 				belle_sip_dialog_establish(obj,req,resp);
 				if (code<200){
 					set_state(obj,BELLE_SIP_DIALOG_EARLY);
@@ -416,7 +417,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 			}/* no break*/
 		case BELLE_SIP_DIALOG_EARLY:
 			/*don't terminate dialog for UPDATE*/
-			if (code>=300 && (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0)) {
+			if (code>=300 && (is_invite || is_subscribe)) {
 				/*12.3 Termination of a Dialog
 			   	   Independent of the method, if a request outside of a dialog generates
 			   	   a non-2xx final response, any early dialogs created through
@@ -425,18 +426,24 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 					delete_dialog=TRUE;
 					break;
 			}
-			if (code>=200 && code<300 && (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0)){
+			if (code>=200 && code<300 && (is_invite || is_subscribe)){
 				belle_sip_dialog_establish_full(obj,req,resp);
-				if (strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0){
-					if (belle_sip_dialog_schedule_expiration(obj, (belle_sip_message_t*)req) == BELLE_SIP_STOP
-						&& (code>=200 || (code==0 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED))){
-						delete_dialog = TRUE;
-					}
+			}
+			if (is_subscribe){
+				if (belle_sip_dialog_schedule_expiration(obj, (belle_sip_message_t*)req) == BELLE_SIP_STOP
+					&& (code>=200 || (code==0 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED))){
+					/*delete the dialog when the 200Ok for a SUBSCRIBE with expires=0 is received or when
+					 * no response is received at all*/
+					delete_dialog = TRUE;
 				}
+			}
+			if (code < 200 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED){
+				/*no response establishing the dialog, and transaction terminated (transport errors)*/
+				delete_dialog=TRUE;
 			}
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
-			if (strcmp(belle_sip_request_get_method(req),"INVITE")==0){
+			if (is_invite){
 				if (code>=200 && code<300){
 					/*refresh the remote_target*/
 					belle_sip_header_contact_t *ct;
@@ -481,7 +488,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 					obj->needs_ack=FALSE; /*no longuer need ACK*/
 					if (obj->terminate_on_bye) delete_dialog=TRUE;
 				}
-			}else if (strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0){
+			}else if (is_subscribe){
 				if (belle_sip_dialog_schedule_expiration(obj, (belle_sip_message_t*)req) == BELLE_SIP_STOP
 					&& (code>=200 || (code==0 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED))){
 					delete_dialog = TRUE;
