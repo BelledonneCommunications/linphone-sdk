@@ -69,7 +69,59 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 
 }
 
-BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_transaction_t);
+static void notify_timeout(belle_sip_transaction_t *t){
+	belle_sip_timeout_event_t ev;
+	ev.source=(belle_sip_object_t*)t->provider;
+	ev.transaction=t;
+	ev.is_server_transaction=BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,process_timeout,&ev);
+}
+
+static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
+	belle_sip_transaction_t *t=(belle_sip_transaction_t*)l;
+	belle_sip_io_error_event_t ev;
+	belle_sip_transaction_state_t tr_state=belle_sip_transaction_get_state((belle_sip_transaction_t*)t);
+
+	belle_sip_message("transaction [%p] channel state changed to [%s]"
+						,t
+						,belle_sip_channel_state_to_string(state));
+	switch(state){
+		case BELLE_SIP_CHANNEL_READY:
+			if (tr_state==BELLE_SIP_TRANSACTION_INIT && BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_client_transaction_t) ){
+				belle_sip_client_transaction_t *ct = (belle_sip_client_transaction_t*) t;
+				BELLE_SIP_OBJECT_VPTR(ct,belle_sip_client_transaction_t)->send_request(ct);
+			}
+		break;
+		case BELLE_SIP_CHANNEL_DISCONNECTED:
+		case BELLE_SIP_CHANNEL_ERROR:
+			ev.transport=belle_sip_channel_get_transport_name(chan);
+			ev.source=BELLE_SIP_OBJECT(t);
+			ev.port=chan->peer_port;
+			ev.host=chan->peer_name;
+			if ( tr_state!=BELLE_SIP_TRANSACTION_COMPLETED
+				&& tr_state!=BELLE_SIP_TRANSACTION_CONFIRMED
+				&& tr_state!=BELLE_SIP_TRANSACTION_ACCEPTED
+				&& tr_state!=BELLE_SIP_TRANSACTION_TERMINATED) {
+				BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*)t),process_io_error,&ev);
+			}
+			if (t->timed_out)
+				notify_timeout((belle_sip_transaction_t*)t);
+
+			belle_sip_transaction_terminate(t);
+		break;
+		default:
+			/*ignored*/
+		break;
+	}
+}
+
+BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_sip_transaction_t,belle_sip_channel_listener_t)
+on_channel_state_changed,
+NULL,
+NULL
+BELLE_SIP_IMPLEMENT_INTERFACE_END
+
+BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_sip_transaction_t, belle_sip_channel_listener_t);
 
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_transaction_t)
 	{
@@ -131,14 +183,6 @@ belle_sip_request_t *belle_sip_transaction_get_request(const belle_sip_transacti
 }
 belle_sip_response_t *belle_sip_transaction_get_response(const belle_sip_transaction_t *t) {
 	return t->last_response;
-}
-
-static void notify_timeout(belle_sip_transaction_t *t){
-	belle_sip_timeout_event_t ev;
-	ev.source=(belle_sip_object_t*)t->provider;
-	ev.transaction=t;
-	ev.is_server_transaction=BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
-	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,process_timeout,&ev);
 }
 
 void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
@@ -225,6 +269,7 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 			return;
 		}
 		belle_sip_object_ref(base->channel);
+		belle_sip_channel_add_listener(base->channel, BELLE_SIP_CHANNEL_LISTENER(t));
 	}
 	status_code=belle_sip_response_get_status_code(resp);
 	if (status_code!=100){
@@ -480,50 +525,9 @@ static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
 	if (t->next_hop) belle_sip_object_unref(t->next_hop);
 }
 
-static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
-	belle_sip_client_transaction_t *t=(belle_sip_client_transaction_t*)l;
-	belle_sip_io_error_event_t ev;
-	belle_sip_transaction_state_t tr_state=belle_sip_transaction_get_state((belle_sip_transaction_t*)t);
 
-	belle_sip_message("transaction [%p] channel state changed to [%s]"
-						,t
-						,belle_sip_channel_state_to_string(state));
-	switch(state){
-		case BELLE_SIP_CHANNEL_READY:
-			if (tr_state==BELLE_SIP_TRANSACTION_INIT){
-				BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->send_request(t);
-			}
-		break;
-		case BELLE_SIP_CHANNEL_DISCONNECTED:
-		case BELLE_SIP_CHANNEL_ERROR:
-			ev.transport=belle_sip_channel_get_transport_name(chan);
-			ev.source=BELLE_SIP_OBJECT(t);
-			ev.port=chan->peer_port;
-			ev.host=chan->peer_name;
-			if ( tr_state!=BELLE_SIP_TRANSACTION_COMPLETED
-				&& tr_state!=BELLE_SIP_TRANSACTION_CONFIRMED
-				&& tr_state!=BELLE_SIP_TRANSACTION_ACCEPTED
-				&& tr_state!=BELLE_SIP_TRANSACTION_TERMINATED) {
-				BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*)t),process_io_error,&ev);
-			}
-			if (t->base.timed_out)
-				notify_timeout((belle_sip_transaction_t*)t);
 
-			belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(t));
-		break;
-		default:
-			/*ignored*/
-		break;
-	}
-}
-
-BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_sip_client_transaction_t,belle_sip_channel_listener_t)
-on_channel_state_changed,
-NULL,
-NULL
-BELLE_SIP_IMPLEMENT_INTERFACE_END
-
-BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_sip_client_transaction_t, belle_sip_channel_listener_t);
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_client_transaction_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t)
 	{
 		{

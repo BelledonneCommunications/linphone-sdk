@@ -182,11 +182,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 belle_sip_ist_t *belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
 	belle_sip_ist_t *obj=belle_sip_object_new(belle_sip_ist_t);
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
-	belle_sip_response_t *resp;
 
 	belle_sip_server_transaction_init((belle_sip_server_transaction_t*)obj,prov,req);
 	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_PROCEEDING);
-	resp=belle_sip_response_create_from_request(req,100);
-	belle_sip_server_transaction_send_response((belle_sip_server_transaction_t*)obj,resp);
 	return obj;
 }

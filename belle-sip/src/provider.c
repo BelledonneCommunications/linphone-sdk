@@ -729,8 +729,12 @@ belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(bel
 
 belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
 	belle_sip_server_transaction_t* t;
+	belle_sip_response_t *resp = NULL;
 	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0){
 		t=(belle_sip_server_transaction_t*)belle_sip_ist_new(prov,req);
+		/*create a 100 Trying response to immediately stop client retransmissions*/
+		resp=belle_sip_response_create_from_request(req,100);
+		
 	}else if (strcmp(belle_sip_request_get_method(req),"ACK")==0){
 		belle_sip_error("Creating a server transaction for an ACK is not a good idea, probably");
 		return NULL;
@@ -738,6 +742,11 @@ belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(bel
 		t=(belle_sip_server_transaction_t*)belle_sip_nist_new(prov,req);
 	belle_sip_transaction_set_dialog((belle_sip_transaction_t*)t,belle_sip_provider_find_dialog_from_message(prov,(belle_sip_message_t*)req,TRUE));
 	belle_sip_provider_add_server_transaction(prov,t);
+	if (resp){
+		/*the response must be sent after the server transaction is refd by belle_sip_provider_add_server_transaction , otherwise
+		 * through callbacks we'll reach a point where it is unrefed before leaving from this function*/
+		belle_sip_server_transaction_send_response(t, resp);
+	}
 	return t;
 }
 
