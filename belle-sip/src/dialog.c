@@ -608,6 +608,11 @@ belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *obj, unsign
 static belle_sip_request_t *create_request(belle_sip_dialog_t *obj, const char *method, int full){
 	belle_sip_request_t *req;
 	
+	if (!obj->remote_target){
+		belle_sip_error("dialog [%p]: no remote_target set, unable to create request.", obj);
+		return NULL;
+	}
+	
 	req=belle_sip_request_create(belle_sip_header_address_get_uri(obj->remote_target),
 	                                                method,
 	                                                obj->call_id,
@@ -638,7 +643,9 @@ belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t 
 		return NULL;
 	}
 	req=create_request(obj,method,FALSE);
-	req->dialog_queued=TRUE;
+	if (req){
+		req->dialog_queued=TRUE;
+	}
 	return req;
 }
 
@@ -860,10 +867,15 @@ void belle_sip_dialog_check_ack_sent(belle_sip_dialog_t*obj){
 		belle_sip_request_t *req;
 		belle_sip_error("Your listener did not ACK'd the 200Ok for your INVITE request. The dialog will be terminated.");
 		req=belle_sip_dialog_create_request(obj,"BYE");
-		client_trans=belle_sip_provider_create_client_transaction(obj->provider,req);
-		BELLE_SIP_TRANSACTION(client_trans)->is_internal=TRUE; /*internal transaction, don't bother user with 200ok*/
-		belle_sip_client_transaction_send_request(client_trans);
-		/*call dialog terminated*/
+		if (req){
+			client_trans=belle_sip_provider_create_client_transaction(obj->provider,req);
+			BELLE_SIP_TRANSACTION(client_trans)->is_internal=TRUE; /*internal transaction, don't bother user with 200ok*/
+			belle_sip_client_transaction_send_request(client_trans);
+			/*call dialog terminated*/
+		}else{
+			/*If there is no way to signal the failure to the other party, then force immediate dialog deletion*/
+			belle_sip_dialog_delete(obj);
+		}
 	}
 }
 /*
