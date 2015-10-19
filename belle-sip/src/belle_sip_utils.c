@@ -619,7 +619,7 @@ static int find_best_clock_id () {
 	return clock_id;
 #else
 	/* Tt seems that both Linux, iOS, and MacOS stop incrementing the CLOCK_MONOTONIC during sleep time.
-	 * This is a real problem, because all refreshable requests (SUBSCRIBE, REGISTER, PUBLISH) won't be sent on time due to 
+	 * This is a real problem, because all refreshable requests (SUBSCRIBE, REGISTER, PUBLISH) won't be sent on time due to
 	 * system going to sleep. Let's take an example: a REGISTER is sent at T0 with expire 3600, then the macbook suspends at T0+60s.
 	 * When the macbook resumes at T0+8000, nothing happens. The REGISTER refresh will be sent at T0+8000+3600-60.
 	 * The only reason for seeing the register is if the network address has changed, in which case it will trigger a shutdown of all sockets.
@@ -1034,13 +1034,15 @@ static char* belle_sip_escape(const char* buff, const char *noescapes) {
 
 	for(i=0; buff[i] != '\0'; i++) {
 		int c = ((unsigned char*)buff)[i];
-		if (outbuf_size<out_buff_index-3){
+		if (outbuf_size < out_buff_index + 3){
+			// we will possibly add 3 chars
 			outbuf_size+=MAX(orig_size/2,3);
 			output_buff=belle_sip_realloc(output_buff,outbuf_size+1);
 		}
 		if (noescapes[c] == 1) {
 			output_buff[out_buff_index++]=c;
 		} else {
+			// this will write 3 characters
 			out_buff_index+=snprintf(output_buff+out_buff_index,outbuf_size-out_buff_index,"%%%02x", c);
 		}
 	}
