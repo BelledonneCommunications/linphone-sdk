@@ -89,6 +89,7 @@ list(APPEND LINPHONE_BUILDER_EP_VARS
 	CMAKE_EXE_LINKER_FLAGS:STRING
 	CMAKE_EXTRA_GENERATOR:STRING
 	CMAKE_GENERATOR_PLATFORM:STRING
+	CMAKE_INSTALL_MESSAGE:STRING
 	CMAKE_INSTALL_PREFIX:PATH
 	CMAKE_INSTALL_RPATH:PATH
 	CMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL
@@ -571,18 +572,40 @@ function(linphone_builder_add_external_project PROJNAME)
 	if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/postinstall.cmake)
 		ExternalProject_Add_Step(EP_${PROJNAME} postinstall
 			COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DINSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/postinstall.cmake
-			COMMENT "Performing post-installation step"
-			DEPENDEES mkdir update patch download configure build install
+			COMMENT "Performing post-installation for 'EP_${PROJNAME}'"
+			DEPENDEES install
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		)
 	endif()
 	if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/postconfig.cmake)
-		ExternalProject_Add_Step(EP_${PROJNAME} postinstall
+		ExternalProject_Add_Step(EP_${PROJNAME} postconfig
 			COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DINSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/postinstall.cmake
-			COMMENT "Performing post-installation step"
-			DEPENDEES mkdir update patch download configure build install
+			COMMENT "Performing post-configuration for 'EP_${PROJNAME}'"
+			DEPENDEES install
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		)
+	endif()
+
+	if(EP_${PROJNAME}_GROUPED_SOURCE_DIRS OR EP_${PROJNAME}_SOURCE_DIR)
+		if(EP_${PROJNAME}_GROUPED_SOURCE_DIRS)
+			set(_source_dirs ${EP_${PROJNAME}_GROUPED_SOURCE_DIRS})
+		else()
+			set(_source_dirs ${EP_${PROJNAME}_SOURCE_DIR})
+		endif()
+		ExternalProject_Add_Step(EP_${PROJNAME} check_changes
+			COMMENT "Checking for source code changes for 'EP_${PROJNAME}'"
+			DEPENDEES update patch
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+			ALWAYS 1
+		)
+		_ep_get_step_stampfile(EP_${PROJNAME} check_changes _stamp_file) # Private API of ExternalProject module
+		add_custom_command(OUTPUT "${ep_build}/check_changes.txt"
+			COMMAND ${CMAKE_COMMAND} -DSOURCE_DIRS=${_source_dirs} -DBINARY_DIR=${ep_build} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_changes.cmake
+			DEPENDS ${_stamp_file}
+		)
+		ExternalProject_Add_StepDependencies(EP_${PROJNAME} configure "${ep_build}/check_changes.txt")
+		unset(_source_dirs)
+		unset(_stamp_file)
 	endif()
 
 endfunction()
@@ -668,7 +691,9 @@ function(linphone_builder_add_grouped_external_source_path_projects)
 		set(EP_linphone_builder_EXTRA_LDFLAGS )
 		set(EP_linphone_builder_EXTRA_OBJCFLAGS )
 		set(EP_linphone_builder_DEPENDENCIES )
+		set(EP_linphone_builder_GROUPED_SOURCE_DIRS )
 		foreach(BUILDER ${_grouped_builders})
+			list(APPEND EP_linphone_builder_GROUPED_SOURCE_DIRS ${EP_${BUILDER}_SOURCE_DIR})
 			linphone_builder_add_grouped_external_source_path_project(${BUILDER} "${_linphone_builder_file}")
 		endforeach()
 		list(REMOVE_DUPLICATES EP_linphone_builder_LINKING_TYPES)
