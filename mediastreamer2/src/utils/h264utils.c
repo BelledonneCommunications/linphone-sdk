@@ -20,8 +20,8 @@
 #include "h264utils.h"
 #include <mediastreamer2/msqueue.h>
 
-static void  push_nalu(uint8_t *begin, uint8_t *end, MSQueue *nalus){
-    uint8_t *src=begin;
+static void  push_nalu(const uint8_t *begin, const uint8_t *end, MSQueue *nalus){
+    const uint8_t *src=begin;
     size_t nalu_len = (end-begin);
     uint8_t nalu_byte  = *src++;
     
@@ -54,9 +54,9 @@ static void  push_nalu(uint8_t *begin, uint8_t *end, MSQueue *nalus){
     ms_queue_put(nalus, m);
 }
 
-void ms_h264_bitstream_frame_to_nalus(const uint8_t *bitstream, size_t size, MSQueue *nalus){
+void ms_h264_bitstream_to_nalus(const uint8_t *bitstream, size_t size, MSQueue *nalus){
     int i;
-    uint8_t *p,*begin=NULL;
+    const uint8_t *p,*begin=NULL;
     int zeroes=0;
     
     for(i=0,p=bitstream;i<size;++i){
@@ -73,7 +73,11 @@ void ms_h264_bitstream_frame_to_nalus(const uint8_t *bitstream, size_t size, MSQ
     if (begin) push_nalu(begin, p, nalus);
 }
 
-void ms_h264_frame_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, int *idr_count) {
+MSH264NaluType ms_h264_nalu_get_type(const mblk_t *nalu) {
+    return (*nalu->b_rptr) & ((1<<5)-1);
+}
+
+void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, int *idr_count) {
     const uint8_t *ptr = frame;
     
     if(idr_count) *idr_count = 0;
@@ -81,7 +85,7 @@ void ms_h264_frame_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, i
     while (ptr < frame + size) {
         uint32_t nalu_size;
         mblk_t *nalu;
-        int nalu_type;
+        MSH264NaluType nalu_type;
         
         memcpy(&nalu_size, ptr, 4);
         nalu_size = ntohl(nalu_size);
@@ -91,8 +95,8 @@ void ms_h264_frame_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, i
         ptr+=nalu_size+4;
         nalu->b_wptr+=nalu_size;
         
-        nalu_type=(*nalu->b_rptr) & ((1<<5)-1);
-        if(idr_count) (*idr_count)++;
+        nalu_type = ms_h264_nalu_get_type(nalu);
+        if(idr_count && nalu_type == MSH264NaluTypeIDR) (*idr_count)++;
         
         ms_queue_put(nalus, nalu);
     }

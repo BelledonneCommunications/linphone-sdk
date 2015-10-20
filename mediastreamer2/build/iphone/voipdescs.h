@@ -31,7 +31,7 @@ extern MSFilterDesc ms_mjpeg_dec_desc;
 extern MSFilterDesc ms_pix_conv_desc;
 extern MSFilterDesc ms_size_conv_desc;
 extern MSFilterDesc ms_static_image_desc;
-extern MSFilterDesc ms_h264_dec_desc;
+//extern MSFilterDesc ms_h264_dec_desc;
 extern MSFilterDesc ms_jpeg_writer_desc;
 extern MSFilterDesc ms_mire_desc;
 extern MSFilterDesc ms_ext_display_desc;
@@ -48,6 +48,7 @@ extern MSFilterDesc ms_aac_eld_dec_desc;
 extern MSFilterDesc ms_opus_dec_desc;
 extern MSFilterDesc ms_opus_enc_desc;
 extern MSFilterDesc ms_vt_h264_enc;
+extern MSFilterDesc ms_vt_h264_dec;
 
 MSFilterDesc * ms_voip_filter_descs[]={
 &ms_alaw_dec_desc,
@@ -81,7 +82,7 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_pix_conv_desc,
 &ms_size_conv_desc,
 &ms_static_image_desc,
-&ms_h264_dec_desc,
+//&ms_h264_dec_desc,
 &ms_jpeg_writer_desc,
 &ms_mire_desc,
 &ms_ext_display_desc,
@@ -99,5 +100,6 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_opus_dec_desc,
 &ms_opus_enc_desc,
 &ms_vt_h264_enc,
+&ms_vt_h264_dec,
 NULL
 };
