@@ -603,7 +603,13 @@ function(linphone_builder_add_external_project PROJNAME)
 			COMMAND ${CMAKE_COMMAND} -DSOURCE_DIRS=${_source_dirs} -DBINARY_DIR=${ep_build} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_changes.cmake
 			DEPENDS ${_stamp_file}
 		)
-		ExternalProject_Add_StepDependencies(EP_${PROJNAME} configure "${ep_build}/check_changes.txt")
+		# TODO: ExternalProject_Add_StepDependencies is available only from CMake 3.2
+		#ExternalProject_Add_StepDependencies(EP_${PROJNAME} configure "${ep_build}/check_changes.txt")
+		_ep_get_step_stampfile(EP_${PROJNAME} configure _stamp_file) # Private API of ExternalProject module
+		add_custom_command(APPEND
+			OUTPUT ${_stamp_file}
+			DEPENDS "${ep_build}/check_changes.txt"
+		)
 		unset(_source_dirs)
 		unset(_stamp_file)
 	endif()
