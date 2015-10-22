@@ -156,9 +156,10 @@ if(PLATFORM STREQUAL "Debian")
 	# some debians are using dash as shell, which doesn't support "export -n", so we override and use bash
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_buildshell /bin/bash'")
 
-	# boost doesn't like debian's multiarch lib dirs
-	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-boost-libdir=/usr/${CMAKE_INSTALL_LIBDIR}")
-	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'boostlibdir /usr/${CMAKE_INSTALL_LIBDIR}'")
+	# boost is to be found from debian's multiarch lib dirs
+	find_package(Boost REQUIRED COMPONENTS system)
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-boost-libdir=${Boost_LIBRARY_DIRS}")
+	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'boostlibdir ${Boost_LIBRARY_DIRS}'")
 
 	# redis for debian 7 will be installed in the prefix, but we have to pass it through a special flag to the RPM build, since there
 	# is no pkgconfig
