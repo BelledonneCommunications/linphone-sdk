@@ -21,59 +21,65 @@
 ############################################################################
 
 set(HEADER_FILES
-	mediastreamer2/allfilters.h
-	mediastreamer2/bitratecontrol.h
-	mediastreamer2/bits_rw.h
-	mediastreamer2/dsptools.h
-	mediastreamer2/dtls_srtp.h
-	mediastreamer2/dtmfgen.h
-	mediastreamer2/flowcontrol.h
-	mediastreamer2/formats.h
-	mediastreamer2/ice.h
-	mediastreamer2/mediastream.h
-	mediastreamer2/ms_srtp.h
-	mediastreamer2/msaudiomixer.h
-	mediastreamer2/mschanadapter.h
-	mediastreamer2/mscodecutils.h
-	mediastreamer2/mscommon.h
-	mediastreamer2/msconference.h
-	mediastreamer2/msequalizer.h
-	mediastreamer2/mseventqueue.h
-	mediastreamer2/msextdisplay.h
-	mediastreamer2/msfactory.h
-	mediastreamer2/msfileplayer.h
-	mediastreamer2/msfilerec.h
-	mediastreamer2/msfilter.h
-	mediastreamer2/msgenericplc.h
-	mediastreamer2/msinterfaces.h
-	mediastreamer2/msitc.h
-	mediastreamer2/msjava.h
-	mediastreamer2/msjpegwriter.h
-	mediastreamer2/msmediaplayer.h
-	mediastreamer2/msqueue.h
-	mediastreamer2/msrtp.h
-	mediastreamer2/mssndcard.h
-	mediastreamer2/mstee.h
-	mediastreamer2/msticker.h
-	mediastreamer2/mstonedetector.h
-	mediastreamer2/msutils.h
-	mediastreamer2/msv4l.h
-	mediastreamer2/msvaddtx.h
-	mediastreamer2/msvideo.h
-	mediastreamer2/msvideoout.h
-	mediastreamer2/msvideopresets.h
-	mediastreamer2/msvolume.h
-	mediastreamer2/mswebcam.h
-	mediastreamer2/qualityindicator.h
-	mediastreamer2/rfc3984.h
-	mediastreamer2/stun.h
-	mediastreamer2/stun_udp.h
-	mediastreamer2/upnp_igd.h
-	mediastreamer2/videostarter.h
-	mediastreamer2/x11_helper.h
-	mediastreamer2/zrtp.h
+	allfilters.h
+	bitratecontrol.h
+	bits_rw.h
+	dsptools.h
+	dtls_srtp.h
+	dtmfgen.h
+	flowcontrol.h
+	formats.h
+	ice.h
+	mediastream.h
+	ms_srtp.h
+	msaudiomixer.h
+	mschanadapter.h
+	mscodecutils.h
+	mscommon.h
+	msconference.h
+	msequalizer.h
+	mseventqueue.h
+	msextdisplay.h
+	msfactory.h
+	msfileplayer.h
+	msfilerec.h
+	msfilter.h
+	msgenericplc.h
+	msinterfaces.h
+	msitc.h
+	msjava.h
+	msjpegwriter.h
+	msmediaplayer.h
+	msqueue.h
+	msrtp.h
+	mssndcard.h
+	mstee.h
+	msticker.h
+	mstonedetector.h
+	msutils.h
+	msv4l.h
+	msvaddtx.h
+	msvideo.h
+	msvideoout.h
+	msvideopresets.h
+	msvolume.h
+	mswebcam.h
+	qualityindicator.h
+	rfc3984.h
+	stun.h
+	stun_udp.h
+	upnp_igd.h
+	videostarter.h
+	x11_helper.h
+	zrtp.h
 )
 
-install(FILES ${HEADER_FILES}
+set(MEDIASTREAMER2_HEADER_FILES )
+foreach(HEADER_FILE ${HEADER_FILES})
+	list(APPEND MEDIASTREAMER2_HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/mediastreamer2/${HEADER_FILE}")
+endforeach()
+set(MEDIASTREAMER2_HEADER_FILES ${MEDIASTREAMER2_HEADER_FILES} PARENT_SCOPE)
+
+install(FILES ${MEDIASTREAMER2_HEADER_FILES}
         DESTINATION include/mediastreamer2
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)

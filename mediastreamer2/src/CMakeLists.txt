@@ -31,6 +31,7 @@ if(NOT AWK_PROGRAM)
 endif()
 
 set(BASE_SOURCE_FILES
+	${MEDIASTREAMER2_HEADER_FILES}
 	base/eventqueue.c
 	base/mscommon.c
 	base/msfactory.c
@@ -106,6 +107,7 @@ install(TARGETS mediastreamer_base EXPORT ${EXPORT_TARGETS_NAME}Targets
 
 
 set(VOIP_SOURCE_FILES
+	${MEDIASTREAMER2_HEADER_FILES}
 	audiofilters/alaw.c
 	audiofilters/audiomixer.c
 	audiofilters/chanadapt.c
