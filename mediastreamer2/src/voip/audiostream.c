@@ -934,7 +934,6 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		/* need to add resampler*/
 		if (stream->write_resampler == NULL) stream->write_resampler = ms_filter_new(MS_RESAMPLE_ID);
 	}
-	
 
 	if (stream->ec){
 		if (!stream->is_ec_delay_set) {
@@ -1139,6 +1138,12 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	stream->ms.is_beginning=TRUE;
 	stream->ms.state=MSStreamStarted;
 
+	if (stream->soundwrite) {
+		if (ms_filter_implements_interface(stream->soundwrite, MSFilterAudioPlaybackInterface)) {
+			ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_ROUTE, &stream->audio_route);
+		}
+	}
+	
 	return 0;
 }
 
@@ -1713,6 +1718,7 @@ void audio_stream_unlink_video(AudioStream *stream, VideoStream *video){
 }
 
 void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute route) {
+	stream->audio_route = route;
 	if (stream->soundwrite) {
 		if (ms_filter_implements_interface(stream->soundwrite, MSFilterAudioPlaybackInterface)) {
 			ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_ROUTE, &route);

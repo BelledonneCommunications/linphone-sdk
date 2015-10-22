@@ -397,6 +397,7 @@ struct _AudioStream
 	bool_t eq_active;
 	bool_t use_ng;/*noise gate*/
 	bool_t is_ec_delay_set;
+	MSAudioRoute audio_route;
 };
 
 /**
