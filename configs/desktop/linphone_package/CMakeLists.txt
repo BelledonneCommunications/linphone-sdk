@@ -90,13 +90,17 @@ endif()
 # Generates a zip archive containing the development files of liblinphone
 if(WIN32)
 	find_program(7Z_PROGRAM 7z.exe)
-	execute_process(
-		COMMAND ${7Z_PROGRAM} a -tzip ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-win32.zip @${CMAKE_SOURCE_DIR}/linphone-sdk.list
-		WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
-	)
-	execute_process(
-		COMMAND ${7Z_PROGRAM} a -tzip ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-win32.zip ${CMAKE_SOURCE_DIR}/README.openh264.txt
-	)
+	if(7Z_PROGRAM)
+		execute_process(
+			COMMAND ${7Z_PROGRAM} a -tzip ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-win32.zip @${CMAKE_SOURCE_DIR}/linphone-sdk.list
+			WORKING_DIRECTORY ${LINPHONE_OUTPUT_DIR}
+		)
+		execute_process(
+			COMMAND ${7Z_PROGRAM} a -tzip ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-win32.zip ${CMAKE_SOURCE_DIR}/README.openh264.txt
+		)
+	else()
+		message(WARNING "7z has not been found, cannot generate the SDK!")
+	endif()
 elseif(APPLE)
 	execute_process(
 		COMMAND rm -rf ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip
