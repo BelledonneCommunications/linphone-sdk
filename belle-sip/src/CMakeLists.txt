@@ -87,7 +87,6 @@ if(ENABLE_TUNNEL)
 endif()
 
 set(BELLE_SIP_SOURCE_FILES
-	${BELLE_SIP_HEADER_FILES}
 	auth_event.c
 	auth_helper.c
 	belle_sdp_impl.c
@@ -147,9 +146,9 @@ if(APPLE)
 endif()
 
 if(ENABLE_STATIC)
-	add_library(bellesip STATIC ${BELLE_SIP_SOURCE_FILES})
+	add_library(bellesip STATIC ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES})
 else()
-	add_library(bellesip SHARED ${BELLE_SIP_SOURCE_FILES})
+	add_library(bellesip SHARED ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES})
 	set_target_properties(bellesip PROPERTIES VERSION 0.0.0 SOVERSION 0)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
