@@ -31,7 +31,6 @@ if(NOT AWK_PROGRAM)
 endif()
 
 set(BASE_SOURCE_FILES
-	${MEDIASTREAMER2_HEADER_FILES}
 	base/eventqueue.c
 	base/mscommon.c
 	base/msfactory.c
@@ -81,10 +80,10 @@ if(HAVE_DLOPEN)
 endif()
 
 if(ENABLE_STATIC)
-	add_library(mediastreamer_base STATIC ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
+	add_library(mediastreamer_base STATIC ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
 	target_link_libraries(mediastreamer_base ${BASE_LIBS})
 else()
-	add_library(mediastreamer_base SHARED ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
+	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
 	set_target_properties(mediastreamer_base PROPERTIES VERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE C)
 	target_link_libraries(mediastreamer_base ${BASE_LIBS})
 	if(MSVC)
@@ -107,7 +106,6 @@ install(TARGETS mediastreamer_base EXPORT ${EXPORT_TARGETS_NAME}Targets
 
 
 set(VOIP_SOURCE_FILES
-	${MEDIASTREAMER2_HEADER_FILES}
 	audiofilters/alaw.c
 	audiofilters/audiomixer.c
 	audiofilters/chanadapt.c
@@ -439,10 +437,10 @@ if (CAMAPI_FOUND)
 endif()
 
 if(ENABLE_STATIC)
-	add_library(mediastreamer_voip STATIC ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
+	add_library(mediastreamer_voip STATIC ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
 	target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
 else()
-	add_library(mediastreamer_voip SHARED ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
+	add_library(mediastreamer_voip SHARED ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
 	set_target_properties(mediastreamer_voip PROPERTIES VERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE CXX)
 	target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
 	if(MSVC)
