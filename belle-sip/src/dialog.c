@@ -376,6 +376,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	belle_sip_request_t *req=belle_sip_transaction_get_request(transaction);
 	belle_sip_response_t *resp=belle_sip_transaction_get_response(transaction);
 	int code=0;
+	int ret = 0;
 	int is_invite = strcmp(belle_sip_request_get_method(req),"INVITE")==0;
 	int is_subscribe = strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0;
 
@@ -427,7 +428,11 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 					break;
 			}
 			if (code>=200 && code<300 && (is_invite || is_subscribe)){
-				belle_sip_dialog_establish_full(obj,req,resp);
+				if (belle_sip_dialog_establish_full(obj,req,resp) != 0){
+					/*the dialog found this response invalid so notify the transaction layer by returning -1*/
+					ret = -1;
+					goto end;
+				}
 			}
 			if (is_subscribe){
 				if (belle_sip_dialog_schedule_expiration(obj, (belle_sip_message_t*)req) == BELLE_SIP_STOP
@@ -499,11 +504,13 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 			/*ignore*/
 		break;
 	}
+	
+end:
 	if (delete_dialog) belle_sip_dialog_delete(obj);
 	else {
 		belle_sip_dialog_process_queue(obj);
 	}
-	return 0;
+	return ret;
 }
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){

@@ -492,7 +492,7 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 
 	if (dialog && belle_sip_dialog_update(dialog,BELLE_SIP_TRANSACTION(t),FALSE)) {
 		/* retransmition, just return*/
-		belle_sip_message("[%p] is a 200 ok retransmition on dialog [%p], skiping",resp,dialog);
+		belle_sip_message("Response [%p] absorbed by dialog [%p], skipped from transaction layer.",resp,dialog);
 		return;
 	}
 
