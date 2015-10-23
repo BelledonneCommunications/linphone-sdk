@@ -28,6 +28,7 @@
 extern const char *test_domain;
 extern const char *auth_domain;
 
+static char* all_leaks_buffer = NULL;
 static const char *belle_sip_tester_root_ca_path = NULL;
 static FILE * log_file = NULL;
 
@@ -109,6 +110,13 @@ void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_
 void belle_sip_tester_uninit(void) {
 	belle_sip_object_unref(pool);
 	belle_sip_uninit_sockets();
+
+	// show all leaks that happened during the test
+	if (all_leaks_buffer) {
+		bc_tester_printf(bc_printf_verbosity_info, all_leaks_buffer);
+		belle_sip_free(all_leaks_buffer);
+	}
+
 	bc_tester_uninit();
 }
 
@@ -119,11 +127,16 @@ void belle_sip_tester_before_each() {
 
 void belle_sip_tester_after_each() {
 	int leaked_objects = belle_sip_object_get_object_count() - leaked_objects_count;
-	BC_ASSERT_EQUAL(leaked_objects, 0, int, "%d");
 	if (leaked_objects > 0) {
+		char* format = belle_sip_strdup_printf("%d object%s leaked in suite [%s] test [%s], please fix that!",
+										leaked_objects, leaked_objects>1?"s were":"was",
+										bc_tester_current_suite_name(), bc_tester_current_test_name());
 		belle_sip_object_dump_active_objects();
 		belle_sip_object_flush_active_objects();
-		belle_sip_error("%d objects were leaked in latest test, please fix that!\n", leaked_objects);
+		bc_tester_printf(bc_printf_verbosity_info, format);
+		belle_sip_error("%s", format);
+
+		all_leaks_buffer = belle_sip_strcat_printf(all_leaks_buffer, "\n%s", format);
 	}
 }
 
