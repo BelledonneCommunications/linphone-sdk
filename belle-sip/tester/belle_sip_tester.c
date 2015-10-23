@@ -136,7 +136,7 @@ void belle_sip_tester_after_each() {
 		bc_tester_printf(bc_printf_verbosity_info, format);
 		belle_sip_error("%s", format);
 
-		all_leaks_buffer = belle_sip_strcat_printf(all_leaks_buffer, "\n%s", format);
+		all_leaks_buffer = all_leaks_buffer ? belle_sip_strcat_printf(all_leaks_buffer, "\n%s", format) : belle_sip_strdup_printf("\n%s", format);
 	}
 }
 
