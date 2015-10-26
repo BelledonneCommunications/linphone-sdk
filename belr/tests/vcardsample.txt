@@ -1,4 +1,4 @@
 BEGIN:VCARD
 VERSION:4.0
-FN:Sylvain
+FN:Sylvain Berfini
 END:VCARD
