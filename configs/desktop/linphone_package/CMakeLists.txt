@@ -41,6 +41,7 @@ string(REPLACE "." ";" SPLITTED_LINPHONE_VERSION ${LINPHONE_VERSION})
 list(GET SPLITTED_LINPHONE_VERSION 0 LINPHONE_MAJOR_VERSION)
 list(GET SPLITTED_LINPHONE_VERSION 1 LINPHONE_MINOR_VERSION)
 list(GET SPLITTED_LINPHONE_VERSION 2 LINPHONE_MICRO_VERSION)
+set(PACKAGE_VERSION "${LINPHONE_VERSION}")
 
 # Translates absolute internal dependency path of FFMepeg libraries into relative path on MacOSX
 if(APPLE)
@@ -49,36 +50,36 @@ if(APPLE)
 	file(COPY ${LINPHONE_OUTPUT_DIR} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 	file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/OUTPUT ${LINPHONE_SDK_TMP})
 	set(RPATH_CHANGE_CMDS
-                -change ${LINPHONE_OUTPUT_DIR}/lib/libavcodec.53.61.100.dylib @rpath/libavcodec.53.61.100.dylib
-                -change ${LINPHONE_OUTPUT_DIR}/lib/libavutil.51.35.100.dylib @rpath/libavutil.51.35.100.dylib
-                -change ${LINPHONE_OUTPUT_DIR}/lib/libswscale.2.1.100.dylib @rpath/libswscale.2.1.100.dylib
-                -change ${LINPHONE_OUTPUT_DIR}/lib/libswresample.0.6.100.dylib @rpath/libswresample.0.6.100.dylib
+		-change ${LINPHONE_OUTPUT_DIR}/lib/libavcodec.53.61.100.dylib @rpath/libavcodec.53.61.100.dylib
+		-change ${LINPHONE_OUTPUT_DIR}/lib/libavutil.51.35.100.dylib @rpath/libavutil.51.35.100.dylib
+		-change ${LINPHONE_OUTPUT_DIR}/lib/libswscale.2.1.100.dylib @rpath/libswscale.2.1.100.dylib
+		-change ${LINPHONE_OUTPUT_DIR}/lib/libswresample.0.6.100.dylib @rpath/libswresample.0.6.100.dylib
 		-change ${LINPHONE_OUTPUT_DIR}/lib/libopenh264.0.dylib @rpath/libopenh264.0.dylib
 		-change /opt/local/lib/libintl.8.dylib @rpath/libintl.8.dylib
 		-change /opt/local/lib/libiconv.2.dylib @rpath/libiconv.2.dylib
 		-change /lib/libopenh264.0.dylib @rpath/libopenh264.0.dylib
-        )
-        set(RPATH_LIBS_TO_MODIFY
-                libavcodec.53.61.100.dylib
-                libavutil.51.35.100.dylib
-                liblinphone.7.dylib
-                libmediastreamer_voip.5.dylib
-                libswresample.0.6.100.dylib
-                libswscale.2.1.100.dylib
+	)
+	set(RPATH_LIBS_TO_MODIFY
+		libavcodec.53.61.100.dylib
+		libavutil.51.35.100.dylib
+		liblinphone.7.dylib
+		libmediastreamer_voip.5.dylib
+		libswresample.0.6.100.dylib
+		libswscale.2.1.100.dylib
 		mediastreamer/plugins/libmsamr.dylib
 		mediastreamer/plugins/libmsbcg729.dylib
 		mediastreamer/plugins/libmsilbc.dylib
 		mediastreamer/plugins/libmsopenh264.dylib
 		mediastreamer/plugins/libmssilk.dylib
 		mediastreamer/plugins/libmswebrtc.dylib
-        )
-        foreach(LIB_TO_CHANGE ${RPATH_LIBS_TO_MODIFY})
-                execute_process(
+	)
+	foreach(LIB_TO_CHANGE ${RPATH_LIBS_TO_MODIFY})
+		execute_process(
 			COMMAND install_name_tool ${RPATH_CHANGE_CMDS} ${LINPHONE_SDK_TMP}/lib/${LIB_TO_CHANGE}
 			COMMAND install_name_tool -id @rpath/${LIB_TO_CHANGE} ${LINPHONE_SDK_TMP}/lib/${LIB_TO_CHANGE}
 			COMMAND install_name_tool -delete_rpath ${LINPHONE_OUTPUT_DIR}/lib ${LINPHONE_SDK_TMP}/lib/${LIB_TO_CHANGE}
-                )
-        endforeach()
+		)
+	endforeach()
 	file(COPY /opt/local/lib/libintl.8.dylib /opt/local/lib/libintl.dylib /opt/local/lib/libiconv.dylib /opt/local/lib/libiconv.2.dylib DESTINATION ${LINPHONE_SDK_TMP}/lib)
 	execute_process(
 		COMMAND install_name_tool -id @rpath/libintl.8.dylib -change /opt/local/lib/libiconv.2.dylib @rpath/libiconv.2.dylib ${LINPHONE_SDK_TMP}/lib/libintl.8.dylib
@@ -165,13 +166,13 @@ if(WIN32)
 	)
 elseif(APPLE)
 	find_program(MAC_BUNDLER gtk-mac-bundler)
-	configure_file(mac-bundler/Info-linphone.plist.in mac-bundler/Info-linphone.plist @ONLY)
-	configure_file(mac-bundler/call-bundler.cmake.in mac-bundler/call-bundler.cmake)
-	configure_file(mac-bundler/environment.sh mac-bundler/environment.sh COPYONLY)
-	configure_file(mac-bundler/gtkrc mac-bundler/gtkrc COPYONLY)
-	configure_file(mac-bundler/linphone.bundle mac-bundler/linphone.bundle COPYONLY)
-	configure_file(mac-bundler/linphone.icns mac-bundler/linphone.icns COPYONLY)
-	install(SCRIPT ${CMAKE_BINARY_DIR}/mac-bundler/call-bundler.cmake)
+	configure_file("${LINPHONE_SOURCE_DIR}/build/macos/Info-linphone.plist.in" "mac-bundler/Info-linphone.plist" @ONLY)
+	configure_file("${LINPHONE_SOURCE_DIR}/build/macos/environment.sh" "mac-bundler/environment.sh" COPYONLY)
+	configure_file("${LINPHONE_SOURCE_DIR}/gtk/gtkrc.mac" "mac-bundler/gtkrc" COPYONLY)
+	configure_file("${LINPHONE_SOURCE_DIR}/pixmaps/linphone.icns" "mac-bundler/linphone.icns" COPYONLY)
+	configure_file("mac-bundler/linphone.bundle" "mac-bundler/linphone.bundle" COPYONLY)	# This file has to be different than the one in the linphone source code because of different file access paths
+	configure_file("mac-bundler/call-bundler.cmake.in" "mac-bundler/call-bundler.cmake")
+	install(SCRIPT "${CMAKE_BINARY_DIR}/mac-bundler/call-bundler.cmake")
 endif()
 
 if(MSVC)

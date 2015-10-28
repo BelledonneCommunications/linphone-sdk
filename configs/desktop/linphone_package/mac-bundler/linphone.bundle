@@ -12,14 +12,17 @@
          defined by jhbuild, so it you are not using jhbuild you can
          either define your own or just hardcode the path here.
     -->
-    <prefix name="default">${env:DEFAULT_PREFIX}</prefix>
-    <prefix name="linphone">${env:LINPHONE_PREFIX}</prefix>
+    <prefix name="default">/opt/local</prefix>
+    <prefix name="linphone">${env:LINPHONE_INSTALL_PREFIX}</prefix>
+    <prefix name="ms2plugins">${env:MS2_PLUGINS_INSTALL_PREFIX}</prefix>
+    <!-- This prefix definition is necessary if some dependencies are to be taken from /usr/local/lib -->
+    <prefix name="local">${env:LINPHONE_ADDITIONAL_DEPENDENCIES_PREFIX}</prefix>
 
     <!-- The project directory is the default location of the created
          app. If you leave out the path, the current directory is
          used. Note the usage of an environment variable here again.
     -->
-    <destination overwrite="yes">${env:BUNDLE_DESTINATION}</destination>
+    <destination overwrite="yes">${env:BUNDLE_PREFIX}</destination>
 
     <image>
       <!-- Not implemented yet (DMG image). -->
@@ -34,7 +37,7 @@
          not needed. If the source path is left out, the default
          script will be used.
     -->
-    <!-- launcher-script>${project}/launcher.sh</launcher-script -->
+    <!--launcher-script>${project}/launcher.sh</launcher-script -->
 
     <!-- Not implemented: Optional runtime, could be python or mono
          for example.
@@ -53,6 +56,14 @@
 
   <main-binary>${prefix:linphone}/bin/linphone</main-binary>
 
+  <binary >
+    ${prefix:ms2plugins}/lib/mediastreamer/plugins/*.*.so
+  </binary>
+  
+  <binary >
+    ${prefix:linphone}/lib/*.*.dylib
+  </binary>
+
   <!-- Copy in GTK+ modules.  Note the ${gtkdir} macro, which expands
        to the correct library subdirectory for the specified gtk
        version.
@@ -61,9 +72,9 @@
      ${prefix}/lib/${gtkdir}/modules/*.so
   </binary>
 
-  <binary >
-    ${prefix:linphone}/lib/mediastreamer/plugins/*.*.so
-  </binary>
+  <data>
+    ${prefix}/share/mime/mime.cache
+  </data>
 
   <!-- Copy in GTK+ theme engines and print backends. Note the use of the
        "${pkg:module:variable}" macro, which evaluates to a pkg-config
@@ -74,7 +85,6 @@
   <binary>
     ${prefix}/lib/${gtkdir}/${pkg:${gtk}:gtk_binary_version}/engines/*.so
   </binary>
-
   <binary>
     ${prefix}/lib/${gtkdir}/${pkg:${gtk}:gtk_binary_version}/printbackends/*.so
   </binary>
@@ -84,13 +94,14 @@
     ${prefix}/lib/gdk-pixbuf-2.0/${pkg:${gtk}:gtk_binary_version}/loaders/*.so
   </binary>
 
-   <!-- binary>
-    ${prefix}/lib/pango/${pkg:pango:pango_module_version}/modules/
-  </binary -->
 
-  <!-- data>
+   <!--binary>
+    ${prefix}/lib/pango/${pkg:pango:pango_module_version}/modules/
+  </binary-->
+
+  <!--data>
     ${prefix}/etc/pango/
-  </data -->
+  </data-->
 
  <!-- Translation filenames, one for each program or library that you
        want to copy in to the bundle. The "dest" attribute is
@@ -148,6 +159,10 @@
     ${project}/linphone.icns
   </data>
 
+  <data dest="${bundle}/Contents/Resources">
+    ${project}/environment.sh
+  </data>
+  
   <!-- This is where theme commands go. You can copy them in from your
        theme of choice if they provide and example, or you can just
        change the source path. -->
@@ -156,25 +171,17 @@
     ${project}/gtkrc
   </data>
 
-  <data dest="${bundle}/Contents/Resources/etc/${gtkdir}/gdk-pixbuf.loaders">
-    ${prefix:default}/etc/${gtkdir}/gdk-pixbuf.loaders
+  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/rings/oldphone.wav">
+      ${prefix:linphone}/share/sounds/linphone/rings/oldphone.wav
   </data>
 
-  <data dest="${bundle}/Contents/Resources/share/mime/mime.cache">
-    ${prefix:default}/share/mime/mime.cache
+  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/ringback.wav">
+      ${prefix:linphone}/share/sounds/linphone/ringback.wav
   </data>
-
-  <!-- Installs a source script in order to initialize
-       some environment variables before calling the
-       launcher script. -->
-  <data dest="${bundle}/Contents/Resources">
-    ${project}/environment.sh
+  
+  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/incoming_chat.wav">
+      ${prefix:linphone}/share/sounds/linphone/incoming_chat.wav
   </data>
-
-  <data dest="${bundle}/Contents/Resources/share/pixmaps/linphone">
-    ${prefix:linphone}/share/pixmaps/linphone
-  </data>
-
 
   <!-- Icon themes to copy. The "icons" property can be either of
        "auto", "all", or "none". All or none should be
@@ -190,3 +197,4 @@
   </icon-theme -->
 
 </app-bundle>
+
