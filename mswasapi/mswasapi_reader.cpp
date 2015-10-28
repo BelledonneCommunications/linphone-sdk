@@ -191,7 +191,9 @@ int MSWASAPIReader::activate()
 		REPORT_ERROR("Audio format not supported by the MSWASAPI audio input interface [%x]", result);
 	}
 	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedDuration, 0, pUsedWfx, NULL);
-	REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%x]", result);
+	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
+		REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%x]", result);
+	}
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio input interface [%x]", result);
 	ms_message("MSWASAPI audio input interface buffer size: %i", mBufferFrameCount);
