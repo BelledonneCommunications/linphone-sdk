@@ -20,8 +20,6 @@
 #
 ############################################################################
 
-find_program(PATCH_PROGRAM NAMES patch)
-
 set(ENV{LINPHONE_INSTALL_PREFIX} "${LINPHONE_OUTPUT_DIR}")
 set(ENV{MS2_PLUGINS_INSTALL_PREFIX} "${LINPHONE_OUTPUT_DIR}")
 set(ENV{BUNDLE_PREFIX} "${CMAKE_INSTALL_PREFIX}")
