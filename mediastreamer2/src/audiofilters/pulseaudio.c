@@ -744,7 +744,7 @@ static void pulse_write_process(MSFilter *f){
 			ms_mutex_lock(&s->mutex);
 			if(s->min_buffer_size >= threshold_bytes) {
 				size_t nbytes_to_drop = s->min_buffer_size - threshold_bytes/4;
-				ms_warning("pulseaudio: too much data waiting in the writing buffer. Droping %z bytes", nbytes_to_drop);
+				ms_warning("pulseaudio: too much data waiting in the writing buffer. Droping %i bytes", (int)nbytes_to_drop);
 				ms_bufferizer_skip_bytes(&s->bufferizer, nbytes_to_drop);
 				s->min_buffer_size = -1;
 			}
