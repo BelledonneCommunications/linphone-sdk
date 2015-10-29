@@ -1102,7 +1102,7 @@ static IceTransaction * ice_find_transaction(const IceCheckList *cl, const IceCa
 
 static int ice_send_message_to_socket(const RtpTransport * rtpt,char* buf,size_t len, const struct sockaddr *to, socklen_t tolen) {
 	mblk_t *m = rtp_session_create_packet_raw((const uint8_t *)buf, len);
-	int err = meta_rtp_transport_modifier_inject_packet_to(rtpt
+	int err = meta_rtp_transport_modifier_inject_packet_to_send_to(rtpt
 														, NULL
 														, m
 														, 0
