@@ -86,7 +86,7 @@ static int32_t ms_zrtp_sendDataZRTP (void *clientData, const uint8_t* data, uint
 	/* generate message from raw data */
  	msg = rtp_session_create_packet_raw(data, length);
 
-	meta_rtp_transport_modifier_inject_packet(rtpt, userData->rtp_modifier, msg , 0);
+	meta_rtp_transport_modifier_inject_packet_to_send(rtpt, userData->rtp_modifier, msg , 0);
 
 	freemsg(msg);
 
