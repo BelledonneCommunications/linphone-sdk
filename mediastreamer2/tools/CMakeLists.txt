@@ -27,16 +27,18 @@ endif()
 foreach(simple_executable ${simple_executables})
 	add_executable(${simple_executable} ${simple_executable}.c)
 	target_link_libraries(${simple_executable} mediastreamer_voip mediastreamer_base)
+	target_compile_options(${simple_executable} PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 endforeach()
 
 add_executable(ms-echo echo.c) #to avoid conflict with bash command
 target_link_libraries(ms-echo mediastreamer_voip mediastreamer_base)
+target_compile_options(ms-echo PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 
 if(PCAP_FOUND)
 	add_executable(pcap_playback pcap_playback.c common.c)
-	target_link_libraries(pcap_playback mediastreamer_voip mediastreamer_base)
+	target_link_libraries(pcap_playback mediastreamer_voip mediastreamer_base ${PCAP_LIBRARIES})
 	target_include_directories(pcap_playback PUBLIC ${PCAP_INCLUDE_DIRS})
-	target_link_libraries(pcap_playback ${PCAP_LIBRARIES})
+	target_compile_options(pcap_playback PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 endif()
 
 set(MEDIASTREAM_SOURCE_FILES mediastream.c common.c)
@@ -45,6 +47,7 @@ if(APPLE)
 endif()
 add_executable(mediastream ${MEDIASTREAM_SOURCE_FILES})
 target_link_libraries(mediastream mediastreamer_voip mediastreamer_base)
+target_compile_options(mediastream PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(mediastream PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
@@ -53,6 +56,7 @@ endif()
 if(ENABLE_VIDEO)
 	add_executable(mkvstream mkvstream.c)
 	target_link_libraries(mkvstream mediastreamer_voip mediastreamer_base)
+	target_compile_options(mkvstream PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 
 	install(TARGETS mediastream mkvstream
 		RUNTIME DESTINATION bin
