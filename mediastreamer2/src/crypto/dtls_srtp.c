@@ -534,7 +534,11 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 					ms_dtls_srtp_check_channels_status(ctx);
 				}
 			}
-			ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );
+
+			if (ctx->role != MSDtlsSrtpRoleIsServer) { /* close the connection only if we are client, if we are server, the client may ask again for last packets */
+				ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );
+			}
+
 		}
 		return 0;
 	}
