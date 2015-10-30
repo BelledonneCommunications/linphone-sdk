@@ -393,14 +393,14 @@ static void enc_postprocess(MSFilter *f){
 	}
 }
 
-static void add_rfc2190_header(mblk_t **packet, AVCodecContext *context){
+static void add_rfc2190_header(mblk_t **packet, AVCodecContext *context, bool_t is_iframe){
 	mblk_t *header;
 	header = allocb(4, 0);
 	memset(header->b_wptr, 0, 4);
 	// assume video size is CIF or QCIF
 	if (context->width == 352 && context->height == 288) header->b_wptr[1] = 0x60;
 	else header->b_wptr[1] = 0x40;
-	if (context->coded_frame->pict_type != FF_I_TYPE) header->b_wptr[1] |= 0x10;
+	if (is_iframe == TRUE) header->b_wptr[1] |= 0x10;
 	header->b_wptr += 4;
 	header->b_cont = *packet;
 	*packet = header;
@@ -448,7 +448,7 @@ static int get_gbsc_bytealigned(uint8_t *begin, uint8_t *end){
 }
 #endif
 
-static void rfc2190_generate_packets(MSFilter *f, EncState *s, mblk_t *frame, uint32_t timestamp){
+static void rfc2190_generate_packets(MSFilter *f, EncState *s, mblk_t *frame, uint32_t timestamp, bool_t is_iframe){
 	mblk_t *packet=NULL;
 
 	while (frame->b_rptr<frame->b_wptr){
@@ -456,7 +456,7 @@ static void rfc2190_generate_packets(MSFilter *f, EncState *s, mblk_t *frame, ui
 		/*frame->b_rptr=packet->b_wptr=packet->b_rptr+get_gbsc(packet->b_rptr, MIN(packet->b_rptr+s->mtu,frame->b_wptr));*/
 		frame->b_rptr = packet->b_wptr =
 			packet->b_rptr + get_gbsc_bytealigned(packet->b_rptr, MIN(packet->b_rptr+s->mtu,frame->b_wptr));
-		add_rfc2190_header(&packet, &s->av_context);
+		add_rfc2190_header(&packet, &s->av_context ,is_iframe);
 		mblk_set_timestamp_info(packet,timestamp);
 		ms_queue_put(f->outputs[0],packet);
 	}
@@ -741,7 +741,7 @@ static mblk_t *skip_jpeg_headers(mblk_t *full_frame, mblk_t **lqt, mblk_t **cqt)
 	return full_frame;
 }
 
-static void split_and_send(MSFilter *f, EncState *s, mblk_t *frame){
+static void split_and_send(MSFilter *f, EncState *s, mblk_t *frame, bool_t is_iframe){
 	uint8_t *lastpsc;
 	uint8_t *psc;
 	uint32_t timestamp=f->ticker->time*90LL;
@@ -783,7 +783,7 @@ static void split_and_send(MSFilter *f, EncState *s, mblk_t *frame){
 		/* send the end of frame */
 		rfc4629_generate_follow_on_packets(f,s,frame, timestamp,lastpsc,frame->b_wptr,TRUE);
 	}else if (f->desc->id==MS_H263_OLD_ENC_ID){
-		rfc2190_generate_packets(f,s,frame,timestamp);
+		rfc2190_generate_packets(f,s,frame,timestamp,is_iframe);
 	}else{
 		ms_fatal("Ca va tres mal.");
 	}
@@ -832,15 +832,21 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 
 	if (error<0) ms_warning("ms_AVencoder_process: error %i.",error);
 	else if (got_packet){
+		bool_t is_iframe = FALSE;
 		s->framenum++;
 		if (s->framenum==1){
 			ms_video_starter_first_frame(&s->starter, f->ticker->time);
 		}
+#ifdef AV_PKT_FLAG_KEY
+		if (packet.flags & AV_PKT_FLAG_KEY) {
+#else
 		if (c->coded_frame->pict_type==FF_I_TYPE){
+#endif
 			ms_message("Emitting I-frame");
+			is_iframe = TRUE;
 		}
 		comp_buf->b_wptr+=packet.size;
-		split_and_send(f,s,comp_buf);
+		split_and_send(f,s,comp_buf,is_iframe);
 	}
 	freemsg(inm);
 }
