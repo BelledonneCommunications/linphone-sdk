@@ -166,6 +166,7 @@ if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 endif()
 target_include_directories(bellesip PUBLIC ${INCLUDES})
 target_link_libraries(bellesip ${LIBS})
+target_compile_options(bellesip PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 
 install(TARGETS bellesip EXPORT ${EXPORT_TARGETS_NAME}Targets
 	RUNTIME DESTINATION bin

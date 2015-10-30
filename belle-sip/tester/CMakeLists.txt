@@ -51,6 +51,7 @@ if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 endif()
 target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIR} PRIVATE common)
 target_link_libraries(belle_sip_tester ${CUNIT_LIBRARIES} bellesip)
+target_compile_options(belle_sip_tester PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
 
 
@@ -61,6 +62,7 @@ if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
 target_link_libraries(belle_sip_object_describe bellesip)
+target_compile_options(belle_sip_object_describe PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 
 
 set(PARSE_SOURCES parse.c)
@@ -70,3 +72,4 @@ if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
 target_link_libraries(belle_sip_parse bellesip)
+target_compile_options(belle_sip_parse PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
