@@ -369,7 +369,7 @@ static int ms_dtls_srtp_rtp_sendData (void *ctx, const unsigned char *data, size
 	/* generate message from raw data */
 	msg = rtp_session_create_packet_raw((uint8_t *)data, length);
 
-	ret = meta_rtp_transport_modifier_inject_packet(rtpt, context->rtp_modifier, msg , 0);
+	ret = meta_rtp_transport_modifier_inject_packet_to_send(rtpt, context->rtp_modifier, msg , 0);
 
 	freemsg(msg);
 	return ret;
@@ -404,7 +404,7 @@ static int ms_dtls_srtp_rtcp_sendData (void *ctx, const unsigned char *data, siz
 	/* generate message from raw data */
 	msg = rtp_session_create_packet_raw((uint8_t *)data, length);
 
-	ret = meta_rtp_transport_modifier_inject_packet(rtcpt, context->rtcp_modifier, msg , 0);
+	ret = meta_rtp_transport_modifier_inject_packet_to_send(rtcpt, context->rtcp_modifier, msg , 0);
 	freemsg(msg);
 
 	return ret;
