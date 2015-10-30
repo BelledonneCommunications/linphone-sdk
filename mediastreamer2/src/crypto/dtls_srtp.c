@@ -280,6 +280,8 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 			}
 		}
 
+		ms_message("DTLS Receive %s packet len %d sessions: %p rtp session %p ssl state is %x", is_rtp==TRUE?"RTP":"RTCP", (int)msgLength, ctx->stream_sessions, ctx->stream_sessions->rtp_session, ssl->state);
+
 		/* store the packet in the incoming buffer */
 		if (is_rtp == TRUE) {
 			if (ctx->rtp_incoming_buffer==NULL) { /* buffer is empty */
