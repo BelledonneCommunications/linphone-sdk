@@ -272,12 +272,12 @@ static void show_format(char *name,
 	outName[3] = the4CCString[3];
 	outName[4] = 0;
 	ms_message("mFormatID = %s", outName);
-	ms_message("mFormatFlags = %08lX", deviceFormat->mFormatFlags);
-	ms_message("mBytesPerPacket = %ld", deviceFormat->mBytesPerPacket);
-	ms_message("mFramesPerPacket = %ld", deviceFormat->mFramesPerPacket);
-	ms_message("mChannelsPerFrame = %ld", deviceFormat->mChannelsPerFrame);
-	ms_message("mBytesPerFrame = %ld", deviceFormat->mBytesPerFrame);
-	ms_message("mBitsPerChannel = %ld", deviceFormat->mBitsPerChannel);
+	ms_message("mFormatFlags = %08lX", (long)deviceFormat->mFormatFlags);
+	ms_message("mBytesPerPacket = %ld", (long)deviceFormat->mBytesPerPacket);
+	ms_message("mFramesPerPacket = %ld", (long)deviceFormat->mFramesPerPacket);
+	ms_message("mChannelsPerFrame = %ld", (long)deviceFormat->mChannelsPerFrame);
+	ms_message("mBytesPerFrame = %ld", (long)deviceFormat->mBytesPerFrame);
+	ms_message("mBitsPerChannel = %ld", (long)deviceFormat->mBitsPerChannel);
 }
 
 static void aqcard_detect(MSSndCardManager * m)
@@ -301,14 +301,14 @@ static void aqcard_detect(MSSndCardManager * m)
 		AudioHardwareGetPropertyInfo(kAudioHardwarePropertyDevices, &slen,
 									 &writable);
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+		ms_error("get kAudioHardwarePropertyDevices error %ld", (long)err);
 		return;
 	}
 	AudioDeviceID V[slen / sizeof(AudioDeviceID)];
 	err =
 		AudioHardwareGetProperty(kAudioHardwarePropertyDevices, &slen, V);
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+		ms_error("get kAudioHardwarePropertyDevices error %ld", (long)err);
 		return;
 	}
 	count = slen / sizeof(AudioDeviceID);
@@ -326,7 +326,7 @@ static void aqcard_detect(MSSndCardManager * m)
 								   kAudioDevicePropertyDeviceName, &slen,
 								   devname_out);
 		if (err != kAudioHardwareNoError) {
-			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", (long)err);
 			continue;
 		}
 		slen = strlen(devname_out);
@@ -341,13 +341,13 @@ static void aqcard_detect(MSSndCardManager * m)
 									   kAudioDevicePropertyStreamConfiguration,
 									   &slen, &writable);
 		if (err != kAudioHardwareNoError) {
-			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", (long)err);
 			continue;
 		}
 
 		AudioBufferList *buflist = ms_malloc(slen);
 		if (buflist == NULL) {
-			ms_error("alloc AudioBufferList %ld", err);
+			ms_error("alloc AudioBufferList %ld", (long)err);
 			continue;
 		}
 
@@ -356,7 +356,7 @@ static void aqcard_detect(MSSndCardManager * m)
 								   kAudioDevicePropertyStreamConfiguration,
 								   &slen, buflist);
 		if (err != kAudioHardwareNoError) {
-			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", (long)err);
 			ms_free(buflist);
 			continue;
 		}
@@ -378,7 +378,7 @@ static void aqcard_detect(MSSndCardManager * m)
 								   kAudioDevicePropertyDeviceName, &slen,
 								   devname_in);
 		if (err != kAudioHardwareNoError) {
-			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", (long)err);
 			continue;
 		}
 		slen = strlen(devname_in);
@@ -393,7 +393,7 @@ static void aqcard_detect(MSSndCardManager * m)
 									   kAudioDevicePropertyStreamConfiguration,
 									   &slen, &writable);
 		if (err != kAudioHardwareNoError) {
-			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", (long)err);
 			continue;
 		}
 
@@ -403,12 +403,12 @@ static void aqcard_detect(MSSndCardManager * m)
 									   kAudioDevicePropertyStreamConfiguration,
 									   &slen, &writable);
 		if (err != kAudioHardwareNoError) {
-			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", (long)err);
 			continue;
 		}
 		buflist = ms_malloc(slen);
 		if (buflist == NULL) {
-			ms_error("alloc error %ld", err);
+			ms_error("alloc error %ld", (long)err);
 			continue;
 		}
 
@@ -417,7 +417,7 @@ static void aqcard_detect(MSSndCardManager * m)
 								   kAudioDevicePropertyStreamConfiguration,
 								   &slen, buflist);
 		if (err != kAudioHardwareNoError) {
-			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", (long)err);
 			ms_free(buflist);
 			continue;
 		}
@@ -440,7 +440,7 @@ static void aqcard_detect(MSSndCardManager * m)
 					   kAudioDevicePropertyDeviceUID, &slen,
 					   &dUID_out);
 		  if (err != kAudioHardwareNoError) {
-		    ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+		    ms_error("get kAudioHardwarePropertyDevices error %ld", (long)err);
 		    continue;
 		  }
 		  CFStringGetCString(dUID_out, uidname_out, 256,
@@ -469,7 +469,7 @@ static void aqcard_detect(MSSndCardManager * m)
 					   kAudioDevicePropertyDeviceUID, &slen,
 					   &dUID_in);
 		  if (err != kAudioHardwareNoError) {
-		    ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+		    ms_error("get kAudioHardwarePropertyDevices error %ld", (long)err);
 		    continue;
 		  }
 		  CFStringGetCString(dUID_in, uidname_in, 256,
@@ -527,15 +527,15 @@ static void readCallback(void *aqData,
 									  inBuffer->mAudioData,
 									  &len, rm->b_wptr);
 	if (err != noErr) {
-		ms_error("readCallback: AudioConverterConvertBuffer %d", err);
+		ms_error("readCallback: AudioConverterConvertBuffer %d", (int)err);
 		ms_warning("readCallback: inBuffer->mAudioDataByteSize = %d",
-				   inBuffer->mAudioDataByteSize);
-		ms_warning("readCallback: outlen = %d", len);
+				   (int)inBuffer->mAudioDataByteSize);
+		ms_warning("readCallback: outlen = %d", (int)len);
 		ms_warning("readCallback: origlen = %i",
-				   (inBuffer->mAudioDataByteSize *
+				   (int)((inBuffer->mAudioDataByteSize *
 					d->readAudioFormat.mSampleRate / 1) /
 				   d->devicereadFormat.mSampleRate /
-				   d->devicereadFormat.mChannelsPerFrame);
+				   d->devicereadFormat.mChannelsPerFrame));
 		freeb(rm);
 	} else {
 
@@ -566,7 +566,7 @@ static void readCallback(void *aqData,
 	
 	err = AudioQueueEnqueueBuffer(d->readQueue, inBuffer, 0, NULL);
 	if (err != noErr) {
-		ms_error("readCallback:AudioQueueEnqueueBuffer %ld", err);
+		ms_error("readCallback:AudioQueueEnqueueBuffer %ld", (long)err);
 	}
 	ms_mutex_unlock(&d->mutex);
 }
@@ -602,13 +602,13 @@ static void writeCallback(void *aqData,
 										  pData,
 										  &bsize, inBuffer->mAudioData);
 		if (err != noErr) {
-			ms_error("writeCallback: AudioConverterConvertBuffer %d", err);
+			ms_error("writeCallback: AudioConverterConvertBuffer %d", (int)err);
 		}
 		ms_free(pData);
 
 		if (bsize != d->writeBufferByteSize)
 			ms_warning("d->writeBufferByteSize = %i len = %i bsize = %i",
-					   d->writeBufferByteSize, len, bsize);
+					   (int)d->writeBufferByteSize, (int)len, (int)bsize);
 #else
 		ms_bufferizer_read(d->bufferizer, inBuffer->mAudioData, len);
 #endif
@@ -627,7 +627,7 @@ static void writeCallback(void *aqData,
 
 	err = AudioQueueEnqueueBuffer(d->writeQueue, inBuffer, 0, NULL);
 	if (err != noErr) {
-		ms_error("AudioQueueEnqueueBuffer %ld", err);
+		ms_error("AudioQueueEnqueueBuffer %ld", (long)err);
 	}
 	ms_mutex_unlock(&d->mutex);
 }
@@ -639,7 +639,7 @@ void putWriteAQ(void *aqData, int queuenum)
 	err = AudioQueueEnqueueBuffer(d->writeQueue,
 								  d->writeBuffers[queuenum], 0, NULL);
 	if (err != noErr) {
-		ms_error("AudioQueueEnqueueBuffer %ld", err);
+		ms_error("AudioQueueEnqueueBuffer %ld", (long)err);
 	}
 }
 
@@ -662,7 +662,7 @@ void setupWrite(MSFilter * f)
 									   &d->writeBuffers[bufferIndex]
 			);
 		if (err != noErr) {
-			ms_error("setupWrite:AudioQueueAllocateBuffer %ld", err);
+			ms_error("setupWrite:AudioQueueAllocateBuffer %ld", (long)err);
 		}
 	}
 }
@@ -687,12 +687,12 @@ void setupRead(MSFilter * f)
 		err = AudioQueueAllocateBuffer(d->readQueue,
 									   d->readBufferByteSize, &buffer);
 		if (err != noErr) {
-			ms_error("setupRead:AudioQueueAllocateBuffer %ld", err);
+			ms_error("setupRead:AudioQueueAllocateBuffer %ld", (long)err);
 		}
 
 		err = AudioQueueEnqueueBuffer(d->readQueue, buffer, 0, NULL);
 		if (err != noErr) {
-			ms_error("AudioQueueEnqueueBuffer %ld", err);
+			ms_error("AudioQueueEnqueueBuffer %ld", (long)err);
 		}
 	}
 }
@@ -729,7 +729,7 @@ static void aq_start_r(MSFilter * f)
 									 &d->readAudioFormat,
 									 &d->readAudioConverter);
 		if (aqresult != noErr) {
-			ms_error("d->readAudioConverter = %d", aqresult);
+			ms_error("d->readAudioConverter = %d", (int)aqresult);
 			d->readAudioConverter = NULL;
 		}
 #endif
@@ -740,7 +740,7 @@ static void aq_start_r(MSFilter * f)
 									  0,	// flags
 									  &d->readQueue);
 		if (aqresult != noErr) {
-			ms_error("AudioQueueNewInput = %ld", aqresult);
+			ms_error("AudioQueueNewInput = %ld", (long)aqresult);
 		}
 
 		if (d->uidname!=NULL){
@@ -755,7 +755,7 @@ static void aq_start_r(MSFilter * f)
 			if (aqresult != noErr) {
 				ms_error
 					("AudioQueueSetProperty on kAudioQueueProperty_CurrentDevice %ld",
-					 aqresult);
+					 (long)aqresult);
 			}
 		}
 
@@ -831,7 +831,7 @@ static void aq_start_w(MSFilter * f)
 									 &d->devicewriteFormat,
 									 &d->writeAudioConverter);
 		if (aqresult != noErr) {
-			ms_error("d->writeAudioConverter = %d", aqresult);
+			ms_error("d->writeAudioConverter = %d", (int)aqresult);
 			d->writeAudioConverter = NULL;
 		}
 #endif
@@ -842,7 +842,7 @@ static void aq_start_w(MSFilter * f)
 									   0,	// run loop flags
 									   &d->writeQueue);
 		if (aqresult != noErr) {
-			ms_error("AudioQueueNewOutput = %ld", aqresult);
+			ms_error("AudioQueueNewOutput = %ld", (long)aqresult);
 		}
 
 		AudioQueueSetParameter (d->writeQueue,
@@ -861,7 +861,7 @@ static void aq_start_w(MSFilter * f)
 			if (aqresult != noErr) {
 				ms_error
 					("AudioQueueSetProperty on kAudioQueueProperty_CurrentDevice %ld",
-					 aqresult);
+					 (long)aqresult);
 			}
 		}
 
@@ -925,13 +925,13 @@ static void aq_put(MSFilter * f, mblk_t * m)
 										  pData,
 										  &bsize, curbuf->mAudioData);
 		if (err != noErr) {
-			ms_error("writeCallback: AudioConverterConvertBuffer %d", err);
+			ms_error("writeCallback: AudioConverterConvertBuffer %d", (int)err);
 		}
 		ms_free(pData);
 
 		if (bsize != d->writeBufferByteSize)
 			ms_warning("d->writeBufferByteSize = %i len = %i bsize = %i",
-					   d->writeBufferByteSize, len, bsize);
+					   (int)d->writeBufferByteSize, (int)len, (int)bsize);
 #else
 		ms_bufferizer_read(d->bufferizer, curbuf->mAudioData, len);
 #endif
