@@ -247,14 +247,18 @@ if(ENABLE_VIDEO)
 				voip/ioshardware.m
 			)
 		else()
+			set(OBJC_VOIP_SOURCE_FILES
+				videofilters/msosxdisplay.m
+				videofilters/qtcapture.m
+			)
 			list(APPEND VOIP_SOURCE_FILES
 				utils/opengles_display.c
 				utils/opengles_display.h
 				utils/shaders.c
 				utils/shaders.h
-				videofilters/msosxdisplay.m
-				videofilters/qtcapture.m
+				${OBJC_VOIP_SOURCE_FILES}
 			)
+			set_source_files_properties(${OBJC_VOIP_SOURCE_FILES} PROPERTIES COMPILE_FLAGS "-Wno-error=deprecated-declarations")
 		endif()
 	endif()
 	if (ENABLE_QNX)

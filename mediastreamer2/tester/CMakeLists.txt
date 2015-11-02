@@ -41,6 +41,7 @@ if(ENABLE_VIDEO)
 endif()
 if(APPLE)
 	list(APPEND SOURCE_FILES mediastreamer2_tester_cocoa.m)
+	set_source_files_properties(mediastreamer2_tester_cocoa.m PROPERTIES COMPILE_FLAGS "-Wno-error")
 endif()
 
 add_executable(mediastreamer2_tester ${SOURCE_FILES})
