@@ -215,6 +215,7 @@ static void copy_paste_text_longer_than_rtt_buffer(void) {
 	text_stream_tester_destroy(margaux);
 }
 
+#ifdef HAVE_SRTP
 static void srtp_protected_text_stream(void) {
 	text_stream_tester_t* marielle = text_stream_tester_new();
 	text_stream_tester_t* margaux = text_stream_tester_new();
@@ -250,6 +251,7 @@ static void srtp_protected_text_stream(void) {
 	text_stream_tester_destroy(marielle);
 	text_stream_tester_destroy(margaux);
 }
+#endif
 
 static test_t tests[] = {
 	{ "Basic text stream: copy paste short text", basic_text_stream },
