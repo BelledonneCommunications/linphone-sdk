@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.63])
 
-AC_INIT([belle-sip],[1.4.1],[jehan.monnier@linphone.org])
+AC_INIT([belle-sip],[1.4.2],[jehan.monnier@linphone.org])
 
 BELLESIP_SO_CURRENT=0 dnl increment this number when you add/change/remove an interface
 BELLESIP_SO_REVISION=0 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
