@@ -255,7 +255,9 @@ static test_t tests[] = {
 	{ "Basic text stream: copy paste short text", basic_text_stream },
 	{ "Basic text stream: slow typing", basic_text_stream2 },
 	{ "copy paste text longer than buffer size", copy_paste_text_longer_than_rtt_buffer },
-	{ "slow typing with SRTP", srtp_protected_text_stream }
+#ifdef HAVE_SRTP
+	{ "slow typing with SRTP", srtp_protected_text_stream },
+#endif
 };
 
 test_suite_t text_stream_test_suite = {
