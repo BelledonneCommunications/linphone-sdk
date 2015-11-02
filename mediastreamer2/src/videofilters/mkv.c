@@ -1015,6 +1015,22 @@ static ms_bool_t matroska_load_file(Matroska *obj) {
 			obj->nbClusters++;
 		}
 	}
+	
+	/* Create an empty MetaSeek table if no has been found and create 
+	   the missing entries */
+	if(obj->metaSeek == NULL) obj->metaSeek = (ebml_master *)EBML_MasterAddElt(obj->segment, &MATROSKA_ContextSeekHead, FALSE);
+	if(obj->infoMeta == NULL) {
+		obj->infoMeta = (matroska_seekpoint *)EBML_MasterAddElt(obj->metaSeek, &MATROSKA_ContextSeek, TRUE);
+		MATROSKA_LinkMetaSeekElement(obj->infoMeta, (ebml_element *)obj->info);
+	}
+	if(obj->tracksMeta == NULL) {
+		obj->tracksMeta = (matroska_seekpoint *)EBML_MasterAddElt(obj->metaSeek, &MATROSKA_ContextSeek, TRUE);
+		MATROSKA_LinkMetaSeekElement(obj->tracksMeta, (ebml_element *)obj->tracks);
+	}
+	if(obj->cuesMeta == NULL) {
+		obj->cuesMeta = (matroska_seekpoint *)EBML_MasterAddElt(obj->metaSeek, &MATROSKA_ContextSeek, TRUE);
+		MATROSKA_LinkMetaSeekElement(obj->cuesMeta, (ebml_element *)obj->cues);
+	}
 	return TRUE;
 }
 
