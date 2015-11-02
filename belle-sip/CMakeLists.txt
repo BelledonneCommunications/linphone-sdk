@@ -26,7 +26,7 @@ project(BELLESIP C CXX)
 
 set(PACKAGE "belle-sip")
 set(PACKAGE_NAME "${PACKAGE}")
-set(PACKAGE_VERSION "1.4.1")
+set(PACKAGE_VERSION "1.4.2")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "jehan.monnier@linphone.org")
 set(PACKAGE_TARNAME "belle-sip")
