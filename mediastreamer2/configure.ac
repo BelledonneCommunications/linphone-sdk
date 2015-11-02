@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([mediastreamer],[2.11.2])
+AC_INIT([mediastreamer],[2.12.0])
 
 AC_MSG_NOTICE([$PACKAGE_NAME-$PACKAGE_VERSION		A mediastreaming library for telephony application.])
 AC_MSG_NOTICE([licensed under the terms of the General Public License (GPL)])
@@ -16,7 +16,7 @@ MEDIASTREAMER_MINOR_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f2)
 MEDIASTREAMER_MICRO_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f3)
 MEDIASTREAMER_EXTRA_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f4)
 
-LIBMEDIASTREAMER_SO_CURRENT=5 dnl increment this number when you add/change/remove an interface
+LIBMEDIASTREAMER_SO_CURRENT=6 dnl increment this number when you add/change/remove an interface
 LIBMEDIASTREAMER_SO_REVISION=0 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
 LIBMEDIASTREAMER_SO_AGE=0 dnl increment this number when you add an interface, set to 0 if you remove an interface
 
