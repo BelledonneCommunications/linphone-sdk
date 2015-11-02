@@ -22,7 +22,7 @@
 
 set(EP_msamr_GIT_REPOSITORY "git://git.linphone.org/msamr.git" CACHE STRING "msamr repository URL")
 set(EP_msamr_GIT_TAG_LATEST "master" CACHE STRING "msamr tag to use when compiling latest version")
-set(EP_msamr_GIT_TAG "076adbf96b8c369eb82817802819444fdc119139" CACHE STRING "msamr tag to use")
+set(EP_msamr_GIT_TAG "1.0.2" CACHE STRING "msamr tag to use")
 set(EP_msamr_EXTERNAL_SOURCE_PATHS "msamr")
 set(EP_msamr_GROUPABLE YES)
 

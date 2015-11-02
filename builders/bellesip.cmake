@@ -22,7 +22,7 @@
 
 set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git" CACHE STRING "bellesip repository URL")
 set(EP_bellesip_GIT_TAG_LATEST "master" CACHE STRING "bellesip tag to use when compiling latest version")
-set(EP_bellesip_GIT_TAG "fbb27d34f9134812876da5bccee0bf5b80aa5f77" CACHE STRING "bellesip tag to use")
+set(EP_bellesip_GIT_TAG "1.4.2" CACHE STRING "bellesip tag to use")
 set(EP_bellesip_EXTERNAL_SOURCE_PATHS "belle-sip")
 set(EP_bellesip_GROUPABLE YES)
 

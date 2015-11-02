@@ -22,7 +22,7 @@
 
 set(EP_bzrtp_GIT_REPOSITORY "git://git.linphone.org/bzrtp.git" CACHE STRING "bzrtp repository URL")
 set(EP_bzrtp_GIT_TAG_LATEST "master" CACHE STRING "bzrtp tag to use when compiling latest version")
-set(EP_bzrtp_GIT_TAG "197b527d97a633074ecac82938a20073f73b88b0" CACHE STRING "bzrtp tag to use")
+set(EP_bzrtp_GIT_TAG "1.0.3" CACHE STRING "bzrtp tag to use")
 set(EP_bzrtp_EXTERNAL_SOURCE_PATHS "bzrtp")
 set(EP_bzrtp_GROUPABLE YES)
 

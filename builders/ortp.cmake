@@ -22,7 +22,7 @@
 
 set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git" CACHE STRING "ortp repository URL")
 set(EP_ortp_GIT_TAG_LATEST "master" CACHE STRING "ortp tag to use when compiling latest version")
-set(EP_ortp_GIT_TAG "75610fea145c6411f66ad11c474ed19922032fab" CACHE STRING "ortp tag to use")
+set(EP_ortp_GIT_TAG "0.25.0" CACHE STRING "ortp tag to use")
 set(EP_ortp_EXTERNAL_SOURCE_PATHS "oRTP" "ortp" "linphone/oRTP")
 set(EP_ortp_GROUPABLE YES)
 
