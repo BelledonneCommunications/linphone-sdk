@@ -26,7 +26,7 @@ project(MSOPENH264)
 
 set(PACKAGE "msopenh264")
 set(PACKAGE_NAME "${PACKAGE}")
-set(PACKAGE_VERSION "1.1.0")
+set(PACKAGE_VERSION "1.1.1")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "support@belledonne-communications.com")
 set(PACKAGE_TARNAME "msopenh264")
