@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.0)
 project(BZRTP C)
-set(BZRTP_VERSION 1.0.2)
+set(BZRTP_VERSION 1.0.3)
 
 
 option(ENABLE_STATIC "Build static library (default is shared library)." NO)
