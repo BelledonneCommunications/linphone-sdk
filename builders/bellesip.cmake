@@ -36,6 +36,12 @@ if(MSVC)
 endif()
 
 set(EP_bellesip_CMAKE_OPTIONS "-DENABLE_RTP_MAP_ALWAYS_IN_SDP=${ENABLE_RTP_MAP_ALWAYS_IN_SDP}")
+
+# TODO: Activate strict compilation options on IOS
+if(IOS)
+	list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_STRICT=NO")
+endif()
+
 list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TUNNEL=${ENABLE_TUNNEL}")
 if(ENABLE_TUNNEL)
 	list(APPEND EP_bellesip_DEPENDENCIES EP_tunnel)

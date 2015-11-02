@@ -46,6 +46,12 @@ set(EP_linphone_CMAKE_OPTIONS
 	"-DENABLE_NLS=${ENABLE_NLS}"
 	"-DENABLE_LIME=YES"
 )
+
+# TODO: Activate strict compilation options on IOS
+if(IOS)
+	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_STRICT=NO")
+endif()
+
 list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_TUNNEL=${ENABLE_TUNNEL}")
 if(ENABLE_TUNNEL)
 	list(APPEND EP_linphone_DEPENDENCIES EP_tunnel)

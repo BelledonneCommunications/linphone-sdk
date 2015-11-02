@@ -38,3 +38,9 @@ endif()
 set(EP_ortp_SPEC_FILE "ortp.spec")
 
 set(EP_ortp_CMAKE_OPTIONS "-DENABLE_DOC=${ENABLE_DOC}")
+
+# TODO: Activate strict compilation options on IOS
+if(IOS)
+	list(APPEND EP_ortp_CMAKE_OPTIONS "-DENABLE_STRICT=NO")
+endif()
+
