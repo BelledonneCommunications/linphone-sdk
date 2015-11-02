@@ -1,5 +1,5 @@
 # process this file with autoconf to produce a configure script.
-AC_INIT([msamr],[1.0.1])
+AC_INIT([msamr],[1.0.2])
 
 # require at least this autoconf version
 AC_PREREQ(2.63)
