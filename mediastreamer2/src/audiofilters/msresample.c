@@ -143,9 +143,9 @@ static void resample_process_ms2(MSFilter *obj){
 	}
 	ms_filter_lock(obj);
 	if (dt->handle!=NULL){
-		unsigned int inrate=0, outrate=0;
+		spx_uint32_t inrate=0, outrate=0;
 		speex_resampler_get_rate(dt->handle,&inrate,&outrate);
-		if (inrate!=dt->input_rate || outrate!=dt->output_rate){
+		if ((uint32_t)inrate!=dt->input_rate || (uint32_t)outrate!=dt->output_rate){
 			speex_resampler_destroy(dt->handle);
 			dt->handle=0;
 		}
@@ -156,17 +156,17 @@ static void resample_process_ms2(MSFilter *obj){
 
 	
 	while((im=ms_queue_get(obj->inputs[0]))!=NULL){
-		unsigned int inlen=(int)((im->b_wptr-im->b_rptr)/(2*dt->in_nchannels));
-		unsigned int outlen=((inlen*dt->output_rate)/dt->input_rate)+1;
-		unsigned int inlen_orig=inlen;
+		spx_uint32_t inlen=(spx_uint32_t)((im->b_wptr-im->b_rptr)/(2*dt->in_nchannels));
+		spx_uint32_t outlen=(spx_uint32_t)(((inlen*dt->output_rate)/dt->input_rate)+1);
+		spx_uint32_t inlen_orig=inlen;
 		om=allocb(outlen*2*dt->in_nchannels,0);
 		mblk_meta_copy(im, om);
 		if (dt->in_nchannels==1){
 			speex_resampler_process_int(dt->handle, 
 					0, 
-					(int16_t*)im->b_rptr, 
+					(spx_int16_t*)im->b_rptr, 
 					&inlen, 
-					(int16_t*)om->b_wptr, 
+					(spx_int16_t*)om->b_wptr, 
 					&outlen);
 		}else{
 			speex_resampler_process_interleaved_int(dt->handle, 
