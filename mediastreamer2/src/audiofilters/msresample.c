@@ -177,7 +177,7 @@ static void resample_process_ms2(MSFilter *obj){
 		}
 		if (inlen_orig!=inlen){
 			ms_error("Bug in resampler ! only %u samples consumed instead of %u, out=%u",
-				inlen,inlen_orig,outlen);
+				(unsigned int)inlen,(unsigned int)inlen_orig,(unsigned int)outlen);
 		}
 		om->b_wptr+=outlen*2*dt->in_nchannels;
 		mblk_set_timestamp_info(om,dt->ts);
