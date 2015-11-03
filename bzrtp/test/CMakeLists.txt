@@ -35,13 +35,11 @@ set(TEST_SOURCES
 	../src/zidCache.c
 )
 
+apply_compile_flags(TEST_SOURCES "CPP")
+
 add_executable(bzrtpTest ${TEST_SOURCES})
 set_target_properties(bzrtpTest PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
-if("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
-	target_include_directories(bzrtpTest PUBLIC ${CUNIT_INCLUDE_DIR})
-else()
-	include_directories(${CUNIT_INCLUDE_DIR})
-endif()
+target_include_directories(bzrtpTest PUBLIC ${CUNIT_INCLUDE_DIR})
 target_link_libraries(bzrtpTest ${CUNIT_LIBRARIES} bzrtp)
 if(HAVE_SQRT)
 	target_link_libraries(bzrtpTest m)

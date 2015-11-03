@@ -30,6 +30,8 @@ set(SOURCE_FILES
 	zidCache.c
 )
 
+apply_compile_flags(SOURCE_FILES "CPP")
+
 if(ENABLE_STATIC)
 	add_library(bzrtp STATIC ${SOURCE_FILES})
 	target_link_libraries(bzrtp ${LIBS})

@@ -26,7 +26,24 @@ set(BZRTP_VERSION 1.0.3)
 
 
 option(ENABLE_STATIC "Build static library (default is shared library)." NO)
+option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TESTS "Enable compilation of unit tests." NO)
+
+
+macro(apply_compile_flags SOURCE_FILES)
+	if(${SOURCE_FILES})
+		set(options "")
+		foreach(a ${ARGV})
+			if(STRICT_OPTIONS_${a})
+				string(REPLACE ";" " " options_${a} "${STRICT_OPTIONS_${a}}")
+				set(options "${options} ${options_${a}}")
+			endif()
+		endforeach()
+		if(options)
+			set_source_files_properties(${${SOURCE_FILES}} PROPERTIES COMPILE_FLAGS "${options}")
+		endif()
+	endif()
+endmacro()
 
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -59,6 +76,21 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
 add_definitions("-DHAVE_CONFIG_H")
+
+set(STRICT_OPTIONS_CPP )
+if(NOT MSVC)
+	list(APPEND STRICT_OPTIONS_CPP "-Wall")
+	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+		list(APPEND STRICT_OPTIONS_CPP "-Qunused-arguments")
+	endif()
+	if(ENABLE_STRICT)
+		list(APPEND STRICT_OPTIONS_CPP "-Werror")
+	endif()
+endif()
+if(STRICT_OPTIONS_CPP)
+	list(REMOVE_DUPLICATES STRICT_OPTIONS_CPP)
+	string(REPLACE ";" " " STRICT_OPTIONS_CPP "${STRICT_OPTIONS_CPP}")
+endif()
 
 
 include_directories(
