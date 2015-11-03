@@ -41,34 +41,34 @@ if(WIN32)
 	list(APPEND LIBS ws2_32)
 endif()
 
-set(SDP_GENERATED_SOURCE_FILES
+set(SDP_GENERATED_SOURCE_FILES_C
 	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpLexer.c
 	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpLexer.h
 	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpParser.c
 	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpParser.h
 )
 add_custom_command(
-	OUTPUT ${SDP_GENERATED_SOURCE_FILES}
+	OUTPUT ${SDP_GENERATED_SOURCE_FILES_C}
 	COMMAND ${ANTLR3_COMMAND} -make -Xmultithreaded -Xconversiontimeout 10000 -fo ${CMAKE_CURRENT_BINARY_DIR}/grammars ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sdp.g
 	DEPENDS grammars/belle_sdp.g
 )
 
-set(SIP_MESSAGE_GENERATED_SOURCE_FILES
+set(SIP_MESSAGE_GENERATED_SOURCE_FILES_C
 	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageLexer.c
 	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageLexer.h
 	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageParser.c
 	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageParser.h
 )
 add_custom_command(
-	OUTPUT ${SIP_MESSAGE_GENERATED_SOURCE_FILES}
+	OUTPUT ${SIP_MESSAGE_GENERATED_SOURCE_FILES_C}
 	COMMAND ${ANTLR3_COMMAND} -make -Xmultithreaded -Xconversiontimeout 10000 -fo ${CMAKE_CURRENT_BINARY_DIR}/grammars ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sip_message.g
 	DEPENDS grammars/belle_sip_message.g
 )
 
-set_source_files_properties(${GRAMMARS_SOURCE_FILES} ${SIP_MESSAGE_GENERATED_SOURCE_FILES} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${SDP_GENERATED_SOURCE_FILES_C} ${SIP_MESSAGE_GENERATED_SOURCE_FILES_C} PROPERTIES GENERATED TRUE)
 
 if(ENABLE_TLS)
-	set(TLS_SOURCE_FILES
+	set(TLS_SOURCE_FILES_C
 		transports/tls_listeningpoint_polarssl.c
 		transports/tls_channel_polarssl.c
 	)
@@ -77,16 +77,17 @@ if(ENABLE_TLS)
 endif()
 
 if(ENABLE_TUNNEL)
-	set(TUNNEL_SOURCE_FILES
+	set(TUNNEL_SOURCE_FILES_C
 		transports/tunnel_listeningpoint.c
 		transports/tunnel_channel.c
+	)
+	set(TUNNEL_SOURCE_FILES_CXX
 		transports/tunnel_wrapper.cc
 	)
-	set_source_files_properties(transports/tunnel_wrapper.cc PROPERTIES LANGUAGE CXX)
 	list(APPEND LIBS ${TUNNEL_LIBRARIES})
 endif()
 
-set(BELLE_SIP_SOURCE_FILES
+set(BELLE_SIP_SOURCE_FILES_C
 	auth_event.c
 	auth_helper.c
 	belle_sdp_impl.c
@@ -135,20 +136,31 @@ set(BELLE_SIP_SOURCE_FILES
 	transports/udp_listeningpoint.c
 	grammars/belle_sip_message.g
 	grammars/belle_sdp.g
-	${SDP_GENERATED_SOURCE_FILES}
-	${SIP_MESSAGE_GENERATED_SOURCE_FILES}
-	${TLS_SOURCE_FILES}
-	${TUNNEL_SOURCE_FILES}
+	${SDP_GENERATED_SOURCE_FILES_C}
+	${SIP_MESSAGE_GENERATED_SOURCE_FILES_C}
+	${TLS_SOURCE_FILES_C}
+	${TUNNEL_SOURCE_FILES_C}
+)
+set(BELLE_SIP_SOURCE_FILES_CXX
+	${TUNNEL_SOURCE_FILES_CXX}
 )
 if(APPLE)
-	list(APPEND BELLE_SIP_SOURCE_FILES backgroundtask.m)
-	set_source_files_properties(backgroundtask.m PROPERTIES COMPILE_FLAGS "-fmodules")
+	set(BELLE_SIP_SOURCE_FILES_OBJC
+		backgroundtask.m
+	)
+endif()
+
+apply_compile_flags(BELLE_SIP_SOURCE_FILES_C "CPP" "C")
+apply_compile_flags(BELLE_SIP_SOURCE_FILES_OBJC "CPP" "OBJC")
+if(BELLE_SIP_SOURCE_FILES_CXX)
+	set_source_files_properties(${BELLE_SIP_SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
+	apply_compile_flags(BELLE_SIP_SOURCE_FILES_CXX "CPP" "CXX")
 endif()
 
 if(ENABLE_STATIC)
-	add_library(bellesip STATIC ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES})
+	add_library(bellesip STATIC ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC})
 else()
-	add_library(bellesip SHARED ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES})
+	add_library(bellesip SHARED ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC})
 	set_target_properties(bellesip PROPERTIES VERSION 0.0.0 SOVERSION 0)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -166,7 +178,6 @@ if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 endif()
 target_include_directories(bellesip PUBLIC ${INCLUDES})
 target_link_libraries(bellesip ${LIBS})
-target_compile_options(bellesip PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 
 install(TARGETS bellesip EXPORT ${EXPORT_TARGETS_NAME}Targets
 	RUNTIME DESTINATION bin

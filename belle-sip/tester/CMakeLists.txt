@@ -45,31 +45,31 @@ add_definitions(-DBC_CONFIG_FILE="config.h")
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 
+apply_compile_flags(TESTER_SOURCES "CPP" "C")
 add_executable(belle_sip_tester ${TESTER_SOURCES})
 if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
 target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIR} PRIVATE common)
 target_link_libraries(belle_sip_tester ${CUNIT_LIBRARIES} bellesip)
-target_compile_options(belle_sip_tester PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
 
 
 set(OBJECT_DESCRIBE_SOURCES describe.c)
 
+apply_compile_flags(OBJECT_DESCRIBE_SOURCES "CPP" "C")
 add_executable(belle_sip_object_describe ${OBJECT_DESCRIBE_SOURCES})
 if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
 target_link_libraries(belle_sip_object_describe bellesip)
-target_compile_options(belle_sip_object_describe PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 
 
 set(PARSE_SOURCES parse.c)
 
+apply_compile_flags(PARSE_SOURCES "CPP" "C")
 add_executable(belle_sip_parse ${PARSE_SOURCES})
 if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
 target_link_libraries(belle_sip_parse bellesip)
-target_compile_options(belle_sip_parse PRIVATE ${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
