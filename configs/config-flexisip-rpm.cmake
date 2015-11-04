@@ -111,7 +111,7 @@ set(EP_bellesip_SPEC_PREFIX     "${RPM_INSTALL_PREFIX}")
 set(EP_sofiasip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_flexisip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 
-set(EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder" "--enable-redis" "--enable-libodb=no")
+set(EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder" "--enable-redis" "--enable-libodb=no" "--enable-libodb-mysql=no")
 
 
 set(EP_ortp_RPMBUILD_OPTIONS      "--with bc --without srtp")
