@@ -61,7 +61,9 @@ else()
 			string(REPLACE " " ";" GENERATOR_LIST "${CMAKE_GENERATOR}")
 			list(GET GENERATOR_LIST 2 VS_VERSION)
 			set(EP_vpx_TARGET "x86-win32-vs${VS_VERSION}")
-			execute_process(COMMAND "cmd.exe" "/c" "${CMAKE_CURRENT_SOURCE_DIR}/builders/vpx/windows_env.bat" "${VS_VERSION}")
+			execute_process(COMMAND "cmd.exe" "/c" "${CMAKE_CURRENT_SOURCE_DIR}/builders/vpx/windows_env.bat" "${VS_VERSION}"
+				WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+			)
 			file(READ "${CMAKE_CURRENT_BINARY_DIR}/windowsenv_path.txt" EP_vpx_ENV_PATH_LIST)
 			set(EP_vpx_ENV_PATH "")
 			foreach(P ${EP_vpx_ENV_PATH_LIST})
