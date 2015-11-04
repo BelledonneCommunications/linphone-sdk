@@ -111,6 +111,7 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
     int max_payload_size = ms_factory_get_payload_max_size(ctx->f->factory);
     CFNumberRef value = NULL;
     
+    
     err =VTCompressionSessionCreate(NULL, ctx->conf.vsize.width, ctx->conf.vsize.height, kCMVideoCodecType_H264,
                                     NULL, NULL, NULL, (VTCompressionOutputCallback)h264_enc_output_cb, ctx, &ctx->session);
     if(err) {
@@ -185,8 +186,9 @@ static void h264_enc_process(MSFilter *f) {
         YuvBuf yuv_frame;
         CVPixelBufferRef pixbuf;
         size_t plane_width[3], plane_height[3], plane_byte_per_line[3];
-        size_t pix_data_size;
         CFMutableDictionaryRef enc_param = NULL;
+        size_t data_size;
+        int i;
 
         ms_yuv_buf_init_from_mblk(&yuv_frame, frame);
         plane_width[0] = yuv_frame.w;
@@ -198,12 +200,15 @@ static void h264_enc_process(MSFilter *f) {
         plane_byte_per_line[0] = yuv_frame.strides[0];
         plane_byte_per_line[1] = yuv_frame.strides[1];
         plane_byte_per_line[2] = yuv_frame.strides[2];
-        pix_data_size = plane_byte_per_line[0] * plane_height[0]
-            + plane_byte_per_line[1] * plane_height[1]
-            + plane_byte_per_line[2] * plane_height[2];
+        
+        data_size = frame->b_wptr - yuv_frame.planes[0];
+        
+        for(i=0,data_size=0; i<3; i++) {
+            data_size += plane_byte_per_line[i] * plane_height[i];
+        }
         
         if((return_val = CVPixelBufferCreateWithPlanarBytes(NULL, yuv_frame.w, yuv_frame.h, kCVPixelFormatType_420YpCbCr8Planar,
-                                                            NULL, 0, 3, (void **)yuv_frame.planes, plane_width, plane_height, plane_byte_per_line,
+                                                            NULL, data_size, 3, (void **)yuv_frame.planes, plane_width, plane_height, plane_byte_per_line,
                                                             (CVPixelBufferReleasePlanarBytesCallback)freemsg, frame, NULL, &pixbuf)) != kCVReturnSuccess) {
             ms_error("VideoToolbox: could not wrap a pixel buffer: error code %d", return_val);
             freemsg(frame);
@@ -509,16 +514,12 @@ static void h264_dec_init(MSFilter *f) {
     ms_queue_init(&ctx->queue);
     ms_mutex_init(&ctx->mutex, NULL);
     ctx->pixbuf_allocator = ms_yuv_buf_allocator_new();
-    f->data = ctx;
-}
-
-static void h264_dec_preprocess(MSFilter *f) {
-    VTH264DecCtx *ctx = (VTH264DecCtx *)f->data;
     rfc3984_init(&ctx->unpacker);
     ctx->vsize = MS_VIDEO_SIZE_UNKNOWN;
     ms_average_fps_init(&ctx->fps, "VideoToolboxDecoder: decoding at %ffps");
     ctx->first_image = TRUE;
     ctx->send_pli = FALSE;
+    f->data = ctx;
 }
 
 static void h264_dec_process(MSFilter *f) {
@@ -644,8 +645,9 @@ put_frames_out:
     return;
 }
 
-static void h264_dec_postprocess(MSFilter *f) {
+static void h264_dec_uninit(MSFilter *f) {
     VTH264DecCtx *ctx = (VTH264DecCtx *)f->data;
+    
     rfc3984_uninit(&ctx->unpacker);
     if(ctx->session) {
         VTDecompressionSessionInvalidate(ctx->session);
@@ -656,10 +658,7 @@ static void h264_dec_postprocess(MSFilter *f) {
     }
     ms_queue_flush(&ctx->queue);
     ctx->parameter_sets = ms_list_free_with_data(ctx->parameter_sets, (void(*)(void *))freemsg);
-}
-
-static void h264_dec_uninit(MSFilter *f) {
-    VTH264DecCtx *ctx = (VTH264DecCtx *)f->data;
+    
     ms_mutex_destroy(&ctx->mutex);
     ms_yuv_buf_allocator_free(ctx->pixbuf_allocator);
     ms_free(f->data);
@@ -725,9 +724,7 @@ MSFilterDesc ms_vt_h264_dec = {
     .ninputs = 1,
     .noutputs = 1,
     .init = h264_dec_init,
-    .preprocess = h264_dec_preprocess,
     .process = h264_dec_process,
-    .postprocess = h264_dec_postprocess,
     .uninit = h264_dec_uninit,
     .methods = h264_dec_methods
 };
