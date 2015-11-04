@@ -380,8 +380,9 @@ void rotate_down_scale_cbcr_to_cr_cb(int wDest, int hDest, int full_width, const
 #endif
 }
 
-static void reverse_and_down_scale_32bytes_neon(const unsigned char* src, unsigned char* dest) {
 #ifdef __ARM_NEON__
+
+static void reverse_and_down_scale_32bytes_neon(const unsigned char* src, unsigned char* dest) {
 	__asm  (/*load 16x1 pixel
 			 [  0,  1,  2,  3,  4,  5,  6,  7, 8, 9, 10, 11, 12, 13, 14, 15]*/
 			"vld2.8 {q0,q1},[%0] \n\t"
@@ -396,11 +397,9 @@ static void reverse_and_down_scale_32bytes_neon(const unsigned char* src, unsign
 			: "r"(src),"r"(dest)/*in*/
 			: "r4","q0","q1","memory" /*modified*/
 			);
-#endif
 }
 
 static void reverse_16bytes_neon(const unsigned char* src, unsigned char* dest) {
-#ifdef __ARM_NEON__
 	__asm  (/*load 16x1 pixel
 			[  0,  1,  2,  3,  4,  5,  6,  7, 8, 9, 10, 11, 12, 13, 14, 15]*/
 		   "vld1.8 {d0,d1},[%0] \n\t"
@@ -415,11 +414,9 @@ static void reverse_16bytes_neon(const unsigned char* src, unsigned char* dest) 
 		   : "r"(src),"r"(dest)/*in*/
 		   : "r4","d0","d1","memory" /*modified*/
 		   );
-#endif
 }
 
 static void deinterlace_and_reverse_2x8bytes_neon(const unsigned char* src, unsigned char* udest, unsigned char* vdest) {
-#ifdef __ARM_NEON__
 	__asm  (/*load 16x1 values
 			[  U0, V0, U1, V1, U2, V2, U3, V3, U4, V4, U5, V5, U6, V6, U7, V7]
 			[  U0, U1, U2, U3, U4, U5, U6, U7, V0, V1, V2, V3, V4, V5, V6, V7]*/
@@ -435,10 +432,9 @@ static void deinterlace_and_reverse_2x8bytes_neon(const unsigned char* src, unsi
 		   : "r"(src),"r"(udest),"r"(vdest)/*in*/
 		   : "r4","d0","d1","memory" /*modified*/
 		   );
-#endif
 }
+
 static void deinterlace_down_scale_and_reverse_2x16bytes_neon(const unsigned char* src, unsigned char* udest, unsigned char* vdest) {
-#ifdef __ARM_NEON__
 	__asm  (/*load 32x1 values*/
 			
 			"vld4.8 {d0,d1,d2,d3},[%0] \n\t" /*only keep half*/ 
@@ -454,8 +450,9 @@ static void deinterlace_down_scale_and_reverse_2x16bytes_neon(const unsigned cha
 			: "r"(src),"r"(udest),"r"(vdest)/*in*/
 			: "r4","q0","q1","memory" /*modified*/
 			);
-#endif
 }
+
+#endif // __ARM_NEON__
 
 
 void deinterlace_down_scale_and_rotate_180_neon(const uint8_t* ysrc, const uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row,bool_t down_scale) {
