@@ -51,10 +51,10 @@ else()
 	# Include builder options definitions according to the targets to be built
 	include(CMakeDependentOption)
 	include(FeatureSummary)
-	include(${CMAKE_SOURCE_DIR}/options/common.cmake)
+	include(${CMAKE_CURRENT_LIST_DIR}/../options/common.cmake)
 	foreach(_target ${LINPHONE_BUILDER_TARGETS})
-		if(EXISTS ${CMAKE_SOURCE_DIR}/options/${_target}.cmake)
-			include(${CMAKE_SOURCE_DIR}/options/${_target}.cmake)
+		if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/../options/${_target}.cmake)
+			include(${CMAKE_CURRENT_LIST_DIR}/../options/${_target}.cmake)
 		endif()
 	endforeach()
 
