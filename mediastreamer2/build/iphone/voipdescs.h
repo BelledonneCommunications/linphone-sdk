@@ -31,7 +31,7 @@ extern MSFilterDesc ms_mjpeg_dec_desc;
 extern MSFilterDesc ms_pix_conv_desc;
 extern MSFilterDesc ms_size_conv_desc;
 extern MSFilterDesc ms_static_image_desc;
-//extern MSFilterDesc ms_h264_dec_desc;
+extern MSFilterDesc ms_h264_dec_desc;
 extern MSFilterDesc ms_jpeg_writer_desc;
 extern MSFilterDesc ms_mire_desc;
 extern MSFilterDesc ms_ext_display_desc;
@@ -82,7 +82,7 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_pix_conv_desc,
 &ms_size_conv_desc,
 &ms_static_image_desc,
-//&ms_h264_dec_desc,
+&ms_h264_dec_desc,
 &ms_jpeg_writer_desc,
 &ms_mire_desc,
 &ms_ext_display_desc,
