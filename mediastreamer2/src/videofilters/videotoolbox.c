@@ -109,11 +109,17 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
     OSStatus err;
     const char *error_msg = "Could not initialize the VideoToolbox compresson session";
     int max_payload_size = ms_factory_get_payload_max_size(ctx->f->factory);
-    CFNumberRef value = NULL;
+    CFNumberRef value;
+    CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
+    int pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
     
+    value = CFNumberCreate(NULL, kCFNumberIntType, &pixel_type);
+    CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
+    CFRelease(value);
     
     err =VTCompressionSessionCreate(NULL, ctx->conf.vsize.width, ctx->conf.vsize.height, kCMVideoCodecType_H264,
-                                    NULL, NULL, NULL, (VTCompressionOutputCallback)h264_enc_output_cb, ctx, &ctx->session);
+                                    NULL, pixbuf_attr, NULL, (VTCompressionOutputCallback)h264_enc_output_cb, ctx, &ctx->session);
+    CFRelease(pixbuf_attr);
     if(err) {
         ms_error("%s: error code %d", error_msg, err);
         goto fail;
@@ -174,46 +180,37 @@ static void h264_enc_process(MSFilter *f) {
     VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
     mblk_t *frame;
     OSStatus err;
-    CVReturn return_val;
     CMTime p_time = CMTimeMake(f->ticker->time, 1000);
+    CVPixelBufferPoolRef pixbuf_pool;
     
     if(!ctx->is_configured) {
         ms_queue_flush(f->inputs[0]);
         return;
     }
     
+    pixbuf_pool = VTCompressionSessionGetPixelBufferPool(ctx->session);
+    if(pixbuf_pool == NULL) {
+        ms_error("VideoToolbox: no pool of pixel buffers found");
+        return;
+    }
+    
     while((frame = ms_queue_get(f->inputs[0]))) {
-        YuvBuf yuv_frame;
+        YuvBuf src_yuv_frame, dst_yuv_frame = {0};
         CVPixelBufferRef pixbuf;
-        size_t plane_width[3], plane_height[3], plane_byte_per_line[3];
         CFMutableDictionaryRef enc_param = NULL;
-        size_t data_size;
         int i;
 
-        ms_yuv_buf_init_from_mblk(&yuv_frame, frame);
-        plane_width[0] = yuv_frame.w;
-        plane_width[1] = yuv_frame.w/2;
-        plane_width[2] = yuv_frame.w/2;
-        plane_height[0] = yuv_frame.h;
-        plane_height[1] = yuv_frame.h/2;
-        plane_height[2] = yuv_frame.h/2;
-        plane_byte_per_line[0] = yuv_frame.strides[0];
-        plane_byte_per_line[1] = yuv_frame.strides[1];
-        plane_byte_per_line[2] = yuv_frame.strides[2];
-        
-        data_size = frame->b_wptr - yuv_frame.planes[0];
-        
-        for(i=0,data_size=0; i<3; i++) {
-            data_size += plane_byte_per_line[i] * plane_height[i];
+        ms_yuv_buf_init_from_mblk(&src_yuv_frame, frame);
+        CVPixelBufferPoolCreatePixelBuffer(NULL, pixbuf_pool, &pixbuf);
+        CVPixelBufferLockBaseAddress(pixbuf, 0);
+        dst_yuv_frame.w = (int)CVPixelBufferGetWidth(pixbuf);
+        dst_yuv_frame.h = (int)CVPixelBufferGetHeight(pixbuf);
+        for(i=0; i<3; i++) {
+            dst_yuv_frame.planes[i] = CVPixelBufferGetBaseAddressOfPlane(pixbuf, i);
+            dst_yuv_frame.strides[i] = (int)CVPixelBufferGetBytesPerRowOfPlane(pixbuf, i);
         }
-        
-        if((return_val = CVPixelBufferCreateWithPlanarBytes(NULL, yuv_frame.w, yuv_frame.h, kCVPixelFormatType_420YpCbCr8Planar,
-                                                            NULL, data_size, 3, (void **)yuv_frame.planes, plane_width, plane_height, plane_byte_per_line,
-                                                            (CVPixelBufferReleasePlanarBytesCallback)freemsg, frame, NULL, &pixbuf)) != kCVReturnSuccess) {
-            ms_error("VideoToolbox: could not wrap a pixel buffer: error code %d", return_val);
-            freemsg(frame);
-            continue;
-        }
+        ms_yuv_buf_copy(src_yuv_frame.planes, src_yuv_frame.strides, dst_yuv_frame.planes, dst_yuv_frame.strides, (MSVideoSize){dst_yuv_frame.w, dst_yuv_frame.h});
+        CVPixelBufferUnlockBaseAddress(pixbuf, 0);
         
         ms_filter_lock(f);
         if(ctx->fps_changed || ctx->bitrate_changed || ctx->vfu_requested) {
