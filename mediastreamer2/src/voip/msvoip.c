@@ -263,7 +263,13 @@ static int managers_ref=0;
 void ms_factory_init_voip(MSFactory *obj){
 	MSSndCardManager *cm;
 	int i;
-
+    
+#if defined(VIDEO_ENABLED) && defined(MS2_FILTERS) && !defined(NO_FFMPEG) && defined(HAVE_LIBAVCODEC_AVCODEC_H)
+    ms_ffmpeg_check_init();
+    __register_ffmpeg_encoders_if_possible(obj);
+    __register_ffmpeg_h264_decoder_if_possible(obj);
+#endif
+    
 	/* register builtin VoIP MSFilter's */
 	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
 		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);
@@ -300,11 +306,7 @@ void ms_factory_init_voip(MSFactory *obj){
 	}
 #endif
 
-#if defined(VIDEO_ENABLED) && defined(MS2_FILTERS) && !defined(NO_FFMPEG) && defined(HAVE_LIBAVCODEC_AVCODEC_H)
-	ms_ffmpeg_check_init();
-	__register_ffmpeg_encoders_if_possible(obj);
-	__register_ffmpeg_h264_decoder_if_possible(obj);
-#endif
+
 
 #if defined(ANDROID) && defined (VIDEO_ENABLED)
 	if (1) {
