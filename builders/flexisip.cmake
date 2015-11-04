@@ -42,7 +42,11 @@ list(APPEND EP_flexisip_CMAKE_OPTIONS "-DENABLE_TRANSCODER=NO")
 
 list(APPEND EP_flexisip_CMAKE_OPTIONS "-DENABLE_ODB=${ENABLE_ODB}")
 if(ENABLE_ODB)
+	message(STATUS "Flexisip to be built with ODB")
 	list(APPEND EP_flexisip_DEPENDENCIES EP_libodbmysql)
+else()
+	message(STATUS "Flexisip to be built without ODB")
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-libodb=no")
 endif()
 list(APPEND EP_flexisip_CMAKE_OPTIONS "-DENABLE_ODBC=${ENABLE_ODBC}")
 
