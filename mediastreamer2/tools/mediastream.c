@@ -42,25 +42,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef __APPLE__
 #include <CoreFoundation/CFRunLoop.h>
 #endif
-#if  TARGET_OS_IPHONE || defined (ANDROID)
+
 #if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
 #include <AudioToolbox/AudioToolbox.h>
 #endif
+
+#if  TARGET_OS_IPHONE || defined (ANDROID)
 extern void ms_set_video_stream(VideoStream* video);
-#ifdef HAVE_X264
+#if TARGET_OS_IPHONE || defined(HAVE_X264)
 extern void libmsx264_init();
 #endif
-#ifdef HAVE_OPENH264
+#if TARGET_OS_IPHONE || defined(HAVE_OPENH264)
 extern void libmsopenh264_init();
 #endif
-#ifdef HAVE_SILK
+#if TARGET_OS_IPHONE || defined(HAVE_SILK)
 extern void libmssilk_init();
 #endif
-#ifdef HAVE_WEBRTC
+#if TARGET_OS_IPHONE || defined(HAVE_WEBRTC)
 extern void libmswebrtc_init();
 #endif
-#endif
+#endif // TARGET_OS_IPHONE || defined (ANDROID)
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -683,16 +685,16 @@ void setup_media_streams(MediastreamDatas* args) {
 	ms_init();
 
 #if TARGET_OS_IPHONE || defined(ANDROID)
-#if defined (HAVE_X264) && defined (VIDEO_ENABLED)
+#if TARGET_OS_IPHONE || (defined(HAVE_X264) && defined(VIDEO_ENABLED))
 	libmsx264_init(); /*no plugin on IOS/Android */
 #endif
-#if defined (HAVE_OPENH264) && defined (VIDEO_ENABLED)
+#if TARGET_OS_IPHONE || (defined (HAVE_OPENH264) && defined (VIDEO_ENABLED))
 	libmsopenh264_init(); /*no plugin on IOS/Android */
 #endif
-#if defined (HAVE_SILK)
+#if TARGET_OS_IPHONE || defined (HAVE_SILK)
 	libmssilk_init(); /*no plugin on IOS/Android */
 #endif
-#if defined (HAVE_WEBRTC)
+#if TARGET_OS_IPHONE || defined (HAVE_WEBRTC)
 	libmswebrtc_init();
 #endif
 
