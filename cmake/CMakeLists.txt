@@ -323,7 +323,7 @@ macro(linphone_builder_create_autogen_command PROJNAME)
 				set(ep_autogen_options "${ep_autogen_options} \"${OPTION}\"")
 			endforeach()
 		endif()
-		set(ep_autogen_command "${ep_source}/autogen.sh ${ep_autogen_options}")
+		set(ep_autogen_command "\"${ep_source}/autogen.sh\" ${ep_autogen_options}")
 	else()
 		set(ep_autogen_command "")
 	endif()
@@ -339,7 +339,7 @@ macro(linphone_builder_create_configure_command PROJNAME)
 			set(ep_configure_options "${ep_configure_options} \"${OPTION}\"")
 		endforeach()
 		set(ep_configure_env "${EP_${PROJNAME}_CONFIGURE_ENV}")
-		set(ep_configure_command "${ep_source}/configure ${ep_configure_options}")
+		set(ep_configure_command "\"${ep_source}/configure\" ${ep_configure_options}")
 	endif()
 endmacro()
 
@@ -407,7 +407,7 @@ function(linphone_builder_add_external_project PROJNAME)
 			INSTALL_COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=<SOURCE_DIR> -DINSTALL_DIR=${CMAKE_INSTALL_PREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/install_prebuilt.cmake
 		)
 	elseif(EP_${PROJNAME}_BUILD_METHOD STREQUAL "custom")
-		set(ep_redirect_to_file "2>&1 >> ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}.log")
+		set(ep_redirect_to_file "2>&1 >> \"${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}.log\"")
 		configure_file(${EP_${PROJNAME}_CONFIGURE_COMMAND_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh)
 		configure_file(${EP_${PROJNAME}_BUILD_COMMAND_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh)
 		configure_file(${EP_${PROJNAME}_INSTALL_COMMAND_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh)
@@ -440,7 +440,7 @@ function(linphone_builder_add_external_project PROJNAME)
 			set(ep_install_target "install")
 		endif()
 
-		set(ep_redirect_to_file "2>&1 >> ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}.log")
+		set(ep_redirect_to_file "2>&1 >> \"${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}.log\"")
 		if(WIN32)
 			set(SCRIPT_EXTENSION bat)
 			set(MSVC_PROJNAME ${PROJNAME})
@@ -448,7 +448,7 @@ function(linphone_builder_add_external_project PROJNAME)
 			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_build.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.bat)
 			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_install.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.bat)
 			# Build in source with MinGW as build out-of-source does not work
-			set(ep_build ${ep_source})
+			set(ep_build "${ep_source}")
 			if(ep_autogen_command)
 				set(ep_autogen_redirect_to_file ${ep_redirect_to_file})
 			endif()
@@ -548,7 +548,7 @@ function(linphone_builder_add_external_project PROJNAME)
 	if(LINPHONE_BUILDER_LATEST AND EP_${PROJNAME}_GIT_TAG_LATEST)
 		set(DOWNLOAD_SOURCE GIT_REPOSITORY ${EP_${PROJNAME}_GIT_REPOSITORY} GIT_TAG ${EP_${PROJNAME}_GIT_TAG_LATEST})
 	elseif(EP_${PROJNAME}_SOURCE_DIR)
-		set(DOWNLOAD_SOURCE SOURCE_DIR ${EP_${PROJNAME}_SOURCE_DIR})
+		set(DOWNLOAD_SOURCE SOURCE_DIR "${EP_${PROJNAME}_SOURCE_DIR}")
 	elseif(EP_${PROJNAME}_URL)
 		set(DOWNLOAD_SOURCE URL ${EP_${PROJNAME}_URL})
 		if(EP_${PROJNAME}_URL_HASH)
@@ -562,7 +562,7 @@ function(linphone_builder_add_external_project PROJNAME)
 
 	ExternalProject_Add(EP_${PROJNAME}
 		DEPENDS ${EP_${PROJNAME}_DEPENDENCIES}
-		BINARY_DIR ${ep_build}
+		BINARY_DIR "${ep_build}"
 		${DOWNLOAD_SOURCE}
 		PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
 		CMAKE_GENERATOR ${CMAKE_GENERATOR}
@@ -749,8 +749,8 @@ macro(linphone_builder_add_dummy_libraries_generation)
 		linphone_builder_expand_external_project_vars()
 		ExternalProject_Add(EP_dummy_libraries
 			DEPENDS TARGET_linphone_builder
-			TMP_DIR ${ep_tmp}
-			BINARY_DIR ${ep_build}
+			TMP_DIR "${ep_tmp}"
+			BINARY_DIR "${ep_build}"
 			SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/cmake/dummy_libraries"
 			DOWNLOAD_COMMAND ""
 			CMAKE_GENERATOR ${CMAKE_GENERATOR}

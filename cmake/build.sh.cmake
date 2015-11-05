@@ -24,5 +24,5 @@ export PKG_CONFIG="@LINPHONE_BUILDER_PKG_CONFIG@"
 export PKG_CONFIG_PATH="@LINPHONE_BUILDER_PKG_CONFIG_PATH@"
 export PKG_CONFIG_LIBDIR="@LINPHONE_BUILDER_PKG_CONFIG_LIBDIR@"
 
-cd @ep_build@
+cd "@ep_build@"
 make V=@AUTOTOOLS_VERBOSE_MAKEFILE@ @ep_make_options@ @ep_redirect_to_file@
