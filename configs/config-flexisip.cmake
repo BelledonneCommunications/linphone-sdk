@@ -46,9 +46,15 @@ else() # Windows
 	set(LINPHONE_BUILDER_PKG_CONFIG_PATH "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig/")
 endif()
 if(APPLE)
-	if (NOT CMAKE_OSX_DEPLOYMENT_TARGET) #is it still usefull ?
-		#without instruction chose to target current machine
-		execute_process(COMMAND sw_vers -productVersion  COMMAND awk -F \\. "{printf \"%i.%i\",$1,$2}"  RESULT_VARIABLE xcrun_sdk_version OUTPUT_VARIABLE CMAKE_OSX_DEPLOYMENT_TARGET OUTPUT_STRIP_TRAILING_WHITESPACE)
+	if (NOT CMAKE_OSX_DEPLOYMENT_TARGET) #is it still useful?
+		#without instruction chose to target lower version between current machine and current used SDK
+		execute_process(COMMAND sw_vers -productVersion  COMMAND awk -F \\. "{printf \"%i.%i\",$1,$2}"  RESULT_VARIABLE sw_vers_version OUTPUT_VARIABLE CURRENT_OSX_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+		execute_process(COMMAND xcrun --sdk macosx --show-sdk-version RESULT_VARIABLE xcrun_sdk_version OUTPUT_VARIABLE CURRENT_SDK_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+		if (${CURRENT_OSX_VERSION} VERSION_LESS ${CURRENT_SDK_VERSION})
+			set(CMAKE_OSX_DEPLOYMENT_TARGET ${CURRENT_OSX_VERSION})
+		else()
+			set(CMAKE_OSX_DEPLOYMENT_TARGET ${CURRENT_SDK_VERSION})
+		endif()
 	endif()
 	set(CMAKE_MACOSX_RPATH 1)
 endif()
