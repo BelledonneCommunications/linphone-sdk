@@ -386,21 +386,6 @@ static void mblk_block_source_free_cb(void *refCon, mblk_t *m, size_t sizeInByte
     freemsg(m);
 }
 
-typedef struct _VTH264DecCtx {
-    VTDecompressionSessionRef session;
-    CMFormatDescriptionRef format_desc;
-    Rfc3984Context unpacker;
-    MSList *parameter_sets;
-    ms_mutex_t mutex;
-    MSQueue queue;
-    MSYuvBufAllocator *pixbuf_allocator;
-    MSVideoSize vsize;
-    MSAverageFPS fps;
-    bool_t first_image;
-    bool_t send_pli;
-    bool_t enable_avpf;
-} VTH264DecCtx;
-
 static bool_t mblk_equal_to(const mblk_t *msg1, const mblk_t *msg2) {
     const uint8_t *ptr1, *ptr2;
     if(msgdsize(msg1) != msgdsize(msg2)) {
@@ -413,6 +398,60 @@ static bool_t mblk_equal_to(const mblk_t *msg1, const mblk_t *msg2) {
     }
     if(ptr1 == msg1->b_wptr) return 0;
     else return -1;
+}
+
+typedef struct _VTH264DecCtx {
+    VTDecompressionSessionRef session;
+    CMFormatDescriptionRef format_desc;
+    Rfc3984Context unpacker;
+    ms_mutex_t mutex;
+    MSQueue queue;
+    MSYuvBufAllocator *pixbuf_allocator;
+    MSVideoSize vsize;
+    MSAverageFPS fps;
+    bool_t first_image;
+    bool_t send_pli;
+    bool_t enable_avpf;
+} VTH264DecCtx;
+
+static bool_t h264_dec_update_format_description(VTH264DecCtx *ctx, const MSList *parameter_sets) {
+    const MSList *it;
+    const size_t max_ps_count = 20;
+    size_t ps_count;
+    const uint8_t *ps_ptrs[max_ps_count];
+    size_t ps_sizes[max_ps_count];
+    int sps_count = 0, pps_count = 0;
+    int i;
+    OSStatus status;
+    
+    if(ctx->format_desc) CFRelease(ctx->format_desc);
+    ctx->format_desc = NULL;
+    ps_count = ms_list_size(parameter_sets);
+    if(ps_count > max_ps_count) {
+        ms_error("VideoToolbox: too much SPS/PPS");
+        return FALSE;
+    }
+    for(it=parameter_sets,i=0; it; it=it->next,i++) {
+        mblk_t *m = (mblk_t *)it->data;
+        ps_ptrs[i] = m->b_rptr;
+        ps_sizes[i] = m->b_wptr - m->b_rptr;
+        if(ms_h264_nalu_get_type(m) == MSH264NaluTypeSPS) sps_count++;
+        else if(ms_h264_nalu_get_type(m) == MSH264NaluTypePPS) pps_count++;
+    }
+    if(sps_count==0) {
+        ms_error("VideoToolbox: no SPS");
+        return FALSE;
+    }
+    if(pps_count==0) {
+        ms_error("VideoToolbox: no PPS");
+        return FALSE;
+    }
+    status = CMVideoFormatDescriptionCreateFromH264ParameterSets(NULL, ps_count, ps_ptrs, ps_sizes, H264_NALU_HEAD_SIZE, &ctx->format_desc);
+    if(status != noErr) {
+        ms_error("VideoToolboxDec: could not find out the input format: %d", status);
+        return FALSE;
+    }
+    return TRUE;
 }
 
 static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
@@ -454,12 +493,6 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 
 static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
     OSStatus status;
-    const size_t parameter_set_max_count = 20;
-    const uint8_t *parameter_set_pointers[parameter_set_max_count];
-    size_t parameter_set_sizes[parameter_set_max_count];
-    size_t parameter_set_count = 0;
-    MSList *elem;
-    int i;
     CFMutableDictionaryRef pixel_parameters = NULL;
     CFNumberRef value;
     const int pixel_format = kCVPixelFormatType_420YpCbCr8Planar;
@@ -467,43 +500,23 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
     
     ms_message("VideoToolboxDecoder: creating a decoding context");
     
-    for(elem = ctx->parameter_sets, i=0; elem && i < parameter_set_max_count; elem = elem->next, i++) {
-        mblk_t *parameter_set = (mblk_t*)elem->data;
-        parameter_set_pointers[i] = parameter_set->b_rptr;
-        parameter_set_sizes[i] = msgdsize(parameter_set);
-        parameter_set_count++;
-    }
-    if(i == parameter_set_max_count) {
-        ms_error("VideoToolboxDecoder: not all SPS/PPS will be passed to the encoder");
-        goto fail;
-    }
-    status = CMVideoFormatDescriptionCreateFromH264ParameterSets(NULL, parameter_set_count, parameter_set_pointers,
-                                                                 parameter_set_sizes, H264_NALU_HEAD_SIZE, &ctx->format_desc);
-    if(status != noErr) {
-        ms_error("VideoToolboxDecoder: could not find out the input format: error %d", status);
-        goto fail;
-    }
-    
     value = CFNumberCreate(NULL, kCFNumberIntType, &pixel_format);
     pixel_parameters = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
     CFDictionaryAddValue(pixel_parameters, kCVPixelBufferPixelFormatTypeKey, value);
     CFRelease(value);
     
+    if(ctx->format_desc == NULL) {
+        ms_error("VideoToolDecoder: could not create the decoding context: no format description");
+        return FALSE;
+    }
+    
     status = VTDecompressionSessionCreate(NULL, ctx->format_desc, NULL, pixel_parameters, &dec_cb, &ctx->session);
     CFRelease(pixel_parameters);
     if(status != noErr) {
         ms_error("VideoToolboxDecoder: could not create the decoding context: error %d", status);
-        goto fail;
+        return FALSE;
     }
     return TRUE;
-    
-fail:
-    if(ctx->format_desc) {
-        CFRelease(ctx->format_desc);
-        ctx->format_desc = NULL;
-        ctx->session = NULL;
-    }
-    return FALSE;
 }
 
 static void h264_dec_init(MSFilter *f) {
@@ -531,6 +544,7 @@ static void h264_dec_process(MSFilter *f) {
     CMSampleTimingInfo timing_info;
     MSPicture pixbuf_desc;
     OSStatus status;
+    MSList *parameter_sets = NULL;
     
     ms_queue_init(&q_nalus);
     ms_queue_init(&q_nalus2);
@@ -543,30 +557,36 @@ static void h264_dec_process(MSFilter *f) {
         }
     }
     
-    // Remove SPSs and PPSs and put them in the filter context if necessary
+    // Pull out SPSs and PPSs and put them into the filter context if necessary
     while((nalu = ms_queue_get(&q_nalus))) {
         MSH264NaluType nalu_type = ms_h264_nalu_get_type(nalu);
         if(nalu_type == MSH264NaluTypeSPS || nalu_type == MSH264NaluTypePPS) {
-            if(ms_list_find_custom(ctx->parameter_sets, (MSCompareFunc)mblk_equal_to, nalu)) {
-                freemsg(nalu);
-            } else {
-                ctx->parameter_sets = ms_list_append(ctx->parameter_sets, nalu);
-            }
+            parameter_sets = ms_list_append(parameter_sets, nalu);
         } else {
             ms_queue_put(&q_nalus2, nalu);
         }
     }
-    
-    // Drop all nalu if no SPS and PPS has been received yet
-    if(ms_list_size(ctx->parameter_sets) == 0) {
-        ms_error("VideoToolboxDecoder: no SPS / PPS");
-        goto fail;
+    if(parameter_sets) {
+        h264_dec_update_format_description(ctx, parameter_sets);
+        parameter_sets = ms_list_free_with_data(parameter_sets, (void (*)(void *))freemsg);
+        if(ctx->format_desc == NULL) goto fail;
     }
     
-    // Initialize the decoder if it has not be done yet
+    /* Initialize the decoder if it has not be done yet or reconfigure it when
+     the size of the encoded video change */
     if(ctx->session == NULL) {
         if(!h264_dec_init_decoder(ctx)) {
             goto fail;
+        }
+    } else {
+        CMVideoDimensions vsize = CMVideoFormatDescriptionGetDimensions(ctx->format_desc);
+        if(vsize.width != ctx->vsize.width || vsize.height != ctx->vsize.height) {
+            ms_message("VideoToolbox: reconfiguring the decoder");
+            VTDecompressionSessionInvalidate(ctx->session);
+            CFRelease(ctx->session);
+            if(!h264_dec_init_decoder(ctx)) {
+                goto fail;
+            }
         }
     }
     
@@ -597,7 +617,6 @@ static void h264_dec_process(MSFilter *f) {
     goto put_frames_out;
     
 fail:
-    ms_message("VideoToolbox: sending PLI");
     ms_mutex_lock(&ctx->mutex);
     ctx->send_pli = TRUE;
     ms_mutex_unlock(&ctx->mutex);
@@ -628,6 +647,7 @@ put_frames_out:
     if(ctx->send_pli) {
         ms_filter_lock(f);
         if(ctx->enable_avpf) {
+            ms_message("VideoToolbox: sending PLI");
             ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
         }
         ms_filter_unlock(f);
@@ -654,7 +674,6 @@ static void h264_dec_uninit(MSFilter *f) {
         ctx->format_desc = NULL;
     }
     ms_queue_flush(&ctx->queue);
-    ctx->parameter_sets = ms_list_free_with_data(ctx->parameter_sets, (void(*)(void *))freemsg);
     
     ms_mutex_destroy(&ctx->mutex);
     ms_yuv_buf_allocator_free(ctx->pixbuf_allocator);
