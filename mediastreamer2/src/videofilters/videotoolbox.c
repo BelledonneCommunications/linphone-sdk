@@ -212,6 +212,7 @@ static void h264_enc_process(MSFilter *f) {
         }
         ms_yuv_buf_copy(src_yuv_frame.planes, src_yuv_frame.strides, dst_yuv_frame.planes, dst_yuv_frame.strides, (MSVideoSize){dst_yuv_frame.w, dst_yuv_frame.h});
         CVPixelBufferUnlockBaseAddress(pixbuf, 0);
+        freemsg(frame);
         
         ms_filter_lock(f);
         if(ctx->fps_changed || ctx->bitrate_changed || ctx->vfu_requested) {
@@ -256,8 +257,8 @@ static void h264_enc_process(MSFilter *f) {
         
         if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, kCMTimeInvalid, enc_param, NULL, NULL)) != noErr) {
             ms_error("VideoToolbox: could not pass a pixbuf to the encoder: error code %d", err);
-            CFRelease(pixbuf);
         }
+        CFRelease(pixbuf);
         
         ctx->first_frame = FALSE;
         
