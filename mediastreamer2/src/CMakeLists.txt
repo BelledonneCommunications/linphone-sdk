@@ -257,6 +257,9 @@ if(ENABLE_VIDEO)
 			)
 		endif()
 	endif()
+	if(ENABLE_VT_H264 AND IOS)
+		list(APPEND VOIP_SOURCE_FILES videofilters/videotoolbox.c)
+	endif()
 	if (ENABLE_QNX)
                 list (APPEND VOIP_SOURCE_FILES
                         videofilters/bb10_display.cpp

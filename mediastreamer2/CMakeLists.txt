@@ -95,6 +95,7 @@ cmake_dependent_option(ENABLE_THEORA "Enable theora video codec support." YES "E
 cmake_dependent_option(ENABLE_VPX "Build mediastreamer2 with VPX codec." YES "ENABLE_VIDEO" NO)
 option(ENABLE_MKV "Enable support of MKV files reading and writing." YES)
 cmake_dependent_option(ENABLE_QNX "Build medistreamer2 with BB10 filters." NO "ENABLE_VIDEO" NO)
+cmake_dependent_option(ENABLE_VT_H264 "Build mediastreamer2 with H264 encoder/decoder based on VirtualToolbox (iOS only)" YES "ENABLE_VIDEO" NO)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 

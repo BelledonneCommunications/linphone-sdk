@@ -18,12 +18,12 @@
  */
 
 #include <VideoToolbox/VideoToolbox.h>
-#include "msfilter.h"
-#include "msvideo.h"
+#include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msvideo.h"
 #include "h264utils.h"
-#include <mediastreamer2/rfc3984.h>
-#include <mediastreamer2/msticker.h>
-#include <mediastreamer2/videostarter.h>
+#include "mediastreamer2/rfc3984.h"
+#include "mediastreamer2/msticker.h"
+#include "mediastreamer2/videostarter.h"
 
 const MSVideoConfiguration h264_video_confs[] = {
     MS_VIDEO_CONF(1536000,  2560000, SXGA_MINUS, 25, 2),
