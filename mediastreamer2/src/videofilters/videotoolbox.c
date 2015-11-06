@@ -26,16 +26,17 @@
 #include <mediastreamer2/videostarter.h>
 
 const MSVideoConfiguration h264_video_confs[] = {
-    MS_VIDEO_CONF( 1024000,  5000000,  SXGA_MINUS, 25,  4),
-    MS_VIDEO_CONF( 1024000,  5000000,        720P, 25,  4),
-    MS_VIDEO_CONF(  750000,  2048000,         XGA, 20,  4),
-    MS_VIDEO_CONF(  500000,  1024000,        SVGA, 20,  2),
-    MS_VIDEO_CONF(  256000,   800000,         VGA, 15,  2), /*480p*/
-    MS_VIDEO_CONF(  128000,   512000,         CIF, 15,  1),
-    MS_VIDEO_CONF(  100000,   380000,        QVGA, 15,  1), /*240p*/
-    MS_VIDEO_CONF(  128000,   170000,        QCIF, 10,  1),
-    MS_VIDEO_CONF(   64000,   128000,        QCIF, 10,  1),
-    MS_VIDEO_CONF(       0,    64000,        QCIF, 10,  1)
+    MS_VIDEO_CONF(1536000,  2560000, SXGA_MINUS, 25, 2),
+    MS_VIDEO_CONF(800000,  2000000,       720P, 25, 2),
+    MS_VIDEO_CONF(800000,  1536000,        XGA, 25, 2),
+    MS_VIDEO_CONF( 600000,  1024000,       SVGA, 25, 2),
+    MS_VIDEO_CONF( 350000,   600000,        VGA, 25, 2),
+    MS_VIDEO_CONF( 350000,   600000,        VGA, 15, 1),
+    MS_VIDEO_CONF( 200000,   350000,        CIF, 18, 1),
+    MS_VIDEO_CONF( 150000,   200000,       QVGA, 15, 1),
+    MS_VIDEO_CONF( 100000,   150000,       QVGA, 10, 1),
+    MS_VIDEO_CONF(  64000,   100000,       QCIF, 12, 1),
+    MS_VIDEO_CONF(      0,    64000,       QCIF,  5 ,1)
 };
 
 typedef struct _VTH264EncCtx {
@@ -347,17 +348,30 @@ static int h264_enc_enable_avpf(MSFilter *f, const bool_t *enable_avpf) {
     return 0;
 }
 
+static int h264_enc_get_config_list(MSFilter *f, const MSVideoConfiguration **conf_list) {
+    *conf_list = ((VTH264EncCtx *)f->data)->video_confs;
+    return 0;
+}
+
+static int h264_enc_set_config(MSFilter *f, const MSVideoConfiguration *conf) {
+    VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
+    ctx->conf = *conf;
+    return 0;
+}
+
 static MSFilterMethod h264_enc_methods[] = {
-    {   MS_FILTER_GET_VIDEO_SIZE     , (MSFilterMethodFunc)h264_enc_get_video_size  },
-    {   MS_FILTER_SET_VIDEO_SIZE     , (MSFilterMethodFunc)h264_enc_set_video_size  },
-    {   MS_FILTER_GET_BITRATE        , (MSFilterMethodFunc)h264_enc_get_bitrate     },
-    {   MS_FILTER_SET_BITRATE        , (MSFilterMethodFunc)h264_enc_set_bitrate     },
-    {   MS_FILTER_GET_FPS            , (MSFilterMethodFunc)h264_enc_get_fps         },
-    {   MS_FILTER_SET_FPS            , (MSFilterMethodFunc)h264_enc_set_fps         },
-    {   MS_FILTER_REQ_VFU            , (MSFilterMethodFunc)h264_enc_req_vfu         },
-    {   MS_VIDEO_ENCODER_REQ_VFU     , (MSFilterMethodFunc)h264_enc_req_vfu         },
-    {   MS_VIDEO_ENCODER_ENABLE_AVPF , (MSFilterMethodFunc)h264_enc_enable_avpf     },
-    {   0                            , NULL                                         }
+    {   MS_FILTER_GET_VIDEO_SIZE                , (MSFilterMethodFunc)h264_enc_get_video_size  },
+    {   MS_FILTER_SET_VIDEO_SIZE                , (MSFilterMethodFunc)h264_enc_set_video_size  },
+    {   MS_FILTER_GET_BITRATE                   , (MSFilterMethodFunc)h264_enc_get_bitrate     },
+    {   MS_FILTER_SET_BITRATE                   , (MSFilterMethodFunc)h264_enc_set_bitrate     },
+    {   MS_FILTER_GET_FPS                       , (MSFilterMethodFunc)h264_enc_get_fps         },
+    {   MS_FILTER_SET_FPS                       , (MSFilterMethodFunc)h264_enc_set_fps         },
+    {   MS_FILTER_REQ_VFU                       , (MSFilterMethodFunc)h264_enc_req_vfu         },
+    {   MS_VIDEO_ENCODER_REQ_VFU                , (MSFilterMethodFunc)h264_enc_req_vfu         },
+    {   MS_VIDEO_ENCODER_ENABLE_AVPF            , (MSFilterMethodFunc)h264_enc_enable_avpf     },
+    {   MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST , (MSFilterMethodFunc)h264_enc_get_config_list },
+    {   MS_VIDEO_ENCODER_SET_CONFIGURATION      , (MSFilterMethodFunc)h264_enc_set_config      },
+    {   0                                       , NULL                                         }
 };
 
 MSFilterDesc ms_vt_h264_enc = {
