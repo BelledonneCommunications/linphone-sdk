@@ -136,6 +136,8 @@ set(VOIP_SOURCE_FILES
 	utils/g722.h
 	utils/g722_decode.c
 	utils/g722_encode.c
+	utils/h264utils.h
+	utils/h264utils.c
 	utils/kiss_fft.c
 	utils/kiss_fft.h
 	utils/kiss_fftr.c
