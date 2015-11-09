@@ -725,6 +725,15 @@ MS2_PUBLIC void ice_check_list_unselect_valid_pairs(IceCheckList *cl);
 MS2_PUBLIC void ice_session_set_base_for_srflx_candidates(IceSession *session);
 
 /**
+ * Remove local and remote RTCP candidates from an ICE check list.
+ * 
+ * @param cl A pointer to a check list
+ *
+ * This function MUST be called before calling ice_session_start_connectivity_checks(). It is useful when using rtcp-mux.
+ */
+MS2_PUBLIC void ice_check_list_remove_rtcp_candidates(IceCheckList *cl);
+
+/**
  * Compute the foundations of the local candidates of an ICE session.
  *
  * @param session A pointer to a session

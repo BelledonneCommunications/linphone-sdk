@@ -36,6 +36,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ICE_MAX_NB_CANDIDATES		10
 #define ICE_MAX_NB_CANDIDATE_PAIRS	(ICE_MAX_NB_CANDIDATES*ICE_MAX_NB_CANDIDATES)
 
+#define ICE_RTP_COMPONENT_ID	1
+#define ICE_RTCP_COMPONENT_ID	2
+
 #define ICE_MIN_COMPONENTID		1
 #define ICE_MAX_COMPONENTID		256
 #define ICE_INVALID_COMPONENTID		0
@@ -3378,6 +3381,28 @@ void ice_session_set_base_for_srflx_candidates(IceSession *session)
 	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
 		if (session->streams[i] != NULL)
 			ice_check_list_set_base_for_srflx_candidates(session->streams[i]);
+	}
+}
+
+static int ice_find_candidate_with_componentID(const IceCandidate *candidate, const uint16_t *componentID)
+{
+	if (candidate->componentID == *componentID) return 0;
+	else return 1;
+}
+
+void ice_check_list_remove_rtcp_candidates(IceCheckList *cl)
+{
+	MSList *elem;
+	uint16_t rtcp_componentID = ICE_RTCP_COMPONENT_ID;
+	while ((elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
+		IceCandidate *candidate = (IceCandidate *)elem->data;
+		cl->local_candidates = ms_list_remove(cl->local_candidates, candidate);
+		ice_free_candidate(candidate);
+	}
+	while ((elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
+		IceCandidate *candidate = (IceCandidate *)elem->data;
+		cl->remote_candidates = ms_list_remove(cl->remote_candidates, candidate);
+		ice_free_candidate(candidate);
 	}
 }
 
