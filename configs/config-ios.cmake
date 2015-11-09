@@ -52,10 +52,6 @@ else()
 	set(CLANG_TARGET_SPECIFIER "iphoneos-version-min")
 endif()
 set(COMMON_FLAGS "-arch ${LINPHONE_BUILDER_OSX_ARCHITECTURES} -m${CLANG_TARGET_SPECIFIER}=${LINPHONE_IOS_DEPLOYMENT_TARGET} -DTARGET_OS_IPHONE=1 -D__IOS -fms-extensions")
-#XCode7  allows bitcode
-if (NOT ${XCODE_VERSION} VERSION_LESS 7)
-	set(COMMON_FLAGS "${COMMON_FLAGS} -fembed-bitcode")
-endif()
 set(LINPHONE_BUILDER_CPPFLAGS "${COMMON_FLAGS} -Dasm=__asm")
 set(LINPHONE_BUILDER_LDFLAGS "${COMMON_FLAGS}")
 set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# Restrict pkg-config to search in the install directory

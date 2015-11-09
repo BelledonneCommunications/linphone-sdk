@@ -22,4 +22,8 @@
 
 set(PLATFORM "OS")
 include(configs/config-ios.cmake)
+#XCode7  allows bitcode
+if (NOT ${XCODE_VERSION} VERSION_LESS 7)
+	set(LINPHONE_BUILDER_CPPFLAGS "${LINPHONE_BUILDER_CPPFLAGS} -fembed-bitcode")
+endif()
 
