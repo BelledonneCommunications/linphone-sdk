@@ -84,7 +84,7 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_static_image_desc,
 &ms_vt_h264_enc,
 &ms_vt_h264_dec,
-&ms_h264_dec_desc,
+//&ms_h264_dec_desc,
 &ms_jpeg_writer_desc,
 &ms_mire_desc,
 &ms_ext_display_desc,
