@@ -2231,6 +2231,10 @@ static void ice_add_componentID(MSList **list, uint16_t *componentID)
 	}
 }
 
+static void ice_remove_componentID(MSList **list, uint16_t componentID){
+	*list = ms_list_remove_custom(*list, (MSCompareFunc)ice_find_componentID, &componentID);
+}
+
 IceCandidate * ice_add_local_candidate(IceCheckList* cl, const char* type, const char* ip, int port, uint16_t componentID, IceCandidate* base)
 {
 	MSList *elem;
@@ -3394,11 +3398,15 @@ void ice_check_list_remove_rtcp_candidates(IceCheckList *cl)
 {
 	MSList *elem;
 	uint16_t rtcp_componentID = ICE_RTCP_COMPONENT_ID;
+	
+	ice_remove_componentID(&cl->local_componentIDs, rtcp_componentID);
+	
 	while ((elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
 		IceCandidate *candidate = (IceCandidate *)elem->data;
 		cl->local_candidates = ms_list_remove(cl->local_candidates, candidate);
 		ice_free_candidate(candidate);
 	}
+	ice_remove_componentID(&cl->remote_componentIDs, rtcp_componentID);
 	while ((elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
 		IceCandidate *candidate = (IceCandidate *)elem->data;
 		cl->remote_candidates = ms_list_remove(cl->remote_candidates, candidate);

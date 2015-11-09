@@ -444,7 +444,7 @@ static void video_capture_detect(MSWebCamManager *obj){
 		env->GetIntArrayRegion(orientation, i, 1, &c->orientation);
 		cam->data = c;
 		cam->name = ms_strdup("Android video name");
-		char* idstring = (char*) malloc(15);
+		char* idstring = (char*) ms_malloc(15);
 		snprintf(idstring, 15, "Android%d", c->id);
 		cam->id = idstring;
 		ms_web_cam_manager_add_cam(obj,cam);
