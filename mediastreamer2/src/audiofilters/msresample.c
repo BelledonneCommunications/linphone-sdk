@@ -92,6 +92,7 @@ static int resample_channel_adapt(int in_nchannels, int out_nchannels, mblk_t *i
 		for (; im->b_rptr < im->b_wptr; im->b_rptr += 4, (*om)->b_wptr += 2) {
 			*(int16_t *)(*om)->b_wptr = *(int16_t *)im->b_rptr;
 		}
+		mblk_meta_copy(im, *om);
 		return 1;
 	} else if ((in_nchannels == 1) && (out_nchannels == 2)) {
 		size_t msgsize = msgdsize(im) * 2;
