@@ -513,7 +513,7 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
     const int pixel_format = kCVPixelFormatType_420YpCbCr8Planar;
     VTDecompressionOutputCallbackRecord dec_cb = { (VTDecompressionOutputCallback)h264_dec_output_cb, ctx };
     
-    ms_message("VideoToolboxDecoder: creating a decoding context");
+    ms_message("VideoToolboxDecoder: creating a decoding session");
     
     value = CFNumberCreate(NULL, kCFNumberIntType, &pixel_format);
     pixel_parameters = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
@@ -582,26 +582,31 @@ static void h264_dec_process(MSFilter *f) {
         }
     }
     if(parameter_sets) {
+        CMFormatDescriptionRef last_format = ctx->format_desc ? CFRetain(ctx->format_desc) : NULL;
         h264_dec_update_format_description(ctx, parameter_sets);
         parameter_sets = ms_list_free_with_data(parameter_sets, (void (*)(void *))freemsg);
         if(ctx->format_desc == NULL) goto fail;
+        if(last_format) {
+            CMVideoDimensions last_vsize = CMVideoFormatDescriptionGetDimensions(last_format);
+            CMVideoDimensions vsize = CMVideoFormatDescriptionGetDimensions(ctx->format_desc);
+            if(last_vsize.width != vsize.width || last_vsize.height != vsize.height) {
+                ms_message("VideoToolboxDecoder: new encoded video size %dx%d -> %dx%d",
+                           (int)last_vsize.width, (int)last_vsize.height, (int)vsize.width, (int)vsize.height);
+                ms_message("VideoToolboxDecoder: destroying decoding session");
+                VTDecompressionSessionInvalidate(ctx->session);
+                CFRelease(ctx->session);
+                ctx->session = NULL;
+            }
+        }
     }
+    
+    if(ctx->format_desc == NULL) goto fail;
     
     /* Initialize the decoder if it has not be done yet or reconfigure it when
      the size of the encoded video change */
     if(ctx->session == NULL) {
         if(!h264_dec_init_decoder(ctx)) {
             goto fail;
-        }
-    } else {
-        CMVideoDimensions vsize = CMVideoFormatDescriptionGetDimensions(ctx->format_desc);
-        if(vsize.width != ctx->vsize.width || vsize.height != ctx->vsize.height) {
-            ms_message("VideoToolbox: reconfiguring the decoder");
-            VTDecompressionSessionInvalidate(ctx->session);
-            CFRelease(ctx->session);
-            if(!h264_dec_init_decoder(ctx)) {
-                goto fail;
-            }
         }
     }
     
