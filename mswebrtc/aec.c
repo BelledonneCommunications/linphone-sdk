@@ -116,6 +116,7 @@ static void webrtc_aec_preprocess(MSFilter *f)
 	AecmConfig config;
 	int delay_samples = 0;
 	mblk_t *m;
+	int error_code;
 
 	s->echostarted = FALSE;
 	delay_samples = s->delay_ms * s->samplerate / 1000;
@@ -127,8 +128,8 @@ static void webrtc_aec_preprocess(MSFilter *f)
 		ms_error("WebRtcAecm_Create(): error, entering bypass mode");
 		return;
 	}
-	if (WebRtcAecm_Init(s->aecmInst, s->samplerate) < 0) {
-		if (WebRtcAecm_get_error_code(s->aecmInst) == AECM_BAD_PARAMETER_ERROR) {
+	if ((error_code = WebRtcAecm_Init(s->aecmInst, s->samplerate)) < 0) {
+		if (error_code == AECM_BAD_PARAMETER_ERROR) {
 			ms_error("WebRtcAecm_Init(): WebRTC echo canceller does not support %d samplerate", s->samplerate);
 		}
 		s->bypass_mode = TRUE;
@@ -240,9 +241,9 @@ static void webrtc_aec_process(MSFilter *f)
 		if (s->echofile)
 			fwrite(echo, nbytes, 1, s->echofile);
 #endif
-		if (WebRtcAecm_BufferFarend(s->aecmInst, (const WebRtc_Word16 *) ref, s->framesize)!=0)
+		if (WebRtcAecm_BufferFarend(s->aecmInst, (const int16_t *) ref, s->framesize)!=0)
 			ms_error("WebRtcAecm_BufferFarend() failed.");
-		if (WebRtcAecm_Process(s->aecmInst, (const WebRtc_Word16 *) echo, NULL, (WebRtc_Word16 *) oecho->b_wptr, s->framesize, 0)!=0)
+		if (WebRtcAecm_Process(s->aecmInst, (const int16_t *) echo, NULL, (int16_t *) oecho->b_wptr, s->framesize, 0)!=0)
 			ms_error("WebRtcAecm_Process() failed.");
 #ifdef EC_DUMP
 		if (s->cleanfile)
