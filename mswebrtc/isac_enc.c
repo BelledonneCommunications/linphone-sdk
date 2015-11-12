@@ -42,7 +42,7 @@ static void filter_init ( MSFilter *f ) {
 	ISACFIX_MainStruct* isac_mainstruct = NULL;
 	struct _isac_encoder_struct_t *obj = NULL;
 	int instance_size;
-	WebRtc_Word16 ret;
+	int16_t ret;
 
 	f->data = ms_new0(isac_encoder_struct_t, 1);
 	obj = (isac_encoder_struct_t*)f->data;
@@ -91,7 +91,7 @@ static void filter_process ( MSFilter *f ) {
 #else
 	u_int8_t* input_buf = NULL;
 #endif
-	WebRtc_Word16 ret;
+	int16_t ret;
 	static int out_count = 0;
 
 	// get the input data and put it into our buffered input
@@ -108,8 +108,8 @@ static void filter_process ( MSFilter *f ) {
 		ms_bufferizer_read(obj->bufferizer, input_buf, ISAC_SAMPLES_PER_ENCODE*2);
 
 		ret = WebRtcIsacfix_Encode(obj->isac,
-								   (const WebRtc_Word16*)input_buf,
-								   (WebRtc_Word16*)om->b_wptr);
+								   (const int16_t*)input_buf,
+								   (uint8_t*)om->b_wptr);
 
 		if( ret < 0) {
 

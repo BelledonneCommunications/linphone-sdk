@@ -9,12 +9,12 @@
 #############################
 # Build the non-neon library.
 
-MY_WEBRTC_PATH := $(call my-dir)/../../../../../../
-LOCAL_PATH := $(MY_WEBRTC_PATH)/../../webrtc/modules/audio_coding/codecs/isac/fix/source
+MY_WEBRTC_PATH := $(call my-dir)/../../../../../../../..
+LOCAL_PATH := $(MY_WEBRTC_PATH)/webrtc/webrtc/modules/audio_coding/codecs/isac/fix/source
 
 include $(CLEAR_VARS)
 
-include $(MY_WEBRTC_PATH)/Android.mk
+include $(MY_WEBRTC_PATH)/build/android/Android.mk
 
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
@@ -40,11 +40,13 @@ LOCAL_SRC_FILES := \
     lpc_masking_model.c \
     lpc_tables.c \
     pitch_estimator.c \
+    pitch_estimator_c.c \
     pitch_filter.c \
     pitch_gain_tables.c \
     pitch_lag_tables.c \
     spectrum_ar_model_tables.c \
-    transform.c
+    transform.c \
+    transform_tables.c
 
 ifeq ($(ARCH_ARM_HAVE_ARMV7A),true)
 # Using .S (instead of .s) extention is to include a C header file in assembly.
@@ -62,9 +64,9 @@ LOCAL_CFLAGS := \
     $(MY_WEBRTC_COMMON_DEFS)
 
 LOCAL_C_INCLUDES := \
-    $(LOCAL_PATH)/../interface \
-    $(LOCAL_PATH)/../../../../../.. \
-    $(MY_WEBRTC_PATH)/../../webrtc/common_audio/signal_processing/include
+	$(LOCAL_PATH) \
+    $(MY_WEBRTC_PATH)/webrtc \
+	$(MY_WEBRTC_PATH)/webrtc/webrtc/common_audio/signal_processing/include
 
 LOCAL_STATIC_LIBRARIES += libwebrtc_system_wrappers
 
@@ -90,8 +92,8 @@ LOCAL_MODULE := libwebrtc_isacfix_neon
 LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := \
     filters_neon.c \
-    lattice_neon.S \
-    lpc_masking_model_neon.S
+    lattice_neon.c \
+    lpc_masking_model.c
 
 # Flags passed to both C and C++ files.
 LOCAL_CFLAGS := \
@@ -101,9 +103,8 @@ LOCAL_CFLAGS := \
     -flax-vector-conversions
 
 LOCAL_C_INCLUDES := \
-    $(LOCAL_PATH)/../interface \
-    $(LOCAL_PATH)/../../../../../.. \
-    $(MY_WEBRTC_PATH)/../../webrtc/common_audio/signal_processing/include
+    $(MY_WEBRTC_PATH)/webrtc/webrtc/common_audio/signal_processing/include \
+    $(MY_WEBRTC_PATH)/webrtc
 
 
 ifndef NDK_ROOT
@@ -127,7 +128,7 @@ LOCAL_CFLAGS := $(MY_WEBRTC_COMMON_DEFS)
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/../interface \
-    $(LOCAL_PATH)/../../../../../..
+    $(LOCAL_PATH)/../../../../../../..
 
 LOCAL_STATIC_LIBRARIES := \
     libwebrtc_isacfix \

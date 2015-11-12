@@ -26,7 +26,8 @@ ifneq ($(BUILD_WEBRTC_ISAC),0)
 	LOCAL_C_INCLUDES += \
 		$(WEBRTC_SRC_DIR)/modules/audio_coding/codecs/isac/fix/source \
 		$(WEBRTC_SRC_DIR)/modules/audio_coding/codecs/isac/fix/util \
-		$(WEBRTC_SRC_DIR)/modules/audio_coding/codecs/isac/fix/interface
+		$(WEBRTC_SRC_DIR)/modules/audio_coding/codecs/isac/fix/interface \
+		$(WEBRTC_SRC_DIR)/modules/audio_coding/codecs/isac/fix/include/
 endif
 
 include $(BUILD_STATIC_LIBRARY)
