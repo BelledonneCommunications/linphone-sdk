@@ -65,13 +65,13 @@ if(ENABLE_ILBC)
 endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
-
+set(WEBRTC_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/webrtc")
+set(WEBRTC_SRC_DIR "${WEBRTC_ROOT_DIR}/webrtc")
 include_directories(
 	${MEDIASTREAMER2_INCLUDE_DIRS}
 	${CMAKE_CURRENT_BINARY_DIR}
-	webrtc
-	webrtc/common_audio/signal_processing/include
-	webrtc/modules/audio_coding/codecs/ilbc/interface
+	${WEBRTC_ROOT_DIR}
+	${WEBRTC_SRC_DIR}/common_audio/signal_processing/include
 )
 
 add_definitions(-DHAVE_CONFIG_H)
@@ -85,6 +85,7 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone" AND "${CMAKE_GENERATOR_PLATFOR
 	)
 endif()
 if(UNIX)
+	add_definitions(-DWEBRTC_POSIX)
 	if(APPLE)
 		add_definitions(-DWEBRTC_MAC -DWEBRTC_THREAD_RR -DWEBRTC_CLOCK_TYPE_REALTIME)
 	else()
@@ -97,65 +98,67 @@ if(FIXED_POINT_PROCESSOR)
 	add_definitions(-D__ARMEL__)
 endif()
 
-set(WEBRTC_COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/webrtc/common_audio/signal_processing")
+set(WEBRTC_SIGNAL_PROCESSING_DIR ${WEBRTC_SRC_DIR}/common_audio/signal_processing)
+set(WEBRTC_SIGNAL_PROCESSING_SRCS
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/spl_sqrt.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/real_fft.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/filter_ar_fast_q12.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/complex_bit_reverse.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/spl_init.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/splitting_filter.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/spl_sqrt_floor.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/levinson_durbin.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/filter_ar.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/get_scaling_square.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/resample_fractional.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/resample.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/downsample_fast.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/filter_ma_fast_q12.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/auto_corr_to_refl_coef.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/auto_correlation.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/refl_coef_to_lpc.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/dot_product_with_scale.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/copy_set_operations.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/cross_correlation.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/sqrt_of_one_minus_x_squared.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/ilbc_specific_functions.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/resample_by_2.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/complex_fft.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/resample_48khz.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/energy.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/get_hanning_window.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/randomization_functions.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/vector_scaling_operations.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/resample_by_2_internal.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/lpc_to_refl_coef.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/min_max_operations.c
+	${WEBRTC_SIGNAL_PROCESSING_DIR}/division_operations.c
+)
+set(WEBRTC_COMMON_DIR "${WEBRTC_SRC_DIR}/common_audio")
 set(WEBRTC_COMMON_SRCS
-	${WEBRTC_COMMON_DIR}/spl_sqrt.c
-	${WEBRTC_COMMON_DIR}/real_fft.c
-	${WEBRTC_COMMON_DIR}/filter_ar_fast_q12.c
-	${WEBRTC_COMMON_DIR}/webrtc_fft_t_1024_8.c
-	${WEBRTC_COMMON_DIR}/complex_bit_reverse.c
-	${WEBRTC_COMMON_DIR}/spl_init.c
-	${WEBRTC_COMMON_DIR}/splitting_filter.c
-	${WEBRTC_COMMON_DIR}/spl_sqrt_floor.c
-	${WEBRTC_COMMON_DIR}/levinson_durbin.c
-	${WEBRTC_COMMON_DIR}/filter_ar.c
-	${WEBRTC_COMMON_DIR}/get_scaling_square.c
-	${WEBRTC_COMMON_DIR}/resample_fractional.c
-	${WEBRTC_COMMON_DIR}/resample.c
-	${WEBRTC_COMMON_DIR}/downsample_fast.c
-	${WEBRTC_COMMON_DIR}/filter_ma_fast_q12.c
-	${WEBRTC_COMMON_DIR}/auto_corr_to_refl_coef.c
-	${WEBRTC_COMMON_DIR}/auto_correlation.c
-	${WEBRTC_COMMON_DIR}/refl_coef_to_lpc.c
-	${WEBRTC_COMMON_DIR}/dot_product_with_scale.c
-	${WEBRTC_COMMON_DIR}/copy_set_operations.c
-	${WEBRTC_COMMON_DIR}/spl_version.c
-	${WEBRTC_COMMON_DIR}/cross_correlation.c
-	${WEBRTC_COMMON_DIR}/sqrt_of_one_minus_x_squared.c
-	${WEBRTC_COMMON_DIR}/ilbc_specific_functions.c
-	${WEBRTC_COMMON_DIR}/resample_by_2.c
-	${WEBRTC_COMMON_DIR}/complex_fft.c
-	${WEBRTC_COMMON_DIR}/resample_48khz.c
-	${WEBRTC_COMMON_DIR}/energy.c
-	${WEBRTC_COMMON_DIR}/get_hanning_window.c
-	${WEBRTC_COMMON_DIR}/randomization_functions.c
-	${WEBRTC_COMMON_DIR}/vector_scaling_operations.c
-	${WEBRTC_COMMON_DIR}/webrtc_fft_t_rad.c
-	${WEBRTC_COMMON_DIR}/resample_by_2_internal.c
-	${WEBRTC_COMMON_DIR}/lpc_to_refl_coef.c
-	${WEBRTC_COMMON_DIR}/min_max_operations.c
-	${WEBRTC_COMMON_DIR}/division_operations.c
+	${WEBRTC_COMMON_DIR}/fft4g.c
+	${WEBRTC_COMMON_DIR}/ring_buffer.c
 )
 include_directories(${WEBRTC_COMMOND_DIR}/include)
 if(ENABLE_AECM)
-	set(AECM_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/webrtc/modules/audio_processing/aecm")
+	set(AECM_SRC_DIR "${WEBRTC_SRC_DIR}/modules/audio_processing/aecm")
 	set(AECM_SRCS
 		aec.c
 		${AECM_SRC_DIR}/echo_control_mobile.c
 		${AECM_SRC_DIR}/aecm_core.c
-		${AECM_SRC_DIR}/../utility/fft4g.c
-		${AECM_SRC_DIR}/../utility/ring_buffer.c
+		${AECM_SRC_DIR}/aecm_core_c.c
+		${AECM_SRC_DIR}/../utility/
 		${AECM_SRC_DIR}/../utility/delay_estimator.c
 		${AECM_SRC_DIR}/../utility/delay_estimator_wrapper.c
 	)
 	include_directories(
 		${AECM_SRC_DIR}/include
-		webrtc/modules/audio_processing/utility
-		webrtc/system_wrappers/interface
+		${WEBRTC_SRC_DIR}/modules/audio_processing/utility
+		${WEBRTC_SRC_DIR}/system_wrappers/interface
 	)
 endif()
 if(ENABLE_ISAC)
-	set(ISAC_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/webrtc/modules/audio_coding/codecs/isac/${ISAC_FLAVOUR}")
+	set(ISAC_SRC_DIR "${WEBRTC_SRC_DIR}/modules/audio_coding/codecs/isac/${ISAC_FLAVOUR}")
 	set(ISAC_SRCS
 		isac_dec.c
 		isac_enc.c
@@ -173,11 +176,13 @@ if(ENABLE_ISAC)
 		${ISAC_SRC_DIR}/source/lattice.c
 		${ISAC_SRC_DIR}/source/lpc_tables.c
 		${ISAC_SRC_DIR}/source/pitch_estimator.c
+		${ISAC_SRC_DIR}/source/pitch_estimator_c.c
 		${ISAC_SRC_DIR}/source/pitch_filter.c
 		${ISAC_SRC_DIR}/source/pitch_gain_tables.c
 		${ISAC_SRC_DIR}/source/pitch_lag_tables.c
 		${ISAC_SRC_DIR}/source/spectrum_ar_model_tables.c
 		${ISAC_SRC_DIR}/source/transform.c
+		${ISAC_SRC_DIR}/source/transform_tables.c
 	)
 	if("${ISAC_FLAVOUR}" STREQUAL "fix")
 		list(APPEND ISAC_SRCS
@@ -206,11 +211,11 @@ if(ENABLE_ISAC)
 	include_directories(
 		${ISAC_SRC_DIR}/source
 		${ISAC_SRC_DIR}/util
-		${ISAC_SRC_DIR}/interface
+		${ISAC_SRC_DIR}/include
 	)
 endif()
 if(ENABLE_ILBC)
-	set(ILBC_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/webrtc/modules/audio_coding/codecs/ilbc)
+	set(ILBC_SRC_DIR ${WEBRTC_SRC_DIR}/modules/audio_coding/codecs/ilbc)
 	set(ILBC_SRCS
 		ilbc.c
 		${ILBC_SRC_DIR}/abs_quant.c
@@ -283,11 +288,13 @@ if(ENABLE_ILBC)
 		${ILBC_SRC_DIR}/window32_w32.c
 		${ILBC_SRC_DIR}/xcorr_coef.c
 	)
+	include_directories(${ILBC_SRC_DIR}/include)
 endif()
 
 set(SOURCE_FILES
 	mswebrtc.c
 	${WEBRTC_COMMON_SRCS}
+	${WEBRTC_SIGNAL_PROCESSING_SRCS}
 )
 if(ENABLE_AECM)
 	list(APPEND SOURCE_FILES ${AECM_SRCS})

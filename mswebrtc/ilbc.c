@@ -41,7 +41,7 @@ typedef struct EncState{
 	int ptime;
 	uint32_t ts;
 	MSBufferizer *bufferizer;
-	iLBC_encinst_t *ilbc_enc;
+	IlbcEncoderInstance *ilbc_enc;
 }EncState;
 
 static void enc_init(MSFilter *f){
@@ -139,8 +139,8 @@ static void enc_process(MSFilter *f){
 	EncState *s=(EncState*)f->data;
 	mblk_t *im,*om;
 	int size=s->nsamples*2;
-	WebRtc_Word16 samples[BLOCKL_MAX * 7]; /* BLOCKL_MAX * 7 is the largest size for ptime == 140 */
-	WebRtc_Word16 *samples_ptr;
+	int16_t samples[BLOCKL_MAX * 7]; /* BLOCKL_MAX * 7 is the largest size for ptime == 140 */
+	int16_t *samples_ptr;
 	int frame_per_packet=1;
 	int k;
 
@@ -161,7 +161,7 @@ static void enc_process(MSFilter *f){
 		om=allocb(s->nbytes*frame_per_packet,0);
 		for (k=0;k<frame_per_packet;k++) {
 			samples_ptr = samples + k * s->nsamples;
-			WebRtcIlbcfix_Encode(s->ilbc_enc, samples_ptr, s->nsamples, (WebRtc_Word16 *)om->b_wptr);
+			WebRtcIlbcfix_Encode(s->ilbc_enc, samples_ptr, s->nsamples, om->b_wptr);
 			om->b_wptr+=s->nbytes;
 		}
 		s->ts+=s->nsamples*frame_per_packet;
@@ -218,7 +218,7 @@ typedef struct DecState{
 	int nsamples;
 	int nbytes;
 	int ms_per_frame;
-	iLBC_decinst_t *ilbc_dec;
+	IlbcDecoderInstance *ilbc_dec;
 	bool_t ready;
 	MSConcealerContext *plcctx;
 }DecState;
@@ -276,9 +276,9 @@ static void dec_process(MSFilter *f){
 			int plctime;
 
 			for (k=0;k<frame_per_packet;k++) {
-				WebRtc_Word16 speech_type;
+				int16_t speech_type;
 				om=allocb(s->nsamples*2,0);
-				WebRtcIlbcfix_Decode(s->ilbc_dec, (WebRtc_Word16 *)(im->b_rptr+k*s->nbytes), s->nbytes, (WebRtc_Word16 *)om->b_wptr, &speech_type);
+				WebRtcIlbcfix_Decode(s->ilbc_dec, im->b_rptr+k*s->nbytes, s->nbytes, (int16_t *)om->b_wptr, &speech_type);
 				om->b_wptr += s->nsamples * 2;
 				mblk_meta_copy(im,om);
 				ms_queue_put(f->outputs[0],om);
@@ -296,7 +296,7 @@ static void dec_process(MSFilter *f){
 	}
 	if (s->plcctx && s->ready && ms_concealer_context_is_concealement_required(s->plcctx,f->ticker->time)){
 		om=allocb(s->nsamples*2,0);
-		WebRtcIlbcfix_DecodePlc(s->ilbc_dec, (WebRtc_Word16 *)om->b_wptr, 1);
+		WebRtcIlbcfix_DecodePlc(s->ilbc_dec, (int16_t *)om->b_wptr, 1);
 		om->b_wptr += s->nsamples * 2;
 		mblk_set_plc_flag(om,TRUE);
 		ms_queue_put(f->outputs[0],om);
