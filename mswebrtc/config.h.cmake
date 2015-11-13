@@ -33,3 +33,4 @@
 
 #cmakedefine BUILD_AEC
 #cmakedefine BUILD_ISAC
+#cmakedefine BUILD_ILBC

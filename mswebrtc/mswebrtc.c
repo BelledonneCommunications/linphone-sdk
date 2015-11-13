@@ -26,6 +26,10 @@
 #include "isacfix.h"
 #endif
 
+#ifdef BUILD_ILBC
+#include "ilbc.h"
+#endif
+
 #include "signal_processing_library.h"
 
 #include "mediastreamer2/msfilter.h"
@@ -38,6 +42,10 @@ extern MSFilterDesc ms_isac_enc_desc;
 #endif
 #ifdef BUILD_AEC
 extern MSFilterDesc ms_webrtc_aec_desc;
+#endif
+#ifdef BUILD_ILBC
+MSFilterDesc ms_webrtc_ilbc_enc_desc;
+MSFilterDesc ms_webrtc_ilbc_dec_desc;
 #endif
 
 #ifndef VERSION
@@ -52,10 +60,12 @@ extern MSFilterDesc ms_webrtc_aec_desc;
 
 MS_PLUGIN_DECLARE ( void ) libmswebrtc_init() {
 #ifdef BUILD_ISAC
-	char isac_version[64];
-	isac_version[0] = 0;
+	char isac_version[20] = "";
 #endif
-
+#ifdef BUILD_ILBC
+	char ilbc_version[20] = "";
+#endif
+	
 	WebRtcSpl_Init();
 
 #ifdef BUILD_ISAC
@@ -66,10 +76,24 @@ MS_PLUGIN_DECLARE ( void ) libmswebrtc_init() {
 #ifdef BUILD_AEC
 	ms_filter_register(&ms_webrtc_aec_desc);
 #endif
+#ifdef BUILD_ILBC
+	WebRtcIlbcfix_version(ilbc_version);
+	ms_filter_register(&ms_webrtc_ilbc_enc_desc);
+	ms_filter_register(&ms_webrtc_ilbc_dec_desc);
+#endif
 
 	ms_message("libmswebrtc " VERSION " plugin loaded"
 #ifdef BUILD_ISAC
-	", iSAC codec version %s", isac_version
+	", iSAC codec version %s"
+#endif
+#ifdef BUILD_ILBC
+	", iLBC codec version %s"
+#endif
+#ifdef BUILD_ISAC
+	, isac_version
+#endif
+#ifdef BUILD_ILBC
+	, ilbc_version
 #endif
 	);
 }

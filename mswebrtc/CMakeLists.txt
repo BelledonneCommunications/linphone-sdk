@@ -36,6 +36,7 @@ set(VERSION "${PACKAGE_VERSION}")
 
 option(ENABLE_AECM "Enable the WebRTC echo canceller for mobile support." YES)
 option(ENABLE_ISAC "Enable the ISAC audio codec support." YES)
+option(ENABLE_ILBC "Build iLBC codec filter" YES)
 set(ISAC_FLAVOUR "fix" CACHE STRING "ISAC audio codec flavour.")
 set_property(CACHE ISAC_FLAVOUR PROPERTY STRINGS "fix" "main")
 option(ENABLE_STATIC "Build static library (default is shared library)." NO)
@@ -59,6 +60,9 @@ endif()
 if(ENABLE_ISAC)
 	set(BUILD_ISAC 1)
 endif()
+if(ENABLE_ILBC)
+	set(BUILD_ILBC 1)
+endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 
@@ -67,6 +71,7 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 	webrtc
 	webrtc/common_audio/signal_processing/include
+	webrtc/modules/audio_coding/codecs/ilbc/interface
 )
 
 add_definitions(-DHAVE_CONFIG_H)
@@ -204,6 +209,81 @@ if(ENABLE_ISAC)
 		${ISAC_SRC_DIR}/interface
 	)
 endif()
+if(ENABLE_ILBC)
+	set(ILBC_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/webrtc/modules/audio_coding/codecs/ilbc)
+	set(ILBC_SRCS
+		ilbc.c
+		${ILBC_SRC_DIR}/abs_quant.c
+		${ILBC_SRC_DIR}/abs_quant_loop.c
+		${ILBC_SRC_DIR}/augmented_cb_corr.c
+		${ILBC_SRC_DIR}/bw_expand.c
+		${ILBC_SRC_DIR}/cb_construct.c
+		${ILBC_SRC_DIR}/cb_mem_energy_augmentation.c
+		${ILBC_SRC_DIR}/cb_mem_energy.c
+		${ILBC_SRC_DIR}/cb_mem_energy_calc.c
+		${ILBC_SRC_DIR}/cb_search.c
+		${ILBC_SRC_DIR}/cb_search_core.c
+		${ILBC_SRC_DIR}/cb_update_best_index.c
+		${ILBC_SRC_DIR}/chebyshev.c
+		${ILBC_SRC_DIR}/comp_corr.c
+		${ILBC_SRC_DIR}/constants.c
+		${ILBC_SRC_DIR}/create_augmented_vec.c
+		${ILBC_SRC_DIR}/decode.c
+		${ILBC_SRC_DIR}/decode_residual.c
+		${ILBC_SRC_DIR}/decoder_interpolate_lsf.c
+		${ILBC_SRC_DIR}/do_plc.c
+		${ILBC_SRC_DIR}/encode.c
+		${ILBC_SRC_DIR}/energy_inverse.c
+		${ILBC_SRC_DIR}/enhancer.c
+		${ILBC_SRC_DIR}/enhancer_interface.c
+		${ILBC_SRC_DIR}/enh_upsample.c
+		${ILBC_SRC_DIR}/filtered_cb_vecs.c
+		${ILBC_SRC_DIR}/frame_classify.c
+		${ILBC_SRC_DIR}/gain_dequant.c
+		${ILBC_SRC_DIR}/gain_quant.c
+		${ILBC_SRC_DIR}/get_cd_vec.c
+		${ILBC_SRC_DIR}/get_lsp_poly.c
+		${ILBC_SRC_DIR}/get_sync_seq.c
+		${ILBC_SRC_DIR}/hp_input.c
+		${ILBC_SRC_DIR}/hp_output.c
+		${ILBC_SRC_DIR}/ilbc.c
+		${ILBC_SRC_DIR}/index_conv_dec.c
+		${ILBC_SRC_DIR}/index_conv_enc.c
+		${ILBC_SRC_DIR}/init_decode.c
+		${ILBC_SRC_DIR}/init_encode.c
+		${ILBC_SRC_DIR}/interpolate.c
+		${ILBC_SRC_DIR}/interpolate_samples.c
+		${ILBC_SRC_DIR}/lpc_encode.c
+		${ILBC_SRC_DIR}/lsf_check.c
+		${ILBC_SRC_DIR}/lsf_interpolate_to_poly_dec.c
+		${ILBC_SRC_DIR}/lsf_interpolate_to_poly_enc.c
+		${ILBC_SRC_DIR}/lsf_to_lsp.c
+		${ILBC_SRC_DIR}/lsf_to_poly.c
+		${ILBC_SRC_DIR}/lsp_to_lsf.c
+		${ILBC_SRC_DIR}/my_corr.c
+		${ILBC_SRC_DIR}/nearest_neighbor.c
+		${ILBC_SRC_DIR}/pack_bits.c
+		${ILBC_SRC_DIR}/poly_to_lsf.c
+		${ILBC_SRC_DIR}/poly_to_lsp.c
+		${ILBC_SRC_DIR}/refiner.c
+		${ILBC_SRC_DIR}/simple_interpolate_lsf.c
+		${ILBC_SRC_DIR}/simple_lpc_analysis.c
+		${ILBC_SRC_DIR}/simple_lsf_dequant.c
+		${ILBC_SRC_DIR}/simple_lsf_quant.c
+		${ILBC_SRC_DIR}/smooth.c
+		${ILBC_SRC_DIR}/smooth_out_data.c
+		${ILBC_SRC_DIR}/sort_sq.c
+		${ILBC_SRC_DIR}/split_vq.c
+		${ILBC_SRC_DIR}/state_construct.c
+		${ILBC_SRC_DIR}/state_search.c
+		${ILBC_SRC_DIR}/swap_bytes.c
+		${ILBC_SRC_DIR}/unpack_bits.c
+		${ILBC_SRC_DIR}/vq3.c
+		${ILBC_SRC_DIR}/vq4.c
+		${ILBC_SRC_DIR}/window32_w32.c
+		${ILBC_SRC_DIR}/xcorr_coef.c
+	)
+endif()
 
 set(SOURCE_FILES
 	mswebrtc.c
@@ -214,6 +294,9 @@ if(ENABLE_AECM)
 endif()
 if(ENABLE_ISAC)
 	list(APPEND SOURCE_FILES ${ISAC_SRCS})
+endif()
+if(ENABLE_ILBC)
+	list(APPEND SOURCE_FILES ${ILBC_SRCS})
 endif()
 
 set(LIBS ${MEDIASTREAMER2_LIBRARIES})
