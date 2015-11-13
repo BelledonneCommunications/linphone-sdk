@@ -575,6 +575,13 @@ static void video_input_updated(void *stream, MSFilter *f, unsigned int event_id
 	}
 }
 
+static void av_recorder_handle_event(void *userdata, MSFilter *recorder, unsigned int event, void *event_arg){
+	AudioStream *audiostream = (AudioStream *)userdata;
+	if (audiostream->videostream != NULL) {
+		video_recorder_handle_event(audiostream->videostream, recorder, event, event_arg);
+	}
+}
+
 static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannels){
 	stream->av_recorder.recorder=ms_filter_new(MS_MKV_RECORDER_ID);
 	if (stream->av_recorder.recorder){
@@ -608,6 +615,7 @@ static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannel
 		ms_message("Configuring av recorder with audio format %s",ms_fmt_descriptor_to_string(pinfmt.fmt));
 		ms_filter_call_method(stream->av_recorder.recorder,MS_FILTER_SET_INPUT_FMT,&pinfmt);
 		ms_filter_add_notify_callback(stream->av_recorder.video_input,video_input_updated,stream,TRUE);
+		ms_filter_add_notify_callback(stream->av_recorder.recorder, av_recorder_handle_event, stream, TRUE);
 	}
 }
 
