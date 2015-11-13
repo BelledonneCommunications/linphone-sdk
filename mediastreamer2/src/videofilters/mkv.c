@@ -1309,7 +1309,7 @@ static int matroska_get_codec_private(const Matroska *obj, int trackNum, const u
 	ebml_binary *codecPrivate;
 	if(trackEntry == NULL)
 		return -1;
-	codecPrivate = (ebml_binary *)EBML_MasterGetChild(trackEntry, &MATROSKA_ContextCodecPrivate);
+	codecPrivate = (ebml_binary *)EBML_MasterFindChild(trackEntry, &MATROSKA_ContextCodecPrivate);
 	if(codecPrivate == NULL)
 		return -2;
 
@@ -2038,7 +2038,7 @@ static int recorder_close(MSFilter *f, void *arg) {
 				if(codecPrivateDataSize > 0) {
 					matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
 				}
-				ms_free(codecPrivateData);
+				if (codecPrivateData) ms_free(codecPrivateData);
 			} else {
 				matroska_del_track(&obj->file, i+1);
 			}
