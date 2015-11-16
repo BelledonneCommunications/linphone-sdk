@@ -116,7 +116,7 @@ else()
 			set(EP_ffmpeg_TARGET_OS "linux")
 			set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch" ${EP_ffmpeg_PATCH_OPTIONS})
 		endif()
-		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--cc=$CC_LAUNCHER")
+		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--cc=$CC")
 	endif()
 
 	set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS

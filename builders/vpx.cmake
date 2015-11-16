@@ -132,5 +132,5 @@ else()
 		"--prefix=${CMAKE_INSTALL_PREFIX}"
 		"--target=${EP_vpx_TARGET}"
 	)
-	set(EP_vpx_CONFIGURE_ENV "LD=$CC")
+	set(EP_vpx_CONFIGURE_ENV "CC=$CC_NO_LAUNCHER LD=$CC_NO_LAUNCHER")
 endif()
