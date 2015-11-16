@@ -1,3 +1,7 @@
+mediastreamer2-2.12.1: November 16, 2015
+	* Fix crash in MKV recorder
+	* Fix I-frame request when starting MKV recording
+
 mediastreamer2-2.12.0: November 2, 2015
 	* Allow video stream to keep its source (camera)
 	* Basic AVPF handling for H.264 codec
