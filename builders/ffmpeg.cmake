@@ -93,7 +93,7 @@ else()
 					"--disable-iconv"
 					"--enable-cross-compile"
 					"--cross-prefix=${SDK_BIN_PATH}/"
-					"--sysroot=${SYSROOT_PATH}"
+					"--sysroot=${CMAKE_OSX_SYSROOT}"
 					"--ar=\$AR"
 					"--cc=\$CC"
 					"--nm=\$NM"

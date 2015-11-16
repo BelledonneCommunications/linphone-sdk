@@ -21,8 +21,8 @@
 ############################################################################
 
 set(OSX_FLAGS "")
-if(NOT "@LINPHONE_BUILDER_OSX_ARCHITECTURES@" STREQUAL "")
-	set(OSX_FLAGS "${OSX_FLAGS} -arch @LINPHONE_BUILDER_OSX_ARCHITECTURES@")
+if(NOT "@CMAKE_OSX_ARCHITECTURES@" STREQUAL "")
+	set(OSX_FLAGS "${OSX_FLAGS} -arch @CMAKE_OSX_ARCHITECTURES@")
 endif()
 if(NOT "@CMAKE_OSX_SYSROOT@" STREQUAL "")
 	set(OSX_FLAGS "${OSX_FLAGS} -isysroot @CMAKE_OSX_SYSROOT@")
