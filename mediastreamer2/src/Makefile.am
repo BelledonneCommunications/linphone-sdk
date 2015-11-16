@@ -94,6 +94,8 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/audiostream.c \
 					voip/ringstream.c \
 					voip/rfc4103_textstream.c \
+					otherfilters/rfc4103_source.cpp \
+					otherfilters/rfc4103_sink.cpp \
 					voip/msmediaplayer.c \
 					voip/ice.c \
 					otherfilters/msrtp.c \

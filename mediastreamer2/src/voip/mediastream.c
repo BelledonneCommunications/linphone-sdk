@@ -318,10 +318,6 @@ void media_stream_iterate(MediaStream *stream){
 	if (stream->evd) {
 		ortp_ev_dispatcher_iterate(stream->evd);
 	}
-	
-	if (stream->type == MSText) { // TODO: find a better way
-		text_stream_iterate((TextStream *)stream);
-	}
 
 	if (stream->evq){
 		OrtpEvent *ev=NULL;
