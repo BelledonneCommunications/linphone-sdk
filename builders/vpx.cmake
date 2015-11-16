@@ -53,6 +53,9 @@ else()
 		"--disable-unit-tests"
 		"--as=yasm"
 	)
+	if(CMAKE_C_COMPILER_LAUNCHER STREQUAL "ccache")
+		list(APPEND EP_vpx_CONFIGURE_OPTIONS "--enable-ccache")
+	endif()
 
 	if(WIN32)
 		if(CMAKE_GENERATOR MATCHES "^Visual Studio")
