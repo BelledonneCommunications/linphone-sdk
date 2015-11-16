@@ -115,6 +115,7 @@ void ms_srtp_context_delete(MSSrtpCtx *session);
 
 void register_video_preset_high_fps(MSVideoPresetsManager *manager);
 
+MSFilter *_ms_create_av_player(const char *filename);
 
 #ifdef __cplusplus
 }

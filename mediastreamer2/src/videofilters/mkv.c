@@ -2441,6 +2441,7 @@ static int player_open_file(MSFilter *f, void *arg) {
 	obj->state = MSPlayerPaused;
 
 	ms_filter_unlock(f);
+	ms_filter_notify_no_arg(f,MS_FILTER_OUTPUT_FMT_CHANGED);
 	return 0;
 
 	fail:

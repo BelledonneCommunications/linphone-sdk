@@ -22,21 +22,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/dtmfgen.h"
 #include "mediastreamer2/msfileplayer.h"
+#include "private.h"
 
 
 static void ring_player_event_handler(void *ud, MSFilter *f, unsigned int evid, void *arg){
 	RingStream *stream=(RingStream*)ud;
-	int channels,rate;
+
 	if (evid==MS_FILTER_OUTPUT_FMT_CHANGED){
-		ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&channels);
-		ms_filter_call_method(stream->source,MS_FILTER_GET_SAMPLE_RATE,&rate);
-		if (stream->write_resampler){
-			ms_message("Configuring resampler input with rate=[%i], nchannels=[%i]",rate,channels);
-			ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_NCHANNELS,&channels);
-			ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_SAMPLE_RATE,&rate);
+		MSPinFormat pinfmt={0};
+		ms_filter_call_method(stream->source, MS_FILTER_GET_OUTPUT_FMT, &pinfmt);
+		if (pinfmt.fmt == NULL){
+			pinfmt.pin = 1;
+			ms_filter_call_method(stream->source, MS_FILTER_GET_OUTPUT_FMT, &pinfmt);
 		}
-		ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_SAMPLE_RATE,&rate);
-		ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_NCHANNELS,&channels);
+		
+		if (stream->write_resampler){
+			ms_message("Configuring resampler input with rate=[%i], nchannels=[%i]",pinfmt.fmt->rate, pinfmt.fmt->nchannels);
+			ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_NCHANNELS,(void*)&pinfmt.fmt->nchannels);
+			ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_SAMPLE_RATE,(void*)&pinfmt.fmt->rate);
+		}
+		ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_SAMPLE_RATE, (void*)&pinfmt.fmt->rate);
+		ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_NCHANNELS, (void*)&pinfmt.fmt->nchannels);
 	}
 }
 
@@ -51,9 +57,10 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 	int srcrate,dstrate;
 	MSConnectionHelper h;
 	MSTickerParams params={0};
+	MSPinFormat pinfmt={0};
 
 	stream=(RingStream *)ms_new0(RingStream,1);
-	stream->source=ms_filter_new(MS_FILE_PLAYER_ID);
+	stream->source=_ms_create_av_player(file);
 	ms_filter_add_notify_callback(stream->source,ring_player_event_handler,stream,TRUE);
 	if (func!=NULL)
 		ms_filter_add_notify_callback(stream->source,func,user_data,FALSE);
@@ -62,18 +69,38 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 	stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	
 	if (file){
-		ms_filter_call_method(stream->source,MS_FILE_PLAYER_OPEN,(void*)file);
-		ms_filter_call_method(stream->source,MS_FILE_PLAYER_LOOP,&interval);
-		ms_filter_call_method_noarg(stream->source,MS_FILE_PLAYER_START);
+		ms_filter_call_method(stream->source,MS_PLAYER_OPEN,(void*)file);
+		ms_filter_call_method(stream->source,MS_PLAYER_SET_LOOP,&interval);
+		ms_filter_call_method_noarg(stream->source,MS_PLAYER_START);
 	}
 	
-	/*configure sound outputfilter*/
-	ms_filter_call_method(stream->source,MS_FILTER_GET_SAMPLE_RATE,&srcrate);
-	ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&srcchannels);
+	/*configure sound output filter*/
+	ms_filter_call_method(stream->source, MS_FILTER_GET_OUTPUT_FMT, &pinfmt);
+	if (pinfmt.fmt == NULL){
+		pinfmt.pin = 1;
+		ms_filter_call_method(stream->source, MS_FILTER_GET_OUTPUT_FMT, &pinfmt);
+		if (pinfmt.fmt == NULL){
+			/*probably no file is being played, assume pcm*/
+			pinfmt.fmt = ms_factory_get_audio_format(ms_factory_get_fallback(), "pcm", 8000, 1, NULL);
+		}
+	}
+	srcrate = pinfmt.fmt->rate;
+	srcchannels = pinfmt.fmt->nchannels;
+
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_SAMPLE_RATE,&srcrate);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_SAMPLE_RATE,&dstrate);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_NCHANNELS,&srcchannels);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_NCHANNELS,&dstchannels);
+	
+	/*eventually create a decoder*/
+	if (strcasecmp(pinfmt.fmt->encoding, "pcm") != 0){
+		stream->decoder = ms_filter_create_decoder(pinfmt.fmt->encoding);
+		if (!stream->decoder){
+			ms_error("RingStream: could not create decoder for '%s'", pinfmt.fmt->encoding);
+			ring_stop(stream);
+			return NULL;
+		}
+	}
 	
 	/*configure output of resampler*/
 	if (stream->write_resampler){
@@ -82,7 +109,6 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 	
 		/*the input of the resampler, as well as dtmf generator are configured within the ring_player_event_handler()
 		 * callback triggered during the open of the file player*/
-	
 		ms_message("configuring resampler output to rate=[%i], nchannels=[%i]",dstrate,dstchannels);
 	}
 	
@@ -91,11 +117,16 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 	stream->ticker=ms_ticker_new_with_params(&params);
 
 	ms_connection_helper_start(&h);
-	ms_connection_helper_link(&h,stream->source,-1,0);
+	ms_connection_helper_link(&h,stream->source, -1, pinfmt.pin);
+	stream->srcpin = pinfmt.pin;
+	if (stream->decoder){
+		ms_filter_call_method(stream->decoder, MS_FILTER_SET_NCHANNELS, &srcchannels);
+		ms_connection_helper_link(&h, stream->decoder, 0, 0);
+	}
 	ms_connection_helper_link(&h,stream->gendtmf,0,0);
 	if (stream->write_resampler)
 		ms_connection_helper_link(&h,stream->write_resampler,0,0);
-	ms_connection_helper_link(&h,stream->sndwrite,0,-1);
+	ms_connection_helper_link(&h, stream->sndwrite, 0, -1);
 	ms_ticker_attach(stream->ticker,stream->source);
 
 	return stream;
@@ -113,19 +144,25 @@ void ring_stop_dtmf(RingStream *stream){
 
 void ring_stop(RingStream *stream){
 	MSConnectionHelper h;
-	ms_ticker_detach(stream->ticker,stream->source);
+	
+	if (stream->ticker){
+		ms_ticker_detach(stream->ticker,stream->source);
 
-	ms_connection_helper_start(&h);
-	ms_connection_helper_unlink(&h,stream->source,-1,0);
-	ms_connection_helper_unlink(&h,stream->gendtmf,0,0);
-	if (stream->write_resampler)
-		ms_connection_helper_unlink(&h,stream->write_resampler,0,0);
-	ms_connection_helper_unlink(&h,stream->sndwrite,0,-1);
-
-	ms_ticker_destroy(stream->ticker);
-	ms_filter_destroy(stream->source);
-	ms_filter_destroy(stream->gendtmf);
-	ms_filter_destroy(stream->sndwrite);
+		ms_connection_helper_start(&h);
+		ms_connection_helper_unlink(&h,stream->source,-1, stream->srcpin);
+		if (stream->decoder){
+			ms_connection_helper_unlink(&h,stream->decoder, 0, 0);
+		}
+		ms_connection_helper_unlink(&h,stream->gendtmf,0,0);
+		if (stream->write_resampler)
+			ms_connection_helper_unlink(&h,stream->write_resampler,0,0);
+		ms_connection_helper_unlink(&h,stream->sndwrite,0,-1);
+		ms_ticker_destroy(stream->ticker);
+	}
+	if (stream->source) ms_filter_destroy(stream->source);
+	if (stream->gendtmf) ms_filter_destroy(stream->gendtmf);
+	if (stream->sndwrite) ms_filter_destroy(stream->sndwrite);
+	if (stream->decoder) ms_filter_destroy(stream->decoder);
 	if (stream->write_resampler)
 		ms_filter_destroy(stream->write_resampler);
 	ms_free(stream);
