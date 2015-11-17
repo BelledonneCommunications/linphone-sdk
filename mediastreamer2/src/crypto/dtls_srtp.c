@@ -339,7 +339,8 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 
 static void ms_dtls_srtp_check_channels_status(MSDtlsSrtpContext *ctx) {
 
-	if ((ctx->rtp_channel_status == DTLS_STATUS_HANDSHAKE_OVER) && (ctx->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_OVER)) {
+	if (((ctx->rtp_channel_status == DTLS_STATUS_HANDSHAKE_OVER) && (rtp_session_rtcp_mux_enabled(ctx->stream_sessions->rtp_session)))
+		|| ((ctx->rtp_channel_status == DTLS_STATUS_HANDSHAKE_OVER) && (ctx->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_OVER))) {
 		OrtpEventData *eventData;
 		OrtpEvent *ev;
 		/* send event */
@@ -839,19 +840,23 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 		ms_warning("DTLS start but no context\n");
 		return;
 	}
-	ms_message("DTLS start stream on stream sessions [%p]", context->stream_sessions);
+	ms_message("DTLS start stream on stream sessions [%p], RCTP mux is %s", context->stream_sessions, rtp_session_rtcp_mux_enabled(context->stream_sessions->rtp_session)?"enabled":"disabled");
+
 	/* if we are client, start the handshake(send a clientHello) */
 	if (context->role == MSDtlsSrtpRoleIsClient) {
 		ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
-		ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
 		ssl_set_endpoint(&(context->rtp_dtls_context->ssl), SSL_IS_CLIENT);
 		ssl_handshake(&(context->rtp_dtls_context->ssl));
 		context->rtp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
-		ssl_set_endpoint(&(context->rtcp_dtls_context->ssl), SSL_IS_CLIENT);
-		ssl_handshake(&(context->rtcp_dtls_context->ssl));
-		context->rtcp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
 		ms_mutex_unlock(&context->rtp_dtls_context->ssl_context_mutex);
-		ms_mutex_unlock(&context->rtcp_dtls_context->ssl_context_mutex);
+		/* We shall start handshake on RTCP channel too only if RTCP mux is not enabled */
+		if (!rtp_session_rtcp_mux_enabled(context->stream_sessions->rtp_session)) {
+			ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
+			ssl_set_endpoint(&(context->rtcp_dtls_context->ssl), SSL_IS_CLIENT);
+			ssl_handshake(&(context->rtcp_dtls_context->ssl));
+			context->rtcp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
+			ms_mutex_unlock(&context->rtcp_dtls_context->ssl_context_mutex);
+		}
 	}
 
 }

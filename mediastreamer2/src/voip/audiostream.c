@@ -374,7 +374,7 @@ static bool_t ci_ends_with(const char *filename, const char*suffix){
 	return strcasecmp(filename+filename_len-suffix_len,suffix)==0;
 }
 
-static MSFilter *create_av_player(const char *filename){
+MSFilter *_ms_create_av_player(const char *filename){
 	if (ci_ends_with(filename,".mkv"))
 		return ms_filter_new(MS_MKV_PLAYER_ID);
 	else if (ci_ends_with(filename,".wav"))
@@ -492,7 +492,7 @@ static int open_av_player(AudioStream *stream, const char *filename){
 	MSPinFormat *videofmt=NULL;
 
 	if (player->player) close_av_player(stream);
-	player->player=create_av_player(filename);
+	player->player=_ms_create_av_player(filename);
 	if (player->player==NULL){
 		ms_warning("AudioStream[%p]: no way to open [%s].",stream,filename);
 		return -1;

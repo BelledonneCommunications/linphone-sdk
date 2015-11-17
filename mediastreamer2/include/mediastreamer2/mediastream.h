@@ -57,6 +57,8 @@ struct _RingStream
 	MSFilter *gendtmf;
 	MSFilter *write_resampler;
 	MSFilter *sndwrite;
+	MSFilter *decoder;
+	int srcpin;
 };
 
 typedef struct _RingStream RingStream;
