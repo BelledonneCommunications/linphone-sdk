@@ -166,7 +166,7 @@ static void process_red_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 		pos += 4;
 	}
 	
-	ms_error("red redgen:%i",redgen);
+	ms_debug("red redgen:%i",redgen);
 	if ((int)payload[pos] != stream->pt_t140) {
 		ms_warning("invalid red packet");
 		return;
