@@ -60,7 +60,12 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 	MSPinFormat pinfmt={0};
 
 	stream=(RingStream *)ms_new0(RingStream,1);
-	stream->source=_ms_create_av_player(file);
+	if (file) {
+		stream->source=_ms_create_av_player(file);
+	} else {
+		/*create dummy source*/
+		stream->source=ms_filter_new(MS_FILE_PLAYER_ID);
+	}
 	ms_filter_add_notify_callback(stream->source,ring_player_event_handler,stream,TRUE);
 	if (func!=NULL)
 		ms_filter_add_notify_callback(stream->source,func,user_data,FALSE);
