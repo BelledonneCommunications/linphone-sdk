@@ -514,16 +514,24 @@ static int open_av_player(AudioStream *stream, const char *filename){
 		fmt1.fmt=ms_factory_get_audio_format(stream->ms.factory, "pcm", sr, channels, NULL);
 		audiofmt=&fmt1;
 	}else{
-		if (fmt1.fmt && fmt1.fmt->type==MSAudio) {
-			audiofmt=&fmt1;
-			videofmt=&fmt2;
-			player->audiopin=0;
-			player->videopin=1;
-		}else{
-			videofmt=&fmt1;
-			audiofmt=&fmt2;
-			player->audiopin=1;
-			player->videopin=0;
+		if (fmt1.fmt) {
+			if (fmt1.fmt->type==MSAudio){
+				audiofmt=&fmt1;
+				player->audiopin=0;
+			}else{
+				videofmt=&fmt1;
+				player->videopin=0;
+			}
+		}
+		if (fmt2.fmt){
+			if (fmt2.fmt->type == MSAudio){
+				audiofmt=&fmt2;
+				player->audiopin=1;
+			}else{
+				videofmt=&fmt2;
+				player->videopin=1;
+			}
+			
 		}
 	}
 	if (audiofmt && audiofmt->fmt && strcasecmp(audiofmt->fmt->encoding,"pcm")!=0){

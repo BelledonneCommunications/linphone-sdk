@@ -439,7 +439,7 @@ static int player_get_nch(MSFilter *f, void *arg){
 static int player_get_fmtp(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
 	MSPinFormat *pinfmt = (MSPinFormat*)arg;
-	pinfmt->fmt = ms_factory_get_audio_format(f->factory, "pcm", d->rate, d->nchannels, NULL);
+	if (pinfmt->pin == 0) pinfmt->fmt = ms_factory_get_audio_format(f->factory, "pcm", d->rate, d->nchannels, NULL);
 	return 0;
 }
 
