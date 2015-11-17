@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/mediastream.h"
+#include "mediastreamer2/msrtt4103.h"
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 #include <math.h>
@@ -109,6 +110,17 @@ static void destroy_text_stream(text_stream_tester_t *tst) {
 	text_stream_stop(tst->ts);
 }
 
+static void real_time_text_character_received(void *userdata, struct _MSFilter *f, unsigned int id, void *arg) {
+	if (id == MS_RTT_4103_RECEIVED_CHAR) {
+		text_stream_tester_t *tst = (text_stream_tester_t *)userdata;
+		if (tst->stats.q != NULL) {
+			RealtimeTextReceivedCharacter *data = (RealtimeTextReceivedCharacter *)arg;
+			ms_message("Received RTT char: %lu, %c", (unsigned long)data->character, (char)data->character);
+			tst->stats.received_chars[tst->stats.number_of_received_char++] = (char)data->character;
+		}
+	}
+}
+
 static void init_text_streams(text_stream_tester_t *tst1, text_stream_tester_t *tst2, bool_t avpf, bool_t one_way, OrtpNetworkSimulatorParams *params, int payload_type) {
 	create_text_stream(tst1, payload_type);
 	create_text_stream(tst2, payload_type);
@@ -120,28 +132,14 @@ static void init_text_streams(text_stream_tester_t *tst1, text_stream_tester_t *
 	}
 	
 	text_stream_start(tst1->ts, &rtp_profile, tst2->local_ip, tst2->local_rtp, tst2->local_ip, tst2->local_rtcp, payload_type);
+	ms_filter_add_notify_callback(tst1->ts->rttsink, real_time_text_character_received, tst1, TRUE);
 	text_stream_start(tst2->ts, &rtp_profile, tst1->local_ip, tst1->local_rtp, tst1->local_ip, tst1->local_rtcp, payload_type);
+	ms_filter_add_notify_callback(tst2->ts->rttsink, real_time_text_character_received, tst2, TRUE);
 }
 
 static void uninit_text_streams(text_stream_tester_t *tst1, text_stream_tester_t *tst2) {
 	destroy_text_stream(tst1);
 	destroy_text_stream(tst2);
-}
-
-static void event_queue_cb(MediaStream *ms, void *user_pointer) {
-	text_stream_tester_t *tst = (text_stream_tester_t *)user_pointer;
-	if (tst->stats.q != NULL) {
-		OrtpEvent *ev = NULL;
-		while ((ev = ortp_ev_queue_get(tst->stats.q)) != NULL) {
-			OrtpEventType evt = ortp_event_get_type(ev);
-			OrtpEventData *evd = ortp_event_get_data(ev);
-			if (evt == ORTP_EVENT_RTT_CHARACTER_RECEIVED) {
-				ms_message("Received RTT char: %lu, %c", (unsigned long)evd->info.received_rtt_character, (char)evd->info.received_rtt_character);
-				tst->stats.received_chars[tst->stats.number_of_received_char++] = (char)evd->info.received_rtt_character;
-			}
-			ortp_event_destroy(ev);
-		}
-	}
 }
 
 static void basic_text_stream(void) {
@@ -157,7 +155,7 @@ static void basic_text_stream(void) {
 		text_stream_putchar32(margaux->ts, (uint32_t)c);
 	}
 	
-	BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000, event_queue_cb, marielle, NULL, NULL));
+	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
 	BC_ASSERT_EQUAL(strcmpresult, 0, int, "%d");
@@ -179,7 +177,7 @@ static void basic_text_stream2(void) {
 	for (; i < strlen(helloworld); i++) {
 		char c = helloworld[i];
 		text_stream_putchar32(margaux->ts, (uint32_t)c);
-		wait_for_until_with_parse_events(&marielle->ts->ms, &margaux->ts->ms, &dummy, 1, 500, event_queue_cb, marielle, NULL, NULL);
+		wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &dummy, 1, 500);
 	}
 	
 	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 1000));
@@ -205,7 +203,7 @@ static void copy_paste_text_longer_than_rtt_buffer(void) {
 		text_stream_putchar32(margaux->ts, (uint32_t)c);
 	}
 	
-	BC_ASSERT_FALSE(wait_for_until_with_parse_events(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000, event_queue_cb, marielle, NULL, NULL));
+	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
 	BC_ASSERT_TRUE(strcmpresult < 0);
@@ -239,7 +237,7 @@ static void srtp_protected_text_stream(void) {
 	for (; i < strlen(helloworld); i++) {
 		char c = helloworld[i];
 		text_stream_putchar32(margaux->ts, (uint32_t)c);
-		wait_for_until_with_parse_events(&marielle->ts->ms, &margaux->ts->ms, &dummy, 1, 500, event_queue_cb, marielle, NULL, NULL);
+		wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &dummy, 1, 500);
 	}
 	
 	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 1000));

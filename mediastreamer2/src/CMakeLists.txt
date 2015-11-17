@@ -155,6 +155,8 @@ set(VOIP_SOURCE_FILES_C
 	voip/qosanalyzer.c
 	voip/qosanalyzer.h
 	voip/qualityindicator.c
+	otherfilters/rfc4103_source.cpp
+	otherfilters/rfc4103_sink.cpp
 	voip/rfc4103_textstream.c
 	voip/ringstream.c
 	voip/stun.c
