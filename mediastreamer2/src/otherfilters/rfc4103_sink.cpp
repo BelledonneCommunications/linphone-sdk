@@ -125,11 +125,11 @@ static int read_t140_data(RealTimeTextSinkData *stream, uint8_t *data, int reads
 }
 
 static void process_t140_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
-	int seqno = rtp_get_seqnumber(packet);
-	uint8_t *payload;
-	int payloadsize = rtp_get_payload(packet, &payload);
+	int seqno = mblk_get_cseq(packet);
+	uint8_t *payload = packet->b_rptr;
+	size_t payloadsize = msgdsize(packet);
 
-	ms_debug("t140 seqno:%i",seqno);
+	ms_debug("t140 seqno:%i", seqno);
 	if (stream->flags & TS_FLAG_NOTFIRST) {
 		int t = red_needed(seqno, stream->prevseqno);
 		if (t < 0) {
@@ -140,24 +140,24 @@ static void process_t140_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 			insert_lost_char(stream->inbuf);
 		}
 	}
-	if (read_t140_data(stream, payload, payloadsize)) {
+	if (read_t140_data(stream, payload, (int)payloadsize)) {
 		return; /* return without updatting seqno */
 	}
 	stream->prevseqno = seqno;
 }
 
 static void process_red_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
-	int seqno = rtp_get_seqnumber(packet);
-	uint8_t *payload;
+	int seqno = mblk_get_cseq(packet);
+	uint8_t *payload = packet->b_rptr;
+	size_t payloadsize = msgdsize(packet);
 	int redgen = 0;
 	int pos = 0;
 	int redneeded;
 	int readstart;
-	int payloadsize = rtp_get_payload(packet, &payload);
 	/* check how many is red, also check if its the right payload for the red */
 	
 	ms_debug("red seqno:%i", seqno);
-	while ((pos < payloadsize) && (payload[pos] & (1 << 7))) {
+	while ((pos < (int)payloadsize) && (payload[pos] & (1 << 7))) {
 		redgen++;
 		if (((int)payload[pos] & 0x7F) != stream->pt_t140) {
 			ms_warning("invalid red packet");
@@ -166,7 +166,7 @@ static void process_red_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 		pos += 4;
 	}
 	
-	ms_debug("red redgen:%i",redgen);
+	ms_error("red redgen:%i",redgen);
 	if ((int)payload[pos] != stream->pt_t140) {
 		ms_warning("invalid red packet");
 		return;
@@ -201,8 +201,6 @@ static void process_red_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 }
 
 static bool_t read_text_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
-	int pt;
-
 	stream->inbufpos = stream->inbuf;
 	stream->inbufsize = 0;
 	
@@ -210,13 +208,10 @@ static bool_t read_text_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 		return FALSE;
 	}
 	
-	pt = rtp_get_payload_type(packet);
-	if (pt == stream->pt_t140) {
-		process_t140_packet(stream, packet);
-	} else if (stream->pt_red && pt == stream->pt_red) {
+	if (stream->pt_red > 0) {
 		process_red_packet(stream, packet);
 	} else {
-		ms_warning("unkown pt for text packet (pt:%i t140:%i red:%i)", pt, stream->pt_t140, stream->pt_red);
+		process_t140_packet(stream, packet);
 	}
 	
 	if (!(stream->flags & TS_FLAG_NOTFIRST)) {
@@ -300,10 +295,10 @@ static void ms_rtt_4103_sink_process(MSFilter *f) {
 		
 		if (text_stream_ischar(s)) {
 			uint32_t character = text_stream_getchar32(s);
-			RealtimeTextReceivedCharacter *data = ms_new0(RealtimeTextReceivedCharacter, 1);
-			data->character = character;
 			
 			if (character != 0) {
+				RealtimeTextReceivedCharacter *data = ms_new0(RealtimeTextReceivedCharacter, 1);
+				data->character = character;
 				ms_debug("Received char 32: %lu", (long unsigned) character);
 				ms_filter_notify(f, MS_RTT_4103_RECEIVED_CHAR, data);
 			}
@@ -357,7 +352,8 @@ MSFilterDesc ms_rtt_4103_sink_desc = {
 	ms_rtt_4103_sink_process,
 	ms_rtt_4103_sink_postprocess,
 	ms_rtt_4103_sink_uninit,
-	ms_rtt_4103_sink_methods
+	ms_rtt_4103_sink_methods,
+	MS_FILTER_IS_PUMP
 };
 
 MS_FILTER_DESC_EXPORT(ms_rtt_4103_sink_desc)
