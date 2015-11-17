@@ -53,7 +53,8 @@ else()
 		"--disable-unit-tests"
 		"--as=yasm"
 	)
-	if(CMAKE_C_COMPILER_LAUNCHER STREQUAL "ccache")
+	string(FIND "${CMAKE_C_COMPILER_LAUNCHER}" "ccache" CCACHE_ENABLED)
+	if (CCACHE_ENABLED)
 		list(APPEND EP_vpx_CONFIGURE_OPTIONS "--enable-ccache")
 	endif()
 
