@@ -51,7 +51,8 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				upnp_igd.h \
 				videostarter.h \
 				x11_helper.h \
-				zrtp.h
+				zrtp.h \
+				msrtt4103.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 

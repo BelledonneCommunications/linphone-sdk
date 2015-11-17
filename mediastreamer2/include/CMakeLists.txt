@@ -72,6 +72,7 @@ set(HEADER_FILES
 	videostarter.h
 	x11_helper.h
 	zrtp.h
+	msrtt4103.h
 )
 
 set(MEDIASTREAMER2_HEADER_FILES )
