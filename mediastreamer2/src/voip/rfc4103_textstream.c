@@ -117,8 +117,10 @@ TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const cha
 	
 	ms_filter_call_method(stream->rttsource, MS_RTT_4103_SOURCE_SET_T140_PAYLOAD_TYPE_NUMBER, &stream->pt_t140);
 	ms_filter_call_method(stream->rttsink, MS_RTT_4103_SINK_SET_T140_PAYLOAD_TYPE_NUMBER, &stream->pt_t140);
-	ms_filter_call_method(stream->rttsource, MS_RTT_4103_SOURCE_SET_RED_PAYLOAD_TYPE_NUMBER, &stream->pt_red);
-	ms_filter_call_method(stream->rttsink, MS_RTT_4103_SINK_SET_RED_PAYLOAD_TYPE_NUMBER, &stream->pt_red);
+	if (payload_type == stream->pt_red) {
+		ms_filter_call_method(stream->rttsource, MS_RTT_4103_SOURCE_SET_RED_PAYLOAD_TYPE_NUMBER, &stream->pt_red);
+		ms_filter_call_method(stream->rttsink, MS_RTT_4103_SINK_SET_RED_PAYLOAD_TYPE_NUMBER, &stream->pt_red);
+	}
 	
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, stream->rttsource, -1, 0);

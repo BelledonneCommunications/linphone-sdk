@@ -99,9 +99,9 @@ static mblk_t *realtime_text_stream_generate_red_packet(RealTimeTextSourceData *
 		memcpy(&payload[payloadsize], &stream->buf[pri][0], stream->bufsize[pri]);
 		payloadsize += stream->bufsize[pri];
 	}
-
+	
 	packet = allocb(payloadsize, 0);
-	memcpy(packet->b_wptr, &payload[payloadsize], payloadsize);
+	memcpy(packet->b_wptr, &payload, payloadsize);
 	packet->b_wptr += payloadsize;
 	mblk_set_marker_info(packet, mark);
 
@@ -141,14 +141,18 @@ static void text_stream_putchar32(RealTimeTextSourceData *stream, uint32_t ic) {
 }
 
 static bool_t is_data_to_send(const RealTimeTextSourceData *stream) {
-	int i;
+	if (stream->pt_red > 0) {
+		int i;
 
-	for (i = 0; i <= TS_REDGEN; i++) {
-		if (stream->bufsize[i]) {
-			return TRUE;
+		for (i = 0; i <= TS_REDGEN; i++) {
+			if (stream->bufsize[i] > 0) {
+				return TRUE;
+			}
 		}
+		return FALSE;
+	} else {
+		return stream->bufsize[stream->pribuf] > 0;
 	}
-	return FALSE;
 }
 
 static mblk_t* send_data(RealTimeTextSourceData *stream, uint32_t timestamp) {
@@ -187,8 +191,7 @@ static void ms_rtt_4103_source_preprocess(MSFilter *f) {
 
 static void ms_rtt_4103_source_process(MSFilter *f) {
 	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
-	uint64_t timems = f->ticker->time;
-	uint32_t timestamp = (uint32_t)(timems * 90);
+	uint32_t timestamp = f->ticker->time;
 	
 	ms_filter_lock(f);
 	mblk_t *m = send_data(s, timestamp);
@@ -208,29 +211,35 @@ static void ms_rtt_4103_source_uninit(MSFilter *f) {
 
 static int ms_rtt_4103_source_set_t140_payload(MSFilter *f, void *t140) {
 	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
+	
 	ms_filter_lock(f);
 	s->pt_t140 = *(int *)t140;
 	ms_debug("T140 payload number is %i", s->pt_t140);
 	ms_filter_unlock(f);
+	
 	return 0;
 }
 
 static int ms_rtt_4103_source_set_red_payload(MSFilter *f, void *red) {
 	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
+	
 	ms_filter_lock(f);
 	s->pt_red = *(int *)red;
 	ms_debug("RED payload number is %i", s->pt_red);
 	ms_filter_unlock(f);
+	
 	return 0;
 }
 
 static int ms_rtt_4103_source_put_char32(MSFilter *f, void *character) {
 	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
-	ms_filter_lock(f);
 	uint32_t char_to_send = *(uint32_t*) character;
+	
+	ms_filter_lock(f);
 	text_stream_putchar32(s, char_to_send);
 	ms_debug("Sending char 32: %lu", (long unsigned) char_to_send);
 	ms_filter_unlock(f);
+	
 	return 0;
 }
 
