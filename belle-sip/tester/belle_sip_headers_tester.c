@@ -389,6 +389,8 @@ static void test_route_header(void) {
 	belle_sip_header_route_t* L_next_route;
 	belle_sip_header_address_t* address = belle_sip_header_address_parse("<sip:212.27.52.5:5060;transport=udp;lr>");
 	char* l_raw_header;
+	belle_sip_header_record_route_t* L_record_route;
+	
 	BC_ASSERT_PTR_NOT_NULL_FATAL(address);
 	L_route = belle_sip_header_route_create(address);
 	belle_sip_object_unref(address);
@@ -419,6 +421,16 @@ static void test_route_header(void) {
 	L_route=belle_sip_header_route_parse(l_raw_header);
 	BC_ASSERT_PTR_NOT_NULL(L_route);
 	if (L_route) belle_sip_object_unref(L_route);
+	
+	L_record_route = belle_sip_header_record_route_parse("Record-Route: <sip:212.27.52.5:5060;transport=udp;lr>;charset=ISO-8859-4, <sip:212.27.52.5:5060;transport=udp;lr>");
+	L_route = belle_sip_header_route_create(BELLE_SIP_HEADER_ADDRESS(L_record_route));
+	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_route));
+	BC_ASSERT_PTR_NULL(belle_sip_header_get_next(BELLE_SIP_HEADER(L_route)));
+	BC_ASSERT_PTR_NULL(belle_sip_uri_get_user(L_uri));
+	BC_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060,int,"%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "212.27.52.5");
+	belle_sip_object_unref(L_record_route);
+	belle_sip_object_unref(L_route);
 	belle_sip_free(l_raw_header);
 
 }

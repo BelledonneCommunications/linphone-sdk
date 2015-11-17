@@ -378,6 +378,7 @@ BELLE_SIP_PARSE(header_contact)
 belle_sip_header_contact_t* belle_sip_header_contact_create (const belle_sip_header_address_t* contact) {
 	belle_sip_header_contact_t* header = belle_sip_header_contact_new();
 	_belle_sip_object_copy(BELLE_SIP_OBJECT(header),BELLE_SIP_OBJECT(contact));
+	belle_sip_header_set_next(BELLE_SIP_HEADER(header),NULL); /*make sure only one header is kept*/
 	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_CONTACT); /*restaure header name*/
 	return header;
 }
@@ -478,7 +479,7 @@ belle_sip_header_from_t* belle_sip_header_from_create(const belle_sip_header_add
 		belle_sip_uri_set_port(uri,0);
 		belle_sip_uri_headers_clean(uri);
 	}
-
+	belle_sip_header_set_next(BELLE_SIP_HEADER(header),NULL); /*make sure only one header is kept*/
 	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_FROM); /*restore header name*/
 	if (tag) belle_sip_header_from_set_tag(header,tag);
 	return header;
@@ -547,6 +548,7 @@ belle_sip_header_to_t* belle_sip_header_to_create(const belle_sip_header_address
 		belle_sip_uri_set_port(uri,0);
 		belle_sip_uri_headers_clean(uri);
 	}
+	belle_sip_header_set_next(BELLE_SIP_HEADER(header),NULL); /*make sure only one header is kept*/
 	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_TO); /*restaure header name*/
 	if (tag) belle_sip_header_to_set_tag(header,tag);
 	return header;
@@ -898,6 +900,7 @@ BELLE_SIP_PARSE(header_route)
 belle_sip_header_route_t* belle_sip_header_route_create(const belle_sip_header_address_t* route) {
 	belle_sip_header_route_t* header= belle_sip_header_route_new();
 	_belle_sip_object_copy((belle_sip_object_t*)header,(belle_sip_object_t*)route);
+	belle_sip_header_set_next(BELLE_SIP_HEADER(header),NULL); /*make sure only one header is kept*/
 	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_ROUTE); /*restore header name*/
 	return header;
 }
@@ -1535,6 +1538,7 @@ BELLE_SIP_PARSE(header_##name)\
 belle_sip_header_##name##_t* belle_sip_header_##name##_create(const belle_sip_header_address_t* address) { \
 	belle_sip_header_##name##_t* header= belle_sip_header_##name##_new();\
 	_belle_sip_object_copy((belle_sip_object_t*)header,(belle_sip_object_t*)address);\
+	belle_sip_header_set_next(BELLE_SIP_HEADER(header),NULL); /*make sure only one header is kept*/\
 	belle_sip_header_set_name(BELLE_SIP_HEADER(header),header_name);  \
 	return header;\
 }
@@ -1772,6 +1776,7 @@ BELLE_SIP_PARSE(header_p_preferred_identity)
 belle_sip_header_p_preferred_identity_t* belle_sip_header_p_preferred_identity_create (const belle_sip_header_address_t* p_preferred_identity) {
 	belle_sip_header_p_preferred_identity_t* header = belle_sip_header_p_preferred_identity_new();
 	_belle_sip_object_copy(BELLE_SIP_OBJECT(header),BELLE_SIP_OBJECT(p_preferred_identity));
+	belle_sip_header_set_next(BELLE_SIP_HEADER(header),NULL); /*make sure only one header is kept*/
 	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_P_PREFERRED_IDENTITY); /*restaure header name*/
 	return header;
 }
