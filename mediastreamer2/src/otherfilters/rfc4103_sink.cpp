@@ -293,7 +293,7 @@ static void ms_rtt_4103_sink_process(MSFilter *f) {
 	while((im = ms_queue_get(f->inputs[0])) != NULL) {
 		read_text_packet(s, im);
 		
-		if (text_stream_ischar(s)) {
+		while (text_stream_ischar(s)) {
 			uint32_t character = text_stream_getchar32(s);
 			
 			if (character != 0) {
@@ -301,6 +301,8 @@ static void ms_rtt_4103_sink_process(MSFilter *f) {
 				data->character = character;
 				ms_debug("Received char 32: %lu", (long unsigned) character);
 				ms_filter_notify(f, MS_RTT_4103_RECEIVED_CHAR, data);
+			} else {
+				s->inbufsize = 0; // This will stop the text_stream_ischar
 			}
 		}
 	}

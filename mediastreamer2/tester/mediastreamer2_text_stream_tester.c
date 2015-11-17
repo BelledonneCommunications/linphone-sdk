@@ -203,7 +203,7 @@ static void copy_paste_text_longer_than_rtt_buffer(void) {
 		text_stream_putchar32(margaux->ts, (uint32_t)c);
 	}
 	
-	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000));
+	BC_ASSERT_FALSE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
 	BC_ASSERT_TRUE(strcmpresult < 0);
