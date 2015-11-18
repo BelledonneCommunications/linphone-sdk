@@ -1244,6 +1244,9 @@ MS2_PUBLIC void text_stream_iterate(TextStream *stream);
  **/
 MS2_PUBLIC void text_stream_putchar32(TextStream *stream, uint32_t i);
 
+MS2_PUBLIC void text_stream_prepare_text(TextStream *stream);
+MS2_PUBLIC void text_stream_unprepare_text(TextStream *stream);
+
 /**
  * @}
 **/

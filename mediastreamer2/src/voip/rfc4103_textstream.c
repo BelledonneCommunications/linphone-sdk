@@ -173,3 +173,31 @@ void text_stream_putchar32(TextStream *stream, uint32_t ic) {
 		ms_filter_call_method(stream->rttsource, MS_RTT_4103_SOURCE_PUT_CHAR32, &ic);
 	}
 }
+
+void text_stream_prepare_text(TextStream *stream){
+	text_stream_unprepare_text(stream);
+	stream->ms.rtprecv = ms_filter_new(MS_RTP_RECV_ID);
+	rtp_session_set_payload_type(stream->ms.sessions.rtp_session, 0);
+	rtp_session_enable_rtcp(stream->ms.sessions.rtp_session, FALSE);
+	ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions.rtp_session);
+	stream->ms.voidsink = ms_filter_new(MS_VOID_SINK_ID);
+	ms_filter_link(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
+	media_stream_start_ticker(&stream->ms);
+	ms_ticker_attach(stream->ms.sessions.ticker, stream->ms.rtprecv);
+	stream->ms.state = MSStreamPreparing;
+}
+
+static void stop_preload_graph(TextStream *stream){
+	ms_ticker_detach(stream->ms.sessions.ticker, stream->ms.rtprecv);
+	ms_filter_unlink(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
+	ms_filter_destroy(stream->ms.voidsink);
+	ms_filter_destroy(stream->ms.rtprecv);
+	stream->ms.voidsink = stream->ms.rtprecv = NULL;
+}
+
+void text_stream_unprepare_text(TextStream *stream){
+	if (stream->ms.state == MSStreamPreparing) {
+		stop_preload_graph(stream);
+		stream->ms.state = MSStreamInitialized;
+	}
+}
