@@ -202,7 +202,7 @@ static void create_io_unit (AudioUnit* au, MSSndCard* sndcard) {
 	AudioComponentDescription au_description;
 	AudioComponent foundComponent;
 
-	bool_t noVoiceProc = (*au && strcasecmp(sndcard->name, AU_CARD_NOVOICEPROC) == 0);
+	bool_t noVoiceProc = (strcasecmp(sndcard->name, AU_CARD_NOVOICEPROC) == 0);
 	OSType subtype = noVoiceProc ? kAudioUnitSubType_RemoteIO : kAudioUnitSubType_VoiceProcessingIO;
 
 	au_description.componentType          = kAudioUnitType_Output;
