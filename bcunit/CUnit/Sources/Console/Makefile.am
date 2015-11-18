@@ -3,3 +3,7 @@
 noinst_LTLIBRARIES = libcunitconsole.la
 libcunitconsole_la_SOURCES = \
 	Console.c
+
+AM_CPPFLAGS=-I$(top_srcdir)/CUnit/Headers
+
+
