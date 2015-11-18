@@ -149,6 +149,9 @@ void text_stream_stop(TextStream *stream) {
 			stream->ms.ice_check_list = NULL;
 		}
 		
+		rtp_stats_display(rtp_session_get_stats(stream->ms.sessions.rtp_session),
+				"             TEXT SESSION'S RTP STATISTICS                ");
+		
 		ms_connection_helper_start(&h);
 		ms_connection_helper_unlink(&h, stream->rttsource, -1, 0);
 		ms_connection_helper_unlink(&h, stream->ms.rtpsend, 0, -1);
