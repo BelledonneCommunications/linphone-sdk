@@ -135,7 +135,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 					for (i = 0; ; i++) {
 						rtcp_fb_fir_fci_t *fci = rtcp_PSFB_fir_get_fci(m, i);
 						if (fci == NULL) break;
-						if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
+						if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session)) {
 							uint8_t seq_nr = rtcp_fb_fir_fci_get_seq_nr(fci);
 							ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_FIR, &seq_nr);
 							break;
@@ -666,13 +666,15 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	return video_stream_start_from_io(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, &io);
 }
 
-static void recorder_handle_event(void *userdata, MSFilter *recorder, unsigned int event, void *event_arg){
+void video_recorder_handle_event(void *userdata, MSFilter *recorder, unsigned int event, void *event_arg){
 	VideoStream *stream = (VideoStream*) userdata;
 	switch (event){
 		case MS_RECORDER_NEEDS_FIR:
 			ms_message("Request sending of FIR on videostream [%p]", stream);
 			video_stream_send_fir(stream);
-		break;
+			break;
+		default:
+			break;
 	}
 }
 
@@ -735,7 +737,7 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 					ms_filter_destroy(stream->recorder_output);
 				}
 				stream->recorder_output = recorder;
-				ms_filter_add_notify_callback(recorder, recorder_handle_event, stream, TRUE);
+				ms_filter_add_notify_callback(recorder, video_recorder_handle_event, stream, TRUE);
 				if (io->output.file) video_stream_open_remote_record(stream, io->output.file);
 			break;
 			default:

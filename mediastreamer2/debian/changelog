@@ -1,3 +1,10 @@
+mediastreamer2 (2.12.1) unstable; urgency=low
+
+  * Fix crash in MKV recorder
+  * Fix I-frame request when starting MKV recording
+
+ -- Belledonne Communications <info@belledonne-communications.com>  Mon, 16 Nov 2015 10:42:00 +0200
+
 mediastreamer2 (2.12.0) unstable; urgency=low
 
   * Allow video stream to keep its source (camera)
