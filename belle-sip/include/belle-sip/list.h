@@ -18,6 +18,7 @@
 
 #ifndef BELLE_SIP_LIST_H_
 #define BELLE_SIP_LIST_H_
+BELLE_SIP_BEGIN_DECLS
 struct _belle_sip_list {
 	struct _belle_sip_list *next;
 	struct _belle_sip_list *prev;
@@ -53,5 +54,5 @@ BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_copy(const belle_sip_list_t * 
 /*copy list elements and associated data, using the supplied function pointer*/
 BELLESIP_EXPORT belle_sip_list_t* belle_sip_list_copy_with_data(const belle_sip_list_t* list, void* (*copyfunc)(void*));
 
-
+BELLE_SIP_END_DECLS
 #endif /* BELLE_SIP_LIST_H_ */

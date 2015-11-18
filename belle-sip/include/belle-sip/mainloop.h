@@ -127,6 +127,31 @@ BELLESIP_EXPORT int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml);
 **/
 BELLESIP_EXPORT void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id);
 
+#if defined(__cplusplus) && defined(BELLE_SIP_USE_STL)
+#include <functional>
+/*purpose of this function is to simplify c++ timer integration.
+* ex:
+* std::string helloworld("Hello world):
+* belle_sip_source_cpp_func_t *func = new belle_sip_source_cpp_func_t([helloworld](unsigned int events) {
+*						std::cout << helloworld << std::endl;
+*						return BELLE_SIP_STOP;
+*					});
+*create timer
+*mTimer = belle_sip_main_loop_create_timeout( mainloop
+*											,(belle_sip_source_func_t)belle_sip_source_cpp_func
+*											, func
+*											, 1000
+*											,"timer for c++");
+*
+*/
+typedef std::function<int (unsigned int)> belle_sip_source_cpp_func_t;
+BELLESIP_EXPORT inline int belle_sip_source_cpp_func(belle_sip_source_cpp_func_t* user_data, unsigned int events)
+{
+	int result = (*user_data)(events);
+	delete user_data;
+	return result;
+}
+#endif
 BELLE_SIP_END_DECLS
 
 #endif

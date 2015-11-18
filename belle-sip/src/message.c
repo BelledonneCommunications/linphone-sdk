@@ -479,9 +479,43 @@ void belle_sip_message_set_body_handler(belle_sip_message_t *msg, belle_sip_body
 	/* In case of multipart message, we must add the message Content-Type header containing the boundary */
 	if (body_handler != NULL) {
 		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(body_handler, belle_sip_multipart_body_handler_t)){
-			char *content_type = belle_sip_strdup_printf("multipart/form-data; boundary=%s",BELLESIP_MULTIPART_BOUNDARY);
-			belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), belle_sip_header_create("Content-type",content_type));
-			belle_sip_free(content_type);
+			belle_sip_multipart_body_handler_t *multipart_body_handler = BELLE_SIP_MULTIPART_BODY_HANDLER(body_handler);
+			belle_sip_header_content_type_t * content_type = belle_sip_header_content_type_new();
+			belle_sip_header_content_type_set_type(content_type, "multipart");
+			if (belle_sip_multipart_body_handler_is_related(multipart_body_handler)) {
+				const belle_sip_list_t *parts = belle_sip_multipart_body_handler_get_parts(multipart_body_handler);
+				if (parts) {
+					belle_sip_body_handler_t *first_part=BELLE_SIP_BODY_HANDLER(parts->data);
+					const belle_sip_list_t *first_part_headers = belle_sip_body_handler_get_headers(first_part);
+					belle_sip_list_t *it;
+					belle_sip_header_content_type_t *first_part_content_type=NULL;;
+					for(it = (belle_sip_list_t *)first_part_headers;it!=NULL;it=it->next) {
+						belle_sip_header_t *header = BELLE_SIP_HEADER(it->data);
+						if(strcasecmp("Content-Type",belle_sip_header_get_name(header)) == 0) {
+							first_part_content_type=BELLE_SIP_HEADER_CONTENT_TYPE(header);
+							break;
+						}
+					}
+					if (first_part_content_type) {
+						char *type_slash_subtype = belle_sip_strdup_printf("%s/%s"
+																		   , belle_sip_header_content_type_get_type(first_part_content_type)
+																		   , belle_sip_header_content_type_get_subtype(first_part_content_type));
+						belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(content_type), "type", type_slash_subtype);
+						belle_sip_free(type_slash_subtype);
+					} else {
+						belle_sip_error("Multipart related body handler [%p] cannot be set without first part content type header",body_handler);
+					}
+				} else {
+					belle_sip_error("Multipart related body handler [%p] cannot be set without first part",body_handler);
+				}
+				belle_sip_header_content_type_set_subtype(content_type, "related");
+				
+			} else {
+				belle_sip_header_content_type_set_subtype(content_type, "form-data");
+			}
+			belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(content_type), "boundary", BELLESIP_MULTIPART_BOUNDARY);
+			belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), BELLE_SIP_HEADER(content_type));
+			
 		}
 	}
 

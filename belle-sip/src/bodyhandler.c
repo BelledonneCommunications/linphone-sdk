@@ -37,7 +37,9 @@ void belle_sip_body_handler_add_header(belle_sip_body_handler_t *obj, belle_sip_
 		obj->headers=belle_sip_list_append(obj->headers,belle_sip_object_ref(header));
 	}
 }
-
+const belle_sip_list_t* belle_sip_body_handler_get_headers(const belle_sip_body_handler_t *obj) {
+	return obj->headers;
+}
 static void belle_sip_body_handler_clone(belle_sip_body_handler_t *obj, const belle_sip_body_handler_t *orig){
 	obj->progress_cb=orig->progress_cb;
 	obj->user_data=orig->user_data;
@@ -354,7 +356,9 @@ belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(const char *filep
 struct belle_sip_multipart_body_handler{
 	belle_sip_body_handler_t base;
 	belle_sip_list_t *parts;
+	unsigned int related;
 };
+GET_SET_BOOL(belle_sip_multipart_body_handler,related,is);
 
 static void belle_sip_multipart_body_handler_destroy(belle_sip_multipart_body_handler_t *obj){
 	belle_sip_list_free_with_data(obj->parts,belle_sip_object_unref);
@@ -477,5 +481,7 @@ void belle_sip_multipart_body_handler_add_part(belle_sip_multipart_body_handler_
 	}
 	obj->parts=belle_sip_list_append(obj->parts,belle_sip_object_ref(part));
 }
-
+const belle_sip_list_t* belle_sip_multipart_body_handler_get_parts(const belle_sip_multipart_body_handler_t *obj) {
+	return obj->parts;
+}
 

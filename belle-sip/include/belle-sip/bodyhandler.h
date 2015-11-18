@@ -31,6 +31,7 @@ BELLE_SIP_BEGIN_DECLS
 typedef void (*belle_sip_body_handler_progress_callback_t)(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, void *user_data, size_t transfered, size_t expected_total);
 
 BELLESIP_EXPORT void belle_sip_body_handler_add_header(belle_sip_body_handler_t *obj, belle_sip_header_t *header);
+BELLESIP_EXPORT const belle_sip_list_t* belle_sip_body_handler_get_headers(const belle_sip_body_handler_t *obj);
 BELLESIP_EXPORT size_t belle_sip_body_handler_get_size(const belle_sip_body_handler_t *obj);
 BELLESIP_EXPORT void belle_sip_body_handler_set_size(belle_sip_body_handler_t *obj, size_t size);
 BELLESIP_EXPORT size_t belle_sip_body_handler_get_transfered_size(const belle_sip_body_handler_t *obj);
@@ -84,7 +85,13 @@ BELLESIP_EXPORT belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(c
 
 BELLESIP_EXPORT belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new(belle_sip_body_handler_progress_callback_t progress_cb, void *data, belle_sip_body_handler_t *first_part);
 BELLESIP_EXPORT void belle_sip_multipart_body_handler_add_part(belle_sip_multipart_body_handler_t *obj, belle_sip_body_handler_t *part);
+BELLESIP_EXPORT const belle_sip_list_t* belle_sip_multipart_body_handler_get_parts(const belle_sip_multipart_body_handler_t *obj);
 
+/*
+ *multipar body in sens of rfc2387
+ */
+BELLESIP_EXPORT unsigned int belle_sip_multipart_body_handler_is_related(const belle_sip_multipart_body_handler_t *obj);
+BELLESIP_EXPORT void belle_sip_multipart_body_handler_set_related(belle_sip_multipart_body_handler_t *obj, unsigned int yesno);
 BELLE_SIP_END_DECLS
 
 #endif
