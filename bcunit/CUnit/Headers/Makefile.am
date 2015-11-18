@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-CUnitIncludedir=${includedir}/CUnit
+CUnitIncludedir=$(includedir)/CUnit
 
 AUTOMATED_INCLUDES = Automated.h
 BASIC_INCLUDES = Basic.h
@@ -9,7 +9,7 @@ CURSES_INCLUDES = CUCurses.h
 FRAMEWORK_INCLUDES = CUError.h CUnit.h CUnit_intl.h MyMem.h TestDB.h TestRun.h Util.h
 
 # Default configuration without enabling anything
-INCLUDE_FILES = ${FRAMEWORK_INCLUDES}
+INCLUDE_FILES = $(FRAMEWORK_INCLUDES)
 
 if ENABLE_BASIC
 BASIC_INCLUDE_FILES = $(BASIC_INCLUDES)
@@ -29,5 +29,5 @@ endif
 
 INCLUDE_FILES += $(BASIC_INCLUDE_FILES) $(CONSOLE_INCLUDE_FILES) $(AUTOMATED_INCLUDE_FILES) $(CURSES_INCLUDE_FILES)
 
-CUnitInclude_HEADERS = ${INCLUDE_FILES}
+CUnitInclude_HEADERS = $(INCLUDE_FILES)
 

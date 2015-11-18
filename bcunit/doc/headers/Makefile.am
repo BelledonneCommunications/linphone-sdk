@@ -16,7 +16,7 @@ INCLUDE_FILES = \
 	Util.h \
 	Win.h
 
-dochdr_DATA = $(INCLUDE_FILES)
+#dochdr_DATA = $(INCLUDE_FILES)
 CLEANFILES = $(INCLUDE_FILES)
 
 $(INCLUDE_FILES) : copy_headers
