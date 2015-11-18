@@ -1118,7 +1118,9 @@ void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, 
 	
 	belle_sip_message("belle_sip_get_src_addr_for(): af_inet6=%i",af_type==AF_INET6);
 	if (sock==(belle_sip_socket_t)-1){
-		belle_sip_fatal("Could not create socket: %s",belle_sip_get_socket_error_string());
+		if (af_type == AF_INET){
+			belle_sip_fatal("Could not create socket: %s",belle_sip_get_socket_error_string());
+		}
 		goto fail;
 	}
 	
@@ -1155,7 +1157,7 @@ fail:
 			*srclen=res->ai_addrlen;
 			belle_sip_freeaddrinfo(res);
 		} else {
-			belle_sip_fatal("belle_sip_get_src_addr_for(): belle_sip_ip_address_to_addrinfo() failed");
+			if (af_type == AF_INET) belle_sip_fatal("belle_sip_get_src_addr_for(): belle_sip_ip_address_to_addrinfo() failed");
 		}
 	}
 	if (sock!=(belle_sip_socket_t)-1) close_socket(sock);
