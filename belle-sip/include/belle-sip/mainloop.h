@@ -127,6 +127,7 @@ BELLESIP_EXPORT int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml);
 **/
 BELLESIP_EXPORT void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id);
 
+BELLE_SIP_END_DECLS
 #if defined(__cplusplus) && defined(BELLE_SIP_USE_STL)
 #include <functional>
 /*purpose of this function is to simplify c++ timer integration.
@@ -152,6 +153,5 @@ BELLESIP_EXPORT inline int belle_sip_source_cpp_func(belle_sip_source_cpp_func_t
 	return result;
 }
 #endif
-BELLE_SIP_END_DECLS
 
 #endif
