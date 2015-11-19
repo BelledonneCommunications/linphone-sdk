@@ -5,7 +5,7 @@ webrtc_DIR=$(top_srcdir)/webrtc
 ISAC_FLAVOUR ?= fix # use 'main' or 'fix'
 ISAC_SRC_DIR = $(top_srcdir)/webrtc/webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
 AEC_SRC_DIR = $(top_srcdir)/webrtc/webrtc/modules/audio_processing/aecm
-WEBRTC_COMMON_DIR = $(top_srcdir)/webrtc/webrtc/common_audio/
+WEBRTC_COMMON_DIR = $(top_srcdir)/webrtc/webrtc/common_audio
 WEBRTC_COMMON_SP_DIR = $(WEBRTC_COMMON_DIR)/signal_processing
 
 pluginsdir = $(libdir)/mediastreamer/plugins
