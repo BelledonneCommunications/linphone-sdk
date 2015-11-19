@@ -1,5 +1,5 @@
 /*
- * rfc4103_source.cpp - Real time text RFC 4103 sender.
+ * rfc4103_source.c - Real time text RFC 4103 sender.
  *
  * Copyright (C) 2015  Belledonne Communications, Grenoble, France
  *
@@ -108,7 +108,7 @@ static mblk_t *realtime_text_stream_generate_red_packet(RealTimeTextSourceData *
 	return packet;
 }
 
-static void text_stream_putchar32(RealTimeTextSourceData *stream, uint32_t ic) {
+static void ms_rtt_4103_source_putchar32(RealTimeTextSourceData *stream, uint32_t ic) {
 	int i = stream->pribuf;
 	uint8_t* c = &stream->buf[i][stream->bufsize[i]];
 	if (ic < 0x80) {
@@ -169,7 +169,7 @@ static mblk_t* send_data(RealTimeTextSourceData *stream, uint32_t timestamp) {
 		}
 	} else {
 		if (timestamp < prevtime || (timestamp - prevtime) > TS_KEEP_ALIVE_INTERVAL) {
-			text_stream_putchar32(stream, 0xFEFF); /* BOM */
+			ms_rtt_4103_source_putchar32(stream, 0xFEFF); /* BOM */
 			ms_debug("Sending BOM");
 			return send_data(stream, timestamp);
 		}
@@ -192,9 +192,10 @@ static void ms_rtt_4103_source_preprocess(MSFilter *f) {
 static void ms_rtt_4103_source_process(MSFilter *f) {
 	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
 	uint32_t timestamp = f->ticker->time;
+	mblk_t *m;
 	
 	ms_filter_lock(f);
-	mblk_t *m = send_data(s, timestamp);
+	m = send_data(s, timestamp);
 	if (m) {
 		ms_queue_put(f->outputs[0], m);
 	}
@@ -236,7 +237,7 @@ static int ms_rtt_4103_source_put_char32(MSFilter *f, void *character) {
 	uint32_t char_to_send = *(uint32_t*) character;
 	
 	ms_filter_lock(f);
-	text_stream_putchar32(s, char_to_send);
+	ms_rtt_4103_source_putchar32(s, char_to_send);
 	ms_debug("Sending char 32: %lu", (long unsigned) char_to_send);
 	ms_filter_unlock(f);
 	
@@ -267,3 +268,4 @@ MSFilterDesc ms_rtt_4103_source_desc = {
 };
 
 MS_FILTER_DESC_EXPORT(ms_rtt_4103_source_desc)
+

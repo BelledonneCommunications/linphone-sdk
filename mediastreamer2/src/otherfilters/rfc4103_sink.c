@@ -1,5 +1,5 @@
 /*
- * rfc4103_sink.cpp - Real time text RFC 4103 sender.
+ * rfc4103_sink.c - Real time text RFC 4103 sender.
  *
  * Copyright (C) 2015  Belledonne Communications, Grenoble, France
  *

@@ -113,8 +113,8 @@ LOCAL_SRC_FILES = \
 	voip/ringstream.c \
 	voip/stun.c \
 	voip/stun_udp.c \
-	otherfilters/rfc4103_source.cpp \
-	otherfilters/rfc4103_sink.cpp \
+	otherfilters/rfc4103_source.c \
+	otherfilters/rfc4103_sink.c \
 	voip/rfc4103_textstream.c
 
 LOCAL_STATIC_LIBRARIES :=
