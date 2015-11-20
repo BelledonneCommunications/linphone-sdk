@@ -584,10 +584,12 @@ static void video_input_updated(void *stream, MSFilter *f, unsigned int event_id
 }
 
 static void av_recorder_handle_event(void *userdata, MSFilter *recorder, unsigned int event, void *event_arg){
+#ifdef VIDEO_ENABLED
 	AudioStream *audiostream = (AudioStream *)userdata;
 	if (audiostream->videostream != NULL) {
 		video_recorder_handle_event(audiostream->videostream, recorder, event, event_arg);
 	}
+#endif
 }
 
 static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannels){
