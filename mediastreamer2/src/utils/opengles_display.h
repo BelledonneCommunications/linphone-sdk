@@ -29,7 +29,7 @@ struct opengles_display;
 /**
  * Create opaque structure to handle OpenGL display
  */
-struct opengles_display* ogl_display_new();
+struct opengles_display* ogl_display_new(void);
 
 /**
  * Release opaque struct memory

@@ -66,7 +66,7 @@ static int x11error_handler(Display *d, XErrorEvent*ev) {
 	return 0;
 }
 
-static Display *init_display(){
+static Display *init_display(void){
 	const char *display;
 	Display *ret;
 	display=getenv("DISPLAY");

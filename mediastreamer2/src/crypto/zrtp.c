@@ -53,7 +53,7 @@ typedef enum {
 
 /********************/
 /* Helper functions */
-static ORTP_INLINE uint64_t get_timeval_in_millis() {
+static ORTP_INLINE uint64_t get_timeval_in_millis(void) {
 	struct timeval t;
 	ortp_gettimeofday(&t,NULL);
 	return (1000LL*t.tv_sec)+(t.tv_usec/1000LL);

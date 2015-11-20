@@ -86,7 +86,7 @@ static bool_t wait_for_context_state(pa_context_state_t success_state, pa_contex
 	return state == success_state;
 }
 
-static void init_pulse_context(){
+static void init_pulse_context(void){
 	if (context==NULL){
 		pa_loop=pa_threaded_mainloop_new();
 		context=pa_context_new(pa_threaded_mainloop_get_api(pa_loop),NULL);
@@ -96,7 +96,7 @@ static void init_pulse_context(){
 	}
 }
 
-static void uninit_pulse_context(){
+static void uninit_pulse_context(void){
 	pa_context_disconnect(context);
 	pa_context_unref(context);
 	pa_threaded_mainloop_stop(pa_loop);

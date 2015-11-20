@@ -174,7 +174,7 @@ static void test_filterdesc_enable_disable_base(const char* mime, const char* fi
 	ms_filter_destroy(filter);
 	ms_exit();
 }
-static void test_filterdesc_enable_disable() {
+static void test_filterdesc_enable_disable(void) {
 	test_filterdesc_enable_disable_base("pcmu", "MSUlawDec", FALSE);
 	test_filterdesc_enable_disable_base("pcma", "MSAlawEnc", TRUE);
 }

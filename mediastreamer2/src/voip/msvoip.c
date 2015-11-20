@@ -41,7 +41,7 @@ extern "C"{
 
 extern void __register_ffmpeg_encoders_if_possible(MSFactory *factory);
 extern void __register_ffmpeg_h264_decoder_if_possible(MSFactory *factory);
-extern void ms_ffmpeg_check_init();
+extern void ms_ffmpeg_check_init(void);
 extern bool_t libmsandroiddisplay_init(MSFactory *factory);
 extern void libmsandroiddisplaybad_init(MSFactory *factory);
 extern void libmsandroidopengldisplay_init(MSFactory *factory);

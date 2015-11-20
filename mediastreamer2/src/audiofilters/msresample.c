@@ -41,7 +41,7 @@ typedef struct _ResampleData{
 	int cpuFeatures; /*store because there is no SPEEX_LIB_GET_CPU_FEATURES*/
 } ResampleData;
 
-static ResampleData * resample_data_new(){
+static ResampleData * resample_data_new(void){
 	ResampleData *obj=ms_new0(ResampleData,1);
 	obj->bz=ms_bufferizer_new();
 	obj->ts=0;

@@ -1310,7 +1310,7 @@ stunRand(void)
 
 /* return a random number to use as a port */
 static int
-randomPort()
+randomPort(void)
 {
    int min=0x4000;
    int max=0x7FFF;

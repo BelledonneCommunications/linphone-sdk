@@ -190,12 +190,12 @@ static void basic_audio_stream_base(	const char* marielle_local_ip
 	rtp_profile_destroy(profile);
 }
 
-static void basic_audio_stream()  {
+static void basic_audio_stream(void)  {
 	basic_audio_stream_base(MARIELLE_IP,MARIELLE_RTP_PORT,MARIELLE_RTCP_PORT
 							,MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
 }
 
-static void multicast_audio_stream()  {
+static void multicast_audio_stream(void)  {
 	basic_audio_stream_base("0.0.0.0",MARIELLE_RTP_PORT, 0
 							,MULTICAST_IP, MARGAUX_RTP_PORT, 0);
 }

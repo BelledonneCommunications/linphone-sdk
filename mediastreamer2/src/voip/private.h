@@ -109,7 +109,7 @@ MS2_PUBLIC void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMedia
 
 bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,MediaStreamDir dir);
 
-MSSrtpCtx* ms_srtp_context_new();
+MSSrtpCtx* ms_srtp_context_new(void);
 void ms_srtp_context_delete(MSSrtpCtx *session);
 
 

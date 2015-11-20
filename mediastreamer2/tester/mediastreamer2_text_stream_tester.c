@@ -73,7 +73,7 @@ void text_stream_tester_set_local_ip(text_stream_tester_t* obj, const char* ip) 
 	obj->local_ip = new_ip;
 }
 
-text_stream_tester_t* text_stream_tester_new() {
+text_stream_tester_t* text_stream_tester_new(void) {
 	text_stream_tester_t* tst = ms_new0(text_stream_tester_t, 1);
 	text_stream_tester_set_local_ip(tst, "127.0.0.1");
 	tst->local_rtp = -1; /*random*/

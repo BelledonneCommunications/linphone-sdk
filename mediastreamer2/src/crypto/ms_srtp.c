@@ -64,7 +64,7 @@ struct _MSSrtpCtx {
 	MSSrtpStreamContext recv_rtcp_context;
 };
 
-MSSrtpCtx* ms_srtp_context_new() {
+MSSrtpCtx* ms_srtp_context_new(void) {
 	MSSrtpCtx* ctx = ms_new0(struct _MSSrtpCtx,1);
 	ctx->send_rtp_context.is_rtp=TRUE;
 	ms_mutex_init(&ctx->send_rtp_context.mutex, NULL);

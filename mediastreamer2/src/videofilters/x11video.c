@@ -74,7 +74,7 @@ typedef struct X11Video
 
 
 
-static Display *init_display(){
+static Display *init_display(void){
 	const char *display;
 	Display *ret;
 	display=getenv("DISPLAY");

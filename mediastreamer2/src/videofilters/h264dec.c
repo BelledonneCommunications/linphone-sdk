@@ -46,7 +46,7 @@ typedef struct _DecData{
 	bool_t avpf_enabled;
 }DecData;
 
-static void ffmpeg_init(){
+static void ffmpeg_init(void){
 	static bool_t done=FALSE;
 	if (!done){
 		avcodec_register_all();

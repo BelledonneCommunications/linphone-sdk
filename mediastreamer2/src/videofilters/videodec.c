@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "rfc2429.h"
 
 
-extern void ms_ffmpeg_check_init();
+extern void ms_ffmpeg_check_init(void);
 
 
 typedef struct DecState{
