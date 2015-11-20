@@ -20,6 +20,10 @@ AC_ARG_ENABLE(strict,
 [wall_werror=yes]
 )
 
+dnl enable minimum optimization and debugging by default.
+if test "$CFLAGS" = "" ; then
+	CFLAGS="-O2 -g"
+fi
 
 CFLAGS="$CFLAGS -Wall"
 
