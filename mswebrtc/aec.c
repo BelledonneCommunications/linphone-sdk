@@ -123,7 +123,7 @@ static void webrtc_aec_preprocess(MSFilter *f)
 	s->framesize=(framesize*s->samplerate)/8000;
 	ms_message("Initializing WebRTC echo canceler with framesize=%i, delay_ms=%i, delay_samples=%i", s->framesize, s->delay_ms, delay_samples);
 
-	if (WebRtcAecm_Create(&s->aecmInst) < 0) {
+	if ((s->aecmInst = WebRtcAecm_Create()) == NULL) {
 		s->bypass_mode = TRUE;
 		ms_error("WebRtcAecm_Create(): error, entering bypass mode");
 		return;
