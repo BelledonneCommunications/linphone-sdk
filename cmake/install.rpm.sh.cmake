@@ -32,6 +32,6 @@ if [ "@PLATFORM@" = "Debian" ]; then
 	find "$RPM_TOPDIR/RPMS" -iname "*@LINPHONE_BUILDER_RPMBUILD_NAME@*.rpm" -exec fakeroot alien -d {} +
 	find "$DEBS_TOPDIR" -iname "*@LINPHONE_BUILDER_RPMBUILD_NAME@*.deb" -exec sudo dpkg -i {} +
 else
-	find "$RPM_TOPDIR/RPMS" -iname "*@LINPHONE_BUILDER_RPMBUILD_NAME@*.rpm" -exec sudo rpm -Uvh --replacefiles --replacepkgsi --oldpackage  {} +
+	find "$RPM_TOPDIR/RPMS" -iname "*@LINPHONE_BUILDER_RPMBUILD_NAME@*.rpm" -exec sudo rpm -Uvh --replacefiles --replacepkgs --oldpackage  {} +
 	#--replacefiles --replacepkgs  --oldpackage because same package version and sometime newer  is installed/built several time on the same machine
 fi
