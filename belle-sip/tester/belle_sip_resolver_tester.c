@@ -57,7 +57,7 @@ static unsigned int  wait_for(belle_sip_stack_t *stack, int *current_value, int 
 	else return TRUE;
 }
 
-static endpoint_t* create_endpoint() {
+static endpoint_t* create_endpoint(void) {
 	endpoint_t* endpoint;
 	endpoint = belle_sip_new0(endpoint_t);
 	endpoint->stack = belle_sip_stack_new(NULL);

@@ -31,7 +31,7 @@ BELLE_SIP_BEGIN_DECLS
 /**
  *
  */
-BELLESIP_EXPORT belle_generic_uri_t* belle_generic_uri_new();
+BELLESIP_EXPORT belle_generic_uri_t* belle_generic_uri_new(void);
 
 /**
  *

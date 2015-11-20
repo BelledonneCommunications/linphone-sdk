@@ -3316,6 +3316,11 @@ size_t dns_txt_print(void *dst_, size_t lim, struct dns_txt *txt) {
 } /* dns_txt_print() */
 
 
+#if __clang__ || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
+#pragma GCC diagnostic push
+#endif
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
+
 static const struct {
 	enum dns_type type;
 	const char *name;
@@ -3338,6 +3343,10 @@ static const struct {
 	{ DNS_T_SPF,    "SPF",    &dns_txt_parse,    &dns_txt_push,    &dns_txt_cmp,    &dns_txt_print,    0                },
 	{ DNS_T_SSHFP,  "SSHFP",  &dns_sshfp_parse,  &dns_sshfp_push,  &dns_sshfp_cmp,  &dns_sshfp_print,  0                },
 }; /* dns_rrtypes[] */
+
+#if __clang__ || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
+#pragma GCC diagnostic pop
+#endif
 
 
 union dns_any *dns_any_init(union dns_any *any, size_t size) {

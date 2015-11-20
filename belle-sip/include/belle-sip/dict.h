@@ -37,7 +37,7 @@ typedef struct belle_sip_dict belle_sip_dict_t;
  * @note The object is not owned by default.
  * @note all belle_sip_dict_set_* functions will overwrite existing values.
  */
-BELLESIP_EXPORT belle_sip_dict_t* belle_sip_dict_create();
+BELLESIP_EXPORT belle_sip_dict_t* belle_sip_dict_create(void);
 
 /**
  * @brief belle_sip_dict_set_int stores an integer into the dictionary

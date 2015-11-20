@@ -439,7 +439,7 @@ BELLE_SIP_BEGIN_DECLS
 **/
 BELLESIP_EXPORT belle_sip_object_pool_t * belle_sip_object_pool_push(void);
 
-belle_sip_object_pool_t * belle_sip_object_pool_get_current();
+belle_sip_object_pool_t * belle_sip_object_pool_get_current(void);
 int belle_sip_object_pool_cleanable(belle_sip_object_pool_t *pool);
 void belle_sip_object_pool_clean(belle_sip_object_pool_t *obj);
 

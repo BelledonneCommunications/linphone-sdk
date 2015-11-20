@@ -39,7 +39,7 @@ BELLESIP_EXPORT belle_sip_message_t* belle_sip_message_parse_raw (const char* bu
 
 
 BELLESIP_EXPORT int belle_sip_message_is_request(belle_sip_message_t *msg);
-BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_new();
+BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_new(void);
 BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_parse(const char* raw);
 
 BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const char* method,

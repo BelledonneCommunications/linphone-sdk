@@ -49,8 +49,8 @@ const char * belle_sip_tester_get_root_ca_path(void);
 void belle_sip_tester_set_root_ca_path(const char *root_ca_path);
 void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args));
 void belle_sip_tester_uninit(void);
-void belle_sip_tester_before_each();
-void belle_sip_tester_after_each();
+void belle_sip_tester_before_each(void);
+void belle_sip_tester_after_each(void);
 int belle_sip_tester_set_log_file(const char *filename);
 
 #ifdef __cplusplus

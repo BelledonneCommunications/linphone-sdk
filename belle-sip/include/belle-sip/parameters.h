@@ -29,7 +29,7 @@ BELLE_SIP_BEGIN_DECLS
  *
  */
 
-belle_sip_parameters_t* belle_sip_parameters_new();
+belle_sip_parameters_t* belle_sip_parameters_new(void);
 /*
  * remove all parameters */
 BELLESIP_EXPORT void belle_sip_parameters_clean(belle_sip_parameters_t* params);

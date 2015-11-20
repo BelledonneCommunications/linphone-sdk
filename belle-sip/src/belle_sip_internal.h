@@ -991,7 +991,7 @@ belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, cha
  ******************************/
 typedef struct _belle_sip_header_extension belle_sip_header_extension_t;
 
-belle_sip_header_extension_t* belle_sip_header_extension_new();
+belle_sip_header_extension_t* belle_sip_header_extension_new(void);
 
 belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* extension) ;
 belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value);

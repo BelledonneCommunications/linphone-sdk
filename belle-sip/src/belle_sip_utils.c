@@ -598,7 +598,7 @@ char * belle_sip_strdup(const char *s){
 
 #ifndef _WIN32
 
-static int find_best_clock_id () {
+static int find_best_clock_id (void) {
 #if 0
 	struct timespec ts;
 	static int clock_id=-1;
@@ -922,7 +922,7 @@ static void print_noescapes_map(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], const
 }
 */
 
-static const char *get_sip_uri_username_noescapes() {
+static const char *get_sip_uri_username_noescapes(void) {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		// concurrent initialization should not be an issue
@@ -948,7 +948,7 @@ static const char *get_sip_uri_username_noescapes() {
  * password         =  *( unreserved / escaped /
                     "&" / "=" / "+" / "$" / "," )
  * */
-static const char *get_sip_uri_userpasswd_noescapes() {
+static const char *get_sip_uri_userpasswd_noescapes(void) {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		// unreserved
@@ -962,7 +962,7 @@ static const char *get_sip_uri_userpasswd_noescapes() {
 	return noescapes;
 }
 
-static const char *get_sip_uri_parameter_noescapes() {
+static const char *get_sip_uri_parameter_noescapes(void) {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		/*
@@ -994,7 +994,7 @@ static const char *get_sip_uri_parameter_noescapes() {
 	}
 	return noescapes;
 }
-static const char *get_sip_uri_header_noescapes() {
+static const char *get_sip_uri_header_noescapes(void) {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		/*
@@ -1065,7 +1065,7 @@ char* belle_sip_uri_to_escaped_header(const char* buff) {
 
 
 /*uri (I.E RFC 2396)*/
-static const char *get_generic_uri_query_noescapes() {
+static const char *get_generic_uri_query_noescapes(void) {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		/*
@@ -1092,7 +1092,7 @@ static const char *get_generic_uri_query_noescapes() {
 	return noescapes;
 }
 
-static const char *get_generic_uri_path_noescapes() {
+static const char *get_generic_uri_path_noescapes(void) {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		/*

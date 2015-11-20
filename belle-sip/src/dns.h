@@ -519,7 +519,7 @@ struct dns_rr_i {
 
 	int follow;
 
-	int (*sort)();
+	int (*sort)(struct dns_rr *, struct dns_rr *, struct dns_rr_i *, struct dns_packet *);
 	unsigned args[2];
 
 	struct {

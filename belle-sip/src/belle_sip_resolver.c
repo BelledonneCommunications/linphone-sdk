@@ -618,7 +618,6 @@ static int resolver_process_data_delayed(belle_sip_simple_resolver_context_t *ct
 }
 
 static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
-	struct dns_hints *(*hints)() = &dns_hints_local;
 	struct dns_options opts;
 	int error;
 	struct dns_resolv_conf *conf;
@@ -637,7 +636,7 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 
 	memset(&opts, 0, sizeof opts);
 
-	if (!(ctx->R = dns_res_open(ctx->resconf, ctx->hosts, dns_hints_mortal(hints(ctx->resconf, &error)), cache(ctx), &opts, &error))) {
+	if (!(ctx->R = dns_res_open(ctx->resconf, ctx->hosts, dns_hints_mortal(dns_hints_local(ctx->resconf, &error)), cache(ctx), &opts, &error))) {
 		belle_sip_error("%s dns_res_open error [%s]: %s", __FUNCTION__, ctx->name, dns_strerror(error));
 		return -1;
 	}
