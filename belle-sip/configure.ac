@@ -102,7 +102,7 @@ AC_ARG_ENABLE(strict,
 		esac],[strict=true])
 
 STRICT_OPTIONS="-Wall"
-STRICT_OPTIONS_CC=""
+STRICT_OPTIONS_CC="-Wdeclaration-after-statement -Wstrict-prototypes"
 STRICT_OPTIONS_CXX=""
 
 case "$CC" in
@@ -128,8 +128,7 @@ case "$target_os" in
 esac
 
 if test "$strict" = "true"; then
-	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wno-error=unknown-pragmas -Wuninitialized"
-	STRICT_OPTIONS_CC="$STRICT_OPTIONS_CC -Wdeclaration-after-statement"
+	STRICT_OPTIONS="$STRICT_OPTIONS -Werror -Wno-error=unknown-pragmas -Wuninitialized -Wno-error=strict-prototypes"
 fi
 
 dnl because of antlr3 we must accept a few warnings...
