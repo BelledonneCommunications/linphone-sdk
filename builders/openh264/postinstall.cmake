@@ -26,3 +26,8 @@ endif()
 if(EXISTS ${INSTALL_PREFIX}/bin/openh264.dll)
 	execute_process(COMMAND "${PYTHON_EXECUTABLE}" "${SOURCE_DIR}/cmake/importlib.py" "${INSTALL_PREFIX}/bin/openh264.dll" "${INSTALL_PREFIX}/lib/openh264.lib")
 endif()
+
+if(APPLE AND NOT IOS)
+	execute_process(COMMAND install_name_tool -id @rpath/libopenh264.0.dylib ${INSTALL_PREFIX}/lib/libopenh264.0.dylib)
+endif()
+

@@ -32,3 +32,25 @@ endif()
 if(EXISTS ${INSTALL_PREFIX}/lib/swscale-2.def)
 	execute_process(COMMAND "lib" "/def:${INSTALL_PREFIX}/lib/swscale-2.def" "/out:${INSTALL_PREFIX}/lib/swscale.lib" "/machine:X86")
 endif()
+
+if(APPLE AND NOT IOS)
+	execute_process(COMMAND install_name_tool
+		-id @rpath/libavcodec.53.61.100.dylib
+		-change ${INSTALL_PREFIX}/lib/libavutil.51.35.100.dylib @rpath/libavutil.51.35.100.dylib
+		${INSTALL_PREFIX}/lib/libavcodec.53.61.100.dylib
+	)
+	execute_process(COMMAND install_name_tool
+		-id @rpath/libavutil.51.35.100.dylib
+		${INSTALL_PREFIX}/lib/libavutil.51.35.100.dylib
+	)
+	execute_process(COMMAND install_name_tool
+		-id @rpath/libswresample.0.6.100.dylib
+		-change ${INSTALL_PREFIX}/lib/libavutil.51.35.100.dylib @rpath/libavutil.51.35.100.dylib
+		${INSTALL_PREFIX}/lib/libswresample.0.6.100.dylib
+	)
+	execute_process(COMMAND install_name_tool
+		-id @rpath/libswscale.2.1.100.dylib
+		-change ${INSTALL_PREFIX}/lib/libavutil.51.35.100.dylib @rpath/libavutil.51.35.100.dylib
+		${INSTALL_PREFIX}/lib/libswscale.2.1.100.dylib
+	)
+endif()
