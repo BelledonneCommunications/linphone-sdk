@@ -57,8 +57,9 @@ unsigned long belle_sip_begin_background_task(const char *name, belle_sip_backgr
 		return 0;
 	}
 
-	if (app.applicationState != UIApplicationStateBackground) {
-		belle_sip_message("Background task %s started. Unknown remaining time since application is not in background.", name);
+	// backgroundTimeRemaining is properly set only when running background... but not immediately!
+	if (app.applicationState != UIApplicationStateBackground || (app.backgroundTimeRemaining == DBL_MAX)) {
+		belle_sip_message("Background task %s started. Unknown remaining time since application is not fully in background.", name);
 	} else {
 		belle_sip_message("Background task %s started. Remaining time %.1f secs", name, app.backgroundTimeRemaining);
 	}
