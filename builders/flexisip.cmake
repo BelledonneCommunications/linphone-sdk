@@ -23,7 +23,7 @@
 set(EP_flexisip_GIT_REPOSITORY "git://git.linphone.org/flexisip" CACHE STRING "flexisip repository URL")
 set(EP_flexisip_GIT_TAG_LATEST "master" CACHE STRING "flexisip tag to use when compiling latest version")
 set(EP_flexisip_GIT_TAG "0b733d671bbb72e2aa2708f37ba49e8801203154" CACHE STRING "flexisip tag to use")
-set(EP_flexisip_EXTERNAL_SOURCE_PATHS "..")
+set(EP_flexisip_EXTERNAL_SOURCE_PATHS "<LINPHONE_BUILDER_TOP_DIR>")
 set(EP_flexisip_GROUPABLE YES)
 
 if(EP_flexisip_FORCE_AUTOTOOLS)
