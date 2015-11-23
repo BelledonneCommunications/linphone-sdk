@@ -64,8 +64,6 @@ if(_IS_SYSTEM_DIR STREQUAL "-1")
    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 endif()
 message("cmake install rpath: ${CMAKE_INSTALL_RPATH}")
+
 # Include builders
 include(builders/CMakeLists.txt)
-
-set(EP_ortp_GIT_TAG "master")
-unset(EP_flexisip_BUILD_METHOD)

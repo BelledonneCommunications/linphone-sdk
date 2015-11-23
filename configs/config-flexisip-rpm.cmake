@@ -93,6 +93,7 @@ endif()
 set(EP_ortp_FORCE_AUTOTOOLS True)
 #required to use autotools
 set(EP_bellesip_USE_AUTOGEN True)
+set(EP_flexisip_FORCE_AUTOTOOLS True)
 
 
 # Include builders
