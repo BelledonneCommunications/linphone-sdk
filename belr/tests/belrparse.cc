@@ -41,7 +41,7 @@ int main(int argc, char *argv[]){
 	ABNFGrammarBuilder builder;
 	shared_ptr<Grammar> grammar=make_shared<Grammar>(file);
 	grammar->include(make_shared<CoreRules>());
-	builder.createFromAbnf(file,grammar);
+	grammar = builder.createFromAbnf(file,grammar);
 	
 	if (message_file){
 		ifstream istr(message_file);

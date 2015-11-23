@@ -2,7 +2,7 @@
 #include <belr/parser.hh>
 #include <iostream>
 
-#include "parser-impl.cc"
+#include "belr/parser-impl.cc"
 
 namespace belr{
 

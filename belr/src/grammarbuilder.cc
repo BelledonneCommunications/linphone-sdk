@@ -1,7 +1,7 @@
 
 #include "belr/abnf.hh"
 #include "belr/grammarbuilder.hh"
-#include "parser-impl.cc"
+#include "belr/parser-impl.cc"
 
 #include <iostream>
 #include <fstream>
