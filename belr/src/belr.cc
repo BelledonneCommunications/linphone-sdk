@@ -1,7 +1,7 @@
 
 
-#include "belr.hh"
-#include "parser.hh"
+#include "belr/belr.hh"
+#include "belr/parser.hh"
 #include <algorithm>
 #include <iostream>
 
@@ -17,6 +17,16 @@ bool TransitionMap::intersect(const TransitionMap* other){
 		if (mPossibleChars[i] && other->mPossibleChars[i]) return true;
 	}
 	return false;
+}
+
+bool TransitionMap::intersect(const TransitionMap *other, TransitionMap *result){
+	bool ret=false;
+	for(size_t i=0;i<sizeof(mPossibleChars)/sizeof(bool);++i){
+		bool tmp=mPossibleChars[i] && other->mPossibleChars[i];
+		result->mPossibleChars[i]=tmp;
+		if (tmp) ret=true;
+	}
+	return ret;
 }
 
 void TransitionMap::merge(const TransitionMap* other){

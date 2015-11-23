@@ -8,7 +8,7 @@ AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE
 AM_SILENT_RULES(yes)
-LT_INIT(disable-shared win32-dll)
+LT_INIT(disable-static win32-dll)
 
 # Checks for programs.
 AC_PROG_CXX

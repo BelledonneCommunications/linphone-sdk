@@ -17,7 +17,8 @@ class ParserContextBase;
 struct TransitionMap{
 	TransitionMap();
 	bool intersect(const TransitionMap *other);
-	void merge(const TransitionMap *other);
+	bool intersect(const TransitionMap *other, TransitionMap *result); //performs a AND operation
+	void merge(const TransitionMap *other); //Performs an OR operation
 	bool mPossibleChars[256];
 };
 
@@ -145,11 +146,25 @@ private:
 	shared_ptr<Recognizer> mRecognizer;
 };
 
+/**
+ * Grammar class represents an ABNF grammar, with all its rules.
+**/
 class Grammar{
 public:
+	/**
+	 * Initialize an empty grammar, giving a name for debugging.
+	**/
 	Grammar(const string &name);
+	/**
+	 * Include another grammar into this grammar.
+	**/
 	void include(const shared_ptr<Grammar>& grammar);
-	/* the grammar takes ownership of the recognizer, which must not be used outside of this grammar.
+	/**
+	 * Add arule to the grammar.
+	 * @param name the name of the rule
+	 * @param rule the rule recognier, must be an instance of belr::Recognizer.
+	 * @return the rule (the recognizer). The recognizer is given the name of the rule.
+	 * @note The grammar takes ownership of the recognizer, which must not be used outside of this grammar.
 	 * TODO: use unique_ptr to enforce this, or make a copy ?
 	**/
 	template <typename _recognizerT>
@@ -157,18 +172,48 @@ public:
 		assignRule(name, rule);
 		return rule;
 	}
+	/**
+	 * Extend a rule from the grammar.
+	 * This corresponds to the '/=' operator of ABNF definition.
+	 * @param name the name of the rule to extend.
+	 * @param rule the recognizer of the extension.
+	 * @return the rule.
+	**/
 	template <typename _recognizerT>
 	shared_ptr<_recognizerT> extendRule(const string & name, const shared_ptr<_recognizerT> &rule){
 		_extendRule(name, rule);
 		return rule;
 	}
+	/**
+	 * Find a rule from the grammar, given its name.
+	 * @param name the name of the rule
+	 * @return the recognizer implementing this rule. Is NULL if the rule doesn't exist in the grammar.
+	**/
 	shared_ptr<Recognizer> findRule(const string &name);
-	/*
-	 * getRule() never returns NULL. If the rule is not (yet) defined, it returns an undefined pointer, that will be set later if the rule gets defined.
+	/**
+	 * Find a rule from the grammar, given its name.
+	 * Unlike findRule(), getRule() never returns NULL. 
+	 * If the rule is not (yet) defined, it returns an undefined pointer, that will be set later if the rule gets defined.
+	 * This mechanism is required to allow defining rules in any order, and defining rules that call themselve recursively.
+	 * @param name the name of the rule to get
+	 * @return the recognizer implementing the rule, or a RecognizerPointer if the rule isn't yet defined.
 	**/
 	shared_ptr<Recognizer> getRule(const string &name);
+	/**
+	 * Returns true if the grammar is complete, that is all rules are defined.
+	 * In other words, a grammar is complete if no rule depends on another rule which is not defined.
+	**/
 	bool isComplete()const;
+	/**
+	 * Optimize the grammar. This is required to obtain good performance of the recognizers implementing the rule.
+	 * The optimization step consists in checking whether belr::Selector objects in the grammar are exclusive or not.
+	 * A selector is said exclusive when a single sub-rule can match. Knowing this in advance optimizes the processing because no branch
+	 * context is to be created to explore the different choices of the selector recognizer.
+	**/ 
 	void optimize();
+	/**
+	 * Return the number of rules in this grammar.
+	**/
 	int getNumRules()const;
 private:
 	void assignRule(const string &name, const shared_ptr<Recognizer> &rule);

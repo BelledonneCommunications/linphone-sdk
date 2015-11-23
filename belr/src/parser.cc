@@ -1,5 +1,5 @@
 
-#include <parser.hh>
+#include <belr/parser.hh>
 #include <iostream>
 
 #include "parser-impl.cc"

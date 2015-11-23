@@ -1,8 +1,8 @@
 
 
 
-#include "grammarbuilder.hh"
-#include "abnf.hh"
+#include "belr/grammarbuilder.hh"
+#include "belr/abnf.hh"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -18,7 +18,8 @@ int main(int argc, char *argv[]){
 	int i;
 	int repeat_count=1;
 	if (argc<2){
-		cerr<<argv[0]<< " [--repeat <count>] <grammarfile-to-load> [<input file>] [rule1] [rule2]..."<<endl;
+		cerr<<argv[0]<< " [--repeat <count>] <grammarfile-to-load> - test an abnf and instanciate the parser"<<endl;
+		cerr<<argv[0]<< " [--repeat <count>] <grammarfile-to-load> <input file to parse> <entry rule> [rule1] [rule2]..."<<endl;
 		return -1;
 	}
 	for(i=1;i<argc;++i){

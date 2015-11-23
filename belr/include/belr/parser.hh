@@ -181,6 +181,13 @@ private:
 	shared_ptr<HandlerContext<_parserElementT>> mRoot;
 };
 
+/**
+ * Parser class.
+ * This template class allows to parse a text input using a Grammar object describing the language of the input to be parsed.
+ * The template argument _parserElementT must be a base class for all elements that will be created to represent the result of the parsing.
+ * This can be 'void*' if the parser is implemented in C, but can also be any C++ class provided that each type representing a parsed entity
+ * inherits from this class.
+**/
 template <typename _parserElementT>
 class Parser{
 friend class ParserContext<_parserElementT>;

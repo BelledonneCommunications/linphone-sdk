@@ -6,3 +6,5 @@ libbelr_la_SOURCES=belr.cc belr.hh \
 			parser.cc parser.hh \
 			grammarbuilder.cc grammarbuilder.hh
 
+AM_CPPFLAGS=-I$(top_srcdir)/include
+

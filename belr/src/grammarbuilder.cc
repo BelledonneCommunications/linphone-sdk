@@ -1,6 +1,6 @@
 
-#include "abnf.hh"
-#include "grammarbuilder.hh"
+#include "belr/abnf.hh"
+#include "belr/grammarbuilder.hh"
 #include "parser-impl.cc"
 
 #include <iostream>

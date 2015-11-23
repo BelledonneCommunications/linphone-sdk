@@ -3,12 +3,13 @@
 namespace belr{
 
 
-/*
- * Core definitions of ABNF
+/**
+ * Grammar containing core definitions of ABNF.
+ * This is required for almost all IETF text based protocols.
 **/
-
 class CoreRules : public Grammar{
 public:
+	///Initialize a CoreRules grammar object.
 	CoreRules();
 private:
 	void alpha();
