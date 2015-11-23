@@ -130,7 +130,6 @@ static void ms_qsa_read_process(MSFilter *f) {
 	snd_pcm_info_t info;
 	snd_pcm_channel_info_t pi;
 	snd_pcm_channel_params_t params;
-	snd_pcm_channel_status_t status;
 	snd_pcm_channel_setup_t setup;
 	snd_mixer_group_t group;
 	mblk_t *om = NULL;
@@ -468,7 +467,6 @@ static void ms_qsa_write_process(MSFilter *f) {
 	snd_pcm_info_t info;
 	snd_pcm_channel_info_t pi;
 	snd_pcm_channel_params_t params;
-	snd_pcm_channel_status_t status;
 	snd_pcm_channel_setup_t setup;
 	snd_mixer_group_t group;
 	int written;
