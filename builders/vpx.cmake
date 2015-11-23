@@ -54,7 +54,7 @@ else()
 		"--as=yasm"
 	)
 	string(FIND "${CMAKE_C_COMPILER_LAUNCHER}" "ccache" CCACHE_ENABLED)
-	if ("${CCACHE_ENABLED}" STREQUAL "-1")
+	if (NOT "${CCACHE_ENABLED}" STREQUAL "-1")
 		list(APPEND EP_vpx_CONFIGURE_OPTIONS "--enable-ccache")
 	endif()
 
