@@ -427,6 +427,9 @@ static const ModuleDesc h264_module_desc = {
 /*********************************************************************************************
  * VP8 module                                                                               *
  *********************************************************************************************/
+
+#ifdef HAVE_VPX
+
 typedef struct _Vp8Module {
 	Vp8RtpFmtUnpackerCtx unpacker;
 	Vp8RtpFmtPackerCtx packer;
@@ -521,6 +524,8 @@ static const ModuleDesc vp8_module_desc = {
 	.is_key_frame = vp8_module_is_keyframe
 };
 #endif
+
+#endif /* HAVE_VPX */
 
 /*********************************************************************************************
  * µLaw module                                                                               *
@@ -722,7 +727,9 @@ typedef enum {
 
 static const ModuleDesc *moduleDescs[] = {
 	&h264_module_desc,
+#ifdef HAVE_VPX
 	&vp8_module_desc,
+#endif /* HAVE_VPX */
 	&mu_law_module_desc,
 	&opus_module_desc,
 	NULL

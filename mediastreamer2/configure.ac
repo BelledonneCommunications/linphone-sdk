@@ -764,6 +764,10 @@ AM_CONDITIONAL(BUILD_X11_XV, test "$enable_xv" = "true" )
 AM_CONDITIONAL(BUILD_X11_GL, test "$enable_glx" = "true" )
 AM_CONDITIONAL(BUILD_UPNP, test "$build_upnp" = "true" )
 
+if test "$build_vp8" != "false" ; then
+	AC_DEFINE(HAVE_VPX, 1, [Tells whether vpx can be used])
+fi
+
 dnl	*********************************************
 dnl	Enable/disable oRTP dependency
 dnl	*********************************************
