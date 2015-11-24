@@ -412,32 +412,36 @@ static OSStatus au_write_cb (
 /****************config**************/
 static void configure_audio_session (au_card_t* d,uint64_t time) {
 	UInt32 audioCategory;
+	UInt32 audioMode;
 	UInt32 audioCategorySize=sizeof(audioCategory);
 	bool_t changed;
-
+	
 	if (!d->is_fast){
-
+		
 		if (d->audio_session_configured){
 			/*check that category wasn't changed*/
 			check_session_call(AudioSessionGetProperty(kAudioSessionProperty_AudioCategory,&audioCategorySize,&audioCategory));
-
+			
 			changed=(audioCategory!=kAudioSessionCategory_AmbientSound && d->is_ringer)
-				||(audioCategory!=kAudioSessionCategory_PlayAndRecord && !d->is_ringer);
+			||(audioCategory!=kAudioSessionCategory_PlayAndRecord && !d->is_ringer);
 		}
-
+		
 		if (!d->audio_session_configured || changed) {
 			check_session_call( AudioSessionSetActive(true) );
-
+			
 			if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
 				audioCategory= kAudioSessionCategory_AmbientSound;
+				audioMode = kAudioSessionMode_Default;
 				ms_message("Configuring audio session for playback");
 			} else {
 				audioCategory = kAudioSessionCategory_PlayAndRecord;
+				audioMode = kAudioSessionMode_VoiceChat;
 				ms_message("Configuring audio session for playback/record");
 			}
-
+			
 			check_audiounit_call(AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory));
-
+			check_audiounit_call(AudioSessionSetProperty(kAudioSessionProperty_Mode, sizeof(audioMode), &audioMode));
+			
 		}else{
 			ms_message("Audio session already correctly configured.");
 		}
@@ -445,7 +449,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 	} else {
 		ms_message("Fast iounit mode, audio session configuration must be done at application level.");
 	}
-
+	
 }
 
 static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
