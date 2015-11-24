@@ -766,3 +766,4 @@ MSFilterDesc ms_vt_h264_dec = {
 };
 
 MS_FILTER_DESC_EXPORT(ms_vt_h264_dec)
+
