@@ -57,12 +57,6 @@ else()
 	endif()
 
 
-	# Get build tools and flags for autotools projects (except for Windows Phone where we cannot build with MinGW)
-	if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
-		linphone_builder_get_autotools_configuration()
-	endif()
-
-
 	# Create targets list from the given LINPHONE_BUILDER_TARGET
 	linphone_builder_create_targets_list()
 
@@ -73,8 +67,17 @@ else()
 	include(${LINPHONE_BUILDER_CONFIG_FILE})
 
 
-	# Apply build flags and add external projects
+	# Apply build flags
 	linphone_builder_apply_flags()
+
+
+	# Get build tools and flags for autotools projects (except for Windows Phone where we cannot build with MinGW)
+	if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
+		linphone_builder_get_autotools_configuration()
+	endif()
+
+
+	# Add external projects
 	linphone_builder_add_projects()
 	linphone_builder_add_dummy_libraries_generation()
 
