@@ -134,8 +134,39 @@ endif()
 
 
 function(linphone_builder_get_autotools_configuration)
-	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/Autotools.cmake.in" "${CMAKE_BINARY_DIR}/Autotools.cmake" @ONLY)
-	include(${CMAKE_BINARY_DIR}/Autotools.cmake)
+	if(MSVC)
+		set(_generator "MinGW Makefiles")
+	else()
+		set(_generator "${CMAKE_GENERATOR}")
+	endif()
+	set(_autotools_command ${CMAKE_COMMAND} -G "${_generator}")
+	if(CMAKE_TOOLCHAIN_FILE)
+		list(APPEND _autotools_command "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
+	endif()
+	if(CMAKE_OSX_ARCHITECTURES)
+		list(APPEND _autotools_command "-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}")
+	endif()
+	if(CMAKE_C_COMPILER_LAUNCHER)
+		list(APPEND _autotools_command "-DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}")
+	endif()
+	if(CMAKE_CXX_COMPILER_LAUNCHER)
+		list(APPEND _autotools_command "-DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}")
+	endif()
+	list(APPEND _autotools_command
+		"-DAUTOTOOLS_AS_FLAGS=${AUTOTOOLS_AS_FLAGS}"
+		"-DAUTOTOOLS_C_FLAGS=${AUTOTOOLS_C_FLAGS}"
+		"-DAUTOTOOLS_CPP_FLAGS=${AUTOTOOLS_CPP_FLAGS}"
+		"-DAUTOTOOLS_CXX_FLAGS=${AUTOTOOLS_CXX_FLAGS}"
+		"-DAUTOTOOLS_OBJC_FLAGS=${AUTOTOOLS_OBJC_FLAGS}"
+		"-DAUTOTOOLS_LINKER_FLAGS=${AUTOTOOLS_LINKER_FLAGS}"
+	)
+	list(APPEND _autotools_command "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Autotools/")
+	execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/Autotools)
+	execute_process(COMMAND ${_autotools_command} WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/Autotools)
+	unset(_autotools_command)
+	unset(_extra_generator)
+	unset(_generator)
+	include(${CMAKE_BINARY_DIR}/Autotools/Autotools.cmake)
 endfunction()
 
 
