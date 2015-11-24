@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-set(SOURCE_FILES
+set(SOURCE_FILES_C
 	common/bc_tester_utils.c
 	mediastreamer2_adaptive_tester.c
 	mediastreamer2_audio_stream_tester.c
@@ -33,20 +33,24 @@ set(SOURCE_FILES
 	mediastreamer2_tester_private.c
 	mediastreamer2_text_stream_tester.c
 )
+set(SOURCE_FILES_OBJC )
 
 add_definitions(-DBC_CONFIG_FILE="mediastreamer-config.h")
 
 if(ENABLE_VIDEO)
-	list(APPEND SOURCE_FILES mediastreamer2_video_stream_tester.c)
+	list(APPEND SOURCE_FILES_C mediastreamer2_video_stream_tester.c)
 endif()
 if(APPLE)
-	list(APPEND SOURCE_FILES mediastreamer2_tester_cocoa.m)
+	list(APPEND SOURCE_FILES_OBJC mediastreamer2_tester_cocoa.m)
 endif()
 
-add_executable(mediastreamer2_tester ${SOURCE_FILES})
+apply_compile_flags(SOURCE_FILES_C "CPP" "C")
+apply_compile_flags(SOURCE_FILES_OBJC "CPP" "OBJC")
+
+add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
 target_include_directories(mediastreamer2_tester PUBLIC ${CUNIT_INCLUDE_DIRS} PRIVATE common)
 target_link_libraries(mediastreamer2_tester mediastreamer_voip mediastreamer_base ${CUNIT_LIBRARIES})
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+if(LINK_FLAGS_STR)
 	set_target_properties(mediastreamer2_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()

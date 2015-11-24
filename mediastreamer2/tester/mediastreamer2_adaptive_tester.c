@@ -318,7 +318,7 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 }
 
 /********************************** Tests are starting now ********************/
-static void packet_duplication() {
+static void packet_duplication(void) {
 	const rtp_stats_t *stats;
 	double dup_ratio;
 	stream_manager_t * marielle, * margaux;
@@ -345,7 +345,7 @@ static void packet_duplication() {
 	stop_adaptive_stream(marielle,margaux);
 }
 
-static void upload_bandwidth_computation() {
+static void upload_bandwidth_computation(void) {
 	bool_t supported = ms_filter_codec_supported("pcma");
 	if( supported ) {
 		stream_manager_t * marielle, * margaux;
@@ -364,7 +364,7 @@ static void upload_bandwidth_computation() {
 	}
 }
 
-static void loss_rate_estimation() {
+static void loss_rate_estimation(void) {
 	bool_t supported = ms_filter_codec_supported("pcma");
 	if( supported ) {
 		LossRateEstimatorCtx ctx;
@@ -408,26 +408,26 @@ void upload_bitrate(const char* codec, int payload, int target_bw, int expect_bw
 	}
 }
 
-static void upload_bitrate_pcma_3g() {
+static void upload_bitrate_pcma_3g(void) {
 	// pcma codec bitrate is always 64 kbits, only ptime can change from 20ms to 100ms.
 	// ptime=20  ms -> network bitrate=80 kbits/s
 	// ptime=100 ms -> network bitrate=67 kbits/s
 	upload_bitrate("pcma", PCMA8_PAYLOAD_TYPE, THIRDGENERATION_BW, 80);
 }
 
-static void upload_bitrate_speex_low()  {
+static void upload_bitrate_speex_low(void)  {
 	// speex codec bitrate can vary from 16 kbits/s to 42 kbits/s
 	// bitrate=42 kbits/s ptime=20  ms -> network bitrate=58 kbits/s
 	// bitrate=16 kbits/s ptime=100 ms -> network bitrate=19 kbits/s
 	upload_bitrate("speex", SPEEX_PAYLOAD_TYPE, 25, 25);
 }
 
-static void upload_bitrate_speex_3g()  {
+static void upload_bitrate_speex_3g(void) {
 	upload_bitrate("speex", SPEEX_PAYLOAD_TYPE, THIRDGENERATION_BW, 59);
 }
 
 
-static void upload_bitrate_opus_edge() {
+static void upload_bitrate_opus_edge(void) {
 	// opus codec bitrate can vary from 6 kbits/s to 184 kbits/s
 	// bitrate=6   kbits/s and ptime=100  ms -> network bitrate=  9 kbits/s
 	// bitrate=184 kbits/s and ptime=20   ms -> network bitrate=200 kbits/s
@@ -437,7 +437,7 @@ static void upload_bitrate_opus_edge() {
 	// is not sufficient to match the guidelines without adaptive algorithm.
 }
 
-static void upload_bitrate_opus_3g() {
+static void upload_bitrate_opus_3g(void) {
 	upload_bitrate("opus", OPUS_PAYLOAD_TYPE, THIRDGENERATION_BW, 200);
 }
 

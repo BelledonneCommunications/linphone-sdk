@@ -66,7 +66,7 @@ static void plane_draw(uint8_t *p, int w, int h, int lsz, int index, int color1,
 	int i,j;
 	
 	for(i=0;i<h;++i){
-		int tmp = index + (cos(4*(double)(i)/(double)h) * (w/8));
+		int tmp = index + (int)(cos(4*(double)(i)/(double)h) * (w/8));
 		for(j=0;j<w;++j){
 			p[j]= (( ((i+tmp)/85) + ((j+tmp)/85)  ) & 0x1) ? color1 : color2;
 		}

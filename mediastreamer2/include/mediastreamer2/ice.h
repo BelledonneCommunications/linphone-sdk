@@ -109,16 +109,16 @@ typedef struct _IceSession {
 	IceSessionState state;	/**< State of the session */
 	uint64_t tie_breaker;	/**< Random number used to resolve role conflicts (see paragraph 5.2 of the RFC 5245) */
 	uint32_t ta;	/**< Duration of timer for sending connectivity checks in ms */
-	uint8_t max_connectivity_checks;	/**< Configuration parameter to limit the number of connectivity checks performed by the agent (default is 100) */
-	uint8_t keepalive_timeout;	/**< Configuration parameter to define the timeout between each keepalive packets (default is 15s) */
-	MSTimeSpec event_time;	/**< Time when an event must be sent */
 	int event_value;	/** Value of the event to send */
-	bool_t send_event;	/**< Boolean value telling whether an event must be sent or not */
+	MSTimeSpec event_time;	/**< Time when an event must be sent */
 	struct sockaddr_storage ss;	/**< STUN server address to use for the candidates gathering process */
 	socklen_t ss_len;	/**< Length of the STUN server address to use for the candidates gathering process */
 	MSTimeSpec gathering_start_ts;
 	MSTimeSpec gathering_end_ts;
 	bool_t check_message_integrity; /*set to false for backward compatibility only*/
+	bool_t send_event;	/**< Boolean value telling whether an event must be sent or not */
+	uint8_t max_connectivity_checks;	/**< Configuration parameter to limit the number of connectivity checks performed by the agent (default is 100) */
+	uint8_t keepalive_timeout;	/**< Configuration parameter to define the timeout between each keepalive packets (default is 15s) */
 } IceSession;
 
 typedef struct _IceStunServerCheckTransaction {
@@ -288,7 +288,7 @@ MS2_PUBLIC bool_t ice_check_list_candidates_gathered(const IceCheckList *cl);
  * @param n The number of the check list to access
  * @return A pointer to the nth check list of the session if it exists, NULL otherwise
  */
-MS2_PUBLIC IceCheckList *ice_session_check_list(const IceSession *session, unsigned int n);
+MS2_PUBLIC IceCheckList *ice_session_check_list(const IceSession *session, int n);
 
 /**
  * Get the local username fragment of an ICE session.
@@ -723,6 +723,15 @@ MS2_PUBLIC void ice_check_list_unselect_valid_pairs(IceCheckList *cl);
  * It is to be called automatically when the gathering process finishes.
  */
 MS2_PUBLIC void ice_session_set_base_for_srflx_candidates(IceSession *session);
+
+/**
+ * Remove local and remote RTCP candidates from an ICE check list.
+ * 
+ * @param cl A pointer to a check list
+ *
+ * This function MUST be called before calling ice_session_start_connectivity_checks(). It is useful when using rtcp-mux.
+ */
+MS2_PUBLIC void ice_check_list_remove_rtcp_candidates(IceCheckList *cl);
 
 /**
  * Compute the foundations of the local candidates of an ICE session.

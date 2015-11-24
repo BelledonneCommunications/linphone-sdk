@@ -36,6 +36,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ICE_MAX_NB_CANDIDATES		10
 #define ICE_MAX_NB_CANDIDATE_PAIRS	(ICE_MAX_NB_CANDIDATES*ICE_MAX_NB_CANDIDATES)
 
+#define ICE_RTP_COMPONENT_ID	1
+#define ICE_RTCP_COMPONENT_ID	2
+
 #define ICE_MIN_COMPONENTID		1
 #define ICE_MAX_COMPONENTID		256
 #define ICE_INVALID_COMPONENTID		0
@@ -689,7 +692,7 @@ bool_t ice_check_list_is_mismatch(const IceCheckList *cl)
  * SESSION ACCESSORS                                                          *
  *****************************************************************************/
 
-IceCheckList * ice_session_check_list(const IceSession *session, unsigned int n)
+IceCheckList * ice_session_check_list(const IceSession *session, int n)
 {
 	if (n >= ICE_SESSION_MAX_CHECK_LISTS) return NULL;
 	return session->streams[n];
@@ -996,8 +999,8 @@ void ice_session_gather_candidates(IceSession *session, const struct sockaddr* s
 int ice_session_gathering_duration(IceSession *session)
 {
 	if ((session->gathering_start_ts.tv_sec == -1) || (session->gathering_end_ts.tv_sec == -1)) return -1;
-	return ((session->gathering_end_ts.tv_sec - session->gathering_start_ts.tv_sec) * 1000.0)
-		+ ((session->gathering_end_ts.tv_nsec - session->gathering_start_ts.tv_nsec) / 1000000.0);
+	return (int)(((session->gathering_end_ts.tv_sec - session->gathering_start_ts.tv_sec) * 1000.0)
+		+ ((session->gathering_end_ts.tv_nsec - session->gathering_start_ts.tv_nsec) / 1000000.0));
 }
 
 static void ice_transaction_sum_gathering_round_trip_time(const IceStunServerCheckTransaction *transaction, StunRequestRoundTripTime *rtt)
@@ -1102,7 +1105,7 @@ static IceTransaction * ice_find_transaction(const IceCheckList *cl, const IceCa
 
 static int ice_send_message_to_socket(const RtpTransport * rtpt,char* buf,size_t len, const struct sockaddr *to, socklen_t tolen) {
 	mblk_t *m = rtp_session_create_packet_raw((const uint8_t *)buf, len);
-	int err = meta_rtp_transport_modifier_inject_packet_to(rtpt
+	int err = meta_rtp_transport_modifier_inject_packet_to_send_to(rtpt
 														, NULL
 														, m
 														, 0
@@ -1215,9 +1218,9 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 	} else return;
 
 	snprintf(username.value, sizeof(username.value) - 1, "%s:%s", ice_check_list_remote_ufrag(cl), ice_check_list_local_ufrag(cl));
-	username.sizeValue = strlen(username.value);
+	username.sizeValue = (uint16_t)strlen(username.value);
 	snprintf(password.value, sizeof(password.value) - 1, "%s", ice_check_list_remote_pwd(cl));
-	password.sizeValue = strlen(password.value);
+	password.sizeValue = (uint16_t)strlen(password.value);
 
 	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
 	memset(&msg, 0, sizeof(msg));
@@ -1356,12 +1359,12 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 		response.hasUsername = FALSE;
 
 	snprintf(response.username.value, sizeof(response.username.value) - 1, "%s:%s", ice_check_list_local_ufrag(cl), ice_check_list_remote_ufrag(cl));
-	response.username.sizeValue = strlen(response.username.value);
+	response.username.sizeValue = (uint16_t)strlen(response.username.value);
 
 	/*add passwd for message integrity*/
 	response.hasPassword = FALSE;
 	snprintf(password.value, sizeof(password.value) - 1, "%s", ice_check_list_local_pwd(cl));
-	password.sizeValue = strlen(password.value);
+	password.sizeValue = (uint16_t)strlen(password.value);
 
 
 	/* Add the mapped address to the response. */
@@ -1415,7 +1418,7 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 	response.errorCode.errorClass = err_class;
 	response.errorCode.number = err_num;
 	strcpy(response.errorCode.reason, error);
-	response.errorCode.sizeReason = strlen(error);
+	response.errorCode.sizeReason = (uint16_t)strlen(error);
 	response.hasFingerprint = TRUE;
 
 	len = stunEncodeMessage(&response, buf, len, &password);
@@ -1539,7 +1542,7 @@ static int ice_check_received_binding_request_integrity(const IceCheckList *cl, 
 	char *lenpos = (char *)mp->b_rptr + sizeof(uint16_t);
 	uint16_t newlen = htons(msg->msgHdr.msgLength - 8);
 	memcpy(lenpos, &newlen, sizeof(uint16_t));
-	stunCalculateIntegrity_shortterm(hmac, (char *)mp->b_rptr, mp->b_wptr - mp->b_rptr - 24 - 8, ice_check_list_local_pwd(cl));
+	stunCalculateIntegrity_shortterm(hmac, (char *)mp->b_rptr, (int)(mp->b_wptr - mp->b_rptr - 24 - 8), ice_check_list_local_pwd(cl));
 	/* ... and then restore the length with fingerprint. */
 	newlen = htons(msg->msgHdr.msgLength);
 	memcpy(lenpos, &newlen, sizeof(uint16_t));
@@ -2110,7 +2113,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 	memset(&msg, 0, sizeof(msg));
 	memset(&source_addr, 0, sizeof(source_addr));
 
-	res = stunParseMessage((char *) mp->b_rptr, mp->b_wptr - mp->b_rptr, &msg);
+	res = stunParseMessage((char *) mp->b_rptr, (int)(mp->b_wptr - mp->b_rptr), &msg);
 	if (res == FALSE) {
 		ms_warning("ice: Received invalid STUN packet");
 		return;
@@ -2187,7 +2190,7 @@ static IceCandidate * ice_candidate_new(const char *type, const char *ip, int po
 	}
 
 	candidate = ms_new0(IceCandidate, 1);
-	iplen = MIN(strlen(ip), sizeof(candidate->taddr.ip));
+	iplen = (int)MIN(strlen(ip), sizeof(candidate->taddr.ip));
 	strncpy(candidate->taddr.ip, ip, iplen);
 	candidate->taddr.port = port;
 	candidate->type = candidate_type;
@@ -2226,6 +2229,10 @@ static void ice_add_componentID(MSList **list, uint16_t *componentID)
 	if (elem == NULL) {
 		*list = ms_list_append(*list, componentID);
 	}
+}
+
+static void ice_remove_componentID(MSList **list, uint16_t componentID){
+	*list = ms_list_remove_custom(*list, (MSCompareFunc)ice_find_componentID, &componentID);
 }
 
 IceCandidate * ice_add_local_candidate(IceCheckList* cl, const char* type, const char* ip, int port, uint16_t componentID, IceCandidate* base)
@@ -3306,8 +3313,8 @@ static MSTimeSpec ice_add_ms(MSTimeSpec orig, uint32_t ms)
 
 static int32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2)
 {
-	int32_t ms = (ts1.tv_sec - ts2.tv_sec) * 1000;
-	ms += (ts1.tv_nsec - ts2.tv_nsec) / 1000000;
+	int32_t ms = (int32_t)((ts1.tv_sec - ts2.tv_sec) * 1000);
+	ms += (int32_t)((ts1.tv_nsec - ts2.tv_nsec) / 1000000);
 	return ms;
 }
 
@@ -3378,6 +3385,32 @@ void ice_session_set_base_for_srflx_candidates(IceSession *session)
 	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
 		if (session->streams[i] != NULL)
 			ice_check_list_set_base_for_srflx_candidates(session->streams[i]);
+	}
+}
+
+static int ice_find_candidate_with_componentID(const IceCandidate *candidate, const uint16_t *componentID)
+{
+	if (candidate->componentID == *componentID) return 0;
+	else return 1;
+}
+
+void ice_check_list_remove_rtcp_candidates(IceCheckList *cl)
+{
+	MSList *elem;
+	uint16_t rtcp_componentID = ICE_RTCP_COMPONENT_ID;
+	
+	ice_remove_componentID(&cl->local_componentIDs, rtcp_componentID);
+	
+	while ((elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
+		IceCandidate *candidate = (IceCandidate *)elem->data;
+		cl->local_candidates = ms_list_remove(cl->local_candidates, candidate);
+		ice_free_candidate(candidate);
+	}
+	ice_remove_componentID(&cl->remote_componentIDs, rtcp_componentID);
+	while ((elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
+		IceCandidate *candidate = (IceCandidate *)elem->data;
+		cl->remote_candidates = ms_list_remove(cl->remote_candidates, candidate);
+		ice_free_candidate(candidate);
 	}
 }
 

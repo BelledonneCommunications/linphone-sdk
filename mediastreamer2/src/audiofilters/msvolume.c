@@ -30,15 +30,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <speex/speex_preprocess.h>
 #endif
 
-static const float max_e = (32768* 0.7);   /* 0.7 - is RMS factor */
-static const float coef = 0.2; /* floating averaging coeff. for energy */
+static const float max_e = (32768* 0.7f);   /* 0.7 - is RMS factor */
+static const float coef = 0.2f; /* floating averaging coeff. for energy */
 //static const float gain_k = 0.02; /* floating averaging coeff. for gain */
-static const float vol_upramp = 0.4;
-static const float vol_downramp = 0.4;   /* not yet runtime parameterizable */
+static const float vol_upramp = 0.4f;
+static const float vol_downramp = 0.4f;   /* not yet runtime parameterizable */
 static const float en_weight=4.0;
-static const float noise_thres=0.1;
+static const float noise_thres=0.1f;
 static const float transmit_thres=4;
-static const float min_ng_floorgain=0.005;
+static const float min_ng_floorgain=0.005f;
 static const float agc_threshold=0.5;
 
 
@@ -199,14 +199,14 @@ static MS2_INLINE float compute_gain(Volume *v, float energy, float weight) {
 static float volume_echo_avoider_process(Volume *v, mblk_t *om) {
 	static int counter;
 	float peer_e,peer_pk;
-	int nsamples = ((om->b_wptr - om->b_rptr) / 2);
+	int nsamples = (int)((om->b_wptr - om->b_rptr) / 2);
 	float mic_spk_ratio;
 	peer_e = ((Volume *)(v->peer->data))->energy;
 	peer_pk=((Volume *)(v->peer->data))->energy;
 
 	if (peer_pk>v->lt_speaker_en)
 		v->lt_speaker_en=peer_pk;
-	else v->lt_speaker_en=(0.005*peer_pk)+(0.995*v->lt_speaker_en);
+	else v->lt_speaker_en=(0.005f*peer_pk)+(0.995f*v->lt_speaker_en);
 	mic_spk_ratio=(v->energy/(v->lt_speaker_en+v->ea_thres));
 
 	/* where v->target_gain is not set, it is kept steady - not to modify elsewhere! */
@@ -239,7 +239,7 @@ static float volume_echo_avoider_process(Volume *v, mblk_t *om) {
 static void volume_noise_gate_process(Volume *v , float energy, mblk_t *om){
 	static int counter;
 	float tgain = v->ng_floorgain;  /* start with floorgain */
-	int nsamples=((om->b_wptr-om->b_rptr)/2);
+	int nsamples=(int)((om->b_wptr-om->b_rptr)/2);
 	if (energy > v->ng_threshold) {
 		v->ng_noise_dur = v->ng_cut_time;
 		tgain = 1.0;
@@ -252,7 +252,7 @@ static void volume_noise_gate_process(Volume *v , float energy, mblk_t *om){
 	}
 	/* simple averaging computation is adequate here: fast rise, relatively slower decrease */
 	/* of gain - ears impression */
-	v->ng_gain = v->ng_gain*0.75 + tgain*0.25;
+	v->ng_gain = v->ng_gain*0.75f + tgain*0.25f;
 	if (!(++counter % 10))
 		ms_debug("%d: nglevel=%f, energy=%f, tgain=%f, ng_gain=%f",
 				          (v->peer!=NULL)?1:0, energy, v->energy, tgain, v->ng_gain);
@@ -261,7 +261,7 @@ static void volume_noise_gate_process(Volume *v , float energy, mblk_t *om){
 static int volume_set_db_gain(MSFilter *f, void *gain){
 	float *fgain=(float*)gain;
 	Volume *v=(Volume*)f->data;
-	v->gain = v->static_gain = pow(10,(*fgain)/10);
+	v->gain = v->static_gain = (float)pow(10,(*fgain)/10);
 	ms_message("MSVolume set gain to [%f db], [%f] linear",*fgain,v->gain);
 	return 0;
 }
@@ -398,8 +398,8 @@ static void update_energy(Volume *v, int16_t *signal, int numsamples, uint64_t c
 		if (lp > pk)
 			pk = lp;
 	}
-	en = (sqrt(acc / numsamples)+1) / max_e;
-	v->energy = (en * coef) + v->energy * (1.0 - coef);
+	en = (float)((sqrt(acc / numsamples)+1) / max_e);
+	v->energy = (en * coef) + v->energy * (1.0f - coef);
 	v->level_pk = (float)pk / max_e;
 	v->instant_energy = en;// currently non-averaged energy seems better (short artefacts)
 	ortp_extremum_record_max(&v->max,curtime,v->energy);
@@ -428,7 +428,7 @@ static void apply_gain(Volume *v, mblk_t *m, float tgain) {
 	}
 
 	gain=v->gain * v->ng_gain;
-	intgain = gain* 4096;
+	intgain = (int32_t)(gain* 4096);
 
 
 	//if (v->peer) ms_message("MSVolume:%p Applying gain %5f, v->gain=%5f, tgain=%5f, ng_gain=%5f",v,gain,v->gain,tgain,v->ng_gain);
@@ -441,7 +441,7 @@ static void apply_gain(Volume *v, mblk_t *m, float tgain) {
 			*sample = saturate(((*sample - v->dc_offset) * intgain) / 4096);
 		}
 		/* offset smoothing */
-		v->dc_offset = (v->dc_offset*7 + dc_offset*2/(m->b_wptr - m->b_rptr)) / 8;
+		v->dc_offset = (v->dc_offset*7 + dc_offset*2/(int)(m->b_wptr - m->b_rptr)) / 8;
 	}else if (gain!=1){
 		for (	sample=(int16_t*)m->b_rptr;
 					sample<(int16_t*)m->b_wptr;
@@ -512,7 +512,7 @@ static void volume_process(MSFilter *f){
 	}else{
 		/*light processing: no agc. Work in place in the input buffer*/
 		while((m=ms_queue_get(f->inputs[0]))!=NULL){
-			update_energy(v,(int16_t*)m->b_rptr, (m->b_wptr - m->b_rptr) / 2, f->ticker->time);
+			update_energy(v,(int16_t*)m->b_rptr, (int)((m->b_wptr - m->b_rptr) / 2), f->ticker->time);
 			target_gain = v->static_gain;
 
 			if (v->noise_gate_enabled)

@@ -220,7 +220,7 @@ static int dec_video_bitrate(MSAVBitrateDriver *obj, const MSRateControlAction *
 	int new_br;
 
 	ms_filter_call_method(obj->venc,MS_FILTER_GET_BITRATE,&obj->cur_bitrate);
-	new_br=((float)obj->cur_bitrate)*(100.0-(float)action->value)/100.0;
+	new_br=(int)(((float)obj->cur_bitrate)*(100.0f-(float)action->value)/100.0f);
 	if (new_br<min_video_bitrate){
 		ms_message("MSAVBitrateDriver: reaching low bound.");
 		new_br=min_video_bitrate;
@@ -239,7 +239,7 @@ static int inc_video_bitrate(MSAVBitrateDriver *obj, const MSRateControlAction *
 	int ret=0;
 
 	if (obj->cur_bitrate==0) return -1; /*current  bitrate was not known*/
-	newbr=(float)obj->cur_bitrate*(1.0+((float)action->value/100.0));
+	newbr=(int)((float)obj->cur_bitrate*(1.0f+((float)action->value/100.0f)));
 	if (newbr>obj->nom_bitrate){
 		newbr=obj->nom_bitrate;
 		ret=-1;
@@ -316,7 +316,7 @@ typedef struct _MSBandwidthBitrateDriver{
 }MSBandwidthBitrateDriver;
 
 static int bandwidth_change_ptime(MSAudioBitrateDriver *obj, int percent){
-	return apply_ptime(obj,obj->min_ptime + (max_ptime - obj->min_ptime) * percent / 100.f);
+	return apply_ptime(obj,(int)(obj->min_ptime + (max_ptime - obj->min_ptime) * percent / 100.f));
 }
 
 static int bandwidth_change_video_bitrate(MSBandwidthBitrateDriver *obj, const MSRateControlAction *action){
@@ -331,7 +331,7 @@ static int bandwidth_change_video_bitrate(MSBandwidthBitrateDriver *obj, const M
 		ms_message("MSBandwidthBitrateDriver: current bitrate was not known.");
 		return -1; /*current  bitrate was not known*/
 	}
-	newbr= (float)obj->cur_bitrate*(100.0+(decrease?-1:1)*(float)action->value)/100.0;
+	newbr = (int)((float)obj->cur_bitrate*(100.0f+(decrease?-1:1)*(float)action->value)/100.0f);
 	if ((decrease&&newbr<bound) || (!decrease&&newbr>bound)){
 		if (obj->cur_bitrate==bound){
 			ms_message("MSBandwidthBitrateDriver: bitrate already reached %s limit %d b/s.", (decrease)?"min":"max",bound);

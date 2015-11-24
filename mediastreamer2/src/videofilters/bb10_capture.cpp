@@ -81,34 +81,6 @@ static const char *error_to_string(camera_error_t error) {
 	return "UNKNOWN";
 }
 
-static const char *vfmode_to_string(camera_vfmode_t mode) {
-	switch (mode) {
-		case CAMERA_VFMODE_DEFAULT:
-			return "CAMERA_VFMODE_DEFAULT";
-		case CAMERA_VFMODE_PHOTO:
-			return "CAMERA_VFMODE_PHOTO";
-		case CAMERA_VFMODE_CONTINUOUS_BURST:
-			return "CAMERA_VFMODE_CONTINUOUS_BURST";
-		case CAMERA_VFMODE_FIXED_BURST:
-			return "CAMERA_VFMODE_FIXED_BURST";
-		case CAMERA_VFMODE_EV_BRACKETING:
-			return "CAMERA_VFMODE_EV_BRACKETING";
-		case CAMERA_VFMODE_VIDEO:
-			return "CAMERA_VFMODE_VIDEO";
-		case CAMERA_VFMODE_VIDEO_SNAPSHOT:
-			return "CAMERA_VFMODE_VIDEO_SNAPSHOT";
-		case CAMERA_VFMODE_HIGH_SPEED_VIDEO:
-			return "CAMERA_VFMODE_HIGH_SPEED_VIDEO";
-		case CAMERA_VFMODE_HDR_VIDEO:
-			return "CAMERA_VFMODE_HDR_VIDEO";
-		case CAMERA_VFMODE_NUM_MODES:
-			return "CAMERA_VFMODE_NUM_MODES";
-		default:
-			return "UNKNOWN";
-	}
-	return "UNKNOWN";
-}
-
 typedef struct BB10Capture {
 	MSVideoSize vsize;
 	float framerate;
@@ -126,31 +98,6 @@ typedef struct BB10Capture {
 	MSAverageFPS avgfps;
 	MSYuvBufAllocator *yba;
 } BB10Capture;
-
-static void list_supported_capture_resolutions(BB10Capture *d) {
-	if (d->cam_handle) {
-		uint32_t number;
-		camera_error_t error = camera_get_supported_vf_resolutions(d->cam_handle, 0, &number, NULL);
-		if (error != CAMERA_EOK || number < 0) {
-			ms_error("[bb10_capture] get supported resolutions: %i, error %s", number, error_to_string(error));
-		} else {
-			uint32_t number2;
-			camera_res_t *resolutions_array = (camera_res_t *)ms_new0(camera_res_t, number);
-			error = camera_get_supported_vf_resolutions(d->cam_handle, number, &number2, resolutions_array);
-			if (error != CAMERA_EOK) {
-				ms_error("[bb10_capture] get supported resolutions error %s", error_to_string(error));
-			}
-			for (int i = 0; i < number; i++) {
-				camera_res_t res = resolutions_array[i];
-				MSVideoSize supportedRes;
-				supportedRes.width = res.width;
-				supportedRes.height = res.height;
-				ms_message("[bb10_capture] device supports resolution %i,%i", supportedRes.width, supportedRes.height);
-			}
-			ms_free(resolutions_array);
-		}
-	}
-}
 
 static void bb10capture_video_callback(camera_handle_t cam_handle, camera_buffer_t *buffer, void *arg) {
 	BB10Capture *d = (BB10Capture *)arg;
@@ -246,14 +193,13 @@ static void bb10capture_close_camera(BB10Capture *d) {
 	
 	camera_close(d->cam_handle);
 	d->camera_openned = FALSE;
-	d->cam_handle = NULL;
+	d->cam_handle = 0;
 	ms_debug("[bb10_capture] camera closed");
 }
 
 static void bb10capture_init(MSFilter *f) {
 	BB10Capture *d = (BB10Capture*) ms_new0(BB10Capture, 1);
 	MSVideoSize def_size;
-	camera_error_t error;
 	
 	d->rotation = 0;
 	d->camera_openned = FALSE;
@@ -403,7 +349,6 @@ static int bb10capture_get_fps(MSFilter *f, void *arg){
 }
 
 static int bb10capture_get_pixfmt(MSFilter *f, void *arg) {
-	BB10Capture *d = (BB10Capture*) f->data;
 	MSPixFmt pix_fmt = MS_YUV420P;
 	*(MSPixFmt*)arg = pix_fmt;
 	return 0;

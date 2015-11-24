@@ -31,7 +31,7 @@ typedef struct _MSEventQueue MSEventQueue;
  * The application can then schedule the callbacks for the events
  * received by the queue by calling ms_event_queue_pump()
 **/ 
-MS2_PUBLIC MSEventQueue *ms_event_queue_new();
+MS2_PUBLIC MSEventQueue *ms_event_queue_new(void);
 
 /**
  * Install a global event queue.

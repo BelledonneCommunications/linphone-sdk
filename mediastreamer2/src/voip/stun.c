@@ -1310,7 +1310,7 @@ stunRand(void)
 
 /* return a random number to use as a port */
 static int
-randomPort()
+randomPort(void)
 {
    int min=0x4000;
    int max=0x7FFF;
@@ -2267,8 +2267,8 @@ stunNatType( StunAddress4 *dest,
 	  second_elapsed = stunGetSystemTimeSecs() - second_started ;
 
 	  FD_ZERO(&fdSet); fdSetSize=0;
-	  FD_SET(myFd1,&fdSet); fdSetSize = (myFd1+1>fdSetSize) ? myFd1+1 : fdSetSize;
-	  FD_SET(myFd2,&fdSet); fdSetSize = (myFd2+1>fdSetSize) ? myFd2+1 : fdSetSize;
+	  FD_SET(myFd1,&fdSet); fdSetSize = ((unsigned int)myFd1+1>fdSetSize) ? (unsigned int)myFd1+1 : fdSetSize;
+	  FD_SET(myFd2,&fdSet); fdSetSize = ((unsigned int)myFd2+1>fdSetSize) ? (unsigned int)myFd2+1 : fdSetSize;
 	  tv.tv_sec=0;
 	  tv.tv_usec=500*1000; /* 150 ms */
 	  if ( count == 0 ) tv.tv_usec=0;
@@ -2550,7 +2550,7 @@ stunOpenSocket( StunAddress4 *dest, StunAddress4* mapAddr,
    myFd = openPort(port,interfaceIp);
    if (myFd == INVALID_SOCKET)
    {
-	  return myFd;
+	  return (int)myFd;
    }
 
    username.sizeValue = 0;
@@ -2590,7 +2590,7 @@ stunOpenSocket( StunAddress4 *dest, StunAddress4* mapAddr,
 
    *mapAddr = mappedAddr;
 
-   return myFd;
+   return (int)myFd;
 }
 
 
@@ -2635,7 +2635,7 @@ stunOpenSocketPair(StunAddress4 *dest,
 
    for( i=0; i<NUM; i++)
    {
-	  fd[i] = openPort( (port == 0) ? 0 : (port + i), interfaceIp);
+	  fd[i] = (int)openPort( (port == 0) ? 0 : (port + i), interfaceIp);
 	  if (fd[i] < 0)
 	  {
 		 while (i > 0)
@@ -2812,7 +2812,7 @@ turnAllocateSocketPair(StunAddress4 *dest,
 
    for( i=0; i<NUM; i++)
    {
-	  fd[i] = openPort( (port == 0) ? 0 : (port + i),
+	  fd[i] = (int)openPort( (port == 0) ? 0 : (port + i),
 						interfaceIp);
 	  if (fd[i] < 0)
 	  {
@@ -2825,9 +2825,9 @@ turnAllocateSocketPair(StunAddress4 *dest,
    }
 
    snprintf(username.value, sizeof(username.value), "antisip");
-   username.sizeValue = strlen(username.value);
+   username.sizeValue = (uint16_t)strlen(username.value);
    snprintf(password.value, sizeof(password.value), "exosip");
-   password.sizeValue = strlen(password.value);
+   password.sizeValue = (uint16_t)strlen(password.value);
 
    for( i=0; i<NUM; i++)
    {

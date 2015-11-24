@@ -155,7 +155,7 @@ typedef struct _MediastreamDatas {
 
 // MAIN METHODS
 /* init default arguments */
-MediastreamDatas* init_default_args();
+MediastreamDatas* init_default_args(void);
 /* parse args */
 bool_t parse_args(int argc, char** argv, MediastreamDatas* out);
 /* setup streams */
@@ -281,7 +281,7 @@ int main(int argc, char * argv[])
 #endif
 
 
-MediastreamDatas* init_default_args() {
+MediastreamDatas* init_default_args(void) {
 	MediastreamDatas* args = (MediastreamDatas*)ms_malloc0(sizeof(MediastreamDatas));
 	args->localport=0;
 	args->remoteport=0;

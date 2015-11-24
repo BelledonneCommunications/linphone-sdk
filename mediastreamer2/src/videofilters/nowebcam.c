@@ -84,9 +84,9 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	}
 	ret=ms_yuv_buf_alloc(&dest, reqsize->width,reqsize->height);
 	/* not using SWS_FAST_BILINEAR because it doesn't play well with
-	 * av_context.pix_fmt set to PIX_FMT_YUVJ420P by jpeg decoder */
+	 * av_context.pix_fmt set to AV_PIX_FMT_YUVJ420P by jpeg decoder */
 	sws_ctx=sws_getContext(av_context.width,av_context.height,av_context.pix_fmt,
-		reqsize->width,reqsize->height,PIX_FMT_YUV420P,SWS_BILINEAR,
+		reqsize->width,reqsize->height,AV_PIX_FMT_YUV420P,SWS_BILINEAR,
                 NULL, NULL, NULL);
 	if (sws_ctx==NULL) {
 		ms_error("jpeg2yuv: ms_sws_getContext() failed.");

@@ -38,7 +38,7 @@ extern "C" {
 	#define ESTIM_HISTORY 30
 	static const float unacceptable_loss_rate=10;
 	static const int big_jitter=10; /*ms */
-	static const float significant_delay=0.2; /*seconds*/
+	static const float significant_delay=0.2f; /*seconds*/
 
 	typedef struct rtpstats{
 		float lost_percentage; /*percentage of lost packet since last report*/

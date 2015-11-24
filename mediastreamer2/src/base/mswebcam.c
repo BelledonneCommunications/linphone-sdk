@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static MSWebCamManager *scm=NULL;
 
-static MSWebCamManager * create_manager(){
+static MSWebCamManager * create_manager(void){
 	MSWebCamManager *obj=(MSWebCamManager *)ms_new0(MSWebCamManager,1);
 	return obj;
 }

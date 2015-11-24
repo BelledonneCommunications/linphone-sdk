@@ -101,7 +101,7 @@ void video_stream_tester_set_local_ip(video_stream_tester_t* obj,const char*ip) 
 	obj->local_ip=new_ip;
 }
 
-video_stream_tester_t* video_stream_tester_new() {
+video_stream_tester_t* video_stream_tester_new(void) {
 	video_stream_tester_t* vst = ms_new0(video_stream_tester_t,1);
 	video_stream_tester_set_local_ip(vst,"127.0.0.1");
 	vst->cam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");

@@ -27,7 +27,7 @@ typedef struct _UlawEncData{
 	uint32_t ts;
 } UlawEncData;
 
-static UlawEncData * ulaw_enc_data_new(){
+static UlawEncData * ulaw_enc_data_new(void){
 	UlawEncData *obj=(UlawEncData *)ms_new0(UlawEncData,1);
 	obj->bz=ms_bufferizer_new();
 	obj->ptime=0;

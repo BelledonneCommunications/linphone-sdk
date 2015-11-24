@@ -376,7 +376,7 @@ void ms_usleep(uint64_t usec){
 #else
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
 	if (!sleepEvent) return;
-	WaitForSingleObjectEx(sleepEvent, usec / 1000, FALSE);
+	WaitForSingleObjectEx(sleepEvent, (DWORD)(usec / 1000), FALSE);
 #endif
 #else
 	struct timespec ts,rem;
@@ -445,7 +445,7 @@ int ms_concealer_inc_sample_time(MSConcealerContext* obj, uint64_t current_time,
 	}
 	obj->sample_time+=time_increment;
 	if (obj->plc_start_time!=-1 && got_packet){
-		plc_duration=current_time-obj->plc_start_time;
+		plc_duration=(int)(current_time-obj->plc_start_time);
 		obj->plc_start_time=-1;
 		if (plc_duration>obj->max_plc_time) plc_duration=obj->max_plc_time;
 	}

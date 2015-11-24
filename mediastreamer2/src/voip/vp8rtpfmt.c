@@ -307,7 +307,7 @@ static bool_t parse_frame_header(Vp8RtpFmtFrame *frame) {
 	nb_partitions = (1 << vp8_read_literal(&bc, 2));
 	if (nb_partitions > 8) return FALSE;
 	frame->partitions_info.nb_partitions = nb_partitions;
-	partition_size = data + first_partition_length_in_bytes - m->b_rptr + (3 * (nb_partitions - 1));
+	partition_size = (uint16_t)(data + first_partition_length_in_bytes - m->b_rptr + (3 * (nb_partitions - 1)));
 	if (msgdsize(m) < partition_size) return FALSE;
 	frame->partitions_info.partition_sizes[0] = partition_size;
 	for (i = 1; i < nb_partitions; i++) {
@@ -827,7 +827,7 @@ static void free_frame(void *data) {
 static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 	uint8_t *h = packet->m->b_rptr;
 	Vp8RtpFmtPayloadDescriptor *pd = packet->pd;
-	unsigned int packet_size = packet->m->b_wptr - packet->m->b_rptr;
+	unsigned int packet_size = (unsigned int)(packet->m->b_wptr - packet->m->b_rptr);
 	uint8_t offset = 0;
 
 	if (packet_size == 0) return Vp8RtpFmtInvalidPayloadDescriptor;
@@ -858,7 +858,7 @@ static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 	if (pd->pictureid_present == TRUE) {
 		if (h[offset] & (1 << 7)) {
 			/* The pictureID is 16 bits long. */
-			if ((offset + 1) >= packet_size) return Vp8RtpFmtInvalidPayloadDescriptor;
+			if ((unsigned int)(offset + 1) >= packet_size) return Vp8RtpFmtInvalidPayloadDescriptor;
 			pd->pictureid = (h[offset] << 8) | h[offset + 1];
 			offset += 2;
 		} else {
@@ -1032,7 +1032,7 @@ static void packer_process_frame_part(void *p, void *c) {
 			pdm->b_wptr++;
 		}
 
-		dlen = MIN((max_size - pdsize), (packet->m->b_wptr - rptr));
+		dlen = MIN((max_size - pdsize), (int)(packet->m->b_wptr - rptr));
 		dm = dupb(packet->m);
 		dm->b_rptr = rptr;
 		dm->b_wptr = rptr + dlen;

@@ -233,7 +233,7 @@ static void bb10display_uninit(MSFilter *f) {
 }
 
 static void bb10display_preprocess(MSFilter *f) {
-	BB10Display *d = (BB10Display*) f->data;
+	//BB10Display *d = (BB10Display*) f->data;
 }
 
 static void bb10display_process(MSFilter *f) {
@@ -291,7 +291,7 @@ static void bb10display_process(MSFilter *f) {
 }
 
 static void bb10display_postprocess(MSFilter *f) {
-	BB10Display *d = (BB10Display*) f->data;
+	//BB10Display *d = (BB10Display*) f->data;
 }
 
 static int bb10_display_set_window_ids(MSFilter *f, void *arg) {

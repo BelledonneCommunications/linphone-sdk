@@ -47,7 +47,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static const int framesize=64;
-static const int flow_control_interval_ms=5000;
+static const uint32_t flow_control_interval_ms=5000;
 
 
 typedef struct SpeexECState{
@@ -135,7 +135,7 @@ static void apply_config(SpeexECState *s){
 			ms_error("Could not decode base64 %s",s->state_str);
 			return;
 		}
-		blob=speex_echo_state_blob_new_from_memory(buffer,buflen);
+		blob=speex_echo_state_blob_new_from_memory(buffer,(int)buflen);
 		if (blob==NULL){
 			ms_error("Could not create blob from config string");
 			return;
@@ -263,7 +263,7 @@ static void speex_ec_process(MSFilter *f){
 		int avail_samples;
 
 		if (!s->echostarted) s->echostarted=TRUE;
-		if ((avail=ms_bufferizer_get_avail(&s->delayed_ref))<((s->nominal_ref_samples*2)+nbytes)){
+		if ((avail=(int)ms_bufferizer_get_avail(&s->delayed_ref))<((s->nominal_ref_samples*2)+nbytes)){
 			/*we don't have enough to read in a reference signal buffer, inject silence instead*/
 			avail=nbytes;
 			refm=allocb(nbytes,0);

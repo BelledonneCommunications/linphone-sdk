@@ -63,8 +63,8 @@ static void dtmfgen_init(MSFilter *f){
 	s->pos=0;
 	s->nosamples_time=0;
 	s->silence=0;
-	s->default_amplitude=0.2;
-	s->amplitude=(s->default_amplitude*0.7*32767);
+	s->default_amplitude=0.2f;
+	s->amplitude=(int)(s->default_amplitude*0.7*32767);
 	s->repeat_count=0;
 	f->data=s;
 }
@@ -159,7 +159,7 @@ static int dtmfgen_put(MSFilter *f, void *arg){
 	s->highfreq=s->highfreq/s->rate;
 	s->dur=s->rate/10; /*100 ms duration */
 	s->silence=0;
-	s->amplitude=s->default_amplitude*32767*0.7;
+	s->amplitude=(int)(s->default_amplitude*32767*0.7);
 	s->current_tone.tone_name[0]=dtmf[0];
 	s->current_tone.tone_name[1]=0;
 	s->current_tone.interval=0;
@@ -181,7 +181,7 @@ static int dtmfgen_play_tone(MSFilter *f, void *arg){
 	s->lowfreq=((float)def->frequencies[0])/(float)s->rate;
 	s->highfreq=((float)def->frequencies[1])/(float)s->rate;;
 	s->silence=0;
-	s->amplitude=((float)def->amplitude)* 0.7*32767.0;
+	s->amplitude=(int)(def->amplitude* 0.7*32767.0);
 	s->repeat_count=0;
 	s->playing=TRUE;
 	ms_filter_unlock(f);
@@ -314,7 +314,7 @@ static void dtmfgen_process(MSFilter *f){
 					strncpy(ev.tone_name,s->current_tone.tone_name,sizeof(ev.tone_name));
 					ms_filter_notify(f,MS_DTMF_GEN_EVENT,&ev);
 				}
-				nsamples=(m->b_wptr-m->b_rptr)/(2*s->nchannels);
+				nsamples=(int)(m->b_wptr-m->b_rptr)/(2*s->nchannels);
 				write_dtmf(s, (int16_t*)m->b_rptr,nsamples);
 			}
 			ms_queue_put(f->outputs[0],m);

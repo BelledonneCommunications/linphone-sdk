@@ -97,7 +97,7 @@ struct _MSDtlsSrtpContext{
 
 /**************************/
 /**** Helper functions ****/
-static ORTP_INLINE uint64_t get_timeval_in_millis() {
+static ORTP_INLINE uint64_t get_timeval_in_millis(void) {
 	struct timeval t;
 	ortp_gettimeofday(&t,NULL);
 	return (1000LL*t.tv_sec)+(t.tv_usec/1000LL);
@@ -247,6 +247,8 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 	uint64_t *time_reference = (is_rtp == TRUE)?&(ctx->rtp_time_reference):&(ctx->rtcp_time_reference);
 	ssl_context *ssl = (is_rtp == TRUE)?&(ctx->rtp_dtls_context->ssl):&(ctx->rtcp_dtls_context->ssl);
 	ms_mutex_t *mutex = (is_rtp == TRUE)?&ctx->rtp_dtls_context->ssl_context_mutex:&ctx->rtcp_dtls_context->ssl_context_mutex;
+	uint8_t channel_status = (is_rtp == TRUE)?(ctx->rtp_channel_status):(ctx->rtcp_channel_status);
+
 	// check if incoming message length is compatible with potential DTLS message
 	if (msgLength<RTP_FIXED_HEADER_SIZE) {
 		return FALSE;
@@ -278,6 +280,8 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 			}
 		}
 
+		ms_message("DTLS Receive %s packet len %d sessions: %p rtp session %p ssl state is %x", is_rtp==TRUE?"RTP":"RTCP", (int)msgLength, ctx->stream_sessions, ctx->stream_sessions->rtp_session, ssl->state);
+
 		/* store the packet in the incoming buffer */
 		if (is_rtp == TRUE) {
 			if (ctx->rtp_incoming_buffer==NULL) { /* buffer is empty */
@@ -297,25 +301,35 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 			}
 		}
 		
-		/* role is unset but we receive a packet: we are caller and shall initialise as server and then process the incoming packet */
-		if (ctx->role == MSDtlsSrtpRoleUnset) {
-			ms_dtls_srtp_set_role(ctx, MSDtlsSrtpRoleIsServer); /* this call will update role and complete server setup */
-		}
-		ms_mutex_lock(mutex);
-		/* process the packet and store result */
-		*ret = ssl_handshake(ssl);
+		/* while DTLS handshake is on going route DTLS packets to polarssl engine through ssl_handshake() */
+		if (ssl->state != SSL_HANDSHAKE_OVER) {
+			/* role is unset but we receive a packet: we are caller and shall initialise as server and then process the incoming packet */
+			if (ctx->role == MSDtlsSrtpRoleUnset) {
+				ms_dtls_srtp_set_role(ctx, MSDtlsSrtpRoleIsServer); /* this call will update role and complete server setup */
+			}
+			ms_mutex_lock(mutex);
+			/* process the packet and store result */
+			*ret = ssl_handshake(ssl);
 
-		/* when we are server, we may issue a hello verify, so reset session, keep cookies(transport id) and expect an other Hello from client */
-		if (*ret==POLARSSL_ERR_SSL_HELLO_VERIFY_REQUIRED) {
-			ssl_session_reset(ssl);
-			ssl_set_client_transport_id(ssl, (const unsigned char *)(&(ctx->stream_sessions->rtp_session->snd.ssrc)), 4);
+			/* when we are server, we may issue a hello verify, so reset session, keep cookies(transport id) and expect an other Hello from client */
+			if (*ret==POLARSSL_ERR_SSL_HELLO_VERIFY_REQUIRED) {
+				ssl_session_reset(ssl);
+				ssl_set_client_transport_id(ssl, (const unsigned char *)(&(ctx->stream_sessions->rtp_session->snd.ssrc)), 4);
+			}
+
+			/* if we are client, manage the retransmission timer, unless the handshake is already over */
+			if (ctx->role == MSDtlsSrtpRoleIsClient && channel_status != DTLS_STATUS_HANDSHAKE_OVER) {
+				*time_reference = get_timeval_in_millis();
+			}
+			ms_mutex_unlock(mutex);
+		} else { /* when DTLS handshake is over, route DTLS packets to polarssl engine through ssl_read() */
+			/* we need a buffer to store the message read even if we don't use it */
+			unsigned char *buf = ms_malloc(msgLength+1);
+			ms_mutex_lock(mutex);
+			*ret = ssl_read(ssl, buf, msgLength);
+			ms_mutex_unlock(mutex);
 		}
 
-		/* if we are client, manage the retransmission timer */
-		if (ctx->role == MSDtlsSrtpRoleIsClient) {
-			*time_reference = get_timeval_in_millis();
-		}
-		ms_mutex_unlock(mutex);
 		return TRUE;
 	}
 
@@ -325,7 +339,8 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 
 static void ms_dtls_srtp_check_channels_status(MSDtlsSrtpContext *ctx) {
 
-	if ((ctx->rtp_channel_status == DTLS_STATUS_HANDSHAKE_OVER) && (ctx->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_OVER)) {
+	if (((ctx->rtp_channel_status == DTLS_STATUS_HANDSHAKE_OVER) && (rtp_session_rtcp_mux_enabled(ctx->stream_sessions->rtp_session)))
+		|| ((ctx->rtp_channel_status == DTLS_STATUS_HANDSHAKE_OVER) && (ctx->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_OVER))) {
 		OrtpEventData *eventData;
 		OrtpEvent *ev;
 		/* send event */
@@ -367,9 +382,9 @@ static int ms_dtls_srtp_rtp_sendData (void *ctx, const unsigned char *data, size
 	rtp_session_get_transports(session,&rtpt,NULL);
 
 	/* generate message from raw data */
-	msg = rtp_session_create_packet_raw((uint8_t *)data, (int)length);
+	msg = rtp_session_create_packet_raw((uint8_t *)data, length);
 
-	ret = meta_rtp_transport_modifier_inject_packet(rtpt, context->rtp_modifier, msg , 0);
+	ret = meta_rtp_transport_modifier_inject_packet_to_send(rtpt, context->rtp_modifier, msg , 0);
 
 	freemsg(msg);
 	return ret;
@@ -402,9 +417,9 @@ static int ms_dtls_srtp_rtcp_sendData (void *ctx, const unsigned char *data, siz
 	rtp_session_get_transports(session,NULL,&rtcpt);
 
 	/* generate message from raw data */
-	msg = rtp_session_create_packet_raw((uint8_t *)data, (int)length);
+	msg = rtp_session_create_packet_raw((uint8_t *)data, length);
 
-	ret = meta_rtp_transport_modifier_inject_packet(rtcpt, context->rtcp_modifier, msg , 0);
+	ret = meta_rtp_transport_modifier_inject_packet_to_send(rtcpt, context->rtcp_modifier, msg , 0);
 	freemsg(msg);
 
 	return ret;
@@ -520,7 +535,11 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 					ms_dtls_srtp_check_channels_status(ctx);
 				}
 			}
-			ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );
+
+			if (ctx->role != MSDtlsSrtpRoleIsServer) { /* close the connection only if we are client, if we are server, the client may ask again for last packets */
+				ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );
+			}
+
 		}
 		return 0;
 	}
@@ -821,19 +840,23 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 		ms_warning("DTLS start but no context\n");
 		return;
 	}
-	ms_message("DTLS start stream on stream sessions [%p]", context->stream_sessions);
+	ms_message("DTLS start stream on stream sessions [%p], RCTP mux is %s", context->stream_sessions, rtp_session_rtcp_mux_enabled(context->stream_sessions->rtp_session)?"enabled":"disabled");
+
 	/* if we are client, start the handshake(send a clientHello) */
 	if (context->role == MSDtlsSrtpRoleIsClient) {
 		ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
-		ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
 		ssl_set_endpoint(&(context->rtp_dtls_context->ssl), SSL_IS_CLIENT);
 		ssl_handshake(&(context->rtp_dtls_context->ssl));
 		context->rtp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
-		ssl_set_endpoint(&(context->rtcp_dtls_context->ssl), SSL_IS_CLIENT);
-		ssl_handshake(&(context->rtcp_dtls_context->ssl));
-		context->rtcp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
 		ms_mutex_unlock(&context->rtp_dtls_context->ssl_context_mutex);
-		ms_mutex_unlock(&context->rtcp_dtls_context->ssl_context_mutex);
+		/* We shall start handshake on RTCP channel too only if RTCP mux is not enabled */
+		if (!rtp_session_rtcp_mux_enabled(context->stream_sessions->rtp_session)) {
+			ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
+			ssl_set_endpoint(&(context->rtcp_dtls_context->ssl), SSL_IS_CLIENT);
+			ssl_handshake(&(context->rtcp_dtls_context->ssl));
+			context->rtcp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
+			ms_mutex_unlock(&context->rtcp_dtls_context->ssl_context_mutex);
+		}
 	}
 
 }

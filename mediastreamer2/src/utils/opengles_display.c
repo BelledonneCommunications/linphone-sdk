@@ -102,7 +102,7 @@ struct opengles_display {
 	float zoom_cy;
 };
 
-struct opengles_display* ogl_display_new() {
+struct opengles_display* ogl_display_new(void) {
 	struct opengles_display* result =
 		(struct opengles_display*) malloc(sizeof(struct opengles_display));
 	if (result == 0) {

@@ -100,9 +100,10 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 	}
 }
 
-void media_stream_init(MediaStream *stream) {
+void media_stream_init(MediaStream *stream, MSFactory *factory) {
 	stream->evd = ortp_ev_dispatcher_new(stream->sessions.rtp_session);
 	stream->evq = ortp_ev_queue_new();
+	stream->factory = factory; /*the factory is used later to instanciate everything in mediastreamer2.*/
 	rtp_session_register_event_queue(stream->sessions.rtp_session, stream->evq);
 }
 
@@ -316,10 +317,6 @@ void media_stream_iterate(MediaStream *stream){
 
 	if (stream->evd) {
 		ortp_ev_dispatcher_iterate(stream->evd);
-	}
-	
-	if (stream->type == MSText) { // TODO: find a better way
-		text_stream_iterate((TextStream *)stream);
 	}
 
 	if (stream->evq){

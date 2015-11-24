@@ -109,11 +109,14 @@ MS2_PUBLIC void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMedia
 
 bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,MediaStreamDir dir);
 
-MSSrtpCtx* ms_srtp_context_new();
+MSSrtpCtx* ms_srtp_context_new(void);
 void ms_srtp_context_delete(MSSrtpCtx *session);
 
 
 void register_video_preset_high_fps(MSVideoPresetsManager *manager);
+
+MSFilter *_ms_create_av_player(const char *filename);
+void video_recorder_handle_event(void *userdata, MSFilter *recorder, unsigned int event, void *event_arg);
 
 
 #ifdef __cplusplus

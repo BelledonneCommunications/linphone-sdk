@@ -21,39 +21,50 @@
 ############################################################################
 
 set(simple_executables bench ring mtudiscover tones)
-if (ENABLE_VIDEO)
+if(ENABLE_VIDEO)
 	list(APPEND simple_executables videodisplay test_x11window)
 endif()
-foreach (simple_executable ${simple_executables})
+foreach(simple_executable ${simple_executables})
+	set(${simple_executable}_SOURCE_FILES ${simple_executable}.c)
+	apply_compile_flags(${simple_executable}_SOURCE_FILES "CPP" "C")
 	add_executable(${simple_executable} ${simple_executable}.c)
 	target_link_libraries(${simple_executable} mediastreamer_voip mediastreamer_base)
 endforeach()
 
-add_executable(ms-echo echo.c) #to avoid conflict with bash command
+set(ECHO_SOURCE_FILES echo.c)
+apply_compile_flags(ECHO_SOURCE_FILES "CPP" "C")
+add_executable(ms-echo ${ECHO_SOURCE_FILES}) # Do not name the target "echo" to avoid conflict with the shell echo command
 target_link_libraries(ms-echo mediastreamer_voip mediastreamer_base)
 
-if (PCAP_FOUND)
-	add_executable(pcap_playback pcap_playback.c common.c)
-	target_link_libraries(pcap_playback mediastreamer_voip mediastreamer_base)
+if(PCAP_FOUND)
+	set(PCAP_PLAYBACK_SOURCE_FILES pcap_playback.c common.c)
+	apply_compile_flags(PCAP_PLAYBACK_SOURCE_FILES "CPP" "C")
+	add_executable(pcap_playback ${PCAP_PLAYBACK_SOURCE_FILES})
+	target_link_libraries(pcap_playback mediastreamer_voip mediastreamer_base ${PCAP_LIBRARIES})
 	target_include_directories(pcap_playback PUBLIC ${PCAP_INCLUDE_DIRS})
-	target_link_libraries(pcap_playback ${PCAP_LIBRARIES})
 endif()
 
-set(MEDIASTREAM_SOURCE_FILES mediastream.c common.c)
+set(MEDIASTREAM_SOURCE_FILES_C mediastream.c common.c)
+set(MEDIASTREAM_SOURCE_FILES_OBJC )
 if(APPLE)
-	list(APPEND MEDIASTREAM_SOURCE_FILES mediastream_cocoa.m)
+	list(APPEND MEDIASTREAM_SOURCE_FILES_OBJC mediastream_cocoa.m)
 endif()
-add_executable(mediastream ${MEDIASTREAM_SOURCE_FILES})
+apply_compile_flags(MEDIASTREAM_SOURCE_FILES_C "CPP" "C")
+apply_compile_flags(MEDIASTREAM_SOURCE_FILES_OBJC "CPP" "OBJC")
+add_executable(mediastream ${MEDIASTREAM_SOURCE_FILES_C} ${MEDIASTREAM_SOURCE_FILES_OBJC})
 target_link_libraries(mediastream mediastreamer_voip mediastreamer_base)
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+if(LINK_FLAGS_STR)
 	set_target_properties(mediastream PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
 
-add_executable(mkvstream mkvstream.c)
-target_link_libraries(mkvstream mediastreamer_voip mediastreamer_base)
+if(ENABLE_VIDEO)
+	set(MKVSTREAM_SOURCE_FILES mkvstream.c)
+	apply_compile_flags(MKVSTREAM_SOURCE_FILES "CPP" "C")
+	add_executable(mkvstream ${MKVSTREAM_SOURCE_FILES})
+	target_link_libraries(mkvstream mediastreamer_voip mediastreamer_base)
 
-install(TARGETS mediastream mkvstream
-	RUNTIME DESTINATION bin
-)
-
+	install(TARGETS mediastream mkvstream
+		RUNTIME DESTINATION bin
+	)
+endif()

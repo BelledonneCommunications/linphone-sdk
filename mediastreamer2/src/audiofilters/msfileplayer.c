@@ -436,6 +436,13 @@ static int player_get_nch(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int player_get_fmtp(MSFilter *f, void *arg){
+	PlayerData *d=(PlayerData*)f->data;
+	MSPinFormat *pinfmt = (MSPinFormat*)arg;
+	if (pinfmt->pin == 0) pinfmt->fmt = ms_factory_get_audio_format(f->factory, "pcm", d->rate, d->nchannels, NULL);
+	return 0;
+}
+
 static MSFilterMethod player_methods[]={
 	{	MS_FILE_PLAYER_OPEN,	player_open	},
 	{	MS_FILE_PLAYER_START,	player_start	},
@@ -453,6 +460,7 @@ static MSFilterMethod player_methods[]={
 	{ MS_PLAYER_CLOSE, player_close },
 	{ MS_PLAYER_GET_STATE, player_get_state },
 	{ MS_PLAYER_SET_LOOP, player_loop },
+	{ MS_FILTER_GET_OUTPUT_FMT, player_get_fmtp },
 	{	0,			NULL		}
 };
 

@@ -86,7 +86,7 @@ static bool_t wait_for_context_state(pa_context_state_t success_state, pa_contex
 	return state == success_state;
 }
 
-static void init_pulse_context(){
+static void init_pulse_context(void){
 	if (context==NULL){
 		pa_loop=pa_threaded_mainloop_new();
 		context=pa_context_new(pa_threaded_mainloop_get_api(pa_loop),NULL);
@@ -96,7 +96,7 @@ static void init_pulse_context(){
 	}
 }
 
-static void uninit_pulse_context(){
+static void uninit_pulse_context(void){
 	pa_context_disconnect(context);
 	pa_context_unref(context);
 	pa_threaded_mainloop_stop(pa_loop);
@@ -298,8 +298,10 @@ typedef struct _Stream{
 	char *dev;
 	double init_volume;
 	uint64_t last_stats;
+	uint64_t last_flowcontrol_op;
 	int underflow_notifs;
 	int overflow_notifs;
+	int min_buffer_size;
 }Stream;
 
 static void stream_disconnect(Stream *s);
@@ -351,9 +353,14 @@ static size_t stream_play(Stream *s, size_t nbytes) {
 
 	if (ms_bufferizer_get_avail(&s->bufferizer) >= nbytes){
 		uint8_t *data;
+		int buffer_size;
 		data = ms_new(uint8_t, nbytes);
 		ms_mutex_lock(&s->mutex);
 		ms_bufferizer_read(&s->bufferizer, data, nbytes);
+		buffer_size = ms_bufferizer_get_avail(&s->bufferizer);
+		if(s->min_buffer_size == -1 || buffer_size < s->min_buffer_size) {
+			s->min_buffer_size = buffer_size;
+		}
 		ms_mutex_unlock(&s->mutex);
 		pa_stream_write(s->stream, data, nbytes, ms_free, 0, PA_SEEK_RELATIVE);
 	}
@@ -389,6 +396,8 @@ static bool_t stream_connect(Stream *s) {
 	int err;
 	pa_buffer_attr attr;
 	pa_cvolume volume, *volume_ptr = NULL;
+	
+	s->min_buffer_size = -1;
 	
 	attr.maxlength = -1;
 	attr.fragsize = pa_usec_to_bytes(targeted_latency * 1000, &s->sampleSpec);
@@ -672,6 +681,9 @@ static MSFilterDesc pulse_read_desc={
 };
 
 
+static const int flow_control_op_interval = 1000;
+static const int flow_control_threshold = 20; // ms
+
 typedef Stream PlaybackStream;
 
 static void pulse_write_init(MSFilter *f){
@@ -688,6 +700,7 @@ static void pulse_write_preprocess(MSFilter *f) {
 		ms_error("Pulseaudio: fail to connect playback stream");
 	}
 	s->last_stats = (uint64_t)-1;
+	s->last_flowcontrol_op = (uint64_t)-1;
 }
 
 static void pulse_write_process(MSFilter *f){
@@ -703,9 +716,10 @@ static void pulse_write_process(MSFilter *f){
 		nwritable = pa_stream_writable_size(s->stream);
 		stream_play(s, nwritable);
 		pa_threaded_mainloop_unlock(pa_loop);
-		if (s->last_stats == (uint64_t)-1){
+		
+		if (s->last_stats == (uint64_t)-1) {
 			s->last_stats = f->ticker->time;
-		}else if (f->ticker->time - s->last_stats >= 5000) {
+		} else if (f->ticker->time - s->last_stats >= 5000) {
 			pa_usec_t latency;
 			int is_negative;
 			int err;
@@ -721,6 +735,21 @@ static void pulse_write_process(MSFilter *f){
 				s->underflow_notifs = 0;
 				s->overflow_notifs = 0;
 			}
+		}
+		
+		if (s->last_flowcontrol_op == (uint64_t)-1) {
+			s->last_flowcontrol_op = f->ticker->time;
+		} else if(f->ticker->time - s->last_flowcontrol_op >= flow_control_op_interval) {
+			size_t threshold_bytes = pa_usec_to_bytes(flow_control_threshold * 1000, &s->sampleSpec);
+			ms_mutex_lock(&s->mutex);
+			if(s->min_buffer_size >= threshold_bytes) {
+				size_t nbytes_to_drop = s->min_buffer_size - threshold_bytes/4;
+				ms_warning("pulseaudio: too much data waiting in the writing buffer. Droping %i bytes", (int)nbytes_to_drop);
+				ms_bufferizer_skip_bytes(&s->bufferizer, nbytes_to_drop);
+				s->min_buffer_size = -1;
+			}
+			ms_mutex_unlock(&s->mutex);
+			s->last_flowcontrol_op = f->ticker->time;
 		}
 	} else {
 		ms_queue_flush(f->inputs[0]);

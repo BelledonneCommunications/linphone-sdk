@@ -32,9 +32,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <math.h>
 
-static const float max_e = (32768* 0.7);   /* 0.7 - is RMS factor */
-static const float coef = 0.2; /* floating averaging coeff. for energy */
-static const float silence_threshold=0.01;
+static const float max_e = (32768* 0.7f);   /* 0.7 - is RMS factor */
+static const float coef = 0.2f; /* floating averaging coeff. for energy */
+static const float silence_threshold=0.01f;
 
 typedef struct _VadDtxContext{
 	int silence_mode;/*set to 1 if a silence period is running*/
@@ -78,8 +78,8 @@ static void update_energy(VadDtxContext *v, int16_t *signal, int numsamples, uin
 		int s=signal[i];
 		acc += s * s;
 	}
-	en = (sqrt(acc / numsamples)+1) / max_e;
-	v->energy = (en * coef) + v->energy * (1.0 - coef);
+	en = (float)((sqrt(acc / numsamples)+1) / max_e);
+	v->energy = (en * coef) + v->energy * (1.0f - coef);
 	ortp_extremum_record_max(&v->max,curtime,v->energy);
 	//ms_message("Energy=%f, current max=%f",v->energy, ortp_extremum_get_current(&v->max));
 }
@@ -127,7 +127,7 @@ static void vad_dtx_process(MSFilter *f){
 
 #else
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		update_energy(ctx,(int16_t*)m->b_rptr, (m->b_wptr - m->b_rptr) / 2, f->ticker->time);
+		update_energy(ctx,(int16_t*)m->b_rptr, (int)((m->b_wptr - m->b_rptr) / 2), f->ticker->time);
 
 		if (ortp_extremum_get_current(&ctx->max)<silence_threshold){
 			if (!ctx->silence_mode){

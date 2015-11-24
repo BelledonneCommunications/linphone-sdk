@@ -41,10 +41,10 @@ static int recorder_close(MSFilter *f, void *arg);
 /*********************************************************************************************
  * Module interface                                                                          *
  *********************************************************************************************/
-typedef void *(*ModuleNewFunc)();
+typedef void *(*ModuleNewFunc)(void);
 typedef void (*ModuleFreeFunc)(void *obj);
 typedef void (*ModuleSetFunc)(void *obj, const MSFmtDescriptor *fmt);
-typedef void (*ModulePreProFunc)(void *obj, MSQueue *input, MSQueue *output);
+typedef int (*ModulePreProFunc)(void *obj, MSQueue *input, MSQueue *output);
 typedef mblk_t *(*ModuleProFunc)(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize);
 typedef void (*ModuleReverseFunc)(void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize);
 typedef void (*ModulePrivateDataFunc)(const void *obj, uint8_t **data, size_t *data_size);
@@ -212,7 +212,7 @@ typedef struct {
 	H264Private *codecPrivate;
 } H264Module;
 
-static void *h264_module_new() {
+static void *h264_module_new(void) {
 	H264Module *mod = ms_new0(H264Module, 1);
 	rfc3984_init(&mod->rfc3984Context);
 	rfc3984_set_mode(&mod->rfc3984Context,1);
@@ -228,7 +228,7 @@ static void h264_module_free(void *data) {
 	ms_free(obj);
 }
 
-static void h264_module_preprocessing(void *data, MSQueue *input, MSQueue *output) {
+static int h264_module_preprocessing(void *data, MSQueue *input, MSQueue *output) {
 	H264Module *obj = (H264Module *)data;
 	MSQueue queue;
 	mblk_t *inputBuffer = NULL;
@@ -245,6 +245,8 @@ static void h264_module_preprocessing(void *data, MSQueue *input, MSQueue *outpu
 			ms_queue_put(output, frame);
 		}
 	}
+
+	return 0;
 }
 
 static int h264_nalu_type(const mblk_t *nalu) {
@@ -431,35 +433,35 @@ typedef struct _Vp8Module {
 	uint16_t cseq;
 } Vp8Module;
 
-void *vp8_module_new() {
+static void *vp8_module_new(void) {
 	Vp8Module *obj = (Vp8Module *)ms_new0(Vp8Module, 1);
 	vp8rtpfmt_unpacker_init(&obj->unpacker, NULL, FALSE, TRUE, FALSE);
 	vp8rtpfmt_packer_init(&obj->packer);
 	return obj;
 }
 
-void vp8_module_free(void *obj) {
+static void vp8_module_free(void *obj) {
 	Vp8Module *mod = (Vp8Module *)obj;
 	vp8rtpfmt_unpacker_uninit(&mod->unpacker);
 	vp8rtpfmt_packer_uninit(&mod->packer);
 	ms_free(mod);
 }
 
-void vp8_module_preprocess(void *obj, MSQueue *input, MSQueue *output) {
+static int vp8_module_preprocess(void *obj, MSQueue *input, MSQueue *output) {
 	Vp8RtpFmtUnpackerCtx *unpacker = (Vp8RtpFmtUnpackerCtx *)obj;
 	Vp8RtpFmtFrameInfo infos;
 	vp8rtpfmt_unpacker_feed(unpacker, input);
-	vp8rtpfmt_unpacker_get_frame(unpacker, output, &infos);
+	return vp8rtpfmt_unpacker_get_frame(unpacker, output, &infos);
 }
 
-mblk_t *vp8_module_process(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize) {
+static mblk_t *vp8_module_process(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize) {
 	uint8_t first_byte = *buffer->b_rptr;
 	*isKeyFrame = !(first_byte & 0x01);
 	*isVisible = first_byte & 0x10;
 	return buffer;
 }
 
-void vp8_module_reverse(void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
+static void vp8_module_reverse(void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
 	Vp8Module *mod = (Vp8Module *)obj;
 	MSList *packer_input = NULL;
 	Vp8RtpFmtPacket *packet = ms_new0(Vp8RtpFmtPacket, 1);
@@ -484,7 +486,7 @@ void vp8_module_reverse(void *obj, mblk_t *input, MSQueue *output, ms_bool_t isF
 	}
 }
 
-ms_bool_t vp8_module_is_keyframe(const mblk_t *frame) {
+static ms_bool_t vp8_module_is_keyframe(const mblk_t *frame) {
 	uint8_t first_byte = *frame->b_rptr;
 	return !(first_byte & 0x01);
 }
@@ -559,7 +561,7 @@ static void wav_private_load(WavPrivate *obj, const uint8_t *data) {
 }
 
 /* µLaw module */
-static void *mu_law_module_new() {
+static void *mu_law_module_new(void) {
 	return ms_new0(WavPrivate, 1);
 }
 
@@ -651,7 +653,7 @@ static void opus_codec_private_load(OpusCodecPrivate *obj, const uint8_t *data, 
 }
 
 // OpusModule
-static void *opus_module_new() {
+static void *opus_module_new(void) {
 	OpusCodecPrivate *obj = ms_new0(OpusCodecPrivate, 1);
 	opus_codec_private_init(obj);
 	return obj;
@@ -778,14 +780,15 @@ static void module_set(Module *module, const MSFmtDescriptor *format) {
 	}
 }
 
-static void module_preprocess(Module *module, MSQueue *input, MSQueue *output) {
+static int module_preprocess(Module *module, MSQueue *input, MSQueue *output) {
 	if(moduleDescs[module->id]->preprocess != NULL) {
-		moduleDescs[module->id]->preprocess(module->data, input, output);
+		return moduleDescs[module->id]->preprocess(module->data, input, output);
 	} else {
 		mblk_t *buffer;
 		while((buffer = ms_queue_get(input)) != NULL) {
 			ms_queue_put(output, buffer);
 		}
+		return 0;
 	}
 }
 
@@ -1014,6 +1017,22 @@ static ms_bool_t matroska_load_file(Matroska *obj) {
 			MATROSKA_LinkClusterBlocks((matroska_cluster *)obj->cluster, obj->info, obj->tracks, FALSE);
 			obj->nbClusters++;
 		}
+	}
+	
+	/* Create an empty MetaSeek table if no has been found and create 
+	   the missing entries */
+	if(obj->metaSeek == NULL) obj->metaSeek = (ebml_master *)EBML_MasterAddElt(obj->segment, &MATROSKA_ContextSeekHead, FALSE);
+	if(obj->infoMeta == NULL) {
+		obj->infoMeta = (matroska_seekpoint *)EBML_MasterAddElt(obj->metaSeek, &MATROSKA_ContextSeek, TRUE);
+		MATROSKA_LinkMetaSeekElement(obj->infoMeta, (ebml_element *)obj->info);
+	}
+	if(obj->tracksMeta == NULL) {
+		obj->tracksMeta = (matroska_seekpoint *)EBML_MasterAddElt(obj->metaSeek, &MATROSKA_ContextSeek, TRUE);
+		MATROSKA_LinkMetaSeekElement(obj->tracksMeta, (ebml_element *)obj->tracks);
+	}
+	if(obj->cuesMeta == NULL) {
+		obj->cuesMeta = (matroska_seekpoint *)EBML_MasterAddElt(obj->metaSeek, &MATROSKA_ContextSeek, TRUE);
+		MATROSKA_LinkMetaSeekElement(obj->cuesMeta, (ebml_element *)obj->cues);
 	}
 	return TRUE;
 }
@@ -1290,7 +1309,7 @@ static int matroska_get_codec_private(const Matroska *obj, int trackNum, const u
 	ebml_binary *codecPrivate;
 	if(trackEntry == NULL)
 		return -1;
-	codecPrivate = (ebml_binary *)EBML_MasterGetChild(trackEntry, &MATROSKA_ContextCodecPrivate);
+	codecPrivate = (ebml_binary *)EBML_MasterFindChild(trackEntry, &MATROSKA_ContextCodecPrivate);
 	if(codecPrivate == NULL)
 		return -2;
 
@@ -1824,6 +1843,13 @@ static int recorder_open_file(MSFilter *f, void *arg) {
 	return -1;
 }
 
+static void recorder_request_fir(MSFilter *f, MKVRecorder *obj){
+	if (obj->lastFirTime == -1 || obj->lastFirTime +2000 < f->ticker->time){
+		obj->lastFirTime = f->ticker->time;
+		ms_filter_notify_no_arg(f, MS_RECORDER_NEEDS_FIR);
+	}
+}
+
 static int recorder_start(MSFilter *f, void *arg) {
 	MKVRecorder *obj = (MKVRecorder *)f->data;
 	int i;
@@ -1874,6 +1900,7 @@ static int recorder_start(MSFilter *f, void *arg) {
 	}
 	obj->state = MSRecorderRunning;
 	obj->needKeyFrame = TRUE;
+	recorder_request_fir(f, obj);
 	ms_message("MKVRecorder: recording successfully started");
 	ms_filter_unlock(f);
 	return 0;
@@ -1913,13 +1940,6 @@ static int recorder_stop(MSFilter *f, void *arg) {
 	return -1;
 }
 
-static void recorder_request_fir(MSFilter *f, MKVRecorder *obj){
-	if (obj->lastFirTime == -1 || obj->lastFirTime +2000 < f->ticker->time){
-		obj->lastFirTime = f->ticker->time;
-		ms_filter_notify_no_arg(f, MS_RECORDER_NEEDS_FIR);
-	}
-}
-
 static void recorder_process(MSFilter *f) {
 	MKVRecorder *obj = f->data;
 	int i;
@@ -1942,7 +1962,10 @@ static void recorder_process(MSFilter *f) {
 				ms_queue_init(&frames);
 				ms_queue_init(&frames_ms);
 
-				module_preprocess(obj->modulesList[i], f->inputs[i], &frames);
+				if ((module_preprocess(obj->modulesList[i], f->inputs[i], &frames) < 0) && obj->needKeyFrame) {
+					ms_warning("MKVRecorder: preprocess error, waiting for an I-frame");
+					recorder_request_fir(f, obj);
+				}
 				while((buffer = ms_queue_get(&frames)) != NULL) {
 					mblk_set_timestamp_info(buffer, time_loop_canceler_apply(obj->timeLoopCancelers[i], mblk_get_timestamp_info(buffer)));
 					changeClockRate(buffer, obj->inputDescsList[i]->rate, 1000);
@@ -2015,7 +2038,7 @@ static int recorder_close(MSFilter *f, void *arg) {
 				if(codecPrivateDataSize > 0) {
 					matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
 				}
-				ms_free(codecPrivateData);
+				if (codecPrivateData) ms_free(codecPrivateData);
 			} else {
 				matroska_del_track(&obj->file, i+1);
 			}
@@ -2425,6 +2448,7 @@ static int player_open_file(MSFilter *f, void *arg) {
 	obj->state = MSPlayerPaused;
 
 	ms_filter_unlock(f);
+	ms_filter_notify_no_arg(f,MS_FILTER_OUTPUT_FMT_CHANGED);
 	return 0;
 
 	fail:

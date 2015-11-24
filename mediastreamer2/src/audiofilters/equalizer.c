@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef MS_FIXED_POINT
 #define GAIN_ZERODB 20000
 #else
-#define GAIN_ZERODB 1.0
+#define GAIN_ZERODB 1.0f
 #endif
 
 #define EQUALIZER_DEFAULT_RATE 8000
@@ -47,7 +47,7 @@ typedef struct _EqualizerState{
 
 static void equalizer_state_flatten(EqualizerState *s){
 	int i;
-	ms_word16_t val=GAIN_ZERODB/s->nfft;
+	ms_word16_t val=(ms_word16_t)(GAIN_ZERODB/s->nfft);
 	s->fft_cpx[0]=val;
 	for(i=1;i<s->nfft;i+=2)
 		s->fft_cpx[i]=val;
@@ -150,7 +150,7 @@ static void equalizer_state_set(EqualizerState *s, int freq_0, float gain, int f
 	//int low,high;
 	int i, f;
 	int delta_f = equalizer_state_index2hz(s, 1);
-	float sqrt_gain = sqrt(gain);
+	float sqrt_gain = (float)sqrt(gain);
 	int mid = equalizer_state_hz_to_index(s, freq_0);
 	freq_bw-= delta_f/2;   /* subtract a constant - compensates for limited fft steepness at low f */
 	if (freq_bw < delta_f/2)
@@ -210,8 +210,8 @@ static void norm_and_apodize(ms_word16_t *s, int len){
 	float x;
 	float w;
 	for(i=0;i<len;++i){
-		x=(float)i*2*M_PI/(float)len;
-		w=0.54 - (0.46*cos(x));
+		x=(float)((float)i*2*M_PI/(float)len);
+		w=(float)(0.54 - (0.46*cos(x)));
 		//w=0.42 - (0.5*cos(x)) + (0.08*cos(2*x));
 		s[i]=w*(float)s[i];
 	}
@@ -285,7 +285,7 @@ static void equalizer_process(MSFilter *f){
 	EqualizerState *s=(EqualizerState*)f->data;
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
 		if (s->active){
-			equalizer_state_run(s,(int16_t*)m->b_rptr,(m->b_wptr-m->b_rptr)/2);
+			equalizer_state_run(s,(int16_t*)m->b_rptr,(int)((m->b_wptr-m->b_rptr)/2));
 		}
 		ms_queue_put(f->outputs[0],m);
 	}
@@ -294,14 +294,14 @@ static void equalizer_process(MSFilter *f){
 static int equalizer_set_gain(MSFilter *f, void *data){
 	EqualizerState *s=(EqualizerState*)f->data;
 	MSEqualizerGain *d=(MSEqualizerGain*)data;
-	equalizer_state_set(s,d->frequency,d->gain,d->width);
+	equalizer_state_set(s,(int)d->frequency,d->gain,(int)d->width);
 	return 0;
 }
 
 static int equalizer_get_gain(MSFilter *f, void *data){
 	EqualizerState *s=(EqualizerState*)f->data;
 	MSEqualizerGain *d=(MSEqualizerGain*)data;
-	d->gain=equalizer_state_get(s,d->frequency);
+	d->gain=equalizer_state_get(s,(int)d->frequency);
 	d->width=0;
 	return 0;
 }

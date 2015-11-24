@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-if(MSVC AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+if(MSVC AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 	find_library(LIBGCC NAMES gcc)
 	find_library(LIBMINGWEX NAMES mingwex)
 endif()
@@ -30,7 +30,7 @@ if(NOT AWK_PROGRAM)
 	message(FATAL_ERROR "You need the awk program to build mediastreamer2.")
 endif()
 
-set(BASE_SOURCE_FILES
+set(BASE_SOURCE_FILES_C
 	base/eventqueue.c
 	base/mscommon.c
 	base/msfactory.c
@@ -47,18 +47,18 @@ set(BASE_SOURCE_FILES
 	otherfilters/void.c
 )
 
-set(BASE_GENERATED_SOURCE_FILES
+set(BASE_GENERATED_SOURCE_FILES_C
 	${CMAKE_CURRENT_BINARY_DIR}/basedescs.h
 	${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
 )
-set_source_files_properties(${BASE_GENERATED_SOURCE_FILES} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${BASE_GENERATED_SOURCE_FILES_C} PROPERTIES GENERATED TRUE)
 find_package(Git)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
 	COMMAND ${CMAKE_COMMAND} -DGIT_EXECUTABLE=${GIT_EXECUTABLE} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/gitversion.cmake)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/basedescs.h
 	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR=${CMAKE_CURRENT_SOURCE_DIR}/../
 		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
-		-DTYPE=base -DSOURCE_FILES="${BASE_SOURCE_FILES}"
+		-DTYPE=base -DSOURCE_FILES="${BASE_SOURCE_FILES_C}"
 		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake)
 
 add_definitions(
@@ -72,20 +72,21 @@ add_definitions(
 set(BASE_LIBS
 	${ORTP_LIBRARIES}
 )
-if(WIN32 AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 	list(APPEND BASE_LIBS ${LIBGCC} ${LIBMINGWEX} ole32 oleaut32 uuid)
 endif()
 if(HAVE_DLOPEN)
 	list(APPEND BASE_LIBS dl)
 endif()
 
+apply_compile_flags(BASE_SOURCE_FILES_C "CPP" "C")
+apply_compile_flags(BASE_GENERATED_SOURCE_FILES_C "CPP" "C")
+
 if(ENABLE_STATIC)
-	add_library(mediastreamer_base STATIC ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
-	target_link_libraries(mediastreamer_base ${BASE_LIBS})
+	add_library(mediastreamer_base STATIC ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C} ${BASE_GENERATED_SOURCE_FILES_C})
 else()
-	add_library(mediastreamer_base SHARED ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
+	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C} ${BASE_GENERATED_SOURCE_FILES_C})
 	set_target_properties(mediastreamer_base PROPERTIES VERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE C)
-	target_link_libraries(mediastreamer_base ${BASE_LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/mediastreamer_base.pdb
@@ -95,8 +96,9 @@ else()
 		endif()
 	endif()
 endif()
+target_link_libraries(mediastreamer_base ${BASE_LIBS})
 
-install(TARGETS mediastreamer_base EXPORT Mediastreamer2Targets
+install(TARGETS mediastreamer_base EXPORT ${EXPORT_TARGETS_NAME}Targets
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
@@ -105,7 +107,7 @@ install(TARGETS mediastreamer_base EXPORT Mediastreamer2Targets
 
 
 
-set(VOIP_SOURCE_FILES
+set(VOIP_SOURCE_FILES_C
 	audiofilters/alaw.c
 	audiofilters/audiomixer.c
 	audiofilters/chanadapt.c
@@ -155,61 +157,66 @@ set(VOIP_SOURCE_FILES
 	voip/qosanalyzer.c
 	voip/qosanalyzer.h
 	voip/qualityindicator.c
+	otherfilters/rfc4103_source.c
+	otherfilters/rfc4103_sink.c
 	voip/rfc4103_textstream.c
 	voip/ringstream.c
 	voip/stun.c
 	voip/stun_udp.c
 )
+set(VOIP_SOURCE_FILES_CXX )
+set(VOIP_SOURCE_FILES_OBJC )
 
 if(ENABLE_ALSA)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/alsa.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/alsa.c)
 endif()
 if(ENABLE_ARTSC)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/arts.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/arts.c)
 endif()
 if(ENABLE_MACSND)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/macsnd.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/macsnd.c)
 endif()
 if(ENABLE_MACAQSND)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/aqsnd.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/aqsnd.c)
 endif()
 if(ENABLE_OSS)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/oss.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/oss.c)
 endif()
 if(ENABLE_PORTAUDIO)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/pasnd.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/pasnd.c)
 endif()
 if(ENABLE_PULSEAUDIO)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/pulseaudio.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/pulseaudio.c)
 endif()
 if(ENABLE_QSA)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/qsa.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/qsa.c)
 endif()
 if(IOS)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/msiounit.m audiofilters/aac-eld.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/aac-eld.c)
+	list(APPEND VOIP_SOURCE_FILES_OBJC audiofilters/msiounit.m)
 endif()
-if(WIN32 AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
-	list(APPEND VOIP_SOURCE_FILES audiofilters/winsnd3.c)
+if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/winsnd3.c)
 endif()
 
 if(GSM_FOUND)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/gsm.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/gsm.c)
 endif()
 if(OPUS_FOUND)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/msopus.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/msopus.c)
 endif()
 if(ENABLE_RESAMPLE)
-	list(APPEND VOIP_SOURCE_FILES audiofilters/msresample.c)
+	list(APPEND VOIP_SOURCE_FILES_C audiofilters/msresample.c)
 endif()
 if(SPEEX_FOUND)
-	list(APPEND VOIP_SOURCE_FILES
+	list(APPEND VOIP_SOURCE_FILES_C
 		audiofilters/msspeex.c
 		audiofilters/speexec.c
 	)
 endif()
 
 if(ENABLE_VIDEO)
-	list(APPEND VOIP_SOURCE_FILES
+	list(APPEND VOIP_SOURCE_FILES_C
 		utils/bits_rw.c
 		videofilters/extdisplay.c
 		videofilters/mire.c
@@ -228,34 +235,39 @@ if(ENABLE_VIDEO)
 		voip/videostream.c
 		voip/video_preset_high_fps.c
 	)
-	if(WIN32 AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+	if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 		add_definitions(-DHAVE_DIRECTSHOW)
-		list(APPEND VOIP_SOURCE_FILES
-			videofilters/msdscap-mingw.cc
+		list(APPEND VOIP_SOURCE_FILES_C
 			videofilters/drawdib-display.c
 		)
-		set_source_files_properties(videofilters/msdscap-mingw.cc PROPERTIES LANGUAGE CXX)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			videofilters/msdscap-mingw.cc
+		)
 	endif()
 	if(APPLE)
 		if(IOS)
-			list(APPEND VOIP_SOURCE_FILES
+			list(APPEND VOIP_SOURCE_FILES_C
 				utils/opengles_display.c
 				utils/opengles_display.h
 				utils/shaders.c
 				utils/shaders.h
+				voip/scaler.c
+			)
+			list(APPEND VOIP_SOURCE_FILES_OBJC
 				videofilters/iosdisplay.m
 				videofilters/ioscapture.m
-				voip/scaler.c
 				voip/ioshardware.m
 			)
 		else()
-			list(APPEND VOIP_SOURCE_FILES
+			list(APPEND VOIP_SOURCE_FILES_OBJC
+				videofilters/msosxdisplay.m
+				videofilters/qtcapture.m
+			)
+			list(APPEND VOIP_SOURCE_FILES_C
 				utils/opengles_display.c
 				utils/opengles_display.h
 				utils/shaders.c
 				utils/shaders.h
-				videofilters/msosxdisplay.m
-				videofilters/qtcapture.m
 			)
 		endif()
 	endif()
@@ -263,15 +275,13 @@ if(ENABLE_VIDEO)
 		list(APPEND VOIP_SOURCE_FILES videofilters/videotoolbox.c)
 	endif()
 	if (ENABLE_QNX)
-                list (APPEND VOIP_SOURCE_FILES
-                        videofilters/bb10_display.cpp
-                        videofilters/bb10_capture.cpp
-                )
-                set_source_files_properties(videofilters/bb10_display.cpp PROPERTIES LANGUAGE CXX)
-                set_source_files_properties(videofilters/bb10_capture.cpp PROPERTIES LANGUAGE CXX)
-        endif()
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			videofilters/bb10_display.cpp
+			videofilters/bb10_capture.cpp
+		)
+	endif()
 	if(FFMPEG_FOUND)
-		list(APPEND VOIP_SOURCE_FILES
+		list(APPEND VOIP_SOURCE_FILES_C
 			utils/ffmpeg-priv.c
 			utils/ffmpeg-priv.h
 			utils/swscale.h
@@ -282,54 +292,55 @@ if(ENABLE_VIDEO)
 		)
 	endif()
 	if(GLX_FOUND)
-		list(APPEND VOIP_SOURCE_FILES
+		list(APPEND VOIP_SOURCE_FILES_C
 			utils/opengles_display.c
 			utils/shaders.c
 			videofilters/glxvideo.c
 		)
 	endif()
 	if(SDL_FOUND)
-		list(APPEND VOIP_SOURCE_FILES videofilters/videoout.c)
+		list(APPEND VOIP_SOURCE_FILES_C videofilters/videoout.c)
 	endif()
 	if(THEORA_FOUND)
-		list(APPEND VOIP_SOURCE_FILES videofilters/theora.c)
+		list(APPEND VOIP_SOURCE_FILES_C videofilters/theora.c)
 	endif()
 	if(V4L_FOUND)
 		if(HAVE_LINUX_VIDEODEV_H)
-			list(APPEND VOIP_SOURCE_FILES videofilters/msv4l.c)
+			list(APPEND VOIP_SOURCE_FILES_C videofilters/msv4l.c)
 		endif()
 		if(HAVE_LINUX_VIDEODEV2_H)
-			list(APPEND VOIP_SOURCE_FILES videofilters/msv4l2.c)
+			list(APPEND VOIP_SOURCE_FILES_C videofilters/msv4l2.c)
 		endif()
 	endif()
 	if(VPX_FOUND)
-		list(APPEND VOIP_SOURCE_FILES
+		list(APPEND VOIP_SOURCE_FILES_C
 			videofilters/vp8.c
 			voip/vp8rtpfmt.c
 			voip/vp8rtpfmt.h
 		)
 	endif()
 	if(MATROSKA2_FOUND)
-		list(APPEND VOIP_SOURCE_FILES
+		list(APPEND VOIP_SOURCE_FILES_C
 			videofilters/mkv.c
 			utils/mkv_reader.c
 		)
 	endif()
 	if(X11_FOUND)
-		list(APPEND VOIP_SOURCE_FILES utils/x11_helper.c)
+		list(APPEND VOIP_SOURCE_FILES_C utils/x11_helper.c)
 	endif()
 	if(XV_FOUND)
-		list(APPEND VOIP_SOURCE_FILES videofilters/x11video.c)
+		list(APPEND VOIP_SOURCE_FILES_C videofilters/x11video.c)
 	endif()
 endif()
 
-set(VOIP_GENERATED_SOURCE_FILES
+set(VOIP_GENERATED_SOURCE_FILES_C
 	${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h
 )
+set(VOIP_SOURCE_FILES_ALL ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h
 	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR=${CMAKE_CURRENT_SOURCE_DIR}/../
 		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
-		-DTYPE=voip -DSOURCE_FILES="${VOIP_SOURCE_FILES}"
+		-DTYPE=voip -DSOURCE_FILES="${VOIP_SOURCE_FILES_ALL}"
 		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake)
 if(APPLE OR GLX_FOUND)
 find_program(XXD_PROGRAM xxd)
@@ -340,7 +351,7 @@ find_program(SED_PROGRAM sed)
 if(NOT SED_PROGRAM)
 	message(FATAL_ERROR "You need the sed program to build mediastreamer2.")
 endif()
-list(APPEND VOIP_GENERATED_SOURCE_FILES
+list(APPEND VOIP_GENERATED_SOURCE_FILES_C
 	${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
 	${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
 )
@@ -355,7 +366,15 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
 		-DSOURCE_FILE="yuv2rgb.vs"
 		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake)
 endif()
-set_source_files_properties(${VOIP_GENERATED_SOURCE_FILES} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${VOIP_GENERATED_SOURCE_FILES_C} PROPERTIES GENERATED TRUE)
+
+apply_compile_flags(VOIP_SOURCE_FILES_C "CPP" "C")
+apply_compile_flags(VOIP_GENERATED_SOURCE_FILES_C "CPP" "C")
+apply_compile_flags(VOIP_SOURCE_FILES_OBJC "CPP" "OBJC")
+if(VOIP_SOURCE_FILES_CXX)
+	set_source_files_properties(${VOIP_SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
+	apply_compile_flags(VOIP_SOURCE_FILES_CXX "CPP" "CXX")
+endif()
 
 
 set(VOIP_LIBS
@@ -363,7 +382,7 @@ set(VOIP_LIBS
 	mediastreamer_base
 )
 if(WIN32)
-	if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+	if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 		list(APPEND VOIP_LIBS ${LIBGCC} ${LIBMINGWEX} ole32 oleaut32 uuid)
 		if(ENABLE_VIDEO)
 			list(APPEND VOIP_LIBS gdi32 user32 vfw32)
@@ -442,12 +461,10 @@ if (CAMAPI_FOUND)
 endif()
 
 if(ENABLE_STATIC)
-	add_library(mediastreamer_voip STATIC ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
-	target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
+	add_library(mediastreamer_voip STATIC ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_GENERATED_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
 else()
-	add_library(mediastreamer_voip SHARED ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
+	add_library(mediastreamer_voip SHARED ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_GENERATED_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
 	set_target_properties(mediastreamer_voip PROPERTIES VERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE CXX)
-	target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/mediastreamer_voip.pdb
@@ -457,12 +474,13 @@ else()
 		endif()
 	endif()
 endif()
+target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+if(LINK_FLAGS_STR)
 	set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
 
-install(TARGETS mediastreamer_voip EXPORT Mediastreamer2Targets
+install(TARGETS mediastreamer_voip EXPORT ${EXPORT_TARGETS_NAME}Targets
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib

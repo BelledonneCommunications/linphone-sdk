@@ -55,8 +55,9 @@ extern test_suite_t neon_test_suite;
 #endif
 
 MSWebCam* mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr);
-extern void mediastreamer2_tester_before_all(void(*ftester_printf)(int level, const char *fmt, va_list args));
-extern void mediastreamer2_tester_uninit(void);
+void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args));
+void mediastreamer2_tester_uninit(void);
+int mediastreamer2_tester_set_log_file(const char *filename);
 
 #ifdef __cplusplus
 };

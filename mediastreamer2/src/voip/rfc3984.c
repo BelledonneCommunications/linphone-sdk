@@ -68,8 +68,8 @@ static void send_packet(Rfc3984Context *ctx, MSQueue *rtpq, uint32_t ts, mblk_t 
 	ms_queue_put(rtpq,m);
 }
 
-static void put_nal_size(mblk_t *m, uint16_t sz){
-	uint16_t size=htons(sz);
+static void put_nal_size(mblk_t *m, size_t sz){
+	uint16_t size=htons((uint16_t)sz);
 	*(uint16_t*)m->b_wptr=size;
 	m->b_wptr+=2;
 }
@@ -134,7 +134,7 @@ static void rfc3984_pack_mode_0(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rt
 	int size;
 	while((m=ms_queue_get(naluq))!=NULL){
 		end=ms_queue_empty(naluq);
-		size=m->b_wptr-m->b_rptr;
+		size=(int)(m->b_wptr-m->b_rptr);
 		if (size>ctx->maxsz){
 			ms_warning("This H264 packet does not fit into mtu: size=%i",size);
 		}
@@ -149,7 +149,7 @@ static void rfc3984_pack_mode_1(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rt
 	bool_t end;
 	while((m=ms_queue_get(naluq))!=NULL){
 		end=ms_queue_empty(naluq);
-		sz=m->b_wptr-m->b_rptr;
+		sz=(int)(m->b_wptr-m->b_rptr);
 		if (ctx->stap_a_allowed){
 			if (prevm!=NULL){
 				if ((prevsz+sz)<(ctx->maxsz-2)){

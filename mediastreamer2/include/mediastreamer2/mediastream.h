@@ -57,6 +57,8 @@ struct _RingStream
 	MSFilter *gendtmf;
 	MSFilter *write_resampler;
 	MSFilter *sndwrite;
+	MSFilter *decoder;
+	int srcpin;
 };
 
 typedef struct _RingStream RingStream;
@@ -139,9 +141,10 @@ struct _MediaStream {
 	int target_bitrate;
 	media_stream_process_rtcp_callback_t process_rtcp;
 	OrtpEvDispatcher *evd;
+	MSFactory *factory;
 };
 
-MS2_PUBLIC void media_stream_init(MediaStream *stream);
+MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory);
 
 
 /**
@@ -396,6 +399,7 @@ struct _AudioStream
 	bool_t eq_active;
 	bool_t use_ng;/*noise gate*/
 	bool_t is_ec_delay_set;
+	MSAudioRoute audio_route;
 };
 
 /**
@@ -1170,30 +1174,13 @@ MS2_PUBLIC void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute r
  * @{
 **/
 
-#define TS_OUTBUF_SIZE 32
-#define TS_REDGEN 2
-#define TS_NUMBER_OF_OUTBUF TS_REDGEN + 1
-#define TS_INBUF_SIZE TS_OUTBUF_SIZE * TS_NUMBER_OF_OUTBUF
-#define TS_KEEP_ALIVE_INTERVAL 25000 //10000
-#define TS_SEND_INTERVAL 299
-
-#define TS_FLAG_NOTFIRST 0x01
-#define TS_FLAG_NOCALLBACK 0x02
-
 struct _TextStream
 {
 	MediaStream ms;
-	int flags;
+	MSFilter *rttsource;
+	MSFilter *rttsink;
 	int pt_t140;
-	int pt_red;	
-	int prevseqno;
-	uint8_t inbuf[TS_INBUF_SIZE];
-	size_t inbufsize;
-	uint8_t* inbufpos;
-	uint8_t buf[TS_NUMBER_OF_OUTBUF][TS_OUTBUF_SIZE];
-	int pribuf;
-	size_t bufsize[TS_NUMBER_OF_OUTBUF];
-	uint32_t timestamp[TS_NUMBER_OF_OUTBUF];
+	int pt_red;
 };
 
 typedef struct _TextStream TextStream;
@@ -1250,37 +1237,15 @@ MS2_PUBLIC void text_stream_stop (TextStream * stream);
 MS2_PUBLIC void text_stream_iterate(TextStream *stream);
 
 /**
- * Reads a character from the stream.
- * 
- * @param[in] stream TextStream object previously created with text_stream_new().
- * @return the character read or '\0' if there are no more character to read in the steam.
- **/
-MS2_PUBLIC char text_stream_getchar(TextStream *stream);
-
-/**
- * Writes a character to the stream.
- * To write an utf8 character, just call it multiple times.
- * 
- * @param[in] stream TextStream object previously created with text_stream_new().
- * @param[in] c the Char to send.
- **/
-MS2_PUBLIC void text_stream_putchar(TextStream *stream, const char c);
-
-/**
- * Reads a character from the stream in UTF-32 format.
- * 
- * @param[in] stream TextStream object previously created with text_stream_new().
- * @return the character in UTF-32 format.
- **/
-MS2_PUBLIC uint32_t text_stream_getchar32(TextStream *stream);
-
-/**
  * Writes a character to stream in UTF-32 format.
  * 
  * @param[in] stream TextStream object previously created with text_stream_new().
  * @param[in] i the Char in UTF-32 format.
  **/
 MS2_PUBLIC void text_stream_putchar32(TextStream *stream, uint32_t i);
+
+MS2_PUBLIC void text_stream_prepare_text(TextStream *stream);
+MS2_PUBLIC void text_stream_unprepare_text(TextStream *stream);
 
 /**
  * @}

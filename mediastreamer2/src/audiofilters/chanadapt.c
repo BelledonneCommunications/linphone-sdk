@@ -43,7 +43,7 @@ static void adapter_uninit(MSFilter *f){
 static void adapter_process(MSFilter *f){
 	AdapterState *s=(AdapterState*)f->data;
 	mblk_t *im,*om;
-	int msgsize;
+	size_t msgsize;
 	
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		if (s->inputchans==s->outputchans){

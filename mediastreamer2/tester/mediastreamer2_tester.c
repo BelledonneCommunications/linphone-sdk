@@ -44,7 +44,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	}
 }
 
-void mediastreamer2_tester_before_all(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
+void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
 	if (ftester_printf == NULL) ftester_printf = log_handler;
 	bc_tester_init(ftester_printf, ORTP_MESSAGE, ORTP_ERROR);
 
@@ -65,6 +65,20 @@ void mediastreamer2_tester_before_all(void(*ftester_printf)(int level, const cha
 
 void mediastreamer2_tester_uninit(void) {
 	bc_tester_uninit();
+}
+
+int mediastreamer2_tester_set_log_file(const char *filename) {
+	if (log_file) {
+		fclose(log_file);
+	}
+	log_file = fopen(filename, "w");
+	if (!log_file) {
+		ms_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
+		return -1;
+	}
+	ms_message("Redirecting traces to file [%s]", filename);
+	ortp_set_log_file(log_file);
+	return 0;
 }
 
 static const char* mediastreamer2_helper =
@@ -88,7 +102,7 @@ int main (int argc, char *argv[]) {
 	int i;
 	int ret;
 
-	mediastreamer2_tester_before_all(NULL);
+	mediastreamer2_tester_init(NULL);
 
 	// this allows to launch tester from outside of tester directory
 	if (strstr(argv[0], ".libs")) {
@@ -106,14 +120,7 @@ int main (int argc, char *argv[]) {
 			ortp_set_log_level_mask(ORTP_FATAL);
 		} else if (strcmp(argv[i],"--log-file")==0){
 			CHECK_ARG("--log-file", ++i, argc);
-			log_file=fopen(argv[i],"w");
-			if (!log_file) {
-				ms_error("Cannot open file [%s] for writing logs because [%s]",argv[i],strerror(errno));
-				return -2;
-			} else {
-				ms_message("Redirecting traces to file [%s]",argv[i]);
-				ortp_set_log_file(log_file);
-			}
+			if (mediastreamer2_tester_set_log_file(argv[i]) < 0) return -2;
 		} else {
 			int ret = bc_tester_parse_args(argc, argv, i);
 			if (ret>0) {

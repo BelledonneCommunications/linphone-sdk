@@ -418,7 +418,7 @@ static OSStatus writeRenderProc(void *inRefCon,
 	read=ms_bufferizer_read(d->buffer,ioData->mBuffers[0].mData,ioData->mBuffers[0].mDataByteSize);
 	if (ms_bufferizer_get_avail(d->buffer) >10*inNumFrames*2) {
 		ms_message("we are late, bufferizer sise is [%i] bytes in framezize is [%"UINT32_PRINTF"] bytes"
-					,ms_bufferizer_get_avail(d->buffer)
+					,(int)ms_bufferizer_get_avail(d->buffer)
 					,inNumFrames*2);
 		ms_bufferizer_flush(d->buffer);
 	}

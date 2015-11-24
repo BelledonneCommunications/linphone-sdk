@@ -36,7 +36,7 @@ if(DOXYGEN_FOUND)
 			COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile ${DOC_INPUT_FILES}
 		)
-		add_custom_target(html-doc ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc/html/index.html")
+		add_custom_target(ms2-html-doc ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc/html/index.html")
 		install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doc/html"
 			DESTINATION "${CMAKE_INSTALL_PREFIX}/share/doc/mediastreamer2-${MEDIASTREAMER_VERSION}")
 	else()

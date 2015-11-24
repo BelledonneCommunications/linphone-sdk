@@ -51,12 +51,12 @@
 typedef struct _MSSrtpStreamContext {
 	srtp_t srtp;
 	RtpTransportModifier *modifier;
+	ms_mutex_t mutex;
 	bool_t secured;
 	bool_t mandatory_enabled;
 	bool_t is_rtp;
-	ms_mutex_t mutex;
-
 } MSSrtpStreamContext;
+
 struct _MSSrtpCtx {
 	MSSrtpStreamContext send_rtp_context;
 	MSSrtpStreamContext send_rtcp_context;
@@ -64,7 +64,7 @@ struct _MSSrtpCtx {
 	MSSrtpStreamContext recv_rtcp_context;
 };
 
-MSSrtpCtx* ms_srtp_context_new() {
+MSSrtpCtx* ms_srtp_context_new(void) {
 	MSSrtpCtx* ctx = ms_new0(struct _MSSrtpCtx,1);
 	ctx->send_rtp_context.is_rtp=TRUE;
 	ms_mutex_init(&ctx->send_rtp_context.mutex, NULL);
@@ -107,12 +107,12 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 	bool_t is_rtp=ctx->is_rtp;
 	rtp_header_t *rtp_header=is_rtp?(rtp_header_t*)m->b_rptr:NULL;
 	rtcp_common_header_t *rtcp_header=!is_rtp?(rtcp_common_header_t*)m->b_rptr:NULL;
-	slen=msgdsize(m);
+	slen=(int)msgdsize(m);
 
 	if (rtp_header && (slen>RTP_FIXED_HEADER_SIZE && rtp_header->version==2)) {
 		ms_mutex_lock(&ctx->mutex);
 		if (!ctx->secured) {
-			/*does not make sens to protec, because we don't have any key*/
+			/*does not make sense to protect, because we don't have any key*/
 			err=err_status_ok;
 			slen = 0; /*droping packets*/
 		} else {
@@ -125,7 +125,7 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 		ms_mutex_lock(&ctx->mutex);
 		if (!ctx->secured) {
 			err=err_status_ok;
-			/*does not make sens to protec, because we don't have any key*/
+			/*does not make sense to protect, because we don't have any key*/
 			slen = 0; /*droping packets*/
 		} else {
 		/* defragment incoming message and enlarge the buffer for srtp to write its data */
@@ -151,7 +151,7 @@ static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m){
 }
 
 static int ms_srtp_process_dummy(RtpTransportModifier *t, mblk_t *m) {
-	return msgdsize(m);
+	return (int)msgdsize(m);
 }
 static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t *m, int err){
 	int slen;
@@ -179,7 +179,7 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 	}
 }
 static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m,msgdsize(m));
+	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m,(int)msgdsize(m));
 }
 
 /**** Session management functions ****/
@@ -439,10 +439,10 @@ bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,Me
 		return FALSE;
 
 	switch (dir) {
-	case MediaStreamSendRecv: return (sessions->srtp_context->send_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->send_rtcp_context.secured))
-									 && (sessions->srtp_context->recv_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->recv_rtcp_context.secured)) ;
-	case MediaStreamSendOnly: return sessions->srtp_context->send_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->send_rtcp_context.secured);
-	case MediaStreamRecvOnly: return sessions->srtp_context->recv_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->recv_rtcp_context.secured);
+	case MediaStreamSendRecv: return (sessions->srtp_context->send_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->send_rtcp_context.secured || sessions->rtp_session->rtcp_mux))
+									 && (sessions->srtp_context->recv_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->recv_rtcp_context.secured || sessions->rtp_session->rtcp_mux)) ;
+	case MediaStreamSendOnly: return sessions->srtp_context->send_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->send_rtcp_context.secured || sessions->rtp_session->rtcp_mux);
+	case MediaStreamRecvOnly: return sessions->srtp_context->recv_rtp_context.secured && (!sessions->rtp_session->rtcp.enabled || sessions->srtp_context->recv_rtcp_context.secured || sessions->rtp_session->rtcp_mux);
 	}
 
 	return FALSE;

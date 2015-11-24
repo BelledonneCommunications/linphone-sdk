@@ -204,7 +204,7 @@ static void dec_process(MSFilter *f)
 	mblk_t *im;
 
 	while((im=ms_queue_get(f->inputs[0]))) {
-		network_to_host((int16_t*)im->b_rptr,(im->b_wptr-im->b_rptr)/2);
+		network_to_host((int16_t*)im->b_rptr,(int)((im->b_wptr-im->b_rptr)/2));
 		ms_queue_put(f->outputs[0],im);
 	}
 };

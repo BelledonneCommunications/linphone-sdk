@@ -1,3 +1,18 @@
+mediastreamer2-2.12.1: November 16, 2015
+	* Fix crash in MKV recorder
+	* Fix I-frame request when starting MKV recording
+
+mediastreamer2-2.12.0: November 2, 2015
+	* Allow video stream to keep its source (camera)
+	* Basic AVPF handling for H.264 codec
+	* Support of video presets (include a high-fps preset)
+	* Support of RTP session as input/output of a audio/video stream (instead of a sound card or camera/display)
+	* Handle jpeg image loading on Windows 10
+	* Video capture and display filter for BlackBerry 10
+	* Add text stream for RTT (Real-Time Text)
+	* Support of VP8 recording/playing in mkv files
+	* Bug fixes
+
 mediastreamer2-2.11.2: May 6, 2015
 	* Bug fixes
 

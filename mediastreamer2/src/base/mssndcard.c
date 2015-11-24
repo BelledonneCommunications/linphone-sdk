@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static MSSndCardManager *scm=NULL;
 
-static MSSndCardManager * create_manager(){
+static MSSndCardManager * create_manager(void){
 	MSSndCardManager *obj=(MSSndCardManager *)ms_new0(MSSndCardManager,1);
 	obj->cards=NULL;
 	obj->descs=NULL;

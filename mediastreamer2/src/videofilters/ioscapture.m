@@ -571,9 +571,9 @@ static void ioscapture_uninit(MSFilter *f) {
 
 	if(thiz != nil) {
 		NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
-		[thiz performSelectorInBackground:@selector(stop) withObject:nil];
+		[thiz stop];
 
-		[thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
+		[thiz setParentView:nil];
 		[thiz release];
 		[myPool drain];
 	}

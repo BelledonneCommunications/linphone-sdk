@@ -218,7 +218,7 @@ getMessage( Socket fd, char* buf, int* len,
    tv.tv_sec=1;
    tv.tv_usec=0; /* 150 ms */
    FD_ZERO(&fdSet); fdSetSize=0;
-   FD_SET(fd,&fdSet); fdSetSize = fd+1;
+   FD_SET(fd,&fdSet); fdSetSize = (unsigned int)fd+1;
 
    err = select(fdSetSize, &fdSet, NULL, NULL, &tv);
    if ( err == SOCKET_ERROR )

@@ -53,7 +53,7 @@ typedef enum {
 
 /********************/
 /* Helper functions */
-static ORTP_INLINE uint64_t get_timeval_in_millis() {
+static ORTP_INLINE uint64_t get_timeval_in_millis(void) {
 	struct timeval t;
 	ortp_gettimeofday(&t,NULL);
 	return (1000LL*t.tv_sec)+(t.tv_usec/1000LL);
@@ -86,7 +86,7 @@ static int32_t ms_zrtp_sendDataZRTP (void *clientData, const uint8_t* data, uint
 	/* generate message from raw data */
  	msg = rtp_session_create_packet_raw(data, length);
 
-	meta_rtp_transport_modifier_inject_packet(rtpt, userData->rtp_modifier, msg , 0);
+	meta_rtp_transport_modifier_inject_packet_to_send(rtpt, userData->rtp_modifier, msg , 0);
 
 	freemsg(msg);
 
@@ -338,7 +338,7 @@ static int ms_zrtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_
 	}
 
 	// display received message
-	ms_message("ZRTP Receive packet type %.8s", rtp+16);
+	ms_message("ZRTP Receive packet type %.8s on rtp session [%p]", rtp+16, t->session);
 
 	// send ZRTP packet to engine
 	bzrtp_processMessage(zrtpContext, userData->self_ssrc, rtp, msgLength);
