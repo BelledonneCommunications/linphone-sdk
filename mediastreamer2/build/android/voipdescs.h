@@ -50,6 +50,8 @@ extern MSFilterDesc ms_itc_source_desc;
 extern MSFilterDesc ms_itc_sink_desc;
 extern MSFilterDesc ms_vad_dtx_desc;
 extern MSFilterDesc ms_genericplc_desc;
+extern MSFilterDesc ms_rtt_4103_sink_desc;
+extern MSFilterDesc ms_rtt_4103_source_desc;
 
 MSFilterDesc * ms_voip_filter_descs[]={
 &ms_alaw_dec_desc,
@@ -103,6 +105,8 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_itc_sink_desc,
 &ms_vad_dtx_desc,
 &ms_genericplc_desc,
+&ms_rtt_4103_sink_desc,
+&ms_rtt_4103_source_desc,
 NULL
 };
 
