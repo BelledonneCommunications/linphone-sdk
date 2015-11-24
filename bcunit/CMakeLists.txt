@@ -26,12 +26,13 @@ project(CUNIT C)
 
 set(PACKAGE "CUnit")
 set(PACKAGE_NAME "${PACKAGE}")
-set(PACKAGE_VERSION "2.1-2")
+set(VERSION "2.1")
+set(RELEASE "2")
+set(PACKAGE_VERSION "${VERSION}-${RELEASE}")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "")
 set(PACKAGE_TARNAME "cunit")
 set(PACKAGE_URL "")
-set(VERSION "${PACKAGE_VERSION}")
 
 
 option(ENABLE_AUTOMATED "Compile CUnit automated interface" ON)
@@ -78,6 +79,7 @@ endif()
 include_directories(
 	CUnit/Headers
 	${CMAKE_CURRENT_BINARY_DIR}
+	${CMAKE_CURRENT_BINARY_DIR}/CUnit/Headers
 )
 
 

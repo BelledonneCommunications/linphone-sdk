@@ -24,7 +24,7 @@ set(AUTOMATED_INCLUDES Automated.h)
 set(BASIC_INCLUDES Basic.h)
 set(CONSOLE_INCLUDES Console.h)
 set(CURSES_INCLUDES CUCurses.h)
-set(FRAMEWORK_INCLUDES CUError.h CUnit.h CUnit_intl.h MyMem.h TestDB.h TestRun.h Util.h)
+set(FRAMEWORK_INCLUDES CUError.h CUnit_intl.h MyMem.h TestDB.h TestRun.h Util.h)
 
 set(HEADER_FILES ${FRAMEWORK_INCLUDES})
 
@@ -44,7 +44,9 @@ if(ENABLE_CURSES)
 	list(APPEND HEADER_FILES ${CURSES_INCLUDES})
 endif()
 
-install(FILES ${HEADER_FILES}
+configure_file(CUnit.h.in CUnit.h @ONLY)
+
+install(FILES ${HEADER_FILES} ${CMAKE_CURRENT_BINARY_DIR}/CUnit.h
 	DESTINATION include/CUnit
 	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 )
