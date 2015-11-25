@@ -585,18 +585,24 @@ bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, co
 	componentID = 1;
 	rtp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
 	if (rtp_elem == NULL) return FALSE;
-	componentID = 2;
-	rtcp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
-
 	valid_pair = (IceValidCandidatePair *)rtp_elem->data;
 	candidate = valid_pair->valid->remote;
 	if (rtp_addr != NULL) *rtp_addr = candidate->taddr.ip;
 	if (rtp_port != NULL) *rtp_port = candidate->taddr.port;
-	if (rtcp_elem == NULL) return FALSE;
-	valid_pair = (IceValidCandidatePair *)rtcp_elem->data;
-	candidate = valid_pair->valid->remote;
-	if (rtcp_addr != NULL) *rtcp_addr = candidate->taddr.ip;
-	if (rtcp_port != NULL) *rtcp_port = candidate->taddr.port;
+
+	
+	if (!rtp_session_rtcp_mux_enabled(cl->rtp_session)) {
+		componentID = 2;
+		rtcp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
+		if (rtcp_elem == NULL) return FALSE;
+		valid_pair = (IceValidCandidatePair *)rtcp_elem->data;
+		candidate = valid_pair->valid->remote;
+		if (rtcp_addr != NULL) *rtcp_addr = candidate->taddr.ip;
+		if (rtcp_port != NULL) *rtcp_port = candidate->taddr.port;
+	} else {
+		if (rtcp_addr != NULL) *rtcp_addr = candidate->taddr.ip; /*ip/port are same has rtp*/
+		if (rtcp_port != NULL) *rtcp_port = candidate->taddr.port;
+	}
 	return TRUE;
 }
 
