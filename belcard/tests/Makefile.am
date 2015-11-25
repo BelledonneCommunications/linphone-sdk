@@ -1,4 +1,4 @@
-bin_PROGRAMS=belcard-tester
+noinst_PROGRAMS=belcard-tester
 
 belcard_tester_SOURCES=belcard-tester.cpp
 
