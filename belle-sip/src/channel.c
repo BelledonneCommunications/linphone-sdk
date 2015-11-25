@@ -340,7 +340,18 @@ static int check_body(belle_sip_channel_t *obj){
 		BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_message_headers,obj,msg);
 		/*check if the listener has setup a body handler, otherwise create a default one*/
 		if ((bh=belle_sip_message_get_body_handler(msg))==NULL){
-			belle_sip_message_set_body_handler(msg,(bh=(belle_sip_body_handler_t*)belle_sip_memory_body_handler_new(NULL,NULL)));
+			belle_sip_header_content_type_t *content_type = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t);
+			if (content_type
+				&& (strcmp(belle_sip_header_content_type_get_type(content_type), "multipart") == 0)) {
+				const char *unparsed_value = belle_sip_header_get_unparsed_value(BELLE_SIP_HEADER(content_type));
+				const char *boundary = strstr(unparsed_value, ";boundary=");
+				if (boundary != NULL) boundary += 10;
+				if (boundary[0] == '\0') boundary = NULL;
+				belle_sip_message_set_body_handler(msg, (bh = (belle_sip_body_handler_t *)belle_sip_multipart_body_handler_new(belle_sip_multipart_body_handler_progress_cb, NULL, NULL, boundary)));
+				belle_sip_body_handler_set_size(bh, obj->input_stream.content_length);
+			} else {
+				belle_sip_message_set_body_handler(msg,(bh=(belle_sip_body_handler_t*)belle_sip_memory_body_handler_new(NULL,NULL)));
+			}
 		}
 		belle_sip_body_handler_begin_transfer(bh);
 	}

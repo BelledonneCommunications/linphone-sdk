@@ -1028,6 +1028,8 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t,belle_sip_body_handler_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
+void belle_sip_multipart_body_handler_progress_cb(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, void *user_data, size_t transfered, size_t expected_total);
+
 /**
  * file manipulation
  */

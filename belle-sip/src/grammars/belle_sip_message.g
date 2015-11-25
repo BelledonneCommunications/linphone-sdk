@@ -424,8 +424,11 @@ scope{int is_value; char* gen_value_string;}
                                                        $ret=NULL;
                                                      }
                                                      };
-gen_value      
-  :   token |  quoted_string;
+gen_value
+  :   gen_value_token |  quoted_string;
+
+gen_value_token
+  : (alphanum | mark | PERCENT | PLUS | BQUOTE | SLASH)+;
 
 quoted_string 
 options { greedy = false; }

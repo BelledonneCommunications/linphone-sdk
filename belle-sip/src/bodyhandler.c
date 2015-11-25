@@ -351,17 +351,19 @@ belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(const char *filep
  * TODO
 **/
 
-#define MULTIPART_SEPARATOR "--" BELLESIP_MULTIPART_BOUNDARY "\r\n"
-#define MULTIPART_END "\r\n--" BELLESIP_MULTIPART_BOUNDARY "--\r\n"
 struct belle_sip_multipart_body_handler{
 	belle_sip_body_handler_t base;
 	belle_sip_list_t *parts;
+	char *boundary;
+	uint8_t *buffer;
 	unsigned int related;
 };
 GET_SET_BOOL(belle_sip_multipart_body_handler,related,is);
 
 static void belle_sip_multipart_body_handler_destroy(belle_sip_multipart_body_handler_t *obj){
 	belle_sip_list_free_with_data(obj->parts,belle_sip_object_unref);
+	if (obj->buffer != NULL) belle_sip_free(obj->buffer);
+	if (obj->boundary != NULL) belle_sip_free(obj->boundary);
 }
 
 static void belle_sip_multipart_body_handler_clone(belle_sip_multipart_body_handler_t *obj){
@@ -370,7 +372,11 @@ static void belle_sip_multipart_body_handler_clone(belle_sip_multipart_body_hand
 
 static void belle_sip_multipart_body_handler_recv_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, size_t offset,
 							const uint8_t *buffer, size_t size){
-	/*TODO*/
+	/* Store the whole buffer, the parts will be split when belle_sip_multipart_body_handler_progress_cb() is called with transfered size equal to expected size. */
+	belle_sip_multipart_body_handler_t *obj_multipart = (belle_sip_multipart_body_handler_t *)obj;
+	obj_multipart->buffer = belle_sip_realloc(obj_multipart->buffer,offset + size + 1);
+	memcpy(obj_multipart->buffer + offset, buffer, size);
+	obj_multipart->buffer[offset + size] = '\0';
 }
 
 static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, size_t offset,
@@ -381,12 +387,13 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 	if (obj_multipart->parts->data) { /* we have a part, get its content from handler */
 		int retval = BELLE_SIP_STOP;
 		size_t offsetSize = 0; /* used to store size of data added by this function and not given by the body handler of current part */
+		size_t boundary_len = strlen(obj_multipart->boundary);
 		belle_sip_body_handler_t *current_part = (belle_sip_body_handler_t *)obj_multipart->parts->data;
-		*size -= strlen(MULTIPART_END); /* just in case it will be the end of the message, ask for less characters than possible in order to be able to add the multipart message termination */
+		*size -= strlen(obj_multipart->boundary) + 8; /* just in case it will be the end of the message, ask for less characters than possible in order to be able to add the multipart message termination. 8 is for "\r\n--" and "--\r\n" */
 
 		if (current_part->transfered_size == 0) { /* Nothing transfered yet on this part, include a separator and the header if exists */
 			size_t headersSize = 0;
-			offsetSize = strlen(MULTIPART_SEPARATOR);
+			offsetSize = strlen(obj_multipart->boundary) + 4; /* 4 is for "--" and "\r\n" */
 
 			if (current_part->headerStringBuffer != NULL) {
 				headersSize = strlen(current_part->headerStringBuffer);
@@ -398,7 +405,10 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 			}
 
 			/* insert separator */
-			memcpy(buffer, MULTIPART_SEPARATOR, offsetSize);
+			memcpy(buffer, "--", 2);
+			memcpy(buffer + 2, obj_multipart->boundary, boundary_len);
+			memcpy(buffer + 2 + boundary_len, "\r\n", 2);
+			offsetSize = boundary_len + 4;
 			/* insert part header */
 			if (headersSize!=0) {
 				memcpy(buffer+offsetSize, current_part->headerStringBuffer, headersSize);
@@ -420,8 +430,11 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 				obj_multipart->parts = belle_sip_list_next(obj_multipart->parts);
 				return BELLE_SIP_CONTINUE;
 			} else { /* there is nothing else, close the message and return STOP */
-				memcpy(buffer+*size, MULTIPART_END, strlen(MULTIPART_END));
-				*size+=strlen(MULTIPART_END);
+				size_t boundary_len = strlen(obj_multipart->boundary);
+				memcpy(buffer + *size, "\r\n--", 4);
+				memcpy(buffer + *size + 4, obj_multipart->boundary, boundary_len);
+				memcpy(buffer + *size + 4 + boundary_len, "--\r\n", 4);
+				*size+=boundary_len + 8;
 				return BELLE_SIP_STOP;
 			}
 		}
@@ -444,17 +457,22 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t)
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new(belle_sip_body_handler_progress_callback_t progress_cb, void *data,
-									 belle_sip_body_handler_t *first_part){
+									 belle_sip_body_handler_t *first_part, const char *boundary){
 	belle_sip_multipart_body_handler_t *obj=belle_sip_object_new(belle_sip_multipart_body_handler_t);
 	belle_sip_body_handler_init((belle_sip_body_handler_t*)obj,progress_cb,data);
-	obj->base.expected_size = strlen(MULTIPART_END); /* body's length will be part length(including boundary) + multipart end */
+	if (boundary != NULL) {
+		obj->boundary = belle_sip_strdup(boundary);
+	} else {
+		obj->boundary = belle_sip_strdup(BELLESIP_MULTIPART_BOUNDARY);
+	}
+	obj->base.expected_size = strlen(obj->boundary) + 8; /* body's length will be part length(including boundary) + multipart end. 8 is for "\r\n--" and "--\r\n" */
 	if (first_part) belle_sip_multipart_body_handler_add_part(obj,first_part);
 	return obj;
 }
 
 #define DEFAULT_HEADER_STRING_SIZE 512
 void belle_sip_multipart_body_handler_add_part(belle_sip_multipart_body_handler_t *obj, belle_sip_body_handler_t *part){
-	obj->base.expected_size+=part->expected_size+strlen(MULTIPART_SEPARATOR); /* add the separator length to the body length as each part start with a separator */
+	obj->base.expected_size+=part->expected_size+strlen(obj->boundary) + 4; /* add the separator length to the body length as each part start with a separator. 4 is for "--" and "\r\n" */
 	if (part->headers != NULL) { /* there is a declared header for this part, add its length to the expected total length */
 		size_t headerStringBufferSize = DEFAULT_HEADER_STRING_SIZE;
 		size_t offset = 0;
@@ -485,3 +503,59 @@ const belle_sip_list_t* belle_sip_multipart_body_handler_get_parts(const belle_s
 	return obj->parts;
 }
 
+void belle_sip_multipart_body_handler_progress_cb(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, void *user_data, size_t transfered, size_t expected_total) {
+	if (transfered == expected_total) {
+		/* The full multipart body has been received, we can now parse it and split the different parts,
+		 * creating a belle_sip_memory_body_handler for each part and adding them to the belle_sip_multipart_body_handler
+		 * parts list. */
+		belle_sip_multipart_body_handler_t *obj_multipart = (belle_sip_multipart_body_handler_t *)obj;
+		belle_sip_memory_body_handler_t *memorypart;
+		belle_sip_header_t *header;
+		uint8_t *end_part_cursor;
+		uint8_t *end_headers_cursor;
+		uint8_t *end_header_cursor;
+		uint8_t *cursor = obj_multipart->buffer;
+		if (strncmp((char *)cursor, "--", 2)) {
+			belle_sip_warning("belle_sip_multipart_body_handler [%p]: body not starting by '--'", obj_multipart);
+			return;
+		}
+		cursor += 2;
+		if (strncmp((char *)cursor, obj_multipart->boundary, strlen(obj_multipart->boundary))) {
+			belle_sip_warning("belle_sip_multipart_body_handler [%p]: body not starting by specified boundary '%s'", obj_multipart, obj_multipart->boundary);
+			return;
+		}
+		cursor += strlen(obj_multipart->boundary);
+		do {
+			if (strncmp((char *)cursor, "\r\n", 2)) {
+				belle_sip_warning("belle_sip_multipart_body_handler [%p]: no new-line after boundary", obj_multipart);
+				return;
+			}
+			cursor += 2;
+			end_part_cursor = (uint8_t *)strstr((char *)cursor, obj_multipart->boundary);
+			if (end_part_cursor == NULL) {
+				belle_sip_warning("belle_sip_multipart_body_handler [%p]: cannot find next boundary", obj_multipart);
+				return;
+			} else {
+				*end_part_cursor = 0;
+				end_headers_cursor = (uint8_t *)strstr((char *)cursor, "\r\n\r\n");
+				if (end_headers_cursor == NULL) {
+					memorypart = belle_sip_memory_body_handler_new_from_buffer(cursor, strlen((char *)cursor), NULL, NULL);
+				} else {
+					uint8_t *begin_body_cursor = end_headers_cursor + 4;
+					memorypart = belle_sip_memory_body_handler_new_from_buffer(begin_body_cursor, strlen((char *)begin_body_cursor), NULL, NULL);
+					do {
+						end_header_cursor = (uint8_t *)strstr((char *)cursor, "\r\n");
+						*end_header_cursor = 0;
+						header = belle_sip_header_parse((char *)cursor);
+						if (header != NULL) {
+							belle_sip_body_handler_add_header(BELLE_SIP_BODY_HANDLER(memorypart), header);
+						}
+						cursor = end_header_cursor + 2;
+					} while (end_header_cursor != end_headers_cursor);
+				}
+				belle_sip_multipart_body_handler_add_part(obj_multipart, BELLE_SIP_BODY_HANDLER(memorypart));
+				cursor = end_part_cursor + strlen(obj_multipart->boundary);
+			}
+		} while (strcmp((char *)cursor, "--\r\n"));
+	}
+}
