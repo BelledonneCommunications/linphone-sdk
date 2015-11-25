@@ -1,5 +1,5 @@
-belrdir=$(includedir)/belr
+belr_includedir=$(includedir)/belr
 
-belr_HEADERS = belr.hh abnf.hh grammarbuilder.hh parser.hh parser-impl.cc
+belr_include_HEADERS = belr.hh abnf.hh grammarbuilder.hh parser.hh parser-impl.cc
 
-EXTRA_DIST=$(belr_HEADERS)
+EXTRA_DIST=$(belr_include_HEADERS)
