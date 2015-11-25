@@ -1,4 +1,5 @@
-bin_PROGRAMS=belr-parse belr-demo
+bin_PROGRAMS=belr-parse
+noinst_PROGRAMS=belr-demo
 
 belr_parse_SOURCES=belrparse.cc
 
