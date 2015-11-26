@@ -1064,7 +1064,7 @@ static void check_content_length(belle_sip_message_t *msg, size_t body_len){
 			if (value!=(unsigned int)body_len){
 				belle_sip_warning("message [%p] has Content-Length [%u] and body size [%i] which are inconsistent, fixing it.",
 					msg, value, (int)body_len);
-				belle_sip_header_content_length_set_content_length(ctlen,(int)value);
+				belle_sip_header_content_length_set_content_length(ctlen,(int)body_len);
 			}
 		}
 	}else{
