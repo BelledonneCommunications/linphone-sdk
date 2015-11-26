@@ -29,7 +29,6 @@ param-value = param-value-component *("," param-value-component)
 param-value-component = *SAFE-CHAR / DQUOTE *QSAFE-CHAR DQUOTE
 
 iana-token = 1*(ALPHA / DIGIT / "-")
-
 x-name = "x-" 1*(ALPHA / DIGIT / "-")
 
 COMPONENT-CHAR = "\\" / "\," / "\;" / "\n" / WSP / NON-ASCII / %x21-2B / %x2D-3A / %x3C-5B / %x5D-7E
