@@ -16,6 +16,9 @@ namespace belcard {
 	private:
 		shared_ptr<BelCardFN> _fn;
 		shared_ptr<BelCardN> _n;
+		shared_ptr<BelCardBirthday> _bday;
+		shared_ptr<BelCardAnniversary> _anniversary;
+		shared_ptr<BelCardGender> _gender;
 		list<shared_ptr<BelCardNickname>> _nicknames;
 		list<shared_ptr<BelCardProperty>> _properties;
 		
@@ -42,6 +45,30 @@ namespace belcard {
 		}
 		const shared_ptr<BelCardN> &getN() const {
 			return _n;
+		}
+		
+		void setBirthday(const shared_ptr<BelCardBirthday> &bday) {
+			_bday = bday;
+			addProperty(_bday);
+		}
+		const shared_ptr<BelCardBirthday> &getBirthday() const {
+			return _bday;
+		}
+		
+		void setAnniversary(const shared_ptr<BelCardAnniversary> &anniversary) {
+			_anniversary = anniversary;
+			addProperty(_anniversary);
+		}
+		const shared_ptr<BelCardAnniversary> &getAnniversary() const {
+			return _anniversary;
+		}
+		
+		void setGender(const shared_ptr<BelCardGender> &gender) {
+			_gender = gender;
+			addProperty(_gender);
+		}
+		const shared_ptr<BelCardGender> &getGender() const {
+			return _gender;
 		}
 		
 		void addNickname(const shared_ptr<BelCardNickname> &nickname) {

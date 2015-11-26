@@ -6,7 +6,9 @@
 #include <belr/grammarbuilder.hh>
 #include <belr/abnf.hh>
 
-namespace belr {
+using namespace::belr;
+
+namespace belcard {
 	class BelCardParser {
 	private:
 		ABNFGrammarBuilder _grammar_builder;
@@ -15,7 +17,12 @@ namespace belr {
 	public:
 		BelCardParser();
 		~BelCardParser();
-		shared_ptr<belcard::BelCard> parse(const string &input);
+		
+		shared_ptr<BelCard> parse(const string &input);
+		string dumpVCard(const shared_ptr<BelCard> &card);
+		
+		string fold(string input);
+		string unfold(string input);
 	};
 }
 

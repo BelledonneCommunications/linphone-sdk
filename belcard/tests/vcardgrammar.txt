@@ -1,11 +1,11 @@
 vcard-entity = 1*vcard
 
 vcard = "BEGIN:VCARD" CRLF
-        "VERSION:4.0" CRLF
-        1*property
-        "END:VCARD" CRLF
+		"VERSION:4.0" CRLF
+		1*property
+		"END:VCARD" CRLF
 
-property = (FN / N / NICKNAME) CRLF
+property = (FN / N / NICKNAME / BDAY / ANNIVERSARY / GENDER) CRLF
 
 FN = [group "."] "FN" *(";" any-param) ":" FN-value
 FN-value = text
@@ -21,12 +21,22 @@ N-suffixes = component *("," component)
 NICKNAME = [group "."] "NICKNAME" *(";" any-param) ":" NICKNAME-value
 NICKNAME-value = text-list
 
+BDAY = [group "."] "BDAY" *(";" any-param) ":" BDAY-value
+BDAY-value = date-and-or-time / text
+
+ANNIVERSARY = [group "."] "ANNIVERSARY" *(";" any-param) ":" ANNIVERSARY-value
+ANNIVERSARY-value = date-and-or-time / text
+
+GENDER = [group "."] "GENDER" *(";" any-param) ":" GENDER-value
+GENDER-value = [sex] [";" text]
+sex = "M" / "F" / "O" / "N" / "U"
+
 group = 1*(ALPHA / DIGIT / "-")
 
 any-param  = param-name "=" param-value
 param-name = (iana-token / x-name)
 param-value = param-value-component *("," param-value-component)
-param-value-component = *SAFE-CHAR / DQUOTE *QSAFE-CHAR DQUOTE
+param-value-component = *SAFE-CHAR /  (DQUOTE *QSAFE-CHAR DQUOTE)
 
 iana-token = 1*(ALPHA / DIGIT / "-")
 x-name = "x-" 1*(ALPHA / DIGIT / "-")
@@ -40,10 +50,55 @@ text = *TEXT-CHAR
 TEXT-CHAR = "\\" / "\," / "\n" / WSP / NON-ASCII / %x21-2B / %x2D-5B / %x5D-7E
 NON-ASCII = UTF8-2 / UTF8-3 / UTF8-4
 QSAFE-CHAR = WSP / "!" / %x23-7E / NON-ASCII
-SAFE-CHAR = WSP / "!" / %x23-39 / %x3C-7E / NON-ASCII
+SAFE-CHAR = WSP / "!" / %x23-2B / %x2D-39 / %x3C-7E / NON-ASCII
 VALUE-CHAR = WSP / VCHAR / NON-ASCII
 UTF8-1      = %x00-7F
 UTF8-2      = %xC2-DF UTF8-tail
 UTF8-3      = %xE0 %xA0-BF UTF8-tail / %xE1-EC 2( UTF8-tail ) / %xED %x80-9F UTF8-tail / %xEE-EF 2( UTF8-tail )
 UTF8-4      = %xF0 %x90-BF 2( UTF8-tail ) / %xF1-F3 3( UTF8-tail ) / %xF4 %x80-8F 2( UTF8-tail )
 UTF8-tail   = %x80-BF
+
+date-list             = date             *("," date)
+time-list             = time             *("," time)
+date-time-list        = date-time        *("," date-time)
+date-and-or-time-list = date-and-or-time *("," date-and-or-time)
+timestamp-list        = timestamp        *("," timestamp)
+integer-list          = integer          *("," integer)
+float-list            = float            *("," float)
+
+boolean = "TRUE" / "FALSE"
+integer = [sign] 1*DIGIT
+float   = [sign] 1*DIGIT ["." 1*DIGIT]
+
+sign = "+" / "-"
+
+year   = 4DIGIT  ; 0000-9999
+month  = 2DIGIT  ; 01-12
+day    = 2DIGIT  ; 01-28/29/30/31 depending on month and leap year
+hour   = 2DIGIT  ; 00-23
+minute = 2DIGIT  ; 00-59
+second = 2DIGIT  ; 00-58/59/60 depending on leap second
+zone   = utc-designator / utc-offset
+utc-designator = %x5A  ; uppercase "Z"
+
+date          = year    [month  day]
+			/ year "-" month
+			/ "--"     month [day]
+			/ "--"      "-"   day
+date-noreduc  = year     month  day
+			/ "--"     month  day
+			/ "--"      "-"   day
+date-complete = year     month  day
+
+time          = hour [minute [second]] [zone]
+			/  "-"  minute [second]
+			/  "-"   "-"    second
+time-notrunc  = hour [minute [second]] [zone]
+time-complete = hour  minute  second   [zone]
+time-designator = %x54  ; uppercase "T"
+date-time = date-noreduc  time-designator time-notrunc
+timestamp = date-complete time-designator time-complete
+
+date-and-or-time = date-time / date / time-designator time
+
+utc-offset = sign hour [minute]

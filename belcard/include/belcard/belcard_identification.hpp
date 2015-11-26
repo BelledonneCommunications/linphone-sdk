@@ -101,6 +101,51 @@ namespace belcard {
 			BelCardProperty::addParam(param);
 		}
 	};
+	
+	class BelCardBirthday : public BelCardProperty {
+	public:
+		static shared_ptr<BelCardBirthday> create() {
+			return make_shared<BelCardBirthday>();
+		}
+		
+		BelCardBirthday() : BelCardProperty() {
+			setName("BDAY");
+		}
+		
+		virtual void addParam(const shared_ptr<BelCardParam> &param) {
+			BelCardProperty::addParam(param);
+		}
+	};
+	
+	class BelCardAnniversary : public BelCardProperty {
+	public:
+		static shared_ptr<BelCardAnniversary> create() {
+			return make_shared<BelCardAnniversary>();
+		}
+		
+		BelCardAnniversary() : BelCardProperty() {
+			setName("ANNIVERSARY");
+		}
+		
+		virtual void addParam(const shared_ptr<BelCardParam> &param) {
+			BelCardProperty::addParam(param);
+		}
+	};
+	
+	class BelCardGender : public BelCardProperty {
+	public:
+		static shared_ptr<BelCardGender> create() {
+			return make_shared<BelCardGender>();
+		}
+		
+		BelCardGender() : BelCardProperty() {
+			setName("GENDER");
+		}
+		
+		virtual void addParam(const shared_ptr<BelCardParam> &param) {
+			BelCardProperty::addParam(param);
+		}
+	};
 }
 
 #endif
