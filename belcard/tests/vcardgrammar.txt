@@ -5,21 +5,28 @@ vcard = "BEGIN:VCARD" CRLF
         1*property
         "END:VCARD" CRLF
 
-property = (FN / N) CRLF
+property = (FN / N / NICKNAME) CRLF
 
-FN = [group "."] "FN" *(";" FN-param) ":" FN-value
-FN-param = any-param
+FN = [group "."] "FN" *(";" any-param) ":" FN-value
 FN-value = text
 
-N = [group "."] "N" *(";" N-param) ":" N-value
-N-param = any-param
-N-value = list-component 4(";" list-component)
+N = [group "."] "N" *(";" any-param) ":" N-value
+N-value = N-fn ";" N-gn ";" N-an ";" N-prefixes ";" N-suffixes
+N-fn = component *("," component)
+N-gn = component *("," component)
+N-an = component *("," component)
+N-prefixes = component *("," component)
+N-suffixes = component *("," component)
+
+NICKNAME = [group "."] "NICKNAME" *(";" any-param) ":" NICKNAME-value
+NICKNAME-value = text-list
 
 group = 1*(ALPHA / DIGIT / "-")
 
-any-param  = (iana-token / x-name) "=" param-value *("," param-value)
-
-param-value = *SAFE-CHAR / DQUOTE *QSAFE-CHAR DQUOTE
+any-param  = param-name "=" param-value
+param-name = (iana-token / x-name)
+param-value = param-value-component *("," param-value-component)
+param-value-component = *SAFE-CHAR / DQUOTE *QSAFE-CHAR DQUOTE
 
 iana-token = 1*(ALPHA / DIGIT / "-")
 
@@ -29,6 +36,7 @@ COMPONENT-CHAR = "\\" / "\," / "\;" / "\n" / WSP / NON-ASCII / %x21-2B / %x2D-3A
 component = *COMPONENT-CHAR
 list-component = component *("," component)
 
+text-list = text *("," text)
 text = *TEXT-CHAR
 TEXT-CHAR = "\\" / "\," / "\n" / WSP / NON-ASCII / %x21-2B / %x2D-5B / %x5D-7E
 NON-ASCII = UTF8-2 / UTF8-3 / UTF8-4

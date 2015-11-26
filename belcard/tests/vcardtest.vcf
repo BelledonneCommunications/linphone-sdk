@@ -1,5 +1,6 @@
 BEGIN:VCARD
 VERSION:4.0
 FN:Sylvain Berfini
-N:Berfini;Sylvain;;;
+N:Berfini;Sylvain;Pascal;;
+NICKNAME;TYPE=home:Viish
 END:VCARD
