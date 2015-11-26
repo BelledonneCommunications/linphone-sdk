@@ -515,7 +515,11 @@ void belle_sip_message_set_body_handler(belle_sip_message_t *msg, belle_sip_body
 			}
 			belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(content_type), "boundary", BELLESIP_MULTIPART_BOUNDARY);
 			belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), BELLE_SIP_HEADER(content_type));
-			
+		} else {
+			const belle_sip_list_t *header = belle_sip_body_handler_get_headers(body_handler);
+			for(; header != NULL; header = header->next) {
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), BELLE_SIP_HEADER(header->data));
+			}
 		}
 	}
 
