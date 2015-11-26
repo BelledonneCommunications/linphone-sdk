@@ -56,7 +56,7 @@ class Target:
             output_dir = output_dir.replace('\\', '/')
         return output_dir
 
-    def cmake_command(self, build_type, latest, list_cmake_variables, additional_args):
+    def cmake_command(self, build_type, latest, list_cmake_variables, additional_args, verbose=True):
         current_path = os.path.dirname(os.path.realpath(__file__))
         cmd = ['cmake', current_path]
         if self.generator is not None:
@@ -84,7 +84,8 @@ class Target:
                 cmd_str += ' \"' + w + '\"'
             else:
                 cmd_str += ' ' + w
-        print(cmd_str)
+        if verbose:
+            print(cmd_str)
         return cmd
 
     def clean(self):
