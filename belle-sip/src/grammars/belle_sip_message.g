@@ -424,11 +424,8 @@ scope{int is_value; char* gen_value_string;}
                                                        $ret=NULL;
                                                      }
                                                      };
-gen_value
-  :   gen_value_token |  quoted_string;
-
-gen_value_token
-  : (alphanum | mark | PERCENT | PLUS | BQUOTE | SLASH)+;
+gen_value      
+  :   token |  quoted_string;
 
 quoted_string 
 options { greedy = false; }
@@ -793,9 +790,16 @@ media_type
   :  m_type {belle_sip_header_content_type_set_type($header_content_type::current,(const char*)$m_type.text->chars);} 
      slash 
      m_subtype {belle_sip_header_content_type_set_subtype($header_content_type::current,(const char*)$m_subtype.text->chars);} 
-     (semi  generic_param [BELLE_SIP_PARAMETERS($header_content_type::current)])*;
+     (semi type_param)? (semi generic_param [BELLE_SIP_PARAMETERS($header_content_type::current)])*;
 m_type           
-  : token; /*  discrete_type | composite_type;
+  : token;
+
+type_param: {IS_TOKEN(type)}? token equal type_param_value;
+type_param_value : m_type slash m_subtype {belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS($header_content_type::current)
+																								,"type"
+																								,(const char*)$type_param_value.text->chars);};
+
+/*  discrete_type | composite_type;
 discrete_type    
   :   'text' | 'image' | 'audio' | 'video'
                     | 'application' | extension_token;

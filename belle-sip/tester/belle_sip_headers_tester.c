@@ -346,6 +346,23 @@ static void test_content_type_header(void) {
 	L_content_type = belle_sip_header_content_type_parse(l_raw_header);
 	belle_sip_free(l_raw_header);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_type));
+
+	L_content_type = belle_sip_header_content_type_parse("Content-Type: multipart/related; type=application/rlmi+xml");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_content_type));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_type));
+	L_tmp = belle_sip_header_content_type_parse(l_raw_header);
+	L_content_type = BELLE_SIP_HEADER_CONTENT_TYPE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+	
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_content_type_get_type(L_content_type),"multipart");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_content_type_get_subtype(L_content_type),"related");
+	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_content_type),"type"),"application/rlmi+xml");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_type));
+
+	
+	
+	
 	BC_ASSERT_PTR_NULL(belle_sip_header_content_type_parse("nimportequoi"));
 }
 
