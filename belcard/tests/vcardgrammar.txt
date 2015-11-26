@@ -5,11 +5,17 @@ vcard = "BEGIN:VCARD" CRLF
         1*property
         "END:VCARD" CRLF
 
-property = FN
+property = (FN / N) CRLF
 
-FN = "FN" *(";" FN-param) ":" FN-value CRLF
+FN = [group "."] "FN" *(";" FN-param) ":" FN-value
 FN-param = any-param
 FN-value = text
+
+N = [group "."] "N" *(";" N-param) ":" N-value
+N-param = any-param
+N-value = list-component 4(";" list-component)
+
+group = 1*(ALPHA / DIGIT / "-")
 
 any-param  = (iana-token / x-name) "=" param-value *("," param-value)
 
@@ -18,6 +24,10 @@ param-value = *SAFE-CHAR / DQUOTE *QSAFE-CHAR DQUOTE
 iana-token = 1*(ALPHA / DIGIT / "-")
 
 x-name = "x-" 1*(ALPHA / DIGIT / "-")
+
+COMPONENT-CHAR = "\\" / "\," / "\;" / "\n" / WSP / NON-ASCII / %x21-2B / %x2D-3A / %x3C-5B / %x5D-7E
+component = *COMPONENT-CHAR
+list-component = component *("," component)
 
 text = *TEXT-CHAR
 TEXT-CHAR = "\\" / "\," / "\n" / WSP / NON-ASCII / %x21-2B / %x2D-5B / %x5D-7E

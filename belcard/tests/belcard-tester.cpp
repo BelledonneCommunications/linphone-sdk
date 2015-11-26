@@ -21,23 +21,35 @@ int main(int argc, char *argv[]) {
 	
 	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
 	parser.setHandler("vcard", make_fn(&BelCard::create))
-		->setCollector("FN", make_sfn(&BelCard::setFN));
+		->setCollector("FN", make_sfn(&BelCard::setFN))
+		->setCollector("N", make_sfn(&BelCard::setN));
 		
 	parser.setHandler("FN", make_fn(&BelCardFN::create))
+		->setCollector("group", make_sfn(&BelCardFN::setGroup))
 		->setCollector("FN-value", make_sfn(&BelCardFN::setValue));
+		
+	parser.setHandler("N", make_fn(&BelCardN::create))
+		->setCollector("group", make_sfn(&BelCardN::setGroup))
+		->setCollector("N-value", make_sfn(&BelCardN::setValue));
 		
 	ifstream istr("vcardtest.vcf");
 	if (!istr.is_open()) {
 		return -1;
 	}
-	stringstream vcard;
-	vcard << istr.rdbuf();
+	stringstream vcardStream;
+	vcardStream << istr.rdbuf();
+	string vcard = vcardStream.str();
 		
 	size_t parsedSize = 0;
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("vcard", vcard.str(), &parsedSize);
+	shared_ptr<BelCardGeneric> ret = parser.parseInput("vcard", vcard, &parsedSize);
 	shared_ptr<BelCard> belCard = dynamic_pointer_cast<BelCard>(ret);
 	
-	cout << "FN is " << belCard->getFN()->getValue() << endl;
+	if (belCard) {
+		string outputVCard = belCard->toString();
+		cout << outputVCard << endl;
+	} else {
+		cerr << "Error: returned pointer is null" << endl;
+	}
 	
 	return 0;
 }
