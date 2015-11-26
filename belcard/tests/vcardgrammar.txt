@@ -82,17 +82,17 @@ zone   = utc-designator / utc-offset
 utc-designator = %x5A  ; uppercase "Z"
 
 date          = year    [month  day]
-			/ year "-" month
-			/ "--"     month [day]
-			/ "--"      "-"   day
+			  / year "-" month
+			  / "--"     month [day]
+			  / "--"      "-"   day
 date-noreduc  = year     month  day
-			/ "--"     month  day
-			/ "--"      "-"   day
+			  / "--"     month  day
+			  / "--"      "-"   day
 date-complete = year     month  day
 
 time          = hour [minute [second]] [zone]
-			/  "-"  minute [second]
-			/  "-"   "-"    second
+			  /  "-"  minute [second]
+			  /  "-"   "-"    second
 time-notrunc  = hour [minute [second]] [zone]
 time-complete = hour  minute  second   [zone]
 time-designator = %x54  ; uppercase "T"

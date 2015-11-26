@@ -16,7 +16,7 @@ BelCardParser::~BelCardParser() {
 }
 
 shared_ptr<BelCard> BelCardParser::parse(const string &input) {
-	unfold(input);
+	string vcard = unfold(input);
 	
 	Parser<shared_ptr<BelCardGeneric>> parser(_grammar);
 	parser.setHandler("vcard", make_fn(&BelCard::create))
@@ -66,7 +66,7 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 		->setCollector("NICKNAME-value", make_sfn(&BelCardNickname::setValue));
 		
 	size_t parsedSize = 0;
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("vcard", input, &parsedSize);
+	shared_ptr<BelCardGeneric> ret = parser.parseInput("vcard", vcard, &parsedSize);
 	shared_ptr<BelCard> belCard = dynamic_pointer_cast<BelCard>(ret);
 	return belCard;
 }
