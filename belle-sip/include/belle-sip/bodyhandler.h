@@ -31,6 +31,7 @@ BELLE_SIP_BEGIN_DECLS
 typedef void (*belle_sip_body_handler_progress_callback_t)(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, void *user_data, size_t transfered, size_t expected_total);
 
 BELLESIP_EXPORT void belle_sip_body_handler_add_header(belle_sip_body_handler_t *obj, belle_sip_header_t *header);
+BELLESIP_EXPORT void belle_sip_body_handler_remove_header_from_ptr(belle_sip_body_handler_t *obj, belle_sip_header_t *header);
 BELLESIP_EXPORT const belle_sip_list_t* belle_sip_body_handler_get_headers(const belle_sip_body_handler_t *obj);
 BELLESIP_EXPORT size_t belle_sip_body_handler_get_size(const belle_sip_body_handler_t *obj);
 BELLESIP_EXPORT void belle_sip_body_handler_set_size(belle_sip_body_handler_t *obj, size_t size);
@@ -49,7 +50,8 @@ BELLESIP_EXPORT belle_sip_memory_body_handler_t *belle_sip_memory_body_handler_n
 BELLESIP_EXPORT belle_sip_memory_body_handler_t *belle_sip_memory_body_handler_new_from_buffer(void *buffer, size_t bufsize,
 						belle_sip_body_handler_progress_callback_t cb, void *user_data);
 
-BELLESIP_EXPORT const void *belle_sip_memory_body_handler_get_buffer(const belle_sip_memory_body_handler_t *obj);
+BELLESIP_EXPORT void *belle_sip_memory_body_handler_get_buffer(const belle_sip_memory_body_handler_t *obj);
+BELLESIP_EXPORT void belle_sip_memory_body_handler_set_buffer(belle_sip_memory_body_handler_t *obj, void *buffer);
 
 /*
  * body handler that get/puts data from application.

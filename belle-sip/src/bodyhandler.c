@@ -32,14 +32,6 @@ struct belle_sip_body_handler{
 	void *user_data;
 };
 
-void belle_sip_body_handler_add_header(belle_sip_body_handler_t *obj, belle_sip_header_t *header) {
-	if (header != NULL) {
-		obj->headers=belle_sip_list_append(obj->headers,belle_sip_object_ref(header));
-	}
-}
-const belle_sip_list_t* belle_sip_body_handler_get_headers(const belle_sip_body_handler_t *obj) {
-	return obj->headers;
-}
 static void belle_sip_body_handler_clone(belle_sip_body_handler_t *obj, const belle_sip_body_handler_t *orig){
 	obj->progress_cb=orig->progress_cb;
 	obj->user_data=orig->user_data;
@@ -74,6 +66,24 @@ void belle_sip_body_handler_init(belle_sip_body_handler_t *obj, belle_sip_body_h
 	obj->progress_cb=progress_cb;
 	obj->headers = NULL; /* header is not used in most of the case, set it using a dedicated function if needed */
 	obj->headerStringBuffer = NULL; /* header string buffer is set when adding a body handler to a multipart body handler */
+}
+
+void belle_sip_body_handler_add_header(belle_sip_body_handler_t *obj, belle_sip_header_t *header) {
+	if (header != NULL) {
+		obj->headers=belle_sip_list_append(obj->headers,belle_sip_object_ref(header));
+	}
+}
+
+void belle_sip_body_handler_remove_header_from_ptr(belle_sip_body_handler_t *obj, belle_sip_header_t* header) {
+	belle_sip_list_t* it = belle_sip_list_find(obj->headers, header);
+	if (it) {
+		belle_sip_object_unref(header);
+		obj->headers = belle_sip_list_delete_link(obj->headers, it);
+	}
+}
+
+const belle_sip_list_t* belle_sip_body_handler_get_headers(const belle_sip_body_handler_t *obj) {
+	return obj->headers;
 }
 
 size_t belle_sip_body_handler_get_size(const belle_sip_body_handler_t *obj){
@@ -177,8 +187,12 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_memory_body_handler_t)
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
-const void *belle_sip_memory_body_handler_get_buffer(const belle_sip_memory_body_handler_t *obj){
+void *belle_sip_memory_body_handler_get_buffer(const belle_sip_memory_body_handler_t *obj){
 	return obj->buffer;
+}
+
+void belle_sip_memory_body_handler_set_buffer(belle_sip_memory_body_handler_t *obj, void *buffer) {
+	obj->buffer = (uint8_t *)buffer;
 }
 
 belle_sip_memory_body_handler_t *belle_sip_memory_body_handler_new(belle_sip_body_handler_progress_callback_t cb, void *user_data){
