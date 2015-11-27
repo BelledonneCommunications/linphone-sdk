@@ -529,23 +529,20 @@ void belle_sip_multipart_body_handler_progress_cb(belle_sip_body_handler_t *obj,
 		uint8_t *end_headers_cursor;
 		uint8_t *end_header_cursor;
 		uint8_t *cursor = obj_multipart->buffer;
-		if (strncmp((char *)cursor, "--", 2)) {
-			belle_sip_warning("belle_sip_multipart_body_handler [%p]: body not starting by '--'", obj_multipart);
-			return;
-		}
-		cursor += 2;
-		if (strncmp((char *)cursor, obj_multipart->boundary, strlen(obj_multipart->boundary))) {
+		char *boundary = belle_sip_strdup_printf("--%s", obj_multipart->boundary);
+		if (strncmp((char *)cursor, boundary, strlen(boundary))) {
 			belle_sip_warning("belle_sip_multipart_body_handler [%p]: body not starting by specified boundary '%s'", obj_multipart, obj_multipart->boundary);
+			belle_sip_free(boundary);
 			return;
 		}
-		cursor += strlen(obj_multipart->boundary);
+		cursor += strlen(boundary);
 		do {
 			if (strncmp((char *)cursor, "\r\n", 2)) {
 				belle_sip_warning("belle_sip_multipart_body_handler [%p]: no new-line after boundary", obj_multipart);
 				return;
 			}
 			cursor += 2;
-			end_part_cursor = (uint8_t *)strstr((char *)cursor, obj_multipart->boundary);
+			end_part_cursor = (uint8_t *)strstr((char *)cursor, boundary);
 			if (end_part_cursor == NULL) {
 				belle_sip_warning("belle_sip_multipart_body_handler [%p]: cannot find next boundary", obj_multipart);
 				return;
@@ -568,8 +565,9 @@ void belle_sip_multipart_body_handler_progress_cb(belle_sip_body_handler_t *obj,
 					} while (end_header_cursor != end_headers_cursor);
 				}
 				belle_sip_multipart_body_handler_add_part(obj_multipart, BELLE_SIP_BODY_HANDLER(memorypart));
-				cursor = end_part_cursor + strlen(obj_multipart->boundary);
+				cursor = end_part_cursor + strlen(boundary);
 			}
 		} while (strcmp((char *)cursor, "--\r\n"));
+		belle_sip_free(boundary);
 	}
 }
