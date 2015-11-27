@@ -131,6 +131,17 @@ public:
 	**/
 	ABNFGrammarBuilder();
 	/**
+	 * Create a grammar from an ABNF grammar defined in the string pointed by abnf.
+	 * An optional Grammar argument corresponding to a grammar to include can be passed.
+	 * Usually the belr::CoreRules grammar is required for most IETF text protocols.
+	 * The returned grammar can be used to instanciate a belr::Parser object capable of parsing
+	 * the protocol or language described in the grammar.
+	 * @param abnf the string that contains the abnf grammar.
+	 * @param grammar an optional grammar to include.
+	 * @return the Grammar object corresponding to the text definition loaded, NULL if an error occured.
+	**/
+	shared_ptr<Grammar> createFromAbnf(const string &abnf, const shared_ptr<Grammar> &grammar=NULL);
+	/**
 	 * Create a grammar from an ABNF grammar defined in the text file pointed by path.
 	 * An optional Grammar argument corresponding to a grammar to include can be passed.
 	 * Usually the belr::CoreRules grammar is required for most IETF text protocols.
@@ -140,7 +151,7 @@ public:
 	 * @param grammar an optional grammar to include.
 	 * @return the Grammar object corresponding to the text definition loaded, NULL if an error occured.
 	**/
-	shared_ptr<Grammar> createFromAbnf(const string &path, const shared_ptr<Grammar> &grammar=NULL);
+	shared_ptr<Grammar> createFromAbnfFile(const string &path, const shared_ptr<Grammar> &grammar=NULL);
 private:
 	Parser<shared_ptr<ABNFBuilder>> mParser;
 };

@@ -305,23 +305,16 @@ ABNFGrammarBuilder::ABNFGrammarBuilder()
 		->setCollector("dec-val", make_sfn(&ABNFNumval::setDecVal));
 }
 
-shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &path, const shared_ptr<Grammar> &gram){
+shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const shared_ptr<Grammar> &gram){
 	size_t parsed;
 	
-	ifstream istr(path);
-	if (!istr.is_open()){
-		cerr<<"Could not open "<<path<<endl;
-		return NULL;
-	}
-	stringstream sstr;
-	sstr<<istr.rdbuf();
-	shared_ptr<ABNFBuilder> builder = mParser.parseInput("rulelist",sstr.str(),&parsed);
-	if (parsed<(size_t)sstr.str().size()){
-		cerr<<"ERROR: only "<<parsed<<" bytes parsed over a total of "<< sstr.str().size() <<endl;
+	shared_ptr<ABNFBuilder> builder = mParser.parseInput("rulelist",abnf,&parsed);
+	if (parsed<(size_t)abnf.size()){
+		cerr<<"ERROR: only "<<parsed<<" bytes parsed over a total of "<< abnf.size() <<endl;
 		return NULL;
 	}
 	shared_ptr<Grammar> retGram;
-	if (gram==NULL) retGram=make_shared<Grammar>(path);
+	if (gram==NULL) retGram=make_shared<Grammar>(abnf);
 	else retGram=gram;
 	builder->buildRecognizer(retGram);
 	cout<<"Succesfully created grammar with "<<retGram->getNumRules()<<" rules."<<endl;
@@ -333,6 +326,17 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &path, const
 		cout<<"WARNING: grammar is not complete."<<endl;
 	}
 	return gram;
+}
+
+shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnfFile(const string &path, const shared_ptr<Grammar> &gram){
+	ifstream istr(path);
+	if (!istr.is_open()){
+		cerr<<"Could not open "<<path<<endl;
+		return NULL;
+	}
+	stringstream sstr;
+	sstr<<istr.rdbuf();
+	return createFromAbnf(sstr.str(), gram);
 }
 
 }//end of namespace
