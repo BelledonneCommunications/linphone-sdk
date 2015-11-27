@@ -60,6 +60,7 @@ static SoundDeviceDescription devices[]={
 	{	"motorola",	"MB860",		"",			0,	200 },
 	{	"motorola",	"XT907",		"",			0,	500 },
 	{	"motorola",	"DROIX X2",		"",			0,	320 },
+	{	"motorola",	"MotoG3",		"msm8916",	DEVICE_HAS_BUILTIN_AEC_CRAPPY,	100 }, /*The MotoG3 audio capture hangs for several seconds when switching to speaker mode*/
 
 	{	"samsung",	"GT-S5360",		"bcm21553",	0,	250 }, /*<Galaxy Y*/
 	{	"samsung",	"GT-S5360L",	"",			0,	250 }, /*<Galaxy Y*/
