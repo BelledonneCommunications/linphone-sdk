@@ -111,7 +111,7 @@ int main(int argc, char *argv[]){
 	//Create a GrammarBuilder:
 	ABNFGrammarBuilder builder;
 	//construct the grammar from the grammar file, the core rules are included since required by most RFCs.
-	shared_ptr<Grammar> grammar=builder.createFromAbnf("sipgrammar.txt", make_shared<CoreRules>());
+	shared_ptr<Grammar> grammar=builder.createFromAbnfFile("sipgrammar.txt", make_shared<CoreRules>());
 	
 	if (!grammar){
 		cerr<<"Could not build grammar from sipgrammar.txt"<<endl;
