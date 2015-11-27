@@ -30,10 +30,14 @@ set(EP_x264_CROSS_COMPILATION_OPTIONS
 	"--host=${LINPHONE_BUILDER_HOST}"
 )
 set(EP_x264_CONFIGURE_OPTIONS
-	"--extra-cflags=${LINPHONE_BUILDER_CFLAGS}"
-	"--extra-ldflags=${LINPHONE_BUILDER_LDFLAGS}"
+	"--extra-cflags=$CFLAGS"
+	"--extra-ldflags=$LDFLAGS"
 )
+if(IOS)
+	list(APPEND EP_x264_CONFIGURE_OPTIONS "--sysroot=${CMAKE_OSX_SYSROOT}")
+endif()
 set(EP_x264_LINKING_TYPE "--enable-shared")
 set(EP_x264_CONFIGURE_ENV "CC=$CC")
 set(EP_x264_INSTALL_TARGET "install-lib-shared")
 set(EP_x264_DEPENDENCIES )
+
