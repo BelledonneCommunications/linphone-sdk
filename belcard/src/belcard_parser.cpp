@@ -89,7 +89,7 @@ string BelCardParser::fold(string input) {
 	while (next_crlf != string::npos) {
 		next_crlf = input.find("\r\n", crlf);
 		if (next_crlf != string::npos) {
-			if (next_crlf - crlf > 77) {
+			if (next_crlf - crlf > 75) {
 				input.insert(crlf + 74, "\r\n ");
 				crlf += 76;
 			} else {
