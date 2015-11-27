@@ -165,6 +165,7 @@ struct au_filter_write_data{
 	ms_mutex_t	mutex;
 	MSBufferizer	*bufferizer;
 	unsigned int n_lost_frame;
+	bool first_frame_wrote;
 
 };
 
@@ -384,10 +385,15 @@ static OSStatus au_write_cb (
 
 	if (d!=NULL){
 		ms_mutex_lock(&d->mutex);
+		if (!d->first_frame_wrote) {
+			ms_bufferizer_flush(d->bufferizer); /*to avoid keeping delay from first start which can be around 100ms becasue io unit takes time to start*/
+			d->first_frame_wrote=true;
+		}
 		if(ms_bufferizer_get_avail(d->bufferizer) >= inNumberFrames*d->base.card->bits/8) {
 			ms_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, inNumberFrames*d->base.card->bits/8);
-			if (ms_bufferizer_get_avail(d->bufferizer) >10*inNumberFrames*d->base.card->bits/8) {
-				ms_debug("we are late, bufferizer sise is %i bytes in framezize is %lu bytes"
+			/*basic algo,  can be enhanced with a more advanced bufferizer computing average value*/
+			if (ms_bufferizer_get_avail(d->bufferizer) > card->rate* (card->nchannels * card->bits / 8)/5 ) {
+				ms_warning("we are at least 200ms late, bufferizer sise is %i bytes in framezize is %lu bytes"
 						,ms_bufferizer_get_avail(d->bufferizer)
 						,inNumberFrames*d->base.card->bits/8);
 				ms_bufferizer_flush(d->bufferizer);
