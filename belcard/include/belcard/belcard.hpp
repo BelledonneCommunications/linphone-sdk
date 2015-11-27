@@ -10,6 +10,7 @@
 #include <memory>
 
 using namespace::std;
+using namespace::belr;
 
 namespace belcard {
 	class BelCard : public BelCardGeneric {
@@ -26,6 +27,17 @@ namespace belcard {
 	public:
 		static shared_ptr<BelCard> create() {
 			return make_shared<BelCard>();
+		}
+		
+		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
+			parser->setHandler("vcard", make_fn(&BelCard::create))
+					->setCollector("FN", make_sfn(&BelCard::setFN))
+					->setCollector("N", make_sfn(&BelCard::setN))
+					->setCollector("BDAY", make_sfn(&BelCard::setBirthday))
+					->setCollector("ANNIVERSARY", make_sfn(&BelCard::setAnniversary))
+					->setCollector("GENDER", make_sfn(&BelCard::setGender))
+					->setCollector("NICKNAME", make_sfn(&BelCard::addNickname))
+					->setCollector("PHOTO", make_sfn(&BelCard::addPhoto));
 		}
 		
 		BelCard() {

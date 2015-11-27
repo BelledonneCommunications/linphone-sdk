@@ -1,12 +1,15 @@
 #ifndef belcard_generic_hpp
 #define belcard_generic_hpp
 
+#include <belr/parser-impl.cc>
+
 #include <string>
 #include <list>
 #include <map>
 #include <memory>
 
 using namespace::std;
+using namespace::belr;
 
 namespace belcard {
 	class BelCardGeneric {
@@ -23,6 +26,12 @@ namespace belcard {
 	public:
 		static shared_ptr<BelCardParam> create() {
 			return make_shared<BelCardParam>();
+		}
+		
+		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
+			parser->setHandler("any-param", make_fn(&BelCardParam::create))
+					->setCollector("param-name", make_sfn(&BelCardParam::setName))
+					->setCollector("param-value", make_sfn(&BelCardParam::setValue));
 		}
 		
 		BelCardParam() : BelCardGeneric() {
