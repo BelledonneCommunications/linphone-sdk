@@ -22,7 +22,7 @@
 
 set(EP_myodbc_GIT_REPOSITORY "git://git.linphone.org/myodbc.git" CACHE STRING "myodbc repository URL")
 set(EP_myodbc_GIT_TAG_LATEST "master" CACHE STRING "myodbc tag to use when compiling latest version")
-set(EP_myodbc_GIT_TAG "0c401f39f0fab8cf1f8d6496453a19c89c2d988c" CACHE STRING "myodbc tag to use")
+set(EP_myodbc_GIT_TAG "4bc36b6d5d6e2ca67d1bc5a3bab7728853f2a683" CACHE STRING "myodbc tag to use")
 
 set(EP_myodbc_DEPENDENCIES EP_unixodbc)
 set(EP_myodbc_SPEC_FILE "scripts/myodbc3.spec")
