@@ -25,7 +25,8 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 		->setCollector("BDAY", make_sfn(&BelCard::setBirthday))
 		->setCollector("ANNIVERSARY", make_sfn(&BelCard::setAnniversary))
 		->setCollector("GENDER", make_sfn(&BelCard::setGender))
-		->setCollector("NICKNAME", make_sfn(&BelCard::addNickname));
+		->setCollector("NICKNAME", make_sfn(&BelCard::addNickname))
+		->setCollector("PHOTO", make_sfn(&BelCard::addPhoto));
 		
 	parser.setHandler("any-param", make_fn(&BelCardParam::create))
 		->setCollector("param-name", make_sfn(&BelCardParam::setName))
@@ -65,6 +66,11 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 		->setCollector("any-param", make_sfn(&BelCardNickname::addParam))
 		->setCollector("NICKNAME-value", make_sfn(&BelCardNickname::setValue));
 		
+	parser.setHandler("PHOTO", make_fn(&BelCardPhoto::create))
+		->setCollector("group", make_sfn(&BelCardPhoto::setGroup))
+		->setCollector("any-param", make_sfn(&BelCardPhoto::addParam))
+		->setCollector("PHOTO-value", make_sfn(&BelCardPhoto::setValue));
+		
 	size_t parsedSize = 0;
 	shared_ptr<BelCardGeneric> ret = parser.parseInput("vcard", vcard, &parsedSize);
 	shared_ptr<BelCard> belCard = dynamic_pointer_cast<BelCard>(ret);
@@ -84,8 +90,8 @@ string BelCardParser::fold(string input) {
 		next_crlf = input.find("\r\n", crlf);
 		if (next_crlf != string::npos) {
 			if (next_crlf - crlf > 77) {
-				input.insert(crlf + 77, "\r\n ");
-				crlf += 80;
+				input.insert(crlf + 74, "\r\n ");
+				crlf += 76;
 			} else {
 				crlf = next_crlf + 2;
 			}

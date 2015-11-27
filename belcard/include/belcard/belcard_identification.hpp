@@ -44,7 +44,6 @@ namespace belcard {
 		
 		virtual void setFamilyName(const string &value) {
 			_family_name = value;
-			setValue(_family_name + ";" + _given_name + ";" + _additional_name + ";" + _prefixes + ";" + _suffixes);
 		}
 		virtual const string &getFamilyName() const {
 			return _family_name;
@@ -52,7 +51,6 @@ namespace belcard {
 		
 		virtual void setGivenName(const string &value) {
 			_given_name = value;
-			setValue(_family_name + ";" + _given_name + ";" + _additional_name + ";" + _prefixes + ";" + _suffixes);
 		}
 		virtual const string &getGivenName() const {
 			return _given_name;
@@ -60,7 +58,6 @@ namespace belcard {
 		
 		virtual void setAdditionalName(const string &value) {
 			_additional_name = value;
-			setValue(_family_name + ";" + _given_name + ";" + _additional_name + ";" + _prefixes + ";" + _suffixes);
 		}
 		virtual const string &getAdditionalName() const {
 			return _additional_name;
@@ -68,7 +65,6 @@ namespace belcard {
 		
 		virtual void setPrefixes(const string &value) {
 			_prefixes = value;
-			setValue(_family_name + ";" + _given_name + ";" + _additional_name + ";" + _prefixes + ";" + _suffixes);
 		}
 		virtual const string &getPrefixes() const {
 			return _prefixes;
@@ -76,7 +72,6 @@ namespace belcard {
 		
 		virtual void setSuffixes(const string &value) {
 			_suffixes = value;
-			setValue(_family_name + ";" + _given_name + ";" + _additional_name + ";" + _prefixes + ";" + _suffixes);
 		}
 		virtual const string &getSuffixes() const {
 			return _suffixes;
@@ -84,6 +79,11 @@ namespace belcard {
 		
 		virtual void addParam(const shared_ptr<BelCardParam> &param) {
 			BelCardProperty::addParam(param);
+		}
+		
+		virtual string toString() {
+			setValue(_family_name + ";" + _given_name + ";" + _additional_name + ";" + _prefixes + ";" + _suffixes);
+			return BelCardProperty::toString();
 		}
 	};
 	
@@ -140,6 +140,21 @@ namespace belcard {
 		
 		BelCardGender() : BelCardProperty() {
 			setName("GENDER");
+		}
+		
+		virtual void addParam(const shared_ptr<BelCardParam> &param) {
+			BelCardProperty::addParam(param);
+		}
+	};
+	
+	class BelCardPhoto : public BelCardProperty {
+	public:
+		static shared_ptr<BelCardPhoto> create() {
+			return make_shared<BelCardPhoto>();
+		}
+		
+		BelCardPhoto() : BelCardProperty() {
+			setName("PHOTO");
 		}
 		
 		virtual void addParam(const shared_ptr<BelCardParam> &param) {

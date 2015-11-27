@@ -20,6 +20,7 @@ namespace belcard {
 		shared_ptr<BelCardAnniversary> _anniversary;
 		shared_ptr<BelCardGender> _gender;
 		list<shared_ptr<BelCardNickname>> _nicknames;
+		list<shared_ptr<BelCardPhoto>> _photos;
 		list<shared_ptr<BelCardProperty>> _properties;
 		
 	public:
@@ -77,6 +78,14 @@ namespace belcard {
 		}
 		const list<shared_ptr<BelCardNickname>> &getNicknames() const {
 			return _nicknames;
+		}
+		
+		void addPhoto(const shared_ptr<BelCardPhoto> &photo) {
+			_photos.push_back(photo);
+			addProperty(photo);
+		}
+		const list<shared_ptr<BelCardPhoto>> &getPhotos() const {
+			return _photos;
 		}
 		
 		void addProperty(const shared_ptr<BelCardProperty> &property) {
