@@ -31,3 +31,4 @@ belcard.kdev4
 tests/belcard-tester
 tests/belcard-folder
 tests/belcard-unfolder
+include/belcard/vcard_grammar.hpp

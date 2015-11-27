@@ -16,6 +16,12 @@ AC_PROG_CXX
 CXXFLAGS="$CXXFLAGS -std=c++11 -Wall -Werror"
 
 # Checks for libraries.
+dnl Check for xxd
+AC_CHECK_PROG(xxd_found, xxd, yes)
+if test "$xxd_found" != yes ;then
+        AC_MSG_ERROR("xxd is required (provided by vim package)")
+fi
+
 
 # Checks for header files.
 

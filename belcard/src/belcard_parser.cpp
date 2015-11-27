@@ -1,12 +1,13 @@
 #include "belcard/belcard_parser.hpp"
 #include "belcard/belcard.hpp"
+#include "belcard/vcard_grammar.hpp"
 
 using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
 BelCardParser::BelCardParser() {
-	_grammar = _grammar_builder.createFromAbnf("vcardgrammar.txt", make_shared<CoreRules>());
+	_grammar = _grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
 }
 
 BelCardParser::~BelCardParser() {
