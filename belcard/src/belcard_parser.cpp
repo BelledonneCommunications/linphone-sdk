@@ -34,11 +34,6 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 	return belCard;
 }
 
-string BelCardParser::dumpVCard(const shared_ptr<BelCard> &card) {
-	string output = card->toString();
-	return fold(output);
-}
-
 string BelCardParser::fold(string input) {
 	size_t crlf = 0;
 	size_t next_crlf = 0;

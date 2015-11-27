@@ -100,9 +100,17 @@ namespace belcard {
 			BelCardProperty::addParam(param);
 		}
 		
-		virtual string toString() {
-			setValue(_family_name + ";" + _given_name + ";" + _additional_name + ";" + _prefixes + ";" + _suffixes);
-			return BelCardProperty::toString();
+		friend ostream &operator<<(ostream &output, const BelCardN &n) {
+			if (n.getGroup().length() > 0) {
+				output << n.getGroup() << ".";
+			}
+			
+			output << n.getName();
+			for (auto it = n.getParams().begin(); it != n.getParams().end(); ++it) {
+				output << ";" << (*it); 
+			}
+			output << ":" << n.getFamilyName() + ";" + n.getGivenName() + ";" + n.getAdditionalName() + ";" + n.getPrefixes() + ";" + n.getSuffixes() << "\r\n";
+			return output;            
 		}
 	};
 	

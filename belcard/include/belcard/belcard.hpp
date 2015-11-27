@@ -107,13 +107,13 @@ namespace belcard {
 			return _properties;
 		}
 		
-		string toString() {
-			string vcard = "BEGIN:VCARD\r\nVERSION:4.0\r\n";
-			for (auto it = _properties.begin(); it != _properties.end(); ++it) {
-				vcard += (*it)->toString(); 
+		friend ostream &operator<<(ostream &output, const BelCard &card) {
+			output << "BEGIN:VCARD\r\nVERSION:4.0\r\n";
+			for (auto it = card.getProperties().begin(); it != card.getProperties().end(); ++it) {
+				output << (**it); 
 			}
-			vcard += "END:VCARD\r\n";
-			return vcard;
+			output << "END:VCARD\r\n";
+			return output;
 		}
 	};	
 }

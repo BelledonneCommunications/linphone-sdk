@@ -52,8 +52,9 @@ namespace belcard {
 			return _value;
 		}
 		
-		virtual string toString() {
-			return _name + "=" + _value;
+		friend ostream &operator<<(ostream &output, const BelCardParam &param) {
+			output << param.getName() << "=" << param.getValue();
+			return output;
 		}
 	};
 	
@@ -100,16 +101,17 @@ namespace belcard {
 			return _params;
 		}
 		
-		virtual string toString() {
-			string property;
-			if (_group.length() > 0)
-				property += _group + ".";
-			property += _name;
-			for (auto it = _params.begin(); it != _params.end(); ++it) {
-				property += ";" + (*it)->toString(); 
+		friend ostream &operator<<(ostream &output, const BelCardProperty &prop) {
+			if (prop.getGroup().length() > 0) {
+				output << prop.getGroup() << ".";
 			}
-			property += ":" + _value + "\r\n";
-			return property;
+			
+			output << prop.getName();
+			for (auto it = prop.getParams().begin(); it != prop.getParams().end(); ++it) {
+				output << ";" << (**it); 
+			}
+			output << ":" << prop.getValue() << "\r\n";
+			return output;            
 		}
 	};
 }

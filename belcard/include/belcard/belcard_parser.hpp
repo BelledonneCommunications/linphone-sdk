@@ -19,7 +19,6 @@ namespace belcard {
 		~BelCardParser();
 		
 		shared_ptr<BelCard> parse(const string &input);
-		string dumpVCard(const shared_ptr<BelCard> &card);
 		
 		string fold(string input);
 		string unfold(string input);

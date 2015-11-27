@@ -28,8 +28,7 @@ int main(int argc, char *argv[]) {
 	shared_ptr<BelCard> belCard = parser->parse(vcard);
 	
 	if (belCard) {
-		string outputVCard = belCard->toString();
-		cout << outputVCard << endl;
+		cout << (*belCard) << endl;
 	} else {
 		cerr << "Error: returned pointer is null" << endl;
 	}
