@@ -49,7 +49,7 @@ else()
 	set(CLANG_TARGET_SPECIFIER "iphoneos-version-min")
 endif()
 set(COMMON_FLAGS "-m${CLANG_TARGET_SPECIFIER}=${LINPHONE_IOS_DEPLOYMENT_TARGET} -DTARGET_OS_IPHONE=1 -D__IOS -fms-extensions")
-set(LINPHONE_BUILDER_CPPFLAGS "${COMMON_FLAGS} -Dasm=__asm")
+set(LINPHONE_BUILDER_CPPFLAGS "${COMMON_FLAGS}")
 set(LINPHONE_BUILDER_LDFLAGS "${COMMON_FLAGS}")
 set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# Restrict pkg-config to search in the install directory
 unset(COMMON_FLAGS)
