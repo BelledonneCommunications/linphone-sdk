@@ -142,7 +142,9 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					utils/g722_encode.c \
 					audiofilters/msg722.c \
 					audiofilters/l16.c \
+					audiofilters/genericplc.h \
 					audiofilters/genericplc.c \
+					audiofilters/msgenericplc.c \
 					audiofilters/msfileplayer.c \
 					audiofilters/msfilerec.c \
 					audiofilters/waveheader.h \

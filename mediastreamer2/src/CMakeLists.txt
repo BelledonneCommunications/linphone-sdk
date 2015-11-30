@@ -118,7 +118,9 @@ set(VOIP_SOURCE_FILES_C
 	audiofilters/flowcontrol.c
 	audiofilters/g711.c
 	audiofilters/g711.h
+	audiofilters/genericplc.h
 	audiofilters/genericplc.c
+	audiofilters/msgenericplc.c
 	audiofilters/l16.c
 	audiofilters/msfileplayer.c
 	audiofilters/msfilerec.c
