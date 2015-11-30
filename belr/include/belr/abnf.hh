@@ -1,3 +1,7 @@
+#ifndef abnf_hh
+#define abnf_hh
+
+
 #include "belr.hh"
 
 namespace belr{
@@ -64,3 +68,4 @@ private:
 
 
 }//end of namespace
+#endif
