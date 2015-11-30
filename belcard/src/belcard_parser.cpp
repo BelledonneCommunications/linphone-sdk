@@ -1,6 +1,5 @@
 #include "belcard/belcard_parser.hpp"
 #include "belcard/belcard.hpp"
-#include "belcard/vcard_grammar.hpp"
 
 using namespace::std;
 using namespace::belr;

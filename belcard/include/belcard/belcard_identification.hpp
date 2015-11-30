@@ -2,6 +2,8 @@
 #define belcard_identification_hpp
 
 #include "belcard_generic.hpp"
+#include <belr/grammarbuilder.hh>
+#include <belr/abnf.hh>
 
 #include <string>
 #include <list>
@@ -18,8 +20,14 @@ namespace belcard {
 			return make_shared<BelCardFN>();
 		}
 		
-		BelCardFN() : BelCardProperty() {
-			setName("FN");
+		static shared_ptr<BelCardFN> parse(const string& input) {
+			ABNFGrammarBuilder grammar_builder;
+			shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+			Parser<shared_ptr<BelCardGeneric>> parser(grammar);
+			setHandlerAndCollectors(&parser);
+			BelCardParam::setHandlerAndCollectors(&parser);
+			shared_ptr<BelCardGeneric> ret = parser.parseInput("FN", input, NULL);
+			return dynamic_pointer_cast<BelCardFN>(ret);
 		}
 		
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
@@ -27,6 +35,10 @@ namespace belcard {
 					->setCollector("group", make_sfn(&BelCardFN::setGroup))
 					->setCollector("any-param", make_sfn(&BelCardFN::addParam))
 					->setCollector("FN-value", make_sfn(&BelCardFN::setValue));
+		}
+		
+		BelCardFN() : BelCardProperty() {
+			setName("FN");
 		}
 		
 		virtual void addParam(const shared_ptr<BelCardParam> &param) {
@@ -44,6 +56,16 @@ namespace belcard {
 	public:
 		static shared_ptr<BelCardN> create() {
 			return make_shared<BelCardN>();
+		}
+		
+		static shared_ptr<BelCardN> parse(const string& input) {
+			ABNFGrammarBuilder grammar_builder;
+			shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+			Parser<shared_ptr<BelCardGeneric>> parser(grammar);
+			setHandlerAndCollectors(&parser);
+			BelCardParam::setHandlerAndCollectors(&parser);
+			shared_ptr<BelCardGeneric> ret = parser.parseInput("N", input, NULL);
+			return dynamic_pointer_cast<BelCardN>(ret);
 		}
 		
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
@@ -120,6 +142,16 @@ namespace belcard {
 			return make_shared<BelCardNickname>();
 		}
 		
+		static shared_ptr<BelCardNickname> parse(const string& input) {
+			ABNFGrammarBuilder grammar_builder;
+			shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+			Parser<shared_ptr<BelCardGeneric>> parser(grammar);
+			setHandlerAndCollectors(&parser);
+			BelCardParam::setHandlerAndCollectors(&parser);
+			shared_ptr<BelCardGeneric> ret = parser.parseInput("NICKNAME", input, NULL);
+			return dynamic_pointer_cast<BelCardNickname>(ret);
+		}
+		
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 			parser->setHandler("NICKNAME", make_fn(&BelCardNickname::create))
 					->setCollector("group", make_sfn(&BelCardNickname::setGroup))
@@ -140,6 +172,16 @@ namespace belcard {
 	public:
 		static shared_ptr<BelCardBirthday> create() {
 			return make_shared<BelCardBirthday>();
+		}
+		
+		static shared_ptr<BelCardBirthday> parse(const string& input) {
+			ABNFGrammarBuilder grammar_builder;
+			shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+			Parser<shared_ptr<BelCardGeneric>> parser(grammar);
+			setHandlerAndCollectors(&parser);
+			BelCardParam::setHandlerAndCollectors(&parser);
+			shared_ptr<BelCardGeneric> ret = parser.parseInput("BDAY", input, NULL);
+			return dynamic_pointer_cast<BelCardBirthday>(ret);
 		}
 		
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
@@ -164,6 +206,16 @@ namespace belcard {
 			return make_shared<BelCardAnniversary>();
 		}
 		
+		static shared_ptr<BelCardAnniversary> parse(const string& input) {
+			ABNFGrammarBuilder grammar_builder;
+			shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+			Parser<shared_ptr<BelCardGeneric>> parser(grammar);
+			setHandlerAndCollectors(&parser);
+			BelCardParam::setHandlerAndCollectors(&parser);
+			shared_ptr<BelCardGeneric> ret = parser.parseInput("ANNIVERSARY", input, NULL);
+			return dynamic_pointer_cast<BelCardAnniversary>(ret);
+		}
+		
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 			parser->setHandler("ANNIVERSARY", make_fn(&BelCardAnniversary::create))
 					->setCollector("group", make_sfn(&BelCardAnniversary::setGroup))
@@ -186,6 +238,16 @@ namespace belcard {
 			return make_shared<BelCardGender>();
 		}
 		
+		static shared_ptr<BelCardGender> parse(const string& input) {
+			ABNFGrammarBuilder grammar_builder;
+			shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+			Parser<shared_ptr<BelCardGeneric>> parser(grammar);
+			setHandlerAndCollectors(&parser);
+			BelCardParam::setHandlerAndCollectors(&parser);
+			shared_ptr<BelCardGeneric> ret = parser.parseInput("GENDER", input, NULL);
+			return dynamic_pointer_cast<BelCardGender>(ret);
+		}
+		
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 			parser->setHandler("GENDER", make_fn(&BelCardGender::create))
 					->setCollector("group", make_sfn(&BelCardGender::setGroup))
@@ -206,6 +268,16 @@ namespace belcard {
 	public:
 		static shared_ptr<BelCardPhoto> create() {
 			return make_shared<BelCardPhoto>();
+		}
+		
+		static shared_ptr<BelCardPhoto> parse(const string& input) {
+			ABNFGrammarBuilder grammar_builder;
+			shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+			Parser<shared_ptr<BelCardGeneric>> parser(grammar);
+			setHandlerAndCollectors(&parser);
+			BelCardParam::setHandlerAndCollectors(&parser);
+			shared_ptr<BelCardGeneric> ret = parser.parseInput("PHOTO", input, NULL);
+			return dynamic_pointer_cast<BelCardPhoto>(ret);
 		}
 		
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {

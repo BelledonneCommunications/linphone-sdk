@@ -2,6 +2,9 @@
 #define belcard_generic_hpp
 
 #include <belr/parser-impl.cc>
+#include <belr/grammarbuilder.hh>
+#include <belr/abnf.hh>
+#include "belcard/vcard_grammar.hpp"
 
 #include <string>
 #include <list>
@@ -26,6 +29,15 @@ namespace belcard {
 	public:
 		static shared_ptr<BelCardParam> create() {
 			return make_shared<BelCardParam>();
+		}
+		
+		static shared_ptr<BelCardParam> parse(const string& input) {
+			ABNFGrammarBuilder grammar_builder;
+			shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+			Parser<shared_ptr<BelCardGeneric>> parser(grammar);
+			setHandlerAndCollectors(&parser);
+			shared_ptr<BelCardGeneric> ret = parser.parseInput("any-param", input, NULL);
+			return dynamic_pointer_cast<BelCardParam>(ret);
 		}
 		
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
@@ -64,6 +76,7 @@ namespace belcard {
 		string _name;
 		string _value;
 		list<shared_ptr<BelCardParam>> _params;
+		
 	public:
 		static shared_ptr<BelCardProperty> create() {
 			return make_shared<BelCardProperty>();

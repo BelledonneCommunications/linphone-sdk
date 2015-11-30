@@ -1,38 +1,60 @@
-#include "belcard/belcard_parser.hpp"
+#include "belcard-tester.hpp"
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
-using namespace::belr;
-using namespace::belcard;
+#define MESSAGE 1<<1
+#define WARNING 1<<2
+#define ERROR 1<<3
 
 int main(int argc, char *argv[]) {
-	const char *file = NULL;
+	int i;
+	int ret;
+
+	belcard_tester_init(NULL);
 	
-	if (argc < 2) {
-		cerr << argv[0] << " <file to parse> - parse the content of a file" << endl;
-		return -1;
-	}
-	file = argv[1];
-	
-	ifstream istr(file);
-	if (!istr.is_open()) {
-		return -1;
-	}
-	stringstream vcardStream;
-	vcardStream << istr.rdbuf();
-	string vcard = vcardStream.str();
-	
-	BelCardParser *parser = new BelCardParser();
-	shared_ptr<BelCard> belCard = parser->parse(vcard);
-	
-	if (belCard) {
-		cout << (*belCard) << endl;
-	} else {
-		cerr << "Error: returned pointer is null" << endl;
+	if (strstr(argv[0], ".libs")) {
+		int prefix_length = strstr(argv[0], ".libs") - argv[0] + 1;
+		char prefix[200];
+		sprintf(prefix, "%s%.*s", argv[0][0] == '/' ? "" : "./", prefix_length, argv[0]);
+		bc_tester_set_resource_dir_prefix(prefix);
+		bc_tester_set_writable_dir_prefix(prefix);
 	}
 	
-	delete parser;
-	return 0;
+	for(i = 1; i < argc; ++i) {
+		int ret = bc_tester_parse_args(argc, argv, i);
+		if (ret>0) {
+			i += ret - 1;
+			continue;
+		} else if (ret<0) {
+			bc_tester_helper(argv[0], "");
+		}
+		return ret;
+	}
+
+	ret = bc_tester_start(argv[0]);
+	belcard_tester_uninit();
+	return ret;
+}
+
+static void log_handler(int lev, const char *fmt, va_list args) {
+#ifdef _WIN32
+	vfprintf(lev == ERROR ? stderr : stdout, fmt, args);
+	fprintf(lev == ERROR ? stderr : stdout, "\n");
+#else
+	va_list cap;
+	va_copy(cap,args);
+	/* Otherwise, we must use stdio to avoid log formatting (for autocompletion etc.) */
+	vfprintf(lev == ERROR ? stderr : stdout, fmt, cap);
+	fprintf(lev == ERROR ? stderr : stdout, "\n");
+	va_end(cap);
+#endif
+}
+
+void belcard_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
+	if (ftester_printf == NULL) ftester_printf = log_handler;
+	bc_tester_init(ftester_printf, MESSAGE, ERROR);
+	
+	bc_tester_add_suite(&vcard_identification_properties_test_suite);
+}
+
+void belcard_tester_uninit(void) {
+	bc_tester_uninit();
 }
