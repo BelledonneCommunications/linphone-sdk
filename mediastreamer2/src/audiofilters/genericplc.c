@@ -180,10 +180,15 @@ void generic_plc_generate_samples(plc_context_t *context, int16_t *data, size_t 
 }
 
 void generic_plc_update_plc_buffer(plc_context_t *context, unsigned char *data, size_t data_len) {
-	/* move back the current plc_buffer to get enough room to insert incoming message */
-	memmove(context->plc_buffer, context->plc_buffer+data_len, context->plc_buffer_len-data_len);
-	/* append current msg at the end of plc buffer */
-	memcpy(context->plc_buffer+context->plc_buffer_len-data_len, data, data_len);
+	/* check packet length to be greater than plc_buffer */
+	if (data_len<context->plc_buffer_len) {
+		/* move back the current plc_buffer to get enough room to insert incoming message */
+		memmove(context->plc_buffer, context->plc_buffer+data_len, context->plc_buffer_len-data_len);
+		/* append current msg at the end of plc buffer */
+		memcpy(context->plc_buffer+context->plc_buffer_len-data_len, data, data_len);
+	} else {
+		memcpy(context->plc_buffer, data+data_len-context->plc_buffer_len, context->plc_buffer_len);
+	}
 }
 
 void generic_plc_update_continuity_buffer(plc_context_t *context, unsigned char *data, size_t data_len) {
