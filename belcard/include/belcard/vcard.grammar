@@ -5,12 +5,12 @@ vcard = "BEGIN:VCARD" CRLF
 		1*property
 		"END:VCARD" CRLF
 
-property = (FN / N / NICKNAME / BDAY / ANNIVERSARY / GENDER / PHOTO) CRLF
+property = FN / N / NICKNAME / BDAY / ANNIVERSARY / GENDER / PHOTO
 
-FN = [group "."] "FN" *(";" any-param) ":" FN-value
+FN = [group "."] "FN" *(";" any-param) ":" FN-value CRLF
 FN-value = text
 
-N = [group "."] "N" *(";" any-param) ":" N-value
+N = [group "."] "N" *(";" any-param) ":" N-value CRLF
 N-value = N-fn ";" N-gn ";" N-an ";" N-prefixes ";" N-suffixes
 N-fn = component *("," component)
 N-gn = component *("," component)
@@ -18,20 +18,20 @@ N-an = component *("," component)
 N-prefixes = component *("," component)
 N-suffixes = component *("," component)
 
-NICKNAME = [group "."] "NICKNAME" *(";" any-param) ":" NICKNAME-value
+NICKNAME = [group "."] "NICKNAME" *(";" any-param) ":" NICKNAME-value CRLF
 NICKNAME-value = text-list
 
-BDAY = [group "."] "BDAY" *(";" any-param) ":" BDAY-value
+BDAY = [group "."] "BDAY" *(";" any-param) ":" BDAY-value CRLF
 BDAY-value = date-and-or-time / text
 
-ANNIVERSARY = [group "."] "ANNIVERSARY" *(";" any-param) ":" ANNIVERSARY-value
+ANNIVERSARY = [group "."] "ANNIVERSARY" *(";" any-param) ":" ANNIVERSARY-value CRLF
 ANNIVERSARY-value = date-and-or-time / text
 
-GENDER = [group "."] "GENDER" *(";" any-param) ":" GENDER-value
+GENDER = [group "."] "GENDER" *(";" any-param) ":" GENDER-value CRLF
 GENDER-value = [sex] [";" text]
 sex = "M" / "F" / "O" / "N" / "U"
 
-PHOTO = [group "."] "PHOTO" *(";" any-param) ":" PHOTO-value
+PHOTO = [group "."] "PHOTO" *(";" any-param) ":" PHOTO-value CRLF
 PHOTO-value = URI
 
 group = 1*(ALPHA / DIGIT / "-")
