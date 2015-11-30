@@ -5,16 +5,19 @@ vcard = "BEGIN:VCARD" CRLF
 		1*property
 		"END:VCARD" CRLF
 
-property = FN / N / NICKNAME / BDAY / ANNIVERSARY / GENDER / PHOTO
+property = KIND / FN / N / NICKNAME / BDAY / ANNIVERSARY / GENDER / PHOTO / ADR
+
+KIND = [group "."] "KIND" *(";" any-param) ":" KIND-value CRLF
+KIND-value = "individual" / "group" / "org" / "location" / iana-token / x-name
 
 FN = [group "."] "FN" *(";" any-param) ":" FN-value CRLF
 FN-value = text
 
 N = [group "."] "N" *(";" any-param) ":" N-value CRLF
-N-value = N-fn ";" N-gn ";" N-an ";" N-prefixes ";" N-suffixes
-N-fn = component *("," component)
-N-gn = component *("," component)
-N-an = component *("," component)
+N-value    = N-fn ";" N-gn ";" N-an ";" N-prefixes ";" N-suffixes
+N-fn       = component *("," component)
+N-gn       = component *("," component)
+N-an       = component *("," component)
 N-prefixes = component *("," component)
 N-suffixes = component *("," component)
 
@@ -34,6 +37,19 @@ sex = "M" / "F" / "O" / "N" / "U"
 PHOTO = [group "."] "PHOTO" *(";" any-param) ":" PHOTO-value CRLF
 PHOTO-value = URI
 
+ADR = [group "."] "ADR" *(";" any-param) ":" ADR-value CRLF
+ADR-value = ADR-pobox  ";" ADR-ext      ";"
+			ADR-street ";" ADR-locality ";"
+			ADR-region ";" ADR-code     ";"
+			ADR-country
+ADR-pobox    = component *("," component)
+ADR-ext      = component *("," component)
+ADR-street   = component *("," component)
+ADR-locality = component *("," component)
+ADR-region   = component *("," component)
+ADR-code     = component *("," component)
+ADR-country  = component *("," component)
+     
 group = 1*(ALPHA / DIGIT / "-")
 
 any-param  = param-name "=" param-value

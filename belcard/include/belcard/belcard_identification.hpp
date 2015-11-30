@@ -53,6 +53,7 @@ namespace belcard {
 		string _additional_name;
 		string _prefixes;
 		string _suffixes;
+		
 	public:
 		static shared_ptr<BelCardN> create() {
 			return make_shared<BelCardN>();
@@ -83,38 +84,38 @@ namespace belcard {
 			setName("N");
 		}
 		
-		virtual void setFamilyName(const string &value) {
+		void setFamilyName(const string &value) {
 			_family_name = value;
 		}
-		virtual const string &getFamilyName() const {
+		const string &getFamilyName() const {
 			return _family_name;
 		}
 		
-		virtual void setGivenName(const string &value) {
+		void setGivenName(const string &value) {
 			_given_name = value;
 		}
-		virtual const string &getGivenName() const {
+		const string &getGivenName() const {
 			return _given_name;
 		}
 		
-		virtual void setAdditionalName(const string &value) {
+		void setAdditionalName(const string &value) {
 			_additional_name = value;
 		}
-		virtual const string &getAdditionalName() const {
+		const string &getAdditionalName() const {
 			return _additional_name;
 		}
 		
-		virtual void setPrefixes(const string &value) {
+		void setPrefixes(const string &value) {
 			_prefixes = value;
 		}
-		virtual const string &getPrefixes() const {
+		const string &getPrefixes() const {
 			return _prefixes;
 		}
 		
-		virtual void setSuffixes(const string &value) {
+		void setSuffixes(const string &value) {
 			_suffixes = value;
 		}
-		virtual const string &getSuffixes() const {
+		const string &getSuffixes() const {
 			return _suffixes;
 		}
 		
@@ -129,7 +130,7 @@ namespace belcard {
 			
 			output << n.getName();
 			for (auto it = n.getParams().begin(); it != n.getParams().end(); ++it) {
-				output << ";" << (*it); 
+				output << ";" << (**it); 
 			}
 			output << ":" << n.getFamilyName() + ";" + n.getGivenName() + ";" + n.getAdditionalName() + ";" + n.getPrefixes() + ";" + n.getSuffixes() << "\r\n";
 			return output;            

@@ -1,18 +1,10 @@
-#include "belcard/belcard.hpp"
+#include "belcard/belcard_identification.hpp"
 #include "common/bc_tester_utils.h"
 
 #include <sstream>
 
 using namespace::std;
 using namespace::belcard;
-
-static int tester_before_all(void) {
-	return 0;
-}
-
-static int tester_after_all(void) {
-	return 0;
-}
 
 static void fn_property(void) {
 	string input = "FN:Sylvain Berfini\r\n";
@@ -113,8 +105,8 @@ static test_t tests[] = {
 
 test_suite_t vcard_identification_properties_test_suite = {
 	"Identification",
-	tester_before_all,
-	tester_after_all,
+	NULL,
+	NULL,
 	NULL,
 	NULL,
 	sizeof(tests) / sizeof(tests[0]),

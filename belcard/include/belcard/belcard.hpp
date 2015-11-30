@@ -2,7 +2,9 @@
 #define belcard_hpp
 
 #include "belcard_generic.hpp"
+#include "belcard_general.hpp"
 #include "belcard_identification.hpp"
+#include "belcard_addressing.hpp"
 
 #include <string>
 #include <list>
@@ -15,6 +17,7 @@ using namespace::belr;
 namespace belcard {
 	class BelCard : public BelCardGeneric {
 	private:
+		shared_ptr<BelCardKind> _kind;
 		shared_ptr<BelCardFN> _fn;
 		shared_ptr<BelCardN> _n;
 		shared_ptr<BelCardBirthday> _bday;
@@ -22,6 +25,7 @@ namespace belcard {
 		shared_ptr<BelCardGender> _gender;
 		list<shared_ptr<BelCardNickname>> _nicknames;
 		list<shared_ptr<BelCardPhoto>> _photos;
+		list<shared_ptr<BelCardAddress>> _addr;
 		list<shared_ptr<BelCardProperty>> _properties;
 		
 	public:
@@ -31,17 +35,27 @@ namespace belcard {
 		
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 			parser->setHandler("vcard", make_fn(&BelCard::create))
+					->setCollector("KIND", make_sfn(&BelCard::setKind))
 					->setCollector("FN", make_sfn(&BelCard::setFN))
 					->setCollector("N", make_sfn(&BelCard::setN))
 					->setCollector("BDAY", make_sfn(&BelCard::setBirthday))
 					->setCollector("ANNIVERSARY", make_sfn(&BelCard::setAnniversary))
 					->setCollector("GENDER", make_sfn(&BelCard::setGender))
 					->setCollector("NICKNAME", make_sfn(&BelCard::addNickname))
-					->setCollector("PHOTO", make_sfn(&BelCard::addPhoto));
+					->setCollector("PHOTO", make_sfn(&BelCard::addPhoto))
+					->setCollector("ADR", make_sfn(&BelCard::addAddress));
 		}
 		
 		BelCard() {
 			
+		}
+		
+		void setKind(const shared_ptr<BelCardKind> &kind) {
+			_kind = kind;
+			addProperty(_kind);
+		}
+		const shared_ptr<BelCardKind> &getKind() const {
+			return _kind;
 		}
 		
 		void setFN(const shared_ptr<BelCardFN> &fn) {
@@ -98,6 +112,14 @@ namespace belcard {
 		}
 		const list<shared_ptr<BelCardPhoto>> &getPhotos() const {
 			return _photos;
+		}
+		
+		void addAddress(const shared_ptr<BelCardAddress> &addr) {
+			_addr.push_back(addr);
+			addProperty(addr);
+		}
+		const list<shared_ptr<BelCardAddress>> &getAddresses() const {
+			return _addr;
 		}
 		
 		void addProperty(const shared_ptr<BelCardProperty> &property) {

@@ -52,7 +52,10 @@ void belcard_tester_init(void(*ftester_printf)(int level, const char *fmt, va_li
 	if (ftester_printf == NULL) ftester_printf = log_handler;
 	bc_tester_init(ftester_printf, MESSAGE, ERROR);
 	
+	bc_tester_add_suite(&vcard_general_properties_test_suite);
 	bc_tester_add_suite(&vcard_identification_properties_test_suite);
+	bc_tester_add_suite(&vcard_addressing_properties_test_suite);
+	bc_tester_add_suite(&vcard_test_suite);
 }
 
 void belcard_tester_uninit(void) {

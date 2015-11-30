@@ -5,11 +5,12 @@ bin_PROGRAMS=belcard-folder belcard-unfolder
 if BUILD_TESTS
 
 noinst_PROGRAMS=belcard-tester
-belcard_tester_SOURCES=belcard-tester.cpp belcard-tester.hpp common/bc_tester_utils.c common/bc_tester_utils.h belcard-identification-tester.cpp
+belcard_tester_SOURCES=belcard-tester.cpp belcard-tester.hpp common/bc_tester_utils.c common/bc_tester_utils.h \
+			belcard-general-tester.cpp belcard-identification-tester.cpp belcard-addressing-tester.cpp \
+			belcard-vcard-tester.cpp
 belcard_tester_LDADD=$(top_builddir)/src/libbelcard.la -lbelr $(CUNIT_LIBS)
 
-belcard_tester_AM_CPPFLAGS= -DBC_CONFIG_FILE=\"config.h\" \
-	-I$(top_srcdir)/include \
+belcard_tester_AM_CPPFLAGS=-I$(top_srcdir)/include \
         -I$(top_srcdir)/tester \
         -I$(top_srcdir)/tester/common
 
