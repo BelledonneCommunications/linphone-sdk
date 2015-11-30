@@ -112,7 +112,7 @@ static void generic_plc_process(MSFilter *f) {
 
 			bcg729Decoder(mgps->decoderChannelContext, mgps->cng_data.data, mgps->cng_data.datasize, 0, 1, 1, (int16_t *)(m->b_wptr));
 			mblk_set_cng_flag(m, 1);
-			generic_plc_transition_mix((int16_t *)m->b_wptr, (int16_t *)mgps->continuity_buffer, mgps->rate*TRANSITION_DELAY/1000);
+			generic_plc_transition_mix((int16_t *)m->b_wptr, (int16_t *)plc_context->continuity_buffer, mgps->rate*TRANSITION_DELAY/1000);
 			/* TODO: if ticker->interval is not 10 ms which is also G729 frame length, we must generate untransmitted frame CNG until we reach the requested data amount */
 		} else if (mgps->cng_running) { /* missing frame but CNG is ongoing: shall be an untransmitted frame */
 			bcg729Decoder(mgps->decoderChannelContext, NULL, 0, 1, 1, 1, (int16_t *)(m->b_wptr));
