@@ -718,11 +718,11 @@ static const ModuleDesc opus_module_desc = {
  * Modules list                                                                              *
  *********************************************************************************************/
 typedef enum {
+	NONE_ID,
 	H264_MOD_ID,
 	VP8_MOD_ID,
 	MU_LAW_MOD_ID,
-	OPUS_MOD_ID,
-	NONE_ID
+	OPUS_MOD_ID
 } ModuleId;
 
 static const ModuleDesc *moduleDescs[] = {
@@ -738,13 +738,13 @@ static const ModuleDesc *moduleDescs[] = {
 static int find_module_id_from_rfc_name(const char *rfcName) {
 	int id;
 	for(id=0; moduleDescs[id] && strcasecmp(moduleDescs[id]->rfcName, rfcName) != 0; id++);
-	return id;
+	return moduleDescs[id] ? id : NONE_ID;
 }
 
 static int find_module_id_from_codec_id(const char *codecId) {
 	int id;
 	for(id=0; moduleDescs[id] && strcmp(moduleDescs[id]->codecId, codecId) != 0; id++);
-	return id;
+	return moduleDescs[id] ? id : NONE_ID;
 }
 
 static const char *codec_id_to_rfc_name(const char *codecId) {
