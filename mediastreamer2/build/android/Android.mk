@@ -65,6 +65,7 @@ LOCAL_SRC_FILES = \
 	audiofilters/flowcontrol.c \
 	audiofilters/g711.c \
 	audiofilters/genericplc.c \
+	audiofilters/msgenericplc.c \
 	audiofilters/l16.c \
 	audiofilters/msfileplayer.c \
 	audiofilters/msfilerec.c \
