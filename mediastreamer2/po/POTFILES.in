@@ -44,3 +44,5 @@ src/videofilters/winvideods.c
 src/videofilters/winvideo2.c
 src/videofilters/x11video.c
 src/voip/ice.c
+src/audiofilters/msgenericplc.c
+
