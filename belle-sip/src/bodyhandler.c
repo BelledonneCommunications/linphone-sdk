@@ -192,6 +192,7 @@ void *belle_sip_memory_body_handler_get_buffer(const belle_sip_memory_body_handl
 }
 
 void belle_sip_memory_body_handler_set_buffer(belle_sip_memory_body_handler_t *obj, void *buffer) {
+	if (obj->buffer != NULL) belle_sip_free(obj->buffer);
 	obj->buffer = (uint8_t *)buffer;
 }
 
@@ -550,10 +551,10 @@ void belle_sip_multipart_body_handler_progress_cb(belle_sip_body_handler_t *obj,
 				*end_part_cursor = 0;
 				end_headers_cursor = (uint8_t *)strstr((char *)cursor, "\r\n\r\n");
 				if (end_headers_cursor == NULL) {
-					memorypart = belle_sip_memory_body_handler_new_from_buffer(cursor, strlen((char *)cursor), NULL, NULL);
+					memorypart = belle_sip_memory_body_handler_new_copy_from_buffer(cursor, strlen((char *)cursor), NULL, NULL);
 				} else {
 					uint8_t *begin_body_cursor = end_headers_cursor + 4;
-					memorypart = belle_sip_memory_body_handler_new_from_buffer(begin_body_cursor, strlen((char *)begin_body_cursor), NULL, NULL);
+					memorypart = belle_sip_memory_body_handler_new_copy_from_buffer(begin_body_cursor, strlen((char *)begin_body_cursor), NULL, NULL);
 					do {
 						end_header_cursor = (uint8_t *)strstr((char *)cursor, "\r\n");
 						*end_header_cursor = 0;
