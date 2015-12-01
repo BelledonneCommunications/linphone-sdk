@@ -55,6 +55,7 @@ void belcard_tester_init(void(*ftester_printf)(int level, const char *fmt, va_li
 	bc_tester_add_suite(&vcard_general_properties_test_suite);
 	bc_tester_add_suite(&vcard_identification_properties_test_suite);
 	bc_tester_add_suite(&vcard_addressing_properties_test_suite);
+	bc_tester_add_suite(&vcard_communication_properties_test_suite);
 	bc_tester_add_suite(&vcard_test_suite);
 }
 

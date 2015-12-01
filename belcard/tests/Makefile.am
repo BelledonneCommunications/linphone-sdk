@@ -7,6 +7,7 @@ if BUILD_TESTS
 noinst_PROGRAMS=belcard-tester
 belcard_tester_SOURCES=belcard-tester.cpp belcard-tester.hpp common/bc_tester_utils.c common/bc_tester_utils.h \
 			belcard-general-tester.cpp belcard-identification-tester.cpp belcard-addressing-tester.cpp \
+			belcard-communication-tester.cpp \
 			belcard-vcard-tester.cpp
 belcard_tester_LDADD=$(top_builddir)/src/libbelcard.la -lbelr $(CUNIT_LIBS)
 

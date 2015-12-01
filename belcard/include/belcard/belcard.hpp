@@ -5,6 +5,7 @@
 #include "belcard_general.hpp"
 #include "belcard_identification.hpp"
 #include "belcard_addressing.hpp"
+#include "belcard_communication.hpp"
 
 #include <string>
 #include <list>
@@ -26,6 +27,7 @@ namespace belcard {
 		list<shared_ptr<BelCardNickname>> _nicknames;
 		list<shared_ptr<BelCardPhoto>> _photos;
 		list<shared_ptr<BelCardAddress>> _addr;
+		list<shared_ptr<BelCardTel>> _tel;
 		list<shared_ptr<BelCardProperty>> _properties;
 		
 	public:
@@ -43,7 +45,8 @@ namespace belcard {
 					->setCollector("GENDER", make_sfn(&BelCard::setGender))
 					->setCollector("NICKNAME", make_sfn(&BelCard::addNickname))
 					->setCollector("PHOTO", make_sfn(&BelCard::addPhoto))
-					->setCollector("ADR", make_sfn(&BelCard::addAddress));
+					->setCollector("ADR", make_sfn(&BelCard::addAddress))
+					->setCollector("TEL", make_sfn(&BelCard::addTel));
 		}
 		
 		BelCard() {
@@ -120,6 +123,14 @@ namespace belcard {
 		}
 		const list<shared_ptr<BelCardAddress>> &getAddresses() const {
 			return _addr;
+		}
+		
+		void addTel(const shared_ptr<BelCardTel> &tel) {
+			_tel.push_back(tel);
+			addProperty(tel);
+		}
+		const list<shared_ptr<BelCardTel>> &getTel() const {
+			return _tel;
 		}
 		
 		void addProperty(const shared_ptr<BelCardProperty> &property) {

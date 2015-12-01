@@ -6,9 +6,7 @@
 #include <belr/abnf.hh>
 
 #include <string>
-#include <list>
-#include <map>
-#include <memory>
+#include <sstream>
 
 using namespace::std;
 using namespace::belr;

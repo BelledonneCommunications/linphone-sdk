@@ -5,7 +5,7 @@ vcard = "BEGIN:VCARD" CRLF
 		1*property
 		"END:VCARD" CRLF
 
-property = KIND / FN / N / NICKNAME / BDAY / ANNIVERSARY / GENDER / PHOTO / ADR
+property = KIND / FN / N / NICKNAME / BDAY / ANNIVERSARY / GENDER / PHOTO / ADR / TEL
 
 KIND = [group "."] "KIND" *(";" any-param) ":" KIND-value CRLF
 KIND-value = "individual" / "group" / "org" / "location" / iana-token / x-name
@@ -49,6 +49,9 @@ ADR-locality = component *("," component)
 ADR-region   = component *("," component)
 ADR-code     = component *("," component)
 ADR-country  = component *("," component)
+
+TEL = [group "."] "TEL" *(";" any-param) ":" TEL-value CRLF
+TEL-value = URI / text
      
 group = 1*(ALPHA / DIGIT / "-")
 
