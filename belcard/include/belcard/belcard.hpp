@@ -28,6 +28,9 @@ namespace belcard {
 		list<shared_ptr<BelCardPhoto>> _photos;
 		list<shared_ptr<BelCardAddress>> _addr;
 		list<shared_ptr<BelCardTel>> _tel;
+		list<shared_ptr<BelCardEmail>> _emails;
+		list<shared_ptr<BelCardImpp>> _impp;
+		list<shared_ptr<BelCardLang>> _langs;
 		list<shared_ptr<BelCardProperty>> _properties;
 		
 	public:
@@ -46,7 +49,10 @@ namespace belcard {
 					->setCollector("NICKNAME", make_sfn(&BelCard::addNickname))
 					->setCollector("PHOTO", make_sfn(&BelCard::addPhoto))
 					->setCollector("ADR", make_sfn(&BelCard::addAddress))
-					->setCollector("TEL", make_sfn(&BelCard::addTel));
+					->setCollector("TEL", make_sfn(&BelCard::addTel))
+					->setCollector("EMAIL", make_sfn(&BelCard::addEmail))
+					->setCollector("IMPP", make_sfn(&BelCard::addImpp))
+					->setCollector("LANG", make_sfn(&BelCard::addLang));
 		}
 		
 		BelCard() {
@@ -131,6 +137,30 @@ namespace belcard {
 		}
 		const list<shared_ptr<BelCardTel>> &getTel() const {
 			return _tel;
+		}
+		
+		void addEmail(const shared_ptr<BelCardEmail> &email) {
+			_emails.push_back(email);
+			addProperty(email);
+		}
+		const list<shared_ptr<BelCardEmail>> &getEmails() const {
+			return _emails;
+		}
+		
+		void addImpp(const shared_ptr<BelCardImpp> &impp) {
+			_impp.push_back(impp);
+			addProperty(impp);
+		}
+		const list<shared_ptr<BelCardImpp>> &getImpp() const {
+			return _impp;
+		}
+		
+		void addLang(const shared_ptr<BelCardLang> &lang) {
+			_langs.push_back(lang);
+			addProperty(lang);
+		}
+		const list<shared_ptr<BelCardLang>> &getLangs() const {
+			return _langs;
 		}
 		
 		void addProperty(const shared_ptr<BelCardProperty> &property) {

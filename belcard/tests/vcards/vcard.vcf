@@ -10,6 +10,11 @@ GENDER:M
 ADR;TYPE=work:;;34 avenue de l'Europe,le Trident bat D;GRENOBLE;;38100;FRANCE
 ADR;TYPE=home;LABEL="15 rue Elisee Chatin\n38100 Grenoble, Isere\nFrance":;;15 rue Elisee Chatin;Grenoble;Isere;38100;FRANCE
 TEL;VALUE=uri;TYPE=work:tel:+33-9-52-63-65-05
+EMAIL;TYPE=work:sylvain.berfini@belledonne-communications.com
+IMPP;TYPE=work:sip:sylvain@sip.linphone.org
+LANG;TYPE=work;PREF=1:en
+LANG;TYPE=work;PREF=2:fr
+LANG;TYPE=home:fr
 PHOTO:data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAYAAAAehFoBAA
  AABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAB3RJTUUH3wkYDSo4+LD
  +vgAAB/pJREFUWMPtmH1sXXUZxz/P75x7z23X3q5rx9bSrVs3Fjbes43RrY5XRYQJiNEoiSLR
