@@ -8,8 +8,7 @@
 
 #include <string>
 #include <list>
-#include <map>
-#include <memory>
+#include <sstream>
 
 using namespace::std;
 using namespace::belr;
@@ -64,8 +63,14 @@ namespace belcard {
 			return _value;
 		}
 		
+		virtual string serialize() const {
+			stringstream output;
+			output << getName() << "=" << getValue();
+			return output.str();
+		}
+		
 		friend ostream &operator<<(ostream &output, const BelCardParam &param) {
-			output << param.getName() << "=" << param.getValue();
+			output << param.serialize();
 			return output;
 		}
 	};
@@ -114,16 +119,24 @@ namespace belcard {
 			return _params;
 		}
 		
-		friend ostream &operator<<(ostream &output, const BelCardProperty &prop) {
-			if (prop.getGroup().length() > 0) {
-				output << prop.getGroup() << ".";
+		virtual string serialize() const {
+			stringstream output;
+			
+			if (getGroup().length() > 0) {
+				output << getGroup() << ".";
 			}
 			
-			output << prop.getName();
-			for (auto it = prop.getParams().begin(); it != prop.getParams().end(); ++it) {
+			output << getName();
+			for (auto it = getParams().begin(); it != getParams().end(); ++it) {
 				output << ";" << (**it); 
 			}
-			output << ":" << prop.getValue() << "\r\n";
+			output << ":" << getValue() << "\r\n";
+			
+			return output.str();
+		}
+		
+		friend ostream &operator<<(ostream &output, const BelCardProperty &prop) {
+			output << prop.serialize();
 			return output;            
 		}
 	};

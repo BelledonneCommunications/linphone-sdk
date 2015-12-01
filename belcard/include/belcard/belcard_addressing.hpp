@@ -109,19 +109,22 @@ namespace belcard {
 			BelCardProperty::addParam(param);
 		}
 		
-		friend ostream &operator<<(ostream &output, const BelCardAddress &addr) {
-			if (addr.getGroup().length() > 0) {
-				output << addr.getGroup() << ".";
+		string serialize() const {
+			stringstream output;
+			
+			if (getGroup().length() > 0) {
+				output << getGroup() << ".";
 			}
 			
-			output << addr.getName();
-			for (auto it = addr.getParams().begin(); it != addr.getParams().end(); ++it) {
+			output << getName();
+			for (auto it = getParams().begin(); it != getParams().end(); ++it) {
 				output << ";" << (**it); 
 			}
-			output << ":" << addr.getPostOfficeBox() << ";" << addr.getExtendedAddress()
-				<< ";" << addr.getStreet() << ";" << addr.getLocality() << ";" << addr.getRegion() 
-				<< ";" << addr.getPostalCode() << ";" << addr.getCountry() << "\r\n";
-			return output;            
+			output << ":" << getPostOfficeBox() << ";" << getExtendedAddress()
+				<< ";" << getStreet() << ";" << getLocality() << ";" << getRegion() 
+				<< ";" << getPostalCode() << ";" << getCountry() << "\r\n";
+				
+			return output.str();            
 		}
 	};
 }

@@ -26,6 +26,9 @@ static void folding(void) {
 	
 	BelCardParser *parser = new BelCardParser();
 	string folded_vcard = parser->fold(vcard);
+	
+	string unfolded_vcard = openFile("vcards/unfoldtest.vcf");
+	BC_ASSERT_EQUAL(unfolded_vcard.compare(folded_vcard), 0, int, "%d");
 	delete parser;
 }
 
@@ -34,6 +37,9 @@ static void unfolding(void) {
 	
 	BelCardParser *parser = new BelCardParser();
 	string unfolded_vcard = parser->unfold(vcard);
+	
+	string folded_vcard = openFile("vcards/foldtest.vcf");
+	BC_ASSERT_EQUAL(folded_vcard.compare(unfolded_vcard), 0, int, "%d");
 	delete parser;
 }
 
@@ -42,6 +48,8 @@ static void vcard_parsing(void) {
 	
 	BelCardParser *parser = new BelCardParser();
 	shared_ptr<BelCard> belCard = parser->parse(vcard);
+	//TODO: find a way to check the belCard object
+	
 	delete parser;
 }
 

@@ -7,8 +7,7 @@
 
 #include <string>
 #include <list>
-#include <map>
-#include <memory>
+#include <sstream>
 
 using namespace::std;
 using namespace::belr;
@@ -123,17 +122,20 @@ namespace belcard {
 			BelCardProperty::addParam(param);
 		}
 		
-		friend ostream &operator<<(ostream &output, const BelCardN &n) {
-			if (n.getGroup().length() > 0) {
-				output << n.getGroup() << ".";
+		string serialize() const {
+			stringstream output;
+			
+			if (getGroup().length() > 0) {
+				output << getGroup() << ".";
 			}
 			
-			output << n.getName();
-			for (auto it = n.getParams().begin(); it != n.getParams().end(); ++it) {
+			output << getName();
+			for (auto it = getParams().begin(); it != getParams().end(); ++it) {
 				output << ";" << (**it); 
 			}
-			output << ":" << n.getFamilyName() + ";" + n.getGivenName() + ";" + n.getAdditionalName() + ";" + n.getPrefixes() + ";" + n.getSuffixes() << "\r\n";
-			return output;            
+			output << ":" << getFamilyName() + ";" + getGivenName() + ";" + getAdditionalName() + ";" + getPrefixes() + ";" + getSuffixes() << "\r\n";
+			
+			return output.str();            
 		}
 	};
 	
