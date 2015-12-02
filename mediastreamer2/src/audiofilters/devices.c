@@ -102,6 +102,7 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",	"GT-I915",		"",			DEVICE_HAS_BUILTIN_AEC, 0 }, /* Verizon Tab*/
 	{	"samsung",	"GT-I8190N",	"montblanc",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 16000 }, /* Galaxy S3 Mini*/
 	{	"samsung",	"GT-I8190",		"montblanc",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0, 16000 },  /*Galaxy S3 mini*/
+	{	"samsung",	"SM-T230",		"mrvl",		DEVICE_HAS_BUILTIN_AEC_CRAPPY, 200, 0},			/*Galaxy Tab 4 wifi*/
 	
 	
 	{	"Sony Ericsson","ST15a",	"",			0, 	150 },
