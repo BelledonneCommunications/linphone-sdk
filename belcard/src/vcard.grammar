@@ -14,11 +14,11 @@ property = SOURCE / KIND / XML
 			/ CATEGORIES / NOTE / PRODID / REV / SOUND / UID / CLIENTPIDMAP / URL
 			/ KEY
 			/ FBURL / CALADRURI / CALURI
-			/ OTHER
+			/ X-PROPERTY
 			
-OTHER = [group "."] OTHER-name *(";" any-param) ":" OTHER-value CRLF
-OTHER-name = x-name
-OTHER-value = text
+X-PROPERTY = [group "."] X-PROPERTY-name *(";" any-param) ":" X-PROPERTY-value CRLF
+X-PROPERTY-name = x-name
+X-PROPERTY-value = text
 		/ text-list
 		/ date-list
 		/ time-list

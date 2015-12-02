@@ -10,7 +10,7 @@ shared_ptr<BelCard> BelCard::create() {
 
 void BelCard::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("vcard", make_fn(&BelCard::create))
-			->setCollector("OTHER", make_sfn(&BelCard::addProperty))
+			->setCollector("X-PROPERTY", make_sfn(&BelCard::addExtendedProperty))
 			->setCollector("SOURCE", make_sfn(&BelCard::addSource))
 			->setCollector("KIND", make_sfn(&BelCard::setKind))
 			->setCollector("XML", make_sfn(&BelCard::addXML))
@@ -330,6 +330,14 @@ void BelCard::addCALURI(const shared_ptr<BelCardCALURI> &caluri) {
 }
 const list<shared_ptr<BelCardCALURI>> &BelCard::getCALURIs() const {
 	return _caluris;
+}
+
+void BelCard::addExtendedProperty(const shared_ptr<BelCardProperty> &property) {
+	_extended_properties.push_back(property);
+	addProperty(property);
+}
+const list<shared_ptr<BelCardProperty>> &BelCard::getExtendedProperties() const {
+	return _extended_properties;
 }
 
 void BelCard::addProperty(const shared_ptr<BelCardProperty> &property) {
