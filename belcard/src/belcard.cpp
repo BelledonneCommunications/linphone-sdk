@@ -10,6 +10,7 @@ shared_ptr<BelCard> BelCard::create() {
 
 void BelCard::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("vcard", make_fn(&BelCard::create))
+			->setCollector("OTHER", make_sfn(&BelCard::addProperty))
 			->setCollector("SOURCE", make_sfn(&BelCard::addSource))
 			->setCollector("KIND", make_sfn(&BelCard::setKind))
 			->setCollector("XML", make_sfn(&BelCard::addXML))

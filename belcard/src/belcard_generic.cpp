@@ -52,11 +52,18 @@ shared_ptr<BelCardProperty> BelCardProperty::create() {
 }
 
 shared_ptr<BelCardProperty> BelCardProperty::parse(const string& input) {
-	return NULL;
+	ABNFGrammarBuilder grammar_builder;
+	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
+	setHandlerAndCollectors(&parser);
+	shared_ptr<BelCardGeneric> ret = parser.parseInput("OTHER", input, NULL);
+	return dynamic_pointer_cast<BelCardProperty>(ret);
 }
 
 void BelCardProperty::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	
+	parser->setHandler("OTHER", make_fn(&BelCardProperty::create))
+			->setCollector("OTHER-name", make_sfn(&BelCardProperty::setName))
+			->setCollector("OTHER-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardProperty::BelCardProperty() : BelCardGeneric() {

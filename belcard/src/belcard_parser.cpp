@@ -20,6 +20,7 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 	
 	BelCard::setHandlerAndCollectors(&parser);
 	BelCardParam::setHandlerAndCollectors(&parser);
+	BelCardProperty::setHandlerAndCollectors(&parser);
 	
 	BelCardSource::setHandlerAndCollectors(&parser);
 	BelCardKind::setHandlerAndCollectors(&parser);

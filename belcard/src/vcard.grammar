@@ -14,6 +14,23 @@ property = SOURCE / KIND / XML
 			/ CATEGORIES / NOTE / PRODID / REV / SOUND / UID / CLIENTPIDMAP / URL
 			/ KEY
 			/ FBURL / CALADRURI / CALURI
+			/ OTHER
+			
+OTHER = [group "."] OTHER-name *(";" any-param) ":" OTHER-value CRLF
+OTHER-name = x-name
+OTHER-value = text
+		/ text-list
+		/ date-list
+		/ time-list
+		/ date-time-list
+		/ date-and-or-time-list
+		/ timestamp-list
+		/ boolean
+		/ integer-list
+		/ float-list
+		/ URI
+		/ utc-offset
+		/ Language-Tag
 
 KIND = [group "."] "KIND" *(";" any-param) ":" KIND-value CRLF
 KIND-value = "individual" / "group" / "org" / "location" / iana-token / x-name
