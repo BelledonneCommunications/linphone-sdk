@@ -48,6 +48,7 @@ static void vcard_parsing(void) {
 	
 	BelCardParser *parser = new BelCardParser();
 	shared_ptr<BelCard> belCard = parser->parse(vcard);
+	BC_ASSERT_TRUE(belCard != NULL);
 	//TODO: find a way to check the belCard object
 	
 	delete parser;

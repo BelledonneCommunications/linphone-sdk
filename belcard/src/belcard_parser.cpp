@@ -33,6 +33,8 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 	BelCardEmail::setHandlerAndCollectors(&parser);
 	BelCardImpp::setHandlerAndCollectors(&parser);
 	BelCardLang::setHandlerAndCollectors(&parser);
+	BelCardSource::setHandlerAndCollectors(&parser);
+	BelCardXML::setHandlerAndCollectors(&parser);
 		
 	size_t parsedSize = 0;
 	shared_ptr<BelCardGeneric> ret = parser.parseInput("vcard", vcard, &parsedSize);

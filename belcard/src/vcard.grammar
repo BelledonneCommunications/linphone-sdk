@@ -5,11 +5,18 @@ vcard = "BEGIN:VCARD" CRLF
 		1*property
 		"END:VCARD" CRLF
 
-property = KIND / FN / N / NICKNAME / BDAY / ANNIVERSARY / GENDER / PHOTO 
+property = KIND / SOURCE / XML 
+			/ FN / N / NICKNAME / BDAY / ANNIVERSARY / GENDER / PHOTO 
 			/ ADR / TEL / EMAIL / IMPP / LANG
 
 KIND = [group "."] "KIND" *(";" any-param) ":" KIND-value CRLF
 KIND-value = "individual" / "group" / "org" / "location" / iana-token / x-name
+
+SOURCE = [group "."] "SOURCE" *(";" any-param) ":" SOURCE-value CRLF
+SOURCE-value = URI
+
+XML = [group "."] "XML" *(";" any-param) ":" XML-value CRLF
+XML-value = text
 
 FN = [group "."] "FN" *(";" any-param) ":" FN-value CRLF
 FN-value = text

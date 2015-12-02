@@ -9,8 +9,6 @@
 
 #include <string>
 #include <list>
-#include <map>
-#include <memory>
 
 using namespace::std;
 using namespace::belr;
@@ -31,6 +29,8 @@ namespace belcard {
 		list<shared_ptr<BelCardEmail>> _emails;
 		list<shared_ptr<BelCardImpp>> _impp;
 		list<shared_ptr<BelCardLang>> _langs;
+		list<shared_ptr<BelCardSource>> _sources;
+		list<shared_ptr<BelCardXML>> _xml;
 		list<shared_ptr<BelCardProperty>> _properties;
 		
 	public:
@@ -52,7 +52,9 @@ namespace belcard {
 					->setCollector("TEL", make_sfn(&BelCard::addTel))
 					->setCollector("EMAIL", make_sfn(&BelCard::addEmail))
 					->setCollector("IMPP", make_sfn(&BelCard::addImpp))
-					->setCollector("LANG", make_sfn(&BelCard::addLang));
+					->setCollector("LANG", make_sfn(&BelCard::addLang))
+					->setCollector("SOURCE", make_sfn(&BelCard::addSource))
+					->setCollector("XML", make_sfn(&BelCard::addXML));
 		}
 		
 		BelCard() {
@@ -161,6 +163,22 @@ namespace belcard {
 		}
 		const list<shared_ptr<BelCardLang>> &getLangs() const {
 			return _langs;
+		}
+		
+		void addSource(const shared_ptr<BelCardSource> &source) {
+			_sources.push_back(source);
+			addProperty(source);
+		}
+		const list<shared_ptr<BelCardSource>> &getSource() const {
+			return _sources;
+		}
+		
+		void addXML(const shared_ptr<BelCardXML> &xml) {
+			_xml.push_back(xml);
+			addProperty(xml);
+		}
+		const list<shared_ptr<BelCardXML>> &getXML() const {
+			return _xml;
 		}
 		
 		void addProperty(const shared_ptr<BelCardProperty> &property) {
