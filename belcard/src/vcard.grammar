@@ -5,9 +5,15 @@ vcard = "BEGIN:VCARD" CRLF
 		1*property
 		"END:VCARD" CRLF
 
-property = KIND / SOURCE / XML 
+property = SOURCE / KIND / XML 
 			/ FN / N / NICKNAME / BDAY / ANNIVERSARY / GENDER / PHOTO 
-			/ ADR / TEL / EMAIL / IMPP / LANG
+			/ ADR 
+			/ TEL / EMAIL / IMPP / LANG
+			/ TZ / GEO
+			/ TITLE / ROLE / LOGO / ORG / MEMBER / RELATED
+			/ CATEGORIES / NOTE / PRODID / REV / SOUND / UID / CLIENTPIDMAP / URL
+			/ KEY
+			/ FBURL / CALADRURI / CALURI
 
 KIND = [group "."] "KIND" *(";" any-param) ":" KIND-value CRLF
 KIND-value = "individual" / "group" / "org" / "location" / iana-token / x-name
@@ -69,6 +75,66 @@ IMPP-value = text
 
 LANG = [group "."] "LANG" *(";" any-param) ":" LANG-value CRLF
 LANG-value = Language-Tag
+
+TZ = [group "."] "TZ" *(";" any-param) ":" TZ-value CRLF
+TZ-value = text / URI / utc-offset
+
+GEO = [group "."] "GEO" *(";" any-param) ":" GEO-value CRLF
+GEO-value = URI
+
+TITLE = [group "."] "TITLE" *(";" any-param) ":" TITLE-value CRLF
+TITLE-value = text
+
+ROLE = [group "."] "ROLE" *(";" any-param) ":" ROLE-value CRLF
+ROLE-value = text
+
+LOGO = [group "."] "LOGO" *(";" any-param) ":" LOGO-value CRLF
+LOGO-value = URI
+
+ORG = [group "."] "ORG" *(";" any-param) ":" ORG-value CRLF
+ORG-value = component *(";" component)
+
+MEMBER = [group "."] "MEMBER" *(";" any-param) ":" MEMBER-value CRLF
+MEMBER-value = URI
+
+RELATED = [group "."] "RELATED" *(";" any-param) ":" RELATED-value CRLF
+RELATED-value = URI / text
+
+CATEGORIES = [group "."] "CATEGORIES" *(";" any-param) ":" CATEGORIES-value CRLF
+CATEGORIES-value = text-list
+
+NOTE = [group "."] "NOTE" *(";" any-param) ":" NOTE-value CRLF
+NOTE-value = text
+
+PRODID = [group "."] "PRODID" *(";" any-param) ":" PRODID-value CRLF
+PRODID-value = text
+
+REV = [group "."] "REV" *(";" any-param) ":" REV-value CRLF
+REV-value = timestamp
+
+SOUND = [group "."] "SOUND" *(";" any-param) ":" SOUND-value CRLF
+SOUND-value = URI
+
+UID = [group "."] "UID" *(";" any-param) ":" UID-value CRLF
+UID-value = URI / text
+
+CLIENTPIDMAP = [group "."] "CLIENTPIDMAP" *(";" any-param) ":" CLIENTPIDMAP-value CRLF
+CLIENTPIDMAP-value = 1*DIGIT ";" URI
+
+URL = [group "."] "URL" *(";" any-param) ":" URL-value CRLF
+URL-value = URI
+
+KEY = [group "."] "KEY" *(";" any-param) ":" KEY-value CRLF
+KEY-value = URI / text
+
+FBURL = [group "."] "FBURL" *(";" any-param) ":" FBURL-value CRLF
+FBURL-value = URI
+
+CALADRURI = [group "."] "CALADRURI" *(";" any-param) ":" CALADRURI-value CRLF
+CALADRURI-value = URI
+
+CALURI = [group "."] "CALURI" *(";" any-param) ":" CALURI-value CRLF
+CALURI-value = URI
      
 group = 1*(ALPHA / DIGIT / "-")
 

@@ -5,7 +5,7 @@ using namespace::belr;
 using namespace::belcard;
 
 shared_ptr<BelCardTimezone> BelCardTimezone::create() {
-	return make_shared<BelCardTimezone>();
+	return BelCardGeneric::create<BelCardTimezone>();
 }
 
 shared_ptr<BelCardTimezone> BelCardTimezone::parse(const string& input) {
@@ -30,7 +30,7 @@ BelCardTimezone::BelCardTimezone() : BelCardProperty() {
 }
 
 shared_ptr<BelCardGeo> BelCardGeo::create() {
-	return make_shared<BelCardGeo>();
+	return BelCardGeneric::create<BelCardGeo>();
 }
 
 shared_ptr<BelCardGeo> BelCardGeo::parse(const string& input) {

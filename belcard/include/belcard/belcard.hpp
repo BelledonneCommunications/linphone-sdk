@@ -27,6 +27,9 @@ namespace belcard {
 		shared_ptr<BelCardBirthday> _bday;
 		shared_ptr<BelCardAnniversary> _anniversary;
 		shared_ptr<BelCardGender> _gender;
+		shared_ptr<BelCardProductId> _pid;
+		shared_ptr<BelCardRevision> _rev;
+		shared_ptr<BelCardUniqueId> _uid;
 		list<shared_ptr<BelCardNickname>> _nicknames;
 		list<shared_ptr<BelCardPhoto>> _photos;
 		list<shared_ptr<BelCardAddress>> _addr;
@@ -36,6 +39,23 @@ namespace belcard {
 		list<shared_ptr<BelCardLang>> _langs;
 		list<shared_ptr<BelCardSource>> _sources;
 		list<shared_ptr<BelCardXML>> _xml;
+		list<shared_ptr<BelCardTimezone>> _timezones;
+		list<shared_ptr<BelCardGeo>> _geos;
+		list<shared_ptr<BelCardTitle>> _titles;
+		list<shared_ptr<BelCardRole>> _roles;
+		list<shared_ptr<BelCardLogo>> _logos;
+		list<shared_ptr<BelCardOrganization>> _organizations;
+		list<shared_ptr<BelCardMember>> _members;
+		list<shared_ptr<BelCardRelated>> _related;
+		list<shared_ptr<BelCardCategories>> _categories;
+		list<shared_ptr<BelCardNote>> _notes;
+		list<shared_ptr<BelCardSound>> _sounds;
+		list<shared_ptr<BelCardClientProductIdMap>> _clientpidmaps;
+		list<shared_ptr<BelCardURL>> _urls;
+		list<shared_ptr<BelCardKey>> _keys;
+		list<shared_ptr<BelCardFBURL>> _fburls;
+		list<shared_ptr<BelCardCALADRURI>> _caladruris;
+		list<shared_ptr<BelCardCALURI>> _caluris;
 		list<shared_ptr<BelCardProperty>> _properties;
 		
 	public:
@@ -67,6 +87,15 @@ namespace belcard {
 		void setGender(const shared_ptr<BelCardGender> &gender);
 		const shared_ptr<BelCardGender> &getGender() const;
 		
+		void setProductId(const shared_ptr<BelCardProductId> &pid);
+		const shared_ptr<BelCardProductId> &getProductId() const;
+		
+		void setRevision(const shared_ptr<BelCardRevision> &rev);
+		const shared_ptr<BelCardRevision> &getRevision() const;
+		
+		void setUniqueId(const shared_ptr<BelCardUniqueId> &uid);
+		const shared_ptr<BelCardUniqueId> &getUniqueId() const;
+		
 		void addNickname(const shared_ptr<BelCardNickname> &nickname);
 		const list<shared_ptr<BelCardNickname>> &getNicknames() const;
 		
@@ -93,6 +122,57 @@ namespace belcard {
 		
 		void addXML(const shared_ptr<BelCardXML> &xml);
 		const list<shared_ptr<BelCardXML>> &getXML() const;
+	
+		void addTimezone(const shared_ptr<BelCardTimezone> &tz);
+		const list<shared_ptr<BelCardTimezone>> &getTimezones() const;
+		
+		void addGeo(const shared_ptr<BelCardGeo> &geo);
+		const list<shared_ptr<BelCardGeo>> &getGeos() const;
+		
+		void addTitle(const shared_ptr<BelCardTitle> &title);
+		const list<shared_ptr<BelCardTitle>> &getTitles() const;
+		
+		void addRole(const shared_ptr<BelCardRole> &role);
+		const list<shared_ptr<BelCardRole>> &getRoles() const;
+		
+		void addLogo(const shared_ptr<BelCardLogo> &logo);
+		const list<shared_ptr<BelCardLogo>> &getLogos() const;
+		
+		void addOrganization(const shared_ptr<BelCardOrganization> &org);
+		const list<shared_ptr<BelCardOrganization>> &getOrganizations() const;
+		
+		void addMember(const shared_ptr<BelCardMember> &member);
+		const list<shared_ptr<BelCardMember>> &getMembers() const;
+		
+		void addRelated(const shared_ptr<BelCardRelated> &related);
+		const list<shared_ptr<BelCardRelated>> &getRelated() const;
+		
+		void addCategories(const shared_ptr<BelCardCategories> &categories);
+		const list<shared_ptr<BelCardCategories>> &getCategories() const;
+		
+		void addNote(const shared_ptr<BelCardNote> &note);
+		const list<shared_ptr<BelCardNote>> &getNotes() const;
+		
+		void addSound(const shared_ptr<BelCardSound> &sound);
+		const list<shared_ptr<BelCardSound>> &getSounds() const;
+		
+		void addClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap);
+		const list<shared_ptr<BelCardClientProductIdMap>> &getClientProductIdMaps() const;
+		
+		void addURL(const shared_ptr<BelCardURL> &url);
+		const list<shared_ptr<BelCardURL>> &getURLs() const;
+		
+		void addKey(const shared_ptr<BelCardKey> &key);
+		const list<shared_ptr<BelCardKey>> &getKeys() const;
+		
+		void addFBURL(const shared_ptr<BelCardFBURL> &fburl);
+		const list<shared_ptr<BelCardFBURL>> &getFBURLs() const;
+		
+		void addCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri);
+		const list<shared_ptr<BelCardCALADRURI>> &getCALADRURIs() const;
+		
+		void addCALURI(const shared_ptr<BelCardCALURI> &caluri);
+		const list<shared_ptr<BelCardCALURI>> &getCALURIs() const;
 		
 		void addProperty(const shared_ptr<BelCardProperty> &property);
 		const list<shared_ptr<BelCardProperty>> &getProperties() const;

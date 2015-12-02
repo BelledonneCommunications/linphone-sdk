@@ -5,7 +5,7 @@ using namespace::belr;
 using namespace::belcard;
 
 shared_ptr<BelCardCategories> BelCardCategories::create() {
-	return make_shared<BelCardCategories>();
+	return BelCardGeneric::create<BelCardCategories>();
 }
 
 shared_ptr<BelCardCategories> BelCardCategories::parse(const string& input) {
@@ -30,7 +30,7 @@ BelCardCategories::BelCardCategories() : BelCardProperty() {
 }
 
 shared_ptr<BelCardNote> BelCardNote::create() {
-	return make_shared<BelCardNote>();
+	return BelCardGeneric::create<BelCardNote>();
 }
 
 shared_ptr<BelCardNote> BelCardNote::parse(const string& input) {
@@ -55,7 +55,7 @@ BelCardNote::BelCardNote() : BelCardProperty() {
 }
 
 shared_ptr<BelCardProductId> BelCardProductId::create() {
-	return make_shared<BelCardProductId>();
+	return BelCardGeneric::create<BelCardProductId>();
 }
 
 shared_ptr<BelCardProductId> BelCardProductId::parse(const string& input) {
@@ -80,7 +80,7 @@ BelCardProductId::BelCardProductId() : BelCardProperty() {
 }
 
 shared_ptr<BelCardRevision> BelCardRevision::create() {
-	return make_shared<BelCardRevision>();
+	return BelCardGeneric::create<BelCardRevision>();
 }
 
 shared_ptr<BelCardRevision> BelCardRevision::parse(const string& input) {
@@ -105,7 +105,7 @@ BelCardRevision::BelCardRevision() : BelCardProperty() {
 }
 
 shared_ptr<BelCardSound> BelCardSound::create() {
-	return make_shared<BelCardSound>();
+	return BelCardGeneric::create<BelCardSound>();
 }
 
 shared_ptr<BelCardSound> BelCardSound::parse(const string& input) {
@@ -130,7 +130,7 @@ BelCardSound::BelCardSound() : BelCardProperty() {
 }
 
 shared_ptr<BelCardUniqueId> BelCardUniqueId::create() {
-	return make_shared<BelCardUniqueId>();
+	return BelCardGeneric::create<BelCardUniqueId>();
 }
 
 shared_ptr<BelCardUniqueId> BelCardUniqueId::parse(const string& input) {
@@ -155,7 +155,7 @@ BelCardUniqueId::BelCardUniqueId() : BelCardProperty() {
 }
 
 shared_ptr<BelCardClientProductIdMap> BelCardClientProductIdMap::create() {
-	return make_shared<BelCardClientProductIdMap>();
+	return BelCardGeneric::create<BelCardClientProductIdMap>();
 }
 
 shared_ptr<BelCardClientProductIdMap> BelCardClientProductIdMap::parse(const string& input) {
@@ -180,7 +180,7 @@ BelCardClientProductIdMap::BelCardClientProductIdMap() : BelCardProperty() {
 }
 
 shared_ptr<BelCardURL> BelCardURL::create() {
-	return make_shared<BelCardURL>();
+	return BelCardGeneric::create<BelCardURL>();
 }
 
 shared_ptr<BelCardURL> BelCardURL::parse(const string& input) {

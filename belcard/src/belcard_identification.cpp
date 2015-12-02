@@ -5,7 +5,7 @@ using namespace::belr;
 using namespace::belcard;
 
 shared_ptr<BelCardFN> BelCardFN::create() {
-	return make_shared<BelCardFN>();
+	return BelCardGeneric::create<BelCardFN>();
 }
 
 shared_ptr<BelCardFN> BelCardFN::parse(const string& input) {
@@ -30,7 +30,7 @@ BelCardFN::BelCardFN() : BelCardProperty() {
 }
 
 shared_ptr<BelCardN> BelCardN::create() {
-	return make_shared<BelCardN>();
+	return BelCardGeneric::create<BelCardN>();
 }
 
 shared_ptr<BelCardN> BelCardN::parse(const string& input) {
@@ -110,7 +110,7 @@ string BelCardN::serialize() const {
 }
 
 shared_ptr<BelCardNickname> BelCardNickname::create() {
-	return make_shared<BelCardNickname>();
+	return BelCardGeneric::create<BelCardNickname>();
 }
 
 shared_ptr<BelCardNickname> BelCardNickname::parse(const string& input) {
@@ -135,7 +135,7 @@ BelCardNickname::BelCardNickname() : BelCardProperty() {
 }
 
 shared_ptr<BelCardBirthday> BelCardBirthday::create() {
-	return make_shared<BelCardBirthday>();
+	return BelCardGeneric::create<BelCardBirthday>();
 }
 
 shared_ptr<BelCardBirthday> BelCardBirthday::parse(const string& input) {
@@ -160,7 +160,7 @@ BelCardBirthday::BelCardBirthday() : BelCardProperty() {
 }
 
 shared_ptr<BelCardAnniversary> BelCardAnniversary::create() {
-	return make_shared<BelCardAnniversary>();
+	return BelCardGeneric::create<BelCardAnniversary>();
 }
 
 shared_ptr<BelCardAnniversary> BelCardAnniversary::parse(const string& input) {
@@ -185,7 +185,7 @@ BelCardAnniversary::BelCardAnniversary() : BelCardProperty() {
 }
 
 shared_ptr<BelCardGender> BelCardGender::create() {
-	return make_shared<BelCardGender>();
+	return BelCardGeneric::create<BelCardGender>();
 }
 
 shared_ptr<BelCardGender> BelCardGender::parse(const string& input) {
@@ -210,7 +210,7 @@ BelCardGender::BelCardGender() : BelCardProperty() {
 }
 
 shared_ptr<BelCardPhoto> BelCardPhoto::create() {
-	return make_shared<BelCardPhoto>();
+	return BelCardGeneric::create<BelCardPhoto>();
 }
 
 shared_ptr<BelCardPhoto> BelCardPhoto::parse(const string& input) {

@@ -5,7 +5,7 @@ using namespace::belr;
 using namespace::belcard;
 
 shared_ptr<BelCardTel> BelCardTel::create() {
-	return make_shared<BelCardTel>();
+	return BelCardGeneric::create<BelCardTel>();
 }
 
 shared_ptr<BelCardTel> BelCardTel::parse(const string& input) {
@@ -30,7 +30,7 @@ BelCardTel::BelCardTel() : BelCardProperty() {
 }
 
 shared_ptr<BelCardEmail> BelCardEmail::create() {
-	return make_shared<BelCardEmail>();
+	return BelCardGeneric::create<BelCardEmail>();
 }
 
 shared_ptr<BelCardEmail> BelCardEmail::parse(const string& input) {
@@ -55,7 +55,7 @@ BelCardEmail::BelCardEmail() : BelCardProperty() {
 }
 
 shared_ptr<BelCardImpp> BelCardImpp::create() {
-	return make_shared<BelCardImpp>();
+	return BelCardGeneric::create<BelCardImpp>();
 }
 
 shared_ptr<BelCardImpp> BelCardImpp::parse(const string& input) {
@@ -80,7 +80,7 @@ BelCardImpp::BelCardImpp() : BelCardProperty() {
 }
 
 shared_ptr<BelCardLang> BelCardLang::create() {
-	return make_shared<BelCardLang>();
+	return BelCardGeneric::create<BelCardLang>();
 }
 
 shared_ptr<BelCardLang> BelCardLang::parse(const string& input) {

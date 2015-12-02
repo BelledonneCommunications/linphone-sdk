@@ -6,6 +6,7 @@ vcard_grammar.cpp: vcard.grammar
 	xxd -i vcard.grammar | sed s/}\;/,0x00}\;/ >> vcard_grammar.cpp
 
 libbelcard_la_SOURCES=belcard_parser.cpp \
+			belcard_generic.cpp \
 			belcard.cpp \
 			belcard_general.cpp \
 			belcard_identification.cpp \

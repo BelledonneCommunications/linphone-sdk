@@ -5,7 +5,7 @@ using namespace::belr;
 using namespace::belcard;
 
 shared_ptr<BelCardTitle> BelCardTitle::create() {
-	return make_shared<BelCardTitle>();
+	return BelCardGeneric::create<BelCardTitle>();
 }
 
 shared_ptr<BelCardTitle> BelCardTitle::parse(const string& input) {
@@ -30,7 +30,7 @@ BelCardTitle::BelCardTitle() : BelCardProperty() {
 }
 
 shared_ptr<BelCardRole> BelCardRole::create() {
-	return make_shared<BelCardRole>();
+	return BelCardGeneric::create<BelCardRole>();
 }
 
 shared_ptr<BelCardRole> BelCardRole::parse(const string& input) {
@@ -55,7 +55,7 @@ BelCardRole::BelCardRole() : BelCardProperty() {
 }
 
 shared_ptr<BelCardLogo> BelCardLogo::create() {
-	return make_shared<BelCardLogo>();
+	return BelCardGeneric::create<BelCardLogo>();
 }
 
 shared_ptr<BelCardLogo> BelCardLogo::parse(const string& input) {
@@ -80,7 +80,7 @@ BelCardLogo::BelCardLogo() : BelCardProperty() {
 }
 
 shared_ptr<BelCardOrganization> BelCardOrganization::create() {
-	return make_shared<BelCardOrganization>();
+	return BelCardGeneric::create<BelCardOrganization>();
 }
 
 shared_ptr<BelCardOrganization> BelCardOrganization::parse(const string& input) {
@@ -105,7 +105,7 @@ BelCardOrganization::BelCardOrganization() : BelCardProperty() {
 }
 
 shared_ptr<BelCardMember> BelCardMember::create() {
-	return make_shared<BelCardMember>();
+	return BelCardGeneric::create<BelCardMember>();
 }
 
 shared_ptr<BelCardMember> BelCardMember::parse(const string& input) {
@@ -130,7 +130,7 @@ BelCardMember::BelCardMember() : BelCardProperty() {
 }
 
 shared_ptr<BelCardRelated> BelCardRelated::create() {
-	return make_shared<BelCardRelated>();
+	return BelCardGeneric::create<BelCardRelated>();
 }
 
 shared_ptr<BelCardRelated> BelCardRelated::parse(const string& input) {

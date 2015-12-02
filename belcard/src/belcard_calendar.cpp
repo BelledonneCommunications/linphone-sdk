@@ -5,7 +5,7 @@ using namespace::belr;
 using namespace::belcard;
 
 shared_ptr<BelCardFBURL> BelCardFBURL::create() {
-	return make_shared<BelCardFBURL>();
+	return BelCardGeneric::create<BelCardFBURL>();
 }
 
 shared_ptr<BelCardFBURL> BelCardFBURL::parse(const string& input) {
@@ -30,7 +30,7 @@ BelCardFBURL::BelCardFBURL() : BelCardProperty() {
 }
 
 shared_ptr<BelCardCALADRURI> BelCardCALADRURI::create() {
-	return make_shared<BelCardCALADRURI>();
+	return BelCardGeneric::create<BelCardCALADRURI>();
 }
 
 shared_ptr<BelCardCALADRURI> BelCardCALADRURI::parse(const string& input) {
@@ -55,7 +55,7 @@ BelCardCALADRURI::BelCardCALADRURI() : BelCardProperty() {
 }
 
 shared_ptr<BelCardCALURI> BelCardCALURI::create() {
-	return make_shared<BelCardCALURI>();
+	return BelCardGeneric::create<BelCardCALURI>();
 }
 
 shared_ptr<BelCardCALURI> BelCardCALURI::parse(const string& input) {

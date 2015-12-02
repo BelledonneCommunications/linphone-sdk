@@ -5,7 +5,7 @@ using namespace::belr;
 using namespace::belcard;
 
 shared_ptr<BelCardKey> BelCardKey::create() {
-	return make_shared<BelCardKey>();
+	return BelCardGeneric::create<BelCardKey>();
 }
 
 shared_ptr<BelCardKey> BelCardKey::parse(const string& input) {
