@@ -1,5 +1,5 @@
-#ifndef belcard_general_hpp
-#define belcard_general_hpp
+#ifndef belcard_calendar_hpp
+#define belcard_calendar_hpp
 
 #include "belcard_generic.hpp"
 #include <belr/grammarbuilder.hh>
@@ -11,39 +11,39 @@ using namespace::std;
 using namespace::belr;
 
 namespace belcard {
-	class BelCardKind : public BelCardProperty {
+	class BelCardFBURL : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardKind> create();
-		static shared_ptr<BelCardKind> parse(const string& input);
+		static shared_ptr<BelCardFBURL> create();
+		static shared_ptr<BelCardFBURL> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardKind();
+		BelCardFBURL();
 		
 		virtual void addParam(const shared_ptr<BelCardParam> &param) {
 			BelCardProperty::addParam(param);
 		}
 	};
 	
-	class BelCardSource : public BelCardProperty {
+	class BelCardCALADRURI : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardSource> create();
-		static shared_ptr<BelCardSource> parse(const string& input);
+		static shared_ptr<BelCardCALADRURI> create();
+		static shared_ptr<BelCardCALADRURI> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardSource();
+		BelCardCALADRURI();
 		
 		virtual void addParam(const shared_ptr<BelCardParam> &param) {
 			BelCardProperty::addParam(param);
 		}
 	};
 	
-	class BelCardXML : public BelCardProperty {
+	class BelCardCALURI : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardXML> create();
-		static shared_ptr<BelCardXML> parse(const string& input);
+		static shared_ptr<BelCardCALURI> create();
+		static shared_ptr<BelCardCALURI> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardXML();
+		BelCardCALURI();
 		
 		virtual void addParam(const shared_ptr<BelCardParam> &param) {
 			BelCardProperty::addParam(param);

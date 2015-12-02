@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 	
 	BelCardParser *parser = new BelCardParser();
 	shared_ptr<BelCard> belCard = parser->parse(vcard);
-	cout << *belCard << endl;
+	cout << parser->fold(belCard->serialize()) << endl;
 	
 	delete parser;
 	return 0;

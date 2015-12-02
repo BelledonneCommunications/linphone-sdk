@@ -23,106 +23,37 @@ namespace belcard {
 		string _country;
 		
 	public:
-		static shared_ptr<BelCardAddress> create() {
-			return make_shared<BelCardAddress>();
-		}
+		static shared_ptr<BelCardAddress> create();
+		static shared_ptr<BelCardAddress> parse(const string& input);
+		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		static shared_ptr<BelCardAddress> parse(const string& input) {
-			ABNFGrammarBuilder grammar_builder;
-			shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
-			Parser<shared_ptr<BelCardGeneric>> parser(grammar);
-			setHandlerAndCollectors(&parser);
-			BelCardParam::setHandlerAndCollectors(&parser);
-			shared_ptr<BelCardGeneric> ret = parser.parseInput("ADR", input, NULL);
-			return dynamic_pointer_cast<BelCardAddress>(ret);
-		}
+		BelCardAddress();
 		
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-			parser->setHandler("ADR", make_fn(&BelCardAddress::create))
-					->setCollector("group", make_sfn(&BelCardAddress::setGroup))
-					->setCollector("any-param", make_sfn(&BelCardAddress::addParam))
-					->setCollector("ADR-pobox", make_sfn(&BelCardAddress::setPostOfficeBox))
-					->setCollector("ADR-ext", make_sfn(&BelCardAddress::setExtendedAddress))
-					->setCollector("ADR-street", make_sfn(&BelCardAddress::setStreet))
-					->setCollector("ADR-locality", make_sfn(&BelCardAddress::setLocality))
-					->setCollector("ADR-region", make_sfn(&BelCardAddress::setRegion))
-					->setCollector("ADR-code", make_sfn(&BelCardAddress::setPostalCode))
-					->setCollector("ADR-country", make_sfn(&BelCardAddress::setCountry));
-		}
+		void setPostOfficeBox(const string &value);
+		const string &getPostOfficeBox() const;
 		
-		BelCardAddress() : BelCardProperty() {
-			setName("ADR");
-		}
+		void setExtendedAddress(const string &value);
+		const string &getExtendedAddress() const;
 		
-		void setPostOfficeBox(const string &value) {
-			_po_box = value;
-		}
-		const string &getPostOfficeBox() const {
-			return _po_box;
-		}
+		void setStreet(const string &value);
+		const string &getStreet() const;
 		
-		void setExtendedAddress(const string &value) {
-			_extended_address = value;
-		}
-		const string &getExtendedAddress() const {
-			return _extended_address;
-		}
+		void setLocality(const string &value);
+		const string &getLocality() const;
 		
-		void setStreet(const string &value) {
-			_street = value;
-		}
-		const string &getStreet() const {
-			return _street;
-		}
+		void setRegion(const string &value);
+		const string &getRegion() const;
 		
-		void setLocality(const string &value) {
-			_locality = value;
-		}
-		const string &getLocality() const {
-			return _locality;
-		}
+		void setPostalCode(const string &value);
+		const string &getPostalCode() const;
 		
-		void setRegion(const string &value) {
-			_region = value;
-		}
-		const string &getRegion() const {
-			return _region;
-		}
+		void setCountry(const string &value);
+		const string &getCountry() const;
 		
-		void setPostalCode(const string &value) {
-			_postal_code = value;
-		}
-		const string &getPostalCode() const {
-			return _postal_code;
-		}
-		
-		void setCountry(const string &value) {
-			_country = value;
-		}
-		const string &getCountry() const {
-			return _country;
-		}
+		string serialize() const;
 		
 		virtual void addParam(const shared_ptr<BelCardParam> &param) {
 			BelCardProperty::addParam(param);
-		}
-		
-		string serialize() const {
-			stringstream output;
-			
-			if (getGroup().length() > 0) {
-				output << getGroup() << ".";
-			}
-			
-			output << getName();
-			for (auto it = getParams().begin(); it != getParams().end(); ++it) {
-				output << ";" << (**it); 
-			}
-			output << ":" << getPostOfficeBox() << ";" << getExtendedAddress()
-				<< ";" << getStreet() << ";" << getLocality() << ";" << getRegion() 
-				<< ";" << getPostalCode() << ";" << getCountry() << "\r\n";
-				
-			return output.str();            
 		}
 	};
 }

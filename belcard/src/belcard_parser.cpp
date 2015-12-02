@@ -20,21 +20,50 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 	
 	BelCard::setHandlerAndCollectors(&parser);
 	BelCardParam::setHandlerAndCollectors(&parser);
+	
+	BelCardSource::setHandlerAndCollectors(&parser);
 	BelCardKind::setHandlerAndCollectors(&parser);
+	BelCardXML::setHandlerAndCollectors(&parser);
+	
 	BelCardFN::setHandlerAndCollectors(&parser);
 	BelCardN::setHandlerAndCollectors(&parser);
+	BelCardNickname::setHandlerAndCollectors(&parser);
+	BelCardPhoto::setHandlerAndCollectors(&parser);
 	BelCardBirthday::setHandlerAndCollectors(&parser);
 	BelCardAnniversary::setHandlerAndCollectors(&parser);
 	BelCardGender::setHandlerAndCollectors(&parser);
-	BelCardNickname::setHandlerAndCollectors(&parser);
-	BelCardPhoto::setHandlerAndCollectors(&parser);
+	
 	BelCardAddress::setHandlerAndCollectors(&parser);
+	
 	BelCardTel::setHandlerAndCollectors(&parser);
 	BelCardEmail::setHandlerAndCollectors(&parser);
 	BelCardImpp::setHandlerAndCollectors(&parser);
 	BelCardLang::setHandlerAndCollectors(&parser);
-	BelCardSource::setHandlerAndCollectors(&parser);
-	BelCardXML::setHandlerAndCollectors(&parser);
+	
+	BelCardTimezone::setHandlerAndCollectors(&parser);
+	BelCardGeo::setHandlerAndCollectors(&parser);
+	
+	BelCardTitle::setHandlerAndCollectors(&parser);
+	BelCardRole::setHandlerAndCollectors(&parser);
+	BelCardLogo::setHandlerAndCollectors(&parser);
+	BelCardOrganization::setHandlerAndCollectors(&parser);
+	BelCardMember::setHandlerAndCollectors(&parser);
+	BelCardRelated::setHandlerAndCollectors(&parser);
+	
+	BelCardCategories::setHandlerAndCollectors(&parser);
+	BelCardNote::setHandlerAndCollectors(&parser);
+	BelCardProductId::setHandlerAndCollectors(&parser);
+	BelCardRevision::setHandlerAndCollectors(&parser);
+	BelCardSound::setHandlerAndCollectors(&parser);
+	BelCardUniqueId::setHandlerAndCollectors(&parser);
+	BelCardClientProductIdMap::setHandlerAndCollectors(&parser);
+	BelCardURL::setHandlerAndCollectors(&parser);
+	
+	BelCardKey::setHandlerAndCollectors(&parser);
+	
+	BelCardFBURL::setHandlerAndCollectors(&parser);
+	BelCardCALADRURI::setHandlerAndCollectors(&parser);
+	BelCardCALURI::setHandlerAndCollectors(&parser);
 		
 	size_t parsedSize = 0;
 	shared_ptr<BelCardGeneric> ret = parser.parseInput("vcard", vcard, &parsedSize);
