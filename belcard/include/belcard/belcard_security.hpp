@@ -18,10 +18,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardKey();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 }
 

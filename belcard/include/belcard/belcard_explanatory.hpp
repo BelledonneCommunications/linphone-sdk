@@ -18,10 +18,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardCategories();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 	
 	class BelCardNote : public BelCardProperty {
@@ -31,10 +27,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardNote();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 	
 	class BelCardProductId : public BelCardProperty {
@@ -44,10 +36,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardProductId();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 	
 	class BelCardRevision : public BelCardProperty {
@@ -57,10 +45,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardRevision();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 	
 	class BelCardSound : public BelCardProperty {
@@ -70,10 +54,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardSound();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 	
 	class BelCardUniqueId : public BelCardProperty {
@@ -83,10 +63,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardUniqueId();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 	
 	class BelCardClientProductIdMap : public BelCardProperty {
@@ -96,10 +72,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardClientProductIdMap();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 	
 	class BelCardURL : public BelCardProperty {
@@ -109,10 +81,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardURL();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 }
 

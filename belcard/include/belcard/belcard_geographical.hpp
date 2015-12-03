@@ -18,10 +18,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardTimezone();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 	
 	class BelCardGeo : public BelCardProperty {
@@ -31,10 +27,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardGeo();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 }
 

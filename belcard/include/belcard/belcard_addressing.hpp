@@ -51,10 +51,6 @@ namespace belcard {
 		const string &getCountry() const;
 		
 		string serialize() const;
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 }
 

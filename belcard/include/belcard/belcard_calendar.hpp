@@ -18,10 +18,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardFBURL();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 	
 	class BelCardCALADRURI : public BelCardProperty {
@@ -31,10 +27,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardCALADRURI();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 	
 	class BelCardCALURI : public BelCardProperty {
@@ -44,10 +36,6 @@ namespace belcard {
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardCALURI();
-		
-		virtual void addParam(const shared_ptr<BelCardParam> &param) {
-			BelCardProperty::addParam(param);
-		}
 	};
 }
 
