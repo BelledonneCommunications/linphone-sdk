@@ -21,6 +21,18 @@ void BelCardParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *p
 	parser->setHandler("any-param", make_fn(&BelCardParam::create))
 			->setCollector("param-name", make_sfn(&BelCardParam::setName))
 			->setCollector("param-value", make_sfn(&BelCardParam::setValue));
+	BelCardLabelParam::setHandlerAndCollectors(parser);
+	BelCardValueParam::setHandlerAndCollectors(parser);
+	BelCardPrefParam::setHandlerAndCollectors(parser);
+	BelCardAlternativeIdParam::setHandlerAndCollectors(parser);
+	BelCardParamIdParam::setHandlerAndCollectors(parser);
+	BelCardTypeParam::setHandlerAndCollectors(parser);
+	BelCardMediaTypeParam::setHandlerAndCollectors(parser);
+	BelCardCALSCALEParam::setHandlerAndCollectors(parser);
+	BelCardSortAsParam::setHandlerAndCollectors(parser);
+	BelCardGeoParam::setHandlerAndCollectors(parser);
+	BelCardTimezoneParam::setHandlerAndCollectors(parser);
+	BelCardLabelParam::setHandlerAndCollectors(parser);
 }
 
 BelCardParam::BelCardParam() : BelCardGeneric() {

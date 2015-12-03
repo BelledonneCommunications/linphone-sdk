@@ -13,6 +13,7 @@ shared_ptr<BelCardProperty> BelCardProperty::parse(const string& input) {
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
 	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
 	setHandlerAndCollectors(&parser);
+	BelCardParam::setHandlerAndCollectors(&parser);
 	shared_ptr<BelCardGeneric> ret = parser.parseInput("X-PROPERTY", input, NULL);
 	return dynamic_pointer_cast<BelCardProperty>(ret);
 }

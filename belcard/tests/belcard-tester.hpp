@@ -6,6 +6,7 @@
 #include <string>
 #include <memory>
 #include <sstream>
+#include <iostream>
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,6 +37,9 @@ void test_property(const std::string& input) {
 	std::stringstream sstream;
 	sstream << *var;
 	BC_ASSERT_EQUAL(input.compare(sstream.str()), 0, int, "%d");
+	if (input.compare(sstream.str()) != 0) {
+		std::cout << "Expected " << input << " but got " << sstream.str() << std::endl;
+	}
 }
 
 #endif
