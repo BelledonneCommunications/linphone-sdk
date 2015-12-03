@@ -82,16 +82,18 @@ public:
 	ParserHandler(const Parser<_parserElementT> &parser, const string &rulename, const function<_derivedParserElementT (const string &, const string &)> &create)
 		: ParserHandlerBase<_parserElementT>(parser, rulename), mHandlerCreateDebugFunc(create){
 	}
-	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , const string & )> fn){
+	template <typename _derivedParserElementTChild>
+	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementTChild , const string & )> fn){
 		this->installCollector(child_rule_name, make_shared<ParserCollector<_derivedParserElementT,_parserElementT,const string&>>(fn));
 		return static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
-	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , int )> fn){
+	template <typename _derivedParserElementTChild>
+	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementTChild , int )> fn){
 		this->installCollector(child_rule_name, make_shared<ParserCollector<_derivedParserElementT,_parserElementT,int>>(fn));
 		return static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
-	template <typename _valueT>
-	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementT , _valueT)> fn){
+	template <typename _derivedParserElementTChild, typename _valueT>
+	shared_ptr<ParserHandler<_derivedParserElementT,_parserElementT>> setCollector(const string &child_rule_name, function<void (_derivedParserElementTChild , _valueT)> fn){
 		this->installCollector(child_rule_name, make_shared<ParserChildCollector<_derivedParserElementT,_parserElementT,_valueT>>(fn));
 		return static_pointer_cast<ParserHandler<_derivedParserElementT,_parserElementT>>(this->shared_from_this());
 	}
