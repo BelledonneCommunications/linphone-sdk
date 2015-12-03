@@ -1,7 +1,7 @@
 #ifndef belcard_geographical_hpp
 #define belcard_geographical_hpp
 
-#include "belcard_generic.hpp"
+#include "belcard_property.hpp"
 #include <belr/grammarbuilder.hh>
 #include <belr/abnf.hh>
 

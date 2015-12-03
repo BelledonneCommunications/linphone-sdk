@@ -2,6 +2,8 @@
 #define belcard_hpp
 
 #include "belcard_generic.hpp"
+#include "belcard_params.hpp"
+#include "belcard_property.hpp"
 #include "belcard_general.hpp"
 #include "belcard_identification.hpp"
 #include "belcard_addressing.hpp"

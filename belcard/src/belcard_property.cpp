@@ -1,51 +1,8 @@
-#include "belcard/belcard_generic.hpp"
+#include "belcard/belcard_property.hpp"
 
 using namespace::std;
 using namespace::belr;
 using namespace::belcard;
-
-shared_ptr<BelCardParam> BelCardParam::create() {
-	return BelCardGeneric::create<BelCardParam>();
-}
-
-shared_ptr<BelCardParam> BelCardParam::parse(const string& input) {
-	ABNFGrammarBuilder grammar_builder;
-	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
-	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
-	setHandlerAndCollectors(&parser);
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("any-param", input, NULL);
-	return dynamic_pointer_cast<BelCardParam>(ret);
-}
-
-void BelCardParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("any-param", make_fn(&BelCardParam::create))
-			->setCollector("param-name", make_sfn(&BelCardParam::setName))
-			->setCollector("param-value", make_sfn(&BelCardParam::setValue));
-}
-
-BelCardParam::BelCardParam() : BelCardGeneric() {
-	
-}
-
-void BelCardParam::setName(const string &name) {
-	_name = name;
-}
-const string &BelCardParam::getName() const {
-	return _name;
-}
-
-void BelCardParam::setValue(const string &value) {
-	_value = value;
-}
-const string &BelCardParam::getValue() const {
-	return _value;
-}
-
-string BelCardParam::serialize() const {
-	stringstream output;
-	output << getName() << "=" << getValue();
-	return output.str();
-}
 
 shared_ptr<BelCardProperty> BelCardProperty::create() {
 	return BelCardGeneric::create<BelCardProperty>();
@@ -91,6 +48,11 @@ void BelCardProperty::setValue(const string &value) {
 }
 const string &BelCardProperty::getValue() const {
 	return _value;
+}
+		
+void BelCardProperty::addValueParam(const shared_ptr<BelCardValueParam> &param) {
+	_value_param = param;
+	_params.push_back(_value_param);
 }
 
 void BelCardProperty::addParam(const shared_ptr<BelCardParam> &param) {
