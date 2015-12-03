@@ -33,6 +33,7 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 	BelCardSortAsParam::setHandlerAndCollectors(&parser);
 	BelCardGeoParam::setHandlerAndCollectors(&parser);
 	BelCardTimezoneParam::setHandlerAndCollectors(&parser);
+	BelCardLabelParam::setHandlerAndCollectors(&parser);
 	
 	BelCardSource::setHandlerAndCollectors(&parser);
 	BelCardKind::setHandlerAndCollectors(&parser);

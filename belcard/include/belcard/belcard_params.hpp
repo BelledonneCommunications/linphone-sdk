@@ -109,6 +109,15 @@ namespace belcard {
 		
 		BelCardTimezoneParam();
 	};
+	
+	class BelCardLabelParam : public BelCardParam {
+	public:
+		static shared_ptr<BelCardLabelParam> create();
+		static shared_ptr<BelCardLabelParam> parse(const string& input);
+		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		
+		BelCardLabelParam();
+	};
 }
 
 #endif

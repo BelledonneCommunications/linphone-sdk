@@ -6,7 +6,7 @@ vcard = "BEGIN:VCARD" CRLF
 		"END:VCARD" CRLF
 
 property = SOURCE / KIND / XML 
-			/ FN / N / NICKNAME / BDAY / ANNIVERSARY / GENDER / PHOTO 
+			/ FN / N / NICKNAME / PHOTO / BDAY / ANNIVERSARY / GENDER 
 			/ ADR 
 			/ TEL / EMAIL / IMPP / LANG
 			/ TZ / GEO
@@ -33,24 +33,24 @@ X-PROPERTY-value = text
 		/ utc-offset
 		/ Language-Tag
 
-KIND = [group "."] "KIND" *(";" KIND-param) ":" KIND-value CRLF
-KIND-param = any-param
-KIND-value = "individual" / "group" / "org" / "location" / iana-token / x-name
-
 SOURCE = [group "."] "SOURCE" *(";" SOURCE-param) ":" SOURCE-value CRLF
-SOURCE-param = any-param
+SOURCE-param = VALUE-param / PID-param / PREF-param / ALTID-param / MEDIATYPE-param / any-param
 SOURCE-value = URI
 
+KIND = [group "."] "KIND" *(";" KIND-param) ":" KIND-value CRLF
+KIND-param = VALUE-param / any-param
+KIND-value = "individual" / "group" / "org" / "location" / iana-token / x-name
+
 XML = [group "."] "XML" *(";" XML-param) ":" XML-value CRLF
-XML-param = any-param
+XML-param = VALUE-param / any-param
 XML-value = text
 
 FN = [group "."] "FN" *(";" FN-param) ":" FN-value CRLF
-FN-param = any-param
+FN-param = VALUE-param / TYPE-param / LANGUAGE-param / ALTID-param / PID-param / PREF-param / any-param
 FN-value = text
 
 N = [group "."] "N" *(";" N-param) ":" N-value CRLF
-N-param = any-param
+N-param = VALUE-param / SORT-AS-param / LANGUAGE-param / ALTID-param / any-param
 N-value    = N-fn ";" N-gn ";" N-an ";" N-prefixes ";" N-suffixes
 N-fn       = component *("," component)
 N-gn       = component *("," component)
@@ -59,28 +59,29 @@ N-prefixes = component *("," component)
 N-suffixes = component *("," component)
 
 NICKNAME = [group "."] "NICKNAME" *(";" NICKNAME-param) ":" NICKNAME-value CRLF
-NICKNAME-param = any-param
+NICKNAME-param = VALUE-param / TYPE-param / LANGUAGE-param / ALTID-param / PID-param / PREF-param / any-param
 NICKNAME-value = text-list
 
+PHOTO = [group "."] "PHOTO" *(";" PHOTO-param) ":" PHOTO-value CRLF
+PHOTO-param = VALUE-param / ALTID-param / TYPE-param / MEDIATYPE-param / PREF-param / PID-param / any-param
+PHOTO-value = URI
+
 BDAY = [group "."] "BDAY" *(";" BDAY-param) ":" BDAY-value CRLF
-BDAY-param = any-param
+BDAY-param = VALUE-param / LANGUAGE-param / ALTID-param / CALSCALE-param / any-param
 BDAY-value = date-and-or-time / text
 
 ANNIVERSARY = [group "."] "ANNIVERSARY" *(";" ANNIVERSARY-param) ":" ANNIVERSARY-value CRLF
-ANNIVERSARY-param = any-param
+ANNIVERSARY-param = VALUE-param / ALTID-param / CALSCALE-param / any-param
 ANNIVERSARY-value = date-and-or-time / text
 
 GENDER = [group "."] "GENDER" *(";" GENDER-param) ":" GENDER-value CRLF
-GENDER-param = any-param
+GENDER-param = VALUE-param / any-param
 GENDER-value = [sex] [";" text]
 sex = "M" / "F" / "O" / "N" / "U"
 
-PHOTO = [group "."] "PHOTO" *(";" PHOTO-param) ":" PHOTO-value CRLF
-PHOTO-param = any-param
-PHOTO-value = URI
-
 ADR = [group "."] "ADR" *(";" ADR-param) ":" ADR-value CRLF
-ADR-param = any-param
+ADR-param = VALUE-param / LABEL-param / LANGUAGE-param / GEO-PARAM-param / TZ-PARAM-param / ALTID-param
+			/ PID-param / PREF-param / TYPE-param / any-param
 ADR-value = ADR-pobox  ";" ADR-ext      ";"
 			ADR-street ";" ADR-locality ";"
 			ADR-region ";" ADR-code     ";"
@@ -94,75 +95,81 @@ ADR-code     = component *("," component)
 ADR-country  = component *("," component)
 
 TEL = [group "."] "TEL" *(";" TEL-param) ":" TEL-value CRLF
-TEL-param =any-param
+TEL-param = VALUE-param / TYPE-param / PID-param / PREF-param / ALTID-param / any-param
 TEL-value = URI / text
 
 EMAIL = [group "."] "EMAIL" *(";" EMAIL-param) ":" EMAIL-value CRLF
-EMAIL-param = any-param
+EMAIL-param = VALUE-param / PID-param / PREF-param / TYPE-param / ALTID-param / any-param
 EMAIL-value = text
 
 IMPP = [group "."] "IMPP" *(";" IMPP-param) ":" IMPP-value CRLF
-IMPP-param = any-param
+IMPP-param = VALUE-param / PID-param / PREF-param / TYPE-param / MEDIATYPE-param / ALTID-param / any-param
 IMPP-value = text
 
 LANG = [group "."] "LANG" *(";" LANG-param) ":" LANG-value CRLF
-LANG-param = any-param
+LANG-param = VALUE-param / PID-param / PREF-param / ALTID-param / TYPE-param / any-param
 LANG-value = Language-Tag
 
 TZ = [group "."] "TZ" *(";" TZ-param) ":" TZ-value CRLF
-TZ-param = any-param
+TZ-param = VALUE-param / ALTID-param / PID-param / PREF-param / TYPE-param / MEDIATYPE-param / any-param
 TZ-value = text / URI / utc-offset
 
 GEO = [group "."] "GEO" *(";" GEO-param) ":" GEO-value CRLF
-GEO-param = any-param
+GEO-param = VALUE-param / PID-param / PREF-param / TYPE-param / MEDIATYPE-param / ALTID-param / any-param
 GEO-value = URI
 
 TITLE = [group "."] "TITLE" *(";" TITLE-param) ":" TITLE-value CRLF
-TITLE-param = any-param
+TITLE-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param 
+			/ ALTID-param / TYPE-param / any-param
 TITLE-value = text
 
 ROLE = [group "."] "ROLE" *(";" ROLE-param) ":" ROLE-value CRLF
-ROLE-param = any-param
+ROLE-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param 
+			/ TYPE-param / ALTID-param / any-param
 ROLE-value = text
 
 LOGO = [group "."] "LOGO" *(";" LOGO-param) ":" LOGO-value CRLF
-LOGO-param = any-param
+LOGO-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param 
+			/ TYPE-param / MEDIATYPE-param / ALTID-param / any-param
 LOGO-value = URI
 
 ORG = [group "."] "ORG" *(";" ORG-param) ":" ORG-value CRLF
-ORG-param = any-param
+ORG-param = VALUE-param / SORT-AS-param / LANGUAGE-param / PID-param 
+			/ PREF-param / ALTID-param / TYPE-param / any-param
 ORG-value = component *(";" component)
 
 MEMBER = [group "."] "MEMBER" *(";" MEMBER-param) ":" MEMBER-value CRLF
-MEMBER-param = any-param
+MEMBER-param = VALUE-param / PID-param / PREF-param / ALTID-param 
+			/ MEDIATYPE-param / any-param
 MEMBER-value = URI
 
 RELATED = [group "."] "RELATED" *(";" RELATED-param) ":" RELATED-value CRLF
-RELATED-param = any-param
+RELATED-param = VALUE-param / PID-param / PREF-param / ALTID-param / TYPE-param / any-param
 RELATED-value = URI / text
 
 CATEGORIES = [group "."] "CATEGORIES" *(";" CATEGORIES-param) ":" CATEGORIES-value CRLF
-CATEGORIES-param = any-param
+CATEGORIES-param = VALUE-param / PID-param / PREF-param / TYPE-param / ALTID-param / any-param
 CATEGORIES-value = text-list
 
 NOTE = [group "."] "NOTE" *(";" NOTE-param) ":" NOTE-value CRLF
-NOTE-param = any-param
+NOTE-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param / TYPE-param / ALTID-param / any-param
 NOTE-value = text
 
 PRODID = [group "."] "PRODID" *(";" PRODID-param) ":" PRODID-value CRLF
-PRODID-param = any-param
+PRODID-param = VALUE-param / any-param
 PRODID-value = text
 
 REV = [group "."] "REV" *(";" REV-param) ":" REV-value CRLF
-REV-param = any-param
+REV-param = VALUE-param / any-param
 REV-value = timestamp
 
 SOUND = [group "."] "SOUND" *(";" SOUND-param) ":" SOUND-value CRLF
-SOUND-param = any-param
+SOUND-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param 
+			/ TYPE-param / MEDIATYPE-param / ALTID-param / any-param
 SOUND-value = URI
 
 UID = [group "."] "UID" *(";" UID-param) ":" UID-value CRLF
-UID-param = any-param
+UID-param = VALUE-param / any-param
 UID-value = URI / text
 
 CLIENTPIDMAP = [group "."] "CLIENTPIDMAP" *(";" CLIENTPIDMAP-param) ":" CLIENTPIDMAP-value CRLF
@@ -170,23 +177,27 @@ CLIENTPIDMAP-param = any-param
 CLIENTPIDMAP-value = 1*DIGIT ";" URI
 
 URL = [group "."] "URL" *(";" URL-param) ":" URL-value CRLF
-URL-param = any-param
+URL-param = VALUE-param / PID-param / PREF-param / TYPE-param 
+			/ MEDIATYPE-param / ALTID-param / any-param
 URL-value = URI
 
 KEY = [group "."] "KEY" *(";" KEY-param) ":" KEY-value CRLF
-KEY-param = any-param
+KEY-param = VALUE-param / ALTID-param / PID-param / PREF-param / TYPE-param / any-param
 KEY-value = URI / text
 
 FBURL = [group "."] "FBURL" *(";" FBURL-param) ":" FBURL-value CRLF
-FBURL-param = any-param
+FBURL-param = VALUE-param / PID-param / PREF-param / TYPE-param 
+			/ MEDIATYPE-param / ALTID-param / any-param
 FBURL-value = URI
 
 CALADRURI = [group "."] "CALADRURI" *(";" CALADRURI-param) ":" CALADRURI-value CRLF
-CALADRURI-param = any-param
+CALADRURI-param = VALUE-param / PID-param / PREF-param / TYPE-param 
+				/ MEDIATYPE-param / ALTID-param / any-param
 CALADRURI-value = URI
 
 CALURI = [group "."] "CALURI" *(";" CALURI-param) ":" CALURI-value CRLF
-CALURI-param = any-param
+CALURI-param = VALUE-param / PID-param / PREF-param / TYPE-param 
+			/ MEDIATYPE-param / ALTID-param / any-param
 CALURI-value = URI
      
 group = 1*(ALPHA / DIGIT / "-")
@@ -227,9 +238,11 @@ CALSCALE-param-value = "gregorian" / iana-token / x-name
 SORT-AS-param = "SORT-AS=" SORT-AS-param-value
 SORT-AS-param-value = param-value *("," param-value)
 
-GEO-param = "GEO=" DQUOTE URI DQUOTE
+GEO-PARAM-param = "GEO=" DQUOTE URI DQUOTE
 
-TZ-param = "TZ=" (param-value / DQUOTE URI DQUOTE)
+TZ-PARAM-param = "TZ=" (param-value / DQUOTE URI DQUOTE)
+
+LABEL-param = "LABEL=" param-value
 
 any-param  = param-name "=" param-value
 param-name = (iana-token / x-name)

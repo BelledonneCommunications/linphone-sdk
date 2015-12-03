@@ -211,13 +211,13 @@ shared_ptr<BelCardGeoParam> BelCardGeoParam::parse(const string& input) {
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
 	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
 	setHandlerAndCollectors(&parser);
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("GEO-param", input, NULL);
+	shared_ptr<BelCardGeneric> ret = parser.parseInput("GEO-PARAM-param", input, NULL);
 	return dynamic_pointer_cast<BelCardGeoParam>(ret);
 }
 
 void BelCardGeoParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("GEO-param", make_fn(&BelCardGeoParam::create))
-			->setCollector("GEO-param", make_sfn(&BelCardGeoParam::setValue));
+	parser->setHandler("GEO-PARAM-param", make_fn(&BelCardGeoParam::create))
+			->setCollector("GEO-PARAM-param", make_sfn(&BelCardGeoParam::setValue));
 }
 
 BelCardGeoParam::BelCardGeoParam() : BelCardParam() {
@@ -233,15 +233,37 @@ shared_ptr<BelCardTimezoneParam> BelCardTimezoneParam::parse(const string& input
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
 	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
 	setHandlerAndCollectors(&parser);
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("TZ-param", input, NULL);
+	shared_ptr<BelCardGeneric> ret = parser.parseInput("TZ-PARAM-param", input, NULL);
 	return dynamic_pointer_cast<BelCardTimezoneParam>(ret);
 }
 
 void BelCardTimezoneParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("TZ-param", make_fn(&BelCardTimezoneParam::create))
-			->setCollector("TZ-param", make_sfn(&BelCardTimezoneParam::setValue));
+	parser->setHandler("TZ-PARAM-param", make_fn(&BelCardTimezoneParam::create))
+			->setCollector("TZ-PARAM-param", make_sfn(&BelCardTimezoneParam::setValue));
 }
 
 BelCardTimezoneParam::BelCardTimezoneParam() : BelCardParam() {
 	setName("TZ");
+}
+
+shared_ptr<BelCardLabelParam> BelCardLabelParam::create() {
+	return BelCardGeneric::create<BelCardLabelParam>();
+}
+
+shared_ptr<BelCardLabelParam> BelCardLabelParam::parse(const string& input) {
+	ABNFGrammarBuilder grammar_builder;
+	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
+	setHandlerAndCollectors(&parser);
+	shared_ptr<BelCardGeneric> ret = parser.parseInput("LABEL-param", input, NULL);
+	return dynamic_pointer_cast<BelCardLabelParam>(ret);
+}
+
+void BelCardLabelParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
+	parser->setHandler("LABEL-param", make_fn(&BelCardLabelParam::create))
+			->setCollector("LABEL-param", make_sfn(&BelCardLabelParam::setValue));
+}
+
+BelCardLabelParam::BelCardLabelParam() : BelCardParam() {
+	setName("LABEL");
 }
