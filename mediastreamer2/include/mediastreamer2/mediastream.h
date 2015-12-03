@@ -753,8 +753,15 @@ static MS2_INLINE RtpSession * audio_stream_get_rtp_session(const AudioStream *s
 typedef void (*VideoStreamRenderCallback)(void *user_pointer, const MSPicture *local_view, const MSPicture *remote_view);
 typedef void (*VideoStreamEventCallback)(void *user_pointer, const MSFilter *f, const unsigned int event_id, const void *args);
 
+struct _MediastreamVideoStat
+{
+    int counter_rcvd_pli; /*Picture Loss Indication counter */
+    int counter_rcvd_sli;/* Slice Loss Indication counter */
+    int counter_rcvd_rpsi; /*Reference Picture Selection Indication */
+    int counter_rcvd_fir; /* Full INTRA-frame Request */
+};
 
-
+typedef struct _MediastreamVideoStat MediaStreamVideoStat;
 
 struct _VideoStream
 {
@@ -797,11 +804,14 @@ struct _VideoStream
 	bool_t output_performs_decoding;
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
+    MediaStreamVideoStat ms_video_stat;
+    
 };
 
 typedef struct _VideoStream VideoStream;
 
 
+    
 MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
 /**
  * Creates a VideoStream object listening on a RTP port for a dedicated address.

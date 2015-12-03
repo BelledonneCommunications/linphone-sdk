@@ -73,15 +73,15 @@ typedef struct _video_stream_tester_stats_t {
 	int number_of_SR;
 	int number_of_RR;
 	int number_of_SDES;
-	int number_of_PLI;
-	int number_of_SLI;
-	int number_of_RPSI;
+	int number_of_sent_PLI;
+	int number_of_sent_SLI;
+	int number_of_sent_RPSI;
 
 	int number_of_decoder_decoding_error;
 	int number_of_decoder_first_image_decoded;
-	int number_of_decoder_send_pli;
-	int number_of_decoder_send_sli;
-	int number_of_decoder_send_rpsi;
+	int number_of_decoder_send_request_pli;
+	int number_of_decoder_send_request_sli;
+	int number_of_decoder_send_request_rpsi;
 } video_stream_tester_stats_t;
 
 typedef struct _video_stream_tester_t {
@@ -142,14 +142,14 @@ static void video_stream_event_cb(void *user_pointer, const MSFilter *f, const u
 		break;
 	case MS_VIDEO_DECODER_SEND_PLI:
 		event_name="MS_VIDEO_DECODER_SEND_PLI";
-		vs_tester->stats.number_of_decoder_send_pli++;
+		vs_tester->stats.number_of_decoder_send_request_pli++;
 		break;
 	case MS_VIDEO_DECODER_SEND_SLI:
 		event_name="MS_VIDEO_DECODER_SEND_SLI";
-		vs_tester->stats.number_of_decoder_send_sli++;
+		vs_tester->stats.number_of_decoder_send_request_sli++;
 		break;
 	case MS_VIDEO_DECODER_SEND_RPSI:
-		vs_tester->stats.number_of_decoder_send_rpsi++;
+		vs_tester->stats.number_of_decoder_send_request_rpsi++;
 		event_name="MS_VIDEO_DECODER_SEND_RPSI";
 		/* Handled internally by mediastreamer2. */
 		break;
@@ -181,13 +181,17 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 					} else if (rtcp_is_PSFB(d->packet)) {
 						switch (rtcp_PSFB_get_type(d->packet)) {
 							case RTCP_PSFB_PLI:
-								st->number_of_PLI++;
+								st->number_of_sent_PLI++;
+                                ms_message("event_queue_cb: [%p] sending PLI %d",st,  st->number_of_sent_PLI);
 								break;
 							case RTCP_PSFB_SLI:
-								st->number_of_SLI++;
+                                st->number_of_sent_SLI++;
+                                ms_message("event_queue_cb: [%p] sending SLI %d",st,  st->number_of_sent_SLI);
+
 								break;
 							case RTCP_PSFB_RPSI:
-								st->number_of_RPSI++;
+								st->number_of_sent_RPSI++;
+                                 ms_message("event_queue_cb: [%p] sending RPSI %d",st,  st->number_of_sent_RPSI);
 								break;
 							default:
 								break;
@@ -396,20 +400,50 @@ static void avpf_video_stream(void) {
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
 	bool_t supported = ms_filter_codec_supported("vp8");
-
+    int dummy = 0;
+    
+    
 	if (supported) {
 		params.enabled = TRUE;
 		params.loss_rate = 5.;
+        params.RTP_only = TRUE;
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
 
-		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+       
+        
+ 
+        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_sent_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+        
+        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_sent_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+        //disable network simulator
+        params.enabled = FALSE;
+        rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
+        rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
+        
+        wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats);
+        
+         // wait for all packets reception before closing streams
+        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->vs->ms_video_stat.counter_rcvd_rpsi , marielle->stats.number_of_sent_RPSI, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->vs->ms_video_stat.counter_rcvd_rpsi , margaux->stats.number_of_sent_RPSI, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->vs->ms_video_stat.counter_rcvd_pli, marielle->stats.number_of_sent_PLI, 10000,event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->vs->ms_video_stat.counter_rcvd_pli , margaux->stats.number_of_sent_PLI,10000,event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->vs->ms_video_stat.counter_rcvd_sli , marielle->stats.number_of_sent_SLI,10000,event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->vs->ms_video_stat.counter_rcvd_sli , margaux->stats.number_of_sent_SLI,10000,event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 
-		uninit_video_streams(marielle, margaux);
+        BC_ASSERT_EQUAL(margaux->vs->ms_video_stat.counter_rcvd_sli , marielle->stats.number_of_sent_SLI, int, "%d");
+        BC_ASSERT_EQUAL(margaux->vs->ms_video_stat.counter_rcvd_rpsi , marielle->stats.number_of_sent_RPSI, int, "%d");
+        BC_ASSERT_EQUAL(margaux->vs->ms_video_stat.counter_rcvd_pli , marielle->stats.number_of_sent_PLI, int, "%d");
+        
+        BC_ASSERT_EQUAL(marielle->vs->ms_video_stat.counter_rcvd_sli , margaux->stats.number_of_sent_SLI, int, "%d");
+        BC_ASSERT_EQUAL(marielle->vs->ms_video_stat.counter_rcvd_rpsi , margaux->stats.number_of_sent_RPSI, int, "%d");
+        BC_ASSERT_EQUAL(marielle->vs->ms_video_stat.counter_rcvd_pli , margaux->stats.number_of_sent_PLI, int, "%d");
+        
+        uninit_video_streams(marielle, margaux);
 	} else {
 		ms_error("VP8 codec is not supported!");
 	}
+    
 	video_stream_tester_destroy(marielle);
 	video_stream_tester_destroy(margaux);
 }
@@ -443,8 +477,8 @@ static void avpf_rpsi_count(void) {
 
 		/*wait for 4 rpsi*/
 		wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,  &dummy, 1, delay, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats);
-		BC_ASSERT_EQUAL(marielle->stats.number_of_RPSI,4,int,"%d");
-		BC_ASSERT_EQUAL(margaux->stats.number_of_RPSI,4,int,"%d");
+		BC_ASSERT_EQUAL(marielle->stats.number_of_sent_RPSI,4,int,"%d");
+		BC_ASSERT_EQUAL(margaux->stats.number_of_sent_RPSI,4,int,"%d");
 		BC_ASSERT_LOWER(fabs(video_stream_get_received_framerate(marielle->vs)-margaux->vconf->fps), 2.f, float, "%f");
 		BC_ASSERT_LOWER(fabs(video_stream_get_received_framerate(margaux->vs)-marielle->vconf->fps), 2.f, float, "%f");
 		uninit_video_streams(marielle, margaux);
@@ -534,9 +568,9 @@ static void avpf_video_stream_first_iframe_lost_base(int payload_type) {
 		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms,&dummy,1,2000);
 
-		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_PLI,
+		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_sent_PLI,
 			1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_PLI,
+		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->stats.number_of_sent_PLI,
 			1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_decoder_first_image_decoded,
 			1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
@@ -585,15 +619,15 @@ static void avpf_high_loss_video_stream_base(float rate, int payload_type) {
 		switch (payload_type) {
 			case VP8_PAYLOAD_TYPE:
 				BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
-					&marielle->stats.number_of_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+					&marielle->stats.number_of_sent_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 				if (rate <= 10) {
 					BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
-						&marielle->stats.number_of_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+						&marielle->stats.number_of_sent_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 				}
 				break;
 			case H264_PAYLOAD_TYPE:
 				BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
-					&marielle->stats.number_of_PLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+					&marielle->stats.number_of_sent_PLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 				break;
 			default:
 				break;

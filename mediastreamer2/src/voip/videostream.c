@@ -138,15 +138,23 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 						if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session)) {
 							uint8_t seq_nr = rtcp_fb_fir_fci_get_seq_nr(fci);
 							ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_FIR, &seq_nr);
+                            stream->ms_video_stat.counter_rcvd_fir++;
+                            ms_message("video_stream_process_rtcp stream [%p] FIR count %d", stream,  stream->ms_video_stat.counter_rcvd_fir);
+
 							break;
 						}
 					}
 					break;
 				case RTCP_PSFB_PLI:
+                    
+                    stream->ms_video_stat.counter_rcvd_pli++;
 					ms_filter_call_method_noarg(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_PLI);
+                    ms_message("video_stream_process_rtcp stream [%p] PLI count %d", stream,  stream->ms_video_stat.counter_rcvd_pli);
+                    
 					break;
 				case RTCP_PSFB_SLI:
 					for (i = 0; ; i++) {
+                       
 						rtcp_fb_sli_fci_t *fci = rtcp_PSFB_sli_get_fci(m, i);
 						MSVideoCodecSLI sli;
 						if (fci == NULL) break;
@@ -154,6 +162,9 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 						sli.number = rtcp_fb_sli_fci_get_number(fci);
 						sli.picture_id = rtcp_fb_sli_fci_get_picture_id(fci);
 						ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_SLI, &sli);
+                        stream->ms_video_stat.counter_rcvd_sli++;
+                        ms_message("video_stream_process_rtcp stream [%p] SLI count %d", stream,  stream->ms_video_stat.counter_rcvd_sli);
+                       
 					}
 					break;
 				case RTCP_PSFB_RPSI:
@@ -163,6 +174,8 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 					rpsi.bit_string = rtcp_fb_rpsi_fci_get_bit_string(fci);
 					rpsi.bit_string_len = rtcp_PSFB_rpsi_get_fci_bit_string_len(m);
 					ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_RPSI, &rpsi);
+                    stream->ms_video_stat.counter_rcvd_rpsi++;
+                    ms_message("video_stream_process_rtcp stream [%p] RPSI count %d", stream,  stream->ms_video_stat.counter_rcvd_rpsi);
 				}
 					break;
 				default:
@@ -265,8 +278,9 @@ VideoStream *video_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_po
 	sessions.rtp_session=ms_create_duplex_rtp_session(ip,loc_rtp_port,loc_rtcp_port);
 	obj=video_stream_new_with_sessions(&sessions);
 	obj->ms.owns_sessions=TRUE;
-	return obj;
+    return obj;
 }
+
 
 VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
