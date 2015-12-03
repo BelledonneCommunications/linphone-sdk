@@ -4,28 +4,28 @@ using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
-shared_ptr<BelCardTel> BelCardTel::create() {
-	return BelCardGeneric::create<BelCardTel>();
+shared_ptr<BelCardPhoneNumber> BelCardPhoneNumber::create() {
+	return BelCardGeneric::create<BelCardPhoneNumber>();
 }
 
-shared_ptr<BelCardTel> BelCardTel::parse(const string& input) {
+shared_ptr<BelCardPhoneNumber> BelCardPhoneNumber::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
 	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
 	setHandlerAndCollectors(&parser);
 	BelCardParam::setHandlerAndCollectors(&parser);
 	shared_ptr<BelCardGeneric> ret = parser.parseInput("TEL", input, NULL);
-	return dynamic_pointer_cast<BelCardTel>(ret);
+	return dynamic_pointer_cast<BelCardPhoneNumber>(ret);
 }
 
-void BelCardTel::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("TEL", make_fn(&BelCardTel::create))
-			->setCollector("group", make_sfn(&BelCardTel::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardTel::addParam))
-			->setCollector("TEL-value", make_sfn(&BelCardTel::setValue));
+void BelCardPhoneNumber::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
+	parser->setHandler("TEL", make_fn(&BelCardPhoneNumber::create))
+			->setCollector("group", make_sfn(&BelCardPhoneNumber::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardPhoneNumber::addParam))
+			->setCollector("TEL-value", make_sfn(&BelCardPhoneNumber::setValue));
 }
 
-BelCardTel::BelCardTel() : BelCardProperty() {
+BelCardPhoneNumber::BelCardPhoneNumber() : BelCardProperty() {
 	setName("TEL");
 }
 

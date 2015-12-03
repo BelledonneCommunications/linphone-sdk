@@ -4,96 +4,96 @@ using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
-shared_ptr<BelCardFN> BelCardFN::create() {
-	return BelCardGeneric::create<BelCardFN>();
+shared_ptr<BelCardFullName> BelCardFullName::create() {
+	return BelCardGeneric::create<BelCardFullName>();
 }
 
-shared_ptr<BelCardFN> BelCardFN::parse(const string& input) {
+shared_ptr<BelCardFullName> BelCardFullName::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
 	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
 	setHandlerAndCollectors(&parser);
 	BelCardParam::setHandlerAndCollectors(&parser);
 	shared_ptr<BelCardGeneric> ret = parser.parseInput("FN", input, NULL);
-	return dynamic_pointer_cast<BelCardFN>(ret);
+	return dynamic_pointer_cast<BelCardFullName>(ret);
 }
 
-void BelCardFN::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("FN", make_fn(&BelCardFN::create))
-			->setCollector("group", make_sfn(&BelCardFN::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardFN::addParam))
-			->setCollector("FN-value", make_sfn(&BelCardFN::setValue));
+void BelCardFullName::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
+	parser->setHandler("FN", make_fn(&BelCardFullName::create))
+			->setCollector("group", make_sfn(&BelCardFullName::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardFullName::addParam))
+			->setCollector("FN-value", make_sfn(&BelCardFullName::setValue));
 }
 
-BelCardFN::BelCardFN() : BelCardProperty() {
+BelCardFullName::BelCardFullName() : BelCardProperty() {
 	setName("FN");
 }
 
-shared_ptr<BelCardN> BelCardN::create() {
-	return BelCardGeneric::create<BelCardN>();
+shared_ptr<BelCardName> BelCardName::create() {
+	return BelCardGeneric::create<BelCardName>();
 }
 
-shared_ptr<BelCardN> BelCardN::parse(const string& input) {
+shared_ptr<BelCardName> BelCardName::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
 	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
 	setHandlerAndCollectors(&parser);
 	BelCardParam::setHandlerAndCollectors(&parser);
 	shared_ptr<BelCardGeneric> ret = parser.parseInput("N", input, NULL);
-	return dynamic_pointer_cast<BelCardN>(ret);
+	return dynamic_pointer_cast<BelCardName>(ret);
 }
 
-void BelCardN::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("N", make_fn(&BelCardN::create))
-			->setCollector("group", make_sfn(&BelCardN::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardN::addParam))
-			->setCollector("N-fn", make_sfn(&BelCardN::setFamilyName))
-			->setCollector("N-gn", make_sfn(&BelCardN::setGivenName))
-			->setCollector("N-an", make_sfn(&BelCardN::setAdditionalName))
-			->setCollector("N-prefixes", make_sfn(&BelCardN::setPrefixes))
-			->setCollector("N-suffixes", make_sfn(&BelCardN::setSuffixes));
+void BelCardName::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
+	parser->setHandler("N", make_fn(&BelCardName::create))
+			->setCollector("group", make_sfn(&BelCardName::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardName::addParam))
+			->setCollector("N-fn", make_sfn(&BelCardName::setFamilyName))
+			->setCollector("N-gn", make_sfn(&BelCardName::setGivenName))
+			->setCollector("N-an", make_sfn(&BelCardName::setAdditionalName))
+			->setCollector("N-prefixes", make_sfn(&BelCardName::setPrefixes))
+			->setCollector("N-suffixes", make_sfn(&BelCardName::setSuffixes));
 }
 
-BelCardN::BelCardN() : BelCardProperty() {
+BelCardName::BelCardName() : BelCardProperty() {
 	setName("N");
 }
 
-void BelCardN::setFamilyName(const string &value) {
+void BelCardName::setFamilyName(const string &value) {
 	_family_name = value;
 }
-const string &BelCardN::getFamilyName() const {
+const string &BelCardName::getFamilyName() const {
 	return _family_name;
 }
 
-void BelCardN::setGivenName(const string &value) {
+void BelCardName::setGivenName(const string &value) {
 	_given_name = value;
 }
-const string &BelCardN::getGivenName() const {
+const string &BelCardName::getGivenName() const {
 	return _given_name;
 }
 
-void BelCardN::setAdditionalName(const string &value) {
+void BelCardName::setAdditionalName(const string &value) {
 	_additional_name = value;
 }
-const string &BelCardN::getAdditionalName() const {
+const string &BelCardName::getAdditionalName() const {
 	return _additional_name;
 }
 
-void BelCardN::setPrefixes(const string &value) {
+void BelCardName::setPrefixes(const string &value) {
 	_prefixes = value;
 }
-const string &BelCardN::getPrefixes() const {
+const string &BelCardName::getPrefixes() const {
 	return _prefixes;
 }
 
-void BelCardN::setSuffixes(const string &value) {
+void BelCardName::setSuffixes(const string &value) {
 	_suffixes = value;
 }
-const string &BelCardN::getSuffixes() const {
+const string &BelCardName::getSuffixes() const {
 	return _suffixes;
 }
 
-string BelCardN::serialize() const {
+string BelCardName::serialize() const {
 	stringstream output;
 	
 	if (getGroup().length() > 0) {

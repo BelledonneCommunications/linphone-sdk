@@ -5,11 +5,11 @@ using namespace::std;
 using namespace::belcard;
 
 static void fn_property(void) {
-	test_property<BelCardFN>("FN:Sylvain Berfini\r\n");
+	test_property<BelCardFullName>("FN:Sylvain Berfini\r\n");
 }
 
 static void n_property(void) {
-	test_property<BelCardN>("N:Berfini;Sylvain;Pascal;;\r\n");
+	test_property<BelCardName>("N:Berfini;Sylvain;Pascal;;\r\n");
 }
 
 static void nickname_property(void) {

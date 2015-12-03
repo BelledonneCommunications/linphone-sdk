@@ -13,20 +13,20 @@ using namespace::std;
 using namespace::belr;
 
 namespace belcard {
-	class BelCardFN : public BelCardProperty {
+	class BelCardFullName : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardFN> create();
-		static shared_ptr<BelCardFN> parse(const string& input);
+		static shared_ptr<BelCardFullName> create();
+		static shared_ptr<BelCardFullName> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardFN();
+		BelCardFullName();
 		
 		virtual void addParam(const shared_ptr<BelCardParam> &param) {
 			BelCardProperty::addParam(param);
 		}
 	};
 	
-	class BelCardN : public BelCardProperty {
+	class BelCardName : public BelCardProperty {
 	private:
 		string _family_name;
 		string _given_name;
@@ -35,11 +35,11 @@ namespace belcard {
 		string _suffixes;
 		
 	public:
-		static shared_ptr<BelCardN> create();
-		static shared_ptr<BelCardN> parse(const string& input);
+		static shared_ptr<BelCardName> create();
+		static shared_ptr<BelCardName> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) ;
 		
-		BelCardN();
+		BelCardName();
 		
 		void setFamilyName(const string &value);
 		const string &getFamilyName() const;

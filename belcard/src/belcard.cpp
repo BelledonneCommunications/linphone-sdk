@@ -14,15 +14,15 @@ void BelCard::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser
 			->setCollector("SOURCE", make_sfn(&BelCard::addSource))
 			->setCollector("KIND", make_sfn(&BelCard::setKind))
 			->setCollector("XML", make_sfn(&BelCard::addXML))
-			->setCollector("FN", make_sfn(&BelCard::setFN))
-			->setCollector("N", make_sfn(&BelCard::setN))
+			->setCollector("FN", make_sfn(&BelCard::setFullName))
+			->setCollector("N", make_sfn(&BelCard::setName))
 			->setCollector("BDAY", make_sfn(&BelCard::setBirthday))
 			->setCollector("ANNIVERSARY", make_sfn(&BelCard::setAnniversary))
 			->setCollector("GENDER", make_sfn(&BelCard::setGender))
 			->setCollector("NICKNAME", make_sfn(&BelCard::addNickname))
 			->setCollector("PHOTO", make_sfn(&BelCard::addPhoto))
 			->setCollector("ADR", make_sfn(&BelCard::addAddress))
-			->setCollector("TEL", make_sfn(&BelCard::addTel))
+			->setCollector("TEL", make_sfn(&BelCard::addPhoneNumber))
 			->setCollector("EMAIL", make_sfn(&BelCard::addEmail))
 			->setCollector("IMPP", make_sfn(&BelCard::addImpp))
 			->setCollector("LANG", make_sfn(&BelCard::addLang))
@@ -60,19 +60,19 @@ const shared_ptr<BelCardKind> &BelCard::getKind() const {
 	return _kind;
 }
 
-void BelCard::setFN(const shared_ptr<BelCardFN> &fn) {
+void BelCard::setFullName(const shared_ptr<BelCardFullName> &fn) {
 	_fn = fn;
 	addProperty(_fn);
 }
-const shared_ptr<BelCardFN> &BelCard::getFN() const {
+const shared_ptr<BelCardFullName> &BelCard::getFullName() const {
 	return _fn;
 }
 
-void BelCard::setN(const shared_ptr<BelCardN> &n) {
+void BelCard::setName(const shared_ptr<BelCardName> &n) {
 	_n = n;
 	addProperty(_n);
 }
-const shared_ptr<BelCardN> &BelCard::getN() const {
+const shared_ptr<BelCardName> &BelCard::getName() const {
 	return _n;
 }
 
@@ -148,11 +148,11 @@ const list<shared_ptr<BelCardAddress>> &BelCard::getAddresses() const {
 	return _addr;
 }
 
-void BelCard::addTel(const shared_ptr<BelCardTel> &tel) {
+void BelCard::addPhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel) {
 	_tel.push_back(tel);
 	addProperty(tel);
 }
-const list<shared_ptr<BelCardTel>> &BelCard::getTel() const {
+const list<shared_ptr<BelCardPhoneNumber>> &BelCard::getPhoneNumbers() const {
 	return _tel;
 }
 

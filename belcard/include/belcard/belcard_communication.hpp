@@ -12,13 +12,13 @@ using namespace::std;
 using namespace::belr;
 
 namespace belcard {
-	class BelCardTel : public BelCardProperty {
+	class BelCardPhoneNumber : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardTel> create();
-		static shared_ptr<BelCardTel> parse(const string& input);
+		static shared_ptr<BelCardPhoneNumber> create();
+		static shared_ptr<BelCardPhoneNumber> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardTel();
+		BelCardPhoneNumber();
 		
 		virtual void addParam(const shared_ptr<BelCardParam> &param) {
 			BelCardProperty::addParam(param);

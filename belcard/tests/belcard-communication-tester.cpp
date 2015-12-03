@@ -5,9 +5,9 @@ using namespace::std;
 using namespace::belcard;
 
 static void tel_property(void) {
-	test_property<BelCardTel>("TEL;VALUE=uri;TYPE=work:tel:+33-9-52-63-65-05\r\n");
-	test_property<BelCardTel>("TEL;VALUE=uri;TYPE=\"voice,work\":tel:+33952636505\r\n");
-	test_property<BelCardTel>("TEL;VALUE=text;TYPE=work:+33 9 52 63 65 05\r\n");
+	test_property<BelCardPhoneNumber>("TEL;VALUE=uri;TYPE=work:tel:+33-9-52-63-65-05\r\n");
+	test_property<BelCardPhoneNumber>("TEL;VALUE=uri;TYPE=\"voice,work\":tel:+33952636505\r\n");
+	test_property<BelCardPhoneNumber>("TEL;VALUE=text;TYPE=work:+33 9 52 63 65 05\r\n");
 }
 
 static void email_property(void) {

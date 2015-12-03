@@ -28,8 +28,8 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 	BelCardKind::setHandlerAndCollectors(&parser);
 	BelCardXML::setHandlerAndCollectors(&parser);
 	
-	BelCardFN::setHandlerAndCollectors(&parser);
-	BelCardN::setHandlerAndCollectors(&parser);
+	BelCardFullName::setHandlerAndCollectors(&parser);
+	BelCardName::setHandlerAndCollectors(&parser);
 	BelCardNickname::setHandlerAndCollectors(&parser);
 	BelCardPhoto::setHandlerAndCollectors(&parser);
 	BelCardBirthday::setHandlerAndCollectors(&parser);
@@ -38,7 +38,7 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 	
 	BelCardAddress::setHandlerAndCollectors(&parser);
 	
-	BelCardTel::setHandlerAndCollectors(&parser);
+	BelCardPhoneNumber::setHandlerAndCollectors(&parser);
 	BelCardEmail::setHandlerAndCollectors(&parser);
 	BelCardImpp::setHandlerAndCollectors(&parser);
 	BelCardLang::setHandlerAndCollectors(&parser);

@@ -22,8 +22,8 @@ namespace belcard {
 	class BelCard : public BelCardGeneric {
 	private:
 		shared_ptr<BelCardKind> _kind;
-		shared_ptr<BelCardFN> _fn;
-		shared_ptr<BelCardN> _n;
+		shared_ptr<BelCardFullName> _fn;
+		shared_ptr<BelCardName> _n;
 		shared_ptr<BelCardBirthday> _bday;
 		shared_ptr<BelCardAnniversary> _anniversary;
 		shared_ptr<BelCardGender> _gender;
@@ -33,7 +33,7 @@ namespace belcard {
 		list<shared_ptr<BelCardNickname>> _nicknames;
 		list<shared_ptr<BelCardPhoto>> _photos;
 		list<shared_ptr<BelCardAddress>> _addr;
-		list<shared_ptr<BelCardTel>> _tel;
+		list<shared_ptr<BelCardPhoneNumber>> _tel;
 		list<shared_ptr<BelCardEmail>> _emails;
 		list<shared_ptr<BelCardImpp>> _impp;
 		list<shared_ptr<BelCardLang>> _langs;
@@ -73,11 +73,11 @@ namespace belcard {
 		void setKind(const shared_ptr<BelCardKind> &kind);
 		const shared_ptr<BelCardKind> &getKind() const;
 		
-		void setFN(const shared_ptr<BelCardFN> &fn);
-		const shared_ptr<BelCardFN> &getFN() const;
+		void setFullName(const shared_ptr<BelCardFullName> &fn);
+		const shared_ptr<BelCardFullName> &getFullName() const;
 		
-		void setN(const shared_ptr<BelCardN> &n);
-		const shared_ptr<BelCardN> &getN() const;
+		void setName(const shared_ptr<BelCardName> &n);
+		const shared_ptr<BelCardName> &getName() const;
 		
 		void setBirthday(const shared_ptr<BelCardBirthday> &bday);
 		const shared_ptr<BelCardBirthday> &getBirthday() const;
@@ -106,8 +106,8 @@ namespace belcard {
 		void addAddress(const shared_ptr<BelCardAddress> &addr);
 		const list<shared_ptr<BelCardAddress>> &getAddresses() const;
 		
-		void addTel(const shared_ptr<BelCardTel> &tel);
-		const list<shared_ptr<BelCardTel>> &getTel() const;
+		void addPhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel);
+		const list<shared_ptr<BelCardPhoneNumber>> &getPhoneNumbers() const;
 		
 		void addEmail(const shared_ptr<BelCardEmail> &email);
 		const list<shared_ptr<BelCardEmail>> &getEmails() const;
