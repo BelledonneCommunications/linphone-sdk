@@ -20,9 +20,15 @@ shared_ptr<BelCardFullName> BelCardFullName::parse(const string& input) {
 
 void BelCardFullName::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("FN", make_fn(&BelCardFullName::create))
-			->setCollector("group", make_sfn(&BelCardFullName::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardFullName::addParam))
-			->setCollector("FN-value", make_sfn(&BelCardFullName::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+			->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("FN-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardFullName::BelCardFullName() : BelCardProperty() {
@@ -45,8 +51,12 @@ shared_ptr<BelCardName> BelCardName::parse(const string& input) {
 
 void BelCardName::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("N", make_fn(&BelCardName::create))
-			->setCollector("group", make_sfn(&BelCardName::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardName::addParam))
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("SORT-AS-param", make_sfn(&BelCardProperty::setSortAsParam))
+			->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
 			->setCollector("N-fn", make_sfn(&BelCardName::setFamilyName))
 			->setCollector("N-gn", make_sfn(&BelCardName::setGivenName))
 			->setCollector("N-an", make_sfn(&BelCardName::setAdditionalName))
@@ -125,9 +135,15 @@ shared_ptr<BelCardNickname> BelCardNickname::parse(const string& input) {
 
 void BelCardNickname::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("NICKNAME", make_fn(&BelCardNickname::create))
-			->setCollector("group", make_sfn(&BelCardNickname::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardNickname::addParam))
-			->setCollector("NICKNAME-value", make_sfn(&BelCardNickname::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+			->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("NICKNAME-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardNickname::BelCardNickname() : BelCardProperty() {
@@ -150,9 +166,13 @@ shared_ptr<BelCardBirthday> BelCardBirthday::parse(const string& input) {
 
 void BelCardBirthday::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("BDAY", make_fn(&BelCardBirthday::create))
-			->setCollector("group", make_sfn(&BelCardBirthday::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardBirthday::addParam))
-			->setCollector("BDAY-value", make_sfn(&BelCardBirthday::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("CALSCALE-param", make_sfn(&BelCardProperty::setCALSCALEParam))
+			->setCollector("BDAY-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardBirthday::BelCardBirthday() : BelCardProperty() {
@@ -175,9 +195,12 @@ shared_ptr<BelCardAnniversary> BelCardAnniversary::parse(const string& input) {
 
 void BelCardAnniversary::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("ANNIVERSARY", make_fn(&BelCardAnniversary::create))
-			->setCollector("group", make_sfn(&BelCardAnniversary::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardAnniversary::addParam))
-			->setCollector("ANNIVERSARY-value", make_sfn(&BelCardAnniversary::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("CALSCALE-param", make_sfn(&BelCardProperty::setCALSCALEParam))
+			->setCollector("ANNIVERSARY-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardAnniversary::BelCardAnniversary() : BelCardProperty() {
@@ -200,9 +223,10 @@ shared_ptr<BelCardGender> BelCardGender::parse(const string& input) {
 
 void BelCardGender::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("GENDER", make_fn(&BelCardGender::create))
-			->setCollector("group", make_sfn(&BelCardGender::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardGender::addParam))
-			->setCollector("GENDER-value", make_sfn(&BelCardGender::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("GENDER-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardGender::BelCardGender() : BelCardProperty() {
@@ -225,9 +249,15 @@ shared_ptr<BelCardPhoto> BelCardPhoto::parse(const string& input) {
 
 void BelCardPhoto::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("PHOTO", make_fn(&BelCardPhoto::create))
-			->setCollector("group", make_sfn(&BelCardPhoto::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardPhoto::addParam))
-			->setCollector("PHOTO-value", make_sfn(&BelCardPhoto::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+			->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PHOTO-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardPhoto::BelCardPhoto() : BelCardProperty() {

@@ -20,9 +20,14 @@ shared_ptr<BelCardKey> BelCardKey::parse(const string& input) {
 
 void BelCardKey::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("KEY", make_fn(&BelCardKey::create))
-			->setCollector("group", make_sfn(&BelCardKey::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardKey::addParam))
-			->setCollector("KEY-value", make_sfn(&BelCardKey::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+			->setCollector("KEY-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardKey::BelCardKey() : BelCardProperty() {

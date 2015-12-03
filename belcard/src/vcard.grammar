@@ -62,10 +62,6 @@ NICKNAME = [group "."] "NICKNAME" *(";" NICKNAME-param) ":" NICKNAME-value CRLF
 NICKNAME-param = VALUE-param / TYPE-param / LANGUAGE-param / ALTID-param / PID-param / PREF-param / any-param
 NICKNAME-value = text-list
 
-PHOTO = [group "."] "PHOTO" *(";" PHOTO-param) ":" PHOTO-value CRLF
-PHOTO-param = VALUE-param / ALTID-param / TYPE-param / MEDIATYPE-param / PREF-param / PID-param / any-param
-PHOTO-value = URI
-
 BDAY = [group "."] "BDAY" *(";" BDAY-param) ":" BDAY-value CRLF
 BDAY-param = VALUE-param / LANGUAGE-param / ALTID-param / CALSCALE-param / any-param
 BDAY-value = date-and-or-time / text
@@ -78,6 +74,10 @@ GENDER = [group "."] "GENDER" *(";" GENDER-param) ":" GENDER-value CRLF
 GENDER-param = VALUE-param / any-param
 GENDER-value = [sex] [";" text]
 sex = "M" / "F" / "O" / "N" / "U"
+
+PHOTO = [group "."] "PHOTO" *(";" PHOTO-param) ":" PHOTO-value CRLF
+PHOTO-param = VALUE-param / ALTID-param / TYPE-param / MEDIATYPE-param / PREF-param / PID-param / any-param
+PHOTO-value = URI
 
 ADR = [group "."] "ADR" *(";" ADR-param) ":" ADR-value CRLF
 ADR-param = VALUE-param / LABEL-param / LANGUAGE-param / GEO-PARAM-param / TZ-PARAM-param / ALTID-param
@@ -202,7 +202,8 @@ CALURI-value = URI
      
 group = 1*(ALPHA / DIGIT / "-")
 
-LANGUAGE-param = "LANGUAGE=" Language-Tag
+LANGUAGE-param = "LANGUAGE=" LANGUAGE-param-value
+LANGUAGE-param-value = Language-Tag
 
 VALUE-param = "VALUE=" VALUE-param-value
 VALUE-param-value = "text"
@@ -219,9 +220,11 @@ VALUE-param-value = "text"
 					/ "language-tag"
 					/ x-name
 					
-PREF-param = "PREF=" (1*2DIGIT / "100")
+PREF-param = "PREF=" PREF-param-value
+PREF-param-value = (1*2DIGIT / "100")
 
-ALTID-param = "ALTID=" param-value
+ALTID-param = "ALTID=" ALTID-param-value
+ALTID-param-value = param-value
 
 PID-param = "PID=" PID-param-value *("," PID-param-value)
 PID-param-value = 1*DIGIT ["." 1*DIGIT]
@@ -238,11 +241,14 @@ CALSCALE-param-value = "gregorian" / iana-token / x-name
 SORT-AS-param = "SORT-AS=" SORT-AS-param-value
 SORT-AS-param-value = param-value *("," param-value)
 
-GEO-PARAM-param = "GEO=" DQUOTE URI DQUOTE
+GEO-PARAM-param = "GEO=" GEO-PARAM-param
+GEO-PARAM-param-value = DQUOTE URI DQUOTE
 
-TZ-PARAM-param = "TZ=" (param-value / DQUOTE URI DQUOTE)
+TZ-PARAM-param = "TZ=" TZ-PARAM-param-value
+TZ-PARAM-param-value = (param-value / DQUOTE URI DQUOTE)
 
-LABEL-param = "LABEL=" param-value
+LABEL-param = "LABEL=" LABEL-param-value
+LABEL-param-value = param-value
 
 any-param  = param-name "=" param-value
 param-name = (iana-token / x-name)

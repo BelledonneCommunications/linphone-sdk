@@ -21,6 +21,7 @@ namespace belcard {
 		string _region;
 		string _postal_code;
 		string _country;
+		shared_ptr<BelCardLabelParam> _label_param;
 		
 	public:
 		static shared_ptr<BelCardAddress> create();
@@ -49,6 +50,9 @@ namespace belcard {
 		
 		void setCountry(const string &value);
 		const string &getCountry() const;
+		
+		void setLabelParam(const shared_ptr<BelCardLabelParam> &param);
+		const shared_ptr<BelCardLabelParam> &getLabelParam() const;
 		
 		string serialize() const;
 	};

@@ -20,9 +20,14 @@ shared_ptr<BelCardCategories> BelCardCategories::parse(const string& input) {
 
 void BelCardCategories::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("CATEGORIES", make_fn(&BelCardCategories::create))
-			->setCollector("group", make_sfn(&BelCardCategories::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardCategories::addParam))
-			->setCollector("CATEGORIES-value", make_sfn(&BelCardCategories::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("CATEGORIES-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardCategories::BelCardCategories() : BelCardProperty() {
@@ -45,9 +50,15 @@ shared_ptr<BelCardNote> BelCardNote::parse(const string& input) {
 
 void BelCardNote::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("NOTE", make_fn(&BelCardNote::create))
-			->setCollector("group", make_sfn(&BelCardNote::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardNote::addParam))
-			->setCollector("NOTE-value", make_sfn(&BelCardNote::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("NOTE-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardNote::BelCardNote() : BelCardProperty() {
@@ -70,9 +81,10 @@ shared_ptr<BelCardProductId> BelCardProductId::parse(const string& input) {
 
 void BelCardProductId::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("PRODID", make_fn(&BelCardProductId::create))
-			->setCollector("group", make_sfn(&BelCardProductId::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardProductId::addParam))
-			->setCollector("PRODID-value", make_sfn(&BelCardProductId::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("PRODID-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardProductId::BelCardProductId() : BelCardProperty() {
@@ -95,9 +107,10 @@ shared_ptr<BelCardRevision> BelCardRevision::parse(const string& input) {
 
 void BelCardRevision::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("REV", make_fn(&BelCardRevision::create))
-			->setCollector("group", make_sfn(&BelCardRevision::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardRevision::addParam))
-			->setCollector("REV-value", make_sfn(&BelCardRevision::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("REV-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardRevision::BelCardRevision() : BelCardProperty() {
@@ -120,9 +133,16 @@ shared_ptr<BelCardSound> BelCardSound::parse(const string& input) {
 
 void BelCardSound::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("SOUND", make_fn(&BelCardSound::create))
-			->setCollector("group", make_sfn(&BelCardSound::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardSound::addParam))
-			->setCollector("SOUND-value", make_sfn(&BelCardSound::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+			->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("SOUND-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardSound::BelCardSound() : BelCardProperty() {
@@ -145,9 +165,10 @@ shared_ptr<BelCardUniqueId> BelCardUniqueId::parse(const string& input) {
 
 void BelCardUniqueId::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("UID", make_fn(&BelCardUniqueId::create))
-			->setCollector("group", make_sfn(&BelCardUniqueId::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardUniqueId::addParam))
-			->setCollector("UID-value", make_sfn(&BelCardUniqueId::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("UID-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardUniqueId::BelCardUniqueId() : BelCardProperty() {
@@ -170,9 +191,9 @@ shared_ptr<BelCardClientProductIdMap> BelCardClientProductIdMap::parse(const str
 
 void BelCardClientProductIdMap::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("CLIENTPIDMAP", make_fn(&BelCardClientProductIdMap::create))
-			->setCollector("group", make_sfn(&BelCardClientProductIdMap::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardClientProductIdMap::addParam))
-			->setCollector("CLIENTPIDMAP-value", make_sfn(&BelCardClientProductIdMap::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("CLIENTPIDMAP-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardClientProductIdMap::BelCardClientProductIdMap() : BelCardProperty() {
@@ -195,9 +216,15 @@ shared_ptr<BelCardURL> BelCardURL::parse(const string& input) {
 
 void BelCardURL::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("URL", make_fn(&BelCardURL::create))
-			->setCollector("group", make_sfn(&BelCardURL::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardURL::addParam))
-			->setCollector("URL-value", make_sfn(&BelCardURL::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+			->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("URL-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardURL::BelCardURL() : BelCardProperty() {

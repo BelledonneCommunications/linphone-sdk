@@ -20,9 +20,15 @@ shared_ptr<BelCardFBURL> BelCardFBURL::parse(const string& input) {
 
 void BelCardFBURL::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("FBURL", make_fn(&BelCardFBURL::create))
-			->setCollector("group", make_sfn(&BelCardFBURL::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardFBURL::addParam))
-			->setCollector("FBURL-value", make_sfn(&BelCardFBURL::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+			->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("FBURL-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardFBURL::BelCardFBURL() : BelCardProperty() {
@@ -45,9 +51,15 @@ shared_ptr<BelCardCALADRURI> BelCardCALADRURI::parse(const string& input) {
 
 void BelCardCALADRURI::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("CALADRURI", make_fn(&BelCardCALADRURI::create))
-			->setCollector("group", make_sfn(&BelCardCALADRURI::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardCALADRURI::addParam))
-			->setCollector("CALADRURI-value", make_sfn(&BelCardCALADRURI::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+			->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("CALADRURI-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardCALADRURI::BelCardCALADRURI() : BelCardProperty() {
@@ -70,9 +82,15 @@ shared_ptr<BelCardCALURI> BelCardCALURI::parse(const string& input) {
 
 void BelCardCALURI::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("CALURI", make_fn(&BelCardCALURI::create))
-			->setCollector("group", make_sfn(&BelCardCALURI::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardCALURI::addParam))
-			->setCollector("CALURI-value", make_sfn(&BelCardCALURI::setValue));
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+			->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("CALURI-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardCALURI::BelCardCALURI() : BelCardProperty() {

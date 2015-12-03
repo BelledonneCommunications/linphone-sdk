@@ -20,8 +20,17 @@ shared_ptr<BelCardAddress> BelCardAddress::parse(const string& input) {
 
 void BelCardAddress::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("ADR", make_fn(&BelCardAddress::create))
-			->setCollector("group", make_sfn(&BelCardAddress::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardAddress::addParam))
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+			->setCollector("LABEL-param", make_sfn(&BelCardAddress::setLabelParam))
+			->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+			->setCollector("GEO-PARAM-param", make_sfn(&BelCardProperty::setGeoParam))
+			->setCollector("TZ-PARAM-param", make_sfn(&BelCardProperty::setTimezoneParam))
+			->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+			->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+			->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+			->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
 			->setCollector("ADR-pobox", make_sfn(&BelCardAddress::setPostOfficeBox))
 			->setCollector("ADR-ext", make_sfn(&BelCardAddress::setExtendedAddress))
 			->setCollector("ADR-street", make_sfn(&BelCardAddress::setStreet))
@@ -82,6 +91,14 @@ void BelCardAddress::setCountry(const string &value) {
 }
 const string &BelCardAddress::getCountry() const {
 	return _country;
+}
+		
+void BelCardAddress::setLabelParam(const shared_ptr<BelCardLabelParam> &param) {
+	_label_param = param;
+	_params.push_back(_label_param);
+}
+const shared_ptr<BelCardLabelParam> &BelCardAddress::getLabelParam() const {
+	return _label_param;
 }
 
 string BelCardAddress::serialize() const {
