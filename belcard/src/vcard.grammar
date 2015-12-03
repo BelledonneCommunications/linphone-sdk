@@ -16,8 +16,9 @@ property = SOURCE / KIND / XML
 			/ FBURL / CALADRURI / CALURI
 			/ X-PROPERTY
 			
-X-PROPERTY = [group "."] X-PROPERTY-name *(";" any-param) ":" X-PROPERTY-value CRLF
+X-PROPERTY = [group "."] X-PROPERTY-name *(";" X-PROPERTY-param) ":" X-PROPERTY-value CRLF
 X-PROPERTY-name = x-name
+X-PROPERTY-param = any-param
 X-PROPERTY-value = text
 		/ text-list
 		/ date-list
@@ -32,19 +33,24 @@ X-PROPERTY-value = text
 		/ utc-offset
 		/ Language-Tag
 
-KIND = [group "."] "KIND" *(";" any-param) ":" KIND-value CRLF
+KIND = [group "."] "KIND" *(";" KIND-param) ":" KIND-value CRLF
+KIND-param = any-param
 KIND-value = "individual" / "group" / "org" / "location" / iana-token / x-name
 
-SOURCE = [group "."] "SOURCE" *(";" any-param) ":" SOURCE-value CRLF
+SOURCE = [group "."] "SOURCE" *(";" SOURCE-param) ":" SOURCE-value CRLF
+SOURCE-param = any-param
 SOURCE-value = URI
 
-XML = [group "."] "XML" *(";" any-param) ":" XML-value CRLF
+XML = [group "."] "XML" *(";" XML-param) ":" XML-value CRLF
+XML-param = any-param
 XML-value = text
 
-FN = [group "."] "FN" *(";" any-param) ":" FN-value CRLF
+FN = [group "."] "FN" *(";" FN-param) ":" FN-value CRLF
+FN-param = any-param
 FN-value = text
 
-N = [group "."] "N" *(";" any-param) ":" N-value CRLF
+N = [group "."] "N" *(";" N-param) ":" N-value CRLF
+N-param = any-param
 N-value    = N-fn ";" N-gn ";" N-an ";" N-prefixes ";" N-suffixes
 N-fn       = component *("," component)
 N-gn       = component *("," component)
@@ -52,23 +58,29 @@ N-an       = component *("," component)
 N-prefixes = component *("," component)
 N-suffixes = component *("," component)
 
-NICKNAME = [group "."] "NICKNAME" *(";" any-param) ":" NICKNAME-value CRLF
+NICKNAME = [group "."] "NICKNAME" *(";" NICKNAME-param) ":" NICKNAME-value CRLF
+NICKNAME-param = any-param
 NICKNAME-value = text-list
 
-BDAY = [group "."] "BDAY" *(";" any-param) ":" BDAY-value CRLF
+BDAY = [group "."] "BDAY" *(";" BDAY-param) ":" BDAY-value CRLF
+BDAY-param = any-param
 BDAY-value = date-and-or-time / text
 
-ANNIVERSARY = [group "."] "ANNIVERSARY" *(";" any-param) ":" ANNIVERSARY-value CRLF
+ANNIVERSARY = [group "."] "ANNIVERSARY" *(";" ANNIVERSARY-param) ":" ANNIVERSARY-value CRLF
+ANNIVERSARY-param = any-param
 ANNIVERSARY-value = date-and-or-time / text
 
-GENDER = [group "."] "GENDER" *(";" any-param) ":" GENDER-value CRLF
+GENDER = [group "."] "GENDER" *(";" GENDER-param) ":" GENDER-value CRLF
+GENDER-param = any-param
 GENDER-value = [sex] [";" text]
 sex = "M" / "F" / "O" / "N" / "U"
 
-PHOTO = [group "."] "PHOTO" *(";" any-param) ":" PHOTO-value CRLF
+PHOTO = [group "."] "PHOTO" *(";" PHOTO-param) ":" PHOTO-value CRLF
+PHOTO-param = any-param
 PHOTO-value = URI
 
-ADR = [group "."] "ADR" *(";" any-param) ":" ADR-value CRLF
+ADR = [group "."] "ADR" *(";" ADR-param) ":" ADR-value CRLF
+ADR-param = any-param
 ADR-value = ADR-pobox  ";" ADR-ext      ";"
 			ADR-street ";" ADR-locality ";"
 			ADR-region ";" ADR-code     ";"
@@ -81,79 +93,118 @@ ADR-region   = component *("," component)
 ADR-code     = component *("," component)
 ADR-country  = component *("," component)
 
-TEL = [group "."] "TEL" *(";" any-param) ":" TEL-value CRLF
+TEL = [group "."] "TEL" *(";" TEL-param) ":" TEL-value CRLF
+TEL-param =any-param
 TEL-value = URI / text
 
-EMAIL = [group "."] "EMAIL" *(";" any-param) ":" EMAIL-value CRLF
+EMAIL = [group "."] "EMAIL" *(";" EMAIL-param) ":" EMAIL-value CRLF
+EMAIL-param = any-param
 EMAIL-value = text
 
-IMPP = [group "."] "IMPP" *(";" any-param) ":" IMPP-value CRLF
+IMPP = [group "."] "IMPP" *(";" IMPP-param) ":" IMPP-value CRLF
+IMPP-param = any-param
 IMPP-value = text
 
-LANG = [group "."] "LANG" *(";" any-param) ":" LANG-value CRLF
+LANG = [group "."] "LANG" *(";" LANG-param) ":" LANG-value CRLF
+LANG-param = any-param
 LANG-value = Language-Tag
 
-TZ = [group "."] "TZ" *(";" any-param) ":" TZ-value CRLF
+TZ = [group "."] "TZ" *(";" TZ-param) ":" TZ-value CRLF
+TZ-param = any-param
 TZ-value = text / URI / utc-offset
 
-GEO = [group "."] "GEO" *(";" any-param) ":" GEO-value CRLF
+GEO = [group "."] "GEO" *(";" GEO-param) ":" GEO-value CRLF
+GEO-param = any-param
 GEO-value = URI
 
-TITLE = [group "."] "TITLE" *(";" any-param) ":" TITLE-value CRLF
+TITLE = [group "."] "TITLE" *(";" TITLE-param) ":" TITLE-value CRLF
+TITLE-param = any-param
 TITLE-value = text
 
-ROLE = [group "."] "ROLE" *(";" any-param) ":" ROLE-value CRLF
+ROLE = [group "."] "ROLE" *(";" ROLE-param) ":" ROLE-value CRLF
+ROLE-param = any-param
 ROLE-value = text
 
-LOGO = [group "."] "LOGO" *(";" any-param) ":" LOGO-value CRLF
+LOGO = [group "."] "LOGO" *(";" LOGO-param) ":" LOGO-value CRLF
+LOGO-param = any-param
 LOGO-value = URI
 
-ORG = [group "."] "ORG" *(";" any-param) ":" ORG-value CRLF
+ORG = [group "."] "ORG" *(";" ORG-param) ":" ORG-value CRLF
+ORG-param = any-param
 ORG-value = component *(";" component)
 
-MEMBER = [group "."] "MEMBER" *(";" any-param) ":" MEMBER-value CRLF
+MEMBER = [group "."] "MEMBER" *(";" MEMBER-param) ":" MEMBER-value CRLF
+MEMBER-param = any-param
 MEMBER-value = URI
 
-RELATED = [group "."] "RELATED" *(";" any-param) ":" RELATED-value CRLF
+RELATED = [group "."] "RELATED" *(";" RELATED-param) ":" RELATED-value CRLF
+RELATED-param = any-param
 RELATED-value = URI / text
 
-CATEGORIES = [group "."] "CATEGORIES" *(";" any-param) ":" CATEGORIES-value CRLF
+CATEGORIES = [group "."] "CATEGORIES" *(";" CATEGORIES-param) ":" CATEGORIES-value CRLF
+CATEGORIES-param = any-param
 CATEGORIES-value = text-list
 
-NOTE = [group "."] "NOTE" *(";" any-param) ":" NOTE-value CRLF
+NOTE = [group "."] "NOTE" *(";" NOTE-param) ":" NOTE-value CRLF
+NOTE-param = any-param
 NOTE-value = text
 
-PRODID = [group "."] "PRODID" *(";" any-param) ":" PRODID-value CRLF
+PRODID = [group "."] "PRODID" *(";" PRODID-param) ":" PRODID-value CRLF
+PRODID-param = any-param
 PRODID-value = text
 
-REV = [group "."] "REV" *(";" any-param) ":" REV-value CRLF
+REV = [group "."] "REV" *(";" REV-param) ":" REV-value CRLF
+REV-param = any-param
 REV-value = timestamp
 
-SOUND = [group "."] "SOUND" *(";" any-param) ":" SOUND-value CRLF
+SOUND = [group "."] "SOUND" *(";" SOUND-param) ":" SOUND-value CRLF
+SOUND-param = any-param
 SOUND-value = URI
 
-UID = [group "."] "UID" *(";" any-param) ":" UID-value CRLF
+UID = [group "."] "UID" *(";" UID-param) ":" UID-value CRLF
+UID-param = any-param
 UID-value = URI / text
 
-CLIENTPIDMAP = [group "."] "CLIENTPIDMAP" *(";" any-param) ":" CLIENTPIDMAP-value CRLF
+CLIENTPIDMAP = [group "."] "CLIENTPIDMAP" *(";" CLIENTPIDMAP-param) ":" CLIENTPIDMAP-value CRLF
+CLIENTPIDMAP-param = any-param
 CLIENTPIDMAP-value = 1*DIGIT ";" URI
 
-URL = [group "."] "URL" *(";" any-param) ":" URL-value CRLF
+URL = [group "."] "URL" *(";" URL-param) ":" URL-value CRLF
+URL-param = any-param
 URL-value = URI
 
-KEY = [group "."] "KEY" *(";" any-param) ":" KEY-value CRLF
+KEY = [group "."] "KEY" *(";" KEY-param) ":" KEY-value CRLF
+KEY-param = any-param
 KEY-value = URI / text
 
-FBURL = [group "."] "FBURL" *(";" any-param) ":" FBURL-value CRLF
+FBURL = [group "."] "FBURL" *(";" FBURL-param) ":" FBURL-value CRLF
+FBURL-param = any-param
 FBURL-value = URI
 
-CALADRURI = [group "."] "CALADRURI" *(";" any-param) ":" CALADRURI-value CRLF
+CALADRURI = [group "."] "CALADRURI" *(";" CALADRURI-param) ":" CALADRURI-value CRLF
+CALADRURI-param = any-param
 CALADRURI-value = URI
 
-CALURI = [group "."] "CALURI" *(";" any-param) ":" CALURI-value CRLF
+CALURI = [group "."] "CALURI" *(";" CALURI-param) ":" CALURI-value CRLF
+CALURI-param = any-param
 CALURI-value = URI
      
 group = 1*(ALPHA / DIGIT / "-")
+
+VALUE-param = "VALUE=" VALUE-param-value
+VALUE-param-value = "text"
+					/ "uri"
+					/ "date"
+					/ "time"
+					/ "date-time"
+					/ "date-and-or-time"
+					/ "timestamp"
+					/ "boolean"
+					/ "integer"
+					/ "float"
+					/ "utc-offset"
+					/ "language-tag"
+					/ x-name
 
 any-param  = param-name "=" param-value
 param-name = (iana-token / x-name)

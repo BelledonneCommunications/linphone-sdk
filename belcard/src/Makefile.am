@@ -7,6 +7,7 @@ vcard_grammar.cpp: vcard.grammar
 
 libbelcard_la_SOURCES=belcard_parser.cpp \
 			belcard_generic.cpp \
+			belcard_params.cpp \
 			belcard.cpp \
 			belcard_general.cpp \
 			belcard_identification.cpp \

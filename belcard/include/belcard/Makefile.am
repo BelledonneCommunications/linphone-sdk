@@ -2,6 +2,7 @@ belcard_includedir=$(includedir)/belcard
 
 belcard_include_HEADERS = belcard.hpp \
 			belcard_generic.hpp \
+			belcard_params.hpp \
 			belcard_general.hpp \
 			belcard_identification.hpp \
 			belcard_addressing.hpp \

@@ -2,6 +2,7 @@
 #define belcard_parser_hpp
 
 #include "belcard.hpp"
+#include "belcard_params.hpp"
 
 #include <belr/grammarbuilder.hh>
 #include <belr/abnf.hh>

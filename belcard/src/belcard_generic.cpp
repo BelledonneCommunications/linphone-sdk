@@ -62,6 +62,8 @@ shared_ptr<BelCardProperty> BelCardProperty::parse(const string& input) {
 
 void BelCardProperty::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("X-PROPERTY", make_fn(&BelCardProperty::create))
+			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("X-PROPERTY-name", make_sfn(&BelCardProperty::setName))
 			->setCollector("X-PROPERTY-value", make_sfn(&BelCardProperty::setValue));
 }

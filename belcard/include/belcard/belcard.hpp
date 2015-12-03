@@ -56,6 +56,7 @@ namespace belcard {
 		list<shared_ptr<BelCardFBURL>> _fburls;
 		list<shared_ptr<BelCardCALADRURI>> _caladruris;
 		list<shared_ptr<BelCardCALURI>> _caluris;
+		list<shared_ptr<BelCardProperty>> _extended_properties;
 		list<shared_ptr<BelCardProperty>> _properties;
 		
 	public:
@@ -173,6 +174,9 @@ namespace belcard {
 		
 		void addCALURI(const shared_ptr<BelCardCALURI> &caluri);
 		const list<shared_ptr<BelCardCALURI>> &getCALURIs() const;
+		
+		void addExtendedProperty(const shared_ptr<BelCardProperty> &property);
+		const list<shared_ptr<BelCardProperty>> &getExtendedProperties() const;
 		
 		void addProperty(const shared_ptr<BelCardProperty> &property);
 		const list<shared_ptr<BelCardProperty>> &getProperties() const;
