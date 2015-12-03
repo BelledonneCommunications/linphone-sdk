@@ -191,6 +191,8 @@ CALURI-value = URI
      
 group = 1*(ALPHA / DIGIT / "-")
 
+LANGUAGE-param = "LANGUAGE=" Language-Tag
+
 VALUE-param = "VALUE=" VALUE-param-value
 VALUE-param-value = "text"
 					/ "uri"
@@ -205,6 +207,29 @@ VALUE-param-value = "text"
 					/ "utc-offset"
 					/ "language-tag"
 					/ x-name
+					
+PREF-param = "PREF=" (1*2DIGIT / "100")
+
+ALTID-param = "ALTID=" param-value
+
+PID-param = "PID=" PID-param-value *("," PID-param-value)
+PID-param-value = 1*DIGIT ["." 1*DIGIT]
+
+TYPE-param = "TYPE=" TYPE-param-value *("," TYPE-param-value)
+TYPE-param-value = "work" / "home" / type-param-tel / type-param-related / iana-token / x-name
+
+MEDIATYPE-param = "MEDIATYPE=" MEDIATYPE-param-value
+MEDIATYPE-param-value = type-name "/" subtype-name *( ";" any-param )
+
+CALSCALE-param = "CALSCALE=" CALSCALE-param-value
+CALSCALE-param-value = "gregorian" / iana-token / x-name
+
+SORT-AS-param = "SORT-AS=" SORT-AS-param-value
+SORT-AS-param-value = param-value *("," param-value)
+
+GEO-param = "GEO=" DQUOTE URI DQUOTE
+
+TZ-param = "TZ=" (param-value / DQUOTE URI DQUOTE)
 
 any-param  = param-name "=" param-value
 param-name = (iana-token / x-name)
@@ -275,6 +300,19 @@ timestamp = date-complete time-designator time-complete
 date-and-or-time = date-time / date / time-designator time
 
 utc-offset = sign hour [minute]
+
+type-param-related = related-type-value *("," related-type-value)
+related-type-value = "contact" / "acquaintance" / "friend" / "met"
+					/ "co-worker" / "colleague" / "co-resident"
+					/ "neighbor" / "child" / "parent"
+					/ "sibling" / "spouse" / "kin" / "muse"
+					/ "crush" / "date" / "sweetheart" / "me"
+					/ "agent" / "emergency"
+type-param-tel = "text" / "voice" / "fax" / "cell" / "video"
+				/ "pager" / "textphone" / iana-token / x-name
+				
+type-name = reg-name
+subtype-name = reg-name
 
 URI           = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
 

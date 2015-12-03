@@ -22,7 +22,17 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 	BelCardParam::setHandlerAndCollectors(&parser);
 	BelCardProperty::setHandlerAndCollectors(&parser);
 	
+	BelCardLanguageParam::setHandlerAndCollectors(&parser);
 	BelCardValueParam::setHandlerAndCollectors(&parser);
+	BelCardPrefParam::setHandlerAndCollectors(&parser);
+	BelCardAlternativeIdParam::setHandlerAndCollectors(&parser);
+	BelCardParamIdParam::setHandlerAndCollectors(&parser);
+	BelCardTypeParam::setHandlerAndCollectors(&parser);
+	BelCardMediaTypeParam::setHandlerAndCollectors(&parser);
+	BelCardCALSCALEParam::setHandlerAndCollectors(&parser);
+	BelCardSortAsParam::setHandlerAndCollectors(&parser);
+	BelCardGeoParam::setHandlerAndCollectors(&parser);
+	BelCardTimezoneParam::setHandlerAndCollectors(&parser);
 	
 	BelCardSource::setHandlerAndCollectors(&parser);
 	BelCardKind::setHandlerAndCollectors(&parser);
