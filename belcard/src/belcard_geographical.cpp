@@ -4,10 +4,6 @@ using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
-shared_ptr<BelCardTimezone> BelCardTimezone::create() {
-	return BelCardGeneric::create<BelCardTimezone>();
-}
-
 shared_ptr<BelCardTimezone> BelCardTimezone::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -19,7 +15,7 @@ shared_ptr<BelCardTimezone> BelCardTimezone::parse(const string& input) {
 }
 
 void BelCardTimezone::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("TZ", make_fn(&BelCardTimezone::create))
+	parser->setHandler("TZ", make_fn(BelCardGeneric::create<BelCardTimezone>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
@@ -35,10 +31,6 @@ BelCardTimezone::BelCardTimezone() : BelCardProperty() {
 	setName("TZ");
 }
 
-shared_ptr<BelCardGeo> BelCardGeo::create() {
-	return BelCardGeneric::create<BelCardGeo>();
-}
-
 shared_ptr<BelCardGeo> BelCardGeo::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -50,7 +42,7 @@ shared_ptr<BelCardGeo> BelCardGeo::parse(const string& input) {
 }
 
 void BelCardGeo::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("GEO", make_fn(&BelCardGeo::create))
+	parser->setHandler("GEO", make_fn(BelCardGeneric::create<BelCardGeo>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))

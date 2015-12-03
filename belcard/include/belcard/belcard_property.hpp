@@ -34,7 +34,6 @@ namespace belcard {
 		list<shared_ptr<BelCardParam>> _params;
 		
 	public:
-		static shared_ptr<BelCardProperty> create();
 		static shared_ptr<BelCardProperty> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		

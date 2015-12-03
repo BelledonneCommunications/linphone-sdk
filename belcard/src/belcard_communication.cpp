@@ -4,10 +4,6 @@ using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
-shared_ptr<BelCardPhoneNumber> BelCardPhoneNumber::create() {
-	return BelCardGeneric::create<BelCardPhoneNumber>();
-}
-
 shared_ptr<BelCardPhoneNumber> BelCardPhoneNumber::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -19,7 +15,7 @@ shared_ptr<BelCardPhoneNumber> BelCardPhoneNumber::parse(const string& input) {
 }
 
 void BelCardPhoneNumber::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("TEL", make_fn(&BelCardPhoneNumber::create))
+	parser->setHandler("TEL", make_fn(BelCardGeneric::create<BelCardPhoneNumber>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
@@ -34,10 +30,6 @@ BelCardPhoneNumber::BelCardPhoneNumber() : BelCardProperty() {
 	setName("TEL");
 }
 
-shared_ptr<BelCardEmail> BelCardEmail::create() {
-	return BelCardGeneric::create<BelCardEmail>();
-}
-
 shared_ptr<BelCardEmail> BelCardEmail::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -49,7 +41,7 @@ shared_ptr<BelCardEmail> BelCardEmail::parse(const string& input) {
 }
 
 void BelCardEmail::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("EMAIL", make_fn(&BelCardEmail::create))
+	parser->setHandler("EMAIL", make_fn(BelCardGeneric::create<BelCardEmail>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
@@ -64,10 +56,6 @@ BelCardEmail::BelCardEmail() : BelCardProperty() {
 	setName("EMAIL");
 }
 
-shared_ptr<BelCardImpp> BelCardImpp::create() {
-	return BelCardGeneric::create<BelCardImpp>();
-}
-
 shared_ptr<BelCardImpp> BelCardImpp::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -79,7 +67,7 @@ shared_ptr<BelCardImpp> BelCardImpp::parse(const string& input) {
 }
 
 void BelCardImpp::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("IMPP", make_fn(&BelCardImpp::create))
+	parser->setHandler("IMPP", make_fn(BelCardGeneric::create<BelCardImpp>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
@@ -95,10 +83,6 @@ BelCardImpp::BelCardImpp() : BelCardProperty() {
 	setName("IMPP");
 }
 
-shared_ptr<BelCardLang> BelCardLang::create() {
-	return BelCardGeneric::create<BelCardLang>();
-}
-
 shared_ptr<BelCardLang> BelCardLang::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -110,7 +94,7 @@ shared_ptr<BelCardLang> BelCardLang::parse(const string& input) {
 }
 
 void BelCardLang::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("LANG", make_fn(&BelCardLang::create))
+	parser->setHandler("LANG", make_fn(BelCardGeneric::create<BelCardLang>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))

@@ -4,10 +4,6 @@ using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
-shared_ptr<BelCardFBURL> BelCardFBURL::create() {
-	return BelCardGeneric::create<BelCardFBURL>();
-}
-
 shared_ptr<BelCardFBURL> BelCardFBURL::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -19,7 +15,7 @@ shared_ptr<BelCardFBURL> BelCardFBURL::parse(const string& input) {
 }
 
 void BelCardFBURL::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("FBURL", make_fn(&BelCardFBURL::create))
+	parser->setHandler("FBURL", make_fn(BelCardGeneric::create<BelCardFBURL>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
@@ -35,10 +31,6 @@ BelCardFBURL::BelCardFBURL() : BelCardProperty() {
 	setName("FBURL");
 }
 
-shared_ptr<BelCardCALADRURI> BelCardCALADRURI::create() {
-	return BelCardGeneric::create<BelCardCALADRURI>();
-}
-
 shared_ptr<BelCardCALADRURI> BelCardCALADRURI::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -50,7 +42,7 @@ shared_ptr<BelCardCALADRURI> BelCardCALADRURI::parse(const string& input) {
 }
 
 void BelCardCALADRURI::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("CALADRURI", make_fn(&BelCardCALADRURI::create))
+	parser->setHandler("CALADRURI", make_fn(BelCardGeneric::create<BelCardCALADRURI>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
@@ -66,10 +58,6 @@ BelCardCALADRURI::BelCardCALADRURI() : BelCardProperty() {
 	setName("CALADRURI");
 }
 
-shared_ptr<BelCardCALURI> BelCardCALURI::create() {
-	return BelCardGeneric::create<BelCardCALURI>();
-}
-
 shared_ptr<BelCardCALURI> BelCardCALURI::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -81,7 +69,7 @@ shared_ptr<BelCardCALURI> BelCardCALURI::parse(const string& input) {
 }
 
 void BelCardCALURI::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("CALURI", make_fn(&BelCardCALURI::create))
+	parser->setHandler("CALURI", make_fn(BelCardGeneric::create<BelCardCALURI>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))

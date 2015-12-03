@@ -15,7 +15,6 @@ using namespace::belr;
 namespace belcard {
 	class BelCardFullName : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardFullName> create();
 		static shared_ptr<BelCardFullName> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
@@ -31,7 +30,6 @@ namespace belcard {
 		string _suffixes;
 		
 	public:
-		static shared_ptr<BelCardName> create();
 		static shared_ptr<BelCardName> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) ;
 		
@@ -57,7 +55,6 @@ namespace belcard {
 	
 	class BelCardNickname : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardNickname> create();
 		static shared_ptr<BelCardNickname> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
@@ -66,7 +63,6 @@ namespace belcard {
 	
 	class BelCardBirthday : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardBirthday> create();
 		static shared_ptr<BelCardBirthday> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
@@ -75,7 +71,6 @@ namespace belcard {
 	
 	class BelCardAnniversary : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardAnniversary> create();
 		static shared_ptr<BelCardAnniversary> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
@@ -84,7 +79,6 @@ namespace belcard {
 	
 	class BelCardGender : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardGender> create();
 		static shared_ptr<BelCardGender> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
@@ -93,7 +87,6 @@ namespace belcard {
 	
 	class BelCardPhoto : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardPhoto> create();
 		static shared_ptr<BelCardPhoto> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		

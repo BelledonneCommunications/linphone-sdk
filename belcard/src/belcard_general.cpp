@@ -4,10 +4,6 @@ using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
-shared_ptr<BelCardSource> BelCardSource::create() {
-	return BelCardGeneric::create<BelCardSource>();
-}
-
 shared_ptr<BelCardSource> BelCardSource::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -19,7 +15,7 @@ shared_ptr<BelCardSource> BelCardSource::parse(const string& input) {
 }
 
 void BelCardSource::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("SOURCE", make_fn(&BelCardSource::create))
+	parser->setHandler("SOURCE", make_fn(BelCardGeneric::create<BelCardSource>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
@@ -34,10 +30,6 @@ BelCardSource::BelCardSource() : BelCardProperty() {
 	setName("SOURCE");
 }
 
-shared_ptr<BelCardKind> BelCardKind::create() {
-	return BelCardGeneric::create<BelCardKind>();
-}
-
 shared_ptr<BelCardKind> BelCardKind::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -49,7 +41,7 @@ shared_ptr<BelCardKind> BelCardKind::parse(const string& input) {
 }
 
 void BelCardKind::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("KIND", make_fn(&BelCardKind::create))
+	parser->setHandler("KIND", make_fn(BelCardGeneric::create<BelCardKind>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
@@ -58,10 +50,6 @@ void BelCardKind::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *pa
 
 BelCardKind::BelCardKind() : BelCardProperty() {
 	setName("KIND");
-}
-
-shared_ptr<BelCardXML> BelCardXML::create() {
-	return BelCardGeneric::create<BelCardXML>();
 }
 
 shared_ptr<BelCardXML> BelCardXML::parse(const string& input) {
@@ -75,7 +63,7 @@ shared_ptr<BelCardXML> BelCardXML::parse(const string& input) {
 }
 
 void BelCardXML::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("XML", make_fn(&BelCardXML::create))
+	parser->setHandler("XML", make_fn(BelCardGeneric::create<BelCardXML>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))

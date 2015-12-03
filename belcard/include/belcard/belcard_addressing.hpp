@@ -24,7 +24,6 @@ namespace belcard {
 		shared_ptr<BelCardLabelParam> _label_param;
 		
 	public:
-		static shared_ptr<BelCardAddress> create();
 		static shared_ptr<BelCardAddress> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		

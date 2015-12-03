@@ -4,10 +4,6 @@ using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
-shared_ptr<BelCardProperty> BelCardProperty::create() {
-	return BelCardGeneric::create<BelCardProperty>();
-}
-
 shared_ptr<BelCardProperty> BelCardProperty::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -19,7 +15,7 @@ shared_ptr<BelCardProperty> BelCardProperty::parse(const string& input) {
 }
 
 void BelCardProperty::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("X-PROPERTY", make_fn(&BelCardProperty::create))
+	parser->setHandler("X-PROPERTY", make_fn(BelCardGeneric::create<BelCardProperty>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("X-PROPERTY-name", make_sfn(&BelCardProperty::setName))

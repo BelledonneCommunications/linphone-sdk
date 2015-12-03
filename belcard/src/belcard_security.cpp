@@ -4,10 +4,6 @@ using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
-shared_ptr<BelCardKey> BelCardKey::create() {
-	return BelCardGeneric::create<BelCardKey>();
-}
-
 shared_ptr<BelCardKey> BelCardKey::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -19,7 +15,7 @@ shared_ptr<BelCardKey> BelCardKey::parse(const string& input) {
 }
 
 void BelCardKey::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("KEY", make_fn(&BelCardKey::create))
+	parser->setHandler("KEY", make_fn(BelCardGeneric::create<BelCardKey>))
 			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 			->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))

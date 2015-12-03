@@ -14,7 +14,6 @@ using namespace::belr;
 namespace belcard {
 	class BelCardPhoneNumber : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardPhoneNumber> create();
 		static shared_ptr<BelCardPhoneNumber> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
@@ -23,7 +22,6 @@ namespace belcard {
 	
 	class BelCardEmail : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardEmail> create();
 		static shared_ptr<BelCardEmail> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
@@ -32,7 +30,6 @@ namespace belcard {
 	
 	class BelCardImpp : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardImpp> create();
 		static shared_ptr<BelCardImpp> parse(const string& input) ;
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
@@ -41,7 +38,6 @@ namespace belcard {
 	
 	class BelCardLang : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardLang> create();
 		static shared_ptr<BelCardLang> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		

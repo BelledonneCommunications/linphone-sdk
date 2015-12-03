@@ -4,10 +4,6 @@ using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
-shared_ptr<BelCardParam> BelCardParam::create() {
-	return BelCardGeneric::create<BelCardParam>();
-}
-
 shared_ptr<BelCardParam> BelCardParam::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -18,7 +14,7 @@ shared_ptr<BelCardParam> BelCardParam::parse(const string& input) {
 }
 
 void BelCardParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("any-param", make_fn(&BelCardParam::create))
+	parser->setHandler("any-param", make_fn(BelCardGeneric::create<BelCardParam>))
 			->setCollector("param-name", make_sfn(&BelCardParam::setName))
 			->setCollector("param-value", make_sfn(&BelCardParam::setValue));
 	BelCardLabelParam::setHandlerAndCollectors(parser);
@@ -59,10 +55,6 @@ string BelCardParam::serialize() const {
 	return output.str();
 }
 
-shared_ptr<BelCardLanguageParam> BelCardLanguageParam::create() {
-	return BelCardGeneric::create<BelCardLanguageParam>();
-}
-
 shared_ptr<BelCardLanguageParam> BelCardLanguageParam::parse(const string& input) {
 	ABNFGrammarBuilder grammar_builder;
 	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
@@ -73,16 +65,12 @@ shared_ptr<BelCardLanguageParam> BelCardLanguageParam::parse(const string& input
 }
 
 void BelCardLanguageParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("LANGUAGE-param", make_fn(&BelCardLanguageParam::create))
+	parser->setHandler("LANGUAGE-param", make_fn(BelCardGeneric::create<BelCardLanguageParam>))
 			->setCollector("LANGUAGE-param-value", make_sfn(&BelCardLanguageParam::setValue));
 }
 
 BelCardLanguageParam::BelCardLanguageParam() : BelCardParam() {
 	setName("LANGUAGE");
-}
-
-shared_ptr<BelCardValueParam> BelCardValueParam::create() {
-	return BelCardGeneric::create<BelCardValueParam>();
 }
 
 shared_ptr<BelCardValueParam> BelCardValueParam::parse(const string& input) {
@@ -95,16 +83,12 @@ shared_ptr<BelCardValueParam> BelCardValueParam::parse(const string& input) {
 }
 
 void BelCardValueParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("VALUE-param", make_fn(&BelCardValueParam::create))
+	parser->setHandler("VALUE-param", make_fn(BelCardGeneric::create<BelCardValueParam>))
 			->setCollector("VALUE-param-value", make_sfn(&BelCardValueParam::setValue));
 }
 
 BelCardValueParam::BelCardValueParam() : BelCardParam() {
 	setName("VALUE");
-}
-
-shared_ptr<BelCardPrefParam> BelCardPrefParam::create() {
-	return BelCardGeneric::create<BelCardPrefParam>();
 }
 
 shared_ptr<BelCardPrefParam> BelCardPrefParam::parse(const string& input) {
@@ -117,16 +101,12 @@ shared_ptr<BelCardPrefParam> BelCardPrefParam::parse(const string& input) {
 }
 
 void BelCardPrefParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("PREF-param", make_fn(&BelCardPrefParam::create))
+	parser->setHandler("PREF-param", make_fn(BelCardGeneric::create<BelCardPrefParam>))
 			->setCollector("PREF-param-value", make_sfn(&BelCardPrefParam::setValue));
 }
 
 BelCardPrefParam::BelCardPrefParam() : BelCardParam() {
 	setName("PREF");
-}
-
-shared_ptr<BelCardAlternativeIdParam> BelCardAlternativeIdParam::create() {
-	return BelCardGeneric::create<BelCardAlternativeIdParam>();
 }
 
 shared_ptr<BelCardAlternativeIdParam> BelCardAlternativeIdParam::parse(const string& input) {
@@ -139,16 +119,12 @@ shared_ptr<BelCardAlternativeIdParam> BelCardAlternativeIdParam::parse(const str
 }
 
 void BelCardAlternativeIdParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("ALTID-param", make_fn(&BelCardAlternativeIdParam::create))
+	parser->setHandler("ALTID-param", make_fn(BelCardGeneric::create<BelCardAlternativeIdParam>))
 			->setCollector("ALTID-param-value", make_sfn(&BelCardAlternativeIdParam::setValue));
 }
 
 BelCardAlternativeIdParam::BelCardAlternativeIdParam() : BelCardParam() {
 	setName("ALTID");
-}
-
-shared_ptr<BelCardParamIdParam> BelCardParamIdParam::create() {
-	return BelCardGeneric::create<BelCardParamIdParam>();
 }
 
 shared_ptr<BelCardParamIdParam> BelCardParamIdParam::parse(const string& input) {
@@ -161,16 +137,12 @@ shared_ptr<BelCardParamIdParam> BelCardParamIdParam::parse(const string& input) 
 }
 
 void BelCardParamIdParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("PID-param", make_fn(&BelCardParamIdParam::create))
+	parser->setHandler("PID-param", make_fn(BelCardGeneric::create<BelCardParamIdParam>))
 			->setCollector("PID-param-value", make_sfn(&BelCardParamIdParam::setValue));
 }
 
 BelCardParamIdParam::BelCardParamIdParam() : BelCardParam() {
 	setName("PID");
-}
-
-shared_ptr<BelCardTypeParam> BelCardTypeParam::create() {
-	return BelCardGeneric::create<BelCardTypeParam>();
 }
 
 shared_ptr<BelCardTypeParam> BelCardTypeParam::parse(const string& input) {
@@ -183,16 +155,12 @@ shared_ptr<BelCardTypeParam> BelCardTypeParam::parse(const string& input) {
 }
 
 void BelCardTypeParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("TYPE-param", make_fn(&BelCardTypeParam::create))
+	parser->setHandler("TYPE-param", make_fn(BelCardGeneric::create<BelCardTypeParam>))
 			->setCollector("TYPE-param-value", make_sfn(&BelCardTypeParam::setValue));
 }
 
 BelCardTypeParam::BelCardTypeParam() : BelCardParam() {
 	setName("TYPE");
-}
-
-shared_ptr<BelCardMediaTypeParam> BelCardMediaTypeParam::create() {
-	return BelCardGeneric::create<BelCardMediaTypeParam>();
 }
 
 shared_ptr<BelCardMediaTypeParam> BelCardMediaTypeParam::parse(const string& input) {
@@ -205,16 +173,12 @@ shared_ptr<BelCardMediaTypeParam> BelCardMediaTypeParam::parse(const string& inp
 }
 
 void BelCardMediaTypeParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("MEDIATYPE-param", make_fn(&BelCardMediaTypeParam::create))
+	parser->setHandler("MEDIATYPE-param", make_fn(BelCardGeneric::create<BelCardMediaTypeParam>))
 			->setCollector("MEDIATYPE-param-value", make_sfn(&BelCardMediaTypeParam::setValue));
 }
 
 BelCardMediaTypeParam::BelCardMediaTypeParam() : BelCardParam() {
 	setName("MEDIATYPE");
-}
-
-shared_ptr<BelCardCALSCALEParam> BelCardCALSCALEParam::create() {
-	return BelCardGeneric::create<BelCardCALSCALEParam>();
 }
 
 shared_ptr<BelCardCALSCALEParam> BelCardCALSCALEParam::parse(const string& input) {
@@ -227,16 +191,12 @@ shared_ptr<BelCardCALSCALEParam> BelCardCALSCALEParam::parse(const string& input
 }
 
 void BelCardCALSCALEParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("CALSCALE-param", make_fn(&BelCardCALSCALEParam::create))
+	parser->setHandler("CALSCALE-param", make_fn(BelCardGeneric::create<BelCardCALSCALEParam>))
 			->setCollector("CALSCALE-param-value", make_sfn(&BelCardCALSCALEParam::setValue));
 }
 
 BelCardCALSCALEParam::BelCardCALSCALEParam() : BelCardParam() {
 	setName("CALSCALE");
-}
-
-shared_ptr<BelCardSortAsParam> BelCardSortAsParam::create() {
-	return BelCardGeneric::create<BelCardSortAsParam>();
 }
 
 shared_ptr<BelCardSortAsParam> BelCardSortAsParam::parse(const string& input) {
@@ -249,16 +209,12 @@ shared_ptr<BelCardSortAsParam> BelCardSortAsParam::parse(const string& input) {
 }
 
 void BelCardSortAsParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("SORT-AS-param", make_fn(&BelCardSortAsParam::create))
+	parser->setHandler("SORT-AS-param", make_fn(BelCardGeneric::create<BelCardSortAsParam>))
 			->setCollector("SORT-AS-param-value", make_sfn(&BelCardSortAsParam::setValue));
 }
 
 BelCardSortAsParam::BelCardSortAsParam() : BelCardParam() {
 	setName("SORT-AS");
-}
-
-shared_ptr<BelCardGeoParam> BelCardGeoParam::create() {
-	return BelCardGeneric::create<BelCardGeoParam>();
 }
 
 shared_ptr<BelCardGeoParam> BelCardGeoParam::parse(const string& input) {
@@ -271,16 +227,12 @@ shared_ptr<BelCardGeoParam> BelCardGeoParam::parse(const string& input) {
 }
 
 void BelCardGeoParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("GEO-PARAM-param", make_fn(&BelCardGeoParam::create))
+	parser->setHandler("GEO-PARAM-param", make_fn(BelCardGeneric::create<BelCardGeoParam>))
 			->setCollector("GEO-PARAM-param-value", make_sfn(&BelCardGeoParam::setValue));
 }
 
 BelCardGeoParam::BelCardGeoParam() : BelCardParam() {
 	setName("GEO");
-}
-
-shared_ptr<BelCardTimezoneParam> BelCardTimezoneParam::create() {
-	return BelCardGeneric::create<BelCardTimezoneParam>();
 }
 
 shared_ptr<BelCardTimezoneParam> BelCardTimezoneParam::parse(const string& input) {
@@ -293,16 +245,12 @@ shared_ptr<BelCardTimezoneParam> BelCardTimezoneParam::parse(const string& input
 }
 
 void BelCardTimezoneParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("TZ-PARAM-param", make_fn(&BelCardTimezoneParam::create))
+	parser->setHandler("TZ-PARAM-param", make_fn(BelCardGeneric::create<BelCardTimezoneParam>))
 			->setCollector("TZ-PARAM-param-value", make_sfn(&BelCardTimezoneParam::setValue));
 }
 
 BelCardTimezoneParam::BelCardTimezoneParam() : BelCardParam() {
 	setName("TZ");
-}
-
-shared_ptr<BelCardLabelParam> BelCardLabelParam::create() {
-	return BelCardGeneric::create<BelCardLabelParam>();
 }
 
 shared_ptr<BelCardLabelParam> BelCardLabelParam::parse(const string& input) {
@@ -315,7 +263,7 @@ shared_ptr<BelCardLabelParam> BelCardLabelParam::parse(const string& input) {
 }
 
 void BelCardLabelParam::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("LABEL-param", make_fn(&BelCardLabelParam::create))
+	parser->setHandler("LABEL-param", make_fn(BelCardGeneric::create<BelCardLabelParam>))
 			->setCollector("LABEL-param-value", make_sfn(&BelCardLabelParam::setValue));
 }
 
