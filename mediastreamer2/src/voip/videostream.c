@@ -278,7 +278,7 @@ VideoStream *video_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_po
 	sessions.rtp_session=ms_create_duplex_rtp_session(ip,loc_rtp_port,loc_rtcp_port);
 	obj=video_stream_new_with_sessions(&sessions);
 	obj->ms.owns_sessions=TRUE;
-    return obj;
+	return obj;
 }
 
 

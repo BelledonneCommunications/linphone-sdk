@@ -108,6 +108,66 @@ struct _MSRtpPayloadPickerContext {
 	RtpPayloadPicker picker;
 };
 
+struct _MSOfferAnswerContext;
+
+#ifndef MS_OFFER_ANSWER_CONTEXT_DEFINED
+#define MS_OFFER_ANSWER_CONTEXT_DEFINED
+typedef struct _MSOfferAnswerContext MSOfferAnswerContext;
+#endif
+
+/* SDP offer answer payload matching API*/
+
+/**
+ * The MSPayloadMatcherFunc prototype takes:
+ * - a list of local payload types
+ * - a remote payload type (offered or answered) by remote to be matched agains payload types of the local payload type list.
+ * - the full list of remote (offered or answered) payload types, which is sometimes necessary to do the matching in ambiguous situations.
+ * - is_reading, a boolean indicating whether we are doing the match processing while reading a SDP response, or (if FALSE) to prepare a response to be sent.
+ * The expected return value is a newly allocated PayloadType similar to the local payload type that was matched.
+ * Due to specific per codec offer/answer logic, the fmtp of the payload type might be changed compared to the original local payload type.
+ * If there is no match, NULL must be returned.
+**/
+typedef PayloadType * (*MSPayloadMatcherFunc)(MSOfferAnswerContext *context, const MSList *local_payloads, const PayloadType *remote_payload, const MSList *remote_payloads, bool_t is_reading);
+
+/**
+ * The MSOfferAnswerContext is only there to provide a context during the SDP offer/answer handshake.
+ * It could be used in the future to provide extra information, for the moment the context is almost useless*/
+struct _MSOfferAnswerContext{
+	MSPayloadMatcherFunc match_payload;
+	void (*destroy)(MSOfferAnswerContext *ctx);
+	void *context_data;
+};
+
+
+/**
+ * Executes an offer/answer processing for a given codec.
+ * @param context the context
+ * @param local_payloads the local payload type supported
+ * @param remote_payload a remote payload type (offered or answered) by remote to be matched agains payload types of the local payload type list.
+ * @param remote_payloads the full list of remote (offered or answered) payload types, which is sometimes necessary to do the matching in ambiguous situations.
+ * @param is_reading, a boolean indicating whether we are doing the match processing while reading a SDP response, or (if FALSE) to prepare a response to be sent.
+ * The expected return value is a newly allocated PayloadType similar to the local payload type that was matched.
+ * Due to specific per codec offer/answer logic, the fmtp of the payload type might be changed compared to the original local payload type.
+ * If there is no match, NULL must be returned.
+**/
+MS2_PUBLIC PayloadType * ms_offer_answer_context_match_payload(MSOfferAnswerContext *context, const MSList *local_payloads, const PayloadType *remote_payload, const MSList *remote_payloads, bool_t is_reading); 
+MS2_PUBLIC void ms_offer_answer_context_destroy(MSOfferAnswerContext *ctx);
+
+/**
+ * A convenience function to instanciate an offer answer context giving only the payload matching function pointer.
+**/
+MS2_PUBLIC MSOfferAnswerContext *ms_offer_answer_create_simple_context(MSPayloadMatcherFunc func);
+/**
+ * The struct to declare offer-answer provider, that act as factories per mime type to instanciate MSOfferAnswerContext object able to take in charge
+ * the offer answer model for a particular codec
+**/
+struct _MSOfferAnswerProvider{
+	const char *mime_type;
+	MSOfferAnswerContext *(*create_context)(void);
+};
+
+
+
 #ifdef __cplusplus
 }
 #endif

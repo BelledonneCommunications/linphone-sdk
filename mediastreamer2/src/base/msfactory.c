@@ -251,6 +251,7 @@ void ms_factory_destroy(MSFactory *factory){
 	factory->desc_list=ms_list_free(factory->desc_list);
 	ms_list_for_each(factory->stats_list,ms_free);
 	factory->stats_list=ms_list_free(factory->stats_list);
+	factory->offer_answer_provider_list = ms_list_free(factory->offer_answer_provider_list);
 	ms_list_for_each(factory->platform_tags, ms_free);
 	factory->platform_tags = ms_list_free(factory->platform_tags);
 	if (factory->plugins_dir) ms_free(factory->plugins_dir);
@@ -836,6 +837,28 @@ bool_t ms_factory_filter_from_name_enabled(const MSFactory *factory, const char 
 		return FALSE;
 	}
 	return !!(desc->flags & MS_FILTER_IS_ENABLED);
+}
+
+
+void ms_factory_register_offer_answer_provider(MSFactory *f, MSOfferAnswerProvider *offer_answer_prov){
+	if (ms_list_find(f->offer_answer_provider_list, offer_answer_prov)) return; /*avoid registering several time the same pointer*/
+	f->offer_answer_provider_list = ms_list_prepend(f->offer_answer_provider_list, offer_answer_prov);
+}
+
+MSOfferAnswerProvider * ms_factory_get_offer_answer_provider(MSFactory *f, const char *mime_type){
+	const MSList *elem;
+	for (elem = f->offer_answer_provider_list; elem != NULL; elem = elem->next){
+		MSOfferAnswerProvider *prov = (MSOfferAnswerProvider*) elem->data;
+		if (strcasecmp(mime_type, prov->mime_type) == 0)
+			return prov;
+	}
+	return NULL;
+}
+
+MSOfferAnswerContext * ms_factory_create_offer_answer_context(MSFactory *f, const char *mime_type){
+	MSOfferAnswerProvider *prov = ms_factory_get_offer_answer_provider(f, mime_type);
+	if (prov) return prov->create_context();
+	return NULL;
 }
 
 #ifdef ANDROID
