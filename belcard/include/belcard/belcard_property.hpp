@@ -34,15 +34,21 @@ namespace belcard {
 		list<shared_ptr<BelCardParam>> _params;
 		
 	public:
+		template <typename T>
+		static shared_ptr<T> parseProperty(const string& rule, const string& input) {
+			ABNFGrammarBuilder grammar_builder;
+			shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
+			Parser<shared_ptr<BelCardGeneric>> parser(grammar);
+			BelCardParam::setAllParamsHandlersAndCollectors(&parser);
+			T::setHandlerAndCollectors(&parser);
+			shared_ptr<BelCardGeneric> ret = parser.parseInput(rule, input, NULL);
+			return dynamic_pointer_cast<T>(ret);
+		}
+
 		static shared_ptr<BelCardProperty> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardProperty();
-		
-		friend ostream &operator<<(ostream &output, const BelCardProperty &prop) {
-			output << prop.serialize();
-			return output;            
-		}
 		
 		virtual void setGroup(const string &group);
 		virtual const string &getGroup() const;
@@ -90,6 +96,11 @@ namespace belcard {
 		virtual const list<shared_ptr<BelCardParam>> &getParams() const;
 		
 		virtual string serialize() const;
+		
+		friend ostream &operator<<(ostream &output, const BelCardProperty &prop) {
+			output << prop.serialize();
+			return output;            
+		}
 	};
 }
 #endif

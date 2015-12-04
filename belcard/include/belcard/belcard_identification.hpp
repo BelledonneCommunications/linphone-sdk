@@ -50,7 +50,19 @@ namespace belcard {
 		void setSuffixes(const string &value);
 		const string &getSuffixes() const;
 		
-		string serialize() const;
+		friend ostream &operator<<(ostream &output, const BelCardName &name) {
+			if (name.getGroup().length() > 0) {
+				output << name.getGroup() << ".";
+			}
+			
+			output << name.getName();
+			for (auto it = name.getParams().begin(); it != name.getParams().end(); ++it) {
+				output << ";" << (**it); 
+			}
+			output << ":" << name.getFamilyName() + ";" + name.getGivenName() + ";" + name.getAdditionalName() + ";" + name.getPrefixes() + ";" + name.getSuffixes() << "\r\n";
+			
+			return output;            
+		}
 	};
 	
 	class BelCardNickname : public BelCardProperty {

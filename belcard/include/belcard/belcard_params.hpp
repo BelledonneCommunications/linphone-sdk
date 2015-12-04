@@ -18,15 +18,13 @@ namespace belcard {
 		string _name;
 		string _value;
 	public:
+		template <typename T>
+		static shared_ptr<T> parseParam(const string& rule, const string& input);
 		static shared_ptr<BelCardParam> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		static void setAllParamsHandlersAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardParam();
-		
-		friend ostream &operator<<(ostream &output, const BelCardParam &param) {
-			output << param.serialize();
-			return output;
-		}
 		
 		virtual void setName(const string &name);
 		virtual const string &getName() const;
@@ -35,6 +33,11 @@ namespace belcard {
 		virtual const string &getValue() const;
 		
 		virtual string serialize() const;
+		
+		friend ostream &operator<<(ostream &output, const BelCardParam &param) {
+			output << param.getName() << "=" << param.getValue();;
+			return output;
+		}
 	};
 	
 	class BelCardLanguageParam : public BelCardParam {

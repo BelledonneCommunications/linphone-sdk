@@ -5,13 +5,7 @@ using namespace::belr;
 using namespace::belcard;
 
 shared_ptr<BelCardTimezone> BelCardTimezone::parse(const string& input) {
-	ABNFGrammarBuilder grammar_builder;
-	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
-	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
-	setHandlerAndCollectors(&parser);
-	BelCardParam::setHandlerAndCollectors(&parser);
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("TZ", input, NULL);
-	return dynamic_pointer_cast<BelCardTimezone>(ret);
+	return BelCardProperty::parseProperty<BelCardTimezone>("TZ", input);
 }
 
 void BelCardTimezone::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
@@ -32,13 +26,7 @@ BelCardTimezone::BelCardTimezone() : BelCardProperty() {
 }
 
 shared_ptr<BelCardGeo> BelCardGeo::parse(const string& input) {
-	ABNFGrammarBuilder grammar_builder;
-	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
-	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
-	setHandlerAndCollectors(&parser);
-	BelCardParam::setHandlerAndCollectors(&parser);
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("GEO", input, NULL);
-	return dynamic_pointer_cast<BelCardGeo>(ret);
+	return BelCardProperty::parseProperty<BelCardGeo>("GEO", input);
 }
 
 void BelCardGeo::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {

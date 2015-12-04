@@ -5,13 +5,7 @@ using namespace::belr;
 using namespace::belcard;
 
 shared_ptr<BelCardKey> BelCardKey::parse(const string& input) {
-	ABNFGrammarBuilder grammar_builder;
-	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
-	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
-	setHandlerAndCollectors(&parser);
-	BelCardParam::setHandlerAndCollectors(&parser);
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("KEY", input, NULL);
-	return dynamic_pointer_cast<BelCardKey>(ret);
+	return BelCardProperty::parseProperty<BelCardKey>("KEY", input);
 }
 
 void BelCardKey::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {

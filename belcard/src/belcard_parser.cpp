@@ -19,7 +19,7 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 	Parser<shared_ptr<BelCardGeneric>> parser(_grammar);
 	
 	BelCard::setHandlerAndCollectors(&parser);
-	BelCardParam::setHandlerAndCollectors(&parser);
+	BelCardParam::setAllParamsHandlersAndCollectors(&parser);
 	BelCardProperty::setHandlerAndCollectors(&parser);
 	
 	BelCardSource::setHandlerAndCollectors(&parser);

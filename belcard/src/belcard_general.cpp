@@ -5,13 +5,7 @@ using namespace::belr;
 using namespace::belcard;
 
 shared_ptr<BelCardSource> BelCardSource::parse(const string& input) {
-	ABNFGrammarBuilder grammar_builder;
-	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
-	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
-	setHandlerAndCollectors(&parser);
-	BelCardParam::setHandlerAndCollectors(&parser);
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("SOURCE", input, NULL);
-	return dynamic_pointer_cast<BelCardSource>(ret);
+	return BelCardProperty::parseProperty<BelCardSource>("SOURCE", input);
 }
 
 void BelCardSource::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
@@ -31,13 +25,7 @@ BelCardSource::BelCardSource() : BelCardProperty() {
 }
 
 shared_ptr<BelCardKind> BelCardKind::parse(const string& input) {
-	ABNFGrammarBuilder grammar_builder;
-	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
-	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
-	setHandlerAndCollectors(&parser);
-	BelCardParam::setHandlerAndCollectors(&parser);
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("KIND", input, NULL);
-	return dynamic_pointer_cast<BelCardKind>(ret);
+	return BelCardProperty::parseProperty<BelCardKind>("KIND", input);
 }
 
 void BelCardKind::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
@@ -53,13 +41,7 @@ BelCardKind::BelCardKind() : BelCardProperty() {
 }
 
 shared_ptr<BelCardXML> BelCardXML::parse(const string& input) {
-	ABNFGrammarBuilder grammar_builder;
-	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
-	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
-	setHandlerAndCollectors(&parser);
-	BelCardParam::setHandlerAndCollectors(&parser);
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("XML", input, NULL);
-	return dynamic_pointer_cast<BelCardXML>(ret);
+	return BelCardProperty::parseProperty<BelCardXML>("XML", input);
 }
 
 void BelCardXML::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {

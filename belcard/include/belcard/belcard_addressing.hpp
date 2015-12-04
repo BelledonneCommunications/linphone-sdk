@@ -53,7 +53,21 @@ namespace belcard {
 		void setLabelParam(const shared_ptr<BelCardLabelParam> &param);
 		const shared_ptr<BelCardLabelParam> &getLabelParam() const;
 		
-		string serialize() const;
+		friend ostream &operator<<(ostream &output, const BelCardAddress &addr) {
+			if (addr.getGroup().length() > 0) {
+				output << addr.getGroup() << ".";
+			}
+			
+			output << addr.getName();
+			for (auto it = addr.getParams().begin(); it != addr.getParams().end(); ++it) {
+				output << ";" << (**it); 
+			}
+			output << ":" << addr.getPostOfficeBox() << ";" << addr.getExtendedAddress()
+				<< ";" << addr.getStreet() << ";" << addr.getLocality() << ";" << addr.getRegion() 
+				<< ";" << addr.getPostalCode() << ";" << addr.getCountry() << "\r\n";
+				
+			return output;
+		}
 	};
 }
 

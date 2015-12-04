@@ -5,13 +5,7 @@ using namespace::belr;
 using namespace::belcard;
 
 shared_ptr<BelCardAddress> BelCardAddress::parse(const string& input) {
-	ABNFGrammarBuilder grammar_builder;
-	shared_ptr<Grammar> grammar = grammar_builder.createFromAbnf((const char*)vcard_grammar, make_shared<CoreRules>());
-	Parser<shared_ptr<BelCardGeneric>> parser(grammar);
-	setHandlerAndCollectors(&parser);
-	BelCardParam::setHandlerAndCollectors(&parser);
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("ADR", input, NULL);
-	return dynamic_pointer_cast<BelCardAddress>(ret);
+	return BelCardProperty::parseProperty<BelCardAddress>("ADR", input);
 }
 
 void BelCardAddress::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
@@ -95,22 +89,4 @@ void BelCardAddress::setLabelParam(const shared_ptr<BelCardLabelParam> &param) {
 }
 const shared_ptr<BelCardLabelParam> &BelCardAddress::getLabelParam() const {
 	return _label_param;
-}
-
-string BelCardAddress::serialize() const {
-	stringstream output;
-	
-	if (getGroup().length() > 0) {
-		output << getGroup() << ".";
-	}
-	
-	output << getName();
-	for (auto it = getParams().begin(); it != getParams().end(); ++it) {
-		output << ";" << (**it); 
-	}
-	output << ":" << getPostOfficeBox() << ";" << getExtendedAddress()
-		<< ";" << getStreet() << ";" << getLocality() << ";" << getRegion() 
-		<< ";" << getPostalCode() << ";" << getCountry() << "\r\n";
-		
-	return output.str();            
 }
