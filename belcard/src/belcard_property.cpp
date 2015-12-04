@@ -136,9 +136,7 @@ const list<shared_ptr<BelCardParam>> &BelCardProperty::getParams() const {
 	return _params;
 }
 
-string BelCardProperty::serialize() const {
-	stringstream output;
-	
+void BelCardProperty::serialize(ostream& output) const {
 	if (getGroup().length() > 0) {
 		output << getGroup() << ".";
 	}
@@ -148,6 +146,4 @@ string BelCardProperty::serialize() const {
 		output << ";" << (**it); 
 	}
 	output << ":" << getValue() << "\r\n";
-	
-	return output.str();
 }

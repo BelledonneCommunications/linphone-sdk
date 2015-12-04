@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 
+using namespace::std;
 using namespace::belr;
 using namespace::belcard;
 
@@ -27,7 +28,7 @@ int main(int argc, char *argv[]) {
 	
 	BelCardParser *parser = new BelCardParser();
 	shared_ptr<BelCard> belCard = parser->parse(vcard);
-	cout << parser->fold(belCard->serialize()) << endl;
+	cout << parser->fold(belCard->toString()) << endl;
 	
 	delete parser;
 	return 0;

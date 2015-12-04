@@ -90,3 +90,17 @@ void BelCardAddress::setLabelParam(const shared_ptr<BelCardLabelParam> &param) {
 const shared_ptr<BelCardLabelParam> &BelCardAddress::getLabelParam() const {
 	return _label_param;
 }
+
+void BelCardAddress::serialize(ostream& output) const {
+	if (getGroup().length() > 0) {
+		output << getGroup() << ".";
+	}
+	
+	output << getName();
+	for (auto it = getParams().begin(); it != getParams().end(); ++it) {
+		output << ";" << (**it); 
+	}
+	output << ":" << getPostOfficeBox() << ";" << getExtendedAddress()
+		<< ";" << getStreet() << ";" << getLocality() << ";" << getRegion() 
+		<< ";" << getPostalCode() << ";" << getCountry() << "\r\n";
+}

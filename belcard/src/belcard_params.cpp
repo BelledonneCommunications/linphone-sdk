@@ -44,6 +44,10 @@ BelCardParam::BelCardParam() : BelCardGeneric() {
 	
 }
 
+void BelCardParam::serialize(ostream& output) const {
+	output << getName() << "=" << getValue();
+}
+
 void BelCardParam::setName(const string &name) {
 	_name = name;
 }
@@ -56,12 +60,6 @@ void BelCardParam::setValue(const string &value) {
 }
 const string &BelCardParam::getValue() const {
 	return _value;
-}
-
-string BelCardParam::serialize() const {
-	stringstream output;
-	output << *this;
-	return output.str();
 }
 
 shared_ptr<BelCardLanguageParam> BelCardLanguageParam::parse(const string& input) {

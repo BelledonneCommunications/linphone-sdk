@@ -62,15 +62,9 @@ namespace belcard {
 		list<shared_ptr<BelCardProperty>> _properties;
 		
 	public:
-		static shared_ptr<BelCard> create();
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCard();
-
-		friend ostream &operator<<(ostream &output, const BelCard &card) {
-			output << card.serialize();
-			return output;
-		}
 		
 		void setKind(const shared_ptr<BelCardKind> &kind);
 		const shared_ptr<BelCardKind> &getKind() const;
@@ -183,8 +177,8 @@ namespace belcard {
 		void addProperty(const shared_ptr<BelCardProperty> &property);
 		const list<shared_ptr<BelCardProperty>> &getProperties() const;
 		
-		string serialize() const;
-	};	
+		virtual void serialize(ostream &output) const;
+	};
 }
 
 #endif

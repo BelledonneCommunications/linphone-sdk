@@ -94,13 +94,8 @@ namespace belcard {
 		
 		virtual void addParam(const shared_ptr<BelCardParam> &param);
 		virtual const list<shared_ptr<BelCardParam>> &getParams() const;
-		
-		virtual string serialize() const;
-		
-		friend ostream &operator<<(ostream &output, const BelCardProperty &prop) {
-			output << prop.serialize();
-			return output;            
-		}
+
+		virtual void serialize(ostream &output) const;
 	};
 }
 #endif

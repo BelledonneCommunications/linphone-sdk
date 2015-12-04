@@ -4,6 +4,7 @@
 #include "belcard/vcard_grammar.hpp"
 
 #include <memory>
+#include <sstream>
 
 using namespace::std;
 
@@ -16,8 +17,20 @@ namespace belcard {
 		}
 		
 		BelCardGeneric() { }
+		virtual ~BelCardGeneric() { } // A virtual destructor enables polymorphism and dynamic casting.
 		
-		virtual ~BelCardGeneric() { } //put a virtual destructor to enable polymorphism and dynamic casting.
+		virtual void serialize(ostream &output) const = 0; // Force heriting classes to define this
+		
+		friend ostream &operator<<(ostream &output, const BelCardGeneric &me) {
+			me.serialize(output);
+			return output;
+		}
+		
+		virtual string toString() const {
+			stringstream output;
+			output << *this;
+			return output.str();
+		}
 	};
 }
 

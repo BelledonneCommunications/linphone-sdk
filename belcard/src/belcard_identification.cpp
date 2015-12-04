@@ -83,6 +83,18 @@ const string &BelCardName::getSuffixes() const {
 	return _suffixes;
 }
 
+void BelCardName::serialize(ostream& output) const {
+	if (getGroup().length() > 0) {
+		output << getGroup() << ".";
+	}
+	
+	output << getName();
+	for (auto it = getParams().begin(); it != getParams().end(); ++it) {
+		output << ";" << (**it); 
+	}
+	output << ":" << getFamilyName() + ";" + getGivenName() + ";" + getAdditionalName() + ";" + getPrefixes() + ";" + getSuffixes() << "\r\n";
+}
+
 shared_ptr<BelCardNickname> BelCardNickname::parse(const string& input) {
 	return BelCardProperty::parseProperty<BelCardNickname>("NICKNAME", input);
 }

@@ -32,12 +32,7 @@ namespace belcard {
 		virtual void setValue(const string &value) ;
 		virtual const string &getValue() const;
 		
-		virtual string serialize() const;
-		
-		friend ostream &operator<<(ostream &output, const BelCardParam &param) {
-			output << param.getName() << "=" << param.getValue();;
-			return output;
-		}
+		virtual void serialize(ostream &output) const;
 	};
 	
 	class BelCardLanguageParam : public BelCardParam {
