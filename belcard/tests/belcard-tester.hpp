@@ -32,13 +32,13 @@ void belcard_tester_uninit(void);
 
 template<typename T>
 void test_property(const std::string& input) {
-	std::shared_ptr<T> var = T::parse(input);
-	BC_ASSERT_TRUE_FATAL(var != NULL);
-	std::stringstream sstream;
-	sstream << *var;
-	BC_ASSERT_EQUAL(input.compare(sstream.str()), 0, int, "%d");
-	if (input.compare(sstream.str()) != 0) {
-		std::cout << "Expected " << input << " but got " << sstream.str() << std::endl;
+	std::shared_ptr<T> ptr = T::parse(input);
+	BC_ASSERT_TRUE_FATAL(ptr != NULL);
+	std::string str = ptr->toString();
+	int compare = input.compare(str);
+	BC_ASSERT_EQUAL(compare, 0, int, "%d");
+	if (compare != 0) {
+		std::cout << "Expected " << input << " but got " << str << std::endl;
 	}
 }
 

@@ -18,6 +18,10 @@ belcard_tester_SOURCES=belcard-tester.cpp belcard-tester.hpp common/bc_tester_ut
 			belcard-vcard-tester.cpp
 belcard_tester_LDADD=$(top_builddir)/src/libbelcard.la -lbelr $(CUNIT_LIBS)
 
+belcard_tester_CFLAGS=\
+	-DBC_CONFIG_FILE=\"config.h\" \
+	$(CUNIT_CFLAGS)
+
 belcard_tester_AM_CPPFLAGS=-I$(top_srcdir)/include \
         -I$(top_srcdir)/tester \
         -I$(top_srcdir)/tester/common

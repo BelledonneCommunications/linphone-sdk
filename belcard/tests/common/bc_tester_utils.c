@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 /* this must be provided at compile time*/
-//#include BC_CONFIG_FILE
+#include BC_CONFIG_FILE
 
 #include "bc_tester_utils.h"
 
