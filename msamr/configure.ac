@@ -1,5 +1,5 @@
 # process this file with autoconf to produce a configure script.
-AC_INIT([msamr],[1.0.2])
+AC_INIT([msamr],[1.1.0])
 
 # require at least this autoconf version
 AC_PREREQ(2.63)
@@ -54,7 +54,7 @@ fi
 
 # check for libraries that have pkg-config files installed
 PKG_CHECK_MODULES(ORTP, ortp >= 0.16.0)
-PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.0.0)
+PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.13.0)
 
 AC_ARG_ENABLE(narrowband,
 AC_HELP_STRING([--enable-narrowband],[Enable AMR narrowband [default=yes]]),

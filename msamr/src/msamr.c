@@ -45,7 +45,48 @@ extern MSFilterDesc amrwb_enc_desc;
 int opencore_amr_wrapper_init(const char **missing);
 #endif
 
-MS_PLUGIN_DECLARE(void) libmsamr_init() {
+static PayloadType * amr_match(MSOfferAnswerContext *ctx, const MSList *local_payloads, const PayloadType *refpt, const MSList *remote_payloads, bool_t reading_response){
+	PayloadType *pt;
+	char value[10];
+	const MSList *elem;
+	PayloadType *candidate=NULL;
+
+	for (elem=local_payloads;elem!=NULL;elem=elem->next){
+		pt=(PayloadType*)elem->data;
+		
+		if ( pt->mime_type && refpt->mime_type 
+			&& strcasecmp(pt->mime_type, refpt->mime_type)==0
+			&& pt->clock_rate==refpt->clock_rate
+			&& pt->channels==refpt->channels) {
+			int octedalign1=0,octedalign2=0;
+			if (pt->recv_fmtp!=NULL && fmtp_get_value(pt->recv_fmtp,"octet-align",value,sizeof(value))){
+				octedalign1=atoi(value);
+			}
+			if (refpt->send_fmtp!=NULL && fmtp_get_value(refpt->send_fmtp,"octet-align",value,sizeof(value))){
+				octedalign2=atoi(value);
+			}
+			if (octedalign1==octedalign2) {
+				candidate=pt;
+				break; /*exact match */
+			}
+		}
+	}
+	return candidate ? payload_type_clone(candidate) : NULL;
+}
+
+static MSOfferAnswerContext *amr_offer_answer_create_context(void){
+	static MSOfferAnswerContext amr_oa = {amr_match, NULL};
+	return &amr_oa;
+}
+
+MSOfferAnswerProvider amr_offer_answer_provider={
+	"AMR",
+	amr_offer_answer_create_context
+};
+
+
+
+MS_PLUGIN_DECLARE(void) libmsamr_init(MSFactory *f) {
 #ifdef HAVE_AMRNB
 #ifdef USE_ANDROID_AMR
 	const char *missing=NULL;
@@ -54,13 +95,15 @@ MS_PLUGIN_DECLARE(void) libmsamr_init() {
 		return;
 	}
 #endif
-	ms_filter_register(&amrnb_dec_desc);
-	ms_filter_register(&amrnb_enc_desc);
+	ms_factory_register_filter(f, &amrnb_dec_desc);
+	ms_factory_register_filter(f, &amrnb_enc_desc);
 #endif
 #ifdef HAVE_AMRWB
-	ms_filter_register(&amrwb_dec_desc);
-	ms_filter_register(&amrwb_enc_desc);
+	ms_factory_register_filter(f, &amrwb_dec_desc);
+	ms_factory_register_filter(f, &amrwb_enc_desc);
 #endif
+	
+	ms_factory_register_offer_answer_provider(f, &amr_offer_answer_provider);
 
 	ms_message("libmsamr " VERSION " plugin loaded");
 }
