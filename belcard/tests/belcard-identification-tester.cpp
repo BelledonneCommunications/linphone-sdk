@@ -6,6 +6,7 @@ using namespace::belcard;
 
 static void fn_property(void) {
 	test_property<BelCardFullName>("FN:Sylvain Berfini\r\n");
+	test_property<BelCardFullName>("FN:François Grisez\r\n");
 }
 
 static void n_property(void) {

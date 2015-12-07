@@ -420,14 +420,13 @@ void BelCard::serialize(ostream& output) const {
 	output << "END:VCARD\r\n";
 }
 		
-const string BelCard::toFoldedString() {
+const string BelCard::toFoldedString() const {
 	string vcard = this->toString();
 	return belcard_fold(vcard);
 }
 
-const bool BelCard::assertRFCCompliance() {
+const bool BelCard::assertRFCCompliance() const {
 	if (!_fn) {
-		cerr << "FN is not set" << endl;
 		return false;
 	}
 	

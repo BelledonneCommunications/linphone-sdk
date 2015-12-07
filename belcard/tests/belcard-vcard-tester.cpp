@@ -61,10 +61,29 @@ static void vcard_parsing(void) {
 	delete parser;
 }
 
+static void create_vcard_from_api(void) {
+	shared_ptr<BelCard> belCard = BelCard::create<BelCard>();
+	BC_ASSERT_TRUE_FATAL(belCard != NULL);
+	BC_ASSERT_FALSE(belCard->assertRFCCompliance());
+	
+	shared_ptr<BelCardFullName> fn = BelCard::create<BelCardFullName>();
+	fn->setValue("Sylvain Berfini");
+	belCard->setFullName(fn);
+	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
+	
+	string vcard = belCard->toString();
+	BelCardParser *parser = new BelCardParser();
+	shared_ptr<BelCard> belCard2 = parser->parse(vcard);
+	BC_ASSERT_TRUE_FATAL(belCard2 != NULL);
+	string vcard2 = belCard2->toString();
+	BC_ASSERT_TRUE(vcard.compare(vcard2) == 0);
+}
+
 static test_t tests[] = {
 	{ "Folding", folding },
 	{ "Unfolding", unfolding },
 	{ "VCard parsing", vcard_parsing },
+	{ "VCard created from scratch", create_vcard_from_api },
 };
 
 test_suite_t vcard_test_suite = {
