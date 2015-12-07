@@ -1,4 +1,5 @@
 #include "belcard/belcard.hpp"
+#include "belcard/belcard_utils.hpp"
 
 using namespace::std;
 using namespace::belr;
@@ -45,10 +46,15 @@ void BelCard::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser
 }
 
 BelCard::BelCard() : BelCardGeneric() {
-	
+	shared_ptr<BelCardProductId> prodid = BelCardGeneric::create<BelCardProductId>();
+	prodid->setValue("-//LINPHONE//BELCARD VERSION 1//EN");
+	setProductId(prodid);
 }
 
 void BelCard::setKind(const shared_ptr<BelCardKind> &kind) {
+	if (_kind) {
+		removeProperty(_kind);
+	}
 	_kind = kind;
 	addProperty(_kind);
 }
@@ -57,6 +63,9 @@ const shared_ptr<BelCardKind> &BelCard::getKind() const {
 }
 
 void BelCard::setFullName(const shared_ptr<BelCardFullName> &fn) {
+	if (_fn) {
+		removeProperty(_fn);
+	}
 	_fn = fn;
 	addProperty(_fn);
 }
@@ -65,6 +74,9 @@ const shared_ptr<BelCardFullName> &BelCard::getFullName() const {
 }
 
 void BelCard::setName(const shared_ptr<BelCardName> &n) {
+	if (_n) {
+		removeProperty(_n);
+	}
 	_n = n;
 	addProperty(_n);
 }
@@ -73,6 +85,9 @@ const shared_ptr<BelCardName> &BelCard::getName() const {
 }
 
 void BelCard::setBirthday(const shared_ptr<BelCardBirthday> &bday) {
+	if (_bday) {
+		removeProperty(_bday);
+	}
 	_bday = bday;
 	addProperty(_bday);
 }
@@ -81,6 +96,9 @@ const shared_ptr<BelCardBirthday> &BelCard::getBirthday() const {
 }
 
 void BelCard::setAnniversary(const shared_ptr<BelCardAnniversary> &anniversary) {
+	if (_anniversary) {
+		removeProperty(_anniversary);
+	}
 	_anniversary = anniversary;
 	addProperty(_anniversary);
 }
@@ -89,6 +107,9 @@ const shared_ptr<BelCardAnniversary> &BelCard::getAnniversary() const {
 }
 
 void BelCard::setGender(const shared_ptr<BelCardGender> &gender) {
+	if (_gender) {
+		removeProperty(_gender);
+	}
 	_gender = gender;
 	addProperty(_gender);
 }
@@ -97,6 +118,9 @@ const shared_ptr<BelCardGender> &BelCard::getGender() const {
 }
 		
 void BelCard::setProductId(const shared_ptr<BelCardProductId> &pid) {
+	if (_pid) {
+		removeProperty(_pid);
+	}
 	_pid = pid;
 	addProperty(_pid);
 }
@@ -105,6 +129,9 @@ const shared_ptr<BelCardProductId> &BelCard::getProductId() const {
 }
 
 void BelCard::setRevision(const shared_ptr<BelCardRevision> &rev) {
+	if (_rev) {
+		removeProperty(_rev);
+	}
 	_rev = rev;
 	addProperty(_rev);
 }
@@ -113,6 +140,9 @@ const shared_ptr<BelCardRevision> &BelCard::getRevision() const {
 }
 
 void BelCard::setUniqueId(const shared_ptr<BelCardUniqueId> &uid) {
+	if (_uid) {
+		removeProperty(_uid);
+	}
 	_uid = uid;
 	addProperty(_uid);
 }
@@ -342,6 +372,9 @@ void BelCard::addProperty(const shared_ptr<BelCardProperty> &property) {
 const list<shared_ptr<BelCardProperty>> &BelCard::getProperties() const {
 	return _properties;
 }
+void BelCard::removeProperty(const shared_ptr<BelCardProperty> &property) {
+	_properties.remove(property);
+}
 
 void BelCard::serialize(ostream& output) const {
 	output << "BEGIN:VCARD\r\nVERSION:4.0\r\n";
@@ -349,4 +382,18 @@ void BelCard::serialize(ostream& output) const {
 		output << (**it); 
 	}
 	output << "END:VCARD\r\n";
+}
+		
+const string BelCard::toFoldedString() {
+	string vcard = this->toString();
+	return belcard_fold(vcard);
+}
+
+const bool BelCard::assertRFCCompliance() {
+	if (!_fn) {
+		cerr << "FN is not set" << endl;
+		return false;
+	}
+	
+	return true;
 }

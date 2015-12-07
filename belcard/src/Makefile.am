@@ -18,7 +18,8 @@ libbelcard_la_SOURCES=belcard_parser.cpp \
 			belcard_explanatory.cpp \
 			belcard_security.cpp \
 			belcard_calendar.cpp \
-			vcard_grammar.cpp 
+			vcard_grammar.cpp \
+			belcard_utils.cpp
 
 AM_CPPFLAGS=-I$(top_srcdir)/include
 

@@ -14,6 +14,7 @@ belcard_include_HEADERS = belcard.hpp \
 			belcard_security.hpp \
 			belcard_calendar.hpp \
 			belcard_parser.hpp \
-			vcard_grammar.hpp
+			vcard_grammar.hpp \
+			belcard_utils.hpp
 
 EXTRA_DIST=$(belcard_include_HEADERS)

@@ -1,4 +1,5 @@
 #include "belcard/belcard_parser.hpp"
+#include "belcard/belcard_utils.hpp"
 #include "common/bc_tester_utils.h"
 
 #include <iostream>
@@ -25,10 +26,11 @@ static void folding(void) {
 	string vcard = openFile("vcards/foldtest.vcf");
 	
 	BelCardParser *parser = new BelCardParser();
-	string folded_vcard = parser->fold(vcard);
+	string folded_vcard = belcard_fold(vcard);
 	
 	string unfolded_vcard = openFile("vcards/unfoldtest.vcf");
 	BC_ASSERT_EQUAL(unfolded_vcard.compare(folded_vcard), 0, int, "%d");
+	
 	delete parser;
 }
 
@@ -36,10 +38,11 @@ static void unfolding(void) {
 	string vcard = openFile("vcards/unfoldtest.vcf");
 	
 	BelCardParser *parser = new BelCardParser();
-	string unfolded_vcard = parser->unfold(vcard);
+	string unfolded_vcard = belcard_unfold(vcard);
 	
 	string folded_vcard = openFile("vcards/foldtest.vcf");
 	BC_ASSERT_EQUAL(folded_vcard.compare(unfolded_vcard), 0, int, "%d");
+	
 	delete parser;
 }
 
@@ -49,7 +52,11 @@ static void vcard_parsing(void) {
 	BelCardParser *parser = new BelCardParser();
 	shared_ptr<BelCard> belCard = parser->parse(vcard);
 	BC_ASSERT_TRUE(belCard != NULL);
-	//TODO: find a way to check the belCard object
+	
+	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
+	
+	string vcard2 = belCard->toFoldedString();
+	BC_ASSERT_EQUAL(vcard2.compare(vcard), 0, int, "%d");
 	
 	delete parser;
 }

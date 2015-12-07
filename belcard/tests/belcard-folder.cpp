@@ -1,11 +1,8 @@
-#include "belcard/belcard_parser.hpp"
+#include "belcard/belcard_utils.hpp"
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
-
-using namespace::belr;
-using namespace::belcard;
 
 int main(int argc, char *argv[]) {
 	const char *file = NULL;
@@ -25,10 +22,8 @@ int main(int argc, char *argv[]) {
 	vcardStream << istr.rdbuf();
 	string vcard = vcardStream.str();
 	
-	BelCardParser *parser = new BelCardParser();
-	vcard = parser->fold(vcard);
+	vcard = belcard_fold(vcard);
 	cout << vcard << endl;
 	
-	delete parser;
 	return 0;
 }

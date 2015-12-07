@@ -176,6 +176,10 @@ namespace belcard {
 		
 		void addProperty(const shared_ptr<BelCardProperty> &property);
 		const list<shared_ptr<BelCardProperty>> &getProperties() const;
+		void removeProperty(const shared_ptr<BelCardProperty> &property);
+		
+		const string toFoldedString();
+		const bool assertRFCCompliance();
 		
 		virtual void serialize(ostream &output) const;
 	};
