@@ -15,6 +15,7 @@ belcard_tester_SOURCES=belcard-tester.cpp belcard-tester.hpp common/bc_tester_ut
 			belcard-explanatory-tester.cpp \
 			belcard-security-tester.cpp \
 			belcard-calendar-tester.cpp \
+			belcard-rfc6474-tester.cpp \
 			belcard-vcard-tester.cpp
 belcard_tester_LDADD=$(top_builddir)/src/libbelcard.la -lbelr $(CUNIT_LIBS)
 

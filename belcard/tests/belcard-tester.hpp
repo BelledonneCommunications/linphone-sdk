@@ -21,6 +21,7 @@ extern test_suite_t vcard_organizational_properties_test_suite;
 extern test_suite_t vcard_explanatory_properties_test_suite;
 extern test_suite_t vcard_security_properties_test_suite;
 extern test_suite_t vcard_calendar_properties_test_suite;
+extern test_suite_t vcard_rfc6474_properties_test_suite;
 extern test_suite_t vcard_test_suite;
 
 void belcard_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args));
@@ -33,7 +34,11 @@ void belcard_tester_uninit(void);
 template<typename T>
 void test_property(const std::string& input) {
 	std::shared_ptr<T> ptr = T::parse(input);
+	if (ptr == NULL) {
+		std::cout << "Couldn't parse " << input << std::endl;
+	}
 	BC_ASSERT_TRUE_FATAL(ptr != NULL);
+	
 	std::string str = ptr->toString();
 	int compare = input.compare(str);
 	BC_ASSERT_EQUAL(compare, 0, int, "%d");

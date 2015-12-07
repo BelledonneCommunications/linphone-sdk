@@ -61,6 +61,7 @@ void belcard_tester_init(void(*ftester_printf)(int level, const char *fmt, va_li
 	bc_tester_add_suite(&vcard_explanatory_properties_test_suite);
 	bc_tester_add_suite(&vcard_security_properties_test_suite);
 	bc_tester_add_suite(&vcard_calendar_properties_test_suite);
+	bc_tester_add_suite(&vcard_rfc6474_properties_test_suite);
 	bc_tester_add_suite(&vcard_test_suite);
 }
 

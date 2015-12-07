@@ -13,6 +13,7 @@ belcard_include_HEADERS = belcard.hpp \
 			belcard_explanatory.hpp \
 			belcard_security.hpp \
 			belcard_calendar.hpp \
+			belcard_rfc6474.hpp \
 			belcard_parser.hpp \
 			vcard_grammar.hpp \
 			belcard_utils.hpp

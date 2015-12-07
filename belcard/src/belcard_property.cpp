@@ -42,6 +42,9 @@ const string &BelCardProperty::getValue() const {
 }
 
 void BelCardProperty::setLanguageParam(const shared_ptr<BelCardLanguageParam> &param) {
+	if (_lang_param) {
+		removeParam(_lang_param);
+	}
 	_lang_param = param;
 	_params.push_back(_lang_param);
 }
@@ -50,6 +53,9 @@ const shared_ptr<BelCardLanguageParam> &BelCardProperty::getLanguageParam() cons
 }
 
 void BelCardProperty::setValueParam(const shared_ptr<BelCardValueParam> &param) {
+	if (_value_param) {
+		removeParam(_value_param);
+	}
 	_value_param = param;
 	_params.push_back(_value_param);
 }
@@ -58,6 +64,9 @@ const shared_ptr<BelCardValueParam> &BelCardProperty::getValueParam() const {
 }
 
 void BelCardProperty::setPrefParam(const shared_ptr<BelCardPrefParam> &param) {
+	if (_pref_param) {
+		removeParam(_pref_param);
+	}
 	_pref_param = param;
 	_params.push_back(_pref_param);
 }
@@ -66,6 +75,9 @@ const shared_ptr<BelCardPrefParam> &BelCardProperty::getPrefParam() const {
 }
 
 void BelCardProperty::setAlternativeIdParam(const shared_ptr<BelCardAlternativeIdParam> &param) {
+	if (_altid_param) {
+		removeParam(_altid_param);
+	}
 	_altid_param = param;
 	_params.push_back(_altid_param);
 }
@@ -74,6 +86,9 @@ const shared_ptr<BelCardAlternativeIdParam> &BelCardProperty::getAlternativeIdPa
 }
 
 void BelCardProperty::setParamIdParam(const shared_ptr<BelCardParamIdParam> &param) {
+	if (_pid_param) {
+		removeParam(_pid_param);
+	}
 	_pid_param = param;
 	_params.push_back(_pid_param);
 }
@@ -82,6 +97,9 @@ const shared_ptr<BelCardParamIdParam> &BelCardProperty::getParamIdParam() const 
 }
 
 void BelCardProperty::setTypeParam(const shared_ptr<BelCardTypeParam> &param) {
+	if (_type_param) {
+		removeParam(_type_param);
+	}
 	_type_param = param;
 	_params.push_back(_type_param);
 }
@@ -90,6 +108,9 @@ const shared_ptr<BelCardTypeParam> &BelCardProperty::getTypeParam() const {
 }
 
 void BelCardProperty::setMediaTypeParam(const shared_ptr<BelCardMediaTypeParam> &param) {
+	if (_mediatype_param) {
+		removeParam(_mediatype_param);
+	}
 	_mediatype_param = param;
 	_params.push_back(_mediatype_param);
 }
@@ -98,6 +119,9 @@ const shared_ptr<BelCardMediaTypeParam> &BelCardProperty::getMediaTypeParam() co
 }
 
 void BelCardProperty::setCALSCALEParam(const shared_ptr<BelCardCALSCALEParam> &param) {
+	if (_calscale_param) {
+		removeParam(_calscale_param);
+	}
 	_calscale_param = param;
 	_params.push_back(_calscale_param);
 }
@@ -106,6 +130,9 @@ const shared_ptr<BelCardCALSCALEParam> &BelCardProperty::getCALSCALEParam() cons
 }
 
 void BelCardProperty::setSortAsParam(const shared_ptr<BelCardSortAsParam> &param) {
+	if (_sort_as_param) {
+		removeParam(_sort_as_param);
+	}
 	_sort_as_param = param;
 	_params.push_back(_sort_as_param);
 }
@@ -114,6 +141,9 @@ const shared_ptr<BelCardSortAsParam> &BelCardProperty::getSortAsParam() const {
 }
 
 void BelCardProperty::setGeoParam(const shared_ptr<BelCardGeoParam> &param) {
+	if (_geo_param) {
+		removeParam(_geo_param);
+	}
 	_geo_param = param;
 	_params.push_back(_geo_param);
 }
@@ -122,6 +152,9 @@ const shared_ptr<BelCardGeoParam> &BelCardProperty::getGeoParam() const {
 }
 
 void BelCardProperty::setTimezoneParam(const shared_ptr<BelCardTimezoneParam> &param) {
+	if (_tz_param) {
+		removeParam(_tz_param);
+	}
 	_tz_param = param;
 	_params.push_back(_tz_param);
 }
@@ -134,6 +167,9 @@ void BelCardProperty::addParam(const shared_ptr<BelCardParam> &param) {
 }
 const list<shared_ptr<BelCardParam>> &BelCardProperty::getParams() const {
 	return _params;
+}
+void BelCardProperty::removeParam(const shared_ptr<BelCardParam> &param) {
+	_params.remove(param);
 }
 
 void BelCardProperty::serialize(ostream& output) const {

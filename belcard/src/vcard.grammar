@@ -14,6 +14,7 @@ property = SOURCE / KIND / XML
 			/ CATEGORIES / NOTE / PRODID / REV / SOUND / UID / CLIENTPIDMAP / URL
 			/ KEY
 			/ FBURL / CALADRURI / CALURI
+			/ BIRTHPLACE / DEATHPLACE / DEATHDATE
 			/ X-PROPERTY
 			
 X-PROPERTY = [group "."] X-PROPERTY-name *(";" X-PROPERTY-param) ":" X-PROPERTY-value CRLF
@@ -116,7 +117,7 @@ TZ-value = text / URI / utc-offset
 
 GEO = [group "."] "GEO" *(";" GEO-param) ":" GEO-value CRLF
 GEO-param = VALUE-param / PID-param / PREF-param / TYPE-param / MEDIATYPE-param / ALTID-param / any-param
-GEO-value = URI
+GEO-value = text / URI
 
 TITLE = [group "."] "TITLE" *(";" TITLE-param) ":" TITLE-value CRLF
 TITLE-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param 
@@ -199,6 +200,18 @@ CALURI = [group "."] "CALURI" *(";" CALURI-param) ":" CALURI-value CRLF
 CALURI-param = VALUE-param / PID-param / PREF-param / TYPE-param 
 			/ MEDIATYPE-param / ALTID-param / any-param
 CALURI-value = URI
+
+BIRTHPLACE = [group "."] "BIRTHPLACE" *(";" BIRTHPLACE-param) ":" BIRTHPLACE-value CRLF
+BIRTHPLACE-param = VALUE-param / ALTID-param / LANGUAGE-param / any-param
+BIRTHPLACE-value = text / URI
+
+DEATHPLACE = [group "."] "DEATHPLACE" *(";" DEATHPLACE-param) ":" DEATHPLACE-value CRLF
+DEATHPLACE-param = VALUE-param / ALTID-param / LANGUAGE-param / any-param
+DEATHPLACE-value = text / URI
+
+DEATHDATE = [group "."] "DEATHDATE" *(";" DEATHDATE-param) ":" DEATHDATE-value CRLF
+DEATHDATE-param = VALUE-param / ALTID-param / LANGUAGE-param / any-param
+DEATHDATE-value = date-and-or-time / text
      
 group = 1*(ALPHA / DIGIT / "-")
 

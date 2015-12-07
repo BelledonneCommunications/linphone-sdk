@@ -9,7 +9,7 @@ static void tz_property(void) {
 }
 
 static void geo_property(void) {
-	test_property<BelCardGeo>("GEO:geo:45.159612,5.732511\r\n");
+	test_property<BelCardGeo>("GEO:geo:45.159612\\,5.732511\r\n");
 }
 
 static test_t tests[] = {

@@ -94,6 +94,7 @@ namespace belcard {
 		
 		virtual void addParam(const shared_ptr<BelCardParam> &param);
 		virtual const list<shared_ptr<BelCardParam>> &getParams() const;
+		virtual void removeParam(const shared_ptr<BelCardParam> &param);
 
 		virtual void serialize(ostream &output) const;
 	};

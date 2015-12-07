@@ -18,6 +18,7 @@ libbelcard_la_SOURCES=belcard_parser.cpp \
 			belcard_explanatory.cpp \
 			belcard_security.cpp \
 			belcard_calendar.cpp \
+			belcard_rfc6474.cpp \
 			vcard_grammar.cpp \
 			belcard_utils.cpp
 
