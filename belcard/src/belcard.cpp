@@ -42,7 +42,10 @@ void BelCard::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser
 			->setCollector("KEY", make_sfn(&BelCard::addKey))
 			->setCollector("FBURL", make_sfn(&BelCard::addFBURL))
 			->setCollector("CALADRURI", make_sfn(&BelCard::addCALADRURI))
-			->setCollector("CALURI", make_sfn(&BelCard::addCALURI));
+			->setCollector("CALURI", make_sfn(&BelCard::addCALURI))
+			->setCollector("BIRTHPLACE", make_sfn(&BelCard::setBirthPlace))
+			->setCollector("DEATHDATE", make_sfn(&BelCard::setDeathDate))
+			->setCollector("DEATHPLACE", make_sfn(&BelCard::setDeathPlace));
 }
 
 BelCard::BelCard() : BelCardGeneric() {
@@ -148,6 +151,39 @@ void BelCard::setUniqueId(const shared_ptr<BelCardUniqueId> &uid) {
 }
 const shared_ptr<BelCardUniqueId> &BelCard::getUniqueId() const {
 	return _uid;
+}
+
+void BelCard::setBirthPlace(const shared_ptr<BelCardBirthPlace> &place) {
+	if (_bplace) {
+		removeProperty(_bplace);
+	}
+	_bplace = place;
+	addProperty(_bplace);
+}
+const shared_ptr<BelCardBirthPlace> &BelCard::getBirthPlace() const {
+	return _bplace;
+}
+
+void BelCard::setDeathPlace(const shared_ptr<BelCardDeathPlace> &place) {
+	if (_dplace) {
+		removeProperty(_dplace);
+	}
+	_dplace = place;
+	addProperty(_dplace);
+}
+const shared_ptr<BelCardDeathPlace> &BelCard::getDeathPlace() const {
+	return _dplace;
+}
+
+void BelCard::setDeathDate(const shared_ptr<BelCardDeathDate> &date) {
+	if (_ddate) {
+		removeProperty(_ddate);
+	}
+	_ddate = date;
+	addProperty(_ddate);
+}
+const shared_ptr<BelCardDeathDate> &BelCard::getDeathDate() const {
+	return _ddate;
 }
 
 void BelCard::addNickname(const shared_ptr<BelCardNickname> &nickname) {

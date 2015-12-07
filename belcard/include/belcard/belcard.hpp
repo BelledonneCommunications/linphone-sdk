@@ -13,6 +13,7 @@
 #include "belcard_explanatory.hpp"
 #include "belcard_security.hpp"
 #include "belcard_calendar.hpp"
+#include "belcard_rfc6474.hpp"
 
 #include <string>
 #include <list>
@@ -32,6 +33,9 @@ namespace belcard {
 		shared_ptr<BelCardProductId> _pid;
 		shared_ptr<BelCardRevision> _rev;
 		shared_ptr<BelCardUniqueId> _uid;
+		shared_ptr<BelCardBirthPlace> _bplace;
+		shared_ptr<BelCardDeathPlace> _dplace;
+		shared_ptr<BelCardDeathDate> _ddate;
 		list<shared_ptr<BelCardNickname>> _nicknames;
 		list<shared_ptr<BelCardPhoto>> _photos;
 		list<shared_ptr<BelCardAddress>> _addr;
@@ -92,6 +96,15 @@ namespace belcard {
 		
 		void setUniqueId(const shared_ptr<BelCardUniqueId> &uid);
 		const shared_ptr<BelCardUniqueId> &getUniqueId() const;
+		
+		void setBirthPlace(const shared_ptr<BelCardBirthPlace> &place);
+		const shared_ptr<BelCardBirthPlace> &getBirthPlace() const;
+		
+		void setDeathPlace(const shared_ptr<BelCardDeathPlace> &place);
+		const shared_ptr<BelCardDeathPlace> &getDeathPlace() const;
+		
+		void setDeathDate(const shared_ptr<BelCardDeathDate> &date);
+		const shared_ptr<BelCardDeathDate> &getDeathDate() const;
 		
 		void addNickname(const shared_ptr<BelCardNickname> &nickname);
 		const list<shared_ptr<BelCardNickname>> &getNicknames() const;

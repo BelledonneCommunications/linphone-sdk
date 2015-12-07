@@ -66,6 +66,10 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 	BelCardFBURL::setHandlerAndCollectors(&parser);
 	BelCardCALADRURI::setHandlerAndCollectors(&parser);
 	BelCardCALURI::setHandlerAndCollectors(&parser);
+	
+	BelCardBirthPlace::setHandlerAndCollectors(&parser);
+	BelCardDeathPlace::setHandlerAndCollectors(&parser);
+	BelCardDeathDate::setHandlerAndCollectors(&parser);
 		
 	size_t parsedSize = 0;
 	shared_ptr<BelCardGeneric> ret = parser.parseInput("vcard", vcard, &parsedSize);
