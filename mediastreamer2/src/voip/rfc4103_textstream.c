@@ -139,25 +139,29 @@ TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const cha
 
 void text_stream_stop(TextStream *stream) {
 	if (stream->ms.sessions.ticker) {
-		MSConnectionHelper h;
-		stream->ms.state = MSStreamStopped;
-		ms_ticker_detach(stream->ms.sessions.ticker, stream->rttsource);
-		ms_ticker_detach(stream->ms.sessions.ticker, stream->ms.rtprecv);
-		
-		if (stream->ms.ice_check_list != NULL) {
-			ice_check_list_print_route(stream->ms.ice_check_list, "Text session's route");
-			stream->ms.ice_check_list = NULL;
+		if (stream->ms.state == MSStreamPreparing) {
+			text_stream_unprepare_text(stream);
+		} else if (stream->ms.state == MSStreamStarted) {
+			MSConnectionHelper h;
+			stream->ms.state = MSStreamStopped;
+			ms_ticker_detach(stream->ms.sessions.ticker, stream->rttsource);
+			ms_ticker_detach(stream->ms.sessions.ticker, stream->ms.rtprecv);
+			
+			if (stream->ms.ice_check_list != NULL) {
+				ice_check_list_print_route(stream->ms.ice_check_list, "Text session's route");
+				stream->ms.ice_check_list = NULL;
+			}
+			
+			rtp_stats_display(rtp_session_get_stats(stream->ms.sessions.rtp_session),
+					"             TEXT SESSION'S RTP STATISTICS                ");
+			
+			ms_connection_helper_start(&h);
+			ms_connection_helper_unlink(&h, stream->rttsource, -1, 0);
+			ms_connection_helper_unlink(&h, stream->ms.rtpsend, 0, -1);
+			ms_connection_helper_start(&h);
+			ms_connection_helper_unlink(&h, stream->ms.rtprecv, -1, 0);
+			ms_connection_helper_unlink(&h, stream->rttsink, 0, -1);
 		}
-		
-		rtp_stats_display(rtp_session_get_stats(stream->ms.sessions.rtp_session),
-				"             TEXT SESSION'S RTP STATISTICS                ");
-		
-		ms_connection_helper_start(&h);
-		ms_connection_helper_unlink(&h, stream->rttsource, -1, 0);
-		ms_connection_helper_unlink(&h, stream->ms.rtpsend, 0, -1);
-		ms_connection_helper_start(&h);
-		ms_connection_helper_unlink(&h, stream->ms.rtprecv, -1, 0);
-		ms_connection_helper_unlink(&h, stream->rttsink, 0, -1);
 	}
 	
 	text_stream_free(stream);
