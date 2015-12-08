@@ -440,6 +440,7 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
  * However some servers (opensips) are confused when they receive a SIP/UDP packet without Content-Length (they shouldn't).
  */
 	if (!content_length
+		&& belle_sip_message_get_body_size(msg) == 0 /*if body present, content_length is automatically added at channel level*/
 #ifndef BELLE_SIP_FORCE_CONTENT_LENGTH
 		&& strcasecmp("udp",belle_sip_channel_get_transport_name(chan))!=0
 #endif
