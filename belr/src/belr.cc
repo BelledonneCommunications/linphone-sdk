@@ -112,10 +112,11 @@ CharRecognizer::CharRecognizer(int to_recognize, bool caseSensitive) : mToRecogn
 }
 
 size_t CharRecognizer::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
+	int c = (unsigned char)input[pos];
 	if (mCaseSensitive){
-		return input[pos]==mToRecognize ? 1 : string::npos;
+		return c == mToRecognize ? 1 : string::npos;
 	}
-	return ::tolower(input[pos])==mToRecognize ? 1 : string::npos;
+	return ::tolower(c) == mToRecognize ? 1 : string::npos;
 }
 
 void CharRecognizer::_optimize(int recursionLevel){
@@ -294,8 +295,8 @@ CharRange::CharRange(int begin, int end) : mBegin(begin), mEnd(end){
 }
 
 size_t CharRange::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
-	int c=input[pos];
-	if (c>=mBegin && c<=mEnd) return 1;
+	int c = (unsigned char)input[pos];
+	if (c >= mBegin && c <= mEnd) return 1;
 	return string::npos;
 }
 
