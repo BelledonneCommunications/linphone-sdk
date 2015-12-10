@@ -349,8 +349,8 @@ void test_parserComplete() {
 	/* Create the client context, used for zidFilename only */
 	my_Context_t clientContextAlice;
 	my_Context_t clientContextBob;
-	memcpy(clientContextAlice.zidFilename, "./ZIDAlice.txt", 18);
-	memcpy(clientContextBob.zidFilename, "./ZIDBob.txt", 16);
+	strcpy(clientContextAlice.zidFilename, "./ZIDAlice.txt");
+	strcpy(clientContextBob.zidFilename, "./ZIDBob.txt");
 
 	/* attach the clientContext to the bzrtp Context */
 	retval = bzrtp_setClientData(contextAlice, 0x12345678, (void *)&clientContextAlice);
@@ -1639,8 +1639,8 @@ void test_stateMachine() {
 	aliceClientData.peerChannelContext = contextBob->channelContext[0];
 	bobClientData.peerContext = contextAlice;
 	bobClientData.peerChannelContext = contextAlice->channelContext[0];
-	memcpy(aliceClientData.zidFilename, "./ZIDAlice.txt", 18);
-	memcpy(bobClientData.zidFilename, "./ZIDBob.txt", 16);
+	strcpy(aliceClientData.zidFilename, "./ZIDAlice.txt");
+	strcpy(bobClientData.zidFilename, "./ZIDBob.txt");
 
 
 	retval = bzrtp_setClientData(contextAlice, 0x12345678, (void *)&aliceClientData);
