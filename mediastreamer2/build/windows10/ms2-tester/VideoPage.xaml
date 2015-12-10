@@ -60,7 +60,10 @@
                 </ComboBox>
                 <TextBlock x:Name="BitrateLabel" Grid.Row="4" Grid.Column="0" Text="Bitrate:" VerticalAlignment="Center" Margin="8"/>
                 <TextBox x:Name="BitrateTextBox" Grid.Row="4" Grid.Column="1" Margin="8" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" InputScope="Number" Text="1500"/>
-                <ToggleButton x:Name="VideoToggleButton" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Content="Toggle video" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8" Checked="VideoToggleButton_Checked" Unchecked="VideoToggleButton_Checked"/>
+                <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Orientation="Horizontal">
+                    <ToggleButton x:Name="VideoToggleButton" Content="Toggle video" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8" Checked="VideoToggleButton_Checked" Unchecked="VideoToggleButton_Checked"/>
+                    <Button x:Name="ChangeCameraButton" Content="Change camera" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8" Click="ChangeCameraButton_Click" IsEnabled="{Binding ElementName=VideoToggleButton, Path=IsChecked}"/>
+                </StackPanel>
             </Grid>
             <Grid Grid.Row="1" MaxHeight="320">
                 <Grid.ColumnDefinitions>

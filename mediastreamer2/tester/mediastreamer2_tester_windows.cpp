@@ -248,7 +248,7 @@ void MS2Tester::startVideoStream(Platform::Object^ CaptureElement, Platform::Obj
 	video_stream_set_sent_video_size(_videoStream, vsize);
 	video_stream_set_fps(_videoStream, frameRate);
 	video_stream_set_device_rotation(_videoStream, _deviceRotation);
-	video_stream_start(_videoStream, &av_profile, "127.0.0.1", 20000, NULL, 0, payload, 0, cam);
+	video_stream_start(_videoStream, &av_profile, "192.168.0.200", 20000, NULL, 0, payload, 0, cam);
 }
 
 void MS2Tester::stopVideoStream()
@@ -256,6 +256,16 @@ void MS2Tester::stopVideoStream()
 	ms_filter_log_statistics();
 	video_stream_stop(_videoStream);
 	_videoStream = NULL;
+}
+
+void MS2Tester::changeCamera(Platform::String^ camera)
+{
+	char cst[1024];
+	std::wstring wst;
+	MSWebCamManager *manager = ms_web_cam_manager_get();
+	PLATFORM_STRING_TO_C_STRING(camera);
+	MSWebCam *cam = ms_web_cam_manager_get_cam(manager, cst);
+	video_stream_change_camera(_videoStream, cam);
 }
 
 void MS2Tester::setOrientation(int degrees)
