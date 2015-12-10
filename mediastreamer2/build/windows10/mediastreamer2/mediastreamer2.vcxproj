@@ -99,6 +99,7 @@
     <ClCompile Include="..\..\..\src\audiofilters\msfileplayer.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msfilerec.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msg722.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\msgenericplc.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msopus.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msresample.c" />
     <ClCompile Include="..\..\..\src\audiofilters\msspeex.c" />
