@@ -44,6 +44,9 @@ void ABNFNumval::parseValues(const string &val, int base){
 		char *endptr=NULL;
 		do{
 			long lv=strtol(s,&endptr,base);
+			if (lv == 0 && s == endptr) {
+				break;
+			}
 			if (*endptr=='.') s=endptr+1;
 			else s=endptr;
 			mValues.push_back(lv);
@@ -67,12 +70,20 @@ shared_ptr< Recognizer > ABNFOption::buildRecognizer(const shared_ptr< Grammar >
 	return Foundation::loop()->setRecognizer(mAlternation->buildRecognizer(grammar),0,1);
 }
 
+ABNFOption::ABNFOption() : mAlternation(NULL) {
+	
+}
+
 shared_ptr< ABNFOption > ABNFOption::create(){
 	return make_shared<ABNFOption>();
 }
 
 void ABNFOption::setAlternation(const shared_ptr< ABNFAlternation >& a){
 	mAlternation=a;
+}
+
+ABNFGroup::ABNFGroup() : mAlternation(NULL) {
+	
 }
 
 shared_ptr< ABNFGroup > ABNFGroup::create(){
@@ -103,6 +114,10 @@ shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar 
 	return NULL;
 }
 
+ABNFElement::ABNFElement() : mElement(NULL) {
+	
+}
+
 shared_ptr< ABNFElement > ABNFElement::create(){
 	return make_shared<ABNFElement>();
 }
@@ -126,7 +141,9 @@ void ABNFElement::setProseVal(const string& prose){
 	}
 }
 
-
+ABNFRepetition::ABNFRepetition() : mMin(0), mMax(-1), mCount(-1), mElement(NULL) {
+	
+}
 
 shared_ptr< ABNFRepetition > ABNFRepetition::create(){
 	return make_shared<ABNFRepetition>();
@@ -148,6 +165,9 @@ void ABNFRepetition::setRepeat(const string& r){
 	mRepeat=r;
 }
 
+void ABNFRepetition::setElement(const shared_ptr< ABNFElement >& e){
+	mElement=e;
+}
 
 shared_ptr< Recognizer > ABNFRepetition::buildRecognizer(const shared_ptr< Grammar >& grammar){
 	if (mRepeat.empty()) return mElement->buildRecognizer(grammar);
@@ -158,18 +178,6 @@ shared_ptr< Recognizer > ABNFRepetition::buildRecognizer(const shared_ptr< Gramm
 		return Foundation::loop()->setRecognizer(mElement->buildRecognizer(grammar), mMin, mMax);
 	}
 }
-
-ABNFRepetition::ABNFRepetition(){
-	mMin=0;
-	mMax=-1;
-	mCount=-1;
-}
-
-
-void ABNFRepetition::setElement(const shared_ptr< ABNFElement >& e){
-	mElement=e;
-}
-
 
 shared_ptr<ABNFConcatenation> ABNFConcatenation::create(){
 	return make_shared<ABNFConcatenation>();
@@ -218,6 +226,9 @@ shared_ptr< Recognizer > ABNFAlternation::buildRecognizerNoOptim(const shared_pt
 	return sel;
 }
 
+ABNFRule::ABNFRule() : mAlternation(NULL) {
+	
+}
 
 shared_ptr<ABNFRule> ABNFRule::create(){
 	return make_shared<ABNFRule>();

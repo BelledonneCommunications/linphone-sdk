@@ -140,7 +140,7 @@ private:
 };
 
 struct ParserLocalContext{
-	ParserLocalContext(){
+	ParserLocalContext() : mHandlerContext(NULL), mRecognizer(NULL), mAssignmentPos(0) {
 	}
 	void set(const shared_ptr<HandlerContextBase>& hc, const shared_ptr<Recognizer>& rec, size_t pos){
 		mHandlerContext=hc;

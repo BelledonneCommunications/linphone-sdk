@@ -17,6 +17,7 @@ public:
 
 class ABNFRule : public ABNFBuilder{
 public:
+	ABNFRule();
 	static shared_ptr<ABNFRule> create();
 	void setName(const string &name);
 	void setDefinedAs(const string &defined_as);
@@ -56,6 +57,7 @@ private:
 
 class ABNFElement : public ABNFBuilder{
 public:
+	ABNFElement();
 	static shared_ptr<ABNFElement> create();
 	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
 	void setElement(const shared_ptr<ABNFBuilder> &e);
@@ -70,6 +72,7 @@ private:
 
 class ABNFGroup : public ABNFBuilder{
 public:
+	ABNFGroup();
 	static shared_ptr<ABNFGroup> create();
 	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
 	void setAlternation(const shared_ptr<ABNFAlternation> &a);
@@ -95,6 +98,7 @@ private:
 
 class ABNFOption : public ABNFBuilder{
 public:
+	ABNFOption();
 	static shared_ptr<ABNFOption> create();
 	void setAlternation(const shared_ptr<ABNFAlternation> &a);
 	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);

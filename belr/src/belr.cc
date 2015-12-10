@@ -37,7 +37,7 @@ void TransitionMap::merge(const TransitionMap* other){
 
 
 
-Recognizer::Recognizer(){
+Recognizer::Recognizer() : mId(0) {
 }
 
 void Recognizer::setName(const string& name){
@@ -253,9 +253,8 @@ void Sequence::_optimize(int recursionLevel){
 }
 
 
-Loop::Loop(){
-	mMin=0;
-	mMax=-1;
+Loop::Loop() : mRecognizer(NULL), mMin(0), mMax(-1) {
+	
 }
 
 shared_ptr<Loop> Loop::setRecognizer(const shared_ptr<Recognizer> &element, int min, int max){

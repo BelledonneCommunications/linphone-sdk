@@ -38,6 +38,7 @@ protected:
 	virtual bool _getTransitionMap(TransitionMap *mask);
 	virtual void _optimize(int recursionLevel)=0;
 	Recognizer();
+	virtual ~Recognizer() { }
 	virtual size_t _feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos)=0;
 	string mName;
 	unsigned int mId;
@@ -155,6 +156,9 @@ public:
 	 * Initialize an empty grammar, giving a name for debugging.
 	**/
 	Grammar(const string &name);
+	
+	virtual ~Grammar() { }
+	
 	/**
 	 * Include another grammar into this grammar.
 	**/

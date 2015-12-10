@@ -127,7 +127,7 @@ void HandlerContext< _parserElementT >::recycle(){
 //
 
 template <typename _parserElementT>
-ParserHandlerBase<_parserElementT>::ParserHandlerBase(const Parser<_parserElementT> &parser, const string &name) : mParser(parser), mRulename(tolower(name)){
+ParserHandlerBase<_parserElementT>::ParserHandlerBase(const Parser<_parserElementT> &parser, const string &name) : mParser(parser), mRulename(tolower(name)), mCachedContext(NULL) {
 }
 
 template <typename _parserElementT>
@@ -181,7 +181,7 @@ _parserElementT ParserHandler<_derivedParserElementT,_parserElementT>::invoke(co
 //
 
 template <typename _parserElementT>
-ParserContext<_parserElementT>::ParserContext(Parser<_parserElementT> &parser) : mParser(parser){
+ParserContext<_parserElementT>::ParserContext(Parser<_parserElementT> &parser) : mParser(parser), mRoot(NULL) {
 }
 
 template <typename _parserElementT>
@@ -294,7 +294,7 @@ void ParserContext<_parserElementT>::removeBranch(const shared_ptr<HandlerContex
 //
 
 template <typename _parserElementT>
-Parser<_parserElementT>::Parser(const shared_ptr<Grammar> &grammar) : mGrammar(grammar){
+Parser<_parserElementT>::Parser(const shared_ptr<Grammar> &grammar) : mGrammar(grammar), mNullHandler(NULL), mNullCollector(NULL) {
 	if (!mGrammar->isComplete()){
 		cerr<<"Grammar not complete, aborting."<<endl;
 		return;
