@@ -22,13 +22,23 @@
 
 set(SOURCE_FILES
 	bzrtp.c
-	cryptoPolarssl.c
 	cryptoUtils.c
 	packetParser.c
 	pgpwords.c
 	stateMachine.c
 	zidCache.c
 )
+if (POLARSSL_FOUND)
+	set(SOURCE_FILES
+		${SOURCE_FILES}
+		cryptoPolarssl.c
+	)
+elseif (MBEDTLS_FOUND)
+	set(SOURCE_FILES
+		${SOURCE_FILES}
+		cryptoMbedtls.c
+	)
+endif()
 
 apply_compile_flags(SOURCE_FILES "CPP")
 

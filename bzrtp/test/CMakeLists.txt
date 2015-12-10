@@ -27,13 +27,24 @@ set(TEST_SOURCES
 	testUtils.c
 
 	../src/bzrtp.c
-	../src/cryptoPolarssl.c
 	../src/cryptoUtils.c
 	../src/packetParser.c
 	../src/pgpwords.c
 	../src/stateMachine.c
 	../src/zidCache.c
 )
+
+if (POLARSSL_FOUND)
+	set(TEST_SOURCES
+		${TEST_SOURCES}
+		../src/cryptoPolarssl.c
+	)
+elseif (MBEDTLS_FOUND)
+	set(TEST_SOURCES
+		${TEST_SOURCES}
+		../src/cryptoMbedtls.c
+	)
+endif()
 
 apply_compile_flags(TEST_SOURCES "CPP")
 
@@ -44,4 +55,15 @@ target_link_libraries(bzrtpTest ${CUNIT_LIBRARIES} bzrtp)
 if(HAVE_SQRT)
 	target_link_libraries(bzrtpTest m)
 endif()
+
+unset(PATTERN_FILES_IN_TEST_DIR CACHE)
+find_file(PATTERN_FILES_IN_TEST_DIR
+	ZIDAlice.txt ${CMAKE_CURRENT_BINARY_DIR}
+)
+if (NOT PATTERN_FILES_IN_TEST_DIR)
+	file(COPY ZIDAlice.txt DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+	file(COPY ZIDBob.txt DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+endif()
+
+
 add_test(NAME bzrtpTest COMMAND bzrtpTest)

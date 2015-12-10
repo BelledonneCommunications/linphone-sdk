@@ -31,29 +31,71 @@ if test "$found_cunit" = "no" ; then
 		])
 fi
 
-dnl check polarssl
-
+dnl check mbedtls unless we specified a with-polarssl
+crypto_lib=mbedtls
 AC_ARG_WITH( polarssl,
-      [  --with-polarssl      Set prefix where polarssl or mbedTLS can be found (ex:/usr, /usr/local)[default=PREFIX] ],
-      [ polarssl_prefix=${withval}],[ polarssl_prefix=${prefix} ])
+      [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr, /usr/local)[default=PREFIX], if set, force usage of polarssl instead of mbedtls when both are present ],
+      [
+	   polarssl_prefix=${withval}
+	   crypto_lib=polarssl
+	   ],[ polarssl_prefix=${prefix} ])
 
-if test "$polarssl_prefix" != "NONE" ; then
-	POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
-	POLARSSL_LIBS="-L${polarssl_prefix}/lib"
+if test "$crypto_lib" == "mbedtls" ; then
+
+	AC_ARG_WITH( mbedtls,
+				[  --with-mbedtls      Set prefix where mbedTLS can be found (ex:/usr, /usr/local)[default=PREFIX] ],
+				[ mbedtls_prefix=${withval} ],[ mbedtls_prefix=${prefix} ])
+
+	if test "mbedtls_prefix" != "NONE" ; then
+		MBEDTLS_CFLAGS="-I${mbedtls_prefix}/include"
+		MBEDTLS_LIBS="-L${mbedtls_prefix}/lib"
+	fi
+
+	LIBS_save=$LIBS
+	LIBS="$LIBS $MBEDTLS_LIBS"
+	AC_CHECK_LIB(mbedtls, mbedtls_ssl_init, [
+									  mbedtls_found=yes
+									  MBEDTLS_LIBS="$MBEDTLS_LIBS -lmbedtls -lmbedx509 -lmbedcrypto"
+									  AC_MSG_NOTICE("Use mbed TLS as crypto library")
+									  ],
+				 [mbdetls_found=no],
+				 [-lmbedx509 -lmbedcrypto]
+				 )
+
+	LIBS=$LIBS_save
+
+	AC_SUBST(MBEDTLS_LIBS)
+	AC_SUBST(MBEDTLS_CFLAGS)
 fi
 
-LIBS_save=$LIBS
-LIBS="$LIBS $POLARSSL_LIBS"
-AC_CHECK_LIB(mbedtls, ssl_init , [POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"],
-				[
-					AC_CHECK_LIB(polarssl, ssl_init, [POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"],
-					[ AC_MSG_ERROR([Polarssl or mbedTLS library not found]) ]
-					)
-				])
-LIBS=$LIBS_save
+AM_CONDITIONAL(LIBMBEDTLS, test x$mbedtls_found == xyes)
 
-AC_SUBST(POLARSSL_LIBS)
-AC_SUBST(POLARSSL_CFLAGS)
+
+
+dnl check polarssl if no mbedtls was found
+polarssl_found=no
+if test "$mbedtls_found" != "yes" ; then
+	if test "$polarssl_prefix" != "NONE" ; then
+		POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
+		POLARSSL_LIBS="-L${polarssl_prefix}/lib"
+	fi
+
+	LIBS_save=$LIBS
+	LIBS="$LIBS $POLARSSL_LIBS"
+	AC_CHECK_LIB(polarssl, ssl_init , [
+										POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"
+										polarssl_found=yes
+										AC_MSG_NOTICE("Use polar SSL as crypto library")
+									   ],
+				 [AC_MSG_ERROR([MbedTLS nor PolarSSL library not found])])
+
+	LIBS=$LIBS_save
+
+	AC_SUBST(POLARSSL_LIBS)
+	AC_SUBST(POLARSSL_CFLAGS)
+fi
+
+AM_CONDITIONAL(LIBPOLARSSL, test x$polarssl_found == xyes)
 
 dnl check libxml2
 PKG_CHECK_MODULES(LIBXML2, [libxml-2.0] ,[libxml2_found=yes] ,foo=bar)

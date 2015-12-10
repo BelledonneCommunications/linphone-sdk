@@ -47,7 +47,7 @@
  * - CipherBlock: AES128(Mandatory)
  * - Auth Tag: HMAC-SHA132 and HMAC-SHA180 (These are mandatory for SRTP and depends on the SRTP implementation thus we can just suppose they are both available)
  * - Key Agreement: DHM3k(Mandatory), DHM2k(optional and shall not be used except on low power devices)
- * - Sas: base32(Mandatory)
+ * - Sas: base32(Mandatory), b256(pgp words)
  */
 uint8_t bzrtpCrypto_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[7]) {
 
