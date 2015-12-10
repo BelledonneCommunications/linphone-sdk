@@ -26,6 +26,24 @@ if test "$xxd_found" != yes ;then
 fi
 
 dnl ##################################################
+dnl # Check for Belr
+dnl ##################################################
+
+dnl check belr
+PKG_CHECK_MODULES(BELR, [libbelr],[libbelr_found=yes],foo=bar)
+if test "$libbelr_found" != "yes" ; then
+	dnl Check the lib presence in case the PKG-CONFIG version is not found
+	AC_LANG_CPLUSPLUS
+	AC_CHECK_LIB(belr, main, [BELR_LIBS+=" -lbelr"; libbelr_found=yes], [foo=bar])
+	AC_LANG_C
+fi
+if test "$libbelr_found" != "yes" ; then
+	AC_MSG_ERROR([libbelr not found. Install it and try again])
+fi
+	
+AC_SUBST(BELR_LIBS)
+
+dnl ##################################################
 dnl # Check for CUnit
 dnl ##################################################
 
