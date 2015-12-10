@@ -49,9 +49,7 @@ void BelCard::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser
 }
 
 BelCard::BelCard() : BelCardGeneric() {
-	shared_ptr<BelCardProductId> prodid = BelCardGeneric::create<BelCardProductId>();
-	prodid->setValue("-//LINPHONE//BELCARD VERSION 1//EN");
-	setProductId(prodid);
+	
 }
 
 void BelCard::setKind(const shared_ptr<BelCardKind> &kind) {
@@ -421,7 +419,7 @@ void BelCard::serialize(ostream& output) const {
 }
 		
 const string BelCard::toFoldedString() const {
-	string vcard = this->toString();
+	string vcard = toString();
 	return belcard_fold(vcard);
 }
 
@@ -431,4 +429,27 @@ const bool BelCard::assertRFCCompliance() const {
 	}
 	
 	return true;
+}
+
+void BelCardList::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
+	parser->setHandler("vcard-list", make_fn(BelCardGeneric::create<BelCardList>))
+			->setCollector("vcard", make_sfn(&BelCardList::addCard));
+}
+
+BelCardList::BelCardList() : BelCardGeneric() {
+	
+}
+
+void BelCardList::addCard(const shared_ptr<BelCard> &vcard) {
+	_vCards.push_back(vcard);
+}
+
+const list<shared_ptr<BelCard>> &BelCardList::getCards() const {
+	return _vCards;
+}
+
+void BelCardList::serialize(ostream &output) const {
+	for (auto it = getCards().begin(); it != getCards().end(); ++it) {
+		output << (*it)->toFoldedString(); 
+	}
 }

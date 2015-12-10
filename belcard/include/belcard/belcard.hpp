@@ -21,7 +21,7 @@
 using namespace::std;
 using namespace::belr;
 
-namespace belcard {
+namespace belcard {	
 	class BelCard : public BelCardGeneric {
 	private:
 		shared_ptr<BelCardKind> _kind;
@@ -195,6 +195,21 @@ namespace belcard {
 		const bool assertRFCCompliance() const;
 		
 		virtual void serialize(ostream &output) const;
+	};
+	
+	class BelCardList : public BelCardGeneric {
+	private:
+		list<shared_ptr<BelCard>> _vCards;
+		
+	public:
+		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		
+		BelCardList();
+		
+		void addCard(const shared_ptr<BelCard> &vcard);
+		const list<shared_ptr<BelCard>> &getCards() const;
+		
+		void serialize(ostream &output) const;
 	};
 }
 

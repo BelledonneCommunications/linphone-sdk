@@ -1,4 +1,4 @@
-vcard-entity = 1*vcard
+vcard-list = vcard *vcard
 
 vcard = "BEGIN:VCARD" CRLF
 		"VERSION:4.0" CRLF

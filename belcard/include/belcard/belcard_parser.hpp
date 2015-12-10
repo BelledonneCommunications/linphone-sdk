@@ -15,11 +15,14 @@ namespace belcard {
 		ABNFGrammarBuilder _grammar_builder;
 		shared_ptr<Grammar> _grammar;
 		
+		shared_ptr<BelCardGeneric> _parse(const string &input, const string &rule);
+		
 	public:
 		BelCardParser();
 		~BelCardParser();
 		
-		shared_ptr<BelCard> parse(const string &input);
+		shared_ptr<BelCard> parseOne(const string &input);
+		shared_ptr<BelCardList> parse(const string &input);
 	};
 }
 

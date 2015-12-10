@@ -27,8 +27,8 @@ int main(int argc, char *argv[]) {
 	string vcard = vcardStream.str();
 	
 	BelCardParser *parser = new BelCardParser();
-	shared_ptr<BelCard> belCard = parser->parse(vcard);
-	cout << belCard->toFoldedString() << endl;
+	shared_ptr<BelCardList> belCards = parser->parse(vcard);
+	cout << *belCards << endl;
 	
 	delete parser;
 	return 0;

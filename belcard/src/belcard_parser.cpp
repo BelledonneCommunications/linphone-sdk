@@ -14,11 +14,10 @@ BelCardParser::~BelCardParser() {
 	
 }
 
-shared_ptr<BelCard> BelCardParser::parse(const string &input) {
-	string vcard = belcard_unfold(input);
-	
+shared_ptr<BelCardGeneric> BelCardParser::_parse(const string &input, const string &rule) {
 	Parser<shared_ptr<BelCardGeneric>> parser(_grammar);
 	
+	BelCardList::setHandlerAndCollectors(&parser);
 	BelCard::setHandlerAndCollectors(&parser);
 	BelCardParam::setAllParamsHandlersAndCollectors(&parser);
 	BelCardProperty::setHandlerAndCollectors(&parser);
@@ -72,7 +71,20 @@ shared_ptr<BelCard> BelCardParser::parse(const string &input) {
 	BelCardDeathDate::setHandlerAndCollectors(&parser);
 		
 	size_t parsedSize = 0;
-	shared_ptr<BelCardGeneric> ret = parser.parseInput("vcard", vcard, &parsedSize);
+	shared_ptr<BelCardGeneric> ret = parser.parseInput(rule, input, &parsedSize);
+	return ret;
+}
+
+shared_ptr<BelCard> BelCardParser::parseOne(const string &input) {
+	string vcard = belcard_unfold(input);
+	shared_ptr<BelCardGeneric> ret = _parse(vcard, "vcard");
 	shared_ptr<BelCard> belCard = dynamic_pointer_cast<BelCard>(ret);
 	return belCard;
+}
+
+shared_ptr<BelCardList> BelCardParser::parse(const string &input) {
+	string vcards = belcard_unfold(input);
+	shared_ptr<BelCardGeneric> ret = _parse(vcards, "vcard-list");
+	shared_ptr<BelCardList> belCards = dynamic_pointer_cast<BelCardList>(ret);
+	return belCards;
 }
