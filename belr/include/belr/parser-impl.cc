@@ -181,7 +181,7 @@ _parserElementT ParserHandler<_derivedParserElementT,_parserElementT>::invoke(co
 //
 
 template <typename _parserElementT>
-ParserContext<_parserElementT>::ParserContext(Parser<_parserElementT> &parser) : mParser(parser), mRoot(NULL) {
+ParserContext<_parserElementT>::ParserContext(Parser<_parserElementT> &parser) : mParser(parser) {
 }
 
 template <typename _parserElementT>
@@ -294,7 +294,7 @@ void ParserContext<_parserElementT>::removeBranch(const shared_ptr<HandlerContex
 //
 
 template <typename _parserElementT>
-Parser<_parserElementT>::Parser(const shared_ptr<Grammar> &grammar) : mGrammar(grammar), mNullHandler(NULL), mNullCollector(NULL) {
+Parser<_parserElementT>::Parser(const shared_ptr<Grammar> &grammar) : mGrammar(grammar) {
 	if (!mGrammar->isComplete()){
 		cerr<<"Grammar not complete, aborting."<<endl;
 		return;

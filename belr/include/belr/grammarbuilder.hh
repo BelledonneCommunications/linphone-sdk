@@ -44,6 +44,7 @@ private:
 
 class ABNFNumval : public ABNFBuilder{
 public:
+	ABNFNumval();
 	static shared_ptr<ABNFNumval> create();
 	shared_ptr<Recognizer> buildRecognizer(const shared_ptr<Grammar> &grammar);
 	void setDecVal(const string &decval);

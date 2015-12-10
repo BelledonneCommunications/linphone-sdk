@@ -13,6 +13,10 @@ namespace belr{
 ABNFBuilder::~ABNFBuilder(){
 }
 
+ABNFNumval::ABNFNumval() : mIsRange(false) {
+	
+}
+
 shared_ptr< ABNFNumval > ABNFNumval::create(){
 	return make_shared<ABNFNumval>();
 }
@@ -70,7 +74,7 @@ shared_ptr< Recognizer > ABNFOption::buildRecognizer(const shared_ptr< Grammar >
 	return Foundation::loop()->setRecognizer(mAlternation->buildRecognizer(grammar),0,1);
 }
 
-ABNFOption::ABNFOption() : mAlternation(NULL) {
+ABNFOption::ABNFOption() {
 	
 }
 
@@ -82,7 +86,7 @@ void ABNFOption::setAlternation(const shared_ptr< ABNFAlternation >& a){
 	mAlternation=a;
 }
 
-ABNFGroup::ABNFGroup() : mAlternation(NULL) {
+ABNFGroup::ABNFGroup() {
 	
 }
 
@@ -114,7 +118,7 @@ shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar 
 	return NULL;
 }
 
-ABNFElement::ABNFElement() : mElement(NULL) {
+ABNFElement::ABNFElement() {
 	
 }
 
@@ -141,7 +145,7 @@ void ABNFElement::setProseVal(const string& prose){
 	}
 }
 
-ABNFRepetition::ABNFRepetition() : mMin(0), mMax(-1), mCount(-1), mElement(NULL) {
+ABNFRepetition::ABNFRepetition() : mMin(0), mMax(-1), mCount(-1) {
 	
 }
 
@@ -226,7 +230,7 @@ shared_ptr< Recognizer > ABNFAlternation::buildRecognizerNoOptim(const shared_pt
 	return sel;
 }
 
-ABNFRule::ABNFRule() : mAlternation(NULL) {
+ABNFRule::ABNFRule() {
 	
 }
 

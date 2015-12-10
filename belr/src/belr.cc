@@ -203,8 +203,8 @@ void Selector::_optimize(int recursionLevel){
 }
 
 
-ExclusiveSelector::ExclusiveSelector(){
-	mIsExclusive=true;
+ExclusiveSelector::ExclusiveSelector() {
+	mIsExclusive = true;
 }
 
 size_t ExclusiveSelector::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
@@ -253,7 +253,7 @@ void Sequence::_optimize(int recursionLevel){
 }
 
 
-Loop::Loop() : mRecognizer(NULL), mMin(0), mMax(-1) {
+Loop::Loop() : mMin(0), mMax(-1) {
 	
 }
 
@@ -320,8 +320,8 @@ shared_ptr<Loop> Foundation::loop(){
 	return make_shared<Loop>();
 }
 
-Literal::Literal(const string& lit) : mLiteral(tolower(lit)){
-	mLiteralSize=mLiteral.size();
+Literal::Literal(const string& lit) : mLiteral(tolower(lit)), mLiteralSize(mLiteral.size()) {
+	
 }
 
 size_t Literal::_feed(const shared_ptr< ParserContextBase >& ctx, const string& input, size_t pos){
@@ -350,7 +350,7 @@ shared_ptr<Recognizer> Utils::char_range(int begin, int end){
 	return make_shared<CharRange>(begin, end);
 }
 
-RecognizerPointer::RecognizerPointer() : mRecognizer(NULL){
+RecognizerPointer::RecognizerPointer() {
 }
 
 shared_ptr<Recognizer> RecognizerPointer::getPointed(){
