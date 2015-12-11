@@ -248,7 +248,7 @@ void MS2Tester::startVideoStream(Platform::Object^ CaptureElement, Platform::Obj
 	video_stream_set_sent_video_size(_videoStream, vsize);
 	video_stream_set_fps(_videoStream, frameRate);
 	video_stream_set_device_rotation(_videoStream, _deviceRotation);
-	video_stream_start(_videoStream, &av_profile, "192.168.0.200", 20000, NULL, 0, payload, 0, cam);
+	video_stream_start(_videoStream, &av_profile, "127.0.0.1", 20000, NULL, 0, payload, 0, cam);
 }
 
 void MS2Tester::stopVideoStream()
