@@ -24,6 +24,8 @@ using namespace::belr;
 namespace belcard {	
 	class BelCard : public BelCardGeneric {
 	private:
+		std::string _folded_string;
+		
 		shared_ptr<BelCardKind> _kind;
 		shared_ptr<BelCardFullName> _fn;
 		shared_ptr<BelCardName> _n;
@@ -191,8 +193,8 @@ namespace belcard {
 		const list<shared_ptr<BelCardProperty>> &getProperties() const;
 		void removeProperty(const shared_ptr<BelCardProperty> &property);
 		
-		const string toFoldedString() const;
-		const bool assertRFCCompliance() const;
+		string& toFoldedString();
+		bool assertRFCCompliance() const;
 		
 		virtual void serialize(ostream &output) const;
 	};

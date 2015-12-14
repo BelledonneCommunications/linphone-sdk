@@ -418,12 +418,13 @@ void BelCard::serialize(ostream& output) const {
 	output << "END:VCARD\r\n";
 }
 		
-const string BelCard::toFoldedString() const {
-	string vcard = toString();
-	return belcard_fold(vcard);
+string& BelCard::toFoldedString() {
+	string temp = toString();
+	_folded_string = belcard_fold(temp);
+	return _folded_string;
 }
 
-const bool BelCard::assertRFCCompliance() const {
+bool BelCard::assertRFCCompliance() const {
 	if (!_fn) {
 		return false;
 	}
