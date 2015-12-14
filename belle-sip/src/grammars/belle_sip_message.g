@@ -666,8 +666,14 @@ header_address returns [belle_sip_header_address_t* ret]
 
 header_address_base[belle_sip_header_address_t* obj]      returns [belle_sip_header_address_t* ret]   
 @init { $ret=obj; }
-     :   name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)] 
-       | addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)];
+     :  ( name_addr_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]
+| addr_spec_with_generic_uri[BELLE_SIP_HEADER_ADDRESS($ret)]) { if (!belle_sip_header_address_get_uri($ret)
+																	&&
+																	!belle_sip_header_address_get_absolute_uri(($ret))) {
+																											belle_sip_object_unref($ret);
+																											$ret=NULL;
+																											}
+																};
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
   belle_sip_object_unref($ret);
@@ -686,7 +692,13 @@ addr_spec[belle_sip_header_address_t* object]
 addr_spec_with_generic_uri[belle_sip_header_address_t* object]      
   :  lws? (	uri {belle_sip_header_address_set_uri(object,$uri.ret);}  
   	| 
-  	generic_uri{belle_sip_header_address_set_absolute_uri(object,$generic_uri.ret);}
+  	generic_uri { if (   strcasecmp(belle_generic_uri_get_scheme($generic_uri.ret),"sip") != 0
+					 &&  strcasecmp(belle_generic_uri_get_scheme($generic_uri.ret),"sips") != 0 ) {
+						 belle_sip_header_address_set_absolute_uri(object,$generic_uri.ret);
+					 } else {
+						 belle_sip_message("Cannot parse a sip/sips uri as a generic uri");
+						 belle_sip_object_unref($generic_uri.ret);
+					 }}
   	) lws?;
   
 paramless_addr_spec[belle_sip_header_address_t* object]      

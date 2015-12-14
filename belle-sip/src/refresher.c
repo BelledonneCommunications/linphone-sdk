@@ -170,11 +170,12 @@ static int is_contact_address_acurate(const belle_sip_refresher_t* refresher,bel
 			belle_sip_header_contact_set_unknown(contact,FALSE);
 			return TRUE;
 		} else {
-			belle_sip_message("Refresher [%p]: contact address [%s:%i] does not match channel address[%s:%i]."	,refresher
+			belle_sip_message("Refresher [%p]: contact address [%s:%i] does not match channel address[%s:%i] on channel [%p]"	,refresher
 					,contact_ip
 					,contact_port
 					,channel_public_ip
-					,channel_public_port);
+					,channel_public_port
+					,refresher->transaction->base.channel);
 			return FALSE;
 		}
 	} else {
