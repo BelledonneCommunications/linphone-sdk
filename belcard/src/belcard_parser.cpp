@@ -2,6 +2,10 @@
 #include "belcard/belcard.hpp"
 #include "belcard/belcard_utils.hpp"
 
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
 using namespace::std;
 using namespace::belr;
 using namespace::belcard;
@@ -84,6 +88,22 @@ shared_ptr<BelCard> BelCardParser::parseOne(const string &input) {
 
 shared_ptr<BelCardList> BelCardParser::parse(const string &input) {
 	string vcards = belcard_unfold(input);
+	shared_ptr<BelCardGeneric> ret = _parse(vcards, "vcard-list");
+	shared_ptr<BelCardList> belCards = dynamic_pointer_cast<BelCardList>(ret);
+	return belCards;
+}
+
+shared_ptr<BelCardList> BelCardParser::parseFile(const string &filename) {
+	ifstream istr(filename);
+	if (!istr.is_open()) {
+		return NULL;
+	}
+	
+	stringstream vcardStream;
+	vcardStream << istr.rdbuf();
+	string vcard = vcardStream.str();
+	
+	string vcards = belcard_unfold(vcard);
 	shared_ptr<BelCardGeneric> ret = _parse(vcards, "vcard-list");
 	shared_ptr<BelCardList> belCards = dynamic_pointer_cast<BelCardList>(ret);
 	return belCards;

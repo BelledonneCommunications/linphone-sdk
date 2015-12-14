@@ -105,7 +105,7 @@ EMAIL-value = text
 
 IMPP = [group "."] "IMPP" *(";" IMPP-param) ":" IMPP-value CRLF
 IMPP-param = VALUE-param / PID-param / PREF-param / TYPE-param / MEDIATYPE-param / ALTID-param / any-param
-IMPP-value = text
+IMPP-value = URI
 
 LANG = [group "."] "LANG" *(";" LANG-param) ":" LANG-value CRLF
 LANG-param = VALUE-param / PID-param / PREF-param / ALTID-param / TYPE-param / any-param

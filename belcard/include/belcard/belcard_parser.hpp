@@ -23,6 +23,7 @@ namespace belcard {
 		
 		shared_ptr<BelCard> parseOne(const string &input);
 		shared_ptr<BelCardList> parse(const string &input);
+		shared_ptr<BelCardList> parseFile(const string &filename);
 	};
 }
 
