@@ -49,12 +49,14 @@ set(BASE_SOURCE_FILES_C
 
 set(BASE_GENERATED_SOURCE_FILES_C
 	${CMAKE_CURRENT_BINARY_DIR}/basedescs.h
-	${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
 )
 set_source_files_properties(${BASE_GENERATED_SOURCE_FILES_C} PROPERTIES GENERATED TRUE)
+
 find_package(Git)
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
-	COMMAND ${CMAKE_COMMAND} -DGIT_EXECUTABLE=${GIT_EXECUTABLE} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/gitversion.cmake)
+add_custom_target(ms2-git-version
+	COMMAND ${CMAKE_COMMAND} -DGIT_EXECUTABLE=${GIT_EXECUTABLE} -DMEDIASTREAMER_VERSION=${MEDIASTREAMER_VERSION} -DWORK_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/gitversion.cmake
+	BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/gitversion.h"
+)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/basedescs.h
 	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR=${CMAKE_CURRENT_SOURCE_DIR}/../
 		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
@@ -96,6 +98,7 @@ else()
 		endif()
 	endif()
 endif()
+add_dependencies(mediastreamer_base ms2-git-version)
 target_link_libraries(mediastreamer_base ${BASE_LIBS})
 
 install(TARGETS mediastreamer_base EXPORT ${EXPORT_TARGETS_NAME}Targets
@@ -471,6 +474,7 @@ else()
 		endif()
 	endif()
 endif()
+add_dependencies(mediastreamer_voip ms2-git-version)
 target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(LINK_FLAGS_STR)
