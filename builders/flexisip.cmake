@@ -43,7 +43,7 @@ set(EP_flexisip_CONFIG_H_FILE "flexisip.spec")
 set(EP_flexisip_SPEC_FILE "flexisip.spec")
 set(EP_flexisip_DEPENDENCIES EP_ortp EP_sofiasip )
 if (ENABLE_PRESENCE)
-	set(EP_flexisip_DEPENDENCIES "${EP_flexisip_DEPENDENCIES} EP_bellesip" )
+	list(APPEND EP_flexisip_DEPENDENCIES EP_bellesip)
 endif()
 
 list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder")
