@@ -52,6 +52,18 @@ BelCard::BelCard() : BelCardGeneric() {
 	
 }
 
+bool comparePropertiesUsingPrefParam(const shared_ptr<BelCardProperty>& prop1, const shared_ptr<BelCardProperty>& prop2) {
+	shared_ptr<BelCardPrefParam> pref1 = prop1->getPrefParam();
+	shared_ptr<BelCardPrefParam> pref2 = prop2->getPrefParam();
+	if (pref2 == NULL) {
+		return true;
+	} else if (pref1 == NULL) {
+		return false;
+	} else {
+		return pref1->getValue() < pref2->getValue();
+	}
+}
+
 void BelCard::setKind(const shared_ptr<BelCardKind> &kind) {
 	if (_kind) {
 		removeProperty(_kind);
@@ -186,6 +198,7 @@ const shared_ptr<BelCardDeathDate> &BelCard::getDeathDate() const {
 
 void BelCard::addNickname(const shared_ptr<BelCardNickname> &nickname) {
 	_nicknames.push_back(nickname);
+	_nicknames.sort(comparePropertiesUsingPrefParam);
 	addProperty(nickname);
 }
 const list<shared_ptr<BelCardNickname>> &BelCard::getNicknames() const {
@@ -194,6 +207,7 @@ const list<shared_ptr<BelCardNickname>> &BelCard::getNicknames() const {
 
 void BelCard::addPhoto(const shared_ptr<BelCardPhoto> &photo) {
 	_photos.push_back(photo);
+	_photos.sort(comparePropertiesUsingPrefParam);
 	addProperty(photo);
 }
 const list<shared_ptr<BelCardPhoto>> &BelCard::getPhotos() const {
@@ -202,6 +216,7 @@ const list<shared_ptr<BelCardPhoto>> &BelCard::getPhotos() const {
 
 void BelCard::addAddress(const shared_ptr<BelCardAddress> &addr) {
 	_addr.push_back(addr);
+	_addr.sort(comparePropertiesUsingPrefParam);
 	addProperty(addr);
 }
 const list<shared_ptr<BelCardAddress>> &BelCard::getAddresses() const {
@@ -210,6 +225,7 @@ const list<shared_ptr<BelCardAddress>> &BelCard::getAddresses() const {
 
 void BelCard::addPhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel) {
 	_tel.push_back(tel);
+	_tel.sort(comparePropertiesUsingPrefParam);
 	addProperty(tel);
 }
 const list<shared_ptr<BelCardPhoneNumber>> &BelCard::getPhoneNumbers() const {
@@ -218,6 +234,7 @@ const list<shared_ptr<BelCardPhoneNumber>> &BelCard::getPhoneNumbers() const {
 
 void BelCard::addEmail(const shared_ptr<BelCardEmail> &email) {
 	_emails.push_back(email);
+	_emails.sort(comparePropertiesUsingPrefParam);
 	addProperty(email);
 }
 const list<shared_ptr<BelCardEmail>> &BelCard::getEmails() const {
@@ -226,6 +243,7 @@ const list<shared_ptr<BelCardEmail>> &BelCard::getEmails() const {
 
 void BelCard::addImpp(const shared_ptr<BelCardImpp> &impp) {
 	_impp.push_back(impp);
+	_impp.sort(comparePropertiesUsingPrefParam);
 	addProperty(impp);
 }
 const list<shared_ptr<BelCardImpp>> &BelCard::getImpp() const {
@@ -234,6 +252,7 @@ const list<shared_ptr<BelCardImpp>> &BelCard::getImpp() const {
 
 void BelCard::addLang(const shared_ptr<BelCardLang> &lang) {
 	_langs.push_back(lang);
+	_langs.sort(comparePropertiesUsingPrefParam);
 	addProperty(lang);
 }
 const list<shared_ptr<BelCardLang>> &BelCard::getLangs() const {
@@ -242,6 +261,7 @@ const list<shared_ptr<BelCardLang>> &BelCard::getLangs() const {
 
 void BelCard::addSource(const shared_ptr<BelCardSource> &source) {
 	_sources.push_back(source);
+	_sources.sort(comparePropertiesUsingPrefParam);
 	addProperty(source);
 }
 const list<shared_ptr<BelCardSource>> &BelCard::getSource() const {
@@ -250,6 +270,7 @@ const list<shared_ptr<BelCardSource>> &BelCard::getSource() const {
 
 void BelCard::addXML(const shared_ptr<BelCardXML> &xml) {
 	_xml.push_back(xml);
+	_xml.sort(comparePropertiesUsingPrefParam);
 	addProperty(xml);
 }
 const list<shared_ptr<BelCardXML>> &BelCard::getXML() const {
@@ -258,6 +279,7 @@ const list<shared_ptr<BelCardXML>> &BelCard::getXML() const {
 
 void BelCard::addTimezone(const shared_ptr<BelCardTimezone> &tz) {
 	_timezones.push_back(tz);
+	_timezones.sort(comparePropertiesUsingPrefParam);
 	addProperty(tz);
 }
 const list<shared_ptr<BelCardTimezone>> &BelCard::getTimezones() const {
@@ -266,6 +288,7 @@ const list<shared_ptr<BelCardTimezone>> &BelCard::getTimezones() const {
 
 void BelCard::addGeo(const shared_ptr<BelCardGeo> &geo) {
 	_geos.push_back(geo);
+	_geos.sort(comparePropertiesUsingPrefParam);
 	addProperty(geo);
 }
 const list<shared_ptr<BelCardGeo>> &BelCard::getGeos() const {
@@ -274,6 +297,7 @@ const list<shared_ptr<BelCardGeo>> &BelCard::getGeos() const {
 
 void BelCard::addTitle(const shared_ptr<BelCardTitle> &title) {
 	_titles.push_back(title);
+	_titles.sort(comparePropertiesUsingPrefParam);
 	addProperty(title);
 }
 const list<shared_ptr<BelCardTitle>> &BelCard::getTitles() const {
@@ -282,6 +306,7 @@ const list<shared_ptr<BelCardTitle>> &BelCard::getTitles() const {
 
 void BelCard::addRole(const shared_ptr<BelCardRole> &role) {
 	_roles.push_back(role);
+	_roles.sort(comparePropertiesUsingPrefParam);
 	addProperty(role);
 }
 const list<shared_ptr<BelCardRole>> &BelCard::getRoles() const {
@@ -290,6 +315,7 @@ const list<shared_ptr<BelCardRole>> &BelCard::getRoles() const {
 
 void BelCard::addLogo(const shared_ptr<BelCardLogo> &logo) {
 	_logos.push_back(logo);
+	_logos.sort(comparePropertiesUsingPrefParam);
 	addProperty(logo);
 }
 const list<shared_ptr<BelCardLogo>> &BelCard::getLogos() const {
@@ -298,6 +324,7 @@ const list<shared_ptr<BelCardLogo>> &BelCard::getLogos() const {
 
 void BelCard::addOrganization(const shared_ptr<BelCardOrganization> &org) {
 	_organizations.push_back(org);
+	_organizations.sort(comparePropertiesUsingPrefParam);
 	addProperty(org);
 }
 const list<shared_ptr<BelCardOrganization>> &BelCard::getOrganizations() const {
@@ -306,6 +333,7 @@ const list<shared_ptr<BelCardOrganization>> &BelCard::getOrganizations() const {
 
 void BelCard::addMember(const shared_ptr<BelCardMember> &member) {
 	_members.push_back(member);
+	_members.sort(comparePropertiesUsingPrefParam);
 	addProperty(member);
 }
 const list<shared_ptr<BelCardMember>> &BelCard::getMembers() const {
@@ -314,6 +342,7 @@ const list<shared_ptr<BelCardMember>> &BelCard::getMembers() const {
 
 void BelCard::addRelated(const shared_ptr<BelCardRelated> &related) {
 	_related.push_back(related);
+	_related.sort(comparePropertiesUsingPrefParam);
 	addProperty(related);
 }
 const list<shared_ptr<BelCardRelated>> &BelCard::getRelated() const {
@@ -322,6 +351,7 @@ const list<shared_ptr<BelCardRelated>> &BelCard::getRelated() const {
 
 void BelCard::addCategories(const shared_ptr<BelCardCategories> &categories) {
 	_categories.push_back(categories);
+	_categories.sort(comparePropertiesUsingPrefParam);
 	addProperty(categories);
 }
 const list<shared_ptr<BelCardCategories>> &BelCard::getCategories() const {
@@ -330,6 +360,7 @@ const list<shared_ptr<BelCardCategories>> &BelCard::getCategories() const {
 
 void BelCard::addNote(const shared_ptr<BelCardNote> &note) {
 	_notes.push_back(note);
+	_notes.sort(comparePropertiesUsingPrefParam);
 	addProperty(note);
 }
 const list<shared_ptr<BelCardNote>> &BelCard::getNotes() const {
@@ -338,6 +369,7 @@ const list<shared_ptr<BelCardNote>> &BelCard::getNotes() const {
 
 void BelCard::addSound(const shared_ptr<BelCardSound> &sound) {
 	_sounds.push_back(sound);
+	_sounds.sort(comparePropertiesUsingPrefParam);
 	addProperty(sound);
 }
 const list<shared_ptr<BelCardSound>> &BelCard::getSounds() const {
@@ -346,6 +378,7 @@ const list<shared_ptr<BelCardSound>> &BelCard::getSounds() const {
 
 void BelCard::addClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap) {
 	_clientpidmaps.push_back(clientpidmap);
+	_clientpidmaps.sort(comparePropertiesUsingPrefParam);
 	addProperty(clientpidmap);
 }
 const list<shared_ptr<BelCardClientProductIdMap>> &BelCard::getClientProductIdMaps() const {
@@ -354,6 +387,7 @@ const list<shared_ptr<BelCardClientProductIdMap>> &BelCard::getClientProductIdMa
 
 void BelCard::addURL(const shared_ptr<BelCardURL> &url) {
 	_urls.push_back(url);
+	_urls.sort(comparePropertiesUsingPrefParam);
 	addProperty(url);
 }
 const list<shared_ptr<BelCardURL>> &BelCard::getURLs() const {
@@ -362,6 +396,7 @@ const list<shared_ptr<BelCardURL>> &BelCard::getURLs() const {
 
 void BelCard::addKey(const shared_ptr<BelCardKey> &key) {
 	_keys.push_back(key);
+	_keys.sort(comparePropertiesUsingPrefParam);
 	addProperty(key);
 }
 const list<shared_ptr<BelCardKey>> &BelCard::getKeys() const {
@@ -370,6 +405,7 @@ const list<shared_ptr<BelCardKey>> &BelCard::getKeys() const {
 
 void BelCard::addFBURL(const shared_ptr<BelCardFBURL> &fburl) {
 	_fburls.push_back(fburl);
+	_fburls.sort(comparePropertiesUsingPrefParam);
 	addProperty(fburl);
 }
 const list<shared_ptr<BelCardFBURL>> &BelCard::getFBURLs() const {
@@ -378,6 +414,7 @@ const list<shared_ptr<BelCardFBURL>> &BelCard::getFBURLs() const {
 
 void BelCard::addCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri) {
 	_caladruris.push_back(caladruri);
+	_caladruris.sort(comparePropertiesUsingPrefParam);
 	addProperty(caladruri);
 }
 const list<shared_ptr<BelCardCALADRURI>> &BelCard::getCALADRURIs() const {
@@ -386,6 +423,7 @@ const list<shared_ptr<BelCardCALADRURI>> &BelCard::getCALADRURIs() const {
 
 void BelCard::addCALURI(const shared_ptr<BelCardCALURI> &caluri) {
 	_caluris.push_back(caluri);
+	_caluris.sort(comparePropertiesUsingPrefParam);
 	addProperty(caluri);
 }
 const list<shared_ptr<BelCardCALURI>> &BelCard::getCALURIs() const {

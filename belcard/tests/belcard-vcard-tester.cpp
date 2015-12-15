@@ -93,12 +93,32 @@ static void create_vcard_from_api(void) {
 	BC_ASSERT_TRUE(vcard.compare(vcard2) == 0);
 }
 
+static void property_sort_using_pref_param(void) {
+	shared_ptr<BelCard> belCard = BelCard::create<BelCard>();
+	BC_ASSERT_TRUE(belCard != NULL);
+	
+	shared_ptr<BelCardImpp> impp1 = BelCardImpp::parse("IMPP;TYPE=home;PREF=2:sip:viish@sip.linphone.org\r\n");
+	BC_ASSERT_TRUE(impp1 != NULL);
+	
+	shared_ptr<BelCardImpp> impp2 = BelCardImpp::parse("IMPP;PREF=1;TYPE=work:sip:sylvain@sip.linphone.org\r\n");
+	BC_ASSERT_TRUE(impp2 != NULL);
+	
+	belCard->addImpp(impp1);
+	belCard->addImpp(impp2);
+	
+	const list<shared_ptr<BelCardImpp>> imppList = belCard->getImpp();
+	BC_ASSERT_TRUE(imppList.size() == 2);
+	BC_ASSERT_TRUE(imppList.front() == impp2);
+	BC_ASSERT_TRUE(imppList.back() == impp1);
+}
+
 static test_t tests[] = {
 	{ "Folding", folding },
 	{ "Unfolding", unfolding },
 	{ "VCard parsing", vcard_parsing },
 	{ "VCards parsing", vcards_parsing },
 	{ "VCard created from scratch", create_vcard_from_api },
+	{ "Property sort using pref param", property_sort_using_pref_param },
 };
 
 test_suite_t vcard_test_suite = {
