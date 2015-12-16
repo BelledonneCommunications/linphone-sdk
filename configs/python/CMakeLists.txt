@@ -120,7 +120,7 @@ if(UNIX)
 endif()
 
 if(APPLE)
-	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -undefined dynamic_lookup}")
+	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-undefined,dynamic_lookup")
 endif()
 
 add_library(pylinphone MODULE "${SOURCE_FILENAME}")
