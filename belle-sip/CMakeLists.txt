@@ -206,6 +206,7 @@ if(APPLE)
 		list(APPEND LINK_FLAGS "-framework CoreFoundation" "-framework CFNetwork" "-framework UIKit")
 	endif()
 endif()
+string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(WIN32)
 	add_definitions(
 		-DBELLESIP_EXPORTS
