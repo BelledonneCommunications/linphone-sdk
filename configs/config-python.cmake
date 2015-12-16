@@ -119,6 +119,7 @@ set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 if(NOT PACKAGE_NAME)
 	set(PACKAGE_NAME "linphone")
 endif()
+linphone_builder_apply_flags()
 linphone_builder_set_ep_directories(pylinphone)
 linphone_builder_expand_external_project_vars()
 ExternalProject_Add(TARGET_pylinphone
