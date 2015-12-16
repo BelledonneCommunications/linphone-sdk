@@ -75,7 +75,7 @@ list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
 list(APPEND EP_bzrtp_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
 
 # ffmpeg
-set(EP_ffmpeg_LINKING_TYPE "--enable-static" "--disable-shared")
+set(EP_ffmpeg_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 
 # linphone
 list(APPEND EP_linphone_CMAKE_OPTIONS
