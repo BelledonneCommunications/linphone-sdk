@@ -298,6 +298,11 @@ macro(linphone_builder_apply_extra_flags PROJNAME)
 		set(ep_objcflags "${ep_objcflags} ${EP_${PROJNAME}_EXTRA_OBJCFLAGS}")
 		set(ep_ldflags "${ep_ldflags} ${EP_${PROJNAME}_EXTRA_LDFLAGS}")
 	else()
+		set(SAVED_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+		set(SAVED_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+		set(SAVED_CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+		set(SAVED_CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS}")
+		set(SAVED_CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
 		if(EP_${PROJNAME}_EXTRA_CFLAGS)
 			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EP_${PROJNAME}_EXTRA_CFLAGS}")
 		endif()
@@ -310,6 +315,15 @@ macro(linphone_builder_apply_extra_flags PROJNAME)
 			set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${EP_${PROJNAME}_EXTRA_LDFLAGS}")
 		endif()
 	endif()
+endmacro()
+
+
+macro(linphone_builder_restore_flags)
+	set(CMAKE_C_FLAGS "${SAVED_CMAKE_C_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${SAVED_CMAKE_CXX_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS "${SAVED_CMAKE_EXE_LINKER_FLAGS}")
+	set(CMAKE_MODULE_LINKER_FLAGS "${SAVED_CMAKE_MODULE_LINKER_FLAGS}")
+	set(CMAKE_SHARED_LINKER_FLAGS "${SAVED_CMAKE_SHARED_LINKER_FLAGS}")
 endmacro()
 
 
@@ -619,6 +633,8 @@ function(linphone_builder_add_external_project PROJNAME)
 		)
 		unset(_source_dirs)
 	endif()
+
+	linphone_builder_restore_flags()
 
 endfunction()
 
