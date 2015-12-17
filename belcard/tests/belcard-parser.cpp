@@ -37,12 +37,17 @@ int main(int argc, char *argv[]) {
 	}
 	file = argv[1];
 	
-	BelCardParser *parser = new BelCardParser();
 	auto t_start = std::chrono::high_resolution_clock::now();
-	shared_ptr<BelCardList> belCards = parser->parseFile(file);
+	BelCardParser *parser = new BelCardParser();
 	auto t_end = std::chrono::high_resolution_clock::now();
-	cout << "Parsing done in " << std::chrono::duration<double, std::milli>(t_end-t_start).count() << " milliseconds" << endl;
+	
+	auto t_start_2 = std::chrono::high_resolution_clock::now();
+	shared_ptr<BelCardList> belCards = parser->parseFile(file);
+	auto t_end_2 = std::chrono::high_resolution_clock::now();
+	
 	cout << *belCards << endl;
+	cout << "Parser initialized in " << std::chrono::duration<double, std::milli>(t_end - t_start).count() << " milliseconds" << endl;
+	cout << "Parsing done in " << std::chrono::duration<double, std::milli>(t_end_2 - t_start_2).count() << " milliseconds" << endl;
 	
 	delete parser;
 	return 0;

@@ -33,3 +33,4 @@ tests/belcard-folder
 tests/belcard-unfolder
 tests/belcard-parser
 src/vcard_grammar.cpp
+tools/output.vcf
