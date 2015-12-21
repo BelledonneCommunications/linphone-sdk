@@ -42,26 +42,16 @@ static string openFile(const char *name) {
 
 static void folding(void) {
 	string vcard = openFile("vcards/foldtest.vcf");
-	
-	BelCardParser *parser = new BelCardParser();
 	string folded_vcard = belcard_fold(vcard);
-	
 	string unfolded_vcard = openFile("vcards/unfoldtest.vcf");
 	BC_ASSERT_EQUAL(unfolded_vcard.compare(folded_vcard), 0, int, "%d");
-	
-	delete parser;
 }
 
 static void unfolding(void) {
 	string vcard = openFile("vcards/unfoldtest.vcf");
-	
-	BelCardParser *parser = new BelCardParser();
 	string unfolded_vcard = belcard_unfold(vcard);
-	
 	string folded_vcard = openFile("vcards/foldtest.vcf");
 	BC_ASSERT_EQUAL(folded_vcard.compare(unfolded_vcard), 0, int, "%d");
-	
-	delete parser;
 }
 
 static void vcard_parsing(void) {
@@ -109,6 +99,7 @@ static void create_vcard_from_api(void) {
 	BC_ASSERT_TRUE(belCard2->assertRFCCompliance());
 	string vcard2 = belCard2->toString();
 	BC_ASSERT_TRUE(vcard.compare(vcard2) == 0);
+	delete parser;
 }
 
 static void property_sort_using_pref_param(void) {
