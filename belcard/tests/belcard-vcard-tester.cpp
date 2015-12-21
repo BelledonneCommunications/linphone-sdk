@@ -57,29 +57,25 @@ static void unfolding(void) {
 static void vcard_parsing(void) {
 	string vcard = openFile("vcards/vcard.vcf");
 	
-	BelCardParser *parser = new BelCardParser();
-	shared_ptr<BelCard> belCard = parser->parseOne(vcard);
+	BelCardParser parser = BelCardParser::getInstance();
+	shared_ptr<BelCard> belCard = parser.parseOne(vcard);
 	BC_ASSERT_TRUE_FATAL(belCard != NULL);
 	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
 	
 	string vcard2 = belCard->toFoldedString();
 	BC_ASSERT_EQUAL(vcard2.compare(vcard), 0, int, "%d");
-	
-	delete parser;
 }
 
 static void vcards_parsing(void) {
 	string vcards = openFile("vcards/vcards.vcf");
 	
-	BelCardParser *parser = new BelCardParser();
-	shared_ptr<BelCardList> belCards = parser->parse(vcards);
+	BelCardParser parser = BelCardParser::getInstance();
+	shared_ptr<BelCardList> belCards = parser.parse(vcards);
 	BC_ASSERT_TRUE_FATAL(belCards != NULL);
 	BC_ASSERT_TRUE(belCards->getCards().size() == 2);
 	
 	string vcards2 = belCards->toString();
 	BC_ASSERT_EQUAL(vcards2.compare(vcards), 0, int, "%d");
-	
-	delete parser;
 }
 
 static void create_vcard_from_api(void) {
@@ -93,13 +89,12 @@ static void create_vcard_from_api(void) {
 	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
 	
 	string vcard = belCard->toString();
-	BelCardParser *parser = new BelCardParser();
-	shared_ptr<BelCard> belCard2 = parser->parseOne(vcard);
+	BelCardParser parser = BelCardParser::getInstance();
+	shared_ptr<BelCard> belCard2 = parser.parseOne(vcard);
 	BC_ASSERT_TRUE_FATAL(belCard2 != NULL);
 	BC_ASSERT_TRUE(belCard2->assertRFCCompliance());
 	string vcard2 = belCard2->toString();
 	BC_ASSERT_TRUE(vcard.compare(vcard2) == 0);
-	delete parser;
 }
 
 static void property_sort_using_pref_param(void) {
