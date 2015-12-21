@@ -53,6 +53,8 @@ static SoundDeviceDescription devices[]={
 	{	"HTC",		"HTC One mini 2","",		DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 0},
 	{	"HTC",		"0PCV1",	"msm8226",		DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_BUILTIN_OPENSLES_AEC|DEVICE_HAS_CRAPPY_ANDROID_FASTTRACK, 0, 0},
 	{	"HTC",		"HTC Desire 610",	"msm8226",		DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_BUILTIN_OPENSLES_AEC|DEVICE_HAS_CRAPPY_ANDROID_FASTTRACK, 0, 0},
+	{       "OnePlus",      "A0001",        "msm8974",      0,      120 },
+	{       "HTC",          "HTC One_M8",   "msm8974",      0,      120 },
 	{	"LGE",		"LS670",		"",			0,	170 },
 	{	"LGE",		"Nexus 5",		"msm8974",	0,	0 , 16000 },
 	
