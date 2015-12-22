@@ -187,16 +187,35 @@
     ${project}/gtkrc
   </data>
 
-  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/rings/oldphone.wav">
-      ${prefix:linphone}/share/sounds/linphone/rings/oldphone.wav
+  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/rings/oldphone-mono.wav">
+      ${prefix:linphone}/share/sounds/linphone/rings/oldphone-mono.wav
+  </data>
+  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/rings/notes_of_the_optimistic.mkv">
+      ${prefix:linphone}/share/sounds/linphone/rings/notes_of_the_optimistic.mkv
+  </data>
+  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/rings/soft_as_snow.mkv">
+      ${prefix:linphone}/share/sounds/linphone/rings/soft_as_snow.mkv
+  </data>
+  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/rings/its_a_game.mkv">
+      ${prefix:linphone}/share/sounds/linphone/rings/its_a_game.mkv
+  </data>
+  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/rings/house_keeping.mkv">
+      ${prefix:linphone}/share/sounds/linphone/rings/house_keeping.mkv
+  </data>
+  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/rings/leaving_dreams.mkv">
+      ${prefix:linphone}/share/sounds/linphone/rings/leaving_dreams.mkv
   </data>
 
-  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/rings/toy-mono.wav">
-      ${prefix:linphone}/share/sounds/linphone/rings/toy-mono.wav
+  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/toy-mono.wav">
+      ${prefix:linphone}/share/sounds/linphone/toy-mono.wav
   </data>
 
   <data dest="${bundle}/Contents/Resources/share/sounds/linphone/ringback.wav">
       ${prefix:linphone}/share/sounds/linphone/ringback.wav
+  </data>
+  
+  <data dest="${bundle}/Contents/Resources/share/sounds/linphone/dont_wait_too_long.mkv">
+      ${prefix:linphone}/share/sounds/linphone/dont_wait_too_long.mkv
   </data>
 
   <data dest="${bundle}/Contents/Resources/share/sounds/linphone/incoming_chat.wav">
