@@ -136,6 +136,7 @@ static SoundDeviceDescription devices[]={
 	{ "Yota Devices Limited", "YD201", "msm8974", DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 48000 }, /* Yotaphone 2 */
 	
 	{	"Hewlett-Packard",	"Slate 21 Pro", "tegra4", DEVICE_HAS_UNSTANDARD_LIBMEDIA, 250  },
+	{"LENOVO","Lenovo S60-a","msm8916",0, 0 , 16000},
 	{	NULL, NULL, NULL, 0, 0,0}
 };
 

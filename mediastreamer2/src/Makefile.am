@@ -23,6 +23,10 @@ ANDROID_SRC_FILES= \
 	android/android-opengl-display.c \
 	android/audio.h \
 	android/loader.cpp android/loader.h \
+	android/mediacodech264dec.c \
+   	android/mediacodech264enc.c \
+   	android/android_mediacodec.cpp \
+   	android/android_mediacodec.h \
 	audiofilters/aac-eld-android.cpp
 
 EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c  \
