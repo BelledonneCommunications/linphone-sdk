@@ -50,7 +50,7 @@ then try incrementing the number of periods*/
 having sound quality trouble:*/
 /*#define EPIPE_BUGFIX 1*/
 
-static MSSndCard * alsa_card_new(int id, const char *pcmbasename);
+static MSSndCard * alsa_card_new(const char *id, const char *pcmbasename);
 static MSSndCard *alsa_card_duplicate(MSSndCard *obj);
 static MSFilter * ms_alsa_read_new(MSFactory *factory, const char *dev);
 static MSFilter * ms_alsa_write_new(MSFactory *factory, const char *dev);
@@ -640,34 +640,99 @@ static void alsa_card_uninit(MSSndCard *obj){
 }
 
 static void alsa_card_detect(MSSndCardManager *m){
-	int i;
+	int i,j,k;
 	void **hints=NULL;
 	int device_count=0;
-	int old_device_count=0; /*previous alsa pcm naming convention*/
-	const char *pcmname = "sysdefault";
+	const char *pcmname = "plughw";
 
-	/*get the number of PCM device availables*/
+	bool_t found_duplicate;
+	int hint_dev_count=0;
+	char *hint_name = NULL;
+	char *hint_card = NULL;
+	char *hint_dev = NULL;
+	const int MAX_NUM_DEVICE_ID = 100;
+	char *device_names[MAX_NUM_DEVICE_ID];
+	int card_indexes[MAX_NUM_DEVICE_ID], dev_indexes[MAX_NUM_DEVICE_ID];
+	int unique_card_indexes[MAX_NUM_DEVICE_ID], unique_dev_indexes[MAX_NUM_DEVICE_ID];
+
+	/* Get list of devices from alsa device hints */
+
 	if (snd_device_name_hint(-1, "pcm", &hints)==0){
 		int i;
 		for(i=0; hints[i]!=NULL; ++i){
 			char *name = snd_device_name_get_hint(hints[i],"NAME");
-			if (name && strstr(name,"sysdefault") == name) device_count++;
-			if (name && strstr(name,"default") == name) old_device_count++;
-			if (name) free(name);
+			hint_name = strsep(&name, ":");
+			if (hint_name){
+				hint_card = strsep(&name, ",");
+				if (hint_card){
+					hint_dev = strsep(&name, ",");
+					if (hint_dev){
+						if (strcmp(strsep(&hint_card, "="), "CARD")==0 && strcmp(strsep(&hint_dev, "="),"DEV")==0){
+							int card_index = snd_card_get_index(hint_card);
+							card_indexes[hint_dev_count] = card_index;
+							dev_indexes[hint_dev_count] = atoi(hint_dev);
+							hint_dev_count++;
+						}
+					}
+				}
+			}
+			ms_free(name);
 		}
 		snd_device_name_free_hint(hints);
 	}
-	if (device_count == 0) {
-		device_count = old_device_count;
-		pcmname = "default";
+
+	/* Produce unique device_names[] */
+
+	for (j=0; j<hint_dev_count; j++){
+		found_duplicate = FALSE;
+		if (j == 0){
+			unique_card_indexes[0] = card_indexes[0];
+			unique_dev_indexes[0] = dev_indexes[0];
+			device_names[device_count] = (char*) malloc(8 * sizeof(char));
+                        sprintf(device_names[0],"%d,%d", card_indexes[0], dev_indexes[0]);
+
+			device_count++;
+			continue;
+		}
+		for (k=0; k<device_count; k++){
+
+			if ( (card_indexes[j] == unique_card_indexes[k]) && (dev_indexes[j] == unique_dev_indexes[k]) ){
+				found_duplicate = TRUE;
+				break;
+			}
+		}
+		if ( !found_duplicate ){
+			unique_card_indexes[device_count] = card_indexes[j];
+			unique_dev_indexes[device_count] = dev_indexes[j];
+	
+			device_names[device_count] = (char*) ms_new(char,8);
+			sprintf(device_names[device_count],"%d,%d", card_indexes[j], dev_indexes[j]);
+	
+			device_count++;
+		}
 	}
+
+	/* Add unique devices to card manager */
+
 	for (i=-1;i<device_count;i++){
-		MSSndCard *card=alsa_card_new(i, pcmname);
+		MSSndCard *card=NULL;
+		if (i==-1){
+			card=alsa_card_new("default", pcmname);
+		}
+		else {
+			card=alsa_card_new(device_names[i], pcmname);
+		}
+
 		if (card!=NULL)
+		{
 			ms_snd_card_manager_add_card(m,card);
-		else break;
+		}
 	}
 	atexit((void(*)(void))snd_config_update_free_global);
+
+	for (i=0; i<device_count; i++) ms_free(device_names[i]);
+	ms_free(device_names);
+	ms_free(hint_name);
 }
 
 MSSndCardDesc alsa_card_desc={
@@ -752,22 +817,21 @@ static unsigned int get_card_capabilities(const char *devname, char **card_name,
 	return ret;
 }
 
-static MSSndCard * alsa_card_new(int id, const char *pcmbasename){
+static MSSndCard * alsa_card_new(const char *id, const char *pcmbasename){
 	MSSndCard * obj;
 	AlsaData *ad;
 	unsigned int hw_index=0;
 
 	obj=ms_snd_card_new(&alsa_card_desc);
 	ad=(AlsaData*)obj->data;
-	if (id==-1) {
+	if (strcmp(id,"default")==0) {
 		/* the default pcm device */
 		obj->name=ms_strdup("default device");
 		ad->pcmdev=ms_strdup("default");
 		ad->mixdev=ms_strdup("default");
 	}else{
 		snd_mixer_t *mixer;
-		if (id == 0) ad->pcmdev = ms_strdup(pcmbasename);
-		else ad->pcmdev=ms_strdup_printf("%s:%i",pcmbasename, id);
+		ad->pcmdev=ms_strdup_printf("%s:%s",pcmbasename, id);
 		obj->capabilities = get_card_capabilities(ad->pcmdev, &obj->name, &hw_index);
 		if (obj->capabilities == 0){
 			ms_snd_card_destroy(obj);
