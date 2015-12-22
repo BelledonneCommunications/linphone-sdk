@@ -24,6 +24,8 @@
 
 option(ENABLE_NLS "Enable internationalization of Linphone and Liblinphone." ON)
 add_feature_info("NLS" ENABLE_NLS "Enable internationalization of Linphone and Liblinphone. (Only for the desktop target)")
+option(ENABLE_VCARD "Enable vCard 4 support in Linphone and Liblinphone." ON)
+add_feature_info("VCARD" ENABLE_VCARD "Enable vCard 4 support Linphone and Liblinphone.")
 
 if (APPLE AND NOT IOS)
 	option(ENABLE_RELATIVE_PREFIX "liblinphone and mediastreamer will look for their respective ressources relatively to their location." OFF)
