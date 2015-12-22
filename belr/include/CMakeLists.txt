@@ -25,6 +25,7 @@ set(HEADER_FILES
 	belr.hh
 	grammarbuilder.hh
 	parser.hh
+	parser-impl.cc
 )
 
 set(BELR_HEADER_FILES )
