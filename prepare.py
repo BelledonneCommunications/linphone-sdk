@@ -209,7 +209,7 @@ def run(target, debug, latest, list_cmake_variables, force_build, additional_arg
     if os.path.isdir(target.abs_cmake_dir):
         if force_build is False:
             print("Working directory {} already exists. Please remove it (option -C or -c) before re-executing CMake "
-                  "to avoid conflicts between executions.".format(target.cmake_dir))
+                  "to avoid conflicts between executions, or force execution (option -f) if you are aware of consequences.".format(target.cmake_dir))
             return 51
     else:
         os.makedirs(target.abs_cmake_dir)
