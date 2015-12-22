@@ -77,7 +77,7 @@ static FileInfo *file_info_new(const char *file){
 static int file_info_read(FileInfo *fi, int zero_pad_samples, int zero_pad_end_samples){
 	int err;
 	int size = fi->nsamples * fi->nchannels *2;
-	fi->buffer=ms_new0(int16_t,(fi->nsamples + zero_pad_samples + zero_pad_end_samples) * fi->nchannels);
+	fi->buffer=ms_new0(int16_t,(fi->nsamples + 2*zero_pad_samples + 2*zero_pad_end_samples) * fi->nchannels);
 	
 	err = read(fi->fd,fi->buffer + (zero_pad_samples * fi->nchannels), size);
 	if (err == -1){
