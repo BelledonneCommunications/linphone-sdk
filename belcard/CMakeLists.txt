@@ -94,6 +94,7 @@ endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
+add_definitions("-DHAVE_CONFIG_H")
 
 set(STRICT_OPTIONS_CPP )
 set(STRICT_OPTIONS_C )
@@ -120,9 +121,35 @@ if(STRICT_OPTIONS_C)
 	list(REMOVE_DUPLICATES STRICT_OPTIONS_C)
 endif()
 
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
+else()
+	set(EXPORT_TARGETS_NAME "belcard")
+endif()
+
 add_subdirectory(include)
 add_subdirectory(src)
 
 if(ENABLE_UNIT_TESTS)
 #	add_subdirectory(tests)
 endif()
+
+
+
+include(CMakePackageConfigHelpers)
+export(EXPORT ${EXPORT_TARGETS_NAME}Targets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/BelcardTargets.cmake"
+)
+configure_file(cmake/BelcardConfig.cmake
+        "${CMAKE_CURRENT_BINARY_DIR}/BelcardConfig.cmake"
+        COPYONLY
+)
+set(ConfigPackageLocation lib/cmake/Belcard)
+install(EXPORT ${EXPORT_TARGETS_NAME}Targets
+	FILE BelcardTargets.cmake
+	DESTINATION ${ConfigPackageLocation}
+)
+install(FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/BelcardConfig.cmake"
+        DESTINATION ${ConfigPackageLocation}
+)

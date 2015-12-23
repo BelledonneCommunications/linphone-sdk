@@ -1,5 +1,5 @@
 ############################################################################
-# FindBelr.cmake
+# BelcardConfig.cmake
 # Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,36 +20,22 @@
 #
 ############################################################################
 #
-# - Find the belr include file and library
+# Config file for the belcard package.
+# It defines the following variables:
 #
-#  BELR_FOUND - system has belr
-#  BELR_INCLUDE_DIRS - the belr include directory
-#  BELR_LIBRARIES - The libraries needed to use belr
+#  BELCARD_FOUND - system has belcard
+#  BELCARD_INCLUDE_DIRS - the belcard include directory
+#  BELCARD_LIBRARIES - The libraries needed to use belcard
 
-set(_BELR_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
-find_path(BELR_INCLUDE_DIRS
-	NAMES belr.hh
-	HINTS _BELR_ROOT_PATHS
-	PATH_SUFFIXES include/belr
-)
-
-if(BELR_INCLUDE_DIRS)
-	set(HAVE_BELR_H 1)
+if(NOT LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${CMAKE_CURRENT_LIST_DIR}/BelcardTargets.cmake")
 endif()
 
-find_library(BELR_LIBRARIES
-	NAMES belr
-	HINTS ${_BELR_ROOT_PATHS}
-	PATH_SUFFIXES bin lib
-)
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Belr
-	DEFAULT_MSG
-	BELR_INCLUDE_DIRS BELR_LIBRARIES HAVE_BELR_H
-)
-
-mark_as_advanced(BELR_INCLUDE_DIRS BELR_LIBRARIES HAVE_BELR_H)
+get_filename_component(BELCARD_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(BELCARD_INCLUDE_DIRS "${EP_belcard_INCLUDE_DIR}")
+else()
+	set(BELCARD_INCLUDE_DIRS "${BELCARD_CMAKE_DIR}/../../../include")
+endif()
+set(BELCARD_LIBRARIES belcard)
+set(BELCARD_FOUND 1)
