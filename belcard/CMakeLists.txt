@@ -60,7 +60,11 @@ endif()
 # find_package should be invoked here to check for libraries - however do NOT
 # call include_directories here (see below)
 
-find_package(Belr REQUIRED)
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${EP_belr_CONFIG_DIR}/BelrConfig.cmake")
+else()
+	find_package(Belr REQUIRED)
+endif()
 
 if(ENABLE_UNIT_TESTS)
 	find_package(CUnit)
@@ -133,8 +137,6 @@ add_subdirectory(src)
 if(ENABLE_UNIT_TESTS)
 #	add_subdirectory(tests)
 endif()
-
-
 
 include(CMakePackageConfigHelpers)
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
