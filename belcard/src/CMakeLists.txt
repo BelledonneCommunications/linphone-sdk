@@ -50,6 +50,9 @@ else()
 	add_library(belcard SHARED ${BELCARD_HEADER_FILES} ${BELCARD_SOURCE_FILES_C} ${BELCARD_SOURCE_FILES_CXX})
 	set_target_properties(belcard PROPERTIES VERSION ${BELCARD_SO_VERSION})
 endif()
+if(APPLE)
+	target_compile_features(belcard PRIVATE cxx_auto_type cxx_variadic_macros)
+endif()
 target_link_libraries(belcard ${BELR_LIBRARIES})
 
 install(TARGETS belcard EXPORT ${EXPORT_TARGETS_NAME}Targets
