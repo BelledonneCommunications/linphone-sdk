@@ -20,13 +20,6 @@
 #
 ############################################################################
 
-add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/vcard_grammar.cpp
-	COMMAND ${CMAKE_COMMAND} -E echo "#include \"belcard/vcard_grammar.hpp\"" > ${CMAKE_CURRENT_SOURCE_DIR}/vcard_grammar.cpp
-	COMMAND ${CMAKE_COMMAND} -E xxd -i ${CMAKE_CURRENT_SOURCE_DIR}/vcard.grammar | sed s/}\;/,0x00}\;/ >> ${CMAKE_CURRENT_SOURCE_DIR}/vcard_grammar.cpp
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vcard.grammar
-)
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/vcard.grammar PROPERTIES GENERATED ON)
-
 set(BELCARD_HEADER_FILES )
 set(BELCARD_SOURCE_FILES_C )
 set(BELCARD_SOURCE_FILES_CXX 
