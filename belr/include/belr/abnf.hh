@@ -64,6 +64,7 @@ private:
 	void bin_val();
 	void dec_val();
 	void hex_val();
+	void crlf_or_lf();
 };
 
 

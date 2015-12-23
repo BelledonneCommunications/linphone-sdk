@@ -1,6 +1,6 @@
 REGISTER sip:siptest.linphone.org SIP/2.0
 Via: SIP/2.0/TLS 192.168.0.25:41076;alias;branch=z9hG4bK.m-SPAXXd3;rport
-From: "Charlie" <sip:smorlat2@78.220.48.77>;tag=HW3X1aviU
+From: "François" <sip:smorlat2@78.220.48.77>;tag=HW3X1aviU
 To:  marie <sip:smorlat2@siptest.linphone.org>
 CSeq: 21 REGISTER
 Call-ID: s69J2OQ4h4

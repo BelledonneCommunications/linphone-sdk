@@ -150,6 +150,14 @@ ABNFGrammar::ABNFGrammar(): Grammar("ABNF"){
 	element();
 	group();
 	option();
+	crlf_or_lf();
+}
+
+void ABNFGrammar::crlf_or_lf(){
+	addRule("crlf-or-lf", 
+			Foundation::selector()
+				->addRecognizer(getRule("crlf"))
+				->addRecognizer(getRule("lf")));
 }
 
 void ABNFGrammar::comment(){
@@ -162,14 +170,16 @@ void ABNFGrammar::comment(){
 					->addRecognizer(getRule("vchar"))
 				)
 			)
-		->addRecognizer(getRule("crlf"))
+		//->addRecognizer(getRule("crlf"))
+		->addRecognizer(getRule("crlf-or-lf"))
 	);
 }
 
 void ABNFGrammar::c_nl(){
 	addRule("c-nl", Foundation::selector()
 		->addRecognizer(getRule("comment"))
-		->addRecognizer(getRule("crlf")));
+		//->addRecognizer(getRule("crlf")));
+		->addRecognizer(getRule("crlf-or-lf")));
 }
 
 void ABNFGrammar::c_wsp(){
