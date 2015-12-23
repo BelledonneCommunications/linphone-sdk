@@ -24,7 +24,7 @@
 
 option(ENABLE_NLS "Enable internationalization of Linphone and Liblinphone." ON)
 add_feature_info("NLS" ENABLE_NLS "Enable internationalization of Linphone and Liblinphone. (Only for the desktop target)")
-option(ENABLE_VCARD "Enable vCard 4 support in Linphone and Liblinphone." ON)
+option(ENABLE_VCARD "Enable vCard 4 support in Linphone and Liblinphone." OFF)
 add_feature_info("VCARD" ENABLE_VCARD "Enable vCard 4 support Linphone and Liblinphone.")
 
 if (APPLE AND NOT IOS)
