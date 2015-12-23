@@ -97,5 +97,29 @@ if(STRICT_OPTIONS_C)
 	list(REMOVE_DUPLICATES STRICT_OPTIONS_C)
 endif()
 
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
+else()
+	set(EXPORT_TARGETS_NAME "belr")
+endif()
+
 add_subdirectory(include)
 add_subdirectory(src)
+
+include(CMakePackageConfigHelpers)
+export(EXPORT ${EXPORT_TARGETS_NAME}Targets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/BelrTargets.cmake"
+)
+configure_file(cmake/BelrConfig.cmake
+        "${CMAKE_CURRENT_BINARY_DIR}/BelrConfig.cmake"
+        COPYONLY
+)
+set(ConfigPackageLocation lib/cmake/Belr)
+install(EXPORT ${EXPORT_TARGETS_NAME}Targets
+	FILE BelrTargets.cmake
+	DESTINATION ${ConfigPackageLocation}
+)
+install(FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/BelrConfig.cmake"
+        DESTINATION ${ConfigPackageLocation}
+)
