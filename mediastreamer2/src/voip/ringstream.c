@@ -62,6 +62,11 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 	stream=(RingStream *)ms_new0(RingStream,1);
 	if (file) {
 		stream->source=_ms_create_av_player(file);
+		if (stream->source == NULL){
+			ms_error("ring_start_with_cb(): could not create player for playing '%s'", file);
+			file = NULL;
+			stream->source=ms_filter_new(MS_FILE_PLAYER_ID);
+		}
 	} else {
 		/*create dummy source*/
 		stream->source=ms_filter_new(MS_FILE_PLAYER_ID);
