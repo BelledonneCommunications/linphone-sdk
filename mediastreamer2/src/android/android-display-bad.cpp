@@ -285,5 +285,5 @@ extern "C" void libmsandroiddisplaybad_init(MSFactory *factory){
 			ms_factory_register_filter(factory,&ms_android_display_bad_desc);
 			ms_message("Android display filter (the bad one) loaded.");
 		}
-	}else ms_message("Could not load either "LIBSURFACE22_SO " or "LIBSURFACE21_SO);
+	} else ms_message("Could not load either " LIBSURFACE22_SO " or " LIBSURFACE21_SO);
 }
