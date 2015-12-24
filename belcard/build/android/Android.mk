@@ -25,6 +25,8 @@ LOCAL_SRC_FILES := \
 	belcard_property.cpp \
 	belcard_security.cpp \
 	vcard_grammar.cpp \
+	
+LOCAL_STATIC_LIBRARIES += libbelr
 
 LOCAL_MODULE:= libbelcard
 
