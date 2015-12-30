@@ -21,4 +21,4 @@ export PKG_CONFIG_PATH="@LINPHONE_BUILDER_PKG_CONFIG_PATH@"
 export PKG_CONFIG_LIBDIR="@LINPHONE_BUILDER_PKG_CONFIG_LIBDIR@"
 
 cd @ep_build@
-make -f @ep_source@/Makefile install@EP_openh264_LINKING_TYPE@ DESTDIR="@CMAKE_INSTALL_PREFIX@" PREFIX="" BUILDTYPE="@EP_openh264_BUILD_TYPE@" @EP_openh264_ADDITIONAL_OPTIONS@ @ep_redirect_to_file@
+make -f @ep_source_relative_to_build@/Makefile install@EP_openh264_LINKING_TYPE@ DESTDIR="@CMAKE_INSTALL_PREFIX@" PREFIX="" BUILDTYPE="@EP_openh264_BUILD_TYPE@" @EP_openh264_ADDITIONAL_OPTIONS@ @ep_redirect_to_file@

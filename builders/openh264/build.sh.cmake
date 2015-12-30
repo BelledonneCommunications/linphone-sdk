@@ -21,4 +21,4 @@ export PKG_CONFIG_PATH="@LINPHONE_BUILDER_PKG_CONFIG_PATH@"
 export PKG_CONFIG_LIBDIR="@LINPHONE_BUILDER_PKG_CONFIG_LIBDIR@"
 
 cd @ep_build@
-make -f @ep_source@/Makefile libraries PREFIX="@CMAKE_INSTALL_PREFIX@" BUILDTYPE="@EP_openh264_BUILD_TYPE@" ASM="@NASM_PROGRAM@" @EP_openh264_ADDITIONAL_OPTIONS@ @ep_redirect_to_file@
+make -f @ep_source_relative_to_build@/Makefile libraries PREFIX="@CMAKE_INSTALL_PREFIX@" BUILDTYPE="@EP_openh264_BUILD_TYPE@" ASM="@NASM_PROGRAM@" @EP_openh264_ADDITIONAL_OPTIONS@ @ep_redirect_to_file@

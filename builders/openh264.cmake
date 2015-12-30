@@ -33,7 +33,7 @@ if(NOT NASM_PROGRAM)
 endif()
 
 set(EP_openh264_GIT_REPOSITORY "https://github.com/cisco/openh264" CACHE STRING "openh264 repository URL")
-set(EP_openh264_GIT_TAG "v1.4.0" CACHE STRING "openh264 tag to use")
+set(EP_openh264_GIT_TAG "v1.5.0" CACHE STRING "openh264 tag to use")
 set(EP_openh264_EXTERNAL_SOURCE_PATHS "externals/openh264")
 
 set(EP_openh264_BUILD_METHOD "custom")
@@ -42,7 +42,6 @@ set(EP_openh264_BUILD_TYPE "Release")	# Always use Release build type, otherwise
 set(EP_openh264_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/configure.sh.cmake)
 set(EP_openh264_BUILD_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/build.sh.cmake)
 set(EP_openh264_INSTALL_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/install.sh.cmake)
-set(EP_openh264_OUT_OF_TREE_BUILD_PATCH "${CMAKE_CURRENT_SOURCE_DIR}/builders/openh264/out-of-tree-build.patch")
 if (MSVC)
 	set(EP_openh264_ADDITIONAL_OPTIONS "OS=\"msvc\"")
 endif()
