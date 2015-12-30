@@ -45,6 +45,11 @@
 #define BELLE_SIP_WINDOWS_UNIVERSAL 1
 #endif
 #endif
+#ifdef _MSC_VER
+#if (_MSC_VER >= 1900)
+#define BELLE_SIP_MSC_VER_GREATER_19
+#endif
+#endif
 
 #include <winsock2.h>
 #include <ws2tcpip.h>

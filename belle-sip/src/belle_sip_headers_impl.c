@@ -1672,7 +1672,7 @@ BELLESIP_EXPORT time_t belle_sip_header_date_get_time(belle_sip_header_date_t *o
 	char tmp2[16] ={0};
 	int i,j;
 	time_t seconds;
-#ifdef BELLE_SIP_WINDOWS_UNIVERSAL
+#if defined(BELLE_SIP_WINDOWS_UNIVERSAL) || defined(BELLE_SIP_MSC_VER_GREATER_19)
 	long adjust_timezone;
 #else
 	time_t adjust_timezone;
@@ -1706,7 +1706,7 @@ success:
 	adjust_timezone = 0;
 #else
 	seconds = mktime(&ret);
-#ifdef BELLE_SIP_WINDOWS_UNIVERSAL
+#if defined(BELLE_SIP_WINDOWS_UNIVERSAL) || defined(BELLE_SIP_MSC_VER_GREATER_19)
 	_get_timezone(&adjust_timezone);
 #else
 	adjust_timezone = timezone;
