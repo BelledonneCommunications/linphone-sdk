@@ -16,7 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "belcard/belcard_identification.hpp"
+#include "belcard/belcard.hpp"
 #include "belcard-tester.hpp"
 
 using namespace::std;
