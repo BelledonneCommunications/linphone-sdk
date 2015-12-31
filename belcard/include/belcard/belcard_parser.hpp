@@ -37,16 +37,13 @@ namespace belcard {
 		shared_ptr<BelCardGeneric> _parse(const string &input, const string &rule);
 		
 	public:
-		static BelCardParser& getInstance() {
-			static BelCardParser *instance = new BelCardParser();
-			return *instance;
-		}
+		BELCARD_PUBLIC static BelCardParser& getInstance();
   
-		~BelCardParser();
+		BELCARD_PUBLIC ~BelCardParser();
 		
-		shared_ptr<BelCard> parseOne(const string &input);
-		shared_ptr<BelCardList> parse(const string &input);
-		shared_ptr<BelCardList> parseFile(const string &filename);
+		BELCARD_PUBLIC shared_ptr<BelCard> parseOne(const string &input);
+		BELCARD_PUBLIC shared_ptr<BelCardList> parse(const string &input);
+		BELCARD_PUBLIC shared_ptr<BelCardList> parseFile(const string &filename);
 	};
 }
 

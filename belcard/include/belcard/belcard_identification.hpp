@@ -36,7 +36,7 @@ namespace belcard {
 		static shared_ptr<BelCardFullName> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardFullName();
+		BELCARD_PUBLIC BelCardFullName();
 	};
 	
 	class BelCardName : public BelCardProperty {

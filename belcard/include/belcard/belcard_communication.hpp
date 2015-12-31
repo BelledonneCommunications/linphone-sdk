@@ -51,7 +51,7 @@ namespace belcard {
 		static shared_ptr<BelCardImpp> parse(const string& input) ;
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardImpp();
+		BELCARD_PUBLIC BelCardImpp();
 	};
 	
 	class BelCardLang : public BelCardProperty {

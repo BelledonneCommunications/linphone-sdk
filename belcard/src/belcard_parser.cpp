@@ -126,3 +126,8 @@ shared_ptr<BelCardList> BelCardParser::parseFile(const string &filename) {
 	shared_ptr<BelCardList> belCards = dynamic_pointer_cast<BelCardList>(ret);
 	return belCards;
 }
+
+BelCardParser& BelCardParser::getInstance() {
+	static BelCardParser *instance = new BelCardParser();
+	return *instance;
+}

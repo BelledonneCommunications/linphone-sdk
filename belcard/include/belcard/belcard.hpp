@@ -19,6 +19,12 @@
 #ifndef belcard_hpp
 #define belcard_hpp
 
+#if defined(_MSC_VER)
+#define BELCARD_PUBLIC	__declspec(dllexport)
+#else
+#define BELCARD_PUBLIC
+#endif
+
 #include "belcard_generic.hpp"
 #include "belcard_params.hpp"
 #include "belcard_property.hpp"
@@ -88,13 +94,13 @@ namespace belcard {
 	public:
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCard();
+		BELCARD_PUBLIC BelCard();
 		
 		void setKind(const shared_ptr<BelCardKind> &kind);
 		const shared_ptr<BelCardKind> &getKind() const;
 		
-		void setFullName(const shared_ptr<BelCardFullName> &fn);
-		const shared_ptr<BelCardFullName> &getFullName() const;
+		BELCARD_PUBLIC void setFullName(const shared_ptr<BelCardFullName> &fn);
+		BELCARD_PUBLIC const shared_ptr<BelCardFullName> &getFullName() const;
 		
 		void setName(const shared_ptr<BelCardName> &n);
 		const shared_ptr<BelCardName> &getName() const;
@@ -146,9 +152,9 @@ namespace belcard {
 		void removeEmail(const shared_ptr<BelCardEmail> &email);
 		const list<shared_ptr<BelCardEmail>> &getEmails() const;
 		
-		void addImpp(const shared_ptr<BelCardImpp> &impp);
-		void removeImpp(const shared_ptr<BelCardImpp> &impp);
-		const list<shared_ptr<BelCardImpp>> &getImpp() const;
+		BELCARD_PUBLIC void addImpp(const shared_ptr<BelCardImpp> &impp);
+		BELCARD_PUBLIC void removeImpp(const shared_ptr<BelCardImpp> &impp);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardImpp>> &getImpp() const;
 		
 		void addLang(const shared_ptr<BelCardLang> &lang);
 		void removeLang(const shared_ptr<BelCardLang> &lang);
@@ -238,7 +244,7 @@ namespace belcard {
 		void removeProperty(const shared_ptr<BelCardProperty> &property);
 		const list<shared_ptr<BelCardProperty>> &getProperties() const;
 		
-		string& toFoldedString();
+		BELCARD_PUBLIC string& toFoldedString();
 		bool assertRFCCompliance() const;
 		
 		virtual void serialize(ostream &output) const;
@@ -254,7 +260,7 @@ namespace belcard {
 		BelCardList();
 		
 		void addCard(const shared_ptr<BelCard> &vcard);
-		const list<shared_ptr<BelCard>> &getCards() const;
+		BELCARD_PUBLIC const list<shared_ptr<BelCard>> &getCards() const;
 		
 		void serialize(ostream &output) const;
 	};
