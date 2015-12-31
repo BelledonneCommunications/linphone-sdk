@@ -14,7 +14,7 @@ namespace belr{
 class CoreRules : public Grammar{
 public:
 	///Initialize a CoreRules grammar object.
-	CoreRules();
+	BELR_PUBLIC CoreRules();
 private:
 	void alpha();
 	void bit();

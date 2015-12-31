@@ -8,9 +8,15 @@
 
 using namespace ::std;
 
+#if defined(_MSC_VER)
+#define BELR_PUBLIC	__declspec(dllexport)
+#else
+#define BELR_PUBLIC
+#endif
+
 namespace belr{
 	
-string tolower(const string &str);
+BELR_PUBLIC string tolower(const string &str);
 
 class ParserContextBase;
 
@@ -26,7 +32,7 @@ class Recognizer : public enable_shared_from_this<Recognizer>{
 public:
 	void setName(const string &name);
 	const string &getName()const;
-	size_t feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
+	BELR_PUBLIC size_t feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos);
 	unsigned int getId()const{
 		return mId;
 	}
@@ -193,7 +199,7 @@ public:
 	 * @param name the name of the rule
 	 * @return the recognizer implementing this rule. Is NULL if the rule doesn't exist in the grammar.
 	**/
-	shared_ptr<Recognizer> findRule(const string &name);
+	BELR_PUBLIC shared_ptr<Recognizer> findRule(const string &name);
 	/**
 	 * Find a rule from the grammar, given its name.
 	 * Unlike findRule(), getRule() never returns NULL. 
@@ -202,12 +208,12 @@ public:
 	 * @param name the name of the rule to get
 	 * @return the recognizer implementing the rule, or a RecognizerPointer if the rule isn't yet defined.
 	**/
-	shared_ptr<Recognizer> getRule(const string &name);
+	BELR_PUBLIC shared_ptr<Recognizer> getRule(const string &name);
 	/**
 	 * Returns true if the grammar is complete, that is all rules are defined.
 	 * In other words, a grammar is complete if no rule depends on another rule which is not defined.
 	**/
-	bool isComplete()const;
+	BELR_PUBLIC bool isComplete()const;
 	/**
 	 * Optimize the grammar. This is required to obtain good performance of the recognizers implementing the rule.
 	 * The optimization step consists in checking whether belr::Selector objects in the grammar are exclusive or not.

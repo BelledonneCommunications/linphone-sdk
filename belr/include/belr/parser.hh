@@ -120,7 +120,7 @@ public:
 
 class HandlerContextBase : public enable_shared_from_this<HandlerContextBase>{
 public:
-	virtual ~HandlerContextBase();
+	BELR_PUBLIC virtual ~HandlerContextBase();
 };
 
 template <typename _parserElementT>

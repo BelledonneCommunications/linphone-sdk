@@ -134,7 +134,7 @@ public:
 	/**
 	 * Initialize the builder.
 	**/
-	ABNFGrammarBuilder();
+	BELR_PUBLIC ABNFGrammarBuilder();
 	/**
 	 * Create a grammar from an ABNF grammar defined in the string pointed by abnf.
 	 * An optional Grammar argument corresponding to a grammar to include can be passed.
@@ -145,7 +145,7 @@ public:
 	 * @param grammar an optional grammar to include.
 	 * @return the Grammar object corresponding to the text definition loaded, NULL if an error occured.
 	**/
-	shared_ptr<Grammar> createFromAbnf(const string &abnf, const shared_ptr<Grammar> &grammar=NULL);
+	BELR_PUBLIC shared_ptr<Grammar> createFromAbnf(const string &abnf, const shared_ptr<Grammar> &grammar=NULL);
 	/**
 	 * Create a grammar from an ABNF grammar defined in the text file pointed by path.
 	 * An optional Grammar argument corresponding to a grammar to include can be passed.
@@ -156,7 +156,7 @@ public:
 	 * @param grammar an optional grammar to include.
 	 * @return the Grammar object corresponding to the text definition loaded, NULL if an error occured.
 	**/
-	shared_ptr<Grammar> createFromAbnfFile(const string &path, const shared_ptr<Grammar> &grammar=NULL);
+	BELR_PUBLIC shared_ptr<Grammar> createFromAbnfFile(const string &path, const shared_ptr<Grammar> &grammar=NULL);
 private:
 	Parser<shared_ptr<ABNFBuilder>> mParser;
 };
