@@ -18,13 +18,13 @@
 
 #include "belcard/vcard_grammar.hpp"
 
-const char *vcard_grammar = R"==GRAMMAR==(vcard-list = vcard *vcard
+const char *vcard_grammar = R"==GRAMMAR==(
+vcard-list = vcard *vcard
 
 vcard = "BEGIN:VCARD" CRLF
 		"VERSION:4.0" CRLF
 		1*property
 		"END:VCARD" CRLF
-
 property = SOURCE / KIND / XML 
 			/ FN / N / NICKNAME / PHOTO / BDAY / ANNIVERSARY / GENDER 
 			/ ADR 
@@ -86,7 +86,8 @@ NICKNAME-value = text-list
 BDAY = [group "."] "BDAY" *(";" BDAY-param) ":" BDAY-value CRLF
 BDAY-param = VALUE-param / LANGUAGE-param / ALTID-param / CALSCALE-param / any-param
 BDAY-value = date-and-or-time / text
-
+)==GRAMMAR=="
+R"==GRAMMAR==(
 ANNIVERSARY = [group "."] "ANNIVERSARY" *(";" ANNIVERSARY-param) ":" ANNIVERSARY-value CRLF
 ANNIVERSARY-param = VALUE-param / ALTID-param / CALSCALE-param / any-param
 ANNIVERSARY-value = date-and-or-time / text
@@ -153,7 +154,8 @@ LOGO = [group "."] "LOGO" *(";" LOGO-param) ":" LOGO-value CRLF
 LOGO-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param 
 			/ TYPE-param / MEDIATYPE-param / ALTID-param / any-param
 LOGO-value = URI
-
+)==GRAMMAR=="
+R"==GRAMMAR==(
 ORG = [group "."] "ORG" *(";" ORG-param) ":" ORG-value CRLF
 ORG-param = VALUE-param / SORT-AS-param / LANGUAGE-param / PID-param 
 			/ PREF-param / ALTID-param / TYPE-param / any-param
@@ -220,7 +222,8 @@ CALURI = [group "."] "CALURI" *(";" CALURI-param) ":" CALURI-value CRLF
 CALURI-param = VALUE-param / PID-param / PREF-param / TYPE-param 
 			/ MEDIATYPE-param / ALTID-param / any-param
 CALURI-value = URI
-
+)==GRAMMAR=="
+R"==GRAMMAR==(
 BIRTHPLACE = [group "."] "BIRTHPLACE" *(";" BIRTHPLACE-param) ":" BIRTHPLACE-value CRLF
 BIRTHPLACE-param = VALUE-param / ALTID-param / LANGUAGE-param / any-param
 BIRTHPLACE-value = text / URI
@@ -287,7 +290,8 @@ any-param  = param-name "=" param-value
 param-name = (iana-token / x-name)
 param-value = param-value-component *("," param-value-component)
 param-value-component = *SAFE-CHAR /  (DQUOTE *QSAFE-CHAR DQUOTE)
-
+)==GRAMMAR=="
+R"==GRAMMAR==(
 iana-token = 1*(ALPHA / DIGIT / "-")
 x-name = "x-" 1*(ALPHA / DIGIT / "-")
 
@@ -352,7 +356,8 @@ timestamp = date-complete time-designator time-complete
 date-and-or-time = date-time / date / time-designator time
 
 utc-offset = sign hour [minute]
-
+)==GRAMMAR=="
+R"==GRAMMAR==(
 type-param-related = related-type-value *("," related-type-value)
 related-type-value = "contact" / "acquaintance" / "friend" / "met"
 					/ "co-worker" / "colleague" / "co-resident"
@@ -421,7 +426,8 @@ path          = path-abempty    ; begins with "/" or is empty
 				/ path-noscheme   ; begins with a non-colon segment
 				/ path-rootless   ; begins with a segment
 				/ path-empty      ; zero characters
-
+)==GRAMMAR=="
+R"==GRAMMAR==(
 path-abempty  = *( "/" segment )
 path-absolute = "/" [ segment-nz *( "/" segment ) ]
 path-noscheme = segment-nz-nc *( "/" segment )
@@ -486,7 +492,8 @@ privateuse    = "x" 1*("-" (1*8alphanum))
 
 grandfathered = irregular             ; non-redundant tags registered
 				/ regular             ; during the RFC 3066 era
-
+)==GRAMMAR=="
+R"==GRAMMAR==(
 irregular     = "en-GB-oed"           ; irregular tags do not match
 				/ "i-ami"             ; the 'langtag' production and
 				/ "i-bnn"             ; would not otherwise be
