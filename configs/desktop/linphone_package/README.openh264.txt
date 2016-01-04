@@ -13,8 +13,8 @@ that binary file as a restrictive licence. See http://www.openh264.org/BINARY_LI
 Installation procedure
 ----------------------
 The Cisco's provided OpenH264 library is available at this address:
-http://ciscobinary.openh264.org/libopenh264-1.4.0-osx64.dylib.bz2 for MacOS
-http://ciscobinary.openh264.org/openh264-1.4.0-win32msvc.dll.bz2 for Windows (32 bit)
+http://ciscobinary.openh264.org/libopenh264-1.5.0-osx64.dylib.bz2 for MacOS
+http://ciscobinary.openh264.org/openh264-1.5.0-win32msvc.dll.bz2 for Windows (32 bit)
 
 Once you get the library, uncompress it into <SDK_location>/lib/libopenh264.0.dylib
 On Windows, the library must be installed into <SDK_location>\bin\openh264.dll
