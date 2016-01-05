@@ -4332,10 +4332,13 @@ int dns_resconf_loadandroid(struct dns_resolv_conf *resconf) {
 	int error = 0;
 	int i;
 
-	for (i = 1; !error && (i <= lengthof(resconf->nameserver)); i++, sa_count++) {
+	for (i = 1; !error && (i <= lengthof(resconf->nameserver)); i++) {
 		snprintf(prop_name, sizeof(prop_name), "net.dns%d", i);
 		if (__system_property_get(prop_name, dns) > 0) {
-			error = dns_resconf_pton(&resconf->nameserver[sa_count], dns);
+			/*if the prop value contains IPv6 address with %wlan0 (link local ipv6), it will fail but no matter*/
+			if (dns_resconf_pton(&resconf->nameserver[sa_count], dns) == 0){
+				sa_count++;
+			}
 		}
 	}
 
