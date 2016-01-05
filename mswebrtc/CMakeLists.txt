@@ -42,7 +42,7 @@ set_property(CACHE ISAC_FLAVOUR PROPERTY STRINGS "fix" "main")
 option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 
 
-if(NOT ENABLE_AECM AND NOT ENABLE_ISAC)
+if(NOT ENABLE_AECM AND NOT ENABLE_ISAC AND NOT ENABLE_ILBC)
 	message(FATAL_ERROR "You need to enable at least one feature of WebRTC.")
 endif()
 
