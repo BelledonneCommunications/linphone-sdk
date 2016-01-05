@@ -414,10 +414,28 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 		}
 		request=belle_sip_dialog_create_request_from(dialog,old_request);
 		if (strcmp(belle_sip_request_get_method(request),"SUBSCRIBE")==0) {
+			belle_sip_header_content_type_t *content_type;
 			/*put expire header*/
 			if (!(expires_header = belle_sip_message_get_header_by_type(request,belle_sip_header_expires_t))) {
 				expires_header = belle_sip_header_expires_new();
 				belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_HEADER(expires_header));
+			}
+			if ((content_type = belle_sip_message_get_header_by_type(request, belle_sip_header_content_type_t))
+				&& strcasecmp("application", belle_sip_header_content_type_get_type(content_type)) == 0
+				&& strcasecmp("resource-lists+xml", belle_sip_header_content_type_get_subtype(content_type)) == 0) {
+				/*rfc5367
+				 3.2.  Subsequent SUBSCRIBE Requests
+				 ...
+				 At this point, there are no semantics associated with resource-list
+				 bodies in subsequent SUBSCRIBE requests (although future extensions
+				 can define them).  Therefore, UACs SHOULD NOT include resource-list
+				 bodies in subsequent SUBSCRIBE requests to a resource list server.
+				 */
+				belle_sip_message("Removing body, content type and content length for refresher [%p]",refresher);
+				belle_sip_message_set_body(BELLE_SIP_MESSAGE(request), NULL, 0);
+				belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CONTENT_TYPE);
+				belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CONTENT_LENGTH);
+				
 			}
 		}
 		belle_sip_provider_add_authorization(prov,request,old_response,NULL,auth_infos,refresher->realm);

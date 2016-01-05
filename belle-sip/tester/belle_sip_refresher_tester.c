@@ -74,6 +74,7 @@ typedef struct endpoint {
 	int transiant_network_failure;
 	belle_sip_refresher_t* refresher;
 	int early_refresher;
+	int number_of_body_found;
 } endpoint_t;
 
 
@@ -251,6 +252,9 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 	if (endpoint->received) {
 		via=belle_sip_message_get_header_by_type(req,belle_sip_header_via_t);
 		belle_sip_header_via_set_received(via,endpoint->received);
+	}
+	if (belle_sip_message_get_body(BELLE_SIP_MESSAGE(req))) {
+		endpoint->number_of_body_found++;
 	}
 	belle_sip_server_transaction_send_response(server_transaction,resp);
 }
@@ -480,8 +484,17 @@ static void refresher_base_with_param(const char* method, unsigned char expire_i
 static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t auth_mode) {
 	refresher_base_with_param("REGISTER",expire_in_contact,auth_mode);
 }
+static char *list =	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+						"<resource-lists xmlns=\"urn:ietf:params:xml:ns:resource-lists\"\n"
+						"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n"
+						"<list>\n"
+							"\t<entry uri=\"sip:marie@sexample.com\" />\n"
+							"\t<entry uri=\"sip:pauline@sexample.com\" />\n"
+						"</list>\n"
+					"</resource-lists>\n";
 
-static void subscribe_test(void) {
+
+static void subscribe_base(int with_resource_lists) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
 	belle_sip_request_t* req;
@@ -528,6 +541,11 @@ static void subscribe_test(void) {
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_create("Event","Presence")));
 
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(destination_route));
+	if (with_resource_lists) {
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_content_type_create("application","resource-lists+xml")));
+		belle_sip_message_set_body(BELLE_SIP_MESSAGE(req), list, strlen(list));
+	}
+		
 	trans=belle_sip_provider_create_client_transaction(client->provider,req);
 	belle_sip_object_ref(trans);/*to avoid trans from being deleted before refresher can use it*/
 	belle_sip_client_transaction_send_request(trans);
@@ -560,10 +578,22 @@ static void subscribe_test(void) {
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.dialogTerminated,1,4000));
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&server->stat.dialogTerminated,1,4000));
 	belle_sip_object_unref(refresher);
+	
+	if (with_resource_lists) {
+		BC_ASSERT_EQUAL(server->number_of_body_found, (server->auth == none ?1:2), int, "%i");
+	}
+	
 	destroy_endpoint(client);
 	destroy_endpoint(server);
 }
 
+static void subscribe_test(void) {
+	subscribe_base(FALSE);
+}
+static void subscribe_list_test(void) {
+	subscribe_base(TRUE);
+}
+									 
 static void register_expires_header(void) {
 	register_test_with_param(0,none);
 }
@@ -797,6 +827,7 @@ test_t refresher_tests[] = {
 	{ "REGISTER with failure", register_with_failure },
 	{ "REGISTER with early refresher",register_early_refresher},
 	{ "SUBSCRIBE", subscribe_test },
+	{ "SUBSCRIBE of list" , subscribe_list_test },
 	{ "PUBLISH", simple_publish },
 	{ "PUBLISH with early refresher", simple_publish_with_early_refresher },
 	{ "REGISTER with unrecognizable Contact", register_with_unrecognizable_contact },
