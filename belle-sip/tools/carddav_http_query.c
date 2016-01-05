@@ -39,10 +39,13 @@ typedef struct _CardDavRequest {
 
 static void process_response_from_post_xml_rpc_request(void *data, const belle_http_response_event_t *event) {
 	CardDavRequest *request = (CardDavRequest *)data;
+	
 	if (event->response) {
 		int code = belle_http_response_get_status_code(event->response);
 		belle_sip_message("HTTP code: %i", code);
-		if (code == 207) {
+		if (code == 207 || code == 200) {
+			/*const char *body = belle_sip_message_get_body((belle_sip_message_t *)event->response);
+			belle_sip_message("%s", body);*/
 			request->request_in_progress = 0;
 		}
 	}
@@ -56,11 +59,12 @@ static void process_io_error_from_post_xml_rpc_request(void *data, const belle_s
 
 static void process_auth_requested_from_post_xml_rpc_request(void *data, belle_sip_auth_event_t *event) {
 	CardDavRequest *request = (CardDavRequest *)data;
-	belle_sip_error("Authentication error during request sending");
+	
 	if (request->digest_auth_username && request->digest_auth_password) {
 		belle_sip_auth_event_set_username(event, request->digest_auth_username);
 		belle_sip_auth_event_set_passwd(event, request->digest_auth_password);
 	} else {
+		belle_sip_error("Authentication error during request sending");
 		request->request_in_progress = 0;
 	}
 }
@@ -130,6 +134,11 @@ int main(int argc, char *argv[]) {
 	request->url = "http://192.168.0.230/sabredav/addressbookserver.php/addressbooks/sylvain/default";
 	request->method = "REPORT";
 	request->body = "<card:addressbook-query xmlns:d=\"DAV:\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\"><d:prop><d:getetag /><card:address-data content-type='text-vcard' version='4.0'/></d:prop></card:addressbook-query>";
+	request->depth = "1";
+	
+	request->url = "http://192.168.0.230/sabredav/addressbookserver.php/addressbooks/sylvain/default";
+	request->method = "REPORT";
+	request->body = "<card:addressbook-multiget xmlns:d=\"DAV:\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\"><d:prop><d:getetag /><card:address-data content-type='text-vcard' version='4.0'/></d:prop><d:href>/sabredav/addressbookserver.php/addressbooks/sylvain/default/me.vcf</d:href></card:addressbook-multiget>"
 	request->depth = "1";
 */
 	
