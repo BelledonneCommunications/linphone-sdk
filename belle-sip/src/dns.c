@@ -4020,6 +4020,7 @@ static enum dns_resconf_keyword dns_resconf_keyword(const char *word) {
 static int dns_resconf_pton(struct sockaddr_storage *ss, const char *src) {
 	struct { char buf[128], *p; } addr = { "", addr.buf };
 	unsigned short port = 0;
+	char *percent;
 	int ch, af = AF_INET, error;
 
 	while ((ch = *src++)) {
@@ -4051,7 +4052,9 @@ static int dns_resconf_pton(struct sockaddr_storage *ss, const char *src) {
 		} /* switch() */
 	} /* while() */
 inet:
-
+	if ( (percent = strchr(addr.buf, '%')) != NULL){
+		*percent = '\0'; /*ignore %<if-name> specifier of link local addresses*/
+	}
 	if ((error = dns_pton(af, addr.buf, dns_sa_addr(af, ss))))
 		return error;
 
@@ -4335,7 +4338,6 @@ int dns_resconf_loadandroid(struct dns_resolv_conf *resconf) {
 	for (i = 1; !error && (i <= lengthof(resconf->nameserver)); i++) {
 		snprintf(prop_name, sizeof(prop_name), "net.dns%d", i);
 		if (__system_property_get(prop_name, dns) > 0) {
-			/*if the prop value contains IPv6 address with %wlan0 (link local ipv6), it will fail but no matter*/
 			if (dns_resconf_pton(&resconf->nameserver[sa_count], dns) == 0){
 				sa_count++;
 			}
