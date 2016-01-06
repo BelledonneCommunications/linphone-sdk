@@ -1,6 +1,9 @@
-﻿using ms2_tester_runtime_component;
+﻿using ms2_tester.Helpers;
+using ms2_tester_runtime_component;
+using MS2TesterTasks;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -136,11 +139,35 @@ namespace ms2_tester
                 UInt32.TryParse((FramerateComboBox.SelectedItem as ComboBoxItem).Content as String, out frameRate);
                 UInt32 bitRate = 1500;
                 UInt32.TryParse(BitrateTextBox.Text, out bitRate);
-                MS2Tester.Instance.startVideoStream(LocalVideo, RemoteVideo, camera, codec, videoSize, frameRate, bitRate);
+                //MS2Tester.Instance.startVideoStream(LocalVideo, RemoteVideo, camera, codec, videoSize, frameRate, bitRate);
+                StartVideoStream(camera, codec, videoSize, frameRate, bitRate);
             }
             else
             {
                 MS2Tester.Instance.stopVideoStream();
+            }
+        }
+
+        private async void StartVideoStream(String camera, String codec, String videoSize, UInt32 frameRate, UInt32 bitRate)
+        {
+            try
+            {
+                OperationResult result = await MS2TesterHelper.StartVideoStreamAsync(camera, codec, videoSize, frameRate, bitRate);
+                if (result == OperationResult.Succeeded)
+                {
+                    Debug.WriteLine("StartVideoStream: success");
+                }
+                else
+                {
+                    Debug.WriteLine("StartVideoStream: failure");
+                }
+            }
+            catch (Exception /*e*/)
+            {
+                //if (e.HResult == MethodCallUnexpectedTime)
+                //{
+                Debug.WriteLine("StartVideoStream: Async operation already in progress");
+                //}
             }
         }
 
