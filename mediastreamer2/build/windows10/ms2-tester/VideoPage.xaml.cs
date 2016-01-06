@@ -69,6 +69,17 @@ namespace ms2_tester
             Window.Current.SizeChanged -= Current_SizeChanged;
         }
 
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            _source = new libmswinrtvid.SwapChainPanelSource();
+            _source.Start(VideoSwapChainPanel);
+        }
+
+        private void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            _source.Stop();
+        }
+
         private async void OrientationSensor_OrientationChanged(SimpleOrientationSensor sender, SimpleOrientationSensorOrientationChangedEventArgs args)
         {
             // Keep previous orientation when the user puts its device faceup or facedown
@@ -228,5 +239,6 @@ namespace ms2_tester
         private DisplayInformation displayInformation;
         private SimpleOrientationSensor orientationSensor;
         private SimpleOrientation deviceOrientation;
+        private libmswinrtvid.SwapChainPanelSource _source;
     }
 }
