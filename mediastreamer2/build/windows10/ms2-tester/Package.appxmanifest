@@ -24,6 +24,9 @@
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
       <Extensions>
+        <uap:Extension Category="windows.appService" EntryPoint="MS2TesterTasks.AppService">
+          <uap:AppService Name="MS2TesterTasks.AppService" ServerName="MS2TesterHost" />
+        </uap:Extension>
         <uap:Extension Category="windows.protocol">
           <uap:Protocol Name="ms2-tester" />
         </uap:Extension>
