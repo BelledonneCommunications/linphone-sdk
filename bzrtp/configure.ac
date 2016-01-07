@@ -89,7 +89,7 @@ if test "$mbedtls_found" != "yes" ; then
 									   ],
 				[
 					dnl try -lmbedtls for mbedtls 1.3 which is actually the same as polarssl.
-					AC_CHECK_LIB(polarssl, ssl_init , [
+					AC_CHECK_LIB(mbedtls, ssl_init , [
 										POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"
 										polarssl_found=yes
 										AC_MSG_NOTICE("Use mbedtls 1.3 as crypto library")
