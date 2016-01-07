@@ -87,7 +87,16 @@ if test "$mbedtls_found" != "yes" ; then
 										polarssl_found=yes
 										AC_MSG_NOTICE("Use polar SSL as crypto library")
 									   ],
-				 [AC_MSG_ERROR([MbedTLS nor PolarSSL library not found])])
+				[
+					dnl try -lmbedtls for mbedtls 1.3 which is actually the same as polarssl.
+					AC_CHECK_LIB(polarssl, ssl_init , [
+										POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"
+										polarssl_found=yes
+										AC_MSG_NOTICE("Use mbedtls 1.3 as crypto library")
+									   ],
+					[AC_MSG_ERROR([MbedTLS nor PolarSSL library not found])])
+				]
+	)
 
 	LIBS=$LIBS_save
 
