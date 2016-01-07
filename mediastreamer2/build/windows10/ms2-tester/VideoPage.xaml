@@ -5,7 +5,7 @@
     xmlns:local="using:ms2_tester"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d" Loaded="Page_Loaded" Unloaded="Page_Unloaded">
+    mc:Ignorable="d">
 
     <Page.BottomAppBar>
         <CommandBar x:Name="CommandBar">

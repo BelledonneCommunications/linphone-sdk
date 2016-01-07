@@ -45,7 +45,7 @@ namespace MS2TesterTasks
             }
         }
 
-        public static AppServiceDeferral AppRequestDeferal
+        public static AppServiceDeferral AppRequestDeferral
         {
             set
             {
@@ -64,11 +64,67 @@ namespace MS2TesterTasks
         }
 
 
-        public static void StartVideoStream(String camera, String codec, String videoSize, UInt32 frameRate, UInt32 bitRate)
+        public static void InitVideo()
         {
             lock (_lock)
             {
-                ms2_tester_runtime_component.MS2Tester.Instance.startVideoStream(null, null, camera, codec, videoSize, frameRate, bitRate);
+                ms2_tester_runtime_component.MS2Tester.Instance.initVideo();
+            }
+        }
+
+        public static void UninitVideo()
+        {
+            lock (_lock)
+            {
+                ms2_tester_runtime_component.MS2Tester.Instance.uninitVideo();
+            }
+        }
+
+        public static List<String> GetVideoDevices()
+        {
+            lock (_lock)
+            {
+                return ms2_tester_runtime_component.MS2Tester.Instance.VideoDevices.ToList<String>();
+            }
+        }
+
+        public static void StartVideoStream(String swapChainPanelName, String camera, String codec, String videoSize, UInt32 frameRate, UInt32 bitRate)
+        {
+            lock (_lock)
+            {
+                ms2_tester_runtime_component.MS2Tester.Instance.startVideoStream(swapChainPanelName, camera, codec, videoSize, frameRate, bitRate);
+            }
+        }
+
+        public static void StopVideoStream()
+        {
+            lock (_lock)
+            {
+                ms2_tester_runtime_component.MS2Tester.Instance.stopVideoStream();
+            }
+        }
+
+        public static void ChangeCamera(String camera)
+        {
+            lock (_lock)
+            {
+                ms2_tester_runtime_component.MS2Tester.Instance.changeCamera(camera);
+            }
+        }
+
+        public static int GetOrientation()
+        {
+            lock (_lock)
+            {
+                return ms2_tester_runtime_component.MS2Tester.Instance.getOrientation();
+            }
+        }
+
+        public static void SetOrientation(int degrees)
+        {
+            lock (_lock)
+            {
+                ms2_tester_runtime_component.MS2Tester.Instance.setOrientation(degrees);
             }
         }
 

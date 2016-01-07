@@ -24,39 +24,95 @@ namespace MS2TesterTasks
             connection.RequestReceived += Connection_RequestReceived;
         }
 
-        private void Connection_RequestReceived(AppServiceConnection sender, AppServiceRequestReceivedEventArgs args)
+        private async void Connection_RequestReceived(AppServiceConnection sender, AppServiceRequestReceivedEventArgs args)
         {
             var deferral = args.GetDeferral();
             var response = new ValueSet();
+            response[BackgroundOperation.Result] = (int)OperationResult.Failed;
             bool stop = false;
             try
             {
-                var request = args.Request;
-                var message = request.Message;
+                var message = args.Request.Message;
                 if (message.ContainsKey(BackgroundOperation.NewBackgroundRequest))
                 {
                     switch ((BackgroundRequest)message[BackgroundOperation.NewBackgroundRequest])
                     {
+                        case BackgroundRequest.InitVideo:
+                            CurrentOperation.AppRequest = args.Request;
+                            CurrentOperation.Request = BackgroundRequest.InitVideo;
+                            CurrentOperation.AppRequestDeferral = deferral;
+                            CurrentOperation.InitVideo();
+                            response[BackgroundOperation.Result] = (int)OperationResult.Succeeded;
+                            break;
+                        case BackgroundRequest.UninitVideo:
+                            CurrentOperation.AppRequest = args.Request;
+                            CurrentOperation.Request = BackgroundRequest.UninitVideo;
+                            CurrentOperation.AppRequestDeferral = deferral;
+                            CurrentOperation.UninitVideo();
+                            response[BackgroundOperation.Result] = (int)OperationResult.Succeeded;
+                            break;
+                        case BackgroundRequest.GetVideoDevices:
+                            CurrentOperation.AppRequest = args.Request;
+                            CurrentOperation.Request = BackgroundRequest.GetVideoDevices;
+                            CurrentOperation.AppRequestDeferral = deferral;
+                            response[BackgroundOperation.ReturnValue] = CurrentOperation.GetVideoDevices().ToArray();
+                            response[BackgroundOperation.Result] = (int)OperationResult.Succeeded;
+                            break;
                         case BackgroundRequest.StartVideoStream:
                             CurrentOperation.AppRequest = args.Request;
                             CurrentOperation.Request = BackgroundRequest.StartVideoStream;
-                            CurrentOperation.AppRequestDeferal = deferral;
+                            CurrentOperation.AppRequestDeferral = deferral;
                             CurrentOperation.StartVideoStream(
+                                message[StartVideoStreamArguments.SwapChainPanelName.ToString()] as String,
                                 message[StartVideoStreamArguments.Camera.ToString()] as String,
                                 message[StartVideoStreamArguments.Codec.ToString()] as String,
                                 message[StartVideoStreamArguments.VideoSize.ToString()] as String,
                                 Convert.ToUInt32(message[StartVideoStreamArguments.FrameRate.ToString()]),
                                 Convert.ToUInt32(message[StartVideoStreamArguments.BitRate.ToString()]));
+                            response[BackgroundOperation.Result] = (int)OperationResult.Succeeded;
+                            break;
+                        case BackgroundRequest.StopVideoStream:
+                            CurrentOperation.AppRequest = args.Request;
+                            CurrentOperation.Request = BackgroundRequest.StopVideoStream;
+                            CurrentOperation.AppRequestDeferral = deferral;
+                            CurrentOperation.StopVideoStream();
+                            response[BackgroundOperation.Result] = (int)OperationResult.Succeeded;
+                            break;
+                        case BackgroundRequest.ChangeCamera:
+                            CurrentOperation.AppRequest = args.Request;
+                            CurrentOperation.Request = BackgroundRequest.ChangeCamera;
+                            CurrentOperation.AppRequestDeferral = deferral;
+                            CurrentOperation.ChangeCamera(message[ChangeCameraArguments.Camera.ToString()] as String);
+                            response[BackgroundOperation.Result] = (int)OperationResult.Succeeded;
+                            break;
+                        case BackgroundRequest.GetOrientation:
+                            CurrentOperation.AppRequest = args.Request;
+                            CurrentOperation.Request = BackgroundRequest.GetOrientation;
+                            CurrentOperation.AppRequestDeferral = deferral;
+                            response[BackgroundOperation.ReturnValue] = CurrentOperation.GetOrientation();
+                            response[BackgroundOperation.Result] = (int)OperationResult.Succeeded;
+                            break;
+                        case BackgroundRequest.SetOrientation:
+                            CurrentOperation.AppRequest = args.Request;
+                            CurrentOperation.Request = BackgroundRequest.SetOrientation;
+                            CurrentOperation.AppRequestDeferral = deferral;
+                            CurrentOperation.SetOrientation(Convert.ToInt32(message[SetOrientationArguments.Degrees.ToString()]));
+                            response[BackgroundOperation.Result] = (int)OperationResult.Succeeded;
+                            break;
+                        default:
+                            stop = true;
                             break;
                     }
                 }
             }
             finally
             {
-
                 if (stop)
                 {
                     _deferral.Complete();
+                } else
+                {
+                    await args.Request.SendResponseAsync(response);
                 }
             }
         }

@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading.Tasks;
 using Windows.Devices.Sensors;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
@@ -32,16 +33,8 @@ namespace ms2_tester
         public VideoPage()
         {
             this.InitializeComponent();
-            MS2Tester.Instance.initVideo();
-            bool isSelected = true;
-            foreach (String device in MS2Tester.Instance.VideoDevices)
-            {
-                ComboBoxItem item = new ComboBoxItem();
-                item.Content = device;
-                item.IsSelected = isSelected;
-                isSelected = false;
-                CameraComboBox.Items.Add(item);
-            }
+            InitVideo();
+            FillCameraComboBox();
         }
 
         override protected void OnNavigatedTo(Windows.UI.Xaml.Navigation.NavigationEventArgs e)
@@ -69,17 +62,6 @@ namespace ms2_tester
             Window.Current.SizeChanged -= Current_SizeChanged;
         }
 
-        private void Page_Loaded(object sender, RoutedEventArgs e)
-        {
-            _source = new libmswinrtvid.SwapChainPanelSource();
-            _source.Start(VideoSwapChainPanel);
-        }
-
-        private void Page_Unloaded(object sender, RoutedEventArgs e)
-        {
-            _source.Stop();
-        }
-
         private async void OrientationSensor_OrientationChanged(SimpleOrientationSensor sender, SimpleOrientationSensorOrientationChangedEventArgs args)
         {
             // Keep previous orientation when the user puts its device faceup or facedown
@@ -98,7 +80,7 @@ namespace ms2_tester
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
         {
-            MS2Tester.Instance.uninitVideo();
+            UninitVideo();
             ((Frame)Window.Current.Content).GoBack();
         }
 
@@ -155,15 +137,96 @@ namespace ms2_tester
             }
             else
             {
-                MS2Tester.Instance.stopVideoStream();
+                if (_source != null)
+                {
+                    _source.Stop();
+                }
+                StopVideoStream();
             }
+        }
+
+        private async void FillCameraComboBox()
+        {
+            bool isSelected = true;
+            List<String> videoDevices = await GetVideoDevices();
+            foreach (String device in videoDevices)
+            {
+                ComboBoxItem item = new ComboBoxItem();
+                item.Content = device;
+                item.IsSelected = isSelected;
+                isSelected = false;
+                CameraComboBox.Items.Add(item);
+            }
+        }
+
+        private async void InitVideo()
+        {
+            try
+            {
+                OperationResult result = await MS2TesterHelper.InitVideo();
+                if (result == OperationResult.Succeeded)
+                {
+                    Debug.WriteLine("InitVideo: success");
+                } else
+                {
+                    Debug.WriteLine("InitVideo: failure");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(String.Format("InitVideo: Exception {0}", e.Message));
+            }
+        }
+
+        private async void UninitVideo()
+        {
+            try
+            {
+                OperationResult result = await MS2TesterHelper.UninitVideo();
+                if (result == OperationResult.Succeeded)
+                {
+                    Debug.WriteLine("UninitVideo: success");
+                }
+                else
+                {
+                    Debug.WriteLine("UninitVideo: failure");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(String.Format("UninitVideo: Exception {0}", e.Message));
+            }
+        }
+
+        private async Task<List<String>> GetVideoDevices()
+        {
+            List<String> result = null;
+            try
+            {
+                result = await MS2TesterHelper.GetVideoDevices();
+                if (result != null)
+                {
+                    Debug.WriteLine("GetVideoDevices: success");
+                }
+                else
+                {
+                    Debug.WriteLine("GetVideoDevices: failure");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(String.Format("GetVideoDevices: Exception {0}", e.Message));
+            }
+            return result;
         }
 
         private async void StartVideoStream(String camera, String codec, String videoSize, UInt32 frameRate, UInt32 bitRate)
         {
             try
             {
-                OperationResult result = await MS2TesterHelper.StartVideoStreamAsync(camera, codec, videoSize, frameRate, bitRate);
+                _source = new libmswinrtvid.SwapChainPanelSource();
+                _source.Start(VideoSwapChainPanel);
+                OperationResult result = await MS2TesterHelper.StartVideoStream(VideoSwapChainPanel.Name, camera, codec, videoSize, frameRate, bitRate);
                 if (result == OperationResult.Succeeded)
                 {
                     Debug.WriteLine("StartVideoStream: success");
@@ -173,22 +236,93 @@ namespace ms2_tester
                     Debug.WriteLine("StartVideoStream: failure");
                 }
             }
-            catch (Exception /*e*/)
+            catch (Exception e)
             {
-                //if (e.HResult == MethodCallUnexpectedTime)
-                //{
-                Debug.WriteLine("StartVideoStream: Async operation already in progress");
-                //}
+                Debug.WriteLine(String.Format("StartVideoStream: Exception {0}", e.Message));
+            }
+        }
+
+        private async void StopVideoStream()
+        {
+            try
+            {
+                OperationResult result = await MS2TesterHelper.StopVideoStream();
+                if (result == OperationResult.Succeeded)
+                {
+                    Debug.WriteLine("StopVideoStream: success");
+                }
+                else
+                {
+                    Debug.WriteLine("StopVideoStream: failure");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(String.Format("StopVideoStream: Exception {0}", e.Message));
+            }
+        }
+
+        private async void ChangeCamera(String camera)
+        {
+            try
+            {
+                OperationResult result = await MS2TesterHelper.ChangeCamera(camera);
+                if (result == OperationResult.Succeeded)
+                {
+                    Debug.WriteLine("ChangeCamera: success");
+                }
+                else
+                {
+                    Debug.WriteLine("ChangeCamera: failure");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(String.Format("ChangeCamera: Exception {0}", e.Message));
+            }
+        }
+
+        private async Task<int> GetOrientation()
+        {
+            int result = 0;
+            try
+            {
+                result = await MS2TesterHelper.GetOrientation();
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(String.Format("GetVideoDevices: Exception {0}", e.Message));
+            }
+            return result;
+        }
+
+        private async void SetOrientation(int degrees)
+        {
+            try
+            {
+                OperationResult result = await MS2TesterHelper.SetOrientation(degrees);
+                if (result == OperationResult.Succeeded)
+                {
+                    Debug.WriteLine("SetOrientation: success");
+                }
+                else
+                {
+                    Debug.WriteLine("SetOrientation: failure");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(String.Format("SetOrientation: Exception {0}", e.Message));
             }
         }
 
         private void ChangeCameraButton_Click(object sender, RoutedEventArgs e)
         {
             String camera = (CameraComboBox.SelectedItem as ComboBoxItem).Content as String;
-            MS2Tester.Instance.changeCamera(camera);
+            ChangeCamera(camera);
         }
 
-        private void SetVideoOrientation()
+        private async void SetVideoOrientation()
         {
             SimpleOrientation orientation = deviceOrientation;
             if (displayInformation.NativeOrientation == DisplayOrientations.Portrait)
@@ -228,9 +362,10 @@ namespace ms2_tester
                     break;
             }
 
-            if (MS2Tester.Instance.getOrientation() != degrees)
+            int currentDegrees = await GetOrientation();
+            if (currentDegrees != degrees)
             {
-                MS2Tester.Instance.setOrientation(degrees);
+                SetOrientation(degrees);
             }
         }
 
