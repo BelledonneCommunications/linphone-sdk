@@ -1,0 +1,149 @@
+############################################################################
+# CMakeLists.txt
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
+#
+############################################################################
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+############################################################################
+
+cmake_minimum_required(VERSION 3.0)
+project(BCTOOLBOX C CXX)
+
+
+set(PACKAGE "bctoolbox")
+set(PACKAGE_NAME "${PACKAGE}")
+set(PACKAGE_VERSION "0.0.1")
+set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
+set(PACKAGE_BUGREPORT "jehan.monnier@linphone.org")
+set(PACKAGE_TARNAME "bctoolbox")
+set(PACKAGE_URL "")
+set(VERSION "${PACKAGE_VERSION}")
+
+
+include(CheckLibraryExists)
+include(CheckSymbolExists)
+include(CheckCSourceCompiles)
+include(CMakePushCheckState)
+
+set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
+if(MSVC)
+	list(APPEND CMAKE_REQUIRED_INCLUDES ${MSVC_INCLUDE_DIR})
+endif()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+find_package(PolarSSL REQUIRED)
+
+set(prefix ${CMAKE_INSTALL_PREFIX})
+set(exec_prefix ${prefix}/bin)
+set(libdir ${prefix}/lib)
+set(includedir ${prefix}/include)
+
+get_filename_component(polarssl_library_path "${POLARSSL_LIBRARIES}" PATH)
+set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${polarssl_library_path} -lpolarssl")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bctoolbox.pc.in ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc DESTINATION lib/pkgconfig)
+
+
+include_directories(
+	include
+	src
+	${POLARSSL_INCLUDE_DIRS}
+)
+if(MSVC)
+	include_directories(${MSVC_INCLUDE_DIR})
+endif()
+
+set(STRICT_OPTIONS_CPP )
+set(STRICT_OPTIONS_C )
+if(NOT MSVC)
+	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized")
+	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=unknown-warning-option" "-Qunused-arguments" "-Wno-tautological-compare" "-Wno-builtin-requires-header" "-Wno-unused-function" "-Wno-gnu-designator" "-Wno-array-bounds")
+	elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=pragmas")
+	endif()
+	if(APPLE)
+		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=unknown-warning-option" "-Qunused-arguments" "-Wno-tautological-compare" "-Wno-unused-function" "-Wno-array-bounds")
+	endif()
+	if(ENABLE_STRICT)
+		list(APPEND STRICT_OPTIONS_CPP "-Werror" "-Wno-error=unknown-pragmas" "-Wuninitialized" "-fno-strict-aliasing")
+		list(APPEND STRICT_OPTIONS_C "-Wdeclaration-after-statement" "-Wstrict-prototypes" "-Wno-error=strict-prototypes")
+	endif()
+endif()
+if(STRICT_OPTIONS_CPP)
+	list(REMOVE_DUPLICATES STRICT_OPTIONS_CPP)
+endif()
+if(STRICT_OPTIONS_C)
+	list(REMOVE_DUPLICATES STRICT_OPTIONS_C)
+endif()
+set(LINK_FLAGS )
+if(APPLE)
+	list(APPEND LINK_FLAGS "-framework Foundation")
+	if(IOS)
+		list(APPEND LINK_FLAGS "-framework CoreFoundation" "-framework CFNetwork" "-framework UIKit")
+	endif()
+endif()
+string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
+if(WIN32)
+	add_definitions(
+		-DBCTOOLBOX_EXPORTS
+		-DBCTOOLBOX_INTERNAL_EXPORTS
+	)
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
+	add_definitions(
+		-DHAVE_COMPILER_TLS
+	)
+endif()
+
+
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
+else()
+	set(EXPORT_TARGETS_NAME "BcToolbox")
+endif()
+
+add_compile_options(${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
+
+
+add_subdirectory(include)
+add_subdirectory(src)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
+	VERSION ${PACKAGE_VERSION}
+	COMPATIBILITY AnyNewerVersion
+)
+export(EXPORT ${EXPORT_TARGETS_NAME}Targets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/BcToolboxTargets.cmake"
+)
+configure_file(cmake/BcToolboxConfig.cmake.in
+	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfig.cmake"
+	@ONLY
+)
+
+set(ConfigPackageLocation lib/cmake/BcToolbox)
+install(EXPORT ${EXPORT_TARGETS_NAME}Targets
+	FILE BcToolboxTargets.cmake
+	DESTINATION ${ConfigPackageLocation}
+)
+install(FILES
+	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfig.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
+	DESTINATION ${ConfigPackageLocation}
+)
