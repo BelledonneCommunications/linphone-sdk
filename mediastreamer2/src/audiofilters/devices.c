@@ -82,7 +82,6 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",	"SCH-I415",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S ??*/
 	{	"samsung",	"SCH-I425",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S ??*/
 	{	"samsung",	"SCH-I535",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S ??*/
-	{	"samsung",	"SPH-D710",		"",			DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S2 Epic 4G*/
 	{	"samsung",	"GT-I9300",		"exynos4",	DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 },  /*Galaxy S3*/
 	{	"samsung",	"SAMSUNG-SGH-I747","",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S3*/
 	{	"samsung",	"SPH-L710","",				DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC,	0 }, /* Galaxy S3*/
@@ -95,8 +94,10 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",	"GT-N7105",		"",			DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA,	0 },  /*Galaxy Note 2 t0lte*/
 	{	"samsung",	"SGH-T889",		"",			DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA,	0 },  /*Galaxy Note 2 t0lte*/
 	{	"samsung",	"SGH-I317",		"",			DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 }, /*Galaxy Note 2 t0lte*/
+	{	"samsung",	"SPH-L900",		"",			DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 }, /*Galaxy Note 2 t0ltespr*/
 	{	"samsung",	"Nexus S",		"s5pc110",	DEVICE_HAS_BUILTIN_AEC_CRAPPY,	180 }, /*Nexus S gives calibration around 240ms, but in practice the internal buffer size shrinks after a couple of seconds.*/
 	{	"samsung",	"Galaxy Nexus", "",			0,	120 },
+	{	"samsung",	"GT-I9250",	"",		DEVICE_HAS_BUILTIN_AEC|DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 }, /*galaxy nexus (maguro)*/
 	{	"samsung",	"GT-S5570I",	"",			0,	250},
 	{	"samsung",	"GT-P3100",		"",			DEVICE_HAS_BUILTIN_AEC, 0 }, /* Galaxy Tab*/
 	{	"samsung",	"GT-P7500",		"",			DEVICE_HAS_BUILTIN_AEC, 0 }, /* Galaxy Tab*/
