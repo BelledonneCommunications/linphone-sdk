@@ -248,31 +248,43 @@ int MSWASAPIReader::feed(MSFilter *f)
 	HRESULT result;
 	DWORD flags;
 	BYTE *pData;
-	UINT32 numFramesInNextPacket;
+
+
+	UINT32 numFramesAvailable;
+	UINT32 numFramesInNextPacket = 0;
 	mblk_t *m;
 	int bytesPerFrame = (16 * mNChannels / 8);
 
 	if (isStarted()) {
 		result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);
-		REPORT_ERROR("Could not get next packet size for the MSWASAPI audio input interface [%x]", result);
-		if (numFramesInNextPacket > 0) {
-			m = allocb(numFramesInNextPacket * bytesPerFrame, 0);
-			if (m == NULL) {
-				ms_error("Could not allocate memory for the captured data from the MSWASAPI audio input interface");
-				goto error;
-			}
-			result = mAudioCaptureClient->GetBuffer(&pData, &numFramesInNextPacket, &flags, NULL, NULL);
+		while (numFramesInNextPacket != 0) {
+			REPORT_ERROR("Could not get next packet size for the MSWASAPI audio input interface [%x]", result);
+
+			result = mAudioCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, NULL, NULL);
 			REPORT_ERROR("Could not get buffer from the MSWASAPI audio input interface [%x]", result);
-			if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
-				memset(m->b_wptr, 0, numFramesInNextPacket * bytesPerFrame);
-			} else {
-				memcpy(m->b_wptr, pData, numFramesInNextPacket * bytesPerFrame);
+			if (numFramesAvailable > 0) {
+				m = allocb(numFramesAvailable * bytesPerFrame, 0);
+				if (m == NULL) {
+					ms_error("Could not allocate memory for the captured data from the MSWASAPI audio input interface");
+					goto error;
+				}
+				
+				if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
+					memset(m->b_wptr, 0, numFramesAvailable * bytesPerFrame);
+				}
+				else {
+					memcpy(m->b_wptr, pData, numFramesAvailable * bytesPerFrame);
+				}
+				result = mAudioCaptureClient->ReleaseBuffer(numFramesAvailable);
+				REPORT_ERROR("Could not release buffer of the MSWASAPI audio input interface [%x]", result);
+
+				m->b_wptr += numFramesAvailable * bytesPerFrame;
+
+				ms_queue_put(f->outputs[0], m);
+				result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);
 			}
-			m->b_wptr += numFramesInNextPacket * bytesPerFrame;
-			result = mAudioCaptureClient->ReleaseBuffer(numFramesInNextPacket);
-			REPORT_ERROR("Could not release buffer of the MSWASAPI audio input interface [%x]", result);
-			ms_queue_put(f->outputs[0], m);
-		}
+			
+		} 
 	} else {
 		silence(f);
 	}
