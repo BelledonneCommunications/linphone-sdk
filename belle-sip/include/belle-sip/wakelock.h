@@ -4,6 +4,8 @@
 #include <jni.h>
 #include "belle-sip/defs.h"
 
+BELLE_SIP_BEGIN_DECLS
+
 /**
  * Initialize the Android wake lock system inside Belle-SIP.
  * This function must be called only once when the program starts.
@@ -18,5 +20,7 @@ BELLESIP_EXPORT void bellesip_wake_lock_init(JNIEnv *env, jobject pm);
  * @param env A JNI environment.
  */
 BELLESIP_EXPORT void bellesip_wake_lock_uninit(JNIEnv *env);
+
+BELLE_SIP_END_DECLS
 
 #endif // WALE_LOCK_H
