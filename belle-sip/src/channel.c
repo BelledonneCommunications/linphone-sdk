@@ -591,6 +591,9 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 			}
 		}
 		belle_sip_channel_process_stream(obj,FALSE);
+		if (obj->input_stream.state == WAITING_MESSAGE_START){
+			channel_end_recv_background_task(obj);
+		}/*if still in message acquisition state, keep the backgroud task*/
 	} else if (num == 0) {
 		/*before closing the channel, check if there was a pending message to receive, whose body acquisition is to be finished.*/
 		belle_sip_channel_process_stream(obj,TRUE);
@@ -604,8 +607,6 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 		ret=BELLE_SIP_STOP;
 	}
-	if (obj->input_stream.state == WAITING_MESSAGE_START)
-		channel_end_recv_background_task(obj);
 	return ret;
 }
 
@@ -850,6 +851,10 @@ static void channel_end_recv_background_task(belle_sip_channel_t *obj){
 
 static void channel_invoke_state_listener(belle_sip_channel_t *obj){
 	if (obj->state==BELLE_SIP_CHANNEL_DISCONNECTED || obj->state==BELLE_SIP_CHANNEL_ERROR){
+		/*the background tasks must be released "after" notifying the app of the disconnected or error state
+		 By "after" it is means not before the main loop iteration that will notify the app*/
+		channel_end_send_background_task(obj);
+		channel_end_recv_background_task(obj);
 		belle_sip_channel_close(obj);
 	}
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_state_changed,obj,obj->state);
@@ -880,7 +885,6 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 	}/*else the channel was previously working good with the current ip address but now fails, so let's notify the error*/
 
 	obj->state=BELLE_SIP_CHANNEL_ERROR;
-	channel_end_send_background_task(obj);
 	/*Because error notification will in practice trigger the destruction of possible transactions and this channel,
 	* it is safer to invoke the listener outside the current call stack.
 	* Indeed the channel encounters network errors while being called for transmiting by a transaction.
@@ -911,9 +915,6 @@ void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state
 		belle_sip_channel_handle_error(obj);
 	}else{
 		obj->state=state;
-		if (state==BELLE_SIP_CHANNEL_DISCONNECTED){
-			channel_end_send_background_task(obj);
-		}
 		channel_invoke_state_listener(obj);
 	}
 }
