@@ -439,7 +439,7 @@ segment-nz    = 1*pchar
 segment-nz-nc = 1*( unreserved / pct-encoded / sub-delims / "@" )
 				; non-zero-length segment without any colon ":"
 
-pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
+pchar         = unreserved / pct-encoded / sub-delims / ":" / "@" / "\,"
 
 query         = *( pchar / "/" / "?" )
 
