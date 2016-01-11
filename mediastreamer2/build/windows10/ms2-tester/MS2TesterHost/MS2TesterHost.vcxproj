@@ -32,6 +32,11 @@
   <ItemGroup>
     <AppxManifest Include="..\Package.appxmanifest" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\..\mswinrtvid\windows10\libmswinrtvid\libmswinrtvid.vcxproj">
+      <Project>{2d0e44c4-e51d-4911-b876-345d1e5e5209}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{8a1a89b3-f2db-4428-a571-f0dff2e1eec1}</ProjectGuid>
     <Keyword>WindowsRuntimeComponent</Keyword>
