@@ -8,7 +8,7 @@
  * @param tag
  * @return An ID that anthentificates the taken wake lock.
  */
-extern unsigned long wake_lock_acquire(const char *tag);
+unsigned long wake_lock_acquire(const char *tag);
 
 /**
  * @brief Release a wake lock.
@@ -17,4 +17,4 @@ extern unsigned long wake_lock_acquire(const char *tag);
  * can sleep again.
  * @param id ID of the wake lock to release.
  */
-extern void wake_lock_release(unsigned long id);
+void wake_lock_release(unsigned long id);

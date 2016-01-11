@@ -22,7 +22,7 @@ static WakeLock ctx = {
 static JNIEnv *get_jni_env(void);
 static void jni_key_cleanup(void *data);
 
-void bellesip_wake_lock_init(JNIEnv *env, jobject pm) {
+void belle_sip_wake_lock_init(JNIEnv *env, jobject pm) {
 	if(ctx.jvm == NULL) {
 		(*env)->GetJavaVM(env, &ctx.jvm);
 		ctx.powerManager = (*env)->NewGlobalRef(env, pm);
@@ -43,7 +43,7 @@ void bellesip_wake_lock_init(JNIEnv *env, jobject pm) {
 	}
 }
 
-void bellesip_wake_lock_uninit(JNIEnv *env) {
+void belle_sip_wake_lock_uninit(JNIEnv *env) {
 	ctx.jvm = NULL;
 	if(ctx.powerManager != NULL) {
 		(*env)->DeleteGlobalRef(env, ctx.powerManager);
