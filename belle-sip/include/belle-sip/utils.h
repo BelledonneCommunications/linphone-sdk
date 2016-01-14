@@ -75,12 +75,11 @@ BELLESIP_VAR_EXPORT unsigned int __belle_sip_log_mask;
 #define belle_sip_log_level_enabled(level)   (__belle_sip_log_mask & (level))
 
 #if !defined(_WIN32) && !defined(_WIN32_WCE)
-#define belle_sip_logv(level,fmt,args) \
-{\
-        if (belle_sip_logv_out!=NULL && belle_sip_log_level_enabled(level)) \
-                belle_sip_logv_out(level,fmt,args);\
-        if ((level)==BELLE_SIP_LOG_FATAL) abort();\
-}while(0)
+static BELLESIP_INLINE void belle_sip_logv(belle_sip_log_level level, const char *fmt, va_list args) {
+        if (belle_sip_logv_out!=NULL && belle_sip_log_level_enabled(level))
+                belle_sip_logv_out(level,fmt,args);
+        if (level==BELLE_SIP_LOG_FATAL) abort();
+}
 #else
 BELLESIP_EXPORT void belle_sip_logv(int level, const char *fmt, va_list args);
 #endif
