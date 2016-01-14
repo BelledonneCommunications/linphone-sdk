@@ -57,11 +57,7 @@
   <main-binary>${prefix:linphone}/bin/linphone</main-binary>
 
   <binary >
-    ${prefix:ms2plugins}/lib/mediastreamer/plugins/*.*.so
-  </binary>
-  
-  <binary >
-    ${prefix:linphone}/lib/*.*.dylib
+    ${prefix:ms2plugins}/lib/mediastreamer/plugins/*.*.dylib
   </binary>
 
   <!-- Copy in GTK+ modules.  Note the ${gtkdir} macro, which expands

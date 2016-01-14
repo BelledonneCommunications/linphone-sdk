@@ -45,10 +45,10 @@ set(PACKAGE_VERSION "${LINPHONE_VERSION}")
 
 # Preparing the Linphone SDK bundle
 if(APPLE)
-	set(LINPHONE_SDK_TMP ${CMAKE_CURRENT_BINARY_DIR}/linphone-sdk-tmp)
-	file(REMOVE_RECURSE ${LINPHONE_SDK_TMP})
-	file(COPY ${LINPHONE_OUTPUT_DIR} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-	file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/OUTPUT ${LINPHONE_SDK_TMP})
+	set(LINPHONE_SDK_TMP "${CMAKE_CURRENT_BINARY_DIR}/linphone-sdk-tmp")
+	file(REMOVE_RECURSE "${LINPHONE_SDK_TMP}")
+	file(COPY "${LINPHONE_OUTPUT_DIR}" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+	file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/OUTPUT" "${LINPHONE_SDK_TMP}")
 	set(RPATH_CHANGE_CMDS
 		-change /opt/local/lib/libintl.8.dylib @rpath/libintl.8.dylib
 		-change /opt/local/lib/libiconv.2.dylib @rpath/libiconv.2.dylib
@@ -71,10 +71,10 @@ if(APPLE)
 	)
 	execute_process(COMMAND install_name_tool
 		-change /opt/local/lib/libintl.8.dylib @rpath/libintl.8.dylib
-                -change /opt/local/lib/libiconv.2.dylib @rpath/libiconv.2.dylib
+		-change /opt/local/lib/libiconv.2.dylib @rpath/libiconv.2.dylib
 		${LINPHONE_SDK_TMP}/lib/liblinphone.dylib
 	)
-	file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/README.openh264.txt DESTINATION ${LINPHONE_SDK_TMP})
+	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/README.openh264.txt" DESTINATION "${LINPHONE_SDK_TMP}")
 endif()
 
 # Generates a zip archive containing the development files of liblinphone
@@ -93,8 +93,8 @@ if(WIN32)
 	endif()
 elseif(APPLE)
 	execute_process(
-		COMMAND rm -rf ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip
-		COMMAND zip -ry ${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip . -i @${CMAKE_SOURCE_DIR}/linphone-sdk-mac.list
+		COMMAND rm -rf "${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip"
+		COMMAND zip -ry "${CMAKE_BINARY_DIR}/linphone-sdk-${LINPHONE_GIT_REVISION}-mac.zip" . -i "@${CMAKE_SOURCE_DIR}/linphone-sdk-mac.list"
 		WORKING_DIRECTORY ${LINPHONE_SDK_TMP}
 	)
 endif()
@@ -155,7 +155,13 @@ if(WIN32)
 	)
 elseif(APPLE)
 	find_program(MAC_BUNDLER gtk-mac-bundler)
+	if(NOT MAC_BUNDLER)
+		message(FATAL_ERROR "Could not find gtk-mac-bundler executable!")
+	endif()
 	find_program(PATCH_PROGRAM patch)
+	if(NOT PATCH_PROGRAM)
+		message(FATAL_ERROR "Could not find patch executable!")
+	endif()
 	configure_file("${LINPHONE_SOURCE_DIR}/build/macos/Info-linphone.plist.in" "mac-bundler/Info-linphone.plist" @ONLY)
 	configure_file("${LINPHONE_SOURCE_DIR}/build/macos/environment.sh" "mac-bundler/environment.sh" COPYONLY)
 	configure_file("${LINPHONE_SOURCE_DIR}/gtk/gtkrc.mac" "mac-bundler/gtkrc" COPYONLY)

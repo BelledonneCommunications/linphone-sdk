@@ -154,8 +154,8 @@ endif()
 
 # Packaging
 if(ENABLE_PACKAGING)
-	# Linphone and linphone SDK packages
 	if(LINPHONE_BUILDER_TARGET STREQUAL linphone)
+		# Linphone and linphone SDK packages
 		linphone_builder_apply_flags()
 		linphone_builder_set_ep_directories(linphone_package)
 		linphone_builder_expand_external_project_vars()
@@ -168,10 +168,8 @@ if(ENABLE_PACKAGING)
 			CMAKE_GENERATOR ${CMAKE_GENERATOR}
 			CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DCMAKE_INSTALL_PREFIX=${LINPHONE_BUILDER_WORK_DIR}/PACKAGE -DLINPHONE_OUTPUT_DIR=${CMAKE_INSTALL_PREFIX} -DLINPHONE_SOURCE_DIR=${EP_linphone_SOURCE_DIR} -DENABLE_ZRTP:BOOL=${ENABLE_ZRTP}
 		)
-	endif()
-
-	# Mediastreamer SDK packages
-	if((LINPHONE_BUILDER_TARGET STREQUAL ms2) OR (LINPHONE_BUILDER_TARGET STREQUAL ms2-plugins))
+	elseif((LINPHONE_BUILDER_TARGET STREQUAL ms2) OR (LINPHONE_BUILDER_TARGET STREQUAL ms2-plugins))
+		# Mediastreamer SDK packages
 		linphone_builder_apply_flags()
 		linphone_builder_set_ep_directories(ms2_package)
 		linphone_builder_expand_external_project_vars()
