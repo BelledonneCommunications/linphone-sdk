@@ -33,8 +33,7 @@ namespace ms2_tester
         public VideoPage()
         {
             this.InitializeComponent();
-            InitVideo();
-            FillCameraComboBox();
+            InitVideoPage();
         }
 
         override protected void OnNavigatedTo(Windows.UI.Xaml.Navigation.NavigationEventArgs e)
@@ -145,7 +144,13 @@ namespace ms2_tester
             }
         }
 
-        private async void FillCameraComboBox()
+        private async void InitVideoPage()
+        {
+            await InitVideo();
+            await FillCameraComboBox();
+        }
+
+        private async Task FillCameraComboBox()
         {
             bool isSelected = true;
             List<String> videoDevices = await GetVideoDevices();
@@ -159,7 +164,7 @@ namespace ms2_tester
             }
         }
 
-        private async void InitVideo()
+        private async Task InitVideo()
         {
             try
             {
