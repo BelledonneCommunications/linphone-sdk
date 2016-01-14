@@ -251,6 +251,7 @@ MS2_PUBLIC int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt);
 MS2_PUBLIC MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt);
 MS2_PUBLIC MSPixFmt ms_fourcc_to_pix_fmt(uint32_t fourcc);
 MS2_PUBLIC void ms_ffmpeg_check_init(void);
+MS2_PUBLIC void ms_yuv_buf_init(YuvBuf *buf, int w, int h, int stride, uint8_t *ptr);
 MS2_PUBLIC int ms_yuv_buf_init_from_mblk(MSPicture *buf, mblk_t *m);
 MS2_PUBLIC int ms_yuv_buf_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, int w, int h);
 MS2_PUBLIC int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt, int w, int h);
