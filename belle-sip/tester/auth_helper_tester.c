@@ -24,11 +24,6 @@
 #include "belle-sip/auth-helper.h"
 #include "belle_sip_tester.h"
 
-#ifdef HAVE_POLARSSL
-#include <polarssl/version.h>
-#endif
-
-
 static void test_authentication(void) {
 	const char* l_raw_header = "WWW-Authenticate: Digest "
 				"algorithm=MD5, realm=\"sip.linphone.org\", opaque=\"1bc7f9097684320\","
@@ -84,8 +79,6 @@ static void test_proxy_authentication(void) {
 #define TEMPORARY_CERTIFICATE_DIR "/belle_sip_tester_crt"
 
 static void test_generate_and_parse_certificates(void) {
-#ifdef HAVE_POLARSSL
-#if POLARSSL_VERSION_NUMBER >= 0x01030000
 	belle_sip_certificates_chain_t *certificate, *parsed_certificate;
 	belle_sip_signing_key_t *key, *parsed_key;
 	char *pem_certificate, *pem_parsed_certificate, *pem_key, *pem_parsed_key;
@@ -95,6 +88,8 @@ static void test_generate_and_parse_certificates(void) {
 	/* create 2 certificates in the temporary certificate directory (TODO : set the directory in a absolute path?? where?)*/
 	ret = belle_sip_generate_self_signed_certificate(belle_sip_certificate_temporary_dir, "test_certificate1", &certificate, &key);
 	BC_ASSERT_EQUAL_FATAL(0, ret, int, "%d");
+	belle_sip_object_unref(certificate);
+	belle_sip_object_unref(key);
 	ret = belle_sip_generate_self_signed_certificate(belle_sip_certificate_temporary_dir, "test_certificate2", &certificate, &key);
 	BC_ASSERT_EQUAL_FATAL(0, ret, int, "%d");
 
@@ -125,8 +120,6 @@ static void test_generate_and_parse_certificates(void) {
 	belle_sip_object_unref(parsed_certificate);
 	belle_sip_object_unref(key);
 	belle_sip_object_unref(parsed_key);
-#endif /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
-#endif /* HAVE_POLARSSL */
 }
 
 
@@ -159,8 +152,6 @@ const char* belle_sip_tester_fingerprint256_cert_fingerprint =
 		"SHA-256 A0:98:2D:3E:68:F3:14:8D:ED:50:40:DB:ED:A4:28:BC:1E:1A:6A:05:59:9E:69:3F:02:E2:F8:22:BF:4C:92:14";
 
 static void test_certificate_fingerprint(void) {
-#ifdef HAVE_POLARSSL
-#if POLARSSL_VERSION_NUMBER >= 0x01030000
 	char *fingerprint;
 	/* parse certificate defined in belle_sip_register_tester.c */
 	belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(belle_sip_tester_client_cert,strlen(belle_sip_tester_client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
@@ -183,9 +174,6 @@ static void test_certificate_fingerprint(void) {
 
 	belle_sip_free(fingerprint);
 	belle_sip_object_unref(cert);
-
-#endif /* POLARSSL_VERSION_NUMBER >= 0x01030000 */
-#endif /* HAVE_POLARSSL */
 }
 
 test_t authentication_helper_tests[] = {

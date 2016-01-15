@@ -38,7 +38,6 @@ option(ENABLE_RTP_MAP_ALWAYS_IN_SDP "Always include rtpmap in SDP." OFF)
 option(ENABLE_SERVER_SOCKETS "Enable server sockets" ON)
 option(ENABLE_STATIC "Build static library (default is shared library)." OFF)
 option(ENABLE_STRICT "Build with strict compile options." YES)
-option(ENABLE_TLS "Enable TLS support" ON)
 option(ENABLE_TUNNEL "Enable tunnel support" OFF)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
 
@@ -99,12 +98,9 @@ cmake_pop_check_state()
 if(ENABLE_RTP_MAP_ALWAYS_IN_SDP)
 	set(BELLE_SDP_FORCE_RTP_MAP 1)
 endif()
-if(ENABLE_TLS)
-	find_package(PolarSSL REQUIRED)
-	if(POLARSSL_FOUND)
-		set(HAVE_POLARSSL 1)
-	endif()
-endif()
+
+find_package(BcToolBox REQUIRED)
+
 if(ENABLE_TUNNEL)
 	if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 		include("${EP_tunnel_CONFIG_DIR}/TunnelConfig.cmake")
@@ -140,12 +136,10 @@ set(libdir ${prefix}/lib)
 set(includedir ${prefix}/include)
 get_filename_component(antlr3c_library_path "${ANTLR3C_LIBRARIES}" PATH)
 set(LIBS_PRIVATE "-L${antlr3c_library_path} -lantlr3c")
+get_filename_component(bctoolbox_library_path "${BCTOOLBOX_LIBRARIES}" PATH)
+set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${bctoolbox_library_path} -lbctoolbox")
 if(CUNIT_FOUND)
 	set(REQUIRES_PRIVATE "${REQUIRES_PRIVATE} cunit")
-endif()
-if(HAVE_POLARSSL)
-	get_filename_component(polarssl_library_path "${POLARSSL_LIBRARIES}" PATH)
-	set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${polarssl_library_path} -lpolarssl")
 endif()
 if(HAVE_LIBDL)
 	set(LIBS_PRIVATE "${LIBS_PRIVATE} -ldl")
@@ -162,7 +156,7 @@ include_directories(
 	src
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
-	${POLARSSL_INCLUDE_DIRS}
+	${BCTOOLBOX_INCLUDE_DIRS}
 )
 if(TUNNEL_FOUND)
 	include_directories(${TUNNEL_INCLUDE_DIRS})

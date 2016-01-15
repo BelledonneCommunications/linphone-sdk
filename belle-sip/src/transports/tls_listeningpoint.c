@@ -18,10 +18,6 @@
 
 #include "belle_sip_internal.h"
 
-#ifdef HAVE_POLARSSL
-
-#include <polarssl/ssl.h>
-
 static void belle_sip_tls_listening_point_uninit(belle_sip_tls_listening_point_t *lp){
 	belle_sip_object_unref(lp->verify_ctx);
 }
@@ -56,7 +52,7 @@ static int on_new_connection(void *userdata, unsigned int revents){
 	socklen_t slen=sizeof(addr);
 	belle_sip_tls_listening_point_t *lp=(belle_sip_tls_listening_point_t*)userdata;
 	belle_sip_stream_listening_point_t *super=(belle_sip_stream_listening_point_t*)lp;
-	
+
 	child=accept(super->server_sock,(struct sockaddr*)&addr,&slen);
 	if (child==(belle_sip_socket_t)-1){
 		belle_sip_error("Listening point [%p] accept() failed on TLS server socket: %s",lp,belle_sip_get_socket_error_string());
@@ -77,7 +73,7 @@ belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_
 #else
 	belle_sip_stream_listening_point_init((belle_sip_stream_listening_point_t*)lp,s,ipaddress,port);
 #endif /* ENABLE_SERVER_SOCKETS */
-	
+
 	lp->verify_ctx=belle_tls_verify_policy_new();
 
 	return BELLE_SIP_LISTENING_POINT(lp);
@@ -100,24 +96,3 @@ int belle_sip_tls_listening_point_set_verify_policy(belle_sip_tls_listening_poin
 int belle_sip_tls_listening_point_available(void){
 	return TRUE;
 }
-
-#else
-
-belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port){
-	return NULL;
-}
-
-int belle_sip_tls_listening_point_set_root_ca(belle_sip_tls_listening_point_t *s, const char *path){
-	return -1;
-}
-
-int belle_sip_tls_listening_point_set_verify_exceptions(belle_sip_tls_listening_point_t *s, int value){
-	return -1;
-}
-
-int belle_sip_tls_listening_point_available(void){
-	return FALSE;
-}
-
-#endif
-

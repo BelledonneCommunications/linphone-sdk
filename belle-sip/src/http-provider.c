@@ -425,12 +425,10 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 	if (!chan){
 		if (strcasecmp(hop->transport,"tcp")==0){
 			chan=belle_sip_stream_channel_new_client(obj->stack,obj->bind_ip,0,hop->cname,hop->host,hop->port);
-		}
-#ifdef HAVE_POLARSSL
-		else if (strcasecmp(hop->transport,"tls")==0){
+		} else if (strcasecmp(hop->transport,"tls")==0){
 			chan=belle_sip_channel_new_tls(obj->stack,obj->verify_ctx,obj->bind_ip,0,hop->cname,hop->host,hop->port);
 		}
-#endif
+
 		if (!chan){
 			belle_sip_error("%s: cannot create channel for [%s:%s:%i]", __FUNCTION__, hop->transport, hop->cname,
 							hop->port);

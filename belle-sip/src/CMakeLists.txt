@@ -23,6 +23,9 @@
 set(INCLUDES ${ANTLR3C_INCLUDE_DIRS})
 set(LIBS ${ANTLR3C_LIBRARIES})
 
+list(APPEND INCLUDES ${BCTOOLBOX_INCLUDE_DIR})
+list(APPEND LIBS ${BCTOOLBOX_LIBRARIES})
+
 if(Threads_FOUND)
 	if(CMAKE_USE_PTHREADS_INIT AND NOT CMAKE_SYSTEM_NAME MATCHES "QNX")
 		list(APPEND LIBS pthread)
@@ -66,15 +69,6 @@ add_custom_command(
 )
 
 set_source_files_properties(${SDP_GENERATED_SOURCE_FILES_C} ${SIP_MESSAGE_GENERATED_SOURCE_FILES_C} PROPERTIES GENERATED TRUE)
-
-if(ENABLE_TLS)
-	set(TLS_SOURCE_FILES_C
-		transports/tls_listeningpoint_polarssl.c
-		transports/tls_channel_polarssl.c
-	)
-	list(APPEND INCLUDES ${POLARSSL_INCLUDE_DIR})
-	list(APPEND LIBS ${POLARSSL_LIBRARIES})
-endif()
 
 if(ENABLE_TUNNEL)
 	set(TUNNEL_SOURCE_FILES_C
@@ -134,11 +128,12 @@ set(BELLE_SIP_SOURCE_FILES_C
 	transports/stream_listeningpoint.c
 	transports/udp_channel.c
 	transports/udp_listeningpoint.c
+	transports/tls_listeningpoint.c
+	transports/tls_channel.c
 	grammars/belle_sip_message.g
 	grammars/belle_sdp.g
 	${SDP_GENERATED_SOURCE_FILES_C}
 	${SIP_MESSAGE_GENERATED_SOURCE_FILES_C}
-	${TLS_SOURCE_FILES_C}
 	${TUNNEL_SOURCE_FILES_C}
 )
 set(BELLE_SIP_SOURCE_FILES_CXX
