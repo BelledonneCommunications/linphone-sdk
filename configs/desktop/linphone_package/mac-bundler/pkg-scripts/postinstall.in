@@ -2,7 +2,7 @@
 
 CURL=/usr/bin/curl
 BUNZIP2=/usr/bin/bunzip2
-VERSION=1.4.0
+VERSION=@OPENH264_VERSION@
 BASENAME=libopenh264-${VERSION}-osx64
 FILENAME=${BASENAME}.dylib.bz2
 TMPDIR=/tmp/linphone_installer
