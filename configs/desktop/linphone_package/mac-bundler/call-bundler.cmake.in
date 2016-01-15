@@ -44,7 +44,7 @@ execute_process(
 execute_process(
 	COMMAND pkgbuild
 		--install-location /Applications
-		--scripts "${CMAKE_CURRENT_BINARY_DIR}/pkg-scripts"
+		--scripts "${CMAKE_CURRENT_BINARY_DIR}/mac-bundler/pkg-scripts"
 		--component "${CMAKE_INSTALL_PREFIX}/Linphone.app"
 		"./linphone-${LINPHONE_GIT_REVISION}.pkg"
 	WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
