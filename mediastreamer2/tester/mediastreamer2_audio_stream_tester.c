@@ -138,7 +138,6 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
 	char* recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
 	int marielle_rtp_sent=0;
-	const jitter_stats_t *jitter_stats;
 	
 	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session,TRUE);
 	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session,TRUE);
@@ -189,7 +188,6 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 	audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
 	marielle_rtp_sent = marielle_stats.rtp.sent;
 	
-	jitter_stats = rtp_session_get_jitter_stats(margaux->ms.sessions.rtp_session);
 	
 	if (rtp_session_rtcp_enabled(marielle->ms.sessions.rtp_session) && rtp_session_rtcp_enabled(margaux->ms.sessions.rtp_session)) {
 		BC_ASSERT_TRUE(rtp_session_get_round_trip_propagation(marielle->ms.sessions.rtp_session)>0);
