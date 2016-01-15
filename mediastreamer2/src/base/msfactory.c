@@ -64,7 +64,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 
-static MSFactory *fallback_factory=NULL;
+LINPHONE_DEPRECATED static MSFactory *fallback_factory=NULL;
 
 
 static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj);
@@ -246,7 +246,7 @@ MSFactory *ms_factory_new(void){
 **/
 void ms_factory_destroy(MSFactory *factory){
 	ms_factory_uninit_plugins(factory);
-	if (factory->evq) ms_event_queue_destroy(factory->evq);
+	if (factory->evq) ms_event_queue_destroy(factory->evq, factory);
 	factory->formats=ms_list_free_with_data(factory->formats,(void(*)(void*))ms_fmt_descriptor_destroy);
 	factory->desc_list=ms_list_free(factory->desc_list);
 	ms_list_for_each(factory->stats_list,ms_free);
@@ -256,7 +256,7 @@ void ms_factory_destroy(MSFactory *factory){
 	factory->platform_tags = ms_list_free(factory->platform_tags);
 	if (factory->plugins_dir) ms_free(factory->plugins_dir);
 	ms_free(factory);
-	if (factory==fallback_factory) fallback_factory=NULL;
+	//if (factory==fallback_factory) fallback_factory=NULL;
 }
 
 

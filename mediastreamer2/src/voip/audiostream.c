@@ -136,7 +136,8 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, void *data)
 			return FALSE;
 		}
 
-		dec = ms_filter_create_decoder(pt->mime_type);
+		//dec = ms_filter_create_decoder(pt->mime_type);
+		dec = ms_factory_create_decoder(stream->ms.factory, pt->mime_type);
 		if (dec != NULL) {
 			MSFilter *nextFilter = stream->ms.decoder->outputs[0]->next.filter;
 
@@ -1197,7 +1198,7 @@ int audio_stream_start_with_files(AudioStream *stream, RtpProfile *prof,const ch
 	return audio_stream_start_full(stream,prof,remip,remport,remip,rem_rtcp_port,pt,jitt_comp,infile,outfile,NULL,NULL,FALSE);
 }
 
-AudioStream * audio_stream_start(RtpProfile *prof,int locport,const char *remip,int remport,int profile,int jitt_comp,bool_t use_ec)
+AudioStream *audio_stream_start(RtpProfile *prof,int locport,const char *remip,int remport,int profile,int jitt_comp,bool_t use_ec, MSFactory* factory)
 {
 	MSSndCard *sndcard_playback;
 	MSSndCard *sndcard_capture;
@@ -1206,13 +1207,13 @@ AudioStream * audio_stream_start(RtpProfile *prof,int locport,const char *remip,
 	sndcard_playback=ms_snd_card_manager_get_default_playback_card(ms_snd_card_manager_get());
 	if (sndcard_capture==NULL || sndcard_playback==NULL)
 		return NULL;
-	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip));
+	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip),factory);
 	if (audio_stream_start_full(stream,prof,remip,remport,remip,remport+1,profile,jitt_comp,NULL,NULL,sndcard_playback,sndcard_capture,use_ec)==0) return stream;
 	audio_stream_free(stream);
 	return NULL;
 }
 
-AudioStream *audio_stream_start_with_sndcards(RtpProfile *prof,int locport,const char *remip,int remport,int profile,int jitt_comp,MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec)
+AudioStream *audio_stream_start_with_sndcards(RtpProfile *prof,int locport,const char *remip,int remport,int profile,int jitt_comp,MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec, MSFactory* factory)
 {
 	AudioStream *stream;
 	if (playcard==NULL) {
@@ -1223,7 +1224,7 @@ AudioStream *audio_stream_start_with_sndcards(RtpProfile *prof,int locport,const
 		ms_error("No capture card.");
 		return NULL;
 	}
-	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip));
+	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip), factory);
 	if (audio_stream_start_full(stream,prof,remip,remport,remip,remport+1,profile,jitt_comp,NULL,NULL,playcard,captcard,use_ec)==0) return stream;
 	audio_stream_free(stream);
 	return NULL;
@@ -1345,7 +1346,7 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 	st->features = features;
 }
 
-AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
+AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions, MSFactory *factory){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
 	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSWebRTCAEC");
 	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
@@ -1359,8 +1360,10 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 
 	stream->ms.type = MSAudio;
 	stream->ms.sessions = *sessions;
-	media_stream_init(&stream->ms, ms_factory_get_fallback());
+	media_stream_init(&stream->ms,factory);
+//	media_stream_init(&stream->ms, ms_factory_get_fallback());
 
+	
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
 
@@ -1393,15 +1396,15 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 	return stream;
 }
 
-AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
-	return audio_stream_new2( ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port);
+AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6, MSFactory* factory){
+	return audio_stream_new2( ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port, factory);
 }
 
-AudioStream *audio_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port) {
+AudioStream *audio_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port, MSFactory* factory) {
 	AudioStream *obj;
 	MSMediaStreamSessions sessions={0};
 	sessions.rtp_session=ms_create_duplex_rtp_session(ip,loc_rtp_port,loc_rtcp_port);
-	obj=audio_stream_new_with_sessions(&sessions);
+	obj=audio_stream_new_with_sessions(&sessions, factory);
 	obj->ms.owns_sessions=TRUE;
 	return obj;
 }

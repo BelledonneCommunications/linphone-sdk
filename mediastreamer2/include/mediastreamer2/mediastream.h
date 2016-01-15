@@ -410,9 +410,10 @@ typedef struct _AudioStream AudioStream;
 
 /* start a thread that does sampling->encoding->rtp_sending|rtp_receiving->decoding->playing */
 MS2_PUBLIC AudioStream *audio_stream_start (RtpProfile * prof, int locport, const char *remip,
-				 int remport, int payload_type, int jitt_comp, bool_t echo_cancel);
+				 int remport, int payload_type, int jitt_comp, bool_t echo_cancel, MSFactory* factory);
 
-MS2_PUBLIC AudioStream *audio_stream_start_with_sndcards(RtpProfile * prof, int locport, const char *remip4, int remport, int payload_type, int jitt_comp, MSSndCard *playcard, MSSndCard *captcard, bool_t echocancel);
+MS2_PUBLIC AudioStream *audio_stream_start_with_sndcards(RtpProfile* prof, int locport, const char *remip4, int remport, int payload_type, int jitt_comp, MSSndCard *playcard,
+														 MSSndCard *captcard, bool_t echocancel, MSFactory* factory);
 
 MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile * prof,
 						const char *remip, int remport, int rem_rtcp_port,
@@ -475,25 +476,28 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
  * @param loc_rtp_port the local UDP port to listen for RTP packets.
  * @param loc_rtcp_port the local UDP port to listen for RTCP packets
  * @param ipv6 TRUE if ipv6 must be used.
+ * @param factory 
  * @return a new AudioStream.
 **/
-MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
+MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6, MSFactory* factory);
 
 /**
  * Creates an AudioStream object listening on a RTP port for a dedicated address.
  * @param loc_ip the local ip to listen for RTP packets. Can be ::, O.O.O.O or any ip4/6 addresses
  * @param loc_rtp_port the local UDP port to listen for RTP packets.
  * @param loc_rtcp_port the local UDP port to listen for RTCP packets
+ * @param factory
  * @return a new AudioStream.
 **/
-MS2_PUBLIC AudioStream *audio_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port);
+MS2_PUBLIC AudioStream *audio_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port, MSFactory* factory);
 
 
 /**Creates an AudioStream object from initialized MSMediaStreamSessions.
  * @param sessions the MSMediaStreamSessions
+ * @param factory the MSFActory from the core object
  * @return a new AudioStream
 **/
-MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
+MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions, MSFactory* factory);
 
 #define AUDIO_STREAM_FEATURE_PLC 		(1 << 0)
 #define AUDIO_STREAM_FEATURE_EC 		(1 << 1)

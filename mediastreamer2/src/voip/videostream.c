@@ -295,8 +295,8 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 
 	stream->ms.type = MSVideo;
 	stream->ms.sessions=*sessions;
-	media_stream_init(&stream->ms, ms_factory_get_fallback());
-
+	//media_stream_init(&stream->ms, ms_factory_get_fallback());
+	media_stream_init(&stream->ms, stream->ms.factory);
 	if (sessions->zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
 	}

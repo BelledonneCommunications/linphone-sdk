@@ -912,7 +912,8 @@ void setup_media_streams(MediastreamDatas* args) {
 		const char*  nowebcam = [[myBundle pathForResource:@"nowebcamCIF"ofType:@"jpg"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
 		ms_static_image_set_default_image(nowebcam);
 		NSUInteger cpucount = [[NSProcessInfo processInfo] processorCount];
-		ms_set_cpu_count(cpucount);
+		ms_factory_set_cpu_count(args->audio->ms.factory, cpucount);
+		//ms_set_cpu_count(cpucount);
 #endif
 		video_stream_set_event_callback(args->video,video_stream_event_cb, args);
 		video_stream_set_freeze_on_error(args->video,args->freeze_on_error);

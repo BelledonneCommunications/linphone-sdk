@@ -232,7 +232,7 @@ static void enc_init(MSFilter *f, enum CodecID codec)
 	s->framenum=0;
 	s->av_context.codec=NULL;
 	s->vconf_list = get_vconf_list(s);
-	s->vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, 500000, ms_get_cpu_count());
+	s->vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, 500000,ms_factory_get_cpu_count(f->factory));
 	s->pict = av_frame_alloc();
 }
 
@@ -910,7 +910,7 @@ static int enc_set_vsize(MSFilter *f, void *arg) {
 	MSVideoConfiguration best_vconf;
 	MSVideoSize *vs = (MSVideoSize *)arg;
 	EncState *s=(EncState*)f->data;
-	best_vconf = ms_video_find_best_configuration_for_size(s->vconf_list, *vs, ms_get_cpu_count());
+	best_vconf = ms_video_find_best_configuration_for_size(s->vconf_list, *vs, ms_factory_get_cpu_count(f->factory));
 	s->vconf.vsize = *vs;
 	s->vconf.fps = best_vconf.fps;
 	s->vconf.bitrate_limit = best_vconf.bitrate_limit;
@@ -944,7 +944,7 @@ static int enc_set_br(MSFilter *f, void *arg) {
 		s->vconf.required_bitrate = br;
 		enc_set_configuration(f, &s->vconf);
 	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br, ms_get_cpu_count());
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br, ms_factory_get_cpu_count(f->factory));
 		enc_set_configuration(f, &best_vconf);
 	}
 	return 0;

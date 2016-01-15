@@ -75,9 +75,10 @@ extern "C" {
 /**
  * Creates a conference.
  * @param params a MSAudioConferenceParams structure, containing conference parameters.
+ * @param factory a MSFactory structure, containing filters parameters
  * @return a MSAudioConference object.
 **/
-MS2_PUBLIC MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params);
+MS2_PUBLIC MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params, MSFactory *factory);
 
 /**
  * Gets conference's current parameters.

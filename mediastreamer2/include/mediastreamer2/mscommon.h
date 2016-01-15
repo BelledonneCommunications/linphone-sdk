@@ -28,6 +28,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "TargetConditionals.h"
 #endif
 
+#ifndef LINPHONE_DEPRECATED
+#if defined(_MSC_VER)
+#define LINPHONE_DEPRECATED __declspec(deprecated)
+#else
+#define LINPHONE_DEPRECATED __attribute__ ((deprecated))
+#endif
+#endif
 #define MS_UNUSED(x) ((void)(x))
 
 #define ms_malloc	ortp_malloc
@@ -337,14 +344,14 @@ MS2_PUBLIC bool_t ms_tags_list_contains_tag(const MSList *list, const char *tag)
  *
  * This must be called once before calling any other API.
  */
-MS2_PUBLIC void ms_base_init(void);
+MS2_PUBLIC LINPHONE_DEPRECATED void ms_base_init(void);
 
 /**
  * Initialize the mediastreamer2 VoIP library.
  *
  * This must be called one before calling any other API.
  */
-MS2_PUBLIC void ms_voip_init(void);
+MS2_PUBLIC LINPHONE_DEPRECATED void ms_voip_init(void);
 
 /**
  * Load the plugins from the default plugin directory.
@@ -352,13 +359,13 @@ MS2_PUBLIC void ms_voip_init(void);
  * This is just a wrapper around ms_load_plugins().
  * This must be called after ms_base_init() and after ms_voip_init().
  */
-MS2_PUBLIC void ms_plugins_init(void);
+MS2_PUBLIC LINPHONE_DEPRECATED void ms_plugins_init(void);
 
 /**
  * Set the directory from where the plugins are to be loaded when calling ms_plugins_init().
  * @param[in] path The path to the plugins directory.
  */
-MS2_PUBLIC void ms_set_plugins_dir(const char *path);
+MS2_PUBLIC LINPHONE_DEPRECATED void ms_set_plugins_dir(const char *path);
 
 /**
  * Load plugins from a specific directory.
@@ -371,26 +378,26 @@ MS2_PUBLIC void ms_set_plugins_dir(const char *path);
  *
  * Returns: >0 if successfull, 0 if not plugins loaded, -1 otherwise.
  */
-MS2_PUBLIC int ms_load_plugins(const char *directory);
+MS2_PUBLIC LINPHONE_DEPRECATED int ms_load_plugins(const char *directory);
 
 /**
  * Release resource allocated in the mediastreamer2 base library.
  *
  * This must be called once before closing program.
  */
-MS2_PUBLIC void ms_base_exit(void);
+MS2_PUBLIC LINPHONE_DEPRECATED void  ms_base_exit(void);
 
 /**
  * Release resource allocated in the mediastreamer2 VoIP library.
  *
  * This must be called once before closing program.
  */
-MS2_PUBLIC void ms_voip_exit(void);
+MS2_PUBLIC LINPHONE_DEPRECATED void ms_voip_exit(void);
 
 /**
  * Unload the plugins loaded by ms_plugins_init().
  */
-MS2_PUBLIC void ms_plugins_exit(void);
+MS2_PUBLIC LINPHONE_DEPRECATED void ms_plugins_exit(void);
 
 struct _MSSndCardDesc;
 
@@ -407,9 +414,9 @@ MS2_PUBLIC void ms_usleep(uint64_t usec);
  * value works for both.
  *
 **/
-MS2_PUBLIC int ms_get_payload_max_size(void);
+MS2_PUBLIC LINPHONE_DEPRECATED int ms_get_payload_max_size(void);
 
-MS2_PUBLIC void ms_set_payload_max_size(int size);
+MS2_PUBLIC LINPHONE_DEPRECATED void ms_set_payload_max_size(int size);
 
 /**
  * Returns the network Max Transmission Unit to reach destination_host.
@@ -433,9 +440,9 @@ MS2_PUBLIC int ms_get_mtu(void);
 /**
  * Declare how many cpu (cores) are available on the platform
  */
-MS2_PUBLIC void ms_set_cpu_count(unsigned int c);
+MS2_PUBLIC LINPHONE_DEPRECATED void ms_set_cpu_count(unsigned int c);
 
-MS2_PUBLIC unsigned int ms_get_cpu_count(void);
+MS2_PUBLIC LINPHONE_DEPRECATED unsigned int ms_get_cpu_count(void);
 
 /**
  * Adds a new entry in the SoundDeviceDescription table

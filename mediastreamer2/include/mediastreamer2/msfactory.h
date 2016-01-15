@@ -46,6 +46,14 @@ typedef struct _MSFactory MSFactory;
 extern "C" {
 #endif
 
+#ifndef LINPHONE_DEPRECATED
+#if defined(_MSC_VER)
+#define LINPHONE_DEPRECATED __declspec(deprecated)
+#else
+#define LINPHONE_DEPRECATED __attribute__ ((deprecated))
+#endif
+#endif
+	
 /**
  * Create a mediastreamer2 factory. This is the root object that will create everything else from mediastreamer2.
 **/
@@ -54,13 +62,13 @@ MS2_PUBLIC MSFactory *ms_factory_new(void);
 /**
  * Create the fallback factory (for compatibility with applications not using MSFactory to create ms2 object)
 **/
-MS2_PUBLIC MSFactory *ms_factory_create_fallback(void);
+LINPHONE_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_create_fallback(void);
 
 /**
  * Used by the legacy functions before MSFactory was added.
  * Do not use in an application.
 **/
-MS2_PUBLIC MSFactory *ms_factory_get_fallback(void);
+LINPHONE_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_get_fallback(void);
 
 /**
  * Destroy the factory.

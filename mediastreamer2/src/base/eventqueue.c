@@ -196,6 +196,15 @@ void ms_event_queue_destroy(MSEventQueue *q){
 	ms_free(q);
 }
 
+void ms_event_queue_destroy(MSEventQueue *q, MSFactory *f){
+	/*compatibility code*/
+	if (q==ms_factory_get_event_queue(f)){
+		ms_factory_set_event_queue(f,NULL);
+	}
+	ms_mutex_destroy(&q->mutex);
+	ms_free(q);
+}
+
 void ms_set_global_event_queue(MSEventQueue *q){
 	ms_factory_set_event_queue(ms_factory_get_fallback(),q);
 }
