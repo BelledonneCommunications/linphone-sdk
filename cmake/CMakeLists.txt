@@ -338,6 +338,14 @@ macro(linphone_builder_set_ep_directories PROJNAME)
 	else()
 		set(ep_build "${ep_base}/Build/${PROJNAME}")
 
+		# replace "//" with "/" in paths
+		string(FIND "${ep_build}" "//" must_trim)
+		while (must_trim GREATER -1)
+			string(REPLACE "//" "/" ep_build_trim ${ep_build})
+			set(ep_build ${ep_build_trim})
+			string(FIND "${ep_build}" "//" must_trim)
+		endwhile()
+
 		# Compute the relative path to the source directory from the build directory
 		set(common TRUE)
 		set(not_finished TRUE)
