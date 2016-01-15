@@ -257,16 +257,7 @@ bool_t ms_is_ipv6(const char *remote) {
 }
 
 bool_t ms_is_multicast_addr(const struct sockaddr *addr) {
-
-	switch (addr->sa_family) {
-		case AF_INET:
-			return IN_MULTICAST(ntohl(((struct sockaddr_in *) addr)->sin_addr.s_addr));
-		case AF_INET6:
-			return IN6_IS_ADDR_MULTICAST(&(((struct sockaddr_in6 *) addr)->sin6_addr));
-		default:
-			return FALSE;
-	}
-
+	return ortp_is_multicast_addr(addr);
 }
 
 bool_t ms_is_multicast(const char *address) {
@@ -331,18 +322,8 @@ void media_stream_iterate(MediaStream *stream){
 				ms_message("%s_stream_iterate[%p], local statistics available:"
 							"\n\tLocal current jitter buffer size: %5.1fms",
 					media_stream_type_str(stream), stream, rtp_session_get_jitter_stats(stream->sessions.rtp_session)->jitter_buffer_size_ms);
-			} else if (evt==ORTP_EVENT_STUN_PACKET_RECEIVED){
-				if (stream->ice_check_list) {
-						ice_handle_stun_packet(stream->ice_check_list,stream->sessions.rtp_session,ortp_event_get_data(ev));
-				} else if (rtp_session_get_symmetric_rtp(stream->sessions.rtp_session)){
-					/*try to know if we can trust stun packets for symetric rtp*/
-					rtp_stats_t stats;
-					media_stream_get_local_rtp_stats(stream, &stats);
-					if (stats.packet_recv == 0 && !ms_is_multicast_addr((const struct sockaddr *)&stream->sessions.rtp_session->rtp.gs.rem_addr)) {
-						memcpy(&stream->sessions.rtp_session->rtp.gs.rem_addr,&ortp_event_get_data(ev)->source_addr,ortp_event_get_data(ev)->source_addrlen);
-						ms_message("stun packet received but no rtp yet for stream [%p], switching rtp destination address",stream);
-					}
-				}
+			} else if (evt==ORTP_EVENT_STUN_PACKET_RECEIVED && stream->ice_check_list){
+				ice_handle_stun_packet(stream->ice_check_list,stream->sessions.rtp_session,ortp_event_get_data(ev));
 			} else if ((evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) || (evt == ORTP_EVENT_DTLS_ENCRYPTION_CHANGED)) {
 				ms_message("%s_stream_iterate[%p]: is %s ",media_stream_type_str(stream) , stream, media_stream_secured(stream) ? "encrypted" : "not encrypted");
 			}

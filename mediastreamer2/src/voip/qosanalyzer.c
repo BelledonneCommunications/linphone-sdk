@@ -172,7 +172,7 @@ static bool_t simple_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp)
 			if (pt!=NULL) obj->clockrate=pt->clock_rate;
 			else return FALSE;
 		}
-		if (ortp_loss_rate_estimator_process_report_block(objbase->lre,&obj->session->rtp,rb)){
+		if (ortp_loss_rate_estimator_process_report_block(objbase->lre,obj->session,rb)){
 			cur->lost_percentage=ortp_loss_rate_estimator_get_value(objbase->lre);
 			cur->int_jitter=1000.0f*(float)report_block_get_interarrival_jitter(rb)/(float)obj->clockrate;
 			cur->rt_prop=rtp_session_get_round_trip_propagation(obj->session);
@@ -350,7 +350,7 @@ static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtc
 
 
 	if (rb && report_block_get_ssrc(rb)==rtp_session_get_send_ssrc(obj->session)){
-		if (ortp_loss_rate_estimator_process_report_block(objbase->lre,&obj->session->rtp,rb)){
+		if (ortp_loss_rate_estimator_process_report_block(objbase->lre,obj->session,rb)){
 			int i;
 			float loss_rate = ortp_loss_rate_estimator_get_value(objbase->lre);
 			float up_bw = stateful_qos_analyzer_upload_bandwidth(obj,report_block_get_high_ext_seq(rb));

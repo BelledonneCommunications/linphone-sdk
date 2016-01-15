@@ -117,12 +117,19 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 	}
 }
 
-static void basic_audio_stream_base(	const char* marielle_local_ip
-									, 	int marielle_local_rtp_port
-									, 	int marielle_local_rtcp_port
-									, 	const char*  margaux_local_ip
-									, 	int margaux_local_rtp_port
-									, 	int margaux_local_rtcp_port) {
+static void basic_audio_stream_base_2(	const char* marielle_local_ip
+									  ,	const char* marielle_remote_ip
+									  , int marielle_local_rtp_port
+									  , int marielle_remote_rtp_port
+									  ,	int marielle_local_rtcp_port
+									  , int marielle_remote_rtcp_port
+									  ,	const char*  margaux_local_ip
+									  , const char*  margaux_remote_ip
+									  ,	int margaux_local_rtp_port
+									  , int margaux_remote_rtp_port
+									  ,	int margaux_local_rtcp_port
+									  , int margaux_remote_rtcp_port
+									  , int lost_percentage) {
 	AudioStream * 	marielle = audio_stream_new2 (marielle_local_ip, marielle_local_rtp_port, marielle_local_rtcp_port);
 	stats_t marielle_stats;
 	AudioStream * 	margaux = audio_stream_new2 (margaux_local_ip, margaux_local_rtp_port,margaux_local_rtcp_port);
@@ -131,9 +138,13 @@ static void basic_audio_stream_base(	const char* marielle_local_ip
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
 	char* recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
 	int marielle_rtp_sent=0;
+	const jitter_stats_t *jitter_stats;
+	
 	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session,TRUE);
 	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session,TRUE);
-
+	rtp_session_set_rtcp_report_interval(marielle->ms.sessions.rtp_session, 1000);
+	rtp_session_set_rtcp_report_interval(margaux->ms.sessions.rtp_session, 1000);
+	
 	reset_stats(&marielle_stats);
 	reset_stats(&margaux_stats);
 
@@ -142,10 +153,10 @@ static void basic_audio_stream_base(	const char* marielle_local_ip
 
 	BC_ASSERT_EQUAL(audio_stream_start_full(margaux
 											, profile
-											, ms_is_multicast(margaux_local_ip)?margaux_local_ip:marielle_local_ip
-											, ms_is_multicast(margaux_local_ip)?margaux_local_rtp_port:marielle_local_rtp_port
-											, marielle_local_ip
-											, marielle_local_rtcp_port
+											, ms_is_multicast(margaux_local_ip)?margaux_local_ip:margaux_remote_ip
+											, ms_is_multicast(margaux_local_ip)?margaux_local_rtp_port:margaux_remote_rtp_port
+											, margaux_remote_ip
+											, margaux_remote_rtcp_port
 											, 0
 											, 50
 											, NULL
@@ -157,10 +168,10 @@ static void basic_audio_stream_base(	const char* marielle_local_ip
 
 	BC_ASSERT_EQUAL(audio_stream_start_full(marielle
 											, profile
-											, margaux_local_ip
-											, margaux_local_rtp_port
-											, margaux_local_ip
-											, margaux_local_rtcp_port
+											, marielle_remote_ip
+											, marielle_remote_rtp_port
+											, marielle_remote_ip
+											, marielle_remote_rtcp_port
 											, 0
 											, 50
 											, hello_file
@@ -177,10 +188,17 @@ static void basic_audio_stream_base(	const char* marielle_local_ip
 	audio_stream_get_local_rtp_stats(marielle,&marielle_stats.rtp);
 	audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
 	marielle_rtp_sent = marielle_stats.rtp.sent;
-
+	
+	jitter_stats = rtp_session_get_jitter_stats(margaux->ms.sessions.rtp_session);
+	
+	if (rtp_session_rtcp_enabled(marielle->ms.sessions.rtp_session) && rtp_session_rtcp_enabled(margaux->ms.sessions.rtp_session)) {
+		BC_ASSERT_TRUE(rtp_session_get_round_trip_propagation(marielle->ms.sessions.rtp_session)>0);
+		BC_ASSERT_TRUE(rtp_session_get_stats(marielle->ms.sessions.rtp_session)->recv_rtcp_packets >0);
+	}
+	
 	audio_stream_stop(marielle);
-	/* No packet loss is assumed */
-	wait_for_until(&margaux->ms,NULL,(int*)&margaux_stats.rtp.hw_recv,marielle_rtp_sent,2500);
+	
+	BC_ASSERT_TRUE(wait_for_until(&margaux->ms,NULL,(int*)&margaux_stats.rtp.hw_recv,marielle_rtp_sent*(100-lost_percentage)/100,2500));
 
 	audio_stream_stop(margaux);
 
@@ -189,7 +207,27 @@ static void basic_audio_stream_base(	const char* marielle_local_ip
 	free(hello_file);
 	rtp_profile_destroy(profile);
 }
+static void basic_audio_stream_base(	const char* marielle_local_ip
+									, 	int marielle_local_rtp_port
+									, 	int marielle_local_rtcp_port
+									, 	const char*  margaux_local_ip
+									, 	int margaux_local_rtp_port
+									, 	int margaux_local_rtcp_port) {
+	basic_audio_stream_base_2( marielle_local_ip
+							  , margaux_local_ip
+							  , marielle_local_rtp_port
+							  , margaux_local_rtp_port
+							  , marielle_local_rtcp_port
+							  , margaux_local_rtcp_port
+							  , margaux_local_ip
+							  , marielle_local_ip
+							  , margaux_local_rtp_port
+							  , marielle_local_rtp_port
+							  , margaux_local_rtcp_port
+							  , marielle_local_rtcp_port
+							  , 0);
 
+}
 static void basic_audio_stream(void)  {
 	basic_audio_stream_base(MARIELLE_IP,MARIELLE_RTP_PORT,MARIELLE_RTCP_PORT
 							,MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
@@ -551,6 +589,40 @@ static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_
 }
 #endif
 
+static void symetric_rtp_with_wrong_addr(void)  {
+	basic_audio_stream_base_2(  MARIELLE_IP
+							  , "10.10.10.10" /*dummy ip*/
+							  , MARIELLE_RTP_PORT
+							  , MARGAUX_RTP_PORT
+							  , MARIELLE_RTCP_PORT
+							  , MARGAUX_RTCP_PORT
+							
+							  , MARGAUX_IP
+							  , MARIELLE_IP
+							  , MARGAUX_RTP_PORT
+							  , MARIELLE_RTP_PORT
+							  , MARGAUX_RTCP_PORT
+							  , MARIELLE_RTCP_PORT
+							  ,5);
+}
+
+static void symetric_rtp_with_wrong_rtcp_port(void)  {
+	basic_audio_stream_base_2(  MARIELLE_IP
+							  , MARGAUX_IP
+							  , MARIELLE_RTP_PORT
+							  , MARGAUX_RTP_PORT
+							  , MARIELLE_RTCP_PORT
+							  , MARGAUX_RTCP_PORT
+							  
+							  , MARGAUX_IP
+							  , MARIELLE_IP
+							  , MARGAUX_RTP_PORT
+							  , MARIELLE_RTP_PORT
+							  , MARGAUX_RTCP_PORT
+							  , MARIELLE_RTCP_PORT +10 /*dummy port*/
+							  ,5);
+}
+
 
 static test_t tests[] = {
 	{ "Basic audio stream", basic_audio_stream },
@@ -563,7 +635,9 @@ static test_t tests[] = {
 	{ "Encrypted audio stream, encryption mandatory", encrypted_audio_stream_encryption_mandatory },
 	{ "Encrypted audio stream with key change + encryption mandatory", encrypted_audio_stream_with_key_change_encryption_mandatory},
 	{ "Codec change for audio stream", codec_change_for_audio_stream },
-	{ "TMMBR feedback for audio stream", tmmbr_feedback_for_audio_stream }
+	{ "TMMBR feedback for audio stream", tmmbr_feedback_for_audio_stream },
+	{ "Symetric rtp with wrong address", symetric_rtp_with_wrong_addr },
+	{ "Symetric rtp with wrong rtcp port", symetric_rtp_with_wrong_rtcp_port },
 };
 
 test_suite_t audio_stream_test_suite = {
