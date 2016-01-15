@@ -31,6 +31,7 @@ set(BELR_SOURCE_FILES_CXX
 
 apply_compile_flags(BELR_SOURCE_FILES_C "CPP" "C")
 apply_compile_flags(BELR_SOURCE_FILES_CXX "CPP" "CXX")
+set_property(TARGET tgt PROPERTY CXX_STANDARD 11)
 
 if(ENABLE_STATIC)
 	add_library(belr STATIC ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_C} ${BELR_SOURCE_FILES_CXX})
@@ -38,9 +39,7 @@ else()
 	add_library(belr SHARED ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_C} ${BELR_SOURCE_FILES_CXX})
 	set_target_properties(belr PROPERTIES VERSION ${BELR_SO_VERSION})
 endif()
-if(APPLE)
-	target_compile_features(belr PRIVATE cxx_auto_type cxx_variadic_macros)
-endif()
+
 target_link_libraries(belr)
 
 install(TARGETS belr EXPORT ${EXPORT_TARGETS_NAME}Targets
