@@ -74,7 +74,7 @@ namespace belcard {
 		static shared_ptr<BelCardUniqueId> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardUniqueId();
+		BELCARD_PUBLIC BelCardUniqueId();
 	};
 	
 	class BelCardClientProductIdMap : public BelCardProperty {

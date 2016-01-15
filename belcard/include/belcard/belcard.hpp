@@ -45,7 +45,7 @@
 using namespace::std;
 using namespace::belr;
 
-namespace belcard {	
+namespace belcard {
 	class BelCard : public BelCardGeneric {
 	private:
 		std::string _folded_string;
@@ -120,8 +120,8 @@ namespace belcard {
 		void setRevision(const shared_ptr<BelCardRevision> &rev);
 		const shared_ptr<BelCardRevision> &getRevision() const;
 		
-		void setUniqueId(const shared_ptr<BelCardUniqueId> &uid);
-		const shared_ptr<BelCardUniqueId> &getUniqueId() const;
+		BELCARD_PUBLIC void setUniqueId(const shared_ptr<BelCardUniqueId> &uid);
+		BELCARD_PUBLIC const shared_ptr<BelCardUniqueId> &getUniqueId() const;
 		
 		void setBirthPlace(const shared_ptr<BelCardBirthPlace> &place);
 		const shared_ptr<BelCardBirthPlace> &getBirthPlace() const;
