@@ -16,7 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "belcard/belcard_general.hpp"
+#include "belcard/belcard.hpp"
 
 using namespace::std;
 using namespace::belr;
