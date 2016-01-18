@@ -113,6 +113,9 @@ namespace ms2_tester
 
         private async void InitVideoPage()
         {
+            // Perform the video capture & display in a background task. Set to false to run in foreground.
+            MS2TesterHelper.RunInBackground = true;
+
             await InitVideo();
             await FillCameraComboBox();
         }
