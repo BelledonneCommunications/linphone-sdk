@@ -542,12 +542,12 @@ int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, 
 	return -1;
 }
 
-int media_stream_session_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
+int ms_media_stream_session_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
 	ms_error("Unable to set srtp encryption mandatory mode: srtp support disabled in mediastreamer2");
 	return -1;
 }
 
-bool_t media_stream_session_get_encryption_mandatory(const MSMediaStreamSessions *sessions) {
+bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMediaStreamSessions *sessions) {
 	ms_error("Unable to get srtp encryption mandatory mode: srtp support disabled in mediastreamer2");
 	return -1;
 }
