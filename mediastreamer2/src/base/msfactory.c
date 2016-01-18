@@ -246,7 +246,8 @@ MSFactory *ms_factory_new(void){
 **/
 void ms_factory_destroy(MSFactory *factory){
 	ms_factory_uninit_plugins(factory);
-	if (factory->evq) ms_event_queue_destroy(factory->evq, factory);
+	//if (factory->evq) ms_event_queue_destroy(factory->evq, factory);
+	if (factory->evq) ms_factory_destroy_event_queue(factory);
 	factory->formats=ms_list_free_with_data(factory->formats,(void(*)(void*))ms_fmt_descriptor_destroy);
 	factory->desc_list=ms_list_free(factory->desc_list);
 	ms_list_for_each(factory->stats_list,ms_free);
@@ -362,7 +363,8 @@ MSFilter * ms_factory_create_encoder(MSFactory* factory, const char *mime){
 }
 
 MSFilter * ms_factory_create_decoder(MSFactory* factory, const char *mime){
-	MSFilterDesc *desc=ms_filter_get_decoder(mime);
+	//MSFilterDesc *desc=ms_filter_get_decoder(mime);
+	MSFilterDesc *desc = ms_factory_get_decoder(factory, mime);
 	if (desc!=NULL) return ms_factory_create_filter_from_desc(factory,desc);
 	return NULL;
 }
@@ -727,6 +729,14 @@ struct _MSEventQueue *ms_factory_create_event_queue(MSFactory *obj) {
 	}
 	return obj->evq;
 }
+
+void ms_factory_destroy_event_queue(MSFactory *obj) {
+
+	ms_factory_set_event_queue(obj,NULL);
+	ms_event_queue_destroy(obj->evq);
+	
+}
+
 
 struct _MSEventQueue *ms_factory_get_event_queue(MSFactory *obj){
 	return obj->evq;

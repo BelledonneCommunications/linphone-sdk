@@ -429,8 +429,7 @@ MS2_PUBLIC int ms_discover_mtu(const char *destination_host);
  * Set mediastreamer default mtu, used to compute the default RTP max payload size.
  * This function will call ms_set_payload_max_size(mtu-[ipv6 header size]).
 **/
-MS2_PUBLIC void ms_set_mtu(int mtu);
-
+MS2_PUBLIC LINPHONE_DEPRECATED void ms_set_mtu(int mtu);
 
 /**
  * Get mediastreamer default mtu, used to compute the default RTP max payload size.

@@ -20,6 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msfactory_h
 #define msfactory_h
 
+
+#include "mediastreamer2/msfilter.h"
+
+
 /*do not use these fields directly*/
 struct _MSFactory{
 	MSList *desc_list;
@@ -263,8 +267,10 @@ MS2_PUBLIC void ms_factory_uninit_voip(MSFactory *obj);
  * @return The created event queue.
  */
 MS2_PUBLIC struct _MSEventQueue * ms_factory_create_event_queue(MSFactory *obj);
-
-/**
+	
+MS2_PUBLIC void ms_factory_destroy_event_queue(MSFactory *obj);
+	
+	/**
  * Gets the event queue associated with the factory.
  * Can be NULL if no event queue has been created.
  * @param[in] obj MSFactory object.

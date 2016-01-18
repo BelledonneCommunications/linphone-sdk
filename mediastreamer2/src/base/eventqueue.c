@@ -187,20 +187,17 @@ MSEventQueue *ms_event_queue_new(){
 	return q;
 }
 
+//void ms_event_queue_destroy(MSEventQueue *q){
+//	/*compatibility code*/
+//	if (q==ms_factory_get_event_queue(ms_factory_get_fallback())){
+//		ms_factory_set_event_queue(ms_factory_get_fallback(),NULL);
+//	}
+//	ms_mutex_destroy(&q->mutex);
+//	ms_free(q);
+//}
+
 void ms_event_queue_destroy(MSEventQueue *q){
 	/*compatibility code*/
-	if (q==ms_factory_get_event_queue(ms_factory_get_fallback())){
-		ms_factory_set_event_queue(ms_factory_get_fallback(),NULL);
-	}
-	ms_mutex_destroy(&q->mutex);
-	ms_free(q);
-}
-
-void ms_event_queue_destroy(MSEventQueue *q, MSFactory *f){
-	/*compatibility code*/
-	if (q==ms_factory_get_event_queue(f)){
-		ms_factory_set_event_queue(f,NULL);
-	}
 	ms_mutex_destroy(&q->mutex);
 	ms_free(q);
 }

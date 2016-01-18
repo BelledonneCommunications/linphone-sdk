@@ -115,7 +115,7 @@ void ms_srtp_context_delete(MSSrtpCtx *session);
 
 void register_video_preset_high_fps(MSVideoPresetsManager *manager);
 
-MSFilter *_ms_create_av_player(const char *filename);
+MSFilter *_ms_create_av_player(const char *filename, AudioStream *stream);
 void video_recorder_handle_event(void *userdata, MSFilter *recorder, unsigned int event, void *event_arg);
 
 

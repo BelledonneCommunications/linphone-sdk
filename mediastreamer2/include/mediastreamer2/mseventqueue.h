@@ -59,6 +59,6 @@ MS2_PUBLIC void ms_event_queue_skip(MSEventQueue *q);
 /**
  * Destroys an event queue.
 **/
-MS2_PUBLIC LINPHONE_DEPRECATED void ms_event_queue_destroy(MSEventQueue *q);
-MS2_PUBLIC void ms_event_queue_destroy(MSEventQueue *q, MSFactory *f);
+//MS2_PUBLIC LINPHONE_DEPRECATED void ms_event_queue_destroy(MSEventQueue *q);
+MS2_PUBLIC void ms_event_queue_destroy(MSEventQueue *q);
 #endif
