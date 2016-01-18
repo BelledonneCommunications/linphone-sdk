@@ -637,6 +637,7 @@ static void h264_dec_process(MSFilter *f) {
     status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
     if(status != noErr) {
         ms_error("VideoToolbox: error while passing encoded frames to the decoder: %d", status);
+		goto fail;
     }
     CFRelease(sample);
     CFRelease(stream);
