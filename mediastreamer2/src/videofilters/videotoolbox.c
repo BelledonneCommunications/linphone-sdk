@@ -425,8 +425,8 @@ typedef struct _VTH264DecCtx {
     MSVideoSize vsize;
     MSAverageFPS fps;
     bool_t first_image;
-    bool_t send_pli;
     bool_t enable_avpf;
+	MSFilter *f;
 } VTH264DecCtx;
 
 static bool_t h264_dec_update_format_description(VTH264DecCtx *ctx, const MSList *parameter_sets) {
@@ -482,9 +482,7 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
     
     if(status != noErr || imageBuffer == NULL) {
         ms_error("VideoToolboxDecoder: fail to decode one frame: error %d", status);
-        ms_mutex_lock(&ctx->mutex);
-        ctx->send_pli = TRUE;
-        ms_mutex_unlock(&ctx->mutex);
+		ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_SEND_PLI);
         return;
     }
     
@@ -543,7 +541,7 @@ static void h264_dec_init(MSFilter *f) {
     ctx->vsize = MS_VIDEO_SIZE_UNKNOWN;
     ms_average_fps_init(&ctx->fps, "VideoToolboxDecoder: decoding at %ffps");
     ctx->first_image = TRUE;
-    ctx->send_pli = FALSE;
+	ctx->f = f;
     f->data = ctx;
 }
 
@@ -577,15 +575,17 @@ static void h264_dec_process(MSFilter *f) {
         MSH264NaluType nalu_type = ms_h264_nalu_get_type(nalu);
         if(nalu_type == MSH264NaluTypeSPS || nalu_type == MSH264NaluTypePPS) {
             parameter_sets = ms_list_append(parameter_sets, nalu);
-        } else {
+        } else if(ctx->format_desc || parameter_sets) {
             ms_queue_put(&q_nalus2, nalu);
-        }
+		} else {
+			ms_free(nalu);
+		}
     }
     if(parameter_sets) {
         CMFormatDescriptionRef last_format = ctx->format_desc ? CFRetain(ctx->format_desc) : NULL;
         h264_dec_update_format_description(ctx, parameter_sets);
         parameter_sets = ms_list_free_with_data(parameter_sets, (void (*)(void *))freemsg);
-        if(ctx->format_desc == NULL) goto fail;
+		if(ctx->format_desc == NULL) goto fail;
         if(last_format) {
             CMVideoDimensions last_vsize = CMVideoFormatDescriptionGetDimensions(last_format);
             CMVideoDimensions vsize = CMVideoFormatDescriptionGetDimensions(ctx->format_desc);
@@ -597,15 +597,21 @@ static void h264_dec_process(MSFilter *f) {
                 CFRelease(ctx->session);
                 ctx->session = NULL;
             }
+			CFRelease(last_format);
         }
     }
-    
-    if(ctx->format_desc == NULL) goto fail;
-    
-    /* Initialize the decoder if it has not be done yet or reconfigure it when
+	
+	/* Stops proccessing if no IDR has been received yet */
+	if(ctx->format_desc == NULL) {
+		ms_warning("VideoToolboxDecoder: no IDR packet has been received yet");
+		goto fail;
+	}
+	
+    /* Initializes the decoder if it has not be done yet or reconfigure it when
      the size of the encoded video change */
     if(ctx->session == NULL) {
         if(!h264_dec_init_decoder(ctx)) {
+			ms_error("VideoToolboxDecoder: failed to initialized decoder");
             goto fail;
         }
     }
@@ -630,19 +636,22 @@ static void h264_dec_process(MSFilter *f) {
     CMSampleBufferCreateReady(NULL, stream, ctx->format_desc, 1, 1, &timing_info, 0, NULL, &sample);
     status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
     if(status != noErr) {
-        ms_error("VideoToolbox: error while passing encoding frames to the decoder: %d", status);
+        ms_error("VideoToolbox: error while passing encoded frames to the decoder: %d", status);
     }
     CFRelease(sample);
     CFRelease(stream);
     goto put_frames_out;
     
 fail:
-    ms_mutex_lock(&ctx->mutex);
-    ctx->send_pli = TRUE;
-    ms_mutex_unlock(&ctx->mutex);
-    
+	ms_filter_lock(f);
+	if(ctx->enable_avpf) {
+		ms_message("VideoToolbox: sending PLI");
+		ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
+	}
+	ms_filter_unlock(f);
+	
 put_frames_out:
-    // Transfert decoded frames in the output queue
+    // Transfer decoded frames in the output queue
     ms_mutex_lock(&ctx->mutex);
     while((pixbuf = ms_queue_get(&ctx->queue))) {
         ms_mutex_unlock(&ctx->mutex);
@@ -661,19 +670,7 @@ put_frames_out:
         ms_mutex_lock(&ctx->mutex);
     }
     ms_mutex_unlock(&ctx->mutex);
-    
-    // Send a PLI if necessary
-    ms_mutex_lock(&ctx->mutex);
-    if(ctx->send_pli) {
-        ms_filter_lock(f);
-        if(ctx->enable_avpf) {
-            ms_message("VideoToolbox: sending PLI");
-            ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
-        }
-        ms_filter_unlock(f);
-        ctx->send_pli = FALSE;
-    }
-    ms_mutex_unlock(&ctx->mutex);
+	
     
     // Cleaning
     ms_queue_flush(&q_nalus);
