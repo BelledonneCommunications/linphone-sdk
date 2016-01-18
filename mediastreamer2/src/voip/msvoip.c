@@ -345,6 +345,22 @@ void ms_voip_exit(){
 	ms_factory_uninit_voip(ms_factory_get_fallback());
 }
 
+PayloadType * ms_offer_answer_context_match_payload(MSOfferAnswerContext *context, const MSList *local_payloads, const PayloadType *remote_payload, const MSList *remote_payloads, bool_t is_reading){
+	return context->match_payload(context, local_payloads, remote_payload, remote_payloads, is_reading);
+}
+
+ MSOfferAnswerContext *ms_offer_answer_create_simple_context(MSPayloadMatcherFunc func){
+	 MSOfferAnswerContext *ctx = ms_new0(MSOfferAnswerContext,1);
+	 ctx->match_payload = func;
+	 ctx->destroy = (void (*)(MSOfferAnswerContext *)) ms_free;
+	 return ctx;
+}
+
+void ms_offer_answer_context_destroy(MSOfferAnswerContext *ctx){
+	if (ctx->destroy)
+		ctx->destroy(ctx);
+}
+
 #ifdef __cplusplus
 }
 #endif

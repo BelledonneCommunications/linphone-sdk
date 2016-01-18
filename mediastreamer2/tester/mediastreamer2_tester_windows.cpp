@@ -258,6 +258,16 @@ void MS2Tester::stopVideoStream()
 	_videoStream = NULL;
 }
 
+void MS2Tester::changeCamera(Platform::String^ camera)
+{
+	char cst[1024];
+	std::wstring wst;
+	MSWebCamManager *manager = ms_web_cam_manager_get();
+	PLATFORM_STRING_TO_C_STRING(camera);
+	MSWebCam *cam = ms_web_cam_manager_get_cam(manager, cst);
+	video_stream_change_camera(_videoStream, cam);
+}
+
 void MS2Tester::setOrientation(int degrees)
 {
 	_deviceRotation = degrees;

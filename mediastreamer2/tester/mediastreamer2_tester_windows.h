@@ -28,6 +28,7 @@ namespace ms2_tester_runtime_component
 		void stopVideoStream();
 		int getOrientation() { return _deviceRotation; }
 		void setOrientation(int degrees);
+		void changeCamera(Platform::String^ camera);
 
 		static property MS2Tester^ Instance
 		{

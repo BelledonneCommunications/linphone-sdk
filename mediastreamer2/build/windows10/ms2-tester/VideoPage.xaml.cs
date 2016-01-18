@@ -144,6 +144,12 @@ namespace ms2_tester
             }
         }
 
+        private void ChangeCameraButton_Click(object sender, RoutedEventArgs e)
+        {
+            String camera = (CameraComboBox.SelectedItem as ComboBoxItem).Content as String;
+            MS2Tester.Instance.changeCamera(camera);
+        }
+
         private void SetVideoOrientation()
         {
             SimpleOrientation orientation = deviceOrientation;

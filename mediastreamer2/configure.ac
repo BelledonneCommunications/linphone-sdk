@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([mediastreamer],[2.12.1])
+AC_INIT([mediastreamer],[2.13.0])
 
 AC_MSG_NOTICE([$PACKAGE_NAME-$PACKAGE_VERSION		A mediastreaming library for telephony application.])
 AC_MSG_NOTICE([licensed under the terms of the General Public License (GPL)])
@@ -764,6 +764,10 @@ AM_CONDITIONAL(BUILD_X11_XV, test "$enable_xv" = "true" )
 AM_CONDITIONAL(BUILD_X11_GL, test "$enable_glx" = "true" )
 AM_CONDITIONAL(BUILD_UPNP, test "$build_upnp" = "true" )
 
+if test "$build_vp8" != "false" ; then
+	AC_DEFINE(HAVE_VPX, 1, [Tells whether vpx can be used])
+fi
+
 dnl	*********************************************
 dnl	Enable/disable oRTP dependency
 dnl	*********************************************
@@ -1024,12 +1028,6 @@ fi
 
 AM_CONDITIONAL(BUILD_TESTS,test x$found_cunit = xyes)
 
-case "$target_os" in
-	*linux*)
-		# Eliminate -lstdc++ addition to postdeps for cross compiles.
-		postdeps_CXX=`echo " $postdeps_CXX " | sed 's, -lstdc++ ,,g'`
-	;;
-esac
 
 dnl check for libsrtp support (secure rtp)
 AC_ARG_WITH(srtp,

@@ -47,19 +47,17 @@ set(BASE_SOURCE_FILES_C
 	otherfilters/void.c
 )
 
-set(BASE_GENERATED_SOURCE_FILES_C
-	${CMAKE_CURRENT_BINARY_DIR}/basedescs.h
-	${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
-)
-set_source_files_properties(${BASE_GENERATED_SOURCE_FILES_C} PROPERTIES GENERATED TRUE)
 find_package(Git)
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
-	COMMAND ${CMAKE_COMMAND} -DGIT_EXECUTABLE=${GIT_EXECUTABLE} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/gitversion.cmake)
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/basedescs.h
-	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR=${CMAKE_CURRENT_SOURCE_DIR}/../
+add_custom_target(ms2-git-version
+	COMMAND ${CMAKE_COMMAND} -DGIT_EXECUTABLE=${GIT_EXECUTABLE} -DMEDIASTREAMER_VERSION=${MEDIASTREAMER_VERSION} -DWORK_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/gitversion.cmake
+	BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/gitversion.h"
+)
+add_custom_target(ms2-basedescs-header
+	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../"
 		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 		-DTYPE=base -DSOURCE_FILES="${BASE_SOURCE_FILES_C}"
-		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake)
+		-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake"
+	BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/basedescs.h")
 
 add_definitions(
 	-DMEDIASTREAMER2_EXPORTS
@@ -80,12 +78,11 @@ if(HAVE_DLOPEN)
 endif()
 
 apply_compile_flags(BASE_SOURCE_FILES_C "CPP" "C")
-apply_compile_flags(BASE_GENERATED_SOURCE_FILES_C "CPP" "C")
 
 if(ENABLE_STATIC)
-	add_library(mediastreamer_base STATIC ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C} ${BASE_GENERATED_SOURCE_FILES_C})
+	add_library(mediastreamer_base STATIC ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
 else()
-	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C} ${BASE_GENERATED_SOURCE_FILES_C})
+	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
 	set_target_properties(mediastreamer_base PROPERTIES VERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE C)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -96,6 +93,7 @@ else()
 		endif()
 	endif()
 endif()
+add_dependencies(mediastreamer_base ms2-git-version ms2-basedescs-header)
 target_link_libraries(mediastreamer_base ${BASE_LIBS})
 
 install(TARGETS mediastreamer_base EXPORT ${EXPORT_TARGETS_NAME}Targets
@@ -118,7 +116,9 @@ set(VOIP_SOURCE_FILES_C
 	audiofilters/flowcontrol.c
 	audiofilters/g711.c
 	audiofilters/g711.h
+	audiofilters/genericplc.h
 	audiofilters/genericplc.c
+	audiofilters/msgenericplc.c
 	audiofilters/l16.c
 	audiofilters/msfileplayer.c
 	audiofilters/msfilerec.c
@@ -333,43 +333,42 @@ if(ENABLE_VIDEO)
 	endif()
 endif()
 
-set(VOIP_GENERATED_SOURCE_FILES_C
-	${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h
-)
 set(VOIP_SOURCE_FILES_ALL ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h
-	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR=${CMAKE_CURRENT_SOURCE_DIR}/../
+
+add_custom_target(ms2-voipdescs-header
+	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../"
 		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 		-DTYPE=voip -DSOURCE_FILES="${VOIP_SOURCE_FILES_ALL}"
-		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake)
-if(APPLE OR GLX_FOUND)
-find_program(XXD_PROGRAM xxd)
-if(NOT XXD_PROGRAM)
-	message(FATAL_ERROR "You need the xxd program to build mediastreamer2.")
-endif()
-find_program(SED_PROGRAM sed)
-if(NOT SED_PROGRAM)
-	message(FATAL_ERROR "You need the sed program to build mediastreamer2.")
-endif()
-list(APPEND VOIP_GENERATED_SOURCE_FILES_C
-	${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
-	${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
+		-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake"
+	BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h"
 )
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
-	COMMAND ${CMAKE_COMMAND} -DXXD_PROGRAM=${XXD_PROGRAM} -DSED_PROGRAM=${SED_PROGRAM}
-		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
-		-DSOURCE_FILE="yuv2rgb.fs"
-		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake)
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
-	COMMAND ${CMAKE_COMMAND} -DXXD_PROGRAM=${XXD_PROGRAM} -DSED_PROGRAM=${SED_PROGRAM}
-		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
-		-DSOURCE_FILE="yuv2rgb.vs"
-		-P ${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake)
+
+if(APPLE OR GLX_FOUND)
+	find_program(XXD_PROGRAM xxd)
+	if(NOT XXD_PROGRAM)
+		message(FATAL_ERROR "You need the xxd program to build mediastreamer2.")
+	endif()
+	find_program(SED_PROGRAM sed)
+	if(NOT SED_PROGRAM)
+		message(FATAL_ERROR "You need the sed program to build mediastreamer2.")
+	endif()
+	add_custom_target(ms2-yuv2rgb-fs-header
+		COMMAND ${CMAKE_COMMAND} -DXXD_PROGRAM=${XXD_PROGRAM} -DSED_PROGRAM=${SED_PROGRAM}
+			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+			-DSOURCE_FILE="yuv2rgb.fs"
+			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
+		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h"
+	)
+	add_custom_target(ms2-yuv2rgb-vs-header
+		COMMAND ${CMAKE_COMMAND} -DXXD_PROGRAM=${XXD_PROGRAM} -DSED_PROGRAM=${SED_PROGRAM}
+			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+			-DSOURCE_FILE="yuv2rgb.vs"
+			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
+		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h"
+	)
 endif()
-set_source_files_properties(${VOIP_GENERATED_SOURCE_FILES_C} PROPERTIES GENERATED TRUE)
 
 apply_compile_flags(VOIP_SOURCE_FILES_C "CPP" "C")
-apply_compile_flags(VOIP_GENERATED_SOURCE_FILES_C "CPP" "C")
 apply_compile_flags(VOIP_SOURCE_FILES_OBJC "CPP" "OBJC")
 if(VOIP_SOURCE_FILES_CXX)
 	set_source_files_properties(${VOIP_SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
@@ -461,9 +460,9 @@ if (CAMAPI_FOUND)
 endif()
 
 if(ENABLE_STATIC)
-	add_library(mediastreamer_voip STATIC ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_GENERATED_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
+	add_library(mediastreamer_voip STATIC ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
 else()
-	add_library(mediastreamer_voip SHARED ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_GENERATED_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
+	add_library(mediastreamer_voip SHARED ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
 	set_target_properties(mediastreamer_voip PROPERTIES VERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE CXX)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -473,6 +472,10 @@ else()
 			)
 		endif()
 	endif()
+endif()
+add_dependencies(mediastreamer_voip ms2-git-version ms2-voipdescs-header)
+if(APPLE OR GLX_FOUND)
+add_dependencies(mediastreamer_voip ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
 endif()
 target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")

@@ -1,5 +1,5 @@
 ############################################################################
-# CMakeLists.txt
+# gitversion.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -21,18 +21,32 @@
 ############################################################################
 
 if(GIT_EXECUTABLE)
-	execute_process(
-		COMMAND ${GIT_EXECUTABLE} describe --always
-		OUTPUT_VARIABLE GIT_REVISION
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-	)
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} -E echo "#define GIT_VERSION \"${GIT_REVISION}\""
-		OUTPUT_FILE ${OUTPUT_DIR}/gitversion.h
-	)
+	macro(GIT_COMMAND OUTPUT_VAR)
+		set(GIT_ARGS ${ARGN})
+		execute_process(
+			COMMAND ${GIT_EXECUTABLE} ${ARGN}
+			WORKING_DIRECTORY ${WORK_DIR}
+			OUTPUT_VARIABLE ${OUTPUT_VAR}
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+	endmacro()
+
+	GIT_COMMAND(GIT_DESCRIBE describe --always)
+	GIT_COMMAND(GIT_TAG describe --abbrev=0)
+	GIT_COMMAND(GIT_REVISION rev-parse HEAD)
+endif()
+
+if(GIT_DESCRIBE)
+	if(NOT GIT_TAG STREQUAL MEDIASTREAMER_VERSION)
+		message(FATAL_ERROR "MEDIASTREAMER_VERSION and git tag differ. Please put them identical")
+	endif()
+	set(GIT_VERSION "${GIT_DESCRIBE}")
+	configure_file("${WORK_DIR}/gitversion.h.in" "${OUTPUT_DIR}/gitversion.h" @ONLY)
+elseif(GIT_REVISION)
+	set(GIT_VERSION "${MEDIASTREAMER_VERSION}_${GIT_REVISION}")
+	configure_file("${WORK_DIR}/gitversion.h.in" "${OUTPUT_DIR}/gitversion.h" @ONLY)
 else()
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} -E echo "#define GIT_VERSION \"unknown\""
-		OUTPUT_FILE ${OUTPUT_DIR}/gitversion.h
-	)
+	if(NOT EXISTS "${OUTPUT_DIR}/gitversion.h")
+		execute_process(COMMAND ${CMAKE_COMMAND} -E touch "${OUTPUT_DIR}/gitversion.h")
+	endif()
 endif()

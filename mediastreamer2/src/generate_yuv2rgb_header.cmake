@@ -27,5 +27,18 @@ execute_process(
 )
 execute_process(
 	COMMAND "${SED_PROGRAM}" "s/}\;/,0x00}\;/" "${OUTPUT_DIR}/${SOURCE_FILE}.tmp"
-	OUTPUT_FILE "${OUTPUT_DIR}/${SOURCE_FILE}.h"
+	OUTPUT_FILE "${OUTPUT_DIR}/${SOURCE_FILE}.h.tmp"
+)
+if(EXISTS "${OUTPUT_DIR}/${SOURCE_FILE}.h")
+	file(READ "${OUTPUT_DIR}/${SOURCE_FILE}.h" OLD_CONTENT)
+	file(READ "${OUTPUT_DIR}/${SOURCE_FILE}.h.tmp" NEW_CONTENT)
+	if(NOT NEW_CONTENT STREQUAL OLD_CONTENT)
+		file(RENAME "${OUTPUT_DIR}/${SOURCE_FILE}.h.tmp" "${OUTPUT_DIR}/${SOURCE_FILE}.h")
+	endif()
+else()
+	file(RENAME "${OUTPUT_DIR}/${SOURCE_FILE}.h.tmp" "${OUTPUT_DIR}/${SOURCE_FILE}.h")
+endif()
+file(REMOVE
+	"${OUTPUT_DIR}/${SOURCE_FILE}.tmp"
+	"${OUTPUT_DIR}/${SOURCE_FILE}.h.tmp"
 )

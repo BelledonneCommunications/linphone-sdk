@@ -349,11 +349,17 @@ static void stream_free(Stream *s) {
 }
 
 static size_t stream_play(Stream *s, size_t nbytes) {
-	if (nbytes == 0) return 0;
+	size_t avail;
 
-	if (ms_bufferizer_get_avail(&s->bufferizer) >= nbytes){
+	if (nbytes == 0)
+		return 0;
+
+	avail = ms_bufferizer_get_avail(&s->bufferizer);
+	if (avail > 0) {
 		uint8_t *data;
 		int buffer_size;
+		if (nbytes > avail)
+			nbytes = avail;
 		data = ms_new(uint8_t, nbytes);
 		ms_mutex_lock(&s->mutex);
 		ms_bufferizer_read(&s->bufferizer, data, nbytes);

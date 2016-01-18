@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct _MSFactory{
 	MSList *desc_list;
 	MSList *stats_list;
+	MSList *offer_answer_provider_list;
 #ifdef _WIN32
 	MSList *ms_plugins_loaded_list;
 #endif
@@ -294,6 +295,41 @@ MS2_PUBLIC int ms_factory_enable_filter_from_name(MSFactory *factory, const char
  *
  */
 MS2_PUBLIC bool_t ms_factory_filter_from_name_enabled(const MSFactory *factory, const char *name);
+
+
+#ifndef MS_OFFER_ANSWER_CONTEXT_DEFINED
+#define MS_OFFER_ANSWER_CONTEXT_DEFINED
+typedef struct _MSOfferAnswerContext MSOfferAnswerContext;
+#endif
+typedef struct _MSOfferAnswerProvider MSOfferAnswerProvider;
+
+/**
+ * Registers an offer-answer provider. An offer answer provider is a kind of factory that creates
+ * context objects able to execute the particular offer/answer logic for a given codec.
+ * Indeed, several codecs have complex parameter handling specified in their RFC, and hence cannot be
+ * treated in a generic way by the global SDP offer answer logic.
+ * Mediastreamer2 plugins can then register with this method their offer/answer logic together with the encoder
+ * and decoder filters, so that it can be used by the signaling layer of the application.
+ * @param factory 
+ * @param offer_answer_prov the offer answer provider descriptor.
+**/
+MS2_PUBLIC void ms_factory_register_offer_answer_provider(MSFactory *f, MSOfferAnswerProvider *offer_answer_prov);
+
+/**
+ * Retrieve an offer answer provider previously registered, giving the codec name.
+ * @param f the factory
+ * @param mime_type the codec mime type.
+ * @return an MSOfferAnswerProvider or NULL if none was registered for this codec.
+**/
+MS2_PUBLIC MSOfferAnswerProvider * ms_factory_get_offer_answer_provider(MSFactory *f, const char *mime_type);
+
+/**
+ * Directly creates an offer-answer context giving the codec mime-type.
+ * @param f the factory
+ * @param the mime-type of the codec.
+ * @return an MSOfferAnswerContext or NULL if none was registered for this codec.
+**/
+MS2_PUBLIC MSOfferAnswerContext * ms_factory_create_offer_answer_context(MSFactory *f, const char *mime_type);
 
 #ifdef __cplusplus
 }

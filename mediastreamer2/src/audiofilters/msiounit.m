@@ -165,6 +165,7 @@ struct au_filter_write_data{
 	ms_mutex_t	mutex;
 	MSBufferizer	*bufferizer;
 	unsigned int n_lost_frame;
+	bool first_frame_wrote;
 
 };
 
@@ -384,10 +385,15 @@ static OSStatus au_write_cb (
 
 	if (d!=NULL){
 		ms_mutex_lock(&d->mutex);
+		if (!d->first_frame_wrote) {
+			ms_bufferizer_flush(d->bufferizer); /*to avoid keeping delay from first start which can be around 100ms becasue io unit takes time to start*/
+			d->first_frame_wrote=true;
+		}
 		if(ms_bufferizer_get_avail(d->bufferizer) >= inNumberFrames*d->base.card->bits/8) {
 			ms_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, inNumberFrames*d->base.card->bits/8);
-			if (ms_bufferizer_get_avail(d->bufferizer) >10*inNumberFrames*d->base.card->bits/8) {
-				ms_debug("we are late, bufferizer sise is %i bytes in framezize is %lu bytes"
+			/*basic algo,  can be enhanced with a more advanced bufferizer computing average value*/
+			if (ms_bufferizer_get_avail(d->bufferizer) > card->rate* (card->nchannels * card->bits / 8)/5 ) {
+				ms_warning("we are at least 200ms late, bufferizer sise is %i bytes in framezize is %lu bytes"
 						,ms_bufferizer_get_avail(d->bufferizer)
 						,inNumberFrames*d->base.card->bits/8);
 				ms_bufferizer_flush(d->bufferizer);
@@ -415,20 +421,20 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 	UInt32 audioMode;
 	UInt32 audioCategorySize=sizeof(audioCategory);
 	bool_t changed;
-	
+
 	if (!d->is_fast){
-		
+
 		if (d->audio_session_configured){
 			/*check that category wasn't changed*/
 			check_session_call(AudioSessionGetProperty(kAudioSessionProperty_AudioCategory,&audioCategorySize,&audioCategory));
-			
+
 			changed=(audioCategory!=kAudioSessionCategory_AmbientSound && d->is_ringer)
 			||(audioCategory!=kAudioSessionCategory_PlayAndRecord && !d->is_ringer);
 		}
-		
+
 		if (!d->audio_session_configured || changed) {
 			check_session_call( AudioSessionSetActive(true) );
-			
+
 			if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
 				audioCategory= kAudioSessionCategory_AmbientSound;
 				audioMode = kAudioSessionMode_Default;
@@ -438,10 +444,10 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 				audioMode = kAudioSessionMode_VoiceChat;
 				ms_message("Configuring audio session for playback/record");
 			}
-			
+
 			check_audiounit_call(AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory));
 			check_audiounit_call(AudioSessionSetProperty(kAudioSessionProperty_Mode, sizeof(audioMode), &audioMode));
-			
+
 		}else{
 			ms_message("Audio session already correctly configured.");
 		}
@@ -449,7 +455,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 	} else {
 		ms_message("Fast iounit mode, audio session configuration must be done at application level.");
 	}
-	
+
 }
 
 static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
@@ -527,7 +533,7 @@ static void destroy_audio_unit (au_card_t* d) {
 		AudioComponentInstanceDispose (d->io_unit);
 		d->io_unit=NULL;
 		if (!d->is_fast) {
-			check_session_call( AudioSessionSetActiveWithFlags(false, kAudioSessionSetActiveFlag_NotifyOthersOnDeactivation) );
+			AudioSessionSetActiveWithFlags(false, kAudioSessionSetActiveFlag_NotifyOthersOnDeactivation);
 		}
 		ms_message("AudioUnit destroyed");
 	}

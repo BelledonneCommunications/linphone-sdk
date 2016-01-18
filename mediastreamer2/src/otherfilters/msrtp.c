@@ -35,7 +35,8 @@ struct SenderData {
 	uint32_t tsoff;
 	uint32_t last_ts;
 	int64_t last_sent_time;
-	int64_t last_stun_sent_time;
+	int64_t last_rtp_stun_sent_time;
+	int64_t last_rtcp_stun_sent_time;
 	uint32_t skip_until;
 	int rate;
 	int dtmf_duration;
@@ -55,7 +56,7 @@ struct SenderData {
 typedef struct SenderData SenderData;
 
 /* Send dummy STUN packet to open NAT ports ASAP. */
-static void send_stun_packet(RtpSession *s)
+static void send_stun_packet(RtpSession *s, bool_t enable_rtp, bool_t enable_rtcp)
 {
 	StunMessage msg;
 	mblk_t *mp;
@@ -69,11 +70,20 @@ static void send_stun_packet(RtpSession *s)
 	stunBuildReqSimple(&msg, NULL, FALSE, FALSE, 1);
 	len = stunEncodeMessage(&msg, buf, len, NULL);
 	if (len > 0) {
-		mp = allocb(len, BPRI_MED);
-		memcpy(mp->b_wptr, buf, len);
-		mp->b_wptr += len;
-		ms_message("Stun packet sent for session [%p]",s);
-		rtp_session_sendm_with_ts(s, mp, 0);
+		if (enable_rtp) {
+			mp = allocb(len, BPRI_MED);
+			memcpy(mp->b_wptr, buf, len);
+			mp->b_wptr += len;
+			ms_message("Stun packet sent for session [%p]",s);
+			rtp_session_sendm_with_ts(s, mp, 0);
+		}
+		if (enable_rtcp) {
+			mp = allocb(len, BPRI_MED);
+			memcpy(mp->b_wptr, buf, len);
+			mp->b_wptr += len;
+			ms_message("Stun packet sent  on rtcp for session [%p]",s);
+			rtp_session_rtcp_sendm_raw(s,mp);
+		}
 	}
 }
 
@@ -97,7 +107,8 @@ static void sender_init(MSFilter * f)
 	d->relay_session_id_size=0;
 	d->last_rsi_time=0;
 	d->last_sent_time=-1;
-	d->last_stun_sent_time = -1;
+	d->last_rtp_stun_sent_time = -1;
+	d->last_rtcp_stun_sent_time = -1;
 	d->last_ts=0;
 	d->use_task= tmp ? (!!atoi(tmp)) : FALSE;
 	if (d->use_task) ms_message("MSRtpSend will use tasks to send out packet at the beginning of ticks.");
@@ -146,7 +157,7 @@ static int sender_set_session(MSFilter * f, void *arg)
 		d->rate = pt->clock_rate;
 		d->dtmf_duration=(default_dtmf_duration_ms*d->rate)/1000;
 		d->dtmf_ts_step=(20*d->rate)/1000;
-		send_stun_packet(s);
+		send_stun_packet(s,TRUE,TRUE);
 	} else {
 		ms_warning("Sending undefined payload type ?");
 	}
@@ -353,11 +364,17 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start)
 static void check_stun_sending(MSFilter *f) {
 	SenderData *d = (SenderData *) f->data;
 	RtpSession *s = d->session;
-
-	if ((d->last_stun_sent_time == -1) || ((f->ticker->time- d->last_sent_time>2000) /*no need to send stun packets if media sent during last 2s*/
-											&& (f->ticker->time - d->last_stun_sent_time) >= 500)) {
-		d->last_stun_sent_time = f->ticker->time;
-		send_stun_packet(s);
+	if ((d->last_rtp_stun_sent_time == -1) || ((f->ticker->time- d->last_sent_time>2000) /*no need to send stun packets if media sent during last 2s*/
+											&& (f->ticker->time - d->last_rtp_stun_sent_time) >= 500)) {
+		d->last_rtp_stun_sent_time = f->ticker->time;
+		send_stun_packet(s,TRUE,FALSE);
+	}
+	
+	if ( rtp_session_rtcp_enabled(s) && (d->last_rtcp_stun_sent_time == -1
+										 || (rtp_session_get_stats(s)->recv_rtcp_packets == 0 /*no need to send stun packets if rtcp packet already received*/
+											 && (f->ticker->time - d->last_rtcp_stun_sent_time) >= 500))) {
+		d->last_rtcp_stun_sent_time = f->ticker->time;
+		send_stun_packet(s,FALSE,TRUE);
 	}
 }
 

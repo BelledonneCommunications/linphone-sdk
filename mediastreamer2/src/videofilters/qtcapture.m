@@ -236,7 +236,8 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 }
 
 static const char *stretchingCameras[]={
-	"UVC Camera VendorID_1452 ProductID_34057",
+	"UVC Camera VendorID_1452 ProductID_34057", /*macbook pro 2011*/
+	"UVC Camera VendorID_1452 ProductID_34065",  /*iMac*/
 	NULL
 };
 

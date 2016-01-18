@@ -150,6 +150,7 @@ typedef struct _MediastreamDatas {
 	int ice_remote_candidates_nb;
 	char * video_display_filter;
 	FILE * logfile;
+	bool_t enable_speaker;
 } MediastreamDatas;
 
 
@@ -224,6 +225,9 @@ const char *usage="mediastream --local <port>\n"
 								"[ --width <pixels> ]\n"
 								"[ --zoom zoom factor ]\n"
 								"[ --zrtp <secrets file> (enable zrtp) ]\n"
+								#if TARGET_OS_IPHONE
+								"[ --speaker route audio to speaker ]\n"
+								#endif
 								;
 
 #if TARGET_OS_IPHONE
@@ -624,6 +628,8 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			out->logfile = fopen(argv[i], "a+");
 		} else if (strcmp(argv[i], "--freeze-on-error") == 0) {
 			out->freeze_on_error=TRUE;
+		} else if (strcmp(argv[i], "--speaker") == 0) {
+			out->enable_speaker=TRUE;
 		} else {
 			ms_error("Unknown option '%s'\n", argv[i]);
 			return FALSE;
@@ -791,7 +797,10 @@ void setup_media_streams(MediastreamDatas* args) {
 		audio_stream_set_echo_canceller_params(args->audio,args->ec_len_ms,args->ec_delay_ms,args->ec_framesize);
 		audio_stream_enable_echo_limiter(args->audio,args->el);
 		audio_stream_enable_adaptive_bitrate_control(args->audio,args->use_rc);
-		
+		if (capt)
+			ms_snd_card_set_preferred_sample_rate(capt,rtp_profile_get_payload(args->profile, args->payload)->clock_rate);
+		if (play)
+			ms_snd_card_set_preferred_sample_rate(play,rtp_profile_get_payload(args->profile, args->payload)->clock_rate);
 		ms_message("Starting audio stream.\n");
 
 		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->ip,args->enable_rtcp?args->remoteport+1:-1, args->payload, args->jitter,args->infile,args->outfile,
@@ -849,13 +858,12 @@ void setup_media_streams(MediastreamDatas* args) {
 				}
 			}
 
-			#ifndef TARGET_OS_IPHONE
 			if (args->zrtp_secrets != NULL) {
 				MSZrtpParams params;
 				params.zid_file=args->zrtp_secrets;
 				audio_stream_enable_zrtp(args->audio,&params);
 			}
-			#endif
+			
 
 			args->session=args->audio->ms.sessions.rtp_session;
 		}
@@ -868,6 +876,17 @@ void setup_media_streams(MediastreamDatas* args) {
 					args->srtp_local_master_key,
 					args->srtp_remote_master_key));
 		}
+	#if TARGET_OS_IPHONE
+		if (args->enable_speaker) {
+				ms_message("Setting audio route to spaker");
+				UInt32 audioRouteOverride = kAudioSessionOverrideAudioRoute_Speaker;
+				if (AudioSessionSetProperty(kAudioSessionProperty_OverrideAudioRoute, sizeof(audioRouteOverride),&audioRouteOverride) != kAudioSessionNoError) {
+					ms_error("Cannot set route to speaker");
+				};
+		}
+	#endif
+
+
 	}else{
 #ifdef VIDEO_ENABLED
 		float zoom[] = {

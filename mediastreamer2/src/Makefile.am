@@ -23,6 +23,10 @@ ANDROID_SRC_FILES= \
 	android/android-opengl-display.c \
 	android/audio.h \
 	android/loader.cpp android/loader.h \
+	android/mediacodech264dec.c \
+   	android/mediacodech264enc.c \
+   	android/android_mediacodec.cpp \
+   	android/android_mediacodec.h \
 	audiofilters/aac-eld-android.cpp
 
 EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c  \
@@ -142,7 +146,9 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					utils/g722_encode.c \
 					audiofilters/msg722.c \
 					audiofilters/l16.c \
+					audiofilters/genericplc.h \
 					audiofilters/genericplc.c \
+					audiofilters/msgenericplc.c \
 					audiofilters/msfileplayer.c \
 					audiofilters/msfilerec.c \
 					audiofilters/waveheader.h \

@@ -145,6 +145,7 @@ static void vad_dtx_process(MSFilter *f){
 				ms_filter_notify(f, MS_VAD_DTX_VOICE, NULL);
 			}
 		}
+
 		ms_queue_put(f->outputs[0],m);
 	}
 #endif

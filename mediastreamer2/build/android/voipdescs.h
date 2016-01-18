@@ -28,6 +28,8 @@ extern MSFilterDesc ms_h263_enc_desc;
 extern MSFilterDesc ms_h263_dec_desc;
 extern MSFilterDesc ms_h263_old_dec_desc;
 extern MSFilterDesc ms_h264_dec_desc;
+extern MSFilterDesc ms_mediacodec_h264_dec_desc;
+extern MSFilterDesc ms_mediacodec_h264_enc_desc;
 extern MSFilterDesc ms_pix_conv_desc;
 extern MSFilterDesc ms_size_conv_desc;
 extern MSFilterDesc ms_tone_detector_desc;
@@ -84,6 +86,8 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_h263_dec_desc,
 &ms_h263_old_dec_desc,
 &ms_h264_dec_desc,
+&ms_mediacodec_h264_dec_desc,
+&ms_mediacodec_h264_enc_desc,
 &ms_pix_conv_desc,
 &ms_size_conv_desc,
 &ms_vp8_enc_desc,

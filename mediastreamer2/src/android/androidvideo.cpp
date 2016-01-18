@@ -291,7 +291,7 @@ void video_capture_preprocess(MSFilter *f){
 
 	jmethodID method = env->GetStaticMethodID(d->helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;");
 
-	ms_message("Starting Android camera '%d' (rotation:%d)\n", ((AndroidWebcamConfig*)d->webcam->data)->id, d->rotation);
+	ms_message("Starting Android camera '%d' (rotation:%d)", ((AndroidWebcamConfig*)d->webcam->data)->id, d->rotation);
 	jobject cam = env->CallStaticObjectMethod(d->helperClass, method,
 			((AndroidWebcamConfig*)d->webcam->data)->id,
 			d->hwCapableSize.width,

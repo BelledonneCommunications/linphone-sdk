@@ -892,8 +892,9 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	}
 	/*hack for opus, that claims stereo all the time, but we can't support stereo yet*/
 	if (strcasecmp(pt->mime_type,"opus")==0){
-		if ( (stream->features & (~AUDIO_STREAM_FEATURE_PLC) ) != 0){
-			/*all features except PLC prevent from activating the stereo*/
+		if ( (stream->features & (~(AUDIO_STREAM_FEATURE_PLC|AUDIO_STREAM_FEATURE_REMOTE_PLAYING)) ) != 0){
+			/*all features except PLC and REMOTE_PLAYING prevent from activating the stereo*/
+			ms_message("opus stereo support is deactivated because of incompatible features targeted for this AudioStream");
 			nchannels=1;
 		}else{
 			ms_message("Full stereo enabled in this audiostream.");

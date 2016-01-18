@@ -59,19 +59,25 @@ static FileInfo *file_info_new(const char *file){
 		ms_error("%s: not a wav file", file);
 		return NULL;
 	}
+	if (wave_header_get_channel(&header)<1){
+		ms_error("%s: incorrect number of channels", file);
+		return NULL;
+	}
+	
 	fi=ms_new0(FileInfo,1);
 	size=stbuf.st_size-hsize;
 	fi->rate=wave_header_get_rate(&header);
 	fi->nchannels=wave_header_get_channel(&header);
 	fi->nsamples=size/(sizeof(int16_t)*fi->nchannels);
 	fi->fd = fd;
+
 	return fi;
 }
 
 static int file_info_read(FileInfo *fi, int zero_pad_samples, int zero_pad_end_samples){
 	int err;
 	int size = fi->nsamples * fi->nchannels *2;
-	fi->buffer=ms_new0(int16_t,(fi->nsamples + 2*zero_pad_samples +  2*zero_pad_end_samples) * fi->nchannels);
+	fi->buffer=ms_new0(int16_t,(fi->nsamples + 2*zero_pad_samples + 2*zero_pad_end_samples) * fi->nchannels);
 	
 	err = read(fi->fd,fi->buffer + (zero_pad_samples * fi->nchannels), size);
 	if (err == -1){
@@ -315,6 +321,17 @@ int ms_audio_diff(const char *ref_file, const char *matched_file, double *ret, c
 		err = -1;
 		goto end;
 	}
+	if (fi1->nsamples == 0){
+		ms_error("Reference file has no samples !");
+		err = -1;
+		goto end;
+	}
+	if (fi2->nsamples == 0){
+		ms_error("Matched file has no samples !");
+		err = -1;
+		goto end;
+	}
+	
 	max_shift_samples = MIN(fi1->nsamples, fi2->nsamples) * MIN(MAX(1, params->max_shift_percent), 100) / 100;
 	
 	if (fi1->nsamples > fi2->nsamples){

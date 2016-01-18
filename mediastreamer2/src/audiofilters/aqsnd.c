@@ -796,15 +796,14 @@ static void aq_start_w(MSFilter * f)
 	if (d->write_started == FALSE) {
 		OSStatus aqresult;
 #if TARGET_OS_IPHONE
-		aqresult = AudioSessionSetActive(true);
-		check_aqresult(aqresult,"AudioSessionSetActive");
-		
 		UInt32 audioCategory;
-		
 		audioCategory= kAudioSessionCategory_AmbientSound;
 		ms_message("AQ: Configuring audio session for playback");
 		aqresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
 		check_aqresult(aqresult,"Configuring audio session ");
+
+		aqresult = AudioSessionSetActive(true);
+		check_aqresult(aqresult,"AudioSessionSetActive");
 #endif
 		d->writeAudioFormat.mSampleRate = d->rate;
 		d->writeAudioFormat.mFormatID = kAudioFormatLinearPCM;

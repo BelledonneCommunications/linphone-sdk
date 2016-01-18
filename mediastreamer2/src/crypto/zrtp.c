@@ -40,12 +40,6 @@ struct _MSZrtpContext{
 	char *peerURI; /**< use for cache management */
 };
 
-typedef enum {
-	rtp_stream,
-	rtcp_stream
-} stream_type;
-
-
 
 /***********************************************/
 /***** LOCAL FUNCTIONS                     *****/

@@ -305,7 +305,7 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 						rb=rtcp_RR_get_report_block(evd->packet,0);
 					}
 
-					if (rb&&ortp_loss_rate_estimator_process_report_block(ctx->estimator,&ms->sessions.rtp_session->rtp,rb)){
+					if (rb&&ortp_loss_rate_estimator_process_report_block(ctx->estimator,ms->sessions.rtp_session,rb)){
 						float diff = fabs(ortp_loss_rate_estimator_get_value(ctx->estimator) - ctx->loss_rate);
 						BC_ASSERT_TRUE(diff >= 0);
 						BC_ASSERT_TRUE(diff <= 10);

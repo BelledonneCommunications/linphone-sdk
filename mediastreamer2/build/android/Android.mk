@@ -31,6 +31,7 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/utils \
 	$(LOCAL_PATH)/voip \
 	$(LOCAL_PATH)/audiofilters \
+	$(LOCAL_PATH)/android \
 	$(LOCAL_PATH)/otherfilters \
 	$(LOCAL_PATH)/videofilters \
 	$(LOCAL_PATH)/../include \
@@ -65,6 +66,7 @@ LOCAL_SRC_FILES = \
 	audiofilters/flowcontrol.c \
 	audiofilters/g711.c \
 	audiofilters/genericplc.c \
+	audiofilters/msgenericplc.c \
 	audiofilters/l16.c \
 	audiofilters/msfileplayer.c \
 	audiofilters/msfilerec.c \
@@ -159,6 +161,9 @@ LOCAL_SRC_FILES += \
 	videofilters/vp8.c \
 	videofilters/jpegwriter.c \
 	videofilters/msv4l2.c \
+	android/mediacodech264dec.c \
+	android/mediacodech264enc.c \
+	android/android_mediacodec.cpp \
 	android/android-display.c \
 	android/android-display-bad.cpp \
 	android/androidvideo.cpp \
