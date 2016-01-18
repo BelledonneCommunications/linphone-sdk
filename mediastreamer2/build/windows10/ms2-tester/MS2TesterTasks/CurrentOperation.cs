@@ -88,11 +88,11 @@ namespace MS2TesterTasks
             }
         }
 
-        public static void StartVideoStream(String swapChainPanelName, String camera, String codec, String videoSize, UInt32 frameRate, UInt32 bitRate)
+        public static void StartVideoStream(String videoSwapChainPanelName, String previewSwapChainPanelName, String camera, String codec, String videoSize, UInt32 frameRate, UInt32 bitRate)
         {
             lock (_lock)
             {
-                ms2_tester_runtime_component.MS2Tester.Instance.startVideoStream(swapChainPanelName, camera, codec, videoSize, frameRate, bitRate);
+                ms2_tester_runtime_component.MS2Tester.Instance.startVideoStream(videoSwapChainPanelName, previewSwapChainPanelName, camera, codec, videoSize, frameRate, bitRate);
             }
         }
 

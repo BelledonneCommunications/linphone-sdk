@@ -205,7 +205,7 @@ void MS2Tester::uninitVideo()
 	wcstombs(cst, wst.c_str(), sizeof(cst))
 
 
-void MS2Tester::startVideoStream(Platform::String^ swapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate)
+void MS2Tester::startVideoStream(Platform::String^ videoSwapChainPanelName, Platform::String^ previewSwapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate)
 {
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
@@ -239,8 +239,11 @@ void MS2Tester::startVideoStream(Platform::String^ swapChainPanelName, Platform:
 	PayloadType *pt = rtp_profile_get_payload(&av_profile, payload);
 	pt->normal_bitrate = bitRate * 1000;
 	_videoStream = video_stream_new(20000, 0, FALSE);
-	RefToPtrProxy<Platform::String^> *nativeWindowId = new RefToPtrProxy<Platform::String^>(swapChainPanelName);
+	RefToPtrProxy<Platform::String^> *nativeWindowId = new RefToPtrProxy<Platform::String^>(videoSwapChainPanelName);
 	video_stream_set_native_window_id(_videoStream, nativeWindowId);
+	RefToPtrProxy<Platform::String^> *nativePreviewWindowId = new RefToPtrProxy<Platform::String^>(previewSwapChainPanelName);
+	video_stream_set_native_preview_window_id(_videoStream, nativePreviewWindowId);
+	video_stream_use_preview_video_window(_videoStream, TRUE);
 	video_stream_set_display_filter_name(_videoStream, "MSWinRTDis");
 	video_stream_use_video_preset(_videoStream, "custom");
 	video_stream_set_sent_video_size(_videoStream, vsize);

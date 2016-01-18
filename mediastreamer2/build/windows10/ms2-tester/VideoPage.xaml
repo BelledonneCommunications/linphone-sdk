@@ -67,16 +67,13 @@
                 </StackPanel>
             </Grid>
             <Grid Grid.Row="1" MaxHeight="320">
-                <SwapChainPanel x:Name="VideoSwapChainPanel" HorizontalAlignment="Center" Height="320" Margin="0,0,0,0" VerticalAlignment="Center" Width="1024"/>
-            </Grid>
-            <Grid Grid.Row="2" MaxHeight="320">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="0.5*"/>
                     <ColumnDefinition Width="0.5*"/>
                 </Grid.ColumnDefinitions>
 
-                <CaptureElement x:Name="LocalVideo" Stretch="Uniform" Grid.Column="0"/>
-                <MediaElement x:Name="RemoteVideo" Stretch="Uniform" MediaFailed="RemoteVideo_MediaFailed" MediaEnded="RemoteVideo_MediaEnded" MediaOpened="RemoteVideo_MediaOpened" PartialMediaFailureDetected="RemoteVideo_PartialMediaFailureDetected" RateChanged="RemoteVideo_RateChanged" SizeChanged="RemoteVideo_SizeChanged" CurrentStateChanged="RemoteVideo_CurrentStateChanged" Grid.Column="1"/>
+                <SwapChainPanel x:Name="PreviewSwapChainPanel" Grid.Column="0"/>
+                <SwapChainPanel x:Name="VideoSwapChainPanel" Grid.Column="1"/>
             </Grid>
         </Grid>
     </ScrollViewer>

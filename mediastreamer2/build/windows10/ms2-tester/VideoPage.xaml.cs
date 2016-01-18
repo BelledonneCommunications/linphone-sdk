@@ -83,42 +83,6 @@ namespace ms2_tester
             ((Frame)Window.Current.Content).GoBack();
         }
 
-        private void RemoteVideo_MediaFailed(object sender, ExceptionRoutedEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine("RemoteVideo_MediaFailed");
-        }
-
-        private void RemoteVideo_MediaEnded(object sender, RoutedEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine("RemoteVideo_MediaEnded");
-        }
-
-        private void RemoteVideo_MediaOpened(object sender, RoutedEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine("RemoteVideo_MediaOpened");
-        }
-
-        private void RemoteVideo_PartialMediaFailureDetected(MediaElement sender, PartialMediaFailureDetectedEventArgs args)
-        {
-            System.Diagnostics.Debug.WriteLine("RemoteVideo_PartialMediaFailureDetected");
-        }
-
-        private void RemoteVideo_RateChanged(object sender, RateChangedRoutedEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine("RemoteVideo_RateChanged");
-        }
-
-        private void RemoteVideo_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine(String.Format("RemoteVideo_SizeChanged from {0}x{1} to {2}x{3}", e.PreviousSize.Width, e.PreviousSize.Height, e.NewSize.Width, e.NewSize.Height));
-        }
-
-        private void RemoteVideo_CurrentStateChanged(object sender, RoutedEventArgs e)
-        {
-            MediaElement mediaElement = sender as MediaElement;
-            System.Diagnostics.Debug.WriteLine(String.Format("RemoteVideo_CurrentStateChanged: {0}", mediaElement.CurrentState));
-        }
-
         private void VideoToggleButton_Checked(object sender, RoutedEventArgs e)
         {
             ToggleButton b = sender as ToggleButton;
@@ -131,14 +95,17 @@ namespace ms2_tester
                 UInt32.TryParse((FramerateComboBox.SelectedItem as ComboBoxItem).Content as String, out frameRate);
                 UInt32 bitRate = 1500;
                 UInt32.TryParse(BitrateTextBox.Text, out bitRate);
-                //MS2Tester.Instance.startVideoStream(LocalVideo, RemoteVideo, camera, codec, videoSize, frameRate, bitRate);
                 StartVideoStream(camera, codec, videoSize, frameRate, bitRate);
             }
             else
             {
-                if (_source != null)
+                if (_videoSource != null)
                 {
-                    _source.Stop();
+                    _videoSource.Stop();
+                }
+                if (_previewSource != null)
+                {
+                    _previewSource.Stop();
                 }
                 StopVideoStream();
             }
@@ -229,9 +196,11 @@ namespace ms2_tester
         {
             try
             {
-                _source = new libmswinrtvid.SwapChainPanelSource();
-                _source.Start(VideoSwapChainPanel);
-                OperationResult result = await MS2TesterHelper.StartVideoStream(VideoSwapChainPanel.Name, camera, codec, videoSize, frameRate, bitRate);
+                _videoSource = new libmswinrtvid.SwapChainPanelSource();
+                _videoSource.Start(VideoSwapChainPanel);
+                _previewSource = new libmswinrtvid.SwapChainPanelSource();
+                _previewSource.Start(PreviewSwapChainPanel);
+                OperationResult result = await MS2TesterHelper.StartVideoStream(VideoSwapChainPanel.Name, PreviewSwapChainPanel.Name, camera, codec, videoSize, frameRate, bitRate);
                 if (result == OperationResult.Succeeded)
                 {
                     Debug.WriteLine("StartVideoStream: success");
@@ -379,6 +348,7 @@ namespace ms2_tester
         private DisplayInformation displayInformation;
         private SimpleOrientationSensor orientationSensor;
         private SimpleOrientation deviceOrientation;
-        private libmswinrtvid.SwapChainPanelSource _source;
+        private libmswinrtvid.SwapChainPanelSource _videoSource;
+        private libmswinrtvid.SwapChainPanelSource _previewSource;
     }
 }

@@ -63,7 +63,8 @@ namespace MS2TesterTasks
                             CurrentOperation.Request = BackgroundRequest.StartVideoStream;
                             CurrentOperation.AppRequestDeferral = deferral;
                             CurrentOperation.StartVideoStream(
-                                message[StartVideoStreamArguments.SwapChainPanelName.ToString()] as String,
+                                message[StartVideoStreamArguments.VideoSwapChainPanelName.ToString()] as String,
+                                message[StartVideoStreamArguments.PreviewSwapChainPanelName.ToString()] as String,
                                 message[StartVideoStreamArguments.Camera.ToString()] as String,
                                 message[StartVideoStreamArguments.Codec.ToString()] as String,
                                 message[StartVideoStreamArguments.VideoSize.ToString()] as String,

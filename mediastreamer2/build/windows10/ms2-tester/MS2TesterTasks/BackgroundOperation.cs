@@ -23,7 +23,8 @@ namespace MS2TesterTasks
 
     public enum StartVideoStreamArguments
     {
-        SwapChainPanelName,
+        VideoSwapChainPanelName,
+        PreviewSwapChainPanelName,
         Camera,
         Codec,
         VideoSize,

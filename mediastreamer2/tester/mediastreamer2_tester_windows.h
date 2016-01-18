@@ -24,7 +24,7 @@ namespace ms2_tester_runtime_component
 		void runAllToXml();
 		void initVideo();
 		void uninitVideo();
-		void startVideoStream(Platform::String^ swapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate);
+		void startVideoStream(Platform::String^ videoSwapChainPanelName, Platform::String^ previewSwapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate);
 		void stopVideoStream();
 		int getOrientation() { return _deviceRotation; }
 		void setOrientation(int degrees);

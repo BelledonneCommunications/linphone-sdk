@@ -58,12 +58,13 @@ namespace ms2_tester.Helpers
             return null;
         }
 
-        public static async Task<OperationResult> StartVideoStream(String swapChainPanelName, String camera, String codec, String videoSize, UInt32 frameRate, UInt32 bitRate)
+        public static async Task<OperationResult> StartVideoStream(String videoSwapChainPanelName, String previewSwapChainPanelName, String camera, String codec, String videoSize, UInt32 frameRate, UInt32 bitRate)
         {
             AppServiceHelper appServiceHelper = new AppServiceHelper();
 
             ValueSet message = new ValueSet();
-            message[StartVideoStreamArguments.SwapChainPanelName.ToString()] = swapChainPanelName;
+            message[StartVideoStreamArguments.VideoSwapChainPanelName.ToString()] = videoSwapChainPanelName;
+            message[StartVideoStreamArguments.PreviewSwapChainPanelName.ToString()] = previewSwapChainPanelName;
             message[StartVideoStreamArguments.Camera.ToString()] = camera;
             message[StartVideoStreamArguments.Codec.ToString()] = codec;
             message[StartVideoStreamArguments.VideoSize.ToString()] = videoSize;
