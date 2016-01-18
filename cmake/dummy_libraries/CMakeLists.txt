@@ -45,3 +45,7 @@ foreach(LIB ${LINPHONE_BUILDER_DUMMY_LIBRARIES})
 	endif()
 	unset(_dest)
 endforeach()
+
+# Even if this file is not very valuable, we need to install at least one file
+# so that external project has a "install" target in any case.
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dummy_libraries.txt" DESTINATION "share")
