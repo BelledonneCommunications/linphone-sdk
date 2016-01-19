@@ -283,6 +283,8 @@ MS2_PUBLIC void ms_factory_set_event_queue(MSFactory *obj,struct _MSEventQueue *
 MS2_PUBLIC int ms_factory_get_payload_max_size(MSFactory *factory);
 
 MS2_PUBLIC void ms_factory_set_payload_max_size(MSFactory *obj, int size);
+	
+MS2_PUBLIC	void ms_factory_set_mtu(MSFactory *obj, int mtu);
 
 MS2_PUBLIC const struct _MSFmtDescriptor * ms_factory_get_audio_format(MSFactory *obj, const char *mime, int rate, int channels, const char *fmtp);
 

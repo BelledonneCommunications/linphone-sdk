@@ -51,7 +51,7 @@ void rfc3984_destroy(Rfc3984Context *ctx){
 void rfc3984_init(Rfc3984Context *ctx){
 	ms_queue_init(&ctx->q);
 	ctx->m=NULL;
-	ctx->maxsz=ms_get_payload_max_size();
+	ctx->maxsz=ms_factory_get_payload_max_size(NULL);
 	ctx->mode=0;
 	ctx->last_ts=0x943FEA43;/*some random value*/
 	ctx->stap_a_allowed=TRUE;

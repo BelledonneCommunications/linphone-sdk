@@ -381,13 +381,13 @@ static bool_t ci_ends_with(const char *filename, const char*suffix){
 	return strcasecmp(filename+filename_len-suffix_len,suffix)==0;
 }
 
-MSFilter *_ms_create_av_player(const char *filename, AudioStream *stream){
+MSFilter *_ms_create_av_player(const char *filename, MSFactory* factory){
 	if (ci_ends_with(filename,".mkv"))
 		//return ms_filter_new(MS_MKV_PLAYER_ID);
-		return ms_factory_create_filter(stream->ms.factory, MS_MKV_PLAYER_ID);
+		return ms_factory_create_filter(factory, MS_MKV_PLAYER_ID);
 	else if (ci_ends_with(filename,".wav"))
 		//return ms_filter_new(MS_FILE_PLAYER_ID);
-		return ms_factory_create_filter(stream->ms.factory, MS_FILE_PLAYER_ID);
+		return ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
 	return NULL;
 }
 
@@ -502,7 +502,7 @@ static int open_av_player(AudioStream *stream, const char *filename){
 
 	if (player->player) close_av_player(stream);
 	//player->player=_ms_create_av_player(filename);
-	player->player=_ms_create_av_player(filename, stream);
+	player->player=_ms_create_av_player(filename, stream->ms.factory);
 	if (player->player==NULL){
 		ms_warning("AudioStream[%p]: no way to open [%s].",stream,filename);
 		return -1;

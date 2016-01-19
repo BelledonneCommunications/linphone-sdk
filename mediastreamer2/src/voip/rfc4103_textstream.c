@@ -166,7 +166,7 @@ void text_stream_stop(TextStream *stream) {
 	}
 	
 	text_stream_free(stream);
-	ms_filter_log_statistics();
+	ms_factory_log_statistics(stream->ms.factory);
 }
 
 void text_stream_iterate(TextStream *stream) {
@@ -181,11 +181,11 @@ void text_stream_putchar32(TextStream *stream, uint32_t ic) {
 
 void text_stream_prepare_text(TextStream *stream){
 	text_stream_unprepare_text(stream);
-	stream->ms.rtprecv = ms_filter_new(MS_RTP_RECV_ID);
+	stream->ms.rtprecv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
 	rtp_session_set_payload_type(stream->ms.sessions.rtp_session, 0);
 	rtp_session_enable_rtcp(stream->ms.sessions.rtp_session, FALSE);
 	ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions.rtp_session);
-	stream->ms.voidsink = ms_filter_new(MS_VOID_SINK_ID);
+	stream->ms.voidsink = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
 	ms_filter_link(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
 	media_stream_start_ticker(&stream->ms);
 	ms_ticker_attach(stream->ms.sessions.ticker, stream->ms.rtprecv);

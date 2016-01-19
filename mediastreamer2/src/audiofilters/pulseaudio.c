@@ -141,7 +141,7 @@ void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol, void *userdat
 
 	/* when eol is set to a positive number : end of the list */
 	if (eol > 0) {
-		return;
+		goto end;
 	}
 
 	pa_device = ms_malloc0(sizeof(pa_device_t));
@@ -149,7 +149,7 @@ void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol, void *userdat
 	strncpy(pa_device->description, l->description, PA_STRING_SIZE-1);
 
 	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
-	
+end:
 	pa_threaded_mainloop_signal(pa_loop, FALSE);
 }
 
@@ -158,11 +158,11 @@ void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *use
 	pa_device_t *pa_device;
 
 	if (eol > 0) {
-		return;
+		goto end;
 	}
 
 	if (l->monitor_of_sink!=PA_INVALID_INDEX) { /* ignore monitors */
-		return;
+		goto end;
 	}
 	
 	pa_device = ms_malloc0(sizeof(pa_device_t));
@@ -170,7 +170,7 @@ void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *use
 	strncpy(pa_device->description, l->description, PA_STRING_SIZE -1);
 
 	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
-	
+end:
 	pa_threaded_mainloop_signal(pa_loop, FALSE);
 }
 
