@@ -225,7 +225,8 @@ static void enc_init(MSFilter *f, enum CodecID codec)
 	ms_ffmpeg_check_init();
 	s->profile=0;/*always default to profile 0*/
 	s->comp_buf=NULL;
-	s->mtu=ms_get_payload_max_size()-2;/*-2 for the H263 payload header*/
+	s->mtu=ms_factory_get_payload_max_size(f->factory)-2;/*-2 for the H263 payload header*/
+//	s->mtu=ms_get_payload_max_size()-2;/*-2 for the H263 payload header*/
 	s->codec=codec;
 	s->qmin=2;
 	s->req_vfu=FALSE;

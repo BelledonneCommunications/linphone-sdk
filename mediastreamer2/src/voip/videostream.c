@@ -726,7 +726,7 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 			break;
 			case MSResourceCamera:
 				cam = io->input.camera;
-				source = ms_web_cam_create_reader(cam);
+				source = ms_web_cam_create_reader(cam, stream->ms.factory);
 			break;
 			case MSResourceFile:
 				source = ms_factory_create_filter(stream->ms.factory, MS_MKV_PLAYER_ID);
@@ -1243,7 +1243,7 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 				ms_filter_call_method(sink,MS_ITC_SINK_CONNECT,stream->source);
 				stream->player_active = TRUE;
 			} else {
-				stream->source = new_source ? new_source : ms_web_cam_create_reader(cam);
+				stream->source = new_source ? new_source : ms_web_cam_create_reader(cam, stream->ms.factory);
 				stream->cam = cam;
 				stream->player_active = FALSE;
 			}
@@ -1557,7 +1557,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	if (stream->fps!=0) fps=stream->fps;
 	else fps=(float)29.97;
 
-	stream->source = ms_web_cam_create_reader(device);
+	stream->source = ms_web_cam_create_reader(device, stream->ms.factory);
 
 	/* Transmit orientation to source filter. */
 	if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
