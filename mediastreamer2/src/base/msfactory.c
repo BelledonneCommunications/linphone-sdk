@@ -166,7 +166,7 @@ void ms_factory_init(MSFactory *obj){
 	debug_log_enabled=getenv("MEDIASTREAMER_DEBUG");
 #endif
 	if (debug_log_enabled!=NULL && (strcmp("1",debug_log_enabled)==0) ){
-		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
 	ms_message("Mediastreamer2 factory " MEDIASTREAMER_VERSION " (git: " GIT_VERSION ") initialized.");

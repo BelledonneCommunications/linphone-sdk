@@ -27,7 +27,7 @@ int main(int argc, char *argv[]){
 	const char * card_id=NULL;
 
 	ortp_init();
-	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	ms_init();
 	if (argc>1){
 		file=argv[1];
