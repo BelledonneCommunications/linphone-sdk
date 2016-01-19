@@ -117,9 +117,9 @@ const char *ms_web_cam_get_string_id(MSWebCam *obj){
 	return obj->id;
 }
 
-struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj){
+struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj, MSFactory* factory){
 	if (obj->desc->create_reader!=NULL)
-		return obj->desc->create_reader(obj);
+		return obj->desc->create_reader(obj, factory);
 	else ms_warning("ms_web_cam_create_reader: unimplemented by %s wrapper",obj->desc->driver_type);
 	return NULL;
 }

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define webcam_h
 
 #include <mediastreamer2/mscommon.h>
+#include <mediastreamer2/msfactory.h>
 
 /**
  * @file mswebcam.h
@@ -54,7 +55,7 @@ struct _MSWebCam;
 typedef void (*MSWebCamDetectFunc)(MSWebCamManager *obj);
 typedef void (*MSWebCamInitFunc)(struct _MSWebCam *obj);
 typedef void (*MSWebCamUninitFunc)(struct _MSWebCam *obj);
-typedef struct _MSFilter * (*MSWebCamCreateReaderFunc)(struct _MSWebCam *obj);
+typedef struct _MSFilter * (*MSWebCamCreateReaderFunc)(struct _MSWebCam *obj, MSFactory* factory);
 typedef bool_t (*MSWebCamEncodeToMimeType)(struct _MSWebCam *obj, const char *mime_type);
 
 struct _MSWebCamDesc{
@@ -173,7 +174,7 @@ MS2_PUBLIC void ms_web_cam_manager_reload(MSWebCamManager *m);
  *
  * Returns: A MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj);
+MS2_PUBLIC struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj, MSFactory* factory);
 
 /**
  * Create a new webcam object.

@@ -510,10 +510,13 @@ static void static_image_cam_init(MSWebCam *cam){
 }
 
 
-static MSFilter *static_image_create_reader(MSWebCam *obj){
-	return ms_filter_new_from_desc(&ms_static_image_desc);
-}
+//static MSFilter *static_image_create_reader(MSWebCam *obj){
+//	return ms_filter_new_from_desc(&ms_static_image_desc);
+//}
 
+static MSFilter *static_image_create_reader(MSWebCam *obj, MSFactory* factory){
+		return ms_factory_create_filter_from_desc(factory, &ms_static_image_desc);
+}
 MSWebCamDesc static_image_desc={
 	"StaticImage",
 	&static_image_detect,
