@@ -1034,15 +1034,14 @@ static char* belle_sip_escape(const char* buff, const char *noescapes) {
 
 	for(i=0; buff[i] != '\0'; i++) {
 		int c = ((unsigned char*)buff)[i];
-		
+		if (outbuf_size < out_buff_index + 3){
+			// we will possibly add 3 chars
+			outbuf_size += MAX(orig_size/2,3);
+			output_buff = belle_sip_realloc(output_buff, outbuf_size + 1);
+		}
 		if (noescapes[c] == 1) {
 			output_buff[out_buff_index++]=c;
 		} else {
-			if (outbuf_size < out_buff_index + 3){
-				// we will possibly add 3 chars
-				outbuf_size += MAX(orig_size/2,3);
-				output_buff = belle_sip_realloc(output_buff, outbuf_size + 1);
-			}
 			// this will write 3 characters
 			out_buff_index+=snprintf(output_buff+out_buff_index, outbuf_size +1 - out_buff_index, "%%%02x", c);
 		}
