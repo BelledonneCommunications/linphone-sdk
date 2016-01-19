@@ -40,7 +40,7 @@ int main(int argc, char *argv[]){
 	vsize.height=MS_VIDEO_SIZE_CIF_H;
 
 	ortp_init();
-	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	ms_init();
 	cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
 	//cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),"StaticImage: Static picture");

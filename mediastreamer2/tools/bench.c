@@ -335,7 +335,7 @@ int main(int argc, char *argv[]){
 	int pos;
 	int count;
 	ortp_init();
-	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	ms_init();
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
 	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);

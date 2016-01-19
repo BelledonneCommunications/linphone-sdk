@@ -89,7 +89,7 @@ static MS2_INLINE void ms_debug(const char *fmt,...)
 {
   va_list args;
   va_start (args, fmt);
-  ortp_logv(ORTP_DEBUG, fmt, args);
+  ortp_logv(ORTP_LOG_DOMAIN, ORTP_DEBUG, fmt, args);
   va_end (args);
 }
 #else

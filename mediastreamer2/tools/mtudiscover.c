@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
 		ms_error("Usage: mtudiscover [host]");
 		return -1;
 	}
-	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	printf("result: %i \n",ms_discover_mtu(argv[1]));
 	ms_base_exit();
 	return 0;

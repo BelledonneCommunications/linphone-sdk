@@ -40,7 +40,7 @@ int main(int argc, char *argv[]){
 	MSTicker *ticker;
 
 	ms_base_init();
-	ortp_set_log_level_mask (ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	ortp_set_log_level_mask (ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 
 	src=ms_filter_new(MS_FILE_PLAYER_ID);
 	rec=ms_filter_new(MS_FILE_REC_ID);
