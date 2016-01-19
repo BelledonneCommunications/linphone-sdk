@@ -258,7 +258,6 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 	if ((*(msg->b_rptr)>19) && (*(msg->b_rptr)<64)) {
 
 		DtlsRawPacket *incoming_dtls_packet;
-		RtpSession *rtp_session = ctx->stream_sessions->rtp_session;
 		incoming_dtls_packet = (DtlsRawPacket *)ms_malloc0(sizeof(DtlsRawPacket));
 		//DtlsRawPacket *incoming_dtls_packet = (DtlsRawPacket *)ms_malloc0(sizeof(DtlsRawPacket));
 		incoming_dtls_packet->next=NULL;
@@ -267,7 +266,7 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 		memcpy(incoming_dtls_packet->data, msg->b_rptr, msgLength);
 
 		/*required by webrtc in server case when ice is not completed yet*/
-		rtp_session_update_remote_sock_addr(rtp_session, msg,is_rtp,FALSE);
+		/* no more required because change is performed by ice.c once a check list is ready rtp_session_update_remote_sock_addr(rtp_session, msg,is_rtp,FALSE);*/
 
 		ms_message("DTLS Receive %s packet len %d sessions: %p rtp session %p ssl state is %x", is_rtp==TRUE?"RTP":"RTCP", (int)msgLength, ctx->stream_sessions, ctx->stream_sessions->rtp_session, ssl->state);
 

@@ -2970,8 +2970,7 @@ static bool_t ice_session_contains_check_list(const IceSession *session, const I
 	return FALSE;
 }
 
-static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSession *rtp_session)
-{
+static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSession *rtp_session) {
 	IceCheckList *next_cl;
 	if (ice_session_contains_check_list(cl->session, cl) == FALSE) {
 		ms_error("ice: Could not find check list in the session");
@@ -2990,6 +2989,7 @@ static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSess
 		cl->session->event_time = ice_add_ms(ice_current_time(), 1000);
 		cl->session->event_value = ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED;
 		cl->session->send_event = TRUE;
+		
 	} else {
 		/* Activate the next check list. */
 		ice_compute_pairs_states(next_cl);
@@ -3020,13 +3020,25 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 		if (cb.result == TRUE) {
 			nb_losing_pairs = ice_check_list_nb_losing_pairs(cl);
 			if ((cl->state != ICL_Completed) && (nb_losing_pairs == 0)) {
+				const char *rtp_addr;
+				const char *rtcp_addr;
+				int rtp_port;
+				int rtcp_port;
+				bool_t result;
 				cl->state = ICL_Completed;
 				cl->nomination_delay_running = FALSE;
-				ms_message("ice: Finished ICE check list processing successfully!");
+				ice_check_list_select_candidates(cl);
+				ms_message("ice: Finished ICE check list [%p] processing successfully!",cl);
 				ice_dump_valid_list(cl);
 				/* Initialise keepalive time. */
 				cl->keepalive_time = ice_current_time();
 				ice_check_list_stop_retransmissions(cl);
+				result = ice_check_list_selected_valid_remote_candidate(cl, &rtp_addr, &rtp_port, &rtcp_addr, &rtcp_port);
+				if (result == TRUE) {
+					rtp_session_set_remote_addr_full(rtp_session, rtp_addr, rtp_port, rtcp_addr, rtcp_port);
+				} else {
+					ms_error("Cannot get remote candidate for check list [%p]",cl);
+				}
 				/* Notify the application of the successful processing. */
 				ev = ortp_event_new(ORTP_EVENT_ICE_CHECK_LIST_PROCESSING_FINISHED);
 				ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
