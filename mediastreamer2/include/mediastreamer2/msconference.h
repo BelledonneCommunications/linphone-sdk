@@ -177,7 +177,7 @@ MS2_PUBLIC void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj);
 /**
  * Creates an audio endpoint (or virtual participant) to record the conference into a wav file.
 **/
-MS2_PUBLIC MSAudioEndpoint * ms_audio_endpoint_new_recorder(void);
+MS2_PUBLIC MSAudioEndpoint * ms_audio_endpoint_new_recorder(MSFactory* factory);
 
 /**
  * Start audio recording.
