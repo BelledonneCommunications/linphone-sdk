@@ -139,6 +139,7 @@ typedef struct _MSList MSList;
 typedef int (*MSCompareFunc)(const void *a, const void *b);
 typedef void (*MSIterateFunc)(void *a);
 typedef void (*MSIterate2Func)(void *a, void *b);
+typedef void (*MSIterate3Func)(void *a, void *b, void *c);
 
 #ifdef __cplusplus
 extern "C"{
@@ -227,8 +228,11 @@ MS2_PUBLIC void ms_list_for_each(const MSList *list, MSIterateFunc iterate_func)
  * @param list List object
  * @param iterate_func Function to invoke on each element.
  * @param user_data User data to pass to iterate_func function.
+ *
 **/
 MS2_PUBLIC void ms_list_for_each2(const MSList *list, MSIterate2Func iterate_func, void *user_data);
+	
+MS2_PUBLIC void ms_list_for_each3(const MSList *list, MSIterate3Func iterate_func, void *user_data, void *factory);
 
 /** Finds and remove given element in list.
  * @param list List in which element must be removed

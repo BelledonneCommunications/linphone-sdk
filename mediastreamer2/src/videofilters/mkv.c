@@ -481,7 +481,7 @@ static void vp8_module_reverse(void *obj, mblk_t *input, MSQueue *output, ms_boo
 	packet->pd->pid = 0;
 	mblk_set_marker_info(packet->m, TRUE);
 	packer_input = ms_list_append(packer_input, packet);
-	vp8rtpfmt_packer_process(&mod->packer, packer_input, &q);
+	vp8rtpfmt_packer_process(&mod->packer, packer_input, &q, NULL);
 	
 	while((m = ms_queue_get(&q))) {
 		mblk_set_cseq(m, mod->cseq++);

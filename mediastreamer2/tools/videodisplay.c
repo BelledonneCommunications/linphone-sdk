@@ -34,10 +34,16 @@ int main(int argc, char *argv[]){
 	VideoStream *vs;
 	MSWebCam *cam;
 	MSVideoSize vsize;
+	MSFactory* factory;
 	int i;
 
 	vsize.width=MS_VIDEO_SIZE_CIF_W;
 	vsize.height=MS_VIDEO_SIZE_CIF_H;
+
+	factory = ms_factory_new();
+	ms_factory_init_voip(factory);
+	ms_factory_init_plugins(factory);
+
 
 	ortp_init();
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
@@ -50,6 +56,7 @@ int main(int argc, char *argv[]){
 	for(i=0;i<1;++i){
 		int n;
 		vs=video_preview_new();
+		vs->factory=factory;
 		/*video_preview_set_display_filter_name(vs,"MSVideoOut");*/
 		video_preview_set_size(vs,vsize);
 		video_preview_start(vs, cam);

@@ -143,9 +143,15 @@ void ms_list_for_each(const MSList *list, void (*func)(void *)){
 	}
 }
 
-void ms_list_for_each2(const MSList *list, void (*func)(void *, void *), void *user_data){
+void ms_list_for_each2(const MSList *list, void (*func)(void *, void *y), void *user_data){
 	for(;list!=NULL;list=list->next){
 		func(list->data,user_data);
+	}
+}
+
+void ms_list_for_each3(const MSList *list, void (*func)(void *, void *, void*), void *user_data, void* factory){
+	for(;list!=NULL;list=list->next){
+		func(list->data,user_data, factory);
 	}
 }
 
