@@ -548,17 +548,20 @@ static void h264_dec_process(MSFilter *f) {
     MSPicture pixbuf_desc;
     OSStatus status;
     MSList *parameter_sets = NULL;
+	bool_t unpacking_failed;
     
     ms_queue_init(&q_nalus);
     ms_queue_init(&q_nalus2);
     
     // unpack RTP packet
+	unpacking_failed = FALSE;
     while((pkt = ms_queue_get(f->inputs[0]))) {
-        if(rfc3984_unpack(&ctx->unpacker, pkt, &q_nalus) != 0) {
-            ms_error("VideoToolboxDecoder: error while unpacking RTP packets");
-            goto fail;
-        }
+		unpacking_failed |= (rfc3984_unpack(&ctx->unpacker, pkt, &q_nalus) != 0);
     }
+	if(unpacking_failed) {
+		ms_error("VideoToolboxDecoder: error while unpacking RTP packets");
+		goto fail;
+	}
     
     // Pull out SPSs and PPSs and put them into the filter context if necessary
     while((nalu = ms_queue_get(&q_nalus))) {
