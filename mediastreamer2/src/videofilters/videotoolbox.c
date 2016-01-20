@@ -148,13 +148,11 @@ fail:
 }
 
 static void h264_enc_unconfigure(VTH264EncCtx *ctx) {
-    ms_mutex_lock(&ctx->mutex);
-    ms_queue_flush(&ctx->queue);
+	VTCompressionSessionInvalidate(ctx->session);
+	CFRelease(ctx->session);
+	ms_queue_flush(&ctx->queue);
     rfc3984_uninit(&ctx->packer_ctx);
-    VTCompressionSessionInvalidate(ctx->session);
-    CFRelease(ctx->session);
     ctx->is_configured = FALSE;
-    ms_mutex_unlock(&ctx->mutex);
 }
 
 static void h264_enc_init(MSFilter *f) {
