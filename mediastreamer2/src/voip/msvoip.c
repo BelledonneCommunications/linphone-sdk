@@ -263,7 +263,9 @@ static int managers_ref=0;
 void ms_factory_init_voip(MSFactory *obj){
 	MSSndCardManager *cm;
 	int i;
-
+	
+	ms_srtp_init();
+	
 	/* register builtin VoIP MSFilter's */
 	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
 		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);

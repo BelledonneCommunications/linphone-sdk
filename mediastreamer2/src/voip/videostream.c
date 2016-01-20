@@ -268,21 +268,21 @@ static float video_stream_get_rtcp_xr_average_lq_quality_rating(void *userdata) 
 }
 
 
-VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6){
-	return video_stream_new2( use_ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port);
+VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6, MSFactory* factory){
+	return video_stream_new2( use_ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port, factory);
 }
 
-VideoStream *video_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port) {
+VideoStream *video_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port, MSFactory* factory) {
 	MSMediaStreamSessions sessions={0};
 	VideoStream *obj;
 	sessions.rtp_session=ms_create_duplex_rtp_session(ip,loc_rtp_port,loc_rtcp_port);
-	obj=video_stream_new_with_sessions(&sessions);
+	obj=video_stream_new_with_sessions(&sessions, factory);
 	obj->ms.owns_sessions=TRUE;
 	return obj;
 }
 
 
-VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
+VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *sessions, MSFactory* factory){
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
 	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
 		NULL,
@@ -296,7 +296,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	stream->ms.type = MSVideo;
 	stream->ms.sessions=*sessions;
 	//media_stream_init(&stream->ms, ms_factory_get_fallback());
-	media_stream_init(&stream->ms, stream->ms.factory);
+	media_stream_init(&stream->ms, factory);
 	if (sessions->zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
 	}

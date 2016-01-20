@@ -731,9 +731,10 @@ struct _MSEventQueue *ms_factory_create_event_queue(MSFactory *obj) {
 }
 
 void ms_factory_destroy_event_queue(MSFactory *obj) {
-
-	ms_factory_set_event_queue(obj,NULL);
+	
 	ms_event_queue_destroy(obj->evq);
+	ms_factory_set_event_queue(obj,NULL);
+	
 	
 }
 
