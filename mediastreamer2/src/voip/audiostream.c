@@ -379,6 +379,8 @@ MSFilter *_ms_create_av_player(const char *filename){
 		return ms_filter_new(MS_MKV_PLAYER_ID);
 	else if (ci_ends_with(filename,".wav"))
 		return ms_filter_new(MS_FILE_PLAYER_ID);
+	else
+		ms_error("Cannot open %s, unsupported file extension", filename);
 	return NULL;
 }
 
@@ -531,7 +533,7 @@ static int open_av_player(AudioStream *stream, const char *filename){
 				videofmt=&fmt2;
 				player->videopin=1;
 			}
-			
+
 		}
 	}
 	if (audiofmt && audiofmt->fmt && strcasecmp(audiofmt->fmt->encoding,"pcm")!=0){
@@ -764,7 +766,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	int nchannels;
 	int err1,err2;
 	bool_t has_builtin_ec=FALSE;
-	
+
 	if (!ms_media_stream_io_is_consistent(io)) return -1;
 
 	rtp_session_set_profile(rtps,profile);
@@ -911,7 +913,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->volrecv=ms_filter_new(MS_VOLUME_ID);
 	else
 		stream->volrecv=NULL;
-	
+
 	audio_stream_enable_echo_limiter(stream,stream->el_type);
 	audio_stream_enable_noise_gate(stream,stream->use_ng);
 
@@ -937,7 +939,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_NCHANNELS,&nchannels);
 	}
-	
+
 	/*don't put these two statements in a single if, because the second one will not be executed if the first one evaluates as true*/
 	err1 = ms_filter_call_method(stream->soundread, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	err2 = ms_filter_call_method(stream->soundread, MS_FILTER_SET_NCHANNELS, &nchannels);
@@ -1162,7 +1164,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 			ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_ROUTE, &stream->audio_route);
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -1170,7 +1172,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec){
 	MSMediaStreamIO io = MS_MEDIA_STREAM_IO_INITIALIZER;
-	
+
 	if (playcard){
 		io.output.type = MSResourceSoundcard;
 		io.output.soundcard = playcard;
@@ -1487,7 +1489,7 @@ void audio_stream_set_sound_card_input_gain(AudioStream *stream, float volume) {
 
 float audio_stream_get_sound_card_input_gain(const AudioStream *stream) {
 	float volume;
-	
+
 	if(stream->soundread == NULL) {
 		ms_error("Cannot get input volume: no input filter");
 		return -1.0f;
@@ -1513,7 +1515,7 @@ void audio_stream_set_sound_card_output_gain(AudioStream *stream, float volume) 
 
 float audio_stream_get_sound_card_output_gain(const AudioStream *stream) {
 	float volume;
-	
+
 	if(stream->soundwrite == NULL) {
 		ms_error("Cannot get output volume: no output filter");
 		return -1.0f;
