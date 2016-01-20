@@ -620,17 +620,20 @@ static void h264_dec_process(MSFilter *f) {
         CFRelease(nalu_block);
         freemsg(nalu);
     }
-    timing_info.duration = kCMTimeInvalid;
-    timing_info.presentationTimeStamp = CMTimeMake(f->ticker->time, 1000);
-    timing_info.decodeTimeStamp = CMTimeMake(f->ticker->time, 1000);
-    CMSampleBufferCreateReady(NULL, stream, ctx->format_desc, 1, 1, &timing_info, 0, NULL, &sample);
-    status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
-	CFRelease(sample);
+	if(!CMBlockBufferIsEmpty(stream)) {
+		timing_info.duration = kCMTimeInvalid;
+		timing_info.presentationTimeStamp = CMTimeMake(f->ticker->time, 1000);
+		timing_info.decodeTimeStamp = CMTimeMake(f->ticker->time, 1000);
+		CMSampleBufferCreateReady(NULL, stream, ctx->format_desc, 1, 1, &timing_info, 0, NULL, &sample);
+		status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
+		CFRelease(sample);
+		if(status != noErr) {
+			ms_error("VideoToolboxDecoder: error while passing encoded frames to the decoder: %d", status);
+			CFRelease(stream);
+			goto fail;
+		}
+	}
 	CFRelease(stream);
-	if(status != noErr) {
-        ms_error("VideoToolboxDecoder: error while passing encoded frames to the decoder: %d", status);
-		goto fail;
-    }
     goto put_frames_out;
     
 fail:
