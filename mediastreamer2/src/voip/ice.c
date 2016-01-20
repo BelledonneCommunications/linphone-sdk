@@ -1201,8 +1201,12 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 			/* In this case we wait for the transmission timeout before creating a new binding request for the pair. */
 			pair->wait_transaction_timeout = FALSE;
 			if (pair->use_candidate == FALSE) {
-				ice_pair_set_state(pair, ICP_Waiting);
-				ice_check_list_queue_triggered_check(cl, pair);
+				if (pair->state == ICP_InProgress) {
+					ms_message("ice: binding request already pending for checklist [%p] on pair [%p], switching to waiting",cl,pair);
+				} else {
+					ice_pair_set_state(pair, ICP_Waiting);
+					ice_check_list_queue_triggered_check(cl, pair);
+				}
 			}
 			return;
 		}
@@ -2767,7 +2771,7 @@ static void ice_set_lowest_componentid_pair_with_foundation_to_waiting_state(con
 	fc.componentID = ICE_INVALID_COMPONENTID;
 	fc.priority = 0;
 	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_find_lowest_componentid_pair_with_specified_foundation, &fc);
-	if (fc.pair != NULL) {
+	if (fc.pair != NULL && fc.pair->state != ICP_InProgress && fc.pair->state != ICP_Succeeded) { /*pair might already be in progress if binding request already received*/
 		/* Set the state of the pair to Waiting. */
 		ice_pair_set_state(fc.pair, ICP_Waiting);
 	}
