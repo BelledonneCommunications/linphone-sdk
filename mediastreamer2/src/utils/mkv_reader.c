@@ -87,12 +87,22 @@ MKVReader *mkv_reader_open(const char *filename) {
 	_load_modules((nodemodule *)&obj->p);
 	err = MATROSKA_Init((nodecontext *)&obj->p);
 	if(err != ERR_NONE) {
-		ms_error("Parser openning failed. Could not initialize Matroska parser. err=%d", err);
+		ms_error("Parser opening failed. Could not initialize Matroska parser. err=%d", err);
 		goto fail;
 	}
-	obj->file = StreamOpen(&obj->p, filename, SFLAG_RDONLY);
+#ifdef UNICODE
+	tchar_t *fname = ms_malloc0((strlen(filename) + 1) * sizeof(tchar_t));
+#ifdef _WIN32
+	MultiByteToWideChar(CP_UTF8, 0, filename, -1, fname, strlen(filename));
+#else
+	mbstowcs(fname, filename, strlen(filename));
+#endif
+#else
+	tchar_t *fname = filename;
+#endif
+	obj->file = StreamOpen(&obj->p, fname, SFLAG_RDONLY);
 	if(obj->file == NULL) {
-		ms_error("Parser openning failed. Could not open %s", filename);
+		ms_error("Parser opening failed. Could not open %s", filename);
 		goto fail;
 	}
 	if(_parse_headers(obj) < 0) {
@@ -328,12 +338,18 @@ static void _load_modules(nodemodule *modules) {
 static int _parse_headers(MKVReader *obj) {
 	ebml_element *level0 = NULL, *level1 = NULL;
 	ebml_parser_context pctx, seg_pctx;
-	char  doc_type[9];
+	tchar_t doc_type[9];
 	int doc_type_version;
 	int err;
 	int upper_level = 0;
 	bool_t cluster_found = FALSE;
 	bool_t level1_found = FALSE;
+	tchar_t *matroska_doc_type =
+#ifdef UNICODE
+		L"matroska";
+#else
+		"matroska";
+#endif
 
 	pctx.Context = &MATROSKA_ContextStream;
 	pctx.EndPosition = INVALID_FILEPOS_T;
@@ -360,7 +376,7 @@ static int _parse_headers(MKVReader *obj) {
 		goto fail;
 	}
 	EBML_StringGet((ebml_string *)EBML_MasterGetChild((ebml_master *)level0, &EBML_ContextDocType), doc_type, sizeof(doc_type));
-	err = strcmp(doc_type, "matroska");
+	err = tcscmp(doc_type, matroska_doc_type);
 	if(err != 0) {
 		ms_error("MKVParser: not a matroska file");
 		goto fail;
@@ -456,10 +472,32 @@ static int _parse_segment_info(MKVSegmentInfo *seg_info_out, ebml_element *seg_i
 		ms_error("MKVParser: fail to parse segment info. Missing elements");
 		return -1;
 	}
+	tchar_t muxing_app[MAX_MKV_STRING_LENGTH];
+	tchar_t writing_app[MAX_MKV_STRING_LENGTH];
 	seg_info_out->duration = EBML_FloatValue((ebml_float *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextDuration));
 	seg_info_out->timecode_scale = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)seg_info_elt, &MATROSKA_ContextTimecodeScale));
-	EBML_StringGet((ebml_string *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextMuxingApp), seg_info_out->muxing_app, MAX_MKV_STRING_LENGTH);
-	EBML_StringGet((ebml_string *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextWritingApp), seg_info_out->writing_app, MAX_MKV_STRING_LENGTH);
+	memset(muxing_app, 0, sizeof(muxing_app));
+	EBML_StringGet((ebml_string *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextMuxingApp), muxing_app, MAX_MKV_STRING_LENGTH);
+#ifdef UNICODE
+#ifdef _WIN32
+	WideCharToMultiByte(CP_UTF8, 0, muxing_app, -1, seg_info_out->muxing_app, sizeof(seg_info_out->muxing_app), NULL, NULL);
+#else
+	wcstombs(seg_info_out->muxing_app, muxing_app, sizeof(seg_info_out->muxing_app));
+#endif
+#else
+	strncpy(seg_info_out->muxing_app, muxing_app, sizeof(seg_info_out->muxing_app));
+#endif
+	memset(writing_app, 0, sizeof(writing_app));
+	EBML_StringGet((ebml_string *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextWritingApp), writing_app, MAX_MKV_STRING_LENGTH);
+#ifdef UNICODE
+#ifdef _WIN32
+	WideCharToMultiByte(CP_UTF8, 0, writing_app, -1, seg_info_out->writing_app, sizeof(seg_info_out->writing_app), NULL, NULL);
+#else
+	wcstombs(seg_info_out->writing_app, writing_app, sizeof(seg_info_out->writing_app));
+#endif
+#else
+	strncpy(seg_info_out->writing_app, writing_app, sizeof(seg_info_out->writing_app));
+#endif
 	return 0;
 }
 
@@ -478,6 +516,7 @@ static int _parse_tracks(MSList **tracks_out, ebml_element *tracks_elt) {
 }
 
 static void _parse_track(MKVTrack **track_out, ebml_element *track_elt) {
+	tchar_t codec_id[MAX_MKV_STRING_LENGTH];
 	int track_type;
 	ebml_element *codec_private_elt;
 	track_type = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextTrackType));
@@ -500,7 +539,17 @@ static void _parse_track(MKVTrack **track_out, ebml_element *track_elt) {
 	(*track_out)->lacing = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagLacing));
 	(*track_out)->min_cache = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextMinCache));
 	(*track_out)->max_block_addition_id = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextMaxBlockAdditionID));
-	EBML_StringGet((ebml_string *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextCodecID), (*track_out)->codec_id, MAX_MKV_STRING_LENGTH);
+	memset(codec_id, 0, sizeof(codec_id));
+	EBML_StringGet((ebml_string *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextCodecID), codec_id, MAX_MKV_STRING_LENGTH);
+#ifdef UNICODE
+#ifdef _WIN32
+	WideCharToMultiByte(CP_UTF8, 0, codec_id, -1, (*track_out)->codec_id, sizeof((*track_out)->codec_id), NULL, NULL);
+#else
+	wcstombs((*track_out)->codec_id, codec_id, sizeof((*track_out)->codec_id));
+#endif
+#else
+	strncpy((*track_out)->codec_id, codec_id, sizeof((*track_out)->codec_id));
+#endif
 	codec_private_elt = EBML_MasterFindChild(track_elt, &MATROSKA_ContextCodecPrivate);
 	if(codec_private_elt) {
 		size_t data_size = EBML_ElementDataSize(codec_private_elt, FALSE);

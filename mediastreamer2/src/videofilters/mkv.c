@@ -930,32 +930,43 @@ static void matroska_uninit(Matroska *obj) {
 }
 
 static int ebml_reading_profile(ebml_master *head) {
-	char docType[9];
+	tchar_t docType[9];
 	int profile;
 	int docTypeReadVersion;
+	tchar_t *matroska_doc_type =
+#ifdef UNICODE
+		L"matroska";
+#else
+		"matroska";
+#endif
+	tchar_t *webm_doc_type =
+#ifdef UNICODE
+		L"webm";
+#else
+		"webm";
+#endif
 
 	EBML_StringGet((ebml_string *)EBML_MasterGetChild(head, &EBML_ContextDocType), docType, sizeof(docType));
 	docTypeReadVersion = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(head, &EBML_ContextDocTypeReadVersion));
 
-
-	if(strcmp(docType, "matroska") == 0) {
-		switch(docTypeReadVersion) {
-			case 1:
-				profile = PROFILE_MATROSKA_V1;
-				break;
-			case 2:
-				profile = PROFILE_MATROSKA_V2;
-				break;
-			case 3:
-				profile = PROFILE_MATROSKA_V3;
-				break;
-			case 4:
-				profile = PROFILE_MATROSKA_V4;
-				break;
-			default:
-				profile = -1;
+	if (tcscmp(docType, matroska_doc_type) == 0) {
+		switch (docTypeReadVersion) {
+		case 1:
+			profile = PROFILE_MATROSKA_V1;
+			break;
+		case 2:
+			profile = PROFILE_MATROSKA_V2;
+			break;
+		case 3:
+			profile = PROFILE_MATROSKA_V3;
+			break;
+		case 4:
+			profile = PROFILE_MATROSKA_V4;
+			break;
+		default:
+			profile = -1;
 		}
-	} else if(strcmp(docType, "webm")) {
+	} else if(tcscmp(docType, webm_doc_type)) {
 		profile = PROFILE_WEBM;
 	} else {
 		profile = -1;
