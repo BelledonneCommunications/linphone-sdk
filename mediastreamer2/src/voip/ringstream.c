@@ -47,10 +47,10 @@ static void ring_player_event_handler(void *ud, MSFilter *f, unsigned int evid, 
 }
 
 RingStream * ring_start(const char *file, int interval, MSSndCard *sndcard,MSFactory *factory){
-   return ring_start_with_cb(file,interval,sndcard,NULL,NULL,factory);
+   return ring_start_with_cb(factory, file,interval,sndcard,NULL,NULL);
 }
 
-RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard, MSFilterNotifyFunc func,void * user_data, MSFactory* factory)
+RingStream * ring_start_with_cb(MSFactory* factory, const char *file, int interval, MSSndCard *sndcard, MSFilterNotifyFunc func,void * user_data )
 {
 	RingStream *stream;
 	int srcchannels=1, dstchannels=1;
