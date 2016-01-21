@@ -27,6 +27,7 @@ static MSSndCardManager *scm=NULL;
 
 static MSSndCardManager * create_manager(void){
 	MSSndCardManager *obj=(MSSndCardManager *)ms_new0(MSSndCardManager,1);
+	obj->factory = NULL;
 	obj->cards=NULL;
 	obj->descs=NULL;
 	return obj;

@@ -271,11 +271,11 @@ void ms_factory_init_voip(MSFactory *obj){
 		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);
 	}
 
-	if (managers_ref==0){
-		managers_ref++;
+	if (managers_ref == 0){
 		cm=ms_snd_card_manager_get();
 		if (cm->descs==NULL){
 			ms_message("Registering all soundcard handlers");
+			cm->factory=obj;
 			for (i=0;ms_snd_card_descs[i]!=NULL;i++){
 				ms_snd_card_manager_register_desc(cm,ms_snd_card_descs[i]);
 			}
@@ -294,7 +294,7 @@ void ms_factory_init_voip(MSFactory *obj){
 		}
 #endif
 	}
-
+	managers_ref++;
 #ifdef VIDEO_ENABLED
 	{
 		MSVideoPresetsManager *vpm = ms_video_presets_manager_new(obj);
@@ -322,6 +322,7 @@ void ms_factory_init_voip(MSFactory *obj){
 }
 
 void ms_factory_uninit_voip(MSFactory *obj){
+	ms_srtp_shutdown();
 	if (obj->voip_initd){
 #ifdef VIDEO_ENABLED
 		ms_video_presets_manager_destroy(obj->video_presets_manager);
@@ -334,6 +335,7 @@ void ms_factory_uninit_voip(MSFactory *obj){
 #endif
 		}
 	}
+	obj->voip_initd = FALSE;
 }
 
 void ms_voip_exit(){

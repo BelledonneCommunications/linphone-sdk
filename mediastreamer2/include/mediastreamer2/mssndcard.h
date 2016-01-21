@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define sndcard_h
 
 #include <mediastreamer2/mscommon.h>
-
+#include <mediastreamer2/msfactory.h>
 /**
  * @file mssndcard.h
  * @brief mediastreamer2 mssndcard.h include file
@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
 struct _MSSndCardManager{
+	MSFactory* factory;
 	MSList *cards;
 	MSList *descs;
 };
