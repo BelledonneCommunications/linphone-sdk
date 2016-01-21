@@ -3,7 +3,7 @@
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2_tester.h"
 
-namespace ms2_tester_runtime_component
+namespace mediastreamer2_tester_runtime
 {
 	public interface class OutputTraceListener
 	{

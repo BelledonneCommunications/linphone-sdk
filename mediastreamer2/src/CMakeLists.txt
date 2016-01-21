@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-if(MSVC AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
+if(MSVC AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	find_library(LIBGCC NAMES gcc)
 	find_library(LIBMINGWEX NAMES mingwex)
 endif()
@@ -70,7 +70,7 @@ add_definitions(
 set(BASE_LIBS
 	${ORTP_LIBRARIES}
 )
-if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
+if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	list(APPEND BASE_LIBS ${LIBGCC} ${LIBMINGWEX} ole32 oleaut32 uuid)
 endif()
 if(HAVE_DLOPEN)
@@ -193,7 +193,7 @@ if(IOS)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/aac-eld.c)
 	list(APPEND VOIP_SOURCE_FILES_OBJC audiofilters/msiounit.m)
 endif()
-if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
+if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/winsnd3.c)
 endif()
 
@@ -233,7 +233,7 @@ if(ENABLE_VIDEO)
 		voip/videostream.c
 		voip/video_preset_high_fps.c
 	)
-	if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
+	if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		add_definitions(-DHAVE_DIRECTSHOW)
 		list(APPEND VOIP_SOURCE_FILES_C
 			videofilters/drawdib-display.c
@@ -376,7 +376,7 @@ set(VOIP_LIBS
 	mediastreamer_base
 )
 if(WIN32)
-	if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
+	if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		list(APPEND VOIP_LIBS ${LIBGCC} ${LIBMINGWEX} ole32 oleaut32 uuid)
 		if(ENABLE_VIDEO)
 			list(APPEND VOIP_LIBS gdi32 user32 vfw32)
@@ -490,4 +490,25 @@ if(ENABLE_VIDEO)
 		DESTINATION ${PACKAGE_DATA_DIR}/images
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 	)
+endif()
+
+
+if(ENABLE_VIDEO AND CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	add_library(mswinrtjpeg2yuv MODULE "videofilters/winrtjpeg2yuv.cpp")
+	set_target_properties(mswinrtjpeg2yuv PROPERTIES LINKER_LANGUAGE CXX VS_WINRT_COMPONENT TRUE)
+	target_link_libraries(mswinrtjpeg2yuv mediastreamer_voip)
+
+	install(TARGETS mswinrtjpeg2yuv
+		RUNTIME DESTINATION bin
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/mswinrtjpeg2yuv.pdb
+			DESTINATION bin
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
+	endif()
 endif()

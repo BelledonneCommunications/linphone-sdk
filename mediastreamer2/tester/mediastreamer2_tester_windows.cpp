@@ -4,7 +4,7 @@
 #include "mediastreamer2_tester_windows.h"
 #include "mswinrtvid.h"
 
-using namespace ms2_tester_runtime_component;
+using namespace mediastreamer2_tester_runtime;
 using namespace Platform;
 using namespace Platform::Collections;
 using namespace Windows::Foundation;
