@@ -40,14 +40,14 @@ int main(int argc, char *argv[]){
 	vsize.width=MS_VIDEO_SIZE_CIF_W;
 	vsize.height=MS_VIDEO_SIZE_CIF_H;
 
+	ortp_init();
+	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	//ms_init();
+	
 	factory = ms_factory_new();
 	ms_factory_init_voip(factory);
 	ms_factory_init_plugins(factory);
 
-
-	ortp_init();
-	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-	ms_init();
 	cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
 	//cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),"StaticImage: Static picture");
 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]){
 			  {
 			    ms_ticker_detach (vs->ms.sessions.ticker, vs->source);
 
-			    vs->tee = ms_filter_new(MS_TEE_ID);
+			    vs->tee = ms_factory_create_filter(factory, MS_TEE_ID);
 
 			    ms_filter_unlink(vs->pixconv,0, vs->output2,0);
 

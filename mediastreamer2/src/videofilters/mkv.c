@@ -2328,7 +2328,7 @@ typedef struct {
 	ms_bool_t eot; // end-of-track
 } MKVTrackPlayer;
 
-static MKVTrackPlayer *mkv_track_player_new(MKVReader *reader, const MKVTrack *track) {
+static MKVTrackPlayer *mkv_track_player_new(MSFactory *factory, MKVReader *reader, const MKVTrack *track) {
 	MKVTrackPlayer *obj;
 	const char *codec_name = codec_id_to_rfc_name(track->codec_id);
 
@@ -2340,16 +2340,12 @@ static MKVTrackPlayer *mkv_track_player_new(MKVReader *reader, const MKVTrack *t
 	obj->track = track;
 	if(track->type == MKV_TRACK_TYPE_VIDEO) {
 		MKVVideoTrack *v_track = (MKVVideoTrack *)track;
-<<<<<<< HEAD
-		MSVideoSize vsize = {v_track->width, v_track->height};// TODO : FIX THIS !!!
-		obj->output_pin_desc = ms_factory_get_video_format(NULL, codec_name, vsize, v_track->frame_rate,NULL);
-=======
 		MSVideoSize vsize = {v_track->width, v_track->height};
-		obj->output_pin_desc = ms_factory_get_video_format(ms_factory_get_fallback(), codec_name, vsize, v_track->frame_rate, NULL);
->>>>>>> ef599c81705fd8204feb20fc7d9f87aae75286bd
+		obj->output_pin_desc = ms_factory_get_video_format(factory, codec_name, vsize, v_track->frame_rate,NULL);
+
 	} else if(track->type == MKV_TRACK_TYPE_AUDIO) {
 		MKVAudioTrack *a_track = (MKVAudioTrack *)track;
-		obj->output_pin_desc = ms_factory_get_audio_format(NULL, codec_name, a_track->sampling_freq, a_track->channels, NULL);
+		obj->output_pin_desc = ms_factory_get_audio_format(factory, codec_name, a_track->sampling_freq, a_track->channels, NULL);
 	} else {
 		ms_error("MKVTrackPlayer: unsupported track type: %d", track->type);
 		ms_free(obj);
@@ -2474,7 +2470,7 @@ static int player_open_file(MSFilter *f, void *arg) {
 			}
 		}
 		if(track) {
-			obj->players[i] = mkv_track_player_new(obj->reader, track);
+			obj->players[i] = mkv_track_player_new(f->factory, obj->reader, track);
 			if(obj->players[i] == NULL) {
 				ms_warning("MKVPlayer: could not instanciate MKVTrackPlayer for track #%d", track->num);
 			}

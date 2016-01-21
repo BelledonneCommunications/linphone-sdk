@@ -295,7 +295,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 
 	stream->ms.type = MSVideo;
 	stream->ms.sessions=*sessions;
-	//media_stream_init(&stream->ms, ms_factory_get_fallback());
+
 	media_stream_init(&stream->ms, factory);
 	if (sessions->zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
@@ -306,7 +306,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	rtp_session_resync(stream->ms.sessions.rtp_session);
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi,"video");
-//	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
+	
 	stream->ms.rtpsend=ms_factory_create_filter(stream->ms.factory, MS_RTP_SEND_ID);
 
 	stream->ms.ice_check_list=NULL;
@@ -323,8 +323,7 @@ VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *session
 	 * In practice, these filters are needed only for audio+video recording.
 	 */
 	if (ms_factory_lookup_filter_by_id(stream->ms.factory, MS_MKV_RECORDER_ID)){
-//		stream->tee3=ms_filter_new(MS_TEE_ID);
-//		stream->recorder_output=ms_filter_new(MS_ITC_SINK_ID);
+
 		stream->tee3=ms_factory_create_filter(stream->ms.factory, MS_TEE_ID);
 		stream->recorder_output=ms_factory_create_filter(stream->ms.factory, MS_ITC_SINK_ID);
 
@@ -562,20 +561,16 @@ static void configure_video_source(VideoStream *stream){
 		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_PIX_FMT, &format);
 	} else {
 		if (format==MS_MJPEG){
-//			stream->pixconv=ms_filter_new(MS_MJPEG_DEC_ID);
 			stream->pixconv=ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);
 
 		}else if (format==MS_PIX_FMT_UNKNOWN){
-//			stream->pixconv = ms_filter_create_decoder(pf.fmt->encoding);
 			stream->pixconv = ms_factory_create_filter(stream->ms.factory, pf.fmt->encoding);
 		}else{
-			//stream->pixconv = ms_filter_new(MS_PIX_CONV_ID);
 			stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_PIX_CONV_ID);
 			/*set it to the pixconv */
 			ms_filter_call_method(stream->pixconv,MS_FILTER_SET_PIX_FMT,&format);
 			ms_filter_call_method(stream->pixconv,MS_FILTER_SET_VIDEO_SIZE,&cam_vsize);
 		}
-//		stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
 		stream->sizeconv=ms_factory_create_filter(stream->ms.factory, MS_SIZE_CONV_ID);
 		ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	}

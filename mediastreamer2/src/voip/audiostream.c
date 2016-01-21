@@ -605,9 +605,9 @@ static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannel
 	stream->av_recorder.recorder=ms_factory_create_filter(stream->ms.factory, MS_MKV_RECORDER_ID);
 	if (stream->av_recorder.recorder){
 		MSPinFormat pinfmt={0};
-		stream->av_recorder.video_input=ms_factory_create_filter(stream->videostream->ms.factory, MS_ITC_SOURCE_ID);
-		stream->av_recorder.resampler=ms_factory_create_filter(stream->videostream->ms.factory,MS_RESAMPLE_ID);
-		stream->av_recorder.encoder=ms_factory_create_filter(stream->videostream->ms.factory,MS_OPUS_ENC_ID);
+		stream->av_recorder.video_input=ms_factory_create_filter(stream->ms.factory, MS_ITC_SOURCE_ID);
+		stream->av_recorder.resampler=ms_factory_create_filter(stream->ms.factory,MS_RESAMPLE_ID);
+		stream->av_recorder.encoder=ms_factory_create_filter(stream->ms.factory,MS_OPUS_ENC_ID);
 
 		if (stream->av_recorder.encoder==NULL){
 			int g711_rate=8000;
