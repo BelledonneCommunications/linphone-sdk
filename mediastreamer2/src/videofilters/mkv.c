@@ -2317,7 +2317,7 @@ typedef struct {
 	MKVTrackReader *track_reader;
 	MKVBlockQueue *block_queue;
 	MKVBlockGroupMaker *group_maker;
-	ms_bool_t eot;
+	ms_bool_t eot; // end-of-track
 } MKVTrackPlayer;
 
 static MKVTrackPlayer *mkv_track_player_new(MKVReader *reader, const MKVTrack *track) {
@@ -2385,6 +2385,7 @@ typedef struct {
 	timecode_t time;
 	MKVTrackPlayer *players[2];
 	ms_bool_t position_changed;
+	int loop_pause_interval, time_before_next_loop;
 } MKVPlayer;
 
 static int player_close(MSFilter *f, void *arg);
@@ -2393,6 +2394,8 @@ static void player_init(MSFilter *f) {
 	MKVPlayer *obj = (MKVPlayer *)ms_new0(MKVPlayer, 1);
 	obj->state = MSPlayerClosed;
 	obj->time = 0;
+	obj->loop_pause_interval = -1;
+	obj->time_before_next_loop = 0;
 	f->data = obj;
 }
 
@@ -2467,46 +2470,64 @@ static void player_process(MSFilter *f) {
 	int i;
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	ms_filter_lock(f);
-	if(obj->state == MSPlayerPlaying) {
-		obj->time += f->ticker->interval;
+	
+	if(obj->state != MSPlayerPlaying) goto end;
+	
+	if(obj->time_before_next_loop > 0) {
+		obj->time_before_next_loop -= f->ticker->interval;
+		goto end;
+	} else {
+		obj->time_before_next_loop = -1;
+	}
+	
+	obj->time += f->ticker->interval;
 
-		if(obj->position_changed) {
-			for(i=0; i<2; i++) {
-				if(obj->players[i]) mkv_track_player_reset(obj->players[i]);
-			}
-			if(f->outputs[0]) {
-				// Send an empty buffer to notify the video decoder that it should reset itself
-				ms_queue_put(f->outputs[0], allocb(0, 0));
-			}
-			obj->position_changed = FALSE;
+	if(obj->position_changed) {
+		for(i = 0; i < 2; i++) {
+			if(obj->players[i]) mkv_track_player_reset(obj->players[i]);
 		}
-
-		for(i=0; i<2; i++) {
-			MKVTrackPlayer *t_player = obj->players[i];
-			if(t_player && f->outputs[i]) {
-				if(mkv_block_queue_is_empty(t_player->block_queue)) {
-					mkv_block_group_maker_get_next_group(t_player->group_maker, t_player->block_queue, &t_player->eot);
-				}
-				while(!t_player->eot && t_player->block_queue->dts <= obj->time) {
-					MKVBlock *block;
-					while((block = mkv_block_queue_pull(t_player->block_queue))) {
-						mkv_track_player_send_block(t_player, block, f->outputs[i]);
-						mkv_block_free(block);
-					}
-					mkv_block_group_maker_get_next_group(t_player->group_maker, t_player->block_queue, &t_player->eot);
-				}
-			}
+		if(f->outputs[0]) {
+			// Send an empty buffer to notify the video decoder that it should reset itself
+			ms_queue_put(f->outputs[0], allocb(0, 0));
 		}
-		if((!obj->players[0] || !f->outputs[0] || obj->players[0]->eot)
-				&& (!obj->players[1] || !f->outputs[1] || obj->players[1]->eot)) {
+		obj->position_changed = FALSE;
+	}
 
-			ms_filter_notify_no_arg(f, MS_PLAYER_EOF);
-			for(i=0; i<2; i++) {
-				if(obj->players[i]) mkv_track_reader_reset(obj->players[i]->track_reader);
+	for(i = 0; i < 2; i++) {
+		MKVTrackPlayer *t_player = obj->players[i];
+		if(t_player && f->outputs[i]) {
+			if(mkv_block_queue_is_empty(t_player->block_queue)) {
+				mkv_block_group_maker_get_next_group(t_player->group_maker, t_player->block_queue, &t_player->eot);
 			}
-			obj->state = MSPlayerPaused;
+			while(!t_player->eot && t_player->block_queue->dts <= obj->time) {
+				MKVBlock *block;
+				while((block = mkv_block_queue_pull(t_player->block_queue))) {
+					mkv_track_player_send_block(t_player, block, f->outputs[i]);
+					mkv_block_free(block);
+				}
+				mkv_block_group_maker_get_next_group(t_player->group_maker, t_player->block_queue, &t_player->eot);
+			}
 		}
 	}
+	
+	if((!obj->players[0] || !f->outputs[0] || obj->players[0]->eot)
+	        && (!obj->players[1] || !f->outputs[1] || obj->players[1]->eot)) {
+
+		for(i = 0; i < 2; i++) {
+			if(obj->players[i]) mkv_track_reader_reset(obj->players[i]->track_reader);
+		}
+		obj->time = 0;
+		obj->position_changed = TRUE;
+
+		if(obj->loop_pause_interval < 0) {
+			ms_filter_notify_no_arg(f, MS_PLAYER_EOF);
+			obj->state = MSPlayerPaused;
+		} else {
+			obj->time_before_next_loop = obj->loop_pause_interval;
+		}
+	}
+
+end:
 	ms_filter_unlock(f);
 }
 
@@ -2604,6 +2625,14 @@ static int player_get_state(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int player_set_loop(MSFilter *f, void *arg) {
+	MKVPlayer *obj = (MKVPlayer *)f->data;
+	ms_filter_lock(f);
+	obj->loop_pause_interval = *(int *)arg;
+	ms_filter_unlock(f);
+	return 0;
+}
+
 static int player_get_duration(MSFilter *f, void *arg) {
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	ms_filter_lock(f);
@@ -2644,6 +2673,7 @@ static MSFilterMethod player_methods[]= {
 	{	MS_PLAYER_START                  ,	player_start                 },
 	{	MS_PLAYER_PAUSE                  ,	player_stop                  },
 	{	MS_PLAYER_GET_STATE              ,	player_get_state             },
+	{	MS_PLAYER_SET_LOOP               ,	player_set_loop              },
 	{	MS_PLAYER_GET_DURATION           ,	player_get_duration          },
 	{	MS_PLAYER_GET_CURRENT_POSITION   ,	player_get_current_position  },
 	{	0                                ,	NULL                         }
