@@ -3,7 +3,7 @@
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_tester.h"
 
-namespace belle_sip_tester_runtime_component
+namespace belle_sip_tester_runtime
 {
 	public interface class OutputTraceListener
 	{

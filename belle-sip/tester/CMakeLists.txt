@@ -44,32 +44,59 @@ set(TESTER_SOURCES
 add_definitions(-DBC_CONFIG_FILE="config.h")
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-
 apply_compile_flags(TESTER_SOURCES "CPP" "C")
-add_executable(belle_sip_tester ${TESTER_SOURCES})
-if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-	set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+
+	add_library(belle_sip_tester_static STATIC ${TESTER_SOURCES})
+	target_include_directories(belle_sip_tester_static PUBLIC ${CUNIT_INCLUDE_DIRS} PRIVATE common)
+	target_link_libraries(belle_sip_tester_static ${CUNIT_LIBRARIES} bellesip)
+
+	set(RUNTIME_COMPONENT_SOURCES
+		belle_sip_tester_windows.cpp
+		belle_sip_tester_windows.h
+	)
+	add_library(belle_sip_tester_runtime MODULE ${RUNTIME_COMPONENT_SOURCES})
+	target_include_directories(belle_sip_tester_runtime PRIVATE common)
+	target_link_libraries(belle_sip_tester_runtime belle_sip_tester_static)
+	set_target_properties(belle_sip_tester_runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
+
+	install(TARGETS belle_sip_tester_runtime
+		RUNTIME DESTINATION bin
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/belle_sip_tester_runtime.winmd" DESTINATION bin)
+
+else()
+
+	add_executable(belle_sip_tester ${TESTER_SOURCES})
+	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+		set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	endif()
+	target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIRS} PRIVATE common)
+	target_link_libraries(belle_sip_tester ${CUNIT_LIBRARIES} bellesip)
+	add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
+
+
+	set(OBJECT_DESCRIBE_SOURCES describe.c)
+
+	apply_compile_flags(OBJECT_DESCRIBE_SOURCES "CPP" "C")
+	add_executable(belle_sip_object_describe ${OBJECT_DESCRIBE_SOURCES})
+	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+		set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	endif()
+	target_link_libraries(belle_sip_object_describe bellesip)
+
+
+	set(PARSE_SOURCES parse.c)
+
+	apply_compile_flags(PARSE_SOURCES "CPP" "C")
+	add_executable(belle_sip_parse ${PARSE_SOURCES})
+	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+		set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	endif()
+	target_link_libraries(belle_sip_parse bellesip)
+
 endif()
-target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIR} PRIVATE common)
-target_link_libraries(belle_sip_tester ${CUNIT_LIBRARIES} bellesip)
-add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
-
-
-set(OBJECT_DESCRIBE_SOURCES describe.c)
-
-apply_compile_flags(OBJECT_DESCRIBE_SOURCES "CPP" "C")
-add_executable(belle_sip_object_describe ${OBJECT_DESCRIBE_SOURCES})
-if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-	set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-endif()
-target_link_libraries(belle_sip_object_describe bellesip)
-
-
-set(PARSE_SOURCES parse.c)
-
-apply_compile_flags(PARSE_SOURCES "CPP" "C")
-add_executable(belle_sip_parse ${PARSE_SOURCES})
-if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-	set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-endif()
-target_link_libraries(belle_sip_parse bellesip)
