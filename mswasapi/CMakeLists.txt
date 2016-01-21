@@ -35,7 +35,14 @@ include_directories(
 	${MEDIASTREAMER2_INCLUDE_DIRS}
 )
 
-file(GLOB SOURCE_FILES "*.h" "*.cpp")
+set(SOURCE_FILES
+	mswasapi.cpp
+	mswasapi.h
+	mswasapi_reader.cpp
+	mswasapi_reader.h
+	mswasapi_writer.cpp
+	mswasapi_writer.h
+)
 set(LIBS ${MEDIASTREAMER2_LIBRARIES} ws2_32)
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 	list(APPEND LIBS phoneaudioses)
@@ -53,6 +60,9 @@ else()
 		)
 	endif()
 	set_target_properties(mswasapi PROPERTIES PREFIX "lib")
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	set_target_properties(mswasapi PROPERTIES VS_WINRT_COMPONENT TRUE)
 endif()
 target_link_libraries(mswasapi ${LIBS})
 
