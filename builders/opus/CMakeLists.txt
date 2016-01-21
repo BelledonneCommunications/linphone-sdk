@@ -202,10 +202,12 @@ if(OPUS_ARM_EXTERNAL_ASM)
 		COMMAND "${PERL_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/arm2gnu.pl" ${ARM2GNU_PARAMS} "<" "${CELT_SOURCES_ARM_ASM}" ">" "${CELT_SOURCES_EXTERNAL_ARM_ASM}")
 endif()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/armopts.s.in ${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts.s @ONLY)
-set(CELT_AM_SOURCES_ARM_ASM
-	${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts.s
-)
+if(OPUS_ARM_ASM)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/celt/arm/armopts.s.in ${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts.s @ONLY)
+	set(CELT_AM_SOURCES_ARM_ASM
+		${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts.s
+	)
+endif()
 if(OPUS_ARM_EXTERNAL_ASM)
 	set(CELT_AM_SOURCES_EXTERNAL_ARM_ASM
 		${CMAKE_CURRENT_BINARY_DIR}/celt/arm/armopts-gnu.S
@@ -376,8 +378,6 @@ if(ENABLE_FIXED_POINT)
 	list(APPEND SILK_SOURCES ${SILK_SOURCES_FIXED})
 else()
 	list(APPEND SILK_SOURCES ${SILK_SOURCES_FLOAT})
-endif()
-if(ENABLE_FLOAT_API)
 	list(APPEND OPUS_SOURCES ${OPUS_SOURCES_FLOAT})
 endif()
 if(OPUS_ARM_ASM)
@@ -385,6 +385,9 @@ if(OPUS_ARM_ASM)
 	if(OPUS_ARM_EXTERNAL_ASM)
 		list(APPEND CELT_SOURCES ${CELT_SOURCES_EXTERNAL_ARM_ASM} ${CELT_AM_SOURCES_EXTERNAL_ARM_ASM})
 	endif()
+endif()
+if(MSVC AND CMAKE_GENERATOR MATCHES "^.* ARM")
+	add_definitions(-DNO_INLINE_ASM)
 endif()
 
 
@@ -404,6 +407,9 @@ else()
 endif()
 target_compile_options(opus PRIVATE "-w")
 target_compile_definitions(opus PRIVATE "-DHAVE_CONFIG_H")
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	set_source_files_properties(src/opus_decoder.c PROPERTIES COMPILE_FLAGS "/wd4703")
+endif()
 
 install(TARGETS opus
 	RUNTIME DESTINATION bin

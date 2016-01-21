@@ -1,6 +1,6 @@
 ############################################################################
-# matroska2.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# mswinrtvid.cmake
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,11 @@
 #
 ############################################################################
 
-set(EP_matroska2_GIT_REPOSITORY "git://git.linphone.org/libmatroska-c.git" CACHE STRING "matroska2 repository URL")
-set(EP_matroska2_GIT_TAG_LATEST "bc" CACHE STRING "matroska2 tag to use when compiling latest version")
-set(EP_matroska2_GIT_TAG "b5254a96518b962a9738aa6c6f7dc28b5f312793" CACHE STRING "matroska2 tag to use")
-set(EP_matroska2_EXTERNAL_SOURCE_PATHS "matroska")
+set(EP_mswinrtvid_GIT_REPOSITORY "git://git.linphone.org/mswinrtid.git" CACHE STRING "mswinrtvid repository URL")
+set(EP_mswinrtvid_GIT_TAG_LATEST "master" CACHE STRING "mswinrtvid tag to use when compiling latest version")
+set(EP_mswinrtvid_GIT_TAG "b067bca955dc170b54fffe019a6a7ce86c781c8a" CACHE STRING "mswinrtvid tag to use")
+set(EP_mswinrtvid_EXTERNAL_SOURCE_PATHS "mswinrtvid")
+set(EP_mswinrtvid_GROUPABLE YES)
+
+set(EP_mswinrtvid_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_mswinrtvid_DEPENDENCIES EP_ms2)

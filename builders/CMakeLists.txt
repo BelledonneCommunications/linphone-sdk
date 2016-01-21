@@ -175,6 +175,9 @@ else()
 		if(ENABLE_VIDEO AND (CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone"))
 			linphone_builder_add_builder_to_target(TARGET_ms2plugins mswp8vid)
 		endif()
+		if(ENABLE_VIDEO AND (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore"))
+			linphone_builder_add_builder_to_target(TARGET_ms2plugins mswinrtvid)
+		endif()
 	endif()
 
 

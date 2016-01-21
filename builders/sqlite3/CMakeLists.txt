@@ -32,7 +32,7 @@ if(WIN32)
 	list(APPEND SOURCE_FILES sqlite3.def)
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" OR CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	add_definitions(
 		-DSQLITE_OS_WINRT=1
 		-DSQLITE_WIN32_FILEMAPPING_API=1

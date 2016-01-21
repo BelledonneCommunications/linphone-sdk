@@ -364,6 +364,8 @@ elseif(NOT APPLE)
 endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 	target_compile_options(xml2 PRIVATE "/FIwindowsphone_port.h")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	target_compile_options(xml2 PRIVATE "/FIuniversal_windows_port.h")
 endif()
 
 install(TARGETS xml2
