@@ -78,7 +78,12 @@ add_definitions(-DHAVE_CONFIG_H)
 if(WIN32)
 	add_definitions(-DWEBRTC_WIN)
 endif()
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone" AND "${CMAKE_GENERATOR_PLATFORM}" STREQUAL "ARM")
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM")
+	add_definitions(
+		-D__ARMEL__
+		-DWEBRTC_ARCH_ARM
+	)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND CMAKE_GENERATOR MATCHES "^.* ARM$")
 	add_definitions(
 		-D__ARMEL__
 		-DWEBRTC_ARCH_ARM
