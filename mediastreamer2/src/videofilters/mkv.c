@@ -41,12 +41,12 @@ static int recorder_close(MSFilter *f, void *arg);
 /*********************************************************************************************
  * Module interface                                                                          *
  *********************************************************************************************/
-typedef void *(*ModuleNewFunc)(void);
+typedef void *(*ModuleNewFunc)(MSFactory *factory);
 typedef void (*ModuleFreeFunc)(void *obj);
 typedef void (*ModuleSetFunc)(void *obj, const MSFmtDescriptor *fmt);
 typedef int (*ModulePreProFunc)(void *obj, MSQueue *input, MSQueue *output);
 typedef mblk_t *(*ModuleProFunc)(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize);
-typedef void (*ModuleReverseFunc)(void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize);
+typedef void (*ModuleReverseFunc)(MSFactory* factory, void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize);
 typedef void (*ModulePrivateDataFunc)(const void *obj, uint8_t **data, size_t *data_size);
 typedef void (*ModulePrivateDataLoadFunc)(void *obj, const uint8_t *data, size_t size);
 typedef ms_bool_t (*ModuleIsKeyFrameFunc)(const mblk_t *frame);
@@ -219,9 +219,9 @@ typedef struct {
 	H264Private *codecPrivate;
 } H264Module;
 
-static void *h264_module_new(void) {
+static void *h264_module_new(MSFactory *factory) {
 	H264Module *mod = ms_new0(H264Module, 1);
-	rfc3984_init(&mod->rfc3984Context);
+	rfc3984_init(factory, &mod->rfc3984Context);
 	rfc3984_set_mode(&mod->rfc3984Context, 1);
 	return mod;
 }
@@ -336,7 +336,7 @@ static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKe
 	return frame;
 }
 
-static void h264_module_reverse(void *data, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
+static void h264_module_reverse(MSFactory* factory, void *data, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
 	mblk_t *buffer = NULL, *bufferFrag = NULL;
 	H264Module *obj = (H264Module *)data;
 	MSQueue queue;
@@ -446,7 +446,7 @@ typedef struct _Vp8Module {
 	uint16_t cseq;
 } Vp8Module;
 
-static void *vp8_module_new(void) {
+static void *vp8_module_new(MSFactory *factory) {
 	Vp8Module *obj = (Vp8Module *)ms_new0(Vp8Module, 1);
 	vp8rtpfmt_unpacker_init(&obj->unpacker, NULL, FALSE, TRUE, FALSE);
 	vp8rtpfmt_packer_init(&obj->packer);
@@ -474,7 +474,7 @@ static mblk_t *vp8_module_process(void *obj, mblk_t *buffer, ms_bool_t *isKeyFra
 	return buffer;
 }
 
-static void vp8_module_reverse(void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
+static void vp8_module_reverse(MSFactory * f, void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
 	Vp8Module *mod = (Vp8Module *)obj;
 	MSList *packer_input = NULL;
 	Vp8RtpFmtPacket *packet = ms_new0(Vp8RtpFmtPacket, 1);
@@ -491,7 +491,7 @@ static void vp8_module_reverse(void *obj, mblk_t *input, MSQueue *output, ms_boo
 	packet->pd->pid = 0;
 	mblk_set_marker_info(packet->m, TRUE);
 	packer_input = ms_list_append(packer_input, packet);
-	vp8rtpfmt_packer_process(&mod->packer, packer_input, &q, NULL);
+	vp8rtpfmt_packer_process(&mod->packer, packer_input, &q, f);
 
 	while((m = ms_queue_get(&q))) {
 		mblk_set_cseq(m, mod->cseq++);
@@ -576,7 +576,7 @@ static void wav_private_load(WavPrivate *obj, const uint8_t *data) {
 }
 
 /* µLaw module */
-static void *mu_law_module_new(void) {
+static void *mu_law_module_new(MSFactory *factory) {
 	return ms_new0(WavPrivate, 1);
 }
 
@@ -668,7 +668,7 @@ static void opus_codec_private_load(OpusCodecPrivate *obj, const uint8_t *data, 
 }
 
 // OpusModule
-static void *opus_module_new(void) {
+static void *opus_module_new(MSFactory *factory) {
 	OpusCodecPrivate *obj = ms_new0(OpusCodecPrivate, 1);
 	opus_codec_private_init(obj);
 	return obj;
@@ -772,14 +772,14 @@ typedef struct {
 	void *data;
 } Module;
 
-static Module *module_new(const char *rfcName) {
+static Module *module_new(MSFactory *factory, const char *rfcName) {
 	const ModuleDesc *desc = find_module_desc_from_rfc_name(rfcName);
 	if(desc == NULL) {
 		return NULL;
 	} else {
 		Module *module = (Module *)ms_new0(Module, 1);
 		module->desc = desc;
-		if(desc->new_module) module->data = desc->new_module();
+		if(desc->new_module) module->data = desc->new_module(factory);
 		return module;
 	}
 }
@@ -820,11 +820,11 @@ static mblk_t *module_process(Module *module, mblk_t *buffer, ms_bool_t *isKeyFr
 	return frame;
 }
 
-static void module_reverse(Module *module, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
+static void module_reverse(MSFactory* f, Module *module, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
 	if(module->desc->reverse == NULL) {
 		ms_queue_put(output, input);
 	} else {
-		module->desc->reverse(module->data, input, output, isFirstFrame, codecPrivateData, codecPrivateSize);
+		module->desc->reverse(f, module->data, input, output, isFirstFrame, codecPrivateData, codecPrivateSize);
 	}
 }
 
@@ -1889,7 +1889,7 @@ static int recorder_start(MSFilter *f, void *arg) {
 		if(obj->openMode == MKV_OPEN_CREATE) {
 			for(i = 0; i < f->desc->ninputs; i++) {
 				if(obj->inputDescsList[i] != NULL) {
-					obj->modulesList[i] = module_new(obj->inputDescsList[i]->encoding);
+					obj->modulesList[i] = module_new(f->factory, obj->inputDescsList[i]->encoding);
 					if(obj->modulesList[i] == NULL) {
 						ms_error("Could not start the MKV recorder: %s is not supported", obj->inputDescsList[i]->encoding);
 						goto fail;
@@ -1911,7 +1911,7 @@ static int recorder_start(MSFilter *f, void *arg) {
 				if(obj->inputDescsList[i] != NULL) {
 					const uint8_t *data = NULL;
 					size_t length;
-					obj->modulesList[i] = module_new(obj->inputDescsList[i]->encoding);
+					obj->modulesList[i] = module_new(f->factory, obj->inputDescsList[i]->encoding);
 					module_set(obj->modulesList[i], obj->inputDescsList[i]);
 					if(matroska_get_codec_private(&obj->file, i + 1, &data, &length) == 0) {
 						module_load_private_data(obj->modulesList[i], data, length);
@@ -2362,7 +2362,7 @@ static MKVTrackPlayer *mkv_track_player_new(MSFactory *factory, MKVReader *reade
 		ms_free(obj);
 		return NULL;
 	}
-	obj->module = module_new(codec_name);
+	obj->module = module_new(factory, codec_name);
 	if(obj->track->codec_private) {
 		module_load_private_data(obj->module, track->codec_private, track->codec_private_length);
 	}
@@ -2380,13 +2380,13 @@ static void mkv_track_player_free(MKVTrackPlayer *obj) {
 	ms_free(obj);
 }
 
-static void mkv_track_player_send_block(MKVTrackPlayer *obj, const MKVBlock *block, MSQueue *output) {
+static void mkv_track_player_send_block(MSFactory *f, MKVTrackPlayer *obj, const MKVBlock *block, MSQueue *output) {
 	mblk_t *tmp = allocb(block->data_length, 0);
 	memcpy(tmp->b_wptr, block->data, block->data_length);
 	tmp->b_wptr += block->data_length;
 	mblk_set_timestamp_info(tmp, block->timestamp);
 	changeClockRate(tmp, 1000, obj->output_pin_desc->rate);
-	module_reverse(obj->module, tmp, output, obj->first_frame, block->codec_state_data, block->codec_state_size);
+	module_reverse(f, obj->module, tmp, output, obj->first_frame, block->codec_state_data, block->codec_state_size);
 	if(obj->first_frame) {
 		obj->first_frame = FALSE;
 	}
@@ -2535,7 +2535,7 @@ static void player_process(MSFilter *f) {
 			while(!t_player->eot && t_player->block_queue->dts <= obj->time) {
 				MKVBlock *block;
 				while((block = mkv_block_queue_pull(t_player->block_queue))) {
-					mkv_track_player_send_block(t_player, block, f->outputs[i]);
+					mkv_track_player_send_block(f->factory, t_player, block, f->outputs[i]);
 					mkv_block_free(block);
 				}
 				mkv_block_group_maker_get_next_group(t_player->group_maker, t_player->block_queue, &t_player->eot);

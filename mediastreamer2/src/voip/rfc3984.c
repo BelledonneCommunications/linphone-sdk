@@ -39,7 +39,7 @@ static MS2_INLINE uint8_t nal_header_get_nri(const uint8_t *h){
 
 Rfc3984Context *rfc3984_new(void){
 	Rfc3984Context *ctx=ms_new0(Rfc3984Context,1);
-	rfc3984_init(ctx);
+	rfc3984_init(NULL,ctx);//TODO: factory set to null is no good -  SAV 
 	return ctx;
 }
 
@@ -48,10 +48,10 @@ void rfc3984_destroy(Rfc3984Context *ctx){
 	ms_free(ctx);
 }
 
-void rfc3984_init(Rfc3984Context *ctx){
+void rfc3984_init(MSFactory *factory, Rfc3984Context *ctx){
 	ms_queue_init(&ctx->q);
 	ctx->m=NULL;
-	ctx->maxsz=ms_factory_get_payload_max_size(NULL);
+	ctx->maxsz=ms_factory_get_payload_max_size(factory);
 	ctx->mode=0;
 	ctx->last_ts=0x943FEA43;/*some random value*/
 	ctx->stap_a_allowed=TRUE;

@@ -72,7 +72,7 @@ static void dec_init(MSFilter *f){
 	d->sps=NULL;
 	d->pps=NULL;
 	d->sws_ctx=NULL;
-	rfc3984_init(&d->unpacker);
+	rfc3984_init(f->factory,&d->unpacker);
 	d->packet_num=0;
 	dec_open(d);
 	d->vsize.width=0;
@@ -270,7 +270,7 @@ static void dec_process(MSFilter *f){
 		// Reset all contexts when an empty packet is received
 		if(msgdsize(im) == 0) {
 			rfc3984_uninit(&d->unpacker);
-			rfc3984_init(&d->unpacker);
+			rfc3984_init(f->factory,&d->unpacker);
 			dec_reinit(d);
 			ms_stream_regulator_reset(d->regulator);
 			freemsg(im);
