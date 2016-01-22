@@ -81,7 +81,7 @@ static void _mkv_track_reader_edit_seek(MKVTrackReader *obj);
 
 MKVReader *mkv_reader_open(const char *filename) {
 	MKVReader *obj = (MKVReader *)ms_new0(MKVReader, 1);
-	tchar_t *fname;
+	tchar_t *fname = NULL;
 	int err;
 
 	ParserContext_Init(&obj->p, NULL, NULL, NULL);
@@ -113,6 +113,9 @@ MKVReader *mkv_reader_open(const char *filename) {
 	return obj;
 
 fail:
+#ifdef UNICODE
+	if (fname != NULL) ms_free(fname);
+#endif
 	if(obj->file) StreamClose(obj->file);
 	if(obj->info_elt) NodeDelete((node *)obj->info_elt);
 	ms_list_free_with_data(obj->tracks_elt, (void(*)(void *))NodeDelete);
