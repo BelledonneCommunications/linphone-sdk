@@ -22,16 +22,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/msfactory.h"
 
 int main(int argc, char *argv[]){
 	
-	ms_base_init();
+	MSFactory *factory = ms_factory_new();
+	ms_factory_init_voip(factory);
+	ms_factory_init_plugins(factory);
+	
 	if (argc<2){
 		ms_error("Usage: mtudiscover [host]");
 		return -1;
 	}
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	printf("result: %i \n",ms_discover_mtu(argv[1]));
-	ms_base_exit();
+	
+	ms_factory_uninit_voip(factory);
+	ms_factory_uninit_plugins(factory);
+	ms_factory_destroy(factory);
+	
 	return 0;
 }

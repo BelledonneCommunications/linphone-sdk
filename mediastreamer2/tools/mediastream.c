@@ -676,6 +676,7 @@ void setup_media_streams(MediastreamDatas* args) {
 #ifdef VIDEO_ENABLED
 	MSWebCam *cam=NULL;
 #endif
+	MSFactory *factory;
 	ortp_init();
 	if (args->logfile)
 		ortp_set_log_file(args->logfile);
@@ -686,7 +687,9 @@ void setup_media_streams(MediastreamDatas* args) {
 		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
-	ms_init();
+	factory = ms_factory_new();
+	ms_factory_init_voip(factory);
+	ms_factory_init_plugins(factory);
 
 #if TARGET_OS_IPHONE || defined(ANDROID)
 #if defined (HAVE_X264) && defined (VIDEO_ENABLED)
@@ -728,9 +731,10 @@ void setup_media_streams(MediastreamDatas* args) {
 	args->profile=rtp_profile_clone_full(&av_profile);
 	args->q=ortp_ev_queue_new();
 
-	if (args->mtu) ms_set_mtu(args->mtu);
-	ms_filter_enable_statistics(TRUE);
-	ms_filter_reset_statistics();
+	if (args->mtu) ms_factory_set_mtu(factory, args->mtu);
+	ms_factory_enable_statistics(factory, TRUE);
+	ms_factory_reset_statistics(factory);
+	
 	args->ice_session=ice_session_new();
 	ice_session_set_remote_credentials(args->ice_session,"1234","1234567890abcdef123456");
 	// ICE local credentials are assigned when creating the ICE session, but force them here to simplify testing
@@ -789,7 +793,7 @@ void setup_media_streams(MediastreamDatas* args) {
 				get_sound_card(manager,args->capture_card);
 		MSSndCard *play= args->playback_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
 				get_sound_card(manager,args->playback_card);
-		args->audio=audio_stream_new(args->localport,args->localport+1,ms_is_ipv6(args->ip));
+		args->audio=audio_stream_new(args->localport,args->localport+1,ms_is_ipv6(args->ip),factory);
 		audio_stream_enable_automatic_gain_control(args->audio,args->agc);
 		audio_stream_enable_noise_gate(args->audio,args->use_ng);
 		audio_stream_set_echo_canceller_params(args->audio,args->ec_len_ms,args->ec_delay_ms,args->ec_framesize);
@@ -897,7 +901,7 @@ void setup_media_streams(MediastreamDatas* args) {
 			exit(-1);
 		}
 		ms_message("Starting video stream.\n");
-		args->video=video_stream_new(args->localport, args->localport+1, ms_is_ipv6(args->ip));
+		args->video=video_stream_new(args->localport, args->localport+1, ms_is_ipv6(args->ip),factory);
 		if (args->video_display_filter)
 			video_stream_set_display_filter_name(args->video, args->video_display_filter);
 
@@ -1096,7 +1100,7 @@ void clear_mediastreams(MediastreamDatas* args) {
 	if (args->video) {
 		if (args->video->ms.ice_check_list) ice_check_list_destroy(args->video->ms.ice_check_list);
 		video_stream_stop(args->video);
-		ms_filter_log_statistics();
+		ms_factory_log_statistics(args->video->ms.factory);
 	}
 #endif
 	if (args->ice_session) ice_session_destroy(args->ice_session);
@@ -1105,8 +1109,10 @@ void clear_mediastreams(MediastreamDatas* args) {
 
 	if (args->logfile)
 		fclose(args->logfile);
-
-	ms_exit();
+	
+	ms_factory_uninit_voip(args->video->ms.factory);
+	ms_factory_uninit_plugins(args->video->ms.factory);
+	ms_factory_destroy(args->video->ms.factory);
 }
 
 // ANDROID JNI WRAPPER

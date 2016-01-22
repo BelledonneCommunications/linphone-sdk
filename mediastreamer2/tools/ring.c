@@ -25,10 +25,16 @@ int main(int argc, char *argv[]){
 	const char *file;
 	MSSndCard *sc;
 	const char * card_id=NULL;
+	MSFactory *factory;
 
 	ortp_init();
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-	ms_init();
+	
+	
+	factory = ms_factory_new();
+	ms_factory_init_voip(factory);
+	ms_factory_init_plugins(factory);
+	
 	if (argc>1){
 		file=argv[1];
 	}else file="/usr/share/sounds/linphone/rings/oldphone.wav";
@@ -42,8 +48,12 @@ int main(int argc, char *argv[]){
 	  sc = ms_alsa_card_new_custom(card_id, card_id);
 #endif
 
-	r=ring_start(file,2000,sc);
+	r=ring_start(file,2000,sc, factory);
 	ms_sleep(10);
 	ring_stop(r);
+	
+	ms_factory_uninit_voip(factory);
+	ms_factory_uninit_plugins(factory);
+	ms_factory_destroy(factory);
 	return 0;
 }

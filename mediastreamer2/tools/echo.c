@@ -50,6 +50,8 @@ int main(int argc, char *argv[]){
 	MSSndCard *card_capture;
 	MSSndCard *card_playback;
 	MSTicker *ticker;
+	MSFactory *factory;
+	
 	char *capt_card=NULL,*play_card=NULL;
 	int rate = 8000;
 	int i;
@@ -59,7 +61,10 @@ int main(int argc, char *argv[]){
 
 	ortp_init();
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-	ms_init();
+	
+	factory = ms_factory_new();
+	ms_factory_init_voip(factory);
+	ms_factory_init_plugins(factory);
 
 #ifndef _WIN32_WCE
 	signal(SIGINT,stop);
@@ -121,5 +126,9 @@ int main(int argc, char *argv[]){
 	ms_filter_unlink(f1,0,f2,0);
 	ms_filter_destroy(f1);
 	ms_filter_destroy(f2);
+	
+	ms_factory_uninit_voip(factory);
+	ms_factory_uninit_plugins(factory);
+	ms_factory_destroy(factory);
 	return 0;
 }
