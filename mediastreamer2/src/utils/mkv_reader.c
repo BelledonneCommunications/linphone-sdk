@@ -81,6 +81,7 @@ static void _mkv_track_reader_edit_seek(MKVTrackReader *obj);
 
 MKVReader *mkv_reader_open(const char *filename) {
 	MKVReader *obj = (MKVReader *)ms_new0(MKVReader, 1);
+	tchar_t *fname;
 	int err;
 
 	ParserContext_Init(&obj->p, NULL, NULL, NULL);
@@ -91,14 +92,14 @@ MKVReader *mkv_reader_open(const char *filename) {
 		goto fail;
 	}
 #ifdef UNICODE
-	tchar_t *fname = ms_malloc0((strlen(filename) + 1) * sizeof(tchar_t));
+	fname = ms_malloc0((strlen(filename) + 1) * sizeof(tchar_t));
 #ifdef _WIN32
 	MultiByteToWideChar(CP_UTF8, 0, filename, -1, fname, strlen(filename));
 #else
 	mbstowcs(fname, filename, strlen(filename));
 #endif
 #else
-	tchar_t *fname = filename;
+	fname = (tchar_t *)filename;
 #endif
 	obj->file = StreamOpen(&obj->p, fname, SFLAG_RDONLY);
 	if(obj->file == NULL) {
@@ -468,12 +469,13 @@ fail:
 }
 
 static int _parse_segment_info(MKVSegmentInfo *seg_info_out, ebml_element *seg_info_elt) {
+	tchar_t muxing_app[MAX_MKV_STRING_LENGTH];
+	tchar_t writing_app[MAX_MKV_STRING_LENGTH];
+
 	if(!EBML_MasterCheckMandatory((ebml_master *)seg_info_elt, FALSE)) {
 		ms_error("MKVParser: fail to parse segment info. Missing elements");
 		return -1;
 	}
-	tchar_t muxing_app[MAX_MKV_STRING_LENGTH];
-	tchar_t writing_app[MAX_MKV_STRING_LENGTH];
 	seg_info_out->duration = EBML_FloatValue((ebml_float *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextDuration));
 	seg_info_out->timecode_scale = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)seg_info_elt, &MATROSKA_ContextTimecodeScale));
 	memset(muxing_app, 0, sizeof(muxing_app));
