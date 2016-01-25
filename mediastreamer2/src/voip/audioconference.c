@@ -260,6 +260,8 @@ void ms_audio_endpoint_destroy(MSAudioEndpoint *ep){
 
 MSAudioEndpoint * ms_audio_endpoint_new_recorder(MSFactory* factory){
 	MSAudioEndpoint *ep=ms_audio_endpoint_new();
+	ep->in_resampler=ms_factory_create_filter(factory, MS_RESAMPLE_ID);
+	ep->out_resampler=ms_factory_create_filter(factory, MS_RESAMPLE_ID);
 	ep->recorder=ms_factory_create_filter(factory, MS_FILE_REC_ID);
 	ep->player=ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
 	ep->mixer_out.filter=ep->recorder;

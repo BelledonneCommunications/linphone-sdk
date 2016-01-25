@@ -41,9 +41,15 @@ static RtpProfile rtp_profile;
 #define EDGE_BW 10
 #define THIRDGENERATION_BW 200
 
+static MSFactory *factory;
 static int tester_before_all(void) {
-	ms_init();
-	ms_filter_enable_statistics(TRUE);
+	//ms_init();
+	factory = ms_factory_new();
+	ms_factory_init_voip(factory);
+	ms_factory_init_plugins(factory);
+
+	//ms_filter_enable_statistics(TRUE);
+	ms_factory_enable_statistics(factory, TRUE);
 	ortp_init();
 	rtp_profile_set_payload (&rtp_profile,0,&payload_type_pcmu8000);
 	rtp_profile_set_payload (&rtp_profile,OPUS_PAYLOAD_TYPE,&payload_type_opus);
@@ -59,7 +65,11 @@ static int tester_before_all(void) {
 
 static int tester_after_all(void) {
 	ortp_exit();
-	ms_exit();
+	//ms_exit();
+
+	ms_factory_uninit_voip(factory);
+	ms_factory_uninit_plugins(factory);
+	ms_factory_destroy(factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }
@@ -96,10 +106,10 @@ stream_manager_t * stream_manager_new(MSFormatType type) {
 	mgr->user_data = 0;
 
 	if (mgr->type==MSAudio){
-		mgr->audio_stream=audio_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
+		mgr->audio_stream=audio_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE, factory);
 	}else{
 #if VIDEO_ENABLED
-		mgr->video_stream=video_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE);
+		mgr->video_stream=video_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE, factory);
 #else
 		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(mgr->type));
 #endif
@@ -346,7 +356,10 @@ static void packet_duplication(void) {
 }
 
 static void upload_bandwidth_computation(void) {
-	bool_t supported = ms_filter_codec_supported("pcma");
+
+	//bool_t supported = ms_filter_codec_supported("pcma");
+	bool_t supported = ms_factory_codec_supported(factory, "pcma");
+
 	if( supported ) {
 		stream_manager_t * marielle, * margaux;
 		int i;
@@ -365,7 +378,8 @@ static void upload_bandwidth_computation(void) {
 }
 
 static void loss_rate_estimation(void) {
-	bool_t supported = ms_filter_codec_supported("pcma");
+	//bool_t supported = ms_filter_codec_supported("pcma");
+	bool_t supported = ms_factory_codec_supported(factory, "pcma");
 	if( supported ) {
 		LossRateEstimatorCtx ctx;
 		stream_manager_t * marielle, * margaux;
@@ -391,7 +405,8 @@ static void loss_rate_estimation(void) {
 }
 
 void upload_bitrate(const char* codec, int payload, int target_bw, int expect_bw) {
-	bool_t supported = ms_filter_codec_supported(codec);
+	//bool_t supported = ms_filter_codec_supported("pcma");
+	bool_t supported = ms_factory_codec_supported(factory, "pcma");
 	if( supported ) {
 		float upload_bw;
 		stream_manager_t * marielle, * margaux;

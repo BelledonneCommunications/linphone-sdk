@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2_tester_private.h"
 
 static RtpProfile rtp_profile;
+static MSFactory *factory ;
 
 #define OPUS_PAYLOAD_TYPE    121
 #define SPEEX16_PAYLOAD_TYPE 122
@@ -34,8 +35,13 @@ static RtpProfile rtp_profile;
 #define PCMA8_PAYLOAD_TYPE 8
 
 static int tester_before_all(void) {
-	ms_init();
-	ms_filter_enable_statistics(TRUE);
+	//ms_init();
+	factory = ms_factory_new();
+	ms_factory_init_voip(factory);
+	ms_factory_init_plugins(factory);
+	
+	//ms_filter_enable_statistics(TRUE);
+	ms_factory_enable_statistics(factory, TRUE);
 	ortp_init();
 	rtp_profile_set_payload (&rtp_profile,0,&payload_type_pcmu8000);
 	rtp_profile_set_payload (&rtp_profile,OPUS_PAYLOAD_TYPE,&payload_type_opus);
@@ -47,7 +53,11 @@ static int tester_before_all(void) {
 }
 
 static int tester_after_all(void) {
-	ms_exit();
+	//ms_exit();
+
+	ms_factory_uninit_voip(factory);
+	ms_factory_uninit_plugins(factory);
+	ms_factory_destroy(factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }
@@ -130,9 +140,9 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 									  ,	int margaux_local_rtcp_port
 									  , int margaux_remote_rtcp_port
 									  , int lost_percentage) {
-	AudioStream * 	marielle = audio_stream_new2 (marielle_local_ip, marielle_local_rtp_port, marielle_local_rtcp_port);
+	AudioStream * 	marielle = audio_stream_new2 (marielle_local_ip, marielle_local_rtp_port, marielle_local_rtcp_port, factory);
 	stats_t marielle_stats;
-	AudioStream * 	margaux = audio_stream_new2 (margaux_local_ip, margaux_local_rtp_port,margaux_local_rtcp_port);
+	AudioStream * 	margaux = audio_stream_new2 (margaux_local_ip, margaux_local_rtp_port,margaux_local_rtcp_port, factory);
 	stats_t margaux_stats;
 	RtpProfile* profile = rtp_profile_new("default profile");
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
@@ -241,8 +251,8 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 										,bool_t set_both_send_recv_key
 										,bool_t send_key_first
 										,bool_t encryption_mandatory) {
-	AudioStream * 	marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
-	AudioStream * 	margaux = audio_stream_new (MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE);
+	AudioStream * 	marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE, factory);
+	AudioStream * 	margaux = audio_stream_new (MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE, factory);
 	RtpProfile* profile = rtp_profile_new("default profile");
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
 	char* recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
@@ -350,7 +360,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 
 		if (change_ssrc) {
 			audio_stream_stop(marielle);
-			marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
+			marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE, factory);
 			BC_ASSERT_EQUAL(audio_stream_start_full(marielle
 													, profile
 													, MARGAUX_IP
@@ -421,9 +431,9 @@ static void encrypted_audio_stream_with_key_change_encryption_mandatory(void) {
 }
 
 static void codec_change_for_audio_stream(void) {
-	AudioStream *marielle = audio_stream_new2(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT);
+	AudioStream *marielle = audio_stream_new2(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT, factory);
 	stats_t marielle_stats;
-	AudioStream *margaux = audio_stream_new2(MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
+	AudioStream *margaux = audio_stream_new2(MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT, factory);
 	stats_t margaux_stats;
 	RtpProfile *profile = rtp_profile_new("default profile");
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
@@ -460,7 +470,7 @@ static void codec_change_for_audio_stream(void) {
 	audio_stream_stop(marielle);
 	reset_stats(&marielle_stats);
 	reset_stats(&margaux_stats);
-	marielle = audio_stream_new2(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT);
+	marielle = audio_stream_new2(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,factory);
 	BC_ASSERT_EQUAL(audio_stream_start_full(marielle, profile, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_IP, MARGAUX_RTCP_PORT,
 		8, 50, hello_file, NULL, NULL, NULL, 0), 0, int, "%d");
 
@@ -487,9 +497,9 @@ static void codec_change_for_audio_stream(void) {
 }
 
 static void tmmbr_feedback_for_audio_stream(void) {
-	AudioStream *marielle = audio_stream_new2(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT);
+	AudioStream *marielle = audio_stream_new2(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,factory);
 	stats_t marielle_stats;
-	AudioStream *margaux = audio_stream_new2(MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
+	AudioStream *margaux = audio_stream_new2(MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT,factory);
 	stats_t margaux_stats;
 	RtpProfile *profile = rtp_profile_new("default profile");
 	RtpSession *marielle_session;

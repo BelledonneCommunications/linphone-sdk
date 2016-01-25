@@ -356,10 +356,13 @@ static void au_card_detect(MSSndCardManager * m)
 		if (check_card_capability(devices[i],TRUE,devname,uidname,sizeof(uidname))){
 			card_capacity|=MS_SND_CARD_CAP_CAPTURE;
 		}
+		
 		if (card_capacity) {
 			card=ca_card_new(devname, uidname, devices[i], card_capacity);
+			ms_snd_card_set_factory(m, card);
 			ms_snd_card_manager_add_card(m, card);
 		}
+
 
 	}
 }

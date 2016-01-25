@@ -385,6 +385,10 @@ MSFilter *ms_factory_create_filter_from_desc(MSFactory* factory, MSFilterDesc *d
 		obj->desc->init(obj);
 	return obj;
 }
+//
+//struct _MSSndCardManager* ms_factory_get_snd_card_manager(MSFactory *factory){
+//	return factory->scm;
+//}
 
 MSFilter *ms_factory_create_filter(MSFactory* factory, MSFilterId id){
 	MSFilterDesc *desc;

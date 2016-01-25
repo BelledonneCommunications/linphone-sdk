@@ -106,6 +106,10 @@ void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
 	m->cards=ms_list_append(m->cards,c);
 }
 
+void ms_snd_card_set_factory(MSSndCardManager*m, MSSndCard *c){
+	c->factory = m->factory;
+}
+
 void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, MSList *l) {
 	MSList *elem;
 	MSList *lcopy = ms_list_copy(l);
@@ -149,6 +153,7 @@ MSSndCard * ms_snd_card_new(MSSndCardDesc *desc){
 
 MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char* name) {
 	MSSndCard *obj=(MSSndCard *)ms_new0(MSSndCard,1);
+	obj->factory = NULL;
 	obj->desc=desc;
 	obj->name=name?ms_strdup(name):NULL;
 	obj->data=NULL;

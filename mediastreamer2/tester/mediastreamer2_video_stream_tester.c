@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static RtpProfile rtp_profile;
+static MSFactory* factory;
 
 #define VP8_PAYLOAD_TYPE   103
 #define H264_PAYLOAD_TYPE  104
@@ -50,8 +51,12 @@ MSWebCam* mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr) {
 }
 
 static int tester_before_all(void) {
-	ms_init();
-	ms_filter_enable_statistics(TRUE);
+	//ms_init();
+	factory = ms_factory_new();
+	ms_factory_init_voip(factory);
+	ms_factory_init_plugins(factory);
+	
+	ms_factory_create_filter(factory, TRUE);
 	ortp_init();
 	rtp_profile_set_payload(&rtp_profile, VP8_PAYLOAD_TYPE, &payload_type_vp8);
 	rtp_profile_set_payload(&rtp_profile, H264_PAYLOAD_TYPE, &payload_type_h264);
@@ -60,7 +65,11 @@ static int tester_before_all(void) {
 }
 
 static int tester_after_all(void) {
-	ms_exit();
+	//ms_exit();
+	
+	ms_factory_uninit_voip(factory);
+	ms_factory_uninit_plugins(factory);
+	ms_factory_destroy(factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }
@@ -205,7 +214,7 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 }
 
 static void create_video_stream(video_stream_tester_t *vst, int payload_type) {
-	vst->vs = video_stream_new2(vst->local_ip, vst->local_rtp, vst->local_rtcp);
+	vst->vs = video_stream_new2(vst->local_ip, vst->local_rtp, vst->local_rtcp,factory);
 	vst->vs->staticimage_webcam_fps_optimization = FALSE;
 	vst->local_rtp = rtp_session_get_local_port(vst->vs->ms.sessions.rtp_session);
 	vst->local_rtcp = rtp_session_get_local_rtcp_port(vst->vs->ms.sessions.rtp_session);
@@ -294,7 +303,7 @@ static void change_codec(video_stream_tester_t *vst1, video_stream_tester_t *vst
 static void basic_video_stream(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(factory, "vp8");
 
 	if (supported) {
 		init_video_streams(marielle, margaux, FALSE, FALSE, NULL,VP8_PAYLOAD_TYPE);
@@ -313,7 +322,7 @@ static void basic_video_stream(void) {
 static void basic_one_way_video_stream(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(factory, "vp8");
 
 	if (supported) {
 		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,VP8_PAYLOAD_TYPE);
@@ -332,9 +341,9 @@ static void basic_one_way_video_stream(void) {
 static void codec_change_for_video_stream(void) {
 	video_stream_tester_t *marielle = video_stream_tester_new();
 	video_stream_tester_t *margaux = video_stream_tester_new();
-	bool_t vp8_supported = ms_filter_codec_supported("vp8");
-	bool_t h264_supported = ms_filter_codec_supported("h264");
-	bool_t mp4v_supported = ms_filter_codec_supported("mp4v-es");
+	bool_t vp8_supported = ms_factory_codec_supported(factory, "vp8");
+	bool_t h264_supported = ms_factory_codec_supported(factory, "h264");
+	bool_t mp4v_supported = ms_factory_codec_supported(factory, "mp4v-es");
 
 	if (vp8_supported) {
 		init_video_streams(marielle, margaux, FALSE, FALSE, NULL, VP8_PAYLOAD_TYPE);
@@ -367,7 +376,7 @@ static void codec_change_for_video_stream(void) {
 static void multicast_video_stream(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(factory, "vp8");
 	video_stream_tester_set_local_ip(marielle,"224.1.2.3");
 	marielle->local_rtcp=0; /*no rtcp*/
 	video_stream_tester_set_local_ip(margaux,"0.0.0.0");
@@ -399,7 +408,7 @@ static void avpf_video_stream(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(factory, "vp8");
     int dummy = 0;
     
     
@@ -452,7 +461,7 @@ static void avpf_rpsi_count(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(factory, "vp8");
 	int dummy=0;
 	int delay = 11000;
 	marielle->vconf=ms_new0(MSVideoConfiguration,1);
@@ -493,7 +502,7 @@ static void video_stream_first_iframe_lost_vp8(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(factory, "vp8");
 
 	if (supported) {
 		int dummy=0;
@@ -544,10 +553,10 @@ static void avpf_video_stream_first_iframe_lost_base(int payload_type) {
 
 	switch (payload_type) {
 		case VP8_PAYLOAD_TYPE:
-			supported = ms_filter_codec_supported("vp8");
+			supported = ms_factory_codec_supported(factory, "vp8");
 			break;
 		case H264_PAYLOAD_TYPE:
-			supported = ms_filter_codec_supported("h264");
+			supported = ms_factory_codec_supported(factory, "h264");
 			break;
 		default:
 			break;
@@ -601,10 +610,10 @@ static void avpf_high_loss_video_stream_base(float rate, int payload_type) {
 
 	switch (payload_type) {
 		case VP8_PAYLOAD_TYPE:
-			supported = ms_filter_codec_supported("vp8");
+			supported = ms_factory_codec_supported(factory, "vp8");
 			break;
 		case H264_PAYLOAD_TYPE:
-			supported = ms_filter_codec_supported("h264");
+			supported = ms_factory_codec_supported(factory, "h264");
 			break;
 		default:
 			break;
@@ -656,7 +665,7 @@ static void video_configuration_stream_base(MSVideoConfiguration* asked, MSVideo
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	PayloadType* pt = rtp_profile_get_payload(&rtp_profile, payload_type);
-	bool_t supported = pt?ms_filter_codec_supported(pt->mime_type):FALSE;
+	bool_t supported = pt?ms_factory_codec_supported(factory, pt->mime_type):FALSE;
 
 	if (supported) {
 		margaux->vconf=ms_new0(MSVideoConfiguration,1);
