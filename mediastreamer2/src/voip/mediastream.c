@@ -415,14 +415,16 @@ bool_t media_stream_secured (const MediaStream *stream) {
 		return FALSE;
 
 	switch (stream->type) {
-	case MSAudio:
-	case MSText:
-		/*fixme need also audio stream direction to be more precise*/
-		return ms_media_stream_sessions_secured(&stream->sessions, MediaStreamSendRecv);
-	case MSVideo:{
-		VideoStream *vs = (VideoStream*)stream;
-		return ms_media_stream_sessions_secured(&stream->sessions, vs->dir);
-	}
+		case MSAudio:
+		case MSText:
+			/*fixme need also audio stream direction to be more precise*/
+			return ms_media_stream_sessions_secured(&stream->sessions, MediaStreamSendRecv);
+		case MSVideo:{
+			VideoStream *vs = (VideoStream*)stream;
+			return ms_media_stream_sessions_secured(&stream->sessions, vs->dir);
+		}
+		case MSUnknownMedia:
+		break;
 	}
 	return FALSE;
 }
