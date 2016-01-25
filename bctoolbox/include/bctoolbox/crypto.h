@@ -75,7 +75,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_FUTURE		0x0200  /**< The certificate validity starts in the future. */
 #define BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_FUTURE		0x0400  /**< The CRL is from the future */
 
-int32_t bctoolbox_callback_return_remap(int ret_code);
 void bctoolbox_strerror(int32_t error_code, char *buffer, size_t buffer_length);
 int32_t bctoolbox_base64_encode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length);
 int32_t bctoolbox_base64_decode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length);

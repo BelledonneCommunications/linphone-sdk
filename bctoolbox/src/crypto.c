@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define bctoolbox_error printf
 
-int32_t bctoolbox_callback_return_remap(int ret_code) {
+static int bctoolbox_ssl_sendrecv_callback_return_remap(int32_t ret_code) {
 	switch (ret_code) {
 		case BCTOOLBOX_ERROR_NET_WANT_READ:
 			return POLARSSL_ERR_NET_WANT_READ;
@@ -41,7 +41,7 @@ int32_t bctoolbox_callback_return_remap(int ret_code) {
 		case BCTOOLBOX_ERROR_NET_CONN_RESET:
 			return POLARSSL_ERR_NET_CONN_RESET;
 		default:
-			return ret_code;
+			return (int)ret_code;
 	}
 }
 
@@ -464,6 +464,9 @@ struct bctoolbox_ssl_context_struct {
 	int(*callback_cli_cert_function)(void *, bctoolbox_ssl_context_t *, unsigned char *, size_t); /**< pointer to the callback called to update client certificate during handshake
 													callback params are user_data, ssl_context, certificate distinguished name, name length */
 	void *callback_cli_cert_data; /**< data passed to the client cert callback */
+	int(*callback_send_function)(void *, const unsigned char *, size_t); /* callbacks args are: callback data, data buffer to be send, size of data buffer */
+	int(*callback_recv_function)(void *, unsigned char *, size_t); /* args: callback data, data buffer to be read, size of data buffer */
+	void *callback_sendrecv_data; /**< data passed to send/recv callbacks */
 };
 
 bctoolbox_ssl_context_t *bctoolbox_ssl_context_new(void) {
@@ -548,11 +551,35 @@ int32_t bctoolbox_ssl_set_hs_own_cert(bctoolbox_ssl_context_t *ssl_ctx, bctoolbo
 	return ssl_set_own_cert(&(ssl_ctx->ssl_ctx) , (x509_crt *)cert , (pk_context *)key);
 }
 
+int bctoolbox_ssl_send_callback(void *data, const unsigned char *buffer, size_t buffer_length) {
+	int ret = 0;
+	/* data is the ssl_context which contains the actual callback and data */
+	bctoolbox_ssl_context_t *ssl_ctx = (bctoolbox_ssl_context_t *)data;
+
+	ret = ssl_ctx->callback_send_function(ssl_ctx->callback_sendrecv_data, buffer, buffer_length);
+
+	return bctoolbox_ssl_sendrecv_callback_return_remap(ret);
+}
+
+int bctoolbox_ssl_recv_callback(void *data, unsigned char *buffer, size_t buffer_length) {
+	int ret = 0;
+	/* data is the ssl_context which contains the actual callback and data */
+	bctoolbox_ssl_context_t *ssl_ctx = (bctoolbox_ssl_context_t *)data;
+
+	ret = ssl_ctx->callback_recv_function(ssl_ctx->callback_sendrecv_data, buffer, buffer_length);
+
+	return bctoolbox_ssl_sendrecv_callback_return_remap(ret);
+}
+
 void bctoolbox_ssl_set_io_callbacks(bctoolbox_ssl_context_t *ssl_ctx, void *callback_data,
 		int(*callback_send_function)(void *, const unsigned char *, size_t), /* callbacks args are: callback data, data buffer to be send, size of data buffer */
 		int(*callback_recv_function)(void *, unsigned char *, size_t)){ /* args: callback data, data buffer to be read, size of data buffer */
 
-	ssl_set_bio(&(ssl_ctx->ssl_ctx), callback_recv_function, callback_data, callback_send_function, callback_data);
+	ssl_ctx->callback_send_function = callback_send_function;
+	ssl_ctx->callback_recv_function = callback_recv_function;
+	ssl_ctx->callback_sendrecv_data = callback_data;
+
+	ssl_set_bio(&(ssl_ctx->ssl_ctx), bctoolbox_ssl_recv_callback, ssl_ctx, bctoolbox_ssl_send_callback, ssl_ctx);
 }
 
 
