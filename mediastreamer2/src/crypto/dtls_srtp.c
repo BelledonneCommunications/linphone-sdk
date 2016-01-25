@@ -525,7 +525,8 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 			}
 
 			if (ctx->role != MSDtlsSrtpRoleIsServer) { /* close the connection only if we are client, if we are server, the client may ask again for last packets */
-				ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );
+				/*FireFox version 43 requires DTLS channel to be kept openned, probably a bug in FireFox ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );*/
+				
 			}
 
 		}
@@ -596,7 +597,7 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 					ms_dtls_srtp_check_channels_status(ctx);
 				}
 			}
-			ret = ssl_close_notify( &(ctx->rtcp_dtls_context->ssl) );
+			/*FireFox version 43 requires DTLS channel to be kept openned, probably a bug in FireFox  ret = ssl_close_notify( &(ctx->rtcp_dtls_context->ssl) );*/
 		}
 
 		return 0;

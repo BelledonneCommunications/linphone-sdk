@@ -1084,14 +1084,14 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		if (decoder_have_plc == 0) {
 			stream->plc = ms_factory_create_filter(stream->ms.factory, MS_GENERIC_PLC_ID);
 
-		}
+			if (stream->plc) {
+				ms_filter_call_method(stream->plc, MS_FILTER_SET_NCHANNELS, &nchannels);
+				ms_filter_call_method(stream->plc, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+				/*as first rough approximation, a codec without PLC capabilities has no VAD/DTX builtin, thus setup generic confort noise if possible*/
+				setup_generic_confort_noise(stream);
+			}
 
-		if (stream->plc) {
-			ms_filter_call_method(stream->plc, MS_FILTER_SET_NCHANNELS, &nchannels);
-			ms_filter_call_method(stream->plc, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 		}
-		/*as first rough approximation, a codec without PLC capabilities has no VAD/DTX builtin, thus setup generic confort noise if possible*/
-		setup_generic_confort_noise(stream);
 	} else {
 		stream->plc = NULL;
 	}
