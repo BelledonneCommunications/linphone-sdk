@@ -121,6 +121,11 @@ include(CheckIncludeFile)
 include(CheckLibraryExists)
 include(CMakePushCheckState)
 
+if(MSVC AND MSVC_VERSION LESS 1800)
+	set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
+	list(APPEND CMAKE_REQUIRED_INCLUDES "${MSVC_INCLUDE_DIR}")
+endif()
+
 find_package(Threads)
 
 check_include_file(sys/shm.h HAVE_SYS_SHM_H)
@@ -379,7 +384,7 @@ endif()
 if(PCAP_FOUND)
 	include_directories(${PCAP_INCLUDE_DIRS})
 endif()
-if(MSVC)
+if(MSVC_INCLUDE_DIR)
 	include_directories(${MSVC_INCLUDE_DIR})
 endif()
 
