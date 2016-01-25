@@ -3109,8 +3109,7 @@ static void ice_check_list_restart(IceCheckList *cl)
 	memset(&cl->nomination_delay_start_time, 0, sizeof(cl->nomination_delay_start_time));
 }
 
-void ice_session_restart(IceSession *session)
-{
+void ice_session_restart(IceSession *session, IceRole role){
 	int i;
 
 	ms_warning("ICE session restart");
@@ -3132,6 +3131,7 @@ void ice_session_restart(IceSession *session)
 		if (session->streams[i] != NULL)
 			ice_check_list_restart(session->streams[i]);
 	}
+	ice_session_set_role(session, role);
 }
 
 
