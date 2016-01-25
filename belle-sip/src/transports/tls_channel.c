@@ -619,8 +619,8 @@ static int tls_callback_read(void * ctx, unsigned char *buf, size_t len ){
 	if (ret<0){
 		ret=-ret;
 		if (ret==BELLESIP_EWOULDBLOCK || ret==BELLESIP_EINPROGRESS || ret == EINTR )
-			return bctoolbox_callback_return_remap(BCTOOLBOX_ERROR_NET_WANT_READ);
-		return bctoolbox_callback_return_remap(BCTOOLBOX_ERROR_NET_CONN_RESET);
+			return BCTOOLBOX_ERROR_NET_WANT_READ;
+		return BCTOOLBOX_ERROR_NET_CONN_RESET;
 	}
 	return ret;
 }
@@ -633,8 +633,8 @@ static int tls_callback_write(void * ctx, const unsigned char *buf, size_t len )
 	if (ret<0){
 		ret=-ret;
 		if (ret==BELLESIP_EWOULDBLOCK || ret==BELLESIP_EINPROGRESS || ret == EINTR )
-			return bctoolbox_callback_return_remap(BCTOOLBOX_ERROR_NET_WANT_WRITE);
-		return bctoolbox_callback_return_remap(BCTOOLBOX_ERROR_NET_CONN_RESET);
+			return BCTOOLBOX_ERROR_NET_WANT_WRITE;
+		return BCTOOLBOX_ERROR_NET_CONN_RESET;
 	}
 	return ret;
 }
