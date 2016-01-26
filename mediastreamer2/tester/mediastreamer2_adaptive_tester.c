@@ -65,7 +65,7 @@ static int tester_after_all(void) {
 }
 
 #define HELLO_16K_1S_FILE  "sounds/hello16000-1s.wav"
-#define RECORDED_16K_1S_FILE  "sounds/recorded_hello16000-1s.wav"
+#define RECORDED_16K_1S_FILE  "recorded_hello16000-1s.wav"
 
 typedef struct _stream_manager_t {
 	MSFormatType type;
