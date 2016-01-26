@@ -131,7 +131,7 @@ typedef struct _MSSndCardDesc MSSndCardDesc;
 
 struct _MSSndCard{
 	MSSndCardDesc *desc;
-	MSFactory* factory;
+	MSSndCardManager* scm;
 	char *name;
 	char *id;
 	unsigned int capabilities;
@@ -224,7 +224,7 @@ MS2_PUBLIC const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m);
  */
 MS2_PUBLIC void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c);
 	
-MS2_PUBLIC	void ms_snd_card_set_factory(MSSndCardManager*m, MSSndCard *c);
+MS2_PUBLIC	void ms_snd_card_set_manager(MSSndCardManager*m, MSSndCard *c);
 
 /**
  * Prepend a list of sound card object to the sound card manager's list.

@@ -32,7 +32,6 @@ static int tester_before_all(void) {
 
 static int tester_after_all(void) {
 	ms_factory_uninit_voip(factory);
-	ms_factory_uninit_plugins(factory);
 	ms_factory_destroy(factory);
 	return 0;
 }
@@ -87,7 +86,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
 	ms_media_player_set_eof_callback(file_player, eof_callback, &eof);
 
-	succeed = ms_media_player_open(file_player, filepath, snd_card->factory);
+	succeed = ms_media_player_open(file_player, filepath, snd_card->scm->factory);
 	if(unsupported_format) {
 		BC_ASSERT_FALSE(succeed);
 		BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
@@ -131,7 +130,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 
 	if(play_twice) {
 		eof_init(&eof);
-		BC_ASSERT_TRUE(ms_media_player_open(file_player, filepath,snd_card->factory));
+		BC_ASSERT_TRUE(ms_media_player_open(file_player, filepath,snd_card->scm->factory));
 		BC_ASSERT_TRUE(ms_media_player_start(file_player));
 		wait_for_eof(&eof, 100, timeout);
 		ms_media_player_close(file_player);

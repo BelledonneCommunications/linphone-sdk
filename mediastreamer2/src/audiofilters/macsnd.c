@@ -359,7 +359,7 @@ static void au_card_detect(MSSndCardManager * m)
 		
 		if (card_capacity) {
 			card=ca_card_new(devname, uidname, devices[i], card_capacity);
-			ms_snd_card_set_factory(m, card);
+			ms_snd_card_set_manager(m, card);
 			ms_snd_card_manager_add_card(m, card);
 		}
 

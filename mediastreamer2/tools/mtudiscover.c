@@ -38,7 +38,6 @@ int main(int argc, char *argv[]){
 	printf("result: %i \n",ms_discover_mtu(argv[1]));
 	
 	ms_factory_uninit_voip(factory);
-	ms_factory_uninit_plugins(factory);
 	ms_factory_destroy(factory);
 	
 	return 0;

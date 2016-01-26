@@ -115,7 +115,6 @@ int main(int argc, char *argv[]){
 	ms_filter_destroy(rec);
 
 	ms_factory_uninit_voip(factory);
-	ms_factory_uninit_plugins(factory);
 	ms_factory_destroy(factory);
 	//ms_base_exit();
 	return 0;

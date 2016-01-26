@@ -60,7 +60,7 @@ static void filter_register_tester(void) {
 	ms_filter_destroy(filter);
 
 	ms_factory_uninit_voip(factory);
-	ms_factory_uninit_plugins(factory);
+	//ms_factory_uninit_plugins(factory);
 	ms_factory_destroy(factory);
 //	ms_exit();
 
@@ -70,7 +70,7 @@ static void filter_register_tester(void) {
 	ms_filter_destroy(filter);
 
 	ms_factory_uninit_voip(factory);
-	ms_factory_uninit_plugins(factory);
+//	ms_factory_uninit_plugins(factory);
 	ms_factory_destroy(factory);
 	BC_ASSERT_PTR_NULL(factory);
 }
@@ -164,9 +164,9 @@ static void test_filterdesc_enable_disable_base(const char* mime, const char* fi
 	ms_factory_init_plugins(factory);
 
 	if (is_enc)
-			filter = ms_factory_create_filter(factory,mime);
+			filter = ms_factory_create_encoder(factory,mime);
 		else
-			filter = ms_factory_create_filter(factory,mime);
+			filter = ms_factory_create_decoder(factory,mime);
 
 	BC_ASSERT_PTR_NOT_NULL(filter);
 	ms_filter_destroy(filter);
@@ -190,7 +190,6 @@ static void test_filterdesc_enable_disable_base(const char* mime, const char* fi
 	ms_filter_destroy(filter);
 	
 	ms_factory_uninit_voip(factory);
-	ms_factory_uninit_plugins(factory);
 	ms_factory_destroy(factory);
 }
 static void test_filterdesc_enable_disable(void) {

@@ -1111,7 +1111,6 @@ void clear_mediastreams(MediastreamDatas* args) {
 		fclose(args->logfile);
 	
 	ms_factory_uninit_voip(args->video->ms.factory);
-	ms_factory_uninit_plugins(args->video->ms.factory);
 	ms_factory_destroy(args->video->ms.factory);
 }
 

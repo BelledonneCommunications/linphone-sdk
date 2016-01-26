@@ -43,7 +43,6 @@ static int basic_audio_tester_before_all(void) {
 static int basic_audio_tester_after_all(void) {
 	//ms_exit();
 	ms_factory_uninit_voip(factory);
-	ms_factory_uninit_plugins(factory);
 	ms_factory_destroy(factory);
 	ortp_exit();
 	return 0;

@@ -333,7 +333,6 @@ static int uninit_bench(struct bench_config *bench)
 	}
 
 	ms_factory_uninit_voip(bench->factory);
-	ms_factory_uninit_plugins(bench->factory);
 	ms_factory_destroy(bench->factory);
 	ms_ticker_destroy(bench->ticker);
 	return 0;

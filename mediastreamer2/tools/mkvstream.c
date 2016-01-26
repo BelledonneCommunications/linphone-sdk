@@ -161,7 +161,6 @@ end:
 	if (profile) rtp_profile_destroy(profile);
 	
 	ms_factory_uninit_voip(factory);
-	ms_factory_uninit_plugins(factory);
 	ms_factory_destroy(factory);
 	
 	return err;
