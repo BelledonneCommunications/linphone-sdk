@@ -133,6 +133,9 @@ else()
 endif()
 
 target_compile_options(vo-amrwbenc PRIVATE "-w")
+if(MSVC)
+	target_compile_options(vo-amrwbenc PRIVATE "/Ob0")	# Deactivate inlining to prevent linking errors
+endif()
 
 target_include_directories(vo-amrwbenc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/amrwbenc/inc ${CMAKE_CURRENT_SOURCE_DIR}/common/include)
 if(ENABLE_ARMV5E)
