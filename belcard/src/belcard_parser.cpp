@@ -114,6 +114,7 @@ shared_ptr<BelCardList> BelCardParser::parse(const string &input) {
 shared_ptr<BelCardList> BelCardParser::parseFile(const string &filename) {
 	ifstream istr(filename);
 	if (!istr.is_open()) {
+		cerr << "[belcard] Couldn't open file " << filename << endl;
 		return NULL;
 	}
 	
