@@ -94,8 +94,8 @@ static void schedule_timer(belle_sip_refresher_t* refresher) {
 }
 
 static void process_dialog_terminated(belle_sip_listener_t *user_ctx, const belle_sip_dialog_terminated_event_t *event){
-	/*nop*/
 }
+
 static void process_io_error(belle_sip_listener_t *user_ctx, const belle_sip_io_error_event_t *event){
 	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
 	belle_sip_client_transaction_t*client_transaction;

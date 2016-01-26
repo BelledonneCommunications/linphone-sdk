@@ -57,6 +57,7 @@ BELLESIP_EXPORT belle_sip_dialog_t *belle_sip_request_event_get_dialog(const bel
 
 /*Dialog terminated event*/
 BELLESIP_EXPORT belle_sip_dialog_t* belle_sip_dialog_terminated_event_get_dialog(const belle_sip_dialog_terminated_event_t *event);
+BELLESIP_EXPORT int belle_sip_dialog_terminated_event_is_expired(const belle_sip_dialog_terminated_event_t *event);
 
 /**
  * Timeout Event

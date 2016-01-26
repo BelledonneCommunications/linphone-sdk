@@ -689,10 +689,11 @@ void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dial
 	belle_sip_dialog_terminated_event_t* ev=belle_sip_malloc(sizeof(belle_sip_dialog_terminated_event_t));
 	ev->source=prov;
 	ev->dialog=dialog;
+	ev->is_expired=dialog->is_expired;
 	prov->dialogs=belle_sip_list_remove(prov->dialogs,dialog);
 	belle_sip_main_loop_do_later(belle_sip_stack_get_main_loop(prov->stack)
-													,(belle_sip_callback_t) notify_dialog_terminated
-													, ev);
+					,(belle_sip_callback_t) notify_dialog_terminated
+					, ev);
 
 }
 

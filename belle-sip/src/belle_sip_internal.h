@@ -809,11 +809,12 @@ struct belle_sip_dialog{
 	belle_sip_transaction_t* last_transaction;
 	belle_sip_header_privacy_t* privacy;
 	belle_sip_list_t *queued_ct;/* queued client transactions*/
+	unsigned int remote_invite_cseq; /*needed because multiple trans can be handled whithin invite transaction (I.E UPDATE, PRACK,etc*/
 	unsigned char is_server;
 	unsigned char is_secure;
 	unsigned char terminate_on_bye;
 	unsigned char needs_ack;
-	unsigned int remote_invite_cseq; /*needed because multiple trans can be handled whithin invite transaction (I.E UPDATE, PRACK,etc*/
+	unsigned char is_expired;
 	unsigned char pending_trans_checking_enabled; /*use to disabled pending transaction check at request creation (testing)*/
 };
 
@@ -887,6 +888,7 @@ belle_sdp_##object_type##_t* belle_sdp_##object_type##_parse (const char* value)
 struct belle_sip_dialog_terminated_event{
 	belle_sip_provider_t *source;
 	belle_sip_dialog_t *dialog;
+	int is_expired;
 };
 
 struct belle_sip_io_error_event{

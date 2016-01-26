@@ -205,6 +205,7 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 
 static int belle_sip_dialog_expired(belle_sip_dialog_t *dialog){
 	belle_sip_message("Dialog [%p] expired", dialog);
+	dialog->is_expired = TRUE;
 	belle_sip_dialog_delete(dialog);
 	return BELLE_SIP_STOP;
 }
@@ -751,7 +752,7 @@ void belle_sip_dialog_delete(belle_sip_dialog_t *obj){
 		belle_sip_object_unref(obj->expiration_timer);
 		obj->expiration_timer = NULL;
 	}
-	belle_sip_message("dialog [%p] deleted.",obj);
+	belle_sip_message("Dialog [%p] deleted (is_expired=%i)",obj, obj->is_expired);
 	belle_sip_dialog_stop_200Ok_retrans(obj); /*if any*/
 	set_state(obj,BELLE_SIP_DIALOG_TERMINATED);
 	dropped_transactions=belle_sip_list_size(obj->queued_ct);

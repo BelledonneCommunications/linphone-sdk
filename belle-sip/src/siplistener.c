@@ -46,6 +46,10 @@ belle_sip_dialog_t* belle_sip_dialog_terminated_event_get_dialog(const belle_sip
 	return event->dialog;
 }
 
+int belle_sip_dialog_terminated_event_is_expired(const belle_sip_dialog_terminated_event_t *event){
+	return event->is_expired;
+}
+
 const char* belle_sip_io_error_event_get_host(const belle_sip_io_error_event_t* event) {
 	return event->host;
 }
