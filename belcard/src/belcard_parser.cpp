@@ -94,6 +94,9 @@ shared_ptr<BelCardGeneric> BelCardParser::_parse(const string &input, const stri
 		
 	size_t parsedSize = 0;
 	shared_ptr<BelCardGeneric> ret = parser.parseInput(rule, input, &parsedSize);
+	if (parsedSize < input.size()){
+		cerr << "[belcard] Parsing ended prematuraly at pos " << parsedSize << endl;
+	}
 	return ret;
 }
 
