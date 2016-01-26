@@ -23,7 +23,7 @@ if test -d /share/aclocal ; then
 	ACLOCAL_ARGS="-I /share/aclocal"
 fi
 
-echo "Generating build scripts in myantlr..."
+echo "Generating build scripts in belr..."
 set -x
 $LIBTOOLIZE --copy --force
 $ACLOCAL  $ACLOCAL_ARGS
