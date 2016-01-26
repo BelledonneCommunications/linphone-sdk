@@ -66,6 +66,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	target_include_directories(mediastreamer2_tester_runtime PRIVATE "../../../mswinrtvid")	# HACK!!
 	target_link_libraries(mediastreamer2_tester_runtime mediastreamer2_tester_static)
 	set_target_properties(mediastreamer2_tester_runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
+	set_target_properties(mediastreamer2_tester_runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.Mediastreamer2.Tester")
+	set_target_properties(mediastreamer2_tester_runtime PROPERTIES LINK_FLAGS "/WINMDFILE:BelledonneCommunications.Mediastreamer2.Tester.winmd")
 
 	install(TARGETS mediastreamer2_tester_runtime
 		RUNTIME DESTINATION bin
@@ -73,7 +75,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		ARCHIVE DESTINATION lib
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
-	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/mediastreamer2_tester_runtime.winmd" DESTINATION bin)
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/BelledonneCommunications.Mediastreamer2.Tester.winmd" DESTINATION lib)
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/BelledonneCommunications.Mediastreamer2.Tester.pdb
+			DESTINATION lib
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
+	endif()
 
 else()
 
