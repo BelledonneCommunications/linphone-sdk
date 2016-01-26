@@ -2,7 +2,7 @@
 
 #include "belle_sip_tester_windows.h"
 
-using namespace belle_sip_tester_runtime;
+using namespace BelledonneCommunications::BelleSip::Tester;
 using namespace Platform;
 using namespace Windows::Foundation;
 using namespace Windows::Storage;
@@ -15,7 +15,7 @@ using namespace Windows::System::Threading;
 static OutputTraceListener^ sTraceListener;
 static belle_sip_object_pool_t *pool;
 
-BelleSipTester^ BelleSipTester::_instance = ref new BelleSipTester();
+NativeTester^ NativeTester::_instance = ref new NativeTester();
 
 static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 {
@@ -52,23 +52,23 @@ static void belleSipNativeOutputTraceHandler(belle_sip_log_level lev, const char
 }
 
 
-BelleSipTester::BelleSipTester()
+NativeTester::NativeTester()
 {
 	belle_sip_tester_init(nativeOutputTraceHandler);
 	bc_tester_set_resource_dir_prefix("Assets");
 }
 
-BelleSipTester::~BelleSipTester()
+NativeTester::~NativeTester()
 {
 	belle_sip_tester_uninit();
 }
 
-void BelleSipTester::setOutputTraceListener(OutputTraceListener^ traceListener)
+void NativeTester::setOutputTraceListener(OutputTraceListener^ traceListener)
 {
 	sTraceListener = traceListener;
 }
 
-void BelleSipTester::initialize(StorageFolder^ writableDirectory, Platform::Boolean ui)
+void NativeTester::initialize(StorageFolder^ writableDirectory, Platform::Boolean ui)
 {
 	if (ui) {
 		belle_sip_tester_init(nativeOutputTraceHandler);
@@ -98,7 +98,7 @@ void BelleSipTester::initialize(StorageFolder^ writableDirectory, Platform::Bool
 	}
 }
 
-bool BelleSipTester::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
+bool NativeTester::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
 {
 	std::wstring all(L"ALL");
 	std::wstring wssuitename = suiteName->Data();
@@ -118,7 +118,7 @@ bool BelleSipTester::run(Platform::String^ suiteName, Platform::String^ caseName
 	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename) != 0;
 }
 
-void BelleSipTester::runAllToXml()
+void NativeTester::runAllToXml()
 {
 	auto workItem = ref new WorkItemHandler([this](IAsyncAction ^workItem) {
 		bc_tester_start(NULL);
@@ -127,12 +127,12 @@ void BelleSipTester::runAllToXml()
 	_asyncAction = ThreadPool::RunAsync(workItem);
 }
 
-unsigned int BelleSipTester::nbTestSuites()
+unsigned int NativeTester::nbTestSuites()
 {
 	return bc_tester_nb_suites();
 }
 
-unsigned int BelleSipTester::nbTests(Platform::String^ suiteName)
+unsigned int NativeTester::nbTests(Platform::String^ suiteName)
 {
 	std::wstring suitename = suiteName->Data();
 	char cname[MAX_SUITE_NAME_SIZE] = { 0 };
@@ -140,7 +140,7 @@ unsigned int BelleSipTester::nbTests(Platform::String^ suiteName)
 	return bc_tester_nb_tests(cname);
 }
 
-Platform::String^ BelleSipTester::testSuiteName(int index)
+Platform::String^ NativeTester::testSuiteName(int index)
 {
 	const char *cname = bc_tester_suite_name(index);
 	wchar_t wcname[MAX_SUITE_NAME_SIZE];
@@ -148,7 +148,7 @@ Platform::String^ BelleSipTester::testSuiteName(int index)
 	return ref new String(wcname);
 }
 
-Platform::String^ BelleSipTester::testName(Platform::String^ suiteName, int testIndex)
+Platform::String^ NativeTester::testName(Platform::String^ suiteName, int testIndex)
 {
 	std::wstring suitename = suiteName->Data();
 	char csuitename[MAX_SUITE_NAME_SIZE] = { 0 };
