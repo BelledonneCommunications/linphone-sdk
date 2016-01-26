@@ -74,3 +74,20 @@ list(APPEND EP_opus_CMAKE_OPTIONS
 	"-DENABLE_FIXED_POINT=YES"
 )
 set(EP_opus_LINKING_TYPE "-DENABLE_STATIC=YES")
+
+
+if(LINPHONE_BUILDER_TARGET STREQUAL linphone)
+	# Build liblinphone C# wrapper
+	linphone_builder_apply_flags()
+	linphone_builder_set_ep_directories(linphone_wrapper)
+	linphone_builder_expand_external_project_vars()
+	ExternalProject_Add(TARGET_linphone_wrapper
+		DEPENDS TARGET_linphone_builder
+		TMP_DIR ${ep_tmp}
+		BINARY_DIR ${ep_build}
+		SOURCE_DIR "${LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH}/../Native"
+		DOWNLOAD_COMMAND ""
+		CMAKE_GENERATOR ${CMAKE_GENERATOR}
+		CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS}
+	)
+endif()
