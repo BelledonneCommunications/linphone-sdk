@@ -2414,9 +2414,10 @@ static ms_bool_t mkv_player_seek_ms(MKVPlayer *obj, int position) {
 		ms_error("MKVPlayer: cannot seek. No file open");
 		return FALSE;
 	}
-	obj->time = mkv_reader_seek(obj->reader, position);
+	obj->time = position>0 ? mkv_reader_seek(obj->reader, position) : 0;
 	for(i = 0; i < 2; i++) {
 		if(obj->players[i]) {
+			if(position == 0) mkv_track_reader_reset(obj->players[i]->track_reader);
 			mkv_track_player_reset(obj->players[i]);
 		}
 	}

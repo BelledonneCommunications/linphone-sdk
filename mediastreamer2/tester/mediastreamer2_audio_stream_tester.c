@@ -72,8 +72,8 @@ static int tester_after_all(void) {
 
 #define HELLO_8K_1S_FILE  "sounds/hello8000-1s.wav"
 #define HELLO_16K_1S_FILE  "sounds/hello16000-1s.wav"
-#define RECORDED_8K_1S_FILE  "sounds/recorded_hello8000-1s.wav"
-#define RECORDED_16K_1S_FILE  "sounds/recorded_hello16000-1s.wav"
+#define RECORDED_8K_1S_FILE  "recorded_hello8000-1s.wav"
+#define RECORDED_16K_1S_FILE  "recorded_hello16000-1s.wav"
 
 #define MULTICAST_IP  "224.1.2.3"
 
@@ -148,12 +148,12 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
 	char* recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
 	int marielle_rtp_sent=0;
-	
+
 	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session,TRUE);
 	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session,TRUE);
 	rtp_session_set_rtcp_report_interval(marielle->ms.sessions.rtp_session, 1000);
 	rtp_session_set_rtcp_report_interval(margaux->ms.sessions.rtp_session, 1000);
-	
+
 	reset_stats(&marielle_stats);
 	reset_stats(&margaux_stats);
 
@@ -197,15 +197,15 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 	audio_stream_get_local_rtp_stats(marielle,&marielle_stats.rtp);
 	audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
 	marielle_rtp_sent = marielle_stats.rtp.sent;
-	
-	
+
+
 	if (rtp_session_rtcp_enabled(marielle->ms.sessions.rtp_session) && rtp_session_rtcp_enabled(margaux->ms.sessions.rtp_session)) {
 		BC_ASSERT_TRUE(rtp_session_get_round_trip_propagation(marielle->ms.sessions.rtp_session)>0);
 		BC_ASSERT_TRUE(rtp_session_get_stats(marielle->ms.sessions.rtp_session)->recv_rtcp_packets >0);
 	}
-	
+
 	audio_stream_stop(marielle);
-	
+
 	BC_ASSERT_TRUE(wait_for_until(&margaux->ms,NULL,(int*)&margaux_stats.rtp.hw_recv,marielle_rtp_sent*(100-lost_percentage)/100,2500));
 
 	audio_stream_stop(margaux);
@@ -604,7 +604,7 @@ static void symetric_rtp_with_wrong_addr(void)  {
 							  , MARGAUX_RTP_PORT
 							  , MARIELLE_RTCP_PORT
 							  , MARGAUX_RTCP_PORT
-							
+
 							  , MARGAUX_IP
 							  , MARIELLE_IP
 							  , MARGAUX_RTP_PORT
@@ -621,7 +621,7 @@ static void symetric_rtp_with_wrong_rtcp_port(void)  {
 							  , MARGAUX_RTP_PORT
 							  , MARIELLE_RTCP_PORT
 							  , MARGAUX_RTCP_PORT
-							  
+
 							  , MARGAUX_IP
 							  , MARIELLE_IP
 							  , MARGAUX_RTP_PORT

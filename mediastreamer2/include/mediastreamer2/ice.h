@@ -331,7 +331,7 @@ MS2_PUBLIC const char * ice_session_remote_pwd(const IceSession *session);
 MS2_PUBLIC IceSessionState ice_session_state(const IceSession *session);
 
 /**
- * Gte the role of the agent for an ICE session.
+ * Get the role of the agent for an ICE session.
  *
  * @param session A pointer to a session
  * @return The role of the agent for the session
@@ -502,7 +502,7 @@ MS2_PUBLIC void ice_session_select_candidates(IceSession *session);
  *
  * @param session A pointer to a session
  */
-MS2_PUBLIC void ice_session_restart(IceSession *session);
+MS2_PUBLIC void ice_session_restart(IceSession *session, IceRole role);
 
 /**
  * Get the state of an ICE check list.
