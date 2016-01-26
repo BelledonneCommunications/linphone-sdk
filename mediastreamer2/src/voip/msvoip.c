@@ -265,7 +265,7 @@ void ms_factory_init_voip(MSFactory *obj){
 	int i;
 	
 	ms_srtp_init();
-	
+	obj->ref_count++;
 	/* register builtin VoIP MSFilter's */
 	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
 		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);
@@ -323,19 +323,21 @@ void ms_factory_init_voip(MSFactory *obj){
 
 void ms_factory_uninit_voip(MSFactory *obj){
 	ms_srtp_shutdown();
+	managers_ref--;
+	if (managers_ref==0){
+		ms_snd_card_manager_destroy();
+#ifdef VIDEO_ENABLED
+		ms_web_cam_manager_destroy();
+#endif
 	if (obj->voip_initd){
 #ifdef VIDEO_ENABLED
 		ms_video_presets_manager_destroy(obj->video_presets_manager);
 #endif
-		managers_ref--;
-		if (managers_ref==0){
-			ms_snd_card_manager_destroy();
-#ifdef VIDEO_ENABLED
-			ms_web_cam_manager_destroy();
-#endif
+
 		}
+		obj->voip_initd = FALSE;
 	}
-	obj->voip_initd = FALSE;
+	
 }
 
 void ms_voip_exit(){

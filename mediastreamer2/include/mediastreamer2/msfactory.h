@@ -42,6 +42,7 @@ struct _MSFactory{
 	int mtu;
 	bool_t statistics_enabled;
 	bool_t voip_initd;
+	int ref_count;
 };
 
 typedef struct _MSFactory MSFactory;
@@ -79,6 +80,12 @@ LINPHONE_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_get_fallback(void);
  * This should be done after destroying all objects created by the factory.
 **/
 MS2_PUBLIC void ms_factory_destroy(MSFactory *factory);
+
+/**
+ * Exits the factory : unset voip and destroys the factory if there is no references to it.
+ * Ensures it can be destroyed before destroying all objects created by the factory.
+ **/
+MS2_PUBLIC MSFactory* ms_factory_exit(MSFactory* factory);
 
 MS2_PUBLIC void ms_factory_register_filter(MSFactory *factory, MSFilterDesc *desc);
 
