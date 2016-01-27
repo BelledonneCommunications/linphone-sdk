@@ -52,7 +52,6 @@ int main(int argc, char *argv[]){
 	ms_sleep(10);
 	ring_stop(r);
 	
-	ms_factory_uninit_voip(factory);
-	ms_factory_destroy(factory);
+	factory = ms_factory_exit(factory);
 	return 0;
 }

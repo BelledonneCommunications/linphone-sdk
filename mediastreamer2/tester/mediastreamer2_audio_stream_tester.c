@@ -55,9 +55,7 @@ static int tester_before_all(void) {
 static int tester_after_all(void) {
 	//ms_exit();
 
-	ms_factory_uninit_voip(factory);
-	ms_factory_uninit_plugins(factory);
-	ms_factory_destroy(factory);
+	factory = ms_factory_exit(factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }

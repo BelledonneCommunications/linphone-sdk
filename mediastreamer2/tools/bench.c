@@ -332,8 +332,7 @@ static int uninit_bench(struct bench_config *bench)
 		ortp_free(ts);
 	}
 
-	ms_factory_uninit_voip(bench->factory);
-	ms_factory_destroy(bench->factory);
+	bench->factory = ms_factory_exit(bench->factory);
 	ms_ticker_destroy(bench->ticker);
 	return 0;
 }

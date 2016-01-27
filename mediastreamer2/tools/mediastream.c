@@ -1110,8 +1110,7 @@ void clear_mediastreams(MediastreamDatas* args) {
 	if (args->logfile)
 		fclose(args->logfile);
 	
-	ms_factory_uninit_voip(args->video->ms.factory);
-	ms_factory_destroy(args->video->ms.factory);
+	args->video->ms.factory = ms_factory_exit(args->video->ms.factory);
 }
 
 // ANDROID JNI WRAPPER

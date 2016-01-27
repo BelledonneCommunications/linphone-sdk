@@ -341,6 +341,16 @@ void ms_factory_uninit_voip(MSFactory *obj){
 	
 }
 
+MSFactory* ms_factory_exit(MSFactory* factory){
+	ms_factory_uninit_voip(factory);
+	factory->ref_count--;
+	if (factory->ref_count == 0){
+		ms_factory_destroy(factory);
+		return NULL;
+	}
+		return factory;
+}
+	
 void ms_voip_exit(){
 	if (--ms_voip_ref >0 ) {
 		ms_message ("Skiping ms_voip_exit, still [%i] ref",ms_voip_ref);

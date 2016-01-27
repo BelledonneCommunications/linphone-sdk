@@ -59,19 +59,16 @@ static void filter_register_tester(void) {
 	BC_ASSERT_PTR_NOT_NULL(filter);
 	ms_filter_destroy(filter);
 
-	ms_factory_uninit_voip(factory);
-	//ms_factory_uninit_plugins(factory);
-	ms_factory_destroy(factory);
-//	ms_exit();
+	factory = ms_factory_exit(factory);
+
 
 	BC_ASSERT_PTR_NOT_NULL(ms_factory_lookup_filter_by_name(factory,"MSVoidSource"));
 	filter= ms_factory_create_decoder(factory, "pcma");
 	BC_ASSERT_PTR_NOT_NULL(filter);
 	ms_filter_destroy(filter);
 
-	ms_factory_uninit_voip(factory);
-//	ms_factory_uninit_plugins(factory);
-	ms_factory_destroy(factory);
+
+	factory = ms_factory_exit(factory);
 	BC_ASSERT_PTR_NULL(factory);
 }
 #ifdef VIDEO_ENABLED
@@ -176,7 +173,7 @@ static void test_filterdesc_enable_disable_base(const char* mime, const char* fi
 	if (is_enc)
 			filter = ms_factory_create_encoder(factory,mime);
 		else
-			filter = ms_factory_create_encoder(factory,mime);
+			filter = ms_factory_create_decoder(factory,mime);
 	BC_ASSERT_PTR_NULL(filter);
 
 	BC_ASSERT_FALSE(ms_factory_enable_filter_from_name(factory,filtername,TRUE));
@@ -189,8 +186,7 @@ static void test_filterdesc_enable_disable_base(const char* mime, const char* fi
 
 	ms_filter_destroy(filter);
 	
-	ms_factory_uninit_voip(factory);
-	ms_factory_destroy(factory);
+	factory = ms_factory_exit(factory);
 }
 static void test_filterdesc_enable_disable(void) {
 	test_filterdesc_enable_disable_base("pcmu", "MSUlawDec", FALSE);

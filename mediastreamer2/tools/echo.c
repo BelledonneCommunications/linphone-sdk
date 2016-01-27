@@ -127,7 +127,6 @@ int main(int argc, char *argv[]){
 	ms_filter_destroy(f1);
 	ms_filter_destroy(f2);
 	
-	ms_factory_uninit_voip(factory);
-	ms_factory_destroy(factory);
+	factory = ms_factory_exit(factory);
 	return 0;
 }

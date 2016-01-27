@@ -160,8 +160,7 @@ end:
 	/*free the RTP profile and payload type inside*/
 	if (profile) rtp_profile_destroy(profile);
 	
-	ms_factory_uninit_voip(factory);
-	ms_factory_destroy(factory);
+	factory = ms_factory_exit(factory);
 	
 	return err;
 }
