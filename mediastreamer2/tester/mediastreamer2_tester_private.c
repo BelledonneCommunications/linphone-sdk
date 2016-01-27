@@ -126,7 +126,7 @@ void ms_tester_create_filters(unsigned int filter_mask, MSFactory * f) {
 	CREATE_FILTER(FILTER_MASK_RESAMPLER, ms_tester_resampler, f, MS_RESAMPLE_ID);
 	if (filter_mask & FILTER_MASK_SOUNDWRITE) {
 		BC_ASSERT_PTR_NULL(ms_tester_soundwrite);
-		snd_manager = ms_snd_card_manager_get();
+		snd_manager = ms_factory_get_snd_manager(f);
 		playcard = ms_snd_card_manager_get_default_playback_card(snd_manager);
 		BC_ASSERT_PTR_NOT_NULL_FATAL(playcard);
 		ms_tester_soundwrite = ms_snd_card_create_writer(playcard);
@@ -134,7 +134,7 @@ void ms_tester_create_filters(unsigned int filter_mask, MSFactory * f) {
 	}
 	if (filter_mask & FILTER_MASK_SOUNDREAD) {
 		BC_ASSERT_PTR_NULL(ms_tester_soundread);
-		snd_manager = ms_snd_card_manager_get();
+		snd_manager = ms_factory_get_snd_manager(f);
 		captcard = ms_snd_card_manager_get_default_capture_card(snd_manager);
 		BC_ASSERT_PTR_NOT_NULL_FATAL(captcard);
 		ms_tester_soundread = ms_snd_card_create_reader(captcard);

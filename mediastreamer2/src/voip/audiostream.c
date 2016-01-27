@@ -1224,8 +1224,8 @@ AudioStream *audio_stream_start(RtpProfile *prof,int locport,const char *remip,i
 	MSSndCard *sndcard_playback;
 	MSSndCard *sndcard_capture;
 	AudioStream *stream;
-	sndcard_capture=ms_snd_card_manager_get_default_capture_card(ms_snd_card_manager_get());
-	sndcard_playback=ms_snd_card_manager_get_default_playback_card(ms_snd_card_manager_get());
+	sndcard_capture=ms_snd_card_manager_get_default_capture_card(ms_factory_get_snd_manager(factory));
+	sndcard_playback=ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_manager(factory));
 	if (sndcard_capture==NULL || sndcard_playback==NULL)
 		return NULL;
 	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip),factory);

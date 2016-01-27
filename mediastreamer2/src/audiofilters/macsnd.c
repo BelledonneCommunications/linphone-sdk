@@ -794,7 +794,7 @@ static void set_audio_device_id(AuCard *wc,AUCommon* d, bool_t is_read) {
 	CFRelease(devUid);
 }
 MSFilter *ms_au_read_new(MSSndCard *card){
-	MSFilter *f = ms_factory_create_filter_from_desc((ms_snd_card_manager_get()->factory), &ms_au_read_desc);
+	MSFilter *f = ms_factory_create_filter_from_desc(ms_snd_card_factory_get(card), &ms_au_read_desc);
 	AuCard *wc = (AuCard *) card->data;
 	AURead *d = (AURead *) f->data;
 	/*d->common.dev = wc->dev;*/
@@ -805,8 +805,7 @@ MSFilter *ms_au_read_new(MSSndCard *card){
 
 
 MSFilter *ms_au_write_new(MSSndCard *card){
-	MSFactory* factory=(ms_snd_card_manager_get())->factory;
-	MSFilter *f=ms_factory_create_filter_from_desc(factory, &ms_au_write_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_factory_get(card), &ms_au_write_desc);
 	AuCard *wc = (AuCard *) card->data;
 	AUWrite *d = (AUWrite *) f->data;
 	/*d->common.dev = wc->dev;*/

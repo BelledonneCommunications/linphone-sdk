@@ -43,6 +43,7 @@ struct _MSFactory{
 	bool_t statistics_enabled;
 	bool_t voip_initd;
 	int ref_count;
+	struct _MSSndCardManager* sndcardmanager;
 };
 
 typedef struct _MSFactory MSFactory;
@@ -86,6 +87,9 @@ MS2_PUBLIC void ms_factory_destroy(MSFactory *factory);
  * Ensures it can be destroyed before destroying all objects created by the factory.
  **/
 MS2_PUBLIC MSFactory* ms_factory_exit(MSFactory* factory);
+	
+MS2_PUBLIC struct _MSSndCardManager* ms_factory_get_snd_manager(MSFactory *f);
+
 
 MS2_PUBLIC void ms_factory_register_filter(MSFactory *factory, MSFilterDesc *desc);
 

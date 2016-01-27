@@ -97,7 +97,7 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) 
 		| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
 	bool_t send_silence = TRUE;
 	
-	MSSndCardManager *scm = ms_snd_card_manager_get();
+	MSSndCardManager *scm = ms_factory_get_snd_manager(factory);
 	ms_factory_reset_statistics(scm->factory);
 	
 	//ms_filter_reset_statistics();
@@ -152,8 +152,7 @@ static void dtmfgen_enc_dec_tonedet_pcmu(void) {
 }
 
 static void dtmfgen_enc_dec_tonedet_isac(void) {
-	MSSndCardManager *scm = ms_snd_card_manager_get();
-	bool_t supported = ms_factory_codec_supported(scm->factory, "iSAC");
+	bool_t supported = ms_factory_codec_supported(factory, "iSAC");
 //	bool_t supported = ms_filter_codec_supported("iSAC");
 	if( supported ) {
 		dtmfgen_enc_dec_tonedet("iSAC", 16000, 1);
@@ -172,13 +171,13 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
 		| FILTER_MASK_RTPSEND | FILTER_MASK_RTPRECV | FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
 	bool_t send_silence = TRUE;
-	MSSndCardManager *scm = ms_snd_card_manager_get();
-	ms_factory_reset_statistics(scm->factory);
+	MSSndCardManager *scm = ms_factory_get_snd_manager(factory);
+	ms_factory_reset_statistics(factory);
 	
 	//ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_codec_mime = "pcmu";
-	ms_tester_create_filters(filter_mask, scm->factory);
+	ms_tester_create_filters(filter_mask, factory);
 	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
 	rtps = ms_create_duplex_rtp_session("0.0.0.0", 50060, 0);
 	rtp_session_set_remote_addr_full(rtps, "127.0.0.1", 50060, "127.0.0.1", 50061);

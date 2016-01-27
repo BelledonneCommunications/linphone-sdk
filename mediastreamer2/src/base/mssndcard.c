@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/mssndcard.h"
 
-static MSSndCardManager *scm=NULL;
+//static MSSndCardManager *scm=NULL;
 
 static MSSndCardManager * create_manager(void){
 	MSSndCardManager *obj=(MSSndCardManager *)ms_new0(MSSndCardManager,1);
@@ -33,7 +33,8 @@ static MSSndCardManager * create_manager(void){
 	return obj;
 }
 
-void ms_snd_card_manager_destroy(void){
+void ms_snd_card_manager_destroy(void* sndcardmanager){
+	MSSndCardManager* scm = (MSSndCardManager*) sndcardmanager;
 	if (scm!=NULL){
 		MSList *elem;
 		for(elem=scm->descs;elem!=NULL;elem=elem->next){
@@ -49,9 +50,18 @@ void ms_snd_card_manager_destroy(void){
 	scm=NULL;
 }
 
-MSSndCardManager * ms_snd_card_manager_get(void){
+MSSndCardManager * ms_snd_card_manager_get(MSSndCardManager *scm){
 	if (scm==NULL) scm=create_manager();
 	return scm;
+}
+
+MSFactory * ms_snd_card_factory_get(MSSndCard * c){
+	return (ms_snd_card_manager_get(c->sndcardmanager))->factory;
+}
+
+MSSndCardManager* ms_factory_get_snd_manager(MSFactory* f){
+	if(f == NULL) return create_manager();
+	return ms_snd_card_manager_get(f->sndcardmanager);
 }
 
 MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id){
@@ -107,7 +117,7 @@ void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
 }
 
 void ms_snd_card_set_manager(MSSndCardManager*m, MSSndCard *c){
-	c->scm = m;
+	c->sndcardmanager = m;
 }
 
 void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, MSList *l) {
@@ -153,7 +163,7 @@ MSSndCard * ms_snd_card_new(MSSndCardDesc *desc){
 
 MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char* name) {
 	MSSndCard *obj=(MSSndCard *)ms_new0(MSSndCard,1);
-	obj->scm = NULL;
+	obj->sndcardmanager = NULL;
 	obj->desc=desc;
 	obj->name=name?ms_strdup(name):NULL;
 	obj->data=NULL;

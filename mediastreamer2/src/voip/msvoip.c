@@ -272,10 +272,11 @@ void ms_factory_init_voip(MSFactory *obj){
 	}
 
 	if (managers_ref == 0){
-		cm=ms_snd_card_manager_get();
+		cm=ms_snd_card_manager_get(obj->sndcardmanager);
 		if (cm->descs==NULL){
 			ms_message("Registering all soundcard handlers");
 			cm->factory=obj;
+			obj->sndcardmanager = cm;
 			for (i=0;ms_snd_card_descs[i]!=NULL;i++){
 				ms_snd_card_manager_register_desc(cm,ms_snd_card_descs[i]);
 			}
@@ -325,7 +326,7 @@ void ms_factory_uninit_voip(MSFactory *obj){
 	ms_srtp_shutdown();
 	managers_ref--;
 	if (managers_ref==0){
-		ms_snd_card_manager_destroy();
+		ms_snd_card_manager_destroy(obj->sndcardmanager);
 #ifdef VIDEO_ENABLED
 		ms_web_cam_manager_destroy();
 #endif

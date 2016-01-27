@@ -131,7 +131,7 @@ typedef struct _MSSndCardDesc MSSndCardDesc;
 
 struct _MSSndCard{
 	MSSndCardDesc *desc;
-	MSSndCardManager* scm;
+	MSSndCardManager* sndcardmanager;
 	char *name;
 	char *id;
 	unsigned int capabilities;
@@ -161,13 +161,15 @@ extern "C"{
  *
  * Returns: MSSndCardManager if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSSndCardManager * ms_snd_card_manager_get(void);
+MS2_PUBLIC MSSndCardManager * ms_snd_card_manager_get(MSSndCardManager* scm);
+	
+MS2_PUBLIC MSFactory * ms_snd_card_factory_get(MSSndCard * c);
 
 /**
  * Destroy a sound card manager object.
  *
  */
-MS2_PUBLIC void ms_snd_card_manager_destroy(void);
+MS2_PUBLIC void ms_snd_card_manager_destroy(void* sndcardmanager);
 
 /**
  * Retreive a sound card object based on its name.
