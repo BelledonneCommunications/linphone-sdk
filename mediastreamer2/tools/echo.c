@@ -94,11 +94,11 @@ int main(int argc, char *argv[]){
 	}
 
 	if (capt_card)
-		card_capture = ms_snd_card_manager_get_card(ms_snd_card_manager_get(),capt_card);
-	else card_capture = ms_snd_card_manager_get_default_capture_card(ms_snd_card_manager_get());
+		card_capture = ms_snd_card_manager_get_card(ms_factory_get_snd_manager(factory),capt_card);
+	else card_capture = ms_snd_card_manager_get_default_capture_card(ms_factory_get_snd_manager(factory));
 	if (play_card)
-		card_playback = ms_snd_card_manager_get_card(ms_snd_card_manager_get(),play_card);
-	else card_playback = ms_snd_card_manager_get_default_playback_card(ms_snd_card_manager_get());
+		card_playback = ms_snd_card_manager_get_card(ms_factory_get_snd_manager(factory),play_card);
+	else card_playback = ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_manager(factory));
 	
 	if (card_playback==NULL || card_capture==NULL){
 		ms_error("No card.");

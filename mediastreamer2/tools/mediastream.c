@@ -788,7 +788,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	}
 
 	if (args->pt->type!=PAYLOAD_VIDEO){
-		MSSndCardManager *manager=ms_snd_card_manager_get();
+		MSSndCardManager *manager=ms_factory_get_snd_manager(factory);
 		MSSndCard *capt= args->capture_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
 				get_sound_card(manager,args->capture_card);
 		MSSndCard *play= args->playback_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
