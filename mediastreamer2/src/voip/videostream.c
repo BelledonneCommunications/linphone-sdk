@@ -564,7 +564,7 @@ static void configure_video_source(VideoStream *stream){
 			stream->pixconv=ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);
 
 		}else if (format==MS_PIX_FMT_UNKNOWN){
-			stream->pixconv = ms_factory_create_filter(stream->ms.factory, pf.fmt->encoding);
+			stream->pixconv = ms_factory_create_decoder(stream->ms.factory, pf.fmt->encoding);
 		}else{
 			stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_PIX_CONV_ID);
 			/*set it to the pixconv */
