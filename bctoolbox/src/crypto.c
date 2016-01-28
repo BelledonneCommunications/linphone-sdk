@@ -1,5 +1,5 @@
 /*
-chrypto.c
+crypto.c
 Copyright (C) 2016  Belledonne Communications SARL
 
 This program is free software; you can redistribute it and/or
@@ -17,6 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include <stdlib.h>
+#include "utils.h"
 #include <bctoolbox/crypto.h>
 
 #include <polarssl/ssl.h>
@@ -58,7 +59,7 @@ void bctoolbox_strerror(int32_t error_code, char *buffer, size_t buffer_length) 
 		return;
 	}
 
-	snprintf(buffer, buffer_length, "%s", "bctoolbox defined error code");
+	snprintf(buffer, buffer_length, "%s [-0x%x]", "bctoolbox defined error code", -error_code);
 	return;
 }
 
@@ -82,22 +83,45 @@ int32_t bctoolbox_base64_decode(unsigned char *output, size_t *output_length, co
 	return ret;
 }
 
+/*** Random Number Generation ***/
+struct bctoolbox_rng_context_struct {
+	entropy_context entropy;
+	ctr_drbg_context ctr_drbg;
+};
+
+bctoolbox_rng_context_t *bctoolbox_rng_context_new(void) {
+	bctoolbox_rng_context_t *ctx = bctoolbox_malloc0(sizeof(bctoolbox_rng_context_t));
+	entropy_init(&(ctx->entropy));
+	ctr_drbg_init(&(ctx->ctr_drbg), entropy_func, &(ctx->entropy), NULL, 0);
+	return ctx;
+}
+
+int32_t bctoolbox_rng_get(bctoolbox_rng_context_t *context, unsigned char*output, size_t output_length) {
+	return ctr_drbg_random(&(context->ctr_drbg), output, output_length);
+}
+
+void bctoolbox_rng_context_free(bctoolbox_rng_context_t *context) {
+	ctr_drbg_free(&(context->ctr_drbg));
+	entropy_free(&(context->entropy));
+	bctoolbox_free(context);
+}
+
 /*** signing key ***/
 bctoolbox_signing_key_t *bctoolbox_signing_key_new(void) {
-	pk_context *key = malloc(sizeof(pk_context));
+	pk_context *key = bctoolbox_malloc0(sizeof(pk_context));
 	pk_init(key);
 	return (bctoolbox_signing_key_t *)key;
 }
 
 void bctoolbox_signing_key_free(bctoolbox_signing_key_t *key) {
 	pk_free((pk_context *)key);
-	free(key);
+	bctoolbox_free(key);
 }
 
 char *bctoolbox_signing_key_get_pem(bctoolbox_signing_key_t *key) {
 	char *pem_key;
 	if (key == NULL) return NULL;
-	pem_key = (char *)malloc(4096);
+	pem_key = (char *)bctoolbox_malloc0(4096);
 	pk_write_key_pem( (pk_context *)key, (unsigned char *)pem_key, 4096);
 	return pem_key;
 }
@@ -139,21 +163,21 @@ char *bctoolbox_x509_certificates_chain_get_pem(bctoolbox_x509_certificate_t *ce
 	char *pem_certificate = NULL;
 	size_t olen=0;
 
-	pem_certificate = (char *)malloc(4096);
+	pem_certificate = (char *)bctoolbox_malloc0(4096);
 	pem_write_buffer("-----BEGIN CERTIFICATE-----\n", "-----END CERTIFICATE-----\n", ((x509_crt *)cert)->raw.p, ((x509_crt *)cert)->raw.len, (unsigned char*)pem_certificate, 4096, &olen );
 	return pem_certificate;
 }
 
 
 bctoolbox_x509_certificate_t *bctoolbox_x509_certificate_new(void) {
-	x509_crt *cert = malloc(sizeof(x509_crt));
+	x509_crt *cert = bctoolbox_malloc0(sizeof(x509_crt));
 	x509_crt_init(cert);
 	return (bctoolbox_x509_certificate_t *)cert;
 }
 
 void bctoolbox_x509_certificate_free(bctoolbox_x509_certificate_t *cert) {
 	x509_crt_free((x509_crt *)cert);
-	free(cert);
+	bctoolbox_free(cert);
 }
 
 int32_t bctoolbox_x509_certificate_get_info_string(char *buf, size_t size, const char *prefix, const bctoolbox_x509_certificate_t *cert) {
@@ -299,18 +323,80 @@ int32_t bctoolbox_x509_certificate_generate_selfsigned(const char *subject, bcto
 }
 
 
+int32_t bctoolbox_x509_certificate_get_signature_hash_function(const bctoolbox_x509_certificate_t *certificate, bctoolbox_md_type_t *hash_algorithm) {
+
+	x509_crt *crt;
+	if (certificate == NULL) return BCTOOLBOX_ERROR_INVALID_CERTIFICATE;
+
+	crt = (x509_crt *)certificate;
+
+	switch (crt->sig_md) {
+		case POLARSSL_MD_SHA1:
+			*hash_algorithm = BCTOOLBOX_MD_SHA1;
+		break;
+
+		case POLARSSL_MD_SHA224:
+			*hash_algorithm = BCTOOLBOX_MD_SHA224;
+		break;
+
+		case POLARSSL_MD_SHA256:
+			*hash_algorithm = BCTOOLBOX_MD_SHA256;
+		break;
+
+		case POLARSSL_MD_SHA384:
+			*hash_algorithm = BCTOOLBOX_MD_SHA384;
+		break;
+
+		case POLARSSL_MD_SHA512:
+			*hash_algorithm = BCTOOLBOX_MD_SHA512;
+		break;
+
+		default:
+			*hash_algorithm = BCTOOLBOX_MD_UNDEFINED;
+			return BCTOOLBOX_ERROR_UNSUPPORTED_HASH_FUNCTION;
+		break;
+	}
+
+	return 0;
+
+}
+
 /* maximum length of returned buffer will be 7(SHA-512 string)+3*hash_length(64)+null char = 200 bytes */
-int32_t bctoolbox_x509_certificate_get_fingerprint(bctoolbox_x509_certificate_t *certificate, char *fingerprint, size_t fingerprint_length) {
+int32_t bctoolbox_x509_certificate_get_fingerprint(const bctoolbox_x509_certificate_t *certificate, char *fingerprint, size_t fingerprint_length, bctoolbox_md_type_t hash_algorithm) {
 	unsigned char buffer[64]={0}; /* buffer is max length of returned hash, which is 64 in case we use sha-512 */
 	size_t hash_length = 0;
 	const char *hash_alg_string=NULL;
 	size_t fingerprint_size;
 	x509_crt *crt;
+	md_type_t hash_id;
 	if (certificate == NULL) return BCTOOLBOX_ERROR_INVALID_CERTIFICATE;
 
 	crt = (x509_crt *)certificate;
+
+	/* if there is a specified hash algorithm, use it*/
+	switch (hash_algorithm) {
+		case BCTOOLBOX_MD_SHA1:
+			hash_id = POLARSSL_MD_SHA1;
+			break;
+		case BCTOOLBOX_MD_SHA224:
+			hash_id = POLARSSL_MD_SHA224;
+			break;
+		case BCTOOLBOX_MD_SHA256:
+			hash_id = POLARSSL_MD_SHA256;
+			break;
+		case BCTOOLBOX_MD_SHA384:
+			hash_id = POLARSSL_MD_SHA384;
+			break;
+		case BCTOOLBOX_MD_SHA512:
+			hash_id = POLARSSL_MD_SHA512;
+			break;
+		default: /* nothing specified, use the hash algo used in the certificate signature */
+			hash_id = crt->sig_md;
+			break;
+	}
+
 	/* fingerprint is a hash of the DER formated certificate (found in crt->raw.p) using the same hash function used by certificate signature */
-	switch (crt->sig_md) {
+	switch (hash_id) {
 		case POLARSSL_MD_SHA1:
 			sha1(crt->raw.p, crt->raw.len, buffer);
 			hash_length = 20;
@@ -342,7 +428,7 @@ int32_t bctoolbox_x509_certificate_get_fingerprint(bctoolbox_x509_certificate_t 
 		break;
 
 		default:
-			return BCTOOLBOX_ERROR_INVALID_CERTIFICATE;
+			return BCTOOLBOX_ERROR_UNSUPPORTED_HASH_FUNCTION;
 		break;
 	}
 
@@ -470,16 +556,19 @@ struct bctoolbox_ssl_context_struct {
 };
 
 bctoolbox_ssl_context_t *bctoolbox_ssl_context_new(void) {
-	bctoolbox_ssl_context_t *ssl_ctx = malloc(sizeof(bctoolbox_ssl_context_t));
+	bctoolbox_ssl_context_t *ssl_ctx = bctoolbox_malloc0(sizeof(bctoolbox_ssl_context_t));
 	ssl_init(&(ssl_ctx->ssl_ctx));
 	ssl_ctx->callback_cli_cert_function = NULL;
 	ssl_ctx->callback_cli_cert_data = NULL;
+	ssl_ctx->callback_send_function = NULL;
+	ssl_ctx->callback_recv_function = NULL;
+	ssl_ctx->callback_sendrecv_data = NULL;
 	return ssl_ctx;
 }
 
 void bctoolbox_ssl_context_free(bctoolbox_ssl_context_t *ssl_ctx) {
 	ssl_free(&(ssl_ctx->ssl_ctx));
-	free(ssl_ctx);
+	bctoolbox_free(ssl_ctx);
 }
 
 int32_t bctoolbox_ssl_close_notify(bctoolbox_ssl_context_t *ssl_ctx) {
@@ -575,6 +664,10 @@ void bctoolbox_ssl_set_io_callbacks(bctoolbox_ssl_context_t *ssl_ctx, void *call
 		int(*callback_send_function)(void *, const unsigned char *, size_t), /* callbacks args are: callback data, data buffer to be send, size of data buffer */
 		int(*callback_recv_function)(void *, unsigned char *, size_t)){ /* args: callback data, data buffer to be read, size of data buffer */
 
+	if (ssl_ctx==NULL) {
+		return;
+	}
+
 	ssl_ctx->callback_send_function = callback_send_function;
 	ssl_ctx->callback_recv_function = callback_recv_function;
 	ssl_ctx->callback_sendrecv_data = callback_data;
@@ -582,6 +675,87 @@ void bctoolbox_ssl_set_io_callbacks(bctoolbox_ssl_context_t *ssl_ctx, void *call
 	ssl_set_bio(&(ssl_ctx->ssl_ctx), bctoolbox_ssl_recv_callback, ssl_ctx, bctoolbox_ssl_send_callback, ssl_ctx);
 }
 
+const bctoolbox_x509_certificate_t *bctoolbox_ssl_get_peer_certificate(bctoolbox_ssl_context_t *ssl_ctx) {
+	return (const bctoolbox_x509_certificate_t *)ssl_get_peer_cert(&(ssl_ctx->ssl_ctx));
+}
+
+/** DTLS SRTP functions **/
+#ifdef HAVE_DTLS_SRTP
+uint8_t bctoolbox_dtls_srtp_supported(void) {
+	return 1;
+}
+
+static bctoolbox_dtls_srtp_profile_t bctoolbox_srtp_profile_polarssl2bctoolbox(enum DTLS_SRTP_protection_profiles polarssl_profile) {
+	switch (polarssl_profile) {
+		case SRTP_AES128_CM_HMAC_SHA1_80:
+			return BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_80;
+		case SRTP_AES128_CM_HMAC_SHA1_32:
+			return BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_32;
+		case SRTP_NULL_HMAC_SHA1_80:
+			return BCTOOLBOX_SRTP_NULL_HMAC_SHA1_80;
+		case SRTP_NULL_HMAC_SHA1_32:
+			return BCTOOLBOX_SRTP_NULL_HMAC_SHA1_32;
+		default:
+			return BCTOOLBOX_SRTP_UNDEFINED;
+	}
+}
+
+static enum DTLS_SRTP_protection_profiles bctoolbox_srtp_profile_bctoolbox2polarssl(bctoolbox_dtls_srtp_profile_t bctoolbox_profile) {
+	switch (bctoolbox_profile) {
+		case BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_80:
+			return SRTP_AES128_CM_HMAC_SHA1_80;
+		case BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_32:
+			return SRTP_AES128_CM_HMAC_SHA1_32;
+		case BCTOOLBOX_SRTP_NULL_HMAC_SHA1_80:
+			return SRTP_NULL_HMAC_SHA1_80;
+		case BCTOOLBOX_SRTP_NULL_HMAC_SHA1_32:
+			return SRTP_NULL_HMAC_SHA1_32;
+		default:
+			return SRTP_UNSET_PROFILE;
+	}
+}
+
+bctoolbox_dtls_srtp_profile_t bctoolbox_ssl_get_dtls_srtp_protection_profile(bctoolbox_ssl_context_t *ssl_ctx) {
+	if (ssl_ctx==NULL) {
+		return BCTOOLBOX_ERROR_INVALID_SSL_CONTEXT;
+	}
+
+	return bctoolbox_srtp_profile_polarssl2bctoolbox(ssl_get_dtls_srtp_protection_profile(&(ssl_ctx->ssl_ctx)));
+};
+
+
+int32_t bctoolbox_ssl_get_dtls_srtp_key_material(bctoolbox_ssl_context_t *ssl_ctx, char *output, size_t *output_length) {
+	if (ssl_ctx==NULL) {
+		return BCTOOLBOX_ERROR_INVALID_SSL_CONTEXT;
+	}
+
+	/* check output buffer size */
+	if (*output_length<ssl_ctx->ssl_ctx.dtls_srtp_keys_len) {
+		return BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+	}
+
+	memcpy(output, ssl_ctx->ssl_ctx.dtls_srtp_keys, ssl_ctx->ssl_ctx.dtls_srtp_keys_len);
+	*output_length = ssl_ctx->ssl_ctx.dtls_srtp_keys_len;
+
+	return 0;
+}
+#else /* HAVE_DTLS_SRTP */
+/* dummy DTLS api when not available */
+uint8_t bctoolbox_dtls_srtp_supported(void) {
+	return 0;
+}
+
+bctoolbox_dtls_srtp_profile_t bctoolbox_ssl_get_dtls_srtp_protection_profile(bctoolbox_ssl_context_t *ssl_ctx) {
+	return BCTOOLBOX_SRTP_UNDEFINED;
+}
+
+int32_t bctoolbox_ssl_get_dtls_srtp_key_material(bctoolbox_ssl_context_t *ssl_ctx, char *output, size_t *output_length) {
+	*output_length = 0;
+	return BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION;
+}
+#endif /* HAVE_DTLS_SRTP */
+
+/** DTLS SRTP functions **/
 
 /** config **/
 struct bctoolbox_ssl_config_struct {
@@ -594,13 +768,18 @@ struct bctoolbox_ssl_config_struct {
 	void *callback_verify_data; /**< data passed to the verify callback */
 	x509_crt *ca_chain; /**< trusted CA chain */
 	char *peer_cn; /**< expected peer Common name */
+	x509_crt *own_cert;
+	pk_context *own_cert_pk;
 	int(*callback_cli_cert_function)(void *, bctoolbox_ssl_context_t *, unsigned char *, size_t); /**< pointer to the callback called to update client certificate during handshake
 													callback params are user_data, ssl_context, certificate distinguished name, name length */
 	void *callback_cli_cert_data; /**< data passed to the client cert callback */
+	enum DTLS_SRTP_protection_profiles dtls_srtp_profiles[4]; /**< Store a maximum of 4 DTLS SRTP profiles to use */
+	int dtls_srtp_profiles_number; /**< Number of DTLS SRTP profiles in use */
 };
 
 bctoolbox_ssl_config_t *bctoolbox_ssl_config_new(void) {
-	bctoolbox_ssl_config_t *ssl_config = malloc(sizeof(bctoolbox_ssl_config_t));
+	int i;
+	bctoolbox_ssl_config_t *ssl_config = bctoolbox_malloc0(sizeof(bctoolbox_ssl_config_t));
 
 	/* set all properties to BCTOOLBOX_SSL_UNSET or NULL */
 	ssl_config->endpoint = BCTOOLBOX_SSL_UNSET;
@@ -614,12 +793,18 @@ bctoolbox_ssl_config_t *bctoolbox_ssl_config_new(void) {
 	ssl_config->callback_cli_cert_data = NULL;
 	ssl_config->ca_chain = NULL;
 	ssl_config->peer_cn = NULL;
+	ssl_config->own_cert = NULL;
+	ssl_config->own_cert_pk = NULL;
+	for (i=0; i<4; i++) {
+		ssl_config->dtls_srtp_profiles[i] = SRTP_UNSET_PROFILE;
+	}
+	ssl_config->dtls_srtp_profiles_number = 0;
 
 	return ssl_config;
 }
 
 void bctoolbox_ssl_config_free(bctoolbox_ssl_config_t *ssl_config) {
-	free(ssl_config);
+	bctoolbox_free(ssl_config);
 }
 
 int32_t bctoolbox_ssl_config_defaults(bctoolbox_ssl_config_t *ssl_config, int endpoint, int transport) {
@@ -644,6 +829,40 @@ int32_t bctoolbox_ssl_config_defaults(bctoolbox_ssl_config_t *ssl_config, int en
 		return 0;
 	}
 	return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+}
+
+int32_t bctoolbox_ssl_config_set_endpoint(bctoolbox_ssl_config_t *ssl_config, int endpoint) {
+	if (ssl_config == NULL) {
+		return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+	}
+
+	if (endpoint == BCTOOLBOX_SSL_IS_CLIENT) {
+		ssl_config->endpoint = SSL_IS_CLIENT;
+	} else if (endpoint == BCTOOLBOX_SSL_IS_SERVER) {
+		ssl_config->endpoint = SSL_IS_SERVER;
+	} else {
+		return BCTOOLBOX_ERROR_INVALID_SSL_ENDPOINT;
+	}
+
+	return 0;
+}
+
+int32_t bctoolbox_ssl_config_set_transport (bctoolbox_ssl_config_t *ssl_config, int transport) {
+	if (ssl_config == NULL) {
+		return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+	}
+
+/* useful only for versions of polarssl which have SSL_TRANSPORT_XXX defined */
+#ifdef SSL_TRANSPORT_DATAGRAM
+		if (transport == BCTOOLBOX_SSL_TRANSPORT_STREAM) {
+			ssl_config->transport = SSL_TRANSPORT_STREAM;
+		} else if (transport == BCTOOLBOX_SSL_TRANSPORT_DATAGRAM) {
+			ssl_config->transport = SSL_TRANSPORT_DATAGRAM;
+		} else {
+			return BCTOOLBOX_ERROR_INVALID_SSL_TRANSPORT;
+		}
+#endif
+	return 0;
 }
 
 int32_t bctoolbox_ssl_config_set_authmode(bctoolbox_ssl_config_t *ssl_config, int authmode) {
@@ -699,6 +918,44 @@ int32_t bctoolbox_ssl_config_set_ca_chain(bctoolbox_ssl_config_t *ssl_config, bc
 	return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
 }
 
+int32_t bctoolbox_ssl_config_set_own_cert(bctoolbox_ssl_config_t *ssl_config, bctoolbox_x509_certificate_t *cert, bctoolbox_signing_key_t *key) {
+	if (ssl_config != NULL) {
+		ssl_config->own_cert = (x509_crt *)cert;
+		ssl_config->own_cert_pk = (pk_context *)key;
+	}
+	return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+}
+
+
+/** DTLS SRTP functions **/
+#ifdef HAVE_DTLS_SRTP
+int32_t bctoolbox_ssl_config_set_dtls_srtp_protection_profiles(bctoolbox_ssl_config_t *ssl_config, const bctoolbox_dtls_srtp_profile_t *profiles, size_t profiles_number) {
+	int i;
+
+	if (ssl_config == NULL) {
+		return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+	}
+
+	/* convert the profiles array into a polarssl profiles array */
+	for (i=0; i<profiles_number && i<4; i++) { /* 4 profiles defined max */
+		ssl_config->dtls_srtp_profiles[i] = bctoolbox_srtp_profile_bctoolbox2polarssl(profiles[i]);
+	}
+	for (;i<4; i++) { /* make sure to have harmless values in the rest of the array */
+		ssl_config->dtls_srtp_profiles[i] = SRTP_UNSET_PROFILE;
+	}
+
+	ssl_config->dtls_srtp_profiles_number = profiles_number;
+
+	return 0;
+}
+
+#else /* HAVE_DTLS_SRTP */
+int32_t bctoolbox_ssl_config_set_dtls_srtp_protection_profiles(bctoolbox_ssl_config_t *ssl_config, const bctoolbox_dtls_srtp_profile_t *profiles, size_t profiles_number) {
+	return BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION;
+}
+#endif /* HAVE_DTLS_SRTP */
+/** DTLS SRTP functions **/
+
 int32_t bctoolbox_ssl_context_setup(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_ssl_config_t *ssl_config) {
 	/* Check validity of context and config */
 	if (ssl_config == NULL) {
@@ -739,6 +996,14 @@ int32_t bctoolbox_ssl_context_setup(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_
 		ssl_set_ca_chain(&(ssl_ctx->ssl_ctx), ssl_config->ca_chain, NULL, ssl_config->peer_cn);
 	}
 
+	if (ssl_config->own_cert != NULL && ssl_config->own_cert_pk != NULL) {
+		ssl_set_own_cert(&(ssl_ctx->ssl_ctx) , ssl_config->own_cert , ssl_config->own_cert_pk);
+	}
+
+	if (ssl_config->dtls_srtp_profiles_number > 0) {
+		ssl_set_dtls_srtp_protection_profiles(&(ssl_ctx->ssl_ctx), ssl_config->dtls_srtp_profiles, ssl_config->dtls_srtp_profiles_number );
+	}
+
+
 	return 0;
 }
-
