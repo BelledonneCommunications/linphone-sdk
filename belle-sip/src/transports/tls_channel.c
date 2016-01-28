@@ -288,7 +288,8 @@ char *belle_sip_certificates_chain_get_fingerprint(belle_sip_certificates_chain_
 	int ret;
 	char *fingerprint=belle_sip_malloc0(200);
 
-	ret = bctoolbox_x509_certificate_get_fingerprint(certificate->cert, fingerprint, 200);
+	/* compute the certificate using the hash algorithm used in the certificate signature */
+	ret = bctoolbox_x509_certificate_get_fingerprint(certificate->cert, fingerprint, 200, BCTOOLBOX_MD_UNDEFINED);
 	if ( ret <=0) {
 		belle_sip_error("Unable to generate fingerprint from certificate [-0x%x]", -ret);
 		belle_sip_free(fingerprint);
