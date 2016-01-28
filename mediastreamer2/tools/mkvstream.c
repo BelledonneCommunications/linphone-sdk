@@ -104,9 +104,7 @@ int main(int argc, char *argv[]){
 	signal(SIGINT,stop_handler);
 	
 	/*initialize mediastreamer2*/
-	factory = ms_factory_new();
-	ms_factory_init_voip(factory);
-	ms_factory_init_plugins(factory);
+	factory = ms_factory_create(factory);
 	
 	/*create the video stream */
 	stream = video_stream_new(local_port, local_port+1, FALSE, factory);

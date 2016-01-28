@@ -28,21 +28,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2_tester_private.h"
 #include "private.h"
 
-static MSFactory *factory;
+static MSFactory *f = NULL;
 static int basic_audio_tester_before_all(void) {
 	//ms_init();
-	factory = ms_factory_new();
-	ms_factory_init_voip(factory);
-	ms_factory_init_plugins(factory);
+	f = ms_factory_create(f);
 
-	ms_factory_enable_statistics(factory, TRUE);
+	ms_factory_enable_statistics(f, TRUE);
 	ortp_init();
 	return 0;
 }
 
 static int basic_audio_tester_after_all(void) {
 	//ms_exit();
-	factory = ms_factory_exit(factory);
+	f = ms_factory_exit(f);
 	ortp_exit();
 	return 0;
 }
@@ -59,10 +57,10 @@ static void dtmfgen_tonedet(void) {
 
 	
 //	ms_filter_reset_statistics();
-	ms_factory_reset_statistics(factory);
+	ms_factory_reset_statistics(f);
 	
 	ms_tester_create_ticker();
-	ms_tester_create_filters(filter_mask, factory);
+	ms_tester_create_filters(filter_mask, f);
 	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
 	ms_filter_call_method(ms_tester_voidsource, MS_VOID_SOURCE_SEND_SILENCE, &send_silence);
 	ms_connection_helper_start(&h);
@@ -83,7 +81,7 @@ static void dtmfgen_tonedet(void) {
 	ms_connection_helper_unlink(&h, ms_tester_dtmfgen, 0, 0);
 	ms_connection_helper_unlink(&h, ms_tester_tonedet, 0, 0);
 	ms_connection_helper_unlink(&h, ms_tester_voidsink, 0, -1);
-	ms_factory_log_statistics(factory);
+	ms_factory_log_statistics(f);
 	//ms_filter_log_statistics();
 	ms_tester_destroy_filters(filter_mask);
 	ms_tester_destroy_ticker();
@@ -96,7 +94,7 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) 
 		| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
 	bool_t send_silence = TRUE;
 	
-	MSSndCardManager *scm = ms_factory_get_snd_manager(factory);
+	MSSndCardManager *scm = ms_factory_get_snd_manager(f);
 	ms_factory_reset_statistics(scm->factory);
 	
 	//ms_filter_reset_statistics();
@@ -151,7 +149,7 @@ static void dtmfgen_enc_dec_tonedet_pcmu(void) {
 }
 
 static void dtmfgen_enc_dec_tonedet_isac(void) {
-	bool_t supported = ms_factory_codec_supported(factory, "iSAC");
+	bool_t supported = ms_factory_codec_supported(f, "iSAC");
 //	bool_t supported = ms_filter_codec_supported("iSAC");
 	if( supported ) {
 		dtmfgen_enc_dec_tonedet("iSAC", 16000, 1);
@@ -170,13 +168,13 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
 		| FILTER_MASK_RTPSEND | FILTER_MASK_RTPRECV | FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
 	bool_t send_silence = TRUE;
-	MSSndCardManager *scm = ms_factory_get_snd_manager(factory);
-	ms_factory_reset_statistics(factory);
+	MSSndCardManager *scm = ms_factory_get_snd_manager(f);
+	ms_factory_reset_statistics(f);
 	
 	//ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_codec_mime = "pcmu";
-	ms_tester_create_filters(filter_mask, factory);
+	ms_tester_create_filters(filter_mask, f);
 	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
 	rtps = ms_create_duplex_rtp_session("0.0.0.0", 50060, 0);
 	rtp_session_set_remote_addr_full(rtps, "127.0.0.1", 50060, "127.0.0.1", 50061);
@@ -228,9 +226,9 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	char* recorded_file = bc_tester_file(DTMFGEN_FILE_NAME);
 
 	
-	ms_factory_reset_statistics(factory);
+	ms_factory_reset_statistics(f);
 	ms_tester_create_ticker();
-	ms_tester_create_filters(filter_mask, factory);
+	ms_tester_create_filters(filter_mask, f);
 	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
 
 	// Generate tones and save them to a file
@@ -267,7 +265,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	ms_connection_helper_unlink(&h, ms_tester_fileplay, -1, 0);
 	ms_connection_helper_unlink(&h, ms_tester_tonedet, 0, 0);
 	ms_connection_helper_unlink(&h, ms_tester_voidsink, 0, -1);
-	ms_factory_log_statistics(factory);
+	ms_factory_log_statistics(f);
 //	ms_filter_log_statistics();
 	ms_tester_destroy_filters(filter_mask);
 	ms_tester_destroy_ticker();

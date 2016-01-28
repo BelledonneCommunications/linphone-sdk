@@ -111,13 +111,15 @@ const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m){
 	return m->cards;
 }
 
-void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
-	ms_message("Card '%s' added",ms_snd_card_get_string_id(c));
-	m->cards=ms_list_append(m->cards,c);
-}
-
 void ms_snd_card_set_manager(MSSndCardManager*m, MSSndCard *c){
 	c->sndcardmanager = m;
+}
+
+
+void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
+	ms_snd_card_set_manager(m,c);
+	ms_message("Card '%s' added",ms_snd_card_get_string_id(c));
+	m->cards=ms_list_append(m->cards,c);
 }
 
 void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, MSList *l) {

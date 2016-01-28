@@ -103,10 +103,7 @@ static int init_bench(struct bench_config *bench)
 	int val;
 	int count;
 	
-	bench->factory = ms_factory_new();
-	ms_factory_init_voip(bench->factory);
-	ms_factory_init_plugins(bench->factory);
-	
+	bench->factory = ms_factory_create(bench->factory);
 	bench->ticker=ms_ticker_new();
 
 	count = 0;

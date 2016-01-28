@@ -26,9 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 int main(int argc, char *argv[]){
 	
-	MSFactory *factory = ms_factory_new();
-	ms_factory_init_voip(factory);
-	ms_factory_init_plugins(factory);
+	MSFactory *factory = NULL;
+	factory = ms_factory_create(factory);
 	
 	if (argc<2){
 		ms_error("Usage: mtudiscover [host]");

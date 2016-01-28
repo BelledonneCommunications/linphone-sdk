@@ -39,6 +39,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
 struct _MSWebCamManager{
+	MSFactory* factory;
 	MSList *cams;
 	MSList *descs;
 };
@@ -74,6 +75,7 @@ struct _MSWebCamDesc{
 typedef struct _MSWebCamDesc MSWebCamDesc;
 
 struct _MSWebCam{
+	MSWebCamManager* wbcmanager;
 	MSWebCamDesc *desc;
 	char *name;
 	char *id;
@@ -95,13 +97,17 @@ extern "C"{
  *
  * Returns: MSWebCamManager if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSWebCamManager * ms_web_cam_manager_get(void);
+MS2_PUBLIC MSWebCamManager * ms_web_cam_manager_get(MSWebCamManager *scm);
+
+MS2_PUBLIC MSFactory * ms_web_cam_factory_get(MSWebCam *c);
+	
+MS2_PUBLIC MSWebCamManager* ms_factory_get_wbc_manager(MSFactory* f);
 
 /**
  * Destroy the webcam manager object.
  *
  */
-MS2_PUBLIC void ms_web_cam_manager_destroy(void);
+MS2_PUBLIC void ms_web_cam_manager_destroy(MSWebCamManager* scm);
 
 /**
  * Retreive a webcam object based on its name.
@@ -139,7 +145,9 @@ MS2_PUBLIC const MSList * ms_web_cam_manager_get_list(MSWebCamManager *m);
  *
  */
 MS2_PUBLIC void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c);
-
+	
+MS2_PUBLIC void ms_web_cam_set_manager(MSWebCamManager*m, MSWebCam *c);
+	
 /**
  * Add a webcam object on top of list of the webcam  manager's list.
  *

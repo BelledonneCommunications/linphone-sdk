@@ -676,7 +676,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	MSMediaStreamIO io = MS_MEDIA_STREAM_IO_INITIALIZER;
 	if (cam == NULL){
-		cam = ms_web_cam_manager_get_default_cam( ms_web_cam_manager_get() );
+		cam = ms_web_cam_manager_get_default_cam( cam->wbcmanager);
 	}
 	io.input.type = MSResourceCamera;
 	io.input.camera = cam;

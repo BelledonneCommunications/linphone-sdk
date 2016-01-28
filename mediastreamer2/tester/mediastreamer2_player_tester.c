@@ -21,17 +21,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msmediaplayer.h"
 #include "mediastreamer2/mediastream.h"
 
-static MSFactory* factory;
+static MSFactory* _factory = NULL;
 
 static int tester_before_all(void) {
-	factory = ms_factory_new();
-	ms_factory_init_voip(factory);
-	ms_factory_init_plugins(factory);
+	_factory = ms_factory_create(_factory);
 	return 0;
 }
 
 static int tester_after_all(void) {
-	factory = ms_factory_exit(factory);
+	_factory = ms_factory_exit(_factory);
 	return 0;
 }
 
@@ -69,7 +67,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	bool_t succeed;
 	Eof eof;
 	MSMediaPlayer *file_player = NULL;
-	MSSndCard *snd_card = ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_manager(factory));
+	MSSndCard *snd_card = ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_manager(_factory));
 	const char *display_name = video_stream_get_default_video_renderer();
 	int duration, timeout;
 	const int seek_time = 6100;
@@ -85,7 +83,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
 	ms_media_player_set_eof_callback(file_player, eof_callback, &eof);
 
-	succeed = ms_media_player_open(file_player, filepath,factory);
+	succeed = ms_media_player_open(file_player, filepath,_factory);
 	if(unsupported_format) {
 		BC_ASSERT_FALSE(succeed);
 		BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
@@ -129,7 +127,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 
 	if(play_twice) {
 		eof_init(&eof);
-		BC_ASSERT_TRUE(ms_media_player_open(file_player, filepath, factory));
+		BC_ASSERT_TRUE(ms_media_player_open(file_player, filepath, _factory));
 		BC_ASSERT_TRUE(ms_media_player_start(file_player));
 		wait_for_eof(&eof, 100, timeout);
 		ms_media_player_close(file_player);

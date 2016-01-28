@@ -48,7 +48,7 @@ int main(int argc, char *argv[]){
 	ms_factory_init_voip(factory);
 	ms_factory_init_plugins(factory);
 
-	cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+	cam=ms_web_cam_manager_get_cam(ms_factory_get_wbc_manager(factory),"StaticImage: Static picture");
 	//cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),"StaticImage: Static picture");
 
 	signal(SIGINT,stop);

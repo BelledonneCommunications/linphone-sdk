@@ -258,7 +258,7 @@ void ms_voip_init(){
 	ms_factory_init_voip(ms_factory_get_fallback());
 }
 
-static int managers_ref=0;
+//static int managers_ref=0;
 
 void ms_factory_init_voip(MSFactory *obj){
 	MSSndCardManager *cm;
@@ -271,7 +271,7 @@ void ms_factory_init_voip(MSFactory *obj){
 		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);
 	}
 
-	if (managers_ref == 0){
+	if (obj->managers_ref == 0){
 		cm=ms_snd_card_manager_get(obj->sndcardmanager);
 		if (cm->descs==NULL){
 			ms_message("Registering all soundcard handlers");
@@ -285,8 +285,10 @@ void ms_factory_init_voip(MSFactory *obj){
 #ifdef VIDEO_ENABLED
 		{
 			MSWebCamManager *wm;
-			wm=ms_web_cam_manager_get();
+			wm=ms_web_cam_manager_get(obj->wbcmanager);
 			if (wm->descs==NULL){
+				wm->factory = obj;
+				obj->wbcmanager = wm;
 				ms_message("Registering all webcam handlers");
 				for (i=0;ms_web_cam_descs[i]!=NULL;i++){
 					ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
@@ -295,7 +297,7 @@ void ms_factory_init_voip(MSFactory *obj){
 		}
 #endif
 	}
-	managers_ref++;
+	obj->managers_ref++;
 #ifdef VIDEO_ENABLED
 	{
 		MSVideoPresetsManager *vpm = ms_video_presets_manager_new(obj);
@@ -324,11 +326,11 @@ void ms_factory_init_voip(MSFactory *obj){
 
 void ms_factory_uninit_voip(MSFactory *obj){
 	ms_srtp_shutdown();
-	managers_ref--;
-	if (managers_ref==0){
+	obj->managers_ref--;
+	if (obj->managers_ref==0){
 		ms_snd_card_manager_destroy(obj->sndcardmanager);
 #ifdef VIDEO_ENABLED
-		ms_web_cam_manager_destroy();
+		ms_web_cam_manager_destroy(obj->wbcmanager);
 #endif
 	if (obj->voip_initd){
 #ifdef VIDEO_ENABLED
@@ -340,7 +342,16 @@ void ms_factory_uninit_voip(MSFactory *obj){
 	}
 	
 }
-
+	
+MSFactory* ms_factory_create(MSFactory* f){
+	if (f == NULL){
+		f = ms_factory_new();
+	}
+	ms_factory_init_voip(f);
+	ms_factory_init_plugins(f);
+	return f;
+}
+	
 MSFactory* ms_factory_exit(MSFactory* factory){
 	ms_factory_uninit_voip(factory);
 	factory->ref_count--;

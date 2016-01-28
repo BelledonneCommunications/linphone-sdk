@@ -687,9 +687,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
-	factory = ms_factory_new();
-	ms_factory_init_voip(factory);
-	ms_factory_init_plugins(factory);
+	factory = ms_factory_create(factory);
 
 #if TARGET_OS_IPHONE || defined(ANDROID)
 #if defined (HAVE_X264) && defined (VIDEO_ENABLED)
@@ -715,7 +713,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
 #ifdef VIDEO_ENABLED
 	cam=ms_web_cam_new(ms_mire_webcam_desc_get());
-	if (cam) ms_web_cam_manager_add_cam(ms_web_cam_manager_get(), cam);
+	if (cam) ms_web_cam_manager_add_cam(ms_factory_get_wbc_manager(factory), cam);
 	cam=NULL;
 
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
@@ -923,9 +921,9 @@ void setup_media_streams(MediastreamDatas* args) {
 		video_stream_set_freeze_on_error(args->video,args->freeze_on_error);
 		video_stream_enable_adaptive_bitrate_control(args->video,args->use_rc);
 		if (args->camera)
-			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),args->camera);
+			cam=ms_web_cam_manager_get_cam(ms_factory_get_wbc_manager(factory),args->camera);
 		if (cam==NULL)
-			cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+			cam=ms_web_cam_manager_get_default_cam(ms_factory_get_wbc_manager(factory));
 		
 		if (args->infile){
 			iodef.input.type = MSResourceFile;
@@ -1161,7 +1159,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_chang
 	char* id = (char*)malloc(15);
 	snprintf(id, 15, "Android%d", camId);
 	ms_message("Changing camera, trying to use: '%s'\n", id);
-	video_stream_change_camera(args->video, ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), id));
+	video_stream_change_camera(args->video, ms_web_cam_manager_get_cam(ms_factory_get_wbc_manager(args->video->ms.factory), id));
 #endif
 }
 

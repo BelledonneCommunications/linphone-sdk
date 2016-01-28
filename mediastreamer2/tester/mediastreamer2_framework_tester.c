@@ -41,13 +41,10 @@ static int tester_after_all(void) {
 
 static void filter_register_tester(void) {
 	MSFilter* filter;
-	MSFactory* factory;
+	MSFactory* factory = NULL;
 	
-	factory = ms_factory_new();
-	ms_factory_init_voip(factory);
-	ms_factory_init_plugins(factory);
-	ms_factory_init_voip(factory);
-	ms_factory_init_plugins(factory);
+	factory = ms_factory_create(factory);
+	factory = ms_factory_create(factory);
 	
 	//ms_init();
 	//ms_init();
@@ -156,9 +153,8 @@ static void test_is_multicast(void) {
 static void test_filterdesc_enable_disable_base(const char* mime, const char* filtername,bool_t is_enc) {
 	MSFilter *filter;
 
-	MSFactory *factory = ms_factory_new();
-	ms_factory_init_voip(factory);
-	ms_factory_init_plugins(factory);
+	MSFactory *factory = NULL;
+	factory = ms_factory_create(factory);
 
 	if (is_enc)
 			filter = ms_factory_create_encoder(factory,mime);

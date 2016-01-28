@@ -142,7 +142,7 @@ void ms_tester_create_filters(unsigned int filter_mask, MSFactory * f) {
 	}
 	if (filter_mask & FILTER_MASK_VIDEOCAPTURE) {
 		BC_ASSERT_PTR_NULL(ms_tester_videocapture);
-		cam_manager = ms_web_cam_manager_get();
+		cam_manager = ms_factory_get_wbc_manager(f);
 		camera = ms_web_cam_manager_get_default_cam(cam_manager);
 		BC_ASSERT_PTR_NOT_NULL_FATAL(camera);
 		ms_tester_videocapture = ms_web_cam_create_reader(camera, f);
