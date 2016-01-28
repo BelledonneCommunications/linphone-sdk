@@ -60,6 +60,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	target_include_directories(belle_sip_tester_runtime PRIVATE common)
 	target_link_libraries(belle_sip_tester_runtime belle_sip_tester_static)
 	set_target_properties(belle_sip_tester_runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
+	set_target_properties(belle_sip_tester_runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.BelleSip.Tester")
+	set_target_properties(belle_sip_tester_runtime PROPERTIES LINK_FLAGS "/WINMDFILE:BelledonneCommunications.BelleSip.Tester.winmd")
 
 	install(TARGETS belle_sip_tester_runtime
 		RUNTIME DESTINATION bin
@@ -67,7 +69,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		ARCHIVE DESTINATION lib
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
-	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/belle_sip_tester_runtime.winmd" DESTINATION bin)
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/BelledonneCommunications.BelleSip.Tester.winmd" DESTINATION lib)
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/BelledonneCommunications.BelleSip.Tester.pdb
+			DESTINATION lib
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
+	endif()
 
 else()
 
