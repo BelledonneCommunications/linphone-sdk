@@ -111,17 +111,19 @@
     <Compile Include="AppService.cs" />
     <Compile Include="BackgroundOperation.cs" />
     <Compile Include="CurrentOperation.cs" />
+    <Compile Include="PhoneCallTask.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\..\mswinrtvid\windows10\libmswinrtvid\libmswinrtvid.vcxproj">
-      <Project>{2d0e44c4-e51d-4911-b876-345d1e5e5209}</Project>
-      <Name>libmswinrtvid</Name>
-    </ProjectReference>
     <ProjectReference Include="..\ms2-tester-runtime-component\ms2-tester-runtime-component.vcxproj">
       <Project>{1d1b61e3-695e-4535-8f3f-b26e2cb0f342}</Project>
       <Name>ms2-tester-runtime-component</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <SDKReference Include="WindowsMobile, Version=10.0.10240.0">
+      <Name>Windows Mobile Extensions for the UWP</Name>
+    </SDKReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

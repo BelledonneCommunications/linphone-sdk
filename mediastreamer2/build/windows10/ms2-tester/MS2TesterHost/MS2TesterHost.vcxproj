@@ -30,7 +30,9 @@
     <ClCompile Include="MS2TesterHost.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <AppxManifest Include="..\Package.appxmanifest" />
+    <AppxManifest Include="..\Package.appxmanifest">
+      <SubType>Designer</SubType>
+    </AppxManifest>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\..\mswinrtvid\windows10\libmswinrtvid\libmswinrtvid.vcxproj">
@@ -97,7 +99,7 @@
       <DisableSpecificWarnings>28204</DisableSpecificWarnings>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>

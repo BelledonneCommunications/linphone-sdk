@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.AppService;
+using Windows.ApplicationModel.Background;
 
 namespace MS2TesterTasks
 {
@@ -59,6 +60,24 @@ namespace MS2TesterTasks
                 lock (_lock)
                 {
                     return _appDeferral;
+                }
+            }
+        }
+
+        public static BackgroundTaskDeferral PhoneCallTaskDeferral
+        {
+            set
+            {
+                lock (_lock)
+                {
+                    _phoneCallTaskDeferral = value;
+                }
+            }
+            get
+            {
+                lock (_lock)
+                {
+                    return _phoneCallTaskDeferral;
                 }
             }
         }
@@ -132,6 +151,7 @@ namespace MS2TesterTasks
         private static Object _lock = new Object();
         private static AppServiceRequest _appRequest = null;
         private static AppServiceDeferral _appDeferral = null;
+        private static BackgroundTaskDeferral _phoneCallTaskDeferral = null;
         private static BackgroundRequest _request = BackgroundRequest.InValid;
     }
 }

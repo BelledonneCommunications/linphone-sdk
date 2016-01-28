@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.Calls;
 using Windows.Devices.Sensors;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
@@ -203,6 +204,12 @@ namespace ms2_tester
                 _videoSource.Start(VideoSwapChainPanel);
                 _previewSource = new libmswinrtvid.SwapChainPanelSource();
                 _previewSource.Start(PreviewSwapChainPanel);
+                var vcc = VoipCallCoordinator.GetDefault();
+                var entryPoint = typeof(PhoneCallTask).FullName;
+                var status = await vcc.ReserveCallResourcesAsync(entryPoint);
+                var capabilities = VoipPhoneCallMedia.Audio | VoipPhoneCallMedia.Video;
+                call = vcc.RequestNewOutgoingCall("FooContext", "FooContact", "MS2Tester", capabilities);
+                call.NotifyCallActive();
                 OperationResult result = await MS2TesterHelper.StartVideoStream(VideoSwapChainPanel.Name, PreviewSwapChainPanel.Name, camera, codec, videoSize, frameRate, bitRate);
                 if (result == OperationResult.Succeeded)
                 {
@@ -237,6 +244,8 @@ namespace ms2_tester
             {
                 Debug.WriteLine(String.Format("StopVideoStream: Exception {0}", e.Message));
             }
+            call.NotifyCallEnded();
+            call = null;
         }
 
         private async void ChangeCamera(String camera)
@@ -347,6 +356,7 @@ namespace ms2_tester
         }
 
 
+        private VoipPhoneCall call;
         private ApplicationViewOrientation displayOrientation;
         private DisplayInformation displayInformation;
         private SimpleOrientationSensor orientationSensor;
