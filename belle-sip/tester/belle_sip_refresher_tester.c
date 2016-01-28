@@ -50,9 +50,11 @@ typedef enum auth_mode {
 typedef struct _status {
 	int twoHundredOk;
 	int fourHundredOne;
+	int fourHundredEightyOne;
 	int refreshOk;
 	int refreshKo;
 	int dialogTerminated;
+	int fiveHundredTree;
 }status_t;
 
 typedef struct endpoint {
@@ -318,10 +320,14 @@ static void belle_sip_refresher_listener (belle_sip_refresher_t* refresher
 	endpoint_t* endpoint = (endpoint_t*)user_pointer;
 	BELLESIP_UNUSED(refresher);
 	belle_sip_message("belle_sip_refresher_listener [%i] reason [%s]",status_code,reason_phrase);
+	if (status_code >=300)
+		endpoint->stat.refreshKo++;
 	switch (status_code) {
 		case 200:endpoint->stat.refreshOk++; break;
+		case 481:endpoint->stat.fourHundredEightyOne++;break;
+		case 503:endpoint->stat.fiveHundredTree++;break;
 		default:
-			endpoint->stat.refreshKo++;
+			/*nop*/
 			break;
 	}
 	if (endpoint->stat.refreshKo==1 && endpoint->transiant_network_failure) {
@@ -506,6 +512,8 @@ static void subscribe_base(int with_resource_lists) {
 	belle_sip_uri_t *dest_uri;
 	belle_sip_refresher_t* refresher;
 	belle_sip_header_contact_t* contact=belle_sip_header_contact_new();
+	belle_sip_dialog_t * client_dialog;
+	int dummy = 0;
 	uint64_t begin;
 	uint64_t end;
 	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
@@ -559,7 +567,7 @@ static void subscribe_base(int with_resource_lists) {
 	belle_sip_client_transaction_send_request(trans);
 	BC_ASSERT_TRUE_FATAL(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
 	 /*maybe dialog should be automatically created*/
-	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(trans)));
+	BC_ASSERT_PTR_NOT_NULL_FATAL(client_dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(trans)));
 
 	refresher = belle_sip_client_transaction_create_refresher(trans);
 	belle_sip_object_unref(trans);
@@ -570,12 +578,21 @@ static void subscribe_base(int with_resource_lists) {
 	end = belle_sip_time_ms();
 	BC_ASSERT_TRUE(end-begin>=3000);
 	BC_ASSERT_TRUE(end-begin<5000);
+	belle_sip_stack_set_send_error(client->stack, 1500);
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fiveHundredTree,1,4000));
+	belle_sip_stack_set_send_error(client->stack, 0);
+	wait_for(server->stack,client->stack, &dummy, 1, 1000);
+	
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,4,4000));
+	BC_ASSERT_EQUAL(client->stat.dialogTerminated, 0, int, "%i");
+	
+	BC_ASSERT_NOT_EQUAL(client_dialog, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(belle_sip_refresher_get_transaction(refresher))),void*,"%p"); /*make sure dialog has changed*/
 	/*unsubscribe twice to make sure refresh operation can be safely cascaded*/
 	belle_sip_refresher_refresh(refresher,0);
 	belle_sip_refresher_refresh(refresher,0);
 
+	
 	belle_sip_refresher_stop(refresher);
-	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.dialogTerminated,1,4000));
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&server->stat.dialogTerminated,1,4000));
 	belle_sip_object_unref(refresher);
 	

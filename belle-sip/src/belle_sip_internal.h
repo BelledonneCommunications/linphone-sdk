@@ -584,6 +584,9 @@ typedef struct listener_ctx{
 #define BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,callback,event) \
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS((t)->is_internal?(t)->provider->internal_listeners:(t)->provider->listeners,callback,event)
 
+#define BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_DIALOG(d,callback,event) \
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS((d)->is_internal?(d)->provider->internal_listeners:(d)->provider->listeners,callback,event)
+
 #define BELLE_SIP_PROVIDER_INVOKE_LISTENERS(listeners,callback,event) \
 	BELLE_SIP_INVOKE_LISTENERS_ARG((listeners),belle_sip_listener_t,callback,(event))
 
@@ -816,6 +819,7 @@ struct belle_sip_dialog{
 	unsigned char needs_ack;
 	unsigned char is_expired;
 	unsigned char pending_trans_checking_enabled; /*use to disabled pending transaction check at request creation (testing)*/
+	unsigned char is_internal; /*Internal dialogs are those created by refreshers. */
 };
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);

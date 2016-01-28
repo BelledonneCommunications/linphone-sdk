@@ -66,6 +66,7 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 	if (t->channel) belle_sip_object_unref(t->channel);
 	if (t->branch_id) belle_sip_free(t->branch_id);
 	belle_sip_transaction_set_dialog(t,NULL);
+	belle_sip_message("Transaction [%p] deleted",t);
 
 }
 
@@ -412,8 +413,8 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 		/*this request was created by belle_sip_dialog_create_queued_request().*/
 		if (belle_sip_dialog_request_pending(dialog) || dialog->queued_ct!=NULL){
 			/*it cannot be sent immediately, queue the transaction into dialog*/
-			belle_sip_message("belle_sip_client_transaction_send_request(): transaction [%p], cannot send request now because dialog is busy"
-			" or other transactions are queued, so queuing into dialog.",t);
+			belle_sip_message("belle_sip_client_transaction_send_request(): transaction [%p], cannot send request now because dialog [%p] is busy"
+			" or other transactions are queued, so queuing into dialog.",t, dialog);
 			belle_sip_dialog_queue_client_transaction(dialog,t);
 			return 0;
 		}

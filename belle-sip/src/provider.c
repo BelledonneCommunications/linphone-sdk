@@ -680,7 +680,7 @@ void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_
 }
 
 static void notify_dialog_terminated(belle_sip_dialog_terminated_event_t* ev) {
-	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(((belle_sip_provider_t*)ev->source)->listeners,process_dialog_terminated,ev);
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_DIALOG(ev->dialog,process_dialog_terminated,ev);
 	belle_sip_object_unref(ev->dialog);
 	belle_sip_free(ev);
 }
