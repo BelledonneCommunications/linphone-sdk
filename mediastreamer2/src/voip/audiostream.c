@@ -711,14 +711,18 @@ static void setup_generic_confort_noise(AudioStream *stream){
 	PayloadType *pt=rtp_profile_get_payload(prof, rtp_session_get_send_payload_type(stream->ms.sessions.rtp_session));
 	PayloadType *cn=rtp_profile_find_payload(prof, "CN", 8000, 1);
 
-	if (cn && pt && pt->channels==1 && pt->clock_rate==8000){
-		/* RFC3389 CN can be used*/
-		stream->vaddtx=ms_filter_new(MS_VAD_DTX_ID);
-		if (stream->vaddtx) {
-			ms_filter_add_notify_callback(stream->vaddtx, on_silence_detected, stream, TRUE);
-			ms_filter_add_notify_callback(stream->ms.rtprecv, on_cn_received, stream, TRUE);
-		} else {
-			ms_warning("Cannot instantiate vaddtx filter!");
+	if (cn && pt && pt->channels==1){
+		int samplerate = pt->clock_rate;
+		ms_filter_call_method(stream->ms.decoder, MS_FILTER_GET_SAMPLE_RATE, &samplerate);
+		if (samplerate == 8000){
+			/* RFC3389 CN can be used only for 8khz codecs*/
+			stream->vaddtx=ms_filter_new(MS_VAD_DTX_ID);
+			if (stream->vaddtx) {
+				ms_filter_add_notify_callback(stream->vaddtx, on_silence_detected, stream, TRUE);
+				ms_filter_add_notify_callback(stream->ms.rtprecv, on_cn_received, stream, TRUE);
+			} else {
+				ms_warning("Cannot instantiate vaddtx filter!");
+			}
 		}
 	}
 }
