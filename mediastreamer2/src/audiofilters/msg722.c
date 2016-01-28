@@ -35,6 +35,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "g722.h"
 #endif
 
+#define ENABLE_PCM_RESCALING 0
+
 struct EncState {
 	g722_encode_state_t *state;
 	uint32_t ts;
@@ -62,12 +64,15 @@ static void enc_uninit(MSFilter *f)
 };
 
 static void scale_down(int16_t *samples, int count){
+#if ENABLE_PCM_RESCALING
 	int i;
 	for (i=0;i<count;++i)
 		samples[i]=samples[i]>>1;
+#endif
 }
 
 static void scale_up(int16_t *samples, int count){
+#if ENABLE_PCM_RESCALING
 	int i;
 	for (i=0;i<count;++i) {
 		if (samples[i]>INT16_MAX/2) {
@@ -78,6 +83,7 @@ static void scale_up(int16_t *samples, int count){
 			samples[i]=samples[i]<<1;
 		}
 	}
+#endif
 }
 
 static void enc_process(MSFilter *f)
