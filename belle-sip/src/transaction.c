@@ -94,6 +94,7 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 		break;
 		case BELLE_SIP_CHANNEL_DISCONNECTED:
 		case BELLE_SIP_CHANNEL_ERROR:
+			belle_sip_object_ref(t);  /*take a ref in the case where the app calls belle_sip_transaction_terminate() within the listener*/
 			ev.transport=belle_sip_channel_get_transport_name(chan);
 			ev.source=BELLE_SIP_OBJECT(t);
 			ev.port=chan->peer_port;
@@ -108,6 +109,7 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 				notify_timeout((belle_sip_transaction_t*)t);
 
 			belle_sip_transaction_terminate(t);
+			belle_sip_object_unref(t);
 		break;
 		default:
 			/*ignored*/
@@ -190,8 +192,7 @@ void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
 	 * Otherwise it will report the error.
 	 * We limit this dead channel reporting to REGISTER transactions, who are unlikely to be unresponded.
 	**/
-	
-
+	belle_sip_object_ref(t);  /*take a ref in the case where the app calls belle_sip_transaction_terminate() within the timeout listener*/
 	if (strcmp(belle_sip_request_get_method(t->request),"REGISTER")==0){
 		if ( belle_sip_channel_notify_timeout(t->channel)==TRUE){
 			belle_sip_warning("Transaction [%p] reporting timeout, reporting to channel.",t);
@@ -201,6 +202,7 @@ void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
 		notify_timeout(t);
 		belle_sip_transaction_terminate(t);
 	}
+	belle_sip_object_unref(t);
 }
 
 belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transaction_t *t) {

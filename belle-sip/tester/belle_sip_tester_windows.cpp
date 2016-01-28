@@ -2,7 +2,7 @@
 
 #include "belle_sip_tester_windows.h"
 
-using namespace belle_sip_tester_runtime_component;
+using namespace belle_sip_tester_runtime;
 using namespace Platform;
 using namespace Windows::Foundation;
 using namespace Windows::Storage;
