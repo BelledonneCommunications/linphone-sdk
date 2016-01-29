@@ -449,21 +449,26 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 			}
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
+			/*refreshing target is also true in case of subscribe*/
+			if ((is_invite || is_subscribe) && (code>=200 && code<300)) {
+				/*refresh the remote_target*/
+				belle_sip_header_contact_t *ct;
+				if (as_uas){
+					ct=belle_sip_message_get_header_by_type(req,belle_sip_header_contact_t);
+					
+				}else{
+					if (is_invite)
+						set_last_out_invite(obj,req);
+					ct=belle_sip_message_get_header_by_type(resp,belle_sip_header_contact_t);
+				}
+				if (ct){
+					belle_sip_object_unref(obj->remote_target);
+					obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
+				}
+				
+			}
 			if (is_invite){
 				if (code>=200 && code<300){
-					/*refresh the remote_target*/
-					belle_sip_header_contact_t *ct;
-					if (as_uas){
-						ct=belle_sip_message_get_header_by_type(req,belle_sip_header_contact_t);
-
-					}else{
-						set_last_out_invite(obj,req);
-						ct=belle_sip_message_get_header_by_type(resp,belle_sip_header_contact_t);
-					}
-					if (ct){
-						belle_sip_object_unref(obj->remote_target);
-						obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
-					}
 					/*handle possible retransmission of 200Ok */
 					if (!as_uas && (is_retransmition=(belle_sip_dialog_handle_200Ok(obj,resp)==0))) {
 						return is_retransmition;
