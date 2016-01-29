@@ -277,7 +277,7 @@ SoundDeviceDescription * sound_device_description_get(void){
 		if (exact_match && (d->flags & DEVICE_HAS_BUILTIN_AEC_CRAPPY)){
 			ms_warning("This device declares a builtin AEC but according to internal tables it is known to be misfunctionning, so trusting tables.");
 		}else{
-			d->flags=DEVICE_HAS_BUILTIN_AEC;
+			d->flags |= DEVICE_HAS_BUILTIN_AEC;
 			d->delay=0;
 		}
 	}
