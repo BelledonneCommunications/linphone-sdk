@@ -169,7 +169,7 @@ MS2_PUBLIC MSFilterDesc* ms_factory_lookup_filter_by_id( MSFactory* factory, MSF
  * @param id a filter interface id
  * @return a newly allocated MSList of #MSFilterDesc.
 **/
-MSList *ms_factory_lookup_filter_by_interface(MSFactory *factory, MSFilterInterfaceId id);
+MS2_PUBLIC MSList *ms_factory_lookup_filter_by_interface(MSFactory *factory, MSFilterInterfaceId id);
 
 /**
  * Create encoder filter according to codec name.
