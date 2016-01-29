@@ -1417,7 +1417,7 @@ MSFilterDesc ms_v4w_desc={
 MS_FILTER_DESC_EXPORT(ms_v4w_desc)
 
 static MSFilter *vfw_create_reader(MSWebCam *obj){
-	MSFilter *f=ms_filter_new_from_desc(&ms_v4w_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_web_cam_factory_get(obj), (&ms_v4w_desc);
 	v4w_set_name(f,obj->name);
 	return f;
 }

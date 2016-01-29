@@ -129,6 +129,7 @@ void ms_snd_card_manager_prepend_cards(MSSndCardManager *m, MSList *l) {
 	else m->cards = lcopy;
 	for (elem = l; elem != NULL; elem = elem->next) {
 		MSSndCard *card = (MSSndCard *)elem->data;
+		ms_snd_card_set_manager(m, card);
 		ms_message("Card '%s' added", ms_snd_card_get_string_id(card));
 	}
 }

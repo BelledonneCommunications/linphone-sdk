@@ -164,9 +164,9 @@ void text_stream_stop(TextStream *stream) {
 			ms_connection_helper_unlink(&h, stream->rttsink, 0, -1);
 		}
 	}
-	
-	text_stream_free(stream);
 	ms_factory_log_statistics(stream->ms.factory);
+	text_stream_free(stream);
+	
 }
 
 void text_stream_iterate(TextStream *stream) {

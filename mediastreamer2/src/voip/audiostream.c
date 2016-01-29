@@ -1669,8 +1669,9 @@ void audio_stream_stop(AudioStream * stream){
 	 * When the filter are destroyed, all their pending events in the event queue will be cancelled*/
 	evq = ms_factory_get_event_queue(stream->ms.factory);
 	if (evq) ms_event_queue_pump(evq);
-	audio_stream_free(stream);
 	ms_factory_log_statistics(stream->ms.factory);
+	audio_stream_free(stream);
+
 //	ms_filter_log_statistics();
 }
 

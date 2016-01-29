@@ -921,7 +921,7 @@ MSFilterDesc au_write_desc={
 static MSFilter *ms_au_read_new(MSSndCard *mscard){
 	ms_debug("ms_au_read_new");
 	au_card_t* card=(au_card_t*)(mscard->data);
-	MSFilter *f=ms_filter_new_from_desc(&au_read_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_factory_get(mscard), &au_read_desc);
 	au_filter_read_data_t *d=ms_new0(au_filter_read_data_t,1);
 	qinit(&d->rq);
 	d->readTimeStamp.mSampleTime=-1;
@@ -935,7 +935,7 @@ static MSFilter *ms_au_read_new(MSSndCard *mscard){
 static MSFilter *ms_au_write_new(MSSndCard *mscard){
 	ms_debug("ms_au_write_new");
 	au_card_t* card=(au_card_t*)(mscard->data);
-	MSFilter *f=ms_filter_new_from_desc(&au_write_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_factory_get(mscard), &au_write_desc);
 	au_filter_write_data_t *d=ms_new0(au_filter_write_data_t,1);
 	d->bufferizer= ms_bufferizer_new();
 	ms_mutex_init(&d->mutex,NULL);

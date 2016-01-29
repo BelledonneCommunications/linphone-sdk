@@ -94,7 +94,7 @@ static int ms_qsa_read_set_sample_rate(MSFilter *f, void *arg);
  *****************************************************************************/
 
 static MSFilter * ms_qsa_read_new(MSSndCard *card) {
-	MSFilter *f = ms_filter_new_from_desc(&ms_qsa_read_desc);
+	MSFilter *f = ms_factory_create_filter_from_desc(ms_snd_card_factory_get(card), &ms_qsa_read_desc);
 	MSQSAReadData *d = (MSQSAReadData *)f->data;
 	snd_pcm_t *handle;
 	int err;
@@ -408,7 +408,7 @@ static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg);
  *****************************************************************************/
 
 static MSFilter * ms_qsa_write_new(MSSndCard *card) {
-	MSFilter *f = ms_filter_new_from_desc(&ms_qsa_write_desc);
+	MSFilter *f = ms_factory_create_filter_from_desc(ms_snd_card_factory_get(card), &ms_qsa_write_desc);
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
 	snd_pcm_t *handle;
 	int err;

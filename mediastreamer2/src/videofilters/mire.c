@@ -154,7 +154,6 @@ static void mire_cam_init(MSWebCam *cam){
 }
 
 static MSFilter *mire_create_reader(MSWebCam *obj, MSFactory * factory){
-	//return ms_filter_new_from_desc(&ms_mire_desc);
 	return ms_factory_create_filter_from_desc(factory, &ms_mire_desc);
 }
 
