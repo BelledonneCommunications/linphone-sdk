@@ -645,8 +645,8 @@ static MSFilter *ms_wasapi_snd_card_create_writer(MSSndCard *card) {
 #define MS_PLUGIN_DECLARE(type) extern "C" type
 #endif
 
-MS_PLUGIN_DECLARE(void) libmswasapi_init(void) {
-	MSSndCardManager *manager = ms_snd_card_manager_get();
+MS_PLUGIN_DECLARE(void) libmswasapi_init(MSFactory *factory) {
+	MSSndCardManager *manager = ms_factory_get_snd_manager(factory);
 	ms_snd_card_manager_register_desc(manager, &ms_wasapi_snd_card_desc);
 	ms_message("libmswasapi plugin loaded");
 }
