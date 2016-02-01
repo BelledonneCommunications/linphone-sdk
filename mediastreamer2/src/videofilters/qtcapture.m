@@ -543,8 +543,8 @@ static int v4m_open_device(MSFilter *f, void *arg) {
 }
 
 
-static MSFilter *ms_v4m_create_reader(MSWebCam *obj, MSFactory* factory) {
-	MSFilter *f = ms_factory_create_filter_from_desc(factory, &ms_v4m_desc);
+static MSFilter *ms_v4m_create_reader(MSWebCam *obj) {
+	MSFilter *f = ms_factory_create_filter_from_desc(ms_web_cam_get_factory(obj), &ms_v4m_desc);
 	v4m_open_device(f,obj->data);
 	return f;
 }
