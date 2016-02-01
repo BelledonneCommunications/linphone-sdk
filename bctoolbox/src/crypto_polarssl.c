@@ -1,5 +1,5 @@
 /*
-crypto.c
+crypto_polarssl.c
 Copyright (C) 2016  Belledonne Communications SARL
 
 This program is free software; you can redistribute it and/or
@@ -128,7 +128,7 @@ char *bctoolbox_signing_key_get_pem(bctoolbox_signing_key_t *key) {
 
 int32_t bctoolbox_signing_key_parse(bctoolbox_signing_key_t *key, const char *buffer, size_t buffer_length, const unsigned char *password, size_t password_length) {
 	int err;
-	err=pk_parse_key((pk_context *)key, (const unsigned char *)buffer, buffer_length, password, password_length);
+	err=pk_parse_key((pk_context *)key, (const unsigned char *)buffer, buffer_length+1, password, password_length);
 	if(err==0 && !pk_can_do((pk_context *)key, POLARSSL_PK_RSA)) {
 		err=POLARSSL_ERR_PK_TYPE_MISMATCH;
 	}
@@ -193,7 +193,7 @@ int32_t bctoolbox_x509_certificate_parse_path(bctoolbox_x509_certificate_t *cert
 }
 
 int32_t bctoolbox_x509_certificate_parse(bctoolbox_x509_certificate_t *cert, const char *buffer, size_t buffer_length) {
-	return x509_crt_parse((x509_crt *)cert, (const unsigned char *)buffer, buffer_length);
+	return x509_crt_parse((x509_crt *)cert, (const unsigned char *)buffer, buffer_length+1);
 }
 
 int32_t bctoolbox_x509_certificate_get_der_length(bctoolbox_x509_certificate_t *cert) {
@@ -304,6 +304,8 @@ int32_t bctoolbox_x509_certificate_generate_selfsigned(const char *subject, bcto
 	}
 
 	x509write_crt_free(&crt);
+	ctr_drbg_free(&ctr_drbg);
+	entropy_free(&entropy);
 
 	/* copy the key+cert in pem format into the given buffer */
 	if (pem != NULL) {
@@ -803,6 +805,10 @@ bctoolbox_ssl_config_t *bctoolbox_ssl_config_new(void) {
 	return ssl_config;
 }
 
+int32_t bctoolbox_ssl_config_set_crypto_library_config(bctoolbox_ssl_config_t *ssl_config, void *internal_config) {
+	return BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION;
+}
+
 void bctoolbox_ssl_config_free(bctoolbox_ssl_config_t *ssl_config) {
 	bctoolbox_free(ssl_config);
 }
@@ -1000,10 +1006,11 @@ int32_t bctoolbox_ssl_context_setup(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_
 		ssl_set_own_cert(&(ssl_ctx->ssl_ctx) , ssl_config->own_cert , ssl_config->own_cert_pk);
 	}
 
+#ifdef HAVE_DTLS_SRTP
 	if (ssl_config->dtls_srtp_profiles_number > 0) {
 		ssl_set_dtls_srtp_protection_profiles(&(ssl_ctx->ssl_ctx), ssl_config->dtls_srtp_profiles, ssl_config->dtls_srtp_profiles_number );
 	}
-
+#endif
 
 	return 0;
 }

@@ -67,8 +67,16 @@ set(exec_prefix ${prefix}/bin)
 set(libdir ${prefix}/lib)
 set(includedir ${prefix}/include)
 
-get_filename_component(polarssl_library_path "${POLARSSL_LIBRARIES}" PATH)
-set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${polarssl_library_path} -lpolarssl")
+if (MBEDTLS_FOUND)
+	get_filename_component(mbedtls_library_path "${MBEDTLS_LIBRARIES}" PATH)
+	set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${mbedlts_library_path}")
+endif()
+
+if (POLARSSL_FOUND)
+	get_filename_component(polarssl_library_path "${POLARSSL_LIBRARIES}" PATH)
+	set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${polarssl_library_path} -lpolarssl")
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bctoolbox.pc.in ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc DESTINATION lib/pkgconfig)
 
@@ -76,8 +84,16 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc DESTINATION lib/pkgconfig
 include_directories(
 	include
 	src
-	${POLARSSL_INCLUDE_DIRS}
 )
+
+if (MBEDTLS_FOUND)
+	include_directories(${MBEDTLS_INCLUDE_DIRS})
+endif()
+
+if (POLARSSL_FOUND)
+	include_directories(${POLARSSL_INCLUDE_DIRS})
+endif()
+
 if(MSVC)
 	include_directories(${MSVC_INCLUDE_DIR})
 endif()

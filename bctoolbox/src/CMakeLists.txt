@@ -22,9 +22,19 @@
 
 
 set(BCTOOLBOX_SOURCE_FILES
-	crypto.c
 )
 
+if (POLARSSL_FOUND)
+	set(BCTOOLBOX_SOURCE_FILES
+		${BCTOOLBOX_SOURCE_FILES}
+		crypto_polarssl.c
+	)
+elseif (MBEDTLS_FOUND)
+	set(BCTOOLBOX_SOURCE_FILES
+		${BCTOOLBOX_SOURCE_FILES}
+		crypto_mbedtls.c
+	)
+endif()
 
 if(ENABLE_STATIC)
 	add_library(bctoolbox STATIC ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_SOURCE_FILES})
@@ -41,8 +51,15 @@ else()
 	endif()
 endif()
 
-list(APPEND INCLUDES ${POLARSSL_INCLUDE_DIR})
-list(APPEND LIBS ${POLARSSL_LIBRARIES})
+
+if (POLARSSL_FOUND)
+	list(APPEND INCLUDES ${POLARSSL_INCLUDE_DIRS})
+	list(APPEND LIBS ${POLARSSL_LIBRARIES})
+elseif (MBEDTLS_FOUND)
+	list(APPEND INCLUDES ${MBEDTLS_INCLUDE_DIRS})
+	list(APPEND LIBS ${MBEDTLS_LIBRARIES})
+endif()
+
 
 
 target_include_directories(bctoolbox PUBLIC ${INCLUDES})

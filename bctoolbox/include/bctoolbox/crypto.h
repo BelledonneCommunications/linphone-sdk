@@ -70,13 +70,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_REVOKED		0x02  /**< The certificate has been revoked (is on a CRL). */
 #define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH	0x04  /**< The certificate Common Name (CN) does not match with the expected CN. */
 #define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED	0x08  /**< The certificate is not correctly signed by the trusted CA. */
-#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED		0x10  /**< CRL is not correctly signed by the trusted CA. */
-#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_EXPIRED			0x20  /**< CRL is expired. */
-#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_MISSING		0x40  /**< Certificate was missing. */
-#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_SKIP_VERIFY	0x80  /**< Certificate verification was skipped. */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_MISSING		0x10  /**< Certificate was missing. */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_SKIP_VERIFY	0x20  /**< Certificate verification was skipped. */
 #define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_OTHER			0x0100  /**< Other reason (can be used by verify callback) */
 #define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_FUTURE			0x0200  /**< The certificate validity starts in the future. */
-#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_FUTURE			0x0400  /**< The CRL is from the future */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_KEY_USAGE      0x0400  /**< Usage does not match the keyUsage extension. */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_EXT_KEY_USAGE  0x0800  /**< Usage does not match the extendedKeyUsage extension. */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_NS_CERT_TYPE   0x1000  /**< Usage does not match the nsCertType extension. */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_BAD_MD         0x2000  /**< The certificate is signed with an unacceptable hash. */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_BAD_PK         0x4000  /**< The certificate is signed with an unacceptable PK alg (eg RSA vs ECDSA). */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_BAD_KEY        0x8000  /**< The certificate is signed with an unacceptable key (eg bad curve, RSA too short). */
+
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_FUTURE			0x10000  /**< The CRL is from the future */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED		0x20000  /**< CRL is not correctly signed by the trusted CA. */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_EXPIRED			0x40000  /**< CRL is expired. */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_BAD_MD          0x80000  /**< The CRL is signed with an unacceptable hash. */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_BAD_PK          0x100000  /**< The CRL is signed with an unacceptable PK alg (eg RSA vs ECDSA). */
+#define BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_BAD_KEY         0x200000  /**< The CRL is signed with an unacceptable key (eg bad curve, RSA too short). */
+
 
 /* Hash functions type */
 typedef enum bctoolbox_md_type {
@@ -157,6 +168,7 @@ void bctoolbox_ssl_set_io_callbacks(bctoolbox_ssl_context_t *ssl_ctx, void *call
 const bctoolbox_x509_certificate_t *bctoolbox_ssl_get_peer_certificate(bctoolbox_ssl_context_t *ssl_ctx);
 
 bctoolbox_ssl_config_t *bctoolbox_ssl_config_new(void);
+int32_t bctoolbox_ssl_config_set_crypto_library_config(bctoolbox_ssl_config_t *ssl_config, void *internal_config);
 void bctoolbox_ssl_config_free(bctoolbox_ssl_config_t *ssl_config);
 int32_t bctoolbox_ssl_config_defaults(bctoolbox_ssl_config_t *ssl_config, int endpoint, int transport);
 int32_t bctoolbox_ssl_config_set_endpoint(bctoolbox_ssl_config_t *ssl_config, int endpoint);
