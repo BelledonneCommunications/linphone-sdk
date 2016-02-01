@@ -405,7 +405,7 @@ static void video_capture_cam_init(MSWebCam *cam){
 static MSFilter *video_capture_create_reader(MSWebCam *obj){
 	ms_message("Instanciating Android VIDEO capture MS filter");
 
-	MSFilter* lFilter = ms_factory_create_filter_from_desc(ms_web_cam_factory_get(obj), &ms_video_capture_desc);
+	MSFilter* lFilter = ms_factory_create_filter_from_desc(ms_web_cam_get_factory(obj), &ms_video_capture_desc);
 	getContext(lFilter)->webcam = obj;
 	
 	return lFilter;

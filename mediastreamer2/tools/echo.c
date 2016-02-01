@@ -62,7 +62,7 @@ int main(int argc, char *argv[]){
 	ortp_init();
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	
-	factory = ms_factory_create(factory);
+	factory = ms_factory_new_with_voip();
 
 #ifndef _WIN32_WCE
 	signal(SIGINT,stop);
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]){
 #ifdef __linux
 	alsadev=getenv("MS2_ALSADEV");
 	if (alsadev!=NULL){
-		ms_snd_card_manager_add_card( ms_factory_get_snd_manager(factory),
+		ms_snd_card_manager_add_card( ms_factory_get_snd_card_manager(factory),
 			ms_alsa_card_new_custom (alsadev,alsadev));
 	}
 #endif
@@ -92,11 +92,11 @@ int main(int argc, char *argv[]){
 	}
 
 	if (capt_card)
-		card_capture = ms_snd_card_manager_get_card(ms_factory_get_snd_manager(factory),capt_card);
-	else card_capture = ms_snd_card_manager_get_default_capture_card(ms_factory_get_snd_manager(factory));
+		card_capture = ms_snd_card_manager_get_card(ms_factory_get_snd_card_manager(factory),capt_card);
+	else card_capture = ms_snd_card_manager_get_default_capture_card(ms_factory_get_snd_card_manager(factory));
 	if (play_card)
-		card_playback = ms_snd_card_manager_get_card(ms_factory_get_snd_manager(factory),play_card);
-	else card_playback = ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_manager(factory));
+		card_playback = ms_snd_card_manager_get_card(ms_factory_get_snd_card_manager(factory),play_card);
+	else card_playback = ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_card_manager(factory));
 	
 	if (card_playback==NULL || card_capture==NULL){
 		ms_error("No card.");
@@ -125,6 +125,6 @@ int main(int argc, char *argv[]){
 	ms_filter_destroy(f1);
 	ms_filter_destroy(f2);
 	
-	factory = ms_factory_exit(factory);
+	ms_factory_destroy(factory);
 	return 0;
 }

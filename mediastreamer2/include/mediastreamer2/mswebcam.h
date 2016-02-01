@@ -56,7 +56,7 @@ struct _MSWebCam;
 typedef void (*MSWebCamDetectFunc)(MSWebCamManager *obj);
 typedef void (*MSWebCamInitFunc)(struct _MSWebCam *obj);
 typedef void (*MSWebCamUninitFunc)(struct _MSWebCam *obj);
-typedef struct _MSFilter * (*MSWebCamCreateReaderFunc)(struct _MSWebCam *obj, MSFactory* factory);
+typedef struct _MSFilter * (*MSWebCamCreateReaderFunc)(struct _MSWebCam *obj);
 typedef bool_t (*MSWebCamEncodeToMimeType)(struct _MSWebCam *obj, const char *mime_type);
 
 struct _MSWebCamDesc{
@@ -97,15 +97,13 @@ extern "C"{
  *
  * Returns: MSWebCamManager if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSWebCamManager * ms_web_cam_manager_get(MSWebCamManager *scm);
+MS2_PUBLIC MS2_DEPRECATED MSWebCamManager * ms_web_cam_manager_get(void);
 
-MS2_PUBLIC MSFactory * ms_web_cam_factory_get(MSWebCam *c);
-	
-MS2_PUBLIC MSWebCamManager* ms_factory_get_wbc_manager(MSFactory* f);
+MS2_PUBLIC MSFactory * ms_web_cam_get_factory(MSWebCam *c);
 
 /**
  * Destroy the webcam manager object.
- *
+ * You usually don't need this function, ms_factory_destroy() doing the job for you.
  */
 MS2_PUBLIC void ms_web_cam_manager_destroy(MSWebCamManager* scm);
 
@@ -182,7 +180,7 @@ MS2_PUBLIC void ms_web_cam_manager_reload(MSWebCamManager *m);
  *
  * Returns: A MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj, MSFactory* factory);
+MS2_PUBLIC struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj);
 
 /**
  * Create a new webcam object.

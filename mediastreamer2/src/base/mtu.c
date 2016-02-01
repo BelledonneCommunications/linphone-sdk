@@ -276,25 +276,17 @@ int ms_discover_mtu(const char*host){
 
 #endif
 
-#define MS_MTU_DEFAULT 1500
 
-static int ms_mtu=MS_MTU_DEFAULT;
+/* we need this pragram because this file implements compatibility functions*/
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 
 void ms_set_mtu(int mtu){
-	/*60= IPv6+UDP+RTP overhead */
-	if (mtu>60){
-		ms_mtu=mtu;
-		ms_set_payload_max_size(mtu-60);
-	}else {
-		if (mtu>0){
-			ms_warning("MTU is too short: %i bytes, using default value instead.",mtu);
-		}
-		ms_set_mtu(MS_MTU_DEFAULT);
-	}
+	ms_factory_set_mtu(ms_factory_get_fallback(), mtu);
 }
 
 
 int ms_get_mtu(void){
-	return ms_mtu;
+	return ms_factory_get_mtu(ms_factory_get_fallback());
 }
 

@@ -55,7 +55,7 @@ static int tester_before_all(void) {
 static int tester_after_all(void) {
 	//ms_exit();
 
-	_factory = ms_factory_exit(_factory);
+	ms_factory_destroy(_factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }
@@ -138,9 +138,9 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 									  ,	int margaux_local_rtcp_port
 									  , int margaux_remote_rtcp_port
 									  , int lost_percentage) {
-	AudioStream * 	marielle = audio_stream_new2 (marielle_local_ip, marielle_local_rtp_port, marielle_local_rtcp_port, _factory);
+	AudioStream * 	marielle = audio_stream_new2 (_factory, marielle_local_ip, marielle_local_rtp_port, marielle_local_rtcp_port);
 	stats_t marielle_stats;
-	AudioStream * 	margaux = audio_stream_new2 (margaux_local_ip, margaux_local_rtp_port,margaux_local_rtcp_port, _factory);
+	AudioStream * 	margaux = audio_stream_new2 (_factory, margaux_local_ip, margaux_local_rtp_port,margaux_local_rtcp_port);
 	stats_t margaux_stats;
 	RtpProfile* profile = rtp_profile_new("default profile");
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
@@ -249,8 +249,8 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 										,bool_t set_both_send_recv_key
 										,bool_t send_key_first
 										,bool_t encryption_mandatory) {
-	AudioStream * 	marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE, _factory);
-	AudioStream * 	margaux = audio_stream_new (MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE, _factory);
+	AudioStream * 	marielle = audio_stream_new (_factory, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
+	AudioStream * 	margaux = audio_stream_new (_factory, MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE);
 	RtpProfile* profile = rtp_profile_new("default profile");
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
 	char* recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
@@ -358,7 +358,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 
 		if (change_ssrc) {
 			audio_stream_stop(marielle);
-			marielle = audio_stream_new (MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE, _factory);
+			marielle = audio_stream_new (_factory, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,FALSE);
 			BC_ASSERT_EQUAL(audio_stream_start_full(marielle
 													, profile
 													, MARGAUX_IP
@@ -429,9 +429,9 @@ static void encrypted_audio_stream_with_key_change_encryption_mandatory(void) {
 }
 
 static void codec_change_for_audio_stream(void) {
-	AudioStream *marielle = audio_stream_new2(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT, _factory);
+	AudioStream *marielle = audio_stream_new2(_factory, MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT);
 	stats_t marielle_stats;
-	AudioStream *margaux = audio_stream_new2(MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT, _factory);
+	AudioStream *margaux = audio_stream_new2(_factory, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
 	stats_t margaux_stats;
 	RtpProfile *profile = rtp_profile_new("default profile");
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
@@ -468,7 +468,7 @@ static void codec_change_for_audio_stream(void) {
 	audio_stream_stop(marielle);
 	reset_stats(&marielle_stats);
 	reset_stats(&margaux_stats);
-	marielle = audio_stream_new2(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,_factory);
+	marielle = audio_stream_new2(_factory, MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT);
 	BC_ASSERT_EQUAL(audio_stream_start_full(marielle, profile, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_IP, MARGAUX_RTCP_PORT,
 		8, 50, hello_file, NULL, NULL, NULL, 0), 0, int, "%d");
 
@@ -495,9 +495,9 @@ static void codec_change_for_audio_stream(void) {
 }
 
 static void tmmbr_feedback_for_audio_stream(void) {
-	AudioStream *marielle = audio_stream_new2(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT,_factory);
+	AudioStream *marielle = audio_stream_new2(_factory, MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT);
 	stats_t marielle_stats;
-	AudioStream *margaux = audio_stream_new2(MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT,_factory);
+	AudioStream *margaux = audio_stream_new2(_factory, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
 	stats_t margaux_stats;
 	RtpProfile *profile = rtp_profile_new("default profile");
 	RtpSession *marielle_session;

@@ -205,13 +205,13 @@ struct AndroidSndWriteData{
 };
 
 static MSFilter *android_snd_card_create_reader(MSSndCard *card){
-	MSFilter *f=ms_android_snd_read_new(ms_snd_card_factory_get(card));
+	MSFilter *f=ms_android_snd_read_new(ms_snd_card_get_factory(card));
 	(static_cast<AndroidSndReadData*>(f->data))->setCard(card);
 	return f;
 }
 
 static MSFilter *android_snd_card_create_writer(MSSndCard *card){
-	MSFilter *f=ms_android_snd_write_new(ms_snd_card_factory_get(card));
+	MSFilter *f=ms_android_snd_write_new(ms_snd_card_get_factory(card));
 	(static_cast<AndroidSndWriteData*>(f->data))->setCard((AndroidNativeSndCardData*)card->data);
 	return f;
 }

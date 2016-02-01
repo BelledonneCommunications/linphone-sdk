@@ -43,7 +43,7 @@ static RtpProfile rtp_profile;
 
 static MSFactory *_factory = NULL;
 static int tester_before_all(void) {
-	//ms_init();
+
 	_factory = ms_factory_new();
 	ms_factory_init_voip(_factory);
 	ms_factory_init_plugins(_factory);
@@ -65,9 +65,8 @@ static int tester_before_all(void) {
 
 static int tester_after_all(void) {
 	ortp_exit();
-	//ms_exit();
 
-	_factory = ms_factory_exit(_factory);
+	ms_factory_destroy(_factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }
@@ -104,10 +103,10 @@ stream_manager_t * stream_manager_new(MSFormatType type) {
 	mgr->user_data = 0;
 
 	if (mgr->type==MSAudio){
-		mgr->audio_stream=audio_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE, _factory);
+		mgr->audio_stream=audio_stream_new (_factory, mgr->local_rtp, mgr->local_rtcp,FALSE);
 	}else{
 #if VIDEO_ENABLED
-		mgr->video_stream=video_stream_new (mgr->local_rtp, mgr->local_rtcp,FALSE, _factory);
+		mgr->video_stream=video_stream_new (_factory, mgr->local_rtp, mgr->local_rtcp,FALSE);
 #else
 		ms_fatal("Unsupported stream type [%s]",ms_format_type_to_string(mgr->type));
 #endif
@@ -203,7 +202,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 	MediaStream *marielle_ms,*margaux_ms;
 	OrtpNetworkSimulatorParams params={0};
 #if VIDEO_ENABLED
-	MSWebCam * marielle_webcam=mediastreamer2_tester_get_mire_webcam(ms_factory_get_wbc_manager(_factory));
+	MSWebCam * marielle_webcam=mediastreamer2_tester_get_mire_webcam(ms_factory_get_web_cam_manager(_factory));
 #endif
 	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);
 	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);

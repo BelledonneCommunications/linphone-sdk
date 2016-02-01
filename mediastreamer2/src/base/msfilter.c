@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_FILTER_METHOD_GET_FID(id)	(((id)>>16) & 0xFFFF)
 #define MS_FILTER_METHOD_GET_INDEX(id) ( ((id)>>8) & 0XFF)
 
+/* we need this pragram because this file implements much of compatibility functions*/
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 void ms_filter_register(MSFilterDesc *desc){
 	ms_factory_register_filter(ms_factory_get_fallback(),desc);

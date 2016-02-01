@@ -243,7 +243,7 @@ extern "C"{
  *
  * @param desc    a filter description.
  */
-MS2_PUBLIC LINPHONE_DEPRECATED void ms_filter_register(MSFilterDesc *desc);
+MS2_PUBLIC MS2_DEPRECATED void ms_filter_register(MSFilterDesc *desc);
 
 /**
  * Retrieve capture filter that supports encoding to codec name.
@@ -252,7 +252,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED void ms_filter_register(MSFilterDesc *desc);
  *
  * Returns: a MSFilterDesc if successfull, NULL otherwise.
  */
-MS2_PUBLIC LINPHONE_DEPRECATED MSFilterDesc * ms_filter_get_encoding_capturer(const char *mime);
+MS2_PUBLIC MS2_DEPRECATED MSFilterDesc * ms_filter_get_encoding_capturer(const char *mime);
 
 /**
  * Retrieve render filter that supports decoding to codec name.
@@ -261,7 +261,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED MSFilterDesc * ms_filter_get_encoding_capturer(co
  *
  * Returns: a MSFilterDesc if successfull, NULL otherwise.
  */
-MS2_PUBLIC LINPHONE_DEPRECATED MSFilterDesc * ms_filter_get_decoding_renderer(const char *mime);
+MS2_PUBLIC MS2_DEPRECATED MSFilterDesc * ms_filter_get_decoding_renderer(const char *mime);
 
 /**
  * Retrieve encoders according to codec name.
@@ -275,7 +275,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED MSFilterDesc * ms_filter_get_decoding_renderer(co
  *
  * Returns: a MSFilterDesc if successfull, NULL otherwise.
  */
-MS2_PUBLIC LINPHONE_DEPRECATED MSFilterDesc * ms_filter_get_encoder(const char *mime);
+MS2_PUBLIC MS2_DEPRECATED MSFilterDesc * ms_filter_get_encoder(const char *mime);
 
 /**
  * Retrieve decoders according to codec name.
@@ -289,7 +289,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED MSFilterDesc * ms_filter_get_encoder(const char *
  *
  * Returns: a MSFilterDesc if successfull, NULL otherwise.
  */
-MS2_PUBLIC LINPHONE_DEPRECATED MSFilterDesc * ms_filter_get_decoder(const char *mime);
+MS2_PUBLIC MS2_DEPRECATED MSFilterDesc * ms_filter_get_decoder(const char *mime);
 
 /**
  * Lookup a mediastreamer2 filter using its name.
@@ -299,7 +299,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED MSFilterDesc * ms_filter_get_decoder(const char *
  *
  * @param filter_name The filter name.
 **/
-MS2_PUBLIC LINPHONE_DEPRECATED MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name);
+MS2_PUBLIC MS2_DEPRECATED MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name);
 
 /**
  * Returns a list of filter descriptions implementing a given interface.
@@ -307,7 +307,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED MSFilterDesc *ms_filter_lookup_by_name(const char
  * @param id a filter interface id
  * @return a newly allocated MSList of #MSFilterDesc.
 **/
-MS2_PUBLIC LINPHONE_DEPRECATED MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id);
+MS2_PUBLIC MS2_DEPRECATED MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id);
 
 /**
  * Create encoder filter according to codec name.
@@ -321,7 +321,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED MSList *ms_filter_lookup_by_interface(MSFilterInt
  *
  * Returns: a MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC LINPHONE_DEPRECATED MSFilter * ms_filter_create_encoder(const char *mime);
+MS2_PUBLIC MS2_DEPRECATED MSFilter * ms_filter_create_encoder(const char *mime);
 
 /**
  * Create decoder filter according to codec name.
@@ -335,7 +335,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED MSFilter * ms_filter_create_encoder(const char *m
  *
  * Returns: a MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC LINPHONE_DEPRECATED MSFilter * ms_filter_create_decoder(const char *mime);
+MS2_PUBLIC MS2_DEPRECATED MSFilter * ms_filter_create_decoder(const char *mime);
 
 /**
  * Check if a encode or decode filter exists for a codec name.
@@ -349,7 +349,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED MSFilter * ms_filter_create_decoder(const char *m
  *
  * Returns: TRUE if successfull, FALSE otherwise.
  */
-MS2_PUBLIC LINPHONE_DEPRECATED bool_t ms_filter_codec_supported(const char *mime);
+MS2_PUBLIC MS2_DEPRECATED bool_t ms_filter_codec_supported(const char *mime);
 
 /**
  * Create decoder filter according to a filter's MSFilterId.
@@ -358,7 +358,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED bool_t ms_filter_codec_supported(const char *mime
  *
  * Returns: a MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC LINPHONE_DEPRECATED MSFilter *ms_filter_new(MSFilterId id);
+MS2_PUBLIC MS2_DEPRECATED MSFilter *ms_filter_new(MSFilterId id);
 
 /**
  * Create decoder filter according to a filter's name.
@@ -367,7 +367,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED MSFilter *ms_filter_new(MSFilterId id);
  *
  * Returns: a MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC LINPHONE_DEPRECATED MSFilter *ms_filter_new_from_name(const char *name);
+MS2_PUBLIC MS2_DEPRECATED MSFilter *ms_filter_new_from_name(const char *name);
 
 /**
  * Create decoder filter according to a filter's description.
@@ -379,7 +379,7 @@ MS2_PUBLIC LINPHONE_DEPRECATED MSFilter *ms_filter_new_from_name(const char *nam
  *
  * Returns: a MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC LINPHONE_DEPRECATED MSFilter *ms_filter_new_from_desc(MSFilterDesc *desc);
+MS2_PUBLIC MS2_DEPRECATED MSFilter *ms_filter_new_from_desc(MSFilterDesc *desc);
 
 /**
  * Link one OUTPUT pin from a filter to an INPUT pin of another filter.
@@ -587,26 +587,26 @@ MS2_PUBLIC int ms_connection_helper_unlink(MSConnectionHelper *h, MSFilter *f, i
  * \brief Enable processing time measurements statistics for filters.
  *
 **/
-MS2_PUBLIC LINPHONE_DEPRECATED void ms_filter_enable_statistics(bool_t enabled);
+MS2_PUBLIC MS2_DEPRECATED void ms_filter_enable_statistics(bool_t enabled);
 
 
 /**
  * \brief Reset processing time statistics for filters.
  *
 **/
-MS2_PUBLIC LINPHONE_DEPRECATED void ms_filter_reset_statistics(void);
+MS2_PUBLIC MS2_DEPRECATED void ms_filter_reset_statistics(void);
 
 /**
  * \brief Retrieves statistics for running filters.
  * Returns a list of MSFilterStats
 **/
-MS2_PUBLIC LINPHONE_DEPRECATED const MSList * ms_filter_get_statistics(void);
+MS2_PUBLIC MS2_DEPRECATED const MSList * ms_filter_get_statistics(void);
 
 /**
  * \brief Logs runtime statistics for running filters.
  *
 **/
-MS2_PUBLIC LINPHONE_DEPRECATED void ms_filter_log_statistics(void);
+MS2_PUBLIC MS2_DEPRECATED void ms_filter_log_statistics(void);
 
 
 

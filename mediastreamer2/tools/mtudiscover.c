@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 int main(int argc, char *argv[]){
 	
 	MSFactory *factory = NULL;
-	factory = ms_factory_create(factory);
+	factory = ms_factory_new_with_voip();
 	
 	if (argc<2){
 		ms_error("Usage: mtudiscover [host]");
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]){
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	printf("result: %i \n",ms_discover_mtu(argv[1]));
 	
-	factory = ms_factory_exit(factory);
+	ms_factory_destroy(factory);
 	
 	return 0;
 }

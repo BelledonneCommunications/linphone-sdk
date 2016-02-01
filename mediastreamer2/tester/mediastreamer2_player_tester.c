@@ -24,12 +24,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static MSFactory* _factory = NULL;
 
 static int tester_before_all(void) {
-	_factory = ms_factory_create(_factory);
+	_factory = ms_factory_new_with_voip();
 	return 0;
 }
 
 static int tester_after_all(void) {
-	_factory = ms_factory_exit(_factory);
+	ms_factory_destroy(_factory);
 	return 0;
 }
 
@@ -67,7 +67,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	bool_t succeed;
 	Eof eof;
 	MSMediaPlayer *file_player = NULL;
-	MSSndCard *snd_card = ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_manager(_factory));
+	MSSndCard *snd_card = ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_card_manager(_factory));
 	const char *display_name = video_stream_get_default_video_renderer();
 	int duration, timeout;
 	const int seek_time = 6100;
@@ -76,14 +76,14 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 	eof_init(&eof);
 
 	BC_ASSERT_PTR_NOT_NULL(snd_card);
-	file_player = ms_media_player_new(snd_card, display_name, 0);
+	file_player = ms_media_player_new(_factory, snd_card, display_name, 0);
 	BC_ASSERT_PTR_NOT_NULL(file_player);
 	if(file_player == NULL) return;
 
 	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
 	ms_media_player_set_eof_callback(file_player, eof_callback, &eof);
 
-	succeed = ms_media_player_open(file_player, filepath,_factory);
+	succeed = ms_media_player_open(file_player, filepath);
 	if(unsupported_format) {
 		BC_ASSERT_FALSE(succeed);
 		BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
@@ -127,7 +127,7 @@ static void play_file(const char *filepath, bool_t unsupported_format, bool_t se
 
 	if(play_twice) {
 		eof_init(&eof);
-		BC_ASSERT_TRUE(ms_media_player_open(file_player, filepath, _factory));
+		BC_ASSERT_TRUE(ms_media_player_open(file_player, filepath));
 		BC_ASSERT_TRUE(ms_media_player_start(file_player));
 		wait_for_eof(&eof, 100, timeout);
 		ms_media_player_close(file_player);

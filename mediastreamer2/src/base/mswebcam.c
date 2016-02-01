@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //static MSWebCamManager *scm=NULL;
 
-static MSWebCamManager * create_manager(void){
+MSWebCamManager * ms_web_cam_manager_new(void){
 	MSWebCamManager *obj=(MSWebCamManager *)ms_new0(MSWebCamManager,1);
 	obj->factory = NULL;
 	return obj;
@@ -42,18 +42,8 @@ void ms_web_cam_manager_destroy(MSWebCamManager* scm){
 	scm=NULL;
 }
 
-MSWebCamManager * ms_web_cam_manager_get(MSWebCamManager* scm){
-	if (scm==NULL) scm=create_manager();
-	return scm;
-}
-
-MSFactory * ms_web_cam_factory_get(MSWebCam *c){
-	return (ms_web_cam_manager_get(c->wbcmanager))->factory;
-}
-
-MSWebCamManager* ms_factory_get_wbc_manager(MSFactory* f){
-	if(f == NULL) return create_manager();
-	return ms_web_cam_manager_get(f->wbcmanager);
+MSFactory * ms_web_cam_get_factory(MSWebCam *c){
+	return c->wbcmanager->factory;
 }
 
 MSWebCam * ms_web_cam_manager_get_cam(MSWebCamManager *m, const char *id){
@@ -133,9 +123,9 @@ const char *ms_web_cam_get_string_id(MSWebCam *obj){
 	return obj->id;
 }
 
-struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj, MSFactory* factory){
+struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj){
 	if (obj->desc->create_reader!=NULL)
-		return obj->desc->create_reader(obj, factory);
+		return obj->desc->create_reader(obj);
 	else ms_warning("ms_web_cam_create_reader: unimplemented by %s wrapper",obj->desc->driver_type);
 	return NULL;
 }
@@ -146,3 +136,10 @@ void ms_web_cam_destroy(MSWebCam *obj){
 	if (obj->id!=NULL)	ms_free(obj->id);
 	ms_free(obj);
 }
+
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+MSWebCamManager * ms_web_cam_manager_get(void){
+	return ms_factory_get_web_cam_manager(ms_factory_get_fallback());
+}
+

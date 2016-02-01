@@ -40,12 +40,11 @@ struct _MSFactory{
 	struct _MSEventQueue *evq;
 	int max_payload_size;
 	int mtu;
-	bool_t statistics_enabled;
-	bool_t voip_initd;
-	int ref_count;
-	int managers_ref;
 	struct _MSSndCardManager* sndcardmanager;
 	struct _MSWebCamManager* wbcmanager;
+	void (*voip_uninit_func)(struct _MSFactory*);
+	bool_t statistics_enabled;
+	bool_t voip_initd;
 };
 
 typedef struct _MSFactory MSFactory;
@@ -54,11 +53,11 @@ typedef struct _MSFactory MSFactory;
 extern "C" {
 #endif
 
-#ifndef LINPHONE_DEPRECATED
+#ifndef MS2_DEPRECATED
 #if defined(_MSC_VER)
-#define LINPHONE_DEPRECATED __declspec(deprecated)
+#define MS2_DEPRECATED __declspec(deprecated)
 #else
-#define LINPHONE_DEPRECATED __attribute__ ((deprecated))
+#define MS2_DEPRECATED __attribute__ ((deprecated))
 #endif
 #endif
 	
@@ -68,15 +67,20 @@ extern "C" {
 MS2_PUBLIC MSFactory *ms_factory_new(void);
 
 /**
+ * Create a mediastreamer2 factory and initialize all voip related filter, card and webcam managers.
+**/
+MS2_PUBLIC MSFactory* ms_factory_new_with_voip(void);
+
+/**
  * Create the fallback factory (for compatibility with applications not using MSFactory to create ms2 object)
 **/
-LINPHONE_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_create_fallback(void);
+MS2_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_create_fallback(void);
 
 /**
  * Used by the legacy functions before MSFactory was added.
  * Do not use in an application.
 **/
-LINPHONE_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_get_fallback(void);
+MS2_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_get_fallback(void);
 
 /**
  * Destroy the factory.
@@ -84,15 +88,15 @@ LINPHONE_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_get_fallback(void);
 **/
 MS2_PUBLIC void ms_factory_destroy(MSFactory *factory);
 
+/*
+ * Obtain the soundcard manager.
+**/
+MS2_PUBLIC struct _MSSndCardManager* ms_factory_get_snd_card_manager(MSFactory *f);
+
 /**
- * Exits the factory : unset voip and destroys the factory if there is no references to it.
- * Ensures it can be destroyed before destroying all objects created by the factory.
- **/
-MS2_PUBLIC MSFactory* ms_factory_exit(MSFactory* factory);
-	
-MS2_PUBLIC MSFactory* ms_factory_create(MSFactory* f);
-	
-MS2_PUBLIC struct _MSSndCardManager* ms_factory_get_snd_manager(MSFactory *f);
+ * Obtain the webcam manager.
+*/
+MS2_PUBLIC struct _MSWebCamManager* ms_factory_get_web_cam_manager(MSFactory* f);
 
 
 MS2_PUBLIC void ms_factory_register_filter(MSFactory *factory, MSFilterDesc *desc);
@@ -299,7 +303,9 @@ MS2_PUBLIC int ms_factory_get_payload_max_size(MSFactory *factory);
 
 MS2_PUBLIC void ms_factory_set_payload_max_size(MSFactory *obj, int size);
 	
-MS2_PUBLIC	void ms_factory_set_mtu(MSFactory *obj, int mtu);
+MS2_PUBLIC void ms_factory_set_mtu(MSFactory *obj, int mtu);
+
+MS2_PUBLIC int ms_factory_get_mtu(MSFactory *obj);
 
 MS2_PUBLIC const struct _MSFmtDescriptor * ms_factory_get_audio_format(MSFactory *obj, const char *mime, int rate, int channels, const char *fmtp);
 

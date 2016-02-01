@@ -114,7 +114,7 @@ int main(int argc, char *argv[]){
 	ms_filter_destroy(det);
 	ms_filter_destroy(rec);
 
-	factory = ms_factory_exit(factory);
+	ms_factory_destroy(factory);
 	//ms_base_exit();
 	return 0;
 }

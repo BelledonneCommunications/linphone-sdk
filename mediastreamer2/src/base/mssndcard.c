@@ -23,9 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/mssndcard.h"
 
-//static MSSndCardManager *scm=NULL;
 
-static MSSndCardManager * create_manager(void){
+MSSndCardManager * ms_snd_card_manager_new(void){
 	MSSndCardManager *obj=(MSSndCardManager *)ms_new0(MSSndCardManager,1);
 	obj->factory = NULL;
 	obj->cards=NULL;
@@ -33,7 +32,7 @@ static MSSndCardManager * create_manager(void){
 	return obj;
 }
 
-void ms_snd_card_manager_destroy(void* sndcardmanager){
+void ms_snd_card_manager_destroy(MSSndCardManager* sndcardmanager){
 	MSSndCardManager* scm = (MSSndCardManager*) sndcardmanager;
 	if (scm!=NULL){
 		MSList *elem;
@@ -50,18 +49,8 @@ void ms_snd_card_manager_destroy(void* sndcardmanager){
 	scm=NULL;
 }
 
-MSSndCardManager * ms_snd_card_manager_get(MSSndCardManager *scm){
-	if (scm==NULL) scm=create_manager();
-	return scm;
-}
-
-MSFactory * ms_snd_card_factory_get(MSSndCard * c){
-	return (ms_snd_card_manager_get(c->sndcardmanager))->factory;
-}
-
-MSSndCardManager* ms_factory_get_snd_manager(MSFactory* f){
-	if(f == NULL) return create_manager();
-	return ms_snd_card_manager_get(f->sndcardmanager);
+MSFactory * ms_snd_card_get_factory(MSSndCard * c){
+	return c->sndcardmanager->factory;
 }
 
 MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id){
@@ -114,7 +103,6 @@ const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m){
 void ms_snd_card_set_manager(MSSndCardManager*m, MSSndCard *c){
 	if (c->sndcardmanager == NULL) c->sndcardmanager = m;
 }
-
 
 void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
 	ms_snd_card_set_manager(m,c);
@@ -286,3 +274,10 @@ void ms_alsa_card_set_forced_sample_rate(int samplerate){
 }
 #endif
 #endif
+
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+MSSndCardManager* ms_snd_card_manager_get(void) {
+	return ms_factory_get_snd_card_manager(ms_factory_get_fallback());
+}
+

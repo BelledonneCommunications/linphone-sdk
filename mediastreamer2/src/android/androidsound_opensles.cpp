@@ -251,7 +251,6 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 	if (initOpenSLES() == 0) { // Try to dlopen libOpenSLES
 		ms_message("libOpenSLES correctly loaded, creating OpenSLES MS soundcard");
 		MSSndCard *card = android_snd_card_new();
-		ms_snd_card_set_manager(m,card);
 		ms_snd_card_manager_add_card(m, card);
 	} else {
 		ms_warning("Failed to dlopen libOpenSLES, OpenSLES MS soundcard unavailable");
@@ -628,7 +627,7 @@ static MSFilter* ms_android_snd_read_new(MSFactory *factory) {
 }
 
 static MSFilter *android_snd_card_create_reader(MSSndCard *card) {
-	MSFilter *f = ms_android_snd_read_new(ms_snd_card_factory_get(card));
+	MSFilter *f = ms_android_snd_read_new(ms_snd_card_get_factory(card));
 	OpenSLESInputContext *ictx = static_cast<OpenSLESInputContext*>(f->data);
 	ictx->setContext((OpenSLESContext*)card->data);
 	return f;
@@ -843,7 +842,7 @@ static OpenSLESOutputContext* opensles_output_context_init() {
 }
 
 static MSFilter *android_snd_card_create_writer(MSSndCard *card) {
-	MSFilter *f = ms_android_snd_write_new(ms_snd_card_factory_get(card));
+	MSFilter *f = ms_android_snd_write_new(ms_snd_card_get_factory(card));
 	OpenSLESOutputContext *octx = static_cast<OpenSLESOutputContext*>(f->data);
 	octx->setContext((OpenSLESContext*)card->data);
 	return f;

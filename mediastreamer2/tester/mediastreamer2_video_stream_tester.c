@@ -51,8 +51,7 @@ MSWebCam* mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr) {
 }
 
 static int tester_before_all(void) {
-	//ms_init();
-	_factory = ms_factory_create(_factory);
+	_factory = ms_factory_new_with_voip();
 	
 	ms_factory_create_filter(_factory, TRUE);
 	ortp_init();
@@ -63,9 +62,7 @@ static int tester_before_all(void) {
 }
 
 static int tester_after_all(void) {
-	//ms_exit();
-	
-	_factory = ms_factory_exit(_factory);
+	ms_factory_destroy(_factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }
@@ -109,7 +106,7 @@ void video_stream_tester_set_local_ip(video_stream_tester_t* obj,const char*ip) 
 video_stream_tester_t* video_stream_tester_new(void) {
 	video_stream_tester_t* vst = ms_new0(video_stream_tester_t,1);
 	video_stream_tester_set_local_ip(vst,"127.0.0.1");
-	vst->cam = ms_web_cam_manager_get_cam(ms_factory_get_wbc_manager(_factory), "StaticImage: Static picture");
+	vst->cam = ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(_factory), "StaticImage: Static picture");
 	vst->local_rtp=-1; /*random*/
 	vst->local_rtcp=-1; /*random*/
 	return  vst;
@@ -210,7 +207,7 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 }
 
 static void create_video_stream(video_stream_tester_t *vst, int payload_type) {
-	vst->vs = video_stream_new2(vst->local_ip, vst->local_rtp, vst->local_rtcp,_factory);
+	vst->vs = video_stream_new2(_factory, vst->local_ip, vst->local_rtp, vst->local_rtcp);
 	vst->vs->staticimage_webcam_fps_optimization = FALSE;
 	vst->local_rtp = rtp_session_get_local_port(vst->vs->ms.sessions.rtp_session);
 	vst->local_rtcp = rtp_session_get_local_rtcp_port(vst->vs->ms.sessions.rtp_session);
@@ -287,7 +284,7 @@ static void uninit_video_streams(video_stream_tester_t *vst1, video_stream_teste
 }
 
 static void change_codec(video_stream_tester_t *vst1, video_stream_tester_t *vst2, int payload_type) {
-	MSWebCam *no_webcam = ms_web_cam_manager_get_cam(ms_factory_get_wbc_manager(_factory), "StaticImage: Static picture");
+	MSWebCam *no_webcam = ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(_factory), "StaticImage: Static picture");
 
 	if (vst1->payload_type == payload_type) return;
 
@@ -465,7 +462,7 @@ static void avpf_rpsi_count(void) {
 	marielle->vconf->fps=15;
 	marielle->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	marielle->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
-	marielle->cam = mediastreamer2_tester_get_mire_webcam(ms_factory_get_wbc_manager(_factory));
+	marielle->cam = mediastreamer2_tester_get_mire_webcam(ms_factory_get_web_cam_manager(_factory));
 
 
 	margaux->vconf=ms_new0(MSVideoConfiguration,1);
@@ -473,7 +470,7 @@ static void avpf_rpsi_count(void) {
 	margaux->vconf->fps=5; /*to save cpu resource*/
 	margaux->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	margaux->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
-	margaux->cam = mediastreamer2_tester_get_mire_webcam(ms_factory_get_wbc_manager(_factory));
+	margaux->cam = mediastreamer2_tester_get_mire_webcam(ms_factory_get_web_cam_manager(_factory));
 
 	if (supported) {
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
@@ -681,8 +678,8 @@ static void video_configuration_stream_base(MSVideoConfiguration* asked, MSVideo
 		BC_ASSERT_TRUE(ms_video_size_equal(video_stream_get_received_video_size(marielle->vs),
 			margaux->vconf->vsize));
 		BC_ASSERT_TRUE(fabs(video_stream_get_received_framerate(marielle->vs)-margaux->vconf->fps) <2);
-		if (ms_web_cam_manager_get_cam(ms_factory_get_wbc_manager(_factory), "StaticImage: Static picture")
-				!= ms_web_cam_manager_get_default_cam(ms_factory_get_wbc_manager(_factory))) {
+		if (ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(_factory), "StaticImage: Static picture")
+				!= ms_web_cam_manager_get_default_cam(ms_factory_get_web_cam_manager(_factory))) {
 			// BC_ASSERT_TRUE(abs(media_stream_get_down_bw((MediaStream*)marielle->vs) - margaux->vconf->required_bitrate) < 0.20f * margaux->vconf->required_bitrate);
 		} /*else this test require a real webcam*/
 

@@ -46,12 +46,13 @@ extern "C"{
 
 /**
  * Instanciate a media player
+ * @param factory a MSFactory
  * @param snd_card Playback sound card
  * @param video_display_name Video out
  * @param window_id Pointer on the drawing window
  * @return A pointer on the created MSMediaPlayer
  */
-MS2_PUBLIC MSMediaPlayer *ms_media_player_new(MSSndCard *snd_card, const char *video_display_name, void *window_id);
+MS2_PUBLIC MSMediaPlayer *ms_media_player_new(MSFactory *factory, MSSndCard *snd_card, const char *video_display_name, void *window_id);
 
 /**
  * Free a media player
@@ -80,7 +81,7 @@ MS2_PUBLIC void ms_media_player_set_eof_callback(MSMediaPlayer *obj, MSMediaPlay
  * @param filepath Path of the file to open
  * @return TRUE if the file could be opened
  */
-MS2_PUBLIC bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath, MSFactory *factory);
+MS2_PUBLIC bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath);
 
 /**
  * Close a media file

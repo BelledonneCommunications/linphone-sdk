@@ -43,11 +43,7 @@ static void filter_register_tester(void) {
 	MSFilter* filter;
 	MSFactory* factory = NULL;
 	
-	factory = ms_factory_create(factory);
-	factory = ms_factory_create(factory);
-	
-	//ms_init();
-	//ms_init();
+	factory = ms_factory_new_with_voip();
 
 	BC_ASSERT_PTR_NOT_NULL(ms_factory_lookup_filter_by_name(factory, "MSVoidSource"));
 
@@ -55,18 +51,14 @@ static void filter_register_tester(void) {
 	filter= ms_factory_create_decoder(factory, "pcma");
 	BC_ASSERT_PTR_NOT_NULL(filter);
 	ms_filter_destroy(filter);
-
-	factory = ms_factory_exit(factory);
-
 
 	BC_ASSERT_PTR_NOT_NULL(ms_factory_lookup_filter_by_name(factory,"MSVoidSource"));
 	filter= ms_factory_create_decoder(factory, "pcma");
 	BC_ASSERT_PTR_NOT_NULL(filter);
 	ms_filter_destroy(filter);
 
-
-	factory = ms_factory_exit(factory);
-	BC_ASSERT_PTR_NULL(factory);
+	ms_factory_destroy(factory);
+	
 }
 #ifdef VIDEO_ENABLED
 static void test_video_processing (void) {
@@ -154,7 +146,7 @@ static void test_filterdesc_enable_disable_base(const char* mime, const char* fi
 	MSFilter *filter;
 
 	MSFactory *factory = NULL;
-	factory = ms_factory_create(factory);
+	factory = ms_factory_new_with_voip();
 
 	if (is_enc)
 			filter = ms_factory_create_encoder(factory,mime);
@@ -182,7 +174,7 @@ static void test_filterdesc_enable_disable_base(const char* mime, const char* fi
 
 	ms_filter_destroy(filter);
 	
-	factory = ms_factory_exit(factory);
+	ms_factory_destroy(factory);
 }
 static void test_filterdesc_enable_disable(void) {
 	test_filterdesc_enable_disable_base("pcmu", "MSUlawDec", FALSE);

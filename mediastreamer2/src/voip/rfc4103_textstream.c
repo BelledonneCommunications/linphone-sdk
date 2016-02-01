@@ -39,7 +39,7 @@ static void text_stream_free(TextStream *stream) {
 static void text_stream_process_rtcp(MediaStream *media_stream, mblk_t *m) {
 }
 
-TextStream *text_stream_new_with_sessions(const MSMediaStreamSessions *sessions, MSFactory *factory) {
+TextStream *text_stream_new_with_sessions(MSFactory *factory, const MSMediaStreamSessions *sessions) {
 	TextStream *stream = (TextStream *)ms_new0(TextStream, 1);
 	stream->pt_red = 0;
 	stream->pt_t140 = 0;
@@ -68,21 +68,20 @@ TextStream *text_stream_new_with_sessions(const MSMediaStreamSessions *sessions,
 	return stream;
 }
 
-TextStream *text_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6, MSFactory *factory) {
-	return text_stream_new2(ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port,factory);
+TextStream *text_stream_new(MSFactory *factory, int loc_rtp_port, int loc_rtcp_port, bool_t ipv6) {
+	return text_stream_new2(factory, ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port);
 }
 
-TextStream *text_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port, MSFactory *factory) {
+TextStream *text_stream_new2(MSFactory *factory, const char* ip, int loc_rtp_port, int loc_rtcp_port) {
 	TextStream *stream;
 	MSMediaStreamSessions sessions = {0};
-	sessions.rtp_session = ms_create_duplex_rtp_session(ip, loc_rtp_port, loc_rtcp_port);
-	stream = text_stream_new_with_sessions(&sessions, factory);
+	sessions.rtp_session = ms_create_duplex_rtp_session(ip, loc_rtp_port, loc_rtcp_port, ms_factory_get_mtu(factory));
+	stream = text_stream_new_with_sessions(factory, &sessions);
 	stream->ms.owns_sessions = TRUE;
 	return stream;
 }
 
-TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const char *rem_rtp_addr, int rem_rtp_port, const char *rem_rtcp_addr, int rem_rtcp_port, int payload_type /* ignored */,
-								MSFactory * factory) {
+TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const char *rem_rtp_addr, int rem_rtp_port, const char *rem_rtcp_addr, int rem_rtcp_port, int payload_type /* ignored */) {
 	RtpSession *rtps = stream->ms.sessions.rtp_session;
 	MSConnectionHelper h;
 	
@@ -107,14 +106,14 @@ TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const cha
 	rtp_session_set_payload_type(rtps, payload_type);
 	
 	if (rem_rtp_port > 0) ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_SET_SESSION, rtps);
-	stream->ms.rtprecv = ms_factory_create_filter(factory, MS_RTP_RECV_ID);
+	stream->ms.rtprecv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
 	ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, rtps);
 	stream->ms.sessions.rtp_session = rtps;
 	
 	if (stream->ms.sessions.ticker == NULL) media_stream_start_ticker(&stream->ms);
 
-	stream->rttsource = ms_factory_create_filter(factory, MS_RTT_4103_SOURCE_ID);
-	stream->rttsink = ms_factory_create_filter(factory, MS_RTT_4103_SINK_ID);
+	stream->rttsource = ms_factory_create_filter(stream->ms.factory, MS_RTT_4103_SOURCE_ID);
+	stream->rttsink = ms_factory_create_filter(stream->ms.factory, MS_RTT_4103_SINK_ID);
 	
 	ms_filter_call_method(stream->rttsource, MS_RTT_4103_SOURCE_SET_T140_PAYLOAD_TYPE_NUMBER, &stream->pt_t140);
 	ms_filter_call_method(stream->rttsink, MS_RTT_4103_SINK_SET_T140_PAYLOAD_TYPE_NUMBER, &stream->pt_t140);

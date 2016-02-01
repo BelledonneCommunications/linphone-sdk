@@ -104,10 +104,10 @@ int main(int argc, char *argv[]){
 	signal(SIGINT,stop_handler);
 	
 	/*initialize mediastreamer2*/
-	factory = ms_factory_create(factory);
+	factory = ms_factory_new_with_voip();
 	
 	/*create the video stream */
-	stream = video_stream_new(local_port, local_port+1, FALSE, factory);
+	stream = video_stream_new(factory, local_port, local_port+1, FALSE);
 	
 	/*define its local input and outputs with the MSMediaStreamIO structure*/
 	if (mode == PLAY_MODE){
@@ -158,7 +158,7 @@ end:
 	/*free the RTP profile and payload type inside*/
 	if (profile) rtp_profile_destroy(profile);
 	
-	factory = ms_factory_exit(factory);
+	ms_factory_destroy(factory);
 	
 	return err;
 }

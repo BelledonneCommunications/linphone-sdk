@@ -31,9 +31,7 @@ int main(int argc, char *argv[]){
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	
 	
-	factory = ms_factory_new();
-	ms_factory_init_voip(factory);
-	ms_factory_init_plugins(factory);
+	factory = ms_factory_new_with_voip();
 	
 	if (argc>1){
 		file=argv[1];
@@ -42,16 +40,16 @@ int main(int argc, char *argv[]){
 		card_id=argv[2];
 	}
 
-	sc=ms_snd_card_manager_get_card(ms_factory_get_snd_manager(factory),card_id);
+	sc=ms_snd_card_manager_get_card(ms_factory_get_snd_card_manager(factory),card_id);
 #ifdef __linux
 	if (sc==NULL)
 	  sc = ms_alsa_card_new_custom(card_id, card_id);
 #endif
 
-	r=ring_start(file,2000,sc, factory);
+	r=ring_start(factory, file,2000,sc);
 	ms_sleep(10);
 	ring_stop(r);
 	
-	factory = ms_factory_exit(factory);
+	ms_factory_destroy(factory);
 	return 0;
 }

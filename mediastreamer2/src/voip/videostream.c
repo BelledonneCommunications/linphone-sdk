@@ -268,21 +268,21 @@ static float video_stream_get_rtcp_xr_average_lq_quality_rating(void *userdata) 
 }
 
 
-VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6, MSFactory* factory){
-	return video_stream_new2( use_ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port, factory);
+VideoStream *video_stream_new(MSFactory* factory, int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6){
+	return video_stream_new2(factory, use_ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port);
 }
 
-VideoStream *video_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port, MSFactory* factory) {
+VideoStream *video_stream_new2(MSFactory* factory, const char* ip, int loc_rtp_port, int loc_rtcp_port) {
 	MSMediaStreamSessions sessions={0};
 	VideoStream *obj;
-	sessions.rtp_session=ms_create_duplex_rtp_session(ip,loc_rtp_port,loc_rtcp_port);
-	obj=video_stream_new_with_sessions(&sessions, factory);
+	sessions.rtp_session=ms_create_duplex_rtp_session(ip,loc_rtp_port,loc_rtcp_port, ms_factory_get_mtu(factory));
+	obj=video_stream_new_with_sessions(factory, &sessions);
 	obj->ms.owns_sessions=TRUE;
 	return obj;
 }
 
 
-VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *sessions, MSFactory* factory){
+VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStreamSessions *sessions){
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
 	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
 		NULL,
@@ -721,7 +721,7 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 			break;
 			case MSResourceCamera:
 				cam = io->input.camera;
-				source = ms_web_cam_create_reader(cam, stream->ms.factory);
+				source = ms_web_cam_create_reader(cam);
 			break;
 			case MSResourceFile:
 				source = ms_factory_create_filter(stream->ms.factory, MS_MKV_PLAYER_ID);
@@ -1238,7 +1238,7 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 				ms_filter_call_method(sink,MS_ITC_SINK_CONNECT,stream->source);
 				stream->player_active = TRUE;
 			} else {
-				stream->source = new_source ? new_source : ms_web_cam_create_reader(cam, stream->ms.factory);
+				stream->source = new_source ? new_source : ms_web_cam_create_reader(cam);
 				stream->cam = cam;
 				stream->player_active = FALSE;
 			}
@@ -1552,7 +1552,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	if (stream->fps!=0) fps=stream->fps;
 	else fps=(float)29.97;
 
-	stream->source = ms_web_cam_create_reader(device, stream->ms.factory);
+	stream->source = ms_web_cam_create_reader(device);
 
 	/* Transmit orientation to source filter. */
 	if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))

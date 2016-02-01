@@ -64,8 +64,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 
-LINPHONE_DEPRECATED static MSFactory *fallback_factory=NULL;
-
+MS2_DEPRECATED static MSFactory *fallback_factory=NULL;
 
 static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj);
 
@@ -140,14 +139,6 @@ static MSFilterStats *find_or_create_stats(MSFactory *factory, MSFilterDesc *des
 		factory->stats_list=ms_list_append(factory->stats_list,ret);
 	}else ret=(MSFilterStats*)elem->data;
 	return ret;
-}
-
-/**
- * Used by the legacy functions before MSFactory was added.
- * Do not use in an application.
-**/
-MSFactory *ms_factory_get_fallback(void){
-	return fallback_factory;
 }
 
 void ms_factory_init(MSFactory *obj){
@@ -227,12 +218,7 @@ void ms_factory_init(MSFactory *obj){
 	ms_free(tags);
 }
 
-MSFactory *ms_factory_create_fallback(void){
-	if (fallback_factory==NULL){
-		fallback_factory=ms_factory_new();
-	}
-	return fallback_factory;
-}
+
 
 MSFactory *ms_factory_new(void){
 	MSFactory *obj=ms_new0(MSFactory,1);
@@ -246,7 +232,6 @@ MSFactory *ms_factory_new(void){
  * This should be done after destroying all objects created by the factory.
 **/
 void ms_factory_destroy(MSFactory *factory){
-
 		ms_factory_uninit_plugins(factory);
 		if (factory->evq) ms_factory_destroy_event_queue(factory);
 		factory->formats=ms_list_free_with_data(factory->formats,(void(*)(void*))ms_fmt_descriptor_destroy);
@@ -258,7 +243,6 @@ void ms_factory_destroy(MSFactory *factory){
 		factory->platform_tags = ms_list_free(factory->platform_tags);
 		if (factory->plugins_dir) ms_free(factory->plugins_dir);
 		ms_free(factory);
-
 		//if (factory==fallback_factory) fallback_factory=NULL;
 }
 
@@ -386,10 +370,14 @@ MSFilter *ms_factory_create_filter_from_desc(MSFactory* factory, MSFilterDesc *d
 		obj->desc->init(obj);
 	return obj;
 }
-//
-//struct _MSSndCardManager* ms_factory_get_snd_card_manager(MSFactory *factory){
-//	return factory->scm;
-//}
+
+struct _MSSndCardManager* ms_factory_get_snd_card_manager(MSFactory *factory){
+	return factory->sndcardmanager;
+}
+
+struct _MSWebCamManager* ms_factory_get_web_cam_manager(MSFactory* f){
+	return f->wbcmanager;
+}
 
 MSFilter *ms_factory_create_filter(MSFactory* factory, MSFilterId id){
 	MSFilterDesc *desc;
@@ -894,3 +882,24 @@ JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_MediastreamerAndroidCon
 	return result;
 }
 #endif
+
+
+
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+MSFactory *ms_factory_create_fallback(void){
+	if (fallback_factory==NULL){
+		fallback_factory=ms_factory_new();
+	}
+	return fallback_factory;
+}
+
+/**
+ * Used by the legacy functions before MSFactory was added.
+ * Do not use in an application.
+**/
+MSFactory *ms_factory_get_fallback(void){
+	return fallback_factory;
+}
+
+

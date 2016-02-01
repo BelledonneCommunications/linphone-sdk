@@ -103,7 +103,7 @@ static int init_bench(struct bench_config *bench)
 	int val;
 	int count;
 	
-	bench->factory = ms_factory_create(bench->factory);
+	bench->factory = ms_factory_new_with_voip();
 	bench->ticker=ms_ticker_new();
 
 	count = 0;
@@ -329,8 +329,8 @@ static int uninit_bench(struct bench_config *bench)
 		ortp_free(ts);
 	}
 
-	bench->factory = ms_factory_exit(bench->factory);
 	ms_ticker_destroy(bench->ticker);
+	ms_factory_destroy(bench->factory);
 	return 0;
 }
 
