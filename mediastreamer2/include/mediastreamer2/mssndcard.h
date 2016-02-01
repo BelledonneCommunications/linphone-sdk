@@ -162,7 +162,12 @@ extern "C"{
  * Returns: MSSndCardManager if successfull, NULL otherwise.
  */
 MS2_PUBLIC MS2_DEPRECATED MSSndCardManager * ms_snd_card_manager_get(void);
-	
+
+/**
+ * Retrieve a factory from a sound card object.
+ * @param c MSSndCard object.
+ * Returns: MSFactory pointer.
+ */
 MS2_PUBLIC MSFactory * ms_snd_card_get_factory(MSSndCard * c);
 
 /**
@@ -226,6 +231,13 @@ MS2_PUBLIC const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m);
  */
 MS2_PUBLIC void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c);
 	
+/**
+ * Set the sound card manager of a sound card.
+ *
+ * @param m    A sound card manager containing sound cards.
+ * @param c    A sound card object.
+ *
+ */
 MS2_PUBLIC void ms_snd_card_set_manager(MSSndCardManager*m, MSSndCard *c);
 
 /**

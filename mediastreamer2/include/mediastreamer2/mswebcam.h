@@ -99,6 +99,10 @@ extern "C"{
  */
 MS2_PUBLIC MS2_DEPRECATED MSWebCamManager * ms_web_cam_manager_get(void);
 
+/**
+ * Returns the factory from the webcam object.
+ * @param c MSWebCam used to get to the factory.
+ */
 MS2_PUBLIC MSFactory * ms_web_cam_get_factory(MSWebCam *c);
 
 /**

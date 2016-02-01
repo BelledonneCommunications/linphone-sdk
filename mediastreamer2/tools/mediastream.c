@@ -1159,7 +1159,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_chang
 	char* id = (char*)malloc(15);
 	snprintf(id, 15, "Android%d", camId);
 	ms_message("Changing camera, trying to use: '%s'\n", id);
-	video_stream_change_camera(args->video, ms_web_cam_manager_get_cam(ms_factory_get_wbc_manager(args->video->ms.factory), id));
+	video_stream_change_camera(args->video, ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(args->video->ms.factory), id));
 #endif
 }
 
