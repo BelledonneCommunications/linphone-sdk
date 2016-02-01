@@ -160,6 +160,7 @@ extern "C"{
  * Retreive a sound card manager object.
  *
  * Returns: MSSndCardManager if successfull, NULL otherwise.
+ * @deprecated use ms_factory_get_snd_card_manager()
  */
 MS2_PUBLIC MS2_DEPRECATED MSSndCardManager * ms_snd_card_manager_get(void);
 

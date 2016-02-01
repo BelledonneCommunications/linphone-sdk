@@ -242,6 +242,7 @@ extern "C"{
  * supported.
  *
  * @param desc    a filter description.
+ * @deprecated use ms_factory_register_filter().
  */
 MS2_PUBLIC MS2_DEPRECATED void ms_filter_register(MSFilterDesc *desc);
 
@@ -250,7 +251,8 @@ MS2_PUBLIC MS2_DEPRECATED void ms_filter_register(MSFilterDesc *desc);
  *
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilterDesc if successfull, NULL otherwise.
+ * @return a MSFilterDesc if successfull, NULL otherwise.
+ * @deprecated use ms_factory_get_encoding_capturer().
  */
 MS2_PUBLIC MS2_DEPRECATED MSFilterDesc * ms_filter_get_encoding_capturer(const char *mime);
 
@@ -259,35 +261,30 @@ MS2_PUBLIC MS2_DEPRECATED MSFilterDesc * ms_filter_get_encoding_capturer(const c
  *
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilterDesc if successfull, NULL otherwise.
+ * @returns a MSFilterDesc if successfull, NULL otherwise.
+ * @deprecated use ms_factory_get_decoding_renderer()
  */
 MS2_PUBLIC MS2_DEPRECATED MSFilterDesc * ms_filter_get_decoding_renderer(const char *mime);
 
 /**
  * Retrieve encoders according to codec name.
  *
- * Internal supported codecs:
- *    PCMU, PCMA, speex, gsm
- * Existing Public plugins:
- *    iLBC
  *
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilterDesc if successfull, NULL otherwise.
+ * @return a MSFilterDesc if successfull, NULL otherwise.
+ * @deprecated use ms_factory_get_encoder().
  */
 MS2_PUBLIC MS2_DEPRECATED MSFilterDesc * ms_filter_get_encoder(const char *mime);
 
 /**
  * Retrieve decoders according to codec name.
  *
- * Internal supported codecs:
- *    PCMU, PCMA, speex, gsm
- * Existing Public plugins:
- *    iLBC
  *
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilterDesc if successfull, NULL otherwise.
+ * @return a MSFilterDesc if successfull, NULL otherwise.
+ * @deprecated use ms_factory_get_decoder().
  */
 MS2_PUBLIC MS2_DEPRECATED MSFilterDesc * ms_filter_get_decoder(const char *mime);
 
@@ -298,6 +295,8 @@ MS2_PUBLIC MS2_DEPRECATED MSFilterDesc * ms_filter_get_decoder(const char *mime)
  * This function can be useful to query the presence of a filter loaded as a plugin, for example.
  *
  * @param filter_name The filter name.
+ * @return a MSFilterDesc or NULL if no match.
+ * @deprecated use ms_factory_lookup_filter_by_name().
 **/
 MS2_PUBLIC MS2_DEPRECATED MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name);
 
@@ -306,48 +305,38 @@ MS2_PUBLIC MS2_DEPRECATED MSFilterDesc *ms_filter_lookup_by_name(const char *fil
  * The list itself must be freed by the caller of this function, but not the MSFilterDesc pointed by the list elements.
  * @param id a filter interface id
  * @return a newly allocated MSList of #MSFilterDesc.
+ * @deprecated use ms_factory_lookup_filter_by_interface().
 **/
 MS2_PUBLIC MS2_DEPRECATED MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id);
 
 /**
  * Create encoder filter according to codec name.
- *
- * Internal supported codecs:
- *    PCMU, PCMA, speex, gsm
- * Existing Public plugins:
- *    iLBC
- *
+ 
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilter if successfull, NULL otherwise.
+ * @return a MSFilter if successfull, NULL otherwise.
+ * @deprecated use ms_factory_create_encoder().
  */
 MS2_PUBLIC MS2_DEPRECATED MSFilter * ms_filter_create_encoder(const char *mime);
 
 /**
  * Create decoder filter according to codec name.
  *
- * Internal supported codecs:
- *    PCMU, PCMA, speex, gsm
- * Existing Public plugins:
- *    iLBC
  *
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilter if successfull, NULL otherwise.
+ * @return a MSFilter if successfull, NULL otherwise.
+ * @deprecated use ms_factory_create_decoder().
  */
 MS2_PUBLIC MS2_DEPRECATED MSFilter * ms_filter_create_decoder(const char *mime);
 
 /**
- * Check if a encode or decode filter exists for a codec name.
- *
- * Internal supported codecs:
- *    PCMU, PCMA, speex, gsm
- * Existing Public plugins:
- *    iLBC
+ * Check if both an encoder and a decoder filter exists for a codec name.
  *
  * @param mime    A string indicating the codec.
  *
- * Returns: TRUE if successfull, FALSE otherwise.
+ * @return TRUE if successfull, FALSE otherwise.
+ * @deprecated use ms_factory_codec_supported().
  */
 MS2_PUBLIC MS2_DEPRECATED bool_t ms_filter_codec_supported(const char *mime);
 
@@ -356,7 +345,8 @@ MS2_PUBLIC MS2_DEPRECATED bool_t ms_filter_codec_supported(const char *mime);
  *
  * @param id     A MSFilterId identifier for the filter.
  *
- * Returns: a MSFilter if successfull, NULL otherwise.
+ * @returns a MSFilter if successfull, NULL otherwise.
+ * @deprecated use ms_factory_create_filter().
  */
 MS2_PUBLIC MS2_DEPRECATED MSFilter *ms_filter_new(MSFilterId id);
 
@@ -365,7 +355,8 @@ MS2_PUBLIC MS2_DEPRECATED MSFilter *ms_filter_new(MSFilterId id);
  *
  * @param name   A name for the filter.
  *
- * Returns: a MSFilter if successfull, NULL otherwise.
+ * @return a MSFilter if successfull, NULL otherwise.
+ * @deprecated use ms_factory_create_filter_from_name().
  */
 MS2_PUBLIC MS2_DEPRECATED MSFilter *ms_filter_new_from_name(const char *name);
 
@@ -377,7 +368,8 @@ MS2_PUBLIC MS2_DEPRECATED MSFilter *ms_filter_new_from_name(const char *name);
  *
  * @param desc   A MSFilterDesc for the filter.
  *
- * Returns: a MSFilter if successfull, NULL otherwise.
+ * @return a MSFilter if successfull, NULL otherwise.
+ * @deprecated use ms_factory_create_filter_from_desc()
  */
 MS2_PUBLIC MS2_DEPRECATED MSFilter *ms_filter_new_from_desc(MSFilterDesc *desc);
 

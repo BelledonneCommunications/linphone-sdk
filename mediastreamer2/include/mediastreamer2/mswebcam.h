@@ -93,9 +93,10 @@ extern "C"{
 #endif
 
 /**
- * Retreive a webcam manager object.
+ * Retrieve a webcam manager object.
  *
- * Returns: MSWebCamManager if successfull, NULL otherwise.
+ * @returns: MSWebCamManager if successfull, NULL otherwise.
+ * @deprecated use ms_factory_get_web_cam_manager().
  */
 MS2_PUBLIC MS2_DEPRECATED MSWebCamManager * ms_web_cam_manager_get(void);
 
