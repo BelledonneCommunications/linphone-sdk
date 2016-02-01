@@ -59,8 +59,8 @@ struct _MSMediaPlayer {
 };
 
 static bool_t _get_format(const char *filepath, MSFileFormat *format);
-static void _create_decoders(MSMediaPlayer *obj);
-static void _create_sinks(MSMediaPlayer *obj);
+static void _create_decoders(MSMediaPlayer *obj, MSFactory *factory);
+static void _create_sinks(MSMediaPlayer *obj, MSFactory *factory);
 static void _destroy_graph(MSMediaPlayer *obj);
 static bool_t _link_all(MSMediaPlayer *obj);
 static void _unlink_all(MSMediaPlayer *obj);
@@ -106,7 +106,7 @@ void * ms_media_player_get_window_id(const MSMediaPlayer *obj) {
 	return obj->window_id;
 }
 
-bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
+bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath, MSFactory* factory) {
 	wave_header_t header;
 	int fd;
 	char *tmp;
@@ -135,10 +135,10 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 			ms_error("Cannot open %s. Codec not supported", filepath);
 			return FALSE;
 		}
-		obj->player = ms_filter_new(MS_FILE_PLAYER_ID);
+		obj->player = ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
 		break;
 	case MS_FILE_FORMAT_MATROSKA:
-		if((obj->player = ms_filter_new(MS_MKV_PLAYER_ID)) == NULL) {
+		if((obj->player = ms_factory_create_filter(factory, MS_MKV_PLAYER_ID)) == NULL) {
 			ms_error("Cannot open %s. Matroska file support is disabled", filepath);
 			return FALSE;
 		}
@@ -155,8 +155,8 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 		return FALSE;
 	}
 	ms_free(tmp);
-	_create_decoders(obj);
-	_create_sinks(obj);
+	_create_decoders(obj, factory);
+	_create_sinks(obj, factory);
 	if(!_link_all(obj)) {
 		ms_error("Cannot open %s. Could not build playing graph", filepath);
 		_destroy_graph(obj);
@@ -301,14 +301,14 @@ err:
 	return FALSE;
 }
 
-static void _create_decoders(MSMediaPlayer *obj) {
+static void _create_decoders(MSMediaPlayer *obj, MSFactory* factory) {
 	int sample_rate, nchannels;
 	switch(obj->format) {
 	case MS_FILE_FORMAT_WAVE:
 		ms_filter_call_method(obj->player, MS_FILTER_GET_SAMPLE_RATE, &sample_rate);
 		ms_filter_call_method(obj->player, MS_FILTER_GET_NCHANNELS, &nchannels);
 		obj->audio_pin_fmt.pin = 0;
-		obj->audio_pin_fmt.fmt = ms_factory_get_audio_format(ms_factory_get_fallback(), "pcm", sample_rate, nchannels, NULL);
+		obj->audio_pin_fmt.fmt = ms_factory_get_audio_format(factory, "pcm", sample_rate, nchannels, NULL);
 		break;
 	case MS_FILE_FORMAT_MATROSKA:
 		obj->audio_pin_fmt.pin = 1;
@@ -316,7 +316,7 @@ static void _create_decoders(MSMediaPlayer *obj) {
 		ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &obj->audio_pin_fmt);
 		ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &obj->video_pin_fmt);
 		if(obj->audio_pin_fmt.fmt) {
-			obj->audio_decoder = ms_factory_create_decoder(ms_factory_get_fallback(), obj->audio_pin_fmt.fmt->encoding);
+			obj->audio_decoder = ms_factory_create_decoder(factory, obj->audio_pin_fmt.fmt->encoding);
 			if(obj->audio_decoder == NULL) {
 				ms_error("Could not create audio decoder for %s", obj->audio_pin_fmt.fmt->encoding);
 				obj->audio_pin_fmt.fmt = NULL;
@@ -328,7 +328,7 @@ static void _create_decoders(MSMediaPlayer *obj) {
 			}
 		}
 		if(obj->video_pin_fmt.fmt) {
-			obj->video_decoder = ms_factory_create_decoder(ms_factory_get_fallback(), obj->video_pin_fmt.fmt->encoding);
+			obj->video_decoder = ms_factory_create_decoder(factory, obj->video_pin_fmt.fmt->encoding);
 			if(obj->video_decoder == NULL) {
 				ms_error("Could not create video decoder for %s", obj->video_pin_fmt.fmt->encoding);
 				obj->video_pin_fmt.fmt = NULL;
@@ -340,7 +340,7 @@ static void _create_decoders(MSMediaPlayer *obj) {
 	}
 }
 
-static void _create_sinks(MSMediaPlayer *obj) {
+static void _create_sinks(MSMediaPlayer *obj, MSFactory* factory) {
 	int sink_sample_rate, sample_rate, sink_nchannels, nchannels;
 	bool_t need_resampler = FALSE;
 	if(obj->audio_pin_fmt.fmt && obj->snd_card) {
@@ -359,7 +359,7 @@ static void _create_sinks(MSMediaPlayer *obj) {
 			}
 			if (need_resampler == TRUE) {
 				ms_message("Resampling to %dHz", sink_sample_rate);
-				obj->resampler = ms_filter_new(MS_RESAMPLE_ID);
+				obj->resampler = ms_factory_create_filter(factory, MS_RESAMPLE_ID);
 				ms_filter_call_method(obj->resampler, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 				ms_filter_call_method(obj->resampler, MS_FILTER_SET_OUTPUT_SAMPLE_RATE, &sink_sample_rate);
 				ms_filter_call_method(obj->resampler, MS_FILTER_SET_NCHANNELS, &nchannels);
@@ -372,7 +372,7 @@ static void _create_sinks(MSMediaPlayer *obj) {
 	}
 	if(obj->video_pin_fmt.fmt) {
 		if(obj->video_display) {
-			obj->video_sink = ms_filter_new_from_name(obj->video_display);
+			obj->video_sink = ms_factory_create_filter_from_name(factory, obj->video_display);
 			if(obj->video_sink) {
 				if(obj->window_id) ms_filter_call_method(obj->video_sink, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &obj->window_id);
 			} else {

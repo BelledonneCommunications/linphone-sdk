@@ -544,7 +544,7 @@ static void enc_process(MSFilter *f) {
 				(flags & VP8_EFLAG_NO_REF_LAST) ? "NOREFLAST" : "         ");
 #endif
 
-			vp8rtpfmt_packer_process(&s->packer, list, f->outputs[0]);
+			vp8rtpfmt_packer_process(&s->packer, list, f->outputs[0], f->factory);
 
 			/* Handle video starter if AVPF is not enabled. */
 			s->frame_count++;

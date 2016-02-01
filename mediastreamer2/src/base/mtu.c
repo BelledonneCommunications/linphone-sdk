@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/mscommon.h"
 
+#include "mediastreamer2/msfactory.h"
+
 #define UDP_HEADER_SIZE   8
 #define IPV4_HEADER_SIZE 20
 #define IPV6_HEADER_SIZE 40
@@ -290,6 +292,7 @@ void ms_set_mtu(int mtu){
 		ms_set_mtu(MS_MTU_DEFAULT);
 	}
 }
+
 
 int ms_get_mtu(void){
 	return ms_mtu;

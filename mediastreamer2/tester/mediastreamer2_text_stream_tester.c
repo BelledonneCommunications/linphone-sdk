@@ -32,8 +32,11 @@ static RtpProfile rtp_profile;
 #define T140_PAYLOAD_TYPE 98
 #define T140_RED_PAYLOAD_TYPE 99
 
+static MSFactory *_factory = NULL;
 static int tester_init(void) {
-	ms_init();
+	//ms_init();
+	_factory = ms_factory_create(_factory);
+	
 	ortp_init();
 	rtp_profile_set_payload(&rtp_profile, T140_PAYLOAD_TYPE, &payload_type_t140);
 	rtp_profile_set_payload(&rtp_profile, T140_RED_PAYLOAD_TYPE, &payload_type_t140_red);
@@ -41,7 +44,9 @@ static int tester_init(void) {
 }
 
 static int tester_cleanup(void) {
-	ms_exit();
+	//ms_exit();
+	
+	_factory = ms_factory_exit(_factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }
@@ -96,7 +101,7 @@ void text_stream_tester_destroy(text_stream_tester_t* obj) {
 }
 
 static void create_text_stream(text_stream_tester_t *tst, int payload_type) {
-	tst->ts = text_stream_new2(tst->local_ip, tst->local_rtp, tst->local_rtcp);
+	tst->ts = text_stream_new2(tst->local_ip, tst->local_rtp, tst->local_rtcp, _factory);
 	tst->local_rtp = rtp_session_get_local_port(tst->ts->ms.sessions.rtp_session);
 	tst->local_rtcp = rtp_session_get_local_rtcp_port(tst->ts->ms.sessions.rtp_session);
 	reset_stats(&tst->stats);
@@ -131,9 +136,9 @@ static void init_text_streams(text_stream_tester_t *tst1, text_stream_tester_t *
 		rtp_session_enable_network_simulation(tst2->ts->ms.sessions.rtp_session, params);
 	}
 	
-	text_stream_start(tst1->ts, &rtp_profile, tst2->local_ip, tst2->local_rtp, tst2->local_ip, tst2->local_rtcp, payload_type);
+	text_stream_start(tst1->ts, &rtp_profile, tst2->local_ip, tst2->local_rtp, tst2->local_ip, tst2->local_rtcp, payload_type, _factory);
 	ms_filter_add_notify_callback(tst1->ts->rttsink, real_time_text_character_received, tst1, TRUE);
-	text_stream_start(tst2->ts, &rtp_profile, tst1->local_ip, tst1->local_rtp, tst1->local_ip, tst1->local_rtcp, payload_type);
+	text_stream_start(tst2->ts, &rtp_profile, tst1->local_ip, tst1->local_rtp, tst1->local_ip, tst1->local_rtcp, payload_type, _factory);
 	ms_filter_add_notify_callback(tst2->ts->rttsink, real_time_text_character_received, tst2, TRUE);
 }
 

@@ -39,17 +39,17 @@ static void text_stream_free(TextStream *stream) {
 static void text_stream_process_rtcp(MediaStream *media_stream, mblk_t *m) {
 }
 
-TextStream *text_stream_new_with_sessions(const MSMediaStreamSessions *sessions) {
+TextStream *text_stream_new_with_sessions(const MSMediaStreamSessions *sessions, MSFactory *factory) {
 	TextStream *stream = (TextStream *)ms_new0(TextStream, 1);
 	stream->pt_red = 0;
 	stream->pt_t140 = 0;
 
 	stream->ms.type = MSText;
 	stream->ms.sessions = *sessions;
-	media_stream_init(&stream->ms, ms_factory_get_fallback());
+	media_stream_init(&stream->ms, factory);
 
-	ms_filter_enable_statistics(TRUE);
-	ms_filter_reset_statistics();
+	ms_factory_enable_statistics(factory, TRUE);
+	ms_factory_reset_statistics(factory);
 
 	if (sessions->zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
@@ -59,7 +59,7 @@ TextStream *text_stream_new_with_sessions(const MSMediaStreamSessions *sessions)
 	}
 	rtp_session_resync(stream->ms.sessions.rtp_session);
 	/*some filters are created right now to allow configuration by the application before start() */
-	stream->ms.rtpsend = ms_filter_new(MS_RTP_SEND_ID);
+	stream->ms.rtpsend = ms_factory_create_filter(factory, MS_RTP_SEND_ID);
 	stream->ms.ice_check_list = NULL;
 	stream->ms.qi = ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi, "text");
@@ -68,20 +68,21 @@ TextStream *text_stream_new_with_sessions(const MSMediaStreamSessions *sessions)
 	return stream;
 }
 
-TextStream *text_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6) {
-	return text_stream_new2(ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port);
+TextStream *text_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6, MSFactory *factory) {
+	return text_stream_new2(ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port,factory);
 }
 
-TextStream *text_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port) {
+TextStream *text_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port, MSFactory *factory) {
 	TextStream *stream;
 	MSMediaStreamSessions sessions = {0};
 	sessions.rtp_session = ms_create_duplex_rtp_session(ip, loc_rtp_port, loc_rtcp_port);
-	stream = text_stream_new_with_sessions(&sessions);
+	stream = text_stream_new_with_sessions(&sessions, factory);
 	stream->ms.owns_sessions = TRUE;
 	return stream;
 }
 
-TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const char *rem_rtp_addr, int rem_rtp_port, const char *rem_rtcp_addr, int rem_rtcp_port, int payload_type /* ignored */) {
+TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const char *rem_rtp_addr, int rem_rtp_port, const char *rem_rtcp_addr, int rem_rtcp_port, int payload_type /* ignored */,
+								MSFactory * factory) {
 	RtpSession *rtps = stream->ms.sessions.rtp_session;
 	MSConnectionHelper h;
 	
@@ -106,14 +107,14 @@ TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const cha
 	rtp_session_set_payload_type(rtps, payload_type);
 	
 	if (rem_rtp_port > 0) ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_SET_SESSION, rtps);
-	stream->ms.rtprecv = ms_filter_new(MS_RTP_RECV_ID);
+	stream->ms.rtprecv = ms_factory_create_filter(factory, MS_RTP_RECV_ID);
 	ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, rtps);
 	stream->ms.sessions.rtp_session = rtps;
 	
 	if (stream->ms.sessions.ticker == NULL) media_stream_start_ticker(&stream->ms);
 
-	stream->rttsource = ms_filter_new(MS_RTT_4103_SOURCE_ID);
-	stream->rttsink = ms_filter_new(MS_RTT_4103_SINK_ID);
+	stream->rttsource = ms_factory_create_filter(factory, MS_RTT_4103_SOURCE_ID);
+	stream->rttsink = ms_factory_create_filter(factory, MS_RTT_4103_SINK_ID);
 	
 	ms_filter_call_method(stream->rttsource, MS_RTT_4103_SOURCE_SET_T140_PAYLOAD_TYPE_NUMBER, &stream->pt_t140);
 	ms_filter_call_method(stream->rttsink, MS_RTT_4103_SINK_SET_T140_PAYLOAD_TYPE_NUMBER, &stream->pt_t140);
@@ -163,9 +164,9 @@ void text_stream_stop(TextStream *stream) {
 			ms_connection_helper_unlink(&h, stream->rttsink, 0, -1);
 		}
 	}
-	
+	ms_factory_log_statistics(stream->ms.factory);
 	text_stream_free(stream);
-	ms_filter_log_statistics();
+	
 }
 
 void text_stream_iterate(TextStream *stream) {
@@ -180,11 +181,11 @@ void text_stream_putchar32(TextStream *stream, uint32_t ic) {
 
 void text_stream_prepare_text(TextStream *stream){
 	text_stream_unprepare_text(stream);
-	stream->ms.rtprecv = ms_filter_new(MS_RTP_RECV_ID);
+	stream->ms.rtprecv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
 	rtp_session_set_payload_type(stream->ms.sessions.rtp_session, 0);
 	rtp_session_enable_rtcp(stream->ms.sessions.rtp_session, FALSE);
 	ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions.rtp_session);
-	stream->ms.voidsink = ms_filter_new(MS_VOID_SINK_ID);
+	stream->ms.voidsink = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
 	ms_filter_link(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
 	media_stream_start_ticker(&stream->ms);
 	ms_ticker_attach(stream->ms.sessions.ticker, stream->ms.rtprecv);

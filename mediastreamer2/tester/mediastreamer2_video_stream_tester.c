@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static RtpProfile rtp_profile;
+static MSFactory* _factory = NULL;
 
 #define VP8_PAYLOAD_TYPE   103
 #define H264_PAYLOAD_TYPE  104
@@ -50,8 +51,10 @@ MSWebCam* mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr) {
 }
 
 static int tester_before_all(void) {
-	ms_init();
-	ms_filter_enable_statistics(TRUE);
+	//ms_init();
+	_factory = ms_factory_create(_factory);
+	
+	ms_factory_create_filter(_factory, TRUE);
 	ortp_init();
 	rtp_profile_set_payload(&rtp_profile, VP8_PAYLOAD_TYPE, &payload_type_vp8);
 	rtp_profile_set_payload(&rtp_profile, H264_PAYLOAD_TYPE, &payload_type_h264);
@@ -60,7 +63,9 @@ static int tester_before_all(void) {
 }
 
 static int tester_after_all(void) {
-	ms_exit();
+	//ms_exit();
+	
+	_factory = ms_factory_exit(_factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }
@@ -104,7 +109,7 @@ void video_stream_tester_set_local_ip(video_stream_tester_t* obj,const char*ip) 
 video_stream_tester_t* video_stream_tester_new(void) {
 	video_stream_tester_t* vst = ms_new0(video_stream_tester_t,1);
 	video_stream_tester_set_local_ip(vst,"127.0.0.1");
-	vst->cam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
+	vst->cam = ms_web_cam_manager_get_cam(ms_factory_get_wbc_manager(_factory), "StaticImage: Static picture");
 	vst->local_rtp=-1; /*random*/
 	vst->local_rtcp=-1; /*random*/
 	return  vst;
@@ -205,7 +210,7 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 }
 
 static void create_video_stream(video_stream_tester_t *vst, int payload_type) {
-	vst->vs = video_stream_new2(vst->local_ip, vst->local_rtp, vst->local_rtcp);
+	vst->vs = video_stream_new2(vst->local_ip, vst->local_rtp, vst->local_rtcp,_factory);
 	vst->vs->staticimage_webcam_fps_optimization = FALSE;
 	vst->local_rtp = rtp_session_get_local_port(vst->vs->ms.sessions.rtp_session);
 	vst->local_rtcp = rtp_session_get_local_rtcp_port(vst->vs->ms.sessions.rtp_session);
@@ -282,7 +287,7 @@ static void uninit_video_streams(video_stream_tester_t *vst1, video_stream_teste
 }
 
 static void change_codec(video_stream_tester_t *vst1, video_stream_tester_t *vst2, int payload_type) {
-	MSWebCam *no_webcam = ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture");
+	MSWebCam *no_webcam = ms_web_cam_manager_get_cam(ms_factory_get_wbc_manager(_factory), "StaticImage: Static picture");
 
 	if (vst1->payload_type == payload_type) return;
 
@@ -294,7 +299,7 @@ static void change_codec(video_stream_tester_t *vst1, video_stream_tester_t *vst
 static void basic_video_stream(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
 
 	if (supported) {
 		init_video_streams(marielle, margaux, FALSE, FALSE, NULL,VP8_PAYLOAD_TYPE);
@@ -313,7 +318,7 @@ static void basic_video_stream(void) {
 static void basic_one_way_video_stream(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
 
 	if (supported) {
 		init_video_streams(marielle, margaux, FALSE, TRUE, NULL,VP8_PAYLOAD_TYPE);
@@ -332,9 +337,9 @@ static void basic_one_way_video_stream(void) {
 static void codec_change_for_video_stream(void) {
 	video_stream_tester_t *marielle = video_stream_tester_new();
 	video_stream_tester_t *margaux = video_stream_tester_new();
-	bool_t vp8_supported = ms_filter_codec_supported("vp8");
-	bool_t h264_supported = ms_filter_codec_supported("h264");
-	bool_t mp4v_supported = ms_filter_codec_supported("mp4v-es");
+	bool_t vp8_supported = ms_factory_codec_supported(_factory, "vp8");
+	bool_t h264_supported = ms_factory_codec_supported(_factory, "h264");
+	bool_t mp4v_supported = ms_factory_codec_supported(_factory, "mp4v-es");
 
 	if (vp8_supported) {
 		init_video_streams(marielle, margaux, FALSE, FALSE, NULL, VP8_PAYLOAD_TYPE);
@@ -367,7 +372,7 @@ static void codec_change_for_video_stream(void) {
 static void multicast_video_stream(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
 	video_stream_tester_set_local_ip(marielle,"224.1.2.3");
 	marielle->local_rtcp=0; /*no rtcp*/
 	video_stream_tester_set_local_ip(margaux,"0.0.0.0");
@@ -399,7 +404,7 @@ static void avpf_video_stream(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
     int dummy = 0;
     
     
@@ -452,7 +457,7 @@ static void avpf_rpsi_count(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
 	int dummy=0;
 	int delay = 11000;
 	marielle->vconf=ms_new0(MSVideoConfiguration,1);
@@ -460,7 +465,7 @@ static void avpf_rpsi_count(void) {
 	marielle->vconf->fps=15;
 	marielle->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	marielle->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
-	marielle->cam = mediastreamer2_tester_get_mire_webcam(ms_web_cam_manager_get());
+	marielle->cam = mediastreamer2_tester_get_mire_webcam(ms_factory_get_wbc_manager(_factory));
 
 
 	margaux->vconf=ms_new0(MSVideoConfiguration,1);
@@ -468,7 +473,7 @@ static void avpf_rpsi_count(void) {
 	margaux->vconf->fps=5; /*to save cpu resource*/
 	margaux->vconf->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	margaux->vconf->vsize.width=MS_VIDEO_SIZE_CIF_W;
-	margaux->cam = mediastreamer2_tester_get_mire_webcam(ms_web_cam_manager_get());
+	margaux->cam = mediastreamer2_tester_get_mire_webcam(ms_factory_get_wbc_manager(_factory));
 
 	if (supported) {
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
@@ -493,7 +498,7 @@ static void video_stream_first_iframe_lost_vp8(void) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
-	bool_t supported = ms_filter_codec_supported("vp8");
+	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
 
 	if (supported) {
 		int dummy=0;
@@ -544,10 +549,10 @@ static void avpf_video_stream_first_iframe_lost_base(int payload_type) {
 
 	switch (payload_type) {
 		case VP8_PAYLOAD_TYPE:
-			supported = ms_filter_codec_supported("vp8");
+			supported = ms_factory_codec_supported(_factory, "vp8");
 			break;
 		case H264_PAYLOAD_TYPE:
-			supported = ms_filter_codec_supported("h264");
+			supported = ms_factory_codec_supported(_factory, "h264");
 			break;
 		default:
 			break;
@@ -601,10 +606,10 @@ static void avpf_high_loss_video_stream_base(float rate, int payload_type) {
 
 	switch (payload_type) {
 		case VP8_PAYLOAD_TYPE:
-			supported = ms_filter_codec_supported("vp8");
+			supported = ms_factory_codec_supported(_factory, "vp8");
 			break;
 		case H264_PAYLOAD_TYPE:
-			supported = ms_filter_codec_supported("h264");
+			supported = ms_factory_codec_supported(_factory, "h264");
 			break;
 		default:
 			break;
@@ -656,7 +661,7 @@ static void video_configuration_stream_base(MSVideoConfiguration* asked, MSVideo
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	PayloadType* pt = rtp_profile_get_payload(&rtp_profile, payload_type);
-	bool_t supported = pt?ms_filter_codec_supported(pt->mime_type):FALSE;
+	bool_t supported = pt?ms_factory_codec_supported(_factory, pt->mime_type):FALSE;
 
 	if (supported) {
 		margaux->vconf=ms_new0(MSVideoConfiguration,1);
@@ -676,8 +681,8 @@ static void video_configuration_stream_base(MSVideoConfiguration* asked, MSVideo
 		BC_ASSERT_TRUE(ms_video_size_equal(video_stream_get_received_video_size(marielle->vs),
 			margaux->vconf->vsize));
 		BC_ASSERT_TRUE(fabs(video_stream_get_received_framerate(marielle->vs)-margaux->vconf->fps) <2);
-		if (ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), "StaticImage: Static picture")
-				!= ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get())) {
+		if (ms_web_cam_manager_get_cam(ms_factory_get_wbc_manager(_factory), "StaticImage: Static picture")
+				!= ms_web_cam_manager_get_default_cam(ms_factory_get_wbc_manager(_factory))) {
 			// BC_ASSERT_TRUE(abs(media_stream_get_down_bw((MediaStream*)marielle->vs) - margaux->vconf->required_bitrate) < 0.20f * margaux->vconf->required_bitrate);
 		} /*else this test require a real webcam*/
 

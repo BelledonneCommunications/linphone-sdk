@@ -40,8 +40,8 @@ using namespace::fake_android;
 static const float audio_buf_ms=0.01;
 
 static MSSndCard * android_snd_card_new(SoundDeviceDescription *d);
-static MSFilter * ms_android_snd_read_new(void);
-static MSFilter * ms_android_snd_write_new(void);
+static MSFilter * ms_android_snd_read_new(MSFactory* factory);
+static MSFilter * ms_android_snd_write_new(MSFactory* factory);
 static Library *libmedia=0;
 static Library *libutils=0;
 
@@ -205,13 +205,13 @@ struct AndroidSndWriteData{
 };
 
 static MSFilter *android_snd_card_create_reader(MSSndCard *card){
-	MSFilter *f=ms_android_snd_read_new();
+	MSFilter *f=ms_android_snd_read_new(ms_snd_card_factory_get(card));
 	(static_cast<AndroidSndReadData*>(f->data))->setCard(card);
 	return f;
 }
 
 static MSFilter *android_snd_card_create_writer(MSSndCard *card){
-	MSFilter *f=ms_android_snd_write_new();
+	MSFilter *f=ms_android_snd_write_new(ms_snd_card_factory_get(card));
 	(static_cast<AndroidSndWriteData*>(f->data))->setCard((AndroidNativeSndCardData*)card->data);
 	return f;
 }
@@ -267,6 +267,7 @@ static void android_snd_card_detect(MSSndCardManager *m){
 	if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded && refbase_loaded && !(d->flags & DEVICE_HAS_UNSTANDARD_LIBMEDIA)){
 		ms_message("Native android sound support available.");
 		MSSndCard *card=android_snd_card_new(d);
+		ms_snd_card_set_manager(m,card);
 		ms_snd_card_manager_add_card(m,card);
 		return;
 	}
@@ -561,8 +562,8 @@ MSFilterDesc android_snd_read_desc={
 	android_snd_read_methods
 };
 
-static MSFilter * ms_android_snd_read_new(){
-	MSFilter *f=ms_filter_new_from_desc(&android_snd_read_desc);
+static MSFilter * ms_android_snd_read_new(MSFactory *factory){
+	MSFilter *f=ms_factory_create_filter_from_desc(factory, &android_snd_read_desc);
 	return f;
 }
 
@@ -817,8 +818,8 @@ MSFilterDesc android_snd_write_desc={
 	android_snd_write_methods
 };
 
-static MSFilter * ms_android_snd_write_new(void){
-	MSFilter *f=ms_filter_new_from_desc(&android_snd_write_desc);
+static MSFilter * ms_android_snd_write_new(MSFactory* factory){
+	MSFilter *f=ms_factory_create_filter_from_desc(factory, &android_snd_write_desc);
 	return f;
 }
 

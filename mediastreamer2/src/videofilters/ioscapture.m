@@ -770,7 +770,7 @@ static void ms_v4ios_cam_init(MSWebCam *cam) {
 
 static MSFilter *ms_v4ios_create_reader(MSWebCam *obj) {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	MSFilter *f= ms_filter_new_from_desc(&ms_ioscapture_desc);
+	MSFilter *f= ms_factory_create_filter_from_desc(ms_web_cam_factory_get(obj),(&ms_ioscapture_desc);
 	[((IOSCapture*)f->data) openDevice:obj->data];
 	[pool drain];
 	return f;

@@ -46,13 +46,13 @@ struct _MSAudioEndpoint{
 
 
 
-MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params){
+MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params, MSFactory* factory){
 	MSAudioConference *obj=ms_new0(MSAudioConference,1);
 	int tmp=1;
 	obj->ticker=ms_ticker_new();
 	ms_ticker_set_name(obj->ticker,"Audio conference MSTicker");
 	ms_ticker_set_priority(obj->ticker,__ms_get_default_prio(FALSE));
-	obj->mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
+	obj->mixer = ms_factory_create_filter(factory, MS_AUDIO_MIXER_ID);
 	obj->params=*params;
 	ms_filter_call_method(obj->mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&tmp);
 	ms_filter_call_method(obj->mixer,MS_FILTER_SET_SAMPLE_RATE,&obj->params.samplerate);
@@ -220,10 +220,17 @@ void ms_audio_conference_destroy(MSAudioConference *obj){
 	ms_free(obj);
 }
 
+//MSAudioEndpoint *ms_audio_endpoint_new(void){
+//	MSAudioEndpoint *ep=ms_new0(MSAudioEndpoint,1);
+//	ep->in_resampler=ms_filter_new(MS_RESAMPLE_ID);
+//	ep->out_resampler=ms_filter_new(MS_RESAMPLE_ID);
+//	ep->samplerate=8000;
+//	return ep;
+//}
+
 MSAudioEndpoint *ms_audio_endpoint_new(void){
 	MSAudioEndpoint *ep=ms_new0(MSAudioEndpoint,1);
-	ep->in_resampler=ms_filter_new(MS_RESAMPLE_ID);
-	ep->out_resampler=ms_filter_new(MS_RESAMPLE_ID);
+
 	ep->samplerate=8000;
 	return ep;
 }
@@ -231,6 +238,8 @@ MSAudioEndpoint *ms_audio_endpoint_new(void){
 MSAudioEndpoint * ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote){
 	MSAudioEndpoint *ep=ms_audio_endpoint_new();
 	ep->st=st;
+	ep->in_resampler=ms_factory_create_filter(st->ms.factory, MS_RESAMPLE_ID);
+	ep->out_resampler=ms_factory_create_filter(st->ms.factory, MS_RESAMPLE_ID);
 	cut_audio_stream_graph(ep,is_remote);
 	return ep;
 }
@@ -248,10 +257,12 @@ void ms_audio_endpoint_destroy(MSAudioEndpoint *ep){
 	ms_free(ep);
 }
 
-MSAudioEndpoint * ms_audio_endpoint_new_recorder(){
+MSAudioEndpoint * ms_audio_endpoint_new_recorder(MSFactory* factory){
 	MSAudioEndpoint *ep=ms_audio_endpoint_new();
-	ep->recorder=ms_filter_new(MS_FILE_REC_ID);
-	ep->player=ms_filter_new(MS_FILE_PLAYER_ID);
+	ep->in_resampler=ms_factory_create_filter(factory, MS_RESAMPLE_ID);
+	ep->out_resampler=ms_factory_create_filter(factory, MS_RESAMPLE_ID);
+	ep->recorder=ms_factory_create_filter(factory, MS_FILE_REC_ID);
+	ep->player=ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
 	ep->mixer_out.filter=ep->recorder;
 	ep->mixer_in.filter=ep->player;
 	ep->samplerate=-1;

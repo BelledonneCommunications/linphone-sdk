@@ -153,8 +153,8 @@ static void mire_cam_init(MSWebCam *cam){
 	cam->name=ms_strdup("Mire (synthetic moving picture)");
 }
 
-static MSFilter *mire_create_reader(MSWebCam *obj){
-	return ms_filter_new_from_desc(&ms_mire_desc);
+static MSFilter *mire_create_reader(MSWebCam *obj, MSFactory * factory){
+	return ms_factory_create_filter_from_desc(factory, &ms_mire_desc);
 }
 
 MSWebCamDesc ms_mire_webcam_desc={

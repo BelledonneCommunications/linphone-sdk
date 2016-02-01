@@ -474,7 +474,7 @@ static void ms_vfw_cam_init(MSWebCam *cam){
 
 
 static MSFilter *ms_vfw_create_reader(MSWebCam *obj){
-	MSFilter *f= ms_filter_new_from_desc(&ms_vfw_desc);
+	MSFilter *f= ms_factory_create_filter_from_desc(ms_web_cam_factory_get(obj), (&ms_vfw_desc);
 	VfwState *s=(VfwState*)f->data;
 	s->eng=(VfwEngine*)obj->data;
 	return f;

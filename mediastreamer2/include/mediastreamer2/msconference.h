@@ -75,9 +75,10 @@ extern "C" {
 /**
  * Creates a conference.
  * @param params a MSAudioConferenceParams structure, containing conference parameters.
+ * @param factory a MSFactory structure, containing filters parameters
  * @return a MSAudioConference object.
 **/
-MS2_PUBLIC MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params);
+MS2_PUBLIC MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params, MSFactory *factory);
 
 /**
  * Gets conference's current parameters.
@@ -176,7 +177,7 @@ MS2_PUBLIC void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj);
 /**
  * Creates an audio endpoint (or virtual participant) to record the conference into a wav file.
 **/
-MS2_PUBLIC MSAudioEndpoint * ms_audio_endpoint_new_recorder(void);
+MS2_PUBLIC MSAudioEndpoint * ms_audio_endpoint_new_recorder(MSFactory* factory);
 
 /**
  * Start audio recording.

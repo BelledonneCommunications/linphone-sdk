@@ -64,7 +64,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 
-static MSFactory *fallback_factory=NULL;
+LINPHONE_DEPRECATED static MSFactory *fallback_factory=NULL;
 
 
 static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj);
@@ -240,25 +240,27 @@ MSFactory *ms_factory_new(void){
 	return obj;
 }
 
+
 /**
  * Destroy the factory.
  * This should be done after destroying all objects created by the factory.
 **/
 void ms_factory_destroy(MSFactory *factory){
-	ms_factory_uninit_plugins(factory);
-	if (factory->evq) ms_event_queue_destroy(factory->evq);
-	factory->formats=ms_list_free_with_data(factory->formats,(void(*)(void*))ms_fmt_descriptor_destroy);
-	factory->desc_list=ms_list_free(factory->desc_list);
-	ms_list_for_each(factory->stats_list,ms_free);
-	factory->stats_list=ms_list_free(factory->stats_list);
-	factory->offer_answer_provider_list = ms_list_free(factory->offer_answer_provider_list);
-	ms_list_for_each(factory->platform_tags, ms_free);
-	factory->platform_tags = ms_list_free(factory->platform_tags);
-	if (factory->plugins_dir) ms_free(factory->plugins_dir);
-	ms_free(factory);
-	if (factory==fallback_factory) fallback_factory=NULL;
-}
 
+		ms_factory_uninit_plugins(factory);
+		if (factory->evq) ms_factory_destroy_event_queue(factory);
+		factory->formats=ms_list_free_with_data(factory->formats,(void(*)(void*))ms_fmt_descriptor_destroy);
+		factory->desc_list=ms_list_free(factory->desc_list);
+		ms_list_for_each(factory->stats_list,ms_free);
+		factory->stats_list=ms_list_free(factory->stats_list);
+		factory->offer_answer_provider_list = ms_list_free(factory->offer_answer_provider_list);
+		ms_list_for_each(factory->platform_tags, ms_free);
+		factory->platform_tags = ms_list_free(factory->platform_tags);
+		if (factory->plugins_dir) ms_free(factory->plugins_dir);
+		ms_free(factory);
+
+		//if (factory==fallback_factory) fallback_factory=NULL;
+}
 
 
 void ms_factory_register_filter(MSFactory* factory, MSFilterDesc* desc ) {
@@ -362,7 +364,8 @@ MSFilter * ms_factory_create_encoder(MSFactory* factory, const char *mime){
 }
 
 MSFilter * ms_factory_create_decoder(MSFactory* factory, const char *mime){
-	MSFilterDesc *desc=ms_filter_get_decoder(mime);
+	//MSFilterDesc *desc=ms_filter_get_decoder(mime);
+	MSFilterDesc *desc = ms_factory_get_decoder(factory, mime);
 	if (desc!=NULL) return ms_factory_create_filter_from_desc(factory,desc);
 	return NULL;
 }
@@ -383,6 +386,10 @@ MSFilter *ms_factory_create_filter_from_desc(MSFactory* factory, MSFilterDesc *d
 		obj->desc->init(obj);
 	return obj;
 }
+//
+//struct _MSSndCardManager* ms_factory_get_snd_card_manager(MSFactory *factory){
+//	return factory->scm;
+//}
 
 MSFilter *ms_factory_create_filter(MSFactory* factory, MSFilterId id){
 	MSFilterDesc *desc;
@@ -727,6 +734,15 @@ struct _MSEventQueue *ms_factory_create_event_queue(MSFactory *obj) {
 	}
 	return obj->evq;
 }
+
+void ms_factory_destroy_event_queue(MSFactory *obj) {
+	
+	ms_event_queue_destroy(obj->evq);
+	ms_factory_set_event_queue(obj,NULL);
+	
+	
+}
+
 
 struct _MSEventQueue *ms_factory_get_event_queue(MSFactory *obj){
 	return obj->evq;

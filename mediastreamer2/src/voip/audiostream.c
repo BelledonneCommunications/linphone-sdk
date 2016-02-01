@@ -136,7 +136,8 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, void *data)
 			return FALSE;
 		}
 
-		dec = ms_filter_create_decoder(pt->mime_type);
+		//dec = ms_filter_create_decoder(pt->mime_type);
+		dec = ms_factory_create_decoder(stream->ms.factory, pt->mime_type);
 		if (dec != NULL) {
 			MSFilter *nextFilter = stream->ms.decoder->outputs[0]->next.filter;
 
@@ -235,7 +236,7 @@ bool_t audio_stream_started(AudioStream *stream){
 /* This function is used either on IOS to workaround the long time to initialize the Audio Unit or for ICE candidates gathering. */
 void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndCard *captcard){
 	audio_stream_unprepare_sound(stream);
-	stream->dummy=ms_filter_new(MS_RTP_RECV_ID);
+	stream->dummy=ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
 	rtp_session_set_payload_type(stream->ms.sessions.rtp_session,0);
 	rtp_session_enable_rtcp(stream->ms.sessions.rtp_session, FALSE);
 	ms_filter_call_method(stream->dummy,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
@@ -246,12 +247,13 @@ void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndC
 		stream->soundwrite=ms_snd_card_create_writer(playcard);
 		ms_filter_link(stream->dummy,0,stream->soundwrite,0);
 #else
-		stream->ms.voidsink=ms_filter_new(MS_VOID_SINK_ID);
+		stream->ms.voidsink=ms_factory_create_filter(stream->ms.factory,  MS_VOID_SINK_ID);
 		ms_filter_link(stream->dummy,0,stream->ms.voidsink,0);
 #endif
 	} else {
-		stream->ms.voidsink=ms_filter_new(MS_VOID_SINK_ID);
+		stream->ms.voidsink=ms_factory_create_filter(stream->ms.factory,  MS_VOID_SINK_ID);
 		ms_filter_link(stream->dummy,0,stream->ms.voidsink,0);
+		
 	}
 	if (stream->ms.sessions.ticker == NULL) media_stream_start_ticker(&stream->ms);
 	ms_ticker_attach(stream->ms.sessions.ticker,stream->dummy);
@@ -299,8 +301,9 @@ static void setup_local_player(AudioStream *stream, int samplerate, int channels
 	MSConnectionHelper cnx;
 	int master=0;
 
-	stream->local_player=ms_filter_new(MS_FILE_PLAYER_ID);
-	stream->local_player_resampler=ms_filter_new(MS_RESAMPLE_ID);
+
+	stream->local_player=ms_factory_create_filter(stream->ms.factory, MS_FILE_PLAYER_ID);
+	stream->local_player_resampler=ms_factory_create_filter(stream->ms.factory, MS_RESAMPLE_ID);
 
 	ms_connection_helper_start(&cnx);
 	ms_connection_helper_link(&cnx,stream->local_player,-1,0);
@@ -374,11 +377,11 @@ static bool_t ci_ends_with(const char *filename, const char*suffix){
 	return strcasecmp(filename+filename_len-suffix_len,suffix)==0;
 }
 
-MSFilter *_ms_create_av_player(const char *filename){
+MSFilter *_ms_create_av_player(const char *filename, MSFactory* factory){
 	if (ci_ends_with(filename,".mkv"))
-		return ms_filter_new(MS_MKV_PLAYER_ID);
+		return ms_factory_create_filter(factory, MS_MKV_PLAYER_ID);
 	else if (ci_ends_with(filename,".wav"))
-		return ms_filter_new(MS_FILE_PLAYER_ID);
+		return ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
 	else
 		ms_error("Cannot open %s, unsupported file extension", filename);
 	return NULL;
@@ -494,7 +497,8 @@ static int open_av_player(AudioStream *stream, const char *filename){
 	MSPinFormat *videofmt=NULL;
 
 	if (player->player) close_av_player(stream);
-	player->player=_ms_create_av_player(filename);
+	//player->player=_ms_create_av_player(filename);
+	player->player=_ms_create_av_player(filename, stream->ms.factory);
 	if (player->player==NULL){
 		ms_warning("AudioStream[%p]: no way to open [%s].",stream,filename);
 		return -1;
@@ -537,15 +541,17 @@ static int open_av_player(AudioStream *stream, const char *filename){
 		}
 	}
 	if (audiofmt && audiofmt->fmt && strcasecmp(audiofmt->fmt->encoding,"pcm")!=0){
-		player->decoder=ms_filter_create_decoder(audiofmt->fmt->encoding);
+		player->decoder=ms_factory_create_decoder(stream->ms.factory, audiofmt->fmt->encoding);
+
 		if (player->decoder==NULL){
 			ms_warning("AudioStream[%p]: no way to decode [%s]",stream,filename);
 			close_av_player(stream);
 			return -1;
 		}
 	}
-	player->resampler=ms_filter_new(MS_RESAMPLE_ID);
-	if (videofmt && videofmt->fmt) player->video_output=ms_filter_new(MS_ITC_SINK_ID);
+	player->resampler=ms_factory_create_filter(stream->ms.factory, MS_RESAMPLE_ID);
+	if (videofmt && videofmt->fmt) player->video_output=ms_factory_create_filter(stream->videostream->ms.factory,MS_ITC_SINK_ID);
+
 	else player->videopin=-1;
 	configure_av_player(stream,audiofmt ? audiofmt->fmt : NULL ,videofmt ? videofmt->fmt : NULL);
 	if (stream->videostream) video_stream_open_player(stream->videostream,player->video_output);
@@ -595,17 +601,18 @@ static void av_recorder_handle_event(void *userdata, MSFilter *recorder, unsigne
 }
 
 static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannels){
-	stream->av_recorder.recorder=ms_filter_new(MS_MKV_RECORDER_ID);
+
+	stream->av_recorder.recorder=ms_factory_create_filter(stream->ms.factory, MS_MKV_RECORDER_ID);
 	if (stream->av_recorder.recorder){
 		MSPinFormat pinfmt={0};
-		stream->av_recorder.video_input=ms_filter_new(MS_ITC_SOURCE_ID);
-		stream->av_recorder.resampler=ms_filter_new(MS_RESAMPLE_ID);
-		stream->av_recorder.encoder=ms_filter_new(MS_OPUS_ENC_ID);
+		stream->av_recorder.video_input=ms_factory_create_filter(stream->ms.factory, MS_ITC_SOURCE_ID);
+		stream->av_recorder.resampler=ms_factory_create_filter(stream->ms.factory,MS_RESAMPLE_ID);
+		stream->av_recorder.encoder=ms_factory_create_filter(stream->ms.factory,MS_OPUS_ENC_ID);
 
 		if (stream->av_recorder.encoder==NULL){
 			int g711_rate=8000;
 			int g711_nchannels=1;
-			stream->av_recorder.encoder=ms_filter_new(MS_ULAW_ENC_ID);
+			stream->av_recorder.encoder=ms_factory_create_filter(stream->ms.factory, MS_ULAW_ENC_ID);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&g711_rate);
 			ms_filter_call_method(stream->av_recorder.resampler,MS_FILTER_SET_NCHANNELS,&nchannels);
@@ -665,9 +672,10 @@ static void setup_recorder(AudioStream *stream, int sample_rate, int nchannels){
 	int pin=1;
 	MSAudioMixerCtl mctl={0};
 
-	stream->recorder=ms_filter_new(MS_FILE_REC_ID);
-	stream->recorder_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
-	stream->recv_tee=ms_filter_new(MS_TEE_ID);
+	stream->recorder=ms_factory_create_filter(stream->ms.factory, MS_FILE_REC_ID);
+	stream->recorder_mixer=ms_factory_create_filter(stream->ms.factory, MS_AUDIO_MIXER_ID);
+	stream->recv_tee=ms_factory_create_filter(stream->ms.factory, MS_TEE_ID);
+
 	ms_filter_call_method(stream->recorder_mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&val);
 	ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_NCHANNELS,&nchannels);
@@ -716,13 +724,14 @@ static void setup_generic_confort_noise(AudioStream *stream){
 		ms_filter_call_method(stream->ms.decoder, MS_FILTER_GET_SAMPLE_RATE, &samplerate);
 		if (samplerate == 8000){
 			/* RFC3389 CN can be used only for 8khz codecs*/
-			stream->vaddtx=ms_filter_new(MS_VAD_DTX_ID);
+			stream->vaddtx=ms_factory_create_filter(stream->ms.factory, MS_VAD_DTX_ID);
 			if (stream->vaddtx) {
 				ms_filter_add_notify_callback(stream->vaddtx, on_silence_detected, stream, TRUE);
 				ms_filter_add_notify_callback(stream->ms.rtprecv, on_cn_received, stream, TRUE);
 			} else {
 				ms_warning("Cannot instantiate vaddtx filter!");
 			}
+
 		}
 	}
 }
@@ -784,12 +793,12 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 	if (rem_rtp_port>0)
 		ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,rtps);
-	stream->ms.rtprecv=ms_filter_new(MS_RTP_RECV_ID);
+	stream->ms.rtprecv=ms_factory_create_filter(stream->ms.factory,MS_RTP_RECV_ID);
 	ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,rtps);
 	stream->ms.sessions.rtp_session=rtps;
 
 	if((stream->features & AUDIO_STREAM_FEATURE_DTMF_ECHO) != 0)
-		stream->dtmfgen=ms_filter_new(MS_DTMF_GEN_ID);
+		stream->dtmfgen=ms_factory_create_filter(stream->ms.factory, MS_DTMF_GEN_ID);
 	else
 		stream->dtmfgen=NULL;
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,stream);
@@ -809,12 +818,13 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->rtp_io_session = io->input.session;
 		pt = rtp_profile_get_payload(rtp_session_get_profile(stream->rtp_io_session),
 			rtp_session_get_recv_payload_type(stream->rtp_io_session));
-		stream->soundread = ms_filter_new(MS_RTP_RECV_ID);
+		stream->soundread = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->soundread, MS_RTP_RECV_SET_SESSION, stream->rtp_io_session);
-		stream->read_decoder = ms_filter_create_decoder(pt->mime_type);
+		stream->read_decoder = ms_factory_create_decoder(stream->ms.factory, pt->mime_type);
 	} else {
-		stream->soundread=ms_filter_new(MS_FILE_PLAYER_ID);
-		stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
+		stream->soundread=ms_factory_create_filter(stream->ms.factory, MS_FILE_PLAYER_ID);
+		stream->read_resampler=ms_factory_create_filter(stream->ms.factory, MS_RESAMPLE_ID);
+
 	}
 	if (io->output.type == MSResourceSoundcard) {
 		if (stream->soundwrite==NULL)
@@ -823,11 +833,15 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->rtp_io_session = io->output.session;
 		pt = rtp_profile_get_payload(rtp_session_get_profile(stream->rtp_io_session),
 			rtp_session_get_send_payload_type(stream->rtp_io_session));
-		stream->soundwrite = ms_filter_new(MS_RTP_SEND_ID);
+		stream->soundwrite = ms_factory_create_filter(stream->ms.factory, MS_RTP_SEND_ID);
+
 		ms_filter_call_method(stream->soundwrite, MS_RTP_SEND_SET_SESSION, stream->rtp_io_session);
-		stream->write_encoder = ms_filter_create_encoder(pt->mime_type);
+
+		stream->write_encoder = ms_factory_create_decoder(stream->ms.factory,pt->mime_type);
+
 	} else {
-		stream->soundwrite=ms_filter_new(MS_FILE_REC_ID);
+		stream->soundwrite=ms_factory_create_filter(stream->ms.factory, MS_FILE_REC_ID);
+
 	}
 
 	/* creates the couple of encoder/decoder */
@@ -844,7 +858,8 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		&& ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
 		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
 		  inband dtmf*/
-		stream->dtmfgen_rtp=ms_filter_new (MS_DTMF_GEN_ID);
+		stream->dtmfgen_rtp=ms_factory_create_filter (stream->ms.factory, MS_DTMF_GEN_ID);
+
 	} else {
 		stream->dtmfgen_rtp=NULL;
 	}
@@ -856,8 +871,10 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		return -1;
 	}
 
-	stream->ms.encoder=ms_filter_create_encoder(pt->mime_type);
-	stream->ms.decoder=ms_filter_create_decoder(pt->mime_type);
+//	stream->ms.encoder=ms_filter_create_encoder(pt->mime_type);
+//	stream->ms.decoder=ms_filter_create_decoder(pt->mime_type);
+	stream->ms.encoder=ms_factory_create_encoder(stream->ms.factory, pt->mime_type);
+	stream->ms.decoder=ms_factory_create_decoder(stream->ms.factory, pt->mime_type);
 
 	/* sample rate is already set for rtpsend and rtprcv, check if we have to adjust it to */
 	/* be able to use the echo canceller wich may be limited (webrtc aecm max frequency is 16000 Hz) */
@@ -910,11 +927,12 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	stream->nchannels=nchannels;
 
 	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
-		stream->volsend=ms_filter_new(MS_VOLUME_ID);
-	else
+		stream->volsend=ms_factory_create_filter(stream->ms.factory, MS_VOLUME_ID);
+			else
 		stream->volsend=NULL;
 	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0)
-		stream->volrecv=ms_filter_new(MS_VOLUME_ID);
+		stream->volrecv=ms_factory_create_filter(stream->ms.factory, MS_VOLUME_ID);
+
 	else
 		stream->volrecv=NULL;
 
@@ -931,7 +949,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	if (stream->use_agc){
 		int tmp=1;
 		if (stream->volsend==NULL)
-			stream->volsend=ms_filter_new(MS_VOLUME_ID);
+			stream->volsend=ms_factory_create_filter(stream->ms.factory, MS_VOLUME_ID);
 		ms_filter_call_method(stream->volsend,MS_VOLUME_ENABLE_AGC,&tmp);
 	}
 
@@ -950,14 +968,15 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	/* give the sound filters some properties */
 	if (err1 != 0 || err2 != 0){
 		/* need to add resampler*/
-		if (stream->read_resampler == NULL) stream->read_resampler = ms_filter_new(MS_RESAMPLE_ID);
+		if (stream->read_resampler == NULL) stream->read_resampler = ms_factory_create_filter(stream->ms.factory, MS_RESAMPLE_ID);
+
 	}
 
 	err1 = ms_filter_call_method(stream->soundwrite, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	err2 = ms_filter_call_method(stream->soundwrite, MS_FILTER_SET_NCHANNELS, &nchannels);
 	if (err1 !=0 || err2 != 0){
 		/* need to add resampler*/
-		if (stream->write_resampler == NULL) stream->write_resampler = ms_filter_new(MS_RESAMPLE_ID);
+		if (stream->write_resampler == NULL) stream->write_resampler = ms_factory_create_filter(stream->ms.factory, MS_RESAMPLE_ID);
 	}
 
 	if (stream->ec){
@@ -972,7 +991,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	}
 
 	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING || stream->features & AUDIO_STREAM_FEATURE_REMOTE_PLAYING){
-		stream->outbound_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
+		stream->outbound_mixer=ms_factory_create_filter(stream->ms.factory, MS_AUDIO_MIXER_ID);
 	}
 
 	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING) setup_recorder(stream,sample_rate,nchannels);
@@ -1005,7 +1024,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 	/*create the equalizer*/
 	if ((stream->features & AUDIO_STREAM_FEATURE_EQUALIZER) != 0){
-		stream->equalizer=ms_filter_new(MS_EQUALIZER_ID);
+		stream->equalizer=ms_factory_create_filter(stream->ms.factory, MS_EQUALIZER_ID);
 		if(stream->equalizer) {
 			tmp=stream->eq_active;
 			ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
@@ -1068,20 +1087,23 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 			ms_warning("MS_DECODER_HAVE_PLC function not implemented by the decoder: enable default plc");
 		}
 		if (decoder_have_plc == 0) {
-			stream->plc = ms_filter_new(MS_GENERIC_PLC_ID);
+			stream->plc = ms_factory_create_filter(stream->ms.factory, MS_GENERIC_PLC_ID);
+
 			if (stream->plc) {
 				ms_filter_call_method(stream->plc, MS_FILTER_SET_NCHANNELS, &nchannels);
 				ms_filter_call_method(stream->plc, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 				/*as first rough approximation, a codec without PLC capabilities has no VAD/DTX builtin, thus setup generic confort noise if possible*/
 				setup_generic_confort_noise(stream);
 			}
+
 		}
 	} else {
 		stream->plc = NULL;
 	}
 
 	if (stream->features & AUDIO_STREAM_FEATURE_LOCAL_PLAYING){
-		stream->local_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
+		stream->local_mixer=ms_factory_create_filter(stream->ms.factory, MS_AUDIO_MIXER_ID);
+
 	}
 
 	if (stream->outbound_mixer){
@@ -1202,22 +1224,22 @@ int audio_stream_start_with_files(AudioStream *stream, RtpProfile *prof,const ch
 	return audio_stream_start_full(stream,prof,remip,remport,remip,rem_rtcp_port,pt,jitt_comp,infile,outfile,NULL,NULL,FALSE);
 }
 
-AudioStream * audio_stream_start(RtpProfile *prof,int locport,const char *remip,int remport,int profile,int jitt_comp,bool_t use_ec)
+AudioStream *audio_stream_start(RtpProfile *prof,int locport,const char *remip,int remport,int profile,int jitt_comp,bool_t use_ec, MSFactory* factory)
 {
 	MSSndCard *sndcard_playback;
 	MSSndCard *sndcard_capture;
 	AudioStream *stream;
-	sndcard_capture=ms_snd_card_manager_get_default_capture_card(ms_snd_card_manager_get());
-	sndcard_playback=ms_snd_card_manager_get_default_playback_card(ms_snd_card_manager_get());
+	sndcard_capture=ms_snd_card_manager_get_default_capture_card(ms_factory_get_snd_manager(factory));
+	sndcard_playback=ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_manager(factory));
 	if (sndcard_capture==NULL || sndcard_playback==NULL)
 		return NULL;
-	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip));
+	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip),factory);
 	if (audio_stream_start_full(stream,prof,remip,remport,remip,remport+1,profile,jitt_comp,NULL,NULL,sndcard_playback,sndcard_capture,use_ec)==0) return stream;
 	audio_stream_free(stream);
 	return NULL;
 }
 
-AudioStream *audio_stream_start_with_sndcards(RtpProfile *prof,int locport,const char *remip,int remport,int profile,int jitt_comp,MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec)
+AudioStream *audio_stream_start_with_sndcards(RtpProfile *prof,int locport,const char *remip,int remport,int profile,int jitt_comp,MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec, MSFactory* factory)
 {
 	AudioStream *stream;
 	if (playcard==NULL) {
@@ -1228,7 +1250,7 @@ AudioStream *audio_stream_start_with_sndcards(RtpProfile *prof,int locport,const
 		ms_error("No capture card.");
 		return NULL;
 	}
-	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip));
+	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip), factory);
 	if (audio_stream_start_full(stream,prof,remip,remport,remip,remport+1,profile,jitt_comp,NULL,NULL,playcard,captcard,use_ec)==0) return stream;
 	audio_stream_free(stream);
 	return NULL;
@@ -1350,9 +1372,9 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 	st->features = features;
 }
 
-AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions){
+AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions, MSFactory *factory){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
-	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSWebRTCAEC");
+	MSFilterDesc *ec_desc=ms_factory_lookup_filter_by_name(factory, "MSWebRTAEC");
 	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
 		audio_stream_get_rtcp_xr_plc_status,
 		audio_stream_get_rtcp_xr_signal_level,
@@ -1364,10 +1386,10 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 
 	stream->ms.type = MSAudio;
 	stream->ms.sessions = *sessions;
-	media_stream_init(&stream->ms, ms_factory_get_fallback());
-
-	ms_filter_enable_statistics(TRUE);
-	ms_filter_reset_statistics();
+	media_stream_init(&stream->ms,factory);
+	
+	ms_factory_enable_statistics(factory, TRUE);
+	ms_factory_reset_statistics(factory);
 
 	if (sessions->zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(sessions->zrtp_context, &(stream->ms.sessions));
@@ -1377,15 +1399,15 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 	}
 	rtp_session_resync(stream->ms.sessions.rtp_session);
 	/*some filters are created right now to allow configuration by the application before start() */
-	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
+	stream->ms.rtpsend=ms_factory_create_filter(factory, MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi,"audio");
 	stream->ms.process_rtcp=audio_stream_process_rtcp;
 	if (ec_desc!=NULL){
-		stream->ec=ms_filter_new_from_desc(ec_desc);
+		stream->ec=ms_factory_create_filter_from_desc(factory, ec_desc);
 	}else{
-		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
+		stream->ec=ms_factory_create_filter(factory, MS_SPEEX_EC_ID );
 	}
 	stream->play_dtmfs=TRUE;
 	stream->use_gc=FALSE;
@@ -1398,15 +1420,15 @@ AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *session
 	return stream;
 }
 
-AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
-	return audio_stream_new2( ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port);
+AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6, MSFactory* factory){
+	return audio_stream_new2( ipv6 ? "::" : "0.0.0.0", loc_rtp_port, loc_rtcp_port, factory);
 }
 
-AudioStream *audio_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port) {
+AudioStream *audio_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port, MSFactory* factory) {
 	AudioStream *obj;
 	MSMediaStreamSessions sessions={0};
 	sessions.rtp_session=ms_create_duplex_rtp_session(ip,loc_rtp_port,loc_rtcp_port);
-	obj=audio_stream_new_with_sessions(&sessions);
+	obj=audio_stream_new_with_sessions(&sessions, factory);
 	obj->ms.owns_sessions=TRUE;
 	return obj;
 }
@@ -1647,8 +1669,10 @@ void audio_stream_stop(AudioStream * stream){
 	 * When the filter are destroyed, all their pending events in the event queue will be cancelled*/
 	evq = ms_factory_get_event_queue(stream->ms.factory);
 	if (evq) ms_event_queue_pump(evq);
+	ms_factory_log_statistics(stream->ms.factory);
 	audio_stream_free(stream);
-	ms_filter_log_statistics();
+
+//	ms_filter_log_statistics();
 }
 
 int audio_stream_send_dtmf(AudioStream *stream, char dtmf)

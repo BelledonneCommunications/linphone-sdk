@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <mediastreamer2/mscommon.h>
 #include <mediastreamer2/msqueue.h>
-
+#include <mediastreamer2/msfactory.h>
 /*
 This file declares an API useful to pack/unpack H264 nals as described in RFC3984
 It is part of the public API to allow external H264 plugins use this api.
@@ -46,7 +46,7 @@ typedef struct Rfc3984Context{
 MS2_PUBLIC Rfc3984Context *rfc3984_new(void);
 MS2_PUBLIC void rfc3984_destroy(Rfc3984Context *ctx);
 
-void rfc3984_init(Rfc3984Context *ctx);
+void rfc3984_init(MSFactory* factory, Rfc3984Context *ctx);
 
 MS2_PUBLIC void rfc3984_set_mode(Rfc3984Context *ctx, int mode);
 

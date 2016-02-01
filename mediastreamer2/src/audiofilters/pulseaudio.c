@@ -798,7 +798,7 @@ static MSFilterDesc pulse_write_desc={
 
 static MSFilter *pulse_card_create_reader(MSSndCard *card) {
 	PAData *card_data = (PAData *)card->data;
-	MSFilter *f=ms_filter_new_from_desc (&pulse_read_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc((card), &pulse_read_desc);
 	Stream *s = (Stream *)f->data;
 	s->dev = ms_strdup(card_data->pa_id_source);  /* add pulse audio card id to connect the stream to the correct card */
 	return f;
@@ -806,7 +806,7 @@ static MSFilter *pulse_card_create_reader(MSSndCard *card) {
 
 static MSFilter *pulse_card_create_writer(MSSndCard *card) {
 	PAData *card_data = (PAData *)card->data;
-	MSFilter *f=ms_filter_new_from_desc (&pulse_write_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc((card), &pulse_write_desc);
 	Stream *s = (Stream *)f->data;
 	s->dev = ms_strdup(card_data->pa_id_sink); /* add pulse audio card id to connect the stream to the correct card */
 	return f;

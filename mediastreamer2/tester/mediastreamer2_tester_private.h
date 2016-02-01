@@ -75,8 +75,8 @@ extern unsigned char ms_tester_tone_detected;
 
 void ms_tester_create_ticker(void);
 void ms_tester_destroy_ticker(void);
-void ms_tester_create_filter(MSFilter **filter, MSFilterId id);
-void ms_tester_create_filters(unsigned int filter_mask);
+void ms_tester_create_filter(MSFilter **filter, MSFilterId id, MSFactory *f);
+void ms_tester_create_filters(unsigned int filter_mask, MSFactory *f);
 void ms_tester_destroy_filter(MSFilter **filter);
 void ms_tester_destroy_filters(unsigned int filter_mask);
 void ms_tester_tone_generation_loop(void);

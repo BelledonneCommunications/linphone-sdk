@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 static int sound_card_tester_before_all(void) {
 	ms_init();
 	ms_filter_enable_statistics(TRUE);
@@ -62,7 +64,7 @@ static void dtmfgen_soundwrite(void) {
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
-	ms_tester_create_filters(filter_mask);
+	ms_tester_create_filters(filter_mask, ms_factory_get_fallback());
 	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_NCHANNELS, &nchannels);
 	ms_filter_call_method(ms_tester_voidsource, MS_VOID_SOURCE_SEND_SILENCE, &send_silence);
@@ -75,7 +77,7 @@ static void dtmfgen_soundwrite(void) {
 		need_resampler = TRUE;
 	}
 	if (need_resampler == TRUE) {
-		ms_tester_create_filters(FILTER_MASK_RESAMPLER);
+		ms_tester_create_filters(FILTER_MASK_RESAMPLER, ms_factory_get_fallback());
 		configure_resampler(ms_tester_resampler, ms_tester_dtmfgen, ms_tester_soundwrite);
 	}
 	ms_connection_helper_start(&h);
@@ -133,7 +135,7 @@ static void fileplay_soundwrite(const char *filename) {
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
-	ms_tester_create_filters(filter_mask);
+	ms_tester_create_filters(filter_mask, ms_factory_get_fallback());
 	ms_filter_add_notify_callback(ms_tester_fileplay, fileplay_eof, &done,TRUE);
 	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
 	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, (void *)filename);
@@ -150,7 +152,7 @@ static void fileplay_soundwrite(const char *filename) {
 		if (nchannels != soundwrite_nchannels) need_resampler = TRUE;
 	}
 	if (need_resampler == TRUE) {
-		ms_tester_create_filters(FILTER_MASK_RESAMPLER);
+		ms_tester_create_filters(FILTER_MASK_RESAMPLER, ms_factory_get_fallback());
 		configure_resampler(ms_tester_resampler, ms_tester_fileplay, ms_tester_soundwrite);
 	}
 	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_START);
@@ -231,7 +233,7 @@ static void soundread_soundwrite(void) {
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
-	ms_tester_create_filters(filter_mask);
+	ms_tester_create_filters(filter_mask, ms_factory_get_fallback());
 	ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_NCHANNELS, &nchannels);
 	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_SAMPLE_RATE, &sample_rate) != 0) {
@@ -245,7 +247,7 @@ static void soundread_soundwrite(void) {
 		if (nchannels != soundwrite_nchannels) need_resampler = TRUE;
 	}
 	if (need_resampler == TRUE) {
-		ms_tester_create_filters(FILTER_MASK_RESAMPLER);
+		ms_tester_create_filters(FILTER_MASK_RESAMPLER, ms_factory_get_fallback());
 		configure_resampler(ms_tester_resampler, ms_tester_soundread, ms_tester_soundwrite);
 	}
 	ms_connection_helper_start(&h);
@@ -284,7 +286,7 @@ static void soundread_speexenc_speexdec_soundwrite(void) {
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_codec_mime = "speex";
-	ms_tester_create_filters(filter_mask);
+	ms_tester_create_filters(filter_mask, ms_factory_get_fallback());
 	ms_filter_call_method(ms_tester_encoder, MS_FILTER_GET_BITRATE, &sample_rate);
 	ms_filter_call_method(ms_tester_decoder, MS_FILTER_SET_BITRATE, &sample_rate);
 	if (ms_filter_call_method(ms_tester_soundread, MS_FILTER_SET_BITRATE, &sample_rate) != 0) {
@@ -298,7 +300,7 @@ static void soundread_speexenc_speexdec_soundwrite(void) {
 		if (nchannels != soundread_nchannels) need_read_resampler = TRUE;
 	}
 	if (need_read_resampler == TRUE) {
-		ms_tester_create_filter(&read_resampler, MS_RESAMPLE_ID);
+		ms_tester_create_filter(&read_resampler, MS_RESAMPLE_ID, ms_factory_get_fallback());
 		configure_resampler(read_resampler, ms_tester_soundread, ms_tester_encoder);
 	}
 	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_BITRATE, &sample_rate) != 0) {
@@ -312,7 +314,7 @@ static void soundread_speexenc_speexdec_soundwrite(void) {
 		if (nchannels != soundwrite_nchannels) need_write_resampler = TRUE;
 	}
 	if (need_write_resampler == TRUE) {
-		ms_tester_create_filter(&write_resampler, MS_RESAMPLE_ID);
+		ms_tester_create_filter(&write_resampler, MS_RESAMPLE_ID, ms_factory_get_fallback());
 		configure_resampler(write_resampler, ms_tester_decoder, ms_tester_soundwrite);
 	}
 	ms_connection_helper_start(&h);
@@ -366,7 +368,7 @@ static void soundread_filerec_fileplay_soundwrite(void) {
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
-	ms_tester_create_filters(filter_mask);
+	ms_tester_create_filters(filter_mask, ms_factory_get_fallback());
 
 	// Write audio capture to a file
 	ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_SAMPLE_RATE, &capture_sample_rate);
@@ -393,7 +395,7 @@ static void soundread_filerec_fileplay_soundwrite(void) {
 	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_SAMPLE_RATE, &playback_sample_rate);
 	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_NCHANNELS, &playback_nchannels);
 	if ((capture_sample_rate != playback_sample_rate) || (capture_nchannels != playback_nchannels)) {
-		ms_tester_create_filter(&ms_tester_resampler, MS_RESAMPLE_ID);
+		ms_tester_create_filter(&ms_tester_resampler, MS_RESAMPLE_ID, ms_factory_get_fallback());
 	}
 	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
 	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, writable_filename);

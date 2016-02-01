@@ -356,10 +356,13 @@ static void au_card_detect(MSSndCardManager * m)
 		if (check_card_capability(devices[i],TRUE,devname,uidname,sizeof(uidname))){
 			card_capacity|=MS_SND_CARD_CAP_CAPTURE;
 		}
+		
 		if (card_capacity) {
 			card=ca_card_new(devname, uidname, devices[i], card_capacity);
+			ms_snd_card_set_manager(m, card);
 			ms_snd_card_manager_add_card(m, card);
 		}
+
 
 	}
 }
@@ -791,7 +794,7 @@ static void set_audio_device_id(AuCard *wc,AUCommon* d, bool_t is_read) {
 	CFRelease(devUid);
 }
 MSFilter *ms_au_read_new(MSSndCard *card){
-	MSFilter *f = ms_filter_new_from_desc(&ms_au_read_desc);
+	MSFilter *f = ms_factory_create_filter_from_desc(ms_snd_card_factory_get(card), &ms_au_read_desc);
 	AuCard *wc = (AuCard *) card->data;
 	AURead *d = (AURead *) f->data;
 	/*d->common.dev = wc->dev;*/
@@ -802,7 +805,7 @@ MSFilter *ms_au_read_new(MSSndCard *card){
 
 
 MSFilter *ms_au_write_new(MSSndCard *card){
-	MSFilter *f=ms_filter_new_from_desc(&ms_au_write_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_factory_get(card), &ms_au_write_desc);
 	AuCard *wc = (AuCard *) card->data;
 	AUWrite *d = (AUWrite *) f->data;
 	/*d->common.dev = wc->dev;*/

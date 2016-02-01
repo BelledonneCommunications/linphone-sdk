@@ -82,49 +82,51 @@ void ms_tester_destroy_ticker(void) {
 	}
 }
 
-#define CREATE_FILTER(mask, filter, id) \
+#define CREATE_FILTER(mask, filter, factory, id) \
 	if (filter_mask & mask) { \
 		BC_ASSERT_PTR_NULL(filter); \
-		filter = ms_filter_new(id); \
+		filter = ms_factory_create_filter(factory, id); \
 		BC_ASSERT_PTR_NOT_NULL_FATAL(filter); \
 	}
 
-void ms_tester_create_filter(MSFilter **filter, MSFilterId id) {
+void ms_tester_create_filter(MSFilter **filter, MSFilterId id, MSFactory *f) {
 	BC_ASSERT_PTR_NOT_NULL(filter);
 	BC_ASSERT_PTR_NULL(*filter);
-	*filter = ms_filter_new(id);
+	*filter = ms_factory_create_filter(f, id);
 	BC_ASSERT_PTR_NOT_NULL_FATAL(*filter);
 }
 
-void ms_tester_create_filters(unsigned int filter_mask) {
+void ms_tester_create_filters(unsigned int filter_mask, MSFactory * f) {
 	MSSndCardManager *snd_manager;
 	MSWebCamManager *cam_manager;
 	MSSndCard *playcard;
 	MSSndCard *captcard;
 	MSWebCam *camera;
 
-	CREATE_FILTER(FILTER_MASK_FILEPLAY, ms_tester_fileplay, MS_FILE_PLAYER_ID);
-	CREATE_FILTER(FILTER_MASK_FILEREC, ms_tester_filerec, MS_FILE_REC_ID);
-	CREATE_FILTER(FILTER_MASK_DTMFGEN, ms_tester_dtmfgen, MS_DTMF_GEN_ID);
-	CREATE_FILTER(FILTER_MASK_TONEDET, ms_tester_tonedet, MS_TONE_DETECTOR_ID);
-	CREATE_FILTER(FILTER_MASK_VOIDSOURCE, ms_tester_voidsource, MS_VOID_SOURCE_ID);
-	CREATE_FILTER(FILTER_MASK_VOIDSINK, ms_tester_voidsink, MS_VOID_SINK_ID);
+	
+
+	CREATE_FILTER(FILTER_MASK_FILEPLAY, ms_tester_fileplay,f, MS_FILE_PLAYER_ID);
+	CREATE_FILTER(FILTER_MASK_FILEREC, ms_tester_filerec,f, MS_FILE_REC_ID);
+	CREATE_FILTER(FILTER_MASK_DTMFGEN, ms_tester_dtmfgen, f,  MS_DTMF_GEN_ID);
+	CREATE_FILTER(FILTER_MASK_TONEDET, ms_tester_tonedet, f, MS_TONE_DETECTOR_ID);
+	CREATE_FILTER(FILTER_MASK_VOIDSOURCE, ms_tester_voidsource, f, MS_VOID_SOURCE_ID);
+	CREATE_FILTER(FILTER_MASK_VOIDSINK, ms_tester_voidsink, f, MS_VOID_SINK_ID);
 	if (filter_mask & FILTER_MASK_ENCODER) {
 		BC_ASSERT_PTR_NULL(ms_tester_encoder);
-		ms_tester_encoder = ms_filter_create_encoder(ms_tester_codec_mime);
+		ms_tester_encoder = ms_factory_create_encoder(f, ms_tester_codec_mime);
 		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_encoder);
 	}
 	if (filter_mask & FILTER_MASK_DECODER) {
 		BC_ASSERT_PTR_NULL(ms_tester_decoder);
-		ms_tester_decoder = ms_filter_create_decoder(ms_tester_codec_mime);
+		ms_tester_decoder = ms_factory_create_decoder(f, ms_tester_codec_mime);
 		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_decoder);
 	}
-	CREATE_FILTER(FILTER_MASK_RTPRECV, ms_tester_rtprecv, MS_RTP_RECV_ID);
-	CREATE_FILTER(FILTER_MASK_RTPSEND, ms_tester_rtpsend, MS_RTP_SEND_ID);
-	CREATE_FILTER(FILTER_MASK_RESAMPLER, ms_tester_resampler, MS_RESAMPLE_ID);
+	CREATE_FILTER(FILTER_MASK_RTPRECV, ms_tester_rtprecv, f, MS_RTP_RECV_ID);
+	CREATE_FILTER(FILTER_MASK_RTPSEND, ms_tester_rtpsend, f ,MS_RTP_SEND_ID);
+	CREATE_FILTER(FILTER_MASK_RESAMPLER, ms_tester_resampler, f, MS_RESAMPLE_ID);
 	if (filter_mask & FILTER_MASK_SOUNDWRITE) {
 		BC_ASSERT_PTR_NULL(ms_tester_soundwrite);
-		snd_manager = ms_snd_card_manager_get();
+		snd_manager = ms_factory_get_snd_manager(f);
 		playcard = ms_snd_card_manager_get_default_playback_card(snd_manager);
 		BC_ASSERT_PTR_NOT_NULL_FATAL(playcard);
 		ms_tester_soundwrite = ms_snd_card_create_writer(playcard);
@@ -132,7 +134,7 @@ void ms_tester_create_filters(unsigned int filter_mask) {
 	}
 	if (filter_mask & FILTER_MASK_SOUNDREAD) {
 		BC_ASSERT_PTR_NULL(ms_tester_soundread);
-		snd_manager = ms_snd_card_manager_get();
+		snd_manager = ms_factory_get_snd_manager(f);
 		captcard = ms_snd_card_manager_get_default_capture_card(snd_manager);
 		BC_ASSERT_PTR_NOT_NULL_FATAL(captcard);
 		ms_tester_soundread = ms_snd_card_create_reader(captcard);
@@ -140,10 +142,10 @@ void ms_tester_create_filters(unsigned int filter_mask) {
 	}
 	if (filter_mask & FILTER_MASK_VIDEOCAPTURE) {
 		BC_ASSERT_PTR_NULL(ms_tester_videocapture);
-		cam_manager = ms_web_cam_manager_get();
+		cam_manager = ms_factory_get_wbc_manager(f);
 		camera = ms_web_cam_manager_get_default_cam(cam_manager);
 		BC_ASSERT_PTR_NOT_NULL_FATAL(camera);
-		ms_tester_videocapture = ms_web_cam_create_reader(camera);
+		ms_tester_videocapture = ms_web_cam_create_reader(camera, f);
 		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_videocapture);
 	}
 }

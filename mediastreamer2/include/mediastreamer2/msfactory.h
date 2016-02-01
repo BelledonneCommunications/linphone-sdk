@@ -20,6 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msfactory_h
 #define msfactory_h
 
+
+#include "mediastreamer2/msfilter.h"
+
+
 /*do not use these fields directly*/
 struct _MSFactory{
 	MSList *desc_list;
@@ -38,6 +42,10 @@ struct _MSFactory{
 	int mtu;
 	bool_t statistics_enabled;
 	bool_t voip_initd;
+	int ref_count;
+	int managers_ref;
+	struct _MSSndCardManager* sndcardmanager;
+	struct _MSWebCamManager* wbcmanager;
 };
 
 typedef struct _MSFactory MSFactory;
@@ -46,6 +54,14 @@ typedef struct _MSFactory MSFactory;
 extern "C" {
 #endif
 
+#ifndef LINPHONE_DEPRECATED
+#if defined(_MSC_VER)
+#define LINPHONE_DEPRECATED __declspec(deprecated)
+#else
+#define LINPHONE_DEPRECATED __attribute__ ((deprecated))
+#endif
+#endif
+	
 /**
  * Create a mediastreamer2 factory. This is the root object that will create everything else from mediastreamer2.
 **/
@@ -54,19 +70,30 @@ MS2_PUBLIC MSFactory *ms_factory_new(void);
 /**
  * Create the fallback factory (for compatibility with applications not using MSFactory to create ms2 object)
 **/
-MS2_PUBLIC MSFactory *ms_factory_create_fallback(void);
+LINPHONE_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_create_fallback(void);
 
 /**
  * Used by the legacy functions before MSFactory was added.
  * Do not use in an application.
 **/
-MS2_PUBLIC MSFactory *ms_factory_get_fallback(void);
+LINPHONE_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_get_fallback(void);
 
 /**
  * Destroy the factory.
  * This should be done after destroying all objects created by the factory.
 **/
 MS2_PUBLIC void ms_factory_destroy(MSFactory *factory);
+
+/**
+ * Exits the factory : unset voip and destroys the factory if there is no references to it.
+ * Ensures it can be destroyed before destroying all objects created by the factory.
+ **/
+MS2_PUBLIC MSFactory* ms_factory_exit(MSFactory* factory);
+	
+MS2_PUBLIC MSFactory* ms_factory_create(MSFactory* f);
+	
+MS2_PUBLIC struct _MSSndCardManager* ms_factory_get_snd_manager(MSFactory *f);
+
 
 MS2_PUBLIC void ms_factory_register_filter(MSFactory *factory, MSFilterDesc *desc);
 
@@ -142,7 +169,7 @@ MS2_PUBLIC MSFilterDesc* ms_factory_lookup_filter_by_id( MSFactory* factory, MSF
  * @param id a filter interface id
  * @return a newly allocated MSList of #MSFilterDesc.
 **/
-MSList *ms_factory_lookup_filter_by_interface(MSFactory *factory, MSFilterInterfaceId id);
+MS2_PUBLIC MSList *ms_factory_lookup_filter_by_interface(MSFactory *factory, MSFilterInterfaceId id);
 
 /**
  * Create encoder filter according to codec name.
@@ -255,8 +282,10 @@ MS2_PUBLIC void ms_factory_uninit_voip(MSFactory *obj);
  * @return The created event queue.
  */
 MS2_PUBLIC struct _MSEventQueue * ms_factory_create_event_queue(MSFactory *obj);
-
-/**
+	
+MS2_PUBLIC void ms_factory_destroy_event_queue(MSFactory *obj);
+	
+	/**
  * Gets the event queue associated with the factory.
  * Can be NULL if no event queue has been created.
  * @param[in] obj MSFactory object.
@@ -269,6 +298,8 @@ MS2_PUBLIC void ms_factory_set_event_queue(MSFactory *obj,struct _MSEventQueue *
 MS2_PUBLIC int ms_factory_get_payload_max_size(MSFactory *factory);
 
 MS2_PUBLIC void ms_factory_set_payload_max_size(MSFactory *obj, int size);
+	
+MS2_PUBLIC	void ms_factory_set_mtu(MSFactory *obj, int mtu);
 
 MS2_PUBLIC const struct _MSFmtDescriptor * ms_factory_get_audio_format(MSFactory *obj, const char *mime, int rate, int channels, const char *fmtp);
 

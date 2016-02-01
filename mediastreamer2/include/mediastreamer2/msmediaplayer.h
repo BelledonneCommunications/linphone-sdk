@@ -80,7 +80,7 @@ MS2_PUBLIC void ms_media_player_set_eof_callback(MSMediaPlayer *obj, MSMediaPlay
  * @param filepath Path of the file to open
  * @return TRUE if the file could be opened
  */
-MS2_PUBLIC bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath);
+MS2_PUBLIC bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath, MSFactory *factory);
 
 /**
  * Close a media file

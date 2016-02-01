@@ -38,14 +38,19 @@ static void tone_sent_cb(void *data, MSFilter *f, unsigned int event_id, MSDtmfG
 int main(int argc, char *argv[]){
 	MSFilter *src, *gen, *det, *rec;
 	MSTicker *ticker;
+	MSFactory *factory ;
+	//ms_base_init();
 
-	ms_base_init();
+	factory = ms_factory_new();
+	ms_factory_init_voip(factory);
+	ms_factory_init_plugins(factory);
+	
 	ortp_set_log_level_mask (ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 
-	src=ms_filter_new(MS_FILE_PLAYER_ID);
-	rec=ms_filter_new(MS_FILE_REC_ID);
-	gen=ms_filter_new(MS_DTMF_GEN_ID);
-	det=ms_filter_new(MS_TONE_DETECTOR_ID);
+	src=ms_factory_create_filter(factory,MS_FILE_PLAYER_ID);
+	rec=ms_factory_create_filter(factory,MS_FILE_REC_ID);
+	gen=ms_factory_create_filter(factory,MS_DTMF_GEN_ID);
+	det=ms_factory_create_filter(factory,MS_TONE_DETECTOR_ID);
 	
 	ms_filter_link(src,0,gen,0);
 	ms_filter_link(gen,0,det,0);
@@ -109,7 +114,8 @@ int main(int argc, char *argv[]){
 	ms_filter_destroy(det);
 	ms_filter_destroy(rec);
 
-	ms_base_exit();
+	factory = ms_factory_exit(factory);
+	//ms_base_exit();
 	return 0;
 }
 

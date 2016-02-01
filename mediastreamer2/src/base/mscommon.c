@@ -143,9 +143,15 @@ void ms_list_for_each(const MSList *list, void (*func)(void *)){
 	}
 }
 
-void ms_list_for_each2(const MSList *list, void (*func)(void *, void *), void *user_data){
+void ms_list_for_each2(const MSList *list, void (*func)(void *, void *y), void *user_data){
 	for(;list!=NULL;list=list->next){
 		func(list->data,user_data);
+	}
+}
+
+void ms_list_for_each3(const MSList *list, void (*func)(void *, void *, void*), void *user_data, void* factory){
+	for(;list!=NULL;list=list->next){
+		func(list->data,user_data, factory);
 	}
 }
 
@@ -310,7 +316,7 @@ static int ms_plugins_ref=0;
 void ms_base_init(){
 	ms_base_ref++;
 	if ( ms_base_ref>1 ) {
-		ms_message ("Skiping ms_base_init, because [%i] ref",ms_base_ref);
+		ms_message ("Skipping ms_base_init, because [%i] ref",ms_base_ref);
 		return;
 	}
 	ms_factory_create_fallback();
@@ -320,7 +326,7 @@ void ms_base_init(){
 void ms_base_exit(){
 	--ms_base_ref;
 	if ( ms_base_ref>0 ) {
-		ms_message ("Skiping ms_base_exit, still [%i] ref",ms_base_ref);
+		ms_message ("Skipping ms_base_exit, still [%i] ref",ms_base_ref);
 		return;
 	}
 	ms_factory_destroy(ms_factory_get_fallback());
@@ -329,7 +335,7 @@ void ms_base_exit(){
 void ms_plugins_init(void) {
 	ms_plugins_ref++;
 	if ( ms_plugins_ref>1 ) {
-		ms_message ("Skiping ms_plugins_init, because [%i] ref",ms_plugins_ref);
+		ms_message ("Skipping ms_plugins_init, because [%i] ref",ms_plugins_ref);
 		return;
 	}
 	ms_factory_init_plugins(ms_factory_get_fallback());
@@ -338,7 +344,7 @@ void ms_plugins_init(void) {
 void ms_plugins_exit(void) {
 	--ms_plugins_ref;
 	if ( ms_plugins_ref>0 ) {
-		ms_message ("Skiping ms_plugins_exit, still [%i] ref",ms_plugins_ref);
+		ms_message ("Skipping ms_plugins_exit, still [%i] ref",ms_plugins_ref);
 		return;
 	}
 	ms_factory_uninit_plugins(ms_factory_get_fallback());
