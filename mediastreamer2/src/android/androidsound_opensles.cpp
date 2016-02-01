@@ -111,8 +111,8 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext
 using namespace fake_opensles;
 
 static MSSndCard *android_snd_card_new(void);
-static MSFilter *ms_android_snd_read_new(void);
-static MSFilter *ms_android_snd_write_new(void);
+static MSFilter *ms_android_snd_read_new(MSFactory *factory);
+static MSFilter *ms_android_snd_write_new(MSFactory* factory);
 
 struct OpenSLESContext {
 	OpenSLESContext() {
@@ -251,6 +251,7 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 	if (initOpenSLES() == 0) { // Try to dlopen libOpenSLES
 		ms_message("libOpenSLES correctly loaded, creating OpenSLES MS soundcard");
 		MSSndCard *card = android_snd_card_new();
+		ms_snd_card_set_manager(m,card);
 		ms_snd_card_manager_add_card(m, card);
 	} else {
 		ms_warning("Failed to dlopen libOpenSLES, OpenSLES MS soundcard unavailable");
@@ -621,13 +622,13 @@ MSFilterDesc android_snd_opensles_read_desc = {
 	android_snd_read_methods
 };
 
-static MSFilter* ms_android_snd_read_new() {
-	MSFilter *f = ms_filter_new_from_desc(&android_snd_opensles_read_desc);
+static MSFilter* ms_android_snd_read_new(MSFactory *factory) {
+	MSFilter *f = ms_factory_create_filter_from_desc(factory, &android_snd_opensles_read_desc);
 	return f;
 }
 
 static MSFilter *android_snd_card_create_reader(MSSndCard *card) {
-	MSFilter *f = ms_android_snd_read_new();
+	MSFilter *f = ms_android_snd_read_new(ms_snd_card_factory_get(card));
 	OpenSLESInputContext *ictx = static_cast<OpenSLESInputContext*>(f->data);
 	ictx->setContext((OpenSLESContext*)card->data);
 	return f;
@@ -842,7 +843,7 @@ static OpenSLESOutputContext* opensles_output_context_init() {
 }
 
 static MSFilter *android_snd_card_create_writer(MSSndCard *card) {
-	MSFilter *f = ms_android_snd_write_new();
+	MSFilter *f = ms_android_snd_write_new(ms_snd_card_factory_get(card));
 	OpenSLESOutputContext *octx = static_cast<OpenSLESOutputContext*>(f->data);
 	octx->setContext((OpenSLESContext*)card->data);
 	return f;
@@ -983,8 +984,8 @@ MSFilterDesc android_snd_opensles_write_desc = {
 	android_snd_write_methods
 };
 
-static MSFilter* ms_android_snd_write_new(void) {
-	MSFilter *f = ms_filter_new_from_desc(&android_snd_opensles_write_desc);
+static MSFilter* ms_android_snd_write_new(MSFactory* factory) {
+	MSFilter *f = ms_factory_create_filter_from_desc(factory, &android_snd_opensles_write_desc);
 	return f;
 }
 

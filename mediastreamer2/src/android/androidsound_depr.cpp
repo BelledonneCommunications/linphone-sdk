@@ -569,7 +569,7 @@ static MSFilterDesc msandroid_sound_read_desc={
 
 MSFilter *msandroid_sound_read_new(MSSndCard *card){
 	ms_debug("msandroid_sound_read_new");
-	MSFilter *f=ms_filter_new_from_desc(&msandroid_sound_read_desc);
+	MSFilter *f=ms_factory_new_from_desc(ms_snd_card_factory_get(card), &msandroid_sound_read_desc);
 	msandroid_sound_read_data *data=new msandroid_sound_read_data();
 	data->builtin_aec = card->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	if (card->data != NULL) {
@@ -895,7 +895,7 @@ static MSFilterDesc msandroid_sound_write_desc={
 
 MSFilter *msandroid_sound_write_new(MSSndCard *card){
 	ms_debug("msandroid_sound_write_new");
-	MSFilter *f=ms_filter_new_from_desc(&msandroid_sound_write_desc);
+	MSFilter *f=ms_filter_new_from_desc(ms_snd_card_factory_get(card), &msandroid_sound_write_desc);
 	msandroid_sound_write_data *data = new msandroid_sound_write_data();
 	if (card->data != NULL) {
 		SoundDeviceDescription *d = (SoundDeviceDescription *)card->data;

@@ -112,7 +112,7 @@ const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m){
 }
 
 void ms_snd_card_set_manager(MSSndCardManager*m, MSSndCard *c){
-	c->sndcardmanager = m;
+	if (c->sndcardmanager == NULL) c->sndcardmanager = m;
 }
 
 
