@@ -131,16 +131,16 @@ typedef enum  belle_sip_certificate_raw_format {
  * @param buff raw buffer
  * @param size buffer size
  * @param format either PEM or DER
- * @return  belle_sip_certificates_chain_t or NUL if cannot be decoded
+ * @return  belle_sip_certificates_chain_t or NULL if cannot be decoded
  */
 BELLESIP_EXPORT belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse(const char* buff, size_t size,belle_sip_certificate_raw_format_t format);
 
 /**
- * Parse a buffer containing either a private or public rsa key
+ * Parse a buffer containing either a private or public rsa key in PEM format
  * @param buff raw buffer
  * @param size buffer size
  * @param passwd password (optionnal)
- * @return list of belle_sip_signing_key_t or NUL iff cannot be decoded
+ * @return list of belle_sip_signing_key_t or NULL if cannot be decoded
  */
 BELLESIP_EXPORT belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t size,const char* passwd);
 

@@ -62,9 +62,17 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t si
 	belle_sip_signing_key_t *signing_key = belle_sip_signing_key_new();
 	int ret;
 
+	/* check size, buff is the key in PEM format and thus shall include a NULL termination char, make size includes this termination */
+	if (strlen(buff) == size+1) {
+		size++;
+	}
+
 	ret = bctoolbox_signing_key_parse(signing_key->key, buff, size, (const unsigned char *)passwd, passwd?strlen(passwd):0);
 
 	if (ret < 0) {
+		char tmp[128];
+		bctoolbox_strerror(ret,tmp,sizeof(tmp));
+		belle_sip_error("cannot parse x509 signing key because [%s]",tmp);
 		belle_sip_object_unref(signing_key);
 		return NULL;
 	}
@@ -78,6 +86,9 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path,const
 	ret = bctoolbox_signing_key_parse_file(signing_key->key, path, passwd);
 
 	if (ret < 0) {
+		char tmp[128];
+		bctoolbox_strerror(ret,tmp,sizeof(tmp));
+		belle_sip_error("cannot parse x509 signing key because [%s]",tmp);
 		belle_sip_object_unref(signing_key);
 		return NULL;
 	}
@@ -109,6 +120,12 @@ static void belle_sip_certificates_chain_clone(belle_sip_certificates_chain_t *c
 static int belle_sip_certificate_fill(belle_sip_certificates_chain_t* certificate, const char* buff, size_t size, belle_sip_certificate_raw_format_t format) {
 
 	int err;
+	if (format == BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM) {
+		if (strlen(buff) == size+1) {
+			size++;
+		}
+	}
+	/* if format is PEM, make sure the null termination char is included in the buffer given size */
 	if ((err=bctoolbox_x509_certificate_parse(certificate->cert, buff, size)) <0) {
 		char tmp[128];
 		bctoolbox_strerror(err,tmp,sizeof(tmp));
@@ -153,7 +170,7 @@ belle_sip_certificates_chain_t *belle_sip_certificate_chain_new(void) {
 belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse(const char* buff, size_t size,belle_sip_certificate_raw_format_t format) {
 	belle_sip_certificates_chain_t* certificate = belle_sip_certificate_chain_new();
 
-	if (belle_sip_certificate_fill(certificate,buff, size,format)) {
+	if (belle_sip_certificate_fill(certificate, buff, size, format)) {
 		belle_sip_object_unref(certificate);
 		certificate=NULL;
 	}
