@@ -138,7 +138,7 @@ char *bctoolbox_signing_key_get_pem(bctoolbox_signing_key_t *key) {
 
 int32_t bctoolbox_signing_key_parse(bctoolbox_signing_key_t *key, const char *buffer, size_t buffer_length, const unsigned char *password, size_t password_length) {
 	int err;
-	err=mbedtls_pk_parse_key((mbedtls_pk_context *)key, (const unsigned char *)buffer, buffer_length+1, password, password_length);
+	err=mbedtls_pk_parse_key((mbedtls_pk_context *)key, (const unsigned char *)buffer, buffer_length, password, password_length);
 	if(err==0 && !mbedtls_pk_can_do((mbedtls_pk_context *)key, MBEDTLS_PK_RSA)) {
 		err=MBEDTLS_ERR_PK_TYPE_MISMATCH;
 	}
@@ -204,7 +204,7 @@ int32_t bctoolbox_x509_certificate_parse_path(bctoolbox_x509_certificate_t *cert
 
 int32_t bctoolbox_x509_certificate_parse(bctoolbox_x509_certificate_t *cert, const char *buffer, size_t buffer_length) {
 	char buff[256];
-	int ret = mbedtls_x509_crt_parse((mbedtls_x509_crt *)cert, (const unsigned char *)buffer, buffer_length+1);
+	int ret = mbedtls_x509_crt_parse((mbedtls_x509_crt *)cert, (const unsigned char *)buffer, buffer_length);
 	if (ret<0) {
 		mbedtls_strerror(ret, buff, 255);
 	}
