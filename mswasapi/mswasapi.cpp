@@ -604,6 +604,7 @@ error:
 static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
 #if defined(MS2_WINDOWS_PHONE)
 	MSSndCard *card = ms_wasapi_phone_snd_card_new();
+	ms_snd_card_set_manager(m, card);
 	ms_snd_card_manager_add_card(m, card);
 #elif defined(MS2_WINDOWS_UNIVERSAL)
 	MSWASAPIDeviceEnumerator *enumerator = new MSWASAPIDeviceEnumerator();
@@ -620,7 +621,7 @@ static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
 }
 
 static MSFilter *ms_wasapi_snd_card_create_reader(MSSndCard *card) {
-	MSFilter *f = ms_filter_new_from_desc(&ms_wasapi_read_desc);
+	MSFilter *f = ms_factory_create_filter_from_desc(ms_snd_card_factory_get(card), &ms_wasapi_read_desc);
 	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
 	MSWASAPIReaderType reader = MSWASAPI_READER(f->data);
 	reader->init(wasapicard->id);
@@ -628,7 +629,7 @@ static MSFilter *ms_wasapi_snd_card_create_reader(MSSndCard *card) {
 }
 
 static MSFilter *ms_wasapi_snd_card_create_writer(MSSndCard *card) {
-	MSFilter *f = ms_filter_new_from_desc(&ms_wasapi_write_desc);
+	MSFilter *f = ms_factory_create_filter_from_desc(ms_snd_card_factory_get(card), &ms_wasapi_write_desc);
 	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
 	MSWASAPIWriterType writer = MSWASAPI_WRITER(f->data);
 	writer->init(wasapicard->id);
