@@ -248,4 +248,29 @@ namespace ms2_tester.DataModel
             throw new NotImplementedException();
         }
     }
+
+    public sealed class MultiplyConverter : IValueConverter
+    {
+        object IValueConverter.Convert(object value, Type targetType, object parameter, string language)
+        {
+            if (!value.GetType().Equals(typeof(Double)))
+            {
+                throw new ArgumentException("Only Double is supported");
+            }
+            if (targetType.Equals(typeof(Double)))
+            {
+                Double result = (Double)value * (Double)Convert.ToDouble(parameter);
+                return result;
+            }
+            else
+            {
+                throw new ArgumentException(string.Format("Unsupported format {0}", targetType.FullName));
+            }
+        }
+
+        object IValueConverter.ConvertBack(object value, Type targetType, object parameter, string language)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

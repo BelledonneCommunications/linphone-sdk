@@ -65,7 +65,7 @@
                     <Button x:Name="ChangeCameraButton" Content="Change camera" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8" Click="ChangeCameraButton_Click" IsEnabled="{Binding ElementName=VideoToggleButton, Path=IsChecked}"/>
                 </StackPanel>
             </Grid>
-            <Grid Grid.Row="1" Width="640" Height="480" HorizontalAlignment="Center" BorderBrush="Black" BorderThickness="2">
+            <Grid x:Name="VideoGrid" Grid.Row="1" HorizontalAlignment="Center" Background="Black">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="*"/>
@@ -77,7 +77,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <SwapChainPanel x:Name="VideoSwapChainPanel" Width="640" Height="480" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Grid.RowSpan="3"/>
+                <SwapChainPanel x:Name="VideoSwapChainPanel" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Grid.RowSpan="3"/>
                 <SwapChainPanel x:Name="PreviewSwapChainPanel" Width="160" Height="120" Grid.Column="2" Grid.Row="2" RenderTransformOrigin="0.5,0.5">
                     <SwapChainPanel.RenderTransform>
                         <CompositeTransform ScaleX="-1"/>

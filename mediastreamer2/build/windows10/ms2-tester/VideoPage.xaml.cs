@@ -50,6 +50,12 @@ namespace ms2_tester
                 orientationSensor.OrientationChanged += OrientationSensor_OrientationChanged;
             }
             Window.Current.SizeChanged += Current_SizeChanged;
+            this.Loaded += VideoPage_Loaded;
+        }
+
+        private void VideoPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            AdaptVideoSize();
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -74,6 +80,7 @@ namespace ms2_tester
 
         private async void Current_SizeChanged(object sender, Windows.UI.Core.WindowSizeChangedEventArgs e)
         {
+            AdaptVideoSize();
             displayOrientation = ApplicationView.GetForCurrentView().Orientation;
             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => SetVideoOrientation());
         }
@@ -103,10 +110,12 @@ namespace ms2_tester
                 if (_videoSource != null)
                 {
                     _videoSource.Stop();
+                    _videoSource = null;
                 }
                 if (_previewSource != null)
                 {
                     _previewSource.Stop();
+                    _previewSource = null;
                 }
                 StopVideoStream();
             }
@@ -353,6 +362,21 @@ namespace ms2_tester
             {
                 SetOrientation(degrees);
             }
+        }
+
+        private void AdaptVideoSize()
+        {
+            if (ActualWidth > 640)
+            {
+                VideoGrid.Width = 640;
+            }
+            else
+            {
+                VideoGrid.Width = ActualWidth;
+            }
+            VideoGrid.Height = VideoGrid.Width * 3 / 4;
+            PreviewSwapChainPanel.Width = VideoGrid.Width / 4;
+            PreviewSwapChainPanel.Height = VideoGrid.Height / 4;
         }
 
 
