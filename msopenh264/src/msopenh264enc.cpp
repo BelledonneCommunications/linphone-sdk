@@ -114,7 +114,7 @@ void MSOpenH264Encoder::initialize()
 			params.bEnableFrameSkip = true;
 			params.bPrefixNalAddingCtrl = false;
 			params.uiMaxNalSize = ms_factory_get_payload_max_size(mFilter->factory);
-			params.iMultipleThreadIdc = ms_get_cpu_count();
+			params.iMultipleThreadIdc =ms_factory_get_cpu_count(mFilter->factory);
 			params.bEnableDenoise = false;
 			params.bEnableBackgroundDetection = true;
 			params.bEnableAdaptiveQuant = true;
@@ -224,14 +224,14 @@ void MSOpenH264Encoder::setBitrate(int bitrate)
 		mVConf.required_bitrate = bitrate;
 		setConfiguration(mVConf);
 	} else {
-		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(mVConfList, bitrate, ms_get_cpu_count());
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(mVConfList, bitrate, ms_factory_get_cpu_count(mFilter->factory));
 		setConfiguration(best_vconf);
 	}
 }
 
 void MSOpenH264Encoder::setSize(MSVideoSize size)
 {
-	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size(mVConfList, size, ms_get_cpu_count());
+	MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_size(mVConfList, size, ms_factory_get_cpu_count(mFilter->factory));
 	mVConf.vsize = size;
 	mVConf.fps = best_vconf.fps;
 	mVConf.bitrate_limit = best_vconf.bitrate_limit;
