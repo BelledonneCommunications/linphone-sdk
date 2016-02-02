@@ -46,7 +46,7 @@ typedef struct Rfc3984Context{
 MS2_PUBLIC Rfc3984Context *rfc3984_new(void);
 MS2_PUBLIC void rfc3984_destroy(Rfc3984Context *ctx);
 
-void rfc3984_init(MSFactory* factory, Rfc3984Context *ctx);
+void rfc3984_init(Rfc3984Context *ctx);
 
 MS2_PUBLIC void rfc3984_set_mode(Rfc3984Context *ctx, int mode);
 

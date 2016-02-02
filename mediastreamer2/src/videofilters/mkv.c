@@ -221,7 +221,8 @@ typedef struct {
 
 static void *h264_module_new(MSFactory *factory) {
 	H264Module *mod = ms_new0(H264Module, 1);
-	rfc3984_init(factory, &mod->rfc3984Context);
+	rfc3984_init(&mod->rfc3984Context);
+	mod->rfc3984Context.maxsz = ms_factory_get_payload_max_size(factory);
 	rfc3984_set_mode(&mod->rfc3984Context, 1);
 	return mod;
 }
