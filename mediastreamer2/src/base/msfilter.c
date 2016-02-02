@@ -27,7 +27,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 void ms_filter_register(MSFilterDesc *desc){
-	ms_factory_register_filter(ms_factory_get_fallback(),desc);
+	MSFactory *factory = ms_factory_get_fallback();
+	if(factory) {
+		ms_factory_register_filter(factory,desc);
+	} else {
+		ms_error("ms_filter_register(): registration of '%s' filter has failed: no fallback factory has been defined", desc->name);
+	}
 }
 
 void ms_filter_unregister_all(){
