@@ -99,6 +99,9 @@ MS2_PUBLIC struct _MSSndCardManager* ms_factory_get_snd_card_manager(MSFactory *
 MS2_PUBLIC struct _MSWebCamManager* ms_factory_get_web_cam_manager(MSFactory* f);
 
 
+/**
+ * Register a filter descriptor (MSFilterDesc) into the factory.
+**/
 MS2_PUBLIC void ms_factory_register_filter(MSFactory *factory, MSFilterDesc *desc);
 
 /**
@@ -106,7 +109,7 @@ MS2_PUBLIC void ms_factory_register_filter(MSFactory *factory, MSFilterDesc *des
  *
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilterDesc if successfull, NULL otherwise.
+ * @return a MSFilterDesc if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSFilterDesc * ms_factory_get_encoding_capturer(MSFactory *factory, const char *mime);
 
@@ -115,35 +118,25 @@ MS2_PUBLIC MSFilterDesc * ms_factory_get_encoding_capturer(MSFactory *factory, c
  *
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilterDesc if successfull, NULL otherwise.
+ * @return a MSFilterDesc if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSFilterDesc * ms_factory_get_decoding_renderer(MSFactory *factory, const char *mime);
 
 /**
  * Retrieve encoders according to codec name.
  *
- * Internal supported codecs:
- *    PCMU, PCMA, speex, gsm
- * Existing Public plugins:
- *    iLBC
- *
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilterDesc if successfull, NULL otherwise.
+ * @return a MSFilterDesc if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSFilterDesc * ms_factory_get_encoder(MSFactory *factory, const char *mime);
 
 /**
  * Retrieve decoders according to codec name.
  *
- * Internal supported codecs:
- *    PCMU, PCMA, speex, gsm
- * Existing Public plugins:
- *    iLBC
- *
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilterDesc if successfull, NULL otherwise.
+ * @return a MSFilterDesc if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSFilterDesc * ms_factory_get_decoder(MSFactory *factory, const char *mime);
 
@@ -178,42 +171,27 @@ MS2_PUBLIC MSList *ms_factory_lookup_filter_by_interface(MSFactory *factory, MSF
 /**
  * Create encoder filter according to codec name.
  *
- * Internal supported codecs:
- *    PCMU, PCMA, speex, gsm
- * Existing Public plugins:
- *    iLBC
- *
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilter if successfull, NULL otherwise.
+ * @return a MSFilter if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSFilter * ms_factory_create_encoder(MSFactory *factory, const char *mime);
 
 /**
  * Create decoder filter according to codec name.
  *
- * Internal supported codecs:
- *    PCMU, PCMA, speex, gsm
- * Existing Public plugins:
- *    iLBC
- *
  * @param mime    A string indicating the codec.
  *
- * Returns: a MSFilter if successfull, NULL otherwise.
+ * @return a MSFilter if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSFilter * ms_factory_create_decoder(MSFactory *factory, const char *mime);
 
 /**
  * Check if a encode or decode filter exists for a codec name.
  *
- * Internal supported codecs:
- *    PCMU, PCMA, speex, gsm
- * Existing Public plugins:
- *    iLBC
- *
  * @param mime    A string indicating the codec.
  *
- * Returns: TRUE if successfull, FALSE otherwise.
+ * @return TRUE if successfull, FALSE otherwise.
  */
 MS2_PUBLIC bool_t ms_factory_codec_supported(MSFactory *factory, const char *mime);
 
@@ -222,7 +200,7 @@ MS2_PUBLIC bool_t ms_factory_codec_supported(MSFactory *factory, const char *mim
  *
  * @param id     A MSFilterId identifier for the filter.
  *
- * Returns: a MSFilter if successfull, NULL otherwise.
+ * @return a MSFilter if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSFilter *ms_factory_create_filter(MSFactory *factory, MSFilterId id);
 
@@ -231,7 +209,7 @@ MS2_PUBLIC MSFilter *ms_factory_create_filter(MSFactory *factory, MSFilterId id)
  *
  * @param name   A name for the filter.
  *
- * Returns: a MSFilter if successfull, NULL otherwise.
+ * @return a MSFilter if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSFilter *ms_factory_create_filter_from_name(MSFactory *factory, const char *name);
 
@@ -243,20 +221,40 @@ MS2_PUBLIC MSFilter *ms_factory_create_filter_from_name(MSFactory *factory, cons
  *
  * @param desc   A MSFilterDesc for the filter.
  *
- * Returns: a MSFilter if successfull, NULL otherwise.
+ * @return a MSFilter if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSFilter *ms_factory_create_filter_from_desc(MSFactory *factory, MSFilterDesc *desc);
 
+/**
+ * Enable filter statistics measurement at run time.
+**/
 MS2_PUBLIC void ms_factory_enable_statistics(MSFactory* obj, bool_t enabled);
 
+/**
+ * Obtain a list of MSFilterStats.
+**/
 MS2_PUBLIC const MSList * ms_factory_get_statistics(MSFactory* obj);
 
+/**
+ * Reset filter's statistics.
+**/
 MS2_PUBLIC void ms_factory_reset_statistics(MSFactory *obj);
 
+/**
+ * Output statistics to logs.
+**/
 MS2_PUBLIC void ms_factory_log_statistics(MSFactory *obj);
 
+/**
+ * Get number of available cpus for processing.
+ * The factory initializes this value to the number of logicial processors
+ * available on the machine where it runs.
+**/
 MS2_PUBLIC unsigned int ms_factory_get_cpu_count(MSFactory *obj);
 
+/**
+ * Set the number of available cpus for processing.
+**/
 MS2_PUBLIC void ms_factory_set_cpu_count(MSFactory *obj, unsigned int c);
 
 MS2_PUBLIC void ms_factory_add_platform_tag(MSFactory *obj, const char *tag);
@@ -269,12 +267,18 @@ MS2_PUBLIC struct _MSVideoPresetsManager * ms_factory_get_video_presets_manager(
 
 MS2_PUBLIC void ms_factory_init_plugins(MSFactory *obj);
 
+/**
+ * Set directory where plugins are to be loaded.
+**/
 MS2_PUBLIC void ms_factory_set_plugins_dir(MSFactory *obj, const char *path);
 
 MS2_PUBLIC int ms_factory_load_plugins(MSFactory *factory, const char *dir);
 
 MS2_PUBLIC void ms_factory_uninit_plugins(MSFactory *obj);
 
+/**
+ * Init VOIP features (registration of codecs, sound card and webcam managers).
+**/
 MS2_PUBLIC void ms_factory_init_voip(MSFactory *obj);
 
 MS2_PUBLIC void ms_factory_uninit_voip(MSFactory *obj);
