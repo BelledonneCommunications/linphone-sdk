@@ -578,8 +578,11 @@ static void subscribe_base(int with_resource_lists) {
 	end = belle_sip_time_ms();
 	BC_ASSERT_TRUE(end-begin>=3000);
 	BC_ASSERT_TRUE(end-begin<5000);
+	
+	belle_sip_message("simulating dialog error and recovery");
 	belle_sip_stack_set_send_error(client->stack, 1500);
-	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fiveHundredTree,1,4000));
+	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredEightyOne,1,4000));
+	
 	belle_sip_stack_set_send_error(client->stack, 0);
 	wait_for(server->stack,client->stack, &dummy, 1, 1000);
 	
