@@ -246,7 +246,6 @@ static void dec_process(MSFilter *f){
 	DecState *s=(DecState*)f->data;
 	mblk_t *im,*om;
 	int nbytes;
-	int i;
 
 	while ((im=ms_queue_get(f->inputs[0]))!=NULL){
 		nbytes=msgdsize(im);
@@ -353,13 +352,3 @@ MSFilterDesc ms_webrtc_ilbc_dec_desc={
 
 #endif
 
-#ifdef _MSC_VER
-#define MS_PLUGIN_DECLARE(type) __declspec(dllexport) type
-#else
-#define MS_PLUGIN_DECLARE(type) type
-#endif
-
-MS_PLUGIN_DECLARE(void) libmsilbc_init(MSFactory *factory){
-	ms_factory_register_filter(factory,&ms_webrtc_ilbc_enc_desc);
-	ms_factory_register_filter(factory,&ms_webrtc_ilbc_dec_desc);
-}
