@@ -47,9 +47,6 @@ extern void libmsandroiddisplaybad_init(MSFactory *factory);
 extern void libmsandroidopengldisplay_init(MSFactory *factory);
 
 
-extern MSSndCardManager * ms_snd_card_manager_new(void);
-extern MSWebCamManager * ms_web_cam_manager_new(void);
-
 #include "voipdescs.h"
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msvideopresets.h"

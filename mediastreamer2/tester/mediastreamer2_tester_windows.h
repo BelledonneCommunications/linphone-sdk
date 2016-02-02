@@ -28,7 +28,7 @@ namespace BelledonneCommunications
 				void runAllToXml();
 				void initVideo();
 				void uninitVideo();
-				void startVideoStream(Platform::Object^ CaptureElement, Platform::Object^ MediaElement, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate);
+				void startVideoStream(Platform::String^ videoSwapChainPanelName, Platform::String^ previewSwapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate);
 				void stopVideoStream();
 				int getOrientation() { return _deviceRotation; }
 				void setOrientation(int degrees);
@@ -49,9 +49,12 @@ namespace BelledonneCommunications
 			private:
 				NativeTester();
 				~NativeTester();
+				void initMS2();
+				void uninitMS2();
 
 				static NativeTester^ _instance;
 				Windows::Foundation::IAsyncAction^ _asyncAction;
+				MSFactory *_factory;
 				VideoStream *_videoStream;
 				int _deviceRotation;
 			};

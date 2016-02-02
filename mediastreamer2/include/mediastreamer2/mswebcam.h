@@ -107,6 +107,13 @@ MS2_PUBLIC MS2_DEPRECATED MSWebCamManager * ms_web_cam_manager_get(void);
 MS2_PUBLIC MSFactory * ms_web_cam_get_factory(MSWebCam *c);
 
 /**
+ * Create a webcam manager object.
+ * You usually do not need this function, instead get the webcam manager from a factory
+ * with ms_factory_get_web_cam_manager().
+ */
+MS2_PUBLIC MSWebCamManager * ms_web_cam_manager_new(void);
+
+/**
  * Destroy the webcam manager object.
  * You usually don't need this function, ms_factory_destroy() doing the job for you.
  */

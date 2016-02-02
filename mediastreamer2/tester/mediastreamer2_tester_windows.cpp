@@ -66,6 +66,7 @@ NativeTester::NativeTester()
 
 NativeTester::~NativeTester()
 {
+	uninitMS2();
 	mediastreamer2_tester_uninit();
 }
 
@@ -164,9 +165,12 @@ Platform::String^ NativeTester::testName(Platform::String^ suiteName, int testIn
 
 Windows::Foundation::Collections::IVector<Platform::String^>^ NativeTester::VideoDevices::get()
 {
+	if (_factory == nullptr) {
+		initMS2();
+	}
 	wchar_t wcname[MAX_DEVICE_NAME_SIZE];
 	Vector<Platform::String^>^ devices = ref new Vector<Platform::String^>();
-	const MSList *elem = ms_web_cam_manager_get_list(ms_web_cam_manager_get());
+	const MSList *elem = ms_web_cam_manager_get_list(ms_factory_get_web_cam_manager(_factory));
 	for (int i = 0; elem != NULL; elem = elem->next, i++) {
 		const char *id = ms_web_cam_get_string_id((MSWebCam *)elem->data);
 		memset(wcname, 0, sizeof(wcname));
@@ -178,12 +182,9 @@ Windows::Foundation::Collections::IVector<Platform::String^>^ NativeTester::Vide
 
 void NativeTester::initVideo()
 {
-	ortp_init();
-	ms_base_init();
-	ortp_set_log_level_mask(NULL, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
-	ortp_set_log_handler(ms2NativeOutputTraceHandler);
-	ms_voip_init();
-	ms_plugins_init();
+	if (_factory == nullptr) {
+		initMS2();
+	}
 	rtp_profile_set_payload(&av_profile, 100, &payload_type_h263);
 	rtp_profile_set_payload(&av_profile, 101, &payload_type_mp4v);
 	rtp_profile_set_payload(&av_profile, 102, &payload_type_h264);
@@ -198,7 +199,7 @@ void NativeTester::initVideo()
 
 void NativeTester::uninitVideo()
 {
-	ms_exit();
+	uninitMS2();
 }
 
 #define PLATFORM_STRING_TO_C_STRING(x) \
@@ -207,16 +208,16 @@ void NativeTester::uninitVideo()
 	wcstombs(cst, wst.c_str(), sizeof(cst))
 
 
-void MS2Tester::startVideoStream(Platform::String^ videoSwapChainPanelName, Platform::String^ previewSwapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate)
+void NativeTester::startVideoStream(Platform::String^ videoSwapChainPanelName, Platform::String^ previewSwapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate)
 {
-	ms_filter_enable_statistics(TRUE);
-	ms_filter_reset_statistics();
+	ms_factory_enable_statistics(_factory, TRUE);
+	ms_factory_reset_statistics(_factory);
 
 	MSVideoSize vsize = { MS_VIDEO_SIZE_CIF_W, MS_VIDEO_SIZE_CIF_H };
 	int payload = 103;
 	char cst[1024];
 	std::wstring wst;
-	MSWebCamManager *manager = ms_web_cam_manager_get();
+	MSWebCamManager *manager = ms_factory_get_web_cam_manager(_factory);
 	PLATFORM_STRING_TO_C_STRING(camera);
 	MSWebCam *cam = ms_web_cam_manager_get_cam(manager, cst);
 	PLATFORM_STRING_TO_C_STRING(codec);
@@ -243,7 +244,7 @@ void MS2Tester::startVideoStream(Platform::String^ videoSwapChainPanelName, Plat
 	}
 	PayloadType *pt = rtp_profile_get_payload(&av_profile, payload);
 	pt->normal_bitrate = bitRate * 1000;
-	_videoStream = video_stream_new(20000, 0, FALSE);
+	_videoStream = video_stream_new(_factory, 20000, 0, FALSE);
 	RefToPtrProxy<Platform::String^> *nativeWindowId = new RefToPtrProxy<Platform::String^>(videoSwapChainPanelName);
 	video_stream_set_native_window_id(_videoStream, nativeWindowId);
 	RefToPtrProxy<Platform::String^> *nativePreviewWindowId = new RefToPtrProxy<Platform::String^>(previewSwapChainPanelName);
@@ -252,14 +253,14 @@ void MS2Tester::startVideoStream(Platform::String^ videoSwapChainPanelName, Plat
 	video_stream_set_display_filter_name(_videoStream, "MSWinRTDis");
 	video_stream_use_video_preset(_videoStream, "custom");
 	video_stream_set_sent_video_size(_videoStream, vsize);
-	video_stream_set_fps(_videoStream, frameRate);
+	video_stream_set_fps(_videoStream, (float)frameRate);
 	video_stream_set_device_rotation(_videoStream, _deviceRotation);
 	video_stream_start(_videoStream, &av_profile, "127.0.0.1", 20000, NULL, 0, payload, 0, cam);
 }
 
 void NativeTester::stopVideoStream()
 {
-	ms_filter_log_statistics();
+	ms_factory_log_statistics(_factory);
 	video_stream_stop(_videoStream);
 	_videoStream = NULL;
 }
@@ -268,7 +269,7 @@ void NativeTester::changeCamera(Platform::String^ camera)
 {
 	char cst[1024];
 	std::wstring wst;
-	MSWebCamManager *manager = ms_web_cam_manager_get();
+	MSWebCamManager *manager = ms_factory_get_web_cam_manager(_factory);
 	PLATFORM_STRING_TO_C_STRING(camera);
 	MSWebCam *cam = ms_web_cam_manager_get_cam(manager, cst);
 	video_stream_change_camera(_videoStream, cam);
@@ -280,5 +281,23 @@ void NativeTester::setOrientation(int degrees)
 	if (_videoStream != NULL) {
 		video_stream_set_device_rotation(_videoStream, _deviceRotation);
 		video_stream_update_video_params(_videoStream);
+	}
+}
+
+void NativeTester::initMS2()
+{
+	if (_factory == nullptr) {
+		ortp_init();
+		ortp_set_log_level_mask(NULL, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+		ortp_set_log_handler(ms2NativeOutputTraceHandler);
+		_factory = ms_factory_new_with_voip();
+	}
+}
+
+void NativeTester::uninitMS2()
+{
+	if (_factory != nullptr) {
+		ms_factory_destroy(_factory);
+		_factory = nullptr;
 	}
 }

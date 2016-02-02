@@ -172,6 +172,13 @@ MS2_PUBLIC MS2_DEPRECATED MSSndCardManager * ms_snd_card_manager_get(void);
 MS2_PUBLIC MSFactory * ms_snd_card_get_factory(MSSndCard * c);
 
 /**
+ * Create a sound card manager object.
+ * You usually do not need this function, instead get the sound card manager from a factory
+ * with ms_factory_get_snd_card_manager().
+ */
+MS2_PUBLIC MSSndCardManager * ms_snd_card_manager_new(void);
+
+/**
  * Destroy a sound card manager object.
  * You usually do not need this function, the ms_factory_destroy() doing this job for you.
  */
