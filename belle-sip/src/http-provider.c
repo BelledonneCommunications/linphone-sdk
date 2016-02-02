@@ -38,7 +38,7 @@ struct belle_http_provider{
 	int ai_family;
 	belle_sip_list_t *tcp_channels;
 	belle_sip_list_t *tls_channels;
-	belle_tls_verify_policy_t *verify_ctx;
+	belle_tls_crypto_config_t *crypto_config;
 };
 
 #define BELLE_HTTP_REQUEST_INVOKE_LISTENER(obj,method,arg) \
@@ -325,7 +325,7 @@ static void http_provider_uninit(belle_http_provider_t *obj){
 	belle_sip_list_free_with_data(obj->tcp_channels,belle_sip_object_unref);
 	belle_sip_list_for_each(obj->tls_channels,(void (*)(void*))belle_sip_channel_force_close);
 	belle_sip_list_free_with_data(obj->tls_channels,belle_sip_object_unref);
-	belle_sip_object_unref(obj->verify_ctx);
+	belle_sip_object_unref(obj->crypto_config);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_http_provider_t);
@@ -336,7 +336,7 @@ belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char 
 	p->stack=s;
 	p->bind_ip=belle_sip_strdup(bind_ip);
 	p->ai_family=strchr(p->bind_ip,':') ? AF_INET6 : AF_INET;
-	p->verify_ctx=belle_tls_verify_policy_new();
+	p->crypto_config=belle_tls_crypto_config_new();
 	return p;
 }
 
@@ -426,7 +426,7 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 		if (strcasecmp(hop->transport,"tcp")==0){
 			chan=belle_sip_stream_channel_new_client(obj->stack,obj->bind_ip,0,hop->cname,hop->host,hop->port);
 		} else if (strcasecmp(hop->transport,"tls")==0){
-			chan=belle_sip_channel_new_tls(obj->stack,obj->verify_ctx,obj->bind_ip,0,hop->cname,hop->host,hop->port);
+			chan=belle_sip_channel_new_tls(obj->stack,obj->crypto_config,obj->bind_ip,0,hop->cname,hop->host,hop->port);
 		}
 
 		if (!chan){
@@ -480,7 +480,12 @@ void belle_http_provider_cancel_request(belle_http_provider_t *obj, belle_http_r
 }
 
 int belle_http_provider_set_tls_verify_policy(belle_http_provider_t *obj, belle_tls_verify_policy_t *verify_ctx){
-	SET_OBJECT_PROPERTY(obj,verify_ctx,verify_ctx);
+	SET_OBJECT_PROPERTY(obj,crypto_config,verify_ctx);
+	return 0;
+}
+
+int belle_http_provider_set_tls_crypto_config(belle_http_provider_t *obj, belle_tls_crypto_config_t *crypto_config){
+	SET_OBJECT_PROPERTY(obj,crypto_config,crypto_config);
 	return 0;
 }
 

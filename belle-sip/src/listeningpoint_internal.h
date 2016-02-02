@@ -91,7 +91,7 @@ belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_sta
 
 struct belle_sip_tls_listening_point{
 	belle_sip_stream_listening_point_t base;
-	belle_tls_verify_policy_t *verify_ctx;
+	belle_tls_crypto_config_t *crypto_config;
 };
 
 int belle_sip_tls_listening_point_available(void);

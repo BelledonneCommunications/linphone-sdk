@@ -208,12 +208,66 @@ BELLESIP_EXPORT char *belle_sip_certificates_chain_get_fingerprint(belle_sip_cer
  */
 BELLESIP_EXPORT belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path, const char* passwd);
 
-BELLESIP_EXPORT belle_tls_verify_policy_t *belle_tls_verify_policy_new(void);
-BELLESIP_EXPORT int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj, const char *path);
+#define BELLE_TLS_VERIFY_NONE		(0)
 #define BELLE_TLS_VERIFY_CN_MISMATCH (1)
 #define BELLE_TLS_VERIFY_ANY_REASON (0xff)
-BELLESIP_EXPORT void belle_tls_verify_policy_set_exceptions(belle_tls_verify_policy_t *obj, int flags);
-BELLESIP_EXPORT unsigned int belle_tls_verify_policy_get_exceptions(const belle_tls_verify_policy_t *obj);
+/* Set of functions deprecated on 2016/02/02 use the belle_tls_crypto_config_XXX ones */
+BELLESIP_DEPRECATED BELLESIP_EXPORT belle_tls_verify_policy_t *belle_tls_verify_policy_new(void);
+BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj, const char *path);
+BELLESIP_DEPRECATED BELLESIP_EXPORT void belle_tls_verify_policy_set_exceptions(belle_tls_verify_policy_t *obj, int flags);
+BELLESIP_DEPRECATED BELLESIP_EXPORT unsigned int belle_tls_verify_policy_get_exceptions(const belle_tls_verify_policy_t *obj);
+
+
+/**
+ * Create a new crypto configuration object
+ * The crypto configuration may be passed to a http provider or a listening point using the appropriate methods
+ * It can be used to provide :
+ * - a path to the trusted root certificates
+ * - a way to override certificate verification exceptions
+ * - a ssl configuration structure provided directly to the underlying crypto library (mbedtls 2 or above),
+ * @return an empty belle_tls_crypto_config object, trusted certificate path is initialised to the default system path without any warranty
+ */
+BELLESIP_EXPORT belle_tls_crypto_config_t *belle_tls_crypto_config_new(void);
+
+/**
+ * Set the path to the trusted certificate chain
+ * @param[in/out]	obj		The crypto configuration object to set
+ * @param[in]		path	The path to the trusted certificate chain file(NULL terminated string)
+ *
+ * @return 0 on success
+ */
+BELLESIP_EXPORT int belle_tls_crypto_config_set_root_ca(belle_tls_crypto_config_t *obj, const char *path);
+
+/**
+ * Set the exception flags to manage exception overriding during peer certificate verification
+ * @param[in/out]	obj		The crypto configuration object to set
+ * @param[in]		flags	Flags value to set:
+ * 							BELLE_TLS_VERIFY_NONE to raise and error on any exception
+ * 							BELLE_TLS_VERIFY_CN_MISMATCH to ignore Common Name mismatch
+ * 							BELLE_TLS_VERIFY_ANY_REASON to ignore any exception
+ *
+ * @return 0 on success
+ */
+BELLESIP_EXPORT void belle_tls_crypto_config_set_verify_exceptions(belle_tls_crypto_config_t *obj, int flags);
+
+/**
+ * Get the exception flags used to manage exception overriding during peer certificate verification
+ * @param[in]i		obj		The crypto configuration object to set
+ * @return			Possible flags value :
+ * 							BELLE_TLS_VERIFY_NONE to raise and error on any exception
+ * 							BELLE_TLS_VERIFY_CN_MISMATCH to ignore Common Name mismatch
+ * 							BELLE_TLS_VERIFY_ANY_REASON to ignore any exception
+ *
+ */
+BELLESIP_EXPORT unsigned int belle_tls_crypto_config_get_verify_exceptions(const belle_tls_crypto_config_t *obj);
+
+/**
+ * Set the pointer to an externally provided ssl configuration for the crypto library
+ * @param[in/out]	obj			The crypto configuration object to set
+ * @param[in]		ssl_config	A pointer to an opaque structure which will be provided directly to the crypto library used in bctoolbox. Use with extra care.
+ * 								This ssl_config structure is responsability of the caller and will not be freed at the connection's end.
+ */
+BELLESIP_EXPORT void belle_tls_crypto_config_set_ssl_config(belle_tls_crypto_config_t *obj, void *ssl_config);
 
 BELLE_SIP_END_DECLS
 

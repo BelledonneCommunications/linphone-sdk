@@ -63,7 +63,7 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t si
 	int ret;
 
 	/* check size, buff is the key in PEM format and thus shall include a NULL termination char, make size includes this termination */
-	if (strlen(buff) == size+1) {
+	if (strlen(buff) == size) {
 		size++;
 	}
 
@@ -121,11 +121,11 @@ static int belle_sip_certificate_fill(belle_sip_certificates_chain_t* certificat
 
 	int err;
 	if (format == BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM) {
-		if (strlen(buff) == size+1) {
+		/* if format is PEM, make sure the null termination char is included in the buffer given size */
+		if (strlen(buff) == size) {
 			size++;
 		}
 	}
-	/* if format is PEM, make sure the null termination char is included in the buffer given size */
 	if ((err=bctoolbox_x509_certificate_parse(certificate->cert, buff, size)) <0) {
 		char tmp[128];
 		bctoolbox_strerror(err,tmp,sizeof(tmp));
@@ -343,7 +343,7 @@ struct belle_sip_tls_channel{
 	char *cur_debug_msg;
 	belle_sip_certificates_chain_t* client_cert_chain;
 	belle_sip_signing_key_t* client_cert_key;
-	belle_tls_verify_policy_t *verify_ctx;
+	belle_tls_crypto_config_t *crypto_config;
 	int http_proxy_connected;
 	belle_sip_resolver_context_t *http_proxy_resolver_ctx;
 };
@@ -374,7 +374,7 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 
 	if (obj->cur_debug_msg)
 		belle_sip_free(obj->cur_debug_msg);
-	belle_sip_object_unref(obj->verify_ctx);
+	belle_sip_object_unref(obj->crypto_config);
 	if (obj->client_cert_chain) belle_sip_object_unref(obj->client_cert_chain);
 	if (obj->client_cert_key) belle_sip_object_unref(obj->client_cert_key);
 	if (obj->http_proxy_resolver_ctx) belle_sip_object_unref(obj->http_proxy_resolver_ctx);
@@ -723,7 +723,7 @@ int belle_sip_verify_cb_error_wrapper(bctoolbox_x509_certificate_t *cert, int de
 
 static int belle_sip_ssl_verify(void *data , bctoolbox_x509_certificate_t *cert , int depth, uint32_t *flags){
 
-	belle_tls_verify_policy_t *verify_ctx=(belle_tls_verify_policy_t*)data;
+	belle_tls_crypto_config_t *crypto_config=(belle_tls_crypto_config_t*)data;
 	const int tmp_size = 2048, flags_str_size = 256;
 	char *tmp = belle_sip_malloc0(tmp_size);
 	char *flags_str = belle_sip_malloc0(flags_str_size);
@@ -734,10 +734,10 @@ static int belle_sip_ssl_verify(void *data , bctoolbox_x509_certificate_t *cert 
 
 	belle_sip_message("Found certificate depth=[%i], flags=[%s]:\n%s", depth, flags_str, tmp);
 
-	if (verify_ctx->exception_flags==BELLE_TLS_VERIFY_ANY_REASON){
+	if (crypto_config->exception_flags==BELLE_TLS_VERIFY_ANY_REASON){
 		/* verify context ask to ignore any exception: reset all flags */
 		bctoolbox_x509_certificate_unset_flag(flags, BCTOOLBOX_CERTIFICATE_VERIFY_ALL_FLAGS);
-	}else if (verify_ctx->exception_flags & BELLE_TLS_VERIFY_CN_MISMATCH){
+	}else if (crypto_config->exception_flags & BELLE_TLS_VERIFY_CN_MISMATCH){
 		/* verify context ask to ignore CN mismatch exception : reset this flag */
 		bctoolbox_x509_certificate_unset_flag(flags, BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH);
 	}
@@ -775,7 +775,7 @@ static int belle_sip_tls_channel_load_root_ca(belle_sip_tls_channel_t *obj, cons
 	return -1;
 }
 
-belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_tls_verify_policy_t *verify_ctx,const char *bindip, int localport, const char *peer_cname, const char *dest, int port) {
+belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_tls_crypto_config_t *crypto_config, const char *bindip, int localport, const char *peer_cname, const char *dest, int port) {
 	belle_sip_tls_channel_t *obj=belle_sip_object_new(belle_sip_tls_channel_t);
 	belle_sip_stream_channel_t* super=(belle_sip_stream_channel_t*)obj;
 
@@ -786,17 +786,28 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_
 	/* create and initialise ssl context and configuration */
 	obj->sslctx = bctoolbox_ssl_context_new();
 	obj->sslcfg = bctoolbox_ssl_config_new();
-	bctoolbox_ssl_config_defaults(obj->sslcfg, BCTOOLBOX_SSL_IS_CLIENT, BCTOOLBOX_SSL_TRANSPORT_STREAM);
-	bctoolbox_ssl_config_set_authmode(obj->sslcfg, BCTOOLBOX_SSL_VERIFY_REQUIRED);
+	if (crypto_config->ssl_config == NULL) {
+		bctoolbox_ssl_config_defaults(obj->sslcfg, BCTOOLBOX_SSL_IS_CLIENT, BCTOOLBOX_SSL_TRANSPORT_STREAM);
+		bctoolbox_ssl_config_set_authmode(obj->sslcfg, BCTOOLBOX_SSL_VERIFY_REQUIRED);
+	} else { /* an SSL config is provided, use it*/
+		int ret = bctoolbox_ssl_config_set_crypto_library_config(obj->sslcfg, crypto_config->ssl_config);
+		if (ret<0) {
+			belle_sip_error("Unable to set external config for SSL context at TLS channel creation ret [-0x%x]", -ret);
+			belle_sip_object_unref(obj);
+			return NULL;
+		}
+		belle_sip_message("Use externally provided SSL configuration when creating TLS channel [%p]", obj);
+	}
+
 	bctoolbox_ssl_config_set_rng(obj->sslcfg, random_generator, NULL);
 	bctoolbox_ssl_set_io_callbacks(obj->sslctx, obj, tls_callback_write, tls_callback_read);
-	if (verify_ctx->root_ca && belle_sip_tls_channel_load_root_ca(obj,verify_ctx->root_ca)==0){
+	if (crypto_config->root_ca && belle_sip_tls_channel_load_root_ca(obj,crypto_config->root_ca)==0){
 		bctoolbox_ssl_config_set_ca_chain(obj->sslcfg, obj->root_ca, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name );
 	}
-	bctoolbox_ssl_config_set_callback_verify(obj->sslcfg, belle_sip_ssl_verify, verify_ctx);
+	bctoolbox_ssl_config_set_callback_verify(obj->sslcfg, belle_sip_ssl_verify, crypto_config);
 	bctoolbox_ssl_config_set_callback_cli_cert(obj->sslcfg, belle_sip_client_certificate_request_callback, obj);
 
-	obj->verify_ctx=(belle_tls_verify_policy_t*)belle_sip_object_ref(verify_ctx);
+	obj->crypto_config=(belle_tls_crypto_config_t*)belle_sip_object_ref(crypto_config);
 
 	bctoolbox_ssl_context_setup(obj->sslctx, obj->sslcfg);
 	return (belle_sip_channel_t*)obj;
