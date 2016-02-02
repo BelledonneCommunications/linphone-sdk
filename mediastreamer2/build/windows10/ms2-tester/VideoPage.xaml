@@ -44,9 +44,9 @@
                 <TextBlock x:Name="VideoSizeLabel" Grid.Row="2" Grid.Column="0" Text="Video size:" VerticalAlignment="Center" Margin="8"/>
                 <ComboBox x:Name="VideoSizeComboBox" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="8">
                     <ComboBoxItem Content="720P"/>
-                    <ComboBoxItem Content="VGA" IsSelected="True"/>
+                    <ComboBoxItem Content="VGA"/>
                     <ComboBoxItem Content="CIF"/>
-                    <ComboBoxItem Content="QVGA"/>
+                    <ComboBoxItem Content="QVGA" IsSelected="True"/>
                     <ComboBoxItem Content="QCIF"/>
                 </ComboBox>
                 <TextBlock x:Name="FramerateLabel" Grid.Row="3" Grid.Column="0" Text="FPS:" VerticalAlignment="Center" Margin="8"/>

@@ -52,7 +52,4 @@ int CALLBACK WinMain(_In_  HINSTANCE, _In_  HINSTANCE, _In_  LPSTR, _In_  int)
         }
         Windows::Foundation::Uninitialize();
 	}
-	else {
-		OutputDebugStringW(L"Failed MS2TesterHost initialization");
-	}
 }
