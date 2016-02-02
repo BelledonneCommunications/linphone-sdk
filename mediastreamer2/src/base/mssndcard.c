@@ -275,7 +275,11 @@ void ms_alsa_card_set_forced_sample_rate(int samplerate){
 #endif
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 MSSndCardManager* ms_snd_card_manager_get(void) {
 	return ms_factory_get_snd_card_manager(ms_factory_get_fallback());

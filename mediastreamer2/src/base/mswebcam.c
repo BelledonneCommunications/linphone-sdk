@@ -137,7 +137,11 @@ void ms_web_cam_destroy(MSWebCam *obj){
 	ms_free(obj);
 }
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 MSWebCamManager * ms_web_cam_manager_get(void){
 	return ms_factory_get_web_cam_manager(ms_factory_get_fallback());

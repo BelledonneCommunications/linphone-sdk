@@ -355,7 +355,12 @@ void ms_offer_answer_context_destroy(MSOfferAnswerContext *ctx){
 }
 
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 static int ms_voip_ref=0;
 void ms_voip_init(){
 	if (ms_voip_ref++ >0 ) {

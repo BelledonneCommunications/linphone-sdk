@@ -194,6 +194,7 @@ void NativeTester::initVideo()
 	char cPath[MAX_FILEPATH_SIZE] = { 0 };
 	wcstombs(cPath, wsPath.c_str(), sizeof(cPath));
 	ms_static_image_set_default_image(cPath);
+	//ortp_load_leak_track_dll();
 }
 
 void NativeTester::uninitVideo()
@@ -262,6 +263,7 @@ void NativeTester::stopVideoStream()
 	ms_filter_log_statistics();
 	video_stream_stop(_videoStream);
 	_videoStream = NULL;
+	ortp_dump_memory_leaks();
 }
 
 void NativeTester::changeCamera(Platform::String^ camera)

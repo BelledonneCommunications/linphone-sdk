@@ -42,8 +42,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 
-/* we need this pragram because this file implements much of compatibility functions*/
+/* we need this pragma because this file implements much of compatibility functions*/
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 unsigned int ms_get_cpu_count() {
 	return ms_factory_get_cpu_count(ms_factory_get_fallback());

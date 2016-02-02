@@ -885,7 +885,11 @@ JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_MediastreamerAndroidCon
 
 
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 MSFactory *ms_factory_create_fallback(void){
 	if (fallback_factory==NULL){
