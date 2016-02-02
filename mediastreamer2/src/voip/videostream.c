@@ -1524,8 +1524,9 @@ int video_stream_get_camera_sensor_rotation(VideoStream *stream) {
 	return -1;
 }
 
-VideoPreview * video_preview_new(void){
+VideoPreview * video_preview_new(MSFactory *factory){
 	VideoPreview *stream = (VideoPreview *)ms_new0 (VideoPreview, 1);
+	stream->ms.factory = factory;
 	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, CIF);
 	choose_display_name(stream);
 	stream->ms.owns_sessions=TRUE;

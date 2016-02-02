@@ -1140,7 +1140,7 @@ MS2_PUBLIC void video_stream_close_remote_record(VideoStream *stream);
 
 typedef VideoStream VideoPreview;
 
-MS2_PUBLIC VideoPreview * video_preview_new(void);
+MS2_PUBLIC VideoPreview * video_preview_new(MSFactory *factory);
 #define video_preview_set_size(p,s)			video_stream_set_sent_video_size(p,s)
 #define video_preview_set_display_filter_name(p,dt)	video_stream_set_display_filter_name(p,dt)
 #define video_preview_set_native_window_id(p,id)	video_stream_set_native_preview_window_id(p,id)

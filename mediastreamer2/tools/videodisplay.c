@@ -55,8 +55,8 @@ int main(int argc, char *argv[]){
 	/* this is to test the sequence start/stop */
 	for(i=0;i<1;++i){
 		int n;
-		vs=video_preview_new();
-		vs->ms.factory=factory;
+		vs=video_preview_new(factory);
+	
 		/*video_preview_set_display_filter_name(vs,"MSVideoOut");*/
 		video_preview_set_size(vs,vsize);
 		video_preview_start(vs, cam);
