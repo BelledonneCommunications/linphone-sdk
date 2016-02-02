@@ -46,6 +46,10 @@ extern bool_t libmsandroiddisplay_init(MSFactory *factory);
 extern void libmsandroiddisplaybad_init(MSFactory *factory);
 extern void libmsandroidopengldisplay_init(MSFactory *factory);
 
+
+extern MSSndCardManager * ms_snd_card_manager_new(void);
+extern MSWebCamManager * ms_web_cam_manager_new(void);
+
 #include "voipdescs.h"
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msvideopresets.h"
@@ -248,50 +252,41 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 };
 
 #endif
-static int ms_voip_ref=0;
-void ms_voip_init(){
-	if (ms_voip_ref++ >0 ) {
-		ms_message ("Skiping ms_voip_init, because [%i] ref",ms_voip_ref);
-		return;
-	}
-	ms_srtp_init();
-	ms_factory_init_voip(ms_factory_get_fallback());
-}
 
-static int managers_ref=0;
 
 void ms_factory_init_voip(MSFactory *obj){
 	MSSndCardManager *cm;
 	int i;
+	
+	if (obj->voip_initd) return;
+	
+	ms_srtp_init();
 
 	/* register builtin VoIP MSFilter's */
 	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
 		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);
 	}
 
-	if (managers_ref==0){
-		managers_ref++;
-		cm=ms_snd_card_manager_get();
-		if (cm->descs==NULL){
-			ms_message("Registering all soundcard handlers");
-			for (i=0;ms_snd_card_descs[i]!=NULL;i++){
-				ms_snd_card_manager_register_desc(cm,ms_snd_card_descs[i]);
-			}
-		}
+	cm=ms_snd_card_manager_new();
+	ms_message("Registering all soundcard handlers");
+	cm->factory=obj;
+	obj->sndcardmanager = cm;
+	for (i=0;ms_snd_card_descs[i]!=NULL;i++){
+		ms_snd_card_manager_register_desc(cm,ms_snd_card_descs[i]);
+	}
 
 #ifdef VIDEO_ENABLED
-		{
-			MSWebCamManager *wm;
-			wm=ms_web_cam_manager_get();
-			if (wm->descs==NULL){
-				ms_message("Registering all webcam handlers");
-				for (i=0;ms_web_cam_descs[i]!=NULL;i++){
-					ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
-				}
-			}
+	{
+		MSWebCamManager *wm;
+		wm=ms_web_cam_manager_new();
+		wm->factory = obj;
+		obj->wbcmanager = wm;
+		ms_message("Registering all webcam handlers");
+		for (i=0;ms_web_cam_descs[i]!=NULL;i++){
+			ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
 		}
-#endif
 	}
+#endif
 
 #ifdef VIDEO_ENABLED
 	{
@@ -316,32 +311,32 @@ void ms_factory_init_voip(MSFactory *obj){
 	}
 #endif
 	obj->voip_initd=TRUE;
+	obj->voip_uninit_func = ms_factory_uninit_voip;
 	ms_message("ms_factory_init_voip() done");
 }
 
 void ms_factory_uninit_voip(MSFactory *obj){
 	if (obj->voip_initd){
+		ms_snd_card_manager_destroy(obj->sndcardmanager);
+		obj->sndcardmanager = NULL;
 #ifdef VIDEO_ENABLED
+		ms_web_cam_manager_destroy(obj->wbcmanager);
+		obj->wbcmanager = NULL;
 		ms_video_presets_manager_destroy(obj->video_presets_manager);
 #endif
-		managers_ref--;
-		if (managers_ref==0){
-			ms_snd_card_manager_destroy();
-#ifdef VIDEO_ENABLED
-			ms_web_cam_manager_destroy();
-#endif
-		}
-	}
-}
-
-void ms_voip_exit(){
-	if (--ms_voip_ref >0 ) {
-		ms_message ("Skiping ms_voip_exit, still [%i] ref",ms_voip_ref);
-		return;
+		obj->voip_initd = FALSE;
 	}
 	ms_srtp_shutdown();
-	ms_factory_uninit_voip(ms_factory_get_fallback());
 }
+	
+MSFactory *ms_factory_new_with_voip(void){
+	MSFactory *f = ms_factory_new();
+	ms_factory_init_voip(f);
+	ms_factory_init_plugins(f);
+	return f;
+}
+
+
 
 PayloadType * ms_offer_answer_context_match_payload(MSOfferAnswerContext *context, const MSList *local_payloads, const PayloadType *remote_payload, const MSList *remote_payloads, bool_t is_reading){
 	return context->match_payload(context, local_payloads, remote_payload, remote_payloads, is_reading);
@@ -358,6 +353,28 @@ void ms_offer_answer_context_destroy(MSOfferAnswerContext *ctx){
 	if (ctx->destroy)
 		ctx->destroy(ctx);
 }
+
+
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+static int ms_voip_ref=0;
+void ms_voip_init(){
+	if (ms_voip_ref++ >0 ) {
+		ms_message ("Skiping ms_voip_init, because [%i] ref",ms_voip_ref);
+		return;
+	}
+	ms_srtp_init();
+	ms_factory_init_voip(ms_factory_get_fallback());
+}
+
+void ms_voip_exit(){
+	if (--ms_voip_ref >0 ) {
+		ms_message ("Skiping ms_voip_exit, still [%i] ref",ms_voip_ref);
+		return;
+	}
+	ms_srtp_shutdown();
+	ms_factory_uninit_voip(ms_factory_get_fallback());
+}
+
 
 #ifdef __cplusplus
 }

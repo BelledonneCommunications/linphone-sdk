@@ -28,6 +28,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "TargetConditionals.h"
 #endif
 
+#ifndef MS2_DEPRECATED
+#if defined(_MSC_VER)
+#define MS2_DEPRECATED __declspec(deprecated)
+#else
+#define MS2_DEPRECATED __attribute__ ((deprecated))
+#endif
+#endif
 #define MS_UNUSED(x) ((void)(x))
 
 #define ms_malloc	ortp_malloc
@@ -53,6 +60,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ms_cond_signal		ortp_cond_signal
 #define ms_cond_broadcast	ortp_cond_broadcast
 #define ms_cond_destroy		ortp_cond_destroy
+
+#define MS_DEFAULT_MAX_PAYLOAD_SIZE 1440
 
 #define MS2_INLINE ORTP_INLINE
 
@@ -89,7 +98,7 @@ static MS2_INLINE void ms_debug(const char *fmt,...)
 {
   va_list args;
   va_start (args, fmt);
-  ortp_logv(ORTP_DEBUG, fmt, args);
+  ortp_logv(ORTP_LOG_DOMAIN, ORTP_DEBUG, fmt, args);
   va_end (args);
 }
 #else
@@ -132,6 +141,7 @@ typedef struct _MSList MSList;
 typedef int (*MSCompareFunc)(const void *a, const void *b);
 typedef void (*MSIterateFunc)(void *a);
 typedef void (*MSIterate2Func)(void *a, void *b);
+typedef void (*MSIterate3Func)(void *a, void *b, void *c);
 
 #ifdef __cplusplus
 extern "C"{
@@ -220,8 +230,11 @@ MS2_PUBLIC void ms_list_for_each(const MSList *list, MSIterateFunc iterate_func)
  * @param list List object
  * @param iterate_func Function to invoke on each element.
  * @param user_data User data to pass to iterate_func function.
+ *
 **/
 MS2_PUBLIC void ms_list_for_each2(const MSList *list, MSIterate2Func iterate_func, void *user_data);
+	
+MS2_PUBLIC void ms_list_for_each3(const MSList *list, MSIterate3Func iterate_func, void *user_data, void *factory);
 
 /** Finds and remove given element in list.
  * @param list List in which element must be removed
@@ -336,29 +349,33 @@ MS2_PUBLIC bool_t ms_tags_list_contains_tag(const MSList *list, const char *tag)
  * Initialize the mediastreamer2 base library.
  *
  * This must be called once before calling any other API.
+ * @deprecated use ms_factory_new()
  */
-MS2_PUBLIC void ms_base_init(void);
+MS2_PUBLIC MS2_DEPRECATED void ms_base_init(void);
 
 /**
  * Initialize the mediastreamer2 VoIP library.
  *
  * This must be called one before calling any other API.
+ * @deprecated use ms_factory_new_with_voip().
  */
-MS2_PUBLIC void ms_voip_init(void);
+MS2_PUBLIC MS2_DEPRECATED void ms_voip_init(void);
 
 /**
  * Load the plugins from the default plugin directory.
  *
  * This is just a wrapper around ms_load_plugins().
  * This must be called after ms_base_init() and after ms_voip_init().
+ * @deprecated use ms_factory_init_plugins(), or ms_factory_new_with_voip() that does it automatically.
  */
-MS2_PUBLIC void ms_plugins_init(void);
+MS2_PUBLIC MS2_DEPRECATED void ms_plugins_init(void);
 
 /**
  * Set the directory from where the plugins are to be loaded when calling ms_plugins_init().
  * @param[in] path The path to the plugins directory.
+ * @deprecated use ms_factory_set_plugins_dir().
  */
-MS2_PUBLIC void ms_set_plugins_dir(const char *path);
+MS2_PUBLIC MS2_DEPRECATED void ms_set_plugins_dir(const char *path);
 
 /**
  * Load plugins from a specific directory.
@@ -369,28 +386,32 @@ MS2_PUBLIC void ms_set_plugins_dir(const char *path);
  *
  * @param directory   A directory where plugins library are available.
  *
- * Returns: >0 if successfull, 0 if not plugins loaded, -1 otherwise.
+ * @return >0 if successfull, 0 if not plugins loaded, -1 otherwise.
+ * @deprecated use ms_factory_load_plugins().
  */
-MS2_PUBLIC int ms_load_plugins(const char *directory);
+MS2_PUBLIC MS2_DEPRECATED int ms_load_plugins(const char *directory);
 
 /**
  * Release resource allocated in the mediastreamer2 base library.
  *
  * This must be called once before closing program.
+ * @deprecated use ms_factory_destroy().
  */
-MS2_PUBLIC void ms_base_exit(void);
+MS2_PUBLIC MS2_DEPRECATED void  ms_base_exit(void);
 
 /**
  * Release resource allocated in the mediastreamer2 VoIP library.
  *
  * This must be called once before closing program.
+ * @deprecated use ms_factory_destroy().
  */
-MS2_PUBLIC void ms_voip_exit(void);
+MS2_PUBLIC MS2_DEPRECATED void ms_voip_exit(void);
 
 /**
  * Unload the plugins loaded by ms_plugins_init().
+ * @deprecated use ms_factory_destroy().
  */
-MS2_PUBLIC void ms_plugins_exit(void);
+MS2_PUBLIC MS2_DEPRECATED void ms_plugins_exit(void);
 
 struct _MSSndCardDesc;
 
@@ -405,11 +426,15 @@ MS2_PUBLIC void ms_usleep(uint64_t usec);
  * The default value is 1440 computed as the standard internet MTU minus IPv6 header,
  * UDP header and RTP header. As IPV4 header is smaller than IPv6 header, this
  * value works for both.
- *
+ * @deprecated use ms_factory_get_payload_max_size().
 **/
-MS2_PUBLIC int ms_get_payload_max_size(void);
+MS2_PUBLIC MS2_DEPRECATED int ms_get_payload_max_size(void);
 
-MS2_PUBLIC void ms_set_payload_max_size(int size);
+/**
+ * Set the maximum payload size allowed.
+ * @deprecated use ms_factory_set_payload_max_size().
+**/
+MS2_PUBLIC MS2_DEPRECATED void ms_set_payload_max_size(int size);
 
 /**
  * Returns the network Max Transmission Unit to reach destination_host.
@@ -421,21 +446,26 @@ MS2_PUBLIC int ms_discover_mtu(const char *destination_host);
 /**
  * Set mediastreamer default mtu, used to compute the default RTP max payload size.
  * This function will call ms_set_payload_max_size(mtu-[ipv6 header size]).
+ * @deprecated use ms_factory_set_mtu()
 **/
-MS2_PUBLIC void ms_set_mtu(int mtu);
-
+MS2_PUBLIC MS2_DEPRECATED void ms_set_mtu(int mtu);
 
 /**
  * Get mediastreamer default mtu, used to compute the default RTP max payload size.
+ * @deprecated use ms_factory_get_mtu().
 **/
-MS2_PUBLIC int ms_get_mtu(void);
+MS2_PUBLIC MS2_DEPRECATED int ms_get_mtu(void);
 
 /**
  * Declare how many cpu (cores) are available on the platform
+ * @deprecated use ms_factory_set_cpu_count().
  */
-MS2_PUBLIC void ms_set_cpu_count(unsigned int c);
+MS2_PUBLIC MS2_DEPRECATED void ms_set_cpu_count(unsigned int c);
 
-MS2_PUBLIC unsigned int ms_get_cpu_count(void);
+/**
+ * @deprecated use ms_factory_get_cpu_count().
+**/
+MS2_PUBLIC MS2_DEPRECATED unsigned int ms_get_cpu_count(void);
 
 /**
  * Adds a new entry in the SoundDeviceDescription table

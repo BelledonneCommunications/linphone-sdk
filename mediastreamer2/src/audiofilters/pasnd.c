@@ -580,14 +580,14 @@ MSFilterDesc pasnd_write_desc={
 };
 
 MSFilter *ms_pasnd_read_new(MSSndCard *card){
-	MSFilter *f=ms_filter_new_from_desc(&pasnd_read_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &pasnd_read_desc);
 	f->data=card;
 	return f;
 }
 
 
 MSFilter *ms_pasnd_write_new(MSSndCard *card){
-	MSFilter *f=ms_filter_new_from_desc(&pasnd_write_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &pasnd_write_desc);
 	f->data=card;
 	return f;
 }

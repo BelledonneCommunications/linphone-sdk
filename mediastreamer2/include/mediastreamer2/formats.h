@@ -30,7 +30,8 @@ extern "C"{
 typedef enum _MSFormatType{
 	MSAudio,
 	MSVideo,
-	MSText
+	MSText,
+	MSUnknownMedia
 }MSFormatType;
 
 /**

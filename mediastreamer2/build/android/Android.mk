@@ -198,10 +198,10 @@ LOCAL_CFLAGS += \
 	-DNDEBUG
 
 LOCAL_C_INCLUDES += \
-	$(LOCAL_PATH)/../../../externals/libmatroska \
-	$(LOCAL_PATH)/../../../externals/libmatroska/corec \
-	$(LOCAL_PATH)/../../../externals/libmatroska/libebml2 \
-	$(LOCAL_PATH)/../../../externals/libmatroska/libmatroska2
+	$(LOCAL_PATH)/../../../externals/libmatroska-c \
+	$(LOCAL_PATH)/../../../externals/libmatroska-c/corec \
+	$(LOCAL_PATH)/../../../externals/libmatroska-c/libebml2 \
+	$(LOCAL_PATH)/../../../externals/libmatroska-c/libmatroska2
 
 LOCAL_SRC_FILES += \
 	utils/mkv_reader.c \

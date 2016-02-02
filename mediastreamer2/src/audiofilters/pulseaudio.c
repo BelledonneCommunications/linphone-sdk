@@ -141,7 +141,7 @@ void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol, void *userdat
 
 	/* when eol is set to a positive number : end of the list */
 	if (eol > 0) {
-		return;
+		goto end;
 	}
 
 	pa_device = ms_malloc0(sizeof(pa_device_t));
@@ -149,7 +149,7 @@ void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol, void *userdat
 	strncpy(pa_device->description, l->description, PA_STRING_SIZE-1);
 
 	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
-	
+end:
 	pa_threaded_mainloop_signal(pa_loop, FALSE);
 }
 
@@ -158,11 +158,11 @@ void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *use
 	pa_device_t *pa_device;
 
 	if (eol > 0) {
-		return;
+		goto end;
 	}
 
 	if (l->monitor_of_sink!=PA_INVALID_INDEX) { /* ignore monitors */
-		return;
+		goto end;
 	}
 	
 	pa_device = ms_malloc0(sizeof(pa_device_t));
@@ -170,7 +170,7 @@ void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *use
 	strncpy(pa_device->description, l->description, PA_STRING_SIZE -1);
 
 	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
-	
+end:
 	pa_threaded_mainloop_signal(pa_loop, FALSE);
 }
 
@@ -349,11 +349,17 @@ static void stream_free(Stream *s) {
 }
 
 static size_t stream_play(Stream *s, size_t nbytes) {
-	if (nbytes == 0) return 0;
+	size_t avail;
 
-	if (ms_bufferizer_get_avail(&s->bufferizer) >= nbytes){
+	if (nbytes == 0)
+		return 0;
+
+	avail = ms_bufferizer_get_avail(&s->bufferizer);
+	if (avail > 0) {
 		uint8_t *data;
 		int buffer_size;
+		if (nbytes > avail)
+			nbytes = avail;
 		data = ms_new(uint8_t, nbytes);
 		ms_mutex_lock(&s->mutex);
 		ms_bufferizer_read(&s->bufferizer, data, nbytes);
@@ -792,7 +798,7 @@ static MSFilterDesc pulse_write_desc={
 
 static MSFilter *pulse_card_create_reader(MSSndCard *card) {
 	PAData *card_data = (PAData *)card->data;
-	MSFilter *f=ms_filter_new_from_desc (&pulse_read_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &pulse_read_desc);
 	Stream *s = (Stream *)f->data;
 	s->dev = ms_strdup(card_data->pa_id_source);  /* add pulse audio card id to connect the stream to the correct card */
 	return f;
@@ -800,7 +806,7 @@ static MSFilter *pulse_card_create_reader(MSSndCard *card) {
 
 static MSFilter *pulse_card_create_writer(MSSndCard *card) {
 	PAData *card_data = (PAData *)card->data;
-	MSFilter *f=ms_filter_new_from_desc (&pulse_write_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &pulse_write_desc);
 	Stream *s = (Stream *)f->data;
 	s->dev = ms_strdup(card_data->pa_id_sink); /* add pulse audio card id to connect the stream to the correct card */
 	return f;

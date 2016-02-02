@@ -187,17 +187,19 @@ MSEventQueue *ms_event_queue_new(){
 	return q;
 }
 
+//void ms_event_queue_destroy(MSEventQueue *q){
+//	/*compatibility code*/
+//	if (q==ms_factory_get_event_queue(ms_factory_get_fallback())){
+//		ms_factory_set_event_queue(ms_factory_get_fallback(),NULL);
+//	}
+//	ms_mutex_destroy(&q->mutex);
+//	ms_free(q);
+//}
+
 void ms_event_queue_destroy(MSEventQueue *q){
 	/*compatibility code*/
-	if (q==ms_factory_get_event_queue(ms_factory_get_fallback())){
-		ms_factory_set_event_queue(ms_factory_get_fallback(),NULL);
-	}
 	ms_mutex_destroy(&q->mutex);
 	ms_free(q);
-}
-
-void ms_set_global_event_queue(MSEventQueue *q){
-	ms_factory_set_event_queue(ms_factory_get_fallback(),q);
 }
 
 void ms_event_queue_skip(MSEventQueue *q){
@@ -287,4 +289,12 @@ void ms_filter_clean_pending_events(MSFilter *f){
 	if (f->factory->evq)
 		ms_event_queue_clean(f->factory->evq,f);
 }
+
+/* we need this pragram because this file implements much of compatibility functions*/
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+void ms_set_global_event_queue(MSEventQueue *q){
+	ms_factory_set_event_queue(ms_factory_get_fallback(),q);
+}
+
 

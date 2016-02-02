@@ -24,14 +24,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mswebcam.h"
 #include "mediastreamer2/msfilter.h"
 
-static MSWebCamManager *scm=NULL;
+//static MSWebCamManager *scm=NULL;
 
-static MSWebCamManager * create_manager(void){
+MSWebCamManager * ms_web_cam_manager_new(void){
 	MSWebCamManager *obj=(MSWebCamManager *)ms_new0(MSWebCamManager,1);
+	obj->factory = NULL;
 	return obj;
 }
 
-void ms_web_cam_manager_destroy(void){
+void ms_web_cam_manager_destroy(MSWebCamManager* scm){
 	if (scm!=NULL){
 		ms_list_for_each(scm->cams,(void (*)(void*))ms_web_cam_destroy);
 		ms_list_free(scm->cams);
@@ -41,9 +42,8 @@ void ms_web_cam_manager_destroy(void){
 	scm=NULL;
 }
 
-MSWebCamManager * ms_web_cam_manager_get(void){
-	if (scm==NULL) scm=create_manager();
-	return scm;
+MSFactory * ms_web_cam_get_factory(MSWebCam *c){
+	return c->wbcmanager->factory;
 }
 
 MSWebCam * ms_web_cam_manager_get_cam(MSWebCamManager *m, const char *id){
@@ -67,10 +67,16 @@ const MSList * ms_web_cam_manager_get_list(MSWebCamManager *m){
 	return m->cams;
 }
 
+void ms_web_cam_set_manager(MSWebCamManager*m, MSWebCam *c){
+	c->wbcmanager = m;
+}
 void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c){
+	ms_web_cam_set_manager(m,c);
 	ms_message("Webcam %s added",ms_web_cam_get_string_id(c));
 	m->cams=ms_list_append(m->cams,c);
 }
+
+
 
 void ms_web_cam_manager_prepend_cam(MSWebCamManager *m, MSWebCam *c){
 	ms_message("Webcam %s prepended",ms_web_cam_get_string_id(c));
@@ -130,3 +136,10 @@ void ms_web_cam_destroy(MSWebCam *obj){
 	if (obj->id!=NULL)	ms_free(obj->id);
 	ms_free(obj);
 }
+
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+MSWebCamManager * ms_web_cam_manager_get(void){
+	return ms_factory_get_web_cam_manager(ms_factory_get_fallback());
+}
+

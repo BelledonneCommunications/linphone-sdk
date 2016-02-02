@@ -40,12 +40,6 @@ struct _MSZrtpContext{
 	char *peerURI; /**< use for cache management */
 };
 
-typedef enum {
-	rtp_stream,
-	rtcp_stream
-} stream_type;
-
-
 
 /***********************************************/
 /***** LOCAL FUNCTIONS                     *****/
@@ -380,7 +374,7 @@ static MSZrtpContext* createUserData(bzrtpContext_t *context, MSZrtpParams *para
 	userData->zrtpContext=context;
 	/* get the zidFilename (if any)*/
 	if (params->zid_file != NULL) {
-		userData->zidFilename = (char *)malloc(strlen(params->zid_file)+1);
+		userData->zidFilename = (char *)ms_malloc(strlen(params->zid_file)+1);
 		memcpy(userData->zidFilename, params->zid_file, strlen(params->zid_file));
 		userData->zidFilename[strlen(params->zid_file)] = '\0';
 	} else {
@@ -546,7 +540,7 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 
 	/* get the sip URI of peer and store it into the context to set it in the cache. Done only for the first channel as it is useless for the other ones which doesn't update the cache */
 	if (params->uri && strlen(params->uri)>0) {
-		userData->peerURI = strdup(params->uri);
+		userData->peerURI = ms_strdup(params->uri);
 	} else {
 		userData->peerURI = NULL;
 	}
@@ -584,8 +578,8 @@ void ms_zrtp_context_destroy(MSZrtpContext *ctx) {
 	ms_message("Stopping ZRTP context");
 	bzrtp_destroyBzrtpContext(ctx->zrtpContext, ctx->self_ssrc);
 
-	if (ctx->zidFilename) free(ctx->zidFilename);
-	if (ctx->peerURI) free(ctx->peerURI);
+	if (ctx->zidFilename) ms_free(ctx->zidFilename);
+	if (ctx->peerURI) ms_free(ctx->peerURI);
 	free(ctx);
 	ms_message("ORTP-ZRTP context destroyed");
 }

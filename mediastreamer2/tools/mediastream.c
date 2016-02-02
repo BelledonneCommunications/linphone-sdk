@@ -676,17 +676,18 @@ void setup_media_streams(MediastreamDatas* args) {
 #ifdef VIDEO_ENABLED
 	MSWebCam *cam=NULL;
 #endif
+	MSFactory *factory;
 	ortp_init();
 	if (args->logfile)
 		ortp_set_log_file(args->logfile);
 
 	if (args->is_verbose) {
-		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	} else {
-		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
-	ms_init();
+	factory = ms_factory_new_with_voip();
 
 #if TARGET_OS_IPHONE || defined(ANDROID)
 #if defined (HAVE_X264) && defined (VIDEO_ENABLED)
@@ -712,7 +713,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
 #ifdef VIDEO_ENABLED
 	cam=ms_web_cam_new(ms_mire_webcam_desc_get());
-	if (cam) ms_web_cam_manager_add_cam(ms_web_cam_manager_get(), cam);
+	if (cam) ms_web_cam_manager_add_cam(ms_factory_get_web_cam_manager(factory), cam);
 	cam=NULL;
 
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
@@ -728,9 +729,10 @@ void setup_media_streams(MediastreamDatas* args) {
 	args->profile=rtp_profile_clone_full(&av_profile);
 	args->q=ortp_ev_queue_new();
 
-	if (args->mtu) ms_set_mtu(args->mtu);
-	ms_filter_enable_statistics(TRUE);
-	ms_filter_reset_statistics();
+	if (args->mtu) ms_factory_set_mtu(factory, args->mtu);
+	ms_factory_enable_statistics(factory, TRUE);
+	ms_factory_reset_statistics(factory);
+	
 	args->ice_session=ice_session_new();
 	ice_session_set_remote_credentials(args->ice_session,"1234","1234567890abcdef123456");
 	// ICE local credentials are assigned when creating the ICE session, but force them here to simplify testing
@@ -784,12 +786,12 @@ void setup_media_streams(MediastreamDatas* args) {
 	}
 
 	if (args->pt->type!=PAYLOAD_VIDEO){
-		MSSndCardManager *manager=ms_snd_card_manager_get();
+		MSSndCardManager *manager=ms_factory_get_snd_card_manager(factory);
 		MSSndCard *capt= args->capture_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
 				get_sound_card(manager,args->capture_card);
 		MSSndCard *play= args->playback_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
 				get_sound_card(manager,args->playback_card);
-		args->audio=audio_stream_new(args->localport,args->localport+1,ms_is_ipv6(args->ip));
+		args->audio=audio_stream_new(factory, args->localport,args->localport+1,ms_is_ipv6(args->ip));
 		audio_stream_enable_automatic_gain_control(args->audio,args->agc);
 		audio_stream_enable_noise_gate(args->audio,args->use_ng);
 		audio_stream_set_echo_canceller_params(args->audio,args->ec_len_ms,args->ec_delay_ms,args->ec_framesize);
@@ -897,7 +899,7 @@ void setup_media_streams(MediastreamDatas* args) {
 			exit(-1);
 		}
 		ms_message("Starting video stream.\n");
-		args->video=video_stream_new(args->localport, args->localport+1, ms_is_ipv6(args->ip));
+		args->video=video_stream_new(factory, args->localport, args->localport+1, ms_is_ipv6(args->ip));
 		if (args->video_display_filter)
 			video_stream_set_display_filter_name(args->video, args->video_display_filter);
 
@@ -912,15 +914,16 @@ void setup_media_streams(MediastreamDatas* args) {
 		const char*  nowebcam = [[myBundle pathForResource:@"nowebcamCIF"ofType:@"jpg"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
 		ms_static_image_set_default_image(nowebcam);
 		NSUInteger cpucount = [[NSProcessInfo processInfo] processorCount];
-		ms_set_cpu_count(cpucount);
+		ms_factory_set_cpu_count(args->audio->ms.factory, cpucount);
+		//ms_set_cpu_count(cpucount);
 #endif
 		video_stream_set_event_callback(args->video,video_stream_event_cb, args);
 		video_stream_set_freeze_on_error(args->video,args->freeze_on_error);
 		video_stream_enable_adaptive_bitrate_control(args->video,args->use_rc);
 		if (args->camera)
-			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),args->camera);
+			cam=ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(factory),args->camera);
 		if (cam==NULL)
-			cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+			cam=ms_web_cam_manager_get_default_cam(ms_factory_get_web_cam_manager(factory));
 		
 		if (args->infile){
 			iodef.input.type = MSResourceFile;
@@ -1095,7 +1098,7 @@ void clear_mediastreams(MediastreamDatas* args) {
 	if (args->video) {
 		if (args->video->ms.ice_check_list) ice_check_list_destroy(args->video->ms.ice_check_list);
 		video_stream_stop(args->video);
-		ms_filter_log_statistics();
+		ms_factory_log_statistics(args->video->ms.factory);
 	}
 #endif
 	if (args->ice_session) ice_session_destroy(args->ice_session);
@@ -1104,8 +1107,8 @@ void clear_mediastreams(MediastreamDatas* args) {
 
 	if (args->logfile)
 		fclose(args->logfile);
-
-	ms_exit();
+	
+	ms_factory_destroy(args->video->ms.factory);
 }
 
 // ANDROID JNI WRAPPER
@@ -1156,7 +1159,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_chang
 	char* id = (char*)malloc(15);
 	snprintf(id, 15, "Android%d", camId);
 	ms_message("Changing camera, trying to use: '%s'\n", id);
-	video_stream_change_camera(args->video, ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), id));
+	video_stream_change_camera(args->video, ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(args->video->ms.factory), id));
 #endif
 }
 

@@ -186,11 +186,11 @@ static void arts_card_detect(MSSndCardManager *m){
 }
 
 static MSFilter * arts_card_create_reader(MSSndCard *card){
-	return ms_filter_new(MS_ARTS_READ_ID);
+	return ms_factory_create_filter(ms_snd_card_get_factory(card), MS_ARTS_READ_ID);
 }
 
 static MSFilter * arts_card_create_writer(MSSndCard *card){
-	return ms_filter_new(MS_ARTS_WRITE_ID);
+	return ms_factory_create_filter(ms_snd_card_get_factory(card), MS_ARTS_WRITE_ID);
 }
 
 MSSndCardDesc arts_card_desc={

@@ -51,10 +51,46 @@ endif()
 apply_compile_flags(SOURCE_FILES_C "CPP" "C")
 apply_compile_flags(SOURCE_FILES_OBJC "CPP" "OBJC")
 
-add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
-target_include_directories(mediastreamer2_tester PUBLIC ${CUNIT_INCLUDE_DIRS} PRIVATE common)
-target_link_libraries(mediastreamer2_tester mediastreamer_voip mediastreamer_base ${CUNIT_LIBRARIES})
-string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-if(LINK_FLAGS_STR)
-	set_target_properties(mediastreamer2_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+
+	add_library(mediastreamer2_tester_static STATIC ${SOURCE_FILES_C})
+	target_include_directories(mediastreamer2_tester_static PUBLIC ${CUNIT_INCLUDE_DIRS} PRIVATE common)
+	target_link_libraries(mediastreamer2_tester_static mediastreamer_voip mediastreamer_base ${CUNIT_LIBRARIES})
+
+	set(RUNTIME_COMPONENT_SOURCES
+		mediastreamer2_tester_windows.cpp
+		mediastreamer2_tester_windows.h
+	)
+	add_library(mediastreamer2_tester_runtime MODULE ${RUNTIME_COMPONENT_SOURCES})
+	target_include_directories(mediastreamer2_tester_runtime PRIVATE common)
+	target_include_directories(mediastreamer2_tester_runtime PRIVATE "../../../mswinrtvid")	# HACK!!
+	target_link_libraries(mediastreamer2_tester_runtime mediastreamer2_tester_static)
+	set_target_properties(mediastreamer2_tester_runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
+	set_target_properties(mediastreamer2_tester_runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.Mediastreamer2.Tester")
+	set_target_properties(mediastreamer2_tester_runtime PROPERTIES LINK_FLAGS "/WINMDFILE:BelledonneCommunications.Mediastreamer2.Tester.winmd")
+
+	install(TARGETS mediastreamer2_tester_runtime
+		RUNTIME DESTINATION bin
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/BelledonneCommunications.Mediastreamer2.Tester.winmd" DESTINATION lib)
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/BelledonneCommunications.Mediastreamer2.Tester.pdb
+			DESTINATION lib
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
+	endif()
+
+else()
+
+	add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
+	target_include_directories(mediastreamer2_tester PUBLIC ${CUNIT_INCLUDE_DIRS} PRIVATE common)
+	target_link_libraries(mediastreamer2_tester mediastreamer_voip mediastreamer_base ${CUNIT_LIBRARIES})
+	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
+	if(LINK_FLAGS_STR)
+		set_target_properties(mediastreamer2_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	endif()
+
 endif()

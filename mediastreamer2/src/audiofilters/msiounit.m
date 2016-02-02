@@ -421,20 +421,20 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 	UInt32 audioMode;
 	UInt32 audioCategorySize=sizeof(audioCategory);
 	bool_t changed;
-	
+
 	if (!d->is_fast){
-		
+
 		if (d->audio_session_configured){
 			/*check that category wasn't changed*/
 			check_session_call(AudioSessionGetProperty(kAudioSessionProperty_AudioCategory,&audioCategorySize,&audioCategory));
-			
+
 			changed=(audioCategory!=kAudioSessionCategory_AmbientSound && d->is_ringer)
 			||(audioCategory!=kAudioSessionCategory_PlayAndRecord && !d->is_ringer);
 		}
-		
+
 		if (!d->audio_session_configured || changed) {
 			check_session_call( AudioSessionSetActive(true) );
-			
+
 			if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
 				audioCategory= kAudioSessionCategory_AmbientSound;
 				audioMode = kAudioSessionMode_Default;
@@ -444,10 +444,10 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 				audioMode = kAudioSessionMode_VoiceChat;
 				ms_message("Configuring audio session for playback/record");
 			}
-			
+
 			check_audiounit_call(AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory));
 			check_audiounit_call(AudioSessionSetProperty(kAudioSessionProperty_Mode, sizeof(audioMode), &audioMode));
-			
+
 		}else{
 			ms_message("Audio session already correctly configured.");
 		}
@@ -455,7 +455,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 	} else {
 		ms_message("Fast iounit mode, audio session configuration must be done at application level.");
 	}
-	
+
 }
 
 static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
@@ -533,7 +533,7 @@ static void destroy_audio_unit (au_card_t* d) {
 		AudioComponentInstanceDispose (d->io_unit);
 		d->io_unit=NULL;
 		if (!d->is_fast) {
-			check_session_call( AudioSessionSetActiveWithFlags(false, kAudioSessionSetActiveFlag_NotifyOthersOnDeactivation) );
+			AudioSessionSetActiveWithFlags(false, kAudioSessionSetActiveFlag_NotifyOthersOnDeactivation);
 		}
 		ms_message("AudioUnit destroyed");
 	}
@@ -921,7 +921,7 @@ MSFilterDesc au_write_desc={
 static MSFilter *ms_au_read_new(MSSndCard *mscard){
 	ms_debug("ms_au_read_new");
 	au_card_t* card=(au_card_t*)(mscard->data);
-	MSFilter *f=ms_filter_new_from_desc(&au_read_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(mscard), &au_read_desc);
 	au_filter_read_data_t *d=ms_new0(au_filter_read_data_t,1);
 	qinit(&d->rq);
 	d->readTimeStamp.mSampleTime=-1;
@@ -935,7 +935,7 @@ static MSFilter *ms_au_read_new(MSSndCard *mscard){
 static MSFilter *ms_au_write_new(MSSndCard *mscard){
 	ms_debug("ms_au_write_new");
 	au_card_t* card=(au_card_t*)(mscard->data);
-	MSFilter *f=ms_filter_new_from_desc(&au_write_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(mscard), &au_write_desc);
 	au_filter_write_data_t *d=ms_new0(au_filter_write_data_t,1);
 	d->bufferizer= ms_bufferizer_new();
 	ms_mutex_init(&d->mutex,NULL);

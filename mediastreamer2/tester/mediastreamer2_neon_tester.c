@@ -27,7 +27,7 @@
 #include <speex/speex.h>
 
 static int tester_before_all() {
-	ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
 	ms_init();
 	srand(time(0));
 	return 0;

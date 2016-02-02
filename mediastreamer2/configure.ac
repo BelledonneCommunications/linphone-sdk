@@ -16,7 +16,7 @@ MEDIASTREAMER_MINOR_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f2)
 MEDIASTREAMER_MICRO_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f3)
 MEDIASTREAMER_EXTRA_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f4)
 
-LIBMEDIASTREAMER_SO_CURRENT=6 dnl increment this number when you add/change/remove an interface
+LIBMEDIASTREAMER_SO_CURRENT=7 dnl increment this number when you add/change/remove an interface
 LIBMEDIASTREAMER_SO_REVISION=0 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
 LIBMEDIASTREAMER_SO_AGE=0 dnl increment this number when you add an interface, set to 0 if you remove an interface
 
@@ -888,69 +888,80 @@ AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR,  "${package_prefix}/share" ,[path of data])
 AC_SUBST(PACKAGE_DATA_DIR)
 
 dnl check for video4linux headers
-AC_CHECK_HEADERS(linux/videodev.h linux/videodev2.h)
-if test "${ac_cv_header_linux_videodev_h}" = "yes" ; then
-	found_v4l1=yes
-else
-	found_v4l1=no
-fi
-if test "${ac_cv_header_linux_videodev2_h}" = "yes" ; then
-	found_v4l2=yes
-else
-	found_v4l2=no
-fi
 
-AM_CONDITIONAL(BUILD_V4L1, test x$found_v4l1 = xyes )
-AM_CONDITIONAL(BUILD_V4L2, test x$found_v4l2 = xyes )
-
-AC_ARG_ENABLE(libv4l1,
-	[AS_HELP_STRING([--disable-libv4l1], [Disable usage of libv4l1, really discouraged])],
+AC_ARG_ENABLE(v4l,
+	[AS_HELP_STRING([--disable-v4l], [Disable usage of video4linux, really discouraged (linux-only)])],
 	[case "${enableval}" in
-		yes)	libv4l1=yes ;;
-		no)	libv4l1=no ;;
+		yes)	v4l=yes ;;
+		no)	v4l=no ;;
 		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l1) ;;
 	esac],
-	[libv4l1=yes]
+	[v4l=yes]
 )
 
-AC_ARG_ENABLE(libv4l2,
-	[AS_HELP_STRING([--disable-libv4l2], [Disable usage of libv4l2, really discouraged])],
-	[case "${enableval}" in
-		yes)	libv4l2=yes ;;
-		no)	libv4l2=no ;;
-		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l2) ;;
-	esac],
-	[libv4l2=yes]
-)
+if test "$v4l" = "yes" ; then
+	AC_CHECK_HEADERS(linux/videodev.h linux/videodev2.h)
+	if test "${ac_cv_header_linux_videodev_h}" = "yes" ; then
+		found_v4l1=yes
+	else
+		found_v4l1=no
+	fi
+	if test "${ac_cv_header_linux_videodev2_h}" = "yes" ; then
+		found_v4l2=yes
+	else
+		found_v4l2=no
+	fi
 
-PKG_CHECK_MODULES(LIBV4L2, libv4l2,
-	[AC_DEFINE(HAVE_LIBV4L2,1,[Defined if we have libv4l2])
-	have_libv4l2=yes],
-	[echo "No libv4l2 found."]
-)
-PKG_CHECK_MODULES(LIBV4L1, libv4l1,
-	[AC_DEFINE(HAVE_LIBV4L1,1,[Defined if we have libv4l1])
-	have_libv4l1=yes],
-	[echo "No libv4l1 found."]
-)
-PKG_CHECK_MODULES(LIBV4LCONVERT, libv4lconvert,
-	[AC_DEFINE(HAVE_LIBV4LCONVERT,1,[Defined if we have libv4lconvert])
-	have_libv4lconvert=yes],
-	[echo "No libv4lconvert found."]
-)
+	AC_ARG_ENABLE(libv4l1,
+		[AS_HELP_STRING([--disable-libv4l1], [Disable usage of libv4l1, really discouraged])],
+		[case "${enableval}" in
+			yes)	libv4l1=yes ;;
+			no)	libv4l1=no ;;
+			*)	AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l1) ;;
+		esac],
+		[libv4l1=yes]
+	)
 
-if test "$found_v4l2" = "yes" && test "$have_libv4l2" != "yes" ; then
-	if test "$video" = "true" && test "$libv4l2" = "yes" ; then
-		AC_MSG_ERROR([
-Missing libv4l2. It is highly recommended to build with
-libv4l2 headers and library. Many camera will won't work or will crash
-your application if libv4l2 is not installed.
-If you know what you are doing, you can use --disable-libv4l2 to disable
-this check.
-		])
+	AC_ARG_ENABLE(libv4l2,
+		[AS_HELP_STRING([--disable-libv4l2], [Disable usage of libv4l2, really discouraged])],
+		[case "${enableval}" in
+			yes)	libv4l2=yes ;;
+			no)	libv4l2=no ;;
+			*)	AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l2) ;;
+		esac],
+		[libv4l2=yes]
+	)
+
+	PKG_CHECK_MODULES(LIBV4L2, libv4l2,
+		[AC_DEFINE(HAVE_LIBV4L2,1,[Defined if we have libv4l2])
+		have_libv4l2=yes],
+		[echo "No libv4l2 found."]
+	)
+	PKG_CHECK_MODULES(LIBV4L1, libv4l1,
+		[AC_DEFINE(HAVE_LIBV4L1,1,[Defined if we have libv4l1])
+		have_libv4l1=yes],
+		[echo "No libv4l1 found."]
+	)
+	PKG_CHECK_MODULES(LIBV4LCONVERT, libv4lconvert,
+		[AC_DEFINE(HAVE_LIBV4LCONVERT,1,[Defined if we have libv4lconvert])
+		have_libv4lconvert=yes],
+		[echo "No libv4lconvert found."]
+	)
+
+	if test "$found_v4l2" = "yes" && test "$have_libv4l2" != "yes" ; then
+		if test "$video" = "true" && test "$libv4l2" = "yes" ; then
+			AC_MSG_ERROR([
+	Missing libv4l2. It is highly recommended to build with
+	libv4l2 headers and library. Many camera will won't work or will crash
+	your application if libv4l2 is not installed.
+	If you know what you are doing, you can use --disable-libv4l2 to disable
+	this check.
+			])
+		fi
 	fi
 fi
-
+AM_CONDITIONAL(BUILD_V4L1, test x$found_v4l1 = xyes )
+AM_CONDITIONAL(BUILD_V4L2, test x$found_v4l2 = xyes )
 
 AC_PATH_PROG(PCAP,pcap-config,false)
 AM_CONDITIONAL(HAVE_PCAP, test $PCAP != false)
@@ -1028,12 +1039,6 @@ fi
 
 AM_CONDITIONAL(BUILD_TESTS,test x$found_cunit = xyes)
 
-case "$target_os" in
-	*linux*)
-		# Eliminate -lstdc++ addition to postdeps for cross compiles.
-		postdeps_CXX=`echo " $postdeps_CXX " | sed 's, -lstdc++ ,,g'`
-	;;
-esac
 
 dnl check for libsrtp support (secure rtp)
 AC_ARG_WITH(srtp,

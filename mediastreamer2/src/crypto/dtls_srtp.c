@@ -258,8 +258,6 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 	if ((*(msg->b_rptr)>19) && (*(msg->b_rptr)<64)) {
 
 		DtlsRawPacket *incoming_dtls_packet;
-		RtpSession *rtp_session = ctx->stream_sessions->rtp_session;
-		OrtpStream *ortp_stream = is_rtp?&rtp_session->rtp.gs:&rtp_session->rtcp.gs;
 		incoming_dtls_packet = (DtlsRawPacket *)ms_malloc0(sizeof(DtlsRawPacket));
 		//DtlsRawPacket *incoming_dtls_packet = (DtlsRawPacket *)ms_malloc0(sizeof(DtlsRawPacket));
 		incoming_dtls_packet->next=NULL;
@@ -268,17 +266,7 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 		memcpy(incoming_dtls_packet->data, msg->b_rptr, msgLength);
 
 		/*required by webrtc in server case when ice is not completed yet*/
-		if (!rtp_session->use_connect){
-			struct sockaddr *addr = NULL;
-			socklen_t addrlen;
-			addr = (struct sockaddr *)&msg->net_addr;
-			addrlen = msg->net_addrlen;
-			if (ortp_stream->socket>0 && rtp_session->symmetric_rtp){
-				/* store the sender rtp address to do symmetric DTLS */
-				memcpy(&ortp_stream->rem_addr,addr,addrlen);
-				ortp_stream->rem_addrlen=addrlen;
-			}
-		}
+		/* no more required because change is performed by ice.c once a check list is ready rtp_session_update_remote_sock_addr(rtp_session, msg,is_rtp,FALSE);*/
 
 		ms_message("DTLS Receive %s packet len %d sessions: %p rtp session %p ssl state is %x", is_rtp==TRUE?"RTP":"RTCP", (int)msgLength, ctx->stream_sessions, ctx->stream_sessions->rtp_session, ssl->state);
 
@@ -537,7 +525,8 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 			}
 
 			if (ctx->role != MSDtlsSrtpRoleIsServer) { /* close the connection only if we are client, if we are server, the client may ask again for last packets */
-				ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );
+				/*FireFox version 43 requires DTLS channel to be kept openned, probably a bug in FireFox ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );*/
+				
 			}
 
 		}
@@ -608,7 +597,7 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 					ms_dtls_srtp_check_channels_status(ctx);
 				}
 			}
-			ret = ssl_close_notify( &(ctx->rtcp_dtls_context->ssl) );
+			/*FireFox version 43 requires DTLS channel to be kept openned, probably a bug in FireFox  ret = ssl_close_notify( &(ctx->rtcp_dtls_context->ssl) );*/
 		}
 
 		return 0;

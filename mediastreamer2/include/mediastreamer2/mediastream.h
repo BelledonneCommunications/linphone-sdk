@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ortp/ortp.h>
 #include <ortp/event.h>
 
+#include <mediastreamer2/msfactory.h>
 #include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/msticker.h>
 #include <mediastreamer2/mssndcard.h>
@@ -63,8 +64,8 @@ struct _RingStream
 
 typedef struct _RingStream RingStream;
 
-MS2_PUBLIC RingStream *ring_start (const char * file, int interval, MSSndCard *sndcard);
-MS2_PUBLIC RingStream *ring_start_with_cb(const char * file, int interval, MSSndCard *sndcard, MSFilterNotifyFunc func, void * user_data);
+MS2_PUBLIC RingStream *ring_start(MSFactory *factory, const char * file, int interval, MSSndCard *sndcard);
+MS2_PUBLIC RingStream *ring_start_with_cb(MSFactory *factory, const char * file, int interval, MSSndCard *sndcard, MSFilterNotifyFunc func, void * user_data);
 MS2_PUBLIC void ring_stop (RingStream * stream);
 
 /**
@@ -392,14 +393,15 @@ struct _AudioStream
 	int sample_rate;
 	int nchannels;
 	struct _VideoStream *videostream;/*the stream with which this audiostream is paired*/
+	MSAudioRoute audio_route;
 	bool_t play_dtmfs;
 	bool_t use_ec;
 	bool_t use_gc;
 	bool_t use_agc;
+	
 	bool_t eq_active;
 	bool_t use_ng;/*noise gate*/
 	bool_t is_ec_delay_set;
-	MSAudioRoute audio_route;
 };
 
 /**
@@ -409,10 +411,11 @@ typedef struct _AudioStream AudioStream;
 
 
 /* start a thread that does sampling->encoding->rtp_sending|rtp_receiving->decoding->playing */
-MS2_PUBLIC AudioStream *audio_stream_start (RtpProfile * prof, int locport, const char *remip,
+MS2_PUBLIC AudioStream *audio_stream_start(MSFactory* factory, RtpProfile * prof, int locport, const char *remip,
 				 int remport, int payload_type, int jitt_comp, bool_t echo_cancel);
 
-MS2_PUBLIC AudioStream *audio_stream_start_with_sndcards(RtpProfile * prof, int locport, const char *remip4, int remport, int payload_type, int jitt_comp, MSSndCard *playcard, MSSndCard *captcard, bool_t echocancel);
+MS2_PUBLIC AudioStream *audio_stream_start_with_sndcards(MSFactory* factory, RtpProfile* prof, int locport, const char *remip4, int remport, int payload_type, int jitt_comp, MSSndCard *playcard,
+														 MSSndCard *captcard, bool_t echocancel);
 
 MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile * prof,
 						const char *remip, int remport, int rem_rtcp_port,
@@ -475,25 +478,28 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
  * @param loc_rtp_port the local UDP port to listen for RTP packets.
  * @param loc_rtcp_port the local UDP port to listen for RTCP packets
  * @param ipv6 TRUE if ipv6 must be used.
+ * @param factory 
  * @return a new AudioStream.
 **/
-MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
+MS2_PUBLIC AudioStream *audio_stream_new(MSFactory* factory, int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
 
 /**
  * Creates an AudioStream object listening on a RTP port for a dedicated address.
  * @param loc_ip the local ip to listen for RTP packets. Can be ::, O.O.O.O or any ip4/6 addresses
  * @param loc_rtp_port the local UDP port to listen for RTP packets.
  * @param loc_rtcp_port the local UDP port to listen for RTCP packets
+ * @param factory
  * @return a new AudioStream.
 **/
-MS2_PUBLIC AudioStream *audio_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port);
+MS2_PUBLIC AudioStream *audio_stream_new2(MSFactory* factory, const char* ip, int loc_rtp_port, int loc_rtcp_port);
 
 
 /**Creates an AudioStream object from initialized MSMediaStreamSessions.
  * @param sessions the MSMediaStreamSessions
+ * @param factory the MSFActory from the core object
  * @return a new AudioStream
 **/
-MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
+MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(MSFactory* factory, const MSMediaStreamSessions *sessions);
 
 #define AUDIO_STREAM_FEATURE_PLC 		(1 << 0)
 #define AUDIO_STREAM_FEATURE_EC 		(1 << 1)
@@ -797,22 +803,23 @@ struct _VideoStream
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	uint64_t last_reported_decoding_error_time;
 	uint64_t last_fps_check;
+	MediaStreamVideoStat ms_video_stat;
 	bool_t use_preview_window;
 	bool_t freeze_on_error;
 	bool_t display_filter_auto_rotate_enabled;
 	bool_t source_performs_encoding;
+	
 	bool_t output_performs_decoding;
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
-    MediaStreamVideoStat ms_video_stat;
-    
+	
 };
 
 typedef struct _VideoStream VideoStream;
 
 
     
-MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
+MS2_PUBLIC VideoStream *video_stream_new(MSFactory* factory, int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
 /**
  * Creates a VideoStream object listening on a RTP port for a dedicated address.
  * @param loc_ip the local ip to listen for RTP packets. Can be ::, O.O.O.O or any ip4/6 addresses
@@ -820,9 +827,9 @@ MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bo
  * @param [in] loc_rtcp_port the local UDP port to listen for RTCP packets
  * @return a new VideoStream.
 **/
-MS2_PUBLIC VideoStream *video_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port);
+MS2_PUBLIC VideoStream *video_stream_new2(MSFactory* factory, const char* ip, int loc_rtp_port, int loc_rtcp_port);
 
-MS2_PUBLIC VideoStream *video_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
+MS2_PUBLIC VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStreamSessions *sessions);
 MS2_PUBLIC void video_stream_set_direction(VideoStream *vs, MediaStreamDir dir);
 static MS2_INLINE void video_stream_enable_adaptive_bitrate_control(VideoStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_bitrate_control(&stream->ms, enabled);
@@ -1166,7 +1173,7 @@ MS2_PUBLIC MSWebCamDesc *ms_mire_webcam_desc_get(void);
  * @param[in] local_rtp_port The local port to bind the RTP socket to.
  * @param[in] local_rtcp_port The local port to bind the RTCP socket to.
  */
-MS2_PUBLIC RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port);
+MS2_PUBLIC RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu);
 
 /**
  * Asks the audio playback filter to route to the selected device (currently only used for blackberry)
@@ -1200,25 +1207,28 @@ typedef struct _TextStream TextStream;
  * @param loc_rtp_port the local UDP port to listen for RTP packets.
  * @param loc_rtcp_port the local UDP port to listen for RTCP packets
  * @param ipv6 TRUE if ipv6 must be used.
+ * @param factory 
  * @return a new TextStream.
 **/
-MS2_PUBLIC TextStream *text_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
+MS2_PUBLIC TextStream *text_stream_new(MSFactory *factory, int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
 
 /**
  * Creates a TextStream object from initialized MSMediaStreamSessions.
  * @param sessions the MSMediaStreamSessions
+ * @param factory
  * @return a new TextStream
 **/
-MS2_PUBLIC TextStream *text_stream_new_with_sessions(const MSMediaStreamSessions *sessions);
+MS2_PUBLIC TextStream *text_stream_new_with_sessions(MSFactory *factory, const MSMediaStreamSessions *sessions);
 
 /**
  * Creates a TextStream object listening on a RTP port for a dedicated address.
  * @param loc_ip the local ip to listen for RTP packets. Can be ::, O.O.O.O or any ip4/6 addresses
  * @param [in] loc_rtp_port the local UDP port to listen for RTP packets.
  * @param [in] loc_rtcp_port the local UDP port to listen for RTCP packets
+ * @param factory 
  * @return a new TextStream.
 **/
-MS2_PUBLIC TextStream *text_stream_new2(const char* ip, int loc_rtp_port, int loc_rtcp_port);
+MS2_PUBLIC TextStream *text_stream_new2(MSFactory *factory, const char* ip, int loc_rtp_port, int loc_rtcp_port);
 
 /**
  * Starts a text stream.
@@ -1230,8 +1240,10 @@ MS2_PUBLIC TextStream *text_stream_new2(const char* ip, int loc_rtp_port, int lo
  * @param[in] rem_rtcp_addr The remote IP address for RTCP.
  * @param[in] rem_rtcp_port The remote port for RTCP.
  * @param[in] payload_type The payload type number used to send the text stream. A valid PayloadType must be available at this index in the profile.
+ * @param[in] factory
  */
-MS2_PUBLIC TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const char *rem_rtp_addr, int rem_rtp_port, const char *rem_rtcp_addr, int rem_rtcp_port, int payload_type);
+MS2_PUBLIC TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const char *rem_rtp_addr, int rem_rtp_port, const char *rem_rtcp_addr, int rem_rtcp_port,
+										 int payload_type);
 
 /**
  *  Stops the text streaming thread and free everything

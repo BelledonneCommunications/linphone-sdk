@@ -32,8 +32,10 @@ static RtpProfile rtp_profile;
 #define T140_PAYLOAD_TYPE 98
 #define T140_RED_PAYLOAD_TYPE 99
 
+static MSFactory *_factory = NULL;
 static int tester_init(void) {
-	ms_init();
+	_factory = ms_factory_new_with_voip();
+	
 	ortp_init();
 	rtp_profile_set_payload(&rtp_profile, T140_PAYLOAD_TYPE, &payload_type_t140);
 	rtp_profile_set_payload(&rtp_profile, T140_RED_PAYLOAD_TYPE, &payload_type_t140_red);
@@ -41,7 +43,8 @@ static int tester_init(void) {
 }
 
 static int tester_cleanup(void) {
-	ms_exit();
+	
+	ms_factory_destroy(_factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }
@@ -96,7 +99,7 @@ void text_stream_tester_destroy(text_stream_tester_t* obj) {
 }
 
 static void create_text_stream(text_stream_tester_t *tst, int payload_type) {
-	tst->ts = text_stream_new2(tst->local_ip, tst->local_rtp, tst->local_rtcp);
+	tst->ts = text_stream_new2(_factory, tst->local_ip, tst->local_rtp, tst->local_rtcp);
 	tst->local_rtp = rtp_session_get_local_port(tst->ts->ms.sessions.rtp_session);
 	tst->local_rtcp = rtp_session_get_local_rtcp_port(tst->ts->ms.sessions.rtp_session);
 	reset_stats(&tst->stats);

@@ -418,7 +418,7 @@ MSFilterDesc ms_bb10_capture_desc = {
 MS_FILTER_DESC_EXPORT(ms_bb10_capture_desc)
 
 static MSFilter *bb10camera_create_reader(MSWebCam *obj) {
-	MSFilter *f = ms_filter_new_from_desc(&ms_bb10_capture_desc);
+	MSFilter *f = ms_factory_create_filter_from_desc(ms_web_cam_get_factory(obj), &ms_bb10_capture_desc);
 	BB10Capture *d = (BB10Capture*) f->data;
 	if (strcmp(obj->name, "BB10 Rear Camera") == 0) {
 		d->camera = CAMERA_UNIT_REAR;

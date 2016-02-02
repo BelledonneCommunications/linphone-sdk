@@ -124,7 +124,7 @@ extern "C"{
 
 	void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx);
 	void vp8rtpfmt_packer_uninit(Vp8RtpFmtPackerCtx *ctx);
-	void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in, MSQueue *out);
+	void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in, MSQueue *out, MSFactory *f);
 
 	void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf_enabled, bool_t freeze_on_error, bool_t output_partitions);
 	void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx);

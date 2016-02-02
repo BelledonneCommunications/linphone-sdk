@@ -40,7 +40,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	va_end(cap);
 #endif
 	if (log_file){
-		ortp_logv_out(lev, fmt, args);
+		ortp_logv_out(ORTP_LOG_DOMAIN, lev, fmt, args);
 	}
 }
 
@@ -115,9 +115,9 @@ int main (int argc, char *argv[]) {
 	}
 	for(i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--verbose") == 0) {
-			ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+			ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 		} else if (strcmp(argv[i], "--silent") == 0) {
-			ortp_set_log_level_mask(ORTP_FATAL);
+			ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_FATAL);
 		} else if (strcmp(argv[i],"--log-file")==0){
 			CHECK_ARG("--log-file", ++i, argc);
 			if (mediastreamer2_tester_set_log_file(argv[i]) < 0) return -2;

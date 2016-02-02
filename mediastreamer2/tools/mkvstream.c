@@ -75,6 +75,8 @@ int main(int argc, char *argv[]){
 	PayloadType *pt;
 	Mode mode = INVALID_MODE;
 	int local_port = 7778;
+	MSFactory *factory ;
+	
 	MSMediaStreamIO io = MS_MEDIA_STREAM_IO_INITIALIZER;
 	int err;
 	
@@ -102,10 +104,10 @@ int main(int argc, char *argv[]){
 	signal(SIGINT,stop_handler);
 	
 	/*initialize mediastreamer2*/
-	ms_init();
+	factory = ms_factory_new_with_voip();
 	
 	/*create the video stream */
-	stream = video_stream_new(local_port, local_port+1, FALSE);
+	stream = video_stream_new(factory, local_port, local_port+1, FALSE);
 	
 	/*define its local input and outputs with the MSMediaStreamIO structure*/
 	if (mode == PLAY_MODE){
@@ -146,7 +148,7 @@ int main(int argc, char *argv[]){
 		/*handle video stream background activity. This is non blocking*/
 		video_stream_iterate(stream);
 		/*process event callbacks*/
-		ms_event_queue_pump(ms_factory_get_event_queue(ms_factory_get_fallback()));
+		ms_event_queue_pump(ms_factory_get_event_queue(factory));
 		ms_usleep(50000); /*pause 50ms to avoid busy loop*/
 	}
 	
@@ -155,5 +157,8 @@ end:
 	if (stream) video_stream_stop(stream);
 	/*free the RTP profile and payload type inside*/
 	if (profile) rtp_profile_destroy(profile);
+	
+	ms_factory_destroy(factory);
+	
 	return err;
 }

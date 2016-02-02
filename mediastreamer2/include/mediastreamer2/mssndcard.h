@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define sndcard_h
 
 #include <mediastreamer2/mscommon.h>
-
+#include <mediastreamer2/msfactory.h>
 /**
  * @file mssndcard.h
  * @brief mediastreamer2 mssndcard.h include file
@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
 struct _MSSndCardManager{
+	MSFactory* factory;
 	MSList *cards;
 	MSList *descs;
 };
@@ -130,6 +131,7 @@ typedef struct _MSSndCardDesc MSSndCardDesc;
 
 struct _MSSndCard{
 	MSSndCardDesc *desc;
+	MSSndCardManager* sndcardmanager;
 	char *name;
 	char *id;
 	unsigned int capabilities;
@@ -158,14 +160,22 @@ extern "C"{
  * Retreive a sound card manager object.
  *
  * Returns: MSSndCardManager if successfull, NULL otherwise.
+ * @deprecated use ms_factory_get_snd_card_manager()
  */
-MS2_PUBLIC MSSndCardManager * ms_snd_card_manager_get(void);
+MS2_PUBLIC MS2_DEPRECATED MSSndCardManager * ms_snd_card_manager_get(void);
+
+/**
+ * Retrieve a factory from a sound card object.
+ * @param c MSSndCard object.
+ * Returns: MSFactory pointer.
+ */
+MS2_PUBLIC MSFactory * ms_snd_card_get_factory(MSSndCard * c);
 
 /**
  * Destroy a sound card manager object.
- *
+ * You usually do not need this function, the ms_factory_destroy() doing this job for you.
  */
-MS2_PUBLIC void ms_snd_card_manager_destroy(void);
+MS2_PUBLIC void ms_snd_card_manager_destroy(MSSndCardManager* sndcardmanager);
 
 /**
  * Retreive a sound card object based on its name.
@@ -221,6 +231,15 @@ MS2_PUBLIC const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m);
  *
  */
 MS2_PUBLIC void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c);
+	
+/**
+ * Set the sound card manager of a sound card.
+ *
+ * @param m    A sound card manager containing sound cards.
+ * @param c    A sound card object.
+ *
+ */
+MS2_PUBLIC void ms_snd_card_set_manager(MSSndCardManager*m, MSSndCard *c);
 
 /**
  * Prepend a list of sound card object to the sound card manager's list.

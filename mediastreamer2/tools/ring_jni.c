@@ -67,7 +67,7 @@ void Java_org_mediastreamer2_test_Ring_echo(JNIEnv*  env,jobject  this,jint freq
 	writer=ms_snd_card_create_writer(card_playback);
 
 	if (read_rate !=write_rate) {
-		resampler = ms_filter_new(MS_RESAMPLE_ID);
+		resampler = ms_fcatory_create_filter(ms_snd_card_get_factory(card_playback),MS_RESAMPLE_ID);
 		ms_filter_call_method(resampler,MS_FILTER_SET_SAMPLE_RATE,&read_rate);
 		ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&write_rate);
 	}

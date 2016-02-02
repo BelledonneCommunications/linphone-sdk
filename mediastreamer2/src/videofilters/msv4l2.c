@@ -852,7 +852,7 @@ MSFilterDesc ms_v4l2_desc={
 MS_FILTER_DESC_EXPORT(ms_v4l2_desc)
 
 static MSFilter *msv4l2_create_reader(MSWebCam *obj){
-	MSFilter *f=ms_filter_new(MS_V4L2_CAPTURE_ID);
+	MSFilter *f=ms_factory_create_filter(ms_web_cam_get_factory(obj),MS_V4L2_CAPTURE_ID);
 	msv4l2_set_devfile(f,obj->name);
 	return f;
 }
