@@ -359,7 +359,7 @@ MSFilterDesc ms_webrtc_ilbc_dec_desc={
 #define MS_PLUGIN_DECLARE(type) type
 #endif
 
-MS_PLUGIN_DECLARE(void) libmsilbc_init(){
-	ms_filter_register(&ms_webrtc_ilbc_enc_desc);
-	ms_filter_register(&ms_webrtc_ilbc_dec_desc);
+MS_PLUGIN_DECLARE(void) libmsilbc_init(MSFactory *factory){
+	ms_factory_register_filter(factory,&ms_webrtc_ilbc_enc_desc);
+	ms_factory_register_filter(factory,&ms_webrtc_ilbc_dec_desc);
 }

@@ -58,7 +58,7 @@ MSFilterDesc ms_webrtc_ilbc_dec_desc;
 #define MS_PLUGIN_DECLARE(type) type
 #endif
 
-MS_PLUGIN_DECLARE ( void ) libmswebrtc_init() {
+MS_PLUGIN_DECLARE ( void ) libmswebrtc_init(MSFactory* factory) {
 #ifdef BUILD_ISAC
 	char isac_version[20] = "";
 #endif
@@ -70,16 +70,16 @@ MS_PLUGIN_DECLARE ( void ) libmswebrtc_init() {
 
 #ifdef BUILD_ISAC
 	WebRtcIsacfix_version(isac_version);
-	ms_filter_register(&ms_isac_enc_desc);
-	ms_filter_register(&ms_isac_dec_desc);
+	ms_factory_register_filter(factory, &ms_isac_enc_desc);
+	ms_factory_register_filter(factory, &ms_isac_dec_desc);
 #endif
 #ifdef BUILD_AEC
-	ms_filter_register(&ms_webrtc_aec_desc);
+	ms_factory_register_filter(factory, &ms_webrtc_aec_desc);
 #endif
 #ifdef BUILD_ILBC
 	WebRtcIlbcfix_version(ilbc_version);
-	ms_filter_register(&ms_webrtc_ilbc_enc_desc);
-	ms_filter_register(&ms_webrtc_ilbc_dec_desc);
+	ms_factory_register_filter(factory, &ms_webrtc_ilbc_enc_desc);
+	ms_factory_register_filter(factory, &ms_webrtc_ilbc_dec_desc);
 #endif
 
 	ms_message("libmswebrtc " VERSION " plugin loaded"
