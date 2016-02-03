@@ -966,8 +966,8 @@ MSFilterDesc ms_dscap_desc={
 
 
 static void ms_dshow_detect(MSWebCamManager *obj);
-static MSFilter * ms_dshow_create_reader(MSWebCam *obj, MSFactory *factory){
-	MSFilter *f=ms_factory_create_filter_from_desc(factory, &ms_dscap_desc);
+static MSFilter * ms_dshow_create_reader(MSWebCam *obj){
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_web_cam_get_factory(obj), &ms_dscap_desc);
 	DSCapture *s=(DSCapture*)f->data;
 	s->setDeviceIndex((int)obj->data);
 	return f;
