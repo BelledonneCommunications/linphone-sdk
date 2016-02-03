@@ -403,7 +403,7 @@ static void loss_rate_estimation(void) {
 
 void upload_bitrate(const char* codec, int payload, int target_bw, int expect_bw) {
 	//bool_t supported = ms_filter_codec_supported("pcma");
-	bool_t supported = ms_factory_codec_supported(_factory, "pcma");
+	bool_t supported = ms_factory_codec_supported(_factory, codec);
 	if( supported ) {
 		float upload_bw;
 		stream_manager_t * marielle, * margaux;
