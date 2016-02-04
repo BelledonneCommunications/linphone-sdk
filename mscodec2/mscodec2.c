@@ -403,8 +403,8 @@ MS_FILTER_DESC_EXPORT(ms_codec2_dec_desc)
 #define MS_PLUGIN_DECLARE(type) type
 #endif
 
-MS_PLUGIN_DECLARE ( void ) libmscodec2_init() {
-	ms_filter_register ( &ms_codec2_enc_desc );
-	ms_filter_register ( &ms_codec2_dec_desc );
-	ms_message ( "libmscodec2 v%s plugin loaded", MSCODEC2_VERSION );
+MS_PLUGIN_DECLARE ( void ) libmscodec2_init(MSFactory *factory) {
+	ms_factory_register_filter(factory, &ms_codec2_enc_desc );
+	ms_factory_register_filter(factory, &ms_codec2_dec_desc );
+	ms_message( "libmscodec2 v%s plugin loaded", MSCODEC2_VERSION );
 }
