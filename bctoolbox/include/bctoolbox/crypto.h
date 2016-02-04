@@ -107,26 +107,132 @@ typedef enum bctoolbox_srtp_profile {
 	BCTOOLBOX_SRTP_NULL_HMAC_SHA1_32
 } bctoolbox_dtls_srtp_profile_t;
 
+/*****************************************************************************/
+/****** Utils                                                           ******/
+/*****************************************************************************/
+/**
+ * @brief Return a string translation of an error code
+ * PolarSSL and mbedTLS error codes are on 16 bits always negatives, and these are forwarded to the crypto library error to string translation
+ * Specific bctoolbox error code are on 32 bits, all in the form -0x7XXX XXXX
+ * Output string is truncated if the buffer is too small and always include a null termination char
+ *
+ * @param[in]		error_code		The error code
+ * @param[in/out]	buffer			Buffer to place error string representation
+ * @param[in]		buffer_length	Size of the buffer in bytes.
+ */
 void bctoolbox_strerror(int32_t error_code, char *buffer, size_t buffer_length);
+
+/**
+ * @brief Encode a buffer into base64 format
+ * @param[out]		output			base64 encoded buffer
+ * @param[in/out]	output_length	output buffer max size and actual size of buffer after encoding
+ * @param[in]		input			source plain buffer
+ * @param[in]		input_length	Length in bytes of plain buffer to be encoded
+ *
+ * @return 0 if success or BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL if the output buffer cannot contain the encoded data
+ */
 int32_t bctoolbox_base64_encode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length);
+
+/**
+ * @brief Decode a base64 formatted buffer.
+ * @param[out]		output			plain buffer
+ * @param[in/out]	output_length	output buffer max size and actual size of buffer after decoding
+ * @param[in]		input			source base64 encoded buffer
+ * @param[in]		input_length	Length in bytes of base64 buffer to be decoded
+ *
+ * @return 0 if success, BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL if the output buffer cannot contain the decoded data or BCTOOLBOX_ERROR_INVALID_BASE64_INPUT if encoded buffer was incorrect base64 data
+ */
 int32_t bctoolbox_base64_decode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length);
-/* Random Number Generation */
+
+/*****************************************************************************/
+/****** Random Number Generation                                        ******/
+/*****************************************************************************/
+/** @brief An opaque structure used to store RNG context
+ * Instanciate pointers only and allocate them using the bctoolbox_rng_context_new() function
+ */
 typedef struct bctoolbox_rng_context_struct bctoolbox_rng_context_t;
+
+/**
+ * @brief Create and initialise the Random Number Generator context
+ * @return a pointer to the RNG context
+ */
 bctoolbox_rng_context_t *bctoolbox_rng_context_new(void);
+
+/**
+ * @brief Get some random material
+ *
+ * @param[in/out]	context			The RNG context to be used
+ * @param[out]		output			A destination buffer for the random material generated
+ * @param[in]		output_length	Size in bytes of the output buffer and requested random material
+ *
+ * @return 0 on success
+ */
 int32_t bctoolbox_rng_get(bctoolbox_rng_context_t *context, unsigned char*output, size_t output_length);
+
+/**
+ * @brief Clear the RNG context and free internal buffer
+ *
+ * @param[in]	context		The RNG context to clear
+ */
 void bctoolbox_rng_context_free(bctoolbox_rng_context_t *context);
 
-/* Signing key */
+/*****************************************************************************/
+/***** Signing key                                                       *****/
+/*****************************************************************************/
+/** @brief An opaque structure used to store the signing key context
+ * Instanciate pointers only and allocate them using the bctoolbox_signing_key_new() function
+ */
 typedef struct bctoolbox_signing_key_struct bctoolbox_signing_key_t;
 
+/**
+ * @brief Create and initialise a signing key context
+ * @return a pointer to the signing key context
+ */
 bctoolbox_signing_key_t *bctoolbox_signing_key_new(void);
+
+/**
+ * @brief Clear the signing key context and free internal buffer
+ *
+ * @param[in]	key		The signing key context to clear
+ */
 void  bctoolbox_signing_key_free(bctoolbox_signing_key_t *key);
 
+/**
+ * @brief	Write the key in a buffer as a PEM string
+ *
+ * @param[in]	key		The signing key to be extracted in PEM format
+ *
+ * @return a pointer to a null terminated string containing the key in PEM format. This buffer must then be freed by caller. NULL on failure.
+ */
 char *bctoolbox_signing_key_get_pem(bctoolbox_signing_key_t *key);
+
+/**
+ * @brief Parse signing key in PEM format from a null terminated string buffer
+ *
+ * @param[in/out]	key				An already initialised signing key context
+ * @param[in]		buffer			The input buffer containing a PEM format key in a null terminated string
+ * @param[in]		buffer_length	The length of input buffer, including the NULL termination char
+ * @param[in]		password		Password for decryption(may be NULL)
+ * @param[in]		passzord_length	size of password
+ *
+ * @return 0 on success
+ */
 int32_t bctoolbox_signing_key_parse(bctoolbox_signing_key_t *key, const char *buffer, size_t buffer_length, const unsigned char *password, size_t password_length);
+
+/**
+ * @brief Parse signing key from a file
+ *
+ * @param[in/out]	key				An already initialised signing key context
+ * @param[in]		path			filename to read the key from
+ * @param[in]		password		Password for decryption(may be NULL)
+ *
+ * @return 0 on success
+ */
 int32_t bctoolbox_signing_key_parse_file(bctoolbox_signing_key_t *key, const char *path, const char *password);
 
-/* Certificate */
+/*****************************************************************************/
+/***** X509 Certificate                                                  *****/
+/*****************************************************************************/
 typedef struct bctoolbox_x509_certificate_struct bctoolbox_x509_certificate_t;
 
 bctoolbox_x509_certificate_t *bctoolbox_x509_certificate_new(void);
@@ -149,7 +255,9 @@ uint32_t bctoolbox_x509_certificate_remap_flag(uint32_t flags);
 int32_t bctoolbox_x509_certificate_unset_flag(uint32_t *flags, uint32_t flags_to_unset);
 
 
-/* SSL client */
+/*****************************************************************************/
+/***** SSL                                                               *****/
+/*****************************************************************************/
 typedef struct bctoolbox_ssl_context_struct bctoolbox_ssl_context_t;
 typedef struct bctoolbox_ssl_config_struct bctoolbox_ssl_config_t;
 bctoolbox_ssl_context_t *bctoolbox_ssl_context_new(void);
@@ -180,7 +288,7 @@ int32_t bctoolbox_ssl_config_set_callback_cli_cert(bctoolbox_ssl_config_t *ssl_c
 int32_t bctoolbox_ssl_config_set_ca_chain(bctoolbox_ssl_config_t *ssl_config, bctoolbox_x509_certificate_t *ca_chain, char *peer_cn);
 int32_t bctoolbox_ssl_config_set_own_cert(bctoolbox_ssl_config_t *ssl_config, bctoolbox_x509_certificate_t *cert, bctoolbox_signing_key_t *key);
 
-/* DTLS-SRTP functions */
+/***** DTLS-SRTP functions *****/
 bctoolbox_dtls_srtp_profile_t bctoolbox_ssl_get_dtls_srtp_protection_profile(bctoolbox_ssl_context_t *ssl_ctx);
 int32_t bctoolbox_ssl_config_set_dtls_srtp_protection_profiles(bctoolbox_ssl_config_t *ssl_config, const bctoolbox_dtls_srtp_profile_t *profiles, size_t profiles_number);
 int32_t bctoolbox_ssl_get_dtls_srtp_key_material(bctoolbox_ssl_context_t *ssl_ctx, char *output, size_t *output_length);
