@@ -1009,6 +1009,11 @@ int ice_session_gathering_duration(IceSession *session)
 		+ ((session->gathering_end_ts.tv_nsec - session->gathering_start_ts.tv_nsec) / 1000000.0));
 }
 
+void ice_session_enable_forced_relay(IceSession *session, bool_t enable)
+{
+	session->forced_relay = enable;
+}
+
 static void ice_transaction_sum_gathering_round_trip_time(const IceStunServerCheckTransaction *transaction, StunRequestRoundTripTime *rtt)
 {
 	if ((transaction->response_time.tv_sec != 0) && (transaction->response_time.tv_nsec != 0)) {
@@ -1278,7 +1283,13 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 				pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type], tr_id_str);
 		}
 
-		ice_send_message_to_stun_addr(rtptp, buf, len, &dest);
+		if ((cl->session->forced_relay == TRUE) && (pair->remote->type != ICT_RelayedCandidate)) {
+			ms_message("ice: Forced relay, did not send binding request for %s pair %p: %s:%u:%s --> %s:%u:%s [%s]", candidate_pair_state_values[pair->state], pair,
+				pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
+				pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type], tr_id_str);
+		} else {
+			ice_send_message_to_stun_addr(rtptp, buf, len, &dest);
+		}
 
 		if (pair->state != ICP_InProgress) {
 			/* First transmission of the request, initialize the retransmission timer. */
