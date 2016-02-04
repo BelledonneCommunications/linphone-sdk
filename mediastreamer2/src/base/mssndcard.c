@@ -128,8 +128,10 @@ static void card_detect(MSSndCardManager *m, MSSndCardDesc *desc){
 }
 
 void ms_snd_card_manager_register_desc(MSSndCardManager *m, MSSndCardDesc *desc){
-	m->descs=ms_list_append(m->descs,desc);
-	card_detect(m,desc);
+	if (ms_list_find(m->descs, desc) == NULL){
+		m->descs=ms_list_append(m->descs,desc);
+		card_detect(m,desc);
+	}
 }
 
 void ms_snd_card_manager_reload(MSSndCardManager *m){

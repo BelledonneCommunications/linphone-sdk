@@ -89,8 +89,10 @@ static void cam_detect(MSWebCamManager *m, MSWebCamDesc *desc){
 }
 
 void ms_web_cam_manager_register_desc(MSWebCamManager *m, MSWebCamDesc *desc){
-	m->descs=ms_list_append(m->descs,desc);
-	cam_detect(m,desc);
+	if (ms_list_find(m->descs, desc) == NULL){
+		m->descs=ms_list_append(m->descs,desc);
+		cam_detect(m,desc);
+	}
 }
 
 void ms_web_cam_manager_reload(MSWebCamManager *m){
