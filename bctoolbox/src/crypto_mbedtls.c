@@ -326,7 +326,7 @@ int32_t bctoolbox_x509_certificate_generate_selfsigned(const char *subject, bcto
 	/* copy the key+cert in pem format into the given buffer */
 	if (pem != NULL) {
 		if (strlen(file_buffer)+1>pem_length) {
-			bctoolbox_error("Certificate generation can't copy the certificate to pem buffer: too short [%ld] but need [%ld] bytes", pem_length, strlen(file_buffer));
+			bctoolbox_error("Certificate generation can't copy the certificate to pem buffer: too short [%ld] but need [%ld] bytes", (long)pem_length, (long)strlen(file_buffer));
 			return BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 		}
 		strncpy(pem, file_buffer, pem_length);
