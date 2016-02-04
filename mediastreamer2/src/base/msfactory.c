@@ -869,18 +869,51 @@ MSOfferAnswerContext * ms_factory_create_offer_answer_context(MSFactory *f, cons
 #include "sys/system_properties.h"
 #include <jni.h>
 
+
+
+
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_Factory_enableFilterFromName(JNIEnv* env,  jobject obj, long factoryPtr, jstring jname, jboolean enable) {
+	MSFactory *factory = (MSFactory *) factoryPtr;
+	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
+	int result = ms_factory_enable_filter_from_name(factory, mime, enable);
+	(*env)->ReleaseStringUTFChars(env, jname, mime);
+	return result;
+}
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Factory_filterFromNameEnabled(JNIEnv* env, jobject obj, long factoryPtr, jstring jname) {
+	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
+	MSFactory *factory = (MSFactory *) factoryPtr;
+	jboolean result = ms_factory_filter_from_name_enabled(factory, mime);
+	(*env)->ReleaseStringUTFChars(env, jname, mime);
+	return result;
+}
+
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_enableFilterFromNameImpl(JNIEnv* env,  jobject obj, jstring jname, jboolean enable) {
+	if (ms_factory_get_fallback() == NULL) {
+		ms_error("Java_org_linphone_mediastream_MediastreamerAndroidContext_enableFilterFromNameImpl(): no fallback factory. Use Factory.enableFilterFromName()");
+		return -1;
+	}
 	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
 	int result = ms_factory_enable_filter_from_name(ms_factory_get_fallback(),mime,enable);
 	(*env)->ReleaseStringUTFChars(env, jname, mime);
 	return result;
 }
 JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_filterFromNameEnabledImpl(JNIEnv* env, jobject obj, jstring jname) {
+	if (ms_factory_get_fallback() == NULL) {
+		ms_error("Java_org_linphone_mediastream_MediastreamerAndroidContext_filterFromNameEnabledImpl(): no fallback factory. Use Factory.filterFromNameEnabled()");
+		return FALSE;
+	}
 	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
 	jboolean result = ms_factory_filter_from_name_enabled(ms_factory_get_fallback(),mime);
 	(*env)->ReleaseStringUTFChars(env, jname, mime);
 	return result;
 }
+
 #endif
 
 
