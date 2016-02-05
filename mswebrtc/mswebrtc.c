@@ -44,8 +44,8 @@ extern MSFilterDesc ms_isac_enc_desc;
 extern MSFilterDesc ms_webrtc_aec_desc;
 #endif
 #ifdef BUILD_ILBC
-MSFilterDesc ms_webrtc_ilbc_enc_desc;
-MSFilterDesc ms_webrtc_ilbc_dec_desc;
+extern MSFilterDesc ms_webrtc_ilbc_enc_desc;
+extern MSFilterDesc ms_webrtc_ilbc_dec_desc;
 #endif
 
 #ifndef VERSION
