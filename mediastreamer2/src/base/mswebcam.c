@@ -79,6 +79,7 @@ void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c){
 
 
 void ms_web_cam_manager_prepend_cam(MSWebCamManager *m, MSWebCam *c){
+	ms_web_cam_set_manager(m, c);
 	ms_message("Webcam %s prepended",ms_web_cam_get_string_id(c));
 	m->cams=ms_list_prepend(m->cams,c);
 }
