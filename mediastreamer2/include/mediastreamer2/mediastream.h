@@ -174,6 +174,8 @@ MS2_PUBLIC void media_stream_set_adaptive_bitrate_algorithm(MediaStream *stream,
 
 MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled);
 
+MS2_PUBLIC void media_stream_set_ice_check_list(MediaStream *stream, IceCheckList *cl);
+
 /*
  * deprecated, use media_stream_set_srtp_recv_key and media_stream_set_srtp_send_key.
 **/
