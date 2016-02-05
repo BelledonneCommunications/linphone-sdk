@@ -1348,7 +1348,7 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 	char source_addr_str[256];
 	char tr_id_str[25];
 
-	ice_get_transport_from_rtp_session(rtp_session, evt_data,&rtptp);
+	ice_get_transport_from_rtp_session(rtp_session, evt_data, &rtptp);
 	if (!rtptp) return;
 
 	memset(&response, 0, sizeof(response));
@@ -1423,7 +1423,8 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 	memset(&response, 0, sizeof(response));
 	memset(&dest_addr, 0, sizeof(dest_addr));
 	memset(&source_addr, 0, sizeof(source_addr));
-	ice_get_transport_from_rtp_session(rtp_session, evt_data,&rtptp);
+	ice_get_transport_from_rtp_session(rtp_session, evt_data, &rtptp);
+	if (!rtptp) return;
 
 	/* Copy magic cookie and transaction ID from the request. */
 	response.msgHdr.magic_cookie = ntohl(msg->msgHdr.magic_cookie);
@@ -1440,7 +1441,6 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 
 	len = stunEncodeMessage(&response, buf, len, &password);
 	if (len > 0) {
-		RtpTransport *rtpt=NULL;
 		transactionID2string(&response.msgHdr.tr_id, tr_id_str);
 		dest_addr.sin_addr.s_addr = htonl(dest->addr);
 		dest_addr.sin_port = htons(dest->port);
@@ -1451,12 +1451,7 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 		source_addr.sin_family = AF_INET;
 		ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
 		ms_message("ice: Send error response: %s:%u --> %s:%u [%s]", source_addr_str, recvport, dest_addr_str, dest->port, tr_id_str);
-		rtp_session_get_transports(rtp_session,&rtpt,NULL);
-		ice_send_message_to_socket(	rtpt
-									, buf
-									, len
-									, (struct sockaddr *)&dest_addr
-									, sizeof(dest_addr));
+		ice_send_message_to_socket(rtptp, buf, len, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
 	}
 }
 
@@ -2002,7 +1997,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 
 	if (cl->gathering_candidates == TRUE) {
 		if ((htonl(remote_addr->addr) == servaddr->sin_addr.s_addr) && (htons(remote_addr->port) == servaddr->sin_port)) {
-			 ice_get_transport_from_rtp_session(rtp_session, evt_data,&rtptp);
+			ice_get_transport_from_rtp_session(rtp_session, evt_data, &rtptp);
 			elem = ms_list_find_custom(cl->stun_server_checks, (MSCompareFunc)ice_find_stun_server_check, rtptp);
 			if (elem != NULL) {
 				IceStunServerCheckTransaction *transaction;
