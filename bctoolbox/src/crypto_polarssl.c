@@ -38,6 +38,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define bctoolbox_error printf
 
+#ifdef _WIN32
+#define snprintf _snprintf
+#endif
+
 static int bctoolbox_ssl_sendrecv_callback_return_remap(int32_t ret_code) {
 	switch (ret_code) {
 		case BCTOOLBOX_ERROR_NET_WANT_READ:
