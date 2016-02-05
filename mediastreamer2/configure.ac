@@ -1119,6 +1119,15 @@ else
 fi
 
 
+dnl check bctoolbox library
+PKG_CHECK_MODULES(BCTOOLBOX, bctoolbox >= 0.0.0, found_bctoolbox=true, found_bctoolbox=false)
+if test "$found_bctoolbox" = "true" ; then
+	LIBS="$LIBS $BCTOOLBOX_LIBS"
+	CFLAGS="$CFLAGS $BCTOOLBOX_CFLAGS"
+else
+	AC_MSG_ERROR("Could not found Bctoolbox")
+fi
+
 dnl check for libzrtp support (RFC 6189: Media Path Key Agreement for Unicast Secure RTP)
 AC_ARG_ENABLE(zrtp,
 	[AS_HELP_STRING([--enable-zrtp], [Turn on or off compilation of zrtp (default=detect)])],
@@ -1129,6 +1138,7 @@ AC_ARG_ENABLE(zrtp,
 	esac],
 	[zrtp=detect]
 )
+
 
 if test "$zrtp" != "false" ; then
 	PKG_CHECK_MODULES(LIBBZRTP, libbzrtp >= 1.0.0, found_zrtp=true, found_zrtp=false)
@@ -1155,79 +1165,6 @@ if test "$zrtp" != "false" ; then
 fi
 
 AM_CONDITIONAL(LIBBZRTP,test x$zrtp != xfalse)
-
-dnl Polarssl lib is requested for DTLS
-AC_ARG_WITH( polarssl,
-      [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr, /usr/local)[[default=PREFIX or /usr if NONE]] ],
-      [ polarssl_prefix=${withval}],[ if test "$prefix" != "NONE"; then
-					polarssl_prefix=${prefix}
-				      else
-					polarssl_prefix="/usr"
-				      fi ])
-
-found_polarssl=no
-
-if test "$polarssl_prefix" != "none" ; then
-	if test "$polarssl_prefix" != "/usr" ; then
-		POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
-		POLARSSL_LIBS="-L${polarssl_prefix}/lib"
-	fi
-
-	CPPFLAGS_save=$CPPFLAGS
-	LIBS_save=$LIBS
-
-	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
-	LIBS="$LIBS $POLARSSL_LIBS"
-	AC_CHECK_LIB(mbedtls, sha1_update , [found_polarssl=yes POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"],
-					 [AC_CHECK_LIB(polarssl, sha1_update, [found_polarssl=yes POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"],[AC_MSG_NOTICE([polarssl library not found !])])])
- 
-	if test "x$found_polarssl" == "xyes" ; then
-		AC_CHECK_HEADERS(polarssl/ssl.h, [found_polarssl=yes],[found_polarssl=no POLARSSL_CFLAGS="" POLARSSL_LIBS=""])
-	fi
-	CPPFLAGS=$CPPFLAGS_save
-	LIBS=$LIBS_save
-fi
-
-dnl check for DTLS-SRTP support, need polarssl version >= 1.4
-AC_ARG_ENABLE(dtls,
-	[AS_HELP_STRING([--enable-dtls], [Turn on or off compilation of dtls (default=no)])],
-	[case "${enableval}" in
-		yes)	dtls=true ;;
-		no)	dtls=false ;;
-		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-dtls) ;;
-	esac],
-	[dtls=false]
-)
-
-if test "$dtls" = "true" ; then
-	if test "$have_srtp" = "false" ; then
-		AC_MSG_ERROR("DTLS-SRTP requires SRTP")
-	fi
-
-	if test "x$found_polarssl" != "xyes" ; then
-		AC_MSG_ERROR("DTLS-SRTP requires POLARSSL")
-	fi
-	dnl check for polarssl presence and support for DTLS
-	CPPFLAGS_save=$CPPFLAGS
-	LIBS_save=$LIBS
-
-	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
-	LIBS="$LIBS $POLARSSL_LIBS"
-	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-		#include <polarssl/ssl.h>
-		]],
-		[[ssl_set_dtls_srtp_protection_profiles(0,0,0)]])],
-		[AC_DEFINE(HAVE_DTLS, 1, [Defined when dtls support is compiled])
-		AC_MSG_NOTICE([polarssl usable for DTLS-SRTP])],[AC_MSG_ERROR([polarssl not usable for DTLS-SRTP])])
-
-	CPPFLAGS=$CPPFLAGS_save
-	LIBS=$LIBS_save
-else
-	echo "DTLS-SRTP compilation is disabled."
-fi
-
-AC_SUBST(POLARSSL_CFLAGS)
-AC_SUBST(POLARSSL_LIBS)
 
 dnl check for bcg729 annexB presence to use for VAD/DTX (RFC3389 : Real-time Transport Protocol (RTP) Payload for Comfort Noise (CN))
 AC_ARG_ENABLE(g729bCN,
@@ -1379,6 +1316,5 @@ echo "Summary of build options:"
 printf "* %-30s %s\n" "Video support"		$video
 printf "* %-30s %s\n" "sRTP encryption"		$have_srtp
 printf "* %-30s %s\n" "zRTP encryption"		$zrtp
-printf "* %-30s %s\n" "SRTP-DTLS encryption"	$dtls
 printf "* %-30s %s\n" "Non-free codecs" 	$non_free_codecs
 
