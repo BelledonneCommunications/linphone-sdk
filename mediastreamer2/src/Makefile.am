@@ -86,7 +86,7 @@ libmediastreamer_base_la_SOURCES=	base/mscommon.c \
 					otherfilters/itc.c
 libmediastreamer_voip_la_SOURCES=
 
-#dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
+#dummy c++ file to force libtool to use c++ linking
 nodist_EXTRA_libmediastreamer_base_la_SOURCES = dummy.cxx
 
 
@@ -252,7 +252,7 @@ libmediastreamer_voip_la_SOURCES+=	videofilters/msv4l2.c
 endif
 
 if BUILD_WIN32
-libmediastreamer_voip_la_SOURCES+=	videofilters/msdscap-mingw.cc videofilters/drawdib-display.c
+libmediastreamer_voip_la_SOURCES=	videofilters/drawdib-display.c
 endif
 
 if BUILD_THEORA

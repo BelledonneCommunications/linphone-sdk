@@ -27,7 +27,6 @@ src/otherfilters/tee.c
 src/otherfilters/void.c
 src/videofilters/drawdib-display.c
 src/videofilters/extdisplay.c
-src/videofilters/msdscap-mingw.cc
 src/videofilters/msv4l.c
 src/videofilters/msv4l2.c
 src/videofilters/nowebcam.c
