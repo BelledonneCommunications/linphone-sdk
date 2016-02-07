@@ -31,7 +31,7 @@ ANDROID_SRC_FILES= \
 
 EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c  \
 	videofilters/winvideods.c videofilters/wincevideods.c dxfilter.h dxfilter.cpp \
-	audiofilters/winsndds.cpp \
+	audiofilters/winsndds.cpp videofilters/msdscap.cc \
 	voip/nowebcamCIF.jpg audiofilters/winsnd3.c utils/vfw-missing.h \
 	videofilters/winvideo2.c utils/msjava.c $(ANDROID_SRC_FILES) \
 	$(GITVERSION_FILE) yuv2rgb.fs yuv2rgb.vs libsrtp.map
