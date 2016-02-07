@@ -910,6 +910,8 @@ int dns_resconf_loadfile(struct dns_resolv_conf *, FILE *);
 
 int dns_resconf_loadpath(struct dns_resolv_conf *, const char *);
 
+int dns_resconf_pton(struct sockaddr_storage *ss, const char *src);
+
 #ifdef USE_FIXED_NAMESERVERS
 int dns_resconf_load_fixed_nameservers(struct dns_resolv_conf *resconf);
 #endif /* USE_FIXED_NAMESERVERS */

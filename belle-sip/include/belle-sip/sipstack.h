@@ -62,6 +62,13 @@ BELLESIP_EXPORT unsigned char belle_sip_stack_dns_srv_enabled(const belle_sip_st
 BELLESIP_EXPORT void belle_sip_stack_enable_dns_srv(belle_sip_stack_t *stack, unsigned char enable);
 
 /**
+ * Override system's DNS servers used for DNS resolving by app-supplied list of dns servers.
+ * @param stack the stack
+ * @param servers a list of char*. It is copied internally.
+**/
+BELLESIP_EXPORT void belle_sip_stack_set_dns_servers(belle_sip_stack_t *stack, const belle_sip_list_t *servers);
+
+/**
  * Can be used to simulate network transmission delays, for tests.
 **/
 BELLESIP_EXPORT void belle_sip_stack_set_tx_delay(belle_sip_stack_t *stack, int delay_ms);

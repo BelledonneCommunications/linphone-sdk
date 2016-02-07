@@ -168,8 +168,22 @@ void belle_sip_resolver_context_init(belle_sip_resolver_context_t *obj, belle_si
 	belle_sip_init_sockets(); /* Need to be called for DNS resolution to work on Windows platform. */
 }
 
+static int dns_resconf_nameservers_from_list(struct dns_resolv_conf *resconf, const belle_sip_list_t *l) {
+	int max_servers = sizeof(resconf->nameserver)/sizeof(struct sockaddr_storage);
+	int i;
+	const belle_sip_list_t *elem;
+
+	for (i = 0, elem = l; i < max_servers && elem != NULL; elem = elem->next) {
+		int error = dns_resconf_pton(&resconf->nameserver[i], (const char *) elem->data);
+		if (error == 0) ++i;
+	}
+
+	return i > 0 ? 0 : -1;
+}
+
 static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx) {
 	const char *path;
+	const belle_sip_list_t *servers;
 	int error;
 
 	if (ctx->resconf)
@@ -180,8 +194,13 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 		return NULL;
 	}
 	
-	path=belle_sip_stack_get_dns_resolv_conf_file(ctx->base.stack);
-	if (!path){
+	path = belle_sip_stack_get_dns_resolv_conf_file(ctx->base.stack);
+	servers = ctx->base.stack->dns_servers;
+	
+	if (servers){
+		belle_sip_message("%s using application supplied dns server list.", __FUNCTION__);
+		error = dns_resconf_nameservers_from_list(ctx->resconf, servers);
+	}else if (!path){
 #if defined(USE_FIXED_NAMESERVERS)
 		error = dns_resconf_load_fixed_nameservers(ctx->resconf);
 		if (error) {
