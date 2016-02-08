@@ -150,7 +150,6 @@ else()
 	find_package(ORTP REQUIRED)
 endif()
 
-find_package(BcToolBox REQUIRED)
 
 if(ENABLE_PCAP)
 	find_package(PCAP QUIET)
@@ -301,6 +300,11 @@ if(ENABLE_SOUND AND NOT(WIN32 OR ENABLE_ALSA OR ENABLE_ARTSC OR ENABLE_MACSND OR
 	message(FATAL_ERROR "Could not find a support sound driver API. Use -DENABLE_SOUND=NO if you don't care about having sound.")
 endif()
 
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
+else()
+	find_package(BcToolBox REQUIRED)
+endif()
 
 include_directories(
 	include
