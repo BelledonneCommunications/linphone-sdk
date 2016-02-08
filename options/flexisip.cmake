@@ -43,3 +43,6 @@ add_feature_info("XSDCXX_ROOT_PATH" XSDCXX_ROOT_PATH "Path of where the bin/xsdc
 
 option(ENABLE_SNMP "Enable SNMP support" "${DEFAULT_ENABLE_SNMP}")
 add_feature_info("ENABLE_SNMP" ENABLE_SNMP "Enable SNMP support")
+
+option(ENABLE_SOCI "Enable SOCI support" "${DEFAULT_ENABLE_SOCI}")
+add_feature_info("ENABLE_SOCI" ENABLE_SOCI "Enable SOCI support")

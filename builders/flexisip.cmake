@@ -22,7 +22,7 @@
 
 set(EP_flexisip_GIT_REPOSITORY "git://git.linphone.org/flexisip" CACHE STRING "flexisip repository URL")
 set(EP_flexisip_GIT_TAG_LATEST "master" CACHE STRING "flexisip tag to use when compiling latest version")
-set(EP_flexisip_GIT_TAG "0b733d671bbb72e2aa2708f37ba49e8801203154" CACHE STRING "flexisip tag to use")
+set(EP_flexisip_GIT_TAG "69006e95b3b1acb13c72f02a4f2638ae9c7fb1d4" CACHE STRING "flexisip tag to use")
 set(EP_flexisip_EXTERNAL_SOURCE_PATHS "<LINPHONE_BUILDER_TOP_DIR>")
 set(EP_flexisip_GROUPABLE YES)
 
@@ -76,6 +76,13 @@ if(ENABLE_REDIS)
 	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-redis")
 else()
 	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-redis")
+endif()
+
+list(APPEND EP_flexisip_CMAKE_OPTIONS "-DENABLE_SOCI=${ENABLE_SOCI}")
+if(ENABLE_SOCI)
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-soci")
+else()
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-soci")
 endif()
 
 list(APPEND EP_flexisip_CMAKE_OPTIONS "-DENABLE_PUSHNOTIFICATION=${ENABLE_PUSHNOTIFICATION}")
