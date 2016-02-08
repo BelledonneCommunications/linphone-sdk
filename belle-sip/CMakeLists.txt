@@ -99,7 +99,11 @@ if(ENABLE_RTP_MAP_ALWAYS_IN_SDP)
 	set(BELLE_SDP_FORCE_RTP_MAP 1)
 endif()
 
-find_package(BcToolBox REQUIRED)
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
+else()
+	find_package(BcToolBox REQUIRED)
+endif()
 
 if(ENABLE_TUNNEL)
 	if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
