@@ -146,15 +146,15 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 					}
 					break;
 				case RTCP_PSFB_PLI:
-                    
+
                     stream->ms_video_stat.counter_rcvd_pli++;
 					ms_filter_call_method_noarg(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_PLI);
                     ms_message("video_stream_process_rtcp stream [%p] PLI count %d", stream,  stream->ms_video_stat.counter_rcvd_pli);
-                    
+
 					break;
 				case RTCP_PSFB_SLI:
 					for (i = 0; ; i++) {
-                       
+
 						rtcp_fb_sli_fci_t *fci = rtcp_PSFB_sli_get_fci(m, i);
 						MSVideoCodecSLI sli;
 						if (fci == NULL) break;
@@ -164,7 +164,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 						ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_SLI, &sli);
                         stream->ms_video_stat.counter_rcvd_sli++;
                         ms_message("video_stream_process_rtcp stream [%p] SLI count %d", stream,  stream->ms_video_stat.counter_rcvd_sli);
-                       
+
 					}
 					break;
 				case RTCP_PSFB_RPSI:
@@ -306,7 +306,7 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 	rtp_session_resync(stream->ms.sessions.rtp_session);
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.sessions.rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi,"video");
-	
+
 	stream->ms.rtpsend=ms_factory_create_filter(stream->ms.factory, MS_RTP_SEND_ID);
 
 	stream->ms.ice_check_list=NULL;
@@ -676,7 +676,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	MSMediaStreamIO io = MS_MEDIA_STREAM_IO_INITIALIZER;
 	if (cam == NULL){
-		cam = ms_web_cam_manager_get_default_cam( cam->wbcmanager);
+		cam = ms_web_cam_manager_get_default_cam(ms_factory_get_web_cam_manager(stream->ms.factory));
 	}
 	io.input.type = MSResourceCamera;
 	io.input.camera = cam;
@@ -704,12 +704,12 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 	MSFilter *source = NULL;
 	MSFilter *output = NULL;
 	MSFilter *recorder = NULL;
-	
+
 	if (stream->ms.state != MSStreamInitialized){
 		ms_error("VideoStream in bad state");
 		return -1;
 	}
-	
+
 	if (!ms_media_stream_io_is_consistent(io)) return -1;
 
 	if (stream->dir != MediaStreamRecvOnly){
@@ -766,7 +766,7 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 			break;
 		}
 	}
-	
+
 	return video_stream_start_with_source_and_output(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, -1, cam, source, output);
 }
 
@@ -815,12 +815,12 @@ static void apply_video_preset(VideoStream *stream, PayloadType *pt) {
 
 static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 	MSVideoConfiguration *vconf_list = NULL;
-	
+
 	if (stream->ms.target_bitrate<=0) {
 		stream->ms.target_bitrate=pt->normal_bitrate;
 		ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i",stream,stream->ms.target_bitrate);
 	}
-	
+
 	ms_message("Limiting bitrate of video encoder to %i bits/s for stream [%p]",stream->ms.target_bitrate,stream);
 	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
 	if (vconf_list != NULL) {
@@ -1111,7 +1111,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 		stream->ms.voidsink = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
 		ms_filter_link(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
 	}
-	
+
 	/*start the video recorder if it was opened previously*/
 	if (stream->recorder_output && ms_filter_implements_interface(stream->recorder_output, MSFilterRecorderInterface)){
 		MSRecorderState state = MSRecorderClosed;
@@ -1428,7 +1428,7 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 			ms_filter_call_method_noarg(stream->recorder_output, MS_RECORDER_CLOSE);
 		}
 	}
-	
+
 	if( keep_source ){
 		source = stream->source;
 		stream->source = NULL; // will prevent video_stream_free() from destroying the source
@@ -1437,7 +1437,7 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 	 * When the filter are destroyed, all their pending events in the event queue will be cancelled*/
 	evq = ms_factory_get_event_queue(stream->ms.factory);
 	if (evq) ms_event_queue_pump(evq);
-	
+
 	video_stream_free(stream);
 
 	return source;
@@ -1697,9 +1697,9 @@ MSFilter * video_stream_open_remote_play(VideoStream *stream, const char *filena
 void video_stream_close_remote_play(VideoStream *stream){
 	MSPlayerState state = MSPlayerClosed;
 	MSFilter *source = stream->source;
-	
+
 	if (!source) return;
-	
+
 	ms_filter_call_method(source, MS_PLAYER_GET_STATE, &state);
 	if (state != MSPlayerClosed){
 		ms_filter_call_method_noarg(source, MS_PLAYER_CLOSE);
@@ -1721,12 +1721,12 @@ MSFilter *video_stream_open_remote_record(VideoStream *stream, const char *filen
 void video_stream_close_remote_record(VideoStream *stream){
 	MSFilter *recorder = stream->recorder_output;
 	MSRecorderState state = MSRecorderClosed;
-	
+
 	if (!recorder || !ms_filter_implements_interface(recorder, MSFilterRecorderInterface)){
 		ms_error("video_stream_close_remote_record(): the stream is not using a recorder.");
 		return ;
 	}
-	
+
 	ms_filter_call_method(recorder, MS_RECORDER_GET_STATE, &state);
 	if (state != MSRecorderClosed){
 		ms_filter_call_method_noarg(recorder, MS_RECORDER_CLOSE);
