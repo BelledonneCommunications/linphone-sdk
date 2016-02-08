@@ -39,6 +39,8 @@ struct belle_sip_refresher {
 	belle_sip_refresher_listener_t listener;
 	belle_sip_source_t* timer;
 	belle_sip_client_transaction_t* transaction;
+	belle_sip_request_t* first_acknoleged_request; /*store first request sucessfully acknoleged, usefull to re-build a dialog iff needed*/
+	belle_sip_dialog_t* dialog; /*Cannot rely on transaction to store dialog because of belle_sip_transaction_reset_dialog*/
 	char* realm;
 	int target_expires;
 	int obtained_expires;
@@ -51,7 +53,9 @@ struct belle_sip_refresher {
 	int number_of_retry; /*counter to count number of unsuccesfull retry, used to know when to retry*/
 	timer_purpose_t timer_purpose;
 	unsigned char manual;
+	unsigned int publish_pending;
 };
+static void set_or_update_dialog(belle_sip_refresher_t* refresher, belle_sip_dialog_t* dialog);
 static int set_expires_from_trans(belle_sip_refresher_t* refresher);
 
 static int timer_cb(void *user_data, unsigned int events) ;
@@ -95,10 +99,15 @@ static void schedule_timer(belle_sip_refresher_t* refresher) {
 
 static void process_dialog_terminated(belle_sip_listener_t *user_ctx, const belle_sip_dialog_terminated_event_t *event){
 	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
+	belle_sip_dialog_t *dialog =belle_sip_dialog_terminated_event_get_dialog(event);
 	
-	if (event->is_expired){
-		belle_sip_warning("Refresher [%p]: forced to stop because dialog has expired.", refresher);
-		belle_sip_refresher_stop_internal(refresher, 0);
+	if (refresher && refresher->transaction && dialog != belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(refresher->transaction)))
+		return; /*not for me*/
+	
+	if (refresher->state == started) {
+		belle_sip_warning("Refresher [%p] still started but receiving unexpected dialog deleted event on [%p], retrying",refresher,dialog);
+		retry_later_on_io_error(refresher);
+		if (refresher->listener) refresher->listener(refresher,refresher->user_data,481, "dialod terminated");
 	}
 }
 
@@ -202,6 +211,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 	if (refresher && (client_transaction !=refresher->transaction))
 		return; /*not for me*/
 
+	set_or_update_dialog(refresher,belle_sip_response_event_get_dialog(event));
 	/*success case:*/
 	if (response_code>=200 && response_code<300){
 		refresher->auth_failures=0;
@@ -215,8 +225,8 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 				/*update request for next refresh*/
 				belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),"SIP-If-Match");
 				belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),sip_if_match);
-			} else {
-				belle_sip_warning("Refresher [%p] receive 200ok to a publish without etag",refresher);
+			} else if (refresher->target_expires > 0){
+				belle_sip_warning("Refresher [%p] received 200ok to a publish without etag",refresher);
 			}
 		}
 		/*update expire if needed*/
@@ -240,6 +250,8 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		}
 
 		if (refresher->state==started) {
+			if (!refresher->first_acknoleged_request)
+				belle_sip_object_ref(refresher->first_acknoleged_request = request);
 			if (is_contact_address_acurate(refresher,request)) {
 				schedule_timer(refresher); /*re-arm timer*/
 			} else {
@@ -280,6 +292,17 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			/*In case of 403, we will retry later, just in case*/
 			if (refresher->target_expires>0) retry_later(refresher);
 			break;
+		case 412:
+			if (strcmp(belle_sip_request_get_method(request),"PUBLISH")==0) {
+				belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),"SIP-If-Match");
+				if (refresher->target_expires>0) {
+					retry_later_on_io_error(refresher);
+					return; /*do not notify this kind of error*/
+				}
+			} else {
+				if (refresher->target_expires>0) retry_later(refresher);
+			}
+			break;
 		case 423:{
 			belle_sip_header_extension_t *min_expires=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header((belle_sip_message_t*)response,"Min-Expires"));
 			if (min_expires){
@@ -295,10 +318,17 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			}else belle_sip_warning("Receiving 423 but no min-expires header.");
 			break;
 		}
+		case 491: {
+			if (refresher->target_expires>0) {
+				retry_later_on_io_error(refresher);
+				return; /*do not notify this kind of error*/
+			}
+		}
 		case 505:
 		case 501:
 			/*irrecoverable errors, probably no need to retry later*/
 			break;
+		
 		default:
 			/*for all other errors, retry later*/
 			if (refresher->target_expires>0) retry_later(refresher);
@@ -324,7 +354,19 @@ static void process_timeout(belle_sip_listener_t *user_ctx, const belle_sip_time
 }
 
 static void process_transaction_terminated(belle_sip_listener_t *user_ctx, const belle_sip_transaction_terminated_event_t *event) {
-	/*belle_sip_message("process_transaction_terminated Transaction terminated [%p]",event);*/
+	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
+	belle_sip_client_transaction_t*client_transaction = belle_sip_transaction_terminated_event_get_client_transaction(event);
+	if (refresher && (client_transaction !=refresher->transaction))
+		return; /*not for me*/
+
+	if (refresher->publish_pending && refresher->state==started) {
+		refresher->publish_pending = FALSE;
+		belle_sip_message("Publish pending on refresher [%p], doing it",refresher);
+		belle_sip_refresher_refresh(refresher,refresher->target_expires);
+	} else {
+		refresher->publish_pending = FALSE;
+	}
+	
 }
 
 static void process_auth_requested(belle_sip_listener_t *l, belle_sip_auth_event_t *event){
@@ -340,6 +382,8 @@ static void destroy(belle_sip_refresher_t *refresher){
 	refresher->transaction=NULL;
 	if (refresher->realm) belle_sip_free(refresher->realm);
 	if (refresher->auth_events) refresher->auth_events=belle_sip_list_free_with_data(refresher->auth_events,(void (*)(void*))belle_sip_auth_event_destroy);
+	if (refresher->first_acknoleged_request) belle_sip_object_unref(refresher->first_acknoleged_request);
+	if (refresher->dialog) belle_sip_object_unref(refresher->dialog);
 }
 
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_sip_refresher_t,belle_sip_listener_t)
@@ -376,7 +420,7 @@ static int unfilled_auth_info(const void* info,const void* userptr) {
 static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher, int expires, int auth_mandatory, belle_sip_list_t** auth_infos, belle_sip_uri_t *requri) {
 	belle_sip_request_t*old_request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction));
 	belle_sip_response_t*old_response=belle_sip_transaction_get_response(BELLE_SIP_TRANSACTION(refresher->transaction));
-	belle_sip_dialog_t* dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(refresher->transaction));
+	belle_sip_dialog_t* dialog = refresher->dialog;
 	belle_sip_client_transaction_t* client_transaction;
 	belle_sip_request_t* request;
 	belle_sip_header_expires_t* expires_header;
@@ -400,9 +444,16 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 			belle_sip_message("Refresher [%p] already has transaction [%p] in state [%s]"	,refresher
 				,refresher->transaction
 				,belle_sip_transaction_state_to_string(state));
-			request=belle_sip_request_clone_with_body(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction)));
-			cseq=belle_sip_message_get_header_by_type(request,belle_sip_header_cseq_t);
-			belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
+			
+			if (strcmp(belle_sip_request_get_method(old_request),"PUBLISH")==0) {
+				belle_sip_message("Refresher [%p] new publish is delayed to end of ongoing transaction"	,refresher);
+				refresher->publish_pending = TRUE;
+				return 0;
+			} else {
+				request=belle_sip_request_clone_with_body(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction)));
+				cseq=belle_sip_message_get_header_by_type(request,belle_sip_header_cseq_t);
+				belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
+			}
 		} else {
 			request=belle_sip_client_transaction_create_authenticated_request(refresher->transaction,auth_infos,refresher->realm);
 		}
@@ -413,44 +464,65 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 			belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_AUTHORIZATION);
 			belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_PROXY_AUTHORIZATION);
 		}
-	} else if (dialog && belle_sip_dialog_get_state(dialog)==BELLE_SIP_DIALOG_CONFIRMED) {
-		if (belle_sip_dialog_request_pending(dialog)){
-			belle_sip_message("Cannot refresh now, there is a pending request in the dialog.");
-			return -1;
-		}
-		request=belle_sip_dialog_create_request_from(dialog,old_request);
-		if (strcmp(belle_sip_request_get_method(request),"SUBSCRIBE")==0) {
-			belle_sip_header_content_type_t *content_type;
-			/*put expire header*/
-			if (!(expires_header = belle_sip_message_get_header_by_type(request,belle_sip_header_expires_t))) {
-				expires_header = belle_sip_header_expires_new();
-				belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_HEADER(expires_header));
+	} else  {
+		switch (belle_sip_dialog_get_state(dialog)) {
+			case BELLE_SIP_DIALOG_CONFIRMED: {
+				if (belle_sip_dialog_request_pending(dialog)){
+					belle_sip_message("Cannot refresh now, there is a pending request in the dialog.");
+					return -1;
+				}
+				request=belle_sip_dialog_create_request_from(dialog,old_request);
+				if (strcmp(belle_sip_request_get_method(request),"SUBSCRIBE")==0) {
+					belle_sip_header_content_type_t *content_type;
+					/*put expire header*/
+					if (!(expires_header = belle_sip_message_get_header_by_type(request,belle_sip_header_expires_t))) {
+						expires_header = belle_sip_header_expires_new();
+						belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_HEADER(expires_header));
+					}
+					if ((content_type = belle_sip_message_get_header_by_type(request, belle_sip_header_content_type_t))
+						&& strcasecmp("application", belle_sip_header_content_type_get_type(content_type)) == 0
+						&& strcasecmp("resource-lists+xml", belle_sip_header_content_type_get_subtype(content_type)) == 0) {
+						/*rfc5367
+						 3.2.  Subsequent SUBSCRIBE Requests
+						 ...
+						 At this point, there are no semantics associated with resource-list
+						 bodies in subsequent SUBSCRIBE requests (although future extensions
+						 can define them).  Therefore, UACs SHOULD NOT include resource-list
+						 bodies in subsequent SUBSCRIBE requests to a resource list server.
+						 */
+						belle_sip_message("Removing body, content type and content length for refresher [%p]",refresher);
+						belle_sip_message_set_body(BELLE_SIP_MESSAGE(request), NULL, 0);
+						belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CONTENT_TYPE);
+						belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CONTENT_LENGTH);
+						
+					}
+				}
+				belle_sip_provider_add_authorization(prov,request,old_response,NULL,auth_infos,refresher->realm);
+				break;
 			}
-			if ((content_type = belle_sip_message_get_header_by_type(request, belle_sip_header_content_type_t))
-				&& strcasecmp("application", belle_sip_header_content_type_get_type(content_type)) == 0
-				&& strcasecmp("resource-lists+xml", belle_sip_header_content_type_get_subtype(content_type)) == 0) {
-				/*rfc5367
-				 3.2.  Subsequent SUBSCRIBE Requests
-				 ...
-				 At this point, there are no semantics associated with resource-list
-				 bodies in subsequent SUBSCRIBE requests (although future extensions
-				 can define them).  Therefore, UACs SHOULD NOT include resource-list
-				 bodies in subsequent SUBSCRIBE requests to a resource list server.
-				 */
-				belle_sip_message("Removing body, content type and content length for refresher [%p]",refresher);
-				belle_sip_message_set_body(BELLE_SIP_MESSAGE(request), NULL, 0);
-				belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CONTENT_TYPE);
-				belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CONTENT_LENGTH);
+			case BELLE_SIP_DIALOG_TERMINATED: {
+				if (refresher->first_acknoleged_request) {
+					char tmp[11];
+					belle_sip_message("Dialog [%p] is in state terminated, recreating a new one for refresher [%p]",dialog,refresher);
+					request = refresher->first_acknoleged_request;
+					belle_sip_header_cseq_set_seq_number(belle_sip_message_get_header_by_type(request,belle_sip_header_cseq_t)
+														 ,20);
+					belle_sip_parameters_remove_parameter(BELLE_SIP_PARAMETERS(belle_sip_message_get_header_by_type(request,belle_sip_header_to_t)),"tag");
+					
+					belle_sip_header_call_id_set_call_id(	  belle_sip_message_get_header_by_type(request,belle_sip_header_call_id_t)
+															, belle_sip_random_token(tmp,sizeof(tmp)));
+					break;
+				} /*else nop, error case*/
 				
 			}
+			default: {
+				belle_sip_error("Unexpected dialog state [%s] for dialog [%p], cannot refresh [%s]"
+								,belle_sip_dialog_state_to_string(belle_sip_dialog_get_state(dialog))
+								,dialog
+								,belle_sip_request_get_method(old_request));
+				return -1;
+			}
 		}
-		belle_sip_provider_add_authorization(prov,request,old_response,NULL,auth_infos,refresher->realm);
-	} else {
-		belle_sip_error("Unexpected dialog state [%s] for dialog [%p], cannot refresh [%s]"
-				,belle_sip_dialog_state_to_string(belle_sip_dialog_get_state(dialog))
-				,dialog
-				,belle_sip_request_get_method(old_request));
-		return -1;
 	}
 
 	if (auth_mandatory && auth_infos && belle_sip_list_find_custom(*auth_infos, unfilled_auth_info, NULL)) {
@@ -481,7 +553,12 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 	client_transaction = belle_sip_provider_create_client_transaction(prov,request);
 	client_transaction->base.is_internal=1;
 	belle_sip_transaction_set_application_data(BELLE_SIP_TRANSACTION(client_transaction),refresher);
-
+	
+	if (request ==  refresher->first_acknoleged_request) { /*request is now ref by transaction so no need to keepo it*/
+		belle_sip_object_unref(refresher->first_acknoleged_request);
+		refresher->first_acknoleged_request = NULL;
+	}
+	
 	switch (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction))) {
 	case BELLE_SIP_TRANSACTION_INIT:
 	case BELLE_SIP_TRANSACTION_CALLING:
@@ -678,6 +755,9 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 	belle_sip_object_ref(transaction);
 	refresher->retry_after=DEFAULT_RETRY_AFTER;
 
+	if (belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(transaction))) {
+		set_or_update_dialog(refresher, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(transaction)));
+	}
 	belle_sip_provider_add_internal_sip_listener(transaction->base.provider,BELLE_SIP_LISTENER(refresher), is_register);
 	if (set_expires_from_trans(refresher)==-1){
 		belle_sip_error("Unable to extract refresh value from transaction [%p]",transaction);
@@ -731,4 +811,19 @@ void belle_sip_refresher_enable_manual_mode(belle_sip_refresher_t *refresher, in
 
 char *belle_sip_refresher_get_public_uri(belle_sip_refresher_t* refresher)  {
 	return belle_sip_channel_get_public_ip_port(refresher->transaction->base.channel);
+}
+static void set_or_update_dialog(belle_sip_refresher_t* refresher, belle_sip_dialog_t* dialog) {
+	if (refresher->dialog!=dialog){
+		belle_sip_message("refresher [%p] : set_or_update_dialog() current=[%p] new=[%p]",refresher,refresher->dialog,dialog);
+		if (refresher->dialog){
+			belle_sip_object_unref(refresher->dialog);
+		}
+		if (dialog) {
+			belle_sip_object_ref(dialog);
+			/*make sure dialog is internal now*/
+			dialog->is_internal = TRUE;
+
+		}
+		refresher->dialog=dialog;
+	}
 }

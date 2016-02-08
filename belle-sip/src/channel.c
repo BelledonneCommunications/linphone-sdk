@@ -554,7 +554,21 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream)
 
 static void belle_sip_channel_process_stream(belle_sip_channel_t *obj, int eos){
 	belle_sip_channel_parse_stream(obj,eos);
-	if (obj->incoming_messages) notify_incoming_messages(obj);
+	if (obj->incoming_messages) {
+		if (obj->simulated_recv_return == 1500) {
+			belle_sip_list_t *elem;
+			for(elem=obj->incoming_messages;elem!=NULL;elem=elem->next){
+				belle_sip_message_t *msg=(belle_sip_message_t*)elem->data;
+				char* dump = belle_sip_message_to_string(msg);
+				belle_sip_message("Silently discarding incoming message [%.50s...] on channel [%p]",dump, obj);
+				belle_sip_free(dump);
+			}
+			belle_sip_list_free_with_data(obj->incoming_messages,belle_sip_object_unref);
+			obj->incoming_messages=NULL;
+		} else {
+			notify_incoming_messages(obj);
+		}
+	}
 }
 
 static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){

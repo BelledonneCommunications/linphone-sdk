@@ -112,7 +112,7 @@ struct belle_sip_channel{
 	belle_sip_list_t* incoming_messages;
 	belle_sip_source_t *inactivity_timer;
 	uint64_t last_recv_time;
-	int simulated_recv_return; /* used to simulate network error. 0= no data (disconnected) >0= do nothing -1= network error*/
+	int simulated_recv_return; /* used to simulate network error. 0= no data (disconnected) >0= do nothing -1= network error, 1500 special number to silently discard incoming buffer*/
 	unsigned long bg_task_id;
 	unsigned long recv_bg_task_id;
 	unsigned char force_close; /* when channel is intentionnaly disconnected, in order to prevent looping notifications*/

@@ -523,13 +523,15 @@ struct belle_sip_stack{
 	int dscp;
 	char *dns_user_hosts_file; /* used to load additional hosts file for tests */
 	char *dns_resolv_conf; /*used to load custom resolv.conf, for tests*/
-	unsigned char dns_srv_enabled;
+	belle_sip_list_t *dns_servers; /*used when dns servers are supplied by app layer*/
 	/*http proxy stuff to be used by both http and sip provider*/
 	char *http_proxy_host;
 	int http_proxy_port;
-	char *http_proxy_username; /*for futur use*/
-	char *http_proxy_passwd; /*for futur use*/
-
+	char *http_proxy_username; /*for future use*/
+	char *http_proxy_passwd; /*for future use*/
+	
+	unsigned char dns_srv_enabled;
+	
 };
 
 belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);
@@ -583,6 +585,9 @@ typedef struct listener_ctx{
 
 #define BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,callback,event) \
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS((t)->is_internal?(t)->provider->internal_listeners:(t)->provider->listeners,callback,event)
+
+#define BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_DIALOG(d,callback,event) \
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS((d)->is_internal?(d)->provider->internal_listeners:(d)->provider->listeners,callback,event)
 
 #define BELLE_SIP_PROVIDER_INVOKE_LISTENERS(listeners,callback,event) \
 	BELLE_SIP_INVOKE_LISTENERS_ARG((listeners),belle_sip_listener_t,callback,(event))
@@ -816,6 +821,7 @@ struct belle_sip_dialog{
 	unsigned char needs_ack;
 	unsigned char is_expired;
 	unsigned char pending_trans_checking_enabled; /*use to disabled pending transaction check at request creation (testing)*/
+	unsigned char is_internal; /*Internal dialogs are those created by refreshers. */
 };
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);

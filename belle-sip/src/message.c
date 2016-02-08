@@ -476,6 +476,9 @@ belle_sip_body_handler_t *belle_sip_message_get_body_handler(const belle_sip_mes
 }
 
 void belle_sip_message_set_body_handler(belle_sip_message_t *msg, belle_sip_body_handler_t *body_handler){
+	belle_sip_header_content_length_t *content_length_header = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_length_t);
+	belle_sip_header_content_type_t *content_type_header = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t);
+
 	/* In case of multipart message, we must add the message Content-Type header containing the boundary */
 	if (body_handler != NULL) {
 		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(body_handler, belle_sip_multipart_body_handler_t)){
@@ -516,14 +519,19 @@ void belle_sip_message_set_body_handler(belle_sip_message_t *msg, belle_sip_body
 			belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(content_type), "boundary", BELLESIP_MULTIPART_BOUNDARY);
 			belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), BELLE_SIP_HEADER(content_type));
 		} else {
-			const belle_sip_list_t *header = belle_sip_body_handler_get_headers(body_handler);
-			for(; header != NULL; header = header->next) {
-				belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), BELLE_SIP_HEADER(header->data));
+			const belle_sip_list_t *headers = belle_sip_body_handler_get_headers(body_handler);
+			for(; headers != NULL; headers = headers->next) {
+				belle_sip_header_t *header = BELLE_SIP_HEADER(headers->data);
+				if (strcasecmp(belle_sip_header_get_name(header),BELLE_SIP_CONTENT_LENGTH ) == 0 && content_length_header)
+					belle_sip_message_remove_header_from_ptr(msg, BELLE_SIP_HEADER(content_length_header));
+				
+				if (strcasecmp(belle_sip_header_get_name(header),BELLE_SIP_CONTENT_TYPE ) == 0 && content_type_header)
+					belle_sip_message_remove_header_from_ptr(msg, BELLE_SIP_HEADER(content_type_header));
+				
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), header);
 			}
 		}
 	} else {
-		belle_sip_header_content_length_t *content_length_header = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_length_t);
-		belle_sip_header_content_type_t *content_type_header = belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t);
 		if (content_length_header != NULL) belle_sip_message_remove_header_from_ptr(msg, BELLE_SIP_HEADER(content_length_header));
 		if (content_type_header != NULL) belle_sip_message_remove_header_from_ptr(msg, BELLE_SIP_HEADER(content_type_header));
 	}

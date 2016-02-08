@@ -104,6 +104,7 @@ static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	if (stack->http_proxy_host) belle_sip_free(stack->http_proxy_host);
 	if (stack->http_proxy_passwd) belle_sip_free(stack->http_proxy_passwd);
 	if (stack->http_proxy_username) belle_sip_free(stack->http_proxy_username);
+	belle_sip_list_free_with_data(stack->dns_servers, belle_sip_free);
 
 }
 
@@ -249,6 +250,15 @@ const char * belle_sip_stack_get_dns_resolv_conf_file(const belle_sip_stack_t *s
 void belle_sip_stack_set_dns_resolv_conf_file(belle_sip_stack_t *stack, const char *resolv_conf_file){
 	if (stack->dns_resolv_conf) belle_sip_free(stack->dns_resolv_conf);
 	stack->dns_resolv_conf = resolv_conf_file?belle_sip_strdup(resolv_conf_file):NULL;
+}
+
+void belle_sip_stack_set_dns_servers(belle_sip_stack_t *stack, const belle_sip_list_t *servers){
+	belle_sip_list_t *newservers = NULL;
+	if (servers) newservers = belle_sip_list_copy_with_data(servers, (void *(*)(void*))belle_sip_strdup);
+	if (stack->dns_servers){
+		belle_sip_list_free_with_data(stack->dns_servers, belle_sip_free);
+	}
+	stack->dns_servers = newservers;
 }
 
 const char* belle_sip_version_to_string() {
