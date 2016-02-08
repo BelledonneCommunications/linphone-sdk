@@ -131,6 +131,9 @@ else()
 				endif()
 			endif()
 		endif()
+		
+		linphone_builder_add_builder_to_target(TARGET_ms2 bctoolbox)
+		
 		if(ENABLE_ZRTP)
 			linphone_builder_add_builder_to_target(TARGET_ms2 bzrtp)
 		endif()
