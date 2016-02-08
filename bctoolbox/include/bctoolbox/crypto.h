@@ -306,10 +306,71 @@ BCTOOLBOX_PUBLIC int32_t bctoolbox_ssl_config_set_dtls_srtp_protection_profiles(
 BCTOOLBOX_PUBLIC int32_t bctoolbox_ssl_get_dtls_srtp_key_material(bctoolbox_ssl_context_t *ssl_ctx, char *output, size_t *output_length);
 BCTOOLBOX_PUBLIC uint8_t bctoolbox_dtls_srtp_supported(void);
 
+
+/*****************************************************************************/
+/***** Hashing                                                           *****/
+/*****************************************************************************/
+/**
+ * @brief HMAC-SHA256 wrapper
+ * @param[in] 	key			HMAC secret key
+ * @param[in] 	keyLength	HMAC key length in bytes
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length in bytes
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 32 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+BCTOOLBOX_PUBLIC void bctoolbox_hmacSha256(const uint8_t *key,
+		size_t keyLength,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t hmacLength,
+		uint8_t *output);
+
+/**
+ * @brief SHA256 wrapper
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length in bytes
+ * @param[in]	hmacLength	Length of output required in bytes, SHA256 output is truncated to the hashLength left bytes. 32 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+BCTOOLBOX_PUBLIC void bctoolbox_sha256(const uint8_t *input,
+		size_t inputLength,
+		uint8_t hashLength,
+		uint8_t *output);
+
+/**
+ * @brief HMAC-SHA1 wrapper
+ * @param[in] 	key			HMAC secret key
+ * @param[in] 	keyLength	HMAC key length
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 20 bytes maximum
+ * @param[out]	output		Output data buffer
+ *
+ */
+BCTOOLBOX_PUBLIC void bctoolbox_hmacSha1(const uint8_t *key,
+		size_t keyLength,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t hmacLength,
+		uint8_t *output);
+
+/**
+ * @brief MD5 wrapper
+ * output = md5(input)
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length in bytes
+ * @param[out]	output		Output data buffer.
+ *
+ */
+BCTOOLBOX_PUBLIC void bctoolbox_md5(const uint8_t *input,
+		size_t inputLength,
+		uint8_t output[16]);
+
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif
-
+#endif /* BCTOOLBOX_CRYPTO_H */

@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mbedtls/x509.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
+#include <mbedtls/md5.h>
 #include <mbedtls/sha1.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/sha512.h>
@@ -950,20 +951,6 @@ void bctoolbox_ssl_config_free(bctoolbox_ssl_config_t *ssl_config) {
 	bctoolbox_free(ssl_config);
 }
 
-const mbedtls_x509_crt_profile bctoolbox_x509_crt_profile_default =
-{
-    /* Hashes from SHA-1 and above */
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA1 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_RIPEMD160 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA224 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA256 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA384 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA512 ),
-    0xFFFFFFF, /* Any PK alg    */
-    0xFFFFFFF, /* Any curve     */
-    1024,
-};
-
 int32_t bctoolbox_ssl_config_defaults(bctoolbox_ssl_config_t *ssl_config, int endpoint, int transport) {
 	int mbedtls_endpoint, mbedtls_transport;
 
@@ -1172,4 +1159,104 @@ int32_t bctoolbox_ssl_context_setup(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_
 #endif /* HAVE_DTLS_SRTP */
 
 	return mbedtls_ssl_setup(&(ssl_ctx->ssl_ctx), ssl_config->ssl_config);
+}
+
+/*****************************************************************************/
+/***** Hashing                                                           *****/
+/*****************************************************************************/
+
+/*
+ * HMAC-SHA-256 wrapper
+ * @param[in] 	key			HMAC secret key
+ * @param[in] 	keyLength	HMAC key length
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 32 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+void bctoolbox_hmacSha256(const uint8_t *key,
+		size_t keyLength,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t hmacLength,
+		uint8_t *output)
+{
+	uint8_t hmacOutput[32];
+	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), key, keyLength, input, inputLength, hmacOutput);
+
+	/* check output length, can't be>32 */
+	if (hmacLength>32) {
+		memcpy(output, hmacOutput, 32);
+	} else {
+		memcpy(output, hmacOutput, hmacLength);
+	}
+}
+
+/*
+ * @brief SHA256 wrapper
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length in bytes
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 32 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+void bctoolbox_sha256(const uint8_t *input,
+		size_t inputLength,
+		uint8_t hashLength,
+		uint8_t *output)
+{
+	uint8_t hashOutput[32];
+	mbedtls_sha256(input, inputLength, hashOutput, 0); /* last param to zero to select SHA256 and not SHA224 */
+
+	/* check output length, can't be>32 */
+	if (hashLength>32) {
+		memcpy(output, hashOutput, 32);
+	} else {
+		memcpy(output, hashOutput, hashLength);
+	}
+}
+
+/*
+ * @brief HMAC-SHA1 wrapper
+ * @param[in] 	key			HMAC secret key
+ * @param[in] 	keyLength	HMAC key length
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 20 bytes maximum
+ * @param[out]	output		Output data buffer.
+ *
+ */
+void bctoolbox_hmacSha1(const uint8_t *key,
+		size_t keyLength,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t hmacLength,
+		uint8_t *output)
+{
+	uint8_t hmacOutput[20];
+
+	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), key, keyLength, input, inputLength, hmacOutput);
+
+	/* check output length, can't be>20 */
+	if (hmacLength>20) {
+		memcpy(output, hmacOutput, 20);
+	} else {
+		memcpy(output, hmacOutput, hmacLength);
+	}
+}
+
+/**
+ * @brief MD5 wrapper
+ * output = md5(input)
+ * @param[in]	input 		Input data buffer
+ * @param[in]   inputLength	Input data length in bytes
+ * @param[out]	output		Output data buffer.
+ *
+ */
+void bctoolbox_md5(const uint8_t *input,
+		size_t inputLength,
+		uint8_t output[16])
+{
+	mbedtls_md5(input, inputLength, output);
 }
