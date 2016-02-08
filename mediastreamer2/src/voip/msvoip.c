@@ -272,18 +272,18 @@ void ms_factory_init_voip(MSFactory *obj){
 		ms_snd_card_manager_register_desc(cm,ms_snd_card_descs[i]);
 	}
 
-#ifdef VIDEO_ENABLED
 	{
 		MSWebCamManager *wm;
 		wm=ms_web_cam_manager_new();
 		wm->factory = obj;
 		obj->wbcmanager = wm;
+#ifdef VIDEO_ENABLED
 		ms_message("Registering all webcam handlers");
 		for (i=0;ms_web_cam_descs[i]!=NULL;i++){
 			ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
 		}
-	}
 #endif
+	}
 
 #ifdef VIDEO_ENABLED
 	{
