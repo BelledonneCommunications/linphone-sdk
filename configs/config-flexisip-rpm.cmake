@@ -130,6 +130,7 @@ if (ENABLE_PRESENCE)
 endif()
 
 if (ENABLE_SOCI)
+	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --with soci")
 	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--enable-soci")
 endif()
 
