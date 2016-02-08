@@ -46,3 +46,4 @@ add_feature_info("ENABLE_SNMP" ENABLE_SNMP "Enable SNMP support")
 
 option(ENABLE_SOCI "Enable SOCI support" "${DEFAULT_ENABLE_SOCI}")
 add_feature_info("ENABLE_SOCI" ENABLE_SOCI "Enable SOCI support")
+cmake_dependent_option(ENABLE_SOCI_BUILD "Build SOCI from sources instead of taking the operating system version." "${DEFAULT_VALUE_ENABLE_SOCI_BUILD}" "ENABLE_SOCI" OFF)
