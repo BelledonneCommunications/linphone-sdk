@@ -311,6 +311,14 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 			ms_mutex_unlock(mutex);
 		}
 
+		/* report the error in logs only when different than requested read(waiting for data) */
+		if (*ret<0 && *ret != BCTOOLBOX_ERROR_NET_WANT_READ) {
+			char err_str[512];
+			err_str[0]='\0';
+			bctoolbox_strerror(*ret, err_str, 512);
+			ms_warning("DTLS handhake returns -0x%x : %s [on sessions: %p rtp session %p]", -*ret, err_str, ctx->stream_sessions, ctx->stream_sessions->rtp_session);
+		}
+
 		return TRUE;
 	}
 
@@ -692,13 +700,14 @@ static int ms_dtls_srtp_initialise_bctoolbox_dtls_context(DtlsBcToolBoxContext *
 
 	bctoolbox_ssl_config_set_rng(dtlsContext->ssl_config, (int (*)(void *, unsigned char *, size_t))bctoolbox_rng_get, dtlsContext->rng);
 
-	/* set CA chain */
-	/* this will force server to send his certificate to client as we need it to compute the fingerprint */
+	/* set certificates */
+	/* this will force server to send his certificate to client as we need it to compute the fingerprint even if we won't verify it */
 	bctoolbox_ssl_config_set_authmode(dtlsContext->ssl_config, BCTOOLBOX_SSL_VERIFY_OPTIONAL);
-	//ssl_set_ca_chain( &(dtlsContext->ssl), &(dtlsContext->crt), NULL, NULL );
 	bctoolbox_ssl_config_set_own_cert( dtlsContext->ssl_config, dtlsContext->crt, dtlsContext->pkey );
+	/* This is useless as peer would certainly be a self signed certificate and we won't verify it but avoid runtime warnings */
+	bctoolbox_ssl_config_set_ca_chain(dtlsContext->ssl_config, dtlsContext->crt, NULL);
 
-	/* we are not ready yet to actually start the ssl context, this will be done by calling bctoolbox_ssl_setup at when */
+	/* we are not ready yet to actually start the ssl context, this will be done by calling bctoolbox_ssl_setup when stream starts */
 	return 0;
 
 }
@@ -717,8 +726,6 @@ void ms_dtls_srtp_set_stream_sessions(MSDtlsSrtpContext *dtls_context, MSMediaSt
 /**** Public functions ****/
 /* header declared in include/mediastreamer2/dtls_srtp.h */
 bool_t ms_dtls_srtp_available(){
-	printf("JOHAN ms_dtls_srtp_available: %d %d\n",ms_srtp_supported(), bctoolbox_dtls_srtp_supported() );
-	fflush(NULL);
 	return ms_srtp_supported()  && bctoolbox_dtls_srtp_supported();
 }
 
