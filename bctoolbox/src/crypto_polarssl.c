@@ -1020,6 +1020,9 @@ int32_t bctoolbox_ssl_context_setup(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_
 	if (ssl_config->dtls_srtp_profiles_number > 0) {
 		ssl_set_dtls_srtp_protection_profiles(&(ssl_ctx->ssl_ctx), ssl_config->dtls_srtp_profiles, ssl_config->dtls_srtp_profiles_number );
 	}
+
+	/* We do not use DTLS SRTP cookie, so we must set to NULL the callbacks. Cookies are used to prevent DoS attack but our server is on only when during a brief period so we do not need this */
+	ssl_set_dtls_cookies(&(ssl_ctx->ssl_ctx), NULL, NULL, NULL);
 #endif
 
 	return 0;
