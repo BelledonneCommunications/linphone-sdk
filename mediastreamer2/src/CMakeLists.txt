@@ -239,7 +239,7 @@ if(ENABLE_VIDEO)
 			videofilters/drawdib-display.c
 		)
 		list(APPEND VOIP_SOURCE_FILES_CXX
-			videofilters/msdscap-mingw.cc
+			videofilters/msdscap.cc
 		)
 	endif()
 	if(APPLE)
@@ -380,7 +380,7 @@ if(WIN32)
 	if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		list(APPEND VOIP_LIBS ${LIBGCC} ${LIBMINGWEX} ole32 oleaut32 uuid)
 		if(ENABLE_VIDEO)
-			list(APPEND VOIP_LIBS gdi32 user32 vfw32)
+			list(APPEND VOIP_LIBS gdi32 strmiids user32 vfw32)
 		endif()
 	endif()
 endif()

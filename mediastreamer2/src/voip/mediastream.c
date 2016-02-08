@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "ortp/port.h"
 #include "mediastreamer2/mediastream.h"
+#include "mediastreamer2/msrtp.h"
 #include "private.h"
 #include <ctype.h>
 
@@ -221,6 +222,18 @@ void media_stream_enable_dtls(MediaStream *stream, MSDtlsSrtpParams *params){
 	if (stream->sessions.dtls_context==NULL) {
 		ms_message("Start DTLS media stream context in stream session [%p]", &(stream->sessions));
 		stream->sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->sessions), params);
+	}
+}
+
+void media_stream_set_ice_check_list(MediaStream *stream, IceCheckList *cl) {
+	bool_t stun_enabled = TRUE;
+	stream->ice_check_list = cl;
+	if (stream->ice_check_list != NULL) {
+		ice_check_list_set_rtp_session(stream->ice_check_list, stream->sessions.rtp_session);
+		stun_enabled = FALSE;
+	}
+	if (stream->rtpsend != NULL) {
+		ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_ENABLE_STUN, &stun_enabled);
 	}
 }
 
