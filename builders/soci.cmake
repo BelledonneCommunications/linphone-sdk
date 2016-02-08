@@ -32,3 +32,6 @@ set(EP_soci_RPMBUILD_OPTIONS "--without postgresql" "--without sqlite3" "--witho
 #create source dir and copy the tar.gz inside
 set(EP_soci_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
 set(EP_soci_PATCH_COMMAND ${EP_soci_PATCH_COMMAND} "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONE_BUILDER_WORK_DIR}/Download/EP_soci/${soci_filename}" "${LINPHONE_BUILDER_WORK_DIR}/rpmbuild/SOURCES/")
+
+# no configure needed for soci
+set(EP_soci_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/soci/configure.sh.cmake)
