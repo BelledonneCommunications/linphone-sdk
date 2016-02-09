@@ -13,7 +13,6 @@
 %bcond_without postgresql
 %bcond_without odbc
 %bcond_with oracle
-%bcond_with firebird
 
 %define _default_oracle_dir /opt/oracle/app/oracle/product/11.1.0/db_1
 %{!?_with_oracle_incdir: %define _with_oracle_incdir --with-oracle-include=%{_default_oracle_dir}/rdbms/public}
@@ -32,7 +31,6 @@ License:        Boost
 URL:            http://%{name}.sourceforge.net
 Source0:        http://downloads.sourceforge.net/%{name}/%{name}-%{version}.tar.gz
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-Patch:		%{soci_patch}
 
 BuildRequires:  cmake
 BuildRequires:  boost-devel
@@ -206,8 +204,6 @@ echo "- Version 3.2.1" >> NEWS
 echo "- See the ChangeLog file for more details." >> NEWS
 
 
-%patch -p1
-
 %build
 # Support for building tests.
 %define soci_testflags -DBUILD_TESTS="NONE"
@@ -229,7 +225,6 @@ pushd tmpbuild
  -DSOCI_MYSQL=%{?with_mysql:ON}%{?without_mysql:OFF} \
  -DSOCI_ODBC=%{?with_odbc:ON}%{?without_odbc:OFF} \
  -DWITH_ORACLE=%{?with_oracle:ON %{?_with_oracle_incdir} %{?_with_oracle_libdir}}%{?without_oracle:OFF} \
- -DSOCI_LIBDIR=lib -DSOCI_FIREBIRD=NO \
  %{soci_testflags} ..
 make VERBOSE=1 %{?_smp_mflags}
 popd
