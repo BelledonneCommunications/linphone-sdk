@@ -562,7 +562,9 @@ static void configure_video_source(VideoStream *stream){
 	} else {
 		if (format==MS_MJPEG){
 			stream->pixconv=ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);
-
+			if (stream->pixconv == NULL){
+				ms_error("Could not create mjpeg decoder, check your build options.");
+			}
 		}else if (format==MS_PIX_FMT_UNKNOWN){
 			stream->pixconv = ms_factory_create_decoder(stream->ms.factory, pf.fmt->encoding);
 		}else{
@@ -1571,6 +1573,9 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	if (format==MS_MJPEG){
 		stream->pixconv=ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);
+		if (stream->pixconv == NULL){
+			ms_error("Could not create mjpeg decoder, check your build options.");
+		}
 	}else{
 		stream->pixconv=ms_factory_create_filter(stream->ms.factory, MS_PIX_CONV_ID);
 		ms_filter_call_method(stream->pixconv,MS_FILTER_SET_PIX_FMT,&format);
