@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <polarssl/sha1.h>
 #include <polarssl/sha256.h>
 #include <polarssl/sha512.h>
+#include <polarssl/gcm.h>
 
 #define bctoolbox_error printf
 
@@ -1124,4 +1125,164 @@ void bctoolbox_md5(const uint8_t *input,
 		uint8_t output[16])
 {
 	md5(input, inputLength, output);
+}
+
+/*****************************************************************************/
+/***** Encryption/Decryption                                             *****/
+/*****************************************************************************/
+/***** GCM *****/
+/**
+ * @Brief AES-GCM encrypt and tag buffer
+ *
+ * @param[in]	key							Encryption key
+ * @param[in]	keyLength					Key buffer length, in bytes, must be 16,24 or 32
+ * @param[in]	plainText					Buffer to be encrypted
+ * @param[in]	plainTextLength				Length in bytes of buffer to be encrypted
+ * @param[in]	authenticatedData			Buffer holding additional data to be used in tag computation
+ * @param[in]	authenticatedDataLength		Additional data length in bytes
+ * @param[in]	initializationVector		Buffer holding the initialisation vector
+ * @param[in]	initializationVectorLength	Initialisation vector length in bytes
+ * @param[out]	tag							Buffer holding the generated tag
+ * @param[in]	tagLength					Requested length for the generated tag
+ * @param[out]	output						Buffer holding the output, shall be at least the length of plainText buffer
+ */
+int32_t bctoolbox_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
+		const uint8_t *plainText, size_t plainTextLength,
+		const uint8_t *authenticatedData, size_t authenticatedDataLength,
+		const uint8_t *initializationVector, size_t initializationVectorLength,
+		uint8_t *tag, size_t tagLength,
+		uint8_t *output) {
+	gcm_context gcmContext;
+	int ret;
+
+	ret = gcm_init(&gcmContext, POLARSSL_CIPHER_ID_AES, key, keyLength*8);
+	if (ret != 0) return ret;
+
+	ret = gcm_crypt_and_tag(&gcmContext, GCM_ENCRYPT, plainTextLength, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength, plainText, output, tagLength, tag);
+	gcm_free(&gcmContext);
+
+	return ret;
+}
+
+/**
+ * @Brief AES-GCM decrypt, compute authentication tag and compare it to the one provided
+ *
+ * @param[in]	key							Encryption key
+ * @param[in]	keyLength					Key buffer length, in bytes, must be 16,24 or 32
+ * @param[in]	cipherText					Buffer to be decrypted
+ * @param[in]	cipherTextLength			Length in bytes of buffer to be decrypted
+ * @param[in]	authenticatedData			Buffer holding additional data to be used in auth tag computation
+ * @param[in]	authenticatedDataLength		Additional data length in bytes
+ * @param[in]	initializationVector		Buffer holding the initialisation vector
+ * @param[in]	initializationVectorLength	Initialisation vector length in bytes
+ * @param[in]	tag							Buffer holding the authentication tag
+ * @param[in]	tagLength					Length in bytes for the authentication tag
+ * @param[out]	output						Buffer holding the output, shall be at least the length of cipherText buffer
+ *
+ * @return 0 on succes, BCTOOLBOX_ERROR_AUTHENTICATION_FAILED if tag doesn't match or polarssl error code
+ */
+int32_t bctoolbox_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
+		const uint8_t *cipherText, size_t cipherTextLength,
+		const uint8_t *authenticatedData, size_t authenticatedDataLength,
+		const uint8_t *initializationVector, size_t initializationVectorLength,
+		const uint8_t *tag, size_t tagLength,
+		uint8_t *output) {
+	gcm_context gcmContext;
+	int ret;
+
+	ret = gcm_init(&gcmContext, POLARSSL_CIPHER_ID_AES, key, keyLength*8);
+	if (ret != 0) return ret;
+
+	ret = gcm_auth_decrypt(&gcmContext, cipherTextLength, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength, tag, tagLength, cipherText, output);
+	gcm_free(&gcmContext);
+
+	if (ret == POLARSSL_ERR_GCM_AUTH_FAILED) {
+		return BCTOOLBOX_ERROR_AUTHENTICATION_FAILED;
+	}
+
+	return ret;
+}
+
+
+/**
+ * @Brief create and initialise an AES-GCM encryption context
+ *
+ * @param[in]	key							encryption key
+ * @param[in]	keyLength					key buffer length, in bytes, must be 16,24 or 32
+ * @param[in]	authenticatedData			Buffer holding additional data to be used in tag computation (can be NULL)
+ * @param[in]	authenticatedDataLength		additional data length in bytes (can be 0)
+ * @param[in]	initializationVector		Buffer holding the initialisation vector
+ * @param[in]	initializationVectorLength	Initialisation vector length in bytes
+ * @param[in]	mode						Operation mode : BCTOOLBOX_GCM_ENCRYPT or BCTOOLBOX_GCM_DECRYPT
+ *
+ * @return 0 on success, crypto library error code otherwise
+ */
+bctoolbox_aes_gcm_context_t *bctoolbox_aes_gcm_context_new(const uint8_t *key, size_t keyLength,
+		const uint8_t *authenticatedData, size_t authenticatedDataLength,
+		const uint8_t *initializationVector, size_t initializationVectorLength,
+		uint8_t mode) {
+
+	int ret = 0;
+	int polarssl_mode;
+	gcm_context *ctx = NULL;
+
+	if (mode == BCTOOLBOX_GCM_ENCRYPT) {
+		polarssl_mode = GCM_ENCRYPT;
+	} else if ( mode == BCTOOLBOX_GCM_DECRYPT) {
+		polarssl_mode = GCM_DECRYPT;
+	} else {
+		return NULL;
+	}
+
+	ctx = bctoolbox_malloc0(sizeof(gcm_context));
+	ret = gcm_init(ctx, POLARSSL_CIPHER_ID_AES, key, keyLength*8);
+	if (ret != 0) {
+		bctoolbox_free(ctx);
+		return NULL;
+	}
+
+	ret = gcm_starts(ctx, polarssl_mode, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength);
+	if (ret != 0) {
+		bctoolbox_free(ctx);
+		return NULL;
+	}
+
+	return (bctoolbox_aes_gcm_context_t *)ctx;
+}
+
+/**
+ * @Brief AES-GCM encrypt or decrypt a chunk of data
+ *
+ * @param[in/out]	context			a context already initialized using bctoolbox_aes_gcm_context_new
+ * @param[in]		input			buffer holding the input data
+ * @param[in]		inputLength		lenght of the input data
+ * @param[out]		output			buffer to store the output data (same length as input one)
+ *
+ * @return 0 on success, crypto library error code otherwise
+ */
+int32_t bctoolbox_aes_gcm_process_chunk(bctoolbox_aes_gcm_context_t *context,
+		const uint8_t *input, size_t inputLength,
+		uint8_t *output) {
+	return gcm_update((gcm_context *)context, inputLength, input, output);
+}
+
+/**
+ * @Brief Conclude a AES-GCM encryption stream, generate tag if requested, free resources
+ *
+ * @param[in/out]	context			a context already initialized using bctoolbox_aes_gcm_context_new
+ * @param[out]		tag				a buffer to hold the authentication tag. Can be NULL if tagLength is 0
+ * @param[in]		tagLength		length of reqested authentication tag, max 16
+ *
+ * @return 0 on success, crypto library error code otherwise
+ */
+int32_t bctoolbox_aes_gcm_finish(bctoolbox_aes_gcm_context_t *context,
+		uint8_t *tag, size_t tagLength) {
+	int ret;
+
+	ret = gcm_finish((gcm_context *)context, tag, tagLength);
+	gcm_free((gcm_context *)context);
+
+	bctoolbox_free(context);
+
+	return ret;
 }

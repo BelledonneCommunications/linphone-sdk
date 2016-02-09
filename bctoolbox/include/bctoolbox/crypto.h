@@ -40,6 +40,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BCTOOLBOX_SSL_VERIFY_OPTIONAL 1
 #define BCTOOLBOX_SSL_VERIFY_REQUIRED 2
 
+/* Encryption/decryption defines */
+#define BCTOOLBOX_GCM_ENCRYPT     1
+#define BCTOOLBOX_GCM_DECRYPT     0
 
 /* Error codes : All error codes are negative and defined  on 32 bits on format -0x7XXXXXXX
  * in order to be sure to not overlap on crypto librairy (polarssl or mbedtls for now) which are defined on 16 bits 0x[7-0]XXX */
@@ -49,7 +52,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BCTOOLBOX_ERROR_INVALID_INPUT_DATA			-0x70004000
 #define BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION		-0x70008000
 
-/* Public key related */
+/* key related */
 #define BCTOOLBOX_ERROR_UNABLE_TO_PARSE_KEY		-0x70010000
 
 /* Certificate related */
@@ -70,6 +73,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BCTOOLBOX_ERROR_NET_WANT_WRITE			-0x70034000
 #define BCTOOLBOX_ERROR_SSL_PEER_CLOSE_NOTIFY	-0x70038000
 #define BCTOOLBOX_ERROR_NET_CONN_RESET			-0x70030000
+
+/* Symmetric ciphers related */
+#define BCTOOLBOX_ERROR_AUTHENTICATION_FAILED	-0x70040000
 
 /* certificate verification flags codes */
 #define BCTOOLBOX_CERTIFICATE_VERIFY_ALL_FLAGS				0xFFFFFFFF
@@ -142,6 +148,8 @@ BCTOOLBOX_PUBLIC void bctoolbox_strerror(int32_t error_code, char *buffer, size_
  * @param[in]		input_length	Length in bytes of plain buffer to be encoded
  *
  * @return 0 if success or BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL if the output buffer cannot contain the encoded data
+ *
+ * @note If the function is called with *output_length=0, set the requested buffer size in output_length
  */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_base64_encode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length);
 
@@ -152,7 +160,10 @@ BCTOOLBOX_PUBLIC int32_t bctoolbox_base64_encode(unsigned char *output, size_t *
  * @param[in]		input			source base64 encoded buffer
  * @param[in]		input_length	Length in bytes of base64 buffer to be decoded
  *
- * @return 0 if success, BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL if the output buffer cannot contain the decoded data or BCTOOLBOX_ERROR_INVALID_BASE64_INPUT if encoded buffer was incorrect base64 data
+ * @return 0 if success, BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL if the output buffer cannot contain the decoded data
+ * or BCTOOLBOX_ERROR_INVALID_BASE64_INPUT if encoded buffer was incorrect base64 data
+ *
+ * @note If the function is called with *output_length=0, set the requested buffer size in output_length
  */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_base64_decode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length);
 
@@ -368,6 +379,103 @@ BCTOOLBOX_PUBLIC void bctoolbox_hmacSha1(const uint8_t *key,
 BCTOOLBOX_PUBLIC void bctoolbox_md5(const uint8_t *input,
 		size_t inputLength,
 		uint8_t output[16]);
+
+
+/*****************************************************************************/
+/***** Encryption/Decryption                                             *****/
+/*****************************************************************************/
+typedef struct bctoolbox_aes_gcm_context_struct bctoolbox_aes_gcm_context_t;
+/**
+ * @Brief AES-GCM encrypt and tag buffer
+ *
+ * @param[in]	key							Encryption key
+ * @param[in]	keyLength					Key buffer length, in bytes, must be 16,24 or 32
+ * @param[in]	plainText					buffer to be encrypted
+ * @param[in]	plainTextLength				Length in bytes of buffer to be encrypted
+ * @param[in]	authenticatedData			Buffer holding additional data to be used in tag computation
+ * @param[in]	authenticatedDataLength		Additional data length in bytes
+ * @param[in]	initializationVector		Buffer holding the initialisation vector
+ * @param[in]	initializationVectorLength	Initialisation vector length in bytes
+ * @param[out]	tag							Buffer holding the generated tag
+ * @param[in]	tagLength					Requested length for the generated tag
+ * @param[out]	output						Buffer holding the output, shall be at least the length of plainText buffer
+ *
+ * @return 0 on success, crypto library error code otherwise
+ */
+int32_t bctoolbox_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
+		const uint8_t *plainText, size_t plainTextLength,
+		const uint8_t *authenticatedData, size_t authenticatedDataLength,
+		const uint8_t *initializationVector, size_t initializationVectorLength,
+		uint8_t *tag, size_t tagLength,
+		uint8_t *output);
+
+/**
+ * @Brief AES-GCM decrypt, compute authentication tag and compare it to the one provided
+ *
+ * @param[in]	key							Encryption key
+ * @param[in]	keyLength					Key buffer length, in bytes, must be 16,24 or 32
+ * @param[in]	cipherText					Buffer to be decrypted
+ * @param[in]	cipherTextLength			Length in bytes of buffer to be decrypted
+ * @param[in]	authenticatedData			Buffer holding additional data to be used in auth tag computation
+ * @param[in]	authenticatedDataLength		Additional data length in bytes
+ * @param[in]	initializationVector		Buffer holding the initialisation vector
+ * @param[in]	initializationVectorLength	Initialisation vector length in bytes
+ * @param[in]	tag							Buffer holding the authentication tag
+ * @param[in]	tagLength					Length in bytes for the authentication tag
+ * @param[out]	output						Buffer holding the output, shall be at least the length of cipherText buffer
+ *
+ * @return 0 on succes, BCTOOLBOX_ERROR_AUTHENTICATION_FAILED if tag doesn't match or polarssl error code
+ */
+int32_t bctoolbox_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
+		const uint8_t *cipherText, size_t cipherTextLength,
+		const uint8_t *authenticatedData, size_t authenticatedDataLength,
+		const uint8_t *initializationVector, size_t initializationVectorLength,
+		const uint8_t *tag, size_t tagLength,
+		uint8_t *output);
+
+/**
+ * @Brief create and initialise an AES-GCM encryption context
+ *
+ * @param[in]	key							encryption key
+ * @param[in]	keyLength					key buffer length, in bytes, must be 16,24 or 32
+ * @param[in]	authenticatedData			Buffer holding additional data to be used in tag computation
+ * @param[in]	authenticatedDataLength		additional data length in bytes
+ * @param[in]	initializationVector		Buffer holding the initialisation vector
+ * @param[in]	initializationVectorLength	Initialisation vector length in bytes
+ * @param[in]	mode						Operation mode : BCTOOLBOX_GCM_ENCRYPT or BCTOOLBOX_GCM_DECRYPT
+ *
+ * @return 0 on success, crypto library error code otherwise
+ */
+bctoolbox_aes_gcm_context_t *bctoolbox_aes_gcm_context_new(const uint8_t *key, size_t keyLength,
+		const uint8_t *authenticatedData, size_t authenticatedDataLength,
+		const uint8_t *initializationVector, size_t initializationVectorLength,
+		const uint8_t mode);
+
+/**
+ * @Brief AES-GCM encrypt or decrypt a chunk of data
+ *
+ * @param[in/out]	context			a context already initialized using bctoolbox_aes_gcm_context_new
+ * @param[in]		input			buffer holding the input data
+ * @param[in]		inputLength		lenght of the input data
+ * @param[out]		output			buffer to store the output data (same length as input one)
+ *
+ * @return 0 on success, crypto library error code otherwise
+ */
+int32_t bctoolbox_aes_gcm_process_chunk(bctoolbox_aes_gcm_context_t *context,
+		const uint8_t *input, size_t inputLength,
+		uint8_t *output);
+
+/**
+ * @Brief Conclude a AES-GCM encryption stream, generate tag if requested, free resources
+ *
+ * @param[in/out]	context			a context already initialized using bctoolbox_aes_gcm_context_new
+ * @param[out]		tag				a buffer to hold the authentication tag. Can be NULL if tagLength is 0
+ * @param[in]		tagLength		length of reqested authentication tag, max 16
+ *
+ * @return 0 on success, crypto library error code otherwise
+ */
+int32_t bctoolbox_aes_gcm_finish(bctoolbox_aes_gcm_context_t *context,
+		uint8_t *tag, size_t tagLength);
 
 #ifdef __cplusplus
 }
