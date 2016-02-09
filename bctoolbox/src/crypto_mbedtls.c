@@ -386,7 +386,7 @@ int32_t bctoolbox_x509_certificate_get_fingerprint(const bctoolbox_x509_certific
 	unsigned char buffer[64]={0}; /* buffer is max length of returned hash, which is 64 in case we use sha-512 */
 	size_t hash_length = 0;
 	const char *hash_alg_string=NULL;
-	size_t fingerprint_size;
+	size_t fingerprint_size = 0;
 	mbedtls_x509_crt *crt;
 	mbedtls_md_type_t hash_id;
 	if (certificate == NULL) return BCTOOLBOX_ERROR_INVALID_CERTIFICATE;
