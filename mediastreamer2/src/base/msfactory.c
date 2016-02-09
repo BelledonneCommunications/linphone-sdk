@@ -232,18 +232,19 @@ MSFactory *ms_factory_new(void){
  * This should be done after destroying all objects created by the factory.
 **/
 void ms_factory_destroy(MSFactory *factory){
-		ms_factory_uninit_plugins(factory);
-		if (factory->evq) ms_factory_destroy_event_queue(factory);
-		factory->formats=ms_list_free_with_data(factory->formats,(void(*)(void*))ms_fmt_descriptor_destroy);
-		factory->desc_list=ms_list_free(factory->desc_list);
-		ms_list_for_each(factory->stats_list,ms_free);
-		factory->stats_list=ms_list_free(factory->stats_list);
-		factory->offer_answer_provider_list = ms_list_free(factory->offer_answer_provider_list);
-		ms_list_for_each(factory->platform_tags, ms_free);
-		factory->platform_tags = ms_list_free(factory->platform_tags);
-		if (factory->plugins_dir) ms_free(factory->plugins_dir);
-		ms_free(factory);
-		//if (factory==fallback_factory) fallback_factory=NULL;
+	if (factory->voip_uninit_func) factory->voip_uninit_func(factory);
+	ms_factory_uninit_plugins(factory);
+	if (factory->evq) ms_factory_destroy_event_queue(factory);
+	factory->formats=ms_list_free_with_data(factory->formats,(void(*)(void*))ms_fmt_descriptor_destroy);
+	factory->desc_list=ms_list_free(factory->desc_list);
+	ms_list_for_each(factory->stats_list,ms_free);
+	factory->stats_list=ms_list_free(factory->stats_list);
+	factory->offer_answer_provider_list = ms_list_free(factory->offer_answer_provider_list);
+	ms_list_for_each(factory->platform_tags, ms_free);
+	factory->platform_tags = ms_list_free(factory->platform_tags);
+	if (factory->plugins_dir) ms_free(factory->plugins_dir);
+	ms_free(factory);
+	//if (factory==fallback_factory) fallback_factory=NULL;
 }
 
 

@@ -32,8 +32,7 @@ MSSndCardManager * ms_snd_card_manager_new(void){
 	return obj;
 }
 
-void ms_snd_card_manager_destroy(MSSndCardManager* sndcardmanager){
-	MSSndCardManager* scm = (MSSndCardManager*) sndcardmanager;
+void ms_snd_card_manager_destroy(MSSndCardManager* scm){
 	if (scm!=NULL){
 		MSList *elem;
 		for(elem=scm->descs;elem!=NULL;elem=elem->next){
