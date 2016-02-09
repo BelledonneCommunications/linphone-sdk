@@ -20,6 +20,9 @@
 #
 ############################################################################
 
+set(EP_bctoolbox_GIT_REPOSITORY "git://git.linphone.org/bctoolbox.git" CACHE STRING "bctoolbox repository URL")
+set(EP_bctoolbox_GIT_TAG_LATEST "master" CACHE STRING "bctoolbox tag to use when compiling latest version")
+set(EP_bctoolbox_GIT_TAG "master" CACHE STRING "bctoolbox tag to use")
 set(EP_bctoolbox_EXTERNAL_SOURCE_PATHS "bctoolbox")
 set(EP_bctoolbox_GROUPABLE YES)
 
