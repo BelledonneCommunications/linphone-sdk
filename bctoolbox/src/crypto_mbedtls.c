@@ -823,33 +823,33 @@ uint8_t bctoolbox_dtls_srtp_supported(void) {
 	return 1;
 }
 
-static bctoolbox_dtls_srtp_profile_t bctoolbox_srtp_profile_polarssl2bctoolbox(enum DTLS_SRTP_protection_profiles polarssl_profile) {
-	switch (polarssl_profile) {
-		case SRTP_AES128_CM_HMAC_SHA1_80:
+static bctoolbox_dtls_srtp_profile_t bctoolbox_srtp_profile_mbedtls2bctoolbox(enum mbedtls_DTLS_SRTP_protection_profiles mbedtls_profile) {
+	switch (mbedtls_profile) {
+		case MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_80:
 			return BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_80;
-		case SRTP_AES128_CM_HMAC_SHA1_32:
+		case MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_32:
 			return BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_32;
-		case SRTP_NULL_HMAC_SHA1_80:
+		case MBEDTLS_SRTP_NULL_HMAC_SHA1_80:
 			return BCTOOLBOX_SRTP_NULL_HMAC_SHA1_80;
-		case SRTP_NULL_HMAC_SHA1_32:
+		case MBEDTLS_SRTP_NULL_HMAC_SHA1_32:
 			return BCTOOLBOX_SRTP_NULL_HMAC_SHA1_32;
 		default:
 			return BCTOOLBOX_SRTP_UNDEFINED;
 	}
 }
 
-static enum DTLS_SRTP_protection_profiles bctoolbox_srtp_profile_bctoolbox2polarssl(bctoolbox_dtls_srtp_profile_t bctoolbox_profile) {
+static enum mbedtls_DTLS_SRTP_protection_profiles bctoolbox_srtp_profile_bctoolbox2mbedtls(bctoolbox_dtls_srtp_profile_t bctoolbox_profile) {
 	switch (bctoolbox_profile) {
 		case BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_80:
-			return SRTP_AES128_CM_HMAC_SHA1_80;
+			return MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_80;
 		case BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_32:
-			return SRTP_AES128_CM_HMAC_SHA1_32;
+			return MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_32;
 		case BCTOOLBOX_SRTP_NULL_HMAC_SHA1_80:
-			return SRTP_NULL_HMAC_SHA1_80;
+			return MBEDTLS_SRTP_NULL_HMAC_SHA1_80;
 		case BCTOOLBOX_SRTP_NULL_HMAC_SHA1_32:
-			return SRTP_NULL_HMAC_SHA1_32;
+			return MBEDTLS_SRTP_NULL_HMAC_SHA1_32;
 		default:
-			return SRTP_UNSET_PROFILE;
+			return MBEDTLS_SRTP_UNSET_PROFILE;
 	}
 }
 
@@ -858,22 +858,22 @@ bctoolbox_dtls_srtp_profile_t bctoolbox_ssl_get_dtls_srtp_protection_profile(bct
 		return BCTOOLBOX_ERROR_INVALID_SSL_CONTEXT;
 	}
 
-	return bctoolbox_srtp_profile_polarssl2bctoolbox(ssl_get_dtls_srtp_protection_profile(&(ssl_ctx->ssl_ctx)));
+	return bctoolbox_srtp_profile_polarssl2bctoolbox(mbedtls_ssl_get_dtls_srtp_protection_profile(&(ssl_ctx->ssl_ctx)));
 };
 
 
 int32_t bctoolbox_ssl_get_dtls_srtp_key_material(bctoolbox_ssl_context_t *ssl_ctx, char *output, size_t *output_length) {
+	int ret  0;
 	if (ssl_ctx==NULL) {
 		return BCTOOLBOX_ERROR_INVALID_SSL_CONTEXT;
 	}
 
-	/* check output buffer size */
-	if (*output_length<ssl_ctx->ssl_ctx.dtls_srtp_keys_len) {
+	ret = mbedtls_ssl_get_dtls_srtp_key_material(&(ssl_ctx->ssl_ctx), output, *output_length, output_length);
+
+	/* remap the output error code */
+	if (ret == MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL) {
 		return BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 	}
-
-	memcpy(output, ssl_ctx->ssl_ctx.dtls_srtp_keys, ssl_ctx->ssl_ctx.dtls_srtp_keys_len);
-	*output_length = ssl_ctx->ssl_ctx.dtls_srtp_keys_len;
 
 	return 0;
 }
@@ -1111,22 +1111,21 @@ int32_t bctoolbox_ssl_config_set_own_cert(bctoolbox_ssl_config_t *ssl_config, bc
 #ifdef HAVE_DTLS_SRTP
 int32_t bctoolbox_ssl_config_set_dtls_srtp_protection_profiles(bctoolbox_ssl_config_t *ssl_config, const bctoolbox_dtls_srtp_profile_t *profiles, size_t profiles_number) {
 	int i;
+	enum mbedtls_DTLS_SRTP_protection_profiles dtls_srtp_mbedtls_profiles[4];
 
 	if (ssl_config == NULL) {
 		return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
 	}
 
-	/* convert the profiles array into a polarssl profiles array */
+	/* convert the profiles array into a mbedtls profiles array */
 	for (i=0; i<profiles_number && i<4; i++) { /* 4 profiles defined max */
-		ssl_config->dtls_srtp_profiles[i] = bctoolbox_srtp_profile_bctoolbox2polarssl(profiles[i]);
+		dtls_srtp_mbedtls_profiles[i] = bctoolbox_srtp_profile_bctoolbox2mbedtls(profiles[i]);
 	}
 	for (;i<4; i++) { /* make sure to have harmless values in the rest of the array */
-		ssl_config->dtls_srtp_profiles[i] = SRTP_UNSET_PROFILE;
+		dtls_srtp_mbedtls_profiles[i] = MBEDTLS_SRTP_UNSET_PROFILE;
 	}
 
-	ssl_config->dtls_srtp_profiles_number = profiles_number;
-
-	return 0;
+	return mbedtls_ssl_conf_dtls_srtp_protection_profiles(ssl_config->ssl_config, dtls_srtp_mbedtls_profiles, profiles_number);
 }
 
 #else /* HAVE_DTLS_SRTP */
@@ -1153,10 +1152,6 @@ int32_t bctoolbox_ssl_context_setup(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_
 	}
 
 #ifdef HAVE_DTLS_SRTP
-	if (ssl_config->dtls_srtp_profiles_number > 0) {
-		ssl_set_dtls_srtp_protection_profiles(&(ssl_ctx->ssl_ctx), ssl_config->dtls_srtp_profiles, ssl_config->dtls_srtp_profiles_number );
-	}
-
 	/* We do not use DTLS SRTP cookie, so we must set to NULL the callbacks. Cookies are used to prevent DoS attack but our server is on only when during a brief period so we do not need this */
 	mbedtls_ssl_conf_dtls_cookies(ssl_config->ssl_config, NULL, NULL, NULL);
 #endif /* HAVE_DTLS_SRTP */

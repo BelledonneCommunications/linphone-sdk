@@ -81,10 +81,18 @@ if (MBEDTLS_V2)
 	)
 endif()
 
+if (MBEDTLS_LIBRARIES)
+	cmake_push_check_state(RESET)
+	set(CMAKE_REQUIRED_INCLUDES ${MBEDTLS_INCLUDE_DIRS})
+	set(CMAKE_REQUIRED_LIBRARIES ${MBEDTLS_LIBRARIES})
+	check_symbol_exists(mbedtls_ssl_get_dtls_srtp_protection_profile "mbedtls/ssl.h" HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
+	cmake_pop_check_state()
+endif()
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(MbedTLS
 	DEFAULT_MSG
 	MBEDTLS_INCLUDE_DIRS MBEDTLS_LIBRARIES
 )
 
-mark_as_advanced(MBEDTLS_INCLUDE_DIRS MBEDTLS_LIBRARIES)
+mark_as_advanced(MBEDTLS_INCLUDE_DIRS MBEDTLS_LIBRARIES HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
