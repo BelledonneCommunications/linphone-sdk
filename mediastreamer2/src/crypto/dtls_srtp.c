@@ -679,12 +679,12 @@ static int ms_dtls_srtp_initialise_bctoolbox_dtls_context(DtlsBcToolBoxContext *
 	bctoolbox_dtls_srtp_profile_t dtls_srtp_protection_profiles[2] = {BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_80, BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_32};
 	
 	/* initialise certificate */
-	ret = bctoolbox_x509_certificate_parse( dtlsContext->crt, (const char *) params->pem_certificate, strlen( params->pem_certificate ) );
+	ret = bctoolbox_x509_certificate_parse( dtlsContext->crt, (const char *) params->pem_certificate, strlen( params->pem_certificate )+1 );
 	if( ret < 0 ) {
 		return ret;
 	}
 	
-	ret =  bctoolbox_signing_key_parse( dtlsContext->pkey, (const char *) params->pem_pkey, strlen( params->pem_pkey ), NULL, 0 );
+	ret =  bctoolbox_signing_key_parse( dtlsContext->pkey, (const char *) params->pem_pkey, strlen( params->pem_pkey )+1, NULL, 0 );
 	if( ret != 0 ) {
 		return ret;
 	}
@@ -746,9 +746,11 @@ void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role) {
 		ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
 		ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
 
-		if (context->role != role) {
-			/*role has changed reseting*/
+		/* if role has changed and handshake already setup and going, reset the session */
+		if (context->role != role && context->rtp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING ) {
 			bctoolbox_ssl_session_reset( context->rtp_dtls_context->ssl );
+		}
+		if (context->role != role && context->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING ) {
 			bctoolbox_ssl_session_reset( context->rtcp_dtls_context->ssl );
 		}
 
