@@ -17,11 +17,17 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include <stdlib.h>
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <string.h>
 #include "utils.h"
 #include <bctoolbox/crypto.h>
 
 #include <mbedtls/ssl.h>
+#include <mbedtls/timing.h>
 #include <mbedtls/error.h>
 #include <mbedtls/net.h>
 #include <mbedtls/base64.h>
@@ -34,8 +40,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mbedtls/sha1.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/sha512.h>
-
-#include <mbedtls/debug.h>
+#include <mbedtls/gcm.h>
 
 #define bctoolbox_error printf
 
@@ -60,7 +65,7 @@ void bctoolbox_strerror(int32_t error_code, char *buffer, size_t buffer_length) 
 
 	/* mbedtls error code are all negatived and bas smaller than 0x0000F000 */
 	/* bctoolbox defined error codes are all in format -0x7XXXXXXX */
-	if (-error_code<0x00010000) { /* it's a polarssl error code */
+	if (-error_code<0x00010000) { /* it's a mbedtls error code */
 		mbedtls_strerror(error_code, buffer, buffer_length);
 		return;
 	}
@@ -685,6 +690,7 @@ struct bctoolbox_ssl_context_struct {
 	int(*callback_send_function)(void *, const unsigned char *, size_t); /* callbacks args are: callback data, data buffer to be send, size of data buffer */
 	int(*callback_recv_function)(void *, unsigned char *, size_t); /* args: callback data, data buffer to be read, size of data buffer */
 	void *callback_sendrecv_data; /**< data passed to send/recv callbacks */
+	mbedtls_timing_delay_context timer; /**< a timer is requested for DTLS */
 };
 
 bctoolbox_ssl_context_t *bctoolbox_ssl_context_new(void) {
@@ -747,8 +753,8 @@ int32_t bctoolbox_ssl_handshake(bctoolbox_ssl_context_t *ssl_ctx) {
 			/* when in state SSL_CLIENT_CERTIFICATE - which means, next call to ssl_handshake_step will send the client certificate to server -
 			 * and the client_auth flag is set - which means the server requested a client certificate - */
 			if (ssl_ctx->ssl_ctx.state == MBEDTLS_SSL_CLIENT_CERTIFICATE && ssl_ctx->ssl_ctx.client_auth > 0) {
-				/* note: polarssl 1.3 is unable to retrieve certificate dn during handshake from server certificate request
-				 * so the dn params in the callback are set to NULL and 0(dn string length) */
+				/* TODO: retrieve certificate dn during handshake from server certificate request
+				 * for now the dn params in the callback are set to NULL and 0(dn string length) */
 				if (ssl_ctx->callback_cli_cert_function(ssl_ctx->callback_cli_cert_data, ssl_ctx, NULL, 0)!=0) {
 					if((ret=mbedtls_ssl_send_alert_message(&(ssl_ctx->ssl_ctx), MBEDTLS_SSL_ALERT_LEVEL_FATAL, MBEDTLS_SSL_ALERT_MSG_HANDSHAKE_FAILURE)) != 0 )
 						return( ret );
@@ -858,17 +864,17 @@ bctoolbox_dtls_srtp_profile_t bctoolbox_ssl_get_dtls_srtp_protection_profile(bct
 		return BCTOOLBOX_ERROR_INVALID_SSL_CONTEXT;
 	}
 
-	return bctoolbox_srtp_profile_polarssl2bctoolbox(mbedtls_ssl_get_dtls_srtp_protection_profile(&(ssl_ctx->ssl_ctx)));
+	return bctoolbox_srtp_profile_mbedtls2bctoolbox(mbedtls_ssl_get_dtls_srtp_protection_profile(&(ssl_ctx->ssl_ctx)));
 };
 
 
 int32_t bctoolbox_ssl_get_dtls_srtp_key_material(bctoolbox_ssl_context_t *ssl_ctx, char *output, size_t *output_length) {
-	int ret  0;
+	int ret = 0;
 	if (ssl_ctx==NULL) {
 		return BCTOOLBOX_ERROR_INVALID_SSL_CONTEXT;
 	}
 
-	ret = mbedtls_ssl_get_dtls_srtp_key_material(&(ssl_ctx->ssl_ctx), output, *output_length, output_length);
+	ret = mbedtls_ssl_get_dtls_srtp_key_material(&(ssl_ctx->ssl_ctx), (unsigned char *)output, *output_length, output_length);
 
 	/* remap the output error code */
 	if (ret == MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL) {
@@ -1136,6 +1142,7 @@ int32_t bctoolbox_ssl_config_set_dtls_srtp_protection_profiles(bctoolbox_ssl_con
 /** DTLS SRTP functions **/
 
 int32_t bctoolbox_ssl_context_setup(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_ssl_config_t *ssl_config) {
+	int ret;
 	/* Check validity of context and config */
 	if (ssl_config == NULL) {
 		return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
@@ -1156,7 +1163,13 @@ int32_t bctoolbox_ssl_context_setup(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_
 	mbedtls_ssl_conf_dtls_cookies(ssl_config->ssl_config, NULL, NULL, NULL);
 #endif /* HAVE_DTLS_SRTP */
 
-	return mbedtls_ssl_setup(&(ssl_ctx->ssl_ctx), ssl_config->ssl_config);
+	ret = mbedtls_ssl_setup(&(ssl_ctx->ssl_ctx), ssl_config->ssl_config);
+	if (ret != 0) return ret;
+
+	/* for DTLS handshake, we must set a timer callback */
+	mbedtls_ssl_set_timer_cb(&(ssl_ctx->ssl_ctx), &(ssl_ctx->timer), mbedtls_timing_set_delay, mbedtls_timing_get_delay);
+
+	return ret;
 }
 
 /*****************************************************************************/
@@ -1257,4 +1270,167 @@ void bctoolbox_md5(const uint8_t *input,
 		uint8_t output[16])
 {
 	mbedtls_md5(input, inputLength, output);
+}
+
+/*****************************************************************************/
+/***** Encryption/Decryption                                             *****/
+/*****************************************************************************/
+/***** GCM *****/
+/**
+ * @Brief AES-GCM encrypt and tag buffer
+ *
+ * @param[in]	key							Encryption key
+ * @param[in]	keyLength					Key buffer length, in bytes, must be 16,24 or 32
+ * @param[in]	plainText					Buffer to be encrypted
+ * @param[in]	plainTextLength				Length in bytes of buffer to be encrypted
+ * @param[in]	authenticatedData			Buffer holding additional data to be used in tag computation
+ * @param[in]	authenticatedDataLength		Additional data length in bytes
+ * @param[in]	initializationVector		Buffer holding the initialisation vector
+ * @param[in]	initializationVectorLength	Initialisation vector length in bytes
+ * @param[out]	tag							Buffer holding the generated tag
+ * @param[in]	tagLength					Requested length for the generated tag
+ * @param[out]	output						Buffer holding the output, shall be at least the length of plainText buffer
+ */
+int32_t bctoolbox_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
+		const uint8_t *plainText, size_t plainTextLength,
+		const uint8_t *authenticatedData, size_t authenticatedDataLength,
+		const uint8_t *initializationVector, size_t initializationVectorLength,
+		uint8_t *tag, size_t tagLength,
+		uint8_t *output) {
+	mbedtls_gcm_context gcmContext;
+	int ret;
+
+	mbedtls_gcm_init(&gcmContext);
+	ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key, keyLength*8);
+	if (ret != 0) return ret;
+
+	ret = mbedtls_gcm_crypt_and_tag(&gcmContext, MBEDTLS_GCM_ENCRYPT, plainTextLength, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength, plainText, output, tagLength, tag);
+	mbedtls_gcm_free(&gcmContext);
+
+	return ret;
+}
+
+/**
+ * @Brief AES-GCM decrypt, compute authentication tag and compare it to the one provided
+ *
+ * @param[in]	key							Encryption key
+ * @param[in]	keyLength					Key buffer length, in bytes, must be 16,24 or 32
+ * @param[in]	cipherText					Buffer to be decrypted
+ * @param[in]	cipherTextLength			Length in bytes of buffer to be decrypted
+ * @param[in]	authenticatedData			Buffer holding additional data to be used in auth tag computation
+ * @param[in]	authenticatedDataLength		Additional data length in bytes
+ * @param[in]	initializationVector		Buffer holding the initialisation vector
+ * @param[in]	initializationVectorLength	Initialisation vector length in bytes
+ * @param[in]	tag							Buffer holding the authentication tag
+ * @param[in]	tagLength					Length in bytes for the authentication tag
+ * @param[out]	output						Buffer holding the output, shall be at least the length of cipherText buffer
+ *
+ * @return 0 on succes, BCTOOLBOX_ERROR_AUTHENTICATION_FAILED if tag doesn't match or mbedtls error code
+ */
+int32_t bctoolbox_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
+		const uint8_t *cipherText, size_t cipherTextLength,
+		const uint8_t *authenticatedData, size_t authenticatedDataLength,
+		const uint8_t *initializationVector, size_t initializationVectorLength,
+		const uint8_t *tag, size_t tagLength,
+		uint8_t *output) {
+	mbedtls_gcm_context gcmContext;
+	int ret;
+
+	mbedtls_gcm_init(&gcmContext);
+	ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key, keyLength*8);
+	if (ret != 0) return ret;
+
+	ret = mbedtls_gcm_auth_decrypt(&gcmContext, cipherTextLength, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength, tag, tagLength, cipherText, output);
+	mbedtls_gcm_free(&gcmContext);
+
+	if (ret == MBEDTLS_ERR_GCM_AUTH_FAILED) {
+		return BCTOOLBOX_ERROR_AUTHENTICATION_FAILED;
+	}
+
+	return ret;
+}
+
+
+/**
+ * @Brief create and initialise an AES-GCM encryption context
+ *
+ * @param[in]	key							encryption key
+ * @param[in]	keyLength					key buffer length, in bytes, must be 16,24 or 32
+ * @param[in]	authenticatedData			Buffer holding additional data to be used in tag computation (can be NULL)
+ * @param[in]	authenticatedDataLength		additional data length in bytes (can be 0)
+ * @param[in]	initializationVector		Buffer holding the initialisation vector
+ * @param[in]	initializationVectorLength	Initialisation vector length in bytes
+ * @param[in]	mode						Operation mode : BCTOOLBOX_GCM_ENCRYPT or BCTOOLBOX_GCM_DECRYPT
+ *
+ * @return 0 on success, crypto library error code otherwise
+ */
+bctoolbox_aes_gcm_context_t *bctoolbox_aes_gcm_context_new(const uint8_t *key, size_t keyLength,
+		const uint8_t *authenticatedData, size_t authenticatedDataLength,
+		const uint8_t *initializationVector, size_t initializationVectorLength,
+		uint8_t mode) {
+
+	int ret = 0;
+	int mbedtls_mode;
+	mbedtls_gcm_context *ctx = NULL;
+
+	if (mode == BCTOOLBOX_GCM_ENCRYPT) {
+		mbedtls_mode = MBEDTLS_GCM_ENCRYPT;
+	} else if ( mode == BCTOOLBOX_GCM_DECRYPT) {
+		mbedtls_mode = MBEDTLS_GCM_DECRYPT;
+	} else {
+		return NULL;
+	}
+
+	ctx = bctoolbox_malloc0(sizeof(mbedtls_gcm_context));
+	mbedtls_gcm_init(ctx);
+	ret = mbedtls_gcm_setkey(ctx, MBEDTLS_CIPHER_ID_AES, key, keyLength*8);
+	if (ret != 0) {
+		bctoolbox_free(ctx);
+		return NULL;
+	}
+
+	ret = mbedtls_gcm_starts(ctx, mbedtls_mode, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength);
+	if (ret != 0) {
+		bctoolbox_free(ctx);
+		return NULL;
+	}
+
+	return (bctoolbox_aes_gcm_context_t *)ctx;
+}
+
+/**
+ * @Brief AES-GCM encrypt or decrypt a chunk of data
+ *
+ * @param[in/out]	context			a context already initialized using bctoolbox_aes_gcm_context_new
+ * @param[in]		input			buffer holding the input data
+ * @param[in]		inputLength		lenght of the input data
+ * @param[out]		output			buffer to store the output data (same length as input one)
+ *
+ * @return 0 on success, crypto library error code otherwise
+ */
+int32_t bctoolbox_aes_gcm_process_chunk(bctoolbox_aes_gcm_context_t *context,
+		const uint8_t *input, size_t inputLength,
+		uint8_t *output) {
+	return mbedtls_gcm_update((mbedtls_gcm_context *)context, inputLength, input, output);
+}
+
+/**
+ * @Brief Conclude a AES-GCM encryption stream, generate tag if requested, free resources
+ *
+ * @param[in/out]	context			a context already initialized using bctoolbox_aes_gcm_context_new
+ * @param[out]		tag				a buffer to hold the authentication tag. Can be NULL if tagLength is 0
+ * @param[in]		tagLength		length of reqested authentication tag, max 16
+ *
+ * @return 0 on success, crypto library error code otherwise
+ */
+int32_t bctoolbox_aes_gcm_finish(bctoolbox_aes_gcm_context_t *context,
+		uint8_t *tag, size_t tagLength) {
+	int ret;
+
+	ret = mbedtls_gcm_finish((mbedtls_gcm_context *)context, tag, tagLength);
+	mbedtls_gcm_free((mbedtls_gcm_context *)context);
+
+	bctoolbox_free(context);
+
+	return ret;
 }
