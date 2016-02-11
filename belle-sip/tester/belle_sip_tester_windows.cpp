@@ -54,8 +54,6 @@ static void belleSipNativeOutputTraceHandler(belle_sip_log_level lev, const char
 
 NativeTester::NativeTester()
 {
-	belle_sip_tester_init(nativeOutputTraceHandler);
-	bc_tester_set_resource_dir_prefix("Assets");
 }
 
 NativeTester::~NativeTester()
