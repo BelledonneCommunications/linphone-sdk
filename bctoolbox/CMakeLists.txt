@@ -23,18 +23,20 @@
 cmake_minimum_required(VERSION 3.0)
 project(BCTOOLBOX C CXX)
 
-
 set(PACKAGE "bctoolbox")
-set(PACKAGE_NAME "${PACKAGE}")
-set(PACKAGE_VERSION "0.0.1")
-set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
+set(PACKAGE_NAME ${PACKAGE})
+set(PACKAGE_VERSION_MAJOR "0")
+set(PACKAGE_VERSION_MINOR "0")
+set(PACKAGE_VERSION_PATCH "1")
+set(PACKAGE_VERSION "${PACKAGE_VERSION_MAJOR}.${PACKAGE_VERSION_MINOR}.${PACKAGE_VERSION_PATCH}")
+set(PACKAGE_STRING "${PACKAGE_NAME}-${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "jehan.monnier@linphone.org")
 set(PACKAGE_TARNAME "bctoolbox")
 set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 option(ENABLE_POLARSSL "Enable polarssl support" ON)
-option(ENABLE_MBEDTLS "Enable mabedtls support" OFF)
+option(ENABLE_MBEDTLS "Enable mabedtls support" ON)
 
 include(CheckLibraryExists)
 include(CheckSymbolExists)
@@ -74,12 +76,10 @@ set(exec_prefix ${prefix}/bin)
 set(libdir ${prefix}/lib)
 set(includedir ${prefix}/include)
 
-if (MBEDTLS_FOUND)
+if (ENABLE_MBEDTLS AND MBEDTLS_FOUND)
 	get_filename_component(mbedtls_library_path "${MBEDTLS_LIBRARIES}" PATH)
 	set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${mbedlts_library_path}")
-endif()
-
-if (POLARSSL_FOUND)
+elseif(ENABLE_POLARSSL AND POLARSSL_FOUND)
 	get_filename_component(polarssl_library_path "${POLARSSL_LIBRARIES}" PATH)
 	set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${polarssl_library_path} -lpolarssl")
 endif()
@@ -94,11 +94,9 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
-if (MBEDTLS_FOUND)
+if (ENABLE_MBEDTLS AND MBEDTLS_FOUND)
 	include_directories(${MBEDTLS_INCLUDE_DIRS})
-endif()
-
-if (POLARSSL_FOUND)
+elseif(ENABLE_POLARSSL AND POLARSSL_FOUND)
 	include_directories(${POLARSSL_INCLUDE_DIRS})
 endif()
 
@@ -165,6 +163,7 @@ add_compile_options(${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 
 add_subdirectory(include)
 add_subdirectory(src)
+add_subdirectory(build)
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
