@@ -103,9 +103,16 @@ void ms_snd_card_set_manager(MSSndCardManager*m, MSSndCard *c){
 	if (c->sndcardmanager == NULL) c->sndcardmanager = m;
 }
 
+static const char *cap_to_string(unsigned int cap){
+	if ((cap & MS_SND_CARD_CAP_CAPTURE) && (cap & MS_SND_CARD_CAP_PLAYBACK)) return "capture, playback";
+	if (cap & MS_SND_CARD_CAP_CAPTURE) return "capture";
+	if (cap & MS_SND_CARD_CAP_PLAYBACK) return "playback";
+	return "none";
+}
+
 void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
 	ms_snd_card_set_manager(m,c);
-	ms_message("Card '%s' added",ms_snd_card_get_string_id(c));
+	ms_message("Card '%s' added with capabilities [%s]",ms_snd_card_get_string_id(c), cap_to_string(c->capabilities));
 	m->cards=ms_list_append(m->cards,c);
 }
 
