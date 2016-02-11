@@ -195,6 +195,26 @@ MS2_PUBLIC void ms_snd_card_manager_destroy(MSSndCardManager* sndcardmanager);
 MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id);
 
 /**
+ * Retreive a playback capable sound card object based on its name.
+ *
+ * @param m    A sound card manager containing sound cards.
+ * @param id   A name for card to search.
+ *
+ * Returns: MSSndCard if successfull, NULL otherwise.
+ */
+MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_playback_card(MSSndCardManager *m, const char *id);
+
+/**
+ * Retreive a capture capable sound card object based on its name.
+ *
+ * @param m    A sound card manager containing sound cards.
+ * @param id   A name for card to search.
+ *
+ * Returns: MSSndCard if successfull, NULL otherwise.
+ */
+MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_capture_card(MSSndCardManager *m, const char *id);
+
+/**
  * Retreive the default sound card object.
  *
  * @param m    A sound card manager containing sound cards.

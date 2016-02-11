@@ -63,36 +63,42 @@ MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id){
 	return NULL;
 }
 
-MSSndCard * ms_snd_card_manager_get_default_card(MSSndCardManager *m){
-	/*return the first card that has the capture+playback capability */
+static MSSndCard *get_card_with_cap(MSSndCardManager *m, const char *id, unsigned int caps){
 	MSList *elem;
 	for (elem=m->cards;elem!=NULL;elem=elem->next){
 		MSSndCard *card=(MSSndCard*)elem->data;
-		if ((card->capabilities & MS_SND_CARD_CAP_CAPTURE )
-			&& (card->capabilities & MS_SND_CARD_CAP_PLAYBACK))
-			return card;
+		if ((id== NULL || strcmp(ms_snd_card_get_string_id(card),id)==0) && (card->capabilities & caps) == caps)	return card;
 	}
 	return NULL;
+}
+
+MSSndCard * ms_snd_card_manager_get_playback_card(MSSndCardManager *m, const char *id){
+	MSSndCard *ret;
+	ret = get_card_with_cap(m, id, MS_SND_CARD_CAP_PLAYBACK);
+	if (ret) return ret;
+	if (id != NULL) ms_warning("No playback card with id %s",id);
+	return NULL;
+}
+
+MSSndCard * ms_snd_card_manager_get_capture_card(MSSndCardManager *m, const char *id){
+	MSSndCard *ret;
+	ret = get_card_with_cap(m, id, MS_SND_CARD_CAP_CAPTURE);
+	if (ret) return ret;
+	if (id != NULL) ms_warning("No capture card with id %s",id);
+	return NULL;
+}
+
+MSSndCard * ms_snd_card_manager_get_default_card(MSSndCardManager *m){
+	/*return the first card that has the capture+playback capability */
+	return get_card_with_cap(m, NULL, MS_SND_CARD_CAP_PLAYBACK | MS_SND_CARD_CAP_CAPTURE);
 }
 
 MSSndCard * ms_snd_card_manager_get_default_capture_card(MSSndCardManager *m){
-	MSList *elem;
-	for (elem=m->cards;elem!=NULL;elem=elem->next){
-		MSSndCard *card=(MSSndCard*)elem->data;
-		if (card->capabilities & MS_SND_CARD_CAP_CAPTURE)
-			return card;
-	}
-	return NULL;
+	return get_card_with_cap(m, NULL, MS_SND_CARD_CAP_CAPTURE);
 }
 
 MSSndCard * ms_snd_card_manager_get_default_playback_card(MSSndCardManager *m){
-	MSList *elem;
-	for (elem=m->cards;elem!=NULL;elem=elem->next){
-		MSSndCard *card=(MSSndCard*)elem->data;
-		if (card->capabilities & MS_SND_CARD_CAP_PLAYBACK)
-			return card;
-	}
-	return NULL;
+	return get_card_with_cap(m, NULL, MS_SND_CARD_CAP_PLAYBACK);
 }
 
 const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m){

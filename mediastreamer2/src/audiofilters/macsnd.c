@@ -192,7 +192,7 @@ static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDevic
 	int err;
 
 	d->uidname = ms_strdup(uidname);
-	card->name = ms_strdup(name);
+	card->name = ms_strdup_printf("%s (%s)", name, uidname); /*include uid so that names are uniques*/
 	card->capabilities = cap;
 	
 	slen = sizeof(format);
