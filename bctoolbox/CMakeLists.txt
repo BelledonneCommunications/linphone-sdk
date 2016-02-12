@@ -35,6 +35,7 @@ set(PACKAGE_TARNAME "bctoolbox")
 set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
+option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 option(ENABLE_POLARSSL "Enable polarssl support" ON)
 option(ENABLE_MBEDTLS "Enable mabedtls support" ON)
 
@@ -43,10 +44,6 @@ include(CheckSymbolExists)
 include(CheckCSourceCompiles)
 include(CMakePushCheckState)
 
-set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
-if(MSVC)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${MSVC_INCLUDE_DIR})
-endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if (ENABLE_MBEDTLS)
@@ -99,10 +96,6 @@ if (ENABLE_MBEDTLS AND MBEDTLS_FOUND)
 	include_directories(${MBEDTLS_INCLUDE_DIRS})
 elseif(ENABLE_POLARSSL AND POLARSSL_FOUND)
 	include_directories(${POLARSSL_INCLUDE_DIRS})
-endif()
-
-if(MSVC)
-	include_directories(${MSVC_INCLUDE_DIR})
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
@@ -190,3 +183,4 @@ install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
 	DESTINATION ${ConfigPackageLocation}
 )
+

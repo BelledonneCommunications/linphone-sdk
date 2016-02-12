@@ -41,6 +41,7 @@ if(ENABLE_STATIC)
 else()
 	add_library(bctoolbox SHARED ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_SOURCE_FILES})
 	set_target_properties(bctoolbox PROPERTIES VERSION 0.0.0 SOVERSION 0)
+	set_target_properties(bctoolbox PROPERTIES LINKER_LANGUAGE "CXX")
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/bctoolbox.pdb
