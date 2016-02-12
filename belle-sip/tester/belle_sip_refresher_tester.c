@@ -82,7 +82,7 @@ typedef struct endpoint {
 
 static unsigned int  wait_for(belle_sip_stack_t*s1, belle_sip_stack_t*s2,int* counter,int value,int timeout) {
 	int retry=0;
-#define ITER 100
+#define ITER 20
 	while (*counter<value && retry++ <(timeout/ITER)) {
 		if (s1) belle_sip_stack_sleep(s1,ITER/2);
 		if (s2) belle_sip_stack_sleep(s2,ITER/2);
