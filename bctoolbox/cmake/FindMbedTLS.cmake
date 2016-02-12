@@ -31,41 +31,27 @@ include(CheckIncludeFile)
 include(CheckCSourceCompiles)
 include(CheckSymbolExists)
 
-set(_MBEDTLS_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
 
 find_path(MBEDTLS_INCLUDE_DIRS
 	NAMES mbedtls/ssl.h
-	HINTS _MBEDTLS_ROOT_PATHS
 	PATH_SUFFIXES include
 )
 
 # find the three mbedtls library
 find_library(MBEDTLS_LIBRARY
 	NAMES mbedtls
-	HINTS _MBEDTLS_ROOT_PATHS
-	PATH_SUFFIXES bin lib
 )
 
-if (MBEDTLS_LIBRARY)
-	find_library(MBEDX509_LIBRARY
-		NAMES mbedx509
-		HINTS _MBEDTLS_ROOT_PATHS
-		PATH_SUFFIXES bin lib
-	)
-endif()
+find_library(MBEDX509_LIBRARY
+	NAMES mbedx509
+)
 
-if (MBEDX509_LIBRARY)
-	find_library(MBEDCRYPTO_LIBRARY
-		NAMES mbedcrypto
-		HINTS _MBEDTLS_ROOT_PATHS
-		PATH_SUFFIXES bin lib
-	)
-endif()
+find_library(MBEDCRYPTO_LIBRARY
+	NAMES mbedcrypto
+)
 
 # check we have a mbedTLS version 2 or above(all functions are prefixed mbedtls_)
-if (MBEDCRYPTO_LIBRARY)
+if (MBEDTLS_LIBRARY AND MBEDX509_LIBRARY AND MBEDCRYPTO_LIBRARY)
 	cmake_push_check_state(RESET)
 	set(CMAKE_REQUIRED_INCLUDES ${MBEDTLS_INCLUDE_DIRS})
 	set(CMAKE_REQUIRED_LIBRARIES ${MBEDTLS_LIBRARY} ${MBEDX509_LIBRARY} ${MBEDCRYPTO_LIBRARY})
