@@ -40,8 +40,9 @@ struct _PAData{
 
 typedef struct _PAData PAData;
 
-static pa_context *context=NULL;
-static pa_threaded_mainloop *pa_loop=NULL;
+static int the_pa_ref = 0;
+static pa_context *the_pa_context=NULL;
+static pa_threaded_mainloop *the_pa_loop=NULL;
 static const int targeted_latency = 20;/*ms*/
 
 static void context_state_notify_cb(pa_context *ctx, void *userdata){
@@ -71,42 +72,47 @@ static void context_state_notify_cb(pa_context *ctx, void *userdata){
 		break;
 	}
 	ms_message("New PulseAudio context state: %s",sname);
-	pa_threaded_mainloop_signal(pa_loop, FALSE);
+	pa_threaded_mainloop_signal(the_pa_loop, FALSE);
 }
 
 static bool_t wait_for_context_state(pa_context_state_t success_state, pa_context_state_t failure_state){
 	pa_context_state_t state;
-	pa_threaded_mainloop_lock(pa_loop);
-	state = pa_context_get_state(context);
+	pa_threaded_mainloop_lock(the_pa_loop);
+	state = pa_context_get_state(the_pa_context);
 	while(state != success_state && state != failure_state) {
-		pa_threaded_mainloop_wait(pa_loop);
-		state = pa_context_get_state(context);
+		pa_threaded_mainloop_wait(the_pa_loop);
+		state = pa_context_get_state(the_pa_context);
 	}
-	pa_threaded_mainloop_unlock(pa_loop);
+	pa_threaded_mainloop_unlock(the_pa_loop);
 	return state == success_state;
 }
 
+
 static void init_pulse_context(void){
-	if (context==NULL){
-		pa_loop=pa_threaded_mainloop_new();
-		context=pa_context_new(pa_threaded_mainloop_get_api(pa_loop),NULL);
-		pa_context_set_state_callback(context,context_state_notify_cb,NULL);
-		pa_context_connect(context, NULL, 0, NULL);
-		pa_threaded_mainloop_start(pa_loop);
+	if (the_pa_ref == 0){
+		the_pa_loop=pa_threaded_mainloop_new();
+		the_pa_context=pa_context_new(pa_threaded_mainloop_get_api(the_pa_loop),NULL);
+		pa_context_set_state_callback(the_pa_context,context_state_notify_cb,NULL);
+		pa_context_connect(the_pa_context, NULL, 0, NULL);
+		pa_threaded_mainloop_start(the_pa_loop);
 	}
+	the_pa_ref++;
 }
 
 static void uninit_pulse_context(void){
-	pa_context_disconnect(context);
-	pa_context_unref(context);
-	pa_threaded_mainloop_stop(pa_loop);
-	pa_threaded_mainloop_free(pa_loop);
-	context = NULL;
-	pa_loop = NULL;
+	the_pa_ref--;
+	if (the_pa_ref == 0){
+		pa_context_disconnect(the_pa_context);
+		pa_context_unref(the_pa_context);
+		pa_threaded_mainloop_stop(the_pa_loop);
+		pa_threaded_mainloop_free(the_pa_loop);
+		the_pa_context = NULL;
+		the_pa_loop = NULL;
+	}
 }
 
 static void pulse_card_unload(MSSndCardManager *m) {
-	if(context) uninit_pulse_context();
+	uninit_pulse_context();
 }
 
 static void pulse_card_detect(MSSndCardManager *m);
@@ -150,7 +156,7 @@ void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol, void *userdat
 
 	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
 end:
-	pa_threaded_mainloop_signal(pa_loop, FALSE);
+	pa_threaded_mainloop_signal(the_pa_loop, FALSE);
 }
 
 void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *userdata) {
@@ -171,7 +177,7 @@ void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol, void *use
 
 	*pa_devicelist = ms_list_append(*pa_devicelist, pa_device);
 end:
-	pa_threaded_mainloop_signal(pa_loop, FALSE);
+	pa_threaded_mainloop_signal(the_pa_loop, FALSE);
 }
 
 /* Add cards to card manager, list contains sink only and bidirectionnal cards */
@@ -250,27 +256,27 @@ static void pulse_card_detect(MSSndCardManager *m){
 		return;
 	}
 
-	pa_threaded_mainloop_lock(pa_loop);
+	pa_threaded_mainloop_lock(the_pa_loop);
 	
 	/* retrieve all available sinks */
-	pa_op = pa_context_get_sink_info_list(context, pa_sinklist_cb, &pa_sink_list);
+	pa_op = pa_context_get_sink_info_list(the_pa_context, pa_sinklist_cb, &pa_sink_list);
 
 	/* wait for the operation to complete */
 	while (pa_operation_get_state(pa_op) != PA_OPERATION_DONE) {
-		pa_threaded_mainloop_wait(pa_loop);
+		pa_threaded_mainloop_wait(the_pa_loop);
 	}
 	pa_operation_unref(pa_op);
 
 	/* retrieve all available sources, monitors are ignored */
-	pa_op = pa_context_get_source_info_list(context, pa_sourcelist_cb, &pa_source_list);
+	pa_op = pa_context_get_source_info_list(the_pa_context, pa_sourcelist_cb, &pa_source_list);
 
 	/* wait for the operation to complete */
 	while (pa_operation_get_state(pa_op) != PA_OPERATION_DONE) {
-		pa_threaded_mainloop_wait(pa_loop);
+		pa_threaded_mainloop_wait(the_pa_loop);
 	}
 	pa_operation_unref(pa_op);
 
-	pa_threaded_mainloop_unlock(pa_loop);
+	pa_threaded_mainloop_unlock(the_pa_loop);
 	
 	/* merge source list into sink list for dual capabilities cards */
 	ms_list_for_each2(pa_sink_list, (MSIterate2Func)pulse_card_merge_lists, &pa_source_list);
@@ -309,15 +315,15 @@ static void stream_disconnect(Stream *s);
 static void stream_state_notify_cb(pa_stream *p, void *userData) {
 	Stream *ctx = (Stream *)userData;
 	ctx->state = pa_stream_get_state(p);
-	pa_threaded_mainloop_signal(pa_loop, 0);
+	pa_threaded_mainloop_signal(the_pa_loop, 0);
 }
 
 static bool_t stream_wait_for_state(Stream *ctx, pa_stream_state_t successState, pa_stream_state_t failureState) {
-	pa_threaded_mainloop_lock(pa_loop);
+	pa_threaded_mainloop_lock(the_pa_loop);
 	while(ctx->state != successState && ctx->state != failureState) {
-		pa_threaded_mainloop_wait(pa_loop);
+		pa_threaded_mainloop_wait(the_pa_loop);
 	}
-	pa_threaded_mainloop_unlock(pa_loop);
+	pa_threaded_mainloop_unlock(the_pa_loop);
 	return ctx->state == successState;
 }
 
@@ -418,17 +424,17 @@ static bool_t stream_connect(Stream *s) {
 	}
 	
 	
-	if (context==NULL) {
+	if (the_pa_context==NULL) {
 		ms_error("No PulseAudio context");
 		return FALSE;
 	}
-	s->stream=pa_stream_new(context,"phone",&s->sampleSpec,NULL);
+	s->stream=pa_stream_new(the_pa_context,"phone",&s->sampleSpec,NULL);
 	if (s->stream==NULL){
 		ms_error("fails to create PulseAudio stream");
 		return FALSE;
 	}
 	pa_stream_set_state_callback(s->stream, stream_state_notify_cb, s);
-	pa_threaded_mainloop_lock(pa_loop);
+	pa_threaded_mainloop_lock(the_pa_loop);
 	if(s->type == STREAM_TYPE_PLAYBACK) {
 		pa_stream_set_write_callback(s->stream, stream_write_request_cb, s);
 		pa_stream_set_overflow_callback(s->stream, stream_buffer_overflow_notification, s);
@@ -441,7 +447,7 @@ static bool_t stream_connect(Stream *s) {
 	} else {
 		err=pa_stream_connect_record(s->stream,s->dev,&attr, PA_STREAM_ADJUST_LATENCY);
 	}
-	pa_threaded_mainloop_unlock(pa_loop);
+	pa_threaded_mainloop_unlock(the_pa_loop);
 	if(err < 0 || !stream_wait_for_state(s, PA_STREAM_READY, PA_STREAM_FAILED)) {
 		ms_error("Fails to connect pulseaudio stream. err=%d", err);
 		pa_stream_unref(s->stream);
@@ -459,9 +465,9 @@ static bool_t stream_connect(Stream *s) {
 static void stream_disconnect(Stream *s) {
 	int err;
 	if (s->stream) {
-		pa_threaded_mainloop_lock(pa_loop);
+		pa_threaded_mainloop_lock(the_pa_loop);
 		err = pa_stream_disconnect(s->stream);
-		pa_threaded_mainloop_unlock(pa_loop);
+		pa_threaded_mainloop_unlock(the_pa_loop);
 		if(err!=0 || !stream_wait_for_state(s, PA_STREAM_TERMINATED, PA_STREAM_FAILED)) {
 			ms_error("pa_stream_disconnect() failed. err=%d", err);
 		}
@@ -475,7 +481,7 @@ static void stream_disconnect(Stream *s) {
 
 static void stream_set_volume_cb(pa_context *c, int success, void *user_data) {
 	*(int *)user_data = success;
-	pa_threaded_mainloop_signal(pa_loop, FALSE);
+	pa_threaded_mainloop_signal(the_pa_loop, FALSE);
 }
 
 static bool_t stream_set_volume(Stream *s, double volume) {
@@ -496,16 +502,16 @@ static bool_t stream_set_volume(Stream *s, double volume) {
 	idx = pa_stream_get_index(s->stream);
 	pa_cvolume_init(&cvolume);
 	pa_cvolume_set(&cvolume, s->sampleSpec.channels, scale_to_volume(volume));
-	pa_threaded_mainloop_lock(pa_loop);
+	pa_threaded_mainloop_lock(the_pa_loop);
 	if(s->type == STREAM_TYPE_PLAYBACK) {
-		op = pa_context_set_sink_input_volume(context, idx, &cvolume, stream_set_volume_cb, &success);
+		op = pa_context_set_sink_input_volume(the_pa_context, idx, &cvolume, stream_set_volume_cb, &success);
 	} else {
-		op = pa_context_set_source_output_volume(context, idx, &cvolume, stream_set_volume_cb, &success);
+		op = pa_context_set_source_output_volume(the_pa_context, idx, &cvolume, stream_set_volume_cb, &success);
 	}
 	while(pa_operation_get_state(op) == PA_OPERATION_RUNNING) {
-		pa_threaded_mainloop_wait(pa_loop);
+		pa_threaded_mainloop_wait(the_pa_loop);
 	}
-	pa_threaded_mainloop_unlock(pa_loop);
+	pa_threaded_mainloop_unlock(the_pa_loop);
 	pa_operation_unref(op);
 	return success;
 }
@@ -514,14 +520,14 @@ static void stream_get_source_volume_cb(pa_context *c, const pa_source_output_in
 	if(i) {
 		*(double *)user_data = volume_to_scale(pa_cvolume_avg(&i->volume));
 	}
-	pa_threaded_mainloop_signal(pa_loop, FALSE);
+	pa_threaded_mainloop_signal(the_pa_loop, FALSE);
 }
 
 static void stream_get_sink_volume_cb(pa_context *c, const pa_sink_input_info *i, int eol, void *user_data) {
 	if(i) {
 		*(double *)user_data = volume_to_scale(pa_cvolume_avg(&i->volume));
 	}
-	pa_threaded_mainloop_signal(pa_loop, FALSE);
+	pa_threaded_mainloop_signal(the_pa_loop, FALSE);
 }
 
 static bool_t stream_get_volume(Stream *s, double *volume) {
@@ -534,16 +540,16 @@ static bool_t stream_get_volume(Stream *s, double *volume) {
 	}
 	idx = pa_stream_get_index(s->stream);
 	*volume = -1.0;
-	pa_threaded_mainloop_lock(pa_loop);
+	pa_threaded_mainloop_lock(the_pa_loop);
 	if(s->type == STREAM_TYPE_PLAYBACK) {
-		op = pa_context_get_sink_input_info(context, idx, stream_get_sink_volume_cb, volume);
+		op = pa_context_get_sink_input_info(the_pa_context, idx, stream_get_sink_volume_cb, volume);
 	} else {
-		op = pa_context_get_source_output_info(context, idx, stream_get_source_volume_cb, volume);
+		op = pa_context_get_source_output_info(the_pa_context, idx, stream_get_source_volume_cb, volume);
 	}
 	while(pa_operation_get_state(op) == PA_OPERATION_RUNNING) {
-		pa_threaded_mainloop_wait(pa_loop);
+		pa_threaded_mainloop_wait(the_pa_loop);
 	}
-	pa_threaded_mainloop_unlock(pa_loop);
+	pa_threaded_mainloop_unlock(the_pa_loop);
 	pa_operation_unref(op);
 	return TRUE;
 }
@@ -574,7 +580,7 @@ static void pulse_read_process(MSFilter *f){
 		ms_error("Record stream not connected");
 		return;
 	}
-	pa_threaded_mainloop_lock(pa_loop);
+	pa_threaded_mainloop_lock(the_pa_loop);
 	while(pa_stream_readable_size(s->stream) > 0) {
 		if(pa_stream_peek(s->stream, &buffer, &nbytes) >= 0) {
 			if(buffer != NULL) {
@@ -591,7 +597,7 @@ static void pulse_read_process(MSFilter *f){
 			break;
 		}
 	}
-	pa_threaded_mainloop_unlock(pa_loop);
+	pa_threaded_mainloop_unlock(the_pa_loop);
 }
 
 static void pulse_read_postprocess(MSFilter *f) {
@@ -718,10 +724,10 @@ static void pulse_write_process(MSFilter *f){
 		ms_bufferizer_put_from_queue(&s->bufferizer,f->inputs[0]);
 		ms_mutex_unlock(&s->mutex);
 		
-		pa_threaded_mainloop_lock(pa_loop);
+		pa_threaded_mainloop_lock(the_pa_loop);
 		nwritable = pa_stream_writable_size(s->stream);
 		stream_play(s, nwritable);
-		pa_threaded_mainloop_unlock(pa_loop);
+		pa_threaded_mainloop_unlock(the_pa_loop);
 		
 		if (s->last_stats == (uint64_t)-1) {
 			s->last_stats = f->ticker->time;
@@ -730,9 +736,9 @@ static void pulse_write_process(MSFilter *f){
 			int is_negative;
 			int err;
 			s->last_stats = f->ticker->time;
-			pa_threaded_mainloop_lock(pa_loop);
+			pa_threaded_mainloop_lock(the_pa_loop);
 			err = pa_stream_get_latency(s->stream, &latency, &is_negative);
-			pa_threaded_mainloop_unlock(pa_loop);
+			pa_threaded_mainloop_unlock(the_pa_loop);
 			if (err == 0 && !is_negative) {
 				ms_message("pulseaudio: latency is equal to %d ms", (int)(latency/1000L));
 			}
