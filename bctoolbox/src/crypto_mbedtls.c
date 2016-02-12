@@ -681,6 +681,23 @@ int32_t bctoolbox_x509_certificate_unset_flag(uint32_t *flags, uint32_t flags_to
 }
 
 /*** SSL Client ***/
+/*
+ * Default profile used to configure ssl_context, allow 1024 bits keys(while mbedtls default is 2048)
+ */
+const mbedtls_x509_crt_profile bctoolbox_x509_crt_profile_default =
+{
+    /* Hashes from SHA-1 and above */
+    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA1 ) |
+    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_RIPEMD160 ) |
+    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA224 ) |
+    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA256 ) |
+    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA384 ) |
+    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA512 ),
+    0xFFFFFFF, /* Any PK alg    */
+    0xFFFFFFF, /* Any curve     */
+    1024,
+};
+
 /** context **/
 struct bctoolbox_ssl_context_struct {
 	mbedtls_ssl_context ssl_ctx;
@@ -958,7 +975,7 @@ void bctoolbox_ssl_config_free(bctoolbox_ssl_config_t *ssl_config) {
 }
 
 int32_t bctoolbox_ssl_config_defaults(bctoolbox_ssl_config_t *ssl_config, int endpoint, int transport) {
-	int mbedtls_endpoint, mbedtls_transport;
+	int mbedtls_endpoint, mbedtls_transport, ret;
 
 	if (ssl_config == NULL) {
 		return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
@@ -987,9 +1004,16 @@ int32_t bctoolbox_ssl_config_defaults(bctoolbox_ssl_config_t *ssl_config, int en
 			return BCTOOLBOX_ERROR_INVALID_INPUT_DATA;
 	}
 
-	return mbedtls_ssl_config_defaults(ssl_config->ssl_config, mbedtls_endpoint, mbedtls_transport, MBEDTLS_SSL_PRESET_DEFAULT);
+	ret = mbedtls_ssl_config_defaults(ssl_config->ssl_config, mbedtls_endpoint, mbedtls_transport, MBEDTLS_SSL_PRESET_DEFAULT);
 
-	return 0;
+	if (ret <0) {
+		return ret;
+	}
+
+	/* Set the default x509 security profile used for verification of all certificate in chain */
+	mbedtls_ssl_conf_cert_profile(ssl_config->ssl_config, &bctoolbox_x509_crt_profile_default);
+
+	return ret;
 }
 
 int32_t bctoolbox_ssl_config_set_endpoint(bctoolbox_ssl_config_t *ssl_config, int endpoint) {
