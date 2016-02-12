@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include <stdlib.h>
-
+#include <string.h>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -786,12 +786,16 @@ struct bctoolbox_ssl_config_struct {
 	int(*callback_cli_cert_function)(void *, bctoolbox_ssl_context_t *, unsigned char *, size_t); /**< pointer to the callback called to update client certificate during handshake
 													callback params are user_data, ssl_context, certificate distinguished name, name length */
 	void *callback_cli_cert_data; /**< data passed to the client cert callback */
+#ifdef HAVE_DTLS_SRTP
 	enum DTLS_SRTP_protection_profiles dtls_srtp_profiles[4]; /**< Store a maximum of 4 DTLS SRTP profiles to use */
 	int dtls_srtp_profiles_number; /**< Number of DTLS SRTP profiles in use */
+#endif
 };
 
 bctoolbox_ssl_config_t *bctoolbox_ssl_config_new(void) {
+#ifdef HAVE_DTLS_SRTP
 	int i;
+#endif
 	bctoolbox_ssl_config_t *ssl_config = bctoolbox_malloc0(sizeof(bctoolbox_ssl_config_t));
 
 	/* set all properties to BCTOOLBOX_SSL_UNSET or NULL */
@@ -808,11 +812,12 @@ bctoolbox_ssl_config_t *bctoolbox_ssl_config_new(void) {
 	ssl_config->peer_cn = NULL;
 	ssl_config->own_cert = NULL;
 	ssl_config->own_cert_pk = NULL;
+#ifdef HAVE_DTLS_SRTP
 	for (i=0; i<4; i++) {
 		ssl_config->dtls_srtp_profiles[i] = SRTP_UNSET_PROFILE;
 	}
 	ssl_config->dtls_srtp_profiles_number = 0;
-
+#endif
 	return ssl_config;
 }
 
@@ -992,10 +997,12 @@ int32_t bctoolbox_ssl_context_setup(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_
 		ssl_set_authmode(&(ssl_ctx->ssl_ctx), ssl_config->authmode);
 	}
 
+#ifdef HAVE_DTLS_SRTP
 	if (ssl_config->transport != BCTOOLBOX_SSL_UNSET) {
 		ssl_set_transport(&(ssl_ctx->ssl_ctx), ssl_config->transport);
 	}
 
+#endif
 	if (ssl_config->rng_function != NULL) {
 		ssl_set_rng(&(ssl_ctx->ssl_ctx), ssl_config->rng_function, ssl_config->rng_context);
 	}
