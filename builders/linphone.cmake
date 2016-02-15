@@ -27,7 +27,7 @@ set(EP_linphone_EXTERNAL_SOURCE_PATHS "linphone")
 set(EP_linphone_GROUPABLE YES)
 
 set(EP_linphone_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
-set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2)
+set(EP_linphone_DEPENDENCIES EP_bctoolbox EP_bellesip EP_ortp EP_ms2)
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT IOS)
 	# Do not build sqlite3, xml2 and zlib on IOS, they are provided by the system
 	list(APPEND EP_linphone_DEPENDENCIES EP_sqlite3 EP_xml2)
@@ -64,3 +64,5 @@ list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_UNIT_TESTS=${ENABLE_UNIT_TESTS}"
 if(ENABLE_UNIT_TESTS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	list(APPEND EP_linphone_DEPENDENCIES EP_cunit)
 endif()
+list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_POLARSSL=${ENABLE_POLARSSL}")
+list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_MBEDTLS=${ENABLE_MBEDTLS}")
