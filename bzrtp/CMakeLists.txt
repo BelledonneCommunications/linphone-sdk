@@ -67,17 +67,11 @@ find_package(CUnit)
 	endif()
 endif()
 
-find_package(MbedTLS)
-	if (MBEDTLS_FOUND)
-		message("Use mbedTLS")
-	else()
-		find_package(PolarSSL)
-		if (POLARSSL_FOUND)
-			message("Use polarSSL")
-		else()
-			message(FATAL_ERROR " No polarSSL or mbedTLS found")
-		endif()
-	endif()
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
+else()
+	find_package(BcToolBox REQUIRED)
+endif()
 
 find_package(XML2)
 
@@ -104,21 +98,13 @@ if(STRICT_OPTIONS_CPP)
 	string(REPLACE ";" " " STRICT_OPTIONS_CPP "${STRICT_OPTIONS_CPP}")
 endif()
 
-if (MBEDTLS_FOUND)
-	include_directories(
-		include
-		${CMAKE_CURRENT_BINARY_DIR}
-		${MBEDTLS_INCLUDE_DIRS}
-	)
-	set(LIBS ${MBEDTLS_LIBRARIES})
-else ()
-	include_directories(
-		include
-		${CMAKE_CURRENT_BINARY_DIR}
-		${POLARSSL_INCLUDE_DIRS}
-	)
-	set(LIBS ${POLARSSL_LIBRARIES})
-endif()
+include_directories(
+	include
+	${CMAKE_CURRENT_BINARY_DIR}
+	${BCTOOLBOX_INCLUDE_DIRS}
+)
+
+set(LIBS ${BCTOOLBOX_LIBRARIES})
 
 if(CUNIT_FOUND)
 	include_directories(${CUNIT_INCLUDE_DIRS})

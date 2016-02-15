@@ -30,6 +30,7 @@
 #include "packetParser.h"
 #include "cryptoUtils.h"
 #include "zidCache.h"
+#include <bctoolbox/crypto.h>
 #include "stateMachine.h"
 
 
@@ -566,7 +567,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 			/* Compute the shared DH secret */
 			zrtpContext->DHMContext->peer = (uint8_t *)malloc(zrtpChannelContext->keyAgreementLength*sizeof(uint8_t));
 			memcpy (zrtpContext->DHMContext->peer, dhPart1Message->pv, zrtpChannelContext->keyAgreementLength);
-			bzrtpCrypto_DHMComputeSecret(zrtpContext->DHMContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)zrtpContext->RNGContext);
+			bctoolbox_DHMComputeSecret(zrtpContext->DHMContext, (int (*)(void *, uint8_t *, size_t))bctoolbox_rng_get, (void *)zrtpContext->RNGContext);
 
 			/* Derive the s0 key */
 			bzrtp_computeS0DHMMode(zrtpContext, zrtpChannelContext);
@@ -856,7 +857,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 			/* Compute the shared DH secret */
 			zrtpContext->DHMContext->peer = (uint8_t *)malloc(zrtpChannelContext->keyAgreementLength*sizeof(uint8_t));
 			memcpy (zrtpContext->DHMContext->peer, dhPart2Message->pv, zrtpChannelContext->keyAgreementLength);
-			bzrtpCrypto_DHMComputeSecret(zrtpContext->DHMContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)zrtpContext->RNGContext);
+			bctoolbox_DHMComputeSecret(zrtpContext->DHMContext, (int (*)(void *, uint8_t *, size_t))bctoolbox_rng_get, (void *)zrtpContext->RNGContext);
 
 			/* Derive the s0 key */
 			bzrtp_computeS0DHMMode(zrtpContext, zrtpChannelContext);
@@ -1656,16 +1657,16 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, zrtpContext->initiatorCachedSecretHash.rs1ID);
 		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, (uint8_t *)"Responder", 9, 8, zrtpContext->responderCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.rs1ID, 8);
-		bzrtpCrypto_getRandom(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.rs1ID, 8);
+		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.rs1ID, 8);
+		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.rs1ID, 8);
 	}
 
 	if (zrtpContext->cachedSecret.rs2!=NULL) {
 		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs2, zrtpContext->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, zrtpContext->initiatorCachedSecretHash.rs2ID);
 		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs2, zrtpContext->cachedSecret.rs2Length, (uint8_t *)"Responder", 9, 8, zrtpContext->responderCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.rs2ID, 8);
-		bzrtpCrypto_getRandom(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.rs2ID, 8);
+		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.rs2ID, 8);
+		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.rs2ID, 8);
 	}
 
 		
@@ -1673,16 +1674,16 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.pbxsecret, zrtpContext->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, zrtpContext->initiatorCachedSecretHash.pbxsecretID);
 		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.pbxsecret, zrtpContext->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, zrtpContext->responderCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.pbxsecretID, 8);
-		bzrtpCrypto_getRandom(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
+		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.pbxsecretID, 8);
+		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
 	}
 
 	if (zrtpContext->cachedSecret.auxsecret!=NULL) {
 		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.auxsecret, zrtpContext->cachedSecret.auxsecretLength, zrtpChannelContext->selfH[3], 32, 8, zrtpChannelContext->initiatorAuxsecretID);
 		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.auxsecret, zrtpContext->cachedSecret.auxsecretLength, zrtpChannelContext->peerH[3], 32, 8, zrtpChannelContext->responderAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(zrtpContext->RNGContext, zrtpChannelContext->initiatorAuxsecretID, 8);
-		bzrtpCrypto_getRandom(zrtpContext->RNGContext, zrtpChannelContext->responderAuxsecretID, 8);
+		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpChannelContext->initiatorAuxsecretID, 8);
+		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpChannelContext->responderAuxsecretID, 8);
 	}
 
 	/* now select mode according to context */

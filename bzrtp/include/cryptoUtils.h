@@ -31,6 +31,16 @@
 #include "typedef.h"
 #include "packetParser.h"
 
+/** Return available crypto functions. For now we have
+ *
+ * - Hash: HMAC-SHA256(Mandatory)
+ * - CipherBlock: AES128(Mandatory)
+ * - Auth Tag: HMAC-SHA132 and HMAC-SHA180 (These are mandatory for SRTP and depends on the SRTP implementation thus we can just suppose they are both available)
+ * - Key Agreement: DHM3k(Mandatory), DHM2k(optional and shall not be used except on low power devices)
+ * - Sas: base32(Mandatory), b256(pgp words)
+ */
+uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[7]);
+
 /**
  *
  * @brief ZRTP Key Derivation Function as in rfc 4.5.1

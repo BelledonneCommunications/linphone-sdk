@@ -34,18 +34,6 @@ set(TEST_SOURCES
 	../src/zidCache.c
 )
 
-if (POLARSSL_FOUND)
-	set(TEST_SOURCES
-		${TEST_SOURCES}
-		../src/cryptoPolarssl.c
-	)
-elseif (MBEDTLS_FOUND)
-	set(TEST_SOURCES
-		${TEST_SOURCES}
-		../src/cryptoMbedtls.c
-	)
-endif()
-
 apply_compile_flags(TEST_SOURCES "CPP")
 
 add_executable(bzrtpTest ${TEST_SOURCES})

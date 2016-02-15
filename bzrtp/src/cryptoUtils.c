@@ -30,8 +30,81 @@
 #include <string.h>
 
 #include "cryptoUtils.h"
-#include "cryptoWrapper.h"
+#include "bctoolbox/crypto.h"
 
+/** Return available crypto functions. For now we have
+ *
+ * - Hash: HMAC-SHA256(Mandatory)
+ * - CipherBlock: AES128(Mandatory)
+ * - Auth Tag: HMAC-SHA132 and HMAC-SHA180 (These are mandatory for SRTP and depends on the SRTP implementation thus we can just suppose they are both available)
+ * - Key Agreement: DHM3k(Mandatory), DHM2k(optional and shall not be used except on low power devices)
+ * - Sas: base32(Mandatory), b256(pgp words)
+ */
+uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[7]) {
+
+	switch(algoType) {
+		case ZRTP_HASH_TYPE:
+			availableTypes[0] = ZRTP_HASH_S256;
+			return 1;
+			break;
+		case ZRTP_CIPHERBLOCK_TYPE:
+			availableTypes[0] = ZRTP_CIPHER_AES1;
+			availableTypes[1] = ZRTP_CIPHER_AES3;
+			return 2;
+			break;
+		case ZRTP_AUTHTAG_TYPE:
+			availableTypes[0] = ZRTP_AUTHTAG_HS32;
+			availableTypes[1] = ZRTP_AUTHTAG_HS80;
+			return 2;
+			break;
+		case ZRTP_KEYAGREEMENT_TYPE:
+			availableTypes[0] = ZRTP_KEYAGREEMENT_DH3k;
+			availableTypes[1] = ZRTP_KEYAGREEMENT_DH2k;
+			availableTypes[2] = ZRTP_KEYAGREEMENT_Mult; /* This one shall always be at the end of the list, it is just to inform the peer ZRTP endpoint that we support the Multichannel ZRTP */
+			return 3;
+			break;
+		case ZRTP_SAS_TYPE: /* the SAS function is implemented in cryptoUtils.c and then is not directly linked to the polarSSL crypto wrapper */
+			availableTypes[0] = ZRTP_SAS_B32;
+			availableTypes[1] = ZRTP_SAS_B256;
+			return 2;
+			break;
+		default:
+			return 0;
+	}
+}
+
+/** Return mandatory crypto functions. For now we have
+ *
+ * - Hash: HMAC-SHA256
+ * - CipherBlock: AES128
+ * - Auth Tag: HMAC-SHA132 and HMAC-SHA180
+ * - Key Agreement: DHM3k
+ * - Sas: base32
+ */
+uint8_t bzrtpUtils_getMandatoryCryptoTypes(uint8_t algoType, uint8_t mandatoryTypes[7]) {
+
+	switch(algoType) {
+		case ZRTP_HASH_TYPE:
+			mandatoryTypes[0] = ZRTP_HASH_S256;
+			return 1;
+		case ZRTP_CIPHERBLOCK_TYPE:
+			mandatoryTypes[0] = ZRTP_CIPHER_AES1;
+			return 1;
+		case ZRTP_AUTHTAG_TYPE:
+			mandatoryTypes[0] = ZRTP_AUTHTAG_HS32;
+			mandatoryTypes[1] = ZRTP_AUTHTAG_HS80;
+			return 2;
+		case ZRTP_KEYAGREEMENT_TYPE:
+			mandatoryTypes[0] = ZRTP_KEYAGREEMENT_DH3k;
+			mandatoryTypes[1] = ZRTP_KEYAGREEMENT_Mult; /* we must add this one if we want to be able to make multistream */
+			return 2;
+		case ZRTP_SAS_TYPE:
+			mandatoryTypes[0] = ZRTP_SAS_B32;
+			return 1;
+		default:
+			return 0;
+	}
+}
 
 int bzrtp_keyDerivationFunction(uint8_t *key, uint16_t keyLength,
 		uint8_t *label, uint16_t labelLength,
@@ -368,8 +441,8 @@ int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
 	/* Hash algo */
 	switch (zrtpChannelContext->hashAlgo) {
 		case ZRTP_HASH_S256 :
-			zrtpChannelContext->hashFunction = bzrtpCrypto_sha256;
-			zrtpChannelContext->hmacFunction = bzrtpCrypto_hmacSha256;
+			zrtpChannelContext->hashFunction = bctoolbox_sha256;
+			zrtpChannelContext->hmacFunction = bctoolbox_hmacSha256;
 			zrtpChannelContext->hashLength = 32;
 			break;
 		case ZRTP_UNSET_ALGO :
@@ -385,13 +458,13 @@ int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
 	/* CipherBlock algo */
 	switch (zrtpChannelContext->cipherAlgo) {
 		case ZRTP_CIPHER_AES1 :
-			zrtpChannelContext->cipherEncryptionFunction = bzrtpCrypto_aes128CfbEncrypt;
-			zrtpChannelContext->cipherDecryptionFunction = bzrtpCrypto_aes128CfbDecrypt;
+			zrtpChannelContext->cipherEncryptionFunction = bctoolbox_aes128CfbEncrypt;
+			zrtpChannelContext->cipherDecryptionFunction = bctoolbox_aes128CfbDecrypt;
 			zrtpChannelContext->cipherKeyLength = 16;
 			break;
 		case ZRTP_CIPHER_AES3 :
-			zrtpChannelContext->cipherEncryptionFunction = bzrtpCrypto_aes256CfbEncrypt;
-			zrtpChannelContext->cipherDecryptionFunction = bzrtpCrypto_aes256CfbDecrypt;
+			zrtpChannelContext->cipherEncryptionFunction = bctoolbox_aes256CfbEncrypt;
+			zrtpChannelContext->cipherDecryptionFunction = bctoolbox_aes256CfbDecrypt;
 			zrtpChannelContext->cipherKeyLength = 32;
 			break;
 		case ZRTP_UNSET_ALGO :
@@ -502,7 +575,7 @@ void addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7], uin
 	int algosBitmask[BITMASK_256_SIZE];
 	int missingBitmask[BITMASK_256_SIZE];
 	uint8_t mandatoryTypes[7];
-	const uint8_t mandatoryTypesCount = bzrtpCrypto_getMandatoryCryptoTypes(algoType, mandatoryTypes);
+	const uint8_t mandatoryTypesCount = bzrtpUtils_getMandatoryCryptoTypes(algoType, mandatoryTypes);
 	uint8_t missingTypesCount = mandatoryTypesCount;
 
 	BITMASK_256_SET_ZERO(missingBitmask);
@@ -727,7 +800,7 @@ void cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString[4]) {
  */
 void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngContext) {
 	if (key != NULL) {
-		bzrtpCrypto_getRandom(rngContext, key, keyLength);
+		bctoolbox_rng_get(rngContext, key, keyLength);
 	}
 }
 

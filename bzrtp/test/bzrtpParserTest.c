@@ -452,49 +452,49 @@ void test_parserComplete() {
 	if (contextAlice->cachedSecret.rs1!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs1ID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.rs2!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs2, contextAlice->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs2ID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.auxsecret!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->channelContext[0]->selfH[3], 32, 8, contextAlice->channelContext[0]->initiatorAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->channelContext[0]->initiatorAuxsecretID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->channelContext[0]->initiatorAuxsecretID, 8);
 	}
 
 	if (contextAlice->cachedSecret.pbxsecret!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.pbxsecret, contextAlice->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.pbxsecretID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.pbxsecretID, 8);
 	}
 
 	if (contextAlice->cachedSecret.rs1!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.rs1ID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.rs2!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs2, contextAlice->cachedSecret.rs2Length, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.rs2ID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.auxsecret!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->channelContext[0]->peerH[3], 32, 8, contextAlice->channelContext[0]->responderAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->channelContext[0]->responderAuxsecretID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->channelContext[0]->responderAuxsecretID, 8);
 	}
 
 	if (contextAlice->cachedSecret.pbxsecret!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.pbxsecret, contextAlice->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.pbxsecretID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.pbxsecretID, 8);
 	}
 
 
@@ -502,49 +502,49 @@ void test_parserComplete() {
 	if (contextBob->cachedSecret.rs1!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs1, contextBob->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs1ID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextBob->cachedSecret.rs2!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs2, contextBob->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs2ID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextBob->cachedSecret.auxsecret!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->channelContext[0]->selfH[3], 32, 8, contextBob->channelContext[0]->initiatorAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->channelContext[0]->initiatorAuxsecretID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->channelContext[0]->initiatorAuxsecretID, 8);
 	}
 
 	if (contextBob->cachedSecret.pbxsecret!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.pbxsecret, contextBob->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.pbxsecretID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.pbxsecretID, 8);
 	}
 
 	if (contextBob->cachedSecret.rs1!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs1, contextBob->cachedSecret.rs1Length, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->responderCachedSecretHash.rs1ID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->responderCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextBob->cachedSecret.rs2!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs2, contextBob->cachedSecret.rs2Length, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->responderCachedSecretHash.rs2ID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->responderCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextBob->cachedSecret.auxsecret!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->channelContext[0]->peerH[3], 32, 8, contextBob->channelContext[0]->responderAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->channelContext[0]->responderAuxsecretID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->channelContext[0]->responderAuxsecretID, 8);
 	}
 
 	if (contextBob->cachedSecret.pbxsecret!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.pbxsecret, contextBob->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->responderCachedSecretHash.pbxsecretID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->responderCachedSecretHash.pbxsecretID, 8);
 	}
 
 	/* dump alice's packet on both sides */
@@ -731,7 +731,7 @@ void test_parserComplete() {
 	/* Compute the shared DH secret */
 	contextAlice->DHMContext->peer = (uint8_t *)malloc(contextAlice->channelContext[0]->keyAgreementLength*sizeof(uint8_t));
 	memcpy (contextAlice->DHMContext->peer, alice_DHPart1FromBob_message->pv, contextAlice->channelContext[0]->keyAgreementLength);
-	bzrtpCrypto_DHMComputeSecret(contextAlice->DHMContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)contextAlice->RNGContext);
+	bctoolbox_DHMComputeSecret(contextAlice->DHMContext, (int (*)(void *, uint8_t *, size_t))bctoolbox_rng_get, (void *)contextAlice->RNGContext);
 
 	/* So Alice send bob her DHPart2 message which is already prepared and stored (we just need to update the sequence number) */
 	bzrtp_packetUpdateSequenceNumber(contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID], contextAlice->channelContext[0]->selfSequenceNumber);
@@ -785,7 +785,7 @@ void test_parserComplete() {
 	/* Compute the shared DH secret */
 	contextBob->DHMContext->peer = (uint8_t *)malloc(contextBob->channelContext[0]->keyAgreementLength*sizeof(uint8_t));
 	memcpy (contextBob->DHMContext->peer, bob_DHPart2FromAlice_message->pv, contextBob->channelContext[0]->keyAgreementLength);
-	bzrtpCrypto_DHMComputeSecret(contextBob->DHMContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)contextAlice->RNGContext);
+	bctoolbox_DHMComputeSecret(contextBob->DHMContext, (int (*)(void *, uint8_t *, size_t))bctoolbox_rng_get, (void *)contextAlice->RNGContext);
 
 
 	/* JUST FOR TEST: check that the generated secrets are the same */

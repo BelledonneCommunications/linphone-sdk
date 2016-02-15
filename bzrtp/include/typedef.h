@@ -48,7 +48,7 @@
 
 typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 
-#include "cryptoWrapper.h"
+#include <bctoolbox/crypto.h>
 #include "packetParser.h"
 #include "stateMachine.h"
 
@@ -184,8 +184,8 @@ struct bzrtpChannelContext_struct {
 */
 struct bzrtpContext_struct {
 	/* contexts */
-	bzrtpRNGContext_t *RNGContext; /**< context for random number generation */
-	bzrtpDHMContext_t *DHMContext; /**< context for the Diffie-Hellman-Merkle operations. Only one DHM computation may be done during a call, so this belongs to the general context and not the channel one */
+	bctoolbox_rng_context_t *RNGContext; /**< context for random number generation */
+	bctoolbox_DHMContext_t *DHMContext; /**< context for the Diffie-Hellman-Merkle operations. Only one DHM computation may be done during a call, so this belongs to the general context and not the channel one */
 
 	/* flags */
 	uint8_t isSecure; /**< this flag is set to 1 after the first channel have completed the ZRTP protocol exchange(i.e. when the responder have sent the conf2ACK message) */
