@@ -680,6 +680,98 @@ int32_t bctoolbox_x509_certificate_unset_flag(uint32_t *flags, uint32_t flags_to
 	return 0;
 }
 
+/*** Diffie-Hellman-Merkle ***/
+/* initialise de DHM context according to requested algorithm */
+bctoolbox_DHMContext_t *bctoolbox_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength)
+{
+	mbedtls_dhm_context *mbedtlsDhmContext;
+
+	/* create the context */
+	bctoolbox_DHMContext_t *context = (bctoolbox_DHMContext_t *)malloc(sizeof(bctoolbox_DHMContext_t));
+	memset (context, 0, sizeof(bctoolbox_DHMContext_t));
+
+	/* create the mbedtls context for DHM */
+	mbedtlsDhmContext=(mbedtls_dhm_context *)malloc(sizeof(mbedtls_dhm_context));
+	memset(mbedtlsDhmContext, 0, sizeof(mbedtls_dhm_context));
+	context->cryptoModuleData=(void *)mbedtlsDhmContext;
+
+	/* initialise pointer to NULL to ensure safe call to free() when destroying context */
+	context->secret = NULL;
+	context->self = NULL;
+	context->key = NULL;
+	context->peer = NULL;
+
+	/* set parameters in the context */
+	context->algo=DHMAlgo;
+	context->secretLength = secretLength;
+	switch (DHMAlgo) {
+		case BCTOOLBOX_DHM_2048:
+			/* set P and G in the mbedtls context */
+			if ((mbedtls_mpi_read_string(&(mbedtlsDhmContext->P), 16, MBEDTLS_DHM_RFC3526_MODP_2048_P) != 0) ||
+			(mbedtls_mpi_read_string(&(mbedtlsDhmContext->G), 16, MBEDTLS_DHM_RFC3526_MODP_2048_G) != 0)) {
+				return NULL;
+			}
+			context->primeLength=256;
+			mbedtlsDhmContext->len=256;
+			break;
+		case BCTOOLBOX_DHM_3072:
+			/* set P and G in the mbedtls context */
+			if ((mbedtls_mpi_read_string(&(mbedtlsDhmContext->P), 16, MBEDTLS_DHM_RFC3526_MODP_3072_P) != 0) ||
+			(mbedtls_mpi_read_string(&(mbedtlsDhmContext->G), 16, MBEDTLS_DHM_RFC3526_MODP_3072_G) != 0)) {
+				return NULL;
+			}
+			context->primeLength=384;
+			mbedtlsDhmContext->len=384;
+			break;
+		default:
+			free(context);
+			return NULL;
+			break;
+	}
+
+	return context;
+}
+
+/* generate the random secret and compute the public value */
+void bctoolbox_DHMCreatePublic(bctoolbox_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
+	/* get the mbedtls context */
+	mbedtls_dhm_context *mbedtlsContext = (mbedtls_dhm_context *)context->cryptoModuleData;
+
+	/* allocate output buffer */
+	context->self = (uint8_t *)malloc(context->primeLength*sizeof(uint8_t));
+
+	mbedtls_dhm_make_public(mbedtlsContext, context->secretLength, context->self, context->primeLength, (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
+
+}
+
+/* compute secret - the ->peer field of context must have been set before calling this function */
+void bctoolbox_DHMComputeSecret(bctoolbox_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
+	size_t keyLength;
+
+	/* import the peer public value G^Y mod P in the mbedtls dhm context */
+	mbedtls_dhm_read_public((mbedtls_dhm_context *)(context->cryptoModuleData), context->peer, context->primeLength);
+
+	/* compute the secret key */
+	keyLength = context->primeLength; /* undocumented but this value seems to be in/out, so we must set it to the expected key length */
+	context->key = (uint8_t *)malloc(keyLength*sizeof(uint8_t)); /* allocate key buffer */
+	mbedtls_dhm_calc_secret((mbedtls_dhm_context *)(context->cryptoModuleData), context->key, keyLength*sizeof(uint8_t), &keyLength, (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
+}
+
+/* clean DHM context */
+void bctoolbox_DestroyDHMContext(bctoolbox_DHMContext_t *context) {
+	if (context!= NULL) {
+		free(context->secret);
+		free(context->self);
+		free(context->key);
+		free(context->peer);
+
+		mbedtls_dhm_free((mbedtls_dhm_context *)context->cryptoModuleData);
+		free(context->cryptoModuleData);
+
+		free(context);
+	}
+}
+
 /*** SSL Client ***/
 /*
  * Default profile used to configure ssl_context, allow 1024 bits keys(while mbedtls default is 2048)
@@ -1457,4 +1549,126 @@ int32_t bctoolbox_aes_gcm_finish(bctoolbox_aes_gcm_context_t *context,
 	bctoolbox_free(context);
 
 	return ret;
+}
+
+/*
+ * @brief Wrapper for AES-128 in CFB128 mode encryption
+ * Both key and IV must be 16 bytes long, IV is not updated
+ *
+ * @param[in]	key			encryption key, 128 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bctoolbox_aes128CfbEncrypt(const uint8_t key[16],
+		const uint8_t IV[16],
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output)
+{
+	uint8_t IVbuffer[16];
+	size_t iv_offset=0; /* is not used by us but needed and updated by mbedtls */
+	mbedtls_aes_context context;
+	memset (&context, 0, sizeof(mbedtls_aes_context));
+
+	/* make a local copy of IV which is modified by the mbedtls AES-CFB function */
+	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+
+	/* initialise the aes context and key */
+	mbedtls_aes_setkey_enc(&context, key, 128);
+
+	/* encrypt */
+	mbedtls_aes_crypt_cfb128 (&context, MBEDTLS_AES_ENCRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+}
+
+/*
+ * @brief Wrapper for AES-128 in CFB128 mode decryption
+ * Both key and IV must be 16 bytes long, IV is not updated
+ *
+ * @param[in]	key			decryption key, 128 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bctoolbox_aes128CfbDecrypt(const uint8_t key[16],
+		const uint8_t IV[16],
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output)
+{
+	uint8_t IVbuffer[16];
+	size_t iv_offset=0; /* is not used by us but needed and updated by mbedtls */
+	mbedtls_aes_context context;
+	memset (&context, 0, sizeof(mbedtls_aes_context));
+
+	/* make a local copy of IV which is modified by the mbedtls AES-CFB function */
+	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+
+	/* initialise the aes context and key - use the aes_setkey_enc function as requested by the documentation of aes_crypt_cfb128 function */
+	mbedtls_aes_setkey_enc(&context, key, 128);
+
+	/* encrypt */
+	mbedtls_aes_crypt_cfb128 (&context, MBEDTLS_AES_DECRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+}
+
+/*
+ * @brief Wrapper for AES-256 in CFB128 mode encryption
+ * The key must be 32 bytes long and the IV must be 16 bytes long, IV is not updated
+ *
+ * @param[in]	key			encryption key, 256 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bctoolbox_aes256CfbEncrypt(const uint8_t key[32],
+		const uint8_t IV[16],
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output)
+{
+	uint8_t IVbuffer[16];
+	size_t iv_offset=0;
+	mbedtls_aes_context context;
+
+	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+	memset (&context, 0, sizeof(mbedtls_aes_context));
+	mbedtls_aes_setkey_enc(&context, key, 256);
+
+	/* encrypt */
+	mbedtls_aes_crypt_cfb128 (&context, MBEDTLS_AES_ENCRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+}
+
+/*
+ * @brief Wrapper for AES-256 in CFB128 mode decryption
+ * The key must be 32 bytes long and the IV must be 16 bytes long, IV is not updated
+ *
+ * @param[in]	key			decryption key, 256 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bctoolbox_aes256CfbDecrypt(const uint8_t key[32],
+		const uint8_t IV[16],
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output)
+{
+	uint8_t IVbuffer[16];
+	size_t iv_offset=0;
+	mbedtls_aes_context context;
+
+	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+	memset (&context, 0, sizeof(mbedtls_aes_context));
+	mbedtls_aes_setkey_enc(&context, key, 256);
+
+	/* decrypt */
+	mbedtls_aes_crypt_cfb128 (&context, MBEDTLS_AES_DECRYPT, inputLength, &iv_offset, IVbuffer, input, output);
 }

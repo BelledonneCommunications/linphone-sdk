@@ -555,6 +555,97 @@ int32_t bctoolbox_x509_certificate_unset_flag(uint32_t *flags, uint32_t flags_to
 
 	return 0;
 }
+/*** Diffie-Hellman-Merkle  ***/
+/* initialise de DHM context according to requested algorithm */
+bctoolbox_DHMContext_t *bctoolbox_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength)
+{
+	dhm_context *polarsslDhmContext;
+
+	/* create the context */
+	bctoolbox_DHMContext_t *context = (bctoolbox_DHMContext_t *)malloc(sizeof(bctoolbox_DHMContext_t));
+	memset (context, 0, sizeof(bctoolbox_DHMContext_t));
+
+	/* create the polarssl context for DHM */
+	polarsslDhmContext=(dhm_context *)malloc(sizeof(dhm_context));
+	memset(polarsslDhmContext, 0, sizeof(dhm_context));
+	context->cryptoModuleData=(void *)polarsslDhmContext;
+
+	/* initialise pointer to NULL to ensure safe call to free() when destroying context */
+	context->secret = NULL;
+	context->self = NULL;
+	context->key = NULL;
+	context->peer = NULL;
+
+	/* set parameters in the context */
+	context->algo=DHMAlgo;
+	context->secretLength = secretLength;
+	switch (DHMAlgo) {
+		case BCTOOLBOX_DHM_2048:
+			/* set P and G in the polarssl context */
+			if ((mpi_read_string(&(polarsslDhmContext->P), 16, POLARSSL_DHM_RFC3526_MODP_2048_P) != 0) ||
+			(mpi_read_string(&(polarsslDhmContext->G), 16, POLARSSL_DHM_RFC3526_MODP_2048_G) != 0)) {
+				return NULL;
+			}
+			context->primeLength=256;
+			polarsslDhmContext->len=256;
+			break;
+		case BCTOOLBOX_DHM_3072:
+			/* set P and G in the polarssl context */
+			if ((mpi_read_string(&(polarsslDhmContext->P), 16, POLARSSL_DHM_RFC3526_MODP_3072_P) != 0) ||
+			(mpi_read_string(&(polarsslDhmContext->G), 16, POLARSSL_DHM_RFC3526_MODP_3072_G) != 0)) {
+				return NULL;
+			}
+			context->primeLength=384;
+			polarsslDhmContext->len=384;
+			break;
+		default:
+			free(context);
+			return NULL;
+			break;
+	}
+
+	return context;
+}
+
+/* generate the random secret and compute the public value */
+void bctoolbox_DHMCreatePublic(bctoolbox_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
+	/* get the polarssl context */
+	dhm_context *polarsslContext = (dhm_context *)context->cryptoModuleData;
+
+	/* allocate output buffer */
+	context->self = (uint8_t *)malloc(context->primeLength*sizeof(uint8_t));
+
+	dhm_make_public(polarsslContext, context->secretLength, context->self, context->primeLength, (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
+
+}
+
+/* compute secret - the ->peer field of context must have been set before calling this function */
+void bctoolbox_DHMComputeSecret(bctoolbox_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
+	size_t keyLength;
+
+	/* import the peer public value G^Y mod P in the polar ssl context */
+	dhm_read_public((dhm_context *)(context->cryptoModuleData), context->peer, context->primeLength);
+
+	/* compute the secret key */
+	keyLength = context->primeLength; /* undocumented but this value seems to be in/out, so we must set it to the expected key length */
+	context->key = (uint8_t *)malloc(keyLength*sizeof(uint8_t)); /* allocate key buffer */
+	dhm_calc_secret((dhm_context *)(context->cryptoModuleData), context->key, &keyLength, (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
+}
+
+/* clean DHM context */
+void bctoolbox_DestroyDHMContext(bctoolbox_DHMContext_t *context) {
+	if (context!= NULL) {
+		free(context->secret);
+		free(context->self);
+		free(context->key);
+		free(context->peer);
+
+		dhm_free((dhm_context *)context->cryptoModuleData);
+		free(context->cryptoModuleData);
+
+		free(context);
+	}
+}
 
 /*** SSL Client ***/
 /** context **/
@@ -1292,4 +1383,126 @@ int32_t bctoolbox_aes_gcm_finish(bctoolbox_aes_gcm_context_t *context,
 	bctoolbox_free(context);
 
 	return ret;
+}
+
+/*
+ * @brief Wrapper for AES-128 in CFB128 mode encryption
+ * Both key and IV must be 16 bytes long, IV is not updated
+ *
+ * @param[in]	key			encryption key, 128 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bctoolbox_aes128CfbEncrypt(const uint8_t key[16],
+		const uint8_t IV[16],
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output)
+{
+	uint8_t IVbuffer[16];
+	size_t iv_offset=0; /* is not used by us but needed and updated by polarssl */
+	aes_context context;
+	memset (&context, 0, sizeof(aes_context));
+
+	/* make a local copy of IV which is modified by the polar ssl AES-CFB function */
+	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+
+	/* initialise the aes context and key */
+	aes_setkey_enc(&context, key, 128);
+
+	/* encrypt */
+	aes_crypt_cfb128 (&context, AES_ENCRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+}
+
+/*
+ * @brief Wrapper for AES-128 in CFB128 mode decryption
+ * Both key and IV must be 16 bytes long, IV is not updated
+ *
+ * @param[in]	key			decryption key, 128 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bctoolbox_aes128CfbDecrypt(const uint8_t key[16],
+		const uint8_t IV[16],
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output)
+{
+	uint8_t IVbuffer[16];
+	size_t iv_offset=0; /* is not used by us but needed and updated by polarssl */
+	aes_context context;
+	memset (&context, 0, sizeof(aes_context));
+
+	/* make a local copy of IV which is modified by the polar ssl AES-CFB function */
+	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+
+	/* initialise the aes context and key - use the aes_setkey_enc function as requested by the documentation of aes_crypt_cfb128 function */
+	aes_setkey_enc(&context, key, 128);
+
+	/* encrypt */
+	aes_crypt_cfb128 (&context, AES_DECRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+}
+
+/*
+ * @brief Wrapper for AES-256 in CFB128 mode encryption
+ * The key must be 32 bytes long and the IV must be 16 bytes long, IV is not updated
+ *
+ * @param[in]	key			encryption key, 256 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bctoolbox_aes256CfbEncrypt(const uint8_t key[32],
+		const uint8_t IV[16],
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output)
+{
+	uint8_t IVbuffer[16];
+	size_t iv_offset=0;
+	aes_context context;
+
+	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+	memset (&context, 0, sizeof(aes_context));
+	aes_setkey_enc(&context, key, 256);
+
+	/* encrypt */
+	aes_crypt_cfb128 (&context, AES_ENCRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+}
+
+/*
+ * @brief Wrapper for AES-256 in CFB128 mode decryption
+ * The key must be 32 bytes long and the IV must be 16 bytes long, IV is not updated
+ *
+ * @param[in]	key			decryption key, 256 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+void bctoolbox_aes256CfbDecrypt(const uint8_t key[32],
+		const uint8_t IV[16],
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output)
+{
+	uint8_t IVbuffer[16];
+	size_t iv_offset=0;
+	aes_context context;
+
+	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+	memset (&context, 0, sizeof(aes_context));
+	aes_setkey_enc(&context, key, 256);
+
+	/* decrypt */
+	aes_crypt_cfb128 (&context, AES_DECRYPT, inputLength, &iv_offset, IVbuffer, input, output);
 }

@@ -27,6 +27,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BCTOOLBOX_PUBLIC
 #endif
 
+/* DHM settings defines */
+#define BCTOOLBOX_DHM_UNSET	0
+#define BCTOOLBOX_DHM_2048	1
+#define BCTOOLBOX_DHM_3072	2
+
 /* SSL settings defines */
 #define BCTOOLBOX_SSL_UNSET -1
 
@@ -319,6 +324,71 @@ BCTOOLBOX_PUBLIC uint8_t bctoolbox_dtls_srtp_supported(void);
 
 
 /*****************************************************************************/
+/***** Diffie-Hellman-Merkle key exchange                                *****/
+/*****************************************************************************/
+/**
+ * @brief Context for the Diffie-Hellman-Merkle key exchange
+ *	Use RFC3526 values for G and P
+ */
+typedef struct bctoolbox_DHMContext_struct {
+	uint8_t algo; /**< Algorithm used for the key exchange mapped to an int: BCTOOLBOX_DHM_2048, BCTOOLBOX_DHM_3072 */
+	uint16_t primeLength; /**< Prime number length in bytes(256 or 384)*/
+	uint8_t *secret; /**< the random secret (X), this field may not be used if the crypto module implementation already store this value in his context */
+	uint8_t secretLength; /**< in bytes */
+	uint8_t *key; /**< the key exchanged (G^Y)^X mod P */
+	uint8_t *self; /**< this side of the public exchange G^X mod P */
+	uint8_t *peer; /**< the other side of the public exchange G^Y mod P */
+	void *cryptoModuleData; /**< a context needed by the crypto implementation */
+}bctoolbox_DHMContext_t;
+
+/**
+ *
+ * @brief Create a context for the DHM key exchange
+ * 	This function will also instantiate the context needed by the actual implementation of the crypto module
+ *
+ * @param[in] DHMAlgo		The algorithm type(BCTOOLBOX_DHM_2048 or BCTOOLBOX_DHM_3072)
+ * @param[in] secretLength	The length in byte of the random secret(X).
+ *
+ * @return The initialised context for the DHM calculation(must then be freed calling the destroyDHMContext function), NULL on error
+ *
+ */
+BCTOOLBOX_PUBLIC bctoolbox_DHMContext_t *bctoolbox_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength);
+
+/**
+ *
+ * @brief Generate the private secret X and compute the public value G^X mod P
+ * G, P and X length have been set by previous call to DHM_CreateDHMContext
+ *
+ * @param[in/out] 	context		DHM context, will store the public value in ->self after this call
+ * @param[in] 		rngFunction	pointer to a random number generator used to create the secret X
+ * @param[in]		rngContext	pointer to the rng context if neeeded
+ *
+ */
+BCTOOLBOX_PUBLIC void bctoolbox_DHMCreatePublic(bctoolbox_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext);
+
+/**
+ *
+ * @brief Compute the secret key G^X^Y mod p
+ * G^X mod P has been computed in previous call to DHMCreatePublic
+ * G^Y mod P must have been set in context->peer
+ *
+ * @param[in/out] 	context		Read the public values from context, export the key to context->key
+ * @param[in]		rngFunction	Pointer to a random number generation function, used for blinding countermeasure, may be NULL
+ * @param[in]		rngContext	Pointer to the RNG function context
+ *
+ */
+BCTOOLBOX_PUBLIC void bctoolbox_DHMComputeSecret(bctoolbox_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext);
+
+/**
+ *
+ * @brief Clean DHM context
+ *
+ * @param	context	The context to deallocate
+ *
+ */
+BCTOOLBOX_PUBLIC void bctoolbox_DestroyDHMContext(bctoolbox_DHMContext_t *context);
+
+/*****************************************************************************/
 /***** Hashing                                                           *****/
 /*****************************************************************************/
 /**
@@ -424,7 +494,7 @@ BCTOOLBOX_PUBLIC int32_t bctoolbox_aes_gcm_encrypt_and_tag(const uint8_t *key, s
  * @param[in]	tagLength					Length in bytes for the authentication tag
  * @param[out]	output						Buffer holding the output, shall be at least the length of cipherText buffer
  *
- * @return 0 on succes, BCTOOLBOX_ERROR_AUTHENTICATION_FAILED if tag doesn't match or polarssl error code
+ * @return 0 on succes, BCTOOLBOX_ERROR_AUTHENTICATION_FAILED if tag doesn't match or crypto library error code
  */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
 		const uint8_t *cipherText, size_t cipherTextLength,
@@ -476,6 +546,75 @@ BCTOOLBOX_PUBLIC int32_t bctoolbox_aes_gcm_process_chunk(bctoolbox_aes_gcm_conte
  */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_aes_gcm_finish(bctoolbox_aes_gcm_context_t *context,
 		uint8_t *tag, size_t tagLength);
+
+
+/**
+ * @brief Wrapper for AES-128 in CFB128 mode encryption
+ * Both key and IV must be 16 bytes long
+ *
+ * @param[in]	key			encryption key, 128 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+BCTOOLBOX_PUBLIC void bctoolbox_aes128CfbEncrypt(const uint8_t *key,
+		const uint8_t *IV,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output);
+
+/**
+ * @brief Wrapper for AES-128 in CFB128 mode decryption
+ * Both key and IV must be 16 bytes long
+ *
+ * @param[in]	key			decryption key, 128 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+BCTOOLBOX_PUBLIC void bctoolbox_aes128CfbDecrypt(const uint8_t *key,
+		const uint8_t *IV,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output);
+
+/**
+ * @brief Wrapper for AES-256 in CFB128 mode encryption
+ * The key must be 32 bytes long and the IV must be 16 bytes long
+ *
+ * @param[in]	key			encryption key, 256 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+BCTOOLBOX_PUBLIC void bctoolbox_aes256CfbEncrypt(const uint8_t *key,
+		const uint8_t *IV,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output);
+
+/**
+ * @brief Wrapper for AES-256 in CFB128 mode decryption
+ * The key must be 32 bytes long and the IV must be 16 bytes long
+ *
+ * @param[in]	key			decryption key, 256 bits long
+ * @param[in]	IV			Initialisation vector, 128 bits long, is not modified by this function.
+ * @param[in]	input		Input data buffer
+ * @param[in]	inputLength	Input data length
+ * @param[out]	output		Output data buffer
+ *
+ */
+BCTOOLBOX_PUBLIC void bctoolbox_aes256CfbDecrypt(const uint8_t *key,
+		const uint8_t *IV,
+		const uint8_t *input,
+		size_t inputLength,
+		uint8_t *output);
 
 #ifdef __cplusplus
 }
