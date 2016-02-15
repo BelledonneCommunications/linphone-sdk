@@ -192,7 +192,7 @@ static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDevic
 	int err;
 
 	d->uidname = ms_strdup(uidname);
-	card->name = ms_strdup(name);
+	card->name = ms_strdup_printf("%s (%s)", name, uidname); /*include uid so that names are uniques*/
 	card->capabilities = cap;
 	
 	slen = sizeof(format);
@@ -258,7 +258,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 	AudioBufferList *buflist = ms_malloc(slen);
 
 	theAddress.mSelector =  kAudioDevicePropertyStreamConfiguration;
-		err = AudioObjectGetPropertyData(id
+	err = AudioObjectGetPropertyData(id
 				,&theAddress
 				,0
 				,NULL
@@ -283,7 +283,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 	
 	slen = sizeof(CFStringRef);
 	theAddress.mSelector =  kAudioDevicePropertyDeviceUID;
-		err = AudioObjectGetPropertyData(id
+	err = AudioObjectGetPropertyData(id
 				,&theAddress
 				,0
 				,NULL
@@ -296,7 +296,6 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 	}
 	CFStringGetCString(dUID, uidname, name_len,CFStringGetSystemEncoding());
 	ms_message("CA: devname:%s uidname:%s", devname, uidname);
-			
 	
 	return ret;
 }

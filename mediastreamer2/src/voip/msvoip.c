@@ -254,9 +254,9 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 void ms_factory_init_voip(MSFactory *obj){
 	MSSndCardManager *cm;
 	int i;
-	
+
 	if (obj->voip_initd) return;
-	
+
 	ms_srtp_init();
 
 	/* register builtin VoIP MSFilter's */
@@ -321,11 +321,11 @@ void ms_factory_uninit_voip(MSFactory *obj){
 		obj->wbcmanager = NULL;
 		ms_video_presets_manager_destroy(obj->video_presets_manager);
 #endif
+		ms_srtp_shutdown();
 		obj->voip_initd = FALSE;
 	}
-	ms_srtp_shutdown();
 }
-	
+
 MSFactory *ms_factory_new_with_voip(void){
 	MSFactory *f = ms_factory_new();
 	ms_factory_init_voip(f);
@@ -361,19 +361,17 @@ void ms_offer_answer_context_destroy(MSOfferAnswerContext *ctx){
 static int ms_voip_ref=0;
 void ms_voip_init(){
 	if (ms_voip_ref++ >0 ) {
-		ms_message ("Skiping ms_voip_init, because [%i] ref",ms_voip_ref);
+		ms_message ("Skipping ms_voip_init, because [%i] ref",ms_voip_ref);
 		return;
 	}
-	ms_srtp_init();
 	ms_factory_init_voip(ms_factory_get_fallback());
 }
 
 void ms_voip_exit(){
 	if (--ms_voip_ref >0 ) {
-		ms_message ("Skiping ms_voip_exit, still [%i] ref",ms_voip_ref);
+		ms_message ("Skipping ms_voip_exit, still [%i] ref",ms_voip_ref);
 		return;
 	}
-	ms_srtp_shutdown();
 	ms_factory_uninit_voip(ms_factory_get_fallback());
 }
 

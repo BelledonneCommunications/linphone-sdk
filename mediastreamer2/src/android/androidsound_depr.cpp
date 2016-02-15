@@ -485,13 +485,11 @@ static void sound_read_postprocess(MSFilter *f){
 		goto end;
 	}
 
-	if (d->aec) {
-		delete_hardware_echo_canceller(jni_env, d->aec);
-		d->aec = NULL;
-	}
-
 	d->started = false;
-	if (d->thread_id !=0) ms_thread_join(d->thread_id,0);
+	if (d->thread_id !=0 ){
+		ms_thread_join(d->thread_id,0);
+		d->thread_id = 0;
+	}
 
 	if (d->audio_record) {
 		jni_env->CallVoidMethod(d->audio_record,stop_id);
@@ -503,6 +501,10 @@ static void sound_read_postprocess(MSFilter *f){
 			goto end;
 		}
 		jni_env->CallVoidMethod(d->audio_record,release_id);
+	}
+	if (d->aec) {
+		delete_hardware_echo_canceller(jni_env, d->aec);
+		d->aec = NULL;
 	}
 	goto end;
 	end: {
@@ -820,7 +822,10 @@ void msandroid_sound_write_postprocess(MSFilter *f){
 	ms_mutex_lock(&d->mutex);
 	ms_cond_signal(&d->cond);
 	ms_mutex_unlock(&d->mutex);
-	ms_thread_join(d->thread_id,0);
+	if (d->thread_id != 0){
+		ms_thread_join(d->thread_id, NULL);
+		d->thread_id = 0;
+	}
 	// flush
 	flush_id = jni_env->GetMethodID(d->audio_track_class,"flush", "()V");
 	if(flush_id==0) {
