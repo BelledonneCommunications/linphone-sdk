@@ -68,7 +68,6 @@ option(ENABLE_RELATIVE_PREFIX "Find resources relatively to the installation dir
 option(ENABLE_TOOLS "Turn on or off compilation of tools." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 
-cmake_dependent_option(ENABLE_DTLS "Build with DTLS support." YES "ENABLE_SRTP" NO)
 option(ENABLE_SRTP "Build with the SRTP transport support." YES)
 cmake_dependent_option(ENABLE_ZRTP "Build with ZRTP support." YES "ENABLE_SRTP" NO)
 
@@ -150,7 +149,8 @@ if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 else()
 	find_package(ORTP REQUIRED)
 endif()
-find_package(PolarSSL)
+
+
 if(ENABLE_PCAP)
 	find_package(PCAP QUIET)
 endif()
@@ -175,7 +175,6 @@ if(ENABLE_SRTP)
 	if(NOT SRTP_FOUND)
 		message(WARNING "Could not find SRTP library, Mediastreamer2 will be compiled without SRTP support.")
 		set(ENABLE_SRTP OFF CACHE BOOL "Build with the SRTP transport support." FORCE)
-		set(ENABLE_DTLS OFF CACHE BOOL "Build mediastreamer2 with DTLS support." FORCE)
 	endif()
 endif()
 if(ENABLE_ZRTP)
@@ -187,16 +186,6 @@ if(ENABLE_ZRTP)
 	if(NOT BZRTP_FOUND)
 		message(WARNING "Could not find bzrtp library, mediastreamer2 will be compiled without ZRTP support.")
 		set(ENABLE_ZRTP OFF CACHE BOOL "Build mediastreamer2 with ZRTP support." FORCE)
-	endif()
-endif()
-if(ENABLE_DTLS AND ENABLE_SRTP) # DTLS requires SRTP
-	if(NOT POLARSSL_FOUND OR NOT HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
-		if (NOT POLARSSL_FOUND)
-			message(WARNING "Could not find polarssl library required by DTLS, mediastreamer2 will be compiled without DTLS support.")
-		else()
-			message(WARNING "Polarssl library was found but misses HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE required by DTLS, mediastreamer2 will be compiled without DTLS support.")
-		endif()
-		set(ENABLE_DTLS OFF CACHE BOOL "Build mediastreamer2 with DTLS support." FORCE)
 	endif()
 endif()
 if(ENABLE_GSM)
@@ -311,6 +300,11 @@ if(ENABLE_SOUND AND NOT(WIN32 OR ENABLE_ALSA OR ENABLE_ARTSC OR ENABLE_MACSND OR
 	message(FATAL_ERROR "Could not find a support sound driver API. Use -DENABLE_SOUND=NO if you don't care about having sound.")
 endif()
 
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
+else()
+	find_package(BcToolBox REQUIRED)
+endif()
 
 include_directories(
 	include
@@ -320,6 +314,7 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
 	${ORTP_INCLUDE_DIRS}
+	${BCTOOLBOX_INCLUDE_DIRS}
 )
 
 if(BZRTP_FOUND)
@@ -327,9 +322,6 @@ if(BZRTP_FOUND)
 endif()
 if(SRTP_FOUND)
 	include_directories(${SRTP_INCLUDE_DIRS})
-endif()
-if(POLARSSL_FOUND)
-	include_directories(${POLARSSL_INCLUDE_DIRS})
 endif()
 if(GSM_FOUND)
 	include_directories(${GSM_INCLUDE_DIRS})
@@ -411,9 +403,6 @@ if(SRTP_FOUND)
 endif()
 if(BZRTP_FOUND)
 	set(HAVE_ZRTP 1)
-endif()
-if(ENABLE_DTLS)
-	set(HAVE_DTLS 1)
 endif()
 if(ENABLE_ALSA)
 	set(__ALSA_ENABLED__ 1)
