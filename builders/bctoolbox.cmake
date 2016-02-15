@@ -20,13 +20,20 @@
 #
 ############################################################################
 
+set(EP_bctoolbox_GIT_REPOSITORY "git://git.linphone.org/bctoolbox.git" CACHE STRING "bctoolbox repository URL")
+set(EP_bctoolbox_GIT_TAG_LATEST "master" CACHE STRING "bctoolbox tag to use when compiling latest version")
+set(EP_bctoolbox_GIT_TAG "master" CACHE STRING "bctoolbox tag to use")
 set(EP_bctoolbox_EXTERNAL_SOURCE_PATHS "bctoolbox")
 set(EP_bctoolbox_GROUPABLE YES)
 
 set(EP_bctoolbox_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
 set(EP_bctoolbox_DEPENDENCIES )
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_bctoolbox_DEPENDENCIES EP_polarssl)
+	if (ENABLE_MBEDTLS)
+		list(APPEND EP_bctoolbox_DEPENDENCIES EP_mbedtls)
+	elseif (ENABLE_POLARSSL)
+		list(APPEND EP_bctoolbox_DEPENDENCIES EP_polarssl)
+	endif()
 endif()
 if(MSVC)
 	set(EP_bctoolbox_EXTRA_LDFLAGS "/SAFESEH:NO")

@@ -1,0 +1,20 @@
+diff -urN EP_soci/CMakeLists.txt EP_soci.mod/CMakeLists.txt
+--- EP_soci/CMakeLists.txt	2016-02-08 22:37:29.775133646 +0100
++++ EP_soci.mod/CMakeLists.txt	2016-02-08 22:39:44.963432447 +0100
+@@ -73,10 +73,12 @@
+ # Installation
+ ###############################################################################
+ 
+-if(APPLE OR CMAKE_SIZEOF_VOID_P EQUAL 4)
+-  set(SOCI_LIBDIR "lib")
+-else()
+-  set(SOCI_LIBDIR "lib64")
++if(NOT DEFINED SOCI_LIBDIR)
++  if(APPLE OR CMAKE_SIZEOF_VOID_P EQUAL 4)
++    set(SOCI_LIBDIR "lib")
++  else()
++    set(SOCI_LIBDIR "lib64")
++  endif()
+ endif()
+ 
+ set(BINDIR "bin" CACHE PATH "The directory to install binaries into.")
