@@ -402,7 +402,7 @@ typedef struct bctoolbox_aes_gcm_context_struct bctoolbox_aes_gcm_context_t;
  *
  * @return 0 on success, crypto library error code otherwise
  */
-int32_t bctoolbox_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
+BCTOOLBOX_PUBLIC int32_t bctoolbox_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
 		const uint8_t *plainText, size_t plainTextLength,
 		const uint8_t *authenticatedData, size_t authenticatedDataLength,
 		const uint8_t *initializationVector, size_t initializationVectorLength,
@@ -426,7 +426,7 @@ int32_t bctoolbox_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
  *
  * @return 0 on succes, BCTOOLBOX_ERROR_AUTHENTICATION_FAILED if tag doesn't match or polarssl error code
  */
-int32_t bctoolbox_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
+BCTOOLBOX_PUBLIC int32_t bctoolbox_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
 		const uint8_t *cipherText, size_t cipherTextLength,
 		const uint8_t *authenticatedData, size_t authenticatedDataLength,
 		const uint8_t *initializationVector, size_t initializationVectorLength,
@@ -446,7 +446,7 @@ int32_t bctoolbox_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
  *
  * @return 0 on success, crypto library error code otherwise
  */
-bctoolbox_aes_gcm_context_t *bctoolbox_aes_gcm_context_new(const uint8_t *key, size_t keyLength,
+BCTOOLBOX_PUBLIC bctoolbox_aes_gcm_context_t *bctoolbox_aes_gcm_context_new(const uint8_t *key, size_t keyLength,
 		const uint8_t *authenticatedData, size_t authenticatedDataLength,
 		const uint8_t *initializationVector, size_t initializationVectorLength,
 		const uint8_t mode);
@@ -461,7 +461,7 @@ bctoolbox_aes_gcm_context_t *bctoolbox_aes_gcm_context_new(const uint8_t *key, s
  *
  * @return 0 on success, crypto library error code otherwise
  */
-int32_t bctoolbox_aes_gcm_process_chunk(bctoolbox_aes_gcm_context_t *context,
+BCTOOLBOX_PUBLIC int32_t bctoolbox_aes_gcm_process_chunk(bctoolbox_aes_gcm_context_t *context,
 		const uint8_t *input, size_t inputLength,
 		uint8_t *output);
 
@@ -474,7 +474,7 @@ int32_t bctoolbox_aes_gcm_process_chunk(bctoolbox_aes_gcm_context_t *context,
  *
  * @return 0 on success, crypto library error code otherwise
  */
-int32_t bctoolbox_aes_gcm_finish(bctoolbox_aes_gcm_context_t *context,
+BCTOOLBOX_PUBLIC int32_t bctoolbox_aes_gcm_finish(bctoolbox_aes_gcm_context_t *context,
 		uint8_t *tag, size_t tagLength);
 
 #ifdef __cplusplus
