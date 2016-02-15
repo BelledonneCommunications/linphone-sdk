@@ -63,7 +63,7 @@ ms2_add_option("ISAC"  "ISAC audio encoding/decoding support." "${DEFAULT_VALUE_
 ms2_add_option("OPUS"  "OPUS audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_OPUS}")
 ms2_add_option("Silk"  "Silk audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_SILK}")
 ms2_add_option("Speex"  "Speex audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_SPEEX}")
-
+ms2_add_option("BV16"  "BroadVoice 16 audio encoding/decoding support." "${DEFAULT_VALUE_ENABLE_BV16}")
 #video options and codecs
 ms2_add_option("Video" "Ability to capture and display video." "${DEFAULT_VALUE_ENABLE_VIDEO}")
 # FFMpeg is LGPL which is an issue only for iOS applications; otherwise it can be used in proprietary software as well
