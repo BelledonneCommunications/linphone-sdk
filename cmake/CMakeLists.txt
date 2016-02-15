@@ -416,6 +416,15 @@ macro(linphone_builder_set_ep_directories PROJNAME)
 endmacro()
 
 
+macro(linphone_builder_set_ep_generator)
+	if(CMAKE_EXTRA_GENERATOR)
+		set(ep_generator "${CMAKE_EXTRA_GENERATOR} - ${CMAKE_GENERATOR}")
+	else()
+		set(ep_generator "${CMAKE_GENERATOR}")
+	endif()
+endmacro()
+
+
 macro(linphone_builder_create_autogen_command PROJNAME)
 	if(EP_${PROJNAME}_USE_AUTOGEN)
 		if(EP_${PROJNAME}_CONFIGURE_OPTIONS_PASSED_TO_AUTOGEN)
@@ -499,6 +508,7 @@ function(linphone_builder_add_external_project PROJNAME)
 	endif()
 
 	linphone_builder_set_ep_directories(${PROJNAME})
+	linphone_builder_set_ep_generator()
 	if(NOT EP_${PROJNAME}_DO_NOT_USE_CMAKE_FLAGS)
 		linphone_builder_apply_cmake_flags_to_autotools_project(${PROJNAME})
 	endif()
@@ -673,7 +683,7 @@ function(linphone_builder_add_external_project PROJNAME)
 		BINARY_DIR "${ep_build}"
 		${DOWNLOAD_SOURCE}
 		PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
-		CMAKE_GENERATOR ${CMAKE_GENERATOR}
+		CMAKE_GENERATOR ${ep_generator}
 		${BUILD_COMMANDS}
 	)
 
@@ -847,6 +857,7 @@ endfunction()
 macro(linphone_builder_add_dummy_libraries_generation)
 	if(LINPHONE_BUILDER_DUMMY_LIBRARIES)
 		linphone_builder_set_ep_directories(dummy_libraries)
+		linphone_builder_set_ep_generator()
 		linphone_builder_expand_external_project_vars()
 		ExternalProject_Add(EP_dummy_libraries
 			DEPENDS TARGET_linphone_builder
@@ -854,7 +865,7 @@ macro(linphone_builder_add_dummy_libraries_generation)
 			BINARY_DIR "${ep_build}"
 			SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/cmake/dummy_libraries"
 			DOWNLOAD_COMMAND ""
-			CMAKE_GENERATOR ${CMAKE_GENERATOR}
+			CMAKE_GENERATOR ${ep_generator}
 			CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DLINPHONE_BUILDER_DUMMY_LIBRARIES=${LINPHONE_BUILDER_DUMMY_LIBRARIES}
 		)
 	endif()
