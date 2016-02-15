@@ -221,10 +221,14 @@ belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int a
 
 #define BELLE_SIP_TLS_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_tls_channel_t)
 
-struct belle_tls_verify_policy{
+struct belle_tls_crypto_config{
 	belle_sip_object_t base;
-	char *root_ca;
-	int exception_flags;
+	char *root_ca; /**< path to the trusted certificate chain used when verifiying peer certificate */
+	int exception_flags; /**< override some exception raised during certificate verification, can be:
+						   BELLE_TLS_VERIFY_NONE do not override any exception
+						   BELLE_TLS_VERIFY_CN_MISMATCH ignore Common Name mismatch exception
+						   BELLE_TLS_VERIFY_ANY_REASON(ignore any exception */
+	void *ssl_config; /**< externally provided ssl configuration context, will be casted and given to the underlying crypto library, use only if you really know what you're doing */
 };
 
 #endif

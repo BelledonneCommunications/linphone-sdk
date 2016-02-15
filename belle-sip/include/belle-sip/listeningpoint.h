@@ -59,15 +59,13 @@ BELLESIP_EXPORT void belle_sip_listening_point_clean_channels(belle_sip_listenin
 BELLESIP_EXPORT int belle_sip_listening_point_get_channel_count(const belle_sip_listening_point_t *lp);
 BELLESIP_EXPORT int belle_sip_listening_point_get_well_known_port(const char *transport);
 
-/*deprecated*/
-BELLESIP_EXPORT int belle_sip_tls_listening_point_set_root_ca(belle_sip_tls_listening_point_t *s, const char *path);
+BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_sip_tls_listening_point_set_root_ca(belle_sip_tls_listening_point_t *s, const char *path);
 
-/*deprecated*/
 #define BELLE_SIP_TLS_LISTENING_POINT_BADCERT_CN_MISMATCH 	BELLE_TLS_VERIFY_CN_MISMATCH
 #define BELLE_SIP_TLS_LISTENING_POINT_BADCERT_ANY_REASON 	BELLE_TLS_VERIFY_ANY_REASON
-BELLESIP_EXPORT int belle_sip_tls_listening_point_set_verify_exceptions(belle_sip_tls_listening_point_t *s, int flags);
-
-BELLESIP_EXPORT int belle_sip_tls_listening_point_set_verify_policy(belle_sip_tls_listening_point_t *s, belle_tls_verify_policy_t *pol);
+BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_sip_tls_listening_point_set_verify_exceptions(belle_sip_tls_listening_point_t *s, int flags);
+BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_sip_tls_listening_point_set_verify_policy(belle_sip_tls_listening_point_t *s, belle_tls_verify_policy_t *pol);
+BELLESIP_EXPORT int belle_sip_tls_listening_point_set_crypto_config(belle_sip_tls_listening_point_t *s, belle_tls_crypto_config_t *crypto_config);
 
 BELLESIP_EXPORT belle_sip_listening_point_t * belle_sip_tunnel_listening_point_new(belle_sip_stack_t *s, void *tunnelclient);
 

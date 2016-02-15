@@ -198,11 +198,13 @@ int register_before_all(void) {
 	belle_sip_provider_add_listening_point(prov,lp);
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7061,"TLS");
 	if (lp) {
+		belle_tls_crypto_config_t *crypto_config=belle_tls_crypto_config_new();
 		/* since test.linphone.org does not have proper certificates, don't verify anything*/
-		belle_sip_tls_listening_point_set_verify_exceptions(BELLE_SIP_TLS_LISTENING_POINT(lp),BELLE_SIP_TLS_LISTENING_POINT_BADCERT_ANY_REASON);
+		belle_tls_crypto_config_set_verify_exceptions(crypto_config, BELLE_TLS_VERIFY_ANY_REASON);
 		if (belle_sip_tester_get_root_ca_path() != NULL) {
-			belle_sip_tls_listening_point_set_root_ca(BELLE_SIP_TLS_LISTENING_POINT(lp), belle_sip_tester_get_root_ca_path());
+			belle_tls_crypto_config_set_root_ca(crypto_config,belle_sip_tester_get_root_ca_path());
 		}
+		belle_sip_tls_listening_point_set_crypto_config(BELLE_SIP_TLS_LISTENING_POINT(lp), crypto_config);
 		belle_sip_provider_add_listening_point(prov,lp);
 	}
 
@@ -540,9 +542,7 @@ static void test_register_channel_inactive(void){
 static void test_register_client_authenticated(void) {
 	belle_sip_request_t *reg;
 	authorized_request=NULL;
-	/*we don't care to check sercer cert*/
-	belle_sip_tls_listening_point_set_verify_exceptions(	(belle_sip_tls_listening_point_t*)belle_sip_provider_get_listening_point(prov,"tls")
-															,BELLE_SIP_TLS_LISTENING_POINT_BADCERT_ANY_REASON);
+
 	reg=register_user_at_domain(stack, prov, "tls",1,"tester",client_auth_domain,client_auth_outbound_proxy);
 	if (authorized_request) {
 		unregister_user(stack,prov,authorized_request,1);

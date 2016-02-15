@@ -73,8 +73,8 @@ LOCAL_SRC_FILES := \
 	bodyhandler.c \
 	transports/stream_channel.c \
 	transports/stream_listeningpoint.c \
-	transports/tls_channel_polarssl.c \
-	transports/tls_listeningpoint_polarssl.c \
+	transports/tls_channel.c \
+	transports/tls_listeningpoint.c \
 	transports/udp_channel.c \
 	transports/udp_listeningpoint.c \
 	wakelock.c
@@ -97,12 +97,9 @@ LOCAL_CFLAGS += -DBELLE_SIP_DONT_CHECK_HEADERS_IN_MESSAGE
 endif
 
 LOCAL_STATIC_LIBRARIES := \
-	antlr3 
+	antlr3
 
-ifeq ($(BUILD_TLS),1)
-LOCAL_STATIC_LIBRARIES += polarssl
-LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../externals/polarssl/include
-LOCAL_CFLAGS += -DHAVE_POLARSSL=1
-endif
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../bctoolbox/include
+LOCAL_STATIC_LIBRARIES += bctoolbox
 
 include $(BUILD_STATIC_LIBRARY)	

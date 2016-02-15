@@ -18,16 +18,12 @@
 
 #include "belle_sip_internal.h"
 
-#ifdef HAVE_POLARSSL
-
-#include <polarssl/ssl.h>
-
 static void belle_sip_tls_listening_point_uninit(belle_sip_tls_listening_point_t *lp){
-	belle_sip_object_unref(lp->verify_ctx);
+	belle_sip_object_unref(lp->crypto_config);
 }
 
 static belle_sip_channel_t *tls_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop){
-	belle_sip_channel_t *chan=belle_sip_channel_new_tls(lp->stack, ((belle_sip_tls_listening_point_t*) lp)->verify_ctx
+	belle_sip_channel_t *chan=belle_sip_channel_new_tls(lp->stack, ((belle_sip_tls_listening_point_t*) lp)->crypto_config
 				,belle_sip_uri_get_host(lp->listening_uri)
 				,belle_sip_uri_get_port(lp->listening_uri)
 				,hop->cname
@@ -56,7 +52,7 @@ static int on_new_connection(void *userdata, unsigned int revents){
 	socklen_t slen=sizeof(addr);
 	belle_sip_tls_listening_point_t *lp=(belle_sip_tls_listening_point_t*)userdata;
 	belle_sip_stream_listening_point_t *super=(belle_sip_stream_listening_point_t*)lp;
-	
+
 	child=accept(super->server_sock,(struct sockaddr*)&addr,&slen);
 	if (child==(belle_sip_socket_t)-1){
 		belle_sip_error("Listening point [%p] accept() failed on TLS server socket: %s",lp,belle_sip_get_socket_error_string());
@@ -77,47 +73,31 @@ belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_
 #else
 	belle_sip_stream_listening_point_init((belle_sip_stream_listening_point_t*)lp,s,ipaddress,port);
 #endif /* ENABLE_SERVER_SOCKETS */
-	
-	lp->verify_ctx=belle_tls_verify_policy_new();
+
+	lp->crypto_config=belle_tls_crypto_config_new();
 
 	return BELLE_SIP_LISTENING_POINT(lp);
 }
 
 int belle_sip_tls_listening_point_set_root_ca(belle_sip_tls_listening_point_t *lp, const char *path){
-	return belle_tls_verify_policy_set_root_ca(lp->verify_ctx,path);
+	return belle_tls_crypto_config_set_root_ca(lp->crypto_config,path);
 }
 
 int belle_sip_tls_listening_point_set_verify_exceptions(belle_sip_tls_listening_point_t *lp, int flags){
-	belle_tls_verify_policy_set_exceptions(lp->verify_ctx,flags);
+	belle_tls_crypto_config_set_verify_exceptions(lp->crypto_config,flags);
 	return 0;
 }
 
 int belle_sip_tls_listening_point_set_verify_policy(belle_sip_tls_listening_point_t *s, belle_tls_verify_policy_t *pol){
-	SET_OBJECT_PROPERTY(s,verify_ctx,pol);
+	SET_OBJECT_PROPERTY(s,crypto_config,(belle_tls_crypto_config_t *)pol);
+	return 0;
+}
+
+int belle_sip_tls_listening_point_set_crypto_config(belle_sip_tls_listening_point_t *s, belle_tls_crypto_config_t *crypto_config){
+	SET_OBJECT_PROPERTY(s,crypto_config,crypto_config);
 	return 0;
 }
 
 int belle_sip_tls_listening_point_available(void){
 	return TRUE;
 }
-
-#else
-
-belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port){
-	return NULL;
-}
-
-int belle_sip_tls_listening_point_set_root_ca(belle_sip_tls_listening_point_t *s, const char *path){
-	return -1;
-}
-
-int belle_sip_tls_listening_point_set_verify_exceptions(belle_sip_tls_listening_point_t *s, int value){
-	return -1;
-}
-
-int belle_sip_tls_listening_point_available(void){
-	return FALSE;
-}
-
-#endif
-

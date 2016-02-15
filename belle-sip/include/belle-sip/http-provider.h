@@ -24,8 +24,18 @@
 BELLE_SIP_BEGIN_DECLS
 
 #define BELLE_SIP_HTTP_PROVIDER(obj)	BELLE_SIP_CAST(obj,belle_http_provider_t)
+/**
+ * Set the certificate verify policy for the TLS connection
+ * @return 0 on succes
+ * @deprecated Use belle_http_provider_set_tls_crypto_config() instead
+ */
+BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_http_provider_set_tls_verify_policy(belle_http_provider_t *obj, belle_tls_verify_policy_t *verify_ctx);
 
-BELLESIP_EXPORT int belle_http_provider_set_tls_verify_policy(belle_http_provider_t *obj, belle_tls_verify_policy_t *verify_ctx);
+/**
+ * Set the certificate crypto configuration used by this TLS connection
+ * @return 0 on succes
+ */
+BELLESIP_EXPORT int belle_http_provider_set_tls_crypto_config(belle_http_provider_t *obj, belle_tls_crypto_config_t *crypto_config);
 
 /**
  * Can be used to simulate network recv error, for tests.

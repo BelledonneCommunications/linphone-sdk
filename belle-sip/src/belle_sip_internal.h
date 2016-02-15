@@ -202,7 +202,7 @@ BELLE_SIP_DECLARE_VPTR(belle_http_request_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_response_t);
 BELLE_SIP_DECLARE_VPTR(belle_generic_uri_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_callbacks_t);
-BELLE_SIP_DECLARE_VPTR(belle_tls_verify_policy_t);
+BELLE_SIP_DECLARE_VPTR(belle_tls_crypto_config_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_header_authorization_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_event_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_supported_t);

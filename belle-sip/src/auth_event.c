@@ -80,28 +80,49 @@ belle_sip_auth_mode_t belle_sip_auth_event_get_mode(const belle_sip_auth_event_t
 }
 
 
-static void verify_policy_uninit(belle_tls_verify_policy_t *obj){
-	if (obj->root_ca) belle_sip_free(obj->root_ca);
-}
-
-BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_tls_verify_policy_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_tls_verify_policy_t,belle_sip_object_t,verify_policy_uninit,NULL,NULL,FALSE);
-
+/* deprecated on 2016/02/02 */
 belle_tls_verify_policy_t *belle_tls_verify_policy_new(){
-	belle_tls_verify_policy_t *obj=belle_sip_object_new(belle_tls_verify_policy_t);
-	
-	/*default to "system" default root ca, wihtout warranty...*/
-#ifdef __linux
-	belle_tls_verify_policy_set_root_ca(obj,"/etc/ssl/certs");
-#elif defined(__APPLE__)
-	belle_tls_verify_policy_set_root_ca(obj,"/opt/local/share/curl/curl-ca-bundle.crt");
-#elif __QNX__
-	belle_tls_verify_policy_set_root_ca(obj,"/var/certs/web_trusted@personal@certmgr");
-#endif
-	return obj;
+	return (belle_tls_verify_policy_t *)belle_tls_crypto_config_new();
 }
 
 int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj, const char *path){
+	return belle_tls_crypto_config_set_root_ca(obj, path);
+}
+
+void belle_tls_verify_policy_set_exceptions(belle_tls_verify_policy_t *obj, int flags){
+	belle_tls_crypto_config_set_verify_exceptions(obj, flags);
+}
+
+unsigned int belle_tls_verify_policy_get_exceptions(const belle_tls_verify_policy_t *obj){
+	return belle_tls_crypto_config_get_verify_exceptions(obj);
+}
+/* end of deprecated on 2016/02/02 */
+
+static void crypto_config_uninit(belle_tls_crypto_config_t *obj){
+	if (obj->root_ca) belle_sip_free(obj->root_ca);
+}
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_tls_crypto_config_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_tls_crypto_config_t,belle_sip_object_t,crypto_config_uninit,NULL,NULL,FALSE);
+
+belle_tls_crypto_config_t *belle_tls_crypto_config_new(void){
+	belle_tls_crypto_config_t *obj=belle_sip_object_new(belle_tls_crypto_config_t);
+	
+	/*default to "system" default root ca, wihtout warranty...*/
+#ifdef __linux
+	belle_tls_crypto_config_set_root_ca(obj,"/etc/ssl/certs");
+#elif defined(__APPLE__)
+	belle_tls_crypto_config_set_root_ca(obj,"/opt/local/share/curl/curl-ca-bundle.crt");
+#elif __QNX__
+	belle_tls_crypto_config_set_root_ca(obj,"/var/certs/web_trusted@personal@certmgr");
+#endif
+	obj->ssl_config = NULL;
+	obj->exception_flags = BELLE_TLS_VERIFY_NONE;
+
+	return obj;
+}
+
+int belle_tls_crypto_config_set_root_ca(belle_tls_crypto_config_t *obj, const char *path){
 	if (obj->root_ca){
 		belle_sip_free(obj->root_ca);
 		obj->root_ca=NULL;
@@ -115,11 +136,15 @@ int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj, const ch
 	return 0;
 }
 
-void belle_tls_verify_policy_set_exceptions(belle_tls_verify_policy_t *obj, int flags){
+void belle_tls_crypto_config_set_verify_exceptions(belle_tls_crypto_config_t *obj, int flags){
 	obj->exception_flags=flags;
 }
 
-unsigned int belle_tls_verify_policy_get_exceptions(const belle_tls_verify_policy_t *obj){
+unsigned int belle_tls_crypto_config_get_verify_exceptions(const belle_tls_crypto_config_t *obj){
 	return obj->exception_flags;
+}
+
+void belle_tls_crypto_config_set_ssl_config(belle_tls_crypto_config_t *obj, void *ssl_config) {
+	obj->ssl_config = ssl_config;
 }
 
