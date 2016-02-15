@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <bv16/bv16cnst.h>
 #include <bv16/bvcommon.h>
 #include <bv16/bv16strct.h>
+#include <bv16/bitpack.h>
 #include <bv16/bv16.h>
 
 
@@ -35,12 +36,15 @@ typedef struct EncState{
 	uint32_t ts; // timestamp
 	int ptime;
 	int maxptime;
+	int nsamples;
+	int frame_size;
+	int size_samples;
 	MSBufferizer *bufferizer;
 } EncState;
 
 static int set_ptime(MSFilter *f, int ptime){
 	 EncState *s=(EncState*)f->data;
-	 if (ptime<10 || ptime>140) return -1;
+	 if (ptime<5 || ptime>140) return -1;
 	 s->ptime = ptime;
 	 ms_message("MSBV16Enc: got ptime=%i using [%i]",ptime,s->ptime);
 	return 0;
@@ -78,10 +82,13 @@ static void enc_init(MSFilter *f){
 	EncState *s=(EncState *)ms_new(EncState,1);
 	Reset_BV16_Encoder(&(s->state));
 	s->ts=0;
+	s->nsamples = FRSZ ;
+	s->size_samples =  FRSZ * sizeof(short);
 	s->ptime=0;
 	s->maxptime = 0;
 	s->bufferizer=ms_bufferizer_new();
 	f->data=s;
+	s->frame_size = 0;
 }
 
 static void enc_uninit(MSFilter *f){
@@ -93,29 +100,66 @@ static void enc_uninit(MSFilter *f){
 
 
 static void enc_process(MSFilter *f){
-//	 EncState *s=(EncState*)f->data;
-//	 mblk_t *im;
-//	 unsigned int unitary_buff_size = sizeof(int16_t)*160;
-//	 unsigned int buff_size = unitary_buff_size*s->ptime/20;
-//	 int16_t* buff;
-//	 unsigned int offset;
-//	
-//	 while((im=ms_queue_get(f->inputs[0]))!=NULL){
-//	 	ms_bufferizer_put(s->bufferizer,im);
-//	 }
-//	 while(ms_bufferizer_get_avail(s->bufferizer) >= buff_size) {
-//	 	mblk_t *om=allocb((33*s->ptime)/20,0);
-//	 	buff = (int16_t *)alloca(buff_size);
-//	 	ms_bufferizer_read(s->bufferizer,(uint8_t*)buff,buff_size);
-//		
-//	 	for (offset=0;offset<buff_size;offset+=unitary_buff_size) {
-//	 		bv16_encode(s->state,(bv16_signal*)&buff[offset/sizeof(int16_t)],(bv16_byte*)om->b_wptr);
-//	 		om->b_wptr+=33;
-//	 	}
-//	 	ms_bufferizer_fill_current_metas(s->bufferizer, om);
-//	 	mblk_set_timestamp_info(om,s->ts);
-//	 	ms_queue_put(f->outputs[0],om);
-//	 	s->ts+=buff_size/sizeof(int16_t)/*sizeof(buf)/2*/;
+	const int max_size_for_ptime = FRSZ*28;
+	short    x[max_size_for_ptime];
+	short samples[FRSZ];
+	EncState *s=(EncState*)f->data;
+	struct	BV16_Bit_Stream bs;
+	int size=s->nsamples;
+	//UWord8 PackedStream[10];
+
+	mblk_t *im, *om;
+
+	int nbytes;
+	int i;
+	int frame_per_packet=1;
+
+	for (i=0;i<max_size_for_ptime;i++) x[i] = 0; 
+
+	if (s->frame_size<=0)
+		return;
+
+	ms_filter_lock(f);
+
+	if (s->ptime>=5)
+	{
+		frame_per_packet = s->ptime/5;
+	}
+
+	if (frame_per_packet<=0)
+		frame_per_packet=1;
+	if (frame_per_packet>28) /* 28*5 == 140 ms max */
+		frame_per_packet=28;
+
+	/* 10 bytes per frame */
+	nbytes=s->frame_size*10;
+
+	while((im=ms_queue_get(f->inputs[0]))!=NULL){
+		ms_bufferizer_put(s->bufferizer,im);
+	}
+	
+	while(ms_bufferizer_read(s->bufferizer,(uint8_t*)x,size*frame_per_packet)==(size*frame_per_packet)){
+		int k;
+		om=allocb(nbytes*frame_per_packet,0);
+		for (k=0;k<frame_per_packet;k++)
+		{
+			for (i=0;i<s->nsamples;i++){
+				x[i]=samples[i+(s->nsamples*k)];
+			}
+			BV16_Encode(&bs, &s->state, x);
+			BV16_BitPack( (UWord8*)om->b_wptr, &bs );
+			om->b_wptr+=nbytes;
+		}
+		//s->ts+=s->nsamples*frame_per_packet;
+		s->ts += 5; //timestamp + 5ms
+		mblk_set_timestamp_info(om,s->ts);
+		ms_bufferizer_fill_current_metas(s->bufferizer,om);
+		ms_queue_put(f->outputs[0],om);
+	}
+
+		
+	ms_filter_unlock(f);
+
 
 }
 
