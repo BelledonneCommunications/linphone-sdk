@@ -43,6 +43,7 @@ include(CheckLibraryExists)
 include(CheckSymbolExists)
 include(CheckCSourceCompiles)
 include(CMakePushCheckState)
+include(GNUInstallDirs)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -81,7 +82,7 @@ if(POLARSSL_FOUND)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bctoolbox.pc.in ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc DESTINATION lib/pkgconfig)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 
 include_directories(
@@ -172,7 +173,7 @@ configure_file(cmake/BcToolboxConfig.cmake.in
 	@ONLY
 )
 
-set(ConfigPackageLocation lib/cmake/BcToolbox)
+set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/BcToolbox)
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BcToolboxTargets.cmake
 	DESTINATION ${ConfigPackageLocation}
