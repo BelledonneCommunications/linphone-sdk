@@ -86,7 +86,7 @@ static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtc
 			mp = allocb(len, BPRI_MED);
 			memcpy(mp->b_wptr, buf, len);
 			mp->b_wptr += len;
-			ms_message("Stun packet sent  on rtcp for session [%p]",s);
+			ms_message("Stun packet sent on rtcp for session [%p]",s);
 			rtp_session_rtcp_sendm_raw(s,mp);
 		}
 	}

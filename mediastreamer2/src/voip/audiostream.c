@@ -195,8 +195,8 @@ static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resample
 	ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&to_rate);
 	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
-	ms_message("configuring %s-->%s from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
-			   from->desc->name, to->desc->name, from_rate, to_rate, from_channels, to_channels);
+	ms_message("configuring %s:%p-->%s:%p from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
+			   from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels);
 }
 
 static void audio_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
@@ -824,7 +824,6 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	} else {
 		stream->soundread=ms_factory_create_filter(stream->ms.factory, MS_FILE_PLAYER_ID);
 		stream->read_resampler=ms_factory_create_filter(stream->ms.factory, MS_RESAMPLE_ID);
-
 	}
 	if (io->output.type == MSResourceSoundcard) {
 		if (stream->soundwrite==NULL)
@@ -834,14 +833,10 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		pt = rtp_profile_get_payload(rtp_session_get_profile(stream->rtp_io_session),
 			rtp_session_get_send_payload_type(stream->rtp_io_session));
 		stream->soundwrite = ms_factory_create_filter(stream->ms.factory, MS_RTP_SEND_ID);
-
 		ms_filter_call_method(stream->soundwrite, MS_RTP_SEND_SET_SESSION, stream->rtp_io_session);
-
-		stream->write_encoder = ms_factory_create_decoder(stream->ms.factory,pt->mime_type);
-
+		stream->write_encoder = ms_factory_create_encoder(stream->ms.factory,pt->mime_type);
 	} else {
 		stream->soundwrite=ms_factory_create_filter(stream->ms.factory, MS_FILE_REC_ID);
-
 	}
 
 	/* creates the couple of encoder/decoder */
@@ -1059,10 +1054,14 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 	/*configure resamplers if needed*/
 	if (stream->read_resampler) {
-		audio_stream_configure_resampler(stream, stream->read_resampler, stream->soundread, stream->ms.encoder);
+		MSFilter *from = stream->soundread;
+		if (stream->read_decoder) from = stream->read_decoder;
+		audio_stream_configure_resampler(stream, stream->read_resampler, from, stream->ms.encoder);
 	}
 	if (stream->write_resampler) {
-		audio_stream_configure_resampler(stream, stream->write_resampler, stream->ms.decoder, stream->soundwrite);
+		MSFilter *to = stream->soundwrite;
+		if (stream->write_encoder) to = stream->write_encoder;
+		audio_stream_configure_resampler(stream, stream->write_resampler, stream->ms.decoder, to);
 	}
 
 	if (stream->ms.rc_enable){

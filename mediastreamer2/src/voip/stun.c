@@ -118,6 +118,7 @@
 #include "mediastreamer2/stun_udp.h"
 #include "mediastreamer2/stun.h"
 #include "ortp/ortp.h"
+#include "bctoolbox/crypto.h"
 
 static char *ipaddr(const StunAddress4 *addr)
 {
@@ -1328,25 +1329,6 @@ randomPort(void)
 }
 
 
-#ifndef HAVE_POLARSSL_SSL_H
-void
-stunCalculateIntegrity_longterm(char* hmac, const char* input, int length,
-					 const char *username, const char *realm, const char *password)
-{
-   strncpy(hmac,"hmac-not-implemented",20);
-   ms_error("hmac-not-implemented for stun, mediastreamer2 needs polarssl dependency");
-}
-void
-stunCalculateIntegrity_shortterm(char* hmac, const char* input, int length, const char* key)
-{
-   strncpy(hmac,"hmac-not-implemented",20);
-   ms_error("hmac-not-implemented for stun, mediastreamer2 needs polarssl dependency");
-}
-
-#else
-#include "polarssl/sha1.h"
-#include "polarssl/md5.h"
-
 void
 stunCalculateIntegrity_longterm(char* hmac, const char* input, int length,
 					 const char *username, const char *realm, const char *password)
@@ -1355,22 +1337,20 @@ stunCalculateIntegrity_longterm(char* hmac, const char* input, int length,
    char HA1_text[1024];
 
    snprintf(HA1_text, sizeof(HA1_text), "%s:%s:%s", username, realm, password);
-   md5((unsigned char *)HA1_text, strlen(HA1_text), HA1);
+   bctoolbox_md5((unsigned char *)HA1_text, strlen(HA1_text), HA1);
 
-   sha1_hmac(HA1, sizeof(HA1),
+   bctoolbox_hmacSha1(HA1, sizeof(HA1),
 		(const unsigned char*) input, length,
-		(unsigned char*)hmac);
+		20, (unsigned char*)hmac); /* SHA1 output length is 20 bytes, get them all */
 }
 
 void
 stunCalculateIntegrity_shortterm(char* hmac, const char* input, int length, const char* key)
 {
-   sha1_hmac((const unsigned char *)key, strlen(key),
+   bctoolbox_hmacSha1((const unsigned char *)key, strlen(key),
 		(const unsigned char*) input, length,
-		(unsigned char*)hmac);
+		20, (unsigned char*)hmac); /* SHA1 output length is 20 bytes, get them all */
 }
-
-#endif
 
 uint32_t
 stunCalculateFingerprint(const char* input, int length)

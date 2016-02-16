@@ -57,7 +57,7 @@ libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(PCAP_LIBS) \
 					$(OPUS_LIBS) \
 					$(SRTP_LIBS) \
-					$(POLARSSL_LIBS)
+					$(BCTOOLBOX_LIBS)
 
 
 if LIBBZRTP
@@ -398,7 +398,7 @@ AM_CFLAGS=\
 	$(PCAP_CFLAGS) \
 	$(OPUS_CFLAGS) \
 	$(SRTP_CFLAGS) \
-	$(POLARSSL_CFLAGS)
+	$(BCTOOLBOX_CFLAGS)
 
 AM_CXXFLAGS=\
 	$(STRICT_OPTIONS) \
