@@ -65,6 +65,10 @@ return 0;
 }"
 		X509PARSE_CRTPATH_OK)
 	check_symbol_exists(ssl_get_dtls_srtp_protection_profile "polarssl/ssl.h" HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
+	check_symbol_exists(ctr_drbg_free "polarssl/ctr_drbg.h" HAVE_CTR_DRBG_FREE)
+	if (NOT HAVE_CTR_DRBG_FREE)
+  		message(FATAL_ERROR "Requires polarssl/mbedtls version >=1.3.8")
+	endif()
 	cmake_pop_check_state()
 endif()
 
