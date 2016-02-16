@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ############################################################################
-# prepare.py
+# digest-response.py
 # Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################

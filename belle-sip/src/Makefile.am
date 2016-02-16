@@ -35,8 +35,8 @@ libbellesip_la_SOURCES=	\
 			transports/stream_channel.c \
 			transports/stream_channel.h \
 			transports/stream_listeningpoint.c \
-			transports/tls_listeningpoint_polarssl.c \
-			transports/tls_channel_polarssl.c \
+			transports/tls_listeningpoint.c \
+			transports/tls_channel.c \
 			refresher.c \
 			dns.c dns.h \
 			belle_sip_dict.c \

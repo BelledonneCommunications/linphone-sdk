@@ -234,53 +234,10 @@ AC_ARG_ENABLE(	tls,
 		*) AC_MSG_ERROR(bad value ${enableval} for --enable-tls) ;;
 		esac],[use_tls=true])
 
-AC_ARG_WITH( polarssl,
-      [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr, /usr/local)[default=PREFIX] ],
-      [ polarssl_prefix=${withval}],[ polarssl_prefix=${prefix} ])
-
-if test "$polarssl_prefix" != "NONE" && test "$polarssl_prefix" != "/usr"; then
-	POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
-	POLARSSL_LIBS="-L${polarssl_prefix}/lib"
-fi
-
-found_polarssl=no
-
-if test "$use_tls" = "true" ; then
-	CPPFLAGS_save=$CPPFLAGS
-	LIBS_save=$LIBS
-
-	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
-	LIBS="$LIBS $POLARSSL_LIBS"
-	AC_CHECK_LIB(mbedtls, ssl_init , [POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"],
-					[AC_CHECK_LIB(polarssl, ssl_init, [POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"])])
-	LIBS="$LIBS $POLARSSL_LIBS" #to add right -l
-	AC_CHECK_HEADERS(polarssl/ssl.h,
-		[
-		AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-			#include <polarssl/version.h>
-			#include <polarssl/x509.h>
-			#if POLARSSL_VERSION_NUMBER >= 0x01030000
-			#include <polarssl/compat-1.2.h>
-			#endif
-			]],
-                      	[[x509parse_crtpath(0,0)]])]
-			,[found_polarssl=yes
-			AC_MSG_NOTICE([polarssl usable])]
-			,[AC_MSG_ERROR([polarssl not found or usable but TLS support required.])])
-
-		])
-	CPPFLAGS=$CPPFLAGS_save
-	LIBS=$LIBS_save
-fi
-
-AM_CONDITIONAL([BUILD_TLS], [test "x$found_polarssl" = "xyes"])
-TLS_CFLAGS=""
-TLS_LIBS=""
-TLS_PC=""
-if test "x$found_polarssl" = "xyes" ; then
-	AC_DEFINE(HAVE_POLARSSL,1,[Defined when polarssl api is available])
-	TLS_CFLAGS=$POLARSSL_CFLAGS
-	TLS_LIBS=$POLARSSL_LIBS
+PKG_CHECK_MODULES(BCTOOLBOX, bctoolbox, [found_bctoolbox=yes],[found_bctoolbox=no])
+if test "x$found_bctoolbox" = "xyes" ; then
+	TLS_CFLAGS=$BCTOOLBOX_CFLAGS
+	TLS_LIBS=$BCTOOLBOX_LIBS
 fi
 AC_SUBST(TLS_CFLAGS)
 AC_SUBST(TLS_LIBS)

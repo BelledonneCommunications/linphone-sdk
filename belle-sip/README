@@ -22,9 +22,9 @@ Commercial licensing can be purchased for that purpose from [Belledonne Communic
 * pkg-config
 * libantlr3c-3.2 or 3.4
 * antlr3-3.4
+* bctoolbox (see below)
 * C++ compiler (for instance g++ or clang++)
 * (optional) CUnit
-* (optional) polarssl >= 1.2 (see below)
 
 #### Under Debian/Ubuntu
 
@@ -48,12 +48,10 @@ Commercial licensing can be purchased for that purpose from [Belledonne Communic
  * open belle-sip/build/windows/belle-sip-tester/belle-sip-tester.sln or belle-sip/build/windows/belle-sip/belle-sip.sln
  * Build the solution (antlr3 and cunit are built automatically)
 
-#### Building polarssl
+#### Building bctoolbox
 
-Polarssl build system is Make (or Cmake).
-To build the shared library version, use `make SHARED=1 DEBUG=1`, followed by `make install`.
-We maintain a branch of polarssl with automake/autoconf/libtool support at
-git://git.linphone.org/polarssl.git -b linphone
+bctoolbox build system is Cmake only, but provides pkg-config file for integration with autotools.
+git://git.linphone.org/bctoolbox.git 
 
 
 #### Known issues
