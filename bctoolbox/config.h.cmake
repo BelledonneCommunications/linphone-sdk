@@ -30,3 +30,4 @@
 #cmakedefine VERSION "@VERSION@"
 
 #cmakedefine HAVE_DTLS_SRTP
+#cmakedefine HAVE_CTR_DRGB_FREE

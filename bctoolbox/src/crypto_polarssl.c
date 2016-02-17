@@ -112,7 +112,10 @@ int32_t bctoolbox_rng_get(bctoolbox_rng_context_t *context, unsigned char*output
 }
 
 void bctoolbox_rng_context_free(bctoolbox_rng_context_t *context) {
+/* ctr_drg_free function is available from polarssl1.3.8 but we want to support previous versions */
+#ifdef HAVE_CTR_DRGB_FREE
 	ctr_drbg_free(&(context->ctr_drbg));
+#endif
 	entropy_free(&(context->entropy));
 	bctoolbox_free(context);
 }
@@ -315,7 +318,10 @@ int32_t bctoolbox_x509_certificate_generate_selfsigned(const char *subject, bcto
 	}
 
 	x509write_crt_free(&crt);
+/* ctr_drg_free function is available from polarssl1.3.8 but we want to support previous versions */
+#ifdef HAVE_CTR_DRGB_FREE
 	ctr_drbg_free(&ctr_drbg);
+#endif
 	entropy_free(&entropy);
 
 	/* copy the key+cert in pem format into the given buffer */
