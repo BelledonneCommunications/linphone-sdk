@@ -576,7 +576,7 @@ static void subscribe_base(int with_resource_lists) {
 	begin = belle_sip_time_ms();
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,3,4000));
 	end = belle_sip_time_ms();
-	BC_ASSERT_TRUE(end-begin>=3000);
+	BC_ASSERT_TRUE(end-begin>=3000*.9);
 	BC_ASSERT_TRUE(end-begin<5000);
 	
 	belle_sip_message("simulating dialog error and recovery");
