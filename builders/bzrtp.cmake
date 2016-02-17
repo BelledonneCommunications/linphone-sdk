@@ -27,13 +27,10 @@ set(EP_bzrtp_EXTERNAL_SOURCE_PATHS "bzrtp")
 set(EP_bzrtp_GROUPABLE YES)
 
 set(EP_bzrtp_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
-set(EP_bzrtp_DEPENDENCIES )
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-	list(APPEND EP_bzrtp_DEPENDENCIES EP_polarssl)
-	if(NOT IOS)
-		# Do not build xml2 on IOS, it is provided by the system
-		list(APPEND EP_bzrtp_DEPENDENCIES EP_xml2)
-	endif()
+set(EP_bzrtp_DEPENDENCIES EP_bctoolbox)
+if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT IOS)
+	# Do not build xml2 on IOS, it is provided by the system
+	list(APPEND EP_bzrtp_DEPENDENCIES EP_xml2)
 endif()
 if(MSVC)
 	set(EP_bzrtp_EXTRA_LDFLAGS "/SAFESEH:NO")
@@ -46,3 +43,4 @@ set(EP_bzrtp_CMAKE_OPTIONS "-DENABLE_TESTS=${ENABLE_UNIT_TESTS}")
 if(ENABLE_UNIT_TESTS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	list(APPEND EP_bzrtp_DEPENDENCIES EP_cunit)
 endif()
+

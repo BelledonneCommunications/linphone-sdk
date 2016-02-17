@@ -181,19 +181,42 @@ endfunction()
 macro(linphone_builder_create_targets_list)
 	set(LINPHONE_BUILDER_TARGETS )
 	if(LINPHONE_BUILDER_TARGET STREQUAL "belle-sip")
-		list(APPEND LINPHONE_BUILDER_TARGETS "belle-sip")
+		list(APPEND LINPHONE_BUILDER_TARGETS "belle-sip" "bctoolbox")
 	elseif(LINPHONE_BUILDER_TARGET STREQUAL "ortp")
 		list(APPEND LINPHONE_BUILDER_TARGETS "ortp")
 	elseif(LINPHONE_BUILDER_TARGET STREQUAL "ms2")
-		list(APPEND LINPHONE_BUILDER_TARGETS "ortp" "ms2")
+		list(APPEND LINPHONE_BUILDER_TARGETS "ortp" "ms2" "bctoolbox")
 	elseif(LINPHONE_BUILDER_TARGET STREQUAL "ms2-plugins")
 		list(APPEND LINPHONE_BUILDER_TARGETS "ortp" "ms2" "ms2-plugins")
 	elseif(LINPHONE_BUILDER_TARGET STREQUAL "linphone")
-		list(APPEND LINPHONE_BUILDER_TARGETS "belle-sip" "ortp" "ms2" "ms2-plugins" "linphone")
+		list(APPEND LINPHONE_BUILDER_TARGETS "belle-sip" "ortp" "ms2" "ms2-plugins" "bctoolbox" "linphone")
 	elseif(LINPHONE_BUILDER_TARGET STREQUAL "flexisip")
 		list(APPEND LINPHONE_BUILDER_TARGETS "ortp" "flexisip")
 	elseif(LINPHONE_BUILDER_TARGET STREQUAL "odb")
 		list(APPEND LINPHONE_BUILDER_TARGETS "odb" )
+	elseif(LINPHONE_BUILDER_TARGET STREQUAL "bctoolbox")
+		list(APPEND LINPHONE_BUILDER_TARGETS "bctoolbox" )
+	else()
+		message(FATAL_ERROR "Invalid LINPHONE_BUILDER_TARGET '${LINPHONE_BUILDER_TARGET}'")
+	endif()
+endmacro()
+
+
+macro(linphone_builder_include_builder BUILDER)
+	list(FIND LINPHONE_BUILDER_INCLUDED_BUILDERS ${BUILDER} _already_included)
+	if(_already_included EQUAL -1)
+		message(STATUS "Including builder ${BUILDER}")
+		include(${CMAKE_CURRENT_SOURCE_DIR}/builders/${BUILDER}.cmake)
+		list(APPEND LINPHONE_BUILDER_INCLUDED_BUILDERS ${BUILDER})
+	endif()
+	unset(_already_included)
+endmacro()
+
+
+macro(linphone_builder_add_builder_to_target TARGETNAME BUILDER)
+	linphone_builder_include_builder(${BUILDER})
+	if(LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH AND (LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS OR LINPHONE_BUILDER_BUILD_ONLY_EXTERNAL_SOURCE_PATH))
+		foreach(SUBDIR ${EP_${BUILDER}_EXTERNAL_SOURCE_PATHS})
 	else()
 		message(FATAL_ERROR "Invalid LINPHONE_BUILDER_TARGET '${LINPHONE_BUILDER_TARGET}'")
 	endif()
@@ -393,6 +416,15 @@ macro(linphone_builder_set_ep_directories PROJNAME)
 endmacro()
 
 
+macro(linphone_builder_set_ep_generator)
+	if(CMAKE_EXTRA_GENERATOR)
+		set(ep_generator "${CMAKE_EXTRA_GENERATOR} - ${CMAKE_GENERATOR}")
+	else()
+		set(ep_generator "${CMAKE_GENERATOR}")
+	endif()
+endmacro()
+
+
 macro(linphone_builder_create_autogen_command PROJNAME)
 	if(EP_${PROJNAME}_USE_AUTOGEN)
 		if(EP_${PROJNAME}_CONFIGURE_OPTIONS_PASSED_TO_AUTOGEN)
@@ -476,6 +508,7 @@ function(linphone_builder_add_external_project PROJNAME)
 	endif()
 
 	linphone_builder_set_ep_directories(${PROJNAME})
+	linphone_builder_set_ep_generator()
 	if(NOT EP_${PROJNAME}_DO_NOT_USE_CMAKE_FLAGS)
 		linphone_builder_apply_cmake_flags_to_autotools_project(${PROJNAME})
 	endif()
@@ -650,7 +683,7 @@ function(linphone_builder_add_external_project PROJNAME)
 		BINARY_DIR "${ep_build}"
 		${DOWNLOAD_SOURCE}
 		PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
-		CMAKE_GENERATOR ${CMAKE_GENERATOR}
+		CMAKE_GENERATOR ${ep_generator}
 		${BUILD_COMMANDS}
 	)
 
@@ -824,6 +857,7 @@ endfunction()
 macro(linphone_builder_add_dummy_libraries_generation)
 	if(LINPHONE_BUILDER_DUMMY_LIBRARIES)
 		linphone_builder_set_ep_directories(dummy_libraries)
+		linphone_builder_set_ep_generator()
 		linphone_builder_expand_external_project_vars()
 		ExternalProject_Add(EP_dummy_libraries
 			DEPENDS TARGET_linphone_builder
@@ -831,7 +865,7 @@ macro(linphone_builder_add_dummy_libraries_generation)
 			BINARY_DIR "${ep_build}"
 			SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/cmake/dummy_libraries"
 			DOWNLOAD_COMMAND ""
-			CMAKE_GENERATOR ${CMAKE_GENERATOR}
+			CMAKE_GENERATOR ${ep_generator}
 			CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DLINPHONE_BUILDER_DUMMY_LIBRARIES=${LINPHONE_BUILDER_DUMMY_LIBRARIES}
 		)
 	endif()
