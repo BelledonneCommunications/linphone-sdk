@@ -37,6 +37,7 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../include \
 	$(LOCAL_PATH)/../../oRTP \
 	$(LOCAL_PATH)/../../oRTP/include \
+	$(LOCAL_PATH)/../../../bctoolbox/include \
 	$(LOCAL_PATH)/../../../externals/speex/include \
 	$(LOCAL_PATH)/../../../externals/build/speex \
 	$(LOCAL_PATH)/../../../externals/gsm/inc \
