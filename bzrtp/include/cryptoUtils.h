@@ -190,4 +190,41 @@ void cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString[4]);
  */
 void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngContext);
 
+/**
+ * @brief Convert an hexadecimal string into the corresponding byte buffer
+ *
+ * @param[out]	outputBytes			The output bytes buffer, must have a length of half the input string buffer
+ * @param[in]	inputString			The input string buffer, must be hexadecimal(it is not checked by function, any non hexa char is converted to 0)
+ * @param[in]	inputStringLength	The length in chars of the string buffer, output is half this length
+ */
+void bzrtp_strToUint8(uint8_t *outputBytes, uint8_t *inputString, uint16_t inputStringLength);
+
+/**
+ * @brief Convert a byte buffer into the corresponding hexadecimal string
+ *
+ * @param[out]	outputString		The output string buffer, must have a length of twice the input bytes buffer
+ * @param[in]	inputBytes			The input bytes buffer
+ * @param[in]	inputBytesLength	The length in bytes buffer, output is twice this length
+ */
+void bzrtp_int8ToStr(uint8_t *outputString, uint8_t *inputBytes, uint16_t inputBytesLength);
+
+/**
+ * @brief	convert an hexa char [0-9a-fA-F] into the corresponding unsigned integer value
+ * Any invalid char will be converted to zero without any warning
+ *
+ * @param[in]	inputChar	a char which shall be in range [0-9a-fA-F]
+ *
+ * @return		the unsigned integer value in range [0-15]
+ */
+uint8_t bzrtp_charToByte(uint8_t inputChar);
+
+/**
+ * @brief	convert a byte which value is in range [0-15] into an hexa char [0-9a-fA-F]
+ *
+ * @param[in]	inputByte	an integer which shall be in range [0-15]
+ *
+ * @return		the hexa char [0-9a-f] corresponding to the input
+ */
+uint8_t bzrtp_byteToChar(uint8_t inputByte);
+
 #endif /* CRYPTOUTILS_H */

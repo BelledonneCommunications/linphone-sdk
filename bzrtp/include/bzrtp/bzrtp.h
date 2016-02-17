@@ -138,6 +138,9 @@ typedef struct bzrtpCallbacks_struct {
 #define BZRTP_ERROR_MULTICHANNELNOTSUPPORTEDBYPEER	0x0008
 #define BZRTP_ERROR_UNABLETOADDCHANNEL				0x0010
 #define BZRTP_ERROR_UNABLETOSTARTCHANNEL			0x0020
+#define BZRTP_ERROR_OUTPUTBUFFER_LENGTH				0x0040
+#define BZRTP_ERROR_HELLOHASH_MISMATCH				0x0080
+
 /**
  * @brief bzrtpContext_t The ZRTP engine context
  * Store current state, timers, HMAC and encryption keys
@@ -297,6 +300,32 @@ BZRTP_EXPORT uint8_t bzrtp_getSupportedCryptoTypes(bzrtpContext_t *zrtpContext, 
  */
 BZRTP_EXPORT void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType, uint8_t supportedTypes[7], uint8_t supportedTypesCount);
 
+/**
+ * @brief Set the peer hello hash given by signaling to a ZRTP channel
+ *
+ * @param[in/out]	zrtpContext						The ZRTP context we're dealing with
+ * @param[in]		selfSSRC						The SSRC identifying the channel
+ * @param[in]		peerHelloHashHexString			A NULL terminated string containing the hexadecimal form of the hash received in signaling,
+ * 													may contain ZRTP version as header.
+ * @param[in]		peerHelloHashHexStringLength	Length of hash string (shall be at least 64 as the hash is a SHA256 so 32 bytes,
+ * 													more if it contains the version header)
+ *
+ * @return 	0 on success, errorcode otherwise
+ */
+BZRTP_EXPORT int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength);
+
+/**
+ * @brief Get the self hello hash from ZRTP channel
+ *
+ * @param[in/out]	zrtpContext			The ZRTP context we're dealing with
+ * @param[in]		selfSSRC			The SSRC identifying the channel
+ * @param[out]		output				A NULL terminated string containing the hexadecimal form of the hash received in signaling,
+ * 										contain ZRTP version as header. Buffer must be allocated by caller.
+ * @param[in]		outputLength		Length of output buffer, shall be at least 70 : 5 chars for version, 64 for the hash itself, SHA256), NULL termination
+ *
+ * @return 	0 on success, errorcode otherwise
+ */
+BZRTP_EXPORT int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *output, size_t outputLength);
 
 #define BZRTP_CUSTOMCACHE_USEKDF 	1
 #define BZRTP_CUSTOMCACHE_PLAINDATA 0

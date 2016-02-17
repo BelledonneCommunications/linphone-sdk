@@ -35,10 +35,11 @@
 
 #define BZRTP_ERROR_INVALIDCHANNELCONTEXT 0x8001
 
-/* local functions */
-int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC);
-void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
-bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+/* local functions prototypes */
+static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC);
+static void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
+static bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+static uint8_t copyCryptoTypes(uint8_t destination[7], uint8_t source[7], uint8_t size);
 
 /*
  * Create context structure and initialise it 
@@ -186,13 +187,26 @@ void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	return;
 }
 
-
+/*
+ * @brief Allocate a function pointer to the callback function identified by his id
+ * @param[in/out]	context				The zrtp context to set the callback function
+ * @param[in] 		cbs 				A structure containing all the callbacks to supply.
+ *
+ * @return 0 on success
+*/
 int bzrtp_setCallbacks(bzrtpContext_t *context, const bzrtpCallbacks_t *cbs) {
 	context->zrtpCallbacks=*cbs;
 	return 0;
 }
 
-
+/**
+ * @brief Add a channel to an existing context, this can be done only if the first channel has concluded a DH key agreement
+ *
+ * @param[in/out]	zrtpContext	The zrtp context who will get the additionnal channel. Must be in secure state.
+ * @param[in]		selfSSRC	The SSRC given to the channel context
+ *
+ * @return 0 on succes, error code otherwise
+ */
 int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 	bzrtpChannelContext_t *zrtpChannelContext = NULL;
 	int i=0;
@@ -551,198 +565,6 @@ int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uint32_t selfSSR
 	return 0;
 }
 
-/* Local functions implementation */
-
-/**
- * @brief Look in the given ZRTP context for a channel referenced with given SSRC
- *
- * @param[in]	zrtpContext	The zrtp context which shall contain the channel context we are looking for
- * @param[in]	selfSSRC	The SSRC identifying the channel context
- *
- * @return 		a pointer to the channel context, NULL if the context is invalid or channel not found
- */
-bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
-	int i;
-
-	if (zrtpContext==NULL) {
-		return NULL;
-	}
-	
-	for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
-		if (zrtpContext->channelContext[i]!=NULL) {
-			if (zrtpContext->channelContext[i]->selfSSRC == selfSSRC) {
-				return zrtpContext->channelContext[i];
-			}
-		}
-	}
-
-	return NULL; /* found no channel with this SSRC */
-}
-/**
- * @brief Initialise the context of a channel
- * Initialise some vectors
- * 
- * @param[in] 		zrtpContext			The zrtpContext hosting this channel, needed to acces the RNG
- * @param[out]		zrtpChanneContext	The channel context to be initialised
- * @param[in]		selfSSRC			The SSRC allocated to this channel
- *
- * @return	0 on success, error code otherwise
- */
-int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC) {
-	int i;
-	if (zrtpChannelContext == NULL) {
-		return BZRTP_ERROR_INVALIDCHANNELCONTEXT;
-	}
-
-	zrtpChannelContext->clientData = NULL;
-
-	/* the state machine is not started at the creation of the channel but on explicit call to the start function */
-	zrtpChannelContext->stateMachine = NULL;
-
-	/* timer is off */
-	zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
-	zrtpChannelContext->timer.timerStep = HELLO_BASE_RETRANSMISSION_STEP; /* we must initialise the timeStep just in case the resettimer function is called between init and start */
-
-	zrtpChannelContext->selfSSRC = selfSSRC;
-
-	/* flags */
-	zrtpChannelContext->isSecure = 0;
-
-	/* initialise as initiator, switch to responder later if needed */
-	zrtpChannelContext->role = INITIATOR;
-
-	/* create H0 (32 bytes random) and derive using implicit Hash(SHA256) H1,H2,H3 */
-	bzrtpCrypto_getRandom(zrtpContext->RNGContext, zrtpChannelContext->selfH[0], 32);
-	bzrtpCrypto_sha256(zrtpChannelContext->selfH[0], 32, 32, zrtpChannelContext->selfH[1]);
-	bzrtpCrypto_sha256(zrtpChannelContext->selfH[1], 32, 32, zrtpChannelContext->selfH[2]);
-	bzrtpCrypto_sha256(zrtpChannelContext->selfH[2], 32, 32, zrtpChannelContext->selfH[3]);
-
-	/* initialisation of packet storage */
-	for (i=0; i<PACKET_STORAGE_CAPACITY; i++) {
-		zrtpChannelContext->selfPackets[i] = NULL;
-		zrtpChannelContext->peerPackets[i] = NULL;
-	}
-
-	/* initialise the self Sequence number to a random and peer to 0 */
-	bzrtpCrypto_getRandom(zrtpContext->RNGContext, (uint8_t *)&(zrtpChannelContext->selfSequenceNumber), 2);
-	zrtpChannelContext->selfSequenceNumber &= 0x0FFF; /* first 4 bits to zero in order to avoid reaching FFFF and turning back to 0 */
-	zrtpChannelContext->selfSequenceNumber++; /* be sure it is not initialised to 0 */
-	zrtpChannelContext->peerSequenceNumber = 0;
-
-	/* reset choosen algo and their functions */
-	zrtpChannelContext->hashAlgo = ZRTP_UNSET_ALGO;
-	zrtpChannelContext->cipherAlgo = ZRTP_UNSET_ALGO;
-	zrtpChannelContext->authTagAlgo = ZRTP_UNSET_ALGO;
-	zrtpChannelContext->keyAgreementAlgo = ZRTP_UNSET_ALGO;
-	zrtpChannelContext->sasAlgo = ZRTP_UNSET_ALGO;
-
-	updateCryptoFunctionPointers(zrtpChannelContext);
-
-	/* initialise key buffers */
-	zrtpChannelContext->s0 = NULL;
-	zrtpChannelContext->KDFContext = NULL;
-	zrtpChannelContext->KDFContextLength = 0;
-	zrtpChannelContext->mackeyi = NULL;
-	zrtpChannelContext->mackeyr = NULL;
-	zrtpChannelContext->zrtpkeyi = NULL;
-	zrtpChannelContext->zrtpkeyr = NULL;
-
-	/* initialise srtpSecrets structure */
-	zrtpChannelContext->srtpSecrets.selfSrtpKey = NULL;
-	zrtpChannelContext->srtpSecrets.selfSrtpSalt = NULL;
-	zrtpChannelContext->srtpSecrets.peerSrtpKey = NULL;
-	zrtpChannelContext->srtpSecrets.peerSrtpSalt = NULL;
-	zrtpChannelContext->srtpSecrets.selfSrtpKeyLength = 0;
-	zrtpChannelContext->srtpSecrets.selfSrtpSaltLength = 0;
-	zrtpChannelContext->srtpSecrets.peerSrtpKeyLength = 0;
-	zrtpChannelContext->srtpSecrets.peerSrtpSaltLength = 0;
-	zrtpChannelContext->srtpSecrets.cipherAlgo = ZRTP_UNSET_ALGO;
-	zrtpChannelContext->srtpSecrets.cipherKeyLength = 0;
-	zrtpChannelContext->srtpSecrets.authTagAlgo = ZRTP_UNSET_ALGO;
-	zrtpChannelContext->srtpSecrets.sas = NULL;
-	zrtpChannelContext->srtpSecrets.sasLength = 0;
-
-	return 0;
-}
-
-/**
- * @brief Destroy the context of a channel
- * Free allocated buffers, destroy keys
- * 
- * @param[in] 		zrtpContext			The zrtpContext hosting this channel, needed to acces the RNG
- * @param[in] 		zrtpChannelContext	The channel context to be destroyed
- */
-void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
-	int i;
-
-	/* check there is something to be freed */
-	if (zrtpChannelContext == NULL) {
-		return;
-	}
-
-	/* reset state Machine */
-	zrtpChannelContext->stateMachine = NULL;
-
-	/* set timer off */
-	zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
-
-	/* destroy and free the key buffers */
-	bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->mackeyi, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->mackeyr, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyi, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyr, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
-
-	free(zrtpChannelContext->s0);
-	free(zrtpChannelContext->KDFContext);
-	free(zrtpChannelContext->mackeyi);
-	free(zrtpChannelContext->mackeyr);
-	free(zrtpChannelContext->zrtpkeyi);
-	free(zrtpChannelContext->zrtpkeyr);
-
-	zrtpChannelContext->s0=NULL;
-	zrtpChannelContext->KDFContext=NULL;
-	zrtpChannelContext->mackeyi=NULL;
-	zrtpChannelContext->mackeyr=NULL;
-	zrtpChannelContext->zrtpkeyi=NULL;
-	zrtpChannelContext->zrtpkeyr=NULL;
-
-	/* free the allocated buffers */
-	for (i=0; i<PACKET_STORAGE_CAPACITY; i++) {
-		bzrtp_freeZrtpPacket(zrtpChannelContext->selfPackets[i]);
-		bzrtp_freeZrtpPacket(zrtpChannelContext->peerPackets[i]);
-		zrtpChannelContext->selfPackets[i] = NULL;
-		zrtpChannelContext->peerPackets[i] = NULL;
-	}
-
-	/* destroy and free the srtp and sas struture */
-	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpKey, zrtpChannelContext->srtpSecrets.selfSrtpKeyLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpSalt, zrtpChannelContext->srtpSecrets.selfSrtpSaltLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpKey, zrtpChannelContext->srtpSecrets.peerSrtpKeyLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpSalt, zrtpChannelContext->srtpSecrets.peerSrtpSaltLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey((uint8_t *)zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->srtpSecrets.sasLength, zrtpContext->RNGContext);
-
-	free(zrtpChannelContext->srtpSecrets.selfSrtpKey);
-	free(zrtpChannelContext->srtpSecrets.selfSrtpSalt);
-	free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
-	free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
-	free(zrtpChannelContext->srtpSecrets.sas);
-
-	/* free the channel context */
-	free(zrtpChannelContext);
-}
-
-static uint8_t copyCryptoTypes(uint8_t destination[7], uint8_t source[7], uint8_t size)
-{
-	int i;
-
-	for (i=0; i<size; i++) {
-		destination[i] = source[i];
-	}
-	return size;
-}
-
 /**
  * @brief Get the supported crypto types
  *
@@ -816,3 +638,311 @@ void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType
 			break;
 	}
 }
+
+/**
+ * @brief Set the peer hello hash given by signaling to a ZRTP channel
+ *
+ * @param[in/out]	zrtpContext						The ZRTP context we're dealing with
+ * @param[in]		selfSSRC						The SSRC identifying the channel
+ * @param[out]		peerHelloHashHexString			A NULL terminated string containing the hexadecimal form of the hash received in signaling,
+ * 													may contain ZRTP version as header.
+ * @param[in]		peerHelloHashHexStringLength	Length of hash string (shall be at least 64 as the hash is a SHA256 so 32 bytes,
+ * 													more if it contains the version header)
+ *
+ * @return 	0 on success, errorcode otherwise
+ */
+int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength) {
+	int i=0;
+	uint8_t *hexHashString = NULL;
+	size_t hexHashStringLength = peerHelloHashHexStringLength;
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+
+	if (zrtpChannelContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	/* parse the given peerHelloHash, it may formatted <version> <hexa string hash> or just <hexa string hash> */
+	/* just ignore anything(we do not care about version number) before a ' ' if found */
+	while (hexHashString==NULL && i<peerHelloHashHexStringLength) {
+		if (strncmp((const char *)(peerHelloHashHexString+i), " ", 1) == 0) {
+			hexHashString = peerHelloHashHexString+i+1;
+			hexHashStringLength -= (i+1);
+		}
+		i++;
+	}
+	if (hexHashString == NULL) { /* there were no ' ' in the input string so it shall be the hex hash only without version number */
+		hexHashString = peerHelloHashHexString;
+	}
+
+	/* allocate memory to store the hash, length will be hexa string length/2 - check it wasn't already allocated */
+	if (zrtpChannelContext->peerHelloHash) {
+		free(zrtpChannelContext->peerHelloHash);
+	}
+	zrtpChannelContext->peerHelloHash = (uint8_t *)malloc(hexHashStringLength/2*sizeof(uint8_t));
+
+	/* convert to uint8 the hex string */
+	bzrtp_strToUint8(zrtpChannelContext->peerHelloHash, hexHashString, hexHashStringLength);
+
+	/* Do we already have the peer Hello packet, if yes, check it match the hash */
+	if (zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] != NULL) {
+		uint8_t computedPeerHelloHash[32];
+		/* compute hash using implicit hash function: SHA256, skip packet header in the packetString buffer as the hash must be computed on message only */
+		bzrtpCrypto_sha256(zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
+			zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength,
+			32,
+			computedPeerHelloHash);
+
+		/* check they are the same */
+		if (memcmp(computedPeerHelloHash, zrtpChannelContext->peerHelloHash, 32)!=0) {
+			return BZRTP_ERROR_HELLOHASH_MISMATCH;
+		}
+	}
+	return 0;
+}
+
+/**
+ * @brief Get the self hello hash from ZRTP channel
+ *
+ * @param[in/out]	zrtpContext			The ZRTP context we're dealing with
+ * @param[in]		selfSSRC			The SSRC identifying the channel
+ * @param[out]		output				A NULL terminated string containing the hexadecimal form of the hash received in signaling,
+ * 										contain ZRTP version as header. Buffer must be allocated by caller.
+ * @param[in]		outputLength		Length of output buffer, shall be at least 70 : 5 chars for version, 64 for the hash itself, SHA256), NULL termination
+ *
+ * @return 	0 on success, errorcode otherwise
+ */
+int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *output, size_t outputLength) {
+	uint8_t helloHash[32];
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+
+	if (zrtpChannelContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	/* check we have the Hello packet in context */
+	if (zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID] == NULL) {
+		return BZRTP_ERROR_CONTEXTNOTREADY;
+	}
+
+	/* check output length : version length +' '+64 hex hash + null termination */
+	if (outputLength < strlen(ZRTP_VERSION)+1+64+1) {
+		return BZRTP_ERROR_OUTPUTBUFFER_LENGTH;
+	}
+
+	/* compute hash using implicit hash function: SHA256, skip packet header in the packetString buffer as the hash must be computed on message only */
+	bzrtpCrypto_sha256(zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
+			zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength,
+			32,
+			helloHash);
+
+	/* add version header */
+	strcpy((char *)output, ZRTP_VERSION);
+	output[strlen(ZRTP_VERSION)]=' ';
+
+	/* convert hash to hex string and set it in the output buffer */
+	bzrtp_int8ToStr(output+strlen(ZRTP_VERSION)+1, helloHash, 32);
+
+	/* add NULL termination */
+	output[strlen(ZRTP_VERSION)+1+64]='\0';
+
+	return 0;
+}
+
+/* Local functions implementation */
+
+/**
+ * @brief Look in the given ZRTP context for a channel referenced with given SSRC
+ *
+ * @param[in]	zrtpContext	The zrtp context which shall contain the channel context we are looking for
+ * @param[in]	selfSSRC	The SSRC identifying the channel context
+ *
+ * @return 		a pointer to the channel context, NULL if the context is invalid or channel not found
+ */
+static bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
+	int i;
+
+	if (zrtpContext==NULL) {
+		return NULL;
+	}
+	
+	for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+		if (zrtpContext->channelContext[i]!=NULL) {
+			if (zrtpContext->channelContext[i]->selfSSRC == selfSSRC) {
+				return zrtpContext->channelContext[i];
+			}
+		}
+	}
+
+	return NULL; /* found no channel with this SSRC */
+}
+/**
+ * @brief Initialise the context of a channel
+ * Initialise some vectors
+ * 
+ * @param[in] 		zrtpContext			The zrtpContext hosting this channel, needed to acces the RNG
+ * @param[out]		zrtpChanneContext	The channel context to be initialised
+ * @param[in]		selfSSRC			The SSRC allocated to this channel
+ *
+ * @return	0 on success, error code otherwise
+ */
+static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC) {
+	int i;
+	if (zrtpChannelContext == NULL) {
+		return BZRTP_ERROR_INVALIDCHANNELCONTEXT;
+	}
+
+	zrtpChannelContext->clientData = NULL;
+
+	/* the state machine is not started at the creation of the channel but on explicit call to the start function */
+	zrtpChannelContext->stateMachine = NULL;
+
+	/* timer is off */
+	zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
+	zrtpChannelContext->timer.timerStep = HELLO_BASE_RETRANSMISSION_STEP; /* we must initialise the timeStep just in case the resettimer function is called between init and start */
+
+	zrtpChannelContext->selfSSRC = selfSSRC;
+
+	/* flags */
+	zrtpChannelContext->isSecure = 0;
+
+	/* initialise as initiator, switch to responder later if needed */
+	zrtpChannelContext->role = INITIATOR;
+
+	/* create H0 (32 bytes random) and derive using implicit Hash(SHA256) H1,H2,H3 */
+	bzrtpCrypto_getRandom(zrtpContext->RNGContext, zrtpChannelContext->selfH[0], 32);
+	bzrtpCrypto_sha256(zrtpChannelContext->selfH[0], 32, 32, zrtpChannelContext->selfH[1]);
+	bzrtpCrypto_sha256(zrtpChannelContext->selfH[1], 32, 32, zrtpChannelContext->selfH[2]);
+	bzrtpCrypto_sha256(zrtpChannelContext->selfH[2], 32, 32, zrtpChannelContext->selfH[3]);
+
+	/* initialisation of packet storage */
+	for (i=0; i<PACKET_STORAGE_CAPACITY; i++) {
+		zrtpChannelContext->selfPackets[i] = NULL;
+		zrtpChannelContext->peerPackets[i] = NULL;
+	}
+	zrtpChannelContext->peerHelloHash = NULL;
+
+	/* initialise the self Sequence number to a random and peer to 0 */
+	bzrtpCrypto_getRandom(zrtpContext->RNGContext, (uint8_t *)&(zrtpChannelContext->selfSequenceNumber), 2);
+	zrtpChannelContext->selfSequenceNumber &= 0x0FFF; /* first 4 bits to zero in order to avoid reaching FFFF and turning back to 0 */
+	zrtpChannelContext->selfSequenceNumber++; /* be sure it is not initialised to 0 */
+	zrtpChannelContext->peerSequenceNumber = 0;
+
+	/* reset choosen algo and their functions */
+	zrtpChannelContext->hashAlgo = ZRTP_UNSET_ALGO;
+	zrtpChannelContext->cipherAlgo = ZRTP_UNSET_ALGO;
+	zrtpChannelContext->authTagAlgo = ZRTP_UNSET_ALGO;
+	zrtpChannelContext->keyAgreementAlgo = ZRTP_UNSET_ALGO;
+	zrtpChannelContext->sasAlgo = ZRTP_UNSET_ALGO;
+
+	updateCryptoFunctionPointers(zrtpChannelContext);
+
+	/* initialise key buffers */
+	zrtpChannelContext->s0 = NULL;
+	zrtpChannelContext->KDFContext = NULL;
+	zrtpChannelContext->KDFContextLength = 0;
+	zrtpChannelContext->mackeyi = NULL;
+	zrtpChannelContext->mackeyr = NULL;
+	zrtpChannelContext->zrtpkeyi = NULL;
+	zrtpChannelContext->zrtpkeyr = NULL;
+
+	/* initialise srtpSecrets structure */
+	zrtpChannelContext->srtpSecrets.selfSrtpKey = NULL;
+	zrtpChannelContext->srtpSecrets.selfSrtpSalt = NULL;
+	zrtpChannelContext->srtpSecrets.peerSrtpKey = NULL;
+	zrtpChannelContext->srtpSecrets.peerSrtpSalt = NULL;
+	zrtpChannelContext->srtpSecrets.selfSrtpKeyLength = 0;
+	zrtpChannelContext->srtpSecrets.selfSrtpSaltLength = 0;
+	zrtpChannelContext->srtpSecrets.peerSrtpKeyLength = 0;
+	zrtpChannelContext->srtpSecrets.peerSrtpSaltLength = 0;
+	zrtpChannelContext->srtpSecrets.cipherAlgo = ZRTP_UNSET_ALGO;
+	zrtpChannelContext->srtpSecrets.cipherKeyLength = 0;
+	zrtpChannelContext->srtpSecrets.authTagAlgo = ZRTP_UNSET_ALGO;
+	zrtpChannelContext->srtpSecrets.sas = NULL;
+	zrtpChannelContext->srtpSecrets.sasLength = 0;
+
+	return 0;
+}
+
+/**
+ * @brief Destroy the context of a channel
+ * Free allocated buffers, destroy keys
+ * 
+ * @param[in] 		zrtpContext			The zrtpContext hosting this channel, needed to acces the RNG
+ * @param[in] 		zrtpChannelContext	The channel context to be destroyed
+ */
+static void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
+	int i;
+
+	/* check there is something to be freed */
+	if (zrtpChannelContext == NULL) {
+		return;
+	}
+
+	/* reset state Machine */
+	zrtpChannelContext->stateMachine = NULL;
+
+	/* set timer off */
+	zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
+
+	/* destroy and free the key buffers */
+	bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->mackeyi, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->mackeyr, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyi, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyr, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
+
+	free(zrtpChannelContext->s0);
+	free(zrtpChannelContext->KDFContext);
+	free(zrtpChannelContext->mackeyi);
+	free(zrtpChannelContext->mackeyr);
+	free(zrtpChannelContext->zrtpkeyi);
+	free(zrtpChannelContext->zrtpkeyr);
+
+	zrtpChannelContext->s0=NULL;
+	zrtpChannelContext->KDFContext=NULL;
+	zrtpChannelContext->mackeyi=NULL;
+	zrtpChannelContext->mackeyr=NULL;
+	zrtpChannelContext->zrtpkeyi=NULL;
+	zrtpChannelContext->zrtpkeyr=NULL;
+
+	/* free the allocated buffers */
+	for (i=0; i<PACKET_STORAGE_CAPACITY; i++) {
+		bzrtp_freeZrtpPacket(zrtpChannelContext->selfPackets[i]);
+		bzrtp_freeZrtpPacket(zrtpChannelContext->peerPackets[i]);
+		zrtpChannelContext->selfPackets[i] = NULL;
+		zrtpChannelContext->peerPackets[i] = NULL;
+	}
+	free(zrtpChannelContext->peerHelloHash);
+	zrtpChannelContext->peerHelloHash = NULL;
+
+	/* destroy and free the srtp and sas struture */
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpKey, zrtpChannelContext->srtpSecrets.selfSrtpKeyLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpSalt, zrtpChannelContext->srtpSecrets.selfSrtpSaltLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpKey, zrtpChannelContext->srtpSecrets.peerSrtpKeyLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpSalt, zrtpChannelContext->srtpSecrets.peerSrtpSaltLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey((uint8_t *)zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->srtpSecrets.sasLength, zrtpContext->RNGContext);
+
+	free(zrtpChannelContext->srtpSecrets.selfSrtpKey);
+	free(zrtpChannelContext->srtpSecrets.selfSrtpSalt);
+	free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
+	free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
+	free(zrtpChannelContext->srtpSecrets.sas);
+
+	/* free the channel context */
+	free(zrtpChannelContext);
+}
+
+static uint8_t copyCryptoTypes(uint8_t destination[7], uint8_t source[7], uint8_t size)
+{
+	int i;
+
+	for (i=0; i<size; i++) {
+		destination[i] = source[i];
+	}
+	return size;
+}
+
+

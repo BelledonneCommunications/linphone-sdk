@@ -59,6 +59,10 @@ static uint32_t patternZRTPMetaData[TEST_PACKET_NUMBER][3] = {
 	{28, 0x09f7, 0x12345678} /* conf2ACK*/
 };
 
+static const uint8_t patternZRTPHelloHash12345678[70]="1.10 13e9f407367895861f0eee6707ba30aca05a0ad9997625e9279ad5d08485aa9d";
+static const uint8_t patternZRTPHelloHash87654321[70]="1.10 8a286f762a00f21907fe937801894ce4f4ac6a7d2b9acd61eb25b014f905df77";
+static const uint8_t patternZRTPIncorrectHelloHash12345678[70]="1.10 23e9f407367895861f0eee6707ba30aca05a0ad9997625e9279ad5d08485aa9d";
+
 static const uint8_t patternZRTPPackets[TEST_PACKET_NUMBER][512] = {
 	/* This is a Hello packet, sequence number is 0x09f1, SSRC 0x12345678 */
 	{0x10, 0x00, 0x09, 0xf1, 0x5a, 0x52, 0x54, 0x50, 0x12, 0x34, 0x56, 0x78, 0x50, 0x5a, 0x00, 0x1e, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x20, 0x20, 0x31, 0x2e, 0x31, 0x30, 0x4c, 0x49, 0x4e, 0x50, 0x48, 0x4f, 0x4e, 0x45, 0x2d, 0x5a, 0x52, 0x54, 0x50, 0x43, 0x50, 0x50, 0xe8, 0xd5, 0x26, 0xc1, 0x3a, 0x0c, 0x4c, 0x6a, 0xce, 0x18, 0xaa, 0xc7, 0xc4, 0xa4, 0x07, 0x0e, 0x65, 0x7a, 0x4d, 0xca, 0x78, 0xf2, 0xcc, 0xcd, 0x20, 0x50, 0x38, 0x73, 0xe9, 0x7e, 0x08, 0x29, 0x7e, 0xb0, 0x04, 0x97, 0xc0, 0xfe, 0xb2, 0xc9, 0x24, 0x31, 0x49, 0x7f, 0x00, 0x01, 0x12, 0x31, 0x53, 0x32, 0x35, 0x36, 0x41, 0x45, 0x53, 0x31, 0x48, 0x53, 0x33, 0x32, 0x48, 0x53, 0x38, 0x30, 0x44, 0x48, 0x33, 0x6b, 0x44, 0x48, 0x32, 0x6b, 0x4d, 0x75, 0x6c, 0x74, 0x42, 0x33, 0x32, 0x20, 0xa0, 0xfd, 0x0f, 0xad, 0xeb, 0xe0, 0x86, 0x56, 0xe3, 0x65, 0x81, 0x02},
@@ -154,18 +158,31 @@ void test_parser(void) {
 	/* set the role: 87654321 is initiator in our exchange pattern */
 	context12345678->channelContext[0]->role = RESPONDER; 
 
+	/* set the peer hello packet Hash for context 12345678, the other one will be set after Hello Packet reception */
+	bzrtp_setPeerHelloHash(context12345678, 0x12345678, (uint8_t *)patternZRTPHelloHash87654321, strlen((const char *)patternZRTPHelloHash87654321));
+
 	for (i=0; i<TEST_PACKET_NUMBER; i++) {
 		uint8_t freePacketFlag = 1;
 		/* parse a packet string from patterns */
 		zrtpPacket = bzrtp_packetCheck(patternZRTPPackets[i], patternZRTPMetaData[i][0], (patternZRTPMetaData[i][1])-1, &retval);
 		retval +=  bzrtp_packetParser((patternZRTPMetaData[i][2]==0x87654321)?context12345678:context87654321, (patternZRTPMetaData[i][2]==0x87654321)?context12345678->channelContext[0]:context87654321->channelContext[0], patternZRTPPackets[i], patternZRTPMetaData[i][0], zrtpPacket);
-		/*printf("parsing Ret val is %x index is %d\n", retval, i);*/
+		bzrtp_message("parsing Ret val is %x index is %d\n", retval, i);
+		CU_ASSERT_EQUAL_FATAL(retval,0);
 		/* We must store some packets in the context if we want to be able to parse further packets */
+		/* Check also the zrtp hello hash */
 		if (zrtpPacket->messageType==MSGTYPE_HELLO) {
 			if (patternZRTPMetaData[i][2]==0x87654321) {
 				context12345678->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket;
 			} else {
 				context87654321->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket;
+
+				/* Set an incorrect peerHello Hash after the packet hello packet arrives */
+				retval = bzrtp_setPeerHelloHash(context87654321, 0x87654321, (uint8_t *)patternZRTPIncorrectHelloHash12345678, strlen((const char *)patternZRTPIncorrectHelloHash12345678));
+				CU_ASSERT_EQUAL_FATAL(retval,BZRTP_ERROR_HELLOHASH_MISMATCH);
+
+				/* Set the correct one */
+				retval = bzrtp_setPeerHelloHash(context87654321, 0x87654321, (uint8_t *)patternZRTPHelloHash12345678, strlen((const char *)patternZRTPHelloHash12345678));
+				CU_ASSERT_EQUAL_FATAL(retval,0);
 			}
 			freePacketFlag = 0;
 		}

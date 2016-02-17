@@ -137,6 +137,9 @@ struct bzrtpChannelContext_struct {
 	bzrtpPacket_t *selfPackets[PACKET_STORAGE_CAPACITY]; /**< Hello, Commit and DHPart packet locally generated */
 	bzrtpPacket_t *peerPackets[PACKET_STORAGE_CAPACITY]; /**< Hello, Commit and DHPart packet received from peer */
 
+	/* peer Hello hash : store the peer hello hash when given by signaling */
+	uint8_t *peerHelloHash; /**< peer hello hash - SHA256 of peer Hello packet, given through signaling, shall be a 32 bytes buffer */
+
 	/* sequence number: self and peer */
 	uint16_t selfSequenceNumber; /**< Sequence number of the next packet to be sent */
 	uint16_t peerSequenceNumber; /**< Sequence number of the last valid received packet */

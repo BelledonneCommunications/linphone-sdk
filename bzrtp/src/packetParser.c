@@ -211,8 +211,24 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 	switch (zrtpPacket->messageType) {
 		case MSGTYPE_HELLO : 
 			{
-				/* allocate a Hello message structure */
 				bzrtpHelloMessage_t *messageData;
+
+				/* Do we have a peerHelloHash to check */
+				if (zrtpChannelContext->peerHelloHash != NULL) {
+					uint8_t computedPeerHelloHash[32];
+					/* compute hash using implicit hash function: SHA256, skip packet header in the packetString buffer as the hash must be computed on message only */
+					bzrtpCrypto_sha256(input+ZRTP_PACKET_HEADER_LENGTH,
+						inputLength - ZRTP_PACKET_OVERHEAD,
+						32,
+						computedPeerHelloHash);
+
+					/* check they are the same */
+					if (memcmp(computedPeerHelloHash, zrtpChannelContext->peerHelloHash, 32)!=0) {
+						return BZRTP_ERROR_HELLOHASH_MISMATCH;
+					}
+				}
+
+				/* allocate a Hello message structure */
 				messageData = (bzrtpHelloMessage_t *)malloc(sizeof(bzrtpHelloMessage_t));
 
 				/* fill it */

@@ -29,6 +29,7 @@
 #include "zidCache.h"
 
 #include "typedef.h"
+#include "cryptoUtils.h"
 
 #ifdef HAVE_LIBXML2
 
@@ -39,11 +40,7 @@
 #define XML_HEADER_STRING "<?xml version='1.0' encoding='utf-8'?>"
 #define XML_HEADER_SIZE 38
 /* Local functions prototypes */
-void bzrtp_strToUint8(uint8_t *outputBytes, uint8_t *inputString, uint16_t inputLength);
-void bzrtp_int8ToStr(uint8_t *outputString, uint8_t *inputBytes, uint16_t inputBytesLength);
-uint8_t bzrtp_byteToChar(uint8_t inputByte);
-uint8_t bzrtp_charToByte(uint8_t inputChar);
-void bzrtp_writeCache(bzrtpContext_t *zrtpContext);
+static void bzrtp_writeCache(bzrtpContext_t *zrtpContext);
 
 int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 	uint8_t *selfZidHex = NULL;
@@ -339,7 +336,7 @@ int bzrtp_writePeerNode(bzrtpContext_t *context, uint8_t peerZID[12], uint8_t *t
  * @param[in/out]	zrtpContext		The zrtp context containing the cacheBuffer
  *
  */
-void bzrtp_writeCache(bzrtpContext_t *zrtpContext) {
+static void bzrtp_writeCache(bzrtpContext_t *zrtpContext) {
 	/* dump the xml document into a string */
 	xmlChar *xmlStringOutput;
 	int xmlStringLength;
@@ -347,80 +344,6 @@ void bzrtp_writeCache(bzrtpContext_t *zrtpContext) {
 	/* write it to the file */
 	zrtpContext->zrtpCallbacks.bzrtp_writeCache(zrtpContext->channelContext[0]->clientData, xmlStringOutput, xmlStringLength);
 	xmlFree(xmlStringOutput);
-}
-/**
- * @brief Convert an hexadecimal string into the corresponding byte buffer
- *
- * @param[out]	outputBytes			The output bytes buffer, must have a length of half the input string buffer
- * @param[in]	inputString			The input string buffer, must be hexadecimal(it is not checked by function, any non hexa char is converted to 0)
- * @param[in]	inputStringLength	The length in chars of the string buffer, output is half this length
- */
-void bzrtp_strToUint8(uint8_t *outputBytes, uint8_t *inputString, uint16_t inputStringLength) {
-	int i;
-	for (i=0; i<inputStringLength/2; i++) {
-		outputBytes[i] = (bzrtp_charToByte(inputString[2*i]))<<4 | bzrtp_charToByte(inputString[2*i+1]);
-	}
-}
-
-/**
- * @brief Convert a byte buffer into the corresponding hexadecimal string
- *
- * @param[out]	outputString		The output string buffer, must have a length of twice the input bytes buffer
- * @param[in]	inputBytes			The input bytes buffer
- * @param[in]	inputBytesLength	The length in bytes buffer, output is twice this length
- */
-void bzrtp_int8ToStr(uint8_t *outputString, uint8_t *inputBytes, uint16_t inputBytesLength) {
-	int i;
-	for (i=0; i<inputBytesLength; i++) {
-		outputString[2*i] = bzrtp_byteToChar((inputBytes[i]>>4)&0x0F);
-		outputString[2*i+1] = bzrtp_byteToChar(inputBytes[i]&0x0F);
-	}
-}
-
-/**
- * @brief	convert an hexa char [0-9a-fA-F] into the corresponding unsigned integer value
- * Any invalid char will be converted to zero without any warning
- *
- * @param[in]	inputChar	a char which shall be in range [0-9a-fA-F]
- *
- * @return		the unsigned integer value in range [0-15]
- */
-uint8_t bzrtp_charToByte(uint8_t inputChar) {
-	/* 0-9 */
-	if (inputChar>0x29 && inputChar<0x3A) {
-		return inputChar - 0x30;
-	}
-
-	/* a-f */
-	if (inputChar>0x60 && inputChar<0x67) {
-		return inputChar - 0x57; /* 0x57 = 0x61(a) + 0x0A*/
-	}
-
-	/* A-F */
-	if (inputChar>0x40 && inputChar<0x47) {
-		return inputChar - 0x37; /* 0x37 = 0x41(a) + 0x0A*/
-	}
-
-	/* shall never arrive here, string is not Hex*/
-	return 0;
-
-}
-
-/**
- * @brief	convert a byte which value is in range [0-15] into an hexa char [0-9a-fA-F]
- *
- * @param[in]	inputByte	an integer which shall be in range [0-15]
- *
- * @return		the hexa char [0-9a-f] corresponding to the input
- */
-uint8_t bzrtp_byteToChar(uint8_t inputByte) {
-	inputByte &=0x0F; /* restrict the input value to range [0-15] */
-	/* 0-9 */
-	if(inputByte<0x0A) {
-		return inputByte+0x30;
-	}
-	/* a-f */
-	return inputByte + 0x57;
 }
 
 #else /* NOT HAVE_LIBXML2 */

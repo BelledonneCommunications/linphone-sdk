@@ -144,7 +144,7 @@ void bzrtpCrypto_sha256(const uint8_t *input,
  * @param[in] 	keyLength	HMAC key length
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length
- * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 32 bytes maximum
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 20 bytes maximum
  * @param[out]	output		Output data buffer
  *
  */
