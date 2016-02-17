@@ -888,12 +888,26 @@ static void dec_init(MSFilter *f) {
 	ms_average_fps_init(&s->fps, "VP8 decoder: FPS: %f");
 }
 
+static int dec_initialize_impl(MSFilter *f){
+	DecState *s = (DecState *)f->data;
+	vpx_codec_dec_cfg_t cfg;
+		
+	memset(&cfg, 0, sizeof(cfg));
+	cfg.threads = ms_factory_get_cpu_count(f->factory);
+	if (vpx_codec_dec_init(&s->codec, s->iface, &cfg, s->flags)){
+		ms_error("Failed to initialize VP8 decoder");
+		return -1;
+	}
+	return 0;
+}
+
 static void dec_preprocess(MSFilter* f) {
 	DecState *s = (DecState *)f->data;
 	vpx_codec_caps_t caps = vpx_codec_get_caps(s->iface);
 
 	/* Initialize codec */
 	if (!s->ready){
+		
 		s->flags = 0;
 #if 0
 		/* Deactivate fragments input for the vpx decoder because it has been broken in libvpx 1.4.
@@ -905,13 +919,8 @@ static void dec_preprocess(MSFilter* f) {
 		if (caps & VPX_CODEC_CAP_ERROR_CONCEALMENT) {
 			s->flags |= VPX_CODEC_USE_ERROR_CONCEALMENT;
 		}
-#ifdef VPX_CODEC_CAP_FRAME_THREADING
-		if ((caps & VPX_CODEC_CAP_FRAME_THREADING) && (ms_factory_get_cpu_count(f->factory) > 1)) {
-			s->flags |= VPX_CODEC_USE_FRAME_THREADING;
-		}
-#endif
-		if(vpx_codec_dec_init(&s->codec, s->iface, NULL, s->flags))
-			ms_error("Failed to initialize decoder");
+
+		if (dec_initialize_impl(f) != 0) return;
 		ms_message("VP8: initializing decoder context: avpf=[%i] freeze_on_error=[%i]",s->avpf_enabled,s->freeze_on_error);
 		vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error, (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
 		s->first_image_decoded = FALSE;
@@ -938,6 +947,11 @@ static void dec_process(MSFilter *f) {
 	MSQueue frame;
 	MSQueue mtofree_queue;
 	Vp8RtpFmtFrameInfo frame_info;
+	
+	if (!s->ready){
+		ms_queue_flush(f->inputs[0]);
+		return;
+	}
 	
 	ms_filter_lock(f);
 
@@ -1035,7 +1049,7 @@ static int dec_reset(MSFilter *f, void *data) {
 	ms_message("Reseting VP8 decoder");
 	ms_filter_lock(f);
 	vpx_codec_destroy(&s->codec);
-	if(vpx_codec_dec_init(&s->codec, s->iface, NULL, s->flags)){
+	if (dec_initialize_impl(f) != 0){
 		ms_error("Failed to reinitialize VP8 decoder");
 	}
 	s->first_image_decoded = FALSE;
