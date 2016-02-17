@@ -17,6 +17,9 @@
 */
 
 #include "belle_sip_internal.h"
+#ifdef HAVE_ZLIB
+#include "zlib.h"
+#endif
 
 /*
  * Body handler base class implementation
@@ -144,6 +147,7 @@ void belle_sip_body_handler_end_transfer(belle_sip_body_handler_t *obj){
 struct belle_sip_memory_body_handler{
 	belle_sip_body_handler_t base;
 	uint8_t *buffer;
+	uint8_t encoding_applied;
 };
 
 static void belle_sip_memory_body_handler_destroy(belle_sip_memory_body_handler_t *obj){
@@ -156,6 +160,7 @@ static void belle_sip_memory_body_handler_clone(belle_sip_memory_body_handler_t 
 		memcpy(obj->buffer,orig->buffer,orig->base.expected_size);
 		obj->buffer[orig->base.expected_size]='\0';
 	}
+	obj->encoding_applied = orig->encoding_applied;
 }
 
 static void belle_sip_memory_body_handler_recv_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, const uint8_t *buf, size_t size){
@@ -194,6 +199,56 @@ void *belle_sip_memory_body_handler_get_buffer(const belle_sip_memory_body_handl
 void belle_sip_memory_body_handler_set_buffer(belle_sip_memory_body_handler_t *obj, void *buffer) {
 	if (obj->buffer != NULL) belle_sip_free(obj->buffer);
 	obj->buffer = (uint8_t *)buffer;
+}
+
+#define BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE 16384
+
+void belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_t *obj, const char *encoding) {
+	if ((obj->buffer == NULL) || (obj->encoding_applied == TRUE)) return;
+
+#ifdef HAVE_ZLIB
+	if (strcmp(encoding, "deflate") == 0) {
+		z_stream strm;
+		size_t initial_size = belle_sip_body_handler_get_size(BELLE_SIP_BODY_HANDLER(obj));
+		size_t final_size;
+		unsigned int avail_out = BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE;
+		unsigned int outbuf_size = avail_out;
+		unsigned char *outbuf = belle_sip_malloc(outbuf_size);
+		unsigned char *outbuf_ptr = outbuf;
+		int ret;
+
+		strm.zalloc = Z_NULL;
+		strm.zfree = Z_NULL;
+		strm.opaque = Z_NULL;
+		ret = deflateInit(&strm, Z_DEFAULT_COMPRESSION);
+		if (ret != Z_OK) return;
+		strm.avail_in = initial_size;
+		strm.next_in = obj->buffer;
+		do {
+			if (avail_out < BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE) {
+				unsigned int cursize = outbuf_ptr - outbuf;
+				outbuf_size += BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE;
+				outbuf = belle_sip_realloc(outbuf, outbuf_size);
+				outbuf_ptr = outbuf + cursize;
+			}
+			strm.avail_out = avail_out;
+			strm.next_out = outbuf_ptr;
+			deflate(&strm, Z_FINISH);
+			outbuf_ptr += avail_out - strm.avail_out;
+			avail_out = outbuf_size - (outbuf_ptr - outbuf);
+		} while (strm.avail_out == 0);
+		deflateEnd(&strm);
+		final_size = outbuf_ptr - outbuf;
+		belle_sip_message("Body has been compressed: %u->%u:\n%s", (unsigned int)initial_size, (unsigned int)final_size, obj->buffer);
+		belle_sip_free(obj->buffer);
+		obj->buffer = outbuf;
+		belle_sip_body_handler_set_size(BELLE_SIP_BODY_HANDLER(obj), final_size);
+		obj->encoding_applied = TRUE;
+	} else
+#endif
+	{
+		belle_sip_warning("%s: unknown encoding '%s'", __FUNCTION__, encoding);
+	}
 }
 
 belle_sip_memory_body_handler_t *belle_sip_memory_body_handler_new(belle_sip_body_handler_progress_callback_t cb, void *user_data){

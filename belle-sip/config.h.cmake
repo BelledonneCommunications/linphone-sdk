@@ -1,5 +1,5 @@
 /***************************************************************************
-* antlr3config.h.cmake
+* config.h.cmake
 * Copyright (C) 2014  Belledonne Communications, Grenoble France
 *
 ****************************************************************************
@@ -42,6 +42,7 @@
 #cmakedefine HAVE_CU_GET_SUITE
 
 #cmakedefine HAVE_TUNNEL
+#cmakedefine HAVE_ZLIB
 
 #cmakedefine BELLE_SDP_FORCE_RTP_MAP
 #cmakedefine ENABLE_SERVER_SOCKETS

@@ -1091,6 +1091,28 @@ static void check_content_length(belle_sip_message_t *msg, size_t body_len){
 	}
 }
 
+static void compress_body_if_required(belle_sip_channel_t *channel) {
+	belle_sip_message_t *msg = channel->cur_out_message;
+	belle_sip_body_handler_t *bh = belle_sip_message_get_body_handler(msg);
+	belle_sip_memory_body_handler_t *mbh = NULL;
+	belle_sip_header_t *ceh = NULL;
+	size_t body_len = 0;
+
+	if (bh != NULL) {
+		body_len = belle_sip_message_get_body_size(msg);
+		ceh = belle_sip_message_get_header(msg, "Content-Encoding");
+	}
+	if ((body_len > 0) && (ceh != NULL)) {
+		const char *content_encoding = belle_sip_header_get_unparsed_value(ceh);
+		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(bh, belle_sip_memory_body_handler_t)) {
+			mbh = BELLE_SIP_MEMORY_BODY_HANDLER(bh);
+			belle_sip_memory_body_handler_apply_encoding(mbh, content_encoding);
+		} else {
+			belle_sip_warning("message [%p] has Content-Encoding [%s] that cannot be applied", msg, content_encoding);
+		}
+	}
+}
+
 static void _send_message(belle_sip_channel_t *obj){
 	char buffer[belle_sip_send_network_buffer_size];
 	size_t len=0;
@@ -1201,6 +1223,7 @@ static void _send_message(belle_sip_channel_t *obj){
 static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	obj->cur_out_message=(belle_sip_message_t*)belle_sip_object_ref(msg);
 	obj->out_state=OUTPUT_STREAM_SENDING_HEADERS;
+	compress_body_if_required(obj);
 	_send_message(obj);
 }
 
