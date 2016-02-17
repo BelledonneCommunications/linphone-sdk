@@ -866,8 +866,6 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		return -1;
 	}
 
-//	stream->ms.encoder=ms_filter_create_encoder(pt->mime_type);
-//	stream->ms.decoder=ms_filter_create_decoder(pt->mime_type);
 	stream->ms.encoder=ms_factory_create_encoder(stream->ms.factory, pt->mime_type);
 	stream->ms.decoder=ms_factory_create_decoder(stream->ms.factory, pt->mime_type);
 
@@ -1373,7 +1371,7 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 
 AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStreamSessions *sessions){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
-	MSFilterDesc *ec_desc=ms_factory_lookup_filter_by_name(factory, "MSWebRTAEC");
+	MSFilterDesc *ec_desc=ms_factory_lookup_filter_by_name(factory, "MSWebRTCAEC");
 	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {
 		audio_stream_get_rtcp_xr_plc_status,
 		audio_stream_get_rtcp_xr_signal_level,
