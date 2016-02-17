@@ -33,7 +33,7 @@ if(NOT LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 endif()
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	include("EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 else()
 	find_package(BcToolbox REQUIRED)
 endif()
