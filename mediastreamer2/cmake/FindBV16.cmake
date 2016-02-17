@@ -31,7 +31,7 @@ set(_BV16_ROOT_PATHS
 )
 
 find_path(BV16_INCLUDE_DIRS
-	NAMES bv16/bv16.h
+	NAMES bv16-floatingpoint/bv16/bv16.h
 	HINTS _BV16_ROOT_PATHS
 	PATH_SUFFIXES include
 )

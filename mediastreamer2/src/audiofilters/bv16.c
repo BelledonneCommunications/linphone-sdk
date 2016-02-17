@@ -18,12 +18,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/msfilter.h"
-#include <bv16/typedef.h>
-#include <bv16/bv16cnst.h>
-#include <bv16/bvcommon.h>
-#include <bv16/bv16strct.h>
-#include <bv16/bitpack.h>
-#include <bv16/bv16.h>
+#include <bv16-floatingpoint/bvcommon/typedef.h>
+#include <bv16-floatingpoint/bv16/bv16cnst.h>
+#include <bv16-floatingpoint/bvcommon/bvcommon.h>
+#include <bv16-floatingpoint/bv16/bv16strct.h>
+#include <bv16-floatingpoint/bv16/bitpack.h>
+#include <bv16-floatingpoint/bv16/bv16.h>
 
 
 #ifdef _MSC_VER
