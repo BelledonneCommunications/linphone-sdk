@@ -21,19 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(BCTOOLBOX LANGUAGES C CXX)
-
-set(PACKAGE "bctoolbox")
-set(PACKAGE_NAME ${PACKAGE})
-set(PACKAGE_VERSION_MAJOR "0")
-set(PACKAGE_VERSION_MINOR "0")
-set(PACKAGE_VERSION_PATCH "2")
-set(PACKAGE_VERSION "${PACKAGE_VERSION_MAJOR}.${PACKAGE_VERSION_MINOR}.${PACKAGE_VERSION_PATCH}")
-set(PACKAGE_STRING "${PACKAGE_NAME}-${PACKAGE_VERSION}")
-set(PACKAGE_BUGREPORT "jehan.monnier@linphone.org")
-set(PACKAGE_TARNAME "bctoolbox")
-set(PACKAGE_URL "")
-set(VERSION "${PACKAGE_VERSION}")
+project(bctoolbox VERSION 0.0.2 LANGUAGES C CXX)
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
@@ -160,7 +148,7 @@ add_subdirectory(build)
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
-	VERSION ${PACKAGE_VERSION}
+	VERSION ${PROJECT_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
