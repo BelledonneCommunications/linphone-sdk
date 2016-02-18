@@ -50,5 +50,10 @@ if(ENABLE_UNIT_TESTS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	list(APPEND EP_bctoolbox_DEPENDENCIES EP_cunit)
 endif()
 
+if(EP_bctoolbox_BUILD_METHOD STREQUAL "rpm")
+	set(EP_bctoolbox_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/bctoolbox/configure.sh.rpm.cmake)
+	set(EP_bctoolbox_BUILD_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/bctoolbox/build.sh.rpm.cmake)
+endif()
+
 #set(EP_bctoolbox_SPEC_FILE "bctoolbox.spec")
 #set(EP_bctoolbox_RPMBUILD_NAME "belle-sip")
