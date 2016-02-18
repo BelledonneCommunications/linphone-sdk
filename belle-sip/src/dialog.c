@@ -536,14 +536,26 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 		belle_sip_error("belle_sip_dialog_new(): no from tag!");
 		return NULL;
 	}
-
+	
+	to = belle_sip_message_get_header_by_type(t->request,belle_sip_header_to_t);
+	if (to == NULL){
+		belle_sip_error("belle_sip_dialog_new(): no to in request!");
+		return NULL;
+	}
+	to_tag = belle_sip_header_to_get_tag(to);
+	if (to_tag){
+		belle_sip_error("belle_sip_dialog_new(): there is a to tag in the request. This is not allowed"
+			" to create a dialog on such a transaction.");
+		return NULL;
+	}
+	
 	if (t->last_response) {
 		to=belle_sip_message_get_header_by_type(t->last_response,belle_sip_header_to_t);
 		if (to==NULL){
 			belle_sip_error("belle_sip_dialog_new(): no to!");
 			return NULL;
 		}
-		to_tag=belle_sip_header_to_get_tag(to);
+		to_tag = belle_sip_header_to_get_tag(to);
 	}
 	obj=belle_sip_object_new(belle_sip_dialog_t);
 	obj->terminate_on_bye=1;
@@ -647,9 +659,18 @@ static belle_sip_request_t *create_request(belle_sip_dialog_t *obj, const char *
 	return req;
 }
 
+static int dialog_can_create_request(belle_sip_dialog_t *obj, const char *method){
+	if (obj->state != BELLE_SIP_DIALOG_CONFIRMED && obj->state != BELLE_SIP_DIALOG_EARLY) {
+		belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] in state [%s]",method,obj,belle_sip_dialog_state_to_string(obj->state));
+		return FALSE;
+	}
+	return TRUE;
+}
+
 belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t *obj, const char *method){
 	belle_sip_request_t *req;
 	
+	if (!dialog_can_create_request(obj, method)) return NULL;
 	if (strcmp(method,"INVITE")==0 || strcmp(method,"SUBSCRIBE")==0){
 		/*we don't allow requests that can update the dialog's state to be sent asynchronously*/
 		belle_sip_error("belle_sip_dialog_create_queued_request([%p]): [%s] requests are forbidden using this method.",obj,method);
@@ -669,11 +690,8 @@ static void belle_sip_dialog_update_local_cseq(belle_sip_dialog_t *obj, const ch
 
 belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, const char *method){
 	belle_sip_request_t *req;
-
-	if (obj->state != BELLE_SIP_DIALOG_CONFIRMED && obj->state != BELLE_SIP_DIALOG_EARLY) {
-		belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] in state [%s]",method,obj,belle_sip_dialog_state_to_string(obj->state));
-		return NULL;
-	}
+	
+	if (!dialog_can_create_request(obj, method)) return NULL;
 	/*don't prevent to send a BYE in any case */
 	if (	obj->pending_trans_checking_enabled
 			&& strcmp(method,"BYE")!=0
