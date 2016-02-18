@@ -1,28 +1,35 @@
 Utilities library used by Belledonne Communications softwares like belle-sip, mediastreamer2 and linphone.
 
-Belongs to mbedtls (https://github.com/ARMmbed/mbedtls.git). For backward compatibility, support of polarssl is also provided.
+Depends on mbedtls (https://github.com/ARMmbed/mbedtls.git). For backward compatibility, support of polarssl is also provided.
 
-To compile:
+To compile
+----------
 
 cmake . -DCMAKE_INSTALL_PREFIX=<install prefix>
 
 make
 make install
 
-rpm:
+To make an rpm package
+---------------------
 
 make package 
 
-options:
+Options
+-------
 
-CMAKE_INSTALL_PREFIX :install prefix  
-cmake . -DCMAKE_INSTALL_PREFIX=/opt  
+CMAKE_INSTALL_PREFIX: install prefix  
+ex:
+	cmake . -DCMAKE_INSTALL_PREFIX=/opt  
 
-CMAKE_PREFIX_PATH :search path prefix for polarssl or mbtls  
-cmake . -DCMAKE_PREFIX_PATH=<polarssl or mbtls path>  
+CMAKE_PREFIX_PATH: search path prefix for polarssl or mbetls  
+ex:
+	cmake . -DCMAKE_PREFIX_PATH=<polarssl or mbtls path>  
 
-ENABLE_POLARSSL :force usage of polarssl 
-cmake . -DENABLE_POLARSSL=ON -DENABLE_MBEDTLS=OFF  
+ENABLE_POLARSSL: force usage of polarssl 
+ex:
+	cmake . -DENABLE_POLARSSL=ON -DENABLE_MBEDTLS=OFF  
 
-ENABLE_MBEDTLS :force usage of mbed tls
-cmake . -DENABLE_POLARSSL=OFF -DENABLE_MBEDTLS=OFF  
+ENABLE_MBEDTLS: force usage of mbedtls
+ex:
+	cmake . -DENABLE_POLARSSL=OFF -DENABLE_MBEDTLS=OFF  
