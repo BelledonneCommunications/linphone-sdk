@@ -27,5 +27,5 @@ add_feature_info("Tunnel" ENABLE_TUNNEL "Secure tunnel for SIP/RTP (require lice
 option(ENABLE_RTP_MAP_ALWAYS_IN_SDP "Always include rtpmap in SDP." OFF)
 add_feature_info("RTP MAP" ENABLE_RTP_MAP_ALWAYS_IN_SDP "Always include rtpmap in SDP.")
 
-option(DISABLE_BC_ANTLR "Build Antlr as part of the CMake builder instead of using the system version" "${DEFAULT_VALUE_DISABLE_BC_ANTLR}")
-add_feature_info("Belledonne Antlr" DISABLE_BC_ANTLR "Build Belledonne for of Antlr3c")
+option(DISABLE_BC_ANTLR "Do not build Antlr as part of the CMake builder, and instead use the system version" "${DEFAULT_VALUE_DISABLE_BC_ANTLR}")
+add_feature_info("Belledonne Antlr" DISABLE_BC_ANTLR "Do not build the Belledonne version of Antlr3c")
