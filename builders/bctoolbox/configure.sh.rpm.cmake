@@ -36,7 +36,7 @@ done
 
 if [ ! -f @ep_config_h_file@ ]
 then
-	cmake . -DCPACK_GENERATOR=rpm
-	make
+	cmake @ep_source@ -DCPACK_GENERATOR=RPM
+	make package
 	cp -v *.rpm "$RPM_TOPDIR/RPMS/"
 fi
