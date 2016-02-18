@@ -637,18 +637,37 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t)
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
-belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new(belle_sip_body_handler_progress_callback_t progress_cb, void *data,
-									 belle_sip_body_handler_t *first_part, const char *boundary){
-	belle_sip_multipart_body_handler_t *obj=belle_sip_object_new(belle_sip_multipart_body_handler_t);
-	belle_sip_body_handler_init((belle_sip_body_handler_t*)obj,progress_cb,data);
+static void belle_sip_multipart_body_handler_set_boundary(belle_sip_multipart_body_handler_t *obj, const char *boundary) {
+	if (obj->boundary != NULL) {
+		belle_sip_free(obj->boundary);
+	}
 	if (boundary != NULL) {
 		obj->boundary = belle_sip_strdup(boundary);
 	} else {
 		obj->boundary = belle_sip_strdup(BELLESIP_MULTIPART_BOUNDARY);
 	}
+}
+
+belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new(belle_sip_body_handler_progress_callback_t progress_cb, void *data,
+									 belle_sip_body_handler_t *first_part, const char *boundary){
+	belle_sip_multipart_body_handler_t *obj=belle_sip_object_new(belle_sip_multipart_body_handler_t);
+	belle_sip_body_handler_init((belle_sip_body_handler_t*)obj,progress_cb,data);
+	belle_sip_multipart_body_handler_set_boundary(obj, boundary);
 	obj->base.expected_size = strlen(obj->boundary) + 8; /* body's length will be part length(including boundary) + multipart end. 8 is for "\r\n--" and "--\r\n" */
 	if (first_part) belle_sip_multipart_body_handler_add_part(obj,first_part);
 	return obj;
+}
+
+belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new_from_buffer(void *buffer, size_t bufsize, const char *boundary) {
+	belle_sip_multipart_body_handler_t *obj_multipart = belle_sip_object_new(belle_sip_multipart_body_handler_t);
+	belle_sip_body_handler_t *obj = (belle_sip_body_handler_t *)obj_multipart;
+	belle_sip_body_handler_init((belle_sip_body_handler_t *)obj, belle_sip_multipart_body_handler_progress_cb, NULL);
+	belle_sip_multipart_body_handler_set_boundary(obj_multipart, boundary);
+	obj_multipart->base.expected_size = bufsize;
+	belle_sip_body_handler_begin_transfer(obj);
+	belle_sip_body_handler_recv_chunk(obj, NULL, (uint8_t *)buffer, bufsize);
+	belle_sip_body_handler_end_transfer(obj);
+	return obj_multipart;
 }
 
 #define DEFAULT_HEADER_STRING_SIZE 512
