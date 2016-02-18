@@ -51,6 +51,20 @@ static void belle_sip_body_handler_destroy(belle_sip_body_handler_t *obj){
 	belle_sip_free(obj->headerStringBuffer);
 }
 
+static belle_sip_error_code belle_sip_body_handler_marshal(belle_sip_body_handler_t *obj, char *buff, size_t buff_size, size_t *offset) {
+	int ret;
+	size_t len;
+	if (*offset == 0) belle_sip_body_handler_begin_transfer(obj);
+	do {
+		len = buff_size - *offset;
+		ret = belle_sip_body_handler_send_chunk(obj, NULL, (uint8_t*)buff + *offset, &len);
+		*offset += len;
+	} while ((ret == BELLE_SIP_CONTINUE) && (len > 0));
+	if (ret == BELLE_SIP_CONTINUE) return BELLE_SIP_BUFFER_OVERFLOW;
+	if (ret == BELLE_SIP_STOP) belle_sip_body_handler_end_transfer(obj);
+	return BELLE_SIP_OK;
+}
+
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_body_handler_t);
 
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_body_handler_t)
@@ -58,8 +72,10 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_body_handler_t)
 		BELLE_SIP_VPTR_INIT(belle_sip_body_handler_t,belle_sip_object_t,TRUE),
 		(belle_sip_object_destroy_t) belle_sip_body_handler_destroy,
 		(belle_sip_object_clone_t) belle_sip_body_handler_clone,
-		NULL,/*no marshal*/
+		(belle_sip_object_marshal_t) belle_sip_body_handler_marshal,
 	},
+	NULL, /* begin_transfer */
+	NULL, /* end_transfer */
 	NULL, /*chunk_recv*/
 	NULL /*chunk_send*/
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
@@ -107,6 +123,10 @@ static void update_progress(belle_sip_body_handler_t *obj, belle_sip_message_t *
 }
 
 void belle_sip_body_handler_begin_transfer(belle_sip_body_handler_t *obj){
+	BELLE_SIP_OBJECT_VPTR_TYPE(belle_sip_body_handler_t) *vptr = BELLE_SIP_OBJECT_VPTR(obj, belle_sip_body_handler_t);
+	if (vptr->begin_transfer != NULL) {
+		vptr->begin_transfer(obj);
+	}
 	obj->transfered_size=0;
 }
 
@@ -136,6 +156,10 @@ int belle_sip_body_handler_send_chunk(belle_sip_body_handler_t *obj, belle_sip_m
 }
 
 void belle_sip_body_handler_end_transfer(belle_sip_body_handler_t *obj){
+	BELLE_SIP_OBJECT_VPTR_TYPE(belle_sip_body_handler_t) *vptr = BELLE_SIP_OBJECT_VPTR(obj, belle_sip_body_handler_t);
+	if (vptr->end_transfer != NULL) {
+		vptr->end_transfer(obj);
+	}
 	if (obj->expected_size==0)
 		obj->expected_size=obj->transfered_size;
 }
@@ -187,6 +211,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_memory_body_handler_t)
 			(belle_sip_object_clone_t)belle_sip_memory_body_handler_clone,
 			NULL
 		},
+		NULL,
+		NULL,
 		belle_sip_memory_body_handler_recv_chunk,
 		belle_sip_memory_body_handler_send_chunk
 	}
@@ -375,6 +401,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_user_body_handler_t)
 			(belle_sip_object_clone_t)belle_sip_user_body_handler_clone,
 			NULL
 		},
+		NULL,
+		NULL,
 		belle_sip_user_body_handler_recv_chunk,
 		belle_sip_user_body_handler_send_chunk
 	}
@@ -459,6 +487,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_file_body_handler_t)
 			(belle_sip_object_clone_t)belle_sip_file_body_handler_clone,
 			NULL
 		},
+		NULL,
+		NULL,
 		belle_sip_file_body_handler_recv_chunk,
 		belle_sip_file_body_handler_send_chunk
 	}
@@ -484,6 +514,7 @@ belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(const char *filep
 struct belle_sip_multipart_body_handler{
 	belle_sip_body_handler_t base;
 	belle_sip_list_t *parts;
+	belle_sip_list_t *transfer_current_part;
 	char *boundary;
 	uint8_t *buffer;
 	unsigned int related;
@@ -500,6 +531,24 @@ static void belle_sip_multipart_body_handler_clone(belle_sip_multipart_body_hand
 	obj->parts=belle_sip_list_copy_with_data(obj->parts,(void *(*)(void*))belle_sip_object_clone_and_ref);
 }
 
+static void belle_sip_multipart_body_handler_begin_transfer(belle_sip_body_handler_t *obj) {
+	belle_sip_multipart_body_handler_t *obj_multipart = (belle_sip_multipart_body_handler_t *)obj;
+	for (const belle_sip_list_t *it = obj_multipart->parts; it != NULL; it = it->next) {
+		belle_sip_body_handler_t *bh = BELLE_SIP_BODY_HANDLER(it->data);
+		belle_sip_body_handler_begin_transfer(bh);
+	}
+	obj_multipart->transfer_current_part = obj_multipart->parts;
+}
+
+static void belle_sip_multipart_body_handler_end_transfer(belle_sip_body_handler_t *obj) {
+	belle_sip_multipart_body_handler_t *obj_multipart = (belle_sip_multipart_body_handler_t *)obj;
+	for (const belle_sip_list_t *it = obj_multipart->parts; it != NULL; it = it->next) {
+		belle_sip_body_handler_t *bh = BELLE_SIP_BODY_HANDLER(it->data);
+		belle_sip_body_handler_end_transfer(bh);
+	}
+	obj_multipart->transfer_current_part = NULL;
+}
+
 static void belle_sip_multipart_body_handler_recv_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, size_t offset,
 							const uint8_t *buffer, size_t size){
 	/* Store the whole buffer, the parts will be split when belle_sip_multipart_body_handler_progress_cb() is called with transfered size equal to expected size. */
@@ -514,11 +563,11 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 
 	belle_sip_multipart_body_handler_t *obj_multipart=(belle_sip_multipart_body_handler_t*)obj;
 
-	if (obj_multipart->parts->data) { /* we have a part, get its content from handler */
+	if (obj_multipart->transfer_current_part->data) { /* we have a part, get its content from handler */
 		int retval = BELLE_SIP_STOP;
 		size_t offsetSize = 0; /* used to store size of data added by this function and not given by the body handler of current part */
 		size_t boundary_len = strlen(obj_multipart->boundary);
-		belle_sip_body_handler_t *current_part = (belle_sip_body_handler_t *)obj_multipart->parts->data;
+		belle_sip_body_handler_t *current_part = (belle_sip_body_handler_t *)obj_multipart->transfer_current_part->data;
 		*size -= strlen(obj_multipart->boundary) + 8; /* just in case it will be the end of the message, ask for less characters than possible in order to be able to add the multipart message termination. 8 is for "\r\n--" and "--\r\n" */
 
 		if (current_part->transfered_size == 0) { /* Nothing transfered yet on this part, include a separator and the header if exists */
@@ -556,8 +605,8 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 		if (retval == BELLE_SIP_CONTINUE) {
 			return BELLE_SIP_CONTINUE; /* there is still data to be sent, continue */
 		} else { /* this part has reach the end, pass to next one if there is one */
-			if (obj_multipart->parts->next!=NULL) { /* there is an other part to be sent */
-				obj_multipart->parts = belle_sip_list_next(obj_multipart->parts);
+			if (obj_multipart->transfer_current_part->next!=NULL) { /* there is an other part to be sent */
+				obj_multipart->transfer_current_part = belle_sip_list_next(obj_multipart->transfer_current_part);
 				return BELLE_SIP_CONTINUE;
 			} else { /* there is nothing else, close the message and return STOP */
 				size_t boundary_len = strlen(obj_multipart->boundary);
@@ -581,6 +630,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t)
 			(belle_sip_object_clone_t)belle_sip_multipart_body_handler_clone,
 			NULL
 		},
+		belle_sip_multipart_body_handler_begin_transfer,
+		belle_sip_multipart_body_handler_end_transfer,
 		belle_sip_multipart_body_handler_recv_chunk,
 		belle_sip_multipart_body_handler_send_chunk
 	}

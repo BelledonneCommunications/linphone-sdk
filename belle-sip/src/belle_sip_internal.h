@@ -1014,6 +1014,8 @@ void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extensio
 
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_body_handler_t,belle_sip_object_t)
+	void (*begin_transfer)(belle_sip_body_handler_t *obj);
+	void (*end_transfer)(belle_sip_body_handler_t *obj);
 	void (*chunk_recv)(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, size_t offset, const uint8_t *buf, size_t size);
 	int (*chunk_send)(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t * size);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
