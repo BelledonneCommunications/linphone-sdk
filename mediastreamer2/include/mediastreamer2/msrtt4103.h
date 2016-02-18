@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define TS_FLAG_NOTFIRST 0x01
 #define TS_FLAG_NOCALLBACK 0x02
 
-#define TS_OUTBUF_SIZE 32
+#define TS_OUTBUF_SIZE 1024
 #define TS_REDGEN 2
 #define TS_NUMBER_OF_OUTBUF TS_REDGEN + 1
 #define TS_INBUF_SIZE TS_OUTBUF_SIZE * TS_NUMBER_OF_OUTBUF
