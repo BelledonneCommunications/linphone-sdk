@@ -6,7 +6,7 @@ includedir=@includedir@
 Name: bctoolbox 
 Description: A common set of tools used by Belledonne Communications's softwares 
 Requires.private: @REQUIRES_PRIVATE@ @TLS_PC@
-Version: @PROJECTVERSION@
+Version: @PROJECT_VERSION@
 Libs: -L@libdir@ -lbctoolbox
 Libs.private: @LIBS_PRIVATE@
 Cflags: -I@includedir@ 
