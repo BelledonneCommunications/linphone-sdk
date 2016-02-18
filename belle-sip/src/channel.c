@@ -290,11 +290,35 @@ static void belle_sip_channel_learn_public_ip_port(belle_sip_channel_t *obj, bel
 	obj->learnt_ip_port=TRUE;
 }
 
+static void uncompress_body_if_required(belle_sip_message_t *msg) {
+	belle_sip_body_handler_t *bh = belle_sip_message_get_body_handler(msg);
+	belle_sip_memory_body_handler_t *mbh = NULL;
+	belle_sip_header_t *ceh = NULL;
+	size_t body_len = 0;
+
+	if (bh != NULL) {
+		body_len = belle_sip_message_get_body_size(msg);
+		ceh = belle_sip_message_get_header(msg, "Content-Encoding");
+	}
+	if ((body_len > 0) && (ceh != NULL)) {
+		const char *content_encoding = belle_sip_header_get_unparsed_value(ceh);
+		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(bh, belle_sip_memory_body_handler_t)) {
+			mbh = BELLE_SIP_MEMORY_BODY_HANDLER(bh);
+			if (belle_sip_memory_body_handler_unapply_encoding(mbh, content_encoding) == 0) {
+				belle_sip_message_remove_header_from_ptr(msg, ceh);
+			}
+		} else {
+			belle_sip_warning("message [%p] has Content-Encoding [%s] that cannot be unapplied", msg, content_encoding);
+		}
+	}
+}
+
 static void belle_sip_channel_message_ready(belle_sip_channel_t *obj){
 	belle_sip_message_t *msg=obj->input_stream.msg;
 	belle_sip_body_handler_t *bh=belle_sip_message_get_body_handler(msg);
 	if (bh) belle_sip_body_handler_end_transfer(bh);
 	if (belle_sip_message_is_response(msg)) belle_sip_channel_learn_public_ip_port(obj,BELLE_SIP_RESPONSE(msg));
+	uncompress_body_if_required(msg);
 	obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,msg);
 	obj->stop_logging_buffer=0;
 	belle_sip_channel_input_stream_reset(&obj->input_stream);

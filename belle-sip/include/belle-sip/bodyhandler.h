@@ -53,6 +53,7 @@ BELLESIP_EXPORT belle_sip_memory_body_handler_t *belle_sip_memory_body_handler_n
 BELLESIP_EXPORT void *belle_sip_memory_body_handler_get_buffer(const belle_sip_memory_body_handler_t *obj);
 BELLESIP_EXPORT void belle_sip_memory_body_handler_set_buffer(belle_sip_memory_body_handler_t *obj, void *buffer);
 BELLESIP_EXPORT void belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_t *obj, const char *encoding);
+BELLESIP_EXPORT int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler_t *obj, const char *encoding);
 
 /*
  * body handler that get/puts data from application.

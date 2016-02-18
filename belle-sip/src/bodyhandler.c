@@ -251,6 +251,66 @@ void belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_
 	}
 }
 
+int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler_t *obj, const char *encoding) {
+	if (obj->buffer == NULL) return -1;
+
+#ifdef HAVE_ZLIB
+	if (strcmp(encoding, "deflate") == 0) {
+		z_stream strm;
+		size_t initial_size = belle_sip_body_handler_get_size(BELLE_SIP_BODY_HANDLER(obj));
+		size_t final_size;
+		unsigned int avail_out = BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE;
+		unsigned int outbuf_size = avail_out;
+		unsigned char *outbuf = belle_sip_malloc(outbuf_size);
+		unsigned char *outbuf_ptr = outbuf;
+		int ret;
+
+		strm.zalloc = Z_NULL;
+		strm.zfree = Z_NULL;
+		strm.opaque = Z_NULL;
+		strm.avail_in = 0;
+		strm.next_in = Z_NULL;
+		ret = inflateInit(&strm);
+		if (ret != Z_OK) return -1;
+		strm.avail_in = initial_size;
+		strm.next_in = obj->buffer;
+		do {
+			if (avail_out < BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE) {
+				unsigned int cursize = outbuf_ptr - outbuf;
+				outbuf_size += BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE;
+				outbuf = belle_sip_realloc(outbuf, outbuf_size);
+				outbuf_ptr = outbuf + cursize;
+			}
+			strm.avail_out = avail_out;
+			strm.next_out = outbuf_ptr;
+			ret = inflate(&strm, Z_NO_FLUSH);
+			switch (ret) {
+				case Z_NEED_DICT:
+					ret = Z_DATA_ERROR;
+				case Z_DATA_ERROR:
+				case Z_MEM_ERROR:
+					inflateEnd(&strm);
+					belle_sip_free(outbuf);
+					return -1;
+			}
+			outbuf_ptr += avail_out - strm.avail_out;
+			avail_out = outbuf_size - (outbuf_ptr - outbuf);
+		} while (ret != Z_STREAM_END);
+		inflateEnd(&strm);
+		final_size = outbuf_ptr - outbuf;
+		belle_sip_message("Body has been uncompressed: %u->%u:\n%s", (unsigned int)initial_size, (unsigned int)final_size, outbuf);
+		belle_sip_free(obj->buffer);
+		obj->buffer = outbuf;
+		belle_sip_body_handler_set_size(BELLE_SIP_BODY_HANDLER(obj), final_size);
+		return 0;
+	} else
+#endif
+	{
+		belle_sip_warning("%s: unknown encoding '%s'", __FUNCTION__, encoding);
+		return -1;
+	}
+}
+
 belle_sip_memory_body_handler_t *belle_sip_memory_body_handler_new(belle_sip_body_handler_progress_callback_t cb, void *user_data){
 	belle_sip_memory_body_handler_t *obj=belle_sip_object_new(belle_sip_memory_body_handler_t);
 	belle_sip_body_handler_init((belle_sip_body_handler_t*)obj,cb,user_data);
