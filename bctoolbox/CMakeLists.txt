@@ -47,6 +47,11 @@ include(GNUInstallDirs)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+if (NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
+	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX})
+	message("Setting install rpath to ${CMAKE_INSTALL_RPATH}")
+endif()
+
 if(ENABLE_MBEDTLS)
 	find_package(MbedTLS)
 	if(MBEDTLS_FOUND)
