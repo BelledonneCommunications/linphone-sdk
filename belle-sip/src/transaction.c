@@ -411,6 +411,15 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 		belle_sip_dialog_update_request(dialog,req);
 	} else if (t->base.request->dialog_queued){
 		/*this request was created by belle_sip_dialog_create_queued_request().*/
+		
+		if (dialog == NULL){
+			belle_sip_error("belle_sip_client_transaction_send_request(): transaction [%p], cannot send"
+				" request because it was created in the context of a dialog that appears to be "
+				" no longer existing.", t);
+			belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(t));
+			return -1;
+		}
+		
 		if (belle_sip_dialog_request_pending(dialog) || dialog->queued_ct!=NULL){
 			/*it cannot be sent immediately, queue the transaction into dialog*/
 			belle_sip_message("belle_sip_client_transaction_send_request(): transaction [%p], cannot send request now because dialog [%p] is busy"
