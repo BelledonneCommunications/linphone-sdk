@@ -69,6 +69,7 @@ ENDFOREACH()
 
 
 # Define default values for the flexisip builder options
+set(DEFAULT_VALUE_DISABLE_BC_ANTLR ON)
 set(DEFAULT_VALUE_ENABLE_ODBC ON)
 set(DEFAULT_VALUE_ENABLE_PUSHNOTIFICATION ON)
 set(DEFAULT_VALUE_ENABLE_REDIS ON)
@@ -104,13 +105,13 @@ include(builders/CMakeLists.txt)
 set(EP_bellesip_LINKING_TYPE "--enable-static")
 
 set(EP_ortp_BUILD_METHOD     "rpm")
-set(EP_bellesip_BUILD_METHOD     "rpm")
+set(EP_bellesip_BUILD_METHOD "rpm")
 set(EP_sofiasip_BUILD_METHOD "rpm")
 set(EP_flexisip_BUILD_METHOD "rpm")
 set(EP_odb_BUILD_METHOD      "custom")
 
 set(EP_ortp_SPEC_PREFIX     "${RPM_INSTALL_PREFIX}")
-set(EP_bellesip_SPEC_PREFIX     "${RPM_INSTALL_PREFIX}")
+set(EP_bellesip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_sofiasip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_flexisip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 
