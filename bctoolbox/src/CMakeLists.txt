@@ -32,8 +32,10 @@ if(POLARSSL_FOUND)
 endif()
 
 if(ENABLE_STATIC)
-	add_library(bctoolbox STATIC ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_SOURCE_FILES})
-else()
+	add_library(bctoolbox-static STATIC ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_SOURCE_FILES})
+	set_target_properties(bctoolbox-static PROPERTIES OUTPUT_NAME bctoolbox)
+endif()
+if(ENABLE_SHARED)
 	add_library(bctoolbox SHARED ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_SOURCE_FILES})
 	set_target_properties(bctoolbox PROPERTIES VERSION 0.0.0 SOVERSION 0)
 	set_target_properties(bctoolbox PROPERTIES LINKER_LANGUAGE "CXX")
@@ -49,19 +51,38 @@ endif()
 
 
 if(MBEDTLS_FOUND)
-	target_include_directories(bctoolbox PUBLIC ${MBEDTLS_INCLUDE_DIRS})
-	target_link_libraries(bctoolbox ${MBEDTLS_LIBRARIES})
+	if(ENABLE_STATIC)
+		target_include_directories(bctoolbox-static PUBLIC ${MBEDTLS_INCLUDE_DIRS})
+		target_link_libraries(bctoolbox-static ${MBEDTLS_LIBRARIES})
+	endif()
+	if(ENABLE_SHARED)
+		target_include_directories(bctoolbox PUBLIC ${MBEDTLS_INCLUDE_DIRS})
+		target_link_libraries(bctoolbox ${MBEDTLS_LIBRARIES})
+	endif()
 endif()
 if(POLARSSL_FOUND)
-	target_include_directories(bctoolbox PUBLIC ${POLARSSL_INCLUDE_DIRS})
-	target_link_libraries(bctoolbox ${POLARSSL_LIBRARIES})
+	if(ENABLE_STATIC)
+		target_include_directories(bctoolbox-static PUBLIC ${POLARSSL_INCLUDE_DIRS})
+		target_link_libraries(bctoolbox-static ${POLARSSL_LIBRARIES})
+	endif()
+	if(ENABLE_SHARED)
+		target_include_directories(bctoolbox PUBLIC ${POLARSSL_INCLUDE_DIRS})
+		target_link_libraries(bctoolbox ${POLARSSL_LIBRARIES})
+	endif()
 endif()
 
-
-install(TARGETS bctoolbox EXPORT ${EXPORT_TARGETS_NAME}Targets
-	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-)
+if(ENABLE_STATIC)
+	install(TARGETS bctoolbox-static EXPORT ${EXPORT_TARGETS_NAME}Targets
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+endif()
+if(ENABLE_SHARED)
+	install(TARGETS bctoolbox EXPORT ${EXPORT_TARGETS_NAME}Targets
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+endif()
 

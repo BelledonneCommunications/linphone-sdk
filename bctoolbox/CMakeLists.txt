@@ -21,7 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(BCTOOLBOX C CXX)
+project(BCTOOLBOX LANGUAGES C CXX)
 
 set(PACKAGE "bctoolbox")
 set(PACKAGE_NAME ${PACKAGE})
@@ -35,7 +35,8 @@ set(PACKAGE_TARNAME "bctoolbox")
 set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
-option(ENABLE_STATIC "Build static library (default is shared library)." NO)
+option(ENABLE_SHARED "Build shared library." YES)
+option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_POLARSSL "Enable polarssl support" ON)
 option(ENABLE_MBEDTLS "Enable mabedtls support" ON)
 
@@ -141,17 +142,6 @@ if(APPLE)
 	endif()
 endif()
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-if(WIN32)
-	add_definitions(
-		-DBCTOOLBOX_EXPORTS
-		-DBCTOOLBOX_INTERNAL_EXPORTS
-	)
-endif()
-if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
-	add_definitions(
-		-DHAVE_COMPILER_TLS
-	)
-endif()
 
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
@@ -191,4 +181,3 @@ install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
 	DESTINATION ${ConfigPackageLocation}
 )
-
