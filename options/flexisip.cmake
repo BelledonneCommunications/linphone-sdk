@@ -42,8 +42,8 @@ set(XSDCXX_ROOT_PATH "/usr" CACHE STRING "Path of where the bin/xsdcxx executabl
 add_feature_info("XSDCXX_ROOT_PATH" XSDCXX_ROOT_PATH "Path of where the bin/xsdcxx executable will be found. Comes from http://www.codesynthesis.com/products/xsd/download.xhtml")
 
 option(ENABLE_SNMP "Enable SNMP support" "${DEFAULT_ENABLE_SNMP}")
-add_feature_info("ENABLE_SNMP" ENABLE_SNMP "Enable SNMP support")
+add_feature_info("SNMP" ENABLE_SNMP "Enable SNMP support")
 
 option(ENABLE_SOCI "Enable SOCI support" "${DEFAULT_ENABLE_SOCI}")
-add_feature_info("ENABLE_SOCI" ENABLE_SOCI "Enable SOCI support")
+add_feature_info("SOCI" ENABLE_SOCI "Enable SOCI support")
 cmake_dependent_option(ENABLE_SOCI_BUILD "Build SOCI from sources instead of taking the operating system version." "${DEFAULT_VALUE_ENABLE_SOCI_BUILD}" "ENABLE_SOCI" OFF)

@@ -21,6 +21,7 @@
 ############################################################################
 
 # Define default values for the flexisip builder options
+set(DEFAULT_VALUE_DISABLE_BC_ANTLR ON)
 set(DEFAULT_VALUE_ENABLE_BC_ODBC OFF)
 set(DEFAULT_VALUE_ENABLE_ODB OFF)
 set(DEFAULT_VALUE_ENABLE_ODBC ON)
