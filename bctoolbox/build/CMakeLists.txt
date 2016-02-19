@@ -23,6 +23,12 @@
 if(NOT CPACK_PACKAGE_NAME)
        set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
 endif()
+
+if (NOT CPACK_PACKAGING_INSTALL_PREFIX AND CMAKE_INSTALL_PREFIX)
+        set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
+        message("Setting packaging install prefix to ${CPACK_PACKAGING_INSTALL_PREFIX}")
+endif()
+
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Toolbox package used by Belledonne Communications projects")
 set(CPACK_PACKAGE_VENDOR "Belledonne Communications")
 set(CPACK_PACKAGE_CONTACT "jehan.monnier@linphone.org")
