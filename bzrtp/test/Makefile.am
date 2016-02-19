@@ -8,7 +8,7 @@ bzrtpTest_SOURCES=bzrtpTest.c \
 
 
 bzrtpTest_CFLAGS=$(CUNIT_CFLAGS)  $(LIBXML2_CFLAGS)
-bzrtpTest_LDADD=$(top_builddir)/src/libbzrtp.la $(CUNIT_LIBS) $(LIBXML2_LIBS) -lm
+bzrtpTest_LDADD=$(top_builddir)/src/libbzrtp.la $(BCTOOLBOX_LIBS) $(CUNIT_LIBS) $(LIBXML2_LIBS) -lm
 
 AM_CPPFLAGS=-I$(top_srcdir)/include
 
