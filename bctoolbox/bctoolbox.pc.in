@@ -1,12 +1,10 @@
 # This is a comment
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-includedir=@includedir@
+prefix=@CMAKE_INSTALL_PREFIX@
 
 Name: bctoolbox 
 Description: A common set of tools used by Belledonne Communications's softwares 
 Requires.private: @REQUIRES_PRIVATE@ @TLS_PC@
 Version: @PROJECT_VERSION@
-Libs: -L@libdir@ -lbctoolbox
+Libs: -L@CMAKE_INSTALL_FULL_LIBDIR@ -lbctoolbox
 Libs.private: @LIBS_PRIVATE@
-Cflags: -I@includedir@ 
+Cflags: -I@CMAKE_INSTALL_FULL_INCLUDEDIR@ 

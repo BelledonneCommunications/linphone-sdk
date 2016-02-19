@@ -64,11 +64,6 @@ else()
 	message("DTLS SRTP not available")
 endif()
 
-set(prefix ${CMAKE_INSTALL_PREFIX})
-set(exec_prefix ${prefix}/bin)
-set(libdir ${prefix}/lib)
-set(includedir ${prefix}/include)
-
 if(MBEDTLS_FOUND)
 	get_filename_component(mbedtls_library_path "${MBEDTLS_LIBRARIES}" PATH)
 	set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${mbedlts_library_path}")
