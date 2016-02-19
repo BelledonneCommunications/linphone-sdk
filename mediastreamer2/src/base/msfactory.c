@@ -871,20 +871,20 @@ MSOfferAnswerContext * ms_factory_create_offer_answer_context(MSFactory *f, cons
 #include <jni.h>
 
 
+#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
 
-
-JNIEXPORT jint JNICALL Java_org_linphone_mediastream_Factory_enableFilterFromName(JNIEnv* env,  jobject obj, long factoryPtr, jstring jname, jboolean enable) {
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_Factory_enableFilterFromName(JNIEnv* env,  jobject obj, jlong factoryPtr, jstring jname, jboolean enable) {
 	MSFactory *factory = (MSFactory *) factoryPtr;
-	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
-	int result = ms_factory_enable_filter_from_name(factory, mime, enable);
-	(*env)->ReleaseStringUTFChars(env, jname, mime);
+	const char *name = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
+	int result = ms_factory_enable_filter_from_name(factory, name, enable);
+	(*env)->ReleaseStringUTFChars(env, jname, name);
 	return result;
 }
-JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Factory_filterFromNameEnabled(JNIEnv* env, jobject obj, long factoryPtr, jstring jname) {
-	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Factory_filterFromNameEnabled(JNIEnv* env, jobject obj, jlong factoryPtr, jstring jname) {
+	const char *name = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
 	MSFactory *factory = (MSFactory *) factoryPtr;
-	jboolean result = ms_factory_filter_from_name_enabled(factory, mime);
-	(*env)->ReleaseStringUTFChars(env, jname, mime);
+	jboolean result = ms_factory_filter_from_name_enabled(factory, name);
+	(*env)->ReleaseStringUTFChars(env, jname, name);
 	return result;
 }
 
