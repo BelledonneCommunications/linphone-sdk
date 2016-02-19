@@ -120,27 +120,6 @@ class Target:
             return "Run the following command to build:\n\t{builder} -C {cmake_dir}".format(builder=builder, cmake_dir=self.cmake_dir)
 
 
-class BB10Target(Target):
-
-    def __init__(self, arch):
-        Target.__init__(self, 'bb10-' + arch)
-        self.config_file = 'configs/config-bb10-' + arch + '.cmake'
-        self.toolchain_file = 'toolchains/toolchain-bb10-' + arch + '.cmake'
-        self.output = 'OUTPUT/liblinphone-bb10-sdk/' + arch
-
-
-class BB10i486Target(BB10Target):
-
-    def __init__(self):
-        BB10Target.__init__(self, 'i486')
-
-
-class BB10armTarget(BB10Target):
-
-    def __init__(self):
-        BB10Target.__init__(self, 'arm')
-
-
 class DesktopTarget(Target):
 
     def __init__(self):
@@ -187,8 +166,6 @@ class PythonRaspberryTarget(Target):
 
 
 targets = {}
-targets['bb10-arm'] = BB10armTarget()
-targets['bb10-i486'] = BB10i486Target()
 targets['desktop'] = DesktopTarget()
 targets['flexisip'] = FlexisipTarget()
 targets['flexisip-rpm'] = FlexisipRpmTarget()
