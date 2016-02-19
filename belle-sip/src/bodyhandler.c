@@ -227,7 +227,7 @@ void belle_sip_memory_body_handler_set_buffer(belle_sip_memory_body_handler_t *o
 	obj->buffer = (uint8_t *)buffer;
 }
 
-#define BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE 16384
+#define BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_INITIAL_SIZE 2048
 
 void belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_t *obj, const char *encoding) {
 	if ((obj->buffer == NULL) || (obj->encoding_applied == TRUE)) return;
@@ -237,7 +237,7 @@ void belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_
 		z_stream strm;
 		size_t initial_size = belle_sip_body_handler_get_size(BELLE_SIP_BODY_HANDLER(obj));
 		size_t final_size;
-		unsigned int avail_out = BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE;
+		unsigned int avail_out = BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_INITIAL_SIZE;
 		unsigned int outbuf_size = avail_out;
 		unsigned char *outbuf = belle_sip_malloc(outbuf_size);
 		unsigned char *outbuf_ptr = outbuf;
@@ -251,9 +251,9 @@ void belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_
 		strm.avail_in = initial_size;
 		strm.next_in = obj->buffer;
 		do {
-			if (avail_out < BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE) {
+			if (avail_out < BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_INITIAL_SIZE) {
 				unsigned int cursize = outbuf_ptr - outbuf;
-				outbuf_size += BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE;
+				outbuf_size *= 2;
 				outbuf = belle_sip_realloc(outbuf, outbuf_size);
 				outbuf_ptr = outbuf + cursize;
 			}
@@ -285,7 +285,7 @@ int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler
 		z_stream strm;
 		size_t initial_size = belle_sip_body_handler_get_size(BELLE_SIP_BODY_HANDLER(obj));
 		size_t final_size;
-		unsigned int avail_out = BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE;
+		unsigned int avail_out = BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_INITIAL_SIZE;
 		unsigned int outbuf_size = avail_out;
 		unsigned char *outbuf = belle_sip_malloc(outbuf_size);
 		unsigned char *outbuf_ptr = outbuf;
@@ -301,9 +301,9 @@ int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler
 		strm.avail_in = initial_size;
 		strm.next_in = obj->buffer;
 		do {
-			if (avail_out < BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE) {
+			if (avail_out < BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_INITIAL_SIZE) {
 				unsigned int cursize = outbuf_ptr - outbuf;
-				outbuf_size += BELLE_SIP_MEMORY_BODY_HANDLER_ZLIB_CHUNK_SIZE;
+				outbuf_size *= 2;
 				outbuf = belle_sip_realloc(outbuf, outbuf_size);
 				outbuf_ptr = outbuf + cursize;
 			}
