@@ -289,6 +289,13 @@ int belle_sip_stack_tls_available(belle_sip_stack_t *stack){
 	return belle_sip_tls_listening_point_available();
 }
 
+int belle_sip_stack_content_encoding_available(belle_sip_stack_t *stack, const char *content_encoding) {
+#ifdef HAVE_ZLIB
+	if (strcmp(content_encoding, "deflate") == 0) return TRUE;
+#endif
+	return FALSE;
+}
+
 GET_SET_STRING(belle_sip_stack,http_proxy_host)
 GET_SET_INT(belle_sip_stack,http_proxy_port, int)
 
