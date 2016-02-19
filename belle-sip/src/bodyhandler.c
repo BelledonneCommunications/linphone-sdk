@@ -532,8 +532,9 @@ static void belle_sip_multipart_body_handler_clone(belle_sip_multipart_body_hand
 }
 
 static void belle_sip_multipart_body_handler_begin_transfer(belle_sip_body_handler_t *obj) {
+	const belle_sip_list_t *it;
 	belle_sip_multipart_body_handler_t *obj_multipart = (belle_sip_multipart_body_handler_t *)obj;
-	for (const belle_sip_list_t *it = obj_multipart->parts; it != NULL; it = it->next) {
+	for (it = obj_multipart->parts; it != NULL; it = it->next) {
 		belle_sip_body_handler_t *bh = BELLE_SIP_BODY_HANDLER(it->data);
 		belle_sip_body_handler_begin_transfer(bh);
 	}
@@ -541,8 +542,9 @@ static void belle_sip_multipart_body_handler_begin_transfer(belle_sip_body_handl
 }
 
 static void belle_sip_multipart_body_handler_end_transfer(belle_sip_body_handler_t *obj) {
+	const belle_sip_list_t *it;
 	belle_sip_multipart_body_handler_t *obj_multipart = (belle_sip_multipart_body_handler_t *)obj;
-	for (const belle_sip_list_t *it = obj_multipart->parts; it != NULL; it = it->next) {
+	for (it = obj_multipart->parts; it != NULL; it = it->next) {
 		belle_sip_body_handler_t *bh = BELLE_SIP_BODY_HANDLER(it->data);
 		belle_sip_body_handler_end_transfer(bh);
 	}
