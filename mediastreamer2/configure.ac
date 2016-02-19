@@ -1125,7 +1125,7 @@ if test "$found_bctoolbox" = "true" ; then
 	LIBS="$LIBS $BCTOOLBOX_LIBS"
 	CFLAGS="$CFLAGS $BCTOOLBOX_CFLAGS"
 else
-	AC_MSG_ERROR("Could not found Bctoolbox")
+	AC_MSG_ERROR("Could not find bctoolbox")
 fi
 
 dnl check for libzrtp support (RFC 6189: Media Path Key Agreement for Unicast Secure RTP)
