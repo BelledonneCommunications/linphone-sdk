@@ -315,6 +315,42 @@ AC_ARG_ENABLE(tests,
 )
 AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_cunit = xyes)
 
+dnl check zlib
+AC_ARG_ENABLE(zlib,
+	[AS_HELP_STRING([--disable-zlib], [Disable ZLib support])],
+	[case "${enableval}" in
+		yes)	build_zlib=true ;;
+		no)	build_zlib=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-zlib) ;;
+	esac],
+	[build_zlib=auto]
+)
+if test "$build_zlib" != "false" ; then
+	PKG_CHECK_MODULES(ZLIB, [zlib], [found_zlib=yes], [found_zlib=no])
+	if test "x$found_zlib" = "xno" ; then
+		AC_CHECK_LIB(z, inflate,
+			[AC_CHECK_HEADER([zlib.h],
+			[AC_COMPILE_IFELSE(
+				[AC_LANG_PROGRAM([[
+				 #include <zlib.h>
+				 #if !defined(ZLIB_VERNUM) || (ZLIB_VERNUM < 0x1230)
+				 // compile error
+				 #endif
+			]],[])],
+			[found_zlib=yes])])])
+		if test "x$found_zlib" = "xno" ; then
+			AC_MSG_NOTICE([zlib library and headers not found])
+		else
+			AC_DEFINE( HAVE_ZLIB, 1, [ZLIB support] )
+			ZLIB_LIBS='-lz'
+			AC_SUBST(ZLIB_LIBS)
+		fi
+	else
+		AC_MSG_NOTICE([ZLIB found])
+		AC_DEFINE( HAVE_ZLIB, 1, [ZLIB support] )
+	fi
+fi
+
 REQUIRES_PRIVATE=""
 LIBS_PRIVATE=""
 if test "$found_pkg_config_cunit" = "yes" ; then
