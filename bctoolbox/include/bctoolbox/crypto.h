@@ -514,7 +514,7 @@ BCTOOLBOX_PUBLIC int32_t bctoolbox_aes_gcm_decrypt_and_auth(const uint8_t *key, 
  * @param[in]	initializationVectorLength	Initialisation vector length in bytes
  * @param[in]	mode						Operation mode : BCTOOLBOX_GCM_ENCRYPT or BCTOOLBOX_GCM_DECRYPT
  *
- * @return 0 on success, crypto library error code otherwise
+ * @return a pointer to the created context, to be freed using bctoolbox_aes_gcm_finish()
  */
 BCTOOLBOX_PUBLIC bctoolbox_aes_gcm_context_t *bctoolbox_aes_gcm_context_new(const uint8_t *key, size_t keyLength,
 		const uint8_t *authenticatedData, size_t authenticatedDataLength,

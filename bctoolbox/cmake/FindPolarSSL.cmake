@@ -51,19 +51,17 @@ find_library(POLARSSL_LIBRARIES
 )
 
 if(POLARSSL_LIBRARIES)
+	#x509parse_crtpath is present in polarssl1.3 but not 1.2, use it to check what version is present
 	cmake_push_check_state(RESET)
 	set(CMAKE_REQUIRED_INCLUDES ${POLARSSL_INCLUDE_DIRS})
 	set(CMAKE_REQUIRED_LIBRARIES ${POLARSSL_LIBRARIES})
-	check_c_source_compiles("#include <polarssl/version.h>
-#include <polarssl/x509.h>
-#if POLARSSL_VERSION_NUMBER >= 0x01030000
-#include <polarssl/compat-1.2.h>
-#endif
+	check_c_source_compiles("
+#include <polarssl/x509_crt.h>
 int main(int argc, char *argv[]) {
-x509parse_crtpath(0,0);
+x509_crt_parse_path(0,0);
 return 0;
 }"
-		X509PARSE_CRTPATH_OK)
+	POLARSSL_VERSION13_OK)
 	check_symbol_exists(ssl_get_dtls_srtp_protection_profile "polarssl/ssl.h" HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
 	check_symbol_exists(ctr_drbg_free "polarssl/ctr_drbg.h" CTR_DRBG_FREE)
 	cmake_pop_check_state()
@@ -75,4 +73,4 @@ find_package_handle_standard_args(PolarSSL
 	POLARSSL_INCLUDE_DIRS POLARSSL_LIBRARIES HAVE_POLARSSL_SSL_H
 )
 
-mark_as_advanced(POLARSSL_INCLUDE_DIRS POLARSSL_LIBRARIES HAVE_POLARSSL_SSL_H X509PARSE_CRTPATH_OK CTR_DRGB_FREE HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
+mark_as_advanced(POLARSSL_INCLUDE_DIRS POLARSSL_LIBRARIES HAVE_POLARSSL_SSL_H POLARSSL_VERSION13_OK CTR_DRGB_FREE HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
