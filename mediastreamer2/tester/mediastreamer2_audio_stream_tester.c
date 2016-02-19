@@ -48,7 +48,7 @@ static int tester_before_all(void) {
 	rtp_profile_set_payload (&rtp_profile,SPEEX16_PAYLOAD_TYPE,&payload_type_speex_wb);
 	rtp_profile_set_payload (&rtp_profile,SILK16_PAYLOAD_TYPE,&payload_type_silk_wb);
 	rtp_profile_set_payload (&rtp_profile,PCMA8_PAYLOAD_TYPE,&payload_type_pcma8000);
-
+	rtp_profile_set_payload (&rtp_profile,127,&payload_type_bv16);
 	return 0;
 }
 
@@ -155,8 +155,8 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 	reset_stats(&marielle_stats);
 	reset_stats(&margaux_stats);
 
-	rtp_profile_set_payload (profile,0,&payload_type_pcmu8000);
-
+	//rtp_profile_set_payload (profile,0,&payload_type_pcmu8000);
+	rtp_profile_set_payload (profile,127,&payload_type_bv16);
 
 	BC_ASSERT_EQUAL(audio_stream_start_full(margaux
 											, profile
@@ -164,7 +164,7 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 											, ms_is_multicast(margaux_local_ip)?margaux_local_rtp_port:margaux_remote_rtp_port
 											, margaux_remote_ip
 											, margaux_remote_rtcp_port
-											, 0
+											, 127
 											, 50
 											, NULL
 											, recorded_file
@@ -179,7 +179,7 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 											, marielle_remote_rtp_port
 											, marielle_remote_ip
 											, marielle_remote_rtcp_port
-											, 0
+											, 127
 											, 50
 											, hello_file
 											, NULL

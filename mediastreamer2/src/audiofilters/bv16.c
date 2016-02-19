@@ -134,7 +134,7 @@ static void enc_process(MSFilter *f){
 	/*if (s->frame_size<=0)
 		return;*/
 
-	//ms_filter_lock(f);
+	ms_filter_lock(f);
 
 	if (s->ptime>=5)
 	{
@@ -188,7 +188,7 @@ static void enc_process(MSFilter *f){
 	}
 
 		
-	//ms_filter_unlock(f);
+	ms_filter_unlock(f);
 
 
 }
@@ -377,7 +377,6 @@ static void dec_process(MSFilter *f){
 	struct	BV16_Bit_Stream bs;
 	int rem_bytes, nbytes;
 	frsz = ((sizeof(short)) * FRSZ ) ; //size in bytes
-	ms_message("MSBV16Dec frsz  %d  ", frsz);
 
 	int frame_per_packet = 0  ;
 	
@@ -419,8 +418,6 @@ static void dec_process(MSFilter *f){
 		
 			
 		}//while(rem_bytes >= NO_OF_BYTES_PER_5MS);
-		ms_message("MSBV16Dec  End");
-
 		freemsg(im);
 	}
 
