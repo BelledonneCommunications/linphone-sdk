@@ -41,6 +41,6 @@
 set(EP_bv16_EXTERNAL_SOURCE_PATHS "externals/bv16-floatingpoint")
 
 set(EP_bv16_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
-# if(MSVC)
-# 	set(EP_bv16_EXTRA_LDFLAGS "/SAFESEH:NO")
-# endif()
+if(MSVC)
+	set(EP_bv16_EXTRA_LDFLAGS "/SAFESEH:NO")
+endif()
