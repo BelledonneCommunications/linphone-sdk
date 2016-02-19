@@ -23,6 +23,7 @@
 
 #include "belle-sip/auth-helper.h"
 #include "belle_sip_tester.h"
+#include <bctoolbox/crypto.h>
 
 static void test_authentication(void) {
 	const char* l_raw_header = "WWW-Authenticate: Digest "
@@ -87,6 +88,10 @@ static void test_generate_and_parse_certificates(void) {
 
 	/* create 2 certificates in the temporary certificate directory (TODO : set the directory in a absolute path?? where?)*/
 	ret = belle_sip_generate_self_signed_certificate(belle_sip_certificate_temporary_dir, "test_certificate1", &certificate, &key);
+	if (ret == BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION) {
+		belle_sip_warning("Test skipped, self signed certificate generation not available.");
+		return;
+	}
 	BC_ASSERT_EQUAL_FATAL(0, ret, int, "%d");
 	belle_sip_object_unref(certificate);
 	belle_sip_object_unref(key);
@@ -153,8 +158,15 @@ const char* belle_sip_tester_fingerprint256_cert_fingerprint =
 
 static void test_certificate_fingerprint(void) {
 	char *fingerprint;
+	belle_sip_certificates_chain_t *cert;
+
+	/* check underlying bctoolbox function availability */
+	if (bctoolbox_x509_certificate_get_fingerprint(NULL, NULL, 0, 0) == BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION) {
+		belle_sip_warning("Test skipped, certificate fingerprint generation not available.");
+		return;
+	}
 	/* parse certificate defined in belle_sip_register_tester.c */
-	belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(belle_sip_tester_client_cert,strlen(belle_sip_tester_client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
+	cert = belle_sip_certificates_chain_parse(belle_sip_tester_client_cert,strlen(belle_sip_tester_client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
 	/* generate fingerprint */
 	fingerprint = belle_sip_certificates_chain_get_fingerprint(cert);
 
