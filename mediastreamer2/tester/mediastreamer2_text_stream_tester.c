@@ -53,7 +53,7 @@ typedef struct _text_stream_tester_stats_t {
 	OrtpEvQueue *q;
 	rtp_stats_t rtp;
 	int number_of_received_char;
-	char received_chars[256];
+	char received_chars[4096];
 } text_stream_tester_stats_t;
 
 typedef struct _text_stream_tester_t {
@@ -122,7 +122,8 @@ static void real_time_text_character_received(void *userdata, struct _MSFilter *
 			if (tst->stats.number_of_received_char < sizeof(tst->stats.received_chars)-1){
 				tst->stats.received_chars[tst->stats.number_of_received_char++] = (char)data->character;
 			}else{
-				ms_fatal("tst->stats.received_chars buffer overflow");
+				ms_fatal("tst->stats.received_chars buffer overflow (number_of_received_char=%i)", 
+					tst->stats.number_of_received_char);
 			}
 		}
 	}
