@@ -45,7 +45,7 @@ LDADD=$(top_builddir)/src/libbellesip.la
 
 AM_LDFLAGS=-no-undefined -export-dynamic  $(TLS_LIBS)
 if BUILD_APPLE
-AM_LDFLAGS+=-Wl,-rpath $(prefix)/lib
+AM_LDFLAGS+=-Wl,-rpath -Wl,$(prefix)/lib
 endif
 
 AM_CFLAGS=$(STRICT_OPTIONS) $(STRICT_OPTIONS_CC)
