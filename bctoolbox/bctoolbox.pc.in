@@ -1,7 +1,7 @@
 # This is a comment
 prefix=@CMAKE_INSTALL_PREFIX@
 
-Name: bctoolbox 
+Name:  @PROJECT_NAME@
 Description: A common set of tools used by Belledonne Communications's softwares 
 Requires.private: @REQUIRES_PRIVATE@ @TLS_PC@
 Version: @PROJECT_VERSION@

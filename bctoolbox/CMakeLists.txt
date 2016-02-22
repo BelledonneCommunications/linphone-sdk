@@ -97,6 +97,7 @@ add_definitions("-DHAVE_CONFIG_H")
 set(STRICT_OPTIONS_CPP )
 set(STRICT_OPTIONS_C )
 if(NOT MSVC)
+
 	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized")
 	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=unknown-warning-option" "-Qunused-arguments" "-Wno-tautological-compare" "-Wno-builtin-requires-header" "-Wno-unused-function" "-Wno-gnu-designator" "-Wno-array-bounds")
@@ -154,7 +155,7 @@ configure_file(cmake/BcToolboxConfig.cmake.in
 	@ONLY
 )
 
-set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/BcToolbox)
+set(ConfigPackageLocation ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/cmake)
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BcToolboxTargets.cmake
 	DESTINATION ${ConfigPackageLocation}
