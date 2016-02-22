@@ -69,7 +69,36 @@ static belle_sip_list_t * for_each_weak_unref_free(belle_sip_list_t *l, belle_si
 	return NULL;
 }
 
+static void belle_sip_channel_input_stream_rewind(belle_sip_channel_input_stream_t* input_stream){
+	int remaining;
+
+	remaining=input_stream->write_ptr-input_stream->read_ptr;
+	if (remaining>0){
+		/* copy remaning bytes at top of buffer*/
+		memmove(input_stream->buff,input_stream->read_ptr,remaining);
+		input_stream->read_ptr=input_stream->buff;
+		input_stream->write_ptr=input_stream->buff+remaining;
+		*input_stream->write_ptr='\0';
+	}else{
+		input_stream->read_ptr=input_stream->write_ptr=input_stream->buff;
+	}
+}
+
+static void belle_sip_channel_input_stream_reset(belle_sip_channel_input_stream_t* input_stream) {
+	belle_sip_channel_input_stream_rewind(input_stream);
+	input_stream->state=WAITING_MESSAGE_START;
+	if (input_stream->msg != NULL) belle_sip_object_unref(input_stream->msg);
+	input_stream->msg=NULL;
+	input_stream->chuncked_mode=FALSE;
+	input_stream->content_length=-1;
+}
+
+static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_input_stream_t* input_stream) {
+	return sizeof(input_stream->buff) - (input_stream->write_ptr-input_stream->buff);
+}
+
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
+	belle_sip_channel_input_stream_reset(&obj->input_stream);
 	if (obj->peer_list) belle_sip_freeaddrinfo(obj->peer_list);
 	if (obj->peer_cname) belle_sip_free(obj->peer_cname);
 	belle_sip_free(obj->peer_name);
@@ -82,6 +111,7 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	}
 	if (obj->public_ip) belle_sip_free(obj->public_ip);
 	if (obj->outgoing_messages) belle_sip_list_free_with_data(obj->outgoing_messages,belle_sip_object_unref);
+	if (obj->incoming_messages) belle_sip_list_free_with_data(obj->incoming_messages,belle_sip_object_unref);
 	free_ewouldblock_buffer(obj);
 	if (obj->cur_out_message){
 		belle_sip_object_unref(obj->cur_out_message);
@@ -206,33 +236,6 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 	return -1;
 }
 
-static void belle_sip_channel_input_stream_rewind(belle_sip_channel_input_stream_t* input_stream){
-	int remaining;
-
-	remaining=input_stream->write_ptr-input_stream->read_ptr;
-	if (remaining>0){
-		/* copy remaning bytes at top of buffer*/
-		memmove(input_stream->buff,input_stream->read_ptr,remaining);
-		input_stream->read_ptr=input_stream->buff;
-		input_stream->write_ptr=input_stream->buff+remaining;
-		*input_stream->write_ptr='\0';
-	}else{
-		input_stream->read_ptr=input_stream->write_ptr=input_stream->buff;
-	}
-}
-
-static void belle_sip_channel_input_stream_reset(belle_sip_channel_input_stream_t* input_stream) {
-	belle_sip_channel_input_stream_rewind(input_stream);
-	input_stream->state=WAITING_MESSAGE_START;
-	input_stream->msg=NULL;
-	input_stream->chuncked_mode=FALSE;
-	input_stream->content_length=-1;
-}
-
-static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_input_stream_t* input_stream) {
-	return sizeof(input_stream->buff) - (input_stream->write_ptr-input_stream->buff);
-}
-
 char *belle_sip_channel_get_public_ip_port(belle_sip_channel_t *obj){
 	if (obj->public_ip){
 		return belle_sip_strdup_printf("%s:%d", obj->public_ip, obj->public_port);
@@ -330,7 +333,7 @@ static void belle_sip_channel_message_ready(belle_sip_channel_t *obj){
 	if (bh) belle_sip_body_handler_end_transfer(bh);
 	if (belle_sip_message_is_response(msg)) belle_sip_channel_learn_public_ip_port(obj,BELLE_SIP_RESPONSE(msg));
 	uncompress_body_if_required(msg);
-	obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,msg);
+	obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,belle_sip_object_ref(msg));
 	obj->stop_logging_buffer=0;
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
 }

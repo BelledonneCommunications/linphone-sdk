@@ -197,6 +197,7 @@ static void belle_sip_memory_body_handler_recv_chunk(belle_sip_body_handler_t *b
 static int belle_sip_memory_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, size_t offset, uint8_t *buf, size_t *size){
 	belle_sip_memory_body_handler_t *obj=(belle_sip_memory_body_handler_t*)base;
 	size_t to_send=MIN(*size,obj->base.expected_size-offset);
+	if (obj->buffer == NULL) return BELLE_SIP_STOP;
 	memcpy(buf,obj->buffer+offset,to_send);
 	*size=to_send;
 	return (obj->base.expected_size-offset==*size) ? BELLE_SIP_STOP : BELLE_SIP_CONTINUE;
