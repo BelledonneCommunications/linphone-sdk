@@ -238,6 +238,8 @@ PKG_CHECK_MODULES(BCTOOLBOX, bctoolbox, [found_bctoolbox=yes],[found_bctoolbox=n
 if test "x$found_bctoolbox" = "xyes" ; then
 	TLS_CFLAGS=$BCTOOLBOX_CFLAGS
 	TLS_LIBS=$BCTOOLBOX_LIBS
+else
+	AC_MSG_ERROR(["Could not find bctoolbox (required dependency)"])
 fi
 AC_SUBST(TLS_CFLAGS)
 AC_SUBST(TLS_LIBS)
