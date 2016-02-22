@@ -155,7 +155,7 @@ configure_file(cmake/BcToolboxConfig.cmake.in
 	@ONLY
 )
 
-set(ConfigPackageLocation ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/cmake)
+set(ConfigPackageLocation share/${PROJECT_NAME}/cmake)
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BcToolboxTargets.cmake
 	DESTINATION ${ConfigPackageLocation}
