@@ -33,4 +33,4 @@ ex:
 
 ENABLE_MBEDTLS: force usage of mbedtls
 ex:
-	cmake . -DENABLE_POLARSSL=OFF -DENABLE_MBEDTLS=OFF  
+	cmake . -DENABLE_POLARSSL=OFF -DENABLE_MBEDTLS=ON  
