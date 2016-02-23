@@ -45,11 +45,6 @@ execute_process(COMMAND ${CMAKE_CURRENT_BINARY_DIR}/get_qnx_target.sh
 	OUTPUT_VARIABLE QNX_TARGET
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-configure_file(${CMAKE_CURRENT_LIST_DIR}/get_qnx_arch.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/get_qnx_arch.sh)
-execute_process(COMMAND ${CMAKE_CURRENT_BINARY_DIR}/get_qnx_arch.sh
-        OUTPUT_VARIABLE CPUVARDIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-)
 
 file(GLOB COMPILER_PATH "${QNX_HOST}/usr/bin/${COMPILER_PREFIX}*-gcc")
 if(COMPILER_PATH STREQUAL "")
@@ -60,7 +55,7 @@ get_filename_component(COMPILER_NAME ${COMPILER_PATH} NAME)
 string(REGEX REPLACE "-gcc$" "" BB10_TOOLCHAIN_PATH ${COMPILER_PATH})
 string(REGEX REPLACE "-gcc$" "" BB10_TOOLCHAIN_HOST ${COMPILER_NAME})
 
-if("${CPUVARDIR}" STREQUAL "armle-v7")
+if("${SYSTEM_PROCESSOR}" STREQUAL "arm")
 SET(arch gcc_ntoarmv7le)
 else()
 SET(arch gcc_ntox86)
