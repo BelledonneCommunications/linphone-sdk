@@ -45,6 +45,11 @@ execute_process(COMMAND ${CMAKE_CURRENT_BINARY_DIR}/get_qnx_target.sh
 	OUTPUT_VARIABLE QNX_TARGET
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+configure_file(${CMAKE_CURRENT_LIST_DIR}/get_qnx_arch.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/get_qnx_arch.sh)
+execute_process(COMMAND ${CMAKE_CURRENT_BINARY_DIR}/get_qnx_arch.sh
+        OUTPUT_VARIABLE CPUVARDIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 file(GLOB COMPILER_PATH "${QNX_HOST}/usr/bin/${COMPILER_PREFIX}*-gcc")
 if(COMPILER_PATH STREQUAL "")
@@ -55,13 +60,17 @@ get_filename_component(COMPILER_NAME ${COMPILER_PATH} NAME)
 string(REGEX REPLACE "-gcc$" "" BB10_TOOLCHAIN_PATH ${COMPILER_PATH})
 string(REGEX REPLACE "-gcc$" "" BB10_TOOLCHAIN_HOST ${COMPILER_NAME})
 
-foreach(TOOLNAME gcc g++)
-	file(GLOB TOOLPATH "${QNX_HOST}/usr/bin/${COMPILER_PREFIX}*-${TOOLNAME}-4*")
-	list(SORT TOOLPATH)
-	list(GET TOOLPATH -1 TOOLPATH)
+if("${CPUVARDIR}" STREQUAL "armle-v7")
+SET(arch gcc_ntoarmv7le)
+else()
+SET(arch gcc_ntox86)
+endif()
+
+foreach(TOOLNAME gcc g++ ld)
+	SET(TOOLPATH "${QNX_HOST}/usr/bin/qcc -V${arch}")
 	configure_file(${CMAKE_CURRENT_LIST_DIR}/tool_wrapper.cmake ${CMAKE_CURRENT_BINARY_DIR}/${BB10_TOOLCHAIN_HOST}-${TOOLNAME})
 endforeach(TOOLNAME)
-foreach(TOOLNAME ld ar ranlib strip nm as)
+foreach(TOOLNAME ar ranlib strip nm as)
 	set(TOOLPATH "${BB10_TOOLCHAIN_PATH}-${TOOLNAME}")
 	configure_file(${CMAKE_CURRENT_LIST_DIR}/tool_wrapper.cmake ${CMAKE_CURRENT_BINARY_DIR}/${BB10_TOOLCHAIN_HOST}-${TOOLNAME})
 endforeach(TOOLNAME)
