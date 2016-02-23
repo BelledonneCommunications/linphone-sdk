@@ -106,10 +106,15 @@ static void enc_uninit(MSFilter *f){
 	ms_message("MSBV16Enc Uninit ");
 }
 
+union inFullBuff{
+	uint8_t ifb[160];
+	short sfb [80];
+};
 static void enc_process(MSFilter *f){
 	//const int 	in_max_sample_size = FRSZ*28;
 //	short  	in_full_buff[80]={0};//160
-	uint8_t  in_full_buff[160]={0};//160
+	union inFullBuff in_full_buff;
+	//uint8_t  in_full_buff[160]={0};//160
 	//short* p_in_full_buff = (short*)&in_full_buff[0];
 //		short   	in_full_buff[in_max_sample_size] = {0};
 //	short 		in_unitary_buff[FRSZ];
@@ -151,25 +156,26 @@ static void enc_process(MSFilter *f){
 	
 
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
-	//	ms_message("MSBV16Enc size im %d ", (int)msgdsize(im));
+		
 		ms_bufferizer_put(s->bufferizer,im);
+		//ms_message("MSBV16Enc size im %d", (int)msgdsize(im) );
 	}
 	
-	while(ms_bufferizer_get_avail(s->bufferizer) >=  in_rcvd_bytes) {
+	while(ms_bufferizer_get_avail(s->bufferizer) ==  in_rcvd_bytes) {
 	
-		//ms_message("MSBV16Enc frame_per_packet %d ptime %d in_rcvd_bytes %d ", frame_per_packet, s->ptime, in_rcvd_bytes);
+	//	ms_message("MSBV16Enc frame_per_packet %d ptime %d in_rcvd_bytes %d ", frame_per_packet, s->ptime, in_rcvd_bytes);
 
 
 		//in_full_buff = (short *)alloca(in_rcvd_bytes);
-
+	
 		om=allocb(out_single_frsz_bytes*frame_per_packet,0);
 		
-		ret = ms_bufferizer_read(s->bufferizer,in_full_buff,in_rcvd_bytes);
+		ret = ms_bufferizer_read(s->bufferizer,in_full_buff.ifb,in_rcvd_bytes);
 		
-		for (offset=0;offset<=in_rcvd_bytes/2;offset+=in_single_frsz_bytes) {
+		for (offset=0;offset<frame_per_packet;offset+=1) {
 			//ms_message("MSBV16Enc offset %d in_rcvd_bytes %d  in_single_frsz_bytes %d ", offset, in_rcvd_bytes, in_single_frsz_bytes);
-			BV16_Encode(&bs, &s->state, (short*)&in_full_buff[offset/sizeof(short)]);
-			//BV16_Encode(&bs, &s->state, &in_full_buff[offset]);
+			BV16_Encode(&bs, &s->state, &in_full_buff.sfb[offset*FRSZ]);
+			//BV16_Encode(&bs, &s->state, (short*)&in_full_buff[offset/sizeof(short)]);
 			BV16_BitPack( (UWord8*)om->b_wptr, &bs );
 			om->b_wptr+=out_single_frsz_bytes;
 			
@@ -179,8 +185,8 @@ static void enc_process(MSFilter *f){
 		//ms_message("MSBV16Enc timestamp %d frame_size %d", s->ts, s->frame_size );
 
 		mblk_set_timestamp_info(om,s->ts);
-		//s->ts += 5 * frame_per_packet;
-		s->ts += out_single_frsz_bytes * frame_per_packet;
+		s->ts += 5 * frame_per_packet;
+		//s->ts += out_single_frsz_bytes * frame_per_packet;
 		s->frame_size += out_single_frsz_bytes * frame_per_packet;
 		
 		ms_queue_put(f->outputs[0],om);
@@ -377,12 +383,12 @@ static void dec_process(MSFilter *f){
 	struct	BV16_Bit_Stream bs;
 	int rem_bytes, nbytes;
 	frsz = ((sizeof(short)) * FRSZ ) ; //size in bytes
-
+	//frsz = 10;
 	int frame_per_packet = 0  ;
 	
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		nbytes=msgdsize(im);
-		//ms_message("MSBV16Dec size recvd %d  ", nbytes);
+	//	ms_message("MSBV16Dec size recvd %d  ", nbytes);
 		rem_bytes = ((im->b_wptr-im->b_rptr));
 
 		if (nbytes==0  || nbytes%NO_OF_BYTES_PER_5MS!=0 ){
@@ -404,8 +410,8 @@ static void dec_process(MSFilter *f){
 		}
 		if (nbytes%NO_OF_BYTES_PER_5MS ==0){
 			frame_per_packet = nbytes/NO_OF_BYTES_PER_5MS;
-		//	ms_message("MSBV16Dec  frame_per_packet %d frsz %d ", frame_per_packet,frsz);
-			for (k=0;k<frame_per_packet;k++,im->b_rptr+=k*frsz ) {
+			//ms_message("MSBV16Dec  frame_per_packet %d frsz %d ", frame_per_packet,frsz);
+			for (k=0;k<frame_per_packet;k++,im->b_rptr+=k*10 ) {
 				om=allocb(frsz ,0);
 				mblk_meta_copy(im,om);
 
