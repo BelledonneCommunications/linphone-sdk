@@ -33,6 +33,8 @@ public class MediastreamerAndroidContext {
 	private native void setDeviceFavoriteSampleRate(int samplerate);
 	private native void setDeviceFavoriteBufferSize(int bufferSize);
 	private native void addSoundDeviceDescription(String manufacturer, String model, String platform, int flags, int delay, int recommended_rate);
+
+	private static Context mContext;
 	
 	private MediastreamerAndroidContext() {
 		
@@ -45,6 +47,10 @@ public class MediastreamerAndroidContext {
 			instance = new MediastreamerAndroidContext();
 		return instance;
 	}
+
+	public static Context getContext(){
+		return mContext;
+	}
 	
 	public static void addSoundDeviceDesc(String manufacturer, String model, String platform, int flags, int delay, int recommended_rate) {
 		getInstance().addSoundDeviceDescription(manufacturer, model, platform, flags, delay, recommended_rate);
@@ -54,15 +60,15 @@ public class MediastreamerAndroidContext {
 	public static void setContext(Object c) {
 		if (c == null)
 			return;
-		
-		Context context = (Context)c;
+
+		mContext = (Context)c;
 		int bufferSize = 64;
 		int sampleRate = 44100;
 		MediastreamerAndroidContext mac = getInstance();
 		// When using the OpenSLES sound card, the system is capable of giving us the best values to use for the buffer size and the sample rate
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
 		{
-			AudioManager audiomanager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+			AudioManager audiomanager = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
 			String bufferProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER);
 			bufferSize = parseInt(bufferProperty, bufferSize);
 			String sampleRateProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
