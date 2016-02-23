@@ -70,7 +70,7 @@ endif()
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 else()
-	find_package(BcToolBox REQUIRED)
+	find_package(BcToolbox REQUIRED)
 endif()
 
 find_package(XML2)
