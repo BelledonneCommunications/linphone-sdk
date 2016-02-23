@@ -325,6 +325,12 @@ int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler
 		} while (ret != Z_STREAM_END);
 		inflateEnd(&strm);
 		final_size = outbuf_ptr - outbuf;
+		if (final_size == outbuf_size) {
+			/* If not enough space get it to be able to put the final NULL character. */
+			outbuf = belle_sip_realloc(outbuf, outbuf_size + 1);
+			outbuf_ptr = outbuf + final_size;
+		}
+		*outbuf_ptr = '\0';
 		belle_sip_message("Body has been uncompressed: %u->%u:\n%s", (unsigned int)initial_size, (unsigned int)final_size, outbuf);
 		belle_sip_free(obj->buffer);
 		obj->buffer = outbuf;
