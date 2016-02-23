@@ -120,7 +120,7 @@ LOCAL_SRC_FILES = \
 	otherfilters/rfc4103_sink.c \
 	voip/rfc4103_textstream.c
 
-LOCAL_STATIC_LIBRARIES :=
+LOCAL_STATIC_LIBRARIES := libbctoolbox
 
 LOCAL_CFLAGS += -D_XOPEN_SOURCE=600
 
