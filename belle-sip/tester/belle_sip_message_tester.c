@@ -427,10 +427,9 @@ void channel_parser_tester_recovery_from_error_base (const char* prelude,const c
 
 	check_uri_and_headers(message);
 	belle_sip_object_unref(channel);
-	belle_sip_object_unref(message);
 	belle_sip_object_unref(stack);
-
 }
+
 void channel_parser_tester_recovery_from_error(void) {
 	const char * raw_message=	"debut de stream tout pourri\r\n"
 			"INVITE je_suis_une_fausse _request_uri_hihihi SIP/2.0\r\n"
@@ -945,7 +944,6 @@ void channel_parser_http_response(void) {
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Cache-Control"));
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Vary"));
 
-	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
 	belle_sip_object_unref(channel);
 	belle_sip_object_unref(stack);
 }
@@ -1007,7 +1005,6 @@ void testGetBody(void) {
 	BC_ASSERT_PTR_NOT_NULL(ctlt);
 	BC_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),strlen(belle_sip_message_get_body(message)),int,"%d");
 	BC_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(ctlt),belle_sip_message_get_body_size(message),int,"%d");
-	belle_sip_object_unref(message);
 	belle_sip_object_unref(channel);
 	belle_sip_object_unref(stack);
 }
