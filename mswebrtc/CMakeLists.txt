@@ -21,12 +21,12 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(MSWEBRTC)
+project(mswebrtc VERSION 1.0.0 LANGUAGES C)
 
 
-set(PACKAGE "mswebrtc")
-set(PACKAGE_NAME "${PACKAGE}")
-set(PACKAGE_VERSION "1.0.0")
+set(PACKAGE "${PROJECT_NAME}")
+set(PACKAGE_NAME "${PROJECT_NAME}")
+set(PACKAGE_VERSION "${PROJECT_VERSION}")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "support@belledonne-communications.com")
 set(PACKAGE_TARNAME "mswebrtc")
@@ -34,18 +34,26 @@ set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 
+option(ENABLE_SHARED "Build shared library." YES)
+option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_AECM "Enable the WebRTC echo canceller for mobile support." YES)
 option(ENABLE_ISAC "Enable the ISAC audio codec support." YES)
 option(ENABLE_ILBC "Build iLBC codec filter" YES)
 set(ISAC_FLAVOUR "fix" CACHE STRING "ISAC audio codec flavour.")
 set_property(CACHE ISAC_FLAVOUR PROPERTY STRINGS "fix" "main")
-option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 
 
 if(NOT ENABLE_AECM AND NOT ENABLE_ISAC AND NOT ENABLE_ILBC)
 	message(FATAL_ERROR "You need to enable at least one feature of WebRTC.")
 endif()
 
+
+include(GNUInstallDirs)
+
+if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
+	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
+endif()
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
@@ -313,26 +321,35 @@ endif()
 
 set(LIBS ${MEDIASTREAMER2_LIBRARIES})
 
+add_library(mswebrtc-objects OBJECT ${SOURCE_FILES})
+set_target_properties(mswebrtc-objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
 if(ENABLE_STATIC)
-	add_library(mswebrtc STATIC ${SOURCE_FILES})
-else()
-	add_library(mswebrtc SHARED ${SOURCE_FILES})
+	add_library(mswebrtc-static STATIC $<TARGET_OBJECTS:mswebrtc-objects>)
+	set_target_properties(mswebrtc-static PROPERTIES OUTPUT_NAME mswebrtc)
+	target_link_libraries(mswebrtc-static ${LIBS})
+	install(TARGETS mswebrtc-static
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+endif()
+if(ENABLE_SHARED)
+	add_library(mswebrtc MODULE ${SOURCE_FILES})
 	set_target_properties(mswebrtc PROPERTIES VERSION 0)
+	target_link_libraries(mswebrtc ${LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmswebrtc.pdb
-				DESTINATION bin
+				DESTINATION ${CMAKE_INSTALL_BINDIR}
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
 		endif()
 		set_target_properties(mswebrtc PROPERTIES PREFIX "lib")
 	endif()
+	install(TARGETS mswebrtc
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/mediastreamer/plugins
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
 endif()
-target_link_libraries(mswebrtc ${LIBS})
-
-install(TARGETS mswebrtc
-	RUNTIME DESTINATION lib/mediastreamer/plugins
-	LIBRARY DESTINATION lib/mediastreamer/plugins
-	ARCHIVE DESTINATION lib/mediastreamer/plugins
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-)
