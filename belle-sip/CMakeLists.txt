@@ -21,22 +21,23 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(BELLESIP C CXX)
+project(belle-sip VERSION 1.4.2 LANGUAGES C CXX)
 
 
-set(PACKAGE "belle-sip")
-set(PACKAGE_NAME "${PACKAGE}")
-set(PACKAGE_VERSION "1.4.2")
+set(PACKAGE "${PROJECT_NAME}")
+set(PACKAGE_NAME "${PROJECT_NAME}")
+set(PACKAGE_VERSION "${PROJECT_VERSION}")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "jehan.monnier@linphone.org")
-set(PACKAGE_TARNAME "belle-sip")
+set(PACKAGE_TARNAME "${PROJECT_NAME}")
 set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 
+option(ENABLE_SHARED "Build shared library." YES)
+option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_RTP_MAP_ALWAYS_IN_SDP "Always include rtpmap in SDP." OFF)
 option(ENABLE_SERVER_SOCKETS "Enable server sockets" ON)
-option(ENABLE_STATIC "Build static library (default is shared library)." OFF)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TUNNEL "Enable tunnel support" OFF)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
@@ -62,6 +63,12 @@ include(CheckLibraryExists)
 include(CheckSymbolExists)
 include(CheckCSourceCompiles)
 include(CMakePushCheckState)
+include(GNUInstallDirs)
+
+if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
+	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
+endif()
 
 set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
 if(MSVC)
@@ -159,7 +166,7 @@ if(HAVE_LIBRT)
 	set(LIBS_PRIVATE "${LIBS_PRIVATE} -lrt")
 endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/belle-sip.pc.in ${CMAKE_CURRENT_BINARY_DIR}/belle-sip.pc)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/belle-sip.pc DESTINATION lib/pkgconfig)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/belle-sip.pc DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 
 
 include_directories(
@@ -261,13 +268,13 @@ configure_file(cmake/BelleSIPConfig.cmake.in
 	@ONLY
 )
 
-set(ConfigPackageLocation lib/cmake/BelleSIP)
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/BelleSIP/cmake")
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BelleSIPTargets.cmake
-	DESTINATION ${ConfigPackageLocation}
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfig.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfigVersion.cmake"
-	DESTINATION ${ConfigPackageLocation}
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
