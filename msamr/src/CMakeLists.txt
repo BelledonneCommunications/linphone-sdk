@@ -42,26 +42,35 @@ if(ENABLE_WIDEBAND)
 	list(APPEND LIBS ${OPENCOREAMRWB_LIBRARIES} ${VOAMRWBENC_LIBRARIES})
 endif()
 
+add_library(msamr-objects OBJECT ${SOURCE_FILES})
+set_target_properties(msamr-objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
 if(ENABLE_STATIC)
-	add_library(msamr STATIC ${SOURCE_FILES})
-else()
-	add_library(msamr SHARED ${SOURCE_FILES})
+	add_library(msamr-static STATIC ${SOURCE_FILES})
+	set_target_properties(msamr-static PROPERTIES OUTPUT_NAME msamr)
+	target_link_libraries(msamr-static ${LIBS})
+	install(TARGETS msamr-static
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+endif()
+if(ENABLE_SHARED)
+	add_library(msamr MODULE ${SOURCE_FILES})
 	set_target_properties(msamr PROPERTIES VERSION 0)
+	target_link_libraries(msamr ${LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmsamr.pdb
-				DESTINATION bin
+				DESTINATION ${CMAKE_INSTALL_BINDIR}
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
 		endif()
 		set_target_properties(msamr PROPERTIES PREFIX "lib")
 	endif()
+	install(TARGETS msamr
+		RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
 endif()
-target_link_libraries(msamr ${LIBS})
-
-install(TARGETS msamr
-	RUNTIME DESTINATION lib/mediastreamer/plugins
-	LIBRARY DESTINATION lib/mediastreamer/plugins
-	ARCHIVE DESTINATION lib/mediastreamer/plugins
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-)

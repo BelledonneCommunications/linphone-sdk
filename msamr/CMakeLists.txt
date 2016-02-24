@@ -21,12 +21,12 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(MSAMR C)
+project(msamr VERSION 1.0.2 LANGUAGES C)
 
 
-set(PACKAGE "msamr")
-set(PACKAGE_NAME "${PACKAGE}")
-set(PACKAGE_VERSION "1.0.2")
+set(PACKAGE "${PROJECT_NAME}")
+set(PACKAGE_NAME "${PROJECT_NAME}")
+set(PACKAGE_VERSION "${PROJECT_VERSION}")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "support@belledonne-communications.com")
 set(PACKAGE_TARNAME "msamr")
@@ -34,10 +34,17 @@ set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 
-option(ENABLE_NARROWBAND "Enable AMR narrowband." Yes)
-option(ENABLE_WIDEBAND "Enable AMR wideband." No)
-option(ENABLE_STATIC "Build static library (default is shared library)." NO)
+option(ENABLE_SHARED "Build shared library." YES)
+option(ENABLE_STATIC "Build static library." YES)
+option(ENABLE_NARROWBAND "Enable AMR narrowband." YES)
+option(ENABLE_WIDEBAND "Enable AMR wideband." NO)
 
+include(GNUInstallDirs)
+
+if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
+	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -94,4 +101,3 @@ if(NOT MSVC)
 endif()
 
 add_subdirectory(src)
-
