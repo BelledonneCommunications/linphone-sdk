@@ -41,10 +41,12 @@ set(LINPHONE_BUILDER_CFLAGS "-fPIC -fstack-protector-strong")
 set(LINPHONE_BUILDER_LDFLAGS "-Wl,-z,relro -Wl,-z,now -pie -lbps -lsocket -lslog2")
 set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# Restrict pkg-config to search in the install directory
 
-
 # Include builders
 include(builders/CMakeLists.txt)
 
+# Temporarily disable shared library (we only need the static ones), later this will be taken care of by DEFAULT_VALUE_CMAKE_LINKING_TYPE
+list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_SHARED=NO")
+list(APPEND EP_matroska2_CMAKE_OPTIONS "-DENABLE_SHARED=NO")
 
 # belle-sip
 set(EP_bellesip_EXTRA_CFLAGS "-DUSE_STRUCT_RES_STATE_NAMESERVERS ${EP_bellesip_EXTRA_CFLAGS}")
