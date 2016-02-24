@@ -55,7 +55,7 @@ endif()
 if("${CPACK_GENERATOR}" STREQUAL "RPM" OR "${CPACK_GENERATOR}" STREQUAL "DEB")
 	if (NOT CPACK_PACKAGING_INSTALL_PREFIX AND CMAKE_INSTALL_PREFIX)
 		set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
-		message("Setting packaging install prefix to ${CPACK_PACKAGING_INSTALL_PREFIX}")
+		message(STATUS "Setting packaging install prefix to ${CPACK_PACKAGING_INSTALL_PREFIX}")
 	endif()
 endif()
 

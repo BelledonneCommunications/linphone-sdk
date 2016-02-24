@@ -35,18 +35,21 @@ if(POLARSSL_FOUND)
 	endif()
 endif()
 
+add_library(bctoolbox-objects OBJECT ${BCTOOLBOX_HEADERS_FILES} ${BCTOOLBOX_SOURCE_FILES})
+set_target_properties(bctoolbox-objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
 if(ENABLE_STATIC)
-	add_library(bctoolbox-static STATIC ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_SOURCE_FILES})
+	add_library(bctoolbox-static STATIC $<TARGET_OBJECTS:bctoolbox-objects>)
 	set_target_properties(bctoolbox-static PROPERTIES OUTPUT_NAME bctoolbox)
 endif()
 if(ENABLE_SHARED)
-	add_library(bctoolbox SHARED ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_SOURCE_FILES})
+	add_library(bctoolbox SHARED $<TARGET_OBJECTS:bctoolbox-objects>)
 	set_target_properties(bctoolbox PROPERTIES VERSION 0.0.0 SOVERSION 0)
 	set_target_properties(bctoolbox PROPERTIES LINKER_LANGUAGE "CXX")
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/bctoolbox.pdb
-				DESTINATION bin
+				DESTINATION ${CMAKE_INSTALL_BINDIR}
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
 		endif()

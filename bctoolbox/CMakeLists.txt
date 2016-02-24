@@ -36,21 +36,21 @@ include(GNUInstallDirs)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-if (NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
+if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
-	message("Setting install rpath to ${CMAKE_INSTALL_RPATH}")
+	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
 if(ENABLE_MBEDTLS)
 	find_package(MbedTLS)
 	if(MBEDTLS_FOUND)
-		message("Use mbedTLS")
+		message(STATUS "Using mbedTLS")
 	endif()
 endif()
 if(ENABLE_POLARSSL AND NOT MBEDTLS_FOUND)
 	find_package(PolarSSL REQUIRED)
 	if(POLARSSL_FOUND)
-		message("Use polarSSL")
+		message(STATUS "Using polarSSL")
 		if(CTR_DRBG_FREE)
 			set(HAVE_CTR_DRGB_FREE 1)
 		endif()
@@ -58,10 +58,10 @@ if(ENABLE_POLARSSL AND NOT MBEDTLS_FOUND)
 endif()
 
 if(HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
-	message("DTLS SRTP available")
+	message(STATUS "DTLS SRTP available")
 	set(HAVE_DTLS_SRTP 1)
 else()
-	message("DTLS SRTP not available")
+	message(STATUS "DTLS SRTP not available")
 endif()
 
 if(MBEDTLS_FOUND)
@@ -155,13 +155,13 @@ configure_file(cmake/BcToolboxConfig.cmake.in
 	@ONLY
 )
 
-set(ConfigPackageLocation share/${PROJECT_NAME}/cmake)
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BcToolboxTargets.cmake
-	DESTINATION ${ConfigPackageLocation}
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfig.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
-	DESTINATION ${ConfigPackageLocation}
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
