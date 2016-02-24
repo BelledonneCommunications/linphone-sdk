@@ -31,7 +31,7 @@ if test -d /share/aclocal ; then
         ACLOCAL_ARGS="-I /share/aclocal"
 fi
 
-echo "Generating build scripts in msx264..."
+echo "Generating build scripts in msopenh264..."
 set -x
 $LIBTOOLIZE --copy --force
 $ACLOCAL  $ACLOCAL_ARGS
