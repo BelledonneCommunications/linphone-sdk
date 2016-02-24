@@ -21,12 +21,12 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(MSOPENH264)
+project(msopenh264 VERSION 1.1.1 LANGUAGES CXX)
 
 
-set(PACKAGE "msopenh264")
-set(PACKAGE_NAME "${PACKAGE}")
-set(PACKAGE_VERSION "1.1.1")
+set(PACKAGE "${PROJECT_NAME}")
+set(PACKAGE_NAME "${PROJECT_NAME}")
+set(PACKAGE_VERSION "${PROJECT_VERSION}")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "support@belledonne-communications.com")
 set(PACKAGE_TARNAME "msopenh264")
@@ -34,9 +34,16 @@ set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 
+option(ENABLE_SHARED "Build shared library." YES)
+option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_DECODER "Enable the openh264 decoder" Yes)
-option(ENABLE_STATIC "Build static library (default is shared library)." NO)
 
+include(GNUInstallDirs)
+
+if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
+	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -65,12 +72,12 @@ include_directories(
 add_definitions(-DHAVE_CONFIG_H)
 if(NOT MSVC)
 	add_definitions(-Wall -Wno-error=unknown-pragmas)
-	if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+	if (CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		add_definitions("-Wno-error=unknown-warning-option")
 		if (NOT IOS)
 			add_definitions("-Werror")
 		endif()
-	elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+	elseif (CMAKE_C_COMPILER_ID STREQUAL "GNU")
 		add_definitions("-Werror -Wno-error=pragmas")
 	endif()
 endif(NOT MSVC)

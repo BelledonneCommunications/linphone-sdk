@@ -35,27 +35,35 @@ if(ENABLE_DECODER)
 	add_definitions(-DOPENH264_DECODER_ENABLED)
 endif()
 
+add_library(msopenh264-objects OBJECT ${SOURCE_FILES})
+set_target_properties(msopenh264-objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
 if(ENABLE_STATIC)
-	add_library(msopenh264 STATIC ${SOURCE_FILES})
-else()
-	add_library(msopenh264 SHARED ${SOURCE_FILES})
+	add_library(msopenh264-static STATIC $<TARGET_OBJECTS:msopenh264-objects>)
+	set_target_properties(msopenh264-static PROPERTIES OUTPUT_NAME msopenh264)
+	target_link_libraries(msopenh264-static ${LIBS})
+	install(TARGETS msopenh264-static
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+endif()
+if(ENABLE_SHARED)
+	add_library(msopenh264 MODULE $<TARGET_OBJECTS:msopenh264-objects>)
 	set_target_properties(msopenh264 PROPERTIES VERSION 0)
+	target_link_libraries(msopenh264 ${LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmsopenh264.pdb
-				DESTINATION bin
+				DESTINATION ${CMAKE_INSTALL_BINDIR}
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
 		endif()
 		set_target_properties(msopenh264 PROPERTIES PREFIX "lib")
 	endif()
+	install(TARGETS msopenh264
+		RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
 endif()
-set_target_properties(msopenh264 PROPERTIES LINKER_LANGUAGE CXX LINK_FLAGS "${LINK_FLAGS}")
-target_link_libraries(msopenh264 ${LIBS})
-
-install(TARGETS msopenh264
-	RUNTIME DESTINATION lib/mediastreamer/plugins
-	LIBRARY DESTINATION lib/mediastreamer/plugins
-	ARCHIVE DESTINATION lib/mediastreamer/plugins
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-)
