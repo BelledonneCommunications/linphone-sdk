@@ -133,8 +133,6 @@ set(BELLE_SIP_SOURCE_FILES_C
 	transports/udp_listeningpoint.c
 	transports/tls_listeningpoint.c
 	transports/tls_channel.c
-	grammars/belle_sip_message.g
-	grammars/belle_sdp.g
 	${SDP_GENERATED_SOURCE_FILES_C}
 	${SIP_MESSAGE_GENERATED_SOURCE_FILES_C}
 	${TUNNEL_SOURCE_FILES_C}
