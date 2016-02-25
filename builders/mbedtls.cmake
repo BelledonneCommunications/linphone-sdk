@@ -20,10 +20,12 @@
 #
 ############################################################################
 
+set(EP_mbedtls_GIT_REPOSITORY "git://git.linphone.org/mbedtls.git" CACHE STRING "mbedtls repository URL")
+set(EP_mbedtls_GIT_TAG_LATEST "linphone" CACHE STRING "mbedtls tag to use when compiling latest version")
+set(EP_mbedtls_GIT_TAG "3b88f2749d59e5346de08e121fba1d797c55ddaa" CACHE STRING "mbedtls tag to use")
 set(EP_mbedtls_EXTERNAL_SOURCE_PATHS "mbedtls" "externals/mbedtls")
 
 set(EP_mbedtls_LINKING_TYPE "-DUSE_SHARED_MBEDTLS_LIBRARY=On")
-#set(EP_mbedtls_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 if(MSVC)
 	set(EP_mbedtls_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()
