@@ -40,7 +40,7 @@ add_library(bzrtp-objects OBJECT ${SOURCE_FILES})
 set_target_properties(bzrtp-objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 if(ENABLE_STATIC)
-	add_library(bzrtp-static STATIC $<TARGET_OBJECTS:bzrtp-objets>)
+	add_library(bzrtp-static STATIC $<TARGET_OBJECTS:bzrtp-objects>)
 	set_target_properties(bzrtp-static PROPERTIES OUTPUT_NAME bzrtp)
 	target_link_libraries(bzrtp-static ${LIBS})
 	install(TARGETS bzrtp-static EXPORT ${EXPORT_TARGETS_NAME}Targets
