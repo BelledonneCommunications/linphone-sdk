@@ -149,9 +149,9 @@ write_basic_package_version_file(
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/BZRTPTargets.cmake"
 )
-configure_file(cmake/BZRTPConfig.cmake
+configure_file(cmake/BZRTPConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfig.cmake"
-	COPYONLY
+	@ONLY
 )
 
 set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
