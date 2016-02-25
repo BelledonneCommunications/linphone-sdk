@@ -163,7 +163,7 @@ if(ENABLE_STATIC)
 	set_target_properties(bellesip-static PROPERTIES OUTPUT_NAME bellesip)
 	target_link_libraries(bellesip-static ${LIBS})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(bellesip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+		set_target_properties(bellesip-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 	install(TARGETS bellesip-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
