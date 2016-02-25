@@ -383,7 +383,6 @@ endif()
 set(VOIP_LIBS
 	${BCTOOLBOX_LIBRARIES}
 	${ORTP_LIBRARIES}
-	mediastreamer_base
 )
 if(WIN32)
 	if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
@@ -475,7 +474,7 @@ if(ENABLE_STATIC)
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer_voip-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(mediastreamer_voip-static ${VOIP_LIBS})
+	target_link_libraries(mediastreamer_voip-static mediastreamer_base-static ${VOIP_LIBS})
 	install(TARGETS mediastreamer_voip-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
@@ -487,7 +486,7 @@ if(ENABLE_SHARED)
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
+	target_link_libraries(mediastreamer_voip mediastreamer_base ${VOIP_LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/mediastreamer_voip.pdb
