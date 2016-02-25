@@ -26,5 +26,5 @@ set(EP_mswinrtvid_GIT_TAG "b067bca955dc170b54fffe019a6a7ce86c781c8a" CACHE STRIN
 set(EP_mswinrtvid_EXTERNAL_SOURCE_PATHS "mswinrtvid")
 set(EP_mswinrtvid_GROUPABLE YES)
 
-set(EP_mswinrtvid_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_mswinrtvid_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 set(EP_mswinrtvid_DEPENDENCIES EP_ms2)

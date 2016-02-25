@@ -26,7 +26,7 @@ set(EP_mswebrtc_GIT_TAG "88c0fa6ae7ea35fa25eac5ce4b50898e85443ff0" CACHE STRING 
 set(EP_mswebrtc_EXTERNAL_SOURCE_PATHS "mswebrtc")
 set(EP_mswebrtc_GROUPABLE YES)
 
-set(EP_mswebrtc_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_mswebrtc_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 set(EP_mswebrtc_DEPENDENCIES EP_ms2)
 
 set(EP_mswebrtc_CMAKE_OPTIONS

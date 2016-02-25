@@ -23,7 +23,7 @@
 set(EP_mbedtls_EXTERNAL_SOURCE_PATHS "mbedtls" "externals/mbedtls")
 
 set(EP_mbedtls_LINKING_TYPE "-DUSE_SHARED_MBEDTLS_LIBRARY=On")
-#set(EP_mbedtls_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+#set(EP_mbedtls_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 if(MSVC)
 	set(EP_mbedtls_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()

@@ -26,5 +26,5 @@ set(EP_mssilk_GIT_TAG "1.0.2" CACHE STRING "mssilk tag to use")
 set(EP_mssilk_EXTERNAL_SOURCE_PATHS "mssilk")
 set(EP_mssilk_GROUPABLE YES)
 
-set(EP_mssilk_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_mssilk_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 set(EP_mssilk_DEPENDENCIES EP_ms2)

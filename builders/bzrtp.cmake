@@ -26,7 +26,7 @@ set(EP_bzrtp_GIT_TAG "1.0.3" CACHE STRING "bzrtp tag to use")
 set(EP_bzrtp_EXTERNAL_SOURCE_PATHS "bzrtp")
 set(EP_bzrtp_GROUPABLE YES)
 
-set(EP_bzrtp_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_bzrtp_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 set(EP_bzrtp_DEPENDENCIES EP_bctoolbox)
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT IOS)
 	# Do not build xml2 on IOS, it is provided by the system

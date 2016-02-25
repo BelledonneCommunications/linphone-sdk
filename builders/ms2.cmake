@@ -26,7 +26,7 @@ set(EP_ms2_GIT_TAG "2.12.0" CACHE STRING "ms2 tag to use")
 set(EP_ms2_EXTERNAL_SOURCE_PATHS "mediastreamer2" "linphone/mediastreamer2")
 set(EP_ms2_GROUPABLE YES)
 
-set(EP_ms2_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_ms2_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 set(EP_ms2_DEPENDENCIES EP_ortp EP_bctoolbox)
 if(MSVC)
 	set(EP_ms2_EXTRA_LDFLAGS "/SAFESEH:NO")

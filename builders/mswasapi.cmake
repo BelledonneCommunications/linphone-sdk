@@ -26,6 +26,6 @@ set(EP_mswasapi_GIT_TAG "1.0.0" CACHE STRING "mswasapi tag to use")
 set(EP_mswasapi_EXTERNAL_SOURCE_PATHS "mswasapi")
 set(EP_mswasapi_GROUPABLE YES)
 
-set(EP_mswasapi_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_mswasapi_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 set(EP_mswasapi_EXTRA_LDFLAGS "/SAFESEH:NO")
 set(EP_mswasapi_DEPENDENCIES EP_ms2)

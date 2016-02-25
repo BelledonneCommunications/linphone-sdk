@@ -26,7 +26,7 @@ set(EP_bellesip_GIT_TAG "1.4.2" CACHE STRING "bellesip tag to use")
 set(EP_bellesip_EXTERNAL_SOURCE_PATHS "belle-sip")
 set(EP_bellesip_GROUPABLE YES)
 
-set(EP_bellesip_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_bellesip_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 set(EP_bellesip_DEPENDENCIES EP_bctoolbox)
 
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)

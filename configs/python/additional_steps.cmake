@@ -1,6 +1,6 @@
 ############################################################################
-# antlr3c.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# config-python.cmake
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,14 +20,22 @@
 #
 ############################################################################
 
-set(EP_antlr3c_GIT_REPOSITORY "git://git.linphone.org/antlr3.git" CACHE STRING "antlr3c repository URL")
-set(EP_antlr3c_GIT_TAG_LATEST "linphone" CACHE STRING "antlr3c tag to use when compiling latest version")
-set(EP_antlr3c_GIT_TAG "52075ffb35975c6901e924b4a763b6fb23abd623" CACHE STRING "antlr3c tag to use")
-set(EP_antlr3c_EXTERNAL_SOURCE_PATHS "antlr3c" "antlr3" "externals/antlr3")
-
-set(EP_antlr3c_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
-if(MSVC)
-	set(EP_antlr3c_EXTRA_LDFLAGS "/SAFESEH:NO")
+# Add external project to build the Python module
+if(NOT PACKAGE_NAME)
+	set(PACKAGE_NAME "linphone")
 endif()
 
-set(EP_antlr3c_CMAKE_OPTIONS "-DENABLE_DEBUGGER=NO")
+linphone_builder_apply_flags()
+linphone_builder_set_ep_directories(pylinphone)
+linphone_builder_expand_external_project_vars()
+
+ExternalProject_Add(TARGET_pylinphone
+	DEPENDS TARGET_linphone_builder
+	TMP_DIR ${ep_tmp}
+	BINARY_DIR ${ep_build}
+	DOWNLOAD_COMMAND ""
+	PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}" "<SOURCE_DIR>"
+		"COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_LIST_DIR}/../../cmake/FindXML2.cmake" "<SOURCE_DIR>"
+	CMAKE_GENERATOR ${CMAKE_GENERATOR}
+	CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DPACKAGE_NAME=${PACKAGE_NAME} -DLINPHONE_SOURCE_DIR=${EP_linphone_SOURCE_DIR} -DENABLE_FFMPEG:BOOL=${ENABLE_FFMPEG} -DENABLE_OPENH264:BOOL=${ENABLE_OPENH264} -DENABLE_WASAPI:BOOL=${ENABLE_WASAPI}
+)

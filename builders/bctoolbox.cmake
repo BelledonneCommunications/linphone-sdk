@@ -26,7 +26,7 @@ set(EP_bctoolbox_GIT_TAG "master" CACHE STRING "bctoolbox tag to use")
 set(EP_bctoolbox_EXTERNAL_SOURCE_PATHS "bctoolbox")
 set(EP_bctoolbox_GROUPABLE YES)
 
-set(EP_bctoolbox_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_bctoolbox_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 set(EP_bctoolbox_DEPENDENCIES )
 if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 	if (ENABLE_MBEDTLS)
