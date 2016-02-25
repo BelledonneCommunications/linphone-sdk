@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
+#include "mediastreamer2/mscodecutils.h"
 
 #include <bv16-floatingpoint/bvcommon/typedef.h>
 #include <bv16-floatingpoint/bv16/bv16cnst.h>
@@ -33,32 +34,52 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define alloca _alloca
 #endif
 
+/* signal and bitstream frame size in byte */
+#define SIGNAL_FRAME_SIZE 80
+#define BITSTREAM_FRAME_SIZE 10
+
 #define NO_OF_BYTES_PER_5MS     10
 
 typedef struct EncState{
 	struct BV16_Encoder_State state;
 	uint32_t ts; // timestamp
 	int ptime;
-	int maxptime;
+	int max_ptime;
 	int nsamples;
 	int frame_size;
 	int size_samples;
 	MSBufferizer *bufferizer;
 } EncState;
 
-static int set_ptime(MSFilter *f, int ptime){
-	 EncState *s=(EncState*)f->data;
-	 if (ptime<5 || ptime>140) return -1;
-	 s->ptime = ptime;
-	 ms_message("MSBV16Enc: got ptime=%i using [%i]",ptime,s->ptime);
+static int enc_set_ptime(MSFilter *f, void* arg){
+	EncState *s=(EncState*)f->data;
+	s->ptime=*(int*)arg;
+	if (s->ptime > s->max_ptime) {
+			s->ptime=s->max_ptime;
+	} 
+	else if (s->ptime%5) {
+		//if the ptime is not a mulptiple of 5, go to the next multiple
+		s->ptime = s->ptime - s->ptime%5 + 5; 
+	}
+	 ms_message("MSBV16Enc: got ptime=%i ", s->ptime);
 	return 0;
 }
 
 static int enc_add_fmtp(MSFilter *f, void *arg){
-	 const char *fmtp=(const char *)arg;
-	 char tmp[30];
-	 if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
-	 	return set_ptime(f,atoi(tmp));
+	EncState *s=(EncState*)f->data;
+	const char *fmtp=(const char *)arg;
+	char tmp[64];
+	tmp[0] = '\0';
+	if (fmtp_get_value(fmtp,"maxptime:",tmp,sizeof(tmp))){
+		s->max_ptime=atoi(tmp);
+		if (s->max_ptime <10 || s->max_ptime >100 ) {
+			ms_warning("MSBV16Enc: unknown value [%i] for maxptime, use default value (100) instead",s->max_ptime);
+			s->max_ptime=100;
+		}
+		ms_message("MSBV16Enc: got maxptime=%i",s->max_ptime);
+	}
+	else if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
+	 	return enc_set_ptime(f,atoi(tmp));
 	 }
 	return 0;
 }
@@ -69,7 +90,7 @@ static int enc_add_attr(MSFilter *f, void *arg){
 
 	 if (strstr(attr,"ptime:")!=NULL){
 	 	int ptime = atoi(attr+6);
-	 	return set_ptime(f,ptime);
+	 	return enc_set_ptime(f,ptime);
 	 }
 	return 0;
 }
@@ -85,15 +106,13 @@ static int get_channels(MSFilter *f, void *arg) {
 	return 0;
 }
 static void enc_init(MSFilter *f){
-	EncState *s=(EncState *)ms_new(EncState,1);
+	EncState *s=(EncState *)ms_new0(EncState,1);
 	Reset_BV16_Encoder(&(s->state));
-	s->ts=0;
 	s->nsamples = FRSZ ;
 	s->size_samples =  FRSZ * sizeof(short);
-	s->ptime=0;
-	s->maxptime = 0;
+	s->ptime=10;
+	s->max_ptime = 100;
 	s->bufferizer=ms_bufferizer_new();
-	s->frame_size = 0;
 	f->data=s;
 	
 	ms_message("MSBV16Enc Init ");
@@ -110,87 +129,92 @@ union inFullBuff{
 	uint8_t ifb[160];
 	short sfb [80];
 };
+/***
+Encodes 8 kHz-sampled narrowband speech at a bit rate of or 16 kbit/s,
+ uses 5 ms frames.
+ ***/
 static void enc_process(MSFilter *f){
-	//const int 	in_max_sample_size = FRSZ*28;
-//	short  	in_full_buff[80]={0};//160
-	union inFullBuff in_full_buff;
-	//uint8_t  in_full_buff[160]={0};//160
-	//short* p_in_full_buff = (short*)&in_full_buff[0];
-//		short   	in_full_buff[in_max_sample_size] = {0};
-//	short 		in_unitary_buff[FRSZ];
-	
+
+//	union inFullBuff in_full_buff;
 	EncState *s=(EncState*)f->data;
 	struct	BV16_Bit_Stream bs;
 //	int size=s->nsamples;
-	int in_single_frsz_bytes = (sizeof(short) ) * FRSZ ;
-//	int in_single_frsz_bytes = (sizeof(short) ) * FRSZ ;
+	//int in_single_frsz_bytes = (sizeof(short) ) * FRSZ ;
 
 	int in_rcvd_bytes;
 	int out_single_frsz_bytes = 10;
 	int ret ;
+	short *buf;
 
-
-	mblk_t *im = NULL, *om;
+	mblk_t *inputMessage = NULL, *outputMessage;
 	unsigned int offset = 0;
 	int frame_per_packet=2;
 
-	//for (i=0;i<max_size_for_ptime;i++) x[i] = 0;
 
 	/*if (s->frame_size<=0)
 		return;*/
 
 	ms_filter_lock(f);
 
-	if (s->ptime>=5)
+	if (s->ptime>=10)
 	{
 		frame_per_packet = s->ptime/5;
 	}
 
-	if (frame_per_packet<=0)
-		frame_per_packet=1;
-	if (frame_per_packet>28) /* 28*5 == 140 ms max */
-		frame_per_packet=28;
-	
-	in_rcvd_bytes = in_single_frsz_bytes * frame_per_packet;
-	
+	// if (frame_per_packet<=0)
+	// 	frame_per_packet=1;
+	// if (frame_per_packet>28) /* 28*5 == 140 ms max */
+	// 	frame_per_packet=28;
 	
 
-	while((im=ms_queue_get(f->inputs[0]))!=NULL){
+	in_rcvd_bytes = SIGNAL_FRAME_SIZE * frame_per_packet;
+	buf=(short*)alloca(in_rcvd_bytes);
+	memset((void*)buf,0, in_rcvd_bytes );
+	//ms_message("MSBV16Enc timestamp %d frame_per_packet %d ptime %d", s->ts,frame_per_packet, s->ptime );
+	s->frame_size = 0;
+	while((inputMessage=ms_queue_get(f->inputs[0]))!=NULL){
 		
-		ms_bufferizer_put(s->bufferizer,im);
-		//ms_message("MSBV16Enc size im %d", (int)msgdsize(im) );
+		ms_bufferizer_put(s->bufferizer,inputMessage);
 	}
 	
-	while(ms_bufferizer_get_avail(s->bufferizer) ==  in_rcvd_bytes) {
-	
-	//	ms_message("MSBV16Enc frame_per_packet %d ptime %d in_rcvd_bytes %d ", frame_per_packet, s->ptime, in_rcvd_bytes);
+	while(ms_bufferizer_get_avail(s->bufferizer) >= in_rcvd_bytes ) {
+	//while(ms_bufferizer_read(s->bufferizer,buf,in_rcvd_bytes)==in_rcvd_bytes){
 
+//	ms_message("MSBV16Enc frame_per_packet %d ptime %d in_rcvd_bytes %d ", frame_per_packet, s->ptime, in_rcvd_bytes);
 
-		//in_full_buff = (short *)alloca(in_rcvd_bytes);
 	
-		om=allocb(out_single_frsz_bytes*frame_per_packet,0);
+		outputMessage=allocb(BITSTREAM_FRAME_SIZE*frame_per_packet,0);
 		
-		ret = ms_bufferizer_read(s->bufferizer,in_full_buff.ifb,in_rcvd_bytes);
+		ret = ms_bufferizer_read(s->bufferizer,(uint8_t*)buf,in_rcvd_bytes);
+//			ret = ms_bufferizer_read(s->bufferizer,in_full_buff.ifb,in_rcvd_bytes);
 		
-		for (offset=0;offset<frame_per_packet;offset+=1) {
+		for (offset=0;offset<frame_per_packet;offset++) {
 			//ms_message("MSBV16Enc offset %d in_rcvd_bytes %d  in_single_frsz_bytes %d ", offset, in_rcvd_bytes, in_single_frsz_bytes);
-			BV16_Encode(&bs, &s->state, &in_full_buff.sfb[offset*FRSZ]);
-			//BV16_Encode(&bs, &s->state, (short*)&in_full_buff[offset/sizeof(short)]);
-			BV16_BitPack( (UWord8*)om->b_wptr, &bs );
-			om->b_wptr+=out_single_frsz_bytes;
+	//		BV16_Encode(&bs, &s->state, &in_full_buff.sfb[offset*FRSZ]);
+			BV16_Encode(&bs, &s->state, (short*)&buf[offset*FRSZ]);
+			BV16_BitPack( (UWord8*)outputMessage->b_wptr, &bs );
+			outputMessage->b_wptr+=out_single_frsz_bytes;
 			
 		}
-		//s->ts+=s->nsamples*frame_per_packet;
-		ms_bufferizer_fill_current_metas(s->bufferizer,om);
-		//ms_message("MSBV16Enc timestamp %d frame_size %d", s->ts, s->frame_size );
+		// //s->ts+=s->nsamples*frame_per_packet;
+		// ms_bufferizer_fill_current_metas(s->bufferizer,outputMessage);
+		// ms_message("MSBV16Enc timestamp %d frame_size %d", s->ts, s->frame_size );
 
-		mblk_set_timestamp_info(om,s->ts);
-		s->ts += 5 * frame_per_packet;
-		//s->ts += out_single_frsz_bytes * frame_per_packet;
-		s->frame_size += out_single_frsz_bytes * frame_per_packet;
+		// mblk_set_timestamp_info(outputMessage,s->ts);
+		// s->ts +=  FRSZ * frame_per_packet;
+		// //s->ts += out_single_frsz_bytes * frame_per_packet/8000;
+		// s->frame_size += out_single_frsz_bytes * frame_per_packet;
 		
-		ms_queue_put(f->outputs[0],om);
+		// ms_queue_put(f->outputs[0],outputMessage);
 		
+		mblk_set_timestamp_info(outputMessage,s->ts);
+		ms_bufferizer_fill_current_metas(s->bufferizer,outputMessage);
+		s->ts +=  FRSZ * frame_per_packet;
+
+		//s->ts += out_single_frsz_bytes * frame_per_packet/8000;
+//		s->frame_size += out_single_frsz_bytes * frame_per_packet;
+//		ms_message("MSBV16Enc timestamp %d frame_size %d", s->ts, s->frame_size );
+		ms_queue_put(f->outputs[0],outputMessage);
 	}
 
 		
@@ -199,76 +223,6 @@ static void enc_process(MSFilter *f){
 
 }
 
-// static void enc_process(MSFilter *f){
-// 	//const int max_size_for_ptime = FRSZ*28;
-// //	short    full_buff[max_size_for_ptime];
-// 	short unitary_buff[FRSZ];
-// 	EncState *s=(EncState*)f->data;
-// 	struct	BV16_Bit_Stream bs;
-// //	int size=s->nsamples;
-// 	int size = (sizeof(short) ) * FRSZ / 8;
-// 	int ret ; 
-// 	//UWord8 PackedStream[10];
-
-// 	mblk_t *im, *om;
-
-// 	int nbytes;
-// //	int i;
-// 	int frame_per_packet=1;
-
-// 	//for (i=0;i<max_size_for_ptime;i++) x[i] = 0;
-
-// 	/*if (s->frame_size<=0)
-// 		return;*/
-
-// 	ms_filter_lock(f);
-
-// 	if (s->ptime>=5)
-// 	{
-// 		frame_per_packet = s->ptime/5;
-// 	}
-
-// 	if (frame_per_packet<=0)
-// 		frame_per_packet=1;
-// 	if (frame_per_packet>28) /* 28*5 == 140 ms max */
-// 		frame_per_packet=28;
-
-// 	/* 10 bytes per frame */
-// 	nbytes=10;
-
-// 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
-// 		ms_bufferizer_put(s->bufferizer,im);
-// 	}
-// 	while(ms_bufferizer_get_avail(s->bufferizer) >= size) {
-// 	//while(ms_bufferizer_read(s->bufferizer,(uint8_t*)x,size*frame_per_packet)==(size*frame_per_packet)){
-// 	//	int k;
-// 		om=allocb(nbytes,0);
-// 		ret = ms_bufferizer_read(s->bufferizer,(uint8_t*)unitary_buff,size);
-// 	//	om=allocb(nbytes*frame_per_packet,0);
-// 		// for (k=0;k<frame_per_packet;k++)
-// 		// {
-// 		// 	for (i=0;i<s->nsamples;i++){
-// 		// 		full_buff[i+(s->nsamples*k)]=unitary_buff[i];
-// 		// 	}
-// 			BV16_Encode(&bs, &s->state, unitary_buff);
-// 			BV16_BitPack( (UWord8*)om->b_wptr, &bs );
-// 			om->b_wptr+=nbytes;
-// 		// }
-// 		//s->ts+=s->nsamples*frame_per_packet;
-// 		ms_bufferizer_fill_current_metas(s->bufferizer,om);
-
-// 		mblk_set_timestamp_info(om,s->ts);
-// 		s->ts += 5; //timestamp + 5ms
-// 		s->frame_size += nbytes;
-		
-// 		ms_queue_put(f->outputs[0],om);
-// 	}
-
-		
-// 	ms_filter_unlock(f);
-
-
-// }
 
 
 static MSFilterMethod enc_methods[]={
@@ -276,6 +230,7 @@ static MSFilterMethod enc_methods[]={
 	{MS_FILTER_ADD_ATTR        	,enc_add_attr},
 	{MS_FILTER_GET_SAMPLE_RATE	,enc_get_sample_rate },
 	{MS_FILTER_GET_NCHANNELS		,	get_channels},
+	{MS_AUDIO_ENCODER_SET_PTIME, enc_set_ptime},
 	{	0				,	NULL		}
 };
 
@@ -321,220 +276,153 @@ typedef struct DecState{
 	uint64_t sample_time;
 	bool_t plc;
 	int plc_count;
-	// MSBufferizer *bufferizer;
+	MSConcealerContext *concealer;
 } DecState;
 
 
-//static const int plc_max=10;/*10 frames of plc, no more*/
+//static const int plc_max=40;/*40 frames of plc, no more*/
 static void dec_init(MSFilter *f){
 	DecState *s=ms_new0(DecState,1);
 	Reset_BV16_Decoder(&s->state);
 	f->data = s;
 	s->sample_time = 0;
-	s->ts = 0;
 	s->plc=1;
+	s->ts = 0;
 	s->plc_count=0;
+	
 	ms_message("MSBV16Dec Init ");
 	
+}
+static void dec_preprocess(MSFilter* f){
+	DecState *s = (DecState*)f->data;
+	s->concealer = ms_concealer_context_new(UINT32_MAX);
+
+}
+
+static void dec_postprocess(MSFilter* f ){
+	DecState *s = (DecState*)f->data;
+	ms_concealer_context_destroy(s->concealer);
+
 }
 
 static void dec_uninit(MSFilter *f){
 	DecState *s = (DecState*)f->data;
 	Reset_BV16_Decoder((struct BV16_Decoder_State *)f->data);
+
 	ms_free(s);
+
 	ms_message("MSBV16Dec Uninit ");
 }
 
-//static void dec_process(MSFilter *f){
-//	
-//	DecState *s=(DecState*)f->data;
-//	struct	BV16_Bit_Stream bs;
-//	int frsz = ((sizeof(short)) * FRSZ )  ; //size in bytes
-//
-//	mblk_t *m;
-//	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-//	
-//		mblk_t *o;
-//		msgpullup(m,-1);
-//		ms_message("MSBV16Dec  %d" , (int)msgdsize(m));
-//		for(;m->b_rptr<m->b_wptr;m->b_rptr++,o->b_wptr+=10){
-//			o=allocb((sizeof(UWord8))*10,0);
-//			mblk_meta_copy(m, o);
-//
-//			BV16_BitUnPack(m->b_rptr, &bs);
-//			BV16_Decode(&bs, &s->state, (short*)o->b_wptr);
-//			o->b_wptr += frsz ;
-//
-//		}
-//	freemsg(m);
-//	ms_queue_put(f->outputs[0],o);
-//
-//	}
-//}
-
-static void dec_process(MSFilter *f){
-
-	DecState *s=(DecState*)f->data;
-
-	int k;
-	mblk_t *im, *om;
-	//int nbytes;
-	int frsz;
-	struct	BV16_Bit_Stream bs;
-	int rem_bytes, nbytes;
-	frsz = ((sizeof(short)) * FRSZ ) ; //size in bytes
-	//frsz = 10;
-	int frame_per_packet = 0  ;
-	
-	while((im=ms_queue_get(f->inputs[0]))!=NULL){
-		nbytes=msgdsize(im);
-	//	ms_message("MSBV16Dec size recvd %d  ", nbytes);
-		rem_bytes = ((im->b_wptr-im->b_rptr));
-
-		if (nbytes==0  || nbytes%NO_OF_BYTES_PER_5MS!=0 ){
-//			om=allocb(frsz ,0);
-//			mblk_meta_copy(im,om);
-//			om->b_wptr += frsz ;
-			ms_message("bv16 packet loss ? rem_bytes %d  ", rem_bytes);
-//			BV16_PLC(&s->state,(short*)om->b_wptr);
-//			mblk_set_plc_flag(om, 1);
-//			ms_queue_put(f->outputs[0],om);
-//			
-//			s->sample_time+=5;
-//			s->plc_count++;
-//			if (s->plc_count>=plc_max){
-//				s->sample_time=0;
-//			}
-			freemsg(im);
-			continue;
-		}
-		if (nbytes%NO_OF_BYTES_PER_5MS ==0){
-			frame_per_packet = nbytes/NO_OF_BYTES_PER_5MS;
-			//ms_message("MSBV16Dec  frame_per_packet %d frsz %d ", frame_per_packet,frsz);
-			for (k=0;k<frame_per_packet;k++,im->b_rptr+=k*10 ) {
-				om=allocb(frsz ,0);
-				mblk_meta_copy(im,om);
-
-				BV16_BitUnPack(im->b_rptr, &bs);
-				BV16_Decode(&bs, &s->state, (short*)om->b_wptr);   
-				om->b_wptr += frsz ;
-				
-				ms_queue_put(f->outputs[0],om);
-			}
-		
-			
-		}//while(rem_bytes >= NO_OF_BYTES_PER_5MS);
-		freemsg(im);
-	}
 
 // static void dec_process(MSFilter *f){
 
 // 	DecState *s=(DecState*)f->data;
 
-
-// 	mblk_t *im, *om;
+// 	int k;
+// 	mblk_t *inputMessage, *outputMessage;
 // 	//int nbytes;
 // 	int frsz;
 // 	struct	BV16_Bit_Stream bs;
-// 	int rem_bytes, nbytes;
-// 	frsz = ((sizeof(short)) * FRSZ ) / 8 ; //size in bytes
+// 	int  nbytes;
+// 	frsz = ((sizeof(short)) * FRSZ ) ; //size in bytes
+// 	//frsz = 10;
 // 	int frame_per_packet = 0  ;
-// 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
-// 		//do{
-// 		nbytes=msgdsize(im);,
-// 		rem_bytes = ((im->b_wptr-im->b_rptr));
-// 			// nbytes=msgdsize(im);
-// 		// if (nbytes==0  || nbytes%NO_OF_BYTES_PER_5MS!=0 ){
-// 		// 	freemsg(im);
-// 		// 	continue;
-// 		// }
-// 		// if (nbytes%NO_OF_BYTES_PER_5MS ==0){
-// 		// 	frame_per_packet = nbytes/NO_OF_BYTES_PER_5MS;
-		
-// 		// 	for (k=0;k<frame_per_packet;k++) {
-// 		// 		om=allocb(frsz ,0);
-// 		// 		BV16_BitUnPack(im->b_rptr+k*frsz, &bs);
-// 		// 		BV16_Decode(&bs, &s->state, (short*)om->b_wptr);   
-// 		// 		om->b_wptr += frsz * 8;
-// 		// 		mblk_meta_copy(im,om);
-// 		// 		ms_queue_put(f->outputs[0],om);
-// 		// 	}
-// 		while(rem_bytes >= NO_OF_BYTES_PER_5MS){
-// 			om=allocb(frsz ,0);			
-// 			mblk_meta_copy(im,om);
-// 			om->b_wptr += frsz ;
-// 			if ( rem_bytes  < NO_OF_BYTES_PER_5MS){
-// 				ms_message("bv16 packet loss ? rem_bytes %d  ", rem_bytes);
-// 				BV16_PLC(&s->state,(short*)om->b_wptr);
-// 				mblk_set_plc_flag(om, 1);
-// 				ms_queue_put(f->outputs[0],om);
-				
-// 				s->sample_time+=5;
-// 				s->plc_count++;
-// 				if (s->plc_count>=plc_max){
-// 					s->sample_time=0;
-// 				}
-
-// 			//	freemsg(om);
-// 				// BV16_PLC(&s->state,(short*)om->b_wptr);
-// 				// mblk_set_plc_flag(om, 1);
-// 			}
-			
-// 			else{
-// 				BV16_BitUnPack(im->b_rptr+frame_per_packet*frsz, &bs);
-// 				BV16_Decode(&bs, &s->state, (short*)om->b_wptr); 
-// 				ms_queue_put(f->outputs[0],om); 
-// 				im->b_rptr += NO_OF_BYTES_PER_5MS;
-// 				if (s->sample_time==0) s->sample_time=f->ticker->time;
-// 				s->sample_time+=5;
-// 				frame_per_packet ++;
-// 				if (s->plc_count>0){
-// 					s->plc_count=0;
-// 				}
-// 			}
-// 			rem_bytes = ((im->b_wptr-im->b_rptr));
-// 		}//while(rem_bytes >= NO_OF_BYTES_PER_5MS);
-// 		freemsg(im);
-// 	}
-//	if (s->plc && s->sample_time!=0 && f->ticker->time>=s->sample_time){
-//		/* we should output a frame but no packet were decoded
-//		 thus do packet loss concealment*/
-//		om=allocb(frsz,0);
-//		BV16_PLC(&s->state,(short*)om->b_wptr);
-//		om->b_wptr+=frsz;
-//		mblk_set_plc_flag(om, 1);
-//		ms_queue_put(f->outputs[0],om);
-//
-//		s->sample_time+=5;
-//		s->plc_count++;
-//		if (s->plc_count>=plc_max){
-//			s->sample_time=0;
-//		}
-	//}
-
-		// nbytes=msgdsize(im);
-		// if (nbytes==0  || nbytes%NO_OF_BYTES_PER_5MS!=0 ){
-		// 	freemsg(im);
-		// 	continue;
-		// }
-		// if (nbytes%NO_OF_BYTES_PER_5MS ==0){
-		// 	frame_per_packet = nbytes/NO_OF_BYTES_PER_5MS;
-		
-		// 	for (k=0;k<frame_per_packet;k++) {
-		// 		om=allocb(frsz ,0);
-		// 		BV16_BitUnPack(im->b_rptr+k*frsz, &bs);
-		// 		BV16_Decode(&bs, &s->state, (short*)om->b_wptr);   
-		// 		om->b_wptr += frsz * 8;
-		// 		mblk_meta_copy(im,om);
-		// 		ms_queue_put(f->outputs[0],om);
-		// 	}
-		// 	if 
-			
-		// }
-		// freemsg(im);
-	//}
+// 	int nb_frame_lost = 0;
 	
+// 	while((inputMessage=ms_queue_get(f->inputs[0]))!=NULL){
+// 		nbytes=msgdsize(inputMessage);
+// 		frame_per_packet = nbytes/NO_OF_BYTES_PER_5MS;
+
+// 		ms_message("MSBV16Dec size recvd %d  ", nbytes);
+// 		ms_message("MSBV16Dec  frame_per_packet %d sample_time %llu ticker_time %llu", frame_per_packet,s->sample_time,f->ticker->time);
+
+// 		//rem_bytes = ((inputMessage->b_wptr-inputMessage->b_rptr));
+		
+// 		if (nbytes%NO_OF_BYTES_PER_5MS ==0){
+// 					//	ms_message("MSBV16Dec  frame_per_packet %d frsz %d ", frame_per_packet,frsz);
+// 			outputMessage=allocb(SIGNAL_FRAME_SIZE*frame_per_packet ,0);
+// 			mblk_meta_copy(inputMessage,outputMessage);
+// 			for (k=0;k<frame_per_packet;k++ ) {
+
+// 				BV16_BitUnPack(inputMessage->b_rptr, &bs);
+// 				BV16_Decode(&bs, &s->state, (short*)(outputMessage->b_wptr));
+// 				outputMessage->b_wptr += SIGNAL_FRAME_SIZE ;
+// 				inputMessage->b_rptr+=NO_OF_BYTES_PER_5MS;
+// 			}
+// 			ms_queue_put(f->outputs[0],outputMessage);
+// 			if (s->sample_time==0) s->sample_time=f->ticker->time;
+// 			s->sample_time+=5*frame_per_packet;
+// 			//ms_message("MSBV16Dec  frame_per_packet %d sample_time %llu ticker_time %llu", frame_per_packet,s->sample_time,f->ticker->time);
+
+// 			if (s->plc_count>0){
+// 				 ms_warning("Did bv16 packet loss concealment during %i ms",s->plc_count*5);
+// 				s->plc_count=0;
+// 			}
+
+			
+// 		}
+// 		freemsg(inputMessage);
+// 	}
+// 	if (s->plc && s->sample_time!=0 && f->ticker->time>=s->sample_time){
+// 		//if (nbytes==0  || nbytes%NO_OF_BYTES_PER_5MS!=0 ){
+// 		ms_message("MSBV16Dec : bv16 packet loss ? sample_time  %llu  ticker_time %llu  ",s->sample_time, f->ticker->time );
+
+// 		//mblk_meta_copy(inputMessage,outputMessage);
+// 		nb_frame_lost = 1;
+// //		nb_frame_lost = (f->ticker->time - s->sample_time) / 5; // 5ms per frame
+// //		if (nb_frame_lost==0 )nb_frame_lost =1;
+// 		outputMessage=allocb(frsz* nb_frame_lost ,0);
+// 		BV16_PLC(&s->state,(short*)outputMessage->b_wptr);
+// 		outputMessage->b_wptr += frsz*nb_frame_lost ;
+// 		mblk_set_plc_flag(outputMessage, 1);
+// 		ms_queue_put(f->outputs[0],outputMessage);
+		
+// 		s->sample_time+=5*nb_frame_lost;
+// 		s->plc_count++;
+// 		if (s->plc_count>=plc_max){
+// 			s->sample_time=0;
+// 		}
+// 		//freemsg(inputMessage);
+// 		//continue;
+// 	}
+// }
+
+
+
+static void dec_process(MSFilter *f){
+
+	DecState *s=(DecState*)f->data;
+
+	mblk_t *inputMessage, *outputMessage;
+
+	struct	BV16_Bit_Stream bs;
+	
+	while((inputMessage=ms_queue_get(f->inputs[0]))!=NULL){
+		while(inputMessage->b_rptr<inputMessage->b_wptr) {
+			outputMessage = allocb(SIGNAL_FRAME_SIZE,0);
+			mblk_meta_copy(inputMessage, outputMessage);
+			BV16_BitUnPack(inputMessage->b_rptr, &bs);
+			BV16_Decode(&bs, &s->state, (short*)(outputMessage->b_wptr));
+			outputMessage->b_wptr+=SIGNAL_FRAME_SIZE;
+			inputMessage->b_rptr+=BITSTREAM_FRAME_SIZE;
+			ms_queue_put(f->outputs[0],outputMessage);
+			ms_concealer_inc_sample_time(s->concealer,f->ticker->time,5, 1);
+			
+		}
+		freemsg(inputMessage);
+	}
+	if (ms_concealer_context_is_concealement_required(s->concealer, f->ticker->time)) {
+		outputMessage = allocb(SIGNAL_FRAME_SIZE,0);
+		BV16_PLC(&s->state,(short*)outputMessage->b_wptr);
+		outputMessage->b_wptr+=SIGNAL_FRAME_SIZE;
+		mblk_set_plc_flag(outputMessage, 1);
+		ms_queue_put(f->outputs[0],outputMessage);
+		ms_concealer_inc_sample_time(s->concealer,f->ticker->time,5, 0);
+	}
 }
+
+		
 
 static int dec_have_plc(MSFilter *f, void *arg)
 {
@@ -548,9 +436,23 @@ static int dec_get_sample_rate(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int dec_add_fmtp(MSFilter *f, void *arg) {
+	DecState *s=(DecState*)f->data;
+	const char *fmtp = (const char *)arg;
+	char buf[32];
+	
+	memset(buf, '\0', sizeof(buf));
+	if (fmtp_get_value(fmtp, "plc", buf, sizeof(buf))) {
+		s->plc = atoi(buf);
+	}
+	return 0;
+}
+
 static MSFilterMethod dec_methods[] = {
-	{ MS_FILTER_GET_SAMPLE_RATE, dec_get_sample_rate },
-	{ 	MS_DECODER_HAVE_PLC		, 	dec_have_plc	},
+	{ MS_FILTER_GET_SAMPLE_RATE, 	dec_get_sample_rate },
+	{ MS_FILTER_GET_NCHANNELS, 		get_channels },
+	{	MS_FILTER_ADD_FMTP		,	dec_add_fmtp	},
+	{ MS_DECODER_HAVE_PLC		, 	dec_have_plc	},
 	{ 0,                         NULL                }
 };
 
@@ -565,9 +467,9 @@ MSFilterDesc ms_bv16_dec_desc={
 	1,
 	1,
 	dec_init,
-	NULL,
+	dec_preprocess,
 	dec_process,
-	NULL,
+	dec_postprocess,
 	dec_uninit,
 	dec_methods
 };
@@ -583,7 +485,9 @@ MSFilterDesc ms_bv16_dec_desc={
 	.ninputs=1,
 	.noutputs=1,
 	.init=dec_init,
+	.preprocess=dec_preprocess,
 	.process=dec_process,
+	.postprocess =dec_postprocess,
 	.uninit=dec_uninit,
 	.methods=dec_methods
 };
