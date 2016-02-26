@@ -329,7 +329,7 @@ if(ENABLE_STATIC)
 	set_target_properties(mswebrtc-static PROPERTIES OUTPUT_NAME mswebrtc)
 	target_link_libraries(mswebrtc-static ${LIBS})
 	install(TARGETS mswebrtc-static
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
