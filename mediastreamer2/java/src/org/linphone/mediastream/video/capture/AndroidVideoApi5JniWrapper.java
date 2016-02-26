@@ -27,7 +27,6 @@ import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration.
 
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
-import android.hardware.Camera.Size;
 import android.view.SurfaceView;
  
 /**
@@ -138,7 +137,7 @@ public class AndroidVideoApi5JniWrapper {
 		}
 				
 		AndroidCamera[] cameras = AndroidCameraConfiguration.retrieveCameras();
-		List<Size> supportedSizes = null;
+		List<AndroidCamera.Size> supportedSizes = null;
 		for(AndroidCamera c: cameras) {
 			if (c.id == id)
 				supportedSizes = c.resolutions;
@@ -148,7 +147,7 @@ public class AndroidVideoApi5JniWrapper {
 			return null;
 		}
 		Log.d("mediastreamer", supportedSizes.size() + " supported resolutions :");
-		for(Size s : supportedSizes) {
+		for(AndroidCamera.Size s : supportedSizes) {
 			Log.d("mediastreamer", "\t" + s.width + "x" + s.height);
 		}
 		int r[] = null;
@@ -158,11 +157,11 @@ public class AndroidVideoApi5JniWrapper {
 		
 		try { 
 			// look for nearest size
-			Size result = supportedSizes.get(0); /*by default return first value*/
+			AndroidCamera.Size result = supportedSizes.get(0); /*by default return first value*/
 			int req = rW * rH;
 			int minDist = Integer.MAX_VALUE;
 			int useDownscale = 0;
-			for(Size s: supportedSizes) {				
+			for(AndroidCamera.Size s: supportedSizes) {
 				int dist = /*Math.abs*/-1*(req - s.width * s.height);
 				if ( ((s.width >= rW && s.height >= rH) || (s.width >= rH && s.height >= rW)) && dist < minDist) {
 					minDist = dist;

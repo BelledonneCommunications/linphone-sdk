@@ -52,8 +52,8 @@ having sound quality trouble:*/
 
 static MSSndCard * alsa_card_new(int id, const char *pcmbasename);
 static MSSndCard *alsa_card_duplicate(MSSndCard *obj);
-static MSFilter * ms_alsa_read_new(const char *dev);
-static MSFilter * ms_alsa_write_new(const char *dev);
+static MSFilter * ms_alsa_read_new(MSFactory *factory, const char *dev);
+static MSFilter * ms_alsa_write_new(MSFactory *factory, const char *dev);
 
 
 struct _AlsaData{
@@ -604,14 +604,14 @@ static void alsa_card_set_source(MSSndCard *obj,MSSndCardCapture source)
 static MSFilter *alsa_card_create_reader(MSSndCard *card)
 {
 	AlsaData *ad=(AlsaData*)card->data;
-	MSFilter *f=ms_alsa_read_new(ad->pcmdev);
+	MSFilter *f=ms_alsa_read_new(ms_snd_card_get_factory(card), ad->pcmdev);
 	return f;
 }
 
 static MSFilter *alsa_card_create_writer(MSSndCard *card)
 {
 	AlsaData *ad=(AlsaData*)card->data;
-	MSFilter *f=ms_alsa_write_new(ad->pcmdev);
+	MSFilter *f=ms_alsa_write_new(ms_snd_card_get_factory(card), ad->pcmdev);
 	return f;
 }
 
@@ -620,7 +620,7 @@ void alsa_error_log_handler(const char *file, int line, const char *function, in
 	char * format = ms_strdup_printf("also error in %s:%d - %s", file, line, fmt);
 	va_list args;
 	va_start (args, fmt);
-	ortp_logv(ORTP_MESSAGE, format, args);
+	ortp_logv(ORTP_LOG_DOMAIN, ORTP_MESSAGE, format, args);
 	va_end (args);
 	ms_free(format);
 }
@@ -1052,8 +1052,8 @@ MSFilterDesc alsa_read_desc={
 	.methods=alsa_read_methods
 };
 
-static MSFilter * ms_alsa_read_new(const char *dev){
-	MSFilter *f=ms_filter_new_from_desc(&alsa_read_desc);
+static MSFilter * ms_alsa_read_new(MSFactory *factory, const char *dev){
+	MSFilter *f=ms_factory_create_filter_from_desc(factory, &alsa_read_desc);
 	AlsaReadData *ad=(AlsaReadData*)f->data;
 	ad->pcmdev=ms_strdup(dev);
 	return f;
@@ -1164,8 +1164,8 @@ MSFilterDesc alsa_write_desc={
 };
 
 
-static MSFilter * ms_alsa_write_new(const char *dev){
-	MSFilter *f=ms_filter_new_from_desc(&alsa_write_desc);
+static MSFilter * ms_alsa_write_new(MSFactory *factory, const char *dev){
+	MSFilter *f = ms_factory_create_filter_from_desc(factory, &alsa_write_desc);
 	AlsaWriteData *ad=(AlsaWriteData*)f->data;
 	ad->pcmdev=ms_strdup(dev);
 	return f;

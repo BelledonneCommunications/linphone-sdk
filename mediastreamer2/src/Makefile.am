@@ -31,7 +31,7 @@ ANDROID_SRC_FILES= \
 
 EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c  \
 	videofilters/winvideods.c videofilters/wincevideods.c dxfilter.h dxfilter.cpp \
-	audiofilters/winsndds.cpp \
+	audiofilters/winsndds.cpp videofilters/msdscap.cc \
 	voip/nowebcamCIF.jpg audiofilters/winsnd3.c utils/vfw-missing.h \
 	videofilters/winvideo2.c utils/msjava.c $(ANDROID_SRC_FILES) \
 	$(GITVERSION_FILE) yuv2rgb.fs yuv2rgb.vs libsrtp.map
@@ -57,7 +57,7 @@ libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(PCAP_LIBS) \
 					$(OPUS_LIBS) \
 					$(SRTP_LIBS) \
-					$(POLARSSL_LIBS)
+					$(BCTOOLBOX_LIBS)
 
 
 if LIBBZRTP
@@ -86,7 +86,7 @@ libmediastreamer_base_la_SOURCES=	base/mscommon.c \
 					otherfilters/itc.c
 libmediastreamer_voip_la_SOURCES=
 
-#dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
+#dummy c++ file to force libtool to use c++ linking
 nodist_EXTRA_libmediastreamer_base_la_SOURCES = dummy.cxx
 
 
@@ -252,7 +252,7 @@ libmediastreamer_voip_la_SOURCES+=	videofilters/msv4l2.c
 endif
 
 if BUILD_WIN32
-libmediastreamer_voip_la_SOURCES+=	videofilters/msdscap-mingw.cc videofilters/drawdib-display.c
+libmediastreamer_voip_la_SOURCES=	videofilters/drawdib-display.c
 endif
 
 if BUILD_THEORA
@@ -398,7 +398,7 @@ AM_CFLAGS=\
 	$(PCAP_CFLAGS) \
 	$(OPUS_CFLAGS) \
 	$(SRTP_CFLAGS) \
-	$(POLARSSL_CFLAGS)
+	$(BCTOOLBOX_CFLAGS)
 
 AM_CXXFLAGS=\
 	$(STRICT_OPTIONS) \

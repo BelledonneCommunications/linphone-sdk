@@ -43,7 +43,7 @@ TEST_DEPLIBS+=\
 	$(VP8_LIBS) \
 	$(VIDEO_LIBS) \
 	$(PCAP_LIBS) \
-	$(POLARSSL_LIBS)
+	$(BCTOOLBOX_LIBS)
 
 if ORTP_ENABLED
 if MS2_FILTERS
@@ -96,6 +96,8 @@ AM_CFLAGS=\
 	$(PCAP_CFLAGS)
 
 AM_LDFLAGS=-export-dynamic
-
+if BUILD_MACOSX
+AM_LDFLAGS+=-Wl,-rpath -Wl,$(libdir)
+endif
 endif !BUILD_IOS
 endif

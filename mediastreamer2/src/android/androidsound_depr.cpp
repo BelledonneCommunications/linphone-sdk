@@ -485,13 +485,11 @@ static void sound_read_postprocess(MSFilter *f){
 		goto end;
 	}
 
-	if (d->aec) {
-		delete_hardware_echo_canceller(jni_env, d->aec);
-		d->aec = NULL;
-	}
-
 	d->started = false;
-	if (d->thread_id !=0) ms_thread_join(d->thread_id,0);
+	if (d->thread_id !=0 ){
+		ms_thread_join(d->thread_id,0);
+		d->thread_id = 0;
+	}
 
 	if (d->audio_record) {
 		jni_env->CallVoidMethod(d->audio_record,stop_id);
@@ -503,6 +501,10 @@ static void sound_read_postprocess(MSFilter *f){
 			goto end;
 		}
 		jni_env->CallVoidMethod(d->audio_record,release_id);
+	}
+	if (d->aec) {
+		delete_hardware_echo_canceller(jni_env, d->aec);
+		d->aec = NULL;
 	}
 	goto end;
 	end: {
@@ -569,7 +571,7 @@ static MSFilterDesc msandroid_sound_read_desc={
 
 MSFilter *msandroid_sound_read_new(MSSndCard *card){
 	ms_debug("msandroid_sound_read_new");
-	MSFilter *f=ms_filter_new_from_desc(&msandroid_sound_read_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &msandroid_sound_read_desc);
 	msandroid_sound_read_data *data=new msandroid_sound_read_data();
 	data->builtin_aec = card->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	if (card->data != NULL) {
@@ -820,7 +822,10 @@ void msandroid_sound_write_postprocess(MSFilter *f){
 	ms_mutex_lock(&d->mutex);
 	ms_cond_signal(&d->cond);
 	ms_mutex_unlock(&d->mutex);
-	ms_thread_join(d->thread_id,0);
+	if (d->thread_id != 0){
+		ms_thread_join(d->thread_id, NULL);
+		d->thread_id = 0;
+	}
 	// flush
 	flush_id = jni_env->GetMethodID(d->audio_track_class,"flush", "()V");
 	if(flush_id==0) {
@@ -895,7 +900,7 @@ static MSFilterDesc msandroid_sound_write_desc={
 
 MSFilter *msandroid_sound_write_new(MSSndCard *card){
 	ms_debug("msandroid_sound_write_new");
-	MSFilter *f=ms_filter_new_from_desc(&msandroid_sound_write_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &msandroid_sound_write_desc);
 	msandroid_sound_write_data *data = new msandroid_sound_write_data();
 	if (card->data != NULL) {
 		SoundDeviceDescription *d = (SoundDeviceDescription *)card->data;

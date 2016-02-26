@@ -37,6 +37,7 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../include \
 	$(LOCAL_PATH)/../../oRTP \
 	$(LOCAL_PATH)/../../oRTP/include \
+	$(LOCAL_PATH)/../../../bctoolbox/include \
 	$(LOCAL_PATH)/../../../externals/speex/include \
 	$(LOCAL_PATH)/../../../externals/build/speex \
 	$(LOCAL_PATH)/../../../externals/gsm/inc \
@@ -119,7 +120,7 @@ LOCAL_SRC_FILES = \
 	otherfilters/rfc4103_sink.c \
 	voip/rfc4103_textstream.c
 
-LOCAL_STATIC_LIBRARIES :=
+LOCAL_STATIC_LIBRARIES := libbctoolbox
 
 LOCAL_CFLAGS += -D_XOPEN_SOURCE=600
 
@@ -198,10 +199,10 @@ LOCAL_CFLAGS += \
 	-DNDEBUG
 
 LOCAL_C_INCLUDES += \
-	$(LOCAL_PATH)/../../../externals/libmatroska \
-	$(LOCAL_PATH)/../../../externals/libmatroska/corec \
-	$(LOCAL_PATH)/../../../externals/libmatroska/libebml2 \
-	$(LOCAL_PATH)/../../../externals/libmatroska/libmatroska2
+	$(LOCAL_PATH)/../../../externals/libmatroska-c \
+	$(LOCAL_PATH)/../../../externals/libmatroska-c/corec \
+	$(LOCAL_PATH)/../../../externals/libmatroska-c/libebml2 \
+	$(LOCAL_PATH)/../../../externals/libmatroska-c/libmatroska2
 
 LOCAL_SRC_FILES += \
 	utils/mkv_reader.c \

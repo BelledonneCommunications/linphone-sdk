@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <mediastreamer2/mscommon.h>
 #include <mediastreamer2/msqueue.h>
-
+#include <mediastreamer2/msfactory.h>
 /*
 This file declares an API useful to pack/unpack H264 nals as described in RFC3984
 It is part of the public API to allow external H264 plugins use this api.

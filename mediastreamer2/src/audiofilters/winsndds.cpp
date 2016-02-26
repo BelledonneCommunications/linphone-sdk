@@ -1848,7 +1848,7 @@ MSFilterDesc winsndds_write_desc={
 };
 
 MSFilter *ms_winsndds_read_new(MSSndCard *card){
-	MSFilter *f=ms_filter_new_from_desc(&winsndds_read_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &winsndds_read_desc);
 	WinSndDsCard *wc=(WinSndDsCard*)card->data;
 	WinSndDs *d=(WinSndDs*)f->data;
 	d->dev_id=wc->in_devid;
@@ -1859,7 +1859,7 @@ MSFilter *ms_winsndds_read_new(MSSndCard *card){
 
 
 MSFilter *ms_winsndds_write_new(MSSndCard *card){
-	MSFilter *f=ms_filter_new_from_desc(&winsndds_write_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &winsndds_write_desc);
 	WinSndDsCard *wc=(WinSndDsCard*)card->data;
 	WinSndDs *d=(WinSndDs*)f->data;
 	d->dev_id=wc->out_devid;

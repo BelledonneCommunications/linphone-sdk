@@ -58,9 +58,9 @@ struct _mblk_video_header {
 };
 typedef struct _mblk_video_header mblk_video_header;
 
-static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
+void ms_yuv_buf_init(YuvBuf *buf, int w, int h, int stride, uint8_t *ptr){
 	int ysize,usize;
-	ysize=w*(h & 0x1 ? h +1 : h);
+	ysize=stride*(h & 0x1 ? h +1 : h);
 	usize=ysize/4;
 	buf->w=w;
 	buf->h=h;
@@ -68,8 +68,8 @@ static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 	buf->planes[1]=buf->planes[0]+ysize;
 	buf->planes[2]=buf->planes[1]+usize;
 	buf->planes[3]=0;
-	buf->strides[0]=w;
-	buf->strides[1]=w/2;
+	buf->strides[0]=stride;
+	buf->strides[1]=stride/2;
 	buf->strides[2]=buf->strides[1];
 	buf->strides[3]=0;
 }
@@ -83,16 +83,16 @@ int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	h = hdr->h;
 
 	if (m->b_cont == NULL)
-		yuv_buf_init(buf,w,h,m->b_rptr);
+		ms_yuv_buf_init(buf,w,h,w,m->b_rptr);
 	else
-		yuv_buf_init(buf,w,h,m->b_cont->b_rptr);
+		ms_yuv_buf_init(buf,w,h,w,m->b_cont->b_rptr);
 	return 0;
 }
 
 
 int ms_yuv_buf_init_from_mblk_with_size(YuvBuf *buf, mblk_t *m, int w, int h){
 	if (m->b_cont!=NULL) m=m->b_cont; /*skip potential video header */
-	yuv_buf_init(buf,w,h,m->b_rptr);
+	ms_yuv_buf_init(buf,w,h,w,m->b_rptr);
 	return 0;
 }
 
@@ -137,7 +137,7 @@ mblk_t * ms_yuv_buf_alloc(YuvBuf *buf, int w, int h){
 	hdr->h = h;
 	msg->b_rptr += header_size;
 	msg->b_wptr += header_size;
-	yuv_buf_init(buf,w,h,msg->b_wptr);
+	ms_yuv_buf_init(buf,w,h,w,msg->b_wptr);
 	msg->b_wptr+=size;
 	return msg;
 }
@@ -195,7 +195,7 @@ mblk_t *ms_yuv_buf_allocator_get(MSYuvBufAllocator *obj, MSPicture *buf, int w, 
 	hdr->h = h;
 	msg->b_rptr += header_size;
 	msg->b_wptr += header_size;
-	yuv_buf_init(buf,w,h,msg->b_wptr);
+	ms_yuv_buf_init(buf,w,h,w,msg->b_wptr);
 	msg->b_wptr+=size;
 	return msg;
 }

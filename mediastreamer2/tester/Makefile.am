@@ -57,6 +57,9 @@ endif
 
 
 AM_LDFLAGS=-no-undefined -export-dynamic
+if BUILD_MACOSX
+AM_LDFLAGS+=-Wl,-rpath -Wl,$(libdir)
+endif
 
 AM_CFLAGS=$(STRICT_OPTIONS) $(STRICT_OPTIONS_CC) $(ORTP_CFLAGS) $(CUNIT_CFLAGS)
 

@@ -4,7 +4,7 @@
 #include "mediastreamer2_tester_windows.h"
 #include "mswinrtvid.h"
 
-using namespace ms2_tester_runtime_component;
+using namespace BelledonneCommunications::Mediastreamer2::Tester;
 using namespace Platform;
 using namespace Platform::Collections;
 using namespace Windows::Foundation;
@@ -20,7 +20,7 @@ using namespace Windows::UI::ViewManagement;
 
 static OutputTraceListener^ sTraceListener;
 
-MS2Tester^ MS2Tester::_instance = ref new MS2Tester();
+NativeTester^ NativeTester::_instance = ref new NativeTester();
 
 static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 {
@@ -53,35 +53,36 @@ static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 	OutputDebugStringW(L"\n");
 }
 
-static void ms2NativeOutputTraceHandler(OrtpLogLevel lev, const char *fmt, va_list args)
+static void ms2NativeOutputTraceHandler(const char *domain, OrtpLogLevel lev, const char *fmt, va_list args)
 {
 	nativeOutputTraceHandler((int)lev, fmt, args);
 }
 
 
-MS2Tester::MS2Tester()
+NativeTester::NativeTester()
 	: _deviceRotation(0)
 {
 }
 
-MS2Tester::~MS2Tester()
+NativeTester::~NativeTester()
 {
+	uninitMS2();
 	mediastreamer2_tester_uninit();
 }
 
-void MS2Tester::setOutputTraceListener(OutputTraceListener^ traceListener)
+void NativeTester::setOutputTraceListener(OutputTraceListener^ traceListener)
 {
 	sTraceListener = traceListener;
 }
 
-void MS2Tester::initialize(StorageFolder^ writableDirectory, Platform::Boolean ui)
+void NativeTester::initialize(StorageFolder^ writableDirectory, Platform::Boolean ui)
 {
 	if (ui) {
 		mediastreamer2_tester_init(nativeOutputTraceHandler);
 	}
 	else {
 		mediastreamer2_tester_init(NULL);
-		ortp_set_log_level_mask((OrtpLogLevel)(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL));
+		ortp_set_log_level_mask(NULL, (OrtpLogLevel)(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL));
 	}
 
 	char writable_dir[MAX_WRITABLE_DIR_SIZE] = { 0 };
@@ -101,7 +102,7 @@ void MS2Tester::initialize(StorageFolder^ writableDirectory, Platform::Boolean u
 	}
 }
 
-bool MS2Tester::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
+bool NativeTester::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
 {
 	std::wstring all(L"ALL");
 	std::wstring wssuitename = suiteName->Data();
@@ -112,16 +113,16 @@ bool MS2Tester::run(Platform::String^ suiteName, Platform::String^ caseName, Pla
 	wcstombs(ccasename, wscasename.c_str(), sizeof(ccasename));
 
 	if (verbose) {
-		ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+		ortp_set_log_level_mask(NULL, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
 	}
 	else {
-		ortp_set_log_level_mask(ORTP_ERROR | ORTP_FATAL);
+		ortp_set_log_level_mask(NULL, ORTP_ERROR | ORTP_FATAL);
 	}
 	ortp_set_log_handler(ms2NativeOutputTraceHandler);
 	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename) != 0;
 }
 
-void MS2Tester::runAllToXml()
+void NativeTester::runAllToXml()
 {
 	auto workItem = ref new WorkItemHandler([this](IAsyncAction ^workItem) {
 		bc_tester_start(NULL);
@@ -130,12 +131,12 @@ void MS2Tester::runAllToXml()
 	_asyncAction = ThreadPool::RunAsync(workItem);
 }
 
-unsigned int MS2Tester::nbTestSuites()
+unsigned int NativeTester::nbTestSuites()
 {
 	return bc_tester_nb_suites();
 }
 
-unsigned int MS2Tester::nbTests(Platform::String^ suiteName)
+unsigned int NativeTester::nbTests(Platform::String^ suiteName)
 {
 	std::wstring suitename = suiteName->Data();
 	char cname[MAX_SUITE_NAME_SIZE] = { 0 };
@@ -143,7 +144,7 @@ unsigned int MS2Tester::nbTests(Platform::String^ suiteName)
 	return bc_tester_nb_tests(cname);
 }
 
-Platform::String^ MS2Tester::testSuiteName(int index)
+Platform::String^ NativeTester::testSuiteName(int index)
 {
 	const char *cname = bc_tester_suite_name(index);
 	wchar_t wcname[MAX_SUITE_NAME_SIZE];
@@ -151,7 +152,7 @@ Platform::String^ MS2Tester::testSuiteName(int index)
 	return ref new String(wcname);
 }
 
-Platform::String^ MS2Tester::testName(Platform::String^ suiteName, int testIndex)
+Platform::String^ NativeTester::testName(Platform::String^ suiteName, int testIndex)
 {
 	std::wstring suitename = suiteName->Data();
 	char csuitename[MAX_SUITE_NAME_SIZE] = { 0 };
@@ -162,11 +163,14 @@ Platform::String^ MS2Tester::testName(Platform::String^ suiteName, int testIndex
 	return ref new String(wcname);
 }
 
-Windows::Foundation::Collections::IVector<Platform::String^>^ MS2Tester::VideoDevices::get()
+Windows::Foundation::Collections::IVector<Platform::String^>^ NativeTester::VideoDevices::get()
 {
+	if (_factory == nullptr) {
+		initMS2();
+	}
 	wchar_t wcname[MAX_DEVICE_NAME_SIZE];
 	Vector<Platform::String^>^ devices = ref new Vector<Platform::String^>();
-	const MSList *elem = ms_web_cam_manager_get_list(ms_web_cam_manager_get());
+	const MSList *elem = ms_web_cam_manager_get_list(ms_factory_get_web_cam_manager(_factory));
 	for (int i = 0; elem != NULL; elem = elem->next, i++) {
 		const char *id = ms_web_cam_get_string_id((MSWebCam *)elem->data);
 		memset(wcname, 0, sizeof(wcname));
@@ -176,14 +180,13 @@ Windows::Foundation::Collections::IVector<Platform::String^>^ MS2Tester::VideoDe
 	return devices;
 }
 
-void MS2Tester::initVideo()
+void NativeTester::initVideo()
 {
-	ortp_init();
-	ms_base_init();
-	ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
-	ortp_set_log_handler(ms2NativeOutputTraceHandler);
-	ms_voip_init();
-	ms_plugins_init();
+	if (_factory == nullptr) {
+		initMS2();
+	}
+	rtp_profile_set_payload(&av_profile, 100, &payload_type_h263);
+	rtp_profile_set_payload(&av_profile, 101, &payload_type_mp4v);
 	rtp_profile_set_payload(&av_profile, 102, &payload_type_h264);
 	rtp_profile_set_payload(&av_profile, 103, &payload_type_vp8);
 	Platform::String^ appFolder = Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
@@ -194,9 +197,9 @@ void MS2Tester::initVideo()
 	ms_static_image_set_default_image(cPath);
 }
 
-void MS2Tester::uninitVideo()
+void NativeTester::uninitVideo()
 {
-	ms_exit();
+	uninitMS2();
 }
 
 #define PLATFORM_STRING_TO_C_STRING(x) \
@@ -205,20 +208,23 @@ void MS2Tester::uninitVideo()
 	wcstombs(cst, wst.c_str(), sizeof(cst))
 
 
-void MS2Tester::startVideoStream(Platform::Object^ CaptureElement, Platform::Object^ MediaElement, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate)
+void NativeTester::startVideoStream(Platform::String^ videoSwapChainPanelName, Platform::String^ previewSwapChainPanelName, Platform::String^ camera, Platform::String^ codec, Platform::String^ videoSize, unsigned int frameRate, unsigned int bitRate)
 {
-	ms_filter_enable_statistics(TRUE);
-	ms_filter_reset_statistics();
+	ms_factory_enable_statistics(_factory, TRUE);
+	ms_factory_reset_statistics(_factory);
 
 	MSVideoSize vsize = { MS_VIDEO_SIZE_CIF_W, MS_VIDEO_SIZE_CIF_H };
-	int payload = 102;
+	int payload = 103;
 	char cst[1024];
 	std::wstring wst;
-	MSWebCamManager *manager = ms_web_cam_manager_get();
+	MSWebCamManager *manager = ms_factory_get_web_cam_manager(_factory);
 	PLATFORM_STRING_TO_C_STRING(camera);
 	MSWebCam *cam = ms_web_cam_manager_get_cam(manager, cst);
 	PLATFORM_STRING_TO_C_STRING(codec);
-	if (strcmp(cst, "VP8") == 0) payload = 103;
+	if (strcmp(cst, "H263") == 0) payload = 100;
+	else if (strcmp(cst, "H264") == 0) payload = 102;
+	else if (strcmp(cst, "MPEG4") == 0) payload = 101;
+	else if (strcmp(cst, "VP8") == 0) payload = 103;
 	PLATFORM_STRING_TO_C_STRING(videoSize);
 	if (strcmp(cst, "720P") == 0) {
 		vsize.width = MS_VIDEO_SIZE_720P_W;
@@ -238,41 +244,60 @@ void MS2Tester::startVideoStream(Platform::Object^ CaptureElement, Platform::Obj
 	}
 	PayloadType *pt = rtp_profile_get_payload(&av_profile, payload);
 	pt->normal_bitrate = bitRate * 1000;
-	_videoStream = video_stream_new(20000, 0, FALSE);
-	RefToPtrProxy<Platform::Object^> *previewWindowId = new RefToPtrProxy<Platform::Object^>(CaptureElement);
-	video_stream_set_native_preview_window_id(_videoStream, previewWindowId);
-	RefToPtrProxy<Platform::Object^> *nativeWindowId = new RefToPtrProxy<Platform::Object^>(MediaElement);
+	_videoStream = video_stream_new(_factory, 20000, 0, FALSE);
+	RefToPtrProxy<Platform::String^> *nativeWindowId = new RefToPtrProxy<Platform::String^>(videoSwapChainPanelName);
 	video_stream_set_native_window_id(_videoStream, nativeWindowId);
+	RefToPtrProxy<Platform::String^> *nativePreviewWindowId = new RefToPtrProxy<Platform::String^>(previewSwapChainPanelName);
+	video_stream_set_native_preview_window_id(_videoStream, nativePreviewWindowId);
+	video_stream_use_preview_video_window(_videoStream, TRUE);
 	video_stream_set_display_filter_name(_videoStream, "MSWinRTDis");
 	video_stream_use_video_preset(_videoStream, "custom");
 	video_stream_set_sent_video_size(_videoStream, vsize);
-	video_stream_set_fps(_videoStream, frameRate);
+	video_stream_set_fps(_videoStream, (float)frameRate);
 	video_stream_set_device_rotation(_videoStream, _deviceRotation);
 	video_stream_start(_videoStream, &av_profile, "127.0.0.1", 20000, NULL, 0, payload, 0, cam);
 }
 
-void MS2Tester::stopVideoStream()
+void NativeTester::stopVideoStream()
 {
-	ms_filter_log_statistics();
+	ms_factory_log_statistics(_factory);
 	video_stream_stop(_videoStream);
 	_videoStream = NULL;
 }
 
-void MS2Tester::changeCamera(Platform::String^ camera)
+void NativeTester::changeCamera(Platform::String^ camera)
 {
 	char cst[1024];
 	std::wstring wst;
-	MSWebCamManager *manager = ms_web_cam_manager_get();
+	MSWebCamManager *manager = ms_factory_get_web_cam_manager(_factory);
 	PLATFORM_STRING_TO_C_STRING(camera);
 	MSWebCam *cam = ms_web_cam_manager_get_cam(manager, cst);
 	video_stream_change_camera(_videoStream, cam);
 }
 
-void MS2Tester::setOrientation(int degrees)
+void NativeTester::setOrientation(int degrees)
 {
 	_deviceRotation = degrees;
 	if (_videoStream != NULL) {
 		video_stream_set_device_rotation(_videoStream, _deviceRotation);
 		video_stream_update_video_params(_videoStream);
+	}
+}
+
+void NativeTester::initMS2()
+{
+	if (_factory == nullptr) {
+		ortp_init();
+		ortp_set_log_level_mask(NULL, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+		ortp_set_log_handler(ms2NativeOutputTraceHandler);
+		_factory = ms_factory_new_with_voip();
+	}
+}
+
+void NativeTester::uninitMS2()
+{
+	if (_factory != nullptr) {
+		ms_factory_destroy(_factory);
+		_factory = nullptr;
 	}
 }

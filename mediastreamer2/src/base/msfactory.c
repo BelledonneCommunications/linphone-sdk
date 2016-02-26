@@ -64,8 +64,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 
-static MSFactory *fallback_factory=NULL;
-
+MS2_DEPRECATED static MSFactory *fallback_factory=NULL;
 
 static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj);
 
@@ -142,14 +141,6 @@ static MSFilterStats *find_or_create_stats(MSFactory *factory, MSFilterDesc *des
 	return ret;
 }
 
-/**
- * Used by the legacy functions before MSFactory was added.
- * Do not use in an application.
-**/
-MSFactory *ms_factory_get_fallback(void){
-	return fallback_factory;
-}
-
 void ms_factory_init(MSFactory *obj){
 	int i;
 	long num_cpu=1;
@@ -166,7 +157,7 @@ void ms_factory_init(MSFactory *obj){
 	debug_log_enabled=getenv("MEDIASTREAMER_DEBUG");
 #endif
 	if (debug_log_enabled!=NULL && (strcmp("1",debug_log_enabled)==0) ){
-		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
 	ms_message("Mediastreamer2 factory " MEDIASTREAMER_VERSION " (git: " GIT_VERSION ") initialized.");
@@ -227,12 +218,7 @@ void ms_factory_init(MSFactory *obj){
 	ms_free(tags);
 }
 
-MSFactory *ms_factory_create_fallback(void){
-	if (fallback_factory==NULL){
-		fallback_factory=ms_factory_new();
-	}
-	return fallback_factory;
-}
+
 
 MSFactory *ms_factory_new(void){
 	MSFactory *obj=ms_new0(MSFactory,1);
@@ -240,13 +226,15 @@ MSFactory *ms_factory_new(void){
 	return obj;
 }
 
+
 /**
  * Destroy the factory.
  * This should be done after destroying all objects created by the factory.
 **/
 void ms_factory_destroy(MSFactory *factory){
+	if (factory->voip_uninit_func) factory->voip_uninit_func(factory);
 	ms_factory_uninit_plugins(factory);
-	if (factory->evq) ms_event_queue_destroy(factory->evq);
+	if (factory->evq) ms_factory_destroy_event_queue(factory);
 	factory->formats=ms_list_free_with_data(factory->formats,(void(*)(void*))ms_fmt_descriptor_destroy);
 	factory->desc_list=ms_list_free(factory->desc_list);
 	ms_list_for_each(factory->stats_list,ms_free);
@@ -256,9 +244,8 @@ void ms_factory_destroy(MSFactory *factory){
 	factory->platform_tags = ms_list_free(factory->platform_tags);
 	if (factory->plugins_dir) ms_free(factory->plugins_dir);
 	ms_free(factory);
-	if (factory==fallback_factory) fallback_factory=NULL;
+	//if (factory==fallback_factory) fallback_factory=NULL;
 }
-
 
 
 void ms_factory_register_filter(MSFactory* factory, MSFilterDesc* desc ) {
@@ -362,7 +349,8 @@ MSFilter * ms_factory_create_encoder(MSFactory* factory, const char *mime){
 }
 
 MSFilter * ms_factory_create_decoder(MSFactory* factory, const char *mime){
-	MSFilterDesc *desc=ms_filter_get_decoder(mime);
+	//MSFilterDesc *desc=ms_filter_get_decoder(mime);
+	MSFilterDesc *desc = ms_factory_get_decoder(factory, mime);
 	if (desc!=NULL) return ms_factory_create_filter_from_desc(factory,desc);
 	return NULL;
 }
@@ -382,6 +370,14 @@ MSFilter *ms_factory_create_filter_from_desc(MSFactory* factory, MSFilterDesc *d
 	if (obj->desc->init!=NULL)
 		obj->desc->init(obj);
 	return obj;
+}
+
+struct _MSSndCardManager* ms_factory_get_snd_card_manager(MSFactory *factory){
+	return factory->sndcardmanager;
+}
+
+struct _MSWebCamManager* ms_factory_get_web_cam_manager(MSFactory* f){
+	return f->wbcmanager;
 }
 
 MSFilter *ms_factory_create_filter(MSFactory* factory, MSFilterId id){
@@ -728,6 +724,15 @@ struct _MSEventQueue *ms_factory_create_event_queue(MSFactory *obj) {
 	return obj->evq;
 }
 
+void ms_factory_destroy_event_queue(MSFactory *obj) {
+	
+	ms_event_queue_destroy(obj->evq);
+	ms_factory_set_event_queue(obj,NULL);
+	
+	
+}
+
+
 struct _MSEventQueue *ms_factory_get_event_queue(MSFactory *obj){
 	return obj->evq;
 }
@@ -865,16 +870,74 @@ MSOfferAnswerContext * ms_factory_create_offer_answer_context(MSFactory *f, cons
 #include "sys/system_properties.h"
 #include <jni.h>
 
+
+#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_Factory_enableFilterFromName(JNIEnv* env,  jobject obj, jlong factoryPtr, jstring jname, jboolean enable) {
+	MSFactory *factory = (MSFactory *) factoryPtr;
+	const char *name = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
+	int result = ms_factory_enable_filter_from_name(factory, name, enable);
+	(*env)->ReleaseStringUTFChars(env, jname, name);
+	return result;
+}
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Factory_filterFromNameEnabled(JNIEnv* env, jobject obj, jlong factoryPtr, jstring jname) {
+	const char *name = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
+	MSFactory *factory = (MSFactory *) factoryPtr;
+	jboolean result = ms_factory_filter_from_name_enabled(factory, name);
+	(*env)->ReleaseStringUTFChars(env, jname, name);
+	return result;
+}
+
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_enableFilterFromNameImpl(JNIEnv* env,  jobject obj, jstring jname, jboolean enable) {
+	if (ms_factory_get_fallback() == NULL) {
+		ms_error("Java_org_linphone_mediastream_MediastreamerAndroidContext_enableFilterFromNameImpl(): no fallback factory. Use Factory.enableFilterFromName()");
+		return -1;
+	}
 	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
 	int result = ms_factory_enable_filter_from_name(ms_factory_get_fallback(),mime,enable);
 	(*env)->ReleaseStringUTFChars(env, jname, mime);
 	return result;
 }
 JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_filterFromNameEnabledImpl(JNIEnv* env, jobject obj, jstring jname) {
+	if (ms_factory_get_fallback() == NULL) {
+		ms_error("Java_org_linphone_mediastream_MediastreamerAndroidContext_filterFromNameEnabledImpl(): no fallback factory. Use Factory.filterFromNameEnabled()");
+		return FALSE;
+	}
 	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
 	jboolean result = ms_factory_filter_from_name_enabled(ms_factory_get_fallback(),mime);
 	(*env)->ReleaseStringUTFChars(env, jname, mime);
 	return result;
 }
+
 #endif
+
+
+
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+MSFactory *ms_factory_create_fallback(void){
+	if (fallback_factory==NULL){
+		fallback_factory=ms_factory_new();
+	}
+	return fallback_factory;
+}
+
+/**
+ * Used by the legacy functions before MSFactory was added.
+ * Do not use in an application.
+**/
+MSFactory *ms_factory_get_fallback(void){
+	return fallback_factory;
+}
+
+

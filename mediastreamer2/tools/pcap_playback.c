@@ -199,18 +199,18 @@ static void video_decoder_callback(void *user_data, MSFilter *f, unsigned int ev
 		break;
 	}
 }
-
+static 	MSFactory *factory;
 static void setup_media_streams(MediastreamDatas *args)
 {
 	MSConnectionHelper h;
 	MSTickerParams params = {0};
-
+	
 	/*create the rtp session */
 	ortp_init();
 	if (args->is_verbose) {
-		ortp_set_log_level_mask(ORTP_DEBUG | ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_DEBUG | ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
 	} else {
-		ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
 	}
 
 	rtp_profile_set_payload(&av_profile, 110, &payload_type_speex_nb);
@@ -229,9 +229,9 @@ static void setup_media_streams(MediastreamDatas *args)
 #endif
 	args->profile = rtp_profile_clone_full(&av_profile);
 
-	ms_init();
-	ms_filter_enable_statistics(TRUE);
-	ms_filter_reset_statistics();
+	factory = ms_factory_new();
+	ms_factory_enable_statistics(factory, TRUE);
+	ms_factory_reset_statistics(factory);
 
 	signal(SIGINT, stop_handler);
 	if (args->pt==NULL)
@@ -257,9 +257,9 @@ static void setup_media_streams(MediastreamDatas *args)
 #else
 		display_name = "MSVideoOut";
 #endif
-		args->read = ms_filter_new(MS_FILE_PLAYER_ID);
-		args->write = ms_filter_new_from_name(display_name);
-		args->decoder = ms_filter_create_decoder(args->pt->mime_type);
+		args->read = ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
+		args->write = ms_factory_create_filter_from_name(factory, display_name);
+		args->decoder = ms_factory_create_decoder(factory, args->pt->mime_type);
 		if (args->decoder==NULL){
 			fprintf(stderr,"No decoder available for %s.\n",args->pt->mime_type);
 			exit(-1);
@@ -297,10 +297,10 @@ static void setup_media_streams(MediastreamDatas *args)
 		printf("Error: video support not compiled.\n");
 #endif
 	} else {
-		MSSndCardManager *manager = ms_snd_card_manager_get();
+		MSSndCardManager *manager = ms_factory_get_snd_card_manager(factory);
 		MSSndCard *play =NULL;
 		if (args->outfile) {
-			args->write=ms_filter_new(MS_FILE_REC_ID);
+			args->write=ms_factory_create_filter(factory, MS_FILE_REC_ID);
 			if (ms_filter_call_method(args->write, MS_FILE_REC_OPEN, args->outfile)) {
 				ms_error("Cannot open file [%s] in write mode",args->outfile);
 				exit(-1);
@@ -312,8 +312,8 @@ static void setup_media_streams(MediastreamDatas *args)
 			args->write = ms_snd_card_create_writer(play);
 
 		}
-		args->read = ms_filter_new(MS_FILE_PLAYER_ID);
-		args->decoder = ms_filter_create_decoder(args->pt->mime_type);
+		args->read = ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
+		args->decoder = ms_factory_create_decoder(factory, args->pt->mime_type);
 		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_CLOSE);
 		ms_filter_call_method(args->read, MS_FILE_PLAYER_OPEN, args->infile);
 		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_START);
@@ -379,7 +379,7 @@ static void clear_mediastreams(MediastreamDatas *args)
 	}
 	rtp_profile_destroy(args->profile);
 
-	ms_exit();
+	ms_factory_destroy(factory);
 }
 
 // HELPER METHODS

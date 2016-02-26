@@ -543,14 +543,14 @@ MSFilterDesc oss_write_desc={
 };
 
 MSFilter *ms_oss_read_new(MSSndCard *card){
-	MSFilter *f=ms_filter_new_from_desc(&oss_read_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card),&oss_read_desc);
 	f->data=card;
 	return f;
 }
 
 
 MSFilter *ms_oss_write_new(MSSndCard *card){
-	MSFilter *f=ms_filter_new_from_desc(&oss_write_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card),&oss_write_desc);
 	f->data=card;
 	return f;
 }

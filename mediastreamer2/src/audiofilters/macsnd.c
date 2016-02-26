@@ -192,7 +192,7 @@ static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDevic
 	int err;
 
 	d->uidname = ms_strdup(uidname);
-	card->name = ms_strdup(name);
+	card->name = ms_strdup_printf("%s (%s)", name, uidname); /*include uid so that names are uniques*/
 	card->capabilities = cap;
 	
 	slen = sizeof(format);
@@ -258,7 +258,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 	AudioBufferList *buflist = ms_malloc(slen);
 
 	theAddress.mSelector =  kAudioDevicePropertyStreamConfiguration;
-		err = AudioObjectGetPropertyData(id
+	err = AudioObjectGetPropertyData(id
 				,&theAddress
 				,0
 				,NULL
@@ -283,7 +283,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 	
 	slen = sizeof(CFStringRef);
 	theAddress.mSelector =  kAudioDevicePropertyDeviceUID;
-		err = AudioObjectGetPropertyData(id
+	err = AudioObjectGetPropertyData(id
 				,&theAddress
 				,0
 				,NULL
@@ -296,7 +296,6 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 	}
 	CFStringGetCString(dUID, uidname, name_len,CFStringGetSystemEncoding());
 	ms_message("CA: devname:%s uidname:%s", devname, uidname);
-			
 	
 	return ret;
 }
@@ -356,10 +355,12 @@ static void au_card_detect(MSSndCardManager * m)
 		if (check_card_capability(devices[i],TRUE,devname,uidname,sizeof(uidname))){
 			card_capacity|=MS_SND_CARD_CAP_CAPTURE;
 		}
+		
 		if (card_capacity) {
 			card=ca_card_new(devname, uidname, devices[i], card_capacity);
 			ms_snd_card_manager_add_card(m, card);
 		}
+
 
 	}
 }
@@ -791,7 +792,7 @@ static void set_audio_device_id(AuCard *wc,AUCommon* d, bool_t is_read) {
 	CFRelease(devUid);
 }
 MSFilter *ms_au_read_new(MSSndCard *card){
-	MSFilter *f = ms_filter_new_from_desc(&ms_au_read_desc);
+	MSFilter *f = ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &ms_au_read_desc);
 	AuCard *wc = (AuCard *) card->data;
 	AURead *d = (AURead *) f->data;
 	/*d->common.dev = wc->dev;*/
@@ -802,7 +803,7 @@ MSFilter *ms_au_read_new(MSSndCard *card){
 
 
 MSFilter *ms_au_write_new(MSSndCard *card){
-	MSFilter *f=ms_filter_new_from_desc(&ms_au_write_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &ms_au_write_desc);
 	AuCard *wc = (AuCard *) card->data;
 	AUWrite *d = (AUWrite *) f->data;
 	/*d->common.dev = wc->dev;*/

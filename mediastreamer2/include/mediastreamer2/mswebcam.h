@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define webcam_h
 
 #include <mediastreamer2/mscommon.h>
+#include <mediastreamer2/msfactory.h>
 
 /**
  * @file mswebcam.h
@@ -38,6 +39,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
 struct _MSWebCamManager{
+	MSFactory* factory;
 	MSList *cams;
 	MSList *descs;
 };
@@ -73,6 +75,7 @@ struct _MSWebCamDesc{
 typedef struct _MSWebCamDesc MSWebCamDesc;
 
 struct _MSWebCam{
+	MSWebCamManager* wbcmanager;
 	MSWebCamDesc *desc;
 	char *name;
 	char *id;
@@ -90,17 +93,31 @@ extern "C"{
 #endif
 
 /**
- * Retreive a webcam manager object.
+ * Retrieve a webcam manager object.
  *
- * Returns: MSWebCamManager if successfull, NULL otherwise.
+ * @returns: MSWebCamManager if successfull, NULL otherwise.
+ * @deprecated use ms_factory_get_web_cam_manager().
  */
-MS2_PUBLIC MSWebCamManager * ms_web_cam_manager_get(void);
+MS2_PUBLIC MS2_DEPRECATED MSWebCamManager * ms_web_cam_manager_get(void);
+
+/**
+ * Returns the factory from the webcam object.
+ * @param c MSWebCam used to get to the factory.
+ */
+MS2_PUBLIC MSFactory * ms_web_cam_get_factory(MSWebCam *c);
+
+/**
+ * Create a webcam manager object.
+ * You usually do not need this function, instead get the webcam manager from a factory
+ * with ms_factory_get_web_cam_manager().
+ */
+MS2_PUBLIC MSWebCamManager * ms_web_cam_manager_new(void);
 
 /**
  * Destroy the webcam manager object.
- *
+ * You usually don't need this function, ms_factory_destroy() doing the job for you.
  */
-MS2_PUBLIC void ms_web_cam_manager_destroy(void);
+MS2_PUBLIC void ms_web_cam_manager_destroy(MSWebCamManager* scm);
 
 /**
  * Retreive a webcam object based on its name.
@@ -138,7 +155,9 @@ MS2_PUBLIC const MSList * ms_web_cam_manager_get_list(MSWebCamManager *m);
  *
  */
 MS2_PUBLIC void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c);
-
+	
+MS2_PUBLIC void ms_web_cam_set_manager(MSWebCamManager*m, MSWebCam *c);
+	
 /**
  * Add a webcam object on top of list of the webcam  manager's list.
  *

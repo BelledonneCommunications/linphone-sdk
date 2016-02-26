@@ -65,6 +65,6 @@ if(ENABLE_VIDEO)
 	target_link_libraries(mkvstream mediastreamer_voip mediastreamer_base)
 
 	install(TARGETS mediastream mkvstream
-		RUNTIME DESTINATION bin
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 	)
 endif()

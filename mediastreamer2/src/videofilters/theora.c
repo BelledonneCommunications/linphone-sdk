@@ -64,7 +64,7 @@ static void enc_init(MSFilter *f){
 	s->packed_conf=NULL;
 	s->start_time=0;
 	s->conf_time=0;
-	s->mtu=ms_get_payload_max_size()-6;
+	s->mtu=ms_factory_get_payload_max_size(f->factory)-6;
 	s->nframes=0;
 	f->data=s;
 }

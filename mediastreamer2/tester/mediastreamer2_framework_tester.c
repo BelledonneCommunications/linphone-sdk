@@ -41,24 +41,24 @@ static int tester_after_all(void) {
 
 static void filter_register_tester(void) {
 	MSFilter* filter;
+	MSFactory* factory = NULL;
+	
+	factory = ms_factory_new_with_voip();
 
-	ms_init();
-	ms_init();
+	BC_ASSERT_PTR_NOT_NULL(ms_factory_lookup_filter_by_name(factory, "MSVoidSource"));
 
-	BC_ASSERT_PTR_NOT_NULL(ms_filter_lookup_by_name("MSVoidSource"));
-	filter= ms_filter_create_decoder("pcma");
+	BC_ASSERT_PTR_NOT_NULL(ms_factory_lookup_filter_by_name(factory, "MSVoidSource"));
+	filter= ms_factory_create_decoder(factory, "pcma");
 	BC_ASSERT_PTR_NOT_NULL(filter);
 	ms_filter_destroy(filter);
 
-	ms_exit();
-
-	BC_ASSERT_PTR_NOT_NULL(ms_filter_lookup_by_name("MSVoidSource"));
-	filter= ms_filter_create_decoder("pcma");
+	BC_ASSERT_PTR_NOT_NULL(ms_factory_lookup_filter_by_name(factory,"MSVoidSource"));
+	filter= ms_factory_create_decoder(factory, "pcma");
 	BC_ASSERT_PTR_NOT_NULL(filter);
 	ms_filter_destroy(filter);
 
-	ms_exit();
-	BC_ASSERT_PTR_NULL(ms_factory_get_fallback());
+	ms_factory_destroy(factory);
+	
 }
 #ifdef VIDEO_ENABLED
 static void test_video_processing (void) {
@@ -145,34 +145,36 @@ static void test_is_multicast(void) {
 static void test_filterdesc_enable_disable_base(const char* mime, const char* filtername,bool_t is_enc) {
 	MSFilter *filter;
 
-	ms_init();
+	MSFactory *factory = NULL;
+	factory = ms_factory_new_with_voip();
 
 	if (is_enc)
-			filter = ms_filter_create_encoder(mime);
+			filter = ms_factory_create_encoder(factory,mime);
 		else
-			filter = ms_filter_create_decoder(mime);
+			filter = ms_factory_create_decoder(factory,mime);
 
 	BC_ASSERT_PTR_NOT_NULL(filter);
 	ms_filter_destroy(filter);
 
-	BC_ASSERT_FALSE(ms_factory_enable_filter_from_name(ms_factory_get_fallback(),filtername,FALSE));
-	BC_ASSERT_FALSE(ms_factory_filter_from_name_enabled(ms_factory_get_fallback(),filtername));
+	BC_ASSERT_FALSE(ms_factory_enable_filter_from_name(factory,filtername,FALSE));
+	BC_ASSERT_FALSE(ms_factory_filter_from_name_enabled(factory,filtername));
 	if (is_enc)
-			filter = ms_filter_create_encoder(mime);
+			filter = ms_factory_create_encoder(factory,mime);
 		else
-			filter = ms_filter_create_decoder(mime);
+			filter = ms_factory_create_decoder(factory,mime);
 	BC_ASSERT_PTR_NULL(filter);
 
-	BC_ASSERT_FALSE(ms_factory_enable_filter_from_name(ms_factory_get_fallback(),filtername,TRUE));
-	BC_ASSERT_TRUE(ms_factory_filter_from_name_enabled(ms_factory_get_fallback(),filtername));
+	BC_ASSERT_FALSE(ms_factory_enable_filter_from_name(factory,filtername,TRUE));
+	BC_ASSERT_TRUE(ms_factory_filter_from_name_enabled(factory,filtername));
 	if (is_enc)
-		filter = ms_filter_create_encoder(mime);
+		filter = ms_factory_create_encoder(factory,mime);
 	else
-		filter = ms_filter_create_decoder(mime);
+		filter = ms_factory_create_decoder(factory,mime);
 	BC_ASSERT_PTR_NOT_NULL(filter);
 
 	ms_filter_destroy(filter);
-	ms_exit();
+	
+	ms_factory_destroy(factory);
 }
 static void test_filterdesc_enable_disable(void) {
 	test_filterdesc_enable_disable_base("pcmu", "MSUlawDec", FALSE);

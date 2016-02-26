@@ -59,7 +59,8 @@ struct bench_config {
 	int rate;
 	int ptime;
 	char *wavfile;
-
+	
+	MSFactory *factory;
 	MSTicker *ticker;
 	MSList *tsessions; /* list of struct test_session */
 };
@@ -101,6 +102,8 @@ static int init_bench(struct bench_config *bench)
 	int pos;
 	int val;
 	int count;
+	
+	bench->factory = ms_factory_new_with_voip();
 	bench->ticker=ms_ticker_new();
 
 	count = 0;
@@ -134,14 +137,14 @@ static int init_bench(struct bench_config *bench)
 											 bench->ip_destination,
 											 bench->port_destination+1+pos*2);
 
-			ts->fplayer = ms_filter_new(MS_FILE_PLAYER_ID);
+			ts->fplayer = ms_factory_create_filter(bench->factory, MS_FILE_PLAYER_ID);
 			if (strstr(bench->wavfile, ".au")==NULL)
-				ts->encoder = ms_filter_create_encoder(pt->mime_type);
-			ts->rtpsend = ms_filter_new(MS_RTP_SEND_ID);
+				ts->encoder = ms_factory_create_encoder(bench->factory, pt->mime_type);
+			ts->rtpsend = ms_factory_create_filter(bench->factory, MS_RTP_SEND_ID);
 
-			ts->rtprecv = ms_filter_new(MS_RTP_RECV_ID);
-			ts->decoder = ms_filter_create_decoder(pt->mime_type);
-			ts->frecorder = ms_filter_new(MS_FILE_REC_ID);
+			ts->rtprecv = ms_factory_create_filter(bench->factory, MS_RTP_RECV_ID);
+			ts->decoder = ms_factory_create_decoder(bench->factory, pt->mime_type);
+			ts->frecorder = ms_factory_create_filter(bench->factory, MS_FILE_REC_ID);
 
 			if ((ts->encoder==NULL && strstr(bench->wavfile, ".au")==NULL)
 				|| (ts->decoder==NULL )){
@@ -327,6 +330,7 @@ static int uninit_bench(struct bench_config *bench)
 	}
 
 	ms_ticker_destroy(bench->ticker);
+	ms_factory_destroy(bench->factory);
 	return 0;
 }
 
@@ -335,8 +339,10 @@ int main(int argc, char *argv[]){
 	int pos;
 	int count;
 	ortp_init();
-	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-	ms_init();
+	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	
+
+	
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
 	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
 	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
@@ -347,7 +353,7 @@ int main(int argc, char *argv[]){
 	count=0;
 	for (pos=0;cfg[pos].num_session!=0;pos++)
 		{
-			count = count + init_bench(&cfg[pos]);
+			count = count + init_bench( &cfg[pos]);
 			ms_sleep(10);
 		}
 
@@ -360,6 +366,8 @@ int main(int argc, char *argv[]){
 		{
 			uninit_bench(&cfg[pos]);
 		}
+	
+
 
 	return 0;
 }

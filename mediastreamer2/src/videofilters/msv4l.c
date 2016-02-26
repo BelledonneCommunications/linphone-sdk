@@ -1022,7 +1022,7 @@ MSFilterDesc ms_v4l_desc={
 MS_FILTER_DESC_EXPORT(ms_v4l_desc)
 
 static MSFilter *v4l_create_reader(MSWebCam *obj){
-	MSFilter *f=ms_filter_new_from_desc(&ms_v4l_desc);
+	MSFilter *f=ms_factory_create_filter_from_desc(ms_web_cam_get_factory(obj),(&ms_v4l_desc));
 	V4lState *s=(V4lState*)f->data;
 	v4l_set_devfile(f,obj->name);
 	s->force_v1=TRUE;

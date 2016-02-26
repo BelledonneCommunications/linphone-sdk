@@ -25,31 +25,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h>
 #endif
 
-#ifdef HAVE_DTLS
-
-#include <polarssl/ssl.h>
-#include <polarssl/entropy.h>
-#include <polarssl/ctr_drbg.h>
-#include <polarssl/ssl_cookie.h>
-#include <polarssl/ssl_cache.h>
-#include <polarssl/sha1.h>
-#include <polarssl/sha256.h>
-#include <polarssl/sha512.h>
+#include "bctoolbox/crypto.h"
 
 
 
-
-typedef struct _DtlsPolarsslContexts {
-	x509_crt crt;
-	ssl_context ssl;
-	entropy_context entropy;
-	ctr_drbg_context ctr_drbg;
-	ssl_cookie_ctx cookie_ctx;
-	pk_context pkey;
+typedef struct _DtlsBcToolBoxContexts {
+	bctoolbox_x509_certificate_t *crt;
+	bctoolbox_ssl_config_t *ssl_config;
+	bctoolbox_ssl_context_t *ssl;
+	bctoolbox_rng_context_t *rng;
+	bctoolbox_signing_key_t *pkey;
 	ms_mutex_t ssl_context_mutex;
-//	ssl_session saved_session;
-//	ssl_cache_context cache;
-} DtlsPolarsslContext;
+} DtlsBcToolBoxContext;
 
 /**
  * incoming DTLS message are stored in a chain buffer to feed polarssl handshake when needed
@@ -66,7 +53,8 @@ typedef struct _DtlsRawPacket {
 
 #define DTLS_STATUS_CONTEXT_NOT_READY 0
 #define DTLS_STATUS_CONTEXT_READY 1
-#define DTLS_STATUS_HANDSHAKE_OVER 2
+#define DTLS_STATUS_HANDSHAKE_ONGOING 2
+#define DTLS_STATUS_HANDSHAKE_OVER 3
 
 #define READ_TIMEOUT_MS 1000
 
@@ -78,11 +66,11 @@ struct _MSDtlsSrtpContext{
 	RtpTransportModifier *rtp_modifier;
 	RtpTransportModifier *rtcp_modifier;
 
-	DtlsPolarsslContext *rtp_dtls_context; /**< a structure containing all contexts needed by polarssl for RTP channel */
-	DtlsPolarsslContext *rtcp_dtls_context; /**< a structure containing all contexts needed by polarssl for RTCP channel */
+	DtlsBcToolBoxContext *rtp_dtls_context; /**< a structure containing all contexts needed by polarssl for RTP channel */
+	DtlsBcToolBoxContext *rtcp_dtls_context; /**< a structure containing all contexts needed by polarssl for RTCP channel */
 
-	uint8_t rtp_channel_status; /**< channel status : DTLS_STATUS_CONTEXT_NOT_READY, DTLS_STATUS_CONTEXT_READY, DTLS_STATUS_HANDSHAKE_OVER */
-	uint8_t rtcp_channel_status; /**< channel status : DTLS_STATUS_CONTEXT_NOT_READY, DTLS_STATUS_CONTEXT_READY, DTLS_STATUS_HANDSHAKE_OVER */
+	uint8_t rtp_channel_status; /**< channel status : DTLS_STATUS_CONTEXT_NOT_READY, DTLS_STATUS_CONTEXT_READY, DTLS_STATUS_HANDSHAKE_ONGOING, DTLS_STATUS_HANDSHAKE_OVER */
+	uint8_t rtcp_channel_status; /**< channel status : DTLS_STATUS_CONTEXT_NOT_READY, DTLS_STATUS_CONTEXT_READY, DTLS_STATUS_HANDSHAKE_ONGOING, DTLS_STATUS_HANDSHAKE_OVER */
 
 	DtlsRawPacket *rtp_incoming_buffer; /**< buffer of incoming DTLS packet to be read by polarssl callback */
 	DtlsRawPacket *rtcp_incoming_buffer; /**< buffer of incoming DTLS packet to be read by polarssl callback */
@@ -94,6 +82,36 @@ struct _MSDtlsSrtpContext{
 /***********************************************/
 /***** LOCAL FUNCTIONS                     *****/
 /***********************************************/
+/*** DtlsBcToolBox context create/dstroy ***/
+
+DtlsBcToolBoxContext *ms_dtls_srtp_bctoolbox_context_new(void) {
+	// allocate the memory
+	DtlsBcToolBoxContext *ctx = ms_new0(DtlsBcToolBoxContext,1);
+
+	// create and initialise the requested fields
+	ctx->rng = bctoolbox_rng_context_new();
+	ctx->pkey = bctoolbox_signing_key_new();
+	ctx->crt = bctoolbox_x509_certificate_new();
+	ctx->ssl_config = bctoolbox_ssl_config_new();
+	ctx->ssl = bctoolbox_ssl_context_new();
+	ms_mutex_init(&(ctx->ssl_context_mutex), NULL);
+
+	return ctx;
+}
+
+void ms_dtls_srtp_bctoolbox_context_free(DtlsBcToolBoxContext *ctx) {
+	if (ctx != NULL) {
+		bctoolbox_rng_context_free(ctx->rng);
+		bctoolbox_signing_key_free(ctx->pkey);
+		bctoolbox_x509_certificate_free(ctx->crt);
+		bctoolbox_ssl_config_free(ctx->ssl_config);
+		bctoolbox_ssl_context_free(ctx->ssl);
+		ms_mutex_destroy(&(ctx->ssl_context_mutex));
+
+		ms_free(ctx);
+	}
+}
+
 
 /**************************/
 /**** Helper functions ****/
@@ -114,59 +132,40 @@ static ORTP_INLINE uint64_t get_timeval_in_millis(void) {
  *
  * @return 0 if the fingerprint doesn't match, 1 is they do.
  */
-static uint8_t ms_dtls_srtp_check_certificate_fingerprint(const x509_crt *certificate, const char *peer_fingerprint) {
-	unsigned char fingerprint[256]; /* maximum length of the fingerprint for sha-512: 8+3*64+1 so we're good with 256 bytes buffer */
-	unsigned char buffer[64]; /* buffer is max length of returned hash, which is 64 in case we use sha-512 */
-	size_t hash_length = 0;
-	char hash_alg_string[8]; /* buffer to store the string description of the algo, longest is SHA-512(7 chars + null termination) */
-	md_type_t hash_function = POLARSSL_MD_NONE;
+static uint8_t ms_dtls_srtp_check_certificate_fingerprint(const bctoolbox_x509_certificate_t *certificate, const char *peer_fingerprint) {
+	char fingerprint[256]; /* maximum length of the fingerprint for sha-512: 8+3*64+1 so we're good with 256 bytes buffer */
+	bctoolbox_md_type_t hash_function = BCTOOLBOX_MD_UNDEFINED;
+	bctoolbox_md_type_t certificate_signature_hash_function = BCTOOLBOX_MD_UNDEFINED;
+	int32_t ret = 0;
 
 	/* get Hash algorithm used from peer fingerprint */
 	if (strncasecmp(peer_fingerprint, "sha-1 ", 6) ==0 ) {
-		sha1(certificate->raw.p, certificate->raw.len, buffer);
-		hash_length = 20;
-		memcpy(hash_alg_string, "sha-1", 6);
-		hash_function = POLARSSL_MD_SHA1;
+		hash_function = BCTOOLBOX_MD_SHA1;
 	} else if (strncasecmp(peer_fingerprint, "sha-224 ", 8) ==0 ){
-		sha256(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-224 and not sha-256 */
-		hash_length = 28;
-		memcpy(hash_alg_string, "sha-224", 8);
-		hash_function = POLARSSL_MD_SHA224;
+		hash_function = BCTOOLBOX_MD_SHA224;
 	} else if (strncasecmp(peer_fingerprint, "sha-256 ", 8) ==0 ){
-		sha256(certificate->raw.p, certificate->raw.len, buffer, 0);
-		hash_length = 32;
-		memcpy(hash_alg_string, "sha-256", 8);
-		hash_function = POLARSSL_MD_SHA256;
+		hash_function = BCTOOLBOX_MD_SHA256;
 	} else if (strncasecmp(peer_fingerprint, "sha-384 ", 8) ==0 ){
-		sha512(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
-		hash_length = 48;
-		memcpy(hash_alg_string, "sha-384", 8);
-		hash_function = POLARSSL_MD_SHA384;
+		hash_function = BCTOOLBOX_MD_SHA384;
 	} else if (strncasecmp(peer_fingerprint, "sha-512 ", 8) ==0 ){
-		sha512(certificate->raw.p, certificate->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
-		hash_length = 64;
-		memcpy(hash_alg_string, "sha-512", 8);
-		hash_function = POLARSSL_MD_SHA512;
+		hash_function = BCTOOLBOX_MD_SHA512;
 	} else { /* we have an unknown hash function: return null */
 		ms_error("DTLS-SRTP received invalid peer fingerprint, hash function unknown");
 		return 0;
 	}
 
+	/* retrieve the one used for the certificate signature */
+	bctoolbox_x509_certificate_get_signature_hash_function(certificate, &certificate_signature_hash_function);
+
 	/* check that hash function used match the one used for certificate signature */
-	if (hash_function != certificate->sig_md) {
+	if (hash_function != certificate_signature_hash_function) {
 		ms_warning("DTLS-SRTP peer fingerprint generated using a different hash function that the one used for certificate signature, peer is nasty but lucky we have the hash function required anyway");
 	}
 
-	if (hash_length>0) {
-		int i;
-		int fingerprint_index = strlen(hash_alg_string);
-		char prefix=' ';
-		sprintf((char *)fingerprint, "%s", hash_alg_string);
-		for (i=0; i<hash_length; i++, fingerprint_index+=3) {
-			sprintf((char *)(fingerprint+fingerprint_index),"%c%02X", prefix,buffer[i]);
-			prefix=':';
-		}
-		*(fingerprint+fingerprint_index) = '\0';
+	/* compute the fingerprint using the requested hash function */
+	ret = bctoolbox_x509_certificate_get_fingerprint(certificate, fingerprint, 255, hash_function);
+	if (ret <= 0) {
+		ms_error("DTLS Handshake successful but unable to compute peer certificate fingerprint : bctoolbox returns [-0x%x]", -ret);
 	}
 
 	/* compare fingerprints */
@@ -179,19 +178,19 @@ static uint8_t ms_dtls_srtp_check_certificate_fingerprint(const x509_crt *certif
 }
 
 /**
- * Convert a polarssl defined value for SRTP protection profile to the mediastreamer enumeration of SRTP protection profile
+ * Convert a bctoolbox defined value for SRTP protection profile to the mediastreamer enumeration of SRTP protection profile
  * @param[in]	dtls_srtp_protection_profile	A DTLS-SRTP protection profile defined by polarssl
  * @return the matching profile defined in mediatream.h
  */
-static MSCryptoSuite ms_polarssl_dtls_srtp_protection_profile_to_ms_crypto_suite(enum DTLS_SRTP_protection_profiles dtls_srtp_protection_profile) {
+static MSCryptoSuite ms_dtls_srtp_bctoolbox_protection_profile_to_ms_crypto_suite(bctoolbox_dtls_srtp_profile_t dtls_srtp_protection_profile) {
 	switch(dtls_srtp_protection_profile) {
-		case SRTP_AES128_CM_HMAC_SHA1_80:
+		case BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_80:
 			return MS_AES_128_SHA1_80;
-		case SRTP_AES128_CM_HMAC_SHA1_32:
+		case BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_32:
 			return MS_AES_128_SHA1_32;
-		case SRTP_NULL_HMAC_SHA1_80:
+		case BCTOOLBOX_SRTP_NULL_HMAC_SHA1_80:
 			return MS_NO_CIPHER_SHA1_80;
-		case SRTP_NULL_HMAC_SHA1_32: /* this profile is defined in DTLS-SRTP rfc but not implemented by libsrtp */
+		case BCTOOLBOX_SRTP_NULL_HMAC_SHA1_32: /* this profile is defined in DTLS-SRTP rfc but not implemented by libsrtp */
 			return MS_CRYPTO_SUITE_INVALID;
 		default:
 			return MS_CRYPTO_SUITE_INVALID;
@@ -207,7 +206,7 @@ static void schedule_rtp(struct _RtpTransportModifier *t) {
 			if (current_time - ctx->rtp_time_reference > READ_TIMEOUT_MS) {
 				ms_message("DTLS repeating rtp ssl_handshake for context [%p]",ctx);
 				ms_mutex_lock(&ctx->rtp_dtls_context->ssl_context_mutex);
-				ssl_handshake(&(ctx->rtp_dtls_context->ssl));
+				bctoolbox_ssl_handshake(ctx->rtp_dtls_context->ssl);
 				ms_mutex_unlock(&ctx->rtp_dtls_context->ssl_context_mutex);
 				ctx->rtp_time_reference = get_timeval_in_millis();
 			}
@@ -223,7 +222,7 @@ static void schedule_rtcp(struct _RtpTransportModifier *t) {
 			if (current_time - ctx->rtcp_time_reference > READ_TIMEOUT_MS) {
 				ms_message("DTLS repeating rtcp ssl_handshake for context [%p]",ctx);
 				ms_mutex_lock(&ctx->rtcp_dtls_context->ssl_context_mutex);
-				ssl_handshake(&(ctx->rtcp_dtls_context->ssl));
+				bctoolbox_ssl_handshake(ctx->rtcp_dtls_context->ssl);
 				ms_mutex_unlock(&ctx->rtcp_dtls_context->ssl_context_mutex);
 				ctx->rtcp_time_reference = get_timeval_in_millis();
 			}
@@ -245,7 +244,7 @@ static void schedule_rtcp(struct _RtpTransportModifier *t) {
 static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *ctx, int *ret, bool_t is_rtp) {
 	size_t msgLength = msgdsize(msg);
 	uint64_t *time_reference = (is_rtp == TRUE)?&(ctx->rtp_time_reference):&(ctx->rtcp_time_reference);
-	ssl_context *ssl = (is_rtp == TRUE)?&(ctx->rtp_dtls_context->ssl):&(ctx->rtcp_dtls_context->ssl);
+	bctoolbox_ssl_context_t *ssl = (is_rtp == TRUE)?ctx->rtp_dtls_context->ssl:ctx->rtcp_dtls_context->ssl;
 	ms_mutex_t *mutex = (is_rtp == TRUE)?&ctx->rtp_dtls_context->ssl_context_mutex:&ctx->rtcp_dtls_context->ssl_context_mutex;
 	uint8_t channel_status = (is_rtp == TRUE)?(ctx->rtp_channel_status):(ctx->rtcp_channel_status);
 
@@ -258,18 +257,16 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 	if ((*(msg->b_rptr)>19) && (*(msg->b_rptr)<64)) {
 
 		DtlsRawPacket *incoming_dtls_packet;
-		RtpSession *rtp_session = ctx->stream_sessions->rtp_session;
 		incoming_dtls_packet = (DtlsRawPacket *)ms_malloc0(sizeof(DtlsRawPacket));
-		//DtlsRawPacket *incoming_dtls_packet = (DtlsRawPacket *)ms_malloc0(sizeof(DtlsRawPacket));
 		incoming_dtls_packet->next=NULL;
 		incoming_dtls_packet->data=(unsigned char *)ms_malloc(msgLength);
 		incoming_dtls_packet->length=msgLength;
 		memcpy(incoming_dtls_packet->data, msg->b_rptr, msgLength);
 
 		/*required by webrtc in server case when ice is not completed yet*/
-		rtp_session_update_remote_sock_addr(rtp_session, msg,is_rtp,FALSE);
+		/* no more required because change is performed by ice.c once a check list is ready rtp_session_update_remote_sock_addr(rtp_session, msg,is_rtp,FALSE);*/
 
-		ms_message("DTLS Receive %s packet len %d sessions: %p rtp session %p ssl state is %x", is_rtp==TRUE?"RTP":"RTCP", (int)msgLength, ctx->stream_sessions, ctx->stream_sessions->rtp_session, ssl->state);
+		ms_message("DTLS Receive %s packet len %d sessions: %p rtp session %p", is_rtp==TRUE?"RTP":"RTCP", (int)msgLength, ctx->stream_sessions, ctx->stream_sessions->rtp_session);
 
 		/* store the packet in the incoming buffer */
 		if (is_rtp == TRUE) {
@@ -290,33 +287,36 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 			}
 		}
 		
-		/* while DTLS handshake is on going route DTLS packets to polarssl engine through ssl_handshake() */
-		if (ssl->state != SSL_HANDSHAKE_OVER) {
+		/* while DTLS handshake is on going route DTLS packets to bctoolbox engine through ssl_handshake() */
+		if (channel_status != DTLS_STATUS_HANDSHAKE_OVER) {
 			/* role is unset but we receive a packet: we are caller and shall initialise as server and then process the incoming packet */
 			if (ctx->role == MSDtlsSrtpRoleUnset) {
 				ms_dtls_srtp_set_role(ctx, MSDtlsSrtpRoleIsServer); /* this call will update role and complete server setup */
+				ms_dtls_srtp_start(ctx); /* complete the ssl setup and change channel_status to DTLS_STATUS_HANDSHAKE_ONGOING on both RTP and RTCP channel*/
 			}
 			ms_mutex_lock(mutex);
 			/* process the packet and store result */
-			*ret = ssl_handshake(ssl);
+			*ret = bctoolbox_ssl_handshake(ssl);
 
-			/* when we are server, we may issue a hello verify, so reset session, keep cookies(transport id) and expect an other Hello from client */
-			if (*ret==POLARSSL_ERR_SSL_HELLO_VERIFY_REQUIRED) {
-				ssl_session_reset(ssl);
-				ssl_set_client_transport_id(ssl, (const unsigned char *)(&(ctx->stream_sessions->rtp_session->snd.ssrc)), 4);
-			}
-
-			/* if we are client, manage the retransmission timer, unless the handshake is already over */
-			if (ctx->role == MSDtlsSrtpRoleIsClient && channel_status != DTLS_STATUS_HANDSHAKE_OVER) {
+			/* if we are client, manage the retransmission timer */
+			if (ctx->role == MSDtlsSrtpRoleIsClient) {
 				*time_reference = get_timeval_in_millis();
 			}
 			ms_mutex_unlock(mutex);
-		} else { /* when DTLS handshake is over, route DTLS packets to polarssl engine through ssl_read() */
+		} else { /* when DTLS handshake is over, route DTLS packets to bctoolbox engine through ssl_read() */
 			/* we need a buffer to store the message read even if we don't use it */
 			unsigned char *buf = ms_malloc(msgLength+1);
 			ms_mutex_lock(mutex);
-			*ret = ssl_read(ssl, buf, msgLength);
+			*ret = bctoolbox_ssl_read(ssl, buf, msgLength);
 			ms_mutex_unlock(mutex);
+		}
+
+		/* report the error in logs only when different than requested read(waiting for data) */
+		if (*ret<0 && *ret != BCTOOLBOX_ERROR_NET_WANT_READ) {
+			char err_str[512];
+			err_str[0]='\0';
+			bctoolbox_strerror(*ret, err_str, 512);
+			ms_warning("DTLS handhake returns -0x%x : %s [on sessions: %p rtp session %p]", -*ret, err_str, ctx->stream_sessions, ctx->stream_sessions->rtp_session);
 		}
 
 		return TRUE;
@@ -420,7 +420,7 @@ static int ms_dtls_srtp_rtp_DTLSread (void *ctx, unsigned char *buf, size_t len)
 
 	/* do we have something in the incoming buffer */
 	if (context->rtp_incoming_buffer == NULL) {
-		return POLARSSL_ERR_NET_WANT_READ;
+		return BCTOOLBOX_ERROR_NET_WANT_READ;
 	} else { /* read the first packet in the buffer and delete it */
 		DtlsRawPacket *next_packet = context->rtp_incoming_buffer->next;
 		size_t dataLength = context->rtp_incoming_buffer->length;
@@ -438,7 +438,7 @@ static int ms_dtls_srtp_rtcp_DTLSread (void *ctx, unsigned char *buf, size_t len
 
 	/* do we have something in the incoming buffer */
 	if (context->rtcp_incoming_buffer == NULL) {
-		return POLARSSL_ERR_NET_WANT_READ;
+		return BCTOOLBOX_ERROR_NET_WANT_READ;
 	} else { /* read the first packet in the buffer and delete it */
 		DtlsRawPacket *next_packet = context->rtcp_incoming_buffer->next;
 		size_t dataLength = context->rtcp_incoming_buffer->length;
@@ -452,13 +452,13 @@ static int ms_dtls_srtp_rtcp_DTLSread (void *ctx, unsigned char *buf, size_t len
 }
 
 
-static int ms_dtls_srtp_rtp_DTLSread_timeout (void *ctx, unsigned char *buf, size_t len, uint32_t timeout) {
-	return ms_dtls_srtp_rtp_DTLSread(ctx, buf, len); /* ms_dtls_srtp_DTLSread is non blocking */
-}
+//static int ms_dtls_srtp_rtp_DTLSread_timeout (void *ctx, unsigned char *buf, size_t len, uint32_t timeout) {
+//	return ms_dtls_srtp_rtp_DTLSread(ctx, buf, len); /* ms_dtls_srtp_DTLSread is non blocking */
+//}
 
-static int ms_dtls_srtp_rtcp_DTLSread_timeout (void *ctx, unsigned char *buf, size_t len, uint32_t timeout) {
-	return ms_dtls_srtp_rtcp_DTLSread(ctx, buf, len); /* ms_dtls_srtp_DTLSread is non blocking */
-}
+//static int ms_dtls_srtp_rtcp_DTLSread_timeout (void *ctx, unsigned char *buf, size_t len, uint32_t timeout) {
+//	return ms_dtls_srtp_rtcp_DTLSread(ctx, buf, len); /* ms_dtls_srtp_DTLSread is non blocking */
+//}
 
 
 /*******************************************************/
@@ -483,39 +483,46 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 	/* check if it is a DTLS packet and process it */
 	if (ms_dtls_srtp_process_dtls_packet(msg, ctx, &ret, TRUE) == TRUE){
 		
-		if ((ret==0) && (ctx->rtp_channel_status == DTLS_STATUS_CONTEXT_READY)) { /* handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
+		if ((ret==0) && (ctx->rtp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING)) { /* handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
 			MSCryptoSuite agreed_srtp_protection_profile = MS_CRYPTO_SUITE_INVALID;
 
 			ctx->rtp_channel_status = DTLS_STATUS_HANDSHAKE_OVER;
 
 			/* check the srtp profile get selected during handshake */
-			agreed_srtp_protection_profile = ms_polarssl_dtls_srtp_protection_profile_to_ms_crypto_suite(ssl_get_dtls_srtp_protection_profile(&(ctx->rtp_dtls_context->ssl)));
+			agreed_srtp_protection_profile = ms_dtls_srtp_bctoolbox_protection_profile_to_ms_crypto_suite(bctoolbox_ssl_get_dtls_srtp_protection_profile(ctx->rtp_dtls_context->ssl));
 			if ( agreed_srtp_protection_profile == MS_CRYPTO_SUITE_INVALID) {
 				ms_message("DTLS Handshake successful but unable to agree on srtp_profile to use");
 			} else {
-				if (ms_dtls_srtp_check_certificate_fingerprint(ssl_get_peer_cert(&(ctx->rtp_dtls_context->ssl)), (const char *)(ctx->peer_fingerprint)) == 1) {
+				if (ms_dtls_srtp_check_certificate_fingerprint(bctoolbox_ssl_get_peer_certificate(ctx->rtp_dtls_context->ssl), (const char *)(ctx->peer_fingerprint)) == 1) {
+					char dtls_srtp_key_material[128];
+					size_t dtls_srt_key_material_length = 128;
 					uint8_t *key = (uint8_t *)ms_malloc0(256);
-					ms_message("DTLS Handshake on RTP channel successful and fingerprints match, srtp protection profile %d", ctx->rtp_dtls_context->ssl.chosen_dtls_srtp_profile);
+					ms_message("DTLS Handshake on RTP channel successful and fingerprints match, srtp protection profile %d", agreed_srtp_protection_profile);
 
 					ctx->rtp_time_reference = 0; /* unarm the timer */
+					ret = bctoolbox_ssl_get_dtls_srtp_key_material(ctx->rtp_dtls_context->ssl, dtls_srtp_key_material, &dtls_srt_key_material_length);
+					if (ret < 0) {
+						ms_error("DTLS RTP Handshake : Unable to retrieve DTLS SRTP key material [-0x%x]", -ret);
+						return 0;
+					}
 
 					if (ctx->role == MSDtlsSrtpRoleIsServer) {
 						/* reception(client write) key and salt +16bits padding */
-						memcpy(key, ctx->rtp_dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
-						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
+						memcpy(key, dtls_srtp_key_material, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, dtls_srtp_key_material+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
 						ms_media_stream_sessions_set_srtp_recv_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 						/* emission(server write) key and salt +16bits padding */
-						memcpy(key, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
-						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
+						memcpy(key, dtls_srtp_key_material+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, dtls_srtp_key_material+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
 						ms_media_stream_sessions_set_srtp_send_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 					} else if (ctx->role == MSDtlsSrtpRoleIsClient){ /* this enpoint act as DTLS client */
 						/* emission(client write) key and salt +16bits padding */
-						memcpy(key, ctx->rtp_dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
-						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
+						memcpy(key, dtls_srtp_key_material, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, dtls_srtp_key_material+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
 						ms_media_stream_sessions_set_srtp_send_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 						/* reception(server write) key and salt +16bits padding */
-						memcpy(key, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
-						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
+						memcpy(key, dtls_srtp_key_material+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, dtls_srtp_key_material+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
 						ms_media_stream_sessions_set_srtp_recv_key(ctx->stream_sessions, agreed_srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTP_STREAM);
 					}
 
@@ -526,7 +533,8 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 			}
 
 			if (ctx->role != MSDtlsSrtpRoleIsServer) { /* close the connection only if we are client, if we are server, the client may ask again for last packets */
-				ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );
+				/*FireFox version 43 requires DTLS channel to be kept openned, probably a bug in FireFox ret = ssl_close_notify( &(ctx->rtp_dtls_context->ssl) );*/
+				
 			}
 
 		}
@@ -554,41 +562,48 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 	/* check if it is a DTLS packet and process it */
 	if (ms_dtls_srtp_process_dtls_packet(msg, ctx, &ret, FALSE) == TRUE){
 
-		if ((ret==0) && (ctx->rtcp_channel_status == DTLS_STATUS_CONTEXT_READY)) { /* rtcp handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
-			uint8_t *key = (uint8_t *)ms_malloc0(256);
-
+		if ((ret==0) && (ctx->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING)) { /* rtcp handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
 			MSCryptoSuite agreed_srtp_protection_profile = MS_CRYPTO_SUITE_INVALID;
 
 			ctx->rtcp_channel_status = DTLS_STATUS_HANDSHAKE_OVER;
 
 			/* check the srtp profile get selected during handshake */
-			agreed_srtp_protection_profile = ms_polarssl_dtls_srtp_protection_profile_to_ms_crypto_suite(ssl_get_dtls_srtp_protection_profile(&(ctx->rtcp_dtls_context->ssl)));
+			agreed_srtp_protection_profile = ms_dtls_srtp_bctoolbox_protection_profile_to_ms_crypto_suite(bctoolbox_ssl_get_dtls_srtp_protection_profile(ctx->rtcp_dtls_context->ssl));
 			if ( agreed_srtp_protection_profile == MS_CRYPTO_SUITE_INVALID) {
 				ms_error("DTLS RTCP Handshake successful but unable to agree on srtp_profile to use");
 			} else {
-				if (ms_dtls_srtp_check_certificate_fingerprint(ssl_get_peer_cert(&(ctx->rtcp_dtls_context->ssl)), (const char *)(ctx->peer_fingerprint)) == 1) {
+				if (ms_dtls_srtp_check_certificate_fingerprint(bctoolbox_ssl_get_peer_certificate(ctx->rtcp_dtls_context->ssl), (const char *)(ctx->peer_fingerprint)) == 1) {
+					char dtls_srtp_key_material[128];
+					size_t dtls_srt_key_material_length = 128;
+					uint8_t *key = (uint8_t *)ms_malloc0(256);
 
-					ms_message("DTLS RTCP Handshake successful and fingerprints match, srtp protection profile %d", ctx->rtcp_dtls_context->ssl.chosen_dtls_srtp_profile);
+					ms_message("DTLS RTCP Handshake successful and fingerprints match, srtp protection profile %d", agreed_srtp_protection_profile);
 
 					ctx->rtcp_time_reference = 0; /* unarm the timer */
 
+					ret = bctoolbox_ssl_get_dtls_srtp_key_material(ctx->rtcp_dtls_context->ssl, dtls_srtp_key_material, &dtls_srt_key_material_length);
+					if (ret < 0) {
+						ms_error("DTLS RTCP Handshake : Unable to retrieve DTLS SRTP key material [-0x%x]", -ret);
+						return 0;
+					}
+
 					if (ctx->role == MSDtlsSrtpRoleIsServer) {
 						/* reception(client write) key and salt +16bits padding */
-						memcpy(key, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
-						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
+						memcpy(key, dtls_srtp_key_material, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, dtls_srtp_key_material+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
 						ms_media_stream_sessions_set_srtp_recv_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 						/* emission(server write) key and salt +16bits padding */
-						memcpy(key, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
-						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
+						memcpy(key, dtls_srtp_key_material+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, dtls_srtp_key_material+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
 						ms_media_stream_sessions_set_srtp_send_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 					} else if (ctx->role == MSDtlsSrtpRoleIsClient){ /* this enpoint act as DTLS client */
 						/* emission(client write) key and salt +16bits padding */
-						memcpy(key, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys, DTLS_SRTP_KEY_LEN);
-						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
+						memcpy(key, dtls_srtp_key_material, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, dtls_srtp_key_material+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
 						ms_media_stream_sessions_set_srtp_send_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 						/* reception(server write) key and salt +16bits padding */
-						memcpy(key, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
-						memcpy(key + DTLS_SRTP_KEY_LEN, ctx->rtcp_dtls_context->ssl.dtls_srtp_keys+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
+						memcpy(key, dtls_srtp_key_material+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
+						memcpy(key + DTLS_SRTP_KEY_LEN, dtls_srtp_key_material+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
 						ms_media_stream_sessions_set_srtp_recv_key(ctx->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, MSSRTP_RTCP_STREAM);
 					}
 
@@ -597,7 +612,10 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 					ms_dtls_srtp_check_channels_status(ctx);
 				}
 			}
-			ret = ssl_close_notify( &(ctx->rtcp_dtls_context->ssl) );
+
+			if (ctx->role != MSDtlsSrtpRoleIsServer) { /* close the connection only if we are client, if we are server, the client may ask again for last packets */
+			/*FireFox version 43 requires DTLS channel to be kept openned, probably a bug in FireFox  ret = ssl_close_notify( &(ctx->rtcp_dtls_context->ssl) );*/
+			}
 		}
 
 		return 0;
@@ -656,56 +674,40 @@ static void ms_dtls_srtp_set_transport(MSDtlsSrtpContext *userData, RtpSession *
 	userData->rtcp_modifier = rtcp_modifier;
 }
 
-static int ms_dtls_srtp_initialise_polarssl_dtls_context(DtlsPolarsslContext *dtlsContext, MSDtlsSrtpParams *params, RtpSession *s){
+static int ms_dtls_srtp_initialise_bctoolbox_dtls_context(DtlsBcToolBoxContext *dtlsContext, MSDtlsSrtpParams *params, RtpSession *s){
 	int ret;
-	enum DTLS_SRTP_protection_profiles dtls_srtp_protection_profiles[2] = {SRTP_AES128_CM_HMAC_SHA1_80, SRTP_AES128_CM_HMAC_SHA1_32};
-	
-	memset( &(dtlsContext->ssl), 0, sizeof( ssl_context ) );
-	//memset( &(dtlsContext->saved_session), 0, sizeof( ssl_session ) );
-	ssl_cookie_init( &(dtlsContext->cookie_ctx) );
-	x509_crt_init( &(dtlsContext->crt) );
-	entropy_init( &(dtlsContext->entropy) );
-	ctr_drbg_init( &(dtlsContext->ctr_drbg), entropy_func, &(dtlsContext->entropy), NULL, 0 );
+	bctoolbox_dtls_srtp_profile_t dtls_srtp_protection_profiles[2] = {BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_80, BCTOOLBOX_SRTP_AES128_CM_HMAC_SHA1_32};
 	
 	/* initialise certificate */
-	ret = x509_crt_parse( &(dtlsContext->crt), (const unsigned char *) params->pem_certificate, strlen( params->pem_certificate ) );
+	ret = bctoolbox_x509_certificate_parse( dtlsContext->crt, (const char *) params->pem_certificate, strlen( params->pem_certificate )+1 );
 	if( ret < 0 ) {
 		return ret;
 	}
 	
-	ret =  pk_parse_key( &(dtlsContext->pkey), (const unsigned char *) params->pem_pkey, strlen( params->pem_pkey ), NULL, 0 );
+	ret =  bctoolbox_signing_key_parse( dtlsContext->pkey, (const char *) params->pem_pkey, strlen( params->pem_pkey )+1, NULL, 0 );
 	if( ret != 0 ) {
 		return ret;
 	}
 
-	/* ssl setup */
-	ssl_init(&(dtlsContext->ssl));
-	if( ret < 0 ) {
-		return ret;
-	}
-
+	/* configure ssl */
 	if (params->role == MSDtlsSrtpRoleIsClient) {
-		ssl_set_endpoint(&(dtlsContext->ssl), SSL_IS_CLIENT);
-	} else if (params->role == MSDtlsSrtpRoleIsServer) {
-		ssl_set_endpoint(&(dtlsContext->ssl), SSL_IS_SERVER);
-	}
-	ssl_set_transport(&(dtlsContext->ssl), SSL_TRANSPORT_DATAGRAM);
-	ssl_set_dtls_srtp_protection_profiles(  &(dtlsContext->ssl), dtls_srtp_protection_profiles, 2 ); /* TODO: get param from caller to select available profiles */
-
-	/* set CA chain */
-	ssl_set_authmode( &(dtlsContext->ssl), SSL_VERIFY_OPTIONAL ); /* this will force server to send his certificate to client as we need it to compute the fingerprint */
-	ssl_set_rng(  &(dtlsContext->ssl), ctr_drbg_random, &(dtlsContext->ctr_drbg) );
-	ssl_set_ca_chain( &(dtlsContext->ssl), &(dtlsContext->crt), NULL, NULL );
-	ssl_set_own_cert( &(dtlsContext->ssl), &(dtlsContext->crt), &(dtlsContext->pkey) );
-	if (params->role == MSDtlsSrtpRoleIsServer) {
-		ssl_cookie_setup( &(dtlsContext->cookie_ctx), ctr_drbg_random, &(dtlsContext->ctr_drbg) );
-		ssl_set_dtls_cookies( &(dtlsContext->ssl), ssl_cookie_write, ssl_cookie_check, &(dtlsContext->cookie_ctx) );
-		ssl_session_reset( &(dtlsContext->ssl) );
-		ssl_set_client_transport_id(&(dtlsContext->ssl), (const unsigned char *)(&(s->snd.ssrc)), 4);
+		bctoolbox_ssl_config_defaults(dtlsContext->ssl_config, BCTOOLBOX_SSL_IS_CLIENT, BCTOOLBOX_SSL_TRANSPORT_DATAGRAM);
+	} else { /* configure it by default as server, nothing is actually performed until we start the channel but this helps to get correct defaults settings */
+		bctoolbox_ssl_config_defaults(dtlsContext->ssl_config, BCTOOLBOX_SSL_IS_SERVER, BCTOOLBOX_SSL_TRANSPORT_DATAGRAM);
 	}
 
-	ms_mutex_init(&dtlsContext->ssl_context_mutex, NULL);
+	bctoolbox_ssl_config_set_dtls_srtp_protection_profiles(  dtlsContext->ssl_config, dtls_srtp_protection_profiles, 2 ); /* TODO: get param from caller to select available profiles */
 
+	bctoolbox_ssl_config_set_rng(dtlsContext->ssl_config, (int (*)(void *, unsigned char *, size_t))bctoolbox_rng_get, dtlsContext->rng);
+
+	/* set certificates */
+	/* this will force server to send his certificate to client as we need it to compute the fingerprint even if we won't verify it */
+	bctoolbox_ssl_config_set_authmode(dtlsContext->ssl_config, BCTOOLBOX_SSL_VERIFY_OPTIONAL);
+	bctoolbox_ssl_config_set_own_cert( dtlsContext->ssl_config, dtlsContext->crt, dtlsContext->pkey );
+	/* This is useless as peer would certainly be a self signed certificate and we won't verify it but avoid runtime warnings */
+	bctoolbox_ssl_config_set_ca_chain(dtlsContext->ssl_config, dtlsContext->crt, NULL);
+
+	/* we are not ready yet to actually start the ssl context, this will be done by calling bctoolbox_ssl_setup when stream starts */
 	return 0;
 
 }
@@ -723,7 +725,9 @@ void ms_dtls_srtp_set_stream_sessions(MSDtlsSrtpContext *dtls_context, MSMediaSt
 
 /**** Public functions ****/
 /* header declared in include/mediastreamer2/dtls_srtp.h */
-bool_t ms_dtls_srtp_available(){return TRUE;}
+bool_t ms_dtls_srtp_available(){
+	return ms_srtp_supported()  && bctoolbox_dtls_srtp_supported();
+}
 
 void ms_dtls_srtp_set_peer_fingerprint(MSDtlsSrtpContext *context, const char *peer_fingerprint) {
 	if (context) {
@@ -742,27 +746,19 @@ void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role) {
 		ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
 		ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
 
-		if (context->role != role) {
-			/*role has changed reseting*/
-			ssl_session_reset( &(context->rtp_dtls_context->ssl) );
-			ssl_session_reset( &(context->rtcp_dtls_context->ssl) );
+		/* if role has changed and handshake already setup and going, reset the session */
+		if (context->role != role && context->rtp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING ) {
+			bctoolbox_ssl_session_reset( context->rtp_dtls_context->ssl );
+		}
+		if (context->role != role && context->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING ) {
+			bctoolbox_ssl_session_reset( context->rtcp_dtls_context->ssl );
 		}
 
 		/* if role is isServer and was Unset, we must complete the server setup */
 		if (((context->role == MSDtlsSrtpRoleIsClient) || (context->role == MSDtlsSrtpRoleUnset)) && (role == MSDtlsSrtpRoleIsServer)) {
-			ssl_set_endpoint(&(context->rtp_dtls_context->ssl), SSL_IS_SERVER);
-			ssl_cookie_setup( &(context->rtp_dtls_context->cookie_ctx), ctr_drbg_random, &(context->rtp_dtls_context->ctr_drbg) );
-			ssl_set_dtls_cookies( &(context->rtp_dtls_context->ssl), ssl_cookie_write, ssl_cookie_check, &(context->rtp_dtls_context->cookie_ctx) );
-			ssl_set_client_transport_id(&(context->rtp_dtls_context->ssl), (const unsigned char *)(&(context->stream_sessions->rtp_session->snd.ssrc)), 4);
-			//ssl_cache_init( &(context->rtp_dtls_context->cache) );
-			//ssl_set_session_cache( &(context->rtp_dtls_context->ssl), ssl_cache_get, &(context->rtp_dtls_context->cache), ssl_cache_set, &(context->rtp_dtls_context->cache) );
+			bctoolbox_ssl_config_set_endpoint(context->rtp_dtls_context->ssl_config, BCTOOLBOX_SSL_IS_SERVER);
 
-			ssl_set_endpoint(&(context->rtcp_dtls_context->ssl), SSL_IS_SERVER);
-			ssl_cookie_setup( &(context->rtcp_dtls_context->cookie_ctx), ctr_drbg_random, &(context->rtcp_dtls_context->ctr_drbg) );
-			ssl_set_dtls_cookies( &(context->rtcp_dtls_context->ssl), ssl_cookie_write, ssl_cookie_check, &(context->rtcp_dtls_context->cookie_ctx) );
-			ssl_set_client_transport_id(&(context->rtcp_dtls_context->ssl), (const unsigned char *)(&(context->stream_sessions->rtp_session->snd.ssrc)), 4);
-			//ssl_cache_init( &(context->rtcp_dtls_context->cache) );
-			//ssl_set_session_cache( &(context->rtcp_dtls_context->ssl), ssl_cache_get, &(context->rtcp_dtls_context->cache), ssl_cache_set, &(context->rtcp_dtls_context->cache) );
+			bctoolbox_ssl_config_set_endpoint(context->rtcp_dtls_context->ssl_config, BCTOOLBOX_SSL_IS_SERVER);
 		}
 		ms_message("DTLS set role from [%s] to [%s] for context [%p]"
 				,context->role==MSDtlsSrtpRoleIsServer?"server":(context->role==MSDtlsSrtpRoleIsClient?"client":"unset role")
@@ -781,8 +777,8 @@ MSDtlsSrtpContext* ms_dtls_srtp_context_new(MSMediaStreamSessions *sessions, MSD
 	int ret;
 
 	/* Create and init the polar ssl DTLS contexts */
-	DtlsPolarsslContext *rtp_dtls_context = ms_new0(DtlsPolarsslContext,1);
-	DtlsPolarsslContext *rtcp_dtls_context = ms_new0(DtlsPolarsslContext,1);
+	DtlsBcToolBoxContext *rtp_dtls_context = ms_dtls_srtp_bctoolbox_context_new();
+	DtlsBcToolBoxContext *rtcp_dtls_context = ms_dtls_srtp_bctoolbox_context_new();
 
 	ms_message("Creating DTLS-SRTP engine on session [%p] as %s", s, params->role==MSDtlsSrtpRoleIsServer?"server":(params->role==MSDtlsSrtpRoleIsClient?"client":"unset role"));
 
@@ -803,20 +799,20 @@ MSDtlsSrtpContext* ms_dtls_srtp_context_new(MSMediaStreamSessions *sessions, MSD
 	userData->rtcp_channel_status = DTLS_STATUS_CONTEXT_NOT_READY;
 	ms_dtls_srtp_set_transport(userData, s);
 
-	ret = ms_dtls_srtp_initialise_polarssl_dtls_context(rtp_dtls_context, params, s);
+	ret = ms_dtls_srtp_initialise_bctoolbox_dtls_context(rtp_dtls_context, params, s);
 	if (ret!=0) {
-		ms_error("DTLS init error : rtp polarssl context init returned -0x%0x on stream session [%p]", -ret, sessions);
+		ms_error("DTLS init error : rtp bctoolbox context init returned -0x%0x on stream session [%p]", -ret, sessions);
 		return NULL;
 	}
-	ret = ms_dtls_srtp_initialise_polarssl_dtls_context(rtcp_dtls_context, params, s);
+	ret = ms_dtls_srtp_initialise_bctoolbox_dtls_context(rtcp_dtls_context, params, s);
 	if (ret!=0) {
-		ms_error("DTLS init error : rtcp polarssl context init returned -0x%0x on stream session [%p]", -ret, sessions);
+		ms_error("DTLS init error : rtcp bctoolbox context init returned -0x%0x on stream session [%p]", -ret, sessions);
 		return NULL;
 	}
 
 	/* set ssl transport functions */
-	ssl_set_bio_timeout( &(rtp_dtls_context->ssl), userData, ms_dtls_srtp_rtp_sendData, ms_dtls_srtp_rtp_DTLSread, ms_dtls_srtp_rtp_DTLSread_timeout, READ_TIMEOUT_MS);
-	ssl_set_bio_timeout( &(rtcp_dtls_context->ssl), userData, ms_dtls_srtp_rtcp_sendData, ms_dtls_srtp_rtcp_DTLSread, ms_dtls_srtp_rtcp_DTLSread_timeout, READ_TIMEOUT_MS);
+	bctoolbox_ssl_set_io_callbacks( rtp_dtls_context->ssl, userData, ms_dtls_srtp_rtp_sendData, ms_dtls_srtp_rtp_DTLSread);
+	bctoolbox_ssl_set_io_callbacks( rtcp_dtls_context->ssl, userData, ms_dtls_srtp_rtcp_sendData, ms_dtls_srtp_rtcp_DTLSread);
 
 	userData->rtp_channel_status = DTLS_STATUS_CONTEXT_READY;
 	userData->rtcp_channel_status = DTLS_STATUS_CONTEXT_READY;
@@ -834,44 +830,57 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 	/* if we are client, start the handshake(send a clientHello) */
 	if (context->role == MSDtlsSrtpRoleIsClient) {
 		ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
-		ssl_set_endpoint(&(context->rtp_dtls_context->ssl), SSL_IS_CLIENT);
-		ssl_handshake(&(context->rtp_dtls_context->ssl));
+		bctoolbox_ssl_config_set_endpoint(context->rtp_dtls_context->ssl_config, BCTOOLBOX_SSL_IS_CLIENT);
+		/* complete ssl setup*/
+		bctoolbox_ssl_context_setup(context->rtp_dtls_context->ssl, context->rtp_dtls_context->ssl_config);
+		/* and start the handshake */
+		bctoolbox_ssl_handshake(context->rtp_dtls_context->ssl);
 		context->rtp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
+		context->rtp_channel_status = DTLS_STATUS_HANDSHAKE_ONGOING;
 		ms_mutex_unlock(&context->rtp_dtls_context->ssl_context_mutex);
 		/* We shall start handshake on RTCP channel too only if RTCP mux is not enabled */
 		if (!rtp_session_rtcp_mux_enabled(context->stream_sessions->rtp_session)) {
 			ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
-			ssl_set_endpoint(&(context->rtcp_dtls_context->ssl), SSL_IS_CLIENT);
-			ssl_handshake(&(context->rtcp_dtls_context->ssl));
+			bctoolbox_ssl_config_set_endpoint(context->rtcp_dtls_context->ssl_config, BCTOOLBOX_SSL_IS_CLIENT);
+			/* complete ssl setup*/
+			bctoolbox_ssl_context_setup(context->rtcp_dtls_context->ssl, context->rtcp_dtls_context->ssl_config);
+			/* and start the handshake */
+			bctoolbox_ssl_handshake(context->rtcp_dtls_context->ssl);
 			context->rtcp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
+			context->rtcp_channel_status = DTLS_STATUS_HANDSHAKE_ONGOING;
 			ms_mutex_unlock(&context->rtcp_dtls_context->ssl_context_mutex);
+		}
+	}
+
+	/* if we are server and we didn't started yet the DTLS engine, do it now */
+	if (context->role == MSDtlsSrtpRoleIsServer) {
+		if (context->rtp_channel_status == DTLS_STATUS_CONTEXT_READY) {
+			ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
+			bctoolbox_ssl_config_set_endpoint(context->rtp_dtls_context->ssl_config, BCTOOLBOX_SSL_IS_SERVER);
+			/* complete ssl setup*/
+			bctoolbox_ssl_context_setup(context->rtp_dtls_context->ssl, context->rtp_dtls_context->ssl_config);
+			context->rtp_channel_status = DTLS_STATUS_HANDSHAKE_ONGOING;
+			ms_mutex_unlock(&context->rtp_dtls_context->ssl_context_mutex);
+
+			/* We shall start server on RTCP channel too only if RTCP mux is not enabled */
+			if (!rtp_session_rtcp_mux_enabled(context->stream_sessions->rtp_session) && context->rtcp_channel_status == DTLS_STATUS_CONTEXT_READY) {
+				ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
+				bctoolbox_ssl_config_set_endpoint(context->rtcp_dtls_context->ssl_config, BCTOOLBOX_SSL_IS_SERVER);
+				/* complete ssl setup*/
+				bctoolbox_ssl_context_setup(context->rtcp_dtls_context->ssl, context->rtcp_dtls_context->ssl_config);
+				context->rtcp_channel_status = DTLS_STATUS_HANDSHAKE_ONGOING;
+				ms_mutex_unlock(&context->rtcp_dtls_context->ssl_context_mutex);
+			}
 		}
 	}
 
 }
 
 void ms_dtls_srtp_context_destroy(MSDtlsSrtpContext *ctx) {
-	/* clean polarssl contexts */
-	if (ctx->rtp_dtls_context) {
-		x509_crt_free( &(ctx->rtp_dtls_context->crt) );
-		ssl_free( &(ctx->rtp_dtls_context->ssl) );
-		ctr_drbg_free( &(ctx->rtp_dtls_context->ctr_drbg) );
-		entropy_free( &(ctx->rtp_dtls_context->entropy) );
-		pk_free( &(ctx->rtp_dtls_context->pkey) );
-		ssl_cookie_free( &(ctx->rtp_dtls_context->cookie_ctx) );
-		ms_mutex_destroy(&ctx->rtp_dtls_context->ssl_context_mutex);
-		ms_free(ctx->rtp_dtls_context);
-	}
-	if (ctx->rtcp_dtls_context) {
-		x509_crt_free( &(ctx->rtcp_dtls_context->crt) );
-		ssl_free( &(ctx->rtcp_dtls_context->ssl) );
-		ctr_drbg_free( &(ctx->rtcp_dtls_context->ctr_drbg) );
-		entropy_free( &(ctx->rtcp_dtls_context->entropy) );
-		pk_free( &(ctx->rtcp_dtls_context->pkey) );
-		ssl_cookie_free( &(ctx->rtcp_dtls_context->cookie_ctx) );
-		ms_mutex_destroy(&ctx->rtcp_dtls_context->ssl_context_mutex);
-		ms_free(ctx->rtcp_dtls_context);
-	}
+	/* clean bctoolbox contexts */
+	ms_dtls_srtp_bctoolbox_context_free(ctx->rtp_dtls_context);
+	ms_dtls_srtp_bctoolbox_context_free(ctx->rtcp_dtls_context);
+
 	/* clean incoming buffers */
 	while (ctx->rtp_incoming_buffer!=NULL) {
 		DtlsRawPacket *next_packet = ctx->rtp_incoming_buffer->next;
@@ -889,29 +898,3 @@ void ms_dtls_srtp_context_destroy(MSDtlsSrtpContext *ctx) {
 	ms_free(ctx);
 	ms_message("DTLS-SRTP context destroyed");
 }
-
-#else /* HAVE_DTLS */
-
-bool_t ms_dtls_srtp_available(){return FALSE;}
-
-MSDtlsSrtpContext* ms_dtls_srtp_context_new(MSMediaStreamSessions *sessions, MSDtlsSrtpParams *params) {
-	return NULL;
-}
-
-void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
-}
-
-void ms_dtls_srtp_context_destroy(MSDtlsSrtpContext *ctx) {
-}
-
-void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role) {
-}
-
-void ms_dtls_srtp_set_peer_fingerprint(MSDtlsSrtpContext *context, const char *peer_fingerprint) {
-}
-
-void ms_dtls_srtp_set_stream_sessions(MSDtlsSrtpContext *dtls_context, MSMediaStreamSessions *stream_sessions) {
-	return;
-}
-
-#endif /* HAVE_DTLS */

@@ -32,8 +32,10 @@ static RtpProfile rtp_profile;
 #define T140_PAYLOAD_TYPE 98
 #define T140_RED_PAYLOAD_TYPE 99
 
+static MSFactory *_factory = NULL;
 static int tester_init(void) {
-	ms_init();
+	_factory = ms_factory_new_with_voip();
+	
 	ortp_init();
 	rtp_profile_set_payload(&rtp_profile, T140_PAYLOAD_TYPE, &payload_type_t140);
 	rtp_profile_set_payload(&rtp_profile, T140_RED_PAYLOAD_TYPE, &payload_type_t140_red);
@@ -41,7 +43,8 @@ static int tester_init(void) {
 }
 
 static int tester_cleanup(void) {
-	ms_exit();
+	
+	ms_factory_destroy(_factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }
@@ -50,7 +53,7 @@ typedef struct _text_stream_tester_stats_t {
 	OrtpEvQueue *q;
 	rtp_stats_t rtp;
 	int number_of_received_char;
-	char received_chars[128];
+	char received_chars[4096];
 } text_stream_tester_stats_t;
 
 typedef struct _text_stream_tester_t {
@@ -96,7 +99,7 @@ void text_stream_tester_destroy(text_stream_tester_t* obj) {
 }
 
 static void create_text_stream(text_stream_tester_t *tst, int payload_type) {
-	tst->ts = text_stream_new2(tst->local_ip, tst->local_rtp, tst->local_rtcp);
+	tst->ts = text_stream_new2(_factory, tst->local_ip, tst->local_rtp, tst->local_rtcp);
 	tst->local_rtp = rtp_session_get_local_port(tst->ts->ms.sessions.rtp_session);
 	tst->local_rtcp = rtp_session_get_local_rtcp_port(tst->ts->ms.sessions.rtp_session);
 	reset_stats(&tst->stats);
@@ -116,7 +119,12 @@ static void real_time_text_character_received(void *userdata, struct _MSFilter *
 		if (tst->stats.q != NULL) {
 			RealtimeTextReceivedCharacter *data = (RealtimeTextReceivedCharacter *)arg;
 			ms_message("Received RTT char: %lu, %c", (unsigned long)data->character, (char)data->character);
-			tst->stats.received_chars[tst->stats.number_of_received_char++] = (char)data->character;
+			if (tst->stats.number_of_received_char < sizeof(tst->stats.received_chars)-1){
+				tst->stats.received_chars[tst->stats.number_of_received_char++] = (char)data->character;
+			}else{
+				ms_fatal("tst->stats.received_chars buffer overflow (number_of_received_char=%i)", 
+					tst->stats.number_of_received_char);
+			}
 		}
 	}
 }
@@ -193,7 +201,7 @@ static void basic_text_stream2(void) {
 static void copy_paste_text_longer_than_rtt_buffer(void) {
 	text_stream_tester_t* marielle = text_stream_tester_new();
 	text_stream_tester_t* margaux = text_stream_tester_new();
-	const char* helloworld = "Lorem ipsum belledonnum communicatum mediastrimum";
+	const char* helloworld = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus imperdiet ultricies condimentum. Pellentesque tellus massa, maximus id dignissim vel, aliquam eget sapien. Suspendisse convallis est ut cursus suscipit. Duis in massa dui. Vivamus lobortis maximus nisi, eget interdum ante faucibus ac. Donec varius lorem id arcu facilisis, et dignissim magna molestie. Nunc lobortis feugiat dapibus. Nam tempus auctor dignissim. Sed pellentesque urna vitae quam mattis, in dictum justo tristique. Nullam vehicula enim eu lacus sollicitudin aliquet. Nunc eget arcu id odio viverra ultrices. Ut sit amet urna id libero posuere viverra dapibus sed nunc. Nulla eget vehicula magna, ut pulvinar ex. Nulla tincidunt justo at ipsum pretium, quis tempus arcu semper. Pellentesque non commodo neque. Maecenas consequat dapibus justo vel ornare. Suspendisse varius diam ac tincidunt fermentum. Etiam orci neque, malesuada sit amet purus vehicula, vestibulum scelerisque lectus. Proin volutpat venenatis enim a sollicitudin. Praesent posuere.";
 	int i = 0, strcmpresult = -2;
 	
 	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);

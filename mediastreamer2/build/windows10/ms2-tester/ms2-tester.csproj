@@ -99,6 +99,8 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Helpers\AppServiceHelper.cs" />
+    <Compile Include="Helpers\MS2TesterHelper.cs" />
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
@@ -154,12 +156,31 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\mswinrtvid\windows10\libmswinrtvid\libmswinrtvid.vcxproj">
+      <Project>{2d0e44c4-e51d-4911-b876-345d1e5e5209}</Project>
+      <Name>libmswinrtvid</Name>
+    </ProjectReference>
     <ProjectReference Include="ms2-tester-runtime-component\ms2-tester-runtime-component.vcxproj">
       <Project>{1d1b61e3-695e-4535-8f3f-b26e2cb0f342}</Project>
       <Name>ms2-tester-runtime-component</Name>
     </ProjectReference>
+    <ProjectReference Include="MS2TesterHost\MS2TesterHost.vcxproj">
+      <Project>{8a1a89b3-f2db-4428-a571-f0dff2e1eec1}</Project>
+      <Name>MS2TesterHost</Name>
+    </ProjectReference>
+    <ProjectReference Include="MS2TesterTasks\MS2TesterTasks.csproj">
+      <Project>{1ba81d48-5fc4-47fc-8a08-524c4b2859dd}</Project>
+      <Name>MS2TesterTasks</Name>
+    </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <SDKReference Include="WindowsDesktop, Version=10.0.10240.0">
+      <Name>Windows Desktop Extensions for the UWP</Name>
+    </SDKReference>
+    <SDKReference Include="WindowsMobile, Version=10.0.10240.0">
+      <Name>Windows Mobile Extensions for the UWP</Name>
+    </SDKReference>
+  </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

@@ -16,7 +16,7 @@ MEDIASTREAMER_MINOR_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f2)
 MEDIASTREAMER_MICRO_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f3)
 MEDIASTREAMER_EXTRA_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f4)
 
-LIBMEDIASTREAMER_SO_CURRENT=6 dnl increment this number when you add/change/remove an interface
+LIBMEDIASTREAMER_SO_CURRENT=7 dnl increment this number when you add/change/remove an interface
 LIBMEDIASTREAMER_SO_REVISION=0 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
 LIBMEDIASTREAMER_SO_AGE=0 dnl increment this number when you add an interface, set to 0 if you remove an interface
 
@@ -888,69 +888,80 @@ AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR,  "${package_prefix}/share" ,[path of data])
 AC_SUBST(PACKAGE_DATA_DIR)
 
 dnl check for video4linux headers
-AC_CHECK_HEADERS(linux/videodev.h linux/videodev2.h)
-if test "${ac_cv_header_linux_videodev_h}" = "yes" ; then
-	found_v4l1=yes
-else
-	found_v4l1=no
-fi
-if test "${ac_cv_header_linux_videodev2_h}" = "yes" ; then
-	found_v4l2=yes
-else
-	found_v4l2=no
-fi
 
-AM_CONDITIONAL(BUILD_V4L1, test x$found_v4l1 = xyes )
-AM_CONDITIONAL(BUILD_V4L2, test x$found_v4l2 = xyes )
-
-AC_ARG_ENABLE(libv4l1,
-	[AS_HELP_STRING([--disable-libv4l1], [Disable usage of libv4l1, really discouraged])],
+AC_ARG_ENABLE(v4l,
+	[AS_HELP_STRING([--disable-v4l], [Disable usage of video4linux, really discouraged (linux-only)])],
 	[case "${enableval}" in
-		yes)	libv4l1=yes ;;
-		no)	libv4l1=no ;;
+		yes)	v4l=yes ;;
+		no)	v4l=no ;;
 		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l1) ;;
 	esac],
-	[libv4l1=yes]
+	[v4l=yes]
 )
 
-AC_ARG_ENABLE(libv4l2,
-	[AS_HELP_STRING([--disable-libv4l2], [Disable usage of libv4l2, really discouraged])],
-	[case "${enableval}" in
-		yes)	libv4l2=yes ;;
-		no)	libv4l2=no ;;
-		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l2) ;;
-	esac],
-	[libv4l2=yes]
-)
+if test "$v4l" = "yes" ; then
+	AC_CHECK_HEADERS(linux/videodev.h linux/videodev2.h)
+	if test "${ac_cv_header_linux_videodev_h}" = "yes" ; then
+		found_v4l1=yes
+	else
+		found_v4l1=no
+	fi
+	if test "${ac_cv_header_linux_videodev2_h}" = "yes" ; then
+		found_v4l2=yes
+	else
+		found_v4l2=no
+	fi
 
-PKG_CHECK_MODULES(LIBV4L2, libv4l2,
-	[AC_DEFINE(HAVE_LIBV4L2,1,[Defined if we have libv4l2])
-	have_libv4l2=yes],
-	[echo "No libv4l2 found."]
-)
-PKG_CHECK_MODULES(LIBV4L1, libv4l1,
-	[AC_DEFINE(HAVE_LIBV4L1,1,[Defined if we have libv4l1])
-	have_libv4l1=yes],
-	[echo "No libv4l1 found."]
-)
-PKG_CHECK_MODULES(LIBV4LCONVERT, libv4lconvert,
-	[AC_DEFINE(HAVE_LIBV4LCONVERT,1,[Defined if we have libv4lconvert])
-	have_libv4lconvert=yes],
-	[echo "No libv4lconvert found."]
-)
+	AC_ARG_ENABLE(libv4l1,
+		[AS_HELP_STRING([--disable-libv4l1], [Disable usage of libv4l1, really discouraged])],
+		[case "${enableval}" in
+			yes)	libv4l1=yes ;;
+			no)	libv4l1=no ;;
+			*)	AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l1) ;;
+		esac],
+		[libv4l1=yes]
+	)
 
-if test "$found_v4l2" = "yes" && test "$have_libv4l2" != "yes" ; then
-	if test "$video" = "true" && test "$libv4l2" = "yes" ; then
-		AC_MSG_ERROR([
-Missing libv4l2. It is highly recommended to build with
-libv4l2 headers and library. Many camera will won't work or will crash
-your application if libv4l2 is not installed.
-If you know what you are doing, you can use --disable-libv4l2 to disable
-this check.
-		])
+	AC_ARG_ENABLE(libv4l2,
+		[AS_HELP_STRING([--disable-libv4l2], [Disable usage of libv4l2, really discouraged])],
+		[case "${enableval}" in
+			yes)	libv4l2=yes ;;
+			no)	libv4l2=no ;;
+			*)	AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l2) ;;
+		esac],
+		[libv4l2=yes]
+	)
+
+	PKG_CHECK_MODULES(LIBV4L2, libv4l2,
+		[AC_DEFINE(HAVE_LIBV4L2,1,[Defined if we have libv4l2])
+		have_libv4l2=yes],
+		[echo "No libv4l2 found."]
+	)
+	PKG_CHECK_MODULES(LIBV4L1, libv4l1,
+		[AC_DEFINE(HAVE_LIBV4L1,1,[Defined if we have libv4l1])
+		have_libv4l1=yes],
+		[echo "No libv4l1 found."]
+	)
+	PKG_CHECK_MODULES(LIBV4LCONVERT, libv4lconvert,
+		[AC_DEFINE(HAVE_LIBV4LCONVERT,1,[Defined if we have libv4lconvert])
+		have_libv4lconvert=yes],
+		[echo "No libv4lconvert found."]
+	)
+
+	if test "$found_v4l2" = "yes" && test "$have_libv4l2" != "yes" ; then
+		if test "$video" = "true" && test "$libv4l2" = "yes" ; then
+			AC_MSG_ERROR([
+	Missing libv4l2. It is highly recommended to build with
+	libv4l2 headers and library. Many camera will won't work or will crash
+	your application if libv4l2 is not installed.
+	If you know what you are doing, you can use --disable-libv4l2 to disable
+	this check.
+			])
+		fi
 	fi
 fi
-
+AM_CONDITIONAL(BUILD_V4L1, test x$found_v4l1 = xyes )
+AM_CONDITIONAL(BUILD_V4L2, test x$found_v4l2 = xyes )
 
 AC_PATH_PROG(PCAP,pcap-config,false)
 AM_CONDITIONAL(HAVE_PCAP, test $PCAP != false)
@@ -1108,6 +1119,15 @@ else
 fi
 
 
+dnl check bctoolbox library
+PKG_CHECK_MODULES(BCTOOLBOX, bctoolbox >= 0.0.0, found_bctoolbox=true, found_bctoolbox=false)
+if test "$found_bctoolbox" = "true" ; then
+	LIBS="$LIBS $BCTOOLBOX_LIBS"
+	CFLAGS="$CFLAGS $BCTOOLBOX_CFLAGS"
+else
+	AC_MSG_ERROR("Could not find bctoolbox")
+fi
+
 dnl check for libzrtp support (RFC 6189: Media Path Key Agreement for Unicast Secure RTP)
 AC_ARG_ENABLE(zrtp,
 	[AS_HELP_STRING([--enable-zrtp], [Turn on or off compilation of zrtp (default=detect)])],
@@ -1118,6 +1138,7 @@ AC_ARG_ENABLE(zrtp,
 	esac],
 	[zrtp=detect]
 )
+
 
 if test "$zrtp" != "false" ; then
 	PKG_CHECK_MODULES(LIBBZRTP, libbzrtp >= 1.0.0, found_zrtp=true, found_zrtp=false)
@@ -1144,79 +1165,6 @@ if test "$zrtp" != "false" ; then
 fi
 
 AM_CONDITIONAL(LIBBZRTP,test x$zrtp != xfalse)
-
-dnl Polarssl lib is requested for DTLS
-AC_ARG_WITH( polarssl,
-      [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr, /usr/local)[[default=PREFIX or /usr if NONE]] ],
-      [ polarssl_prefix=${withval}],[ if test "$prefix" != "NONE"; then
-					polarssl_prefix=${prefix}
-				      else
-					polarssl_prefix="/usr"
-				      fi ])
-
-found_polarssl=no
-
-if test "$polarssl_prefix" != "none" ; then
-	if test "$polarssl_prefix" != "/usr" ; then
-		POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
-		POLARSSL_LIBS="-L${polarssl_prefix}/lib"
-	fi
-
-	CPPFLAGS_save=$CPPFLAGS
-	LIBS_save=$LIBS
-
-	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
-	LIBS="$LIBS $POLARSSL_LIBS"
-	AC_CHECK_LIB(mbedtls, sha1_update , [found_polarssl=yes POLARSSL_LIBS="$POLARSSL_LIBS -lmbedtls"],
-					 [AC_CHECK_LIB(polarssl, sha1_update, [found_polarssl=yes POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"],[AC_MSG_NOTICE([polarssl library not found !])])])
- 
-	if test "x$found_polarssl" == "xyes" ; then
-		AC_CHECK_HEADERS(polarssl/ssl.h, [found_polarssl=yes],[found_polarssl=no POLARSSL_CFLAGS="" POLARSSL_LIBS=""])
-	fi
-	CPPFLAGS=$CPPFLAGS_save
-	LIBS=$LIBS_save
-fi
-
-dnl check for DTLS-SRTP support, need polarssl version >= 1.4
-AC_ARG_ENABLE(dtls,
-	[AS_HELP_STRING([--enable-dtls], [Turn on or off compilation of dtls (default=no)])],
-	[case "${enableval}" in
-		yes)	dtls=true ;;
-		no)	dtls=false ;;
-		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-dtls) ;;
-	esac],
-	[dtls=false]
-)
-
-if test "$dtls" = "true" ; then
-	if test "$have_srtp" = "false" ; then
-		AC_MSG_ERROR("DTLS-SRTP requires SRTP")
-	fi
-
-	if test "x$found_polarssl" != "xyes" ; then
-		AC_MSG_ERROR("DTLS-SRTP requires POLARSSL")
-	fi
-	dnl check for polarssl presence and support for DTLS
-	CPPFLAGS_save=$CPPFLAGS
-	LIBS_save=$LIBS
-
-	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
-	LIBS="$LIBS $POLARSSL_LIBS"
-	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-		#include <polarssl/ssl.h>
-		]],
-		[[ssl_set_dtls_srtp_protection_profiles(0,0,0)]])],
-		[AC_DEFINE(HAVE_DTLS, 1, [Defined when dtls support is compiled])
-		AC_MSG_NOTICE([polarssl usable for DTLS-SRTP])],[AC_MSG_ERROR([polarssl not usable for DTLS-SRTP])])
-
-	CPPFLAGS=$CPPFLAGS_save
-	LIBS=$LIBS_save
-else
-	echo "DTLS-SRTP compilation is disabled."
-fi
-
-AC_SUBST(POLARSSL_CFLAGS)
-AC_SUBST(POLARSSL_LIBS)
 
 dnl check for bcg729 annexB presence to use for VAD/DTX (RFC3389 : Real-time Transport Protocol (RTP) Payload for Comfort Noise (CN))
 AC_ARG_ENABLE(g729bCN,
@@ -1368,6 +1316,5 @@ echo "Summary of build options:"
 printf "* %-30s %s\n" "Video support"		$video
 printf "* %-30s %s\n" "sRTP encryption"		$have_srtp
 printf "* %-30s %s\n" "zRTP encryption"		$zrtp
-printf "* %-30s %s\n" "SRTP-DTLS encryption"	$dtls
 printf "* %-30s %s\n" "Non-free codecs" 	$non_free_codecs
 

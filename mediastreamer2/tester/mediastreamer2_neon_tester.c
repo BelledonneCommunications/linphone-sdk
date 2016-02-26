@@ -26,15 +26,19 @@
 #include <arm_neon.h>
 #include <speex/speex.h>
 
+static MSFactory *_factory= NULL;
+
 static int tester_before_all() {
-	ortp_set_log_level_mask(ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
-	ms_init();
+	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
+	_factory = ms_factory_new();
+	ms_factory_init_voip(_factory);
+	ms_factory_init_plugins(_factory);
 	srand(time(0));
 	return 0;
 }
 
 static int tester_after_all() {
-	ms_exit();
+	ms_factory_destroy(_factory);
 	return 0;
 }
 

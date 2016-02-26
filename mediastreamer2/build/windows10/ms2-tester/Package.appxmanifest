@@ -24,6 +24,15 @@
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
       <Extensions>
+        <uap:Extension Category="windows.voipCall"></uap:Extension>
+        <Extension Category="windows.backgroundTasks" EntryPoint="MS2TesterTasks.PhoneCallTask">
+          <BackgroundTasks ServerName="MS2TesterHost">
+            <Task Type="systemEvent" />
+          </BackgroundTasks>
+        </Extension>
+        <uap:Extension Category="windows.appService" EntryPoint="MS2TesterTasks.AppService">
+          <uap:AppService Name="MS2TesterTasks.AppService" ServerName="MS2TesterHost" />
+        </uap:Extension>
         <uap:Extension Category="windows.protocol">
           <uap:Protocol Name="ms2-tester" />
         </uap:Extension>
@@ -32,7 +41,24 @@
   </Applications>
   <Capabilities>
     <Capability Name="internetClient" />
+    <Capability Name="internetClientServer" />
+    <uap:Capability Name="voipCall" />
     <DeviceCapability Name="microphone" />
     <DeviceCapability Name="webcam" />
   </Capabilities>
+  <Extensions>
+    <Extension Category="windows.activatableClass.outOfProcessServer">
+      <OutOfProcessServer ServerName="MS2TesterHost">
+        <Path>MS2TesterHost.exe</Path>
+        <Instancing>singleInstance</Instancing>
+        <ActivatableClass ActivatableClassId="MS2TesterHost.Dummy" />
+      </OutOfProcessServer>
+    </Extension>
+    <Extension Category="windows.activatableClass.inProcessServer">
+      <InProcessServer>
+        <Path>libmswinrtvid.dll</Path>
+        <ActivatableClass ActivatableClassId="libmswinrtvid.SchemeHandler" ThreadingModel="both" />
+      </InProcessServer>
+    </Extension>
+  </Extensions>
 </Package>

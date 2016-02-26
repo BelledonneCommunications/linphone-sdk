@@ -38,7 +38,7 @@ if(DOXYGEN_FOUND)
 		)
 		add_custom_target(ms2-html-doc ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc/html/index.html")
 		install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doc/html"
-			DESTINATION "${CMAKE_INSTALL_PREFIX}/share/doc/mediastreamer2-${MEDIASTREAMER_VERSION}")
+			DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/mediastreamer2-${MEDIASTREAMER_VERSION}")
 	else()
 		message(WARNING "The dot program is needed to generate the mediastreamer2 documentation. You can get it from http://www.graphviz.org/.")
 	endif()

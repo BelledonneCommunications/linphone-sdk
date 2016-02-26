@@ -11,6 +11,7 @@
             <model:UnitTestCaseStateToSymbolConverter x:Key="UnitTestCaseStateToSymbol"/>
             <model:UnitTestCaseStateToSymbolColorConverter x:Key="UnitTestCaseStateToSymbolColor"/>
             <model:OutputTraceLevelToColorConverter x:Key="OutputTraceLevelToColor"/>
+            <model:MultiplyConverter x:Key="Multiply"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

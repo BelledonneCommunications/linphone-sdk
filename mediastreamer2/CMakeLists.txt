@@ -21,14 +21,14 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(MEDIASTREAMER2 C CXX)
+project(mediastreamer2 VERSION 2.12.1 LANGUAGES C CXX)
 
 
-set(MEDIASTREAMER_MAJOR_VERSION "2")
-set(MEDIASTREAMER_MINOR_VERSION "12")
-set(MEDIASTREAMER_MICRO_VERSION "1")
-set(MEDIASTREAMER_VERSION "${MEDIASTREAMER_MAJOR_VERSION}.${MEDIASTREAMER_MINOR_VERSION}.${MEDIASTREAMER_MICRO_VERSION}")
-set(MEDIASTREAMER_SO_VERSION "6")
+set(MEDIASTREAMER_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
+set(MEDIASTREAMER_MINOR_VERSION ${PROJECT_VERSION_MINOR})
+set(MEDIASTREAMER_MICRO_VERSION ${PROJECT_VERSION_PATCH})
+set(MEDIASTREAMER_VERSION ${PROJECT_VERSION})
+set(MEDIASTREAMER_SO_VERSION "7") # incremented on January, the 20th 2016. DO NOT INCREMENT BEFORE MEDIASTREAMER 2.13
 
 string(REGEX MATCH "^(arm*|aarch64)" FIXED_POINT_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
 if(FIXED_POINT_PROCESSOR)
@@ -57,7 +57,8 @@ endif()
 
 include(CMakeDependentOption)
 
-option(ENABLE_STATIC "Build static library (default is shared library)." NO)
+option(ENABLE_SHARED "Build shared library." YES)
+option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_DEBUG_LOGS "Enable the display of traces showing the execution of the library." NO)
 option(ENABLE_DOC "Enable documentation generation with Doxygen." YES)
 option(ENABLE_FIXED_POINT "Turn on fixed point computations." ${ENABLE_FIXED_POINT_DEFAULT_VALUE})
@@ -68,7 +69,6 @@ option(ENABLE_RELATIVE_PREFIX "Find resources relatively to the installation dir
 option(ENABLE_TOOLS "Turn on or off compilation of tools." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 
-cmake_dependent_option(ENABLE_DTLS "Build with DTLS support." YES "ENABLE_SRTP" NO)
 option(ENABLE_SRTP "Build with the SRTP transport support." YES)
 cmake_dependent_option(ENABLE_ZRTP "Build with ZRTP support." YES "ENABLE_SRTP" NO)
 
@@ -121,9 +121,15 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CheckIncludeFile)
 include(CheckLibraryExists)
 include(CMakePushCheckState)
+include(GNUInstallDirs)
 
-set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
-if(MSVC)
+if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
+	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
+endif()
+
+if(MSVC AND MSVC_VERSION LESS 1800)
+	set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
 	list(APPEND CMAKE_REQUIRED_INCLUDES "${MSVC_INCLUDE_DIR}")
 endif()
 
@@ -151,7 +157,8 @@ if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 else()
 	find_package(ORTP REQUIRED)
 endif()
-find_package(PolarSSL)
+
+
 if(ENABLE_PCAP)
 	find_package(PCAP QUIET)
 endif()
@@ -176,7 +183,6 @@ if(ENABLE_SRTP)
 	if(NOT SRTP_FOUND)
 		message(WARNING "Could not find SRTP library, Mediastreamer2 will be compiled without SRTP support.")
 		set(ENABLE_SRTP OFF CACHE BOOL "Build with the SRTP transport support." FORCE)
-		set(ENABLE_DTLS OFF CACHE BOOL "Build mediastreamer2 with DTLS support." FORCE)
 	endif()
 endif()
 if(ENABLE_ZRTP)
@@ -188,12 +194,6 @@ if(ENABLE_ZRTP)
 	if(NOT BZRTP_FOUND)
 		message(WARNING "Could not find bzrtp library, mediastreamer2 will be compiled without ZRTP support.")
 		set(ENABLE_ZRTP OFF CACHE BOOL "Build mediastreamer2 with ZRTP support." FORCE)
-	endif()
-endif()
-if(ENABLE_DTLS AND ENABLE_SRTP) # DTLS requires SRTP
-	if(NOT POLARSSL_FOUND OR NOT HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
-		message(WARNING "Could not find polarssl library with DTLS support, mediastreamer2 will be compiled without DTLS support.")
-		set(ENABLE_DTLS OFF CACHE BOOL "Build mediastreamer2 with DTLS support." FORCE)
 	endif()
 endif()
 if(ENABLE_GSM)
@@ -308,6 +308,11 @@ if(ENABLE_SOUND AND NOT(WIN32 OR ENABLE_ALSA OR ENABLE_ARTSC OR ENABLE_MACSND OR
 	message(FATAL_ERROR "Could not find a support sound driver API. Use -DENABLE_SOUND=NO if you don't care about having sound.")
 endif()
 
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
+else()
+	find_package(BcToolbox REQUIRED)
+endif()
 
 include_directories(
 	include
@@ -317,6 +322,7 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
 	${ORTP_INCLUDE_DIRS}
+	${BCTOOLBOX_INCLUDE_DIRS}
 )
 
 if(BZRTP_FOUND)
@@ -324,9 +330,6 @@ if(BZRTP_FOUND)
 endif()
 if(SRTP_FOUND)
 	include_directories(${SRTP_INCLUDE_DIRS})
-endif()
-if(POLARSSL_FOUND)
-	include_directories(${POLARSSL_INCLUDE_DIRS})
 endif()
 if(GSM_FOUND)
 	include_directories(${GSM_INCLUDE_DIRS})
@@ -385,7 +388,7 @@ endif()
 if(PCAP_FOUND)
 	include_directories(${PCAP_INCLUDE_DIRS})
 endif()
-if(MSVC)
+if(MSVC_INCLUDE_DIR)
 	include_directories(${MSVC_INCLUDE_DIR})
 endif()
 
@@ -408,9 +411,6 @@ if(SRTP_FOUND)
 endif()
 if(BZRTP_FOUND)
 	set(HAVE_ZRTP 1)
-endif()
-if(ENABLE_DTLS)
-	set(HAVE_DTLS 1)
 endif()
 if(ENABLE_ALSA)
 	set(__ALSA_ENABLED__ 1)
@@ -443,11 +443,16 @@ if(MATROSKA2_FOUND)
 	set(HAVE_MATROSKA 1)
 endif()
 if(ENABLE_RELATIVE_PREFIX)
-	set(PACKAGE_PLUGINS_DIR "./lib/mediastreamer/plugins")
-	set(PACKAGE_DATA_DIR "./share")
+	if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" OR CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+		set(PACKAGE_PLUGINS_DIR ".")
+		set(PACKAGE_DATA_DIR ".")
+	else()
+		set(PACKAGE_PLUGINS_DIR "./${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins")
+		set(PACKAGE_DATA_DIR "./${CMAKE_INSTALL_DATADIR}")
+	endif()
 else()
-	set(PACKAGE_PLUGINS_DIR "${CMAKE_INSTALL_PREFIX}/lib/mediastreamer/plugins")
-	set(PACKAGE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share")
+	set(PACKAGE_PLUGINS_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins")
+	set(PACKAGE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}")
 endif()
 set(LINK_FLAGS )
 if(APPLE)
@@ -539,13 +544,13 @@ configure_file(cmake/Mediastreamer2Config.cmake.in
 	@ONLY
 )
 
-set(ConfigPackageLocation lib/cmake/Mediastreamer2)
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/Mediastreamer2/cmake")
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE Mediastreamer2Targets.cmake
-	DESTINATION ${ConfigPackageLocation}
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2Config.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2ConfigVersion.cmake"
-	DESTINATION ${ConfigPackageLocation}
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )

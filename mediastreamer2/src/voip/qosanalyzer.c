@@ -81,7 +81,7 @@ const char* ms_qos_analyzer_algorithm_to_string(MSQosAnalyzerAlgorithm alg) {
 		default: return NULL;
 	}
 }
-const MSQosAnalyzerAlgorithm ms_qos_analyzer_algorithm_from_string(const char* alg) {
+MSQosAnalyzerAlgorithm ms_qos_analyzer_algorithm_from_string(const char* alg) {
 	if (alg == NULL || strcasecmp(alg, "Simple")==0)
 		return MSQosAnalyzerAlgorithmSimple;
 	else if (strcasecmp(alg, "Stateful")==0)

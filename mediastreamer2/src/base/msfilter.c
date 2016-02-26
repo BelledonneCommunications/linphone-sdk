@@ -23,9 +23,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_FILTER_METHOD_GET_FID(id)	(((id)>>16) & 0xFFFF)
 #define MS_FILTER_METHOD_GET_INDEX(id) ( ((id)>>8) & 0XFF)
 
+/* we need this pragma because this file implements much of compatibility functions*/
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)
+#else
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 void ms_filter_register(MSFilterDesc *desc){
-	ms_factory_register_filter(ms_factory_get_fallback(),desc);
+	MSFactory *factory = ms_factory_get_fallback();
+	if(factory) {
+		ms_factory_register_filter(factory,desc);
+	} else {
+		ms_error("ms_filter_register(): registration of '%s' filter has failed: no fallback factory has been defined", desc->name);
+	}
 }
 
 void ms_filter_unregister_all(){
@@ -351,6 +362,7 @@ const char * ms_format_type_to_string(MSFormatType type){
 		case MSAudio: return "MSAudio";
 		case MSVideo: return "MSVideo";
 		case MSText: return "MSText";
+		case MSUnknownMedia: return "MSUnknownMedia";
 	}
 	return "invalid";
 }

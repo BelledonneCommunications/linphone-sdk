@@ -111,8 +111,8 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext
 using namespace fake_opensles;
 
 static MSSndCard *android_snd_card_new(void);
-static MSFilter *ms_android_snd_read_new(void);
-static MSFilter *ms_android_snd_write_new(void);
+static MSFilter *ms_android_snd_read_new(MSFactory *factory);
+static MSFilter *ms_android_snd_write_new(MSFactory* factory);
 
 struct OpenSLESContext {
 	OpenSLESContext() {
@@ -417,11 +417,11 @@ static void opensles_recorder_callback(SLAndroidSimpleBufferQueueItf bq, void *c
 		 *  1) understand why AudioRecord thread doesn't detach.
 		 *  2) disable logs just for this thread (using a TLS)
 		 */
-		int loglevel=ortp_get_log_level_mask();
-		ortp_set_log_level_mask(ORTP_ERROR|ORTP_FATAL);
+		int loglevel=ortp_get_log_level_mask(ORTP_LOG_DOMAIN);
+		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_ERROR|ORTP_FATAL);
 		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
 		ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ictx->mTickerSynchronizer);
-		ortp_set_log_level_mask(loglevel);
+		ortp_set_log_level_mask(ORTP_LOG_DOMAIN, loglevel);
 	}
 	ictx->read_samples += ictx->inBufSize / sizeof(int16_t);
 
@@ -621,13 +621,13 @@ MSFilterDesc android_snd_opensles_read_desc = {
 	android_snd_read_methods
 };
 
-static MSFilter* ms_android_snd_read_new() {
-	MSFilter *f = ms_filter_new_from_desc(&android_snd_opensles_read_desc);
+static MSFilter* ms_android_snd_read_new(MSFactory *factory) {
+	MSFilter *f = ms_factory_create_filter_from_desc(factory, &android_snd_opensles_read_desc);
 	return f;
 }
 
 static MSFilter *android_snd_card_create_reader(MSSndCard *card) {
-	MSFilter *f = ms_android_snd_read_new();
+	MSFilter *f = ms_android_snd_read_new(ms_snd_card_get_factory(card));
 	OpenSLESInputContext *ictx = static_cast<OpenSLESInputContext*>(f->data);
 	ictx->setContext((OpenSLESContext*)card->data);
 	return f;
@@ -842,7 +842,7 @@ static OpenSLESOutputContext* opensles_output_context_init() {
 }
 
 static MSFilter *android_snd_card_create_writer(MSSndCard *card) {
-	MSFilter *f = ms_android_snd_write_new();
+	MSFilter *f = ms_android_snd_write_new(ms_snd_card_get_factory(card));
 	OpenSLESOutputContext *octx = static_cast<OpenSLESOutputContext*>(f->data);
 	octx->setContext((OpenSLESContext*)card->data);
 	return f;
@@ -983,8 +983,8 @@ MSFilterDesc android_snd_opensles_write_desc = {
 	android_snd_write_methods
 };
 
-static MSFilter* ms_android_snd_write_new(void) {
-	MSFilter *f = ms_filter_new_from_desc(&android_snd_opensles_write_desc);
+static MSFilter* ms_android_snd_write_new(MSFactory* factory) {
+	MSFilter *f = ms_factory_create_filter_from_desc(factory, &android_snd_opensles_write_desc);
 	return f;
 }
 
