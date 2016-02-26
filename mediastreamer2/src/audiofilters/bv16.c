@@ -1,7 +1,8 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2006  Simon MORLAT (simon.morlat@linphone.org)
-
+Copyright (C) 2016 Belledonne Communications, Grenoble, France
+Author : Jehan Monnier
+ 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either version 2
@@ -125,6 +126,11 @@ static void enc_uninit(MSFilter *f){
 	ms_message("MSBV16Enc Uninit ");
 }
 
+	/***
+    Encodes 8 kHz-sampled narrowband speech at a bit rate of or 16 kbit/s,
+	uses 5 ms frames.
+	The encoder receives 10 ms speech => 160 bytes.
+	***/
 static void enc_process (MSFilter *f){
 	EncState *s=(EncState*)f->data;
 	struct	BV16_Bit_Stream bs;
@@ -132,9 +138,7 @@ static void enc_process (MSFilter *f){
 	mblk_t *inputMessage = NULL, *outputMessage = NULL;
 	int frame_per_packet=s->ptime/5;
 	int in_rcvd_bytes = 0;
-	
 
-	
 	in_rcvd_bytes = SIGNAL_FRAME_SIZE * frame_per_packet;
 	buf=(short*)alloca(in_rcvd_bytes);
 	memset((void*)buf,0, in_rcvd_bytes );
@@ -166,80 +170,6 @@ static void enc_process (MSFilter *f){
 		}
 
 }
-
-// /***
-// Encodes 8 kHz-sampled narrowband speech at a bit rate of or 16 kbit/s,
-//  uses 5 ms frames.
-//  ***/
-// static void enc_process(MSFilter *f){
-// 	EncState *s=(EncState*)f->data;
-// 	struct	BV16_Bit_Stream bs;
-// 	//int in_single_frsz_bytes = (sizeof(short) ) * FRSZ ;
-// 	int in_rcvd_bytes;
-// 	int out_single_frsz_bytes = 10;
-// 	int ret ;
-// 	short *buf;
-// 	mblk_t *inputMessage = NULL, *outputMessage;
-// 	unsigned int offset = 0;
-// 	int frame_per_packet=2;
-
-// 	/*if (s->frame_size<=0)
-// 		return;*/
-
-// 	ms_filter_lock(f);
-
-// 	if (s->ptime>=10)
-// 	{
-// 		frame_per_packet = s->ptime/5;
-// 	}
-// 	in_rcvd_bytes = SIGNAL_FRAME_SIZE * frame_per_packet;
-// 	buf=(short*)alloca(in_rcvd_bytes);
-// 	memset((void*)buf,0, in_rcvd_bytes );
-// 	//ms_message("MSBV16Enc timestamp %d frame_per_packet %d ptime %d", s->ts,frame_per_packet, s->ptime );
-// 	s->frame_size = 0;
-// 	while((inputMessage=ms_queue_get(f->inputs[0]))!=NULL){
-		
-// 		ms_bufferizer_put(s->bufferizer,inputMessage);
-// 	}
-	
-// 	while(ms_bufferizer_get_avail(s->bufferizer) >= in_rcvd_bytes ) {
-// 		outputMessage=allocb(BITSTREAM_FRAME_SIZE*frame_per_packet,0);
-// 		ret = ms_bufferizer_read(s->bufferizer,(uint8_t*)buf,in_rcvd_bytes);
-// 		for (offset=0;offset<frame_per_packet;offset++) {
-// 			//ms_message("MSBV16Enc offset %d in_rcvd_bytes %d  in_single_frsz_bytes %d ", offset, in_rcvd_bytes, in_single_frsz_bytes);
-
-// 			BV16_Encode(&bs, &s->state, (short*)&buf[offset*FRSZ]);
-// 			BV16_BitPack( (UWord8*)outputMessage->b_wptr, &bs );
-// 			outputMessage->b_wptr+=out_single_frsz_bytes;
-			
-// 		}
-// 		// //s->ts+=s->nsamples*frame_per_packet;
-// 		// ms_bufferizer_fill_current_metas(s->bufferizer,outputMessage);
-// 		// ms_message("MSBV16Enc timestamp %d frame_size %d", s->ts, s->frame_size );
-
-// 		// mblk_set_timestamp_info(outputMessage,s->ts);
-// 		// s->ts +=  FRSZ * frame_per_packet;
-// 		// //s->ts += out_single_frsz_bytes * frame_per_packet/8000;
-// 		// s->frame_size += out_single_frsz_bytes * frame_per_packet;
-		
-// 		// ms_queue_put(f->outputs[0],outputMessage);
-		
-// 		mblk_set_timestamp_info(outputMessage,s->ts);
-// 		ms_bufferizer_fill_current_metas(s->bufferizer,outputMessage);
-// 		s->ts +=  FRSZ * frame_per_packet;
-
-// 		//s->ts += out_single_frsz_bytes * frame_per_packet/8000;
-// //		s->frame_size += out_single_frsz_bytes * frame_per_packet;
-// //		ms_message("MSBV16Enc timestamp %d frame_size %d", s->ts, s->frame_size );
-// 		ms_queue_put(f->outputs[0],outputMessage);
-// 	}
-
-		
-// 	ms_filter_unlock(f);
-
-
-// }
-
 
 
 static MSFilterMethod enc_methods[]={
@@ -290,45 +220,39 @@ MSFilterDesc ms_bv16_enc_desc={
 typedef struct DecState{
 	struct BV16_Decoder_State state;
 	uint32_t ts; // timestamp
-	uint64_t last_sample_size;
 	bool_t plc;
-	int plc_count;
+	int packet_ms_size;
 	MSConcealerContext *concealer;
 } DecState;
 
-
-//static const int plc_max=40;/*40 frames of plc, no more*/
 static void dec_init(MSFilter *f){
 	DecState *s=ms_new0(DecState,1);
 	Reset_BV16_Decoder(&s->state);
 	f->data = s;
-	s->last_sample_size = 0;
 	s->plc=1;
-	s->ts = 0;
-	s->plc_count=0;
-	
+	s->packet_ms_size= 10;
 	ms_message("MSBV16Dec Init ");
 	
 }
 static void dec_preprocess(MSFilter* f){
 	DecState *s = (DecState*)f->data;
-	s->concealer = ms_concealer_context_new(UINT32_MAX);
+	if (s->plc) {
+		s->concealer = ms_concealer_context_new(UINT32_MAX);
+	}else {
+		s->concealer = NULL;
+	}
 
 }
 
 static void dec_postprocess(MSFilter* f ){
 	DecState *s = (DecState*)f->data;
-	ms_concealer_context_destroy(s->concealer);
-	
-
+	if (s->plc) ms_concealer_context_destroy(s->concealer);
 }
 
 static void dec_uninit(MSFilter *f){
 	DecState *s = (DecState*)f->data;
 	Reset_BV16_Decoder((struct BV16_Decoder_State *)f->data);
-
 	ms_free(s);
-
 	ms_message("MSBV16Dec Uninit ");
 }
 
@@ -337,18 +261,11 @@ static void dec_uninit(MSFilter *f){
 static void dec_process(MSFilter *f){
 
 	DecState *s=(DecState*)f->data;
-
 	mblk_t *inputMessage, *outputMessage;
-	// int input_bytes = 0;
-	// int frames_rcvd = 0;
-	int nb_frames_lost = 0;
 	struct	BV16_Bit_Stream bs;
-	// int k ;
-	
+
 	while((inputMessage=ms_queue_get(f->inputs[0]))!=NULL){
-		
-		s->last_sample_size = msgdsize(inputMessage);
-//		ms_message("MSBV16Dec : input msg size %llu time %d" , s->last_sample_size, 5);
+
 		while(inputMessage->b_rptr<inputMessage->b_wptr) {
 			outputMessage = allocb(SIGNAL_FRAME_SIZE,0);
 			mblk_meta_copy(inputMessage, outputMessage);
@@ -357,19 +274,17 @@ static void dec_process(MSFilter *f){
 			outputMessage->b_wptr+=SIGNAL_FRAME_SIZE;
 			inputMessage->b_rptr+=BITSTREAM_FRAME_SIZE;
 			ms_queue_put(f->outputs[0],outputMessage);
-			
-			ms_concealer_inc_sample_time(s->concealer,f->ticker->time, 5, 1);
+			if (s->plc) ms_concealer_inc_sample_time(s->concealer,f->ticker->time, 5, 1);
 			
 		}
 		freemsg(inputMessage);
-	//	ms_message("MSBV16Dec : out \r\n");
+
 	}
-	if (ms_concealer_context_is_concealement_required(s->concealer, f->ticker->time)) {
+	// called every 10 ms
+	if (s->plc && ms_concealer_context_is_concealement_required(s->concealer, f->ticker->time)) {
 
-		nb_frames_lost = s->last_sample_size / BITSTREAM_FRAME_SIZE;
-		ms_message("MSBV16Dec : CONCEAL %d frames" ,nb_frames_lost);
-
-		for (int i=0; i<2; i++){
+		// need to conceal 10 ms
+		for (int ms_concealed=0; ms_concealed<s->packet_ms_size; ms_concealed+=5){
 			outputMessage = allocb(SIGNAL_FRAME_SIZE,0);
 			BV16_PLC(&s->state,(short*)outputMessage->b_wptr);
 			outputMessage->b_wptr+=SIGNAL_FRAME_SIZE;
@@ -380,7 +295,12 @@ static void dec_process(MSFilter *f){
 	}
 }
 
-		
+static int dec_enable_plc(MSFilter *f, void* arg ){
+	DecState *s=(DecState*)f->data;
+	bool_t has_plc = *((bool_t*)arg);
+	s->plc = has_plc;
+	return 0;
+}
 
 static int dec_have_plc(MSFilter *f, void *arg)
 {
@@ -394,23 +314,13 @@ static int dec_get_sample_rate(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int dec_add_fmtp(MSFilter *f, void *arg) {
-	DecState *s=(DecState*)f->data;
-	const char *fmtp = (const char *)arg;
-	char buf[32];
-	
-	memset(buf, '\0', sizeof(buf));
-	if (fmtp_get_value(fmtp, "plc", buf, sizeof(buf))) {
-		s->plc = atoi(buf);
-	}
-	return 0;
-}
+
 
 static MSFilterMethod dec_methods[] = {
 	{ MS_FILTER_GET_SAMPLE_RATE, 	dec_get_sample_rate },
 	{ MS_FILTER_GET_NCHANNELS, 		get_channels },
-	{	MS_FILTER_ADD_FMTP		,	dec_add_fmtp	},
 	{ MS_DECODER_HAVE_PLC		, 	dec_have_plc	},
+	{MS_DECODER_ENABLE_PLC,			dec_enable_plc  },
 	{ 0,                         NULL                }
 };
 
