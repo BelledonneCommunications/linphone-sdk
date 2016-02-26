@@ -21,13 +21,13 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(MEDIASTREAMER2 C CXX)
+project(mediastreamer2 VERSION 2.12.1 LANGUAGES C CXX)
 
 
-set(MEDIASTREAMER_MAJOR_VERSION "2")
-set(MEDIASTREAMER_MINOR_VERSION "12")
-set(MEDIASTREAMER_MICRO_VERSION "1")
-set(MEDIASTREAMER_VERSION "${MEDIASTREAMER_MAJOR_VERSION}.${MEDIASTREAMER_MINOR_VERSION}.${MEDIASTREAMER_MICRO_VERSION}")
+set(MEDIASTREAMER_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
+set(MEDIASTREAMER_MINOR_VERSION ${PROJECT_VERSION_MINOR})
+set(MEDIASTREAMER_MICRO_VERSION ${PROJECT_VERSION_PATCH})
+set(MEDIASTREAMER_VERSION ${PROJECT_VERSION})
 set(MEDIASTREAMER_SO_VERSION "7") # incremented on January, the 20th 2016. DO NOT INCREMENT BEFORE MEDIASTREAMER 2.13
 
 string(REGEX MATCH "^(arm*|aarch64)" FIXED_POINT_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
@@ -57,7 +57,8 @@ endif()
 
 include(CMakeDependentOption)
 
-option(ENABLE_STATIC "Build static library (default is shared library)." NO)
+option(ENABLE_SHARED "Build shared library." YES)
+option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_DEBUG_LOGS "Enable the display of traces showing the execution of the library." NO)
 option(ENABLE_DOC "Enable documentation generation with Doxygen." YES)
 option(ENABLE_FIXED_POINT "Turn on fixed point computations." ${ENABLE_FIXED_POINT_DEFAULT_VALUE})
@@ -120,6 +121,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CheckIncludeFile)
 include(CheckLibraryExists)
 include(CMakePushCheckState)
+include(GNUInstallDirs)
+
+if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
+	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
+endif()
 
 if(MSVC AND MSVC_VERSION LESS 1800)
 	set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
@@ -311,7 +318,7 @@ endif()
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 else()
-	find_package(BcToolBox REQUIRED)
+	find_package(BcToolbox REQUIRED)
 endif()
 
 include_directories(
@@ -447,12 +454,12 @@ if(ENABLE_RELATIVE_PREFIX)
 		set(PACKAGE_PLUGINS_DIR ".")
 		set(PACKAGE_DATA_DIR ".")
 	else()
-		set(PACKAGE_PLUGINS_DIR "./lib/mediastreamer/plugins")
-		set(PACKAGE_DATA_DIR "./share")
+		set(PACKAGE_PLUGINS_DIR "./${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins")
+		set(PACKAGE_DATA_DIR "./${CMAKE_INSTALL_DATADIR}")
 	endif()
 else()
-	set(PACKAGE_PLUGINS_DIR "${CMAKE_INSTALL_PREFIX}/lib/mediastreamer/plugins")
-	set(PACKAGE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share")
+	set(PACKAGE_PLUGINS_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins")
+	set(PACKAGE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}")
 endif()
 set(LINK_FLAGS )
 if(APPLE)
@@ -470,7 +477,6 @@ if(APPLE)
 		if(ENABLE_VIDEO)
 			list(APPEND LINK_FLAGS "-framework Cocoa" "-framework OpenGL" "-framework QuartzCore" "-framework QTKit")
 		endif()
-		set(PLUGINS_EXT ".dylib")
 		add_definitions("-DTARGET_OS_MAC=1")
 	endif()
 endif()
@@ -541,13 +547,13 @@ configure_file(cmake/Mediastreamer2Config.cmake.in
 	@ONLY
 )
 
-set(ConfigPackageLocation lib/cmake/Mediastreamer2)
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/Mediastreamer2/cmake")
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE Mediastreamer2Targets.cmake
-	DESTINATION ${ConfigPackageLocation}
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2Config.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/Mediastreamer2ConfigVersion.cmake"
-	DESTINATION ${ConfigPackageLocation}
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )

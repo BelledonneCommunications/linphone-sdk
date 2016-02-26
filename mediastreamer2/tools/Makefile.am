@@ -96,6 +96,8 @@ AM_CFLAGS=\
 	$(PCAP_CFLAGS)
 
 AM_LDFLAGS=-export-dynamic
-
+if BUILD_MACOSX
+AM_LDFLAGS+=-Wl,-rpath -Wl,$(libdir)
+endif
 endif !BUILD_IOS
 endif
