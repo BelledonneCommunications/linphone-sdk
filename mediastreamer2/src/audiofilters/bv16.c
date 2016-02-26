@@ -125,103 +125,120 @@ static void enc_uninit(MSFilter *f){
 	ms_message("MSBV16Enc Uninit ");
 }
 
-union inFullBuff{
-	uint8_t ifb[160];
-	short sfb [80];
-};
-/***
-Encodes 8 kHz-sampled narrowband speech at a bit rate of or 16 kbit/s,
- uses 5 ms frames.
- ***/
-static void enc_process(MSFilter *f){
-
-//	union inFullBuff in_full_buff;
+static void enc_process (MSFilter *f){
 	EncState *s=(EncState*)f->data;
 	struct	BV16_Bit_Stream bs;
-//	int size=s->nsamples;
-	//int in_single_frsz_bytes = (sizeof(short) ) * FRSZ ;
-
-	int in_rcvd_bytes;
-	int out_single_frsz_bytes = 10;
-	int ret ;
-	short *buf;
-
-	mblk_t *inputMessage = NULL, *outputMessage;
-	unsigned int offset = 0;
-	int frame_per_packet=2;
-
-
-	/*if (s->frame_size<=0)
-		return;*/
-
-	ms_filter_lock(f);
-
-	if (s->ptime>=10)
-	{
-		frame_per_packet = s->ptime/5;
-	}
-
-	// if (frame_per_packet<=0)
-	// 	frame_per_packet=1;
-	// if (frame_per_packet>28) /* 28*5 == 140 ms max */
-	// 	frame_per_packet=28;
+	short *buf= NULL;
+	mblk_t *inputMessage = NULL, *outputMessage = NULL;
+	int frame_per_packet=s->ptime/5;
+	int in_rcvd_bytes = 0;
 	
 
+	
 	in_rcvd_bytes = SIGNAL_FRAME_SIZE * frame_per_packet;
 	buf=(short*)alloca(in_rcvd_bytes);
 	memset((void*)buf,0, in_rcvd_bytes );
-	//ms_message("MSBV16Enc timestamp %d frame_per_packet %d ptime %d", s->ts,frame_per_packet, s->ptime );
-	s->frame_size = 0;
+	
 	while((inputMessage=ms_queue_get(f->inputs[0]))!=NULL){
-		
 		ms_bufferizer_put(s->bufferizer,inputMessage);
+		
 	}
-	
-	while(ms_bufferizer_get_avail(s->bufferizer) >= in_rcvd_bytes ) {
-	//while(ms_bufferizer_read(s->bufferizer,buf,in_rcvd_bytes)==in_rcvd_bytes){
-
-//	ms_message("MSBV16Enc frame_per_packet %d ptime %d in_rcvd_bytes %d ", frame_per_packet, s->ptime, in_rcvd_bytes);
-
-	
-		outputMessage=allocb(BITSTREAM_FRAME_SIZE*frame_per_packet,0);
+//	ms_message("MSBV16Enc in_rcvd_bytes  %d  frame_per_packet %d", in_rcvd_bytes, frame_per_packet );
+	/* process ptimes ms of data : (ptime in ms)/1000->ptime is seconds * 8000(sample rate) * 2(byte per sample) */
+	while(ms_bufferizer_get_avail(s->bufferizer)>= in_rcvd_bytes){
+		outputMessage = allocb(BITSTREAM_FRAME_SIZE*frame_per_packet,0); /* output bitStream is 80 bits long * number of samples */
+		/* process buffer in 5 ms frames but read everything first*/
+		ms_bufferizer_read(s->bufferizer,(uint8_t*)buf,in_rcvd_bytes);
 		
-		ret = ms_bufferizer_read(s->bufferizer,(uint8_t*)buf,in_rcvd_bytes);
-//			ret = ms_bufferizer_read(s->bufferizer,in_full_buff.ifb,in_rcvd_bytes);
-		
-		for (offset=0;offset<frame_per_packet;offset++) {
-			//ms_message("MSBV16Enc offset %d in_rcvd_bytes %d  in_single_frsz_bytes %d ", offset, in_rcvd_bytes, in_single_frsz_bytes);
-	//		BV16_Encode(&bs, &s->state, &in_full_buff.sfb[offset*FRSZ]);
-			BV16_Encode(&bs, &s->state, (short*)&buf[offset*FRSZ]);
-			BV16_BitPack( (UWord8*)outputMessage->b_wptr, &bs );
-			outputMessage->b_wptr+=out_single_frsz_bytes;
+		for (int bufferIndex=0; bufferIndex<frame_per_packet; bufferIndex++) {
 			
-		}
-		// //s->ts+=s->nsamples*frame_per_packet;
-		// ms_bufferizer_fill_current_metas(s->bufferizer,outputMessage);
-		// ms_message("MSBV16Enc timestamp %d frame_size %d", s->ts, s->frame_size );
+			BV16_Encode(&bs, &s->state, (short*)&buf[bufferIndex*FRSZ]);
+			BV16_BitPack( (UWord8*)outputMessage->b_wptr, &bs );
+			outputMessage->b_wptr+=BITSTREAM_FRAME_SIZE;
 
-		// mblk_set_timestamp_info(outputMessage,s->ts);
-		// s->ts +=  FRSZ * frame_per_packet;
-		// //s->ts += out_single_frsz_bytes * frame_per_packet/8000;
-		// s->frame_size += out_single_frsz_bytes * frame_per_packet;
-		
-		// ms_queue_put(f->outputs[0],outputMessage);
-		
+		}
+
 		mblk_set_timestamp_info(outputMessage,s->ts);
-		ms_bufferizer_fill_current_metas(s->bufferizer,outputMessage);
+		ms_bufferizer_fill_current_metas(s->bufferizer, outputMessage);
+		ms_queue_put(f->outputs[0],outputMessage);
 		s->ts +=  FRSZ * frame_per_packet;
 
-		//s->ts += out_single_frsz_bytes * frame_per_packet/8000;
-//		s->frame_size += out_single_frsz_bytes * frame_per_packet;
-//		ms_message("MSBV16Enc timestamp %d frame_size %d", s->ts, s->frame_size );
-		ms_queue_put(f->outputs[0],outputMessage);
-	}
-
-		
-	ms_filter_unlock(f);
-
+		}
 
 }
+
+// /***
+// Encodes 8 kHz-sampled narrowband speech at a bit rate of or 16 kbit/s,
+//  uses 5 ms frames.
+//  ***/
+// static void enc_process(MSFilter *f){
+// 	EncState *s=(EncState*)f->data;
+// 	struct	BV16_Bit_Stream bs;
+// 	//int in_single_frsz_bytes = (sizeof(short) ) * FRSZ ;
+// 	int in_rcvd_bytes;
+// 	int out_single_frsz_bytes = 10;
+// 	int ret ;
+// 	short *buf;
+// 	mblk_t *inputMessage = NULL, *outputMessage;
+// 	unsigned int offset = 0;
+// 	int frame_per_packet=2;
+
+// 	/*if (s->frame_size<=0)
+// 		return;*/
+
+// 	ms_filter_lock(f);
+
+// 	if (s->ptime>=10)
+// 	{
+// 		frame_per_packet = s->ptime/5;
+// 	}
+// 	in_rcvd_bytes = SIGNAL_FRAME_SIZE * frame_per_packet;
+// 	buf=(short*)alloca(in_rcvd_bytes);
+// 	memset((void*)buf,0, in_rcvd_bytes );
+// 	//ms_message("MSBV16Enc timestamp %d frame_per_packet %d ptime %d", s->ts,frame_per_packet, s->ptime );
+// 	s->frame_size = 0;
+// 	while((inputMessage=ms_queue_get(f->inputs[0]))!=NULL){
+		
+// 		ms_bufferizer_put(s->bufferizer,inputMessage);
+// 	}
+	
+// 	while(ms_bufferizer_get_avail(s->bufferizer) >= in_rcvd_bytes ) {
+// 		outputMessage=allocb(BITSTREAM_FRAME_SIZE*frame_per_packet,0);
+// 		ret = ms_bufferizer_read(s->bufferizer,(uint8_t*)buf,in_rcvd_bytes);
+// 		for (offset=0;offset<frame_per_packet;offset++) {
+// 			//ms_message("MSBV16Enc offset %d in_rcvd_bytes %d  in_single_frsz_bytes %d ", offset, in_rcvd_bytes, in_single_frsz_bytes);
+
+// 			BV16_Encode(&bs, &s->state, (short*)&buf[offset*FRSZ]);
+// 			BV16_BitPack( (UWord8*)outputMessage->b_wptr, &bs );
+// 			outputMessage->b_wptr+=out_single_frsz_bytes;
+			
+// 		}
+// 		// //s->ts+=s->nsamples*frame_per_packet;
+// 		// ms_bufferizer_fill_current_metas(s->bufferizer,outputMessage);
+// 		// ms_message("MSBV16Enc timestamp %d frame_size %d", s->ts, s->frame_size );
+
+// 		// mblk_set_timestamp_info(outputMessage,s->ts);
+// 		// s->ts +=  FRSZ * frame_per_packet;
+// 		// //s->ts += out_single_frsz_bytes * frame_per_packet/8000;
+// 		// s->frame_size += out_single_frsz_bytes * frame_per_packet;
+		
+// 		// ms_queue_put(f->outputs[0],outputMessage);
+		
+// 		mblk_set_timestamp_info(outputMessage,s->ts);
+// 		ms_bufferizer_fill_current_metas(s->bufferizer,outputMessage);
+// 		s->ts +=  FRSZ * frame_per_packet;
+
+// 		//s->ts += out_single_frsz_bytes * frame_per_packet/8000;
+// //		s->frame_size += out_single_frsz_bytes * frame_per_packet;
+// //		ms_message("MSBV16Enc timestamp %d frame_size %d", s->ts, s->frame_size );
+// 		ms_queue_put(f->outputs[0],outputMessage);
+// 	}
+
+		
+// 	ms_filter_unlock(f);
+
+
+// }
 
 
 
@@ -273,7 +290,7 @@ MSFilterDesc ms_bv16_enc_desc={
 typedef struct DecState{
 	struct BV16_Decoder_State state;
 	uint32_t ts; // timestamp
-	uint64_t sample_time;
+	uint64_t last_sample_size;
 	bool_t plc;
 	int plc_count;
 	MSConcealerContext *concealer;
@@ -285,7 +302,7 @@ static void dec_init(MSFilter *f){
 	DecState *s=ms_new0(DecState,1);
 	Reset_BV16_Decoder(&s->state);
 	f->data = s;
-	s->sample_time = 0;
+	s->last_sample_size = 0;
 	s->plc=1;
 	s->ts = 0;
 	s->plc_count=0;
@@ -302,6 +319,7 @@ static void dec_preprocess(MSFilter* f){
 static void dec_postprocess(MSFilter* f ){
 	DecState *s = (DecState*)f->data;
 	ms_concealer_context_destroy(s->concealer);
+	
 
 }
 
@@ -315,110 +333,50 @@ static void dec_uninit(MSFilter *f){
 }
 
 
-// static void dec_process(MSFilter *f){
-
-// 	DecState *s=(DecState*)f->data;
-
-// 	int k;
-// 	mblk_t *inputMessage, *outputMessage;
-// 	//int nbytes;
-// 	int frsz;
-// 	struct	BV16_Bit_Stream bs;
-// 	int  nbytes;
-// 	frsz = ((sizeof(short)) * FRSZ ) ; //size in bytes
-// 	//frsz = 10;
-// 	int frame_per_packet = 0  ;
-// 	int nb_frame_lost = 0;
-	
-// 	while((inputMessage=ms_queue_get(f->inputs[0]))!=NULL){
-// 		nbytes=msgdsize(inputMessage);
-// 		frame_per_packet = nbytes/NO_OF_BYTES_PER_5MS;
-
-// 		ms_message("MSBV16Dec size recvd %d  ", nbytes);
-// 		ms_message("MSBV16Dec  frame_per_packet %d sample_time %llu ticker_time %llu", frame_per_packet,s->sample_time,f->ticker->time);
-
-// 		//rem_bytes = ((inputMessage->b_wptr-inputMessage->b_rptr));
-		
-// 		if (nbytes%NO_OF_BYTES_PER_5MS ==0){
-// 					//	ms_message("MSBV16Dec  frame_per_packet %d frsz %d ", frame_per_packet,frsz);
-// 			outputMessage=allocb(SIGNAL_FRAME_SIZE*frame_per_packet ,0);
-// 			mblk_meta_copy(inputMessage,outputMessage);
-// 			for (k=0;k<frame_per_packet;k++ ) {
-
-// 				BV16_BitUnPack(inputMessage->b_rptr, &bs);
-// 				BV16_Decode(&bs, &s->state, (short*)(outputMessage->b_wptr));
-// 				outputMessage->b_wptr += SIGNAL_FRAME_SIZE ;
-// 				inputMessage->b_rptr+=NO_OF_BYTES_PER_5MS;
-// 			}
-// 			ms_queue_put(f->outputs[0],outputMessage);
-// 			if (s->sample_time==0) s->sample_time=f->ticker->time;
-// 			s->sample_time+=5*frame_per_packet;
-// 			//ms_message("MSBV16Dec  frame_per_packet %d sample_time %llu ticker_time %llu", frame_per_packet,s->sample_time,f->ticker->time);
-
-// 			if (s->plc_count>0){
-// 				 ms_warning("Did bv16 packet loss concealment during %i ms",s->plc_count*5);
-// 				s->plc_count=0;
-// 			}
-
-			
-// 		}
-// 		freemsg(inputMessage);
-// 	}
-// 	if (s->plc && s->sample_time!=0 && f->ticker->time>=s->sample_time){
-// 		//if (nbytes==0  || nbytes%NO_OF_BYTES_PER_5MS!=0 ){
-// 		ms_message("MSBV16Dec : bv16 packet loss ? sample_time  %llu  ticker_time %llu  ",s->sample_time, f->ticker->time );
-
-// 		//mblk_meta_copy(inputMessage,outputMessage);
-// 		nb_frame_lost = 1;
-// //		nb_frame_lost = (f->ticker->time - s->sample_time) / 5; // 5ms per frame
-// //		if (nb_frame_lost==0 )nb_frame_lost =1;
-// 		outputMessage=allocb(frsz* nb_frame_lost ,0);
-// 		BV16_PLC(&s->state,(short*)outputMessage->b_wptr);
-// 		outputMessage->b_wptr += frsz*nb_frame_lost ;
-// 		mblk_set_plc_flag(outputMessage, 1);
-// 		ms_queue_put(f->outputs[0],outputMessage);
-		
-// 		s->sample_time+=5*nb_frame_lost;
-// 		s->plc_count++;
-// 		if (s->plc_count>=plc_max){
-// 			s->sample_time=0;
-// 		}
-// 		//freemsg(inputMessage);
-// 		//continue;
-// 	}
-// }
-
-
 
 static void dec_process(MSFilter *f){
 
 	DecState *s=(DecState*)f->data;
 
 	mblk_t *inputMessage, *outputMessage;
-
+	// int input_bytes = 0;
+	// int frames_rcvd = 0;
+	int nb_frames_lost = 0;
 	struct	BV16_Bit_Stream bs;
+	// int k ;
 	
 	while((inputMessage=ms_queue_get(f->inputs[0]))!=NULL){
+		
+		s->last_sample_size = msgdsize(inputMessage);
+//		ms_message("MSBV16Dec : input msg size %llu time %d" , s->last_sample_size, 5);
 		while(inputMessage->b_rptr<inputMessage->b_wptr) {
 			outputMessage = allocb(SIGNAL_FRAME_SIZE,0);
 			mblk_meta_copy(inputMessage, outputMessage);
-			BV16_BitUnPack(inputMessage->b_rptr, &bs);
+			BV16_BitUnPack((UWord8*)inputMessage->b_rptr, &bs);
 			BV16_Decode(&bs, &s->state, (short*)(outputMessage->b_wptr));
 			outputMessage->b_wptr+=SIGNAL_FRAME_SIZE;
 			inputMessage->b_rptr+=BITSTREAM_FRAME_SIZE;
 			ms_queue_put(f->outputs[0],outputMessage);
-			ms_concealer_inc_sample_time(s->concealer,f->ticker->time,5, 1);
+			
+			ms_concealer_inc_sample_time(s->concealer,f->ticker->time, 5, 1);
 			
 		}
 		freemsg(inputMessage);
+	//	ms_message("MSBV16Dec : out \r\n");
 	}
 	if (ms_concealer_context_is_concealement_required(s->concealer, f->ticker->time)) {
-		outputMessage = allocb(SIGNAL_FRAME_SIZE,0);
-		BV16_PLC(&s->state,(short*)outputMessage->b_wptr);
-		outputMessage->b_wptr+=SIGNAL_FRAME_SIZE;
-		mblk_set_plc_flag(outputMessage, 1);
-		ms_queue_put(f->outputs[0],outputMessage);
-		ms_concealer_inc_sample_time(s->concealer,f->ticker->time,5, 0);
+
+		nb_frames_lost = s->last_sample_size / BITSTREAM_FRAME_SIZE;
+		ms_message("MSBV16Dec : CONCEAL %d frames" ,nb_frames_lost);
+
+		for (int i=0; i<2; i++){
+			outputMessage = allocb(SIGNAL_FRAME_SIZE,0);
+			BV16_PLC(&s->state,(short*)outputMessage->b_wptr);
+			outputMessage->b_wptr+=SIGNAL_FRAME_SIZE;
+			mblk_set_plc_flag(outputMessage, 1);
+			ms_queue_put(f->outputs[0],outputMessage);
+		}
+		ms_concealer_inc_sample_time(s->concealer,f->ticker->time,10, 0);
 	}
 }
 
