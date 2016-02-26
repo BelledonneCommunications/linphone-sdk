@@ -47,8 +47,8 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-include(CheckIncludeFile)
-check_include_file("stdbool.h" HAVE_STDBOOL_H)
+include(CheckIncludeFileCXX)
+check_include_file_cxx("stdbool.h" HAVE_STDBOOL_H)
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_ms2_CONFIG_DIR}/Mediastreamer2Config.cmake")
