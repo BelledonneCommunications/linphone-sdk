@@ -50,7 +50,7 @@ if(ENABLE_STATIC)
 	set_target_properties(msamr-static PROPERTIES OUTPUT_NAME msamr)
 	target_link_libraries(msamr-static ${LIBS})
 	install(TARGETS msamr-static
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
