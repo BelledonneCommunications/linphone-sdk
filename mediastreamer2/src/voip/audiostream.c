@@ -1095,6 +1095,13 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 		}
 	} else {
+		if (ms_filter_has_method(stream->ms.decoder, MS_DECODER_ENABLE_PLC)){
+			int decoder_enable_plc = 0;
+			if (ms_filter_call_method(stream->ms.decoder, MS_DECODER_ENABLE_PLC, &decoder_enable_plc) != 0) {
+				ms_warning(" MS_DECODER_ENABLE_PLC on stream %p function error ", stream);
+			}
+			
+		}
 		stream->plc = NULL;
 	}
 

@@ -247,6 +247,7 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER \
 	MS_FILTER_METHOD(MSFilterAudioDecoderInterface,1,MSRtpPayloadPickerContext)
 
+#define MS_DECODER_ENABLE_PLC MS_FILTER_METHOD(MSFilterAudioDecoderInterface,2,int)
 /**
  * Interface definition for video encoders.
 **/
