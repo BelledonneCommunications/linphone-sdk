@@ -466,6 +466,14 @@ add_dependencies(mediastreamer_voip-objects ms2-git-version ms2-voipdescs-header
 if(APPLE OR GLX_FOUND)
 	add_dependencies(mediastreamer_voip-objects ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
 endif()
+if(FFMPEG_FOUND)
+	set_source_files_properties(
+		videofilters/jpegwriter.c
+		videofilters/videoenc.c
+		PROPERTIES COMPILE_FLAGS "-Wno-error=deprecated-declarations"
+	)
+endif()
+
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(ENABLE_STATIC)
