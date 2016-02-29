@@ -27,6 +27,7 @@
 #ifdef _WIN32
 #ifndef snprintf
 #define snprintf _snprintf
+#define strcasecmp _stricmp
 #endif
 #ifndef strdup
 #define strdup _strdup
@@ -46,7 +47,15 @@ typedef int (*pre_post_function_t)(void);
 typedef struct {
 	const char *name;
 	test_function_t func;
+	const char *tags[2];
 } test_t;
+
+#define TEST_NO_TAG(name, func) \
+	{ name, func, { NULL, NULL } }
+#define TEST_ONE_TAG(name, func, tag) \
+	{ name, func, { tag, NULL } }
+#define TEST_TWO_TAGS(name, func, tag1, tag2) \
+	{ name, func, { tag1, tag2 } }
 
 typedef struct {
 	const char *name; /*suite name*/
@@ -54,7 +63,7 @@ typedef struct {
 		before_all; /*function invoked before running the suite. If not returning 0, suite is not launched. */
 	pre_post_function_t after_all; /*function invoked at the end of the suite, even if some tests failed. */
 	test_function_t before_each;   /*function invoked before each test within this suite. */
-	test_function_t after_each;	/*function invoked after each test within this suite, even if it failed. */
+	pre_post_function_t after_each;	/*function invoked after each test within this suite, even if it failed. */
 	int nb_tests;				   /* number of tests */
 	test_t *tests;				   /* tests within this suite */
 } test_suite_t;
@@ -89,14 +98,16 @@ void bc_tester_list_suites(void);
 void bc_tester_list_tests(const char *suite_name);
 const char * bc_tester_suite_name(int suite_index);
 const char * bc_tester_test_name(const char *suite_name, int test_index);
-int bc_tester_run_suite(test_suite_t *suite);
-int bc_tester_run_tests(const char *suite_name, const char *test_name);
+int bc_tester_run_suite(test_suite_t *suite, const char *tag_name);
+int bc_tester_run_tests(const char *suite_name, const char *test_name, const char *tag_name);
 int bc_tester_suite_index(const char *suite_name);
 const char * bc_tester_current_suite_name(void);
 const char * bc_tester_current_test_name(void);
+const char ** bc_tester_current_test_tags(void);
 
 char* bc_sprintfva(const char* format, va_list args);
 char* bc_sprintf(const char* format, ...);
+void bc_free(void *ptr);
 
 /**
  * Get full path to the given resource
