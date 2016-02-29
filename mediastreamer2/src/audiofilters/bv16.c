@@ -68,7 +68,7 @@ static int enc_set_ptime(MSFilter *f, void* arg){
 
 static int enc_get_ptime(MSFilter *f, void * arg){
 	EncState *s=(EncState*)f->data;
-	*((int *)arg) = d->ptime;
+	*((int *)arg) = s->ptime;
 	return 0;
 }
 
