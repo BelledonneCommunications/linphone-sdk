@@ -75,8 +75,8 @@ static int tester_after_all(void) {
 
 #define HELLO_16K_1S_FILE  "sounds/hello16000-1s.wav"
 #define RECORDED_16K_1S_FILE  "recorded_hello16000-1s.wav"
-#define RECORDED_16K_1S_BV16_FILE  "recorded_hello16000-1sbv16.wav"
-#define RECORDED_16K_1S_BV16_NO_PLC_FILE  "withoutplc_recorded_hello16000-1sbv16.wav"
+//#define RECORDED_16K_1S_FILE  "recorded_hello16000-1sbv16.wav"
+#define RECORDED_16K_1S_NO_PLC_FILE  "withoutplc_recorded_hello16000-1sbv16.wav"
 
 typedef struct _stream_manager_t {
 	MSFormatType type;
@@ -435,8 +435,8 @@ static void loss_rate_estimation_bv16(void){
 			ortp_ev_queue_destroy(ctx.q);
 		}
 		/*file without plc must be approx 15% smaller in size than with plc */
-		size_with_plc= fsize(bc_tester_file(RECORDED_16K_1S_BV16_FILE));
-		size_no_plc = fsize(bc_tester_file(RECORDED_16K_1S_BV16_NO_PLC_FILE));
+		size_with_plc= fsize(bc_tester_file(RECORDED_16K_1S_FILE));
+		size_no_plc = fsize(bc_tester_file(RECORDED_16K_1S_NO_PLC_FILE));
 		int result = (size_with_plc*loss_rate/100 + size_no_plc) ;
 		
 		BC_ASSERT_TRUE(result >= size_with_plc);

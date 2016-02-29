@@ -65,6 +65,13 @@ static int enc_set_ptime(MSFilter *f, void* arg){
 	return 0;
 }
 
+
+static int enc_get_ptime(MSFilter *f, void * arg){
+	EncState *s=(EncState*)f->data;
+	*((int *)arg) = d->ptime;
+	return 0;
+}
+
 static int enc_add_fmtp(MSFilter *f, void *arg){
 	EncState *s=(EncState*)f->data;
 	const char *fmtp=(const char *)arg;
@@ -177,6 +184,7 @@ static MSFilterMethod enc_methods[]={
 	{MS_FILTER_GET_SAMPLE_RATE	,enc_get_sample_rate },
 	{MS_FILTER_GET_NCHANNELS		,get_channels},
 	{MS_AUDIO_ENCODER_SET_PTIME, enc_set_ptime},
+	{	MS_AUDIO_ENCODER_GET_PTIME,	enc_get_ptime		},
 	{	0				,	NULL		}
 };
 
