@@ -39,7 +39,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SIGNAL_FRAME_SIZE 80
 #define BITSTREAM_FRAME_SIZE 10
 
-#define NO_OF_BYTES_PER_5MS     10
 
 typedef struct EncState{
 	struct BV16_Encoder_State state;
@@ -147,7 +146,7 @@ static void enc_process (MSFilter *f){
 		ms_bufferizer_put(s->bufferizer,inputMessage);
 		
 	}
-//	ms_message("MSBV16Enc in_rcvd_bytes  %d  frame_per_packet %d", in_rcvd_bytes, frame_per_packet );
+	
 	/* process ptimes ms of data : (ptime in ms)/1000->ptime is seconds * 8000(sample rate) * 2(byte per sample) */
 	while(ms_bufferizer_get_avail(s->bufferizer)>= in_rcvd_bytes){
 		outputMessage = allocb(BITSTREAM_FRAME_SIZE*frame_per_packet,0); /* output bitStream is 80 bits long * number of samples */
@@ -176,7 +175,7 @@ static MSFilterMethod enc_methods[]={
 	{MS_FILTER_ADD_FMTP			,enc_add_fmtp},
 	{MS_FILTER_ADD_ATTR        	,enc_add_attr},
 	{MS_FILTER_GET_SAMPLE_RATE	,enc_get_sample_rate },
-	{MS_FILTER_GET_NCHANNELS		,	get_channels},
+	{MS_FILTER_GET_NCHANNELS		,get_channels},
 	{MS_AUDIO_ENCODER_SET_PTIME, enc_set_ptime},
 	{	0				,	NULL		}
 };

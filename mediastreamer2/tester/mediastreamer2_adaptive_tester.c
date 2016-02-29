@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2_tester_private.h"
 #include "qosanalyzer.h"
 #include <math.h>
+#include <sys/stat.h>
 
 static RtpProfile rtp_profile;
 
@@ -34,6 +35,7 @@ static RtpProfile rtp_profile;
 #define SPEEX_PAYLOAD_TYPE 122
 #define SILK16_PAYLOAD_TYPE  123
 #define PCMA8_PAYLOAD_TYPE 8
+#define BV16_PAYLOAD_TYPE 127
 #define H263_PAYLOAD_TYPE 34
 #define H264_PAYLOAD_TYPE 102
 #define VP8_PAYLOAD_TYPE 103
@@ -73,6 +75,8 @@ static int tester_after_all(void) {
 
 #define HELLO_16K_1S_FILE  "sounds/hello16000-1s.wav"
 #define RECORDED_16K_1S_FILE  "recorded_hello16000-1s.wav"
+#define RECORDED_16K_1S_BV16_FILE  "recorded_hello16000-1sbv16.wav"
+#define RECORDED_16K_1S_BV16_NO_PLC_FILE  "withoutplc_recorded_hello16000-1sbv16.wav"
 
 typedef struct _stream_manager_t {
 	MSFormatType type;
@@ -195,8 +199,17 @@ static void qos_analyzer_on_action_suggested(void *user_data, int datac, const c
 	}
 }
 
+static void disable_plc_on_audio_stream(AudioStream *p1){
+	
+	if (p1 != NULL){
+		uint32_t features_p1 = audio_stream_get_features(p1);
+		features_p1 &= ~AUDIO_STREAM_FEATURE_PLC;
+		audio_stream_set_features(p1, features_p1);
+	}
+}
+
 void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, stream_manager_t ** pmargaux,
-	int payload, int initial_bitrate, int max_bw, float loss_rate, int latency, float dup_ratio) {
+	int payload, int initial_bitrate, int max_bw, float loss_rate, int latency, float dup_ratio, bool_t disable_plc) {
 	int pause_time=0;
 	PayloadType* pt;
 	MediaStream *marielle_ms,*margaux_ms;
@@ -204,11 +217,23 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 #if VIDEO_ENABLED
 	MSWebCam * marielle_webcam=mediastreamer2_tester_get_mire_webcam(ms_factory_get_web_cam_manager(_factory));
 #endif
+	
 	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);
 	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);
-
+	
+	if(disable_plc){
+		disable_plc_on_audio_stream(margaux->audio_stream);
+		disable_plc_on_audio_stream(marielle->audio_stream);
+	}
+	char* recorded_file = NULL;
 	char* file = bc_tester_res(HELLO_16K_1S_FILE);
-	char* recorded_file = bc_tester_file(RECORDED_16K_1S_FILE);
+	if (!disable_plc ){
+		 recorded_file = bc_tester_file(RECORDED_16K_1S_FILE);
+	}
+	else{
+		recorded_file = bc_tester_file(RECORDED_16K_1S_NO_PLC_FILE);
+	}
+	
 
 	marielle->user_data = recorded_file;
 	params.enabled=TRUE;
@@ -223,7 +248,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 		marielle_ms=&marielle->video_stream->ms;
 		margaux_ms=&margaux->video_stream->ms;
 	}
-
+	
 	/* Disable avpf. */
 	pt = rtp_profile_get_payload(&rtp_profile, VP8_PAYLOAD_TYPE);
 	BC_ASSERT_PTR_NOT_NULL_FATAL(pt);
@@ -331,7 +356,7 @@ static void packet_duplication(void) {
 	stream_manager_t * marielle, * margaux;
 
 	dup_ratio = 0;
-	start_adaptive_stream(MSAudio, &marielle, &margaux, SPEEX_PAYLOAD_TYPE, 32000, 0, 0, 50,dup_ratio);
+	start_adaptive_stream(MSAudio, &marielle, &margaux, SPEEX_PAYLOAD_TYPE, 32000, 0, 0, 50,dup_ratio, 0);
 	media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 	iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
@@ -343,7 +368,7 @@ static void packet_duplication(void) {
 	stop_adaptive_stream(marielle,margaux);
 
 	dup_ratio = 1;
-	start_adaptive_stream(MSAudio, &marielle, &margaux, SPEEX_PAYLOAD_TYPE, 32000, 0, 0, 50,dup_ratio);
+	start_adaptive_stream(MSAudio, &marielle, &margaux, SPEEX_PAYLOAD_TYPE, 32000, 0, 0, 50,dup_ratio,0);
 	media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 	iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
@@ -361,7 +386,7 @@ static void upload_bandwidth_computation(void) {
 		stream_manager_t * marielle, * margaux;
 		int i;
 
-		start_adaptive_stream(MSAudio, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, 0, 0, 0);
+		start_adaptive_stream(MSAudio, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, 0, 0, 0,0);
 		media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 
 		for (i = 0; i < 5; i++){
@@ -374,15 +399,64 @@ static void upload_bandwidth_computation(void) {
 	}
 }
 
+off_t fsize(const char *filename) {
+	struct stat st;
+	
+	if (stat(filename, &st) == 0)
+		return st.st_size;
+	
+	return -1;
+}
+
+static void loss_rate_estimation_bv16(void){
+
+	bool_t supported = ms_factory_codec_supported(_factory, "bv16");
+	
+	int plc_disabled=0 ;
+	int size_with_plc = 0, size_no_plc= 0;
+	rtp_profile_set_payload(&rtp_profile,BV16_PAYLOAD_TYPE,&payload_type_bv16);
+	if( supported ) {
+		LossRateEstimatorCtx ctx;
+		stream_manager_t * marielle, * margaux;
+		int loss_rate = 15;
+		for (plc_disabled = 0; plc_disabled <=1; plc_disabled++){
+			start_adaptive_stream(MSAudio, &marielle, &margaux, BV16_PAYLOAD_TYPE, 8000, 0, loss_rate, 0, 0, plc_disabled);
+
+			ctx.estimator=ortp_loss_rate_estimator_new(120, 2500, marielle->audio_stream->ms.sessions.rtp_session);
+			ctx.q = ortp_ev_queue_new();
+			rtp_session_register_event_queue(marielle->audio_stream->ms.sessions.rtp_session, ctx.q);
+			ctx.loss_rate = loss_rate;
+			
+			/*loss rate should be the initial one*/
+			wait_for_until_with_parse_events(&marielle->audio_stream->ms, &margaux->audio_stream->ms, &loss_rate, 100, 10000, event_queue_cb,&ctx,NULL,NULL);
+			
+			stop_adaptive_stream(marielle,margaux);
+			ortp_loss_rate_estimator_destroy(ctx.estimator);
+			ortp_ev_queue_destroy(ctx.q);
+		}
+		/*file without plc must be approx 15% smaller in size than with plc */
+		size_with_plc= fsize(bc_tester_file(RECORDED_16K_1S_BV16_FILE));
+		size_no_plc = fsize(bc_tester_file(RECORDED_16K_1S_BV16_NO_PLC_FILE));
+		int result = (size_with_plc*loss_rate/100 + size_no_plc) ;
+		
+		BC_ASSERT_TRUE(result >= size_with_plc);
+
+		ms_message("%d %d %d ", size_no_plc, size_with_plc, result);
+
+		
+	}
+	
+}
+	
 static void loss_rate_estimation(void) {
-	//bool_t supported = ms_filter_codec_supported("pcma");
+
 	bool_t supported = ms_factory_codec_supported(_factory, "pcma");
 	if( supported ) {
 		LossRateEstimatorCtx ctx;
 		stream_manager_t * marielle, * margaux;
 		int loss_rate = 15;
+		start_adaptive_stream(MSAudio, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, loss_rate, 0, 0,0);
 
-		start_adaptive_stream(MSAudio, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, loss_rate, 0, 0);
 		ctx.estimator=ortp_loss_rate_estimator_new(120, 2500, marielle->audio_stream->ms.sessions.rtp_session);
 		ctx.q = ortp_ev_queue_new();
 		rtp_session_register_event_queue(marielle->audio_stream->ms.sessions.rtp_session, ctx.q);
@@ -408,7 +482,7 @@ void upload_bitrate(const char* codec, int payload, int target_bw, int expect_bw
 		float upload_bw;
 		stream_manager_t * marielle, * margaux;
 
-		start_adaptive_stream(MSAudio, &marielle, &margaux, payload, target_bw*1000, target_bw*1000, 0, 50,0);
+		start_adaptive_stream(MSAudio, &marielle, &margaux, payload, target_bw*1000, target_bw*1000, 0, 50,0,0);
 		//these tests check that encoders stick to the guidelines, so we must use NOT
 		//the adaptive algorithm which would modify these guidelines
 		media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
@@ -488,6 +562,7 @@ static test_t tests[] = {
 	{ "Packet duplication", packet_duplication},
 	{ "Upload bandwidth computation", upload_bandwidth_computation },
 	{ "Loss rate estimation", loss_rate_estimation },
+	{ "Loss rate estimationBV16", loss_rate_estimation_bv16 },
 
 	{ "Upload bitrate [pcma] - 3g", upload_bitrate_pcma_3g },
 	{ "Upload bitrate [speex] - low", upload_bitrate_speex_low },

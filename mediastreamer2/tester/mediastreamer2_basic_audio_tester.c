@@ -86,11 +86,20 @@ static void dtmfgen_tonedet(void) {
 	ms_tester_destroy_ticker();
 }
 
-static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) {
+/*fileplay awt to TRUE:  uses soundwrite instaed of voidsink  so we can hear what;s going on */
+static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels, bool_t fileplay) {
 	MSConnectionHelper h;
 
-	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
+	unsigned int filter_mask ;
+	if (!fileplay){
+		filter_mask= FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
 		| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
+		
+	}else{
+		filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
+		| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_SOUNDWRITE;
+
+	}
 	bool_t send_silence = TRUE;
 	
 	MSSndCardManager *scm = ms_factory_get_snd_card_manager(factory);
@@ -113,10 +122,106 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) 
 	ms_filter_call_method(ms_tester_decoder, MS_FILTER_SET_NCHANNELS, &nchannels);
 	ms_filter_call_method(ms_tester_tonedet, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_tonedet, MS_FILTER_SET_NCHANNELS, &nchannels);
+	
+	if (!fileplay){
+		ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+		ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_NCHANNELS, &nchannels);
+	}else{
+	
+	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_NCHANNELS, &nchannels);
+	}
+	
+	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, ms_tester_voidsource, -1, 0);
+	ms_connection_helper_link(&h, ms_tester_dtmfgen, 0, 0);
+	ms_connection_helper_link(&h, ms_tester_encoder, 0, 0);
+	ms_connection_helper_link(&h, ms_tester_decoder, 0, 0);
+	ms_connection_helper_link(&h, ms_tester_tonedet, 0, 0);
+	if (!fileplay) {
+		ms_connection_helper_link(&h, ms_tester_voidsink, 0, -1);
+	}else{
+		ms_connection_helper_link(&h, ms_tester_soundwrite, 0, -1);
+
+		
+	}
+	ms_ticker_attach(ms_tester_ticker, ms_tester_voidsource);
+	
+	ms_tester_tone_generation_and_detection_loop();
+	
+	ms_ticker_detach(ms_tester_ticker, ms_tester_voidsource);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, ms_tester_voidsource, -1, 0);
+	ms_connection_helper_unlink(&h, ms_tester_dtmfgen, 0, 0);
+	ms_connection_helper_unlink(&h, ms_tester_encoder, 0, 0);
+	ms_connection_helper_unlink(&h, ms_tester_decoder, 0, 0);
+	ms_connection_helper_unlink(&h, ms_tester_tonedet, 0, 0);
+	if (!fileplay){
+		ms_connection_helper_unlink(&h, ms_tester_voidsink, 0, -1);
+	}else{
+		ms_connection_helper_unlink(&h, ms_tester_soundwrite, 0, -1);
+	}
+	//	ms_filter_log_statistics();
+	ms_factory_log_statistics(scm->factory);
+	ms_tester_destroy_filters(filter_mask);
+	ms_tester_destroy_ticker();
+}
+
+
+#define SOUNDREAD_FILE_NAME "soundread_filetest.raw"
+
+static void dtmfgen_enc_dec_tonedet_filerec_fileplay(char *mime, int sample_rate, int nchannels) {
+	MSConnectionHelper h;
+	
+	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
+	| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK |  FILTER_MASK_SOUNDREAD | FILTER_MASK_FILEREC | FILTER_MASK_FILEPLAY | FILTER_MASK_SOUNDWRITE;
+	bool_t send_silence = TRUE;
+	
+	int capture_sample_rate = 8000;
+	int playback_sample_rate = 8000;
+	int capture_nchannels = 1;
+	int playback_nchannels = 1;
+	char *writable_filename = bc_tester_file(SOUNDREAD_FILE_NAME);
+	
+	MSSndCardManager *scm = ms_factory_get_snd_card_manager(factory);
+	ms_factory_reset_statistics(scm->factory);
+	
+	//ms_filter_reset_statistics();
+	ms_tester_create_ticker();
+	ms_tester_codec_mime = mime;
+	ms_tester_create_filters(filter_mask, scm->factory);
+	
+	// Write audio capture to a file
+	ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_SAMPLE_RATE, &capture_sample_rate);
+	ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_NCHANNELS, &capture_nchannels);
+	ms_filter_call_method(ms_tester_filerec, MS_FILTER_SET_SAMPLE_RATE, &capture_sample_rate);
+	ms_filter_call_method(ms_tester_filerec, MS_FILTER_SET_NCHANNELS, &capture_nchannels);
+	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_CLOSE);
+	ms_filter_call_method(ms_tester_filerec, MS_FILE_REC_OPEN, writable_filename);
+	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_START);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, ms_tester_soundread, -1, 0);
+	ms_connection_helper_link(&h, ms_tester_filerec, 0, -1);
+	ms_ticker_attach(ms_tester_ticker, ms_tester_soundread);
+
+	
+	/* set sample rate and channel number to all filters (might need to check the return value to insert a resampler if needed?) */
+	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(ms_tester_voidsource, MS_VOID_SOURCE_SEND_SILENCE, &send_silence);
+	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(ms_tester_encoder, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_encoder, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(ms_tester_decoder, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_decoder, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(ms_tester_tonedet, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_tonedet, MS_FILTER_SET_NCHANNELS, &nchannels);
 	ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_NCHANNELS, &nchannels);
-
-
+	
+	
 	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_voidsource, -1, 0);
@@ -126,8 +231,26 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) 
 	ms_connection_helper_link(&h, ms_tester_tonedet, 0, 0);
 	ms_connection_helper_link(&h, ms_tester_voidsink, 0, -1);
 	ms_ticker_attach(ms_tester_ticker, ms_tester_voidsource);
-
+	
 	ms_tester_tone_generation_and_detection_loop();
+	
+	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_CLOSE);
+	ms_ticker_detach(ms_tester_ticker, ms_tester_soundread);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, ms_tester_soundread, -1, 0);
+	ms_connection_helper_unlink(&h, ms_tester_filerec, 0, -1);
+	
+	// Read the previous file and play it
+	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_SAMPLE_RATE, &playback_sample_rate);
+	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_NCHANNELS, &playback_nchannels);
+	if ((capture_sample_rate != playback_sample_rate) || (capture_nchannels != playback_nchannels)) {
+		ms_tester_create_filter(&ms_tester_resampler, MS_RESAMPLE_ID, scm->factory);
+	}
+	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
+	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, writable_filename);
+	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_START);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, ms_tester_fileplay, -1, 0);
 
 	ms_ticker_detach(ms_tester_ticker, ms_tester_voidsource);
 	ms_connection_helper_start(&h);
@@ -137,27 +260,33 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) 
 	ms_connection_helper_unlink(&h, ms_tester_decoder, 0, 0);
 	ms_connection_helper_unlink(&h, ms_tester_tonedet, 0, 0);
 	ms_connection_helper_unlink(&h, ms_tester_voidsink, 0, -1);
-//	ms_filter_log_statistics();
+	//	ms_filter_log_statistics();
 	ms_factory_log_statistics(scm->factory);
 	ms_tester_destroy_filters(filter_mask);
 	ms_tester_destroy_ticker();
 }
 
+
+
+
 static void dtmfgen_enc_dec_tonedet_pcmu(void) {
-	dtmfgen_enc_dec_tonedet("pcmu", 8000, 1);
+	dtmfgen_enc_dec_tonedet("pcmu", 8000, 1, FALSE);
 }
 
+static void dtmfgen_enc_dec_tonedet_bv16(void) {
+	dtmfgen_enc_dec_tonedet("bv16", 8000, 1, TRUE);
+}
 static void dtmfgen_enc_dec_tonedet_isac(void) {
 	bool_t supported = ms_factory_codec_supported(factory, "iSAC");
 //	bool_t supported = ms_filter_codec_supported("iSAC");
 	if( supported ) {
-		dtmfgen_enc_dec_tonedet("iSAC", 16000, 1);
+		dtmfgen_enc_dec_tonedet("iSAC", 16000, 1,FALSE);
 	}
 }
 
 #if HAVE_OPUS
 static void dtmfgen_enc_dec_tonedet_opus(void) {
-	dtmfgen_enc_dec_tonedet("opus", 48000, 1);
+	dtmfgen_enc_dec_tonedet("opus", 48000, 1, FALSE);
 }
 #endif
 
@@ -275,6 +404,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 
 test_t basic_audio_tests[] = {
 	{ "dtmfgen-tonedet", dtmfgen_tonedet },
+	{ "dtmfgen-enc-dec-tonedet-bv16", dtmfgen_enc_dec_tonedet_bv16 },
 	{ "dtmfgen-enc-dec-tonedet-pcmu", dtmfgen_enc_dec_tonedet_pcmu },
 	{ "dtmfgen-enc-dec-tonedet-isac", dtmfgen_enc_dec_tonedet_isac },
 #if HAVE_OPUS
