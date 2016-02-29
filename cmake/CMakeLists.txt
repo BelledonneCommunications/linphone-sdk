@@ -609,10 +609,11 @@ macro(linphone_builder_add_external_project PROJNAME)
 			set(LINPHONE_BUILDER_RPMBUILD_NAME "${PROJNAME}")
 		endif()
 
-		# a distinctive name of the generated RPM. It is used to find the rpms to install
-		# in the install step. Defaults to $PROJNAME but could be something else
+		# some specific RPMBUILD options to pass for this particular project
 		if(EP_${PROJNAME}_RPMBUILD_OPTIONS)
 			set(LINPHONE_BUILDER_RPMBUILD_OPTIONS "${EP_${PROJNAME}_RPMBUILD_OPTIONS}")
+		else()
+			set(LINPHONE_BUILDER_RPMBUILD_OPTIONS "")
 		endif()
 
 		set(LINPHONE_BUILDER_SPEC_PREFIX "${EP_${PROJNAME}_SPEC_PREXIX}")
@@ -625,6 +626,8 @@ macro(linphone_builder_add_external_project PROJNAME)
 
 		if(EP_${PROJNAME}_CONFIGURE_EXTRA_CMD)
 			set(LINPHONE_BUILDER_CONFIGURE_EXTRA_CMD "${EP_${PROJNAME}_CONFIGURE_EXTRA_CMD}")
+		else()
+			set(LINPHONE_BUILDER_CONFIGURE_EXTRA_CMD "")
 		endif()
 
 		# allow to have special command steps
