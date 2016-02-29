@@ -25,7 +25,7 @@ set(EP_cunit_GIT_TAG_LATEST "linphone" CACHE STRING "cunit tag to use when compi
 set(EP_cunit_GIT_TAG "0a0a9c60f5a1b899ae26b705fa5224ef25377982" CACHE STRING "cunit tag to use")
 set(EP_cunit_EXTERNAL_SOURCE_PATHS "cunit" "externals/cunit")
 
-set(EP_cunit_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_cunit_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 if(MSVC)
 	set(EP_cunit_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()

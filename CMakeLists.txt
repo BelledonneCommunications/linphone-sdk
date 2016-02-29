@@ -82,6 +82,11 @@ else()
 	linphone_builder_add_dummy_libraries_generation()
 
 
+	if(LINPHONE_BUILDER_ADDITIONAL_CONFIG_STEPS)
+		include(${LINPHONE_BUILDER_ADDITIONAL_CONFIG_STEPS})
+	endif()
+
+
 	# Give a feature summary
 	feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
 	feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")

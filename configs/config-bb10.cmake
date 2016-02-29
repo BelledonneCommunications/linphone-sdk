@@ -41,13 +41,19 @@ set(LINPHONE_BUILDER_CFLAGS "-fPIC -fstack-protector-strong")
 set(LINPHONE_BUILDER_LDFLAGS "-Wl,-z,relro -Wl,-z,now -pie -lbps -lsocket -lslog2")
 set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# Restrict pkg-config to search in the install directory
 
-
 # Include builders
 include(builders/CMakeLists.txt)
 
+# Temporarily disable shared library (we only need the static ones), later this will be taken care of by DEFAULT_VALUE_CMAKE_LINKING_TYPE
+list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_SHARED=NO")
+list(APPEND EP_matroska2_CMAKE_OPTIONS "-DENABLE_SHARED=NO")
 
 # belle-sip
 set(EP_bellesip_EXTRA_CFLAGS "-DUSE_STRUCT_RES_STATE_NAMESERVERS ${EP_bellesip_EXTRA_CFLAGS}")
+list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
+
+# bzrtp
+list(APPEND EP_bzrtp_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
 
 # linphone
 list(APPEND EP_linphone_CMAKE_OPTIONS
@@ -57,7 +63,7 @@ list(APPEND EP_linphone_CMAKE_OPTIONS
 	"-DENABLE_NOTIFY=NO"
 	"-DENABLE_TOOLS=NO"
 	"-DENABLE_TUTORIALS=NO"
-	"-DENABLE_UNIT_TESTS=YES"
+	"-DENABLE_UNIT_TESTS=NO"
 	"-DENABLE_UPNP=NO"
 	"-DENABLE_MSG_STORAGE=YES"
 	"-DENABLE_NLS=NO"
@@ -74,9 +80,10 @@ list(APPEND EP_ms2_CMAKE_OPTIONS
 	"-DENABLE_GLX=NO"
 	"-DENABLE_X11=NO"
 	"-DENABLE_XV=NO"
-	"-DENABLE_MKV=NO"
+	"-DENABLE_MKV=YES"
 	"-DENABLE_QNX=YES"
 	"-DENABLE_V4L=NO"
+	"-DENABLE_UNIT_TESTS=NO"
 )
 
 # polarssl

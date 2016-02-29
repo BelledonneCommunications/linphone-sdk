@@ -25,7 +25,7 @@ set(EP_srtp_GIT_TAG_LATEST "master" CACHE STRING "srtp tag to use when compiling
 set(EP_srtp_GIT_TAG "befc23777e07efba36ffd7bda73f22c92d4e2475" CACHE STRING "srtp tag to use")
 set(EP_srtp_EXTERNAL_SOURCE_PATHS "srtp" "externals/srtp")
 
-set(EP_srtp_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_srtp_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 if(MSVC)
 	set(EP_srtp_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()

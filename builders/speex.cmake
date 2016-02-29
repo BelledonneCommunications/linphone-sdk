@@ -25,7 +25,7 @@ set(EP_speex_GIT_TAG_LATEST "linphone" CACHE STRING "speex tag to use when compi
 set(EP_speex_GIT_TAG "caeb73052b1171758acb565e7174a49fbd1427d2" CACHE STRING "speex tag to use")
 set(EP_speex_EXTERNAL_SOURCE_PATHS "speex" "externals/speex")
 
-set(EP_speex_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_speex_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 if(MSVC)
 	set(EP_speex_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()

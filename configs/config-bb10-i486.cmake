@@ -20,4 +20,7 @@
 #
 ############################################################################
 
+set(DEFAULT_VALUE_ENABLE_MKV OFF)
+set(DEFAULT_VALUE_ENABLE_VPX OFF)
+
 include(configs/config-bb10.cmake)

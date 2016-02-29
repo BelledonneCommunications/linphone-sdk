@@ -24,3 +24,5 @@ set(EP_matroska2_GIT_REPOSITORY "git://git.linphone.org/libmatroska-c.git" CACHE
 set(EP_matroska2_GIT_TAG_LATEST "bc" CACHE STRING "matroska2 tag to use when compiling latest version")
 set(EP_matroska2_GIT_TAG "c3fc2746f18bafefe3010669d8d2855240565c86" CACHE STRING "matroska2 tag to use")
 set(EP_matroska2_EXTERNAL_SOURCE_PATHS "externals/libmatroska-c")
+
+set(EP_matroska2_LINKING_TYPE "-DENABLE_STATIC=YES" "-DENABLE_SHARED=NO")

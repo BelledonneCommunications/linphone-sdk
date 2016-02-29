@@ -1,6 +1,6 @@
 ############################################################################
-# msilbc.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# config-python.cmake
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,14 +20,22 @@
 #
 ############################################################################
 
-set(EP_msilbc_GIT_REPOSITORY "git://git.linphone.org/msilbc.git" CACHE STRING "msilbc repository URL")
-set(EP_msilbc_GIT_TAG_LATEST "master" CACHE STRING "msilbc tag to use when compiling latest version")
-set(EP_msilbc_GIT_TAG "2.1.2" CACHE STRING "msilbc tag to use")
-set(EP_msilbc_EXTERNAL_SOURCE_PATHS "msilbc")
-set(EP_msilbc_GROUPABLE YES)
-
-set(EP_msilbc_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
-set(EP_msilbc_DEPENDENCIES EP_ms2 EP_libilbcrfc3951)
-if(MSVC)
-	set(EP_msilbc_EXTRA_LDFLAGS "/SAFESEH:NO")
+# Add external project to build the Python module
+if(NOT PACKAGE_NAME)
+	set(PACKAGE_NAME "linphone")
 endif()
+
+linphone_builder_apply_flags()
+linphone_builder_set_ep_directories(pylinphone)
+linphone_builder_expand_external_project_vars()
+
+ExternalProject_Add(TARGET_pylinphone
+	DEPENDS TARGET_linphone_builder
+	TMP_DIR ${ep_tmp}
+	BINARY_DIR ${ep_build}
+	DOWNLOAD_COMMAND ""
+	PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}" "<SOURCE_DIR>"
+		"COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_LIST_DIR}/../../cmake/FindXML2.cmake" "<SOURCE_DIR>"
+	CMAKE_GENERATOR ${CMAKE_GENERATOR}
+	CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DPACKAGE_NAME=${PACKAGE_NAME} -DLINPHONE_SOURCE_DIR=${EP_linphone_SOURCE_DIR} -DENABLE_FFMPEG:BOOL=${ENABLE_FFMPEG} -DENABLE_OPENH264:BOOL=${ENABLE_OPENH264} -DENABLE_WASAPI:BOOL=${ENABLE_WASAPI}
+)

@@ -32,8 +32,9 @@ set(DEFAULT_VALUE_ENABLE_VIDEO ON)
 set(DEFAULT_VALUE_ENABLE_VPX ON)
 set(DEFAULT_VALUE_ENABLE_WASAPI ON)
 set(DEFAULT_VALUE_ENABLE_ZRTP ON)
+set(ENABLE_NLS NO CACHE BOOL "" FORCE)
 
-set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=YES")
+set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=YES" "-DENABLE_SHARED=NO")
 
 
 find_package(Doxygen REQUIRED)
@@ -84,7 +85,6 @@ list(APPEND EP_linphone_CMAKE_OPTIONS
 	"-DENABLE_TUTORIALS=NO"
 	"-DENABLE_UNIT_TESTS=NO"
 	"-DENABLE_UPNP=NO"
-	"-DENABLE_NLS=NO"
 )
 
 # ms2
@@ -115,20 +115,5 @@ set(EP_v4l_LINKING_TYPE "--enable-static" "--disable-shared" "--with-pic")
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 
 
-# Python module
-if(NOT PACKAGE_NAME)
-	set(PACKAGE_NAME "linphone")
-endif()
-linphone_builder_apply_flags()
-linphone_builder_set_ep_directories(pylinphone)
-linphone_builder_expand_external_project_vars()
-ExternalProject_Add(TARGET_pylinphone
-	DEPENDS TARGET_linphone_builder
-	TMP_DIR ${ep_tmp}
-	BINARY_DIR ${ep_build}
-	DOWNLOAD_COMMAND ""
-	PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CMAKE_CURRENT_LIST_DIR}/python" "<SOURCE_DIR>"
-		"COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_LIST_DIR}/../cmake/FindXML2.cmake" "<SOURCE_DIR>"
-	CMAKE_GENERATOR ${CMAKE_GENERATOR}
-	CMAKE_ARGS ${LINPHONE_BUILDER_EP_ARGS} -DPACKAGE_NAME=${PACKAGE_NAME} -DLINPHONE_SOURCE_DIR=${EP_linphone_SOURCE_DIR} -DENABLE_FFMPEG:BOOL=${ENABLE_FFMPEG} -DENABLE_OPENH264:BOOL=${ENABLE_OPENH264} -DENABLE_WASAPI:BOOL=${ENABLE_WASAPI}
-)
+# Add config step to build the Python module
+set(LINPHONE_BUILDER_ADDITIONAL_CONFIG_STEPS "${CMAKE_CURRENT_LIST_DIR}/python/additional_steps.cmake")
