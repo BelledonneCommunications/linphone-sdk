@@ -148,6 +148,12 @@ if(WIN32)
 	)
 
 	if(ENABLE_OPENH264)
+		# Include bunzip2.exe and bzip2.dll to be able to extract the openh264 file downloaded from Cisco
+		install(DIRECTORY "${TOOLS_DIR}/"
+			DESTINATION "bin"
+			COMPONENT "msopenh264"
+			FILES_MATCHING PATTERN "b*zip2.*"
+		)
 		install(DIRECTORY "${LINPHONE_OUTPUT_DIR}/lib/mediastreamer/plugins/"
 			DESTINATION "lib/mediastreamer/plugins"
 			COMPONENT "msopenh264"
