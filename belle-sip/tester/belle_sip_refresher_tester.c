@@ -524,7 +524,7 @@ static void subscribe_base(int with_resource_lists) {
 	client_callbacks.process_auth_requested=client_process_auth_requested;
 	server_callbacks.process_request_event=server_process_request_event;
 	server_callbacks.process_dialog_terminated=server_process_dialog_terminated;
-	
+
 	client = create_udp_endpoint(3452,&client_callbacks);
 	server = create_udp_endpoint(6788,&server_callbacks);
 	server->expire_in_contact=0;
@@ -553,7 +553,7 @@ static void subscribe_base(int with_resource_lists) {
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_content_type_create("application","resource-lists+xml")));
 		belle_sip_message_set_body(BELLE_SIP_MESSAGE(req), list, strlen(list));
 	}
-		
+
 	trans=belle_sip_provider_create_client_transaction(client->provider,req);
 	belle_sip_object_ref(trans);/*to avoid trans from being deleted before refresher can use it*/
 	belle_sip_client_transaction_send_request(trans);
@@ -578,31 +578,31 @@ static void subscribe_base(int with_resource_lists) {
 	end = belle_sip_time_ms();
 	BC_ASSERT_TRUE(end-begin>=3000*.9);
 	BC_ASSERT_TRUE(end-begin<5000);
-	
+
 	belle_sip_message("simulating dialog error and recovery");
 	belle_sip_stack_set_send_error(client->stack, 1500);
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredEightyOne,1,4000));
-	
+
 	belle_sip_stack_set_send_error(client->stack, 0);
 	wait_for(server->stack,client->stack, &dummy, 1, 1000);
-	
+
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,4,4000));
 	BC_ASSERT_EQUAL(client->stat.dialogTerminated, 0, int, "%i");
-	
+
 	BC_ASSERT_NOT_EQUAL(client_dialog, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(belle_sip_refresher_get_transaction(refresher))),void*,"%p"); /*make sure dialog has changed*/
 	/*unsubscribe twice to make sure refresh operation can be safely cascaded*/
 	belle_sip_refresher_refresh(refresher,0);
 	belle_sip_refresher_refresh(refresher,0);
 
-	
+
 	belle_sip_refresher_stop(refresher);
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&server->stat.dialogTerminated,1,4000));
 	belle_sip_object_unref(refresher);
-	
+
 	if (with_resource_lists) {
 		BC_ASSERT_EQUAL(server->number_of_body_found, (server->auth == none ?1:2), int, "%i");
 	}
-	
+
 	destroy_endpoint(client);
 	destroy_endpoint(server);
 }
@@ -613,7 +613,7 @@ static void subscribe_test(void) {
 static void subscribe_list_test(void) {
 	subscribe_base(TRUE);
 }
-									 
+
 static void register_expires_header(void) {
 	register_test_with_param(0,none);
 }
@@ -846,8 +846,8 @@ test_t refresher_tests[] = {
 	{ "REGISTER Expires in Contact digest auth", register_expires_in_contact_header_digest_auth },
 	{ "REGISTER with failure", register_with_failure },
 	{ "REGISTER with early refresher",register_early_refresher},
-	{ "SUBSCRIBE", subscribe_test },
-	{ "SUBSCRIBE of list" , subscribe_list_test },
+	TEST_ONE_TAG("SUBSCRIBE", subscribe_test, "LeaksMemory"),
+	TEST_ONE_TAG("SUBSCRIBE of list" , subscribe_list_test, "LeaksMemory"),
 	{ "PUBLISH", simple_publish },
 	{ "PUBLISH with early refresher", simple_publish_with_early_refresher },
 	{ "REGISTER with unrecognizable Contact", register_with_unrecognizable_contact },

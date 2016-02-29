@@ -361,8 +361,8 @@ static void simple_call_with_delay(void){
 
 
 test_t dialog_tests[] = {
-	{ "Simple call", simple_call },
-	{ "Simple call with delay", simple_call_with_delay }
+	TEST_ONE_TAG("Simple call", simple_call, "LeaksMemory"),
+	TEST_ONE_TAG("Simple call with delay", simple_call_with_delay, "LeaksMemory"),
 };
 
 test_suite_t dialog_test_suite = {"Dialog", register_before_all, register_after_all, belle_sip_tester_before_each,

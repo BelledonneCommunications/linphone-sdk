@@ -331,7 +331,7 @@ static void one_https_get_with_proxy(void){
 	http_counters_t counters={0};
 	belle_sip_stack_set_http_proxy_host(stack, test_http_proxy_addr);
 	belle_sip_stack_set_http_proxy_port(stack, test_http_proxy_port);
-	
+
 	if (one_get("https://smtp.linphone.org",&counters,&counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");

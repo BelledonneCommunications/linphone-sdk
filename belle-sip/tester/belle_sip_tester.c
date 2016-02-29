@@ -125,7 +125,7 @@ void belle_sip_tester_before_each() {
 	leaked_objects_count = belle_sip_object_get_object_count();
 }
 
-void belle_sip_tester_after_each() {
+int belle_sip_tester_after_each() {
 	int leaked_objects = belle_sip_object_get_object_count() - leaked_objects_count;
 	if (leaked_objects > 0) {
 		char* format = belle_sip_strdup_printf("%d object%s leaked in suite [%s] test [%s], please fix that!",
@@ -137,7 +137,19 @@ void belle_sip_tester_after_each() {
 		belle_sip_error("%s", format);
 
 		all_leaks_buffer = all_leaks_buffer ? belle_sip_strcat_printf(all_leaks_buffer, "\n%s", format) : belle_sip_strdup_printf("\n%s", format);
+
+		{
+			//prevent any future leaks
+			const char **tags = bc_tester_current_test_tags();
+			// if the test is NOT marked as leaking memory and it actually is, we should make it fail
+			if ( tags &&
+				!((tags[0] && strcmp(tags[0], "LeakingMemory")) || (tags[1] && strcmp(tags[1], "LeakingMemory")))) {
+				BC_FAIL("This test is leaking memory!");
+				return 1;
+			}
+		}
 	}
+	return 0;
 }
 
 int belle_sip_tester_set_log_file(const char *filename) {
