@@ -295,11 +295,13 @@ static int h264_enc_get_video_size(MSFilter *f, MSVideoSize *vsize) {
 
 static int h264_enc_set_video_size(MSFilter *f, const MSVideoSize *vsize) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
+	ms_message("VideoToolboxEnc: requested video size: %dx%d", vsize->width, vsize->height);
 	if(ctx->is_configured) {
 		ms_error("VideoToolbox: could not set video size: encoder is running");
 		return -1;
 	}
 	ctx->conf = ms_video_find_best_configuration_for_size(ctx->video_confs, *vsize, f->factory->cpu_count);
+	ms_message("VideoToolboxEnc: selected video conf: size=%dx%d, framerate=%ffps", ctx->conf.vsize.width, ctx->conf.vsize.height, ctx->conf.fps);
 	return 0;
 }
 
@@ -310,8 +312,10 @@ static int h264_enc_get_bitrate(MSFilter *f, int *bitrate) {
 
 static int h264_enc_set_bitrate(MSFilter *f, const int *bitrate) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
+	ms_message("VideoToolboxEnc: requested bitrate: %d bits/s", *bitrate);
 	if(!ctx->is_configured) {
 		ctx->conf = ms_video_find_best_configuration_for_bitrate(ctx->video_confs, *bitrate, f->factory->cpu_count);
+		ms_message("VideoToolboxEnc: selected video conf: size=%dx%d, framerate=%ffps", ctx->conf.vsize.width, ctx->conf.vsize.height, ctx->conf.fps);
 	} else {
 		ms_filter_lock(f);
 		ctx->conf.required_bitrate = *bitrate;
@@ -357,6 +361,11 @@ static int h264_enc_get_config_list(MSFilter *f, const MSVideoConfiguration **co
 	return 0;
 }
 
+static int h264_enc_set_config_list(MSFilter *f, const MSVideoConfiguration **conf_list) {
+	((VTH264EncCtx *)f->data)->video_confs = *conf_list;
+	return 0;
+}
+
 static int h264_enc_set_config(MSFilter *f, const MSVideoConfiguration *conf) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	ctx->conf = *conf;
@@ -374,6 +383,7 @@ static MSFilterMethod h264_enc_methods[] = {
 	{   MS_VIDEO_ENCODER_REQ_VFU                , (MSFilterMethodFunc)h264_enc_req_vfu         },
 	{   MS_VIDEO_ENCODER_ENABLE_AVPF            , (MSFilterMethodFunc)h264_enc_enable_avpf     },
 	{   MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST , (MSFilterMethodFunc)h264_enc_get_config_list },
+	{	MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST , (MSFilterMethodFunc)h264_enc_set_config_list },
 	{   MS_VIDEO_ENCODER_SET_CONFIGURATION      , (MSFilterMethodFunc)h264_enc_set_config      },
 	{   0                                       , NULL                                         }
 };
