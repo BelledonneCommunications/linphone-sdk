@@ -86,7 +86,8 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 		ms_message("MSBV16Enc: got maxptime=%i",s->max_ptime);
 	}
 	else if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
-	 	return enc_set_ptime(f,atoi(tmp));
+		int val = atoi(tmp);
+	 	return enc_set_ptime(f,&val);
 	 }
 	return 0;
 }
@@ -97,7 +98,7 @@ static int enc_add_attr(MSFilter *f, void *arg){
 
 	 if (strstr(attr,"ptime:")!=NULL){
 	 	int ptime = atoi(attr+6);
-	 	return enc_set_ptime(f,ptime);
+	 	return enc_set_ptime(f,&ptime);
 	 }
 	return 0;
 }
