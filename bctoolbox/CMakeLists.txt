@@ -27,6 +27,7 @@ option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_POLARSSL "Enable polarssl support" ON)
 option(ENABLE_MBEDTLS "Enable mabedtls support" ON)
+option(ENABLE_TESTS "Enable compilation of tests helper library" ON)
 
 include(CheckLibraryExists)
 include(CheckSymbolExists)
@@ -71,6 +72,10 @@ endif()
 if(POLARSSL_FOUND)
 	get_filename_component(polarssl_library_path "${POLARSSL_LIBRARIES}" PATH)
 	set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${polarssl_library_path} -lpolarssl")
+endif()
+
+if (ENABLE_TESTS)
+	find_package(CUnit REQUIRED)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bctoolbox.pc.in ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc)

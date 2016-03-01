@@ -1,6 +1,6 @@
 ############################################################################
-# CMakeLists.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# FindCUnit.txt
+# Copyright (C) 2015  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -19,20 +19,40 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
+#
+# - Find the CUnit include file and library
+#
+#  CUNIT_FOUND - system has CUnit
+#  CUNIT_INCLUDE_DIRS - the CUnit include directory
+#  CUNIT_LIBRARIES - The libraries needed to use CUnit
 
-set(HEADER_FILES crypto.h)
-if (ENABLE_TESTS)
-	list(APPEND HEADER_FILES tester.h)
+include(CheckIncludeFile)
+include(CheckLibraryExists)
+
+set(_CUNIT_ROOT_PATHS
+	${CMAKE_INSTALL_PREFIX}
+)
+
+find_path(CUNIT_INCLUDE_DIRS
+	NAMES CUnit/CUnit.h
+	HINTS _CUNIT_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+
+if(CUNIT_INCLUDE_DIRS)
+	set(HAVE_CUNIT_CUNIT_H 1)
 endif()
 
-
-set(BCTOOLBOX_HEADER_FILES )
-foreach(HEADER_FILE ${HEADER_FILES})
-	list(APPEND BCTOOLBOX_HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/bctoolbox/${HEADER_FILE}")
-endforeach()
-set(BCTOOLBOX_HEADER_FILES ${BCTOOLBOX_HEADER_FILES} PARENT_SCOPE)
-
-install(FILES ${BCTOOLBOX_HEADER_FILES}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bctoolbox
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+find_library(CUNIT_LIBRARIES
+	NAMES cunit
+	HINTS ${_CUNIT_ROOT_PATHS}
+	PATH_SUFFIXES bin lib
 )
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(CUnit
+	DEFAULT_MSG
+	CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES
+)
+
+mark_as_advanced(CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES)

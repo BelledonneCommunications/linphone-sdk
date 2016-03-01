@@ -20,22 +20,22 @@
 #
 ############################################################################
 
-
-set(BCTOOLBOX_SOURCE_FILES
-)
-
+set(BCTOOLBOX_SOURCE_FILES)
 if(MBEDTLS_FOUND)
-	list(APPEND BCTOOLBOX_SOURCE_FILES crypto_mbedtls.c)
+	list(APPEND BCTOOLBOX_SOURCE_FILES crypto/mbedtls.c)
 endif()
 if(POLARSSL_FOUND)
 	if(POLARSSL_VERSION13_OK)
-		list(APPEND BCTOOLBOX_SOURCE_FILES crypto_polarssl.c)
+		list(APPEND BCTOOLBOX_SOURCE_FILES crypto/polarssl.c)
 	else()
-		list(APPEND BCTOOLBOX_SOURCE_FILES crypto_polarssl1.2.c)
+		list(APPEND BCTOOLBOX_SOURCE_FILES crypto/polarssl1.2.c)
 	endif()
 endif()
+if (ENABLE_TESTS)
+	list(APPEND BCTOOLBOX_SOURCE_FILES tester/utils.c)
+endif()
 
-add_library(bctoolbox-objects OBJECT ${BCTOOLBOX_HEADERS_FILES} ${BCTOOLBOX_SOURCE_FILES})
+add_library(bctoolbox-objects OBJECT ${BCTOOLBOX_SOURCE_FILES})
 set_target_properties(bctoolbox-objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 if(ENABLE_STATIC)
@@ -77,6 +77,17 @@ if(POLARSSL_FOUND)
 		target_link_libraries(bctoolbox ${POLARSSL_LIBRARIES})
 	endif()
 endif()
+if(CUNIT_FOUND)
+	if(ENABLE_STATIC)
+		target_include_directories(bctoolbox-static PUBLIC ${CUNIT_INCLUDE_DIRS})
+		target_link_libraries(bctoolbox-static ${CUNIT_LIBRARIES})
+	endif()
+	if(ENABLE_SHARED)
+		target_include_directories(bctoolbox PUBLIC ${CUNIT_INCLUDE_DIRS})
+		target_link_libraries(bctoolbox ${CUNIT_LIBRARIES})
+	endif()
+endif()
+
 
 if(ENABLE_STATIC)
 	install(TARGETS bctoolbox-static EXPORT ${EXPORT_TARGETS_NAME}Targets
@@ -92,4 +103,3 @@ if(ENABLE_SHARED)
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
-
