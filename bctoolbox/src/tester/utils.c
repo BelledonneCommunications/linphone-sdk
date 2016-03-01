@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include <bctoolbox/tester.h>
 
 #include <stdlib.h>
@@ -80,10 +79,10 @@ int   xml_enabled = 0;
 char * suite_name = NULL;
 char * test_name = NULL;
 char * tag_name = NULL;
+char * expected_res = NULL;
 static long max_vm_kb = 0;
 
 void (*tester_printf_va)(int level, const char *format, va_list args);
-char * expected_res = NULL;
 
 void bc_tester_printf(int level, const char *format, ...) {
 	va_list args;
@@ -140,6 +139,19 @@ int bc_tester_suite_index(const char *suite_name) {
 
 	for (i = 0; i < nb_test_suites; i++) {
 		if (strcmp(suite_name, test_suite[i]->name) == 0) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+
+int bc_tester_test_index(test_suite_t *suite, const char *test_name) {
+	int i;
+
+	for (i = 0; i < suite->nb_tests; i++) {
+		if (strcmp(test_name, suite->tests[i].name) == 0) {
 			return i;
 		}
 	}
@@ -245,7 +257,11 @@ static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite 
 	free(result);
 
 	if (test_suite[suite_index]->after_each) {
-		test_suite[suite_index]->after_each();
+		int err = test_suite[suite_index]->after_each();
+		//if test passed but not after_each, count it as failure
+		if (err && !pFailure) {
+			CU_get_run_summary()->nTestsFailed++;
+		}
 	}
 	//insert empty line
 	bc_tester_printf(bc_printf_verbosity_info,"");
@@ -701,4 +717,13 @@ const char * bc_tester_current_suite_name(void) {
 
 const char * bc_tester_current_test_name(void) {
 	return bc_current_test_name;
+}
+
+const char ** bc_tester_current_test_tags(void) {
+	if (bc_current_suite_name && bc_current_test_name) {
+		int suite_index = bc_tester_suite_index(bc_current_suite_name);
+		int test_index = bc_tester_test_index(test_suite[suite_index], bc_current_test_name);
+		return test_suite[suite_index]->tests[test_index].tags;
+	}
+	return NULL;
 }
