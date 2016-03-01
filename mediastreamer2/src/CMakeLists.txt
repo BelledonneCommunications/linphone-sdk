@@ -472,7 +472,7 @@ add_dependencies(mediastreamer_voip-objects ms2-git-version ms2-voipdescs-header
 if(APPLE OR GLX_FOUND)
 	add_dependencies(mediastreamer_voip-objects ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
 endif()
-if(FFMPEG_FOUND)
+if(FFMPEG_FOUND AND NOT WIN32)
 	set_source_files_properties(
 		videofilters/jpegwriter.c
 		videofilters/videoenc.c
