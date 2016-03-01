@@ -194,10 +194,22 @@ static void h264_enc_process(MSFilter *f) {
 		YuvBuf src_yuv_frame, dst_yuv_frame = {0};
 		CVPixelBufferRef pixbuf;
 		CFMutableDictionaryRef enc_param = NULL;
-		int i;
-		
+		int i, pixbuf_fmt = kCVPixelFormatType_420YpCbCr8Planar;
+		CFNumberRef value;
+		CFMutableDictionaryRef pixbuf_attr;
+
 		ms_yuv_buf_init_from_mblk(&src_yuv_frame, frame);
+
+#if TARGET_OS_IPHONE
 		CVPixelBufferPoolCreatePixelBuffer(NULL, pixbuf_pool, &pixbuf);
+#else
+		pixbuf_attr = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
+		value = CFNumberCreate(NULL, kCFNumberIntType, &pixbuf_fmt);
+		CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
+		CVPixelBufferCreate(NULL, ctx->conf.vsize.width, ctx->conf.vsize.height, kCVPixelFormatType_420YpCbCr8Planar, pixbuf_attr,  &pixbuf);
+		CFRelease(pixbuf_attr);
+#endif
+
 		CVPixelBufferLockBaseAddress(pixbuf, 0);
 		dst_yuv_frame.w = (int)CVPixelBufferGetWidth(pixbuf);
 		dst_yuv_frame.h = (int)CVPixelBufferGetHeight(pixbuf);
