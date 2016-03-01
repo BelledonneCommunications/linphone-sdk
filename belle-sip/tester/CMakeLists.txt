@@ -21,8 +21,6 @@
 ############################################################################
 
 set(TESTER_SOURCES
-	common/bc_tester_utils.c
-	common/bc_tester_utils.h
 	auth_helper_tester.c
 	belle_generic_uri_tester.c
 	belle_http_tester.c
@@ -49,7 +47,7 @@ apply_compile_flags(TESTER_SOURCES "CPP" "C")
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 
 	add_library(belle_sip_tester_static STATIC ${TESTER_SOURCES})
-	target_include_directories(belle_sip_tester_static PUBLIC ${CUNIT_INCLUDE_DIRS} PRIVATE common)
+	target_include_directories(belle_sip_tester_static PUBLIC ${CUNIT_INCLUDE_DIRS})
 	target_link_libraries(belle_sip_tester_static ${CUNIT_LIBRARIES} bellesip)
 
 	set(RUNTIME_COMPONENT_SOURCES
@@ -57,7 +55,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		belle_sip_tester_windows.h
 	)
 	add_library(belle_sip_tester_runtime MODULE ${RUNTIME_COMPONENT_SOURCES})
-	target_include_directories(belle_sip_tester_runtime PRIVATE common)
 	target_link_libraries(belle_sip_tester_runtime belle_sip_tester_static)
 	set_target_properties(belle_sip_tester_runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
 	set_target_properties(belle_sip_tester_runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.BelleSip.Tester")
@@ -83,7 +80,7 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIRS} PRIVATE common)
+	target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIRS})
 	target_link_libraries(belle_sip_tester ${CUNIT_LIBRARIES} bellesip)
 	add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
 
