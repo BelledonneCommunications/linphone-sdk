@@ -700,7 +700,7 @@ bool_t ice_check_list_is_mismatch(const IceCheckList *cl)
 
 IceCheckList * ice_session_check_list(const IceSession *session, int n)
 {
-	if (n <0 || n >= ICE_SESSION_MAX_CHECK_LISTS) return NULL;
+	if (n >= ICE_SESSION_MAX_CHECK_LISTS) return NULL;
 	return session->streams[n];
 }
 
