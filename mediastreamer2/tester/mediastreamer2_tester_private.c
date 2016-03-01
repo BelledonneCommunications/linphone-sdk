@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2_tester_private.h"
-#include "bc_tester_utils.h"
+#include <bctoolbox/tester.h>
 
 #include "mediastreamer2/dtmfgen.h"
 #include "mediastreamer2/msfileplayer.h"
@@ -103,7 +103,7 @@ void ms_tester_create_filters(unsigned int filter_mask, MSFactory * f) {
 	MSSndCard *captcard;
 	MSWebCam *camera;
 
-	
+
 
 	CREATE_FILTER(FILTER_MASK_FILEPLAY, ms_tester_fileplay,f, MS_FILE_PLAYER_ID);
 	CREATE_FILTER(FILTER_MASK_FILEREC, ms_tester_filerec,f, MS_FILE_REC_ID);
