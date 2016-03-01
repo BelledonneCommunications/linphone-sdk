@@ -47,8 +47,8 @@ apply_compile_flags(TESTER_SOURCES "CPP" "C")
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 
 	add_library(belle_sip_tester_static STATIC ${TESTER_SOURCES})
-	target_include_directories(belle_sip_tester_static PUBLIC ${CUNIT_INCLUDE_DIRS})
-	target_link_libraries(belle_sip_tester_static ${CUNIT_LIBRARIES} bellesip)
+	target_include_directories(belle_sip_tester_static PUBLIC ${BCTOOLBOX_INCLUDE_DIRS})
+	target_link_libraries(belle_sip_tester_static ${BCTOOLBOX_LIBRARIES} bellesip)
 
 	set(RUNTIME_COMPONENT_SOURCES
 		belle_sip_tester_windows.cpp
@@ -80,8 +80,8 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIRS})
-	target_link_libraries(belle_sip_tester ${CUNIT_LIBRARIES} bellesip)
+	target_include_directories(belle_sip_tester PUBLIC ${BCTOOLBOX_INCLUDE_DIRS})
+	target_link_libraries(belle_sip_tester ${BCTOOLBOX_LIBRARIES} bellesip)
 	add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
 
 
