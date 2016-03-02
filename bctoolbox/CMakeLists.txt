@@ -83,6 +83,10 @@ if(ENABLE_TESTS)
 		check_symbol_exists("CU_get_suite" "CUnit/CUnit.h" HAVE_CU_GET_SUITE)
 		check_symbol_exists("CU_curses_run_tests" "CUnit/CUnit.h" HAVE_CU_CURSES)
 		cmake_pop_check_state()
+
+		get_filename_component(cunit_library_path "${CUNIT_LIBRARIES}" PATH)
+		set(TESTER_LIBS_PRIVATE "-L${cunit_library_path} -lcunit")
+
 	else()
 		message(WARNING "Could not find the cunit library!")
 	endif()
@@ -91,6 +95,10 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bctoolbox.pc.in ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
+if(ENABLE_TESTS)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bctoolbox-tester.pc.in ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox-tester.pc)
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox-tester.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
 
 include_directories(
 	include
