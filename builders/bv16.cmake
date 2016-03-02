@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-#set(EP_bv16_GIT_REPOSITORY "git://git.linphone.org/bv16.git" CACHE STRING "bv16 repository URL")
-#set(EP_bv16_GIT_TAG_LATEST "linphone" CACHE STRING "bv16 tag to use when compiling latest version")
-#set(EP_bv16_GIT_TAG "caeb73052b1171758acb565e7174a49fbd1427d2" CACHE STRING "bv16 tag to use")
+set(EP_bv16_GIT_REPOSITORY "git://git.linphone.org/bv16-floatingpoint.git" CACHE STRING "bv16 repository URL")
+set(EP_bv16_GIT_TAG_LATEST "linphone" CACHE STRING "bv16 tag to use when compiling latest version")
+set(EP_bv16_GIT_TAG "f2c49dcdee0a1b7cea3751022c923672fa082984" CACHE STRING "bv16 tag to use")
 
 # set(EP_bv16_FILENAME "BroadVoice16OpenSource.v1.2.zip")
 # set(EP_bv_16_URL "http://www.broadcom.com/docs/support/broadvoice/${EP_bv16_FILENAME}")
