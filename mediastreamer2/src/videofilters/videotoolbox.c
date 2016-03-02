@@ -1,17 +1,17 @@
 /*
  mediastreamer2 library - modular sound and video processing and streaming
  Copyright (C) 2006  Simon MORLAT (simon.morlat@linphone.org)
- 
+
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
  as published by the Free Software Foundation; either version 2
  of the License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -63,12 +63,12 @@ static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSta
 	bool_t is_keyframe = FALSE;
 	mblk_t *nalu;
 	int i;
-	
+
 	if(sampleBuffer == NULL || status != noErr) {
 		ms_error("VideoToolbox: could not encode frame: error %d", status);
 		return;
 	}
-	
+
 	ms_mutex_lock(&ctx->mutex);
 	if(ctx->is_configured) {
 		ms_queue_init(&nalu_queue);
@@ -83,7 +83,7 @@ static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSta
 			if(idr_count) is_keyframe = TRUE;
 			read_size += chunk_size;
 		}
-		
+
 		if(is_keyframe) {
 			mblk_t *insertion_point = ms_queue_peek_first(&nalu_queue);
 			const uint8_t *parameter_set;
@@ -100,7 +100,7 @@ static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSta
 				i++;
 			} while(i < parameter_set_count);
 		}
-		
+
 		rfc3984_pack(&ctx->packer_ctx, &nalu_queue, &ctx->queue, (uint32_t)(ctx->f->ticker->time * 90));
 	}
 	ms_mutex_unlock(&ctx->mutex);
@@ -113,10 +113,10 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 	CFNumberRef value;
 	CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
 	int pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
-	
+
 	value = CFNumberCreate(NULL, kCFNumberIntType, &pixel_type);
 	CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
-	
+
 	err =VTCompressionSessionCreate(NULL, ctx->conf.vsize.width, ctx->conf.vsize.height, kCMVideoCodecType_H264,
 									NULL, pixbuf_attr, NULL, (VTCompressionOutputCallback)h264_enc_output_cb, ctx, &ctx->session);
 	CFRelease(pixbuf_attr);
@@ -124,25 +124,25 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 		ms_error("%s: error code %d", error_msg, err);
 		goto fail;
 	}
-	
+
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse);
 	value = CFNumberCreate(NULL, kCFNumberIntType, &ctx->conf.required_bitrate);
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_AverageBitRate, value);
 	value = CFNumberCreate(NULL, kCFNumberFloatType, &ctx->conf.fps);
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ExpectedFrameRate, value);
-	
+
 	if((err = VTCompressionSessionPrepareToEncodeFrames(ctx->session)) != 0) {
 		ms_error("Could not prepare the VideoToolbox compression session: error code %d", err);
 		goto fail;
 	}
-	
+
 	rfc3984_init(&ctx->packer_ctx);
 	rfc3984_set_mode(&ctx->packer_ctx, 1);
 	ctx->packer_ctx.maxsz = max_payload_size;
 	ctx->is_configured = TRUE;
 	return;
-	
+
 fail:
 	if(ctx->session) CFRelease(ctx->session);
 }
@@ -177,20 +177,20 @@ static void h264_enc_process(MSFilter *f) {
 	mblk_t *frame;
 	OSStatus err;
 	CMTime p_time = CMTimeMake(f->ticker->time, 1000);
-	
+
 	if(!ctx->is_configured) {
 		ms_queue_flush(f->inputs[0]);
 		return;
 	}
-	
-#if !TARGET_OS_IPHONE
+
+#if TARGET_OS_IPHONE
 	CVPixelBufferPoolRef pixbuf_pool = VTCompressionSessionGetPixelBufferPool(ctx->session);
 	if(pixbuf_pool == NULL) {
 		ms_error("VideoToolbox: fails to get the pixel buffer pool");
 		return;
 	}
 #endif
-	
+
 	while((frame = ms_queue_get(f->inputs[0]))) {
 		YuvBuf src_yuv_frame, dst_yuv_frame = {0};
 		CVPixelBufferRef pixbuf;
@@ -221,7 +221,7 @@ static void h264_enc_process(MSFilter *f) {
 		ms_yuv_buf_copy(src_yuv_frame.planes, src_yuv_frame.strides, dst_yuv_frame.planes, dst_yuv_frame.strides, (MSVideoSize){dst_yuv_frame.w, dst_yuv_frame.h});
 		CVPixelBufferUnlockBaseAddress(pixbuf, 0);
 		freemsg(frame);
-		
+
 		ms_filter_lock(f);
 		if(ctx->fps_changed || ctx->bitrate_changed || ctx->vfu_requested) {
 			CFNumberRef value;
@@ -244,7 +244,7 @@ static void h264_enc_process(MSFilter *f) {
 			}
 		}
 		ms_filter_unlock(f);
-		
+
 		if(!ctx->enable_avpf) {
 			if(ctx->first_frame) {
 				ms_video_starter_first_frame(&ctx->starter, f->ticker->time);
@@ -258,17 +258,17 @@ static void h264_enc_process(MSFilter *f) {
 				}
 			}
 		}
-		
+
 		if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, kCMTimeInvalid, enc_param, NULL, NULL)) != noErr) {
 			ms_error("VideoToolbox: could not pass a pixbuf to the encoder: error code %d", err);
 		}
 		CFRelease(pixbuf);
-		
+
 		ctx->first_frame = FALSE;
-		
+
 		if(enc_param) CFRelease(enc_param);
 	}
-	
+
 	ms_mutex_lock(&ctx->mutex);
 	while ((frame = ms_queue_get(&ctx->queue))) {
 		ms_mutex_unlock(&ctx->mutex);
@@ -422,7 +422,7 @@ static bool_t mblk_equal_to(const mblk_t *msg1, const mblk_t *msg2) {
 	}
 	for(ptr1 = msg1->b_rptr, ptr2 = msg2->b_rptr;
 		ptr1 != msg1->b_wptr; ptr1++, ptr2++) {
-		
+
 		if(*ptr1 != *ptr2) break;
 	}
 	if(ptr1 == msg1->b_wptr) return 0;
@@ -452,7 +452,7 @@ static bool_t h264_dec_update_format_description(VTH264DecCtx *ctx, const MSList
 	int sps_count = 0, pps_count = 0;
 	int i;
 	OSStatus status;
-	
+
 	if(ctx->format_desc) CFRelease(ctx->format_desc);
 	ctx->format_desc = NULL;
 	ps_count = ms_list_size(parameter_sets);
@@ -486,25 +486,25 @@ static bool_t h264_dec_update_format_description(VTH264DecCtx *ctx, const MSList
 static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 							   OSStatus status, VTDecodeInfoFlags infoFlags, CVImageBufferRef imageBuffer,
 							   CMTime presentationTimeStamp, CMTime presentationDuration ) {
-	
+
 	CGSize vsize;
 	MSPicture pixbuf_desc;
 	mblk_t *pixbuf = NULL;
 	uint8_t *src_planes[4] = { NULL };
 	int src_strides[4] = { 0 };
 	size_t i;
-	
+
 	if(status != noErr || imageBuffer == NULL) {
 		ms_error("VideoToolboxDecoder: fail to decode one frame: error %d", status);
 		ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_SEND_PLI);
 		return;
 	}
-	
+
 	vsize = CVImageBufferGetEncodedSize(imageBuffer);
 	ctx->vsize.width = (int)vsize.width;
 	ctx->vsize.height = (int)vsize.height;
 	pixbuf = ms_yuv_buf_allocator_get(ctx->pixbuf_allocator, &pixbuf_desc, (int)vsize.width, (int)vsize.height);
-	
+
 	CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 	for(i=0; i<3; i++) {
 		src_planes[i] = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, i);
@@ -512,7 +512,7 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 	}
 	ms_yuv_buf_copy(src_planes, src_strides, pixbuf_desc.planes, pixbuf_desc.strides, ctx->vsize);
 	CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
-	
+
 	ms_mutex_lock(&ctx->mutex);
 	ms_queue_put(&ctx->queue, pixbuf);
 	ms_mutex_unlock(&ctx->mutex);
@@ -524,18 +524,18 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 	CFNumberRef value;
 	const int pixel_format = kCVPixelFormatType_420YpCbCr8Planar;
 	VTDecompressionOutputCallbackRecord dec_cb = { (VTDecompressionOutputCallback)h264_dec_output_cb, ctx };
-	
+
 	ms_message("VideoToolboxDecoder: creating a decoding session");
-	
+
 	value = CFNumberCreate(NULL, kCFNumberIntType, &pixel_format);
 	pixel_parameters = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
 	CFDictionaryAddValue(pixel_parameters, kCVPixelBufferPixelFormatTypeKey, value);
-	
+
 	if(ctx->format_desc == NULL) {
 		ms_error("VideoToolboxDecoder: could not create the decoding context: no format description");
 		return FALSE;
 	}
-	
+
 	status = VTDecompressionSessionCreate(NULL, ctx->format_desc, NULL, pixel_parameters, &dec_cb, &ctx->session);
 	CFRelease(pixel_parameters);
 	if(status != noErr) {
@@ -572,10 +572,10 @@ static void h264_dec_process(MSFilter *f) {
 	OSStatus status;
 	MSList *parameter_sets = NULL;
 	bool_t unpacking_failed;
-	
+
 	ms_queue_init(&q_nalus);
 	ms_queue_init(&q_nalus2);
-	
+
 	// unpack RTP packet
 	unpacking_failed = FALSE;
 	while((pkt = ms_queue_get(f->inputs[0]))) {
@@ -585,7 +585,7 @@ static void h264_dec_process(MSFilter *f) {
 		ms_error("VideoToolboxDecoder: error while unpacking RTP packets");
 		goto fail;
 	}
-	
+
 	// Pull out SPSs and PPSs and put them into the filter context if necessary
 	while((nalu = ms_queue_get(&q_nalus))) {
 		MSH264NaluType nalu_type = ms_h264_nalu_get_type(nalu);
@@ -616,13 +616,13 @@ static void h264_dec_process(MSFilter *f) {
 			CFRelease(last_format);
 		}
 	}
-	
+
 	/* Stops proccessing if no IDR has been received yet */
 	if(ctx->format_desc == NULL) {
 		ms_warning("VideoToolboxDecoder: no IDR packet has been received yet");
 		goto fail;
 	}
-	
+
 	/* Initializes the decoder if it has not be done yet or reconfigure it when
 	 the size of the encoded video change */
 	if(ctx->session == NULL) {
@@ -631,14 +631,14 @@ static void h264_dec_process(MSFilter *f) {
 			goto fail;
 		}
 	}
-	
+
 	// Pack all nalus in a VTBlockBuffer
 	CMBlockBufferCreateEmpty(NULL, 0, kCMBlockBufferAssureMemoryNowFlag, &stream);
 	while((nalu = ms_queue_get(&q_nalus2))) {
 		CMBlockBufferRef nalu_block;
 		size_t nalu_block_size = msgdsize(nalu) + H264_NALU_HEAD_SIZE;
 		uint32_t nalu_size = htonl(msgdsize(nalu));
-		
+
 		CMBlockBufferCreateWithMemoryBlock(NULL, NULL, nalu_block_size, NULL, NULL, 0, nalu_block_size, kCMBlockBufferAssureMemoryNowFlag, &nalu_block);
 		CMBlockBufferReplaceDataBytes(&nalu_size, nalu_block, 0, H264_NALU_HEAD_SIZE);
 		CMBlockBufferReplaceDataBytes(nalu->b_rptr, nalu_block, H264_NALU_HEAD_SIZE, msgdsize(nalu));
@@ -661,7 +661,7 @@ static void h264_dec_process(MSFilter *f) {
 	}
 	CFRelease(stream);
 	goto put_frames_out;
-	
+
 fail:
 	ms_filter_lock(f);
 	if(ctx->enable_avpf) {
@@ -669,7 +669,7 @@ fail:
 		ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
 	}
 	ms_filter_unlock(f);
-	
+
 put_frames_out:
 	// Transfer decoded frames in the output queue
 	ms_mutex_lock(&ctx->mutex);
@@ -690,8 +690,8 @@ put_frames_out:
 		ms_mutex_lock(&ctx->mutex);
 	}
 	ms_mutex_unlock(&ctx->mutex);
-	
-	
+
+
 	// Cleaning
 	ms_queue_flush(&q_nalus);
 	ms_queue_flush(&q_nalus2);
@@ -701,7 +701,7 @@ put_frames_out:
 
 static void h264_dec_uninit(MSFilter *f) {
 	VTH264DecCtx *ctx = (VTH264DecCtx *)f->data;
-	
+
 	rfc3984_uninit(&ctx->unpacker);
 	if(ctx->session) {
 		VTDecompressionSessionInvalidate(ctx->session);
@@ -711,7 +711,7 @@ static void h264_dec_uninit(MSFilter *f) {
 		ctx->format_desc = NULL;
 	}
 	ms_queue_flush(&ctx->queue);
-	
+
 	ms_mutex_destroy(&ctx->mutex);
 	ms_yuv_buf_allocator_free(ctx->pixbuf_allocator);
 	ms_free(f->data);
@@ -765,7 +765,7 @@ static MSFilterMethod h264_dec_methods[] = {
 	{   MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    ,    (MSFilterMethodFunc)h264_dec_reset_first_image_notification    },
 	{   MS_VIDEO_DECODER_ENABLE_AVPF                       ,    (MSFilterMethodFunc)h264_dec_enable_avpf                       },
 	{   0                                                  ,    NULL                                                           }
-	
+
 };
 
 MSFilterDesc ms_vt_h264_dec = {
