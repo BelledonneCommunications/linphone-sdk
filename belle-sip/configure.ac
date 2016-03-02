@@ -48,7 +48,7 @@ case "$target" in
 	*-apple-darwin.ios|i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*|arm64-apple*|aarch64-apple*)
 		LIBS="$LIBS -framework Foundation -framework CoreFoundation -framework CFNetwork -framework UIKit"
 		build_apple=yes
-	;;	
+	;;
 	#macosx 64 bits
 	x86_64-apple-darwin*)
 		LIBS="$LIBS -framework Foundation"
@@ -268,24 +268,9 @@ if test "$enable_tunnel" = "yes" ; then
 fi
 AM_CONDITIONAL(BUILD_TUNNEL, test "$found_tunnel" = "yes")
 
-PKG_CHECK_MODULES(CUNIT, cunit, [found_pkg_config_cunit=yes],[found_pkg_config_cunit=no])
+PKG_CHECK_MODULES(BCTOOLBOXTESTER, bctoolbox-tester, [found_pkg_config_bctoolboxtester=yes],[found_pkg_config_bctoolboxtester=no])
 
-if test "$found_pkg_config_cunit" = "no" ; then
-	AC_CHECK_HEADERS(CUnit/CUnit.h,
-		[
-			AC_CHECK_LIB(cunit,CU_add_suite,[
-				found_cunit=yes
-				CUNIT_LIBS+=" -lcunit"
-			])
-
-		])
-else
-	found_cunit=yes
-fi
 case "$target_os" in
-	*darwin*)
-		#hack for macport
-		CUNIT_LIBS+=" -lncurses"
 	;;
 	*mingw*)
 		LIBBELLESIP_CFLAGS="-DBELLESIP_EXPORTS"
@@ -296,15 +281,8 @@ case "$target_os" in
 esac
 AC_SUBST(LIBBELLESIP_CFLAGS)
 
-if test "$found_cunit" = "no" ; then
-	AC_MSG_WARN([Could not find cunit framework, tests are not compiled.])
-else
-	AC_CHECK_LIB(cunit,CU_get_suite,[
-					AC_DEFINE(HAVE_CU_GET_SUITE,1,[defined when CU_get_suite is available])
-					],[foo=bar],[$CUNIT_LIBS])
-	AC_CHECK_LIB(cunit,CU_curses_run_tests,[
-					AC_DEFINE(HAVE_CU_CURSES,1,[defined when CU_curses_run_tests is available])
-					],[foo=bar],[$CUNIT_LIBS])
+if test "$found_pkg_config_bctoolboxtester" = "no" ; then
+	AC_MSG_WARN([Could not find bctoolbox tester wrapper, tests are not compiled.])
 fi
 AC_ARG_ENABLE(tests,
         [AS_HELP_STRING([--disable-tests], [Disable compilation of tests])],
@@ -315,7 +293,7 @@ AC_ARG_ENABLE(tests,
         esac],
         [tests_enabled=yes]
 )
-AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_cunit = xyes)
+AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_pkg_config_bctoolboxtester = xyes)
 
 dnl check zlib
 AC_ARG_ENABLE(zlib,
@@ -353,17 +331,7 @@ if test "$build_zlib" != "false" ; then
 	fi
 fi
 
-REQUIRES_PRIVATE=""
-LIBS_PRIVATE=""
-if test "$found_pkg_config_cunit" = "yes" ; then
-	REQUIRES_PRIVATE="$REQUIRES_PRIVATE cunit"
-else
-	if test "$found_cunit" = "yes" ; then
-		LIBS_PRIVATE="$LIBS_PRIVATE $CUNIT_LIBS"
-	fi
-fi
 LIBS_PRIVATE="$LIBS_PRIVATE $ANTLR_LIBS $POLARSSL_LIBS"
-AC_SUBST(REQUIRES_PRIVATE)
 AC_SUBST(LIBS_PRIVATE)
 
 # Checks for typedefs, structures, and compiler characteristics.

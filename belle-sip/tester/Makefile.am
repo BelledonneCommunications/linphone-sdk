@@ -24,12 +24,12 @@ belle_sip_tester_SOURCES= \
 
 belle_sip_tester_CFLAGS=\
 	-DBC_CONFIG_FILE=\"config.h\" \
-	$(CUNIT_CFLAGS) \
+	$(BCTOOLBOXTESTER_CFLAGS) \
 	$(STRICT_OPTIONS) \
 	$(STRICT_OPTIONS_CC) \
 	$(TLS_CFLAGS)
 
-belle_sip_tester_LDFLAGS=$(CUNIT_LIBS) $(AM_LDFLAGS)
+belle_sip_tester_LDFLAGS=$(BCTOOLBOXTESTER_LIBS) $(AM_LDFLAGS)
 
 belle_sip_object_describe_SOURCES=describe.c
 
@@ -41,7 +41,7 @@ belle_sip_resolve_SOURCES=resolve.c
 
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_srcdir)/tester/common
 
-LDADD=$(top_builddir)/src/libbellesip.la 
+LDADD=$(top_builddir)/src/libbellesip.la
 
 AM_LDFLAGS=-no-undefined -export-dynamic  $(TLS_LIBS)
 if BUILD_APPLE
@@ -57,7 +57,7 @@ test: belle_sip_tester
 else
 
 test:
-	@echo "CUnit must be installed to be able to run the tests!"
+	@echo "bctoolbox-tester must be installed to be able to run the tests!"
 
 endif
 

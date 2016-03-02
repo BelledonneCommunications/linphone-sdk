@@ -70,5 +70,5 @@ AM_CPPFLAGS=-I$(top_srcdir)/include -I$(builddir)/grammars
 
 discovery:
 	touch specs.c
-	$(CC) $(CFLAGS) -include $(top_builddir)/config.h $(ANTLR_CFLAGS) $(CUNIT_CFLAGS) $(TLS_CFLAGS) -E -P -v -dD specs.c
+	$(CC) $(CFLAGS) -include $(top_builddir)/config.h $(ANTLR_CFLAGS) $(BCTOOLBOXTESTER_CFLAGS) $(TLS_CFLAGS) -E -P -v -dD specs.c
 
