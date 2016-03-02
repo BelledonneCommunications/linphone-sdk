@@ -23,24 +23,9 @@
 set(EP_bv16_GIT_REPOSITORY "git://git.linphone.org/bv16-floatingpoint.git" CACHE STRING "bv16 repository URL")
 set(EP_bv16_GIT_TAG_LATEST "linphone" CACHE STRING "bv16 tag to use when compiling latest version")
 set(EP_bv16_GIT_TAG "f2c49dcdee0a1b7cea3751022c923672fa082984" CACHE STRING "bv16 tag to use")
-
-# set(EP_bv16_FILENAME "BroadVoice16OpenSource.v1.2.zip")
-# set(EP_bv_16_URL "http://www.broadcom.com/docs/support/broadvoice/${EP_bv16_FILENAME}")
-
-# file(DOWNLOAD "${EP_bv16_URL}" "${CMAKE_CURRENT_SOURCE_DIR}/${EP_bv16_FILENAME}" STATUS EP_bv16_FILENAME_STATUS)
-# list(GET EP_bv16_FILENAME_STATUS 0 EP_bv16_DOWNLOAD_STATUS)
-# 	 if(EP_bv16_DOWNLOAD_STATUS)
-# 	 	list(APPEND EP_bv16_EXTRACT_COMMAND "COMMAND" "${CMAKE_COMMAND}" "-E" "tar xf" "${CMAKE_CURRENT_SOURCE_DIR}/${EP_bv16_FILENAME}" )
-# 	 endif()
-# set(EP_bv16_EXTERNAL_SOURCE_PATHS "libbv16" "bv16" "externals/libbv16")
-
-# set(EP_bv16_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
-# set(EP_bv16_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/bv16/CMakeLists.txt" "<SOURCE_DIR>")
-
-
 set(EP_bv16_EXTERNAL_SOURCE_PATHS "externals/bv16-floatingpoint")
 
-set(EP_bv16_LINKING_TYPE "${DEFAULT_VALUE_CMAKE_LINKING_TYPE}")
+set(EP_bv16_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 if(MSVC)
 	set(EP_bv16_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()
