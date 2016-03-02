@@ -56,13 +56,17 @@ static void android_display_init(MSFilter *f){
 	}
 	ad->get_bitmap_id=(*jenv)->GetMethodID(jenv,wc,"getBitmap", "()Landroid/graphics/Bitmap;");
 	ad->update_id=(*jenv)->GetMethodID(jenv,wc,"update","()V");
-	ad->request_orientation_id=(*jenv)->GetMethodID(jenv,wc,"requestOrientation","(I)V");
+	//ad->request_orientation_id=(*jenv)->GetMethodID(jenv,wc,"requestOrientation","(I)V");
 	(*jenv)->DeleteLocalRef(jenv,wc);
 	f->data=ad;
 }
 
 static void android_display_uninit(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
+	JNIEnv *jenv=ms_get_jni_env();
+	if (ad->jbitmap) {
+		(*jenv)->DeleteGlobalRef(jenv, ad->jbitmap);
+	}
 	if (ad->sws){
 		ms_scaler_context_free (ad->sws);
 		ad->sws=NULL;
@@ -184,8 +188,11 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	}
 	ad->orientation_change_pending=FALSE;
 	ms_filter_unlock(f);
-	if (ad->jbitmap!=NULL) ms_message("New java bitmap given with w=%i,h=%i,stride=%i,format=%i",
+	if (ad->jbitmap!=NULL) {
+		ms_message("New java bitmap given with w=%i,h=%i,stride=%i,format=%i",
 	           ad->bmpinfo.width,ad->bmpinfo.height,ad->bmpinfo.stride,ad->bmpinfo.format);
+		ad->jbitmap = (*jenv)->NewGlobalRef(jenv, ad->jbitmap);
+	}
 	return 0;
 }
 

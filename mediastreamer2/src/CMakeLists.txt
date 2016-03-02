@@ -147,6 +147,8 @@ set(VOIP_SOURCE_FILES_C
 	utils/g722.h
 	utils/g722_decode.c
 	utils/g722_encode.c
+	utils/h264utils.h
+	utils/h264utils.c
 	utils/kiss_fft.c
 	utils/kiss_fft.h
 	utils/kiss_fftr.c
@@ -280,6 +282,9 @@ if(ENABLE_VIDEO)
 				utils/shaders.h
 			)
 		endif()
+	endif()
+	if(ENABLE_VT_H264 AND APPLE)
+		list(APPEND VOIP_SOURCE_FILES_C videofilters/videotoolbox.c)
 	endif()
 	if (ENABLE_QNX)
 		list(APPEND VOIP_SOURCE_FILES_CXX
