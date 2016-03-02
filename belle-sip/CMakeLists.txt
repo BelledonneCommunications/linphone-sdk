@@ -108,9 +108,10 @@ if(ENABLE_RTP_MAP_ALWAYS_IN_SDP)
 endif()
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(BcToolbox_FIND_COMPONENTS tester)
 	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 else()
-	find_package(BcToolbox REQUIRED)
+	find_package(BcToolbox REQUIRED OPTIONAL_COMPONENTS tester)
 endif()
 
 if(ENABLE_TUNNEL)
@@ -160,7 +161,7 @@ include_directories(
 	src
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
-	${BCTOOLBOX_INCLUDE_DIRS}
+	${BCTOOLBOX_CORE_INCLUDE_DIRS}
 )
 if(TUNNEL_FOUND)
 	include_directories(${TUNNEL_INCLUDE_DIRS})
@@ -231,7 +232,7 @@ add_subdirectory(include)
 add_subdirectory(src)
 
 
-if(ENABLE_TESTS)
+if(ENABLE_TESTS AND BCTOOLBOX_TESTER_FOUND)
 	enable_testing()
 	add_subdirectory(tester)
 endif()
