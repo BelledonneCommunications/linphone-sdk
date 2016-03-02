@@ -18,8 +18,7 @@ belle_sip_tester_SOURCES= \
 				belle_sip_tester.c belle_sip_tester.h\
 				belle_sip_uri_tester.c \
 				cast_test.c \
-				register_tester.h \
-				common/bc_tester_utils.c common/bc_tester_utils.h
+				register_tester.h
 
 
 belle_sip_tester_CFLAGS=\
@@ -39,7 +38,7 @@ belle_http_get_SOURCES=get.c
 
 belle_sip_resolve_SOURCES=resolve.c
 
-AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_srcdir)/tester/common
+AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
 
 LDADD=$(top_builddir)/src/libbellesip.la
 
