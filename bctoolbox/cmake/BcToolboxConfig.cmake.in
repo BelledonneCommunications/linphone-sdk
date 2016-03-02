@@ -20,17 +20,26 @@
 #
 ############################################################################
 #
-# Config file for the belle-sip package.
+# Config file for the bctoolbox package.
+# Some components can be asked for: core, tester.
+#
 # It defines the following variables:
 #
 #  BCTOOLBOX_FOUND - system has bctoolbox
 #  BCTOOLBOX_INCLUDE_DIRS - the bctoolbox include directory
 #  BCTOOLBOX_LIBRARIES - The libraries needed to use bctoolbox
 #  BCTOOLBOX_LDFLAGS - The linking flags needed to use bctoolbox
+#  BCTOOLBOX_${comp}_FOUND - system has bctoolbox "comp" component
+#  BCTOOLBOX_${comp}_INCLUDE_DIRS - the bctoolbox "comp" component include directory
+#  BCTOOLBOX_${comp}_LIBRARIES - The libraries needed to use bctoolbox "comp" component
 
 if(NOT LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${CMAKE_CURRENT_LIST_DIR}/BcToolboxTargets.cmake")
 endif()
+
+list(APPEND BcToolbox_FIND_COMPONENTS core)
+list(REMOVE_DUPLICATES BcToolbox_FIND_COMPONENTS)
+set(BcToolbox_FIND_REQUIRED_core TRUE)
 
 get_filename_component(BCTOOLBOX_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
@@ -38,10 +47,28 @@ if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 else()
 	set(BCTOOLBOX_INCLUDE_DIRS "${BCTOOLBOX_CMAKE_DIR}/../../../include")
 endif()
-if(@ENABLE_SHARED@)
-	set(BCTOOLBOX_LIBRARIES bctoolbox)
-else()
-	set(BCTOOLBOX_LIBRARIES bctoolbox-static)
-endif()
+
 set(BCTOOLBOX_LDFLAGS "@LINK_FLAGS_STR@")
-set(BCTOOLBOX_FOUND 1)
+set(BCTOOLBOX_LIBRARIES )
+foreach(comp ${BcToolbox_FIND_COMPONENTS})
+	string(TOUPPER ${comp} uppercomp)
+	if(comp STREQUAL "core")
+		set(targetname "bctoolbox")
+	else()
+		set(targetname "bctoolbox-${comp}")
+	endif()
+	if(NOT @ENABLE_SHARED@)
+		set(targetname "${targetname}-static")
+	endif()
+	if(TARGET ${targetname})
+		set(BCTOOLBOX_${uppercomp}_INCLUDE_DIRS "${BCTOOLBOX_INCLUDE_DIRS}")
+		set(BCTOOLBOX_${uppercomp}_LIBRARIES ${targetname})
+		list(APPEND BCTOOLBOX_LIBRARIES ${targetname})
+		set(BCTOOLBOX_${uppercomp}_FOUND 1)
+		if(comp STREQUAL "core")
+			set(BCTOOLBOX_FOUND 1)
+		endif()
+	elseif(BcToolbox_FIND_REQUIRED_${comp})
+		message(FATAL_ERROR "Required bctoolbox component \"${comp}\" cannot be found")
+	endif()
+endforeach()
