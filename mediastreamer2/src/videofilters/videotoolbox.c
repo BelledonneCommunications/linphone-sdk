@@ -177,18 +177,19 @@ static void h264_enc_process(MSFilter *f) {
 	mblk_t *frame;
 	OSStatus err;
 	CMTime p_time = CMTimeMake(f->ticker->time, 1000);
-	CVPixelBufferPoolRef pixbuf_pool;
 	
 	if(!ctx->is_configured) {
 		ms_queue_flush(f->inputs[0]);
 		return;
 	}
 	
-	pixbuf_pool = VTCompressionSessionGetPixelBufferPool(ctx->session);
+#if !TARGET_OS_IPHONE
+	CVPixelBufferPoolRef pixbuf_pool = VTCompressionSessionGetPixelBufferPool(ctx->session);
 	if(pixbuf_pool == NULL) {
-		ms_error("VideoToolbox: no pool of pixel buffers found");
+		ms_error("VideoToolbox: fails to get the pixel buffer pool");
 		return;
 	}
+#endif
 	
 	while((frame = ms_queue_get(f->inputs[0]))) {
 		YuvBuf src_yuv_frame, dst_yuv_frame = {0};
