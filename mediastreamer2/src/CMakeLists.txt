@@ -79,23 +79,21 @@ endif()
 
 apply_compile_flags(BASE_SOURCE_FILES_C "CPP" "C")
 
-add_library(mediastreamer_base-objects OBJECT ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
-set_target_properties(mediastreamer_base-objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-add_dependencies(mediastreamer_base-objects ms2-git-version ms2-basedescs-header)
-
 if(ENABLE_STATIC)
-	add_library(mediastreamer_base-static STATIC $<TARGET_OBJECTS:mediastreamer_base-objects>)
+	add_library(mediastreamer_base-static STATIC ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
 	set_target_properties(mediastreamer_base-static PROPERTIES OUTPUT_NAME mediastreamer_base)
 	target_link_libraries(mediastreamer_base-static ${BASE_LIBS})
+	add_dependencies(mediastreamer_base-static ms2-git-version ms2-basedescs-header)
 	install(TARGETS mediastreamer_base-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
 if(ENABLE_SHARED)
-	add_library(mediastreamer_base SHARED $<TARGET_OBJECTS:mediastreamer_base-objects>)
+	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
 	set_target_properties(mediastreamer_base PROPERTIES VERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE C)
 	target_link_libraries(mediastreamer_base ${BASE_LIBS})
+	add_dependencies(mediastreamer_base ms2-git-version ms2-basedescs-header)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/mediastreamer_base.pdb
@@ -347,6 +345,14 @@ endif()
 
 set(VOIP_SOURCE_FILES_ALL ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
 
+if(FFMPEG_FOUND AND NOT WIN32)
+	set_source_files_properties(
+		videofilters/jpegwriter.c
+		videofilters/videoenc.c
+		PROPERTIES COMPILE_FLAGS "-Wno-error=deprecated-declarations"
+	)
+endif()
+
 add_custom_target(ms2-voipdescs-header
 	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../"
 		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
@@ -389,7 +395,7 @@ endif()
 
 
 set(VOIP_LIBS
-	${BCTOOLBOX_LIBRARIES}
+	${BCTOOLBOX_CORE_LIBRARIES}
 	${ORTP_LIBRARIES}
 )
 if(WIN32)
@@ -471,28 +477,19 @@ if (CAMAPI_FOUND)
 	list(APPEND VOIP_LIBS ${CAMAPI_LIBRARIES})
 endif()
 
-add_library(mediastreamer_voip-objects OBJECT ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
-set_target_properties(mediastreamer_voip-objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-add_dependencies(mediastreamer_voip-objects ms2-git-version ms2-voipdescs-header)
+set(MS2_VOIP_DEPENDENCIES ms2-git-version ms2-voipdescs-header)
 if(APPLE OR GLX_FOUND)
-	add_dependencies(mediastreamer_voip-objects ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
+	list(APPEND MS2_VOIP_DEPENDENCIES ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
 endif()
-if(FFMPEG_FOUND AND NOT WIN32)
-	set_source_files_properties(
-		videofilters/jpegwriter.c
-		videofilters/videoenc.c
-		PROPERTIES COMPILE_FLAGS "-Wno-error=deprecated-declarations"
-	)
-endif()
-
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(ENABLE_STATIC)
-	add_library(mediastreamer_voip-static STATIC $<TARGET_OBJECTS:mediastreamer_voip-objects>)
+	add_library(mediastreamer_voip-static STATIC ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
 	set_target_properties(mediastreamer_voip-static PROPERTIES OUTPUT_NAME mediastreamer_voip)
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer_voip-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
+	add_dependencies(mediastreamer_voip-static ${MS2_VOIP_DEPENDENCIES})
 	target_link_libraries(mediastreamer_voip-static mediastreamer_base-static ${VOIP_LIBS})
 	install(TARGETS mediastreamer_voip-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -500,11 +497,12 @@ if(ENABLE_STATIC)
 	)
 endif()
 if(ENABLE_SHARED)
-	add_library(mediastreamer_voip SHARED $<TARGET_OBJECTS:mediastreamer_voip-objects>)
+	add_library(mediastreamer_voip SHARED ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
 	set_target_properties(mediastreamer_voip PROPERTIES VERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE CXX)
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
+	add_dependencies(mediastreamer_voip ${MS2_VOIP_DEPENDENCIES})
 	target_link_libraries(mediastreamer_voip mediastreamer_base ${VOIP_LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")

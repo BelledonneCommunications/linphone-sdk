@@ -302,9 +302,10 @@ if(ENABLE_SOUND AND NOT(WIN32 OR ENABLE_ALSA OR ENABLE_ARTSC OR ENABLE_MACSND OR
 endif()
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(BcToolbox_FIND_COMPONENTS tester)
 	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 else()
-	find_package(BcToolbox REQUIRED)
+	find_package(BcToolbox REQUIRED OPTIONAL_COMPONENTS tester)
 endif()
 
 include_directories(
@@ -315,7 +316,7 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
 	${ORTP_INCLUDE_DIRS}
-	${BCTOOLBOX_INCLUDE_DIRS}
+	${BCTOOLBOX_CORE_INCLUDE_DIRS}
 )
 
 if(BZRTP_FOUND)
@@ -517,7 +518,7 @@ if(ENABLE_DOC)
 endif()
 add_subdirectory(include)
 add_subdirectory(src)
-if(ENABLE_UNIT_TESTS)
+if(ENABLE_UNIT_TESTS AND BCTOOLBOX_TESTER_FOUND)
 	add_subdirectory(tester)
 endif()
 if(ENABLE_TOOLS)

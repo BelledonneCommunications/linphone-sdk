@@ -53,8 +53,8 @@ apply_compile_flags(SOURCE_FILES_OBJC "CPP" "OBJC")
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 
 	add_library(mediastreamer2_tester_static STATIC ${SOURCE_FILES_C})
-	target_include_directories(mediastreamer2_tester_static PUBLIC ${BCTOOLBOX_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer2_tester_static mediastreamer_voip mediastreamer_base ${BCTOOLBOX_LIBRARIES})
+	target_include_directories(mediastreamer2_tester_static PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
+	target_link_libraries(mediastreamer2_tester_static mediastreamer_voip mediastreamer_base ${BCTOOLBOX_TESTER_LIBRARIES})
 
 	set(RUNTIME_COMPONENT_SOURCES
 		mediastreamer2_tester_windows.cpp
@@ -84,8 +84,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 else()
 
 	add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
-	target_include_directories(mediastreamer2_tester PUBLIC ${BCTOOLBOX_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer2_tester mediastreamer_voip mediastreamer_base ${BCTOOLBOX_LIBRARIES})
+	target_include_directories(mediastreamer2_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
+	target_link_libraries(mediastreamer2_tester mediastreamer_voip mediastreamer_base ${BCTOOLBOX_TESTER_LIBRARIES})
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer2_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
