@@ -24,7 +24,7 @@ README.openh264.txt
 ./lib/libxml2*.dylib
 ./lib/cmake/*
 ./lib/pkgconfig/*
-./lib/mediastreamer/plugins/*.dylib
+./lib/mediastreamer/plugins/*.so
 ./share/images/nowebcamCIF.jpg
 ./share/sounds/*
 ./share/locale/*
