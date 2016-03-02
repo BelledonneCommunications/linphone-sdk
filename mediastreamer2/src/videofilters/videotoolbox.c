@@ -27,8 +27,8 @@
 
 const MSVideoConfiguration h264_video_confs[] = {
 	MS_VIDEO_CONF(1536000,  2560000, SXGA_MINUS, 25, 2),
-	MS_VIDEO_CONF(800000,  2000000,       720P, 25, 2),
-	MS_VIDEO_CONF(800000,  1536000,        XGA, 25, 2),
+	MS_VIDEO_CONF( 800000,  2000000,       720P, 25, 2),
+	MS_VIDEO_CONF( 800000,  1536000,        XGA, 25, 2),
 	MS_VIDEO_CONF( 600000,  1024000,       SVGA, 25, 2),
 	MS_VIDEO_CONF( 350000,   600000,        VGA, 25, 2),
 	MS_VIDEO_CONF( 350000,   600000,        VGA, 15, 1),
@@ -363,7 +363,8 @@ static int h264_enc_get_config_list(MSFilter *f, const MSVideoConfiguration **co
 }
 
 static int h264_enc_set_config_list(MSFilter *f, const MSVideoConfiguration **conf_list) {
-	((VTH264EncCtx *)f->data)->video_confs = *conf_list;
+	MSVideoConfiguration *conf = *conf_list;
+	((VTH264EncCtx *)f->data)->video_confs = conf_list ? conf_list : NULL;
 	return 0;
 }
 
@@ -384,7 +385,7 @@ static MSFilterMethod h264_enc_methods[] = {
 	{   MS_VIDEO_ENCODER_REQ_VFU                , (MSFilterMethodFunc)h264_enc_req_vfu         },
 	{   MS_VIDEO_ENCODER_ENABLE_AVPF            , (MSFilterMethodFunc)h264_enc_enable_avpf     },
 	{   MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST , (MSFilterMethodFunc)h264_enc_get_config_list },
-	{	MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST , (MSFilterMethodFunc)h264_enc_set_config_list },
+	{   MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST , (MSFilterMethodFunc)h264_enc_set_config_list },
 	{   MS_VIDEO_ENCODER_SET_CONFIGURATION      , (MSFilterMethodFunc)h264_enc_set_config      },
 	{   0                                       , NULL                                         }
 };
