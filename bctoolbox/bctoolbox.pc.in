@@ -3,6 +3,7 @@ prefix=@CMAKE_INSTALL_PREFIX@
 
 Name:  @PROJECT_NAME@
 Description: A common set of tools used by Belledonne Communications's softwares
+Requires.private: @REQUIRES_PRIVATE@
 Version: @PROJECT_VERSION@
 Libs: -L@CMAKE_INSTALL_FULL_LIBDIR@ -lbctoolbox
 Libs.private: @LIBS_PRIVATE@
