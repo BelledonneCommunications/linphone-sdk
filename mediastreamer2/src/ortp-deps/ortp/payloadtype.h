@@ -131,7 +131,6 @@ VAR_DECLSPEC PayloadType payload_type_silk_nb;
 VAR_DECLSPEC PayloadType payload_type_silk_mb;
 VAR_DECLSPEC PayloadType payload_type_silk_wb;
 VAR_DECLSPEC PayloadType payload_type_silk_swb;
-VAR_DECLSPEC PayloadType payload_type_bv16;
 
 	/* video */
 VAR_DECLSPEC PayloadType payload_type_mpv;
