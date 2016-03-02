@@ -24,3 +24,4 @@
 #cmakedefine HAVE_CTR_DRGB_FREE
 #cmakedefine HAVE_CU_GET_SUITE
 #cmakedefine HAVE_CU_CURSES
+#cmakedefine HAVE_CU_SET_TRACE_HANDLER

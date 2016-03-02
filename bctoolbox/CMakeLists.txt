@@ -82,6 +82,7 @@ if(ENABLE_TESTS)
 		list(APPEND CMAKE_REQUIRED_LIBRARIES ${CUNIT_LIBRARIES})
 		check_symbol_exists("CU_get_suite" "CUnit/CUnit.h" HAVE_CU_GET_SUITE)
 		check_symbol_exists("CU_curses_run_tests" "CUnit/CUnit.h" HAVE_CU_CURSES)
+		check_symbol_exists("CU_set_trace_handler" "CUnit/Util.h" HAVE_CU_SET_TRACE_HANDLER)
 		cmake_pop_check_state()
 
 		get_filename_component(cunit_library_path "${CUNIT_LIBRARIES}" PATH)

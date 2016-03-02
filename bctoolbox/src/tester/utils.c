@@ -738,7 +738,11 @@ unsigned int bc_get_number_of_failures(void) {
 }
 
 void bc_set_trace_handler(void(*handler)(int, const char*, va_list)) {
+#ifdef HAVE_CU_SET_TRACE_HANDLER
 	CU_set_trace_handler(handler);
+#else
+	bc_tester_printf(bc_printf_verbosity_error, "CU_set_trace_handler not implemented");
+#endif
 }
 
 int _BC_ASSERT(const char* file, int line, int predicate, const char* format, int fatal) {
