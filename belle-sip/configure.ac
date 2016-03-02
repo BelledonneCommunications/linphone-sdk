@@ -271,7 +271,6 @@ AM_CONDITIONAL(BUILD_TUNNEL, test "$found_tunnel" = "yes")
 PKG_CHECK_MODULES(BCTOOLBOXTESTER, bctoolbox-tester, [found_pkg_config_bctoolboxtester=yes],[found_pkg_config_bctoolboxtester=no])
 
 case "$target_os" in
-	;;
 	*mingw*)
 		LIBBELLESIP_CFLAGS="-DBELLESIP_EXPORTS"
 		CPPFLAGS="$CPPFLAGS -D_WIN32_WINNT=0x0501"
