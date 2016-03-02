@@ -345,14 +345,6 @@ endif()
 
 set(VOIP_SOURCE_FILES_ALL ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
 
-if(FFMPEG_FOUND AND NOT WIN32)
-	set_source_files_properties(
-		videofilters/jpegwriter.c
-		videofilters/videoenc.c
-		PROPERTIES COMPILE_FLAGS "-Wno-error=deprecated-declarations"
-	)
-endif()
-
 add_custom_target(ms2-voipdescs-header
 	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../"
 		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
@@ -517,6 +509,14 @@ if(ENABLE_SHARED)
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+endif()
+
+if(FFMPEG_FOUND AND NOT WIN32)
+	set_source_files_properties(
+		videofilters/jpegwriter.c
+		videofilters/videoenc.c
+		PROPERTIES COMPILE_FLAGS "-Wno-error=deprecated-declarations"
 	)
 endif()
 
