@@ -18,7 +18,7 @@ mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_text_stream_tester.c \
 	mediastreamer2_framework_tester.c \
 	mediastreamer2_player_tester.c \
-	mediastreamer2_neon_tester.c 
+	mediastreamer2_neon_tester.c
 
 AM_CPPFLAGS=\
 	-DBC_CONFIG_FILE=\"mediastreamer-config.h\" \
@@ -40,7 +40,7 @@ AM_CPPFLAGS=\
 LDADD=$(top_builddir)/src/libmediastreamer_base.la \
 	$(top_builddir)/src/libmediastreamer_voip.la \
 	$(ORTP_LIBS) \
-	$(CUNIT_LIBS) \
+	$(BCTOOLBOXTESTER_LIBS) \
 	$(SPEEX_LIBS)
 
 if BUILD_MACOSX
@@ -60,7 +60,7 @@ if BUILD_MACOSX
 AM_LDFLAGS+=-Wl,-rpath -Wl,$(libdir)
 endif
 
-AM_CFLAGS=$(STRICT_OPTIONS) $(STRICT_OPTIONS_CC) $(ORTP_CFLAGS) $(CUNIT_CFLAGS)
+AM_CFLAGS=$(STRICT_OPTIONS) $(STRICT_OPTIONS_CC) $(ORTP_CFLAGS) $(BCTOOLBOXTESTER_CFLAGS)
 
 if BUILD_VIDEO
 AM_CFLAGS+=$(VIDEO_CFLAGS) $(GLEW_CFLAGS)
@@ -88,6 +88,6 @@ test: mediastreamer2_tester
 else
 
 test:
-	@echo "CUnit must be installed to be able to run the tests!"
+	@echo "bctoolbox-tester must be installed to be able to run the tests!"
 
 endif
