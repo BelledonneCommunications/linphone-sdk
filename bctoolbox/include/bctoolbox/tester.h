@@ -142,10 +142,7 @@ extern int CU_assertImplementation(int bValue,
 #define BC_INLINE inline
 #endif
 
-static BC_INLINE int _BC_ASSERT(const char* file, int line, int predicate, const char* format, int fatal) {
-	if (!predicate) bc_tester_printf(bc_printf_verbosity_info, format, NULL);
-	return CU_assertImplementation(predicate, line, format, file, "", fatal);
-}
+int _BC_ASSERT(const char* file, int line, int predicate, const char* format, int fatal);
 
 #define _BC_ASSERT_PRED(name, pred, actual, expected, type, fatal, ...) \
 	do { \
