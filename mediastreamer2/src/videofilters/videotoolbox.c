@@ -783,5 +783,11 @@ MSFilterDesc ms_vt_h264_dec = {
 	.methods = h264_dec_methods
 };
 
-MS_FILTER_DESC_EXPORT(ms_vt_h264_dec)
+void _register_videotoolbox_if_supported(MSFactory *factory) {
+	if (VTCompressionSessionCreate != NULL) {
+		ms_factory_register_filter(factory, &ms_vt_h264_enc);
+		ms_factory_register_filter(factory, &ms_vt_h264_dec);
+	}
+}
+
 

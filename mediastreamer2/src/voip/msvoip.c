@@ -46,6 +46,9 @@ extern bool_t libmsandroiddisplay_init(MSFactory *factory);
 extern void libmsandroiddisplaybad_init(MSFactory *factory);
 extern void libmsandroidopengldisplay_init(MSFactory *factory);
 
+#if defined(__APPLE__) && defined(HAVE_VIDEO)
+extern void _register_videotoolbox_if_supported(MSFactory *factory);
+#endif
 
 #include "voipdescs.h"
 #include "mediastreamer2/mssndcard.h"
@@ -263,6 +266,10 @@ void ms_factory_init_voip(MSFactory *obj){
 	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
 		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);
 	}
+
+#if defined(__APPLE__) && defined(HAVE_VIDEO)
+	_register_videotoolbox_if_supported(obj);
+#endif
 
 	cm=ms_snd_card_manager_new();
 	ms_message("Registering all soundcard handlers");
