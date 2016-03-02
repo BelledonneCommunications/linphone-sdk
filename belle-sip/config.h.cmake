@@ -37,10 +37,6 @@
 #cmakedefine HAVE_ANTLR3_H
 #cmakedefine HAVE_ANTLR_STRING_STREAM_NEW
 
-#cmakedefine HAVE_CUNIT_CUNIT_H
-#cmakedefine HAVE_CU_CURSES
-#cmakedefine HAVE_CU_GET_SUITE
-
 #cmakedefine HAVE_TUNNEL
 #cmakedefine HAVE_ZLIB
 
