@@ -89,8 +89,11 @@ static void dtmfgen_tonedet(void) {
 /*fileplay awt to TRUE:  uses soundwrite instaed of voidsink  so we can hear what;s going on */
 static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels, bool_t fileplay) {
 	MSConnectionHelper h;
-
 	unsigned int filter_mask ;
+	bool_t send_silence = TRUE;
+	MSSndCardManager *scm = ms_factory_get_snd_card_manager(factory);
+	ms_factory_reset_statistics(scm->factory);
+	
 	if (!fileplay){
 		filter_mask= FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
 		| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
@@ -100,11 +103,7 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels, 
 		| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_SOUNDWRITE;
 
 	}
-	bool_t send_silence = TRUE;
-	
-	MSSndCardManager *scm = ms_factory_get_snd_card_manager(factory);
-	ms_factory_reset_statistics(scm->factory);
-	
+
 	//ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_codec_mime = mime;
@@ -169,6 +168,7 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels, 
 }
 
 
+#if 0
 #define SOUNDREAD_FILE_NAME "soundread_filetest.raw"
 
 static void dtmfgen_enc_dec_tonedet_filerec_fileplay(char *mime, int sample_rate, int nchannels) {
@@ -266,7 +266,7 @@ static void dtmfgen_enc_dec_tonedet_filerec_fileplay(char *mime, int sample_rate
 	ms_tester_destroy_ticker();
 }
 
-
+#endif
 
 
 static void dtmfgen_enc_dec_tonedet_pcmu(void) {

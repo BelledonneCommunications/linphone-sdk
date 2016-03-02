@@ -214,6 +214,8 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 	PayloadType* pt;
 	MediaStream *marielle_ms,*margaux_ms;
 	OrtpNetworkSimulatorParams params={0};
+	char* recorded_file = NULL;
+	char* file = bc_tester_res(HELLO_16K_1S_FILE);
 #if VIDEO_ENABLED
 	MSWebCam * marielle_webcam=mediastreamer2_tester_get_mire_webcam(ms_factory_get_web_cam_manager(_factory));
 #endif
@@ -225,8 +227,6 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 		disable_plc_on_audio_stream(margaux->audio_stream);
 		disable_plc_on_audio_stream(marielle->audio_stream);
 	}
-	char* recorded_file = NULL;
-	char* file = bc_tester_res(HELLO_16K_1S_FILE);
 	if (!disable_plc ){
 		 recorded_file = bc_tester_file(RECORDED_16K_1S_FILE);
 	}
@@ -409,11 +409,11 @@ off_t fsize(const char *filename) {
 }
 
 static void loss_rate_estimation_bv16(void){
-
 	bool_t supported = ms_factory_codec_supported(_factory, "bv16");
-	
 	int plc_disabled=0 ;
 	int size_with_plc = 0, size_no_plc= 0;
+	int result;
+
 	rtp_profile_set_payload(&rtp_profile,BV16_PAYLOAD_TYPE,&payload_type_bv16);
 	if( supported ) {
 		LossRateEstimatorCtx ctx;
@@ -437,15 +437,12 @@ static void loss_rate_estimation_bv16(void){
 		/*file without plc must be approx 15% smaller in size than with plc */
 		size_with_plc= fsize(bc_tester_file(RECORDED_16K_1S_FILE));
 		size_no_plc = fsize(bc_tester_file(RECORDED_16K_1S_NO_PLC_FILE));
-		int result = (size_with_plc*loss_rate/100 + size_no_plc) ;
+		result = (size_with_plc*loss_rate/100 + size_no_plc) ;
 		
 		BC_ASSERT_TRUE(result >= size_with_plc);
 
 		ms_message("%d %d %d ", size_no_plc, size_with_plc, result);
-
-		
 	}
-	
 }
 	
 static void loss_rate_estimation(void) {

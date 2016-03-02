@@ -21,6 +21,7 @@
 #include <mediastreamer2/msqueue.h>
 
 static void  push_nalu(const uint8_t *begin, const uint8_t *end, MSQueue *nalus){
+    unsigned ecount = 0;
     const uint8_t *src=begin;
     size_t nalu_len = (end-begin);
     uint8_t nalu_byte  = *src++;
@@ -35,7 +36,6 @@ static void  push_nalu(const uint8_t *begin, const uint8_t *end, MSQueue *nalus)
      Within the NAL unit, the following three-byte sequence shall not occur at any byte-aligned position: 0x000000, 0x000001, 0x00002
      */
     *m->b_wptr++=nalu_byte;
-    unsigned ecount = 0;
     while (src<end-3) {
         if (src[0]==0 && src[1]==0 && src[2]==3){
             *m->b_wptr++=0;
