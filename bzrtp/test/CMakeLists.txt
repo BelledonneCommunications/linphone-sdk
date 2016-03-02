@@ -25,14 +25,21 @@ set(TEST_SOURCES
 	bzrtpParserTest.c
 	bzrtpTest.c
 	testUtils.c
+
+	../src/bzrtp.c
+	../src/cryptoUtils.c
+	../src/packetParser.c
+	../src/pgpwords.c
+	../src/stateMachine.c
+	../src/zidCache.c
 )
 
 apply_compile_flags(TEST_SOURCES "CPP")
 
-add_executable(bzrtpTest ${TEST_SOURCES} $<TARGET_OBJECTS:bzrtp-objects>)
+add_executable(bzrtpTest ${TEST_SOURCES})
 set_target_properties(bzrtpTest PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
-target_include_directories(bzrtpTest PUBLIC ${CUNIT_INCLUDE_DIR})
-target_link_libraries(bzrtpTest ${CUNIT_LIBRARIES} bzrtp)
+target_include_directories(bzrtpTest PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIR})
+target_link_libraries(bzrtpTest ${BCTOOLBOX_TESTER_LIBRARIES} bzrtp)
 if(HAVE_SQRT)
 	target_link_libraries(bzrtpTest m)
 endif()

@@ -36,11 +36,8 @@ endif()
 
 apply_compile_flags(SOURCE_FILES "CPP")
 
-add_library(bzrtp-objects OBJECT ${SOURCE_FILES})
-set_target_properties(bzrtp-objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-
 if(ENABLE_STATIC)
-	add_library(bzrtp-static STATIC $<TARGET_OBJECTS:bzrtp-objects>)
+	add_library(bzrtp-static STATIC ${SOURCE_FILES})
 	set_target_properties(bzrtp-static PROPERTIES OUTPUT_NAME bzrtp)
 	target_link_libraries(bzrtp-static ${LIBS})
 	install(TARGETS bzrtp-static EXPORT ${EXPORT_TARGETS_NAME}Targets
@@ -49,7 +46,7 @@ if(ENABLE_STATIC)
 	)
 endif()
 if(ENABLE_SHARED)
-	add_library(bzrtp SHARED $<TARGET_OBJECTS:bzrtp-objects>)
+	add_library(bzrtp SHARED ${SOURCE_FILES})
 	set_target_properties(bzrtp PROPERTIES VERSION 0)
 	target_link_libraries(bzrtp ${LIBS})
 	if(MSVC)

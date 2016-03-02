@@ -61,22 +61,12 @@ endif()
 include(GNUInstallDirs)
 include(CheckLibraryExists)
 check_library_exists("m" "sqrt" "" HAVE_SQRT)
-if(ENABLE_TESTS)
-find_package(CUnit)
-	if(CUNIT_FOUND)
-		check_library_exists(${CUNIT_LIBRARIES} "CU_add_suite" "" HAVE_CU_ADD_SUITE)
-		check_library_exists(${CUNIT_LIBRARIES} "CU_get_suite" "" HAVE_CU_GET_SUITE)
-		check_library_exists(${CUNIT_LIBRARIES} "CU_curses_run_tests" "" HAVE_CU_CURSES)
-	else()
-		message(WARNING "Could not find cunit framework, tests will not be compiled.")
-		set(ENABLE_TESTS OFF CACHE BOOL "Enable compilation of tests" FORCE)
-	endif()
-endif()
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(BcToolbox_FIND_COMPONENTS tester)
 	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 else()
-	find_package(BcToolbox REQUIRED)
+	find_package(BcToolbox REQUIRED OPTIONAL_COMPONENTS tester)
 endif()
 
 find_package(XML2)
@@ -107,15 +97,11 @@ endif()
 include_directories(
 	include
 	${CMAKE_CURRENT_BINARY_DIR}
-	${BCTOOLBOX_INCLUDE_DIRS}
+	${BCTOOLBOX_CORE_INCLUDE_DIRS}
 )
 
-set(LIBS ${BCTOOLBOX_LIBRARIES})
+set(LIBS ${BCTOOLBOX_CORE_LIBRARIES})
 
-if(CUNIT_FOUND)
-	include_directories(${CUNIT_INCLUDE_DIRS})
-	list(APPEND LIBS ${CUNIT_LIBRARIES})
-endif()
 if(XML2_FOUND)
 	include_directories(${XML2_INCLUDE_DIRS})
 	list(APPEND LIBS ${XML2_LIBRARIES})
@@ -134,7 +120,7 @@ endif()
 
 add_subdirectory(include)
 add_subdirectory(src)
-if(ENABLE_TESTS)
+if(ENABLE_TESTS AND BCTOOLBOX_TESTER_FOUND)
 	enable_testing()
 	add_subdirectory(test)
 endif()
