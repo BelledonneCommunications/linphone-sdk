@@ -321,11 +321,8 @@ endif()
 
 set(LIBS ${MEDIASTREAMER2_LIBRARIES})
 
-add_library(mswebrtc-objects OBJECT ${SOURCE_FILES})
-set_target_properties(mswebrtc-objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-
 if(ENABLE_STATIC)
-	add_library(mswebrtc-static STATIC $<TARGET_OBJECTS:mswebrtc-objects>)
+	add_library(mswebrtc-static STATIC ${SOURCE_FILES})
 	set_target_properties(mswebrtc-static PROPERTIES OUTPUT_NAME mswebrtc)
 	target_link_libraries(mswebrtc-static ${LIBS})
 	install(TARGETS mswebrtc-static
