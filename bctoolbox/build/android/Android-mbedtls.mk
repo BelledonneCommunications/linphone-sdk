@@ -5,7 +5,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE:= libbctoolbox
 
 LOCAL_SRC_FILES := \
-	crypto_mbedtls.c	
+	crypto/mbedtls.c	
 
 LOCAL_CFLAGS += -Wno-maybe-uninitialized
 
