@@ -35,22 +35,19 @@ if(LINPHONE_BUILDER_BUILD_DEPENDENCIES)
 		list(APPEND EP_bctoolbox_DEPENDENCIES EP_polarssl)
 	endif()
 endif()
+list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_TESTS=${ENABLE_UNIT_TESTS}")
+if(ENABLE_UNIT_TESTS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
+	list(APPEND EP_bctoolbox_DEPENDENCIES EP_cunit)
+endif()
+
 if(MSVC)
 	set(EP_bctoolbox_EXTRA_LDFLAGS "/SAFESEH:NO")
 endif()
-
-
 # TODO: Activate strict compilation options on IOS
 if(IOS)
 	list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_STRICT=NO")
 endif()
-list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_TESTS=${ENABLE_UNIT_TESTS}")
 
-#list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_TESTS=${ENABLE_UNIT_TESTS}")
-#if(ENABLE_UNIT_TESTS AND LINPHONE_BUILDER_BUILD_DEPENDENCIES)
-#	list(APPEND EP_bctoolbox_DEPENDENCIES EP_cunit)
-#endif()
-message("BC TOOLBOX BUILD METHOD=${EP_bctoolbox_BUILD_METHOD}")
 if(EP_bctoolbox_BUILD_METHOD STREQUAL "rpm")
 	set(EP_bctoolbox_SPEC_FILE "bctoolbox.spec")
 	set(EP_bctoolbox_CONFIGURE_COMMAND_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/builders/bctoolbox/configure.sh.rpm.cmake)
