@@ -16,6 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <bctoolbox/tester.h>
 
 #include <stdlib.h>
@@ -27,9 +31,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 #pragma GCC diagnostic ignored "-Wstrict-prototypes"
 
-#include "CUnit/Basic.h"
-#include "CUnit/Automated.h"
-#include "CUnit/MyMem.h"
+#include <CUnit/Basic.h>
+#include <CUnit/Automated.h>
+#include <CUnit/MyMem.h>
+#include <CUnit/Util.h>
 
 #if __clang__ || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
 #pragma GCC diagnostic pop
@@ -726,4 +731,12 @@ const char ** bc_tester_current_test_tags(void) {
 		return test_suite[suite_index]->tests[test_index].tags;
 	}
 	return NULL;
+}
+
+unsigned int bc_get_number_of_failures(void) {
+	return CU_get_number_of_failures();
+}
+
+void bc_set_trace_handler(void(*handler)(int, const char*, va_list)) {
+	CU_set_trace_handler(handler);
 }

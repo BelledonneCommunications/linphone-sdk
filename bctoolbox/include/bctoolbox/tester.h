@@ -109,6 +109,8 @@ char* bc_sprintfva(const char* format, va_list args);
 char* bc_sprintf(const char* format, ...);
 void bc_free(void *ptr);
 
+unsigned int bc_get_number_of_failures(void);
+void bc_set_trace_handler(void(*handler)(int, const char*, va_list));
 /**
  * Get full path to the given resource
  *
