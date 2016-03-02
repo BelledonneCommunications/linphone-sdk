@@ -42,9 +42,6 @@ if(ENABLE_WIDEBAND)
 	list(APPEND LIBS ${OPENCOREAMRWB_LIBRARIES} ${VOAMRWBENC_LIBRARIES})
 endif()
 
-add_library(msamr-objects OBJECT ${SOURCE_FILES})
-set_target_properties(msamr-objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-
 if(ENABLE_STATIC)
 	add_library(msamr-static STATIC ${SOURCE_FILES})
 	set_target_properties(msamr-static PROPERTIES OUTPUT_NAME msamr)
