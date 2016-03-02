@@ -363,8 +363,8 @@ static int h264_enc_get_config_list(MSFilter *f, const MSVideoConfiguration **co
 }
 
 static int h264_enc_set_config_list(MSFilter *f, const MSVideoConfiguration **conf_list) {
-	MSVideoConfiguration *conf = *conf_list;
-	((VTH264EncCtx *)f->data)->video_confs = conf_list ? conf_list : NULL;
+	const MSVideoConfiguration *conf = *conf_list;
+	((VTH264EncCtx *)f->data)->video_confs = conf ? conf : NULL;
 	return 0;
 }
 
@@ -553,7 +553,7 @@ static void h264_dec_init(MSFilter *f) {
 	ctx->pixbuf_allocator = ms_yuv_buf_allocator_new();
 	rfc3984_init(&ctx->unpacker);
 	ctx->vsize = MS_VIDEO_SIZE_UNKNOWN;
-	ms_average_fps_init(&ctx->fps, "VideoToolboxDecoder: decoding at %ffps");
+	ms_average_fps_init(&ctx->fps, "VideoToolboxDecoder: decoding at %ffps");
 	ctx->first_image = TRUE;
 	ctx->f = f;
 	f->data = ctx;
