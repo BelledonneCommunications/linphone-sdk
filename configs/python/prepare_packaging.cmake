@@ -62,7 +62,6 @@ file(COPY "${LINPHONE_SOURCE_DIR}/tester/images" DESTINATION "${OUTPUT_DIR}/linp
 file(COPY "${LINPHONE_SOURCE_DIR}/tester/rcfiles" DESTINATION "${OUTPUT_DIR}/linphone/unittests/")
 file(COPY "${LINPHONE_SOURCE_DIR}/tester/sounds" DESTINATION "${OUTPUT_DIR}/linphone/unittests/")
 file(COPY "${LINPHONE_SOURCE_DIR}/tester/tester_hosts" DESTINATION "${OUTPUT_DIR}/linphone/unittests/")
-file(COPY "${LINPHONE_SOURCE_DIR}/tester/common" DESTINATION "${OUTPUT_DIR}/linphone/unittests/")
 file(GLOB_RECURSE LINPHONE_DATA_FILES RELATIVE "${OUTPUT_DIR}/linphone" "${OUTPUT_DIR}/linphone/*")
 if(PACKAGE_TYPE STREQUAL "msi")
 	set(BUILD_VERSION ${LINPHONE_VERSION})
