@@ -85,9 +85,7 @@ if(ENABLE_TESTS)
 		check_symbol_exists("CU_set_trace_handler" "CUnit/Util.h" HAVE_CU_SET_TRACE_HANDLER)
 		cmake_pop_check_state()
 
-		get_filename_component(cunit_library_path "${CUNIT_LIBRARIES}" PATH)
-		set(TESTER_LIBS_PRIVATE "-L${cunit_library_path} -lcunit")
-
+		set(TESTER_REQUIRES_PRIVATE "cunit")
 	else()
 		message(WARNING "Could not find the cunit library!")
 	endif()
