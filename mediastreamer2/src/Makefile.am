@@ -126,6 +126,7 @@ endif
 if MS2_FILTERS
 libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					audiofilters/ulaw.c \
+					audiofilters/bv16.c \
 					audiofilters/dtmfgen.c \
 					audiofilters/g711.c audiofilters/g711.h \
 					audiofilters/msvolume.c \
@@ -386,7 +387,7 @@ AM_CPPFLAGS=\
 	-I$(top_srcdir)/src/audiofilters \
 	-I$(top_srcdir)/src/otherfilters \
 	-I$(top_srcdir)/src/videofilters \
-	$(ORTP_CFLAGS)   
+	$(ORTP_CFLAGS)
 
 AM_CFLAGS=\
 	$(STRICT_OPTIONS) \
