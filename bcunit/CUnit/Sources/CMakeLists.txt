@@ -122,6 +122,7 @@ if(ENABLE_BASIC)
 	CU_basic_run_tests
 	CU_basic_set_mode
 	CU_basic_show_failures
+	CU_set_trace_handler
 	")
 endif()
 if(ENABLE_AUTOMATED)
