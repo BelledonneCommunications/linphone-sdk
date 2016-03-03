@@ -21,7 +21,10 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
+
 project(bctoolbox VERSION 0.0.2 LANGUAGES C CXX)
+set(BCTOOLBOX_SO_VERSION 0)
+set(BCTOOLBOXTESTER_SO_VERSION 0)
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
