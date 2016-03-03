@@ -28,7 +28,7 @@ belle_sip_tester_CFLAGS=\
 	$(STRICT_OPTIONS_CC) \
 	$(TLS_CFLAGS)
 
-belle_sip_tester_LDFLAGS=$(BCTOOLBOXTESTER_LIBS) $(AM_LDFLAGS)
+belle_sip_tester_LDADD=$(BCTOOLBOXTESTER_LIBS)
 
 belle_sip_object_describe_SOURCES=describe.c
 
@@ -40,9 +40,9 @@ belle_sip_resolve_SOURCES=resolve.c
 
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
 
-LDADD=$(top_builddir)/src/libbellesip.la
+LDADD=$(top_builddir)/src/libbellesip.la $(TLS_LIBS)
 
-AM_LDFLAGS=-no-undefined -export-dynamic  $(TLS_LIBS)
+AM_LDFLAGS=-no-undefined -export-dynamic  
 if BUILD_APPLE
 AM_LDFLAGS+=-Wl,-rpath -Wl,$(prefix)/lib
 endif
