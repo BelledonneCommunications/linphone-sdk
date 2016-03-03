@@ -379,28 +379,6 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 
 }
 
-
-void bc_tester_helper(const char *name, const char* additionnal_helper) {
-	bc_tester_printf(bc_printf_verbosity_info,
-					 "%s --help\n"
-#ifdef HAVE_CU_CURSES
-					 "\t\t\t--curses\n"
-#endif
-					 "\t\t\t--list-suites\n"
-					 "\t\t\t--list-tests <suite>\n"
-					 "\t\t\t--suite <suite name>\n"
-					 "\t\t\t--test <test name>\n"
-					 "\t\t\t--resource-dir <folder path> (directory where tester resource are located)\n"
-					 "\t\t\t--writable-dir <folder path> (directory where temporary files should be created)\n"
-					 "\t\t\t--xml\n"
-					 "\t\t\t--xml-file <xml file name>\n"
-					 "\t\t\t--max-alloc <size in ko> (maximum ammount of memory obtained via malloc allocator)\n"
-					 "And additionally:\n"
-					 "%s",
-					 name,
-					 additionnal_helper);
-}
-
 #if !defined(BC_TESTER_WINDOWS_PHONE) && !defined(BC_TESTER_WINDOWS_UNIVERSAL) && !defined(__QNX__) && !defined(ANDROID) && !defined(IOS)
 static int file_exists(const char* root_path) {
 	char * res_path = bc_sprintf("%s/%s", root_path, expected_res);
@@ -506,6 +484,28 @@ void bc_tester_set_max_vm(long amax_vm_kb) {
 #else
 	bc_tester_printf(bc_printf_verbosity_error, "Maximum virtual memory space setting is only implemented on Linux.");
 #endif
+}
+
+void bc_tester_helper(const char *name, const char* additionnal_helper) {
+	bc_tester_printf(bc_printf_verbosity_info,
+					 "%s --help\n"
+#ifdef HAVE_CU_CURSES
+					 "\t\t\t--curses\n"
+#endif
+					 "\t\t\t--list-suites\n"
+					 "\t\t\t--list-tests <suite>\n"
+					 "\t\t\t--suite <suite name>\n"
+					 "\t\t\t--test <test name>\n"
+					 "\t\t\t--tag <tag name> (execute all tests with the given tag)\n"
+					 "\t\t\t--resource-dir <folder path> (directory where tester resource are located)\n"
+					 "\t\t\t--writable-dir <folder path> (directory where temporary files should be created)\n"
+					 "\t\t\t--xml\n"
+					 "\t\t\t--xml-file <xml file name>\n"
+					 "\t\t\t--max-alloc <size in ko> (maximum amount of memory obtained via malloc allocator)\n"
+					 "And additionally:\n"
+					 "%s",
+					 name,
+					 additionnal_helper);
 }
 
 int bc_tester_parse_args(int argc, char **argv, int argid)
