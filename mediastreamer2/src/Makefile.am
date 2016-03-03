@@ -219,6 +219,7 @@ endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
+libmediastreamer_voip_la_SOURCES+=	videofilters/videotoolbox.c
 
 noinst_LTLIBRARIES=libqtcapture_cocoa.la
 libqtcapture_cocoa_la_LIBTOOLFLAGS= --tag=CC
