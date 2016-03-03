@@ -5,7 +5,6 @@ src/audiofilters/alaw.c
 src/audiofilters/alsa.c
 src/audiofilters/aqsnd.c
 src/audiofilters/audiomixer.c
-src/audiofilters/bv16.c
 src/audiofilters/chanadapt.c
 src/audiofilters/dtmfgen.c
 src/audiofilters/equalizer.c
