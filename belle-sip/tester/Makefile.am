@@ -42,10 +42,8 @@ AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
 
 LDADD=$(top_builddir)/src/libbellesip.la $(TLS_LIBS)
 
-AM_LDFLAGS=-no-undefined -export-dynamic  
-if BUILD_APPLE
-AM_LDFLAGS+=-Wl,-rpath -Wl,$(prefix)/lib
-endif
+AM_LDFLAGS=-no-undefined -export-dynamic
+AM_LDFLAGS+=-Wl,-rpath -Wl,$(libdir)
 
 AM_CFLAGS=$(STRICT_OPTIONS) $(STRICT_OPTIONS_CC)
 

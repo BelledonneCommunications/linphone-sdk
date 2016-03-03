@@ -77,12 +77,12 @@ static void test_complex_contact_header(void) {
 	L_contact = belle_sip_header_contact_parse("Contact: super toto <sip:titi.com>;expires=3600; q=0.7");
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_contact));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_contact));
-	
+
 	L_contact = belle_sip_header_contact_parse(l_raw_header);
 	belle_sip_free(l_raw_header);
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname((belle_sip_header_address_t*)L_contact), "super toto");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_contact));
-	
+
 	BC_ASSERT_PTR_NULL(belle_sip_header_contact_parse("m:sip:titi.com, nimportequoi"));
 }
 
@@ -354,15 +354,15 @@ static void test_content_type_header(void) {
 	L_content_type = BELLE_SIP_HEADER_CONTENT_TYPE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
-	
+
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_content_type_get_type(L_content_type),"multipart");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_content_type_get_subtype(L_content_type),"related");
 	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_content_type),"type"),"application/rlmi+xml");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_type));
 
-	
-	
-	
+
+
+
 	BC_ASSERT_PTR_NULL(belle_sip_header_content_type_parse("nimportequoi"));
 }
 
@@ -407,7 +407,7 @@ static void test_route_header(void) {
 	belle_sip_header_address_t* address = belle_sip_header_address_parse("<sip:212.27.52.5:5060;transport=udp;lr>");
 	char* l_raw_header;
 	belle_sip_header_record_route_t* L_record_route;
-	
+
 	BC_ASSERT_PTR_NOT_NULL_FATAL(address);
 	L_route = belle_sip_header_route_create(address);
 	belle_sip_object_unref(address);
@@ -438,7 +438,7 @@ static void test_route_header(void) {
 	L_route=belle_sip_header_route_parse(l_raw_header);
 	BC_ASSERT_PTR_NOT_NULL(L_route);
 	if (L_route) belle_sip_object_unref(L_route);
-	
+
 	L_record_route = belle_sip_header_record_route_parse("Record-Route: <sip:212.27.52.5:5060;transport=udp;lr>;charset=ISO-8859-4, <sip:212.27.52.5:5060;transport=udp;lr>");
 	L_route = belle_sip_header_route_create(BELLE_SIP_HEADER_ADDRESS(L_record_route));
 	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_route));
@@ -810,8 +810,7 @@ static void test_very_long_address_header(void) {
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_uri_get_user(L_uri));
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "sip.linphone.org");
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "jehan");
-	printf("toto='%s'\n", belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_uri),"pn-tok"));
-		do {
+	do {
 		char format[512];
 		const char * cactual = (belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_uri),"pn-tok"));
 		const char * cexpected = ("APA91bHPVa4PuKOMnr6ppWb3XYUL06QO-ND4eeiw7dG49q4o_Ywzal7BxVRgH-wvqH9iB9V7h6kfb-DCiVdSpnl6CeWO25FAkM4eh6DJyWcbP7SzhKdku_-r9936kJW7-4drI6-Om4qp");
@@ -1049,11 +1048,11 @@ static void test_supported(const char* header_name, const char * header_value, c
 	L_tmp = belle_sip_header_supported_parse(l_raw_header);
 	L_supported = BELLE_SIP_HEADER_SUPPORTED(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
-	
+
 	belle_sip_free(l_raw_header);
-	
+
 	list = belle_sip_header_supported_get_supported(L_supported);
-	
+
 	for(i=0;i<number_values;i++){
 		BC_ASSERT_PTR_NOT_NULL(list);
 		if (list) {
@@ -1080,7 +1079,7 @@ static void test_content_disposition_header(void) {
 	L_content_disposition = BELLE_SIP_HEADER_CONTENT_DISPOSITION(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
-	
+
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_content_disposition_get_content_disposition(L_content_disposition), "form-data");
 	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_content_disposition), "name"), "\"File\"");
 	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_content_disposition), "filename"), "\"toto.jpeg\"");
@@ -1093,18 +1092,18 @@ static void test_accept_header(void) {
 	belle_sip_header_accept_t* L_tmp;
 	belle_sip_header_accept_t* L_accept = BELLE_SIP_HEADER_ACCEPT(belle_sip_header_create("Accept", "text/html; charset=ISO-8859-4"));
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_accept));
-	
+
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
 	L_tmp = belle_sip_header_accept_parse(l_raw_header);
 	L_accept = BELLE_SIP_HEADER_ACCEPT(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
-	
+
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_type(L_accept),"text");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_subtype(L_accept),"html");
 	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_accept),"charset"),"ISO-8859-4");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
-	
+
 	L_accept = belle_sip_header_accept_parse("Accept: application/sdp");
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_accept));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
@@ -1113,14 +1112,14 @@ static void test_accept_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_type(L_accept),"application");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_subtype(L_accept),"sdp");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
-	
+
 	L_accept = belle_sip_header_accept_parse("Accept: application/pkcs7-mime; smime-type=enveloped-data; \r\n name=smime.p7m");
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_accept));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
 	L_accept = belle_sip_header_accept_parse(l_raw_header);
 	belle_sip_free(l_raw_header);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
-	
+
 	L_accept = belle_sip_header_accept_parse("Accept: application/sdp, text/plain, application/vnd.gsma.rcs-ft-http+xml");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_type(L_accept),"application");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_subtype(L_accept),"sdp");
@@ -1131,7 +1130,7 @@ static void test_accept_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_type(L_tmp),"application");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_accept_get_subtype(L_tmp),"vnd.gsma.rcs-ft-http+xml");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_accept));
-	
+
 	BC_ASSERT_PTR_NULL(belle_sip_header_accept_parse("nimportequoi"));
 }
 
