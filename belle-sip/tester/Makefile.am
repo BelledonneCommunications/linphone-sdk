@@ -28,7 +28,7 @@ belle_sip_tester_CFLAGS=\
 	$(STRICT_OPTIONS_CC) \
 	$(TLS_CFLAGS)
 
-belle_sip_tester_LDADD=$(BCTOOLBOXTESTER_LIBS)
+belle_sip_tester_LDADD=$(top_builddir)/src/libbellesip.la $(TLS_LIBS) $(BCTOOLBOXTESTER_LIBS)
 
 belle_sip_object_describe_SOURCES=describe.c
 
@@ -42,8 +42,10 @@ AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
 
 LDADD=$(top_builddir)/src/libbellesip.la $(TLS_LIBS)
 
+
 AM_LDFLAGS=-no-undefined -export-dynamic
 AM_LDFLAGS+=-Wl,-rpath -Wl,$(libdir)
+
 
 AM_CFLAGS=$(STRICT_OPTIONS) $(STRICT_OPTIONS_CC)
 
