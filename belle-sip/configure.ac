@@ -333,6 +333,9 @@ fi
 LIBS_PRIVATE="$LIBS_PRIVATE $ANTLR_LIBS $POLARSSL_LIBS"
 AC_SUBST(LIBS_PRIVATE)
 
+REQUIRES_PRIVATE=""
+AC_SUBST(REQUIRES_PRIVATE)
+
 # Checks for typedefs, structures, and compiler characteristics.
 
 
