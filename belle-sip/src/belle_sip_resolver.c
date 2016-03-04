@@ -348,7 +348,7 @@ static belle_sip_dns_srv_t *srv_elect_one(belle_sip_list_t *srv_list){
 	rand_number=belle_sip_random() % sum; /*random number choosen in the range of the sum of weights*/
 	for(elem=srv_list;elem!=NULL;elem=elem->next){
 		srv=(belle_sip_dns_srv_t*)elem->data;
-		if (rand_number>=srv->cumulative_weight)
+		if (rand_number<=srv->cumulative_weight)
 			return srv;
 	}
 	return (belle_sip_dns_srv_t*)srv_list->data;
