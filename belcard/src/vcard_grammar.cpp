@@ -25,9 +25,9 @@ vcard = "BEGIN:VCARD" CRLF
 		"VERSION:4.0" CRLF
 		1*property
 		"END:VCARD" CRLF
-property = SOURCE / KIND / XML 
-			/ FN / N / NICKNAME / PHOTO / BDAY / ANNIVERSARY / GENDER 
-			/ ADR 
+property = SOURCE / KIND / XML
+			/ FN / N / NICKNAME / PHOTO / BDAY / ANNIVERSARY / GENDER
+			/ ADR
 			/ TEL / EMAIL / IMPP / LANG
 			/ TZ / GEO
 			/ TITLE / ROLE / LOGO / ORG / MEMBER / RELATED
@@ -36,7 +36,7 @@ property = SOURCE / KIND / XML
 			/ FBURL / CALADRURI / CALURI
 			/ BIRTHPLACE / DEATHPLACE / DEATHDATE
 			/ X-PROPERTY
-			
+
 X-PROPERTY = [group "."] X-PROPERTY-name *(";" X-PROPERTY-param) ":" X-PROPERTY-value CRLF
 X-PROPERTY-name = x-name
 X-PROPERTY-param = any-param
@@ -141,28 +141,28 @@ GEO-param = VALUE-param / PID-param / PREF-param / TYPE-param / MEDIATYPE-param 
 GEO-value = text / URI
 
 TITLE = [group "."] "TITLE" *(";" TITLE-param) ":" TITLE-value CRLF
-TITLE-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param 
+TITLE-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param
 			/ ALTID-param / TYPE-param / any-param
 TITLE-value = text
 
 ROLE = [group "."] "ROLE" *(";" ROLE-param) ":" ROLE-value CRLF
-ROLE-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param 
+ROLE-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param
 			/ TYPE-param / ALTID-param / any-param
 ROLE-value = text
 
 LOGO = [group "."] "LOGO" *(";" LOGO-param) ":" LOGO-value CRLF
-LOGO-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param 
+LOGO-param = VALUE-param / LANGUAGE-param / PID-param / PREF-param
 			/ TYPE-param / MEDIATYPE-param / ALTID-param / any-param
 LOGO-value = URI
 )==GRAMMAR=="
 R"==GRAMMAR==(
 ORG = [group "."] "ORG" *(";" ORG-param) ":" ORG-value CRLF
-ORG-param = VALUE-param / SORT-AS-param / LANGUAGE-param / PID-param 
+ORG-param = VALUE-param / SORT-AS-param / LANGUAGE-param / PID-param
 			/ PREF-param / ALTID-param / TYPE-param / any-param
 ORG-value = component *(";" component)
 
 MEMBER = [group "."] "MEMBER" *(";" MEMBER-param) ":" MEMBER-value CRLF
-MEMBER-param = VALUE-param / PID-param / PREF-param / ALTID-param 
+MEMBER-param = VALUE-param / PID-param / PREF-param / ALTID-param
 			/ MEDIATYPE-param / any-param
 MEMBER-value = URI
 
@@ -200,7 +200,7 @@ CLIENTPIDMAP-param = any-param
 CLIENTPIDMAP-value = 1*DIGIT ";" URI
 
 URL = [group "."] "URL" *(";" URL-param) ":" URL-value CRLF
-URL-param = VALUE-param / PID-param / PREF-param / TYPE-param 
+URL-param = VALUE-param / PID-param / PREF-param / TYPE-param
 			/ MEDIATYPE-param / ALTID-param / any-param
 URL-value = URI
 
@@ -209,17 +209,17 @@ KEY-param = VALUE-param / ALTID-param / PID-param / PREF-param / TYPE-param / an
 KEY-value = URI / text
 
 FBURL = [group "."] "FBURL" *(";" FBURL-param) ":" FBURL-value CRLF
-FBURL-param = VALUE-param / PID-param / PREF-param / TYPE-param 
+FBURL-param = VALUE-param / PID-param / PREF-param / TYPE-param
 			/ MEDIATYPE-param / ALTID-param / any-param
 FBURL-value = URI
 
 CALADRURI = [group "."] "CALADRURI" *(";" CALADRURI-param) ":" CALADRURI-value CRLF
-CALADRURI-param = VALUE-param / PID-param / PREF-param / TYPE-param 
+CALADRURI-param = VALUE-param / PID-param / PREF-param / TYPE-param
 				/ MEDIATYPE-param / ALTID-param / any-param
 CALADRURI-value = URI
 
 CALURI = [group "."] "CALURI" *(";" CALURI-param) ":" CALURI-value CRLF
-CALURI-param = VALUE-param / PID-param / PREF-param / TYPE-param 
+CALURI-param = VALUE-param / PID-param / PREF-param / TYPE-param
 			/ MEDIATYPE-param / ALTID-param / any-param
 CALURI-value = URI
 )==GRAMMAR=="
@@ -235,7 +235,7 @@ DEATHPLACE-value = text / URI
 DEATHDATE = [group "."] "DEATHDATE" *(";" DEATHDATE-param) ":" DEATHDATE-value CRLF
 DEATHDATE-param = VALUE-param / ALTID-param / LANGUAGE-param / any-param
 DEATHDATE-value = date-and-or-time / text
-     
+
 group = 1*(ALPHA / DIGIT / "-")
 
 LANGUAGE-param = "LANGUAGE=" LANGUAGE-param-value
@@ -255,7 +255,7 @@ VALUE-param-value = "text"
 					/ "utc-offset"
 					/ "language-tag"
 					/ x-name
-					
+
 PREF-param = "PREF=" PREF-param-value
 PREF-param-value = (1*2DIGIT / "100")
 
@@ -367,7 +367,7 @@ related-type-value = "contact" / "acquaintance" / "friend" / "met"
 					/ "agent" / "emergency"
 type-param-tel = "text" / "voice" / "fax" / "cell" / "video"
 				/ "pager" / "textphone" / iana-token / x-name
-				
+
 type-name = reg-name
 subtype-name = reg-name
 
@@ -452,11 +452,11 @@ reserved      = gen-delims / sub-delims
 gen-delims    = ":" / "/" / "?" / "#" / "[" / "]" / "@"
 sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
 				/ "*" / "+" / "," / ";" / "="
-				
+
 Language-Tag  = langtag             ; normal language tags
 			 / privateuse            ; private use tag
 			 / grandfathered         ; grandfathered tags
-               
+
 langtag       = language
 				["-" script]
 				["-" region]
