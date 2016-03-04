@@ -38,6 +38,26 @@ include(CheckCSourceCompiles)
 include(CMakePushCheckState)
 include(GNUInstallDirs)
 
+add_subdirectory(build)
+
+# Note for Gnu/Unix systems:
+# The library install director should ideally be set, according to GNUInstallDirs,
+# to ${CMAKE_INSTALL_LIBDIR} for libraries, which are OS specific.
+# HOWEVER autotools does not care about these specificities and ALWAYS sets them
+# to $(exec_prefix)/lib (cf https://www.gnu.org/prep/standards/html_node/Directory-Variables.html)
+# When using a custom prefix, we should follow the autotools guidelines because any project using pkg-config to find our library
+# will expect it to be in $(exec_prefix)/lib, and NOT in $(exec_prefix)/${CMAKE_INSTALL_LIBDIR} since
+# pkg-config does not let us introduce an -rpath settings to tell it where our library is located.
+# Conversely, when NOT using a custom prefix, we can properly install our library in ${CMAKE_INSTALL_LIBDIR}
+# because systems add extra locations for pkg-config to search in.
+if("${CPACK_GENERATOR}" STREQUAL "RPM" OR "${CPACK_GENERATOR}" STREQUAL "DEB")
+	# do nothing, we are using the "officials" install prefix
+else()
+	# force them to the default autotools values
+	message("Setting CMAKE_INSTALL_LIBDIR to ${CMAKE_INSTALL_PREFIX}/lib for non-package build")
+	set(CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
@@ -164,7 +184,6 @@ add_compile_options(${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 
 add_subdirectory(include)
 add_subdirectory(src)
-add_subdirectory(build)
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
