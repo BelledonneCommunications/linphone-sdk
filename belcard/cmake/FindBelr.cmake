@@ -31,9 +31,9 @@ set(_BELR_ROOT_PATHS
 )
 
 find_path(BELR_INCLUDE_DIRS
-	NAMES belr.hh
+	NAMES belr/belr.hh
 	HINTS _BELR_ROOT_PATHS
-	PATH_SUFFIXES include/belr
+	PATH_SUFFIXES include
 )
 
 if(BELR_INCLUDE_DIRS)
