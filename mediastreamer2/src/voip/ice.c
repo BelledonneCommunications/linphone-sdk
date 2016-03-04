@@ -216,6 +216,10 @@ static void ice_session_init(IceSession *session)
 	session->gathering_start_ts.tv_sec = session->gathering_start_ts.tv_nsec = -1;
 	session->gathering_end_ts.tv_sec = session->gathering_end_ts.tv_nsec = -1;
 	session->check_message_integrity=TRUE;
+	session->default_types[0] = ICT_RelayedCandidate;
+	session->default_types[1] = ICT_ServerReflexiveCandidate;
+	session->default_types[2] = ICT_HostCandidate;
+	session->default_types[2] = ICT_CandidateInvalid;
 }
 
 IceSession * ice_session_new(void)
@@ -245,6 +249,10 @@ void ice_session_destroy(IceSession *session)
 		if (session->remote_pwd) ms_free(session->remote_pwd);
 		ms_free(session);
 	}
+}
+
+void ice_session_set_default_candidates_types(IceSession *session, const IceCandidateType types[ICT_CandidateTypeMax]){
+	memcpy(session->default_types, types, sizeof(session->default_types));
 }
 
 void ice_session_enable_message_integrity_check(IceSession *session,bool_t enable) {
@@ -2554,20 +2562,16 @@ static void ice_choose_local_or_remote_default_candidates(IceCheckList *cl, MSLi
 {
 	Type_ComponentID tc;
 	MSList *l;
-	int i;
+	int i,k;
 
 	/* Choose the default candidate for each componentID as defined in 4.1.4. */
 	for (i = ICE_MIN_COMPONENTID; i <= ICE_MAX_COMPONENTID; i++) {
 		tc.componentID = i;
-		tc.type = ICT_RelayedCandidate;
-		l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
-		if (l == NULL) {
-			tc.type = ICT_ServerReflexiveCandidate;
+		l = NULL;
+		for(k = 0; k < ICT_CandidateTypeMax && cl->session->default_types[k] != ICT_CandidateInvalid; ++k){
+			tc.type = cl->session->default_types[k];
 			l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
-		}
-		if (l == NULL) {
-			tc.type = ICT_HostCandidate;
-			l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
+			if (l) break;
 		}
 		if (l != NULL) {
 			IceCandidate *candidate = (IceCandidate *)l->data;

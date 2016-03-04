@@ -54,10 +54,12 @@ typedef enum {
  * See the terminology in paragraph 3 of the RFC 5245 for more details.
  */
 typedef enum {
+	ICT_CandidateInvalid = -1,
 	ICT_HostCandidate,
 	ICT_ServerReflexiveCandidate,
 	ICT_PeerReflexiveCandidate,
-	ICT_RelayedCandidate
+	ICT_RelayedCandidate,
+	ICT_CandidateTypeMax
 } IceCandidateType;
 
 /**
@@ -115,6 +117,7 @@ typedef struct _IceSession {
 	socklen_t ss_len;	/**< Length of the STUN server address to use for the candidates gathering process */
 	MSTimeSpec gathering_start_ts;
 	MSTimeSpec gathering_end_ts;
+	IceCandidateType default_types[ICT_CandidateTypeMax];
 	bool_t check_message_integrity; /*set to false for backward compatibility only*/
 	bool_t send_event;	/**< Boolean value telling whether an event must be sent or not */
 	uint8_t max_connectivity_checks;	/**< Configuration parameter to limit the number of connectivity checks performed by the agent (default is 100) */
@@ -249,6 +252,14 @@ extern "C"{
  */
 MS2_PUBLIC IceSession * ice_session_new(void);
 
+
+/**
+ * Set the prefered type for default candidates, as defined in rfc5245#section-4.1.4.
+ * The type table can be terminated by the ICT_CandidateInvalid element, may it contain less elements
+ * than the number of types available.
+ **/
+MS2_PUBLIC void ice_session_set_default_candidates_types(IceSession *session,
+					const IceCandidateType types[ICT_CandidateTypeMax]);
 /**
  * Destroy a previously allocated ICE session.
  *
