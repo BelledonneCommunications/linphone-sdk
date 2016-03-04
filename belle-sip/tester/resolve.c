@@ -56,12 +56,12 @@ int main(int argc, char *argv[]){
 	}
 	domain=argv[1];
 	for (i=2;i<argc;i++){
-		if (strcmp(argv[2],"--debug")==0){
+		if (strcmp(argv[i],"--debug")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
 		}else if (strstr(argv[i],"--")!=argv[i]) transport=argv[i];
 	}
 	stack=belle_sip_stack_new(NULL);
-	printf("Tying to resolve domain '%s', with transport hint '%s'\n",domain,transport);
+	printf("Trying to resolve domain '%s', with transport hint '%s'\n",domain,transport);
 	belle_sip_stack_resolve(stack,transport,domain,5060,AF_INET6,resolver_callback,NULL);
 	belle_sip_stack_main(stack);
 	belle_sip_object_unref(stack);
