@@ -17,15 +17,17 @@
 */
 
 #include "belcard/belcard_utils.hpp"
+#include <string.h>
 
 using namespace::std;
 
 string belcard_fold(string input) {
 	size_t crlf = 0;
 	size_t next_crlf = 0;
+	const char *endline = "\r\n";
 	
 	while (next_crlf != string::npos) {
-		next_crlf = input.find("\r\n", crlf);
+		next_crlf = input.find(endline, crlf);
 		if (next_crlf != string::npos) {
 			if (next_crlf - crlf > 75) {
 				input.insert(crlf + 74, "\r\n ");
@@ -40,16 +42,22 @@ string belcard_fold(string input) {
 }
 
 string belcard_unfold(string input) {
-	size_t crlf = input.find("\r\n");
+	const char *endline = "\r\n";
+	size_t crlf = input.find(endline);
+	
+	if (crlf == string::npos) {
+		endline = "\n";
+		crlf = input.find(endline);
+	}
 	
 	while (crlf != string::npos) {
-		if (isspace(input[crlf + 2])) {
-			input.erase(crlf, 3);
+		if (isspace(input[crlf + strlen(endline)])) {
+			input.erase(crlf, strlen(endline) + 1);
 		} else {
-			crlf += 2;
+			crlf += strlen(endline);
 		}
 		
-		crlf = input.find("\r\n", crlf);
+		crlf = input.find(endline, crlf);
 	}
 	
 	return input;

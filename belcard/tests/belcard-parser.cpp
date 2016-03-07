@@ -45,7 +45,11 @@ int main(int argc, char *argv[]) {
 	shared_ptr<BelCardList> belCards = parser.parseFile(file);
 	auto t_end_2 = std::chrono::high_resolution_clock::now();
 	
-	cout << *belCards << endl;
+	if (belCards) {
+		cout << *belCards << endl;
+	} else {
+		cerr << "Failure: couldn't parse input file " << file << endl;
+	}
 	cout << "Parser initialized in " << std::chrono::duration<double, std::milli>(t_end - t_start).count() << " milliseconds" << endl;
 	cout << "Parsing done in " << std::chrono::duration<double, std::milli>(t_end_2 - t_start_2).count() << " milliseconds" << endl;
 	
