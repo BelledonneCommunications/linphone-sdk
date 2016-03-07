@@ -19,6 +19,12 @@
 #ifndef BCTOOLBOX_TESTER_H
 #define BCTOOLBOX_TESTER_H
 
+#if defined(_MSC_VER)
+#define BCTOOLBOX_PUBLIC	__declspec(dllexport)
+#else
+#define BCTOOLBOX_PUBLIC
+#endif
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -79,45 +85,45 @@ fprintf(stderr, "Missing argument for \"%s\"\n", argument);   \
 return -1;                                                    \
 }                                                             \
 
-void bc_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args)
-					, int verbosity_info, int verbosity_error, const char* expected_res);
-void bc_tester_helper(const char *name, const char* additionnal_helper);
-int bc_tester_parse_args(int argc, char** argv, int argid);
-int bc_tester_start(const char* prog_name);
-void bc_tester_add_suite(test_suite_t *suite);
-void bc_tester_uninit(void);
-void bc_tester_printf(int level, const char *fmt, ...);
-const char * bc_tester_get_resource_dir_prefix(void);
-void bc_tester_set_resource_dir_prefix(const char *name);
-const char * bc_tester_get_writable_dir_prefix(void);
-void bc_tester_set_writable_dir_prefix(const char *name);
+BCTOOLBOX_PUBLIC void bc_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args)
+									, int verbosity_info, int verbosity_error, const char* expected_res);
+BCTOOLBOX_PUBLIC void bc_tester_helper(const char *name, const char* additionnal_helper);
+BCTOOLBOX_PUBLIC int bc_tester_parse_args(int argc, char** argv, int argid);
+BCTOOLBOX_PUBLIC int bc_tester_start(const char* prog_name);
+BCTOOLBOX_PUBLIC void bc_tester_add_suite(test_suite_t *suite);
+BCTOOLBOX_PUBLIC void bc_tester_uninit(void);
+BCTOOLBOX_PUBLIC void bc_tester_printf(int level, const char *fmt, ...);
+BCTOOLBOX_PUBLIC const char * bc_tester_get_resource_dir_prefix(void);
+BCTOOLBOX_PUBLIC void bc_tester_set_resource_dir_prefix(const char *name);
+BCTOOLBOX_PUBLIC const char * bc_tester_get_writable_dir_prefix(void);
+BCTOOLBOX_PUBLIC void bc_tester_set_writable_dir_prefix(const char *name);
 
-int bc_tester_nb_suites(void);
-int bc_tester_nb_tests(const char* name);
-void bc_tester_list_suites(void);
-void bc_tester_list_tests(const char *suite_name);
-const char * bc_tester_suite_name(int suite_index);
-const char * bc_tester_test_name(const char *suite_name, int test_index);
-int bc_tester_run_suite(test_suite_t *suite, const char *tag_name);
-int bc_tester_run_tests(const char *suite_name, const char *test_name, const char *tag_name);
-int bc_tester_suite_index(const char *suite_name);
-const char * bc_tester_current_suite_name(void);
-const char * bc_tester_current_test_name(void);
-const char ** bc_tester_current_test_tags(void);
+BCTOOLBOX_PUBLIC int bc_tester_nb_suites(void);
+BCTOOLBOX_PUBLIC int bc_tester_nb_tests(const char* name);
+BCTOOLBOX_PUBLIC void bc_tester_list_suites(void);
+BCTOOLBOX_PUBLIC void bc_tester_list_tests(const char *suite_name);
+BCTOOLBOX_PUBLIC const char * bc_tester_suite_name(int suite_index);
+BCTOOLBOX_PUBLIC const char * bc_tester_test_name(const char *suite_name, int test_index);
+BCTOOLBOX_PUBLIC int bc_tester_run_suite(test_suite_t *suite, const char *tag_name);
+BCTOOLBOX_PUBLIC int bc_tester_run_tests(const char *suite_name, const char *test_name, const char *tag_name);
+BCTOOLBOX_PUBLIC int bc_tester_suite_index(const char *suite_name);
+BCTOOLBOX_PUBLIC const char * bc_tester_current_suite_name(void);
+BCTOOLBOX_PUBLIC const char * bc_tester_current_test_name(void);
+BCTOOLBOX_PUBLIC const char ** bc_tester_current_test_tags(void);
 
-char* bc_sprintfva(const char* format, va_list args);
-char* bc_sprintf(const char* format, ...);
-void bc_free(void *ptr);
+BCTOOLBOX_PUBLIC char* bc_sprintfva(const char* format, va_list args);
+BCTOOLBOX_PUBLIC char* bc_sprintf(const char* format, ...);
+BCTOOLBOX_PUBLIC void bc_free(void *ptr);
 
-unsigned int bc_get_number_of_failures(void);
-void bc_set_trace_handler(void(*handler)(int, const char*, va_list));
+BCTOOLBOX_PUBLIC unsigned int bc_get_number_of_failures(void);
+BCTOOLBOX_PUBLIC void bc_set_trace_handler(void(*handler)(int, const char*, va_list));
 /**
  * Get full path to the given resource
  *
  * @param name relative resource path
  * @return path to the resource. Must be freed by caller.
 */
-char * bc_tester_res(const char *name);
+BCTOOLBOX_PUBLIC char * bc_tester_res(const char *name);
 
 /**
 * Get full path to the given writable_file
@@ -125,7 +131,7 @@ char * bc_tester_res(const char *name);
 * @param name relative writable file path
 * @return path to the writable file. Must be freed by caller.
 */
-char * bc_tester_file(const char *name);
+BCTOOLBOX_PUBLIC char * bc_tester_file(const char *name);
 
 
 /*Redefine the CU_... macros WITHOUT final ';' semicolon, to allow IF conditions and smarter error message */
@@ -136,13 +142,7 @@ extern int CU_assertImplementation(int bValue,
                                       const char *strFunction,
                                       int bFatal);
 
-#ifdef _WIN32
-#define BC_INLINE __inline
-#else
-#define BC_INLINE inline
-#endif
-
-int _BC_ASSERT(const char* file, int line, int predicate, const char* format, int fatal);
+BCTOOLBOX_PUBLIC int bc_assert(const char* file, int line, int predicate, const char* format, int fatal);
 
 #define _BC_ASSERT_PRED(name, pred, actual, expected, type, fatal, ...) \
 	do { \
@@ -150,19 +150,19 @@ int _BC_ASSERT(const char* file, int line, int predicate, const char* format, in
 		type cactual = (actual); \
 		type cexpected = (expected); \
 		snprintf(format, 4096, name "(" #actual ", " #expected ") - " __VA_ARGS__); \
-		_BC_ASSERT(__FILE__, __LINE__, pred, format, fatal); \
+		bc_assert(__FILE__, __LINE__, pred, format, fatal); \
 	} while (0)
 
-#define BC_PASS(msg) _BC_ASSERT(__FILE__, __LINE__, TRUE, "BC_PASS(" #msg ").", FALSE)
-#define BC_FAIL(msg) _BC_ASSERT(__FILE__, __LINE__, FALSE, "BC_FAIL(" #msg ").", FALSE)
-#define BC_ASSERT(value) _BC_ASSERT(__FILE__, __LINE__, (value), #value, FALSE)
-#define BC_ASSERT_FATAL(value) _BC_ASSERT(__FILE__, __LINE__, (value), #value, TRUE)
-#define BC_TEST(value) _BC_ASSERT(__FILE__, __LINE__, (value), #value, FALSE)
-#define BC_TEST_FATAL(value) _BC_ASSERT(__FILE__, __LINE__, (value), #value, TRUE)
-#define BC_ASSERT_TRUE(value) _BC_ASSERT(__FILE__, __LINE__, (value), ("BC_ASSERT_TRUE(" #value ")"), FALSE)
-#define BC_ASSERT_TRUE_FATAL(value) _BC_ASSERT(__FILE__, __LINE__, (value), ("BC_ASSERT_TRUE_FATAL(" #value ")"), TRUE)
-#define BC_ASSERT_FALSE(value) _BC_ASSERT(__FILE__, __LINE__, !(value), ("BC_ASSERT_FALSE(" #value ")"), FALSE)
-#define BC_ASSERT_FALSE_FATAL(value) _BC_ASSERT(__FILE__, __LINE__, !(value), ("BC_ASSERT_FALSE_FATAL(" #value ")"), TRUE)
+#define BC_PASS(msg) bc_assert(__FILE__, __LINE__, TRUE, "BC_PASS(" #msg ").", FALSE)
+#define BC_FAIL(msg) bc_assert(__FILE__, __LINE__, FALSE, "BC_FAIL(" #msg ").", FALSE)
+#define BC_ASSERT(value) bc_assert(__FILE__, __LINE__, (value), #value, FALSE)
+#define BC_ASSERT_FATAL(value) bc_assert(__FILE__, __LINE__, (value), #value, TRUE)
+#define BC_TEST(value) bc_assert(__FILE__, __LINE__, (value), #value, FALSE)
+#define BC_TEST_FATAL(value) bc_assert(__FILE__, __LINE__, (value), #value, TRUE)
+#define BC_ASSERT_TRUE(value) bc_assert(__FILE__, __LINE__, (value), ("BC_ASSERT_TRUE(" #value ")"), FALSE)
+#define BC_ASSERT_TRUE_FATAL(value) bc_assert(__FILE__, __LINE__, (value), ("BC_ASSERT_TRUE_FATAL(" #value ")"), TRUE)
+#define BC_ASSERT_FALSE(value) bc_assert(__FILE__, __LINE__, !(value), ("BC_ASSERT_FALSE(" #value ")"), FALSE)
+#define BC_ASSERT_FALSE_FATAL(value) bc_assert(__FILE__, __LINE__, !(value), ("BC_ASSERT_FALSE_FATAL(" #value ")"), TRUE)
 #define BC_ASSERT_EQUAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_EQUAL", ((cactual) == (cexpected)), actual, expected, type, FALSE, "Expected " type_format " but was " type_format ".", cexpected, cactual)
 #define BC_ASSERT_EQUAL_FATAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_EQUAL_FATAL", ((cactual) == (cexpected)), actual, expected, type, TRUE, "Expected " type_format " but was " type_format ".", cexpected, cactual)
 #define BC_ASSERT_NOT_EQUAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_NOT_EQUAL", ((cactual) != (cexpected)), actual, expected, type, FALSE, "Expected NOT " type_format " but it was.", cexpected)
@@ -187,10 +187,8 @@ int _BC_ASSERT(const char* file, int line, int predicate, const char* format, in
 #define BC_ASSERT_DOUBLE_EQUAL_FATAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_EQUAL_FATAL", ((fabs((double)(cactual) - (cexpected)) <= fabs((double)(granularity)))), actual, expected, double, TRUE, "Expected %f but was %f.", cexpected, cactual)
 #define BC_ASSERT_DOUBLE_NOT_EQUAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_NOT_EQUAL", ((fabs((double)(cactual) - (cexpected)) > fabs((double)(granularity)))), actual, expected, double, FALSE, "Expected %f but was %f.", cexpected, cactual)
 #define BC_ASSERT_DOUBLE_NOT_EQUAL_FATAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_NOT_EQUAL_FATAL", ((fabs((double)(cactual) - (cexpected)) > fabs((double)(granularity)))), actual, expected, double, TRUE, "Expected %f but was %f.", cexpected, cactual)
-
-/*Custom defines*/
-#define BC_ASSERT_GREATER(actual, lower, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_GREATER", ((cactual) >= (cexpected)), actual, lower, type, FALSE, "Expected at least " type_format " but was " type_format ".", cexpected, cactual)
-#define BC_ASSERT_LOWER(actual, lower, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_LOWER", ((cactual) <= (cexpected)), actual, lower, type, FALSE, "Expected at most " type_format " but was " type_format ".", cexpected, cactual)
+#define BC_ASSERT_GREATER(actual, min, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_GREATER", ((cactual) >= (cexpected)), actual, min, type, FALSE, "Expected at least " type_format " but was " type_format ".", cexpected, cactual)
+#define BC_ASSERT_LOWER(actual, max, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_LOWER", ((cactual) <= (cexpected)), actual, max, type, FALSE, "Expected at most " type_format " but was " type_format ".", cexpected, cactual)
 
 #ifdef __cplusplus
 }
