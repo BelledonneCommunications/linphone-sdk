@@ -31,10 +31,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 #pragma GCC diagnostic ignored "-Wstrict-prototypes"
 
+#ifndef IN_CUNIT_SOURCES
 #include <CUnit/Basic.h>
 #include <CUnit/Automated.h>
 #include <CUnit/MyMem.h>
 #include <CUnit/Util.h>
+#else
+#include "Basic.h"
+#include "Automated.h"
+#include "MyMem.h"
+#include "Util.h"
+#endif
 
 #if __clang__ || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
 #pragma GCC diagnostic pop
