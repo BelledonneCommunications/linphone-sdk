@@ -364,7 +364,8 @@ static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 static void sound_read_setup(MSFilter *f){
 	ms_debug("andsnd_read_preprocess");
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
-	jmethodID constructor_id=0;
+	jmethodID constructor_id=0, methodID = 0;
+	int audio_record_state=0;
 	jmethodID min_buff_size_id;
 	//jmethodID set_notification_period;
 	int rc;
@@ -422,12 +423,25 @@ static void sound_read_setup(MSFilter *f){
 			,2/*  ENCODING_PCM_16BIT */
 			,d->buff_size);
 
-
-	d->audio_record = jni_env->NewGlobalRef(d->audio_record);
-	if (d->audio_record == 0) {
-		ms_error("cannot instantiate AudioRecord");
+	//Check the state of the AudioRecord (uninitialized = 1
+	methodID = jni_env->GetMethodID(d->audio_record_class,"getState", "()I");
+	if (methodID == 0) {
+		ms_error("cannot find AudioRecord getState() method");
 		return;
 	}
+	audio_record_state = jni_env->CallIntMethod(d->audio_record, methodID);
+
+	if(audio_record_state == 1) {
+		d->audio_record = jni_env->NewGlobalRef(d->audio_record);
+		if (d->audio_record == 0) {
+			ms_error("cannot instantiate AudioRecord");
+			return;
+		}
+	} else {
+		d->audio_record = NULL;
+		ms_error("AudioRecord is not initialized properly. It may be caused by RECORD_AUDIO permission not granted");
+	}
+
 	d->min_avail=-1;
 	d->read_samples=0;
 	d->ticker_synchronizer = ms_ticker_synchronizer_new();
@@ -436,10 +450,12 @@ static void sound_read_setup(MSFilter *f){
 	d->framesize=(d->outgran_ms*d->rate)/1000;
 	d->started=true;
 	// start reader thread
-	rc = ms_thread_create(&d->thread_id, 0, (void*(*)(void*))msandroid_read_cb, d);
-	if (rc){
-		ms_error("cannot create read thread return code  is [%i]", rc);
-		d->started=false;
+	if(d->audio_record) {
+		rc = ms_thread_create(&d->thread_id, 0, (void*(*)(void*))msandroid_read_cb, d);
+		if (rc){
+			ms_error("cannot create read thread return code  is [%i]", rc);
+			d->started=false;
+        }
 	}
 }
 
