@@ -39,7 +39,7 @@ static int tester_before_all(void) {
 	_factory = ms_factory_new();
 	ms_factory_init_voip(_factory);
 	ms_factory_init_plugins(_factory);
-	
+
 	//ms_filter_enable_statistics(TRUE);
 	ms_factory_enable_statistics(_factory, TRUE);
 	ortp_init();
@@ -155,8 +155,7 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 	reset_stats(&marielle_stats);
 	reset_stats(&margaux_stats);
 
-	//rtp_profile_set_payload (profile,0,&payload_type_pcmu8000);
-	rtp_profile_set_payload (profile,127,&payload_type_bv16);
+	rtp_profile_set_payload (profile,0,&payload_type_pcmu8000);
 
 	BC_ASSERT_EQUAL(audio_stream_start_full(margaux
 											, profile

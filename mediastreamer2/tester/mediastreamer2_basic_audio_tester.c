@@ -54,10 +54,10 @@ static void dtmfgen_tonedet(void) {
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
 	bool_t send_silence = TRUE;
 
-	
+
 //	ms_filter_reset_statistics();
 	ms_factory_reset_statistics(factory);
-	
+
 	ms_tester_create_ticker();
 	ms_tester_create_filters(filter_mask, factory);
 	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
@@ -93,11 +93,11 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels, 
 	bool_t send_silence = TRUE;
 	MSSndCardManager *scm = ms_factory_get_snd_card_manager(factory);
 	ms_factory_reset_statistics(scm->factory);
-	
+
 	if (!fileplay){
 		filter_mask= FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
 		| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
-		
+
 	}else{
 		filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
 		| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_SOUNDWRITE;
@@ -121,16 +121,16 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels, 
 	ms_filter_call_method(ms_tester_decoder, MS_FILTER_SET_NCHANNELS, &nchannels);
 	ms_filter_call_method(ms_tester_tonedet, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_tonedet, MS_FILTER_SET_NCHANNELS, &nchannels);
-	
+
 	if (!fileplay){
 		ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 		ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_NCHANNELS, &nchannels);
 	}else{
-	
+
 	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_NCHANNELS, &nchannels);
 	}
-	
+
 	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_voidsource, -1, 0);
@@ -143,12 +143,12 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels, 
 	}else{
 		ms_connection_helper_link(&h, ms_tester_soundwrite, 0, -1);
 
-		
+
 	}
 	ms_ticker_attach(ms_tester_ticker, ms_tester_voidsource);
-	
+
 	ms_tester_tone_generation_and_detection_loop();
-	
+
 	ms_ticker_detach(ms_tester_ticker, ms_tester_voidsource);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_unlink(&h, ms_tester_voidsource, -1, 0);
@@ -173,25 +173,25 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels, 
 
 static void dtmfgen_enc_dec_tonedet_filerec_fileplay(char *mime, int sample_rate, int nchannels) {
 	MSConnectionHelper h;
-	
+
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
 	| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK |  FILTER_MASK_SOUNDREAD | FILTER_MASK_FILEREC | FILTER_MASK_FILEPLAY | FILTER_MASK_SOUNDWRITE;
 	bool_t send_silence = TRUE;
-	
+
 	int capture_sample_rate = 8000;
 	int playback_sample_rate = 8000;
 	int capture_nchannels = 1;
 	int playback_nchannels = 1;
 	char *writable_filename = bc_tester_file(SOUNDREAD_FILE_NAME);
-	
+
 	MSSndCardManager *scm = ms_factory_get_snd_card_manager(factory);
 	ms_factory_reset_statistics(scm->factory);
-	
+
 	//ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_codec_mime = mime;
 	ms_tester_create_filters(filter_mask, scm->factory);
-	
+
 	// Write audio capture to a file
 	ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_SAMPLE_RATE, &capture_sample_rate);
 	ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_NCHANNELS, &capture_nchannels);
@@ -205,7 +205,7 @@ static void dtmfgen_enc_dec_tonedet_filerec_fileplay(char *mime, int sample_rate
 	ms_connection_helper_link(&h, ms_tester_filerec, 0, -1);
 	ms_ticker_attach(ms_tester_ticker, ms_tester_soundread);
 
-	
+
 	/* set sample rate and channel number to all filters (might need to check the return value to insert a resampler if needed?) */
 	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_NCHANNELS, &nchannels);
@@ -220,8 +220,8 @@ static void dtmfgen_enc_dec_tonedet_filerec_fileplay(char *mime, int sample_rate
 	ms_filter_call_method(ms_tester_tonedet, MS_FILTER_SET_NCHANNELS, &nchannels);
 	ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_NCHANNELS, &nchannels);
-	
-	
+
+
 	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_voidsource, -1, 0);
@@ -231,15 +231,15 @@ static void dtmfgen_enc_dec_tonedet_filerec_fileplay(char *mime, int sample_rate
 	ms_connection_helper_link(&h, ms_tester_tonedet, 0, 0);
 	ms_connection_helper_link(&h, ms_tester_voidsink, 0, -1);
 	ms_ticker_attach(ms_tester_ticker, ms_tester_voidsource);
-	
+
 	ms_tester_tone_generation_and_detection_loop();
-	
+
 	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_CLOSE);
 	ms_ticker_detach(ms_tester_ticker, ms_tester_soundread);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_unlink(&h, ms_tester_soundread, -1, 0);
 	ms_connection_helper_unlink(&h, ms_tester_filerec, 0, -1);
-	
+
 	// Read the previous file and play it
 	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_SAMPLE_RATE, &playback_sample_rate);
 	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_NCHANNELS, &playback_nchannels);
@@ -270,16 +270,18 @@ static void dtmfgen_enc_dec_tonedet_filerec_fileplay(char *mime, int sample_rate
 
 
 static void dtmfgen_enc_dec_tonedet_pcmu(void) {
-	dtmfgen_enc_dec_tonedet("pcmu", 8000, 1, FALSE);
+	if (ms_factory_codec_supported(factory, "pcmu")) {
+		dtmfgen_enc_dec_tonedet("pcmu", 8000, 1, FALSE);
+	}
 }
 
 static void dtmfgen_enc_dec_tonedet_bv16(void) {
-	dtmfgen_enc_dec_tonedet("bv16", 8000, 1, TRUE);
+	if (ms_factory_codec_supported(factory, "bv16")) {
+		dtmfgen_enc_dec_tonedet("bv16", 8000, 1, TRUE);
+	}
 }
 static void dtmfgen_enc_dec_tonedet_isac(void) {
-	bool_t supported = ms_factory_codec_supported(factory, "iSAC");
-//	bool_t supported = ms_filter_codec_supported("iSAC");
-	if( supported ) {
+	if (ms_factory_codec_supported(factory, "iSAC")) {
 		dtmfgen_enc_dec_tonedet("iSAC", 16000, 1,FALSE);
 	}
 }
@@ -298,7 +300,7 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	bool_t send_silence = TRUE;
 	MSSndCardManager *scm = ms_factory_get_snd_card_manager(factory);
 	ms_factory_reset_statistics(factory);
-	
+
 	//ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_codec_mime = "pcmu";
@@ -353,7 +355,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	bool_t send_silence = TRUE;
 	char* recorded_file = bc_tester_file(DTMFGEN_FILE_NAME);
 
-	
+
 	ms_factory_reset_statistics(factory);
 	ms_tester_create_ticker();
 	ms_tester_create_filters(filter_mask, factory);
