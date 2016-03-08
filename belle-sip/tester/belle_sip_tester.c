@@ -113,7 +113,7 @@ void belle_sip_tester_uninit(void) {
 
 	// show all leaks that happened during the test
 	if (all_leaks_buffer) {
-		bc_tester_printf(bc_printf_verbosity_info, all_leaks_buffer);
+		bc_tester_printf(BELLE_SIP_LOG_MESSAGE, all_leaks_buffer);
 		belle_sip_free(all_leaks_buffer);
 	}
 
@@ -133,7 +133,7 @@ int belle_sip_tester_after_each() {
 										bc_tester_current_suite_name(), bc_tester_current_test_name());
 		belle_sip_object_dump_active_objects();
 		belle_sip_object_flush_active_objects();
-		bc_tester_printf(bc_printf_verbosity_info, format);
+		bc_tester_printf(BELLE_SIP_LOG_MESSAGE, format);
 		belle_sip_error("%s", format);
 
 		all_leaks_buffer = all_leaks_buffer ? belle_sip_strcat_printf(all_leaks_buffer, "\n%s", format) : belle_sip_strdup_printf("\n%s", format);
