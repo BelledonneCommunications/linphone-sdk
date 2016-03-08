@@ -19,13 +19,9 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
-if(APPLE)
-	cmake_minimum_required(VERSION 3.0)
-elseif(NOT APPLE)
-	cmake_minimum_required(VERSION 2.8.12)
-endif()
 
-cmake_policy(SET CMP0048 NEW)
+cmake_minimum_required(VERSION 3.0)
+
 
 project(bctoolbox VERSION 0.0.2 LANGUAGES C CXX)
 set(BCTOOLBOX_SO_VERSION 0)
