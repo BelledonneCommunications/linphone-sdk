@@ -62,8 +62,7 @@ typedef struct {
 
 typedef struct {
 	const char *name; /*suite name*/
-	pre_post_function_t
-		before_all; /*function invoked before running the suite. If not returning 0, suite is not launched. */
+	pre_post_function_t before_all; /*function invoked before running the suite. If not returning 0, suite is not launched. */
 	pre_post_function_t after_all; /*function invoked at the end of the suite, even if some tests failed. */
 	test_function_t before_each;   /*function invoked before each test within this suite. */
 	pre_post_function_t after_each;	/*function invoked after each test within this suite, even if it failed. */

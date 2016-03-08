@@ -26,6 +26,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <time.h>
 #include <stdio.h>
 
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
 #if __clang__ || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
 #pragma GCC diagnostic push
 #endif
@@ -94,12 +98,16 @@ char * tag_name = NULL;
 char * expected_res = NULL;
 static long max_vm_kb = 0;
 
-void (*tester_printf_va)(int level, const char *format, va_list args);
+static void (*tester_printf_va)(int level, const char *format, va_list args)=NULL;
 
 void bc_tester_printf(int level, const char *format, ...) {
 	va_list args;
 	va_start (args, format);
-	tester_printf_va(level, format, args);
+	if (tester_printf_va) {
+		tester_printf_va(level, format, args);
+	}else{
+		vfprintf(stderr, format, args);
+	}
 	va_end (args);
 }
 
@@ -389,19 +397,16 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 #if !defined(BC_TESTER_WINDOWS_PHONE) && !defined(BC_TESTER_WINDOWS_UNIVERSAL) && !defined(__QNX__) && !defined(ANDROID) && !defined(IOS)
 static int file_exists(const char* root_path) {
 	char * res_path = bc_sprintf("%s/%s", root_path, expected_res);
-	FILE* file = fopen(res_path, "r");
-	int found = (file != NULL);
+	int err = access(res_path, F_OK);
 	free(res_path);
-	if (file) {
-		fclose(file);
-	}
-	return found;
+	return err == 0;
 }
 #endif
 
 static void detect_res_prefix(const char* prog) {
 	char* progpath = NULL;
 	FILE* writable_file = NULL;
+	
 
 	if (prog != NULL) {
 		progpath = strdup(prog);
