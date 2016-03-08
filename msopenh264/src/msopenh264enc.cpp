@@ -117,7 +117,7 @@ void MSOpenH264Encoder::initialize()
 			params.iMultipleThreadIdc =ms_factory_get_cpu_count(mFilter->factory);
 			params.bEnableDenoise = false;
 			params.bEnableBackgroundDetection = true;
-			params.bEnableAdaptiveQuant = true;
+			params.bEnableAdaptiveQuant = false;
 			params.bEnableSceneChangeDetect = false;
 			params.bEnableLongTermReference  = false;
 			params.iSpatialLayerNum=1;
