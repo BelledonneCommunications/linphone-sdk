@@ -397,7 +397,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 #if !defined(BC_TESTER_WINDOWS_PHONE) && !defined(BC_TESTER_WINDOWS_UNIVERSAL) && !defined(__QNX__) && !defined(ANDROID) && !defined(IOS)
 static int file_exists(const char* root_path) {
 	char * res_path = bc_sprintf("%s/%s", root_path, expected_res);
-	int err = access(res_path, F_OK);
+	int err = access(res_path, 0);
 	free(res_path);
 	return err == 0;
 }
@@ -406,7 +406,7 @@ static int file_exists(const char* root_path) {
 static void detect_res_prefix(const char* prog) {
 	char* progpath = NULL;
 	FILE* writable_file = NULL;
-	
+
 
 	if (prog != NULL) {
 		progpath = strdup(prog);
