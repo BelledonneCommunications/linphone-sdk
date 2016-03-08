@@ -40,8 +40,8 @@
 #endif
 #endif
 
-extern int bc_printf_verbosity_info;
-extern int bc_printf_verbosity_error;
+BCTOOLBOX_PUBLIC extern int bc_printf_verbosity_info;
+BCTOOLBOX_PUBLIC extern int bc_printf_verbosity_error;
 
 typedef void (*test_function_t)(void);
 /** Function used in all suites - it is invoked before all and each tests and also after each and all tests
