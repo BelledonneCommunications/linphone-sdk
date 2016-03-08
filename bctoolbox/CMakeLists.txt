@@ -25,6 +25,8 @@ elseif(NOT APPLE)
 	cmake_minimum_required(VERSION 2.8.12)
 endif()
 
+cmake_policy(SET CMP0048 NEW)
+
 project(bctoolbox VERSION 0.0.2 LANGUAGES C CXX)
 set(BCTOOLBOX_SO_VERSION 0)
 set(BCTOOLBOXTESTER_SO_VERSION 0)
