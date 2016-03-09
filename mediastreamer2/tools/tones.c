@@ -44,14 +44,14 @@ int main(int argc, char *argv[]){
 	factory = ms_factory_new();
 	ms_factory_init_voip(factory);
 	ms_factory_init_plugins(factory);
-	
+
 	ortp_set_log_level_mask (ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 
 	src=ms_factory_create_filter(factory,MS_FILE_PLAYER_ID);
 	rec=ms_factory_create_filter(factory,MS_FILE_REC_ID);
 	gen=ms_factory_create_filter(factory,MS_DTMF_GEN_ID);
 	det=ms_factory_create_filter(factory,MS_TONE_DETECTOR_ID);
-	
+
 	ms_filter_link(src,0,gen,0);
 	ms_filter_link(gen,0,det,0);
 	//ms_filter_link(gen,0,rec,0);
@@ -68,25 +68,25 @@ int main(int argc, char *argv[]){
 		MSDtmfGenCustomTone tone;
 		MSToneDetectorDef expected_tone;
 		char dtmf='*';
-		
+
 		memset(&tone,0,sizeof(tone));
 		memset(&expected_tone,0,sizeof(expected_tone));
-		
+
 		tone.frequencies[0]=2000;
 		tone.duration=400;
-		tone.amplitude=0.6;
+		tone.amplitude=0.6f;
 
 		expected_tone.frequency=2000;
 		expected_tone.min_duration=200;
 		expected_tone.min_amplitude=0.5;
 		ms_filter_add_notify_callback(det,(MSFilterNotifyFunc)tone_detected_cb,NULL,TRUE);
 		ms_filter_add_notify_callback(gen,(MSFilterNotifyFunc)tone_sent_cb,NULL,TRUE);
-		
+
 		ms_filter_call_method(det,MS_TONE_DETECTOR_ADD_SCAN,&expected_tone);
 
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY,&dtmf);
 		ms_sleep(1);
-		
+
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
 		ms_sleep(1);
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]){
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
 		ms_sleep(1);
 		tone.frequencies[0]=1500;
-		tone.amplitude=1.0;
+		tone.amplitude=1.0f;
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
 		ms_sleep(1);
 	}
