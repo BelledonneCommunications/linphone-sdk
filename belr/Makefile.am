@@ -1,1 +1,1 @@
-SUBDIRS=src tests include
+SUBDIRS=src include tools

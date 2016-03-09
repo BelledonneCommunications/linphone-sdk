@@ -105,6 +105,7 @@ endif()
 
 add_subdirectory(include)
 add_subdirectory(src)
+add_subdirectory(tools)
 
 include(CMakePackageConfigHelpers)
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
