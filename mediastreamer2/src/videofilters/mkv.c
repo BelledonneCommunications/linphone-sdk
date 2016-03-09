@@ -324,6 +324,7 @@ static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKe
 	nalus_to_frame(nalus, &frame, &spsList, &ppsList, isKeyFrame);
 	if(spsList != NULL || ppsList != NULL) {
 		H264Private *codecPrivateStruct = H264Private_new(spsList, ppsList);
+		ms_message("MKVRecorder: Received H264 SPS [%p] or PPS [%p]", spsList, ppsList);
 		if(obj->codecPrivate == NULL) {
 			obj->codecPrivate = codecPrivateStruct;
 		} else {
@@ -395,7 +396,11 @@ static void h264_module_reverse(MSFactory* factory, void *data, mblk_t *input, M
 
 static void h264_module_get_private_data(const void *o, uint8_t **data, size_t *data_size) {
 	const H264Module *obj = (const H264Module *)o;
-	H264Private_serialize(obj->codecPrivate, data, data_size);
+	if (obj->codecPrivate == NULL) {
+		ms_warning("MKVRecorder: No H264 private data available");
+	} else {
+		H264Private_serialize(obj->codecPrivate, data, data_size);
+	}
 }
 
 static void h264_module_load_private_data(void *o, const uint8_t *data, size_t size) {
@@ -2059,7 +2064,7 @@ static int recorder_close(MSFilter *f, void *arg) {
 		if(obj->inputDescsList[i] != NULL) {
 			if(matroska_track_check_block_presence(&obj->file, i + 1)) {
 				uint8_t *codecPrivateData = NULL;
-				size_t codecPrivateDataSize;
+				size_t codecPrivateDataSize = 0;
 				module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
 				matroska_track_set_info(&obj->file, i + 1, obj->inputDescsList[i]);
 				if(codecPrivateDataSize > 0) {
