@@ -4,17 +4,17 @@
  @author Johan Pascal
 
  @copyright Copyright (C) 2014 Belledonne Communications, Grenoble, France
- 
+
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
  as published by the Free Software Foundation; either version 2
  of the License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -52,7 +52,7 @@ typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 #include "packetParser.h"
 #include "stateMachine.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #define snprintf _snprintf
 #endif
 
@@ -117,7 +117,7 @@ typedef struct cachedSecretsHash_struct {
  *
  */
 struct bzrtpChannelContext_struct {
-	
+
 	void *clientData; /**< this is a pointer provided by the client which is then resent as a parameter of the callbacks functions. Usefull to store RTP session context for example */
 
 	uint8_t role;/**< can be INITIATOR or RESPONDER, is set to INITIATOR at creation, may switch to responder later */
@@ -179,7 +179,7 @@ struct bzrtpChannelContext_struct {
 };
 
 /**
- * @brief structure of the ZRTP engine context 
+ * @brief structure of the ZRTP engine context
  * Store current state, timers, HMAC and encryption keys
 */
 struct bzrtpContext_struct {
@@ -210,7 +210,7 @@ struct bzrtpContext_struct {
 	uint8_t supportedKeyAgreement[7]; /**< list of supported key agreement algorithms mapped to uint8_t */
 	uint8_t sc; /**< sas count - set to 0 means we support only base32 (4 bits) */
 	uint8_t supportedSas[7]; /**< list of supported Sas representations mapped to uint8_t */
-	
+
 	/* ZIDs and cache */
 #ifdef HAVE_LIBXML2
 	xmlDocPtr cacheBuffer; /**< cache file is load in this buffer to be parsed/written */
