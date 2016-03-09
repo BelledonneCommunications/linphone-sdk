@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideopresets.h"
 
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
+#if defined(_WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
 #ifdef MEDIASTREAMER2_INTERNAL_EXPORTS
 #define MEDIASTREAMER2_INTERNAL_EXPORT __declspec(dllexport)
 #define MEDIASTREAMER2_INTERNAL_VAR_EXPORT __declspec(dllexport)

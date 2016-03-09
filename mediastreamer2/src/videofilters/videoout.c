@@ -73,7 +73,7 @@ int ms_display_poll_event(MSDisplay *d, MSDisplayEvent *ev);
 
 extern MSDisplayDesc ms_sdl_display_desc;
 
-#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(MEDIASTREAMER_STATIC)
+#if (defined(_WIN32) || defined(_WIN32_WCE)) && !defined(MEDIASTREAMER_STATIC)
 #if defined(MEDIASTREAMER2_EXPORTS) && defined(INVIDEOUT_C)
    #define MSVAR_DECLSPEC    __declspec(dllexport)
 #else

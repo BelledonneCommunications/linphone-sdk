@@ -19,7 +19,7 @@
 */
 
 
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(_WIN32) || defined(_WIN32_WCE)
 #include "ortp-config-win32.h"
 #elif HAVE_CONFIG_H
 #include "ortp-config.h"
@@ -370,7 +370,7 @@ char * WSAAPI gai_strerror(int errnum){
 
 #endif
 
-#ifndef WIN32
+#ifndef _WIN32
 
 #include <sys/socket.h>
 #include <netdb.h>
@@ -473,7 +473,7 @@ void ortp_shm_close(void *mem){
 
 #endif
 
-#elif defined(WIN32) && !defined(_WIN32_WCE)
+#elif defined(_WIN32) && !defined(_WIN32_WCE)
 
 static char *make_pipe_name(const char *name){
 	return ortp_strdup_printf("\\\\.\\pipe\\%s",name);
@@ -581,16 +581,16 @@ void *ortp_shm_open(unsigned int keyid, int size, int create){
 	if (create){
 		h = CreateFileMapping(
 			INVALID_HANDLE_VALUE,    // use paging file
-			NULL,                    // default security 
+			NULL,                    // default security
 			PAGE_READWRITE,          // read/write access
-			0,                       // maximum object size (high-order DWORD) 
-			size,                // maximum object size (low-order DWORD)  
+			0,                       // maximum object size (high-order DWORD)
+			size,                // maximum object size (low-order DWORD)
 			name);                 // name of mapping object
 	}else{
 		h = OpenFileMapping(
 			FILE_MAP_ALL_ACCESS,   // read/write access
 			FALSE,                 // do not inherit the name
-			name);               // name of mapping object 
+			name);               // name of mapping object
 	}
 	if (h==(HANDLE)-1) {
 		ortp_error("Fail to open file mapping (create=%i)",create);
@@ -598,8 +598,8 @@ void *ortp_shm_open(unsigned int keyid, int size, int create){
 	}
 	buf = (LPTSTR) MapViewOfFile(h, // handle to map object
 		FILE_MAP_ALL_ACCESS,  // read/write permission
-		0,                    
-		0,                    
+		0,
+		0,
 		size);
 	if (buf!=NULL){
 		MapInfo *i=(MapInfo*)ortp_new(MapInfo,1);
@@ -638,7 +638,7 @@ void ortp_shm_close(void *mem){
 #endif
 
 void ortp_get_cur_time(ortpTimeSpec *ret){
-#if defined(_WIN32_WCE) || defined(WIN32)
+#if defined(_WIN32_WCE) || defined(_WIN32)
 	DWORD timemillis;
 #	if defined(_WIN32_WCE)
 	timemillis=GetTickCount();

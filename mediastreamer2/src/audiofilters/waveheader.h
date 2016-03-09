@@ -25,9 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #	include <io.h>
-#	ifndef R_OK 
+#	ifndef R_OK
 #		define R_OK 0x2
 #	endif
 #	ifndef W_OK
@@ -51,13 +51,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #	define close _close
 #	define access _access
 #	define lseek _lseek
-#else /*WIN32*/
+#else /*_WIN32*/
 
 #	ifndef O_BINARY
 #	define O_BINARY 0
 #	endif
 
-#endif /*!WIN32*/
+#endif /*!_WIN32*/
 
 #ifdef swap16
 #else
@@ -72,7 +72,7 @@ static MS2_INLINE uint16_t swap16(uint16_t a)
 #else
 static MS2_INLINE uint32_t swap32(uint32_t a)
 {
-	return ((a & 0xFF) << 24) | ((a & 0xFF00) << 8) | 
+	return ((a & 0xFF) << 24) | ((a & 0xFF00) << 8) |
 		((a & 0xFF0000) >> 8) | ((a & 0xFF000000) >> 24);
 }
 #endif
@@ -120,7 +120,7 @@ typedef struct _wave_header_t
 	data_t data_chunk;
 } wave_header_t;
 
-#ifndef WIN32
+#ifndef _WIN32
 #define WAVE_FORMAT_PCM			0x0001
 #define WAVE_FORMAT_IEEE_FLOAT	0x0003
 #define WAVE_FORMAT_ALAW		0x0006
@@ -133,7 +133,7 @@ typedef struct _wave_header_t
 #define wave_header_get_channel(header)		le_uint16((header)->format_chunk.channel)
 #define wave_header_get_bpsmpl(header) \
 	le_uint16((header)->format_chunk.blockalign)
-	
+
 int ms_read_wav_header_from_fd(wave_header_t *header,int fd);
 
 #endif

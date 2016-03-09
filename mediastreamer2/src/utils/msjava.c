@@ -1,6 +1,6 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2010  Belledonne Communications SARL 
+Copyright (C) 2010  Belledonne Communications SARL
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static JavaVM *ms2_vm=NULL;
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <pthread.h>
 
 static pthread_key_t jnienv_key;
@@ -33,7 +33,7 @@ static pthread_key_t jnienv_key;
 **/
 void _android_key_cleanup(void *data){
 	JNIEnv* env=(JNIEnv*)pthread_getspecific(jnienv_key);
-	
+
 	if (env != NULL) {
 		ms_message("Thread end, detaching jvm from current thread");
 		(*ms2_vm)->DetachCurrentThread(ms2_vm);
@@ -46,7 +46,7 @@ void _android_key_cleanup(void *data){
 
 void ms_set_jvm(JavaVM *vm){
 	ms2_vm=vm;
-#ifndef WIN32
+#ifndef _WIN32
 	pthread_key_create(&jnienv_key,_android_key_cleanup);
 #endif
 }
@@ -60,7 +60,7 @@ JNIEnv *ms_get_jni_env(void){
 	if (ms2_vm==NULL){
 		ms_fatal("Calling ms_get_jni_env() while no jvm has been set using ms_set_jvm().");
 	}else{
-#ifndef WIN32
+#ifndef _WIN32
 		env=(JNIEnv*)pthread_getspecific(jnienv_key);
 		if (env==NULL){
 			if ((*ms2_vm)->AttachCurrentThread(ms2_vm,&env,NULL)!=0){

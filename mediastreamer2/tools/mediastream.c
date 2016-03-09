@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ctype.h>
 #include <signal.h>
 #include <sys/types.h>
-#ifndef WIN32
+#ifndef _WIN32
 #include <unistd.h>
 #include <poll.h>
 #else
@@ -734,7 +734,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	if (args->mtu) ms_factory_set_mtu(factory, args->mtu);
 	ms_factory_enable_statistics(factory, TRUE);
 	ms_factory_reset_statistics(factory);
-	
+
 	args->ice_session=ice_session_new();
 	ice_session_set_remote_credentials(args->ice_session,"1234","1234567890abcdef123456");
 	// ICE local credentials are assigned when creating the ICE session, but force them here to simplify testing
@@ -865,7 +865,7 @@ void setup_media_streams(MediastreamDatas* args) {
 				params.zid_file=args->zrtp_secrets;
 				audio_stream_enable_zrtp(args->audio,&params);
 			}
-			
+
 
 			args->session=args->audio->ms.sessions.rtp_session;
 		}
@@ -926,7 +926,7 @@ void setup_media_streams(MediastreamDatas* args) {
 			cam=ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(factory),args->camera);
 		if (cam==NULL)
 			cam=ms_web_cam_manager_get_default_cam(ms_factory_get_web_cam_manager(factory));
-		
+
 		if (args->infile){
 			iodef.input.type = MSResourceFile;
 			iodef.input.file = args->infile;
@@ -976,7 +976,7 @@ void setup_media_streams(MediastreamDatas* args) {
 
 
 static void mediastream_tool_iterate(MediastreamDatas* args) {
-#ifndef WIN32
+#ifndef _WIN32
 	struct pollfd pfd;
 	int err;
 
@@ -1109,7 +1109,7 @@ void clear_mediastreams(MediastreamDatas* args) {
 
 	if (args->logfile)
 		fclose(args->logfile);
-	
+
 	ms_factory_destroy(args->video->ms.factory);
 }
 

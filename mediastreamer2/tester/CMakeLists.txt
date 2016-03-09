@@ -34,8 +34,6 @@ set(SOURCE_FILES_C
 )
 set(SOURCE_FILES_OBJC )
 
-add_definitions(-DBC_CONFIG_FILE="mediastreamer-config.h")
-
 if(ENABLE_VIDEO)
 	list(APPEND SOURCE_FILES_C mediastreamer2_video_stream_tester.c)
 endif()

@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ctype.h>
 #include <signal.h>
 #include <sys/types.h>
-#ifndef WIN32
+#ifndef _WIN32
 #include <unistd.h>
 #else
 #include <malloc.h>
@@ -204,7 +204,7 @@ static void setup_media_streams(MediastreamDatas *args)
 {
 	MSConnectionHelper h;
 	MSTickerParams params = {0};
-	
+
 	/*create the rtp session */
 	ortp_init();
 	if (args->is_verbose) {
@@ -344,7 +344,7 @@ static void run_non_interactive_loop(MediastreamDatas *args)
 	while (cond) {
 		int n;
 		for (n = 0; n < 100; ++n) {
-#ifdef WIN32
+#ifdef _WIN32
 			MSG msg;
 			Sleep(10);
 			while (PeekMessage(&msg, NULL, 0, 0, 1)) {

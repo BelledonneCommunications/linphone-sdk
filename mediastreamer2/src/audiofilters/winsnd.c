@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <malloc.h> /* for alloca */
 #endif
 
@@ -143,7 +143,7 @@ WaveInCallback (HWAVEIN waveindev, UINT uMsg, DWORD dwInstance, DWORD dwParam1,
     {
       case MM_WOM_DONE:
         wHdr = (WAVEHDR *) dwParam1;
-        /* A waveform-audio data block has been played and 
+        /* A waveform-audio data block has been played and
            can now be freed. */
         ms_message("WaveInCallback : MM_WOM_DONE");
         waveInUnprepareHeader (waveindev, (LPWAVEHDR) wHdr, sizeof (WAVEHDR));
@@ -232,7 +232,7 @@ static int winsnd_open(WinSndData *device, int devnumber, int bits,int stereo, i
 	device->wfx.nChannels = channel;
 	device->wfx.nSamplesPerSec = rate; /* 8000; */
 	device->wfx.wBitsPerSample = bits;
-	
+
 
     dwFlag = CALLBACK_FUNCTION;
     if (devnumber != WAVE_MAPPER)
@@ -303,7 +303,7 @@ static int winsnd_open(WinSndData *device, int devnumber, int bits,int stereo, i
     {
         memset (&(device->waveouthdr[i]), 0, sizeof (device->waveouthdr[i]));
         device->waveouthdr[i].lpData = device->waveoutbuffer[i];
-        /* BUG: on ne connait pas la taille des frames a recevoir... 
+        /* BUG: on ne connait pas la taille des frames a recevoir...
         on utilise enc_frame_per_packet au lien de dec_frame_per_packet */
 
         device->waveouthdr[i].dwBufferLength = device->rate/8000 * WINSND_BUFLEN;
@@ -353,7 +353,7 @@ static int winsnd_open(WinSndData *device, int devnumber, int bits,int stereo, i
         device->waveinhdr[i].dwBufferLength = device->rate/8000 * WINSND_BUFLEN;
         device->waveinhdr[i].dwFlags = 0;
         device->waveinhdr[i].dwUser = i;
-        mr = waveInPrepareHeader (device->waveindev, &(device->waveinhdr[i]),             
+        mr = waveInPrepareHeader (device->waveindev, &(device->waveinhdr[i]),
             sizeof (device->waveinhdr[i]));
         if (mr == MMSYSERR_NOERROR){
             mr = waveInAddBuffer (device->waveindev, &(device->waveinhdr[i]),
@@ -478,7 +478,7 @@ static void winsnd_set_source(MSSndCard *card, MSSndCardCapture source)
 		break;
 		case MS_SND_CARD_LINE:
 		break;
-	}	
+	}
 }
 
 static void winsnd_init(MSSndCard *card){

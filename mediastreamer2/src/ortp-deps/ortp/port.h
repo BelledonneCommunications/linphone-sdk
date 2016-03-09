@@ -22,7 +22,7 @@
 #define ORTP_PORT_H
 
 
-#if !defined(WIN32) && !defined(_WIN32_WCE)
+#if !defined(_WIN32) && !defined(_WIN32_WCE)
 /********************************/
 /* definitions for UNIX flavour */
 /********************************/
@@ -113,7 +113,7 @@ int __ortp_thread_create(pthread_t *thread, pthread_attr_t *attr, void * (*routi
 
 #else
 /*********************************/
-/* definitions for WIN32 flavour */
+/* definitions for _WIN32 flavour */
 /*********************************/
 
 #include <stdio.h>
@@ -283,7 +283,7 @@ ORTP_PUBLIC void ortp_get_cur_time(ortpTimeSpec *ret);
 
 /* portable named pipes  and shared memory*/
 #if !defined(_WIN32_WCE)
-#ifdef WIN32
+#ifdef _WIN32
 typedef HANDLE ortp_pipe_t;
 #define ORTP_PIPE_INVALID INVALID_HANDLE_VALUE
 #else
@@ -318,7 +318,7 @@ ORTP_PUBLIC void ortp_shm_close(void *memory);
 #endif
 
 
-#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(ORTP_STATIC)
+#if (defined(_WIN32) || defined(_WIN32_WCE)) && !defined(ORTP_STATIC)
 #ifdef ORTP_EXPORTS
    #define VAR_DECLSPEC    __declspec(dllexport)
 #else

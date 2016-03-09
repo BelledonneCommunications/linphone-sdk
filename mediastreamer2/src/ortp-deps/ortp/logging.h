@@ -55,7 +55,7 @@ ORTP_PUBLIC extern unsigned int __ortp_log_mask;
 
 #define ortp_log_level_enabled(level)	(__ortp_log_mask & (level))
 
-#if !defined(WIN32) && !defined(_WIN32_WCE)
+#if !defined(_WIN32) && !defined(_WIN32_WCE)
 #define ortp_logv(level,fmt,args) \
 {\
 	if (ortp_logv_out!=NULL && ortp_log_level_enabled(level)) \

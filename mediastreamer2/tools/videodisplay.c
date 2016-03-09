@@ -43,7 +43,7 @@ int main(int argc, char *argv[]){
 	ortp_init();
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	//ms_init();
-	
+
 	factory = ms_factory_new();
 	ms_factory_init_voip(factory);
 	ms_factory_init_plugins(factory);
@@ -56,13 +56,13 @@ int main(int argc, char *argv[]){
 	for(i=0;i<1;++i){
 		int n;
 		vs=video_preview_new(factory);
-	
+
 		/*video_preview_set_display_filter_name(vs,"MSVideoOut");*/
 		video_preview_set_size(vs,vsize);
 		video_preview_start(vs, cam);
 
         for(n=0;n<60000 && !stopped;++n){
-#ifdef WIN32
+#ifdef _WIN32
 			MSG msg;
 			Sleep(100);
 			while (PeekMessage(&msg, NULL, 0, 0,1)){
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]){
 			    ms_filter_link(vs->pixconv,0,vs->tee,0);
 			    ms_filter_link(vs->tee,0,vs->output2,0);
 			    ms_filter_link(vs->tee,1,vs->output2,1);
-			    
+
 			    //ms_filter_unlink(vs->tee,0,vs->output,0);
 			    ms_ticker_attach (vs->ms.sessions.ticker, vs->source);
 
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]){
 
 			    ms_filter_link(vs->pixconv,0, vs->output2,0);
 
-			    
+
 			    ms_ticker_attach (vs->ms.sessions.ticker, vs->source);
 			  }
 		}
