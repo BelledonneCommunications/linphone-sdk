@@ -84,7 +84,7 @@
 #	endif
 #endif
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
+#if defined(_WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
 #ifdef BELLESIP_INTERNAL_EXPORTS
 #define BELLESIP_INTERNAL_EXPORT __declspec(dllexport)
 #else

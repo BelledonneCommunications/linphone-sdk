@@ -22,7 +22,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#if WIN32
+#ifdef _WIN32
 #define strcasecmp _stricmp
 #else
 #include <unistd.h>

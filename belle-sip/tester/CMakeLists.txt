@@ -39,8 +39,6 @@ set(TESTER_SOURCES
 	register_tester.h
 )
 
-add_definitions(-DBC_CONFIG_FILE="config.h")
-
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 apply_compile_flags(TESTER_SOURCES "CPP" "C")
 
