@@ -151,6 +151,7 @@ MSVideoPresetConfiguration * ms_video_presets_manager_find_preset_configuration(
 		int nb = video_preset_configuration_match(vpc, ms_factory_get_platform_tags(manager->factory), codec_tags);
 		if (nb > best_nb) {
 			best_vpc = vpc;
+			best_nb = nb;
 		}
 		elem = elem->next;
 	}
