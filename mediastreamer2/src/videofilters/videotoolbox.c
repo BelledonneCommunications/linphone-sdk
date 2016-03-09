@@ -183,7 +183,7 @@ static void h264_enc_process(MSFilter *f) {
 		return;
 	}
 
-#if TARGET_OS_IPHONE
+#if 0 && TARGET_OS_IPHONE
 	CVPixelBufferPoolRef pixbuf_pool = VTCompressionSessionGetPixelBufferPool(ctx->session);
 	if(pixbuf_pool == NULL) {
 		ms_error("VideoToolbox: fails to get the pixel buffer pool");
@@ -201,7 +201,7 @@ static void h264_enc_process(MSFilter *f) {
 
 		ms_yuv_buf_init_from_mblk(&src_yuv_frame, frame);
 
-#if TARGET_OS_IPHONE
+#if 0 && TARGET_OS_IPHONE
 		CVPixelBufferPoolCreatePixelBuffer(NULL, pixbuf_pool, &pixbuf);
 #else
 		pixbuf_attr = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
@@ -546,6 +546,15 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 	return TRUE;
 }
 
+static void h264_dec_uninit_decoder(VTH264DecCtx *ctx) {
+	ms_message("VideoToolboxDecoder: uninitializing decoder");
+	VTDecompressionSessionInvalidate(ctx->session);
+	CFRelease(ctx->session);
+	CFRelease(ctx->format_desc);
+	ctx->session = NULL;
+	ctx->format_desc = NULL;
+}
+
 static void h264_dec_init(MSFilter *f) {
 	VTH264DecCtx *ctx = ms_new0(VTH264DecCtx, 1);
 	ms_queue_init(&ctx->queue);
@@ -655,8 +664,11 @@ static void h264_dec_process(MSFilter *f) {
 		status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
 		CFRelease(sample);
 		if(status != noErr) {
-			ms_error("VideoToolboxDecoder: error while passing encoded frames to the decoder: %d", status);
 			CFRelease(stream);
+			ms_error("VideoToolboxDecoder: error while passing encoded frames to the decoder: %d", status);
+			if(status == kVTInvalidSessionErr) {
+				h264_dec_uninit_decoder(ctx);
+			}
 			goto fail;
 		}
 	}
@@ -704,13 +716,7 @@ static void h264_dec_uninit(MSFilter *f) {
 	VTH264DecCtx *ctx = (VTH264DecCtx *)f->data;
 
 	rfc3984_uninit(&ctx->unpacker);
-	if(ctx->session) {
-		VTDecompressionSessionInvalidate(ctx->session);
-		CFRelease(ctx->session);
-		CFRelease(ctx->format_desc);
-		ctx->session = NULL;
-		ctx->format_desc = NULL;
-	}
+	if(ctx->session) h264_dec_uninit_decoder(ctx);
 	ms_queue_flush(&ctx->queue);
 
 	ms_mutex_destroy(&ctx->mutex);
