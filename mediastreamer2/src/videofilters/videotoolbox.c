@@ -784,7 +784,10 @@ MSFilterDesc ms_vt_h264_dec = {
 };
 
 void _register_videotoolbox_if_supported(MSFactory *factory) {
-	if (VTCompressionSessionCreate != NULL) {
+	if (VTCompressionSessionCreate
+		&& VTDecompressionSessionCreate
+		&& CMVideoFormatDescriptionCreateFromH264ParameterSets) {
+		
 		ms_factory_register_filter(factory, &ms_vt_h264_enc);
 		ms_factory_register_filter(factory, &ms_vt_h264_dec);
 	}
