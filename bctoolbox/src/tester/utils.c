@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <time.h>
 #include <stdio.h>
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <unistd.h>
 #endif
 
@@ -604,7 +604,7 @@ void bc_tester_add_suite(test_suite_t *suite) {
 void bc_tester_uninit(void) {
 	/* Redisplay list of failed tests on end */
 	/*BUG: do not display list of failures on mingw, it crashes mysteriously*/
-#if !defined(WIN32) && !defined(_MSC_VER)
+#if !defined(_WIN32) && !defined(_MSC_VER)
 	/* Redisplay list of failed tests on end */
 	if (CU_get_number_of_failure_records()){
 		CU_basic_show_failures(CU_get_failure_list());
@@ -678,7 +678,7 @@ char* bc_sprintfva(const char* format, va_list args) {
 	/* Guess we need no more than 100 bytes. */
 	int n, size = 200;
 	char *p,*np;
-#ifndef WIN32
+#ifndef _WIN32
 	va_list cap;/*copy of our argument list: a va_list cannot be re-used (SIGSEGV on linux 64 bits)*/
 #endif
 	if ((p = malloc(size)) == NULL)
@@ -686,7 +686,7 @@ char* bc_sprintfva(const char* format, va_list args) {
 	while (1)
 	{
 		/* Try to print in the allocated space. */
-#ifndef WIN32
+#ifndef _WIN32
 		va_copy(cap,args);
 		n = vsnprintf (p, size, format, cap);
 		va_end(cap);
