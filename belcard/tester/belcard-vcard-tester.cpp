@@ -16,10 +16,11 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
 #include "belcard/belcard_parser.hpp"
 #include "belcard/belcard_utils.hpp"
-#include "common/bc_tester_utils.h"
 
+#include <bctoolbox/tester.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -33,7 +34,7 @@ static string openFile(const char *name) {
 	if (!istr.is_open()) {
 		BC_FAIL(name);
 	}
-	
+
 	stringstream vcardStream;
 	vcardStream << istr.rdbuf();
 	string vcard = vcardStream.str();
@@ -56,24 +57,24 @@ static void unfolding(void) {
 
 static void vcard_parsing(void) {
 	string vcard = openFile("vcards/vcard.vcf");
-	
+
 	BelCardParser parser = BelCardParser::getInstance();
 	shared_ptr<BelCard> belCard = parser.parseOne(vcard);
 	BC_ASSERT_TRUE_FATAL(belCard != NULL);
 	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
-	
+
 	string vcard2 = belCard->toFoldedString();
 	BC_ASSERT_EQUAL(vcard2.compare(vcard), 0, int, "%d");
 }
 
 static void vcards_parsing(void) {
 	string vcards = openFile("vcards/vcards.vcf");
-	
+
 	BelCardParser parser = BelCardParser::getInstance();
 	shared_ptr<BelCardList> belCards = parser.parse(vcards);
 	BC_ASSERT_TRUE_FATAL(belCards != NULL);
 	BC_ASSERT_TRUE(belCards->getCards().size() == 2);
-	
+
 	string vcards2 = belCards->toString();
 	BC_ASSERT_EQUAL(vcards2.compare(vcards), 0, int, "%d");
 }
@@ -82,12 +83,12 @@ static void create_vcard_from_api(void) {
 	shared_ptr<BelCard> belCard = BelCard::create<BelCard>();
 	BC_ASSERT_TRUE_FATAL(belCard != NULL);
 	BC_ASSERT_FALSE(belCard->assertRFCCompliance());
-	
+
 	shared_ptr<BelCardFullName> fn = BelCard::create<BelCardFullName>();
 	fn->setValue("Sylvain Berfini");
 	belCard->setFullName(fn);
 	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
-	
+
 	string vcard = belCard->toString();
 	BelCardParser parser = BelCardParser::getInstance();
 	shared_ptr<BelCard> belCard2 = parser.parseOne(vcard);
@@ -100,16 +101,16 @@ static void create_vcard_from_api(void) {
 static void property_sort_using_pref_param(void) {
 	shared_ptr<BelCard> belCard = BelCard::create<BelCard>();
 	BC_ASSERT_TRUE(belCard != NULL);
-	
+
 	shared_ptr<BelCardImpp> impp1 = BelCardImpp::parse("IMPP;TYPE=home;PREF=2:sip:viish@sip.linphone.org\r\n");
 	BC_ASSERT_TRUE(impp1 != NULL);
-	
+
 	shared_ptr<BelCardImpp> impp2 = BelCardImpp::parse("IMPP;PREF=1;TYPE=work:sip:sylvain@sip.linphone.org\r\n");
 	BC_ASSERT_TRUE(impp2 != NULL);
-	
+
 	belCard->addImpp(impp1);
 	belCard->addImpp(impp2);
-	
+
 	const list<shared_ptr<BelCardImpp>> imppList = belCard->getImpp();
 	BC_ASSERT_TRUE(imppList.size() == 2);
 	BC_ASSERT_TRUE(imppList.front() == impp2);

@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 	int ret;
 
 	belcard_tester_init(NULL);
-	
+
 	if (strstr(argv[0], ".libs")) {
 		int prefix_length = strstr(argv[0], ".libs") - argv[0] + 1;
 		char prefix[200];
@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 		bc_tester_set_resource_dir_prefix(prefix);
 		bc_tester_set_writable_dir_prefix(prefix);
 	}
-	
+
 	for(i = 1; i < argc; ++i) {
 		int ret = bc_tester_parse_args(argc, argv, i);
 		if (ret>0) {
@@ -68,8 +68,8 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 
 void belcard_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
 	if (ftester_printf == NULL) ftester_printf = log_handler;
-	bc_tester_init(ftester_printf, MESSAGE, ERROR);
-	
+	bc_tester_init(ftester_printf, MESSAGE, ERROR, "vcards");
+
 	bc_tester_add_suite(&vcard_general_properties_test_suite);
 	bc_tester_add_suite(&vcard_identification_properties_test_suite);
 	bc_tester_add_suite(&vcard_addressing_properties_test_suite);

@@ -19,7 +19,7 @@
 #ifndef belcard_tester_hpp
 #define belcard_tester_hpp
 
-#include "common/bc_tester_utils.h"
+#include <bctoolbox/tester.h>
 
 #include <string>
 #include <memory>
@@ -56,7 +56,7 @@ void test_property(const std::string& input) {
 		std::cout << "Couldn't parse " << input << std::endl;
 	}
 	BC_ASSERT_TRUE_FATAL(ptr != NULL);
-	
+
 	std::string str = ptr->toString();
 	int compare = input.compare(str);
 	BC_ASSERT_EQUAL(compare, 0, int, "%d");

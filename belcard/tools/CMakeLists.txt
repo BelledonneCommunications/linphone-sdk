@@ -20,31 +20,20 @@
 #
 ############################################################################
 
-set(SOURCE_FILES_C 
-	common/bc_tester_utils.c
-)
+foreach(EXECTUABLE belcard-folder belcard-unfolder belcard-parser)
+	set(SOURCE_FILES_CXX ${EXECTUABLE}.cpp)
+	apply_compile_flags(SOURCE_FILES_CXX "CPP" "CXX")
+	add_executable(${EXECTUABLE} ${SOURCE_FILES_CXX})
+	set_target_properties(${EXECTUABLE} PROPERTIES LINKER_LANGUAGE CXX)
+	target_link_libraries(${EXECTUABLE} belcard)
+	if(APPLE)
+		set_target_properties(${EXECTUABLE} PROPERTIES LINK_FLAGS "-stdlib=libc++")
+	endif()
 
-set(SOURCE_FILES_CXX
-	belcard-addressing-tester.cpp
-	belcard-calendar-tester.cpp
-	belcard-communication-tester.cpp
-	belcard-explanatory-tester.cpp
-	belcard-general-tester.cpp
-	belcard-geographical-tester.cpp
-	belcard-identification-tester.cpp
-	belcard-organizational-tester.cpp
-	belcard-rfc6474-tester.cpp
-	belcard-security-tester.cpp
-	belcard-tester.cpp
-	belcard-vcard-tester.cpp
-)
-
-apply_compile_flags(SOURCE_FILES_C "CPP" "C")
-apply_compile_flags(SOURCE_FILES_CXX "CPP" "CXX")
-
-add_definitions(-DBC_CONFIG_FILE="config.h")
-
-add_executable(belcard-tester ${SOURCE_FILES_C} ${SOURCE_FILES_CXX})
-set_target_properties(belcard-tester PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(belcard-tester PUBLIC ${CUNIT_INCLUDE_DIRS} PRIVATE common)
-target_link_libraries(belcard-tester belcard ${CUNIT_LIBRARIES})
+	install(TARGETS ${EXECTUABLE}
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+endforeach()
