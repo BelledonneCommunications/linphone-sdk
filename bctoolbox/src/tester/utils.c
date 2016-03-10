@@ -72,6 +72,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <malloc.h>
 #endif
 
+#ifndef F_OK                                                                                                                                                                                                                             
+#define F_OK 00 /* Visual Studio does not define F_OK */
+#endif
+
 static char *bc_tester_resource_dir_prefix = NULL;
 // by default writable will always write near the executable
 static char *bc_tester_writable_dir_prefix = NULL;
@@ -397,7 +401,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 #if !defined(BC_TESTER_WINDOWS_PHONE) && !defined(BC_TESTER_WINDOWS_UNIVERSAL) && !defined(__QNX__) && !defined(ANDROID) && !defined(IOS)
 static int file_exists(const char* root_path) {
 	char * res_path = bc_sprintf("%s/%s", root_path, expected_res);
-	int err = access(res_path, 0);
+	int err = access(res_path, F_OK);
 	free(res_path);
 	return err == 0;
 }
