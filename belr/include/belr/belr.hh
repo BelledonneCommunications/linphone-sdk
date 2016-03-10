@@ -161,14 +161,14 @@ public:
 	/**
 	 * Initialize an empty grammar, giving a name for debugging.
 	**/
-	Grammar(const string &name);
+	BELR_PUBLIC Grammar(const string &name);
 	
 	virtual ~Grammar() { }
 	
 	/**
 	 * Include another grammar into this grammar.
 	**/
-	void include(const shared_ptr<Grammar>& grammar);
+	BELR_PUBLIC void include(const shared_ptr<Grammar>& grammar);
 	/**
 	 * Add arule to the grammar.
 	 * @param name the name of the rule

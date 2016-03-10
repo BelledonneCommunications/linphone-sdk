@@ -226,7 +226,7 @@ public:
 	DebugElement(const string &rulename, const string &value);
 	static shared_ptr<DebugElement> create(const string &rulename, const string &value);
 	void addChild(const shared_ptr<DebugElement> &e);
-	ostream &tostream(int level, ostream &str)const;
+	BELR_PUBLIC ostream &tostream(int level, ostream &str)const;
 private:
 	string mRulename;
 	string mValue;
@@ -235,9 +235,9 @@ private:
 
 class DebugParser : protected Parser<shared_ptr<DebugElement>>{
 public:
-	DebugParser(const shared_ptr<Grammar> &grammar);
-	void setObservedRules(const list<string> &rules);
-	shared_ptr<DebugElement> parseInput(const string &rulename, const string &input, size_t *parsed_size);
+	BELR_PUBLIC DebugParser(const shared_ptr<Grammar> &grammar);
+	BELR_PUBLIC void setObservedRules(const list<string> &rules);
+	BELR_PUBLIC shared_ptr<DebugElement> parseInput(const string &rulename, const string &input, size_t *parsed_size);
 };
 
 
