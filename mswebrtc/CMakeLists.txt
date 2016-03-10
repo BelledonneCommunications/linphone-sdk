@@ -86,6 +86,10 @@ add_definitions(-DHAVE_CONFIG_H)
 if(WIN32)
 	add_definitions(-DWEBRTC_WIN)
 endif()
+if(ANDROID)
+	add_definitions("-DANDROID")
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM")
 	add_definitions(
 		-D__ARMEL__
