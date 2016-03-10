@@ -47,6 +47,11 @@ static void belle_sip_dialog_uninit(belle_sip_dialog_t *obj){
 		belle_sip_object_unref(obj->last_transaction);
 	if(obj->privacy)
 		belle_sip_object_unref(obj->privacy);
+	if (obj->expiration_timer){ /*In some situations, dialog deleted might not be called*/
+		belle_sip_main_loop_remove_source(obj->provider->stack->ml, obj->expiration_timer);
+		belle_sip_object_unref(obj->expiration_timer);
+		obj->expiration_timer = NULL;
+	}
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_dialog_t);
