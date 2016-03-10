@@ -1,8 +1,13 @@
 #!/bin/sh
 
-if [ -n "@AUTOTOOLS_AS_COMPILER@" ]
+if [ -n "@ep_use_c_compiler_for_assembler@" ]
 then
-	export AS="@AUTOTOOLS_AS_COMPILER@"
+	export AS="@AUTOTOOLS_C_COMPILER@"
+else
+	if [ -n "@AUTOTOOLS_AS_COMPILER@" ]
+	then
+		export AS="@AUTOTOOLS_AS_COMPILER@"
+	fi
 fi
 export CC="@AUTOTOOLS_C_COMPILER@"
 export CXX="@AUTOTOOLS_CXX_COMPILER@"

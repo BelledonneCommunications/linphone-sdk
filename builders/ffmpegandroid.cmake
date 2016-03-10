@@ -1,6 +1,6 @@
 ############################################################################
-# mssilk.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# ffmpegandroid.cmake
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,11 +20,5 @@
 #
 ############################################################################
 
-set(EP_mssilk_GIT_REPOSITORY "git://git.linphone.org/mssilk.git" CACHE STRING "mssilk repository URL")
-set(EP_mssilk_GIT_TAG_LATEST "master" CACHE STRING "mssilk tag to use when compiling latest version")
-set(EP_mssilk_GIT_TAG "1.0.2" CACHE STRING "mssilk tag to use")
-set(EP_mssilk_EXTERNAL_SOURCE_PATHS "mssilk")
-set(EP_mssilk_GROUPABLE YES)
-
-set(EP_mssilk_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
-set(EP_mssilk_DEPENDENCIES EP_ms2)
+set(EP_ffmpegandroid_EXTERNAL_SOURCE_PATHS "externals/build/ffmpeg")
+set(EP_ffmpegandroid_DEPENDENCIES EP_ffmpeg)

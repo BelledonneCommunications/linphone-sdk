@@ -114,6 +114,19 @@ else()
 			set(EP_vpx_BUILD_IN_SOURCE 1) # Build in source otherwise there are some compilation errors
 		endif()
 		set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
+	elseif(ANDROID)
+		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+			set(EP_vpx_TARGET "armv7-android-gcc")
+		else()
+			set(EP_vpx_TARGET "x86-android-gcc")
+			set(EP_vpx_EXTRA_ASFLAGS "-D__ANDROID__")
+		endif()
+		set(EP_vpx_EXTRA_CFLAGS "--sysroot=${CMAKE_SYSROOT}")
+		set(EP_vpx_EXTRA_LDFLAGS "--sysroot=${CMAKE_SYSROOT}")
+		list(APPEND EP_vpx_CONFIGURE_OPTIONS
+			"--sdk-path=${ANDROID_NDK_PATH}"
+		)
+		set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 	elseif(QNX)
 		set(EP_vpx_TARGET "armv7-qnx-gcc")
 		list(REMOVE_ITEM EP_vpx_CONFIGURE_OPTIONS "--enable-multithread")
@@ -136,5 +149,5 @@ else()
 		"--prefix=${CMAKE_INSTALL_PREFIX}"
 		"--target=${EP_vpx_TARGET}"
 	)
-	set(EP_vpx_CONFIGURE_ENV "CC=$CC_NO_LAUNCHER LD=$CC_NO_LAUNCHER")
+	set(EP_vpx_CONFIGURE_ENV "CC=$CC_NO_LAUNCHER LD=$CC_NO_LAUNCHER ASFLAGS=$ASFLAGS CFLAGS=$CFLAGS LDFLAGS=$LDFLAGS")
 endif()

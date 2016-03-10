@@ -1,0 +1,2 @@
+set solib-search-path @CMAKE_INSTALL_PREFIX@/lib
+source @ANDROID_NDK_PATH@/prebuilt/common/gdb/common.setup

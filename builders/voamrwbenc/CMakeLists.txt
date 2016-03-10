@@ -116,6 +116,15 @@ if(WIN32)
 	list(APPEND SOURCE_FILES ${CMAKE_CURRENT_BINARY_DIR}/vo-amrwbenc.def)
 endif()
 
+if(ENABLE_ARMV5E OR ENABLE_ARMV7NEON)
+	if(ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+		set(ARCH_OPTIONS "-mfpu=neon")
+	endif()
+	get_directory_property(DIRECTORY_PROPERTY_COMPILE_OPTIONS "COMPILE_OPTIONS")
+	string(REPLACE ";" " " DIRECTORY_PROPERTY_COMPILE_OPTIONS "${DIRECTORY_PROPERTY_COMPILE_OPTIONS}")
+	set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> ${CMAKE_CPP_FLAGS} ${CMAKE_C_FLAGS} ${DIRECTORY_PROPERTY_COMPILE_OPTIONS} ${ARCH_OPTIONS} -o <OBJECT> -c <SOURCE>")
+	enable_language(ASM)
+endif()
 
 if(ENABLE_STATIC)
 	add_library(vo-amrwbenc STATIC ${SOURCE_FILES})
@@ -139,10 +148,10 @@ endif()
 
 target_include_directories(vo-amrwbenc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/amrwbenc/inc ${CMAKE_CURRENT_SOURCE_DIR}/common/include)
 if(ENABLE_ARMV5E)
-	target_compile_definitions("-DARM" "-DASM_OPT")
+	target_compile_definitions(vo-amrwbenc PRIVATE "-DARM" "-DASM_OPT")
 endif()
 if(ENABLE_ARMV7NEON)
-	target_compile_definitions("-DARM" "-DARMV7" "-DASM_OPT")
+	target_compile_definitions(vo-amrwbenc PRIVATE "-DARM" "-DARMV7" "-DASM_OPT")
 endif()
 
 install(TARGETS vo-amrwbenc

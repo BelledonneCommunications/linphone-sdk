@@ -1,6 +1,6 @@
 ############################################################################
-# mssilk.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# CMakeLists.txt
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,11 +20,10 @@
 #
 ############################################################################
 
-set(EP_mssilk_GIT_REPOSITORY "git://git.linphone.org/mssilk.git" CACHE STRING "mssilk repository URL")
-set(EP_mssilk_GIT_TAG_LATEST "master" CACHE STRING "mssilk tag to use when compiling latest version")
-set(EP_mssilk_GIT_TAG "1.0.2" CACHE STRING "mssilk tag to use")
-set(EP_mssilk_EXTERNAL_SOURCE_PATHS "mssilk")
-set(EP_mssilk_GROUPABLE YES)
+cmake_minimum_required(VERSION 3.0)
+project(gdbserver LANGUAGES) # Dummy project
 
-set(EP_mssilk_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
-set(EP_mssilk_DEPENDENCIES EP_ms2)
+configure_file(gdb.setup.in gdb.setup @ONLY)
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gdb.setup" DESTINATION bin)
+install(PROGRAMS "${ANDROID_NDK_PATH}/prebuilt/android-${ARCHITECTURE}/gdbserver/gdbserver" DESTINATION bin)

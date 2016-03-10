@@ -119,6 +119,22 @@ else()
                                 )
 				set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch" ${EP_ffmpeg_PATCH_OPTIONS})
 			endif()
+		elseif(ANDROID)
+			list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
+				"--enable-decoder=h264"
+				"--disable-iconv"
+				"--enable-cross-compile"
+				"--cross-prefix=${ANDROID_TOOLCHAIN_PATH}/"
+				"--sysroot=${CMAKE_SYSROOT}"
+			)
+			set(EP_ffmpeg_TARGET_OS "linux")
+			set(EP_ffmpeg_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+			set(EP_ffmpeg_MAKE_OPTIONS "RANLIB=\"\$RANLIB\"")
+			if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+				list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-neon" "--cpu=cortex-a8" "--disable-armv5te" "--enable-armv6" "--enable-armv6t2")
+			else()
+				list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--disable-mmx" "--disable-sse2" "--disable-ssse3")
+			endif()
 		else()
 			set(EP_ffmpeg_TARGET_OS "linux")
 			set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch" ${EP_ffmpeg_PATCH_OPTIONS})

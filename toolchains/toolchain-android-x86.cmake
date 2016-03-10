@@ -1,6 +1,6 @@
 ############################################################################
-# mssilk.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# toolchan-android-x86.cmake
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,11 +20,27 @@
 #
 ############################################################################
 
-set(EP_mssilk_GIT_REPOSITORY "git://git.linphone.org/mssilk.git" CACHE STRING "mssilk repository URL")
-set(EP_mssilk_GIT_TAG_LATEST "master" CACHE STRING "mssilk tag to use when compiling latest version")
-set(EP_mssilk_GIT_TAG "1.0.2" CACHE STRING "mssilk tag to use")
-set(EP_mssilk_EXTERNAL_SOURCE_PATHS "mssilk")
-set(EP_mssilk_GROUPABLE YES)
+set(CMAKE_SYSTEM_PROCESSOR "x86")
+set(ARCHITECTURE "x86")
+set(NDK_ARCHITECTURE "x86")
+set(COMPILER_PREFIX "i686-linux-android")
+include("${CMAKE_CURRENT_LIST_DIR}/android/toolchain-android.cmake")
 
-set(EP_mssilk_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
-set(EP_mssilk_DEPENDENCIES EP_ms2)
+add_compile_options(
+	"-ffunction-sections"
+	"-funwind-tables"
+	"-fstack-protector"
+	"-no-canonical-prefixes"
+	"-fomit-frame-pointer"
+	"-fstrict-aliasing"
+	"-funswitch-loops"
+	"-finline-limit=300"
+)
+
+link_libraries(
+	"-no-canonical-prefixes"
+	"-Wl,--no-undefined"
+	"-Wl,-z,noexecstack"
+	"-Wl,-z,relro"
+	"-Wl,-z,now"
+)

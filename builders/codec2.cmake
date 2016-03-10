@@ -1,6 +1,6 @@
 ############################################################################
-# mssilk.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# codec2.cmake
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,11 +20,8 @@
 #
 ############################################################################
 
-set(EP_mssilk_GIT_REPOSITORY "git://git.linphone.org/mssilk.git" CACHE STRING "mssilk repository URL")
-set(EP_mssilk_GIT_TAG_LATEST "master" CACHE STRING "mssilk tag to use when compiling latest version")
-set(EP_mssilk_GIT_TAG "1.0.2" CACHE STRING "mssilk tag to use")
-set(EP_mssilk_EXTERNAL_SOURCE_PATHS "mssilk")
-set(EP_mssilk_GROUPABLE YES)
+set(EP_codec2_SVN_REPOSITORY "https://svn.code.sf.net/p/freetel/code/codec2/branches/0.3/" CACHE STRING "codec2 repository URL")
 
-set(EP_mssilk_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
-set(EP_mssilk_DEPENDENCIES EP_ms2)
+set(EP_codec2_CMAKE_OPTIONS "-DBUILD_SHARED_LIBS=NO")
+set(EP_codec2_EXTRA_CFLAGS "-include ${CMAKE_CURRENT_LIST_DIR}/codec2/codec2_prefixed_symbols.h")
+set(EP_codec2_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_LIST_DIR}/codec2/no-executables.patch")

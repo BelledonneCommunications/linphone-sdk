@@ -1,6 +1,6 @@
 ############################################################################
-# mssilk.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# toolchan-android-armv7.cmake
+# Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,11 +20,31 @@
 #
 ############################################################################
 
-set(EP_mssilk_GIT_REPOSITORY "git://git.linphone.org/mssilk.git" CACHE STRING "mssilk repository URL")
-set(EP_mssilk_GIT_TAG_LATEST "master" CACHE STRING "mssilk tag to use when compiling latest version")
-set(EP_mssilk_GIT_TAG "1.0.2" CACHE STRING "mssilk tag to use")
-set(EP_mssilk_EXTERNAL_SOURCE_PATHS "mssilk")
-set(EP_mssilk_GROUPABLE YES)
+set(CMAKE_SYSTEM_PROCESSOR "armeabi-v7a")
+set(ARCHITECTURE "arm")
+set(NDK_ARCHITECTURE "armeabi-v7a")
+set(COMPILER_PREFIX "arm-linux-androideabi")
+include("${CMAKE_CURRENT_LIST_DIR}/android/toolchain-android.cmake")
 
-set(EP_mssilk_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE})
-set(EP_mssilk_DEPENDENCIES EP_ms2)
+add_compile_options(
+	"-ffunction-sections"
+	"-funwind-tables"
+	"-fstack-protector"
+	"-no-canonical-prefixes"
+	"-march=armv7-a"
+	"-mfpu=vfpv3-d16"
+	"-mfloat-abi=softfp"
+	"-fomit-frame-pointer"
+	"-fno-strict-aliasing"
+	"-finline-limit=64"
+)
+
+link_libraries(
+	"-march=armv7-a"
+	"-Wl,--fix-cortex-a8"
+	"-no-canonical-prefixes"
+	"-Wl,--no-undefined"
+	"-Wl,-z,noexecstack"
+	"-Wl,-z,relro"
+	"-Wl,-z,now"
+)
