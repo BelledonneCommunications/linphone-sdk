@@ -47,7 +47,6 @@ else()
 	set(EP_ffmpeg_CONFIGURE_OPTIONS
 		"--disable-zlib"
 		"--disable-bzlib"
-		"--disable-mmx"
 		"--disable-ffplay"
 		"--disable-ffprobe"
 		"--disable-ffserver"
@@ -93,6 +92,7 @@ else()
 		set(EP_ffmpeg_EXTRA_CFLAGS "-include windows.h")
 		set(EP_ffmpeg_EXTRA_LDFLAGS "-static-libgcc")
 		set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/mingw-no-lib.patch" ${EP_ffmpeg_PATCH_OPTIONS})
+		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-runtime-cpudetect")
 	else()
 		if(APPLE)
 			set(EP_ffmpeg_TARGET_OS "darwin")
@@ -100,6 +100,7 @@ else()
 				list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
 					"--enable-decoder=h264"
 					"--disable-iconv"
+					"--disable-mmx"
 					"--enable-cross-compile"
 					"--cross-prefix=${SDK_BIN_PATH}/"
 					"--sysroot=${CMAKE_OSX_SYSROOT}"
@@ -115,14 +116,16 @@ else()
 				endif()
 			else()
 				list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
-                                        "--sysroot=${CMAKE_OSX_SYSROOT}"
-                                )
+					"--enable-runtime-cpudetect"
+					"--sysroot=${CMAKE_OSX_SYSROOT}"
+				)
 				set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch" ${EP_ffmpeg_PATCH_OPTIONS})
 			endif()
 		elseif(ANDROID)
 			list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS
 				"--enable-decoder=h264"
 				"--disable-iconv"
+				"--disable-mmx"
 				"--enable-cross-compile"
 				"--cross-prefix=${ANDROID_TOOLCHAIN_PATH}/"
 				"--sysroot=${CMAKE_SYSROOT}"
@@ -138,6 +141,7 @@ else()
 		else()
 			set(EP_ffmpeg_TARGET_OS "linux")
 			set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch" ${EP_ffmpeg_PATCH_OPTIONS})
+			list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-runtime-cpudetect")
 		endif()
 		list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--cc=$CC")
 	endif()
