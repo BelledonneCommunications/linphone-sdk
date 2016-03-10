@@ -322,6 +322,12 @@ static int enc_notify_pli(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int enc_notify_fir(MSFilter *f, void *data) {
+	EncData *d = (EncData *)f->data;
+	d->force_keyframe = TRUE;
+	return 0;
+}
+
 static MSFilterMethod  mediacodec_h264_enc_methods[]={
 	{ MS_FILTER_SET_FPS,                       enc_set_fps                },
 	{ MS_FILTER_SET_BITRATE,                   enc_set_br                 },
@@ -329,6 +335,7 @@ static MSFilterMethod  mediacodec_h264_enc_methods[]={
 	{ MS_FILTER_GET_FPS,                       enc_get_fps                },
 	{ MS_FILTER_GET_VIDEO_SIZE,                enc_get_vsize              },
 	{ MS_VIDEO_ENCODER_NOTIFY_PLI,             enc_notify_pli             },
+	{ MS_VIDEO_ENCODER_NOTIFY_FIR,             enc_notify_fir             },
 	{ MS_FILTER_SET_VIDEO_SIZE,                enc_set_vsize              },
 	{ MS_VIDEO_ENCODER_ENABLE_AVPF,            enc_enable_avpf            },
 	{ 0,                                       NULL                       }
