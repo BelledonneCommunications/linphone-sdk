@@ -31,7 +31,7 @@ using namespace::belr;
 namespace belcard {
 	class BelCardKey : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardKey> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardKey> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardKey();

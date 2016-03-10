@@ -31,7 +31,7 @@ using namespace::belr;
 namespace belcard {
 	class BelCardKind : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardKind> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardKind> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardKind();
@@ -39,7 +39,7 @@ namespace belcard {
 	
 	class BelCardSource : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardSource> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardSource> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardSource();
@@ -47,7 +47,7 @@ namespace belcard {
 	
 	class BelCardXML : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardXML> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardXML> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardXML();

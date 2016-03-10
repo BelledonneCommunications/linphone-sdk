@@ -33,7 +33,7 @@ using namespace::belr;
 namespace belcard {
 	class BelCardFullName : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardFullName> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardFullName> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardFullName();
@@ -48,7 +48,7 @@ namespace belcard {
 		string _suffixes;
 		
 	public:
-		static shared_ptr<BelCardName> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardName> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) ;
 		
 		BelCardName();
@@ -73,7 +73,7 @@ namespace belcard {
 	
 	class BelCardNickname : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardNickname> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardNickname> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardNickname();
@@ -81,7 +81,7 @@ namespace belcard {
 	
 	class BelCardBirthday : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardBirthday> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardBirthday> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardBirthday();
@@ -89,7 +89,7 @@ namespace belcard {
 	
 	class BelCardAnniversary : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardAnniversary> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardAnniversary> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardAnniversary();
@@ -97,7 +97,7 @@ namespace belcard {
 	
 	class BelCardGender : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardGender> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardGender> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardGender();
@@ -105,7 +105,7 @@ namespace belcard {
 	
 	class BelCardPhoto : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardPhoto> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardPhoto> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardPhoto();

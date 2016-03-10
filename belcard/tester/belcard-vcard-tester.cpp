@@ -19,6 +19,7 @@
 
 #include "belcard/belcard_parser.hpp"
 #include "belcard/belcard_utils.hpp"
+#include "belcard-tester.hpp"
 
 #include <bctoolbox/tester.h>
 #include <iostream>

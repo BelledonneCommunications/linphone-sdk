@@ -19,11 +19,17 @@
 #ifndef belcard_utils_hpp
 #define belcard_utils_hpp
 
+#if defined(_MSC_VER)
+#define BELCARD_PUBLIC	__declspec(dllexport)
+#else
+#define BELCARD_PUBLIC
+#endif
+
 #include <string>
 
 using namespace::std;
 
-string belcard_fold(string input);
-string belcard_unfold(string input);
+BELCARD_PUBLIC string belcard_fold(string input);
+BELCARD_PUBLIC string belcard_unfold(string input);
 
 #endif

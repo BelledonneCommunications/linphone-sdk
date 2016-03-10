@@ -34,7 +34,7 @@ namespace belcard {
 	private:
 		
 	public:
-		static shared_ptr<BelCardBirthPlace> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardBirthPlace> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardBirthPlace();
@@ -44,7 +44,7 @@ namespace belcard {
 	private:
 		
 	public:
-		static shared_ptr<BelCardDeathPlace> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardDeathPlace> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardDeathPlace();
@@ -54,7 +54,7 @@ namespace belcard {
 	private:
 		
 	public:
-		static shared_ptr<BelCardDeathDate> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardDeathDate> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardDeathDate();

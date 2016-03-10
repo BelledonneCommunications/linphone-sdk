@@ -31,7 +31,7 @@ using namespace::belr;
 namespace belcard {
 	class BelCardCategories : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardCategories> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardCategories> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardCategories();
@@ -39,7 +39,7 @@ namespace belcard {
 	
 	class BelCardNote : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardNote> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardNote> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardNote();
@@ -47,7 +47,7 @@ namespace belcard {
 	
 	class BelCardProductId : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardProductId> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardProductId> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardProductId();
@@ -55,7 +55,7 @@ namespace belcard {
 	
 	class BelCardRevision : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardRevision> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardRevision> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardRevision();
@@ -63,7 +63,7 @@ namespace belcard {
 	
 	class BelCardSound : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardSound> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardSound> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardSound();
@@ -71,7 +71,7 @@ namespace belcard {
 	
 	class BelCardUniqueId : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardUniqueId> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardUniqueId> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardUniqueId();
@@ -79,7 +79,7 @@ namespace belcard {
 	
 	class BelCardClientProductIdMap : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardClientProductIdMap> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardClientProductIdMap> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardClientProductIdMap();
@@ -87,7 +87,7 @@ namespace belcard {
 	
 	class BelCardURL : public BelCardProperty {
 	public:
-		static shared_ptr<BelCardURL> parse(const string& input);
+		BELCARD_PUBLIC static shared_ptr<BelCardURL> parse(const string& input);
 		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BelCardURL();

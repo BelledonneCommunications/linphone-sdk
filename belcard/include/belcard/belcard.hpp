@@ -245,7 +245,7 @@ namespace belcard {
 		const list<shared_ptr<BelCardProperty>> &getProperties() const;
 		
 		BELCARD_PUBLIC string& toFoldedString();
-		bool assertRFCCompliance() const;
+		BELCARD_PUBLIC bool assertRFCCompliance() const;
 		
 		virtual void serialize(ostream &output) const;
 	};
