@@ -7,7 +7,7 @@ LOCAL_MODULE:= libbctoolbox
 LOCAL_SRC_FILES := \
 	crypto/mbedtls.c	
 
-LOCAL_CFLAGS += -Wno-maybe-uninitialized
+LOCAL_CFLAGS += -Wno-maybe-uninitialized -DHAVE_DTLS_SRTP
 
 LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/ \
