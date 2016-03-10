@@ -24,13 +24,17 @@ static void jni_key_cleanup(void *data);
 
 void belle_sip_wake_lock_init(JNIEnv *env, jobject pm) {
 	if(ctx.jvm == NULL) {
+		jclass powerManagerClass;
+		jclass wakeLockClass;
+		jfieldID fieldID;
+
 		(*env)->GetJavaVM(env, &ctx.jvm);
 		ctx.powerManager = (*env)->NewGlobalRef(env, pm);
 		pthread_key_create(&ctx.jniEnvKey, jni_key_cleanup);
 
-		jclass powerManagerClass = (*env)->FindClass(env, "android/os/PowerManager");
-		jclass wakeLockClass = (*env)->FindClass(env, "android/os/PowerManager$WakeLock");
-		jfieldID fieldID = (*env)->GetStaticFieldID(env, powerManagerClass, "PARTIAL_WAKE_LOCK", "I");
+		powerManagerClass = (*env)->FindClass(env, "android/os/PowerManager");
+		wakeLockClass = (*env)->FindClass(env, "android/os/PowerManager$WakeLock");
+		fieldID = (*env)->GetStaticFieldID(env, powerManagerClass, "PARTIAL_WAKE_LOCK", "I");
 
 		ctx.PARTIAL_WAKE_LOCK = (*env)->GetStaticIntField(env, powerManagerClass, fieldID);
 		ctx.newWakeLockID = (*env)->GetMethodID(env, powerManagerClass, "newWakeLock", "(ILjava/lang/String;)Landroid/os/PowerManager$WakeLock;");
@@ -57,8 +61,8 @@ void belle_sip_wake_lock_uninit(JNIEnv *env) {
  * @param data Unused.
  */
 static void jni_key_cleanup(void *data) {
-	belle_sip_message("Thread end. Cleanup wake lock jni environment");
 	JNIEnv *env = pthread_getspecific(ctx.jniEnvKey);
+	belle_sip_message("Thread end. Cleanup wake lock jni environment");
 	if(env != NULL) {
 		if(ctx.jvm != NULL) {
 			(*ctx.jvm)->DetachCurrentThread(ctx.jvm);
