@@ -83,6 +83,8 @@ static int http_before_all(void) {
 		belle_tls_crypto_config_t *crypto_config=belle_tls_crypto_config_new();
 		belle_tls_crypto_config_set_root_ca(crypto_config,belle_sip_tester_get_root_ca_path());
 		belle_http_provider_set_tls_crypto_config(prov,crypto_config);
+		belle_sip_object_unref(crypto_config);
+	
 	}
 	return 0;
 }

@@ -206,6 +206,7 @@ int register_before_all(void) {
 		}
 		belle_sip_tls_listening_point_set_crypto_config(BELLE_SIP_TLS_LISTENING_POINT(lp), crypto_config);
 		belle_sip_provider_add_listening_point(prov,lp);
+		belle_sip_object_unref(crypto_config);
 	}
 
 	listener_callbacks.process_dialog_terminated=process_dialog_terminated;
