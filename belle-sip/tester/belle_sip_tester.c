@@ -147,6 +147,7 @@ int belle_sip_tester_after_each() {
 		// if the test is NOT marked as leaking memory and it actually is, we should make it fail
 		if (!leaks_expected && leaked_objects > 0) {
 			BC_FAIL("This test is leaking memory!");
+			return 1;
 			// and reciprocally
 		} else if (leaks_expected && leaked_objects == 0) {
 			BC_FAIL("This test is not leaking anymore, please remove LeaksMemory tag!");
