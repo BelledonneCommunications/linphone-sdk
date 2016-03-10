@@ -7,8 +7,8 @@ README.openh264.txt
 ./lib/libbelcard*.dylib
 ./lib/libbcg729*.dylib
 ./lib/libbellesip*.dylib
-./lib/libbelr.dylib
-./lib/libbv16.dylib
+./lib/libbelr*.dylib
+./lib/libbv16*.dylib
 ./lib/libbzrtp*.dylib
 ./lib/libcunit*.dylib
 ./lib/libgsm*.dylib
