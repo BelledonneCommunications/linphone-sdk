@@ -54,7 +54,7 @@ static int32_t premult_ug[256];
 static int32_t premult_ub[256];
 static bool_t premult_initd=FALSE;
 
-static void init_premults(){
+static void init_premults(void){
 	int i;
 	for(i=0;i<256;++i){
 		premult_y[i]=(i-16)*9535;
@@ -182,10 +182,10 @@ void img_ycrcb420p_to_bgra(uint8_t* src[],unsigned short w,unsigned short h, uin
 		init_premults();
 	}
 	for (row=0;row<h;row+=2) {
-		offset_y=row*w;
-		offset_cbcr=offset_y>>2;
 		int col_crcb=0;
 		int col_y;
+		offset_y=row*w;
+		offset_cbcr=offset_y>>2;
 		for (col_y=0;col_y<w;col_y+=4) {
 			int16_t r1[4],  g1[4],  b1[4],  r2[4],  g2[4],  b2[4];
 			yuv2rgb_4x2(src[0]+offset_y+col_y

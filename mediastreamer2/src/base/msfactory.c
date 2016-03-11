@@ -506,11 +506,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
 
 	// Start searching for .dll files in the current directory.
-#ifdef MS2_WINDOWS_DESKTOP
-	snprintf(szDirPath, sizeof(szDirPath), "%s\\*.dll", dir);
-#else
 	snprintf(szDirPath, sizeof(szDirPath), "%s\\libms*.dll", dir);
-#endif
 #ifdef UNICODE
 	mbstowcs(wszDirPath, szDirPath, sizeof(wszDirPath));
 	hSearch = FindFirstFileExW(wszDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
@@ -621,7 +617,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 #ifndef __QNX__
 			(de->d_type==DT_REG || de->d_type==DT_UNKNOWN || de->d_type==DT_LNK) &&
 #endif
-			(ext=strstr(de->d_name,PLUGINS_EXT))!=NULL) {
+			(strstr(de->d_name, "libms") == de->d_name) && ((ext=strstr(de->d_name,PLUGINS_EXT))!=NULL)) {
 			void *handle;
 			snprintf(plugin_name, MIN(sizeof(plugin_name), ext - de->d_name + 1), "%s", de->d_name);
 			if (ms_list_find_custom(loaded_plugins, (MSCompareFunc)strcmp, plugin_name) != NULL) continue;
@@ -895,22 +891,26 @@ JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Factory_filterFromNameE
 #endif
 
 JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_enableFilterFromNameImpl(JNIEnv* env,  jobject obj, jstring jname, jboolean enable) {
+	const char *mime;
+	int result;
 	if (ms_factory_get_fallback() == NULL) {
 		ms_error("Java_org_linphone_mediastream_MediastreamerAndroidContext_enableFilterFromNameImpl(): no fallback factory. Use Factory.enableFilterFromName()");
 		return -1;
 	}
-	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
-	int result = ms_factory_enable_filter_from_name(ms_factory_get_fallback(),mime,enable);
+	mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
+	result = ms_factory_enable_filter_from_name(ms_factory_get_fallback(),mime,enable);
 	(*env)->ReleaseStringUTFChars(env, jname, mime);
 	return result;
 }
 JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_filterFromNameEnabledImpl(JNIEnv* env, jobject obj, jstring jname) {
+	const char *mime;
+	jboolean result;
 	if (ms_factory_get_fallback() == NULL) {
 		ms_error("Java_org_linphone_mediastream_MediastreamerAndroidContext_filterFromNameEnabledImpl(): no fallback factory. Use Factory.filterFromNameEnabled()");
 		return FALSE;
 	}
-	const char *mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
-	jboolean result = ms_factory_filter_from_name_enabled(ms_factory_get_fallback(),mime);
+	mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
+	result = ms_factory_filter_from_name_enabled(ms_factory_get_fallback(),mime);
 	(*env)->ReleaseStringUTFChars(env, jname, mime);
 	return result;
 }

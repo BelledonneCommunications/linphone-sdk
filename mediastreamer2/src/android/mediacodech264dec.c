@@ -46,8 +46,8 @@ typedef struct _DecData{
 }DecData;
 
 static void dec_init(MSFilter *f){
-	AMediaCodec *codec;
-	codec = AMediaCodec_createDecoderByType("video/avc");
+	AMediaFormat *format;
+	AMediaCodec *codec = AMediaCodec_createDecoderByType("video/avc");
 	DecData *d=ms_new0(DecData,1);
 	d->codec = codec;
 	d->sps=NULL;
@@ -62,7 +62,7 @@ static void dec_init(MSFilter *f){
 	d->buf_allocator = ms_yuv_buf_allocator_new();
 	ms_average_fps_init(&d->fps, " H264 decoder: FPS: %f");
 
-	AMediaFormat *format = AMediaFormat_new();
+	format = AMediaFormat_new();
 	AMediaFormat_setString(format,"mime","video/avc");
 	//Size mandatory for decoder configuration
 	AMediaFormat_setInt32(format,"width",1920);
@@ -83,7 +83,9 @@ static void dec_preprocess(MSFilter* f) {
 static void dec_postprocess(MSFilter *f) {
 }
 
+#if 0
 static void dec_reinit(DecData *d){
+	AMediaFormat *format;
 	AMediaCodec_flush(d->codec);
 	AMediaCodec_stop(d->codec);
     AMediaCodec_delete(d->codec);
@@ -91,7 +93,7 @@ static void dec_reinit(DecData *d){
 	ms_message("Restart dec");
 
 	d->codec = AMediaCodec_createDecoderByType("video/avc");
-	AMediaFormat *format = AMediaFormat_new();
+	format = AMediaFormat_new();
 	AMediaFormat_setString(format,"mime","video/avc");
 	//Size mandatory for decoder configuration
 	AMediaFormat_setInt32(format,"width",1920);
@@ -101,6 +103,7 @@ static void dec_reinit(DecData *d){
 	AMediaCodec_start(d->codec);
 	AMediaFormat_delete(format);
 }
+#endif
 
 static void dec_uninit(MSFilter *f){
 	DecData *d=(DecData*)f->data;
@@ -225,12 +228,12 @@ static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps){
 static void dec_process(MSFilter *f){
 	DecData *d=(DecData*)f->data;
 	MSPicture pic = {0};
-	MSQueue nalus;
-	ms_queue_init(&nalus);
+	mblk_t *im,*om = NULL;
 	bool_t need_reinit=FALSE;
 	bool_t request_pli=FALSE;
+	MSQueue nalus;
+	ms_queue_init(&nalus);
 
-	mblk_t *im,*om = NULL;
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		if (d->packet_num==0 && d->sps && d->pps){
 			mblk_set_timestamp_info(d->sps,mblk_get_timestamp_info(im));
@@ -245,6 +248,7 @@ static void dec_process(MSFilter *f){
 			request_pli=TRUE;
 		}
 		if (!ms_queue_empty(&nalus)){
+			AMediaCodecBufferInfo info;
 			int size;
 			int width = 0, height = 0, color = 0;
 			uint8_t *buf=NULL;
@@ -272,16 +276,16 @@ static void dec_process(MSFilter *f){
 				}
 			}
 
-			AMediaCodecBufferInfo info;
             oBufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US);
 			if(oBufidx >= 0){
+				AMediaFormat *format;
 				buf = AMediaCodec_getOutputBuffer(d->codec, oBufidx, &bufsize);
 				if(buf == NULL){
 					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
 					break;
 				}
 
-				AMediaFormat *format = AMediaCodec_getOutputFormat(d->codec);
+				format = AMediaCodec_getOutputFormat(d->codec);
 				if(format != NULL){
 					AMediaFormat_getInt32(format, "width", &width);
 					AMediaFormat_getInt32(format, "height", &height);

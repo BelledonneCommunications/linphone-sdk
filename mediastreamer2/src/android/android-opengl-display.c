@@ -89,6 +89,8 @@ static void android_display_process(MSFilter *f){
 	if (ad->android_video_window){
 		if ((m=ms_queue_peek_last(f->inputs[0]))!=NULL){
 			if (ms_yuv_buf_init_from_mblk (&pic,m)==0){
+				JNIEnv *jenv;
+
 				/* schedule display of frame */
 				if (ad->ogl) {
 					/* m is dupb'ed inside ogl_display */
@@ -97,7 +99,7 @@ static void android_display_process(MSFilter *f){
 					ms_warning("%s: opengldisplay not ready (%p)", __FUNCTION__, ad->ogl);
 				}
 				
-				JNIEnv *jenv=ms_get_jni_env();
+				jenv=ms_get_jni_env();
 				(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->request_render_id);
 			}
 		}

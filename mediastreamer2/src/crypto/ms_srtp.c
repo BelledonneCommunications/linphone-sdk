@@ -34,8 +34,8 @@
 #undef PACKAGE_TARNAME
 #undef PACKAGE_VERSION
 
-#if defined(ANDROID) || defined(MS2_WINDOWS_PHONE)
-// Android and Windows phone don't use make install
+#if defined(MS2_WINDOWS_PHONE)
+// Windows phone doesn't use make install
 #include <srtp.h>
 //#include <srtp_priv.h>
 #else

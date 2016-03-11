@@ -17,8 +17,6 @@
 #ifndef ANDROID_AUDIOSYSTEM_H_
 #define ANDROID_AUDIOSYSTEM_H_
 
-#include <cstddef>
-
 
 #include "audio.h"
 #include "loader.h"

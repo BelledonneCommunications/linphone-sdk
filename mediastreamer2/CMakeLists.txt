@@ -74,6 +74,7 @@ cmake_dependent_option(ENABLE_ZRTP "Build with ZRTP support." YES "ENABLE_SRTP" 
 
 option(ENABLE_SOUND "Can be used to turn off all possible sound backends." YES)
 cmake_dependent_option(ENABLE_ALSA "Enable ALSA support." YES "ENABLE_SOUND;LINUX_OR_BSD" NO)
+cmake_dependent_option(ENABLE_ANDROIDSND "Enable Android sound support." NO "ENABLE_SOUND;ANDROID" NO)
 cmake_dependent_option(ENABLE_ARTSC "Enable artsc (KDE<4) sound input/output." NO "ENABLE_SOUND;LINUX_OR_BSD" NO)
 cmake_dependent_option(ENABLE_MACSND "Enable MAC OS X Audio Units sound support." ${ENABLE_MACSND_DEFAULT_VALUE} "ENABLE_SOUND;APPLE" NO)
 cmake_dependent_option(ENABLE_MACAQSND "Enable native MAC OS X Audio Queue sound support." ${ENABLE_MACAQSND_DEFAULT_VALUE} "ENABLE_SOUND;APPLE" NO)
@@ -133,8 +134,6 @@ if(MSVC AND MSVC_VERSION LESS 1800)
 	set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
 	list(APPEND CMAKE_REQUIRED_INCLUDES "${MSVC_INCLUDE_DIR}")
 endif()
-
-find_package(Threads)
 
 check_include_file(sys/shm.h HAVE_SYS_SHM_H)
 check_include_file(alloca.h HAVE_ALLOCA_H)
@@ -297,7 +296,7 @@ if(ENABLE_QNX)
 	endif()
 endif()
 
-if(ENABLE_SOUND AND NOT(WIN32 OR ENABLE_ALSA OR ENABLE_ARTSC OR ENABLE_MACSND OR ENABLE_MACAQSND OR ENABLE_OSS OR ENABLE_PORTAUDIO OR ENABLE_PULSEAUDIO OR ENABLE_QSA))
+if(ENABLE_SOUND AND NOT(WIN32 OR ENABLE_ALSA OR ENABLE_ARTSC OR ENABLE_MACSND OR ENABLE_MACAQSND OR ENABLE_OSS OR ENABLE_PORTAUDIO OR ENABLE_PULSEAUDIO OR ENABLE_QSA OR ENABLE_ANDROIDSND))
 	message(FATAL_ERROR "Could not find a support sound driver API. Use -DENABLE_SOUND=NO if you don't care about having sound.")
 endif()
 
@@ -384,6 +383,12 @@ if(PCAP_FOUND)
 endif()
 if(MSVC_INCLUDE_DIR)
 	include_directories(${MSVC_INCLUDE_DIR})
+endif()
+if(ENABLE_ANDROIDSND)
+	include_directories(
+		src/android
+		src/android/media
+	)
 endif()
 
 if(ENABLE_DEBUG_LOGS)
@@ -478,6 +483,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mediastreamer-config.h.cmake ${CMAKE_
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/mediastreamer-config.h PROPERTIES GENERATED ON)
 add_definitions("-DHAVE_CONFIG_H")
 add_definitions(${ORTP_CPPFLAGS})
+if(ANDROID)
+	add_definitions("-DANDROID")
+endif()
 
 set(STRICT_OPTIONS_CPP )
 set(STRICT_OPTIONS_C )

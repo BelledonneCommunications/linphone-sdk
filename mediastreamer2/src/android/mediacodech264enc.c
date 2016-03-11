@@ -77,17 +77,19 @@ static void enc_init(MSFilter *f){
 }
 
 static void enc_preprocess(MSFilter* f) {
+	AMediaCodec *codec;
+	AMediaFormat *format;
+	media_status_t status;
 	EncData *d=(EncData*)f->data;
 	d->packer=rfc3984_new();
 	rfc3984_set_mode(d->packer,d->mode);
 	rfc3984_enable_stap_a(d->packer,FALSE);
 	ms_video_starter_init(&d->starter);
 
-	AMediaCodec *codec;
 	codec = AMediaCodec_createEncoderByType("video/avc");
     d->codec = codec;
 
-	AMediaFormat *format = AMediaFormat_new();
+	format = AMediaFormat_new();
 	AMediaFormat_setString(format, "mime", "video/avc");
 	AMediaFormat_setInt32(format, "width", d->vconf.vsize.width);
 	AMediaFormat_setInt32(format, "height", d->vconf.vsize.height);
@@ -96,7 +98,7 @@ static void enc_preprocess(MSFilter* f) {
 	AMediaFormat_setInt32(format, "bitrate", d->vconf.required_bitrate);
 	AMediaFormat_setInt32(format, "frame-rate", d->vconf.fps);
 	AMediaFormat_setInt32(format, "bitrate-mode",1);
-	media_status_t status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+	status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
 
 	if(status != 0){
 		d->isYUV = FALSE;
@@ -127,6 +129,7 @@ static void  pushNalu(uint8_t *begin, uint8_t *end, uint32_t ts, bool marker, MS
 	uint8_t *src=begin;
 	size_t nalu_len = (end-begin);
 	uint8_t nalu_byte  = *src++;
+	unsigned ecount = 0;
 
 	mblk_t *m=allocb(nalu_len,0);
 
@@ -138,7 +141,6 @@ static void  pushNalu(uint8_t *begin, uint8_t *end, uint32_t ts, bool marker, MS
 		Within the NAL unit, the following three-byte sequence shall not occur at any byte-aligned position: 0x000000, 0x000001, 0x00002
 	*/
 	*m->b_wptr++=nalu_byte;
-	unsigned ecount = 0;
 	while (src<end-3) {
 		if (src[0]==0 && src[1]==0 && src[2]==3){
 			*m->b_wptr++=0;
@@ -191,6 +193,7 @@ static void enc_process(MSFilter *f){
 	ms_queue_init(&nalus);
     while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		if (ms_yuv_buf_init_from_mblk(&pic,im)==0){
+			AMediaCodecBufferInfo info;
 			uint8_t *buf=NULL;
         	size_t bufsize;
         	ssize_t ibufidx, obufidx;
@@ -206,10 +209,10 @@ static void enc_process(MSFilter *f){
 						memcpy(buf + ysize, pic.planes[1], usize);
 						memcpy(buf + ysize+usize, pic.planes[2], usize);
 					} else {
+						int i;
 						size_t size=(size_t) pic.w * pic.h;
 						uint8_t *dst = pic.planes[0];
 						memcpy(buf,dst,size);
-						int i;
 
 						for (i = 0; i < pic.w/2*pic.h/2; i++){
 							buf[size+2*i]=pic.planes[1][i];
@@ -220,7 +223,6 @@ static void enc_process(MSFilter *f){
 				}
 			}
 
-			AMediaCodecBufferInfo info;
             obufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US);
             while(obufidx >= 0) {
 				buf = AMediaCodec_getOutputBuffer(d->codec, obufidx, &bufsize);

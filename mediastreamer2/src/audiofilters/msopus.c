@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ortp/rtp.h"
 
 #include <stdint.h>
-#if defined(ANDROID) || defined(MS2_WINDOWS_PHONE)
+#if defined(MS2_WINDOWS_PHONE)
 #include <opus.h>
 #else
 #include <opus/opus.h>

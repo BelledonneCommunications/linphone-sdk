@@ -23,6 +23,7 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msjava.h"
+#include "mediastreamer2/devices.h"
 #include <jni.h>
 
 #include <sys/time.h>
@@ -31,7 +32,6 @@
 #include "mediastreamer2/zrtp.h"
 #include <cpu-features.h>
 
-#include "audiofilters/devices.h"
 #include "hardware_echo_canceller.h"
 
 static const float sndwrite_flush_threshold=0.020;	//ms
@@ -602,8 +602,6 @@ MSFilter *msandroid_sound_read_new(MSSndCard *card){
 	return f;
 }
 
-MS_FILTER_DESC_EXPORT(msandroid_sound_read_desc)
-
 /***********************************write filter********************/
 static int set_write_rate(MSFilter *f, void *arg){
 #ifndef USE_HARDWARE_RATE
@@ -687,9 +685,11 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 	int check_point_size=3*(float)d->rate*(float)d->nchannels*2.0; /*3 seconds*/
 	int nwrites=0;
 
-	set_high_prio();
 	int buff_size = d->write_chunk_size;
+	uint8_t tmpBuff[buff_size];
 	JNIEnv *jni_env = ms_get_jni_env();
+
+	set_high_prio();
 
 	// int write  (byte[] audioData, int offsetInBytes, int sizeInBytes)
 	write_id = jni_env->GetMethodID(d->audio_track_class,"write", "([BII)I");
@@ -703,7 +703,6 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 		goto end;
 	}
 	write_buff = jni_env->NewByteArray(buff_size);
-	uint8_t tmpBuff[buff_size];
 
 	//start playing
 	jni_env->CallVoidMethod(d->audio_track,play_id);
@@ -930,8 +929,6 @@ MSFilter *msandroid_sound_write_new(MSSndCard *card){
 	return f;
 }
 
-
-MS_FILTER_DESC_EXPORT(msandroid_sound_write_desc)
 
 
 

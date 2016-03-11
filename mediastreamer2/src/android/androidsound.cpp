@@ -19,8 +19,10 @@
  */
 
 #include <mediastreamer2/msfilter.h>
+#include <mediastreamer2/msjava.h>
 #include <mediastreamer2/msticker.h>
 #include <mediastreamer2/mssndcard.h>
+#include <mediastreamer2/devices.h>
 
 #include "AudioTrack.h"
 #include "AudioRecord.h"
@@ -28,7 +30,6 @@
 
 #include <jni.h>
 
-#include "audiofilters/devices.h"
 #include "hardware_echo_canceller.h"
 
 #define NATIVE_USE_HARDWARE_RATE 1

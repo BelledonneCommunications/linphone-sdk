@@ -19,8 +19,10 @@
  */
 
 #include <mediastreamer2/msfilter.h>
+#include <mediastreamer2/msjava.h>
 #include <mediastreamer2/msticker.h>
 #include <mediastreamer2/mssndcard.h>
+#include <mediastreamer2/devices.h>
 
 #include <sys/types.h>
 #include <string.h>
@@ -29,7 +31,6 @@
 #include <SLES/OpenSLES_AndroidConfiguration.h>
 #include <jni.h>
 #include <dlfcn.h>
-#include "audiofilters/devices.h"
 
 namespace fake_opensles {
 	SLInterfaceID SLW_IID_ENGINE = NULL;
@@ -389,7 +390,6 @@ static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
 }
 
 static void compute_timespec(OpenSLESInputContext *ictx) {
-	static int count = 0;
 	uint64_t ns = ((1000 * ictx->read_samples) / (uint64_t) ictx->opensles_context->samplerate) * 1000000;
 	MSTimeSpec ts;
 	ts.tv_nsec = ns % 1000000000;

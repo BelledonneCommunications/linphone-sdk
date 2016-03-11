@@ -18,11 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/msfilter.h"
-#ifdef ANDROID
-#include "gsm.h"
-#else
 #include <gsm/gsm.h>
-#endif
 
 #ifdef _MSC_VER
 #include <malloc.h>

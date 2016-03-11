@@ -20,6 +20,8 @@
 #
 ############################################################################
 
+find_library(LIBM NAMES m)
+
 if(MSVC AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	find_library(LIBGCC NAMES gcc)
 	find_library(LIBMINGWEX NAMES mingwex)
@@ -46,6 +48,9 @@ set(BASE_SOURCE_FILES_C
 	otherfilters/tee.c
 	otherfilters/void.c
 )
+if(ANDROID)
+	list(APPEND BASE_SOURCE_FILES_C utils/msjava.c)
+endif()
 
 find_package(Git)
 add_custom_target(ms2-git-version
@@ -92,6 +97,9 @@ endif()
 if(ENABLE_SHARED)
 	add_library(mediastreamer_base SHARED ${MEDIASTREAMER2_HEADER_FILES} ${BASE_SOURCE_FILES_C})
 	set_target_properties(mediastreamer_base PROPERTIES VERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE C)
+	if(ANDROID)
+		set_target_properties(mediastreamer_base PROPERTIES OUTPUT_NAME "mediastreamer_base-${CMAKE_SYSTEM_PROCESSOR}")
+	endif()
 	target_link_libraries(mediastreamer_base ${BASE_LIBS})
 	add_dependencies(mediastreamer_base ms2-git-version ms2-basedescs-header)
 	if(MSVC)
@@ -117,7 +125,6 @@ set(VOIP_SOURCE_FILES_C
 	audiofilters/audiomixer.c
 	audiofilters/chanadapt.c
 	audiofilters/devices.c
-	audiofilters/devices.h
 	audiofilters/dtmfgen.c
 	audiofilters/equalizer.c
 	audiofilters/flowcontrol.c
@@ -173,9 +180,24 @@ set(VOIP_SOURCE_FILES_C
 )
 set(VOIP_SOURCE_FILES_CXX )
 set(VOIP_SOURCE_FILES_OBJC )
+set(VOIP_SOURCE_FILES_ASM )
 
 if(ENABLE_ALSA)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/alsa.c)
+endif()
+if(ENABLE_ANDROIDSND)
+	list(APPEND VOIP_SOURCE_FILES_CXX
+		android/androidsound.cpp
+		android/androidsound_depr.cpp
+		android/androidsound_opensles.cpp
+		android/AudioRecord.cpp
+		android/AudioSystem.cpp
+		android/AudioTrack.cpp
+		android/hardware_echo_canceller.cpp
+		android/loader.cpp
+		android/String8.cpp
+		audiofilters/aac-eld-android.cpp
+	)
 endif()
 if(ENABLE_ARTSC)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/arts.c)
@@ -284,6 +306,29 @@ if(ENABLE_VIDEO)
 	if(APPLE)
 		list(APPEND VOIP_SOURCE_FILES_C videofilters/videotoolbox.c)
 	endif()
+	if(ANDROID)
+		list(APPEND VOIP_SOURCE_FILES_C
+			android/mediacodech264dec.c
+			android/mediacodech264enc.c
+			android/android-display.c
+			android/android-opengl-display.c
+			utils/opengles_display.c
+			utils/opengles_display.h
+			utils/shaders.c
+			utils/shaders.h
+			voip/scaler.c
+		)
+		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+			list(APPEND VOIP_SOURCE_FILES_ASM
+				voip/scaler_arm.S
+			)
+		endif()
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			android/android_mediacodec.cpp
+			android/android-display-bad.cpp
+			android/androidvideo.cpp
+		)
+	endif()
 	if (ENABLE_QNX)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			videofilters/bb10_display.cpp
@@ -353,7 +398,7 @@ add_custom_target(ms2-voipdescs-header
 	BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h"
 )
 
-if(APPLE OR GLX_FOUND)
+if(APPLE OR ANDROID OR GLX_FOUND)
 	find_program(XXD_PROGRAM xxd)
 	if(NOT XXD_PROGRAM)
 		message(FATAL_ERROR "You need the xxd program to build mediastreamer2.")
@@ -386,6 +431,22 @@ if(VOIP_SOURCE_FILES_CXX)
 endif()
 
 
+if(ENABLE_VIDEO AND ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+	set_source_files_properties(voip/msvideo_neon.c voip/scaler.c PROPERTIES COMPILE_FLAGS "-mfpu=neon")
+endif()
+
+
+if(VOIP_SOURCE_FILES_ASM)
+	if(ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi-v7a")
+		set(ARCH_OPTIONS "-mfpu=neon")
+	endif()
+	get_directory_property(DIRECTORY_PROPERTY_COMPILE_OPTIONS "COMPILE_OPTIONS")
+	string(REPLACE ";" " " DIRECTORY_PROPERTY_COMPILE_OPTIONS "${DIRECTORY_PROPERTY_COMPILE_OPTIONS}")
+	set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> ${CMAKE_CPP_FLAGS} ${CMAKE_C_FLAGS} ${DIRECTORY_PROPERTY_COMPILE_OPTIONS} ${ARCH_OPTIONS} -o <OBJECT> -c <SOURCE>")
+	enable_language(ASM)
+endif()
+
+
 set(VOIP_LIBS
 	${BCTOOLBOX_CORE_LIBRARIES}
 	${ORTP_LIBRARIES}
@@ -397,6 +458,12 @@ if(WIN32)
 			list(APPEND VOIP_LIBS gdi32 strmiids user32 vfw32)
 		endif()
 	endif()
+endif()
+if(LIBM)
+	list(APPEND VOIP_LIBS ${LIBM})
+endif()
+if(ANDROID AND ENABLE_VIDEO)
+	list(APPEND VOIP_LIBS GLESv2)
 endif()
 if(HAVE_DLOPEN)
 	list(APPEND VOIP_LIBS dl)
@@ -470,13 +537,13 @@ if (CAMAPI_FOUND)
 endif()
 
 set(MS2_VOIP_DEPENDENCIES ms2-git-version ms2-voipdescs-header)
-if(APPLE OR GLX_FOUND)
+if(APPLE OR ANDROID OR GLX_FOUND)
 	list(APPEND MS2_VOIP_DEPENDENCIES ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
 endif()
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(ENABLE_STATIC)
-	add_library(mediastreamer_voip-static STATIC ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
+	add_library(mediastreamer_voip-static STATIC ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC} ${VOIP_SOURCE_FILES_ASM})
 	set_target_properties(mediastreamer_voip-static PROPERTIES OUTPUT_NAME mediastreamer_voip)
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer_voip-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
@@ -489,12 +556,15 @@ if(ENABLE_STATIC)
 	)
 endif()
 if(ENABLE_SHARED)
-	add_library(mediastreamer_voip SHARED ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})
-	set_target_properties(mediastreamer_voip PROPERTIES VERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE CXX)
+	add_library(mediastreamer_voip SHARED ${MEDIASTREAMER2_HEADER_FILES} ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC} ${VOIP_SOURCE_FILES_ASM})
+	set_target_properties(mediastreamer_voip PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION} LINKER_LANGUAGE CXX)
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer_voip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 	add_dependencies(mediastreamer_voip ${MS2_VOIP_DEPENDENCIES})
+	if(ANDROID)
+		set_target_properties(mediastreamer_voip PROPERTIES OUTPUT_NAME "mediastreamer_voip-${CMAKE_SYSTEM_PROCESSOR}")
+	endif()
 	target_link_libraries(mediastreamer_voip mediastreamer_base ${VOIP_LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")

@@ -20,7 +20,7 @@
 
 
 
-#include "devices.h"
+#include "mediastreamer2/devices.h"
 
 #ifdef ANDROID
 #include "sys/system_properties.h"

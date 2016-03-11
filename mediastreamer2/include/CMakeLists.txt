@@ -24,6 +24,7 @@ set(HEADER_FILES
 	allfilters.h
 	bitratecontrol.h
 	bits_rw.h
+	devices.h
 	dsptools.h
 	dtls_srtp.h
 	dtmfgen.h
