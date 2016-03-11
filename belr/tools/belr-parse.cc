@@ -9,6 +9,7 @@
 #include <chrono>
 #include <ctime>
 #include <cstring>
+#include <cstdlib>
 
 using namespace::belr;
 
