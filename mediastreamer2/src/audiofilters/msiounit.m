@@ -871,6 +871,8 @@ static void au_read_uninit(MSFilter *f) {
 	check_unused(card);
 
 	ms_mutex_destroy(&d->mutex);
+
+	flushq(&d->rq,0);
 	ms_free(d);
 }
 
