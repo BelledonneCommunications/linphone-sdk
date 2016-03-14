@@ -26,31 +26,18 @@
 #  OPUS_INCLUDE_DIRS - the opus include directory
 #  OPUS_LIBRARIES - The libraries needed to use opus
 
-set(_OPUS_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
 find_path(OPUS_INCLUDE_DIRS
 	NAMES opus/opus.h
-	HINTS _OPUS_ROOT_PATHS
 	PATH_SUFFIXES include
 )
 if(OPUS_INCLUDE_DIRS)
 	set(HAVE_OPUS_OPUS_H 1)
 endif()
 
-find_library(OPUS_LIBRARIES
-	NAMES opus
-	HINTS _OPUS_ROOT_PATHS
-	PATH_SUFFIXES bin lib
-)
+find_library(OPUS_LIBRARIES NAMES opus)
 
 if(OPUS_LIBRARIES)
-	find_library(LIBM
-		NAMES m
-		HINTS _OPUS_ROOT_PATHS
-		PATH_SUFFIXES bin lib
-	)
+	find_library(LIBM NAMES m)
 	if(LIBM)
 		list(APPEND OPUS_LIBRARIES ${LIBM})
 	endif()

@@ -26,35 +26,15 @@
 #  BV16_INCLUDE_DIRS - the bv16 include directory
 #  BV16_LIBRARIES - The libraries needed to use bv16
 
-set(_BV16_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
 find_path(BV16_INCLUDE_DIRS
 	NAMES bv16-floatingpoint/bv16/bv16.h
-	HINTS _BV16_ROOT_PATHS
 	PATH_SUFFIXES include
 )
 if(BV16_INCLUDE_DIRS)
 	set(HAVE_BV16_BV16_H 1)
 endif()
 
-find_library(BV16_LIBRARIES
-	NAMES bv16
-	HINTS _BV16_ROOT_PATHS
-	PATH_SUFFIXES bin lib
-)
-
-# if(BV16_LIBRARIES)
-# 	find_library(LIBM
-# 		NAMES m
-# 		HINTS _BV16_ROOT_PATHS
-# 		PATH_SUFFIXES bin lib
-# 	)
-# 	if(LIBM)
-# 		list(APPEND BV16_LIBRARIES ${LIBM})
-# 	endif()
-# endif()
+find_library(BV16_LIBRARIES NAMES bv16)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(bv16
