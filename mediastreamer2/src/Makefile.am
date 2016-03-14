@@ -216,6 +216,8 @@ if BUILD_PULSEAUDIO
 libmediastreamer_voip_la_SOURCES+=	audiofilters/pulseaudio.c
 endif
 
+libmediastreamer_voip_la_LIBTOOLFLAGS= --tag=CC
+
 if BUILD_VIDEO
 
 if BUILD_MACOSX
