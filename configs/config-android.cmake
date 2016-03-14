@@ -45,6 +45,10 @@ set(DEFAULT_VALUE_CMAKE_PLUGIN_LINKING_TYPE "-DENABLE_STATIC=NO" "-DENABLE_SHARE
 
 # Global configuration
 set(LINPHONE_BUILDER_HOST "${CMAKE_SYSTEM_PROCESSOR}-linux-android")
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armeabi" AND ENABLE_VIDEO)
+	message(STATUS "Disabling video for armv6")
+	set(ENABLE_VIDEO NO CACHE BOOL "")
+endif()
 
 
 # Include builders
