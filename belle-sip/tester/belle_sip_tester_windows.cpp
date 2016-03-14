@@ -113,7 +113,7 @@ bool NativeTester::run(Platform::String^ suiteName, Platform::String^ caseName, 
 		belle_sip_set_log_level(BELLE_SIP_LOG_ERROR);
 	}
 	belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
-	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename) != 0;
+	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename, NULL) != 0;
 }
 
 void NativeTester::runAllToXml()
