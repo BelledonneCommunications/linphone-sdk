@@ -48,24 +48,18 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
 	list(APPEND LIBS phoneaudioses)
 endif()
 
-if(ENABLE_STATIC)
-	add_library(mswasapi STATIC ${SOURCE_FILES})
-else()
-	add_library(mswasapi SHARED ${SOURCE_FILES})
-	set_target_properties(mswasapi PROPERTIES VERSION 0)
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmswasapi.pdb
-			DESTINATION bin
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		)
-	endif()
-	set_target_properties(mswasapi PROPERTIES PREFIX "lib")
-endif()
+add_library(mswasapi MODULE ${SOURCE_FILES})
+set_target_properties(mswasapi PROPERTIES PREFIX "lib")
+target_link_libraries(mswasapi ${LIBS})
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	set_target_properties(mswasapi PROPERTIES VS_WINRT_COMPONENT TRUE)
 endif()
-target_link_libraries(mswasapi ${LIBS})
-
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmswasapi.pdb
+		DESTINATION bin
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+endif()
 install(TARGETS mswasapi
 	RUNTIME DESTINATION lib/mediastreamer/plugins
 	LIBRARY DESTINATION lib/mediastreamer/plugins
