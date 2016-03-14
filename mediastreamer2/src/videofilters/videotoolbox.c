@@ -658,7 +658,11 @@ static void h264_dec_process(MSFilter *f) {
 		timing_info.duration = kCMTimeInvalid;
 		timing_info.presentationTimeStamp = CMTimeMake(f->ticker->time, 1000);
 		timing_info.decodeTimeStamp = CMTimeMake(f->ticker->time, 1000);
-		CMSampleBufferCreateReady(NULL, stream, ctx->format_desc, 1, 1, &timing_info, 0, NULL, &sample);
+		CMSampleBufferCreate(
+			NULL, stream, TRUE, NULL, NULL,
+			ctx->format_desc, 1, 1, &timing_info,
+			0, NULL, &sample);
+
 		status = VTDecompressionSessionDecodeFrame(ctx->session, sample, 0, NULL, NULL);
 		CFRelease(sample);
 		if(status != noErr) {
