@@ -24,7 +24,7 @@ set(EP_belcard_GIT_REPOSITORY "git://git.linphone.org/belcard.git" CACHE STRING 
 set(EP_belcard_GIT_TAG_LATEST "master" CACHE STRING "belcard tag to use when compiling latest version")
 set(EP_belcard_EXTERNAL_SOURCE_PATHS "belcard")
 set(EP_belcard_GROUPABLE YES)
-set(EP_belcard_DEPENDENCIES EP_belr)
+set(EP_belcard_DEPENDENCIES EP_bctoolbox EP_belr)
 
 if(EP_belcard_FORCE_AUTOTOOLS)
 	set(EP_belcard_LINKING_TYPE "--enable-static")
