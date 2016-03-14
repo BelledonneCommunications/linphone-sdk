@@ -44,6 +44,8 @@ find_file(GCC_EXECUTABLE
 	PATHS
 	"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-4.8/prebuilt/linux-x86_64/bin"
 	"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-4.8/prebuilt/linux-x86_64/bin"
+	"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-4.8/prebuilt/darwin-x86_64/bin"
+	"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-4.8/prebuilt/darwin-x86_64/bin"
 	"${ANDROID_NDK_PATH}/toolchains/${COMPILER_PREFIX}-4.8/prebuilt/linux-x86/bin"
 	"${ANDROID_NDK_PATH}/toolchains/${CMAKE_SYSTEM_PROCESSOR}-4.8/prebuilt/linux-x86/bin"
 )
