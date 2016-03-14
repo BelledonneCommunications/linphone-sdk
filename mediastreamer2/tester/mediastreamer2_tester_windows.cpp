@@ -119,7 +119,7 @@ bool NativeTester::run(Platform::String^ suiteName, Platform::String^ caseName, 
 		ortp_set_log_level_mask(NULL, ORTP_ERROR | ORTP_FATAL);
 	}
 	ortp_set_log_handler(ms2NativeOutputTraceHandler);
-	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename) != 0;
+	return bc_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename, NULL) != 0;
 }
 
 void NativeTester::runAllToXml()
