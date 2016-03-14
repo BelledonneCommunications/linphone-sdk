@@ -495,7 +495,13 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 
 	if(status != noErr || imageBuffer == NULL) {
 		ms_error("VideoToolboxDecoder: fail to decode one frame: error %d", status);
-		ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_SEND_PLI);
+		ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_DECODING_ERRORS);
+		ms_filter_lock(ctx->f);
+		if(ctx->enable_avpf) {
+			ms_error("VideoToolboxDecoder: sending PLI");
+			ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_SEND_PLI);
+		}
+		ms_filter_unlock(ctx->f);
 		return;
 	}
 
@@ -678,6 +684,7 @@ static void h264_dec_process(MSFilter *f) {
 	goto put_frames_out;
 
 fail:
+	ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_DECODING_ERRORS);
 	ms_filter_lock(f);
 	if(ctx->enable_avpf) {
 		ms_message("VideoToolboxDecoder: sending PLI");
