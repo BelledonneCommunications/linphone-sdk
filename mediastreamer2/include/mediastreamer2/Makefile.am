@@ -4,6 +4,7 @@ mediastreamer2_includedir=$(includedir)/mediastreamer2
 mediastreamer2_include_HEADERS=allfilters.h \
 				bitratecontrol.h \
 				bits_rw.h \
+				devices.h \
 				dsptools.h \
 				dtls_srtp.h \
 				dtmfgen.h \
