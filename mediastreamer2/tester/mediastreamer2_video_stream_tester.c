@@ -27,8 +27,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define unlink _unlink
 #endif
 
+typedef struct _CodecsManager CodecsManager;
+
 static RtpProfile rtp_profile;
 static MSFactory* _factory = NULL;
+static CodecsManager *_h264_codecs_manager = NULL;
 
 #define VP8_PAYLOAD_TYPE   103
 #define H264_PAYLOAD_TYPE  104
@@ -50,6 +53,77 @@ MSWebCam* mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr) {
 	return cam;
 }
 
+struct _CodecsManager {
+	MSList *encoders;
+	MSList *decoders;
+};
+
+typedef void (*CodecManagerTestFunc)(void);
+
+static CodecsManager *codecs_manager_new(MSFactory *factory, const char *mime) {
+	MSList *it;
+	CodecsManager *cm = ms_new0(CodecsManager, 1);
+	cm->decoders = NULL;
+	cm->encoders = NULL;
+	for (it=factory->desc_list; it; it=ms_list_next(it)) {
+		MSFilterDesc *desc = (MSFilterDesc *)it->data;
+		if (desc->enc_fmt && strcasecmp(desc->enc_fmt, mime) == 0 && (desc->flags & MS_FILTER_IS_ENABLED)) {
+			if (desc->category == MS_FILTER_ENCODER) {
+				cm->encoders = ms_list_append(cm->encoders, desc);
+			} else if (desc->category == MS_FILTER_DECODER) {
+				cm->decoders = ms_list_append(cm->decoders, desc);
+			}
+		}
+	}
+	return cm;
+}
+
+static void codecs_manager_free(CodecsManager *cm) {
+	ms_list_free(cm->decoders);
+	ms_list_free(cm->encoders);
+}
+
+static void codecs_manager_enable_all_codecs(const CodecsManager *cm, MSFilterCategory category, bool_t enable) {
+	const MSList *it;
+	if (category == MS_FILTER_ENCODER) {
+		it = cm->encoders;
+	} else if (category == MS_FILTER_DECODER) {
+		it = cm->decoders;
+	} else {
+		ms_error("CodecsManager: fail to enable all codecs: invalid category [%d]", category);
+		return;
+	}
+	for (; it; it=ms_list_next(it)) {
+		MSFilterDesc *desc = (MSFilterDesc *)it->data;
+		if (enable) desc->flags |= MS_FILTER_IS_ENABLED;
+		else desc->flags &= ~MS_FILTER_IS_ENABLED;
+	}
+}
+
+static void codecs_manager_enable_only_one_codec(const CodecsManager *cm, MSFilterDesc *desc) {
+	if (desc->category == MS_FILTER_ENCODER || desc->category == MS_FILTER_DECODER) {
+		codecs_manager_enable_all_codecs(cm, desc->category, FALSE);
+		desc->flags |= MS_FILTER_IS_ENABLED;
+	}
+}
+
+static void codecs_manager_test_all_combinations(const CodecsManager *cm, CodecManagerTestFunc test_func) {
+	const MSList *enc_it, *dec_it;
+	for (enc_it=cm->encoders; enc_it; enc_it=ms_list_next(enc_it)) {
+		MSFilterDesc *enc_desc = (MSFilterDesc *)enc_it->data;
+		codecs_manager_enable_only_one_codec(cm, enc_desc);
+		for (dec_it=cm->decoders; dec_it; dec_it=ms_list_next(dec_it)) {
+			MSFilterDesc *dec_desc = (MSFilterDesc *)dec_it->data;
+			codecs_manager_enable_only_one_codec(cm, dec_desc);
+			ms_message("CodecsManager: calling test function [%p] with %s as encoder and %s as decoder",
+					   test_func, enc_desc->name, dec_desc->name);
+			test_func();
+		}
+	}
+	codecs_manager_enable_all_codecs(cm, MS_FILTER_ENCODER, TRUE);
+	codecs_manager_enable_all_codecs(cm, MS_FILTER_DECODER, TRUE);
+}
+
 static int tester_before_all(void) {
 	_factory = ms_factory_new_with_voip();
 	
@@ -58,10 +132,14 @@ static int tester_before_all(void) {
 	rtp_profile_set_payload(&rtp_profile, VP8_PAYLOAD_TYPE, &payload_type_vp8);
 	rtp_profile_set_payload(&rtp_profile, H264_PAYLOAD_TYPE, &payload_type_h264);
 	rtp_profile_set_payload(&rtp_profile, MP4V_PAYLOAD_TYPE, &payload_type_mp4v);
+
+	_h264_codecs_manager = codecs_manager_new(_factory, "h264");
+
 	return 0;
 }
 
 static int tester_after_all(void) {
+	codecs_manager_free(_h264_codecs_manager);
 	ms_factory_destroy(_factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
@@ -293,23 +371,43 @@ static void change_codec(video_stream_tester_t *vst1, video_stream_tester_t *vst
 	BC_ASSERT_EQUAL(video_stream_start(vst1->vs, &rtp_profile, vst2->local_ip, vst2->local_rtp, vst2->local_ip, vst2->local_rtcp, payload_type, 50, no_webcam), 0,int,"%d");
 }
 
-static void basic_video_stream(void) {
+static void basic_video_stream_base(int payload_type) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
-	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
 
-	if (supported) {
-		init_video_streams(marielle, margaux, FALSE, FALSE, NULL,VP8_PAYLOAD_TYPE);
+	init_video_streams(marielle, margaux, FALSE, FALSE, NULL, payload_type);
 
-		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+	BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms,
+													&margaux->vs->ms,
+													&marielle->stats.number_of_SR,
+													2, 15000, event_queue_cb,
+													&marielle->stats, event_queue_cb,
+													&margaux->stats));
 
-		video_stream_get_local_rtp_stats(marielle->vs, &marielle->stats.rtp);
-		video_stream_get_local_rtp_stats(margaux->vs, &margaux->stats.rtp);
+	video_stream_get_local_rtp_stats(marielle->vs, &marielle->stats.rtp);
+	video_stream_get_local_rtp_stats(margaux->vs, &margaux->stats.rtp);
 
-		uninit_video_streams(marielle, margaux);
+	uninit_video_streams(marielle, margaux);
+}
+
+static void basic_video_stream_vp8(void) {
+	if(ms_factory_codec_supported(_factory, "vp8")) {
+		basic_video_stream_base(VP8_PAYLOAD_TYPE);
 	} else {
 		ms_error("VP8 codec is not supported!");
 	}
+}
+
+static void basic_video_stream_h264(void) {
+	if(ms_factory_codec_supported(_factory, "h264")) {
+		basic_video_stream_base(H264_PAYLOAD_TYPE);
+	} else {
+		ms_error("H264 codec is not supported!");
+	}
+}
+
+static void basic_video_stream_all_h264_codec_combinations(void) {
+	codecs_manager_test_all_combinations(_h264_codecs_manager, basic_video_stream_h264);
 }
 
 static void basic_one_way_video_stream(void) {
@@ -397,27 +495,40 @@ static void multicast_video_stream(void) {
 	video_stream_tester_destroy(margaux);
 }
 
-static void avpf_video_stream(void) {
+static void avpf_video_stream_base(int payload_type) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
-	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
+	bool_t supported;
     int dummy = 0;
     
+	switch(payload_type) {
+	case VP8_PAYLOAD_TYPE:
+		supported = ms_factory_codec_supported(_factory, "vp8");
+		break;
+	case H264_PAYLOAD_TYPE:
+		supported = ms_factory_codec_supported(_factory, "h264");
+		break;
+	default:
+		supported = FALSE;
+		break;
+	}
     
 	if (supported) {
 		params.enabled = TRUE;
 		params.loss_rate = 5.;
         params.RTP_only = TRUE;
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params,VP8_PAYLOAD_TYPE);
+		init_video_streams(marielle, margaux, TRUE, FALSE, &params,payload_type);
 
         BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
        
         
  
-        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_sent_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-        
-        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_sent_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		if (payload_type == VP8_PAYLOAD_TYPE) {
+			BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_sent_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+			BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_sent_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		}
+
         //disable network simulator
         params.enabled = FALSE;
         rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
@@ -426,12 +537,16 @@ static void avpf_video_stream(void) {
         wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats);
         
          // wait for all packets reception before closing streams
-        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->vs->ms_video_stat.counter_rcvd_rpsi , marielle->stats.number_of_sent_RPSI, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->vs->ms_video_stat.counter_rcvd_rpsi , margaux->stats.number_of_sent_RPSI, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		if (payload_type == VP8_PAYLOAD_TYPE) {
+			BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->vs->ms_video_stat.counter_rcvd_rpsi , marielle->stats.number_of_sent_RPSI, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+			BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->vs->ms_video_stat.counter_rcvd_rpsi , margaux->stats.number_of_sent_RPSI, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		}
         BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->vs->ms_video_stat.counter_rcvd_pli, marielle->stats.number_of_sent_PLI, 10000,event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
         BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->vs->ms_video_stat.counter_rcvd_pli , margaux->stats.number_of_sent_PLI,10000,event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->vs->ms_video_stat.counter_rcvd_sli , marielle->stats.number_of_sent_SLI,10000,event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-        BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->vs->ms_video_stat.counter_rcvd_sli , margaux->stats.number_of_sent_SLI,10000,event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		if (payload_type == VP8_PAYLOAD_TYPE) {
+			BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->vs->ms_video_stat.counter_rcvd_sli , marielle->stats.number_of_sent_SLI,10000,event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+			BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->vs->ms_video_stat.counter_rcvd_sli , margaux->stats.number_of_sent_SLI,10000,event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+		}
 
         BC_ASSERT_EQUAL(margaux->vs->ms_video_stat.counter_rcvd_sli , marielle->stats.number_of_sent_SLI, int, "%d");
         BC_ASSERT_EQUAL(margaux->vs->ms_video_stat.counter_rcvd_rpsi , marielle->stats.number_of_sent_RPSI, int, "%d");
@@ -443,11 +558,23 @@ static void avpf_video_stream(void) {
         
         uninit_video_streams(marielle, margaux);
 	} else {
-		ms_error("VP8 codec is not supported!");
+		ms_error("Codec is not supported!");
 	}
     
 	video_stream_tester_destroy(marielle);
 	video_stream_tester_destroy(margaux);
+}
+
+static void avpf_video_stream_vp8(void) {
+	avpf_video_stream_base(VP8_PAYLOAD_TYPE);
+}
+
+static void avpf_video_stream_h264(void) {
+	avpf_video_stream_base(H264_PAYLOAD_TYPE);
+}
+
+static void avpf_video_stream_all_h264_codec_combinations(void) {
+	codecs_manager_test_all_combinations(_h264_codecs_manager, avpf_video_stream_h264);
 }
 
 static void avpf_rpsi_count(void) {
@@ -491,18 +618,30 @@ static void avpf_rpsi_count(void) {
 	video_stream_tester_destroy(margaux);
 }
 
-static void video_stream_first_iframe_lost_vp8(void) {
+static void video_stream_first_iframe_lost_base(int payload_type) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = { 0 };
-	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
+	bool_t supported;
+
+	switch(payload_type) {
+	case VP8_PAYLOAD_TYPE:
+		supported = ms_factory_codec_supported(_factory, "vp8");
+		break;
+	case H264_PAYLOAD_TYPE:
+		supported = ms_factory_codec_supported(_factory, "h264");
+		break;
+	default:
+		supported = FALSE;
+		break;
+	}
 
 	if (supported) {
 		int dummy=0;
 		/* Make sure first Iframe is lost. */
 		params.enabled = TRUE;
 		params.loss_rate = 100.;
-		init_video_streams(marielle, margaux, FALSE, FALSE, &params, VP8_PAYLOAD_TYPE);
+		init_video_streams(marielle, margaux, FALSE, FALSE, &params, payload_type);
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms,&dummy,1,1000);
 
 		/* Use 10% packet lost to be sure to have decoding errors. */
@@ -532,10 +671,22 @@ static void video_stream_first_iframe_lost_vp8(void) {
 
 		uninit_video_streams(marielle, margaux);
 	} else {
-		ms_error("VP8 codec is not supported!");
+		ms_error("Codec is not supported!");
 	}
 	video_stream_tester_destroy(marielle);
 	video_stream_tester_destroy(margaux);
+}
+
+static void video_stream_first_iframe_lost_vp8(void) {
+	video_stream_first_iframe_lost_base(VP8_PAYLOAD_TYPE);
+}
+
+static void video_stream_first_iframe_lost_h264(void) {
+	video_stream_first_iframe_lost_base(H264_PAYLOAD_TYPE);
+}
+
+static void video_stream_first_iframe_lost_all_h264_codec_combinatiions(void) {
+	codecs_manager_test_all_combinations(_h264_codecs_manager, video_stream_first_iframe_lost_h264);
 }
 
 static void avpf_video_stream_first_iframe_lost_base(int payload_type) {
@@ -593,6 +744,10 @@ static void avpf_video_stream_first_iframe_lost_vp8(void) {
 
 static void avpf_video_stream_first_iframe_lost_h264(void) {
 	avpf_video_stream_first_iframe_lost_base(H264_PAYLOAD_TYPE);
+}
+
+static void avpf_video_stream_first_iframe_lost_all_h264_codec_combinations(void) {
+	codecs_manager_test_all_combinations(_h264_codecs_manager, avpf_video_stream_first_iframe_lost_h264);
 }
 
 static void avpf_high_loss_video_stream_base(float rate, int payload_type) {
@@ -654,6 +809,10 @@ static void avpf_high_loss_video_stream_h264(void) {
 	avpf_high_loss_video_stream_base(10., H264_PAYLOAD_TYPE);
 }
 
+static void avpf_high_loss_video_stream_all_h264_codec_conbinations(void) {
+	codecs_manager_test_all_combinations(_h264_codecs_manager, avpf_high_loss_video_stream_h264);
+}
+
 static void video_configuration_stream_base(MSVideoConfiguration* asked, MSVideoConfiguration* expected_result, int payload_type) {
 	video_stream_tester_t* marielle=video_stream_tester_new();
 	video_stream_tester_t* margaux=video_stream_tester_new();
@@ -692,7 +851,8 @@ static void video_configuration_stream_base(MSVideoConfiguration* asked, MSVideo
 	video_stream_tester_destroy(margaux);
 
 }
-static void video_configuration_stream(void) {
+
+static void video_configuration_stream_vp8(void) {
 	MSVideoConfiguration asked;
 	MSVideoConfiguration expected;
 	asked.bitrate_limit=expected.bitrate_limit=1024000;
@@ -714,20 +874,50 @@ static void video_configuration_stream(void) {
 #endif
 }
 
+static void video_configuration_stream_h264(void) {
+	MSVideoConfiguration asked;
+	MSVideoConfiguration expected;
+	asked.bitrate_limit=expected.bitrate_limit=1024000;
+	asked.required_bitrate=expected.required_bitrate=1024000;
+	asked.fps=expected.fps=12;
+	asked.vsize.width=expected.vsize.width=MS_VIDEO_SIZE_VGA_W;
+	asked.vsize.height=expected.vsize.height=MS_VIDEO_SIZE_VGA_H;
+	video_configuration_stream_base(&asked,&expected,VP8_PAYLOAD_TYPE);
+
+	/*Test video rotation (inverted height <-> width). Not supported on desktop
+	because no real use case yet.*/
+#if defined(ANDROID) || defined(TARGET_OS_IPHONE)
+	asked.bitrate_limit=expected.bitrate_limit=1024000;
+	asked.required_bitrate=expected.required_bitrate=1024000;
+	asked.fps=expected.fps=12;
+	asked.vsize.height=expected.vsize.height=MS_VIDEO_SIZE_VGA_W;
+	asked.vsize.width=expected.vsize.width=MS_VIDEO_SIZE_VGA_H;
+	video_configuration_stream_base(&asked,&expected,H264_PAYLOAD_TYPE);
+#endif
+}
+
+static void video_configuration_stream_all_h264_codec_combinations(void) {
+	codecs_manager_test_all_combinations(_h264_codecs_manager, video_configuration_stream_h264);
+}
+
 static test_t tests[] = {
-	{ "Basic video stream", basic_video_stream },
-	{ "Multicast video stream",multicast_video_stream },
-	{ "Basic one-way video stream", basic_one_way_video_stream },
-	{ "Codec change for video stream", codec_change_for_video_stream },
-	{ "AVPF video stream", avpf_video_stream },
-	{ "AVPF high-loss video stream VP8", avpf_high_loss_video_stream_vp8 },
-	{ "AVPF very high-loss video stream VP8", avpf_very_high_loss_video_stream_vp8 },
-	{ "AVPF high-loss video stream H264", avpf_high_loss_video_stream_h264 },
-	{ "AVPF video stream first iframe lost VP8", avpf_video_stream_first_iframe_lost_vp8 },
-	{ "AVPF video stream first iframe lost H264", avpf_video_stream_first_iframe_lost_h264 },
-	{ "AVP video stream first iframe lost", video_stream_first_iframe_lost_vp8 },
-	{ "Video configuration", video_configuration_stream },
-	{ "AVPF RPSI count", avpf_rpsi_count}
+	{ "Basic video stream VP8"                   , basic_video_stream_vp8                                          },
+	{ "Basic video stream H264"                  , basic_video_stream_all_h264_codec_combinations                  },
+	{ "Multicast video stream"                   , multicast_video_stream                                          },
+	{ "Basic one-way video stream"               , basic_one_way_video_stream                                      },
+	{ "Codec change for video stream"            , codec_change_for_video_stream                                   },
+	{ "AVPF video stream VP8"                    , avpf_video_stream_vp8                                           },
+	{ "AVPF video stream H264"                   , avpf_video_stream_all_h264_codec_combinations                   },
+	{ "AVPF high-loss video stream VP8"          , avpf_high_loss_video_stream_vp8                                 },
+	{ "AVPF high-loss video stream H264"         , avpf_high_loss_video_stream_all_h264_codec_conbinations         },
+	{ "AVPF very high-loss video stream VP8"     , avpf_very_high_loss_video_stream_vp8                            },
+	{ "AVPF video stream first iframe lost VP8"  , avpf_video_stream_first_iframe_lost_vp8                         },
+	{ "AVPF video stream first iframe lost H264" , avpf_video_stream_first_iframe_lost_all_h264_codec_combinations },
+	{ "AVP video stream first iframe lost VP8"   , video_stream_first_iframe_lost_vp8                              },
+	{ "AVP video stream first iframe lost H264"  , video_stream_first_iframe_lost_all_h264_codec_combinatiions     },
+	{ "Video configuration VP8"                  , video_configuration_stream_vp8                                  },
+	{ "Video configuration H264"                 , video_configuration_stream_all_h264_codec_combinations          },
+	{ "AVPF RPSI count"                          , avpf_rpsi_count                                                 }
 };
 
 test_suite_t video_stream_test_suite = {
