@@ -70,7 +70,7 @@ include(CMakeForceCompiler)
 set(CMAKE_CROSSCOMPILING TRUE)
 
 # Define name of the target system
-set(CMAKE_SYSTEM_NAME "Android")
+set(CMAKE_SYSTEM_NAME "Linux")
 set(ANDROID True)
 
 # Define the compiler
