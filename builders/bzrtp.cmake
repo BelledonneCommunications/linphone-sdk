@@ -28,8 +28,8 @@ set(EP_bzrtp_GROUPABLE YES)
 
 set(EP_bzrtp_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 set(EP_bzrtp_DEPENDENCIES EP_bctoolbox)
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT IOS)
-	# Do not build xml2 on IOS, it is provided by the system
+if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
+	# Do not build xml2 on Apple systems (Mac OS X and iOS), it is provided by the system
 	list(APPEND EP_bzrtp_DEPENDENCIES EP_xml2)
 endif()
 if(MSVC)

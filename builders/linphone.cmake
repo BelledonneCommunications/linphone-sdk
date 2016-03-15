@@ -28,8 +28,8 @@ set(EP_linphone_GROUPABLE YES)
 
 set(EP_linphone_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 set(EP_linphone_DEPENDENCIES EP_bctoolbox EP_bellesip EP_ortp EP_ms2)
-if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT IOS)
-	# Do not build sqlite3, xml2 and zlib on IOS, they are provided by the system
+if(LINPHONE_BUILDER_BUILD_DEPENDENCIES AND NOT APPLE)
+	# Do not build sqlite3, xml2 and zlib on Apple systems (Mac OS X and iOS), they are provided by the system
 	list(APPEND EP_linphone_DEPENDENCIES EP_sqlite3 EP_xml2)
 	if (NOT QNX)
 		list(APPEND EP_linphone_DEPENDENCIES EP_zlib)
