@@ -125,7 +125,7 @@ set(EP_unixodbc_RPMBUILD_OPTIONS  "--with bc")
 set(EP_myodbc_RPMBUILD_OPTIONS    "--with bc")
 set(EP_sofiasip_RPMBUILD_OPTIONS  "--with bc --without glib")
 set(EP_hiredis_RPMBUILD_OPTIONS   "--with bc" )
-set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --without boostlog --with push")
+set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --with push")
 set(EP_bellesip_RPMBUILD_OPTIONS  "--with bc ")
 
 if (ENABLE_PRESENCE)
@@ -166,11 +166,6 @@ if(PLATFORM STREQUAL "Debian")
 
 	# some debians are using dash as shell, which doesn't support "export -n", so we override and use bash
 	set(RPMBUILD_OPTIONS "${RPMBUILD_OPTIONS} --define '_buildshell /bin/bash'")
-
-	# boost is to be found from debian's multiarch lib dirs
-	find_package(Boost REQUIRED COMPONENTS system)
-	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-boost-libdir=${Boost_LIBRARY_DIRS}")
-	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'boostlibdir ${Boost_LIBRARY_DIRS}'")
 
 	# redis for debian 7 will be installed in the prefix, but we have to pass it through a special flag to the RPM build, since there
 	# is no pkgconfig

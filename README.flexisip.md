@@ -8,8 +8,7 @@ Note that building flexisip packages requires to be building on a Linux host.
 ### Redhat / RPM-based
 
     sudo yum install @development-tools speex-devel \
-        hiredis-devel libtool-ltdl-devel libiodbc-devel \
-        boost boost-system boost-devel
+        hiredis-devel libtool-ltdl-devel libiodbc-devel
     make build-flexisip-rpm
 
 ### Debian
