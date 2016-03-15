@@ -32,7 +32,6 @@ execute_process(
 
 execute_process(
 	COMMAND install_name_tool
-		-delete_rpath ${LINPHONE_OUTPUT_DIR}/lib
 		-add_rpath @executable_path/../Resources/lib
 		"${CMAKE_INSTALL_PREFIX}/Linphone.app/Contents/MacOS/Linphone-bin"
 )
