@@ -488,14 +488,14 @@ static int belle_sip_client_certificate_request_callback(void *data, bctoolbox_s
 		if ((err=bctoolbox_ssl_set_hs_own_cert(channel->sslctx,channel->client_cert_chain->cert,channel->client_cert_key->key))) {
 			bctoolbox_strerror(err,tmp,sizeof(tmp)-1);
 			belle_sip_error("Channel [%p] cannot set retrieved ssl own certificate [%s]",channel,tmp);
-			return -1;
+			return -1; /* we were not able to set the client certificate, something is going wrong, this will abort the handshake*/
 		}
 		return 0;
 	}
 
-	belle_sip_error("Channel [%p] cannot get client certificate to answer server request for dn [%s]", channel, (dn==NULL)?"null":(char *)dn);
+	belle_sip_warning("Channel [%p] cannot get client certificate to answer server request for dn [%s]", channel, (dn==NULL)?"null":(char *)dn);
 
-	return -1; /* we were not able to get any client certificate, this will abort the handshake*/
+	return 0; /* we couldn't find any certificate, just keep on going, server may decide to abort the handshake */
 }
 
 static int tls_process_handshake(belle_sip_channel_t *obj){
