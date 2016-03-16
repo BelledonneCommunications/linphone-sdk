@@ -125,6 +125,7 @@ else()
 		set(EP_vpx_EXTRA_LDFLAGS "--sysroot=${CMAKE_SYSROOT}")
 		list(APPEND EP_vpx_CONFIGURE_OPTIONS
 			"--sdk-path=${ANDROID_NDK_PATH}"
+			"--enable-pic"
 		)
 		set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 	elseif(QNX)
