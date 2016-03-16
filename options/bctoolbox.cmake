@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-# belle-sip build options
+# bctoolbox build options
 
-option(ENABLE_POLARSSL "Enable polarssl support." ON)
+option(ENABLE_POLARSSL "Enable polarssl support." ${DEFAULT_VALUE_ENABLE_POLARSSL})
 add_feature_info("Polarssl" ENABLE_POLARSSL "Crypto stack implementation based on polarssl")
-option(ENABLE_MBEDTLS "Enable mbedtls support." OFF)
+option(ENABLE_MBEDTLS "Enable mbedtls support." ${DEFAULT_VALUE_ENABLE_MBEDTLS})
 add_feature_info("Mbedtls" ENABLE_MBEDTLS "Crypto stack implementation based on mbeddtls")
