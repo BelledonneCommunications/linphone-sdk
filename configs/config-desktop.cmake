@@ -43,15 +43,19 @@ set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=NO")
 # Global configuration
 set(LINPHONE_BUILDER_HOST "")
 if(APPLE)
-	if (NOT CMAKE_OSX_DEPLOYMENT_TARGET) #is it still useful?
+	if(NOT CMAKE_OSX_DEPLOYMENT_TARGET) #is it still useful?
 		#without instruction chose to target lower version between current machine and current used SDK
 		execute_process(COMMAND sw_vers -productVersion  COMMAND awk -F \\. "{printf \"%i.%i\",$1,$2}"  RESULT_VARIABLE sw_vers_version OUTPUT_VARIABLE CURRENT_OSX_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 		execute_process(COMMAND xcrun --sdk macosx --show-sdk-version RESULT_VARIABLE xcrun_sdk_version OUTPUT_VARIABLE CURRENT_SDK_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-		if (${CURRENT_OSX_VERSION} VERSION_LESS ${CURRENT_SDK_VERSION})
+		if(${CURRENT_OSX_VERSION} VERSION_LESS ${CURRENT_SDK_VERSION})
 			set(CMAKE_OSX_DEPLOYMENT_TARGET ${CURRENT_OSX_VERSION})
 		else()
 			set(CMAKE_OSX_DEPLOYMENT_TARGET ${CURRENT_SDK_VERSION})
 		endif()
+	endif()
+	if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "10.8")
+		# Resolve conflict between c++ libraries when building C++11 libraries on Mac OS X 10.7
+		set(LINPHONE_BUILDER_CXXFLAGS "-stdlib=libc++")
 	endif()
 
 	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
