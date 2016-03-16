@@ -261,25 +261,180 @@ BCTOOLBOX_PUBLIC int32_t bctoolbox_signing_key_parse_file(bctoolbox_signing_key_
 /*****************************************************************************/
 /***** X509 Certificate                                                  *****/
 /*****************************************************************************/
+/** @brief An opaque structure used to store the certificate context
+ * Instanciate pointers only and allocate them using the bctoolbox_x509_certificate_new() function
+ */
 typedef struct bctoolbox_x509_certificate_struct bctoolbox_x509_certificate_t;
 
+/**
+ * @brief Create and initialise a x509 certificate context
+ * @return a pointer to the certificate context
+ */
 BCTOOLBOX_PUBLIC bctoolbox_x509_certificate_t *bctoolbox_x509_certificate_new(void);
+
+/**
+ * @brief Clear the certificate context and free internal buffer
+ *
+ * @param[in]	cert		The x509 certificate context to clear
+ */
 BCTOOLBOX_PUBLIC void  bctoolbox_x509_certificate_free(bctoolbox_x509_certificate_t *cert);
 
+/**
+ * @brief	Write the certificate in a buffer as a PEM string
+ *
+ * @param[in]	cert	The certificate to be extracted in PEM format
+ *
+ * @return a pointer to a null terminated string containing the certificate in PEM format. This buffer must then be freed by caller. NULL on failure.
+ */
 BCTOOLBOX_PUBLIC char *bctoolbox_x509_certificates_chain_get_pem(bctoolbox_x509_certificate_t *cert);
+
+/**
+ * @brief	Return an informational string about the certificate
+ *
+ * @param[out]	buf	Buffer to receive the output
+ * @param[in]	size	Maximum output buffer size
+ * @param[in]	prefix	A line prefix
+ * @param[in]	cert	The x509 certificate
+ *
+ * @return	The length of the string written or a negative error code
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_get_info_string(char *buf, size_t size, const char *prefix, const bctoolbox_x509_certificate_t *cert);
+
+/**
+ * @brief Parse an x509 certificate in PEM format from a null terminated string buffer
+ *
+ * @param[in/out]	cert		An already initialised x509 certificate context
+ * @param[in]		buffer		The input buffer containing a PEM format certificate in a null terminated string
+ * @param[in]		buffer_length	The length of input buffer, including the NULL termination char
+ *
+ * @return	0 on success, negative error code otherwise
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_parse(bctoolbox_x509_certificate_t *cert, const char *buffer, size_t buffer_length);
+
+/**
+ * @brief Load one or more certificates and add them to the chained list
+ *
+ * @param[in/out]	cert	points to the start of the chain, can be an empty initialised certificate context
+ * @param[in]		path	filename to read the certificate from
+ *
+ * @return	0 on success, negative error code otherwise
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_parse_file(bctoolbox_x509_certificate_t *cert, const char *path);
+
+/**
+ * @brief Load one or more certificates files from a path and add them to the chained list
+ *
+ * @param[in/out]	cert	points to the start of the chain, can be an empty initialised certificate context
+ * @param[in]		path	directory to read certicates files from
+ *
+ * @return	0 on success, negative error code otherwise
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_parse_path(bctoolbox_x509_certificate_t *cert, const char *path);
+
+/**
+ * @brief Get the length in bytes of a certifcate chain in DER format
+ *
+ * @param[in]	cert	The certificate chain
+ *
+ * @return	The length in bytes of the certificate buffer in DER format, 0 if no certificate found
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_get_der_length(bctoolbox_x509_certificate_t *cert);
+
+/**
+ * @brief	Get the certificate in DER format in a null terminated string
+ *
+ * @param[in]		cert		The certificate chain
+ * @param[in/out]	buffer		The buffer to hold the certificate
+ * @param[in]		buffer_length	Maximum output buffer size
+ *
+ * @return 0 on success, negative error code otherwise
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_get_der(bctoolbox_x509_certificate_t *cert, unsigned char *buffer, size_t buffer_length);
+
+/**
+ * @brief Store the certificate subject DN in printable form into buf
+ *
+ * @param[in]		cert		The x509 certificate
+ * @param[in/out]	dn		A buffer to store the DN string
+ * @param[in]		dn_length	Maximum size to be written in buffer
+ *
+ * @return The length of the string written (not including the terminated nul byte), or a negative error code
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_get_subject_dn(bctoolbox_x509_certificate_t *cert, char *dn, size_t dn_length);
+
+/**
+ * @brief Generate certificate fingerprint (hash of the DER format certificate) hexadecimal format in a null terminated string
+ *
+ * @param[in]		cert			The x509 certificate
+ * @param[in/out]	fingerprint		The buffer to hold the fingerprint(null terminated string in hexadecimal)
+ * @param[in]		fingerprint_length	Maximum length of the fingerprint buffer
+ * @param[in]		hash_algorithm		set to BCTOOLBOX_MD_UNDEFINED to use the hash used in certificate signature(recommended)
+ *						or specify an other hash algorithm(BCTOOLBOX_MD_SHA1, BCTOOLBOX_MD_SHA224, BCTOOLBOX_MD_SHA256, BCTOOLBOX_MD_SHA384, BCTOOLBOX_MD_SHA512)
+ * @return length of written on success, negative error code otherwise
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_get_fingerprint(const bctoolbox_x509_certificate_t *cert, char *fingerprint, size_t fingerprint_length, bctoolbox_md_type_t hash_algorithm);
+
+/**
+ * @brief Retrieve the certificate signature hash function
+ *
+ * @param[in]	cert		The x509 certificate
+ * @param[out]	hash_algorithm	The hash algorithm used for the certificate signature or BCTOOLBOX_MD_UNDEFINED if unable to retrieve it
+ *
+ * @return 0 on success, negative error code otherwise
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_get_signature_hash_function(const bctoolbox_x509_certificate_t *certificate, bctoolbox_md_type_t *hash_algorithm);
+
+/**
+ * @brief Generate a self-signed certificate using RSA 3072 bits signature algorithm
+ *
+ * @param[in]		subject		The certificate subject
+ * @param[in/out]	certificate	An empty intialised certificate pointer to hold the generated certificate
+ * @param[in/out]	pkey		An empty initialised signing key pointer to hold the key generated and used to sign the certificate (RSA 3072 bits)
+ * @param[out]		pem		If not null, a buffer to hold a PEM string of the certificate and key
+ * @param[in]		pem_length	pem buffer length
+ *
+ * @return 0 on success, negative error code otherwise
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_generate_selfsigned(const char *subject, bctoolbox_x509_certificate_t *certificate, bctoolbox_signing_key_t *pkey, char *pem, size_t pem_length);
+
+/**
+ * @brief Convert underlying crypto library certificate flags into a printable string
+ *
+ * @param[out]	buffer		a buffer to hold the output string
+ * @param[in]	buffer_size	maximum buffer size
+ * @param[in]	flags		The flags from the underlying crypto library, provided in callback functions
+ *
+ * @return 0 on success, negative error code otherwise
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_flags_to_string(char *buffer, size_t buffer_size, uint32_t flags);
+
+/**
+ * @brief Set a certificate flags (using underlying crypto library defines)
+ *
+ * @param[in/out]	flags		The certificate flags holder directly provided by crypto library in a callback function
+ * @param[in]		flags_to_set	Flags to be set, bctoolbox defines
+ *
+ * @return 0 on success, negative error code otherwise
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_set_flag(uint32_t *flags, uint32_t flags_to_set);
+
+/**
+ * @brief convert certificate flags from underlying crypto library defines to bctoolbox ones
+ *
+ * @param[in]	flags	certificate flags provided by the crypto library in a callback function
+ *
+ * @return same flag but using the bctoolbox API definitions
+ */
 BCTOOLBOX_PUBLIC uint32_t bctoolbox_x509_certificate_remap_flag(uint32_t flags);
+
+/**
+ * @brief Unset a certificate flags (using underlying crypto library defines)
+ *
+ * @param[in/out]	flags		The certificate flags holder directly provided by crypto library in a callback function
+ * @param[in]		flags_to_set	Flags to be unset, bctoolbox defines
+ *
+ * @return 0 on success, negative error code otherwise
+ */
 BCTOOLBOX_PUBLIC int32_t bctoolbox_x509_certificate_unset_flag(uint32_t *flags, uint32_t flags_to_unset);
 
 
