@@ -18,3 +18,11 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = belle-sip.pc
 
 EXTRA_DIST=belle-sip.spec belle-sip.spec.in autogen.sh
+EXTRA_DIST += CMakeLists.txt \
+cmake/BelleSIPConfig.cmake.in \
+cmake/FindAntlr3.cmake \
+cmake/FindZlib.cmake \
+config.h.cmake \
+include/CMakeLists.txt \
+src/CMakeLists.txt \
+tester/CMakeLists.txt
