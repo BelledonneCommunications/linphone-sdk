@@ -1,4 +1,10 @@
 EXTRA_DIST=autogen.sh msamr.iss.in msamr.spec msamr.spec.in
+EXTRA_DIST += CMakeLists.txt \
+cmake/FindOpenCoreAMRNB.cmake \
+cmake/FindOpenCoreAMRWB.cmake \
+cmake/FindVoAMRWBEnc.cmake \
+config.h.cmake \
+src/CMakeLists.txt
 
 SUBDIRS=src
 
