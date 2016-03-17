@@ -70,6 +70,7 @@ set(ANDROID_TOOLCHAIN_NM "${ANDROID_TOOLCHAIN_PREFIX}nm")
 include(CMakeForceCompiler)
 
 set(CMAKE_CROSSCOMPILING TRUE)
+set(CMAKE_POSITION_INDEPENDENT_CODE YES)
 
 # Define name of the target system
 set(CMAKE_SYSTEM_NAME "Linux")
