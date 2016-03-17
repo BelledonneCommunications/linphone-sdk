@@ -1,7 +1,7 @@
 
 EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in mediastreamer2.spec.in mediastreamer2.spec
 EXTRA_DIST += CMakeLists.txt \
-FindALSA.cmake \
+cmake/FindALSA.cmake \
 cmake/FindArts.cmake \
 cmake/FindBV16.cmake \
 cmake/FindCamApi.cmake \
