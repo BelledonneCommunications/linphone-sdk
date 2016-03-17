@@ -1,4 +1,4 @@
-EXTRA_DIST=autogen.sh mswebrtc.iss.in
+EXTRA_DIST=autogen.sh mswebrtc.iss.in CMakeLists.txt config.h.cmake
 webrtc_VERSION = 1.0.0
 webrtc_DIR=$(top_srcdir)/webrtc
 
