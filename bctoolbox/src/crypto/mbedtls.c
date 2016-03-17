@@ -209,7 +209,7 @@ int32_t bctoolbox_x509_certificate_parse_path(bctoolbox_x509_certificate_t *cert
 }
 
 int32_t bctoolbox_x509_certificate_parse(bctoolbox_x509_certificate_t *cert, const char *buffer, size_t buffer_length) {
-	return ret = mbedtls_x509_crt_parse((mbedtls_x509_crt *)cert, (const unsigned char *)buffer, buffer_length);
+	return mbedtls_x509_crt_parse((mbedtls_x509_crt *)cert, (const unsigned char *)buffer, buffer_length);
 }
 
 int32_t bctoolbox_x509_certificate_get_der_length(bctoolbox_x509_certificate_t *cert) {
