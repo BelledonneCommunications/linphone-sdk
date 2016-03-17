@@ -1,4 +1,4 @@
-EXTRA_DIST=autogen.sh
+EXTRA_DIST=autogen.sh CMakeLists.txt cmake/FindOpenH264.cmake config.h.cmake src/CMakeLists.txt
 
 SUBDIRS=src build
 
