@@ -224,10 +224,15 @@ belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, 
 	return belle_sip_socket_source_new(func,data,(belle_sip_socket_t)-1,0,timeout_value_ms);
 }
 
-unsigned long belle_sip_source_get_id(belle_sip_source_t *s){
+unsigned long belle_sip_source_get_id(const belle_sip_source_t *s){
 	return s->id;
 }
-
+void * belle_sip_source_get_user_data(const belle_sip_source_t *s) {
+	return s->data;
+}
+void belle_sip_source_set_user_data(belle_sip_source_t *s, void *user_data) {
+	s->data = user_data;
+}
 int belle_sip_source_set_events(belle_sip_source_t* source, int event_mask) {
 	source->events = event_mask;
 	return 0;
@@ -325,7 +330,9 @@ void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms){
 	}
 	s->timeout=value_ms;
 }
-
+void belle_sip_source_set_remove_cb(belle_sip_source_t *s, belle_sip_source_remove_callback_t func) {
+	s->on_remove=func;
+}
 unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s){
 	return s->timeout;
 }

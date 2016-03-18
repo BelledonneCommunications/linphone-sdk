@@ -39,6 +39,11 @@ BELLESIP_EXPORT belle_sip_socket_t belle_sip_source_get_socket(const belle_sip_s
 **/
 typedef int (*belle_sip_source_func_t)(void *user_data, unsigned int events);
 
+/*
+ * Call back fonction invoked when source is removed from main loop
+ */
+typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
+
 typedef void (*belle_sip_callback_t)(void *user_data);
 
 typedef struct belle_sip_main_loop belle_sip_main_loop_t;
@@ -102,8 +107,15 @@ BELLESIP_EXPORT void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigne
 BELLESIP_EXPORT unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s);
 
 BELLESIP_EXPORT belle_sip_source_t * belle_sip_socket_source_new(belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
+/*
+ * register a callback invoked once source is removed from mainloop
+ */
+BELLESIP_EXPORT void belle_sip_source_set_remove_cb(belle_sip_source_t *s, belle_sip_source_remove_callback_t func);
 
-BELLESIP_EXPORT unsigned long belle_sip_source_get_id(belle_sip_source_t *s);
+BELLESIP_EXPORT unsigned long belle_sip_source_get_id(const belle_sip_source_t *s);
+
+BELLESIP_EXPORT void * belle_sip_source_get_user_data(const belle_sip_source_t *s);
+BELLESIP_EXPORT void belle_sip_source_set_user_data(belle_sip_source_t *s, void *user_data);
 
 BELLESIP_EXPORT belle_sip_source_t *belle_sip_main_loop_find_source(belle_sip_main_loop_t *ml, unsigned long id);
 
@@ -130,28 +142,47 @@ BELLESIP_EXPORT void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml
 BELLE_SIP_END_DECLS
 #if defined(__cplusplus) && defined(BELLE_SIP_USE_STL)
 #include <functional>
-/*purpose of this function is to simplify c++ timer integration.
-* ex:
-* std::string helloworld("Hello world):
-* belle_sip_source_cpp_func_t *func = new belle_sip_source_cpp_func_t([helloworld](unsigned int events) {
-*						std::cout << helloworld << std::endl;
-*						return BELLE_SIP_STOP;
-*					});
-*create timer
-*mTimer = belle_sip_main_loop_create_timeout( mainloop
-*											,(belle_sip_source_func_t)belle_sip_source_cpp_func
-*											, func
-*											, 1000
-*											,"timer for c++");
-*
-*/
 typedef std::function<int (unsigned int)> belle_sip_source_cpp_func_t;
 BELLESIP_EXPORT inline int belle_sip_source_cpp_func(belle_sip_source_cpp_func_t* user_data, unsigned int events)
 {
 	int result = (*user_data)(events);
-	delete user_data;
 	return result;
 }
+BELLESIP_EXPORT inline void belle_sip_source_on_remove(belle_sip_source_t* source)
+{
+	delete static_cast<belle_sip_source_cpp_func_t *>(belle_sip_source_get_user_data(source));
+	belle_sip_source_set_user_data(source,NULL);
+}
+
+/*purpose of this function is to simplify c++ timer integration.
+ * ex:
+ * std::string helloworld("Hello world):
+ * belle_sip_source_cpp_func_t *func = new belle_sip_source_cpp_func_t([helloworld](unsigned int events) {
+ *						std::cout << helloworld << std::endl;
+ *						return BELLE_SIP_STOP;
+ *					});
+ *create timer
+ *mTimer = belle_sip_main_loop_create_cpp_timeout( mainloop
+ *												, func
+ *												, 1000
+ *												,"timer for c++");
+ *
+ */
+
+BELLESIP_EXPORT inline belle_sip_source_t * belle_sip_main_loop_create_cpp_timeout(belle_sip_main_loop_t *ml
+																				 , belle_sip_source_cpp_func_t *func
+																				 , unsigned int timeout_value_ms
+																				 , const char* timer_name)
+{
+	belle_sip_source_t* source = belle_sip_main_loop_create_timeout(  ml
+																	, (belle_sip_source_func_t)belle_sip_source_cpp_func
+																	, func
+																	, timeout_value_ms
+																	, timer_name);
+	belle_sip_source_set_remove_cb(source,belle_sip_source_on_remove);
+	return source;
+}
+
 #endif
 
 #endif
