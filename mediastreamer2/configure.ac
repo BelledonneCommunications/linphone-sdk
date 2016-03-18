@@ -815,7 +815,7 @@ if test "$ortp_enabled" = 'true'; then
 		fi
 	fi
 	if test "$external_ortp" = 'true'; then
-		PKG_CHECK_MODULES(ORTP, ortp >= 0.24.0, ,
+		PKG_CHECK_MODULES(ORTP, ortp >= 0.24.1, ,
 			[ AC_MSG_ERROR([Couldn't find ortp library]) ] )
 	fi
 else
