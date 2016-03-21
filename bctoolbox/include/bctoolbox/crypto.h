@@ -27,6 +27,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BCTOOLBOX_PUBLIC
 #endif
 
+#ifdef _WIN32
+#ifndef snprintf
+#define snprintf _snprintf
+#define strcasecmp _stricmp
+#endif
+#ifndef strdup
+#define strdup _strdup
+#endif
+#endif
+
 /* DHM settings defines */
 #define BCTOOLBOX_DHM_UNSET	0
 #define BCTOOLBOX_DHM_2048	1
