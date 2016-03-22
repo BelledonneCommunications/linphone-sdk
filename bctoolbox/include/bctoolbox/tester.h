@@ -192,6 +192,8 @@ BCTOOLBOX_PUBLIC int bc_assert(const char* file, int line, int predicate, const 
 #define BC_ASSERT_DOUBLE_NOT_EQUAL_FATAL(actual, expected, granularity) _BC_ASSERT_PRED("BC_ASSERT_DOUBLE_NOT_EQUAL_FATAL", ((fabs((double)(cactual) - (cexpected)) > fabs((double)(granularity)))), actual, expected, double, TRUE, "Expected %f but was %f.", cexpected, cactual)
 #define BC_ASSERT_GREATER(actual, min, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_GREATER", ((cactual) >= (cexpected)), actual, min, type, FALSE, "Expected at least " type_format " but was " type_format ".", cexpected, cactual)
 #define BC_ASSERT_LOWER(actual, max, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_LOWER", ((cactual) <= (cexpected)), actual, max, type, FALSE, "Expected at most " type_format " but was " type_format ".", cexpected, cactual)
+#define BC_ASSERT_GREATER_STRICT(actual, min, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_GREATER", ((cactual) > (cexpected)), actual, min, type, FALSE, "Expected more than " type_format " but was " type_format ".", cexpected, cactual)
+#define BC_ASSERT_LOWER_STRICT(actual, max, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_LOWER", ((cactual) < (cexpected)), actual, max, type, FALSE, "Expected less than " type_format " but was " type_format ".", cexpected, cactual)
 
 #ifdef __cplusplus
 }
