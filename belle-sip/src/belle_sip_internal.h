@@ -222,8 +222,6 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_dual_resolver_context_t,belle_sip_resolver_context_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
-typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
-
 struct belle_sip_source{
 	belle_sip_object_t base;
 	belle_sip_list_t node;
@@ -529,9 +527,9 @@ struct belle_sip_stack{
 	int http_proxy_port;
 	char *http_proxy_username; /*for future use*/
 	char *http_proxy_passwd; /*for future use*/
-	
+
 	unsigned char dns_srv_enabled;
-	
+
 };
 
 belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);
