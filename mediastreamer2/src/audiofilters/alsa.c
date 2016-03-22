@@ -647,7 +647,6 @@ static void alsa_card_detect(MSSndCardManager *m){
 
 	bool_t found_duplicate;
 	int hint_dev_count=0;
-	char *hint_name = NULL;
 	char *hint_card = NULL;
 	char *hint_dev = NULL;
 	const int MAX_NUM_DEVICE_ID = 100;
@@ -661,7 +660,7 @@ static void alsa_card_detect(MSSndCardManager *m){
 		int i;
 		for(i=0; hints[i]!=NULL; ++i){
 			char *name = snd_device_name_get_hint(hints[i],"NAME");
-			hint_name = strsep(&name, ":");
+			char *hint_name = strsep(&name, ":");
 			if (hint_name){
 				hint_card = strsep(&name, ",");
 				if (hint_card){
@@ -676,7 +675,7 @@ static void alsa_card_detect(MSSndCardManager *m){
 					}
 				}
 			}
-			ms_free(name);
+			ms_free(hint_name);
 		}
 		snd_device_name_free_hint(hints);
 	}
@@ -704,10 +703,10 @@ static void alsa_card_detect(MSSndCardManager *m){
 		if ( !found_duplicate ){
 			unique_card_indexes[device_count] = card_indexes[j];
 			unique_dev_indexes[device_count] = dev_indexes[j];
-	
+
 			device_names[device_count] = (char*) ms_new(char,8);
 			sprintf(device_names[device_count],"%d,%d", card_indexes[j], dev_indexes[j]);
-	
+
 			device_count++;
 		}
 	}
@@ -731,8 +730,6 @@ static void alsa_card_detect(MSSndCardManager *m){
 	atexit((void(*)(void))snd_config_update_free_global);
 
 	for (i=0; i<device_count; i++) ms_free(device_names[i]);
-	ms_free(device_names);
-	ms_free(hint_name);
 }
 
 MSSndCardDesc alsa_card_desc={
