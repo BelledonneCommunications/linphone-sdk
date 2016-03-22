@@ -96,153 +96,153 @@ namespace belcard {
 		
 		BELCARD_PUBLIC BelCard();
 		
-		void setKind(const shared_ptr<BelCardKind> &kind);
-		const shared_ptr<BelCardKind> &getKind() const;
+		BELCARD_PUBLIC void setKind(const shared_ptr<BelCardKind> &kind);
+		BELCARD_PUBLIC const shared_ptr<BelCardKind> &getKind() const;
 		
 		BELCARD_PUBLIC void setFullName(const shared_ptr<BelCardFullName> &fn);
 		BELCARD_PUBLIC const shared_ptr<BelCardFullName> &getFullName() const;
 		
-		void setName(const shared_ptr<BelCardName> &n);
-		const shared_ptr<BelCardName> &getName() const;
+		BELCARD_PUBLIC void setName(const shared_ptr<BelCardName> &n);
+		BELCARD_PUBLIC const shared_ptr<BelCardName> &getName() const;
 		
-		void setBirthday(const shared_ptr<BelCardBirthday> &bday);
-		const shared_ptr<BelCardBirthday> &getBirthday() const;
+		BELCARD_PUBLIC void setBirthday(const shared_ptr<BelCardBirthday> &bday);
+		BELCARD_PUBLIC const shared_ptr<BelCardBirthday> &getBirthday() const;
 		
-		void setAnniversary(const shared_ptr<BelCardAnniversary> &anniversary);
-		const shared_ptr<BelCardAnniversary> &getAnniversary() const;
+		BELCARD_PUBLIC void setAnniversary(const shared_ptr<BelCardAnniversary> &anniversary);
+		BELCARD_PUBLIC const shared_ptr<BelCardAnniversary> &getAnniversary() const;
 		
-		void setGender(const shared_ptr<BelCardGender> &gender);
-		const shared_ptr<BelCardGender> &getGender() const;
+		BELCARD_PUBLIC void setGender(const shared_ptr<BelCardGender> &gender);
+		BELCARD_PUBLIC const shared_ptr<BelCardGender> &getGender() const;
 		
-		void setProductId(const shared_ptr<BelCardProductId> &pid);
-		const shared_ptr<BelCardProductId> &getProductId() const;
+		BELCARD_PUBLIC void setProductId(const shared_ptr<BelCardProductId> &pid);
+		BELCARD_PUBLIC const shared_ptr<BelCardProductId> &getProductId() const;
 		
-		void setRevision(const shared_ptr<BelCardRevision> &rev);
-		const shared_ptr<BelCardRevision> &getRevision() const;
+		BELCARD_PUBLIC void setRevision(const shared_ptr<BelCardRevision> &rev);
+		BELCARD_PUBLIC const shared_ptr<BelCardRevision> &getRevision() const;
 		
 		BELCARD_PUBLIC void setUniqueId(const shared_ptr<BelCardUniqueId> &uid);
 		BELCARD_PUBLIC const shared_ptr<BelCardUniqueId> &getUniqueId() const;
 		
-		void setBirthPlace(const shared_ptr<BelCardBirthPlace> &place);
-		const shared_ptr<BelCardBirthPlace> &getBirthPlace() const;
+		BELCARD_PUBLIC void setBirthPlace(const shared_ptr<BelCardBirthPlace> &place);
+		BELCARD_PUBLIC const shared_ptr<BelCardBirthPlace> &getBirthPlace() const;
 		
-		void setDeathPlace(const shared_ptr<BelCardDeathPlace> &place);
-		const shared_ptr<BelCardDeathPlace> &getDeathPlace() const;
+		BELCARD_PUBLIC void setDeathPlace(const shared_ptr<BelCardDeathPlace> &place);
+		BELCARD_PUBLIC const shared_ptr<BelCardDeathPlace> &getDeathPlace() const;
 		
-		void setDeathDate(const shared_ptr<BelCardDeathDate> &date);
-		const shared_ptr<BelCardDeathDate> &getDeathDate() const;
+		BELCARD_PUBLIC void setDeathDate(const shared_ptr<BelCardDeathDate> &date);
+		BELCARD_PUBLIC const shared_ptr<BelCardDeathDate> &getDeathDate() const;
 		
-		void addNickname(const shared_ptr<BelCardNickname> &nickname);
-		void removeNickname(const shared_ptr<BelCardNickname> &nickname);
-		const list<shared_ptr<BelCardNickname>> &getNicknames() const;
+		BELCARD_PUBLIC void addNickname(const shared_ptr<BelCardNickname> &nickname);
+		BELCARD_PUBLIC void removeNickname(const shared_ptr<BelCardNickname> &nickname);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardNickname>> &getNicknames() const;
 		
-		void addPhoto(const shared_ptr<BelCardPhoto> &photo);
-		void removePhoto(const shared_ptr<BelCardPhoto> &photo);
-		const list<shared_ptr<BelCardPhoto>> &getPhotos() const;
+		BELCARD_PUBLIC void addPhoto(const shared_ptr<BelCardPhoto> &photo);
+		BELCARD_PUBLIC void removePhoto(const shared_ptr<BelCardPhoto> &photo);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardPhoto>> &getPhotos() const;
 		
-		void addAddress(const shared_ptr<BelCardAddress> &addr);
-		void removeAddress(const shared_ptr<BelCardAddress> &addr);
-		const list<shared_ptr<BelCardAddress>> &getAddresses() const;
+		BELCARD_PUBLIC void addAddress(const shared_ptr<BelCardAddress> &addr);
+		BELCARD_PUBLIC void removeAddress(const shared_ptr<BelCardAddress> &addr);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardAddress>> &getAddresses() const;
 		
-		void addPhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel);
-		void removePhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel);
-		const list<shared_ptr<BelCardPhoneNumber>> &getPhoneNumbers() const;
+		BELCARD_PUBLIC void addPhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel);
+		BELCARD_PUBLIC void removePhoneNumber(const shared_ptr<BelCardPhoneNumber> &tel);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardPhoneNumber>> &getPhoneNumbers() const;
 		
-		void addEmail(const shared_ptr<BelCardEmail> &email);
-		void removeEmail(const shared_ptr<BelCardEmail> &email);
-		const list<shared_ptr<BelCardEmail>> &getEmails() const;
+		BELCARD_PUBLIC void addEmail(const shared_ptr<BelCardEmail> &email);
+		BELCARD_PUBLIC void removeEmail(const shared_ptr<BelCardEmail> &email);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardEmail>> &getEmails() const;
 		
 		BELCARD_PUBLIC void addImpp(const shared_ptr<BelCardImpp> &impp);
 		BELCARD_PUBLIC void removeImpp(const shared_ptr<BelCardImpp> &impp);
 		BELCARD_PUBLIC const list<shared_ptr<BelCardImpp>> &getImpp() const;
 		
-		void addLang(const shared_ptr<BelCardLang> &lang);
-		void removeLang(const shared_ptr<BelCardLang> &lang);
-		const list<shared_ptr<BelCardLang>> &getLangs() const;
+		BELCARD_PUBLIC void addLang(const shared_ptr<BelCardLang> &lang);
+		BELCARD_PUBLIC void removeLang(const shared_ptr<BelCardLang> &lang);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardLang>> &getLangs() const;
 		
-		void addSource(const shared_ptr<BelCardSource> &source);
-		void removeSource(const shared_ptr<BelCardSource> &source);
-		const list<shared_ptr<BelCardSource>> &getSource() const;
+		BELCARD_PUBLIC void addSource(const shared_ptr<BelCardSource> &source);
+		BELCARD_PUBLIC void removeSource(const shared_ptr<BelCardSource> &source);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardSource>> &getSource() const;
 		
-		void addXML(const shared_ptr<BelCardXML> &xml);
-		void removeXML(const shared_ptr<BelCardXML> &xml);
-		const list<shared_ptr<BelCardXML>> &getXML() const;
+		BELCARD_PUBLIC void addXML(const shared_ptr<BelCardXML> &xml);
+		BELCARD_PUBLIC void removeXML(const shared_ptr<BelCardXML> &xml);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardXML>> &getXML() const;
 	
-		void addTimezone(const shared_ptr<BelCardTimezone> &tz);
-		void removeTimezone(const shared_ptr<BelCardTimezone> &tz);
-		const list<shared_ptr<BelCardTimezone>> &getTimezones() const;
+		BELCARD_PUBLIC void addTimezone(const shared_ptr<BelCardTimezone> &tz);
+		BELCARD_PUBLIC void removeTimezone(const shared_ptr<BelCardTimezone> &tz);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardTimezone>> &getTimezones() const;
 		
-		void addGeo(const shared_ptr<BelCardGeo> &geo);
-		void removeGeo(const shared_ptr<BelCardGeo> &geo);
-		const list<shared_ptr<BelCardGeo>> &getGeos() const;
+		BELCARD_PUBLIC void addGeo(const shared_ptr<BelCardGeo> &geo);
+		BELCARD_PUBLIC void removeGeo(const shared_ptr<BelCardGeo> &geo);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardGeo>> &getGeos() const;
 		
-		void addTitle(const shared_ptr<BelCardTitle> &title);
-		void removeTitle(const shared_ptr<BelCardTitle> &title);
-		const list<shared_ptr<BelCardTitle>> &getTitles() const;
+		BELCARD_PUBLIC void addTitle(const shared_ptr<BelCardTitle> &title);
+		BELCARD_PUBLIC void removeTitle(const shared_ptr<BelCardTitle> &title);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardTitle>> &getTitles() const;
 		
-		void addRole(const shared_ptr<BelCardRole> &role);
-		void removeRole(const shared_ptr<BelCardRole> &role);
-		const list<shared_ptr<BelCardRole>> &getRoles() const;
+		BELCARD_PUBLIC void addRole(const shared_ptr<BelCardRole> &role);
+		BELCARD_PUBLIC void removeRole(const shared_ptr<BelCardRole> &role);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardRole>> &getRoles() const;
 		
-		void addLogo(const shared_ptr<BelCardLogo> &logo);
-		void removeLogo(const shared_ptr<BelCardLogo> &logo);
-		const list<shared_ptr<BelCardLogo>> &getLogos() const;
+		BELCARD_PUBLIC void addLogo(const shared_ptr<BelCardLogo> &logo);
+		BELCARD_PUBLIC void removeLogo(const shared_ptr<BelCardLogo> &logo);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardLogo>> &getLogos() const;
 		
-		void addOrganization(const shared_ptr<BelCardOrganization> &org);
-		void removeOrganization(const shared_ptr<BelCardOrganization> &org);
-		const list<shared_ptr<BelCardOrganization>> &getOrganizations() const;
+		BELCARD_PUBLIC void addOrganization(const shared_ptr<BelCardOrganization> &org);
+		BELCARD_PUBLIC void removeOrganization(const shared_ptr<BelCardOrganization> &org);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardOrganization>> &getOrganizations() const;
 		
-		void addMember(const shared_ptr<BelCardMember> &member);
-		void removeMember(const shared_ptr<BelCardMember> &member);
-		const list<shared_ptr<BelCardMember>> &getMembers() const;
+		BELCARD_PUBLIC void addMember(const shared_ptr<BelCardMember> &member);
+		BELCARD_PUBLIC void removeMember(const shared_ptr<BelCardMember> &member);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardMember>> &getMembers() const;
 		
-		void addRelated(const shared_ptr<BelCardRelated> &related);
-		void removeRelated(const shared_ptr<BelCardRelated> &related);
-		const list<shared_ptr<BelCardRelated>> &getRelated() const;
+		BELCARD_PUBLIC void addRelated(const shared_ptr<BelCardRelated> &related);
+		BELCARD_PUBLIC void removeRelated(const shared_ptr<BelCardRelated> &related);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardRelated>> &getRelated() const;
 		
-		void addCategories(const shared_ptr<BelCardCategories> &categories);
-		void removeCategories(const shared_ptr<BelCardCategories> &categories);
-		const list<shared_ptr<BelCardCategories>> &getCategories() const;
+		BELCARD_PUBLIC void addCategories(const shared_ptr<BelCardCategories> &categories);
+		BELCARD_PUBLIC void removeCategories(const shared_ptr<BelCardCategories> &categories);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardCategories>> &getCategories() const;
 		
-		void addNote(const shared_ptr<BelCardNote> &note);
-		void removeNote(const shared_ptr<BelCardNote> &note);
-		const list<shared_ptr<BelCardNote>> &getNotes() const;
+		BELCARD_PUBLIC void addNote(const shared_ptr<BelCardNote> &note);
+		BELCARD_PUBLIC void removeNote(const shared_ptr<BelCardNote> &note);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardNote>> &getNotes() const;
 		
-		void addSound(const shared_ptr<BelCardSound> &sound);
-		void removeSound(const shared_ptr<BelCardSound> &sound);
-		const list<shared_ptr<BelCardSound>> &getSounds() const;
+		BELCARD_PUBLIC void addSound(const shared_ptr<BelCardSound> &sound);
+		BELCARD_PUBLIC void removeSound(const shared_ptr<BelCardSound> &sound);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardSound>> &getSounds() const;
 		
-		void addClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap);
-		void removeClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap);
-		const list<shared_ptr<BelCardClientProductIdMap>> &getClientProductIdMaps() const;
+		BELCARD_PUBLIC void addClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap);
+		BELCARD_PUBLIC void removeClientProductIdMap(const shared_ptr<BelCardClientProductIdMap> &clientpidmap);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardClientProductIdMap>> &getClientProductIdMaps() const;
 		
-		void addURL(const shared_ptr<BelCardURL> &url);
-		void removeURL(const shared_ptr<BelCardURL> &url);
-		const list<shared_ptr<BelCardURL>> &getURLs() const;
+		BELCARD_PUBLIC void addURL(const shared_ptr<BelCardURL> &url);
+		BELCARD_PUBLIC void removeURL(const shared_ptr<BelCardURL> &url);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardURL>> &getURLs() const;
 		
-		void addKey(const shared_ptr<BelCardKey> &key);
-		void removeKey(const shared_ptr<BelCardKey> &key);
-		const list<shared_ptr<BelCardKey>> &getKeys() const;
+		BELCARD_PUBLIC void addKey(const shared_ptr<BelCardKey> &key);
+		BELCARD_PUBLIC void removeKey(const shared_ptr<BelCardKey> &key);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardKey>> &getKeys() const;
 		
-		void addFBURL(const shared_ptr<BelCardFBURL> &fburl);
-		void removeFBURL(const shared_ptr<BelCardFBURL> &fburl);
-		const list<shared_ptr<BelCardFBURL>> &getFBURLs() const;
+		BELCARD_PUBLIC void addFBURL(const shared_ptr<BelCardFBURL> &fburl);
+		BELCARD_PUBLIC void removeFBURL(const shared_ptr<BelCardFBURL> &fburl);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardFBURL>> &getFBURLs() const;
 		
-		void addCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri);
-		void removeCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri);
-		const list<shared_ptr<BelCardCALADRURI>> &getCALADRURIs() const;
+		BELCARD_PUBLIC void addCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri);
+		BELCARD_PUBLIC void removeCALADRURI(const shared_ptr<BelCardCALADRURI> &caladruri);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardCALADRURI>> &getCALADRURIs() const;
 		
-		void addCALURI(const shared_ptr<BelCardCALURI> &caluri);
-		void removeCALURI(const shared_ptr<BelCardCALURI> &caluri);
-		const list<shared_ptr<BelCardCALURI>> &getCALURIs() const;
+		BELCARD_PUBLIC void addCALURI(const shared_ptr<BelCardCALURI> &caluri);
+		BELCARD_PUBLIC void removeCALURI(const shared_ptr<BelCardCALURI> &caluri);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardCALURI>> &getCALURIs() const;
 		
-		void addExtendedProperty(const shared_ptr<BelCardProperty> &property);
-		void removeExtendedProperty(const shared_ptr<BelCardProperty> &property);
-		const list<shared_ptr<BelCardProperty>> &getExtendedProperties() const;
+		BELCARD_PUBLIC void addExtendedProperty(const shared_ptr<BelCardProperty> &property);
+		BELCARD_PUBLIC void removeExtendedProperty(const shared_ptr<BelCardProperty> &property);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardProperty>> &getExtendedProperties() const;
 		
-		void addProperty(const shared_ptr<BelCardProperty> &property);
-		void removeProperty(const shared_ptr<BelCardProperty> &property);
-		const list<shared_ptr<BelCardProperty>> &getProperties() const;
+		BELCARD_PUBLIC void addProperty(const shared_ptr<BelCardProperty> &property);
+		BELCARD_PUBLIC void removeProperty(const shared_ptr<BelCardProperty> &property);
+		BELCARD_PUBLIC const list<shared_ptr<BelCardProperty>> &getProperties() const;
 		
 		BELCARD_PUBLIC string& toFoldedString();
 		BELCARD_PUBLIC bool assertRFCCompliance() const;
