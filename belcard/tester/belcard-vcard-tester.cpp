@@ -61,7 +61,7 @@ static void vcard_parsing(void) {
 
 	BelCardParser parser = BelCardParser::getInstance();
 	shared_ptr<BelCard> belCard = parser.parseOne(vcard);
-	BC_ASSERT_TRUE_FATAL(belCard != NULL);
+	BC_ASSERT_TRUE_FATAL(belCard!=NULL);
 	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
 
 	string vcard2 = belCard->toFoldedString();
@@ -73,8 +73,8 @@ static void vcards_parsing(void) {
 
 	BelCardParser parser = BelCardParser::getInstance();
 	shared_ptr<BelCardList> belCards = parser.parse(vcards);
-	BC_ASSERT_TRUE_FATAL(belCards != NULL);
-	BC_ASSERT_TRUE(belCards->getCards().size() == 2);
+	BC_ASSERT_TRUE_FATAL(belCards!=NULL);
+	BC_ASSERT_EQUAL(belCards->getCards().size(), 2, unsigned, "%u");
 
 	string vcards2 = belCards->toString();
 	BC_ASSERT_EQUAL(vcards2.compare(vcards), 0, int, "%d");
@@ -82,7 +82,7 @@ static void vcards_parsing(void) {
 
 static void create_vcard_from_api(void) {
 	shared_ptr<BelCard> belCard = BelCard::create<BelCard>();
-	BC_ASSERT_TRUE_FATAL(belCard != NULL);
+	BC_ASSERT_TRUE_FATAL(belCard!=NULL);
 	BC_ASSERT_FALSE(belCard->assertRFCCompliance());
 
 	shared_ptr<BelCardFullName> fn = BelCard::create<BelCardFullName>();
@@ -93,27 +93,27 @@ static void create_vcard_from_api(void) {
 	string vcard = belCard->toString();
 	BelCardParser parser = BelCardParser::getInstance();
 	shared_ptr<BelCard> belCard2 = parser.parseOne(vcard);
-	BC_ASSERT_TRUE_FATAL(belCard2 != NULL);
+	BC_ASSERT_TRUE_FATAL(belCard2!=NULL);
 	BC_ASSERT_TRUE(belCard2->assertRFCCompliance());
 	string vcard2 = belCard2->toString();
-	BC_ASSERT_TRUE(vcard.compare(vcard2) == 0);
+	BC_ASSERT_EQUAL(vcard.compare(vcard2), 0, unsigned, "%u");
 }
 
 static void property_sort_using_pref_param(void) {
 	shared_ptr<BelCard> belCard = BelCard::create<BelCard>();
-	BC_ASSERT_TRUE(belCard != NULL);
+	BC_ASSERT_TRUE(belCard!=NULL);
 
 	shared_ptr<BelCardImpp> impp1 = BelCardImpp::parse("IMPP;TYPE=home;PREF=2:sip:viish@sip.linphone.org\r\n");
-	BC_ASSERT_TRUE(impp1 != NULL);
+	BC_ASSERT_TRUE(impp1!=NULL);
 
 	shared_ptr<BelCardImpp> impp2 = BelCardImpp::parse("IMPP;PREF=1;TYPE=work:sip:sylvain@sip.linphone.org\r\n");
-	BC_ASSERT_TRUE(impp2 != NULL);
+	BC_ASSERT_TRUE(impp2!=NULL);
 
 	belCard->addImpp(impp1);
 	belCard->addImpp(impp2);
 
 	const list<shared_ptr<BelCardImpp>> imppList = belCard->getImpp();
-	BC_ASSERT_TRUE(imppList.size() == 2);
+	BC_ASSERT_EQUAL(imppList.size(), 2, unsigned, "%u");
 	BC_ASSERT_TRUE(imppList.front() == impp2);
 	BC_ASSERT_TRUE(imppList.back() == impp1);
 }
