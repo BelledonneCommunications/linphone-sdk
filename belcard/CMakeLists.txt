@@ -140,7 +140,7 @@ configure_file(cmake/BelcardConfig.cmake
         "${CMAKE_CURRENT_BINARY_DIR}/BelcardConfig.cmake"
         COPYONLY
 )
-set(ConfigPackageLocation lib/cmake/Belcard)
+set(ConfigPackageLocation share/Belcard/cmake)
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BelcardTargets.cmake
 	DESTINATION ${ConfigPackageLocation}
