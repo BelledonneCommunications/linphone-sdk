@@ -243,7 +243,7 @@ libmediastreamer_voip_la_SOURCES+=	videofilters/msv4l2.c
 endif
 
 if BUILD_WIN32
-libmediastreamer_voip_la_SOURCES=	videofilters/drawdib-display.c
+libmediastreamer_voip_la_SOURCES+=	videofilters/drawdib-display.c
 endif
 
 if BUILD_THEORA
