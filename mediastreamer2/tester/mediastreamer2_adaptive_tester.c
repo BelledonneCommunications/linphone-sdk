@@ -200,7 +200,7 @@ static void qos_analyzer_on_action_suggested(void *user_data, int datac, const c
 }
 
 static void disable_plc_on_audio_stream(AudioStream *p1){
-	
+
 	if (p1 != NULL){
 		uint32_t features_p1 = audio_stream_get_features(p1);
 		features_p1 &= ~AUDIO_STREAM_FEATURE_PLC;
@@ -219,10 +219,10 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 #if VIDEO_ENABLED
 	MSWebCam * marielle_webcam=mediastreamer2_tester_get_mire_webcam(ms_factory_get_web_cam_manager(_factory));
 #endif
-	
+
 	stream_manager_t *marielle=*pmarielle=stream_manager_new(type);
 	stream_manager_t *margaux=*pmargaux=stream_manager_new(type);
-	
+
 	if(disable_plc){
 		disable_plc_on_audio_stream(margaux->audio_stream);
 		disable_plc_on_audio_stream(marielle->audio_stream);
@@ -233,7 +233,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 	else{
 		recorded_file = bc_tester_file(RECORDED_16K_1S_NO_PLC_FILE);
 	}
-	
+
 
 	marielle->user_data = recorded_file;
 	params.enabled=TRUE;
@@ -248,7 +248,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 		marielle_ms=&marielle->video_stream->ms;
 		margaux_ms=&margaux->video_stream->ms;
 	}
-	
+
 	/* Disable avpf. */
 	pt = rtp_profile_get_payload(&rtp_profile, VP8_PAYLOAD_TYPE);
 	BC_ASSERT_PTR_NOT_NULL_FATAL(pt);
@@ -339,8 +339,8 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 
 					if (rb&&ortp_loss_rate_estimator_process_report_block(ctx->estimator,ms->sessions.rtp_session,rb)){
 						float diff = fabs(ortp_loss_rate_estimator_get_value(ctx->estimator) - ctx->loss_rate);
-						BC_ASSERT_TRUE(diff >= 0);
-						BC_ASSERT_TRUE(diff <= 10);
+						BC_ASSERT_GREATER(diff, 0, float, "%f");
+						BC_ASSERT_LOWER(diff, 10, float, "%f");
 					}
 				} while (rtcp_next_packet(evd->packet));
 			}
@@ -364,7 +364,7 @@ static void packet_duplication(void) {
 	/*in theory, cumulative loss should be the invert of duplicated count, but
 	since cumulative loss is computed only on received RTCP report and duplicated
 	count is updated on each RTP packet received, we cannot accurately compare these values*/
-	BC_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->packet_dup_recv);
+	BC_ASSERT_LOWER(stats->cum_packet_loss, -.5*stats->packet_dup_recv, int64_t, "%lld");
 	stop_adaptive_stream(marielle,margaux);
 
 	dup_ratio = 1;
@@ -373,7 +373,7 @@ static void packet_duplication(void) {
 	iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
 	stats=rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
 	BC_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? stats->packet_recv / (dup_ratio+1) : 0, int, "%d");
-	BC_ASSERT_TRUE(stats->cum_packet_loss <= -.5*stats->packet_dup_recv);
+	BC_ASSERT_LOWER(stats->cum_packet_loss, -.5*stats->packet_dup_recv, int64_t, "%lld");
 	stop_adaptive_stream(marielle,margaux);
 }
 
@@ -393,7 +393,7 @@ static void upload_bandwidth_computation(void) {
 			rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, i);
 			iterate_adaptive_stream(marielle, margaux, 5000, NULL, 0);
 			/*since PCMA uses 80kbit/s, upload bandwidth should just be 80+80*duplication_ratio kbit/s */
-			BC_ASSERT_TRUE(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)) < 5.f);
+			BC_ASSERT_LOWER(fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session)/1000. - 80.*(i+1)), 5.f, float, "%f");
 		}
 		stop_adaptive_stream(marielle,margaux);
 	}
@@ -401,10 +401,10 @@ static void upload_bandwidth_computation(void) {
 
 off_t fsize(const char *filename) {
 	struct stat st;
-	
+
 	if (stat(filename, &st) == 0)
 		return st.st_size;
-	
+
 	return -1;
 }
 
@@ -426,10 +426,10 @@ static void loss_rate_estimation_bv16(void){
 			ctx.q = ortp_ev_queue_new();
 			rtp_session_register_event_queue(marielle->audio_stream->ms.sessions.rtp_session, ctx.q);
 			ctx.loss_rate = loss_rate;
-			
+
 			/*loss rate should be the initial one*/
 			wait_for_until_with_parse_events(&marielle->audio_stream->ms, &margaux->audio_stream->ms, &loss_rate, 100, 10000, event_queue_cb,&ctx,NULL,NULL);
-			
+
 			stop_adaptive_stream(marielle,margaux);
 			ortp_loss_rate_estimator_destroy(ctx.estimator);
 			ortp_ev_queue_destroy(ctx.q);
@@ -438,13 +438,13 @@ static void loss_rate_estimation_bv16(void){
 		size_with_plc= fsize(bc_tester_file(RECORDED_16K_1S_FILE));
 		size_no_plc = fsize(bc_tester_file(RECORDED_16K_1S_NO_PLC_FILE));
 		result = (size_with_plc*loss_rate/100 + size_no_plc) ;
-		
-		BC_ASSERT_TRUE(result >= size_with_plc);
+
+		BC_ASSERT_GREATER(result, size_with_plc, int, "%d");
 
 		ms_message("%d %d %d ", size_no_plc, size_with_plc, result);
 	}
 }
-	
+
 static void loss_rate_estimation(void) {
 
 	bool_t supported = ms_factory_codec_supported(_factory, "pcma");
@@ -485,8 +485,8 @@ void upload_bitrate(const char* codec, int payload, int target_bw, int expect_bw
 		media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms,FALSE);
 		iterate_adaptive_stream(marielle, margaux, 15000, NULL, 0);
 		upload_bw=media_stream_get_up_bw(&marielle->audio_stream->ms) / 1000;
-		BC_ASSERT_TRUE(upload_bw >= expect_bw-2);
-		BC_ASSERT_TRUE(upload_bw <= expect_bw+2);
+		BC_ASSERT_GREATER(upload_bw, expect_bw-2, float, "%f");
+		BC_ASSERT_LOWER(upload_bw, expect_bw+2, float, "%f");
 		stop_adaptive_stream(marielle,margaux);
 	}
 }
@@ -531,10 +531,10 @@ void adaptive_video(int max_bw, int exp_min_bw, int exp_max_bw, int loss_rate, i
 		stream_manager_t * marielle, * margaux;
 		start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 300*1000, max_bw*1000, loss_rate, 50,0);
 		iterate_adaptive_stream(marielle, margaux, 100000, &marielle->rtcp_count, 7);
-		BC_ASSERT_TRUE(marielle->adaptive_stats.loss_estim >= exp_min_loss);
-		BC_ASSERT_TRUE(marielle->adaptive_stats.loss_estim <= exp_max_loss);
-		BC_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim >= exp_min_bw);
-		BC_ASSERT_TRUE(marielle->adaptive_stats.congestion_bw_estim <= exp_max_bw);
+		BC_ASSERT_GREATER(marielle->adaptive_stats.loss_estim, exp_min_loss, int, "%d");
+		BC_ASSERT_LOWER(marielle->adaptive_stats.loss_estim, exp_max_loss, int, "%d");
+		BC_ASSERT_GREATER(marielle->adaptive_stats.congestion_bw_estim, exp_min_bw, int, "%d");
+		BC_ASSERT_LOWER(marielle->adaptive_stats.congestion_bw_estim, exp_max_bw, int, "%d");
 		stop_adaptive_stream(marielle,margaux);
 	}
 }

@@ -35,7 +35,7 @@ static RtpProfile rtp_profile;
 static MSFactory *_factory = NULL;
 static int tester_init(void) {
 	_factory = ms_factory_new_with_voip();
-	
+
 	ortp_init();
 	rtp_profile_set_payload(&rtp_profile, T140_PAYLOAD_TYPE, &payload_type_t140);
 	rtp_profile_set_payload(&rtp_profile, T140_RED_PAYLOAD_TYPE, &payload_type_t140_red);
@@ -43,7 +43,7 @@ static int tester_init(void) {
 }
 
 static int tester_cleanup(void) {
-	
+
 	ms_factory_destroy(_factory);
 	rtp_profile_clear_all(&rtp_profile);
 	return 0;
@@ -122,7 +122,7 @@ static void real_time_text_character_received(void *userdata, struct _MSFilter *
 			if (tst->stats.number_of_received_char < sizeof(tst->stats.received_chars)-1){
 				tst->stats.received_chars[tst->stats.number_of_received_char++] = (char)data->character;
 			}else{
-				ms_fatal("tst->stats.received_chars buffer overflow (number_of_received_char=%i)", 
+				ms_fatal("tst->stats.received_chars buffer overflow (number_of_received_char=%i)",
 					tst->stats.number_of_received_char);
 			}
 		}
@@ -138,7 +138,7 @@ static void init_text_streams(text_stream_tester_t *tst1, text_stream_tester_t *
 		rtp_session_enable_network_simulation(tst1->ts->ms.sessions.rtp_session, params);
 		rtp_session_enable_network_simulation(tst2->ts->ms.sessions.rtp_session, params);
 	}
-	
+
 	text_stream_start(tst1->ts, &rtp_profile, tst2->local_ip, tst2->local_rtp, tst2->local_ip, tst2->local_rtcp, payload_type);
 	ms_filter_add_notify_callback(tst1->ts->rttsink, real_time_text_character_received, tst1, TRUE);
 	text_stream_start(tst2->ts, &rtp_profile, tst1->local_ip, tst1->local_rtp, tst1->local_ip, tst1->local_rtcp, payload_type);
@@ -155,14 +155,14 @@ static void basic_text_stream(void) {
 	text_stream_tester_t* margaux = text_stream_tester_new();
 	const char* helloworld = "Hello World !";
 	int i = 0, strcmpresult = -2;
-	
+
 	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
-	
+
 	for (; i < strlen(helloworld); i++) {
 		char c = helloworld[i];
 		text_stream_putchar32(margaux->ts, (uint32_t)c);
 	}
-	
+
 	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
@@ -179,15 +179,15 @@ static void basic_text_stream2(void) {
 	const char* helloworld = "Hello World !";
 	int i = 0, strcmpresult = -2;
 	int dummy = 0;
-	
+
 	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
-	
+
 	for (; i < strlen(helloworld); i++) {
 		char c = helloworld[i];
 		text_stream_putchar32(margaux->ts, (uint32_t)c);
 		wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &dummy, 1, 500);
 	}
-	
+
 	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 1000));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
@@ -203,18 +203,18 @@ static void copy_paste_text_longer_than_rtt_buffer(void) {
 	text_stream_tester_t* margaux = text_stream_tester_new();
 	const char* helloworld = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus imperdiet ultricies condimentum. Pellentesque tellus massa, maximus id dignissim vel, aliquam eget sapien. Suspendisse convallis est ut cursus suscipit. Duis in massa dui. Vivamus lobortis maximus nisi, eget interdum ante faucibus ac. Donec varius lorem id arcu facilisis, et dignissim magna molestie. Nunc lobortis feugiat dapibus. Nam tempus auctor dignissim. Sed pellentesque urna vitae quam mattis, in dictum justo tristique. Nullam vehicula enim eu lacus sollicitudin aliquet. Nunc eget arcu id odio viverra ultrices. Ut sit amet urna id libero posuere viverra dapibus sed nunc. Nulla eget vehicula magna, ut pulvinar ex. Nulla tincidunt justo at ipsum pretium, quis tempus arcu semper. Pellentesque non commodo neque. Maecenas consequat dapibus justo vel ornare. Suspendisse varius diam ac tincidunt fermentum. Etiam orci neque, malesuada sit amet purus vehicula, vestibulum scelerisque lectus. Proin volutpat venenatis enim a sollicitudin. Praesent posuere.";
 	int i = 0, strcmpresult = -2;
-	
+
 	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
-	
+
 	for (; i < strlen(helloworld); i++) {
 		char c = helloworld[i];
 		text_stream_putchar32(margaux->ts, (uint32_t)c);
 	}
-	
+
 	BC_ASSERT_FALSE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 5000));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
-	BC_ASSERT_TRUE(strcmpresult < 0);
+	BC_ASSERT_LOWER(strcmpresult, 0, int, "%d");
 
 	uninit_text_streams(marielle, margaux);
 	text_stream_tester_destroy(marielle);
@@ -228,26 +228,26 @@ static void srtp_protected_text_stream(void) {
 	const char* helloworld = "Hello World !";
 	int i = 0, strcmpresult = -2;
 	int dummy = 0;
-	
+
 	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
 	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_encryption_mandatory(&marielle->ts->ms.sessions, TRUE), 0, int, "%d");
-	
+
 	BC_ASSERT_TRUE(ms_srtp_supported());
-	
-	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") == 0);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj") == 0);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F") == 0);
-	
+
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj"),0,int,"%d");
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_send_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F"),0,int,"%d");
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj"),0,int,"%d");
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_recv_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F"),0,int,"%d");
+
 	BC_ASSERT_TRUE(media_stream_secured(&marielle->ts->ms));
 	BC_ASSERT_TRUE(media_stream_secured(&margaux->ts->ms));
-	
+
 	for (; i < strlen(helloworld); i++) {
 		char c = helloworld[i];
 		text_stream_putchar32(margaux->ts, (uint32_t)c);
 		wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &dummy, 1, 500);
 	}
-	
+
 	BC_ASSERT_TRUE(wait_for_until(&marielle->ts->ms, &margaux->ts->ms, &marielle->stats.number_of_received_char, strlen(helloworld), 1000));
 	ms_message("Received message is: %s", marielle->stats.received_chars);
 	strcmpresult = strcmp(marielle->stats.received_chars, helloworld);
