@@ -288,7 +288,7 @@ static void client_process_response_event(void *obj, const belle_sip_response_ev
 			host=belle_sip_uri_get_host(belle_sip_header_address_get_uri((belle_sip_header_address_t*)ct));
 			if (strchr(host,':')) family_found=AF_INET6;
 			else family_found=AF_INET;
-			BC_ASSERT_TRUE(family_found==endpoint->connection_family);
+			BC_ASSERT_EQUAL(family_found,endpoint->connection_family,int,"%d");
 		}
 		break;
 	case 401:endpoint->stat.fourHundredOne++; break;
@@ -437,15 +437,15 @@ static void refresher_base_with_body(endpoint_t* client
 		}
 		client->refresher= refresher = belle_sip_client_transaction_create_refresher(trans);
 	}
-	BC_ASSERT_TRUE_FATAL(refresher!=NULL);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(refresher);
 	belle_sip_object_unref(trans);
 	belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
 
 	begin = belle_sip_time_ms();
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0),client->register_count*1000 + 1000));
 	end = belle_sip_time_ms();
-	BC_ASSERT_TRUE(end-begin>=client->register_count*1000*.9); /*because refresh is at 90% of expire*/
-	BC_ASSERT_TRUE(end-begin<(client->register_count*1000 + 2000));
+	BC_ASSERT_GREATER(end-begin,client->register_count*1000*.9,uint64_t,"%llu"); /*because refresh is at 90% of expire*/
+	BC_ASSERT_LOWER_STRICT(end-begin,(client->register_count*1000 + 2000),uint64_t,"%llu");
 	/*unregister twice to make sure refresh operation can be safely cascaded*/
 	belle_sip_refresher_refresh(refresher,0);
 	belle_sip_refresher_refresh(refresher,0);
@@ -576,8 +576,8 @@ static void subscribe_base(int with_resource_lists) {
 	begin = belle_sip_time_ms();
 	BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,3,4000));
 	end = belle_sip_time_ms();
-	BC_ASSERT_TRUE(end-begin>=3000*.9);
-	BC_ASSERT_TRUE(end-begin<5000);
+	BC_ASSERT_GREATER(end-begin,3000*.9,uint64_t,"%llu");
+	BC_ASSERT_LOWER_STRICT(end-begin,5000,uint64_t,"%llu");
 
 	belle_sip_message("simulating dialog error and recovery");
 	belle_sip_stack_set_send_error(client->stack, 1500);

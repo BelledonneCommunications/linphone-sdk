@@ -84,7 +84,7 @@ static int http_before_all(void) {
 		belle_tls_crypto_config_set_root_ca(crypto_config,belle_sip_tester_get_root_ca_path());
 		belle_http_provider_set_tls_crypto_config(prov,crypto_config);
 		belle_sip_object_unref(crypto_config);
-	
+
 	}
 	return 0;
 }
@@ -132,8 +132,8 @@ static int one_get(const char *url,http_counters_t* counters, int *counter){
 static void one_http_get(void){
 	http_counters_t counters={0};
 	if (one_get("http://smtp.linphone.org",&counters,&counters.response_count) == 0) {
-		BC_ASSERT_TRUE(counters.response_count==1);
-		BC_ASSERT_TRUE(counters.io_error_count==0);
+		BC_ASSERT_EQUAL(counters.response_count,1,int,"%d");
+		BC_ASSERT_EQUAL(counters.io_error_count,0,int,"%d");
 		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
 	}
 }
@@ -141,8 +141,8 @@ static void one_http_get(void){
 static void http_get_empty_body(void){
 	http_counters_t counters={0};
 	if (one_get("http://smtp.linphone.org/marie_invalid",&counters,&counters.response_count) == 0) {
-		BC_ASSERT_TRUE(counters.response_count==1);
-		BC_ASSERT_TRUE(counters.io_error_count==0);
+		BC_ASSERT_EQUAL(counters.response_count,1,int,"%d");
+		BC_ASSERT_EQUAL(counters.io_error_count,0,int,"%d");
 		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
 	}
 }
@@ -216,7 +216,7 @@ static int on_send_body(belle_sip_user_body_handler_t *bh, belle_sip_message_t *
 	size_t end_of_img=sizeof(MULTIPART_BEGIN)+image_size;
 	if (offset==0){
 		size_t partlen=sizeof(MULTIPART_BEGIN);
-		BC_ASSERT_TRUE_FATAL(partlen<*size);
+		BC_ASSERT_LOWER_STRICT(partlen,*size,int,"%d");
 		memcpy(buffer,MULTIPART_BEGIN,partlen);
 		*size=partlen;
 	}else if (offset<end_of_img){
@@ -314,12 +314,12 @@ static void http_get_long_user_body(void){
 	belle_sip_object_data_set(BELLE_SIP_OBJECT(req),"file",outfile,NULL);
 	belle_http_provider_send_request(prov,req,l);
 	BC_ASSERT_TRUE(wait_for(stack,&counters.two_hundred,1,20000));
-	BC_ASSERT_TRUE(counters.response_headers_count==1);
+	BC_ASSERT_EQUAL(counters.response_headers_count,1,int,"%d");
 	resp=belle_http_request_get_response(req);
 	BC_ASSERT_PTR_NOT_NULL(resp);
 	if (resp){
 		bh=belle_sip_message_get_body_handler((belle_sip_message_t*)resp);
-		BC_ASSERT_TRUE(belle_sip_body_handler_get_size(bh)>0);
+		BC_ASSERT_GREATER_STRICT(belle_sip_body_handler_get_size(bh),0,size_t,"%lu");
 	}
 	belle_sip_object_unref(req);
 	belle_sip_object_unref(l);

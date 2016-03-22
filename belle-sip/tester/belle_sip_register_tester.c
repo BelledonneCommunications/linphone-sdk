@@ -436,7 +436,7 @@ static void stateful_register_tls_with_http_proxy(void) {
 }
 
 static void stateful_register_tls_with_wrong_http_proxy(void){
-	
+
 	belle_sip_tls_listening_point_t * lp = (belle_sip_tls_listening_point_t*)belle_sip_provider_get_listening_point(prov, "tls");
 	if (!lp) {
 		belle_sip_error("No TLS support, test skipped.");
@@ -448,7 +448,7 @@ static void stateful_register_tls_with_wrong_http_proxy(void){
 	try_register_user_at_domain(stack,prov,"tls",1,"tester",test_domain,NULL,0);
 	belle_sip_stack_set_http_proxy_host(stack, NULL);
 	belle_sip_stack_set_http_proxy_port(stack, 0);
-	
+
 }
 
 
@@ -462,7 +462,8 @@ static void bad_req_process_response_event(void *user_ctx, const belle_sip_respo
 	belle_sip_response_t *resp=belle_sip_response_event_get_response(event);
 	int *bad_request_response_received=(int*)user_ctx;
 	if (belle_sip_response_event_get_client_transaction(event) != NULL) {
-		BC_ASSERT_TRUE(resp && belle_sip_response_get_status_code(resp)==400);
+		BC_ASSERT_PTR_NOT_NULL(resp);
+		BC_ASSERT_EQUAL(belle_sip_response_get_status_code(resp),400,int,"%d");
 		*bad_request_response_received=1;
 		belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 	}
@@ -506,7 +507,7 @@ static void test_bad_request(void) {
 	t=belle_sip_provider_create_client_transaction(prov,req);
 	belle_sip_client_transaction_send_request(t);
 	belle_sip_stack_sleep(stack,3000);
-	BC_ASSERT_TRUE(bad_request_response_received==1);
+	BC_ASSERT_EQUAL(bad_request_response_received,1,int,"%d");
 	belle_sip_provider_remove_sip_listener(prov,bad_req_listener);
 	belle_sip_object_unref(bad_req_listener);
 
@@ -556,7 +557,7 @@ static void test_connection_failure(void){
 	belle_sip_request_t *req;
 	io_error_count=0;
 	req=try_register_user_at_domain(stack, prov, "TCP",1,"tester","sip.linphone.org",no_server_running_here,0);
-	BC_ASSERT_TRUE(io_error_count>=1);
+	BC_ASSERT_GREATER(io_error_count,1,int,"%d");
 	if (req) belle_sip_object_unref(req);
 }
 
@@ -592,7 +593,7 @@ static void test_tls_to_tcp(void){
 	belle_sip_stack_set_transport_timeout(stack,2000);
 	req=try_register_user_at_domain(stack, prov, "TLS",1,"tester",test_domain,test_domain_tls_to_tcp,0);
 	if (req){
-		BC_ASSERT_TRUE(io_error_count>=1);
+		BC_ASSERT_GREATER(io_error_count,1,int,"%d");
 		belle_sip_object_unref(req);
 	}
 	belle_sip_stack_set_transport_timeout(stack,orig);
@@ -602,7 +603,7 @@ static void register_dns_srv_tcp(void){
 	belle_sip_request_t *req;
 	io_error_count=0;
 	req=try_register_user_at_domain(stack, prov, "TCP",1,"tester",client_auth_domain,"sip:linphone.net;transport=tcp",1);
-	BC_ASSERT_TRUE(io_error_count==0);
+	BC_ASSERT_EQUAL(io_error_count,0,int,"%d");
 	if (req) belle_sip_object_unref(req);
 }
 

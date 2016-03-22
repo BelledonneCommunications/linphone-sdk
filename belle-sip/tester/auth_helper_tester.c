@@ -105,16 +105,16 @@ static void test_generate_and_parse_certificates(void) {
 
 	/* get pem version of generated and parsed certificate and compare them */
 	pem_certificate = belle_sip_certificates_chain_get_pem(certificate);
-	BC_ASSERT_TRUE_FATAL(pem_certificate!=NULL);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(pem_certificate);
 	pem_parsed_certificate = belle_sip_certificates_chain_get_pem(parsed_certificate);
-	BC_ASSERT_TRUE_FATAL(pem_parsed_certificate!=NULL);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(pem_parsed_certificate);
 	BC_ASSERT_STRING_EQUAL(pem_certificate, pem_parsed_certificate);
 
 	/* get pem version of generated and parsed key and compare them */
 	pem_key = belle_sip_signing_key_get_pem(key);
-	BC_ASSERT_TRUE_FATAL(pem_key!=NULL);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(pem_key);
 	pem_parsed_key = belle_sip_signing_key_get_pem(parsed_key);
-	BC_ASSERT_TRUE_FATAL(pem_parsed_key!=NULL);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(pem_parsed_key);
 	BC_ASSERT_STRING_EQUAL(pem_key, pem_parsed_key);
 
 	belle_sip_free(pem_certificate);
@@ -170,7 +170,7 @@ static void test_certificate_fingerprint(void) {
 	/* generate fingerprint */
 	fingerprint = belle_sip_certificates_chain_get_fingerprint(cert);
 
-	BC_ASSERT_TRUE_FATAL(fingerprint!=NULL);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(fingerprint);
 	BC_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_client_cert_fingerprint);
 
 	belle_sip_free(fingerprint);
@@ -181,7 +181,7 @@ static void test_certificate_fingerprint(void) {
 	/* generate fingerprint */
 	fingerprint = belle_sip_certificates_chain_get_fingerprint(cert);
 
-	BC_ASSERT_TRUE_FATAL(fingerprint!=NULL);
+	BC_ASSERT_PTR_NOT_NULL_FATAL(fingerprint);
 	BC_ASSERT_STRING_EQUAL(fingerprint, belle_sip_tester_fingerprint256_cert_fingerprint);
 
 	belle_sip_free(fingerprint);

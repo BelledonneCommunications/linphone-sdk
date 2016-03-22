@@ -941,7 +941,7 @@ static void _test_date_header(void){
 	date2=belle_sip_header_date_create_from_time(&utc);
 	BC_ASSERT_PTR_NOT_NULL(date2);
 	if (date2){
-		BC_ASSERT_TRUE(strcmp(belle_sip_header_date_get_date(date2),DATE_EXAMPLE)==0);
+		BC_ASSERT_STRING_EQUAL(belle_sip_header_date_get_date(date2),DATE_EXAMPLE);
 		BC_ASSERT_PTR_NULL(belle_sip_header_date_parse("nimportequoi"));
 		belle_sip_object_unref(date2);
 	}
