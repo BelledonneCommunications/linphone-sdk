@@ -117,7 +117,7 @@ configure_file(cmake/BelrConfig.cmake
         "${CMAKE_CURRENT_BINARY_DIR}/BelrConfig.cmake"
         COPYONLY
 )
-set(ConfigPackageLocation lib/cmake/Belr)
+set(ConfigPackageLocation share/Belr/cmake)
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BelrTargets.cmake
 	DESTINATION ${ConfigPackageLocation}
