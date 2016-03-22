@@ -197,7 +197,7 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 
 	if (rtp_session_rtcp_enabled(marielle->ms.sessions.rtp_session) && rtp_session_rtcp_enabled(margaux->ms.sessions.rtp_session)) {
 		BC_ASSERT_GREATER_STRICT(rtp_session_get_round_trip_propagation(marielle->ms.sessions.rtp_session),0,float,"%f");
-		BC_ASSERT_GREATER_STRICT(rtp_session_get_stats(marielle->ms.sessions.rtp_session)->recv_rtcp_packets,0,uint64_t,"%llu");
+		BC_ASSERT_GREATER_STRICT(rtp_session_get_stats(marielle->ms.sessions.rtp_session)->recv_rtcp_packets,0,unsigned long,"%lu");
 	}
 
 	audio_stream_stop(marielle);
