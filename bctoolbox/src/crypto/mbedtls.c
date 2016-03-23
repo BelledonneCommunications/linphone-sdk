@@ -16,15 +16,13 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#include <stdlib.h>
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#include <stdlib.h>
 #include <string.h>
 #include "utils.h"
-#include <bctoolbox/crypto.h>
 
 #include <mbedtls/ssl.h>
 #include <mbedtls/timing.h>
@@ -41,6 +39,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mbedtls/sha256.h>
 #include <mbedtls/sha512.h>
 #include <mbedtls/gcm.h>
+
+#include <bctoolbox/crypto.h>
 
 #define bctoolbox_error printf
 
