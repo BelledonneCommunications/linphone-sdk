@@ -296,12 +296,16 @@ static int h264_enc_get_video_size(MSFilter *f, MSVideoSize *vsize) {
 
 static int h264_enc_set_video_size(MSFilter *f, const MSVideoSize *vsize) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
+	MSVideoConfiguration conf;
 	ms_message("VideoToolboxEnc: requested video size: %dx%d", vsize->width, vsize->height);
 	if(ctx->is_configured) {
 		ms_error("VideoToolbox: could not set video size: encoder is running");
 		return -1;
 	}
-	ctx->conf = ms_video_find_best_configuration_for_size(ctx->video_confs, *vsize, f->factory->cpu_count);
+	conf = ms_video_find_best_configuration_for_size(ctx->video_confs, *vsize, f->factory->cpu_count);
+	ctx->conf.vsize = conf.vsize;
+	ctx->conf.fps = conf.fps;
+	ctx->conf.bitrate_limit = conf.bitrate_limit;
 	ms_message("VideoToolboxEnc: selected video conf: size=%dx%d, framerate=%ffps", ctx->conf.vsize.width, ctx->conf.vsize.height, ctx->conf.fps);
 	return 0;
 }
@@ -337,6 +341,7 @@ static int h264_enc_set_fps(MSFilter *f, const float *fps) {
 	ctx->conf.fps = *fps;
 	if(ctx->is_configured) ctx->fps_changed = TRUE;
 	ms_filter_unlock(f);
+	ms_message("VideoToolboxEnc: new frame rate target (%ffps)", ctx->conf.fps);
 	return 0;
 }
 
@@ -350,9 +355,10 @@ static int h264_enc_req_vfu(MSFilter *f, void *ptr) {
 static int h264_enc_enable_avpf(MSFilter *f, const bool_t *enable_avpf) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	if(ctx->is_configured) {
-		ms_error("VideoToolbox: could not %s AVPF: encoder is running", *enable_avpf ? "enable" : "disable");
+		ms_error("VideoToolboxEnc: could not %s AVPF: encoder is running", *enable_avpf ? "enable" : "disable");
 		return -1;
 	}
+	ms_message("VideoToolboxEnc: %s AVPF", enable_avpf ? "enabling" : "disabling");
 	ctx->enable_avpf = *enable_avpf;
 	return 0;
 }
@@ -363,14 +369,34 @@ static int h264_enc_get_config_list(MSFilter *f, const MSVideoConfiguration **co
 }
 
 static int h264_enc_set_config_list(MSFilter *f, const MSVideoConfiguration **conf_list) {
-	const MSVideoConfiguration *conf = *conf_list;
-	((VTH264EncCtx *)f->data)->video_confs = conf ? conf : h264_video_confs;
+	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
+	ctx->video_confs = *conf_list ? *conf_list : h264_video_confs;
+	ctx->conf = ms_video_find_best_configuration_for_size(ctx->video_confs, ctx->conf.vsize, f->factory->cpu_count);
+	ms_message("VideoToolboxEnc: new video settings: %dx%d, %dkbit/s, %ffps",
+			   ctx->conf.vsize.width, ctx->conf.vsize.height,
+			   ctx->conf.required_bitrate, ctx->conf.fps);
 	return 0;
 }
 
 static int h264_enc_set_config(MSFilter *f, const MSVideoConfiguration *conf) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
-	ctx->conf = *conf;
+	ms_filter_lock(f);
+	if(ctx->is_configured) {
+		if(ctx->conf.fps != conf->fps) {
+			ctx->conf.fps = conf->fps;
+			ctx->fps_changed = TRUE;
+		}
+		if(ctx->conf.required_bitrate != conf->required_bitrate) {
+			ctx->conf.required_bitrate = conf->required_bitrate;
+			ctx->bitrate_changed = TRUE;
+		}
+	} else {
+		ctx->conf = *conf;
+	}
+	ms_filter_unlock(f);
+	ms_message("VideoToolboxEnc: new video settings: %dx%d, %dkbit/s, %ffps",
+			   ctx->conf.vsize.width, ctx->conf.vsize.height,
+			   ctx->conf.required_bitrate, ctx->conf.fps);
 	return 0;
 }
 
