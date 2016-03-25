@@ -203,7 +203,10 @@ void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_t *lstats) 
 
 int media_stream_set_dscp(MediaStream *stream, int dscp) {
 	ms_message("Setting DSCP to %i for %s stream.", dscp, media_stream_type_str(stream));
-	return rtp_session_set_dscp(stream->sessions.rtp_session, dscp);
+	stream->dscp = dscp;
+	if ((stream->sessions.rtp_session != NULL) && (stream->sessions.rtp_session->rtp.gs.rem_addr.ss_family != AF_UNSPEC))
+		return rtp_session_set_dscp(stream->sessions.rtp_session, dscp);
+	return 0;
 }
 
 void media_stream_enable_adaptive_bitrate_control(MediaStream *stream, bool_t enabled) {

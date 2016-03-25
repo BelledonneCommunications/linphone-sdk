@@ -136,6 +136,7 @@ struct _MediaStream {
 	bool_t is_beginning;
 	bool_t owns_sessions;
 	bool_t pad;
+	int dscp;
 	/**
 	 * defines encoder target network bit rate, uses #media_stream_set_target_network_bitrate() setter.
 	 * */
