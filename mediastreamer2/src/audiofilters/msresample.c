@@ -124,7 +124,7 @@ static void resample_init_speex(ResampleData *dt){
 
 static void resample_preprocess(MSFilter *obj){
 	ResampleData *dt=(ResampleData*)obj->data;
-	resample_init_speex(dt);
+	if(dt->handle == NULL) resample_init_speex(dt);
 }
 
 static void resample_process_ms2(MSFilter *obj){

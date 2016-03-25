@@ -56,7 +56,7 @@ static void generic_plc_init(MSFilter *f) {
 
 static void generic_plc_preprocess(MSFilter *f) {
 	generic_plc_struct *mgps=(generic_plc_struct*)f->data;
-	mgps->plc_context = generic_plc_create_context(mgps->rate);
+	if(mgps->plc_context == NULL) mgps->plc_context = generic_plc_create_context(mgps->rate);
 }
 
 static void generic_plc_process(MSFilter *f) {
