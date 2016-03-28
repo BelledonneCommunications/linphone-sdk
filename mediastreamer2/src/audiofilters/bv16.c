@@ -56,13 +56,12 @@ static int enc_set_ptime(MSFilter *f, void* arg){
 	EncState *s=(EncState*)f->data;
 	s->ptime=*(int*)arg;
 	if (s->ptime > s->max_ptime) {
-			s->ptime=s->max_ptime;
-	}
-	else if (s->ptime%5) {
+		s->ptime=s->max_ptime;
+	} else if (s->ptime%5) {
 		//if the ptime is not a mulptiple of 5, go to the next multiple
 		s->ptime = s->ptime - s->ptime%5 + 5;
 	}
-	 ms_message("MSBV16Enc: got ptime=%i ", s->ptime);
+	ms_message("MSBV16Enc: got ptime=%i ", s->ptime);
 	return 0;
 }
 
@@ -80,27 +79,26 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 	tmp[0] = '\0';
 	if (fmtp_get_value(fmtp,"maxptime:",tmp,sizeof(tmp))){
 		s->max_ptime=atoi(tmp);
-		if (s->max_ptime <10 || s->max_ptime >100 ) {
+		if (s->max_ptime < 10 || s->max_ptime > 100 ) {
 			ms_warning("MSBV16Enc: unknown value [%i] for maxptime, use default value (100) instead",s->max_ptime);
 			s->max_ptime=100;
 		}
 		ms_message("MSBV16Enc: got maxptime=%i",s->max_ptime);
-	}
-	else if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
+	}else if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
 		int val = atoi(tmp);
-	 	return enc_set_ptime(f,&val);
-	 }
+		return enc_set_ptime(f,&val);
+	}
 	return 0;
 }
 
 static int enc_add_attr(MSFilter *f, void *arg){
-	 const char *attr=(const char *)arg;
+	const char *attr=(const char *)arg;
 	ms_message("MSBV16Enc: enc_add_attr %s", attr);
 
-	 if (strstr(attr,"ptime:")!=NULL){
-	 	int ptime = atoi(attr+6);
-	 	return enc_set_ptime(f,&ptime);
-	 }
+	if (strstr(attr,"ptime:")!=NULL){
+		int ptime = atoi(attr+6);
+		return enc_set_ptime(f,&ptime);
+	}
 	return 0;
 }
 
@@ -135,7 +133,7 @@ static void enc_uninit(MSFilter *f){
 }
 
 	/***
-    Encodes 8 kHz-sampled narrowband speech at a bit rate of or 16 kbit/s,
+	Encodes 8 kHz-sampled narrowband speech at a bit rate of or 16 kbit/s,
 	uses 5 ms frames.
 	The encoder receives 10 ms speech => 160 bytes.
 	***/
@@ -171,8 +169,7 @@ static void enc_process (MSFilter *f){
 		ms_bufferizer_fill_current_metas(s->bufferizer, outputMessage);
 		ms_queue_put(f->outputs[0],outputMessage);
 		s->ts +=  FRSZ * frame_per_packet;
-
-		}
+	}
 
 }
 
@@ -247,7 +244,6 @@ static void dec_preprocess(MSFilter* f){
 	}else {
 		s->concealer = NULL;
 	}
-
 }
 
 static void dec_postprocess(MSFilter* f ){
@@ -265,7 +261,6 @@ static void dec_uninit(MSFilter *f){
 
 
 static void dec_process(MSFilter *f){
-
 	DecState *s=(DecState*)f->data;
 	mblk_t *inputMessage, *outputMessage;
 	struct	BV16_Bit_Stream bs;
@@ -308,8 +303,7 @@ static int dec_enable_plc(MSFilter *f, void* arg ){
 	return 0;
 }
 
-static int dec_have_plc(MSFilter *f, void *arg)
-{
+static int dec_have_plc(MSFilter *f, void *arg){
 	*((int *)arg) = 1;
 	return 0;
 }
@@ -326,7 +320,7 @@ static MSFilterMethod dec_methods[] = {
 	{ MS_FILTER_GET_SAMPLE_RATE, 	dec_get_sample_rate },
 	{ MS_FILTER_GET_NCHANNELS, 		get_channels },
 	{ MS_DECODER_HAVE_PLC		, 	dec_have_plc	},
-	{MS_DECODER_ENABLE_PLC,			dec_enable_plc  },
+	{ MS_DECODER_ENABLE_PLC,			dec_enable_plc  },
 	{ 0,                         NULL                }
 };
 
