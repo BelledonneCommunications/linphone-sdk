@@ -219,8 +219,11 @@ BELLESIP_EXPORT int belle_sip_uri_check_components_from_request_uri(const belle_
  */
 BELLESIP_EXPORT int belle_sip_uri_check_components_from_context(const belle_sip_uri_t* uri,const char* method,const char* header_name);
 BELLE_SIP_END_DECLS
+#ifndef BELLE_SIP_USE_STL
+#define BELLE_SIP_USE_STL 1
+#endif
 
-#if defined(__cplusplus) && defined(BELLE_SIP_USE_STL)
+#if defined(__cplusplus) && BELLE_SIP_USE_STL
 #include <ostream>
 inline   std::ostream&
 operator<<( std::ostream& __os, const belle_sip_uri_t* uri)

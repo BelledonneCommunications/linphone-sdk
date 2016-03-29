@@ -296,7 +296,7 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 		source->expire_ms=belle_sip_time_ms()+source->timeout;
 	}
 	source->cancelled=FALSE;
-	ml->sources=belle_sip_list_append_link(ml->sources,&source->node);
+	ml->sources=belle_sip_list_prepend_link(ml->sources,&source->node);
 	ml->nsources++;
 }
 
@@ -336,7 +336,9 @@ void belle_sip_source_set_remove_cb(belle_sip_source_t *s, belle_sip_source_remo
 unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s){
 	return s->timeout;
 }
-
+void belle_sip_source_cancel(belle_sip_source_t *s){
+	if (s) s->cancelled=TRUE;
+}
 
 static int match_source_id(const void *s, const void *pid){
 	if ( ((belle_sip_source_t*)s)->id==(unsigned long)(intptr_t)pid){
@@ -355,7 +357,7 @@ belle_sip_source_t *belle_sip_main_loop_find_source(belle_sip_main_loop_t *ml, u
 
 void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id){
 	belle_sip_source_t *s=belle_sip_main_loop_find_source(ml,id);
-	if (s) s->cancelled=TRUE;
+	belle_sip_source_cancel(s);
 }
 
 void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){

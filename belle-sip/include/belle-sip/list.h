@@ -28,6 +28,7 @@ typedef struct _belle_sip_list belle_sip_list_t;
 
 BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_append(belle_sip_list_t * elem, void * data);
 BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_prepend(belle_sip_list_t * elem, void * data);
+BELLESIP_EXPORT belle_sip_list_t*  belle_sip_list_prepend_link(belle_sip_list_t* elem, belle_sip_list_t *new_elem);
 BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_last_elem(const belle_sip_list_t *l);
 BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_free(belle_sip_list_t * elem);
 BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_concat(belle_sip_list_t * first, belle_sip_list_t * second);

@@ -103,6 +103,11 @@ BELLESIP_EXPORT void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, bel
 BELLESIP_EXPORT belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
 
 BELLESIP_EXPORT void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms);
+/**
+ * Cancel a source. Will be removed at next iterate. It is not freed.
+ **/
+BELLESIP_EXPORT void belle_sip_source_cancel(belle_sip_source_t * src);
+
 
 BELLESIP_EXPORT unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s);
 
@@ -140,7 +145,10 @@ BELLESIP_EXPORT int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml);
 BELLESIP_EXPORT void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id);
 
 BELLE_SIP_END_DECLS
-#if defined(__cplusplus) && defined(BELLE_SIP_USE_STL)
+#ifndef BELLE_SIP_USE_STL
+#define BELLE_SIP_USE_STL 1
+#endif
+#if defined(__cplusplus) && BELLE_SIP_USE_STL
 #include <functional>
 typedef std::function<int (unsigned int)> belle_sip_source_cpp_func_t;
 BELLESIP_EXPORT inline int belle_sip_source_cpp_func(belle_sip_source_cpp_func_t* user_data, unsigned int events)

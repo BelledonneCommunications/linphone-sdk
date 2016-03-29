@@ -292,13 +292,16 @@ belle_sip_list_t*  belle_sip_list_append(belle_sip_list_t* elem, void * data){
 	return belle_sip_list_append_link(elem,new_elem);
 }
 
-belle_sip_list_t*  belle_sip_list_prepend(belle_sip_list_t* elem, void *data){
-	belle_sip_list_t* new_elem=belle_sip_list_new(data);
+belle_sip_list_t*  belle_sip_list_prepend_link(belle_sip_list_t* elem, belle_sip_list_t *new_elem){
 	if (elem!=NULL) {
 		new_elem->next=elem;
 		elem->prev=new_elem;
 	}
 	return new_elem;
+}
+
+belle_sip_list_t*  belle_sip_list_prepend(belle_sip_list_t* elem, void *data){
+	return belle_sip_list_prepend_link(elem,belle_sip_list_new(data));
 }
 
 belle_sip_list_t * belle_sip_list_last_elem(const belle_sip_list_t *l){
