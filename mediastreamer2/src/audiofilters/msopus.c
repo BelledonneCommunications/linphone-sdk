@@ -325,6 +325,7 @@ static void ms_opus_enc_uninit(MSFilter *f) {
 	}
 	ms_bufferizer_destroy(d->bufferizer);
 	d->bufferizer = NULL;
+	if(d->pcmbuffer) ms_free(d->pcmbuffer);
 	ms_free(d);
 }
 
