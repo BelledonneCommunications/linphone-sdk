@@ -34,24 +34,12 @@ set(TEST_SOURCES
 	../src/zidCache.c
 )
 
-if (POLARSSL_FOUND)
-	set(TEST_SOURCES
-		${TEST_SOURCES}
-		../src/cryptoPolarssl.c
-	)
-elseif (MBEDTLS_FOUND)
-	set(TEST_SOURCES
-		${TEST_SOURCES}
-		../src/cryptoMbedtls.c
-	)
-endif()
-
 apply_compile_flags(TEST_SOURCES "CPP")
 
 add_executable(bzrtpTest ${TEST_SOURCES})
 set_target_properties(bzrtpTest PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
-target_include_directories(bzrtpTest PUBLIC ${CUNIT_INCLUDE_DIR})
-target_link_libraries(bzrtpTest ${CUNIT_LIBRARIES} bzrtp)
+target_include_directories(bzrtpTest PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIR})
+target_link_libraries(bzrtpTest ${BCTOOLBOX_TESTER_LIBRARIES} bzrtp)
 if(HAVE_SQRT)
 	target_link_libraries(bzrtpTest m)
 endif()

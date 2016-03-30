@@ -5,17 +5,17 @@
  @author Johan Pascal
 
  @copyright Copyright (C) 2014 Belledonne Communications, Grenoble, France
- 
+
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
  as published by the Free Software Foundation; either version 2
  of the License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -26,7 +26,7 @@
 #include <errno.h>
 #include "CUnit/Basic.h"
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <time.h>
 #else
 #include <windows.h>
@@ -108,7 +108,7 @@ uint8_t zrtpkeyr[16] = {0x09, 0x50, 0xcd, 0x9e, 0xc2, 0x78, 0x54, 0x31, 0x93, 0x
 void test_parser(void) {
 	int i, retval;
 	bzrtpPacket_t *zrtpPacket;
-	
+
 	/* Create zrtp Context to use H0-H3 chains and others */
 	bzrtpContext_t *context87654321 = bzrtp_createBzrtpContext(0x87654321);
 	bzrtpContext_t *context12345678 = bzrtp_createBzrtpContext(0x12345678);
@@ -156,7 +156,7 @@ void test_parser(void) {
 	memcpy(context87654321->channelContext[0]->zrtpkeyr, zrtpkeyr, 16);
 
 	/* set the role: 87654321 is initiator in our exchange pattern */
-	context12345678->channelContext[0]->role = RESPONDER; 
+	context12345678->channelContext[0]->role = RESPONDER;
 
 	/* set the peer hello packet Hash for context 12345678, the other one will be set after Hello Packet reception */
 	bzrtp_setPeerHelloHash(context12345678, 0x12345678, (uint8_t *)patternZRTPHelloHash87654321, strlen((const char *)patternZRTPHelloHash87654321));
@@ -244,7 +244,7 @@ static void freeBuf(void* p){
 int floadAlice(void *clientData, uint8_t **output, uint32_t *size, zrtpFreeBuffer_callback *cb) {
 	/* get filename from ClientData */
 	my_Context_t *clientContext = (my_Context_t *)clientData;
-	char *filename = clientContext->zidFilename; 
+	char *filename = clientContext->zidFilename;
 	FILE *ALICECACHE = fopen(filename, "r+");
 	fseek(ALICECACHE, 0L, SEEK_END);  /* Position to end of file */
   	*size = ftell(ALICECACHE);     /* Get file length */
@@ -263,7 +263,7 @@ int floadAlice(void *clientData, uint8_t **output, uint32_t *size, zrtpFreeBuffe
 int fwriteAlice(void *clientData, const uint8_t *input, uint32_t size) {
 	/* get filename from ClientData */
 	my_Context_t *clientContext = (my_Context_t *)clientData;
-	char *filename = clientContext->zidFilename; 
+	char *filename = clientContext->zidFilename;
 
 	FILE *ALICECACHE = fopen(filename, "w+");
 	int retval = fwrite(input, 1, size, ALICECACHE);
@@ -274,7 +274,7 @@ int fwriteAlice(void *clientData, const uint8_t *input, uint32_t size) {
 int floadBob(void *clientData, uint8_t **output, uint32_t *size, zrtpFreeBuffer_callback *cb) {
 	/* get filename from ClientData */
 	my_Context_t *clientContext = (my_Context_t *)clientData;
-	char *filename = clientContext->zidFilename; 
+	char *filename = clientContext->zidFilename;
 
 	FILE *BOBCACHE = fopen(filename, "r+");
 	fseek(BOBCACHE, 0L, SEEK_END);  /* Position to end of file */
@@ -296,7 +296,7 @@ int floadBob(void *clientData, uint8_t **output, uint32_t *size, zrtpFreeBuffer_
 int fwriteBob(void *clientData, const uint8_t *input, uint32_t size) {
 	/* get filename from ClientData */
 	my_Context_t *clientContext = (my_Context_t *)clientData;
-	char *filename = clientContext->zidFilename; 
+	char *filename = clientContext->zidFilename;
 
 	FILE *BOBCACHE = fopen(filename, "w+");
 	int retval = fwrite(input, 1, size, BOBCACHE);
@@ -376,7 +376,7 @@ void test_parserComplete() {
 	/* set the cache related callback functions */
 	cbs.bzrtp_loadCache=floadAlice;
 	cbs.bzrtp_writeCache=fwriteAlice;
-	
+
 	bzrtp_setCallbacks(contextAlice, &cbs);
 
 	cbs.bzrtp_loadCache=floadBob;
@@ -469,49 +469,49 @@ void test_parserComplete() {
 	if (contextAlice->cachedSecret.rs1!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs1ID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.rs2!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs2, contextAlice->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs2ID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.auxsecret!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->channelContext[0]->selfH[3], 32, 8, contextAlice->channelContext[0]->initiatorAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->channelContext[0]->initiatorAuxsecretID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->channelContext[0]->initiatorAuxsecretID, 8);
 	}
 
 	if (contextAlice->cachedSecret.pbxsecret!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.pbxsecret, contextAlice->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.pbxsecretID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.pbxsecretID, 8);
 	}
 
 	if (contextAlice->cachedSecret.rs1!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.rs1ID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.rs2!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs2, contextAlice->cachedSecret.rs2Length, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.rs2ID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.auxsecret!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->channelContext[0]->peerH[3], 32, 8, contextAlice->channelContext[0]->responderAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->channelContext[0]->responderAuxsecretID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->channelContext[0]->responderAuxsecretID, 8);
 	}
 
 	if (contextAlice->cachedSecret.pbxsecret!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.pbxsecret, contextAlice->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.pbxsecretID, 8);
+		bctoolbox_rng_get(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.pbxsecretID, 8);
 	}
 
 
@@ -519,49 +519,49 @@ void test_parserComplete() {
 	if (contextBob->cachedSecret.rs1!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs1, contextBob->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs1ID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextBob->cachedSecret.rs2!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs2, contextBob->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs2ID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextBob->cachedSecret.auxsecret!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->channelContext[0]->selfH[3], 32, 8, contextBob->channelContext[0]->initiatorAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->channelContext[0]->initiatorAuxsecretID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->channelContext[0]->initiatorAuxsecretID, 8);
 	}
 
 	if (contextBob->cachedSecret.pbxsecret!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.pbxsecret, contextBob->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.pbxsecretID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.pbxsecretID, 8);
 	}
 
 	if (contextBob->cachedSecret.rs1!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs1, contextBob->cachedSecret.rs1Length, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->responderCachedSecretHash.rs1ID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->responderCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextBob->cachedSecret.rs2!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs2, contextBob->cachedSecret.rs2Length, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->responderCachedSecretHash.rs2ID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->responderCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextBob->cachedSecret.auxsecret!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->channelContext[0]->peerH[3], 32, 8, contextBob->channelContext[0]->responderAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->channelContext[0]->responderAuxsecretID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->channelContext[0]->responderAuxsecretID, 8);
 	}
 
 	if (contextBob->cachedSecret.pbxsecret!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.pbxsecret, contextBob->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->responderCachedSecretHash.pbxsecretID, 8);
+		bctoolbox_rng_get(contextBob->RNGContext, contextBob->responderCachedSecretHash.pbxsecretID, 8);
 	}
 
 	/* dump alice's packet on both sides */
@@ -571,14 +571,14 @@ void test_parserComplete() {
 	packetDump(bob_HelloFromAlice, 0);
 
 	/* Create the DHPart2 packet (that we then may change to DHPart1 if we ended to be the responder) */
-	alice_selfDHPart = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[0], MSGTYPE_DHPART2, &retval); 
+	alice_selfDHPart = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[0], MSGTYPE_DHPART2, &retval);
 	retval += bzrtp_packetBuild(contextAlice, contextAlice->channelContext[0], alice_selfDHPart, 0); /* we don't care now about sequence number as we just need to build the message to be able to insert a hash of it into the commit packet */
 	if (retval == 0) { /* ok, insert it in context as we need it to build the commit packet */
 		contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID] = alice_selfDHPart;
 	} else {
 		bzrtp_message ("Alice building DHPart packet returns %x\n", retval);
 	}
-	bob_selfDHPart = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_DHPART2, &retval); 
+	bob_selfDHPart = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_DHPART2, &retval);
 	retval +=bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_selfDHPart, 0); /* we don't care now about sequence number as we just need to build the message to be able to insert a hash of it into the commit packet */
 	if (retval == 0) { /* ok, insert it in context as we need it to build the commit packet */
 		contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID] = bob_selfDHPart;
@@ -635,7 +635,7 @@ void test_parserComplete() {
 		contextAlice->channelContext[0]->selfPackets[COMMIT_MESSAGE_STORE_ID] = alice_Commit;
 	}
 	bzrtp_message("Alice building Commit return %x\n", retval);
-	
+
 	bob_Commit = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_COMMIT, &retval);
 	retval += bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_Commit, contextBob->channelContext[0]->selfSequenceNumber);
 	if (retval == 0) {
@@ -666,7 +666,7 @@ void test_parserComplete() {
 		contextAlice->channelContext[0]->peerSequenceNumber = alice_CommitFromBob->sequenceNumber;
 		/* Alice will be the initiator (commit contention not implemented in this test) so just discard bob's commit */
 		/*bzrtpCommirMessage_t *alice_CommitFromBob_message = (bzrtpCommitMessage_t *)alice_CommitFromBob->messageData;
-		memcpy(contextAlice->channelContext[0]->peerH[2], alice_CommitFromBob_message->H2, 32); 
+		memcpy(contextAlice->channelContext[0]->peerH[2], alice_CommitFromBob_message->H2, 32);
 		contextAlice->channelContext[0]->peerPackets[COMMIT_MESSAGE_STORE_ID] = alice_CommitFromBob;*/
 	}
 	packetDump(alice_CommitFromBob, 0);
@@ -748,7 +748,7 @@ void test_parserComplete() {
 	/* Compute the shared DH secret */
 	contextAlice->DHMContext->peer = (uint8_t *)malloc(contextAlice->channelContext[0]->keyAgreementLength*sizeof(uint8_t));
 	memcpy (contextAlice->DHMContext->peer, alice_DHPart1FromBob_message->pv, contextAlice->channelContext[0]->keyAgreementLength);
-	bzrtpCrypto_DHMComputeSecret(contextAlice->DHMContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)contextAlice->RNGContext);
+	bctoolbox_DHMComputeSecret(contextAlice->DHMContext, (int (*)(void *, uint8_t *, size_t))bctoolbox_rng_get, (void *)contextAlice->RNGContext);
 
 	/* So Alice send bob her DHPart2 message which is already prepared and stored (we just need to update the sequence number) */
 	bzrtp_packetUpdateSequenceNumber(contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID], contextAlice->channelContext[0]->selfSequenceNumber);
@@ -802,7 +802,7 @@ void test_parserComplete() {
 	/* Compute the shared DH secret */
 	contextBob->DHMContext->peer = (uint8_t *)malloc(contextBob->channelContext[0]->keyAgreementLength*sizeof(uint8_t));
 	memcpy (contextBob->DHMContext->peer, bob_DHPart2FromAlice_message->pv, contextBob->channelContext[0]->keyAgreementLength);
-	bzrtpCrypto_DHMComputeSecret(contextBob->DHMContext, (int (*)(void *, uint8_t *, size_t))bzrtpCrypto_getRandom, (void *)contextAlice->RNGContext);
+	bctoolbox_DHMComputeSecret(contextBob->DHMContext, (int (*)(void *, uint8_t *, size_t))bctoolbox_rng_get, (void *)contextAlice->RNGContext);
 
 
 	/* JUST FOR TEST: check that the generated secrets are the same */
@@ -815,7 +815,7 @@ void test_parserComplete() {
 		bzrtp_message("ERROR : secretKey exchange failed!!\n");
 	}
 
-	/* now compute the total_hash as in rfc section 4.4.1.4 
+	/* now compute the total_hash as in rfc section 4.4.1.4
 	 * total_hash = hash(Hello of responder || Commit || DHPart1 || DHPart2)
 	 */
 	totalHashDataLength = bob_Hello->messageLength + alice_Commit->messageLength + contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength + alice_selfDHPart->messageLength;
@@ -850,7 +850,7 @@ void test_parserComplete() {
 		CU_FAIL("Total Hash mismatch");
 	}
 
-	/* now compute s0 and KDF_context as in rfc section 4.4.1.4 
+	/* now compute s0 and KDF_context as in rfc section 4.4.1.4
 		s0 = hash(counter || DHResult || "ZRTP-HMAC-KDF" || ZIDi || ZIDr || total_hash || len(s1) || s1 || len(s2) || s2 || len(s3) || s3)
 		counter is a fixed 32 bits integer in big endian set to 1 : 0x00000001
 	*/
@@ -877,7 +877,7 @@ void test_parserComplete() {
 	/* s3 is the pbxsecret */
 	s3 = contextAlice->cachedSecret.pbxsecret; /* this may be null if no match or no pbx secret where found */
 	s3Length = contextAlice->cachedSecret.pbxsecretLength; /* this may be 0 if no match or no pbx secret where found */
-	
+
 	totalHashDataLength = 4+secretLength+13/*ZRTP-HMAC-KDF string*/ + 12 + 12 + 32 + 4 +s1Length + 4 +s2Length + 4 + s3Length; /* secret length was computed before as the length of DH secret data */
 
 	dataToHash = (uint8_t *)malloc(totalHashDataLength*sizeof(uint8_t));
@@ -886,7 +886,7 @@ void test_parserComplete() {
 	dataToHash[2] = 0x00;
 	dataToHash[3] = 0x01;
 	hashDataIndex = 4;
-	
+
 	memcpy(dataToHash+hashDataIndex, contextAlice->DHMContext->key, secretLength);
 	hashDataIndex += secretLength;
 	memcpy(dataToHash+hashDataIndex, "ZRTP-HMAC-KDF", 13);
@@ -980,7 +980,7 @@ void test_parserComplete() {
 	dataToHash[2] = 0x00;
 	dataToHash[3] = 0x01;
 	hashDataIndex = 4;
-	
+
 	memcpy(dataToHash+hashDataIndex, contextBob->DHMContext->key, secretLength);
 	hashDataIndex += secretLength;
 	memcpy(dataToHash+hashDataIndex, "ZRTP-HMAC-KDF", 13);
@@ -1017,7 +1017,7 @@ void test_parserComplete() {
 
 	contextBob->channelContext[0]->s0 = (uint8_t *)malloc(32*sizeof(uint8_t));
 	contextBob->channelContext[0]->hashFunction(dataToHash, totalHashDataLength, 32, contextBob->channelContext[0]->s0);
-	
+
 	free(dataToHash);
 
 	/* destroy all cached keys in context */
@@ -1114,7 +1114,7 @@ void test_parserComplete() {
 
 	sasValue = ((uint32_t)bob_sasHash[0]<<24) | ((uint32_t)bob_sasHash[1]<<16) | ((uint32_t)bob_sasHash[2]<<8) | ((uint32_t)(bob_sasHash[3]));
 	contextBob->channelContext[0]->sasFunction(sasValue, sas, 5);
-	
+
 	bzrtp_message("Bob SAS is %.4s\n", sas);
 
 
@@ -1221,8 +1221,8 @@ void test_parserComplete() {
 	bzrtp_freeZrtpPacket(bob_Conf2ACK);
 	bzrtp_freeZrtpPacket(alice_Conf2ACKFromBob);
 
-	dumpContext("Alice", contextAlice);	
-	dumpContext("Bob", contextBob);	
+	dumpContext("Alice", contextAlice);
+	dumpContext("Bob", contextBob);
 
 	bzrtp_message("\n\n\n\n\n*************************************************************\n        SECOND CHANNEL\n**********************************************\n\n");
 	/* Now create a second channel for Bob and Alice */
@@ -1353,7 +1353,7 @@ void test_parserComplete() {
 		contextAlice->channelContext[1]->peerSequenceNumber = alice_CommitFromBob->sequenceNumber;
 		/* Alice will be the initiator (commit contention not implemented in this test) so just discard bob's commit */
 		alice_CommitFromBob_message = (bzrtpCommitMessage_t *)alice_CommitFromBob->messageData;
-		memcpy(contextAlice->channelContext[1]->peerH[2], alice_CommitFromBob_message->H2, 32); 
+		memcpy(contextAlice->channelContext[1]->peerH[2], alice_CommitFromBob_message->H2, 32);
 		contextAlice->channelContext[1]->peerPackets[COMMIT_MESSAGE_STORE_ID] = alice_CommitFromBob;
 	}
 	packetDump(alice_CommitFromBob, 0);
@@ -1610,7 +1610,7 @@ uint64_t getCurrentTimeInMs() {
 }
 
 static void sleepMs(int ms){
-#ifdef WIN32
+#ifdef _WIN32
 	Sleep(ms);
 #else
 	struct timespec ts;
@@ -1643,12 +1643,12 @@ void test_stateMachine() {
 	cbs.bzrtp_writeCache=fwriteAlice;
 	cbs.bzrtp_sendData=bzrtp_sendData;
 	bzrtp_setCallbacks(contextAlice, &cbs);
-	
+
 	cbs.bzrtp_loadCache=floadBob;
 	cbs.bzrtp_writeCache=fwriteBob;
 	cbs.bzrtp_sendData=bzrtp_sendData;
 	bzrtp_setCallbacks(contextBob, &cbs);
-	
+
 	/* create the client Data and associate them to the channel contexts */
 	memcpy(aliceClientData.nom, "Alice", 6);
 	memcpy(bobClientData.nom, "Bob", 4);
@@ -1713,7 +1713,7 @@ void test_stateMachine() {
 	} else {
 		CU_FAIL("Unable to reach secure state");
 	}
-	
+
 	/*** Send alice a ping message from Bob ***/
 	/* set packet header and CRC */
 	/* preambule */

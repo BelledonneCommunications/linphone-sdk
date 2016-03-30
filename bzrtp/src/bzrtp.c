@@ -27,7 +27,7 @@
 #include "bzrtp/bzrtp.h"
 
 #include "typedef.h"
-#include "cryptoWrapper.h"
+#include "bctoolbox/crypto.h"
 #include "cryptoUtils.h"
 #include "zidCache.h"
 #include "packetParser.h"
@@ -55,7 +55,7 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC) {
 	memset(context, 0, sizeof(bzrtpContext_t));
 
 	/* start the random number generator */
-	context->RNGContext = bzrtpCrypto_startRNG(NULL, 0); /* TODO: give a seed for the RNG? */
+	context->RNGContext = bctoolbox_rng_context_new(); /* TODO: give a seed for the RNG? */
 	/* set the DHM context to NULL, it will be created if needed when creating a DHPart packet */
 	context->DHMContext = NULL;
 
@@ -82,11 +82,11 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC) {
 
 	/* get the list of crypto algorithms provided by the crypto module */
 	/* this list may then be updated according to users settings */
-	context->hc = bzrtpCrypto_getAvailableCryptoTypes(ZRTP_HASH_TYPE, context->supportedHash);
-	context->cc = bzrtpCrypto_getAvailableCryptoTypes(ZRTP_CIPHERBLOCK_TYPE, context->supportedCipher);
-	context->ac = bzrtpCrypto_getAvailableCryptoTypes(ZRTP_AUTHTAG_TYPE, context->supportedAuthTag);
-	context->kc = bzrtpCrypto_getAvailableCryptoTypes(ZRTP_KEYAGREEMENT_TYPE, context->supportedKeyAgreement);
-	context->sc = bzrtpCrypto_getAvailableCryptoTypes(ZRTP_SAS_TYPE, context->supportedSas);
+	context->hc = bzrtpUtils_getAvailableCryptoTypes(ZRTP_HASH_TYPE, context->supportedHash);
+	context->cc = bzrtpUtils_getAvailableCryptoTypes(ZRTP_CIPHERBLOCK_TYPE, context->supportedCipher);
+	context->ac = bzrtpUtils_getAvailableCryptoTypes(ZRTP_AUTHTAG_TYPE, context->supportedAuthTag);
+	context->kc = bzrtpUtils_getAvailableCryptoTypes(ZRTP_KEYAGREEMENT_TYPE, context->supportedKeyAgreement);
+	context->sc = bzrtpUtils_getAvailableCryptoTypes(ZRTP_SAS_TYPE, context->supportedSas);
 
 	/* initialise cached secret buffer to null */
 #ifdef HAVE_LIBXML2
@@ -158,7 +158,7 @@ void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 
 	/* We have no more channel, destroy the zrtp context */
 	if (context->DHMContext != NULL) {
-		bzrtpCrypto_DestroyDHMContext(context->DHMContext);
+		bctoolbox_DestroyDHMContext(context->DHMContext);
 		context->DHMContext = NULL;
 	}
 
@@ -181,7 +181,7 @@ void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 #endif
 	
 	/* destroy the RNG context at the end because it may be needed to destroy some keys */
-	bzrtpCrypto_destroyRNG(context->RNGContext);
+	bctoolbox_rng_context_free(context->RNGContext);
 	context->RNGContext = NULL;
 	free(context);
 	return;
@@ -613,7 +613,7 @@ void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType
 		return;
 	}
 
-	implementedTypesCount = bzrtpCrypto_getAvailableCryptoTypes(algoType, implementedTypes);
+	implementedTypesCount = bzrtpUtils_getAvailableCryptoTypes(algoType, implementedTypes);
 
 	switch(algoType) {
 		case ZRTP_HASH_TYPE:
@@ -688,7 +688,7 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 	if (zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] != NULL) {
 		uint8_t computedPeerHelloHash[32];
 		/* compute hash using implicit hash function: SHA256, skip packet header in the packetString buffer as the hash must be computed on message only */
-		bzrtpCrypto_sha256(zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
+		bctoolbox_sha256(zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
 			zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength,
 			32,
 			computedPeerHelloHash);
@@ -732,7 +732,7 @@ int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 	}
 
 	/* compute hash using implicit hash function: SHA256, skip packet header in the packetString buffer as the hash must be computed on message only */
-	bzrtpCrypto_sha256(zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
+	bctoolbox_sha256(zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
 			zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength,
 			32,
 			helloHash);
@@ -811,10 +811,10 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->role = INITIATOR;
 
 	/* create H0 (32 bytes random) and derive using implicit Hash(SHA256) H1,H2,H3 */
-	bzrtpCrypto_getRandom(zrtpContext->RNGContext, zrtpChannelContext->selfH[0], 32);
-	bzrtpCrypto_sha256(zrtpChannelContext->selfH[0], 32, 32, zrtpChannelContext->selfH[1]);
-	bzrtpCrypto_sha256(zrtpChannelContext->selfH[1], 32, 32, zrtpChannelContext->selfH[2]);
-	bzrtpCrypto_sha256(zrtpChannelContext->selfH[2], 32, 32, zrtpChannelContext->selfH[3]);
+	bctoolbox_rng_get(zrtpContext->RNGContext, zrtpChannelContext->selfH[0], 32);
+	bctoolbox_sha256(zrtpChannelContext->selfH[0], 32, 32, zrtpChannelContext->selfH[1]);
+	bctoolbox_sha256(zrtpChannelContext->selfH[1], 32, 32, zrtpChannelContext->selfH[2]);
+	bctoolbox_sha256(zrtpChannelContext->selfH[2], 32, 32, zrtpChannelContext->selfH[3]);
 
 	/* initialisation of packet storage */
 	for (i=0; i<PACKET_STORAGE_CAPACITY; i++) {
@@ -824,7 +824,7 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->peerHelloHash = NULL;
 
 	/* initialise the self Sequence number to a random and peer to 0 */
-	bzrtpCrypto_getRandom(zrtpContext->RNGContext, (uint8_t *)&(zrtpChannelContext->selfSequenceNumber), 2);
+	bctoolbox_rng_get(zrtpContext->RNGContext, (uint8_t *)&(zrtpChannelContext->selfSequenceNumber), 2);
 	zrtpChannelContext->selfSequenceNumber &= 0x0FFF; /* first 4 bits to zero in order to avoid reaching FFFF and turning back to 0 */
 	zrtpChannelContext->selfSequenceNumber++; /* be sure it is not initialised to 0 */
 	zrtpChannelContext->peerSequenceNumber = 0;
@@ -944,5 +944,3 @@ static uint8_t copyCryptoTypes(uint8_t destination[7], uint8_t source[7], uint8_
 	}
 	return size;
 }
-
-

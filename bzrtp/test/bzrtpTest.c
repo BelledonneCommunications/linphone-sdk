@@ -34,10 +34,9 @@
 
 int main(int argc, char *argv[] ) {
 	int i, fails_count=0;
-	CU_pSuite cryptoWrapperTestSuite, cryptoUtilsTestSuite, parserTestSuite;
+	CU_pSuite cryptoUtilsTestSuite, parserTestSuite;
 
 	CU_pSuite *suites[] = {
-		&cryptoWrapperTestSuite,
 		&cryptoUtilsTestSuite,
 		&parserTestSuite,
 		NULL
@@ -64,16 +63,6 @@ int main(int argc, char *argv[] ) {
 	if (CUE_SUCCESS != CU_initialize_registry()) {
 		return CU_get_error();
 	}
-
-	/* Add the cryptoWrapper suite to the registry */
-	cryptoWrapperTestSuite = CU_add_suite("Bzrtp Crypto Wrappers", NULL, NULL);
-	CU_add_test(cryptoWrapperTestSuite, "RNG", test_RNG);
-	CU_add_test(cryptoWrapperTestSuite, "SHA256", test_sha256);
-	CU_add_test(cryptoWrapperTestSuite, "HMAC-SHA256", test_hmacSha256);
-	CU_add_test(cryptoWrapperTestSuite, "AES128-CFB", test_aes128CFB);
-	CU_add_test(cryptoWrapperTestSuite, "DHM2048", test_dhm2048);
-	CU_add_test(cryptoWrapperTestSuite, "DHM3072", test_dhm3072);
-
 
 	/* Add the cryptoUtils suite to the registry */
 	cryptoUtilsTestSuite = CU_add_suite("Bzrtp Crypto Utils", NULL, NULL);

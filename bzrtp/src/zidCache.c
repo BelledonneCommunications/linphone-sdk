@@ -26,10 +26,10 @@
  */
 #include <stdlib.h>
 #include <string.h>
-#include "zidCache.h"
-
 #include "typedef.h"
+#include <bctoolbox/crypto.h>
 #include "cryptoUtils.h"
+#include "zidCache.h"
 
 #ifdef HAVE_LIBXML2
 
@@ -58,7 +58,7 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 		if (cb!=NULL) cb(cacheStringBuffer);
 	} else {
 		/* we are running cacheless, return a random number */
-		bzrtpCrypto_getRandom(context->RNGContext, selfZID, 12);
+		bctoolbox_rng_get(context->RNGContext, selfZID, 12);
 		return 0; 
 	}
 
@@ -87,7 +87,7 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 		xmlNodePtr rootNode;
 
 		/* generate a random ZID */
-		bzrtpCrypto_getRandom(context->RNGContext, selfZID, 12);
+		bctoolbox_rng_get(context->RNGContext, selfZID, 12);
 		/* convert it to an Hexa String */
 		bzrtp_int8ToStr(newZidHex, selfZID, 12);
 		newZidHex[24] = '\0'; /* the string must be null terminated for libxml2 to add it correctly in the element */
@@ -352,7 +352,7 @@ int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]) {
 		return ZRTP_ZIDCACHE_INVALID_CONTEXT; 
 	}
 	/* we are running cacheless, return a random number */
-	bzrtpCrypto_getRandom(context->RNGContext, selfZID, 12);
+	bctoolbox_rng_get(context->RNGContext, selfZID, 12);
 	return 0; 
 }
 int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]) {

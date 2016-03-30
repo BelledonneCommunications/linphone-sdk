@@ -21,11 +21,11 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(BZRTP C)
-set(BZRTP_VERSION 1.0.3)
+project(bzrtp VERSION 1.0.3 LANGUAGES C)
 
 
-option(ENABLE_STATIC "Build static library (default is shared library)." NO)
+option(ENABLE_SHARED "Build shared library." YES)
+option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TESTS "Enable compilation of unit tests." NO)
 
@@ -46,6 +46,11 @@ macro(apply_compile_flags SOURCE_FILES)
 endmacro()
 
 
+if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
+	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
@@ -53,31 +58,16 @@ if(MSVC)
 	list(APPEND CMAKE_REQUIRED_INCLUDES ${MSVC_INCLUDE_DIR})
 endif()
 
+include(GNUInstallDirs)
 include(CheckLibraryExists)
 check_library_exists("m" "sqrt" "" HAVE_SQRT)
-if(ENABLE_TESTS)
-find_package(CUnit)
-	if(CUNIT_FOUND)
-		check_library_exists(${CUNIT_LIBRARIES} "CU_add_suite" "" HAVE_CU_ADD_SUITE)
-		check_library_exists(${CUNIT_LIBRARIES} "CU_get_suite" "" HAVE_CU_GET_SUITE)
-		check_library_exists(${CUNIT_LIBRARIES} "CU_curses_run_tests" "" HAVE_CU_CURSES)
-	else()
-		message(WARNING "Could not find cunit framework, tests will not be compiled.")
-		set(ENABLE_TESTS OFF CACHE BOOL "Enable compilation of tests" FORCE)
-	endif()
-endif()
 
-find_package(MbedTLS)
-	if (MBEDTLS_FOUND)
-		message("Use mbedTLS")
-	else()
-		find_package(PolarSSL)
-		if (POLARSSL_FOUND)
-			message("Use polarSSL")
-		else()
-			message(FATAL_ERROR " No polarSSL or mbedTLS found")
-		endif()
-	endif()
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	set(BcToolbox_FIND_COMPONENTS tester)
+	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
+else()
+	find_package(BcToolbox REQUIRED OPTIONAL_COMPONENTS tester)
+endif()
 
 find_package(XML2)
 
@@ -104,26 +94,14 @@ if(STRICT_OPTIONS_CPP)
 	string(REPLACE ";" " " STRICT_OPTIONS_CPP "${STRICT_OPTIONS_CPP}")
 endif()
 
-if (MBEDTLS_FOUND)
-	include_directories(
-		include
-		${CMAKE_CURRENT_BINARY_DIR}
-		${MBEDTLS_INCLUDE_DIRS}
-	)
-	set(LIBS ${MBEDTLS_LIBRARIES})
-else ()
-	include_directories(
-		include
-		${CMAKE_CURRENT_BINARY_DIR}
-		${POLARSSL_INCLUDE_DIRS}
-	)
-	set(LIBS ${POLARSSL_LIBRARIES})
-endif()
+include_directories(
+	include
+	${CMAKE_CURRENT_BINARY_DIR}
+	${BCTOOLBOX_CORE_INCLUDE_DIRS}
+)
 
-if(CUNIT_FOUND)
-	include_directories(${CUNIT_INCLUDE_DIRS})
-	list(APPEND LIBS ${CUNIT_LIBRARIES})
-endif()
+set(LIBS ${BCTOOLBOX_CORE_LIBRARIES})
+
 if(XML2_FOUND)
 	include_directories(${XML2_INCLUDE_DIRS})
 	list(APPEND LIBS ${XML2_LIBRARIES})
@@ -142,7 +120,7 @@ endif()
 
 add_subdirectory(include)
 add_subdirectory(src)
-if(ENABLE_TESTS)
+if(ENABLE_TESTS AND BCTOOLBOX_TESTER_FOUND)
 	enable_testing()
 	add_subdirectory(test)
 endif()
@@ -151,25 +129,24 @@ endif()
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfigVersion.cmake"
-	VERSION ${BZRTP_VERSION}
+	VERSION ${PROJECT_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
 export(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE "${CMAKE_CURRENT_BINARY_DIR}/BZRTPTargets.cmake"
 )
-configure_file(cmake/BZRTPConfig.cmake
+configure_file(cmake/BZRTPConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfig.cmake"
-	COPYONLY
+	@ONLY
 )
 
-set(ConfigPackageLocation lib/cmake/BZRTP)
+set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets
 	FILE BZRTPTargets.cmake
-	DESTINATION ${ConfigPackageLocation}
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfig.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/BZRTPConfigVersion.cmake"
-	DESTINATION ${ConfigPackageLocation}
+	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
-
