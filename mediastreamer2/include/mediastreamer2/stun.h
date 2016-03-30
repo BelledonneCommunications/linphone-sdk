@@ -1,551 +1,219 @@
- /*
-  The oRTP library is an RTP (Realtime Transport Protocol - rfc3550) stack.
-  Copyright (C) 2001  Simon MORLAT simon.morlat@linphone.org
+/*
+mediastreamer2 library - modular sound and video processing and streaming
+Copyright (C) 2012-2016  Belledonne Communications
 
-  This library is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation; either
-  version 2.1 of the License, or (at your option) any later version.
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
 
-  This library is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Lesser General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-  You should have received a copy of the GNU Lesser General Public
-  License along with this library; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-/* ====================================================================
- * The Vovida Software License, Version 1.0 
- * 
- * Copyright (c) 2000 Vovida Networks, Inc.  All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 
- * 3. The names "VOCAL", "Vovida Open Communication Application Library",
- *    and "Vovida Open Communication Application Library (VOCAL)" must
- *    not be used to endorse or promote products derived from this
- *    software without prior written permission. For written
- *    permission, please contact vocal@vovida.org.
- *
- * 4. Products derived from this software may not be called "VOCAL", nor
- *    may "VOCAL" appear in their name, without prior written
- *    permission of Vovida Networks, Inc.
- * 
- * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESSED OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE AND
- * NON-INFRINGEMENT ARE DISCLAIMED.  IN NO EVENT SHALL VOVIDA
- * NETWORKS, INC. OR ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT DAMAGES
- * IN EXCESS OF $1,000, NOR FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
- * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
- * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
- * DAMAGE.
- * 
- * ====================================================================
- * 
- * This software consists of voluntary contributions made by Vovida
- * Networks, Inc. and many individuals on behalf of Vovida Networks,
- * Inc.  For more information on Vovida Networks, Inc., please see
- * <http://www.vovida.org/>.
- *
- */
+#ifndef MS_STUN_H
+#define MS_STUN_H
 
 
-#ifndef __STUN_H__
-#define __STUN_H__
-
-#include <stdio.h>
-#include <time.h>
-#include <ortp/port.h>
 #include "mediastreamer2/mscommon.h"
-#include "mediastreamer2/stun_udp.h"
 
-#ifdef __APPLE__
-   #include "TargetConditionals.h"
-#endif
+
+#define MS_STUN_MAX_MESSAGE_SIZE 2048
+#define MS_STUN_MAGIC_COOKIE 0x2112A442
+
+#define MS_STUN_ADDR_FAMILY_IPV4 0x01
+#define MS_STUN_ADDR_FAMILY_IPV6 0x02
+
+#define MS_STUN_TYPE_REQUEST          0x0000
+#define MS_STUN_TYPE_INDICATION       0x0010
+#define MS_STUN_TYPE_SUCCESS_RESPONSE 0x0100
+#define MS_STUN_TYPE_ERROR_RESPONSE   0x0110
+
+#define MS_STUN_METHOD_BINDING           0x001
+#define MS_STUN_METHOD_SHARED_SECRET     0x002 /* Deprecated, now reserved */
+
+#define MS_TURN_METHOD_ALLOCATE          0x003
+#define MS_TURN_METHOD_REFRESH           0x004
+#define MS_TURN_METHOD_SEND              0x006
+#define MS_TURN_METHOD_DATA              0x007
+#define MS_TURN_METHOD_CREATE_PERMISSION 0x008
+#define MS_TURN_METHOD_CHANNEL_BIND      0x009
+
+
+#define MS_STUN_ATTR_MAPPED_ADDRESS      0x0001
+#define MS_STUN_ATTR_RESPONSE_ADDRESS    0x0002 /* Deprecated, now reserved */
+#define MS_STUN_ATTR_CHANGE_REQUEST      0x0003 /* Deprecated, now reserved */
+#define MS_STUN_ATTR_SOURCE_ADDRESS      0x0004 /* Deprecated, now reserved */
+#define MS_STUN_ATTR_CHANGED_ADDRESS     0x0005 /* Deprecated, now reserved */
+#define MS_STUN_ATTR_USERNAME            0x0006
+#define MS_STUN_ATTR_PASSWORD            0x0007 /* Deprecated, now reserved */
+#define MS_STUN_ATTR_MESSAGE_INTEGRITY   0x0008
+#define MS_STUN_ATTR_ERROR_CODE          0x0009
+#define MS_STUN_ATTR_UNKNOWN_ATTRIBUTES  0x000A
+#define MS_STUN_ATTR_REFLECTED_FROM      0x000B
+#define MS_STUN_ATTR_REALM               0x0014
+#define MS_STUN_ATTR_NONCE               0x0015
+#define MS_STUN_ATTR_XOR_MAPPED_ADDRESS  0x0020
+
+#define MS_STUN_ATTR_SOFTWARE            0x8022
+#define MS_STUN_ATTR_ALTERNATE_SERVER    0x8023
+#define MS_STUN_ATTR_FINGERPRINT         0x8028
+
+#define MS_TURN_ATTR_CHANNEL_NUMBER      0x000C
+#define MS_TURN_ATTR_LIFETIME            0x000D
+#define MS_TURN_ATTR_BANDWIDTH           0x0010 /* Deprecated, now reserved */
+#define MS_TURN_ATTR_XOR_PEER_ADDRESS    0x0012
+#define MS_TURN_ATTR_DATA                0x0013
+#define MS_TURN_ATTR_XOR_RELAYED_ADDRESS 0x0016
+#define MS_TURN_ATTR_EVEN_PORT           0x0018
+#define MS_TURN_ATTR_REQUESTED_TRANSPORT 0x0019
+#define MS_TURN_ATTR_DONT_FRAGMENT       0x001A
+#define MS_TURN_ATTR_TIMER_VAL           0x0021 /* Deprecated, now reserved */
+#define MS_TURN_ATTR_RESERVATION_TOKEN   0x0022
+
+#define MS_ICE_ATTR_PRIORITY             0x0024
+#define MS_ICE_ATTR_USE_CANDIDATE        0x0025
+#define MS_ICE_ATTR_ICE_CONTROLLED       0x8029
+#define MS_ICE_ATTR_ICE_CONTROLLING      0x802A
+
+
+#define MS_STUN_ERROR_CODE_TRY_ALTERNATE                  300
+#define MS_STUN_ERROR_CODE_BAD_REQUEST                    400
+#define MS_STUN_ERROR_CODE_UNAUTHORIZED                   401
+#define MS_STUN_ERROR_CODE_UNKNOWN_ATTRIBUTE              420
+#define MS_STUN_ERROR_CODE_STALE_NONCE                    438
+#define MS_STUN_ERROR_CODE_SERVER_ERROR                   500
+
+#define MS_TURN_ERROR_CODE_FORBIDDEN                      403
+#define MS_TURN_ERROR_CODE_ALLOCATION_MISMATCH            437
+#define MS_TURN_ERROR_CODE_WRONG_CREDENTIALS              441
+#define MS_TURN_ERROR_CODE_UNSUPPORTED_TRANSPORT_PROTOCOL 442
+#define MS_TURN_ERROR_CODE_ALLOCATION_QUOTA_REACHED       486
+#define MS_TURN_ERROR_CODE_INSUFFICIENT_CAPACITY          508
+
+#define MS_ICE_ERROR_CODE_ROLE_CONFLICT                   487
+
+
+typedef struct {
+	uint16_t port;
+	uint32_t addr;
+} MSStunAddress4;
+
+typedef struct {
+	MSStunAddress4 ipv4;
+	uint8_t family;
+} MSStunAddress;
+
+typedef struct {
+	char *reason;
+	uint16_t number;
+} MSStunErrorCode;
+
+typedef struct {
+	uint16_t type;
+	uint16_t method;
+	uint16_t length;
+	UInt96 tr_id;
+	char *username;
+	char *password;
+	char *realm;
+	char *message_integrity;
+	char *software;
+	MSStunErrorCode error_code;
+	MSStunAddress mapped_address;
+	MSStunAddress xor_mapped_address;
+	uint32_t change_request;
+	uint32_t fingerprint;
+	uint32_t priority;
+	uint64_t ice_controlling;
+	uint64_t ice_controlled;
+	bool_t include_username_attribute;
+	bool_t has_error_code;
+	bool_t has_message_integrity;
+	bool_t has_dummy_message_integrity;
+	bool_t has_fingerprint;
+	bool_t has_mapped_address;
+	bool_t has_xor_mapped_address;
+	bool_t has_priority;
+	bool_t has_use_candidate;
+	bool_t has_ice_controlling;
+	bool_t has_ice_controlled;
+} MSStunMessage;
+
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-/* if you change this version, change in makefile too  */
-#define STUN_VERSION "0.99"
-
-#define STUN_MAX_STRING 514
-#define STUN_MAX_UNKNOWN_ATTRIBUTES 8
-#define STUN_MAX_MESSAGE_SIZE 2048
-
-#define STUN_PORT 3478
-
-/* define some basic types */
-#if 0
-typedef unsigned char  uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int   uint32_t;
-
-#if	defined(_WIN32) || defined(_WIN32_WCE)
-typedef unsigned __int64 uint64_t;
-#else
-typedef unsigned long long uint64_t;
-#endif
-#endif
-
-/* define a structure to hold a stun address  */
-#define  IPv4Family  0x01
-#define  IPv6Family  0x02
-
-/* define  flags  */
-#define ChangeIpFlag    0x04
-#define ChangePortFlag  0x02
-
-/* define  stun attribute */
-#define SA_MAPPEDADDRESS     0x0001
-#define SA_RESPONSEADDRESS   0x0002 /** deprecated **/
-#define SA_CHANGEREQUEST     0x0003 /** deprecated **/
-#define SA_SOURCEADDRESS     0x0004 /** deprecated **/
-#define SA_CHANGEDADDRESS    0x0005 /** deprecated **/
-#define SA_USERNAME          0x0006
-#define SA_PASSWORD          0x0007  /** deprecated **/
-#define SA_MESSAGEINTEGRITY  0x0008
-#define SA_ERRORCODE         0x0009
-#define SA_UNKNOWNATTRIBUTE  0x000A
-#define SA_REFLECTEDFROM     0x000B /** deprecated **/
-#define SA_REALM             0x0014
-#define SA_NONCE             0x0015
-#define SA_XORMAPPEDADDRESS  0x0020
-
-#define SA_XORMAPPEDADDRESS2 0x8020 /* Non standard extention */
-#define SA_XORONLY           0x0021 /* deprecated */
-#define SA_SECONDARYADDRESS  0x0050 /* Non standard extention */
-
-#define SA_SOFTWARE          0x8022
-#define SA_ALTERNATESERVER   0x8023
-#define SA_FINGERPRINT       0x8028
-
-/* define turn attribute */
-#define TA_CHANNELNUMBER       0x000C
-#define TA_LIFETIME            0x000D
-#define TA_DEPRECATEDBANDWIDTH 0x0010
-#define TA_XORPEERADDRESS      0x0012
-#define TA_DATA                0x0013
-#define TA_XORRELAYEDADDRESS   0x0016
-#define TA_EVENPORT            0x0018
-#define TA_REQUESTEDTRANSPORT  0x0019
-#define TA_DONTFRAGMENT        0x001A
-#define TA_DEPRECATEDTIMERVAL  0x0021
-#define TA_RESERVATIONTOKEN    0x0022
-
-#define ICEA_PRIORITY          0x0024
-#define ICEA_USECANDIDATE      0x0025
-#define ICEA_ICECONTROLLED     0x8029
-#define ICEA_ICECONTROLLING    0x802a
-
-#define STUN_REQUEST           0x0000
-#define STUN_INDICATION        0x0010
-#define STUN_SUCCESS_RESP      0x0100
-#define STUN_ERR_RESP          0x0110
-
-#define STUN_IS_REQUEST(msg_type)       (((msg_type) & 0x0110) == 0x0000)
-#define STUN_IS_INDICATION(msg_type)    (((msg_type) & 0x0110) == 0x0010)
-#define STUN_IS_SUCCESS_RESP(msg_type)  (((msg_type) & 0x0110) == 0x0100)
-#define STUN_IS_ERR_RESP(msg_type)      (((msg_type) & 0x0110) == 0x0110)
-
-/* define types for a stun message */
-#define STUN_METHOD_BINDING           0x0001
-#define TURN_MEDHOD_ALLOCATE          0x0003 //(only request/response semantics defined)
-#define TURN_METHOD_REFRESH           0x0004 //(only request/response semantics defined)
-#define TURN_METHOD_CREATEPERMISSION  0x0008 //(only request/response semantics defined
-#define TURN_METHOD_CHANNELBIND       0x0009 //(only request/response semantics defined)
-
-//#define BindResponseMsg               0x0101
-//#define BindErrorResponseMsg          0x0111
-#define SharedSecretRequestMsg        0x0002
-#define SharedSecretResponseMsg       0x0102
-#define SharedSecretErrorResponseMsg  0x0112
-
-#define TURN_INDICATION_SEND          0x0006 //(only indication semantics defined)
-#define TURN_INDICATION_DATA          0x0007 //(only indication semantics defined)
-
-typedef struct 
-{
-      uint16_t msgType;
-      uint16_t msgLength;
-      uint32_t magic_cookie;
-      UInt96 tr_id;
-} StunMsgHdr;
-
-
-typedef struct
-{
-      uint16_t type;
-      uint16_t length;
-} StunAtrHdr;
-
-typedef struct
-{
-      uint16_t port;
-      uint32_t addr;
-} StunAddress4;
-
-typedef struct
-{
-      uint8_t pad;
-      uint8_t family;
-      StunAddress4 ipv4;
-} StunAtrAddress4;
-
-typedef struct
-{
-      uint32_t value;
-} StunAtrChangeRequest;
-
-typedef struct
-{
-      uint16_t pad; /* all 0 */
-      uint8_t errorClass;
-      uint8_t number;
-      char reason[STUN_MAX_STRING];
-      uint16_t sizeReason;
-} StunAtrError;
-
-typedef struct
-{
-      uint16_t attrType[STUN_MAX_UNKNOWN_ATTRIBUTES];
-      uint16_t numAttributes;
-} StunAtrUnknown;
-
-typedef struct
-{
-      uint16_t channelNumber;
-      uint16_t rffu; /* Reserved For Future Use */
-} TurnAtrChannelNumber;
-
-typedef struct
-{
-      uint32_t lifetime;
-} TurnAtrLifetime;
-
-typedef struct
-{
-      char value[1500];      
-      uint16_t sizeValue;
-} TurnAtrData;
-
-typedef struct
-{
-      uint8_t proto;
-      uint8_t pad1;
-      uint8_t pad2;
-      uint8_t pad3;
-} TurnAtrRequestedTransport;
-
-typedef struct
-{
-      uint64_t value;
-} TurnAtrReservationToken;
-
-typedef struct
-{
-      uint32_t fingerprint;
-} StunAtrFingerprint;
-
-
-typedef struct
-{
-      char value[STUN_MAX_STRING];      
-      uint16_t sizeValue;
-} StunAtrString;
-
-typedef struct
-{
-      uint32_t priority;
-} IceAtrPriority;
-
-typedef struct
-{
-      uint64_t value;
-} IceAtrIceControll;
-
-typedef struct
-{
-      char hash[20];
-} StunAtrIntegrity;
-
-typedef enum 
-{
-   HmacUnkown=0,
-   HmacOK,
-   HmacBadUserName,
-   HmacUnkownUserName,
-   HmacFailed
-} StunHmacStatus;
-
-
-typedef struct
-{
-      uint16_t attrType[STUN_MAX_UNKNOWN_ATTRIBUTES];
-      uint16_t numAttributes;
-} TurnAtrUnknown;
-
-typedef struct
-{
-      StunMsgHdr msgHdr;
-	
-      bool_t hasMappedAddress;
-      StunAtrAddress4  mappedAddress;
-	
-      bool_t hasResponseAddress;
-      StunAtrAddress4  responseAddress;
-	
-      bool_t hasChangeRequest;
-      StunAtrChangeRequest changeRequest;
-	
-      bool_t hasSourceAddress;
-      StunAtrAddress4 sourceAddress;
-	
-      bool_t hasChangedAddress;
-      StunAtrAddress4 changedAddress;
-	
-      bool_t hasUsername;
-      StunAtrString username;
-	
-      bool_t hasPassword;
-      StunAtrString password;
-	
-      bool_t hasMessageIntegrity;
-      bool_t hasDummyMessageIntegrity; /*use to compute dummy message integrity for backward compatibility*/
-      StunAtrIntegrity messageIntegrity;
-	
-      bool_t hasErrorCode;
-      StunAtrError errorCode;
-	
-      bool_t hasUnknownAttributes;
-      StunAtrUnknown unknownAttributes;
-	
-      bool_t hasReflectedFrom;
-      StunAtrAddress4 reflectedFrom;
-
-      bool_t hasRealm;
-      StunAtrString realmName;
-
-      bool_t hasNonce;
-      StunAtrString nonceName;
-
-      bool_t hasXorMappedAddress;
-      StunAtrAddress4  xorMappedAddress;
-	
-      bool_t hasSoftware;
-      StunAtrString softwareName;
-
-      bool_t hasXorPeerAddress;
-      StunAtrAddress4 xorPeerAddress;
-
-      bool_t hasXorRelayedAddress;
-      StunAtrAddress4 xorRelayedAddress;
-
-      bool_t hasFingerprint;
-      StunAtrFingerprint fingerprint;
-
-      /* Turn elements */
-      bool_t hasChannelNumberAttributes;
-      TurnAtrChannelNumber channelNumberAttributes;
-
-      bool_t hasLifetimeAttributes;
-      TurnAtrLifetime lifetimeAttributes;
-
-      bool_t hasData;
-      TurnAtrData data;
-
-      bool_t hasRequestedTransport;
-      TurnAtrRequestedTransport requestedTransport;
-
-      bool_t hasDontFragment;
-
-      bool_t hasReservationToken;
-      TurnAtrReservationToken reservationToken;
-
-      bool_t hasPriority;
-      IceAtrPriority priority;
-
-      bool_t hasUseCandidate;
-
-      bool_t hasIceControlled;
-      IceAtrIceControll iceControlled;
-
-      bool_t hasIceControlling;
-      IceAtrIceControll iceControlling;
-} StunMessage; 
-
-
-/* Define enum with different types of NAT */
-typedef enum 
-{
-   StunTypeUnknown=0,
-   StunTypeOpen,
-   StunTypeConeNat,
-   StunTypeRestrictedNat,
-   StunTypePortRestrictedNat,
-   StunTypeSymNat,
-   StunTypeSymFirewall,
-   StunTypeBlocked,
-   StunTypeFailure
-} NatType;
-
-
-#define MAX_MEDIA_RELAYS 500
-#define MAX_RTP_MSG_SIZE 1500
-#define MEDIA_RELAY_TIMEOUT 3*60
-
-typedef struct 
-{
-      int relayPort;       /* media relay port */
-      int fd;              /* media relay file descriptor */
-      StunAddress4 destination; /* NAT IP:port */
-      time_t expireTime;      /* if no activity after time, close the socket */
-} StunMediaRelay;
-
-typedef struct
-{
-      StunAddress4 myAddr;
-      StunAddress4 altAddr;
-      Socket myFd;
-      Socket altPortFd;
-      Socket altIpFd;
-      Socket altIpPortFd;
-      bool_t relay; /* true if media relaying is to be done */
-      StunMediaRelay relays[MAX_MEDIA_RELAYS];
-} StunServerInfo;
-
-MS2_PUBLIC void
-stunCalculateIntegrity_longterm(char* hmac, const char* input, int length,
-                     const char *username, const char *realm, const char *password);
-MS2_PUBLIC void
-stunCalculateIntegrity_shortterm(char* hmac, const char* input, int length, const char* key);
-MS2_PUBLIC uint32_t
-stunCalculateFingerprint(const char* input, int length);
-
-MS2_PUBLIC bool_t
-stunParseMessage( char* buf, 
-                  unsigned int bufLen, 
-                  StunMessage *message);
-
-MS2_PUBLIC void
-stunBuildReqSimple( StunMessage* msg,
-                    const StunAtrString *username,
-                    bool_t changePort, bool_t changeIp, unsigned int id );
-
-MS2_PUBLIC unsigned int
-stunEncodeMessage( const StunMessage *message, 
-                   char* buf, 
-                   unsigned int bufLen, 
-                   const StunAtrString *password);
-
-MS2_PUBLIC void
-stunCreateUserName(const StunAddress4 *addr, StunAtrString* username);
-
-MS2_PUBLIC void
-stunGetUserNameAndPassword(  const StunAddress4 *dest, 
-                             StunAtrString* username,
-                             StunAtrString* password);
-
-MS2_PUBLIC void
-stunCreatePassword(const StunAtrString *username, StunAtrString* password);
-
-MS2_PUBLIC int 
-stunRand(void);
-
-MS2_PUBLIC uint64_t
-stunGetSystemTimeSecs(void);
-
-/* find the IP address of a the specified stun server - return false is fails parse  */
-MS2_PUBLIC bool_t  
-stunParseServerName( const char* serverName, StunAddress4 *stunServerAddr);
-
-MS2_PUBLIC bool_t 
-stunParseHostName( const char* peerName,
-                   uint32_t *ip,
-                   uint16_t *portVal,
-                   uint16_t defaultPort );
-
-/* return true if all is OK 
-   Create a media relay and do the STERN thing if startMediaPort is non-zero */
-MS2_PUBLIC bool_t
-stunInitServer(StunServerInfo *info, 
-               const StunAddress4 *myAddr, 
-               const StunAddress4 *altAddr,
-               int startMediaPort);
-
-MS2_PUBLIC void
-stunStopServer(StunServerInfo *info);
-
-/* returns number of address found - take array or addres */
-MS2_PUBLIC int
-stunFindLocalInterfaces(uint32_t* addresses, int maxSize );
-
-MS2_PUBLIC int 
-stunTest( StunAddress4 *dest, int testNum, StunAddress4* srcAddr, StunAddress4 *sMappedAddr, StunAddress4* sChangedAddr);
-
-MS2_PUBLIC NatType
-stunNatType( StunAddress4 *dest, 
-             bool_t* preservePort, /* if set, is return for if NAT preservers ports or not */
-             bool_t* hairpin ,  /* if set, is the return for if NAT will hairpin packets */
-             int port, /* port to use for the test, 0 to choose random port */
-             StunAddress4* sAddr /* NIC to use */
-   );
-
-MS2_PUBLIC bool_t
-stunServerProcessMsg( char* buf,
-                      unsigned int bufLen,
-                      StunAddress4 *from, 
-                      StunAddress4 *myAddr,
-                      StunAddress4 *altAddr, 
-                      StunMessage *resp,
-                      StunAddress4 *destination,
-                      StunAtrString *hmacPassword,
-                      bool_t* changePort,
-                      bool_t* changeIp);
-
-MS2_PUBLIC int
-stunOpenSocket( StunAddress4 *dest, 
-                StunAddress4* mappedAddr, 
-                int port, 
-                StunAddress4* srcAddr);
-
-MS2_PUBLIC bool_t
-stunOpenSocketPair(StunAddress4 *dest,
-                   StunAddress4* mapAddr_rtp, 
-                   StunAddress4* mapAddr_rtcp, 
-                   int* fd1, int* fd2, 
-                   int srcPort,  StunAddress4* srcAddr);
-
-MS2_PUBLIC bool_t
-turnAllocateSocketPair(StunAddress4 *dest,
-                   StunAddress4* mapAddr_rtp, 
-                   StunAddress4* mapAddr_rtcp, 
-                   int* fd1, int* fd2, 
-                   int srcPort,  StunAddress4* srcAddr);
+MS2_PUBLIC MSStunAddress4 ms_stun_hostname_to_stun_addr(const char *hostname, uint16_t default_port);
+MS2_PUBLIC char * ms_stun_calculate_integrity_short_term(const char *buf, size_t bufsize, const char *key);
+MS2_PUBLIC char * ms_stun_calculate_integrity_long_term(const char *buf, size_t bufsize, const char *realm, const char *username, const char *password);
+MS2_PUBLIC uint32_t ms_stun_calculate_fingerprint(const char *buf, size_t bufsize);
+
+MS2_PUBLIC MSStunMessage * ms_stun_message_create(uint16_t type, uint16_t method);
+MS2_PUBLIC MSStunMessage * ms_stun_message_create_from_buffer_parsing(const char *buf, size_t bufsize);
+MS2_PUBLIC MSStunMessage * ms_stun_binding_request_create(void);
+MS2_PUBLIC MSStunMessage * ms_stun_binding_success_response_create(void);
+MS2_PUBLIC MSStunMessage * ms_stun_binding_error_response_create(void);
+MS2_PUBLIC MSStunMessage * ms_stun_binding_indication_create(void);
+MS2_PUBLIC bool_t ms_stun_message_is_request(const MSStunMessage *msg);
+MS2_PUBLIC bool_t ms_stun_message_is_success_response(const MSStunMessage *msg);
+MS2_PUBLIC bool_t ms_stun_message_is_error_response(const MSStunMessage *msg);
+MS2_PUBLIC bool_t ms_stun_message_is_indication(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_destroy(MSStunMessage *msg);
+MS2_PUBLIC size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf);
+MS2_PUBLIC uint16_t ms_stun_message_get_length(const MSStunMessage *msg);
+MS2_PUBLIC UInt96 ms_stun_message_get_tr_id(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_tr_id(MSStunMessage *msg, UInt96 tr_id);
+MS2_PUBLIC void ms_stun_message_set_random_tr_id(MSStunMessage *msg);
+MS2_PUBLIC const char * ms_stun_message_get_username(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_username(MSStunMessage *msg, const char *username);
+MS2_PUBLIC void ms_stun_message_include_username_attribute(MSStunMessage *msg, bool_t include);
+MS2_PUBLIC const char * ms_stun_message_get_password(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_password(MSStunMessage *msg, const char *password);
+MS2_PUBLIC const char * ms_stun_message_get_realm(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_realm(MSStunMessage *msg, const char *realm);
+MS2_PUBLIC const char * ms_stun_message_get_software(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_software(MSStunMessage *msg, const char *software);
+MS2_PUBLIC bool_t ms_stun_message_has_error_code(const MSStunMessage *msg);
+MS2_PUBLIC uint16_t ms_stun_message_get_error_code(const MSStunMessage *msg, char **reason);
+MS2_PUBLIC void ms_stun_message_set_error_code(MSStunMessage *msg, uint16_t number, const char *reason);
+MS2_PUBLIC bool_t ms_stun_message_message_integrity_enabled(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_enable_message_integrity(MSStunMessage *msg, bool_t enable);
+MS2_PUBLIC const char * ms_stun_message_get_message_integrity(const MSStunMessage *msg);
+MS2_PUBLIC bool_t ms_stun_message_fingerprint_enabled(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_enable_fingerprint(MSStunMessage *msg, bool_t enable);
+MS2_PUBLIC const MSStunAddress * ms_stun_message_get_mapped_address(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_mapped_address(MSStunMessage *msg, MSStunAddress mapped_address);
+MS2_PUBLIC const MSStunAddress * ms_stun_message_get_xor_mapped_address(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_xor_mapped_address(MSStunMessage *msg, MSStunAddress xor_mapped_address);
+MS2_PUBLIC void ms_stun_message_enable_change_ip(MSStunMessage *msg, bool_t enable);
+MS2_PUBLIC void ms_stun_message_enable_change_port(MSStunMessage *msg, bool_t enable);
+
+MS2_PUBLIC bool_t ms_stun_message_has_priority(const MSStunMessage *msg);
+MS2_PUBLIC uint32_t ms_stun_message_get_priority(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_priority(MSStunMessage *msg, uint32_t priority);
+MS2_PUBLIC bool_t ms_stun_message_use_candidate_enabled(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_enable_use_candidate(MSStunMessage *msg, bool_t enable);
+MS2_PUBLIC bool_t ms_stun_message_has_ice_controlling(const MSStunMessage *msg);
+MS2_PUBLIC uint64_t ms_stun_message_get_ice_controlling(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_ice_controlling(MSStunMessage *msg, uint64_t value);
+MS2_PUBLIC bool_t ms_stun_message_has_ice_controlled(const MSStunMessage *msg);
+MS2_PUBLIC uint64_t ms_stun_message_get_ice_controlled(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_ice_controlled(MSStunMessage *msg, uint64_t value);
+
+MS2_PUBLIC bool_t ms_stun_message_dummy_message_integrity_enabled(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_enable_dummy_message_integrity(MSStunMessage *msg, bool_t enable);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
-
+#endif /* MS_STUN_H */

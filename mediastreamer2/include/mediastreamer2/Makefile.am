@@ -49,7 +49,6 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				qualityindicator.h \
 				rfc3984.h \
 				stun.h \
-				stun_udp.h \
 				upnp_igd.h \
 				x11_helper.h \
 				zrtp.h

@@ -183,7 +183,6 @@ set(VOIP_SOURCE_FILES_C
 	voip/rfc4103_textstream.c
 	voip/ringstream.c
 	voip/stun.c
-	voip/stun_udp.c
 )
 set(VOIP_SOURCE_FILES_CXX )
 set(VOIP_SOURCE_FILES_OBJC )

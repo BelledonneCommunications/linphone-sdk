@@ -110,7 +110,6 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/bitratecontrol.c \
 					crypto/zrtp.c \
 					voip/stun.c \
-					voip/stun_udp.c \
 					crypto/ms_srtp.c \
 					crypto/dtls_srtp.c \
 					voip/msiframerequestslimiter.c

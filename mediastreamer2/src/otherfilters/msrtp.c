@@ -60,11 +60,11 @@ typedef struct SenderData SenderData;
 /* Send dummy STUN packet to open NAT ports ASAP. */
 static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtcp)
 {
-	StunMessage msg;
+	MSStunMessage *msg;
 	mblk_t *mp;
 	RtpSession *s = d->session;
-	char buf[STUN_MAX_MESSAGE_SIZE];
-	int len = STUN_MAX_MESSAGE_SIZE;
+	char *buf = NULL;
+	int len;
 
 	if (!d->stun_enabled) return;
 	if (ms_is_multicast_addr((const struct sockaddr *)&s->rtcp.gs.loc_addr)) {
@@ -72,9 +72,8 @@ static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtc
 		return;
 	}
 
-	memset(&msg, 0, sizeof(StunMessage));
-	stunBuildReqSimple(&msg, NULL, FALSE, FALSE, 1);
-	len = stunEncodeMessage(&msg, buf, len, NULL);
+	msg = ms_stun_binding_request_create();
+	len = ms_stun_message_encode(msg, &buf);
 	if (len > 0) {
 		if (enable_rtp) {
 			mp = allocb(len, BPRI_MED);
@@ -91,6 +90,8 @@ static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtc
 			rtp_session_rtcp_sendm_raw(s,mp);
 		}
 	}
+	if (buf != NULL) ms_free(buf);
+	ms_stun_message_destroy(msg);
 }
 
 static void sender_init(MSFilter * f)
