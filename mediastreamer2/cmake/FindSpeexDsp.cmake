@@ -1,5 +1,5 @@
 ############################################################################
-# FindSpeex.txt
+# FindSpeexDsp.txt
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,28 +20,28 @@
 #
 ############################################################################
 #
-# - Find the speex include file and library
+# - Find the speexdsp include file and library
 #
-#  SPEEX_FOUND - system has speex
-#  SPEEX_INCLUDE_DIRS - the speex include directory
-#  SPEEX_LIBRARIES - The libraries needed to use speex
+#  SPEEXDSP_FOUND - system has speexdsp
+#  SPEEXDSP_INCLUDE_DIRS - the speexdsp include directory
+#  SPEEXDSP_LIBRARIES - The libraries needed to use speexdsp
 
-find_path(SPEEX_INCLUDE_DIRS
-	NAMES speex/speex.h
+find_path(SPEEXDSP_INCLUDE_DIRS
+	NAMES speex/speex_resampler.h
 	PATH_SUFFIXES include
 )
-if(SPEEX_INCLUDE_DIRS)
-	set(HAVE_SPEEX_SPEEX_H 1)
+if(SPEEXDSP_INCLUDE_DIRS)
+	set(HAVE_SPEEX_SPEEX_RESAMPLER_H 1)
 endif()
 
-find_library(SPEEX_LIBRARIES
-	NAMES speex
+find_library(SPEEXDSP_LIBRARIES
+	NAMES speexdsp
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Speex
+find_package_handle_standard_args(SpeexDsp
 	DEFAULT_MSG
-	SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H
+	SPEEXDSP_INCLUDE_DIRS SPEEXDSP_LIBRARIES HAVE_SPEEX_SPEEX_RESAMPLER_H
 )
 
-mark_as_advanced(SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H)
+mark_as_advanced(SPEEXDSP_INCLUDE_DIRS SPEEXDSP_LIBRARIES HAVE_SPEEX_SPEEX_RESAMPLER_H)
