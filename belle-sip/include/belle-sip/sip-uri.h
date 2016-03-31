@@ -223,7 +223,7 @@ BELLE_SIP_END_DECLS
 #define BELLE_SIP_USE_STL 1
 #endif
 
-#if defined(__cplusplus) && BELLE_SIP_USE_STL
+#if __cplusplus >= 201103L && BELLE_SIP_USE_STL
 #include <ostream>
 inline   std::ostream&
 operator<<( std::ostream& __os, const belle_sip_uri_t* uri)

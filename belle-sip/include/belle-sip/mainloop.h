@@ -148,7 +148,7 @@ BELLE_SIP_END_DECLS
 #ifndef BELLE_SIP_USE_STL
 #define BELLE_SIP_USE_STL 1
 #endif
-#if defined(__cplusplus) && BELLE_SIP_USE_STL
+#if __cplusplus >= 201103L && BELLE_SIP_USE_STL
 #include <functional>
 typedef std::function<int (unsigned int)> belle_sip_source_cpp_func_t;
 BELLESIP_EXPORT inline int belle_sip_source_cpp_func(belle_sip_source_cpp_func_t* user_data, unsigned int events)
