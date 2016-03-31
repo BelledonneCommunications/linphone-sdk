@@ -327,7 +327,7 @@ static void srv_query(void) {
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
-	client->resolver_ctx = belle_sip_stack_resolve_srv(client->stack, "udp", SRV_DOMAIN, srv_resolve_done, client);
+	client->resolver_ctx = belle_sip_stack_resolve_srv(client->stack, "sip", "udp", SRV_DOMAIN, srv_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	BC_ASSERT_PTR_NOT_NULL(client->srv_list);
@@ -347,7 +347,7 @@ static void srv_a_query(void) {
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
-	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", SRV_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "udp", SRV_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
@@ -363,7 +363,7 @@ static void srv_a_query_no_srv_result(void) {
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
-	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", IPV4_CNAME, SIP_PORT, AF_INET, a_resolve_done, client);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "udp", IPV4_CNAME, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
@@ -387,7 +387,7 @@ static void local_full_query(void) {
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
-	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "tcp", "localhost", SIP_PORT, AF_INET, a_resolve_done, client);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "localhost", SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
@@ -405,7 +405,7 @@ static void no_query_needed(void) {
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
-	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", IPV4_SIP_IP, SIP_PORT, AF_INET, a_resolve_done, client);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "udp", IPV4_SIP_IP, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(client->resolve_done);
 	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);

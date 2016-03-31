@@ -855,19 +855,16 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_combined_resolver_context_t)
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
-static char * srv_prefix_from_transport(const char *transport) {
-	char *prefix = "";
-
+static char * srv_prefix_from_service_and_transport(const char *service, const char *transport) {
+	if (service == NULL) service = "sip";
 	if (strcasecmp(transport, "udp") == 0) {
-		prefix = "_sip._udp.";
+		return belle_sip_strdup_printf("_%s._udp.", service);
 	} else if (strcasecmp(transport, "tcp") == 0) {
-		prefix = "_sip._tcp.";
+		return belle_sip_strdup_printf("_%s._tcp.", service);
 	} else if (strcasecmp(transport, "tls") == 0) {
-		prefix = "_sips._tcp.";
-	} else {
-		prefix = "_sip._udp.";
+		return belle_sip_strdup_printf("_%ss._tcp.", service);
 	}
-	return prefix;
+	return belle_sip_strdup_printf("_%s._udp.", service);
 }
 
 static void combined_notify_results(belle_sip_combined_resolver_context_t *obj){
@@ -958,7 +955,7 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
 /**
  * Perform combined SRV + A / AAAA resolution.
 **/
-belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack, const char *transport, const char *name, int port, int family, belle_sip_resolver_callback_t cb, void *data) {
+belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack, const char *service, const char *transport, const char *name, int port, int family, belle_sip_resolver_callback_t cb, void *data) {
 	struct addrinfo *res = bctbx_ip_address_to_addrinfo(family, SOCK_STREAM, name, port);
 	if (res == NULL) {
 		/* First perform asynchronous DNS SRV query */
@@ -973,7 +970,7 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack,
 		ctx->family = family;
 		/*take a ref for the entire duration of the DNS procedure, it will be released when it is finished*/
 		belle_sip_object_ref(ctx);
-		ctx->srv_ctx=belle_sip_stack_resolve_srv(stack,transport,name,process_srv_results,ctx);
+		ctx->srv_ctx=belle_sip_stack_resolve_srv(stack,service,transport,name,process_srv_results,ctx);
 		if (ctx->srv_ctx) belle_sip_object_ref(ctx->srv_ctx);
 		if (ctx->base.done){
 			belle_sip_object_unref(ctx);
@@ -1077,12 +1074,12 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_a(belle_sip_stack_t *stac
 	return NULL;
 }
 
-belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *stack, const char *transport, const char *name, belle_sip_resolver_srv_callback_t cb, void *data) {
+belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *stack, const char *service, const char *transport, const char *name, belle_sip_resolver_srv_callback_t cb, void *data) {
 	belle_sip_simple_resolver_context_t *ctx = belle_sip_object_new(belle_sip_simple_resolver_context_t);
 	belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack);
 	ctx->srv_cb_data = data;
 	ctx->srv_cb = cb;
-	ctx->name = belle_sip_concat(srv_prefix_from_transport(transport), name, NULL);
+	ctx->name = belle_sip_concat(srv_prefix_from_service_and_transport(service, transport), name, NULL);
 	ctx->type = DNS_T_SRV;
 	return (belle_sip_resolver_context_t*)resolver_start_query(ctx);
 }

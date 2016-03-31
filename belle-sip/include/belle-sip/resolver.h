@@ -55,6 +55,7 @@ BELLESIP_EXPORT unsigned short belle_sip_dns_srv_get_port(const belle_sip_dns_sr
 /**
  * Asynchronously performs DNS SRV followed A/AAAA query. Automatically fallbacks to A/AAAA if SRV isn't found.
  * @param stack the belle_sip_stack_t, used to schedule asynchronous execution.
+ * @param service the queried service ("sip", "stun", "turn"...)
  * @param transport the queried transport ("udp", "tcp", "tls")
  * @param name the SIP domain name
  * @param port a port that will be filled in the addrinfo list returned by the callback, for the case where no SRV records are found.
@@ -64,7 +65,7 @@ BELLESIP_EXPORT unsigned short belle_sip_dns_srv_get_port(const belle_sip_dns_sr
  * @param data a user pointer passed through the callback as first argument.
  * @return a #belle_sip_resolver_context_t that can be used to cancel the resolution if needed. The context must have been ref'd with belle_sip_object_ref().
 **/
-BELLESIP_EXPORT belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack, const char *transport, const char *name, int port, int family,
+BELLESIP_EXPORT belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack, const char *service, const char *transport, const char *name, int port, int family,
 belle_sip_resolver_callback_t cb, void *data);
 
 /**
@@ -84,7 +85,7 @@ BELLESIP_EXPORT belle_sip_resolver_context_t * belle_sip_stack_resolve_a(belle_s
  * Asynchronously performs DNS SRV query.
  * @return a #belle_sip_resolver_context_t that can be used to cancel the resolution if needed. The context must have been ref'd with belle_sip_object_ref().
 **/
-BELLESIP_EXPORT belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *stack, const char *transport, const char *name, belle_sip_resolver_srv_callback_t cb, void *data);
+BELLESIP_EXPORT belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *stack, const char *service, const char *transport, const char *name, belle_sip_resolver_srv_callback_t cb, void *data);
 
 /**
  * Cancel a pending asynchronous DNS query. The context is unref'd automatically, as a result the context shall no longer be used after this call.
