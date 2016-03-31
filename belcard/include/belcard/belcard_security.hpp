@@ -25,6 +25,14 @@
 
 #include <string>
 
+#ifndef BELCARD_PUBLIC
+#if defined(_MSC_VER)
+#define BELCARD_PUBLIC	__declspec(dllexport)
+#else
+#define BELCARD_PUBLIC
+#endif
+#endif
+
 using namespace::std;
 using namespace::belr;
 
@@ -32,9 +40,9 @@ namespace belcard {
 	class BelCardKey : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardKey> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardKey();
+		BELCARD_PUBLIC BelCardKey();
 	};
 }
 

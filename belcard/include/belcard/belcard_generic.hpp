@@ -24,6 +24,14 @@
 #include <memory>
 #include <sstream>
 
+#ifndef BELCARD_PUBLIC
+#if defined(_MSC_VER)
+#define BELCARD_PUBLIC	__declspec(dllexport)
+#else
+#define BELCARD_PUBLIC
+#endif
+#endif
+
 using namespace::std;
 
 namespace belcard {
@@ -34,17 +42,17 @@ namespace belcard {
 			return make_shared<T>();
 		}
 		
-		BelCardGeneric() { }
-		virtual ~BelCardGeneric() { } // A virtual destructor enables polymorphism and dynamic casting.
+		BELCARD_PUBLIC BelCardGeneric() { }
+		BELCARD_PUBLIC virtual ~BelCardGeneric() { } // A virtual destructor enables polymorphism and dynamic casting.
 		
-		virtual void serialize(ostream &output) const = 0; // Force heriting classes to define this
+		BELCARD_PUBLIC virtual void serialize(ostream &output) const = 0; // Force heriting classes to define this
 		
-		friend ostream &operator<<(ostream &output, const BelCardGeneric &me) {
+		BELCARD_PUBLIC friend ostream &operator<<(ostream &output, const BelCardGeneric &me) {
 			me.serialize(output);
 			return output;
 		}
 		
-		virtual string toString() const {
+		BELCARD_PUBLIC virtual string toString() const {
 			stringstream output;
 			output << *this;
 			return output.str();

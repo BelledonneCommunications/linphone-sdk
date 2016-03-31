@@ -29,6 +29,14 @@
 #include <list>
 #include <sstream>
 
+#ifndef BELCARD_PUBLIC
+#if defined(_MSC_VER)
+#define BELCARD_PUBLIC	__declspec(dllexport)
+#else
+#define BELCARD_PUBLIC
+#endif
+#endif
+
 using namespace::std;
 using namespace::belr;
 
@@ -63,58 +71,58 @@ namespace belcard {
 			return dynamic_pointer_cast<T>(ret);
 		}
 
-		static shared_ptr<BelCardProperty> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static shared_ptr<BelCardProperty> parse(const string& input);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardProperty();
+		BELCARD_PUBLIC BelCardProperty();
 		
-		virtual void setGroup(const string &group);
-		virtual const string &getGroup() const;
+		BELCARD_PUBLIC virtual void setGroup(const string &group);
+		BELCARD_PUBLIC virtual const string &getGroup() const;
 		
-		virtual void setName(const string &name);
-		virtual const string &getName() const;
+		BELCARD_PUBLIC virtual void setName(const string &name);
+		BELCARD_PUBLIC virtual const string &getName() const;
 		
-		virtual void setValue(const string &value);
-		virtual const string &getValue() const;
+		BELCARD_PUBLIC virtual void setValue(const string &value);
+		BELCARD_PUBLIC virtual const string &getValue() const;
 		
-		virtual void setLanguageParam(const shared_ptr<BelCardLanguageParam> &param);
-		virtual const shared_ptr<BelCardLanguageParam> &getLanguageParam() const;
+		BELCARD_PUBLIC virtual void setLanguageParam(const shared_ptr<BelCardLanguageParam> &param);
+		BELCARD_PUBLIC virtual const shared_ptr<BelCardLanguageParam> &getLanguageParam() const;
 		
-		virtual void setValueParam(const shared_ptr<BelCardValueParam> &param);
-		virtual const shared_ptr<BelCardValueParam> &getValueParam() const;
+		BELCARD_PUBLIC virtual void setValueParam(const shared_ptr<BelCardValueParam> &param);
+		BELCARD_PUBLIC virtual const shared_ptr<BelCardValueParam> &getValueParam() const;
 		
-		virtual void setPrefParam(const shared_ptr<BelCardPrefParam> &param);
-		virtual const shared_ptr<BelCardPrefParam> &getPrefParam() const;
+		BELCARD_PUBLIC virtual void setPrefParam(const shared_ptr<BelCardPrefParam> &param);
+		BELCARD_PUBLIC virtual const shared_ptr<BelCardPrefParam> &getPrefParam() const;
 		
-		virtual void setAlternativeIdParam(const shared_ptr<BelCardAlternativeIdParam> &param);
-		virtual const shared_ptr<BelCardAlternativeIdParam> &getAlternativeIdParam() const;
+		BELCARD_PUBLIC virtual void setAlternativeIdParam(const shared_ptr<BelCardAlternativeIdParam> &param);
+		BELCARD_PUBLIC virtual const shared_ptr<BelCardAlternativeIdParam> &getAlternativeIdParam() const;
 		
-		virtual void setParamIdParam(const shared_ptr<BelCardParamIdParam> &param);
-		virtual const shared_ptr<BelCardParamIdParam> &getParamIdParam() const;
+		BELCARD_PUBLIC virtual void setParamIdParam(const shared_ptr<BelCardParamIdParam> &param);
+		BELCARD_PUBLIC virtual const shared_ptr<BelCardParamIdParam> &getParamIdParam() const;
 		
-		virtual void setTypeParam(const shared_ptr<BelCardTypeParam> &param);
-		virtual const shared_ptr<BelCardTypeParam> &getTypeParam() const;
+		BELCARD_PUBLIC virtual void setTypeParam(const shared_ptr<BelCardTypeParam> &param);
+		BELCARD_PUBLIC virtual const shared_ptr<BelCardTypeParam> &getTypeParam() const;
 		
-		virtual void setMediaTypeParam(const shared_ptr<BelCardMediaTypeParam> &param);
-		virtual const shared_ptr<BelCardMediaTypeParam> &getMediaTypeParam() const;
+		BELCARD_PUBLIC virtual void setMediaTypeParam(const shared_ptr<BelCardMediaTypeParam> &param);
+		BELCARD_PUBLIC virtual const shared_ptr<BelCardMediaTypeParam> &getMediaTypeParam() const;
 		
-		virtual void setCALSCALEParam(const shared_ptr<BelCardCALSCALEParam> &param);
-		virtual const shared_ptr<BelCardCALSCALEParam> &getCALSCALEParam() const;
+		BELCARD_PUBLIC virtual void setCALSCALEParam(const shared_ptr<BelCardCALSCALEParam> &param);
+		BELCARD_PUBLIC virtual const shared_ptr<BelCardCALSCALEParam> &getCALSCALEParam() const;
 		
-		virtual void setSortAsParam(const shared_ptr<BelCardSortAsParam> &param);
-		virtual const shared_ptr<BelCardSortAsParam> &getSortAsParam() const;
+		BELCARD_PUBLIC virtual void setSortAsParam(const shared_ptr<BelCardSortAsParam> &param);
+		BELCARD_PUBLIC virtual const shared_ptr<BelCardSortAsParam> &getSortAsParam() const;
 		
-		virtual void setGeoParam(const shared_ptr<BelCardGeoParam> &param);
-		virtual const shared_ptr<BelCardGeoParam> &getGeoParam() const;
+		BELCARD_PUBLIC virtual void setGeoParam(const shared_ptr<BelCardGeoParam> &param);
+		BELCARD_PUBLIC virtual const shared_ptr<BelCardGeoParam> &getGeoParam() const;
 		
-		virtual void setTimezoneParam(const shared_ptr<BelCardTimezoneParam> &param);
-		virtual const shared_ptr<BelCardTimezoneParam> &getTimezoneParam() const;
+		BELCARD_PUBLIC virtual void setTimezoneParam(const shared_ptr<BelCardTimezoneParam> &param);
+		BELCARD_PUBLIC virtual const shared_ptr<BelCardTimezoneParam> &getTimezoneParam() const;
 		
-		virtual void addParam(const shared_ptr<BelCardParam> &param);
-		virtual const list<shared_ptr<BelCardParam>> &getParams() const;
-		virtual void removeParam(const shared_ptr<BelCardParam> &param);
+		BELCARD_PUBLIC virtual void addParam(const shared_ptr<BelCardParam> &param);
+		BELCARD_PUBLIC virtual const list<shared_ptr<BelCardParam>> &getParams() const;
+		BELCARD_PUBLIC virtual void removeParam(const shared_ptr<BelCardParam> &param);
 
-		virtual void serialize(ostream &output) const;
+		BELCARD_PUBLIC virtual void serialize(ostream &output) const;
 	};
 }
 #endif

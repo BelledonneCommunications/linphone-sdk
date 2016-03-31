@@ -26,6 +26,14 @@
 #include <string>
 #include <sstream>
 
+#ifndef BELCARD_PUBLIC
+#if defined(_MSC_VER)
+#define BELCARD_PUBLIC	__declspec(dllexport)
+#else
+#define BELCARD_PUBLIC
+#endif
+#endif
+
 using namespace::std;
 using namespace::belr;
 
@@ -35,9 +43,9 @@ namespace belcard {
 		
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardBirthPlace> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardBirthPlace();
+		BELCARD_PUBLIC BelCardBirthPlace();
 	};
 	
 	class BelCardDeathPlace : public BelCardProperty {
@@ -45,9 +53,9 @@ namespace belcard {
 		
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardDeathPlace> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardDeathPlace();
+		BELCARD_PUBLIC BelCardDeathPlace();
 	};
 	
 	class BelCardDeathDate : public BelCardProperty {
@@ -55,9 +63,9 @@ namespace belcard {
 		
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardDeathDate> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardDeathDate();
+		BELCARD_PUBLIC BelCardDeathDate();
 	};
 }
 

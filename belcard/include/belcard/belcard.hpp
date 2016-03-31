@@ -19,12 +19,6 @@
 #ifndef belcard_hpp
 #define belcard_hpp
 
-#if defined(_MSC_VER)
-#define BELCARD_PUBLIC	__declspec(dllexport)
-#else
-#define BELCARD_PUBLIC
-#endif
-
 #include "belcard_generic.hpp"
 #include "belcard_params.hpp"
 #include "belcard_property.hpp"
@@ -41,6 +35,14 @@
 
 #include <string>
 #include <list>
+
+#ifndef BELCARD_PUBLIC
+#if defined(_MSC_VER)
+#define BELCARD_PUBLIC	__declspec(dllexport)
+#else
+#define BELCARD_PUBLIC
+#endif
+#endif
 
 using namespace::std;
 using namespace::belr;
@@ -92,7 +94,7 @@ namespace belcard {
 		list<shared_ptr<BelCardProperty>> _properties;
 		
 	public:
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCard();
 		
@@ -247,7 +249,7 @@ namespace belcard {
 		BELCARD_PUBLIC string& toFoldedString();
 		BELCARD_PUBLIC bool assertRFCCompliance() const;
 		
-		virtual void serialize(ostream &output) const;
+		BELCARD_PUBLIC virtual void serialize(ostream &output) const;
 	};
 	
 	class BelCardList : public BelCardGeneric {
@@ -255,14 +257,14 @@ namespace belcard {
 		list<shared_ptr<BelCard>> _vCards;
 		
 	public:
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardList();
+		BELCARD_PUBLIC BelCardList();
 		
-		void addCard(const shared_ptr<BelCard> &vcard);
+		BELCARD_PUBLIC void addCard(const shared_ptr<BelCard> &vcard);
 		BELCARD_PUBLIC const list<shared_ptr<BelCard>> &getCards() const;
 		
-		void serialize(ostream &output) const;
+		BELCARD_PUBLIC void serialize(ostream &output) const;
 	};
 }
 

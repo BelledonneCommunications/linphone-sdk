@@ -26,6 +26,14 @@
 #include <string>
 #include <sstream>
 
+#ifndef BELCARD_PUBLIC
+#if defined(_MSC_VER)
+#define BELCARD_PUBLIC	__declspec(dllexport)
+#else
+#define BELCARD_PUBLIC
+#endif
+#endif
+
 using namespace::std;
 using namespace::belr;
 
@@ -43,35 +51,35 @@ namespace belcard {
 		
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardAddress> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardAddress();
+		BELCARD_PUBLIC BelCardAddress();
 		
-		void setPostOfficeBox(const string &value);
-		const string &getPostOfficeBox() const;
+		BELCARD_PUBLIC void setPostOfficeBox(const string &value);
+		BELCARD_PUBLIC const string &getPostOfficeBox() const;
 		
-		void setExtendedAddress(const string &value);
-		const string &getExtendedAddress() const;
+		BELCARD_PUBLIC void setExtendedAddress(const string &value);
+		BELCARD_PUBLIC const string &getExtendedAddress() const;
 		
-		void setStreet(const string &value);
-		const string &getStreet() const;
+		BELCARD_PUBLIC void setStreet(const string &value);
+		BELCARD_PUBLIC const string &getStreet() const;
 		
-		void setLocality(const string &value);
-		const string &getLocality() const;
+		BELCARD_PUBLIC void setLocality(const string &value);
+		BELCARD_PUBLIC const string &getLocality() const;
 		
-		void setRegion(const string &value);
-		const string &getRegion() const;
+		BELCARD_PUBLIC void setRegion(const string &value);
+		BELCARD_PUBLIC const string &getRegion() const;
 		
-		void setPostalCode(const string &value);
-		const string &getPostalCode() const;
+		BELCARD_PUBLIC void setPostalCode(const string &value);
+		BELCARD_PUBLIC const string &getPostalCode() const;
 		
-		void setCountry(const string &value);
-		const string &getCountry() const;
+		BELCARD_PUBLIC void setCountry(const string &value);
+		BELCARD_PUBLIC const string &getCountry() const;
 		
-		void setLabelParam(const shared_ptr<BelCardLabelParam> &param);
-		const shared_ptr<BelCardLabelParam> &getLabelParam() const;
+		BELCARD_PUBLIC void setLabelParam(const shared_ptr<BelCardLabelParam> &param);
+		BELCARD_PUBLIC const shared_ptr<BelCardLabelParam> &getLabelParam() const;
 		
-		virtual void serialize(ostream &output) const;
+		BELCARD_PUBLIC virtual void serialize(ostream &output) const;
 	};
 }
 

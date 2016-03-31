@@ -27,6 +27,14 @@
 #include <list>
 #include <sstream>
 
+#ifndef BELCARD_PUBLIC
+#if defined(_MSC_VER)
+#define BELCARD_PUBLIC	__declspec(dllexport)
+#else
+#define BELCARD_PUBLIC
+#endif
+#endif
+
 using namespace::std;
 using namespace::belr;
 
@@ -34,7 +42,7 @@ namespace belcard {
 	class BelCardFullName : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardFullName> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardFullName();
 	};
@@ -49,66 +57,66 @@ namespace belcard {
 		
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardName> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) ;
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) ;
 		
-		BelCardName();
+		BELCARD_PUBLIC BelCardName();
 		
-		void setFamilyName(const string &value);
-		const string &getFamilyName() const;
+		BELCARD_PUBLIC void setFamilyName(const string &value);
+		BELCARD_PUBLIC const string &getFamilyName() const;
 		
-		void setGivenName(const string &value);
-		const string &getGivenName() const;
+		BELCARD_PUBLIC void setGivenName(const string &value);
+		BELCARD_PUBLIC const string &getGivenName() const;
 		
-		void setAdditionalName(const string &value);
-		const string &getAdditionalName() const;
+		BELCARD_PUBLIC void setAdditionalName(const string &value);
+		BELCARD_PUBLIC const string &getAdditionalName() const;
 		
-		void setPrefixes(const string &value);
-		const string &getPrefixes() const;
+		BELCARD_PUBLIC void setPrefixes(const string &value);
+		BELCARD_PUBLIC const string &getPrefixes() const;
 		
-		void setSuffixes(const string &value);
-		const string &getSuffixes() const;
+		BELCARD_PUBLIC void setSuffixes(const string &value);
+		BELCARD_PUBLIC const string &getSuffixes() const;
 		
-		virtual void serialize(ostream &output) const;
+		BELCARD_PUBLIC virtual void serialize(ostream &output) const;
 	};
 	
 	class BelCardNickname : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardNickname> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardNickname();
+		BELCARD_PUBLIC BelCardNickname();
 	};
 	
 	class BelCardBirthday : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardBirthday> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardBirthday();
+		BELCARD_PUBLIC BelCardBirthday();
 	};
 	
 	class BelCardAnniversary : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardAnniversary> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardAnniversary();
+		BELCARD_PUBLIC BelCardAnniversary();
 	};
 	
 	class BelCardGender : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardGender> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardGender();
+		BELCARD_PUBLIC BelCardGender();
 	};
 	
 	class BelCardPhoto : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardPhoto> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardPhoto();
+		BELCARD_PUBLIC BelCardPhoto();
 	};
 }
 

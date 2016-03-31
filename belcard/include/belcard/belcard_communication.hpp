@@ -26,6 +26,14 @@
 #include <string>
 #include <sstream>
 
+#ifndef BELCARD_PUBLIC
+#if defined(_MSC_VER)
+#define BELCARD_PUBLIC	__declspec(dllexport)
+#else
+#define BELCARD_PUBLIC
+#endif
+#endif
+
 using namespace::std;
 using namespace::belr;
 
@@ -33,23 +41,23 @@ namespace belcard {
 	class BelCardPhoneNumber : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardPhoneNumber> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardPhoneNumber();
+		BELCARD_PUBLIC BelCardPhoneNumber();
 	};
 	
 	class BelCardEmail : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardEmail> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardEmail();
+		BELCARD_PUBLIC BelCardEmail();
 	};
 	
 	class BelCardImpp : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardImpp> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
 		BELCARD_PUBLIC BelCardImpp();
 	};
@@ -57,9 +65,9 @@ namespace belcard {
 	class BelCardLang : public BelCardProperty {
 	public:
 		BELCARD_PUBLIC static shared_ptr<BelCardLang> parse(const string& input);
-		static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
+		BELCARD_PUBLIC static void setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser);
 		
-		BelCardLang();
+		BELCARD_PUBLIC BelCardLang();
 	};
 }
 
