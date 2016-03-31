@@ -75,6 +75,7 @@ int main(int argc, char *argv[] ) {
 	/* Add the parser suite to the registry */
 	parserTestSuite = CU_add_suite("Bzrtp ZRTP Packet Parser", NULL, NULL);
 	CU_add_test(parserTestSuite, "Parse", test_parser);
+	CU_add_test(parserTestSuite, "Parse hvi check fail", test_parser_hvi);
 	CU_add_test(parserTestSuite, "Parse Exchange", test_parserComplete);
 	CU_add_test(parserTestSuite, "State machine", test_stateMachine);
 

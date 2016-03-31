@@ -101,7 +101,8 @@ uint8_t mackeyr[32] = {0x3a, 0xa5, 0x22, 0x43, 0x26, 0x13, 0x8f, 0xd6, 0x54, 0x5
 uint8_t zrtpkeyi[16] = {0x22, 0xf6, 0xea, 0xaa, 0xa4, 0xad, 0x53, 0x30, 0x71, 0x97, 0xcc, 0x68, 0x6b, 0xb0, 0xcb, 0x55};
 uint8_t zrtpkeyr[16] = {0x09, 0x50, 0xcd, 0x9e, 0xc2, 0x78, 0x54, 0x31, 0x93, 0x2e, 0x99, 0x31, 0x15, 0x58, 0xd0, 0x2a};
 
-void test_parser(void) {
+
+void test_parser_param(uint8_t hvi_trick) {
 	int i, retval;
 	bzrtpPacket_t *zrtpPacket;
 
@@ -159,13 +160,34 @@ void test_parser(void) {
 		/* parse a packet string from patterns */
 		zrtpPacket = bzrtp_packetCheck(patternZRTPPackets[i], patternZRTPMetaData[i][0], (patternZRTPMetaData[i][1])-1, &retval);
 		retval +=  bzrtp_packetParser((patternZRTPMetaData[i][2]==0x87654321)?context12345678:context87654321, (patternZRTPMetaData[i][2]==0x87654321)?context12345678->channelContext[0]:context87654321->channelContext[0], patternZRTPPackets[i], patternZRTPMetaData[i][0], zrtpPacket);
-		/*printf("parsing Ret val is %x index is %d\n", retval, i);*/
+		if (hvi_trick==0) {
+			CU_ASSERT_EQUAL_FATAL(retval,0);
+		} else { /* when hvi trick is enable, the DH2 parsing shall fail and return BZRTP_PARSER_ERROR_UNMATCHINGHVI */
+			if (zrtpPacket->messageType==MSGTYPE_DHPART2) {
+				CU_ASSERT_EQUAL_FATAL(retval, BZRTP_PARSER_ERROR_UNMATCHINGHVI);
+				/* We shall then anyway skip the end of the test */
+				/* reset pointers to selfHello packet in order to avoid double free */
+				context87654321->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = NULL;
+				context12345678->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = NULL;
+
+				bzrtp_destroyBzrtpContext(context87654321, 0x87654321);
+				bzrtp_destroyBzrtpContext(context12345678, 0x12345678);
+
+				return;
+
+			} else {
+				CU_ASSERT_EQUAL_FATAL(retval,0);
+			}
+		}
+			bzrtp_message("parsing Ret val is %x index is %d\n", retval, i);
 		/* We must store some packets in the context if we want to be able to parse further packets */
 		if (zrtpPacket->messageType==MSGTYPE_HELLO) {
 			if (patternZRTPMetaData[i][2]==0x87654321) {
 				context12345678->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket;
+				context87654321->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket;
 			} else {
 				context87654321->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket;
+				context12345678->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket;
 			}
 			freePacketFlag = 0;
 		}
@@ -205,11 +227,36 @@ void test_parser(void) {
 		if (freePacketFlag == 1) {
 			bzrtp_freeZrtpPacket(zrtpPacket);
 		}
+
+		/* modify the hvi stored in the peerPackets, this shall result in parsing failure on DH2 packet */
+		if (hvi_trick == 1) {
+			if (zrtpPacket->messageType==MSGTYPE_COMMIT) {
+				if (patternZRTPMetaData[i][2]==0x87654321) {
+					bzrtpCommitMessage_t *peerCommitMessageData;
+					peerCommitMessageData = (bzrtpCommitMessage_t *)zrtpPacket->messageData;
+					peerCommitMessageData->hvi[0]=0xFF;
+				}
+			}
+		}
+
 	}
+
+	/* reset pointers to selfHello packet in order to avoid double free */
+	context87654321->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = NULL;
+	context12345678->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = NULL;
+
 
 	bzrtp_destroyBzrtpContext(context87654321, 0x87654321);
 	bzrtp_destroyBzrtpContext(context12345678, 0x12345678);
 
+}
+
+void test_parser(void) {
+	test_parser_param(0);
+}
+
+void test_parser_hvi(void) {
+	test_parser_param(1);
 }
 
 /* context structure mainly used by statemachine test, but also needed by parserComplete to get the zid Filename */

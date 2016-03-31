@@ -20,5 +20,6 @@
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 void test_parser(void);
+void test_parser_hvi(void);
 void test_parserComplete(void);
 void test_stateMachine(void);

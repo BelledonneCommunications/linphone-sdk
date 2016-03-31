@@ -438,6 +438,32 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 						free (messageData);
 						return BZRTP_PARSER_ERROR_UNMATCHINGMAC;
 					}
+
+					/* Check the hvi received in the commit message  - RFC section 4.4.1.1*/
+					/* First compute the expected hvi */
+					/* hvi = hash(initiator's DHPart2 message(current zrtpPacket)) || responder's Hello message) using the agreed hash function truncated to 256 bits */
+					/* create a string with the messages concatenated */
+					{
+						uint8_t computedHvi[32];
+						uint16_t HelloMessageLength = zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength;
+						uint16_t DHPartHelloMessageStringLength = zrtpPacket->messageLength + HelloMessageLength;
+
+						uint8_t *DHPartHelloMessageString = (uint8_t *)malloc(DHPartHelloMessageStringLength*sizeof(uint8_t));
+
+						memcpy(DHPartHelloMessageString, input+ZRTP_PACKET_HEADER_LENGTH, zrtpPacket->messageLength);
+						memcpy(DHPartHelloMessageString+zrtpPacket->messageLength, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, HelloMessageLength);
+
+						zrtpChannelContext->hashFunction(DHPartHelloMessageString, DHPartHelloMessageStringLength, 32, computedHvi);
+
+						free(DHPartHelloMessageString);
+
+						/* Compare computed and received hvi */
+						if (memcmp(computedHvi, peerCommitMessageData->hvi, 32)!=0) {
+							free (messageData);
+							return BZRTP_PARSER_ERROR_UNMATCHINGHVI;
+						}
+					}
+
 				} else { /* if we are initiator(we didn't received any commit message and then no H2), we must check that H3=SHA256(SHA256(H1)) and the Hello message MAC */
 					uint8_t checkH2[32];
 					uint8_t checkH3[32];
@@ -482,7 +508,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				/* attach the message structure to the packet one */
 				zrtpPacket->messageData = (void *)messageData;
 
-				/* the parsed commit packet must be saved as it is used to generate the total_hash */
+				/* the parsed packet must be saved as it is used to generate the total_hash */
 				zrtpPacket->packetString = (uint8_t *)malloc(inputLength*sizeof(uint8_t));
 				memcpy(zrtpPacket->packetString, input, inputLength); /* store the whole packet even if we may use the message only */
 			}
