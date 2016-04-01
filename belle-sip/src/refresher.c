@@ -100,10 +100,10 @@ static void schedule_timer(belle_sip_refresher_t* refresher) {
 static void process_dialog_terminated(belle_sip_listener_t *user_ctx, const belle_sip_dialog_terminated_event_t *event){
 	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
 	belle_sip_dialog_t *dialog =belle_sip_dialog_terminated_event_get_dialog(event);
-	
+
 	if (refresher && refresher->transaction && dialog != belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(refresher->transaction)))
 		return; /*not for me*/
-	
+
 	if (refresher->state == started) {
 		belle_sip_warning("Refresher [%p] still started but receiving unexpected dialog deleted event on [%p], retrying",refresher,dialog);
 		retry_later_on_io_error(refresher);
@@ -328,7 +328,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		case 501:
 			/*irrecoverable errors, probably no need to retry later*/
 			break;
-		
+
 		default:
 			/*for all other errors, retry later*/
 			if (refresher->target_expires>0) retry_later(refresher);
@@ -366,7 +366,7 @@ static void process_transaction_terminated(belle_sip_listener_t *user_ctx, const
 	} else {
 		refresher->publish_pending = FALSE;
 	}
-	
+
 }
 
 static void process_auth_requested(belle_sip_listener_t *l, belle_sip_auth_event_t *event){
@@ -444,7 +444,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 			belle_sip_message("Refresher [%p] already has transaction [%p] in state [%s]"	,refresher
 				,refresher->transaction
 				,belle_sip_transaction_state_to_string(state));
-			
+
 			if (strcmp(belle_sip_request_get_method(old_request),"PUBLISH")==0) {
 				belle_sip_message("Refresher [%p] new publish is delayed to end of ongoing transaction"	,refresher);
 				refresher->publish_pending = TRUE;
@@ -494,7 +494,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 						belle_sip_message_set_body(BELLE_SIP_MESSAGE(request), NULL, 0);
 						belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CONTENT_TYPE);
 						belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CONTENT_LENGTH);
-						
+
 					}
 				}
 				belle_sip_provider_add_authorization(prov,request,old_response,NULL,auth_infos,refresher->realm);
@@ -508,12 +508,12 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 					belle_sip_header_cseq_set_seq_number(belle_sip_message_get_header_by_type(request,belle_sip_header_cseq_t)
 														 ,20);
 					belle_sip_parameters_remove_parameter(BELLE_SIP_PARAMETERS(belle_sip_message_get_header_by_type(request,belle_sip_header_to_t)),"tag");
-					
+
 					belle_sip_header_call_id_set_call_id(	  belle_sip_message_get_header_by_type(request,belle_sip_header_call_id_t)
 															, belle_sip_random_token(tmp,sizeof(tmp)));
 					break;
 				} /*else nop, error case*/
-				
+
 			}
 			default: {
 				belle_sip_error("Unexpected dialog state [%s] for dialog [%p], cannot refresh [%s]"
@@ -553,12 +553,12 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 	client_transaction = belle_sip_provider_create_client_transaction(prov,request);
 	client_transaction->base.is_internal=1;
 	belle_sip_transaction_set_application_data(BELLE_SIP_TRANSACTION(client_transaction),refresher);
-	
+
 	if (request ==  refresher->first_acknoleged_request) { /*request is now ref by transaction so no need to keepo it*/
 		belle_sip_object_unref(refresher->first_acknoleged_request);
 		refresher->first_acknoleged_request = NULL;
 	}
-	
+
 	switch (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction))) {
 	case BELLE_SIP_TRANSACTION_INIT:
 	case BELLE_SIP_TRANSACTION_CALLING:
@@ -688,7 +688,7 @@ static int set_expires_from_trans(belle_sip_refresher_t* refresher) {
 			refresher->obtained_expires=refresher->target_expires;
 		}else if (refresher->target_expires>0 && refresher->obtained_expires==0){
 			/*check this case because otherwise we are going to loop fast in sending refresh requests.*/
-			belle_sip_warning("Server replied with 0 expires, what does this mean ?");
+			belle_sip_warning("Server replied with 0 expires, what does that mean?");
 			/*suppose it's a server bug and assume our target_expires is understood.*/
 			refresher->obtained_expires=refresher->target_expires;
 		}
