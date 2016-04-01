@@ -1883,6 +1883,11 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 		hashDataIndex += s3Length;
 	}
 
+	/* clean local s1,s2,s3 pointers as they are not needed anymore */
+	s1=NULL;
+	s2=NULL;
+	s3=NULL;
+
 	zrtpChannelContext->s0 = (uint8_t *)malloc(zrtpChannelContext->hashLength*sizeof(uint8_t));
 	zrtpChannelContext->hashFunction(dataToHash, hashDataLength, zrtpChannelContext->hashLength, zrtpChannelContext->s0);
 
@@ -1899,33 +1904,12 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 		(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction,
 		zrtpContext->ZRTPSess);
 
+	/* clean the DHM context (secret and key shall be erased by this operation) */
+	bctoolbox_DestroyDHMContext(zrtpContext->DHMContext);
+	zrtpContext->DHMContext = NULL;
+
 	/* now derive the other keys */
 	return bzrtp_deriveKeysFromS0(zrtpContext, zrtpChannelContext);
-	/* destroy all cached keys in context */
-	/* TODO : Check secret cache update?? */
-	/*if (contextAlice->cachedSecret.rs1!=NULL) {
-		bzrtp_DestroyKey(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, contextAlice->RNGContext);
-		free(contextAlice->cachedSecret.rs1);
-		contextAlice->cachedSecret.rs1 = NULL;
-	}
-	if (contextAlice->cachedSecret.rs2!=NULL) {
-		bzrtp_DestroyKey(contextAlice->cachedSecret.rs2, contextAlice->cachedSecret.rs2Length, contextAlice->RNGContext);
-		free(contextAlice->cachedSecret.rs2);
-		contextAlice->cachedSecret.rs2 = NULL;
-	}
-	if (contextAlice->cachedSecret.auxsecret!=NULL) {
-		bzrtp_DestroyKey(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->RNGContext);
-		free(contextAlice->cachedSecret.auxsecret);
-		contextAlice->cachedSecret.auxsecret = NULL;
-	}
-	if (contextAlice->cachedSecret.pbxsecret!=NULL) {
-		bzrtp_DestroyKey(contextAlice->cachedSecret.pbxsecret, contextAlice->cachedSecret.pbxsecretLength, contextAlice->RNGContext);
-		free(contextAlice->cachedSecret.pbxsecret);
-		contextAlice->cachedSecret.pbxsecret = NULL;
-	}*/
-
-
-	return 0;
 }
 
 /**
@@ -2173,6 +2157,28 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
 	free(zrtpChannelContext->s0);
 	zrtpChannelContext->s0 = NULL;
+
+	/* destroy all cached keys in context they are not needed anymore (multistream mode doesn't use them to compute s0) */
+	if (zrtpContext->cachedSecret.rs1!=NULL) {
+		bzrtp_DestroyKey(zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, zrtpContext->RNGContext);
+		free(zrtpContext->cachedSecret.rs1);
+		zrtpContext->cachedSecret.rs1 = NULL;
+	}
+	if (zrtpContext->cachedSecret.rs2!=NULL) {
+		bzrtp_DestroyKey(zrtpContext->cachedSecret.rs2, zrtpContext->cachedSecret.rs2Length, zrtpContext->RNGContext);
+		free(zrtpContext->cachedSecret.rs2);
+		zrtpContext->cachedSecret.rs2 = NULL;
+	}
+	if (zrtpContext->cachedSecret.auxsecret!=NULL) {
+		bzrtp_DestroyKey(zrtpContext->cachedSecret.auxsecret, zrtpContext->cachedSecret.auxsecretLength, zrtpContext->RNGContext);
+		free(zrtpContext->cachedSecret.auxsecret);
+		zrtpContext->cachedSecret.auxsecret = NULL;
+	}
+	if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
+		bzrtp_DestroyKey(zrtpContext->cachedSecret.pbxsecret, zrtpContext->cachedSecret.pbxsecretLength, zrtpContext->RNGContext);
+		free(zrtpContext->cachedSecret.pbxsecret);
+		zrtpContext->cachedSecret.pbxsecret = NULL;
+	}
 
 	return 0;
 }

@@ -156,23 +156,40 @@ void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 
 
 	/* We have no more channel, destroy the zrtp context */
+	/* DHM context shall already been destroyed after s0 computation, but just in case */
 	if (context->DHMContext != NULL) {
 		bctoolbox_DestroyDHMContext(context->DHMContext);
 		context->DHMContext = NULL;
 	}
 
-	/* free allocated buffers */
-	free(context->cachedSecret.rs1); 
-	free(context->cachedSecret.rs2);
-	free(context->cachedSecret.pbxsecret);
-	free(context->cachedSecret.auxsecret);
-	free(context->ZRTPSess);
+	/* Destroy keys and secrets */
+	/* rs1, rs2, pbxsecret and auxsecret shall already been destroyed, just in case */
+	if (context->cachedSecret.rs1!=NULL) {
+		bzrtp_DestroyKey(context->cachedSecret.rs1, context->cachedSecret.rs1Length, context->RNGContext);
+		free(context->cachedSecret.rs1);
+		context->cachedSecret.rs1 = NULL;
+	}
+	if (context->cachedSecret.rs2!=NULL) {
+		bzrtp_DestroyKey(context->cachedSecret.rs2, context->cachedSecret.rs2Length, context->RNGContext);
+		free(context->cachedSecret.rs2);
+		context->cachedSecret.rs2 = NULL;
+	}
+	if (context->cachedSecret.auxsecret!=NULL) {
+		bzrtp_DestroyKey(context->cachedSecret.auxsecret, context->cachedSecret.auxsecretLength, context->RNGContext);
+		free(context->cachedSecret.auxsecret);
+		context->cachedSecret.auxsecret = NULL;
+	}
+	if (context->cachedSecret.pbxsecret!=NULL) {
+		bzrtp_DestroyKey(context->cachedSecret.pbxsecret, context->cachedSecret.pbxsecretLength, context->RNGContext);
+		free(context->cachedSecret.pbxsecret);
+		context->cachedSecret.pbxsecret = NULL;
+	}
 
-	context->cachedSecret.rs1=NULL; 
-	context->cachedSecret.rs2=NULL;
-	context->cachedSecret.pbxsecret=NULL;
-	context->cachedSecret.auxsecret=NULL;
-	context->ZRTPSess=NULL;
+	if (context->ZRTPSess!=NULL) {
+		bzrtp_DestroyKey(context->ZRTPSess, context->ZRTPSessLength, context->RNGContext);
+		free(context->ZRTPSess);
+		context->ZRTPSess=NULL;
+	}
 
 #ifdef HAVE_LIBXML2
 	xmlFreeDoc(context->cacheBuffer);
