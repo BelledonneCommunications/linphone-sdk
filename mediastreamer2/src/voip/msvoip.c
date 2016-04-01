@@ -305,14 +305,18 @@ void ms_factory_init_voip(MSFactory *obj){
 	}
 #endif
 
-
+	obj->devices_info = ms_devices_info_new();
 
 #if defined(ANDROID) && defined (VIDEO_ENABLED)
-	if (1) {
-		libmsandroidopengldisplay_init(obj);
-	} else {
-		if (!libmsandroiddisplay_init(obj)) {
-			libmsandroiddisplaybad_init(obj);
+	{
+		MSDevicesInfo *devices = ms_factory_get_devices_info(obj);
+		SoundDeviceDescription *description = ms_devices_info_get_sound_device_description(devices);
+		if (description && description->flags & DEVICE_HAS_CRAPPY_OPENGL) {
+			if (!libmsandroiddisplay_init(obj)) {
+				libmsandroiddisplaybad_init(obj);
+			}
+		} else {
+			libmsandroidopengldisplay_init(obj);
 		}
 	}
 #endif
@@ -331,6 +335,7 @@ void ms_factory_uninit_voip(MSFactory *obj){
 		ms_video_presets_manager_destroy(obj->video_presets_manager);
 #endif
 		ms_srtp_shutdown();
+		if (obj->devices_info) ms_devices_info_free(obj->devices_info);
 		obj->voip_initd = FALSE;
 	}
 }

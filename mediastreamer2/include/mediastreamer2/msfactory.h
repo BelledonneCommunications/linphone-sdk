@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #include "mediastreamer2/msfilter.h"
-
+#include "mediastreamer2/devices.h"
 
 /*do not use these fields directly*/
 struct _MSFactory{
@@ -45,6 +45,7 @@ struct _MSFactory{
 	void (*voip_uninit_func)(struct _MSFactory*);
 	bool_t statistics_enabled;
 	bool_t voip_initd;
+	MSDevicesInfo *devices_info;
 };
 
 typedef struct _MSFactory MSFactory;
@@ -371,6 +372,8 @@ MS2_PUBLIC MSOfferAnswerProvider * ms_factory_get_offer_answer_provider(MSFactor
  * @return an MSOfferAnswerContext or NULL if none was registered for this codec.
 **/
 MS2_PUBLIC MSOfferAnswerContext * ms_factory_create_offer_answer_context(MSFactory *f, const char *mime_type);
+
+MS2_PUBLIC MSDevicesInfo* ms_factory_get_devices_info(MSFactory *f);
 
 #ifdef __cplusplus
 }

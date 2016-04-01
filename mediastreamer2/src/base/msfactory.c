@@ -862,6 +862,10 @@ MSOfferAnswerContext * ms_factory_create_offer_answer_context(MSFactory *f, cons
 	return NULL;
 }
 
+MSDevicesInfo* ms_factory_get_devices_info(MSFactory *f) {
+	return f->devices_info;
+}
+
 #ifdef ANDROID
 #include "sys/system_properties.h"
 #include <jni.h>

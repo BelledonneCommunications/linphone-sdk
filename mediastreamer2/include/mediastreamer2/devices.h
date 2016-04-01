@@ -31,6 +31,7 @@
 #define DEVICE_HAS_CRAPPY_ANDROID_FASTTRACK		(1<<4) /*set when the AUDIO_OUTPUT_FLAG_FAST flag of android AudioTrack doesn't work*/
 #define DEVICE_HAS_CRAPPY_ANDROID_FASTRECORD	(1<<5) /*set when the AUDIO_INPUT_FLAG_FAST flag of android AudioRecord doesn't work*/
 #define DEVICE_HAS_UNSTANDARD_LIBMEDIA			(1<<6) /*set when the libmedia backend shall not be used because of proprietary modifications made into it by the manufacturer*/
+#define DEVICE_HAS_CRAPPY_OPENGL				(1<<7) /*set when the opengl is crappy and our opengl surfaceview will crash */
 
 struct SoundDeviceAudioHacks {
 	const char *equalizer;
@@ -51,6 +52,11 @@ struct SoundDeviceDescription{
 
 typedef struct SoundDeviceDescription SoundDeviceDescription;
 
+struct MSDevicesInfo {
+	MSList *sound_devices_descriptions;
+};
+
+typedef struct MSDevicesInfo MSDevicesInfo;
 
 #ifdef __cplusplus
 extern "C"{
@@ -60,6 +66,16 @@ extern "C"{
 SoundDeviceDescription * sound_device_description_get(void);
 
 extern SoundDeviceDescription genericSoundDeviceDescriptor;
+
+MSDevicesInfo *ms_devices_info_new(void);
+
+void ms_devices_info_free(MSDevicesInfo *devices_info);
+
+MS2_PUBLIC void ms_devices_info_add(MSDevicesInfo *devices_info, const char *manufacturer, const char *model, const char *platform, unsigned int flags, int delay, int recommended_rate);
+
+MS2_PUBLIC SoundDeviceDescription* ms_devices_info_lookup_device(MSDevicesInfo *devices_info, const char *manufacturer, const char* model, const char *platform);
+
+MS2_PUBLIC SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesInfo *devices_info);
 
 #ifdef __cplusplus
 }
