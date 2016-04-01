@@ -218,12 +218,12 @@ static mblk_t *make_output(int32_t *sum, int nwords){
 	return om;
 }
 
-static void mixer_dispatch_output(MSFilter *f, MixerState*s, MSQueue *inq){
+static void mixer_dispatch_output(MSFilter *f, MixerState*s, MSQueue *inq, int active_input){
 	int i;
 	for (i=0;i<f->desc->noutputs;i++){
 		MSQueue *outq=f->outputs[i];
 		Channel *chan=&s->channels[i];
-		if (outq && chan->output_enabled){
+		if (outq && chan->output_enabled && (active_input!=i || s->conf_mode==0)){
 			mblk_t *m;
 			if (s->single_output){
 				while((m=ms_queue_get(inq))!=NULL){
@@ -243,8 +243,9 @@ static void mixer_dispatch_output(MSFilter *f, MixerState*s, MSQueue *inq){
 /* the bypass mode is an optimization for the case of a single contributing channel. In such case there is no need to synchronize with other channels
  * and to make a sum. The processing is greatly simplified by just distributing the packets from the single contributing channels to the output channels.*/
 static bool_t mixer_check_bypass(MSFilter *f, MixerState *s){
-	int i;
-	int active_cnt=0;
+    int i;
+    int active_cnt=0;
+    int active_input=-1;
 	MSQueue *activeq=NULL;
 	uint64_t curtime=f->ticker->time;
 	for (i=0;i<f->desc->ninputs;i++){
@@ -255,12 +256,14 @@ static bool_t mixer_check_bypass(MSFilter *f, MixerState *s){
 				chan->last_activity=curtime;
 				activeq=q;
 				active_cnt++;
+				active_input=i;
 			}else{
 				if (chan->last_activity==(uint64_t)-1){
 					chan->last_activity=curtime;
 				}else if (curtime-chan->last_activity<BYPASS_MODE_TIMEOUT){
 					activeq=q;
 					active_cnt++;
+					active_input=i;
 				}
 			}
 		}
@@ -270,7 +273,7 @@ static bool_t mixer_check_bypass(MSFilter *f, MixerState *s){
 			s->bypass_mode=TRUE;
 			ms_message("MSAudioMixer [%p] is entering bypass mode.",f);
 		}
-		mixer_dispatch_output(f,s,activeq);
+		mixer_dispatch_output(f,s,activeq,active_input);
 		return TRUE;
 	}else if (active_cnt>1){
 		if (s->bypass_mode){
