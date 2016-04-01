@@ -448,12 +448,14 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		s=(belle_sip_source_t*)elem->data;
 		next=elem->next;
 		if (!s->cancelled){
-			char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
-			if (s->timeout>0) {
+			
+			if (s->timeout > 0 && (__belle_sip_log_mask & BELLE_SIP_LOG_DEBUG)) {
 				/*to avoid too many traces*/ 
-				belle_sip_debug("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout); 
+				char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
+				belle_sip_debug("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);
+				belle_sip_free(objdesc);
 			}
-			belle_sip_free(objdesc);
+			
 			ret=s->notify(s->data,s->revents);
 			if (ret==BELLE_SIP_STOP || s->oneshot){
 				/*this source needs to be removed*/
