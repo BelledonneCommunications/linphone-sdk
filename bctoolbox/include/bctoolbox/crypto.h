@@ -546,7 +546,7 @@ BCTOOLBOX_PUBLIC void bctoolbox_DHMComputeSecret(bctoolbox_DHMContext_t *context
 
 /**
  *
- * @brief Clean DHM context
+ * @brief Clean DHM context. Secret and key, if present, are erased from memory(set to 0)
  *
  * @param	context	The context to deallocate
  *

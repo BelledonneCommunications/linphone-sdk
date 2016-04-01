@@ -755,9 +755,16 @@ void bctoolbox_DHMComputeSecret(bctoolbox_DHMContext_t *context, int (*rngFuncti
 /* clean DHM context */
 void bctoolbox_DestroyDHMContext(bctoolbox_DHMContext_t *context) {
 	if (context!= NULL) {
-		free(context->secret);
+		/* key and secret must be erased from memory and not just freed */
+		if (context->secret != NULL) {
+			memset(context->secret, 0, context->secretLength);
+			free(context->secret);
+		}
 		free(context->self);
-		free(context->key);
+		if (context->key != NULL) {
+			memset(context->key, 0, context->primeLength);
+			free(context->key);
+		}
 		free(context->peer);
 
 		mbedtls_dhm_free((mbedtls_dhm_context *)context->cryptoModuleData);
