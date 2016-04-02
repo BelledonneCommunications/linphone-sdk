@@ -76,6 +76,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define F_OK 00 /* Visual Studio does not define F_OK */
 #endif
 
+#ifdef HAVE_CUNIT_CUCURSES_H
+#define HAVE_CU_CURSES 1
+#endif
+
 static char *bc_tester_resource_dir_prefix = NULL;
 // by default writable will always write near the executable
 static char *bc_tester_writable_dir_prefix = NULL;

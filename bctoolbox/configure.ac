@@ -27,7 +27,7 @@ LT_INIT([shared disable-static])
 dnl initialize pkg-config so that we can use it within if else fi statements.
 PKG_PROG_PKG_CONFIG()
 
-AM_INIT_AUTOMAKE([subdir-objects])
+AM_INIT_AUTOMAKE()
 AM_SILENT_RULES(yes)
 
 # Checks for programs.
@@ -81,6 +81,10 @@ AC_ARG_WITH( polarssl,
       [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr or /usr/local)[default=PREFIX] ],
       [ polarssl_prefix=${withval}],[ polarssl_prefix=${prefix} ])
 
+AC_ARG_WITH( cunit,
+      [  --with-cunit      Set prefix where cunit can be found (ex:/usr or /usr/local)[default=PREFIX] ],
+      [ cunit_prefix=${withval}],[ cunit_prefix=${prefix} ])
+
 
 if test "$mbedtls_prefix" = "NONE" ; then
 	mbedtls_prefix=/usr/local
@@ -90,11 +94,50 @@ if test "$polarssl_prefix" = "NONE" ; then
 	polarssl_prefix=/usr/local
 fi
 
+if test "$cunit_prefix" = "NONE" ; then
+	cunit_prefix=/usr/local
+fi
+
 
 if test "$mbedtls_prefix" != "/usr" ; then
 	MBEDTLS_CFLAGS="-I${mbedtls_prefix}"
 	MBEDTLS_LIBS="-L${mbedtls_prefix}/lib"
 fi
+
+if test "$cunit_prefix" != "/usr" ; then
+	CUNIT_CFLAGS="-I${cunit_prefix}"
+	CUNIT_LIBS="-L${cunit_prefix}/lib"
+fi
+
+
+CPPFLAGS_save=$CPPFLAGS
+LIBS_save=$LIBS
+CPPFLAGS="$CPPFLAGS $CUNIT_CFLAGS"
+LIBS="$LIBS $CUNIT_LIBS"
+
+AC_CHECK_HEADER(CUnit/CUnit.h, [
+	AC_CHECK_LIB(cunit, CU_get_error, [CUNIT_LIBS="CUNIT_LIBS -lcunit"; cunit_found=true], 
+	[cunit_found=false]) ],
+	[cunit_found=false]
+)
+
+if test "$cunit_found" != "true" ; then
+	AC_MSG_ERROR("CUnit not found")
+else
+
+	AC_CHECK_LIB(cunit, CU_get_suite, 
+		[ AC_DEFINE(HAVE_CU_GET_SUITE, 1, [Defined when CU_get_suite is available])]
+	)
+	AC_CHECK_LIB(cunit, CU_set_trace_handler,
+		[ AC_DEFINE(HAVE_CU_SET_TRACE_HANDLER, 1, [Defined when CU_set_trace_handler is available])]
+	)
+	AC_CHECK_HEADERS(CUnit/CUCurses.h)
+fi
+
+CPPFLAGS=$CPPFLAGS_save
+LIBS=$LIBS_save
+AC_SUBST(CUNIT_CFLAGS)
+AC_SUBST(CUNIT_LIBS)
 
 CPPFLAGS_save=$CPPFLAGS
 LIBS_save=$LIBS
@@ -135,6 +178,12 @@ if test "$mbedtls_found" = "false" ; then
 	CPPFLAGS=$CPPFLAGS_save
 	LIBS=$LIBS_save
 fi
+
+AC_SUBST(MBEDTLS_CFLAGS)
+AC_SUBST(MBEDTLS_LIBS)
+AC_SUBST(POLARSSL_CFLAGS)
+AC_SUBST(POLARSSL_LIBS)
+
 
 AM_CONDITIONAL(ENABLE_POLARSSL12, test "$polarssl_post_12_found" != "true")
 AM_CONDITIONAL(ENABLE_POLARSSL, test "$polarssl_post_12_found" = "true")
