@@ -34,3 +34,9 @@ ex:
 ENABLE_MBEDTLS: force usage of mbedtls
 ex:
 	cmake . -DENABLE_POLARSSL=OFF -DENABLE_MBEDTLS=ON  
+
+
+
+For backward compatibility with distributions not having the required 3.x cmake version, an automake/autoconf build system is also available.
+It is maintained as a best effort and then should be used only in last resort.
+
