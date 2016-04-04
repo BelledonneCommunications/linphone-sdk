@@ -37,16 +37,12 @@
 #if defined(MS2_WINDOWS_PHONE)
 // Windows phone doesn't use make install
 #include <srtp.h>
-//#include <srtp_priv.h>
 #else
 #include <srtp/srtp.h>
-//#include <srtp/srtp_priv.h>
 #endif
 
 
 #include "ortp/b64.h"
-
-#define SRTP_PAD_BYTES (SRTP_MAX_TRAILER_LEN + 4)
 
 typedef struct _MSSrtpStreamContext {
 	srtp_t srtp;
@@ -117,7 +113,7 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 			slen = 0; /*droping packets*/
 		} else {
 			/* defragment incoming message and enlarge the buffer for srtp to write its data */
-			msgpullup(m,slen+SRTP_PAD_BYTES);
+			msgpullup(m,slen+SRTP_MAX_TRAILER_LEN+4 /*for 32 bits alignment*/);
 			err=srtp_protect(ctx->srtp,m->b_rptr,&slen);
 		}
 		ms_mutex_unlock(&ctx->mutex);
@@ -129,7 +125,7 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 			slen = 0; /*droping packets*/
 		} else {
 		/* defragment incoming message and enlarge the buffer for srtp to write its data */
-			msgpullup(m,slen+SRTP_PAD_BYTES);
+			msgpullup(m,slen+SRTP_MAX_TRAILER_LEN+4 /*for 32 bits alignment*/ + 4 /*required by srtp_protect_rtcp*/);
 			err=srtp_protect_rtcp(ctx->srtp,m->b_rptr,&slen);
 		}
 		ms_mutex_unlock(&ctx->mutex);
@@ -418,9 +414,10 @@ int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessio
 
 	/* decode b64 key */
 	size_t b64_key_length = strlen(b64_key);
-	size_t key_length = b64_decode(b64_key, b64_key_length, 0, 0);
-	char *key = (char *) ms_malloc0(key_length+2); /*srtp uses padding*/
-	if (b64_decode(b64_key, b64_key_length, key, key_length) != key_length) {
+	size_t max_key_length = b64_decode(b64_key, b64_key_length, 0, 0);
+	size_t key_length;
+	char *key = (char *) ms_malloc0(max_key_length+1);
+	if ((key_length = b64_decode(b64_key, b64_key_length, key, max_key_length)) == 0) {
 		ms_error("Error decoding b64 srtp recv key");
 		ms_free(key);
 		return -1;
@@ -458,10 +455,11 @@ int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessio
 
 	/* decode b64 key */
 	size_t b64_key_length = strlen(b64_key);
-	size_t key_length = b64_decode(b64_key, b64_key_length, 0, 0);
-	char *key = (char *) ms_malloc0(key_length+2); /*srtp uses padding*/
-	if (b64_decode(b64_key, b64_key_length, key, key_length) != key_length) {
-		ms_error("Error decoding b64 srtp send key");
+	size_t max_key_length = b64_decode(b64_key, b64_key_length, 0, 0);
+	size_t key_length;
+	char *key = (char *) ms_malloc0(max_key_length+1);
+	if ((key_length = b64_decode(b64_key, b64_key_length, key, max_key_length)) == 0) {
+		ms_error("Error decoding b64 srtp recv key");
 		ms_free(key);
 		return -1;
 	}
