@@ -257,7 +257,6 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 	stats_t margaux_stats;
 	int dummy=0;
 	int number_of_dropped_packets=0;
-	ms_media_stream_sessions_set_encryption_mandatory(&marielle->ms.sessions,encryption_mandatory);
 
 	const char *aes_128_bits_send_key = "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj";
 	const char *aes_128_bits_send_key_2 = "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te";
@@ -267,9 +266,11 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 	const char *aes_256_bits_send_key_2 = "N3vq6TMfvtyYpqGaEi9vAHMCzgWJvaD1PIfwEYtdEgI2ACezZo2vpOdV2YWEcQ==";
 	const char *aes_256_bits_recv_key = "UKg69sFLbrA7d0hEVKMtT83R3GR3sjhE0XMqNBbQ+axoDWMP5dQNfjNuSQQHbw==";
 	
-	const char *send_key ;
-	const char *send_key_2 ;
-	const char *recv_key ;
+	const char *send_key = NULL;
+	const char *send_key_2 = NULL;
+	const char *recv_key = NULL;
+
+	ms_media_stream_sessions_set_encryption_mandatory(&marielle->ms.sessions,encryption_mandatory);
 
 	switch (suite) {
 		case MS_AES_128_SHA1_32:
@@ -287,7 +288,8 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 			break;
 			
   default:
-			BC_ASSERT_FATAL("Unsupported suite");
+			BC_FAIL("Unsupported suite");
+			BC_ASSERT_FATAL(FALSE);
 			break;
 	}
 
