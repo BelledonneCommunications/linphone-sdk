@@ -20,10 +20,20 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 2.8)
 
 
-project(bctoolbox VERSION 0.0.2 LANGUAGES C CXX)
+project(bctoolbox)
+
+set(BCTOOLBOX_VERSION_MAJOR 0)
+set(BCTOOLBOX_VERSION_MINOR 0)
+set(BCTOOLBOX_VERSION_PATCH 2)
+set(BCTOOLBOX_VERSION "${BCTOOLBOX_VERSION_MAJOR}.${BCTOOLBOX_VERSION_MINOR}.${BCTOOLBOX_VERSION_PATCH}")
+set(PROJECT_VERSION_MAJOR ${BCTOOLBOX_VERSION_MAJOR})
+set(PROJECT_VERSION_MINOR ${BCTOOLBOX_VERSION_MINOR})
+set(PROJECT_VERSION_PATCH ${BCTOOLBOX_VERSION_PATCH})
+set(PROJECT_VERSION "${BCTOOLBOX_VERSION}")
+
 set(BCTOOLBOX_SO_VERSION 0)
 set(BCTOOLBOXTESTER_SO_VERSION 0)
 
@@ -191,9 +201,6 @@ write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfigVersion.cmake"
 	VERSION ${PROJECT_VERSION}
 	COMPATIBILITY AnyNewerVersion
-)
-export(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE "${CMAKE_CURRENT_BINARY_DIR}/BcToolboxTargets.cmake"
 )
 configure_file(cmake/BcToolboxConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/BcToolboxConfig.cmake"
