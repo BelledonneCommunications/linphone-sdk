@@ -494,7 +494,8 @@ void bc_tester_init(void (*ftester_printf)(int level, const char *format, va_lis
 	bc_printf_verbosity_error = iverbosity_error;
 	bc_printf_verbosity_info = iverbosity_info;
 	bc_tester_writable_dir_prefix = strdup(".");
-	expected_res = strdup(aexpected_res);
+	if (aexpected_res)
+		expected_res = strdup(aexpected_res);
 }
 
 void bc_tester_set_max_vm(long amax_vm_kb) {
@@ -583,7 +584,8 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 int bc_tester_start(const char* prog_name) {
 	int ret;
 
-	detect_res_prefix(prog_name);
+	if (expected_res)
+		detect_res_prefix(prog_name);
 
 	if (max_vm_kb)
 		bc_tester_set_max_vm(max_vm_kb);

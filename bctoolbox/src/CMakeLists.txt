@@ -21,6 +21,8 @@
 ############################################################################
 
 set(BCTOOLBOX_SOURCE_FILES)
+list(APPEND BCTOOLBOX_SOURCE_FILES utils/port.c logging/logging.c containers/list.c containers/map.cc)
+
 if(MBEDTLS_FOUND)
 	list(APPEND BCTOOLBOX_SOURCE_FILES crypto/mbedtls.c)
 endif()

@@ -196,6 +196,7 @@ add_compile_options(${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
 
 add_subdirectory(include)
 add_subdirectory(src)
+add_subdirectory(tester)
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(

@@ -17,6 +17,4 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#define bctoolbox_malloc malloc
-#define bctoolbox_malloc0(a) calloc(1,a)
-#define bctoolbox_free free
+#include "bctoolbox/port.h"

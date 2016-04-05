@@ -20,19 +20,20 @@
 #
 ############################################################################
 
-set(HEADER_FILES crypto.h port.h logging.h list.h map.h)
-if (ENABLE_TESTS)
-	list(APPEND HEADER_FILES tester.h)
-endif()
-
-
-set(BCTOOLBOX_HEADER_FILES )
-foreach(HEADER_FILE ${HEADER_FILES})
-	list(APPEND BCTOOLBOX_HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/bctoolbox/${HEADER_FILE}")
-endforeach()
-set(BCTOOLBOX_HEADER_FILES ${BCTOOLBOX_HEADER_FILES} PARENT_SCOPE)
-
-install(FILES ${BCTOOLBOX_HEADER_FILES}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bctoolbox
-        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+set(TESTER_SOURCES
+	bctoolbox_tester.c
+	bctoolbox_tester.h
+	containers.cc
 )
+
+string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
+
+add_executable(bctoolbox_tester ${TESTER_SOURCES})
+if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+	set_target_properties(bctoolbox_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+endif()
+target_include_directories(bctoolbox_tester PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
+target_link_libraries(bctoolbox_tester ${BCTOOLBOX_TESTER_LIBRARIES} bctoolbox bctoolbox-tester)
+set_target_properties(bctoolbox_tester PROPERTIES XCODE_ATTRIBUTE_WARNING_CFLAGS "")
+add_test(NAME bctoolbox_tester COMMAND bctoolbox_tester --verbose)
+
