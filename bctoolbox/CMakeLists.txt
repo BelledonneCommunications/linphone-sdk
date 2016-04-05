@@ -134,6 +134,8 @@ if(ENABLE_TESTS AND CUNIT_FOUND)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox-tester.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
 
+find_package(Threads REQUIRED)
+
 include_directories(
 	include
 	src
