@@ -18,6 +18,8 @@
 #include "bctoolbox/logging.h"
 #include "bctoolbox/map.h"
 #include <map>
+#include <typeinfo> 
+
 #define LOG_DOMAIN "bctoolbox"
 
 typedef std::multimap<long, void*> mmap_long_t;
