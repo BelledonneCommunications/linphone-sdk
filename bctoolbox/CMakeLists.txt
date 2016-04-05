@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12)
 
 
 project(bctoolbox)
@@ -75,6 +75,7 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
+set(CMAKE_MACOSX_RPATH ON)
 
 if(ENABLE_MBEDTLS)
 	find_package(MbedTLS)
