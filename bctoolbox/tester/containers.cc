@@ -23,8 +23,8 @@
 
 static void multimap_insert(void) {
 	bctoolbox_map_t *mmap = bctoolbox_mmap_long_new();
-	bctoolbox_list_t *ref = NULL;
-	bctoolbox_iterator_t *it;
+	bctoolbox_list_t *head = NULL, *ref = NULL;
+	bctoolbox_iterator_t *it,*end;
 	long i=0;
 	int N = 100;
 	
@@ -34,15 +34,31 @@ static void multimap_insert(void) {
 		bctoolbox_map_insert(mmap, pair);
 		bctoolbox_pair_delete(pair);
 	}
+	BC_ASSERT_EQUAL(bctoolbox_map_size(mmap),N, int, "%i");
 	
 	it = bctoolbox_map_begin(mmap);
-	
+	head = bctoolbox_list_first_elem(ref);
 	for(ref = bctoolbox_list_first_elem(ref);ref!=NULL;ref=bctoolbox_list_next(ref)) {
-		BC_ASSERT_EQUAL((long)bctoolbox_list_get_data(ref)
-						,(long)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it))
-		,long, "%lu");
+		BC_ASSERT_EQUAL( (long)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it))
+						, (long)bctoolbox_list_get_data(ref)
+						, long, "%lu");
 		it = bctoolbox_iterator_get_next(it);
 	}
+	bctoolbox_iterator_delete(it);
+	
+	ref = head;
+	end = bctoolbox_map_end(mmap);
+	
+	for(it = bctoolbox_map_begin(mmap);!bctoolbox_iterator_equals(it,end);it = bctoolbox_iterator_get_next(it)) {
+		BC_ASSERT_PTR_NOT_NULL(ref);
+		BC_ASSERT_EQUAL( (long)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it))
+						, (long)bctoolbox_list_get_data(ref)
+						, long, "%lu");
+		ref=bctoolbox_list_next(ref);
+	}
+	bctoolbox_iterator_delete(it);
+	bctoolbox_iterator_delete(end);
+	bctoolbox_list_free(head);
 	bctoolbox_mmap_long_delete(mmap);
 }
 

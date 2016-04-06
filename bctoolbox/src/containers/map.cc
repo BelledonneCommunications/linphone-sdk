@@ -32,23 +32,41 @@ extern "C" bctoolbox_map_t *bctoolbox_mmap_long_new(void) {
 extern "C" void bctoolbox_mmap_long_delete(bctoolbox_map_t *mmap) {
 	delete (mmap_long_t *)mmap;
 }
-extern "C" void bctoolbox_map_insert(bctoolbox_map_t *map,const bctoolbox_pair_t *pair) {
+static bctoolbox_iterator_t * bctoolbox_map_insert_base(bctoolbox_map_t *map,const bctoolbox_pair_t *pair,bool_t returns_it) {
+	mmap_long_t::iterator it;
 	if (typeid((pair_long_t*)pair) != typeid(pair_long_t*)) {
 		BCTOOLBOX_SLOGE(LOG_DOMAIN) << "Cannot insert pair ["<< pair << "] on map [" << map <<"] , wrong type";
+		return NULL;
 	} else {
-		((mmap_long_t *)map)->insert(*((pair_long_t*)pair));
+		it = ((mmap_long_t *)map)->insert(*((pair_long_t*)pair));
 	}
+	if (returns_it) {
+		return (bctoolbox_iterator_t *) new mmap_long_t::iterator(it);
+	} else
+		return NULL;
 }
+
+extern "C" void bctoolbox_map_insert(bctoolbox_map_t *map,const bctoolbox_pair_t *pair) {
+	bctoolbox_map_insert_base(map,pair,FALSE);
+}
+
 extern "C" void bctoolbox_map_insert_and_delete(bctoolbox_map_t *map, bctoolbox_pair_t *pair) {
 	bctoolbox_map_insert(map,pair);
 	bctoolbox_pair_delete(pair);
 }
+
+extern "C" bctoolbox_iterator_t * bctoolbox_map_insert_and_delete_with_returned_it(bctoolbox_map_t *map, bctoolbox_pair_t *pair) {
+	bctoolbox_iterator_t * it = bctoolbox_map_insert_base(map,pair,TRUE);
+	bctoolbox_pair_delete(pair);
+	return it;
+}
+
 extern "C" bctoolbox_iterator_t *bctoolbox_map_erase(bctoolbox_map_t *map,bctoolbox_iterator_t *it) {
-	bctoolbox_iterator_t *  next = (bctoolbox_iterator_t *) new mmap_long_t::iterator((*(mmap_long_t::iterator*)it));
-	next = bctoolbox_iterator_get_next(next);
-	((mmap_long_t *)map)->erase((*(mmap_long_t::iterator*)it));
-	bctoolbox_iterator_delete(it);
-	return next;
+	//bctoolbox_iterator_t *  next = (bctoolbox_iterator_t *) new mmap_long_t::iterator((*(mmap_long_t::iterator*)it));
+	//next = bctoolbox_iterator_get_next(next);
+	((mmap_long_t *)map)->erase((*(mmap_long_t::iterator*)it)++);
+	//bctoolbox_iterator_delete(it);
+	return it;
 }
 extern "C" bctoolbox_iterator_t *bctoolbox_map_begin(const bctoolbox_map_t *map) {
 	return (bctoolbox_iterator_t *) new mmap_long_t::iterator(((mmap_long_t *)map)->begin());
@@ -70,7 +88,7 @@ extern "C"  bctoolbox_iterator_t *bctoolbox_iterator_get_next_and_delete(bctoolb
 	return next;
 }
 extern "C" bool_t bctoolbox_iterator_equals(const bctoolbox_iterator_t *a,const bctoolbox_iterator_t *b) {
-	return (mmap_long_t::iterator*)a == (mmap_long_t::iterator*)b;
+	return *(mmap_long_t::iterator*)a == *(mmap_long_t::iterator*)b;
 }
 extern "C" void bctoolbox_iterator_delete(bctoolbox_iterator_t *it) {
 	delete ((mmap_long_t::iterator*)it);
@@ -104,4 +122,7 @@ extern "C" bctoolbox_iterator_t * bctoolbox_map_find_custom(bctoolbox_map_t *map
 	bctoolbox_iterator_delete(end);
 	return NULL;
 	
+}
+extern "C" size_t bctoolbox_map_size(const bctoolbox_map_t *map) {
+	return ((mmap_long_t *)map)->size();
 }

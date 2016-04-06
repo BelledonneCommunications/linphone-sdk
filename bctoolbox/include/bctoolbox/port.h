@@ -314,8 +314,8 @@ void bctoolbox_set_memory_functions(BctoolboxMemoryFunctions *functions);
 #define bctoolbox_new(type,count)	(type*)bctoolbox_malloc(sizeof(type)*(count))
 #define bctoolbox_new0(type,count)	(type*)bctoolbox_malloc0(sizeof(type)*(count))
 
-BCTOOLBOX_PUBLIC int close_socket(bctoolbox_socket_t sock);
-BCTOOLBOX_PUBLIC int set_non_blocking_socket(bctoolbox_socket_t sock);
+BCTOOLBOX_PUBLIC int bctoolbox_socket_close(bctoolbox_socket_t sock);
+BCTOOLBOX_PUBLIC int bctoolbox_socket_set_non_blocking(bctoolbox_socket_t sock);
 
 BCTOOLBOX_PUBLIC char *bctoolbox_strndup(const char *str,int n);
 BCTOOLBOX_PUBLIC char *bctoolbox_strdup_printf(const char *fmt,...);

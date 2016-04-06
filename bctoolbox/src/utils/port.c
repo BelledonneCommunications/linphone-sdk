@@ -98,7 +98,7 @@ char * bctoolbox_strdup(const char *tmp){
  * ioctlsocket on Win32.
  * int retrun the result of the system method
  */
-int set_non_blocking_socket (bctoolbox_socket_t sock){
+int bctoolbox_socket_set_non_blocking(bctoolbox_socket_t sock){
 #if	!defined(_WIN32) && !defined(_WIN32_WCE)
 	return fcntl (sock, F_SETFL, O_NONBLOCK);
 #else
@@ -113,7 +113,7 @@ int set_non_blocking_socket (bctoolbox_socket_t sock){
  * closesocket on Win32.
  * int retrun the result of the system method
  */
-int close_socket(bctoolbox_socket_t sock){
+int bctoolbox_socket_close(bctoolbox_socket_t sock){
 #if	!defined(_WIN32) && !defined(_WIN32_WCE)
 	return close (sock);
 #else

@@ -38,7 +38,10 @@ BCTOOLBOX_PUBLIC void bctoolbox_mmap_long_delete(bctoolbox_map_t *mmap);
 BCTOOLBOX_PUBLIC void bctoolbox_map_insert(bctoolbox_map_t *map,const bctoolbox_pair_t *pair);
 /*same as insert, but also deleting pair*/
 BCTOOLBOX_PUBLIC void bctoolbox_map_insert_and_delete(bctoolbox_map_t *map,bctoolbox_pair_t *pair);
-/*invalidate and delete in iterator and return new allocated next*/
+/*same as insert and deleting pair with a newly allocated it returned */
+BCTOOLBOX_PUBLIC bctoolbox_iterator_t * bctoolbox_map_insert_and_delete_with_returned_it(bctoolbox_map_t *map,bctoolbox_pair_t *pair);
+
+/*at return, it point to the next element*/
 BCTOOLBOX_PUBLIC bctoolbox_iterator_t *bctoolbox_map_erase(bctoolbox_map_t *map,bctoolbox_iterator_t *it);
 /*return a new allocated iterator*/
 BCTOOLBOX_PUBLIC bctoolbox_iterator_t *bctoolbox_map_begin(const bctoolbox_map_t *map);
@@ -46,6 +49,8 @@ BCTOOLBOX_PUBLIC bctoolbox_iterator_t *bctoolbox_map_begin(const bctoolbox_map_t
 BCTOOLBOX_PUBLIC bctoolbox_iterator_t *bctoolbox_map_end(const bctoolbox_map_t *map);
 /*return a new allocated iterator or null*/
 BCTOOLBOX_PUBLIC bctoolbox_iterator_t * bctoolbox_map_find_custom(bctoolbox_map_t *map, bctoolbox_compare_func compare_func, const void *user_data);
+
+BCTOOLBOX_PUBLIC size_t bctoolbox_map_size(const bctoolbox_map_t *map);
 
 		
 	
