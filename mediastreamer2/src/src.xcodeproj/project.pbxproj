@@ -1,0 +1,186 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXFileReference section */
+		631C40021CB5029400EAE960 /* .DS_Store */ = {isa = PBXFileReference; lastKnownFileType = file; path = .DS_Store; sourceTree = "<group>"; };
+		631C40031CB5029400EAE960 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		631C40041CB5029400EAE960 /* android */ = {isa = PBXFileReference; lastKnownFileType = folder; path = android; sourceTree = "<group>"; };
+		631C40051CB5029400EAE960 /* audiofilters */ = {isa = PBXFileReference; lastKnownFileType = folder; path = audiofilters; sourceTree = "<group>"; };
+		631C40061CB5029400EAE960 /* base */ = {isa = PBXFileReference; lastKnownFileType = folder; path = base; sourceTree = "<group>"; };
+		631C40071CB5029400EAE960 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		631C40081CB5029400EAE960 /* crypto */ = {isa = PBXFileReference; lastKnownFileType = folder; path = crypto; sourceTree = "<group>"; };
+		631C40091CB5029400EAE960 /* dxfilter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = dxfilter.cpp; sourceTree = "<group>"; };
+		631C400A1CB5029400EAE960 /* dxfilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dxfilter.h; sourceTree = "<group>"; };
+		631C400B1CB5029400EAE960 /* filter-template.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "filter-template.c"; sourceTree = "<group>"; };
+		631C400C1CB5029400EAE960 /* generate_descs_header.cmake */ = {isa = PBXFileReference; lastKnownFileType = text; path = generate_descs_header.cmake; sourceTree = "<group>"; };
+		631C400D1CB5029400EAE960 /* generate_yuv2rgb_header.cmake */ = {isa = PBXFileReference; lastKnownFileType = text; path = generate_yuv2rgb_header.cmake; sourceTree = "<group>"; };
+		631C400E1CB5029400EAE960 /* gitversion.cmake */ = {isa = PBXFileReference; lastKnownFileType = text; path = gitversion.cmake; sourceTree = "<group>"; };
+		631C400F1CB5029400EAE960 /* gitversion.h.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = gitversion.h.in; sourceTree = "<group>"; };
+		631C40101CB5029400EAE960 /* libsrtp.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = libsrtp.map; sourceTree = "<group>"; };
+		631C40111CB5029400EAE960 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
+		631C40121CB5029400EAE960 /* ortp-deps */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "ortp-deps"; sourceTree = "<group>"; };
+		631C40131CB5029400EAE960 /* otherfilters */ = {isa = PBXFileReference; lastKnownFileType = folder; path = otherfilters; sourceTree = "<group>"; };
+		631C40141CB5029400EAE960 /* upnp */ = {isa = PBXFileReference; lastKnownFileType = folder; path = upnp; sourceTree = "<group>"; };
+		631C40151CB5029400EAE960 /* utils */ = {isa = PBXFileReference; lastKnownFileType = folder; path = utils; sourceTree = "<group>"; };
+		631C40161CB5029400EAE960 /* videofilters */ = {isa = PBXFileReference; lastKnownFileType = folder; path = videofilters; sourceTree = "<group>"; };
+		631C40171CB5029400EAE960 /* voip */ = {isa = PBXFileReference; lastKnownFileType = folder; path = voip; sourceTree = "<group>"; };
+		631C40181CB5029400EAE960 /* yuv2rgb.fs */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = yuv2rgb.fs; sourceTree = "<group>"; };
+		631C40191CB5029400EAE960 /* yuv2rgb.fs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = yuv2rgb.fs.h; sourceTree = "<group>"; };
+		631C401A1CB5029400EAE960 /* yuv2rgb.vs */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = yuv2rgb.vs; sourceTree = "<group>"; };
+		631C401B1CB5029400EAE960 /* yuv2rgb.vs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = yuv2rgb.vs.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		631C3FFC1CB5029400EAE960 = {
+			isa = PBXGroup;
+			children = (
+				631C40021CB5029400EAE960 /* .DS_Store */,
+				631C40031CB5029400EAE960 /* .gitignore */,
+				631C40041CB5029400EAE960 /* android */,
+				631C40051CB5029400EAE960 /* audiofilters */,
+				631C40061CB5029400EAE960 /* base */,
+				631C40071CB5029400EAE960 /* CMakeLists.txt */,
+				631C40081CB5029400EAE960 /* crypto */,
+				631C40091CB5029400EAE960 /* dxfilter.cpp */,
+				631C400A1CB5029400EAE960 /* dxfilter.h */,
+				631C400B1CB5029400EAE960 /* filter-template.c */,
+				631C400C1CB5029400EAE960 /* generate_descs_header.cmake */,
+				631C400D1CB5029400EAE960 /* generate_yuv2rgb_header.cmake */,
+				631C400E1CB5029400EAE960 /* gitversion.cmake */,
+				631C400F1CB5029400EAE960 /* gitversion.h.in */,
+				631C40101CB5029400EAE960 /* libsrtp.map */,
+				631C40111CB5029400EAE960 /* Makefile.am */,
+				631C40121CB5029400EAE960 /* ortp-deps */,
+				631C40131CB5029400EAE960 /* otherfilters */,
+				631C40141CB5029400EAE960 /* upnp */,
+				631C40151CB5029400EAE960 /* utils */,
+				631C40161CB5029400EAE960 /* videofilters */,
+				631C40171CB5029400EAE960 /* voip */,
+				631C40181CB5029400EAE960 /* yuv2rgb.fs */,
+				631C40191CB5029400EAE960 /* yuv2rgb.fs.h */,
+				631C401A1CB5029400EAE960 /* yuv2rgb.vs */,
+				631C401B1CB5029400EAE960 /* yuv2rgb.vs.h */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		631C40011CB5029400EAE960 /* src */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION)";
+			buildConfigurationList = 631C401C1CB5029400EAE960 /* Build configuration list for PBXLegacyTarget "src" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = "/Users/gpelloux/code/ios/linphone-iphone/submodules/linphone/mediastreamer2/src";
+			dependencies = (
+			);
+			name = src;
+			passBuildSettingsInEnvironment = 1;
+			productName = src;
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		631C3FFD1CB5029400EAE960 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = 631C40001CB5029400EAE960 /* Build configuration list for PBXProject "src" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 631C3FFC1CB5029400EAE960;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				631C40011CB5029400EAE960 /* src */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		631C3FFE1CB5029400EAE960 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				COPY_PHASE_STRIP = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx10.6;
+			};
+			name = Debug;
+		};
+		631C3FFF1CB5029400EAE960 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				COPY_PHASE_STRIP = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				SDKROOT = macosx10.6;
+			};
+			name = Release;
+		};
+		631C401D1CB5029400EAE960 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				DEBUGGING_SYMBOLS = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = src;
+			};
+			name = Debug;
+		};
+		631C401E1CB5029400EAE960 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = src;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		631C40001CB5029400EAE960 /* Build configuration list for PBXProject "src" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				631C3FFE1CB5029400EAE960 /* Debug */,
+				631C3FFF1CB5029400EAE960 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		631C401C1CB5029400EAE960 /* Build configuration list for PBXLegacyTarget "src" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				631C401D1CB5029400EAE960 /* Debug */,
+				631C401E1CB5029400EAE960 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 631C3FFD1CB5029400EAE960 /* Project object */;
+}

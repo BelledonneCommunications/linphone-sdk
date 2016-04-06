@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef ANDROID
 #include "cpu-features.h"
 #endif
-	
+
 typedef struct _ResampleData{
 	MSBufferizer *bz;
 	uint32_t ts;
@@ -63,9 +63,8 @@ static void resample_data_destroy(ResampleData *obj){
 static void resample_init(MSFilter *obj){
 	ResampleData* data=resample_data_new();
 #ifdef SPEEX_LIB_SET_CPU_FEATURES
-#if defined(__arm__) || defined(_M_ARM)
 	#ifdef ANDROID
-	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM 
+	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM
 		&& (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
 		data->cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
 	}
@@ -73,7 +72,6 @@ static void resample_init(MSFilter *obj){
 	data->cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
 	#endif
 	ms_message("speex_lib_ctl init with neon ? %d", (data->cpuFeatures == SPEEX_LIB_CPU_FEATURE_NEON));
-#endif
 	speex_lib_ctl(SPEEX_LIB_SET_CPU_FEATURES, &data->cpuFeatures);
 #else
 	ms_message("speex_lib_ctl does not support SPEEX_LIB_CPU_FEATURE_NEON");
@@ -82,7 +80,7 @@ static void resample_init(MSFilter *obj){
 }
 
 static void resample_uninit(MSFilter *obj){
-	resample_data_destroy((ResampleData*)obj->data); 
+	resample_data_destroy((ResampleData*)obj->data);
 }
 
 static int resample_channel_adapt(int in_nchannels, int out_nchannels, mblk_t *im, mblk_t **om) {
@@ -130,7 +128,7 @@ static void resample_preprocess(MSFilter *obj){
 static void resample_process_ms2(MSFilter *obj){
 	ResampleData *dt=(ResampleData*)obj->data;
 	mblk_t *im, *om = NULL, *om_chan = NULL;
-	
+
 	if (dt->output_rate==dt->input_rate){
 		while((im=ms_queue_get(obj->inputs[0]))!=NULL){
 			if (resample_channel_adapt(dt->in_nchannels, dt->out_nchannels, im, &om) == 0) {
@@ -155,7 +153,7 @@ static void resample_process_ms2(MSFilter *obj){
 		resample_init_speex(dt);
 	}
 
-	
+
 	while((im=ms_queue_get(obj->inputs[0]))!=NULL){
 		spx_uint32_t inlen=(spx_uint32_t)((im->b_wptr-im->b_rptr)/(2*dt->in_nchannels));
 		spx_uint32_t outlen=(spx_uint32_t)(((inlen*dt->output_rate)/dt->input_rate)+1);
@@ -163,17 +161,17 @@ static void resample_process_ms2(MSFilter *obj){
 		om=allocb(outlen*2*dt->in_nchannels,0);
 		mblk_meta_copy(im, om);
 		if (dt->in_nchannels==1){
-			speex_resampler_process_int(dt->handle, 
-					0, 
-					(spx_int16_t*)im->b_rptr, 
-					&inlen, 
-					(spx_int16_t*)om->b_wptr, 
+			speex_resampler_process_int(dt->handle,
+					0,
+					(spx_int16_t*)im->b_rptr,
+					&inlen,
+					(spx_int16_t*)om->b_wptr,
 					&outlen);
 		}else{
-			speex_resampler_process_interleaved_int(dt->handle, 
-					(int16_t*)im->b_rptr, 
-					&inlen, 
-					(int16_t*)om->b_wptr, 
+			speex_resampler_process_interleaved_int(dt->handle,
+					(int16_t*)im->b_rptr,
+					&inlen,
+					(int16_t*)om->b_wptr,
 					&outlen);
 		}
 		if (inlen_orig!=inlen){
