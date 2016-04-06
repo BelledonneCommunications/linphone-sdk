@@ -311,6 +311,8 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 		return;
 	}
 	
+	source->ml=ml;
+	
 	if (source->timeout>0){
 		belle_sip_object_ref(source);
 		source->expire_ms=belle_sip_time_ms()+source->timeout;

@@ -118,7 +118,7 @@ const void* belle_sip_thread_getspecific(belle_sip_thread_key_t key);
 int belle_sip_thread_key_delete(belle_sip_thread_key_t key);
 
 
-static BELLESIP_INLINE void close_socket(belle_sip_socket_t s){
+static BELLESIP_INLINE void belle_sip_close_socket(belle_sip_socket_t s){
 	closesocket(s);
 }
 
