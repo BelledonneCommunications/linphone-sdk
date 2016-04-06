@@ -26,6 +26,7 @@
 
 /* include all public headers*/
 #include "belle-sip/belle-sip.h"
+#include "bctoolbox/map.h"
 
 #include "port.h"
 
@@ -243,6 +244,8 @@ struct belle_sip_source{
 	unsigned char expired;
 	unsigned char oneshot;
 	unsigned char notify_required; /*for testing purpose, use to ask for being scheduled*/
+	bctoolbox_iterator_t *it; /*for fast removal*/
+	belle_sip_main_loop_t *ml; 
 };
 
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);

@@ -18,7 +18,7 @@
 
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
-
+#include "bctoolbox/map.h"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -177,6 +177,10 @@ void belle_sip_source_uninit(belle_sip_source_t *obj){
 #endif
 	obj->fd=(belle_sip_fd_t)-1;
 	obj->sock=(belle_sip_socket_t)-1;
+	if (obj->it) {
+		bctoolbox_iterator_delete(obj->it);
+		obj->it=NULL;
+	}
 }
 
 void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t func) {
@@ -245,7 +249,8 @@ belle_sip_socket_t belle_sip_source_get_socket(const belle_sip_source_t* source)
 
 struct belle_sip_main_loop{
 	belle_sip_object_t base;
-	belle_sip_list_t *sources;
+	belle_sip_list_t *fd_sources;
+	bctoolbox_map_t *timer_sources;
 	belle_sip_object_pool_t *pool;
 	int nsources;
 	int run;
@@ -253,24 +258,37 @@ struct belle_sip_main_loop{
 };
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
-	if (!source->node.next && !source->node.prev && &source->node!=ml->sources) return; /*nothing to do*/
-	source->cancelled=TRUE;
-	ml->sources=belle_sip_list_remove_link(ml->sources,&source->node);
-	ml->nsources--;
-	
-	if (source->on_remove)
-		source->on_remove(source);
-	belle_sip_object_unref(source);
+	bool_t elem_removed = FALSE;
+	if (source->node.next || source->node.prev || &source->node==ml->fd_sources)  {
+		source->cancelled=TRUE;
+		ml->fd_sources=belle_sip_list_remove_link(ml->fd_sources,&source->node);
+		belle_sip_object_unref(source);
+		elem_removed = TRUE;
+	}
+	if (source->it) {
+		bctoolbox_map_erase(ml->timer_sources, source->it);
+		bctoolbox_iterator_delete(source->it);
+		source->it=NULL;
+		belle_sip_object_unref(source);
+		elem_removed = TRUE;
+	}
+	if (elem_removed) {
+		ml->nsources--;
+		if (source->on_remove)
+			source->on_remove(source);
+		
+	}
 }
 
 
 static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
-	while (ml->sources){
-		belle_sip_main_loop_remove_source(ml,(belle_sip_source_t*)ml->sources->data);
+	while (ml->fd_sources){
+		belle_sip_main_loop_remove_source(ml,(belle_sip_source_t*)ml->fd_sources->data);
 	}
 	if (belle_sip_object_pool_cleanable(ml->pool)){
 		belle_sip_object_unref(ml->pool);
 	}
+	bctoolbox_mmap_long_delete(ml->timer_sources);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_main_loop_t);
@@ -279,6 +297,7 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_main_loop_t,belle_sip_object_t,belle_sip_ma
 belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 	belle_sip_main_loop_t*m=belle_sip_object_new(belle_sip_main_loop_t);
 	m->pool=belle_sip_object_pool_push();
+	m->timer_sources = bctoolbox_mmap_long_new();
 	return m;
 }
 
@@ -291,12 +310,19 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 		belle_sip_fatal("Insane source passed to belle_sip_main_loop_add_source() !");
 		return;
 	}
-	belle_sip_object_ref(source);
-	if (source->timeout>=0){
+	
+	if (source->timeout>0){
+		belle_sip_object_ref(source);
 		source->expire_ms=belle_sip_time_ms()+source->timeout;
+		source->it = bctoolbox_map_insert_and_delete_with_returned_it(ml->timer_sources
+																	  , (bctoolbox_pair_t*)bctoolbox_pair_long_new(source->expire_ms, source));
 	}
 	source->cancelled=FALSE;
-	ml->sources=belle_sip_list_prepend_link(ml->sources,&source->node);
+	if (source->fd != -1 ) {
+		belle_sip_object_ref(source);
+		ml->fd_sources=belle_sip_list_prepend_link(ml->fd_sources,&source->node);
+	}
+
 	ml->nsources++;
 }
 
@@ -338,6 +364,15 @@ unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s){
 }
 void belle_sip_source_cancel(belle_sip_source_t *s){
 	if (s) s->cancelled=TRUE;
+	if (s->it) {
+		bctoolbox_map_erase(s->ml->timer_sources, s->it);
+		bctoolbox_iterator_delete(s->it);
+		s->it=NULL;
+		if (s->fd == -1) {
+			/*hack to make sure source is "removed at next iterate*/
+			s->ml->fd_sources = belle_sip_list_append(s->ml->fd_sources,s);
+		}
+	}
 }
 
 static int match_source_id(const void *s, const void *pid){
@@ -348,11 +383,19 @@ static int match_source_id(const void *s, const void *pid){
 }
 
 belle_sip_source_t *belle_sip_main_loop_find_source(belle_sip_main_loop_t *ml, unsigned long id){
-	belle_sip_list_t *elem=belle_sip_list_find_custom(ml->sources,match_source_id,(const void*)(intptr_t)id);
-	if (elem!=NULL){
-		return (belle_sip_source_t*)elem->data;
-	}
-	return NULL;
+	bctoolbox_iterator_t *it;
+	belle_sip_source_t *ret=NULL;
+	belle_sip_list_t *elem=belle_sip_list_find_custom(ml->fd_sources,match_source_id,(const void*)(intptr_t)id);
+	if (elem!=NULL) {
+		ret = (belle_sip_source_t*)elem->data;
+	} else if ((it = bctoolbox_map_find_custom(ml->timer_sources, match_source_id, (const void*)(intptr_t)id))) {
+		ret = (belle_sip_source_t*)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it));
+		bctoolbox_iterator_delete(it);
+	} /*else
+		ret = NULL;*/
+	
+	return ret;
+	
 }
 
 void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id){
@@ -366,13 +409,13 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	int i=0;
 	belle_sip_source_t *s;
 	belle_sip_list_t *elem,*next;
-	uint64_t min_time_ms=(uint64_t)-1;
 	int duration=-1;
 	int ret;
-	uint64_t cur;
+	uint64_t cur,next_wakeup_time;
 	belle_sip_list_t *to_be_notified=NULL;
 	int can_clean=belle_sip_object_pool_cleanable(ml->pool); /*iterate might not be called by the thread that created the main loop*/ 
 	belle_sip_object_pool_t *tmp_pool=NULL;
+	bctoolbox_iterator_t *it,*end;
 	
 	if (ml->in_iterate){
 		belle_sip_warning("belle_sip_main_loop_iterate([%p]): reentrancy detected, doing nothing.",ml);
@@ -386,7 +429,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 	
 	/*Step 1: prepare the pollfd table and get the next timeout value */
-	for(elem=ml->sources;elem!=NULL;elem=next){
+	for(elem=ml->fd_sources;elem!=NULL;elem=next) {
 		next=elem->next;
 		s=(belle_sip_source_t*)elem->data;
 		if (!s->cancelled){
@@ -394,24 +437,27 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				belle_sip_source_to_poll(s,pfd,i);
 				++i;
 			}
-			if (s->timeout>=0){
-				if (min_time_ms>s->expire_ms){
-					min_time_ms=s->expire_ms;
-				}
-			}
 		}
 	}
-	
-	if (min_time_ms!=(uint64_t)-1 ){
+	/*all source with timeout are in ml->timer_sources*/
+	if (bctoolbox_map_size(ml->timer_sources) >0) {
+		belle_sip_source_t *first_source;
 		int64_t diff;
+		it = bctoolbox_map_begin(ml->timer_sources);
+		first_source = (belle_sip_source_t*)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it));
+		next_wakeup_time = first_source->expire_ms;
+		
 		/* compute the amount of time to wait for shortest timeout*/
 		cur=belle_sip_time_ms();
-		diff=min_time_ms-cur;
+		diff=next_wakeup_time-cur;
 		if (diff>0)
 			duration=(int)diff;
 		else 
 			duration=0;
+		bctoolbox_iterator_delete(it);
+		it = NULL;
 	}
+	
 	/* do the poll */
 	ret=belle_sip_poll(pfd,i,duration);
 	if (ret==-1){
@@ -420,10 +466,9 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	
 	/* Step 2: examine poll results and determine the list of source to be notified */
 	cur=belle_sip_time_ms();
-	for(elem=ml->sources;elem!=NULL;elem=elem->next){
+	for(elem=ml->fd_sources;elem!=NULL;elem=elem->next){
 		unsigned revents=0;
 		s=(belle_sip_source_t*)elem->data;
-
 		if (!s->cancelled){
 			if (s->fd!=(belle_sip_fd_t)-1){
 				if (s->notify_required) { /*for testing purpose to force channel to read*/
@@ -434,16 +479,39 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				}
 				s->revents=revents;
 			}
-			if (revents!=0 || (s->timeout>=0 && cur>=s->expire_ms)){
+			if (revents!=0 /*|| (s->timeout>=0 && cur>=s->expire_ms)*/){
 				to_be_notified=belle_sip_list_append(to_be_notified,belle_sip_object_ref(s));
 				s->expired=TRUE;
-				if (s->revents==0)
-					s->revents=BELLE_SIP_EVENT_TIMEOUT;
+				/*if (s->revents==0)
+					s->revents=BELLE_SIP_EVENT_TIMEOUT;*/
 			}
 		}else to_be_notified=belle_sip_list_append(to_be_notified,belle_sip_object_ref(s));
 	}
+
+	/* Step 3: find timeouted sources */
+	it = bctoolbox_map_begin(ml->timer_sources);
+	end = bctoolbox_map_end(ml->timer_sources);
+	while (!bctoolbox_iterator_equals(it,end)) {
+		s = (belle_sip_source_t*)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it));
+		if (s->expire_ms > cur) {
+			it=bctoolbox_iterator_get_next(it);
+		} else {
+			if (s->revents==0) {
+				s->revents=BELLE_SIP_EVENT_TIMEOUT;
+				to_be_notified=belle_sip_list_append(to_be_notified,belle_sip_object_ref(s));
+				it=bctoolbox_iterator_get_next(it);
+			} else {
+				/*just remove from timeout list*/
+				it=bctoolbox_map_erase(ml->timer_sources, it);
+				bctoolbox_iterator_delete(s->it);
+				s->it=NULL;
+			}
+		}
+	}
+	bctoolbox_iterator_delete(it);
+	bctoolbox_iterator_delete(end);
 	
-	/* Step 3: notify those to be notified */
+	/* Step 4: notify those to be notified */
 	for(elem=to_be_notified;elem!=NULL;){
 		s=(belle_sip_source_t*)elem->data;
 		next=elem->next;
@@ -468,6 +536,10 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 					s->expire_ms+=s->timeout;
 				}
 				s->expired=FALSE;
+				bctoolbox_map_erase(ml->timer_sources, s->it);
+				bctoolbox_iterator_delete(s->it);
+				s->it = bctoolbox_map_insert_and_delete_with_returned_it(ml->timer_sources
+																			  , (bctoolbox_pair_t*)bctoolbox_pair_long_new(s->expire_ms, s));
 			}
 		}else belle_sip_main_loop_remove_source(ml,s);
 		belle_sip_object_unref(s);
@@ -476,10 +548,13 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 	
 	if (can_clean) belle_sip_object_pool_clean(ml->pool);
-	else if (tmp_pool) belle_sip_object_unref(tmp_pool);
+	else if (tmp_pool) {
+		belle_sip_object_unref(tmp_pool);
+		tmp_pool=NULL;
+	}
 end:
-	belle_sip_free(pfd);
 	
+	belle_sip_free(pfd);
 	ml->in_iterate=FALSE;
 }
 

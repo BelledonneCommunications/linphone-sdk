@@ -88,7 +88,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 
 void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
 	if (ftester_printf == NULL) ftester_printf = log_handler;
-	bc_tester_init(ftester_printf, BELLE_SIP_LOG_MESSAGE, BELLE_SIP_LOG_ERROR, "certificates");
+	bc_tester_init(ftester_printf, BELLE_SIP_LOG_MESSAGE, BELLE_SIP_LOG_ERROR, NULL);
 	belle_sip_init_sockets();
 	belle_sip_object_enable_marshal_check(TRUE);
 	ipv6_available=_belle_sip_tester_ipv6_available();

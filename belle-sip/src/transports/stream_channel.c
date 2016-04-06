@@ -81,7 +81,7 @@ void stream_channel_close(belle_sip_stream_channel_t *obj){
 			obj->write_stream=NULL;
 		}
 #endif
-		close_socket(sock);
+		belle_sip_close_socket(sock);
 	}
 }
 
@@ -138,7 +138,7 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 	err = connect(sock,ai->ai_addr,ai->ai_addrlen);
 	if (err != 0 && get_socket_error()!=BELLESIP_EINPROGRESS && get_socket_error()!=BELLESIP_EWOULDBLOCK) {
 		belle_sip_error("stream connect failed %s",belle_sip_get_socket_error_string());
-		close_socket(sock);
+		belle_sip_close_socket(sock);
 		return -1;
 	}
 	belle_sip_channel_set_socket((belle_sip_channel_t*)obj,sock,(belle_sip_source_func_t)stream_channel_process_data);

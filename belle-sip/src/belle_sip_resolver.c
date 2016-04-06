@@ -1165,7 +1165,7 @@ void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, 
 		sin->sin_port=htons(local_port);
 	}
 	
-	close_socket(sock);
+	belle_sip_close_socket(sock);
 	return;
 fail:
 	{
@@ -1178,7 +1178,7 @@ fail:
 			if (af_type == AF_INET) belle_sip_fatal("belle_sip_get_src_addr_for(): belle_sip_ip_address_to_addrinfo() failed");
 		}
 	}
-	if (sock!=(belle_sip_socket_t)-1) close_socket(sock);
+	if (sock!=(belle_sip_socket_t)-1) belle_sip_close_socket(sock);
 }
 
 #ifndef IN6_GET_ADDR_V4MAPPED
