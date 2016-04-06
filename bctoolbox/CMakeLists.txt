@@ -194,7 +194,7 @@ else()
 endif()
 
 add_compile_options(${STRICT_OPTIONS_CPP} ${STRICT_OPTIONS_C})
-
+check_library_exists("rt" "clock_gettime" "" HAVE_LIBRT)
 
 add_subdirectory(include)
 add_subdirectory(src)

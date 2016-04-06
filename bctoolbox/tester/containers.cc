@@ -21,7 +21,7 @@
 #include "bctoolbox/map.h"
 #include "bctoolbox/list.h"
 
-void multimap_insert(void) {
+static void multimap_insert(void) {
 	bctoolbox_map_t *mmap = bctoolbox_mmap_long_new();
 	bctoolbox_list_t *ref = NULL;
 	bctoolbox_iterator_t *it;
@@ -41,12 +41,12 @@ void multimap_insert(void) {
 		BC_ASSERT_EQUAL((long)bctoolbox_list_get_data(ref)
 						,(long)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it))
 		,long, "%lu");
-		it = bctoolbox_iterator_get_next_and_delete(it);
+		it = bctoolbox_iterator_get_next(it);
 	}
 	bctoolbox_mmap_long_delete(mmap);
 }
 
-void multimap_erase(void) {
+static void multimap_erase(void) {
 	bctoolbox_map_t *mmap = bctoolbox_mmap_long_new();
 	bctoolbox_iterator_t *it;
 	bctoolbox_iterator_t *end;
@@ -62,10 +62,7 @@ void multimap_erase(void) {
 	for(it = bctoolbox_map_begin(mmap);!bctoolbox_iterator_equals(it,end);) {
 		long value = (long)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it));
 		if (value < N/2) {
-			bctoolbox_iterator_t *cur = it;
-			it=bctoolbox_iterator_get_next(it);
-			bctoolbox_map_erase(mmap, cur);
-			bctoolbox_iterator_delete(cur);
+			it = bctoolbox_map_erase(mmap, it);
 		} else {
 			break;
 		}
@@ -79,9 +76,31 @@ void multimap_erase(void) {
 	bctoolbox_iterator_delete(end);
 	
 }
+static int compare_func(const void *a, const void*b) {
+	return (long)a == (long)b;
+}
+static void multimap_find_custom(void) {
+	bctoolbox_map_t *mmap = bctoolbox_mmap_long_new();
+	long i=0;
+	int N = 100;
+	
+	for(i=0;i<N;i++) {
+		bctoolbox_pair_t* pair = (bctoolbox_pair_t*)bctoolbox_pair_long_new(i, (void*)((long)i));
+		bctoolbox_map_insert_and_delete(mmap, pair);
+	}
+	bctoolbox_iterator_t * it = bctoolbox_map_find_custom(mmap, compare_func, (void*)10l);
+	BC_ASSERT_EQUAL((long)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it))
+					, 0
+					,long, "%lu");
+	bctoolbox_mmap_long_delete(mmap);
+	bctoolbox_iterator_delete(it);
+}
+
+
 static test_t container_tests[] = {
-	TEST_NO_TAG("mmap", multimap_insert),
-	TEST_NO_TAG("mmap", multimap_erase),
+	TEST_NO_TAG("mmap insert", multimap_insert),
+	TEST_NO_TAG("mmap erase", multimap_erase),
+	TEST_NO_TAG("mmap find custom", multimap_find_custom),
 };
 
 test_suite_t containers_test_suite = {"Containers", NULL, NULL, NULL, NULL,

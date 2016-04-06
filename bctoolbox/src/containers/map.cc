@@ -43,8 +43,12 @@ extern "C" void bctoolbox_map_insert_and_delete(bctoolbox_map_t *map, bctoolbox_
 	bctoolbox_map_insert(map,pair);
 	bctoolbox_pair_delete(pair);
 }
-extern "C" void bctoolbox_map_erase(bctoolbox_map_t *map,bctoolbox_iterator_t *it) {
+extern "C" bctoolbox_iterator_t *bctoolbox_map_erase(bctoolbox_map_t *map,bctoolbox_iterator_t *it) {
+	bctoolbox_iterator_t *  next = (bctoolbox_iterator_t *) new mmap_long_t::iterator((*(mmap_long_t::iterator*)it));
+	next = bctoolbox_iterator_get_next(next);
 	((mmap_long_t *)map)->erase((*(mmap_long_t::iterator*)it));
+	bctoolbox_iterator_delete(it);
+	return next;
 }
 extern "C" bctoolbox_iterator_t *bctoolbox_map_begin(const bctoolbox_map_t *map) {
 	return (bctoolbox_iterator_t *) new mmap_long_t::iterator(((mmap_long_t *)map)->begin());
@@ -56,10 +60,9 @@ extern "C"  bctoolbox_iterator_t * bctoolbox_map_end(const bctoolbox_map_t *map)
 extern "C" bctoolbox_pair_t *bctoolbox_iterator_get_pair(const bctoolbox_iterator_t *it) {
 	return (bctoolbox_pair_t *)&(**((mmap_long_t::iterator*)it));
 }
-extern "C" bctoolbox_iterator_t *bctoolbox_iterator_get_next(const bctoolbox_iterator_t *it) {
-	mmap_long_t::iterator *next = new mmap_long_t::iterator(*(mmap_long_t::iterator*)it);
-	next->operator++();
-	return (bctoolbox_iterator_t *)next;
+extern "C" bctoolbox_iterator_t *bctoolbox_iterator_get_next(bctoolbox_iterator_t *it) {
+	((mmap_long_t::iterator*)it)->operator++();
+	return it;
 }
 extern "C"  bctoolbox_iterator_t *bctoolbox_iterator_get_next_and_delete(bctoolbox_iterator_t *it) {
 	bctoolbox_iterator_t * next = bctoolbox_iterator_get_next(it);
@@ -88,4 +91,17 @@ extern "C" void bctoolbox_pair_delete(bctoolbox_pair_t * pair) {
 	delete ((pair_long_t*)pair);
 }
 
-
+extern "C" bctoolbox_iterator_t * bctoolbox_map_find_custom(bctoolbox_map_t *map, bctoolbox_compare_func compare_func, const void *user_data) {
+	bctoolbox_iterator_t * end = bctoolbox_map_end(map);
+	
+	for(bctoolbox_iterator_t * it = bctoolbox_map_begin(map);!bctoolbox_iterator_equals(it,end);) {
+		if (compare_func(bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it)),user_data)==0) {
+			bctoolbox_iterator_delete(end);
+			return it;
+		}
+		
+	}
+	bctoolbox_iterator_delete(end);
+	return NULL;
+	
+}

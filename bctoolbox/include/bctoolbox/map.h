@@ -18,7 +18,7 @@
 
 #ifndef BCTOOLBOX_MMAP_H_
 #define BCTOOLBOX_MMAP_H_
-
+#include "bctoolbox/list.h"
 #include "bctoolbox/port.h"
 
 #ifdef __cplusplus
@@ -38,18 +38,21 @@ BCTOOLBOX_PUBLIC void bctoolbox_mmap_long_delete(bctoolbox_map_t *mmap);
 BCTOOLBOX_PUBLIC void bctoolbox_map_insert(bctoolbox_map_t *map,const bctoolbox_pair_t *pair);
 /*same as insert, but also deleting pair*/
 BCTOOLBOX_PUBLIC void bctoolbox_map_insert_and_delete(bctoolbox_map_t *map,bctoolbox_pair_t *pair);
-BCTOOLBOX_PUBLIC void bctoolbox_map_erase(bctoolbox_map_t *map,bctoolbox_iterator_t *it);
+/*invalidate and delete in iterator and return new allocated next*/
+BCTOOLBOX_PUBLIC bctoolbox_iterator_t *bctoolbox_map_erase(bctoolbox_map_t *map,bctoolbox_iterator_t *it);
 /*return a new allocated iterator*/
 BCTOOLBOX_PUBLIC bctoolbox_iterator_t *bctoolbox_map_begin(const bctoolbox_map_t *map);
 /*return a new allocated iterator*/
 BCTOOLBOX_PUBLIC bctoolbox_iterator_t *bctoolbox_map_end(const bctoolbox_map_t *map);
+/*return a new allocated iterator or null*/
+BCTOOLBOX_PUBLIC bctoolbox_iterator_t * bctoolbox_map_find_custom(bctoolbox_map_t *map, bctoolbox_compare_func compare_func, const void *user_data);
 
+		
+	
 /*iterator*/
 BCTOOLBOX_PUBLIC bctoolbox_pair_t *bctoolbox_iterator_get_pair(const bctoolbox_iterator_t *it);
-/*return a new allocated iterator*/
-BCTOOLBOX_PUBLIC bctoolbox_iterator_t *bctoolbox_iterator_get_next(const bctoolbox_iterator_t *it);
-/* return a new allocated iterator and delete previous*/
-BCTOOLBOX_PUBLIC bctoolbox_iterator_t *bctoolbox_iterator_get_next_and_delete(bctoolbox_iterator_t *it);
+/*return same pointer but pointing to next*/
+BCTOOLBOX_PUBLIC bctoolbox_iterator_t *bctoolbox_iterator_get_next(bctoolbox_iterator_t *it);
 BCTOOLBOX_PUBLIC  bool_t bctoolbox_iterator_equals(const bctoolbox_iterator_t *a,const bctoolbox_iterator_t *b);
 	
 	
