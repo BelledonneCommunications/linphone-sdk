@@ -218,12 +218,12 @@ struct pumpstream : public std::ostringstream {
 	}
 };
 
-#if (__GNUC__ == 4 && __GNUC_MINOR__ < 5)
-template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _Tp &__x) {
-	(static_cast<std::ostringstream &>(__os)) << __x;
-	return __os;
-}
-#endif
+//#if (__GNUC__ == 4 && __GNUC_MINOR__ < 5)
+//template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _Tp &__x) {
+//	(static_cast<std::ostringstream &>(__os)) << __x;
+//	return __os;
+//}
+//#endif
 
 #define BCTOOLBOX_SLOG(domain, thelevel) \
 \
