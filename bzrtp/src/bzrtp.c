@@ -36,19 +36,18 @@
 #define BZRTP_ERROR_INVALIDCHANNELCONTEXT 0x8001
 
 /* local functions prototypes */
-static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC);
+static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC, uint8_t isMain);
 static void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
 static bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 static uint8_t copyCryptoTypes(uint8_t destination[7], uint8_t source[7], uint8_t size);
 
 /*
  * Create context structure and initialise it 
- * A channel context is created to, the selfSSRC is given to it
  *
  * @return The ZRTP engine context data
  *                                                                        
 */
-bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC) {
+bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	int i;
 	/*** create and intialise the context structure ***/
 	bzrtpContext_t *context = malloc(sizeof(bzrtpContext_t));
@@ -62,6 +61,7 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC) {
 	/* set flags */
 	context->isSecure = 0; /* start unsecure */
 	context->peerSupportMultiChannel = 0; /* peer does not support Multichannel by default */
+	context->isInitialised = 0; /* will be set by bzrtp_initBzrtpContext */
 
 	/* set to NULL all callbacks pointer */
 	context->zrtpCallbacks.bzrtp_loadCache = NULL;
@@ -71,10 +71,7 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC) {
 	context->zrtpCallbacks.bzrtp_startSrtpSession = NULL;
 	context->zrtpCallbacks.bzrtp_contextReadyForExportedKeys = NULL;
 	
-	/* allocate 1 channel context, set all the others pointers to NULL */
-	context->channelContext[0] = (bzrtpChannelContext_t *)malloc(sizeof(bzrtpChannelContext_t));
-	memset(context->channelContext[0], 0, sizeof(bzrtpChannelContext_t));
-	bzrtp_initChannelContext(context, context->channelContext[0], selfSSRC);
+
 
 	for (i=1; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
 		context->channelContext[i] = NULL;
@@ -116,13 +113,22 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC) {
  *  - load cache
  *	- get ZID from cache or generate it
  *
+ *	Initialise the first channel
+ *
  *	@param[in] 	context		The context to initialise
+ *	#param[in]	selfSSRC	SSRC of the first channel
  */
-void bzrtp_initBzrtpContext(bzrtpContext_t *context) {
+void bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 
 	/* initialise ZID. Randomly generated if no ZID is found in cache or no cache found */
 	/* This call will load the cache or create it if the cache callback functions are not null*/
 	bzrtp_getSelfZID(context, context->selfZID);
+	context->isInitialised = 1;
+
+	/* allocate 1 channel context, set all the others pointers to NULL */
+	context->channelContext[0] = (bzrtpChannelContext_t *)malloc(sizeof(bzrtpChannelContext_t));
+	memset(context->channelContext[0], 0, sizeof(bzrtpChannelContext_t));
+	bzrtp_initChannelContext(context, context->channelContext[0], selfSSRC, 1);
 }
 
 /*
@@ -233,14 +239,9 @@ int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 		return BZRTP_ERROR_INVALIDCONTEXT;
 	}
 
-	/* is ZRTP context able to add a channel (means channel 0 has already performed the secrets generation) */
-	if (zrtpContext->isSecure == 0) {
+	/* context must be initialised(selfZID available) to enable the creation of an additional channel */
+	if (zrtpContext->isInitialised == 0) {
 		return BZRTP_ERROR_CONTEXTNOTREADY;
-	}
-
-	/* check the peer support Multichannel(shall be set in the first Hello message received) */
-	if (zrtpContext->peerSupportMultiChannel == 0) {
-		return BZRTP_ERROR_MULTICHANNELNOTSUPPORTEDBYPEER;
 	}
 
 	/* get the first free channel context from ZRTP context and create a channel context */
@@ -249,7 +250,7 @@ int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 			int retval;
 			zrtpChannelContext = (bzrtpChannelContext_t *)malloc(sizeof(bzrtpChannelContext_t));
 			memset(zrtpChannelContext, 0, sizeof(bzrtpChannelContext_t));
-			retval = bzrtp_initChannelContext(zrtpContext, zrtpChannelContext, selfSSRC);
+			retval = bzrtp_initChannelContext(zrtpContext, zrtpChannelContext, selfSSRC, 0);
 			if (retval != 0) {
 				free(zrtpChannelContext);
 				return retval;
@@ -287,6 +288,19 @@ int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 
 	if (zrtpChannelContext == NULL) {
 		return BZRTP_ERROR_UNABLETOSTARTCHANNEL;
+	}
+
+	/* if this is an additional channel(not channel 0), we must be sure that channel 0 is already secured */
+	if (zrtpChannelContext->isMainChannel == 0) {
+		/* is ZRTP context able to add a channel (means channel 0 has already performed the secrets generation) */
+		if (zrtpContext->isSecure == 0) {
+			return BZRTP_ERROR_CONTEXTNOTREADY;
+		}
+
+		/* check the peer support Multichannel(shall be set in the first Hello message received) */
+		if (zrtpContext->peerSupportMultiChannel == 0) {
+			return BZRTP_ERROR_MULTICHANNELNOTSUPPORTEDBYPEER;
+		}
 	}
 
 	/* set the timer reference to 0 to force a message to be sent at first timer tick */
@@ -346,6 +360,26 @@ int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeR
 			}
 		}
 	}
+
+	return 0;
+}
+
+/*
+ * @brief Set the ZID cache data pointer in the global zrtp context
+ * This pointer is returned to the client by the callbacks function linked to cache: bzrtp_loadCache, bzrtp_writeCache and bzrtp_contextReadyForExportedKeys
+ * @param[in/out]	zrtpContext		The ZRTP context we're dealing with
+ * @param[in]		selfSSRC		The SSRC identifying the channel to be linked to the client Data
+ * @param[in]		ZIDCacheData	The ZIDCacheData pointer, casted to a (void *)
+ *
+ * @return 0 on success
+ *
+ */
+int bzrtp_setZIDCacheData(bzrtpContext_t *zrtpContext, void *ZIDCacheData) {
+	if (zrtpContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	zrtpContext->ZIDCacheData = ZIDCacheData;
 
 	return 0;
 }
@@ -795,16 +829,17 @@ static bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uin
 	return NULL; /* found no channel with this SSRC */
 }
 /**
- * @brief Initialise the context of a channel
+ * @brief Initialise the context of a channel and create and store the Hello packet
  * Initialise some vectors
  * 
  * @param[in] 		zrtpContext			The zrtpContext hosting this channel, needed to acces the RNG
  * @param[out]		zrtpChanneContext	The channel context to be initialised
  * @param[in]		selfSSRC			The SSRC allocated to this channel
+ * @param[in]		isMain				This channel is channel 0 or an additional channel
  *
  * @return	0 on success, error code otherwise
  */
-static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC) {
+static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC, uint8_t isMain) {
 	int i;
 	if (zrtpChannelContext == NULL) {
 		return BZRTP_ERROR_INVALIDCHANNELCONTEXT;
@@ -823,6 +858,7 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 
 	/* flags */
 	zrtpChannelContext->isSecure = 0;
+	zrtpChannelContext->isMainChannel = isMain;
 
 	/* initialise as initiator, switch to responder later if needed */
 	zrtpChannelContext->role = INITIATOR;

@@ -1610,7 +1610,7 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
  *
  * @param[in]		zrtpContext				The current zrtp Context
  * @param[in/out]	zrtpChannelContext		The channel we are operating
- * @param[in]		zrtpPacket				The zrtpPacket receives, it contains the commit message
+ * @param[in]		zrtpPacket				The zrtpPacket received, it contains the hello message
  *
  * @return 0 on succes, error code otherwise
  */
@@ -1647,49 +1647,50 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	memcpy(zrtpChannelContext->peerH[3], helloMessage->H3, 32); /* H3 */
 	zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket; /* peer hello packet */
 
-	/* get from cache, if relevant, the retained secrets associated to the peer ZID */
-	if (zrtpContext->cachedSecret.rs1 == NULL) { /* if we do not have already secret hashes in this session context. Note, they may be updated in cache file but they also will be in the context at the same time, so no need to parse the cache again */
-		bzrtp_getPeerAssociatedSecretsHash(zrtpContext, helloMessage->ZID);
-	}
-
-	/* now compute the retained secret hashes (secrets may be updated but not their hash) as in rfc section 4.3.1 */
-	if (zrtpContext->cachedSecret.rs1!=NULL) {
-		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, zrtpContext->initiatorCachedSecretHash.rs1ID);
-		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, (uint8_t *)"Responder", 9, 8, zrtpContext->responderCachedSecretHash.rs1ID);
-	} else { /* we have no secret, generate a random */
-		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.rs1ID, 8);
-		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.rs1ID, 8);
-	}
-
-	if (zrtpContext->cachedSecret.rs2!=NULL) {
-		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs2, zrtpContext->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, zrtpContext->initiatorCachedSecretHash.rs2ID);
-		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs2, zrtpContext->cachedSecret.rs2Length, (uint8_t *)"Responder", 9, 8, zrtpContext->responderCachedSecretHash.rs2ID);
-	} else { /* we have no secret, generate a random */
-		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.rs2ID, 8);
-		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.rs2ID, 8);
-	}
-
-		
-	if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
-		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.pbxsecret, zrtpContext->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, zrtpContext->initiatorCachedSecretHash.pbxsecretID);
-		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.pbxsecret, zrtpContext->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, zrtpContext->responderCachedSecretHash.pbxsecretID);
-	} else { /* we have no secret, generate a random */
-		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.pbxsecretID, 8);
-		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
-	}
-
-	if (zrtpContext->cachedSecret.auxsecret!=NULL) {
-		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.auxsecret, zrtpContext->cachedSecret.auxsecretLength, zrtpChannelContext->selfH[3], 32, 8, zrtpChannelContext->initiatorAuxsecretID);
-		zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.auxsecret, zrtpContext->cachedSecret.auxsecretLength, zrtpChannelContext->peerH[3], 32, 8, zrtpChannelContext->responderAuxsecretID);
-	} else { /* we have no secret, generate a random */
-		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpChannelContext->initiatorAuxsecretID, 8);
-		bctoolbox_rng_get(zrtpContext->RNGContext, zrtpChannelContext->responderAuxsecretID, 8);
-	}
-
 	/* now select mode according to context */
 	if ((zrtpContext->peerSupportMultiChannel) == 1 && (zrtpContext->ZRTPSess != NULL)) { /* if we support multichannel and already have a ZRTPSess key, switch to multichannel mode */
 		zrtpChannelContext->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
 		zrtpChannelContext->keyAgreementLength = 0;
+	} else { /* we are not in multiStream mode, so we shall compute the hash of shared secrets */
+		/* get from cache, if relevant, the retained secrets associated to the peer ZID */
+		if (zrtpContext->cachedSecret.rs1 == NULL) { /* if we do not have already secret hashes in this session context. Note, they may be updated in cache file but they also will be in the context at the same time, so no need to parse the cache again */
+			bzrtp_getPeerAssociatedSecretsHash(zrtpContext, helloMessage->ZID);
+		}
+
+		/* now compute the retained secret hashes (secrets may be updated but not their hash) as in rfc section 4.3.1 */
+		if (zrtpContext->cachedSecret.rs1!=NULL) {
+			zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, zrtpContext->initiatorCachedSecretHash.rs1ID);
+			zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, (uint8_t *)"Responder", 9, 8, zrtpContext->responderCachedSecretHash.rs1ID);
+		} else { /* we have no secret, generate a random */
+			bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.rs1ID, 8);
+			bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.rs1ID, 8);
+		}
+
+		if (zrtpContext->cachedSecret.rs2!=NULL) {
+			zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs2, zrtpContext->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, zrtpContext->initiatorCachedSecretHash.rs2ID);
+			zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.rs2, zrtpContext->cachedSecret.rs2Length, (uint8_t *)"Responder", 9, 8, zrtpContext->responderCachedSecretHash.rs2ID);
+		} else { /* we have no secret, generate a random */
+			bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.rs2ID, 8);
+			bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.rs2ID, 8);
+		}
+
+		
+		if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
+			zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.pbxsecret, zrtpContext->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, zrtpContext->initiatorCachedSecretHash.pbxsecretID);
+			zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.pbxsecret, zrtpContext->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, zrtpContext->responderCachedSecretHash.pbxsecretID);
+		} else { /* we have no secret, generate a random */
+			bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->initiatorCachedSecretHash.pbxsecretID, 8);
+			bctoolbox_rng_get(zrtpContext->RNGContext, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
+		}
+
+		if (zrtpContext->cachedSecret.auxsecret!=NULL) {
+			zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.auxsecret, zrtpContext->cachedSecret.auxsecretLength, zrtpChannelContext->selfH[3], 32, 8, zrtpChannelContext->initiatorAuxsecretID);
+			zrtpChannelContext->hmacFunction(zrtpContext->cachedSecret.auxsecret, zrtpContext->cachedSecret.auxsecretLength, zrtpChannelContext->peerH[3], 32, 8, zrtpChannelContext->responderAuxsecretID);
+		} else { /* we have no secret, generate a random */
+			bctoolbox_rng_get(zrtpContext->RNGContext, zrtpChannelContext->initiatorAuxsecretID, 8);
+			bctoolbox_rng_get(zrtpContext->RNGContext, zrtpChannelContext->responderAuxsecretID, 8);
+		}
+
 	}
 
 	/* When in PreShared mode Derive ZRTPSess, s0 from the retained secret and then all the other keys */
@@ -2151,7 +2152,7 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 
 	/* if exist, call the callback function to perform custom cache operation that may use s0(writing exported key into cache) */
 	if (zrtpContext->zrtpCallbacks.bzrtp_contextReadyForExportedKeys != NULL) {
-		zrtpContext->zrtpCallbacks.bzrtp_contextReadyForExportedKeys(zrtpChannelContext->clientData, zrtpContext->peerZID, zrtpChannelContext->role);
+		zrtpContext->zrtpCallbacks.bzrtp_contextReadyForExportedKeys(zrtpContext->ZIDCacheData, zrtpChannelContext->clientData, zrtpContext->peerZID, zrtpChannelContext->role);
 	}
 	/* destroy s0 */
 	bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);

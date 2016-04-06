@@ -128,6 +128,7 @@ struct bzrtpChannelContext_struct {
 
 	/* flags */
 	uint8_t isSecure; /**< This flag is set to 1 when the ZRTP negociation ends and SRTP secrets are generated and confirmed for this channel */
+	uint8_t isMainChannel; /**< this flag is set for the firt channel only, allow to distinguish channel to be secured using DHM or multiStream */
 
 	/* Hash chains, self is generated at channel context init */
 	uint8_t selfH[4][32]; /**< Store self 256 bits Hash images H0-H3 used to generate messages MAC */
@@ -186,12 +187,14 @@ struct bzrtpChannelContext_struct {
  * Store current state, timers, HMAC and encryption keys
 */
 struct bzrtpContext_struct {
+	void *ZIDCacheData; /**<  this is a pointer provided by the client which is then resent as a parameter of the ZID cache related callbacks functions. */
 	/* contexts */
 	bctoolbox_rng_context_t *RNGContext; /**< context for random number generation */
 	bctoolbox_DHMContext_t *DHMContext; /**< context for the Diffie-Hellman-Merkle operations. Only one DHM computation may be done during a call, so this belongs to the general context and not the channel one */
 
 	/* flags */
-	uint8_t isSecure; /**< this flag is set to 1 after the first channel have completed the ZRTP protocol exchange(i.e. when the responder have sent the conf2ACK message) */
+	uint8_t isInitialised; /**< this flag is set once the context was initialised : self ZID retrieved from cache or generated, used to unlock the creation of addtional channels */
+	uint8_t isSecure; /**< this flag is set to 1 after the first channel have completed the ZRTP protocol exchange(i.e. when the responder have sent the conf2ACK message), must be set in order to start an additional channel */
 	uint8_t peerSupportMultiChannel; /**< this flag is set to 1 when the first valid HELLO packet from peer arrives if it support Multichannel ZRTP */
 
 	uint64_t timeReference; /**< in ms. This field will set at each channel State Machine start and updated at each tick after creation of the context, it is used to set the firing time of a channel timer */

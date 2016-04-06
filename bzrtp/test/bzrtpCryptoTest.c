@@ -170,7 +170,8 @@ static int compareAllAlgoTypesWithExpectedChangedOnly(bzrtpChannelContext_t *zrt
 static int testAlgoType(uint8_t algoType, uint8_t *packetTypes, uint8_t packetTypesCount, uint8_t *contextTypes, uint8_t contextTypesCount, uint8_t expectedType) {
 	int retval;
 
-	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext(0x12345678);
+	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext();
+	bzrtp_initBzrtpContext(zrtpContext, 0x12345678);
 	bzrtpPacket_t *helloPacket = NULL;
 	if (contextTypes != NULL) {
 		bzrtp_setSupportedCryptoTypes(zrtpContext, algoType, contextTypes, contextTypesCount);
@@ -352,7 +353,8 @@ static int testAlgoSetterGetter(uint8_t algoType, uint8_t *contextTypes, uint8_t
 	uint8_t compareTypes[8];
 	uint8_t compareTypesCount;
 
-	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext(0x12345678);
+	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext();
+	bzrtp_initBzrtpContext(zrtpContext, 0x12345678);
 	bzrtp_setSupportedCryptoTypes(zrtpContext, algoType, contextTypes, contextTypesCount);
 	compareTypesCount = bzrtp_getSupportedCryptoTypes(zrtpContext, algoType, compareTypes);
 	retval = compareAlgoTypes(compareTypes, compareTypesCount, expectedTypes, expectedTypesCount);

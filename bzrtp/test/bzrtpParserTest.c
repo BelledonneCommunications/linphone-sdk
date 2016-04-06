@@ -111,8 +111,10 @@ void test_parser_param(uint8_t hvi_trick) {
 	bzrtpPacket_t *zrtpPacket;
 
 	/* Create zrtp Context to use H0-H3 chains and others */
-	bzrtpContext_t *context87654321 = bzrtp_createBzrtpContext(0x87654321);
-	bzrtpContext_t *context12345678 = bzrtp_createBzrtpContext(0x12345678);
+	bzrtpContext_t *context87654321 = bzrtp_createBzrtpContext();
+	bzrtp_initBzrtpContext(context87654321, 0x87654321);
+	bzrtpContext_t *context12345678 = bzrtp_createBzrtpContext();
+	bzrtp_initBzrtpContext(context12345678, 0x12345678);
 
 
 	/* replace created H by the patterns one to be able to generate the correct packet */
@@ -282,8 +284,11 @@ typedef struct my_Context_struct {
 	unsigned char nom[30]; /* nom du contexte */
 	bzrtpContext_t *peerContext;
 	bzrtpChannelContext_t *peerChannelContext;
-	char zidFilename[80]; /* nom du fichier de cache */
 } my_Context_t;
+
+typedef struct my_ZIDCacheContext_struct {
+	char zidFilename[80]; /* nom du fichier de cache */
+} my_ZIDCacheContext_t;
 
 static void freeBuf(void* p){
 	free(p);
@@ -291,7 +296,7 @@ static void freeBuf(void* p){
 
 int floadAlice(void *clientData, uint8_t **output, uint32_t *size, zrtpFreeBuffer_callback *cb) {
 	/* get filename from ClientData */
-	my_Context_t *clientContext = (my_Context_t *)clientData;
+	my_ZIDCacheContext_t *clientContext = (my_ZIDCacheContext_t *)clientData;
 	char *filename = clientContext->zidFilename;
 	FILE *ALICECACHE = fopen(filename, "r+");
 	fseek(ALICECACHE, 0L, SEEK_END);  /* Position to end of file */
@@ -310,7 +315,7 @@ int floadAlice(void *clientData, uint8_t **output, uint32_t *size, zrtpFreeBuffe
 
 int fwriteAlice(void *clientData, const uint8_t *input, uint32_t size) {
 	/* get filename from ClientData */
-	my_Context_t *clientContext = (my_Context_t *)clientData;
+	my_ZIDCacheContext_t *clientContext = (my_ZIDCacheContext_t *)clientData;
 	char *filename = clientContext->zidFilename;
 
 	FILE *ALICECACHE = fopen(filename, "w+");
@@ -321,7 +326,7 @@ int fwriteAlice(void *clientData, const uint8_t *input, uint32_t size) {
 
 int floadBob(void *clientData, uint8_t **output, uint32_t *size, zrtpFreeBuffer_callback *cb) {
 	/* get filename from ClientData */
-	my_Context_t *clientContext = (my_Context_t *)clientData;
+	my_ZIDCacheContext_t *clientContext = (my_ZIDCacheContext_t *)clientData;
 	char *filename = clientContext->zidFilename;
 
 	FILE *BOBCACHE = fopen(filename, "r+");
@@ -343,7 +348,7 @@ int floadBob(void *clientData, uint8_t **output, uint32_t *size, zrtpFreeBuffer_
 
 int fwriteBob(void *clientData, const uint8_t *input, uint32_t size) {
 	/* get filename from ClientData */
-	my_Context_t *clientContext = (my_Context_t *)clientData;
+	my_ZIDCacheContext_t *clientContext = (my_ZIDCacheContext_t *)clientData;
 	char *filename = clientContext->zidFilename;
 
 	FILE *BOBCACHE = fopen(filename, "w+");
@@ -360,8 +365,8 @@ void test_parserComplete() {
 	/* bob's maintained packet */
 	bzrtpPacket_t *bob_Hello, *bob_HelloFromAlice, *bob_HelloACK, *bob_HelloACKFromAlice;
 	/* Create zrtp Context */
-	bzrtpContext_t *contextAlice = bzrtp_createBzrtpContext(0x12345678); /* Alice's SSRC of main channel is 12345678 */
-	bzrtpContext_t *contextBob = bzrtp_createBzrtpContext(0x87654321); /* Bob's SSRC of main channel is 87654321 */
+	bzrtpContext_t *contextAlice = bzrtp_createBzrtpContext();
+	bzrtpContext_t *contextBob = bzrtp_createBzrtpContext();
 
 	bzrtpHelloMessage_t *alice_HelloFromBob_message;
 	bzrtpHelloMessage_t *bob_HelloFromAlice_message;
@@ -412,29 +417,31 @@ void test_parserComplete() {
 	bzrtpCallbacks_t cbs={0};
 
 	/* Create the client context, used for zidFilename only */
-	my_Context_t clientContextAlice;
-	my_Context_t clientContextBob;
+	my_ZIDCacheContext_t clientContextAlice;
+	my_ZIDCacheContext_t clientContextBob;
 	strcpy(clientContextAlice.zidFilename, "./ZIDAlice.txt");
 	strcpy(clientContextBob.zidFilename, "./ZIDBob.txt");
 
-	/* attach the clientContext to the bzrtp Context */
-	retval = bzrtp_setClientData(contextAlice, 0x12345678, (void *)&clientContextAlice);
-	retval += bzrtp_setClientData(contextBob, 0x87654321, (void *)&clientContextBob);
+	/* attach the ZIDCache Context to the bzrtp Context */
+	retval = bzrtp_setZIDCacheData(contextAlice, (void *)&clientContextAlice);
+	retval += bzrtp_setZIDCacheData(contextBob, (void *)&clientContextBob);
 
 	/* set the cache related callback functions */
 	cbs.bzrtp_loadCache=floadAlice;
 	cbs.bzrtp_writeCache=fwriteAlice;
-
 	bzrtp_setCallbacks(contextAlice, &cbs);
 
 	cbs.bzrtp_loadCache=floadBob;
 	cbs.bzrtp_writeCache=fwriteBob;
 	bzrtp_setCallbacks(contextBob, &cbs);
 
+
 	bzrtp_message ("Init the contexts\n");
+
 	/* end the context init */
-	bzrtp_initBzrtpContext(contextAlice);
-	bzrtp_initBzrtpContext(contextBob);
+	bzrtp_initBzrtpContext(contextAlice, 0x12345678);/* Alice's SSRC of main channel is 12345678 */
+	bzrtp_initBzrtpContext(contextBob, 0x87654321); /* Bob's SSRC of main channel is 87654321 */
+
 
 	/* now create Alice and BOB Hello packet */
 	alice_Hello = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[0], MSGTYPE_HELLO, &retval);
@@ -1675,6 +1682,7 @@ static void sleepMs(int ms){
 void test_stateMachine() {
 	int retval;
 	my_Context_t aliceClientData, bobClientData;
+	my_ZIDCacheContext_t aliceZIDCacheData, bobZIDCacheData;
 	uint64_t initialTime;
 	uint8_t pingPacketString[ZRTP_PACKET_OVERHEAD+ZRTP_PINGMESSAGE_FIXED_LENGTH]; /* there is no builder for ping packet and it is 24 bytes long(12 bytes of message header, 12 of data + packet overhead*/
 	uint32_t CRC;
@@ -1683,8 +1691,14 @@ void test_stateMachine() {
 	bzrtpCallbacks_t cbs={0} ;
 
 	/* Create zrtp Context */
-	bzrtpContext_t *contextAlice = bzrtp_createBzrtpContext(0x12345678); /* Alice's SSRC of main channel is 12345678 */
-	bzrtpContext_t *contextBob = bzrtp_createBzrtpContext(0x87654321); /* Bob's SSRC of main channel is 87654321 */
+	bzrtpContext_t *contextAlice = bzrtp_createBzrtpContext();
+	bzrtpContext_t *contextBob = bzrtp_createBzrtpContext();
+
+	/* Create the ZIDCache data and associate them to the zrtp contexts */
+	strcpy(aliceZIDCacheData.zidFilename, "./ZIDAlice.txt");
+	strcpy(bobZIDCacheData.zidFilename, "./ZIDBob.txt");
+	bzrtp_setZIDCacheData(contextAlice, (void *)&aliceZIDCacheData);
+	bzrtp_setZIDCacheData(contextBob, (void *)&bobZIDCacheData);
 
 	/* set the cache related callback functions */
 	cbs.bzrtp_loadCache=floadAlice;
@@ -1704,17 +1718,16 @@ void test_stateMachine() {
 	aliceClientData.peerChannelContext = contextBob->channelContext[0];
 	bobClientData.peerContext = contextAlice;
 	bobClientData.peerChannelContext = contextAlice->channelContext[0];
-	strcpy(aliceClientData.zidFilename, "./ZIDAlice.txt");
-	strcpy(bobClientData.zidFilename, "./ZIDBob.txt");
 
+
+	/* run the init */
+	bzrtp_initBzrtpContext(contextAlice, 0x12345678);/* Alice's SSRC of main channel is 12345678 */
+	bzrtp_initBzrtpContext(contextBob, 0x87654321); /* Bob's SSRC of main channel is 87654321 */
 
 	retval = bzrtp_setClientData(contextAlice, 0x12345678, (void *)&aliceClientData);
 	retval += bzrtp_setClientData(contextBob, 0x87654321, (void *)&bobClientData);
 	bzrtp_message("Set client data return %x\n", retval);
 
-	/* run the init */
-	bzrtp_initBzrtpContext(contextAlice);
-	bzrtp_initBzrtpContext(contextBob);
 
 	/* now start the engine */
 	initialTime = getCurrentTimeInMs();

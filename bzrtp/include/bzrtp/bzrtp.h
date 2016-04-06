@@ -112,8 +112,8 @@ typedef void (*zrtpFreeBuffer_callback)(void *);
  */
 typedef struct bzrtpCallbacks_struct {
 	/* cache related functions */
-	int (* bzrtp_loadCache)(void *clientData, uint8_t **cacheBuffer, uint32_t *cacheBufferSize, zrtpFreeBuffer_callback *callback); /**< Cache related function : load the whole cache file in a buffer allocated by the function, return the buffer and its size in bytes */
-	int (* bzrtp_writeCache)(void *clientData, const uint8_t *input, uint32_t size); /**< Cache related function : write size bytes to cache */
+	int (* bzrtp_loadCache)(void *ZIDCacheData, uint8_t **cacheBuffer, uint32_t *cacheBufferSize, zrtpFreeBuffer_callback *callback); /**< Cache related function : load the whole cache file in a buffer allocated by the function, return the buffer and its size in bytes */
+	int (* bzrtp_writeCache)(void *ZIDCacheData, const uint8_t *input, uint32_t size); /**< Cache related function : write size bytes to cache */
 
 	/* sending packets */
 	int (* bzrtp_sendData)(void *clientData, const uint8_t *packetString, uint16_t packetLength); /**< Send a ZRTP packet to peer. Shall return 0 on success */
@@ -123,7 +123,7 @@ typedef struct bzrtpCallbacks_struct {
 	int (* bzrtp_startSrtpSession)(void *clientData, const char* sas, int32_t verified); /**< ZRTP process ended well, client is given the SAS and may start his SRTP session if not done when calling srtpSecretsAvailable */
 
 	/* ready for exported keys */
-	int (* bzrtp_contextReadyForExportedKeys)(void *clientData, uint8_t peerZID[12], uint8_t role); /**< Tell the client that this is the time to create and store in cache any exported keys, client is given the peerZID to adress the correct node in cache and current role which is needed to set a pair of keys for IM encryption */
+	int (* bzrtp_contextReadyForExportedKeys)(void *ZIDCacheData, void *clientData, uint8_t peerZID[12], uint8_t role); /**< Tell the client that this is the time to create and store in cache any exported keys, client is given the peerZID to adress the correct node in cache and current role which is needed to set a pair of keys for IM encryption */
 } bzrtpCallbacks_t;
 
 #define ZRTP_MAGIC_COOKIE 0x5a525450
@@ -149,22 +149,20 @@ typedef struct bzrtpContext_struct bzrtpContext_t;
 
 /**
  * Create context structure and initialise it
- * A channel context is created when creating the zrtp context.
- *
- * @param[in]	selfSSRC	The SSRC given to the channel context created within the zrtpContext
  *
  * @return The ZRTP engine context data
  *                                                                        
 */
-BZRTP_EXPORT bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC);
+BZRTP_EXPORT bzrtpContext_t *bzrtp_createBzrtpContext(void);
 
 /**
  * @brief Perform some initialisation which can't be done without some callback functions:
- * - get ZID
+ * - get ZID and create the first channel context
  *
- *   @param[in] 	context	The context to initialise
+ *   @param[in]		context		The context to initialise
+ *   @param[in]		selfSSRC	The SSRC given to the first channel context created within the zrtpContext
  */
-BZRTP_EXPORT void bzrtp_initBzrtpContext(bzrtpContext_t *context); 
+BZRTP_EXPORT void bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
 
 /**
  * Free memory of context structure to a channel, if all channels are freed, free the global zrtp context
@@ -184,6 +182,17 @@ BZRTP_EXPORT void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t se
 */
 BZRTP_EXPORT int bzrtp_setCallbacks(bzrtpContext_t *context, const bzrtpCallbacks_t *cbs);
 
+/*
+ * @brief Set the ZID cache data pointer in the global zrtp context
+ * This pointer is returned to the client by the callbacks function linked to cache: bzrtp_loadCache, bzrtp_writeCache and bzrtp_contextReadyForExportedKeys
+ * @param[in/out]	zrtpContext		The ZRTP context we're dealing with
+ * @param[in]		selfSSRC		The SSRC identifying the channel to be linked to the client Data
+ * @param[in]		ZIDCacheData	The ZIDCacheData pointer, casted to a (void *)
+ *
+ * @return 0 on success
+ *
+*/
+BZRTP_EXPORT int bzrtp_setZIDCacheData(bzrtpContext_t *zrtpContext, void *ZIDCacheData);
 /**
  * @brief Set the client data pointer in a channel context
  * This pointer is returned to the client by the callbacks function, used to store associated contexts (RTP session)
@@ -197,9 +206,9 @@ BZRTP_EXPORT int bzrtp_setCallbacks(bzrtpContext_t *context, const bzrtpCallback
 BZRTP_EXPORT int bzrtp_setClientData(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, void *clientData);
 
 /**
- * @brief Add a channel to an existing context, this can be done only if the first channel has concluded a DH key agreement
+ * @brief Add a channel to an existing context
  *
- * @param[in/out]	zrtpContext	The zrtp context who will get the additionnal channel. Must be in secure state.
+ * @param[in/out]	zrtpContext	The zrtp context who will get the additionnal channel
  * @param[in]		selfSSRC	The SSRC given to the channel context
  *
  * @return 0 on succes, error code otherwise
@@ -209,6 +218,7 @@ BZRTP_EXPORT int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC
 
 /**
  * @brief Start the state machine of the specified channel
+ * To be able to start an addional channel, we must be in secure state
  *
  * @param[in/out]	zrtpContext			The ZRTP context hosting the channel to be started
  * @param[in]		selfSSRC			The SSRC identifying the channel to be started(will start sending Hello packets and listening for some)
