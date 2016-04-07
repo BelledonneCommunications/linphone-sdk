@@ -2,7 +2,7 @@
 
 lib_LTLIBRARIES=libbctoolbox.la
 
-libbctoolbox_la_SOURCES=
+libbctoolbox_la_SOURCES= ../utils/port.c ../logging/logging.c ../containers/list.c ../containers/map.cc
 
 if ENABLE_POLARSSL
 
