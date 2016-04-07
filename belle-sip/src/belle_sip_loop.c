@@ -530,7 +530,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 			if (ret==BELLE_SIP_STOP || s->oneshot){
 				/*this source needs to be removed*/
 				belle_sip_main_loop_remove_source(ml,s);
-			}else if (s->revents==BELLE_SIP_EVENT_TIMEOUT){
+			}else if (s->revents==BELLE_SIP_EVENT_TIMEOUT && s->timeout >= 0){
 				/*timeout needs to be started again */
 				if (ret==BELLE_SIP_CONTINUE_WITHOUT_CATCHUP){
 					s->expire_ms=cur+s->timeout;
