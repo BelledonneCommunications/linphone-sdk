@@ -135,14 +135,16 @@ void bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
  * Free memory of context structure to a channel, if all channels are freed, free the global zrtp context
  * @param[in]	context		Context hosting the channel to be destroyed.(note: the context zrtp context itself is destroyed with the last channel)
  * @param[in]	selfSSRC	The SSRC identifying the channel to be destroyed
+ *
+ * @return the number of channel still active in this ZRTP context
  *                                                                           
 */
-void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
+int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	int i;
 	int validChannelsNumber = 0;
 
 	if (context == NULL) {
-		return;
+		return 0;
 	}
 
 	/* Find the channel to be destroyed, destroy it and check if we have anymore valid channels */
@@ -158,7 +160,7 @@ void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	}
 
 	if (validChannelsNumber>0) {
-		return; /* we have more valid channels, keep the zrtp context */
+		return validChannelsNumber; /* we have more valid channels, keep the zrtp context */
 	}
 
 
@@ -207,7 +209,7 @@ void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	bctoolbox_rng_context_free(context->RNGContext);
 	context->RNGContext = NULL;
 	free(context);
-	return;
+	return 0;
 }
 
 /*
@@ -287,7 +289,12 @@ int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
 
 	if (zrtpChannelContext == NULL) {
-		return BZRTP_ERROR_UNABLETOSTARTCHANNEL;
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	/* is this channel already started? */
+	if (zrtpChannelContext->stateMachine != NULL) {
+		return BZRTP_ERROR_CHANNELALREADYSTARTED;
 	}
 
 	/* if this is an additional channel(not channel 0), we must be sure that channel 0 is already secured */

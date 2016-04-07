@@ -140,6 +140,7 @@ typedef struct bzrtpCallbacks_struct {
 #define BZRTP_ERROR_UNABLETOSTARTCHANNEL			0x0020
 #define BZRTP_ERROR_OUTPUTBUFFER_LENGTH				0x0040
 #define BZRTP_ERROR_HELLOHASH_MISMATCH				0x0080
+#define BZRTP_ERROR_CHANNELALREADYSTARTED			0x0100
 
 /**
  * @brief bzrtpContext_t The ZRTP engine context
@@ -169,8 +170,9 @@ BZRTP_EXPORT void bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfS
  * @param[in]	context		Context hosting the channel to be destroyed.(note: the context zrtp context itself is destroyed with the last channel)
  * @param[in]	selfSSRC	The SSRC identifying the channel to be destroyed
  *                                                                           
+ * @return the number of channel still active in this ZRTP context
 */
-BZRTP_EXPORT void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
+BZRTP_EXPORT int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
 
 /**
  * @brief Allocate a function pointer to the callback function identified by his id 
