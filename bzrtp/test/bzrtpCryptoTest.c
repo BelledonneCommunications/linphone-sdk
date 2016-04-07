@@ -171,8 +171,9 @@ static int testAlgoType(uint8_t algoType, uint8_t *packetTypes, uint8_t packetTy
 	int retval;
 
 	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext();
-	bzrtp_initBzrtpContext(zrtpContext, 0x12345678);
 	bzrtpPacket_t *helloPacket = NULL;
+	bzrtp_initBzrtpContext(zrtpContext, 0x12345678);
+
 	if (contextTypes != NULL) {
 		bzrtp_setSupportedCryptoTypes(zrtpContext, algoType, contextTypes, contextTypesCount);
 	}

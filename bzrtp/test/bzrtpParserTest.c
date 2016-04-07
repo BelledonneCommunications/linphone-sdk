@@ -112,8 +112,9 @@ void test_parser_param(uint8_t hvi_trick) {
 
 	/* Create zrtp Context to use H0-H3 chains and others */
 	bzrtpContext_t *context87654321 = bzrtp_createBzrtpContext();
-	bzrtp_initBzrtpContext(context87654321, 0x87654321);
 	bzrtpContext_t *context12345678 = bzrtp_createBzrtpContext();
+
+	bzrtp_initBzrtpContext(context87654321, 0x87654321);
 	bzrtp_initBzrtpContext(context12345678, 0x12345678);
 
 
