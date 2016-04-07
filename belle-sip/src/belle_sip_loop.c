@@ -260,7 +260,6 @@ struct belle_sip_main_loop{
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
 	bool_t elem_removed = FALSE;
 	if (source->node.next || source->node.prev || &source->node==ml->fd_sources)  {
-		source->cancelled=TRUE;
 		ml->fd_sources=belle_sip_list_remove_link(ml->fd_sources,&source->node);
 		belle_sip_object_unref(source);
 		elem_removed = TRUE;
@@ -273,6 +272,7 @@ void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_sour
 		elem_removed = TRUE;
 	}
 	if (elem_removed) {
+		source->cancelled=TRUE;
 		ml->nsources--;
 		if (source->on_remove)
 			source->on_remove(source);
@@ -313,7 +313,7 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 	
 	source->ml=ml;
 	
-	if (source->timeout>0){
+	if (source->timeout>=0){
 		belle_sip_object_ref(source);
 		source->expire_ms=belle_sip_time_ms()+source->timeout;
 		source->it = bctoolbox_map_insert_and_delete_with_returned_it(ml->timer_sources
