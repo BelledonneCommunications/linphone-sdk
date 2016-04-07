@@ -100,6 +100,7 @@ set(EP_flexisip_FORCE_AUTOTOOLS True)
 
 # we can override the bctoolbox build method before including builders because it doesn't define it.
 set(EP_bctoolbox_BUILD_METHOD "rpm")
+list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
 
 # Include builders
 include(builders/CMakeLists.txt)
@@ -171,7 +172,7 @@ if(PLATFORM STREQUAL "Debian")
 	# is no pkgconfig
 	list(APPEND EP_flexisip_DEPENDENCIES EP_hiredis)
 	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--with-redis=${CMAKE_INSTALL_PREFIX}")
-	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'hiredisdir ${RPM_INSTALL_PREFIX}'")	
+	set(EP_flexisip_RPMBUILD_OPTIONS "${EP_flexisip_RPMBUILD_OPTIONS} --define 'hiredisdir ${RPM_INSTALL_PREFIX}'")
 
 	CHECK_PROGRAM(alien)
 	CHECK_PROGRAM(fakeroot)
