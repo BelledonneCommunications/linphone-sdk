@@ -780,6 +780,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	int err1,err2;
 	bool_t has_builtin_ec=FALSE;
 	bool_t resampler_missing = FALSE;
+	bool_t skip_encoder_and_decoder = FALSE;
 
 	if (!ms_media_stream_io_is_consistent(io)) return -1;
 
@@ -868,9 +869,25 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_error("Sample rate is unknown for RTP side !");
 		return -1;
 	}
-
-	stream->ms.encoder=ms_factory_create_encoder(stream->ms.factory, pt->mime_type);
-	stream->ms.decoder=ms_factory_create_decoder(stream->ms.factory, pt->mime_type);
+	
+	if (stream->features == 0) {
+		MSPinFormat sndread_format = {0};
+		MSPinFormat rtpsend_format = {0};
+		MSPinFormat rtprecv_format = {0};
+		MSPinFormat sndwrite_format = {0};
+		ms_filter_call_method(stream->ms.rtpsend, MS_FILTER_GET_OUTPUT_FMT, &rtpsend_format);
+		ms_filter_call_method(stream->soundread, MS_FILTER_GET_OUTPUT_FMT, &sndread_format);
+		ms_filter_call_method(stream->ms.rtprecv, MS_FILTER_GET_OUTPUT_FMT, &rtprecv_format);
+		ms_filter_call_method(stream->soundwrite, MS_FILTER_GET_OUTPUT_FMT, &sndwrite_format);
+		if (sndread_format.fmt && rtpsend_format.fmt && rtprecv_format.fmt && sndwrite_format.fmt) {
+			skip_encoder_and_decoder = ms_fmt_descriptor_equals(sndread_format.fmt, rtpsend_format.fmt) && ms_fmt_descriptor_equals(rtprecv_format.fmt, sndwrite_format.fmt);
+		}
+	}
+	
+	if (!skip_encoder_and_decoder) {
+		stream->ms.encoder=ms_factory_create_encoder(stream->ms.factory, pt->mime_type);
+		stream->ms.decoder=ms_factory_create_decoder(stream->ms.factory, pt->mime_type);
+	}
 
 	/* sample rate is already set for rtpsend and rtprcv, check if we have to adjust it to */
 	/* be able to use the echo canceller wich may be limited (webrtc aecm max frequency is 16000 Hz) */
@@ -885,7 +902,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->ec=NULL;
 	}
 
-	if ((stream->ms.encoder==NULL) || (stream->ms.decoder==NULL)){
+	if (!skip_encoder_and_decoder && (stream->ms.encoder==NULL || stream->ms.decoder==NULL)){
 		/* big problem: we have not a registered codec for this payload...*/
 		ms_error("audio_stream_start_from_io: No decoder or encoder available for payload %s.",pt->mime_type);
 		return -1;
@@ -998,31 +1015,33 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING) setup_recorder(stream,sample_rate,nchannels);
 
-	/* give the encoder/decoder some parameters*/
-	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-	if (stream->ms.target_bitrate<=0) {
-		stream->ms.target_bitrate=pt->normal_bitrate;
-		ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i",stream,stream->ms.target_bitrate);
-	}
-	if (stream->ms.target_bitrate>0){
-		ms_message("Setting audio encoder network bitrate to [%i] on stream [%p]",stream->ms.target_bitrate,stream);
-		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&stream->ms.target_bitrate);
-	}
-	rtp_session_set_target_upload_bandwidth(rtps, stream->ms.target_bitrate);
-	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&nchannels);
-	if (pt->send_fmtp!=NULL) {
-		char value[16]={0};
-		int ptime;
-		if (ms_filter_has_method(stream->ms.encoder,MS_AUDIO_ENCODER_SET_PTIME)){
-			if (fmtp_get_value(pt->send_fmtp,"ptime",value,sizeof(value)-1)){
-				ptime=atoi(value);
-				ms_filter_call_method(stream->ms.encoder,MS_AUDIO_ENCODER_SET_PTIME,&ptime);
-			}
+	if (!skip_encoder_and_decoder) {
+		/* give the encoder/decoder some parameters*/
+		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+		if (stream->ms.target_bitrate<=0) {
+			stream->ms.target_bitrate=pt->normal_bitrate;
+			ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i",stream,stream->ms.target_bitrate);
 		}
-		ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP, (void*)pt->send_fmtp);
-	}
+		if (stream->ms.target_bitrate>0){
+			ms_message("Setting audio encoder network bitrate to [%i] on stream [%p]",stream->ms.target_bitrate,stream);
+			ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&stream->ms.target_bitrate);
+		}
+		rtp_session_set_target_upload_bandwidth(rtps, stream->ms.target_bitrate);
+		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&nchannels);
+		if (pt->send_fmtp!=NULL) {
+			char value[16]={0};
+			int ptime;
+			if (ms_filter_has_method(stream->ms.encoder,MS_AUDIO_ENCODER_SET_PTIME)){
+				if (fmtp_get_value(pt->send_fmtp,"ptime",value,sizeof(value)-1)){
+					ptime=atoi(value);
+					ms_filter_call_method(stream->ms.encoder,MS_AUDIO_ENCODER_SET_PTIME,&ptime);
+				}
+			}
+			ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP, (void*)pt->send_fmtp);
+		}
 
-	configure_decoder(stream, pt, sample_rate, nchannels);
+		configure_decoder(stream, pt, sample_rate, nchannels);
+	}
 
 	/*create the equalizer*/
 	if ((stream->features & AUDIO_STREAM_FEATURE_EQUALIZER) != 0){
@@ -1149,13 +1168,15 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_connection_helper_link(&h,stream->outbound_mixer,0,0);
 	if (stream->vaddtx)
 		ms_connection_helper_link(&h,stream->vaddtx,0,0);
-	ms_connection_helper_link(&h,stream->ms.encoder,0,0);
+	if (!skip_encoder_and_decoder)
+		ms_connection_helper_link(&h,stream->ms.encoder,0,0);
 	ms_connection_helper_link(&h,stream->ms.rtpsend,0,-1);
 
 	/*receiving graph*/
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h,stream->ms.rtprecv,-1,0);
-	ms_connection_helper_link(&h,stream->ms.decoder,0,0);
+	if (!skip_encoder_and_decoder)
+		ms_connection_helper_link(&h,stream->ms.decoder,0,0);
 	if (stream->plc)
 		ms_connection_helper_link(&h,stream->plc,0,0);
 	if (stream->dtmfgen)

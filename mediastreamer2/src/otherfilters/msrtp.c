@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
+#include "mediastreamer2/msfactory.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msticker.h"
 
@@ -493,6 +494,14 @@ static int sender_enable_stun(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int get_sender_output_fmt(MSFilter *f, void *arg) {
+	SenderData *d = (SenderData *) f->data;
+	MSPinFormat *pinFmt = (MSPinFormat *)arg;
+	PayloadType *pt = rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_send_payload_type(d->session));
+	pinFmt->fmt = ms_factory_get_audio_format(f->factory, pt->mime_type, pt->clock_rate, pt->channels, NULL);
+	return 0;
+}
+
 static MSFilterMethod sender_methods[] = {
 	{MS_RTP_SEND_MUTE, sender_mute},
 	{MS_RTP_SEND_UNMUTE, sender_unmute},
@@ -504,6 +513,7 @@ static MSFilterMethod sender_methods[] = {
 	{MS_RTP_SEND_SET_DTMF_DURATION, sender_set_dtmf_duration },
 	{MS_RTP_SEND_SEND_GENERIC_CN, sender_send_generic_cn },
 	{ MS_RTP_SEND_ENABLE_STUN, sender_enable_stun },
+	{ MS_FILTER_GET_OUTPUT_FMT, get_sender_output_fmt },
 	{0, NULL}
 };
 
@@ -707,11 +717,20 @@ static void receiver_process(MSFilter * f)
 		rtp_session_compute_recv_bandwidth(d->session);
 }
 
+static int get_receiver_output_fmt(MSFilter *f, void *arg) {
+	ReceiverData *d = (ReceiverData *) f->data;
+	MSPinFormat *pinFmt = (MSPinFormat *)arg;
+	PayloadType *pt = rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_send_payload_type(d->session));
+	pinFmt->fmt = ms_factory_get_audio_format(f->factory, pt->mime_type, pt->clock_rate, pt->channels, NULL);
+	return 0;
+}
+
 static MSFilterMethod receiver_methods[] = {
 	{	MS_RTP_RECV_SET_SESSION	, receiver_set_session	},
 	{	MS_RTP_RECV_RESET_JITTER_BUFFER, receiver_reset_jitter_buffer },
 	{	MS_FILTER_GET_SAMPLE_RATE	, receiver_get_sr		},
 	{	MS_FILTER_GET_NCHANNELS	,	receiver_get_ch	},
+	{ 	MS_FILTER_GET_OUTPUT_FMT, get_receiver_output_fmt },
 	{	0, NULL}
 };
 

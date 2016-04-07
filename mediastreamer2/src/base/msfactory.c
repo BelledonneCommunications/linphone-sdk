@@ -780,6 +780,11 @@ const char *ms_fmt_descriptor_to_string(const MSFmtDescriptor *obj){
 	return obj->text;
 }
 
+bool_t ms_fmt_descriptor_equals(const MSFmtDescriptor *fmt1, const MSFmtDescriptor *fmt2) {
+	if (!fmt1 || !fmt2) return FALSE;
+	return compare_fmt(fmt1, fmt2) == 0;
+}
+
 static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj){
 	if (obj->encoding) ms_free(obj->encoding);
 	if (obj->fmtp) ms_free(obj->fmtp);
