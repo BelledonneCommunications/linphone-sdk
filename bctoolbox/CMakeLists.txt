@@ -198,7 +198,9 @@ check_library_exists("rt" "clock_gettime" "" HAVE_LIBRT)
 
 add_subdirectory(include)
 add_subdirectory(src)
-add_subdirectory(tester)
+if(ENABLE_TESTS AND CUNIT_FOUND)
+	add_subdirectory(tester)
+endif()
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
