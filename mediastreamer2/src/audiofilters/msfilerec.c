@@ -32,6 +32,8 @@ typedef struct RecState{
 	int rate;
 	int nchannels;
 	int size;
+	char *mime;
+	bool_t swap;
 	MSRecorderState state;
 } RecState;
 
@@ -42,7 +44,19 @@ static void rec_init(MSFilter *f){
 	s->nchannels = 1;
 	s->size=0;
 	s->state=MSRecorderClosed;
+	s->mime = "pcm";
+	s->swap = FALSE;
 	f->data=s;
+}
+
+static void swap_bytes(unsigned char *bytes, int len){
+	int i;
+	unsigned char tmp;
+	for(i=0;i<len;i+=2){
+		tmp=bytes[i];
+		bytes[i]=bytes[i+1];
+		bytes[i+1]=tmp;
+	}
 }
 
 static void rec_process(MSFilter *f){
@@ -55,6 +69,7 @@ static void rec_process(MSFilter *f){
 		if (s->state==MSRecorderRunning){
 			while(it!=NULL){
 				int len=(int)(it->b_wptr-it->b_rptr);
+				if (s->swap) swap_bytes(it->b_wptr,len);
 				if ((err=write(s->fd,it->b_rptr,len))!=len){
 					if (err<0)
 						ms_warning("MSFileRec: fail to write %i bytes: %s",len,strerror(errno));
@@ -200,6 +215,29 @@ static void rec_uninit(MSFilter *f){
 	ms_free(s);
 }
 
+static int rec_get_fmtp(MSFilter *f, void *arg){
+	RecState *d=(RecState*)f->data;
+	MSPinFormat *pinfmt = (MSPinFormat*)arg;
+	if (pinfmt->pin == 0) pinfmt->fmt = ms_factory_get_audio_format(f->factory, d->mime, d->rate, d->nchannels, NULL);
+	return 0;
+}
+
+static int rec_set_fmtp(MSFilter *f, void *arg){
+	RecState *d=(RecState*)f->data;
+	MSPinFormat *pinfmt = (MSPinFormat*)arg;
+	ms_filter_lock(f);
+	d->rate = pinfmt->fmt->rate;
+	d->nchannels = pinfmt->fmt->nchannels;
+	d->mime = pinfmt->fmt->encoding;
+	if (strcmp(d->mime, "L16") == 0) {
+		d->swap = TRUE;
+	} else {
+		d->swap = FALSE;
+	}
+	ms_filter_unlock(f);
+	return 0;
+}
+
 static MSFilterMethod rec_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE,	rec_set_sr	},
 	{	MS_FILTER_SET_NCHANNELS	,	rec_set_nchannels	},
@@ -212,6 +250,8 @@ static MSFilterMethod rec_methods[]={
 	{	MS_RECORDER_PAUSE	,	rec_stop	},
 	{	MS_RECORDER_CLOSE	,	rec_close	},
 	{	MS_RECORDER_GET_STATE	,	rec_get_state	},
+	{ 	MS_FILTER_GET_OUTPUT_FMT, 	rec_get_fmtp },
+	{ 	MS_FILTER_SET_OUTPUT_FMT, 	rec_set_fmtp },
 	{	0			,	NULL		}
 };
 
