@@ -116,6 +116,8 @@ extern "C" bctoolbox_iterator_t * bctoolbox_map_find_custom(bctoolbox_map_t *map
 		if (compare_func(bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it)),user_data)==0) {
 			bctoolbox_iterator_delete(end);
 			return it;
+		} else {
+			it = bctoolbox_iterator_get_next(it);
 		}
 		
 	}
