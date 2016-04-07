@@ -372,7 +372,7 @@ void belle_sip_source_cancel(belle_sip_source_t *s){
 		s->it=NULL;
 		if (s->fd == -1) {
 			/*hack to make sure source is "removed at next iterate*/
-			s->ml->fd_sources = belle_sip_list_append(s->ml->fd_sources,s);
+			s->ml->fd_sources = belle_sip_list_prepend_link(s->ml->fd_sources,&s->node);
 		}
 	}
 }
@@ -543,7 +543,9 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				s->it = bctoolbox_map_insert_and_delete_with_returned_it(ml->timer_sources
 																			  , (bctoolbox_pair_t*)bctoolbox_pair_long_new(s->expire_ms, s));
 			}
-		}else belle_sip_main_loop_remove_source(ml,s);
+		} else {
+			belle_sip_main_loop_remove_source(ml,s);
+		}
 		belle_sip_object_unref(s);
 		belle_sip_free(elem); /*free just the element*/
 		elem=next;
