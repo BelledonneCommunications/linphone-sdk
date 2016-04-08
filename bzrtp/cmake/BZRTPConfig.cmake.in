@@ -34,7 +34,7 @@ endif()
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 else()
-	find_package(BcToolbox REQUIRED COMPONENTS core)
+	find_package(BcToolbox 0.0.3 REQUIRED COMPONENTS core)
 endif()
 
 get_filename_component(BZRTP_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
