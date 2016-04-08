@@ -496,7 +496,8 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	while (!bctoolbox_iterator_equals(it,end)) {
 		s = (belle_sip_source_t*)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it));
 		if (s->expire_ms > cur) {
-			it=bctoolbox_iterator_get_next(it);
+			/* no need to continue looping because map is ordered*/
+			break;
 		} else {
 			if (s->revents==0) {
 				s->revents=BELLE_SIP_EVENT_TIMEOUT;
