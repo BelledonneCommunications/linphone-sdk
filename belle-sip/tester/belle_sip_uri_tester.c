@@ -169,7 +169,7 @@ static void test_headers(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse(l_raw_uri);
 	belle_sip_free(l_raw_uri);
-	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
+	if (!BC_ASSERT_PTR_NOT_NULL(belle_sip_uri_get_header(L_uri,"toto"))) return;
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"toto"), "titi");
 
 	BC_ASSERT_PTR_NULL(belle_sip_uri_get_header(L_uri,"bla"));
@@ -180,7 +180,7 @@ static void test_headers(void) {
 	L_uri = belle_sip_uri_parse(l_raw_uri);
 	belle_sip_free(l_raw_uri);
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
+	if (!BC_ASSERT_PTR_NOT_NULL(belle_sip_uri_get_header(L_uri,"toto"))) return;
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"header2"), "popo");
 	belle_sip_object_unref(L_uri);
 }
@@ -196,14 +196,14 @@ static void test_escaped_headers(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse(l_raw_uri);
 	belle_sip_free(l_raw_uri);
-	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"User-to-User"));
+	if (!BC_ASSERT_PTR_NOT_NULL(belle_sip_uri_get_header(L_uri,"User-to-User"))) return;
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"User-to-User"), "323a313030363a3230385a48363039313941364b4342463845495936;encoding=hex");
 	belle_sip_object_unref(L_uri);
 
 	L_uri = belle_sip_uri_parse(raw_uri_2);
 	l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
 	belle_sip_free(l_raw_uri);
-	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"P-Embed-Url"));
+	if (!BC_ASSERT_PTR_NOT_NULL(belle_sip_uri_get_header(L_uri,"P-Embed-Url"))) return;
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"P-Embed-Url"), "https://toto.com/caller/?1.4.0-dev-42-91bdf0c&id=Fu0hHIQ23H4hveVT&CAMPAIGN_ID=none");
 	belle_sip_object_unref(L_uri);
 
@@ -273,9 +273,9 @@ static void test_uri_equals(void) {
 	   sip:alice@AtLanTa.CoM;Transport=tcp
 */
 	a = belle_sip_uri_parse("sip:%61lice@atlanta.com;transport=TCP");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
+	if (!BC_ASSERT_PTR_NOT_NULL(a)) return;
 	b = belle_sip_uri_parse("sip:alice@AtLanTa.CoM;Transport=tcp");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	if (!BC_ASSERT_PTR_NOT_NULL(b)) return;
 	BC_ASSERT_TRUE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
@@ -285,9 +285,9 @@ static void test_uri_equals(void) {
 	   sip:carol@chicago.com;security=on
 */
 	a = belle_sip_uri_parse("sip:carol@chicago.com");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
+	if (!BC_ASSERT_PTR_NOT_NULL(a)) return;
 	b = belle_sip_uri_parse("sip:carol@chicago.com;newparam=5");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	if (!BC_ASSERT_PTR_NOT_NULL(b)) return;
 	BC_ASSERT_TRUE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
@@ -297,9 +297,9 @@ static void test_uri_equals(void) {
 	   sip:biloxi.com;method=REGISTER;transport=tcp?to=sip:bob%40biloxi.com
 */
 	a = belle_sip_uri_parse("sip:biloxi.com;transport=tcp;method=REGISTER?to=sip:bob%40biloxi.com");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
+	if (!BC_ASSERT_PTR_NOT_NULL(a)) return;
 	b = belle_sip_uri_parse("sip:biloxi.com;method=REGISTER;transport=tcp?to=sip:bob%40biloxi.com");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	if (!BC_ASSERT_PTR_NOT_NULL(b)) return;
 	BC_ASSERT_TRUE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
@@ -313,9 +313,9 @@ static void test_uri_equals(void) {
 	   sip:alice@AtLanTa.CoM;Transport=UDP
 */
 	a = belle_sip_uri_parse("sip:ALICE@AtLanTa.CoM;Transport=udp");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
+	if (!BC_ASSERT_PTR_NOT_NULL(a)) return;
 	b = belle_sip_uri_parse("sip:alice@AtLanTa.CoM;Transport=UDP");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	if (!BC_ASSERT_PTR_NOT_NULL(b)) return;
 	BC_ASSERT_FALSE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
@@ -324,9 +324,9 @@ static void test_uri_equals(void) {
 	   sip:bob@biloxi.com:5060
 */
 	a = belle_sip_uri_parse("sip:ALICE@AtLanTa.CoM;Transport=udp");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
+	if (!BC_ASSERT_PTR_NOT_NULL(a)) return;
 	b = belle_sip_uri_parse("sip:alice@AtLanTa.CoM;Transport=UDP");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	if (!BC_ASSERT_PTR_NOT_NULL(b)) return;
 	BC_ASSERT_FALSE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
@@ -335,9 +335,9 @@ static void test_uri_equals(void) {
 	   sip:bob@biloxi.com;transport=udp
 */
 	a = belle_sip_uri_parse("sip:bob@biloxi.com");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
+	if (!BC_ASSERT_PTR_NOT_NULL(a)) return;
 	b = belle_sip_uri_parse("sip:bob@biloxi.com;transport=udp");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	if (!BC_ASSERT_PTR_NOT_NULL(b)) return;
 	BC_ASSERT_FALSE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
@@ -345,9 +345,9 @@ static void test_uri_equals(void) {
 	   sip:bob@biloxi.com:6000;transport=tcp
 */
 	a = belle_sip_uri_parse("sip:bob@biloxi.com");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(a);
+	if (!BC_ASSERT_PTR_NOT_NULL(a)) return;
 	b = belle_sip_uri_parse("sip:bob@biloxi.com:6000;transport=tcp");
-	BC_ASSERT_PTR_NOT_NULL_FATAL(b);
+	if (!BC_ASSERT_PTR_NOT_NULL(b)) return;
 	BC_ASSERT_FALSE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
@@ -466,7 +466,7 @@ static void test_empty_password(void){
 
 	passwd = belle_sip_uri_get_user_password(uri);
 	BC_ASSERT_PTR_EQUAL(passwd, NULL);
-	
+
 	if (headerAddr) belle_sip_object_unref(headerAddr);
 }
 
