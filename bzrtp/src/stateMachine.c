@@ -62,21 +62,25 @@ int state_discovery_init(bzrtpEvent_t event) {
 	int retval;
 
 	/*** Manage the first call to this function ***/
-	/* We are supposed to send Hello packet, check if we have one in the channel Context, the event type shall be INIT in this case */
-	if ((event.eventType == BZRTP_EVENT_INIT)  && (zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID] == NULL)) {
-		int retval;
-		/* create the Hello packet */
-		bzrtpPacket_t *helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_HELLO, &retval);
-		if (retval != 0) {
-			return retval;
-		}
+	/* We are supposed to send Hello packet, it shall be already present int the selfPackets(created at channel init) */
+	if (event.eventType == BZRTP_EVENT_INIT) {
+		if (zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID] == NULL) {
+			/* We shall never go through this one because Hello packet shall be created at channel init */
+			int retval;
+			/* create the Hello packet */
+			bzrtpPacket_t *helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_HELLO, &retval);
+			if (retval != 0) {
+				return retval;
+			}
 
-		/* build the packet string */
-		if (bzrtp_packetBuild(zrtpContext, zrtpChannelContext, helloPacket, zrtpChannelContext->selfSequenceNumber) ==0) {
-			zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID] = helloPacket;
-		} else {
-			bzrtp_freeZrtpPacket(helloPacket);
-			return retval;
+			/* build the packet string */
+			if (bzrtp_packetBuild(zrtpContext, zrtpChannelContext, helloPacket, zrtpChannelContext->selfSequenceNumber) ==0) {
+				zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID] = helloPacket;
+			} else {
+				bzrtp_freeZrtpPacket(helloPacket);
+				return retval;
+			}
+			/* TODO: Shall add a warning trace here */
 		}
 
 		/* it is the first call to this function, so we must also set the timer for retransmissions */

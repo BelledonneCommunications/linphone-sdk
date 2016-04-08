@@ -142,6 +142,13 @@ typedef struct bzrtpCallbacks_struct {
 #define BZRTP_ERROR_HELLOHASH_MISMATCH				0x0080
 #define BZRTP_ERROR_CHANNELALREADYSTARTED			0x0100
 
+/* channel status definition */
+#define BZRTP_CHANNEL_NOTFOUND						0x1000
+#define BZRTP_CHANNEL_INITIALISED					0x1001
+#define BZRTP_CHANNEL_ONGOING						0x1002
+#define BZRTP_CHANNEL_SECURE						0x1004
+#define BZRTP_CHANNEL_ERROR							0x1008
+
 /**
  * @brief bzrtpContext_t The ZRTP engine context
  * Store current state, timers, HMAC and encryption keys
@@ -338,6 +345,20 @@ BZRTP_EXPORT int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t se
  * @return 	0 on success, errorcode otherwise
  */
 BZRTP_EXPORT int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *output, size_t outputLength);
+
+/**
+ * @brief Get the channel status
+ *
+ * @param[in]		zrtpContext			The ZRTP context we're dealing with
+ * @param[in]		selfSSRC			The SSRC identifying the channel
+ *
+ * @return	BZRTP_CHANNEL_NOTFOUND 		no channel matching this SSRC doesn't exists in the zrtp context
+ * 			BZRTP_CHANNEL_INITIALISED	channel initialised but not started
+ * 			BZRTP_CHANNEL_ONGOING		ZRTP key exchange in ongoing
+ *			BZRTP_CHANNEL_SECURE		Channel is secure
+ *			BZRTP_CHANNEL_ERROR			An error occured on this channel
+ */
+int bzrtp_getChannelStatus(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 #define BZRTP_CUSTOMCACHE_USEKDF 	1
 #define BZRTP_CUSTOMCACHE_PLAINDATA 0

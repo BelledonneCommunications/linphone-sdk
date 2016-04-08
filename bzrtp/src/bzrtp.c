@@ -808,6 +808,39 @@ int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 	return 0;
 }
 
+
+/**
+ * @brief Get the channel status
+ *
+ * @param[in]		zrtpContext			The ZRTP context we're dealing with
+ * @param[in]		selfSSRC			The SSRC identifying the channel
+ *
+ * @return	BZRTP_CHANNEL_NOTFOUND 		no channel matching this SSRC doesn't exists in the zrtp context
+ * 			BZRTP_CHANNEL_INITIALISED	channel initialised but not started
+ * 			BZRTP_CHANNEL_ONGOING		ZRTP key exchange in ongoing
+ *			BZRTP_CHANNEL_SECURE		Channel is secure
+ *			BZRTP_CHANNEL_ERROR			An error occured on this channel
+ */
+int bzrtp_getChannelStatus(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
+
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+
+	if (zrtpChannelContext == NULL) {
+		return BZRTP_CHANNEL_NOTFOUND;
+	}
+
+	if (zrtpChannelContext->stateMachine == NULL) {
+		return BZRTP_CHANNEL_INITIALISED;
+	}
+
+	if (zrtpChannelContext->isSecure == 1) {
+		return BZRTP_CHANNEL_SECURE;
+	}
+
+	return BZRTP_CHANNEL_ONGOING;
+}
+
 /* Local functions implementation */
 
 /**
@@ -848,6 +881,9 @@ static bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uin
  */
 static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC, uint8_t isMain) {
 	int i;
+	int retval;
+	bzrtpPacket_t *helloPacket;
+
 	if (zrtpChannelContext == NULL) {
 		return BZRTP_ERROR_INVALIDCHANNELCONTEXT;
 	}
@@ -921,6 +957,19 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->srtpSecrets.authTagAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.sas = NULL;
 	zrtpChannelContext->srtpSecrets.sasLength = 0;
+
+	/* create the Hello packet and store it */
+	helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_HELLO, &retval);
+	if (retval != 0) {
+		return retval;
+	}
+	/* build the packet string and store the packet */
+	if (bzrtp_packetBuild(zrtpContext, zrtpChannelContext, helloPacket, zrtpChannelContext->selfSequenceNumber) ==0) {
+		zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID] = helloPacket;
+	} else {
+		bzrtp_freeZrtpPacket(helloPacket);
+		return retval;
+	}
 
 	return 0;
 }
