@@ -126,7 +126,7 @@ static void codecs_manager_test_all_combinations(const CodecsManager *cm, CodecM
 
 static int tester_before_all(void) {
 	_factory = ms_factory_new_with_voip();
-	
+
 	ms_factory_create_filter(_factory, TRUE);
 	ortp_init();
 	rtp_profile_set_payload(&rtp_profile, VP8_PAYLOAD_TYPE, &payload_type_vp8);
@@ -296,8 +296,9 @@ static void create_video_stream(video_stream_tester_t *vst, int payload_type) {
 	video_stream_set_event_callback(vst->vs, video_stream_event_cb, vst);
 	if (vst->vconf) {
 		PayloadType *pt = rtp_profile_get_payload(&rtp_profile, payload_type);
-		BC_ASSERT_PTR_NOT_NULL_FATAL(pt);
-		pt->normal_bitrate = vst->vconf->required_bitrate;
+		if (BC_ASSERT_PTR_NOT_NULL(pt)) {
+			pt->normal_bitrate = vst->vconf->required_bitrate;
+		}
 		video_stream_set_fps(vst->vs, vst->vconf->fps);
 		video_stream_set_sent_video_size(vst->vs, vst->vconf->vsize);
 	}
@@ -317,11 +318,12 @@ static void init_video_streams(video_stream_tester_t *vst1, video_stream_tester_
 
 	/* Enable/disable avpf. */
 	pt = rtp_profile_get_payload(&rtp_profile, payload_type);
-	BC_ASSERT_PTR_NOT_NULL_FATAL(pt);
-	if (avpf == TRUE) {
-		payload_type_set_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
-	} else {
-		payload_type_unset_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
+	if (BC_ASSERT_PTR_NOT_NULL(pt)) {
+		if (avpf == TRUE) {
+			payload_type_set_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
+		} else {
+			payload_type_unset_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
+		}
 	}
 
 	/* Configure network simulator. */
@@ -344,9 +346,8 @@ static void uninit_video_streams(video_stream_tester_t *vst1, video_stream_teste
 	PayloadType *vst2_pt;
 
 	vst1_pt = rtp_profile_get_payload(&rtp_profile, vst1->payload_type);
-	BC_ASSERT_PTR_NOT_NULL_FATAL(vst1_pt);
 	vst2_pt = rtp_profile_get_payload(&rtp_profile, vst2->payload_type);
-	BC_ASSERT_PTR_NOT_NULL_FATAL(vst2_pt);
+	if (!BC_ASSERT_PTR_NOT_NULL(vst1_pt) || !BC_ASSERT_PTR_NOT_NULL(vst2_pt)) return;
 
 	rtcp_send_bandwidth = rtp_session_get_rtcp_send_bandwidth(vst1->vs->ms.sessions.rtp_session);
 	ms_message("vst1: rtcp_send_bandwidth=%f, payload_type_bitrate=%d, rtcp_target_bandwidth=%f",
@@ -501,7 +502,7 @@ static void avpf_video_stream_base(int payload_type) {
 	OrtpNetworkSimulatorParams params = { 0 };
 	bool_t supported;
     int dummy = 0;
-    
+
 	switch(payload_type) {
 	case VP8_PAYLOAD_TYPE:
 		supported = ms_factory_codec_supported(_factory, "vp8");
@@ -513,7 +514,7 @@ static void avpf_video_stream_base(int payload_type) {
 		supported = FALSE;
 		break;
 	}
-    
+
 	if (supported) {
 		params.enabled = TRUE;
 		params.loss_rate = 5.;
@@ -521,9 +522,9 @@ static void avpf_video_stream_base(int payload_type) {
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params,payload_type);
 
         BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR, 2, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
-       
-        
- 
+
+
+
 		if (payload_type == VP8_PAYLOAD_TYPE) {
 			BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_sent_SLI, 1, 5000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
 			BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_sent_RPSI, 1, 15000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
@@ -533,9 +534,9 @@ static void avpf_video_stream_base(int payload_type) {
         params.enabled = FALSE;
         rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
         rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
-        
+
         wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats);
-        
+
          // wait for all packets reception before closing streams
 		if (payload_type == VP8_PAYLOAD_TYPE) {
 			BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &margaux->vs->ms_video_stat.counter_rcvd_rpsi , marielle->stats.number_of_sent_RPSI, 10000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
@@ -551,16 +552,16 @@ static void avpf_video_stream_base(int payload_type) {
         BC_ASSERT_EQUAL(margaux->vs->ms_video_stat.counter_rcvd_sli , marielle->stats.number_of_sent_SLI, int, "%d");
         BC_ASSERT_EQUAL(margaux->vs->ms_video_stat.counter_rcvd_rpsi , marielle->stats.number_of_sent_RPSI, int, "%d");
         BC_ASSERT_EQUAL(margaux->vs->ms_video_stat.counter_rcvd_pli , marielle->stats.number_of_sent_PLI, int, "%d");
-        
+
         BC_ASSERT_EQUAL(marielle->vs->ms_video_stat.counter_rcvd_sli , margaux->stats.number_of_sent_SLI, int, "%d");
         BC_ASSERT_EQUAL(marielle->vs->ms_video_stat.counter_rcvd_rpsi , margaux->stats.number_of_sent_RPSI, int, "%d");
         BC_ASSERT_EQUAL(marielle->vs->ms_video_stat.counter_rcvd_pli , margaux->stats.number_of_sent_PLI, int, "%d");
-        
+
         uninit_video_streams(marielle, margaux);
 	} else {
 		ms_error("Codec is not supported!");
 	}
-    
+
 	video_stream_tester_destroy(marielle);
 	video_stream_tester_destroy(margaux);
 }

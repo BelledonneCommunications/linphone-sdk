@@ -261,11 +261,11 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 	const char *aes_128_bits_send_key = "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj";
 	const char *aes_128_bits_send_key_2 = "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te";
 	const char *aes_128_bits_recv_key = "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F";
-	
+
 	const char *aes_256_bits_send_key = "nJNTwiMkyAu8zs0MWUiSQbnBL4M+xkWTYgrVLR2eFwZyO+ca2UqBy2Uh9pVRbA==";
 	const char *aes_256_bits_send_key_2 = "N3vq6TMfvtyYpqGaEi9vAHMCzgWJvaD1PIfwEYtdEgI2ACezZo2vpOdV2YWEcQ==";
 	const char *aes_256_bits_recv_key = "UKg69sFLbrA7d0hEVKMtT83R3GR3sjhE0XMqNBbQ+axoDWMP5dQNfjNuSQQHbw==";
-	
+
 	const char *send_key = NULL;
 	const char *send_key_2 = NULL;
 	const char *recv_key = NULL;
@@ -279,21 +279,18 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 			send_key_2 = aes_128_bits_send_key_2;
 			recv_key = aes_128_bits_recv_key;
 			break;
-			
 		case MS_AES_256_SHA1_32:
 		case MS_AES_256_SHA1_80:
 			send_key = aes_256_bits_send_key;
 			send_key_2 = aes_256_bits_send_key_2;
 			recv_key = aes_256_bits_recv_key;
 			break;
-			
-  default:
+		default:
 			BC_FAIL("Unsupported suite");
-			BC_ASSERT_FATAL(FALSE);
-			break;
+			return;
 	}
 
-	
+
  	if (ms_srtp_supported()) {
 		reset_stats(&marielle_stats);
 		reset_stats(&margaux_stats);
@@ -407,7 +404,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 													, NULL
 													, 0)
 			,0, int, "%d");
-			BC_ASSERT_FATAL(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ms.sessions), suite, send_key) == 0);
+			BC_ASSERT(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ms.sessions), suite, send_key) == 0);
 
 			ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 
