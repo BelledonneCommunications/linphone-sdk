@@ -480,12 +480,12 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 					revents=belle_sip_source_get_revents(s,pfd);
 				}
 				s->revents=revents;
+			} else {
+				belle_sip_error("Source [%p] does not contains any fd !",s);
 			}
-			if (revents!=0 /*|| (s->timeout>=0 && cur>=s->expire_ms)*/){
+			if (revents!=0){
 				to_be_notified=belle_sip_list_append(to_be_notified,belle_sip_object_ref(s));
 				s->expired=TRUE;
-				/*if (s->revents==0)
-					s->revents=BELLE_SIP_EVENT_TIMEOUT;*/
 			}
 		}else to_be_notified=belle_sip_list_append(to_be_notified,belle_sip_object_ref(s));
 	}
@@ -500,15 +500,13 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 			break;
 		} else {
 			if (s->revents==0) {
-				s->revents=BELLE_SIP_EVENT_TIMEOUT;
+				s->expired=TRUE;
 				to_be_notified=belle_sip_list_append(to_be_notified,belle_sip_object_ref(s));
-				it=bctoolbox_iterator_get_next(it);
-			} else {
-				/*just remove from timeout list*/
-				it=bctoolbox_map_erase(ml->timer_sources, it);
-				bctoolbox_iterator_delete(s->it);
-				s->it=NULL;
-			}
+			} /*else already in to_be_notified by Step 2*/
+			
+			s->revents|=BELLE_SIP_EVENT_TIMEOUT;
+			it=bctoolbox_iterator_get_next(it);
+
 		}
 	}
 	bctoolbox_iterator_delete(it);
@@ -531,7 +529,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 			if (ret==BELLE_SIP_STOP || s->oneshot){
 				/*this source needs to be removed*/
 				belle_sip_main_loop_remove_source(ml,s);
-			}else if (s->revents==BELLE_SIP_EVENT_TIMEOUT && s->timeout >= 0){
+			}else if (s->revents&BELLE_SIP_EVENT_TIMEOUT && s->timeout >= 0){
 				/*timeout needs to be started again */
 				if (ret==BELLE_SIP_CONTINUE_WITHOUT_CATCHUP){
 					s->expire_ms=cur+s->timeout;
