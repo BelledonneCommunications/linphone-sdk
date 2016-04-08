@@ -34,7 +34,7 @@ if(POLARSSL_FOUND)
 	endif()
 endif()
 if(CUNIT_FOUND)
-	set(BCTOOLBOX_TESTER_SOURCE_FILES tester/utils.c)
+	set(BCTOOLBOX_TESTER_SOURCE_FILES tester.c)
 endif()
 
 if(ENABLE_STATIC)

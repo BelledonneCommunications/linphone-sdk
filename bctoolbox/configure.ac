@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.63])
 
-AC_INIT([bctoolbox],[0.0.2],[jehan.monnier@linphone.org])
+AC_INIT([bctoolbox],[0.0.3],[jehan.monnier@linphone.org])
 
 BCTOOLBOX_SO_CURRENT=0 dnl increment this number when you add/change/remove an interface
 BCTOOLBOX_SO_REVISION=0 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
@@ -116,7 +116,7 @@ CPPFLAGS="$CPPFLAGS $CUNIT_CFLAGS"
 LIBS="$LIBS $CUNIT_LIBS"
 
 AC_CHECK_HEADER(CUnit/CUnit.h, [
-	AC_CHECK_LIB(cunit, CU_get_error, [CUNIT_LIBS="CUNIT_LIBS -lcunit"; cunit_found=true], 
+	AC_CHECK_LIB(cunit, CU_get_error, [CUNIT_LIBS="CUNIT_LIBS -lcunit"; cunit_found=true],
 	[cunit_found=false]) ],
 	[cunit_found=false]
 )
@@ -125,7 +125,7 @@ if test "$cunit_found" != "true" ; then
 	AC_MSG_ERROR("CUnit not found")
 else
 
-	AC_CHECK_LIB(cunit, CU_get_suite, 
+	AC_CHECK_LIB(cunit, CU_get_suite,
 		[ AC_DEFINE(HAVE_CU_GET_SUITE, 1, [Defined when CU_get_suite is available])]
 	)
 	AC_CHECK_LIB(cunit, CU_set_trace_handler,
@@ -193,7 +193,7 @@ dnl substitute variables used by .pc files
 
 if test "$prefix" = "NONE" ; then
 	install_prefix=/usr
-else 
+else
 	install_prefix=$prefix
 fi
 
