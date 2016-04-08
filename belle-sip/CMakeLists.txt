@@ -111,7 +111,7 @@ if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
 	set(BcToolbox_FIND_COMPONENTS tester)
 	include("${EP_bctoolbox_CONFIG_DIR}/BcToolboxConfig.cmake")
 else()
-	find_package(BcToolbox REQUIRED OPTIONAL_COMPONENTS tester)
+	find_package(BcToolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester)
 endif()
 
 if(ENABLE_TUNNEL)

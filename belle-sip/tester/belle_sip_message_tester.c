@@ -837,7 +837,7 @@ static void testHttpGet(void)  {
 	belle_sip_header_extension_t* host_header;
 	belle_sip_object_t* tmp;
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(msg);
+	if (!BC_ASSERT_PTR_NOT_NULL(msg)) return;
 
 	marshaled_msg=belle_sip_object_to_string(BELLE_SIP_OBJECT(msg));
 	belle_sip_object_unref(msg);
@@ -849,7 +849,7 @@ static void testHttpGet(void)  {
 
 	BC_ASSERT_TRUE(BELLE_SIP_IS_INSTANCE_OF(msg,belle_http_request_t));
 	http_request=BELLE_HTTP_REQUEST(msg);
-	BC_ASSERT_PTR_NOT_NULL_FATAL(uri=belle_http_request_get_uri(http_request));
+	if (!BC_ASSERT_PTR_NOT_NULL(uri=belle_http_request_get_uri(http_request))) return;
 
 	BC_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"/index.php");
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"User-Agent"));
@@ -882,7 +882,7 @@ static void testHttp200Ok(void)  {
 	belle_sip_header_extension_t* host_header;
 	belle_sip_object_t* tmp;
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(msg);
+	if (!BC_ASSERT_PTR_NOT_NULL(msg)) return;
 
 	marshaled_msg=belle_sip_object_to_string(BELLE_SIP_OBJECT(msg));
 	belle_sip_object_unref(msg);

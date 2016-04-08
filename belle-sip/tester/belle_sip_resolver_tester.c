@@ -113,7 +113,7 @@ static void ipv4_a_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -140,7 +140,7 @@ static void ipv4_cname_a_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_CNAME, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -164,7 +164,7 @@ static void local_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, "localhost", SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
@@ -183,7 +183,7 @@ static void ipv4_a_query_no_result(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_BAD_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -197,7 +197,7 @@ static void ipv4_a_query_no_result(void) {
 static void ipv4_a_query_send_failure(void) {
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_resolver_send_error(client->stack, -1);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NULL(client->resolver_ctx);
@@ -211,7 +211,7 @@ static void ipv4_a_query_timeout(void) {
 
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_timeout(client->stack, 0);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, "toto.com", SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -226,7 +226,7 @@ static void ipv4_a_query_multiple_results(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_MULTIRES_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -250,7 +250,7 @@ static void ipv4_a_query_with_v4mapped_results(void) {
 
 	client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -273,7 +273,7 @@ static void ipv6_aaaa_query(void) {
 	}
 
 	client = create_endpoint();
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV6_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -325,7 +325,7 @@ static void srv_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_srv(client->stack, "udp", SRV_DOMAIN, srv_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -345,7 +345,7 @@ static void srv_a_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", SRV_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -361,7 +361,7 @@ static void srv_a_query_no_srv_result(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", IPV4_CNAME, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -385,7 +385,7 @@ static void local_full_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "tcp", "localhost", SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -404,7 +404,7 @@ static void no_query_needed(void) {
 	struct addrinfo *ai;
 	endpoint_t *client = create_endpoint();
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "udp", IPV4_SIP_IP, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(client->resolve_done);
@@ -450,7 +450,7 @@ static void dns_fallback(void) {
 		NULL
 	};
 
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	set_custom_resolv_conf(client->stack,nameservers);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
@@ -486,7 +486,7 @@ static void ipv6_dns_server(void) {
 	}
 
 	client = create_endpoint();
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	set_custom_resolv_conf(client->stack,nameservers);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
@@ -522,7 +522,7 @@ static void ipv4_and_ipv6_dns_server(void) {
 		return;
 	}
 	client = create_endpoint();
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client);
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	set_custom_resolv_conf(client->stack,nameservers);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);

@@ -108,10 +108,11 @@ static void caller_process_request_event(void *user_ctx, const belle_sip_request
 	}
 	belle_sip_message("caller_process_request_event received [%s] message",belle_sip_request_get_method(belle_sip_request_event_get_request(event)));
 	server_transaction=belle_sip_provider_create_server_transaction(prov,belle_sip_request_event_get_request(event));
-	BC_ASSERT_STRING_EQUAL_FATAL("BYE",belle_sip_request_get_method(belle_sip_request_event_get_request(event)));
+	BC_ASSERT_STRING_EQUAL("BYE",belle_sip_request_get_method(belle_sip_request_event_get_request(event)));
 	dialog =  belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(server_transaction));
-	BC_ASSERT_PTR_NOT_NULL_FATAL(dialog);
-	BC_ASSERT_EQUAL(belle_sip_dialog_get_state(dialog) , BELLE_SIP_DIALOG_CONFIRMED, int, "%d");
+	if (BC_ASSERT_PTR_NOT_NULL(dialog)) {
+		BC_ASSERT_EQUAL(belle_sip_dialog_get_state(dialog) , BELLE_SIP_DIALOG_CONFIRMED, int, "%d");
+	}
 	resp=belle_sip_response_create_from_request(belle_sip_request_event_get_request(event),200);
 	belle_sip_server_transaction_send_response(server_transaction,resp);
 
@@ -137,7 +138,7 @@ static void callee_process_request_event(void *user_ctx, const belle_sip_request
 	belle_sip_message("callee_process_request_event received [%s] message",method);
 	dialog = belle_sip_request_event_get_dialog(event);
 	if (!dialog ) {
-		BC_ASSERT_STRING_EQUAL_FATAL("INVITE",method);
+		BC_ASSERT_STRING_EQUAL("INVITE",method);
 		dialog=belle_sip_provider_create_dialog(prov,BELLE_SIP_TRANSACTION(server_transaction));
 		callee_dialog=dialog;
 		inserv_transaction=server_transaction;
@@ -178,25 +179,24 @@ static void caller_process_response_event(void *user_ctx, const belle_sip_respon
 
 	status = belle_sip_response_get_status_code(belle_sip_response_event_get_response(event));
 	belle_sip_message("caller_process_response_event [%i]",status);
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client_transaction);
-	dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction));
-	BC_ASSERT_PTR_NOT_NULL_FATAL(dialog);
-	BC_ASSERT_PTR_EQUAL(caller_dialog,dialog);
-	if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_NULL) {
-		BC_ASSERT_EQUAL(status,100, int, "%d");
-	} else if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_EARLY){
-		BC_ASSERT_EQUAL(status,180, int, "%d");
-		/*send 200ok from callee*/
-		belle_sip_server_transaction_send_response(inserv_transaction,ok_response);
-		belle_sip_object_unref(ok_response);
-		ok_response=NULL;
-	} else if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_CONFIRMED) {
-		ack=belle_sip_dialog_create_ack(dialog,belle_sip_header_cseq_get_seq_number(invite_cseq));
-		belle_sip_dialog_send_ack(dialog,ack);
+	if (BC_ASSERT_PTR_NOT_NULL(client_transaction)) {
+		dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction));
+		if (BC_ASSERT_PTR_NOT_NULL(dialog)) {
+			BC_ASSERT_PTR_EQUAL(caller_dialog,dialog);
+			if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_NULL) {
+				BC_ASSERT_EQUAL(status,100, int, "%d");
+			} else if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_EARLY){
+				BC_ASSERT_EQUAL(status,180, int, "%d");
+				/*send 200ok from callee*/
+				belle_sip_server_transaction_send_response(inserv_transaction,ok_response);
+				belle_sip_object_unref(ok_response);
+				ok_response=NULL;
+			} else if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_CONFIRMED) {
+				ack=belle_sip_dialog_create_ack(dialog,belle_sip_header_cseq_get_seq_number(invite_cseq));
+				belle_sip_dialog_send_ack(dialog,ack);
+			}
+		}
 	}
-
-
-
 }
 
 static void callee_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
@@ -208,17 +208,19 @@ static void callee_process_response_event(void *user_ctx, const belle_sip_respon
 		belle_sip_message("Message [%p] not for callee, skipping",belle_sip_response_event_get_response(event));
 		return; /*not for the callee*/
 	}
-	BC_ASSERT_PTR_NOT_NULL_FATAL(client_transaction);
-	dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction));
-	BC_ASSERT_PTR_NOT_NULL_FATAL(dialog);
-	BC_ASSERT_PTR_EQUAL(callee_dialog,dialog);
-	if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_TERMINATED) {
-		call_endeed=1;
-		belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
+	if (BC_ASSERT_PTR_NOT_NULL(client_transaction)) {
+		dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction));
+		if (BC_ASSERT_PTR_NOT_NULL(dialog)) {
+			BC_ASSERT_PTR_EQUAL(callee_dialog,dialog);
+			if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_TERMINATED) {
+				call_endeed=1;
+				belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
+			}
+			belle_sip_message("callee_process_response_event [%i] on dialog [%p] for state [%s]",status
+						,dialog
+						,belle_sip_dialog_state_to_string(belle_sip_dialog_get_state(dialog)));
+		}
 	}
-	belle_sip_message("callee_process_response_event [%i] on dialog [%p] for state [%s]",status
-				,dialog
-				,belle_sip_dialog_state_to_string(belle_sip_dialog_get_state(dialog)));
 
 }
 
@@ -317,7 +319,7 @@ static void do_simple_call(void) {
 
 	client_transaction = belle_sip_provider_create_client_transaction(prov,req);
 	caller_dialog=belle_sip_provider_create_dialog(prov,BELLE_SIP_TRANSACTION(client_transaction));
-	BC_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction)));
+	BC_ASSERT_PTR_NOT_NULL(belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction)));
 	//belle_sip_transaction_set_application_data(BELLE_SIP_TRANSACTION(client_transaction),op);
 	call_endeed=0;
 	belle_sip_client_transaction_send_request(client_transaction);
