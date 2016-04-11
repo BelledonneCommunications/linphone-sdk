@@ -1,5 +1,5 @@
 @LIBDIR@/@LIBPREFIX@bctoolbox*.@LIBEXT@
-include/bctoolbox
+include/bctoolbox/*
 lib/bctoolbox*.lib
 lib/pkgconfig/bctoolbox*.pc
-share/bctoolbox/cmake
+share/bctoolbox/cmake/*
