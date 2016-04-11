@@ -1652,11 +1652,21 @@ void video_stream_send_only_stop(VideoStream *vs){
 }
 
 /* enable ZRTP on the video stream using information from the audio stream */
-void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtpParams *param){
+void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream){
 	if (astream->ms.sessions.zrtp_context != NULL && vstream->ms.sessions.zrtp_context == NULL) {
-		vstream->ms.sessions.zrtp_context=ms_zrtp_multistream_new(&(vstream->ms.sessions), astream->ms.sessions.zrtp_context, param);
+		vstream->ms.sessions.zrtp_context=ms_zrtp_multistream_new(&(vstream->ms.sessions), astream->ms.sessions.zrtp_context);
 	} else if (vstream->ms.sessions.zrtp_context && !media_stream_secured(&vstream->ms))
 		ms_zrtp_reset_transmition_timer(vstream->ms.sessions.zrtp_context);
+}
+
+void video_stream_start_zrtp(VideoStream *stream) {
+	if (stream->ms.sessions.zrtp_context!=NULL) {
+		if (ms_zrtp_channel_start(stream->ms.sessions.zrtp_context) == MSZRTP_ERROR_CHANNEL_ALREADY_STARTED) {
+			ms_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context);
+		}
+	} else {
+		ms_warning("Trying to start a ZRTP channel on videotream, but none was enabled");
+	}
 }
 
 void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable) {

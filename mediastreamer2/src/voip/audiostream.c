@@ -1746,6 +1746,16 @@ void audio_stream_enable_zrtp(AudioStream *stream, MSZrtpParams *params){
 		ms_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context);
 }
 
+void audio_stream_start_zrtp(AudioStream *stream) {
+	if (stream->ms.sessions.zrtp_context!=NULL) {
+		if (ms_zrtp_channel_start(stream->ms.sessions.zrtp_context) == MSZRTP_ERROR_CHANNEL_ALREADY_STARTED) {
+			ms_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context);
+		}
+	} else {
+		ms_warning("Trying to start a ZRTP channel on audiostream, but none was enabled");
+	}
+}
+
 bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
 	return stream->ms.sessions.zrtp_context!=NULL;
 }

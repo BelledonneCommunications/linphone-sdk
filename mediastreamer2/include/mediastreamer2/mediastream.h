@@ -724,6 +724,8 @@ MS2_PUBLIC float audio_stream_get_average_lq_quality_rating(AudioStream *stream)
 
 /* enable ZRTP on the audio stream */
 MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, MSZrtpParams *params);
+MS2_PUBLIC void audio_stream_start_zrtp(AudioStream *stream);
+
 /**
  * return TRUE if zrtp is enabled, it does not mean that stream is encrypted, but only that zrtp is configured to know encryption status, uses #
  * */
@@ -1038,7 +1040,8 @@ MS2_PUBLIC void video_stream_recv_only_stop(VideoStream *vs);
 MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 
 /* enable ZRTP on the video stream using information from the audio stream */
-MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtpParams *param);
+MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream);
+MS2_PUBLIC void video_stream_start_zrtp(VideoStream *stream);
 
 /* enable SRTP on the video stream */
 static MS2_INLINE bool_t video_stream_enable_strp(VideoStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {

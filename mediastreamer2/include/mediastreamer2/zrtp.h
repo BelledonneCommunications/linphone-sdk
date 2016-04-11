@@ -31,6 +31,9 @@ extern "C"{
 struct _MSMediaStreamSessions;
 
 
+/* Error codes */
+#define MSZRTP_ERROR_CHANNEL_ALREADY_STARTED		-0x0001
+
 #define MS_MAX_ZRTP_CRYPTO_TYPES 7
 
 typedef uint8_t MsZrtpCryptoTypesCount;
@@ -113,10 +116,16 @@ MS2_PUBLIC MSZrtpContext* ms_zrtp_context_new(struct _MSMediaStreamSessions *str
  * Create an initialise a ZRTP context on a channel when a ZRTP exchange was already performed on an other one
  * @param[in]	stream_sessions		A link to the stream sessions structures, used to get rtp session to add transport modifier and needed to set SRTP sessions when keys are ready
  * @param[in]	activeContext		The MSZRTP context of the already active session, used to pass to lib bzrtp its own context which shall remain unique.
- * @param[in]	params			ZID cache filename and peer sip uri
  * @return	a pointer to the opaque context structure needed by MSZRTP
  */
-MS2_PUBLIC MSZrtpContext* ms_zrtp_multistream_new(struct _MSMediaStreamSessions *stream_sessions, MSZrtpContext* activeContext, MSZrtpParams *params);
+MS2_PUBLIC MSZrtpContext* ms_zrtp_multistream_new(struct _MSMediaStreamSessions *stream_sessions, MSZrtpContext* activeContext);
+
+/***
+ * Start a previously created ZRTP channel, ZRTP engine will start sending Hello packets
+ * @param[in]	ctx		Context previously created using ms_zrtp_context_new or ms_zrtp_multistream_new
+ * @return 0 on success
+ */
+MS2_PUBLIC int ms_zrtp_channel_start(MSZrtpContext *ctx);
 
 /**
  * Free ressources used by ZRTP context
@@ -142,6 +151,23 @@ MS2_PUBLIC void ms_zrtp_sas_verified(MSZrtpContext* ctx);
  * @param[in]	ctx	MSZRTP context, used to retrieve cache and update it
  */
 MS2_PUBLIC void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx);
+
+/**
+ * Get the ZRTP Hello Hash from the given context
+ * @param[in]	ctx	MSZRTP context
+ * @param[out]	The Zrtp Hello Hash as defined in RFC6189 section 8
+ */
+MS2_PUBLIC int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength);
+
+/**
+ * Set the peer ZRTP Hello Hash to the given context
+ * @param[in]	ctx	MSZRTP context
+ * @param[in]	The Zrtp Hello Hash as defined in RFC6189 section 8
+ * @param[in]	The Zrtp Hello Hash length
+ *
+ * @return 0 on succes, Error code otherwise
+ */
+MS2_PUBLIC int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength);
 
 /**
  * from_string and to_string for enums: MSZrtpHash, MSZrtpCipher, MSZrtpAuthTag, MSZrtpKeyAgreement, MSZrtpSasType
