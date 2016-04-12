@@ -249,9 +249,9 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 
 	/* Disable avpf. */
 	pt = rtp_profile_get_payload(&rtp_profile, VP8_PAYLOAD_TYPE);
-	BC_ASSERT_PTR_NOT_NULL_FATAL(pt);
-	payload_type_unset_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
-
+	if (BC_ASSERT_PTR_NOT_NULL(pt)) {
+		payload_type_unset_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
+	}
 
 	media_stream_enable_adaptive_bitrate_control(marielle_ms,TRUE);
 	media_stream_set_adaptive_bitrate_algorithm(marielle_ms, MSQosAnalyzerAlgorithmStateful);

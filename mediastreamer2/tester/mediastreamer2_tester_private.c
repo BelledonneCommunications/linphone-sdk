@@ -72,7 +72,7 @@ static MSTicker * create_ticker(void) {
 void ms_tester_create_ticker(void) {
 	BC_ASSERT_PTR_NULL(ms_tester_ticker);
 	ms_tester_ticker = create_ticker();
-	BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_ticker);
+	BC_ASSERT_PTR_NOT_NULL(ms_tester_ticker);
 }
 
 void ms_tester_destroy_ticker(void) {
@@ -86,14 +86,14 @@ void ms_tester_destroy_ticker(void) {
 	if (filter_mask & mask) { \
 		BC_ASSERT_PTR_NULL(filter); \
 		filter = ms_factory_create_filter(factory, id); \
-		BC_ASSERT_PTR_NOT_NULL_FATAL(filter); \
+		BC_ASSERT_PTR_NOT_NULL(filter); \
 	}
 
 void ms_tester_create_filter(MSFilter **filter, MSFilterId id, MSFactory *f) {
 	BC_ASSERT_PTR_NOT_NULL(filter);
 	BC_ASSERT_PTR_NULL(*filter);
 	*filter = ms_factory_create_filter(f, id);
-	BC_ASSERT_PTR_NOT_NULL_FATAL(*filter);
+	BC_ASSERT_PTR_NOT_NULL(*filter);
 }
 
 void ms_tester_create_filters(unsigned int filter_mask, MSFactory * f) {
@@ -114,12 +114,12 @@ void ms_tester_create_filters(unsigned int filter_mask, MSFactory * f) {
 	if (filter_mask & FILTER_MASK_ENCODER) {
 		BC_ASSERT_PTR_NULL(ms_tester_encoder);
 		ms_tester_encoder = ms_factory_create_encoder(f, ms_tester_codec_mime);
-		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_encoder);
+		BC_ASSERT_PTR_NOT_NULL(ms_tester_encoder);
 	}
 	if (filter_mask & FILTER_MASK_DECODER) {
 		BC_ASSERT_PTR_NULL(ms_tester_decoder);
 		ms_tester_decoder = ms_factory_create_decoder(f, ms_tester_codec_mime);
-		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_decoder);
+		BC_ASSERT_PTR_NOT_NULL(ms_tester_decoder);
 	}
 	CREATE_FILTER(FILTER_MASK_RTPRECV, ms_tester_rtprecv, f, MS_RTP_RECV_ID);
 	CREATE_FILTER(FILTER_MASK_RTPSEND, ms_tester_rtpsend, f ,MS_RTP_SEND_ID);
@@ -128,25 +128,25 @@ void ms_tester_create_filters(unsigned int filter_mask, MSFactory * f) {
 		BC_ASSERT_PTR_NULL(ms_tester_soundwrite);
 		snd_manager = ms_factory_get_snd_card_manager(f);
 		playcard = ms_snd_card_manager_get_default_playback_card(snd_manager);
-		BC_ASSERT_PTR_NOT_NULL_FATAL(playcard);
+		BC_ASSERT_PTR_NOT_NULL(playcard);
 		ms_tester_soundwrite = ms_snd_card_create_writer(playcard);
-		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_soundwrite);
+		BC_ASSERT_PTR_NOT_NULL(ms_tester_soundwrite);
 	}
 	if (filter_mask & FILTER_MASK_SOUNDREAD) {
 		BC_ASSERT_PTR_NULL(ms_tester_soundread);
 		snd_manager = ms_factory_get_snd_card_manager(f);
 		captcard = ms_snd_card_manager_get_default_capture_card(snd_manager);
-		BC_ASSERT_PTR_NOT_NULL_FATAL(captcard);
+		BC_ASSERT_PTR_NOT_NULL(captcard);
 		ms_tester_soundread = ms_snd_card_create_reader(captcard);
-		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_soundread);
+		BC_ASSERT_PTR_NOT_NULL(ms_tester_soundread);
 	}
 	if (filter_mask & FILTER_MASK_VIDEOCAPTURE) {
 		BC_ASSERT_PTR_NULL(ms_tester_videocapture);
 		cam_manager = ms_factory_get_web_cam_manager(f);
 		camera = ms_web_cam_manager_get_default_cam(cam_manager);
-		BC_ASSERT_PTR_NOT_NULL_FATAL(camera);
+		BC_ASSERT_PTR_NOT_NULL(camera);
 		ms_tester_videocapture = ms_web_cam_create_reader(camera);
-		BC_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_videocapture);
+		BC_ASSERT_PTR_NOT_NULL(ms_tester_videocapture);
 	}
 }
 
