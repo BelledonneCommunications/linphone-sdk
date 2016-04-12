@@ -42,6 +42,7 @@ option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_POLARSSL "Enable polarssl support" ON)
 option(ENABLE_MBEDTLS "Enable mabedtls support" ON)
 option(ENABLE_TESTS "Enable compilation of tests helper library" ON)
+option(ENABLE_STRICT "Pass strict flags to the compiler" ON)
 
 include(CheckLibraryExists)
 include(CheckSymbolExists)
