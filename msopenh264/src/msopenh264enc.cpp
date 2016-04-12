@@ -122,14 +122,14 @@ void MSOpenH264Encoder::initialize()
 			params.bEnableLongTermReference  = false;
 			params.iSpatialLayerNum=1;
 			params.eSpsPpsIdStrategy = CONSTANT_ID;
-			
+
 			params.sSpatialLayers[0].iVideoWidth = mVConf.vsize.width;
 			params.sSpatialLayers[0].iVideoHeight = mVConf.vsize.height;
 			params.sSpatialLayers[0].fFrameRate = mVConf.fps;
 			params.sSpatialLayers[0].iSpatialBitrate = targetBitrate;
 			params.sSpatialLayers[0].iMaxSpatialBitrate = maxBitrate;
-			params.sSpatialLayers[0].sSliceCfg.uiSliceMode = SM_DYN_SLICE;
-			params.sSpatialLayers[0].sSliceCfg.sSliceArgument.uiSliceSizeConstraint = ms_factory_get_payload_max_size(mFilter->factory);
+			params.sSpatialLayers[0].sSliceArgument.uiSliceMode = SM_SIZELIMITED_SLICE;
+			params.sSpatialLayers[0].sSliceArgument.uiSliceSizeConstraint = ms_factory_get_payload_max_size(mFilter->factory);
 
 			ret = mEncoder->InitializeExt(&params);
 			if (ret != 0) {

@@ -53,7 +53,6 @@ void MSOpenH264Decoder::initialize()
 		mUnpacker=rfc3984_new();
 		if (mDecoder != 0) {
 			SDecodingParam params = { 0 };
-			params.eOutputColorFormat = videoFormatI420;
 			params.uiTargetDqLayer = (unsigned char) -1;
 			params.eEcActiveIdc = ERROR_CON_FRAME_COPY_CROSS_IDR;
 			params.sVideoProperty.size = sizeof(params.sVideoProperty);
