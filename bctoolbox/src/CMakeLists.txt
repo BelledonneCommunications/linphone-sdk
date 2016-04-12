@@ -20,21 +20,40 @@
 #
 ############################################################################
 
-set(BCTOOLBOX_SOURCE_FILES)
-list(APPEND BCTOOLBOX_SOURCE_FILES utils/port.c logging/logging.c containers/list.c containers/map.cc)
+set(BCTOOLBOX_C_SOURCE_FILES)
+set(BCTOOLBOX_CPP_SOURCE_FILES)
+
+list(APPEND BCTOOLBOX_C_SOURCE_FILES utils/port.c logging/logging.c containers/list.c)
+list(APPEND BCTOOLBOX_CPP_SOURCE_FILES containers/map.cc)
 
 if(MBEDTLS_FOUND)
-	list(APPEND BCTOOLBOX_SOURCE_FILES crypto/mbedtls.c)
+	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
 endif()
 if(POLARSSL_FOUND)
 	if(POLARSSL_VERSION13_OK)
-		list(APPEND BCTOOLBOX_SOURCE_FILES crypto/polarssl.c)
+		list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/polarssl.c)
 	else()
-		list(APPEND BCTOOLBOX_SOURCE_FILES crypto/polarssl1.2.c)
+		list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/polarssl1.2.c)
 	endif()
 endif()
 if(CUNIT_FOUND)
 	set(BCTOOLBOX_TESTER_SOURCE_FILES tester.c)
+endif()
+
+set(BCTOOLBOX_SOURCE_FILES ${BCTOOLBOX_C_SOURCE_FILES} ${BCTOOLBOX_CPP_SOURCE_FILES})
+
+if(STRICT_OPTIONS_C)
+	set_source_files_properties(
+		${BCTOOLBOX_C_SOURCE_FILES}
+		${BCTOOLBOX_TESTER_SOURCE_FILES}
+		PROPERTIES COMPILE_FLAGS "${STRICT_OPTIONS_C}"
+	)
+endif()
+if(STRICT_OPTIONS_CPP)
+	set_source_files_properties(
+		${BCTOOLBOX_CPP_SOURCE_FILES}
+		PROPERTIES COMPILE_FLAGS "${STRICT_OPTIONS_CPP}"
+	)
 endif()
 
 if(ENABLE_STATIC)
