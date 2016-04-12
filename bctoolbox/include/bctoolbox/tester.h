@@ -181,7 +181,7 @@ BCTOOLBOX_PUBLIC int bc_assert(const char* file, int line, int predicate, const 
 
 #define BC_ASSERT_EQUAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_EQUAL", ((cactual) == (cexpected)), actual, expected, type, "Expected " type_format " but was " type_format ".", cexpected, cactual)
 #define BC_ASSERT_NOT_EQUAL(actual, expected, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_NOT_EQUAL", ((cactual) != (cexpected)), actual, expected, type, "Expected NOT " type_format " but it was.", cexpected)
-#define BC_ASSERT_STRING_EQUAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_STRING_EQUAL", !(strcmp((const char*)(cactual), (const char*)(cexpected))), actual, expected, const char*, "Expected %s but was %s.", cexpected, cactual)
+#define BC_ASSERT_STRING_EQUAL(actual, expected) _BC_ASSERT_PRED("BC_ASSERT_STRING_EQUAL", cactual && cexpected && !(strcmp((const char*)(cactual), (const char*)(cexpected))), actual, expected, const char*, "Expected %s but was %s.", cexpected, cactual)
 #define BC_ASSERT_GREATER(actual, min, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_GREATER", ((cactual) >= (cexpected)), actual, min, type, "Expected at least " type_format " but was " type_format ".", cexpected, cactual)
 #define BC_ASSERT_LOWER(actual, max, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_LOWER", ((cactual) <= (cexpected)), actual, max, type, "Expected at most " type_format " but was " type_format ".", cexpected, cactual)
 #define BC_ASSERT_GREATER_STRICT(actual, min, type, type_format) _BC_ASSERT_PRED("BC_ASSERT_GREATER", ((cactual) > (cexpected)), actual, min, type, "Expected more than " type_format " but was " type_format ".", cexpected, cactual)
