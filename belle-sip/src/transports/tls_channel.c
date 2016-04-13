@@ -471,7 +471,7 @@ static int belle_sip_client_certificate_request_callback(void *data, bctoolbox_s
 	belle_sip_tls_channel_t *channel = (belle_sip_tls_channel_t *)data;
 
 	/* ask certificate */
-	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(	channel->base.base.listeners
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(	channel->base.base.full_listeners
 			,belle_sip_channel_listener_t
 			,on_auth_requested
 			,&channel->base.base

@@ -19,6 +19,7 @@
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 #include "bctoolbox/map.h"
+#include <limits.h>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -454,7 +455,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		cur=belle_sip_time_ms();
 		diff=next_wakeup_time-cur;
 		if (diff>0)
-			duration=(int)diff;
+			duration=MIN((unsigned int)diff,INT_MAX);
 		else 
 			duration=0;
 		bctoolbox_iterator_delete(it);

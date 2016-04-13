@@ -26,6 +26,17 @@
 #include "wakelock_internal.h"
 #endif
 
+#define BELLE_SIP_CHANNEL_INVOKE_MESSAGE_HEADERS_LISTENERS(channel,msg) \
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(channel->full_listeners, belle_sip_channel_listener_t, on_message_headers, channel, msg)
+
+#define BELLE_SIP_CHANNEL_INVOKE_SENDING_LISTENERS(channel,msg) \
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(channel->full_listeners, belle_sip_channel_listener_t, on_sending, channel, msg)
+
+
+#define BELLE_SIP_CHANNEL_INVOKE_STATE_LISTENERS(channel,state) \
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(channel->state_listeners, belle_sip_channel_listener_t, on_state_changed, channel, state)
+
+
 static void channel_prepare_continue(belle_sip_channel_t *obj);
 static void channel_process_queue(belle_sip_channel_t *obj);
 static void channel_begin_send_background_task(belle_sip_channel_t *obj);
@@ -103,7 +114,9 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	if (obj->peer_cname) belle_sip_free(obj->peer_cname);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
-	obj->listeners=for_each_weak_unref_free(obj->listeners,(belle_sip_object_destroy_notify_t)channel_remove_listener,obj);
+	obj->state_listeners=for_each_weak_unref_free(obj->state_listeners,(belle_sip_object_destroy_notify_t)channel_remove_listener,obj);
+	obj->full_listeners=for_each_weak_unref_free(obj->full_listeners,(belle_sip_object_destroy_notify_t)channel_remove_listener,obj);
+
 	if (obj->resolver_ctx>0) belle_sip_resolver_context_cancel(obj->resolver_ctx);
 	if (obj->inactivity_timer){
 		belle_sip_main_loop_remove_source(obj->stack->ml,obj->inactivity_timer);
@@ -375,7 +388,7 @@ static int check_body(belle_sip_channel_t *obj){
 	if (expect_body){
 		belle_sip_body_handler_t *bh;
 		/*should notify the listeners*/
-		BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_message_headers,obj,msg);
+		BELLE_SIP_CHANNEL_INVOKE_MESSAGE_HEADERS_LISTENERS(obj,msg);
 		/*check if the listener has setup a body handler, otherwise create a default one*/
 		if ((bh=belle_sip_message_get_body_handler(msg))==NULL){
 			belle_sip_header_t *content_encoding = belle_sip_message_get_header(msg, "Content-Encoding");
@@ -492,7 +505,8 @@ static int acquire_body(belle_sip_channel_t *obj, int end_of_stream){
 
 static void notify_incoming_messages(belle_sip_channel_t *obj){
 	belle_sip_list_t *elem,*l_it;
-	belle_sip_list_t *listeners=belle_sip_list_copy_with_data(obj->listeners,(void *(*)(void*))belle_sip_object_ref);
+	
+	belle_sip_list_t *listeners=belle_sip_list_copy_with_data(obj->full_listeners,(void *(*)(void*))belle_sip_object_ref);
 
 	for(l_it=listeners;l_it!=NULL;l_it=l_it->next){
 		belle_sip_channel_listener_t *listener=(belle_sip_channel_listener_t*)l_it->data;
@@ -769,14 +783,31 @@ void belle_sip_channel_set_socket(belle_sip_channel_t *obj, belle_sip_socket_t s
 									, -1);
 }
 
+static bool_t is_state_only_listener(const belle_sip_channel_listener_t *listener) {
+	BELLE_SIP_INTERFACE_METHODS_TYPE(belle_sip_channel_listener_t) *methods;
+	methods=BELLE_SIP_INTERFACE_GET_METHODS(listener,belle_sip_channel_listener_t);
+	return methods->on_state_changed && !(methods->on_message_headers || methods->on_message || methods->on_sending || methods->on_auth_requested);
+}
 static void channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
-	obj->listeners=belle_sip_list_remove(obj->listeners,l);
+	if (is_state_only_listener(l))
+		obj->state_listeners=belle_sip_list_remove(obj->state_listeners,l);
+	else
+		obj->full_listeners=belle_sip_list_remove(obj->full_listeners,l);
+
 }
 
 void belle_sip_channel_add_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
-	obj->listeners=belle_sip_list_append(obj->listeners,
-	                belle_sip_object_weak_ref(l,
-	                (belle_sip_object_destroy_notify_t)channel_remove_listener,obj));
+	
+	if (is_state_only_listener(l)) {
+		obj->state_listeners=belle_sip_list_prepend(obj->state_listeners,
+												   belle_sip_object_weak_ref(l,
+																	   (belle_sip_object_destroy_notify_t)channel_remove_listener,obj));
+	} else {
+		obj->full_listeners=belle_sip_list_prepend(obj->full_listeners,
+													belle_sip_object_weak_ref(l,
+																		(belle_sip_object_destroy_notify_t)channel_remove_listener,obj));
+	}
+	
 }
 
 void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
@@ -912,7 +943,7 @@ static void channel_invoke_state_listener(belle_sip_channel_t *obj){
 		channel_end_recv_background_task(obj);
 		belle_sip_channel_close(obj);
 	}
-	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_state_changed,obj,obj->state);
+	BELLE_SIP_CHANNEL_INVOKE_STATE_LISTENERS(obj,obj->state);
 }
 
 static void channel_invoke_state_listener_defered(belle_sip_channel_t *obj){
@@ -1187,7 +1218,7 @@ static void _send_message(belle_sip_channel_t *obj){
 	}
 
 	if (obj->out_state==OUTPUT_STREAM_SENDING_HEADERS){
-		BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_sending,obj,msg);
+		BELLE_SIP_CHANNEL_INVOKE_SENDING_LISTENERS(obj,msg);
 		check_content_length(msg,body_len);
 		error=belle_sip_object_marshal((belle_sip_object_t*)msg,buffer,sizeof(buffer)-1,&len);
 		if (error!=BELLE_SIP_OK) {
