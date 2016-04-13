@@ -69,6 +69,8 @@ endif()
 # Include builders
 include(builders/CMakeLists.txt)
 
+# bctoolbox
+list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
 
 # belle-sip
 list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
