@@ -1544,17 +1544,18 @@ MSVideoSize video_preview_get_current_size(VideoPreview *stream){
 	return ret;
 }
 
-void video_preview_start(VideoPreview *stream, MSWebCam *device){
+void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	MSPixFmt format;
 	float fps;
-	int mirroring=1;
-	int corner=-1;
-	MSVideoSize disp_size=stream->sent_vsize;
-	MSVideoSize vsize=disp_size;
-	const char *displaytype=stream->display_name;
+	int mirroring = 1;
+	int corner = -1;
+	MSVideoSize disp_size = stream->sent_vsize;
+	MSVideoSize vsize = disp_size;
+	const char *displaytype = stream->display_name;
+	MSConnectionHelper ch;
 
-	if (stream->fps!=0) fps=stream->fps;
-	else fps=(float)29.97;
+	if (stream->fps != 0) fps = stream->fps;
+	else fps = (float)29.97;
 
 	stream->source = ms_web_cam_create_reader(device);
 
@@ -1567,52 +1568,85 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	}
 
 	/* configure the filters */
-	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
-	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID)
-		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
-	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
-	ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&vsize);
-	if (format==MS_MJPEG){
-		stream->pixconv=ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);
+	ms_filter_call_method(stream->source, MS_FILTER_SET_VIDEO_SIZE, &vsize);
+	if (ms_filter_get_id(stream->source) != MS_STATIC_IMAGE_ID) {
+		ms_filter_call_method(stream->source, MS_FILTER_SET_FPS, &fps);
+	}
+	ms_filter_call_method(stream->source, MS_FILTER_GET_PIX_FMT, &format);
+	ms_filter_call_method(stream->source, MS_FILTER_GET_VIDEO_SIZE, &vsize);
+	if (format == MS_MJPEG) {
+		stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);
 		if (stream->pixconv == NULL){
 			ms_error("Could not create mjpeg decoder, check your build options.");
 		}
-	}else{
-		stream->pixconv=ms_factory_create_filter(stream->ms.factory, MS_PIX_CONV_ID);
-		ms_filter_call_method(stream->pixconv,MS_FILTER_SET_PIX_FMT,&format);
-		ms_filter_call_method(stream->pixconv,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+	} else {
+		stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_PIX_CONV_ID);
+		ms_filter_call_method(stream->pixconv, MS_FILTER_SET_PIX_FMT, &format);
+		ms_filter_call_method(stream->pixconv, MS_FILTER_SET_VIDEO_SIZE, &vsize);
 	}
 
-	format=MS_YUV420P;
+	format = MS_YUV420P;
 
-	stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, displaytype);
-	ms_filter_call_method(stream->output2,MS_FILTER_SET_PIX_FMT,&format);
-	ms_filter_call_method(stream->output2,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-	ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_ENABLE_MIRRORING,&mirroring);
-	ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
-	/* and then connect all */
-
-	ms_filter_link(stream->source,0, stream->pixconv,0);
-	ms_filter_link(stream->pixconv, 0, stream->output2, 0);
-
-	if (stream->preview_window_id!=0){
-		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
+	if (displaytype) {
+		stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, displaytype);
+		ms_filter_call_method(stream->output2, MS_FILTER_SET_PIX_FMT, &format);
+		ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
+		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_ENABLE_MIRRORING, &mirroring);
+		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
+		/* and then connect all */
+	}
+	
+	stream->local_jpegwriter = ms_factory_create_filter(stream->ms.factory, MS_JPEG_WRITER_ID);
+	if (stream->local_jpegwriter) {
+		stream->tee = ms_factory_create_filter(stream->ms.factory, MS_TEE_ID);
+	}
+	
+	ms_connection_helper_start(&ch);
+	ms_connection_helper_link(&ch, stream->source, -1, 0);
+	if (stream->pixconv) {
+		ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
+	}
+	if (stream->tee) {
+		ms_connection_helper_link(&ch, stream->tee, 0, 0);
+	}
+	if (stream->output2) {
+		if (stream->preview_window_id != 0) {
+			video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
+		}
+		ms_filter_link(stream->tee, 1, stream->output2, 0);
+	}
+	if (stream->local_jpegwriter) {
+		ms_filter_link(stream->tee, 2, stream->local_jpegwriter, 0);
 	}
 
 	/* create the ticker */
 	stream->ms.sessions.ticker = ms_ticker_new();
-	ms_ticker_set_name(stream->ms.sessions.ticker,"Video MSTicker");
+	ms_ticker_set_name(stream->ms.sessions.ticker, "Video MSTicker");
 	ms_ticker_attach (stream->ms.sessions.ticker, stream->source);
-	stream->ms.state=MSStreamStarted;
+	stream->ms.state = MSStreamStarted;
 }
 
-static MSFilter* _video_preview_stop( VideoPreview* stream, bool_t keep_source ){
+static MSFilter* _video_preview_stop( VideoPreview* stream, bool_t keep_source) {
 	MSFilter* source = NULL;
+	MSConnectionHelper ch;
 	ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
-	ms_filter_unlink(stream->source,0,stream->pixconv,0);
-	ms_filter_unlink(stream->pixconv,0,stream->output2,0);
+	
+	ms_connection_helper_start(&ch);
+	ms_connection_helper_unlink(&ch, stream->source, -1, 0);
+	if (stream->pixconv) {
+		ms_connection_helper_unlink(&ch, stream->pixconv, 0, 0);
+	}
+	if (stream->tee) {
+		ms_connection_helper_unlink(&ch, stream->tee, 0, 0);
+	}
+	if (stream->output2) {
+		ms_filter_unlink(stream->tee, 1, stream->output2, 0);
+	}
+	if (stream->local_jpegwriter) {
+		ms_filter_unlink(stream->tee, 2, stream->local_jpegwriter, 0);
+	}
 
-	if( keep_source ){
+	if (keep_source) {
 		source = stream->source;
 		ms_message("video_preview_stop: keeping source %p", source);
 		stream->source = NULL; // prevent destroy of the source
