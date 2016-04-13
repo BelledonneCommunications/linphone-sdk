@@ -422,12 +422,18 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 
 		belle_sip_uri_set_host(contact_uri,ip);
 		transport=belle_sip_channel_get_transport_name_lower_case(chan);
-		if (strcmp(transport,"udp")==0){
-			belle_sip_parameters_remove_parameter(BELLE_SIP_PARAMETERS(contact_uri),"transport");
-		}else{
-			if (!belle_sip_uri_is_secure(contact_uri))
-				belle_sip_uri_set_transport_param(contact_uri,transport);
-		}
+		
+		/* Enforce a transport name in "sip" scheme.
+		 * RFC3263 (locating SIP servers) says that UDP SHOULD be used in absence of transport parameter,
+		 * when port or numeric IP are provided. It is a SHOULD, not a must.
+		 * We need in this case that the automatic Contact exactly matches the socket that is going 
+		 * to be used for sending the messages.
+		 * TODO: we may need to do the same for sips, but dtls is currently not supported.
+		 **/
+		
+		if (!belle_sip_uri_is_secure(contact_uri))
+			belle_sip_uri_set_transport_param(contact_uri,transport);
+
 		if (port!=belle_sip_listening_point_get_well_known_port(transport)) {
 			belle_sip_uri_set_port(contact_uri,port);
 		}else{
