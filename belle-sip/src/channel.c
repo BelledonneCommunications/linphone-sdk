@@ -34,7 +34,8 @@
 
 
 #define BELLE_SIP_CHANNEL_INVOKE_STATE_LISTENERS(channel,state) \
-	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(channel->state_listeners, belle_sip_channel_listener_t, on_state_changed, channel, state)
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(channel->state_listeners, belle_sip_channel_listener_t, on_state_changed, channel, state) \
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(channel->full_listeners, belle_sip_channel_listener_t, on_state_changed, channel, state)
 
 
 static void channel_prepare_continue(belle_sip_channel_t *obj);
