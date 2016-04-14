@@ -478,6 +478,8 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 					if (!as_uas && (is_retransmition=(belle_sip_dialog_handle_200Ok(obj,resp)==0))) {
 						return is_retransmition;
 					} else {
+						if (as_uas)
+							belle_sip_dialog_init_200Ok_retrans(obj,resp);
 						obj->needs_ack=TRUE; /*REINVITE case, ack needed by both uas and uac*/
 					}
 				}else if (code>=300){
