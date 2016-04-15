@@ -28,6 +28,8 @@ typedef struct _MSEqualizerGain{
 	float width; ///< frequency band width around mid frequency for which the gain is applied, in Hz. Use 0 for the lowest frequency resolution.
 }MSEqualizerGain;
 
+MS2_PUBLIC MSList *ms_parse_equalizer_string(const char *str);
+
 #define MS_EQUALIZER_SET_GAIN		MS_FILTER_METHOD(MS_EQUALIZER_ID,0,MSEqualizerGain)
 #define MS_EQUALIZER_GET_GAIN		MS_FILTER_METHOD(MS_EQUALIZER_ID,1,MSEqualizerGain)
 #define MS_EQUALIZER_SET_ACTIVE		MS_FILTER_METHOD(MS_EQUALIZER_ID,2,int)
