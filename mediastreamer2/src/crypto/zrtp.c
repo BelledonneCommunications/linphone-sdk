@@ -344,6 +344,11 @@ static int ms_zrtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_
 	// display received message
 	ms_message("ZRTP Receive packet type %.8s on rtp session [%p]", rtp+16, t->session);
 
+	// check if the ZRTP channel is started, if not(ZRTP not set on our side but incoming zrtp packets), start it
+	if (bzrtp_getChannelStatus(zrtpContext, userData->self_ssrc) == BZRTP_CHANNEL_INITIALISED) {
+		bzrtp_startChannelEngine(zrtpContext, userData->self_ssrc);
+	}
+
 	// send ZRTP packet to engine
 	bzrtp_processMessage(zrtpContext, userData->self_ssrc, rtp, msgLength);
 	return 0;
@@ -587,9 +592,13 @@ int ms_zrtp_channel_start(MSZrtpContext *ctx) {
 	int retval;
 	ms_message("Starting ZRTP engine on rtp session [%p] ssrc 0x%x",ctx->stream_sessions->rtp_session, ctx->self_ssrc);
 	if ((retval = bzrtp_startChannelEngine(ctx->zrtpContext, ctx->self_ssrc)) != 0) {
-		ms_message("Unable to start ZRTP channel, %x", retval);
 		/* remap some error code */
-		if (retval == BZRTP_ERROR_CHANNELALREADYSTARTED) return MSZRTP_ERROR_CHANNEL_ALREADY_STARTED;
+		if (retval == BZRTP_ERROR_CHANNELALREADYSTARTED) {
+			ms_message("ZRTP channel already started");
+			return MSZRTP_ERROR_CHANNEL_ALREADY_STARTED;
+		} else {
+			ms_message("Unable to start ZRTP channel, error code %x", retval);
+		}
 	}
 	return retval;
 }
@@ -636,11 +645,12 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 	return NULL;
 }
 
-MSZrtpContext* ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpContext* activeContext, MSZrtpParams *params) {
+MSZrtpContext* ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpContext* activeContext) {
 	ms_message("ZRTP is disabled - not adding stream");
 	return NULL;
 }
 
+int ms_zrtp_channel_start(MSZrtpContext *ctx) { return 0;}
 bool_t ms_zrtp_available(){return FALSE;}
 void ms_zrtp_sas_verified(MSZrtpContext* ctx){}
 void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx){}
@@ -649,6 +659,8 @@ void ms_zrtp_reset_transmition_timer(MSZrtpContext* ctx) {};
 int ms_zrtp_transport_modifier_new(MSZrtpContext* ctx, RtpTransportModifier **rtpt, RtpTransportModifier **rtcpt ) {return 0;}
 void ms_zrtp_transport_modifier_destroy(RtpTransportModifier *tp)  {}
 void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions) {}
+int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength) {return 0;}
+int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength) {return 0;}
 #endif
 
 #define STRING_COMPARE_RETURN(string, value)\
