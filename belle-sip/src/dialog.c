@@ -344,6 +344,10 @@ static int dialog_on_200Ok_end(belle_sip_dialog_t *dialog){
 
 static void belle_sip_dialog_init_200Ok_retrans(belle_sip_dialog_t *obj, belle_sip_response_t *resp){
 	const belle_sip_timer_config_t *cfg=belle_sip_stack_get_timer_config(obj->provider->stack);
+	if (obj->timer_200Ok || obj->timer_200Ok_end) {
+		belle_sip_error("dialog [%p] already has a 200ok retransmition timer ! skipping",obj);
+		return;
+	}
 	obj->timer_200Ok=belle_sip_timeout_source_new((belle_sip_source_func_t)dialog_on_200Ok_timer,obj,cfg->T1);
 	belle_sip_object_set_name((belle_sip_object_t*)obj->timer_200Ok,"dialog_200Ok_timer");
 	belle_sip_main_loop_add_source(obj->provider->stack->ml,obj->timer_200Ok);
@@ -407,8 +411,9 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	if (as_uas) {
 		belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_cseq_t);
 		obj->remote_cseq=belle_sip_header_cseq_get_seq_number(cseq);
-		if (is_invite)
+		if (is_invite && code>=200 && code<300)
 			obj->remote_invite_cseq = belle_sip_header_cseq_get_seq_number(cseq);
+		/*else ACK is handled by transaction, not dialog*/
 	}
 
 	
@@ -484,7 +489,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 					}
 				}else if (code>=300){
 					/*final response, ack will be automatically sent by transaction layer*/
-					obj->needs_ack=FALSE;
+					/* do not need to do anything because  not set yet or set by previous invite transaction obj->needs_ack=FALSE;*/
 				}
 			} else if (strcmp(belle_sip_request_get_method(req),"BYE")==0){
 				/*15.1.1 UAC Behavior
@@ -953,7 +958,7 @@ belle_sip_transaction_t* belle_sip_dialog_get_last_transaction(const belle_sip_d
 }
 
 int belle_sip_dialog_request_pending(const belle_sip_dialog_t *dialog){
-	return dialog->last_transaction ? belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(dialog->last_transaction)) : FALSE;
+	return dialog->needs_ack || (dialog->last_transaction ? belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(dialog->last_transaction)) : FALSE);
 }
 
 /* for notify exception
