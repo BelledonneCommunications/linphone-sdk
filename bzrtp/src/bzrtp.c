@@ -753,6 +753,86 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 
 		/* check they are the same */
 		if (memcmp(computedPeerHelloHash, zrtpChannelContext->peerHelloHash, 32)!=0) {
+			/* a session already started on this channel but with a wrong Hello we must reset and restart it */
+			/* note: caller may decide to abort the ZRTP session */
+			/* reset state Machine */
+			zrtpChannelContext->stateMachine = NULL;
+
+			/* set timer off */
+			zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
+
+			/* destroy and free the key buffers */
+			bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
+			bzrtp_DestroyKey(zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpContext->RNGContext);
+			bzrtp_DestroyKey(zrtpChannelContext->mackeyi, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
+			bzrtp_DestroyKey(zrtpChannelContext->mackeyr, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
+			bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyi, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
+			bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyr, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
+
+			free(zrtpChannelContext->s0);
+			free(zrtpChannelContext->KDFContext);
+			free(zrtpChannelContext->mackeyi);
+			free(zrtpChannelContext->mackeyr);
+			free(zrtpChannelContext->zrtpkeyi);
+			free(zrtpChannelContext->zrtpkeyr);
+
+			zrtpChannelContext->s0=NULL;
+			zrtpChannelContext->KDFContext=NULL;
+			zrtpChannelContext->mackeyi=NULL;
+			zrtpChannelContext->mackeyr=NULL;
+			zrtpChannelContext->zrtpkeyi=NULL;
+			zrtpChannelContext->zrtpkeyr=NULL;
+
+			/* free the allocated buffers but not our self Hello packet */
+			for (i=0; i<PACKET_STORAGE_CAPACITY; i++) {
+				if (i!=HELLO_MESSAGE_STORE_ID) {
+					bzrtp_freeZrtpPacket(zrtpChannelContext->selfPackets[i]);
+					zrtpChannelContext->selfPackets[i] = NULL;
+				}
+				bzrtp_freeZrtpPacket(zrtpChannelContext->peerPackets[i]);
+				zrtpChannelContext->peerPackets[i] = NULL;
+			}
+
+			/* destroy and free the srtp and sas struture */
+			bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpKey, zrtpChannelContext->srtpSecrets.selfSrtpKeyLength, zrtpContext->RNGContext);
+			bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpSalt, zrtpChannelContext->srtpSecrets.selfSrtpSaltLength, zrtpContext->RNGContext);
+			bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpKey, zrtpChannelContext->srtpSecrets.peerSrtpKeyLength, zrtpContext->RNGContext);
+			bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpSalt, zrtpChannelContext->srtpSecrets.peerSrtpSaltLength, zrtpContext->RNGContext);
+			bzrtp_DestroyKey((uint8_t *)zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->srtpSecrets.sasLength, zrtpContext->RNGContext);
+
+			free(zrtpChannelContext->srtpSecrets.selfSrtpKey);
+			free(zrtpChannelContext->srtpSecrets.selfSrtpSalt);
+			free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
+			free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
+			free(zrtpChannelContext->srtpSecrets.sas);
+
+			/* re-initialise srtpSecrets structure */
+			zrtpChannelContext->srtpSecrets.selfSrtpKey = NULL;
+			zrtpChannelContext->srtpSecrets.selfSrtpSalt = NULL;
+			zrtpChannelContext->srtpSecrets.peerSrtpKey = NULL;
+			zrtpChannelContext->srtpSecrets.peerSrtpSalt = NULL;
+			zrtpChannelContext->srtpSecrets.selfSrtpKeyLength = 0;
+			zrtpChannelContext->srtpSecrets.selfSrtpSaltLength = 0;
+			zrtpChannelContext->srtpSecrets.peerSrtpKeyLength = 0;
+			zrtpChannelContext->srtpSecrets.peerSrtpSaltLength = 0;
+			zrtpChannelContext->srtpSecrets.cipherAlgo = ZRTP_UNSET_ALGO;
+			zrtpChannelContext->srtpSecrets.cipherKeyLength = 0;
+			zrtpChannelContext->srtpSecrets.authTagAlgo = ZRTP_UNSET_ALGO;
+			zrtpChannelContext->srtpSecrets.sas = NULL;
+			zrtpChannelContext->srtpSecrets.sasLength = 0;
+
+			/* reset choosen algo and their functions */
+			zrtpChannelContext->hashAlgo = ZRTP_UNSET_ALGO;
+			zrtpChannelContext->cipherAlgo = ZRTP_UNSET_ALGO;
+			zrtpChannelContext->authTagAlgo = ZRTP_UNSET_ALGO;
+			zrtpChannelContext->keyAgreementAlgo = ZRTP_UNSET_ALGO;
+			zrtpChannelContext->sasAlgo = ZRTP_UNSET_ALGO;
+
+			updateCryptoFunctionPointers(zrtpChannelContext);
+
+			/* restart channel */
+			bzrtp_startChannelEngine(zrtpContext, selfSSRC);
+
 			return BZRTP_ERROR_HELLOHASH_MISMATCH;
 		}
 	}
