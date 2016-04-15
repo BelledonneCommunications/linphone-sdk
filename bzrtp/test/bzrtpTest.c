@@ -78,6 +78,7 @@ int main(int argc, char *argv[] ) {
 	CU_add_test(parserTestSuite, "Parse hvi check fail", test_parser_hvi);
 	CU_add_test(parserTestSuite, "Parse Exchange", test_parserComplete);
 	CU_add_test(parserTestSuite, "State machine", test_stateMachine);
+	CU_add_test(parserTestSuite, "ZRTP-hash", test_zrtphash);
 
 	/* Run all suites */
 	for(i=0; suites[i]; i++){

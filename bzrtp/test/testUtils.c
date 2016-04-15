@@ -35,6 +35,7 @@ void bzrtp_message(const char *fmt, ...) {
 		va_start(args, fmt);
 		vprintf(fmt, args);
 		va_end(args);
+		fflush(NULL);
 	}
 }
 
@@ -46,6 +47,7 @@ void printHex(char *title, uint8_t *data, uint32_t length) {
 			printf ("0x%02x, ", data[i]);
 		}
 		printf ("\n");
+		fflush(NULL);
 	}
 }
 
@@ -189,6 +191,7 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 		if (addRawMessage) {
 			printHex("Data", zrtpPacket->packetString, zrtpPacket->messageLength+16);
 		}
+		fflush(NULL);
 	}
 }
 
@@ -261,5 +264,6 @@ void dumpContext(char *title, bzrtpContext_t *zrtpContext) {
 		printHex("rs1ID", zrtpContext->responderCachedSecretHash.rs1ID, 8);
 		printHex("rs2ID", zrtpContext->responderCachedSecretHash.rs2ID, 8);
 		printHex("pbxID", zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
+		fflush(NULL);
 	}
 }

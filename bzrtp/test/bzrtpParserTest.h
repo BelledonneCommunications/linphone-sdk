@@ -23,3 +23,4 @@ void test_parser(void);
 void test_parser_hvi(void);
 void test_parserComplete(void);
 void test_stateMachine(void);
+void test_zrtphash(void);
