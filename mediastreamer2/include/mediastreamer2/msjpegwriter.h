@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <mediastreamer2/msfilter.h>
 
-#define MS_JPEG_WRITER_TAKE_SNAPSHOT	MS_FILTER_METHOD(MS_JPEG_WRITER_ID,0,const char)
+#define MS_JPEG_WRITER_TAKE_SNAPSHOT	MS_FILTER_METHOD(MS_JPEG_WRITER_ID, 0, const char)
+#define MS_JPEG_WRITER_SNAPSHOT_TAKEN 	MS_FILTER_EVENT(MS_JPEG_WRITER_ID, 0, const char)
 
 #endif
