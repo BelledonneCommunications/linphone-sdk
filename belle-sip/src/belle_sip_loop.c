@@ -256,6 +256,7 @@ struct belle_sip_main_loop{
 	int nsources;
 	int run;
 	int in_iterate;
+	bctoolbox_mutex_t timer_sources_mutex;
 };
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
@@ -266,8 +267,11 @@ void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_sour
 		elem_removed = TRUE;
 	}
 	if (source->it) {
+		bctoolbox_mutex_lock(&ml->timer_sources_mutex);
 		bctoolbox_map_erase(ml->timer_sources, source->it);
 		bctoolbox_iterator_delete(source->it);
+		bctoolbox_mutex_unlock(&ml->timer_sources_mutex);
+
 		source->it=NULL;
 		belle_sip_object_unref(source);
 		elem_removed = TRUE;
@@ -290,6 +294,7 @@ static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 		belle_sip_object_unref(ml->pool);
 	}
 	bctoolbox_mmap_long_delete(ml->timer_sources);
+	bctoolbox_mutex_destroy(&ml->timer_sources_mutex);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_main_loop_t);
@@ -299,6 +304,7 @@ belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 	belle_sip_main_loop_t*m=belle_sip_object_new(belle_sip_main_loop_t);
 	m->pool=belle_sip_object_pool_push();
 	m->timer_sources = bctoolbox_mmap_long_new();
+	bctoolbox_mutex_init(&m->timer_sources_mutex,NULL);
 	return m;
 }
 
@@ -317,8 +323,11 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 	if (source->timeout>=0){
 		belle_sip_object_ref(source);
 		source->expire_ms=belle_sip_time_ms()+source->timeout;
+		bctoolbox_mutex_lock(&ml->timer_sources_mutex);
 		source->it = bctoolbox_map_insert_and_delete_with_returned_it(ml->timer_sources
 																	  , (bctoolbox_pair_t*)bctoolbox_pair_long_new(source->expire_ms, source));
+		bctoolbox_mutex_unlock(&ml->timer_sources_mutex);
+
 	}
 	source->cancelled=FALSE;
 	if (source->fd != -1 ) {
@@ -369,12 +378,14 @@ void belle_sip_source_cancel(belle_sip_source_t *s){
 	if (s){
 	s->cancelled=TRUE;
 		if (s->it) {
+			bctoolbox_mutex_lock(&s->ml->timer_sources_mutex);
 			bctoolbox_map_erase(s->ml->timer_sources, s->it);
 			bctoolbox_iterator_delete(s->it);
 			/*put on front*/
 			s->it = bctoolbox_map_insert_and_delete_with_returned_it(s->ml->timer_sources
 																	 , (bctoolbox_pair_t*)bctoolbox_pair_long_new(0, s));
 			
+			bctoolbox_mutex_unlock(&s->ml->timer_sources_mutex);
 		}
 	}
 }
@@ -532,8 +543,10 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				belle_sip_main_loop_remove_source(ml,s);
 			} else  {
 				if (s->expired) {
+					bctoolbox_mutex_lock(&ml->timer_sources_mutex);
 					bctoolbox_map_erase(ml->timer_sources, s->it);
 					bctoolbox_iterator_delete(s->it);
+					bctoolbox_mutex_unlock(&ml->timer_sources_mutex);
 					s->it=NULL;
 					belle_sip_object_unref(s);
 				}
@@ -545,8 +558,10 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 						s->expire_ms+=s->timeout;
 					}
 					s->expired=FALSE;
+					bctoolbox_mutex_lock(&ml->timer_sources_mutex);
 					s->it = bctoolbox_map_insert_and_delete_with_returned_it(ml->timer_sources
 																			 , (bctoolbox_pair_t*)bctoolbox_pair_long_new(s->expire_ms, s));
+					bctoolbox_mutex_unlock(&ml->timer_sources_mutex);
 					belle_sip_object_ref(s);
 				}
 			}
