@@ -61,7 +61,6 @@ static uint32_t patternZRTPMetaData[TEST_PACKET_NUMBER][3] = {
 
 static const uint8_t patternZRTPHelloHash12345678[70]="1.10 13e9f407367895861f0eee6707ba30aca05a0ad9997625e9279ad5d08485aa9d";
 static const uint8_t patternZRTPHelloHash87654321[70]="1.10 8a286f762a00f21907fe937801894ce4f4ac6a7d2b9acd61eb25b014f905df77";
-static const uint8_t patternZRTPIncorrectHelloHash12345678[70]="1.10 23e9f407367895861f0eee6707ba30aca05a0ad9997625e9279ad5d08485aa9d";
 
 static const uint8_t patternZRTPPackets[TEST_PACKET_NUMBER][512] = {
 	/* This is a Hello packet, sequence number is 0x09f1, SSRC 0x12345678 */
