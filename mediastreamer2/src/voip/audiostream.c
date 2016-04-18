@@ -1047,20 +1047,36 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 #ifdef ANDROID
 	/*configure equalizer if needed*/
 	audio_stream_set_mic_gain_db(stream, 0);
-	if (stream->mic_equalizer) {
-		SoundDeviceDescription *device = sound_device_description_get();
-		if (device && device->hacks) {
-			const char *gains = device->hacks->equalizer;
-			if (gains) {
-				MSList *gains_list = ms_parse_equalizer_string(gains);
+	audio_stream_set_spk_gain_db(stream, 0);
+	SoundDeviceDescription *device = sound_device_description_get();
+	if (device && device->hacks) {
+		const char *gains;
+		gains = device->hacks->mic_equalizer;
+		if (gains) {
+			MSList *gains_list = ms_parse_equalizer_string(gains);
+			if (gains_list) {
 				MSList *it;
-				ms_message("Found equalizer configuration in the devices table");
-				for (it=gains_list; it; it++) {
+				ms_message("Found equalizer configuration for the microphone in the devices table");
+				for (it = gains_list; it; it++) {
 					MSEqualizerGain *g = (MSEqualizerGain *)it->data;
 					ms_message("Read equalizer gains: %f(~%f) --> %f", g->frequency, g->width, g->gain);
 					ms_filter_call_method(stream->mic_equalizer, MS_EQUALIZER_SET_GAIN, g);
 				}
-				if(gains_list) ms_list_free_with_data(gains_list, ms_free);
+				ms_list_free_with_data(gains_list, ms_free);
+			}
+		}
+		gains = device->hacks->spk_equalizer;
+		if (gains) {
+			MSList *gains_list = ms_parse_equalizer_string(gains);
+			if (gains_list) {
+				MSList *it;
+				ms_message("Found equalizer configuration for the speakers in the devices table");
+				for (it = gains_list; it; it++) {
+					MSEqualizerGain *g = (MSEqualizerGain *)it->data;
+					ms_message("Read equalizer gains: %f(~%f) --> %f", g->frequency, g->width, g->gain);
+					ms_filter_call_method(stream->mic_equalizer, MS_EQUALIZER_SET_GAIN, g);
+				}
+				ms_list_free_with_data(gains_list, ms_free);
 			}
 		}
 	}
@@ -1746,7 +1762,7 @@ static void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float gain_
 
 	if (stream->volsend){
 		ms_filter_call_method(stream->volsend, MS_VOLUME_SET_DB_GAIN, &gain);
-	} else ms_warning("Could not apply gain: gain control wasn't activated. "
+	} else ms_warning("Could not apply gain on sent RTP packets: gain control wasn't activated. "
 			"Use audio_stream_enable_gain_control() before starting the stream.");
 }
 
@@ -1758,6 +1774,22 @@ void audio_stream_mute_rtp(AudioStream *stream, bool_t val)
 		else
 			ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_UNMUTE,&val);
 	}
+}
+
+void audio_stream_set_spk_gain_db(AudioStream *stream, float gain_db) {
+	float gain = gain_db;
+#ifdef ANDROID
+	SoundDeviceDescription *device = sound_device_description_get();
+	if (device && device->hacks) {
+		gain += device->hacks->spk_gain;
+		ms_message("Applying %f dB to speaker gain based on parameter and audio hack value in device table", gain);
+	}
+#endif
+
+	if (stream->volrecv){
+		ms_filter_call_method(stream->volsend, MS_VOLUME_SET_DB_GAIN, &gain);
+	} else ms_warning("Could not apply gain on received RTP packet: gain control wasn't activated. "
+			"Use audio_stream_enable_gain_control() before starting the stream.");
 }
 
 float audio_stream_get_quality_rating(AudioStream *stream){

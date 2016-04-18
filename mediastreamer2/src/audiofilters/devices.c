@@ -34,7 +34,7 @@
  * 1st column: list of triplet frequency, gain, width
  * 2nd column: mic gain in db
 */
-static SoundDeviceAudioHacks SonySGP511Hacks = { "50:0.01:100 600:0.2:100 1350:0.2:100 2000:0.2:100", -4 };
+static SoundDeviceAudioHacks SonySGP511Hacks = { "50:0.01:100 600:0.2:100 1350:0.2:100 2000:0.2:100", -4, NULL, 0 };
 
 /* 
  * 1st column: value of ro.product.manufacturer 

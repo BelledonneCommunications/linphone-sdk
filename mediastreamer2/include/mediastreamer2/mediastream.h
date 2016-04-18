@@ -613,7 +613,7 @@ static MS2_INLINE void audio_stream_enable_adaptive_jittcomp(AudioStream *stream
  * use audio_stream_set_sound_card_input_gain() instead.
  * 
  * @param stream The stream.
- * @param gain Gain to apply in dB.
+ * @param gain_db Gain to apply in dB.
  */
 MS2_PUBLIC void audio_stream_set_mic_gain_db(AudioStream *stream, float gain_db);
 
@@ -629,8 +629,15 @@ MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
 /**
  *  enable/disable rtp stream
- *  */
+ */
 MS2_PUBLIC void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
+
+/**
+ * Apply a gain on received RTP packets.
+ * @param stream An AudioStream.
+ * @param gain_db Gain to apply in dB.
+ */
+MS2_PUBLIC void audio_stream_set_spk_gain_db(AudioStream *stream, float gain_db);
 
 /**
  * Set microphone volume gain.
