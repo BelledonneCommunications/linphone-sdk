@@ -64,7 +64,8 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->ec!=NULL)	ms_filter_destroy(stream->ec);
 	if (stream->volrecv!=NULL) ms_filter_destroy(stream->volrecv);
 	if (stream->volsend!=NULL) ms_filter_destroy(stream->volsend);
-	if (stream->equalizer!=NULL) ms_filter_destroy(stream->equalizer);
+	if (stream->mic_equalizer) ms_filter_destroy(stream->mic_equalizer);
+	if (stream->spk_equalizer) ms_filter_destroy(stream->spk_equalizer);
 	if (stream->read_decoder != NULL) ms_filter_destroy(stream->read_decoder);
 	if (stream->write_encoder != NULL) ms_filter_destroy(stream->write_encoder);
 	if (stream->read_resampler!=NULL) ms_filter_destroy(stream->read_resampler);
@@ -1026,36 +1027,40 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 	/*create the equalizer*/
 	if ((stream->features & AUDIO_STREAM_FEATURE_EQUALIZER) != 0){
-		stream->equalizer=ms_factory_create_filter(stream->ms.factory, MS_EQUALIZER_ID);
-		if(stream->equalizer) {
-			tmp=stream->eq_active;
-			ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
-			ms_filter_call_method(stream->equalizer,MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+		stream->mic_equalizer = ms_factory_create_filter(stream->ms.factory, MS_EQUALIZER_ID);
+		stream->spk_equalizer = ms_factory_create_filter(stream->ms.factory, MS_EQUALIZER_ID);
+		if(stream->mic_equalizer) {
+			tmp = stream->mic_eq_active;
+			ms_filter_call_method(stream->mic_equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
+			ms_filter_call_method(stream->mic_equalizer,MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 		}
-	}else
-		stream->equalizer=NULL;
+		if(stream->spk_equalizer) {
+			tmp = stream->spk_eq_active;
+			ms_filter_call_method(stream->spk_equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
+			ms_filter_call_method(stream->spk_equalizer,MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+		}
+	}else {
+		stream->mic_equalizer=NULL;
+		stream->spk_equalizer=NULL;
+	}
 
 #ifdef ANDROID
 	/*configure equalizer if needed*/
 	audio_stream_set_mic_gain_db(stream, 0);
-	if (stream->equalizer) {
+	if (stream->mic_equalizer) {
 		SoundDeviceDescription *device = sound_device_description_get();
 		if (device && device->hacks) {
 			const char *gains = device->hacks->equalizer;
 			if (gains) {
-				MSList *gains_list;
-				stream->eq_loc = MSEqualizerMic;
+				MSList *gains_list = ms_parse_equalizer_string(gains);
+				MSList *it;
 				ms_message("Found equalizer configuration in the devices table");
-				gains_list = ms_parse_equalizer_string(gains);
-				if (gains_list) {
-					MSList *it;
-					for (it=gains_list; it; it++) {
-						MSEqualizerGain *g = (MSEqualizerGain *)it->data;
-						ms_message("Read equalizer gains: %f(~%f) --> %f", g->frequency, g->width, g->gain);
-						ms_filter_call_method(stream->equalizer, MS_EQUALIZER_SET_GAIN, g);
-					}
-					ms_list_free_with_data(gains_list, ms_free);
+				for (it=gains_list; it; it++) {
+					MSEqualizerGain *g = (MSEqualizerGain *)it->data;
+					ms_message("Read equalizer gains: %f(~%f) --> %f", g->frequency, g->width, g->gain);
+					ms_filter_call_method(stream->mic_equalizer, MS_EQUALIZER_SET_GAIN, g);
 				}
+				if(gains_list) ms_list_free_with_data(gains_list, ms_free);
 			}
 		}
 	}
@@ -1139,8 +1144,8 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_connection_helper_link(&h, stream->read_decoder, 0, 0);
 	if (stream->read_resampler)
 		ms_connection_helper_link(&h,stream->read_resampler,0,0);
-	if( stream->equalizer && stream->eq_loc == MSEqualizerMic )
-		ms_connection_helper_link(&h,stream->equalizer, 0, 0);
+	if( stream->mic_equalizer)
+		ms_connection_helper_link(&h,stream->mic_equalizer, 0, 0);
 	if (stream->ec)
 		ms_connection_helper_link(&h,stream->ec,1,1);
 	if (stream->volsend)
@@ -1166,8 +1171,8 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_connection_helper_link(&h,stream->volrecv,0,0);
 	if (stream->recv_tee)
 		ms_connection_helper_link(&h,stream->recv_tee,0,0);
-	if (stream->equalizer && stream->eq_loc == MSEqualizerHP)
-		ms_connection_helper_link(&h,stream->equalizer,0,0);
+	if (stream->spk_equalizer)
+		ms_connection_helper_link(&h,stream->spk_equalizer,0,0);
 	if (stream->local_mixer){
 		ms_connection_helper_link(&h,stream->local_mixer,0,0);
 		setup_local_player(stream,sample_rate, nchannels);
@@ -1569,21 +1574,51 @@ float audio_stream_get_sound_card_output_gain(const AudioStream *stream) {
 	return volume;
 }
 
-void audio_stream_enable_equalizer(AudioStream *stream, bool_t enabled){
-	stream->eq_active=enabled;
-	if (stream->equalizer){
-		int tmp=enabled;
-		ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
+void audio_stream_enable_equalizer(AudioStream *stream, EqualizerLocation location, bool_t enabled) {
+	switch(location) {
+		case MSEqualizerHP:
+			stream->spk_eq_active = enabled;
+			if (stream->spk_equalizer) {
+				int tmp = enabled;
+				ms_filter_call_method(stream->spk_equalizer, MS_EQUALIZER_SET_ACTIVE, &tmp);
+			}
+			break;
+		case MSEqualizerMic:
+			stream->mic_eq_active = enabled;
+			if (stream->mic_equalizer) {
+				int tmp = enabled;
+				ms_filter_call_method(stream->mic_equalizer, MS_EQUALIZER_SET_ACTIVE, &tmp);
+			}
+			break;
+		default:
+			ms_error("%s(): bad equalizer location [%d]", __FUNCTION__, location);
+			break;
 	}
 }
 
-void audio_stream_equalizer_set_gain(AudioStream *stream, int frequency, float gain, int freq_width){
-	if (stream->equalizer){
-		MSEqualizerGain d;
-		d.frequency=(float)frequency;
-		d.gain=gain;
-		d.width=(float)freq_width;
-		ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_GAIN,&d);
+void audio_stream_equalizer_set_gain(AudioStream *stream, EqualizerLocation location, const MSEqualizerGain *gain){
+	switch(location) {
+		case MSEqualizerHP:
+			if (stream->spk_equalizer) {
+				MSEqualizerGain d;
+				d.frequency = gain->frequency;
+				d.gain = gain->gain;
+				d.width = gain->width;
+				ms_filter_call_method(stream->spk_equalizer, MS_EQUALIZER_SET_GAIN, &d);
+			}
+			break;
+		case MSEqualizerMic:
+			if (stream->mic_equalizer) {
+				MSEqualizerGain d;
+				d.frequency = gain->frequency;
+				d.gain = gain->gain;
+				d.width = gain->width;
+				ms_filter_call_method(stream->mic_equalizer, MS_EQUALIZER_SET_GAIN, &d);
+			}
+			break;
+		default:
+			ms_error("%s(): bad equalizer location [%d]", __FUNCTION__, location);
+			break;
 	}
 }
 
@@ -1624,8 +1659,8 @@ void audio_stream_stop(AudioStream * stream){
 				ms_connection_helper_unlink(&h, stream->read_decoder, 0, 0);
 			if (stream->read_resampler!=NULL)
 				ms_connection_helper_unlink(&h,stream->read_resampler,0,0);
-			if( stream->equalizer && stream->eq_loc == MSEqualizerMic)
-				ms_connection_helper_unlink(&h, stream->equalizer, 0,0);
+			if( stream->mic_equalizer)
+				ms_connection_helper_unlink(&h, stream->mic_equalizer, 0,0);
 			if (stream->ec!=NULL)
 				ms_connection_helper_unlink(&h,stream->ec,1,1);
 			if (stream->volsend!=NULL)
@@ -1651,8 +1686,8 @@ void audio_stream_stop(AudioStream * stream){
 				ms_connection_helper_unlink(&h,stream->volrecv,0,0);
 			if (stream->recv_tee)
 				ms_connection_helper_unlink(&h,stream->recv_tee,0,0);
-			if (stream->equalizer!=NULL && stream->eq_loc == MSEqualizerHP)
-				ms_connection_helper_unlink(&h,stream->equalizer,0,0);
+			if (stream->spk_equalizer!=NULL)
+				ms_connection_helper_unlink(&h,stream->spk_equalizer,0,0);
 			if (stream->local_mixer){
 				ms_connection_helper_unlink(&h,stream->local_mixer,0,0);
 				dismantle_local_player(stream);

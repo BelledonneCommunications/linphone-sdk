@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/zrtp.h>
 #include <mediastreamer2/dtls_srtp.h>
 #include <mediastreamer2/ms_srtp.h>
+#include <mediastreamer2/msequalizer.h>
 
 
 #define PAYLOAD_TYPE_FLAG_CAN_RECV	PAYLOAD_TYPE_USER_FLAG_1
@@ -366,7 +367,8 @@ struct _AudioStream
 	MSFilter *write_encoder; /* Used when the output is done via RTP */
 	MSFilter *read_resampler;
 	MSFilter *write_resampler;
-	MSFilter *equalizer;
+	MSFilter *mic_equalizer;
+	MSFilter *spk_equalizer;
 	MSFilter *dummy;
 	MSFilter *recv_tee;
 	MSFilter *recorder_mixer;
@@ -402,7 +404,8 @@ struct _AudioStream
 	bool_t use_gc;
 	bool_t use_agc;
 	
-	bool_t eq_active;
+	bool_t mic_eq_active;
+	bool_t spk_eq_active;
 	bool_t use_ng;/*noise gate*/
 	bool_t is_ec_delay_set;
 };
@@ -671,11 +674,20 @@ MS2_PUBLIC float audio_stream_get_sound_card_output_gain(const AudioStream *stre
 MS2_PUBLIC void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val);
 
 /**
- * enable parametric equalizer in the stream that goes to the speaker
- * */
-MS2_PUBLIC void audio_stream_enable_equalizer(AudioStream *stream, bool_t enabled);
+ * Enable a parametric equalizer
+ * @param[in] stream An AudioStream
+ * @param[in] location Location of the equalizer to enable (speaker or microphone)
+ * @param[in] enabled Whether the equalizer must be enabled
+ */
+MS2_PUBLIC void audio_stream_enable_equalizer(AudioStream *stream, EqualizerLocation location, bool_t enabled);
 
-MS2_PUBLIC void audio_stream_equalizer_set_gain(AudioStream *stream, int frequency, float gain, int freq_width);
+/**
+ * Apply a gain on a given frequency band.
+ * @param[in] stream An AudioStream
+ * @param[in] location Location of the concerned equalizer (speaker or microphone)
+ * @param[in] gain Description of the band and the gain to apply.
+ */
+MS2_PUBLIC void audio_stream_equalizer_set_gain(AudioStream *stream, EqualizerLocation location, const MSEqualizerGain *gain);
 
 /**
  *  stop the audio streaming thread and free everything
