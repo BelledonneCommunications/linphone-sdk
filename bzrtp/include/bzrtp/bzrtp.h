@@ -86,7 +86,8 @@
 #define ZRTP_SRTP_SECRETS_FOR_RECEIVER	0x02
 
 /**
- * brief The data structure containing the keys and algorithms to be used by srtp */
+ * brief The data structure containing the keys and algorithms to be used by srtp
+ * Also stores SAS and informations about the crypto algorithms selected during ZRTP negotiation */
 typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t *selfSrtpKey; /**< The key used by local part to encrypt */
 	uint8_t selfSrtpKeyLength; /**< The length in byte of the key */
@@ -96,11 +97,14 @@ typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t peerSrtpKeyLength; /**< The length in byte of the key */
 	uint8_t *peerSrtpSalt; /**< The salt used by local part to decrypt */
 	uint8_t peerSrtpSaltLength; /**< The length in byte of the salt */
-	uint8_t cipherAlgo; /**< The cipher block algorithm used by srtp */
+	uint8_t cipherAlgo; /**< The cipher block algorithm selected durign ZRTP negotiation and used by srtp */
 	uint8_t cipherKeyLength; /**< The key length in bytes for the cipher block algorithm used by srtp */
 	uint8_t authTagAlgo; /**< srtp authentication tag algorithm agreed on after Hello packet exchange */
 	char *sas; /**< a null terminated char containing the Short Authentication String */
 	uint8_t sasLength; /**< The length of sas, including the termination character */
+	uint8_t hashAlgo; /**< The hash algo selected during ZRTP negotiation */
+	uint8_t keyAgreementAlgo; /**< The key agreement algo selected during ZRTP negotiation */
+	uint8_t sasAlgo; /**< The SAS rendering algo selected during ZRTP negotiation */
 } bzrtpSrtpSecrets_t;
 
 /**
@@ -119,8 +123,8 @@ typedef struct bzrtpCallbacks_struct {
 	int (* bzrtp_sendData)(void *clientData, const uint8_t *packetString, uint16_t packetLength); /**< Send a ZRTP packet to peer. Shall return 0 on success */
 
 	/* dealing with SRTP session */
-	int (* bzrtp_srtpSecretsAvailable)(void *clientData, bzrtpSrtpSecrets_t *srtpSecrets, uint8_t part); /**< Send the srtp secrets to the client, for either sender, receiver or both according to the part parameter value. Client may wait for the end of ZRTP process before using it */
-	int (* bzrtp_startSrtpSession)(void *clientData, const char* sas, int32_t verified); /**< ZRTP process ended well, client is given the SAS and may start his SRTP session if not done when calling srtpSecretsAvailable */
+	int (* bzrtp_srtpSecretsAvailable)(void *clientData, const bzrtpSrtpSecrets_t *srtpSecrets, uint8_t part); /**< Send the srtp secrets to the client, for either sender, receiver or both according to the part parameter value. Client may wait for the end of ZRTP process before using it */
+	int (* bzrtp_startSrtpSession)(void *clientData, const bzrtpSrtpSecrets_t *srtpSecrets, int32_t verified); /**< ZRTP process ended well, client is given the SAS and informations about the crypto algo used during ZRTP negotiation. He may start his SRTP session if not done when calling srtpSecretsAvailable */
 
 	/* ready for exported keys */
 	int (* bzrtp_contextReadyForExportedKeys)(void *ZIDCacheData, void *clientData, uint8_t peerZID[12], uint8_t role); /**< Tell the client that this is the time to create and store in cache any exported keys, client is given the peerZID to adress the correct node in cache and current role which is needed to set a pair of keys for IM encryption */
@@ -246,18 +250,6 @@ BZRTP_EXPORT int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t 
  * @return			0 on succes, error code otherwise
  */
 BZRTP_EXPORT int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeReference);
-
-
-/**
- * @brief Return the status of current channel, 1 if SRTP secrets have been computed and confirmed, 0 otherwise
- * 
- * @param[in]		zrtpContext			The ZRTP context hosting the channel
- * @param[in]		selfSSRC			The SSRC identifying the channel
- *
- * @return			0 if this channel is not ready to secure SRTP communication, 1 if it is ready
- */
-BZRTP_EXPORT int bzrtp_isSecure(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
-
 
 /**
  * @brief Process a received message

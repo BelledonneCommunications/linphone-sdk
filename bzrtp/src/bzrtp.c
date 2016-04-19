@@ -487,27 +487,6 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 }
 
 /*
- * @brief Return the status of current channel, 1 if SRTP secrets have been computed and confirmed, 0 otherwise
- * 
- * @param[in]		zrtpContext			The ZRTP context hosting the channel
- * @param[in]		selfSSRC			The SSRC identifying the channel
- *
- * @return			0 if this channel is not ready to secure SRTP communication, 1 if it is ready
- */
-int bzrtp_isSecure(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
-	
-	/* get channel context */
-	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
-
-	if (zrtpChannelContext == NULL) {
-		return 0; /* can't find the channel, return it as non secure */
-	}
-
-	return zrtpChannelContext->isSecure;
-}
-
-
-/*
  * @brief Called by user when the SAS has been verified
  * update the cache(if any) to set the previously verified flag
  *
@@ -820,6 +799,10 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 			zrtpChannelContext->srtpSecrets.authTagAlgo = ZRTP_UNSET_ALGO;
 			zrtpChannelContext->srtpSecrets.sas = NULL;
 			zrtpChannelContext->srtpSecrets.sasLength = 0;
+			zrtpChannelContext->srtpSecrets.hashAlgo = ZRTP_UNSET_ALGO;
+			zrtpChannelContext->srtpSecrets.keyAgreementAlgo = ZRTP_UNSET_ALGO;
+			zrtpChannelContext->srtpSecrets.sasAlgo = ZRTP_UNSET_ALGO;
+
 
 			/* reset choosen algo and their functions */
 			zrtpChannelContext->hashAlgo = ZRTP_UNSET_ALGO;
@@ -1037,6 +1020,9 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->srtpSecrets.authTagAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.sas = NULL;
 	zrtpChannelContext->srtpSecrets.sasLength = 0;
+	zrtpChannelContext->srtpSecrets.hashAlgo = ZRTP_UNSET_ALGO;
+	zrtpChannelContext->srtpSecrets.keyAgreementAlgo = ZRTP_UNSET_ALGO;
+	zrtpChannelContext->srtpSecrets.sasAlgo = ZRTP_UNSET_ALGO;
 
 	/* create the Hello packet and store it */
 	helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_HELLO, &retval);

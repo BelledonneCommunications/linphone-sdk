@@ -1454,7 +1454,7 @@ int state_secure(bzrtpEvent_t event) {
 	
 		/* call the environment to signal we're ready to operate */
 		if (zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession!= NULL) {
-			zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession(zrtpChannelContext->clientData, zrtpChannelContext->srtpSecrets.sas, zrtpContext->cachedSecret.previouslyVerifiedSas);
+			zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession(zrtpChannelContext->clientData, &(zrtpChannelContext->srtpSecrets), zrtpContext->cachedSecret.previouslyVerifiedSas);
 		}
 		return 0;
 	}
@@ -2087,6 +2087,11 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 	zrtpChannelContext->srtpSecrets.cipherAlgo = zrtpChannelContext->cipherAlgo;
 	zrtpChannelContext->srtpSecrets.cipherKeyLength = zrtpChannelContext->cipherKeyLength;
 	zrtpChannelContext->srtpSecrets.authTagAlgo = zrtpChannelContext->authTagAlgo;
+	/* for information purpose, add the negotiated algorithm */
+	zrtpChannelContext->srtpSecrets.hashAlgo = zrtpChannelContext->hashAlgo;
+	zrtpChannelContext->srtpSecrets.keyAgreementAlgo = zrtpChannelContext->keyAgreementAlgo;
+	zrtpChannelContext->srtpSecrets.sasAlgo = zrtpChannelContext->sasAlgo;
+
 
 	/* compute the SAS according to rfc section 4.5.2 sashash = KDF(s0, "SAS", KDF_Context, 256) */
 	if (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Mult) { /* only when not in Multistream mode */
