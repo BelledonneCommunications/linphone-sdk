@@ -1053,12 +1053,12 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		if (device && device->hacks) {
 			const char *gains;
 			gains = device->hacks->mic_equalizer;
-			if (gains) {
+			if (gains && stream->mic_equalizer) {
 				MSList *gains_list = ms_parse_equalizer_string(gains);
 				if (gains_list) {
 					MSList *it;
 					ms_message("Found equalizer configuration for the microphone in the devices table");
-					for (it = gains_list; it; it++) {
+					for (it = gains_list; it; it=it->next) {
 						MSEqualizerGain *g = (MSEqualizerGain *)it->data;
 						ms_message("Read equalizer gains: %f(~%f) --> %f", g->frequency, g->width, g->gain);
 						ms_filter_call_method(stream->mic_equalizer, MS_EQUALIZER_SET_GAIN, g);
@@ -1067,15 +1067,15 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 				}
 			}
 			gains = device->hacks->spk_equalizer;
-			if (gains) {
+			if (gains && stream->spk_equalizer) {
 				MSList *gains_list = ms_parse_equalizer_string(gains);
 				if (gains_list) {
 					MSList *it;
 					ms_message("Found equalizer configuration for the speakers in the devices table");
-					for (it = gains_list; it; it++) {
+					for (it = gains_list; it; it=it->next) {
 						MSEqualizerGain *g = (MSEqualizerGain *)it->data;
 						ms_message("Read equalizer gains: %f(~%f) --> %f", g->frequency, g->width, g->gain);
-						ms_filter_call_method(stream->mic_equalizer, MS_EQUALIZER_SET_GAIN, g);
+						ms_filter_call_method(stream->spk_equalizer, MS_EQUALIZER_SET_GAIN, g);
 					}
 					ms_list_free_with_data(gains_list, ms_free);
 				}
@@ -1789,7 +1789,7 @@ void audio_stream_set_spk_gain_db(AudioStream *stream, float gain_db) {
 #endif
 
 	if (stream->volrecv){
-		ms_filter_call_method(stream->volsend, MS_VOLUME_SET_DB_GAIN, &gain);
+		ms_filter_call_method(stream->volrecv, MS_VOLUME_SET_DB_GAIN, &gain);
 	} else ms_warning("Could not apply gain on received RTP packet: gain control wasn't activated. "
 			"Use audio_stream_enable_gain_control() before starting the stream.");
 }
