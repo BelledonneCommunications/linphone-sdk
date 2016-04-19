@@ -60,6 +60,64 @@ static ORTP_INLINE uint64_t get_timeval_in_millis(void) {
 	return (1000LL*t.tv_sec)+(t.tv_usec/1000LL);
 }
 
+/* trace functions: bzrtp algo code to string */
+static const char *bzrtp_hash_toString(uint8_t hashAlgo) {
+	switch(hashAlgo) {
+		case(ZRTP_UNSET_ALGO): return "unset";
+		case(ZRTP_HASH_S256): return "SHA-256";
+		case(ZRTP_HASH_S384): return "SHA-384";
+		case(ZRTP_HASH_N256): return "SHA3-256";
+		case(ZRTP_HASH_N384): return "SHA3-384";
+		default: return "Unknown Algo";
+	}
+}
+
+static const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo) {
+	switch(keyAgreementAlgo) {
+		case(ZRTP_UNSET_ALGO): return "unset";
+		case(ZRTP_KEYAGREEMENT_DH2k): return "DHM-2048";
+		case(ZRTP_KEYAGREEMENT_EC25): return "ECDH-256";
+		case(ZRTP_KEYAGREEMENT_DH3k): return "DHM-3072";
+		case(ZRTP_KEYAGREEMENT_EC38): return "ECDH-384";
+		case(ZRTP_KEYAGREEMENT_EC52): return "ECDH-521";
+		case(ZRTP_KEYAGREEMENT_Prsh): return "PreShared";
+		case(ZRTP_KEYAGREEMENT_Mult): return "MultiStream";
+		default: return "Unknown Algo";
+	}
+}
+
+static const char *bzrtp_cipher_toString(uint8_t cipherAlgo) {
+	switch(cipherAlgo) {
+		case(ZRTP_UNSET_ALGO): return "unset";
+		case(ZRTP_CIPHER_AES1): return "AES-128";
+		case(ZRTP_CIPHER_AES2): return "AES-192";
+		case(ZRTP_CIPHER_AES3): return "AES-256";
+		case(ZRTP_CIPHER_2FS1): return "TwoFish-128";
+		case(ZRTP_CIPHER_2FS2): return "TwoFish-192";
+		case(ZRTP_CIPHER_2FS3): return "TwoFish-256";
+		default: return "Unknown Algo";
+	}
+}
+
+static const char *bzrtp_authtag_toString(uint8_t authtagAlgo) {
+	switch(authtagAlgo) {
+		case(ZRTP_UNSET_ALGO): return "unset";
+		case(ZRTP_AUTHTAG_HS32): return "HMAC-SHA1-32";
+		case(ZRTP_AUTHTAG_HS80): return "HMAC-SHA1-80";
+		case(ZRTP_AUTHTAG_SK32): return "Skein-32";
+		case(ZRTP_AUTHTAG_SK64): return "Skein-64";
+		default: return "Unknown Algo";
+	}
+}
+
+static const char *bzrtp_sas_toString(uint8_t sasAlgo) {
+	switch(sasAlgo) {
+		case(ZRTP_UNSET_ALGO): return "unset";
+		case(ZRTP_SAS_B32): return "Base32";
+		case(ZRTP_SAS_B256): return "PGP-WordList";
+		default: return "Unknown Algo";
+	}
+}
 /*****************************************/
 /* ZRTP library Callbacks implementation */
 
@@ -106,7 +164,7 @@ static int32_t ms_zrtp_sendDataZRTP (void *clientData, const uint8_t* data, uint
  * @param[in]	part		for receiver or for sender in order to determine which SRTP stream the secret apply to
  * @return 	0 on success
  */
-static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, bzrtpSrtpSecrets_t* secrets, uint8_t part) {
+static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, const bzrtpSrtpSecrets_t *secrets, uint8_t part) {
 	MSZrtpContext *userData = (MSZrtpContext *)clientData;
 
 
@@ -119,7 +177,7 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, bzrtpSrtpSecrets_t
 		ms_fatal("unsupported cipher algorithm by srtp");
 	}
 
-	ms_message("ZRTP secrets are ready for %s; auth tag algo is %s and cipher algo is %s", (part==ZRTP_SRTP_SECRETS_FOR_SENDER)?"sender":"receiver", (secrets->authTagAlgo==ZRTP_AUTHTAG_HS32)?"HS32":"HS80", (secrets->cipherAlgo==ZRTP_CIPHER_AES3)?"AES256":"AES128");
+	ms_message("ZRTP secrets are ready for %s; auth tag algo is %s and cipher algo is %s", (part==ZRTP_SRTP_SECRETS_FOR_SENDER)?"sender":"receiver", bzrtp_authtag_toString(secrets->authTagAlgo), bzrtp_cipher_toString(secrets->cipherAlgo));
 
 
 	if (part==ZRTP_SRTP_SECRETS_FOR_RECEIVER) {
@@ -183,10 +241,10 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, bzrtpSrtpSecrets_t
  * This call will trigger an event which shall be catched by linphone_call_handle_stream_events
  *
  * @param[in]	clientData	Pointer to our ZrtpContext structure used to retrieve RTP session
- * @param[in]	sas		The SAS string(4 characters, not null terminated, fixed length)
+ * @param[in]	secrets 	A structure containing the SAS string(null terminated, variable length according to SAS rendering algo choosen) and informations about the crypto algorithms used by ZRTP during negotiation
  * @param[in]	verified	if <code>verified</code> is true then SAS was verified by both parties during a previous call.
  */
-static int ms_zrtp_startSrtpSession(void *clientData, const char* sas, int32_t verified ){
+static int ms_zrtp_startSrtpSession(void *clientData,  const bzrtpSrtpSecrets_t *secrets, int32_t verified ){
 	MSZrtpContext *userData = (MSZrtpContext *)clientData;
 
 	// srtp processing is enabled in SecretsReady fuction when receiver secrets are ready
@@ -195,14 +253,15 @@ static int ms_zrtp_startSrtpSession(void *clientData, const char* sas, int32_t v
 	OrtpEventData *eventData;
 	OrtpEvent *ev;
 
-	if (sas != NULL) {
+	if (secrets->sas != NULL) {
 		ev=ortp_event_new(ORTP_EVENT_ZRTP_SAS_READY);
 		eventData=ortp_event_get_data(ev);
 		// support both b32 and b256 format SAS strings
-		snprintf(eventData->info.zrtp_sas.sas, sizeof(eventData->info.zrtp_sas.sas), "%s", sas);
+		snprintf(eventData->info.zrtp_sas.sas, sizeof(eventData->info.zrtp_sas.sas), "%s", secrets->sas);
 		eventData->info.zrtp_sas.verified=(verified != 0) ? TRUE : FALSE;
 		rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
-		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s", sas, verified == 0 ? "no" : "yes");
+		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s on session [%p]", secrets->sas, verified == 0 ? "no" : "yes", userData->stream_sessions);
+		ms_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s", bzrtp_cipher_toString(secrets->cipherAlgo), bzrtp_keyAgreement_toString(secrets->keyAgreementAlgo), bzrtp_hash_toString(secrets->hashAlgo), bzrtp_authtag_toString(secrets->authTagAlgo), bzrtp_sas_toString(secrets->sasAlgo));
 	}
 
 	ev=ortp_event_new(ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED);
