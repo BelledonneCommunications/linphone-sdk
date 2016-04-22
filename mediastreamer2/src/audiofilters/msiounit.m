@@ -48,8 +48,6 @@ static const char * audio_unit_format_error (OSStatus error) {
 		case kAudioUnitErr_NoConnection: return "kAudioUnitErr_NoConnection";
 		case kAudioUnitErr_FailedInitialization: return "kAudioUnitErr_FailedInitialization";
 		case kAudioUnitErr_TooManyFramesToProcess: return "kAudioUnitErr_TooManyFramesToProcess";
-		case kAudioUnitErr_IllegalInstrument: return "kAudioUnitErr_IllegalInstrument";
-		case kAudioUnitErr_InstrumentTypeNotFound: return "kAudioUnitErr_InstrumentTypeNotFound";
 		case kAudioUnitErr_InvalidFile: return "kAudioUnitErr_InvalidFile";
 		case kAudioUnitErr_UnknownFileType: return "kAudioUnitErr_UnknownFileType";
 		case kAudioUnitErr_FileNotSpecified: return "kAudioUnitErr_FileNotSpecified";
@@ -63,7 +61,7 @@ static const char * audio_unit_format_error (OSStatus error) {
 		case kAudioUnitErr_Initialized: return "kAudioUnitErr_Initialized";
 		case kAudioUnitErr_InvalidOfflineRender: return "kAudioUnitErr_InvalidOfflineRender";
 		case kAudioUnitErr_Unauthorized: return "kAudioUnitErr_Unauthorized";
-		default: return "unkown error";
+		default: return "unknown error";
 	}
 
 }
@@ -98,10 +96,10 @@ static const char *audio_session_format_error(OSStatus error)
  }
 
 #define check_au_session_result(au,method) \
-if (au!=0) ms_error("AudioSession error for %s: ret=%s (%li) (%s:%d)",method, audio_session_format_error(au), au, __FILE__, __LINE__ )
+if (au!=0) ms_error("AudioSession error for %s: ret=%s (%li) (%s:%d)",method, audio_session_format_error(au), (long)au, __FILE__, __LINE__ )
 
 #define check_au_unit_result(au,method) \
-if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) (%s:%d)",method, audio_unit_format_error(au), au, __FILE__, __LINE__ )
+if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) (%s:%d)",method, audio_unit_format_error(au), (long)au, __FILE__, __LINE__ )
 
 
 #define check_session_call(call)   do { OSStatus res = (call); check_au_session_result(res, #call); } while(0)
@@ -393,9 +391,9 @@ static OSStatus au_write_cb (
 			ms_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, inNumberFrames*d->base.card->bits/8);
 			/*basic algo,  can be enhanced with a more advanced bufferizer computing average value*/
 			if (ms_bufferizer_get_avail(d->bufferizer) > card->rate* (card->nchannels * card->bits / 8)/5 ) {
-				ms_warning("we are at least 200ms late, bufferizer sise is %i bytes in framezize is %lu bytes"
-						,ms_bufferizer_get_avail(d->bufferizer)
-						,inNumberFrames*d->base.card->bits/8);
+				ms_warning("we are at least 200ms late, bufferizer sise is %li bytes in framezize is %li bytes"
+						,(long)ms_bufferizer_get_avail(d->bufferizer)
+						,(long)inNumberFrames*d->base.card->bits/8);
 				ms_bufferizer_flush(d->bufferizer);
 			}
 			ms_mutex_unlock(&d->mutex);
@@ -487,7 +485,7 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 									  , &quality
 									  , &qualitySize));
 
-		ms_message("I/O unit latency [%f], quality [%li]",delay,quality);
+		ms_message("I/O unit latency [%f], quality [%u]",delay,(unsigned)quality);
 		Float32 hwoutputlatency;
 		UInt32 hwoutputlatencySize=sizeof(hwoutputlatency);
 
