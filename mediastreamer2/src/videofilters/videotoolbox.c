@@ -65,7 +65,7 @@ static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSta
 	int i;
 
 	if(sampleBuffer == NULL || status != noErr) {
-		ms_error("VideoToolbox: could not encode frame: error %d", status);
+		ms_error("VideoToolbox: could not encode frame: error %d", (int)status);
 		return;
 	}
 
@@ -121,7 +121,7 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 									NULL, pixbuf_attr, NULL, (VTCompressionOutputCallback)h264_enc_output_cb, ctx, &ctx->session);
 	CFRelease(pixbuf_attr);
 	if(err) {
-		ms_error("%s: error code %d", error_msg, err);
+		ms_error("%s: error code %d", error_msg, (int)err);
 		goto fail;
 	}
 
@@ -133,7 +133,7 @@ static void h264_enc_configure(VTH264EncCtx *ctx) {
 	VTSessionSetProperty(ctx->session, kVTCompressionPropertyKey_ExpectedFrameRate, value);
 
 	if((err = VTCompressionSessionPrepareToEncodeFrames(ctx->session)) != 0) {
-		ms_error("Could not prepare the VideoToolbox compression session: error code %d", err);
+		ms_error("Could not prepare the VideoToolbox compression session: error code %d", (int)err);
 		goto fail;
 	}
 
@@ -260,7 +260,7 @@ static void h264_enc_process(MSFilter *f) {
 		}
 
 		if((err = VTCompressionSessionEncodeFrame(ctx->session, pixbuf, p_time, kCMTimeInvalid, enc_param, NULL, NULL)) != noErr) {
-			ms_error("VideoToolbox: could not pass a pixbuf to the encoder: error code %d", err);
+			ms_error("VideoToolbox: could not pass a pixbuf to the encoder: error code %d", (int)err);
 		}
 		CFRelease(pixbuf);
 
@@ -476,7 +476,7 @@ static bool_t h264_dec_update_format_description(VTH264DecCtx *ctx, const MSList
 	}
 	status = CMVideoFormatDescriptionCreateFromH264ParameterSets(NULL, ps_count, ps_ptrs, ps_sizes, H264_NALU_HEAD_SIZE, &ctx->format_desc);
 	if(status != noErr) {
-		ms_error("VideoToolboxDec: could not find out the input format: %d", status);
+		ms_error("VideoToolboxDec: could not find out the input format: %d", (int)status);
 		return FALSE;
 	}
 	return TRUE;
@@ -494,7 +494,7 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 	size_t i;
 
 	if(status != noErr || imageBuffer == NULL) {
-		ms_error("VideoToolboxDecoder: fail to decode one frame: error %d", status);
+		ms_error("VideoToolboxDecoder: fail to decode one frame: error %d", (int)status);
 		ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_DECODING_ERRORS);
 		ms_filter_lock(ctx->f);
 		if(ctx->enable_avpf) {
@@ -544,7 +544,7 @@ static bool_t h264_dec_init_decoder(VTH264DecCtx *ctx) {
 	status = VTDecompressionSessionCreate(NULL, ctx->format_desc, NULL, pixel_parameters, &dec_cb, &ctx->session);
 	CFRelease(pixel_parameters);
 	if(status != noErr) {
-		ms_error("VideoToolboxDecoder: could not create the decoding context: error %d", status);
+		ms_error("VideoToolboxDecoder: could not create the decoding context: error %d", (int)status);
 		return FALSE;
 	}
 	return TRUE;
@@ -673,7 +673,7 @@ static void h264_dec_process(MSFilter *f) {
 		CFRelease(sample);
 		if(status != noErr) {
 			CFRelease(stream);
-			ms_error("VideoToolboxDecoder: error while passing encoded frames to the decoder: %d", status);
+			ms_error("VideoToolboxDecoder: error while passing encoded frames to the decoder: %d", (int)status);
 			if(status == kVTInvalidSessionErr) {
 				h264_dec_uninit_decoder(ctx);
 			}
@@ -802,7 +802,7 @@ void _register_videotoolbox_if_supported(MSFactory *factory) {
 	if (VTCompressionSessionCreate != NULL
 		&& VTDecompressionSessionCreate != NULL
 		&& CMVideoFormatDescriptionCreateFromH264ParameterSets != NULL) {
-		
+
 		ms_factory_register_filter(factory, &ms_vt_h264_enc);
 		ms_factory_register_filter(factory, &ms_vt_h264_dec);
 	} else {
