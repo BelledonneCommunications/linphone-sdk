@@ -45,6 +45,7 @@ else()
 	set(EP_ffmpeg_GIT_TAG "51aa587f7ddac63c831d73eb360e246765a2675f" CACHE STRING "ffmpeg tag to use")
 	set(EP_ffmpeg_EXTERNAL_SOURCE_PATHS "externals/ffmpeg")
 	set(EP_ffmpeg_MAY_BE_FOUND_ON_SYSTEM TRUE)
+	set(EP_ffmpeg_IGNORE_WARNINGS TRUE)
 	set(EP_ffmpeg_BUILD_METHOD "autotools")
 	set(EP_ffmpeg_CONFIGURE_OPTIONS
 		"--disable-zlib"

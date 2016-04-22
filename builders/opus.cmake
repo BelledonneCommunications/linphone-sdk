@@ -37,6 +37,7 @@ else()
 	set(EP_opus_URL_HASH "MD5=cfb354d4c65217ca32a762f8ab15f2ac")
 	set(EP_opus_EXTERNAL_SOURCE_PATHS "opus" "externals/opus")
 	set(EP_opus_MAY_BE_FOUND_ON_SYSTEM TRUE)
+	set(EP_opus_IGNORE_WARNINGS TRUE)
 
 	set(EP_opus_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opus/CMakeLists.txt" "<SOURCE_DIR>")
 	list(APPEND EP_opus_PATCH_COMMAND "COMMAND" "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/opus/config.h.cmake" "<SOURCE_DIR>")

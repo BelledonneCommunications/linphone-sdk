@@ -40,6 +40,7 @@ else()
 	set(EP_openh264_GIT_REPOSITORY "https://github.com/cisco/openh264" CACHE STRING "openh264 repository URL")
 	set(EP_openh264_GIT_TAG "v${EP_openh264_VERSION}" CACHE STRING "openh264 tag to use")
 	set(EP_openh264_EXTERNAL_SOURCE_PATHS "externals/openh264")
+	set(EP_openh264_IGNORE_WARNINGS TRUE)
 
 	set(EP_openh264_BUILD_METHOD "custom")
 	set(EP_openh264_LINKING_TYPE "-static")

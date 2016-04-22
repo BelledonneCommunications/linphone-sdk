@@ -23,6 +23,7 @@
 set(EP_x264_GIT_REPOSITORY "git://git.videolan.org/x264.git" CACHE STRING "x264 repository URL")
 set(EP_x264_GIT_TAG "adc99d17d8c1fbc164fae8319b40d7c45f30314e" CACHE STRING "x264 tag to use")
 set(EP_x264_EXTERNAL_SOURCE_PATHS "externals/x264")
+set(EP_x264_IGNORE_WARNINGS TRUE)
 
 set(EP_x264_BUILD_METHOD "autotools")
 set(EP_x264_CROSS_COMPILATION_OPTIONS

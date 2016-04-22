@@ -25,6 +25,7 @@ set(EP_zlib_GIT_TAG_LATEST "master" CACHE STRING "zlib tag to use when compiling
 set(EP_zlib_GIT_TAG "91eb77a7c5bfe7b4cc6b722aa96548d7143a9936" CACHE STRING "zlib tag to use")
 set(EP_zlib_EXTERNAL_SOURCE_PATHS "zlib")
 set(EP_zlib_MAY_BE_FOUND_ON_SYSTEM TRUE)
+set(EP_zlib_IGNORE_WARNINGS TRUE)
 
 if(MSVC)
 	set(EP_zlib_EXTRA_LDFLAGS "/SAFESEH:NO")

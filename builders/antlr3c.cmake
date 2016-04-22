@@ -25,6 +25,7 @@ set(EP_antlr3c_GIT_TAG_LATEST "linphone" CACHE STRING "antlr3c tag to use when c
 set(EP_antlr3c_GIT_TAG "52075ffb35975c6901e924b4a763b6fb23abd623" CACHE STRING "antlr3c tag to use")
 set(EP_antlr3c_EXTERNAL_SOURCE_PATHS "antlr3c" "antlr3" "externals/antlr3")
 set(EP_antlr3c_MAY_BE_FOUND_ON_SYSTEM TRUE)
+set(EP_antlr3c_IGNORE_WARNINGS TRUE)
 
 set(EP_antlr3c_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 if(MSVC)

@@ -36,6 +36,7 @@ else()
 	set(EP_voamrwbenc_URL "http://downloads.sourceforge.net/project/opencore-amr/vo-amrwbenc/vo-amrwbenc-0.1.3.tar.gz")
 	set(EP_voamrwbenc_URL_HASH "MD5=f63bb92bde0b1583cb3cb344c12922e0")
 	set(EP_voamrwbenc_EXTERNAL_SOURCE_PATHS "externals/vo-amrwbenc" "vo-amrwbenc")
+	set(EP_voamrwbenc_IGNORE_WARNINGS TRUE)
 
 	set(EP_voamrwbenc_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/voamrwbenc/CMakeLists.txt" "<SOURCE_DIR>")
 	set(EP_voamrwbenc_CMAKE_OPTIONS )
