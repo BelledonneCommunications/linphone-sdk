@@ -24,6 +24,7 @@ set(EP_mbedtls_GIT_REPOSITORY "git://git.linphone.org/mbedtls.git" CACHE STRING 
 set(EP_mbedtls_GIT_TAG_LATEST "linphone" CACHE STRING "mbedtls tag to use when compiling latest version")
 set(EP_mbedtls_GIT_TAG "3b88f2749d59e5346de08e121fba1d797c55ddaa" CACHE STRING "mbedtls tag to use")
 set(EP_mbedtls_EXTERNAL_SOURCE_PATHS "mbedtls" "externals/mbedtls")
+set(EP_mbedtls_MAY_BE_FOUND_ON_SYSTEM TRUE)
 
 set(EP_mbedtls_LINKING_TYPE "-DUSE_STATIC_MBEDTLS_LIBRARY=NO" "-DUSE_SHARED_MBEDTLS_LIBRARY=YES")
 set(EP_mbedtls_CMAKE_OPTIONS "-DENABLE_PROGRAMS=NO" "-DENABLE_TESTING=NO")

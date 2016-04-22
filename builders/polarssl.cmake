@@ -24,6 +24,7 @@ set(EP_polarssl_GIT_REPOSITORY "git://git.linphone.org/polarssl.git" CACHE STRIN
 set(EP_polarssl_GIT_TAG_LATEST "linphone-1.4" CACHE STRING "polarssl tag to use when compiling latest version")
 set(EP_polarssl_GIT_TAG "3b7c2443e75e51b7af67a3e5dcb3771ae3120ff3" CACHE STRING "polarssl tag to use")
 set(EP_polarssl_EXTERNAL_SOURCE_PATHS "polarssl" "externals/polarssl")
+set(EP_polarssl_MAY_BE_FOUND_ON_SYSTEM TRUE)
 
 set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=1")
 if(MSVC)

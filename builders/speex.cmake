@@ -24,6 +24,7 @@ set(EP_speex_GIT_REPOSITORY "git://git.linphone.org/speex.git" CACHE STRING "spe
 set(EP_speex_GIT_TAG_LATEST "linphone" CACHE STRING "speex tag to use when compiling latest version")
 set(EP_speex_GIT_TAG "fc1dd43c3c9d244bca1c300e408ce0373dbd5ed8" CACHE STRING "speex tag to use")
 set(EP_speex_EXTERNAL_SOURCE_PATHS "speex" "externals/speex")
+set(EP_speex_MAY_BE_FOUND_ON_SYSTEM TRUE)
 
 set(EP_speex_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 set(EP_speex_CMAKE_OPTIONS "-DENABLE_SPEEX_DSP=YES" "-DENABLE_SPEEX_CODEC=${ENABLE_SPEEX}")

@@ -22,6 +22,7 @@
 
 set(EP_v4l_URL "http://linuxtv.org/downloads/v4l-utils/v4l-utils-1.0.0.tar.bz2")
 set(EP_v4l_URL_HASH "MD5=2127f2d06be9162b0d346f7037a9e852")
+set(EP_v4l_MAY_BE_FOUND_ON_SYSTEM TRUE)
 
 set(EP_v4l_BUILD_METHOD "autotools")
 set(EP_v4l_CROSS_COMPILATION_OPTIONS

@@ -36,6 +36,7 @@ else()
 	set(EP_xml2_GIT_REPOSITORY "git://git.linphone.org/libxml2" CACHE STRING "xml2 repository URL")
 	set(EP_xml2_GIT_TAG "v2.8.0" CACHE STRING "xml2 tag to use")
 	set(EP_xml2_EXTERNAL_SOURCE_PATHS "libxml2" "xml2" "externals/libxml2")
+	set(EP_xml2_MAY_BE_FOUND_ON_SYSTEM TRUE)
 
 	set(EP_xml2_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 	set(EP_xml2_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/xml2/CMakeLists.txt" "<SOURCE_DIR>")
