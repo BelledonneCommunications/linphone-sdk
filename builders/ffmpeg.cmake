@@ -40,8 +40,9 @@ else()
 		set(EP_ffmpeg_PATCH_OPTIONS "--binary")
 	endif()
 
-	set(EP_ffmpeg_URL "http://ffmpeg.org/releases/ffmpeg-0.10.2.tar.gz")
-	set(EP_ffmpeg_URL_HASH "MD5=f449c9fb925e80c457e82187e6c20910")
+	set(EP_ffmpeg_GIT_REPOSITORY "git://git.linphone.org/ffmpeg.git" CACHE STRING "ffmpeg repository URL")
+	set(EP_ffmpeg_GIT_TAG_LATEST "bc" CACHE STRING "ffmpeg tag to use when compiling latest version")
+	set(EP_ffmpeg_GIT_TAG "51aa587f7ddac63c831d73eb360e246765a2675f" CACHE STRING "ffmpeg tag to use")
 	set(EP_ffmpeg_EXTERNAL_SOURCE_PATHS "externals/ffmpeg")
 	set(EP_ffmpeg_BUILD_METHOD "autotools")
 	set(EP_ffmpeg_CONFIGURE_OPTIONS
