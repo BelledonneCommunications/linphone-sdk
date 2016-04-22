@@ -1606,17 +1606,19 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	if (stream->pixconv) {
 		ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
 	}
-	if (stream->tee) {
-		ms_connection_helper_link(&ch, stream->tee, 0, 0);
-	}
+
 	if (stream->output2) {
 		if (stream->preview_window_id != 0) {
 			video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 		}
-		ms_filter_link(stream->tee, 1, stream->output2, 0);
 	}
-	if (stream->local_jpegwriter) {
+
+	if (stream->tee) {
+		ms_connection_helper_link(&ch, stream->tee, 0, 0);
+		ms_filter_link(stream->tee, 1, stream->output2, 0);
 		ms_filter_link(stream->tee, 2, stream->local_jpegwriter, 0);
+	} else {
+		ms_filter_link(stream->pixconv, 0, stream->output2, 0);
 	}
 
 	/* create the ticker */
