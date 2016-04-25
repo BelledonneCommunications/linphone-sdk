@@ -506,9 +506,9 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	it = bctoolbox_map_begin(ml->timer_sources);
 	end = bctoolbox_map_end(ml->timer_sources);
 	while (!bctoolbox_iterator_equals(it,end)) {
-		s = (belle_sip_source_t*)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it));
 		/*use first because in case of canceled timer, jey != s->expire_ms*/
 		uint64_t expire = bctoolbox_pair_ullong_get_first((const bctoolbox_pair_ullong_t *)bctoolbox_iterator_get_pair(it));
+		s = (belle_sip_source_t*)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it));
 		if (expire > cur) {
 			/* no need to continue looping because map is ordered*/
 			break;
