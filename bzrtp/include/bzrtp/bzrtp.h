@@ -350,7 +350,7 @@ BZRTP_EXPORT int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t se
  *			BZRTP_CHANNEL_SECURE		Channel is secure
  *			BZRTP_CHANNEL_ERROR			An error occured on this channel
  */
-int bzrtp_getChannelStatus(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+BZRTP_EXPORT int bzrtp_getChannelStatus(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 #define BZRTP_CUSTOMCACHE_USEKDF 	1
 #define BZRTP_CUSTOMCACHE_PLAINDATA 0
