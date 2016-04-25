@@ -31,10 +31,10 @@ typedef struct _bctoolbox_iterator_t bctoolbox_iterator_t;
 
 
 
-typedef struct _bctoolbox_mmap_long_t bctoolbox_mmap_long_t;
+typedef struct _bctoolbox_mmap_ullong_t bctoolbox_mmap_ullong_t;
 /*map*/
-BCTOOLBOX_PUBLIC bctoolbox_map_t *bctoolbox_mmap_long_new(void);
-BCTOOLBOX_PUBLIC void bctoolbox_mmap_long_delete(bctoolbox_map_t *mmap);
+BCTOOLBOX_PUBLIC bctoolbox_map_t *bctoolbox_mmap_ullong_new(void);
+BCTOOLBOX_PUBLIC void bctoolbox_mmap_ullong_delete(bctoolbox_map_t *mmap);
 BCTOOLBOX_PUBLIC void bctoolbox_map_insert(bctoolbox_map_t *map,const bctoolbox_pair_t *pair);
 /*same as insert, but also deleting pair*/
 BCTOOLBOX_PUBLIC void bctoolbox_map_insert_and_delete(bctoolbox_map_t *map,bctoolbox_pair_t *pair);
@@ -65,11 +65,11 @@ BCTOOLBOX_PUBLIC  bool_t bctoolbox_iterator_equals(const bctoolbox_iterator_t *a
 BCTOOLBOX_PUBLIC void bctoolbox_iterator_delete(bctoolbox_iterator_t *it);
 
 /*pair*/	
-typedef struct _bctoolbox_pair_long_t bctoolbox_pair_long_t; /*inherite from bctoolbox_pair_t*/
-BCTOOLBOX_PUBLIC bctoolbox_pair_long_t * bctoolbox_pair_long_new(long key,void *value);
+typedef struct _bctoolbox_pair_ullong_t bctoolbox_pair_ullong_t; /*inherite from bctoolbox_pair_t*/
+BCTOOLBOX_PUBLIC bctoolbox_pair_ullong_t * bctoolbox_pair_ullong_new(unsigned long long key,void *value);
 
 BCTOOLBOX_PUBLIC void* bctoolbox_pair_get_second(const bctoolbox_pair_t * pair);
-BCTOOLBOX_PUBLIC const long bctoolbox_pair_long_get_first(const bctoolbox_pair_long_t * pair);
+BCTOOLBOX_PUBLIC const unsigned long long bctoolbox_pair_ullong_get_first(const bctoolbox_pair_ullong_t * pair);
 BCTOOLBOX_PUBLIC void bctoolbox_pair_delete(bctoolbox_pair_t * pair);
 
 
