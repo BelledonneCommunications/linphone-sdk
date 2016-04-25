@@ -165,7 +165,10 @@ void bctoolbox_qnx_log_handler(const char *domain, BctoolboxLogLevel lev, const 
 #include <string>
 #include <iostream>
 #include <sstream>
+
+#ifndef _WIN32
 #include <syslog.h>
+#endif
 
 namespace bctoolbox {
 	namespace log {

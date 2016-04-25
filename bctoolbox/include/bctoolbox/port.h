@@ -285,8 +285,6 @@ typedef unsigned char bool_t;
 #define TRUE 1
 #define FALSE 0
 
-typedef struct _OList OList;
-
 typedef struct bctoolboxTimeSpec{
 	int64_t tv_sec;
 	int64_t tv_nsec;

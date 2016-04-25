@@ -22,6 +22,7 @@
 
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
+#include "bctoolbox/list.h"
 #include "utils.h"
 
 #if	defined(_WIN32) && !defined(_WIN32_WCE)
@@ -30,6 +31,10 @@
 
 #ifdef HAVE_SYS_SHM_H
 #include <sys/shm.h>
+#endif
+
+#ifndef MIN
+#define MIN(a,b) a<=b ? a : b
 #endif
 
 static void *bctoolbox_libc_malloc(size_t sz){
@@ -633,7 +638,7 @@ typedef struct MapInfo{
 	void *mem;
 }MapInfo;
 
-static OList *maplist=NULL;
+static bctoolbox_list_t *maplist=NULL;
 
 void *bctoolbox_shm_open(unsigned int keyid, int size, int create){
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
@@ -669,7 +674,7 @@ void *bctoolbox_shm_open(unsigned int keyid, int size, int create){
 		MapInfo *i=(MapInfo*)bctoolbox_new(MapInfo,1);
 		i->h=h;
 		i->mem=buf;
-		maplist=o_list_append(maplist,i);
+		maplist=bctoolbox_list_append(maplist,i);
 	}else{
 		CloseHandle(h);
 		bctoolbox_error("MapViewOfFile failed");
@@ -683,14 +688,14 @@ void *bctoolbox_shm_open(unsigned int keyid, int size, int create){
 
 void bctoolbox_shm_close(void *mem){
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
-	OList *elem;
-	for(elem=maplist;elem!=NULL;elem=elem->next){
-		MapInfo *i=(MapInfo*)elem->data;
+	bctoolbox_list_t *elem;
+	for(elem=maplist;elem;elem=bctoolbox_list_next(elem)){
+		MapInfo *i=(MapInfo*)bctoolbox_list_get_data(elem);
 		if (i->mem==mem){
 			CloseHandle(i->h);
 			UnmapViewOfFile(mem);
 			bctoolbox_free(i);
-			maplist=o_list_remove_link(maplist,elem);
+			maplist=bctoolbox_list_remove_link(maplist,elem);
 			return;
 		}
 	}
