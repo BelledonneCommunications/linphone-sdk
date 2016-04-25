@@ -151,8 +151,8 @@ void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *r
 						"\n\t%-20s: %3.1fms"
 						,qi,qi->label ? qi->label : "no label"
 						,"Loss rate", loss_rate
-						,"Inter-arrival jitter",100*inter_jitter
-						,"RT propagation",100*rt_prop);
+						,"Inter-arrival jitter",1000*inter_jitter
+						,"RT propagation",1000*rt_prop);
 		}
 	}
 }
