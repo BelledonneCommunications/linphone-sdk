@@ -507,7 +507,9 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	end = bctoolbox_map_end(ml->timer_sources);
 	while (!bctoolbox_iterator_equals(it,end)) {
 		s = (belle_sip_source_t*)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it));
-		if (s->expire_ms > cur) {
+		/*use first because in case of canceled timer, jey != s->expire_ms*/
+		uint64_t expire = bctoolbox_pair_ullong_get_first((const bctoolbox_pair_ullong_t *)bctoolbox_iterator_get_pair(it));
+		if (expire > cur) {
 			/* no need to continue looping because map is ordered*/
 			break;
 		} else {
@@ -542,7 +544,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				/*this source needs to be removed*/
 				belle_sip_main_loop_remove_source(ml,s);
 			} else  {
-				if (s->expired) {
+				if (s->expired && s->it) {
 					bctoolbox_mutex_lock(&ml->timer_sources_mutex);
 					bctoolbox_map_erase(ml->timer_sources, s->it);
 					bctoolbox_iterator_delete(s->it);
