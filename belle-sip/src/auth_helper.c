@@ -22,6 +22,9 @@
 #include "md5.h"
 #include <string.h>
 
+#ifndef BELLE_SIP_CNONCE_LENGTH
+#define BELLE_SIP_CNONCE_LENGTH 16
+#endif
 
 #define CHECK_IS_PRESENT(obj,header_name,name) \
 	if (!belle_sip_header_##header_name##_get_##name(obj)) {\
@@ -163,6 +166,7 @@ int belle_sip_auth_helper_compute_response_qop_auth(const char* ha1
 
 	return 0;
 }
+
 int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* authorization
 											,const char* method
 											,const char* ha1) {
@@ -171,7 +175,7 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	char* uri;
 	char ha2[16*2 + 1];
 	char response[16*2 + 1];
-	char cnonce[9];
+	char cnonce[BELLE_SIP_CNONCE_LENGTH + 1];
 
 	response[32]=ha2[32]='\0';
 
@@ -201,10 +205,7 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	if (auth_mode) {
 		CHECK_IS_PRESENT(authorization,authorization,nonce_count)
 		if (!belle_sip_header_authorization_get_cnonce(authorization)) {
-			int cnonce_value=0;
-			belle_sip_random_bytes((unsigned char*)&cnonce_value, sizeof(cnonce_value));
-			snprintf(cnonce, sizeof(cnonce), "%08x", cnonce_value);
-			belle_sip_header_authorization_set_cnonce(authorization,cnonce);
+			belle_sip_header_authorization_set_cnonce(authorization, belle_sip_random_token((cnonce), sizeof(cnonce)));
 		}
 	}
 	if (!method) {
