@@ -1640,12 +1640,14 @@ static MSFilter* _video_preview_stop( VideoPreview* stream, bool_t keep_source) 
 	}
 	if (stream->tee) {
 		ms_connection_helper_unlink(&ch, stream->tee, 0, 0);
-	}
-	if (stream->output2) {
-		ms_filter_unlink(stream->tee, 1, stream->output2, 0);
-	}
-	if (stream->local_jpegwriter) {
-		ms_filter_unlink(stream->tee, 2, stream->local_jpegwriter, 0);
+		if (stream->output2) {
+			ms_filter_unlink(stream->tee, 1, stream->output2, 0);
+		}
+		if (stream->local_jpegwriter) {
+			ms_filter_unlink(stream->tee, 2, stream->local_jpegwriter, 0);
+		}
+	} else {
+		ms_connection_helper_unlink(&ch, stream->output2, 0, 0);
 	}
 
 	if (keep_source) {
