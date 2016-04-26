@@ -495,11 +495,13 @@ static void h264_dec_output_cb(VTH264DecCtx *ctx, void *sourceFrameRefCon,
 
 	if(status != noErr || imageBuffer == NULL) {
 		ms_error("VideoToolboxDecoder: fail to decode one frame: error %d", (int)status);
-		ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_DECODING_ERRORS);
+		
 		ms_filter_lock(ctx->f);
 		if(ctx->enable_avpf) {
 			ms_error("VideoToolboxDecoder: sending PLI");
 			ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_SEND_PLI);
+		}else{
+			ms_filter_notify_no_arg(ctx->f, MS_VIDEO_DECODER_DECODING_ERRORS);
 		}
 		ms_filter_unlock(ctx->f);
 		return;
@@ -595,7 +597,7 @@ static void h264_dec_process(MSFilter *f) {
 	while((pkt = ms_queue_get(f->inputs[0]))) {
 		unpacking_failed |= (rfc3984_unpack(&ctx->unpacker, pkt, &q_nalus) != 0);
 	}
-	if(unpacking_failed) {
+	if (unpacking_failed) {
 		ms_error("VideoToolboxDecoder: error while unpacking RTP packets");
 		goto fail;
 	}
@@ -608,7 +610,7 @@ static void h264_dec_process(MSFilter *f) {
 		} else if(ctx->format_desc || parameter_sets) {
 			ms_queue_put(&q_nalus2, nalu);
 		} else {
-			ms_free(nalu);
+			freemsg(nalu);
 		}
 	}
 	if(parameter_sets) {
@@ -684,12 +686,12 @@ static void h264_dec_process(MSFilter *f) {
 	goto put_frames_out;
 
 fail:
-	ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_DECODING_ERRORS);
+	
 	ms_filter_lock(f);
-	if(ctx->enable_avpf) {
+	if (ctx->enable_avpf) {
 		ms_message("VideoToolboxDecoder: sending PLI");
 		ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
-	}
+	}else ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_DECODING_ERRORS);
 	ms_filter_unlock(f);
 
 put_frames_out:

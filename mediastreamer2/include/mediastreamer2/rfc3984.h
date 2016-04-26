@@ -58,7 +58,8 @@ MS2_PUBLIC void rfc3984_pack(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rtpq,
 
 /**
  * Process incoming rtp data and output NALUs, whenever possible.
- * @return 0 if everything was ok, -1 on error.
+ * @return 0 if everything was ok, -1 on error (inconsistencies in sequence numbers for example).
+ * @note the naluq output argument may be filled with incomplete data even if return value was -1.
 **/
 MS2_PUBLIC int rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq);
 
