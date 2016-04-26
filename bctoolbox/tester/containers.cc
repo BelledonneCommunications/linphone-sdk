@@ -22,14 +22,14 @@
 #include "bctoolbox/list.h"
 
 static void multimap_insert(void) {
-	bctoolbox_map_t *mmap = bctoolbox_mmap_long_new();
+	bctoolbox_map_t *mmap = bctoolbox_mmap_ullong_new();
 	bctoolbox_list_t *head = NULL, *ref = NULL;
 	bctoolbox_iterator_t *it,*end;
 	long i=0;
 	int N = 100;
 	
 	for(i=0;i<N;i++) {
-		bctoolbox_pair_t* pair = (bctoolbox_pair_t*)bctoolbox_pair_long_new(i, (void*)((long)i));
+		bctoolbox_pair_t* pair = (bctoolbox_pair_t*)bctoolbox_pair_ullong_new(N-i-1, (void*)((long)N-i-1));
 		ref = bctoolbox_list_append(ref, (void*)i);
 		bctoolbox_map_insert(mmap, pair);
 		bctoolbox_pair_delete(pair);
@@ -59,18 +59,18 @@ static void multimap_insert(void) {
 	bctoolbox_iterator_delete(it);
 	bctoolbox_iterator_delete(end);
 	bctoolbox_list_free(head);
-	bctoolbox_mmap_long_delete(mmap);
+	bctoolbox_mmap_ullong_delete(mmap);
 }
 
 static void multimap_erase(void) {
-	bctoolbox_map_t *mmap = bctoolbox_mmap_long_new();
+	bctoolbox_map_t *mmap = bctoolbox_mmap_ullong_new();
 	bctoolbox_iterator_t *it;
 	bctoolbox_iterator_t *end;
 	long i=0;
 	int N = 100;
 	
 	for(i=0;i<N;i++) {
-		bctoolbox_map_insert_and_delete(mmap, (bctoolbox_pair_t*)bctoolbox_pair_long_new(i, (void*)((long)i)));
+		bctoolbox_map_insert_and_delete(mmap, (bctoolbox_pair_t*)bctoolbox_pair_ullong_new(i, (void*)((long)i)));
 	}
 	
 	end= bctoolbox_map_end(mmap);
@@ -88,7 +88,7 @@ static void multimap_erase(void) {
 					, N/2
 					,long, "%lu");
 					
-	bctoolbox_mmap_long_delete(mmap);
+	bctoolbox_mmap_ullong_delete(mmap);
 	bctoolbox_iterator_delete(end);
 	
 }
@@ -96,19 +96,19 @@ static int compare_func(const void *a, const void*b) {
 	return (long)a == (long)b;
 }
 static void multimap_find_custom(void) {
-	bctoolbox_map_t *mmap = bctoolbox_mmap_long_new();
+	bctoolbox_map_t *mmap = bctoolbox_mmap_ullong_new();
 	long i=0;
 	int N = 100;
 	
 	for(i=0;i<N;i++) {
-		bctoolbox_pair_t* pair = (bctoolbox_pair_t*)bctoolbox_pair_long_new(i, (void*)((long)i));
+		bctoolbox_pair_t* pair = (bctoolbox_pair_t*)bctoolbox_pair_ullong_new(i, (void*)((long)i));
 		bctoolbox_map_insert_and_delete(mmap, pair);
 	}
 	bctoolbox_iterator_t * it = bctoolbox_map_find_custom(mmap, compare_func, (void*)10l);
 	BC_ASSERT_EQUAL((long)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it))
 					, 0
 					,long, "%lu");
-	bctoolbox_mmap_long_delete(mmap);
+	bctoolbox_mmap_ullong_delete(mmap);
 	bctoolbox_iterator_delete(it);
 }
 
