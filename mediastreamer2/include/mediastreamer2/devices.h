@@ -34,8 +34,10 @@
 #define DEVICE_HAS_CRAPPY_OPENGL				(1<<7) /*set when the opengl is crappy and our opengl surfaceview will crash */
 
 struct SoundDeviceAudioHacks {
-	const char *equalizer;
+	const char *mic_equalizer;
 	float mic_gain;
+	const char *spk_equalizer;
+	float spk_gain;
 };
 
 typedef struct SoundDeviceAudioHacks SoundDeviceAudioHacks;

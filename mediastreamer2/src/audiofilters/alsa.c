@@ -642,70 +642,63 @@ static void alsa_card_uninit(MSSndCard *obj){
 static void alsa_card_detect(MSSndCardManager *m){
 	int i,j,k;
 	void **hints=NULL;
+	int hint_device_count=0;
 	int device_count=0;
-	const char *pcmname = "plughw";
-
+	const char *pcm_base_name = "plug";
 	bool_t found_duplicate;
-	int hint_dev_count=0;
-	char *hint_card = NULL;
-	char *hint_dev = NULL;
 	const int MAX_NUM_DEVICE_ID = 100;
-	char *device_names[MAX_NUM_DEVICE_ID];
-	int card_indexes[MAX_NUM_DEVICE_ID], dev_indexes[MAX_NUM_DEVICE_ID];
-	int unique_card_indexes[MAX_NUM_DEVICE_ID], unique_dev_indexes[MAX_NUM_DEVICE_ID];
+	const int MAX_PLUG_NAME_CHARS = 50;
+	char *plug_names[MAX_NUM_DEVICE_ID]; 
+	char *card_names[MAX_NUM_DEVICE_ID], *device_names[MAX_NUM_DEVICE_ID];
+	char *unique_card_names[MAX_NUM_DEVICE_ID], *unique_device_names[MAX_NUM_DEVICE_ID];
 
 	/* Get list of devices from alsa device hints */
 
 	if (snd_device_name_hint(-1, "pcm", &hints)==0){
-		int i;
 		for(i=0; hints[i]!=NULL; ++i){
-			char *name = snd_device_name_get_hint(hints[i],"NAME");
-			char *hint_name = strsep(&name, ":");
-			if (hint_name){
-				hint_card = strsep(&name, ",");
-				if (hint_card){
-					hint_dev = strsep(&name, ",");
-					if (hint_dev){
-						if (strcmp(strsep(&hint_card, "="), "CARD")==0 && strcmp(strsep(&hint_dev, "="),"DEV")==0){
-							int card_index = snd_card_get_index(hint_card);
-							card_indexes[hint_dev_count] = card_index;
-							dev_indexes[hint_dev_count] = atoi(hint_dev);
-							hint_dev_count++;
-						}
+			char *hint = snd_device_name_get_hint(hints[i],"NAME");
+			char *device_name = strsep(&hint, ":");
+			if (device_name){
+				char *card_hint = strsep(&hint, ",");
+				if (card_hint){
+					if (strcmp(strsep(&card_hint, "="), "CARD")==0){
+						char *card_name = card_hint;
+						card_names[hint_device_count] = card_name;
+						device_names[hint_device_count] = device_name;
+						hint_device_count++;
 					}
 				}
 			}
-			ms_free(hint_name);
 		}
 		snd_device_name_free_hint(hints);
 	}
 
 	/* Produce unique device_names[] */
 
-	for (j=0; j<hint_dev_count; j++){
+	for (j=0; j<hint_device_count; j++){
 		found_duplicate = FALSE;
 		if (j == 0){
-			unique_card_indexes[0] = card_indexes[0];
-			unique_dev_indexes[0] = dev_indexes[0];
-			device_names[device_count] = (char*) malloc(8 * sizeof(char));
-                        sprintf(device_names[0],"%d,%d", card_indexes[0], dev_indexes[0]);
+			unique_card_names[0] = card_names[0];
+			unique_device_names[0] = device_names[0];
+			plug_names[device_count] = (char*) ms_new(char, MAX_PLUG_NAME_CHARS);
+                        sprintf(plug_names[0],"%s:%s", device_names[0], card_names[0]);
 
 			device_count++;
 			continue;
 		}
 		for (k=0; k<device_count; k++){
 
-			if ( (card_indexes[j] == unique_card_indexes[k]) && (dev_indexes[j] == unique_dev_indexes[k]) ){
+			if ( (strcmp(card_names[j], unique_card_names[k])==0) && (strcmp(device_names[j], unique_device_names[k])==0) ){
 				found_duplicate = TRUE;
 				break;
 			}
 		}
 		if ( !found_duplicate ){
-			unique_card_indexes[device_count] = card_indexes[j];
-			unique_dev_indexes[device_count] = dev_indexes[j];
+			unique_card_names[device_count] = card_names[j];
+			unique_device_names[device_count] = device_names[j];
 
-			device_names[device_count] = (char*) ms_new(char,8);
-			sprintf(device_names[device_count],"%d,%d", card_indexes[j], dev_indexes[j]);
+			plug_names[device_count] = (char*) ms_new(char,MAX_PLUG_NAME_CHARS);
+			sprintf(plug_names[device_count],"%s:%s", device_names[j], card_names[j]);
 
 			device_count++;
 		}
@@ -716,10 +709,13 @@ static void alsa_card_detect(MSSndCardManager *m){
 	for (i=-1;i<device_count;i++){
 		MSSndCard *card=NULL;
 		if (i==-1){
-			card=alsa_card_new("default", pcmname);
+			card=alsa_card_new("default", pcm_base_name);
 		}
 		else {
-			card=alsa_card_new(device_names[i], pcmname);
+			// Currently, only 'default' devices are supported.
+			if (strcmp(unique_device_names[i], "default")==0) {
+				card=alsa_card_new(plug_names[i], pcm_base_name);
+			}
 		}
 
 		if (card!=NULL)
@@ -727,9 +723,10 @@ static void alsa_card_detect(MSSndCardManager *m){
 			ms_snd_card_manager_add_card(m,card);
 		}
 	}
+
 	atexit((void(*)(void))snd_config_update_free_global);
 
-	for (i=0; i<device_count; i++) ms_free(device_names[i]);
+	for (i=0; i<device_count; i++) ms_free(plug_names[i]);
 }
 
 MSSndCardDesc alsa_card_desc={

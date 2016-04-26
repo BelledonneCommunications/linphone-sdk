@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/zrtp.h>
 #include <mediastreamer2/dtls_srtp.h>
 #include <mediastreamer2/ms_srtp.h>
+#include <mediastreamer2/msequalizer.h>
 
 
 #define PAYLOAD_TYPE_FLAG_CAN_RECV	PAYLOAD_TYPE_USER_FLAG_1
@@ -366,7 +367,8 @@ struct _AudioStream
 	MSFilter *write_encoder; /* Used when the output is done via RTP */
 	MSFilter *read_resampler;
 	MSFilter *write_resampler;
-	MSFilter *equalizer;
+	MSFilter *mic_equalizer;
+	MSFilter *spk_equalizer;
 	MSFilter *dummy;
 	MSFilter *recv_tee;
 	MSFilter *recorder_mixer;
@@ -402,7 +404,8 @@ struct _AudioStream
 	bool_t use_gc;
 	bool_t use_agc;
 	
-	bool_t eq_active;
+	bool_t mic_eq_active;
+	bool_t spk_eq_active;
 	bool_t use_ng;/*noise gate*/
 	bool_t is_ec_delay_set;
 };
@@ -610,7 +613,7 @@ static MS2_INLINE void audio_stream_enable_adaptive_jittcomp(AudioStream *stream
  * use audio_stream_set_sound_card_input_gain() instead.
  * 
  * @param stream The stream.
- * @param gain Gain to apply in dB.
+ * @param gain_db Gain to apply in dB.
  */
 MS2_PUBLIC void audio_stream_set_mic_gain_db(AudioStream *stream, float gain_db);
 
@@ -626,8 +629,15 @@ MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
 /**
  *  enable/disable rtp stream
- *  */
+ */
 MS2_PUBLIC void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
+
+/**
+ * Apply a gain on received RTP packets.
+ * @param stream An AudioStream.
+ * @param gain_db Gain to apply in dB.
+ */
+MS2_PUBLIC void audio_stream_set_spk_gain_db(AudioStream *stream, float gain_db);
 
 /**
  * Set microphone volume gain.
@@ -671,11 +681,20 @@ MS2_PUBLIC float audio_stream_get_sound_card_output_gain(const AudioStream *stre
 MS2_PUBLIC void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val);
 
 /**
- * enable parametric equalizer in the stream that goes to the speaker
- * */
-MS2_PUBLIC void audio_stream_enable_equalizer(AudioStream *stream, bool_t enabled);
+ * Enable a parametric equalizer
+ * @param[in] stream An AudioStream
+ * @param[in] location Location of the equalizer to enable (speaker or microphone)
+ * @param[in] enabled Whether the equalizer must be enabled
+ */
+MS2_PUBLIC void audio_stream_enable_equalizer(AudioStream *stream, EqualizerLocation location, bool_t enabled);
 
-MS2_PUBLIC void audio_stream_equalizer_set_gain(AudioStream *stream, int frequency, float gain, int freq_width);
+/**
+ * Apply a gain on a given frequency band.
+ * @param[in] stream An AudioStream
+ * @param[in] location Location of the concerned equalizer (speaker or microphone)
+ * @param[in] gain Description of the band and the gain to apply.
+ */
+MS2_PUBLIC void audio_stream_equalizer_set_gain(AudioStream *stream, EqualizerLocation location, const MSEqualizerGain *gain);
 
 /**
  *  stop the audio streaming thread and free everything
@@ -724,6 +743,8 @@ MS2_PUBLIC float audio_stream_get_average_lq_quality_rating(AudioStream *stream)
 
 /* enable ZRTP on the audio stream */
 MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, MSZrtpParams *params);
+MS2_PUBLIC void audio_stream_start_zrtp(AudioStream *stream);
+
 /**
  * return TRUE if zrtp is enabled, it does not mean that stream is encrypted, but only that zrtp is configured to know encryption status, uses #
  * */
@@ -1038,7 +1059,8 @@ MS2_PUBLIC void video_stream_recv_only_stop(VideoStream *vs);
 MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 
 /* enable ZRTP on the video stream using information from the audio stream */
-MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, MSZrtpParams *param);
+MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream);
+MS2_PUBLIC void video_stream_start_zrtp(VideoStream *stream);
 
 /* enable SRTP on the video stream */
 static MS2_INLINE bool_t video_stream_enable_strp(VideoStream* stream, MSCryptoSuite suite, const char* snd_key, const char* rcv_key) {

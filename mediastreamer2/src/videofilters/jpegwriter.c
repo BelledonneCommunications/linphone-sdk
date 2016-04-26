@@ -32,6 +32,7 @@ typedef struct {
 	char *tmpFilename;
 	AVCodec *codec;
 	AVFrame* pict;
+	MSFilter *f;
 }JpegWriter;
 
 static void close_file(JpegWriter *obj, bool_t doRenaming);
@@ -55,6 +56,8 @@ static void close_file(JpegWriter *obj, bool_t doRenaming) {
 	if(doRenaming) {
 		if(rename(obj->tmpFilename, obj->filename) != 0) {
 			ms_error("Could not rename %s into %s", obj->tmpFilename, obj->filename);
+		} else {
+			ms_filter_notify(obj->f, MS_JPEG_WRITER_SNAPSHOT_TAKEN, (void *)obj->filename);
 		}
 	}
 	ms_free(obj->filename);
@@ -66,6 +69,7 @@ static void close_file(JpegWriter *obj, bool_t doRenaming) {
 
 static void jpg_init(MSFilter *f){
 	JpegWriter *s=ms_new0(JpegWriter,1);
+	s->f = f;
 	s->codec=avcodec_find_encoder(CODEC_ID_MJPEG);
 	if (s->codec==NULL){
 		ms_error("Could not find CODEC_ID_MJPEG !");
@@ -76,6 +80,7 @@ static void jpg_init(MSFilter *f){
 
 static void jpg_uninit(MSFilter *f){
 	JpegWriter *s=(JpegWriter*)f->data;
+	s->f = NULL;
 	if (s->file!=NULL){
 		close_file(s, FALSE);
 	}

@@ -31,14 +31,21 @@
 #undef PACKAGE_VERSION
 #include <bzrtp/bzrtp.h>
 
+struct _MSZidCacheContext{
+	char *zidFilename; /**< cache filename */
+	char *peerURI; /**< use for cache management */
+};
+
+typedef struct _MSZidCacheContext MSZidCacheContext;
+
 struct _MSZrtpContext{
 	MSMediaStreamSessions *stream_sessions; /**< a retro link to the stream session as we need it to configure srtp sessions */
 	uint32_t self_ssrc; /**< store the sender ssrc as it is needed by zrtp to manage channels(and we may destroy stream_sessions before destroying zrtp's one) */
 	RtpTransportModifier *rtp_modifier; /**< transport modifier needed to be able to inject the ZRTP packet for sending */
 	bzrtpContext_t *zrtpContext; /**< the opaque zrtp context from libbzrtp */
-	char *zidFilename; /**< cache filename */
-	char *peerURI; /**< use for cache management */
+	MSZidCacheContext *zidCacheContext; /**< pointer to the cache context to be able to free it when destroying context */
 };
+
 
 
 /***********************************************/
@@ -53,6 +60,64 @@ static ORTP_INLINE uint64_t get_timeval_in_millis(void) {
 	return (1000LL*t.tv_sec)+(t.tv_usec/1000LL);
 }
 
+/* trace functions: bzrtp algo code to string */
+static const char *bzrtp_hash_toString(uint8_t hashAlgo) {
+	switch(hashAlgo) {
+		case(ZRTP_UNSET_ALGO): return "unset";
+		case(ZRTP_HASH_S256): return "SHA-256";
+		case(ZRTP_HASH_S384): return "SHA-384";
+		case(ZRTP_HASH_N256): return "SHA3-256";
+		case(ZRTP_HASH_N384): return "SHA3-384";
+		default: return "Unknown Algo";
+	}
+}
+
+static const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo) {
+	switch(keyAgreementAlgo) {
+		case(ZRTP_UNSET_ALGO): return "unset";
+		case(ZRTP_KEYAGREEMENT_DH2k): return "DHM-2048";
+		case(ZRTP_KEYAGREEMENT_EC25): return "ECDH-256";
+		case(ZRTP_KEYAGREEMENT_DH3k): return "DHM-3072";
+		case(ZRTP_KEYAGREEMENT_EC38): return "ECDH-384";
+		case(ZRTP_KEYAGREEMENT_EC52): return "ECDH-521";
+		case(ZRTP_KEYAGREEMENT_Prsh): return "PreShared";
+		case(ZRTP_KEYAGREEMENT_Mult): return "MultiStream";
+		default: return "Unknown Algo";
+	}
+}
+
+static const char *bzrtp_cipher_toString(uint8_t cipherAlgo) {
+	switch(cipherAlgo) {
+		case(ZRTP_UNSET_ALGO): return "unset";
+		case(ZRTP_CIPHER_AES1): return "AES-128";
+		case(ZRTP_CIPHER_AES2): return "AES-192";
+		case(ZRTP_CIPHER_AES3): return "AES-256";
+		case(ZRTP_CIPHER_2FS1): return "TwoFish-128";
+		case(ZRTP_CIPHER_2FS2): return "TwoFish-192";
+		case(ZRTP_CIPHER_2FS3): return "TwoFish-256";
+		default: return "Unknown Algo";
+	}
+}
+
+static const char *bzrtp_authtag_toString(uint8_t authtagAlgo) {
+	switch(authtagAlgo) {
+		case(ZRTP_UNSET_ALGO): return "unset";
+		case(ZRTP_AUTHTAG_HS32): return "HMAC-SHA1-32";
+		case(ZRTP_AUTHTAG_HS80): return "HMAC-SHA1-80";
+		case(ZRTP_AUTHTAG_SK32): return "Skein-32";
+		case(ZRTP_AUTHTAG_SK64): return "Skein-64";
+		default: return "Unknown Algo";
+	}
+}
+
+static const char *bzrtp_sas_toString(uint8_t sasAlgo) {
+	switch(sasAlgo) {
+		case(ZRTP_UNSET_ALGO): return "unset";
+		case(ZRTP_SAS_B32): return "Base32";
+		case(ZRTP_SAS_B256): return "PGP-WordList";
+		default: return "Unknown Algo";
+	}
+}
 /*****************************************/
 /* ZRTP library Callbacks implementation */
 
@@ -99,7 +164,7 @@ static int32_t ms_zrtp_sendDataZRTP (void *clientData, const uint8_t* data, uint
  * @param[in]	part		for receiver or for sender in order to determine which SRTP stream the secret apply to
  * @return 	0 on success
  */
-static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, bzrtpSrtpSecrets_t* secrets, uint8_t part) {
+static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, const bzrtpSrtpSecrets_t *secrets, uint8_t part) {
 	MSZrtpContext *userData = (MSZrtpContext *)clientData;
 
 
@@ -112,7 +177,7 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, bzrtpSrtpSecrets_t
 		ms_fatal("unsupported cipher algorithm by srtp");
 	}
 
-	ms_message("ZRTP secrets are ready for %s; auth tag algo is %s and cipher algo is %s", (part==ZRTP_SRTP_SECRETS_FOR_SENDER)?"sender":"receiver", (secrets->authTagAlgo==ZRTP_AUTHTAG_HS32)?"HS32":"HS80", (secrets->cipherAlgo==ZRTP_CIPHER_AES3)?"AES256":"AES128");
+	ms_message("ZRTP secrets are ready for %s; auth tag algo is %s and cipher algo is %s", (part==ZRTP_SRTP_SECRETS_FOR_SENDER)?"sender":"receiver", bzrtp_authtag_toString(secrets->authTagAlgo), bzrtp_cipher_toString(secrets->cipherAlgo));
 
 
 	if (part==ZRTP_SRTP_SECRETS_FOR_RECEIVER) {
@@ -176,10 +241,10 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, bzrtpSrtpSecrets_t
  * This call will trigger an event which shall be catched by linphone_call_handle_stream_events
  *
  * @param[in]	clientData	Pointer to our ZrtpContext structure used to retrieve RTP session
- * @param[in]	sas		The SAS string(4 characters, not null terminated, fixed length)
+ * @param[in]	secrets 	A structure containing the SAS string(null terminated, variable length according to SAS rendering algo choosen) and informations about the crypto algorithms used by ZRTP during negotiation
  * @param[in]	verified	if <code>verified</code> is true then SAS was verified by both parties during a previous call.
  */
-static int ms_zrtp_startSrtpSession(void *clientData, const char* sas, int32_t verified ){
+static int ms_zrtp_startSrtpSession(void *clientData,  const bzrtpSrtpSecrets_t *secrets, int32_t verified ){
 	MSZrtpContext *userData = (MSZrtpContext *)clientData;
 
 	// srtp processing is enabled in SecretsReady fuction when receiver secrets are ready
@@ -188,14 +253,15 @@ static int ms_zrtp_startSrtpSession(void *clientData, const char* sas, int32_t v
 	OrtpEventData *eventData;
 	OrtpEvent *ev;
 
-	if (sas != NULL) {
+	if (secrets->sas != NULL) {
 		ev=ortp_event_new(ORTP_EVENT_ZRTP_SAS_READY);
 		eventData=ortp_event_get_data(ev);
 		// support both b32 and b256 format SAS strings
-		snprintf(eventData->info.zrtp_sas.sas, sizeof(eventData->info.zrtp_sas.sas), "%s", sas);
+		snprintf(eventData->info.zrtp_sas.sas, sizeof(eventData->info.zrtp_sas.sas), "%s", secrets->sas);
 		eventData->info.zrtp_sas.verified=(verified != 0) ? TRUE : FALSE;
 		rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
-		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s", sas, verified == 0 ? "no" : "yes");
+		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s on session [%p]", secrets->sas, verified == 0 ? "no" : "yes", userData->stream_sessions);
+		ms_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s", bzrtp_cipher_toString(secrets->cipherAlgo), bzrtp_keyAgreement_toString(secrets->keyAgreementAlgo), bzrtp_hash_toString(secrets->hashAlgo), bzrtp_authtag_toString(secrets->authTagAlgo), bzrtp_sas_toString(secrets->sasAlgo));
 	}
 
 	ev=ortp_event_new(ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED);
@@ -212,14 +278,14 @@ static int ms_zrtp_startSrtpSession(void *clientData, const char* sas, int32_t v
  * @brief Load the zrtp cache file into the given buffer
  * The output buffer is allocated by this function and is freed by lib bzrtp
  *
- * @param[in]	clientData	Pointer to our ZrtpContext structure used to retrieve ZID filename
- * @param[out]	output		Output buffer contains an XML null terminated string: the whole cache file. Is allocated by this function and freed by lib bzrtp
- * @param[out]	outputSize	Buffer length in bytes
+ * @param[in]	zidCacheData	Pointer to our ZidCacheContext structure used to retrieve ZID filename
+ * @param[out]	output			Output buffer contains an XML null terminated string: the whole cache file. Is allocated by this function and freed by lib bzrtp
+ * @param[out]	outputSize		Buffer length in bytes
  * @return	outputSize
  */
-static int ms_zrtp_loadCache(void *clientData, uint8_t** output, uint32_t *outputSize, zrtpFreeBuffer_callback *cb) {
+static int ms_zrtp_loadCache(void *zidCacheData, uint8_t** output, uint32_t *outputSize, zrtpFreeBuffer_callback *cb) {
 	/* get filename from ClientData */
-	MSZrtpContext *userData = (MSZrtpContext *)clientData;
+	MSZidCacheContext *userData = (MSZidCacheContext *)zidCacheData;
 	char *filename = userData->zidFilename;
 	size_t nbytes=0;
 	FILE *CACHEFD = fopen(filename, "rb+");
@@ -242,14 +308,14 @@ static int ms_zrtp_loadCache(void *clientData, uint8_t** output, uint32_t *outpu
 
 /**
  * @brief Dump the content of a string in the cache file
- * @param[in]	clientData	Pointer to our ZrtpContext structure used to retrieve ZID filename
- * @param[in]	input		An XML string to be dumped into cache
- * @param[in]	inputSize	input string length in bytes
+ * @param[in]	zidCacheData	Pointer to our ZidCacheContext structure used to retrieve ZID filename
+ * @param[in]	input			An XML string to be dumped into cache
+ * @param[in]	inputSize		input string length in bytes
  * @return	number of bytes written to file
  */
-static int ms_zrtp_writeCache(void *clientData, const uint8_t* input, uint32_t inputSize) {
+static int ms_zrtp_writeCache(void *zidCacheData, const uint8_t* input, uint32_t inputSize) {
 	/* get filename from ClientData */
-	MSZrtpContext *userData = (MSZrtpContext *)clientData;
+	MSZidCacheContext *userData = (MSZidCacheContext *)zidCacheData;
 	char *filename = userData->zidFilename;
 
 	FILE *CACHEFD = fopen(filename, "w+");
@@ -263,19 +329,22 @@ static int ms_zrtp_writeCache(void *clientData, const uint8_t* input, uint32_t i
  * @brief This callback is called when context is ready to compute exported keys as in rfc6189 section 4.5.2
  * Computed keys are added to zid cache with sip URI of peer(found in client Data) to be used for IM ciphering
  *
+ * @param[in]	zidCacheData	Pointer to our ZidCacheContext structure used to retrieve ZID filename
  * @param[in]	clientData	Pointer to our ZrtpContext structure used to retrieve peer SIP URI
  * @param[in]	peerZid		Peer ZID to address correct node in zid cache
  * @param[in]	role		RESPONDER or INITIATOR, needed to compute the pair of keys for IM ciphering
  *
  * @return 	0 on success
  */
-static int ms_zrtp_addExportedKeysInZidCache(void *clientData, uint8_t peerZid[12], uint8_t role) {
+static int ms_zrtp_addExportedKeysInZidCache(void *zidCacheData, void *clientData, uint8_t peerZid[12], uint8_t role) {
 	MSZrtpContext *userData = (MSZrtpContext *)clientData;
+	MSZidCacheContext *zidCache = (MSZidCacheContext *)zidCacheData;
+
 	bzrtpContext_t *zrtpContext = userData->zrtpContext;
 
-	if (userData->peerURI) {
+	if (zidCache->peerURI) {
 		/* Write the peer sip URI in cache */
-		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"uri", 3, (uint8_t *)(userData->peerURI), strlen(userData->peerURI), 0, BZRTP_CUSTOMCACHE_PLAINDATA, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_DONTWRITEFILE);
+		bzrtp_addCustomDataInCache(zrtpContext, peerZid, (uint8_t *)"uri", 3, (uint8_t *)(zidCache->peerURI), strlen(zidCache->peerURI), 0, BZRTP_CUSTOMCACHE_PLAINDATA, BZRTP_CACHE_LOADFILE|BZRTP_CACHE_DONTWRITEFILE);
 	}
 
 	/* Derive the master keys and session Id 32 bytes each */
@@ -334,6 +403,11 @@ static int ms_zrtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_
 	// display received message
 	ms_message("ZRTP Receive packet type %.8s on rtp session [%p]", rtp+16, t->session);
 
+	// check if the ZRTP channel is started, if not(ZRTP not set on our side but incoming zrtp packets), start it
+	if (bzrtp_getChannelStatus(zrtpContext, userData->self_ssrc) == BZRTP_CHANNEL_INITIALISED) {
+		bzrtp_startChannelEngine(zrtpContext, userData->self_ssrc);
+	}
+
 	// send ZRTP packet to engine
 	bzrtp_processMessage(zrtpContext, userData->self_ssrc, rtp, msgLength);
 	return 0;
@@ -354,14 +428,14 @@ static void ms_zrtp_transport_modifier_destroy(RtpTransportModifier *tp)  {
 static int ms_zrtp_transport_modifier_new(MSZrtpContext* ctx, RtpTransportModifier **rtpt, RtpTransportModifier **rtcpt ) {
 	if (rtpt){
 		*rtpt=ms_new0(RtpTransportModifier,1);
-		(*rtpt)->data=ctx; /* back link to get access to the other fields of the OrtoZrtpContext from the RtpTransportModifier structure */
+		(*rtpt)->data=ctx; /* back link to get access to the other fields of the OrtpZrtpContext from the RtpTransportModifier structure */
 		(*rtpt)->t_process_on_send=ms_zrtp_rtp_process_on_send;
 		(*rtpt)->t_process_on_receive=ms_zrtp_rtp_process_on_receive;
 		(*rtpt)->t_destroy=ms_zrtp_transport_modifier_destroy;
 	}
 	if (rtcpt){
 		*rtcpt=ms_new0(RtpTransportModifier,1);
-		(*rtcpt)->data=ctx; /* back link to get access to the other fields of the OrtoZrtpContext from the RtpTransportModifier structure */
+		(*rtcpt)->data=ctx; /* back link to get access to the other fields of the OrtpZrtpContext from the RtpTransportModifier structure */
 		(*rtcpt)->t_process_on_send=ms_zrtp_rtcp_process_on_send;
 		(*rtcpt)->t_process_on_receive=ms_zrtp_rtcp_process_on_receive;
 		(*rtcpt)->t_destroy=ms_zrtp_transport_modifier_destroy;
@@ -369,23 +443,7 @@ static int ms_zrtp_transport_modifier_new(MSZrtpContext* ctx, RtpTransportModifi
 	return 0;
 }
 
-static MSZrtpContext* createUserData(bzrtpContext_t *context, MSZrtpParams *params) {
-	MSZrtpContext *userData=ms_new0(MSZrtpContext,1);
-	userData->zrtpContext=context;
-	/* get the zidFilename (if any)*/
-	if (params->zid_file != NULL) {
-		userData->zidFilename = (char *)ms_malloc(strlen(params->zid_file)+1);
-		memcpy(userData->zidFilename, params->zid_file, strlen(params->zid_file));
-		userData->zidFilename[strlen(params->zid_file)] = '\0';
-	} else {
-		userData->zidFilename = NULL;
-	}
-
-	return userData;
-}
-
 static MSZrtpContext* ms_zrtp_configure_context(MSZrtpContext *userData, RtpSession *s) {
-	bzrtpContext_t *context=userData->zrtpContext;
 	RtpTransport *rtpt=NULL,*rtcpt=NULL;
 	RtpTransportModifier *rtp_modifier, *rtcp_modifier;
 
@@ -398,8 +456,6 @@ static MSZrtpContext* ms_zrtp_configure_context(MSZrtpContext *userData, RtpSess
 	/* save transport modifier into context, needed to inject packets generated by ZRTP */
 	userData->rtp_modifier = rtp_modifier;
 
-	ms_message("Starting ZRTP engine on rtp session [%p]",s);
-	bzrtp_startChannelEngine(context, s->snd.ssrc);
 	return userData;
 }
 
@@ -511,41 +567,45 @@ bool_t ms_zrtp_available(){return TRUE;}
 
 MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams *params) {
 	MSZrtpContext *userData;
+	MSZidCacheContext *ZidCache;
 	bzrtpContext_t *context;
 	bzrtpCallbacks_t cbs={0};
 
-	ms_message("Creating ZRTP engine on rtp session [%p]",sessions->rtp_session);
-	context = bzrtp_createBzrtpContext(sessions->rtp_session->snd.ssrc); /* create the zrtp context, provide the SSRC of first channel */
-	
-	/* set callback functions */
-	cbs.bzrtp_sendData=ms_zrtp_sendDataZRTP;
-	cbs.bzrtp_srtpSecretsAvailable=ms_zrtp_srtpSecretsAvailable;
-	cbs.bzrtp_startSrtpSession=ms_zrtp_startSrtpSession;
-	
-	if (params->zid_file) {
+	ms_message("Creating ZRTP engine on rtp session [%p] ssrc 0x%x",sessions->rtp_session, sessions->rtp_session->snd.ssrc);
+	context = bzrtp_createBzrtpContext();
+
+	/* create the Zid cache context and give it to the zrpt context */
+	ZidCache = ms_new0(MSZidCacheContext,1);
+
+	if (params->zid_file != NULL) {
 		/*enabling cache*/
 		cbs.bzrtp_loadCache=ms_zrtp_loadCache;
 		cbs.bzrtp_writeCache=ms_zrtp_writeCache;
-		
+
+		ZidCache->zidFilename = (char *)ms_malloc(strlen(params->zid_file)+1);
+		memcpy(ZidCache->zidFilename, params->zid_file, strlen(params->zid_file));
+		ZidCache->zidFilename[strlen(params->zid_file)] = '\0';
+
 		/* enable exportedKeys computation only if we have an uri to associate them */
 		if (params->uri && strlen(params->uri)>0) {
 			cbs.bzrtp_contextReadyForExportedKeys=ms_zrtp_addExportedKeysInZidCache;
+			ZidCache->peerURI = ms_strdup(params->uri);
+		} else {
+			ZidCache->peerURI = NULL;
 		}
-	}
-	bzrtp_setCallbacks(context, &cbs);
-	/* create and link user data */
-	userData=createUserData(context, params);
-	userData->stream_sessions=sessions;
-	userData->self_ssrc = sessions->rtp_session->snd.ssrc;
-
-	/* get the sip URI of peer and store it into the context to set it in the cache. Done only for the first channel as it is useless for the other ones which doesn't update the cache */
-	if (params->uri && strlen(params->uri)>0) {
-		userData->peerURI = ms_strdup(params->uri);
 	} else {
-		userData->peerURI = NULL;
+		ZidCache->zidFilename = NULL;
+		ZidCache->peerURI = NULL;
 	}
 
-	bzrtp_setClientData(context, sessions->rtp_session->snd.ssrc, (void *)userData);
+	bzrtp_setZIDCacheData(context, ZidCache);
+
+	/* set other callback functions */
+	cbs.bzrtp_sendData=ms_zrtp_sendDataZRTP;
+	cbs.bzrtp_srtpSecretsAvailable=ms_zrtp_srtpSecretsAvailable;
+	cbs.bzrtp_startSrtpSession=ms_zrtp_startSrtpSession;
+
+	bzrtp_setCallbacks(context, &cbs);
 
 	/* set crypto params */
 	set_hash_suites(context, params->hashes, params->hashesCount);
@@ -554,34 +614,67 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 	set_key_agreement_suites(context, params->keyAgreements, params->keyAgreementsCount);
 	set_sas_suites(context, params->sasTypes, params->sasTypesCount);
 
-	bzrtp_initBzrtpContext(context); /* init is performed only when creating the first channel context */
+	/* complete the initialisation of zrtp context, this will also create the main channel context with the given SSRC */
+	bzrtp_initBzrtpContext(context, sessions->rtp_session->snd.ssrc); /* init is performed only when creating the main channel context */
+
+	/* create and link main channel user data */
+	userData=ms_new0(MSZrtpContext,1);
+	userData->zrtpContext=context;
+	userData->stream_sessions=sessions;
+	userData->self_ssrc = sessions->rtp_session->snd.ssrc;
+	userData->zidCacheContext = ZidCache; /* add a link to the ZidCache to be able to free it when we will destroy this context */
+
+	bzrtp_setClientData(context, sessions->rtp_session->snd.ssrc, (void *)userData);
+
 	return ms_zrtp_configure_context(userData, sessions->rtp_session);
 }
 
-MSZrtpContext* ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpContext* activeContext, MSZrtpParams *params) {
+MSZrtpContext* ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpContext* activeContext) {
 	int retval;
 	MSZrtpContext *userData;
 	if ((retval = bzrtp_addChannel(activeContext->zrtpContext, sessions->rtp_session->snd.ssrc)) != 0) {
-		ms_warning("could't add stream: multistream not supported by peer %x", retval);
+		ms_warning("ZRTP could't add stream, returns %x", retval);
 	}
 
-	ms_message("Initializing multistream ZRTP context");
-	userData=createUserData(activeContext->zrtpContext, params);
+	ms_message("Initializing multistream ZRTP context on rtp session [%p] ssrc 0x%x",sessions->rtp_session, sessions->rtp_session->snd.ssrc);
+	userData=ms_new0(MSZrtpContext,1);
+	userData->zrtpContext=activeContext->zrtpContext;
 	userData->stream_sessions = sessions;
 	userData->self_ssrc = sessions->rtp_session->snd.ssrc;
+	userData->zidCacheContext = activeContext->zidCacheContext; /* add a link to the ZidCache to be able to free it when we will destroy this context */
 	bzrtp_setClientData(activeContext->zrtpContext, sessions->rtp_session->snd.ssrc, (void *)userData);
 
 	return ms_zrtp_configure_context(userData, sessions->rtp_session);
 }
 
-void ms_zrtp_context_destroy(MSZrtpContext *ctx) {
-	ms_message("Stopping ZRTP context");
-	bzrtp_destroyBzrtpContext(ctx->zrtpContext, ctx->self_ssrc);
+int ms_zrtp_channel_start(MSZrtpContext *ctx) {
+	int retval;
+	ms_message("Starting ZRTP engine on rtp session [%p] ssrc 0x%x",ctx->stream_sessions->rtp_session, ctx->self_ssrc);
+	if ((retval = bzrtp_startChannelEngine(ctx->zrtpContext, ctx->self_ssrc)) != 0) {
+		/* remap some error code */
+		if (retval == BZRTP_ERROR_CHANNELALREADYSTARTED) {
+			ms_message("ZRTP channel already started");
+			return MSZRTP_ERROR_CHANNEL_ALREADY_STARTED;
+		} else {
+			ms_message("Unable to start ZRTP channel, error code %x", retval);
+		}
+	}
+	return retval;
+}
 
-	if (ctx->zidFilename) ms_free(ctx->zidFilename);
-	if (ctx->peerURI) ms_free(ctx->peerURI);
-	free(ctx);
-	ms_message("ORTP-ZRTP context destroyed");
+
+void ms_zrtp_context_destroy(MSZrtpContext *ctx) {
+	ms_message("Stopping ZRTP context on session [%p]", ctx->stream_sessions->rtp_session);
+	if (bzrtp_destroyBzrtpContext(ctx->zrtpContext, ctx->self_ssrc) == 0) {
+		/* we have destroyed the last channel in this zrtp session, free the zidCache context if it exists */
+		if (ctx->zidCacheContext != NULL) {
+			if (ctx->zidCacheContext->zidFilename) ms_free(ctx->zidCacheContext->zidFilename);
+			if (ctx->zidCacheContext->peerURI) ms_free(ctx->zidCacheContext->peerURI);
+			ms_free(ctx->zidCacheContext);
+		}
+	}
+	ms_free(ctx);
+	ms_message("ZRTP context destroyed");
 }
 
 void ms_zrtp_reset_transmition_timer(MSZrtpContext* ctx) {
@@ -596,6 +689,13 @@ void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx){
 	bzrtp_resetSASVerified(ctx->zrtpContext);
 }
 
+int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength) {
+	return bzrtp_getSelfHelloHash(ctx->zrtpContext, ctx->self_ssrc, output, outputLength);
+}
+
+int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength) {
+	return bzrtp_setPeerHelloHash(ctx->zrtpContext, ctx->self_ssrc, peerHelloHashHexString, peerHelloHashHexStringLength);
+}
 
 #else
 
@@ -604,11 +704,12 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 	return NULL;
 }
 
-MSZrtpContext* ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpContext* activeContext, MSZrtpParams *params) {
+MSZrtpContext* ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpContext* activeContext) {
 	ms_message("ZRTP is disabled - not adding stream");
 	return NULL;
 }
 
+int ms_zrtp_channel_start(MSZrtpContext *ctx) { return 0;}
 bool_t ms_zrtp_available(){return FALSE;}
 void ms_zrtp_sas_verified(MSZrtpContext* ctx){}
 void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx){}
@@ -617,6 +718,8 @@ void ms_zrtp_reset_transmition_timer(MSZrtpContext* ctx) {};
 int ms_zrtp_transport_modifier_new(MSZrtpContext* ctx, RtpTransportModifier **rtpt, RtpTransportModifier **rtcpt ) {return 0;}
 void ms_zrtp_transport_modifier_destroy(RtpTransportModifier *tp)  {}
 void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions) {}
+int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength) {return 0;}
+int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength) {return 0;}
 #endif
 
 #define STRING_COMPARE_RETURN(string, value)\

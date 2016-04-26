@@ -55,7 +55,7 @@ typedef struct {
     UInt32 max_bitrate;
  } aac_rates_t;
 
-/* The iOS AAC encoder supports different sampling rates and bitrates. 
+/* The iOS AAC encoder supports different sampling rates and bitrates.
    These also depend on the type of encoder (with/without SBR).
  */
 static aac_rates_t aac_rates[] = {
@@ -189,9 +189,9 @@ static void enc_preprocess ( MSFilter *f ) {
 	ms_debug("get kAudioConverterPropertyMaximumOutputPacketSize to %d -> %x", (unsigned int)maxOutputSizePerPacket, (unsigned int)status);
 
 	ms_debug("AAC encoder set to: SR: %d mBitsPerChannel: %d mChannelsPerFrame: %d maxOutputPacketSize: %d bitrate: %d",
-		s->samplingRate, 
-		(unsigned int)s->sourceFormat.mBitsPerChannel, 
-		s->nchannels, 
+		s->samplingRate,
+		(unsigned int)s->sourceFormat.mBitsPerChannel,
+		s->nchannels,
 		(unsigned int)s->maxOutputPacketSize,
 		s->bitRate);
 }
@@ -273,7 +273,7 @@ static void enc_process ( MSFilter *f ) {
 
 			/* start the encoding process, iOS will call back when ready the callback function provided as second arg to get the input data */
 			UInt32 numOutputDataPackets = 1;
-			OSStatus status = AudioConverterFillComplexBuffer ( 
+			OSStatus status = AudioConverterFillComplexBuffer (
 				s->audioConverter, // the instance of the converter
 				encoderCallback, // callback to call when conversion is done
 				s, // user data to pass to the callback
@@ -284,7 +284,7 @@ static void enc_process ( MSFilter *f ) {
 
 
 			if ( status != noErr ) {
-				ms_message ( "AAC-ELD unable to encode, exit status : %ld",status );
+				ms_message ( "AAC-ELD unable to encode, exit status : %ld", (long)status );
             	ms_filter_unlock(f);
 				return;
 			}

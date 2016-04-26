@@ -382,4 +382,19 @@ MSFilterDesc ms_equalizer_desc={
 
 #endif
 
+MSList *ms_parse_equalizer_string(const char *str) {
+    MSList *eq_list = NULL;
+	do {
+		int bytes;
+		MSEqualizerGain g;
+		if (sscanf(str, "%f:%f:%f %n", &g.frequency, &g.gain, &g.width, &bytes) == 3) {
+			MSEqualizerGain *gain = ms_new(MSEqualizerGain, 1);
+			*gain = g;
+			eq_list = ms_list_append(eq_list, gain);
+			str += bytes;
+		} else break;
+	} while (1);
+	return eq_list;
+}
+
 MS_FILTER_DESC_EXPORT(ms_equalizer_desc)

@@ -995,27 +995,34 @@ static void mediastream_tool_iterate(MediastreamDatas* args) {
 			ms_message("\nPlease enter equalizer requests, such as 'eq active 1', 'eq active 0', 'eq 1200 0.1 200'\n");
 
 			if (fgets(commands,sizeof(commands)-1,stdin)!=NULL){
-				int active,freq,freq_width;
-
-				float gain;
+				MSEqualizerGain d = {0};
+				int active;
 				if (sscanf(commands,"eq active %i",&active)==1){
-					audio_stream_enable_equalizer(args->audio,active);
+					audio_stream_enable_equalizer(args->audio, args->audio->eq_loc, active);
 					ms_message("OK\n");
-				}else if (sscanf(commands,"eq %i %f %i",&freq,&gain,&freq_width)==3){
-					audio_stream_equalizer_set_gain(args->audio,freq,gain,freq_width);
+				}else if (sscanf(commands,"eq %f %f %f",&d.frequency,&d.gain,&d.width)==3){
+					audio_stream_equalizer_set_gain(args->audio, args->audio->eq_loc, &d);
 					ms_message("OK\n");
-				}else if (sscanf(commands,"eq %i %f",&freq,&gain)==2){
-					audio_stream_equalizer_set_gain(args->audio,freq,gain,0);
+				}else if (sscanf(commands,"eq %f %f",&d.frequency,&d.gain)==2){
+					audio_stream_equalizer_set_gain(args->audio, args->audio->eq_loc, &d);
 					ms_message("OK\n");
 				}else if (strstr(commands,"dump")){
 					int n=0,i;
 					float *t;
-					ms_filter_call_method(args->audio->equalizer,MS_EQUALIZER_GET_NUM_FREQUENCIES,&n);
-					t=(float*)alloca(sizeof(float)*n);
-					ms_filter_call_method(args->audio->equalizer,MS_EQUALIZER_DUMP_STATE,t);
-					for(i=0;i<n;++i){
-						if (fabs(t[i]-1)>0.01){
-						ms_message("%i:%f:0 ",(i*args->pt->clock_rate)/(2*n),t[i]);
+					MSFilter *equalizer = NULL;
+					if(args->audio->eq_loc == MSEqualizerHP) {
+						equalizer = args->audio->spk_equalizer;
+					} else if(args->audio->eq_loc == MSEqualizerMic) {
+						equalizer = args->audio->mic_equalizer;
+					}
+					if(equalizer) {
+						ms_filter_call_method(equalizer,MS_EQUALIZER_GET_NUM_FREQUENCIES,&n);
+						t=(float*)alloca(sizeof(float)*n);
+						ms_filter_call_method(equalizer,MS_EQUALIZER_DUMP_STATE,t);
+						for(i=0;i<n;++i){
+							if (fabs(t[i]-1)>0.01){
+							ms_message("%i:%f:0 ",(i*args->pt->clock_rate)/(2*n),t[i]);
+							}
 						}
 					}
 					ms_message("\nOK\n");

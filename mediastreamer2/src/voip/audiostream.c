@@ -64,7 +64,8 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->ec!=NULL)	ms_filter_destroy(stream->ec);
 	if (stream->volrecv!=NULL) ms_filter_destroy(stream->volrecv);
 	if (stream->volsend!=NULL) ms_filter_destroy(stream->volsend);
-	if (stream->equalizer!=NULL) ms_filter_destroy(stream->equalizer);
+	if (stream->mic_equalizer) ms_filter_destroy(stream->mic_equalizer);
+	if (stream->spk_equalizer) ms_filter_destroy(stream->spk_equalizer);
 	if (stream->read_decoder != NULL) ms_filter_destroy(stream->read_decoder);
 	if (stream->write_encoder != NULL) ms_filter_destroy(stream->write_encoder);
 	if (stream->read_resampler!=NULL) ms_filter_destroy(stream->read_resampler);
@@ -1045,34 +1046,58 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 
 	/*create the equalizer*/
 	if ((stream->features & AUDIO_STREAM_FEATURE_EQUALIZER) != 0){
-		stream->equalizer=ms_factory_create_filter(stream->ms.factory, MS_EQUALIZER_ID);
-		if(stream->equalizer) {
-			tmp=stream->eq_active;
-			ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
-			ms_filter_call_method(stream->equalizer,MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+		stream->mic_equalizer = ms_factory_create_filter(stream->ms.factory, MS_EQUALIZER_ID);
+		stream->spk_equalizer = ms_factory_create_filter(stream->ms.factory, MS_EQUALIZER_ID);
+		if(stream->mic_equalizer) {
+			tmp = stream->mic_eq_active;
+			ms_filter_call_method(stream->mic_equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
+			ms_filter_call_method(stream->mic_equalizer,MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 		}
-	}else
-		stream->equalizer=NULL;
+		if(stream->spk_equalizer) {
+			tmp = stream->spk_eq_active;
+			ms_filter_call_method(stream->spk_equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
+			ms_filter_call_method(stream->spk_equalizer,MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+		}
+	}else {
+		stream->mic_equalizer=NULL;
+		stream->spk_equalizer=NULL;
+	}
 
 #ifdef ANDROID
-	/*configure equalizer if needed*/
-	audio_stream_set_mic_gain_db(stream, 0);
-	if (stream->equalizer) {
+	{
+		/*configure equalizer if needed*/
 		SoundDeviceDescription *device = sound_device_description_get();
+		audio_stream_set_mic_gain_db(stream, 0);
+		audio_stream_set_spk_gain_db(stream, 0);
 		if (device && device->hacks) {
-			const char *gains = device->hacks->equalizer;
-			if (gains) {
-				stream->eq_loc = MSEqualizerMic;
-				ms_message("Found equalizer configuration in the devices table");
-				do {
-					int bytes;
-					MSEqualizerGain g;
-					if (sscanf(gains, "%f:%f:%f %n", &g.frequency, &g.gain, &g.width, &bytes) == 3) {
-						ms_message("Read equalizer gains: %f(~%f) --> %f", g.frequency, g.width, g.gain);
-						ms_filter_call_method(stream->equalizer, MS_EQUALIZER_SET_GAIN, &g);
-						gains += bytes;
-					} else break;
-				} while(1);
+			const char *gains;
+			gains = device->hacks->mic_equalizer;
+			if (gains && stream->mic_equalizer) {
+				MSList *gains_list = ms_parse_equalizer_string(gains);
+				if (gains_list) {
+					MSList *it;
+					ms_message("Found equalizer configuration for the microphone in the devices table");
+					for (it = gains_list; it; it=it->next) {
+						MSEqualizerGain *g = (MSEqualizerGain *)it->data;
+						ms_message("Read equalizer gains: %f(~%f) --> %f", g->frequency, g->width, g->gain);
+						ms_filter_call_method(stream->mic_equalizer, MS_EQUALIZER_SET_GAIN, g);
+					}
+					ms_list_free_with_data(gains_list, ms_free);
+				}
+			}
+			gains = device->hacks->spk_equalizer;
+			if (gains && stream->spk_equalizer) {
+				MSList *gains_list = ms_parse_equalizer_string(gains);
+				if (gains_list) {
+					MSList *it;
+					ms_message("Found equalizer configuration for the speakers in the devices table");
+					for (it = gains_list; it; it=it->next) {
+						MSEqualizerGain *g = (MSEqualizerGain *)it->data;
+						ms_message("Read equalizer gains: %f(~%f) --> %f", g->frequency, g->width, g->gain);
+						ms_filter_call_method(stream->spk_equalizer, MS_EQUALIZER_SET_GAIN, g);
+					}
+					ms_list_free_with_data(gains_list, ms_free);
+				}
 			}
 		}
 	}
@@ -1156,8 +1181,8 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_connection_helper_link(&h, stream->read_decoder, 0, 0);
 	if (stream->read_resampler)
 		ms_connection_helper_link(&h,stream->read_resampler,0,0);
-	if( stream->equalizer && stream->eq_loc == MSEqualizerMic )
-		ms_connection_helper_link(&h,stream->equalizer, 0, 0);
+	if( stream->mic_equalizer)
+		ms_connection_helper_link(&h,stream->mic_equalizer, 0, 0);
 	if (stream->ec)
 		ms_connection_helper_link(&h,stream->ec,1,1);
 	if (stream->volsend)
@@ -1185,8 +1210,8 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_connection_helper_link(&h,stream->volrecv,0,0);
 	if (stream->recv_tee)
 		ms_connection_helper_link(&h,stream->recv_tee,0,0);
-	if (stream->equalizer && stream->eq_loc == MSEqualizerHP)
-		ms_connection_helper_link(&h,stream->equalizer,0,0);
+	if (stream->spk_equalizer)
+		ms_connection_helper_link(&h,stream->spk_equalizer,0,0);
 	if (stream->local_mixer){
 		ms_connection_helper_link(&h,stream->local_mixer,0,0);
 		setup_local_player(stream,sample_rate, nchannels);
@@ -1588,21 +1613,51 @@ float audio_stream_get_sound_card_output_gain(const AudioStream *stream) {
 	return volume;
 }
 
-void audio_stream_enable_equalizer(AudioStream *stream, bool_t enabled){
-	stream->eq_active=enabled;
-	if (stream->equalizer){
-		int tmp=enabled;
-		ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
+void audio_stream_enable_equalizer(AudioStream *stream, EqualizerLocation location, bool_t enabled) {
+	switch(location) {
+		case MSEqualizerHP:
+			stream->spk_eq_active = enabled;
+			if (stream->spk_equalizer) {
+				int tmp = enabled;
+				ms_filter_call_method(stream->spk_equalizer, MS_EQUALIZER_SET_ACTIVE, &tmp);
+			}
+			break;
+		case MSEqualizerMic:
+			stream->mic_eq_active = enabled;
+			if (stream->mic_equalizer) {
+				int tmp = enabled;
+				ms_filter_call_method(stream->mic_equalizer, MS_EQUALIZER_SET_ACTIVE, &tmp);
+			}
+			break;
+		default:
+			ms_error("%s(): bad equalizer location [%d]", __FUNCTION__, location);
+			break;
 	}
 }
 
-void audio_stream_equalizer_set_gain(AudioStream *stream, int frequency, float gain, int freq_width){
-	if (stream->equalizer){
-		MSEqualizerGain d;
-		d.frequency=(float)frequency;
-		d.gain=gain;
-		d.width=(float)freq_width;
-		ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_GAIN,&d);
+void audio_stream_equalizer_set_gain(AudioStream *stream, EqualizerLocation location, const MSEqualizerGain *gain){
+	switch(location) {
+		case MSEqualizerHP:
+			if (stream->spk_equalizer) {
+				MSEqualizerGain d;
+				d.frequency = gain->frequency;
+				d.gain = gain->gain;
+				d.width = gain->width;
+				ms_filter_call_method(stream->spk_equalizer, MS_EQUALIZER_SET_GAIN, &d);
+			}
+			break;
+		case MSEqualizerMic:
+			if (stream->mic_equalizer) {
+				MSEqualizerGain d;
+				d.frequency = gain->frequency;
+				d.gain = gain->gain;
+				d.width = gain->width;
+				ms_filter_call_method(stream->mic_equalizer, MS_EQUALIZER_SET_GAIN, &d);
+			}
+			break;
+		default:
+			ms_error("%s(): bad equalizer location [%d]", __FUNCTION__, location);
+			break;
 	}
 }
 
@@ -1643,8 +1698,8 @@ void audio_stream_stop(AudioStream * stream){
 				ms_connection_helper_unlink(&h, stream->read_decoder, 0, 0);
 			if (stream->read_resampler!=NULL)
 				ms_connection_helper_unlink(&h,stream->read_resampler,0,0);
-			if( stream->equalizer && stream->eq_loc == MSEqualizerMic)
-				ms_connection_helper_unlink(&h, stream->equalizer, 0,0);
+			if( stream->mic_equalizer)
+				ms_connection_helper_unlink(&h, stream->mic_equalizer, 0,0);
 			if (stream->ec!=NULL)
 				ms_connection_helper_unlink(&h,stream->ec,1,1);
 			if (stream->volsend!=NULL)
@@ -1670,8 +1725,8 @@ void audio_stream_stop(AudioStream * stream){
 				ms_connection_helper_unlink(&h,stream->volrecv,0,0);
 			if (stream->recv_tee)
 				ms_connection_helper_unlink(&h,stream->recv_tee,0,0);
-			if (stream->equalizer!=NULL && stream->eq_loc == MSEqualizerHP)
-				ms_connection_helper_unlink(&h,stream->equalizer,0,0);
+			if (stream->spk_equalizer!=NULL)
+				ms_connection_helper_unlink(&h,stream->spk_equalizer,0,0);
 			if (stream->local_mixer){
 				ms_connection_helper_unlink(&h,stream->local_mixer,0,0);
 				dismantle_local_player(stream);
@@ -1730,7 +1785,7 @@ static void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float gain_
 
 	if (stream->volsend){
 		ms_filter_call_method(stream->volsend, MS_VOLUME_SET_DB_GAIN, &gain);
-	} else ms_warning("Could not apply gain: gain control wasn't activated. "
+	} else ms_warning("Could not apply gain on sent RTP packets: gain control wasn't activated. "
 			"Use audio_stream_enable_gain_control() before starting the stream.");
 }
 
@@ -1742,6 +1797,22 @@ void audio_stream_mute_rtp(AudioStream *stream, bool_t val)
 		else
 			ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_UNMUTE,&val);
 	}
+}
+
+void audio_stream_set_spk_gain_db(AudioStream *stream, float gain_db) {
+	float gain = gain_db;
+#ifdef ANDROID
+	SoundDeviceDescription *device = sound_device_description_get();
+	if (device && device->hacks) {
+		gain += device->hacks->spk_gain;
+		ms_message("Applying %f dB to speaker gain based on parameter and audio hack value in device table", gain);
+	}
+#endif
+
+	if (stream->volrecv){
+		ms_filter_call_method(stream->volrecv, MS_VOLUME_SET_DB_GAIN, &gain);
+	} else ms_warning("Could not apply gain on received RTP packet: gain control wasn't activated. "
+			"Use audio_stream_enable_gain_control() before starting the stream.");
 }
 
 float audio_stream_get_quality_rating(AudioStream *stream){
@@ -1765,6 +1836,16 @@ void audio_stream_enable_zrtp(AudioStream *stream, MSZrtpParams *params){
 		stream->ms.sessions.zrtp_context=ms_zrtp_context_new( &(stream->ms.sessions), params);
 	else if (!media_stream_secured(&stream->ms))
 		ms_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context);
+}
+
+void audio_stream_start_zrtp(AudioStream *stream) {
+	if (stream->ms.sessions.zrtp_context!=NULL) {
+		if (ms_zrtp_channel_start(stream->ms.sessions.zrtp_context) == MSZRTP_ERROR_CHANNEL_ALREADY_STARTED) {
+			ms_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context);
+		}
+	} else {
+		ms_warning("Trying to start a ZRTP channel on audiostream, but none was enabled");
+	}
 }
 
 bool_t audio_stream_zrtp_enabled(const AudioStream *stream) {
