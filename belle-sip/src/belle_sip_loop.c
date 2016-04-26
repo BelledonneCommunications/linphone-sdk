@@ -426,7 +426,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	belle_sip_list_t *elem,*next;
 	int duration=-1;
 	int ret;
-	uint64_t cur,next_wakeup_time;
+	uint64_t cur;
 	belle_sip_list_t *to_be_notified=NULL;
 	int can_clean=belle_sip_object_pool_cleanable(ml->pool); /*iterate might not be called by the thread that created the main loop*/ 
 	belle_sip_object_pool_t *tmp_pool=NULL;
@@ -456,12 +456,11 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 	/*all source with timeout are in ml->timer_sources*/
 	if (bctoolbox_map_size(ml->timer_sources) >0) {
-		belle_sip_source_t *first_source;
 		int64_t diff;
+		uint64_t next_wakeup_time;
 		it = bctoolbox_map_begin(ml->timer_sources);
-		first_source = (belle_sip_source_t*)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it));
-		next_wakeup_time = first_source->expire_ms;
-		
+		/*use first because in case of canceled timer, key ==0 , key != s->expire_ms */
+		next_wakeup_time = bctoolbox_pair_ullong_get_first((const bctoolbox_pair_ullong_t *)bctoolbox_iterator_get_pair(it));
 		/* compute the amount of time to wait for shortest timeout*/
 		cur=belle_sip_time_ms();
 		diff=next_wakeup_time-cur;
@@ -506,7 +505,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	it = bctoolbox_map_begin(ml->timer_sources);
 	end = bctoolbox_map_end(ml->timer_sources);
 	while (!bctoolbox_iterator_equals(it,end)) {
-		/*use first because in case of canceled timer, jey != s->expire_ms*/
+		/*use first because in case of canceled timer, key != s->expire_ms*/
 		uint64_t expire = bctoolbox_pair_ullong_get_first((const bctoolbox_pair_ullong_t *)bctoolbox_iterator_get_pair(it));
 		s = (belle_sip_source_t*)bctoolbox_pair_get_second(bctoolbox_iterator_get_pair(it));
 		if (expire > cur) {
