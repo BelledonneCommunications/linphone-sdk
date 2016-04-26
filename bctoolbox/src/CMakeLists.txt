@@ -23,7 +23,7 @@
 set(BCTOOLBOX_C_SOURCE_FILES)
 set(BCTOOLBOX_CPP_SOURCE_FILES)
 
-list(APPEND BCTOOLBOX_C_SOURCE_FILES utils/port.c logging/logging.c containers/list.c)
+list(APPEND BCTOOLBOX_C_SOURCE_FILES bc_vfs.c utils/port.c logging/logging.c containers/list.c)
 list(APPEND BCTOOLBOX_CPP_SOURCE_FILES containers/map.cc)
 
 if(MBEDTLS_FOUND)
