@@ -92,7 +92,7 @@ AC_TYPE_SSIZE_T
 AC_CONFIG_FILES(
 Makefile
 src/Makefile
-tests/Makefile
+tester/Makefile
 include/Makefile
 include/belcard/Makefile
 )
