@@ -48,7 +48,8 @@ typedef struct _VTH264EncCtx {
 	bool_t is_configured;
 	bool_t bitrate_changed;
 	bool_t fps_changed;
-	bool_t vfu_requested;
+	bool_t iframe_requested;
+	uint64_t last_iframe_request_time;
 	const MSFilter *f;
 	const MSVideoConfiguration *video_confs;
 	MSVideoStarter starter;
@@ -223,7 +224,7 @@ static void h264_enc_process(MSFilter *f) {
 		freemsg(frame);
 
 		ms_filter_lock(f);
-		if(ctx->fps_changed || ctx->bitrate_changed || ctx->vfu_requested) {
+		if(ctx->fps_changed || ctx->bitrate_changed || ctx->iframe_requested) {
 			CFNumberRef value;
 			enc_param = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
 			if(ctx->fps_changed) {
@@ -236,11 +237,12 @@ static void h264_enc_process(MSFilter *f) {
 				CFDictionaryAddValue(enc_param, kVTCompressionPropertyKey_AverageBitRate, value);
 				ctx->bitrate_changed = FALSE;
 			}
-			if(ctx->vfu_requested) {
+			if(ctx->iframe_requested && f->ticker->time - ctx->last_iframe_request_time > 1000) {
 				int force_keyframe = 1;
 				value = CFNumberCreate(NULL, kCFNumberIntType, &force_keyframe);
 				CFDictionaryAddValue(enc_param, kVTEncodeFrameOptionKey_ForceKeyFrame, value);
-				ctx->vfu_requested = FALSE;
+				ctx->iframe_requested = FALSE;
+				ctx->last_iframe_request_time = f->ticker->time;
 			}
 		}
 		ms_filter_unlock(f);
@@ -346,8 +348,9 @@ static int h264_enc_set_fps(MSFilter *f, const float *fps) {
 }
 
 static int h264_enc_req_vfu(MSFilter *f, void *ptr) {
+	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	ms_filter_lock(f);
-	((VTH264EncCtx *)f->data)->vfu_requested = TRUE;
+	ctx->iframe_requested = TRUE;
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -409,6 +412,8 @@ static MSFilterMethod h264_enc_methods[] = {
 	{   MS_FILTER_SET_FPS                       , (MSFilterMethodFunc)h264_enc_set_fps         },
 	{   MS_FILTER_REQ_VFU                       , (MSFilterMethodFunc)h264_enc_req_vfu         },
 	{   MS_VIDEO_ENCODER_REQ_VFU                , (MSFilterMethodFunc)h264_enc_req_vfu         },
+	{	MS_VIDEO_ENCODER_NOTIFY_PLI             , (MSFilterMethodFunc)h264_enc_req_vfu         },
+	{	MS_VIDEO_ENCODER_NOTIFY_SLI             , (MSFilterMethodFunc)h264_enc_req_vfu         },
 	{   MS_VIDEO_ENCODER_ENABLE_AVPF            , (MSFilterMethodFunc)h264_enc_enable_avpf     },
 	{   MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST , (MSFilterMethodFunc)h264_enc_get_config_list },
 	{   MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST , (MSFilterMethodFunc)h264_enc_set_config_list },
