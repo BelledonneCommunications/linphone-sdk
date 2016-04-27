@@ -7,9 +7,9 @@
 
 #include <sys/stat.h> 
 
-#define BC_VFS_OK           0   /* Successful result */
+#define BC_VFS_OK           1   /* Successful result */
 /* beginning-of-error-codes */
-#define BC_VFS_ERROR        1   /* error or missing file */
+#define BC_VFS_ERROR        0   /* error or missing file */
 #define BC_VFS_PERM         2   /* Access permission denied */
 #define BC_VFS_ABORT        3   /* Callback routine requested an abort */
 #define BC_VFS_NOMEM        5   /* A malloc() failed */
@@ -78,6 +78,7 @@ struct bc_vfs {
   bc_vfs *pNext;      /* Next registered VFS */
   const char *zName;       /* Name of this virtual file system */
   int (*xOpen)(bc_vfs*, const char *zName, bc_vfs_file*, int flags, char mode);
+  FILE* (*xFopen)(bc_vfs*, const char *zName, bc_vfs_file*, int flags, char mode);
   // int (*xDelete)(bc_vfs*, const char *zName, int syncDir);
   // int (*xFullPathname)(bc_vfs*, const char *zName, int nOut, char *zOut);
 

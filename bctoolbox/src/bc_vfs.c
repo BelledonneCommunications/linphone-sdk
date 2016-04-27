@@ -37,6 +37,7 @@ typedef struct DemoFile DemoFile;
 struct DemoFile {
   bc_vfs_file base;                   /* Base class. Must be first. */
   int fd;                         /* File descriptor */
+	FILE* file;
 
   // char *aBuffer;                  /* Pointer to malloc'd buffer */
   // int nBuffer;                    /* Valid bytes of data in zBuffer */
@@ -61,7 +62,7 @@ static int bcRead(bc_vfs_file *pFile, void *zBuf, int iAmt, uint64_t iOfst){
   DemoFile *p = (DemoFile*)pFile;
   off_t ofst;                     /* Return value from lseek() */
   int nRead;                      /* Return value from read() */
-  int rc;                         /* Return code from bcFlushBuffer() */
+//  int rc;                         /* Return code from bcFlushBuffer() */
 
   ofst = lseek(p->fd, iOfst, SEEK_SET);
   if( ofst!=iOfst ){
@@ -137,9 +138,39 @@ static int bcFileSize(bc_vfs_file *pFile, uint64_t *pSize){
   *pSize = sStat.st_size;
   return BC_VFS_OK;
 }
-/*
+
+FILE* bcFopen(bc_vfs *pVfs, const char *zName, bc_vfs_file *pFile, const char* mode){
+	static const bc_io_methods bcio = {
+		bcClose,                    /* xClose */
+		bcRead,                     /* xRead */
+		bcWrite,                    /* xWrite */
+		// bcTruncate,                 /* xTruncate */
+		bcFileSize,                 /* xFileSize */
+	};
+	
+	DemoFile *p = (DemoFile*)pFile; /* Populate this structure */
+
+	if( zName==0 ){
+		return BC_VFS_IOERR;
+	}
+	
+
+	
+	memset(p, 0, sizeof(DemoFile));
+	p->file = fopen(zName, mode);
+	if( p->file == NULL ){
+		return BC_VFS_CANTOPEN;
+	}
+	// p->aBuffer = aBuf;
+	
+	p->base.pMethods = &bcio;
+	return p->file;
+
+	
+}
+/*+
 ** Open a file handle.
-  bc_vfs *pVfs                  VFS 
+  bc_vfs *pVfs                  VFS
   const char *zName             File to open, or 0 for a temp file 
   bc_vfs_file *pFile             Pointer to DemoFile struct to populate 
   int flags                     flags to pass to open() call 
@@ -175,7 +206,7 @@ static int bcOpen(bc_vfs *pVfs, const char *zName, bc_vfs_file *pFile, int flags
   // p->aBuffer = aBuf;
 
   p->base.pMethods = &bcio;
-  return BC_VFS_OK;
+  return p->fd;
 }
 
 
@@ -193,6 +224,7 @@ bc_vfs *bc_demovfs(void){
     "demo",                       /* zName */
 //    0,                            /* pAppData */
     bcOpen,                       /* xOpen */
+	  bcFopen,						/*xFopen */
     // bcDelete,                     /* xDelete */
     // bcFullPathname,               /* xFullPathname */
   };
