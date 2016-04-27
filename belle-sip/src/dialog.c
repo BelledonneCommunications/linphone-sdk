@@ -459,6 +459,11 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 			}
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
+			if (code==481 && (is_invite || is_subscribe)) {
+				/*Dialog is terminated in such case*/
+				delete_dialog=TRUE;
+				break;
+			}
 			/*refreshing target is also true in case of subscribe*/
 			if ((is_invite || is_subscribe) && (code>=200 && code<300)) {
 				/*refresh the remote_target*/

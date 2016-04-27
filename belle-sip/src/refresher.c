@@ -318,6 +318,10 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			}else belle_sip_warning("Receiving 423 but no min-expires header.");
 			break;
 		}
+		case 481: {
+			/* will trigger dialog terminated, so nothing to do here*/
+			return;
+		}
 		case 491: {
 			if (refresher->target_expires>0) {
 				retry_later_on_io_error(refresher);

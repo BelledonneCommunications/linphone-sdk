@@ -130,9 +130,9 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 			}
 		}
 	
-		if (prov->unconditional_answer_enabled && strcmp("ACK",method)!=0) { /*always answer 480 in this case*/
+		if (prov->unconditional_answer_enabled && strcmp("ACK",method)!=0) { /*always answer predefined value (I.E 480 by default)*/
 			belle_sip_server_transaction_t *tr=belle_sip_provider_create_server_transaction(prov,req);
-			belle_sip_server_transaction_send_response(tr,belle_sip_response_create_from_request(req,480));
+			belle_sip_server_transaction_send_response(tr,belle_sip_response_create_from_request(req,prov->unconditional_answer));
 			return;
 		} else {
 			ev.source=(belle_sip_object_t*)prov;
@@ -472,6 +472,7 @@ belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_lis
 	belle_sip_provider_t *p=belle_sip_object_new(belle_sip_provider_t);
 	p->stack=s;
 	p->rport_enabled=1;
+	p->unconditional_answer = 480;
 	if (lp) belle_sip_provider_add_listening_point(p,lp);
 	return p;
 }
@@ -1235,5 +1236,7 @@ int belle_sip_provider_nat_helper_enabled(const belle_sip_provider_t *prov){
 }
 void belle_sip_provider_enable_unconditional_answer(belle_sip_provider_t *prov, int enable) {
 	prov->unconditional_answer_enabled=enable;
-
+}
+void belle_sip_provider_set_unconditional_answer(belle_sip_provider_t *prov, unsigned short code) {
+	prov->unconditional_answer=code;
 }
