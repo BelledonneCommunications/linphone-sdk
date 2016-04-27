@@ -618,17 +618,16 @@ static void h264_dec_process(MSFilter *f) {
 	ms_queue_init(&q_nalus);
 	ms_queue_init(&q_nalus2);
 
-	// unpack RTP packet
+	// unpack RTP packets
 	unpacking_failed = FALSE;
 	while((pkt = ms_queue_get(f->inputs[0]))) {
 		unpacking_failed |= (rfc3984_unpack(&ctx->unpacker, pkt, &q_nalus) != 0);
 	}
 	if (unpacking_failed) {
-		ms_error("VideoToolboxDecoder: error while unpacking RTP packets");
-		goto fail;
+		ms_warning("VideoToolboxDecoder: error while unpacking RTP packets");
 	}
 
-	// Pull out SPSs and PPSs and put them into the filter context if necessary
+	// Pull SPSs and PPSs out and put them into the filter context if necessary
 	while((nalu = ms_queue_get(&q_nalus))) {
 		MSH264NaluType nalu_type = ms_h264_nalu_get_type(nalu);
 		if(nalu_type == MSH264NaluTypeSPS || nalu_type == MSH264NaluTypePPS) {
