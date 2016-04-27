@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <bctoolbox/crypto.h>
 
 
+#define IANA_PROTOCOL_NUMBERS_UDP 17
+
 #define STUN_FLAG_CHANGE_IP   0x04
 #define STUN_FLAG_CHANGE_PORT 0x02
 
@@ -236,6 +238,14 @@ static void encode_fingerprint(StunMessageEncoder *encoder) {
 	encode32(encoder, fingerprint);
 }
 
+static void encode_requested_transport(StunMessageEncoder *encoder, uint8_t requested_transport) {
+	encode16(encoder, MS_TURN_ATTR_REQUESTED_TRANSPORT);
+	encode16(encoder, 4);
+	encode8(encoder, requested_transport);
+	encode8(encoder, 0);
+	encode16(encoder, 0);
+}
+
 
 typedef struct {
 	const char *buffer;
@@ -384,7 +394,7 @@ static uint16_t decode_error_code(StunMessageDecoder *decoder, uint16_t length, 
 	if (reason_length > 0) {
 		*reason = ms_malloc(reason_length + 1);
 		memcpy(*reason, decode(decoder, reason_length), reason_length);
-		*reason[reason_length] = '\0';
+		(*reason)[reason_length] = '\0';
 	}
 	return number;
 }
@@ -428,6 +438,15 @@ static uint64_t decode_ice_control(StunMessageDecoder *decoder, uint16_t length)
 		return 0;
 	}
 	return decode64(decoder);
+}
+
+static uint32_t decode_lifetime(StunMessageDecoder *decoder, uint16_t length) {
+	if (length != 4) {
+		ms_warning("STUN lifetime attribute with wrong length");
+		decoder->error = TRUE;
+		return 0;
+	}
+	return decode32(decoder);
 }
 
 
@@ -670,6 +689,17 @@ MSStunMessage * ms_stun_message_create_from_buffer_parsing(const char *buf, size
 			case MS_ICE_ATTR_ICE_CONTROLLING:
 				ms_stun_message_set_ice_controlling(msg, decode_ice_control(&decoder, length));
 				break;
+			case MS_TURN_ATTR_XOR_RELAYED_ADDRESS:
+				{
+					MSStunAddress stun_addr = decode_addr(&decoder, length);
+					stun_addr.ipv4.addr ^= MS_STUN_MAGIC_COOKIE;
+					stun_addr.ipv4.port ^= MS_STUN_MAGIC_COOKIE >> 16;
+					ms_stun_message_set_xor_relayed_address(msg, stun_addr);
+				}
+				break;
+			case MS_TURN_ATTR_LIFETIME:
+				ms_stun_message_set_lifetime(msg, decode_lifetime(&decoder, length));
+				break;
 			default:
 				if (type <= 0x7FFF) {
 					ms_error("STUN unknown Comprehension-Required attribute: 0x%04x", type);
@@ -758,6 +788,11 @@ size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 	}
 	stun_addr = ms_stun_message_get_xor_mapped_address(msg);
 	if (stun_addr != NULL) encode_addr(&encoder, MS_STUN_ATTR_XOR_MAPPED_ADDRESS, stun_addr);
+
+	stun_addr = ms_stun_message_get_xor_relayed_address(msg);
+	if (stun_addr != NULL) encode_addr(&encoder, MS_TURN_ATTR_XOR_RELAYED_ADDRESS, stun_addr);
+	if (ms_stun_message_has_requested_transport(msg)) encode_requested_transport(&encoder, ms_stun_message_get_requested_transport(msg));
+
 	if (ms_stun_message_has_priority(msg)) encode_priority(&encoder, ms_stun_message_get_priority(msg));
 	if (ms_stun_message_use_candidate_enabled(msg)) encode_use_candidate(&encoder);
 	if (ms_stun_message_has_ice_controlled(msg))
@@ -903,6 +938,16 @@ void ms_stun_message_set_xor_mapped_address(MSStunMessage *msg, MSStunAddress xo
 	msg->has_xor_mapped_address = TRUE;
 }
 
+const MSStunAddress * ms_stun_message_get_xor_relayed_address(const MSStunMessage *msg) {
+	if (msg->has_xor_relayed_address) return &msg->xor_relayed_address;
+	return NULL;
+}
+
+void ms_stun_message_set_xor_relayed_address(MSStunMessage *msg, MSStunAddress xor_relayed_address) {
+	msg->xor_relayed_address = xor_relayed_address;
+	msg->has_xor_relayed_address = TRUE;
+}
+
 void ms_stun_message_enable_change_ip(MSStunMessage *msg, bool_t enable) {
 	if (enable) msg->change_request |= STUN_FLAG_CHANGE_IP;
 	else {
@@ -972,4 +1017,32 @@ bool_t ms_stun_message_dummy_message_integrity_enabled(const MSStunMessage *msg)
 
 void ms_stun_message_enable_dummy_message_integrity(MSStunMessage *msg, bool_t enable) {
 	msg->has_dummy_message_integrity = enable;
+}
+
+MSStunMessage * ms_turn_allocate_request_create(void) {
+	MSStunMessage *msg = ms_stun_message_create(MS_STUN_TYPE_REQUEST, MS_TURN_METHOD_ALLOCATE);
+	msg->requested_transport = IANA_PROTOCOL_NUMBERS_UDP;
+	msg->has_requested_transport = TRUE;
+	return msg;
+}
+
+bool_t ms_stun_message_has_requested_transport(const MSStunMessage *msg) {
+	return msg->has_requested_transport;
+}
+
+uint8_t ms_stun_message_get_requested_transport(const MSStunMessage *msg) {
+	return msg->requested_transport;
+}
+
+bool_t ms_stun_message_has_lifetime(const MSStunMessage *msg) {
+	return msg->has_lifetime;
+}
+
+uint32_t ms_stun_message_get_lifetime(const MSStunMessage *msg) {
+	return msg->lifetime;
+}
+
+void ms_stun_message_set_lifetime(MSStunMessage *msg, uint32_t lifetime) {
+	msg->lifetime = lifetime;
+	msg->has_lifetime = TRUE;
 }

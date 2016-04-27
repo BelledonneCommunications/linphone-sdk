@@ -127,6 +127,7 @@ static int32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2);
 static char * ice_inet_ntoa(struct sockaddr *addr, int addrlen, char *dest, int destlen);
 static void transactionID2string(const UInt96 *tr_id, char *tr_id_str);
 static void ice_send_stun_server_binding_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check);
+static void ice_send_turn_server_allocate_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check);
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
 static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair *p2);
@@ -940,7 +941,11 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 			check->srcport = rtp_session_get_local_port(cl->rtp_session);
 			if (si->index == 0) {
 				check->next_transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
-				ice_send_stun_server_binding_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+				if (cl->session->turn_enabled) {
+					ice_send_turn_server_allocate_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+				} else {
+					ice_send_stun_server_binding_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+				}
 			} else {
 				check->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION);
 			}
@@ -1018,6 +1023,11 @@ int ice_session_gathering_duration(IceSession *session)
 void ice_session_enable_forced_relay(IceSession *session, bool_t enable)
 {
 	session->forced_relay = enable;
+}
+
+void ice_session_enable_turn(IceSession *session, bool_t enable)
+{
+	session->turn_enabled = enable;
 }
 
 static void ice_transaction_sum_gathering_round_trip_time(const IceStunServerCheckTransaction *transaction, StunRequestRoundTripTime *rtt)
@@ -1141,14 +1151,12 @@ static int ice_send_message_to_stun_addr(const RtpTransport * rtpt,char* buff,si
 	return ice_send_message_to_socket(rtpt, buff, len,(struct sockaddr *)&dest_addr, sizeof(dest_addr));
 }
 
-static void ice_send_stun_server_binding_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check)
+static void ice_send_stun_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check, MSStunMessage *msg, const char *request_type)
 {
-	MSStunMessage *msg;
 	char *buf = NULL;
 	int len;
 	char tr_id_str[25];
 
-	msg = ms_stun_binding_request_create();
 	len = ms_stun_message_encode(msg, &buf);
 	if (len > 0) {
 		IceStunServerCheckTransaction *transaction = ms_new0(IceStunServerCheckTransaction, 1);
@@ -1156,31 +1164,47 @@ static void ice_send_stun_server_binding_request(RtpTransport *rtptp, const stru
 		transaction->transactionID = ms_stun_message_get_tr_id(msg);
 		check->transactions = ms_list_append(check->transactions, transaction);
 		transactionID2string(&transaction->transactionID, tr_id_str);
-		ms_message("ice: Send STUN binding request from port %u [%s]", check->srcport, tr_id_str);
+		ms_message("ice: Send %s from port %u [%s]", request_type, check->srcport, tr_id_str);
 		ice_send_message_to_socket(rtptp, buf, len, server, addrlen);
 	} else {
-		ms_error("ice: encoding stun binding request from port %u [%s] failed", check->srcport, tr_id_str);
+		ms_error("ice: encoding %s from port %u [%s] failed", request_type, check->srcport, tr_id_str);
 	}
 	if (buf != NULL) ms_free(buf);
+}
+
+static void ice_send_stun_server_binding_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check)
+{
+	MSStunMessage *msg = ms_stun_binding_request_create();
+	ice_send_stun_request(rtptp, server, addrlen, check, msg, "STUN binding request");
 	ms_stun_message_destroy(msg);
 }
 
-static int ice_parse_stun_server_binding_response(const MSStunMessage *msg, char *addr, int addr_len, int *port)
+static int ice_parse_stun_server_response(const MSStunMessage *msg, MSStunAddress *srflx_address, MSStunAddress *relay_address)
 {
-	struct sockaddr_in addr_in;
-	const MSStunAddress *stunaddr;
-
-	memset(&addr_in, 0, sizeof(addr_in));
-	stunaddr = ms_stun_message_get_xor_mapped_address(msg);
+	const MSStunAddress *stunaddr = ms_stun_message_get_xor_mapped_address(msg);
 	if (stunaddr == NULL) stunaddr = ms_stun_message_get_mapped_address(msg);
 	if (stunaddr == NULL) return -1;
-	
-	*port = stunaddr->ipv4.port;
-	addr_in.sin_addr.s_addr = htonl(stunaddr->ipv4.addr);
-	addr_in.sin_family = AF_INET;
-	addr_in.sin_port = htons(*port);
-	ice_inet_ntoa((struct sockaddr *)&addr_in, sizeof(addr_in), addr, addr_len);
+	*srflx_address = *stunaddr;
+	stunaddr = ms_stun_message_get_xor_relayed_address(msg);
+	if (stunaddr != NULL) *relay_address = *stunaddr;
 	return 0;
+}
+
+static void stun_address_to_str(const MSStunAddress *stun_address, char *addr, int addr_len)
+{
+	struct sockaddr_in addr_in;
+	memset(&addr_in, 0, sizeof(addr_in));
+	addr_in.sin_addr.s_addr = htonl(stun_address->ipv4.addr);
+	addr_in.sin_family = AF_INET;
+	addr_in.sin_port = htons(stun_address->ipv4.port);
+	ice_inet_ntoa((struct sockaddr *)&addr_in, sizeof(addr_in), addr, addr_len);
+}
+
+static void ice_send_turn_server_allocate_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check)
+{
+	MSStunMessage *msg = ms_turn_allocate_request_create();
+	ice_send_stun_request(rtptp, server, addrlen, check, msg, "TURN allocate request");
+	ms_stun_message_destroy(msg);
 }
 
 /* Send a STUN binding request for ICE connectivity checks according to 7.1.2. */
@@ -1974,8 +1998,10 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	MSList *elem;
 	MSList *base_elem;
 	OrtpEvent *ev;
-	char addr[64];
-	int port;
+	MSStunAddress srflx_addr;
+	MSStunAddress relay_addr;
+	char srflx_addr_str[64];
+	char relay_addr_str[64];
 	RtpTransport *rtptp=NULL;
 	int componentID;
 	const struct sockaddr_in *servaddr = (const struct sockaddr_in *)&cl->session->ss;
@@ -1994,12 +2020,22 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 					transaction = (IceStunServerCheckTransaction *)elem->data;
 					if (transaction != NULL) {
 						componentID = ice_get_componentID_from_rtp_session(evt_data);
-						if ((componentID > 0) && (ice_parse_stun_server_binding_response(msg, addr, sizeof(addr), &port) >= 0)) {
+						memset(&srflx_addr, 0, sizeof(srflx_addr));
+						memset(&relay_addr, 0, sizeof(relay_addr));
+						if ((componentID > 0) && (ice_parse_stun_server_response(msg, &srflx_addr, &relay_addr) >= 0)) {
 							base_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_host_candidate, &componentID);
 							if (base_elem != NULL) {
 								candidate = (IceCandidate *)base_elem->data;
-								ice_add_local_candidate(cl, "srflx", addr, port, componentID, candidate);
-								ms_message("ice: Add candidate obtained by STUN: %s:%u:srflx", addr, port);
+								if (srflx_addr.ipv4.port != 0) {
+									stun_address_to_str(&srflx_addr, srflx_addr_str, sizeof(srflx_addr_str));
+									candidate = ice_add_local_candidate(cl, "srflx", srflx_addr_str, srflx_addr.ipv4.port, componentID, candidate);
+									ms_message("ice: Add candidate obtained by STUN/TURN: %s:%u:srflx", srflx_addr_str, srflx_addr.ipv4.port);
+									if (relay_addr.ipv4.port != 0) {
+										stun_address_to_str(&relay_addr, relay_addr_str, sizeof(relay_addr_str));
+										ice_add_local_candidate(cl, "relay", relay_addr_str, relay_addr.ipv4.port, componentID, candidate);
+										ms_message("ice: Add candidate obtained by STUN/TURN: %s:%u:relay", relay_addr_str, relay_addr.ipv4.port);
+									}
+								}
 							}
 							transaction->response_time = evt_data->ts;
 							check->responded = TRUE;
@@ -2200,7 +2236,6 @@ static IceCandidate * ice_candidate_new(const char *type, const char *ip, int po
 
 	switch (candidate->type) {
 		case ICT_HostCandidate:
-		case ICT_RelayedCandidate:
 			candidate->base = candidate;
 			break;
 		default:
@@ -3165,7 +3200,11 @@ static void ice_send_stun_server_checks(IceStunServerCheck *check, IceCheckList 
 	if (ice_compare_time(curtime, check->next_transmission_time) >= 0) {
 		if (ms_list_size(check->transactions) < ICE_MAX_STUN_REQUEST_RETRANSMISSIONS) {
 			check->next_transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
-			ice_send_stun_server_binding_request(check->rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+			if (cl->session->turn_enabled) {
+				ice_send_turn_server_allocate_request(check->rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+			} else {
+				ice_send_stun_server_binding_request(check->rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+			}
 		}
 	}
 }

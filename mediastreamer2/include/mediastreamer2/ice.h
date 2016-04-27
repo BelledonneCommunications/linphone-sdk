@@ -123,6 +123,7 @@ typedef struct _IceSession {
 	uint8_t max_connectivity_checks;	/**< Configuration parameter to limit the number of connectivity checks performed by the agent (default is 100) */
 	uint8_t keepalive_timeout;	/**< Configuration parameter to define the timeout between each keepalive packets (default is 15s) */
 	bool_t forced_relay;	/**< Force use of relay by modifying the local and reflexive candidates */
+	bool_t turn_enabled;	/**< TURN protocol enabled */
 } IceSession;
 
 typedef struct _IceStunServerCheckTransaction {
@@ -499,6 +500,13 @@ MS2_PUBLIC int ice_session_gathering_duration(IceSession *session);
  * @param enable A boolean value telling whether to force relay or not.
  */
 MS2_PUBLIC void ice_session_enable_forced_relay(IceSession *session, bool_t enable);
+
+/**
+ * Enable TURN protol.
+ * @param session A pointer to a session
+ * @param enable A boolean value telling whether to enable TURN protocol or not.
+ */
+MS2_PUBLIC void ice_session_enable_turn(IceSession *session, bool_t enable);
 
 /**
  * Tell the average round trip time during the gathering process for an ICE session in ms.

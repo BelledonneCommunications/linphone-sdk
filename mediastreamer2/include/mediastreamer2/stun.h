@@ -128,11 +128,14 @@ typedef struct {
 	MSStunErrorCode error_code;
 	MSStunAddress mapped_address;
 	MSStunAddress xor_mapped_address;
+	MSStunAddress xor_relayed_address;
 	uint32_t change_request;
 	uint32_t fingerprint;
 	uint32_t priority;
 	uint64_t ice_controlling;
 	uint64_t ice_controlled;
+	uint32_t lifetime;
+	uint8_t requested_transport;
 	bool_t include_username_attribute;
 	bool_t has_error_code;
 	bool_t has_message_integrity;
@@ -140,10 +143,13 @@ typedef struct {
 	bool_t has_fingerprint;
 	bool_t has_mapped_address;
 	bool_t has_xor_mapped_address;
+	bool_t has_xor_relayed_address;
 	bool_t has_priority;
 	bool_t has_use_candidate;
 	bool_t has_ice_controlling;
 	bool_t has_ice_controlled;
+	bool_t has_lifetime;
+	bool_t has_requested_transport;
 } MSStunMessage;
 
 
@@ -194,6 +200,8 @@ MS2_PUBLIC const MSStunAddress * ms_stun_message_get_mapped_address(const MSStun
 MS2_PUBLIC void ms_stun_message_set_mapped_address(MSStunMessage *msg, MSStunAddress mapped_address);
 MS2_PUBLIC const MSStunAddress * ms_stun_message_get_xor_mapped_address(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_set_xor_mapped_address(MSStunMessage *msg, MSStunAddress xor_mapped_address);
+MS2_PUBLIC const MSStunAddress * ms_stun_message_get_xor_relayed_address(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_xor_relayed_address(MSStunMessage *msg, MSStunAddress xor_relayed_address);
 MS2_PUBLIC void ms_stun_message_enable_change_ip(MSStunMessage *msg, bool_t enable);
 MS2_PUBLIC void ms_stun_message_enable_change_port(MSStunMessage *msg, bool_t enable);
 
@@ -211,6 +219,13 @@ MS2_PUBLIC void ms_stun_message_set_ice_controlled(MSStunMessage *msg, uint64_t 
 
 MS2_PUBLIC bool_t ms_stun_message_dummy_message_integrity_enabled(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_enable_dummy_message_integrity(MSStunMessage *msg, bool_t enable);
+
+MS2_PUBLIC MSStunMessage * ms_turn_allocate_request_create(void);
+MS2_PUBLIC bool_t ms_stun_message_has_requested_transport(const MSStunMessage *msg);
+MS2_PUBLIC uint8_t ms_stun_message_get_requested_transport(const MSStunMessage *msg);
+MS2_PUBLIC bool_t ms_stun_message_has_lifetime(const MSStunMessage *msg);
+MS2_PUBLIC uint32_t ms_stun_message_get_lifetime(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_lifetime(MSStunMessage *msg, uint32_t lifetime);
 
 #ifdef __cplusplus
 }
