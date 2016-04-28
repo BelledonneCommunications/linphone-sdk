@@ -340,6 +340,7 @@ static int h264_enc_set_fps(MSFilter *f, const float *fps) {
 static int h264_enc_req_vfu(MSFilter *f, void *ptr) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	ms_filter_lock(f);
+	ms_video_starter_deactivate(&ctx->starter);
 	ms_iframe_requests_limiter_require_iframe(&ctx->iframe_limiter);
 	ms_filter_unlock(f);
 	return 0;
