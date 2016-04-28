@@ -370,7 +370,7 @@ static int h264_enc_set_config_list(MSFilter *f, const MSVideoConfiguration **co
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	ctx->video_confs = *conf_list ? *conf_list : h264_video_confs;
 	ctx->conf = ms_video_find_best_configuration_for_size(ctx->video_confs, ctx->conf.vsize, f->factory->cpu_count);
-	ms_message("VideoToolboxEnc: new video settings: %dx%d, %dkbit/s, %ffps",
+	ms_message("VideoToolboxEnc: new video settings: %dx%d, %dbit/s, %ffps",
 			   ctx->conf.vsize.width, ctx->conf.vsize.height,
 			   ctx->conf.required_bitrate, ctx->conf.fps);
 	return 0;
@@ -392,7 +392,7 @@ static int h264_enc_set_config(MSFilter *f, const MSVideoConfiguration *conf) {
 		ctx->conf = *conf;
 	}
 	ms_filter_unlock(f);
-	ms_message("VideoToolboxEnc: new video settings: %dx%d, %dkbit/s, %ffps",
+	ms_message("VideoToolboxEnc: new video settings: %dx%d, %dbit/s, %ffps",
 			   ctx->conf.vsize.width, ctx->conf.vsize.height,
 			   ctx->conf.required_bitrate, ctx->conf.fps);
 	return 0;
