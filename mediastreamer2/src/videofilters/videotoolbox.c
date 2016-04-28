@@ -186,14 +186,6 @@ static void h264_enc_process(MSFilter *f) {
 		return;
 	}
 
-#if 0 && TARGET_OS_IPHONE
-	CVPixelBufferPoolRef pixbuf_pool = VTCompressionSessionGetPixelBufferPool(ctx->session);
-	if(pixbuf_pool == NULL) {
-		ms_error("VideoToolbox: fails to get the pixel buffer pool");
-		return;
-	}
-#endif
-
 	while((frame = ms_queue_get(f->inputs[0]))) {
 		YuvBuf src_yuv_frame, dst_yuv_frame = {0};
 		CVPixelBufferRef pixbuf;
@@ -204,15 +196,11 @@ static void h264_enc_process(MSFilter *f) {
 
 		ms_yuv_buf_init_from_mblk(&src_yuv_frame, frame);
 
-#if 0 && TARGET_OS_IPHONE
-		CVPixelBufferPoolCreatePixelBuffer(NULL, pixbuf_pool, &pixbuf);
-#else
 		pixbuf_attr = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
 		value = CFNumberCreate(NULL, kCFNumberIntType, &pixbuf_fmt);
 		CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
 		CVPixelBufferCreate(NULL, ctx->conf.vsize.width, ctx->conf.vsize.height, kCVPixelFormatType_420YpCbCr8Planar, pixbuf_attr,  &pixbuf);
 		CFRelease(pixbuf_attr);
-#endif
 
 		CVPixelBufferLockBaseAddress(pixbuf, 0);
 		dst_yuv_frame.w = (int)CVPixelBufferGetWidth(pixbuf);
