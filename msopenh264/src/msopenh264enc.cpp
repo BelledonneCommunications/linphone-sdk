@@ -146,6 +146,7 @@ void MSOpenH264Encoder::initialize()
 	if (!mAVPFEnabled && (mFrameCount == 0)) {
 		ms_video_starter_init(&mVideoStarter);
 	}
+	ms_iframe_requests_limiter_init(&mIFrameLimiter, mFilter->ticker, 1000);
 }
 
 void MSOpenH264Encoder::feed()
@@ -183,6 +184,8 @@ void MSOpenH264Encoder::feed()
 				if ((sFbi.eFrameType != videoFrameTypeSkip) && (sFbi.eFrameType != videoFrameTypeInvalid)) {
 					if (sFbi.eFrameType == videoFrameTypeIDR) {
 						mLastIDRFrameCount = mFrameCount;
+						ms_iframe_requests_limiter_notify_iframe_sent(&mIFrameLimiter);
+						ms_message("MSOpenH264Encoder: sending IDR");
 					}
 					mFrameCount++;
 					if (!mAVPFEnabled && (mFrameCount == 1)) {
@@ -279,6 +282,9 @@ void MSOpenH264Encoder::requestVFU()
 {
 	// If we receive a VFU request, stop the video starter
 	ms_video_starter_deactivate(&mVideoStarter);
+	ms_filter_lock(mFilter);
+	ms_iframe_requests_limiter_require_iframe(&mIFrameLimiter);
+	ms_filter_unlock(mFilter);
 	generateKeyframe();
 }
 
@@ -287,6 +293,9 @@ void MSOpenH264Encoder::notifyPLI()
 	ms_message("OpenH264: PLI requested");
 	if (shouldGenerateKeyframe(MIN_KEY_FRAME_DIST)) {
 		ms_message("OpenH264: PLI accepted");
+		ms_filter_lock(mFilter);
+		ms_iframe_requests_limiter_require_iframe(&mIFrameLimiter);
+		ms_filter_unlock(mFilter);
 		generateKeyframe();
 	}
 }
@@ -294,6 +303,9 @@ void MSOpenH264Encoder::notifyPLI()
 void MSOpenH264Encoder::notifyFIR(uint8_t seqnr)
 {
 	if (seqnr != mLastFIRSeqNr) {
+		ms_filter_lock(mFilter);
+		ms_iframe_requests_limiter_require_iframe(&mIFrameLimiter);
+		ms_filter_unlock(mFilter);
 		mLastFIRSeqNr = seqnr;
 		generateKeyframe();
 	}
@@ -305,7 +317,9 @@ void MSOpenH264Encoder::generateKeyframe()
 		ms_filter_lock(mFilter);
 		int ret=0;
 		if (mFrameCount>0){
-			ret = mEncoder->ForceIntraFrame(true);
+			if(ms_iframe_requests_limiter_iframe_sending_authorized(&mIFrameLimiter)) {
+				ret = mEncoder->ForceIntraFrame(true);
+			}
 		}else ms_message("ForceIntraFrame() ignored since no frame has been generated yet.");
 		ms_filter_unlock(mFilter);
 		if (ret != 0) {

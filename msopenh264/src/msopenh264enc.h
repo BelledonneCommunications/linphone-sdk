@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/videostarter.h"
+#include "mediastreamer2/msiframerequestslimiter.h"
 #include "wels/codec_api.h"
 #include "msopenh264.h"
 
@@ -63,6 +64,7 @@ private:
 	const MSVideoConfiguration *mVConfList;
 	MSVideoConfiguration mVConf;
 	MSVideoStarter mVideoStarter;
+	MSIFrameRequestsLimiterCtx mIFrameLimiter;
 	uint64_t mFrameCount;
 	uint64_t mLastIDRFrameCount;
 	bool mInitialized;
