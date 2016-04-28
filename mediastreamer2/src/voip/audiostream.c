@@ -1107,21 +1107,21 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	if (stream->read_resampler) {
 		MSFilter *from = stream->soundread;
 		if (stream->read_decoder) from = stream->read_decoder;
-		audio_stream_configure_resampler(stream, stream->read_resampler, from, stream->ms.encoder);
+		audio_stream_configure_resampler(stream, stream->read_resampler, from, skip_encoder_and_decoder ? stream->soundread : stream->ms.encoder);
 	}
 	if (stream->write_resampler) {
 		MSFilter *to = stream->soundwrite;
 		if (stream->write_encoder) to = stream->write_encoder;
-		audio_stream_configure_resampler(stream, stream->write_resampler, stream->ms.decoder, to);
+		audio_stream_configure_resampler(stream, stream->write_resampler, skip_encoder_and_decoder ? stream->soundwrite : stream->ms.decoder, to);
 	}
 
 	if (stream->ms.rc_enable){
 		switch (stream->ms.rc_algorithm){
 		case MSQosAnalyzerAlgorithmSimple:
-			stream->ms.rc=ms_audio_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder,0);
+			stream->ms.rc=ms_audio_bitrate_controller_new(stream->ms.sessions.rtp_session, skip_encoder_and_decoder ? stream->soundwrite : stream->ms.encoder, 0);
 			break;
 		case MSQosAnalyzerAlgorithmStateful:
-			stream->ms.rc=ms_bandwidth_bitrate_controller_new(stream->ms.sessions.rtp_session,stream->ms.encoder, NULL, NULL);
+			stream->ms.rc=ms_bandwidth_bitrate_controller_new(stream->ms.sessions.rtp_session, skip_encoder_and_decoder ? stream->soundwrite : stream->ms.encoder, NULL, NULL);
 			break;
 		}
 	}
@@ -1147,7 +1147,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 			}
 
 		}
-	} else {
+	} else if (!skip_encoder_and_decoder) {
 		if (ms_filter_has_method(stream->ms.decoder, MS_DECODER_ENABLE_PLC)){
 			int decoder_enable_plc = 0;
 			if (ms_filter_call_method(stream->ms.decoder, MS_DECODER_ENABLE_PLC, &decoder_enable_plc) != 0) {
@@ -1710,13 +1710,15 @@ void audio_stream_stop(AudioStream * stream){
 				ms_connection_helper_unlink(&h,stream->outbound_mixer,0,0);
 			if (stream->vaddtx)
 				ms_connection_helper_unlink(&h,stream->vaddtx,0,0);
-			ms_connection_helper_unlink(&h,stream->ms.encoder,0,0);
+			if (stream->ms.encoder)
+				ms_connection_helper_unlink(&h,stream->ms.encoder,0,0);
 			ms_connection_helper_unlink(&h,stream->ms.rtpsend,0,-1);
 
 			/*dismantle the receiving graph*/
 			ms_connection_helper_start(&h);
 			ms_connection_helper_unlink(&h,stream->ms.rtprecv,-1,0);
-			ms_connection_helper_unlink(&h,stream->ms.decoder,0,0);
+			if (stream->ms.decoder)
+				ms_connection_helper_unlink(&h,stream->ms.decoder,0,0);
 			if (stream->plc!=NULL)
 				ms_connection_helper_unlink(&h,stream->plc,0,0);
 			if (stream->dtmfgen!=NULL)
