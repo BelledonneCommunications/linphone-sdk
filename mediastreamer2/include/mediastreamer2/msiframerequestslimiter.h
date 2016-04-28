@@ -22,6 +22,10 @@
 
 #include <mediastreamer2/msticker.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _MSIFrameRequestsLimiterCtx {
 	const MSTicker *ticker;
 	bool_t iframe_required;
@@ -36,5 +40,9 @@ MS2_PUBLIC void ms_iframe_requests_limiter_require_iframe(MSIFrameRequestsLimite
 MS2_PUBLIC bool_t ms_iframe_requests_limiter_iframe_sending_authorized(const MSIFrameRequestsLimiterCtx *obj);
 
 MS2_PUBLIC void ms_iframe_requests_limiter_notify_iframe_sent(MSIFrameRequestsLimiterCtx *obj);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

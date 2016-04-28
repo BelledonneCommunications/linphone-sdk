@@ -12,7 +12,7 @@ void ms_iframe_requests_limiter_require_iframe(MSIFrameRequestsLimiterCtx *obj) 
 }
 
 bool_t ms_iframe_requests_limiter_iframe_sending_authorized(const MSIFrameRequestsLimiterCtx *obj) {
-	return obj->ticker->time - obj->last_sent_iframe_time > obj->min_iframe_interval;
+	return obj->iframe_required && (obj->ticker->time - obj->last_sent_iframe_time) > obj->min_iframe_interval;
 }
 
 void ms_iframe_requests_limiter_notify_iframe_sent(MSIFrameRequestsLimiterCtx *obj) {
