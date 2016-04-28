@@ -298,7 +298,11 @@ static int h264_enc_set_video_size(MSFilter *f, const MSVideoSize *vsize) {
 	ctx->conf.vsize = conf.vsize;
 	ctx->conf.fps = conf.fps;
 	ctx->conf.bitrate_limit = conf.bitrate_limit;
-	ms_message("VideoToolboxEnc: selected video conf: size=%dx%d, framerate=%ffps", ctx->conf.vsize.width, ctx->conf.vsize.height, ctx->conf.fps);
+	if(ctx->conf.required_bitrate > ctx->conf.bitrate_limit) {
+		ctx->conf.required_bitrate = ctx->conf.bitrate_limit;
+	}
+	ms_message("VideoToolboxEnc: selected video conf: size=%dx%d, framerate=%ffps, bitrate=%dbit/s",
+			   ctx->conf.vsize.width, ctx->conf.vsize.height, ctx->conf.fps, ctx->conf.required_bitrate);
 	return 0;
 }
 
