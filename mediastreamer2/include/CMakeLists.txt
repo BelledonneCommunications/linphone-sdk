@@ -46,6 +46,7 @@ set(HEADER_FILES
 	msfilerec.h
 	msfilter.h
 	msgenericplc.h
+	msiframerequestslimiter.h
 	msinterfaces.h
 	msitc.h
 	msjava.h

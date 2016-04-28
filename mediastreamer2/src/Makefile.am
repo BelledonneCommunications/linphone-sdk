@@ -112,7 +112,8 @@ libmediastreamer_voip_la_SOURCES+=	voip/private.h \
 					voip/stun.c \
 					voip/stun_udp.c \
 					crypto/ms_srtp.c \
-					crypto/dtls_srtp.c
+					crypto/dtls_srtp.c \
+					voip/msiframerequestslimiter.c
 else
 libmediastreamer_base_la_SOURCES+=	ortp-deps/logging.c \
 					ortp-deps/port.c \

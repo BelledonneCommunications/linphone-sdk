@@ -24,6 +24,7 @@
 #include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/videostarter.h"
+#include "mediastreamer2/msiframerequestslimiter.h"
 
 const MSVideoConfiguration h264_video_confs[] = {
 	MS_VIDEO_CONF(1536000,  2560000, SXGA_MINUS, 25, 2),
@@ -48,13 +49,12 @@ typedef struct _VTH264EncCtx {
 	bool_t is_configured;
 	bool_t bitrate_changed;
 	bool_t fps_changed;
-	bool_t iframe_requested;
-	uint64_t last_iframe_request_time;
 	const MSFilter *f;
 	const MSVideoConfiguration *video_confs;
 	MSVideoStarter starter;
 	bool_t enable_avpf;
 	bool_t first_frame;
+	MSIFrameRequestsLimiterCtx iframe_limiter;
 } VTH264EncCtx;
 
 static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer) {
@@ -100,6 +100,7 @@ static void h264_enc_output_cb(VTH264EncCtx *ctx, void *sourceFrameRefCon, OSSta
 				ms_queue_insert(&nalu_queue, insertion_point, nalu);
 				i++;
 			} while(i < parameter_set_count);
+			ms_message("VTH264Encoder: I-frame created");
 		}
 
 		rfc3984_pack(&ctx->packer_ctx, &nalu_queue, &ctx->queue, (uint32_t)(ctx->f->ticker->time * 90));
@@ -170,6 +171,7 @@ static void h264_enc_preprocess(MSFilter *f) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	h264_enc_configure(ctx);
 	ms_video_starter_init(&ctx->starter);
+	ms_iframe_requests_limiter_init(&ctx->iframe_limiter, f->ticker, 1000);
 	ctx->first_frame = TRUE;
 }
 
@@ -224,7 +226,7 @@ static void h264_enc_process(MSFilter *f) {
 		freemsg(frame);
 
 		ms_filter_lock(f);
-		if(ctx->fps_changed || ctx->bitrate_changed || ctx->iframe_requested) {
+		if(ctx->fps_changed || ctx->bitrate_changed || ms_iframe_requests_limiter_iframe_sending_authorized(&ctx->iframe_limiter)) {
 			CFNumberRef value;
 			enc_param = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
 			if(ctx->fps_changed) {
@@ -237,12 +239,12 @@ static void h264_enc_process(MSFilter *f) {
 				CFDictionaryAddValue(enc_param, kVTCompressionPropertyKey_AverageBitRate, value);
 				ctx->bitrate_changed = FALSE;
 			}
-			if(ctx->iframe_requested && f->ticker->time - ctx->last_iframe_request_time > 1000) {
+			if(ms_iframe_requests_limiter_iframe_sending_authorized(&ctx->iframe_limiter)) {
+				ms_message("MSVTH264Encoder: requesting encoder for I-frame");
 				int force_keyframe = 1;
 				value = CFNumberCreate(NULL, kCFNumberIntType, &force_keyframe);
 				CFDictionaryAddValue(enc_param, kVTEncodeFrameOptionKey_ForceKeyFrame, value);
-				ctx->iframe_requested = FALSE;
-				ctx->last_iframe_request_time = f->ticker->time;
+				ms_iframe_requests_limiter_notify_iframe_sent(&ctx->iframe_limiter);
 			}
 		}
 		ms_filter_unlock(f);
@@ -350,7 +352,7 @@ static int h264_enc_set_fps(MSFilter *f, const float *fps) {
 static int h264_enc_req_vfu(MSFilter *f, void *ptr) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	ms_filter_lock(f);
-	ctx->iframe_requested = TRUE;
+	ms_iframe_requests_limiter_require_iframe(&ctx->iframe_limiter);
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -635,6 +637,9 @@ static void h264_dec_process(MSFilter *f) {
 	// Pull SPSs and PPSs out and put them into the filter context if necessary
 	while((nalu = ms_queue_get(&q_nalus))) {
 		MSH264NaluType nalu_type = ms_h264_nalu_get_type(nalu);
+		if(nalu_type == MSH264NaluTypeIDR) {
+			ms_message("VTH264Decoder: receiving IDR");
+		}
 		if(nalu_type == MSH264NaluTypeSPS || nalu_type == MSH264NaluTypePPS) {
 			parameter_sets = ms_list_append(parameter_sets, nalu);
 		} else if(ctx->format_desc || parameter_sets) {

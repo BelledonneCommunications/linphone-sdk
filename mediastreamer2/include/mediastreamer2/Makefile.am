@@ -26,6 +26,7 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				msfilerec.h \
 				msfilter.h \
 				msgenericplc.h \
+				msiframerequestslimiter.h \
 				msinterfaces.h \
 				msitc.h \
 				msjava.h \
@@ -33,6 +34,7 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				msmediaplayer.h \
 				msqueue.h \
 				msrtp.h \
+				msrtt4103.h \
 				mssndcard.h \
 				mstee.h \
 				msticker.h \
@@ -52,8 +54,7 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				upnp_igd.h \
 				videostarter.h \
 				x11_helper.h \
-				zrtp.h \
-				msrtt4103.h
+				zrtp.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 
