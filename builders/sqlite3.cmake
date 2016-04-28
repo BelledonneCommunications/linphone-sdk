@@ -22,6 +22,7 @@
 
 set(EP_sqlite3_URL "http://www.sqlite.org/2014/sqlite-amalgamation-3080702.zip")
 set(EP_sqlite3_URL_HASH "MD5=10587262e4381358b707df75392c895f")
+set(EP_sqlite3_EXTERNAL_SOURCE_PATHS "externals/sqlite3")
 set(EP_sqlite3_MAY_BE_FOUND_ON_SYSTEM TRUE)
 set(EP_sqlite3_IGNORE_WARNINGS TRUE)
 
