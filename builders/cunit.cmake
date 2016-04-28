@@ -24,6 +24,8 @@ set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git" CACHE STRING "cun
 set(EP_cunit_GIT_TAG_LATEST "linphone" CACHE STRING "cunit tag to use when compiling latest version")
 set(EP_cunit_GIT_TAG "0a0a9c60f5a1b899ae26b705fa5224ef25377982" CACHE STRING "cunit tag to use")
 set(EP_cunit_EXTERNAL_SOURCE_PATHS "cunit" "externals/cunit")
+set(EP_cunit_MAY_BE_FOUND_ON_SYSTEM TRUE)
+set(EP_cunit_IGNORE_WARNINGS TRUE)
 
 set(EP_cunit_LINKING_TYPE ${DEFAULT_VALUE_CMAKE_LINKING_TYPE})
 if(MSVC)
