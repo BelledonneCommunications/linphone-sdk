@@ -241,6 +241,7 @@ static int msopenh264_enc_notify_fir(MSFilter *f, void *arg) {
 
 static int msopenh264_enc_enable_avpf(MSFilter *f, void *arg) {
 	MSOpenH264Encoder *e = static_cast<MSOpenH264Encoder *>(f->data);
+	ms_message("%s: %s AVPF", f->desc->name, *(bool_t *)arg ? "enabling" : "disabling");
 	e->enableAVPF(*((bool_t *)arg) ? true : false);
 	return 0;
 }
