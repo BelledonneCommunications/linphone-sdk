@@ -356,7 +356,7 @@ static int h264_enc_enable_avpf(MSFilter *f, const bool_t *enable_avpf) {
 		ms_error("VideoToolboxEnc: could not %s AVPF: encoder is running", *enable_avpf ? "enable" : "disable");
 		return -1;
 	}
-	ms_message("VideoToolboxEnc: %s AVPF", enable_avpf ? "enabling" : "disabling");
+	ms_message("VideoToolboxEnc: %s AVPF", *enable_avpf ? "enabling" : "disabling");
 	ctx->enable_avpf = *enable_avpf;
 	return 0;
 }
