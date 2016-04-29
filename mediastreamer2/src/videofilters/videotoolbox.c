@@ -407,6 +407,7 @@ static MSFilterMethod h264_enc_methods[] = {
 	{   MS_FILTER_SET_FPS                       , (MSFilterMethodFunc)h264_enc_set_fps         },
 	{   MS_FILTER_REQ_VFU                       , (MSFilterMethodFunc)h264_enc_req_vfu         },
 	{   MS_VIDEO_ENCODER_REQ_VFU                , (MSFilterMethodFunc)h264_enc_req_vfu         },
+	{	MS_VIDEO_ENCODER_NOTIFY_FIR             , (MSFilterMethodFunc)h264_enc_req_vfu         },
 	{	MS_VIDEO_ENCODER_NOTIFY_PLI             , (MSFilterMethodFunc)h264_enc_req_vfu         },
 	{	MS_VIDEO_ENCODER_NOTIFY_SLI             , (MSFilterMethodFunc)h264_enc_req_vfu         },
 	{   MS_VIDEO_ENCODER_ENABLE_AVPF            , (MSFilterMethodFunc)h264_enc_enable_avpf     },
