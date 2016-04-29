@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define STUN_MAX_USERNAME_LENGTH   513
 #define STUN_MAX_REASON_LENGTH     127
 #define STUN_MAX_SOFTWARE_LENGTH   763 /* Length in bytes, it is supposed to be less than 128 UTF-8 characters (TODO) */
+#define STUN_MAX_REALM_LENGTH      127
+#define STUN_MAX_NONCE_LENGTH      127
 
 
 #define STUN_STR_SETTER(field, value) \
@@ -202,6 +204,15 @@ static void encode_integrity(StunMessageEncoder *encoder, const char *hmac) {
 	encode16(encoder, MS_STUN_ATTR_MESSAGE_INTEGRITY);
 	encode16(encoder, 20);
 	encode(encoder, hmac, 20);
+}
+
+static void encode_long_term_integrity_from_ha1(StunMessageEncoder *encoder, const char *ha1_text) {
+	char *hmac;
+	size_t message_length = stun_message_encoder_get_message_length(encoder);
+	encode_message_length(encoder, message_length - STUN_MESSAGE_HEADER_LENGTH + 24);
+	hmac = ms_stun_calculate_integrity_long_term_from_ha1(encoder->buffer, message_length, ha1_text);
+	encode_integrity(encoder, hmac);
+	ms_free(hmac);
 }
 
 static void encode_long_term_integrity(StunMessageEncoder *encoder, const char *realm, const char *username, const char *password) {
@@ -506,17 +517,30 @@ char * ms_stun_calculate_integrity_short_term(const char *buf, size_t bufsize, c
 	return hmac;
 }
 
-char * ms_stun_calculate_integrity_long_term(const char *buf, size_t bufsize, const char *realm, const char *username, const char *password) {
-	unsigned char HA1[16];
-	char HA1_text[1024];
+char * ms_stun_calculate_integrity_long_term_from_ha1(const char *buf, size_t bufsize, const char *ha1_text) {
+	unsigned char ha1[16];
+	unsigned int i, j;
 	char *hmac = ms_malloc(21);
-
 	memset(hmac, 0, 21);
-	snprintf(HA1_text, sizeof(HA1_text), "%s:%s:%s", username, realm, password);
-	bctbx_md5((unsigned char *)HA1_text, strlen(HA1_text), HA1);
-
+	memset(ha1, 0, sizeof(ha1));
+	for (i = 0, j = 0; (i < strlen(ha1_text)) && (j < sizeof(ha1)); i += 2, j++) {
+		char buf[5] = { '0', 'x', ha1_text[i], ha1_text[i + 1], '\0' };
+		ha1[j] = strtol(buf, NULL, 0);
+	}
 	/* SHA1 output length is 20 bytes, get them all */
-	bctbx_hmacSha1(HA1, sizeof(HA1), (const unsigned char *)buf, bufsize, 20, (unsigned char *)hmac);
+	bctbx_hmacSha1(ha1, sizeof(ha1), (const unsigned char *)buf, bufsize, 20, (unsigned char *)hmac);
+	return hmac;
+}
+
+char * ms_stun_calculate_integrity_long_term(const char *buf, size_t bufsize, const char *realm, const char *username, const char *password) {
+	unsigned char ha1[16];
+	char ha1_text[1024];
+	char *hmac = ms_malloc(21);
+	memset(hmac, 0, 21);
+	snprintf(ha1_text, sizeof(ha1_text), "%s:%s:%s", username, realm, password);
+	bctbx_md5((unsigned char *)ha1_text, strlen(ha1_text), ha1);
+	/* SHA1 output length is 20 bytes, get them all */
+	bctbx_hmacSha1(ha1, sizeof(ha1), (const unsigned char *)buf, bufsize, 20, (unsigned char *)hmac);
 	return hmac;
 }
 
@@ -700,6 +724,20 @@ MSStunMessage * ms_stun_message_create_from_buffer_parsing(const char *buf, size
 			case MS_TURN_ATTR_LIFETIME:
 				ms_stun_message_set_lifetime(msg, decode_lifetime(&decoder, length));
 				break;
+			case MS_STUN_ATTR_REALM:
+				{
+					char *realm = decode_string(&decoder, length, STUN_MAX_REALM_LENGTH);
+					ms_stun_message_set_realm(msg, realm);
+					if (realm != NULL) ms_free(realm);
+				}
+				break;
+			case MS_STUN_ATTR_NONCE:
+				{
+					char *nonce = decode_string(&decoder, length, STUN_MAX_NONCE_LENGTH);
+					ms_stun_message_set_nonce(msg, nonce);
+					if (nonce != NULL) ms_free(nonce);
+				}
+				break;
 			default:
 				if (type <= 0x7FFF) {
 					ms_error("STUN unknown Comprehension-Required attribute: 0x%04x", type);
@@ -781,6 +819,8 @@ size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 	if (stun_addr != NULL) encode_addr(&encoder, MS_STUN_ATTR_MAPPED_ADDRESS, stun_addr);
 	if (msg->change_request != 0) encode_change_request(&encoder, msg->change_request);
 	if (msg->username != NULL) encode_string(&encoder, MS_STUN_ATTR_USERNAME, msg->username, STUN_MAX_USERNAME_LENGTH);
+	if (msg->realm != NULL) encode_string(&encoder, MS_STUN_ATTR_REALM, msg->realm, STUN_MAX_REALM_LENGTH);
+	if (msg->nonce != NULL) encode_string(&encoder, MS_STUN_ATTR_NONCE, msg->nonce, STUN_MAX_NONCE_LENGTH);
 	if (ms_stun_message_has_error_code(msg)) {
 		char *reason = NULL;
 		uint16_t number = ms_stun_message_get_error_code(msg, &reason);
@@ -802,7 +842,9 @@ size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 	if (ms_stun_message_message_integrity_enabled(msg)) {
 		const char *username = ms_stun_message_get_username(msg);
 		const char *password = ms_stun_message_get_password(msg);
-		if ((username != NULL) && (password != NULL) && (strlen(username) > 0) && (strlen(password) > 0)) {
+		if (msg->ha1 != NULL) {
+			encode_long_term_integrity_from_ha1(&encoder, msg->ha1);
+		} else if ((username != NULL) && (password != NULL) && (strlen(username) > 0) && (strlen(password) > 0)) {
 			const char *realm = ms_stun_message_get_realm(msg);
 			if ((realm != NULL) && (strlen(realm) > 0)) {
 				encode_long_term_integrity(&encoder, realm, username, password);
@@ -865,6 +907,10 @@ void ms_stun_message_set_password(MSStunMessage *msg, const char *password) {
 	STUN_STR_SETTER(msg->password, password);
 }
 
+void ms_stun_message_set_ha1(MSStunMessage *msg, const char *ha1) {
+	STUN_STR_SETTER(msg->ha1, ha1);
+}
+
 const char * ms_stun_message_get_realm(const MSStunMessage *msg) {
 	return msg->realm;
 }
@@ -879,6 +925,14 @@ const char * ms_stun_message_get_software(const MSStunMessage *msg) {
 
 void ms_stun_message_set_software(MSStunMessage *msg, const char *software) {
 	STUN_STR_SETTER(msg->software, software);
+}
+
+const char * ms_stun_message_get_nonce(const MSStunMessage *msg) {
+	return msg->nonce;
+}
+
+void ms_stun_message_set_nonce(MSStunMessage *msg, const char *nonce) {
+	STUN_STR_SETTER(msg->nonce, nonce);
 }
 
 bool_t ms_stun_message_has_error_code(const MSStunMessage *msg) {

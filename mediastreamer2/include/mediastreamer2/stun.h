@@ -122,9 +122,11 @@ typedef struct {
 	UInt96 tr_id;
 	char *username;
 	char *password;
+	char *ha1;
 	char *realm;
 	char *message_integrity;
 	char *software;
+	char *nonce;
 	MSStunErrorCode error_code;
 	MSStunAddress mapped_address;
 	MSStunAddress xor_mapped_address;
@@ -158,9 +160,13 @@ extern "C"
 {
 #endif
 
+typedef void (*MSStunAuthRequestedCb)(void *userdata, const char *realm, const char *nonce, const char **username, const char **password, const char **ha1);
+
+
 MS2_PUBLIC MSStunAddress4 ms_stun_hostname_to_stun_addr(const char *hostname, uint16_t default_port);
 MS2_PUBLIC char * ms_stun_calculate_integrity_short_term(const char *buf, size_t bufsize, const char *key);
 MS2_PUBLIC char * ms_stun_calculate_integrity_long_term(const char *buf, size_t bufsize, const char *realm, const char *username, const char *password);
+MS2_PUBLIC char * ms_stun_calculate_integrity_long_term_from_ha1(const char *buf, size_t bufsize, const char *ha1_text);
 MS2_PUBLIC uint32_t ms_stun_calculate_fingerprint(const char *buf, size_t bufsize);
 
 MS2_PUBLIC MSStunMessage * ms_stun_message_create(uint16_t type, uint16_t method);
@@ -184,10 +190,13 @@ MS2_PUBLIC void ms_stun_message_set_username(MSStunMessage *msg, const char *use
 MS2_PUBLIC void ms_stun_message_include_username_attribute(MSStunMessage *msg, bool_t include);
 MS2_PUBLIC const char * ms_stun_message_get_password(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_set_password(MSStunMessage *msg, const char *password);
+MS2_PUBLIC void ms_stun_message_set_ha1(MSStunMessage *msg, const char *ha1_text);
 MS2_PUBLIC const char * ms_stun_message_get_realm(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_set_realm(MSStunMessage *msg, const char *realm);
 MS2_PUBLIC const char * ms_stun_message_get_software(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_set_software(MSStunMessage *msg, const char *software);
+MS2_PUBLIC const char * ms_stun_message_get_nonce(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_nonce(MSStunMessage *msg, const char *nonce);
 MS2_PUBLIC bool_t ms_stun_message_has_error_code(const MSStunMessage *msg);
 MS2_PUBLIC uint16_t ms_stun_message_get_error_code(const MSStunMessage *msg, char **reason);
 MS2_PUBLIC void ms_stun_message_set_error_code(MSStunMessage *msg, uint16_t number, const char *reason);

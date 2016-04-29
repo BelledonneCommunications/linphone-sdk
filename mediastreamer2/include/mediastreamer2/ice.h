@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ice_h
 
 #include <mediastreamer2/mscommon.h>
+#include <mediastreamer2/stun.h>
 #include <ortp/ortp.h>
 
 
@@ -103,6 +104,8 @@ struct _IceCheckList;
  */
 typedef struct _IceSession {
 	struct _IceCheckList * streams[ICE_SESSION_MAX_CHECK_LISTS];	/**< Table of IceChecklist structure pointers. Each element represents a media stream */
+	MSStunAuthRequestedCb stun_auth_requested_cb;	/**< Callback called when authentication is requested */
+	void *stun_auth_requested_userdata;	/**< Userdata to pass to the STUN authentication requested callback */
 	char *local_ufrag;	/**< Local username fragment for the session (assigned during the session creation) */
 	char *local_pwd;	/**< Local password for the session (assigned during the session creation) */
 	char *remote_ufrag;	/**< Remote username fragment for the session (provided via SDP by the peer) */
@@ -136,6 +139,11 @@ typedef struct _IceStunServerCheck {
 	RtpTransport *rtptp;
 	int srcport;
 	MSList *transactions;	/**< List of IceStunServerCheckTransaction structures. */
+	char *realm;
+	char *nonce;
+	char *username;
+	char *password;
+	char *ha1;
 	MSTimeSpec next_transmission_time;
 	bool_t responded;
 } IceStunServerCheck;
@@ -507,6 +515,8 @@ MS2_PUBLIC void ice_session_enable_forced_relay(IceSession *session, bool_t enab
  * @param enable A boolean value telling whether to enable TURN protocol or not.
  */
 MS2_PUBLIC void ice_session_enable_turn(IceSession *session, bool_t enable);
+
+MS2_PUBLIC void ice_session_set_stun_auth_requested_cb(IceSession *session, MSStunAuthRequestedCb cb, void *userdata);
 
 /**
  * Tell the average round trip time during the gathering process for an ICE session in ms.

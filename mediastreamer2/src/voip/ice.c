@@ -340,6 +340,10 @@ static void ice_free_stun_server_check_transaction(IceStunServerCheckTransaction
 static void ice_free_stun_server_check(IceStunServerCheck *check)
 {
 	ms_list_for_each(check->transactions, (void (*)(void*))ice_free_stun_server_check_transaction);
+	if (check->realm != NULL) ms_free(check->realm);
+	if (check->nonce != NULL) ms_free(check->nonce);
+	if (check->username != NULL) ms_free(check->username);
+	if (check->password != NULL) ms_free(check->password);
 	ms_free(check);
 }
 
@@ -401,6 +405,52 @@ void ice_check_list_destroy(IceCheckList *cl)
 	ms_list_free(cl->local_candidates);
 	memset(cl, 0, sizeof(IceCheckList));
 	ms_free(cl);
+}
+
+
+static void ice_stun_server_check_set_realm(IceStunServerCheck *check, const char *realm)
+{
+	if (check->realm != NULL) {
+		ms_free(check->realm);
+		check->realm = NULL;
+	}
+	if (realm != NULL) check->realm = ms_strdup(realm);
+}
+
+static void ice_stun_server_check_set_nonce(IceStunServerCheck *check, const char *nonce)
+{
+	if (check->nonce != NULL) {
+		ms_free(check->nonce);
+		check->nonce = NULL;
+	}
+	if (nonce != NULL) check->nonce = ms_strdup(nonce);
+}
+
+static void ice_stun_server_check_set_username(IceStunServerCheck *check, const char *username)
+{
+	if (check->username != NULL) {
+		ms_free(check->username);
+		check->username = NULL;
+	}
+	if (username != NULL) check->username = ms_strdup(username);
+}
+
+static void ice_stun_server_check_set_password(IceStunServerCheck *check, const char *password)
+{
+	if (check->password != NULL) {
+		ms_free(check->password);
+		check->password = NULL;
+	}
+	if (password != NULL) check->password = ms_strdup(password);
+}
+
+static void ice_stun_server_check_set_ha1(IceStunServerCheck *check, const char *ha1)
+{
+	if (check->ha1 != NULL) {
+		ms_free(check->ha1);
+		check->ha1 = NULL;
+	}
+	if (ha1 != NULL) check->ha1 = ms_strdup(ha1);
 }
 
 
@@ -1030,6 +1080,12 @@ void ice_session_enable_turn(IceSession *session, bool_t enable)
 	session->turn_enabled = enable;
 }
 
+void ice_session_set_stun_auth_requested_cb(IceSession *session, MSStunAuthRequestedCb cb, void *userdata)
+{
+	session->stun_auth_requested_cb = cb;
+	session->stun_auth_requested_userdata = userdata;
+}
+
 static void ice_transaction_sum_gathering_round_trip_time(const IceStunServerCheckTransaction *transaction, StunRequestRoundTripTime *rtt)
 {
 	if ((transaction->response_time.tv_sec != 0) && (transaction->response_time.tv_nsec != 0)) {
@@ -1203,6 +1259,13 @@ static void stun_address_to_str(const MSStunAddress *stun_address, char *addr, i
 static void ice_send_turn_server_allocate_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check)
 {
 	MSStunMessage *msg = ms_turn_allocate_request_create();
+	if (check->realm != NULL) ms_stun_message_set_realm(msg, check->realm);
+	if (check->nonce != NULL) ms_stun_message_set_nonce(msg, check->nonce);
+	if (check->username != NULL) ms_stun_message_set_username(msg, check->username);
+	if (check->password != NULL) ms_stun_message_set_password(msg, check->password);
+	if (check->ha1 != NULL) ms_stun_message_set_ha1(msg, check->ha1);
+	if ((check->realm != NULL) || (check->nonce != NULL) || (check->username != NULL) || (check->password != NULL) || (check->ha1 != NULL))
+		ms_stun_message_enable_message_integrity(msg, TRUE);
 	ice_send_stun_request(rtptp, server, addrlen, check, msg, "TURN allocate request");
 	ms_stun_message_destroy(msg);
 }
@@ -2082,50 +2145,86 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	ice_conclude_processing(cl, rtp_session);
 }
 
-static void ice_handle_received_error_response(IceCheckList *cl, RtpSession *rtp_session, const MSStunMessage *msg)
+static void ice_handle_stun_server_error_response(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg)
+{
+	MSList *elem;
+	RtpTransport *rtptp = NULL;
+	char *reason = NULL;
+	uint16_t number = ms_stun_message_get_error_code(msg, &reason);
+
+	ice_get_transport_from_rtp_session(rtp_session, evt_data, &rtptp);
+	elem = ms_list_find_custom(cl->stun_server_checks, (MSCompareFunc)ice_find_stun_server_check, rtptp);
+	if (elem != NULL) {
+		IceStunServerCheck *check = (IceStunServerCheck *)elem->data;
+		if ((check != NULL) && (number == 401) && (cl->session->stun_auth_requested_cb != NULL)) {
+			const char *username = NULL;
+			const char *password = NULL;
+			const char *ha1 = NULL;
+			const char *realm = ms_stun_message_get_realm(msg);
+			const char *nonce = ms_stun_message_get_nonce(msg);
+			cl->session->stun_auth_requested_cb(cl->session->stun_auth_requested_userdata, realm, nonce, &username, &password, &ha1);
+			if ((username != NULL) && (cl->session->turn_enabled)) {
+				ice_stun_server_check_set_realm(check, realm);
+				ice_stun_server_check_set_nonce(check, nonce);
+				ice_stun_server_check_set_username(check, username);
+				ice_stun_server_check_set_password(check, password);
+				ice_stun_server_check_set_ha1(check, ha1);
+				check->next_transmission_time = ice_add_ms(ice_current_time(), ICE_DEFAULT_RTO_DURATION);
+				ice_send_turn_server_allocate_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+			}
+		}
+	}
+}
+
+static void ice_handle_received_error_response(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg)
 {
 	IceCandidatePair *pair;
-	UInt96 tr_id = ms_stun_message_get_tr_id(msg);
-	MSList *elem = ms_list_find_custom(cl->transaction_list, (MSCompareFunc)ice_find_pair_from_transactionID, &tr_id);
-	if (elem == NULL) {
-		/* We received an error response concerning an unknown binding request, ignore it... */
-		return;
-	}
 
-	pair = (IceCandidatePair *)((IceTransaction *)elem->data)->pair;
-	if (ms_stun_message_has_error_code(msg)
-			&& (ms_stun_message_get_error_code(msg, NULL) == MS_STUN_ERROR_CODE_UNAUTHORIZED)
-			&& pair->retry_with_dummy_message_integrity) {
-		ms_warning("ice pair [%p], retry skipping message integrity for compatibility with older version",pair);
-		pair->retry_with_dummy_message_integrity=FALSE;
-		pair->use_dummy_hmac=TRUE;
-		return;
-
+	if (cl->gathering_candidates == TRUE) {
+		ice_handle_stun_server_error_response(cl, rtp_session, evt_data, msg);
 	} else {
-		ice_pair_set_state(pair, ICP_Failed);
-		ms_message("ice: Error response, set state to Failed for pair %p: %s:%u:%s --> %s:%u:%s", pair,
-				pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
-				pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
-	}
-	if (ms_stun_message_has_error_code(msg) && (ms_stun_message_get_error_code(msg, NULL) == MS_ICE_ERROR_CODE_ROLE_CONFLICT)) {
-		/* Handle error 487 (Role Conflict) according to 7.1.3.1. */
-		switch (pair->role) {
-			case IR_Controlling:
-				ms_message("ice: Switch to the CONTROLLED role");
-				ice_session_set_role(cl->session, IR_Controlled);
-				break;
-			case IR_Controlled:
-				ms_message("ice: Switch to the CONTROLLING role");
-				ice_session_set_role(cl->session, IR_Controlling);
-				break;
+		UInt96 tr_id = ms_stun_message_get_tr_id(msg);
+		MSList *elem = ms_list_find_custom(cl->transaction_list, (MSCompareFunc)ice_find_pair_from_transactionID, &tr_id);
+		if (elem == NULL) {
+			/* We received an error response concerning an unknown binding request, ignore it... */
+			return;
 		}
 
-		/* Set the state of the pair to Waiting and trigger a check. */
-		ice_pair_set_state(pair, ICP_Waiting);
-		ice_check_list_queue_triggered_check(cl, pair);
-	}
+		pair = (IceCandidatePair *)((IceTransaction *)elem->data)->pair;
+		if (ms_stun_message_has_error_code(msg)
+				&& (ms_stun_message_get_error_code(msg, NULL) == MS_STUN_ERROR_CODE_UNAUTHORIZED)
+				&& pair->retry_with_dummy_message_integrity) {
+			ms_warning("ice pair [%p], retry skipping message integrity for compatibility with older version",pair);
+			pair->retry_with_dummy_message_integrity=FALSE;
+			pair->use_dummy_hmac=TRUE;
+			return;
 
-	ice_conclude_processing(cl, rtp_session);
+		} else {
+			ice_pair_set_state(pair, ICP_Failed);
+			ms_message("ice: Error response, set state to Failed for pair %p: %s:%u:%s --> %s:%u:%s", pair,
+					pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
+					pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
+		}
+		if (ms_stun_message_has_error_code(msg) && (ms_stun_message_get_error_code(msg, NULL) == MS_ICE_ERROR_CODE_ROLE_CONFLICT)) {
+			/* Handle error 487 (Role Conflict) according to 7.1.3.1. */
+			switch (pair->role) {
+				case IR_Controlling:
+					ms_message("ice: Switch to the CONTROLLED role");
+					ice_session_set_role(cl->session, IR_Controlled);
+					break;
+				case IR_Controlled:
+					ms_message("ice: Switch to the CONTROLLING role");
+					ice_session_set_role(cl->session, IR_Controlling);
+					break;
+			}
+
+			/* Set the state of the pair to Waiting and trigger a check. */
+			ice_pair_set_state(pair, ICP_Waiting);
+			ice_check_list_queue_triggered_check(cl, pair);
+		}
+
+		ice_conclude_processing(cl, rtp_session);
+	}
 }
 
 void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data)
@@ -2187,7 +2286,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 		ice_handle_received_binding_response(cl, rtp_session, evt_data, msg, &remote_addr);
 	} else if (ms_stun_message_is_error_response(msg)) {
 		ms_message("ice: Recv error response: %s:%u <-- %s:%u [%s]", source_addr_str, recvport, src6host, remote_port, tr_id_str);
-		ice_handle_received_error_response(cl, rtp_session, msg);
+		ice_handle_received_error_response(cl, rtp_session, evt_data, msg);
 	} else if (ms_stun_message_is_indication(msg)) {
 		ms_message("ice: Recv indication: %s:%u <-- %s:%u [%s]", source_addr_str, recvport, src6host, remote_port, tr_id_str);
 	} else {
