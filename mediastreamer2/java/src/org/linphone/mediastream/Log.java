@@ -38,7 +38,11 @@ public final class Log {
 		TAG = tag;
 		isLogEnabled = enable;
 	}
-	
+
+	public static void setEnableLog(boolean enable){
+		isLogEnabled = enable;
+	}
+
 	@SuppressWarnings(value="all")
 	private static boolean isLoggable(int level) {
 		return isLogEnabled && (!useIsLoggable || android.util.Log.isLoggable(TAG, level));
