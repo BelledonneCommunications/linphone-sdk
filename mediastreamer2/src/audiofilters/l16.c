@@ -209,6 +209,24 @@ static void dec_process(MSFilter *f)
 	}
 };
 
+static int dec_get_sr(MSFilter *f, void *arg){
+	int *sample_rate = (int *)arg;
+	*sample_rate = 8000;
+	return 0;
+}
+
+static int dec_get_nchannels(MSFilter *f, void *arg){
+	int *nchannels = (int *)arg;
+	*nchannels = 1;
+	return 0;
+}
+
+static MSFilterMethod dec_methods[]={
+	{	MS_FILTER_GET_SAMPLE_RATE	,	dec_get_sr	},
+	{	MS_FILTER_GET_NCHANNELS		,	dec_get_nchannels},
+	{	0				,	NULL		}
+};
+
 #ifdef _MSC_VER
 
 MSFilterDesc ms_l16_dec_desc={
@@ -224,7 +242,7 @@ MSFilterDesc ms_l16_dec_desc={
 	dec_process,
 	NULL,
 	dec_uninit,
-	NULL
+	dec_methods
 };
 
 #else
@@ -239,7 +257,8 @@ MSFilterDesc ms_l16_dec_desc={
 	.noutputs	= 1,
 	.init		= dec_init,
 	.process	= dec_process,
-	.uninit		= dec_uninit
+	.uninit		= dec_uninit,
+	.methods	= dec_methods
 };
 
 #endif

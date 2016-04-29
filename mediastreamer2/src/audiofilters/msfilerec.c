@@ -203,9 +203,23 @@ static int rec_set_sr(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int rec_get_sr(MSFilter *f, void *arg){
+	RecState *d=(RecState*)f->data;
+	int *sample_rate = (int *)arg;
+	*sample_rate = d->rate;
+	return 0;
+}
+
 static int rec_set_nchannels(MSFilter *f, void *arg) {
 	RecState *s = (RecState *)f->data;
 	s->nchannels = *(int *)arg;
+	return 0;
+}
+
+static int rec_get_nchannels(MSFilter *f, void *arg){
+	RecState *d=(RecState*)f->data;
+	int *nchannels = (int *)arg;
+	*nchannels = d->nchannels;
 	return 0;
 }
 
@@ -229,11 +243,6 @@ static int rec_set_fmtp(MSFilter *f, void *arg){
 	d->rate = pinfmt->fmt->rate;
 	d->nchannels = pinfmt->fmt->nchannels;
 	d->mime = pinfmt->fmt->encoding;
-	if (strcmp(d->mime, "L16") == 0) {
-		d->swap = TRUE;
-	} else {
-		d->swap = FALSE;
-	}
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -241,6 +250,8 @@ static int rec_set_fmtp(MSFilter *f, void *arg){
 static MSFilterMethod rec_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE,	rec_set_sr	},
 	{	MS_FILTER_SET_NCHANNELS	,	rec_set_nchannels	},
+	{	MS_FILTER_GET_SAMPLE_RATE,	rec_get_sr	},
+	{	MS_FILTER_GET_NCHANNELS	,	rec_get_nchannels	},
 	{	MS_FILE_REC_OPEN	,	rec_open	},
 	{	MS_FILE_REC_START	,	rec_start	},
 	{	MS_FILE_REC_STOP	,	rec_stop	},
