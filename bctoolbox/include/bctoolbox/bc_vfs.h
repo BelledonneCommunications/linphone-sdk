@@ -81,13 +81,6 @@ struct bc_vfs {
 bc_vfs *bc_create_vfs(void);
 int bc_vfs_register(bc_vfs* pVfs, bc_vfs** pToVfs);
 
-
-// void bc_vfs_add_opened(bc_vfs* pVfs, bc_vfs_file* pFile);
-// void bc_vfs_delete_closed_file(bc_vfs* pVfs, bc_vfs_file* pFile);
-// bc_vfs_file* bc_vfs_find_file(bc_vfs* pVfs, bc_vfs_file* pFile, int previous_or_next);
-
-
-//int bc_vfs_unregister(bc_vfs* g);
 	
 int bc_file_read(bc_vfs_file* pFile, void *buf, int count, uint64_t offset);
 

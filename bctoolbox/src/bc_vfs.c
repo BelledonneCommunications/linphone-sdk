@@ -46,11 +46,6 @@ bool bc_vfs_init(bc_vfs* pVfs, bc_vfs* pToVfs, bc_vfs_file* pToFile){
 	return ret;
 }
 
-/**
- */
-
-
-
 
 
 /*
@@ -78,7 +73,6 @@ static int bcClose(bc_vfs_file *pFile){
 static int bcRead(bc_vfs_file *pFile, void *buf, int count, uint64_t offset){
 	off_t ofst;                     /* Return value from lseek() */
 	int nRead;                      /* Return value from read() */
-	//  int rc;                         /* Return code from bcFlushBuffer() */
 	
 	ofst = lseek(pFile->fd, offset, SEEK_SET);
 	if( ofst!=offset ){
@@ -119,6 +113,7 @@ static int bcDirectWrite(bc_vfs_file *p, const void *buf, int count, uint64_t of
 	
 	return BC_VFS_OK;
 }
+
 /*
  ** Write data to a crash-file.
  */
@@ -129,10 +124,9 @@ static int bcWrite(bc_vfs_file *pFile, const void *buf, int count, uint64_t offs
 	 ** following the data already buffered, flush the buffer. Flushing
 	 ** the buffer is a no-op if it is empty.
 	 */
-	
-	// }else{
+
 	return bcDirectWrite(pFile, buf, count, offset);
-	// }
+
 	
 	return BC_VFS_OK;
 }
@@ -144,7 +138,6 @@ static int bcFileSize(bc_vfs_file *pFile, uint64_t *pSize){
 
 	int rc;                         /* Return code from fstat() call */
 	struct stat sStat;              /* Output of fstat() call */
-	
 	
 	rc = fstat(pFile->fd, &sStat);
 	if( rc!=0 ) return BC_VFS_IOERR_FSTAT;
@@ -174,7 +167,7 @@ static int set_flags(const char* mode){
 	} 
 	if ((strcmp(mode, "r+") == 0) || (strcmp(mode, "w+") == 0)) {
 		flags =  O_RDWR;
-  // do something
+
 	} 
 	if(strcmp(mode, "w") == 0) {
   		flags =  O_WRONLY;
@@ -193,7 +186,6 @@ static bc_vfs_file* bcFopen(bc_vfs *pVfs, const char *fName, const char *mode){
 		bcClose,                    /* xClose */
 		bcRead,                     /* xRead */
 		bcWrite,                    /* xWrite */
-		// bcTruncate,                 /* xTruncate */
 		bcFileSize,                 /* xFileSize */
 		bcFgets,
 		bcFprintf,
@@ -219,92 +211,12 @@ static bc_vfs_file* bcFopen(bc_vfs *pVfs, const char *fName, const char *mode){
 	if( pFile->file == NULL ){
 		return BC_VFS_CANTOPEN;
 	}
-	// pFile->aBuffer = aBuf;
 	
 	pFile->pMethods = &bcio;
 	return pFile;
 }
 
 
-// static int bcFopen(bc_vfs *pVfs, const char *fName, bc_vfs_file **ppFile, const char *mode){
-// 	static const bc_io_methods bcio = {
-// 		bcClose,                    /* xClose */
-// 		bcRead,                     /* xRead */
-// 		bcWrite,                    /* xWrite */
-// 		// bcTruncate,                 /* xTruncate */
-// 		bcFileSize,                 /* xFileSize */
-// 		bcFgets,
-// 		bcFprintf,
-// 	};
-// 	bc_vfs_file* pFile = *ppFile;
-// 	if (pFile == NULL){
-// 		pFile = (bc_vfs_file*)calloc(sizeof(bc_vfs_file),1);
-// 		if (pFile == NULL){
-// 			return BC_VFS_NOMEM ;
-// 		}
-// 	} 
-
-
-	
-// 	if( fName==0 ){
-// 		return BC_VFS_IOERR;
-// 	}
-
-// 	memset(pFile, 0, sizeof(bc_vfs_file));
-// 	int oflags = 0;
-// 	oflags =set_flags(mode);
-// 	pFile->fd = open(fName, oflags, S_IRUSR | S_IWUSR);
-// 	if( pFile->fd<0 ){
-// 		return BC_VFS_CANTOPEN;
-// 	}
-// 	pFile->file = fdopen(pFile->fd, mode);
-// 	if( pFile->file == NULL ){
-// 		return BC_VFS_CANTOPEN;
-// 	}
-// 	// pFile->aBuffer = aBuf;
-	
-// 	pFile->pMethods = &bcio;
-// 	return pFile->fd;
-// }
-/*+
- ** Open a file handle.
- bc_vfs *pVfs                  VFS
- const char *fName             File to open.
- bc_vfs_file *pFile             Pointer to vfs_file struct to populate
- int flags                     flags to pass to open() call
- char mode
- */
-// static int bcOpen(bc_vfs *pVfs, const char *fName, bc_vfs_file *pFile, int flags, mode_t mode){
-// 	static const bc_io_methods bcio = {
-// 		bcClose,                    /* xClose */
-// 		bcRead,                     /* xRead */
-// 		bcWrite,                    /* xWrite */
-// 		// bcTruncate,                 /* xTruncate */
-// 		bcFileSize,                 /* xFileSize */
-// 		bcFgets,
-// 	};
-// 	int oflags = 0;                 /* flags to pass to open() call */
-
-// 	// char *aBuf = 0;
-	
-	
-// 	if( fName==0 ){
-// 		return BC_VFS_IOERR;
-// 	}
-// 	if( flags&BC_VFS_OPEN_EXCLUSIVE ) oflags |= O_EXCL;
-// 	if( flags&BC_VFS_OPEN_CREATE )    oflags |= O_CREAT;
-// 	if( flags&BC_VFS_OPEN_READONLY )  oflags |= O_RDONLY;
-// 	if( flags&BC_VFS_OPEN_READWRITE ) oflags |= O_RDWR;
-// 	memset(pFile, 0, sizeof(bc_vfs_file));
-// 	pFile->fd = open(fName, oflags, mode);
-// 	if( pFile->fd<0 ){
-// 		return BC_VFS_CANTOPEN;
-// 	}
-// 	// pFile->aBuffer = aBuf;
-	
-// 	pFile->pMethods = &bcio;
-// 	return pFile->fd;
-// }
 
 
 /*
@@ -315,11 +227,8 @@ bc_vfs *bc_create_vfs(void){
 	static bc_vfs bcVfs = {
 		0,                            /* pNext */
 		"bc_vfs",                     /* vfsName */
-	//	    0,                        /* pAppData */
-	//	bcOpen,                       /* xOpen */
 		bcFopen,						/*xFopen */
-		// bcDelete,                     /* xDelete */
-		// bcFullPathname,               /* xFullPathname */
+
 	};
 	return &bcVfs;
 }
