@@ -691,8 +691,13 @@ static int set_expires_from_trans(belle_sip_refresher_t* refresher) {
 			belle_sip_message("Neither Expires header nor corresponding Contact header found, checking from original request");
 			refresher->obtained_expires=refresher->target_expires;
 		}else if (refresher->target_expires>0 && refresher->obtained_expires==0){
+			const char* reason = response ? belle_sip_response_get_reason_phrase(response) : NULL;
 			/*check this case because otherwise we are going to loop fast in sending refresh requests.*/
-			belle_sip_warning("Server replied with 0 expires, what does that mean?");
+			/*"Test account created" is a special reason given by testers when we create temporary account.
+			Since this is a bit of hack, we can ignore logging in that case*/
+			if (reason && strcmp(reason, "Test account created") != 0) {
+				belle_sip_warning("Server replied with 0 expires, what does that mean?");
+			}
 			/*suppose it's a server bug and assume our target_expires is understood.*/
 			refresher->obtained_expires=refresher->target_expires;
 		}
