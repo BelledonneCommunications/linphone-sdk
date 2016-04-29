@@ -615,6 +615,7 @@ static void h264_dec_process(MSFilter *f) {
 	OSStatus status;
 	MSList *parameter_sets = NULL;
 	bool_t unpacking_failed;
+	bool_t iframe_received = FALSE;
 
 	ms_queue_init(&q_nalus);
 	ms_queue_init(&q_nalus2);
@@ -631,17 +632,18 @@ static void h264_dec_process(MSFilter *f) {
 	// Pull SPSs and PPSs out and put them into the filter context if necessary
 	while((nalu = ms_queue_get(&q_nalus))) {
 		MSH264NaluType nalu_type = ms_h264_nalu_get_type(nalu);
-		if(nalu_type == MSH264NaluTypeIDR) {
-			ms_message("VTH264Decoder: receiving IDR");
-		}
 		if(nalu_type == MSH264NaluTypeSPS || nalu_type == MSH264NaluTypePPS) {
 			parameter_sets = ms_list_append(parameter_sets, nalu);
+			iframe_received = TRUE;
 		} else if(ctx->format_desc || parameter_sets) {
 			ms_queue_put(&q_nalus2, nalu);
 		} else {
 			freemsg(nalu);
 		}
 	}
+	
+	if(iframe_received) ms_message("VideoToolboxDecoder: I-frame received");
+	
 	if(parameter_sets) {
 		CMFormatDescriptionRef last_format = ctx->format_desc ? CFRetain(ctx->format_desc) : NULL;
 		h264_dec_update_format_description(ctx, parameter_sets);
