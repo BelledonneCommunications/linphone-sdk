@@ -126,8 +126,10 @@ static MSTimeSpec ice_add_ms(MSTimeSpec orig, uint32_t ms);
 static int32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2);
 static char * ice_inet_ntoa(struct sockaddr *addr, int addrlen, char *dest, int destlen);
 static void transactionID2string(const UInt96 *tr_id, char *tr_id_str);
-static void ice_send_stun_server_binding_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check);
-static void ice_send_turn_server_allocate_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check);
+static IceStunServerCheckTransaction * ice_send_stun_server_binding_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, int srcport);
+static IceStunServerCheckTransaction * ice_send_turn_server_allocate_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, int srcport, MSTurnContext *turn_context);
+static IceStunServerCheckTransaction * ice_send_turn_server_refresh_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, int srcport, MSTurnContext *turn_context);
+static void ice_check_list_deallocate_turn_candidates(IceCheckList *cl);
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
 static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair *p2);
@@ -340,10 +342,6 @@ static void ice_free_stun_server_check_transaction(IceStunServerCheckTransaction
 static void ice_free_stun_server_check(IceStunServerCheck *check)
 {
 	ms_list_for_each(check->transactions, (void (*)(void*))ice_free_stun_server_check_transaction);
-	if (check->realm != NULL) ms_free(check->realm);
-	if (check->nonce != NULL) ms_free(check->nonce);
-	if (check->username != NULL) ms_free(check->username);
-	if (check->password != NULL) ms_free(check->password);
 	ms_free(check);
 }
 
@@ -380,8 +378,15 @@ static void ice_free_candidate(IceCandidate *candidate)
 	ms_free(candidate);
 }
 
+static void ice_check_list_destroy_turn_contexts(IceCheckList *cl) {
+	ice_check_list_deallocate_turn_candidates(cl);
+	if (cl->rtp_turn_context != NULL) ms_turn_context_destroy(cl->rtp_turn_context);
+	if (cl->rtcp_turn_context != NULL) ms_turn_context_destroy(cl->rtcp_turn_context);
+}
+
 void ice_check_list_destroy(IceCheckList *cl)
 {
+	ice_check_list_destroy_turn_contexts(cl);
 	if (cl->remote_ufrag) ms_free(cl->remote_ufrag);
 	if (cl->remote_pwd) ms_free(cl->remote_pwd);
 	ms_list_for_each(cl->stun_server_checks, (void (*)(void*))ice_free_stun_server_check);
@@ -407,51 +412,6 @@ void ice_check_list_destroy(IceCheckList *cl)
 	ms_free(cl);
 }
 
-
-static void ice_stun_server_check_set_realm(IceStunServerCheck *check, const char *realm)
-{
-	if (check->realm != NULL) {
-		ms_free(check->realm);
-		check->realm = NULL;
-	}
-	if (realm != NULL) check->realm = ms_strdup(realm);
-}
-
-static void ice_stun_server_check_set_nonce(IceStunServerCheck *check, const char *nonce)
-{
-	if (check->nonce != NULL) {
-		ms_free(check->nonce);
-		check->nonce = NULL;
-	}
-	if (nonce != NULL) check->nonce = ms_strdup(nonce);
-}
-
-static void ice_stun_server_check_set_username(IceStunServerCheck *check, const char *username)
-{
-	if (check->username != NULL) {
-		ms_free(check->username);
-		check->username = NULL;
-	}
-	if (username != NULL) check->username = ms_strdup(username);
-}
-
-static void ice_stun_server_check_set_password(IceStunServerCheck *check, const char *password)
-{
-	if (check->password != NULL) {
-		ms_free(check->password);
-		check->password = NULL;
-	}
-	if (password != NULL) check->password = ms_strdup(password);
-}
-
-static void ice_stun_server_check_set_ha1(IceStunServerCheck *check, const char *ha1)
-{
-	if (check->ha1 != NULL) {
-		ms_free(check->ha1);
-		check->ha1 = NULL;
-	}
-	if (ha1 != NULL) check->ha1 = ms_strdup(ha1);
-}
 
 
 /******************************************************************************
@@ -987,15 +947,20 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 		rtp_session_get_transports(cl->rtp_session,&rtptp,NULL);
 		if (rtptp) {
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
+			check->cl = cl;
+			check->turn_context = cl->rtp_turn_context;
 			check->rtptp = rtptp;
 			check->srcport = rtp_session_get_local_port(cl->rtp_session);
 			if (si->index == 0) {
+				IceStunServerCheckTransaction *transaction = NULL;
 				check->next_transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
 				if (cl->session->turn_enabled) {
-					ice_send_turn_server_allocate_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+					ms_turn_context_set_state(cl->rtp_turn_context, MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION);
+					transaction = ice_send_turn_server_allocate_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->srcport, cl->rtp_turn_context);
 				} else {
-					ice_send_stun_server_binding_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+					transaction = ice_send_stun_server_binding_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->srcport);
 				}
+				if (transaction != NULL) check->transactions = ms_list_append(check->transactions, transaction);
 			} else {
 				check->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION);
 			}
@@ -1007,16 +972,51 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 		rtp_session_get_transports(cl->rtp_session,NULL,&rtptp);
 		if (rtptp) {
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
+			check->cl = cl;
+			check->turn_context = cl->rtcp_turn_context;
 			check->rtptp = rtptp;
 			check->srcport = rtp_session_get_local_rtcp_port(cl->rtp_session);
 			check->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION);
 			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
+			if (cl->session->turn_enabled) {
+				ms_turn_context_set_state(cl->rtcp_turn_context, MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION);
+			}
 		}else {
 			ms_message("ice: no rtcp socket found for session [%p]",cl->rtp_session);
 		}
 		si->index++;
 	} else {
 		ms_message("ice: candidate gathering skipped for rtp session [%p] with check list [%p] in state [%s]",cl->rtp_session,cl,ice_check_list_state_to_string(cl->state));
+	}
+}
+
+static void ice_check_list_deallocate_turn_candidates(IceCheckList *cl) {
+	IceStunServerCheckTransaction *transaction = NULL;
+	RtpTransport *rtptp = NULL;
+	int srcport;
+
+	if ((cl->rtp_turn_context != NULL) && (ms_turn_context_get_state(cl->rtp_turn_context) >= MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED)) {
+		ms_turn_context_set_lifetime(cl->rtp_turn_context, 0);
+		rtp_session_get_transports(cl->rtp_session, &rtptp, NULL);
+		if (rtptp) {
+			srcport = rtp_session_get_local_port(cl->rtp_session);
+			transaction = ice_send_turn_server_refresh_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, srcport, cl->rtp_turn_context);
+			if (transaction != NULL) ice_free_stun_server_check_transaction(transaction);
+		} else {
+			ms_error("ice: no rtp socket found for session [%p]", cl->rtp_session);
+		}
+	}
+	if ((cl->rtcp_turn_context != NULL) && (ms_turn_context_get_state(cl->rtcp_turn_context) >= MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED)) {
+		rtptp = NULL;
+		ms_turn_context_set_lifetime(cl->rtcp_turn_context, 0);
+		rtp_session_get_transports(cl->rtp_session, NULL, &rtptp);
+		if (rtptp) {
+			srcport = rtp_session_get_local_rtcp_port(cl->rtp_session);
+			transaction = ice_send_turn_server_refresh_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, srcport, cl->rtcp_turn_context);
+			if (transaction != NULL) ice_free_stun_server_check_transaction(transaction);
+		} else {
+			ms_error("ice: no rtp socket found for session [%p]", cl->rtp_session);
+		}
 	}
 }
 
@@ -1075,9 +1075,20 @@ void ice_session_enable_forced_relay(IceSession *session, bool_t enable)
 	session->forced_relay = enable;
 }
 
+static void ice_check_list_create_turn_contexts(IceCheckList *cl)
+{
+	cl->rtp_turn_context = ms_turn_context_create();
+	cl->rtcp_turn_context = ms_turn_context_create();
+}
+
 void ice_session_enable_turn(IceSession *session, bool_t enable)
 {
+	int i;
 	session->turn_enabled = enable;
+	for (i = 0; i < ICE_SESSION_MAX_CHECK_LISTS; i++) {
+		if (session->streams[i] != NULL)
+			ice_check_list_create_turn_contexts(session->streams[i]);
+	}
 }
 
 void ice_session_set_stun_auth_requested_cb(IceSession *session, MSStunAuthRequestedCb cb, void *userdata)
@@ -1207,32 +1218,35 @@ static int ice_send_message_to_stun_addr(const RtpTransport * rtpt,char* buff,si
 	return ice_send_message_to_socket(rtpt, buff, len,(struct sockaddr *)&dest_addr, sizeof(dest_addr));
 }
 
-static void ice_send_stun_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check, MSStunMessage *msg, const char *request_type)
+static IceStunServerCheckTransaction * ice_send_stun_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, int srcport, MSStunMessage *msg, const char *request_type)
 {
+	IceStunServerCheckTransaction *transaction = NULL;
 	char *buf = NULL;
 	int len;
 	char tr_id_str[25];
 
 	len = ms_stun_message_encode(msg, &buf);
 	if (len > 0) {
-		IceStunServerCheckTransaction *transaction = ms_new0(IceStunServerCheckTransaction, 1);
+		transaction = ms_new0(IceStunServerCheckTransaction, 1);
 		transaction->request_time = ice_current_time();
 		transaction->transactionID = ms_stun_message_get_tr_id(msg);
-		check->transactions = ms_list_append(check->transactions, transaction);
 		transactionID2string(&transaction->transactionID, tr_id_str);
-		ms_message("ice: Send %s from port %u [%s]", request_type, check->srcport, tr_id_str);
+		ms_message("ice: Send %s from port %u [%s]", request_type, srcport, tr_id_str);
 		ice_send_message_to_socket(rtptp, buf, len, server, addrlen);
 	} else {
-		ms_error("ice: encoding %s from port %u [%s] failed", request_type, check->srcport, tr_id_str);
+		ms_error("ice: encoding %s from port %u [%s] failed", request_type, srcport, tr_id_str);
 	}
 	if (buf != NULL) ms_free(buf);
+	return transaction;
 }
 
-static void ice_send_stun_server_binding_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check)
+static IceStunServerCheckTransaction * ice_send_stun_server_binding_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, int srcport)
 {
+	IceStunServerCheckTransaction *transaction = NULL;
 	MSStunMessage *msg = ms_stun_binding_request_create();
-	ice_send_stun_request(rtptp, server, addrlen, check, msg, "STUN binding request");
+	transaction = ice_send_stun_request(rtptp, server, addrlen, srcport, msg, "STUN binding request");
 	ms_stun_message_destroy(msg);
+	return transaction;
 }
 
 static int ice_parse_stun_server_response(const MSStunMessage *msg, MSStunAddress *srflx_address, MSStunAddress *relay_address)
@@ -1256,18 +1270,32 @@ static void stun_address_to_str(const MSStunAddress *stun_address, char *addr, i
 	ice_inet_ntoa((struct sockaddr *)&addr_in, sizeof(addr_in), addr, addr_len);
 }
 
-static void ice_send_turn_server_allocate_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, IceStunServerCheck *check)
-{
-	MSStunMessage *msg = ms_turn_allocate_request_create();
-	if (check->realm != NULL) ms_stun_message_set_realm(msg, check->realm);
-	if (check->nonce != NULL) ms_stun_message_set_nonce(msg, check->nonce);
-	if (check->username != NULL) ms_stun_message_set_username(msg, check->username);
-	if (check->password != NULL) ms_stun_message_set_password(msg, check->password);
-	if (check->ha1 != NULL) ms_stun_message_set_ha1(msg, check->ha1);
-	if ((check->realm != NULL) || (check->nonce != NULL) || (check->username != NULL) || (check->password != NULL) || (check->ha1 != NULL))
+static void stun_message_fill_authentication_from_turn_context(MSStunMessage *msg, const MSTurnContext *turn_context) {
+	ms_stun_message_set_realm(msg, ms_turn_context_get_realm(turn_context));
+	ms_stun_message_set_nonce(msg, ms_turn_context_get_nonce(turn_context));
+	ms_stun_message_set_username(msg, ms_turn_context_get_username(turn_context));
+	ms_stun_message_set_password(msg, ms_turn_context_get_password(turn_context));
+	ms_stun_message_set_ha1(msg, ms_turn_context_get_ha1(turn_context));
+	if (ms_turn_context_get_password(turn_context) || ms_turn_context_get_ha1(turn_context))
 		ms_stun_message_enable_message_integrity(msg, TRUE);
-	ice_send_stun_request(rtptp, server, addrlen, check, msg, "TURN allocate request");
+}
+
+static IceStunServerCheckTransaction * ice_send_turn_server_allocate_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, int srcport, MSTurnContext *turn_context) {
+	IceStunServerCheckTransaction *transaction = NULL;
+	MSStunMessage *msg = ms_turn_allocate_request_create();
+	stun_message_fill_authentication_from_turn_context(msg, turn_context);
+	transaction = ice_send_stun_request(rtptp, server, addrlen, srcport, msg, "TURN allocate request");
 	ms_stun_message_destroy(msg);
+	return transaction;
+}
+
+static IceStunServerCheckTransaction * ice_send_turn_server_refresh_request(RtpTransport *rtptp, const struct sockaddr *server, socklen_t addrlen, int srcport, MSTurnContext *turn_context) {
+	IceStunServerCheckTransaction *transaction = NULL;
+	MSStunMessage *msg = ms_turn_refresh_request_create(ms_turn_context_get_lifetime(turn_context));
+	stun_message_fill_authentication_from_turn_context(msg, turn_context);
+	transaction = ice_send_stun_request(rtptp, server, addrlen, srcport, msg, "TURN refresh request");
+	ms_stun_message_destroy(msg);
+	return transaction;
 }
 
 /* Send a STUN binding request for ICE connectivity checks according to 7.1.2. */
@@ -1417,6 +1445,14 @@ static int ice_get_recv_port_from_rtp_session(const RtpSession *rtp_session, con
 	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
 		return rtp_session_get_local_rtcp_port(rtp_session);
 	} else return -1;
+}
+
+static MSTurnContext * ice_get_turn_context_from_check_list(const IceCheckList *cl, const OrtpEventData *evt_data) {
+	if (evt_data->info.socket_type == OrtpRTPSocket) {
+		return cl->rtp_turn_context;
+	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
+		return cl->rtcp_turn_context;
+	} else return NULL;
 }
 
 static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, const MSStunAddress4 *dest)
@@ -2102,6 +2138,10 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 							}
 							transaction->response_time = evt_data->ts;
 							check->responded = TRUE;
+							if (cl->session->turn_enabled) {
+								ms_turn_context_set_state(check->turn_context, MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED);
+								if (ms_stun_message_has_lifetime(msg)) ms_turn_context_set_lifetime(check->turn_context, ms_stun_message_get_lifetime(msg));
+							}
 						}
 						stun_server_response = TRUE;
 					}
@@ -2164,13 +2204,16 @@ static void ice_handle_stun_server_error_response(IceCheckList *cl, RtpSession *
 			const char *nonce = ms_stun_message_get_nonce(msg);
 			cl->session->stun_auth_requested_cb(cl->session->stun_auth_requested_userdata, realm, nonce, &username, &password, &ha1);
 			if ((username != NULL) && (cl->session->turn_enabled)) {
-				ice_stun_server_check_set_realm(check, realm);
-				ice_stun_server_check_set_nonce(check, nonce);
-				ice_stun_server_check_set_username(check, username);
-				ice_stun_server_check_set_password(check, password);
-				ice_stun_server_check_set_ha1(check, ha1);
+				IceStunServerCheckTransaction *transaction = NULL;
+				MSTurnContext *turn_context = ice_get_turn_context_from_check_list(cl, evt_data);
+				ms_turn_context_set_realm(turn_context, realm);
+				ms_turn_context_set_nonce(turn_context, nonce);
+				ms_turn_context_set_username(turn_context, username);
+				ms_turn_context_set_password(turn_context, password);
+				ms_turn_context_set_ha1(turn_context, ha1);
 				check->next_transmission_time = ice_add_ms(ice_current_time(), ICE_DEFAULT_RTO_DURATION);
-				ice_send_turn_server_allocate_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+				transaction = ice_send_turn_server_allocate_request(rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->srcport, turn_context);
+				if (transaction != NULL) check->transactions = ms_list_append(check->transactions, transaction);
 			}
 		}
 	}
@@ -3294,16 +3337,18 @@ static bool_t ice_check_gathering_timeout(IceCheckList *cl, RtpSession *rtp_sess
 
 static void ice_send_stun_server_checks(IceStunServerCheck *check, IceCheckList *cl)
 {
+	IceStunServerCheckTransaction *transaction = NULL;
 	MSTimeSpec curtime = ice_current_time();
 
 	if (ice_compare_time(curtime, check->next_transmission_time) >= 0) {
 		if (ms_list_size(check->transactions) < ICE_MAX_STUN_REQUEST_RETRANSMISSIONS) {
 			check->next_transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
 			if (cl->session->turn_enabled) {
-				ice_send_turn_server_allocate_request(check->rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+				transaction = ice_send_turn_server_allocate_request(check->rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->srcport, check->turn_context);
 			} else {
-				ice_send_stun_server_binding_request(check->rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check);
+				transaction = ice_send_stun_server_binding_request(check->rtptp, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->srcport);
 			}
+			if (transaction != NULL) check->transactions = ms_list_append(check->transactions, transaction);
 		}
 	}
 }

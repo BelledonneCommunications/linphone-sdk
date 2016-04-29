@@ -257,6 +257,12 @@ static void encode_requested_transport(StunMessageEncoder *encoder, uint8_t requ
 	encode16(encoder, 0);
 }
 
+static void encode_lifetime(StunMessageEncoder *encoder, uint32_t lifetime) {
+	encode16(encoder, MS_TURN_ATTR_LIFETIME);
+	encode16(encoder, 4);
+	encode32(encoder, lifetime);
+}
+
 
 typedef struct {
 	const char *buffer;
@@ -832,6 +838,7 @@ size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 	stun_addr = ms_stun_message_get_xor_relayed_address(msg);
 	if (stun_addr != NULL) encode_addr(&encoder, MS_TURN_ATTR_XOR_RELAYED_ADDRESS, stun_addr);
 	if (ms_stun_message_has_requested_transport(msg)) encode_requested_transport(&encoder, ms_stun_message_get_requested_transport(msg));
+	if (ms_stun_message_has_lifetime(msg)) encode_lifetime(&encoder, ms_stun_message_get_lifetime(msg));
 
 	if (ms_stun_message_has_priority(msg)) encode_priority(&encoder, ms_stun_message_get_priority(msg));
 	if (ms_stun_message_use_candidate_enabled(msg)) encode_use_candidate(&encoder);
@@ -1080,6 +1087,12 @@ MSStunMessage * ms_turn_allocate_request_create(void) {
 	return msg;
 }
 
+MSStunMessage * ms_turn_refresh_request_create(uint32_t lifetime) {
+	MSStunMessage *msg = ms_stun_message_create(MS_STUN_TYPE_REQUEST, MS_TURN_METHOD_REFRESH);
+	ms_stun_message_set_lifetime(msg, lifetime);
+	return msg;
+}
+
 bool_t ms_stun_message_has_requested_transport(const MSStunMessage *msg) {
 	return msg->has_requested_transport;
 }
@@ -1099,4 +1112,71 @@ uint32_t ms_stun_message_get_lifetime(const MSStunMessage *msg) {
 void ms_stun_message_set_lifetime(MSStunMessage *msg, uint32_t lifetime) {
 	msg->lifetime = lifetime;
 	msg->has_lifetime = TRUE;
+}
+
+
+MSTurnContext * ms_turn_context_create(void) {
+	MSTurnContext *context = ms_new0(MSTurnContext, 1);
+	context->state = MS_TURN_CONTEXT_STATE_IDLE;
+	return context;
+}
+
+void ms_turn_context_destroy(MSTurnContext *context) {
+	ms_free(context);
+}
+
+MSTurnContextState ms_turn_context_get_state(const MSTurnContext *context) {
+	return context->state;
+}
+
+void ms_turn_context_set_state(MSTurnContext *context, MSTurnContextState state) {
+	context->state = state;
+}
+
+const char * ms_turn_context_get_realm(const MSTurnContext *context) {
+	return context->realm;
+}
+
+void ms_turn_context_set_realm(MSTurnContext *context, const char *realm) {
+	STUN_STR_SETTER(context->realm, realm);
+}
+
+const char * ms_turn_context_get_nonce(const MSTurnContext *context) {
+	return context->nonce;
+}
+
+void ms_turn_context_set_nonce(MSTurnContext *context, const char *nonce) {
+	STUN_STR_SETTER(context->nonce, nonce);
+}
+
+const char * ms_turn_context_get_username(const MSTurnContext *context) {
+	return context->username;
+}
+
+void ms_turn_context_set_username(MSTurnContext *context, const char *username) {
+	STUN_STR_SETTER(context->username, username);
+}
+
+const char * ms_turn_context_get_password(const MSTurnContext *context) {
+	return context->password;
+}
+
+void ms_turn_context_set_password(MSTurnContext *context, const char *password) {
+	STUN_STR_SETTER(context->password, password);
+}
+
+const char * ms_turn_context_get_ha1(const MSTurnContext *context) {
+	return context->ha1;
+}
+
+void ms_turn_context_set_ha1(MSTurnContext *context, const char *ha1) {
+	STUN_STR_SETTER(context->ha1, ha1);
+}
+
+uint32_t ms_turn_context_get_lifetime(const MSTurnContext *context) {
+	return context->lifetime;
+}
+
+void ms_turn_context_set_lifetime(MSTurnContext *context, uint32_t lifetime) {
+	context->lifetime = lifetime;
 }

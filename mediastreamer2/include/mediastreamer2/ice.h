@@ -136,14 +136,11 @@ typedef struct _IceStunServerCheckTransaction {
 } IceStunServerCheckTransaction;
 
 typedef struct _IceStunServerCheck {
+	struct _IceCheckList *cl;
 	RtpTransport *rtptp;
+	MSTurnContext *turn_context;
 	int srcport;
 	MSList *transactions;	/**< List of IceStunServerCheckTransaction structures. */
-	char *realm;
-	char *nonce;
-	char *username;
-	char *password;
-	char *ha1;
 	MSTimeSpec next_transmission_time;
 	bool_t responded;
 } IceStunServerCheck;
@@ -219,6 +216,8 @@ typedef struct _IceTransaction {
  */
 typedef struct _IceCheckList {
 	IceSession *session;	/**< Pointer to the ICE session */
+	MSTurnContext *rtp_turn_context;	/**< TURN context for RTP socket */
+	MSTurnContext *rtcp_turn_context;	/**< TURN context for RTCP socket */
 	RtpSession *rtp_session;	/**< Pointer to the RTP session associated with this ICE check list */
 	char *remote_ufrag;	/**< Remote username fragment for this check list (provided via SDP by the peer) */
 	char *remote_pwd;	/**< Remote password for this check list (provided via SDP by the peer) */

@@ -154,6 +154,24 @@ typedef struct {
 	bool_t has_requested_transport;
 } MSStunMessage;
 
+typedef enum {
+	MS_TURN_CONTEXT_STATE_IDLE,
+	MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION,
+	MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED,
+	MS_TURN_CONTEXT_STATE_CREATING_PERMISSIONS,
+	MS_TURN_CONTEXT_STATE_RUNNING
+} MSTurnContextState;
+
+typedef struct {
+	char *realm;
+	char *nonce;
+	char *username;
+	char *password;
+	char *ha1;
+	uint32_t lifetime;
+	MSTurnContextState state;
+} MSTurnContext;
+
 
 #ifdef __cplusplus
 extern "C"
@@ -230,11 +248,29 @@ MS2_PUBLIC bool_t ms_stun_message_dummy_message_integrity_enabled(const MSStunMe
 MS2_PUBLIC void ms_stun_message_enable_dummy_message_integrity(MSStunMessage *msg, bool_t enable);
 
 MS2_PUBLIC MSStunMessage * ms_turn_allocate_request_create(void);
+MS2_PUBLIC MSStunMessage * ms_turn_refresh_request_create(uint32_t lifetime);
 MS2_PUBLIC bool_t ms_stun_message_has_requested_transport(const MSStunMessage *msg);
 MS2_PUBLIC uint8_t ms_stun_message_get_requested_transport(const MSStunMessage *msg);
 MS2_PUBLIC bool_t ms_stun_message_has_lifetime(const MSStunMessage *msg);
 MS2_PUBLIC uint32_t ms_stun_message_get_lifetime(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_set_lifetime(MSStunMessage *msg, uint32_t lifetime);
+
+MS2_PUBLIC MSTurnContext * ms_turn_context_create(void);
+MS2_PUBLIC void ms_turn_context_destroy(MSTurnContext *context);
+MS2_PUBLIC MSTurnContextState ms_turn_context_get_state(const MSTurnContext *context);
+MS2_PUBLIC void ms_turn_context_set_state(MSTurnContext *context, MSTurnContextState state);
+MS2_PUBLIC const char * ms_turn_context_get_realm(const MSTurnContext *context);
+MS2_PUBLIC void ms_turn_context_set_realm(MSTurnContext *context, const char *realm);
+MS2_PUBLIC const char * ms_turn_context_get_nonce(const MSTurnContext *context);
+MS2_PUBLIC void ms_turn_context_set_nonce(MSTurnContext *context, const char *nonce);
+MS2_PUBLIC const char * ms_turn_context_get_username(const MSTurnContext *context);
+MS2_PUBLIC void ms_turn_context_set_username(MSTurnContext *context, const char *username);
+MS2_PUBLIC const char * ms_turn_context_get_password(const MSTurnContext *context);
+MS2_PUBLIC void ms_turn_context_set_password(MSTurnContext *context, const char *password);
+MS2_PUBLIC const char * ms_turn_context_get_ha1(const MSTurnContext *context);
+MS2_PUBLIC void ms_turn_context_set_ha1(MSTurnContext *context, const char *ha1);
+MS2_PUBLIC uint32_t ms_turn_context_get_lifetime(const MSTurnContext *context);
+MS2_PUBLIC void ms_turn_context_set_lifetime(MSTurnContext *context, uint32_t lifetime);
 
 #ifdef __cplusplus
 }
