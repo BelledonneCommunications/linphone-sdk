@@ -168,6 +168,7 @@ set(VOIP_SOURCE_FILES_C
 	voip/bitratedriver.c
 	voip/ice.c
 	voip/mediastream.c
+	voip/msiframerequestslimiter.c
 	voip/msmediaplayer.c
 	voip/msvoip.c
 	voip/private.h
@@ -377,18 +378,20 @@ if(ENABLE_VIDEO)
 			voip/vp8rtpfmt.h
 		)
 	endif()
-	if(MATROSKA2_FOUND)
-		list(APPEND VOIP_SOURCE_FILES_C
-			videofilters/mkv.c
-			utils/mkv_reader.c
-		)
-	endif()
 	if(X11_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C utils/x11_helper.c)
 	endif()
 	if(XV_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C videofilters/x11video.c)
 	endif()
+endif()
+if(MATROSKA2_FOUND)
+	list(APPEND VOIP_SOURCE_FILES_C
+		videofilters/mkv.c
+		utils/mkv_reader.c
+		voip/rfc2429.h
+		voip/rfc3984.c
+	)
 endif()
 
 set(VOIP_SOURCE_FILES_ALL ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC})

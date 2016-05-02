@@ -378,22 +378,18 @@ static void player_process(MSFilter *f){
 					ms_queue_put(f->outputs[0],om);
 				}else freemsg(om);
 				if (err<bytes){
-					ms_filter_notify_no_arg(f,MS_PLAYER_EOF);
-					/*for compatibility:*/
-					ms_filter_notify_no_arg(f,MS_FILE_PLAYER_EOF);
+					
 					lseek(d->fd,d->hsize,SEEK_SET);
 
 					/* special value for playing file only once */
-					if (d->loop_after<0)
-					{
+					if (d->loop_after<0){
 						d->state=MSPlayerPaused;
-						ms_filter_unlock(f);
-						return;
-					}
-
-					if (d->loop_after>=0){
+					}else if (d->loop_after>=0){
 						d->pause_time=d->loop_after;
 					}
+					ms_filter_notify_no_arg(f,MS_PLAYER_EOF);
+					/*for compatibility:*/
+					ms_filter_notify_no_arg(f,MS_FILE_PLAYER_EOF);
 				}
 			}else{
 				ms_warning("Fail to read %i bytes: %s",bytes,strerror(errno));
