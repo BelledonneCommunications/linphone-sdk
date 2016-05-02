@@ -832,15 +832,17 @@ MSFilterDesc ms_vt_h264_dec = {
 };
 
 void _register_videotoolbox_if_supported(MSFactory *factory) {
-	if (VTCompressionSessionCreate != NULL
-		&& VTDecompressionSessionCreate != NULL
-		&& CMVideoFormatDescriptionCreateFromH264ParameterSets != NULL) {
-
+#ifdef IOS
+	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_8_0) {
+#else
+	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber10_8) {
+#endif
+		ms_message("Registering VideoToobox H264 codec");
 		ms_factory_register_filter(factory, &ms_vt_h264_enc);
 		ms_factory_register_filter(factory, &ms_vt_h264_dec);
 	} else {
-		ms_warning("Cannot register VideoToolbox filters. Those filters"
-			" require iOS 8 or MacOSX 10.8");
+		ms_warning("Cannot register VideoToolbox H264 codec. That"
+			" requires iOS 8 or MacOSX 10.8");
 	}
 }
 
