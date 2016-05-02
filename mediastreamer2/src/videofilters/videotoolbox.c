@@ -832,7 +832,7 @@ MSFilterDesc ms_vt_h264_dec = {
 };
 
 void _register_videotoolbox_if_supported(MSFactory *factory) {
-#ifdef __IOS
+#ifdef __ios
 	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_8_0) {
 #else
 	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber10_8) {
