@@ -45,6 +45,7 @@ struct bc_vfs_file {
 	const struct bc_io_methods *pMethods;  /* Methods for an open file */
 	int fd;                         /* File descriptor */
 	FILE* file;
+	int offset;
 
 	
 };
@@ -80,12 +81,13 @@ struct bc_vfs {
 
 bc_vfs *bc_create_vfs(void);
 int bc_vfs_register(bc_vfs* pVfs, bc_vfs** pToVfs);
-
-	
 int bc_file_read(bc_vfs_file* pFile, void *buf, int count, uint64_t offset);
-
 int bc_file_close(bc_vfs_file* pFile);
 bc_vfs_file* bc_file_open(bc_vfs* pVfs, const char *fName,  const char* mode);
-
 int bc_file_size(bc_vfs_file *pFile, uint64_t *pSize);
+int bc_file_write(bc_vfs_file* pFile, const void *buf, int count, uint64_t offset);
+int bc_file_printf(bc_vfs_file* pFile, uint64_t offset, const char* fmt, ...);
+char * bc_file_get_nxtline(bc_vfs_file* pFile, char*s , int maxlen);
+
+
 

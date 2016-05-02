@@ -1,7 +1,31 @@
+/***************************************************************************
+ *            bc_vfs.c
+ *
+ *  Mon May 02 11:13:44 2016
+ *  Copyright  2016  Simon Morlat
+ *  Email simon.morlat@linphone.org
+ ****************************************************************************/
+
+/*
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Library General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+
 #include "bctoolbox/bc_vfs.h"
+#include "bctoolbox/port.h"
 #include <stdbool.h>
-
-
+#include <stdarg.h>
 
 /**
  */
@@ -97,10 +121,10 @@ static int bcRead(bc_vfs_file *pFile, void *buf, int count, uint64_t offset){
  int count,                       Size of data to write in bytes
  uint64_t offset              File offset to write to
  */
-static int bcDirectWrite(bc_vfs_file *p, const void *buf, int count, uint64_t offset ){
+static int bcWrite(bc_vfs_file *p, const void *buf, int count, uint64_t offset ){
 	off_t ofst;                     /* Return value from lseek() */
 	size_t nWrite;                  /* Return value from write() */
-	
+	if (p->fd > 0){
 	ofst = lseek(p->fd, offset, SEEK_SET);
 	if( ofst!=offset ){
 		return BC_VFS_IOERR_WRITE;
@@ -112,24 +136,13 @@ static int bcDirectWrite(bc_vfs_file *p, const void *buf, int count, uint64_t of
 	}
 	
 	return BC_VFS_OK;
+	}
+	else{
+		return BC_VFS_IOERR_WRITE;
+	}
 }
 
-/*
- ** Write data to a crash-file.
- */
-static int bcWrite(bc_vfs_file *pFile, const void *buf, int count, uint64_t offset){
 
-	
-	/* If the buffer is full, or if this data is not being written directly
-	 ** following the data already buffered, flush the buffer. Flushing
-	 ** the buffer is a no-op if it is empty.
-	 */
-
-	return bcDirectWrite(pFile, buf, count, offset);
-
-	
-	return BC_VFS_OK;
-}
 
 /*
  ** Write the size of the file in bytes to *pSize.
@@ -159,6 +172,53 @@ static int bcFprintf(bc_vfs_file* pFile, const char* s){
 	return 0;
 }
 
+static char *bcGetLine(bc_vfs_file *pFile, char* s,  int max_len) {
+	
+	if (pFile->fd < 0) {
+
+		return NULL;
+	}
+	
+	int lineMaxLgth = max_len;
+	char *pTmpLineBuf = (char *)malloc(sizeof(char) * lineMaxLgth);
+	char* pLineBuf = NULL;
+	char* pNextLine = NULL;
+	
+	if (pTmpLineBuf == NULL) {
+		printf("Error allocating memory for line buffer.");
+		return NULL;
+	}
+	
+	int ret = bc_file_read(pFile, pTmpLineBuf, lineMaxLgth, pFile->offset);
+//	read return 0 if EOF
+	
+	int sizeofline = 0;
+	
+
+	while (((pNextLine = strstr(pTmpLineBuf, "\n")) == NULL)) {
+		if (ret == 0) {
+			lineMaxLgth += lineMaxLgth;
+			pTmpLineBuf = realloc(pTmpLineBuf, lineMaxLgth);
+			if (pTmpLineBuf == NULL) {
+				printf("Error reallocating space for line buffer.");
+				return  NULL;
+			}
+			ret = bc_file_read(pFile, pTmpLineBuf, lineMaxLgth,pFile->offset);
+
+		}
+	}
+	// offset to next beginning of line
+	pNextLine = pNextLine +1;
+	pFile->offset = (pNextLine - pTmpLineBuf)/sizeof(char);
+	sizeofline = strcspn(pTmpLineBuf, "\n");
+//	pLineBuf = (char *)malloc(sizeof(char) * sizeofline);
+	strncpy(s, pTmpLineBuf, sizeofline );
+//	free(pTmpLineBuf);
+//	s = pLineBuf;
+	return pNextLine;
+}
+
+
 static int set_flags(const char* mode){
 	int flags;
 	int oflags = 0;                 /* flags to pass to open() call */
@@ -187,7 +247,7 @@ static bc_vfs_file* bcFopen(bc_vfs *pVfs, const char *fName, const char *mode){
 		bcRead,                     /* xRead */
 		bcWrite,                    /* xWrite */
 		bcFileSize,                 /* xFileSize */
-		bcFgets,
+		bcGetLine,
 		bcFprintf,
 	};
 	bc_vfs_file* pFile = (bc_vfs_file*)calloc(sizeof(bc_vfs_file),1);
@@ -233,13 +293,19 @@ bc_vfs *bc_create_vfs(void){
 	return &bcVfs;
 }
 
+int bc_file_write(bc_vfs_file* pFile, const void *buf, int count, uint64_t offset){
+	if (pFile!=NULL) {
+		return pFile->pMethods->xWrite(pFile,buf, count, offset);
+	}
+	return -1;
+}
 
 bc_vfs_file* bc_file_open(bc_vfs* pVfs, const char *fName,  const char* mode){
 	return pVfs->xFopen(pVfs,fName, mode);
 }
 
 int bc_file_read(bc_vfs_file* pFile, void *buf, int count, uint64_t offset){
-	return pFile->pMethods->xRead(pFile, buf, count, mode)
+	return pFile->pMethods->xRead(pFile, buf, count, offset);
 }
 
 int bc_file_close(bc_vfs_file* pFile){
@@ -247,5 +313,27 @@ int bc_file_close(bc_vfs_file* pFile){
  }
 
 int bc_file_size(bc_vfs_file *pFile, uint64_t *pSize){
- 	pFile->pMethods->xFileSize(pFile,pSize);
+ 	return pFile->pMethods->xFileSize(pFile,pSize);
  }
+
+
+int bc_file_printf(bc_vfs_file* pFile, uint64_t offset, const char* fmt, ...){
+	
+	char* ret;
+	va_list args;
+	int count = 0;
+	va_start (args, fmt);
+	ret = bctoolbox_strdup_vprintf(fmt, args);
+	va_end(args);
+	count = sizeof(ret);
+	bc_file_write(pFile, ret, count, offset);
+	return sizeof(ret);
+	
+}
+
+char * bc_file_get_nxtline(bc_vfs_file* pFile, char*s , int maxlen){
+	if (pFile){
+		return pFile->pMethods->xFgets(pFile,s, maxlen);
+	}
+	return NULL;
+}
