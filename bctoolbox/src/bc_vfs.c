@@ -24,10 +24,16 @@
 
 #include "bctoolbox/bc_vfs.h"
 #include "bctoolbox/port.h"
+#include "bctoolbox/logging.h"
 #include <stdbool.h>
 #include <stdarg.h>
+#include <errno.h>
 
 /**
+ * [bc_vfs_find description]
+ * @param  p        [description]
+ * @param  zVfsName [description]
+ * @return          [description]
  */
 bc_vfs *bc_vfs_find(bc_vfs* p, const char *zVfsName){
 	bc_vfs *tmp = p;
@@ -41,18 +47,27 @@ bc_vfs *bc_vfs_find(bc_vfs* p, const char *zVfsName){
 	return NULL;
 }
 /**
+ * [bc_vfs_register description]
+ * @param  pVfs   Pointer to the vfs instance in use.
+ * @param  pToVfs [description]
+ * @return        [description]
  */
 int bc_vfs_register(bc_vfs* pVfs, bc_vfs** pToVfs){
 	int ret = 1;
-	if (pVfs != NULL){
-		*pToVfs = pVfs;
-	}
+	if (pVfs != NULL) *pToVfs = pVfs;
 	else{
 			ret = 0;
 	}
 	return ret;
 }
 
+/**
+ * [bc_vfs_init description]
+ * @param  pVfs    Pointer to the vfs instance in use.
+ * @param  pToVfs  [description]
+ * @param  pToFile [description]
+ * @return         [description]
+ */
 bool bc_vfs_init(bc_vfs* pVfs, bc_vfs* pToVfs, bc_vfs_file* pToFile){
 	bool ret = 1;
 	bc_vfs_file *pFile = (bc_vfs_file*)calloc(sizeof(bc_vfs_file),1);
@@ -62,8 +77,7 @@ bool bc_vfs_init(bc_vfs* pVfs, bc_vfs* pToVfs, bc_vfs_file* pToFile){
 	else{ 
 		ret = 0;
 	}	
-	if (pToVfs != NULL)
-			pToVfs = pVfs;
+	if (pToVfs != NULL) pToVfs = pVfs;
 	else{
 		ret = 0;
 	}
