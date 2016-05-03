@@ -125,8 +125,12 @@ else()
 			set(EP_vpx_TARGET "x86-android-gcc")
 			set(EP_vpx_EXTRA_ASFLAGS "-D__ANDROID__")
 		endif()
-		set(EP_vpx_EXTRA_CFLAGS "--sysroot=${CMAKE_SYSROOT}")
-		set(EP_vpx_EXTRA_LDFLAGS "--sysroot=${CMAKE_SYSROOT}")
+		if(CMAKE_C_COMPILER_TARGET) # When building with clang
+			set(EP_vpx_EXTRA_CFLAGS "${EP_vpx_EXTRA_CFLAGS} --target=${CMAKE_C_COMPILER_TARGET}")
+			set(EP_vpx_EXTRA_LDFLAGS "${EP_vpx_EXTRA_LDFLAGS} --target=${CMAKE_C_COMPILER_TARGET} -L${GCC_LIBRARY_PATH}")
+		endif()
+		set(EP_vpx_EXTRA_CFLAGS "${EP_vpx_EXTRA_CFLAGS} --sysroot=${CMAKE_SYSROOT}")
+		set(EP_vpx_EXTRA_LDFLAGS "${EP_vpx_EXTRA_LDFLAGS} --sysroot=${CMAKE_SYSROOT}")
 		list(APPEND EP_vpx_CONFIGURE_OPTIONS
 			"--sdk-path=${ANDROID_NDK_PATH}"
 			"--enable-pic"

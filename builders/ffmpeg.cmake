@@ -48,6 +48,7 @@ else()
 	set(EP_ffmpeg_IGNORE_WARNINGS TRUE)
 	set(EP_ffmpeg_BUILD_METHOD "autotools")
 	set(EP_ffmpeg_CONFIGURE_OPTIONS
+		"--disable-doc"
 		"--disable-zlib"
 		"--disable-bzlib"
 		"--disable-ffplay"
@@ -138,6 +139,10 @@ else()
 				list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--enable-neon" "--cpu=cortex-a8" "--disable-armv5te" "--enable-armv6" "--enable-armv6t2")
 			else()
 				list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--disable-mmx" "--disable-sse2" "--disable-ssse3")
+			endif()
+			if(CMAKE_C_COMPILER_TARGET) # When building with clang
+				list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--extra-cflags=--target=${CMAKE_C_COMPILER_TARGET} --gcc-toolchain=${EXTERNAL_TOOLCHAIN_PATH}/..")
+				list(APPEND EP_ffmpeg_CONFIGURE_OPTIONS "--extra-ldflags=--target=${CMAKE_C_COMPILER_TARGET} --gcc-toolchain=${EXTERNAL_TOOLCHAIN_PATH}/..")
 			endif()
 		else()
 			set(EP_ffmpeg_TARGET_OS "linux")

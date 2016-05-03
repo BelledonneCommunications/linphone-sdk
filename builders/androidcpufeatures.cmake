@@ -1,5 +1,5 @@
 ############################################################################
-# toolchan-android-x86.cmake
+# androidcpufeatures.cmake
 # Copyright (C) 2016  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,33 +20,4 @@
 #
 ############################################################################
 
-set(CMAKE_SYSTEM_PROCESSOR "x86")
-set(ARCHITECTURE "x86")
-set(NDK_ARCHITECTURE "x86")
-set(COMPILER_PREFIX "i686-linux-android")
-set(CLANG_TARGET "i686-none-linux-androideabi")
-include("${CMAKE_CURRENT_LIST_DIR}/android/toolchain-android.cmake")
-
-add_compile_options(
-	"-ffunction-sections"
-	"-funwind-tables"
-	"-fstack-protector"
-	"-no-canonical-prefixes"
-	"-fomit-frame-pointer"
-	"-fstrict-aliasing"
-)
-
-if(NOT CLANG_EXECUTABLE)
-	add_compile_options(
-		"-funswitch-loops"
-		"-finline-limit=300"
-	)
-endif()
-
-link_libraries(
-	"-no-canonical-prefixes"
-	"-Wl,--no-undefined"
-	"-Wl,-z,noexecstack"
-	"-Wl,-z,relro"
-	"-Wl,-z,now"
-)
+set(EP_androidcpufeatures_EXTERNAL_SOURCE_PATHS "externals/build/cpufeatures")

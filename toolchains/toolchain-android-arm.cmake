@@ -24,6 +24,7 @@ set(CMAKE_SYSTEM_PROCESSOR "armeabi")
 set(ARCHITECTURE "arm")
 set(NDK_ARCHITECTURE "armeabi")
 set(COMPILER_PREFIX "arm-linux-androideabi")
+set(CLANG_TARGET "arm-none-linux-androideabi")
 include("${CMAKE_CURRENT_LIST_DIR}/android/toolchain-android.cmake")
 
 add_compile_options(
@@ -36,8 +37,13 @@ add_compile_options(
 	"-msoft-float"
 	"-fomit-frame-pointer"
 	"-fno-strict-aliasing"
-	"-finline-limit=64"
 )
+
+if(NOT CLANG_EXECUTABLE)
+	add_compile_options(
+		"-finline-limit=64"
+	)
+endif()
 
 link_libraries(
 	"-no-canonical-prefixes"
