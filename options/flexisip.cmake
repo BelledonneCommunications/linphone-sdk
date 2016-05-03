@@ -47,3 +47,7 @@ add_feature_info("SNMP" ENABLE_SNMP "Enable SNMP support")
 option(ENABLE_SOCI "Enable SOCI support" "${DEFAULT_ENABLE_SOCI}")
 add_feature_info("SOCI" ENABLE_SOCI "Enable SOCI support")
 cmake_dependent_option(ENABLE_SOCI_BUILD "Build SOCI from sources instead of taking the operating system version." "${DEFAULT_VALUE_ENABLE_SOCI_BUILD}" "ENABLE_SOCI" OFF)
+
+option(ENABLE_TRANSCODER "Enable TRANSCODER support" "${DEFAULT_ENABLE_TRANSCODER}")
+add_feature_info("TRANSCODER" ENABLE_TRANSCODER "Enable TRANSCODER support")
+

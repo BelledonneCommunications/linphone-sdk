@@ -94,6 +94,10 @@ endif()
 
 # needed *before* the include
 set(EP_ortp_FORCE_AUTOTOOLS True)
+list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
+set(EP_ms2_USE_AUTOGEN True)
+set(EP_ms2_FORCE_AUTOTOOLS True)
+set(EP_ms2_CONFIGURE_OPTIONS "--disable-video")
 #required to use autotools
 set(EP_bellesip_USE_AUTOGEN True)
 set(EP_flexisip_FORCE_AUTOTOOLS True)
@@ -112,21 +116,30 @@ set(EP_bellesip_BUILD_METHOD "rpm")
 set(EP_sofiasip_BUILD_METHOD "rpm")
 set(EP_flexisip_BUILD_METHOD "rpm")
 set(EP_odb_BUILD_METHOD      "custom")
+set(EP_ms2_BUILD_METHOD "rpm")
 
+set(EP_ms2_SPEC_PREFIX     "${RPM_INSTALL_PREFIX}")
 set(EP_ortp_SPEC_PREFIX     "${RPM_INSTALL_PREFIX}")
 set(EP_bellesip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_sofiasip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 set(EP_flexisip_SPEC_PREFIX "${RPM_INSTALL_PREFIX}")
 
-set(EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder" "--enable-redis" "--enable-libodb=no" "--enable-libodb-mysql=no")
+set(EP_flexisip_CONFIGURE_OPTIONS "--enable-redis" "--enable-libodb=no" "--enable-libodb-mysql=no")
 
 
-set(EP_ortp_RPMBUILD_OPTIONS      "--with bc --without srtp")
+set(EP_ortp_RPMBUILD_OPTIONS      "--with bc")
+set(EP_ms2_RPMBUILD_OPTIONS       "--with bc --without video")
 set(EP_unixodbc_RPMBUILD_OPTIONS  "--with bc")
 set(EP_myodbc_RPMBUILD_OPTIONS    "--with bc")
 set(EP_sofiasip_RPMBUILD_OPTIONS  "--with bc --without glib")
 set(EP_hiredis_RPMBUILD_OPTIONS   "--with bc" )
-set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --with push")
+if (ENABLE_TRANSCODER)
+	set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --with push")
+else()
+	list(APPEND EP_flexisip_CONFIGURE_OPTIONS "--disable-transcoder")
+	set(EP_flexisip_RPMBUILD_OPTIONS  "--with bc --without transcoder --with push")
+endif()
+
 set(EP_bellesip_RPMBUILD_OPTIONS  "--with bc ")
 
 if (ENABLE_PRESENCE)
