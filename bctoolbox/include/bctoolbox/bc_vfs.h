@@ -9,30 +9,11 @@
 
 #define BC_VFS_OK           1   /* Successful result */
 /* beginning-of-error-codes */
-#define BC_VFS_ERROR        0   /* error or missing file */
-#define BC_VFS_PERM         2   /* Access permission denied */
-#define BC_VFS_ABORT        3   /* Callback routine requested an abort */
-#define BC_VFS_NOMEM        5   /* A malloc() failed */
-#define BC_VFS_READONLY     8   /* Attempt to write a readonly file */
-#define BC_VFS_INTERRUPT    9   /* Operation terminated by interrupt()*/
-#define BC_VFS_IOERR       10   /* Some kind of disk I/O error occurred */
-#define BC_VFS_CORRUPT     11   /* The file disk image is malformed */
-#define BC_VFS_NOTFOUND    12   /* Unknown opcode in sqlite3_file_control() */
-#define BC_VFS_FULL        13   /* Insertion failed because file is full */
-#define BC_VFS_CANTOPEN    -1   /* Unable to open the file */
-#define BC_VFS_EMPTY       16   /* file is empty */
+#define BC_VFS_ERROR        -1   /* error or missing file */
 
-#define BC_VFS_DONE        101
-	
-#define BC_VFS_OPEN_READONLY         0x00000001  
-#define BC_VFS_OPEN_READWRITE        0x00000002  
-#define BC_VFS_OPEN_CREATE           0x00000004  
-#define BC_VFS_OPEN_DELETEONCLOSE    0x00000008  
-#define BC_VFS_OPEN_EXCLUSIVE        0x00000010  
-#define BC_VFS_IOERR_READ              (BC_VFS_IOERR | (1<<8))
-#define BC_VFS_IOERR_SHORT_READ        (BC_VFS_IOERR | (2<<8))
-#define BC_VFS_IOERR_WRITE             (BC_VFS_IOERR | (3<<8))
-#define BC_VFS_IOERR_FSTAT             (BC_VFS_IOERR | (7<<8))
+#define BC_VFS_IOERR       -1   /* Some kind of disk I/O error occurred */
+
+#define BC_VFS_CANTOPEN    -1   /* Unable to open the file */
 
 
 /**
@@ -59,8 +40,9 @@ struct bc_io_methods {
 	int (*xWrite)(bc_vfs_file*, const void*, int count, uint64_t offset);
 	// int (*xTruncate)(bc_vfs_file*, uint64_t size);
 	int (*xFileSize)(bc_vfs_file*, uint64_t *pSize);
-	char* (*xFgets)(bc_vfs_file*, char* s, int count);
+	int (*xFgets)(bc_vfs_file*, char* s, int count);
 	int (*xFprintf)(bc_vfs_file*, const char* s);
+	int	(*xSeek)(bc_vfs_file *pFile, uint64_t offset, int whence);
 };
 
 
@@ -88,6 +70,6 @@ int bc_file_size(bc_vfs_file *pFile, uint64_t *pSize);
 int bc_file_write(bc_vfs_file* pFile, const void *buf, int count, uint64_t offset);
 int bc_file_printf(bc_vfs_file* pFile, uint64_t offset, const char* fmt, ...);
 char * bc_file_get_nxtline(bc_vfs_file* pFile, char*s , int maxlen);
-
+int bc_file_seek(bc_vfs_file *pFile, uint64_t offset, int whence);
 
 
