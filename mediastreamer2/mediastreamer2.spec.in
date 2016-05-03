@@ -2,20 +2,32 @@
 # 
 # mediastreamer2 -- A media streaming library for telephony applications
 # 
+# These 2 lines are here because we can build the RPM for flexisip, in which
+# case we prefix the entire installation so that we don't break compatibility
+# with the user's libs.
+# To compile with bc prefix, use rpmbuild -ba --with bc [SPEC]
+%define                 pkg_name        %{?_with_bc:bc-mediastreamer}%{!?_with_bc:mediastreamer}
+%{?_with_bc: %define    _prefix         /opt/belledonne-communications}
+
+# re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
+# taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
+%define _datarootdir       %{_prefix}/share
+%define _datadir           %{_datarootdir}
+%define _docdir            %{_datadir}/doc
 
 %ifarch %ix86
 %define		mediastreamer2_cpu	pentium4
 %endif
 
 Summary:	Audio/Video real-time streaming
-Name:		mediastreamer
+Name:		%pkg_name
 Version:	@MEDIASTREAMER_VERSION@
 Release:	%(git describe --tags --abbrev=40 | sed -rn 's/^.*-([0-9]+)-g[a-z0-9]{40}$/\1/p' || echo '1')%{?dist}
 License:	GPL
 Group:		Applications/Communications
 URL:		http://www.mediastreamer2.com
-Source0:	%{name}-@MEDIASTREAMER_VERSION@.tar.gz
-BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
+Source0:        %{name}-%{version}.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 %ifarch %ix86
 BuildArch:	i686
 %endif
