@@ -130,6 +130,7 @@ typedef struct {
 	MSStunErrorCode error_code;
 	MSStunAddress mapped_address;
 	MSStunAddress xor_mapped_address;
+	MSStunAddress xor_peer_address;
 	MSStunAddress xor_relayed_address;
 	uint32_t change_request;
 	uint32_t fingerprint;
@@ -145,6 +146,7 @@ typedef struct {
 	bool_t has_fingerprint;
 	bool_t has_mapped_address;
 	bool_t has_xor_mapped_address;
+	bool_t has_xor_peer_address;
 	bool_t has_xor_relayed_address;
 	bool_t has_priority;
 	bool_t has_use_candidate;
@@ -199,6 +201,7 @@ MS2_PUBLIC bool_t ms_stun_message_is_error_response(const MSStunMessage *msg);
 MS2_PUBLIC bool_t ms_stun_message_is_indication(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_destroy(MSStunMessage *msg);
 MS2_PUBLIC size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf);
+MS2_PUBLIC uint16_t ms_stun_message_get_method(const MSStunMessage *msg);
 MS2_PUBLIC uint16_t ms_stun_message_get_length(const MSStunMessage *msg);
 MS2_PUBLIC UInt96 ms_stun_message_get_tr_id(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_set_tr_id(MSStunMessage *msg, UInt96 tr_id);
@@ -227,6 +230,8 @@ MS2_PUBLIC const MSStunAddress * ms_stun_message_get_mapped_address(const MSStun
 MS2_PUBLIC void ms_stun_message_set_mapped_address(MSStunMessage *msg, MSStunAddress mapped_address);
 MS2_PUBLIC const MSStunAddress * ms_stun_message_get_xor_mapped_address(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_set_xor_mapped_address(MSStunMessage *msg, MSStunAddress xor_mapped_address);
+MS2_PUBLIC const MSStunAddress * ms_stun_message_get_xor_peer_address(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_xor_peer_address(MSStunMessage *msg, MSStunAddress xor_peer_address);
 MS2_PUBLIC const MSStunAddress * ms_stun_message_get_xor_relayed_address(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_set_xor_relayed_address(MSStunMessage *msg, MSStunAddress xor_relayed_address);
 MS2_PUBLIC void ms_stun_message_enable_change_ip(MSStunMessage *msg, bool_t enable);
@@ -249,6 +254,7 @@ MS2_PUBLIC void ms_stun_message_enable_dummy_message_integrity(MSStunMessage *ms
 
 MS2_PUBLIC MSStunMessage * ms_turn_allocate_request_create(void);
 MS2_PUBLIC MSStunMessage * ms_turn_refresh_request_create(uint32_t lifetime);
+MS2_PUBLIC MSStunMessage * ms_turn_create_permission_request_create(MSStunAddress peer_address);
 MS2_PUBLIC bool_t ms_stun_message_has_requested_transport(const MSStunMessage *msg);
 MS2_PUBLIC uint8_t ms_stun_message_get_requested_transport(const MSStunMessage *msg);
 MS2_PUBLIC bool_t ms_stun_message_has_lifetime(const MSStunMessage *msg);

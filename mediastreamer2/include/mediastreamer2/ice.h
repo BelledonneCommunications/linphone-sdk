@@ -129,21 +129,23 @@ typedef struct _IceSession {
 	bool_t turn_enabled;	/**< TURN protocol enabled */
 } IceSession;
 
-typedef struct _IceStunServerCheckTransaction {
+typedef struct _IceStunServerRequestTransaction {
 	UInt96 transactionID;
 	MSTimeSpec request_time;
 	MSTimeSpec response_time;
-} IceStunServerCheckTransaction;
+} IceStunServerRequestTransaction;
 
-typedef struct _IceStunServerCheck {
+typedef struct _IceStunServerRequest {
 	struct _IceCheckList *cl;
 	RtpTransport *rtptp;
 	MSTurnContext *turn_context;
 	int srcport;
-	MSList *transactions;	/**< List of IceStunServerCheckTransaction structures. */
+	MSList *transactions;	/**< List of IceStunServerRequestTransaction structures. */
 	MSTimeSpec next_transmission_time;
+	MSStunAddress peer_address;
+	uint16_t stun_method;
 	bool_t responded;
-} IceStunServerCheck;
+} IceStunServerRequest;
 
 /**
  * Structure representing an ICE transport address.
@@ -221,7 +223,7 @@ typedef struct _IceCheckList {
 	RtpSession *rtp_session;	/**< Pointer to the RTP session associated with this ICE check list */
 	char *remote_ufrag;	/**< Remote username fragment for this check list (provided via SDP by the peer) */
 	char *remote_pwd;	/**< Remote password for this check list (provided via SDP by the peer) */
-	MSList *stun_server_checks;	/**< List of IceStunServerCheck structures */
+	MSList *stun_server_requests;	/**< List of IceStunServerRequest structures */
 	MSList *local_candidates;	/**< List of IceCandidate structures */
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */

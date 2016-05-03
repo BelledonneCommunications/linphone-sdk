@@ -719,6 +719,14 @@ MSStunMessage * ms_stun_message_create_from_buffer_parsing(const char *buf, size
 			case MS_ICE_ATTR_ICE_CONTROLLING:
 				ms_stun_message_set_ice_controlling(msg, decode_ice_control(&decoder, length));
 				break;
+			case MS_TURN_ATTR_XOR_PEER_ADDRESS:
+				{
+					MSStunAddress stun_addr = decode_addr(&decoder, length);
+					stun_addr.ipv4.addr ^= MS_STUN_MAGIC_COOKIE;
+					stun_addr.ipv4.port ^= MS_STUN_MAGIC_COOKIE >> 16;
+					ms_stun_message_set_xor_peer_address(msg, stun_addr);
+				}
+				break;
 			case MS_TURN_ATTR_XOR_RELAYED_ADDRESS:
 				{
 					MSStunAddress stun_addr = decode_addr(&decoder, length);
@@ -835,6 +843,8 @@ size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 	stun_addr = ms_stun_message_get_xor_mapped_address(msg);
 	if (stun_addr != NULL) encode_addr(&encoder, MS_STUN_ATTR_XOR_MAPPED_ADDRESS, stun_addr);
 
+	stun_addr = ms_stun_message_get_xor_peer_address(msg);
+	if (stun_addr != NULL) encode_addr(&encoder, MS_TURN_ATTR_XOR_PEER_ADDRESS, stun_addr);
 	stun_addr = ms_stun_message_get_xor_relayed_address(msg);
 	if (stun_addr != NULL) encode_addr(&encoder, MS_TURN_ATTR_XOR_RELAYED_ADDRESS, stun_addr);
 	if (ms_stun_message_has_requested_transport(msg)) encode_requested_transport(&encoder, ms_stun_message_get_requested_transport(msg));
@@ -865,6 +875,10 @@ size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 	message_length = stun_message_encoder_get_message_length(&encoder);
 	encode_message_length(&encoder, message_length - STUN_MESSAGE_HEADER_LENGTH);
 	return message_length;
+}
+
+uint16_t ms_stun_message_get_method(const MSStunMessage *msg) {
+	return msg->method;
 }
 
 uint16_t ms_stun_message_get_length(const MSStunMessage *msg) {
@@ -999,6 +1013,16 @@ void ms_stun_message_set_xor_mapped_address(MSStunMessage *msg, MSStunAddress xo
 	msg->has_xor_mapped_address = TRUE;
 }
 
+const MSStunAddress * ms_stun_message_get_xor_peer_address(const MSStunMessage *msg) {
+	if (msg->has_xor_peer_address) return &msg->xor_peer_address;
+	return NULL;
+}
+
+void ms_stun_message_set_xor_peer_address(MSStunMessage *msg, MSStunAddress xor_peer_address) {
+	msg->xor_peer_address = xor_peer_address;
+	msg->has_xor_peer_address = TRUE;
+}
+
 const MSStunAddress * ms_stun_message_get_xor_relayed_address(const MSStunMessage *msg) {
 	if (msg->has_xor_relayed_address) return &msg->xor_relayed_address;
 	return NULL;
@@ -1090,6 +1114,14 @@ MSStunMessage * ms_turn_allocate_request_create(void) {
 MSStunMessage * ms_turn_refresh_request_create(uint32_t lifetime) {
 	MSStunMessage *msg = ms_stun_message_create(MS_STUN_TYPE_REQUEST, MS_TURN_METHOD_REFRESH);
 	ms_stun_message_set_lifetime(msg, lifetime);
+	return msg;
+}
+
+MSStunMessage * ms_turn_create_permission_request_create(MSStunAddress peer_address) {
+	MSStunMessage *msg = ms_stun_message_create(MS_STUN_TYPE_REQUEST, MS_TURN_METHOD_CREATE_PERMISSION);
+	peer_address.ipv4.addr ^= MS_STUN_MAGIC_COOKIE;
+	peer_address.ipv4.port ^= MS_STUN_MAGIC_COOKIE >> 16;
+	ms_stun_message_set_xor_peer_address(msg, peer_address);
 	return msg;
 }
 
