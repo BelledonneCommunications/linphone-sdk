@@ -24,6 +24,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #   define ELF @
 #endif
 
+#ifdef __clang__
+#   define FUNC @.func
+#   define ENDFUNC @.endfunc
+#else
+#   define FUNC .func
+#   define ENDFUNC .endfunc
+#endif
+
 .macro  require8 val=1
 ELF     .eabi_attribute 24, \val
 .endm
@@ -36,7 +44,7 @@ ELF     .eabi_attribute 25, \val
 	.global \name
 ELF	.hidden \name
 ELF	.type   \name, %function
-	.func   \name
+	FUNC   \name
 \name:
         .endm
 
@@ -76,7 +84,7 @@ function ms_line_rgb2rgb565_4
 		bne 			1b
 		pop			{r4}
 		bx			lr
-.endfunc
+ENDFUNC
 
 
 /*void ms_line_rgb2rgb565_8 (const int16_t *r, const int16_t *g, const int16_t *b, uint16_t *dst, int width)*/
@@ -97,7 +105,7 @@ function ms_line_rgb2rgb565_8
 		bne 			1b
 		pop			{r4}
 		bx			lr
-.endfunc
+ENDFUNC
 
 .macro load_pixels_4_2	d_reg1, d_reg2, src
 	add		r12, \src, #2		/* offset to reach next pixels */
@@ -157,7 +165,7 @@ function ms_line_scale_8
 	subs		r3,r3,#8	/*we have processed 8 pixels, decrement width*/
 	bne		1b
 	pop		{r4-r12,pc}
-.endfunc
+ENDFUNC
 
 
 
@@ -199,7 +207,7 @@ function ms_line_scale_simple_8
 	bne		1b
 	pop		{r4-r11}
 	bx		lr
-.endfunc
+ENDFUNC
 
 
 .if 0
@@ -238,7 +246,7 @@ function line_yuv2rgb
 	/**/
 	pop				{r4-r7}
 	bx				lr
-.endfunc
+ENDFUNC
 
 
 

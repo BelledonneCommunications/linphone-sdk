@@ -634,7 +634,7 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 			ms_bufferizer_skip_bytes(&ad->bf, avail - (ask * 2));
 		}
 		if (avail != 0) {
-			if ((ad->minBufferFilling == -1)) {
+			if (ad->minBufferFilling == -1) {
 				ad->minBufferFilling = avail;
 			} else if (avail < ad->minBufferFilling) {
 				ad->minBufferFilling = avail;

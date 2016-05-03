@@ -772,7 +772,7 @@ static void opensles_player_callback(SLAndroidSimpleBufferQueueItf bq, void* con
 	}
 
 	if (avail != 0) {
-		if ((octx->minBufferFilling == -1)) {
+		if (octx->minBufferFilling == -1) {
 			octx->minBufferFilling = avail;
 		} else if (avail < octx->minBufferFilling) {
 			octx->minBufferFilling = avail;

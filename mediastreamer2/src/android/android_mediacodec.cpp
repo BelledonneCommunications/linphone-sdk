@@ -604,12 +604,12 @@ bool AMediaFormat_getInt32(AMediaFormat *format, const char *name, int32_t *out)
 	if (mediaFormatClass==NULL){
 		ms_error("Couldn't find android/media/MediaFormat class !");
 		env->ExceptionClear(); //very important.
-		return NULL;
+		return false;
 	}
 	jmethodID setStringID = env->GetMethodID(mediaFormatClass,"getInteger","(Ljava/lang/String;)I");
 	if(format == NULL) {
 		ms_error("Format nul");
-		return AMEDIA_ERROR_BASE;
+		return false;
 	}
 	if (setStringID != NULL){
 		jstring jkey = env->NewStringUTF(name);
@@ -620,10 +620,10 @@ bool AMediaFormat_getInt32(AMediaFormat *format, const char *name, int32_t *out)
 		ms_error("getInteger() not found in class format !");
 		env->ExceptionClear(); //very important.
 		env->DeleteLocalRef(mediaFormatClass);
-		return AMEDIA_ERROR_BASE;
+		return false;
 	}
 	env->DeleteLocalRef(mediaFormatClass);
-	return AMEDIA_OK;
+	return true;
 }
 
 void AMediaFormat_setInt32(AMediaFormat *format, const char* name, int32_t value){
