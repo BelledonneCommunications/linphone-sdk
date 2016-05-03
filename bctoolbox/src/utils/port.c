@@ -201,7 +201,7 @@ unsigned long __bctoolbox_thread_self(void) {
 #endif
 #if	defined(_WIN32) || defined(_WIN32_WCE)
 
-int WIN_mutex_init(bctoolbox_mutex_t *mutex, void *attr)
+int __bctoolbox_WIN_mutex_init(bctoolbox_mutex_t *mutex, void *attr)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	*mutex=CreateMutex(NULL, FALSE, NULL);
@@ -211,7 +211,7 @@ int WIN_mutex_init(bctoolbox_mutex_t *mutex, void *attr)
 	return 0;
 }
 
-int WIN_mutex_lock(bctoolbox_mutex_t * hMutex)
+int __bctoolbox_WIN_mutex_lock(bctoolbox_mutex_t * hMutex)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	WaitForSingleObject(*hMutex, INFINITE); /* == WAIT_TIMEOUT; */
@@ -221,7 +221,7 @@ int WIN_mutex_lock(bctoolbox_mutex_t * hMutex)
 	return 0;
 }
 
-int WIN_mutex_unlock(bctoolbox_mutex_t * hMutex)
+int __bctoolbox_WIN_mutex_unlock(bctoolbox_mutex_t * hMutex)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	ReleaseMutex(*hMutex);
@@ -231,7 +231,7 @@ int WIN_mutex_unlock(bctoolbox_mutex_t * hMutex)
 	return 0;
 }
 
-int WIN_mutex_destroy(bctoolbox_mutex_t * hMutex)
+int __bctoolbox_WIN_mutex_destroy(bctoolbox_mutex_t * hMutex)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	CloseHandle(*hMutex);
@@ -256,7 +256,7 @@ static unsigned WINAPI thread_starter(void *data){
 #    define	_endthreadex	ExitThread
 #endif
 
-int WIN_thread_create(bctoolbox_thread_t *th, void *attr, void * (*func)(void *), void *data)
+int __bctoolbox_WIN_thread_create(bctoolbox_thread_t *th, void *attr, void * (*func)(void *), void *data)
 {
 	thread_param_t *params=bctoolbox_new(thread_param_t,1);
 	params->func=func;
@@ -265,7 +265,7 @@ int WIN_thread_create(bctoolbox_thread_t *th, void *attr, void * (*func)(void *)
 	return 0;
 }
 
-int WIN_thread_join(bctoolbox_thread_t thread_h, void **unused)
+int __bctoolbox_WIN_thread_join(bctoolbox_thread_t thread_h, void **unused)
 {
 	if (thread_h!=NULL)
 	{
@@ -275,11 +275,11 @@ int WIN_thread_join(bctoolbox_thread_t thread_h, void **unused)
 	return 0;
 }
 
-unsigned long WIN_thread_self(void) {
+unsigned long __bctoolbox_WIN_thread_self(void) {
 	return (unsigned long)GetCurrentThreadId();
 }
 
-int WIN_cond_init(bctoolbox_cond_t *cond, void *attr)
+int __bctoolbox_WIN_cond_init(bctoolbox_cond_t *cond, void *attr)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	*cond=CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -289,20 +289,20 @@ int WIN_cond_init(bctoolbox_cond_t *cond, void *attr)
 	return 0;
 }
 
-int WIN_cond_wait(bctoolbox_cond_t* hCond, bctoolbox_mutex_t * hMutex)
+int __bctoolbox_WIN_cond_wait(bctoolbox_cond_t* hCond, bctoolbox_mutex_t * hMutex)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	//gulp: this is not very atomic ! bug here ?
-	WIN_mutex_unlock(hMutex);
+	__bctoolbox_WIN_mutex_unlock(hMutex);
 	WaitForSingleObject(*hCond, INFINITE);
-	WIN_mutex_lock(hMutex);
+	__bctoolbox_WIN_mutex_lock(hMutex);
 #else
 	SleepConditionVariableSRW(hCond, hMutex, INFINITE, 0);
 #endif
 	return 0;
 }
 
-int WIN_cond_signal(bctoolbox_cond_t * hCond)
+int __bctoolbox_WIN_cond_signal(bctoolbox_cond_t * hCond)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	SetEvent(*hCond);
@@ -312,13 +312,13 @@ int WIN_cond_signal(bctoolbox_cond_t * hCond)
 	return 0;
 }
 
-int WIN_cond_broadcast(bctoolbox_cond_t * hCond)
+int __bctoolbox_WIN_cond_broadcast(bctoolbox_cond_t * hCond)
 {
-	WIN_cond_signal(hCond);
+	__bctoolbox_WIN_cond_signal(hCond);
 	return 0;
 }
 
-int WIN_cond_destroy(bctoolbox_cond_t * hCond)
+int __bctoolbox_WIN_cond_destroy(bctoolbox_cond_t * hCond)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	CloseHandle(*hCond);

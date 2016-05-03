@@ -187,19 +187,19 @@ typedef SRWLOCK bctoolbox_mutex_t;
 #endif
 typedef HANDLE bctoolbox_thread_t;
 
-#define bctoolbox_thread_create	WIN_thread_create
-#define bctoolbox_thread_join	WIN_thread_join
-#define bctoolbox_thread_self	WIN_thread_self
+#define bctoolbox_thread_create	__bctoolbox_WIN_thread_create
+#define bctoolbox_thread_join	__bctoolbox_WIN_thread_join
+#define bctoolbox_thread_self	__bctoolbox_WIN_thread_self
 #define bctoolbox_thread_exit(arg)
-#define bctoolbox_mutex_init		WIN_mutex_init
-#define bctoolbox_mutex_lock		WIN_mutex_lock
-#define bctoolbox_mutex_unlock	WIN_mutex_unlock
-#define bctoolbox_mutex_destroy	WIN_mutex_destroy
-#define bctoolbox_cond_init		WIN_cond_init
-#define bctoolbox_cond_signal	WIN_cond_signal
-#define bctoolbox_cond_broadcast	WIN_cond_broadcast
-#define bctoolbox_cond_wait		WIN_cond_wait
-#define bctoolbox_cond_destroy	WIN_cond_destroy
+#define bctoolbox_mutex_init		__bctoolbox_WIN_mutex_init
+#define bctoolbox_mutex_lock		__bctoolbox_WIN_mutex_lock
+#define bctoolbox_mutex_unlock	__bctoolbox_WIN_mutex_unlock
+#define bctoolbox_mutex_destroy	__bctoolbox_WIN_mutex_destroy
+#define bctoolbox_cond_init		__bctoolbox_WIN_cond_init
+#define bctoolbox_cond_signal	__bctoolbox_WIN_cond_signal
+#define bctoolbox_cond_broadcast	__bctoolbox_WIN_cond_broadcast
+#define bctoolbox_cond_wait		__bctoolbox_WIN_cond_wait
+#define bctoolbox_cond_destroy	__bctoolbox_WIN_cond_destroy
 
 
 #ifdef __cplusplus
@@ -207,18 +207,18 @@ extern "C"
 {
 #endif
 
-BCTOOLBOX_PUBLIC int WIN_mutex_init(bctoolbox_mutex_t *m, void *attr_unused);
-BCTOOLBOX_PUBLIC int WIN_mutex_lock(bctoolbox_mutex_t *mutex);
-BCTOOLBOX_PUBLIC int WIN_mutex_unlock(bctoolbox_mutex_t *mutex);
-BCTOOLBOX_PUBLIC int WIN_mutex_destroy(bctoolbox_mutex_t *mutex);
-BCTOOLBOX_PUBLIC int WIN_thread_create(bctoolbox_thread_t *t, void *attr_unused, void *(*func)(void*), void *arg);
-BCTOOLBOX_PUBLIC int WIN_thread_join(bctoolbox_thread_t thread, void **unused);
-BCTOOLBOX_PUBLIC unsigned long WIN_thread_self(void);
-BCTOOLBOX_PUBLIC int WIN_cond_init(bctoolbox_cond_t *cond, void *attr_unused);
-BCTOOLBOX_PUBLIC int WIN_cond_wait(bctoolbox_cond_t * cond, bctoolbox_mutex_t * mutex);
-BCTOOLBOX_PUBLIC int WIN_cond_signal(bctoolbox_cond_t * cond);
-BCTOOLBOX_PUBLIC int WIN_cond_broadcast(bctoolbox_cond_t * cond);
-BCTOOLBOX_PUBLIC int WIN_cond_destroy(bctoolbox_cond_t * cond);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_mutex_init(bctoolbox_mutex_t *m, void *attr_unused);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_mutex_lock(bctoolbox_mutex_t *mutex);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_mutex_unlock(bctoolbox_mutex_t *mutex);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_mutex_destroy(bctoolbox_mutex_t *mutex);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_thread_create(bctoolbox_thread_t *t, void *attr_unused, void *(*func)(void*), void *arg);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_thread_join(bctoolbox_thread_t thread, void **unused);
+BCTOOLBOX_PUBLIC unsigned long __bctoolbox_WIN_thread_self(void);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_init(bctoolbox_cond_t *cond, void *attr_unused);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_wait(bctoolbox_cond_t * cond, bctoolbox_mutex_t * mutex);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_signal(bctoolbox_cond_t * cond);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_broadcast(bctoolbox_cond_t * cond);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_destroy(bctoolbox_cond_t * cond);
 
 #ifdef __cplusplus
 }
