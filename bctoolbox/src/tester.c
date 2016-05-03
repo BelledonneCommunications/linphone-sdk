@@ -615,10 +615,13 @@ void bc_tester_uninit(void) {
 	/*add missing final newline*/
 	bc_tester_printf(bc_printf_verbosity_info,"");
 
-	if( xml_enabled ){
+	if (xml_enabled) {
 		/*create real xml file only if tester did not crash*/
 		char * xml_tmp_file = bc_sprintf("%s.tmp-Results.xml", xml_file);
-		rename(xml_tmp_file, xml_file);
+		bc_tester_printf(bc_printf_verbosity_info, "Tests ended, renaming temporary result file %s to %s\n", xml_tmp_file, xml_file);
+		if (rename(xml_tmp_file, xml_file) != 0) {
+			bc_tester_printf(bc_printf_verbosity_error, "Failed to rename XML file: %s\n", strerror(errno));
+		}
 		free(xml_tmp_file);
 	}
 
