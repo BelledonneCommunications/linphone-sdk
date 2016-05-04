@@ -32,7 +32,7 @@ struct bc_vfs_file {
 	int fd;                         	/* File descriptor */
 	FILE* file;							/*File stream */
 	int offset;							/*File offset used by lseek*/
-
+	char* filename;
 	
 };
 

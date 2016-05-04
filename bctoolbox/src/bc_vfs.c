@@ -106,6 +106,7 @@ static int bcClose(bc_vfs_file *pFile){
 	}
 	else{
 		bctoolbox_error("bcClose error %s", strerror(errno));
+		free(pFile);
 		return BC_VFS_IOERR;
 	}
 }
@@ -292,6 +293,7 @@ static int bcGetLine(bc_vfs_file *pFile, char* s,  int max_len) {
 			pTmpLineBuf = realloc(pTmpLineBuf, lineMaxLgth);
 			if (pTmpLineBuf == NULL) {
 				printf("bcGetLine: Error reallocating space for line buffer.");
+				free(pTmpLineBuf);
 				return  BC_VFS_IOERR;
 			}
 			ret = bc_file_read(pFile, pTmpLineBuf, lineMaxLgth,pFile->offset);
@@ -387,6 +389,8 @@ static bc_vfs_file* bcFopen(bc_vfs *pVfs, const char *fName, const char *mode){
 	}
 	
 	pFile->pMethods = &bcio;
+	pFile->filename = fName;
+
 	return pFile;
 }
 
@@ -486,6 +490,7 @@ int bc_file_fprintf(bc_vfs_file* pFile, uint64_t offset, const char* fmt, ...){
 
 		if (offset !=0) pFile->offset = offset;
 		int r = bc_file_write(pFile, ret, count, pFile->offset);
+		free(ret);
 		if (r>0) pFile->offset += r;
 		return r ;
 	}
