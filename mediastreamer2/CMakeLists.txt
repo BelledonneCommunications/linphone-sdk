@@ -101,7 +101,7 @@ cmake_dependent_option(ENABLE_VPX "Build mediastreamer2 with VPX codec." YES "EN
 option(ENABLE_MKV "Enable support of MKV files reading and writing." YES)
 cmake_dependent_option(ENABLE_QNX "Build medistreamer2 with BB10 filters." NO "ENABLE_VIDEO" NO)
 cmake_dependent_option(ENABLE_VT_H264 "Build mediastreamer2 with H264 encoder/decoder based on VirtualToolbox (Apple only)" YES "ENABLE_VIDEO" NO)
-
+option(ENABLE_G729B_CNG "Build mediastremer2 with G729 annex B cng." NO)
 
 macro(apply_compile_flags SOURCE_FILES)
 	if(${SOURCE_FILES})
@@ -302,6 +302,14 @@ endif()
 
 if(ENABLE_SOUND AND NOT(WIN32 OR ENABLE_ALSA OR ENABLE_ARTSC OR ENABLE_MACSND OR ENABLE_MACAQSND OR ENABLE_OSS OR ENABLE_PORTAUDIO OR ENABLE_PULSEAUDIO OR ENABLE_QSA OR ENABLE_ANDROIDSND))
 	message(FATAL_ERROR "Could not find a support sound driver API. Use -DENABLE_SOUND=NO if you don't care about having sound.")
+endif()
+
+if(ENABLE_G729B_CNG)
+	find_package(Bcg729 1.0.1)
+	if(NOT BCG729_FOUND)
+		message(WARNING "Could not find bcg729 , mediastreamer2 will be compiled without G729 AnnexB in RFC3389 .")
+		set(ENABLE_G729_CNG OFF CACHE BOOL "Build mediastreamer2 with g729 CNG." FORCE)
+	endif()
 endif()
 
 if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
