@@ -832,6 +832,10 @@ MSFilterDesc ms_vt_h264_dec = {
 };
 
 void _register_videotoolbox_if_supported(MSFactory *factory) {
+#if TARGET_OS_SIMULATOR
+	ms_warning("VideoToolbox H264 codec is not supported on simulators");
+#else
+
 #ifdef __ios
 	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_8_0) {
 #else
@@ -841,9 +845,11 @@ void _register_videotoolbox_if_supported(MSFactory *factory) {
 		ms_factory_register_filter(factory, &ms_vt_h264_enc);
 		ms_factory_register_filter(factory, &ms_vt_h264_dec);
 	} else {
-		ms_warning("Cannot register VideoToolbox H264 codec. That"
-			" requires iOS 8 or MacOSX 10.8");
+		ms_warning("Cannot register VideoToolbox H264 codec. That "
+			"requires iOS 8 or MacOSX 10.8");
 	}
+	
+#endif
 }
 
 
