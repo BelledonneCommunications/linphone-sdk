@@ -147,7 +147,7 @@ int bctoolbox_file_exist(const char *pathname) {
 #if	!defined(_WIN32) && !defined(_WIN32_WCE)
 	/* Use UNIX inet_aton method */
 #else
-	int inet_aton (const char * cp, struct in_addr * addr)
+	int __bctoolbox_WIN_inet_aton (const char * cp, struct in_addr * addr)
 	{
 		unsigned long retval;
 
@@ -371,7 +371,7 @@ int bctoolbox_gettimeofday (struct timeval *tv, void* tz)
 
 #endif
 
-const char *getWinSocketError(int error)
+const char *__bctoolbox_getWinSocketError(int error)
 {
 	static char buf[80];
 

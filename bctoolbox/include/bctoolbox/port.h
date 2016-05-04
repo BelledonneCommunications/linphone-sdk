@@ -94,19 +94,20 @@ unsigned long __bctoolbox_thread_self(void);
 }
 #endif
 
-#define bctoolbox_thread_create	__bctoolbox_thread_create
-#define bctoolbox_thread_join	__bctoolbox_thread_join
-#define bctoolbox_thread_self	__bctoolbox_thread_self
-#define bctoolbox_thread_exit	pthread_exit
-#define bctoolbox_mutex_init		pthread_mutex_init
-#define bctoolbox_mutex_lock		pthread_mutex_lock
-#define bctoolbox_mutex_unlock	pthread_mutex_unlock
-#define bctoolbox_mutex_destroy	pthread_mutex_destroy
-#define bctoolbox_cond_init		pthread_cond_init
-#define bctoolbox_cond_signal	pthread_cond_signal
-#define bctoolbox_cond_broadcast	pthread_cond_broadcast
-#define bctoolbox_cond_wait		pthread_cond_wait
-#define bctoolbox_cond_destroy	pthread_cond_destroy
+#define bctoolbox_thread_create    __bctoolbox_thread_create
+#define bctoolbox_thread_join      __bctoolbox_thread_join
+#define bctoolbox_thread_self      __bctoolbox_thread_self
+#define bctoolbox_thread_exit      pthread_exit
+#define bctoolbox_mutex_init       pthread_mutex_init
+#define bctoolbox_mutex_lock       pthread_mutex_lock
+#define bctoolbox_mutex_unlock     pthread_mutex_unlock
+#define bctoolbox_mutex_destroy    pthread_mutex_destroy
+#define bctoolbox_cond_init        pthread_cond_init
+#define bctoolbox_cond_signal      pthread_cond_signal
+#define bctoolbox_cond_broadcast   pthread_cond_broadcast
+#define bctoolbox_cond_wait        pthread_cond_wait
+#define bctoolbox_cond_destroy     pthread_cond_destroy
+#define bctoolbox_inet_aton        inet_aton
 
 #define SOCKET_OPTION_VALUE	void *
 #define SOCKET_BUFFER		void *
@@ -187,19 +188,20 @@ typedef SRWLOCK bctoolbox_mutex_t;
 #endif
 typedef HANDLE bctoolbox_thread_t;
 
-#define bctoolbox_thread_create	__bctoolbox_WIN_thread_create
-#define bctoolbox_thread_join	__bctoolbox_WIN_thread_join
-#define bctoolbox_thread_self	__bctoolbox_WIN_thread_self
+#define bctoolbox_thread_create     __bctoolbox_WIN_thread_create
+#define bctoolbox_thread_join       __bctoolbox_WIN_thread_join
+#define bctoolbox_thread_self       __bctoolbox_WIN_thread_self
 #define bctoolbox_thread_exit(arg)
-#define bctoolbox_mutex_init		__bctoolbox_WIN_mutex_init
-#define bctoolbox_mutex_lock		__bctoolbox_WIN_mutex_lock
-#define bctoolbox_mutex_unlock	__bctoolbox_WIN_mutex_unlock
-#define bctoolbox_mutex_destroy	__bctoolbox_WIN_mutex_destroy
-#define bctoolbox_cond_init		__bctoolbox_WIN_cond_init
-#define bctoolbox_cond_signal	__bctoolbox_WIN_cond_signal
-#define bctoolbox_cond_broadcast	__bctoolbox_WIN_cond_broadcast
-#define bctoolbox_cond_wait		__bctoolbox_WIN_cond_wait
-#define bctoolbox_cond_destroy	__bctoolbox_WIN_cond_destroy
+#define bctoolbox_mutex_init        __bctoolbox_WIN_mutex_init
+#define bctoolbox_mutex_lock        __bctoolbox_WIN_mutex_lock
+#define bctoolbox_mutex_unlock      __bctoolbox_WIN_mutex_unlock
+#define bctoolbox_mutex_destroy     __bctoolbox_WIN_mutex_destroy
+#define bctoolbox_cond_init         __bctoolbox_WIN_cond_init
+#define bctoolbox_cond_signal       __bctoolbox_WIN_cond_signal
+#define bctoolbox_cond_broadcast    __bctoolbox_WIN_cond_broadcast
+#define bctoolbox_cond_wait         __bctoolbox_WIN_cond_wait
+#define bctoolbox_cond_destroy      __bctoolbox_WIN_cond_destroy
+#define bctoolbox_inet_aton         __bctoolbox_WIN_inet_aton
 
 
 #ifdef __cplusplus
@@ -219,6 +221,7 @@ BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_wait(bctoolbox_cond_t * cond, bctoolbo
 BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_signal(bctoolbox_cond_t * cond);
 BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_broadcast(bctoolbox_cond_t * cond);
 BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_destroy(bctoolbox_cond_t * cond);
+BCTOOLBOX_PUBLIC int __bctoolbox_WIN_inet_aton (const char * cp, struct in_addr * addr);
 
 #ifdef __cplusplus
 }
@@ -253,9 +256,11 @@ const char * bctoolbox_strerror(DWORD value);
 
 #endif
 
-BCTOOLBOX_PUBLIC const char *getWinSocketError(int error);
-#define getSocketErrorCode() WSAGetLastError()
-#define getSocketError() getWinSocketError(WSAGetLastError())
+BCTOOLBOX_PUBLIC const char *__bctoolbox_getWinSocketError(int error);
+
+#define getSocketError(error)  __bctoolbox_getWinSocketError(error)
+#define getSocketErrorCode()   WSAGetLastError()
+#define getSocketError()       getWinSocketError(WSAGetLastError())
 
 #define snprintf _snprintf
 #define strcasecmp _stricmp
