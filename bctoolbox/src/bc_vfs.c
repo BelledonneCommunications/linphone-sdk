@@ -482,7 +482,8 @@ int bc_file_fprintf(bc_vfs_file* pFile, uint64_t offset, const char* fmt, ...){
 	ret = bctoolbox_strdup_vprintf(fmt, args);
 	if(ret != NULL){
 		va_end(args);
-		count = strcspn(ret, "\n") +1;
+		count=strlen(ret);
+
 		if (offset !=0) pFile->offset = offset;
 		int r = bc_file_write(pFile, ret, count, pFile->offset);
 		if (r>0) pFile->offset += r;
@@ -513,7 +514,7 @@ int bc_file_seek(bc_vfs_file *pFile, uint64_t offset, int whence){
  * @return        [description]
  */
 int bc_file_get_nxtline(bc_vfs_file* pFile, char*s , int maxlen){
-	if (pFile) return pFile->pMethods->xFgets(pFile,s, maxlen);
+	if (pFile) return pFile->pMethods->xGetLineFromFd(pFile,s, maxlen);
 
 	return BC_VFS_IOERR;
 }
