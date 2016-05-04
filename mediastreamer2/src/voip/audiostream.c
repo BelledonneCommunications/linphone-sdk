@@ -86,6 +86,13 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->outbound_mixer) ms_filter_destroy(stream->outbound_mixer);
 	if (stream->recorder_file) ms_free(stream->recorder_file);
 	if (stream->rtp_io_session) rtp_session_destroy(stream->rtp_io_session);
+	
+	if (stream->ms.sessions.zrtp_context != NULL) {
+		ms_zrtp_set_stream_sessions(stream->ms.sessions.zrtp_context, NULL);
+	}
+	if (stream->ms.sessions.dtls_context != NULL) {
+		ms_dtls_srtp_set_stream_sessions(stream->ms.sessions.dtls_context, NULL);
+	}
 
 	ms_free(stream);
 }

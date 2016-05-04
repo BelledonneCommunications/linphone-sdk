@@ -664,7 +664,7 @@ int ms_zrtp_channel_start(MSZrtpContext *ctx) {
 
 
 void ms_zrtp_context_destroy(MSZrtpContext *ctx) {
-	ms_message("Stopping ZRTP context on session [%p]", ctx->stream_sessions->rtp_session);
+	ms_message("Stopping ZRTP context on session [%p]", ctx->stream_sessions ? ctx->stream_sessions->rtp_session : NULL);
 	if (bzrtp_destroyBzrtpContext(ctx->zrtpContext, ctx->self_ssrc) == 0) {
 		/* we have destroyed the last channel in this zrtp session, free the zidCache context if it exists */
 		if (ctx->zidCacheContext != NULL) {
