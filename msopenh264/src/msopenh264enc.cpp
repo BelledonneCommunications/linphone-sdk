@@ -31,8 +31,6 @@ static int debugLevel = 1;
 #endif
 
 
-static const int MIN_KEY_FRAME_DIST = 4;
-
 
 #if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
 	#define MS_OPENH264_CONF(required_bitrate, bitrate_limit, resolution, fps_pc, cpus_pc, fps_mobile, cpus_mobile) \
@@ -146,7 +144,7 @@ void MSOpenH264Encoder::initialize()
 	if (!mAVPFEnabled && (mFrameCount == 0)) {
 		ms_video_starter_init(&mVideoStarter);
 	}
-	ms_iframe_requests_limiter_init(&mIFrameLimiter, mFilter->ticker, 1000);
+	ms_iframe_requests_limiter_init(&mIFrameLimiter, 1000);
 }
 
 void MSOpenH264Encoder::feed()
@@ -165,6 +163,8 @@ void MSOpenH264Encoder::feed()
 	while ((im = ms_queue_get(mFilter->inputs[0])) != NULL) {
 		MSPicture pic;
 		if (ms_yuv_buf_init_from_mblk(&pic, im) == 0) {
+			bool generateKeyFrame = false;
+			
 			SFrameBSInfo sFbi = { 0 };
 			SSourcePicture srcPic = { 0 };
 			srcPic.iColorFormat = videoFormatI420;
@@ -176,14 +176,20 @@ void MSOpenH264Encoder::feed()
 			}
 			srcPic.uiTimeStamp = ts;
 			if (!mAVPFEnabled && ms_video_starter_need_i_frame(&mVideoStarter, mFilter->ticker->time)) {
-				generateKeyframe();
+				generateKeyFrame = true;
 			}
 
+			if (ms_iframe_requests_limiter_iframe_requested(&mIFrameLimiter, mFilter->ticker->time)){
+				generateKeyFrame = true;
+			}
+			if (generateKeyFrame){
+				generateKeyframe();
+			}
+			
 			int ret = mEncoder->EncodeFrame(&srcPic, &sFbi);
 			if (ret == cmResultSuccess) {
 				if ((sFbi.eFrameType != videoFrameTypeSkip) && (sFbi.eFrameType != videoFrameTypeInvalid)) {
 					if (sFbi.eFrameType == videoFrameTypeIDR) {
-						mLastIDRFrameCount = mFrameCount;
 						ms_iframe_requests_limiter_notify_iframe_sent(&mIFrameLimiter);
 						ms_message("MSOpenH264Encoder: sending IDR");
 					}
@@ -283,55 +289,31 @@ void MSOpenH264Encoder::requestVFU()
 	// If we receive a VFU request, stop the video starter
 	ms_video_starter_deactivate(&mVideoStarter);
 	ms_filter_lock(mFilter);
-	ms_iframe_requests_limiter_require_iframe(&mIFrameLimiter);
+	ms_iframe_requests_limiter_request_iframe(&mIFrameLimiter);
 	ms_filter_unlock(mFilter);
-	generateKeyframe();
 }
 
 void MSOpenH264Encoder::notifyPLI()
 {
 	ms_message("OpenH264: PLI requested");
-	if (shouldGenerateKeyframe(MIN_KEY_FRAME_DIST)) {
-		ms_message("OpenH264: PLI accepted");
-		ms_filter_lock(mFilter);
-		ms_iframe_requests_limiter_require_iframe(&mIFrameLimiter);
-		ms_filter_unlock(mFilter);
-		generateKeyframe();
-	}
+	requestVFU();
 }
 
 void MSOpenH264Encoder::notifyFIR(uint8_t seqnr)
 {
-	if (seqnr != mLastFIRSeqNr) {
-		ms_filter_lock(mFilter);
-		ms_iframe_requests_limiter_require_iframe(&mIFrameLimiter);
-		ms_filter_unlock(mFilter);
-		mLastFIRSeqNr = seqnr;
-		generateKeyframe();
-	}
+	requestVFU();
 }
 
 void MSOpenH264Encoder::generateKeyframe()
 {
-	if (isInitialized()) {
-		ms_filter_lock(mFilter);
-		int ret=0;
-		if (mFrameCount>0){
-			if(ms_iframe_requests_limiter_iframe_sending_authorized(&mIFrameLimiter)) {
-				ret = mEncoder->ForceIntraFrame(true);
-			}
-		}else ms_message("ForceIntraFrame() ignored since no frame has been generated yet.");
-		ms_filter_unlock(mFilter);
-		if (ret != 0) {
-			ms_error("OpenH264 encoder: Failed forcing intra-frame: %d", ret);
-		}
-	}
-}
+	int ret=0;
+	if (mFrameCount>0){
+		ret = mEncoder->ForceIntraFrame(true);
+	}else ms_message("ForceIntraFrame() ignored since no frame has been generated yet.");
 
-bool MSOpenH264Encoder::shouldGenerateKeyframe(int frameDist)
-{
-	if (mFrameCount > mLastIDRFrameCount + frameDist) return true;
-	return false;
+	if (ret != 0) {
+		ms_error("OpenH264 encoder: Failed forcing intra-frame: %d", ret);
+	}
 }
 
 void MSOpenH264Encoder::fillNalusQueue(SFrameBSInfo &sFbi, MSQueue *nalus)

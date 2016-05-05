@@ -52,7 +52,6 @@ public:
 
 private:
 	void generateKeyframe();
-	bool shouldGenerateKeyframe(int frameDist);
 	void fillNalusQueue(SFrameBSInfo& sFbi, MSQueue* nalus);
 	void calcBitrates(int &targetBitrate, int &maxBitrate) const;
 	void applyBitrate();
@@ -66,9 +65,7 @@ private:
 	MSVideoStarter mVideoStarter;
 	MSIFrameRequestsLimiterCtx mIFrameLimiter;
 	uint64_t mFrameCount;
-	uint64_t mLastIDRFrameCount;
 	bool mInitialized;
 	bool mPacketisationModeSet;
 	bool mAVPFEnabled;
-	int mLastFIRSeqNr;
 };
