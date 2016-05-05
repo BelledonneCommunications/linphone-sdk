@@ -179,14 +179,17 @@ media_status_t AMediaCodec_start(AMediaCodec *codec){
 	jmethodID methodID = env->GetMethodID(mediaCodecClass, "start", "()V");
 	if (methodID != NULL){
 		env->CallVoidMethod(codec->jcodec, methodID);
-		handle_java_exception();
+		if (handle_java_exception()==-1) {
+			env->DeleteLocalRef(mediaCodecClass);
+			return AMEDIA_ERROR_BASE;
+		}
 	} else {
 		ms_error("start() not found in class MediaCodec !");
 		env->ExceptionClear();
 		env->DeleteLocalRef(mediaCodecClass);
 		return AMEDIA_ERROR_BASE;
 	}
-    env->DeleteLocalRef(mediaCodecClass);
+	env->DeleteLocalRef(mediaCodecClass);
 	return AMEDIA_OK;
 }
 
@@ -373,12 +376,12 @@ ssize_t AMediaCodec_dequeueInputBuffer(AMediaCodec *codec, int64_t timeoutUs){
 	jmethodID methodID = env->GetMethodID(mediaCodecClass,"dequeueInputBuffer","(J)I");
 	if (methodID != NULL){
 		jindex = env->CallIntMethod(codec->jcodec, methodID, timeoutUs);
-		handle_java_exception();
+		if (handle_java_exception() == -1) jindex = AMEDIA_ERROR_UNKNOWN; /*return value to notify the exception*/
+		/*otherwise, if -1 is returned as index, it just means that no buffer are available at this time (not an error)*/
 	} else {
-		ms_error("stop() not found in class mediacodec !");
+		ms_error("dequeueInputBuffer() not found in class mediacodec !");
 		env->ExceptionClear();
-		env->DeleteLocalRef(mediaCodecClass);
-		return -1;
+		jindex = -1;
 	}
 	env->DeleteLocalRef(mediaCodecClass);
 	return (ssize_t) jindex;
@@ -386,6 +389,8 @@ ssize_t AMediaCodec_dequeueInputBuffer(AMediaCodec *codec, int64_t timeoutUs){
 
 media_status_t AMediaCodec_queueInputBuffer(AMediaCodec *codec, size_t idx, off_t offset, size_t size, uint64_t time, uint32_t flags){
    	JNIEnv *env = ms_get_jni_env();
+	media_status_t ret = AMEDIA_OK;
+	
 	jclass mediaCodecClass = env->FindClass("android/media/MediaCodec");
 	if (mediaCodecClass == NULL){
 		ms_error("Couldn't find android/media/MediaCodec class !");
@@ -396,15 +401,16 @@ media_status_t AMediaCodec_queueInputBuffer(AMediaCodec *codec, size_t idx, off_
 	jmethodID methodID = env->GetMethodID(mediaCodecClass,"queueInputBuffer","(IIIJI)V");
 	if (methodID != NULL){
 		env->CallVoidMethod(codec->jcodec, methodID, idx, offset, size, time, flags);
-		handle_java_exception();
+		if (handle_java_exception() == -1){
+			ret = AMEDIA_ERROR_BASE;
+		}
 	} else {
 		ms_error("queueInputBuffer() not found in class mediacodec !");
 		env->ExceptionClear();
-		env->DeleteLocalRef(mediaCodecClass);
-		return AMEDIA_ERROR_BASE;
+		ret = AMEDIA_ERROR_BASE;
 	}
 	env->DeleteLocalRef(mediaCodecClass);
-	return AMEDIA_OK;
+	return ret;
 }
 
 ssize_t AMediaCodec_dequeueOutputBuffer(AMediaCodec *codec, AMediaCodecBufferInfo *info, int64_t timeoutUs) {
@@ -426,7 +432,7 @@ ssize_t AMediaCodec_dequeueOutputBuffer(AMediaCodec *codec, AMediaCodecBufferInf
 	} else {
 		ms_error("init not found in class MediaCodec$BufferInfo !");
     	env->ExceptionClear();
-    	return -1;
+    	return AMEDIA_ERROR_UNKNOWN;
 	}
 	env->DeleteLocalRef(mediaBufferInfoClass);
 
@@ -438,16 +444,20 @@ ssize_t AMediaCodec_dequeueOutputBuffer(AMediaCodec *codec, AMediaCodecBufferInf
 			env->ExceptionDescribe();
 			env->ExceptionClear();
 			ms_error("Exception");
+			jindex = AMEDIA_ERROR_UNKNOWN; /*return value to notify the exception*/
+			/*otherwise, if -1 is returned as index, it just means that no buffer are available at this time (not an error)*/
 		}
 	} else {
 		ms_error("dequeueOutputBuffer() not found in class format !");
 		env->ExceptionClear(); //very important.
-		return -1;
+		jindex = AMEDIA_ERROR_UNKNOWN;
 	}
 
-	info->size = env->GetIntField(jinfo,size);
-	info->offset = env->GetIntField(jinfo,offset);
-	info->flags = env->GetIntField(jinfo,flags);
+	if (jindex >= 0){
+		info->size = env->GetIntField(jinfo,size);
+		info->offset = env->GetIntField(jinfo,offset);
+		info->flags = env->GetIntField(jinfo,flags);
+	}
 	env->DeleteLocalRef(mediaCodecClass);
 	env->DeleteLocalRef(jinfo);
 	return (ssize_t) jindex;
@@ -475,6 +485,7 @@ AMediaFormat* AMediaCodec_getOutputFormat(AMediaCodec *codec){
 	}else{
 		ms_error("getOutputFormat() not found in class format !");
 		env->ExceptionClear(); //very important.
+		return NULL;
 	}
 	env->DeleteLocalRef(mediaCodecClass);
 	format->jformat = jformat;
@@ -494,11 +505,12 @@ media_status_t AMediaCodec_releaseOutputBuffer(AMediaCodec *codec, size_t idx, b
 	if (stopID != NULL){
 		env->CallVoidMethod(codec->jcodec,stopID,(int)idx,FALSE);
 		handle_java_exception();
-	if (env->ExceptionCheck()) {
-				env->ExceptionDescribe();
-				env->ExceptionClear();
-				ms_error("Exception");
-			}
+		if (env->ExceptionCheck()) {
+			env->ExceptionDescribe();
+			env->ExceptionClear();
+			ms_error("Exception");
+			return AMEDIA_ERROR_BASE;
+		}
 	} else {
 		ms_error("releaseOutputBuffer() not found in class format !");
 		env->ExceptionClear(); //very important.

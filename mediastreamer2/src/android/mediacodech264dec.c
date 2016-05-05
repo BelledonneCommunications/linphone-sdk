@@ -231,7 +231,7 @@ static void dec_process(MSFilter *f){
 	DecData *d=(DecData*)f->data;
 	MSPicture pic = {0};
 	mblk_t *im,*om = NULL;
-	ssize_t oBufidx;
+	ssize_t oBufidx = -1;
 	size_t bufsize;
 	bool_t need_reinit=FALSE;
 	bool_t request_pli=FALSE;
@@ -281,9 +281,11 @@ static void dec_process(MSFilter *f){
 					struct timespec ts;
 					clock_gettime(CLOCK_MONOTONIC, &ts);
 					memcpy(buf,d->bitstream,(size_t)size);
-					AMediaCodec_queueInputBuffer(d->codec, iBufidx, 0, (size_t)size, ts.tv_nsec/1000, 0);
+					AMediaCodec_queueInputBuffer(d->codec, iBufidx, 0, (size_t)size, (ts.tv_nsec/1000) + 10000LL, 0);
 					d->first_buffer_queued = TRUE;
 				}
+			}else if (iBufidx == AMEDIA_ERROR_UNKNOWN){
+				ms_error("MSMediaCodecH264Dec: AMediaCodec_dequeueInputBuffer() had an exception");
 			}
 		}
 		d->packet_num++;
@@ -337,6 +339,9 @@ static void dec_process(MSFilter *f){
 			}
 		}
 		AMediaCodec_releaseOutputBuffer(d->codec, oBufidx, FALSE);
+	}
+	if (oBufidx == AMEDIA_ERROR_UNKNOWN){
+		ms_error("MSMediaCodecH264Dec: AMediaCodec_dequeueOutputBuffer() had an exception");
 	}
 
 	if (d->avpf_enabled && request_pli) {

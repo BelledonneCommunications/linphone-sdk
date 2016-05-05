@@ -61,6 +61,16 @@ typedef struct _EncData{
 	bool isYUV;
 }EncData;
 
+static void set_mblk(mblk_t **packet, mblk_t *newone){
+	if (newone){
+		newone = copyb(newone);
+	}
+	if (*packet){
+		freemsg(*packet);
+	}
+	*packet = newone;
+}
+
 static void enc_init(MSFilter *f){
 	MSVideoSize vsize;
 	EncData *d=ms_new0(EncData,1);
@@ -119,25 +129,15 @@ static void enc_postprocess(MSFilter *f) {
 	rfc3984_destroy(d->packer);
 	AMediaCodec_flush(d->codec);
 	AMediaCodec_stop(d->codec);
+	AMediaCodec_delete(d->codec);
+	set_mblk(&d->sps, NULL);
+	set_mblk(&d->pps, NULL);
 	d->packer=NULL;
-}
-
-static void set_mblk(mblk_t **packet, mblk_t *newone){
-	if (newone){
-		newone = copyb(newone);
-	}
-	if (*packet){
-		freemsg(*packet);
-	}
-	*packet = newone;
 }
 
 static void enc_uninit(MSFilter *f){
 	EncData *d=(EncData*)f->data;
-	set_mblk(&d->sps, NULL);
-	set_mblk(&d->pps, NULL);
-	AMediaCodec_stop(d->codec);
-	AMediaCodec_delete(d->codec);
+	
 	ms_free(d);
 }
 
@@ -190,6 +190,8 @@ static void enc_process(MSFilter *f){
 					}
 					AMediaCodec_queueInputBuffer(d->codec, ibufidx, 0, (size_t)(pic.w * pic.h)*3/2, f->ticker->time*1000,0);
 				}
+			}else if (ibufidx == AMEDIA_ERROR_UNKNOWN){
+				ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
 			}
 
 			bool have_seen_sps_pps = FALSE; /*this checks whether at a single timestamp point we dequeued SPS PPS before IDR*/
@@ -198,8 +200,9 @@ static void enc_process(MSFilter *f){
 				if (buf){
 					mblk_t *m;
 					ms_h264_bitstream_to_nalus(buf, info.size, &nalus);
-					m = ms_queue_peek_first(&nalus);
-					if (m){
+					
+					if (!ms_queue_empty(&nalus)){
+						m = ms_queue_peek_first(&nalus);
 						switch(ms_h264_nalu_get_type(m)){
 							case MSH264NaluTypeIDR:
 								ms_iframe_requests_limiter_notify_iframe_sent(&d->iframe_limiter, f->ticker->time);
@@ -238,6 +241,9 @@ static void enc_process(MSFilter *f){
 					}
 				}
 				AMediaCodec_releaseOutputBuffer(d->codec, obufidx, FALSE);
+			}
+			if (obufidx == AMEDIA_ERROR_UNKNOWN){
+				ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueOutputBuffer() had an exception");
 			}
 		}
 		freemsg(im);
