@@ -87,7 +87,7 @@ static void enc_preprocess(MSFilter* f) {
 	ms_video_starter_init(&d->starter);
 
 	codec = AMediaCodec_createEncoderByType("video/avc");
-    d->codec = codec;
+	d->codec = codec;
 
 	format = AMediaFormat_new();
 	AMediaFormat_setString(format, "mime", "video/avc");
@@ -103,11 +103,11 @@ static void enc_preprocess(MSFilter* f) {
 	if(status != 0){
 		d->isYUV = FALSE;
 		AMediaFormat_setInt32(format, "color-format", 21);
-       	AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+		AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
 	}
 
-    AMediaCodec_start(d->codec);
-    AMediaFormat_delete(format);
+	AMediaCodec_start(d->codec);
+	AMediaFormat_delete(format);
 }
 
 static void enc_postprocess(MSFilter *f) {
@@ -121,7 +121,7 @@ static void enc_postprocess(MSFilter *f) {
 static void enc_uninit(MSFilter *f){
 	EncData *d=(EncData*)f->data;
 	AMediaCodec_stop(d->codec);
-    AMediaCodec_delete(d->codec);
+	AMediaCodec_delete(d->codec);
 	ms_free(d);
 }
 
@@ -191,12 +191,12 @@ static void enc_process(MSFilter *f){
 	}
 
 	ms_queue_init(&nalus);
-    while((im=ms_queue_get(f->inputs[0]))!=NULL){
+	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		if (ms_yuv_buf_init_from_mblk(&pic,im)==0){
 			AMediaCodecBufferInfo info;
 			uint8_t *buf=NULL;
-        	size_t bufsize;
-        	ssize_t ibufidx, obufidx;
+			size_t bufsize;
+			ssize_t ibufidx, obufidx;
 
 			ibufidx = AMediaCodec_dequeueInputBuffer(d->codec, TIMEOUT_US);
 			if (ibufidx >= 0) {
@@ -223,8 +223,8 @@ static void enc_process(MSFilter *f){
 				}
 			}
 
-            obufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US);
-            while(obufidx >= 0) {
+			obufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US);
+			while(obufidx >= 0) {
 				buf = AMediaCodec_getOutputBuffer(d->codec, obufidx, &bufsize);
 				extractNalus(buf,info.size,ts,&nalus);
                 AMediaCodec_releaseOutputBuffer(d->codec, obufidx, FALSE);
@@ -233,14 +233,13 @@ static void enc_process(MSFilter *f){
 			}
 
 
-			if (d->framenum==0)
-            	ms_video_starter_first_frame(&d->starter, f->ticker->time);
-            d->framenum++;
-
+			if (d->framenum==0){
+				ms_video_starter_first_frame(&d->starter, f->ticker->time);
+			}
+			d->framenum++;
 		}
 		freemsg(im);
 	}
-
 
 	if (d->force_keyframe == TRUE) {
 		AMediaCodec_setParams(d->codec,"");
