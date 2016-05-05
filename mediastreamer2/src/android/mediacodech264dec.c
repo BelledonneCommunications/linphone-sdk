@@ -40,9 +40,11 @@ typedef struct _DecData{
 	unsigned int packet_num;
 	uint8_t *bitstream;
 	int bitstream_size;
+	MSYuvBufAllocator *buf_allocator;
+	bool_t first_buffer_queued;
 	bool_t first_image_decoded;
 	bool_t avpf_enabled;
-	MSYuvBufAllocator *buf_allocator;
+	
 }DecData;
 
 static void dec_init(MSFilter *f){
@@ -51,8 +53,8 @@ static void dec_init(MSFilter *f){
 	DecData *d=ms_new0(DecData,1);
 	d->codec = codec;
 	d->sps=NULL;
-    d->pps=NULL;
-    rfc3984_init(&d->unpacker);
+	d->pps=NULL;
+	rfc3984_init(&d->unpacker);
 	d->packet_num=0;
 	d->vsize.width=0;
 	d->vsize.height=0;
@@ -229,9 +231,13 @@ static void dec_process(MSFilter *f){
 	DecData *d=(DecData*)f->data;
 	MSPicture pic = {0};
 	mblk_t *im,*om = NULL;
+	ssize_t oBufidx;
+	size_t bufsize;
 	bool_t need_reinit=FALSE;
 	bool_t request_pli=FALSE;
 	MSQueue nalus;
+	AMediaCodecBufferInfo info;
+	
 	ms_queue_init(&nalus);
 
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
@@ -248,92 +254,95 @@ static void dec_process(MSFilter *f){
 			request_pli=TRUE;
 		}
 		if (!ms_queue_empty(&nalus)){
-			AMediaCodecBufferInfo info;
 			int size;
-			int width = 0, height = 0, color = 0;
 			uint8_t *buf=NULL;
-			size_t bufsize;
-			ssize_t iBufidx, oBufidx;
+			ssize_t iBufidx;
 
 			size=nalusToFrame(d,&nalus,&need_reinit);
 
 			if (need_reinit) {
 				//In case of rotation, the decoder needs to flushed in order to restart with the new video size
 				AMediaCodec_flush(d->codec);
+				d->first_buffer_queued = FALSE;
 			}
 
+			/*First put our H264 bitstream into the decoder*/
 			iBufidx = AMediaCodec_dequeueInputBuffer(d->codec, TIMEOUT_US);
 			if (iBufidx >= 0) {
 				buf = AMediaCodec_getInputBuffer(d->codec, iBufidx, &bufsize);
 				if(buf == NULL) {
+					ms_error("MSMediaCodecH264Dec: AMediaCodec_getInputBuffer() returned NULL");
 					break;
 				}
 				if((size_t)size > bufsize) {
 					ms_error("Cannot copy the bitstream into the input buffer size : %i and bufsize %i",size,(int) bufsize);
-				} else {
-					memcpy(buf,d->bitstream,(size_t)size);
-					AMediaCodec_queueInputBuffer(d->codec, iBufidx, 0, (size_t)size, TIMEOUT_US, 0);
-				}
-			}
-
-            oBufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US);
-			if(oBufidx >= 0){
-				AMediaFormat *format;
-				buf = AMediaCodec_getOutputBuffer(d->codec, oBufidx, &bufsize);
-				if(buf == NULL){
-					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
 					break;
+				} else {
+					struct timespec ts;
+					clock_gettime(CLOCK_MONOTONIC, &ts);
+					memcpy(buf,d->bitstream,(size_t)size);
+					AMediaCodec_queueInputBuffer(d->codec, iBufidx, 0, (size_t)size, ts.tv_nsec/1000, 0);
+					d->first_buffer_queued = TRUE;
 				}
-
-				format = AMediaCodec_getOutputFormat(d->codec);
-				if(format != NULL){
-					AMediaFormat_getInt32(format, "width", &width);
-					AMediaFormat_getInt32(format, "height", &height);
-					AMediaFormat_getInt32(format, "color-format", &color);
-
-					d->vsize.width=width;
-					d->vsize.height=height;
-					AMediaFormat_delete(format);
-				}
-			}
-
-			if(buf != NULL){
-				//YUV
-				if(width != 0 && height != 0 ){
-					if(color == 19) {
-						int ysize = width*height;
-						int usize = ysize/4;
-						om=ms_yuv_buf_alloc(&pic,width,height);
-						memcpy(pic.planes[0],buf,ysize);
-						memcpy(pic.planes[1],buf+ysize,usize);
-						memcpy(pic.planes[2],buf+ysize+usize,usize);
-					} else {
-						uint8_t* cbcr_src = (uint8_t*) (buf + width * height);
-						om = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(d->buf_allocator, buf, cbcr_src, 0, width, height, width, width, TRUE, FALSE);
-					}
-
-					if (!d->first_image_decoded) {
-						ms_message("First frame decoded %ix%i",width,height);
-						d->first_image_decoded = true;
-						ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
-					}
-
-					ms_queue_put(f->outputs[0], om);
-				}
-
-				if(oBufidx > 0) {
-                	AMediaCodec_releaseOutputBuffer(d->codec, oBufidx, FALSE);
-				}
-
-
 			}
 		}
 		d->packet_num++;
+	}
+	
+	/*secondly try to get decoded frames from the decoder, this is performed every tick*/
+	while (d->first_buffer_queued && (oBufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US)) >= 0){
+		AMediaFormat *format;
+		int width = 0, height = 0, color = 0;
+		uint8_t *buf = AMediaCodec_getOutputBuffer(d->codec, oBufidx, &bufsize);
+		
+		if(buf == NULL){
+			ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
+			ms_error("MSMediaCodecH264Dec: AMediaCodec_getOutputBuffer() returned NULL");
+		}
+
+		format = AMediaCodec_getOutputFormat(d->codec);
+		if(format != NULL){
+			AMediaFormat_getInt32(format, "width", &width);
+			AMediaFormat_getInt32(format, "height", &height);
+			AMediaFormat_getInt32(format, "color-format", &color);
+
+			d->vsize.width=width;
+			d->vsize.height=height;
+			AMediaFormat_delete(format);
+		}
+
+		if(buf != NULL){
+			if(width != 0 && height != 0 ){
+				if(color == 19) {
+					//YUV
+					int ysize = width*height;
+					int usize = ysize/4;
+					om = ms_yuv_buf_allocator_get(d->buf_allocator,&pic,width,height);
+					memcpy(pic.planes[0],buf,ysize);
+					memcpy(pic.planes[1],buf+ysize,usize);
+					memcpy(pic.planes[2],buf+ysize+usize,usize);
+				} else {
+					uint8_t* cbcr_src = (uint8_t*) (buf + width * height);
+					om = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(d->buf_allocator, buf, cbcr_src, 0, width, height, width, width, TRUE, FALSE);
+				}
+
+				if (!d->first_image_decoded) {
+					ms_message("First frame decoded %ix%i",width,height);
+					d->first_image_decoded = true;
+					ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+				}
+				ms_queue_put(f->outputs[0], om);
+			}else{
+				ms_error("MSMediaCodecH264Dec: width and height are not known !");
+			}
+		}
+		AMediaCodec_releaseOutputBuffer(d->codec, oBufidx, FALSE);
 	}
 
 	if (d->avpf_enabled && request_pli) {
     	ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
     }
+    ms_queue_flush(f->inputs[0]);
 }
 
 static int dec_add_fmtp(MSFilter *f, void *arg){
