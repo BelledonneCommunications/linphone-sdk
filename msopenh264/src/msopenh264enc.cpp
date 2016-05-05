@@ -65,8 +65,8 @@ static const MSVideoConfiguration openh264_conf_list[] = {
 
 
 MSOpenH264Encoder::MSOpenH264Encoder(MSFilter *f)
-	: mFilter(f), mPacker(0), mPacketisationMode(0), mVConfList(openh264_conf_list), mFrameCount(0), mLastIDRFrameCount(0),
-		mInitialized(false), mPacketisationModeSet(false), mAVPFEnabled(false), mLastFIRSeqNr(-1)
+	: mFilter(f), mPacker(0), mPacketisationMode(0), mVConfList(openh264_conf_list), mFrameCount(0),
+		mInitialized(false), mPacketisationModeSet(false), mAVPFEnabled(false)
 {
 	long ret = WelsCreateSVCEncoder(&mEncoder);
 	if (ret != 0) {
@@ -190,7 +190,7 @@ void MSOpenH264Encoder::feed()
 			if (ret == cmResultSuccess) {
 				if ((sFbi.eFrameType != videoFrameTypeSkip) && (sFbi.eFrameType != videoFrameTypeInvalid)) {
 					if (sFbi.eFrameType == videoFrameTypeIDR) {
-						ms_iframe_requests_limiter_notify_iframe_sent(&mIFrameLimiter);
+						ms_iframe_requests_limiter_notify_iframe_sent(&mIFrameLimiter, mFilter->ticker->time);
 						ms_message("MSOpenH264Encoder: sending IDR");
 					}
 					mFrameCount++;
