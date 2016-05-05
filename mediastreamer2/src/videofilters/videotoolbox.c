@@ -1,6 +1,6 @@
 /*
  mediastreamer2 library - modular sound and video processing and streaming
- Copyright (C) 2006  Simon MORLAT (simon.morlat@linphone.org)
+ Copyright (C) 2016  Belledonne Communications SARL
 
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
@@ -23,8 +23,8 @@
 #include "h264utils.h"
 #include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/msticker.h"
-#include "mediastreamer2/videostarter.h"
-#include "mediastreamer2/msiframerequestslimiter.h"
+#include "mediastreamer2/mscodecutils.h"
+
 
 const MSVideoConfiguration h264_video_confs[] = {
 	MS_VIDEO_CONF(1536000,  2560000, SXGA_MINUS, 25, 2),
@@ -171,7 +171,7 @@ static void h264_enc_preprocess(MSFilter *f) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	h264_enc_configure(ctx);
 	ms_video_starter_init(&ctx->starter);
-	ms_iframe_requests_limiter_init(&ctx->iframe_limiter, f->ticker, 1000);
+	ms_iframe_requests_limiter_init(&ctx->iframe_limiter, 1000);
 	ctx->first_frame = TRUE;
 }
 
@@ -214,7 +214,7 @@ static void h264_enc_process(MSFilter *f) {
 		freemsg(frame);
 
 		ms_filter_lock(f);
-		if(ctx->fps_changed || ctx->bitrate_changed || ms_iframe_requests_limiter_iframe_sending_authorized(&ctx->iframe_limiter)) {
+		if(ctx->fps_changed || ctx->bitrate_changed || ms_iframe_requests_limiter_iframe_requested(&ctx->iframe_limiter, f->ticker->time)) {
 			CFNumberRef value;
 			enc_param = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
 			if(ctx->fps_changed) {
@@ -227,12 +227,12 @@ static void h264_enc_process(MSFilter *f) {
 				CFDictionaryAddValue(enc_param, kVTCompressionPropertyKey_AverageBitRate, value);
 				ctx->bitrate_changed = FALSE;
 			}
-			if(ms_iframe_requests_limiter_iframe_sending_authorized(&ctx->iframe_limiter)) {
+			if(ms_iframe_requests_limiter_iframe_requested(&ctx->iframe_limiter, f->ticker->time)) {
 				ms_message("MSVTH264Encoder: requesting encoder for I-frame");
 				int force_keyframe = 1;
 				value = CFNumberCreate(NULL, kCFNumberIntType, &force_keyframe);
 				CFDictionaryAddValue(enc_param, kVTEncodeFrameOptionKey_ForceKeyFrame, value);
-				ms_iframe_requests_limiter_notify_iframe_sent(&ctx->iframe_limiter);
+				ms_iframe_requests_limiter_notify_iframe_sent(&ctx->iframe_limiter, f->ticker->time);
 			}
 		}
 		ms_filter_unlock(f);
@@ -345,7 +345,7 @@ static int h264_enc_req_vfu(MSFilter *f, void *ptr) {
 	VTH264EncCtx *ctx = (VTH264EncCtx *)f->data;
 	ms_filter_lock(f);
 	ms_video_starter_deactivate(&ctx->starter);
-	ms_iframe_requests_limiter_require_iframe(&ctx->iframe_limiter);
+	ms_iframe_requests_limiter_request_iframe(&ctx->iframe_limiter);
 	ms_filter_unlock(f);
 	return 0;
 }

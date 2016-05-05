@@ -166,7 +166,39 @@ struct _MSOfferAnswerProvider{
 	MSOfferAnswerContext *(*create_context)(void);
 };
 
+/**
+ * A convenience structure and API to intellengently limit the number of key frame request of an encoder.
+ **/
+typedef struct _MSIFrameRequestsLimiterCtx {
+	uint64_t last_sent_iframe_time;
+	int min_iframe_interval;
+	bool_t iframe_required;
+} MSIFrameRequestsLimiterCtx;
 
+MS2_PUBLIC void ms_iframe_requests_limiter_init(MSIFrameRequestsLimiterCtx *obj, int min_iframe_interval_ms);
+
+MS2_PUBLIC void ms_iframe_requests_limiter_request_iframe(MSIFrameRequestsLimiterCtx *obj);
+
+MS2_PUBLIC bool_t ms_iframe_requests_limiter_iframe_requested(const MSIFrameRequestsLimiterCtx *obj, uint64_t curtime_ms);
+
+MS2_PUBLIC void ms_iframe_requests_limiter_notify_iframe_sent(MSIFrameRequestsLimiterCtx *obj, uint64_t curtime_ms);
+
+/**
+ * The goal of this small object is to tell when to send I frames at startup:
+ * at 2 and 4 seconds.
+ */
+
+
+typedef struct MSVideoStarter {
+	uint64_t next_time;
+	int i_frame_count;
+	bool_t active;
+} MSVideoStarter;
+
+MS2_PUBLIC void ms_video_starter_init(MSVideoStarter *vs);
+MS2_PUBLIC void ms_video_starter_first_frame(MSVideoStarter *vs, uint64_t curtime);
+MS2_PUBLIC bool_t ms_video_starter_need_i_frame(MSVideoStarter *vs, uint64_t curtime);
+MS2_PUBLIC void ms_video_starter_deactivate(MSVideoStarter *vs);
 
 #ifdef __cplusplus
 }

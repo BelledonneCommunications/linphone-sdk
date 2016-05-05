@@ -26,7 +26,6 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				msfilerec.h \
 				msfilter.h \
 				msgenericplc.h \
-				msiframerequestslimiter.h \
 				msinterfaces.h \
 				msitc.h \
 				msjava.h \
@@ -52,7 +51,6 @@ mediastreamer2_include_HEADERS=allfilters.h \
 				stun.h \
 				stun_udp.h \
 				upnp_igd.h \
-				videostarter.h \
 				x11_helper.h \
 				zrtp.h
 

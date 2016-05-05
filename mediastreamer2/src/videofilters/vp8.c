@@ -22,7 +22,7 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
-#include "mediastreamer2/videostarter.h"
+#include "mediastreamer2/mscodecutils.h"
 #include "vp8rtpfmt.h"
 
 #define PICTURE_ID_ON_16_BITS

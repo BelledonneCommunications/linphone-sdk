@@ -46,7 +46,6 @@ set(HEADER_FILES
 	msfilerec.h
 	msfilter.h
 	msgenericplc.h
-	msiframerequestslimiter.h
 	msinterfaces.h
 	msitc.h
 	msjava.h
@@ -71,7 +70,6 @@ set(HEADER_FILES
 	stun.h
 	stun_udp.h
 	upnp_igd.h
-	videostarter.h
 	x11_helper.h
 	zrtp.h
 	msrtt4103.h
