@@ -101,6 +101,8 @@ if(CLANG_EXECUTABLE)
 	set(CMAKE_CXX_COMPILER_TARGET "${CLANG_TARGET}")
 	set(CMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN "${EXTERNAL_TOOLCHAIN_PATH}/..")
 
+	set(ANDROID_TOOLCHAIN_PREFIX "${EXTERNAL_TOOLCHAIN_PATH}/${COMPILER_PREFIX}-")
+
 else()
 
 	set(GCC_VERSION "4.8")
@@ -168,3 +170,4 @@ if(GCC_LIBRARY_PATH)
 endif()
 link_libraries("${ANDROID_NDK_PATH}/sources/cxx-stl/gnu-libstdc++/${GCC_VERSION}/libs/${CMAKE_SYSTEM_PROCESSOR}/libgnustl_static.a")
 link_libraries("log")
+link_libraries("atomic")
