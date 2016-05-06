@@ -514,7 +514,7 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 	event.response=(belle_sip_response_t*)resp;
 	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*)t),process_response_event,&event);
 	/*check that 200Ok for INVITEs have been acknowledged by listener*/
-	if (dialog && strcmp(method,"INVITE")==0){
+	if (dialog && status_code>=200 && status_code<300 && strcmp(method,"INVITE")==0){
 		belle_sip_dialog_check_ack_sent(dialog);
 	}
 	/*report a server having internal errors for REGISTER to the channel, in order to go to a fallback IP*/
