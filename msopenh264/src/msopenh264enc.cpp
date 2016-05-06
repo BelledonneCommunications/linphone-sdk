@@ -126,8 +126,13 @@ void MSOpenH264Encoder::initialize()
 			params.sSpatialLayers[0].fFrameRate = mVConf.fps;
 			params.sSpatialLayers[0].iSpatialBitrate = targetBitrate;
 			params.sSpatialLayers[0].iMaxSpatialBitrate = maxBitrate;
+#if (OPENH264_MAJOR == 1) && (OPENH264_MINOR >=6)
 			params.sSpatialLayers[0].sSliceArgument.uiSliceMode = SM_SIZELIMITED_SLICE;
 			params.sSpatialLayers[0].sSliceArgument.uiSliceSizeConstraint = ms_factory_get_payload_max_size(mFilter->factory);
+#else
+			params.sSpatialLayers[0].sSliceCfg.uiSliceMode = SM_DYN_SLICE;
+			params.sSpatialLayers[0].sSliceCfg.sSliceArgument.uiSliceSizeConstraint = ms_factory_get_payload_max_size(mFilter->factory);
+#endif
 
 			ret = mEncoder->InitializeExt(&params);
 			if (ret != 0) {
