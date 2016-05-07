@@ -488,7 +488,7 @@ AMediaFormat* AMediaCodec_getOutputFormat(AMediaCodec *codec){
 		return NULL;
 	}
 	env->DeleteLocalRef(mediaCodecClass);
-	format->jformat = jformat;
+	format->jformat = env->NewGlobalRef(jformat);
 	return format;
 }
 
@@ -598,7 +598,7 @@ AMediaFormat *AMediaFormat_new(){
 		env->ExceptionClear(); //very important.
 	}
 
-	format->jformat = jformat;
+	format->jformat = env->NewGlobalRef(jformat);
 	env->DeleteLocalRef(mediaFormatClass);
 	return format;
 }
@@ -606,7 +606,8 @@ AMediaFormat *AMediaFormat_new(){
 
 media_status_t AMediaFormat_delete(AMediaFormat* format){
 	JNIEnv *env = ms_get_jni_env();
-	env->DeleteLocalRef(format->jformat);
+	env->DeleteGlobalRef(format->jformat);
+	ms_free(format);
 	return AMEDIA_OK;
 }
 

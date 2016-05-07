@@ -91,7 +91,7 @@ static void enc_init(MSFilter *f){
 static void enc_preprocess(MSFilter* f) {
 	AMediaCodec *codec;
 	AMediaFormat *format;
-	media_status_t status;
+	media_status_t status = AMEDIA_ERROR_UNSUPPORTED;
 	EncData *d=(EncData*)f->data;
 	
 	d->packer=rfc3984_new();
@@ -108,28 +108,52 @@ static void enc_preprocess(MSFilter* f) {
 	AMediaFormat_setInt32(format, "width", d->vconf.vsize.width);
 	AMediaFormat_setInt32(format, "height", d->vconf.vsize.height);
 	AMediaFormat_setInt32(format, "i-frame-interval", 20);
-	AMediaFormat_setInt32(format, "color-format", 19);
 	AMediaFormat_setInt32(format, "bitrate", d->vconf.required_bitrate);
 	AMediaFormat_setInt32(format, "frame-rate", d->vconf.fps);
 	AMediaFormat_setInt32(format, "bitrate-mode",1);
-	status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
-
+	
 	if(status != 0){
 		d->isYUV = FALSE;
-		AMediaFormat_setInt32(format, "color-format", 21);
-		AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+		AMediaFormat_setInt32(format, "color-format", 21); /*the semi-planar YUV*/
+		status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
 	}
-
-	AMediaCodec_start(d->codec);
+	
+	if(status != 0){
+		d->isYUV = TRUE;
+		AMediaFormat_setInt32(format, "color-format", 19); /*basic YUV420P*/
+		status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+	}
+	
+	if(status != 0){
+		d->isYUV = TRUE;
+		AMediaFormat_setInt32(format, "color-format", 0x7f420888); /*the new "flexible YUV", appeared in API23*/
+		status = AMediaCodec_configure(d->codec, format, NULL, NULL, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+	}
+	
+	if (status != 0){
+		ms_error("MSMediaCodecH264Enc: Could not configure encoder.");
+		AMediaCodec_delete(d->codec);
+		d->codec = NULL;
+	}
+	
+	if (d->codec){
+		if (AMediaCodec_start(d->codec) != AMEDIA_OK){
+			ms_error("MSMediaCodecH264Enc: Could not start encoder.");
+			AMediaCodec_delete(d->codec);
+			d->codec = NULL;
+		}
+	}
 	AMediaFormat_delete(format);
 }
 
 static void enc_postprocess(MSFilter *f) {
 	EncData *d=(EncData*)f->data;
 	rfc3984_destroy(d->packer);
-	AMediaCodec_flush(d->codec);
-	AMediaCodec_stop(d->codec);
-	AMediaCodec_delete(d->codec);
+	if (d->codec){
+		AMediaCodec_flush(d->codec);
+		AMediaCodec_stop(d->codec);
+		AMediaCodec_delete(d->codec);
+	}
 	set_mblk(&d->sps, NULL);
 	set_mblk(&d->pps, NULL);
 	d->packer=NULL;

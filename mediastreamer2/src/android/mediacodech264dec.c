@@ -289,6 +289,8 @@ static void dec_process(MSFilter *f){
 			}
 		}
 		d->packet_num++;
+		if (d->sps && d->pps) request_pli = FALSE;
+		else request_pli = TRUE;
 	}
 	
 	/*secondly try to get decoded frames from the decoder, this is performed every tick*/
@@ -313,7 +315,7 @@ static void dec_process(MSFilter *f){
 			AMediaFormat_delete(format);
 		}
 
-		if(buf != NULL){
+		if(buf != NULL && d->sps && d->pps){ /*some decoders output garbage while no sps or pps have been received yet !*/
 			if(width != 0 && height != 0 ){
 				if(color == 19) {
 					//YUV
