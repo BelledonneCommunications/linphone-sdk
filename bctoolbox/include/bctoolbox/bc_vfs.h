@@ -36,7 +36,7 @@ struct bc_vfs_file {
 /**
  */
 struct bc_io_methods {
-	int (*pFuncClose)(bc_vfs_file*);
+	int (*pFuncClose)(bc_vfs_file*, int* pErrSvd);
 	int (*pFuncRead)(bc_vfs_file*, void*, int count, uint64_t offset,int* pErrSvd);
 	int (*pFuncWrite)(bc_vfs_file*, const void*, int count, uint64_t offset, int* pErrSvd);
 	int (*pFuncFileSize)(bc_vfs_file*);
@@ -53,7 +53,7 @@ typedef struct bc_vfs bc_vfs;
 struct bc_vfs {
 	bc_vfs *pNext;      /* Next registered VFS */
 	const char *vfsName;       /* Virtual file system name */
-	bc_vfs_file* (*pFuncFopen)(bc_vfs* pVfs, const char *fName,  const char* mode);
+	bc_vfs_file* (*pFuncFopen)(bc_vfs* pVfs, const char *fName,  const char* mode, int* pErrSvd);
 	// int (*pFuncDelete)(bc_vfs*, const char *vfsName, int syncDir);
 	// int (*pFuncFullPathname)(bc_vfs*, const char *vfsName, int nOut, char *zOut);
 	
