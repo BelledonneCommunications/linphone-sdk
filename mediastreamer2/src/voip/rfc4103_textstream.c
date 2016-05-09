@@ -93,15 +93,15 @@ TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const cha
 		rtp_session_enable_rtcp(rtps, FALSE);
 	}
 
-	stream->pt_t140 = rtp_profile_get_payload_number_from_mime(profile, "t140");
-	stream->pt_red = rtp_profile_get_payload_number_from_mime(profile, "red");
+	stream->pt_t140 = rtp_profile_get_payload_number_from_mime_and_flag(profile, "t140", PAYLOAD_TYPE_FLAG_CAN_SEND);
+	stream->pt_red = rtp_profile_get_payload_number_from_mime_and_flag(profile, "red", PAYLOAD_TYPE_FLAG_CAN_SEND);
 	if (payload_type == stream->pt_t140) {
-		ms_message("Text payload type is T140");
+		ms_debug("Text payload type is T140");
 	} else if (payload_type == stream->pt_red) {
-		ms_message("Text payload type is RED");
+		ms_debug("Text payload type is RED");
 	} else {
 		/* we dont know this kind of textstream... */
-		ms_warning("unkown type of textstream");
+		ms_warning("Unknown type of textstream");
 	}
 	rtp_session_set_payload_type(rtps, payload_type);
 	

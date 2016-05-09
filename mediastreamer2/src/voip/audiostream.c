@@ -725,9 +725,9 @@ static void on_cn_received(void *data, MSFilter *f, unsigned int event_id, void 
 static void setup_generic_confort_noise(AudioStream *stream){
 	RtpProfile *prof=rtp_session_get_profile(stream->ms.sessions.rtp_session);
 	PayloadType *pt=rtp_profile_get_payload(prof, rtp_session_get_send_payload_type(stream->ms.sessions.rtp_session));
-	PayloadType *cn=rtp_profile_find_payload(prof, "CN", 8000, 1);
+	int cn = rtp_profile_get_payload_number_from_mime_and_flag(prof, "CN", PAYLOAD_TYPE_FLAG_CAN_SEND);
 
-	if (cn && pt && pt->channels==1){
+	if (cn >= 0 && pt && pt->channels==1){
 		int samplerate = pt->clock_rate;
 		ms_filter_call_method(stream->ms.decoder, MS_FILTER_GET_SAMPLE_RATE, &samplerate);
 		if (samplerate == 8000){

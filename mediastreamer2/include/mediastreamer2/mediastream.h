@@ -38,11 +38,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/ms_srtp.h>
 #include <mediastreamer2/msequalizer.h>
 
-
-#define PAYLOAD_TYPE_FLAG_CAN_RECV	PAYLOAD_TYPE_USER_FLAG_1
-#define PAYLOAD_TYPE_FLAG_CAN_SEND	PAYLOAD_TYPE_USER_FLAG_2
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
