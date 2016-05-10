@@ -71,14 +71,13 @@ int bc_vfs_register(bc_vfs* pVfs, bc_vfs** pToVfs){
  * @param  pErrSvd  Pointer holding the errno value in case an error occurred.
  * @return       0 if successful, -1 otherwise.
  */
-static int bcClose(sqlite3_file *p){
+static int bcClose(bc_vfs_file *pFile, int *pErrSvd){
 
 	/*The file descriptor is not dup'ed, and will be closed when the stream created by fdopen() is closed
 	The fclose() function flushes the stream pointed to by fp (writing any buffered output data using fflush(3))
 	 and closes the underlying file descriptor. */
 	int ret;
-	bc_vfs_file *pFile = (bc_vfs_file*) p;
-	ret = close(pFile->fd);
+	ret = fclose(pFile->file);
 	if (!ret){
 		// close(pFile->fd);
 		free(pFile);
@@ -125,18 +124,19 @@ static int bcSeek(bc_vfs_file *pFile, uint64_t offset, int whence){
  * @param  offset file offset where to start reading
  * @return BCTBX_VFS_ERROR if erroneous read, number of bytes read (count) otherwise
  */
-static int bcRead(sqlite3_file *p, void *buf, int count, sqlite_int64 offset){
+static int bcRead(bc_vfs_file *pFile, void *buf, int count, uint64_t offset, int* pErrSvd){
 	off_t ofst;                     /* Return value from lseek() */
 	int nRead;                      /* Return value from read() */
-	bc_vfs_file *pFile = (bc_vfs_file*) p;
 	if (pFile){
-		if((ofst = lseek(pFile->fd, offset, SEEK_SET)) == offset ){
+		if((ofst = pFile->pMethods->pFuncSeek(pFile, offset,SEEK_SET)) == offset ){
 			nRead = read(pFile->fd, buf, count);
 			if( nRead > 0  ) return nRead;
 
 			else if(nRead <= 0 ){
 				if(errno){
-					bctoolbox_error("bcRead error : %s  \r\n", strerror(errno));
+					pErrSvd = (int*)malloc((sizeof(int)));
+					bctoolbox_error("bcRead malloc \r\n");
+					if (pErrSvd) *pErrSvd = errno;
 					return BCTBX_VFS_ERROR;
 				}
 				return 0;
@@ -160,17 +160,19 @@ static int bcRead(sqlite3_file *p, void *buf, int count, sqlite_int64 offset){
  * @param  pErrSvd [description
  * @return         number of bytes written (can be 0), BCTBX_VFS_ERROR if an error occurred.
  */
-static int bcWrite(sqlite3_file *p, const void *buf, int count, sqlite_int64 offset){
+static int bcWrite(bc_vfs_file *p, const void *buf, int count, uint64_t offset , int* pErrSvd){
 	off_t ofst;                     /* Return value from lseek() */
 	size_t nWrite = 0;                 /* Return value from write() */
-	bc_vfs_file *pFile = (bc_vfs_file*) p;
+
 	if (p ){
-		if((ofst = lseek(pFile->fd, offset, SEEK_SET)) == offset ){
-			nWrite = write(pFile->fd, buf, count);
+		if((ofst = p->pMethods->pFuncSeek(p, offset,SEEK_SET)) == offset ){
+			nWrite = write(p->fd, buf, count);
 			if( nWrite > 0  ) return nWrite;
 			
 			else if(nWrite <= 0 ){
 				if(errno){
+					pErrSvd = (int*)malloc((sizeof(int)));
+					if (pErrSvd) *pErrSvd = errno;
 					return BCTBX_VFS_ERROR;
 				}
 				return 0;
@@ -190,18 +192,17 @@ static int bcWrite(sqlite3_file *p, const void *buf, int count, sqlite_int64 off
  * @param  pFile File handle pointer.
  * @return       BCTBX_VFS_ERROR if an error occurred, BCTBX_VFS_OK otherwise.
  */
-static int bcFileSize(sqlite3_file *p, sqlite_int64 *pSize){
+static int bcFileSize(bc_vfs_file *pFile){
 
 	int rc;                         /* Return code from fstat() call */
 	struct stat sStat;              /* Output of fstat() call */
-	bc_vfs_file *pFile = (bc_vfs_file*) p;
+	
 	rc = fstat(pFile->fd, &sStat);
 	if( rc!=0 ) {
 		bctoolbox_error("bcFileSize: Error file size  %s"  ,strerror(errno));
 		return BCTBX_VFS_ERROR;
 	}
-	*pSize = sStat.st_size;
-	return BCTBX_VFS_OK;
+	return sStat.st_size;
 
 }
 
@@ -332,45 +333,43 @@ static int set_flags(const char* mode){
  * @param  pVfs    [description]
  * @param  fName   [description]
  * @param  mode    [description]
+ * @param  pErrSvd [description]
  * @return         [description]
  */
-static  int bcFopen(sqlite3_vfs *pVfs, const char *fName, sqlite3_file *p, int flags, int *pOutFlags ){
-	static const sqlite3_io_methods bcio = {
-		1,
-		bcClose,                    /* xClose */
-		bcRead,                     /* xRead */
-		bcWrite,                    /* xWrite */
-		0,
-		0,
-		bcFileSize,                 /* xFileSize */
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
+static bc_vfs_file* bcFopen(bc_vfs *pVfs, const char *fName, const char *mode, int* pErrSvd){
+	static const bc_io_methods bcio = {
+		bcClose,                    /* pFuncClose */
+		bcRead,                     /* pFuncRead */
+		bcWrite,                    /* pFuncWrite */
+		bcFileSize,                 /* pFuncFileSize */
+		bcGetLine,
+		bcFgets,
+		bcFprintf,
+		bcSeek,
 	};
-
-	bc_vfs_file *pFile = (bc_vfs_file*) p;
+	bc_vfs_file* pFile = (bc_vfs_file*)calloc(sizeof(bc_vfs_file),1);
 	if (pFile == NULL || fName == NULL){
 		return NULL ;
 	}
 
 	memset(pFile, 0, sizeof(bc_vfs_file));
 	int oflags = 0;
-
-	pFile->fd = open(fName, flags, S_IRUSR | S_IWUSR);
+	oflags = set_flags(mode);
+	pFile->fd = open(fName, oflags, S_IRUSR | S_IWUSR);
 	if( pFile->fd < 0 ){
+		pErrSvd = (int*)malloc((sizeof(int)));
+		if (pErrSvd) *pErrSvd = errno;
 		return NULL;
 	}
-//	pFile->file = fdopen(pFile->fd, mode);
-//	if( pFile->file == NULL ){
-//		return NULL;
-//	}
-	if( pOutFlags ){
-    	*pOutFlags = oflags;
-  	}
-	pFile->base.pMethods = &bcio;
+	pFile->file = fdopen(pFile->fd, mode);
+	if( pFile->file == NULL ){
+		pErrSvd = (int*)malloc((sizeof(int)));
+		if (pErrSvd) *pErrSvd = errno;
+		return NULL;
+	}
+	
+	pFile->pMethods = &bcio;
+	pFile->size = pFile->pMethods->pFuncFileSize(pFile);
 	pFile->filename = (char*)fName;
 	return pFile;
 }
@@ -392,36 +391,6 @@ bc_vfs *bc_create_vfs(void){
 	return &bcVfs;
 }
 
-/*
-** This function returns a pointer to the VFS implemented in this file.
-** To make the VFS available to SQLite:
-**
-**   sqlite3_vfs_register(sqlite3_demovfs(), 0);
-*/
-sqlite3_vfs *sqlite3_bctbx_vfs(void){
-  static sqlite3_vfs bctbx_vfs = {
-    1,                            /* iVersion */
-    sizeof(bc_vfs_file),             /* szOsFile */
-    MAXPATHNAME,                  /* mxPathname */
-    0,                            /* pNext */
-    "bctbx_vfs",                       /* zName */
-    0,                            /* pAppData */
-    bcFopen,                     /* xOpen */
-    0,                   /* xDelete */
-    0,                   /* xAccess */
-    0,             /* xFullPathname */
-    0,                   /* xDlOpen */
-    0,                  /* xDlError */
-    0,                    /* xDlSym */
-    0,                  /* xDlClose */
-    0,               /* xRandomness */
-    0,                    /* xSleep */
-    0,              /* xCurrentTime */
-  };
-  return &bctbx_vfs;
-}
-
-
 /**
  * [bctbx_file_write description]
  * @param  pFile  File handle pointer.
@@ -431,13 +400,14 @@ sqlite3_vfs *sqlite3_bctbx_vfs(void){
  * @return        [description]
  */
 int bctbx_file_write(bc_vfs_file* pFile, const void *buf, int count, uint64_t offset){
+	int* pErrSvd = NULL;
 	int ret;
 	if (pFile!=NULL) {
-		ret = pFile->base.pMethods->xWrite(&pFile->base,buf, count, offset);
-		if (ret < 0)
+		ret = pFile->pMethods->pFuncWrite(pFile,buf, count, offset, pErrSvd);
+		if (pErrSvd)
 		{
-			bctoolbox_error("bctbx_file_write error %s", strerror(errno));
-
+			bctoolbox_error("bctbx_file_write error %s", strerror(*pErrSvd));
+			free(pErrSvd);	
 			return BCTBX_VFS_ERROR;
 		}
 		return ret;
@@ -452,28 +422,18 @@ int bctbx_file_write(bc_vfs_file* pFile, const void *buf, int count, uint64_t of
  * @param  mode  [description]
  * @return       [description]
  */
-bc_vfs_file* bctbx_file_open(sqlite3_vfs* pVfs, const char *fName,  const char* mode ){
-	
+bc_vfs_file* bctbx_file_open(bc_vfs* pVfs, const char *fName,  const char* mode){
+	int* pErrSvd = NULL;
+	bc_vfs_file* p_ret = NULL;
 	int ret;
-	bc_vfs_file* pFile =  ( bc_vfs_file *)calloc(sizeof(bc_vfs_file),1);
-	
-	sqlite3_file* p_ret = &pFile->base;
-
-	int flags = set_flags(mode);
-	ret = pVfs->xOpen(pVfs,fName, p_ret,flags , NULL );
-	if (pFile == NULL || pFile->fd < 0){
-		bctoolbox_error("bctbx_file_open: Error open %s"  ,strerror(errno));
-		return NULL;
+	p_ret = pVfs->pFuncFopen(pVfs,fName, mode, pErrSvd);
+	if (p_ret == NULL && pErrSvd){
+		bctoolbox_error("bctbx_file_open: Error open %s"  ,strerror(*pErrSvd));
+		free(pErrSvd);
 	}
-	sqlite_int64 *pSize = (sqlite_int64 *)malloc(sizeof(sqlite_int64));
-	if (pSize != NULL){
-		ret = bctbx_file_size(pFile, pSize);
-		pFile->size = *pSize;
-		free(pSize);
-	}
+	ret = bctbx_file_size(p_ret);
 	
-	
-	return pFile;
+	return p_ret;
 	
 }
 
@@ -486,6 +446,7 @@ bc_vfs_file* bctbx_file_open(sqlite3_vfs* pVfs, const char *fName,  const char* 
  * @return        [description]
  */
 int bctbx_file_read(bc_vfs_file* pFile, void *buf, int count, uint64_t offset){
+	int* pErrSvd = NULL;
 	int ret;
 	if (pFile){
 		//Are we trying to read after the EOF?
@@ -495,10 +456,11 @@ int bctbx_file_read(bc_vfs_file* pFile, void *buf, int count, uint64_t offset){
 			return 0;
 		}
 
-		ret = pFile->base.pMethods->xRead(&pFile->base, buf, count, offset);
+		ret = pFile->pMethods->pFuncRead(pFile, buf, count, offset, pErrSvd);
 		//check if error : in this case pErrSvd is initialized
-		if(ret <= 0 && errno ){
-			bctoolbox_error("bctbx_file_read: Error read %s"  ,strerror(errno));
+		if(ret <= 0 && pErrSvd!=NULL){
+			bctoolbox_error("bctbx_file_read: Error read %s"  ,strerror(*pErrSvd));
+			free(pErrSvd);
 			return BCTBX_VFS_ERROR;
 		}
 		return ret;
@@ -510,16 +472,17 @@ int bctbx_file_read(bc_vfs_file* pFile, void *buf, int count, uint64_t offset){
 /**
  * [bctbx_file_close description]
  * @param  pFile File handle pointer.
- * @return      return value from the xClose VFS Close function.
+ * @return      return value from the pFuncClose VFS Close function.
  */
 int bctbx_file_close(bc_vfs_file* pFile){
 	int ret;
-
+	int* pErrSvd = NULL;
  	if (pFile){
- 		ret = pFile->base.pMethods->xClose(&pFile->base);
- 		if (ret != 0 && errno)
+ 		ret = pFile->pMethods->pFuncClose(pFile, pErrSvd);
+ 		if (ret != 0 && pErrSvd)
 		{
-			bctoolbox_error("bctbx_file_close: Error  %s"  ,strerror(errno));
+			bctoolbox_error("bctbx_file_close: Error  %s"  ,strerror(*pErrSvd));
+			free(pErrSvd);
 		}
 		return ret;
  	} 
@@ -531,8 +494,8 @@ int bctbx_file_close(bc_vfs_file* pFile){
  * @param  pFile File handle pointer.
  * @return       [description]
  */
-uint64_t bctbx_file_size(bc_vfs_file *pFile, sqlite_int64 *pSize){
- 	return pFile->base.pMethods->xFileSize(&pFile->base, pSize);
+uint64_t bctbx_file_size(bc_vfs_file *pFile ){
+ 	return pFile->pMethods->pFuncFileSize(pFile);
  }
 
 /**
@@ -571,7 +534,7 @@ int bctbx_file_fprintf(bc_vfs_file* pFile, uint64_t offset, const char* fmt, ...
  * @return        [description]
  */
 int bctbx_file_seek(bc_vfs_file *pFile, uint64_t offset, int whence){
-	if (pFile) return lseek(pFile->fd,offset,whence);
+	if (pFile) return pFile->pMethods->pFuncSeek(pFile,offset,whence);
 
 	return BCTBX_VFS_ERROR;
 }
@@ -584,7 +547,7 @@ int bctbx_file_seek(bc_vfs_file *pFile, uint64_t offset, int whence){
  * @return        [description]
  */
 int bctbx_file_get_nxtline(bc_vfs_file* pFile, char*s , int maxlen){
-	if (pFile) return bcGetLine(pFile,s, maxlen);
+	if (pFile) return pFile->pMethods->pFuncGetLineFromFd(pFile,s, maxlen);
 
 	return BCTBX_VFS_ERROR;
 }
