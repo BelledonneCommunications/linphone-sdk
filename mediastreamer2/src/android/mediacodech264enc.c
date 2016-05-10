@@ -184,6 +184,7 @@ static void enc_process(MSFilter *f){
 			uint8_t *buf=NULL;
 			size_t bufsize;
 			ssize_t ibufidx, obufidx;
+			bool have_seen_sps_pps;
 			
 			if (ms_iframe_requests_limiter_iframe_requested(&d->iframe_limiter, f->ticker->time) || 
 				(d->avpf_enabled == FALSE && ms_video_starter_need_i_frame(&d->starter, f->ticker->time))) {
@@ -218,7 +219,7 @@ static void enc_process(MSFilter *f){
 				ms_error("MSMediaCodecH264Enc: AMediaCodec_dequeueInputBuffer() had an exception");
 			}
 
-			bool have_seen_sps_pps = FALSE; /*this checks whether at a single timestamp point we dequeued SPS PPS before IDR*/
+			have_seen_sps_pps = FALSE; /*this checks whether at a single timestamp point we dequeued SPS PPS before IDR*/
 			while((obufidx = AMediaCodec_dequeueOutputBuffer(d->codec, &info, TIMEOUT_US)) >= 0) {
 				buf = AMediaCodec_getOutputBuffer(d->codec, obufidx, &bufsize);
 				if (buf){
