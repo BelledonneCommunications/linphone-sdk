@@ -937,6 +937,10 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 		cl->gathering_start_time = curtime;
 		rtp_session_get_transports(cl->rtp_session,&rtptp,NULL);
 		if (rtptp) {
+			if (cl->session->turn_enabled) {
+				/* Define the RTP endpoint that will perform STUN encapsulation/decapsulation for TURN data */
+				meta_rtp_transport_set_endpoint(rtptp, ms_turn_context_create_endpoint(cl->rtp_turn_context));
+			}
 			request = ice_stun_server_request_new(cl, cl->rtp_turn_context, rtptp, rtp_session_get_local_port(cl->rtp_session),
 				cl->session->turn_enabled ? MS_TURN_METHOD_ALLOCATE : MS_STUN_METHOD_BINDING);
 			if (si->index == 0) {
@@ -955,6 +959,10 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 		rtptp=NULL;
 		rtp_session_get_transports(cl->rtp_session,NULL,&rtptp);
 		if (rtptp) {
+			if (cl->session->turn_enabled) {
+				/* Define the RTP endpoint that will perform STUN encapsulation/decapsulation for TURN data */
+				meta_rtp_transport_set_endpoint(rtptp, ms_turn_context_create_endpoint(cl->rtcp_turn_context));
+			}
 			request = ice_stun_server_request_new(cl, cl->rtcp_turn_context, rtptp, rtp_session_get_local_rtcp_port(cl->rtp_session),
 				cl->session->turn_enabled ? MS_TURN_METHOD_ALLOCATE : MS_STUN_METHOD_BINDING);
 			request->next_transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION);
@@ -1060,8 +1068,8 @@ void ice_session_enable_forced_relay(IceSession *session, bool_t enable)
 
 static void ice_check_list_create_turn_contexts(IceCheckList *cl)
 {
-	cl->rtp_turn_context = ms_turn_context_create();
-	cl->rtcp_turn_context = ms_turn_context_create();
+	cl->rtp_turn_context = ms_turn_context_new(MS_TURN_CONTEXT_TYPE_RTP, cl->rtp_session);
+	cl->rtcp_turn_context = ms_turn_context_new(MS_TURN_CONTEXT_TYPE_RTCP, cl->rtp_session);
 }
 
 void ice_session_enable_turn(IceSession *session, bool_t enable)
@@ -1482,15 +1490,6 @@ static int ice_get_transport_from_rtp_session_and_componentID(const RtpSession *
 	} else return -1;
 }
 
-static int ice_get_recv_port_from_rtp_session(const RtpSession *rtp_session, const OrtpEventData *evt_data)
-{
-	if (evt_data->info.socket_type == OrtpRTPSocket) {
-		return rtp_session_get_local_port(rtp_session);
-	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
-		return rtp_session_get_local_rtcp_port(rtp_session);
-	} else return -1;
-}
-
 static MSTurnContext * ice_get_turn_context_from_check_list(const IceCheckList *cl, const OrtpEventData *evt_data) {
 	if (evt_data->info.socket_type == OrtpRTPSocket) {
 		return cl->rtp_turn_context;
@@ -1514,7 +1513,6 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 	char *username;
 	int len;
 	RtpTransport *rtptp = NULL;
-	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
 	struct sockaddr_in dest_addr;
 	struct sockaddr_in source_addr;
 	MSStunAddress xor_mapped_address;
@@ -1565,10 +1563,10 @@ static void ice_send_binding_response(IceCheckList *cl, const RtpSession *rtp_se
 		dest_addr.sin_family = AF_INET;
 		ice_inet_ntoa((struct sockaddr *)&dest_addr, sizeof(dest_addr), dest_addr_str, sizeof(dest_addr_str));
 		source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.addr.ipi_addr.s_addr;	// TODO: Handle IPv6
-		source_addr.sin_port = htons(recvport);
+		source_addr.sin_port = evt_data->packet->recv_addr.port;
 		source_addr.sin_family = AF_INET;
 		ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
-		ms_message("ice: Send binding response: %s:%u --> %s:%u [%s]", source_addr_str, recvport, dest_addr_str, dest->port, tr_id_str);
+		ms_message("ice: Send binding response: %s:%u --> %s:%u [%s]", source_addr_str, ntohs(source_addr.sin_port), dest_addr_str, dest->port, tr_id_str);
 		ice_send_message_to_socket(rtptp, buf, len, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
 	}
 	if (buf != NULL) ms_free(buf);
@@ -1581,7 +1579,6 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 	char *buf = NULL;
 	int len;
 	RtpTransport* rtptp;
-	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
 	struct sockaddr_in dest_addr;
 	struct sockaddr_in source_addr;
 	char dest_addr_str[256];
@@ -1610,10 +1607,10 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 		dest_addr.sin_family = AF_INET;
 		ice_inet_ntoa((struct sockaddr *)&dest_addr, sizeof(dest_addr), dest_addr_str, sizeof(dest_addr_str));
 		source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.addr.ipi_addr.s_addr;	// TODO: Handle IPv6
-		source_addr.sin_port = htons(recvport);
+		source_addr.sin_port = evt_data->packet->recv_addr.port;
 		source_addr.sin_family = AF_INET;
 		ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
-		ms_message("ice: Send error response: %s:%u --> %s:%u [%s]", source_addr_str, recvport, dest_addr_str, dest->port, tr_id_str);
+		ms_message("ice: Send error response: %s:%u --> %s:%u [%s]", source_addr_str, ntohs(source_addr.sin_port), dest_addr_str, dest->port, tr_id_str);
 		ice_send_message_to_socket(rtptp, buf, len, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
 	}
 	if (buf != NULL) ms_free(buf);
@@ -1829,16 +1826,13 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	IceCandidatePair *pair = NULL;
 	struct sockaddr_in source_addr;
 	char source_addr_str[256];
-	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
+
 	memset(&source_addr,0,sizeof(source_addr));
-
-	if (recvport < 0) return NULL;
-
 	source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.addr.ipi_addr.s_addr;	// TODO: Handle IPv6
-	source_addr.sin_port = htons(recvport);
+	source_addr.sin_port = evt_data->packet->recv_addr.port;
 	source_addr.sin_family = AF_INET;
 	ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
-	ice_fill_transport_address(&local_taddr, source_addr_str, recvport);
+	ice_fill_transport_address(&local_taddr, source_addr_str, ntohs(source_addr.sin_port));
 	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
 	if (elem == NULL) {
 		ms_error("ice: Local candidate %s:%u not found!", local_taddr.ip, local_taddr.port);
@@ -1957,11 +1951,9 @@ static int ice_check_received_binding_response_addresses(const RtpSession *rtp_s
 {
 	MSStunAddress4 dest;
 	MSStunAddress4 local;
-	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
 
-	if (recvport < 0) return -1;
 	dest = ms_stun_hostname_to_stun_addr(pair->remote->taddr.ip, pair->remote->taddr.port);
-	local = ms_stun_hostname_to_stun_addr(pair->local->taddr.ip, recvport);
+	local = ms_stun_hostname_to_stun_addr(pair->local->taddr.ip, ntohs(evt_data->packet->recv_addr.port));
 	// TODO: Handle IPv6 for ipi_addr
 	if (	(remote_addr->addr != dest.addr)
 			|| (remote_addr->port != dest.port)
@@ -2352,13 +2344,13 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 	const struct sockaddr_storage *aaddr;
 	int remote_port;
 	char tr_id_str[25];
-	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
+	int recvport;
 	UInt96 tr_id;
 
 	if (cl->session == NULL) return;
 
 	memset(&source_addr, 0, sizeof(source_addr));
-	msg = ms_stun_message_create_from_buffer_parsing((char *) mp->b_rptr, (int)(mp->b_wptr - mp->b_rptr));
+	msg = ms_stun_message_create_from_buffer_parsing(mp->b_rptr, (int)(mp->b_wptr - mp->b_rptr));
 	if (msg == NULL) {
 		ms_warning("ice: Received invalid STUN packet");
 		return;
@@ -2388,8 +2380,9 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 	tr_id = ms_stun_message_get_tr_id(msg);
 	transactionID2string(&tr_id, tr_id_str);
 	source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.addr.ipi_addr.s_addr;	// TODO: Handle IPv6
-	source_addr.sin_port = htons(recvport);
+	source_addr.sin_port = evt_data->packet->recv_addr.port;
 	source_addr.sin_family = AF_INET;
+	recvport = ntohs(source_addr.sin_port);
 	ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
 	if (ms_stun_message_is_request(msg)) {
 		ms_message("ice: Recv binding request: %s:%u <-- %s:%u [%s]", source_addr_str, recvport, src6host, remote_port, tr_id_str);

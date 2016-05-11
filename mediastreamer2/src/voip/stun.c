@@ -265,15 +265,15 @@ static void encode_lifetime(StunMessageEncoder *encoder, uint32_t lifetime) {
 
 
 typedef struct {
-	const char *buffer;
-	const char *ptr;
+	const uint8_t *buffer;
+	const uint8_t *ptr;
 	size_t size;
 	size_t remaining;
 	bool_t error;
 } StunMessageDecoder;
 
 
-static void stun_message_decoder_init(StunMessageDecoder *decoder, const char *buf, size_t bufsize) {
+static void stun_message_decoder_init(StunMessageDecoder *decoder, const uint8_t *buf, size_t bufsize) {
 	decoder->buffer = decoder->ptr = buf;
 	decoder->size = decoder->remaining = bufsize;
 	decoder->error = FALSE;
@@ -466,6 +466,12 @@ static uint32_t decode_lifetime(StunMessageDecoder *decoder, uint16_t length) {
 	return decode32(decoder);
 }
 
+static uint8_t * decode_data(StunMessageDecoder *decoder, uint16_t length) {
+	uint8_t *data = ms_malloc(length);
+	memcpy(data, decode(decoder, length), length);
+	return data;
+}
+
 
 MSStunAddress4 ms_stun_hostname_to_stun_addr(const char *hostname, uint16_t default_port) {
 	char *host;
@@ -618,7 +624,7 @@ MSStunMessage * ms_stun_message_create(uint16_t type, uint16_t method) {
 	return msg;
 }
 
-MSStunMessage * ms_stun_message_create_from_buffer_parsing(const char *buf, size_t bufsize) {
+MSStunMessage * ms_stun_message_create_from_buffer_parsing(const uint8_t *buf, size_t bufsize) {
 	StunMessageDecoder decoder;
 	MSStunMessage *msg = NULL;
 
@@ -738,6 +744,9 @@ MSStunMessage * ms_stun_message_create_from_buffer_parsing(const char *buf, size
 			case MS_TURN_ATTR_LIFETIME:
 				ms_stun_message_set_lifetime(msg, decode_lifetime(&decoder, length));
 				break;
+			case MS_TURN_ATTR_DATA:
+				ms_stun_message_set_data(msg, decode_data(&decoder, length), length);
+				break;
 			case MS_STUN_ATTR_REALM:
 				{
 					char *realm = decode_string(&decoder, length, STUN_MAX_REALM_LENGTH);
@@ -814,10 +823,14 @@ bool_t ms_stun_message_is_indication(const MSStunMessage *msg) {
 
 void ms_stun_message_destroy(MSStunMessage *msg) {
 	if (msg->username) ms_free(msg->username);
-	if (msg->password) ms_free(msg->password);
+	if (msg->password) {
+		memset(msg->password, '\0', strlen(msg->password));
+		ms_free(msg->password);
+	}
 	if (msg->realm) ms_free(msg->realm);
 	if (msg->message_integrity) ms_free(msg->message_integrity);
 	if (msg->software) ms_free(msg->software);
+	if (msg->data) ms_free(msg->data);
 	ms_free(msg);
 }
 
@@ -1146,10 +1159,29 @@ void ms_stun_message_set_lifetime(MSStunMessage *msg, uint32_t lifetime) {
 	msg->has_lifetime = TRUE;
 }
 
+uint8_t * ms_stun_message_get_data(const MSStunMessage *msg) {
+	return msg->data;
+}
 
-MSTurnContext * ms_turn_context_create(void) {
+uint16_t ms_stun_message_get_data_length(const MSStunMessage *msg) {
+	return msg->data_length;
+}
+
+void ms_stun_message_set_data(MSStunMessage *msg, uint8_t *data, uint16_t length) {
+	if (msg->data != NULL) {
+		ms_free(msg->data);
+		msg->data = NULL;
+	}
+	msg->data = data;
+	msg->data_length = length;
+}
+
+
+MSTurnContext * ms_turn_context_new(MSTurnContextType type, RtpSession *rtp_session) {
 	MSTurnContext *context = ms_new0(MSTurnContext, 1);
 	context->state = MS_TURN_CONTEXT_STATE_IDLE;
+	context->type = type;
+	context->rtp_session = rtp_session;
 	return context;
 }
 
@@ -1211,4 +1243,90 @@ uint32_t ms_turn_context_get_lifetime(const MSTurnContext *context) {
 
 void ms_turn_context_set_lifetime(MSTurnContext *context, uint32_t lifetime) {
 	context->lifetime = lifetime;
+}
+
+static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromlen) {
+	MSTurnContext *context = (MSTurnContext *)rtptp->data;
+	int msgsize = 0;
+
+	if (context->rtp_session != NULL) {
+		msgsize = rtp_session_recvfrom(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, from, fromlen);
+		if ((msgsize >= RTP_FIXED_HEADER_SIZE) && (rtp_get_version(msg) != 2)) {
+			/* This is not a RTP packet, try to see if it is a STUN one */
+			uint16_t stunlen = ntohs(*((uint16_t*)(msg->b_rptr + sizeof(uint16_t))));
+			if (msgsize == (stunlen + 20)) {
+				/* It seems to be a STUN packet */
+				MSStunMessage *stun_msg = ms_stun_message_create_from_buffer_parsing(msg->b_rptr, msgsize);
+				if (stun_msg != NULL) {
+					if (ms_stun_message_is_indication(stun_msg)
+						&& (ms_stun_message_get_data(stun_msg) != NULL) && (ms_stun_message_get_data_length(stun_msg) > 0)) {
+						/* This is TURN data indication */
+						const MSStunAddress *stun_addr = ms_stun_message_get_xor_peer_address(stun_msg);
+						if (stun_addr != NULL) {
+							// TODO: check if permissions have been set for the source address
+							/* Copy the data of the TURN data indication in the mblk_t so that it contains the unpacked data */
+							msgsize = ms_stun_message_get_data_length(stun_msg);
+							memcpy(msg->b_rptr, ms_stun_message_get_data(stun_msg), msgsize);
+							/* Overwrite the ortp_recv_addr of the mblk_t so that ICE source address is correct */
+							msg->recv_addr.family = from->sa_family;
+							if (from->sa_family == AF_INET) {
+								msg->recv_addr.addr.ipi_addr = ((struct sockaddr_in *)from)->sin_addr;
+								msg->recv_addr.port = ((struct sockaddr_in *)from)->sin_port;
+							} else if (from->sa_family == AF_INET6) {
+								msg->recv_addr.addr.ipi6_addr = ((struct sockaddr_in6 *)from)->sin6_addr;
+								msg->recv_addr.port = ((struct sockaddr_in6 *)from)->sin6_port;
+							} else {
+								ms_warning("turn: Unknown address family in ortp_recv_addr");
+								msgsize = 0;
+							}
+							/* Overwrite the source address of the packet so that it uses the peer address instead of the TURN server one */
+							if (stun_addr->family == MS_STUN_ADDR_FAMILY_IPV4) {
+								struct sockaddr_in *from_in = (struct sockaddr_in *)from;
+								from_in->sin_port = htons(stun_addr->ipv4.port);
+								from_in->sin_addr.s_addr = htonl(stun_addr->ipv4.addr);
+								from->sa_family = AF_INET;
+							} else if (stun_addr->family == MS_STUN_ADDR_FAMILY_IPV6) {
+								// TODO
+								from->sa_family = AF_INET6;
+							} else {
+								ms_warning("turn: Unknown address family in XOR peer address");
+								msgsize = 0;
+							}
+						}
+					}
+					ms_stun_message_destroy(stun_msg);
+				}
+			}
+		}
+	}
+	return msgsize;
+}
+
+static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen) {
+	MSTurnContext *context = (MSTurnContext *)rtptp->data;
+	if (context->rtp_session != NULL) {
+		return rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
+	}
+	// TODO
+	return 0;
+}
+
+static void ms_turn_rtp_endpoint_close(RtpTransport *rtptp) {
+	MSTurnContext *context = (MSTurnContext *)rtptp->data;
+	context->rtp_session = NULL;
+}
+
+static void ms_turn_rtp_endpoint_destroy(RtpTransport *rtptp) {
+	ms_free(rtptp);
+}
+
+RtpTransport * ms_turn_context_create_endpoint(MSTurnContext *context) {
+	RtpTransport *rtptp = ms_new0(RtpTransport, 1);
+	rtptp->t_getsocket = NULL;
+	rtptp->t_recvfrom = ms_turn_rtp_endpoint_recvfrom;
+	rtptp->t_sendto = ms_turn_rtp_endpoint_sendto;
+	rtptp->t_close = ms_turn_rtp_endpoint_close;
+	rtptp->t_destroy = ms_turn_rtp_endpoint_destroy;
+	rtptp->data = context;
+	return rtptp;
 }
