@@ -597,3 +597,54 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
 	return req;
 }
 
+/*
+ rfc 3265
+ 3.3.4. Dialog creation and termination
+ ...
+ NOTIFY requests are matched to such SUBSCRIBE requests if they
+ contain the same "Call-ID", a "To" header "tag" parameter which
+ matches the "From" header "tag" parameter of the SUBSCRIBE, and the
+ same "Event" header field.  Rules for comparisons of the "Event"
+ headers are described in section 7.2.1.  If a matching NOTIFY request
+ contains a "Subscription-State" of "active" or "pending", it creates
+ a new subscription and a new dialog (unless they have already been
+ created by a matching response, as described above).
+ 
+ 
+ */
+
+int belle_sip_client_transaction_is_notify_matching_pending_subscribe(belle_sip_client_transaction_t *trans
+																	  , belle_sip_request_t *notify) {
+	belle_sip_request_t *subscription;
+	belle_sip_header_event_t *sub_event, *notif_event;
+	belle_sip_header_call_id_t *sub_call_id, *notif_call_id;
+	const char* sub_from_tag, *notif_to_tag;
+	
+	if (!belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(trans)))
+		|| strcmp("SUBSCRIBE", belle_sip_transaction_get_method(BELLE_SIP_TRANSACTION(trans)))!=0) return 0;
+	
+	
+	if (strcmp("NOTIFY",belle_sip_request_get_method(notify)) != 0) {
+		belle_sip_error("belle_sip_client_transaction_is_notify_matching_pending_subscribe for dialog [%p], requires a notify request",notify);
+	}
+	
+	subscription = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(trans));
+	sub_event = belle_sip_message_get_header_by_type(subscription, belle_sip_header_event_t);
+	if (!sub_event || !belle_sip_header_event_get_package_name(sub_event))
+		return 0;
+	
+	notif_event = belle_sip_message_get_header_by_type(notify, belle_sip_header_event_t);
+	if (!notif_event || !belle_sip_header_event_get_package_name(notif_event))
+		return 0;
+	
+	sub_call_id = belle_sip_message_get_header_by_type(subscription, belle_sip_header_call_id_t);
+	notif_call_id = belle_sip_message_get_header_by_type(notify, belle_sip_header_call_id_t);
+	sub_from_tag = belle_sip_header_from_get_tag(belle_sip_message_get_header_by_type(subscription, belle_sip_header_from_t));
+	notif_to_tag = belle_sip_header_to_get_tag(belle_sip_message_get_header_by_type(notify, belle_sip_header_to_t));
+	
+	return strcmp(belle_sip_header_call_id_get_call_id(sub_call_id),belle_sip_header_call_id_get_call_id(notif_call_id))==0
+	&& sub_from_tag && notif_to_tag && strcmp(sub_from_tag,notif_to_tag)==0
+	&& strcasecmp(belle_sip_header_event_get_package_name(sub_event),belle_sip_header_event_get_package_name(notif_event))==0;
+	
+}
+
