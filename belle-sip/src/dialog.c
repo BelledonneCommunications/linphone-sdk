@@ -565,7 +565,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	}
 	if (!call_id){
 		belle_sip_error("No call-id in response.");
-		return -1;
+		return NULL;
 	}
 
 	if (t->last_response) {
