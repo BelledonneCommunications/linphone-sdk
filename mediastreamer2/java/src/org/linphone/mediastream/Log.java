@@ -1,6 +1,6 @@
 /*
 Log.java
-Copyright (C) 2011  Belledonne Communications, Grenoble, France
+Copyright (C) 2016  Belledonne Communications, Grenoble, France
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -18,97 +18,42 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 package org.linphone.mediastream;
 
-import static android.util.Log.DEBUG;
-import static android.util.Log.ERROR;
-import static android.util.Log.INFO;
-import static android.util.Log.WARN;
-
-/**
- * Convenient wrapper for Android logs.
- *
- * @author Guillaume Beraudo
- */
 public final class Log {
-
-	public static String TAG = "Linphone";
-	private static final boolean useIsLoggable = false;
-	private static boolean isLogEnabled = true;
-
+	private static Log logger;
+	private static Log instance() {
+		if (logger == null) {
+			logger = new Log();
+		}
+		return logger;
+	}
+	
+	private Log () {
+		
+	}
+	
+	@Deprecated
 	public Log(String tag, boolean enable) {
-		TAG = tag;
-		isLogEnabled = enable;
+	
 	}
-
-	public static void setEnableLog(boolean enable){
-		isLogEnabled = enable;
-	}
-
-	@SuppressWarnings(value="all")
-	private static boolean isLoggable(int level) {
-		return isLogEnabled && (!useIsLoggable || android.util.Log.isLoggable(TAG, level));
-	}
-
-	public static void i(Object...objects) {
-		if (isLoggable(INFO)) {
-			android.util.Log.i(TAG, toString(objects));
-		}
-	}
-	public static void i(Throwable t, Object...objects) {
-		if (isLoggable(INFO)) {
-			android.util.Log.i(TAG, toString(objects), t);
-		}
-	}
-
+	
+	private native void d(String msg);
 	public static void d(Object...objects) {
-		if (isLoggable(DEBUG)) {
-			android.util.Log.d(TAG, toString(objects));
-		}
-	}
-	public static void d(Throwable t, Object...objects) {
-		if (isLoggable(DEBUG)) {
-			android.util.Log.d(TAG, toString(objects), t);
-		}
+		Log.instance().d(toString(objects));
 	}
 	
+	private native void i(String msg);
+	public static void i(Object...objects) {
+		Log.instance().i(toString(objects));
+	}
+	
+	private native void w(String msg);
 	public static void w(Object...objects) {
-		if (isLoggable(WARN)) {
-			android.util.Log.w(TAG, toString(objects));
-		}
-	}
-	public static void w(Throwable t, Object...objects) {
-		if (isLoggable(WARN)) {
-			android.util.Log.w(TAG, toString(objects), t);
-		}
+		Log.instance().w(toString(objects));
 	}
 	
+	private native void e(String msg);
 	public static void e(Object...objects) {
-		if (isLoggable(ERROR)) {
-			android.util.Log.e(TAG, toString(objects));
-		}
-	}
-	public static void e(Throwable t, Object...objects) {
-		if (isLoggable(ERROR)) {
-			android.util.Log.e(TAG, toString(objects), t);
-		}
-	}
-
-	/**
-	 * @throws RuntimeException always throw after logging the error message.
-	 */
-	public static void f(Object...objects) {
-		if (isLoggable(ERROR)) {
-			android.util.Log.e(TAG, toString(objects));
-			throw new RuntimeException("Fatal error : " + toString(objects));
-		}
-	}
-	/**
-	 * @throws RuntimeException always throw after logging the error message.
-	 */
-	public static void f(Throwable t, Object...objects) {
-		if (isLoggable(ERROR)) {
-			android.util.Log.e(TAG, toString(objects), t);
-			throw new RuntimeException("Fatal error : " + toString(objects), t);
-		}
+		Log.instance().e(toString(objects));
 	}
 
 	private static String toString(Object...objects) {

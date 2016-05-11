@@ -76,5 +76,30 @@ JNIEnv *ms_get_jni_env(void){
 	return env;
 }
 
+#ifdef ANDROID
 
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_d(JNIEnv* env, jobject thiz, jstring jmsg) {
+	const char* msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
+	ms_debug("%s", msg);
+	if (msg) (*env)->ReleaseStringUTFChars(env, jmsg, msg);
+}
 
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_i(JNIEnv* env, jobject thiz, jstring jmsg) {
+	const char* msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
+	ms_message("%s", msg);
+	if (msg) (*env)->ReleaseStringUTFChars(env, jmsg, msg);
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_w(JNIEnv* env, jobject thiz, jstring jmsg) {
+	const char* msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
+	ms_warning("%s", msg);
+	if (msg) (*env)->ReleaseStringUTFChars(env, jmsg, msg);
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_e(JNIEnv* env, jobject thiz, jstring jmsg) {
+	const char* msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
+	ms_error("%s", msg);
+	if (msg) (*env)->ReleaseStringUTFChars(env, jmsg, msg);
+}
+
+#endif
