@@ -61,9 +61,10 @@ static void filter_register_tester(void) {
 	
 }
 #ifdef VIDEO_ENABLED
-static void test_video_processing (void) {
+static void test_video_processing_base (bool_t downscaling,bool_t rotate_clock_wise,bool_t flip) {
 	MSVideoSize src_size = { MS_VIDEO_SIZE_VGA_W, MS_VIDEO_SIZE_VGA_H };
-	MSVideoSize src_dest = { MS_VIDEO_SIZE_VGA_W, MS_VIDEO_SIZE_VGA_H };
+	MSVideoSize dest_size = src_size;
+	
 	mblk_t * yuv_block2;
 	YuvBuf yuv;
 	int y_bytes_per_row = src_size.width + src_size.width%32 ;
@@ -72,7 +73,21 @@ static void test_video_processing (void) {
 	uint8_t* cbcr = (uint8_t*)ms_malloc(crcb_bytes_per_row*src_size.height);
 	int i,j;
 	MSYuvBufAllocator *yba = ms_yuv_buf_allocator_new();
-
+	int factor=downscaling?2:1;
+	int rotation = 0;
+	if (rotate_clock_wise && flip) {
+		ms_fatal("fix you test");
+	}
+	if (rotate_clock_wise) {
+		rotation = 90;
+		dest_size.height=src_size.width;
+		dest_size.width=src_size.height;
+	} else if (flip) {
+		rotation = 180;
+	}
+	dest_size.height = dest_size.height/factor;
+	dest_size.width=dest_size.width/factor;
+	
 	for (i=0;i<src_size.height*src_size.width;i++) {
 		y[i]=i%256;
 	}
@@ -82,46 +97,101 @@ static void test_video_processing (void) {
 
 	yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(yba,	y
 																					,cbcr
-																					,0
-																					, src_size.width
-																					, src_size.height
+																					,rotation
+																					, dest_size.width
+																					, dest_size.height
 																					, y_bytes_per_row
 																					, crcb_bytes_per_row
 																					, 1
-																					, 0);
+																					, downscaling);
 
 	BC_ASSERT_FALSE(ms_yuv_buf_init_from_mblk(&yuv, yuv_block2));
+	BC_ASSERT_EQUAL(dest_size.width,yuv.w, int, "%d");
+	BC_ASSERT_EQUAL(dest_size.height,yuv.h, int, "%d");
 
-	BC_ASSERT_EQUAL(src_dest.width,yuv.w, int, "%d");
-	BC_ASSERT_EQUAL(src_dest.height,yuv.h, int, "%d");
-
-	/*check y*/
-	for (i=0;i<yuv.h;i++) {
-		for (j=0;j<yuv.w;j++)
-		if (yuv.planes[0][i*yuv.strides[0]+j] != y[i*y_bytes_per_row+j]) {
-			ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[0][i*yuv.strides[0]+j],i*yuv.strides[0]+j,y[i*y_bytes_per_row+j]);
-			BC_FAIL("bad y value");
-			break;
+	if (rotate_clock_wise) {
+		/*check y*/
+		for (i=0;i<yuv.h;i++) {
+			for (j=0;j<yuv.w;j++)
+				if (yuv.planes[0][i*yuv.strides[0]+j] != y[(yuv.w-1-j)*factor*y_bytes_per_row+i*factor]) {
+					ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[0][i*yuv.strides[0]+j],i*yuv.strides[0]+j,y[(yuv.w-1-j)*factor*y_bytes_per_row+i*factor]);
+					BC_FAIL("bad y value");
+					break;
+				}
+			
+		}
+		/*check cb*/
+		for (i=0;i<yuv.h/2;i++) {
+			for (j=0;j<yuv.w/2;j++) {
+				if (yuv.planes[1][i*yuv.strides[1]+j] != cbcr[(yuv.w/2-1-j)*factor*crcb_bytes_per_row+2*i*factor]) {
+					ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[1][i*yuv.strides[1]+j],i*yuv.strides[1]+j,cbcr[(yuv.w/2-1-j)*factor*crcb_bytes_per_row+2*i*factor]);
+					BC_FAIL("bad cb value");
+					break;
+				}
+				if (yuv.planes[2][i*yuv.strides[2]+j] != cbcr[(yuv.w/2-1-j)*factor*crcb_bytes_per_row+2*i*factor+1]) {
+					ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[2][i*yuv.strides[2]+j],i*yuv.strides[2]+j,cbcr[(yuv.w/2-1-j)*factor*crcb_bytes_per_row+2*i*factor+1]);
+					BC_FAIL("bad cr value");
+					break;
+				}
+			}
+		}
+	} else if (flip) {
+		
+		/*check y*/
+		for (i=0;i<yuv.h;i++) {
+			for (j=0;j<yuv.w;j++)
+				if (yuv.planes[0][i*yuv.strides[0]+j] != y[(yuv.h-1-i)*factor*y_bytes_per_row+(yuv.w-1-j)*factor]) {
+					ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[0][i*yuv.strides[0]+j],i*yuv.strides[0]+j,y[(yuv.h-1-i)*factor*y_bytes_per_row+(yuv.w-1-j)*factor]);
+					BC_FAIL("bad y value");
+					break;
+				}
+		}
+		
+		for (i=0;i<yuv.h/2;i++) {
+			for (j=0;j<yuv.w/2;j++) {
+				/*check cb*/
+				if (yuv.planes[1][i*yuv.strides[1]+j] != cbcr[(yuv.h/2-1-i)*factor*crcb_bytes_per_row+2*(yuv.w/2-1-j)*factor]) {
+					ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[1][i*yuv.strides[1]+j],i*yuv.strides[1]+j,cbcr[(yuv.h/2-1-i)*factor*crcb_bytes_per_row+2*(yuv.w/2-1-j)*factor]);
+					BC_FAIL("bad cb value");
+					break;
+				}
+				/*check cr*/
+				if (yuv.planes[2][i*yuv.strides[2]+j] != cbcr[(yuv.h/2-1-i)*factor*crcb_bytes_per_row+2*(yuv.w/2-1-j)*factor+1]) {
+					ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[2][i*yuv.strides[2]+j],i*yuv.strides[2]+j,cbcr[(yuv.h/2-1-i)*factor*crcb_bytes_per_row+2*(yuv.w/2-1-j)*factor+1]);
+					BC_FAIL("bad cr value");
+					break;
+				}
+				
+			}
 		}
 	}
-
-	/*check cb*/
-	for (i=0;i<yuv.h/2;i++) {
-		for (j=0;j<yuv.w/2;j++)
-		if (yuv.planes[1][i*yuv.strides[1]+j] != cbcr[i*crcb_bytes_per_row+2*j]) {
-			ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[1][i*yuv.strides[1]+j],i*yuv.strides[1]+j,y[i*crcb_bytes_per_row+2*j]);
-			BC_FAIL("bad cb value");
-			break;
+	else {
+		/*check y*/
+		for (i=0;i<yuv.h;i++) {
+			for (j=0;j<yuv.w;j++)
+				if (yuv.planes[0][i*yuv.strides[0]+j] != y[i*factor*y_bytes_per_row+j*factor]) {
+					ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[0][i*yuv.strides[0]+j],i*yuv.strides[0]+j,y[i*factor*y_bytes_per_row+j*factor]);
+					BC_FAIL("bad y value");
+					break;
+				}
 		}
-	}
+		
+		for (i=0;i<yuv.h/2;i++) {
+			for (j=0;j<yuv.w/2;j++) {
+				/*check cb*/
+				if (yuv.planes[1][i*yuv.strides[1]+j] != cbcr[i*factor*crcb_bytes_per_row+2*j*factor]) {
+					ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[1][i*yuv.strides[1]+j],i*yuv.strides[1]+j,cbcr[i*factor*crcb_bytes_per_row+2*j*factor]);
+					BC_FAIL("bad cb value");
+					break;
+				}
+				/*check cr*/
+				if (yuv.planes[2][i*yuv.strides[2]+j] != cbcr[i*factor*crcb_bytes_per_row+2*j*factor+1]) {
+					ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[2][i*yuv.strides[2]+j],i*yuv.strides[2]+j,cbcr[i*factor*crcb_bytes_per_row+2*j*factor+1]);
+					BC_FAIL("bad cr value");
+					break;
+				}
 
-	/*check cr*/
-	for (i=0;i<yuv.h/2;i++) {
-		for (j=0;j<yuv.w/2;j++)
-		if (yuv.planes[2][i*yuv.strides[2]+j] != cbcr[i*crcb_bytes_per_row+2*j+1]) {
-			ms_error("Wrong value  [%i] at ofset [%i], should be [%i]",yuv.planes[2][i*yuv.strides[2]+j],i*yuv.strides[2]+j,y[i*crcb_bytes_per_row+2*j+1]);
-			BC_FAIL("bad cr value");
-			break;
+			}
 		}
 	}
 	freemsg(yuv_block2);
@@ -130,6 +200,30 @@ static void test_video_processing (void) {
 	ms_yuv_buf_allocator_free(yba);
 
 }
+static void test_video_processing () {
+	test_video_processing_base(FALSE,FALSE,FALSE);
+}
+
+static void test_copy_ycbcrbiplanar_to_true_yuv_with_downscaling () {
+	test_video_processing_base(TRUE,FALSE,FALSE);
+}
+
+static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise() {
+	test_video_processing_base(FALSE,TRUE,FALSE);
+}
+
+static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise_with_downscaling() {
+	test_video_processing_base(TRUE,TRUE,FALSE);
+}
+
+static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180() {
+	test_video_processing_base(FALSE,FALSE,TRUE);
+}
+
+static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180_with_downscaling() {
+	test_video_processing_base(TRUE,FALSE,TRUE);
+}
+
 #endif
 
 static void test_is_multicast(void) {
@@ -185,7 +279,12 @@ static test_t tests[] = {
 	 { "Is multicast", test_is_multicast},
 	 { "FilterDesc enabling/disabling", test_filterdesc_enable_disable},
 #ifdef VIDEO_ENABLED
-	 { "Video processing function", test_video_processing}
+	 { "Video processing function", test_video_processing},
+	 { "Copy ycbcrbiplanar to true yuv with downscaling", test_copy_ycbcrbiplanar_to_true_yuv_with_downscaling},
+	 { "Copy ycbcrbiplanar to true yuv with rotation clock wise",test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise},
+	 { "Copy ycbcrbiplanar to true yuv with rotation clock wise with downscaling",test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise_with_downscaling},
+	 { "Copy ycbcrbiplanar to true yuv with rotation 180", test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180},
+	 { "Copy ycbcrbiplanar to true yuv with rotation 180 with downscaling", test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180_with_downscaling}
 #endif
 };
 
