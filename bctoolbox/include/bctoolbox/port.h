@@ -336,6 +336,12 @@ BCTOOLBOX_PUBLIC void bctoolbox_sleep_until(const bctoolboxTimeSpec *ts);
 BCTOOLBOX_PUBLIC int bctoolbox_timespec_compare(const bctoolboxTimeSpec *s1, const bctoolboxTimeSpec *s2);
 BCTOOLBOX_PUBLIC unsigned int bctoolbox_random(void);
 
+
+/* Portable getaddrinfo */
+BCTOOLBOX_PUBLIC int bctbx_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
+BCTOOLBOX_PUBLIC void bctbx_freeaddrinfo(struct addrinfo *res);
+
+
 /* portable named pipes  and shared memory*/
 #if !defined(_WIN32_WCE)
 #ifdef _WIN32
@@ -365,7 +371,7 @@ BCTOOLBOX_PUBLIC int bctoolbox_pipe_write(bctoolbox_pipe_t p, const uint8_t *buf
 BCTOOLBOX_PUBLIC void *bctoolbox_shm_open(unsigned int keyid, int size, int create);
 BCTOOLBOX_PUBLIC void bctoolbox_shm_close(void *memory);
 
-BCTOOLBOX_PUBLIC	bool_t bctoolbox_is_multicast_addr(const struct sockaddr *addr);
+BCTOOLBOX_PUBLIC bool_t bctoolbox_is_multicast_addr(const struct sockaddr *addr);
 	
 	
 #endif

@@ -911,3 +911,132 @@ bool_t bctoolbox_is_multicast_addr(const struct sockaddr *addr) {
 	}
 	
 }
+
+
+#if defined(ANDROID) || defined(_WIN32)
+
+/*
+ * SHAME !!! bionic's getaddrinfo does not implement the AI_V4MAPPED flag !
+ * It is declared in header file but rejected by the implementation.
+ * The code below is to emulate a _compliant_ getaddrinfo for android.
+**/
+
+/**
+ * SHAME AGAIN !!! Win32's implementation of getaddrinfo is bogus !
+ * it is not able to return an IPv6 addrinfo from an IPv4 address when AI_V4MAPPED is set !
+**/
+
+struct addrinfo *_bctbx_alloc_addrinfo(int ai_family, int socktype, int proto){
+	struct addrinfo *ai=(struct addrinfo*)bctoolbox_malloc0(sizeof(struct addrinfo));
+	ai->ai_family=ai_family;
+	ai->ai_socktype=socktype;
+	ai->ai_protocol=proto;
+	ai->ai_addrlen=AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
+	ai->ai_addr=(struct sockaddr *) bctoolbox_malloc0(ai->ai_addrlen);
+	return ai;
+}
+
+struct addrinfo *convert_to_v4mapped(const struct addrinfo *ai){
+	struct addrinfo *res=NULL;
+	const struct addrinfo *it;
+	struct addrinfo *v4m=NULL;
+	struct addrinfo *last=NULL;
+	
+	for (it=ai;it!=NULL;it=it->ai_next){
+		struct sockaddr_in6 *sin6;
+		struct sockaddr_in *sin;
+		v4m=_bctbx_alloc_addrinfo(AF_INET6, it->ai_socktype, it->ai_protocol);
+		v4m->ai_flags|=AI_V4MAPPED;
+		sin6=(struct sockaddr_in6*)v4m->ai_addr;
+		sin=(struct sockaddr_in*)it->ai_addr;
+		sin6->sin6_family=AF_INET6;
+		((uint8_t*)&sin6->sin6_addr)[10]=0xff;
+		((uint8_t*)&sin6->sin6_addr)[11]=0xff;
+		memcpy(((uint8_t*)&sin6->sin6_addr)+12,&sin->sin_addr,4);
+		sin6->sin6_port=sin->sin_port;
+		if (last){
+			last->ai_next=v4m;
+		}else{
+			res=v4m;
+		}
+		last=v4m;
+	}
+	return res;
+}
+
+struct addrinfo *addrinfo_concat(struct addrinfo *a1, struct addrinfo *a2){
+	struct addrinfo *it;
+	struct addrinfo *last=NULL;
+	for (it=a1;it!=NULL;it=it->ai_next){
+		last=it;
+	}
+	if (last){
+		last->ai_next=a2;
+		return a1;
+	}else
+		return a2;
+}
+
+int bctbx_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res){
+	if (hints && hints->ai_family!=AF_INET && hints->ai_flags & AI_V4MAPPED){
+		struct addrinfo *res6=NULL;
+		struct addrinfo *res4=NULL;
+		struct addrinfo lhints={0};
+		int err;
+		
+		if (hints) memcpy(&lhints,hints,sizeof(lhints));
+		
+		lhints.ai_flags &= ~(AI_ALL | AI_V4MAPPED); /*remove the unsupported flags*/
+		if (hints->ai_flags & AI_ALL){
+			lhints.ai_family=AF_INET6;
+			err=getaddrinfo(node, service, &lhints, &res6);
+		}
+		lhints.ai_family=AF_INET;
+		err=getaddrinfo(node, service, &lhints, &res4);
+		if (err==0){
+			struct addrinfo *v4m=convert_to_v4mapped(res4);
+			freeaddrinfo(res4);
+			res4=v4m;
+		}
+		*res=addrinfo_concat(res6,res4);
+		if (*res) err=0;
+		return err;
+	}
+	return getaddrinfo(node, service, hints, res);
+}
+
+void _bctbx_freeaddrinfo(struct addrinfo *res){
+	struct addrinfo *it,*next_it;
+	for(it=res;it!=NULL;it=next_it){
+		next_it=it->ai_next;
+		bctoolbox_free(it->ai_addr);
+		bctoolbox_free(it);
+	}
+}
+
+void bctbx_freeaddrinfo(struct addrinfo *res){
+	struct addrinfo *it,*previt=NULL;
+	struct addrinfo *allocated_by_bctbx=NULL;
+	for(it=res;it!=NULL;it=it->ai_next){
+		if (it->ai_flags & AI_V4MAPPED){
+			allocated_by_bctbx=it;
+			if (previt) previt->ai_next=NULL;
+			break;
+		}
+		previt=it;
+	}
+	if (res!=allocated_by_bctbx) freeaddrinfo(res);
+	if (allocated_by_bctbx) _bctbx_freeaddrinfo(allocated_by_bctbx);
+}
+
+#else
+
+int bctbx_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res){
+	return getaddrinfo(node, service, hints, res);
+}
+
+void bctbx_freeaddrinfo(struct addrinfo *res){
+	freeaddrinfo(res);
+}
+
+#endif
