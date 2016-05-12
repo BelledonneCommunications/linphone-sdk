@@ -340,6 +340,9 @@ BCTOOLBOX_PUBLIC unsigned int bctoolbox_random(void);
 /* Portable getaddrinfo */
 BCTOOLBOX_PUBLIC int bctbx_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
 BCTOOLBOX_PUBLIC void bctbx_freeaddrinfo(struct addrinfo *res);
+BCTOOLBOX_PUBLIC int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_size, int *port);
+BCTOOLBOX_PUBLIC struct addrinfo * bctbx_ip_address_to_addrinfo(int family, const char *ipaddress, int port);
+
 
 
 /* portable named pipes  and shared memory*/

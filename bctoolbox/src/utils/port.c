@@ -1040,3 +1040,38 @@ void bctbx_freeaddrinfo(struct addrinfo *res){
 }
 
 #endif
+
+int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_size, int *port){
+	char serv[16];
+	int err=getnameinfo(ai->ai_addr,ai->ai_addrlen,ip,ip_size,serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+	if (err!=0){
+		bctoolbox_error("getnameinfo() error: %s",gai_strerror(err));
+		strncpy(ip,"<bug!!>",ip_size);
+	}
+	if (port) *port=atoi(serv);
+	return 0;
+}
+
+struct addrinfo * bctbx_ip_address_to_addrinfo(int family, const char *ipaddress, int port){
+	struct addrinfo *res=NULL;
+	struct addrinfo hints={0};
+	char serv[10];
+	int err;
+
+	snprintf(serv,sizeof(serv),"%i",port);
+	hints.ai_family=family;
+	hints.ai_flags=AI_NUMERICSERV|AI_NUMERICHOST;
+	hints.ai_socktype=SOCK_STREAM; //not used but it's needed to specify it because otherwise getaddrinfo returns one struct addrinfo per socktype.
+	
+	if (family==AF_INET6 && strchr(ipaddress,':')==NULL) {
+		hints.ai_flags|=AI_V4MAPPED;
+	}
+	err=bctbx_getaddrinfo(ipaddress,serv,&hints,&res);
+
+	if (err!=0){
+		if (err!=EAI_NONAME)
+			bctoolbox_error("belle_sip_ip_address_to_addrinfo(): getaddrinfo() error: %s",gai_strerror(err));
+		return NULL;
+	}
+	return res;
+}
