@@ -856,8 +856,11 @@ int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 void belle_sip_channel_close(belle_sip_channel_t *obj){
 	if (BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close)
 		BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close(obj); /*udp channel doesn't have close function*/
+	belle_sip_object_ref(obj);
+	/*removing the source (our base class) will decrement the ref count, this why this code needs to be protected by ref/unref.*/
 	belle_sip_main_loop_remove_source(obj->stack->ml,(belle_sip_source_t*)obj);
 	belle_sip_source_uninit((belle_sip_source_t*)obj);
+	belle_sip_object_unref(obj);
 }
 
 const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj){
@@ -905,14 +908,23 @@ static void channel_end_recv_background_task(belle_sip_channel_t *obj){
 }
 
 static void channel_invoke_state_listener(belle_sip_channel_t *obj){
-	if (obj->state==BELLE_SIP_CHANNEL_DISCONNECTED || obj->state==BELLE_SIP_CHANNEL_ERROR){
+	int close = FALSE;
+	switch(obj->state){
+		case BELLE_SIP_CHANNEL_DISCONNECTED:
+		case BELLE_SIP_CHANNEL_ERROR:
 		/*the background tasks must be released "after" notifying the app of the disconnected or error state
-		 By "after" it is means not before the main loop iteration that will notify the app*/
+		 By "after" it is means not before the main loop iteration that will notify the app.
+		 This is the reason why these calls are done here rather than in the channel_set_state() function.*/
 		channel_end_send_background_task(obj);
 		channel_end_recv_background_task(obj);
-		belle_sip_channel_close(obj);
+		close = TRUE;
+		break;
+		default:
+		break;
 	}
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_state_changed,obj,obj->state);
+	/*since _close() removes the channel from the main loop (dropping the channel's reference count), it must be done at the end*/
+	if (close) belle_sip_channel_close(obj);
 }
 
 static void channel_invoke_state_listener_defered(belle_sip_channel_t *obj){

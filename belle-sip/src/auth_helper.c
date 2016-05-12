@@ -115,10 +115,10 @@ int belle_sip_auth_helper_compute_response(const char* ha1,const char* nonce, co
 			,strlen(nonce));
 	belle_sip_md5_append(&state,(const md5_byte_t *)":",1);
 	belle_sip_md5_append(&state,(const md5_byte_t *)ha2,strlen(ha2));
-		belle_sip_md5_finish(&state,out);
-		/*copy values*/
-		for (di = 0; di < 16; ++di)
-			    sprintf(response + di * 2, "%02x", out[di]);
+	belle_sip_md5_finish(&state,out);
+	/*copy values*/
+	for (di = 0; di < 16; ++di)
+			sprintf(response + di * 2, "%02x", out[di]);
 	return 0;
 
 }
