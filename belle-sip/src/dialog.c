@@ -175,7 +175,8 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 		return -1;
 	}
 
-	if (strcasecmp(belle_sip_header_via_get_protocol(via),"TLS")==0
+	if (belle_sip_header_via_get_protocol(via) /*might be null at dialog creation (uac case)*/
+		&& strcasecmp(belle_sip_header_via_get_protocol(via),"TLS")==0
 	    && belle_sip_uri_is_secure(requri)){
 		obj->is_secure=TRUE;
 	}
@@ -266,6 +267,8 @@ int belle_sip_dialog_establish_full(belle_sip_dialog_t *obj, belle_sip_request_t
 
 int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req, belle_sip_response_t *resp){
 	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(resp,belle_sip_header_to_t);
+	belle_sip_header_via_t *via=belle_sip_message_get_header_by_type(req,belle_sip_header_via_t);
+	belle_sip_uri_t *requri=belle_sip_request_get_uri(req);
 
 	if (obj->state != BELLE_SIP_DIALOG_NULL) {
 		belle_sip_error("Dialog [%p] already established.",obj);
@@ -296,6 +299,11 @@ int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req
 		}
 		
 		check_route_set(obj->route_set);
+		/*via might be unknown at dialog creation*/
+		if (strcasecmp(belle_sip_header_via_get_protocol(via),"TLS")==0
+			&& belle_sip_uri_is_secure(requri)){
+			obj->is_secure=TRUE;
+		}
 
 	}
 
