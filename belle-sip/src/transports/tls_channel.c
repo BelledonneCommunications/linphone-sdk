@@ -522,7 +522,7 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 	int err;
 	char ip[64];
 	int port;
-	belle_sip_addrinfo_to_ip(channel->current_peer,ip,sizeof(ip),&port);
+	bctbx_addrinfo_to_ip_address(channel->current_peer,ip,sizeof(ip),&port);
 
 	request = belle_sip_strdup_printf("CONNECT %s:%i HTTP/1.1\r\nProxy-Connection: keep-alive\r\nConnection: keep-alive\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\n"
 									  ,ip

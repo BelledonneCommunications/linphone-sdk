@@ -436,7 +436,7 @@ static void append_dns_result(belle_sip_simple_resolver_context_t *ctx, struct a
 		return;
 	}
 	if (ctx->flags & AI_V4MAPPED) family=AF_INET6;
-	*ai_list = ai_list_append(*ai_list, belle_sip_ip_address_to_addrinfo(family, host, ctx->port));
+	*ai_list = ai_list_append(*ai_list, bctbx_ip_address_to_addrinfo(family, host, ctx->port));
 	belle_sip_message("%s resolved to %s", ctx->name, host);
 }
 
@@ -687,41 +687,6 @@ static belle_sip_simple_resolver_context_t * resolver_start_query(belle_sip_simp
 	return NULL;
 }
 
-
-int belle_sip_addrinfo_to_ip(const struct addrinfo *ai, char *ip, size_t ip_size, int *port){
-	char serv[16];
-	int err=getnameinfo(ai->ai_addr,ai->ai_addrlen,ip,ip_size,serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
-	if (err!=0){
-		belle_sip_error("getnameinfo() error: %s",gai_strerror(err));
-		strncpy(ip,"<bug!!>",ip_size);
-	}
-	if (port) *port=atoi(serv);
-	return 0;
-}
-
-struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipaddress, int port){
-	struct addrinfo *res=NULL;
-	struct addrinfo hints={0};
-	char serv[10];
-	int err;
-
-	snprintf(serv,sizeof(serv),"%i",port);
-	hints.ai_family=family;
-	hints.ai_flags=AI_NUMERICSERV|AI_NUMERICHOST;
-	hints.ai_socktype=SOCK_STREAM; //not used but it's needed to specify it because otherwise getaddrinfo returns one struct addrinfo per socktype.
-	
-	if (family==AF_INET6 && strchr(ipaddress,':')==NULL) {
-		hints.ai_flags|=AI_V4MAPPED;
-	}
-	err=bctbx_getaddrinfo(ipaddress,serv,&hints,&res);
-
-	if (err!=0){
-		if (err!=EAI_NONAME)
-			belle_sip_error("belle_sip_ip_address_to_addrinfo(): getaddrinfo() error: %s",gai_strerror(err));
-		return NULL;
-	}
-	return res;
-}
 
 static void belle_sip_combined_resolver_context_destroy(belle_sip_combined_resolver_context_t *obj){
 	if (obj->name != NULL) {
@@ -994,7 +959,7 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
  * Perform combined SRV + A / AAAA resolution.
 **/
 belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack, const char *transport, const char *name, int port, int family, belle_sip_resolver_callback_t cb, void *data) {
-	struct addrinfo *res = belle_sip_ip_address_to_addrinfo(family, name, port);
+	struct addrinfo *res = bctbx_ip_address_to_addrinfo(family, name, port);
 	if (res == NULL) {
 		/* First perform asynchronous DNS SRV query */
 		belle_sip_combined_resolver_context_t *ctx = belle_sip_object_new(belle_sip_combined_resolver_context_t);
@@ -1091,7 +1056,7 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_dual(belle_sip_sta
 }
 
 belle_sip_resolver_context_t * belle_sip_stack_resolve_a(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb , void *data) {
-	struct addrinfo *res = belle_sip_ip_address_to_addrinfo(family, name, port);
+	struct addrinfo *res = bctbx_ip_address_to_addrinfo(family, name, port);
 	if (res == NULL) {
 		switch(family){
 			case AF_UNSPEC:
@@ -1169,7 +1134,7 @@ void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, 
 	return;
 fail:
 	{
-		struct addrinfo *res = belle_sip_ip_address_to_addrinfo(af_type, af_type == AF_INET ? "127.0.0.1" : "::1", local_port);
+		struct addrinfo *res = bctbx_ip_address_to_addrinfo(af_type, af_type == AF_INET ? "127.0.0.1" : "::1", local_port);
 		if (res != NULL) {
 			memcpy(src,res->ai_addr,MIN((size_t)*srclen,res->ai_addrlen));
 			*srclen=res->ai_addrlen;

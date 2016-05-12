@@ -123,7 +123,7 @@ static void ipv4_a_query(void) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
 		int ntohsi = (int)ntohs(sock_in->sin_port);
 		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
-		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
+		ai = bctbx_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			bctbx_freeaddrinfo(ai);
@@ -150,7 +150,7 @@ static void ipv4_cname_a_query(void) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
 		int ntohsi = (int)ntohs(sock_in->sin_port);
 		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
-		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
+		ai = bctbx_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			bctbx_freeaddrinfo(ai);
@@ -287,7 +287,7 @@ static void ipv6_aaaa_query(void) {
 		/*the IPv6 address shall return first, and must be a real ipv6 address*/
 		BC_ASSERT_EQUAL(client->ai_list->ai_family,AF_INET6,int,"%d");
 		BC_ASSERT_FALSE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
-		ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IP, SIP_PORT);
+		ai = bctbx_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IP, SIP_PORT);
 		BC_ASSERT_PTR_NOT_NULL(ai);
 		if (ai) {
 			struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
@@ -305,7 +305,7 @@ static void ipv6_aaaa_query(void) {
 			BC_ASSERT_EQUAL(next->ai_family,AF_INET6,int,"%d");
 			BC_ASSERT_TRUE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
 			BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
-			ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IPV4, SIP_PORT);
+			ai = bctbx_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IPV4, SIP_PORT);
 			BC_ASSERT_PTR_NOT_NULL(ai);
 			if (ai) {
 				struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
@@ -371,7 +371,7 @@ static void srv_a_query_no_srv_result(void) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
 		int ntohsi = (int)ntohs(sock_in->sin_port);
 		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
-		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
+		ai = bctbx_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			bctbx_freeaddrinfo(ai);
@@ -413,7 +413,7 @@ static void no_query_needed(void) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
 		int ntohsi = (int)ntohs(sock_in->sin_port);
 		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
-		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
+		ai = bctbx_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			bctbx_freeaddrinfo(ai);
@@ -461,7 +461,7 @@ static void dns_fallback(void) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
 		int ntohsi = (int)ntohs(sock_in->sin_port);
 		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
-		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
+		ai = bctbx_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			bctbx_freeaddrinfo(ai);
@@ -497,7 +497,7 @@ static void ipv6_dns_server(void) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
 		int ntohsi = (int)ntohs(sock_in->sin_port);
 		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
-		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
+		ai = bctbx_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			bctbx_freeaddrinfo(ai);
@@ -533,7 +533,7 @@ static void ipv4_and_ipv6_dns_server(void) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
 		int ntohsi = (int)ntohs(sock_in->sin_port);
 		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
-		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
+		ai = bctbx_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			bctbx_freeaddrinfo(ai);

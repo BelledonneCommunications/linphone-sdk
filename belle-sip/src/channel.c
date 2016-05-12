@@ -736,7 +736,7 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,c
 	obj->simulated_recv_return=1;/*not set*/
 	if (peername){
 		/*check if we are given a real dns name or just an ip address*/
-		struct addrinfo *ai=belle_sip_ip_address_to_addrinfo(AF_UNSPEC,peername,peer_port);
+		struct addrinfo *ai=bctbx_ip_address_to_addrinfo(AF_UNSPEC,peername,peer_port);
 		if (ai) bctbx_freeaddrinfo(ai);
 		else obj->has_name=TRUE;
 	}
@@ -754,9 +754,9 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 	ai.ai_family=peer_addr->sa_family;
 	ai.ai_addr=(struct sockaddr*)peer_addr;
 	ai.ai_addrlen=addrlen;
-	belle_sip_addrinfo_to_ip(&ai,remoteip,sizeof(remoteip),&peer_port);
+	bctbx_addrinfo_to_ip_address(&ai,remoteip,sizeof(remoteip),&peer_port);
 	belle_sip_channel_init(obj,stack,bindip,localport,NULL,remoteip,peer_port);
-	obj->peer_list=obj->current_peer=belle_sip_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
+	obj->peer_list=obj->current_peer=bctbx_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
 	obj->ai_family=ai.ai_family;
 }
 
@@ -1395,7 +1395,7 @@ void belle_sip_channel_connect(belle_sip_channel_t *obj){
 	int port=obj->peer_port;
 
 	channel_set_state(obj,BELLE_SIP_CHANNEL_CONNECTING);
-	belle_sip_addrinfo_to_ip(obj->current_peer,ip,sizeof(ip),&port);
+	bctbx_addrinfo_to_ip_address(obj->current_peer,ip,sizeof(ip),&port);
 	/* update peer_port as it may have been overriden by SRV resolution*/
 	if (port!=obj->peer_port){
 		/*the SRV resolution provided a port number that must be used*/
