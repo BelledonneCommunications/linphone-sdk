@@ -99,7 +99,7 @@ static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_i
 
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
-	if (obj->peer_list) belle_sip_freeaddrinfo(obj->peer_list);
+	if (obj->peer_list) bctbx_freeaddrinfo(obj->peer_list);
 	if (obj->peer_cname) belle_sip_free(obj->peer_cname);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
@@ -737,7 +737,7 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,c
 	if (peername){
 		/*check if we are given a real dns name or just an ip address*/
 		struct addrinfo *ai=belle_sip_ip_address_to_addrinfo(AF_UNSPEC,peername,peer_port);
-		if (ai) belle_sip_freeaddrinfo(ai);
+		if (ai) bctbx_freeaddrinfo(ai);
 		else obj->has_name=TRUE;
 	}
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
@@ -1472,10 +1472,10 @@ belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int a
 	hints.ai_socktype=SOCK_STREAM; // needed on some platforms that return an error otherwise (QNX)
 	if (ai_family==AF_INET6) hints.ai_flags|=AI_V4MAPPED|AI_ALL;
 	snprintf(portstr,sizeof(portstr),"%i",hop->port);
-	belle_sip_getaddrinfo(hop->host,portstr,&hints,&res);
+	bctbx_getaddrinfo(hop->host,portstr,&hints,&res);
 
 	chan=belle_sip_channel_find_from_list_with_addrinfo(l,hop,res);
-	if (res) belle_sip_freeaddrinfo(res);
+	if (res) bctbx_freeaddrinfo(res);
 	return chan;
 }
 

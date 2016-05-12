@@ -64,7 +64,7 @@ static void belle_sip_dns_srv_destroy(belle_sip_dns_srv_t *obj){
 		obj->a_resolver=NULL;
 	}
 	if (obj->a_results){
-		belle_sip_freeaddrinfo(obj->a_results);
+		bctbx_freeaddrinfo(obj->a_results);
 		obj->a_results=NULL;
 	}
 }
@@ -713,7 +713,7 @@ struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipadd
 	if (family==AF_INET6 && strchr(ipaddress,':')==NULL) {
 		hints.ai_flags|=AI_V4MAPPED;
 	}
-	err=belle_sip_getaddrinfo(ipaddress,serv,&hints,&res);
+	err=bctbx_getaddrinfo(ipaddress,serv,&hints,&res);
 
 	if (err!=0){
 		if (err!=EAI_NONAME)
@@ -739,7 +739,7 @@ static void belle_sip_combined_resolver_context_destroy(belle_sip_combined_resol
 }
 
 static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_context_t *ctx){
-	/* Do not free elements of ctx->ai_list with belle_sip_freeaddrinfo(). Let the caller do it, otherwise
+	/* Do not free elements of ctx->ai_list with bctbx_freeaddrinfo(). Let the caller do it, otherwise
 	   it will not be able to use them after the resolver has been destroyed. */
 #ifdef USE_GETADDRINFO_FALLBACK
 	if (ctx->getaddrinfo_thread != 0) {
@@ -755,12 +755,12 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 
 #endif
 	if (ctx->ai_list != NULL) {
-		belle_sip_freeaddrinfo(ctx->ai_list);
+		bctbx_freeaddrinfo(ctx->ai_list);
 		ctx->ai_list = NULL;
 	}
 #ifdef USE_GETADDRINFO_FALLBACK
 	if (ctx->getaddrinfo_ai_list != NULL) {
-		belle_sip_freeaddrinfo(ctx->getaddrinfo_ai_list);
+		bctbx_freeaddrinfo(ctx->getaddrinfo_ai_list);
 		ctx->getaddrinfo_ai_list = NULL;
 	}
 #endif
@@ -792,11 +792,11 @@ static void belle_sip_dual_resolver_context_destroy(belle_sip_dual_resolver_cont
 		obj->aaaa_ctx=NULL;
 	}
 	if (obj->a_results){
-		belle_sip_freeaddrinfo(obj->a_results);
+		bctbx_freeaddrinfo(obj->a_results);
 		obj->a_results=NULL;
 	}
 	if (obj->aaaa_results){
-		belle_sip_freeaddrinfo(obj->aaaa_results);
+		bctbx_freeaddrinfo(obj->aaaa_results);
 		obj->aaaa_results=NULL;
 	}
 	if (obj->name){
@@ -1173,7 +1173,7 @@ fail:
 		if (res != NULL) {
 			memcpy(src,res->ai_addr,MIN((size_t)*srclen,res->ai_addrlen));
 			*srclen=res->ai_addrlen;
-			belle_sip_freeaddrinfo(res);
+			bctbx_freeaddrinfo(res);
 		} else {
 			if (af_type == AF_INET) belle_sip_fatal("belle_sip_get_src_addr_for(): belle_sip_ip_address_to_addrinfo() failed");
 		}

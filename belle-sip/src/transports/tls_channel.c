@@ -423,7 +423,7 @@ static void http_proxy_res_done(void *data, const char *name, struct addrinfo *a
 	}
 	if (ai_list){
 		tls_channel_connect_to((belle_sip_channel_t *)obj,ai_list);
-		belle_sip_freeaddrinfo(ai_list);
+		bctbx_freeaddrinfo(ai_list);
 	}else{
 		belle_sip_error("%s: DNS resolution failed for %s", __FUNCTION__, name);
 		channel_set_state((belle_sip_channel_t*)obj,BELLE_SIP_CHANNEL_ERROR);

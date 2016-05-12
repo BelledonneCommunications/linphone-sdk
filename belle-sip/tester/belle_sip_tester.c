@@ -48,7 +48,7 @@ static int _belle_sip_tester_ipv6_available(void){
 		src.ai_addr=(struct sockaddr*) &ss;
 		src.ai_addrlen=slen;
 		belle_sip_addrinfo_to_ip(&src,localip, sizeof(localip),&port);
-		belle_sip_freeaddrinfo(ai);
+		bctbx_freeaddrinfo(ai);
 		return strcmp(localip,"::1")!=0;
 	}
 	return FALSE;

@@ -69,7 +69,7 @@ static void reset_endpoint(endpoint_t *endpoint) {
 	endpoint->resolve_done = 0;
 	endpoint->resolve_ko = 0;
 	if (endpoint->ai_list != NULL) {
-		belle_sip_freeaddrinfo(endpoint->ai_list);
+		bctbx_freeaddrinfo(endpoint->ai_list);
 		endpoint->ai_list = NULL;
 	}
 	if (endpoint->srv_list != NULL) {
@@ -126,7 +126,7 @@ static void ipv4_a_query(void) {
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
-			belle_sip_freeaddrinfo(ai);
+			bctbx_freeaddrinfo(ai);
 		}
 	}
 
@@ -153,7 +153,7 @@ static void ipv4_cname_a_query(void) {
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
-			belle_sip_freeaddrinfo(ai);
+			bctbx_freeaddrinfo(ai);
 		}
 	}
 
@@ -295,7 +295,7 @@ static void ipv6_aaaa_query(void) {
 			for (i = 0; i < 8; i++) {
 				BC_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[i], ipv6_address->s6_addr[i], int, "%d");
 			}
-			belle_sip_freeaddrinfo(ai);
+			bctbx_freeaddrinfo(ai);
 		}
 		next=client->ai_list->ai_next;
 		BC_ASSERT_PTR_NOT_NULL(next);
@@ -313,7 +313,7 @@ static void ipv6_aaaa_query(void) {
 				for (i = 0; i < 8; i++) {
 					BC_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[i], ipv6_address->s6_addr[i], int, "%d");
 				}
-				belle_sip_freeaddrinfo(ai);
+				bctbx_freeaddrinfo(ai);
 			}
 		}
 	}
@@ -374,7 +374,7 @@ static void srv_a_query_no_srv_result(void) {
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
-			belle_sip_freeaddrinfo(ai);
+			bctbx_freeaddrinfo(ai);
 		}
 	}
 
@@ -416,7 +416,7 @@ static void no_query_needed(void) {
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
-			belle_sip_freeaddrinfo(ai);
+			bctbx_freeaddrinfo(ai);
 		}
 	}
 
@@ -464,7 +464,7 @@ static void dns_fallback(void) {
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
-			belle_sip_freeaddrinfo(ai);
+			bctbx_freeaddrinfo(ai);
 		}
 	}
 
@@ -500,7 +500,7 @@ static void ipv6_dns_server(void) {
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
-			belle_sip_freeaddrinfo(ai);
+			bctbx_freeaddrinfo(ai);
 		}
 	}
 
@@ -536,7 +536,7 @@ static void ipv4_and_ipv6_dns_server(void) {
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
-			belle_sip_freeaddrinfo(ai);
+			bctbx_freeaddrinfo(ai);
 		}
 	}
 

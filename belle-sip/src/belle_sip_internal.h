@@ -28,6 +28,7 @@
 #include "belle-sip/belle-sip.h"
 
 #include "port.h"
+#include <bctoolbox/port.h>
 
 #ifdef HAVE_CONFIG_H
 
