@@ -1052,7 +1052,7 @@ int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_
 	return 0;
 }
 
-struct addrinfo * bctbx_ip_address_to_addrinfo(int family, const char *ipaddress, int port){
+static struct addrinfo * _bctbx_name_to_addrinfo(int family, const char *ipaddress, int port, int numeric_only){
 	struct addrinfo *res=NULL;
 	struct addrinfo hints={0};
 	char serv[10];
@@ -1060,7 +1060,7 @@ struct addrinfo * bctbx_ip_address_to_addrinfo(int family, const char *ipaddress
 
 	snprintf(serv,sizeof(serv),"%i",port);
 	hints.ai_family=family;
-	hints.ai_flags=AI_NUMERICSERV|AI_NUMERICHOST;
+	if (numeric_only) hints.ai_flags=AI_NUMERICSERV|AI_NUMERICHOST;
 	hints.ai_socktype=SOCK_STREAM; //not used but it's needed to specify it because otherwise getaddrinfo returns one struct addrinfo per socktype.
 	
 	if (family==AF_INET6 && strchr(ipaddress,':')==NULL) {
@@ -1074,4 +1074,12 @@ struct addrinfo * bctbx_ip_address_to_addrinfo(int family, const char *ipaddress
 		return NULL;
 	}
 	return res;
+}
+
+struct addrinfo * bctbx_name_to_addrinfo(int family, const char *name, int port){
+	return _bctbx_name_to_addrinfo(family, name, port, FALSE);
+}
+
+struct addrinfo * bctbx_ip_address_to_addrinfo(int family, const char *name, int port){
+	return _bctbx_name_to_addrinfo(family, name, port, TRUE);
 }
