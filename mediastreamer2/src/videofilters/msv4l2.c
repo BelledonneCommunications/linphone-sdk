@@ -343,8 +343,10 @@ MSPixFmt msv4l2_pick_best_format_basic(int fd, const V4L2FormatDescription* form
 
 static int set_camera_feature(V4l2State *s, unsigned int ctl_id, int value, const char *feature_name){
 	struct v4l2_ext_control ctl={0};
-	struct v4l2_ext_controls ctls={{0}};
+	struct v4l2_ext_controls ctls;
 	struct v4l2_queryctrl queryctrl={0};
+
+	memset(&ctls, 0, sizeof(ctls));
 
 	queryctrl.id = ctl_id;
 	if (ioctl (s->fd, VIDIOC_QUERYCTRL, &queryctrl)!=0) {
