@@ -130,20 +130,31 @@ static int bcRead(bctbx_vfs_file *pFile, void *buf, int count, uint64_t offset, 
 	if (pFile){
 		if((ofst = pFile->pMethods->pFuncSeek(pFile, offset,SEEK_SET)) == offset ){
 			nRead = read(pFile->fd, buf, count);
-			if( nRead > 0  ) return nRead;
-
-			else if(nRead <= 0 ){
+			/* Error while reading */
+			if(nRead < 0 ){
 				if(errno){
 					pErrSvd = (int*)malloc((sizeof(int)));
-					bctoolbox_error("bcRead malloc \r\n");
+					bctoolbox_error("bcRead error \r\n");
 					if (pErrSvd) *pErrSvd = errno;
 					return BCTBX_VFS_ERROR;
 				}
-				return 0;
 			}
+			else if (nRead == count){
+				return nRead;
+			}
+			/*read less than expected */
+			else{
+				  /* Buffer too big for what's been read : these parts of the buffer 
+				  must be zero-filled */
+				memset(&((char*)buf)[nRead], 0, count-nRead);
+				return nRead;
+			}
+			
 		}
-		bctoolbox_error("bcRead: error offset");
-		return BCTBX_VFS_ERROR;
+		else{
+	  		bctoolbox_error("bcRead: error offset");
+			return BCTBX_VFS_ERROR;
+		}	
 	}
 	bctoolbox_error("bcRead: error bctbx_vfs_file not initialized");
 	return BCTBX_VFS_ERROR;
@@ -270,9 +281,12 @@ static int bcGetLine(bctbx_vfs_file *pFile, char* s,  int max_len) {
 //	read return 0 if EOF
 	
 	int sizeofline = 0;
+	int isEof = 0;
+
 	
-	while (((pNextLine = strstr(pTmpLineBuf, "\n")) == NULL) && (ret > 0)) {
-		if (ret > 0) {
+	while ((((pNextLine = strstr(pTmpLineBuf, "\n")) == NULL)  && (pNextLine = strstr(pTmpLineBuf, "\r")) == NULL)&& (ret > 0) && (!isEof)) {
+//		did not find end of line in lineMaxLgth
+		if (ret % lineMaxLgth == 0) {
 			lineMaxLgth += lineMaxLgth;
 			pTmpLineBuf = realloc(pTmpLineBuf, lineMaxLgth);
 			if (pTmpLineBuf == NULL) {
@@ -280,9 +294,16 @@ static int bcGetLine(bctbx_vfs_file *pFile, char* s,  int max_len) {
 				free(pTmpLineBuf);
 				return  BCTBX_VFS_ERROR;
 			}
+		}
+		else {
+				// check EOF
+			if ( (pFile->offset + ret) == pFile->size){
+					isEof = 1;
+				}
+		}
 			ret = bctbx_file_read(pFile, pTmpLineBuf, lineMaxLgth,pFile->offset);
 
-		}
+		
 		
 	}
 	
