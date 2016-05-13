@@ -495,7 +495,7 @@ static void ff_sws_free(MSScalerContext *ctx){
 	ms_free(ctx);
 }
 
-static MSScalerDesc ffmpeg_scaler={
+MSScalerDesc ffmpeg_scaler={
 	ff_create_swscale_context,
 	ff_sws_scale,
 	ff_sws_free
@@ -591,20 +591,29 @@ static MSScalerDesc android_scaler={
 
 #endif
 
-
-#if defined(ANDROID) && defined(__ARM_NEON__)
-#include <arm_neon.h>
-extern MSScalerDesc ms_android_scaler;
-
-static MSScalerDesc *scaler_impl=&ms_android_scaler;
-#elif !defined(NO_FFMPEG)
-static MSScalerDesc *scaler_impl=&ffmpeg_scaler;
-#else
-static MSScalerDesc *scaler_impl=NULL;
+#ifdef ANDROID
+#include "cpu-features.h"
 #endif
+
+#if defined(ANDROID) && defined(MS_HAS_ARM)
+extern MSScalerDesc ms_android_scaler;
+#endif 
+
+static MSScalerDesc *scaler_impl=NULL;
+
 
 MSScalerContext *ms_scaler_create_context(int src_w, int src_h, MSPixFmt src_fmt,
                                           int dst_w, int dst_h, MSPixFmt dst_fmt, int flags){
+	if (!scaler_impl){
+#if defined(ANDROID) && defined(MS_HAS_ARM)
+		if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0){
+			scaler_impl = &ms_android_scaler;
+		}
+#elif !defined(NO_FFMPEG)
+		scaler_impl=&ffmpeg_scaler;
+#endif
+	}
+	
 	if (scaler_impl)
 		return scaler_impl->create_context(src_w,src_h,src_fmt,dst_w,dst_h,dst_fmt, flags);
 	ms_fatal("No scaler implementation built-in, please supply one with ms_video_set_scaler_impl ()");
@@ -661,7 +670,7 @@ static void rotate_plane_down_scale_by_2(int wDest, int hDest, int full_width, c
 }
 
 #ifdef ANDROID
-#include "cpu-features.h"
+
 static int hasNeon = -1;
 #elif defined (__ARM_NEON__)
 static int hasNeon = 1;
