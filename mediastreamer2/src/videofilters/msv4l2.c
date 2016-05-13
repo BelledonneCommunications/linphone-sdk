@@ -182,7 +182,7 @@ typedef struct _V4L2FormatDescription {
 	bool_t compressed;
 	/*format is supported*/
 	bool_t supported;
-	
+
 } V4L2FormatDescription;
 
 static MSPixFmt v4l2_format_to_ms(int v4l2format) {
@@ -205,9 +205,9 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 	/* hardcode supported format in preferred order*/
 	static V4L2FormatDescription formats[POSSIBLE_FORMATS_COUNT];
 	int i=0;
-	
+
 	memset(formats,0,sizeof(formats));
-	
+
 	formats[i].pixel_format = V4L2_PIX_FMT_YUV420;
 	formats[i].max_fps = -1;
 	i++;
@@ -218,17 +218,17 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 	formats[i].max_fps = -1;
 	i++;
 #endif
-	
+
 	formats[i].pixel_format = V4L2_PIX_FMT_MJPEG;
 	formats[i].max_fps = -1;
 	i++;
-	
+
 #ifdef __arm__
 	formats[i].pixel_format = V4L2_PIX_FMT_YUYV;
 	formats[i].max_fps = -1;
 	i++;
 #endif
-	
+
 	formats[i].pixel_format = V4L2_PIX_FMT_RGB24;
 	formats[i].max_fps = -1;
 	i++;
@@ -343,9 +343,9 @@ MSPixFmt msv4l2_pick_best_format_basic(int fd, const V4L2FormatDescription* form
 
 static int set_camera_feature(V4l2State *s, unsigned int ctl_id, int value, const char *feature_name){
 	struct v4l2_ext_control ctl={0};
-	struct v4l2_ext_controls ctls={0};
+	struct v4l2_ext_controls ctls={{0}};
 	struct v4l2_queryctrl queryctrl={0};
-	
+
 	queryctrl.id = ctl_id;
 	if (ioctl (s->fd, VIDIOC_QUERYCTRL, &queryctrl)!=0) {
 		ms_warning("%s not supported: %s",feature_name,strerror(errno));
@@ -440,7 +440,7 @@ static int msv4l2_configure(V4l2State *s){
 		s->vsize.height=fmt.fmt.pix.height;
 	}
 	s->picture_size=get_picture_buffer_size(s->pix_fmt,s->vsize.width,s->vsize.height);
-	
+
 	focus=getenv("MS2_CAM_FOCUS");
 	if (focus){
 		if (strcasecmp(focus,"auto")==0){
@@ -459,7 +459,7 @@ static int msv4l2_configure(V4l2State *s){
 #endif
 		}
 	}
-	
+
 	s->configured=TRUE;
 	return 0;
 }
@@ -586,7 +586,7 @@ static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 	unsigned int k;
 	bool_t no_slot_available = TRUE;
 	mblk_t *ret=NULL;
-	
+
 	memset(&buf,0,sizeof(buf));
 
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -673,13 +673,13 @@ static void *msv4l2_thread(void *ptr){
 		ms_warning("msv4l2 could not be configured");
 		goto close;
 	}
-	
+
 	if (msv4l2_do_mmap(s)!=0)
 	{
 		ms_warning("msv4l2 do mmap");
 		goto close;
 	}
-	
+
 	ms_message("V4L2 video capture started.");
 	while(s->thread_run)
 	{
@@ -877,7 +877,7 @@ static void msv4l2_detect(MSWebCamManager *obj){
 
 	for(i=0;i<10;++i){
 		int fd;
-		
+
 		snprintf(devname,sizeof(devname),"/dev/video%i",i);
 
 		fd=open(devname,O_RDWR);
