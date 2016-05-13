@@ -107,6 +107,7 @@ else()
 	if(_target_found GREATER -1)
 		add_custom_target(TARGET_ortp ALL)
 		add_dependencies(TARGET_linphone_builder TARGET_ortp)
+		add_dependencies(TARGET_ortp TARGET_bctoolbox)
 		linphone_builder_add_builder_to_target(TARGET_ortp ortp)
 	endif()
 
