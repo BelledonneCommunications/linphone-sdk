@@ -436,7 +436,7 @@ static void append_dns_result(belle_sip_simple_resolver_context_t *ctx, struct a
 		return;
 	}
 	if (ctx->flags & AI_V4MAPPED) family=AF_INET6;
-	*ai_list = ai_list_append(*ai_list, bctbx_ip_address_to_addrinfo(family, host, ctx->port));
+	*ai_list = ai_list_append(*ai_list, bctbx_ip_address_to_addrinfo(family, SOCK_STREAM, host, ctx->port));
 	belle_sip_message("%s resolved to %s", ctx->name, host);
 }
 
@@ -959,7 +959,7 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
  * Perform combined SRV + A / AAAA resolution.
 **/
 belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack, const char *transport, const char *name, int port, int family, belle_sip_resolver_callback_t cb, void *data) {
-	struct addrinfo *res = bctbx_ip_address_to_addrinfo(family, name, port);
+	struct addrinfo *res = bctbx_ip_address_to_addrinfo(family, SOCK_STREAM, name, port);
 	if (res == NULL) {
 		/* First perform asynchronous DNS SRV query */
 		belle_sip_combined_resolver_context_t *ctx = belle_sip_object_new(belle_sip_combined_resolver_context_t);
@@ -1056,7 +1056,7 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_dual(belle_sip_sta
 }
 
 belle_sip_resolver_context_t * belle_sip_stack_resolve_a(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb , void *data) {
-	struct addrinfo *res = bctbx_ip_address_to_addrinfo(family, name, port);
+	struct addrinfo *res = bctbx_ip_address_to_addrinfo(family, SOCK_STREAM, name, port);
 	if (res == NULL) {
 		switch(family){
 			case AF_UNSPEC:
@@ -1134,7 +1134,7 @@ void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, 
 	return;
 fail:
 	{
-		struct addrinfo *res = bctbx_ip_address_to_addrinfo(af_type, af_type == AF_INET ? "127.0.0.1" : "::1", local_port);
+		struct addrinfo *res = bctbx_ip_address_to_addrinfo(af_type, SOCK_STREAM, af_type == AF_INET ? "127.0.0.1" : "::1", local_port);
 		if (res != NULL) {
 			memcpy(src,res->ai_addr,MIN((size_t)*srclen,res->ai_addrlen));
 			*srclen=res->ai_addrlen;

@@ -736,7 +736,7 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,c
 	obj->simulated_recv_return=1;/*not set*/
 	if (peername){
 		/*check if we are given a real dns name or just an ip address*/
-		struct addrinfo *ai=bctbx_ip_address_to_addrinfo(AF_UNSPEC,peername,peer_port);
+		struct addrinfo *ai=bctbx_ip_address_to_addrinfo(AF_UNSPEC,SOCK_STREAM,peername,peer_port);
 		if (ai) bctbx_freeaddrinfo(ai);
 		else obj->has_name=TRUE;
 	}
@@ -756,7 +756,7 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 	ai.ai_addrlen=addrlen;
 	bctbx_addrinfo_to_ip_address(&ai,remoteip,sizeof(remoteip),&peer_port);
 	belle_sip_channel_init(obj,stack,bindip,localport,NULL,remoteip,peer_port);
-	obj->peer_list=obj->current_peer=bctbx_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
+	obj->peer_list=obj->current_peer=bctbx_ip_address_to_addrinfo(ai.ai_family, ai.ai_socktype, obj->peer_name,obj->peer_port);
 	obj->ai_family=ai.ai_family;
 }
 

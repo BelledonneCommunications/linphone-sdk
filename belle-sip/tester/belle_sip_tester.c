@@ -37,7 +37,7 @@ static belle_sip_object_pool_t *pool;
 static int leaked_objects_count;
 
 static int _belle_sip_tester_ipv6_available(void){
-	struct addrinfo *ai=bctbx_ip_address_to_addrinfo(AF_INET6,"2a01:e00::2",53);
+	struct addrinfo *ai=bctbx_ip_address_to_addrinfo(AF_INET6,SOCK_STREAM,"2a01:e00::2",53);
 	if (ai){
 		struct sockaddr_storage ss;
 		struct addrinfo src;
