@@ -19,6 +19,8 @@
 #ifndef BCTOOLBOX_TESTER_H
 #define BCTOOLBOX_TESTER_H
 
+#include <bctoolbox/port.h>
+
 #if defined(_MSC_VER)
 #define BCTOOLBOX_PUBLIC	__declspec(dllexport)
 #else

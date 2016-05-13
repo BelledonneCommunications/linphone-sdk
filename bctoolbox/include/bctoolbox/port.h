@@ -336,6 +336,28 @@ BCTOOLBOX_PUBLIC void bctoolbox_sleep_until(const bctoolboxTimeSpec *ts);
 BCTOOLBOX_PUBLIC int bctoolbox_timespec_compare(const bctoolboxTimeSpec *s1, const bctoolboxTimeSpec *s2);
 BCTOOLBOX_PUBLIC unsigned int bctoolbox_random(void);
 
+
+/* Portable and bug-less getaddrinfo */
+BCTOOLBOX_PUBLIC int bctbx_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
+BCTOOLBOX_PUBLIC void bctbx_freeaddrinfo(struct addrinfo *res);
+BCTOOLBOX_PUBLIC int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_size, int *port);
+
+/**
+ * Convert a numeric ip address and port into an addrinfo, whose family will be as specified in the first argument.
+ * If AF_INET6 is requested, the returned addrinfo will always be an IPv6 address, possibly V4MAPPED if the 
+ * ip address was a v4 address.
+ * Passing AF_UNSPEC to this function leads to unspecified results.
+**/
+BCTOOLBOX_PUBLIC struct addrinfo * bctbx_ip_address_to_addrinfo(int family, const char *ipaddress, int port);
+/**
+ * Convert a name or ip address and port into an addrinfo, whose family will be as specified in the first argument.
+ * If AF_INET6 is requested, the returned addrinfo will always be an IPv6 address, possibly a V4MAPPED if the 
+ * ip address was a v4 address.
+ * Passing AF_UNSPEC to this function leads to unspecified results.
+**/
+BCTOOLBOX_PUBLIC struct addrinfo * bctbx_name_to_addrinfo(int family, const char *name, int port);
+
+
 /* portable named pipes  and shared memory*/
 #if !defined(_WIN32_WCE)
 #ifdef _WIN32
@@ -365,7 +387,7 @@ BCTOOLBOX_PUBLIC int bctoolbox_pipe_write(bctoolbox_pipe_t p, const uint8_t *buf
 BCTOOLBOX_PUBLIC void *bctoolbox_shm_open(unsigned int keyid, int size, int create);
 BCTOOLBOX_PUBLIC void bctoolbox_shm_close(void *memory);
 
-BCTOOLBOX_PUBLIC	bool_t bctoolbox_is_multicast_addr(const struct sockaddr *addr);
+BCTOOLBOX_PUBLIC bool_t bctoolbox_is_multicast_addr(const struct sockaddr *addr);
 	
 	
 #endif
