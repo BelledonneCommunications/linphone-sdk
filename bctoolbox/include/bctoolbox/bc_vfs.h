@@ -1,3 +1,22 @@
+/*
+bc_vfs.h
+Copyright (C) 2016 Belledonne Communications SARL
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -7,7 +26,7 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 
-#define BCTBX_VFS_OK           1   /* Successful result */
+#define BCTBX_VFS_OK           0   /* Successful result */
 
 #define BCTBX_VFS_ERROR       -1   /* Some kind of disk I/O error occurred */
 
@@ -26,7 +45,7 @@ typedef struct bctbx_vfs_file bctbx_vfs_file;
 struct bctbx_vfs_file {
 	const struct bctbx_io_methods *pMethods;  /* Methods for an open file */
 	int fd;                         	/* File descriptor */
-	FILE* file;							/*File stream */
+//	FILE* file;							/*File stream */
 	int offset;							/*File offset used by lseek*/
 	char* filename;
 	uint64_t size;
@@ -41,8 +60,6 @@ struct bctbx_io_methods {
 	int (*pFuncWrite)(bctbx_vfs_file*, const void*, int count, uint64_t offset, int* pErrSvd);
 	int (*pFuncFileSize)(bctbx_vfs_file*);
 	int (*pFuncGetLineFromFd)(bctbx_vfs_file*, char* s, int count);
-	char*  (*pFuncFgets)(bctbx_vfs_file*, char* s, int count);
-	int (*pFuncFprintf)(bctbx_vfs_file*, const char* s);
 	int	(*pFuncSeek)(bctbx_vfs_file *pFile, uint64_t offset, int whence);
 };
 
@@ -53,7 +70,7 @@ typedef struct bctbx_vfs bctbx_vfs;
 struct bctbx_vfs {
 	bctbx_vfs *pNext;      /* Next registered VFS */
 	const char *vfsName;       /* Virtual file system name */
-	bctbx_vfs_file* (*pFuncFopen)(bctbx_vfs* pVfs, const char *fName,  const char* mode, int* pErrSvd);
+	int (*pFuncFopen)(bctbx_vfs* pVfs, bctbx_vfs_file *pFile, const char *fName,  const int openFlags, int* pErrSvd);
 	// int (*pFuncDelete)(bctbx_vfs*, const char *vfsName, int syncDir);
 	// int (*pFuncFullPathname)(bctbx_vfs*, const char *vfsName, int nOut, char *zOut);
 	
