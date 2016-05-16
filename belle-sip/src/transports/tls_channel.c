@@ -521,13 +521,23 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 	belle_sip_channel_t *channel = (belle_sip_channel_t *)obj;
 	int err;
 	char ip[64];
+	char *host_ip;
+	char url_ipport[64];
 	int port;
+	bctbx_addrinfo_to_printable_ip_address(channel->current_peer,url_ipport,sizeof(url_ipport));
 	bctbx_addrinfo_to_ip_address(channel->current_peer,ip,sizeof(ip),&port);
+	
+	if (channel->current_peer->ai_family == AF_INET6) {
+		host_ip = belle_sip_strdup_printf("[%s]",ip);
+	} else {
+		host_ip = belle_sip_strdup_printf("%s",ip); /*just to simplify code*/
+	}
 
-	request = belle_sip_strdup_printf("CONNECT %s:%i HTTP/1.1\r\nProxy-Connection: keep-alive\r\nConnection: keep-alive\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\n"
-									  ,ip
-									  ,port
-									  ,ip);
+	request = belle_sip_strdup_printf("CONNECT %s HTTP/1.1\r\nProxy-Connection: keep-alive\r\nConnection: keep-alive\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\n"
+									  ,url_ipport
+									  ,host_ip);
+	
+	belle_sip_free(host_ip);
 
 	if (channel->stack->http_proxy_username && channel->stack->http_proxy_passwd) {
 		char *username_passwd = belle_sip_strdup_printf("%s:%s",channel->stack->http_proxy_username,channel->stack->http_proxy_passwd);
