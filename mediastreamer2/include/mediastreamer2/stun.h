@@ -107,7 +107,15 @@ typedef struct {
 } MSStunAddress4;
 
 typedef struct {
-	MSStunAddress4 ipv4;
+	uint16_t port;
+	UInt128 addr;
+} MSStunAddress6;
+
+typedef struct {
+	union {
+		MSStunAddress4 v4;
+		MSStunAddress6 v6;
+	} ip;
 	uint8_t family;
 } MSStunAddress;
 
@@ -193,7 +201,13 @@ extern "C"
 typedef void (*MSStunAuthRequestedCb)(void *userdata, const char *realm, const char *nonce, const char **username, const char **password, const char **ha1);
 
 
-MS2_PUBLIC MSStunAddress4 ms_stun_hostname_to_stun_addr(const char *hostname, uint16_t default_port);
+MS2_PUBLIC bool_t ms_compare_stun_addresses(const MSStunAddress *a1, const MSStunAddress *a2);
+MS2_PUBLIC int ms_stun_family_to_af(int stun_family);
+MS2_PUBLIC void ms_stun_address_to_sockaddr(const MSStunAddress *stun_addr, struct sockaddr *addr, socklen_t *addrlen);
+MS2_PUBLIC void ms_sockaddr_to_stun_address(const struct sockaddr *addr, MSStunAddress *stun_addr);
+MS2_PUBLIC MSStunAddress ms_ip_address_to_stun_address(int ai_family, int socktype, const char *hostname, int port);
+MS2_PUBLIC void ms_stun_address_to_ip_address(const MSStunAddress *stun_address, char *ip, size_t ip_size, int *port);
+MS2_PUBLIC void ms_stun_address_to_printable_ip_address(const MSStunAddress *stun_address, char *printable_ip, size_t printable_ip_size);
 MS2_PUBLIC char * ms_stun_calculate_integrity_short_term(const char *buf, size_t bufsize, const char *key);
 MS2_PUBLIC char * ms_stun_calculate_integrity_long_term(const char *buf, size_t bufsize, const char *realm, const char *username, const char *password);
 MS2_PUBLIC char * ms_stun_calculate_integrity_long_term_from_ha1(const char *buf, size_t bufsize, const char *ha1_text);

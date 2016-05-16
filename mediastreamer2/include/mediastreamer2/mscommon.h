@@ -147,7 +147,8 @@ typedef void (*MSIterate3Func)(void *a, void *b, void *c);
 extern "C"{
 #endif
 /*for stun*/
-typedef struct { unsigned char octet[12]; }  UInt96;
+typedef struct { unsigned char octet[12]; } UInt96;
+typedef struct { unsigned char octet[16]; } UInt128;
 
 MS2_PUBLIC void ms_thread_exit(void* ret_val);
 

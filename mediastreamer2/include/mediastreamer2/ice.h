@@ -153,7 +153,8 @@ typedef struct _IceStunServerRequest {
 typedef struct _IceTransportAddress {
 	char ip[64];
 	int port;
-	// TODO: Handling of IP version (4 or 6) and transport type: TCP, UDP...
+	int family;
+	// TODO: Handling of transport type: TCP, UDP...
 } IceTransportAddress;
 
 /**
@@ -698,6 +699,7 @@ MS2_PUBLIC const char * ice_candidate_type(const IceCandidate *candidate);
  *
  * @param cl A pointer to a check list
  * @param type The type of the local candidate to add as a string (must be one of: "host", "srflx", "prflx" or "relay")
+ * @param family The address family of the local candidate (AF_INET or AF_INET6)
  * @param ip The IP address of the local candidate as a string (eg. 192.168.0.10)
  * @param port The port of the local candidate
  * @param componentID The component ID of the local candidate (usually 1 for RTP and 2 for RTCP)
@@ -705,13 +707,14 @@ MS2_PUBLIC const char * ice_candidate_type(const IceCandidate *candidate);
  *
  * This function is to be called when gathering local candidates.
  */
-MS2_PUBLIC IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base);
+MS2_PUBLIC IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, int family, const char *ip, int port, uint16_t componentID, IceCandidate *base);
 
 /**
  * Add a remote candidate to an ICE check list.
  *
  * @param cl A pointer to a check list
  * @param type The type of the remote candidate to add as a string (must be one of: "host", "srflx", "prflx" or "relay")
+ * @param family The address family of the remote candidate (AF_INET or AF_INET6)
  * @param ip The IP address of the remote candidate as a string (eg. 192.168.0.10)
  * @param port The port of the remote candidate
  * @param componentID The component ID of the remote candidate (usually 1 for RTP and 2 for RTCP)
@@ -721,13 +724,14 @@ MS2_PUBLIC IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *
  *
  * This function is to be called once the remote candidate list has been received via SDP.
  */
-MS2_PUBLIC IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation, bool_t is_default);
+MS2_PUBLIC IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, int family, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation, bool_t is_default);
 
 /**
  * Add a losing pair to an ICE check list.
  *
  * @param cl A pointer to a check list
  * @param componentID The component ID of the candidates of the pair to add
+ * @param family The address family of the candidates (AF_INET or AF_INET6)
  * @param local_addr The address of the local candidate of the pair to add
  * @param local_port The port of the local candidate of the pair to add
  * @param remote_addr The address of the remote candidate of the pair to add
@@ -735,7 +739,7 @@ MS2_PUBLIC IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char 
  *
  * This function is to be called when a RE-INVITE with an SDP containing a remote-candidates attribute is received.
  */
-MS2_PUBLIC void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *local_addr, int local_port, const char *remote_addr, int remote_port);
+MS2_PUBLIC void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, int family, const char *local_addr, int local_port, const char *remote_addr, int remote_port);
 
 /**
  * Get the number of losing candidate pairs for an ICE session.

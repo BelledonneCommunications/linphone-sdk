@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <mediastreamer2/stun.h>
 #include <bctoolbox/crypto.h>
+#include <bctoolbox/port.h>
 
 
 #define IANA_PROTOCOL_NUMBERS_UDP 17
@@ -94,6 +95,23 @@ static void stun_message_encoder_memcpy(StunMessageEncoder *encoder, const void 
 	encoder->ptr += len;
 }
 
+static void stun_address_xor(MSStunAddress *addr, const UInt96 *tr_id) {
+	if (addr->family == MS_STUN_ADDR_FAMILY_IPV4) {
+		addr->ip.v4.addr ^= MS_STUN_MAGIC_COOKIE;
+		addr->ip.v4.port ^= MS_STUN_MAGIC_COOKIE >> 16;
+	} else if (addr->family == MS_STUN_ADDR_FAMILY_IPV6) {
+		int i;
+		uint32_t magic_cookie = htonl(MS_STUN_MAGIC_COOKIE);
+		for (i = 0; i < 4; i++) {
+			addr->ip.v6.addr.octet[i] ^= ((uint8_t *)&magic_cookie)[i];
+		}
+		for (i = 0; i < 12; i++) {
+			addr->ip.v6.addr.octet[i + 4] ^= tr_id->octet[i];
+		}
+		addr->ip.v6.port ^= MS_STUN_MAGIC_COOKIE >> 16;
+	}
+}
+
 static void encode8(StunMessageEncoder *encoder, uint8_t data) {
 	stun_message_encoder_memcpy(encoder, &data, sizeof(data));
 }
@@ -136,11 +154,18 @@ static void encode_addr(StunMessageEncoder *encoder, uint16_t type, const MSStun
 	encode8(encoder, 0);
 	encode8(encoder, addr->family);
 	if (addr->family == MS_STUN_ADDR_FAMILY_IPV6) {
-		/* TODO */
+		encode16(encoder, addr->ip.v6.port);
+		encode(encoder, &addr->ip.v6.addr, sizeof(UInt128));
 	} else {
-		encode16(encoder, addr->ipv4.port);
-		encode32(encoder, addr->ipv4.addr);
+		encode16(encoder, addr->ip.v4.port);
+		encode32(encoder, addr->ip.v4.addr);
 	}
+}
+
+static void encode_xor_addr(StunMessageEncoder *encoder, uint16_t type, const MSStunAddress *addr, const UInt96 *tr_id) {
+	MSStunAddress xor_addr = *addr;
+	stun_address_xor(&xor_addr, tr_id);
+	encode_addr(encoder, type, &xor_addr);
 }
 
 static void encode_change_request(StunMessageEncoder *encoder, uint32_t data) {
@@ -355,13 +380,20 @@ static MSStunAddress decode_addr(StunMessageDecoder *decoder, uint16_t length) {
 	decode8(decoder);
 	stun_addr.family = decode8(decoder);
 	if (stun_addr.family == MS_STUN_ADDR_FAMILY_IPV6) {
-		/* TODO */
+		stun_addr.ip.v6.port = decode16(decoder);
+		memcpy(&stun_addr.ip.v6.addr, decode(decoder, sizeof(UInt128)), sizeof(UInt128));
 	} else {
-		stun_addr.ipv4.port = decode16(decoder);
-		stun_addr.ipv4.addr = decode32(decoder);
+		stun_addr.ip.v4.port = decode16(decoder);
+		stun_addr.ip.v4.addr = decode32(decoder);
 	}
 
 error:
+	return stun_addr;
+}
+
+static MSStunAddress decode_xor_addr(StunMessageDecoder *decoder, uint16_t length, UInt96 tr_id) {
+	MSStunAddress stun_addr = decode_addr(decoder, length);
+	stun_address_xor(&stun_addr, &tr_id);
 	return stun_addr;
 }
 
@@ -473,52 +505,71 @@ static uint8_t * decode_data(StunMessageDecoder *decoder, uint16_t length) {
 }
 
 
-MSStunAddress4 ms_stun_hostname_to_stun_addr(const char *hostname, uint16_t default_port) {
-	char *host;
-	char *sep;
-	int port = default_port;
-	MSStunAddress4 stun_addr;
-
-	memset(&stun_addr, 0, sizeof(stun_addr));
-	host = ms_strdup(hostname);
-	/* Get the port part if present. */
-	sep = strchr(host, ':');
-	if (sep != NULL) {
-		char *end_ptr = NULL;
-		char *portstr = sep + 1;
-		*sep = '\0';
-		port = strtol(portstr, &end_ptr, 10);
-		if (end_ptr != NULL) {
-			if (*end_ptr != '\0') port = default_port;
-		}
+bool_t ms_compare_stun_addresses(const MSStunAddress *a1, const MSStunAddress *a2) {
+	if (a1->family != a2->family) return TRUE;
+	if (a1->family == MS_STUN_ADDR_FAMILY_IPV4) {
+		return !((a1->ip.v4.port == a2->ip.v4.port)
+		&& (a1->ip.v4.addr == a2->ip.v4.addr));
+	} else if (a1->family == MS_STUN_ADDR_FAMILY_IPV6) {
+		return !((a1->ip.v6.port == a2->ip.v6.port)
+		&& (memcmp(&a1->ip.v6.addr, &a2->ip.v6.addr, sizeof(UInt128)) == 0));
 	}
+	return TRUE;
+}
 
-	if (port < 1024) goto error;
-	if (port >= 0xFFFF) goto error;
-	stun_addr.port = port;
+int ms_stun_family_to_af(int stun_family) {
+	if (stun_family == MS_STUN_ADDR_FAMILY_IPV4) return AF_INET;
+	else if (stun_family == MS_STUN_ADDR_FAMILY_IPV6) return AF_INET6;
+	else return 0;
+}
 
-	/* Figure out the host part */
-#if	defined(_WIN32) || defined(_WIN32_WCE)
-	if (isdigit(host[0])) {
-		/* Assume it is a ip address */
-		unsigned long a = inet_addr(host);
-		stun_addr.addr = ntohl(a);
-	} else
-		/* Assume it is a host name */
-#endif
-	{
-		struct hostent *h = gethostbyname(host);
-		if (h == NULL) {
-			stun_addr.addr = ntohl(0x7F000001L);
-		} else {
-			struct in_addr sin_addr = *(struct in_addr *)h->h_addr;
-			stun_addr.addr = ntohl(sin_addr.s_addr);
-		}
+void ms_stun_address_to_sockaddr(const MSStunAddress *stun_addr, struct sockaddr *addr, socklen_t *addrlen) {
+	if (stun_addr->family == MS_STUN_ADDR_FAMILY_IPV4) {
+		struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
+		addr_in->sin_family = AF_INET;
+		addr_in->sin_port = htons(stun_addr->ip.v4.port);
+		addr_in->sin_addr.s_addr = htonl(stun_addr->ip.v4.addr);
+		*addrlen = sizeof(struct sockaddr_in);
+	} else if (stun_addr->family == MS_STUN_ADDR_FAMILY_IPV6) {
+		struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)addr;
+		addr_in6->sin6_family = AF_INET6;
+		addr_in6->sin6_port = htons(stun_addr->ip.v6.port);
+		memcpy(addr_in6->sin6_addr.s6_addr, &stun_addr->ip.v6.addr, sizeof(UInt128));
+		*addrlen = sizeof(struct sockaddr_in6);
 	}
+}
 
-error:
-	ms_free(host);
+void ms_sockaddr_to_stun_address(const struct sockaddr *addr, MSStunAddress *stun_addr) {
+	if (addr->sa_family == AF_INET) {
+		stun_addr->family = MS_STUN_ADDR_FAMILY_IPV4;
+		stun_addr->ip.v4.port = ntohs(((const struct sockaddr_in *)addr)->sin_port);
+		stun_addr->ip.v4.addr = ntohl(((const struct sockaddr_in *)addr)->sin_addr.s_addr);
+	} else if (addr->sa_family == AF_INET6) {
+		stun_addr->family = MS_STUN_ADDR_FAMILY_IPV6;
+		stun_addr->ip.v6.port = ntohs(((const struct sockaddr_in6 *)addr)->sin6_port);
+		memcpy(&stun_addr->ip.v6.addr, ((const struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, sizeof(UInt128));
+	}
+}
+
+MSStunAddress ms_ip_address_to_stun_address(int ai_family, int socktype, const char *hostname, int port) {
+	MSStunAddress stun_addr = { 0 };
+	struct addrinfo *res = bctbx_ip_address_to_addrinfo(ai_family, socktype, hostname, port);
+	ms_sockaddr_to_stun_address(res->ai_addr, &stun_addr);
 	return stun_addr;
+}
+
+void ms_stun_address_to_ip_address(const MSStunAddress *stun_address, char *ip, size_t ip_size, int *port) {
+	struct sockaddr_storage addr;
+	socklen_t addrlen = 0;
+	ms_stun_address_to_sockaddr(stun_address, (struct sockaddr *)&addr, &addrlen);
+	bctbx_sockaddr_to_ip_address((struct sockaddr *)&addr, addrlen, ip, ip_size, port);
+}
+
+void ms_stun_address_to_printable_ip_address(const MSStunAddress *stun_address, char *printable_ip, size_t printable_ip_size) {
+	struct sockaddr_storage addr;
+	socklen_t addrlen = 0;
+	ms_stun_address_to_sockaddr(stun_address, (struct sockaddr *)&addr, &addrlen);
+	bctbx_sockaddr_to_printable_ip_address((struct sockaddr *)&addr, addrlen, printable_ip, printable_ip_size);
 }
 
 char * ms_stun_calculate_integrity_short_term(const char *buf, size_t bufsize, const char *key) {
@@ -696,9 +747,7 @@ MSStunMessage * ms_stun_message_create_from_buffer_parsing(const uint8_t *buf, s
 				break;
 			case MS_STUN_ATTR_XOR_MAPPED_ADDRESS:
 				{
-					MSStunAddress stun_addr = decode_addr(&decoder, length);
-					stun_addr.ipv4.addr ^= MS_STUN_MAGIC_COOKIE;
-					stun_addr.ipv4.port ^= MS_STUN_MAGIC_COOKIE >> 16;
+					MSStunAddress stun_addr = decode_xor_addr(&decoder, length, ms_stun_message_get_tr_id(msg));
 					ms_stun_message_set_xor_mapped_address(msg, stun_addr);
 				}
 				break;
@@ -727,17 +776,13 @@ MSStunMessage * ms_stun_message_create_from_buffer_parsing(const uint8_t *buf, s
 				break;
 			case MS_TURN_ATTR_XOR_PEER_ADDRESS:
 				{
-					MSStunAddress stun_addr = decode_addr(&decoder, length);
-					stun_addr.ipv4.addr ^= MS_STUN_MAGIC_COOKIE;
-					stun_addr.ipv4.port ^= MS_STUN_MAGIC_COOKIE >> 16;
+					MSStunAddress stun_addr = decode_xor_addr(&decoder, length, ms_stun_message_get_tr_id(msg));
 					ms_stun_message_set_xor_peer_address(msg, stun_addr);
 				}
 				break;
 			case MS_TURN_ATTR_XOR_RELAYED_ADDRESS:
 				{
-					MSStunAddress stun_addr = decode_addr(&decoder, length);
-					stun_addr.ipv4.addr ^= MS_STUN_MAGIC_COOKIE;
-					stun_addr.ipv4.port ^= MS_STUN_MAGIC_COOKIE >> 16;
+					MSStunAddress stun_addr = decode_xor_addr(&decoder, length, ms_stun_message_get_tr_id(msg));
 					ms_stun_message_set_xor_relayed_address(msg, stun_addr);
 				}
 				break;
@@ -854,12 +899,12 @@ size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 		encode_error_code(&encoder, number, reason);
 	}
 	stun_addr = ms_stun_message_get_xor_mapped_address(msg);
-	if (stun_addr != NULL) encode_addr(&encoder, MS_STUN_ATTR_XOR_MAPPED_ADDRESS, stun_addr);
+	if (stun_addr != NULL) encode_xor_addr(&encoder, MS_STUN_ATTR_XOR_MAPPED_ADDRESS, stun_addr, &msg->tr_id);
 
 	stun_addr = ms_stun_message_get_xor_peer_address(msg);
-	if (stun_addr != NULL) encode_addr(&encoder, MS_TURN_ATTR_XOR_PEER_ADDRESS, stun_addr);
+	if (stun_addr != NULL) encode_xor_addr(&encoder, MS_TURN_ATTR_XOR_PEER_ADDRESS, stun_addr, &msg->tr_id);
 	stun_addr = ms_stun_message_get_xor_relayed_address(msg);
-	if (stun_addr != NULL) encode_addr(&encoder, MS_TURN_ATTR_XOR_RELAYED_ADDRESS, stun_addr);
+	if (stun_addr != NULL) encode_xor_addr(&encoder, MS_TURN_ATTR_XOR_RELAYED_ADDRESS, stun_addr, &msg->tr_id);
 	if (ms_stun_message_has_requested_transport(msg)) encode_requested_transport(&encoder, ms_stun_message_get_requested_transport(msg));
 	if (ms_stun_message_has_lifetime(msg)) encode_lifetime(&encoder, ms_stun_message_get_lifetime(msg));
 
@@ -1132,8 +1177,8 @@ MSStunMessage * ms_turn_refresh_request_create(uint32_t lifetime) {
 
 MSStunMessage * ms_turn_create_permission_request_create(MSStunAddress peer_address) {
 	MSStunMessage *msg = ms_stun_message_create(MS_STUN_TYPE_REQUEST, MS_TURN_METHOD_CREATE_PERMISSION);
-	peer_address.ipv4.addr ^= MS_STUN_MAGIC_COOKIE;
-	peer_address.ipv4.port ^= MS_STUN_MAGIC_COOKIE >> 16;
+	peer_address.ip.v4.addr ^= MS_STUN_MAGIC_COOKIE;
+	peer_address.ip.v4.port ^= MS_STUN_MAGIC_COOKIE >> 16;
 	ms_stun_message_set_xor_peer_address(msg, peer_address);
 	return msg;
 }
@@ -1280,18 +1325,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 								msgsize = 0;
 							}
 							/* Overwrite the source address of the packet so that it uses the peer address instead of the TURN server one */
-							if (stun_addr->family == MS_STUN_ADDR_FAMILY_IPV4) {
-								struct sockaddr_in *from_in = (struct sockaddr_in *)from;
-								from_in->sin_port = htons(stun_addr->ipv4.port);
-								from_in->sin_addr.s_addr = htonl(stun_addr->ipv4.addr);
-								from->sa_family = AF_INET;
-							} else if (stun_addr->family == MS_STUN_ADDR_FAMILY_IPV6) {
-								// TODO
-								from->sa_family = AF_INET6;
-							} else {
-								ms_warning("turn: Unknown address family in XOR peer address");
-								msgsize = 0;
-							}
+							ms_stun_address_to_sockaddr(stun_addr, from, fromlen);
 						}
 					}
 					ms_stun_message_destroy(stun_msg);

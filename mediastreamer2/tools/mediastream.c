@@ -818,8 +818,8 @@ void setup_media_streams(MediastreamDatas* args) {
 			int c;
 			for (c=0;c<args->ice_local_candidates_nb;c++){
 				candidate=&args->ice_local_candidates[c];
-				ice_add_local_candidate(args->audio->ms.ice_check_list,candidate->type,candidate->ip,candidate->port,1,NULL);
-				ice_add_local_candidate(args->audio->ms.ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,NULL);
+				ice_add_local_candidate(args->audio->ms.ice_check_list,candidate->type,AF_INET,candidate->ip,candidate->port,1,NULL);
+				ice_add_local_candidate(args->audio->ms.ice_check_list,candidate->type,AF_INET,candidate->ip,candidate->port+1,2,NULL);
 			}
 		}
 		if (args->ice_remote_candidates_nb) {
@@ -830,8 +830,8 @@ void setup_media_streams(MediastreamDatas* args) {
 				candidate=&args->ice_remote_candidates[c];
 				memset(foundation, '\0', sizeof(foundation));
 				snprintf(foundation, sizeof(foundation) - 1, "%u", c + 1);
-				ice_add_remote_candidate(args->audio->ms.ice_check_list,candidate->type,candidate->ip,candidate->port,1,0,foundation,FALSE);
-				ice_add_remote_candidate(args->audio->ms.ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0,foundation,FALSE);
+				ice_add_remote_candidate(args->audio->ms.ice_check_list,candidate->type,AF_INET,candidate->ip,candidate->port,1,0,foundation,FALSE);
+				ice_add_remote_candidate(args->audio->ms.ice_check_list,candidate->type,AF_INET,candidate->ip,candidate->port+1,2,0,foundation,FALSE);
 			}
 		}
 
