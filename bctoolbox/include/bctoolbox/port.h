@@ -284,7 +284,10 @@ char * WSAAPI gai_strerror(int errnum);
 
 #endif
 
+#ifndef _BOOL_T_
+#define _BOOL_T_
 typedef unsigned char bool_t;
+#endif /* _BOOL_T_ */
 #undef TRUE
 #undef FALSE
 #define TRUE 1
@@ -341,6 +344,9 @@ BCTOOLBOX_PUBLIC unsigned int bctoolbox_random(void);
 BCTOOLBOX_PUBLIC int bctbx_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
 BCTOOLBOX_PUBLIC void bctbx_freeaddrinfo(struct addrinfo *res);
 BCTOOLBOX_PUBLIC int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_size, int *port);
+BCTOOLBOX_PUBLIC int bctbx_addrinfo_to_printable_ip_address(const struct addrinfo *ai, char *printable_ip, size_t printable_ip_size);
+BCTOOLBOX_PUBLIC int bctbx_sockaddr_to_ip_address(struct sockaddr *sa, socklen_t salen, char *ip, size_t ip_size, int *port);
+BCTOOLBOX_PUBLIC int bctbx_sockaddr_to_printable_ip_address(struct sockaddr *sa, socklen_t salen, char *printable_ip, size_t printable_ip_size);
 
 /**
  * Convert a numeric ip address and port into an addrinfo, whose family will be as specified in the first argument.
@@ -348,14 +354,14 @@ BCTOOLBOX_PUBLIC int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, cha
  * ip address was a v4 address.
  * Passing AF_UNSPEC to this function leads to unspecified results.
 **/
-BCTOOLBOX_PUBLIC struct addrinfo * bctbx_ip_address_to_addrinfo(int family, const char *ipaddress, int port);
+BCTOOLBOX_PUBLIC struct addrinfo * bctbx_ip_address_to_addrinfo(int family, int socktype, const char *ipaddress, int port);
 /**
  * Convert a name or ip address and port into an addrinfo, whose family will be as specified in the first argument.
  * If AF_INET6 is requested, the returned addrinfo will always be an IPv6 address, possibly a V4MAPPED if the 
  * ip address was a v4 address.
  * Passing AF_UNSPEC to this function leads to unspecified results.
 **/
-BCTOOLBOX_PUBLIC struct addrinfo * bctbx_name_to_addrinfo(int family, const char *name, int port);
+BCTOOLBOX_PUBLIC struct addrinfo * bctbx_name_to_addrinfo(int family, int socktype, const char *name, int port);
 
 
 /* portable named pipes  and shared memory*/

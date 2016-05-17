@@ -1041,18 +1041,53 @@ void bctbx_freeaddrinfo(struct addrinfo *res){
 
 #endif
 
+static void _bctbx_addrinfo_to_ip_address_error(int err, char *ip, size_t ip_size) {
+	bctoolbox_error("getnameinfo() error: %s", gai_strerror(err));
+	strncpy(ip, "<bug!!>", ip_size);
+}
+
 int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_size, int *port){
 	char serv[16];
 	int err=getnameinfo(ai->ai_addr,ai->ai_addrlen,ip,ip_size,serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
-	if (err!=0){
-		bctoolbox_error("getnameinfo() error: %s",gai_strerror(err));
-		strncpy(ip,"<bug!!>",ip_size);
-	}
+	if (err!=0) _bctbx_addrinfo_to_ip_address_error(err, ip, ip_size);
 	if (port) *port=atoi(serv);
 	return 0;
 }
 
-static struct addrinfo * _bctbx_name_to_addrinfo(int family, const char *ipaddress, int port, int numeric_only){
+int bctbx_addrinfo_to_printable_ip_address(const struct addrinfo *ai, char *printable_ip, size_t printable_ip_size) {
+	char ip[64];
+	char serv[16];
+	int err = getnameinfo(ai->ai_addr, ai->ai_addrlen, ip, sizeof(ip), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
+	if (err != 0) _bctbx_addrinfo_to_ip_address_error(err, ip, sizeof(ip));
+	if (ai->ai_family == AF_INET)
+		snprintf(printable_ip, printable_ip_size, "%s:%s", ip, serv);
+	else if (ai->ai_family == AF_INET6)
+		snprintf(printable_ip, printable_ip_size, "[%s]:%s", ip, serv);
+	return 0;
+}
+
+int bctbx_sockaddr_to_ip_address(struct sockaddr *sa, socklen_t salen, char *ip, size_t ip_size, int *port) {
+	struct addrinfo ai = { 0 };
+	ai.ai_addr = sa;
+	ai.ai_addrlen = salen;
+	ai.ai_family = sa->sa_family;
+	return bctbx_addrinfo_to_ip_address(&ai, ip, ip_size, port);
+}
+
+int bctbx_sockaddr_to_printable_ip_address(struct sockaddr *sa, socklen_t salen, char *printable_ip, size_t printable_ip_size) {
+	if ((sa->sa_family == 0) || (salen == 0)) {
+		snprintf(printable_ip, printable_ip_size, "no-addr");
+		return 0;
+	} else {
+		struct addrinfo ai = { 0 };
+		ai.ai_addr = sa;
+		ai.ai_addrlen = salen;
+		ai.ai_family = sa->sa_family;
+		return bctbx_addrinfo_to_printable_ip_address(&ai, printable_ip, printable_ip_size);
+	}
+}
+
+static struct addrinfo * _bctbx_name_to_addrinfo(int family, int socktype, const char *ipaddress, int port, int numeric_only){
 	struct addrinfo *res=NULL;
 	struct addrinfo hints={0};
 	char serv[10];
@@ -1061,7 +1096,7 @@ static struct addrinfo * _bctbx_name_to_addrinfo(int family, const char *ipaddre
 	snprintf(serv,sizeof(serv),"%i",port);
 	hints.ai_family=family;
 	if (numeric_only) hints.ai_flags=AI_NUMERICSERV|AI_NUMERICHOST;
-	hints.ai_socktype=SOCK_STREAM; //not used but it's needed to specify it because otherwise getaddrinfo returns one struct addrinfo per socktype.
+	hints.ai_socktype=socktype;
 	
 	if (family==AF_INET6 && strchr(ipaddress,':')==NULL) {
 		hints.ai_flags|=AI_V4MAPPED;
@@ -1076,10 +1111,10 @@ static struct addrinfo * _bctbx_name_to_addrinfo(int family, const char *ipaddre
 	return res;
 }
 
-struct addrinfo * bctbx_name_to_addrinfo(int family, const char *name, int port){
-	return _bctbx_name_to_addrinfo(family, name, port, FALSE);
+struct addrinfo * bctbx_name_to_addrinfo(int family, int socktype, const char *name, int port){
+	return _bctbx_name_to_addrinfo(family, socktype, name, port, FALSE);
 }
 
-struct addrinfo * bctbx_ip_address_to_addrinfo(int family, const char *name, int port){
-	return _bctbx_name_to_addrinfo(family, name, port, TRUE);
+struct addrinfo * bctbx_ip_address_to_addrinfo(int family, int socktype, const char *name, int port){
+	return _bctbx_name_to_addrinfo(family, socktype, name, port, TRUE);
 }
