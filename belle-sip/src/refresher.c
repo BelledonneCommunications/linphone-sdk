@@ -453,7 +453,10 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 				belle_sip_message("Refresher [%p] new publish is delayed to end of ongoing transaction"	,refresher);
 				refresher->publish_pending = TRUE;
 				return 0;
-			} else {
+			} else if (strcmp(belle_sip_request_get_method(old_request),"SUBSCRIBE")==0)  {
+				belle_sip_message("Cannot refresh now, there is a pending request for refresher [%p].",refresher);
+				return -1;
+			}else {
 				request=belle_sip_request_clone_with_body(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction)));
 				cseq=belle_sip_message_get_header_by_type(request,belle_sip_header_cseq_t);
 				belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
@@ -556,8 +559,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 
 	client_transaction = belle_sip_provider_create_client_transaction(prov,request);
 	client_transaction->base.is_internal=1;
-	belle_sip_transaction_set_application_data(BELLE_SIP_TRANSACTION(client_transaction),refresher);
-
+	
 	if (request ==  refresher->first_acknoleged_request) { /*request is now ref by transaction so no need to keepo it*/
 		belle_sip_object_unref(refresher->first_acknoleged_request);
 		refresher->first_acknoleged_request = NULL;
