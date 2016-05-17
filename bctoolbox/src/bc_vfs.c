@@ -73,7 +73,7 @@ static int bcClose(bctbx_vfs_file *pFile, int *pErrSvd){
  * Repositions the open file offset given by the file descriptor fd from the file handle pFile
  * to the parameter offset, according to whence.
  * @param  pFile  File handle pointer.
- * @param  offset file offset where to position to
+ * @param  offset file offset where to set the position to
  * @param  whence Either SEEK_SET, SEEK_CUR,SEEK_END .
  * @return   offset bytes from the beginning of the file, BCTBX_VFS_ERROR otherwise
  */
@@ -198,7 +198,7 @@ static int bcFileSize(bctbx_vfs_file *pFile){
 /**
  * Gets a line of max_len length and stores it to the allocaed buffer s.
  * Reads at most max_len characters from the file descriptor associated with the argument pFile
- * and looks for an end of line character. Stores the line found 
+ * and looks for an end of line character (\r or \n). Stores the line found 
  * into the buffer pointed by s.
  * Reads another max_len character while the end of line character is not found
  * and the end of file is not reached.
@@ -281,9 +281,9 @@ static int bcGetLine(bctbx_vfs_file *pFile, char* s,  int max_len) {
 
 
 /**
- * [set_flags description]
- * @param  mode [description]
- * @return      [description]
+ * Create flags (int) from mode(char*).
+ * @param  mode  Can be r, r+, w+, w
+ * @return 		 returns flags (integer).	 
  */
 static int set_flags(const char* mode){
 	int flags;
@@ -312,25 +312,29 @@ static const bctbx_io_methods bcio = {
 		bcSeek,
 };
 
+/*
+ Returns the bctbx_io_methods address.
+ */
 const bctbx_io_methods* get_bcio(void){
 	return &bcio;
 }
 /**
- * [bcFopen description]
- * @param  pVfs    [description]
- * @param  fName   [description]
- * @param  mode    [description]
- * @param  pErrSvd [description]
- * @return         [description]
+ * Opens the file with filename fName, associate it to the file handle pointed 
+ * by pFile, sets the methods bctbx_io_methods to the bcio structure
+ * and initializes the file size.
+ * Sets the error in pErrSvd if an error occurred while opening the file fName.
+ * @param  pVfs    		Pointer to  bctx_vfs  VFS.
+ * @param  fName   		Absolute path filename.
+ * @param  openFlags    Flags to use when opening the file.
+ * @param  pErrSvd 		Pointer to the error allocated if an error occurs.
+ * @return         		BCTBX_VFS_ERROR if an error occurs, BCTBX_VFS_OK otherwise.
  */
 static  int bcOpen(bctbx_vfs *pVfs, bctbx_vfs_file *pFile, const char *fName, const int openFlags, int* pErrSvd){
-
 	
 	if (pFile == NULL || fName == NULL){
 		return BCTBX_VFS_ERROR ;
 	}
 
-	
 	pFile->fd = open(fName, openFlags, S_IRUSR | S_IWUSR);
 	if( pFile->fd == -1 ){
 		pErrSvd = (int*)bctoolbox_malloc((sizeof(int)));
@@ -345,16 +349,13 @@ static  int bcOpen(bctbx_vfs *pVfs, bctbx_vfs_file *pFile, const char *fName, co
 }
 
 
-
-
 /*
- ** This function returns a pointer to the VFS implemented in this file.
- **
+ * This function returns a pointer to the VFS implemented in this file.
  */
 bctbx_vfs *bc_create_vfs(void){
 	static bctbx_vfs bcVfs = {
 		0,                            /* pNext */
-		"bctbx_vfs",                     /* vfsName */
+		"bctbx_vfs",                  /* vfsName */
 		bcOpen,						/*xOpen */
 
 	};
@@ -362,12 +363,13 @@ bctbx_vfs *bc_create_vfs(void){
 }
 
 /**
- * [bctbx_file_write description]
- * @param  pFile  File handle pointer.
- * @param  buf    [description]
- * @param  count  [description]
- * @param  offset [description]
- * @return        [description]
+ * Write count bytes contained in buf to a file associated with pFile at the position
+ * offset. Calls pFuncWrite (set to bc_Write by default).
+ * @param  pFile 	File handle pointer.
+ * @param  buf    	Buffer hodling the values to write.
+ * @param  count  	Number of bytes to write to the file.
+ * @param  offset 	Position in the file where to start writing. 
+ * @return        	Number of bytes written on success, BCTBX_VFS_ERROR if an error occurred.
  */
 int bctbx_file_write(bctbx_vfs_file* pFile, const void *buf, int count, uint64_t offset){
 	int* pErrSvd = NULL;
@@ -386,11 +388,12 @@ int bctbx_file_write(bctbx_vfs_file* pFile, const void *buf, int count, uint64_t
 }
 
 /**
- * [bctbx_file_open description]
+ * Allocates a bctbx_vfs_file file handle pointer. Opens the file fName
+ * with the mode specified by the mode argument. Calls bctbx_file_open.
  * @param  pVfs  Pointer to the vfs instance in use.
- * @param  fName [description]
- * @param  mode  [description]
- * @return       [description]
+ * @param  fName Absolute file path.
+ * @param  mode  File access mode (char*).
+ * @return  pointer to  bctbx_vfs_file on success, NULL otherwise.      
  */
 bctbx_vfs_file* bctbx_file_create_and_open(bctbx_vfs* pVfs, const char *fName,  const char* mode){
 	int ret;
@@ -407,11 +410,12 @@ bctbx_vfs_file* bctbx_file_create_and_open(bctbx_vfs* pVfs, const char *fName,  
 }
 
 /**
- * [bctbx_file_open description]
- * @param  pVfs  Pointer to the vfs instance in use.
- * @param  fName [description]
- * @param  mode  [description]
- * @return       [description]
+ * Opens the file fname with file status flags and initializes the bctbx_vfs_file
+ * pointer structure with the open result and the file size  if the pointer is not NULL.
+ * @param  pVfs  	Pointer to the vfs instance in use.
+ * @param  fName 	Absolute file path.
+ * @param  oflags  	File access flags.
+ * @return      	BCTBX_VFS_OK on success, BCTBX_VFS_ERROR otherwise. 
  */
 int bctbx_file_open(bctbx_vfs* pVfs, bctbx_vfs_file* pFile, const char *fName,  const int oflags){
 	int* pErrSvd = NULL;
@@ -437,7 +441,7 @@ int bctbx_file_open(bctbx_vfs* pVfs, bctbx_vfs_file* pFile, const char *fName,  
  * @param  buf    Buffer holding the read bytes.
  * @param  count  Number of bytes to read. 
  * @param  offset Where to start reading in the file (in bytes).
- * @return        [description]
+ * @return        Number of bytes read on success, BCTBX_VFS_ERROR otherwise. 
  */
 int bctbx_file_read(bctbx_vfs_file* pFile, void *buf, int count, uint64_t offset){
 	int* pErrSvd = NULL;
@@ -461,9 +465,10 @@ int bctbx_file_read(bctbx_vfs_file* pFile, void *buf, int count, uint64_t offset
 }
 
 /**
- * [bctbx_file_close description]
+ * Close the file from its descriptor pointed by thw bctbx_vfs_file handle. 
  * @param  pFile File handle pointer.
- * @return      return value from the pFuncClose VFS Close function.
+ * @return      	return value from the pFuncClose VFS Close function on success, 
+ *                  BCTBX_VFS_ERROR otherwise. 
  */
 int bctbx_file_close(bctbx_vfs_file* pFile){
 	int ret;
@@ -482,9 +487,9 @@ int bctbx_file_close(bctbx_vfs_file* pFile){
 
 
 /**
- * [bctbx_file_close description]
- * @param  pFile File handle pointer.
- * @return      return value from the pFuncClose VFS Close function.
+ * Close the file associated with pFile and free the allocated memory for pFile.
+ * @param  pFile File handle pointer. Calls bctbx_file_close.
+ * @return      return value from  bctbx_file_close .
  */
 int bctbx_file_close_and_free(bctbx_vfs_file* pFile){
 	int ret;
@@ -496,7 +501,7 @@ int bctbx_file_close_and_free(bctbx_vfs_file* pFile){
 /**
  * Returns the file size.
  * @param  pFile  bctbx_vfs_file File handle pointer.
- * @return       -1 if an error occured, file size otherwise. 
+ * @return       BCTBX_VFS_ERROR if an error occured, file size otherwise. 
  */
 uint64_t bctbx_file_size(bctbx_vfs_file *pFile ){
 	if (pFile) return pFile->pMethods->pFuncFileSize(pFile);
@@ -504,11 +509,11 @@ uint64_t bctbx_file_size(bctbx_vfs_file *pFile ){
  }
 
 /**
- * [bctbx_file_printf description]
+ * Writes to file. 
  * @param  pFile  File handle pointer.
  * @param  offset where to write in the file
  * @param  fmt    format argument, similar to that of printf
- * @return        [description]
+ * @return        Number of bytes written if success, BCTBX_VFS_ERROR otherwise.
  */
 int bctbx_file_fprintf(bctbx_vfs_file* pFile, uint64_t offset, const char* fmt, ...){
 	
@@ -534,11 +539,11 @@ int bctbx_file_fprintf(bctbx_vfs_file* pFile, uint64_t offset, const char* fmt, 
 }
 
 /**
- * [bctbx_file_seek description]
- * @param  pFile  [description]
- * @param  offset [description]
- * @param  whence [description]
- * @return        [description]
+ * Wrapper to pFuncSeek VFS method call. Set the position to offset in the file.
+ * @param  pFile  File handle pointer.
+ * @param  offset File offset where to set the position to.
+ * @param  whence Either SEEK_SET, SEEK_CUR,SEEK_END 
+ * @return        BCTBX_VFS_ERROR on error, offset otherwise. 
  */
 int bctbx_file_seek(bctbx_vfs_file *pFile, uint64_t offset, int whence){
 	if (pFile) return pFile->pMethods->pFuncSeek(pFile,offset,whence);
@@ -547,11 +552,12 @@ int bctbx_file_seek(bctbx_vfs_file *pFile, uint64_t offset, int whence){
 }
 
 /**
- * [bctbx_file_get_nxtline description]
+ * Wrapper to pFuncGetNxtLine. Returns a line with at most maxlen characters 
+ * from the file associated to pFile and  writes it into s.
  * @param  pFile  File handle pointer.
- * @param  s      [description]
- * @param  maxlen [description]
- * @return        [description]
+ * @param  s      Buffer where to store the read line.
+ * @param  maxlen Number of characters to read to find a line in the file. 
+ * @return        BCTBX_VFS_ERROR if an error occurred, size of line read otherwise. 
  */
 int bctbx_file_get_nxtline(bctbx_vfs_file* pFile, char*s , int maxlen){
 	if (pFile) return pFile->pMethods->pFuncGetLineFromFd(pFile,s, maxlen);
