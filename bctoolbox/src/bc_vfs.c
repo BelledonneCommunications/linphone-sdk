@@ -512,8 +512,7 @@ uint64_t bctbx_file_size(bctbx_vfs_file *pFile ){
  */
 int bctbx_file_fprintf(bctbx_vfs_file* pFile, uint64_t offset, const char* fmt, ...){
 	
-	char* ret ;
-	ret = NULL;;
+	char* ret = NULL;
 	va_list args;
 	int count , r ;
 	count = 0;
