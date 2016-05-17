@@ -210,16 +210,22 @@ static int bcFileSize(bctbx_vfs_file *pFile){
  * @return         size of line read, 0 if empty
  */
 static int bcGetLine(bctbx_vfs_file *pFile, char* s,  int max_len) {
-	
+	int ret, sizeofline, isEof ;
+	int lineMaxLgth;
+	char *pTmpLineBuf ;
+	char* pNextLine ;
+
 	if (pFile->fd < 0) {
 
-		return NULL;
+		return BCTBX_VFS_ERROR;
 	}
-	
-	int lineMaxLgth = max_len;
-	char *pTmpLineBuf = (char *)calloc( lineMaxLgth, sizeof(char));
 
-	char* pNextLine = NULL;
+	pNextLine = NULL;
+	lineMaxLgth = max_len;
+	pTmpLineBuf = (char *)calloc( lineMaxLgth, sizeof(char));
+
+	sizeofline = 0;
+	isEof = 0;
 	
 	if (pTmpLineBuf == NULL) {
 		bctoolbox_error("bcGetLine : Error allocating memory for line buffer.");
@@ -227,11 +233,7 @@ static int bcGetLine(bctbx_vfs_file *pFile, char* s,  int max_len) {
 	}
 
 	/* Read returns 0 if end of file is found */
-	int ret = bctbx_file_read(pFile, pTmpLineBuf, lineMaxLgth, pFile->offset);
-
-
-	int sizeofline = 0;
-	int isEof = 0;
+	ret = bctbx_file_read(pFile, pTmpLineBuf, lineMaxLgth, pFile->offset);
 
 	
 	while ((((pNextLine = strstr(pTmpLineBuf, "\n")) == NULL)  && (pNextLine = strstr(pTmpLineBuf, "\r")) == NULL)&& (ret > 0) && (!isEof)) {
@@ -310,7 +312,7 @@ static const bctbx_io_methods bcio = {
 		bcSeek,
 };
 
-bctbx_io_methods* get_bcio(void){
+const bctbx_io_methods* get_bcio(void){
 	return &bcio;
 }
 /**
@@ -486,10 +488,11 @@ int bctbx_file_close(bctbx_vfs_file* pFile){
  */
 int bctbx_file_close_and_free(bctbx_vfs_file* pFile){
 	int ret;
-	int* pErrSvd = NULL;
 	ret = bctbx_file_close(pFile);
 	free(pFile);
+	return ret;
 }
+
 /**
  * Returns the file size.
  * @param  pFile  bctbx_vfs_file File handle pointer.
@@ -509,15 +512,17 @@ uint64_t bctbx_file_size(bctbx_vfs_file *pFile ){
  */
 int bctbx_file_fprintf(bctbx_vfs_file* pFile, uint64_t offset, const char* fmt, ...){
 	
-	char* ret = NULL;;
+	char* ret ;
+	ret = NULL;;
 	va_list args;
-	int count = 0;
-	int r;
+	int count , r ;
+	count = 0;
+
 	va_start (args, fmt);
 	ret = bctoolbox_strdup_vprintf(fmt, args);
 	if(ret != NULL){
 		va_end(args);
-		count=strlen(ret);
+		count = strlen(ret);
 
 		if (offset !=0) pFile->offset = offset;
 		r = bctbx_file_write(pFile, ret, count, pFile->offset);

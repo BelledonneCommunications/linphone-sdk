@@ -55,12 +55,12 @@ struct bctbx_vfs_file {
 /**
  */
 struct bctbx_io_methods {
-	int (*pFuncClose)(bctbx_vfs_file*, int* pErrSvd);
-	int (*pFuncRead)(bctbx_vfs_file*, void*, int count, uint64_t offset,int* pErrSvd);
-	int (*pFuncWrite)(bctbx_vfs_file*, const void*, int count, uint64_t offset, int* pErrSvd);
-	int (*pFuncFileSize)(bctbx_vfs_file*);
-	int (*pFuncGetLineFromFd)(bctbx_vfs_file*, char* s, int count);
-	int	(*pFuncSeek)(bctbx_vfs_file *pFile, uint64_t offset, int whence);
+	int (*pFuncClose)(bctbx_vfs_file *pFile, int* pErrSvd);
+	int (*pFuncRead)(bctbx_vfs_file *pFile, void* buf, int count, uint64_t offset,int* pErrSvd);
+	int (*pFuncWrite)(bctbx_vfs_file *pFile , const void* buf, int count, uint64_t offset, int* pErrSvd);
+	int (*pFuncFileSize)(bctbx_vfs_file *pFile);
+	int (*pFuncGetLineFromFd)(bctbx_vfs_file *pFile , char* s, int count);
+	int (*pFuncSeek)(bctbx_vfs_file *pFile, uint64_t offset, int whence);
 };
 
 
@@ -88,5 +88,5 @@ int bctbx_file_write(bctbx_vfs_file* pFile, const void *buf, int count, uint64_t
 int bctbx_file_fprintf(bctbx_vfs_file* pFile, uint64_t offset, const char* fmt, ...);
 int bctbx_file_get_nxtline(bctbx_vfs_file* pFile, char*s , int maxlen);
 int bctbx_file_seek(bctbx_vfs_file *pFile, uint64_t offset, int whence);
-bctbx_io_methods* get_bcio(void);
+const bctbx_io_methods* get_bcio(void);
 
