@@ -31,22 +31,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BCTBX_VFS_ERROR       -1   /* Some kind of disk I/O error occurred */
 
 
-#define BCTBX_VFS_OPEN_READONLY         0x00000001  
-#define BCTBX_VFS_OPEN_READWRITE        0x00000002  
-#define BCTBX_VFS_OPEN_CREATE           0x00000004  
-#define BCTBX_VFS_OPEN_DELETEONCLOSE    0x00000008  
-#define BCTBX_VFS_OPEN_EXCLUSIVE        0x00000010  
 /**
+ * Methods associated with the bctbx_vfs.
  */
 typedef struct bctbx_io_methods bctbx_io_methods;
+
 /**
+ * VFS file handle.
  */
 typedef struct bctbx_vfs_file bctbx_vfs_file;
 struct bctbx_vfs_file {
 	const struct bctbx_io_methods *pMethods;  /* Methods for an open file */
-	int fd;                         	/* File descriptor */
-//	FILE* file;							/*File stream */
-	int offset;							/*File offset used by lseek*/
+	int fd;                         		/* File descriptor */
+	int offset;								/*File offset used by lseek*/
 	char* filename;
 	uint64_t size;
 };
@@ -65,17 +62,19 @@ struct bctbx_io_methods {
 
 
 /**
+ * VFS definition
  */
 typedef struct bctbx_vfs bctbx_vfs;
 struct bctbx_vfs {
-	bctbx_vfs *pNext;      /* Next registered VFS */
+	bctbx_vfs *pNext;      		/* Next registered VFS */
 	const char *vfsName;       /* Virtual file system name */
 	int (*pFuncFopen)(bctbx_vfs* pVfs, bctbx_vfs_file *pFile, const char *fName,  const int openFlags, int* pErrSvd);
-	// int (*pFuncDelete)(bctbx_vfs*, const char *vfsName, int syncDir);
-	// int (*pFuncFullPathname)(bctbx_vfs*, const char *vfsName, int nOut, char *zOut);
+
 	
 };
 
+
+/* API to use the VFS */
 bctbx_vfs *bc_create_vfs(void);
 int bctbx_vfs_register(bctbx_vfs* pVfs, bctbx_vfs** pToVfs);
 int bctbx_file_read(bctbx_vfs_file* pFile, void *buf, int count, uint64_t offset);
