@@ -47,6 +47,10 @@ static MS2_INLINE void ms_queue_put(MSQueue *q, mblk_t *m){
 	return;
 }
 
+/**
+ * Insert mblk_t 'm' in queue 'q' just before mblk_t 'em'.
+ * If em is NULL, m is inserted at the end and becomes the last element.
+ */
 static MS2_INLINE void ms_queue_insert(MSQueue *q, mblk_t *em, mblk_t *m) {
     insq(&q->q, em, m);
     return;
