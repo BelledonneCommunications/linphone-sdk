@@ -2,7 +2,7 @@
 bc_vfs.c
 Copyright (C) 2016 Belledonne Communications SARL
 
-This program is bctoolbox_free software; you can redistribute it and/or
+This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either version 2
 of the License, or (at your option) any later version.
@@ -84,7 +84,7 @@ static int bcSeek(bctbx_vfs_file *pFile, uint64_t offset, int whence){
 		}
 		return ofst;
 	}
-	bctoolbox_error(" bcSeek: File  error ");
+	bctbx_error(" bcSeek: File  error ");
 	return BCTBX_VFS_ERROR;
 }
 /**
@@ -106,7 +106,7 @@ static int bcRead(bctbx_vfs_file *pFile, void *buf, int count, uint64_t offset){
 			/* Error while reading */
 			if(nRead < 0 ){
 				if(errno){
-					bctoolbox_error("bcRead error \r\n");
+					bctbx_error("bcRead error \r\n");
 					return -errno;
 				}
 			}
@@ -202,13 +202,13 @@ static int bcGetLine(bctbx_vfs_file *pFile, char* s,  int max_len) {
 	
 	pNextLine = NULL;
 	lineMaxLgth = max_len;
-	pTmpLineBuf = (char *)bctoolbox_malloc( lineMaxLgth * sizeof(char));
+	pTmpLineBuf = (char *)bctbx_malloc( lineMaxLgth * sizeof(char));
 	
 	sizeofline = 0;
 	isEof = 0;
 	
 	if (pTmpLineBuf == NULL) {
-		bctoolbox_error("bcGetLine : Error allocating memory for line buffer.");
+		bctbx_error("bcGetLine : Error allocating memory for line buffer.");
 		return BCTBX_VFS_ERROR;
 	}
 	
@@ -239,13 +239,13 @@ static int bcGetLine(bctbx_vfs_file *pFile, char* s,  int max_len) {
 	}
 	
 	else if (ret < 0){
-		bctoolbox_error("bcGetLine error ");
+		bctbx_error("bcGetLine error ");
 	}
 	else{
-		bctoolbox_warning("bcGetLine : EOF reached");
+		bctbx_warning("bcGetLine : EOF reached");
 	}
 	
-	bctoolbox_free(pTmpLineBuf);
+	bctbx_free(pTmpLineBuf);
 	return sizeofline;
 }
 /**
@@ -342,13 +342,13 @@ int bctbx_file_write(bctbx_vfs_file* pFile, const void *buf, int count, uint64_t
 		ret = pFile->pMethods->pFuncWrite(pFile,buf, count, offset);
 		if (ret == BCTBX_VFS_ERROR)
 		{
-			bctoolbox_error("bctbx_file_write file error ");
+			bctbx_error("bctbx_file_write file error ");
 			return BCTBX_VFS_ERROR;
 
 		}
 		else if (ret < 0)
 		{
-			bctoolbox_error("bctbx_file_write error %s", strerror(-(ret)));
+			bctbx_error("bctbx_file_write error %s", strerror(-(ret)));
 			return BCTBX_VFS_ERROR;
 		}
 		return ret;
@@ -367,7 +367,7 @@ int bctbx_file_write(bctbx_vfs_file* pFile, const void *buf, int count, uint64_t
 bctbx_vfs_file* bctbx_file_create_and_open(bctbx_vfs* pVfs, const char *fName,  const char* mode){
 	int ret;
 
-	bctbx_vfs_file* p_ret = (bctbx_vfs_file*)bctoolbox_malloc(sizeof(bctbx_vfs_file));
+	bctbx_vfs_file* p_ret = (bctbx_vfs_file*)bctbx_malloc(sizeof(bctbx_vfs_file));
 	int oflags = 0;
 	oflags = set_flags(mode);
 	if(p_ret){
@@ -390,7 +390,7 @@ bctbx_vfs_file* bctbx_file_create_and_open(bctbx_vfs* pVfs, const char *fName,  
 bctbx_vfs_file* bctbx_file_create_and_open2(bctbx_vfs* pVfs, const char *fName,  const int openFlags ){
 	int ret;
 	
-	bctbx_vfs_file* p_ret = (bctbx_vfs_file*)bctoolbox_malloc(sizeof(bctbx_vfs_file));
+	bctbx_vfs_file* p_ret = (bctbx_vfs_file*)bctbx_malloc(sizeof(bctbx_vfs_file));
 
 	if(p_ret){
 		memset(p_ret, 0, sizeof(bctbx_vfs_file));
@@ -414,10 +414,10 @@ int bctbx_file_open(bctbx_vfs* pVfs, bctbx_vfs_file* pFile, const char *fName,  
 
 		ret = pVfs->pFuncFopen(pVfs,pFile,fName, oflags);
 		if (ret == BCTBX_VFS_ERROR){
-			bctoolbox_error("bctbx_file_open: Error file handle " );
+			bctbx_error("bctbx_file_open: Error file handle " );
 		}
 		else if (ret < 0 ){
-			bctoolbox_error("bctbx_file_open: Error open %s" , strerror(-(ret)));
+			bctbx_error("bctbx_file_open: Error open %s" , strerror(-(ret)));
 			
 		}
 		ret = bctbx_file_size(pFile);
@@ -446,11 +446,11 @@ int bctbx_file_read(bctbx_vfs_file* pFile, void *buf, int count, uint64_t offset
 		ret = pFile->pMethods->pFuncRead(pFile, buf, count, offset);
 		/*check if error : in this case pErrSvd is initialized*/
 		if (ret == BCTBX_VFS_ERROR){
-			bctoolbox_error("bctbx_file_read: error bctbx_vfs_file ");
+			bctbx_error("bctbx_file_read: error bctbx_vfs_file ");
 			return BCTBX_VFS_ERROR;
 		}
 		else if(ret < 0){
-			bctoolbox_error("bctbx_file_read: Error read %s" ,strerror(-(ret)));
+			bctbx_error("bctbx_file_read: Error read %s" ,strerror(-(ret)));
 			return BCTBX_VFS_ERROR;
 		}
 		return ret;
@@ -470,12 +470,12 @@ int bctbx_file_close(bctbx_vfs_file* pFile){
  		ret = pFile->pMethods->pFuncClose(pFile);
  		if (ret != 0 )
 		{
-			bctoolbox_error("bctbx_file_close: Error  %s freeing file handle anyway"  ,strerror(-(ret)));
+			bctbx_error("bctbx_file_close: Error  %s freeing file handle anyway"  ,strerror(-(ret)));
 		}
 	
  	}
 
-	bctoolbox_free(pFile);
+	bctbx_free(pFile);
  	return ret;
  }
 
@@ -490,7 +490,7 @@ uint64_t bctbx_file_size(bctbx_vfs_file *pFile ){
 	ret = BCTBX_VFS_ERROR;
 	if (pFile){
 		ret = pFile->pMethods->pFuncFileSize(pFile);
-		if (ret < 0) bctoolbox_error("bctbx_file_size: Error file size  %s"  ,strerror(-(ret)));
+		if (ret < 0) bctbx_error("bctbx_file_size: Error file size  %s"  ,strerror(-(ret)));
 	} 
  	return ret ;
  }
@@ -510,14 +510,14 @@ int bctbx_file_fprintf(bctbx_vfs_file* pFile, uint64_t offset, const char* fmt, 
 	count = 0;
 
 	va_start (args, fmt);
-	ret = bctoolbox_strdup_vprintf(fmt, args);
+	ret = bctbx_strdup_vprintf(fmt, args);
 	if(ret != NULL){
 		va_end(args);
 		count = strlen(ret);
 
 		if (offset !=0) pFile->offset = offset;
 		r = bctbx_file_write(pFile, ret, count, pFile->offset);
-		bctoolbox_free(ret);
+		bctbx_free(ret);
 		if (r>0) pFile->offset += r;
 		return r ;
 	}
@@ -538,7 +538,7 @@ int bctbx_file_seek(bctbx_vfs_file *pFile, uint64_t offset, int whence){
 	if (pFile){
 		ret = pFile->pMethods->pFuncSeek(pFile,offset,whence);
 		if(ret < 0){
-			bctoolbox_error("bctbx_file_seek: Wrong offset %s"  ,strerror(-(ret)));
+			bctbx_error("bctbx_file_seek: Wrong offset %s"  ,strerror(-(ret)));
 		}
 		else if (ret == offset){
 			ret = BCTBX_VFS_OK;
