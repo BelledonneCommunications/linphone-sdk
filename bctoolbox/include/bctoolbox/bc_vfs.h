@@ -32,15 +32,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 /**
- * Methods associated with the bctbx_vfs.
+ * Methods associated with the bctbx_vfs_t.
  */
 typedef struct bctbx_io_methods bctbx_io_methods;
 
 /**
  * VFS file handle.
  */
-typedef struct bctbx_vfs_file bctbx_vfs_file;
-struct bctbx_vfs_file {
+typedef struct bctbx_vfs_file_t bctbx_vfs_file_t;
+struct bctbx_vfs_file_t {
 	const struct bctbx_io_methods *pMethods;  /* Methods for an open file */
 	int fd;                         		/* File descriptor */
 	int offset;								/*File offset used by lseek*/
@@ -52,41 +52,41 @@ struct bctbx_vfs_file {
 /**
  */
 struct bctbx_io_methods {
-	int (*pFuncClose)(bctbx_vfs_file *pFile);
-	int (*pFuncRead)(bctbx_vfs_file *pFile, void* buf, int count, uint64_t offset);
-	int (*pFuncWrite)(bctbx_vfs_file *pFile , const void* buf, int count, uint64_t offset );
-	int (*pFuncFileSize)(bctbx_vfs_file *pFile);
-	int (*pFuncGetLineFromFd)(bctbx_vfs_file *pFile , char* s, int count);
-	int (*pFuncSeek)(bctbx_vfs_file *pFile, uint64_t offset, int whence);
+	int (*pFuncClose)(bctbx_vfs_file_t *pFile);
+	int (*pFuncRead)(bctbx_vfs_file_t *pFile, void* buf, int count, uint64_t offset);
+	int (*pFuncWrite)(bctbx_vfs_file_t *pFile , const void* buf, int count, uint64_t offset );
+	int (*pFuncFileSize)(bctbx_vfs_file_t *pFile);
+	int (*pFuncGetLineFromFd)(bctbx_vfs_file_t *pFile , char* s, int count);
+	int (*pFuncSeek)(bctbx_vfs_file_t *pFile, uint64_t offset, int whence);
 };
 
 
 /**
  * VFS definition
  */
-typedef struct bctbx_vfs bctbx_vfs;
-struct bctbx_vfs {
-	bctbx_vfs *pNext;      		/* Next registered VFS */
+typedef struct bctbx_vfs_t bctbx_vfs_t;
+struct bctbx_vfs_t {
+	bctbx_vfs_t *pNext;      		/* Next registered VFS */
 	const char *vfsName;       /* Virtual file system name */
-	int (*pFuncFopen)(bctbx_vfs* pVfs, bctbx_vfs_file *pFile, const char *fName,  const int openFlags);
+	int (*pFuncFopen)(bctbx_vfs_t* pVfs, bctbx_vfs_file_t *pFile, const char *fName,  const int openFlags);
 
 	
 };
 
 
 /* API to use the VFS */
-bctbx_vfs *bc_create_vfs(void);
-int bctbx_vfs_register(bctbx_vfs* pVfs, bctbx_vfs** pToVfs);
-int bctbx_file_read(bctbx_vfs_file* pFile, void *buf, int count, uint64_t offset);
-int bctbx_file_close(bctbx_vfs_file* pFile);
-bctbx_vfs_file* bctbx_file_create_and_open(bctbx_vfs* pVfs, const char *fName,  const char* mode);
+bctbx_vfs_t *bc_create_vfs(void);
+int bctbx_vfs_register(bctbx_vfs_t* pVfs, bctbx_vfs_t** pToVfs);
+int bctbx_file_read(bctbx_vfs_file_t* pFile, void *buf, int count, uint64_t offset);
+int bctbx_file_close(bctbx_vfs_file_t* pFile);
+bctbx_vfs_file_t* bctbx_file_create_and_open(bctbx_vfs_t* pVfs, const char *fName,  const char* mode);
 
-bctbx_vfs_file* bctbx_file_create_and_open2(bctbx_vfs* pVfs, const char *fName,  const int openFlags );
-int bctbx_file_open(bctbx_vfs* pVfs, bctbx_vfs_file*pFile, const char *fName,  const int oflags);
-uint64_t bctbx_file_size(bctbx_vfs_file *pFile);
-int bctbx_file_write(bctbx_vfs_file* pFile, const void *buf, int count, uint64_t offset);
-int bctbx_file_fprintf(bctbx_vfs_file* pFile, uint64_t offset, const char* fmt, ...);
-int bctbx_file_get_nxtline(bctbx_vfs_file* pFile, char*s , int maxlen);
-int bctbx_file_seek(bctbx_vfs_file *pFile, uint64_t offset, int whence);
+bctbx_vfs_file_t* bctbx_file_create_and_open2(bctbx_vfs_t* pVfs, const char *fName,  const int openFlags );
+int bctbx_file_open(bctbx_vfs_t* pVfs, bctbx_vfs_file_t*pFile, const char *fName,  const int oflags);
+uint64_t bctbx_file_size(bctbx_vfs_file_t *pFile);
+int bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, int count, uint64_t offset);
+int bctbx_file_fprintf(bctbx_vfs_file_t* pFile, uint64_t offset, const char* fmt, ...);
+int bctbx_file_get_nxtline(bctbx_vfs_file_t* pFile, char*s , int maxlen);
+int bctbx_file_seek(bctbx_vfs_file_t *pFile, uint64_t offset, int whence);
 const bctbx_io_methods* get_bcio(void);
 
