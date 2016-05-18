@@ -23,13 +23,13 @@
  *
 **/
 
-#ifndef BCTOOLBOX_LOGGING_H
-#define BCTOOLBOX_LOGGING_H
+#ifndef BCTBX_LOGGING_H
+#define BCTBX_LOGGING_H
 
 #include <bctoolbox/port.h>
 
-#ifndef BCTOOLBOX_LOG_DOMAIN
-#define BCTOOLBOX_LOG_DOMAIN NULL
+#ifndef BCTBX_LOG_DOMAIN
+#define BCTBX_LOG_DOMAIN NULL
 #endif
 
 #ifdef __cplusplus
@@ -38,48 +38,48 @@ extern "C"
 #endif
 
 typedef enum {
-	BCTOOLBOX_DEBUG=1,
-	BCTOOLBOX_TRACE=1<<1,
-	BCTOOLBOX_MESSAGE=1<<2,
-	BCTOOLBOX_WARNING=1<<3,
-	BCTOOLBOX_ERROR=1<<4,
-	BCTOOLBOX_FATAL=1<<5,
-	BCTOOLBOX_LOGLEV_END=1<<6
-} BctoolboxLogLevel;
+	BCTBX_LOG_DEBUG=1,
+	BCTBX_LOG_TRACE=1<<1,
+	BCTBX_LOG_MESSAGE=1<<2,
+	BCTBX_LOG_WARNING=1<<3,
+	BCTBX_LOG_ERROR=1<<4,
+	BCTBX_LOG_FATAL=1<<5,
+	BCTBX_LOG_LOGLEV_END=1<<6
+} BctbxLogLevel;
 
 
-typedef void (*BctoolboxLogFunc)(const char *domain, BctoolboxLogLevel lev, const char *fmt, va_list args);
+typedef void (*BctoolboxLogFunc)(const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
 
-BCTOOLBOX_PUBLIC void bctoolbox_set_log_file(FILE *file);
-BCTOOLBOX_PUBLIC void bctoolbox_set_log_handler(BctoolboxLogFunc func);
-BCTOOLBOX_PUBLIC BctoolboxLogFunc bctoolbox_get_log_handler(void);
+BCTBX_PUBLIC void bctbx_set_log_file(FILE *file);
+BCTBX_PUBLIC void bctbx_set_log_handler(BctoolboxLogFunc func);
+BCTBX_PUBLIC BctoolboxLogFunc bctbx_get_log_handler(void);
 
-BCTOOLBOX_PUBLIC void bctoolbox_logv_out(const char *domain, BctoolboxLogLevel level, const char *fmt, va_list args);
+BCTBX_PUBLIC void bctbx_logv_out(const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
 
-#define bctoolbox_log_level_enabled(domain, level)	(bctoolbox_get_log_level_mask(domain) & (level))
+#define bctbx_log_level_enabled(domain, level)	(bctbx_get_log_level_mask(domain) & (level))
 
-BCTOOLBOX_PUBLIC void bctoolbox_logv(const char *domain, BctoolboxLogLevel level, const char *fmt, va_list args);
+BCTBX_PUBLIC void bctbx_logv(const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
 
 /**
  * Flushes the log output queue.
- * WARNING: Must be called from the thread that has been defined with bctoolbox_set_log_thread_id().
+ * WARNING: Must be called from the thread that has been defined with bctbx_set_log_thread_id().
  */
-BCTOOLBOX_PUBLIC void bctoolbox_logv_flush(void);
+BCTBX_PUBLIC void bctbx_logv_flush(void);
 
 /**
  * Activate all log level greater or equal than specified level argument.
 **/
-BCTOOLBOX_PUBLIC void bctoolbox_set_log_level(const char *domain, BctoolboxLogLevel level);
+BCTBX_PUBLIC void bctbx_set_log_level(const char *domain, BctbxLogLevel level);
 
-BCTOOLBOX_PUBLIC void bctoolbox_set_log_level_mask(const char *domain, int levelmask);
-BCTOOLBOX_PUBLIC unsigned int bctoolbox_get_log_level_mask(const char *domain);
+BCTBX_PUBLIC void bctbx_set_log_level_mask(const char *domain, int levelmask);
+BCTBX_PUBLIC unsigned int bctbx_get_log_level_mask(const char *domain);
 
 /**
  * Tell oRTP the id of the thread used to output the logs.
  * This is meant to output all the logs from the same thread to prevent deadlock problems at the application level.
- * @param[in] thread_id The id of the thread that will output the logs (can be obtained using bctoolbox_thread_self()).
+ * @param[in] thread_id The id of the thread that will output the logs (can be obtained using bctbx_thread_self()).
  */
-BCTOOLBOX_PUBLIC void bctoolbox_set_log_thread_id(unsigned long thread_id);
+BCTBX_PUBLIC void bctbx_set_log_thread_id(unsigned long thread_id);
 
 #ifdef __GNUC__
 #define CHECK_FORMAT_ARGS(m,n) __attribute__((format(printf,m,n)))
@@ -90,72 +90,72 @@ BCTOOLBOX_PUBLIC void bctoolbox_set_log_thread_id(unsigned long thread_id);
 /*in case of compile with -g static inline can produce this type of warning*/
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
-#ifdef BCTOOLBOX_DEBUG_MODE
-static BCTOOLBOX_INLINE void CHECK_FORMAT_ARGS(1,2) bctoolbox_debug(const char *fmt,...)
+#ifdef BCTBX_DEBUG_MODE
+static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_debug(const char *fmt,...)
 {
   va_list args;
   va_start (args, fmt);
-  bctoolbox_logv(BCTOOLBOX_LOG_DOMAIN, BCTOOLBOX_DEBUG, fmt, args);
+  bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_DEBUG, fmt, args);
   va_end (args);
 }
 #else
 
-#define bctoolbox_debug(...)
+#define bctbx_debug(...)
 
 #endif
 
-#ifdef BCTOOLBOX_NOMESSAGE_MODE
+#ifdef BCTBX_NOMESSAGE_MODE
 
-#define bctoolbox_log(...)
-#define bctoolbox_message(...)
-#define bctoolbox_warning(...)
+#define bctbx_log(...)
+#define bctbx_message(...)
+#define bctbx_warning(...)
 
 #else
 
-static BCTOOLBOX_INLINE void bctoolbox_log(const char* domain, BctoolboxLogLevel lev, const char *fmt,...) {
+static BCTBX_INLINE void bctbx_log(const char* domain, BctbxLogLevel lev, const char *fmt,...) {
 	va_list args;
 	va_start (args, fmt);
-	bctoolbox_logv(domain, lev, fmt, args);
+	bctbx_logv(domain, lev, fmt, args);
 	va_end (args);
 }
 
-static BCTOOLBOX_INLINE void CHECK_FORMAT_ARGS(1,2) bctoolbox_message(const char *fmt,...)
+static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_message(const char *fmt,...)
 {
 	va_list args;
 	va_start (args, fmt);
-	bctoolbox_logv(BCTOOLBOX_LOG_DOMAIN, BCTOOLBOX_MESSAGE, fmt, args);
+	bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE, fmt, args);
 	va_end (args);
 }
 
-static BCTOOLBOX_INLINE void CHECK_FORMAT_ARGS(1,2) bctoolbox_warning(const char *fmt,...)
+static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_warning(const char *fmt,...)
 {
 	va_list args;
 	va_start (args, fmt);
-	bctoolbox_logv(BCTOOLBOX_LOG_DOMAIN, BCTOOLBOX_WARNING, fmt, args);
+	bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_WARNING, fmt, args);
 	va_end (args);
 }
 
 #endif
 
-static BCTOOLBOX_INLINE void CHECK_FORMAT_ARGS(1,2) bctoolbox_error(const char *fmt,...)
+static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_error(const char *fmt,...)
 {
 	va_list args;
 	va_start (args, fmt);
-	bctoolbox_logv(BCTOOLBOX_LOG_DOMAIN, BCTOOLBOX_ERROR, fmt, args);
+	bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_ERROR, fmt, args);
 	va_end (args);
 }
 
-static BCTOOLBOX_INLINE void CHECK_FORMAT_ARGS(1,2) bctoolbox_fatal(const char *fmt,...)
+static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_fatal(const char *fmt,...)
 {
 	va_list args;
 	va_start (args, fmt);
-	bctoolbox_logv(BCTOOLBOX_LOG_DOMAIN, BCTOOLBOX_FATAL, fmt, args);
+	bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL, fmt, args);
 	va_end (args);
 }
 
 
 #ifdef __QNX__
-void bctoolbox_qnx_log_handler(const char *domain, BctoolboxLogLevel lev, const char *fmt, va_list args);
+void bctbx_qnx_log_handler(const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
 #endif
 
 
@@ -212,12 +212,12 @@ namespace bctoolbox {
 
 struct pumpstream : public std::ostringstream {
 	const std::string mDomain;
-	const BctoolboxLogLevel level;
-	pumpstream(std::string domain, BctoolboxLogLevel l) : mDomain(domain), level(l) {
+	const BctbxLogLevel level;
+	pumpstream(std::string domain, BctbxLogLevel l) : mDomain(domain), level(l) {
 	}
 	
 	~pumpstream() {
-		bctoolbox_log(mDomain.c_str(), level, "%s", str().c_str());
+		bctbx_log(mDomain.c_str(), level, "%s", str().c_str());
 	}
 };
 
@@ -228,15 +228,15 @@ struct pumpstream : public std::ostringstream {
 //}
 //#endif
 
-#define BCTOOLBOX_SLOG(domain, thelevel) \
+#define BCTBX_SLOG(domain, thelevel) \
 \
-if (bctoolbox_log_level_enabled((domain), (thelevel))) \
+if (bctbx_log_level_enabled((domain), (thelevel))) \
 	pumpstream((domain),(thelevel))
 
-#define BCTOOLBOX_SLOGD(DOMAIN) BCTOOLBOX_SLOG(DOMAIN, BCTOOLBOX_DEBUG)
-#define BCTOOLBOX_SLOGI(DOMAIN) BCTOOLBOX_SLOG((DOMAIN), (BCTOOLBOX_MESSAGE))
-#define BCTOOLBOX_SLOGW(DOMAIN) BCTOOLBOX_SLOG(DOMAIN, BCTOOLBOX_WARNING)
-#define BCTOOLBOX_SLOGE(DOMAIN) BCTOOLBOX_SLOG(DOMAIN, BCTOOLBOX_ERROR)
+#define BCTBX_SLOGD(DOMAIN) BCTBX_SLOG(DOMAIN, BCTBX_LOG_DEBUG)
+#define BCTBX_SLOGI(DOMAIN) BCTBX_SLOG((DOMAIN), (BCTBX_LOG_MESSAGE))
+#define BCTBX_SLOGW(DOMAIN) BCTBX_SLOG(DOMAIN, BCTBX_LOG_WARNING)
+#define BCTBX_SLOGE(DOMAIN) BCTBX_SLOG(DOMAIN, BCTBX_LOG_ERROR)
 
 #endif
 

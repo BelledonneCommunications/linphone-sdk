@@ -38,26 +38,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <polarssl/sha4.h>
 #include <polarssl/gcm.h>
 
-#define bctoolbox_error printf
+#include "bctoolbox/logging.h"
 
 #ifdef _WIN32
 #define snprintf _snprintf
 #endif
 
-static int bctoolbox_ssl_sendrecv_callback_return_remap(int32_t ret_code) {
+static int bctbx_ssl_sendrecv_callback_return_remap(int32_t ret_code) {
 	switch (ret_code) {
-		case BCTOOLBOX_ERROR_NET_WANT_READ:
+		case BCTBX_ERROR_NET_WANT_READ:
 			return POLARSSL_ERR_NET_WANT_READ;
-		case BCTOOLBOX_ERROR_NET_WANT_WRITE:
+		case BCTBX_ERROR_NET_WANT_WRITE:
 			return POLARSSL_ERR_NET_WANT_WRITE;
-		case BCTOOLBOX_ERROR_NET_CONN_RESET:
+		case BCTBX_ERROR_NET_CONN_RESET:
 			return POLARSSL_ERR_NET_CONN_RESET;
 		default:
 			return (int)ret_code;
 	}
 }
 
-void bctoolbox_strerror(int32_t error_code, char *buffer, size_t buffer_length) {
+void bctbx_strerror(int32_t error_code, char *buffer, size_t buffer_length) {
 	if (error_code>0) {
 		snprintf(buffer, buffer_length, "%s", "Invalid Error code");
 		return ;
@@ -74,83 +74,83 @@ void bctoolbox_strerror(int32_t error_code, char *buffer, size_t buffer_length) 
 	return;
 }
 
-int32_t bctoolbox_base64_encode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length) {
+int32_t bctbx_base64_encode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length) {
 	int ret = base64_encode(output, output_length, input, input_length);
 	if (ret == POLARSSL_ERR_BASE64_BUFFER_TOO_SMALL) {
-		return BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 	}
 	return ret;
 }
 
-int32_t bctoolbox_base64_decode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length) {
+int32_t bctbx_base64_decode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length) {
 	int ret = base64_decode(output, output_length, input, input_length);
 	if (ret == POLARSSL_ERR_BASE64_BUFFER_TOO_SMALL) {
-		return BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 	}
 	if (ret == POLARSSL_ERR_BASE64_INVALID_CHARACTER) {
-		return BCTOOLBOX_ERROR_INVALID_BASE64_INPUT;
+		return BCTBX_ERROR_INVALID_BASE64_INPUT;
 	}
 
 	return ret;
 }
 
 /*** Random Number Generation ***/
-struct bctoolbox_rng_context_struct {
+struct bctbx_rng_context_struct {
 	entropy_context entropy;
 	ctr_drbg_context ctr_drbg;
 };
 
-bctoolbox_rng_context_t *bctoolbox_rng_context_new(void) {
-	bctoolbox_rng_context_t *ctx = bctoolbox_malloc0(sizeof(bctoolbox_rng_context_t));
+bctbx_rng_context_t *bctbx_rng_context_new(void) {
+	bctbx_rng_context_t *ctx = bctbx_malloc0(sizeof(bctbx_rng_context_t));
 	entropy_init(&(ctx->entropy));
 	ctr_drbg_init(&(ctx->ctr_drbg), entropy_func, &(ctx->entropy), NULL, 0);
 	return ctx;
 }
 
-int32_t bctoolbox_rng_get(bctoolbox_rng_context_t *context, unsigned char*output, size_t output_length) {
+int32_t bctbx_rng_get(bctbx_rng_context_t *context, unsigned char*output, size_t output_length) {
 	return ctr_drbg_random(&(context->ctr_drbg), output, output_length);
 }
 
-void bctoolbox_rng_context_free(bctoolbox_rng_context_t *context) {
-	bctoolbox_free(context);
+void bctbx_rng_context_free(bctbx_rng_context_t *context) {
+	bctbx_free(context);
 }
 
 /*** signing key ***/
-bctoolbox_signing_key_t *bctoolbox_signing_key_new(void) {
-	rsa_context *key = bctoolbox_malloc0(sizeof(rsa_context));
+bctbx_signing_key_t *bctbx_signing_key_new(void) {
+	rsa_context *key = bctbx_malloc0(sizeof(rsa_context));
 	rsa_init(key, RSA_PKCS_V15, 0);
-	return (bctoolbox_signing_key_t *)key;
+	return (bctbx_signing_key_t *)key;
 }
 
-void bctoolbox_signing_key_free(bctoolbox_signing_key_t *key) {
+void bctbx_signing_key_free(bctbx_signing_key_t *key) {
 	rsa_free((rsa_context *)key);
-	bctoolbox_free(key);
+	bctbx_free(key);
 }
 
-char *bctoolbox_signing_key_get_pem(bctoolbox_signing_key_t *key) {
+char *bctbx_signing_key_get_pem(bctbx_signing_key_t *key) {
 	return NULL;	
 }
 
-int32_t bctoolbox_signing_key_parse(bctoolbox_signing_key_t *key, const char *buffer, size_t buffer_length, const unsigned char *password, size_t password_length) {
+int32_t bctbx_signing_key_parse(bctbx_signing_key_t *key, const char *buffer, size_t buffer_length, const unsigned char *password, size_t password_length) {
 	int err;
 	err=x509parse_key((rsa_context *)key, (const unsigned char *)buffer, buffer_length+1, password, password_length);
 	if (err<0) {
 		char tmp[128];
 		error_strerror(err,tmp,sizeof(tmp));
-		bctoolbox_error("cannot parse public key because [%s]",tmp);
-		return BCTOOLBOX_ERROR_UNABLE_TO_PARSE_KEY;
+		bctbx_error("cannot parse public key because [%s]",tmp);
+		return BCTBX_ERROR_UNABLE_TO_PARSE_KEY;
 	}
 	return 0;
 }
 
-int32_t bctoolbox_signing_key_parse_file(bctoolbox_signing_key_t *key, const char *path, const char *password) {
+int32_t bctbx_signing_key_parse_file(bctbx_signing_key_t *key, const char *path, const char *password) {
 	int err;
 	err=x509parse_keyfile((rsa_context *)key, path, password);
 	if (err<0) {
 		char tmp[128];
 		error_strerror(err,tmp,sizeof(tmp));
-		bctoolbox_error("cannot parse public key because [%s]",tmp);
-		return BCTOOLBOX_ERROR_UNABLE_TO_PARSE_KEY;
+		bctbx_error("cannot parse public key because [%s]",tmp);
+		return BCTBX_ERROR_UNABLE_TO_PARSE_KEY;
 	}
 	return 0;
 }
@@ -158,50 +158,50 @@ int32_t bctoolbox_signing_key_parse_file(bctoolbox_signing_key_t *key, const cha
 
 
 /*** Certificate ***/
-char *bctoolbox_x509_certificates_chain_get_pem(bctoolbox_x509_certificate_t *cert) {
+char *bctbx_x509_certificates_chain_get_pem(bctbx_x509_certificate_t *cert) {
 	return NULL;
 }
 
 
-bctoolbox_x509_certificate_t *bctoolbox_x509_certificate_new(void) {
-	x509_cert *cert = bctoolbox_malloc0(sizeof(x509_cert));
-	return (bctoolbox_x509_certificate_t *)cert;
+bctbx_x509_certificate_t *bctbx_x509_certificate_new(void) {
+	x509_cert *cert = bctbx_malloc0(sizeof(x509_cert));
+	return (bctbx_x509_certificate_t *)cert;
 }
 
-void bctoolbox_x509_certificate_free(bctoolbox_x509_certificate_t *cert) {
+void bctbx_x509_certificate_free(bctbx_x509_certificate_t *cert) {
 	x509_free((x509_cert *)cert);
-	bctoolbox_free(cert);
+	bctbx_free(cert);
 }
 
-int32_t bctoolbox_x509_certificate_get_info_string(char *buf, size_t size, const char *prefix, const bctoolbox_x509_certificate_t *cert) {
+int32_t bctbx_x509_certificate_get_info_string(char *buf, size_t size, const char *prefix, const bctbx_x509_certificate_t *cert) {
 	return x509parse_cert_info(buf, size, prefix, (x509_cert *)cert);
 }
 
-int32_t bctoolbox_x509_certificate_parse_file(bctoolbox_x509_certificate_t *cert, const char *path) {
+int32_t bctbx_x509_certificate_parse_file(bctbx_x509_certificate_t *cert, const char *path) {
 	return x509parse_crtfile((x509_cert *)cert, path);
 }
 
-int32_t bctoolbox_x509_certificate_parse_path(bctoolbox_x509_certificate_t *cert, const char *path) {
+int32_t bctbx_x509_certificate_parse_path(bctbx_x509_certificate_t *cert, const char *path) {
 	return x509parse_crtpath((x509_cert *)cert, path);
 }
 
-int32_t bctoolbox_x509_certificate_parse(bctoolbox_x509_certificate_t *cert, const char *buffer, size_t buffer_length) {
+int32_t bctbx_x509_certificate_parse(bctbx_x509_certificate_t *cert, const char *buffer, size_t buffer_length) {
 	return x509parse_crt((x509_cert *)cert, (const unsigned char *)buffer, buffer_length+1);
 }
 
-int32_t bctoolbox_x509_certificate_get_der_length(bctoolbox_x509_certificate_t *cert) {
+int32_t bctbx_x509_certificate_get_der_length(bctbx_x509_certificate_t *cert) {
 	if (cert!=NULL) {
 		return ((x509_cert *)cert)->raw.len;
 	}
 	return 0;
 }
 
-int32_t bctoolbox_x509_certificate_get_der(bctoolbox_x509_certificate_t *cert, unsigned char *buffer, size_t buffer_length) {
+int32_t bctbx_x509_certificate_get_der(bctbx_x509_certificate_t *cert, unsigned char *buffer, size_t buffer_length) {
 	if (cert==NULL) {
-		return BCTOOLBOX_ERROR_INVALID_CERTIFICATE;
+		return BCTBX_ERROR_INVALID_CERTIFICATE;
 	}
 	if (((x509_cert *)cert)->raw.len>buffer_length-1) { /* check buffer size is ok, +1 for the NULL termination added at the end */
-		return BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 	}
 	memcpy(buffer, ((x509_cert *)cert)->raw.p, ((x509_cert *)cert)->raw.len);
 	buffer[((x509_cert *)cert)->raw.len] = '\0'; /* add a null termination char */
@@ -209,54 +209,54 @@ int32_t bctoolbox_x509_certificate_get_der(bctoolbox_x509_certificate_t *cert, u
 	return 0;
 }
 
-int32_t bctoolbox_x509_certificate_get_subject_dn(bctoolbox_x509_certificate_t *cert, char *dn, size_t dn_length) {
+int32_t bctbx_x509_certificate_get_subject_dn(bctbx_x509_certificate_t *cert, char *dn, size_t dn_length) {
 	if (cert==NULL) {
-		return BCTOOLBOX_ERROR_INVALID_CERTIFICATE;
+		return BCTBX_ERROR_INVALID_CERTIFICATE;
 	}
 
 	return x509parse_dn_gets(dn, dn_length, &(((x509_cert *)cert)->subject));
 }
 
-int32_t bctoolbox_x509_certificate_generate_selfsigned(const char *subject, bctoolbox_x509_certificate_t *certificate, bctoolbox_signing_key_t *pkey, char * pem, size_t pem_length) {
+int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject, bctbx_x509_certificate_t *certificate, bctbx_signing_key_t *pkey, char * pem, size_t pem_length) {
 
-	return BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION;
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 
 
-int32_t bctoolbox_x509_certificate_get_signature_hash_function(const bctoolbox_x509_certificate_t *certificate, bctoolbox_md_type_t *hash_algorithm) {
+int32_t bctbx_x509_certificate_get_signature_hash_function(const bctbx_x509_certificate_t *certificate, bctbx_md_type_t *hash_algorithm) {
 
-	return BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION;
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 
 /* maximum length of returned buffer will be 7(SHA-512 string)+3*hash_length(64)+null char = 200 bytes */
-int32_t bctoolbox_x509_certificate_get_fingerprint(const bctoolbox_x509_certificate_t *certificate, char *fingerprint, size_t fingerprint_length, bctoolbox_md_type_t hash_algorithm) {
-	return BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION;
+int32_t bctbx_x509_certificate_get_fingerprint(const bctbx_x509_certificate_t *certificate, char *fingerprint, size_t fingerprint_length, bctbx_md_type_t hash_algorithm) {
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 
-#define BCTOOLBOX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH 128
-int32_t bctoolbox_x509_certificate_flags_to_string(char *buffer, size_t buffer_size, uint32_t flags) {
+#define BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH 128
+int32_t bctbx_x509_certificate_flags_to_string(char *buffer, size_t buffer_size, uint32_t flags) {
 	size_t i=0;
-	char outputString[BCTOOLBOX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH];
+	char outputString[BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH];
 
 	if (flags & BADCERT_EXPIRED)
-		i+=snprintf(outputString+i, BCTOOLBOX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "expired ");
+		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "expired ");
 	if (flags & BADCERT_REVOKED)
-		i+=snprintf(outputString+i, BCTOOLBOX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "revoked ");
+		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "revoked ");
 	if (flags & BADCERT_CN_MISMATCH)
-		i+=snprintf(outputString+i, BCTOOLBOX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "CN-mismatch ");
+		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "CN-mismatch ");
 	if (flags & BADCERT_NOT_TRUSTED)
-		i+=snprintf(outputString+i, BCTOOLBOX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "not-trusted ");
+		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "not-trusted ");
 	if (flags & BADCERT_MISSING)
-		i+=snprintf(outputString+i, BCTOOLBOX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "missing ");
+		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "missing ");
 	if (flags & BADCRL_NOT_TRUSTED)
-		i+=snprintf(outputString+i, BCTOOLBOX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "crl-not-trusted ");
+		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "crl-not-trusted ");
 	if (flags & BADCRL_EXPIRED)
-		i+=snprintf(outputString+i, BCTOOLBOX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "crl-expired ");
+		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "crl-expired ");
 
 	outputString[i] = '\0'; /* null terminate the string */
 
 	if (i+1>buffer_size) {
-		return BCTOOLBOX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 	}
 
 	strncpy(buffer, outputString, buffer_size);
@@ -264,72 +264,72 @@ int32_t bctoolbox_x509_certificate_flags_to_string(char *buffer, size_t buffer_s
 	return 0;
 }
 
-int32_t bctoolbox_x509_certificate_set_flag(uint32_t *flags, uint32_t flags_to_set) {
-	if (flags_to_set & BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_EXPIRED)
+int32_t bctbx_x509_certificate_set_flag(uint32_t *flags, uint32_t flags_to_set) {
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_EXPIRED)
 		*flags |= BADCERT_EXPIRED;
-	if (flags_to_set & BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_REVOKED)
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_REVOKED)
 		*flags |= BADCERT_REVOKED;
-	if (flags_to_set & BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH)
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH)
 		*flags |= BADCERT_CN_MISMATCH;
-	if (flags_to_set & BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED)
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED)
 		*flags |= BADCERT_NOT_TRUSTED;
-	if (flags_to_set & BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_MISSING)
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_MISSING)
 		*flags |= BADCERT_MISSING;
-	if (flags_to_set & BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED)
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED)
 		*flags |= BADCRL_NOT_TRUSTED;
-	if (flags_to_set & BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_EXPIRED)
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCRL_EXPIRED)
 		*flags |= BADCRL_EXPIRED;
 
 	return 0;
 }
 
-uint32_t bctoolbox_x509_certificate_remap_flag(uint32_t flags) {
+uint32_t bctbx_x509_certificate_remap_flag(uint32_t flags) {
 	uint32_t ret = 0;
 	if (flags & BADCERT_EXPIRED)
-		ret |= BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_EXPIRED;
+		ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_EXPIRED;
 	if (flags & BADCERT_REVOKED)
-		ret |= BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_REVOKED;
+		ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_REVOKED;
 	if (flags & BADCERT_CN_MISMATCH)
-		ret |= BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH;
+		ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH;
 	if (flags & BADCERT_NOT_TRUSTED)
-		ret |= BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED;
+		ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED;
 	if (flags & BADCERT_MISSING)
-		ret |= BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_MISSING;
+		ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_MISSING;
 	if (flags & BADCRL_NOT_TRUSTED)
-		ret |= BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED;
+		ret |= BCTBX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED;
 	if (flags & BADCRL_EXPIRED)
-		ret |= BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_EXPIRED;
+		ret |= BCTBX_CERTIFICATE_VERIFY_BADCRL_EXPIRED;
 
 	return ret;
 }
 
-int32_t bctoolbox_x509_certificate_unset_flag(uint32_t *flags, uint32_t flags_to_unset) {
-	if (flags_to_unset & BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_EXPIRED)
+int32_t bctbx_x509_certificate_unset_flag(uint32_t *flags, uint32_t flags_to_unset) {
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_EXPIRED)
 		*flags &= ~BADCERT_EXPIRED;
-	if (flags_to_unset & BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_REVOKED)
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_REVOKED)
 		*flags &= ~BADCERT_REVOKED;
-	if (flags_to_unset & BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH)
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH)
 		*flags &= ~BADCERT_CN_MISMATCH;
-	if (flags_to_unset & BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED)
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED)
 		*flags &= ~BADCERT_NOT_TRUSTED;
-	if (flags_to_unset & BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_MISSING)
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_MISSING)
 		*flags &= ~BADCERT_MISSING;
-	if (flags_to_unset & BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED)
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED)
 		*flags &= ~BADCRL_NOT_TRUSTED;
-	if (flags_to_unset & BCTOOLBOX_CERTIFICATE_VERIFY_BADCRL_EXPIRED)
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCRL_EXPIRED)
 		*flags &= ~BADCRL_EXPIRED;
 
 	return 0;
 }
 /*** Diffie-Hellman-Merkle  ***/
 /* initialise de DHM context according to requested algorithm */
-bctoolbox_DHMContext_t *bctoolbox_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength)
+bctbx_DHMContext_t *bctbx_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength)
 {
 	dhm_context *polarsslDhmContext;
 
 	/* create the context */
-	bctoolbox_DHMContext_t *context = (bctoolbox_DHMContext_t *)malloc(sizeof(bctoolbox_DHMContext_t));
-	memset (context, 0, sizeof(bctoolbox_DHMContext_t));
+	bctbx_DHMContext_t *context = (bctbx_DHMContext_t *)malloc(sizeof(bctbx_DHMContext_t));
+	memset (context, 0, sizeof(bctbx_DHMContext_t));
 
 	/* create the polarssl context for DHM */
 	polarsslDhmContext=(dhm_context *)malloc(sizeof(dhm_context));
@@ -346,7 +346,7 @@ bctoolbox_DHMContext_t *bctoolbox_CreateDHMContext(uint8_t DHMAlgo, uint8_t secr
 	context->algo=DHMAlgo;
 	context->secretLength = secretLength;
 	switch (DHMAlgo) {
-		case BCTOOLBOX_DHM_2048:
+		case BCTBX_DHM_2048:
 			/* set P and G in the polarssl context */
 			if ((mpi_read_string(&(polarsslDhmContext->P), 16, POLARSSL_DHM_RFC3526_MODP_2048_P) != 0) ||
 			(mpi_read_string(&(polarsslDhmContext->G), 16, POLARSSL_DHM_RFC3526_MODP_2048_G) != 0)) {
@@ -355,7 +355,7 @@ bctoolbox_DHMContext_t *bctoolbox_CreateDHMContext(uint8_t DHMAlgo, uint8_t secr
 			context->primeLength=256;
 			polarsslDhmContext->len=256;
 			break;
-		case BCTOOLBOX_DHM_3072:
+		case BCTBX_DHM_3072:
 			/* set P and G in the polarssl context */
 			if ((mpi_read_string(&(polarsslDhmContext->P), 16, POLARSSL_DHM_RFC3526_MODP_3072_P) != 0) ||
 			(mpi_read_string(&(polarsslDhmContext->G), 16, POLARSSL_DHM_RFC3526_MODP_3072_G) != 0)) {
@@ -374,7 +374,7 @@ bctoolbox_DHMContext_t *bctoolbox_CreateDHMContext(uint8_t DHMAlgo, uint8_t secr
 }
 
 /* generate the random secret and compute the public value */
-void bctoolbox_DHMCreatePublic(bctoolbox_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
+void bctbx_DHMCreatePublic(bctbx_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
 	/* get the polarssl context */
 	dhm_context *polarsslContext = (dhm_context *)context->cryptoModuleData;
 
@@ -386,7 +386,7 @@ void bctoolbox_DHMCreatePublic(bctoolbox_DHMContext_t *context, int (*rngFunctio
 }
 
 /* compute secret - the ->peer field of context must have been set before calling this function */
-void bctoolbox_DHMComputeSecret(bctoolbox_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
+void bctbx_DHMComputeSecret(bctbx_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
 	size_t keyLength;
 
 	/* import the peer public value G^Y mod P in the polar ssl context */
@@ -399,7 +399,7 @@ void bctoolbox_DHMComputeSecret(bctoolbox_DHMContext_t *context, int (*rngFuncti
 }
 
 /* clean DHM context */
-void bctoolbox_DestroyDHMContext(bctoolbox_DHMContext_t *context) {
+void bctbx_DestroyDHMContext(bctbx_DHMContext_t *context) {
 	if (context!= NULL) {
 		/* key and secret must be erased from memory and not just freed */
 		if (context->secret != NULL) {
@@ -422,9 +422,9 @@ void bctoolbox_DestroyDHMContext(bctoolbox_DHMContext_t *context) {
 
 /*** SSL Client ***/
 /** context **/
-struct bctoolbox_ssl_context_struct {
+struct bctbx_ssl_context_struct {
 	ssl_context ssl_ctx;
-	int(*callback_cli_cert_function)(void *, bctoolbox_ssl_context_t *, unsigned char *, size_t); /**< pointer to the callback called to update client certificate during handshake
+	int(*callback_cli_cert_function)(void *, bctbx_ssl_context_t *, unsigned char *, size_t); /**< pointer to the callback called to update client certificate during handshake
 													callback params are user_data, ssl_context, certificate distinguished name, name length */
 	void *callback_cli_cert_data; /**< data passed to the client cert callback */
 	int(*callback_send_function)(void *, const unsigned char *, size_t); /* callbacks args are: callback data, data buffer to be send, size of data buffer */
@@ -432,8 +432,8 @@ struct bctoolbox_ssl_context_struct {
 	void *callback_sendrecv_data; /**< data passed to send/recv callbacks */
 };
 
-bctoolbox_ssl_context_t *bctoolbox_ssl_context_new(void) {
-	bctoolbox_ssl_context_t *ssl_ctx = bctoolbox_malloc0(sizeof(bctoolbox_ssl_context_t));
+bctbx_ssl_context_t *bctbx_ssl_context_new(void) {
+	bctbx_ssl_context_t *ssl_ctx = bctbx_malloc0(sizeof(bctbx_ssl_context_t));
 	ssl_init(&(ssl_ctx->ssl_ctx));
 	ssl_ctx->callback_cli_cert_function = NULL;
 	ssl_ctx->callback_cli_cert_data = NULL;
@@ -443,41 +443,41 @@ bctoolbox_ssl_context_t *bctoolbox_ssl_context_new(void) {
 	return ssl_ctx;
 }
 
-void bctoolbox_ssl_context_free(bctoolbox_ssl_context_t *ssl_ctx) {
+void bctbx_ssl_context_free(bctbx_ssl_context_t *ssl_ctx) {
 	ssl_free(&(ssl_ctx->ssl_ctx));
-	bctoolbox_free(ssl_ctx);
+	bctbx_free(ssl_ctx);
 }
 
-int32_t bctoolbox_ssl_close_notify(bctoolbox_ssl_context_t *ssl_ctx) {
+int32_t bctbx_ssl_close_notify(bctbx_ssl_context_t *ssl_ctx) {
 	return ssl_close_notify(&(ssl_ctx->ssl_ctx));
 }
 
-int32_t bctoolbox_ssl_session_reset(bctoolbox_ssl_context_t *ssl_ctx) {
+int32_t bctbx_ssl_session_reset(bctbx_ssl_context_t *ssl_ctx) {
 	return ssl_session_reset(&(ssl_ctx->ssl_ctx));
 }
 
-int32_t bctoolbox_ssl_write(bctoolbox_ssl_context_t *ssl_ctx, const unsigned char *buf, size_t buf_length) {
+int32_t bctbx_ssl_write(bctbx_ssl_context_t *ssl_ctx, const unsigned char *buf, size_t buf_length) {
 	int ret = ssl_write(&(ssl_ctx->ssl_ctx), buf, buf_length);
 	/* remap some output code */
 	if (ret == POLARSSL_ERR_NET_WANT_WRITE) {
-		ret = BCTOOLBOX_ERROR_NET_WANT_WRITE;
+		ret = BCTBX_ERROR_NET_WANT_WRITE;
 	}
 	return ret;
 }
 
-int32_t bctoolbox_ssl_read(bctoolbox_ssl_context_t *ssl_ctx, unsigned char *buf, size_t buf_length) {
+int32_t bctbx_ssl_read(bctbx_ssl_context_t *ssl_ctx, unsigned char *buf, size_t buf_length) {
 	int ret = ssl_read(&(ssl_ctx->ssl_ctx), buf, buf_length);
 	/* remap some output code */
 	if (ret == POLARSSL_ERR_SSL_PEER_CLOSE_NOTIFY) {
-		ret = BCTOOLBOX_ERROR_SSL_PEER_CLOSE_NOTIFY;
+		ret = BCTBX_ERROR_SSL_PEER_CLOSE_NOTIFY;
 	}
 	if (ret == POLARSSL_ERR_NET_WANT_READ) {
-		ret = BCTOOLBOX_ERROR_NET_WANT_READ;
+		ret = BCTBX_ERROR_NET_WANT_READ;
 	}
 	return ret;
 }
 
-int32_t bctoolbox_ssl_handshake(bctoolbox_ssl_context_t *ssl_ctx) {
+int32_t bctbx_ssl_handshake(bctbx_ssl_context_t *ssl_ctx) {
 
 	int ret = 0;
 	while( ssl_ctx->ssl_ctx.state != SSL_HANDSHAKE_OVER )
@@ -505,40 +505,40 @@ int32_t bctoolbox_ssl_handshake(bctoolbox_ssl_context_t *ssl_ctx) {
 
 	/* remap some output codes */
 	if (ret == POLARSSL_ERR_NET_WANT_READ) {
-		ret = BCTOOLBOX_ERROR_NET_WANT_READ;
+		ret = BCTBX_ERROR_NET_WANT_READ;
 	} else if (ret == POLARSSL_ERR_NET_WANT_WRITE) {
-		ret = BCTOOLBOX_ERROR_NET_WANT_WRITE;
+		ret = BCTBX_ERROR_NET_WANT_WRITE;
 	}
 
 	return(ret);
 }
 
-int32_t bctoolbox_ssl_set_hs_own_cert(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_x509_certificate_t *cert, bctoolbox_signing_key_t *key) {
+int32_t bctbx_ssl_set_hs_own_cert(bctbx_ssl_context_t *ssl_ctx, bctbx_x509_certificate_t *cert, bctbx_signing_key_t *key) {
 	ssl_set_own_cert(&(ssl_ctx->ssl_ctx) , (x509_cert *)cert , (rsa_context *)key);
 	return 0;
 }
 
-int bctoolbox_ssl_send_callback(void *data, const unsigned char *buffer, size_t buffer_length) {
+int bctbx_ssl_send_callback(void *data, const unsigned char *buffer, size_t buffer_length) {
 	int ret = 0;
 	/* data is the ssl_context which contains the actual callback and data */
-	bctoolbox_ssl_context_t *ssl_ctx = (bctoolbox_ssl_context_t *)data;
+	bctbx_ssl_context_t *ssl_ctx = (bctbx_ssl_context_t *)data;
 
 	ret = ssl_ctx->callback_send_function(ssl_ctx->callback_sendrecv_data, buffer, buffer_length);
 
-	return bctoolbox_ssl_sendrecv_callback_return_remap(ret);
+	return bctbx_ssl_sendrecv_callback_return_remap(ret);
 }
 
-int bctoolbox_ssl_recv_callback(void *data, unsigned char *buffer, size_t buffer_length) {
+int bctbx_ssl_recv_callback(void *data, unsigned char *buffer, size_t buffer_length) {
 	int ret = 0;
 	/* data is the ssl_context which contains the actual callback and data */
-	bctoolbox_ssl_context_t *ssl_ctx = (bctoolbox_ssl_context_t *)data;
+	bctbx_ssl_context_t *ssl_ctx = (bctbx_ssl_context_t *)data;
 
 	ret = ssl_ctx->callback_recv_function(ssl_ctx->callback_sendrecv_data, buffer, buffer_length);
 
-	return bctoolbox_ssl_sendrecv_callback_return_remap(ret);
+	return bctbx_ssl_sendrecv_callback_return_remap(ret);
 }
 
-void bctoolbox_ssl_set_io_callbacks(bctoolbox_ssl_context_t *ssl_ctx, void *callback_data,
+void bctbx_ssl_set_io_callbacks(bctbx_ssl_context_t *ssl_ctx, void *callback_data,
 		int(*callback_send_function)(void *, const unsigned char *, size_t), /* callbacks args are: callback data, data buffer to be send, size of data buffer */
 		int(*callback_recv_function)(void *, unsigned char *, size_t)){ /* args: callback data, data buffer to be read, size of data buffer */
 
@@ -550,33 +550,33 @@ void bctoolbox_ssl_set_io_callbacks(bctoolbox_ssl_context_t *ssl_ctx, void *call
 	ssl_ctx->callback_recv_function = callback_recv_function;
 	ssl_ctx->callback_sendrecv_data = callback_data;
 
-	ssl_set_bio(&(ssl_ctx->ssl_ctx), bctoolbox_ssl_recv_callback, ssl_ctx, bctoolbox_ssl_send_callback, ssl_ctx);
+	ssl_set_bio(&(ssl_ctx->ssl_ctx), bctbx_ssl_recv_callback, ssl_ctx, bctbx_ssl_send_callback, ssl_ctx);
 }
 
-const bctoolbox_x509_certificate_t *bctoolbox_ssl_get_peer_certificate(bctoolbox_ssl_context_t *ssl_ctx) {
-	return (const bctoolbox_x509_certificate_t *)ssl_get_peer_cert(&(ssl_ctx->ssl_ctx));
+const bctbx_x509_certificate_t *bctbx_ssl_get_peer_certificate(bctbx_ssl_context_t *ssl_ctx) {
+	return (const bctbx_x509_certificate_t *)ssl_get_peer_cert(&(ssl_ctx->ssl_ctx));
 }
 
 /** dummmy DTLS SRTP functions **/
-uint8_t bctoolbox_dtls_srtp_supported(void) {
+uint8_t bctbx_dtls_srtp_supported(void) {
 	return 0;
 }
 
-bctoolbox_dtls_srtp_profile_t bctoolbox_ssl_get_dtls_srtp_protection_profile(bctoolbox_ssl_context_t *ssl_ctx) {
-	return BCTOOLBOX_SRTP_UNDEFINED;
+bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(bctbx_ssl_context_t *ssl_ctx) {
+	return BCTBX_SRTP_UNDEFINED;
 }
 
-int32_t bctoolbox_ssl_get_dtls_srtp_key_material(bctoolbox_ssl_context_t *ssl_ctx, char *output, size_t *output_length) {
+int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, char *output, size_t *output_length) {
 	*output_length = 0;
-	return BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION;
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 /** DTLS SRTP functions **/
 
 /** config **/
-struct bctoolbox_ssl_config_struct {
-	int8_t endpoint; /**< BCTOOLBOX_SSL_IS_CLIENT or BCTOOLBOX_SSL_IS_SERVER */
-	int8_t authmode; /**< BCTOOLBOX_SSL_VERIFY_NONE, BCTOOLBOX_SSL_VERIFY_OPTIONAL, BCTOOLBOX_SSL_VERIFY_REQUIRED */
-	int8_t transport; /**< BCTOOLBOX_SSL_TRANSPORT_STREAM(TLS) or BCTOOLBOX_SSL_TRANSPORT_DATAGRAM(DTLS) */
+struct bctbx_ssl_config_struct {
+	int8_t endpoint; /**< BCTBX_SSL_IS_CLIENT or BCTBX_SSL_IS_SERVER */
+	int8_t authmode; /**< BCTBX_SSL_VERIFY_NONE, BCTBX_SSL_VERIFY_OPTIONAL, BCTBX_SSL_VERIFY_REQUIRED */
+	int8_t transport; /**< BCTBX_SSL_TRANSPORT_STREAM(TLS) or BCTBX_SSL_TRANSPORT_DATAGRAM(DTLS) */
 	int(*rng_function)(void *, unsigned char *, size_t); /**< pointer to a random number generator function */
 	void *rng_context; /**< pointer to a the random number generator context */
 	int(*callback_verify_function)(void *, x509_cert *, int, int *); /**< pointer to the verify callback function */
@@ -585,18 +585,18 @@ struct bctoolbox_ssl_config_struct {
 	char *peer_cn; /**< expected peer Common name */
 	x509_cert *own_cert;
 	rsa_context *own_cert_pk;
-	int(*callback_cli_cert_function)(void *, bctoolbox_ssl_context_t *, unsigned char *, size_t); /**< pointer to the callback called to update client certificate during handshake
+	int(*callback_cli_cert_function)(void *, bctbx_ssl_context_t *, unsigned char *, size_t); /**< pointer to the callback called to update client certificate during handshake
 													callback params are user_data, ssl_context, certificate distinguished name, name length */
 	void *callback_cli_cert_data; /**< data passed to the client cert callback */
 };
 
-bctoolbox_ssl_config_t *bctoolbox_ssl_config_new(void) {
-	bctoolbox_ssl_config_t *ssl_config = bctoolbox_malloc0(sizeof(bctoolbox_ssl_config_t));
+bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
+	bctbx_ssl_config_t *ssl_config = bctbx_malloc0(sizeof(bctbx_ssl_config_t));
 
-	/* set all properties to BCTOOLBOX_SSL_UNSET or NULL */
-	ssl_config->endpoint = BCTOOLBOX_SSL_UNSET;
-	ssl_config->authmode = BCTOOLBOX_SSL_UNSET;
-	ssl_config->transport = BCTOOLBOX_SSL_UNSET;
+	/* set all properties to BCTBX_SSL_UNSET or NULL */
+	ssl_config->endpoint = BCTBX_SSL_UNSET;
+	ssl_config->authmode = BCTBX_SSL_UNSET;
+	ssl_config->transport = BCTBX_SSL_UNSET;
 	ssl_config->rng_function = NULL;
 	ssl_config->rng_context = NULL;
 	ssl_config->callback_verify_function= NULL;
@@ -610,156 +610,156 @@ bctoolbox_ssl_config_t *bctoolbox_ssl_config_new(void) {
 	return ssl_config;
 }
 
-int32_t bctoolbox_ssl_config_set_crypto_library_config(bctoolbox_ssl_config_t *ssl_config, void *internal_config) {
-	return BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION;
+int32_t bctbx_ssl_config_set_crypto_library_config(bctbx_ssl_config_t *ssl_config, void *internal_config) {
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 
-void bctoolbox_ssl_config_free(bctoolbox_ssl_config_t *ssl_config) {
-	bctoolbox_free(ssl_config);
+void bctbx_ssl_config_free(bctbx_ssl_config_t *ssl_config) {
+	bctbx_free(ssl_config);
 }
 
-int32_t bctoolbox_ssl_config_defaults(bctoolbox_ssl_config_t *ssl_config, int endpoint, int transport) {
+int32_t bctbx_ssl_config_defaults(bctbx_ssl_config_t *ssl_config, int endpoint, int transport) {
 	if (ssl_config != NULL) {
-		if (endpoint == BCTOOLBOX_SSL_IS_CLIENT) {
+		if (endpoint == BCTBX_SSL_IS_CLIENT) {
 			ssl_config->endpoint = SSL_IS_CLIENT;
-		} else if (endpoint == BCTOOLBOX_SSL_IS_SERVER) {
+		} else if (endpoint == BCTBX_SSL_IS_SERVER) {
 			ssl_config->endpoint = SSL_IS_SERVER;
 		} else {
-			return BCTOOLBOX_ERROR_INVALID_SSL_ENDPOINT;
+			return BCTBX_ERROR_INVALID_SSL_ENDPOINT;
 		}
 /* useful only for versions of polarssl which have SSL_TRANSPORT_XXX defined */
 #ifdef SSL_TRANSPORT_DATAGRAM
-		if (transport == BCTOOLBOX_SSL_TRANSPORT_STREAM) {
+		if (transport == BCTBX_SSL_TRANSPORT_STREAM) {
 			ssl_config->transport = SSL_TRANSPORT_STREAM;
-		} else if (transport == BCTOOLBOX_SSL_TRANSPORT_DATAGRAM) {
+		} else if (transport == BCTBX_SSL_TRANSPORT_DATAGRAM) {
 			ssl_config->transport = SSL_TRANSPORT_DATAGRAM;
 		} else {
-			return BCTOOLBOX_ERROR_INVALID_SSL_TRANSPORT;
+			return BCTBX_ERROR_INVALID_SSL_TRANSPORT;
 		}
 #endif
 		return 0;
 	}
-	return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-int32_t bctoolbox_ssl_config_set_endpoint(bctoolbox_ssl_config_t *ssl_config, int endpoint) {
+int32_t bctbx_ssl_config_set_endpoint(bctbx_ssl_config_t *ssl_config, int endpoint) {
 	if (ssl_config == NULL) {
-		return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+		return BCTBX_ERROR_INVALID_SSL_CONFIG;
 	}
 
-	if (endpoint == BCTOOLBOX_SSL_IS_CLIENT) {
+	if (endpoint == BCTBX_SSL_IS_CLIENT) {
 		ssl_config->endpoint = SSL_IS_CLIENT;
-	} else if (endpoint == BCTOOLBOX_SSL_IS_SERVER) {
+	} else if (endpoint == BCTBX_SSL_IS_SERVER) {
 		ssl_config->endpoint = SSL_IS_SERVER;
 	} else {
-		return BCTOOLBOX_ERROR_INVALID_SSL_ENDPOINT;
+		return BCTBX_ERROR_INVALID_SSL_ENDPOINT;
 	}
 
 	return 0;
 }
 
-int32_t bctoolbox_ssl_config_set_transport (bctoolbox_ssl_config_t *ssl_config, int transport) {
+int32_t bctbx_ssl_config_set_transport (bctbx_ssl_config_t *ssl_config, int transport) {
 	if (ssl_config == NULL) {
-		return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+		return BCTBX_ERROR_INVALID_SSL_CONFIG;
 	}
 
 /* useful only for versions of polarssl which have SSL_TRANSPORT_XXX defined */
 #ifdef SSL_TRANSPORT_DATAGRAM
-		if (transport == BCTOOLBOX_SSL_TRANSPORT_STREAM) {
+		if (transport == BCTBX_SSL_TRANSPORT_STREAM) {
 			ssl_config->transport = SSL_TRANSPORT_STREAM;
-		} else if (transport == BCTOOLBOX_SSL_TRANSPORT_DATAGRAM) {
+		} else if (transport == BCTBX_SSL_TRANSPORT_DATAGRAM) {
 			ssl_config->transport = SSL_TRANSPORT_DATAGRAM;
 		} else {
-			return BCTOOLBOX_ERROR_INVALID_SSL_TRANSPORT;
+			return BCTBX_ERROR_INVALID_SSL_TRANSPORT;
 		}
 #endif
 	return 0;
 }
 
-int32_t bctoolbox_ssl_config_set_authmode(bctoolbox_ssl_config_t *ssl_config, int authmode) {
+int32_t bctbx_ssl_config_set_authmode(bctbx_ssl_config_t *ssl_config, int authmode) {
 	if (ssl_config != NULL) {
 		switch (authmode) {
-			case BCTOOLBOX_SSL_VERIFY_NONE:
+			case BCTBX_SSL_VERIFY_NONE:
 				ssl_config->authmode = SSL_VERIFY_NONE;
 				break;
-			case BCTOOLBOX_SSL_VERIFY_OPTIONAL:
+			case BCTBX_SSL_VERIFY_OPTIONAL:
 				ssl_config->authmode = SSL_VERIFY_OPTIONAL;
 				break;
-			case BCTOOLBOX_SSL_VERIFY_REQUIRED:
+			case BCTBX_SSL_VERIFY_REQUIRED:
 				ssl_config->authmode = SSL_VERIFY_REQUIRED;
 				break;
 			default:
-				return BCTOOLBOX_ERROR_INVALID_SSL_AUTHMODE;
+				return BCTBX_ERROR_INVALID_SSL_AUTHMODE;
 				break;
 		}
 		return 0;
 	}
-	return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-int32_t bctoolbox_ssl_config_set_rng(bctoolbox_ssl_config_t *ssl_config, int(*rng_function)(void *, unsigned char *, size_t), void *rng_context) {
+int32_t bctbx_ssl_config_set_rng(bctbx_ssl_config_t *ssl_config, int(*rng_function)(void *, unsigned char *, size_t), void *rng_context) {
 	if (ssl_config != NULL) {
 		ssl_config->rng_function = rng_function;
 		ssl_config->rng_context = rng_context;
 	}
-	return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-int32_t bctoolbox_ssl_config_set_callback_verify(bctoolbox_ssl_config_t *ssl_config, int(*callback_function)(void *, bctoolbox_x509_certificate_t *, int, uint32_t *), void *callback_data) {
+int32_t bctbx_ssl_config_set_callback_verify(bctbx_ssl_config_t *ssl_config, int(*callback_function)(void *, bctbx_x509_certificate_t *, int, uint32_t *), void *callback_data) {
 	if (ssl_config != NULL) {
 		ssl_config->callback_verify_function = (int(*)(void *, x509_cert *, int, int *))callback_function;
 		ssl_config->callback_verify_data = callback_data;
 	}
-	return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-int32_t bctoolbox_ssl_config_set_callback_cli_cert(bctoolbox_ssl_config_t *ssl_config, int(*callback_function)(void *, bctoolbox_ssl_context_t *, unsigned char *, size_t), void *callback_data) {
+int32_t bctbx_ssl_config_set_callback_cli_cert(bctbx_ssl_config_t *ssl_config, int(*callback_function)(void *, bctbx_ssl_context_t *, unsigned char *, size_t), void *callback_data) {
 	if (ssl_config != NULL) {
 		ssl_config->callback_cli_cert_function = callback_function;
 		ssl_config->callback_cli_cert_data = callback_data;
 	}
-	return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-int32_t bctoolbox_ssl_config_set_ca_chain(bctoolbox_ssl_config_t *ssl_config, bctoolbox_x509_certificate_t *ca_chain, char *peer_cn) {
+int32_t bctbx_ssl_config_set_ca_chain(bctbx_ssl_config_t *ssl_config, bctbx_x509_certificate_t *ca_chain, char *peer_cn) {
 	if (ssl_config != NULL) {
 		ssl_config->ca_chain = (x509_cert *)ca_chain;
 		ssl_config->peer_cn = peer_cn;
 	}
-	return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-int32_t bctoolbox_ssl_config_set_own_cert(bctoolbox_ssl_config_t *ssl_config, bctoolbox_x509_certificate_t *cert, bctoolbox_signing_key_t *key) {
+int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config, bctbx_x509_certificate_t *cert, bctbx_signing_key_t *key) {
 	if (ssl_config != NULL) {
 		ssl_config->own_cert = (x509_cert *)cert;
 		ssl_config->own_cert_pk = (rsa_context *)key;
 	}
-	return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
 
 /** dummy DTLS SRTP functions **/
-int32_t bctoolbox_ssl_config_set_dtls_srtp_protection_profiles(bctoolbox_ssl_config_t *ssl_config, const bctoolbox_dtls_srtp_profile_t *profiles, size_t profiles_number) {
-	return BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION;
+int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config, const bctbx_dtls_srtp_profile_t *profiles, size_t profiles_number) {
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 /** DTLS SRTP functions **/
 
-int32_t bctoolbox_ssl_context_setup(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_ssl_config_t *ssl_config) {
+int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t *ssl_config) {
 	/* Check validity of context and config */
 	if (ssl_config == NULL) {
-		return BCTOOLBOX_ERROR_INVALID_SSL_CONFIG;
+		return BCTBX_ERROR_INVALID_SSL_CONFIG;
 	}
 
 	if (ssl_ctx == NULL) {
-		return BCTOOLBOX_ERROR_INVALID_SSL_CONTEXT;
+		return BCTBX_ERROR_INVALID_SSL_CONTEXT;
 	}
 
 	/* apply all valids settings to the ssl_context */
-	if (ssl_config->endpoint != BCTOOLBOX_SSL_UNSET) {
+	if (ssl_config->endpoint != BCTBX_SSL_UNSET) {
 		ssl_set_endpoint(&(ssl_ctx->ssl_ctx), ssl_config->endpoint);
 	}
 
-	if (ssl_config->authmode != BCTOOLBOX_SSL_UNSET) {
+	if (ssl_config->authmode != BCTBX_SSL_UNSET) {
 		ssl_set_authmode(&(ssl_ctx->ssl_ctx), ssl_config->authmode);
 	}
 
@@ -800,7 +800,7 @@ int32_t bctoolbox_ssl_context_setup(bctoolbox_ssl_context_t *ssl_ctx, bctoolbox_
  * @param[out]	output		Output data buffer.
  *
  */
-void bctoolbox_hmacSha256(const uint8_t *key,
+void bctbx_hmacSha256(const uint8_t *key,
 		size_t keyLength,
 		const uint8_t *input,
 		size_t inputLength,
@@ -826,7 +826,7 @@ void bctoolbox_hmacSha256(const uint8_t *key,
  * @param[out]	output		Output data buffer.
  *
  */
-void bctoolbox_sha256(const uint8_t *input,
+void bctbx_sha256(const uint8_t *input,
 		size_t inputLength,
 		uint8_t hashLength,
 		uint8_t *output)
@@ -852,7 +852,7 @@ void bctoolbox_sha256(const uint8_t *input,
  * @param[out]	output		Output data buffer
  *
  */
-void bctoolbox_hmacSha1(const uint8_t *key,
+void bctbx_hmacSha1(const uint8_t *key,
 		size_t keyLength,
 		const uint8_t *input,
 		size_t inputLength,
@@ -878,7 +878,7 @@ void bctoolbox_hmacSha1(const uint8_t *key,
  * @param[out]	output		Output data buffer.
  *
  */
-void bctoolbox_md5(const uint8_t *input,
+void bctbx_md5(const uint8_t *input,
 		size_t inputLength,
 		uint8_t output[16])
 {
@@ -904,7 +904,7 @@ void bctoolbox_md5(const uint8_t *input,
  * @param[in]	tagLength					Requested length for the generated tag
  * @param[out]	output						Buffer holding the output, shall be at least the length of plainText buffer
  */
-int32_t bctoolbox_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
+int32_t bctbx_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
 		const uint8_t *plainText, size_t plainTextLength,
 		const uint8_t *authenticatedData, size_t authenticatedDataLength,
 		const uint8_t *initializationVector, size_t initializationVectorLength,
@@ -936,9 +936,9 @@ int32_t bctoolbox_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
  * @param[in]	tagLength					Length in bytes for the authentication tag
  * @param[out]	output						Buffer holding the output, shall be at least the length of cipherText buffer
  *
- * @return 0 on succes, BCTOOLBOX_ERROR_AUTHENTICATION_FAILED if tag doesn't match or polarssl error code
+ * @return 0 on succes, BCTBX_ERROR_AUTHENTICATION_FAILED if tag doesn't match or polarssl error code
  */
-int32_t bctoolbox_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
+int32_t bctbx_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
 		const uint8_t *cipherText, size_t cipherTextLength,
 		const uint8_t *authenticatedData, size_t authenticatedDataLength,
 		const uint8_t *initializationVector, size_t initializationVectorLength,
@@ -953,7 +953,7 @@ int32_t bctoolbox_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
 	ret = gcm_auth_decrypt(&gcmContext, cipherTextLength, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength, tag, tagLength, cipherText, output);
 
 	if (ret == POLARSSL_ERR_GCM_AUTH_FAILED) {
-		return BCTOOLBOX_ERROR_AUTHENTICATION_FAILED;
+		return BCTBX_ERROR_AUTHENTICATION_FAILED;
 	}
 
 	return ret;
@@ -969,11 +969,11 @@ int32_t bctoolbox_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
  * @param[in]	authenticatedDataLength		additional data length in bytes (can be 0)
  * @param[in]	initializationVector		Buffer holding the initialisation vector
  * @param[in]	initializationVectorLength	Initialisation vector length in bytes
- * @param[in]	mode						Operation mode : BCTOOLBOX_GCM_ENCRYPT or BCTOOLBOX_GCM_DECRYPT
+ * @param[in]	mode						Operation mode : BCTBX_GCM_ENCRYPT or BCTBX_GCM_DECRYPT
  *
  * @return 0 on success, crypto library error code otherwise
  */
-bctoolbox_aes_gcm_context_t *bctoolbox_aes_gcm_context_new(const uint8_t *key, size_t keyLength,
+bctbx_aes_gcm_context_t *bctbx_aes_gcm_context_new(const uint8_t *key, size_t keyLength,
 		const uint8_t *authenticatedData, size_t authenticatedDataLength,
 		const uint8_t *initializationVector, size_t initializationVectorLength,
 		uint8_t mode) {
@@ -984,31 +984,31 @@ bctoolbox_aes_gcm_context_t *bctoolbox_aes_gcm_context_new(const uint8_t *key, s
 /**
  * @Brief AES-GCM encrypt or decrypt a chunk of data
  *
- * @param[in/out]	context			a context already initialized using bctoolbox_aes_gcm_context_new
+ * @param[in/out]	context			a context already initialized using bctbx_aes_gcm_context_new
  * @param[in]		input			buffer holding the input data
  * @param[in]		inputLength		lenght of the input data
  * @param[out]		output			buffer to store the output data (same length as input one)
  *
  * @return 0 on success, crypto library error code otherwise
  */
-int32_t bctoolbox_aes_gcm_process_chunk(bctoolbox_aes_gcm_context_t *context,
+int32_t bctbx_aes_gcm_process_chunk(bctbx_aes_gcm_context_t *context,
 		const uint8_t *input, size_t inputLength,
 		uint8_t *output) {
-	return BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION;
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 
 /**
  * @Brief Conclude a AES-GCM encryption stream, generate tag if requested, free resources
  *
- * @param[in/out]	context			a context already initialized using bctoolbox_aes_gcm_context_new
+ * @param[in/out]	context			a context already initialized using bctbx_aes_gcm_context_new
  * @param[out]		tag				a buffer to hold the authentication tag. Can be NULL if tagLength is 0
  * @param[in]		tagLength		length of reqested authentication tag, max 16
  *
  * @return 0 on success, crypto library error code otherwise
  */
-int32_t bctoolbox_aes_gcm_finish(bctoolbox_aes_gcm_context_t *context,
+int32_t bctbx_aes_gcm_finish(bctbx_aes_gcm_context_t *context,
 		uint8_t *tag, size_t tagLength) {
-	return BCTOOLBOX_ERROR_UNAVAILABLE_FUNCTION;
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 
 /*
@@ -1022,7 +1022,7 @@ int32_t bctoolbox_aes_gcm_finish(bctoolbox_aes_gcm_context_t *context,
  * @param[out]	output		Output data buffer
  *
  */
-void bctoolbox_aes128CfbEncrypt(const uint8_t key[16],
+void bctbx_aes128CfbEncrypt(const uint8_t key[16],
 		const uint8_t IV[16],
 		const uint8_t *input,
 		size_t inputLength,
@@ -1054,7 +1054,7 @@ void bctoolbox_aes128CfbEncrypt(const uint8_t key[16],
  * @param[out]	output		Output data buffer
  *
  */
-void bctoolbox_aes128CfbDecrypt(const uint8_t key[16],
+void bctbx_aes128CfbDecrypt(const uint8_t key[16],
 		const uint8_t IV[16],
 		const uint8_t *input,
 		size_t inputLength,
@@ -1086,7 +1086,7 @@ void bctoolbox_aes128CfbDecrypt(const uint8_t key[16],
  * @param[out]	output		Output data buffer
  *
  */
-void bctoolbox_aes256CfbEncrypt(const uint8_t key[32],
+void bctbx_aes256CfbEncrypt(const uint8_t key[32],
 		const uint8_t IV[16],
 		const uint8_t *input,
 		size_t inputLength,
@@ -1115,7 +1115,7 @@ void bctoolbox_aes256CfbEncrypt(const uint8_t key[32],
  * @param[out]	output		Output data buffer
  *
  */
-void bctoolbox_aes256CfbDecrypt(const uint8_t key[32],
+void bctbx_aes256CfbDecrypt(const uint8_t key[32],
 		const uint8_t IV[16],
 		const uint8_t *input,
 		size_t inputLength,
