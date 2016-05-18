@@ -21,6 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 2.8.12)
+set(CMAKE_MACOSX_RPATH ON) # Before cmake 3.0.0, MACOSX_RPATH was not set to ON by default - however this is no good reason to not enable it by default
 
 
 project(bctoolbox)
@@ -77,7 +78,6 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_LIBDIR})
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
-set(CMAKE_MACOSX_RPATH ON)
 
 if(ENABLE_MBEDTLS)
 	find_package(MbedTLS)
