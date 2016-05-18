@@ -127,6 +127,8 @@ static IceStunServerRequest * ice_stun_server_request_new(IceCheckList *cl, MSTu
 static void ice_stun_server_request_transaction_free(IceStunServerRequestTransaction *transaction);
 static void ice_stun_server_request_free(IceStunServerRequest *request);
 static IceStunServerRequestTransaction * ice_send_stun_server_request(IceStunServerRequest *request, const struct sockaddr *server, socklen_t addrlen);
+static void ice_check_list_deallocate_rtp_turn_candidate(IceCheckList *cl);
+static void ice_check_list_deallocate_rtcp_turn_candidate(IceCheckList *cl);
 static void ice_check_list_deallocate_turn_candidates(IceCheckList *cl);
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
@@ -1005,20 +1007,18 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 	}
 }
 
-static void ice_check_list_deallocate_turn_candidates(IceCheckList *cl) {
+static void ice_check_list_deallocate_turn_candidate(IceCheckList *cl, MSTurnContext *turn_context, RtpTransport *rtptp) {
 	IceStunServerRequest *request = NULL;
 	IceStunServerRequestTransaction *transaction = NULL;
-	RtpTransport *rtptp = NULL;
 	char source_addr_str[64];
 	int source_port = 0;
 
-	if ((cl->rtp_turn_context != NULL) && (ms_turn_context_get_state(cl->rtp_turn_context) >= MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED)) {
-		ms_turn_context_set_lifetime(cl->rtp_turn_context, 0);
-		rtp_session_get_transports(cl->rtp_session, &rtptp, NULL);
+	if ((turn_context != NULL) && (ms_turn_context_get_state(turn_context) >= MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED)) {
+		ms_turn_context_set_lifetime(turn_context, 0);
 		if (rtptp) {
 			struct sockaddr *sa = (struct sockaddr *)&cl->rtp_session->rtp.gs.loc_addr;
 			bctbx_sockaddr_to_ip_address(sa, cl->rtp_session->rtp.gs.loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
-			request = ice_stun_server_request_new(cl, cl->rtp_turn_context, rtptp, sa->sa_family, source_addr_str, source_port, MS_TURN_METHOD_REFRESH);
+			request = ice_stun_server_request_new(cl, turn_context, rtptp, sa->sa_family, source_addr_str, source_port, MS_TURN_METHOD_REFRESH);
 			transaction = ice_send_stun_server_request(request, (struct sockaddr *)&cl->session->ss, cl->session->ss_len);
 			if (transaction != NULL) ice_stun_server_request_transaction_free(transaction);
 			ice_stun_server_request_free(request);
@@ -1026,21 +1026,23 @@ static void ice_check_list_deallocate_turn_candidates(IceCheckList *cl) {
 			ms_error("ice: no rtp socket found for session [%p]", cl->rtp_session);
 		}
 	}
-	if ((cl->rtcp_turn_context != NULL) && (ms_turn_context_get_state(cl->rtcp_turn_context) >= MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED)) {
-		rtptp = NULL;
-		ms_turn_context_set_lifetime(cl->rtcp_turn_context, 0);
-		rtp_session_get_transports(cl->rtp_session, NULL, &rtptp);
-		if (rtptp) {
-			struct sockaddr *sa = (struct sockaddr *)&cl->rtp_session->rtcp.gs.loc_addr;
-			bctbx_sockaddr_to_ip_address(sa, cl->rtp_session->rtcp.gs.loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
-			request = ice_stun_server_request_new(cl, cl->rtcp_turn_context, rtptp, sa->sa_family, source_addr_str, source_port, MS_TURN_METHOD_REFRESH);
-			transaction = ice_send_stun_server_request(request, (struct sockaddr *)&cl->session->ss, cl->session->ss_len);
-			if (transaction != NULL) ice_stun_server_request_transaction_free(transaction);
-			ice_stun_server_request_free(request);
-		} else {
-			ms_error("ice: no rtp socket found for session [%p]", cl->rtp_session);
-		}
-	}
+}
+
+static void ice_check_list_deallocate_rtp_turn_candidate(IceCheckList *cl) {
+	RtpTransport *rtptp = NULL;
+	rtp_session_get_transports(cl->rtp_session, &rtptp, NULL);
+	ice_check_list_deallocate_turn_candidate(cl, cl->rtp_turn_context, rtptp);
+}
+
+static void ice_check_list_deallocate_rtcp_turn_candidate(IceCheckList *cl) {
+	RtpTransport *rtptp = NULL;
+	rtp_session_get_transports(cl->rtp_session, NULL, &rtptp);
+	ice_check_list_deallocate_turn_candidate(cl, cl->rtcp_turn_context, rtptp);
+}
+
+static void ice_check_list_deallocate_turn_candidates(IceCheckList *cl) {
+	ice_check_list_deallocate_rtp_turn_candidate(cl);
+	ice_check_list_deallocate_rtcp_turn_candidate(cl);
 }
 
 static bool_t ice_session_gathering_needed(const IceSession *session) {
@@ -2181,8 +2183,8 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 	MSStunAddress relay_addr;
 	char srflx_addr_str[64];
 	char relay_addr_str[64];
-	int srflx_port;
-	int relay_port;
+	int srflx_port = 0;
+	int relay_port = 0;
 	int componentID;
 
 	ms_sockaddr_to_stun_address(servaddr, &serv_stun_addr);
@@ -2245,6 +2247,15 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 	}
 
 	return stun_server_response;
+}
+
+static void ice_handle_received_turn_refresh_success_response(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, const MSStunAddress *remote_addr) {
+	int componentID = ice_get_componentID_from_rtp_session(evt_data);
+	MSTurnContext *context = ice_get_turn_context_from_check_list_componentID(cl, componentID);
+	if (ms_turn_context_get_lifetime(context) == 0) {
+		/* TURN deallocation success */
+		ms_turn_context_set_state(context, MS_TURN_CONTEXT_STATE_IDLE);
+	}
 }
 
 static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, const MSStunAddress *remote_addr)
@@ -2425,6 +2436,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 				break;
 			case MS_TURN_METHOD_REFRESH:
 				ms_message("ice: Recv TURN refresh success response: %s <-- %s [%s]", recv_addr_str, source_addr_str, tr_id_str);
+				ice_handle_received_turn_refresh_success_response(cl, rtp_session, evt_data, msg, &source_stun_addr);
 				break;
 			default:
 				ms_warning("ice: Recv unknown STUN success response: %s <-- %s [%s]", recv_addr_str, source_addr_str, tr_id_str);
@@ -3337,10 +3349,18 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 						IceCandidate *rtp_candidate = NULL;
 						IceCandidate *rtcp_candidate = NULL;
 						ice_check_list_selected_valid_local_candidate2(cl, &rtp_candidate, &rtcp_candidate);
-						if (rtp_candidate)
+						if (rtp_candidate) {
 							ms_turn_context_set_force_rtp_sending_via_relay(ice_get_turn_context_from_check_list_componentID(cl, 1), rtp_candidate->type == ICT_RelayedCandidate);
-						if (rtcp_candidate)
+							if (rtp_candidate->type != ICT_RelayedCandidate) {
+								ice_check_list_deallocate_rtp_turn_candidate(cl);
+							}
+						}
+						if (rtcp_candidate) {
 							ms_turn_context_set_force_rtp_sending_via_relay(ice_get_turn_context_from_check_list_componentID(cl, 2), rtcp_candidate->type == ICT_RelayedCandidate);
+							if (rtcp_candidate->type != ICT_RelayedCandidate) {
+								ice_check_list_deallocate_rtcp_turn_candidate(cl);
+							}
+						}
 					}
 				} else {
 					ms_error("Cannot get remote candidate for check list [%p]",cl);
