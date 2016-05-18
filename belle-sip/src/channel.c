@@ -856,11 +856,9 @@ int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 void belle_sip_channel_close(belle_sip_channel_t *obj){
 	if (BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close)
 		BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close(obj); /*udp channel doesn't have close function*/
-	belle_sip_object_ref(obj);
 	/*removing the source (our base class) will decrement the ref count, this why this code needs to be protected by ref/unref.*/
 	belle_sip_main_loop_remove_source(obj->stack->ml,(belle_sip_source_t*)obj);
 	belle_sip_source_uninit((belle_sip_source_t*)obj);
-	belle_sip_object_unref(obj);
 }
 
 const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj){
@@ -922,9 +920,11 @@ static void channel_invoke_state_listener(belle_sip_channel_t *obj){
 		default:
 		break;
 	}
+	/*Channel listeners may drop the last reference of the channel, so protect by ref/unref until we finish.*/
+	belle_sip_object_ref(obj);
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_state_changed,obj,obj->state);
-	/*since _close() removes the channel from the main loop (dropping the channel's reference count), it must be done at the end*/
 	if (close) belle_sip_channel_close(obj);
+	belle_sip_object_unref(obj);
 }
 
 static void channel_invoke_state_listener_defered(belle_sip_channel_t *obj){
