@@ -449,7 +449,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		next=elem->next;
 		if (!s->cancelled){
 			
-			if (s->timeout > 0 && (__belle_sip_log_mask & BELLE_SIP_LOG_DEBUG)) {
+			if (s->timeout > 0 && belle_sip_log_level_enabled(BELLE_SIP_LOG_DEBUG)) {
 				/*to avoid too many traces*/ 
 				char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
 				belle_sip_debug("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);

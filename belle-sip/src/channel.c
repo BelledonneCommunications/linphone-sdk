@@ -633,7 +633,7 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj){
 		/*first null terminate the read buff*/
 		*obj->input_stream.write_ptr='\0';
 		if (num>20 || obj->input_stream.state != WAITING_MESSAGE_START ) /*to avoid tracing server based keep alives*/ {
-			char *logbuf = make_logbuf(obj, BELLE_SIP_LOG_MESSAGE,begin,num);
+			char *logbuf = make_logbuf(obj, BELLE_SIP_LOG_MESSAGE ,begin,num);
 			if (logbuf) {
 				belle_sip_message("channel [%p]: received [%i] new bytes from [%s://%s:%i]:\n%s",
 						obj,

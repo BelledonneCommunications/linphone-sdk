@@ -21,6 +21,7 @@
 
 #include "belle-sip/defs.h"
 #include "belle-sip/utils.h"
+#include "belle-sip/list.h"
 
 /*
  * typedefs, macros and functions for object definition and manipulation.
@@ -151,8 +152,8 @@ struct _belle_sip_object{
 	char* name;
 	struct weak_ref *weak_refs;
 	struct belle_sip_object_pool *pool;
-	struct _belle_sip_list *pool_iterator;
-	struct _belle_sip_list *data_store;
+	belle_sip_list_t *pool_iterator;
+	belle_sip_list_t *data_store;
 };
 
 

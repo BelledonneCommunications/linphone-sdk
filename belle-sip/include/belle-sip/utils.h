@@ -25,14 +25,25 @@
 #include <errno.h>
 #include "belle-sip/defs.h"
 
+#ifdef BCTBX_LOG_DOMAIN
+#undef BCTBX_LOG_DOMAIN
+#endif
+#ifndef BELLE_SIP_LOG_DOMAIN
+#define BELLE_SIP_LOG_DOMAIN "belle-sip"
+#endif
+
+#define BCTBX_LOG_DOMAIN BELLE_SIP_LOG_DOMAIN
+
+
+#include "bctoolbox/logging.h"
 
 BELLE_SIP_BEGIN_DECLS
 
-BELLESIP_EXPORT void *belle_sip_malloc(size_t size);
-BELLESIP_EXPORT void *belle_sip_malloc0(size_t size);
-BELLESIP_EXPORT void *belle_sip_realloc(void *ptr, size_t size);
-BELLESIP_EXPORT void belle_sip_free(void *ptr);
-BELLESIP_EXPORT char * belle_sip_strdup(const char *s);
+#define belle_sip_malloc bctbx_malloc
+#define belle_sip_malloc0 bctbx_malloc0
+#define belle_sip_realloc bctbx_realloc
+#define belle_sip_free bctbx_free
+#define belle_sip_strdup bctbx_strdup
 
 BELLE_SIP_END_DECLS
 
@@ -40,17 +51,15 @@ BELLE_SIP_END_DECLS
 /* logging api */
 /***************/
 
-typedef enum {
-	BELLE_SIP_LOG_FATAL=1,
-	BELLE_SIP_LOG_ERROR=1<<1,
-	BELLE_SIP_LOG_WARNING=1<<2,
-	BELLE_SIP_LOG_MESSAGE=1<<3,
-	BELLE_SIP_LOG_DEBUG=1<<4,
-	BELLE_SIP_LOG_END=1<<5
-} belle_sip_log_level;
+#define BELLE_SIP_LOG_FATAL BCTBX_LOG_FATAL
+#define	BELLE_SIP_LOG_ERROR BCTBX_LOG_ERROR
+#define	BELLE_SIP_LOG_WARNING BCTBX_LOG_WARNING
+#define	BELLE_SIP_LOG_MESSAGE BCTBX_LOG_MESSAGE
+#define	BELLE_SIP_LOG_DEBUG	BCTBX_LOG_DEBUG
+#define	BELLE_SIP_LOG_END BCTBX_LOG_END
+#define  belle_sip_log_level BctbxLogLevel
 
-
-typedef void (*belle_sip_log_function_t)(belle_sip_log_level lev, const char *fmt, va_list args);
+#define belle_sip_log_function_t BctoolboxLogFunc
 
 
 typedef enum {
@@ -68,31 +77,10 @@ typedef enum {
 
 BELLE_SIP_BEGIN_DECLS
 
-BELLESIP_VAR_EXPORT belle_sip_log_function_t belle_sip_logv_out;
-
-BELLESIP_VAR_EXPORT unsigned int __belle_sip_log_mask;
-
-#define belle_sip_log_level_enabled(level)   (__belle_sip_log_mask & (level))
-
-#if !defined(_WIN32) && !defined(_WIN32_WCE)
-static BELLESIP_INLINE void belle_sip_logv(belle_sip_log_level level, const char *fmt, va_list args) {
-        if (belle_sip_logv_out!=NULL && belle_sip_log_level_enabled(level))
-                belle_sip_logv_out(level,fmt,args);
-        if (level==BELLE_SIP_LOG_FATAL) abort();
-}
-#else
-BELLESIP_EXPORT void belle_sip_logv(int level, const char *fmt, va_list args);
-#endif
-
+#define belle_sip_log_level_enabled(level) bctbx_log_level_enabled(BELLE_SIP_LOG_DOMAIN,level)
 
 #ifdef BELLE_SIP_DEBUG_MODE
-static BELLESIP_INLINE void belle_sip_debug(const char *fmt,...)
-{
-  va_list args;
-  va_start (args, fmt);
-  belle_sip_logv(BELLE_SIP_LOG_DEBUG, fmt, args);
-  va_end (args);
-}
+#define belle_sip_deb(...) bctbx_debug(...)
 #else
 
 #define belle_sip_debug(...)
@@ -107,61 +95,27 @@ static BELLESIP_INLINE void belle_sip_debug(const char *fmt,...)
 
 #else
 
-static BELLESIP_INLINE void BELLE_SIP_CHECK_FORMAT_ARGS(2,3) belle_sip_log(belle_sip_log_level lev, const char *fmt,...){
-        va_list args;
-        va_start (args, fmt);
-        belle_sip_logv(lev, fmt, args);
-        va_end (args);
-}
-
-static BELLESIP_INLINE void BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_message(const char *fmt,...)
-{
-        va_list args;
-        va_start (args, fmt);
-        belle_sip_logv(BELLE_SIP_LOG_MESSAGE, fmt, args);
-        va_end (args);
-}
-
-static BELLESIP_INLINE void BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_warning(const char *fmt,...)
-{
-        va_list args;
-        va_start (args, fmt);
-        belle_sip_logv(BELLE_SIP_LOG_WARNING, fmt, args);
-        va_end (args);
-}
-
+#define belle_sip_log bctbx_log
+#define belle_sip_message bctbx_message
+#define belle_sip_warning bctbx_warning
+#define belle_sip_error bctbx_error
+#define belle_sip_fatal bctbx_fatal
+#define belle_sip_logv bctbx_logv
 #endif
 
-static BELLESIP_INLINE void BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_error(const char *fmt,...)
-{
-        va_list args;
-        va_start (args, fmt);
-        belle_sip_logv(BELLE_SIP_LOG_ERROR, fmt, args);
-        va_end (args);
-}
 
-static BELLESIP_INLINE void BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_fatal(const char *fmt,...)
-{
-        va_list args;
-        va_start (args, fmt);
-        belle_sip_logv(BELLE_SIP_LOG_FATAL, fmt, args);
-        va_end (args);
-}
+#define belle_sip_set_log_file bctbx_set_log_file
+#define belle_sip_set_log_handler bctbx_set_log_handler
+#define belle_sip_get_log_handler bctbx_get_log_handler
 
-
-
-BELLESIP_EXPORT void belle_sip_set_log_file(FILE *file);
-BELLESIP_EXPORT void belle_sip_set_log_handler(belle_sip_log_function_t func);
-BELLESIP_EXPORT belle_sip_log_function_t belle_sip_get_log_handler(void);
-
-BELLESIP_EXPORT char * BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_strdup_printf(const char *fmt,...);
-BELLESIP_EXPORT char * belle_sip_strcat_vprintf(char* dst, const char *fmt, va_list ap);
-BELLESIP_EXPORT char * BELLE_SIP_CHECK_FORMAT_ARGS(2,3) belle_sip_strcat_printf(char* dst, const char *fmt,...);
+#define belle_sip_strdup_printf bctbx_strdup_printf
+#define belle_sip_strcat_vprintf bctbx_strcat_vprintf
+#define belle_sip_strcat_printf bctbx_strcat_printf
 
 BELLESIP_EXPORT belle_sip_error_code BELLE_SIP_CHECK_FORMAT_ARGS(4,5) belle_sip_snprintf(char *buff, size_t buff_size, size_t *offset, const char *fmt, ...);
 BELLESIP_EXPORT belle_sip_error_code belle_sip_snprintf_valist(char *buff, size_t buff_size, size_t *offset, const char *fmt, va_list args);
 
-BELLESIP_EXPORT void belle_sip_set_log_level(int level);
+#define belle_sip_set_log_level(level) bctbx_set_log_level(BELLE_SIP_LOG_DOMAIN,level);
 
 BELLESIP_EXPORT char * belle_sip_random_token(char *ret, size_t size);
 

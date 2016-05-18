@@ -284,7 +284,7 @@ struct belle_sip_dict {
 #define MAX(a,b)	((a)>(b) ? (a) : (b))
 
 
-BELLESIP_INTERNAL_EXPORT char * belle_sip_concat (const char *str, ...);
+#define belle_sip_concat bctbx_concat
 
 
 /*parameters accessors*/

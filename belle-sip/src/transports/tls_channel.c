@@ -26,12 +26,12 @@
 /*****************************************************************************/
 struct belle_sip_signing_key {
 	belle_sip_object_t objet;
-	bctoolbox_signing_key_t *key;
+	bctbx_signing_key_t *key;
 };
 /*************************************/
 /***     Internal functions        ***/
 static void belle_sip_signing_key_destroy(belle_sip_signing_key_t *signing_key){
-	bctoolbox_signing_key_free(signing_key->key);
+	bctbx_signing_key_free(signing_key->key);
 }
 
 static void belle_sip_signing_key_clone(belle_sip_signing_key_t *signing_key, const belle_sip_signing_key_t *orig){
@@ -48,13 +48,13 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_signing_key_t,belle_sip_object_t,belle_sip_
  */
 char *belle_sip_signing_key_get_pem(belle_sip_signing_key_t *key) {
 	if (key == NULL) return NULL;
-	return bctoolbox_signing_key_get_pem(key->key);
+	return bctbx_signing_key_get_pem(key->key);
 }
 
 belle_sip_signing_key_t *belle_sip_signing_key_new(void) {
 
 	belle_sip_signing_key_t* key = belle_sip_object_new(belle_sip_signing_key_t);
-	key->key  = bctoolbox_signing_key_new();
+	key->key  = bctbx_signing_key_new();
 	return key;
 }
 
@@ -67,11 +67,11 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t si
 		size++;
 	}
 
-	ret = bctoolbox_signing_key_parse(signing_key->key, buff, size, (const unsigned char *)passwd, passwd?strlen(passwd):0);
+	ret = bctbx_signing_key_parse(signing_key->key, buff, size, (const unsigned char *)passwd, passwd?strlen(passwd):0);
 
 	if (ret < 0) {
 		char tmp[128];
-		bctoolbox_strerror(ret,tmp,sizeof(tmp));
+		bctbx_strerror(ret,tmp,sizeof(tmp));
 		belle_sip_error("cannot parse x509 signing key because [%s]",tmp);
 		belle_sip_object_unref(signing_key);
 		return NULL;
@@ -83,11 +83,11 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path,const
 	belle_sip_signing_key_t *signing_key = belle_sip_signing_key_new();
 	int ret;
 
-	ret = bctoolbox_signing_key_parse_file(signing_key->key, path, passwd);
+	ret = bctbx_signing_key_parse_file(signing_key->key, path, passwd);
 
 	if (ret < 0) {
 		char tmp[128];
-		bctoolbox_strerror(ret,tmp,sizeof(tmp));
+		bctbx_strerror(ret,tmp,sizeof(tmp));
 		belle_sip_error("cannot parse x509 signing key because [%s]",tmp);
 		belle_sip_object_unref(signing_key);
 		return NULL;
@@ -104,13 +104,13 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path,const
 /*****************************************************************************/
 struct belle_sip_certificates_chain {
 	belle_sip_object_t objet;
-	bctoolbox_x509_certificate_t *cert;
+	bctbx_x509_certificate_t *cert;
 };
 
 /*************************************/
 /***     Internal functions        ***/
 static void belle_sip_certificates_chain_destroy(belle_sip_certificates_chain_t *certificate){
-	bctoolbox_x509_certificate_free(certificate->cert);
+	bctbx_x509_certificate_free(certificate->cert);
 }
 
 static void belle_sip_certificates_chain_clone(belle_sip_certificates_chain_t *certificate, const belle_sip_certificates_chain_t *orig){
@@ -126,9 +126,9 @@ static int belle_sip_certificate_fill(belle_sip_certificates_chain_t* certificat
 			size++;
 		}
 	}
-	if ((err=bctoolbox_x509_certificate_parse(certificate->cert, buff, size)) <0) {
+	if ((err=bctbx_x509_certificate_parse(certificate->cert, buff, size)) <0) {
 		char tmp[128];
-		bctoolbox_strerror(err,tmp,sizeof(tmp));
+		bctbx_strerror(err,tmp,sizeof(tmp));
 		belle_sip_error("cannot parse x509 cert because [%s]",tmp);
 		return -1;
 	}
@@ -137,9 +137,9 @@ static int belle_sip_certificate_fill(belle_sip_certificates_chain_t* certificat
 
 static int belle_sip_certificate_fill_from_file(belle_sip_certificates_chain_t* certificate, const char* path, belle_sip_certificate_raw_format_t format) {
 	int err;
-	if ((err=bctoolbox_x509_certificate_parse_file(certificate->cert, path)) <0) {
+	if ((err=bctbx_x509_certificate_parse_file(certificate->cert, path)) <0) {
 		char tmp[128];
-		bctoolbox_strerror(err,tmp,sizeof(tmp));
+		bctbx_strerror(err,tmp,sizeof(tmp));
 		belle_sip_error("cannot parse x509 cert because [%s]",tmp);
 		return -1;
 	}
@@ -157,13 +157,13 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_certificates_chain_t,belle_sip_object_t,bel
  */
 char *belle_sip_certificates_chain_get_pem(belle_sip_certificates_chain_t *cert) {
 	if (cert == NULL) return NULL;
-	return bctoolbox_x509_certificates_chain_get_pem(cert->cert);
+	return bctbx_x509_certificates_chain_get_pem(cert->cert);
 }
 
 belle_sip_certificates_chain_t *belle_sip_certificate_chain_new(void) {
 
 	belle_sip_certificates_chain_t* certificate = belle_sip_object_new(belle_sip_certificates_chain_t);
-	certificate->cert  = bctoolbox_x509_certificate_new();
+	certificate->cert  = bctbx_x509_certificate_new();
 	return certificate;
 }
 
@@ -206,7 +206,7 @@ int belle_sip_get_certificate_and_pkey_in_dir(const char *path, const char *subj
 			belle_sip_signing_key_t *found_key;
 			char name[500];
 			memset( name, 0, sizeof(name) );
-			if (bctoolbox_x509_certificate_get_subject_dn(found_certificate->cert, name, sizeof(name)) > 0) {
+			if (bctbx_x509_certificate_get_subject_dn(found_certificate->cert, name, sizeof(name)) > 0) {
 				/* parse subject to find the CN=xxx, field. There may be no , at the and but a \0 */
 				subject_CNAME_begin = strstr(name, "CN=");
 				if (subject_CNAME_begin!=NULL) {
@@ -247,7 +247,7 @@ int belle_sip_generate_self_signed_certificate(const char* path, const char *sub
 	*pkey = belle_sip_signing_key_new();
 	*certificate = belle_sip_certificate_chain_new();
 
-	ret = bctoolbox_x509_certificate_generate_selfsigned(subject, (*certificate)->cert, (*pkey)->key, (path==NULL)?NULL:pem_buffer, (path==NULL)?0:8192);
+	ret = bctbx_x509_certificate_generate_selfsigned(subject, (*certificate)->cert, (*pkey)->key, (path==NULL)?NULL:pem_buffer, (path==NULL)?0:8192);
 	if ( ret != 0) {
 		belle_sip_error("Unable to generate self signed certificate : -%x", -ret);
 		belle_sip_object_unref(*pkey);
@@ -306,7 +306,7 @@ char *belle_sip_certificates_chain_get_fingerprint(belle_sip_certificates_chain_
 	char *fingerprint=belle_sip_malloc0(200);
 
 	/* compute the certificate using the hash algorithm used in the certificate signature */
-	ret = bctoolbox_x509_certificate_get_fingerprint(certificate->cert, fingerprint, 200, BCTOOLBOX_MD_UNDEFINED);
+	ret = bctbx_x509_certificate_get_fingerprint(certificate->cert, fingerprint, 200, BCTBX_MD_UNDEFINED);
 	if ( ret <=0) {
 		belle_sip_error("Unable to generate fingerprint from certificate [-0x%x]", -ret);
 		belle_sip_free(fingerprint);
@@ -333,9 +333,9 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents);
 
 struct belle_sip_tls_channel{
 	belle_sip_stream_channel_t base;
-	bctoolbox_ssl_context_t *sslctx;
-	bctoolbox_ssl_config_t *sslcfg;
-	bctoolbox_x509_certificate_t *root_ca;
+	bctbx_ssl_context_t *sslctx;
+	bctbx_ssl_config_t *sslcfg;
+	bctbx_x509_certificate_t *root_ca;
 
 	struct sockaddr_storage ss;
 	socklen_t socklen;
@@ -351,10 +351,10 @@ struct belle_sip_tls_channel{
 static void tls_channel_close(belle_sip_tls_channel_t *obj){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	if (sock!=-1 && belle_sip_channel_get_state((belle_sip_channel_t*)obj)!=BELLE_SIP_CHANNEL_ERROR) {
-		bctoolbox_ssl_close_notify(obj->sslctx);
+		bctbx_ssl_close_notify(obj->sslctx);
 	}
 	stream_channel_close((belle_sip_stream_channel_t*)obj);
-	bctoolbox_ssl_session_reset(obj->sslctx);
+	bctbx_ssl_session_reset(obj->sslctx);
 	obj->socket_connected=0;
 }
 
@@ -363,13 +363,13 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 	if (sock!=(belle_sip_socket_t)-1)
 		tls_channel_close(obj);
 	if (obj->sslctx) {
-		bctoolbox_ssl_context_free(obj->sslctx);
+		bctbx_ssl_context_free(obj->sslctx);
 	}
 	if (obj->sslcfg) {
-		bctoolbox_ssl_config_free(obj->sslcfg);
+		bctbx_ssl_config_free(obj->sslcfg);
 	}
 	if (obj->root_ca) {
-		bctoolbox_x509_certificate_free(obj->root_ca);
+		bctbx_x509_certificate_free(obj->root_ca);
 	}
 
 	if (obj->cur_debug_msg)
@@ -382,11 +382,11 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 
 static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
 	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
-	int err = bctoolbox_ssl_write(channel->sslctx,buf,buflen);
+	int err = bctbx_ssl_write(channel->sslctx,buf,buflen);
 	if (err<0){
 		char tmp[256]={0};
-		if (err==BCTOOLBOX_ERROR_NET_WANT_WRITE) return -BELLESIP_EWOULDBLOCK;
-		bctoolbox_strerror(err,tmp,sizeof(tmp));
+		if (err==BCTBX_ERROR_NET_WANT_WRITE) return -BELLESIP_EWOULDBLOCK;
+		bctbx_strerror(err,tmp,sizeof(tmp));
 		belle_sip_error("Channel [%p]: ssl_write() error [%i]: %s",obj,err,tmp);
 	}
 	return err;
@@ -394,12 +394,12 @@ static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 
 static int tls_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
-	int err = bctoolbox_ssl_read(channel->sslctx,buf,buflen);
-	if (err==BCTOOLBOX_ERROR_SSL_PEER_CLOSE_NOTIFY) return 0;
+	int err = bctbx_ssl_read(channel->sslctx,buf,buflen);
+	if (err==BCTBX_ERROR_SSL_PEER_CLOSE_NOTIFY) return 0;
 	if (err<0){
 		char tmp[256]={0};
-		if (err==BCTOOLBOX_ERROR_NET_WANT_READ) return -BELLESIP_EWOULDBLOCK;
-		bctoolbox_strerror(err,tmp,sizeof(tmp));
+		if (err==BCTBX_ERROR_NET_WANT_READ) return -BELLESIP_EWOULDBLOCK;
+		bctbx_strerror(err,tmp,sizeof(tmp));
 		belle_sip_error("Channel [%p]: ssl_read() error [%i]: %s",obj, err, tmp);
 	}
 	return err;
@@ -467,7 +467,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_tls_channel_t)
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
-static int belle_sip_client_certificate_request_callback(void *data, bctoolbox_ssl_context_t *ssl_ctx, unsigned char *dn, size_t dn_length) {
+static int belle_sip_client_certificate_request_callback(void *data, bctbx_ssl_context_t *ssl_ctx, unsigned char *dn, size_t dn_length) {
 	belle_sip_tls_channel_t *channel = (belle_sip_tls_channel_t *)data;
 
 	/* ask certificate */
@@ -482,11 +482,11 @@ static int belle_sip_client_certificate_request_callback(void *data, bctoolbox_s
 		int err;
 		char tmp[512]={0};
 
-		bctoolbox_x509_certificate_get_info_string(tmp,sizeof(tmp)-1,"",channel->client_cert_chain->cert);
+		bctbx_x509_certificate_get_info_string(tmp,sizeof(tmp)-1,"",channel->client_cert_chain->cert);
 		belle_sip_message("Channel [%p]  found client  certificate:\n%s",channel,tmp);
 
-		if ((err=bctoolbox_ssl_set_hs_own_cert(channel->sslctx,channel->client_cert_chain->cert,channel->client_cert_key->key))) {
-			bctoolbox_strerror(err,tmp,sizeof(tmp)-1);
+		if ((err=bctbx_ssl_set_hs_own_cert(channel->sslctx,channel->client_cert_chain->cert,channel->client_cert_key->key))) {
+			bctbx_strerror(err,tmp,sizeof(tmp)-1);
 			belle_sip_error("Channel [%p] cannot set retrieved ssl own certificate [%s]",channel,tmp);
 			return -1; /* we were not able to set the client certificate, something is going wrong, this will abort the handshake*/
 		}
@@ -500,16 +500,16 @@ static int belle_sip_client_certificate_request_callback(void *data, bctoolbox_s
 
 static int tls_process_handshake(belle_sip_channel_t *obj){
 	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
-	int err=bctoolbox_ssl_handshake(channel->sslctx);
+	int err=bctbx_ssl_handshake(channel->sslctx);
 	if (err==0){
 		belle_sip_message("Channel [%p]: SSL handshake finished.",obj);
 		belle_sip_source_set_timeout((belle_sip_source_t*)obj,-1);
 		belle_sip_channel_set_ready(obj,(struct sockaddr*)&channel->ss,channel->socklen);
-	}else if (err==BCTOOLBOX_ERROR_NET_WANT_READ || err==BCTOOLBOX_ERROR_NET_WANT_WRITE){
+	}else if (err==BCTBX_ERROR_NET_WANT_READ || err==BCTBX_ERROR_NET_WANT_WRITE){
 		belle_sip_message("Channel [%p]: SSL handshake in progress...",obj);
 	}else{
 		char tmp[128];
-		bctoolbox_strerror(err,tmp,sizeof(tmp));
+		bctbx_strerror(err,tmp,sizeof(tmp));
 		belle_sip_error("Channel [%p]: SSL handshake failed : %s",obj,tmp);
 		return -1;
 	}
@@ -544,7 +544,7 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 		size_t username_passwd_length = strlen(username_passwd);
 		size_t encoded_username_paswd_length = username_passwd_length*2;
 		unsigned char *encoded_username_paswd = belle_sip_malloc(2*username_passwd_length);
-		bctoolbox_base64_encode(encoded_username_paswd,&encoded_username_paswd_length,(const unsigned char *)username_passwd,username_passwd_length);
+		bctbx_base64_encode(encoded_username_paswd,&encoded_username_paswd_length,(const unsigned char *)username_passwd,username_passwd_length);
 		request = belle_sip_strcat_printf(request, "Proxy-Authorization: Basic %s\r\n",encoded_username_paswd);
 		belle_sip_free(username_passwd);
 		belle_sip_free(encoded_username_paswd);
@@ -647,8 +647,8 @@ static int tls_callback_read(void * ctx, unsigned char *buf, size_t len ){
 	if (ret<0){
 		ret=-ret;
 		if (ret==BELLESIP_EWOULDBLOCK || ret==BELLESIP_EINPROGRESS || ret == EINTR )
-			return BCTOOLBOX_ERROR_NET_WANT_READ;
-		return BCTOOLBOX_ERROR_NET_CONN_RESET;
+			return BCTBX_ERROR_NET_WANT_READ;
+		return BCTBX_ERROR_NET_CONN_RESET;
 	}
 	return ret;
 }
@@ -661,8 +661,8 @@ static int tls_callback_write(void * ctx, const unsigned char *buf, size_t len )
 	if (ret<0){
 		ret=-ret;
 		if (ret==BELLESIP_EWOULDBLOCK || ret==BELLESIP_EINPROGRESS || ret == EINTR )
-			return BCTOOLBOX_ERROR_NET_WANT_WRITE;
-		return BCTOOLBOX_ERROR_NET_CONN_RESET;
+			return BCTBX_ERROR_NET_WANT_WRITE;
+		return BCTBX_ERROR_NET_CONN_RESET;
 	}
 	return ret;
 }
@@ -700,7 +700,7 @@ int belle_sip_tls_set_verify_error_cb(void * callback) {
 // 4) return final verification result in *flags when depth == 0
 // 5) callback must disable calls to linphone_core_iterate while running
 //
-int belle_sip_verify_cb_error_wrapper(bctoolbox_x509_certificate_t *cert, int depth, uint32_t *flags) {
+int belle_sip_verify_cb_error_wrapper(bctbx_x509_certificate_t *cert, int depth, uint32_t *flags) {
 
 	int rc = 0;
 	unsigned char *der = NULL;
@@ -713,7 +713,7 @@ int belle_sip_verify_cb_error_wrapper(bctoolbox_x509_certificate_t *cert, int de
 
 	belle_sip_message("belle_sip_verify_cb_error_wrapper: depth=[%d], flags=[0x%x]:\n", depth, *flags);
 
-	der_length = bctoolbox_x509_certificate_get_der_length(cert);
+	der_length = bctbx_x509_certificate_get_der_length(cert);
 	der = belle_sip_malloc(der_length+1); // +1 for null termination char
 	if (der == NULL) {
 		// leave the flags alone and just return to the library
@@ -721,7 +721,7 @@ int belle_sip_verify_cb_error_wrapper(bctoolbox_x509_certificate_t *cert, int de
 		return 0;
 	}
 
-	bctoolbox_x509_certificate_get_der(cert, der, der_length+1);
+	bctbx_x509_certificate_get_der(cert, der, der_length+1);
 
 	rc = tls_verify_cb_error_cb(der, der_length, depth, flags);
 
@@ -731,7 +731,7 @@ int belle_sip_verify_cb_error_wrapper(bctoolbox_x509_certificate_t *cert, int de
 }
 
 
-static int belle_sip_ssl_verify(void *data , bctoolbox_x509_certificate_t *cert , int depth, uint32_t *flags){
+static int belle_sip_ssl_verify(void *data , bctbx_x509_certificate_t *cert , int depth, uint32_t *flags){
 
 	belle_tls_crypto_config_t *crypto_config=(belle_tls_crypto_config_t*)data;
 	const int tmp_size = 2048, flags_str_size = 256;
@@ -739,17 +739,17 @@ static int belle_sip_ssl_verify(void *data , bctoolbox_x509_certificate_t *cert 
 	char *flags_str = belle_sip_malloc0(flags_str_size);
 	int ret;
 
-	bctoolbox_x509_certificate_get_info_string(tmp, tmp_size-1, "", cert);
-	bctoolbox_x509_certificate_flags_to_string(flags_str, flags_str_size-1, *flags);
+	bctbx_x509_certificate_get_info_string(tmp, tmp_size-1, "", cert);
+	bctbx_x509_certificate_flags_to_string(flags_str, flags_str_size-1, *flags);
 
 	belle_sip_message("Found certificate depth=[%i], flags=[%s]:\n%s", depth, flags_str, tmp);
 
 	if (crypto_config->exception_flags==BELLE_TLS_VERIFY_ANY_REASON){
 		/* verify context ask to ignore any exception: reset all flags */
-		bctoolbox_x509_certificate_unset_flag(flags, BCTOOLBOX_CERTIFICATE_VERIFY_ALL_FLAGS);
+		bctbx_x509_certificate_unset_flag(flags, BCTBX_CERTIFICATE_VERIFY_ALL_FLAGS);
 	}else if (crypto_config->exception_flags & BELLE_TLS_VERIFY_CN_MISMATCH){
 		/* verify context ask to ignore CN mismatch exception : reset this flag */
-		bctoolbox_x509_certificate_unset_flag(flags, BCTOOLBOX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH);
+		bctbx_x509_certificate_unset_flag(flags, BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH);
 	}
 
 	ret = belle_sip_verify_cb_error_wrapper(cert, depth, flags);
@@ -764,17 +764,17 @@ static int belle_sip_tls_channel_load_root_ca(belle_sip_tls_channel_t *obj, cons
 	struct stat statbuf;
 	if (stat(path,&statbuf)==0){
 		if (obj->root_ca) {
-			bctoolbox_x509_certificate_free(obj->root_ca);
+			bctbx_x509_certificate_free(obj->root_ca);
 		}
-		obj->root_ca = bctoolbox_x509_certificate_new();
+		obj->root_ca = bctbx_x509_certificate_new();
 
 		if (statbuf.st_mode & S_IFDIR){
-			if (bctoolbox_x509_certificate_parse_path(obj->root_ca,path)<0){
+			if (bctbx_x509_certificate_parse_path(obj->root_ca,path)<0){
 				belle_sip_error("Failed to load root ca from directory %s",path);
 				return -1;
 			}
 		}else{
-			if (bctoolbox_x509_certificate_parse_file(obj->root_ca,path)<0){
+			if (bctbx_x509_certificate_parse_file(obj->root_ca,path)<0){
 				belle_sip_error("Failed to load root ca from file %s",path);
 				return -1;
 			}
@@ -794,13 +794,13 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_
 					,bindip,localport,peer_cname,dest,port);
 
 	/* create and initialise ssl context and configuration */
-	obj->sslctx = bctoolbox_ssl_context_new();
-	obj->sslcfg = bctoolbox_ssl_config_new();
+	obj->sslctx = bctbx_ssl_context_new();
+	obj->sslcfg = bctbx_ssl_config_new();
 	if (crypto_config->ssl_config == NULL) {
-		bctoolbox_ssl_config_defaults(obj->sslcfg, BCTOOLBOX_SSL_IS_CLIENT, BCTOOLBOX_SSL_TRANSPORT_STREAM);
-		bctoolbox_ssl_config_set_authmode(obj->sslcfg, BCTOOLBOX_SSL_VERIFY_REQUIRED);
+		bctbx_ssl_config_defaults(obj->sslcfg, BCTBX_SSL_IS_CLIENT, BCTBX_SSL_TRANSPORT_STREAM);
+		bctbx_ssl_config_set_authmode(obj->sslcfg, BCTBX_SSL_VERIFY_REQUIRED);
 	} else { /* an SSL config is provided, use it*/
-		int ret = bctoolbox_ssl_config_set_crypto_library_config(obj->sslcfg, crypto_config->ssl_config);
+		int ret = bctbx_ssl_config_set_crypto_library_config(obj->sslcfg, crypto_config->ssl_config);
 		if (ret<0) {
 			belle_sip_error("Unable to set external config for SSL context at TLS channel creation ret [-0x%x]", -ret);
 			belle_sip_object_unref(obj);
@@ -809,17 +809,17 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_
 		belle_sip_message("Use externally provided SSL configuration when creating TLS channel [%p]", obj);
 	}
 
-	bctoolbox_ssl_config_set_rng(obj->sslcfg, random_generator, NULL);
-	bctoolbox_ssl_set_io_callbacks(obj->sslctx, obj, tls_callback_write, tls_callback_read);
+	bctbx_ssl_config_set_rng(obj->sslcfg, random_generator, NULL);
+	bctbx_ssl_set_io_callbacks(obj->sslctx, obj, tls_callback_write, tls_callback_read);
 	if (crypto_config->root_ca && belle_sip_tls_channel_load_root_ca(obj,crypto_config->root_ca)==0){
-		bctoolbox_ssl_config_set_ca_chain(obj->sslcfg, obj->root_ca, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name );
+		bctbx_ssl_config_set_ca_chain(obj->sslcfg, obj->root_ca, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name );
 	}
-	bctoolbox_ssl_config_set_callback_verify(obj->sslcfg, belle_sip_ssl_verify, crypto_config);
-	bctoolbox_ssl_config_set_callback_cli_cert(obj->sslcfg, belle_sip_client_certificate_request_callback, obj);
+	bctbx_ssl_config_set_callback_verify(obj->sslcfg, belle_sip_ssl_verify, crypto_config);
+	bctbx_ssl_config_set_callback_cli_cert(obj->sslcfg, belle_sip_client_certificate_request_callback, obj);
 
 	obj->crypto_config=(belle_tls_crypto_config_t*)belle_sip_object_ref(crypto_config);
 
-	bctoolbox_ssl_context_setup(obj->sslctx, obj->sslcfg);
+	bctbx_ssl_context_setup(obj->sslctx, obj->sslcfg);
 	return (belle_sip_channel_t*)obj;
 }
 

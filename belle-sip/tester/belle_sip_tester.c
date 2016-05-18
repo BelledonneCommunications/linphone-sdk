@@ -82,7 +82,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	va_end(cap);
 #endif
 	if (log_file){
-		belle_sip_logv(lev, fmt, args);
+		belle_sip_logv(BELLE_SIP_LOG_DOMAIN,lev, fmt, args);
 	}
 }
 
@@ -209,8 +209,10 @@ int main (int argc, char *argv[]) {
 	for(i=1;i<argc;++i){
 		if (strcmp(argv[i],"--verbose")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
 		} else if (strcmp(argv[i],"--silent")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_FATAL);
+			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_FATAL);
 		} else if (strcmp(argv[i],"--log-file")==0){
 			CHECK_ARG("--log-file", ++i, argc);
 			if (belle_sip_tester_set_log_file(argv[i]) < 0) return -2;

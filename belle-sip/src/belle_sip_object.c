@@ -53,7 +53,10 @@ static void add_new_object(belle_sip_object_t *obj){
 
 static void remove_free_object(belle_sip_object_t *obj){
 	if (belle_sip_leak_detector_enabled && !belle_sip_leak_detector_inhibited){
-		all_objects=_belle_sip_list_remove(all_objects,obj,FALSE); /*it may fail if the leak detector was inhibitted at the time the object was created*/
+		belle_sip_list_t* it;
+		it=belle_sip_list_find(all_objects,obj);
+		if (it)
+			all_objects = belle_sip_list_delete_link(all_objects,it); /*it may fail if the leak detector was inhibitted at the time the object was created*/
 	}
 }
 
@@ -304,7 +307,7 @@ static void belle_sip_object_data_destroy(void* data)
 int belle_sip_object_data_set( belle_sip_object_t *obj, const char* name, void* data, belle_sip_data_destroy destroy_func )
 {
 	int ret = 0;
-	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	belle_sip_list_t*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
 	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
 
 	if( entry == NULL){
@@ -330,7 +333,7 @@ int belle_sip_object_data_set( belle_sip_object_t *obj, const char* name, void* 
 
 void* belle_sip_object_data_get( belle_sip_object_t *obj, const char* name )
 {
-	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	belle_sip_list_t  *list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
 	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
 
 	return entry? entry->data : NULL;
@@ -338,7 +341,7 @@ void* belle_sip_object_data_get( belle_sip_object_t *obj, const char* name )
 
 int belle_sip_object_data_remove( belle_sip_object_t *obj, const char* name)
 {
-	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	belle_sip_list_t  *list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
 	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
 	if( entry ){
 		belle_sip_free(entry->name);
@@ -357,7 +360,7 @@ int belle_sip_object_data_exists( const belle_sip_object_t *obj, const char* nam
 
 void* belle_sip_object_data_grab( belle_sip_object_t* obj, const char* name)
 {
-	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	belle_sip_list_t  *list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
 	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
 	void* data =NULL;
 
@@ -385,7 +388,7 @@ void belle_sip_object_data_clone( const belle_sip_object_t* src, belle_sip_objec
 
 void belle_sip_object_data_merge( const belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func)
 {
-	struct _belle_sip_list* list = src->data_store;
+	belle_sip_list_t *list = src->data_store;
 	struct belle_sip_object_data* it = NULL;
 	void* cloned_data = NULL;
 
