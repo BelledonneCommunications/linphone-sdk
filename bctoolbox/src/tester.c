@@ -584,7 +584,7 @@ int bc_tester_start(const char* prog_name) {
 	if( xml_enabled ){
 		char * xml_tmp_file = bc_sprintf("%s.tmp", xml_file);
 		CU_set_output_filename(xml_tmp_file);
-		CU_automated_enable_junit_xml(TRUE);
+		// CU_automated_enable_junit_xml(TRUE); /* do not enable me yet: this is bugged on cunit 2.1.2 (crash in automated.c)
 		free(xml_tmp_file);
 	}
 
