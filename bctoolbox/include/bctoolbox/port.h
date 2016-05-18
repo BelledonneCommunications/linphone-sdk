@@ -18,8 +18,8 @@
 */
 /* this file is responsible of the portability of the stack */
 
-#ifndef BCTOOLBOX_PORT_H
-#define BCTOOLBOX_PORT_H
+#ifndef BCTBX_PORT_H
+#define BCTBX_PORT_H
 
 
 #if !defined(_WIN32) && !defined(_WIN32_WCE)
@@ -60,10 +60,10 @@
 #endif
 
 
-typedef int bctoolbox_socket_t;
-typedef pthread_t bctoolbox_thread_t;
-typedef pthread_mutex_t bctoolbox_mutex_t;
-typedef pthread_cond_t bctoolbox_cond_t;
+typedef int bctbx_socket_t;
+typedef pthread_t bctbx_thread_t;
+typedef pthread_mutex_t bctbx_mutex_t;
+typedef pthread_cond_t bctbx_cond_t;
 
 #ifdef __INTEL_COMPILER
 #pragma warning(disable : 111)		// statement is unreachable
@@ -78,44 +78,44 @@ typedef pthread_cond_t bctoolbox_cond_t;
 #pragma warning(disable : 1469)		// "cc" clobber ignored
 #endif
 
-#define BCTOOLBOX_PUBLIC
-#define BCTOOLBOX_INLINE			inline
+#define BCTBX_PUBLIC
+#define BCTBX_INLINE			inline
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-int __bctoolbox_thread_join(bctoolbox_thread_t thread, void **ptr);
-int __bctoolbox_thread_create(bctoolbox_thread_t *thread, pthread_attr_t *attr, void * (*routine)(void*), void *arg);
-unsigned long __bctoolbox_thread_self(void);
+int __bctbx_thread_join(bctbx_thread_t thread, void **ptr);
+int __bctbx_thread_create(bctbx_thread_t *thread, pthread_attr_t *attr, void * (*routine)(void*), void *arg);
+unsigned long __bctbx_thread_self(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#define bctoolbox_thread_create    __bctoolbox_thread_create
-#define bctoolbox_thread_join      __bctoolbox_thread_join
-#define bctoolbox_thread_self      __bctoolbox_thread_self
-#define bctoolbox_thread_exit      pthread_exit
-#define bctoolbox_mutex_init       pthread_mutex_init
-#define bctoolbox_mutex_lock       pthread_mutex_lock
-#define bctoolbox_mutex_unlock     pthread_mutex_unlock
-#define bctoolbox_mutex_destroy    pthread_mutex_destroy
-#define bctoolbox_cond_init        pthread_cond_init
-#define bctoolbox_cond_signal      pthread_cond_signal
-#define bctoolbox_cond_broadcast   pthread_cond_broadcast
-#define bctoolbox_cond_wait        pthread_cond_wait
-#define bctoolbox_cond_destroy     pthread_cond_destroy
-#define bctoolbox_inet_aton        inet_aton
+#define bctbx_thread_create    __bctbx_thread_create
+#define bctbx_thread_join      __bctbx_thread_join
+#define bctbx_thread_self      __bctbx_thread_self
+#define bctbx_thread_exit      pthread_exit
+#define bctbx_mutex_init       pthread_mutex_init
+#define bctbx_mutex_lock       pthread_mutex_lock
+#define bctbx_mutex_unlock     pthread_mutex_unlock
+#define bctbx_mutex_destroy    pthread_mutex_destroy
+#define bctbx_cond_init        pthread_cond_init
+#define bctbx_cond_signal      pthread_cond_signal
+#define bctbx_cond_broadcast   pthread_cond_broadcast
+#define bctbx_cond_wait        pthread_cond_wait
+#define bctbx_cond_destroy     pthread_cond_destroy
+#define bctbx_inet_aton        inet_aton
 
 #define SOCKET_OPTION_VALUE	void *
 #define SOCKET_BUFFER		void *
 
 #define getSocketError() strerror(errno)
 #define getSocketErrorCode() (errno)
-#define bctoolbox_gettimeofday(tv,tz) gettimeofday(tv,tz)
-#define bctoolbox_log10f(x)	log10f(x)
+#define bctbx_gettimeofday(tv,tz) gettimeofday(tv,tz)
+#define bctbx_log10f(x)	log10f(x)
 
 
 #else
@@ -134,25 +134,25 @@ unsigned long __bctoolbox_thread_self(void);
 #endif
 
 #if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_DESKTOP)
-#define BCTOOLBOX_WINDOWS_DESKTOP 1
+#define BCTBX_WINDOWS_DESKTOP 1
 #elif defined(WINAPI_FAMILY_PARTITION)
 #if defined(WINAPI_PARTITION_DESKTOP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-#define BCTOOLBOX_WINDOWS_DESKTOP 1
+#define BCTBX_WINDOWS_DESKTOP 1
 #elif defined(WINAPI_PARTITION_PHONE_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE_APP)
-#define BCTOOLBOX_WINDOWS_PHONE 1
+#define BCTBX_WINDOWS_PHONE 1
 #elif defined(WINAPI_PARTITION_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
-#define BCTOOLBOX_WINDOWS_UNIVERSAL 1
+#define BCTBX_WINDOWS_UNIVERSAL 1
 #endif
 #endif
 
 #ifdef _MSC_VER
-#ifdef BCTOOLBOX_STATIC
-#define BCTOOLBOX_PUBLIC
+#ifdef BCTBX_STATIC
+#define BCTBX_PUBLIC
 #else
-#ifdef BCTOOLBOX_EXPORTS
-#define BCTOOLBOX_PUBLIC	__declspec(dllexport)
+#ifdef BCTBX_EXPORTS
+#define BCTBX_PUBLIC	__declspec(dllexport)
 #else
-#define BCTOOLBOX_PUBLIC	__declspec(dllimport)
+#define BCTBX_PUBLIC	__declspec(dllimport)
 #endif
 #endif
 #pragma push_macro("_WINSOCKAPI_")
@@ -172,36 +172,36 @@ typedef __int16 int16_t;
 #else
 #include <stdint.h> /*provided by mingw32*/
 #include <io.h>
-#define BCTOOLBOX_PUBLIC
-BCTOOLBOX_PUBLIC char* strtok_r(char *str, const char *delim, char **nextp);
+#define BCTBX_PUBLIC
+BCTBX_PUBLIC char* strtok_r(char *str, const char *delim, char **nextp);
 #endif
 
 #define vsnprintf	_vsnprintf
 
-typedef SOCKET bctoolbox_socket_t;
-#ifdef BCTOOLBOX_WINDOWS_DESKTOP
-typedef HANDLE bctoolbox_cond_t;
-typedef HANDLE bctoolbox_mutex_t;
+typedef SOCKET bctbx_socket_t;
+#ifdef BCTBX_WINDOWS_DESKTOP
+typedef HANDLE bctbx_cond_t;
+typedef HANDLE bctbx_mutex_t;
 #else
-typedef CONDITION_VARIABLE bctoolbox_cond_t;
-typedef SRWLOCK bctoolbox_mutex_t;
+typedef CONDITION_VARIABLE bctbx_cond_t;
+typedef SRWLOCK bctbx_mutex_t;
 #endif
-typedef HANDLE bctoolbox_thread_t;
+typedef HANDLE bctbx_thread_t;
 
-#define bctoolbox_thread_create     __bctoolbox_WIN_thread_create
-#define bctoolbox_thread_join       __bctoolbox_WIN_thread_join
-#define bctoolbox_thread_self       __bctoolbox_WIN_thread_self
-#define bctoolbox_thread_exit(arg)
-#define bctoolbox_mutex_init        __bctoolbox_WIN_mutex_init
-#define bctoolbox_mutex_lock        __bctoolbox_WIN_mutex_lock
-#define bctoolbox_mutex_unlock      __bctoolbox_WIN_mutex_unlock
-#define bctoolbox_mutex_destroy     __bctoolbox_WIN_mutex_destroy
-#define bctoolbox_cond_init         __bctoolbox_WIN_cond_init
-#define bctoolbox_cond_signal       __bctoolbox_WIN_cond_signal
-#define bctoolbox_cond_broadcast    __bctoolbox_WIN_cond_broadcast
-#define bctoolbox_cond_wait         __bctoolbox_WIN_cond_wait
-#define bctoolbox_cond_destroy      __bctoolbox_WIN_cond_destroy
-#define bctoolbox_inet_aton         __bctoolbox_WIN_inet_aton
+#define bctbx_thread_create     __bctbx_WIN_thread_create
+#define bctbx_thread_join       __bctbx_WIN_thread_join
+#define bctbx_thread_self       __bctbx_WIN_thread_self
+#define bctbx_thread_exit(arg)
+#define bctbx_mutex_init        __bctbx_WIN_mutex_init
+#define bctbx_mutex_lock        __bctbx_WIN_mutex_lock
+#define bctbx_mutex_unlock      __bctbx_WIN_mutex_unlock
+#define bctbx_mutex_destroy     __bctbx_WIN_mutex_destroy
+#define bctbx_cond_init         __bctbx_WIN_cond_init
+#define bctbx_cond_signal       __bctbx_WIN_cond_signal
+#define bctbx_cond_broadcast    __bctbx_WIN_cond_broadcast
+#define bctbx_cond_wait         __bctbx_WIN_cond_wait
+#define bctbx_cond_destroy      __bctbx_WIN_cond_destroy
+#define bctbx_inet_aton         __bctbx_WIN_inet_aton
 
 
 #ifdef __cplusplus
@@ -209,30 +209,30 @@ extern "C"
 {
 #endif
 
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_mutex_init(bctoolbox_mutex_t *m, void *attr_unused);
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_mutex_lock(bctoolbox_mutex_t *mutex);
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_mutex_unlock(bctoolbox_mutex_t *mutex);
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_mutex_destroy(bctoolbox_mutex_t *mutex);
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_thread_create(bctoolbox_thread_t *t, void *attr_unused, void *(*func)(void*), void *arg);
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_thread_join(bctoolbox_thread_t thread, void **unused);
-BCTOOLBOX_PUBLIC unsigned long __bctoolbox_WIN_thread_self(void);
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_init(bctoolbox_cond_t *cond, void *attr_unused);
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_wait(bctoolbox_cond_t * cond, bctoolbox_mutex_t * mutex);
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_signal(bctoolbox_cond_t * cond);
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_broadcast(bctoolbox_cond_t * cond);
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_cond_destroy(bctoolbox_cond_t * cond);
-BCTOOLBOX_PUBLIC int __bctoolbox_WIN_inet_aton (const char * cp, struct in_addr * addr);
+BCTBX_PUBLIC int __bctbx_WIN_mutex_init(bctbx_mutex_t *m, void *attr_unused);
+BCTBX_PUBLIC int __bctbx_WIN_mutex_lock(bctbx_mutex_t *mutex);
+BCTBX_PUBLIC int __bctbx_WIN_mutex_unlock(bctbx_mutex_t *mutex);
+BCTBX_PUBLIC int __bctbx_WIN_mutex_destroy(bctbx_mutex_t *mutex);
+BCTBX_PUBLIC int __bctbx_WIN_thread_create(bctbx_thread_t *t, void *attr_unused, void *(*func)(void*), void *arg);
+BCTBX_PUBLIC int __bctbx_WIN_thread_join(bctbx_thread_t thread, void **unused);
+BCTBX_PUBLIC unsigned long __bctbx_WIN_thread_self(void);
+BCTBX_PUBLIC int __bctbx_WIN_cond_init(bctbx_cond_t *cond, void *attr_unused);
+BCTBX_PUBLIC int __bctbx_WIN_cond_wait(bctbx_cond_t * cond, bctbx_mutex_t * mutex);
+BCTBX_PUBLIC int __bctbx_WIN_cond_signal(bctbx_cond_t * cond);
+BCTBX_PUBLIC int __bctbx_WIN_cond_broadcast(bctbx_cond_t * cond);
+BCTBX_PUBLIC int __bctbx_WIN_cond_destroy(bctbx_cond_t * cond);
+BCTBX_PUBLIC int __bctbx_WIN_inet_aton (const char * cp, struct in_addr * addr);
 
 #ifdef __cplusplus
 }
 #endif
 
 #define SOCKET_OPTION_VALUE	char *
-#define BCTOOLBOX_INLINE			__inline
+#define BCTBX_INLINE			__inline
 
 #if defined(_WIN32_WCE)
 
-#define bctoolbox_log10f(x)		(float)log10 ((double)x)
+#define bctbx_log10f(x)		(float)log10 ((double)x)
 
 #ifdef assert
 	#undef assert
@@ -246,19 +246,19 @@ BCTOOLBOX_PUBLIC int __bctoolbox_WIN_inet_aton (const char * cp, struct in_addr 
 #ifdef strerror
 		#undef strerror
 #endif /*strerror*/
-const char * bctoolbox_strerror(DWORD value);
-#define strerror bctoolbox_strerror
+const char * bctbx_strerror(DWORD value);
+#define strerror bctbx_strerror
 
 
 #else /*_WIN32_WCE*/
 
-#define bctoolbox_log10f(x)	log10f(x)
+#define bctbx_log10f(x)	log10f(x)
 
 #endif
 
-BCTOOLBOX_PUBLIC const char *__bctoolbox_getWinSocketError(int error);
+BCTBX_PUBLIC const char *__bctbx_getWinSocketError(int error);
 
-#define getSocketError(error)  __bctoolbox_getWinSocketError(error)
+#define getSocketError(error)  __bctbx_getWinSocketError(error)
 #define getSocketErrorCode()   WSAGetLastError()
 #define getSocketError()       getWinSocketError(WSAGetLastError())
 
@@ -274,7 +274,7 @@ BCTOOLBOX_PUBLIC const char *__bctoolbox_getWinSocketError(int error);
 #ifdef __cplusplus
 extern "C"{
 #endif
-BCTOOLBOX_PUBLIC int bctoolbox_gettimeofday (struct timeval *tv, void* tz);
+BCTBX_PUBLIC int bctbx_gettimeofday (struct timeval *tv, void* tz);
 #ifdef _WORKAROUND_MINGW32_BUGS
 char * WSAAPI gai_strerror(int errnum);
 #endif
@@ -302,51 +302,52 @@ typedef struct bctoolboxTimeSpec{
 extern "C"{
 #endif
 
-BCTOOLBOX_PUBLIC void* bctoolbox_malloc(size_t sz);
-BCTOOLBOX_PUBLIC void bctoolbox_free(void *ptr);
-BCTOOLBOX_PUBLIC void* bctoolbox_realloc(void *ptr, size_t sz);
-BCTOOLBOX_PUBLIC void* bctoolbox_malloc0(size_t sz);
-BCTOOLBOX_PUBLIC char * bctoolbox_strdup(const char *tmp);
+BCTBX_PUBLIC void* bctbx_malloc(size_t sz);
+BCTBX_PUBLIC void bctbx_free(void *ptr);
+BCTBX_PUBLIC void* bctbx_realloc(void *ptr, size_t sz);
+BCTBX_PUBLIC void* bctbx_malloc0(size_t sz);
+BCTBX_PUBLIC char * bctbx_strdup(const char *tmp);
 
-/*override the allocator with this method, to be called BEFORE bctoolbox_init()*/
+/*override the allocator with this method, to be called BEFORE bctbx_init()*/
 typedef struct _BctoolboxMemoryFunctions{
 	void *(*malloc_fun)(size_t sz);
 	void *(*realloc_fun)(void *ptr, size_t sz);
 	void (*free_fun)(void *ptr);
 }BctoolboxMemoryFunctions;
 
-void bctoolbox_set_memory_functions(BctoolboxMemoryFunctions *functions);
+void bctbx_set_memory_functions(BctoolboxMemoryFunctions *functions);
 
-#define bctoolbox_new(type,count)	(type*)bctoolbox_malloc(sizeof(type)*(count))
-#define bctoolbox_new0(type,count)	(type*)bctoolbox_malloc0(sizeof(type)*(count))
+#define bctbx_new(type,count)	(type*)bctbx_malloc(sizeof(type)*(count))
+#define bctbx_new0(type,count)	(type*)bctbx_malloc0(sizeof(type)*(count))
 
-BCTOOLBOX_PUBLIC int bctoolbox_socket_close(bctoolbox_socket_t sock);
-BCTOOLBOX_PUBLIC int bctoolbox_socket_set_non_blocking(bctoolbox_socket_t sock);
+BCTBX_PUBLIC int bctbx_socket_close(bctbx_socket_t sock);
+BCTBX_PUBLIC int bctbx_socket_set_non_blocking(bctbx_socket_t sock);
 
-BCTOOLBOX_PUBLIC char *bctoolbox_strndup(const char *str,int n);
-BCTOOLBOX_PUBLIC char *bctoolbox_strdup_printf(const char *fmt,...);
-BCTOOLBOX_PUBLIC char *bctoolbox_strdup_vprintf(const char *fmt, va_list ap);
-BCTOOLBOX_PUBLIC char *bctoolbox_strcat_printf(char *dst, const char *fmt,...);
-BCTOOLBOX_PUBLIC char *bctoolbox_strcat_vprintf(char *dst, const char *fmt, va_list ap);
+BCTBX_PUBLIC char *bctbx_strndup(const char *str,int n);
+BCTBX_PUBLIC char *bctbx_strdup_printf(const char *fmt,...);
+BCTBX_PUBLIC char *bctbx_strdup_vprintf(const char *fmt, va_list ap);
+BCTBX_PUBLIC char *bctbx_strcat_printf(char *dst, const char *fmt,...);
+BCTBX_PUBLIC char *bctbx_strcat_vprintf(char *dst, const char *fmt, va_list ap);
+BCTBX_PUBLIC char *bctbx_concat (const char *str, ...) ;
+	
+BCTBX_PUBLIC int bctbx_file_exist(const char *pathname);
 
-BCTOOLBOX_PUBLIC int bctoolbox_file_exist(const char *pathname);
-
-BCTOOLBOX_PUBLIC void bctoolbox_get_cur_time(bctoolboxTimeSpec *ret);
-void _bctoolbox_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime);
-BCTOOLBOX_PUBLIC uint64_t bctoolbox_get_cur_time_ms(void);
-BCTOOLBOX_PUBLIC void bctoolbox_sleep_ms(int ms);
-BCTOOLBOX_PUBLIC void bctoolbox_sleep_until(const bctoolboxTimeSpec *ts);
-BCTOOLBOX_PUBLIC int bctoolbox_timespec_compare(const bctoolboxTimeSpec *s1, const bctoolboxTimeSpec *s2);
-BCTOOLBOX_PUBLIC unsigned int bctoolbox_random(void);
+BCTBX_PUBLIC void bctbx_get_cur_time(bctoolboxTimeSpec *ret);
+void _bctbx_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime);
+BCTBX_PUBLIC uint64_t bctbx_get_cur_time_ms(void);
+BCTBX_PUBLIC void bctbx_sleep_ms(int ms);
+BCTBX_PUBLIC void bctbx_sleep_until(const bctoolboxTimeSpec *ts);
+BCTBX_PUBLIC int bctbx_timespec_compare(const bctoolboxTimeSpec *s1, const bctoolboxTimeSpec *s2);
+BCTBX_PUBLIC unsigned int bctbx_random(void);
 
 
 /* Portable and bug-less getaddrinfo */
-BCTOOLBOX_PUBLIC int bctbx_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
-BCTOOLBOX_PUBLIC void bctbx_freeaddrinfo(struct addrinfo *res);
-BCTOOLBOX_PUBLIC int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_size, int *port);
-BCTOOLBOX_PUBLIC int bctbx_addrinfo_to_printable_ip_address(const struct addrinfo *ai, char *printable_ip, size_t printable_ip_size);
-BCTOOLBOX_PUBLIC int bctbx_sockaddr_to_ip_address(struct sockaddr *sa, socklen_t salen, char *ip, size_t ip_size, int *port);
-BCTOOLBOX_PUBLIC int bctbx_sockaddr_to_printable_ip_address(struct sockaddr *sa, socklen_t salen, char *printable_ip, size_t printable_ip_size);
+BCTBX_PUBLIC int bctbx_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
+BCTBX_PUBLIC void bctbx_freeaddrinfo(struct addrinfo *res);
+BCTBX_PUBLIC int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_size, int *port);
+BCTBX_PUBLIC int bctbx_addrinfo_to_printable_ip_address(const struct addrinfo *ai, char *printable_ip, size_t printable_ip_size);
+BCTBX_PUBLIC int bctbx_sockaddr_to_ip_address(struct sockaddr *sa, socklen_t salen, char *ip, size_t ip_size, int *port);
+BCTBX_PUBLIC int bctbx_sockaddr_to_printable_ip_address(struct sockaddr *sa, socklen_t salen, char *printable_ip, size_t printable_ip_size);
 
 /**
  * Convert a numeric ip address and port into an addrinfo, whose family will be as specified in the first argument.
@@ -354,46 +355,46 @@ BCTOOLBOX_PUBLIC int bctbx_sockaddr_to_printable_ip_address(struct sockaddr *sa,
  * ip address was a v4 address.
  * Passing AF_UNSPEC to this function leads to unspecified results.
 **/
-BCTOOLBOX_PUBLIC struct addrinfo * bctbx_ip_address_to_addrinfo(int family, int socktype, const char *ipaddress, int port);
+BCTBX_PUBLIC struct addrinfo * bctbx_ip_address_to_addrinfo(int family, int socktype, const char *ipaddress, int port);
 /**
  * Convert a name or ip address and port into an addrinfo, whose family will be as specified in the first argument.
  * If AF_INET6 is requested, the returned addrinfo will always be an IPv6 address, possibly a V4MAPPED if the 
  * ip address was a v4 address.
  * Passing AF_UNSPEC to this function leads to unspecified results.
 **/
-BCTOOLBOX_PUBLIC struct addrinfo * bctbx_name_to_addrinfo(int family, int socktype, const char *name, int port);
+BCTBX_PUBLIC struct addrinfo * bctbx_name_to_addrinfo(int family, int socktype, const char *name, int port);
 
 
 /* portable named pipes  and shared memory*/
 #if !defined(_WIN32_WCE)
 #ifdef _WIN32
-typedef HANDLE bctoolbox_pipe_t;
-#define BCTOOLBOX_PIPE_INVALID INVALID_HANDLE_VALUE
+typedef HANDLE bctbx_pipe_t;
+#define BCTBX_PIPE_INVALID INVALID_HANDLE_VALUE
 #else
-typedef int bctoolbox_pipe_t;
-#define BCTOOLBOX_PIPE_INVALID (-1)
+typedef int bctbx_pipe_t;
+#define BCTBX_PIPE_INVALID (-1)
 #endif
 
-BCTOOLBOX_PUBLIC bctoolbox_pipe_t bctoolbox_server_pipe_create(const char *name);
+BCTBX_PUBLIC bctbx_pipe_t bctbx_server_pipe_create(const char *name);
 /*
- * warning: on win32 bctoolbox_server_pipe_accept_client() might return INVALID_HANDLE_VALUE without
- * any specific error, this happens when bctoolbox_server_pipe_close() is called on another pipe.
+ * warning: on win32 bctbx_server_pipe_accept_client() might return INVALID_HANDLE_VALUE without
+ * any specific error, this happens when bctbx_server_pipe_close() is called on another pipe.
  * This pipe api is not thread-safe.
 */
-BCTOOLBOX_PUBLIC bctoolbox_pipe_t bctoolbox_server_pipe_accept_client(bctoolbox_pipe_t server);
-BCTOOLBOX_PUBLIC int bctoolbox_server_pipe_close(bctoolbox_pipe_t spipe);
-BCTOOLBOX_PUBLIC int bctoolbox_server_pipe_close_client(bctoolbox_pipe_t client);
+BCTBX_PUBLIC bctbx_pipe_t bctbx_server_pipe_accept_client(bctbx_pipe_t server);
+BCTBX_PUBLIC int bctbx_server_pipe_close(bctbx_pipe_t spipe);
+BCTBX_PUBLIC int bctbx_server_pipe_close_client(bctbx_pipe_t client);
 
-BCTOOLBOX_PUBLIC bctoolbox_pipe_t bctoolbox_client_pipe_connect(const char *name);
-BCTOOLBOX_PUBLIC int bctoolbox_client_pipe_close(bctoolbox_pipe_t sock);
+BCTBX_PUBLIC bctbx_pipe_t bctbx_client_pipe_connect(const char *name);
+BCTBX_PUBLIC int bctbx_client_pipe_close(bctbx_pipe_t sock);
 
-BCTOOLBOX_PUBLIC int bctoolbox_pipe_read(bctoolbox_pipe_t p, uint8_t *buf, int len);
-BCTOOLBOX_PUBLIC int bctoolbox_pipe_write(bctoolbox_pipe_t p, const uint8_t *buf, int len);
+BCTBX_PUBLIC int bctbx_pipe_read(bctbx_pipe_t p, uint8_t *buf, int len);
+BCTBX_PUBLIC int bctbx_pipe_write(bctbx_pipe_t p, const uint8_t *buf, int len);
 
-BCTOOLBOX_PUBLIC void *bctoolbox_shm_open(unsigned int keyid, int size, int create);
-BCTOOLBOX_PUBLIC void bctoolbox_shm_close(void *memory);
+BCTBX_PUBLIC void *bctbx_shm_open(unsigned int keyid, int size, int create);
+BCTBX_PUBLIC void bctbx_shm_close(void *memory);
 
-BCTOOLBOX_PUBLIC bool_t bctoolbox_is_multicast_addr(const struct sockaddr *addr);
+BCTBX_PUBLIC bool_t bctbx_is_multicast_addr(const struct sockaddr *addr);
 	
 	
 #endif
@@ -404,14 +405,14 @@ BCTOOLBOX_PUBLIC bool_t bctoolbox_is_multicast_addr(const struct sockaddr *addr)
 #endif
 
 
-#if (defined(_WIN32) || defined(_WIN32_WCE)) && !defined(BCTOOLBOX_STATIC)
-#ifdef BCTOOLBOX_EXPORTS
-   #define BCTOOLBOX_VAR_PUBLIC    extern __declspec(dllexport)
+#if (defined(_WIN32) || defined(_WIN32_WCE)) && !defined(BCTBX_STATIC)
+#ifdef BCTBX_EXPORTS
+   #define BCTBX_VAR_PUBLIC    extern __declspec(dllexport)
 #else
-   #define BCTOOLBOX_VAR_PUBLIC    __declspec(dllimport)
+   #define BCTBX_VAR_PUBLIC    __declspec(dllimport)
 #endif
 #else
-   #define BCTOOLBOX_VAR_PUBLIC    extern
+   #define BCTBX_VAR_PUBLIC    extern
 #endif
 
 #ifndef IN6_IS_ADDR_MULTICAST

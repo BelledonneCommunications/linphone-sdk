@@ -37,62 +37,62 @@
 #define MIN(a,b) a<=b ? a : b
 #endif
 
-static void *bctoolbox_libc_malloc(size_t sz){
+static void *bctbx_libc_malloc(size_t sz){
 	return malloc(sz);
 }
 
-static void *bctoolbox_libc_realloc(void *ptr, size_t sz){
+static void *bctbx_libc_realloc(void *ptr, size_t sz){
 	return realloc(ptr,sz);
 }
 
-static void bctoolbox_libc_free(void*ptr){
+static void bctbx_libc_free(void*ptr){
 	free(ptr);
 }
 
 static bool_t allocator_used=FALSE;
 
-static BctoolboxMemoryFunctions bctoolbox_allocator={
-	bctoolbox_libc_malloc,
-	bctoolbox_libc_realloc,
-	bctoolbox_libc_free
+static BctoolboxMemoryFunctions bctbx_allocator={
+	bctbx_libc_malloc,
+	bctbx_libc_realloc,
+	bctbx_libc_free
 };
 
-void bctoolbox_set_memory_functions(BctoolboxMemoryFunctions *functions){
+void bctbx_set_memory_functions(BctoolboxMemoryFunctions *functions){
 	if (allocator_used){
-		bctoolbox_fatal("bctoolbox_set_memory_functions() must be called before "
-		"first use of bctoolbox_malloc or bctoolbox_realloc");
+		bctbx_fatal("bctbx_set_memory_functions() must be called before "
+		"first use of bctbx_malloc or bctbx_realloc");
 		return;
 	}
-	bctoolbox_allocator=*functions;
+	bctbx_allocator=*functions;
 }
 
-void* bctoolbox_malloc(size_t sz){
+void* bctbx_malloc(size_t sz){
 	allocator_used=TRUE;
-	return bctoolbox_allocator.malloc_fun(sz);
+	return bctbx_allocator.malloc_fun(sz);
 }
 
-void* bctoolbox_realloc(void *ptr, size_t sz){
+void* bctbx_realloc(void *ptr, size_t sz){
 	allocator_used=TRUE;
-	return bctoolbox_allocator.realloc_fun(ptr,sz);
+	return bctbx_allocator.realloc_fun(ptr,sz);
 }
 
-void bctoolbox_free(void* ptr){
-	bctoolbox_allocator.free_fun(ptr);
+void bctbx_free(void* ptr){
+	bctbx_allocator.free_fun(ptr);
 }
 
-void * bctoolbox_malloc0(size_t size){
-	void *ptr=bctoolbox_malloc(size);
+void * bctbx_malloc0(size_t size){
+	void *ptr=bctbx_malloc(size);
 	memset(ptr,0,size);
 	return ptr;
 }
 
-char * bctoolbox_strdup(const char *tmp){
+char * bctbx_strdup(const char *tmp){
 	size_t sz;
 	char *ret;
 	if (tmp==NULL)
 	  return NULL;
 	sz=strlen(tmp)+1;
-	ret=(char*)bctoolbox_malloc(sz);
+	ret=(char*)bctbx_malloc(sz);
 	strcpy(ret,tmp);
 	ret[sz-1]='\0';
 	return ret;
@@ -103,7 +103,7 @@ char * bctoolbox_strdup(const char *tmp){
  * ioctlsocket on Win32.
  * int retrun the result of the system method
  */
-int bctoolbox_socket_set_non_blocking(bctoolbox_socket_t sock){
+int bctbx_socket_set_non_blocking(bctbx_socket_t sock){
 #if	!defined(_WIN32) && !defined(_WIN32_WCE)
 	return fcntl (sock, F_SETFL, O_NONBLOCK);
 #else
@@ -118,7 +118,7 @@ int bctoolbox_socket_set_non_blocking(bctoolbox_socket_t sock){
  * closesocket on Win32.
  * int retrun the result of the system method
  */
-int bctoolbox_socket_close(bctoolbox_socket_t sock){
+int bctbx_socket_close(bctbx_socket_t sock){
 #if	!defined(_WIN32) && !defined(_WIN32_WCE)
 	return close (sock);
 #else
@@ -127,7 +127,7 @@ int bctoolbox_socket_close(bctoolbox_socket_t sock){
 }
 
 #if defined (_WIN32_WCE) || defined(_MSC_VER)
-int bctoolbox_file_exist(const char *pathname) {
+int bctbx_file_exist(const char *pathname) {
 	FILE* fd;
 	if (pathname==NULL) return -1;
 	fd=fopen(pathname,"r");
@@ -139,7 +139,7 @@ int bctoolbox_file_exist(const char *pathname) {
 	}
 }
 #else
-int bctoolbox_file_exist(const char *pathname) {
+int bctbx_file_exist(const char *pathname) {
 	return access(pathname,F_OK);
 }
 #endif /*_WIN32_WCE*/
@@ -147,7 +147,7 @@ int bctoolbox_file_exist(const char *pathname) {
 #if	!defined(_WIN32) && !defined(_WIN32_WCE)
 	/* Use UNIX inet_aton method */
 #else
-	int __bctoolbox_WIN_inet_aton (const char * cp, struct in_addr * addr)
+	int __bctbx_WIN_inet_aton (const char * cp, struct in_addr * addr)
 	{
 		unsigned long retval;
 
@@ -165,24 +165,24 @@ int bctoolbox_file_exist(const char *pathname) {
 	}
 #endif
 
-char *bctoolbox_strndup(const char *str,int n){
+char *bctbx_strndup(const char *str,int n){
 	int min=MIN((int)strlen(str),n)+1;
-	char *ret=(char*)bctoolbox_malloc(min);
+	char *ret=(char*)bctbx_malloc(min);
 	strncpy(ret,str,min);
 	ret[min-1]='\0';
 	return ret;
 }
 
 #if	!defined(_WIN32) && !defined(_WIN32_WCE)
-int __bctoolbox_thread_join(bctoolbox_thread_t thread, void **ptr){
+int __bctbx_thread_join(bctbx_thread_t thread, void **ptr){
 	int err=pthread_join(thread,ptr);
 	if (err!=0) {
-		bctoolbox_error("pthread_join error: %s",strerror(err));
+		bctbx_error("pthread_join error: %s",strerror(err));
 	}
 	return err;
 }
 
-int __bctoolbox_thread_create(bctoolbox_thread_t *thread, pthread_attr_t *attr, void * (*routine)(void*), void *arg){
+int __bctbx_thread_create(bctbx_thread_t *thread, pthread_attr_t *attr, void * (*routine)(void*), void *arg){
 	pthread_attr_t my_attr;
 	pthread_attr_init(&my_attr);
 	if (attr)
@@ -194,14 +194,14 @@ int __bctoolbox_thread_create(bctoolbox_thread_t *thread, pthread_attr_t *attr, 
 	return pthread_create(thread, &my_attr, routine, arg);
 }
 
-unsigned long __bctoolbox_thread_self(void) {
+unsigned long __bctbx_thread_self(void) {
 	return (unsigned long)pthread_self();
 }
 
 #endif
 #if	defined(_WIN32) || defined(_WIN32_WCE)
 
-int __bctoolbox_WIN_mutex_init(bctoolbox_mutex_t *mutex, void *attr)
+int __bctbx_WIN_mutex_init(bctbx_mutex_t *mutex, void *attr)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	*mutex=CreateMutex(NULL, FALSE, NULL);
@@ -211,7 +211,7 @@ int __bctoolbox_WIN_mutex_init(bctoolbox_mutex_t *mutex, void *attr)
 	return 0;
 }
 
-int __bctoolbox_WIN_mutex_lock(bctoolbox_mutex_t * hMutex)
+int __bctbx_WIN_mutex_lock(bctbx_mutex_t * hMutex)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	WaitForSingleObject(*hMutex, INFINITE); /* == WAIT_TIMEOUT; */
@@ -221,7 +221,7 @@ int __bctoolbox_WIN_mutex_lock(bctoolbox_mutex_t * hMutex)
 	return 0;
 }
 
-int __bctoolbox_WIN_mutex_unlock(bctoolbox_mutex_t * hMutex)
+int __bctbx_WIN_mutex_unlock(bctbx_mutex_t * hMutex)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	ReleaseMutex(*hMutex);
@@ -231,7 +231,7 @@ int __bctoolbox_WIN_mutex_unlock(bctoolbox_mutex_t * hMutex)
 	return 0;
 }
 
-int __bctoolbox_WIN_mutex_destroy(bctoolbox_mutex_t * hMutex)
+int __bctbx_WIN_mutex_destroy(bctbx_mutex_t * hMutex)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	CloseHandle(*hMutex);
@@ -247,7 +247,7 @@ typedef struct thread_param{
 static unsigned WINAPI thread_starter(void *data){
 	thread_param_t *params=(thread_param_t*)data;
 	params->func(params->arg);
-	bctoolbox_free(data);
+	bctbx_free(data);
 	return 0;
 }
 
@@ -256,16 +256,16 @@ static unsigned WINAPI thread_starter(void *data){
 #    define	_endthreadex	ExitThread
 #endif
 
-int __bctoolbox_WIN_thread_create(bctoolbox_thread_t *th, void *attr, void * (*func)(void *), void *data)
+int __bctbx_WIN_thread_create(bctbx_thread_t *th, void *attr, void * (*func)(void *), void *data)
 {
-	thread_param_t *params=bctoolbox_new(thread_param_t,1);
+	thread_param_t *params=bctbx_new(thread_param_t,1);
 	params->func=func;
 	params->arg=data;
 	*th=(HANDLE)_beginthreadex( NULL, 0, thread_starter, params, 0, NULL);
 	return 0;
 }
 
-int __bctoolbox_WIN_thread_join(bctoolbox_thread_t thread_h, void **unused)
+int __bctbx_WIN_thread_join(bctbx_thread_t thread_h, void **unused)
 {
 	if (thread_h!=NULL)
 	{
@@ -275,11 +275,11 @@ int __bctoolbox_WIN_thread_join(bctoolbox_thread_t thread_h, void **unused)
 	return 0;
 }
 
-unsigned long __bctoolbox_WIN_thread_self(void) {
+unsigned long __bctbx_WIN_thread_self(void) {
 	return (unsigned long)GetCurrentThreadId();
 }
 
-int __bctoolbox_WIN_cond_init(bctoolbox_cond_t *cond, void *attr)
+int __bctbx_WIN_cond_init(bctbx_cond_t *cond, void *attr)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	*cond=CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -289,20 +289,20 @@ int __bctoolbox_WIN_cond_init(bctoolbox_cond_t *cond, void *attr)
 	return 0;
 }
 
-int __bctoolbox_WIN_cond_wait(bctoolbox_cond_t* hCond, bctoolbox_mutex_t * hMutex)
+int __bctbx_WIN_cond_wait(bctbx_cond_t* hCond, bctbx_mutex_t * hMutex)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	//gulp: this is not very atomic ! bug here ?
-	__bctoolbox_WIN_mutex_unlock(hMutex);
+	__bctbx_WIN_mutex_unlock(hMutex);
 	WaitForSingleObject(*hCond, INFINITE);
-	__bctoolbox_WIN_mutex_lock(hMutex);
+	__bctbx_WIN_mutex_lock(hMutex);
 #else
 	SleepConditionVariableSRW(hCond, hMutex, INFINITE, 0);
 #endif
 	return 0;
 }
 
-int __bctoolbox_WIN_cond_signal(bctoolbox_cond_t * hCond)
+int __bctbx_WIN_cond_signal(bctbx_cond_t * hCond)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	SetEvent(*hCond);
@@ -312,13 +312,13 @@ int __bctoolbox_WIN_cond_signal(bctoolbox_cond_t * hCond)
 	return 0;
 }
 
-int __bctoolbox_WIN_cond_broadcast(bctoolbox_cond_t * hCond)
+int __bctbx_WIN_cond_broadcast(bctbx_cond_t * hCond)
 {
-	__bctoolbox_WIN_cond_signal(hCond);
+	__bctbx_WIN_cond_signal(hCond);
 	return 0;
 }
 
-int __bctoolbox_WIN_cond_destroy(bctoolbox_cond_t * hCond)
+int __bctbx_WIN_cond_destroy(bctbx_cond_t * hCond)
 {
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	CloseHandle(*hCond);
@@ -329,7 +329,7 @@ int __bctoolbox_WIN_cond_destroy(bctoolbox_cond_t * hCond)
 #if defined(_WIN32_WCE)
 #include <time.h>
 
-const char * bctoolbox_strerror(DWORD value) {
+const char * bctbx_strerror(DWORD value) {
 	static TCHAR msgBuf[256];
 	FormatMessage(
 			FORMAT_MESSAGE_FROM_SYSTEM |
@@ -355,7 +355,7 @@ gettimeofday (struct timeval *tv, void *tz)
 
 #else
 
-int bctoolbox_gettimeofday (struct timeval *tv, void* tz)
+int bctbx_gettimeofday (struct timeval *tv, void* tz)
 {
 	union
 	{
@@ -371,7 +371,7 @@ int bctoolbox_gettimeofday (struct timeval *tv, void* tz)
 
 #endif
 
-const char *__bctoolbox_getWinSocketError(int error)
+const char *__bctbx_getWinSocketError(int error)
 {
 	static char buf[80];
 
@@ -410,40 +410,40 @@ char * WSAAPI gai_strerror(int errnum){
 #include <sys/stat.h>
 
 static char *make_pipe_name(const char *name){
-	return bctoolbox_strdup_printf("/tmp/%s",name);
+	return bctbx_strdup_printf("/tmp/%s",name);
 }
 
 /* portable named pipes */
-bctoolbox_socket_t bctoolbox_server_pipe_create(const char *name){
+bctbx_socket_t bctbx_server_pipe_create(const char *name){
 	struct sockaddr_un sa;
 	char *pipename=make_pipe_name(name);
-	bctoolbox_socket_t sock;
+	bctbx_socket_t sock;
 	sock=socket(AF_UNIX,SOCK_STREAM,0);
 	sa.sun_family=AF_UNIX;
 	strncpy(sa.sun_path,pipename,sizeof(sa.sun_path)-1);
 	unlink(pipename);/*in case we didn't finished properly previous time */
-	bctoolbox_free(pipename);
+	bctbx_free(pipename);
 	fchmod(sock,S_IRUSR|S_IWUSR);
 	if (bind(sock,(struct sockaddr*)&sa,sizeof(sa))!=0){
-		bctoolbox_error("Failed to bind command unix socket: %s",strerror(errno));
+		bctbx_error("Failed to bind command unix socket: %s",strerror(errno));
 		return -1;
 	}
 	listen(sock,1);
 	return sock;
 }
 
-bctoolbox_socket_t bctoolbox_server_pipe_accept_client(bctoolbox_socket_t server){
+bctbx_socket_t bctbx_server_pipe_accept_client(bctbx_socket_t server){
 	struct sockaddr_un su;
 	socklen_t ssize=sizeof(su);
-	bctoolbox_socket_t client_sock=accept(server,(struct sockaddr*)&su,&ssize);
+	bctbx_socket_t client_sock=accept(server,(struct sockaddr*)&su,&ssize);
 	return client_sock;
 }
 
-int bctoolbox_server_pipe_close_client(bctoolbox_socket_t client){
+int bctbx_server_pipe_close_client(bctbx_socket_t client){
 	return close(client);
 }
 
-int bctoolbox_server_pipe_close(bctoolbox_socket_t spipe){
+int bctbx_server_pipe_close(bctbx_socket_t spipe){
 	struct sockaddr_un sa;
 	socklen_t len=sizeof(sa);
 	int err;
@@ -451,12 +451,12 @@ int bctoolbox_server_pipe_close(bctoolbox_socket_t spipe){
 	err=getsockname(spipe,(struct sockaddr*)&sa,&len);
 	if (err==0){
 		unlink(sa.sun_path);
-	}else bctoolbox_error("getsockname(): %s",strerror(errno));
+	}else bctbx_error("getsockname(): %s",strerror(errno));
 	return close(spipe);
 }
 
-bctoolbox_socket_t bctoolbox_client_pipe_connect(const char *name){
-	bctoolbox_socket_t sock = -1;
+bctbx_socket_t bctbx_client_pipe_connect(const char *name){
+	bctbx_socket_t sock = -1;
 	struct sockaddr_un sa;
 	struct stat fstats;
 	char *pipename=make_pipe_name(name);
@@ -464,14 +464,14 @@ bctoolbox_socket_t bctoolbox_client_pipe_connect(const char *name){
 
 	// check that the creator of the pipe is us
 	if( (stat(name, &fstats) == 0) && (fstats.st_uid != uid) ){
-		bctoolbox_error("UID of file %s (%lu) differs from ours (%lu)", pipename, (unsigned long)fstats.st_uid, (unsigned long)uid);
+		bctbx_error("UID of file %s (%lu) differs from ours (%lu)", pipename, (unsigned long)fstats.st_uid, (unsigned long)uid);
 		return -1;
 	}
 
 	sock = socket(AF_UNIX,SOCK_STREAM,0);
 	sa.sun_family=AF_UNIX;
 	strncpy(sa.sun_path,pipename,sizeof(sa.sun_path)-1);
-	bctoolbox_free(pipename);
+	bctbx_free(pipename);
 	if (connect(sock,(struct sockaddr*)&sa,sizeof(sa))!=0){
 		close(sock);
 		return -1;
@@ -479,21 +479,21 @@ bctoolbox_socket_t bctoolbox_client_pipe_connect(const char *name){
 	return sock;
 }
 
-int bctoolbox_pipe_read(bctoolbox_socket_t p, uint8_t *buf, int len){
+int bctbx_pipe_read(bctbx_socket_t p, uint8_t *buf, int len){
 	return read(p,buf,len);
 }
 
-int bctoolbox_pipe_write(bctoolbox_socket_t p, const uint8_t *buf, int len){
+int bctbx_pipe_write(bctbx_socket_t p, const uint8_t *buf, int len){
 	return write(p,buf,len);
 }
 
-int bctoolbox_client_pipe_close(bctoolbox_socket_t sock){
+int bctbx_client_pipe_close(bctbx_socket_t sock){
 	return close(sock);
 }
 
 #ifdef HAVE_SYS_SHM_H
 
-void *bctoolbox_shm_open(unsigned int keyid, int size, int create){
+void *bctbx_shm_open(unsigned int keyid, int size, int create){
 	key_t key=keyid;
 	void *mem;
 	int perms=S_IRUSR|S_IWUSR;
@@ -510,7 +510,7 @@ void *bctoolbox_shm_open(unsigned int keyid, int size, int create){
 	return mem;
 }
 
-void bctoolbox_shm_close(void *mem){
+void bctbx_shm_close(void *mem){
 	shmdt(mem);
 }
 
@@ -519,26 +519,26 @@ void bctoolbox_shm_close(void *mem){
 #elif defined(_WIN32) && !defined(_WIN32_WCE)
 
 static char *make_pipe_name(const char *name){
-	return bctoolbox_strdup_printf("\\\\.\\pipe\\%s",name);
+	return bctbx_strdup_printf("\\\\.\\pipe\\%s",name);
 }
 
 static HANDLE event=NULL;
 
 /* portable named pipes */
-bctoolbox_pipe_t bctoolbox_server_pipe_create(const char *name){
+bctbx_pipe_t bctbx_server_pipe_create(const char *name){
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
-	bctoolbox_pipe_t h;
+	bctbx_pipe_t h;
 	char *pipename=make_pipe_name(name);
 	h=CreateNamedPipe(pipename,PIPE_ACCESS_DUPLEX|FILE_FLAG_OVERLAPPED,PIPE_TYPE_MESSAGE|PIPE_WAIT,1,
 						32768,32768,0,NULL);
-	bctoolbox_free(pipename);
+	bctbx_free(pipename);
 	if (h==INVALID_HANDLE_VALUE){
-		bctoolbox_error("Fail to create named pipe %s",pipename);
+		bctbx_error("Fail to create named pipe %s",pipename);
 	}
 	if (event==NULL) event=CreateEvent(NULL,TRUE,FALSE,NULL);
 	return h;
 #else
-	bctoolbox_error("%s not supported!", __FUNCTION__);
+	bctbx_error("%s not supported!", __FUNCTION__);
 	return INVALID_HANDLE_VALUE;
 #endif
 }
@@ -546,9 +546,9 @@ bctoolbox_pipe_t bctoolbox_server_pipe_create(const char *name){
 
 /*this function is a bit complex because we need to wakeup someday
 even if nobody connects to the pipe.
-bctoolbox_server_pipe_close() makes this function to exit.
+bctbx_server_pipe_close() makes this function to exit.
 */
-bctoolbox_pipe_t bctoolbox_server_pipe_accept_client(bctoolbox_pipe_t server){
+bctbx_pipe_t bctbx_server_pipe_accept_client(bctbx_pipe_t server){
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	OVERLAPPED ol;
 	DWORD undef;
@@ -566,35 +566,35 @@ bctoolbox_pipe_t bctoolbox_server_pipe_accept_client(bctoolbox_pipe_t server){
 	CloseHandle(ol.hEvent);
 	return INVALID_HANDLE_VALUE;
 #else
-	bctoolbox_error("%s not supported!", __FUNCTION__);
+	bctbx_error("%s not supported!", __FUNCTION__);
 	return INVALID_HANDLE_VALUE;
 #endif
 }
 
-int bctoolbox_server_pipe_close_client(bctoolbox_pipe_t server){
+int bctbx_server_pipe_close_client(bctbx_pipe_t server){
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	return DisconnectNamedPipe(server)==TRUE ? 0 : -1;
 #else
-	bctoolbox_error("%s not supported!", __FUNCTION__);
+	bctbx_error("%s not supported!", __FUNCTION__);
 	return -1;
 #endif
 }
 
-int bctoolbox_server_pipe_close(bctoolbox_pipe_t spipe){
+int bctbx_server_pipe_close(bctbx_pipe_t spipe){
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	SetEvent(event);
 	//CancelIoEx(spipe,NULL); /*vista only*/
 	return CloseHandle(spipe);
 #else
-	bctoolbox_error("%s not supported!", __FUNCTION__);
+	bctbx_error("%s not supported!", __FUNCTION__);
 	return -1;
 #endif
 }
 
-bctoolbox_pipe_t bctoolbox_client_pipe_connect(const char *name){
+bctbx_pipe_t bctbx_client_pipe_connect(const char *name){
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	char *pipename=make_pipe_name(name);
-	bctoolbox_pipe_t hpipe = CreateFile(
+	bctbx_pipe_t hpipe = CreateFile(
 		 pipename,   // pipe name
 		 GENERIC_READ |  // read and write access
 		 GENERIC_WRITE,
@@ -603,32 +603,32 @@ bctoolbox_pipe_t bctoolbox_client_pipe_connect(const char *name){
 		 OPEN_EXISTING,  // opens existing pipe
 		 0,              // default attributes
 		 NULL);          // no template file
-	bctoolbox_free(pipename);
+	bctbx_free(pipename);
 	return hpipe;
 #else
-	bctoolbox_error("%s not supported!", __FUNCTION__);
+	bctbx_error("%s not supported!", __FUNCTION__);
 	return INVALID_HANDLE_VALUE;
 #endif
 }
 
-int bctoolbox_pipe_read(bctoolbox_pipe_t p, uint8_t *buf, int len){
+int bctbx_pipe_read(bctbx_pipe_t p, uint8_t *buf, int len){
 	DWORD ret=0;
 	if (ReadFile(p,buf,len,&ret,NULL))
 		return ret;
-	/*bctoolbox_error("Could not read from pipe: %s",strerror(GetLastError()));*/
+	/*bctbx_error("Could not read from pipe: %s",strerror(GetLastError()));*/
 	return -1;
 }
 
-int bctoolbox_pipe_write(bctoolbox_pipe_t p, const uint8_t *buf, int len){
+int bctbx_pipe_write(bctbx_pipe_t p, const uint8_t *buf, int len){
 	DWORD ret=0;
 	if (WriteFile(p,buf,len,&ret,NULL))
 		return ret;
-	/*bctoolbox_error("Could not write to pipe: %s",strerror(GetLastError()));*/
+	/*bctbx_error("Could not write to pipe: %s",strerror(GetLastError()));*/
 	return -1;
 }
 
 
-int bctoolbox_client_pipe_close(bctoolbox_pipe_t sock){
+int bctbx_client_pipe_close(bctbx_pipe_t sock){
 	return CloseHandle(sock);
 }
 
@@ -638,9 +638,9 @@ typedef struct MapInfo{
 	void *mem;
 }MapInfo;
 
-static bctoolbox_list_t *maplist=NULL;
+static bctbx_list_t *maplist=NULL;
 
-void *bctoolbox_shm_open(unsigned int keyid, int size, int create){
+void *bctbx_shm_open(unsigned int keyid, int size, int create){
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	HANDLE h;
 	char name[64];
@@ -662,7 +662,7 @@ void *bctoolbox_shm_open(unsigned int keyid, int size, int create){
 			name);               // name of mapping object
 	}
 	if (h==(HANDLE)-1) {
-		bctoolbox_error("Fail to open file mapping (create=%i)",create);
+		bctbx_error("Fail to open file mapping (create=%i)",create);
 		return NULL;
 	}
 	buf = (LPTSTR) MapViewOfFile(h, // handle to map object
@@ -671,37 +671,37 @@ void *bctoolbox_shm_open(unsigned int keyid, int size, int create){
 		0,
 		size);
 	if (buf!=NULL){
-		MapInfo *i=(MapInfo*)bctoolbox_new(MapInfo,1);
+		MapInfo *i=(MapInfo*)bctbx_new(MapInfo,1);
 		i->h=h;
 		i->mem=buf;
-		maplist=bctoolbox_list_append(maplist,i);
+		maplist=bctbx_list_append(maplist,i);
 	}else{
 		CloseHandle(h);
-		bctoolbox_error("MapViewOfFile failed");
+		bctbx_error("MapViewOfFile failed");
 	}
 	return buf;
 #else
-	bctoolbox_error("%s not supported!", __FUNCTION__);
+	bctbx_error("%s not supported!", __FUNCTION__);
 	return NULL;
 #endif
 }
 
-void bctoolbox_shm_close(void *mem){
+void bctbx_shm_close(void *mem){
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
-	bctoolbox_list_t *elem;
-	for(elem=maplist;elem;elem=bctoolbox_list_next(elem)){
-		MapInfo *i=(MapInfo*)bctoolbox_list_get_data(elem);
+	bctbx_list_t *elem;
+	for(elem=maplist;elem;elem=bctbx_list_next(elem)){
+		MapInfo *i=(MapInfo*)bctbx_list_get_data(elem);
 		if (i->mem==mem){
 			CloseHandle(i->h);
 			UnmapViewOfFile(mem);
-			bctoolbox_free(i);
-			maplist=bctoolbox_list_remove_link(maplist,elem);
+			bctbx_free(i);
+			maplist=bctbx_list_remove_link(maplist,elem);
 			return;
 		}
 	}
-	bctoolbox_error("No shared memory at %p was found.",mem);
+	bctbx_error("No shared memory at %p was found.",mem);
 #else
-	bctoolbox_error("%s not supported!", __FUNCTION__);
+	bctbx_error("%s not supported!", __FUNCTION__);
 #endif
 }
 
@@ -714,7 +714,7 @@ void bctoolbox_shm_close(void *mem){
 #include <sys/timeb.h>
 #endif
 
-void _bctoolbox_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime){
+void _bctbx_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime){
 #if defined(_WIN32_WCE) || defined(WIN32)
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	DWORD timemillis;
@@ -744,25 +744,25 @@ void _bctoolbox_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime){
 #else
 	struct timespec ts;
 	if (clock_gettime(realtime ? CLOCK_REALTIME : CLOCK_MONOTONIC,&ts)<0){
-		bctoolbox_fatal("clock_gettime() doesn't work: %s",strerror(errno));
+		bctbx_fatal("clock_gettime() doesn't work: %s",strerror(errno));
 	}
 	ret->tv_sec=ts.tv_sec;
 	ret->tv_nsec=ts.tv_nsec;
 #endif
 }
 
-void bctoolbox_get_cur_time(bctoolboxTimeSpec *ret){
-	_bctoolbox_get_cur_time(ret, FALSE);
+void bctbx_get_cur_time(bctoolboxTimeSpec *ret){
+	_bctbx_get_cur_time(ret, FALSE);
 }
 
 
-uint64_t bctoolbox_get_cur_time_ms(void) {
+uint64_t bctbx_get_cur_time_ms(void) {
 	bctoolboxTimeSpec ts;
-	bctoolbox_get_cur_time(&ts);
+	bctbx_get_cur_time(&ts);
 	return (ts.tv_sec * 1000LL) + ((ts.tv_nsec + 500000LL) / 1000000LL);
 }
 
-void bctoolbox_sleep_ms(int ms){
+void bctbx_sleep_ms(int ms){
 #ifdef _WIN32
 #ifdef BCTOOLBOX_WINDOWS_DESKTOP
 	Sleep(ms);
@@ -780,7 +780,7 @@ void bctoolbox_sleep_ms(int ms){
 #endif
 }
 
-void bctoolbox_sleep_until(const bctoolboxTimeSpec *ts){
+void bctbx_sleep_until(const bctoolboxTimeSpec *ts){
 #ifdef __linux
 	struct timespec rq;
 	rq.tv_sec=ts->tv_sec;
@@ -790,7 +790,7 @@ void bctoolbox_sleep_until(const bctoolboxTimeSpec *ts){
 #else
 	bctoolboxTimeSpec current;
 	bctoolboxTimeSpec diff;
-	_bctoolbox_get_cur_time(&current, TRUE);
+	_bctbx_get_cur_time(&current, TRUE);
 	diff.tv_sec=ts->tv_sec-current.tv_sec;
 	diff.tv_nsec=ts->tv_nsec-current.tv_nsec;
 	if (diff.tv_nsec<0){
@@ -798,7 +798,7 @@ void bctoolbox_sleep_until(const bctoolboxTimeSpec *ts){
 		diff.tv_sec-=1;
 	}
 #ifdef _WIN32
-		bctoolbox_sleep_ms((int)((diff.tv_sec * 1000LL) + (diff.tv_nsec/1000000LL)));
+		bctbx_sleep_ms((int)((diff.tv_sec * 1000LL) + (diff.tv_nsec/1000000LL)));
 #else
 	{
 		struct timespec dur,rem;
@@ -836,13 +836,13 @@ char* strtok_r(char *str, const char *delim, char **nextp){
 
 #if defined(_WIN32) && !defined(_MSC_VER)
 #include <wincrypt.h>
-static int bctoolbox_wincrypto_random(unsigned int *rand_number){
+static int bctbx_wincrypto_random(unsigned int *rand_number){
 	static HCRYPTPROV hProv=(HCRYPTPROV)-1;
 	static int initd=0;
 	
 	if (!initd){
 		if (!CryptAcquireContext(&hProv,NULL,NULL,PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)){
-			bctoolbox_error("bctoolbox_wincrypto_random(): Could not acquire a windows crypto context");
+			bctbx_error("bctbx_wincrypto_random(): Could not acquire a windows crypto context");
 			return -1;
 		}
 		initd=TRUE;
@@ -851,14 +851,14 @@ static int bctoolbox_wincrypto_random(unsigned int *rand_number){
 		return -1;
 	
 	if (!CryptGenRandom(hProv,4,(BYTE*)rand_number)){
-		bctoolbox_error("bctoolbox_wincrypto_random(): CryptGenRandom() failed.");
+		bctbx_error("bctbx_wincrypto_random(): CryptGenRandom() failed.");
 		return -1;
 	}
 	return 0;
 }
 #endif
 
-unsigned int bctoolbox_random(void){
+unsigned int bctbx_random(void){
 #ifdef HAVE_ARC4RANDOM
 	return arc4random();
 #elif  defined(__linux) || defined(__APPLE__)
@@ -867,9 +867,9 @@ unsigned int bctoolbox_random(void){
 	if (fd!=-1){
 		unsigned int tmp;
 		if (read(fd,&tmp,4)!=4){
-			bctoolbox_error("Reading /dev/urandom failed.");
+			bctbx_error("Reading /dev/urandom failed.");
 		}else return tmp;
-	}else bctoolbox_error("Could not open /dev/urandom");
+	}else bctbx_error("Could not open /dev/urandom");
 #elif defined(_WIN32)
 	static int initd=0;
 	unsigned int ret;
@@ -880,17 +880,17 @@ unsigned int bctoolbox_random(void){
 		return ret;
 	}
 #else
-	if (bctoolbox_wincrypto_random(&ret)==0){
+	if (bctbx_wincrypto_random(&ret)==0){
 		return ret;
 	}
 #endif
 	/* Windows's rand() is unsecure but is used as a fallback*/
 	if (!initd) {
 		struct timeval tv;
-		bctoolbox_gettimeofday(&tv,NULL);
+		bctbx_gettimeofday(&tv,NULL);
 		srand((unsigned int)tv.tv_sec+tv.tv_usec);
 		initd=1;
-		bctoolbox_warning("bctoolbox: Random generator is using rand(), this is unsecure !");
+		bctbx_warning("bctoolbox: Random generator is using rand(), this is unsecure !");
 	}
 	return rand()<<16 | rand();
 #endif
@@ -899,7 +899,7 @@ unsigned int bctoolbox_random(void){
 	return (unsigned int) random();
 #endif
 }
-bool_t bctoolbox_is_multicast_addr(const struct sockaddr *addr) {
+bool_t bctbx_is_multicast_addr(const struct sockaddr *addr) {
 	
 	switch (addr->sa_family) {
 		case AF_INET:
@@ -927,12 +927,12 @@ bool_t bctoolbox_is_multicast_addr(const struct sockaddr *addr) {
 **/
 
 struct addrinfo *_bctbx_alloc_addrinfo(int ai_family, int socktype, int proto){
-	struct addrinfo *ai=(struct addrinfo*)bctoolbox_malloc0(sizeof(struct addrinfo));
+	struct addrinfo *ai=(struct addrinfo*)bctbx_malloc0(sizeof(struct addrinfo));
 	ai->ai_family=ai_family;
 	ai->ai_socktype=socktype;
 	ai->ai_protocol=proto;
 	ai->ai_addrlen=AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
-	ai->ai_addr=(struct sockaddr *) bctoolbox_malloc0(ai->ai_addrlen);
+	ai->ai_addr=(struct sockaddr *) bctbx_malloc0(ai->ai_addrlen);
 	return ai;
 }
 
@@ -1009,8 +1009,8 @@ void _bctbx_freeaddrinfo(struct addrinfo *res){
 	struct addrinfo *it,*next_it;
 	for(it=res;it!=NULL;it=next_it){
 		next_it=it->ai_next;
-		bctoolbox_free(it->ai_addr);
-		bctoolbox_free(it);
+		bctbx_free(it->ai_addr);
+		bctbx_free(it);
 	}
 }
 
@@ -1042,7 +1042,7 @@ void bctbx_freeaddrinfo(struct addrinfo *res){
 #endif
 
 static void _bctbx_addrinfo_to_ip_address_error(int err, char *ip, size_t ip_size) {
-	bctoolbox_error("getnameinfo() error: %s", gai_strerror(err));
+	bctbx_error("getnameinfo() error: %s", gai_strerror(err));
 	strncpy(ip, "<bug!!>", ip_size);
 }
 
@@ -1105,7 +1105,7 @@ static struct addrinfo * _bctbx_name_to_addrinfo(int family, int socktype, const
 
 	if (err!=0){
 		if (err!=EAI_NONAME)
-			bctoolbox_error("belle_sip_ip_address_to_addrinfo(): getaddrinfo() error: %s",gai_strerror(err));
+			bctbx_error("belle_sip_ip_address_to_addrinfo(): getaddrinfo() error: %s",gai_strerror(err));
 		return NULL;
 	}
 	return res;
@@ -1117,4 +1117,51 @@ struct addrinfo * bctbx_name_to_addrinfo(int family, int socktype, const char *n
 
 struct addrinfo * bctbx_ip_address_to_addrinfo(int family, int socktype, const char *name, int port){
 	return _bctbx_name_to_addrinfo(family, socktype, name, port, TRUE);
+}
+char * bctbx_concat (const char *str, ...) {
+	va_list ap;
+	size_t allocated = 100;
+	char *result = (char *) malloc (allocated);
+	
+	if (result != NULL)
+	{
+		char *newp;
+		char *wp;
+		const char* s;
+		
+		va_start (ap, str);
+		
+		wp = result;
+		for (s = str; s != NULL; s = va_arg (ap, const char *)) {
+			size_t len = strlen (s);
+			
+			/* Resize the allocated memory if necessary.  */
+			if (wp + len + 1 > result + allocated)
+			{
+				allocated = (allocated + len) * 2;
+				newp = (char *) realloc (result, allocated);
+				if (newp == NULL)
+				{
+					free (result);
+					return NULL;
+				}
+				wp = newp + (wp - result);
+				result = newp;
+			}
+			memcpy (wp, s, len);
+			wp +=len;
+		}
+		
+		/* Terminate the result string.  */
+		*wp++ = '\0';
+		
+		/* Resize memory to the optimal size.  */
+		newp = realloc (result, wp - result);
+		if (newp != NULL)
+			result = newp;
+		
+		va_end (ap);
+	}
+	
+	return result;
 }

@@ -31,18 +31,18 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 #else
 	va_list cap;
 	va_copy(cap,args);
-	vfprintf(lev == BCTOOLBOX_ERROR ? stderr : stdout, fmt, cap);
-	fprintf(lev == BCTOOLBOX_ERROR ? stderr : stdout, "\n");
+	vfprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, fmt, cap);
+	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
 	va_end(cap);
 #endif
 	if (log_file){
-		bctoolbox_logv(log_domain,lev, fmt, args);
+		bctbx_logv(log_domain,lev, fmt, args);
 	}
 }
 
 
 void bctoolbox_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
-	bc_tester_init(log_handler,BCTOOLBOX_ERROR, 0,NULL);
+	bc_tester_init(log_handler,BCTBX_LOG_ERROR, 0,NULL);
 	bc_tester_add_suite(&containers_test_suite);
 }
 
@@ -59,11 +59,11 @@ int bctoolbox_tester_set_log_file(const char *filename) {
 	}
 	log_file = fopen(filename, "w");
 	if (!log_file) {
-		bctoolbox_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
+		bctbx_error("Cannot open file [%s] for writing logs because [%s]", filename, strerror(errno));
 		return -1;
 	}
-	bctoolbox_message("Redirecting traces to file [%s]", filename);
-	bctoolbox_set_log_file(log_file);
+	bctbx_message("Redirecting traces to file [%s]", filename);
+	bctbx_set_log_file(log_file);
 	return 0;
 }
 
@@ -84,9 +84,10 @@ int main (int argc, char *argv[]) {
 
 	for(i=1;i<argc;++i){
 		if (strcmp(argv[i],"--verbose")==0){
-			bctoolbox_set_log_level(log_domain, BCTOOLBOX_DEBUG);
+			bctbx_set_log_level(log_domain, BCTBX_LOG_DEBUG);
+			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
 		} else if (strcmp(argv[i],"--silent")==0){
-			bctoolbox_set_log_level(log_domain, BCTOOLBOX_FATAL);
+			bctbx_set_log_level(log_domain, BCTBX_LOG_FATAL);
 		} else if (strcmp(argv[i],"--log-file")==0){
 			CHECK_ARG("--log-file", ++i, argc);
 			if (bctoolbox_tester_set_log_file(argv[i]) < 0) return -2;

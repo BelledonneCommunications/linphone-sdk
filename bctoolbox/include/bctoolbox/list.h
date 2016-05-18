@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef BCTOOLBOX_LIST_H_
-#define BCTOOLBOX_LIST_H_
+#ifndef BCTBX_LIST_H_
+#define BCTBX_LIST_H_
 
 #include "bctoolbox/port.h"
 
@@ -25,43 +25,47 @@
 extern "C"{
 #endif
 
-typedef struct _bctoolbox_list bctoolbox_list_t;
+typedef struct _bctbx_list {
+	struct _bctbx_list *next;
+	struct _bctbx_list *prev;
+	void *data;
+} bctbx_list_t;
 
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_append(bctoolbox_list_t * elem, void * data);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_prepend(bctoolbox_list_t * elem, void * data);
-BCTOOLBOX_PUBLIC bctoolbox_list_t*  bctoolbox_list_prepend_link(bctoolbox_list_t* elem, bctoolbox_list_t *new_elem);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_last_elem(const bctoolbox_list_t *l);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_first_elem(const bctoolbox_list_t *l);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_free(bctoolbox_list_t * elem);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_concat(bctoolbox_list_t * first, bctoolbox_list_t * second);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_remove(bctoolbox_list_t * first, void *data);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_pop_front(bctoolbox_list_t *list, void **front_data);
-BCTOOLBOX_PUBLIC int bctoolbox_list_size(const bctoolbox_list_t * first);
-BCTOOLBOX_PUBLIC void bctoolbox_list_for_each(const bctoolbox_list_t * list, void (*func)(void *));
-BCTOOLBOX_PUBLIC void bctoolbox_list_for_each2(const bctoolbox_list_t * list, void (*func)(void *, void *), void *user_data);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_remove_link(bctoolbox_list_t * list, bctoolbox_list_t * elem);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_delete_link(bctoolbox_list_t * list, bctoolbox_list_t * elem);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_find(bctoolbox_list_t * list, void *data);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_free(bctoolbox_list_t *list);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_append(bctbx_list_t * elem, void * data);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_prepend(bctbx_list_t * elem, void * data);
+BCTBX_PUBLIC bctbx_list_t*  bctbx_list_prepend_link(bctbx_list_t* elem, bctbx_list_t *new_elem);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_last_elem(const bctbx_list_t *l);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_first_elem(const bctbx_list_t *l);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_free(bctbx_list_t * elem);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_concat(bctbx_list_t * first, bctbx_list_t * second);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_remove(bctbx_list_t * first, void *data);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_pop_front(bctbx_list_t *list, void **front_data);
+BCTBX_PUBLIC int bctbx_list_size(const bctbx_list_t * first);
+BCTBX_PUBLIC void bctbx_list_for_each(const bctbx_list_t * list, void (*func)(void *));
+BCTBX_PUBLIC void bctbx_list_for_each2(const bctbx_list_t * list, void (*func)(void *, void *), void *user_data);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_remove_link(bctbx_list_t * list, bctbx_list_t * elem);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_delete_link(bctbx_list_t * list, bctbx_list_t * elem);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_find(bctbx_list_t * list, void *data);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_free(bctbx_list_t *list);
 /*frees list elements and associated data, using the supplied function pointer*/
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_free_with_data(bctoolbox_list_t *list, void (*freefunc)(void*));
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_free_with_data(bctbx_list_t *list, void (*freefunc)(void*));
 
-typedef  int (*bctoolbox_compare_func)(const void *, const void*);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_find_custom(const bctoolbox_list_t * list, bctoolbox_compare_func cmp, const void *user_data);
-BCTOOLBOX_PUBLIC void * bctoolbox_list_nth_data(const bctoolbox_list_t * list, int index);
-BCTOOLBOX_PUBLIC int bctoolbox_list_position(const bctoolbox_list_t * list, bctoolbox_list_t * elem);
-BCTOOLBOX_PUBLIC int bctoolbox_list_index(const bctoolbox_list_t * list, void *data);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_insert_sorted(bctoolbox_list_t * list, void *data, bctoolbox_compare_func cmp);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_insert(bctoolbox_list_t * list, bctoolbox_list_t * before, void *data);
-BCTOOLBOX_PUBLIC bctoolbox_list_t * bctoolbox_list_copy(const bctoolbox_list_t * list);
+typedef  int (*bctbx_compare_func)(const void *, const void*);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_find_custom(const bctbx_list_t * list, bctbx_compare_func cmp, const void *user_data);
+BCTBX_PUBLIC void * bctbx_list_nth_data(const bctbx_list_t * list, int index);
+BCTBX_PUBLIC int bctbx_list_position(const bctbx_list_t * list, bctbx_list_t * elem);
+BCTBX_PUBLIC int bctbx_list_index(const bctbx_list_t * list, void *data);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_insert_sorted(bctbx_list_t * list, void *data, bctbx_compare_func cmp);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_insert(bctbx_list_t * list, bctbx_list_t * before, void *data);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_copy(const bctbx_list_t * list);
 /*copy list elements and associated data, using the supplied function pointer*/
-BCTOOLBOX_PUBLIC bctoolbox_list_t* bctoolbox_list_copy_with_data(const bctoolbox_list_t* list, void* (*copyfunc)(void*));
+BCTBX_PUBLIC bctbx_list_t* bctbx_list_copy_with_data(const bctbx_list_t* list, void* (*copyfunc)(void*));
 
-BCTOOLBOX_PUBLIC bctoolbox_list_t* bctoolbox_list_next(const bctoolbox_list_t *elem);
-BCTOOLBOX_PUBLIC void* bctoolbox_list_get_data(const bctoolbox_list_t *elem);
+BCTBX_PUBLIC bctbx_list_t* bctbx_list_next(const bctbx_list_t *elem);
+BCTBX_PUBLIC void* bctbx_list_get_data(const bctbx_list_t *elem);
 	
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BCTOOLBOX_LIST_H_ */
+#endif /* BCTLBX_LIST_H_ */
