@@ -65,13 +65,12 @@ typedef struct {
 } StunMessageEncoder;
 
 
-static void stun_message_encoder_init(StunMessageEncoder *encoder, char **buf) {
+static void stun_message_encoder_init(StunMessageEncoder *encoder) {
 	memset(encoder, 0, sizeof(StunMessageEncoder));
 	encoder->cursize = 128;
 	encoder->remaining = encoder->cursize;
 	encoder->buffer = ms_malloc(encoder->cursize);
 	encoder->ptr = encoder->buffer;
-	*buf = encoder->buffer;
 }
 
 static void stun_message_encoder_check_size(StunMessageEncoder *encoder, size_t sz) {
@@ -80,6 +79,7 @@ static void stun_message_encoder_check_size(StunMessageEncoder *encoder, size_t 
 		encoder->cursize *= 2;
 		encoder->buffer = ms_realloc(encoder->buffer, encoder->cursize);
 		encoder->ptr = encoder->buffer + offset;
+		encoder->lenptr = encoder->buffer + 2; /* Update pointer to the message length */
 		encoder->remaining = encoder->cursize - offset;
 	}
 }
@@ -286,6 +286,17 @@ static void encode_lifetime(StunMessageEncoder *encoder, uint32_t lifetime) {
 	encode16(encoder, MS_TURN_ATTR_LIFETIME);
 	encode16(encoder, 4);
 	encode32(encoder, lifetime);
+}
+
+static void encode_data(StunMessageEncoder *encoder, uint8_t *data, uint16_t datalen) {
+	size_t padding = 4 - (datalen % 4);
+	encode16(encoder, MS_TURN_ATTR_DATA);
+	encode16(encoder, datalen);
+	encode(encoder, data, datalen);
+	if (padding < 4) {
+		size_t i;
+		for (i = 0; i < padding; i++) encode8(encoder, 0);
+	}
 }
 
 
@@ -884,7 +895,7 @@ size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 	const MSStunAddress *stun_addr;
 	uint16_t message_length;
 
-	stun_message_encoder_init(&encoder, buf);
+	stun_message_encoder_init(&encoder);
 	encode_message_header(&encoder, msg->type, msg->method, &msg->tr_id);
 
 	stun_addr = ms_stun_message_get_mapped_address(msg);
@@ -907,6 +918,8 @@ size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 	if (stun_addr != NULL) encode_xor_addr(&encoder, MS_TURN_ATTR_XOR_RELAYED_ADDRESS, stun_addr, &msg->tr_id);
 	if (ms_stun_message_has_requested_transport(msg)) encode_requested_transport(&encoder, ms_stun_message_get_requested_transport(msg));
 	if (ms_stun_message_has_lifetime(msg)) encode_lifetime(&encoder, ms_stun_message_get_lifetime(msg));
+	if ((ms_stun_message_get_data(msg) != NULL) && (ms_stun_message_get_data_length(msg) > 0))
+		encode_data(&encoder, ms_stun_message_get_data(msg), ms_stun_message_get_data_length(msg));
 
 	if (ms_stun_message_has_priority(msg)) encode_priority(&encoder, ms_stun_message_get_priority(msg));
 	if (ms_stun_message_use_candidate_enabled(msg)) encode_use_candidate(&encoder);
@@ -932,6 +945,7 @@ size_t ms_stun_message_encode(const MSStunMessage *msg, char **buf) {
 
 	message_length = stun_message_encoder_get_message_length(&encoder);
 	encode_message_length(&encoder, message_length - STUN_MESSAGE_HEADER_LENGTH);
+	*buf = encoder.buffer;
 	return message_length;
 }
 
@@ -1177,8 +1191,12 @@ MSStunMessage * ms_turn_refresh_request_create(uint32_t lifetime) {
 
 MSStunMessage * ms_turn_create_permission_request_create(MSStunAddress peer_address) {
 	MSStunMessage *msg = ms_stun_message_create(MS_STUN_TYPE_REQUEST, MS_TURN_METHOD_CREATE_PERMISSION);
-	peer_address.ip.v4.addr ^= MS_STUN_MAGIC_COOKIE;
-	peer_address.ip.v4.port ^= MS_STUN_MAGIC_COOKIE >> 16;
+	ms_stun_message_set_xor_peer_address(msg, peer_address);
+	return msg;
+}
+
+MSStunMessage * ms_turn_send_indication_create(MSStunAddress peer_address) {
+	MSStunMessage *msg = ms_stun_message_create(MS_STUN_TYPE_INDICATION, MS_TURN_METHOD_SEND);
 	ms_stun_message_set_xor_peer_address(msg, peer_address);
 	return msg;
 }
@@ -1232,6 +1250,11 @@ MSTurnContext * ms_turn_context_new(MSTurnContextType type, RtpSession *rtp_sess
 
 void ms_turn_context_destroy(MSTurnContext *context) {
 	ms_free(context);
+}
+
+void ms_turn_context_set_server_addr(MSTurnContext *context, struct sockaddr *addr, socklen_t addrlen) {
+	context->turn_server_addr = addr;
+	context->turn_server_addrlen = addrlen;
 }
 
 MSTurnContextState ms_turn_context_get_state(const MSTurnContext *context) {
@@ -1290,6 +1313,14 @@ void ms_turn_context_set_lifetime(MSTurnContext *context, uint32_t lifetime) {
 	context->lifetime = lifetime;
 }
 
+void ms_turn_context_set_allocated_relay_addr(MSTurnContext *context, MSStunAddress relay_addr) {
+	context->relay_addr = relay_addr;
+}
+
+void ms_turn_context_set_force_rtp_sending_via_relay(MSTurnContext *context, bool_t force) {
+	context->force_rtp_sending_via_relay = force;
+}
+
 static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromlen) {
 	MSTurnContext *context = (MSTurnContext *)rtptp->data;
 	int msgsize = 0;
@@ -1308,20 +1339,24 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 						/* This is TURN data indication */
 						const MSStunAddress *stun_addr = ms_stun_message_get_xor_peer_address(stun_msg);
 						if (stun_addr != NULL) {
+							struct sockaddr_storage relay_ss;
+							struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
+							socklen_t relay_sa_len = 0;
 							// TODO: check if permissions have been set for the source address
 							/* Copy the data of the TURN data indication in the mblk_t so that it contains the unpacked data */
 							msgsize = ms_stun_message_get_data_length(stun_msg);
 							memcpy(msg->b_rptr, ms_stun_message_get_data(stun_msg), msgsize);
 							/* Overwrite the ortp_recv_addr of the mblk_t so that ICE source address is correct */
-							msg->recv_addr.family = from->sa_family;
-							if (from->sa_family == AF_INET) {
-								msg->recv_addr.addr.ipi_addr = ((struct sockaddr_in *)from)->sin_addr;
-								msg->recv_addr.port = ((struct sockaddr_in *)from)->sin_port;
-							} else if (from->sa_family == AF_INET6) {
-								msg->recv_addr.addr.ipi6_addr = ((struct sockaddr_in6 *)from)->sin6_addr;
-								msg->recv_addr.port = ((struct sockaddr_in6 *)from)->sin6_port;
+							ms_stun_address_to_sockaddr(&context->relay_addr, relay_sa, &relay_sa_len);
+							msg->recv_addr.family = relay_sa->sa_family;
+							if (relay_sa->sa_family == AF_INET) {
+								msg->recv_addr.addr.ipi_addr = ((struct sockaddr_in *)relay_sa)->sin_addr;
+								msg->recv_addr.port = ((struct sockaddr_in *)relay_sa)->sin_port;
+							} else if (relay_sa->sa_family == AF_INET6) {
+								memcpy(&msg->recv_addr.addr.ipi6_addr, &((struct sockaddr_in6 *)relay_sa)->sin6_addr, sizeof(struct in6_addr));
+								msg->recv_addr.port = ((struct sockaddr_in6 *)relay_sa)->sin6_port;
 							} else {
-								ms_warning("turn: Unknown address family in ortp_recv_addr");
+								ms_warning("turn: Unknown address family in relay_addr");
 								msgsize = 0;
 							}
 							/* Overwrite the source address of the packet so that it uses the peer address instead of the TURN server one */
@@ -1336,13 +1371,56 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 	return msgsize;
 }
 
+static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, const struct sockaddr *from, socklen_t fromlen) {
+	struct sockaddr_storage relay_ss;
+	struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
+	socklen_t relay_sa_len = 0;
+
+	ms_stun_address_to_sockaddr(&context->relay_addr, relay_sa, &relay_sa_len);
+	if (relay_sa->sa_family != from->sa_family) return FALSE;
+	if (relay_sa->sa_family == AF_INET) {
+		struct sockaddr_in *relay_sa_in = (struct sockaddr_in *)relay_sa;
+		struct sockaddr_in *from_in = (struct sockaddr_in *)from;
+		return (relay_sa_in->sin_port == from_in->sin_port) && (relay_sa_in->sin_addr.s_addr == from_in->sin_addr.s_addr);
+	} else if (relay_sa->sa_family == AF_INET6) {
+		struct sockaddr_in6 *relay_sa_in6 = (struct sockaddr_in6 *)relay_sa;
+		struct sockaddr_in6 *from_in6 = (struct sockaddr_in6 *)from;
+		return (relay_sa_in6->sin6_port == from_in6->sin6_port) && (memcmp(&relay_sa_in6->sin6_addr, &from_in6->sin6_addr, sizeof(struct in6_addr)) == 0);
+	} else return FALSE;
+}
+
 static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen) {
 	MSTurnContext *context = (MSTurnContext *)rtptp->data;
+	MSStunMessage *stun_msg = NULL;
+	bool_t rtp_packet = FALSE;
+	int ret = 0;
+
 	if (context->rtp_session != NULL) {
-		return rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
+		if ((msgdsize(msg) >= RTP_FIXED_HEADER_SIZE) && (rtp_get_version(msg) == 2)) rtp_packet = TRUE;
+		if ((rtp_packet && context->force_rtp_sending_via_relay) || ms_turn_rtp_endpoint_send_via_turn_server(context, (struct sockaddr *)&msg->net_addr, msg->net_addrlen)) {
+			MSStunAddress stun_addr;
+			char *buf = NULL;
+			int len;
+			uint8_t *data;
+			uint16_t datalen;
+			msgpullup(msg, -1);
+			datalen = (uint16_t)(msg->b_wptr - msg->b_rptr);
+			ms_sockaddr_to_stun_address(to, &stun_addr);
+			stun_msg = ms_turn_send_indication_create(stun_addr);
+			data = ms_malloc(datalen);
+			memcpy(data, msg->b_rptr, datalen);
+			ms_stun_message_set_data(stun_msg, data, datalen);
+			to = (const struct sockaddr *)context->turn_server_addr;
+			tolen = context->turn_server_addrlen;
+			msg->b_rptr = msg->b_wptr;
+			len = ms_stun_message_encode(stun_msg, &buf);
+			msgappend(msg, buf, len, FALSE);
+			ms_free(buf);
+		}
+		ret = rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
 	}
-	// TODO
-	return 0;
+	if (stun_msg != NULL) ms_stun_message_destroy(stun_msg);
+	return ret;
 }
 
 static void ms_turn_rtp_endpoint_close(RtpTransport *rtptp) {

@@ -139,7 +139,7 @@ typedef struct _IceStunServerRequest {
 	struct _IceCheckList *cl;
 	RtpTransport *rtptp;
 	MSTurnContext *turn_context;
-	int srcport;
+	struct addrinfo *source_ai;
 	MSList *transactions;	/**< List of IceStunServerRequestTransaction structures. */
 	MSTimeSpec next_transmission_time;
 	MSStunAddress peer_address;

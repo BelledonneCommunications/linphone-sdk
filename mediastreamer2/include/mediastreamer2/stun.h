@@ -190,6 +190,10 @@ typedef struct {
 	uint32_t lifetime;
 	MSTurnContextState state;
 	MSTurnContextType type;
+	MSStunAddress relay_addr;
+	struct sockaddr *turn_server_addr;
+	socklen_t turn_server_addrlen;
+	bool_t force_rtp_sending_via_relay;
 } MSTurnContext;
 
 
@@ -279,6 +283,7 @@ MS2_PUBLIC void ms_stun_message_enable_dummy_message_integrity(MSStunMessage *ms
 MS2_PUBLIC MSStunMessage * ms_turn_allocate_request_create(void);
 MS2_PUBLIC MSStunMessage * ms_turn_refresh_request_create(uint32_t lifetime);
 MS2_PUBLIC MSStunMessage * ms_turn_create_permission_request_create(MSStunAddress peer_address);
+MS2_PUBLIC MSStunMessage * ms_turn_send_indication_create(MSStunAddress peer_address);
 MS2_PUBLIC bool_t ms_stun_message_has_requested_transport(const MSStunMessage *msg);
 MS2_PUBLIC uint8_t ms_stun_message_get_requested_transport(const MSStunMessage *msg);
 MS2_PUBLIC bool_t ms_stun_message_has_lifetime(const MSStunMessage *msg);
@@ -290,6 +295,7 @@ MS2_PUBLIC void ms_stun_message_set_data(MSStunMessage *msg, uint8_t *data, uint
 
 MS2_PUBLIC MSTurnContext * ms_turn_context_new(MSTurnContextType type, RtpSession *rtp_session);
 MS2_PUBLIC void ms_turn_context_destroy(MSTurnContext *context);
+MS2_PUBLIC void ms_turn_context_set_server_addr(MSTurnContext *context, struct sockaddr *addr, socklen_t addrlen);
 MS2_PUBLIC MSTurnContextState ms_turn_context_get_state(const MSTurnContext *context);
 MS2_PUBLIC void ms_turn_context_set_state(MSTurnContext *context, MSTurnContextState state);
 MS2_PUBLIC const char * ms_turn_context_get_realm(const MSTurnContext *context);
@@ -304,6 +310,8 @@ MS2_PUBLIC const char * ms_turn_context_get_ha1(const MSTurnContext *context);
 MS2_PUBLIC void ms_turn_context_set_ha1(MSTurnContext *context, const char *ha1);
 MS2_PUBLIC uint32_t ms_turn_context_get_lifetime(const MSTurnContext *context);
 MS2_PUBLIC void ms_turn_context_set_lifetime(MSTurnContext *context, uint32_t lifetime);
+MS2_PUBLIC void ms_turn_context_set_allocated_relay_addr(MSTurnContext *context, MSStunAddress relay_addr);
+MS2_PUBLIC void ms_turn_context_set_force_rtp_sending_via_relay(MSTurnContext *context, bool_t force);
 MS2_PUBLIC RtpTransport * ms_turn_context_create_endpoint(MSTurnContext *context);
 
 #ifdef __cplusplus
