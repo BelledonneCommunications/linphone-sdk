@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define BCTBX_VFS_OK           0   /* Successful result */
 
-#define BCTBX_VFS_ERROR       -1   /* Some kind of disk I/O error occurred */
+#define BCTBX_VFS_ERROR       -255   /* Some kind of disk I/O error occurred */
 
 
 /**
@@ -52,9 +52,9 @@ struct bctbx_vfs_file {
 /**
  */
 struct bctbx_io_methods {
-	int (*pFuncClose)(bctbx_vfs_file *pFile, int* pErrSvd);
-	int (*pFuncRead)(bctbx_vfs_file *pFile, void* buf, int count, uint64_t offset,int* pErrSvd);
-	int (*pFuncWrite)(bctbx_vfs_file *pFile , const void* buf, int count, uint64_t offset, int* pErrSvd);
+	int (*pFuncClose)(bctbx_vfs_file *pFile);
+	int (*pFuncRead)(bctbx_vfs_file *pFile, void* buf, int count, uint64_t offset);
+	int (*pFuncWrite)(bctbx_vfs_file *pFile , const void* buf, int count, uint64_t offset );
 	int (*pFuncFileSize)(bctbx_vfs_file *pFile);
 	int (*pFuncGetLineFromFd)(bctbx_vfs_file *pFile , char* s, int count);
 	int (*pFuncSeek)(bctbx_vfs_file *pFile, uint64_t offset, int whence);
@@ -68,7 +68,7 @@ typedef struct bctbx_vfs bctbx_vfs;
 struct bctbx_vfs {
 	bctbx_vfs *pNext;      		/* Next registered VFS */
 	const char *vfsName;       /* Virtual file system name */
-	int (*pFuncFopen)(bctbx_vfs* pVfs, bctbx_vfs_file *pFile, const char *fName,  const int openFlags, int* pErrSvd);
+	int (*pFuncFopen)(bctbx_vfs* pVfs, bctbx_vfs_file *pFile, const char *fName,  const int openFlags);
 
 	
 };
@@ -79,8 +79,9 @@ bctbx_vfs *bc_create_vfs(void);
 int bctbx_vfs_register(bctbx_vfs* pVfs, bctbx_vfs** pToVfs);
 int bctbx_file_read(bctbx_vfs_file* pFile, void *buf, int count, uint64_t offset);
 int bctbx_file_close(bctbx_vfs_file* pFile);
-int bctbx_file_close_and_free(bctbx_vfs_file* pFile);
 bctbx_vfs_file* bctbx_file_create_and_open(bctbx_vfs* pVfs, const char *fName,  const char* mode);
+
+bctbx_vfs_file* bctbx_file_create_and_open2(bctbx_vfs* pVfs, const char *fName,  const int openFlags );
 int bctbx_file_open(bctbx_vfs* pVfs, bctbx_vfs_file*pFile, const char *fName,  const int oflags);
 uint64_t bctbx_file_size(bctbx_vfs_file *pFile);
 int bctbx_file_write(bctbx_vfs_file* pFile, const void *buf, int count, uint64_t offset);

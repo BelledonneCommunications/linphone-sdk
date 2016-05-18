@@ -48,10 +48,9 @@ int bctbx_vfs_register(bctbx_vfs* pVfs, bctbx_vfs** pToVfs){
  * Sets the error errno in the argument pErrSrvd after allocating it
  * if an error occurrred.
  * @param  pFile 	bctbx_vfs_file File handle pointer.
- * @param  pErrSvd  Pointer holding the errno value in case an error occurred.
  * @return       	BCTBX_VFS_OK if successful, BCTBX_VFS_ERROR otherwise.
  */
-static int bcClose(bctbx_vfs_file *pFile, int *pErrSvd){
+static int bcClose(bctbx_vfs_file *pFile){
 
 	int ret;
 	ret = close(pFile->fd);
@@ -59,10 +58,8 @@ static int bcClose(bctbx_vfs_file *pFile, int *pErrSvd){
 		ret = BCTBX_VFS_OK;
 	}
 	else{
-		pErrSvd = (int*)bctoolbox_malloc((sizeof(int)));
-		if (pErrSvd) *pErrSvd = errno;
-		bctoolbox_error("bcClose error %s", strerror(errno));
-		ret = BCTBX_VFS_ERROR;
+
+		ret = -errno ;
 	}
 	return ret;
 }
@@ -79,15 +76,15 @@ static int bcClose(bctbx_vfs_file *pFile, int *pErrSvd){
  */
 static int bcSeek(bctbx_vfs_file *pFile, uint64_t offset, int whence){
 	off_t ofst;
-	if (pFile->fd > 0){
+	if (pFile->fd != -1){
 		ofst = lseek(pFile->fd, offset, whence);
 		if( ofst < 0) {
-			bctoolbox_error("bcSeek: Wrong offset %s"  ,strerror(errno));
-			return BCTBX_VFS_ERROR;
+			
+			return -errno;
 		}
 		return ofst;
 	}
-	bctoolbox_error(" bcSeek error %s", strerror(errno));
+	bctoolbox_error(" bcSeek: File  error ");
 	return BCTBX_VFS_ERROR;
 }
 /**
@@ -98,21 +95,19 @@ static int bcSeek(bctbx_vfs_file *pFile, uint64_t offset, int whence){
  * @param  buf    buffer to write the read bytes to.
  * @param  count  number of bytes to read
  * @param  offset file offset where to start reading
- * @return BCTBX_VFS_ERROR if erroneous read, number of bytes read (count) otherwise
+ * @return -errno if erroneous read, number of bytes read (count) on success, 
+ *                if the error was something else BCTBX_VFS_ERROR otherwise
  */
-static int bcRead(bctbx_vfs_file *pFile, void *buf, int count, uint64_t offset, int* pErrSvd){
-	off_t ofst;                     /* Return value from lseek() */
+static int bcRead(bctbx_vfs_file *pFile, void *buf, int count, uint64_t offset){
 	int nRead;                      /* Return value from read() */
 	if (pFile){
-		if((ofst = pFile->pMethods->pFuncSeek(pFile, offset,SEEK_SET)) == offset ){
+		if(bctbx_file_seek(pFile, offset,SEEK_SET) == BCTBX_VFS_OK ){
 			nRead = read(pFile->fd, buf, count);
 			/* Error while reading */
 			if(nRead < 0 ){
 				if(errno){
-					pErrSvd = (int*)bctoolbox_malloc((sizeof(int)));
 					bctoolbox_error("bcRead error \r\n");
-					if (pErrSvd) *pErrSvd = errno;
-					return BCTBX_VFS_ERROR;
+					return -errno;
 				}
 			}
 			else if (nRead == count){
@@ -127,12 +122,7 @@ static int bcRead(bctbx_vfs_file *pFile, void *buf, int count, uint64_t offset, 
 			}
 			
 		}
-		else{
-	  		bctoolbox_error("bcRead: error offset");
-			return BCTBX_VFS_ERROR;
-		}	
 	}
-	bctoolbox_error("bcRead: error bctbx_vfs_file not initialized");
 	return BCTBX_VFS_ERROR;
 }
 
@@ -144,31 +134,24 @@ static int bcRead(bctbx_vfs_file *pFile, void *buf, int count, uint64_t offset, 
  * @param  buf     Buffer containing data to write
  * @param  count   Size of data to write in bytes
  * @param  offset  File offset where to write to
- * @param  pErrSvd [description
- * @return         number of bytes written (can be 0), BCTBX_VFS_ERROR if an error occurred.
+ * @return         number of bytes written (can be 0), negative value errno if an error occurred.
  */
-static int bcWrite(bctbx_vfs_file *p, const void *buf, int count, uint64_t offset , int* pErrSvd){
-	off_t ofst;                     /* Return value from lseek() */
+static int bcWrite(bctbx_vfs_file *p, const void *buf, int count, uint64_t offset ){
 	size_t nWrite = 0;                 /* Return value from write() */
 
 	if (p ){
-		if((ofst = p->pMethods->pFuncSeek(p, offset,SEEK_SET)) == offset ){
+		if((bctbx_file_seek(p, offset,SEEK_SET)) == BCTBX_VFS_OK ){
 			nWrite = write(p->fd, buf, count);
 			if( nWrite > 0  ) return nWrite;
 			
 			else if(nWrite <= 0 ){
 				if(errno){
-					pErrSvd = (int*)bctoolbox_malloc((sizeof(int)));
-					if (pErrSvd) *pErrSvd = errno;
-					return BCTBX_VFS_ERROR;
+					return -errno;
 				}
 				return 0;
 			}
 		}
-		bctoolbox_error("bcWrite: error offset");
-		return BCTBX_VFS_ERROR;
 	}
-	bctoolbox_error("bcWrite: error bctbx_vfs_file not initialized");
 	return BCTBX_VFS_ERROR;
 }
 
@@ -177,7 +160,7 @@ static int bcWrite(bctbx_vfs_file *p, const void *buf, int count, uint64_t offse
 /**
  * Returns the file size associated with the file handle pFile.
  * @param  pFile File handle pointer.
- * @return       BCTBX_VFS_ERROR if an error occurred, file size otherwise (can be 0).
+ * @return       -errno if an error occurred, file size otherwise (can be 0).
  */
 static int bcFileSize(bctbx_vfs_file *pFile){
 
@@ -186,8 +169,7 @@ static int bcFileSize(bctbx_vfs_file *pFile){
 	
 	rc = fstat(pFile->fd, &sStat);
 	if( rc!=0 ) {
-		bctoolbox_error("bcFileSize: Error file size  %s"  ,strerror(errno));
-		return BCTBX_VFS_ERROR;
+		return -errno;
 	}
 	return sStat.st_size;
 
@@ -198,10 +180,8 @@ static int bcFileSize(bctbx_vfs_file *pFile){
 /**
  * Gets a line of max_len length and stores it to the allocaed buffer s.
  * Reads at most max_len characters from the file descriptor associated with the argument pFile
- * and looks for an end of line character (\r or \n). Stores the line found 
+ * and looks for an end of line character (\r or \n). Stores the line found
  * into the buffer pointed by s.
- * Reads another max_len character while the end of line character is not found
- * and the end of file is not reached.
  * Modifies the open file offset using pFile->offset.
  *
  * @param  pFile   File handle pointer.
@@ -214,16 +194,16 @@ static int bcGetLine(bctbx_vfs_file *pFile, char* s,  int max_len) {
 	int lineMaxLgth;
 	char *pTmpLineBuf ;
 	char* pNextLine ;
-
-	if (pFile->fd < 0) {
-
+	
+	if (pFile->fd == -1) {
+		
 		return BCTBX_VFS_ERROR;
 	}
-
+	
 	pNextLine = NULL;
 	lineMaxLgth = max_len;
-	pTmpLineBuf = (char *)calloc( lineMaxLgth, sizeof(char));
-
+	pTmpLineBuf = (char *)bctoolbox_malloc( lineMaxLgth * sizeof(char));
+	
 	sizeofline = 0;
 	isEof = 0;
 	
@@ -231,44 +211,34 @@ static int bcGetLine(bctbx_vfs_file *pFile, char* s,  int max_len) {
 		bctoolbox_error("bcGetLine : Error allocating memory for line buffer.");
 		return BCTBX_VFS_ERROR;
 	}
-
+	
 	/* Read returns 0 if end of file is found */
 	ret = bctbx_file_read(pFile, pTmpLineBuf, lineMaxLgth, pFile->offset);
-
-	
-	while ((((pNextLine = strstr(pTmpLineBuf, "\n")) == NULL)  && (pNextLine = strstr(pTmpLineBuf, "\r")) == NULL)&& (ret > 0) && (!isEof)) {
-		/*  did not find end of line in lineMaxLgth, try to get another lineMaxLgth characters */
-		if (ret % lineMaxLgth == 0) {
-			lineMaxLgth += lineMaxLgth;
-			pTmpLineBuf = bctoolbox_realloc(pTmpLineBuf, lineMaxLgth);
-			if (pTmpLineBuf == NULL) {
-				bctoolbox_error("bcGetLine: Error reallocating space for line buffer.");
-				bctoolbox_free(pTmpLineBuf);
-				return  BCTBX_VFS_ERROR;
-			}
-		}
-		else {
-			/* check if EOF has been reached */
-			if ( (pFile->offset + ret) == pFile->size){
-					isEof = 1;
-				}
-		}
-			ret = bctbx_file_read(pFile, pTmpLineBuf, lineMaxLgth,pFile->offset);
-
-		
-		
-	}
-	
 	if (ret > 0){
-	/* Got a line! */
-	/* offset to next beginning of line*/
-		if(strstr(pTmpLineBuf, "\r")) sizeofline = strcspn(pTmpLineBuf, "\r") +1;
-		if(strstr(pTmpLineBuf, "\n")) sizeofline = strcspn(pTmpLineBuf, "\n") +1;
-		pFile->offset += sizeofline ;
-		strncpy(s, pTmpLineBuf, sizeofline );
+		pNextLine = strstr(pTmpLineBuf, "\r");
+		if (pNextLine == NULL) pNextLine = strstr(pTmpLineBuf, "\n");
+		if (pNextLine)
+		{
+			/* Got a line! */
+			*pNextLine = '\0';
+			sizeofline = pNextLine - pTmpLineBuf +1;
+			strncpy(s, pTmpLineBuf, sizeofline );
+			/* offset to next beginning of line*/
+			pFile->offset += sizeofline ;
+			
+		}
+		
+		else{
+			/*did not find end of line char, is EOF?*/
+			sizeofline = ret;
+			strncpy(s, pTmpLineBuf, sizeofline );
+			pFile->offset += sizeofline ;
+			
+		}
 		
 	}
-	else if (ret <0){
+	
+	else if (ret < 0){
 		bctoolbox_error("bcGetLine error ");
 	}
 	else{
@@ -278,8 +248,6 @@ static int bcGetLine(bctbx_vfs_file *pFile, char* s,  int max_len) {
 	bctoolbox_free(pTmpLineBuf);
 	return sizeofline;
 }
-
-
 /**
  * Create flags (int) from mode(char*).
  * @param  mode  Can be r, r+, w+, w
@@ -326,10 +294,9 @@ const bctbx_io_methods* get_bcio(void){
  * @param  pVfs    		Pointer to  bctx_vfs  VFS.
  * @param  fName   		Absolute path filename.
  * @param  openFlags    Flags to use when opening the file.
- * @param  pErrSvd 		Pointer to the error allocated if an error occurs.
  * @return         		BCTBX_VFS_ERROR if an error occurs, BCTBX_VFS_OK otherwise.
  */
-static  int bcOpen(bctbx_vfs *pVfs, bctbx_vfs_file *pFile, const char *fName, const int openFlags, int* pErrSvd){
+static  int bcOpen(bctbx_vfs *pVfs, bctbx_vfs_file *pFile, const char *fName, const int openFlags){
 	
 	if (pFile == NULL || fName == NULL){
 		return BCTBX_VFS_ERROR ;
@@ -337,9 +304,7 @@ static  int bcOpen(bctbx_vfs *pVfs, bctbx_vfs_file *pFile, const char *fName, co
 
 	pFile->fd = open(fName, openFlags, S_IRUSR | S_IWUSR);
 	if( pFile->fd == -1 ){
-		pErrSvd = (int*)bctoolbox_malloc((sizeof(int)));
-		if (pErrSvd) *pErrSvd = errno;
-		return BCTBX_VFS_ERROR;
+		return -errno;
 	}
 	
 	pFile->pMethods = &bcio;
@@ -372,14 +337,18 @@ bctbx_vfs *bc_create_vfs(void){
  * @return        	Number of bytes written on success, BCTBX_VFS_ERROR if an error occurred.
  */
 int bctbx_file_write(bctbx_vfs_file* pFile, const void *buf, int count, uint64_t offset){
-	int* pErrSvd = NULL;
 	int ret;
 	if (pFile!=NULL) {
-		ret = pFile->pMethods->pFuncWrite(pFile,buf, count, offset, pErrSvd);
-		if (pErrSvd)
+		ret = pFile->pMethods->pFuncWrite(pFile,buf, count, offset);
+		if (ret == BCTBX_VFS_ERROR)
 		{
-			bctoolbox_error("bctbx_file_write error %s", strerror(*pErrSvd));
-			bctoolbox_free(pErrSvd);	
+			bctoolbox_error("bctbx_file_write file error ");
+			return BCTBX_VFS_ERROR;
+
+		}
+		else if (ret < 0)
+		{
+			bctoolbox_error("bctbx_file_write error %s", strerror(-(ret)));
 			return BCTBX_VFS_ERROR;
 		}
 		return ret;
@@ -398,10 +367,11 @@ int bctbx_file_write(bctbx_vfs_file* pFile, const void *buf, int count, uint64_t
 bctbx_vfs_file* bctbx_file_create_and_open(bctbx_vfs* pVfs, const char *fName,  const char* mode){
 	int ret;
 
-	bctbx_vfs_file* p_ret = (bctbx_vfs_file*)calloc(sizeof(bctbx_vfs_file),1);
+	bctbx_vfs_file* p_ret = (bctbx_vfs_file*)bctoolbox_malloc(sizeof(bctbx_vfs_file));
 	int oflags = 0;
 	oflags = set_flags(mode);
 	if(p_ret){
+		memset(p_ret, 0, sizeof(bctbx_vfs_file));
 		ret = bctbx_file_open(pVfs,p_ret,fName, oflags);
 		if (ret == BCTBX_VFS_OK) return p_ret;
 	}
@@ -409,6 +379,27 @@ bctbx_vfs_file* bctbx_file_create_and_open(bctbx_vfs* pVfs, const char *fName,  
 	return NULL;
 }
 
+/**
+ * Allocates a bctbx_vfs_file file handle pointer. Opens the file fName
+ * with the mode specified by the mode argument. Calls bctbx_file_open.
+ * @param  pVfs  		Pointer to the vfs instance in use.
+ * @param  fName 		Absolute file path.
+ * @param  openFlags  	File access flags(integer).
+ * @return  pointer to  bctbx_vfs_file on success, NULL otherwise.      
+ */
+bctbx_vfs_file* bctbx_file_create_and_open2(bctbx_vfs* pVfs, const char *fName,  const int openFlags ){
+	int ret;
+	
+	bctbx_vfs_file* p_ret = (bctbx_vfs_file*)bctoolbox_malloc(sizeof(bctbx_vfs_file));
+
+	if(p_ret){
+		memset(p_ret, 0, sizeof(bctbx_vfs_file));
+		ret = bctbx_file_open(pVfs,p_ret,fName, openFlags);
+		if (ret == BCTBX_VFS_OK) return p_ret;
+	}
+	
+	return NULL;
+}
 /**
  * Opens the file fname with file status flags and initializes the bctbx_vfs_file
  * pointer structure with the open result and the file size  if the pointer is not NULL.
@@ -418,15 +409,16 @@ bctbx_vfs_file* bctbx_file_create_and_open(bctbx_vfs* pVfs, const char *fName,  
  * @return      	BCTBX_VFS_OK on success, BCTBX_VFS_ERROR otherwise. 
  */
 int bctbx_file_open(bctbx_vfs* pVfs, bctbx_vfs_file* pFile, const char *fName,  const int oflags){
-	int* pErrSvd = NULL;
-	int ret;
+	int ret = BCTBX_VFS_ERROR;
 	if (pVfs && pFile ){
 
-		ret = pVfs->pFuncFopen(pVfs,pFile,fName, oflags, pErrSvd);
-		if (ret == BCTBX_VFS_ERROR && pErrSvd){
-			bctoolbox_error("bctbx_file_open: Error open %s" , strerror(*pErrSvd));
-			bctoolbox_free(pErrSvd);
-			return BCTBX_VFS_ERROR;
+		ret = pVfs->pFuncFopen(pVfs,pFile,fName, oflags);
+		if (ret == BCTBX_VFS_ERROR){
+			bctoolbox_error("bctbx_file_open: Error file handle " );
+		}
+		else if (ret < 0 ){
+			bctoolbox_error("bctbx_file_open: Error open %s" , strerror(-(ret)));
+			
 		}
 		ret = bctbx_file_size(pFile);
 		
@@ -444,7 +436,6 @@ int bctbx_file_open(bctbx_vfs* pVfs, bctbx_vfs_file* pFile, const char *fName,  
  * @return        Number of bytes read on success, BCTBX_VFS_ERROR otherwise. 
  */
 int bctbx_file_read(bctbx_vfs_file* pFile, void *buf, int count, uint64_t offset){
-	int* pErrSvd = NULL;
 	int ret;
 	if (pFile){
 		/*Are we trying to read after the EOF? Then there is nothing to read.*/
@@ -452,11 +443,14 @@ int bctbx_file_read(bctbx_vfs_file* pFile, void *buf, int count, uint64_t offset
 		{
 			return 0;
 		}
-		ret = pFile->pMethods->pFuncRead(pFile, buf, count, offset, pErrSvd);
+		ret = pFile->pMethods->pFuncRead(pFile, buf, count, offset);
 		/*check if error : in this case pErrSvd is initialized*/
-		if(ret <= 0 && pErrSvd!=NULL){
-			bctoolbox_error("bctbx_file_read: Error read %s"  ,strerror(*pErrSvd));
-			bctoolbox_free(pErrSvd);
+		if (ret == BCTBX_VFS_ERROR){
+			bctoolbox_error("bctbx_file_read: error bctbx_vfs_file ");
+			return BCTBX_VFS_ERROR;
+		}
+		else if(ret < 0){
+			bctoolbox_error("bctbx_file_read: Error read %s" ,strerror(-(ret)));
 			return BCTBX_VFS_ERROR;
 		}
 		return ret;
@@ -471,32 +465,20 @@ int bctbx_file_read(bctbx_vfs_file* pFile, void *buf, int count, uint64_t offset
  *                  BCTBX_VFS_ERROR otherwise. 
  */
 int bctbx_file_close(bctbx_vfs_file* pFile){
-	int ret;
-	int* pErrSvd = NULL;
+	int ret = BCTBX_VFS_ERROR;
  	if (pFile){
- 		ret = pFile->pMethods->pFuncClose(pFile, pErrSvd);
- 		if (ret != 0 && pErrSvd)
+ 		ret = pFile->pMethods->pFuncClose(pFile);
+ 		if (ret != 0 )
 		{
-			bctoolbox_error("bctbx_file_close: Error  %s"  ,strerror(*pErrSvd));
-			bctoolbox_free(pErrSvd);
+			bctoolbox_error("bctbx_file_close: Error  %s freeing file handle anyway"  ,strerror(-(ret)));
 		}
-		return ret;
- 	} 
- 	return BCTBX_VFS_ERROR;
+	
+ 	}
+
+	bctoolbox_free(pFile);
+ 	return ret;
  }
 
-
-/**
- * Close the file associated with pFile and free the allocated memory for pFile.
- * @param  pFile File handle pointer. Calls bctbx_file_close.
- * @return      return value from  bctbx_file_close .
- */
-int bctbx_file_close_and_free(bctbx_vfs_file* pFile){
-	int ret;
-	ret = bctbx_file_close(pFile);
-	free(pFile);
-	return ret;
-}
 
 /**
  * Returns the file size.
@@ -504,8 +486,13 @@ int bctbx_file_close_and_free(bctbx_vfs_file* pFile){
  * @return       BCTBX_VFS_ERROR if an error occured, file size otherwise. 
  */
 uint64_t bctbx_file_size(bctbx_vfs_file *pFile ){
-	if (pFile) return pFile->pMethods->pFuncFileSize(pFile);
- 	return BCTBX_VFS_ERROR;
+	int ret; 
+	ret = BCTBX_VFS_ERROR;
+	if (pFile){
+		ret = pFile->pMethods->pFuncFileSize(pFile);
+		if (ret < 0) bctoolbox_error("bctbx_file_size: Error file size  %s"  ,strerror(-(ret)));
+	} 
+ 	return ret ;
  }
 
 /**
@@ -546,9 +533,18 @@ int bctbx_file_fprintf(bctbx_vfs_file* pFile, uint64_t offset, const char* fmt, 
  * @return        BCTBX_VFS_ERROR on error, offset otherwise. 
  */
 int bctbx_file_seek(bctbx_vfs_file *pFile, uint64_t offset, int whence){
-	if (pFile) return pFile->pMethods->pFuncSeek(pFile,offset,whence);
+	int ret = BCTBX_VFS_ERROR ;
 
-	return BCTBX_VFS_ERROR;
+	if (pFile){
+		ret = pFile->pMethods->pFuncSeek(pFile,offset,whence);
+		if(ret < 0){
+			bctoolbox_error("bctbx_file_seek: Wrong offset %s"  ,strerror(-(ret)));
+		}
+		else if (ret == offset){
+			ret = BCTBX_VFS_OK;
+		}
+	} 
+	return ret;
 }
 
 /**
