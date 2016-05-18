@@ -1337,9 +1337,9 @@ stunCalculateIntegrity_longterm(char* hmac, const char* input, int length,
    char HA1_text[1024];
 
    snprintf(HA1_text, sizeof(HA1_text), "%s:%s:%s", username, realm, password);
-   bctoolbox_md5((unsigned char *)HA1_text, strlen(HA1_text), HA1);
+   bctbx_md5((unsigned char *)HA1_text, strlen(HA1_text), HA1);
 
-   bctoolbox_hmacSha1(HA1, sizeof(HA1),
+   bctbx_hmacSha1(HA1, sizeof(HA1),
 		(const unsigned char*) input, length,
 		20, (unsigned char*)hmac); /* SHA1 output length is 20 bytes, get them all */
 }
@@ -1347,7 +1347,7 @@ stunCalculateIntegrity_longterm(char* hmac, const char* input, int length,
 void
 stunCalculateIntegrity_shortterm(char* hmac, const char* input, int length, const char* key)
 {
-   bctoolbox_hmacSha1((const unsigned char *)key, strlen(key),
+   bctbx_hmacSha1((const unsigned char *)key, strlen(key),
 		(const unsigned char*) input, length,
 		20, (unsigned char*)hmac); /* SHA1 output length is 20 bytes, get them all */
 }
