@@ -329,7 +329,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 	CU_set_suite_init_failure_handler(suite_init_failure_message_handler);
 	CU_set_suite_cleanup_failure_handler(suite_cleanup_failure_message_handler);
 
-	if( xml_enabled != 0 ){
+	if (xml_enabled == 1) {
 		CU_automated_run_tests();
 	} else {
 
@@ -584,6 +584,7 @@ int bc_tester_start(const char* prog_name) {
 	if( xml_enabled ){
 		char * xml_tmp_file = bc_sprintf("%s.tmp", xml_file);
 		CU_set_output_filename(xml_tmp_file);
+		CU_automated_enable_junit_xml(TRUE);
 		free(xml_tmp_file);
 	}
 
