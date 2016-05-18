@@ -54,7 +54,7 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	memset(context, 0, sizeof(bzrtpContext_t));
 
 	/* start the random number generator */
-	context->RNGContext = bctoolbox_rng_context_new(); /* TODO: give a seed for the RNG? */
+	context->RNGContext = bctbx_rng_context_new(); /* TODO: give a seed for the RNG? */
 	/* set the DHM context to NULL, it will be created if needed when creating a DHPart packet */
 	context->DHMContext = NULL;
 
@@ -167,7 +167,7 @@ int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	/* We have no more channel, destroy the zrtp context */
 	/* DHM context shall already been destroyed after s0 computation, but just in case */
 	if (context->DHMContext != NULL) {
-		bctoolbox_DestroyDHMContext(context->DHMContext);
+		bctbx_DestroyDHMContext(context->DHMContext);
 		context->DHMContext = NULL;
 	}
 
@@ -206,7 +206,7 @@ int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 #endif
 	
 	/* destroy the RNG context at the end because it may be needed to destroy some keys */
-	bctoolbox_rng_context_free(context->RNGContext);
+	bctbx_rng_context_free(context->RNGContext);
 	context->RNGContext = NULL;
 	free(context);
 	return 0;
@@ -725,7 +725,7 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 	if (zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] != NULL) {
 		uint8_t computedPeerHelloHash[32];
 		/* compute hash using implicit hash function: SHA256, skip packet header in the packetString buffer as the hash must be computed on message only */
-		bctoolbox_sha256(zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
+		bctbx_sha256(zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
 			zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength,
 			32,
 			computedPeerHelloHash);
@@ -853,7 +853,7 @@ int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 	}
 
 	/* compute hash using implicit hash function: SHA256, skip packet header in the packetString buffer as the hash must be computed on message only */
-	bctoolbox_sha256(zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
+	bctbx_sha256(zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
 			zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength,
 			32,
 			helloHash);
@@ -970,10 +970,10 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->role = INITIATOR;
 
 	/* create H0 (32 bytes random) and derive using implicit Hash(SHA256) H1,H2,H3 */
-	bctoolbox_rng_get(zrtpContext->RNGContext, zrtpChannelContext->selfH[0], 32);
-	bctoolbox_sha256(zrtpChannelContext->selfH[0], 32, 32, zrtpChannelContext->selfH[1]);
-	bctoolbox_sha256(zrtpChannelContext->selfH[1], 32, 32, zrtpChannelContext->selfH[2]);
-	bctoolbox_sha256(zrtpChannelContext->selfH[2], 32, 32, zrtpChannelContext->selfH[3]);
+	bctbx_rng_get(zrtpContext->RNGContext, zrtpChannelContext->selfH[0], 32);
+	bctbx_sha256(zrtpChannelContext->selfH[0], 32, 32, zrtpChannelContext->selfH[1]);
+	bctbx_sha256(zrtpChannelContext->selfH[1], 32, 32, zrtpChannelContext->selfH[2]);
+	bctbx_sha256(zrtpChannelContext->selfH[2], 32, 32, zrtpChannelContext->selfH[3]);
 
 	/* initialisation of packet storage */
 	for (i=0; i<PACKET_STORAGE_CAPACITY; i++) {
@@ -983,7 +983,7 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->peerHelloHash = NULL;
 
 	/* initialise the self Sequence number to a random and peer to 0 */
-	bctoolbox_rng_get(zrtpContext->RNGContext, (uint8_t *)&(zrtpChannelContext->selfSequenceNumber), 2);
+	bctbx_rng_get(zrtpContext->RNGContext, (uint8_t *)&(zrtpChannelContext->selfSequenceNumber), 2);
 	zrtpChannelContext->selfSequenceNumber &= 0x0FFF; /* first 4 bits to zero in order to avoid reaching FFFF and turning back to 0 */
 	zrtpChannelContext->selfSequenceNumber++; /* be sure it is not initialised to 0 */
 	zrtpChannelContext->peerSequenceNumber = 0;

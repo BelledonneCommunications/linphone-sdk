@@ -441,8 +441,8 @@ int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
 	/* Hash algo */
 	switch (zrtpChannelContext->hashAlgo) {
 		case ZRTP_HASH_S256 :
-			zrtpChannelContext->hashFunction = bctoolbox_sha256;
-			zrtpChannelContext->hmacFunction = bctoolbox_hmacSha256;
+			zrtpChannelContext->hashFunction = bctbx_sha256;
+			zrtpChannelContext->hmacFunction = bctbx_hmacSha256;
 			zrtpChannelContext->hashLength = 32;
 			break;
 		case ZRTP_UNSET_ALGO :
@@ -458,13 +458,13 @@ int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
 	/* CipherBlock algo */
 	switch (zrtpChannelContext->cipherAlgo) {
 		case ZRTP_CIPHER_AES1 :
-			zrtpChannelContext->cipherEncryptionFunction = bctoolbox_aes128CfbEncrypt;
-			zrtpChannelContext->cipherDecryptionFunction = bctoolbox_aes128CfbDecrypt;
+			zrtpChannelContext->cipherEncryptionFunction = bctbx_aes128CfbEncrypt;
+			zrtpChannelContext->cipherDecryptionFunction = bctbx_aes128CfbDecrypt;
 			zrtpChannelContext->cipherKeyLength = 16;
 			break;
 		case ZRTP_CIPHER_AES3 :
-			zrtpChannelContext->cipherEncryptionFunction = bctoolbox_aes256CfbEncrypt;
-			zrtpChannelContext->cipherDecryptionFunction = bctoolbox_aes256CfbDecrypt;
+			zrtpChannelContext->cipherEncryptionFunction = bctbx_aes256CfbEncrypt;
+			zrtpChannelContext->cipherDecryptionFunction = bctbx_aes256CfbDecrypt;
 			zrtpChannelContext->cipherKeyLength = 32;
 			break;
 		case ZRTP_UNSET_ALGO :
@@ -800,7 +800,7 @@ void cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString[4]) {
  */
 void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngContext) {
 	if (key != NULL) {
-		bctoolbox_rng_get(rngContext, key, keyLength);
+		bctbx_rng_get(rngContext, key, keyLength);
 	}
 }
 

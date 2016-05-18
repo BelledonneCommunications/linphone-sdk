@@ -84,7 +84,7 @@ void test_zrtpKDF(void) {
 			patternKDFLabel[i], strlen((char *)patternKDFLabel[i]),
 			patternKDFContext[i], patternKDFContextLength[i],
 			patternKDFHmacLength[i],
-			(void (*)(uint8_t *, uint8_t, uint8_t *, uint32_t, uint8_t, uint8_t *))bctoolbox_hmacSha256,
+			(void (*)(uint8_t *, uint8_t, uint8_t *, uint32_t, uint8_t, uint8_t *))bctbx_hmacSha256,
 			output);
 
 		CU_ASSERT_TRUE(memcmp(output, patternKDFOutput[i], patternKDFHmacLength[i]) == 0);

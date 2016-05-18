@@ -189,8 +189,8 @@ struct bzrtpChannelContext_struct {
 struct bzrtpContext_struct {
 	void *ZIDCacheData; /**<  this is a pointer provided by the client which is then resent as a parameter of the ZID cache related callbacks functions. */
 	/* contexts */
-	bctoolbox_rng_context_t *RNGContext; /**< context for random number generation */
-	bctoolbox_DHMContext_t *DHMContext; /**< context for the Diffie-Hellman-Merkle operations. Only one DHM computation may be done during a call, so this belongs to the general context and not the channel one */
+	bctbx_rng_context_t *RNGContext; /**< context for random number generation */
+	bctbx_DHMContext_t *DHMContext; /**< context for the Diffie-Hellman-Merkle operations. Only one DHM computation may be done during a call, so this belongs to the general context and not the channel one */
 
 	/* flags */
 	uint8_t isInitialised; /**< this flag is set once the context was initialised : self ZID retrieved from cache or generated, used to unlock the creation of addtional channels */
