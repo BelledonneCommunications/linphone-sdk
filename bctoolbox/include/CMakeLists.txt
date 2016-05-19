@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-set(HEADER_FILES crypto.h port.h logging.h list.h map.h)
+set(HEADER_FILES crypto.h port.h logging.h list.h map.h bc_vfs.h)
 if (ENABLE_TESTS_COMPONENT)
 	list(APPEND HEADER_FILES tester.h)
 endif()
