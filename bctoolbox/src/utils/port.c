@@ -1104,7 +1104,7 @@ static struct addrinfo * _bctbx_name_to_addrinfo(int family, int socktype, const
 	err=bctbx_getaddrinfo(ipaddress,serv,&hints,&res);
 
 	if (err!=0){
-		if (err!=EAI_NONAME)
+		if (numeric_only || err!=EAI_NONAME)
 			bctbx_error("belle_sip_ip_address_to_addrinfo(): getaddrinfo() error: %s",gai_strerror(err));
 		return NULL;
 	}
