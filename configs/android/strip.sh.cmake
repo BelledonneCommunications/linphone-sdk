@@ -1,0 +1,3 @@
+#!/bin/sh
+
+@ANDROID_TOOLCHAIN_STRIP@ $*
