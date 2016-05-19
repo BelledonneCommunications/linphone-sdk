@@ -62,6 +62,7 @@ include(builders/CMakeLists.txt)
 
 # bctoolbox
 set(EP_bctoolbox_LINKING_TYPE "-DENABLE_STATIC=NO" "-DENABLE_SHARED=YES")
+list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
 
 # belle-sip
 list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
