@@ -2,7 +2,7 @@
 
 lib_LTLIBRARIES=libbctoolbox.la libbctoolbox-tester.la
 
-libbctoolbox_la_SOURCES= utils/port.c logging/logging.c containers/list.c containers/map.cc
+libbctoolbox_la_SOURCES= bc_vfs.c utils/port.c logging/logging.c containers/list.c containers/map.cc
 
 if ENABLE_POLARSSL
 
