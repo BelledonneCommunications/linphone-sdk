@@ -41,6 +41,9 @@ find_path(CUNIT_INCLUDE_DIRS
 
 if(CUNIT_INCLUDE_DIRS)
 	set(HAVE_CUNIT_CUNIT_H 1)
+	file(STRINGS "${CUNIT_INCLUDE_DIRS}/CUnit/CUnit.h" CUNIT_VERSION_STR
+		REGEX "^#define[\t ]+CU_VERSION[\t ]+\"(.+)\"$")
+	string(REGEX REPLACE "^.*CU_VERSION[\t ]+\"(.+)\"$" "\\1" CUNIT_VERSION "${CUNIT_VERSION_STR}")
 endif()
 
 find_library(CUNIT_LIBRARIES
@@ -50,9 +53,16 @@ find_library(CUNIT_LIBRARIES
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(CUnit
-	DEFAULT_MSG
-	CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES
-)
+
+if (CUNIT_VERSION)
+	find_package_handle_standard_args(CUnit
+		REQUIRED_VARS CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES
+		VERSION_VAR CUNIT_VERSION
+		)
+else()
+	find_package_handle_standard_args(CUnit
+		REQUIRED_VARS CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES
+		)
+endif()
 
 mark_as_advanced(CUNIT_INCLUDE_DIRS CUNIT_LIBRARIES)

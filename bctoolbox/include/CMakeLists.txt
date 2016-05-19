@@ -20,16 +20,9 @@
 #
 ############################################################################
 
-set(HEADER_FILES
-	bctoolbox/bc_vfs.h
-	bctoolbox/crypto.h
-	bctoolbox/list.h
-	bctoolbox/logging.h
-	bctoolbox/map.h
-	bctoolbox/port.h
-)
-if(ENABLE_TESTS_COMPONENT)
-	list(APPEND HEADER_FILES bctoolbox/tester.h)
+file(GLOB HEADER_FILES "bctoolbox/*.h")
+if (NOT ENABLE_TESTS_COMPONENT)
+	list(REMOVE_ITEM HEADER_FILES bctoolbox/tester.h)
 endif()
 
 install(FILES ${HEADER_FILES}

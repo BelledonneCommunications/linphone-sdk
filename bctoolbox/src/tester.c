@@ -225,25 +225,25 @@ static void suite_cleanup_failure_message_handler(const CU_pSuite pSuite) {
 }
 
 #ifdef HAVE_CU_GET_SUITE
-static time_t suite_start_time = 0;
+static uint64_t suite_start_time = 0;
 static void suite_start_message_handler(const CU_pSuite pSuite) {
-	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] started", pSuite->pName);
-	suite_start_time = time(NULL);
+	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] started\n", pSuite->pName);
+	suite_start_time = bctbx_get_cur_time_ms();
 	bc_current_suite_name = pSuite->pName;
 }
 static void suite_complete_message_handler(const CU_pSuite pSuite, const CU_pFailureRecord pFailure) {
-	bc_tester_printf(bc_printf_verbosity_info, "Suite [%s] ended in %lu sec", pSuite->pName,
-					 time(NULL) - suite_start_time);
+	bc_tester_printf(bc_printf_verbosity_info, "Suite [%s] ended in %.3f sec\n", pSuite->pName,
+					 (bctbx_get_cur_time_ms() - suite_start_time) / 1000.f);
 }
 
-static time_t test_start_time = 0;
+static uint64_t test_start_time = 0;
 static void test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite) {
 	int suite_index = bc_tester_suite_index(pSuite->pName);
 	if (test_suite[suite_index]->before_each) {
 		test_suite[suite_index]->before_each();
 	}
 	bc_tester_printf(bc_printf_verbosity_info,"Suite [%s] Test [%s] started", pSuite->pName,pTest->pName);
-	test_start_time = time(NULL);
+	test_start_time = bctbx_get_cur_time_ms();
 	bc_current_test_name = pTest->pName;
 }
 
@@ -254,8 +254,8 @@ static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite 
 	int suite_index = bc_tester_suite_index(pSuite->pName);
 	CU_pFailureRecord pFailure = pFailureList;
 	char *buffer = NULL;
-	char* result = bc_sprintf("Suite [%s] Test [%s] %s in %lu secs", pSuite->pName, pTest->pName,
-			 pFailure ? "failed" : "passed", (unsigned long)(time(NULL) - test_start_time));
+	char* result = bc_sprintf("Suite [%s] Test [%s] %s in %.3f secs", pSuite->pName, pTest->pName,
+			 pFailure ? "failed" : "passed", (bctbx_get_cur_time_ms() - test_start_time) / 1000.f);
 
 	if (pFailure) {
 		for (i = 1; (NULL != pFailure); pFailure = pFailure->pNext, i++) {
@@ -601,7 +601,9 @@ int bc_tester_start(const char* prog_name) {
 	if( xml_enabled ){
 		char * xml_tmp_file = bc_sprintf("%s.tmp", xml_file);
 		CU_set_output_filename(xml_tmp_file);
-		// CU_automated_enable_junit_xml(TRUE); /* do not enable me yet: this is bugged on cunit 2.1.2 (crash in automated.c)
+#ifdef HAVE_CU_FIXED_JUNIT
+		CU_automated_enable_junit_xml(TRUE); /* this requires 3.0.1 because previous versions crash automated.c */
+#endif
 		free(xml_tmp_file);
 	}
 
