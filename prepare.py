@@ -175,7 +175,10 @@ target_names = sorted(targets.keys())
 
 
 def run(target, debug, latest, list_cmake_variables, force_build, additional_args):
-    build_type = 'Debug' if debug else 'Release'
+    if type(debug) is str:
+        build_type = debug
+    else:
+        build_type = 'Debug' if debug else 'Release'
 
     if target.required_build_platforms is not None:
         if not platform.system() in target.required_build_platforms:
