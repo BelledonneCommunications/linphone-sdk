@@ -21,10 +21,41 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <string.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <unistd.h>
+
 #include <bctoolbox/port.h>
 #include <stdbool.h>
+
+
+#if !defined(_WIN32_WCE)
+#include <sys/types.h>
 #include <sys/stat.h>
+#if _MSC_VER
+#include <io.h>
+#endif
+#endif /*_WIN32_WCE*/
+
+
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
+#ifdef _WIN32	
+
+#ifndef S_IRUSR
+#define S_IRUSR S_IREAD
+#endif
+
+#ifndef S_IWUSR
+#define S_IWUSR S_IWRITE
+#endif
+
+#define open _open
+#define read _read
+#define write _write
+#define close _close
+#define lseek _lseek
+
+#endif /*!_WIN32*/
 
 #define BCTBX_VFS_OK           0   /* Successful result */
 
