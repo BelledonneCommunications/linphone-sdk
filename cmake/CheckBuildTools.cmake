@@ -52,9 +52,10 @@ if(MSVC AND NOT WINDOWS_UNIVERSAL)
 	execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${MINGWEX_LIBRARY}" "${CMAKE_INSTALL_PREFIX}/lib/mingwex.lib")
 endif()
 
+set(CMAKE_PROGRAM_PATH "${CMAKE_BINARY_DIR}/programs")
+file(MAKE_DIRECTORY ${CMAKE_PROGRAM_PATH})
+file(COPY "${CMAKE_CURRENT_LIST_DIR}/../scripts/gas-preprocessor.pl" DESTINATION "${CMAKE_PROGRAM_PATH}")
 if(WIN32)
-	set(CMAKE_PROGRAM_PATH "${CMAKE_BINARY_DIR}/programs")
-	file(MAKE_DIRECTORY ${CMAKE_PROGRAM_PATH})
 	if(NOT EXISTS "${CMAKE_BINARY_DIR}/linphone_builder_windows_tools.zip")
 		message(STATUS "Installing windows tools")
 		file(DOWNLOAD https://www.linphone.org/files/linphone_builder_windows_tools.zip "${CMAKE_BINARY_DIR}/linphone_builder_windows_tools.zip")
@@ -142,46 +143,48 @@ if(NOT WINDOWS_UNIVERSAL)
 		message(FATAL_ERROR "Could not find the pkg-config program.")
 	endif()
 
-	find_program(INTLTOOLIZE_PROGRAM
-		NAMES intltoolize
-		HINTS "C:/MinGW/msys/1.0/bin"
-	)
-
-	if(NOT INTLTOOLIZE_PROGRAM)
-		if(WIN32)
-			message(STATUS "Installing intltoolize to C:/MinGW/bin")
-			set(_intltoolize_dir ${CMAKE_BINARY_DIR}/intltoolize)
-			file(MAKE_DIRECTORY ${_intltoolize_dir})
-			file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/intltool/0.40/intltool_0.40.4-1_win32.zip "${CMAKE_BINARY_DIR}/intltoolize.zip")
-			execute_process(
-				COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_BINARY_DIR}/intltoolize.zip"
-				WORKING_DIRECTORY ${_intltoolize_dir}
-			)
-			execute_process(
-				COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-extract"
-				COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-merge"
-				COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-prepare"
-				COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-update"
-			)
-			file(RENAME "${_intltoolize_dir}/bin/intltoolize" "C:/MinGW/msys/1.0/bin/intltoolize")
-			file(RENAME "${_intltoolize_dir}/bin/intltool-extract" "C:/MinGW/bin/intltool-extract")
-			file(RENAME "${_intltoolize_dir}/bin/intltool-merge" "C:/MinGW/bin/intltool-merge")
-			file(RENAME "${_intltoolize_dir}/bin/intltool-prepare" "C:/MinGW/bin/intltool-prepare")
-			file(RENAME "${_intltoolize_dir}/bin/intltool-update" "C:/MinGW/bin/intltool-update")
-			file(RENAME "${_intltoolize_dir}/share/aclocal/intltool.m4" "C:/MinGW/share/aclocal/intltool.m4")
-			file(MAKE_DIRECTORY "C:/MinGW/msys/1.0/share/intltool")
-			file(RENAME "${_intltoolize_dir}/share/intltool/Makefile.in.in" "C:/MinGW/msys/1.0/share/intltool/Makefile.in.in")
-			unset(_intltoolize_dir)
-		endif()
-
+	if(ENABLE_NLS)
 		find_program(INTLTOOLIZE_PROGRAM
 			NAMES intltoolize
 			HINTS "C:/MinGW/msys/1.0/bin"
 		)
-	endif()
 
-	if(NOT INTLTOOLIZE_PROGRAM AND NOT MSVC)
-		message(FATAL_ERROR "Could not find the intltoolize program.")
+		if(NOT INTLTOOLIZE_PROGRAM)
+			if(WIN32)
+				message(STATUS "Installing intltoolize to C:/MinGW/bin")
+				set(_intltoolize_dir ${CMAKE_BINARY_DIR}/intltoolize)
+				file(MAKE_DIRECTORY ${_intltoolize_dir})
+				file(DOWNLOAD http://ftp.gnome.org/pub/gnome/binaries/win32/intltool/0.40/intltool_0.40.4-1_win32.zip "${CMAKE_BINARY_DIR}/intltoolize.zip")
+				execute_process(
+					COMMAND "${CMAKE_COMMAND}" "-E" "tar" "x" "${CMAKE_BINARY_DIR}/intltoolize.zip"
+					WORKING_DIRECTORY ${_intltoolize_dir}
+				)
+				execute_process(
+					COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-extract"
+					COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-merge"
+					COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-prepare"
+					COMMAND "${SED_PROGRAM}" "-i" "s;/opt/perl/bin/perl;/bin/perl;g" "${_intltoolize_dir}/bin/intltool-update"
+				)
+				file(RENAME "${_intltoolize_dir}/bin/intltoolize" "C:/MinGW/msys/1.0/bin/intltoolize")
+				file(RENAME "${_intltoolize_dir}/bin/intltool-extract" "C:/MinGW/bin/intltool-extract")
+				file(RENAME "${_intltoolize_dir}/bin/intltool-merge" "C:/MinGW/bin/intltool-merge")
+				file(RENAME "${_intltoolize_dir}/bin/intltool-prepare" "C:/MinGW/bin/intltool-prepare")
+				file(RENAME "${_intltoolize_dir}/bin/intltool-update" "C:/MinGW/bin/intltool-update")
+				file(RENAME "${_intltoolize_dir}/share/aclocal/intltool.m4" "C:/MinGW/share/aclocal/intltool.m4")
+				file(MAKE_DIRECTORY "C:/MinGW/msys/1.0/share/intltool")
+				file(RENAME "${_intltoolize_dir}/share/intltool/Makefile.in.in" "C:/MinGW/msys/1.0/share/intltool/Makefile.in.in")
+				unset(_intltoolize_dir)
+			endif()
+
+			find_program(INTLTOOLIZE_PROGRAM
+				NAMES intltoolize
+				HINTS "C:/MinGW/msys/1.0/bin"
+			)
+		endif()
+
+		if(NOT INTLTOOLIZE_PROGRAM AND NOT MSVC)
+			message(FATAL_ERROR "Could not find the intltoolize program.")
+		endif()
 	endif()
 endif()
 

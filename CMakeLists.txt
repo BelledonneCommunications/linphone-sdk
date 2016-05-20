@@ -67,6 +67,10 @@ else()
 	include(${LINPHONE_BUILDER_CONFIG_FILE})
 
 
+	# Check for build tools and show an error if one of them is not present
+	include(cmake/CheckBuildTools.cmake)
+
+
 	# Apply build flags
 	linphone_builder_apply_flags()
 

@@ -43,10 +43,6 @@ else()
 endif()
 
 
-# Check for build tools and show an error if one of them is not present
-include(cmake/CheckBuildTools.cmake)
-
-
 set(LINPHONE_BUILDER_EP_VARS)
 set(LINPHONE_BUILDER_INCLUDED_BUILDERS)
 set(LINPHONE_BUILDER_INCLUDED_BUILDERS_TO_EXCLUDE)
