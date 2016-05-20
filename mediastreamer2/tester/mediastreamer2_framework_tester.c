@@ -200,27 +200,27 @@ static void test_video_processing_base (bool_t downscaling,bool_t rotate_clock_w
 	ms_yuv_buf_allocator_free(yba);
 
 }
-static void test_video_processing () {
+static void test_video_processing (void) {
 	test_video_processing_base(FALSE,FALSE,FALSE);
 }
 
-static void test_copy_ycbcrbiplanar_to_true_yuv_with_downscaling () {
+static void test_copy_ycbcrbiplanar_to_true_yuv_with_downscaling (void) {
 	test_video_processing_base(TRUE,FALSE,FALSE);
 }
 
-static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise() {
+static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise(void) {
 	test_video_processing_base(FALSE,TRUE,FALSE);
 }
 
-static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise_with_downscaling() {
+static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_clock_wise_with_downscaling(void) {
 	test_video_processing_base(TRUE,TRUE,FALSE);
 }
 
-static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180() {
+static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180(void) {
 	test_video_processing_base(FALSE,FALSE,TRUE);
 }
 
-static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180_with_downscaling() {
+static void test_copy_ycbcrbiplanar_to_true_yuv_with_rotation_180_with_downscaling(void) {
 	test_video_processing_base(TRUE,FALSE,TRUE);
 }
 
