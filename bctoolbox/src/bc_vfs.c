@@ -110,16 +110,7 @@ static int bcRead(bctbx_vfs_file_t *pFile, void *buf, int count, uint64_t offset
 					return -errno;
 				}
 			}
-			else if (nRead == count){
-				return nRead;
-			}
-			/*read less than expected */
-			else{
-				  /* Buffer too big for what's been read : these parts of the buffer 
-				  must be zero-filled */
-				memset(&((char*)buf)[nRead], 0, count-nRead);
-				return nRead;
-			}
+			return nRead;
 			
 		}
 	}
@@ -191,61 +182,45 @@ static int bcFileSize(bctbx_vfs_file_t *pFile){
  */
 static int bcGetLine(bctbx_vfs_file_t *pFile, char* s,  int max_len) {
 	int ret, sizeofline, isEof ;
-	int lineMaxLgth;
-	char *pTmpLineBuf ;
 	char* pNextLine ;
 	
 	if (pFile->fd == -1) {
-		
+		return BCTBX_VFS_ERROR;
+	}
+	if (s == NULL || max_len<1) {
 		return BCTBX_VFS_ERROR;
 	}
 	
 	pNextLine = NULL;
-	lineMaxLgth = max_len;
-	pTmpLineBuf = (char *)bctbx_malloc( lineMaxLgth * sizeof(char));
 	
 	sizeofline = 0;
 	isEof = 0;
 	
-	if (pTmpLineBuf == NULL) {
-		bctbx_error("bcGetLine : Error allocating memory for line buffer.");
-		return BCTBX_VFS_ERROR;
-	}
+	s[max_len-1] = '\0';
 	
 	/* Read returns 0 if end of file is found */
-	ret = bctbx_file_read(pFile, pTmpLineBuf, lineMaxLgth, pFile->offset);
+	ret = bctbx_file_read(pFile, s, max_len-1, pFile->offset);
 	if (ret > 0){
-		pNextLine = strstr(pTmpLineBuf, "\r");
-		if (pNextLine == NULL) pNextLine = strstr(pTmpLineBuf, "\n");
+		pNextLine = strchr(s, '\r');
+		if (pNextLine == NULL) pNextLine = strchr(s, '\n');
 		if (pNextLine)
 		{
 			/* Got a line! */
 			*pNextLine = '\0';
-			sizeofline = pNextLine - pTmpLineBuf +1;
-			strncpy(s, pTmpLineBuf, sizeofline );
+			sizeofline = pNextLine - s + 1;
+			if (pNextLine[1] == '\n') sizeofline += 1; /*take into account the \r\n" case*/
+			
 			/* offset to next beginning of line*/
 			pFile->offset += sizeofline ;
-			
-		}
-		
-		else{
+		}else{
 			/*did not find end of line char, is EOF?*/
 			sizeofline = ret;
-			strncpy(s, pTmpLineBuf, sizeofline );
 			pFile->offset += sizeofline ;
-			
+			s[ret] = '\0';
 		}
-		
-	}
-	
-	else if (ret < 0){
+	}else if (ret < 0){
 		bctbx_error("bcGetLine error ");
 	}
-	else{
-		bctbx_warning("bcGetLine : EOF reached");
-	}
-	
-	bctbx_free(pTmpLineBuf);
 	return sizeofline;
 }
 /**
@@ -309,7 +284,6 @@ static  int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName
 	
 	pFile->pMethods = &bcio;
 	pFile->size = pFile->pMethods->pFuncFileSize(pFile);
-	pFile->filename = (char*)fName;
 	return BCTBX_VFS_OK;
 }
 

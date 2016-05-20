@@ -74,8 +74,7 @@ typedef struct bctbx_vfs_file_t bctbx_vfs_file_t;
 struct bctbx_vfs_file_t {
 	const struct bctbx_io_methods *pMethods;  /* Methods for an open file */
 	int fd;                         		/* File descriptor */
-	int offset;								/*File offset used by lseek*/
-	char* filename;
+	off_t offset;								/*File offset used by lseek*/
 	uint64_t size;
 };
 
