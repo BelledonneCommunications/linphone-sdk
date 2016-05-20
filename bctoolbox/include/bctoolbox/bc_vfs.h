@@ -17,9 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+#ifndef bc_vfs_h
+#define bc_vfs_h
 #include <fcntl.h>
 
 #include <bctoolbox/port.h>
@@ -120,3 +119,4 @@ int bctbx_file_get_nxtline(bctbx_vfs_file_t* pFile, char*s , int maxlen);
 int bctbx_file_seek(bctbx_vfs_file_t *pFile, uint64_t offset, int whence);
 const bctbx_io_methods* get_bcio(void);
 
+#endif
