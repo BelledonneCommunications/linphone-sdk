@@ -412,11 +412,6 @@ int bctbx_file_open(bctbx_vfs_t* pVfs, bctbx_vfs_file_t* pFile, const char *fNam
 int bctbx_file_read(bctbx_vfs_file_t* pFile, void *buf, int count, uint64_t offset){
 	int ret;
 	if (pFile){
-		/*Are we trying to read after the EOF? Then there is nothing to read.*/
-		if (offset >= pFile->size && pFile->size!= 0)
-		{
-			return 0;
-		}
 		ret = pFile->pMethods->pFuncRead(pFile, buf, count, offset);
 		/*check if error : in this case pErrSvd is initialized*/
 		if (ret == BCTBX_VFS_ERROR){
@@ -446,9 +441,7 @@ int bctbx_file_close(bctbx_vfs_file_t* pFile){
 		{
 			bctbx_error("bctbx_file_close: Error  %s freeing file handle anyway"  ,strerror(-(ret)));
 		}
-	
  	}
-
 	bctbx_free(pFile);
  	return ret;
  }

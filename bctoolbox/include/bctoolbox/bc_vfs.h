@@ -71,10 +71,12 @@ typedef struct bctbx_io_methods bctbx_io_methods;
  */
 typedef struct bctbx_vfs_file_t bctbx_vfs_file_t;
 struct bctbx_vfs_file_t {
-	const struct bctbx_io_methods *pMethods;  /* Methods for an open file */
+	const struct bctbx_io_methods *pMethods;  /* Methods for an open file: all implementors must supply this field at open step*/
+	/*the fields below are used by the default implementation. Implementors are not required to supply them, but may use them if they find
+	 * them useful*/
+	uint64_t size;					/*size of file*/
 	int fd;                         		/* File descriptor */
 	off_t offset;								/*File offset used by lseek*/
-	uint64_t size;
 };
 
 
