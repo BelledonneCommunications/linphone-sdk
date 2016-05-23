@@ -15,3 +15,6 @@ sqlite3_prepare_v2
 sqlite3_profile
 sqlite3_snprintf
 sqlite3_step
+sqlite3_vfs_find
+sqlite3_vfs_register
+sqlite3_vfs_unregister
