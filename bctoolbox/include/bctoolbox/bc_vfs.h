@@ -218,7 +218,7 @@ const bctbx_io_methods* get_bcio(void);
 
 
 void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs);
-bctbx_vfs_t * bctbx_vfs_get_default();
+bctbx_vfs_t * bctbx_vfs_get_default(void);
 
 #endif
 
