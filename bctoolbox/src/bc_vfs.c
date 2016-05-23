@@ -453,7 +453,9 @@ void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs){
 		pDefaultVfs = my_vfs;
 	}
 }
-bctbx_vfs_t * bctbx_vfs_get_default(void){
+
+
+bctbx_vfs_t* bctbx_vfs_get_default(void){
 	return pDefaultVfs;
 	
 }

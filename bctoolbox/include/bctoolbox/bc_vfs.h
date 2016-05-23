@@ -219,7 +219,7 @@ void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs);
  * pointing to the default vfs used.
  * @return Pointer to bctbx_vfs_t set to operate as default VFS.
  */
-bctbx_vfs_t * bctbx_vfs_get_default(void);
+bctbx_vfs_t* bctbx_vfs_get_default(void);
 
 
 #endif
