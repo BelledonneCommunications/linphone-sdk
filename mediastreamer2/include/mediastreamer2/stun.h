@@ -199,6 +199,10 @@ typedef struct {
 	struct sockaddr *turn_server_addr;
 	socklen_t turn_server_addrlen;
 	bool_t force_rtp_sending_via_relay;
+	uint32_t stats_nb_send_indication;
+	uint32_t stats_nb_data_indication;
+	uint32_t stats_nb_received_channel_msg;
+	uint32_t stats_nb_sent_channel_msg;
 } MSTurnContext;
 
 
