@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdarg.h>
 #include <errno.h>
 
+static bctbx_vfs_t *pDefaultVfs;
+
 /**
  * Closes file by closing the associated file descriptor.
  * Sets the error errno in the argument pErrSrvd after allocating it
@@ -273,7 +275,6 @@ static  int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName
 
 bctbx_vfs_t *bc_create_vfs(void){
 	static bctbx_vfs_t bcVfs = {
-		0,                            /* pNext */
 		"bctbx_vfs_t",                  /* vfsName */
 		bcOpen,						/*xOpen */
 
@@ -282,28 +283,6 @@ bctbx_vfs_t *bc_create_vfs(void){
 }
 
 
-
-bctbx_vfs_t *bctbx_vfs_find(bctbx_vfs_t* p, const char *zVfsName){
-	bctbx_vfs_t *tmp = p;
-	do{
-		if (tmp->vfsName == zVfsName){
-			return tmp;
-		}
-		tmp = tmp->pNext;
-		
-	}while(tmp != 0);
-	return NULL;
-}
-
-
-int bctbx_vfs_register(bctbx_vfs_t* pVfs, bctbx_vfs_t** pToVfs){
-	int ret = BCTBX_VFS_OK;
-	if (pVfs != NULL) *pToVfs = pVfs;
-	else{
-			ret = BCTBX_VFS_ERROR;
-	}
-	return ret;
-}
 
 int bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, int count, uint64_t offset){
 	int ret;
@@ -463,4 +442,18 @@ int bctbx_file_get_nxtline(bctbx_vfs_file_t* pFile, char*s , int maxlen){
 	if (pFile) return pFile->pMethods->pFuncGetLineFromFd(pFile,s, maxlen);
 
 	return BCTBX_VFS_ERROR;
+}
+
+
+void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs){
+	if (my_vfs == NULL){
+		pDefaultVfs = bc_create_vfs();
+	}
+	else{
+		pDefaultVfs = my_vfs;
+	}
+}
+bctbx_vfs_t * bctbx_vfs_get_default(void){
+	return pDefaultVfs;
+	
 }

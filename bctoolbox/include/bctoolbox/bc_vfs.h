@@ -97,7 +97,6 @@ struct bctbx_io_methods {
  */
 typedef struct bctbx_vfs_t bctbx_vfs_t;
 struct bctbx_vfs_t {
-	bctbx_vfs_t *pNext;      		/* Next registered VFS */
 	const char *vfsName;       /* Virtual file system name */
 	int (*pFuncFopen)(bctbx_vfs_t* pVfs, bctbx_vfs_file_t *pFile, const char *fName,  const int openFlags);
 
@@ -110,15 +109,7 @@ struct bctbx_vfs_t {
  * This function returns a pointer to the VFS implemented in this file.
  */
 bctbx_vfs_t *bc_create_vfs(void);
-bctbx_vfs_t *bctbx_vfs_find(bctbx_vfs_t* p, const char *zVfsName);
 
-/**
- * Assigns the VFS pointer in use pVfs to pToVfs.
- * @param  pVfs   Pointer to the vfs instance in use.
- * @param  pToVfs Pointer to the vfs pointer in use.
- * @return       BCTBX_VFS_ERROR if pVfs is NULL,  BCTBX_VFS_OK otherwise.
- */
-int bctbx_vfs_register(bctbx_vfs_t* pVfs, bctbx_vfs_t** pToVfs);
 
 /**
  * Attempts to read count bytes from the open file given by pFile, at the position starting at offset 
@@ -148,6 +139,8 @@ int bctbx_file_close(bctbx_vfs_file_t* pFile);
  * @return  pointer to  bctbx_vfs_file_t on success, NULL otherwise.      
  */
 bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t* pVfs, const char *fName,  const char* mode);
+
+
 /**
  * Allocates a bctbx_vfs_file_t file handle pointer. Opens the file fName
  * with the mode specified by the mode argument. Calls bctbx_file_open.
@@ -207,18 +200,27 @@ int bctbx_file_seek(bctbx_vfs_file_t *pFile, uint64_t offset, int whence);
 
 
 /**
- * Find the VFS in use within the VFS table.
- * @param  p        bctbx_vfs pointer to the first VFS
- * @param  zVfsName VFS name
- * @return          pointer to the VFS with the name zVfsName if found, NULL otherwise.
+ * Returns a pointer to the vfs io_methods structure.
+ * @return  pointer to static bctbx_io_methods.
  */
-bctbx_vfs_t *bctbx_vfs_find(bctbx_vfs_t* p, const char *zVfsName);
-
 const bctbx_io_methods* get_bcio(void);
 
-
+/**
+ * Set default VFS pointer pDefault to my_vfs if not NULL,
+ * use bc_create_vfs otherwise to initalize pDefault.
+ * @param my_vfs Pointer to a bctbx_vfs_t structure. Set it to NULL to use the
+ * 				VFS implemnted in bc_vfs.c file.
+ */
 void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs);
+
+
+/**
+ * Returns the value of the global variable pDefault,
+ * pointing to the default vfs used.
+ * @return Pointer to bctbx_vfs_t set to operate as default VFS.
+ */
 bctbx_vfs_t * bctbx_vfs_get_default(void);
+
 
 #endif
 
