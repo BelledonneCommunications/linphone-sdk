@@ -62,6 +62,9 @@ else()
 		endif()
 	endforeach()
 
+	# Check for build tools and show an error if one of them is not present
+	include(${CMAKE_CURRENT_LIST_DIR}/../cmake/CheckBuildTools.cmake)
+
 	add_custom_target(TARGET_linphone_builder ALL)
 
 	# Build bctoolbox  and its dependencies if it is in the targets list
