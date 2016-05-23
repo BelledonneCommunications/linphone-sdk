@@ -26,8 +26,8 @@ static const char *log_domain = "bctoolbox-tester";
 static void log_handler(int lev, const char *fmt, va_list args) {
 #ifdef _WIN32
 	/* We must use stdio to avoid log formatting (for autocompletion etc.) */
-	vfprintf(lev == BCTOOLBOX_ERROR ? stderr : stdout, fmt, args);
-	fprintf(lev == BCTOOLBOX_ERROR ? stderr : stdout, "\n");
+	vfprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, fmt, args);
+	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
 #else
 	va_list cap;
 	va_copy(cap,args);

@@ -61,6 +61,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BCTBX_VFS_ERROR       -255   /* Some kind of disk I/O error occurred */
 
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
+
 /**
  * Methods associated with the bctbx_vfs_t.
  */
@@ -108,7 +113,7 @@ struct bctbx_vfs_t {
 /*
  * This function returns a pointer to the VFS implemented in this file.
  */
-bctbx_vfs_t *bc_create_vfs(void);
+BCTBX_PUBLIC bctbx_vfs_t *bc_create_vfs(void);
 
 
 /**
@@ -120,7 +125,7 @@ bctbx_vfs_t *bc_create_vfs(void);
  * @param  offset Where to start reading in the file (in bytes).
  * @return        Number of bytes read on success, BCTBX_VFS_ERROR otherwise. 
  */
-int bctbx_file_read(bctbx_vfs_file_t* pFile, void *buf, int count, uint64_t offset);
+BCTBX_PUBLIC int bctbx_file_read(bctbx_vfs_file_t* pFile, void *buf, int count, uint64_t offset);
 
 /**
  * Close the file from its descriptor pointed by thw bctbx_vfs_file_t handle. 
@@ -128,7 +133,7 @@ int bctbx_file_read(bctbx_vfs_file_t* pFile, void *buf, int count, uint64_t offs
  * @return      	return value from the pFuncClose VFS Close function on success, 
  *                  BCTBX_VFS_ERROR otherwise. 
  */
-int bctbx_file_close(bctbx_vfs_file_t* pFile);
+BCTBX_PUBLIC int bctbx_file_close(bctbx_vfs_file_t* pFile);
 
 /**
  * Allocates a bctbx_vfs_file_t file handle pointer. Opens the file fName
@@ -138,7 +143,7 @@ int bctbx_file_close(bctbx_vfs_file_t* pFile);
  * @param  mode  File access mode (char*).
  * @return  pointer to  bctbx_vfs_file_t on success, NULL otherwise.      
  */
-bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t* pVfs, const char *fName,  const char* mode);
+BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t* pVfs, const char *fName, const char* mode);
 
 
 /**
@@ -149,7 +154,7 @@ bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t* pVfs, const char *fName,  const c
  * @param  openFlags  	File access flags(integer).
  * @return  pointer to  bctbx_vfs_file_t on success, NULL otherwise.      
  */
-bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t* pVfs, const char *fName,  const int openFlags );
+BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t* pVfs, const char *fName, const int openFlags);
 
 
 /**
@@ -157,7 +162,7 @@ bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t* pVfs, const char *fName,  const 
  * @param  pFile  bctbx_vfs_file_t File handle pointer.
  * @return       BCTBX_VFS_ERROR if an error occured, file size otherwise. 
  */
-uint64_t bctbx_file_size(bctbx_vfs_file_t *pFile);
+BCTBX_PUBLIC uint64_t bctbx_file_size(bctbx_vfs_file_t *pFile);
 
 /**
  * Write count bytes contained in buf to a file associated with pFile at the position
@@ -168,7 +173,7 @@ uint64_t bctbx_file_size(bctbx_vfs_file_t *pFile);
  * @param  offset 	Position in the file where to start writing. 
  * @return        	Number of bytes written on success, BCTBX_VFS_ERROR if an error occurred.
  */
-int bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, int count, uint64_t offset);
+BCTBX_PUBLIC int bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, int count, uint64_t offset);
 
 /**
  * Writes to file. 
@@ -177,7 +182,7 @@ int bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, int count, uint64
  * @param  fmt    format argument, similar to that of printf
  * @return        Number of bytes written if success, BCTBX_VFS_ERROR otherwise.
  */
-int bctbx_file_fprintf(bctbx_vfs_file_t* pFile, uint64_t offset, const char* fmt, ...);
+BCTBX_PUBLIC int bctbx_file_fprintf(bctbx_vfs_file_t* pFile, uint64_t offset, const char* fmt, ...);
 
 /**
  * Wrapper to pFuncGetNxtLine. Returns a line with at most maxlen characters 
@@ -187,7 +192,7 @@ int bctbx_file_fprintf(bctbx_vfs_file_t* pFile, uint64_t offset, const char* fmt
  * @param  maxlen Number of characters to read to find a line in the file. 
  * @return        BCTBX_VFS_ERROR if an error occurred, size of line read otherwise. 
  */
-int bctbx_file_get_nxtline(bctbx_vfs_file_t* pFile, char*s , int maxlen);
+BCTBX_PUBLIC int bctbx_file_get_nxtline(bctbx_vfs_file_t* pFile, char*s, int maxlen);
 
 /**
  * Wrapper to pFuncSeek VFS method call. Set the position to offset in the file.
@@ -196,14 +201,14 @@ int bctbx_file_get_nxtline(bctbx_vfs_file_t* pFile, char*s , int maxlen);
  * @param  whence Either SEEK_SET, SEEK_CUR,SEEK_END 
  * @return        BCTBX_VFS_ERROR on error, offset otherwise. 
  */
-int bctbx_file_seek(bctbx_vfs_file_t *pFile, uint64_t offset, int whence);
+BCTBX_PUBLIC int bctbx_file_seek(bctbx_vfs_file_t *pFile, uint64_t offset, int whence);
 
 
 /**
  * Returns a pointer to the vfs io_methods structure.
  * @return  pointer to static bctbx_io_methods.
  */
-const bctbx_io_methods* get_bcio(void);
+BCTBX_PUBLIC const bctbx_io_methods* get_bcio(void);
 
 /**
  * Set default VFS pointer pDefault to my_vfs if not NULL,
@@ -211,7 +216,7 @@ const bctbx_io_methods* get_bcio(void);
  * @param my_vfs Pointer to a bctbx_vfs_t structure. Set it to NULL to use the
  * 				VFS implemnted in bc_vfs.c file.
  */
-void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs);
+BCTBX_PUBLIC void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs);
 
 
 /**
@@ -219,7 +224,12 @@ void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs);
  * pointing to the default vfs used.
  * @return Pointer to bctbx_vfs_t set to operate as default VFS.
  */
-bctbx_vfs_t* bctbx_vfs_get_default(void);
+BCTBX_PUBLIC bctbx_vfs_t* bctbx_vfs_get_default(void);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

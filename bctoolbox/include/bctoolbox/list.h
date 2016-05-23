@@ -31,9 +31,10 @@ typedef struct _bctbx_list {
 	void *data;
 } bctbx_list_t;
 
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_new(void *data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_append(bctbx_list_t * elem, void * data);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_prepend(bctbx_list_t * elem, void * data);
-BCTBX_PUBLIC bctbx_list_t*  bctbx_list_prepend_link(bctbx_list_t* elem, bctbx_list_t *new_elem);
+BCTBX_PUBLIC bctbx_list_t * bctbx_list_prepend_link(bctbx_list_t* elem, bctbx_list_t *new_elem);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_last_elem(const bctbx_list_t *l);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_first_elem(const bctbx_list_t *l);
 BCTBX_PUBLIC bctbx_list_t * bctbx_list_free(bctbx_list_t * elem);
