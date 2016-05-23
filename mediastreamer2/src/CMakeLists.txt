@@ -408,23 +408,20 @@ add_custom_target(ms2-voipdescs-header
 )
 
 if(APPLE OR ANDROID OR GLX_FOUND)
-	find_program(XXD_PROGRAM xxd)
-	if(NOT XXD_PROGRAM)
-		message(FATAL_ERROR "You need the xxd program to build mediastreamer2.")
-	endif()
+	find_package(PythonInterp REQUIRED)
 	find_program(SED_PROGRAM sed)
 	if(NOT SED_PROGRAM)
 		message(FATAL_ERROR "You need the sed program to build mediastreamer2.")
 	endif()
 	add_custom_target(ms2-yuv2rgb-fs-header
-		COMMAND ${CMAKE_COMMAND} -DXXD_PROGRAM=${XXD_PROGRAM} -DSED_PROGRAM=${SED_PROGRAM}
+		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
 			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 			-DSOURCE_FILE="yuv2rgb.fs"
 			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
 		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h"
 	)
 	add_custom_target(ms2-yuv2rgb-vs-header
-		COMMAND ${CMAKE_COMMAND} -DXXD_PROGRAM=${XXD_PROGRAM} -DSED_PROGRAM=${SED_PROGRAM}
+		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
 			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 			-DSOURCE_FILE="yuv2rgb.vs"
 			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
