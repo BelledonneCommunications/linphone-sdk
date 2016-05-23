@@ -148,6 +148,7 @@ typedef struct {
 	uint64_t ice_controlling;
 	uint64_t ice_controlled;
 	uint32_t lifetime;
+	uint16_t channel_number;
 	uint16_t data_length;
 	uint8_t requested_transport;
 	bool_t include_username_attribute;
@@ -164,6 +165,7 @@ typedef struct {
 	bool_t has_ice_controlling;
 	bool_t has_ice_controlled;
 	bool_t has_lifetime;
+	bool_t has_channel_number;
 	bool_t has_requested_transport;
 } MSStunMessage;
 
@@ -172,7 +174,9 @@ typedef enum {
 	MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION,
 	MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED,
 	MS_TURN_CONTEXT_STATE_CREATING_PERMISSIONS,
-	MS_TURN_CONTEXT_STATE_RUNNING
+	MS_TURN_CONTEXT_STATE_PERMISSIONS_CREATED,
+	MS_TURN_CONTEXT_STATE_BINDING_CHANNEL,
+	MS_TURN_CONTEXT_STATE_CHANNEL_BOUND
 } MSTurnContextState;
 
 typedef enum {
@@ -188,6 +192,7 @@ typedef struct {
 	char *password;
 	char *ha1;
 	uint32_t lifetime;
+	uint16_t channel_number;
 	MSTurnContextState state;
 	MSTurnContextType type;
 	MSStunAddress relay_addr;
@@ -284,11 +289,15 @@ MS2_PUBLIC MSStunMessage * ms_turn_allocate_request_create(void);
 MS2_PUBLIC MSStunMessage * ms_turn_refresh_request_create(uint32_t lifetime);
 MS2_PUBLIC MSStunMessage * ms_turn_create_permission_request_create(MSStunAddress peer_address);
 MS2_PUBLIC MSStunMessage * ms_turn_send_indication_create(MSStunAddress peer_address);
+MS2_PUBLIC MSStunMessage * ms_turn_channel_bind_request_create(MSStunAddress peer_address, uint16_t channel_number);
 MS2_PUBLIC bool_t ms_stun_message_has_requested_transport(const MSStunMessage *msg);
 MS2_PUBLIC uint8_t ms_stun_message_get_requested_transport(const MSStunMessage *msg);
 MS2_PUBLIC bool_t ms_stun_message_has_lifetime(const MSStunMessage *msg);
 MS2_PUBLIC uint32_t ms_stun_message_get_lifetime(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_set_lifetime(MSStunMessage *msg, uint32_t lifetime);
+MS2_PUBLIC bool_t ms_stun_message_has_channel_number(const MSStunMessage *msg);
+MS2_PUBLIC uint16_t ms_stun_message_get_channel_number(const MSStunMessage *msg);
+MS2_PUBLIC void ms_stun_message_set_channel_number(MSStunMessage *msg, uint16_t channel_number);
 MS2_PUBLIC uint8_t * ms_stun_message_get_data(const MSStunMessage *msg);
 MS2_PUBLIC uint16_t ms_stun_message_get_data_length(const MSStunMessage *msg);
 MS2_PUBLIC void ms_stun_message_set_data(MSStunMessage *msg, uint8_t *data, uint16_t length);
@@ -310,6 +319,8 @@ MS2_PUBLIC const char * ms_turn_context_get_ha1(const MSTurnContext *context);
 MS2_PUBLIC void ms_turn_context_set_ha1(MSTurnContext *context, const char *ha1);
 MS2_PUBLIC uint32_t ms_turn_context_get_lifetime(const MSTurnContext *context);
 MS2_PUBLIC void ms_turn_context_set_lifetime(MSTurnContext *context, uint32_t lifetime);
+MS2_PUBLIC uint16_t ms_turn_context_get_channel_number(const MSTurnContext *context);
+MS2_PUBLIC void ms_turn_context_set_channel_number(MSTurnContext *context, uint16_t channel_number);
 MS2_PUBLIC void ms_turn_context_set_allocated_relay_addr(MSTurnContext *context, MSStunAddress relay_addr);
 MS2_PUBLIC void ms_turn_context_set_force_rtp_sending_via_relay(MSTurnContext *context, bool_t force);
 MS2_PUBLIC RtpTransport * ms_turn_context_create_endpoint(MSTurnContext *context);
