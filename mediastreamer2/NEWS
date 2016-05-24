@@ -1,3 +1,6 @@
+mediastreamer2-2.13.0: May xx, 2015
+	* Add support of H264 hardware codec on Apple's platforms
+
 mediastreamer2-2.12.1: November 16, 2015
 	* Fix crash in MKV recorder
 	* Fix I-frame request when starting MKV recording
