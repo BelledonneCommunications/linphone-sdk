@@ -20,14 +20,9 @@
 #
 ############################################################################
 
-set(EP_soci_URL "http://downloads.sourceforge.net/soci/soci-3.2.3.tar.gz")
+set(soci_filename "soci-3.2.3.tar.gz")
+set(EP_soci_URL "http://downloads.sourceforge.net/soci/${soci_filename}")
 set(EP_soci_URL_HASH "SHA1=5e527cf5c1740198fa706fc8821af45b34867ee1")
-set(EP_soci_GIT_REPOSITORY "https://github.com/SOCI/soci.git" CACHE STRING "soci repository URL")
-set(EP_soci_GIT_TAG_LATEST "master" CACHE STRING "soci tag to use when compiling latest version")
-set(EP_soci_GIT_TAG "3.2.3" CACHE STRING "soci tag to use")
-set(EP_soci_EXTERNAL_SOURCE_PATHS "externals/soci")
-set(EP_soci_MAY_BE_FOUND_ON_SYSTEM TRUE)
-set(EP_soci_IGNORE_WARNINGS TRUE)
 
 set(EP_soci_BUILD_METHOD "rpm")
 set(EP_soci_SPEC_FILE "soci.spec" )
