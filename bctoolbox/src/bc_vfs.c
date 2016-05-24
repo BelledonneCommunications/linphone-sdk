@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "bctoolbox/port.h"
 #include "bctoolbox/logging.h"
 #include <sys/types.h>
-#include <stdbool.h>
 #include <stdarg.h>
 #include <errno.h>
 
