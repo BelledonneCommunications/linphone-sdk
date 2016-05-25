@@ -24,7 +24,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdarg.h>
 #include <errno.h>
 
-static bctbx_vfs_t *pDefaultVfs;
+
+/**
+ * Opens the file with filename fName, associate it to the file handle pointed
+ * by pFile, sets the methods bctbx_io_methods_t to the bcio structure
+ * and initializes the file size.
+ * Sets the error in pErrSvd if an error occurred while opening the file fName.
+ * @param  pVfs    		Pointer to  bctx_vfs  VFS.
+ * @param  fName   		Absolute path filename.
+ * @param  openFlags    Flags to use when opening the file.
+ * @return         		BCTBX_VFS_ERROR if an error occurs, BCTBX_VFS_OK otherwise.
+ */
+static  int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, const int openFlags);
+
+
+static bctbx_vfs_t bcVfs = {
+	"bctbx_vfs_t",               /* vfsName */
+	bcOpen,						/*xOpen */
+	
+};
+
+/* Pointer to deault VFS initialized to standard VFS implemeented here.*/
+static bctbx_vfs_t *pDefaultVfs = &bcVfs ;
+
 
 /**
  * Closes file by closing the associated file descriptor.
@@ -229,56 +251,33 @@ static int set_flags(const char* mode){
 	return oflags;
 }
 
-static const bctbx_io_methods bcio = {
+
+
+static const  bctbx_io_methods_t bcio = {
 		bcClose,                    /* pFuncClose */
 		bcRead,                     /* pFuncRead */
 		bcWrite,                    /* pFuncWrite */
 		bcFileSize,                 /* pFuncFileSize */
 		bcGetLine,
 		bcSeek,
-};
+		};
 
-/*
- Returns the bctbx_io_methods address.
- */
-const bctbx_io_methods* get_bcio(void){
-	return &bcio;
-}
-/**
- * Opens the file with filename fName, associate it to the file handle pointed 
- * by pFile, sets the methods bctbx_io_methods to the bcio structure
- * and initializes the file size.
- * Sets the error in pErrSvd if an error occurred while opening the file fName.
- * @param  pVfs    		Pointer to  bctx_vfs  VFS.
- * @param  fName   		Absolute path filename.
- * @param  openFlags    Flags to use when opening the file.
- * @return         		BCTBX_VFS_ERROR if an error occurs, BCTBX_VFS_OK otherwise.
- */
-static  int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, const int openFlags){
+
+
+static  int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, const int openFlags)
+{
 	
 	if (pFile == NULL || fName == NULL){
 		return BCTBX_VFS_ERROR ;
 	}
-
+	
 	pFile->fd = open(fName, openFlags, S_IRUSR | S_IWUSR);
 	if( pFile->fd == -1 ){
 		return -errno;
 	}
 	
 	pFile->pMethods = &bcio;
-	pFile->size = pFile->pMethods->pFuncFileSize(pFile);
 	return BCTBX_VFS_OK;
-}
-
-
-
-bctbx_vfs_t *bc_create_vfs(void){
-	static bctbx_vfs_t bcVfs = {
-		"bctbx_vfs_t",                  /* vfsName */
-		bcOpen,						/*xOpen */
-
-	};
-	return &bcVfs;
 }
 
 
@@ -307,7 +306,7 @@ static int file_open(bctbx_vfs_t* pVfs, bctbx_vfs_file_t* pFile, const char *fNa
 	int ret = BCTBX_VFS_ERROR;
 	if (pVfs && pFile ){
 
-		ret = pVfs->pFuncFopen(pVfs,pFile,fName, oflags);
+		ret = pVfs->pFuncOpen(pVfs,pFile,fName, oflags);
 		if (ret == BCTBX_VFS_ERROR){
 			bctbx_error("bctbx_file_open: Error file handle " );
 		}
@@ -445,16 +444,15 @@ int bctbx_file_get_nxtline(bctbx_vfs_file_t* pFile, char*s , int maxlen){
 
 
 void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs){
-	if (my_vfs == NULL){
-		pDefaultVfs = bc_create_vfs();
-	}
-	else{
-		pDefaultVfs = my_vfs;
-	}
+	pDefaultVfs = my_vfs;
+	
 }
 
 
 bctbx_vfs_t* bctbx_vfs_get_default(void){
-	return pDefaultVfs;
-	
+	return pDefaultVfs;	
+}
+
+bctbx_vfs_t* bctbx_vfs_get_standard(void){
+	return &bcVfs;
 }

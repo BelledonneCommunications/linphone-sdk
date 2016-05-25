@@ -68,28 +68,28 @@ extern "C"{
 /**
  * Methods associated with the bctbx_vfs_t.
  */
-typedef struct bctbx_io_methods bctbx_io_methods;
+typedef struct bctbx_io_methods_t bctbx_io_methods_t;
 
 /**
  * VFS file handle.
  */
 typedef struct bctbx_vfs_file_t bctbx_vfs_file_t;
 struct bctbx_vfs_file_t {
-	const struct bctbx_io_methods *pMethods;  /* Methods for an open file: all implementors must supply this field at open step*/
-	/*the fields below are used by the default implementation. Implementors are not required to supply them, but may use them if they find
+	const struct bctbx_io_methods_t *pMethods;  /* Methods for an open file: all Developpers must supply this field at open step*/
+	/*the fields below are used by the default implementation. Developpers are not required to supply them, but may use them if they find
 	 * them useful*/
-	uint64_t size;					/*size of file*/
-	int fd;                         		/* File descriptor */
-	off_t offset;								/*File offset used by lseek*/
+	void* pUserData; 				/*Developpers can store private data under this pointer */
+	int fd;                         /* File descriptor */
+	off_t offset;					/*File offset used by lseek*/
 };
 
 
 /**
  */
-struct bctbx_io_methods {
+struct bctbx_io_methods_t {
 	int (*pFuncClose)(bctbx_vfs_file_t *pFile);
 	int (*pFuncRead)(bctbx_vfs_file_t *pFile, void* buf, int count, uint64_t offset);
-	int (*pFuncWrite)(bctbx_vfs_file_t *pFile , const void* buf, int count, uint64_t offset );
+	int (*pFuncWrite)(bctbx_vfs_file_t *pFile ,const void* buf, int count, uint64_t offset );
 	int (*pFuncFileSize)(bctbx_vfs_file_t *pFile);
 	int (*pFuncGetLineFromFd)(bctbx_vfs_file_t *pFile , char* s, int count);
 	int (*pFuncSeek)(bctbx_vfs_file_t *pFile, uint64_t offset, int whence);
@@ -102,7 +102,7 @@ struct bctbx_io_methods {
 typedef struct bctbx_vfs_t bctbx_vfs_t;
 struct bctbx_vfs_t {
 	const char *vfsName;       /* Virtual file system name */
-	int (*pFuncFopen)(bctbx_vfs_t* pVfs, bctbx_vfs_file_t *pFile, const char *fName,  const int openFlags);
+	int (*pFuncOpen)(bctbx_vfs_t* pVfs, bctbx_vfs_file_t *pFile, const char *fName,  const int openFlags);
 
 	
 };
@@ -204,16 +204,9 @@ BCTBX_PUBLIC int bctbx_file_seek(bctbx_vfs_file_t *pFile, uint64_t offset, int w
 
 
 /**
- * Returns a pointer to the vfs io_methods structure.
- * @return  pointer to static bctbx_io_methods.
- */
-BCTBX_PUBLIC const bctbx_io_methods* get_bcio(void);
-
-/**
- * Set default VFS pointer pDefault to my_vfs if not NULL,
- * use bc_create_vfs otherwise to initalize pDefault.
- * @param my_vfs Pointer to a bctbx_vfs_t structure. Set it to NULL to use the
- * 				VFS implemnted in bc_vfs.c file.
+ * Set default VFS pointer pDefault to my_vfs.
+ * By default, the global pointer is seet to use VFS implemnted in bc_vfs.c 
+ * @param my_vfs Pointer to a bctbx_vfs_t structure. 
  */
 BCTBX_PUBLIC void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs);
 
@@ -224,6 +217,12 @@ BCTBX_PUBLIC void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs);
  * @return Pointer to bctbx_vfs_t set to operate as default VFS.
  */
 BCTBX_PUBLIC bctbx_vfs_t* bctbx_vfs_get_default(void);
+	
+/**
+ * Return pointer to standard VFS impletentation.
+ * @return  pointer to bcVfs
+ */
+BCTBX_PUBLIC bctbx_vfs_t* bctbx_vfs_get_standard(void);
 
 
 #ifdef __cplusplus
