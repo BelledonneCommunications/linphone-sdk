@@ -39,7 +39,7 @@ static  int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName
 
 
 static bctbx_vfs_t bcVfs = {
-	"bctbx_vfs_t",               /* vfsName */
+	"bctbx_vfs",               /* vfsName */
 	bcOpen,						/*xOpen */
 	
 };
