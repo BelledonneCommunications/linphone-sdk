@@ -113,7 +113,6 @@ else()
 			else()
 				set(EP_vpx_TARGET "x86-darwin10-gcc")
 			endif()
-			set(EP_vpx_BUILD_IN_SOURCE 1) # Build in source otherwise there are some compilation errors
 		endif()
 		set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 	elseif(ANDROID)
@@ -137,7 +136,6 @@ else()
 			"--force-target=armv7-qnx-gcc"
 			"--disable-runtime-cpu-detect"
 		)
-		#set(EP_vpx_BUILD_IN_SOURCE 1)
 	else()
 		if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 			set(EP_vpx_TARGET "x86_64-linux-gcc")
