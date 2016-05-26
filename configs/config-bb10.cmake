@@ -31,7 +31,7 @@ set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
 set(DEFAULT_VALUE_ENABLE_VIDEO ON)
 set(DEFAULT_VALUE_ENABLE_ZRTP ON)
 
-set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=YES")
+set(DEFAULT_VALUE_CMAKE_LINKING_TYPE "-DENABLE_STATIC=YES" "-DENABLE_SHARED=NO")
 
 # Global configuration
 get_filename_component(COMPILER_NAME ${CMAKE_C_COMPILER} NAME)
@@ -45,53 +45,45 @@ set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)	# 
 # Include builders
 include(builders/CMakeLists.txt)
 
-# Temporarily disable shared library (we only need the static ones), later this will be taken care of by DEFAULT_VALUE_CMAKE_LINKING_TYPE
-list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_SHARED=NO")
-list(APPEND EP_matroska2_CMAKE_OPTIONS "-DENABLE_SHARED=NO")
+# bctoolbox
+linphone_builder_add_cmake_option(bctoolbox "-DENABLE_TESTS=NO")
 
 # belle-sip
 set(EP_bellesip_EXTRA_CFLAGS "-DUSE_STRUCT_RES_STATE_NAMESERVERS ${EP_bellesip_EXTRA_CFLAGS}")
-list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
+linphone_builder_add_cmake_option(bellesip "-DENABLE_TESTS=NO")
 
 # bzrtp
-list(APPEND EP_bzrtp_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
+linphone_builder_add_cmake_option(bzrtp "-DENABLE_TESTS=NO")
 
 # linphone
-list(APPEND EP_linphone_CMAKE_OPTIONS
-	"-DENABLE_RELATIVE_PREFIX=YES"
-	"-DENABLE_CONSOLE_UI=NO"
-	"-DENABLE_GTK_UI=NO"
-	"-DENABLE_NOTIFY=NO"
-	"-DENABLE_TOOLS=NO"
-	"-DENABLE_TUTORIALS=NO"
-	"-DENABLE_UNIT_TESTS=NO"
-	"-DENABLE_UPNP=NO"
-	"-DENABLE_MSG_STORAGE=YES"
-	"-DENABLE_NLS=NO"
-	"-DENABLE_CALL_LOGS_STORAGE=YES"
-)
+linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=YES")
+linphone_builder_add_cmake_option(linphone "-DENABLE_CONSOLE_UI=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_GTK_UI=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_NOTIFY=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_TOOLS=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_TUTORIALS=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_UNIT_TESTS=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_UPNP=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_MSG_STORAGE=YES")
+linphone_builder_add_cmake_option(linphone "-DENABLE_NLS=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_CALL_LOGS_STORAGE=YES")
 
 # mbedtls
 set(EP_mbedtls_LINKING_TYPE "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
 
 # mediastreamer2
-list(APPEND EP_ms2_CMAKE_OPTIONS
-	"-DENABLE_RELATIVE_PREFIX=YES"
-	"-DENABLE_QSA=YES"
-	"-DENABLE_ALSA=NO"
-	"-DENABLE_PULSEAUDIO=NO"
-	"-DENABLE_OSS=NO"
-	"-DENABLE_GLX=NO"
-	"-DENABLE_X11=NO"
-	"-DENABLE_XV=NO"
-	"-DENABLE_MKV=YES"
-	"-DENABLE_QNX=YES"
-	"-DENABLE_V4L=NO"
-	"-DENABLE_UNIT_TESTS=NO"
-)
-
-# polarssl
-set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=0")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_QSA=YES")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_ALSA=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_PULSEAUDIO=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_OSS=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_GLX=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_X11=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_XV=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_MKV=YES")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_QNX=YES")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_V4L=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_UNIT_TESTS=NO")
 
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")

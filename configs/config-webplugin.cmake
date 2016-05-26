@@ -63,44 +63,38 @@ include(builders/CMakeLists.txt)
 
 
 # belle-sip
-list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_SERVER_SOCKETS=0")
+linphone_builder_add_cmake_option(bellesip "-DENABLE_SERVER_SOCKETS=0")
 
 # gsm
 set(EP_gsm_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 # linphone
-list(APPEND EP_linphone_CMAKE_OPTIONS
-	"-DENABLE_RELATIVE_PREFIX=YES"
-	"-DENABLE_CONSOLE_UI=NO"
-	"-DENABLE_GTK_UI=NO"
-	"-DENABLE_NOTIFY=NO"
-	"-DENABLE_TOOLS=YES"
-	"-DENABLE_TUTORIALS=NO"
-	"-DENABLE_UNIT_TESTS=NO"
-	"-DENABLE_UPNP=NO"
-	"-DENABLE_NLS=NO"
-)
+linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=YES")
+linphone_builder_add_cmake_option(linphone "-DENABLE_CONSOLE_UI=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_GTK_UI=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_NOTIFY=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_TOOLS=YES")
+linphone_builder_add_cmake_option(linphone "-DENABLE_TUTORIALS=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_UNIT_TESTS=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_UPNP=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_NLS=NO")
 if(MSVC)
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_TOOLS=NO")
+	linphone_builder_add_cmake_option(linphone "-DENABLE_TOOLS=NO")
 else()
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_TOOLS=YES")
+	linphone_builder_add_cmake_option(linphone "-DENABLE_TOOLS=YES")
 endif()
 
 # mediastreamer2
-list(APPEND EP_ms2_CMAKE_OPTIONS
-	"-DENABLE_RELATIVE_PREFIX=YES"
-	"-DENABLE_UNIT_TESTS=NO"
-	"-DENABLE_TOOLS=NO"
-)
+linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_UNIT_TESTS=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_TOOLS=NO")
 if(UNIX AND NOT APPLE)
-	list(APPEND EP_ms2_CMAKE_OPTIONS
-		"-DENABLE_ALSA=YES"
-		"-DENABLE_PULSEAUDIO=NO"
-		"-DENABLE_OSS=NO"
-		"-DENABLE_GLX=NO"
-		"-DENABLE_X11=YES"
-		"-DENABLE_XV=YES"
-	)
+	linphone_builder_add_cmake_option(ms2 "-DENABLE_ALSA=YES")
+	linphone_builder_add_cmake_option(ms2 "-DENABLE_PULSEAUDIO=NO")
+	linphone_builder_add_cmake_option(ms2 "-DENABLE_OSS=NO")
+	linphone_builder_add_cmake_option(ms2 "-DENABLE_GLX=NO")
+	linphone_builder_add_cmake_option(ms2 "-DENABLE_X11=YES")
+	linphone_builder_add_cmake_option(ms2 "-DENABLE_XV=YES")
 endif()
 
 # opencoreamr

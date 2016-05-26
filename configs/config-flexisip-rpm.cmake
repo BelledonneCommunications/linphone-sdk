@@ -94,7 +94,7 @@ endif()
 
 # needed *before* the include
 set(EP_ortp_FORCE_AUTOTOOLS True)
-list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_TESTS=NO")
 set(EP_ms2_USE_AUTOGEN True)
 set(EP_ms2_FORCE_AUTOTOOLS True)
 set(EP_ms2_CONFIGURE_OPTIONS "--disable-video")
@@ -104,7 +104,7 @@ set(EP_flexisip_FORCE_AUTOTOOLS True)
 
 # we can override the bctoolbox build method before including builders because it doesn't define it.
 set(EP_bctoolbox_BUILD_METHOD "rpm")
-list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
+linphone_builder_add_cmake_option(bctoolbox "-DENABLE_TESTS=NO")
 
 # Include builders
 include(builders/CMakeLists.txt)

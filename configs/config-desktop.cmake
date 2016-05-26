@@ -94,16 +94,16 @@ include(builders/CMakeLists.txt)
 
 # linphone
 if(WIN32)
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
-else(APPLE)
-	list(APPEND EP_linphone_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=${ENABLE_RELATIVE_PREFIX}")
+	linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=YES")
+else()
+	linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=${ENABLE_RELATIVE_PREFIX}")
 endif()
 
 # ms2
 if(WIN32)
-	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=YES")
-else(APPLE)
-	list(APPEND EP_ms2_CMAKE_OPTIONS "-DENABLE_RELATIVE_PREFIX=${ENABLE_RELATIVE_PREFIX}")
+	linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
+else()
+	linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=${ENABLE_RELATIVE_PREFIX}")
 endif()
 
 # opencoreamr

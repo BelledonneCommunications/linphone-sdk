@@ -65,60 +65,58 @@ endif()
 include(builders/CMakeLists.txt)
 
 # bctoolbox
-list(APPEND EP_bctoolbox_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
+linphone_builder_add_cmake_option(bctoolbox "-DENABLE_TESTS=NO")
 
 # belle-sip
-list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=NO")
+linphone_builder_add_cmake_option(bellesip "-DENABLE_TESTS=NO")
 
 # bzrtp
-list(APPEND EP_bzrtp_CMAKE_OPTIONS "-DENABLE_TESTS=NO" "-DENABLE_STRICT=NO")
+linphone_builder_add_cmake_option(bzrtp "-DENABLE_TESTS=NO")
+linphone_builder_add_cmake_option(bzrtp "-DENABLE_STRICT=NO")
 
 # ffmpeg
 set(EP_ffmpeg_LINKING_TYPE "--enable-static" "--disable-shared" "--enable-pic")
 
 # linphone
-list(APPEND EP_linphone_CMAKE_OPTIONS
-	"-DENABLE_RELATIVE_PREFIX=YES"
-	"-DENABLE_CONSOLE_UI=NO"
-	"-DENABLE_GTK_UI=NO"
-	"-DENABLE_NOTIFY=NO"
-	"-DENABLE_TOOLS=NO"
-	"-DENABLE_TUTORIALS=NO"
-	"-DENABLE_UPNP=NO"
-	"-DENABLE_MSG_STORAGE=YES"
-	"-DENABLE_DOC=NO"
-	"-DENABLE_UNIT_TESTS=YES"
-	"-DENABLE_NLS=NO"
-)
+linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=YES")
+linphone_builder_add_cmake_option(linphone "-DENABLE_CONSOLE_UI=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_GTK_UI=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_NOTIFY=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_TOOLS=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_TUTORIALS=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_UPNP=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_MSG_STORAGE=YES")
+linphone_builder_add_cmake_option(linphone "-DENABLE_DOC=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_UNIT_TESTS=YES")
+linphone_builder_add_cmake_option(linphone "-DENABLE_NLS=NO")
 
 # mbedtls
 set(EP_mbedtls_LINKING_TYPE "-DUSE_STATIC_MBEDTLS_LIBRARY=YES" "-DUSE_SHARED_MBEDTLS_LIBRARY=NO")
 
 # mediastreamer2
-list(APPEND EP_ms2_CMAKE_OPTIONS
-	"-DENABLE_RELATIVE_PREFIX=YES"
-	"-DENABLE_ALSA=NO"
-	"-DENABLE_PULSEAUDIO=NO"
-	"-DENABLE_OSS=NO"
-	"-DENABLE_GLX=NO"
-	"-DENABLE_X11=NO"
-	"-DENABLE_XV=NO"
-	"-DENABLE_TOOLS=NO"
-	"-DENABLE_DOC=NO"
-	"-DENABLE_UNIT_TESTS=NO"
-)
+linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_ALSA=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_PULSEAUDIO=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_OSS=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_GLX=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_X11=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_XV=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_TOOLS=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_DOC=NO")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_UNIT_TESTS=NO")
 
 # opus
-list(APPEND EP_opus_CMAKE_OPTIONS "-DENABLE_FIXED_POINT=YES")
+linphone_builder_add_cmake_option(opus "-DENABLE_FIXED_POINT=YES")
 
 # ortp
-list(APPEND EP_ortp_CMAKE_OPTIONS "-DENABLE_DOC=NO")
+linphone_builder_add_cmake_option(ortp "-DENABLE_DOC=NO")
 
 # polarssl
 set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=0")
 
 # speex
-list(APPEND EP_speex_CMAKE_OPTIONS "-DENABLE_FLOAT_API=NO" "-DENABLE_FIXED_POINT=YES")
+linphone_builder_add_cmake_option(speex "-DENABLE_FLOAT_API=NO")
+linphone_builder_add_cmake_option(speex "-DENABLE_FIXED_POINT=YES")
 
 # vpx
 set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")
@@ -126,4 +124,3 @@ set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")
 # x264
 set(EP_x264_LINKING_TYPE "--enable-static" "--enable-pic")
 set(EP_x264_INSTALL_TARGET "install-lib-static")
-

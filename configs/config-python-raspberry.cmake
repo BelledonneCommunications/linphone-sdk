@@ -40,7 +40,7 @@ set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
 )
 
 # opus
-list(APPEND EP_opus_CMAKE_OPTIONS "-DENABLE_FIXED_POINT=YES")
+linphone_builder_add_cmake_option(opus "-DENABLE_FIXED_POINT=YES")
 
 # vpx
 set(EP_vpx_CROSS_COMPILATION_OPTIONS

@@ -53,30 +53,24 @@ include(builders/CMakeLists.txt)
 
 
 # linphone
-list(APPEND EP_linphone_CMAKE_OPTIONS
-	"-DENABLE_RELATIVE_PREFIX=YES"
-	"-DENABLE_CONSOLE_UI=NO"
-	"-DENABLE_GTK_UI=NO"
-	"-DENABLE_NOTIFY=NO"
-	"-DENABLE_TOOLS=NO"
-	"-DENABLE_TUTORIALS=NO"
-	"-DENABLE_UPNP=NO"
-)
+linphone_builder_add_cmake_option(linphone "-DENABLE_RELATIVE_PREFIX=YES")
+linphone_builder_add_cmake_option(linphone "-DENABLE_CONSOLE_UI=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_GTK_UI=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_NOTIFY=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_TOOLS=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_TUTORIALS=NO")
+linphone_builder_add_cmake_option(linphone "-DENABLE_UPNP=NO")
 
 # mbedtls
 set(EP_mbedtls_EXTRA_CFLAGS "${EP_mbedtls_EXTRA_CFLAGS} -DMBEDTLS_NO_PLATFORM_ENTROPY")
 
 # ms2
-list(APPEND EP_ms2_CMAKE_OPTIONS
-	"-DENABLE_RELATIVE_PREFIX=YES"
-	"-DENABLE_TOOLS=NO"
-)
+linphone_builder_add_cmake_option(ms2 "-DENABLE_RELATIVE_PREFIX=YES")
+linphone_builder_add_cmake_option(ms2 "-DENABLE_TOOLS=NO")
 
 # opus
-list(APPEND EP_opus_CMAKE_OPTIONS
-	"-DENABLE_ASM=NO"
-	"-DENABLE_FIXED_POINT=YES"
-)
+linphone_builder_add_cmake_option(opus "-DENABLE_ASM=NO")
+linphone_builder_add_cmake_option(opus "-DENABLE_FIXED_POINT=YES")
 set(EP_opus_LINKING_TYPE "-DENABLE_STATIC=YES")
 
 
