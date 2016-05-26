@@ -1,0 +1,5 @@
+May 2016:
+	* Creating a Virtual File System bctbx_vfs allowing direct file access and I/Os.
+
+January 2016:
+	* Initial commit
