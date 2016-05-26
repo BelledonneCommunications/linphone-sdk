@@ -1,2 +1,4 @@
-mswebrtc-1.0.0 -- Mounth DD, yyyy
+mswebrtc-1.0.0 -- June xx, 2016
 	* iLBC codec
+	* MSFactory - changing init to use MSFactory.
+
