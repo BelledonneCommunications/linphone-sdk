@@ -1,0 +1,8 @@
+February 2016:
+	- Update to use MSFactory
+
+January 21, 2016
+	- Support build for Windows 10 with Cmake
+
+January 8, 2016
+	- Fix 0002487: Audio call windows to windows very bad quality
