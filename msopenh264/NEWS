@@ -1,3 +1,6 @@
+msopenh264-1.1.2 -- June x , 2016
+	* MSFactory usage.
+
 msopenh264-1.1.1 -- November 2nd, 2015
 	* Bug fixes
 
@@ -6,4 +9,4 @@ msopenh264-1.1.0 -- June 4th, 2015
 	* Request PLI on decoding error if AVPF is enabled
 
 msopenh264-1.0.0 -- June 4th, 2015
-        * First official release
+    * First official release
